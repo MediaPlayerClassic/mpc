@@ -465,7 +465,12 @@ HRESULT CRealMediaSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 
 	m_rtNewStop = m_rtStop;
 
-	return S_OK;
+	SetMediaContentStr(CStringW(m_pFile->m_cd.title), Title);
+	SetMediaContentStr(CStringW(m_pFile->m_cd.author), AuthorName);
+	SetMediaContentStr(CStringW(m_pFile->m_cd.copyright), Copyright);
+	SetMediaContentStr(CStringW(m_pFile->m_cd.comment), Description);
+
+	return m_pOutputs.GetCount() > 0 ? S_OK : E_FAIL;
 }
 
 bool CRealMediaSplitterFilter::InitDeliverLoop()
@@ -1083,9 +1088,9 @@ HRESULT CRMFile::Init()
 	return S_OK;
 }
 
-#define GetBits(n) GetBits2(n, pbitstream, bit_offset, bit_buffer)
+#define GetBits(n) GetBits2(n, p, bit_offset, bit_buffer)
 
-unsigned int GetBits2(int n, unsigned char*& pbitstream, unsigned int& bit_offset, unsigned int& bit_buffer)
+unsigned int GetBits2(int n, unsigned char*& p, unsigned int& bit_offset, unsigned int& bit_buffer)
 {
 	unsigned int ret = ((unsigned int)bit_buffer >> (32-(n)));
 
@@ -1093,19 +1098,19 @@ unsigned int GetBits2(int n, unsigned char*& pbitstream, unsigned int& bit_offse
 	bit_buffer <<= n;
 	if(bit_offset > (32-16))
 	{
-		pbitstream += bit_offset >> 3;
+		p += bit_offset >> 3;
 		bit_offset &= 7;
-		bit_buffer = (unsigned int)pbitstream[0] << 24;
-		bit_buffer |= (unsigned int)pbitstream[1] << 16;
-		bit_buffer |= (unsigned int)pbitstream[2] << 8;
-		bit_buffer |= (unsigned int)pbitstream[3];
+		bit_buffer = (unsigned int)p[0] << 24;
+		bit_buffer |= (unsigned int)p[1] << 16;
+		bit_buffer |= (unsigned int)p[2] << 8;
+		bit_buffer |= (unsigned int)p[3];
 		bit_buffer <<= bit_offset;
 	}
 
    	return ret;
 }
 
-void GetDimensions(unsigned char* pbitstream, unsigned int* wi, unsigned int* hi)
+void GetDimensions(unsigned char* p, unsigned int* wi, unsigned int* hi)
 {
 	unsigned int w, h, c;
 
@@ -1114,10 +1119,9 @@ void GetDimensions(unsigned char* pbitstream, unsigned int* wi, unsigned int* hi
 	const unsigned int ch2[4] = {180, 360, 576, 0};
 
 	unsigned int bit_offset = 0;
-	unsigned int bit_buffer = 0;
+	unsigned int bit_buffer = *(unsigned int*)p;
+	bswap(bit_buffer);
 
-	GetBits(0);
-    
    	GetBits(13);
 
 	GetBits(13);
