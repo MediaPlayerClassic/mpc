@@ -172,6 +172,12 @@
 				RelativePath=".\GSRegs.cpp">
 			</File>
 			<File
+				RelativePath=".\GSSettingsDlg.cpp">
+			</File>
+			<File
+				RelativePath=".\GSSettingsDlg.h">
+			</File>
+			<File
 				RelativePath=".\GSState.cpp">
 			</File>
 			<File
@@ -293,5 +299,8 @@
 		</File>
 	</Files>
 	<Globals>
+		<Global
+			Name="RESOURCE_FILE"
+			Value="GSdx9.rc"/>
 	</Globals>
 </VisualStudioProject>

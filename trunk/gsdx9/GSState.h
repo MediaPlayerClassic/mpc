@@ -44,7 +44,6 @@
 class GSState
 {
 protected:
-
 	static const int m_version = 1;
 
 	struct DrawingContext
@@ -89,6 +88,7 @@ protected:
 
 		CSize GetSize(int ctxt)
 		{
+			ASSERT(ctxt >= 0 && ctxt < 2);
 			CSize size;
 			size.cx = DISPLAY[ctxt].DW / (DISPLAY[ctxt].MAGH+1) + 1;
 			size.cy = DISPLAY[ctxt].DH / (DISPLAY[ctxt].MAGV+1) + 1;
@@ -356,6 +356,9 @@ protected:
 public:
 	GSState(HWND hWnd, HRESULT& hr);
 	virtual ~GSState();
+
+	BOOL m_fDisableShaders;
+	BOOL m_fHalfVRes;
 
 	void Reset();
 	UINT32 Freeze(freezeData* fd);
