@@ -24,7 +24,7 @@
 #include "PPageFileInfoClip.h"
 #include "PPageFileInfoDetails.h"
 
-interface IFilterGraph;
+class CMainFrame;
 
 // CPPageFileInfoSheet
 
@@ -37,7 +37,7 @@ private:
 	CPPageFileInfoDetails m_details;
 
 public:
-	CPPageFileInfoSheet(CString fn, IFilterGraph* pFG, CWnd* pParentWnd = NULL);
+	CPPageFileInfoSheet(CString fn, CMainFrame* pParentWnd);
 	virtual ~CPPageFileInfoSheet();
 
 protected:

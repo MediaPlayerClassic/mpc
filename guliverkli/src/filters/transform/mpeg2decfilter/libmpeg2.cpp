@@ -591,12 +591,18 @@ mpeg2_state_t CMpeg2Dec::mpeg2_parse()
 	case 0xb8:
 		m_action = &CMpeg2Dec::mpeg2_parse_header;
 		break;
+	case 0xbe:
+		m_action = &CMpeg2Dec::seek_chunk;
+		return STATE_PADDING;
 	default:
 		m_action = &CMpeg2Dec::seek_chunk;
 		return STATE_INVALID;
 	}
 
-	return m_state == STATE_SLICE ? STATE_SLICE : STATE_INVALID;
+	if(m_state != STATE_SLICE)
+		m_state = STATE_INVALID;
+
+	return m_state;
 }
 
 

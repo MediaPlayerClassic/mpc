@@ -70,7 +70,7 @@ struct rvinfo
 	DWORD dwSize, fcc1, fcc2; 
 	WORD w, h, bpp; 
 	DWORD unk1, fps, type1, type2;
-	BYTE w2, h2, w3, h3;
+	BYTE morewh[14];
 	void bswap();
 };
 

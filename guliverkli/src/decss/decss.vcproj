@@ -196,6 +196,9 @@
 				RelativePath="CSSscramble.cpp">
 			</File>
 			<File
+				RelativePath=".\DeCSSInputPin.cpp">
+			</File>
+			<File
 				RelativePath="stdafx.cpp">
 				<FileConfiguration
 					Name="Debug|Win32">
@@ -240,6 +243,9 @@
 			</File>
 			<File
 				RelativePath="decss.h">
+			</File>
+			<File
+				RelativePath=".\DeCSSInputPin.h">
 			</File>
 			<File
 				RelativePath="stdafx.h">

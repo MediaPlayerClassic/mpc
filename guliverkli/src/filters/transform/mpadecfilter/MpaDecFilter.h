@@ -24,6 +24,7 @@
 #include <atlcoll.h>
 #include <afxtempl.h>
 #include "libmad-0.15.0b/msvc++/mad.h"
+#include "..\..\..\decss\DeCSSInputPin.h"
 
 [uuid("3D446B6F-71DE-4437-BE15-8CE47174340F")]
 class CMpaDecFilter : public CTransformFilter
@@ -63,23 +64,8 @@ public:
 	HRESULT StopStreaming();
 };
 
-class CMpaDecInputPin : public CTransformInputPin, public IKsPropertySet
+class CMpaDecInputPin : public CDeCSSInputPin
 {
-	int m_varient;
-	BYTE m_Challenge[10], m_KeyCheck[5], m_Key[10];
-	BYTE m_DiscKey[6], m_TitleKey[6];
-
 public:
     CMpaDecInputPin(CTransformFilter* pFilter, HRESULT* phr, LPWSTR pName);
-
-	DECLARE_IUNKNOWN
-    STDMETHODIMP NonDelegatingQueryInterface(REFIID riid, void** ppv);
-
-	// IMemInputPin
-    STDMETHODIMP Receive(IMediaSample* pSample);
-
-	// IKsPropertySet
-    STDMETHODIMP Set(REFGUID PropSet, ULONG Id, LPVOID InstanceData, ULONG InstanceLength, LPVOID PropertyData, ULONG DataLength);
-    STDMETHODIMP Get(REFGUID PropSet, ULONG Id, LPVOID InstanceData, ULONG InstanceLength, LPVOID PropertyData, ULONG DataLength, ULONG* pBytesReturned);
-    STDMETHODIMP QuerySupported(REFGUID PropSet, ULONG Id, ULONG* pTypeSupport);
 };

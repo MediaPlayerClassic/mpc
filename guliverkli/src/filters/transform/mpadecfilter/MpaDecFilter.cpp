@@ -22,12 +22,8 @@
 #include "stdafx.h"
 #include <atlbase.h>
 #include <mmreg.h>
-#include <ks.h>
-#include <ksmedia.h>
 #include "MpaDecFilter.h"
 
-#include "..\..\..\decss\CSSauth.h"
-#include "..\..\..\decss\CSSscramble.h"
 #include "..\..\..\DSUtil\DSUtil.h"
 
 #include <initguid.h>
@@ -45,6 +41,10 @@ const AMOVIESETUP_MEDIATYPE sudPinTypesIn[] =
 	{&MEDIATYPE_MPEG2_PACK, &MEDIASUBTYPE_MPEG2_AUDIO},
 	{&MEDIATYPE_MPEG2_PES, &MEDIASUBTYPE_MPEG2_AUDIO},
 	{&MEDIATYPE_Audio, &MEDIASUBTYPE_MPEG2_AUDIO},
+	{&MEDIATYPE_DVD_ENCRYPTED_PACK, &MEDIASUBTYPE_DVD_LPCM_AUDIO},
+	{&MEDIATYPE_MPEG2_PACK, &MEDIASUBTYPE_DVD_LPCM_AUDIO},
+	{&MEDIATYPE_MPEG2_PES, &MEDIASUBTYPE_DVD_LPCM_AUDIO},
+	{&MEDIATYPE_Audio, &MEDIASUBTYPE_DVD_LPCM_AUDIO},
 };
 
 const AMOVIESETUP_MEDIATYPE sudPinTypesOut[] =
@@ -200,6 +200,8 @@ HRESULT CMpaDecFilter::Receive(IMediaSample* pIn)
 		pmt = NULL;
 	}
 
+	const GUID& subtype = m_pInput->CurrentMediaType().subtype;
+
 	BYTE* pDataIn = NULL;
 	if(FAILED(hr = pIn->GetPointer(&pDataIn))) return hr;
 
@@ -224,16 +226,22 @@ HRESULT CMpaDecFilter::Receive(IMediaSample* pIn)
 
 	if(len <= 0) return S_OK;
 
-	if((*(DWORD*)pDataIn&0xE0FFFFFF) == 0xC0010000)
+	if((*(DWORD*)pDataIn&0xE0FFFFFF) == 0xC0010000 || *(DWORD*)pDataIn == 0xBD010000)
 	{
-		if(m_pInput->CurrentMediaType().subtype == MEDIASUBTYPE_MPEG1Packet)
+		if(subtype == MEDIASUBTYPE_MPEG1Packet)
 		{
 			len -= 4+2+7; pDataIn += 4+2+7; // is it always ..+7 ?
 		}
-		else if(m_pInput->CurrentMediaType().subtype == MEDIASUBTYPE_MPEG2_AUDIO)
+		else if(subtype == MEDIASUBTYPE_MPEG2_AUDIO)
 		{
 			len -= 8; pDataIn += 8;
 			len -= *pDataIn+1; pDataIn += *pDataIn+1;
+		}
+		else if(subtype == MEDIASUBTYPE_DVD_LPCM_AUDIO)
+		{
+			len -= 8; pDataIn += 8;
+			len -= *pDataIn+1; pDataIn += *pDataIn+1;
+			len -= 7; pDataIn += 7;
 		}
 	}
 
@@ -250,45 +258,10 @@ HRESULT CMpaDecFilter::Receive(IMediaSample* pIn)
 		m_rtStart = rtStart;
 	}
 
-	int tmp = m_buff.GetSize();
-	m_buff.SetSize(m_buff.GetSize() + len);
-	memcpy(m_buff.GetData() + tmp, pDataIn, len);
-	len += tmp;
-
-	mad_stream_buffer(&m_stream, m_buff.GetData(), m_buff.GetSize());
-
-	while(1)
+	if(subtype == MEDIASUBTYPE_DVD_LPCM_AUDIO)
 	{
-		if(mad_frame_decode(&m_frame, &m_stream) == -1)
-		{
-			if(m_stream.error == MAD_ERROR_BUFLEN)
-			{
-				m_buff.SetSize(m_stream.bufend - m_stream.this_frame);
-				memcpy(m_buff.GetData(), m_stream.this_frame, m_buff.GetSize());
-				break;
-			}
-
-			if(MAD_RECOVERABLE(m_stream.error))
-				continue;
-
-			return E_FAIL;
-		}
-
-		mad_synth_frame(&m_synth, &m_frame);
-
-		unsigned int nSamplesPerSec = m_synth.pcm.samplerate;
-		unsigned int nChannels = m_synth.pcm.channels;
-		unsigned int nSamples  = m_synth.pcm.length;
-		const mad_fixed_t* left_ch   = m_synth.pcm.samples[0];
-		const mad_fixed_t* right_ch  = m_synth.pcm.samples[1];
-
-		WAVEFORMATEX* wfe = (WAVEFORMATEX*)m_pOutput->CurrentMediaType().Format();
-#ifdef DEBUG
-		ASSERT(wfe->nChannels == nChannels);
-		ASSERT(wfe->nSamplesPerSec == nSamplesPerSec);
-#endif
-		if(wfe->nChannels != nChannels || wfe->nSamplesPerSec != nSamplesPerSec)
-			continue;
+		if(SUCCEEDED(hr))
+			m_rtStart = rtStart;
 
 		CComPtr<IMediaSample> pOut;
 		BYTE* pDataOut = NULL;
@@ -304,33 +277,118 @@ HRESULT CMpaDecFilter::Receive(IMediaSample* pIn)
 			pmt = NULL;
 		}
 
-		REFERENCE_TIME rtDur = 10000000i64*m_frame.header.duration.seconds 
-					+ 10000000i64*m_frame.header.duration.fraction/MAD_TIMER_RESOLUTION;
+		WAVEFORMATEX* wfein = (WAVEFORMATEX*)m_pInput->CurrentMediaType().Format();
+		WAVEFORMATEX* wfeout = (WAVEFORMATEX*)m_pOutput->CurrentMediaType().Format();
+
+		REFERENCE_TIME rtDur = 10000000i64*len/wfein->nAvgBytesPerSec;
 		REFERENCE_TIME rtStart = m_rtStart;
 		REFERENCE_TIME rtStop = m_rtStart + rtDur;
 		pOut->SetTime(&rtStart, &rtStop);
 		pOut->SetMediaTime(NULL, NULL);
 		m_rtStart += rtDur;
 
-		pOut->SetDiscontinuity(FALSE);
+		pOut->SetDiscontinuity(pIn->IsDiscontinuity() == S_OK);
 		pOut->SetSyncPoint(TRUE);
 
-		pOut->SetActualDataLength(nChannels*nSamples*2);
+		long lenout = len*wfeout->wBitsPerSample/wfein->wBitsPerSample;
+		ASSERT(lenout*wfein->wBitsPerSample == len*wfeout->wBitsPerSample);
+		pOut->SetActualDataLength(lenout);
 
-		while(nSamples--)
+		// TODO: when needed convert wfein->wBitsPerSample (20/24bps) to wfeout->wBitsPerSample (16bps)
+
+		for(int i = 0; i < len; i+=2, pDataIn+=2, pDataOut+=2)
 		{
-			*(short*)pDataOut = scale(*left_ch++); 
-			pDataOut += 2;
-
-			if(nChannels == 2)
-			{
-				*(short*)pDataOut = scale(*right_ch++);
-				pDataOut += 2;
-			}
+			pDataOut[0] = pDataIn[1];
+			pDataOut[1] = pDataIn[0];
 		}
 
 		if(FAILED(hr = m_pOutput->Deliver(pOut)))
 			return hr;
+	}
+	else
+	{
+		int tmp = m_buff.GetSize();
+		m_buff.SetSize(m_buff.GetSize() + len);
+		memcpy(m_buff.GetData() + tmp, pDataIn, len);
+		len += tmp;
+
+		mad_stream_buffer(&m_stream, m_buff.GetData(), m_buff.GetSize());
+
+		while(1)
+		{
+			if(mad_frame_decode(&m_frame, &m_stream) == -1)
+			{
+				if(m_stream.error == MAD_ERROR_BUFLEN)
+				{
+					m_buff.SetSize(m_stream.bufend - m_stream.this_frame);
+					memcpy(m_buff.GetData(), m_stream.this_frame, m_buff.GetSize());
+					break;
+				}
+
+				if(MAD_RECOVERABLE(m_stream.error))
+					continue;
+
+				return E_FAIL;
+			}
+
+			mad_synth_frame(&m_synth, &m_frame);
+
+			unsigned int nSamplesPerSec = m_synth.pcm.samplerate;
+			unsigned int nChannels = m_synth.pcm.channels;
+			unsigned int nSamples  = m_synth.pcm.length;
+			const mad_fixed_t* left_ch   = m_synth.pcm.samples[0];
+			const mad_fixed_t* right_ch  = m_synth.pcm.samples[1];
+
+			WAVEFORMATEX* wfe = (WAVEFORMATEX*)m_pOutput->CurrentMediaType().Format();
+#ifdef DEBUG
+			ASSERT(wfe->nChannels == nChannels);
+			ASSERT(wfe->nSamplesPerSec == nSamplesPerSec);
+#endif
+			if(!(wfe->nChannels == nChannels && wfe->nSamplesPerSec == nSamplesPerSec))
+				continue;
+
+			CComPtr<IMediaSample> pOut;
+			BYTE* pDataOut = NULL;
+			if(FAILED(hr = m_pOutput->GetDeliveryBuffer(&pOut, NULL, NULL, 0))
+			|| FAILED(hr = pOut->GetPointer(&pDataOut)))
+				return hr;
+
+			if(SUCCEEDED(pOut->GetMediaType(&pmt)) && pmt)
+			{
+				CMediaType mt = *pmt;
+				m_pOutput->SetMediaType(&mt);
+				DeleteMediaType(pmt);
+				pmt = NULL;
+			}
+
+			REFERENCE_TIME rtDur = 10000000i64*m_frame.header.duration.seconds 
+						+ 10000000i64*m_frame.header.duration.fraction/MAD_TIMER_RESOLUTION;
+			REFERENCE_TIME rtStart = m_rtStart;
+			REFERENCE_TIME rtStop = m_rtStart + rtDur;
+			pOut->SetTime(&rtStart, &rtStop);
+			pOut->SetMediaTime(NULL, NULL);
+			m_rtStart += rtDur;
+
+			pOut->SetDiscontinuity(FALSE);
+			pOut->SetSyncPoint(TRUE);
+
+			pOut->SetActualDataLength(nChannels*nSamples*2);
+
+			while(nSamples--)
+			{
+				*(short*)pDataOut = scale(*left_ch++); 
+				pDataOut += 2;
+
+				if(nChannels == 2)
+				{
+					*(short*)pDataOut = scale(*right_ch++);
+					pDataOut += 2;
+				}
+			}
+
+			if(FAILED(hr = m_pOutput->Deliver(pOut)))
+				return hr;
+		}
 	}
 
 	return S_OK;
@@ -338,6 +396,14 @@ HRESULT CMpaDecFilter::Receive(IMediaSample* pIn)
 
 HRESULT CMpaDecFilter::CheckInputType(const CMediaType* mtIn)
 {
+	// TODO: remove this limitation
+	if(mtIn->subtype == MEDIASUBTYPE_DVD_LPCM_AUDIO)
+	{
+		WAVEFORMATEX* wfe = (WAVEFORMATEX*)mtIn->Format();
+		if(wfe->nChannels != 2 || wfe->wBitsPerSample != 16)
+			return VFW_E_TYPE_NOT_ACCEPTED;
+	}
+
 	return (mtIn->majortype == MEDIATYPE_Audio && mtIn->subtype == MEDIASUBTYPE_MP3
 			|| mtIn->majortype == MEDIATYPE_Audio && mtIn->subtype == MEDIASUBTYPE_MPEG1AudioPayload
 			|| mtIn->majortype == MEDIATYPE_Audio && mtIn->subtype == MEDIASUBTYPE_MPEG1Payload
@@ -346,6 +412,10 @@ HRESULT CMpaDecFilter::CheckInputType(const CMediaType* mtIn)
 			|| mtIn->majortype == MEDIATYPE_MPEG2_PACK && mtIn->subtype == MEDIASUBTYPE_MPEG2_AUDIO
 			|| mtIn->majortype == MEDIATYPE_MPEG2_PES && mtIn->subtype == MEDIASUBTYPE_MPEG2_AUDIO
 			|| mtIn->majortype == MEDIATYPE_Audio && mtIn->subtype == MEDIASUBTYPE_MPEG2_AUDIO
+			|| mtIn->majortype == MEDIATYPE_DVD_ENCRYPTED_PACK && mtIn->subtype == MEDIASUBTYPE_DVD_LPCM_AUDIO
+			|| mtIn->majortype == MEDIATYPE_MPEG2_PACK && mtIn->subtype == MEDIASUBTYPE_DVD_LPCM_AUDIO
+			|| mtIn->majortype == MEDIATYPE_MPEG2_PES && mtIn->subtype == MEDIASUBTYPE_DVD_LPCM_AUDIO
+			|| mtIn->majortype == MEDIATYPE_Audio && mtIn->subtype == MEDIASUBTYPE_DVD_LPCM_AUDIO
 			)
 		? S_OK
 		: VFW_E_TYPE_NOT_ACCEPTED;
@@ -367,7 +437,7 @@ HRESULT CMpaDecFilter::DecideBufferSize(IMemAllocator* pAllocator, ALLOCATOR_PRO
 	WAVEFORMATEX* wfe = (WAVEFORMATEX*)mt.Format();
 
 	pProperties->cBuffers = 8;
-	pProperties->cbBuffer = wfe->nAvgBytesPerSec; // TODO
+	pProperties->cbBuffer = wfe->nChannels*wfe->nSamplesPerSec*4; // TODO
 	pProperties->cbAlign = 1;
 	pProperties->cbPrefix = 0;
 
@@ -434,235 +504,11 @@ HRESULT CMpaDecFilter::StopStreaming()
 	return __super::StopStreaming();
 }
 
-////////
-
-
 //
 // CMpaDecInputPin
 //
 
 CMpaDecInputPin::CMpaDecInputPin(CTransformFilter* pFilter, HRESULT* phr, LPWSTR pName)
-	: CTransformInputPin(NAME("CMpaDecInputPin"), pFilter, phr, pName)
+	: CDeCSSInputPin(NAME("CMpaDecInputPin"), pFilter, phr, pName)
 {
-	m_varient = -1;
-	memset(m_Challenge, 0, sizeof(m_Challenge));
-	memset(m_KeyCheck, 0, sizeof(m_KeyCheck));
-	memset(m_DiscKey, 0, sizeof(m_DiscKey));
-	memset(m_TitleKey, 0, sizeof(m_TitleKey));
-}
-
-STDMETHODIMP CMpaDecInputPin::NonDelegatingQueryInterface(REFIID riid, void** ppv)
-{
-	return
-		QI(IKsPropertySet)
-		 __super::NonDelegatingQueryInterface(riid, ppv);
-}
-
-// IMemInputPin
-
-STDMETHODIMP CMpaDecInputPin::Receive(IMediaSample* pSample)
-{
-	if(m_mt.majortype == MEDIATYPE_DVD_ENCRYPTED_PACK && pSample->GetActualDataLength() == 2048)
-	{
-		BYTE* pBuffer = NULL;
-		if(SUCCEEDED(pSample->GetPointer(&pBuffer)) && (pBuffer[0x14]&0x30))
-		{
-			CSSdescramble(pBuffer, m_TitleKey);
-			pBuffer[0x14] &= ~0x30;
-
-			if(CComQIPtr<IMediaSample2> pMS2 = pSample)
-			{
-				AM_SAMPLE2_PROPERTIES props;
-				memset(&props, 0, sizeof(props));
-				if(SUCCEEDED(pMS2->GetProperties(sizeof(props), (BYTE*)&props))
-				&& (props.dwTypeSpecificFlags & AM_UseNewCSSKey))
-				{
-					props.dwTypeSpecificFlags &= ~AM_UseNewCSSKey;
-					pMS2->SetProperties(sizeof(props), (BYTE*)&props);
-				}
-			}
-		}
-	}
-
-	return __super::Receive(pSample);
-}
-
-// IKsPropertySet
-
-STDMETHODIMP CMpaDecInputPin::Set(REFGUID PropSet, ULONG Id, LPVOID pInstanceData, ULONG InstanceLength, LPVOID pPropertyData, ULONG DataLength)
-{
-	if(PropSet != AM_KSPROPSETID_CopyProt)
-		return E_NOTIMPL;
-
-	switch(Id)
-	{
-	case AM_PROPERTY_COPY_MACROVISION:
-		break;
-	case AM_PROPERTY_DVDCOPY_CHLG_KEY: // 3. auth: receive drive nonce word, also store and encrypt the buskey made up of the two nonce words
-		{
-			AM_DVDCOPY_CHLGKEY* pChlgKey = (AM_DVDCOPY_CHLGKEY*)pPropertyData;
-			for(int i = 0; i < 10; i++)
-				m_Challenge[i] = pChlgKey->ChlgKey[9-i];
-
-			CSSkey2(m_varient, m_Challenge, &m_Key[5]);
-
-			CSSbuskey(m_varient, m_Key, m_KeyCheck);
-		}
-		break;
-	case AM_PROPERTY_DVDCOPY_DISC_KEY: // 5. receive the disckey
-		{
-			AM_DVDCOPY_DISCKEY* pDiscKey = (AM_DVDCOPY_DISCKEY*)pPropertyData; // pDiscKey->DiscKey holds the disckey encrypted with itself and the 408 disckeys encrypted with the playerkeys
-
-			bool fSuccess = false;
-
-			for(int j = 0; j < g_nPlayerKeys; j++)
-			{
-				for(int k = 1; k < 409; k++)
-				{
-					BYTE DiscKey[6];
-					for(int i = 0; i < 5; i++)
-						DiscKey[i] = pDiscKey->DiscKey[k*5+i] ^ m_KeyCheck[4-i];
-					DiscKey[5] = 0;
-
-					CSSdisckey(DiscKey, g_PlayerKeys[j]);
-
-					BYTE Hash[6];
-					for(int i = 0; i < 5; i++)
-						Hash[i] = pDiscKey->DiscKey[i] ^ m_KeyCheck[4-i];
-					Hash[5] = 0;
-
-					CSSdisckey(Hash, DiscKey);
-
-					if(!memcmp(Hash, DiscKey, 6))
-					{
-						memcpy(m_DiscKey, DiscKey, 6);
-						j = g_nPlayerKeys;
-						fSuccess = true;
-						break;
-					}
-				}
-			}
-
-			if(!fSuccess)
-				return E_FAIL;
-		}
-		break;
-	case AM_PROPERTY_DVDCOPY_DVD_KEY1: // 2. auth: receive our drive-encrypted nonce word and decrypt it for verification
-		{
-			AM_DVDCOPY_BUSKEY* pKey1 = (AM_DVDCOPY_BUSKEY*)pPropertyData;
-			for(int i = 0; i < 5; i++)
-				m_Key[i] =  pKey1->BusKey[4-i];
-
-			m_varient = -1;
-
-			for(int i = 31; i >= 0; i--)
-			{
-				CSSkey1(i, m_Challenge, m_KeyCheck);
-
-				if(memcmp(m_KeyCheck, &m_Key[0], 5) == 0)
-					m_varient = i;
-			}
-		}
-		break;
-	case AM_PROPERTY_DVDCOPY_REGION:
-		break;
-	case AM_PROPERTY_DVDCOPY_SET_COPY_STATE:
-		break;
-	case AM_PROPERTY_DVDCOPY_TITLE_KEY: // 6. receive the title key and decrypt it with the disc key
-		{
-			AM_DVDCOPY_TITLEKEY* pTitleKey = (AM_DVDCOPY_TITLEKEY*)pPropertyData;
-			for(int i = 0; i < 5; i++)
-				m_TitleKey[i] = pTitleKey->TitleKey[i] ^ m_KeyCheck[4-i];
-			m_TitleKey[5] = 0;
-			CSStitlekey(m_TitleKey, m_DiscKey);
-		}
-		break;
-	default:
-		return E_PROP_ID_UNSUPPORTED;
-	}
-
-	return S_OK;
-}
-
-STDMETHODIMP CMpaDecInputPin::Get(REFGUID PropSet, ULONG Id, LPVOID pInstanceData, ULONG InstanceLength, LPVOID pPropertyData, ULONG DataLength, ULONG* pBytesReturned)
-{
-	if(PropSet != AM_KSPROPSETID_CopyProt)
-		return E_NOTIMPL;
-
-	switch(Id)
-	{
-	case AM_PROPERTY_DVDCOPY_CHLG_KEY: // 1. auth: send our nonce word
-		{
-			AM_DVDCOPY_CHLGKEY* pChlgKey = (AM_DVDCOPY_CHLGKEY*)pPropertyData;
-			for(int i = 0; i < 10; i++)
-				pChlgKey->ChlgKey[i] = 9 - (m_Challenge[i] = i);
-			*pBytesReturned = sizeof(AM_DVDCOPY_CHLGKEY);
-		}
-		break;
-	case AM_PROPERTY_DVDCOPY_DEC_KEY2: // 4. auth: send back the encrypted drive nonce word to finish the authentication
-		{
-			AM_DVDCOPY_BUSKEY* pKey2 = (AM_DVDCOPY_BUSKEY*)pPropertyData;
-			for(int i = 0; i < 5; i++)
-				pKey2->BusKey[4-i] = m_Key[5+i];
-			*pBytesReturned = sizeof(AM_DVDCOPY_BUSKEY);
-		}
-		break;
-	case AM_PROPERTY_DVDCOPY_REGION:
-		{
-			DVD_REGION* pRegion = (DVD_REGION*)pPropertyData;
-			pRegion->RegionData = 0;
-			pRegion->SystemRegion = 0;
-			*pBytesReturned = sizeof(DVD_REGION);
-		}
-		break;
-	case AM_PROPERTY_DVDCOPY_SET_COPY_STATE:
-		{
-			AM_DVDCOPY_SET_COPY_STATE* pState = (AM_DVDCOPY_SET_COPY_STATE*)pPropertyData;
-			pState->DVDCopyState = AM_DVDCOPYSTATE_AUTHENTICATION_REQUIRED;
-			*pBytesReturned = sizeof(AM_DVDCOPY_SET_COPY_STATE);
-		}
-		break;
-	default:
-		return E_PROP_ID_UNSUPPORTED;
-	}
-
-	return S_OK;
-}
-
-STDMETHODIMP CMpaDecInputPin::QuerySupported(REFGUID PropSet, ULONG Id, ULONG* pTypeSupport)
-{
-	if(PropSet != AM_KSPROPSETID_CopyProt)
-		return E_NOTIMPL;
-
-	switch(Id)
-	{
-	case AM_PROPERTY_COPY_MACROVISION:
-		*pTypeSupport = KSPROPERTY_SUPPORT_SET;
-		break;
-	case AM_PROPERTY_DVDCOPY_CHLG_KEY:
-		*pTypeSupport = KSPROPERTY_SUPPORT_GET | KSPROPERTY_SUPPORT_SET;
-		break;
-	case AM_PROPERTY_DVDCOPY_DEC_KEY2:
-		*pTypeSupport = KSPROPERTY_SUPPORT_GET;
-		break;
-	case AM_PROPERTY_DVDCOPY_DISC_KEY:
-		*pTypeSupport = KSPROPERTY_SUPPORT_SET;
-		break;
-	case AM_PROPERTY_DVDCOPY_DVD_KEY1:
-		*pTypeSupport = KSPROPERTY_SUPPORT_SET;
-		break;
-	case AM_PROPERTY_DVDCOPY_REGION:
-		*pTypeSupport = KSPROPERTY_SUPPORT_GET | KSPROPERTY_SUPPORT_SET;
-		break;
-	case AM_PROPERTY_DVDCOPY_SET_COPY_STATE:
-		*pTypeSupport = KSPROPERTY_SUPPORT_GET | KSPROPERTY_SUPPORT_SET;
-		break;
-	case AM_PROPERTY_DVDCOPY_TITLE_KEY:
-		*pTypeSupport = KSPROPERTY_SUPPORT_SET;
-		break;
-	default:
-		return E_PROP_ID_UNSUPPORTED;
-	}
-
-	return S_OK;
 }

@@ -24,15 +24,16 @@
 
 #include "stdafx.h"
 #include "mplayerc.h"
+#include "MainFrm.h"
 #include "PPageFileInfoSheet.h"
 
 // CPPageFileInfoSheet
 
 IMPLEMENT_DYNAMIC(CPPageFileInfoSheet, CPropertySheet)
-CPPageFileInfoSheet::CPPageFileInfoSheet(CString fn, IFilterGraph* pFG, CWnd* pParentWnd)
+CPPageFileInfoSheet::CPPageFileInfoSheet(CString fn, CMainFrame* pParentWnd)
 	: CPropertySheet(_T("Properties"), pParentWnd, 0)
-	, m_clip(fn, pFG)
-	, m_details(fn, pFG)
+	, m_clip(fn, pParentWnd->pGB)
+	, m_details(fn, pParentWnd->pGB, pParentWnd->m_pCAP)
 {
 	AddPage(&m_clip);
 	AddPage(&m_details);

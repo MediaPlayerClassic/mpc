@@ -21,30 +21,11 @@
 
 #pragma once
 
-class CDeCSSInputPin : public CTransformInputPin, public IKsPropertySet
-{
-	int m_varient;
-	BYTE m_Challenge[10], m_KeyCheck[5], m_Key[10];
-	BYTE m_DiscKey[6], m_TitleKey[6];
-
-public:
-    CDeCSSInputPin(CTransformFilter* pFilter, HRESULT* phr);
-
-	DECLARE_IUNKNOWN
-    STDMETHODIMP NonDelegatingQueryInterface(REFIID riid, void** ppv);
-
-	// IMemInputPin
-    STDMETHODIMP Receive(IMediaSample* pSample);
-
-	// IKsPropertySet
-    STDMETHODIMP Set(REFGUID PropSet, ULONG Id, LPVOID InstanceData, ULONG InstanceLength, LPVOID PropertyData, ULONG DataLength);
-    STDMETHODIMP Get(REFGUID PropSet, ULONG Id, LPVOID InstanceData, ULONG InstanceLength, LPVOID PropertyData, ULONG DataLength, ULONG* pBytesReturned);
-    STDMETHODIMP QuerySupported(REFGUID PropSet, ULONG Id, ULONG* pTypeSupport);
-};
-
 [uuid("7B3BD419-FE03-4820-BE94-A22A4F844895")]
 class CDeCSSFilter : public CTransformFilter
 {
+	friend class CKsPSInputPin;
+
 public:
 	CDeCSSFilter(LPUNKNOWN lpunk, HRESULT* phr);
 	virtual ~CDeCSSFilter();
@@ -57,6 +38,6 @@ public:
     HRESULT CheckInputType(const CMediaType* mtIn);
     HRESULT CheckTransform(const CMediaType* mtIn, const CMediaType* mtOut);
     HRESULT DecideBufferSize(IMemAllocator* pAllocator, ALLOCATOR_PROPERTIES* pProperties);
-    HRESULT GetMediaType(int iPosition, CMediaType* pMediaType);
+    HRESULT GetMediaType(int iPosition, CMediaType* pmt);
 };
 

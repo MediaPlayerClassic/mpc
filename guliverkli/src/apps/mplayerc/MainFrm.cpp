@@ -278,6 +278,8 @@ BEGIN_MESSAGE_MAP(CMainFrame, CFrameWnd)
 	ON_UPDATE_COMMAND_UI(ID_PLAY_GOTO, OnUpdateGoto)
 	ON_COMMAND_RANGE(ID_PLAY_DECRATE, ID_PLAY_INCRATE, OnPlayChangeRate)
 	ON_UPDATE_COMMAND_UI_RANGE(ID_PLAY_DECRATE, ID_PLAY_INCRATE, OnUpdatePlayChangeRate)
+	ON_COMMAND_RANGE(ID_PLAY_INCAUDDELAY, ID_PLAY_DECAUDDELAY, OnPlayChangeAudDelay)
+	ON_UPDATE_COMMAND_UI_RANGE(ID_PLAY_INCAUDDELAY, ID_PLAY_DECAUDDELAY, OnUpdatePlayChangeAudDelay)
 	ON_COMMAND_RANGE(ID_FILTERS_SUBITEM_START, ID_FILTERS_SUBITEM_END, OnPlayFilters)
 	ON_UPDATE_COMMAND_UI_RANGE(ID_FILTERS_SUBITEM_START, ID_FILTERS_SUBITEM_END, OnUpdatePlayFilters)
 	ON_COMMAND_RANGE(ID_AUDIO_SUBITEM_START, ID_AUDIO_SUBITEM_END, OnPlayAudio)
@@ -599,31 +601,17 @@ LRESULT CMainFrame::OnNotifyIcon(WPARAM wParam, LPARAM lParam)
     if((UINT)wParam != IDR_MAINFRAME)
 		return -1;
 
-	WINDOWPLACEMENT wp;
-	GetWindowPlacement(&wp);
-	
-
 	switch((UINT)lParam)
 	{
 		case WM_LBUTTONDOWN:
-		{
+			ShowWindow(SW_SHOW);
+			MoveVideoWindow();
 			SetForegroundWindow();
-		}
-		break;
+			break;
 
 		case WM_LBUTTONDBLCLK:
-		{
-			if(!IsWindowVisible())
-			{
-				ShowWindow(SW_SHOW);
-				SetForegroundWindow();
-			}
-			else
-			{
-				PostMessage(WM_COMMAND, ID_FILE_OPENMEDIA);
-			}
-		}
-		break;
+			PostMessage(WM_COMMAND, ID_FILE_OPENMEDIA);
+			break;
 
 		case WM_RBUTTONDOWN:
 		{
@@ -632,16 +620,16 @@ LRESULT CMainFrame::OnNotifyIcon(WPARAM wParam, LPARAM lParam)
 			SetForegroundWindow();
 			m_popupmain.GetSubMenu(0)->TrackPopupMenu(TPM_RIGHTBUTTON|TPM_NOANIMATION, p.x, p.y, this);
 			PostMessage(WM_NULL);
+			break; 
 		}
-		break; 
 
 		case WM_MOUSEMOVE:
 		{
 			CString str;
 			GetWindowText(str);
 			SetTrayTip(str);
+			break;
 		}
-		break;
 
 		default: 
 			break; 
@@ -988,7 +976,7 @@ void CMainFrame::OnTimer(UINT nIDEvent)
 			m_wndSeekBar.SetPos(rtNow);
 		}
 
-		if(m_pCAP) m_pCAP->SetTime(rtNow/*m_wndSeekBar.GetPos()*/);
+		if(m_pCAP) m_pCAP->SetTime(/*rtNow*/m_wndSeekBar.GetPos());
 	}
 	else if(nIDEvent == TIMER_STREAMPOSPOLLER2 && m_iMediaLoadState == MLS_LOADED)
 	{
@@ -2584,6 +2572,9 @@ void CMainFrame::OnFileOpenmedia()
 
 	SendMessage(WM_COMMAND, ID_FILE_CLOSEMEDIA);
 
+	ShowWindow(SW_SHOW);
+	SetForegroundWindow();
+
 	m_wndPlaylistBar.Open(dlg.m_fns, dlg.m_fMultipleFiles);
 	OpenCurPlaylistItem();
 }
@@ -2742,6 +2733,9 @@ void CMainFrame::OnFileOpendvd()
 
 	SendMessage(WM_COMMAND, ID_FILE_CLOSEMEDIA);
 
+	ShowWindow(SW_SHOW);
+	SetForegroundWindow();
+
 	CAutoPtr<OpenDVDData> p(new OpenDVDData());
 	if(p)
 	{
@@ -2766,6 +2760,9 @@ void CMainFrame::OnFileOpendevice()
 
 	SendMessage(WM_COMMAND, ID_FILE_CLOSEMEDIA);
 
+	ShowWindow(SW_SHOW);
+	SetForegroundWindow();
+
 	CAutoPtr<OpenDeviceData> p(new OpenDeviceData());
 	if(p) {p->DisplayName[0] = capdlg.m_vidstr; p->DisplayName[1] = capdlg.m_audstr;}
 	OpenMedia(p);
@@ -2784,6 +2781,7 @@ void CMainFrame::OnFileOpenCD(UINT nID)
 		{
 		case CDROM_Audio:
 		case CDROM_VideoCD:
+		case CDROM_DVDVideo:
 			nID--;
 			break;
 		default:
@@ -2793,6 +2791,9 @@ void CMainFrame::OnFileOpenCD(UINT nID)
 		if(nID == 0)
 		{
 			SendMessage(WM_COMMAND, ID_FILE_CLOSEMEDIA);
+
+			ShowWindow(SW_SHOW);
+			SetForegroundWindow();
 
 			m_wndPlaylistBar.Open(sl, true);
 			OpenCurPlaylistItem();
@@ -2985,7 +2986,7 @@ void CMainFrame::OnUpdateFileSavesubtitles(CCmdUI* pCmdUI)
 
 void CMainFrame::OnFileProperties()
 {
-	CPPageFileInfoSheet m_fileinfo(m_wndPlaylistBar.GetCur(), pGB, this);
+	CPPageFileInfoSheet m_fileinfo(m_wndPlaylistBar.GetCur(), this);
 	m_fileinfo.DoModal();
 }
 
@@ -3756,6 +3757,28 @@ void CMainFrame::OnUpdatePlayChangeRate(CCmdUI* pCmdUI)
 	}
 
 	pCmdUI->Enable(fEnable);
+}
+
+void CMainFrame::OnPlayChangeAudDelay(UINT nID)
+{
+	if(CComQIPtr<IAudioSwitcherFilter> pAS = FindFilter(__uuidof(CAudioSwitcherFilter), pGB))
+	{
+		REFERENCE_TIME rtShift = pAS->GetAudioTimeShift();
+		rtShift += 
+			nID == ID_PLAY_INCAUDDELAY ? 100000 :
+			nID == ID_PLAY_DECAUDDELAY ? -100000 : 
+			0;
+		pAS->SetAudioTimeShift(rtShift);
+
+		CString str;
+		str.Format(_T("Audio Delay: %I64dms"), rtShift/10000);
+		SendStatusMessage(str, 3000);
+	}
+}
+
+void CMainFrame::OnUpdatePlayChangeAudDelay(CCmdUI* pCmdUI)
+{
+	pCmdUI->Enable(pGB && !!FindFilter(__uuidof(CAudioSwitcherFilter), pGB));
 }
 
 #include "ComPropertySheet.h"
@@ -4915,7 +4938,7 @@ void CMainFrame::ZoomVideoWindow(double scale)
 		{
 			h += GetSystemMetrics(SM_CYCAPTION);
 			w += 2; h += 2; // for the 1 pixel wide sunken frame
-			w += 4; h += 4; // for the inner black border
+			w += 2; h += 3; // for the inner black border
 		}
 
 		GetWindowRect(r);
@@ -6134,6 +6157,10 @@ void CMainFrame::SetupOpenCDSubMenu()
 			break;
 		case CDROM_VideoCD:
 			if(label.IsEmpty()) label = _T("(S)VCD");
+			str.Format(_T("%s (%c:)"), label, drive);
+			break;
+		case CDROM_DVDVideo:
+			if(label.IsEmpty()) label = _T("DVD Video");
 			str.Format(_T("%s (%c:)"), label, drive);
 			break;
 		default:

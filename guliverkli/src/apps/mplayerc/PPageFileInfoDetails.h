@@ -20,7 +20,7 @@
  */
 
 #pragma once
-#include "afxwin.h"
+#include "..\..\subpic\ISubPic.h"
 
 // CPPageFileInfoDetails dialog
 
@@ -30,11 +30,12 @@ class CPPageFileInfoDetails : public CPropertyPage
 
 private:
 	CComPtr<IFilterGraph> m_pFG;
+	CComPtr<ISubPicAllocatorPresenter> m_pCAP;
 
 	HICON m_hIcon;
 
 public:
-	CPPageFileInfoDetails(CString fn, IFilterGraph* pFG);
+	CPPageFileInfoDetails(CString fn, IFilterGraph* pFG, ISubPicAllocatorPresenter* pCAP);
 	virtual ~CPPageFileInfoDetails();
 
 // Dialog Data

@@ -33,10 +33,11 @@
 // CPPageFileInfoDetails dialog
 
 IMPLEMENT_DYNAMIC(CPPageFileInfoDetails, CPropertyPage)
-CPPageFileInfoDetails::CPPageFileInfoDetails(CString fn, IFilterGraph* pFG)
+CPPageFileInfoDetails::CPPageFileInfoDetails(CString fn, IFilterGraph* pFG, ISubPicAllocatorPresenter* pCAP)
 	: CPropertyPage(CPPageFileInfoDetails::IDD, CPPageFileInfoDetails::IDD)
 	, m_fn(fn)
 	, m_pFG(pFG)
+	, m_pCAP(pCAP)
 	, m_hIcon(NULL)
 	, m_type(_T("Not known"))
 	, m_size(_T("Not known"))
@@ -130,65 +131,71 @@ BOOL CPPageFileInfoDetails::OnInitDialog()
 			int((rtDur/10000000)%60));
 	}
 
-	long w = 0, h = 0, arx = 0, ary = 0, fps = 0;
-	if(CComQIPtr<IBasicVideo> pBV = m_pFG)
+	CSize wh(0, 0), arxy(0, 0);
+	long fps = 0;
+
+	if(m_pCAP)
 	{
-		if(SUCCEEDED(pBV->GetVideoSize(&w, &h)))
+		wh = m_pCAP->GetVideoSize(false);
+		arxy = m_pCAP->GetVideoSize(true);
+	}
+	else
+	{
+		if(CComQIPtr<IBasicVideo> pBV = m_pFG)
 		{
-			if(CComQIPtr<IBasicVideo2> pBV2 = m_pFG)
-				pBV2->GetPreferredAspectRatio(&arx, &ary);
+			if(SUCCEEDED(pBV->GetVideoSize(&wh.cx, &wh.cy)))
+			{
+				if(CComQIPtr<IBasicVideo2> pBV2 = m_pFG)
+					pBV2->GetPreferredAspectRatio(&arxy.cx, &arxy.cy);
+			}
+			else
+			{
+				wh.SetSize(0, 0);
+			}
 		}
-		else
+
+		if(wh.cx == 0 && wh.cy == 0)
 		{
-			w = h = 0;
+			BeginEnumFilters(m_pFG, pEF, pBF)
+			{
+				if(CComQIPtr<IBasicVideo> pBV = pBF)
+				{
+					pBV->GetVideoSize(&wh.cx, &wh.cy);
+					if(CComQIPtr<IBasicVideo2> pBV2 = pBF)
+						pBV2->GetPreferredAspectRatio(&arxy.cx, &arxy.cy);
+					break;
+				}
+				else if(CComQIPtr<IVMRWindowlessControl> pWC = pBF)
+				{
+					pWC->GetNativeVideoSize(&wh.cx, &wh.cy, &arxy.cx, &arxy.cy);
+					break;
+				}
+				else if(CComQIPtr<IVMRWindowlessControl9> pWC = pBF)
+				{
+					pWC->GetNativeVideoSize(&wh.cx, &wh.cy, &arxy.cx, &arxy.cy);
+					break;
+				}
+			}
+			EndEnumFilters
 		}
 	}
 
-	if(w == 0 && h == 0)
+	if(wh.cx > 0 && wh.cy > 0)
 	{
-		BeginEnumFilters(m_pFG, pEF, pBF)
-		{
-			if(CComQIPtr<IBasicVideo> pBV = pBF)
-			{
-				pBV->GetVideoSize(&w, &h);
-
-				if(CComQIPtr<IBasicVideo2> pBV2 = pBF)
-					pBV2->GetPreferredAspectRatio(&arx, &ary);
-
-				break;
-			}
-			else if(CComQIPtr<IVMRWindowlessControl> pWC = pBF)
-			{
-				pWC->GetNativeVideoSize(&w, &h, &arx, &ary);
-
-				break;
-			}
-			else if(CComQIPtr<IVMRWindowlessControl9> pWC = pBF)
-			{
-				pWC->GetNativeVideoSize(&w, &h, &arx, &ary);
-
-				break;
-			}
-		}
-		EndEnumFilters
-	}
-
-	if(w > 0 && h > 0)
-	{
-		m_res.Format(_T("%d x %d"), w, h);
+		m_res.Format(_T("%d x %d"), wh.cx, wh.cy);
 
 		int lnko = 0;
 		do
 		{
-			lnko = LNKO(arx, ary);
-			if(lnko > 1) arx /= lnko, ary /= lnko;
+			lnko = LNKO(arxy.cx, arxy.cy);
+			if(lnko > 1) arxy.cx /= lnko, arxy.cy /= lnko;
 		}
 		while(lnko > 1);
 
-		if(arx > 0 && ary > 0 && arx*h != ary*w)
+		if(arxy.cx > 0 && arxy.cy > 0 && arxy.cx*wh.cy != arxy.cy*wh.cx)
 		{
 			CString ar;
-			ar.Format(_T(" (AR %d:%d)"), arx, ary);
+			ar.Format(_T(" (AR %d:%d)"), arxy.cx, arxy.cy);
 			m_res += ar;
 		}
 	}
@@ -200,6 +207,7 @@ BOOL CPPageFileInfoDetails::OnInitDialog()
 	UpdateData(FALSE);
 
 	m_pFG = NULL;
+	m_pCAP = NULL;
 
 	return TRUE;  // return TRUE unless you set the focus to a control
 	// EXCEPTION: OCX Property Pages should return FALSE

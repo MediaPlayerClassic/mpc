@@ -1537,7 +1537,7 @@ BEGIN
             MENUITEM "&Jump To...",                 65535
             MENUITEM SEPARATOR
             MENUITEM "A&udio Language",             65535
-            MENUITEM "Su&btitle Language",          ID_NAVIGATE_SUBTITLELANGUAGE32817
+            MENUITEM "Su&btitle Language",          65535
 
             MENUITEM "Video Ang&le",                65535
             MENUITEM SEPARATOR

@@ -318,7 +318,7 @@ HRESULT CRealMediaSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 			rvinfo rvi = *(rvinfo*)pmp->typeSpecData.GetData();
 			rvi.bswap();
 
-			ASSERT(rvi.dwSize >= FIELD_OFFSET(rvinfo, w2));
+			ASSERT(rvi.dwSize >= FIELD_OFFSET(rvinfo, morewh));
 			ASSERT(rvi.fcc1 == 'ODIV');
 
 			mt.subtype = FOURCCMap(rvi.fcc2);
@@ -1308,13 +1308,17 @@ HRESULT CRealVideoDecoder::InitRV(const CMediaType* pmt)
 
 	if(rvi.fcc2 <= '03VR' && rvi.type2 >= 0x20200002)
 	{
+		int nWidthHeight = (1+((rvi.type1>>16)&7));
+		UINT32* pWH = new UINT32[nWidthHeight*2];
+		pWH[0] = rvi.w; pWH[1] = rvi.h;
+		for(int i = 2; i < nWidthHeight*2; i++)
+			pWH[i] = rvi.morewh[i-2]*4;
 		#pragma pack(push, 1)
-		UINT32 cmsg24[6] = {rvi.w, rvi.h, rvi.w2*4, rvi.h2*4, rvi.w3*4, rvi.h3*4};
 		struct {UINT32 data1; UINT32 data2; UINT32* dimensions;} cmsg_data = 
-			{0x24, 1+((rvi.type1>>16)&7), cmsg24};;
+			{0x24, nWidthHeight, pWH};
 		#pragma pack(pop)
-
 		hr = RVCustomMessage(&cmsg_data, m_dwCookie);
+		delete [] pWH;
 	}
 
 	return hr;

@@ -43,10 +43,9 @@ static const DWORD s_freq[4][4] =
 	{22050,24000,16000,0},
 	{44100,48000,32000,0}
 };
-static const BYTE s_channels[2][4] =
+static const BYTE s_channels[4] =
 {
-	{1,1,1,1}, // only mono for mpeg2/2.5 layer3 ???
-	{2,2,2,1} // stereo, joint stereo, dual, mono
+	2,2,2,1 // stereo, joint stereo, dual, mono
 };
 
 typedef struct
@@ -70,7 +69,7 @@ typedef struct
 		layer = 4 - ((buff[1]>>1)&3);
 		bitrate = s_bitrate[version&1][buff[2]>>4]*1000;
 		freq = s_freq[version][(buff[2]>>2)&3];
-		channels = s_channels[version&1][(buff[3]>>2)&3];
+		channels = s_channels[(buff[3]>>6)&3];
 		framesize = freq ? ((((version&1)?144:72) * bitrate / freq) + ((buff[2]>>1)&1)) : 0;
 
 		return(sync == 0xfff && layer == 3 && bitrate != 0 && freq != 0);

@@ -208,7 +208,6 @@ HRESULT Segment::Parse(CMatroskaNode* pMN0)
 	case 0x1549A966: SegmentInfo.Parse(pMN); break;
 	case 0x114D9B74: MetaSeekInfo.Parse(pMN); break;
 	case 0x1654AE6B: Tracks.Parse(pMN); break;
-//	case 0x1043A770: Chapters.Parse(pMN); break;
 	case 0x1F43B675: Clusters.Parse(pMN); break;
 	case 0x1C53BB6B: Cues.Parse(pMN); break;
 	case 0x1941A469: Attachments.Parse(pMN); break;
@@ -767,10 +766,9 @@ CMatroskaNode::CMatroskaNode(CMatroskaNode* pParent)
 HRESULT CMatroskaNode::Parse()
 {
 	m_filepos = GetPos();
-	m_id.Parse(this);
-	m_len.Parse(this);
+	if(FAILED(m_id.Parse(this)) || FAILED(m_len.Parse(this)))
+		return E_FAIL;
 	m_start = GetPos();
-
 	return S_OK;
 }
 
@@ -791,10 +789,11 @@ bool CMatroskaNode::Next(bool fSame)
 
 	while(SUCCEEDED(SeekTo(m_start+m_len)) && GetPos() < m_pParent->m_start+m_pParent->m_len)
 	{
-		Parse();
-
-		if(m_id == 0) 
-			return(false);
+		if(FAILED(Parse()))
+		{
+			if(!Resync())
+				return(false);
+		}
 
 		if(!fSame || m_id == id) 
 			return(true);
@@ -805,7 +804,7 @@ bool CMatroskaNode::Next(bool fSame)
 
 bool CMatroskaNode::Find(DWORD id, bool fSearch)
 {
-	QWORD pos = m_pParent && m_pParent->m_pParent && !m_pParent->m_pParent->m_pParent /*lvl1?*/ 
+	QWORD pos = m_pParent && m_pParent->m_id == 0x18538067 /*segment?*/ 
 		? FindPos(id) 
 		: 0;
 
@@ -858,4 +857,41 @@ CAutoPtr<CMatroskaNode> CMatroskaNode::Copy()
 	pNewNode->m_filepos = m_filepos;
 	pNewNode->m_start = m_start;
 	return(pNewNode);
+}
+
+bool CMatroskaNode::Resync()
+{
+	if(m_pParent->m_id == 0x18538067) /*segment?*/ 
+	{
+		SeekTo(m_filepos);
+
+		for(BYTE b = 0; S_OK == Read(b); b = 0)
+		{
+			if((b&0xf0) != 0x10)
+				continue;
+
+            DWORD dw = b;
+			Read((BYTE*)&dw+1, 3);
+			bswap((BYTE*)&dw, 4);
+
+			switch(dw)
+			{
+			case 0x1549A966: // SegmentInfo
+			case 0x114D9B74: // MetaSeekInfo
+			case 0x1654AE6B: // Tracks
+			case 0x1F43B675: // Clusters
+			case 0x1C53BB6B: // Cues
+			case 0x1941A469: // Attachments
+			case 0x1043A770: // Chapters
+			case 0x1254C367: // Tags
+				SeekTo(GetPos()-4);
+				return(SUCCEEDED(Parse()));
+			default:
+				SeekTo(GetPos()-3);
+				break;
+			}
+		}
+	}
+
+	return(false);
 }

@@ -24,6 +24,7 @@
 #include <atlcoll.h>
 #include <afxtempl.h>
 #include "IMpeg2DecFilter.h"
+#include "..\..\..\decss\DeCSSInputPin.h"
 
 class CSubpicInputPin;
 class CClosedCaptionOutputPin;
@@ -137,28 +138,15 @@ public:
 	STDMETHODIMP_(bool) IsPlanarYUVEnabled();
 };
 
-class CMpeg2DecInputPin : public CTransformInputPin, public IKsPropertySet
+class CMpeg2DecInputPin : public CDeCSSInputPin
 {
-	int m_varient;
-	BYTE m_Challenge[10], m_KeyCheck[5], m_Key[10];
-	BYTE m_DiscKey[6], m_TitleKey[6];
-
 	LONG m_CorrectTS;
-
-protected:
-	virtual HRESULT Transform(IMediaSample* pSample) {return S_OK;}
 
 public:
     CMpeg2DecInputPin(CTransformFilter* pFilter, HRESULT* phr, LPWSTR pName);
 
-	DECLARE_IUNKNOWN
-    STDMETHODIMP NonDelegatingQueryInterface(REFIID riid, void** ppv);
-
 	CCritSec m_csRateLock;
 	AM_SimpleRateChange m_ratechange;
-
-	// IMemInputPin
-    STDMETHODIMP Receive(IMediaSample* pSample);
 
 	// IKsPropertySet
     STDMETHODIMP Set(REFGUID PropSet, ULONG Id, LPVOID InstanceData, ULONG InstanceLength, LPVOID PropertyData, ULONG DataLength);
@@ -205,7 +193,6 @@ public:
 
 	// IKsPropertySet
     STDMETHODIMP Set(REFGUID PropSet, ULONG Id, LPVOID InstanceData, ULONG InstanceLength, LPVOID PropertyData, ULONG DataLength);
-    STDMETHODIMP Get(REFGUID PropSet, ULONG Id, LPVOID InstanceData, ULONG InstanceLength, LPVOID PropertyData, ULONG DataLength, ULONG* pBytesReturned);
     STDMETHODIMP QuerySupported(REFGUID PropSet, ULONG Id, ULONG* pTypeSupport);
 };
 
