@@ -100,6 +100,18 @@ enum
 
 enum
 {
+	SRC_CDDA=1, 
+	SRC_CDXA=2,
+	SRC_VTS=4,
+	SRC_FLIC=8,
+	SRC_DVD2AVI=16,
+	SRC_DTSAC3=32,
+	SRC_MATROSKA=64,
+	SRC_SHOUTCAST=128
+};
+
+enum
+{
 	DVS_HALF, 
 	DVS_NORMAL, 
 	DVS_DOUBLE, 
@@ -335,6 +347,8 @@ public:
 		CUIceClient UIceClient;
 
 		CMediaFormats Formats;
+
+		UINT SrcFilters;
 
 	public:
 		Settings();

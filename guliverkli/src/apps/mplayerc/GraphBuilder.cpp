@@ -346,11 +346,13 @@ HRESULT CGraphBuilder::Render(LPCTSTR lpsz)
 	CStringW fnw = fn;
 	CString ext = CPath(fn).GetExtension().MakeLower();
 
+	AppSettings& s = AfxGetAppSettings();
+
 	HRESULT hr;
 
 	CComQIPtr<IBaseFilter> pBF;
 
-	if(!pBF && ext == _T(".cda"))
+	if((s.SrcFilters&SRC_CDDA) && !pBF && ext == _T(".cda"))
 	{
 		hr = S_OK;
 		CComPtr<IFileSourceFilter> pReader = new CCDDAReader(NULL, &hr);
@@ -358,7 +360,7 @@ HRESULT CGraphBuilder::Render(LPCTSTR lpsz)
 			pBF = pReader;
 	}
 
-	if(!pBF)
+	if((s.SrcFilters&SRC_CDXA) && !pBF)
 	{
 		hr = S_OK;
 		CComPtr<IFileSourceFilter> pReader = new CCDXAReader(NULL, &hr);
@@ -366,7 +368,7 @@ HRESULT CGraphBuilder::Render(LPCTSTR lpsz)
 			pBF = pReader;
 	}
 
-	if(!pBF) //&& ext == _T(".ifo"))
+	if((s.SrcFilters&SRC_VTS) && !pBF) //&& ext == _T(".ifo"))
 	{
 		hr = S_OK;
 		CComPtr<IFileSourceFilter> pReader = new CVTSReader(NULL, &hr);
@@ -374,7 +376,7 @@ HRESULT CGraphBuilder::Render(LPCTSTR lpsz)
 			pBF = pReader;
 	}
 
-	if(!pBF) //&& (ext == _T(".fli") || ext == _T(".flc")))
+	if((s.SrcFilters&SRC_FLIC) && !pBF) //&& (ext == _T(".fli") || ext == _T(".flc")))
 	{
 		hr = S_OK;
 		CComPtr<IFileSourceFilter> pReader = new CFLICSource(NULL, &hr);
@@ -382,7 +384,7 @@ HRESULT CGraphBuilder::Render(LPCTSTR lpsz)
 			pBF = pReader;
 	}
 
-	if(!pBF) //&& ext == _T(".d2v"))
+	if((s.SrcFilters&SRC_DVD2AVI) && !pBF) //&& ext == _T(".d2v"))
 	{
 		hr = S_OK;
 		CComPtr<IFileSourceFilter> pReader = new CD2VSource(NULL, &hr);
@@ -390,7 +392,7 @@ HRESULT CGraphBuilder::Render(LPCTSTR lpsz)
 			pBF = pReader;
 	}
 
-	if(!pBF) //&& (ext == _T(".dts") || ext == _T(".ac3")))
+	if((s.SrcFilters&SRC_DTSAC3) && !pBF) //&& (ext == _T(".dts") || ext == _T(".ac3")))
 	{
 		hr = S_OK;
 		CComPtr<IFileSourceFilter> pReader = new CDTSAC3Source(NULL, &hr);
@@ -398,7 +400,7 @@ HRESULT CGraphBuilder::Render(LPCTSTR lpsz)
 			pBF = pReader;
 	}
 
-	if(!pBF) //&& (ext == _T(".mkv") || ext == _T(".mka") || ext == _T(".mks")))
+	if((s.SrcFilters&SRC_MATROSKA) && !pBF) //&& (ext == _T(".mkv") || ext == _T(".mka") || ext == _T(".mks")))
 	{
 		hr = S_OK;
 		CComPtr<IFileSourceFilter> pReader = new CMatroskaSourceFilter(NULL, &hr);
@@ -406,7 +408,7 @@ HRESULT CGraphBuilder::Render(LPCTSTR lpsz)
 			pBF = pReader;
 	}
 
-	if(!pBF && fn.Find(_T("://")) >= 0)
+	if((s.SrcFilters&SRC_SHOUTCAST) && !pBF && fn.Find(_T("://")) >= 0)
 	{
 		hr = S_OK;
 		CComPtr<IFileSourceFilter> pReader = new CShoutcastSource(NULL, &hr);

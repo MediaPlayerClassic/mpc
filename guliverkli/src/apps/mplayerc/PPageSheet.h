@@ -31,6 +31,7 @@ using namespace TreePropSheet;
 #include "PPageDVD.h"
 #include "PPageRealMediaQuickTime.h"
 #include "PPageFilters.h"
+#include "PPageSource.h"
 #include "PPageAudioSwitcher.h"
 #include "PPageSubtitles.h"
 #include "PPageSubStyle.h"
@@ -67,6 +68,7 @@ private:
 	CPPageSubtitles m_subtitles;
 	CPPageSubStyle m_substyle;
 	CPPageFilters m_filters;
+	CPPageSource m_source;
 	CPPageAudioSwitcher m_audioswitcher;
 	CPPageTweaks m_tweaks;
 
