@@ -71,7 +71,10 @@ else if(!empty($text))
 
 		$db->fetchAll(
 			"select * from movie ".
-			"where id in (select distinct movie_id from title where title like _utf8 '%$db_text%') ". // TODO: or id in (select distinct movie_id from movie_subtitle where name like _utf8 '%$db_text%')
+			"where id in ".
+			"	(select distinct movie_id from title where title like _utf8 '%$db_text%' ".
+				"union ".
+				"select distinct movie_id from movie_subtitle where name like _utf8 '%$db_text%') ".
 			"and id in (select distinct movie_id from movie_subtitle where subtitle_id in (select distinct id from subtitle)) ".
 			"limit 100 ",
 			$movies);

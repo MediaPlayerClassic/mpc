@@ -145,7 +145,7 @@ class DB
 		if(isset($_ENV['COMPUTERNAME']) && $_ENV['COMPUTERNAME'] == 'I2400P4')
     		$this->dbhost = 'localhost';
     	
-        $this->dblink = @mysql_pconnect($this->dbhost, $this->dblogin, $this->dbpass);
+        $this->dblink = @mysql_pconnect($this->dbhost, $this->dblogin, $this->dbpass, MYSQL_CLIENT_COMPRESS);
 		if(!$this->dblink)
 		{
 			$this->return_error("Unable to connect to the database.");
