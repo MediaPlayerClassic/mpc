@@ -225,18 +225,25 @@ protected:
 	CComPtr<IDirect3D9> m_pD3D;
 	CComPtr<IDirect3DDevice9> m_pD3DDev;
 	CComPtr<IDirect3DSurface9> m_pOrgRenderTarget;
-	CComPtr<IDirect3DSurface9> m_pOrgDepthStencil;
-	CComPtr<IDirect3DPixelShader9> m_pPixelShaders[15];
+	CComPtr<IDirect3DPixelShader9> m_pPixelShaders[16], m_pPixelShaderTFX[5], m_pPixelShaderMerge[3];
+	enum {PS_EN11 = 12, PS_EN01 = 13, PS_EN10 = 14, PS_EN00 = 15};
+	enum {PS_M16 = 0, PS_M24 = 1, PS_M32 = 2};
+	D3DCAPS9 m_caps;
+	D3DSURFACE_DESC m_bd;
+	D3DFORMAT m_fmtDepthStencil;
 
 	virtual void Reset();
 	virtual void VertexKick(bool fSkip) = 0;
 	virtual void DrawingKick(bool fSkip) = 0;
 	virtual void NewPrim() = 0;
 	virtual void FlushPrim() = 0;
-	virtual void Flip();
+	virtual void Flip() = 0;
 	virtual void EndFrame() = 0;
 	virtual void InvalidateTexture(DWORD TBP0) {}
 	virtual void InvalidateTexture(DWORD TBP0, int x, int y) {InvalidateTexture(TBP0);}
+
+	struct FlipSrc {CComPtr<IDirect3DTexture9> pRT; D3DSURFACE_DESC rd; scale_t scale; CRect src;};
+	void FinishFlip(FlipSrc rt[2], bool fShiftField);
 
 	UINT32 m_PRIM;
 
@@ -372,24 +379,24 @@ public:
 	{
 		va_list args;
 		va_start(args, fmt);
-		/**/ //
+		/**/ ////////////
 		if(_tcsstr(fmt, _T("VSync")) 
 		 || _tcsstr(fmt, _T("*** WARNING ***"))
 		 || _tcsstr(fmt, _T("Flush"))
 		// || _tcsstr(fmt, _T("CSR"))
-		// || _tcsstr(fmt, _T("DISP"))
-		// || _tcsstr(fmt, _T("FRAME"))
+		 || _tcsstr(fmt, _T("DISP"))
+		 || _tcsstr(fmt, _T("FRAME"))
 		// || _tcsstr(fmt, _T("ZBUF"))
 		// || _tcsstr(fmt, _T("SMODE"))
 		// || _tcsstr(fmt, _T("PMODE"))
 		 || _tcsstr(fmt, _T("BITBLTBUF"))
 		 || _tcsstr(fmt, _T("TRX"))
-		// || _tcsstr(fmt, _T("PRIM"))
+		 || _tcsstr(fmt, _T("PRIM"))
 		// || _tcsstr(fmt, _T("RGB"))
-		// || _tcsstr(fmt, _T("XYZ"))
+		 || _tcsstr(fmt, _T("XYZ"))
 		// || _tcsstr(fmt, _T("ST"))
 		// || _tcsstr(fmt, _T("XYOFFSET"))
-		// || _tcsstr(fmt, _T("TEX"))
+		 || _tcsstr(fmt, _T("TEX"))
 		// || _tcsstr(fmt, _T("UV"))
 		// || _tcsstr(fmt, _T("FOG"))
 		// || _tcsstr(fmt, _T("ALPHA"))

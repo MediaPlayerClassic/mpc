@@ -56,6 +56,18 @@ END
 
 #endif    // APSTUDIO_INVOKED
 
+#endif    // Hungarian resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+/////////////////////////////////////////////////////////////////////////////
+// English (U.S.) resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
+#ifdef _WIN32
+LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
+#pragma code_page(1252)
+#endif //_WIN32
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -100,18 +112,6 @@ BEGIN
 END
 #endif    // APSTUDIO_INVOKED
 
-#endif    // Hungarian resources
-/////////////////////////////////////////////////////////////////////////////
-
-
-/////////////////////////////////////////////////////////////////////////////
-// English (U.S.) resources
-
-#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
-#ifdef _WIN32
-LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
-#pragma code_page(1252)
-#endif //_WIN32
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -155,24 +155,28 @@ END
 
 /////////////////////////////////////////////////////////////////////////////
 //
-// PIXELSHADER
+// RCDATA
 //
 
-IDR_PIXELSHADER000      PIXELSHADER             "res\\tfx000.psh"
-IDR_PIXELSHADER010      PIXELSHADER             "res\\tfx010.psh"
-IDR_PIXELSHADER011      PIXELSHADER             "res\\tfx011.psh"
-IDR_PIXELSHADER1x1      PIXELSHADER             "res\\tfx1x1.psh"
-IDR_PIXELSHADER1x0      PIXELSHADER             "res\\tfx1x0.psh"
-IDR_PIXELSHADER200      PIXELSHADER             "res\\tfx200.psh"
-IDR_PIXELSHADER210      PIXELSHADER             "res\\tfx210.psh"
-IDR_PIXELSHADER211      PIXELSHADER             "res\\tfx211.psh"
-IDR_PIXELSHADER300      PIXELSHADER             "res\\tfx300.psh"
-IDR_PIXELSHADER310      PIXELSHADER             "res\\tfx310.psh"
-IDR_PIXELSHADER311      PIXELSHADER             "res\\tfx311.psh"
-IDR_PIXELSHADER_EN11    PIXELSHADER             "res\\en11.psh"
-IDR_PIXELSHADER_EN01    PIXELSHADER             "res\\en01.psh"
-IDR_PIXELSHADER_EN10    PIXELSHADER             "res\\en10.psh"
-IDR_PIXELSHADER_EN00    PIXELSHADER             "res\\en00.psh"
+IDR_PS11_TFX000      RCDATA             "res\\ps11_tfx000.psh"
+IDR_PS11_TFX010      RCDATA             "res\\ps11_tfx010.psh"
+IDR_PS11_TFX011      RCDATA             "res\\ps11_tfx011.psh"
+IDR_PS11_TFX1x1      RCDATA             "res\\ps11_tfx1x1.psh"
+IDR_PS11_TFX1x0      RCDATA             "res\\ps11_tfx1x0.psh"
+IDR_PS11_TFX200      RCDATA             "res\\ps11_tfx200.psh"
+IDR_PS11_TFX210      RCDATA             "res\\ps11_tfx210.psh"
+IDR_PS11_TFX211      RCDATA             "res\\ps11_tfx211.psh"
+IDR_PS11_TFX300      RCDATA             "res\\ps11_tfx300.psh"
+IDR_PS11_TFX310      RCDATA             "res\\ps11_tfx310.psh"
+IDR_PS11_TFX311      RCDATA             "res\\ps11_tfx311.psh"
+IDR_PS11_TFX4xx      RCDATA             "res\\ps11_tfx4xx.psh"
+IDR_PS11_EN11        RCDATA             "res\\ps11_en11.psh"
+IDR_PS11_EN01        RCDATA             "res\\ps11_en01.psh"
+IDR_PS11_EN10        RCDATA             "res\\ps11_en10.psh"
+IDR_PS11_EN00        RCDATA             "res\\ps11_en00.psh"
+IDR_PS20_TFX         RCDATA             "res\\ps20_tfx.fx"
+IDR_PS20_MERGE       RCDATA             "res\\ps20_merge.fx"
+
 #endif    // English (U.S.) resources
 /////////////////////////////////////////////////////////////////////////////
 

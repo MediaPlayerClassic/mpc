@@ -54,6 +54,7 @@ public:
 	tex_t m_tex;
 	scale_t m_scale;
 	CComPtr<IDirect3DTexture9> m_pTexture;
+	bool m_fRT;
 	int m_age;
 
 	class GSTexture();

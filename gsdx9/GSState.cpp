@@ -23,6 +23,17 @@
 #include "GSState.h"
 #include "resource.h"
 
+static BOOL IsDepthFormatOk(IDirect3D9* pD3D, D3DFORMAT DepthFormat, D3DFORMAT AdapterFormat, D3DFORMAT BackBufferFormat)
+{
+    // Verify that the depth format exists.
+    HRESULT hr = pD3D->CheckDeviceFormat(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, AdapterFormat, D3DUSAGE_DEPTHSTENCIL, D3DRTYPE_SURFACE, DepthFormat);
+    if(FAILED(hr)) return FALSE;
+
+    // Verify that the depth format is compatible.
+    hr = pD3D->CheckDepthStencilMatch(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, AdapterFormat, BackBufferFormat, DepthFormat);
+    return SUCCEEDED(hr);
+}
+
 GSState::GSState(int w, int h, HWND hWnd, HRESULT& hr) 
 	: m_hWnd(hWnd)
 	, m_fp(NULL)
@@ -30,6 +41,8 @@ GSState::GSState(int w, int h, HWND hWnd, HRESULT& hr)
 	, m_ctxt(NULL)
 {
 	hr = E_FAIL;
+
+	AFX_MANAGE_STATE(AfxGetStaticModuleState());
 
     CWinApp* pApp = AfxGetApp();
 	m_fDisableShaders = !!pApp->GetProfileInt(_T("Settings"), _T("DisableShaders"), FALSE);
@@ -125,43 +138,38 @@ GSState::GSState(int w, int h, HWND hWnd, HRESULT& hr)
 	if(!(m_pD3D = Direct3DCreate9(D3D_SDK_VERSION)))
 		return;
 
-	D3DCAPS9 d3dcaps;
-	ZeroMemory(&d3dcaps, sizeof(d3dcaps));
-	m_pD3D->GetDeviceCaps(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, &d3dcaps);
-/*
-	if(d3dcaps.VertexShaderVersion < D3DVS_VERSION(1, 1))
-		return;
+	ZeroMemory(&m_caps, sizeof(m_caps));
+	m_pD3D->GetDeviceCaps(D3DADAPTER_DEFAULT, /*D3DDEVTYPE_REF*/D3DDEVTYPE_HAL, &m_caps);
 
-	if(d3dcaps.PixelShaderVersion < D3DPS_VERSION(1, 1))
-		return;
-*/
+	m_fmtDepthStencil = 
+		IsDepthFormatOk(m_pD3D, D3DFMT_D32, D3DFMT_X8R8G8B8, D3DFMT_X8R8G8B8) ? D3DFMT_D32 :
+		IsDepthFormatOk(m_pD3D, D3DFMT_D24X8, D3DFMT_X8R8G8B8, D3DFMT_X8R8G8B8) ? D3DFMT_D24X8 :
+		D3DFMT_D16;
+
 	D3DPRESENT_PARAMETERS d3dpp;
 	ZeroMemory(&d3dpp, sizeof(d3dpp));
 	d3dpp.Windowed = TRUE;
 	d3dpp.hDeviceWindow = hWnd;
 	d3dpp.SwapEffect = D3DSWAPEFFECT_COPY/*D3DSWAPEFFECT_DISCARD*//*D3DSWAPEFFECT_FLIP*/;
 	d3dpp.BackBufferFormat = D3DFMT_X8R8G8B8;
-	//d3dpp.BackBufferCount = 2;
 	d3dpp.BackBufferWidth = w;
 	d3dpp.BackBufferHeight = h;
 //	d3dpp.Flags = D3DPRESENTFLAG_LOCKABLE_BACKBUFFER;
-/*
-	d3dpp.EnableAutoDepthStencil = TRUE;
-	d3dpp.AutoDepthStencilFormat = D3DFMT_D24X8;
-*/
 
-	DWORD BehaviorFlags = d3dcaps.VertexProcessingCaps
-		? D3DCREATE_HARDWARE_VERTEXPROCESSING
-		: D3DCREATE_SOFTWARE_VERTEXPROCESSING;
-
-	if(FAILED(m_pD3D->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, hWnd,
-		BehaviorFlags, &d3dpp, &m_pD3DDev)))
+	if(FAILED(m_pD3D->CreateDevice(D3DADAPTER_DEFAULT, /*D3DDEVTYPE_REF*/D3DDEVTYPE_HAL, hWnd,
+		m_caps.VertexProcessingCaps ? D3DCREATE_HARDWARE_VERTEXPROCESSING : D3DCREATE_SOFTWARE_VERTEXPROCESSING, 
+		&d3dpp, &m_pD3DDev)))
 		return;
 
-	hr = m_pD3DDev->Clear(0, NULL, D3DCLEAR_TARGET/*|D3DCLEAR_ZBUFFER*/, 0, 1.0f, 0);
+	CComPtr<IDirect3DSurface9> pBackBuff;
+	hr = m_pD3DDev->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &pBackBuff);
+
+	ZeroMemory(&m_bd, sizeof(m_bd));
+	pBackBuff->GetDesc(&m_bd);
+
+	hr = m_pD3DDev->Clear(0, NULL, D3DCLEAR_TARGET, 0, 1.0f, 0);
 
     hr = m_pD3DDev->GetRenderTarget(0, &m_pOrgRenderTarget);
-	// hr = m_pD3DDev->GetDepthStencilSurface(&m_pOrgDepthStencil);
 
     hr = m_pD3DDev->SetRenderState(D3DRS_CULLMODE, D3DCULL_NONE);
     hr = m_pD3DDev->SetRenderState(D3DRS_LIGHTING, FALSE);
@@ -171,45 +179,78 @@ GSState::GSState(int w, int h, HWND hWnd, HRESULT& hr)
 		hr = m_pD3DDev->SetSamplerState(i, D3DSAMP_MAGFILTER, D3DTEXF_LINEAR);
 		hr = m_pD3DDev->SetSamplerState(i, D3DSAMP_MINFILTER, D3DTEXF_LINEAR);
 		// hr = m_pD3DDev->SetSamplerState(i, D3DSAMP_MIPFILTER, D3DTEXF_LINEAR);
-
 		hr = m_pD3DDev->SetSamplerState(i, D3DSAMP_ADDRESSU, D3DTADDRESS_CLAMP);
 		hr = m_pD3DDev->SetSamplerState(i, D3DSAMP_ADDRESSV, D3DTADDRESS_CLAMP);
 	}
 
-	static const UINT nShaderIDs[] = 
+	HMODULE hModule = AfxGetResourceHandle();
+
+	// ps_2_0
+
+	if(!m_fDisableShaders && m_caps.PixelShaderVersion >= D3DVS_VERSION(2, 0))
 	{
-		IDR_PIXELSHADER000, IDR_PIXELSHADER010, IDR_PIXELSHADER011,
-		IDR_PIXELSHADER1x0, IDR_PIXELSHADER1x1,
-		IDR_PIXELSHADER200, IDR_PIXELSHADER210, IDR_PIXELSHADER211,
-		IDR_PIXELSHADER300, IDR_PIXELSHADER310, IDR_PIXELSHADER311,
-		IDR_PIXELSHADER_EN11, IDR_PIXELSHADER_EN10, IDR_PIXELSHADER_EN01, IDR_PIXELSHADER_EN00,
-	};
-
-	AFX_MANAGE_STATE(AfxGetStaticModuleState());
-
-	if(!m_fDisableShaders)
-	for(int i = 0; i < countof(nShaderIDs); i++)
-	{
-		CStringA str;
-		HRSRC hRsrc = FindResource(AfxGetResourceHandle(), MAKEINTRESOURCE(nShaderIDs[i]), _T("PixelShader"));
-		HGLOBAL hGlobal = LoadResource(AfxGetResourceHandle(), hRsrc);
-		DWORD size = SizeofResource(AfxGetResourceHandle(), hRsrc);
-		memcpy(str.GetBufferSetLength(size), LockResource(hGlobal), size);
-
-		CComPtr<ID3DXBuffer> pShader, pErrorMsgs;
-		hr = D3DXAssembleShader((LPCSTR)str, str.GetLength(), NULL, NULL, 0, &pShader, &pErrorMsgs);
-
-		if(FAILED(hr))
+		for(int i = 0; i < 5; i++)
 		{
-			TRACE(_T("%s\n"), CString((char*)pErrorMsgs->GetBufferPointer())); 
-			ASSERT(0);
-		}
-		else
-		{
-			hr = m_pD3DDev->CreatePixelShader((DWORD*)pShader->GetBufferPointer(), &m_pPixelShaders[i]);
+			CString main;
+			main.Format(_T("main_tfx%d"), i);
+
+			CComPtr<ID3DXBuffer> pShader, pErrorMsgs;
+			HRESULT hr = D3DXCompileShaderFromResource(hModule, MAKEINTRESOURCE(IDR_PS20_TFX), NULL, NULL, main, _T("ps_2_0"), 0, &pShader, &pErrorMsgs, NULL);
 			ASSERT(SUCCEEDED(hr));
+
+			if(SUCCEEDED(hr))
+			{
+				hr = m_pD3DDev->CreatePixelShader((DWORD*)pShader->GetBufferPointer(), &m_pPixelShaderTFX[i]);
+				ASSERT(SUCCEEDED(hr));
+			}
+		}
+
+		for(int i = 0; i < 3; i++)
+		{
+			CString main;
+			main.Format(_T("main%d"), i);
+
+			CComPtr<ID3DXBuffer> pShader, pErrorMsgs;
+			HRESULT hr = D3DXCompileShaderFromResource(hModule, MAKEINTRESOURCE(IDR_PS20_MERGE), NULL, NULL, main, _T("ps_2_0"), 0, &pShader, &pErrorMsgs, NULL);
+			ASSERT(SUCCEEDED(hr));
+
+			if(SUCCEEDED(hr))
+			{
+				hr = m_pD3DDev->CreatePixelShader((DWORD*)pShader->GetBufferPointer(), &m_pPixelShaderMerge[i]);
+				ASSERT(SUCCEEDED(hr));
+			}
 		}
 	}
+
+	// ps_1_1
+
+	if(!m_fDisableShaders && m_caps.PixelShaderVersion >= D3DVS_VERSION(1, 1))
+	{
+		static const UINT nShaderIDs[] = 
+		{
+			IDR_PS11_TFX000, IDR_PS11_TFX010, IDR_PS11_TFX011, 
+			IDR_PS11_TFX1x1, IDR_PS11_TFX1x0,
+			IDR_PS11_TFX200, IDR_PS11_TFX210, IDR_PS11_TFX211,
+			IDR_PS11_TFX300, IDR_PS11_TFX310, IDR_PS11_TFX311,
+			IDR_PS11_TFX4xx,
+			IDR_PS11_EN11, IDR_PS11_EN01, IDR_PS11_EN10, IDR_PS11_EN00
+		};
+
+		for(int i = 0; i < countof(nShaderIDs); i++)
+		{
+			CComPtr<ID3DXBuffer> pShader, pErrorMsgs;
+			hr = D3DXAssembleShaderFromResource(hModule, MAKEINTRESOURCE(nShaderIDs[i]), NULL, NULL, 0, &pShader, &pErrorMsgs);
+			ASSERT(SUCCEEDED(hr));
+
+			if(SUCCEEDED(hr))
+			{
+				hr = m_pD3DDev->CreatePixelShader((DWORD*)pShader->GetBufferPointer(), &m_pPixelShaders[i]);
+				ASSERT(SUCCEEDED(hr));
+			}
+		}
+	}
+
+//m_caps.PixelShaderVersion = D3DVS_VERSION(1, 1);
 
 	hr = S_OK;
 
@@ -219,7 +260,6 @@ GSState::GSState(int w, int h, HWND hWnd, HRESULT& hr)
 	m_fp = _tfopen(_T("c:\\gs.txt"), _T("at"));
 
 //	m_rs.CSRr.REV = 0x20;
-
 }
 
 GSState::~GSState()
@@ -342,7 +382,7 @@ void GSState::Write64(GS_REG mem, GSReg* r)
 
 		case GS_DISPFB1:
 			m_rs.DISPFB[0].i64 = r->i64;
-			LOG((_T("Write64(GS_DISPFB1, FBP=%x FBW=%x PSM=%x DBX=%x DBY=%x)\n"), 
+			LOG((_T("Write64(GS_DISPFB1, FBP=%x FBW=%d PSM=%x DBX=%x DBY=%x)\n"), 
 				r->DISPFB.FBP<<5,
 				r->DISPFB.FBW*64,
 				r->DISPFB.PSM,
@@ -363,7 +403,7 @@ void GSState::Write64(GS_REG mem, GSReg* r)
 
 		case GS_DISPFB2:
 			m_rs.DISPFB[1].i64 = r->i64;
-			LOG((_T("Write64(GS_DISPFB2, FBP=%x FBW=%x PSM=%x DBX=%x DBY=%x)\n"), 
+			LOG((_T("Write64(GS_DISPFB2, FBP=%x FBW=%d PSM=%x DBX=%x DBY=%x)\n"), 
 				r->DISPFB.FBP<<5,
 				r->DISPFB.FBW*64,
 				r->DISPFB.PSM,
@@ -682,36 +722,162 @@ void GSState::Reset()
 	if(m_pD3DDev) m_pD3DDev->Clear(0, NULL, D3DCLEAR_TARGET/*|D3DCLEAR_ZBUFFER*/, 0, 1.0f, 0);
 }
 
-void GSState::Flip()
+void GSState::FinishFlip(FlipSrc rt[2], bool fShiftField)
 {
 	HRESULT hr;
 
+	bool fEN[2];
+	for(int i = 0; i < countof(fEN); i++)
+		fEN[i] = m_rs.IsEnabled(i) && rt[i].pRT;
+
+	if(!fEN[0] && !fEN[1])
+	{
+		hr = m_pD3DDev->Present(NULL, NULL, NULL, NULL);
+		return;
+	}
+
+	CRect dst(0, 0, m_bd.Width, m_bd.Height);
+
+	struct
+	{
+		float x, y, z, rhw;
+		float tu1, tv1;
+		float tu2, tv2;
+	}
+	pVertices[] =
+	{
+		{(float)dst.left, (float)dst.top, 0.5f, 2.0f, 
+			(float)rt[0].src.left / rt[0].rd.Width, (float)rt[0].src.top / rt[0].rd.Height, 
+			(float)rt[1].src.left / rt[1].rd.Width, (float)rt[1].src.top / rt[1].rd.Height},
+		{(float)dst.right, (float)dst.top, 0.5f, 2.0f, 
+			(float)rt[0].src.right / rt[0].rd.Width, (float)rt[0].src.top / rt[0].rd.Height, 
+			(float)rt[1].src.right / rt[1].rd.Width, (float)rt[1].src.top / rt[1].rd.Height},
+		{(float)dst.left, (float)dst.bottom, 0.5f, 2.0f, 
+			(float)rt[0].src.left / rt[0].rd.Width, (float)rt[0].src.bottom / rt[0].rd.Height, 
+			(float)rt[1].src.left / rt[1].rd.Width, (float)rt[1].src.bottom / rt[1].rd.Height},
+		{(float)dst.right, (float)dst.bottom, 0.5f, 2.0f, 
+			(float)rt[0].src.right / rt[0].rd.Width, (float)rt[0].src.bottom / rt[0].rd.Height, 
+			(float)rt[1].src.right / rt[1].rd.Width, (float)rt[1].src.bottom / rt[1].rd.Height},
+	};
+
+	for(int i = 0; i < countof(pVertices); i++)
+	{
+		pVertices[i].x -= 0.5;
+		pVertices[i].y -= 0.5;
+
+		if(fShiftField)
+		{
+			pVertices[i].tv1 += rt[0].scale.y*0.5f / rt[0].rd.Height;
+			pVertices[i].tv2 += rt[1].scale.y*0.5f / rt[1].rd.Height;
+		}
+	}
+
 	hr = m_pD3DDev->SetRenderTarget(0, m_pOrgRenderTarget);
-	hr = m_pD3DDev->SetDepthStencilSurface(m_pOrgDepthStencil);
 	// hr = m_pD3DDev->Clear(0, NULL, D3DCLEAR_TARGET, 0, 1.0f, 0);
 
-    hr = m_pD3DDev->SetRenderState(D3DRS_CULLMODE, D3DCULL_NONE);
-    hr = m_pD3DDev->SetRenderState(D3DRS_LIGHTING, FALSE);
 	hr = m_pD3DDev->SetRenderState(D3DRS_ZENABLE, FALSE);
     hr = m_pD3DDev->SetRenderState(D3DRS_ALPHABLENDENABLE, FALSE);
 	hr = m_pD3DDev->SetRenderState(D3DRS_ALPHATESTENABLE, FALSE); 
 	hr = m_pD3DDev->SetRenderState(D3DRS_SCISSORTESTENABLE, FALSE);
 
-	const float c[] = 
-	{
-		1.0f * m_rs.BGCOLOR.B / 255,
-		1.0f * m_rs.BGCOLOR.G / 255, 
-		1.0f * m_rs.BGCOLOR.R / 255,
-		1.0f * m_rs.PMODE.ALP / 255,
-		0.0f,
-		0.0f,
-		0.0f,
-		m_rs.PMODE.MMOD ? 1.0f : 0.0f,
-		0.0f,
-		0.0f,
-		0.0f,
-		m_rs.PMODE.SLBG ? 1.0f : 0.0f,
-	};
+	hr = m_pD3DDev->SetTexture(0, rt[0].pRT);
+	hr = m_pD3DDev->SetTexture(1, rt[1].pRT);
 
-	hr = m_pD3DDev->SetPixelShaderConstantF(0, c, 3);
+	hr = m_pD3DDev->SetTextureStageState(0, D3DTSS_TEXCOORDINDEX, 0);
+	hr = m_pD3DDev->SetTextureStageState(1, D3DTSS_TEXCOORDINDEX, 1);
+
+	CComPtr<IDirect3DPixelShader9> pPixelShader;
+
+	if(!pPixelShader && !m_fDisableShaders && m_caps.PixelShaderVersion >= D3DVS_VERSION(2, 0))
+	{
+		pPixelShader = m_pPixelShaderMerge[PS_M32];
+	}
+
+	if(!pPixelShader && !m_fDisableShaders && m_caps.PixelShaderVersion >= D3DVS_VERSION(1, 1))
+	{
+		if(fEN[0] && fEN[1]) // RAO1 + RAO2
+		{
+			pPixelShader = m_pPixelShaders[PS_EN11];
+		}
+		else if(fEN[0]) // RAO1
+		{
+			pPixelShader = m_pPixelShaders[PS_EN10];
+		}
+		else if(fEN[1]) // RAO2
+		{
+			pPixelShader = m_pPixelShaders[PS_EN01];
+		}
+	}
+
+	if(!pPixelShader)
+	{
+		int stage = 0;
+
+		hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_COLOROP, D3DTOP_SELECTARG1);
+		hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_COLORARG1, D3DTA_TEXTURE);
+		hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_ALPHAOP, D3DTOP_DISABLE);
+		stage++;
+
+		if(fEN[0] && fEN[1]) // RAO1 + RAO2
+		{
+			if(m_rs.PMODE.ALP < 0xff)
+			{
+				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_COLOROP, D3DTOP_LERP);
+				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_COLORARG1, D3DTA_CURRENT);
+				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_COLORARG2, m_rs.PMODE.SLBG ? D3DTA_CONSTANT : D3DTA_TEXTURE);
+				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_COLORARG0, D3DTA_ALPHAREPLICATE|(m_rs.PMODE.MMOD ? D3DTA_CONSTANT : D3DTA_TEXTURE));
+				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_ALPHAOP, D3DTOP_DISABLE);
+				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_CONSTANT, D3DCOLOR_ARGB(m_rs.PMODE.ALP, m_rs.BGCOLOR.R, m_rs.BGCOLOR.G, m_rs.BGCOLOR.B));
+				stage++;
+			}
+		}
+		else if(fEN[0]) // RAO1
+		{
+			if(m_rs.PMODE.ALP < 0xff)
+			{
+				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_COLOROP, D3DTOP_MODULATE);
+				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_COLORARG1, D3DTA_CURRENT);
+				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_COLORARG2, D3DTA_ALPHAREPLICATE|(m_rs.PMODE.MMOD ? D3DTA_CONSTANT : D3DTA_TEXTURE));
+				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_ALPHAOP, D3DTOP_DISABLE);
+				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_CONSTANT, D3DCOLOR_ARGB(m_rs.PMODE.ALP, 0, 0, 0));
+				stage++;
+			}
+		}
+		else if(fEN[1]) // RAO2
+		{
+			hr = m_pD3DDev->SetTexture(0, rt[1].pRT);
+			hr = m_pD3DDev->SetTextureStageState(0, D3DTSS_TEXCOORDINDEX, 1);
+
+			// FIXME
+			hr = m_pD3DDev->SetTextureStageState(0, D3DTSS_TEXCOORDINDEX, 0);
+			for(int i = 0; i < countof(pVertices); i++)
+			{
+				pVertices[i].tu1 = pVertices[i].tu2;
+				pVertices[i].tv1 = pVertices[i].tv2;
+			}
+		}
+
+		hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_COLOROP, D3DTOP_DISABLE);
+		hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_ALPHAOP, D3DTOP_DISABLE);
+	}
+
+	if(pPixelShader)
+	{
+		const float c[] = 
+		{
+			(float)m_rs.BGCOLOR.B / 255, (float)m_rs.BGCOLOR.G / 255, (float)m_rs.BGCOLOR.R / 255, (float)m_rs.PMODE.ALP / 255,
+			m_rs.PMODE.AMOD, m_rs.IsEnabled(0), m_rs.IsEnabled(1), m_rs.PMODE.MMOD,
+			m_de.TEXA.AEM, (float)m_de.TEXA.TA0 / 255, (float)m_de.TEXA.TA1 / 255, m_rs.PMODE.SLBG,
+		};
+
+		hr = m_pD3DDev->SetPixelShaderConstantF(0, c, countof(c)/4);
+	}
+
+	hr = m_pD3DDev->BeginScene();
+	hr = m_pD3DDev->SetPixelShader(pPixelShader);
+	hr = m_pD3DDev->SetFVF(D3DFVF_XYZRHW|D3DFVF_TEX2);
+	hr = m_pD3DDev->DrawPrimitiveUP(D3DPT_TRIANGLESTRIP, 2, pVertices, sizeof(pVertices[0]));
+	hr = m_pD3DDev->EndScene();
+
+	hr = m_pD3DDev->Present(NULL, NULL, NULL, NULL);
 }

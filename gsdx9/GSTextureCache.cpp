@@ -29,12 +29,14 @@ GSTexture::GSTexture() : m_scale(1, 1)
 	m_tex.TEXA.i64 = -1;
 	m_tex.TEXCLUT.i64 = -1;
 	m_age = 0;
+	m_fRT = false;
 }
 
 GSTexture::GSTexture(tex_t& tex, scale_t& scale, CComPtr<IDirect3DTexture9> pTexture)
 	: m_tex(tex) , m_scale(scale), m_pTexture(pTexture), m_age(0)
 {
 	ASSERT(pTexture);
+	m_fRT = IsRenderTarget(m_pTexture);
 }
 
 //
@@ -63,15 +65,14 @@ POSITION GSTextureCache::Lookup(tex_t& tex, scale_t& scale, GSTexture& ret)
 	{
 		GSTexture& t = GetAt(pos);
 
-		if(t.m_tex.TEX0.TBP0 == tex.TEX0.TBP0 && IsRenderTarget(t.m_pTexture)
-		&& t.m_scale == scale)
+		if(t.m_tex.TEX0.TBP0 == tex.TEX0.TBP0 && t.m_fRT && t.m_scale == scale)
 		{
 			t.m_age = 0;
 			ret = t;
 			return pos;
 		}
 
-		if(t.m_tex.TEX0.TBP0 == tex.TEX0.TBP0&& t.m_tex.TEX0.PSM == tex.TEX0.PSM && (tex.TEX0.PSM <= PSM_PSMCT16S || t.m_tex.TEX0.CBP == tex.TEX0.CBP)
+		if(t.m_tex.TEX0.TBP0 == tex.TEX0.TBP0 && t.m_tex.TEX0.PSM == tex.TEX0.PSM && (tex.TEX0.PSM <= PSM_PSMCT16S || t.m_tex.TEX0.CBP == tex.TEX0.CBP)
 		&& t.m_tex.TEX0.TW == tex.TEX0.TW && t.m_tex.TEX0.TH == tex.TEX0.TH
 		&& (!(t.m_tex.CLAMP.WMS&2) && !(tex.CLAMP.WMS&2) && !(t.m_tex.CLAMP.WMT&2) && !(tex.CLAMP.WMT&2) || t.m_tex.CLAMP.i64 == tex.CLAMP.i64)
 		&& t.m_tex.TEXA.TA0 == tex.TEXA.TA0 && t.m_tex.TEXA.TA1 == tex.TEXA.TA1 && t.m_tex.TEXA.AEM == tex.TEXA.AEM
@@ -92,16 +93,15 @@ POSITION GSTextureCache::Lookup(tex_t& tex, GSTexture& ret)
 	for(POSITION pos = GetHeadPosition(); pos; GetNext(pos))
 	{
 		GSTexture& t = GetAt(pos);
-		bool fRT = IsRenderTarget(t.m_pTexture);
 
-		if(t.m_tex.TEX0.TBP0 == tex.TEX0.TBP0 && IsRenderTarget(t.m_pTexture))
+		if(t.m_tex.TEX0.TBP0 == tex.TEX0.TBP0 && t.m_fRT)
 		{
 			t.m_age = 0;
 			ret = t;
 			return pos;
 		}
 
-		if(t.m_tex.TEX0.TBP0 == tex.TEX0.TBP0&& t.m_tex.TEX0.PSM == tex.TEX0.PSM && (tex.TEX0.PSM <= PSM_PSMCT16S || t.m_tex.TEX0.CBP == tex.TEX0.CBP)
+		if(t.m_tex.TEX0.TBP0 == tex.TEX0.TBP0 && t.m_tex.TEX0.PSM == tex.TEX0.PSM && (tex.TEX0.PSM <= PSM_PSMCT16S || t.m_tex.TEX0.CBP == tex.TEX0.CBP)
 		&& t.m_tex.TEX0.TW == tex.TEX0.TW && t.m_tex.TEX0.TH == tex.TEX0.TH
 		&& (!(t.m_tex.CLAMP.WMS&2) && !(tex.CLAMP.WMS&2) && !(t.m_tex.CLAMP.WMT&2) && !(tex.CLAMP.WMT&2) || t.m_tex.CLAMP.i64 == tex.CLAMP.i64)
 		&& t.m_tex.TEXA.TA0 == tex.TEXA.TA0 && t.m_tex.TEXA.TA1 == tex.TEXA.TA1 && t.m_tex.TEXA.AEM == tex.TEXA.AEM

@@ -82,12 +82,18 @@ void GSRendererSoft<VERTEX>::DrawingKick(bool fSkip)
 		m_vl.RemoveAt(0, pVertices[nVertices++]);
 		m_vl.GetAt(0, pVertices[nVertices++]);
 		m_vl.GetAt(1, pVertices[nVertices++]);
+		LOGV((pVertices[0], _T("TriStrip")));
+		LOGV((pVertices[1], _T("TriStrip")));
+		LOGV((pVertices[2], _T("TriStrip")));
 		break;
 	case 5: // triangle fan
 		m_primtype = PRIM_TRIANGLE;
 		m_vl.GetAt(0, pVertices[nVertices++]);
 		m_vl.RemoveAt(1, pVertices[nVertices++]);
 		m_vl.GetAt(1, pVertices[nVertices++]);
+		LOGV((pVertices[0], _T("TriFan")));
+		LOGV((pVertices[1], _T("TriFan")));
+		LOGV((pVertices[2], _T("TriFan")));
 		break;
 	case 6: // sprite
 		m_primtype = PRIM_SPRITE;
@@ -102,6 +108,10 @@ void GSRendererSoft<VERTEX>::DrawingKick(bool fSkip)
 		pVertices[1].v = pVertices[0].v;
 		pVertices[2].x = pVertices[0].x;
 		pVertices[2].u = pVertices[0].u;
+		LOGV((pVertices[0], _T("Sprite")));
+		LOGV((pVertices[1], _T("Sprite")));
+		LOGV((pVertices[2], _T("Sprite")));
+		LOGV((pVertices[3], _T("Sprite")));
 		/*
 		m_primtype = PRIM_TRIANGLE;
 		nVertices += 2;
@@ -114,15 +124,20 @@ void GSRendererSoft<VERTEX>::DrawingKick(bool fSkip)
 		m_primtype = PRIM_LINE;
 		m_vl.RemoveAt(0, pVertices[nVertices++]);
 		m_vl.RemoveAt(0, pVertices[nVertices++]);
+		LOGV((pVertices[0], _T("LineList")));
+		LOGV((pVertices[1], _T("LineList")));
 		break;
 	case 2: // line strip
 		m_primtype = PRIM_LINE;
 		m_vl.RemoveAt(0, pVertices[nVertices++]);
 		m_vl.GetAt(0, pVertices[nVertices++]);
+		LOGV((pVertices[0], _T("LineStrip")));
+		LOGV((pVertices[1], _T("LineStrip")));
 		break;
 	case 0: // point
 		m_primtype = PRIM_POINT;
 		m_vl.RemoveAt(0, pVertices[nVertices++]);
+		LOGV((pVertices[0], _T("PointList")));
 		break;
 	default:
 		ASSERT(0);
@@ -200,26 +215,9 @@ void GSRendererSoft<VERTEX>::FlushPrim()
 template <class VERTEX>
 void GSRendererSoft<VERTEX>::Flip()
 {
-	__super::Flip();
-
 	HRESULT hr;
 
-	CComPtr<IDirect3DSurface9> pBackBuff;
-	hr = m_pD3DDev->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &pBackBuff);
-
-	D3DSURFACE_DESC bd;
-	ZeroMemory(&bd, sizeof(bd));
-	pBackBuff->GetDesc(&bd);
-
-	CRect dst(0, 0, bd.Width, bd.Height);
-
-	struct
-	{
-		CComPtr<IDirect3DTexture9> pRT;
-		D3DSURFACE_DESC rd;
-		scale_t scale;
-		CRect src;
-	} rt[2];
+	FlipSrc rt[2];
 
 	for(int i = 0; i < countof(rt); i++)
 	{
@@ -251,10 +249,9 @@ void GSRendererSoft<VERTEX>::Flip()
 			TEX0.TBW = m_rs.DISPFB[i].FBW;
 			TEX0.TCC = m_ctxt->TEX0.TCC;
 
-			for(int y = 0, diff = r.Pitch - tw*4; y < th; y++, dst += diff)
-				for(int x = 0; x < tw; x++, dst += 4)
-					*(DWORD*)dst = (m_lm.*readTexel)(x, y, TEX0, m_de.TEXA);
-/**/
+			GSLocalMemory::unSwizzleTexture st = m_lm.GetUnSwizzleTexture(m_rs.DISPFB[i].PSM);
+			(m_lm.*st)(tw, th, dst, r.Pitch, TEX0, m_de.TEXA);
+
 			rt[i].pRT->UnlockRect(0);
 		}
 	}
@@ -263,127 +260,7 @@ void GSRendererSoft<VERTEX>::Flip()
 		// m_rs.SMODE2.INT && !!(m_ctxt->XYOFFSET.OFY&0xf);
 		// m_rs.CSRr.FIELD && m_rs.SMODE2.INT /*&& !m_rs.SMODE2.FFMD*/;
 
-	struct
-	{
-		float x, y, z, rhw;
-		float tu1, tv1;
-		float tu2, tv2;
-	}
-	pVertices[] =
-	{
-		{(float)dst.left, (float)dst.top, 0.5f, 2.0f, 
-			(float)rt[0].src.left / rt[0].rd.Width, (float)rt[0].src.top / rt[0].rd.Height, 
-			(float)rt[1].src.left / rt[1].rd.Width, (float)rt[1].src.top / rt[1].rd.Height},
-		{(float)dst.right, (float)dst.top, 0.5f, 2.0f, 
-			(float)rt[0].src.right / rt[0].rd.Width, (float)rt[0].src.top / rt[0].rd.Height, 
-			(float)rt[1].src.right / rt[1].rd.Width, (float)rt[1].src.top / rt[1].rd.Height},
-		{(float)dst.left, (float)dst.bottom, 0.5f, 2.0f, 
-			(float)rt[0].src.left / rt[0].rd.Width, (float)rt[0].src.bottom / rt[0].rd.Height, 
-			(float)rt[1].src.left / rt[1].rd.Width, (float)rt[1].src.bottom / rt[1].rd.Height},
-		{(float)dst.right, (float)dst.bottom, 0.5f, 2.0f, 
-			(float)rt[0].src.right / rt[0].rd.Width, (float)rt[0].src.bottom / rt[0].rd.Height, 
-			(float)rt[1].src.right / rt[1].rd.Width, (float)rt[1].src.bottom / rt[1].rd.Height},
-	};
-
-	for(int i = 0; i < countof(pVertices); i++)
-	{
-		pVertices[i].x -= 0.5;
-		pVertices[i].y -= 0.5;
-
-		if(fShiftField)
-		{
-			pVertices[i].tv1 += rt[0].scale.y*0.5f / rt[0].rd.Height;
-			pVertices[i].tv2 += rt[1].scale.y*0.5f / rt[1].rd.Height;
-		}
-	}
-
-	hr = m_pD3DDev->SetTexture(0, rt[0].pRT);
-	hr = m_pD3DDev->SetTexture(1, rt[1].pRT);
-
-	hr = m_pD3DDev->SetTextureStageState(0, D3DTSS_TEXCOORDINDEX, 0);
-	hr = m_pD3DDev->SetTextureStageState(1, D3DTSS_TEXCOORDINDEX, 1);
-
-	hr = m_pD3DDev->SetFVF(D3DFVF_XYZRHW|D3DFVF_TEX2);
-
-	CComPtr<IDirect3DPixelShader9> pPixelShader;
-
-	if(m_rs.IsEnabled(0) && m_rs.IsEnabled(1) && rt[0].pRT && rt[1].pRT) // RAO1 + RAO2
-	{
-		pPixelShader = m_pPixelShaders[11];
-	}
-	else if(m_rs.IsEnabled(0) && rt[0].pRT) // RAO1
-	{
-		pPixelShader = m_pPixelShaders[12];
-	}
-	else if(m_rs.IsEnabled(1) && rt[1].pRT) // RAO2
-	{
-		pPixelShader = m_pPixelShaders[13];
-	}
-	else
-	{
-		hr = m_pD3DDev->Present(NULL, NULL, NULL, NULL);
-		return;
-	}
-
-	if(!pPixelShader)
-	{
-		int stage = 0;
-
-		hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_COLOROP, D3DTOP_SELECTARG1);
-		hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_COLORARG1, D3DTA_TEXTURE);
-		hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_ALPHAOP, D3DTOP_DISABLE);
-		stage++;
-
-		if(m_rs.IsEnabled(0) && m_rs.IsEnabled(1) && rt[0].pRT && rt[1].pRT) // RAO1 + RAO2
-		{
-			if(m_rs.PMODE.ALP < 0xff)
-			{
-				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_COLOROP, D3DTOP_LERP);
-				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_COLORARG1, D3DTA_CURRENT);
-				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_COLORARG2, m_rs.PMODE.SLBG ? D3DTA_CONSTANT : D3DTA_TEXTURE);
-				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_COLORARG0, D3DTA_ALPHAREPLICATE|(m_rs.PMODE.MMOD ? D3DTA_CONSTANT : D3DTA_TEXTURE));
-				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_ALPHAOP, D3DTOP_DISABLE);
-				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_CONSTANT, D3DCOLOR_ARGB(m_rs.PMODE.ALP, m_rs.BGCOLOR.R, m_rs.BGCOLOR.G, m_rs.BGCOLOR.B));
-				stage++;
-			}
-		}
-		else if(m_rs.IsEnabled(0) && rt[0].pRT) // RAO1
-		{
-			if(m_rs.PMODE.ALP < 0xff)
-			{
-				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_COLOROP, D3DTOP_MODULATE);
-				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_COLORARG1, D3DTA_CURRENT);
-				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_COLORARG2, D3DTA_ALPHAREPLICATE|(m_rs.PMODE.MMOD ? D3DTA_CONSTANT : D3DTA_TEXTURE));
-				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_ALPHAOP, D3DTOP_DISABLE);
-				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_CONSTANT, D3DCOLOR_ARGB(m_rs.PMODE.ALP, 0, 0, 0));
-				stage++;
-			}
-		}
-		else if(m_rs.IsEnabled(1) && rt[1].pRT) // RAO2
-		{
-			hr = m_pD3DDev->SetTexture(0, rt[1].pRT);
-			hr = m_pD3DDev->SetTextureStageState(0, D3DTSS_TEXCOORDINDEX, 1);
-
-			// FIXME
-			hr = m_pD3DDev->SetTextureStageState(0, D3DTSS_TEXCOORDINDEX, 0);
-			for(int i = 0; i < countof(pVertices); i++)
-			{
-				pVertices[i].tu1 = pVertices[i].tu2;
-				pVertices[i].tv1 = pVertices[i].tv2;
-			}
-		}
-
-		hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_COLOROP, D3DTOP_DISABLE);
-		hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_ALPHAOP, D3DTOP_DISABLE);
-	}
-
-	hr = m_pD3DDev->BeginScene();
-	hr = m_pD3DDev->SetPixelShader(pPixelShader);
-	hr = m_pD3DDev->DrawPrimitiveUP(D3DPT_TRIANGLESTRIP, 2, pVertices, sizeof(pVertices[0]));
-	hr = m_pD3DDev->SetPixelShader(NULL);
-	hr = m_pD3DDev->EndScene();
-
-	hr = m_pD3DDev->Present(NULL, NULL, NULL, NULL);
+	FinishFlip(rt, fShiftField);
 }
 
 template <class VERTEX>
@@ -436,7 +313,7 @@ void GSRendererSoft<VERTEX>::DrawVertex(int x, int y, VERTEX& v)
 		}
 	}
 
-	__declspec(align(16)) union {struct {int Rf, Gf, Bf, Af;}; int Cf[4];};
+	__declspec(align(16)) union {struct {int Rf, Gf, Bf, Af;}; int Cf[4]; __m128i RGBAf;};
 	v.GetColor(Cf);
 
 	if(m_de.PRIM.TME)
@@ -488,7 +365,7 @@ void GSRendererSoft<VERTEX>::DrawVertex(int x, int y, VERTEX& v)
 		}
 
 		DWORD c[4];
-		WORD Bt, Gt, Rt, At;
+		WORD Rt, Gt, Bt, At;
 
 		// if(m_ctxt->TEX1.MMAG&1) // FIXME
 		{
@@ -512,9 +389,9 @@ void GSRendererSoft<VERTEX>::DrawVertex(int x, int y, VERTEX& v)
 			float iuv = iftu*ftv;
 			float uv = ftu*ftv;
 
-			Bt = (WORD)(iuiv*((c[0]>> 0)&0xff) + uiv*((c[1]>> 0)&0xff) + iuv*((c[2]>> 0)&0xff) + uv*((c[3]>> 0)&0xff) + 0.5f);
+			Rt = (WORD)(iuiv*((c[0]>> 0)&0xff) + uiv*((c[1]>> 0)&0xff) + iuv*((c[2]>> 0)&0xff) + uv*((c[3]>> 0)&0xff) + 0.5f);
 			Gt = (WORD)(iuiv*((c[0]>> 8)&0xff) + uiv*((c[1]>> 8)&0xff) + iuv*((c[2]>> 8)&0xff) + uv*((c[3]>> 8)&0xff) + 0.5f);
-			Rt = (WORD)(iuiv*((c[0]>>16)&0xff) + uiv*((c[1]>>16)&0xff) + iuv*((c[2]>>16)&0xff) + uv*((c[3]>>16)&0xff) + 0.5f);
+			Bt = (WORD)(iuiv*((c[0]>>16)&0xff) + uiv*((c[1]>>16)&0xff) + iuv*((c[2]>>16)&0xff) + uv*((c[3]>>16)&0xff) + 0.5f);
 			At = (WORD)(iuiv*((c[0]>>24)&0xff) + uiv*((c[1]>>24)&0xff) + iuv*((c[2]>>24)&0xff) + uv*((c[3]>>24)&0xff) + 0.5f);
 		}
 /*		else 
@@ -528,9 +405,9 @@ void GSRendererSoft<VERTEX>::DrawVertex(int x, int y, VERTEX& v)
 				c[0] = (m_lm.*m_ctxt->rt)(itu[0], itv[0], m_ctxt->TEX0, m_de.TEXA);
 			}
 
-			Bt = (BYTE)((c[0]>>0)&0xff);
+			Rt = (BYTE)((c[0]>>0)&0xff);
 			Gt = (BYTE)((c[0]>>8)&0xff);
-			Rt = (BYTE)((c[0]>>16)&0xff);
+			Bt = (BYTE)((c[0]>>16)&0xff);
 			At = (BYTE)((c[0]>>24)&0xff);
 		}
 */
@@ -561,12 +438,13 @@ void GSRendererSoft<VERTEX>::DrawVertex(int x, int y, VERTEX& v)
 			Af = m_ctxt->TEX0.TCC ? At : Af;
 			break;
 		}
-
-		Rf = m_clip[Rf+32768];
-		Gf = m_clip[Gf+32768];
-		Bf = m_clip[Bf+32768];
-		Af = m_clip[Af+32768];
 	}
+
+#ifdef USE_SIMD
+	SaturateColor(RGBAf);
+#else
+	SaturateColor(&Cf[0]);
+#endif
 
 	if(m_de.PRIM.FGE)
 	{
@@ -612,66 +490,68 @@ void GSRendererSoft<VERTEX>::DrawVertex(int x, int y, VERTEX& v)
 		(m_lm.*m_ctxt->wza)(x, y, vz, addrz);
 	}
 
-	DWORD addr = (m_lm.*m_ctxt->pa)(x, y, m_ctxt->FRAME.FBP<<5, m_ctxt->FRAME.FBW);
-
-	if(m_ctxt->TEST.DATE && m_ctxt->FRAME.PSM <= PSM_PSMCT16S)
+	if(FBMSK != ~0)
 	{
-		BYTE A = (BYTE)(m_lm.*m_ctxt->rpa)(x, y, addr) >> (m_ctxt->FRAME.PSM == PSM_PSMCT32 ? 31 : 15);
-		if(A ^ m_ctxt->TEST.DATM) return;
+		DWORD addr = (m_lm.*m_ctxt->pa)(x, y, m_ctxt->FRAME.FBP<<5, m_ctxt->FRAME.FBW);
+
+		if(m_ctxt->TEST.DATE && m_ctxt->FRAME.PSM <= PSM_PSMCT16S && m_ctxt->FRAME.PSM != PSM_PSMCT24)
+		{
+			BYTE A = (m_lm.*m_ctxt->rpa)(x, y, addr) >> (m_ctxt->FRAME.PSM == PSM_PSMCT32 ? 31 : 15);
+			if(A ^ m_ctxt->TEST.DATM) return; // FIXME: vf4 missing mem card screen / the blue background of the text
+		}
+
+		// FIXME: for AA1 the value of Af should be calculated from the pixel coverage...
+
+		bool fABE = (m_de.PRIM.ABE || (m_de.PRIM.PRIM == 1 || m_de.PRIM.PRIM == 2) && m_de.PRIM.AA1) && (!m_de.PABE.PABE || (Af&0x80));
+
+		DWORD Cd = 0;
+
+		if(FBMSK || fABE)
+		{
+			Cd = (m_lm.*m_ctxt->rfa)(x, y, addr, m_ctxt->TEX0, m_de.TEXA);
+		}
+
+		if(fABE)
+		{
+			BYTE R[3] = {Rf, (Cd>>0)&0xff, 0};
+			BYTE G[3] = {Gf, (Cd>>8)&0xff, 0};
+			BYTE B[3] = {Bf, (Cd>>16)&0xff, 0};
+			BYTE A[3] = {Af, (Cd>>24)&0xff, m_ctxt->ALPHA.FIX};
+
+			BYTE ALPHA_A = m_ctxt->ALPHA.A;
+			BYTE ALPHA_B = m_ctxt->ALPHA.B;
+			BYTE ALPHA_C = m_ctxt->ALPHA.C;
+			BYTE ALPHA_D = m_ctxt->ALPHA.D;
+
+			Rf = ((R[ALPHA_A] - R[ALPHA_B]) * A[ALPHA_C] >> 7) + R[ALPHA_D];
+			Gf = ((G[ALPHA_A] - G[ALPHA_B]) * A[ALPHA_C] >> 7) + G[ALPHA_D];
+			Bf = ((B[ALPHA_A] - B[ALPHA_B]) * A[ALPHA_C] >> 7) + B[ALPHA_D];
+		}
+
+		if(m_de.DTHE.DTHE)
+		{
+			WORD DMxy = (*((WORD*)&m_de.DIMX.i64 + (y&3)) >> ((x&3)<<2)) & 7;
+			Rf += DMxy;
+			Gf += DMxy;
+			Bf += DMxy;
+		}
+
+		ASSERT(Rf >= SHRT_MIN && Rf < SHRT_MAX);
+		ASSERT(Gf >= SHRT_MIN && Gf < SHRT_MAX);
+		ASSERT(Bf >= SHRT_MIN && Bf < SHRT_MAX);
+		ASSERT(Af >= SHRT_MIN && Af < SHRT_MAX);
+
+		Rf = m_clamp[Rf];
+		Gf = m_clamp[Gf];
+		Bf = m_clamp[Bf];
+		Af = m_clamp[Af]; // ?
+
+		Af |= (m_ctxt->FBA.FBA << 7);
+
+		Cd = (((Af << 24) | (Bf << 16) | (Gf << 8) | (Rf << 0)) & ~FBMSK) | (Cd & FBMSK);
+
+		(m_lm.*m_ctxt->wfa)(x, y, Cd, addr);
 	}
-
-	if((m_de.PRIM.ABE || (m_de.PRIM.PRIM == 1 || m_de.PRIM.PRIM == 2) && m_de.PRIM.AA1) && (!m_de.PABE.PABE || (Af&0x80)))
-	{
-		DWORD Cd = (m_lm.*m_ctxt->rfa)(x, y, addr, m_ctxt->TEX0, m_de.TEXA);
-
-		BYTE R[3] = {Rf, (Cd>>16)&0xff, 0};
-		BYTE G[3] = {Gf, (Cd>>8)&0xff, 0};
-		BYTE B[3] = {Bf, (Cd>>0)&0xff, 0};
-		BYTE A[3] = {Af, (Cd>>24)&0xff, m_ctxt->ALPHA.FIX};
-
-		Rf = ((R[m_ctxt->ALPHA.A] - R[m_ctxt->ALPHA.B]) * A[m_ctxt->ALPHA.C] >> 7) + R[m_ctxt->ALPHA.D];
-		Gf = ((G[m_ctxt->ALPHA.A] - G[m_ctxt->ALPHA.B]) * A[m_ctxt->ALPHA.C] >> 7) + G[m_ctxt->ALPHA.D];
-		Bf = ((B[m_ctxt->ALPHA.A] - B[m_ctxt->ALPHA.B]) * A[m_ctxt->ALPHA.C] >> 7) + B[m_ctxt->ALPHA.D];
-	}
-
-	if(m_de.DTHE.DTHE)
-	{
-		WORD DMxy = (*((WORD*)&m_de.DIMX.i64 + (y&3)) >> ((x&3)<<2)) & 7;
-		Rf += DMxy;
-		Gf += DMxy;
-		Bf += DMxy;
-	}
-/*
-	if(m_de.COLCLAMP.CLAMP)
-	{
-		Rf = Rf < 0 ? 0 : Rf > 255 ? 255 : Rf;
-		Gf = Gf < 0 ? 0 : Gf > 255 ? 255 : Gf;
-		Bf = Bf < 0 ? 0 : Bf > 255 ? 255 : Bf;
-		Af = Af < 0 ? 0 : Af > 255 ? 255 : Af; // ?
-	}
-	else
-	{
-		Rf &= 0xff;
-		Gf &= 0xff;
-		Bf &= 0xff;
-		Af &= 0xff; // ?
-	}
-*/
-	ASSERT(Rf >= SHRT_MIN && Rf < SHRT_MAX);
-	ASSERT(Gf >= SHRT_MIN && Gf < SHRT_MAX);
-	ASSERT(Bf >= SHRT_MIN && Bf < SHRT_MAX);
-	ASSERT(Af >= SHRT_MIN && Af < SHRT_MAX);
-
-	Rf = m_clamp[Rf];
-	Gf = m_clamp[Gf];
-	Bf = m_clamp[Bf];
-	Af = m_clamp[Af]; // ?
-
-	Af |= (m_ctxt->FBA.FBA << 7);
-
-	DWORD c = ((Af << 24) | (Bf << 16) | (Gf << 8) | (Rf << 0)) & ~FBMSK;
-
-	(m_lm.*m_ctxt->wfa)(x, y, c, addr);
 }
 
 template <class VERTEX>
@@ -690,7 +570,8 @@ bool GSRendererSoft<VERTEX>::DrawFilledRect(int left, int top, int right, int bo
 	|| m_de.PRIM.TME
 	|| m_de.PRIM.ABE
 	|| m_de.PRIM.FGE
-	|| m_de.DTHE.DTHE)
+	|| m_de.DTHE.DTHE
+	|| m_ctxt->FRAME.FBMSK)
 		return(false);
 
 	DWORD FBP = m_ctxt->FRAME.FBP<<5, FBW = m_ctxt->FRAME.FBW;
@@ -709,7 +590,7 @@ bool GSRendererSoft<VERTEX>::DrawFilledRect(int left, int top, int right, int bo
 
 	Af |= (m_ctxt->FBA.FBA << 7);
 
-	DWORD c = ((Af << 24) | (Bf << 16) | (Gf << 8) | (Rf << 0)) & ~m_ctxt->FRAME.FBMSK;
+	DWORD c = (Af << 24) | (Bf << 16) | (Gf << 8) | (Rf << 0);
 	if(m_ctxt->FRAME.PSM == PSM_PSMCT16 || m_ctxt->FRAME.PSM == PSM_PSMCT16S)
 		c = ((c>>16)&0x8000)|((c>>9)&0x7c00)|((c>>6)&0x03e0)|((c>>3)&0x001f);
 	m_lm.FillRect(CRect(left, top, right, bottom), c, m_ctxt->FRAME.PSM, FBP, FBW);
@@ -726,7 +607,7 @@ void GSRendererSoft<VERTEX>::SetTexture()
 // hell, it looks to be faster without caching!
 m_lm.setupCLUT(m_ctxt->TEX0, m_de.TEXCLUT, m_de.TEXA);
 return;
-
+/**/
 	CTexture* t;
 	if(LookupTexture(t))
 	{
@@ -744,15 +625,15 @@ return;
 	p->m_TEXA = m_de.TEXA;
 	p->m_TEXCLUT = m_de.TEXCLUT;
 
-	int w = 1 << m_ctxt->TEX0.TW;
-	int h = 1 << m_ctxt->TEX0.TH;
+	int tw = 1 << m_ctxt->TEX0.TW;
+	int th = 1 << m_ctxt->TEX0.TH;
 
-	p->m_pTexture = m_pTexture = new DWORD[w*h];
+	p->m_pTexture = m_pTexture = new DWORD[tw*th];
 
-	DWORD* c = m_pTexture;
-	for(int j = 0; j < h; j++)
-		for(int i = 0; i < w; i++)
-			*c++ = (m_lm.*m_ctxt->rt)(i, j, m_ctxt->TEX0, m_de.TEXA);
+	DWORD* dst = m_pTexture;
+	for(int j = 0; j < th; j++)
+		for(int i = 0; i < tw; i++)
+			*dst++ = (m_lm.*m_ctxt->rt)(i, j, m_ctxt->TEX0, m_de.TEXA);
 
 	m_tc.AddHead(p);
 }
@@ -1285,9 +1166,9 @@ void GSRendererSoftFX::DrawVertex(int x, int y, GSSoftVertex& v)
 		__int64 tv = (v.v << 16 << m_ctxt->TEX0.TH) / v.q;
 
 		// TODO
-		// float lod = m_ctxt->TEX1.K;
-		// if(!m_ctxt->TEX1.LCM) lod += log2(1/v.q) << m_ctxt->TEX1.L;
-
+/*		float lod = m_ctxt->TEX1.K;
+		if(!m_ctxt->TEX1.LCM) lod += (int)(-log((float)v.q/INT_MAX)/log(2.0f)) << m_ctxt->TEX1.L;
+*/
 		DWORD ftu = (tu&0xffff) >> 1, iftu = (1<<15) - ftu;
 		DWORD ftv = (tv&0xffff) >> 1, iftv = (1<<15) - ftv;
 		tu >>= 16;
@@ -1325,8 +1206,7 @@ void GSRendererSoftFX::DrawVertex(int x, int y, GSSoftVertex& v)
 		DWORD c[4];
 		WORD Bt, Gt, Rt, At;
 
-		// if(m_ctxt->TEX1.MMAG&1) // FIXME
-
+		//if((lod <= 0 ? m_ctxt->TEX1.MMAG : m_ctxt->TEX1.MMIN) & 1)
 		{
 			if(m_pTexture)
 			{
@@ -1348,12 +1228,13 @@ void GSRendererSoftFX::DrawVertex(int x, int y, GSSoftVertex& v)
 			DWORD iuv = iftu*ftv >> 15;
 			DWORD uv = ftu*ftv >> 15;
 
-			Bt = (WORD)(iuiv*((c[0]>> 0)&0xff) + uiv*((c[1]>> 0)&0xff) + iuv*((c[2]>> 0)&0xff) + uv*((c[3]>> 0)&0xff) >> 15);
+			Rt = (WORD)(iuiv*((c[0]>> 0)&0xff) + uiv*((c[1]>> 0)&0xff) + iuv*((c[2]>> 0)&0xff) + uv*((c[3]>> 0)&0xff) >> 15);
 			Gt = (WORD)(iuiv*((c[0]>> 8)&0xff) + uiv*((c[1]>> 8)&0xff) + iuv*((c[2]>> 8)&0xff) + uv*((c[3]>> 8)&0xff) >> 15);
-			Rt = (WORD)(iuiv*((c[0]>>16)&0xff) + uiv*((c[1]>>16)&0xff) + iuv*((c[2]>>16)&0xff) + uv*((c[3]>>16)&0xff) >> 15);
+			Bt = (WORD)(iuiv*((c[0]>>16)&0xff) + uiv*((c[1]>>16)&0xff) + iuv*((c[2]>>16)&0xff) + uv*((c[3]>>16)&0xff) >> 15);
 			At = (WORD)(iuiv*((c[0]>>24)&0xff) + uiv*((c[1]>>24)&0xff) + iuv*((c[2]>>24)&0xff) + uv*((c[3]>>24)&0xff) >> 15);
 		}
-/*		else 
+		/*
+		else 
 		{
 			if(m_pTexture)
 			{
@@ -1364,12 +1245,13 @@ void GSRendererSoftFX::DrawVertex(int x, int y, GSSoftVertex& v)
 				c[0] = (m_lm.*m_ctxt->rt)(itu[0], itv[0], m_ctxt->TEX0, m_de.TEXA);
 			}
 
-			Bt = (BYTE)((c[0]>>0)&0xff);
+			Rt = (BYTE)((c[0]>>0)&0xff);
 			Gt = (BYTE)((c[0]>>8)&0xff);
-			Rt = (BYTE)((c[0]>>16)&0xff);
+			Bt = (BYTE)((c[0]>>16)&0xff);
 			At = (BYTE)((c[0]>>24)&0xff);
 		}
-*/
+		*/
+
 		switch(m_ctxt->TEX0.TFX)
 		{
 		case 0:
@@ -1397,19 +1279,13 @@ void GSRendererSoftFX::DrawVertex(int x, int y, GSSoftVertex& v)
 			Af = m_ctxt->TEX0.TCC ? At : Af;
 			break;
 		}
+	}
 
-		Rf = m_clip[Rf+32768];
-		Gf = m_clip[Gf+32768];
-		Bf = m_clip[Bf+32768];
-		Af = m_clip[Af+32768];
-	}
-	else
-	{
-		Rf = Rf < 0 ? 0 : Rf > 255 ? 255 : Rf;
-		Gf = Gf < 0 ? 0 : Gf > 255 ? 255 : Gf;
-		Bf = Bf < 0 ? 0 : Bf > 255 ? 255 : Bf;
-		Af = Af < 0 ? 0 : Af > 255 ? 255 : Af;
-	}
+#ifdef USE_SIMD
+	SaturateColor(RGBAf);
+#else
+	SaturateColor(&Cf[0]);
+#endif
 
 	if(m_de.PRIM.FGE)
 	{
@@ -1455,64 +1331,66 @@ void GSRendererSoftFX::DrawVertex(int x, int y, GSSoftVertex& v)
 		(m_lm.*m_ctxt->wza)(x, y, vz, addrz);
 	}
 
-	DWORD addr = (m_lm.*m_ctxt->pa)(x, y, m_ctxt->FRAME.FBP<<5, m_ctxt->FRAME.FBW);
-
-	if(m_ctxt->TEST.DATE && m_ctxt->FRAME.PSM <= PSM_PSMCT16S)
+	if(FBMSK != ~0)
 	{
-		BYTE A = (BYTE)(m_lm.*m_ctxt->rpa)(x, y, addr) >> (m_ctxt->FRAME.PSM == PSM_PSMCT32 ? 31 : 15);
-		if(A ^ m_ctxt->TEST.DATM) return;
+		DWORD addr = (m_lm.*m_ctxt->pa)(x, y, m_ctxt->FRAME.FBP<<5, m_ctxt->FRAME.FBW);
+
+		if(m_ctxt->TEST.DATE && m_ctxt->FRAME.PSM <= PSM_PSMCT16S && m_ctxt->FRAME.PSM != PSM_PSMCT24)
+		{
+			BYTE A = (m_lm.*m_ctxt->rpa)(x, y, addr) >> (m_ctxt->FRAME.PSM == PSM_PSMCT32 ? 31 : 15);
+			if(A ^ m_ctxt->TEST.DATM) return; // FIXME: vf4 missing mem card screen / the blue background of the text
+		}
+
+		// FIXME: for AA1 the value of Af should be calculated from the pixel coverage...
+
+		bool fABE = (m_de.PRIM.ABE || (m_de.PRIM.PRIM == 1 || m_de.PRIM.PRIM == 2) && m_de.PRIM.AA1) && (!m_de.PABE.PABE || (Af&0x80));
+
+		DWORD Cd = 0;
+
+		if(FBMSK || fABE)
+		{
+			Cd = (m_lm.*m_ctxt->rfa)(x, y, addr, m_ctxt->TEX0, m_de.TEXA);
+		}
+
+		if(fABE)
+		{
+			BYTE R[3] = {Rf, (Cd>>0)&0xff, 0};
+			BYTE G[3] = {Gf, (Cd>>8)&0xff, 0};
+			BYTE B[3] = {Bf, (Cd>>16)&0xff, 0};
+			BYTE A[3] = {Af, (Cd>>24)&0xff, m_ctxt->ALPHA.FIX};
+
+			BYTE ALPHA_A = m_ctxt->ALPHA.A;
+			BYTE ALPHA_B = m_ctxt->ALPHA.B;
+			BYTE ALPHA_C = m_ctxt->ALPHA.C;
+			BYTE ALPHA_D = m_ctxt->ALPHA.D;
+
+			Rf = ((R[ALPHA_A] - R[ALPHA_B]) * A[ALPHA_C] >> 7) + R[ALPHA_D];
+			Gf = ((G[ALPHA_A] - G[ALPHA_B]) * A[ALPHA_C] >> 7) + G[ALPHA_D];
+			Bf = ((B[ALPHA_A] - B[ALPHA_B]) * A[ALPHA_C] >> 7) + B[ALPHA_D];
+		}
+
+		if(m_de.DTHE.DTHE)
+		{
+			WORD DMxy = (*((WORD*)&m_de.DIMX.i64 + (y&3)) >> ((x&3)<<2)) & 7;
+			Rf += DMxy;
+			Gf += DMxy;
+			Bf += DMxy;
+		}
+
+		ASSERT(Rf >= SHRT_MIN && Rf < SHRT_MAX);
+		ASSERT(Gf >= SHRT_MIN && Gf < SHRT_MAX);
+		ASSERT(Bf >= SHRT_MIN && Bf < SHRT_MAX);
+		ASSERT(Af >= SHRT_MIN && Af < SHRT_MAX);
+
+		Rf = m_clamp[Rf];
+		Gf = m_clamp[Gf];
+		Bf = m_clamp[Bf];
+		Af = m_clamp[Af]; // ?
+
+		Af |= (m_ctxt->FBA.FBA << 7);
+
+		Cd = (((Af << 24) | (Bf << 16) | (Gf << 8) | (Rf << 0)) & ~FBMSK) | (Cd & FBMSK);
+
+		(m_lm.*m_ctxt->wfa)(x, y, Cd, addr);
 	}
-
-	if((m_de.PRIM.ABE || (m_de.PRIM.PRIM == 1 || m_de.PRIM.PRIM == 2) && m_de.PRIM.AA1) && (!m_de.PABE.PABE || (Af&0x80)))
-	{
-		DWORD Cd = (m_lm.*m_ctxt->rfa)(x, y, addr, m_ctxt->TEX0, m_de.TEXA);
-
-		BYTE R[3] = {Rf, (Cd>>16)&0xff, 0};
-		BYTE G[3] = {Gf, (Cd>>8)&0xff, 0};
-		BYTE B[3] = {Bf, (Cd>>0)&0xff, 0};
-		BYTE A[3] = {Af, (Cd>>24)&0xff, m_ctxt->ALPHA.FIX};
-
-		Rf = ((R[m_ctxt->ALPHA.A] - R[m_ctxt->ALPHA.B]) * A[m_ctxt->ALPHA.C] >> 7) + R[m_ctxt->ALPHA.D];
-		Gf = ((G[m_ctxt->ALPHA.A] - G[m_ctxt->ALPHA.B]) * A[m_ctxt->ALPHA.C] >> 7) + G[m_ctxt->ALPHA.D];
-		Bf = ((B[m_ctxt->ALPHA.A] - B[m_ctxt->ALPHA.B]) * A[m_ctxt->ALPHA.C] >> 7) + B[m_ctxt->ALPHA.D];
-	}
-
-	if(m_de.DTHE.DTHE)
-	{
-		WORD DMxy = (*((WORD*)&m_de.DIMX.i64 + (y&3)) >> ((x&3)<<2)) & 7;
-		Rf += DMxy;
-		Gf += DMxy;
-		Bf += DMxy;
-	}
-/*
-	if(m_de.COLCLAMP.CLAMP)
-	{
-		Rf = Rf < 0 ? 0 : Rf > 255 ? 255 : Rf;
-		Gf = Gf < 0 ? 0 : Gf > 255 ? 255 : Gf;
-		Bf = Bf < 0 ? 0 : Bf > 255 ? 255 : Bf;
-		Af = Af < 0 ? 0 : Af > 255 ? 255 : Af; // ?
-	}
-	else
-	{
-		Rf &= 0xff;
-		Gf &= 0xff;
-		Bf &= 0xff;
-		Af &= 0xff; // ?
-	}
-*/
-	ASSERT(Rf >= SHRT_MIN && Rf < SHRT_MAX);
-	ASSERT(Gf >= SHRT_MIN && Gf < SHRT_MAX);
-	ASSERT(Bf >= SHRT_MIN && Bf < SHRT_MAX);
-	ASSERT(Af >= SHRT_MIN && Af < SHRT_MAX);
-
-	Rf = m_clamp[Rf];
-	Gf = m_clamp[Gf];
-	Bf = m_clamp[Bf];
-	Af = m_clamp[Af]; // ?
-
-	Af |= (m_ctxt->FBA.FBA << 7);
-
-	DWORD c = ((Af << 24) | (Bf << 16) | (Gf << 8) | (Rf << 0)) & ~FBMSK;
-
-	(m_lm.*m_ctxt->wfa)(x, y, c, addr);
 }

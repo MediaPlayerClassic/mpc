@@ -36,6 +36,11 @@ GSRendererHW::GSRendererHW(HWND hWnd, HRESULT& hr)
 //	: GSRenderer<HWVERTEX>(640, 224, hWnd, hr)
 {
 	Reset();
+
+	hr = m_pD3DDev->SetRenderState(D3DRS_SEPARATEALPHABLENDENABLE, TRUE);
+	hr = m_pD3DDev->SetRenderState(D3DRS_BLENDOPALPHA, D3DBLENDOP_ADD);
+	hr = m_pD3DDev->SetRenderState(D3DRS_SRCBLENDALPHA, D3DBLEND_ONE);
+	hr = m_pD3DDev->SetRenderState(D3DRS_DESTBLENDALPHA, D3DBLEND_ZERO);
 }
 
 GSRendererHW::~GSRendererHW()
@@ -75,6 +80,7 @@ void GSRendererHW::VertexKick(bool fSkip)
 	//if(m_v.XYZ.Z && m_v.XYZ.Z < 0x100) m_v.XYZ.Z = 0x100;
 	//v.z = 1.0f * (m_v.XYZ.Z>>8)/(UINT_MAX>>8);
 	v.z = log(1.0 + m_v.XYZ.Z)/log_2pow32;
+	//v.z = (float)m_v.XYZ.Z / UINT_MAX;
 	v.rhw = m_v.RGBAQ.Q;
 
 	BYTE R = m_v.RGBAQ.R;
@@ -112,6 +118,7 @@ void GSRendererHW::VertexKick(bool fSkip)
 	}
 
 	v.color = D3DCOLOR_ARGB(A, R, G, B);
+	v.fog = (m_de.PRIM.FGE ? m_v.FOG.F : 0xff) << 24;
 
 	m_vl.AddTail(v);
 
@@ -141,18 +148,27 @@ void GSRendererHW::DrawingKick(bool fSkip)
 		m_vl.RemoveAt(0, pVertices[nVertices++]);
 		m_vl.RemoveAt(0, pVertices[nVertices++]);
 		m_vl.RemoveAt(0, pVertices[nVertices++]);
+		LOGV((pVertices[0], _T("TriList")));
+		LOGV((pVertices[1], _T("TriList")));
+		LOGV((pVertices[2], _T("TriList")));
 		break;
 	case 4: // triangle strip
 		m_primtype = D3DPT_TRIANGLELIST;
 		m_vl.RemoveAt(0, pVertices[nVertices++]);
 		m_vl.GetAt(0, pVertices[nVertices++]);
 		m_vl.GetAt(1, pVertices[nVertices++]);
+		LOGV((pVertices[0], _T("TriStrip")));
+		LOGV((pVertices[1], _T("TriStrip")));
+		LOGV((pVertices[2], _T("TriStrip")));
 		break;
 	case 5: // triangle fan
 		m_primtype = D3DPT_TRIANGLELIST;
 		m_vl.GetAt(0, pVertices[nVertices++]);
 		m_vl.RemoveAt(1, pVertices[nVertices++]);
 		m_vl.GetAt(1, pVertices[nVertices++]);
+		LOGV((pVertices[0], _T("TriFan")));
+		LOGV((pVertices[1], _T("TriFan")));
+		LOGV((pVertices[2], _T("TriFan")));
 		break;
 	case 6: // sprite
 		m_primtype = D3DPT_TRIANGLELIST;
@@ -167,6 +183,10 @@ void GSRendererHW::DrawingKick(bool fSkip)
 		pVertices[1].tv = pVertices[0].tv;
 		pVertices[2].x = pVertices[0].x;
 		pVertices[2].tu = pVertices[0].tu;
+		LOGV((pVertices[0], _T("Sprite")));
+		LOGV((pVertices[1], _T("Sprite")));
+		LOGV((pVertices[2], _T("Sprite")));
+		LOGV((pVertices[3], _T("Sprite")));
 		nVertices += 2;
 		pVertices[5] = pVertices[3];
 		pVertices[3] = pVertices[1];
@@ -176,15 +196,20 @@ void GSRendererHW::DrawingKick(bool fSkip)
 		m_primtype = D3DPT_LINELIST;
 		m_vl.RemoveAt(0, pVertices[nVertices++]);
 		m_vl.RemoveAt(0, pVertices[nVertices++]);
+		LOGV((pVertices[0], _T("LineList")));
+		LOGV((pVertices[1], _T("LineList")));
 		break;
 	case 2: // line strip
 		m_primtype = D3DPT_LINELIST;
 		m_vl.RemoveAt(0, pVertices[nVertices++]);
 		m_vl.GetAt(0, pVertices[nVertices++]);
+		LOGV((pVertices[0], _T("LineStrip")));
+		LOGV((pVertices[1], _T("LineStrip")));
 		break;
 	case 0: // point
 		m_primtype = D3DPT_POINTLIST;
 		m_vl.RemoveAt(0, pVertices[nVertices++]);
+		LOGV((pVertices[0], _T("PointList")));
 		break;
 	default:
 		ASSERT(0);
@@ -204,6 +229,7 @@ void GSRendererHW::DrawingKick(bool fSkip)
 	if(!m_de.PRIM.IIP)
 	{
 		pVertices[0].color = pVertices[nVertices-1].color;
+		if(m_PRIM == 6) pVertices[3].color = pVertices[5].color;
 		/*for(int i = nVertices-1; i > 0; i--)
 			pVertices[i-1].color = pVertices[i].color;*/
 	}
@@ -241,14 +267,9 @@ void GSRendererHW::FlushPrim()
 
 		HRESULT hr;
 
-		CComPtr<IDirect3DSurface9> pBackBuff;
-		hr = m_pD3DDev->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &pBackBuff);
+		hr = m_pD3DDev->BeginScene();
 
-		D3DSURFACE_DESC bd;
-		ZeroMemory(&bd, sizeof(bd));
-		pBackBuff->GetDesc(&bd);
-
-		scale_t scale((float)bd.Width / (m_ctxt->FRAME.FBW*64), (float)bd.Height / m_rs.GetSize(m_rs.IsEnabled(1)?1:0).cy);
+		scale_t scale((float)m_bd.Width / (m_ctxt->FRAME.FBW*64), (float)m_bd.Height / m_rs.GetSize(m_rs.IsEnabled(1)?1:0).cy);
 		if(m_fHalfVRes) scale.y /= 2;
 
 		//////////////////////
@@ -261,7 +282,7 @@ void GSRendererHW::FlushPrim()
 
 		if(!m_pRenderTargets.Lookup(m_ctxt->FRAME.Block(), pRT))
 		{
-			hr = m_pD3DDev->CreateTexture(bd.Width, bd.Height, 1, D3DUSAGE_RENDERTARGET, D3DFMT_A8R8G8B8, D3DPOOL_DEFAULT, &pRT, NULL);
+			hr = m_pD3DDev->CreateTexture(m_bd.Width, m_bd.Height, 1, D3DUSAGE_RENDERTARGET, D3DFMT_A8R8G8B8, D3DPOOL_DEFAULT, &pRT, NULL);
 			if(S_OK != hr) {ASSERT(0); return;}
 			m_pRenderTargets[m_ctxt->FRAME.Block()] = pRT;
 #ifdef DEBUG_RENDERTARGETS
@@ -276,7 +297,7 @@ void GSRendererHW::FlushPrim()
 
 		if(!m_pDepthStencils.Lookup(m_ctxt->ZBUF.ZBP, pDS))
 		{
-			hr = m_pD3DDev->CreateDepthStencilSurface(bd.Width, bd.Height, D3DFMT_D24X8, D3DMULTISAMPLE_NONE, 0, FALSE, &pDS, NULL);
+			hr = m_pD3DDev->CreateDepthStencilSurface(m_bd.Width, m_bd.Height, m_fmtDepthStencil, D3DMULTISAMPLE_NONE, 0, FALSE, &pDS, NULL);
 			if(S_OK != hr) {ASSERT(0); return;}
 			m_pDepthStencils[m_ctxt->ZBUF.ZBP] = pDS;
 			fClearDS = true;
@@ -295,6 +316,7 @@ void GSRendererHW::FlushPrim()
 		if(m_de.PRIM.TME && CreateTexture(t))
 		{
 			// if(IsRenderTarget(t.m_pTexture)) ConvertRT(t.m_pTexture);
+			//t.m_pTexture->PreLoad();
 			hr = t.m_pTexture->GetLevelDesc(0, &td);
 		}
 
@@ -317,265 +339,11 @@ void GSRendererHW::FlushPrim()
 
 		//////////////////////
 
-		CComPtr<IDirect3DPixelShader9> pPixelShader;
-
-		if(m_de.PRIM.TME && t.m_pTexture)
-		{
-			hr = m_pD3DDev->SetTexture(0, t.m_pTexture);
-
-			D3DTEXTUREADDRESS u, v;
-
-			switch(m_ctxt->CLAMP.WMS&1)
-			{
-			case 0: u = D3DTADDRESS_WRAP; break; // repeat
-			case 1: u = D3DTADDRESS_CLAMP; break; // clamp
-			}
-
-			switch(m_ctxt->CLAMP.WMT&1)
-			{
-			case 0: v = D3DTADDRESS_WRAP; break; // repeat
-			case 1: v = D3DTADDRESS_CLAMP; break; // clamp
-			}
-
-			hr = m_pD3DDev->SetSamplerState(0, D3DSAMP_ADDRESSU, u);
-			hr = m_pD3DDev->SetSamplerState(0, D3DSAMP_ADDRESSV, v);
-
-			bool fRT = IsRenderTarget(t.m_pTexture); // RTs already have a correctly scaled alpha
-
-			switch(m_ctxt->TEX0.TFX)
-			{
-			case 0:
-				if(!m_ctxt->TEX0.TCC) pPixelShader = m_pPixelShaders[0];
-				else if(!fRT) pPixelShader = m_pPixelShaders[1];
-				else pPixelShader = m_pPixelShaders[2];
-				break;
-			case 1:
-				if(!fRT) pPixelShader = m_pPixelShaders[3];
-				else pPixelShader = m_pPixelShaders[4];
-				break;
-			case 2:
-				if(!m_ctxt->TEX0.TCC) pPixelShader = m_pPixelShaders[5];
-				else if(!fRT) pPixelShader = m_pPixelShaders[6];
-				else pPixelShader = m_pPixelShaders[7];
-				break;
-			case 3:
-				if(!m_ctxt->TEX0.TCC) pPixelShader = m_pPixelShaders[8];
-				else if(!fRT) pPixelShader = m_pPixelShaders[9];
-				else pPixelShader = m_pPixelShaders[10];
-				break;
-			}
-
-			// ASSERT(pPixelShader);
-
-			if(!pPixelShader)
-			{
-				int stage = 0;
-
-				hr = m_pD3DDev->SetTextureStageState(0, D3DTSS_TEXCOORDINDEX, 0);
-				hr = m_pD3DDev->SetTextureStageState(1, D3DTSS_TEXCOORDINDEX, 0);
-
-				switch(m_ctxt->TEX0.TFX)
-				{
-				case 0:
-					hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_COLOROP, D3DTOP_MODULATE2X);
-					hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_COLORARG1, D3DTA_TEXTURE);
-					hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_COLORARG2, D3DTA_DIFFUSE);
-					if(m_ctxt->TEX0.TCC)
-					{
-						hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_ALPHAOP, fRT ? D3DTOP_MODULATE2X : D3DTOP_MODULATE4X);
-						hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_ALPHAARG1, D3DTA_TEXTURE);
-						hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_ALPHAARG2, D3DTA_DIFFUSE);
-					}
-					else
-					{
-						hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_ALPHAOP, D3DTOP_ADD);
-						hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_ALPHAARG1, D3DTA_DIFFUSE);
-						hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_ALPHAARG2, D3DTA_DIFFUSE);
-					}
-					stage++;
-					break;
-				case 1:
-					hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_COLOROP, D3DTOP_SELECTARG1);
-					hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_COLORARG1, D3DTA_TEXTURE);
-					hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_ALPHAOP, fRT ? D3DTOP_SELECTARG1 : D3DTOP_ADD);
-					hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_ALPHAARG1, D3DTA_TEXTURE);
-					hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_ALPHAARG2, D3DTA_TEXTURE);
-					stage++;
-					break;
-				case 2:
-					hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_COLOROP, D3DTOP_MODULATE2X);
-					hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_COLORARG1, D3DTA_TEXTURE);
-					hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_COLORARG2, D3DTA_DIFFUSE);
-					hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_ALPHAOP, D3DTOP_SELECTARG1);
-					hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_ALPHAARG1, D3DTA_DIFFUSE);
-					if(m_ctxt->TEX0.TCC)
-					{
-						hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_ALPHAOP, D3DTOP_ADD);
-						hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_ALPHAARG2, D3DTA_TEXTURE);
-						ASSERT(!fRT); // FIXME
-					}
-					stage++;
-					hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_COLOROP, D3DTOP_ADD);
-					hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_COLORARG1, D3DTA_CURRENT);
-					hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_COLORARG2, D3DTA_ALPHAREPLICATE|D3DTA_DIFFUSE);
-					hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_ALPHAOP, D3DTOP_ADD);
-					hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_ALPHAARG1, D3DTA_CURRENT);
-					hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_ALPHAARG2, D3DTA_CURRENT);
-					stage++;
-					break;
-				case 3:
-					hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_COLOROP, D3DTOP_MODULATE2X);
-					hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_COLORARG1, D3DTA_TEXTURE);
-					hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_COLORARG2, D3DTA_DIFFUSE);
-					hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_ALPHAOP, D3DTOP_SELECTARG1);
-					hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_ALPHAARG1, D3DTA_DIFFUSE);
-					if(m_ctxt->TEX0.TCC)
-					{
-						hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_ALPHAOP, D3DTOP_SELECTARG1);
-						hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_ALPHAARG1, D3DTA_TEXTURE);
-						ASSERT(!fRT); // FIXME
-					}
-					stage++;
-					hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_COLOROP, D3DTOP_ADD);
-					hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_COLORARG1, D3DTA_CURRENT);
-					hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_COLORARG2, D3DTA_ALPHAREPLICATE|D3DTA_DIFFUSE);
-					hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_ALPHAOP, D3DTOP_ADD);
-					hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_ALPHAARG1, D3DTA_CURRENT);
-					hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_ALPHAARG2, D3DTA_CURRENT);
-					stage++;
-					break;
-				}
-
-				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_COLOROP, D3DTOP_DISABLE);
-				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_ALPHAOP, D3DTOP_DISABLE);
-			}
-		}
-		else
-		{
-			hr = m_pD3DDev->SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_DISABLE);
-			hr = m_pD3DDev->SetTextureStageState(0, D3DTSS_ALPHAOP, D3DTOP_DISABLE);
-			hr = m_pD3DDev->SetTexture(0, NULL);
-		}
+		SetupTexture(t);
 
 		//////////////////////
 
-		bool fABE = m_de.PRIM.ABE || (m_primtype == D3DPT_LINELIST || m_primtype == D3DPT_LINESTRIP) && m_de.PRIM.AA1;
-		hr = m_pD3DDev->SetRenderState(D3DRS_ALPHABLENDENABLE, fABE);
-		if(fABE)
-		{
-			// (A:Cs/Cd/0 - B:Cs/Cd/0) * C:As/Ad/FIX + D:Cs/Cd/0
-
-			BYTE FIX = SCALE_ALPHA(m_ctxt->ALPHA.FIX);
-
-			hr = m_pD3DDev->SetRenderState(D3DRS_BLENDFACTOR, (0x010101*FIX)|(FIX<<24));
-
-			D3DBLENDOP op = D3DBLENDOP_ADD;
-			D3DBLEND src = D3DBLEND_SRCALPHA, dst = D3DBLEND_INVSRCALPHA;
-
-			static const struct {bool bogus; D3DBLENDOP op; D3DBLEND src, dst;} blendmap[3*3*3*3] =
-			{
-				{0, D3DBLENDOP_ADD, D3DBLEND_ONE, D3DBLEND_ZERO},						// 0000: (Cs/Cd/0 - Cs/Cd/0)*As/Ad/F + Cs ==> Cs
-				{0, D3DBLENDOP_ADD, D3DBLEND_ZERO, D3DBLEND_ONE},						// 0001: (Cs/Cd/0 - Cs/Cd/0)*As/Ad/F + Cd ==> Cd
-				{0, D3DBLENDOP_ADD, D3DBLEND_ZERO, D3DBLEND_ZERO},						// 0002: (Cs/Cd/0 - Cs/Cd/0)*As/Ad/F + 0 ==> 0
-				{0, D3DBLENDOP_ADD, D3DBLEND_ONE, D3DBLEND_ZERO},						// 0010: (Cs/Cd/0 - Cs/Cd/0)*As/Ad/F + Cs ==> Cs
-				{0, D3DBLENDOP_ADD, D3DBLEND_ZERO, D3DBLEND_ONE},						// 0011: (Cs/Cd/0 - Cs/Cd/0)*As/Ad/F + Cd ==> Cd
-				{0, D3DBLENDOP_ADD, D3DBLEND_ZERO, D3DBLEND_ZERO},						// 0012: (Cs/Cd/0 - Cs/Cd/0)*As/Ad/F + 0 ==> 0
-				{0, D3DBLENDOP_ADD, D3DBLEND_ONE, D3DBLEND_ZERO},						// 0020: (Cs/Cd/0 - Cs/Cd/0)*As/Ad/F + Cs ==> Cs
-				{0, D3DBLENDOP_ADD, D3DBLEND_ZERO, D3DBLEND_ONE},						// 0021: (Cs/Cd/0 - Cs/Cd/0)*As/Ad/F + Cd ==> Cd
-				{0, D3DBLENDOP_ADD, D3DBLEND_ZERO, D3DBLEND_ZERO},						// 0022: (Cs/Cd/0 - Cs/Cd/0)*As/Ad/F + 0 ==> 0
-				{1, D3DBLENDOP_SUBTRACT, D3DBLEND_SRCALPHA, D3DBLEND_SRCALPHA},			// * 0100: (Cs - Cd)*As + Cs ==> Cs*(As + 1) - Cd*As
-				{0, D3DBLENDOP_ADD, D3DBLEND_SRCALPHA, D3DBLEND_INVSRCALPHA},			// 0101: (Cs - Cd)*As + Cd ==> Cs*As + Cd*(1 - As)
-				{0, D3DBLENDOP_SUBTRACT, D3DBLEND_SRCALPHA, D3DBLEND_SRCALPHA},			// 0102: (Cs - Cd)*As + 0 ==> Cs*As - Cd*As
-				{1, D3DBLENDOP_SUBTRACT, D3DBLEND_DESTALPHA, D3DBLEND_DESTALPHA},		// * 0110: (Cs - Cd)*Ad + Cs ==> Cs*(Ad + 1) - Cd*Ad
-				{0, D3DBLENDOP_ADD, D3DBLEND_DESTALPHA, D3DBLEND_INVDESTALPHA},			// 0111: (Cs - Cd)*Ad + Cd ==> Cs*Ad + Cd*(1 - Ad)
-				{0, D3DBLENDOP_ADD, D3DBLEND_DESTALPHA, D3DBLEND_DESTALPHA},			// 0112: (Cs - Cd)*Ad + 0 ==> Cs*Ad - Cd*Ad
-				{1, D3DBLENDOP_SUBTRACT, D3DBLEND_BLENDFACTOR, D3DBLEND_BLENDFACTOR},	// * 0120: (Cs - Cd)*F + Cs ==> Cs*(F + 1) - Cd*F
-				{0, D3DBLENDOP_ADD, D3DBLEND_BLENDFACTOR, D3DBLEND_INVBLENDFACTOR},		// 0121: (Cs - Cd)*F + Cd ==> Cs*F + Cd*(1 - F)
-				{0, D3DBLENDOP_SUBTRACT, D3DBLEND_BLENDFACTOR, D3DBLEND_BLENDFACTOR},	// 0122: (Cs - Cd)*F + 0 ==> Cs*F - Cd*F
-				{1, D3DBLENDOP_ADD, D3DBLEND_SRCALPHA, D3DBLEND_ZERO},					// * 0200: (Cs - 0)*As + Cs ==> Cs*(As + 1)
-				{0, D3DBLENDOP_ADD, D3DBLEND_SRCALPHA, D3DBLEND_ONE},					// 0201: (Cs - 0)*As + Cd ==> Cs*As + Cd
-				{0, D3DBLENDOP_ADD, D3DBLEND_SRCALPHA, D3DBLEND_ZERO},					// 0202: (Cs - 0)*As + 0 ==> Cs*As
-				{1, D3DBLENDOP_ADD, D3DBLEND_SRCALPHA, D3DBLEND_ZERO},					// * 0210: (Cs - 0)*Ad + Cs ==> Cs*(As + 1)
-				{0, D3DBLENDOP_ADD, D3DBLEND_DESTALPHA, D3DBLEND_ONE},					// 0211: (Cs - 0)*Ad + Cd ==> Cs*Ad + Cd
-				{0, D3DBLENDOP_ADD, D3DBLEND_DESTALPHA, D3DBLEND_ZERO},					// 0212: (Cs - 0)*Ad + 0 ==> Cs*Ad
-				{1, D3DBLENDOP_ADD, D3DBLEND_BLENDFACTOR, D3DBLEND_ZERO},				// * 0220: (Cs - 0)*F + Cs ==> Cs*(F + 1)
-				{0, D3DBLENDOP_ADD, D3DBLEND_BLENDFACTOR, D3DBLEND_ONE},				// 0221: (Cs - 0)*F + Cd ==> Cs*F + Cd
-				{0, D3DBLENDOP_ADD, D3DBLEND_BLENDFACTOR, D3DBLEND_ZERO},				// 0222: (Cs - 0)*F + 0 ==> Cs*F
-				{0, D3DBLENDOP_ADD, D3DBLEND_INVSRCALPHA, D3DBLEND_SRCALPHA},			// 1000: (Cd - Cs)*As + Cs ==> Cd*As + Cs*(1 - As)
-				{1, D3DBLENDOP_REVSUBTRACT, D3DBLEND_SRCALPHA, D3DBLEND_SRCALPHA},		// * 1001: (Cd - Cs)*As + Cd ==> Cd*(As + 1) - Cs*As
-				{0, D3DBLENDOP_REVSUBTRACT, D3DBLEND_SRCALPHA, D3DBLEND_SRCALPHA},		// 1002: (Cd - Cs)*As + 0 ==> Cd*As - Cs*As
-				{0, D3DBLENDOP_ADD, D3DBLEND_INVDESTALPHA, D3DBLEND_DESTALPHA},			// 1010: (Cd - Cs)*Ad + Cs ==> Cd*Ad + Cs*(1 - Ad)
-				{1, D3DBLENDOP_REVSUBTRACT, D3DBLEND_DESTALPHA, D3DBLEND_DESTALPHA},	// * 1011: (Cd - Cs)*Ad + Cd ==> Cd*(Ad + 1) - Cs*Ad
-				{0, D3DBLENDOP_REVSUBTRACT, D3DBLEND_DESTALPHA, D3DBLEND_DESTALPHA},	// 1012: (Cd - Cs)*Ad + 0 ==> Cd*Ad - Cs*Ad
-				{0, D3DBLENDOP_ADD, D3DBLEND_INVBLENDFACTOR, D3DBLEND_BLENDFACTOR},		// 1020: (Cd - Cs)*F + Cs ==> Cd*F + Cs*(1 - F)
-				{1, D3DBLENDOP_REVSUBTRACT, D3DBLEND_BLENDFACTOR, D3DBLEND_BLENDFACTOR},// * 1021: (Cd - Cs)*F + Cd ==> Cd*(F + 1) - Cs*F
-				{0, D3DBLENDOP_REVSUBTRACT, D3DBLEND_BLENDFACTOR, D3DBLEND_BLENDFACTOR},// 1022: (Cd - Cs)*F + 0 ==> Cd*F - Cs*F
-				{0, D3DBLENDOP_ADD, D3DBLEND_ONE, D3DBLEND_ZERO},						// 1100: (Cs/Cd/0 - Cs/Cd/0)*As/Ad/F + Cs ==> Cs
-				{0, D3DBLENDOP_ADD, D3DBLEND_ZERO, D3DBLEND_ONE},						// 1101: (Cs/Cd/0 - Cs/Cd/0)*As/Ad/F + Cd ==> Cd
-				{0, D3DBLENDOP_ADD, D3DBLEND_ZERO, D3DBLEND_ZERO},						// 1102: (Cs/Cd/0 - Cs/Cd/0)*As/Ad/F + 0 ==> 0
-				{0, D3DBLENDOP_ADD, D3DBLEND_ONE, D3DBLEND_ZERO},						// 1110: (Cs/Cd/0 - Cs/Cd/0)*As/Ad/F + Cs ==> Cs
-				{0, D3DBLENDOP_ADD, D3DBLEND_ZERO, D3DBLEND_ONE},						// 1111: (Cs/Cd/0 - Cs/Cd/0)*As/Ad/F + Cd ==> Cd
-				{0, D3DBLENDOP_ADD, D3DBLEND_ZERO, D3DBLEND_ZERO},						// 1112: (Cs/Cd/0 - Cs/Cd/0)*As/Ad/F + 0 ==> 0
-				{0, D3DBLENDOP_ADD, D3DBLEND_ONE, D3DBLEND_ZERO},						// 1120: (Cs/Cd/0 - Cs/Cd/0)*As/Ad/F + Cs ==> Cs
-				{0, D3DBLENDOP_ADD, D3DBLEND_ZERO, D3DBLEND_ONE},						// 1121: (Cs/Cd/0 - Cs/Cd/0)*As/Ad/F + Cd ==> Cd
-				{0, D3DBLENDOP_ADD, D3DBLEND_ZERO, D3DBLEND_ZERO},						// 1122: (Cs/Cd/0 - Cs/Cd/0)*As/Ad/F + 0 ==> 0
-				{0, D3DBLENDOP_ADD, D3DBLEND_ONE, D3DBLEND_SRCALPHA},					// 1200: (Cd - 0)*As + Cs ==> Cs + Cd*As
-				{1, D3DBLENDOP_ADD, D3DBLEND_ZERO, D3DBLEND_SRCALPHA},					// * 1201: (Cd - 0)*As + Cd ==> Cd*(1 + As)
-				{0, D3DBLENDOP_ADD, D3DBLEND_ZERO, D3DBLEND_SRCALPHA},					// 1202: (Cd - 0)*As + 0 ==> Cd*As
-				{0, D3DBLENDOP_ADD, D3DBLEND_ONE, D3DBLEND_DESTALPHA},					// 1210: (Cd - 0)*Ad + Cs ==> Cs + Cd*Ad
-				{1, D3DBLENDOP_ADD, D3DBLEND_ZERO, D3DBLEND_DESTALPHA},					// * 1211: (Cd - 0)*Ad + Cd ==> Cd*(1 + Ad)
-				{0, D3DBLENDOP_ADD, D3DBLEND_ZERO, D3DBLEND_DESTALPHA},					// 1212: (Cd - 0)*Ad + 0 ==> Cd*Ad
-				{0, D3DBLENDOP_ADD, D3DBLEND_ONE, D3DBLEND_BLENDFACTOR},				// 1220: (Cd - 0)*F + Cs ==> Cs + Cd*F
-				{1, D3DBLENDOP_ADD, D3DBLEND_ZERO, D3DBLEND_BLENDFACTOR},				// * 1221: (Cd - 0)*F + Cd ==> Cd*(1 + F)
-				{0, D3DBLENDOP_ADD, D3DBLEND_ZERO, D3DBLEND_BLENDFACTOR},				// 1222: (Cd - 0)*F + 0 ==> Cd*F
-				{0, D3DBLENDOP_ADD, D3DBLEND_INVSRCALPHA, D3DBLEND_ZERO},				// 2000: (0 - Cs)*As + Cs ==> Cs*(1 - As)
-				{0, D3DBLENDOP_REVSUBTRACT, D3DBLEND_SRCALPHA, D3DBLEND_ONE},			// 2001: (0 - Cs)*As + Cd ==> Cd - Cs*As
-				{0, D3DBLENDOP_REVSUBTRACT, D3DBLEND_SRCALPHA, D3DBLEND_ZERO},			// 2002: (0 - Cs)*As + 0 ==> 0 - Cs*As
-				{0, D3DBLENDOP_ADD, D3DBLEND_INVDESTALPHA, D3DBLEND_ZERO},				// 2010: (0 - Cs)*Ad + Cs ==> Cs*(1 - Ad)
-				{0, D3DBLENDOP_REVSUBTRACT, D3DBLEND_DESTALPHA, D3DBLEND_ONE},			// 2011: (0 - Cs)*Ad + Cd ==> Cd - Cs*Ad
-				{0, D3DBLENDOP_REVSUBTRACT, D3DBLEND_DESTALPHA, D3DBLEND_ZERO},			// 2012: (0 - Cs)*Ad + 0 ==> 0 - Cs*Ad
-				{0, D3DBLENDOP_ADD, D3DBLEND_INVBLENDFACTOR, D3DBLEND_ZERO},			// 2020: (0 - Cs)*F + Cs ==> Cs*(1 - F)
-				{0, D3DBLENDOP_REVSUBTRACT, D3DBLEND_BLENDFACTOR, D3DBLEND_ONE},		// 2021: (0 - Cs)*F + Cd ==> Cd - Cs*F
-				{0, D3DBLENDOP_REVSUBTRACT, D3DBLEND_BLENDFACTOR, D3DBLEND_ZERO},		// 2022: (0 - Cs)*F + 0 ==> 0 - Cs*F
-				{0, D3DBLENDOP_SUBTRACT, D3DBLEND_ONE, D3DBLEND_SRCALPHA},				// 2100: (0 - Cd)*As + Cs ==> Cs - Cd*As
-				{0, D3DBLENDOP_ADD, D3DBLEND_ZERO, D3DBLEND_INVSRCALPHA},				// 2101: (0 - Cd)*As + Cd ==> Cd*(1 - As)
-				{0, D3DBLENDOP_SUBTRACT, D3DBLEND_ZERO, D3DBLEND_SRCALPHA},				// 2102: (0 - Cd)*As + 0 ==> 0 - Cd*As
-				{0, D3DBLENDOP_SUBTRACT, D3DBLEND_ONE, D3DBLEND_DESTALPHA},				// 2110: (0 - Cd)*Ad + Cs ==> Cs - Cd*Ad
-				{0, D3DBLENDOP_ADD, D3DBLEND_ZERO, D3DBLEND_INVDESTALPHA},				// 2111: (0 - Cd)*Ad + Cd ==> Cd*(1 - Ad)
-				{0, D3DBLENDOP_SUBTRACT, D3DBLEND_ONE, D3DBLEND_DESTALPHA},				// 2112: (0 - Cd)*Ad + 0 ==> 0 - Cd*Ad
-				{0, D3DBLENDOP_SUBTRACT, D3DBLEND_ONE, D3DBLEND_BLENDFACTOR},			// 2120: (0 - Cd)*F + Cs ==> Cs - Cd*F
-				{0, D3DBLENDOP_ADD, D3DBLEND_ZERO, D3DBLEND_INVBLENDFACTOR},			// 2121: (0 - Cd)*F + Cd ==> Cd*(1 - F)
-				{0, D3DBLENDOP_SUBTRACT, D3DBLEND_ONE, D3DBLEND_BLENDFACTOR},			// 2122: (0 - Cd)*F + 0 ==> 0 - Cd*F
-				{0, D3DBLENDOP_ADD, D3DBLEND_ONE, D3DBLEND_ZERO},						// 2200: (Cs/Cd/0 - Cs/Cd/0)*As/Ad/F + Cs ==> Cs
-				{0, D3DBLENDOP_ADD, D3DBLEND_ZERO, D3DBLEND_ONE},						// 2201: (Cs/Cd/0 - Cs/Cd/0)*As/Ad/F + Cd ==> Cd
-				{0, D3DBLENDOP_ADD, D3DBLEND_ZERO, D3DBLEND_ZERO},						// 2202: (Cs/Cd/0 - Cs/Cd/0)*As/Ad/F + 0 ==> 0
-				{0, D3DBLENDOP_ADD, D3DBLEND_ONE, D3DBLEND_ZERO},						// 2210: (Cs/Cd/0 - Cs/Cd/0)*As/Ad/F + Cs ==> Cs
-				{0, D3DBLENDOP_ADD, D3DBLEND_ZERO, D3DBLEND_ONE},						// 2211: (Cs/Cd/0 - Cs/Cd/0)*As/Ad/F + Cd ==> Cd
-				{0, D3DBLENDOP_ADD, D3DBLEND_ZERO, D3DBLEND_ZERO},						// 2212: (Cs/Cd/0 - Cs/Cd/0)*As/Ad/F + 0 ==> 0
-				{0, D3DBLENDOP_ADD, D3DBLEND_ONE, D3DBLEND_ZERO},						// 2220: (Cs/Cd/0 - Cs/Cd/0)*As/Ad/F + Cs ==> Cs
-				{0, D3DBLENDOP_ADD, D3DBLEND_ZERO, D3DBLEND_ONE},						// 2221: (Cs/Cd/0 - Cs/Cd/0)*As/Ad/F + Cd ==> Cd
-				{0, D3DBLENDOP_ADD, D3DBLEND_ZERO, D3DBLEND_ZERO},						// 2222: (Cs/Cd/0 - Cs/Cd/0)*As/Ad/F + 0 ==> 0
-			};
-
-			// bogus: 0100, 0110, 0120, 0200, 0210, 0220, 1001, 1011, 1021, 1201, 1211, 1221
-
-			int i = (((m_ctxt->ALPHA.A&3)*3+(m_ctxt->ALPHA.B&3))*3+(m_ctxt->ALPHA.C&3))*3+(m_ctxt->ALPHA.D&3);
-
-			ASSERT(m_ctxt->ALPHA.A != 3);
-			ASSERT(m_ctxt->ALPHA.B != 3);
-			ASSERT(m_ctxt->ALPHA.C != 3);
-			ASSERT(m_ctxt->ALPHA.D != 3);
-			ASSERT(!blendmap[i].bogus);
-
-			hr = m_pD3DDev->SetRenderState(D3DRS_BLENDOP, blendmap[i].op);
-			hr = m_pD3DDev->SetRenderState(D3DRS_SRCBLEND, blendmap[i].src);
-			hr = m_pD3DDev->SetRenderState(D3DRS_DESTBLEND, blendmap[i].dst);
-
-			hr = m_pD3DDev->SetRenderState(D3DRS_SEPARATEALPHABLENDENABLE, TRUE);
-			hr = m_pD3DDev->SetRenderState(D3DRS_BLENDOPALPHA, D3DBLENDOP_ADD);
-			hr = m_pD3DDev->SetRenderState(D3DRS_SRCBLENDALPHA, D3DBLEND_ONE);
-			hr = m_pD3DDev->SetRenderState(D3DRS_DESTBLENDALPHA, D3DBLEND_ZERO);
-		}
+		SetupAlphaBlend();
 
 		//////////////////////
 
@@ -626,7 +394,7 @@ void GSRendererHW::FlushPrim()
 
 		hr = m_pD3DDev->SetRenderState(D3DRS_SCISSORTESTENABLE, TRUE);
 		CRect scissor(scale.x * m_ctxt->SCISSOR.SCAX0, scale.y * m_ctxt->SCISSOR.SCAY0, scale.x * (m_ctxt->SCISSOR.SCAX1+1), scale.y * (m_ctxt->SCISSOR.SCAY1+1));
-		scissor.IntersectRect(scissor, CRect(0, 0, bd.Width, bd.Height));
+		scissor.IntersectRect(scissor, CRect(0, 0, m_bd.Width, m_bd.Height));
 		hr = m_pD3DDev->SetScissorRect(scissor);
 
 		//////////////////////
@@ -662,14 +430,19 @@ void GSRendererHW::FlushPrim()
 					//ASSERT(-1 <= fract && fract <= 1.01);
 					pVertices->tv = base + fract;
 				}
+
+				if(m_de.PRIM.FGE)
+				{
+					pVertices->fog = D3DCOLOR_ARGB(pVertices->fog>>24, m_de.FOGCOL.FCR, m_de.FOGCOL.FCG, m_de.FOGCOL.FCB);
+				}
 			}
 		}
 
-if(m_de.PRIM.TME && m_nVertices == 6 && (m_ctxt->FRAME.Block()) == 0x00000 && m_ctxt->TEX0.TBP0 == 0x00e00)
+if(m_de.PRIM.TME && /*(m_ctxt->FRAME.Block()) == 0x00000 &&*/ m_ctxt->TEX0.TBP0 == 0x02320)
 {
-	if(m_stats.GetFrame() > 1500)
+	if(m_stats.GetFrame() > 1200)
 	{
-//		hr = D3DXSaveTextureToFile(_T("c:\\rtbefore.bmp"), D3DXIFF_BMP, pRT, NULL);
+		//hr = D3DXSaveTextureToFile(_T("c:\\rtbefore.bmp"), D3DXIFF_BMP, pRT, NULL);
 	}
 }
 /*
@@ -712,11 +485,8 @@ if(m_de.PRIM.TME && m_nVertices == 6 && (m_ctxt->FRAME.Block()) == 0x00000 && m_
 
 		hr = m_pD3DDev->SetStreamSource(0, pVB, 0, sizeof(HWVERTEX));
 */
-		hr = m_pD3DDev->BeginScene();
 
 		hr = m_pD3DDev->SetFVF(D3DFVF_HWVERTEX);
-
-		if(pPixelShader) hr = m_pD3DDev->SetPixelShader(pPixelShader);
 
 		if(1)//!m_de.PABE.PABE)
 		{
@@ -763,9 +533,7 @@ if(m_de.PRIM.TME && m_nVertices == 6 && (m_ctxt->FRAME.Block()) == 0x00000 && m_
 			hr = m_pD3DDev->SetRenderState(D3DRS_ALPHABLENDENABLE, FALSE);
 			hr = m_pD3DDev->DrawPrimitive(m_primtype, 0, nPrims);
 		}
-	    
-		if(pPixelShader) hr = m_pD3DDev->SetPixelShader(NULL);
-/*
+
 		if(m_ctxt->TEST.ATE && m_ctxt->TEST.AFAIL && m_ctxt->TEST.ATST != 1)
 		{
 			ASSERT(!m_de.PABE.PABE);
@@ -793,9 +561,12 @@ if(m_de.PRIM.TME && m_nVertices == 6 && (m_ctxt->FRAME.Block()) == 0x00000 && m_
 			hr = m_pD3DDev->SetRenderState(D3DRS_ZWRITEENABLE, zwrite);
 			hr = m_pD3DDev->SetRenderState(D3DRS_COLORWRITEENABLE, mask);
 
-			hr = m_pD3DDev->DrawPrimitive(m_primtype, 0, nPrims);
+			if(mask || zwrite)
+				hr = m_pD3DDev->DrawPrimitiveUP(m_primtype, nPrims, m_pVertices, sizeof(HWVERTEX));
 		}
-*/
+
+		//if(pPixelShader) hr = m_pD3DDev->SetPixelShader(NULL);
+
 /*
 		else if(m_de.PABE.PABE)
 		{
@@ -811,18 +582,17 @@ if(m_de.PRIM.TME && m_nVertices == 6 && (m_ctxt->FRAME.Block()) == 0x00000 && m_
 			hr = m_pD3DDev->DrawPrimitive(m_primtype, 0, nPrims);
 		}
 */
-		hr = m_pD3DDev->EndScene();
 
-		hr = m_pD3DDev->SetRenderState(D3DRS_SEPARATEALPHABLENDENABLE, FALSE);
-
-if(m_de.PRIM.TME && m_nVertices == 6 && (m_ctxt->FRAME.Block()) == 0x00000 && m_ctxt->TEX0.TBP0 == 0x00e00)
+if(m_de.PRIM.TME && /*(m_ctxt->FRAME.Block()) == 0x00000 &&*/ m_ctxt->TEX0.TBP0 == 0x02320)
 {
-	if(m_stats.GetFrame() > 1500)
+	if(m_stats.GetFrame() > 1200)
 	{
-//		hr = D3DXSaveTextureToFile(_T("c:\\rtafter.bmp"), D3DXIFF_BMP, pRT, NULL);
-//		if(t.m_pTexture) hr = D3DXSaveTextureToFile(_T("c:\\tx.bmp"), D3DXIFF_BMP, t.m_pTexture, NULL);
+		//hr = D3DXSaveTextureToFile(_T("c:\\rtafter.bmp"), D3DXIFF_BMP, pRT, NULL);
+		//if(t.m_pTexture) hr = D3DXSaveTextureToFile(_T("c:\\tx.bmp"), D3DXIFF_BMP, t.m_pTexture, NULL);
 	}
 }
+		hr = m_pD3DDev->EndScene();
+
 		//////////////////////
 
 		tex_t tex;
@@ -842,20 +612,54 @@ if(m_de.PRIM.TME && m_nVertices == 6 && (m_ctxt->FRAME.Block()) == 0x00000 && m_
 
 void GSRendererHW::Flip()
 {
-	__super::Flip();
-
 	HRESULT hr;
 
-	CComPtr<IDirect3DSurface9> pBackBuff;
-	hr = m_pD3DDev->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &pBackBuff);
+	FlipSrc rt[2];
 
-	D3DSURFACE_DESC bd;
-	ZeroMemory(&bd, sizeof(bd));
-	pBackBuff->GetDesc(&bd);
+	for(int i = 0; i < countof(rt); i++)
+	{
+		if(!m_rs.IsEnabled(i)) continue;
 
-	CRect dst(0, 0, bd.Width, bd.Height);
+		DWORD FBP = m_rs.DISPFB[i].FBP<<5;
+
+		CSurfMap<IDirect3DTexture9>::CPair* pPair = m_pRenderTargets.PLookup(FBP);
+
+		if(!pPair)
+		{
+			for(CSurfMap<IDirect3DTexture9>::CPair* pPair2 = m_pRenderTargets.PGetFirstAssoc(); 
+				pPair2; 
+				pPair2 = m_pRenderTargets.PGetNextAssoc(pPair2))
+			{
+				if(pPair2->key <= FBP && (!pPair || pPair2->key >= pPair->key))
+				{
+					pPair = pPair2;
+				}
+			}
+		}
+
+		if(pPair)
+		{
+			rt[i].pRT = pPair->value;
+			m_tc.ResetAge(pPair->key);
+			ZeroMemory(&rt[i].rd, sizeof(rt[i].rd));
+			hr = rt[i].pRT->GetLevelDesc(0, &rt[i].rd);
+
+			DWORD ssize = sizeof(rt[i].scale);
+			rt[i].pRT->GetPrivateData(GUID_NULL, &rt[i].scale, &ssize);
+
+			CSize size = m_rs.GetSize(i);
+			rt[i].src = CRect(0, 0, rt[i].scale.x*size.cx, rt[i].scale.y*size.cy);
+		}
+	}
+
+	bool fShiftField = m_rs.SMODE2.INT && !!(m_ctxt->XYOFFSET.OFY&0xf);
+		// m_rs.CSRr.FIELD && m_rs.SMODE2.INT /*&& !m_rs.SMODE2.FFMD*/;
+
+	FinishFlip(rt, fShiftField);
 
 #ifdef DEBUG_RENDERTARGETS
+	CRect dst(0, 0, m_bd.Width, m_bd.Height);
+
 	if(!m_pRenderWnds.IsEmpty())
 	{
 		POSITION pos = m_pRenderWnds.GetStartPosition();
@@ -906,6 +710,8 @@ void GSRendererHW::Flip()
 				hr = m_pD3DDev->SetTextureStageState(0, D3DTSS_ALPHAOP, D3DTOP_DISABLE);
 
 				hr = m_pD3DDev->SetRenderState(D3DRS_ALPHABLENDENABLE, FALSE);
+
+				hr = m_pD3DDev->SetPixelShader(NULL);
 
 				hr = m_pD3DDev->BeginScene();
 				hr = m_pD3DDev->SetFVF(D3DFVF_XYZRHW | D3DFVF_TEX1);
@@ -959,186 +765,6 @@ void GSRendererHW::Flip()
 		SetWindowText(m_hWnd, _T("PCSX2"));
 	}
 #endif
-
-	struct
-	{
-		CComPtr<IDirect3DTexture9> pRT;
-		D3DSURFACE_DESC rd;
-		scale_t scale;
-		CRect src;
-	} rt[3];
-
-	for(int i = 0; i < countof(rt); i++)
-	{
-		if(m_rs.IsEnabled(0) && i == 0 || m_rs.IsEnabled(1) && i == 1 || i == 2)
-		{
-			UINT32 FBP = i == 2 || (::GetAsyncKeyState(VK_SPACE)&0x80000000) ? m_ctxt->FRAME.Block() : (m_rs.DISPFB[i].FBP<<5);
-
-			if(CSurfMap<IDirect3DTexture9>::CPair* pPair = m_pRenderTargets.PLookup(FBP))
-			{
-				rt[i].pRT = pPair->value;
-				m_tc.ResetAge(pPair->key);
-				ZeroMemory(&rt[i].rd, sizeof(rt[i].rd));
-				hr = rt[i].pRT->GetLevelDesc(0, &rt[i].rd);
-
-				DWORD ssize = sizeof(rt[i].scale);
-				rt[i].pRT->GetPrivateData(GUID_NULL, &rt[i].scale, &ssize);
-
-				CSize size = m_rs.GetSize(i < 2 ? i : m_rs.IsEnabled(1)?1:0);
-				rt[i].src = CRect(0, 0, rt[i].scale.x*size.cx, rt[i].scale.y*size.cy);
-			}
-		}
-	}
-
-	bool fShiftField = m_rs.SMODE2.INT && !!(m_ctxt->XYOFFSET.OFY&0xf);
-		// m_rs.CSRr.FIELD && m_rs.SMODE2.INT /*&& !m_rs.SMODE2.FFMD*/;
-
-	struct
-	{
-		float x, y, z, rhw;
-		float tu1, tv1;
-		float tu2, tv2;
-		float tu3, tv3;
-	}
-	pVertices[] =
-	{
-		{(float)dst.left, (float)dst.top, 0.5f, 2.0f, 
-			(float)rt[0].src.left / rt[0].rd.Width, (float)rt[0].src.top / rt[0].rd.Height, 
-			(float)rt[1].src.left / rt[1].rd.Width, (float)rt[1].src.top / rt[1].rd.Height, 
-			(float)rt[2].src.left / rt[2].rd.Width, (float)rt[2].src.top / rt[2].rd.Height},
-		{(float)dst.right, (float)dst.top, 0.5f, 2.0f, 
-			(float)rt[0].src.right / rt[0].rd.Width, (float)rt[0].src.top / rt[0].rd.Height, 
-			(float)rt[1].src.right / rt[1].rd.Width, (float)rt[1].src.top / rt[1].rd.Height, 
-			(float)rt[2].src.right / rt[2].rd.Width, (float)rt[2].src.top / rt[2].rd.Height},
-		{(float)dst.left, (float)dst.bottom, 0.5f, 2.0f, 
-			(float)rt[0].src.left / rt[0].rd.Width, (float)rt[0].src.bottom / rt[0].rd.Height, 
-			(float)rt[1].src.left / rt[1].rd.Width, (float)rt[1].src.bottom / rt[1].rd.Height, 
-			(float)rt[2].src.left / rt[2].rd.Width, (float)rt[2].src.bottom / rt[2].rd.Height},
-		{(float)dst.right, (float)dst.bottom, 0.5f, 2.0f, 
-			(float)rt[0].src.right / rt[0].rd.Width, (float)rt[0].src.bottom / rt[0].rd.Height, 
-			(float)rt[1].src.right / rt[1].rd.Width, (float)rt[1].src.bottom / rt[1].rd.Height, 
-			(float)rt[2].src.right / rt[2].rd.Width, (float)rt[2].src.bottom / rt[2].rd.Height},
-	};
-
-	for(int i = 0; i < countof(pVertices); i++)
-	{
-		pVertices[i].x -= 0.5;
-		pVertices[i].y -= 0.5;
-
-		if(fShiftField)
-		{
-			pVertices[i].tv1 += rt[0].scale.y*0.5f / rt[0].rd.Height;
-			pVertices[i].tv2 += rt[1].scale.y*0.5f / rt[1].rd.Height;
-			pVertices[i].tv3 += rt[2].scale.y*0.5f / rt[2].rd.Height;
-		}
-	}
-
-	hr = m_pD3DDev->SetTexture(0, rt[0].pRT);
-	hr = m_pD3DDev->SetTexture(1, rt[1].pRT);
-	hr = m_pD3DDev->SetTexture(2, rt[2].pRT);
-
-	hr = m_pD3DDev->SetTextureStageState(0, D3DTSS_TEXCOORDINDEX, 0);
-	hr = m_pD3DDev->SetTextureStageState(1, D3DTSS_TEXCOORDINDEX, 1);
-	hr = m_pD3DDev->SetTextureStageState(2, D3DTSS_TEXCOORDINDEX, 2);
-
-	hr = m_pD3DDev->SetFVF(D3DFVF_XYZRHW|D3DFVF_TEX3);
-
-	CComPtr<IDirect3DPixelShader9> pPixelShader;
-
-	if(m_rs.IsEnabled(0) && m_rs.IsEnabled(1) && rt[0].pRT && rt[1].pRT) // RAO1 + RAO2
-	{
-		pPixelShader = m_pPixelShaders[11];
-	}
-	else if(m_rs.IsEnabled(0) && rt[0].pRT) // RAO1
-	{
-		pPixelShader = m_pPixelShaders[12];
-	}
-	else if(m_rs.IsEnabled(1) && rt[1].pRT) // RAO2
-	{
-		pPixelShader = m_pPixelShaders[13];
-	}
-	else if((m_rs.IsEnabled(0) || m_rs.IsEnabled(1)) && rt[2].pRT)
-	{
-		pPixelShader = m_pPixelShaders[14];
-	}
-	else
-	{
-		hr = m_pD3DDev->Present(NULL, NULL, NULL, NULL);
-		return;
-	}
-
-	if(!pPixelShader)
-	{
-		int stage = 0;
-
-		hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_COLOROP, D3DTOP_SELECTARG1);
-		hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_COLORARG1, D3DTA_TEXTURE);
-		hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_ALPHAOP, D3DTOP_DISABLE);
-		stage++;
-
-		if(m_rs.IsEnabled(0) && m_rs.IsEnabled(1) && rt[0].pRT && rt[1].pRT) // RAO1 + RAO2
-		{
-			if(m_rs.PMODE.ALP < 0xff)
-			{
-				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_COLOROP, D3DTOP_LERP);
-				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_COLORARG1, D3DTA_CURRENT);
-				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_COLORARG2, m_rs.PMODE.SLBG ? D3DTA_CONSTANT : D3DTA_TEXTURE);
-				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_COLORARG0, D3DTA_ALPHAREPLICATE|(m_rs.PMODE.MMOD ? D3DTA_CONSTANT : D3DTA_TEXTURE));
-				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_ALPHAOP, D3DTOP_DISABLE);
-				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_CONSTANT, D3DCOLOR_ARGB(m_rs.PMODE.ALP, m_rs.BGCOLOR.R, m_rs.BGCOLOR.G, m_rs.BGCOLOR.B));
-				stage++;
-			}
-		}
-		else if(m_rs.IsEnabled(0) && rt[0].pRT) // RAO1
-		{
-			if(m_rs.PMODE.ALP < 0xff)
-			{
-				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_COLOROP, D3DTOP_MODULATE);
-				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_COLORARG1, D3DTA_CURRENT);
-				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_COLORARG2, D3DTA_ALPHAREPLICATE|(m_rs.PMODE.MMOD ? D3DTA_CONSTANT : D3DTA_TEXTURE));
-				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_ALPHAOP, D3DTOP_DISABLE);
-				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_CONSTANT, D3DCOLOR_ARGB(m_rs.PMODE.ALP, 0, 0, 0));
-				stage++;
-			}
-		}
-		else if(m_rs.IsEnabled(1) && rt[1].pRT) // RAO2
-		{
-			hr = m_pD3DDev->SetTexture(0, rt[1].pRT);
-			hr = m_pD3DDev->SetTextureStageState(0, D3DTSS_TEXCOORDINDEX, 1);
-
-			// FIXME
-			hr = m_pD3DDev->SetTextureStageState(0, D3DTSS_TEXCOORDINDEX, 0);
-			for(int i = 0; i < countof(pVertices); i++)
-			{
-				pVertices[i].tu1 = pVertices[i].tu2;
-				pVertices[i].tv1 = pVertices[i].tv2;
-			}
-		}
-		else if((m_rs.IsEnabled(0) || m_rs.IsEnabled(1)) && rt[2].pRT)
-		{
-			hr = m_pD3DDev->SetTexture(0, rt[2].pRT);
-			hr = m_pD3DDev->SetTextureStageState(0, D3DTSS_TEXCOORDINDEX, 2);
-
-			// FIXME
-			hr = m_pD3DDev->SetTextureStageState(0, D3DTSS_TEXCOORDINDEX, 0);
-			for(int i = 0; i < countof(pVertices); i++)
-			{
-				pVertices[i].tu1 = pVertices[i].tu3;
-				pVertices[i].tv1 = pVertices[i].tv3;
-			}
-		}
-
-		hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_COLOROP, D3DTOP_DISABLE);
-		hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_ALPHAOP, D3DTOP_DISABLE);
-	}
-
-	hr = m_pD3DDev->BeginScene();
-	hr = m_pD3DDev->SetPixelShader(pPixelShader);
-	hr = m_pD3DDev->DrawPrimitiveUP(D3DPT_TRIANGLESTRIP, 2, pVertices, sizeof(pVertices[0]));
-	hr = m_pD3DDev->SetPixelShader(NULL);
-	hr = m_pD3DDev->EndScene();
-
-	hr = m_pD3DDev->Present(NULL, NULL, NULL, NULL);
 }
 
 void GSRendererHW::EndFrame()
@@ -1166,7 +792,7 @@ void GSRendererHW::InvalidateTexture(DWORD TBP0, int x, int y)
 		CRect r(m_rs.TRXPOS.DSAX, y, m_rs.TRXREG.RRW, min(m_x == m_rs.TRXPOS.DSAX ? m_y : m_y+1, m_rs.TRXREG.RRH));
 		int w = r.Width(), h = r.Height();
 
-		if(m_tc.LookupByTBP(TBP0, t) && !IsRenderTarget(t.m_pTexture)
+		if(m_tc.LookupByTBP(TBP0, t) && !t.m_fRT
 		&& !(t.m_tex.CLAMP.WMS&2) && !(t.m_tex.CLAMP.WMT&2)
 		&& t.m_scale.x == 1.0f && t.m_scale.y == 1.0f
 		&& S_OK == t.m_pTexture->GetLevelDesc(0, &desc)
@@ -1177,7 +803,7 @@ void GSRendererHW::InvalidateTexture(DWORD TBP0, int x, int y)
 
 			for(int y = 0, diff = lr.Pitch - w*4; y < h; y++, dst += diff)
 				for(int x = 0; x < w; x++, dst += 4)
-					*(DWORD*)dst = (m_lm.*rt)(r.left + x, r.top + y, t.m_tex.TEX0, t.m_tex.TEXA);
+					*(DWORD*)dst = SwapRB((m_lm.*rt)(r.left + x, r.top + y, t.m_tex.TEX0, t.m_tex.TEXA));
 
 			t.m_pTexture->UnlockRect(0);
 		}
@@ -1259,16 +885,35 @@ bool GSRendererHW::CreateTexture(GSTexture& t)
 				case 3: ty = (y & m_ctxt->CLAMP.MINV) | m_ctxt->CLAMP.MAXV; break;
 				}
 
-				*(DWORD*)dst = (m_lm.*rt)(tx, ty, m_ctxt->TEX0, m_de.TEXA);
+				*(DWORD*)dst = SwapRB((m_lm.*rt)(tx, ty, m_ctxt->TEX0, m_de.TEXA));
 			}
 		}
 	}
 	else
 	{
-		for(int y = 0, diff = r.Pitch - tw*4; y < th; y++, dst += diff)
-			for(int x = 0; x < tw; x++, dst += 4)
-				*(DWORD*)dst = (m_lm.*rt)(x, y, m_ctxt->TEX0, m_de.TEXA);
+		GSLocalMemory::unSwizzleTexture st = m_lm.GetUnSwizzleTexture(m_ctxt->TEX0.PSM);
+		(m_lm.*st)(tw, th, dst, r.Pitch, m_ctxt->TEX0, m_de.TEXA);
+/*
+clock_t t1 = clock();
+for(int i = 0; i < 10000; i++)
+{
+BYTE* tmp = dst;
+*/
+/*
+			for(int y = 0, diff = r.Pitch - tw*4; y < th; y++, dst += diff)
+				for(int x = 0; x < tw; x++, dst += 4)
+					*(DWORD*)dst = SwapRB((m_lm.*rt)(x, y, m_ctxt->TEX0, m_de.TEXA));
+dst = tmp;
+}
+
+clock_t t2 = clock();
+CString str;
+str.Format(_T("dt=%d, unSwizzleTexture(%d) %dx%d, %05x %d\n"), 
+		   t2-t1, (int)m_ctxt->TEX0.PSM, tw, th, (int)m_ctxt->TEX0.TBP0, (int)m_ctxt->TEX0.TBW*64);
+AfxMessageBox(str, MB_OK);
+*/
 	}
+
 
 	pTexture->UnlockRect(0);
 
@@ -1292,3 +937,299 @@ bool GSRendererHW::CreateTexture(GSTexture& t)
 	return(true);
 }
 
+void GSRendererHW::SetupTexture(const GSTexture& t)
+{
+	HRESULT hr;
+
+	CComPtr<IDirect3DPixelShader9> pPixelShader;
+
+	float fConstData[] = 
+	{
+		m_ctxt->TEX0.TFX, !!m_ctxt->TEX0.TCC, t.m_fRT, !!(m_de.PRIM.TME && t.m_pTexture),
+		m_ctxt->TEX0.PSM, m_de.TEXA.AEM, (float)m_de.TEXA.TA0 / 255, (float)m_de.TEXA.TA1 / 255,
+	};
+
+	hr = m_pD3DDev->SetPixelShaderConstantF(0, fConstData, countof(fConstData)/4);
+
+	if(m_de.PRIM.TME && t.m_pTexture)
+	{
+		hr = m_pD3DDev->SetTexture(0, t.m_pTexture);
+
+		D3DTEXTUREADDRESS u, v;
+
+		switch(m_ctxt->CLAMP.WMS&1)
+		{
+		case 0: u = D3DTADDRESS_WRAP; break; // repeat
+		case 1: u = D3DTADDRESS_CLAMP; break; // clamp
+		}
+
+		switch(m_ctxt->CLAMP.WMT&1)
+		{
+		case 0: v = D3DTADDRESS_WRAP; break; // repeat
+		case 1: v = D3DTADDRESS_CLAMP; break; // clamp
+		}
+
+		hr = m_pD3DDev->SetSamplerState(0, D3DSAMP_ADDRESSU, u);
+		hr = m_pD3DDev->SetSamplerState(0, D3DSAMP_ADDRESSV, v);
+
+		if(!pPixelShader && !m_fDisableShaders && m_caps.PixelShaderVersion >= D3DVS_VERSION(2, 0))
+		{
+			pPixelShader = m_pPixelShaderTFX[m_ctxt->TEX0.TFX];
+		}
+
+		if(!pPixelShader && !m_fDisableShaders && m_caps.PixelShaderVersion >= D3DVS_VERSION(1, 1))
+		{
+			switch(m_ctxt->TEX0.TFX)
+			{
+			case 0:
+				if(!m_ctxt->TEX0.TCC) pPixelShader = m_pPixelShaders[0];
+				else if(!t.m_fRT) pPixelShader = m_pPixelShaders[1];
+				else pPixelShader = m_pPixelShaders[2];
+				break;
+			case 1:
+				if(!t.m_fRT) pPixelShader = m_pPixelShaders[3];
+				else pPixelShader = m_pPixelShaders[4];
+				break;
+			case 2:
+				if(!m_ctxt->TEX0.TCC) pPixelShader = m_pPixelShaders[5];
+				else if(!t.m_fRT) pPixelShader = m_pPixelShaders[6];
+				else pPixelShader = m_pPixelShaders[7];
+				break;
+			case 3:
+				if(!m_ctxt->TEX0.TCC) pPixelShader = m_pPixelShaders[8];
+				else if(!t.m_fRT) pPixelShader = m_pPixelShaders[9];
+				else pPixelShader = m_pPixelShaders[10];
+				break;
+			}
+		}
+
+		if(!pPixelShader)
+		{
+			int stage = 0;
+
+			hr = m_pD3DDev->SetTextureStageState(0, D3DTSS_TEXCOORDINDEX, 0);
+			hr = m_pD3DDev->SetTextureStageState(1, D3DTSS_TEXCOORDINDEX, 0);
+
+			switch(m_ctxt->TEX0.TFX)
+			{
+			case 0:
+				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_COLOROP, D3DTOP_MODULATE2X);
+				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_COLORARG1, D3DTA_TEXTURE);
+				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_COLORARG2, D3DTA_DIFFUSE);
+				if(m_ctxt->TEX0.TCC)
+				{
+					hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_ALPHAOP, t.m_fRT ? D3DTOP_MODULATE2X : D3DTOP_MODULATE4X);
+					hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_ALPHAARG1, D3DTA_TEXTURE);
+					hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_ALPHAARG2, D3DTA_DIFFUSE);
+				}
+				else
+				{
+					hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_ALPHAOP, D3DTOP_ADD);
+					hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_ALPHAARG1, D3DTA_DIFFUSE);
+					hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_ALPHAARG2, D3DTA_DIFFUSE);
+				}
+				stage++;
+				break;
+			case 1:
+				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_COLOROP, D3DTOP_SELECTARG1);
+				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_COLORARG1, D3DTA_TEXTURE);
+				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_ALPHAOP, t.m_fRT ? D3DTOP_SELECTARG1 : D3DTOP_ADD);
+				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_ALPHAARG1, D3DTA_TEXTURE);
+				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_ALPHAARG2, D3DTA_TEXTURE);
+				stage++;
+				break;
+			case 2:
+				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_COLOROP, D3DTOP_MODULATE2X);
+				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_COLORARG1, D3DTA_TEXTURE);
+				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_COLORARG2, D3DTA_DIFFUSE);
+				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_ALPHAOP, D3DTOP_SELECTARG1);
+				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_ALPHAARG1, D3DTA_DIFFUSE);
+				if(m_ctxt->TEX0.TCC)
+				{
+					hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_ALPHAOP, D3DTOP_ADD);
+					hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_ALPHAARG2, D3DTA_TEXTURE);
+					ASSERT(!t.m_fRT); // FIXME
+				}
+				stage++;
+				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_COLOROP, D3DTOP_ADD);
+				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_COLORARG1, D3DTA_CURRENT);
+				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_COLORARG2, D3DTA_ALPHAREPLICATE|D3DTA_DIFFUSE);
+				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_ALPHAOP, D3DTOP_ADD);
+				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_ALPHAARG1, D3DTA_CURRENT);
+				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_ALPHAARG2, D3DTA_CURRENT);
+				stage++;
+				break;
+			case 3:
+				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_COLOROP, D3DTOP_MODULATE2X);
+				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_COLORARG1, D3DTA_TEXTURE);
+				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_COLORARG2, D3DTA_DIFFUSE);
+				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_ALPHAOP, D3DTOP_SELECTARG1);
+				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_ALPHAARG1, D3DTA_DIFFUSE);
+				if(m_ctxt->TEX0.TCC)
+				{
+					hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_ALPHAOP, D3DTOP_SELECTARG1);
+					hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_ALPHAARG1, D3DTA_TEXTURE);
+					ASSERT(!t.m_fRT); // FIXME
+				}
+				stage++;
+				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_COLOROP, D3DTOP_ADD);
+				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_COLORARG1, D3DTA_CURRENT);
+				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_COLORARG2, D3DTA_ALPHAREPLICATE|D3DTA_DIFFUSE);
+				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_ALPHAOP, D3DTOP_ADD);
+				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_ALPHAARG1, D3DTA_CURRENT);
+				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_ALPHAARG2, D3DTA_CURRENT);
+				stage++;
+				break;
+			}
+
+			hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_COLOROP, D3DTOP_DISABLE);
+			hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_ALPHAOP, D3DTOP_DISABLE);
+		}
+	}
+	else
+	{
+		hr = m_pD3DDev->SetTexture(0, NULL);
+
+		if(!pPixelShader && !m_fDisableShaders && m_caps.PixelShaderVersion >= D3DVS_VERSION(2, 0))
+		{
+			pPixelShader = m_pPixelShaderTFX[4];
+		}
+
+		if(!pPixelShader && !m_fDisableShaders && m_caps.PixelShaderVersion >= D3DVS_VERSION(1, 1))
+		{
+			pPixelShader = m_pPixelShaders[11];
+		}
+
+		if(!pPixelShader)
+		{
+			hr = m_pD3DDev->SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_DISABLE);
+			hr = m_pD3DDev->SetTextureStageState(0, D3DTSS_ALPHAOP, D3DTOP_DISABLE);
+		}
+	}
+
+	hr = m_pD3DDev->SetTexture(1, NULL);
+
+	hr = m_pD3DDev->SetPixelShader(pPixelShader);
+}
+
+void GSRendererHW::SetupAlphaBlend()
+{
+	HRESULT hr;
+
+	DWORD ABE = FALSE;
+	hr = m_pD3DDev->GetRenderState(D3DRS_ALPHABLENDENABLE, &ABE);
+
+	bool fABE = m_de.PRIM.ABE || (m_primtype == D3DPT_LINELIST || m_primtype == D3DPT_LINESTRIP) && m_de.PRIM.AA1; // FIXME
+	if(fABE != !!ABE)
+		hr = m_pD3DDev->SetRenderState(D3DRS_ALPHABLENDENABLE, fABE);
+	if(fABE)
+	{
+		// (A:Cs/Cd/0 - B:Cs/Cd/0) * C:As/Ad/FIX + D:Cs/Cd/0
+
+		BYTE FIX = SCALE_ALPHA(m_ctxt->ALPHA.FIX);
+
+		hr = m_pD3DDev->SetRenderState(D3DRS_BLENDFACTOR, (0x010101*FIX)|(FIX<<24));
+
+		D3DBLENDOP op = D3DBLENDOP_ADD;
+		D3DBLEND src = D3DBLEND_SRCALPHA, dst = D3DBLEND_INVSRCALPHA;
+
+		static const struct {bool bogus; D3DBLENDOP op; D3DBLEND src, dst;} blendmap[3*3*3*3] =
+		{
+			{0, D3DBLENDOP_ADD, D3DBLEND_ONE, D3DBLEND_ZERO},						// 0000: (Cs/Cd/0 - Cs/Cd/0)*As/Ad/F + Cs ==> Cs
+			{0, D3DBLENDOP_ADD, D3DBLEND_ZERO, D3DBLEND_ONE},						// 0001: (Cs/Cd/0 - Cs/Cd/0)*As/Ad/F + Cd ==> Cd
+			{0, D3DBLENDOP_ADD, D3DBLEND_ZERO, D3DBLEND_ZERO},						// 0002: (Cs/Cd/0 - Cs/Cd/0)*As/Ad/F + 0 ==> 0
+			{0, D3DBLENDOP_ADD, D3DBLEND_ONE, D3DBLEND_ZERO},						// 0010: (Cs/Cd/0 - Cs/Cd/0)*As/Ad/F + Cs ==> Cs
+			{0, D3DBLENDOP_ADD, D3DBLEND_ZERO, D3DBLEND_ONE},						// 0011: (Cs/Cd/0 - Cs/Cd/0)*As/Ad/F + Cd ==> Cd
+			{0, D3DBLENDOP_ADD, D3DBLEND_ZERO, D3DBLEND_ZERO},						// 0012: (Cs/Cd/0 - Cs/Cd/0)*As/Ad/F + 0 ==> 0
+			{0, D3DBLENDOP_ADD, D3DBLEND_ONE, D3DBLEND_ZERO},						// 0020: (Cs/Cd/0 - Cs/Cd/0)*As/Ad/F + Cs ==> Cs
+			{0, D3DBLENDOP_ADD, D3DBLEND_ZERO, D3DBLEND_ONE},						// 0021: (Cs/Cd/0 - Cs/Cd/0)*As/Ad/F + Cd ==> Cd
+			{0, D3DBLENDOP_ADD, D3DBLEND_ZERO, D3DBLEND_ZERO},						// 0022: (Cs/Cd/0 - Cs/Cd/0)*As/Ad/F + 0 ==> 0
+			{1, D3DBLENDOP_SUBTRACT, D3DBLEND_SRCALPHA, D3DBLEND_SRCALPHA},			// * 0100: (Cs - Cd)*As + Cs ==> Cs*(As + 1) - Cd*As
+			{0, D3DBLENDOP_ADD, D3DBLEND_SRCALPHA, D3DBLEND_INVSRCALPHA},			// 0101: (Cs - Cd)*As + Cd ==> Cs*As + Cd*(1 - As)
+			{0, D3DBLENDOP_SUBTRACT, D3DBLEND_SRCALPHA, D3DBLEND_SRCALPHA},			// 0102: (Cs - Cd)*As + 0 ==> Cs*As - Cd*As
+			{1, D3DBLENDOP_SUBTRACT, D3DBLEND_DESTALPHA, D3DBLEND_DESTALPHA},		// * 0110: (Cs - Cd)*Ad + Cs ==> Cs*(Ad + 1) - Cd*Ad
+			{0, D3DBLENDOP_ADD, D3DBLEND_DESTALPHA, D3DBLEND_INVDESTALPHA},			// 0111: (Cs - Cd)*Ad + Cd ==> Cs*Ad + Cd*(1 - Ad)
+			{0, D3DBLENDOP_ADD, D3DBLEND_DESTALPHA, D3DBLEND_DESTALPHA},			// 0112: (Cs - Cd)*Ad + 0 ==> Cs*Ad - Cd*Ad
+			{1, D3DBLENDOP_SUBTRACT, D3DBLEND_BLENDFACTOR, D3DBLEND_BLENDFACTOR},	// * 0120: (Cs - Cd)*F + Cs ==> Cs*(F + 1) - Cd*F
+			{0, D3DBLENDOP_ADD, D3DBLEND_BLENDFACTOR, D3DBLEND_INVBLENDFACTOR},		// 0121: (Cs - Cd)*F + Cd ==> Cs*F + Cd*(1 - F)
+			{0, D3DBLENDOP_SUBTRACT, D3DBLEND_BLENDFACTOR, D3DBLEND_BLENDFACTOR},	// 0122: (Cs - Cd)*F + 0 ==> Cs*F - Cd*F
+			{1, D3DBLENDOP_ADD, D3DBLEND_SRCALPHA, D3DBLEND_ZERO},					// * 0200: (Cs - 0)*As + Cs ==> Cs*(As + 1)
+			{0, D3DBLENDOP_ADD, D3DBLEND_SRCALPHA, D3DBLEND_ONE},					// 0201: (Cs - 0)*As + Cd ==> Cs*As + Cd
+			{0, D3DBLENDOP_ADD, D3DBLEND_SRCALPHA, D3DBLEND_ZERO},					// 0202: (Cs - 0)*As + 0 ==> Cs*As
+			{1, D3DBLENDOP_ADD, D3DBLEND_SRCALPHA, D3DBLEND_ZERO},					// * 0210: (Cs - 0)*Ad + Cs ==> Cs*(As + 1)
+			{0, D3DBLENDOP_ADD, D3DBLEND_DESTALPHA, D3DBLEND_ONE},					// 0211: (Cs - 0)*Ad + Cd ==> Cs*Ad + Cd
+			{0, D3DBLENDOP_ADD, D3DBLEND_DESTALPHA, D3DBLEND_ZERO},					// 0212: (Cs - 0)*Ad + 0 ==> Cs*Ad
+			{1, D3DBLENDOP_ADD, D3DBLEND_BLENDFACTOR, D3DBLEND_ZERO},				// * 0220: (Cs - 0)*F + Cs ==> Cs*(F + 1)
+			{0, D3DBLENDOP_ADD, D3DBLEND_BLENDFACTOR, D3DBLEND_ONE},				// 0221: (Cs - 0)*F + Cd ==> Cs*F + Cd
+			{0, D3DBLENDOP_ADD, D3DBLEND_BLENDFACTOR, D3DBLEND_ZERO},				// 0222: (Cs - 0)*F + 0 ==> Cs*F
+			{0, D3DBLENDOP_ADD, D3DBLEND_INVSRCALPHA, D3DBLEND_SRCALPHA},			// 1000: (Cd - Cs)*As + Cs ==> Cd*As + Cs*(1 - As)
+			{1, D3DBLENDOP_REVSUBTRACT, D3DBLEND_SRCALPHA, D3DBLEND_SRCALPHA},		// * 1001: (Cd - Cs)*As + Cd ==> Cd*(As + 1) - Cs*As
+			{0, D3DBLENDOP_REVSUBTRACT, D3DBLEND_SRCALPHA, D3DBLEND_SRCALPHA},		// 1002: (Cd - Cs)*As + 0 ==> Cd*As - Cs*As
+			{0, D3DBLENDOP_ADD, D3DBLEND_INVDESTALPHA, D3DBLEND_DESTALPHA},			// 1010: (Cd - Cs)*Ad + Cs ==> Cd*Ad + Cs*(1 - Ad)
+			{1, D3DBLENDOP_REVSUBTRACT, D3DBLEND_DESTALPHA, D3DBLEND_DESTALPHA},	// * 1011: (Cd - Cs)*Ad + Cd ==> Cd*(Ad + 1) - Cs*Ad
+			{0, D3DBLENDOP_REVSUBTRACT, D3DBLEND_DESTALPHA, D3DBLEND_DESTALPHA},	// 1012: (Cd - Cs)*Ad + 0 ==> Cd*Ad - Cs*Ad
+			{0, D3DBLENDOP_ADD, D3DBLEND_INVBLENDFACTOR, D3DBLEND_BLENDFACTOR},		// 1020: (Cd - Cs)*F + Cs ==> Cd*F + Cs*(1 - F)
+			{1, D3DBLENDOP_REVSUBTRACT, D3DBLEND_BLENDFACTOR, D3DBLEND_BLENDFACTOR},// * 1021: (Cd - Cs)*F + Cd ==> Cd*(F + 1) - Cs*F
+			{0, D3DBLENDOP_REVSUBTRACT, D3DBLEND_BLENDFACTOR, D3DBLEND_BLENDFACTOR},// 1022: (Cd - Cs)*F + 0 ==> Cd*F - Cs*F
+			{0, D3DBLENDOP_ADD, D3DBLEND_ONE, D3DBLEND_ZERO},						// 1100: (Cs/Cd/0 - Cs/Cd/0)*As/Ad/F + Cs ==> Cs
+			{0, D3DBLENDOP_ADD, D3DBLEND_ZERO, D3DBLEND_ONE},						// 1101: (Cs/Cd/0 - Cs/Cd/0)*As/Ad/F + Cd ==> Cd
+			{0, D3DBLENDOP_ADD, D3DBLEND_ZERO, D3DBLEND_ZERO},						// 1102: (Cs/Cd/0 - Cs/Cd/0)*As/Ad/F + 0 ==> 0
+			{0, D3DBLENDOP_ADD, D3DBLEND_ONE, D3DBLEND_ZERO},						// 1110: (Cs/Cd/0 - Cs/Cd/0)*As/Ad/F + Cs ==> Cs
+			{0, D3DBLENDOP_ADD, D3DBLEND_ZERO, D3DBLEND_ONE},						// 1111: (Cs/Cd/0 - Cs/Cd/0)*As/Ad/F + Cd ==> Cd
+			{0, D3DBLENDOP_ADD, D3DBLEND_ZERO, D3DBLEND_ZERO},						// 1112: (Cs/Cd/0 - Cs/Cd/0)*As/Ad/F + 0 ==> 0
+			{0, D3DBLENDOP_ADD, D3DBLEND_ONE, D3DBLEND_ZERO},						// 1120: (Cs/Cd/0 - Cs/Cd/0)*As/Ad/F + Cs ==> Cs
+			{0, D3DBLENDOP_ADD, D3DBLEND_ZERO, D3DBLEND_ONE},						// 1121: (Cs/Cd/0 - Cs/Cd/0)*As/Ad/F + Cd ==> Cd
+			{0, D3DBLENDOP_ADD, D3DBLEND_ZERO, D3DBLEND_ZERO},						// 1122: (Cs/Cd/0 - Cs/Cd/0)*As/Ad/F + 0 ==> 0
+			{0, D3DBLENDOP_ADD, D3DBLEND_ONE, D3DBLEND_SRCALPHA},					// 1200: (Cd - 0)*As + Cs ==> Cs + Cd*As
+			{1, D3DBLENDOP_ADD, D3DBLEND_ZERO, D3DBLEND_SRCALPHA},					// * 1201: (Cd - 0)*As + Cd ==> Cd*(1 + As)
+			{0, D3DBLENDOP_ADD, D3DBLEND_ZERO, D3DBLEND_SRCALPHA},					// 1202: (Cd - 0)*As + 0 ==> Cd*As
+			{0, D3DBLENDOP_ADD, D3DBLEND_ONE, D3DBLEND_DESTALPHA},					// 1210: (Cd - 0)*Ad + Cs ==> Cs + Cd*Ad
+			{1, D3DBLENDOP_ADD, D3DBLEND_ZERO, D3DBLEND_DESTALPHA},					// * 1211: (Cd - 0)*Ad + Cd ==> Cd*(1 + Ad)
+			{0, D3DBLENDOP_ADD, D3DBLEND_ZERO, D3DBLEND_DESTALPHA},					// 1212: (Cd - 0)*Ad + 0 ==> Cd*Ad
+			{0, D3DBLENDOP_ADD, D3DBLEND_ONE, D3DBLEND_BLENDFACTOR},				// 1220: (Cd - 0)*F + Cs ==> Cs + Cd*F
+			{1, D3DBLENDOP_ADD, D3DBLEND_ZERO, D3DBLEND_BLENDFACTOR},				// * 1221: (Cd - 0)*F + Cd ==> Cd*(1 + F)
+			{0, D3DBLENDOP_ADD, D3DBLEND_ZERO, D3DBLEND_BLENDFACTOR},				// 1222: (Cd - 0)*F + 0 ==> Cd*F
+			{0, D3DBLENDOP_ADD, D3DBLEND_INVSRCALPHA, D3DBLEND_ZERO},				// 2000: (0 - Cs)*As + Cs ==> Cs*(1 - As)
+			{0, D3DBLENDOP_REVSUBTRACT, D3DBLEND_SRCALPHA, D3DBLEND_ONE},			// 2001: (0 - Cs)*As + Cd ==> Cd - Cs*As
+			{0, D3DBLENDOP_REVSUBTRACT, D3DBLEND_SRCALPHA, D3DBLEND_ZERO},			// 2002: (0 - Cs)*As + 0 ==> 0 - Cs*As
+			{0, D3DBLENDOP_ADD, D3DBLEND_INVDESTALPHA, D3DBLEND_ZERO},				// 2010: (0 - Cs)*Ad + Cs ==> Cs*(1 - Ad)
+			{0, D3DBLENDOP_REVSUBTRACT, D3DBLEND_DESTALPHA, D3DBLEND_ONE},			// 2011: (0 - Cs)*Ad + Cd ==> Cd - Cs*Ad
+			{0, D3DBLENDOP_REVSUBTRACT, D3DBLEND_DESTALPHA, D3DBLEND_ZERO},			// 2012: (0 - Cs)*Ad + 0 ==> 0 - Cs*Ad
+			{0, D3DBLENDOP_ADD, D3DBLEND_INVBLENDFACTOR, D3DBLEND_ZERO},			// 2020: (0 - Cs)*F + Cs ==> Cs*(1 - F)
+			{0, D3DBLENDOP_REVSUBTRACT, D3DBLEND_BLENDFACTOR, D3DBLEND_ONE},		// 2021: (0 - Cs)*F + Cd ==> Cd - Cs*F
+			{0, D3DBLENDOP_REVSUBTRACT, D3DBLEND_BLENDFACTOR, D3DBLEND_ZERO},		// 2022: (0 - Cs)*F + 0 ==> 0 - Cs*F
+			{0, D3DBLENDOP_SUBTRACT, D3DBLEND_ONE, D3DBLEND_SRCALPHA},				// 2100: (0 - Cd)*As + Cs ==> Cs - Cd*As
+			{0, D3DBLENDOP_ADD, D3DBLEND_ZERO, D3DBLEND_INVSRCALPHA},				// 2101: (0 - Cd)*As + Cd ==> Cd*(1 - As)
+			{0, D3DBLENDOP_SUBTRACT, D3DBLEND_ZERO, D3DBLEND_SRCALPHA},				// 2102: (0 - Cd)*As + 0 ==> 0 - Cd*As
+			{0, D3DBLENDOP_SUBTRACT, D3DBLEND_ONE, D3DBLEND_DESTALPHA},				// 2110: (0 - Cd)*Ad + Cs ==> Cs - Cd*Ad
+			{0, D3DBLENDOP_ADD, D3DBLEND_ZERO, D3DBLEND_INVDESTALPHA},				// 2111: (0 - Cd)*Ad + Cd ==> Cd*(1 - Ad)
+			{0, D3DBLENDOP_SUBTRACT, D3DBLEND_ONE, D3DBLEND_DESTALPHA},				// 2112: (0 - Cd)*Ad + 0 ==> 0 - Cd*Ad
+			{0, D3DBLENDOP_SUBTRACT, D3DBLEND_ONE, D3DBLEND_BLENDFACTOR},			// 2120: (0 - Cd)*F + Cs ==> Cs - Cd*F
+			{0, D3DBLENDOP_ADD, D3DBLEND_ZERO, D3DBLEND_INVBLENDFACTOR},			// 2121: (0 - Cd)*F + Cd ==> Cd*(1 - F)
+			{0, D3DBLENDOP_SUBTRACT, D3DBLEND_ONE, D3DBLEND_BLENDFACTOR},			// 2122: (0 - Cd)*F + 0 ==> 0 - Cd*F
+			{0, D3DBLENDOP_ADD, D3DBLEND_ONE, D3DBLEND_ZERO},						// 2200: (Cs/Cd/0 - Cs/Cd/0)*As/Ad/F + Cs ==> Cs
+			{0, D3DBLENDOP_ADD, D3DBLEND_ZERO, D3DBLEND_ONE},						// 2201: (Cs/Cd/0 - Cs/Cd/0)*As/Ad/F + Cd ==> Cd
+			{0, D3DBLENDOP_ADD, D3DBLEND_ZERO, D3DBLEND_ZERO},						// 2202: (Cs/Cd/0 - Cs/Cd/0)*As/Ad/F + 0 ==> 0
+			{0, D3DBLENDOP_ADD, D3DBLEND_ONE, D3DBLEND_ZERO},						// 2210: (Cs/Cd/0 - Cs/Cd/0)*As/Ad/F + Cs ==> Cs
+			{0, D3DBLENDOP_ADD, D3DBLEND_ZERO, D3DBLEND_ONE},						// 2211: (Cs/Cd/0 - Cs/Cd/0)*As/Ad/F + Cd ==> Cd
+			{0, D3DBLENDOP_ADD, D3DBLEND_ZERO, D3DBLEND_ZERO},						// 2212: (Cs/Cd/0 - Cs/Cd/0)*As/Ad/F + 0 ==> 0
+			{0, D3DBLENDOP_ADD, D3DBLEND_ONE, D3DBLEND_ZERO},						// 2220: (Cs/Cd/0 - Cs/Cd/0)*As/Ad/F + Cs ==> Cs
+			{0, D3DBLENDOP_ADD, D3DBLEND_ZERO, D3DBLEND_ONE},						// 2221: (Cs/Cd/0 - Cs/Cd/0)*As/Ad/F + Cd ==> Cd
+			{0, D3DBLENDOP_ADD, D3DBLEND_ZERO, D3DBLEND_ZERO},						// 2222: (Cs/Cd/0 - Cs/Cd/0)*As/Ad/F + 0 ==> 0
+		};
+
+		// bogus: 0100, 0110, 0120, 0200, 0210, 0220, 1001, 1011, 1021, 1201, 1211, 1221
+
+		int i = (((m_ctxt->ALPHA.A&3)*3+(m_ctxt->ALPHA.B&3))*3+(m_ctxt->ALPHA.C&3))*3+(m_ctxt->ALPHA.D&3);
+
+		ASSERT(m_ctxt->ALPHA.A != 3);
+		ASSERT(m_ctxt->ALPHA.B != 3);
+		ASSERT(m_ctxt->ALPHA.C != 3);
+		ASSERT(m_ctxt->ALPHA.D != 3);
+		ASSERT(!blendmap[i].bogus);
+
+		hr = m_pD3DDev->SetRenderState(D3DRS_BLENDOP, blendmap[i].op);
+		hr = m_pD3DDev->SetRenderState(D3DRS_SRCBLEND, blendmap[i].src);
+		hr = m_pD3DDev->SetRenderState(D3DRS_DESTBLEND, blendmap[i].dst);
+	}
+}
