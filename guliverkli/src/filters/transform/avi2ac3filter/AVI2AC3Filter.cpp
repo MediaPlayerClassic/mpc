@@ -21,9 +21,11 @@
 
 #include "stdafx.h"
 #include <atlbase.h>
+#include "avi2ac3filter.h"
+#include "..\..\..\DSUtil\DSUtil.h"
+
 #include <initguid.h>
 #include "..\..\..\..\include\moreuuids.h"
-#include "avi2ac3filter.h"
 
 #ifdef REGISTER_FILTER
 
@@ -40,44 +42,18 @@ const AMOVIESETUP_MEDIATYPE sudPinTypesOut[] =
 
 const AMOVIESETUP_PIN sudpPins[] =
 {
-    { L"Input",             // Pins string name
-      FALSE,                // Is it rendered
-      FALSE,                // Is it an output
-      FALSE,                // Are we allowed none
-      FALSE,                // And allowed many
-      &CLSID_NULL,          // Connects to filter
-      NULL,                 // Connects to pin
-      countof(sudPinTypesIn),	// Number of types
-      sudPinTypesIn			// Pin information
-    },
-    { L"Output",            // Pins string name
-      FALSE,                // Is it rendered
-      TRUE,                 // Is it an output
-      FALSE,                // Are we allowed none
-      FALSE,                // And allowed many
-      &CLSID_NULL,          // Connects to filter
-      NULL,                 // Connects to pin
-      countof(sudPinTypesOut),	// Number of types
-      sudPinTypesOut		// Pin information
-    }
+    {L"Input", FALSE, FALSE, FALSE, FALSE, &CLSID_NULL, NULL, countof(sudPinTypesIn), sudPinTypesIn},
+    {L"Output", FALSE, TRUE, FALSE, FALSE, &CLSID_NULL, NULL, countof(sudPinTypesOut), sudPinTypesOut}
 };
 
-const AMOVIESETUP_FILTER sudFilter =
+const AMOVIESETUP_FILTER sudFilter[] =
 {
-    &__uuidof(CAVI2AC3Filter),	// Filter CLSID
-    L"AVI<->AC3/DTS",			// String name
-    MERIT_UNLIKELY,			// Filter merit // MERIT_PREFERRED+1 MERIT_UNLIKELY MERIT_DO_NOT_USE
-    countof(sudpPins),	// Number of pins
-    sudpPins                // Pin information
+	{&__uuidof(CAVI2AC3Filter), L"AVI<->AC3/DTS", MERIT_UNLIKELY, countof(sudpPins), sudpPins}
 };
 
 CFactoryTemplate g_Templates[] =
 {
-    { L"AVI2AC3"
-    , &__uuidof(CAVI2AC3Filter)
-    , CAVI2AC3Filter::CreateInstance
-    , NULL
-    , &sudFilter }
+    {sudFilter[0].strName, sudFilter[0].clsID, CreateInstance<CAVI2AC3Filter>, NULL, &sudFilter[0]}
 };
 
 int g_cTemplates = countof(g_Templates);
@@ -99,18 +75,11 @@ BOOL APIENTRY DllMain(HANDLE hModule, DWORD ul_reason_for_call, LPVOID lpReserve
     return DllEntryPoint((HINSTANCE)hModule, ul_reason_for_call, 0); // "DllMain" of the dshow baseclasses;
 }
 
+#endif
+
 //
 // CAVI2AC3Filter
 //
-
-CUnknown* WINAPI CAVI2AC3Filter::CreateInstance(LPUNKNOWN lpunk, HRESULT* phr)
-{
-    CUnknown* punk = new CAVI2AC3Filter(lpunk, phr);
-    if(punk == NULL) *phr = E_OUTOFMEMORY;
-	return punk;
-}
-
-#endif
 
 CAVI2AC3Filter::CAVI2AC3Filter(LPUNKNOWN lpunk, HRESULT* phr)
 	: CTransformFilter(NAME("CAVI2AC3Filter"), lpunk, __uuidof(this))	

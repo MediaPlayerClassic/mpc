@@ -22,6 +22,7 @@
 #include "StdAfx.h"
 #include <mmreg.h>
 #include "MatroskaSplitter.h"
+#include "..\..\..\DSUtil\DSUtil.h"
 
 #include <initguid.h>
 #include "..\..\..\..\include\matroska\matroska.h"
@@ -40,26 +41,8 @@ const AMOVIESETUP_MEDIATYPE sudPinTypesIn[] =
 
 const AMOVIESETUP_PIN sudpPins[] =
 {
-    { L"Input",             // Pins string name
-      FALSE,                // Is it rendered
-      FALSE,                // Is it an output
-      FALSE,                // Are we allowed none
-      FALSE,                // And allowed many
-      &CLSID_NULL,          // Connects to filter
-      NULL,                 // Connects to pin
-      countof(sudPinTypesIn), // Number of types
-      sudPinTypesIn         // Pin information
-    },
-    { L"Output",            // Pins string name
-      FALSE,                // Is it rendered
-      TRUE,                 // Is it an output
-      FALSE,                // Are we allowed none
-      FALSE,                // And allowed many
-      &CLSID_NULL,          // Connects to filter
-      NULL,                 // Connects to pin
-      0,					// Number of types
-      NULL					// Pin information
-    },
+    {L"Input", FALSE, FALSE, FALSE, FALSE, &CLSID_NULL, NULL, countof(sudPinTypesIn), sudPinTypesIn},
+    {L"Output", FALSE, TRUE, FALSE, FALSE, &CLSID_NULL, NULL, 0, NULL}
 };
 
 const AMOVIESETUP_FILTER sudFilter[] =
@@ -70,13 +53,11 @@ const AMOVIESETUP_FILTER sudFilter[] =
 
 CFactoryTemplate g_Templates[] =
 {
-	{L"Matroska Splitter", &__uuidof(CMatroskaSplitterFilter), CMatroskaSplitterFilter::CreateInstance, NULL, &sudFilter[0]},
-	{L"Matroska Source", &__uuidof(CMatroskaSourceFilter), CMatroskaSourceFilter::CreateInstance, NULL, &sudFilter[1]},
+	{sudFilter[0].strName, sudFilter[0].clsID, CreateInstance<CMatroskaSplitterFilter>, NULL, &sudFilter[0]},
+	{sudFilter[1].strName, sudFilter[1].clsID, CreateInstance<CMatroskaSourceFilter>, NULL, &sudFilter[1]},
 };
 
 int g_cTemplates = countof(g_Templates);
-
-#include "..\..\registry.cpp"
 
 STDAPI DllRegisterServer()
 {
@@ -103,31 +84,17 @@ BOOL APIENTRY DllMain(HANDLE hModule, DWORD ul_reason_for_call, LPVOID lpReserve
     return DllEntryPoint((HINSTANCE)hModule, ul_reason_for_call, 0); // "DllMain" of the dshow baseclasses;
 }
 
-CUnknown* WINAPI CMatroskaSplitterFilter::CreateInstance(LPUNKNOWN lpunk, HRESULT* phr)
-{
-    CUnknown* punk = new CMatroskaSplitterFilter(lpunk, phr);
-    if(punk == NULL) *phr = E_OUTOFMEMORY;
-	return punk;
-}
-
-CUnknown* WINAPI CMatroskaSourceFilter::CreateInstance(LPUNKNOWN lpunk, HRESULT* phr)
-{
-    CUnknown* punk = new CMatroskaSourceFilter(lpunk, phr);
-    if(punk == NULL) *phr = E_OUTOFMEMORY;
-	return punk;
-}
-
 #endif
-
-//
-// CMatroskaSplitterFilter
-//
 
 BOOL (WINAPI *CMatroskaSplitterFilter::pRemoveFontMemResourceEx)(HANDLE) = NULL;
 HANDLE (WINAPI *CMatroskaSplitterFilter::pAddFontMemResourceEx)(PVOID,DWORD,PVOID,DWORD*) = NULL;
 int (WINAPI *CMatroskaSplitterFilter::pAddFontResourceEx)(LPCTSTR,DWORD,PVOID) = NULL;
 BOOL (WINAPI *CMatroskaSplitterFilter::pRemoveFontResourceEx)(LPCTSTR,DWORD,PVOID) = NULL;
 BOOL (WINAPI *CMatroskaSplitterFilter::pMoveFileEx)(LPCTSTR, LPCTSTR,DWORD) = NULL;
+
+//
+// CMatroskaSplitterFilter
+//
 
 CMatroskaSplitterFilter::CMatroskaSplitterFilter(LPUNKNOWN pUnk, HRESULT* phr)
 	: CBaseSplitterFilter(NAME("CMatroskaSplitterFilter"), pUnk, phr, __uuidof(this))
@@ -142,6 +109,7 @@ CMatroskaSplitterFilter::~CMatroskaSplitterFilter()
 STDMETHODIMP CMatroskaSplitterFilter::NonDelegatingQueryInterface(REFIID riid, void** ppv)
 {
 	CheckPointer(ppv, E_POINTER);
+
 	return 
 		QI(ITrackInfo)
 		__super::NonDelegatingQueryInterface(riid, ppv);

@@ -26,45 +26,25 @@
 
 const AMOVIESETUP_MEDIATYPE sudPinTypesOut[] =
 {
-	{&MEDIATYPE_Video, &MEDIASUBTYPE_YUY2},
+	{&MEDIATYPE_Video, &MEDIASUBTYPE_YUY2}
 };
 
 const AMOVIESETUP_PIN sudOpPin[] =
 {
-	{
-		L"Output",              // Pin string name
-		FALSE,                  // Is it rendered
-		TRUE,                   // Is it an output
-		FALSE,                  // Can we have none
-		FALSE,                  // Can we have many
-		&CLSID_NULL,            // Connects to filter
-		NULL,                   // Connects to pin
-		countof(sudPinTypesOut), // Number of types
-		sudPinTypesOut			// Pin details
-	},
+	{L"Output", FALSE, TRUE, FALSE, FALSE, &CLSID_NULL, NULL, countof(sudPinTypesOut), sudPinTypesOut}
 };
 
-const AMOVIESETUP_FILTER sudFilter =
+const AMOVIESETUP_FILTER sudFilter[] =
 {
-    &__uuidof(CD2VSource),	// Filter CLSID
-    L"D2VSource",			// String name
-    MERIT_UNLIKELY,			// Filter merit
-    countof(sudOpPin), // Number of pins
-    sudOpPin				// Pin information
+	{&__uuidof(CD2VSource), L"D2VSource", MERIT_UNLIKELY, countof(sudOpPin), sudOpPin}
 };
 
 CFactoryTemplate g_Templates[] =
 {
-	{ L"D2VSource"
-	, &__uuidof(CD2VSource)
-	, CD2VSource::CreateInstance
-	, NULL
-	, &sudFilter}
+	{sudFilter[0].strName, sudFilter[0].clsID, CreateInstance<CD2VSource>, NULL, &sudFilter[0]}
 };
 
 int g_cTemplates = countof(g_Templates);
-
-#include "..\..\registry.cpp"
 
 STDAPI DllRegisterServer()
 {
@@ -98,18 +78,11 @@ BOOL APIENTRY DllMain(HANDLE hModule, DWORD ul_reason_for_call, LPVOID lpReserve
     return DllEntryPoint((HINSTANCE)hModule, ul_reason_for_call, 0); // "DllMain" of the dshow baseclasses;
 }
 
+#endif
+
 //
 // CD2VSource
 //
-
-CUnknown* WINAPI CD2VSource::CreateInstance(LPUNKNOWN lpunk, HRESULT* phr)
-{
-    CUnknown* punk = new CD2VSource(lpunk, phr);
-    if(punk == NULL) *phr = E_OUTOFMEMORY;
-	return punk;
-}
-
-#endif
 
 CD2VSource::CD2VSource(LPUNKNOWN lpunk, HRESULT* phr)
 	: CBaseSource<CD2VStream>(NAME("CD2VSource"), lpunk, phr, __uuidof(this))

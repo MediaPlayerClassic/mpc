@@ -39,10 +39,6 @@ public:
     CWavDestFilter(LPUNKNOWN pUnk, HRESULT* pHr);
     ~CWavDestFilter();
 
-#ifdef REGISTER_FILTER
-    static CUnknown* WINAPI CreateInstance(LPUNKNOWN lpunk, HRESULT* phr);
-#endif
-
 	DECLARE_IUNKNOWN;
 
     HRESULT Transform(IMediaSample* pIn, IMediaSample* pOut);
@@ -56,11 +52,6 @@ public:
 
     HRESULT StartStreaming();
     HRESULT StopStreaming();
-
-    HRESULT CompleteConnect(PIN_DIRECTION direction, IPin* pReceivePin)
-	{
-		return S_OK;
-	}
 
 private:
 

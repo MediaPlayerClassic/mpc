@@ -61,10 +61,6 @@ public:
     CVTSReader(IUnknown* pUnk, HRESULT* phr);
 	~CVTSReader();
 
-#ifdef REGISTER_FILTER
-    static CUnknown* WINAPI CreateInstance(LPUNKNOWN lpunk, HRESULT* phr);
-#endif
-
     DECLARE_IUNKNOWN
     STDMETHODIMP NonDelegatingQueryInterface(REFIID riid, void** ppv);
 

@@ -58,9 +58,6 @@ public:
 	CAVI2AC3Filter(LPUNKNOWN lpunk, HRESULT* phr);
 	virtual ~CAVI2AC3Filter();
 
-#ifdef REGISTER_FILTER
-    static CUnknown* WINAPI CreateInstance(LPUNKNOWN lpunk, HRESULT* phr);
-#endif
 	HRESULT Transform(IMediaSample* pIn, IMediaSample* pOut);
 	HRESULT CheckInputType(const CMediaType* mtIn);
 	HRESULT CheckTransform(const CMediaType* mtIn, const CMediaType* mtOut);

@@ -32,40 +32,20 @@ const AMOVIESETUP_MEDIATYPE sudPinTypesOut[] =
 
 const AMOVIESETUP_PIN sudOpPin[] =
 {
-	{
-		L"Output",              // Pin string name
-		FALSE,                  // Is it rendered
-		TRUE,                   // Is it an output
-		FALSE,                  // Can we have none
-		FALSE,                  // Can we have many
-		&CLSID_NULL,            // Connects to filter
-		NULL,                   // Connects to pin
-		countof(sudPinTypesOut), // Number of types
-		sudPinTypesOut			// Pin details
-	},
+	{L"Output", FALSE, TRUE, FALSE, FALSE, &CLSID_NULL, NULL, countof(sudPinTypesOut), sudPinTypesOut}
 };
 
-const AMOVIESETUP_FILTER sudFilter =
+const AMOVIESETUP_FILTER sudFilter[] =
 {
-    &__uuidof(CFLICSource),	// Filter CLSID
-    L"FLICSource",			// String name
-    MERIT_UNLIKELY,			// Filter merit
-    countof(sudOpPin), // Number of pins
-    sudOpPin				// Pin information
+	{&__uuidof(CFLICSource), L"FLICSource", MERIT_UNLIKELY, countof(sudOpPin), sudOpPin}
 };
 
 CFactoryTemplate g_Templates[] =
 {
-	{ L"FLICSource"
-	, &__uuidof(CFLICSource)
-	, CFLICSource::CreateInstance
-	, NULL
-	, &sudFilter}
+	{sudFilter[0].strName, sudFilter[0].clsID, CreateInstance<CFLICSource>, NULL, &sudFilter[0]}
 };
 
 int g_cTemplates = countof(g_Templates);
-
-#include "..\..\registry.cpp"
 
 STDAPI DllRegisterServer()
 {
@@ -108,18 +88,11 @@ BOOL APIENTRY DllMain(HANDLE hModule, DWORD ul_reason_for_call, LPVOID lpReserve
     return DllEntryPoint((HINSTANCE)hModule, ul_reason_for_call, 0); // "DllMain" of the dshow baseclasses;
 }
 
+#endif
+
 //
 // CFLICSource
 //
-
-CUnknown* WINAPI CFLICSource::CreateInstance(LPUNKNOWN lpunk, HRESULT* phr)
-{
-    CUnknown* punk = new CFLICSource(lpunk, phr);
-    if(punk == NULL) *phr = E_OUTOFMEMORY;
-	return punk;
-}
-
-#endif
 
 CFLICSource::CFLICSource(LPUNKNOWN lpunk, HRESULT* phr)
 	: CSource(NAME("CFLICSource"), lpunk, __uuidof(this))

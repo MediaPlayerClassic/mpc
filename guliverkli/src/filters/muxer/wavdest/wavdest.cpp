@@ -23,6 +23,7 @@
 #include <streams.h>
 #include <aviriff.h>
 #include "wavdest.h"
+#include "..\..\..\DSUtil\DSUtil.h"
 
 #ifdef REGISTER_FILTER
 
@@ -38,44 +39,18 @@ const AMOVIESETUP_MEDIATYPE sudPinTypesOut[] =
 
 const AMOVIESETUP_PIN sudpPins[] =
 {
-    { L"Input",             // Pins string name
-      FALSE,                // Is it rendered
-      FALSE,                // Is it an output
-      FALSE,                // Are we allowed none
-      FALSE,                // And allowed many
-      &CLSID_NULL,          // Connects to filter
-      NULL,                 // Connects to pin
-      countof(sudPinTypesIn), // Number of types
-      sudPinTypesIn		// Pin information
-    },
-    { L"Output",            // Pins string name
-      FALSE,                // Is it rendered
-      TRUE,                 // Is it an output
-      FALSE,                // Are we allowed none
-      FALSE,                // And allowed many
-      &CLSID_NULL,          // Connects to filter
-      NULL,                 // Connects to pin
-      countof(sudPinTypesOut), // Number of types
-      sudPinTypesOut		// Pin information
-    }
+    {L"Input", FALSE, FALSE, FALSE, FALSE, &CLSID_NULL, NULL, countof(sudPinTypesIn), sudPinTypesIn},
+    {L"Output", FALSE, TRUE, FALSE, FALSE, &CLSID_NULL, NULL, countof(sudPinTypesOut), sudPinTypesOut}
 };
 
-const AMOVIESETUP_FILTER sudFilter =
+const AMOVIESETUP_FILTER sudFilter[] =
 {
-    &__uuidof(CWavDestFilter),	// Filter CLSID
-    L"WavDest",				// String name
-    MERIT_DO_NOT_USE,       // Filter merit
-    countof(sudpPins), // Number of pins
-    sudpPins                // Pin information
+	{&__uuidof(CWavDestFilter), L"WavDest", MERIT_DO_NOT_USE, countof(sudpPins), sudpPins}
 };
 
 CFactoryTemplate g_Templates[] =
 {
-    { L"WavDest"
-    , &__uuidof(CWavDestFilter)
-    , CWavDestFilter::CreateInstance
-    , NULL
-    , &sudFilter }
+    {L"WavDest", &__uuidof(CWavDestFilter), CreateInstance<CWavDestFilter>, NULL, &sudFilter[0]}
 };
 
 int g_cTemplates = countof(g_Templates);
@@ -97,18 +72,11 @@ BOOL APIENTRY DllMain(HANDLE hModule, DWORD ul_reason_for_call, LPVOID lpReserve
     return DllEntryPoint((HINSTANCE)hModule, ul_reason_for_call, 0); // "DllMain" of the dshow baseclasses;
 }
 
+#endif
+
 //
 // CWavDestFilter
 //
-
-CUnknown* WINAPI CWavDestFilter::CreateInstance(LPUNKNOWN lpunk, HRESULT* phr)
-{
-    CUnknown* punk = new CWavDestFilter(lpunk, phr);
-    if(punk == NULL) *phr = E_OUTOFMEMORY;
-	return punk;
-}
-
-#endif
 
 CWavDestFilter::CWavDestFilter(LPUNKNOWN pUnk, HRESULT* phr)
 	: CTransformFilter(NAME("WavDest filter"), pUnk, __uuidof(this))

@@ -33,40 +33,20 @@ const AMOVIESETUP_MEDIATYPE sudPinTypesOut[] =
 
 const AMOVIESETUP_PIN sudOpPin[] =
 {
-	{
-		L"Output",              // Pin string name
-		FALSE,                  // Is it rendered
-		TRUE,                   // Is it an output
-		FALSE,                  // Can we have none
-		FALSE,                  // Can we have many
-		&CLSID_NULL,            // Connects to filter
-		NULL,                   // Connects to pin
-		countof(sudPinTypesOut), // Number of types
-		sudPinTypesOut			// Pin details
-	}
+	{L"Output", FALSE, TRUE, FALSE, FALSE, &CLSID_NULL, NULL, countof(sudPinTypesOut), sudPinTypesOut}
 };
 
-const AMOVIESETUP_FILTER sudFilter =
+const AMOVIESETUP_FILTER sudFilter[] =
 {
-    &__uuidof(CVTSReader),		// Filter CLSID
-    L"VTS Reader",			// String name
-    MERIT_UNLIKELY,			// Filter merit
-    countof(sudOpPin), // Number of pins
-    sudOpPin				// Pin information
+	{&__uuidof(CVTSReader), L"VTS Reader", MERIT_UNLIKELY, countof(sudOpPin), sudOpPin}
 };
 
 CFactoryTemplate g_Templates[] =
 {
-	{ L"VTS Reader"
-	, &__uuidof(CVTSReader)
-	, CVTSReader::CreateInstance
-	, NULL
-	, &sudFilter}
+	{sudFilter[0].strName, sudFilter[0].clsID, CreateInstance<CVTSReader>, NULL, &sudFilter[0]}
 };
 
 int g_cTemplates = countof(g_Templates);
-
-#include "..\..\registry.cpp"
 
 STDAPI DllRegisterServer()
 {
@@ -98,18 +78,11 @@ BOOL APIENTRY DllMain(HANDLE hModule, DWORD ul_reason_for_call, LPVOID lpReserve
     return DllEntryPoint((HINSTANCE)hModule, ul_reason_for_call, 0); // "DllMain" of the dshow baseclasses;
 }
 
+#endif
+
 //
 // CVTSReader
 //
-
-CUnknown* WINAPI CVTSReader::CreateInstance(LPUNKNOWN lpunk, HRESULT* phr)
-{
-    CUnknown* punk = new CVTSReader(lpunk, phr);
-    if(punk == NULL) *phr = E_OUTOFMEMORY;
-	return punk;
-}
-
-#endif
 
 CVTSReader::CVTSReader(IUnknown* pUnk, HRESULT* phr)
 	: CAsyncReader(NAME("CVTSReader"), pUnk, &m_stream, phr, __uuidof(this))

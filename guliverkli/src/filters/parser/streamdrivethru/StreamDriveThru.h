@@ -94,10 +94,6 @@ public:
 	CStreamDriveThruFilter(LPUNKNOWN pUnk, HRESULT* phr);
 	virtual ~CStreamDriveThruFilter();
 
-#ifdef REGISTER_FILTER
-    static CUnknown* WINAPI CreateInstance(LPUNKNOWN lpunk, HRESULT* phr);
-#endif
-
 	DECLARE_IUNKNOWN;
     STDMETHODIMP NonDelegatingQueryInterface(REFIID riid, void** ppv);
 

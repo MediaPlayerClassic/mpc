@@ -32,8 +32,6 @@
 
 #include "faad2\include\neaacdec.h"
 
-#include "..\..\registry.cpp"
-
 const AMOVIESETUP_MEDIATYPE sudPinTypesIn[] =
 {
 	{&MEDIATYPE_Audio, &MEDIASUBTYPE_MP3},
@@ -238,6 +236,7 @@ HRESULT CMpaDecFilter::NewSegment(REFERENCE_TIME tStart, REFERENCE_TIME tStop, d
 	CAutoLock cAutoLock(&m_csReceive);
 	m_buff.RemoveAll();
 	m_sample_max = 0.1f;
+	m_ps2pcm_sync = false;
 	return __super::NewSegment(tStart, tStop, dRate);
 }
 
@@ -620,18 +619,22 @@ HRESULT CMpaDecFilter::ProcessPS2()
 		else if(dw[0] == 'dbSS')
 		{
 			p += 8;
-			m_ps2_sync = true;
+			m_ps2pcm_sync = true;
 		}
-		else if(m_ps2_sync)
+		else
 		{
-			short* s = (short*)p;
-
-            for(int i = 0; i < samples; i++)
+			if(m_ps2pcm_sync)
 			{
-				for(int j = 0; j < channels; j++)
-				{
-					f[i*channels+j] = (float)s[j*samples+i] / 32768;
-				}
+				short* s = (short*)p;
+
+				for(int i = 0; i < samples; i++)
+					for(int j = 0; j < channels; j++)
+						f[i*channels+j] = (float)s[j*samples+i] / 32768;
+			}
+			else
+			{
+				for(int i = 0, j = samples*channels; i < j; i++)
+					f[i] = 0;
 			}
 
 			HRESULT hr;
@@ -639,20 +642,12 @@ HRESULT CMpaDecFilter::ProcessPS2()
 				return hr;
 
 			p += size;
-		}
-		else
-		{
-			p++;
-		}
 
-		memmove(base, p, end - p);
-		end = base + (end - p);
-		p = base;
+			memmove(base, p, end - p);
+			end = base + (end - p);
+			p = base;
+		}
 	}
-
-	memmove(base, p, end - p);
-	end = base + (end - p);
-	p = base;
 
 	m_buff.SetSize(end - p);
 
@@ -1094,8 +1089,6 @@ HRESULT CMpaDecFilter::StartStreaming()
 	mad_frame_init(&m_frame);
 	mad_synth_init(&m_synth);
 	mad_stream_options(&m_stream, 0/*options*/);
-
-	m_ps2_sync = false;
 
 	m_fDiscontinuity = false;
 

@@ -89,10 +89,6 @@ public:
 	CFLICSource(LPUNKNOWN lpunk, HRESULT* phr);
 	virtual ~CFLICSource();
 
-#ifdef REGISTER_FILTER
-    static CUnknown* WINAPI CreateInstance(LPUNKNOWN lpunk, HRESULT* phr);
-#endif
-
 	DECLARE_IUNKNOWN;
     STDMETHODIMP NonDelegatingQueryInterface(REFIID riid, void** ppv);
 

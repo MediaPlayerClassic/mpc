@@ -206,10 +206,6 @@ public:
 	CRealMediaSplitterFilter(LPUNKNOWN pUnk, HRESULT* phr);
 	virtual ~CRealMediaSplitterFilter();
 
-#ifdef REGISTER_FILTER
-    static CUnknown* WINAPI CreateInstance(LPUNKNOWN lpunk, HRESULT* phr);
-#endif
-
 	// IKeyFrameInfo
 
 	STDMETHODIMP_(HRESULT) GetKeyFrameCount(UINT& nKFs);
@@ -228,10 +224,6 @@ class CRealMediaSourceFilter : public CRealMediaSplitterFilter
 {
 public:
 	CRealMediaSourceFilter(LPUNKNOWN pUnk, HRESULT* phr);
-
-#ifdef REGISTER_FILTER
-    static CUnknown* WINAPI CreateInstance(LPUNKNOWN lpunk, HRESULT* phr);
-#endif
 };
 
 ////////////
@@ -273,9 +265,6 @@ public:
 	CRealVideoDecoder(LPUNKNOWN lpunk, HRESULT* phr);
 	virtual ~CRealVideoDecoder();
 
-#ifdef REGISTER_FILTER
-    static CUnknown* WINAPI CreateInstance(LPUNKNOWN lpunk, HRESULT* phr);
-#endif
 	HRESULT Receive(IMediaSample* pIn);
 	HRESULT CheckInputType(const CMediaType* mtIn);
 	HRESULT CheckTransform(const CMediaType* mtIn, const CMediaType* mtOut);
@@ -341,9 +330,6 @@ public:
 	CRealAudioDecoder(LPUNKNOWN lpunk, HRESULT* phr);
 	virtual ~CRealAudioDecoder();
 
-#ifdef REGISTER_FILTER
-    static CUnknown* WINAPI CreateInstance(LPUNKNOWN lpunk, HRESULT* phr);
-#endif
 	HRESULT Receive(IMediaSample* pIn);
 	HRESULT CheckInputType(const CMediaType* mtIn);
 	HRESULT CheckTransform(const CMediaType* mtIn, const CMediaType* mtOut);

@@ -2063,3 +2063,86 @@ BOOL CFileGetStatus(LPCTSTR lpszFileName, CFileStatus& status)
 		return false;
 	}
 }
+
+// filter registration helpers
+
+bool DeleteRegKey(LPCTSTR pszKey, LPCTSTR pszSubkey)
+{
+	bool bOK = false;
+
+	HKEY hKey;
+	LONG ec = ::RegOpenKeyEx(HKEY_CLASSES_ROOT, pszKey, 0, KEY_ALL_ACCESS, &hKey);
+	if(ec == ERROR_SUCCESS)
+	{
+		if(pszSubkey != 0)
+			ec = ::RegDeleteKey(hKey, pszSubkey);
+
+		bOK = (ec == ERROR_SUCCESS);
+
+		::RegCloseKey(hKey);
+	}
+
+	return bOK;
+}
+
+bool SetRegKeyValue(LPCTSTR pszKey, LPCTSTR pszSubkey, LPCTSTR pszValueName, LPCTSTR pszValue)
+{
+	bool bOK = false;
+
+	CString szKey(pszKey);
+	if(pszSubkey != 0)
+		szKey += CString(_T("\\")) + pszSubkey;
+
+	HKEY hKey;
+	LONG ec = ::RegCreateKeyEx(HKEY_CLASSES_ROOT, szKey, 0, 0, REG_OPTION_NON_VOLATILE, KEY_ALL_ACCESS, 0, &hKey, 0);
+	if(ec == ERROR_SUCCESS)
+	{
+		if(pszValue != 0)
+		{
+			ec = ::RegSetValueEx(hKey, pszValueName, 0, REG_SZ,
+				reinterpret_cast<BYTE*>(const_cast<LPTSTR>(pszValue)),
+				(_tcslen(pszValue) + 1) * sizeof(TCHAR));
+		}
+
+		bOK = (ec == ERROR_SUCCESS);
+
+		::RegCloseKey(hKey);
+	}
+
+	return bOK;
+}
+
+bool SetRegKeyValue(LPCTSTR pszKey, LPCTSTR pszSubkey, LPCTSTR pszValue)
+{
+	return SetRegKeyValue(pszKey, pszSubkey, 0, pszValue);
+}
+
+void RegisterSourceFilter(const CLSID& clsid, const GUID& subtype2, LPCTSTR chkbytes, LPCTSTR ext, ...)
+{
+	CString null = CStringFromGUID(GUID_NULL);
+	CString majortype = CStringFromGUID(MEDIATYPE_Stream);
+	CString subtype = CStringFromGUID(subtype2);
+/*
+	SetRegKeyValue(_T("Media Type\\") + null, subtype, _T("0"), chkbytes);
+	SetRegKeyValue(_T("Media Type\\") + null, subtype, _T("Source Filter"), CStringFromGUID(clsid));
+*/
+/*
+	SetRegKeyValue(_T("Media Type\\") + majortype, subtype, _T("0"), chkbytes);
+	SetRegKeyValue(_T("Media Type\\") + majortype, subtype, _T("Source Filter"), CStringFromGUID(CLSID_AsyncReader));
+*/
+	SetRegKeyValue(_T("Media Type\\") + majortype, subtype, _T("0"), chkbytes);
+	SetRegKeyValue(_T("Media Type\\") + majortype, subtype, _T("Source Filter"), CStringFromGUID(clsid));
+	
+	DeleteRegKey(_T("Media Type\\") + null, subtype);
+
+	va_list marker;
+	va_start(marker, ext);
+	for(; ext; ext = va_arg(marker, LPCTSTR))
+		DeleteRegKey(_T("Media Type\\Extensions"), ext);
+	va_end(marker);
+}
+
+void UnRegisterSourceFilter(const GUID& subtype)
+{
+	DeleteRegKey(_T("Media Type\\") + CStringFromGUID(MEDIATYPE_Stream), CStringFromGUID(subtype));
+}

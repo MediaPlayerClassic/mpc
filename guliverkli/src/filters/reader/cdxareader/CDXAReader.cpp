@@ -113,38 +113,27 @@ static DWORD build_edc(const void* in, unsigned from, unsigned upto)
 
 #ifdef REGISTER_FILTER
 
-const AMOVIESETUP_MEDIATYPE sudPinTypesOut =
+const AMOVIESETUP_MEDIATYPE sudPinTypesOut[] =
 {
-	&MEDIATYPE_Stream,		// Major type
-	&MEDIASUBTYPE_NULL,		// Minor type
+	{&MEDIATYPE_Stream, &MEDIASUBTYPE_NULL}
 };
 
-const AMOVIESETUP_PIN sudOpPin =
+const AMOVIESETUP_PIN sudOpPin[] =
 {
-    L"Output",              // Pin string name
-    FALSE,                  // Is it rendered
-    TRUE,                   // Is it an output
-    FALSE,                  // Can we have none
-    FALSE,                  // Can we have many
-    &CLSID_NULL,            // Connects to filter
-    NULL,                   // Connects to pin
-    1,                      // Number of types
-    &sudPinTypesOut			// Pin details
+	{L"Output", FALSE, TRUE, FALSE, FALSE, &CLSID_NULL, NULL, countof(sudPinTypesOut), sudPinTypesOut}
 };
 
-const AMOVIESETUP_FILTER sudCDXAReader[] =
+const AMOVIESETUP_FILTER sudFilter[] =
 {
-	{&__uuidof(CCDXAReader), L"CDXA Reader", MERIT_UNLIKELY, 1, &sudOpPin}
+	{&__uuidof(CCDXAReader), L"CDXA Reader", MERIT_UNLIKELY, countof(sudOpPin), sudOpPin}
 };
 
 CFactoryTemplate g_Templates[] =
 {
-	{L"CDXA Reader", &__uuidof(CCDXAReader), CCDXAReader::CreateInstance, NULL, &sudCDXAReader[0]}
+	{sudFilter[0].strName, sudFilter[0].clsID, CreateInstance<CCDXAReader>, NULL, &sudFilter[0]}
 };
 
 int g_cTemplates = countof(g_Templates);
-
-#include "..\..\registry.cpp"
 
 STDAPI DllRegisterServer()
 {
@@ -173,18 +162,11 @@ BOOL APIENTRY DllMain(HANDLE hModule, DWORD ul_reason_for_call, LPVOID lpReserve
     return DllEntryPoint((HINSTANCE)hModule, ul_reason_for_call, 0); // "DllMain" of the dshow baseclasses;
 }
 
+#endif
+
 //
 // CCDXAReader
 //
-
-CUnknown* WINAPI CCDXAReader::CreateInstance(LPUNKNOWN lpunk, HRESULT* phr)
-{
-    CUnknown* punk = new CCDXAReader(lpunk, phr);
-    if(punk == NULL) *phr = E_OUTOFMEMORY;
-	return punk;
-}
-
-#endif
 
 CCDXAReader::CCDXAReader(IUnknown* pUnk, HRESULT* phr)
 	: CAsyncReader(NAME("CCDXAReader"), pUnk, &m_stream, phr, __uuidof(this))

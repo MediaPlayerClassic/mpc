@@ -441,14 +441,25 @@ DWORD CMpegSplitterFile::AddStream(WORD pid, BYTE pesid, DWORD len)
 				if(!m_streams[audio].Find(s) && Read(h, &s.mt))
 					type = audio;
 			}
-			else if(w == 0xff90) // ps2-mpg subtitles
+			else if(w == 0xff90) // ps2-mpg ac3 or subtitles
 			{
 				s.ps1id = (BYTE)BitRead(8);
 				s.pid = (WORD)((BitRead(8) << 8) | BitRead(16)); // pid = 0x9000 | track id
 
-				CMpegSplitterFile::ps2subhdr h;
-				if(!m_streams[subpic].Find(s) && Read(h, &s.mt))
-					type = subpic;
+				w = BitRead(16, true);
+
+				if(w == 0x0b77)
+				{
+					CMpegSplitterFile::ac3hdr h;
+					if(!m_streams[audio].Find(s) && Read(h, len, &s.mt))
+						type = audio;
+				}
+				else if(w == 0x0000) // usually zero...
+				{
+					CMpegSplitterFile::ps2subhdr h;
+					if(!m_streams[subpic].Find(s) && Read(h, &s.mt))
+						type = subpic;
+				}
 			}
 		}
 	}

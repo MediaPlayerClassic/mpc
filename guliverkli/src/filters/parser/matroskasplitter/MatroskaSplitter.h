@@ -105,10 +105,6 @@ public:
 	CMatroskaSplitterFilter(LPUNKNOWN pUnk, HRESULT* phr);
 	virtual ~CMatroskaSplitterFilter();
 
-#ifdef REGISTER_FILTER
-    static CUnknown* WINAPI CreateInstance(LPUNKNOWN lpunk, HRESULT* phr);
-#endif
-
 	DECLARE_IUNKNOWN;
     STDMETHODIMP NonDelegatingQueryInterface(REFIID riid, void** ppv);
 
@@ -146,8 +142,4 @@ class CMatroskaSourceFilter : public CMatroskaSplitterFilter
 {
 public:
 	CMatroskaSourceFilter(LPUNKNOWN pUnk, HRESULT* phr);
-
-#ifdef REGISTER_FILTER
-    static CUnknown* WINAPI CreateInstance(LPUNKNOWN lpunk, HRESULT* phr);
-#endif
 };

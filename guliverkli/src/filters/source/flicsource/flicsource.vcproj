@@ -34,8 +34,9 @@
 			<Tool
 				Name="VCLinkerTool"
 				RegisterOutput="TRUE"
-				AdditionalDependencies="strmbaseD.lib"
+				AdditionalDependencies="strmbaseD.lib dsutilD.lib"
 				OutputFile="$(OutDir)/$(ProjectName).ax"
+				AdditionalLibraryDirectories="../../../../lib"
 				ModuleDefinitionFile="FLICSource.def"
 				GenerateDebugInformation="TRUE"
 				SubSystem="2"
@@ -87,8 +88,9 @@
 			<Tool
 				Name="VCLinkerTool"
 				RegisterOutput="TRUE"
-				AdditionalDependencies="strmbaseR.lib"
+				AdditionalDependencies="strmbaseR.lib dsutilR.lib"
 				OutputFile="$(OutDir)/$(ProjectName).ax"
+				AdditionalLibraryDirectories="../../../../lib"
 				ModuleDefinitionFile="FLICSource.def"
 				GenerateDebugInformation="FALSE"
 				SubSystem="2"
@@ -140,8 +142,9 @@
 			<Tool
 				Name="VCLinkerTool"
 				RegisterOutput="TRUE"
-				AdditionalDependencies="strmbaseDU.lib"
+				AdditionalDependencies="strmbaseDU.lib dsutilDU.lib"
 				OutputFile="$(OutDir)/$(ProjectName).ax"
+				AdditionalLibraryDirectories="../../../../lib"
 				ModuleDefinitionFile="FLICSource.def"
 				GenerateDebugInformation="TRUE"
 				SubSystem="2"
@@ -193,8 +196,9 @@
 			<Tool
 				Name="VCLinkerTool"
 				RegisterOutput="TRUE"
-				AdditionalDependencies="strmbaseRU.lib"
+				AdditionalDependencies="strmbaseRU.lib dsutilRU.lib"
 				OutputFile="$(OutDir)/$(ProjectName).ax"
+				AdditionalLibraryDirectories="../../../../lib"
 				ModuleDefinitionFile="FLICSource.def"
 				GenerateDebugInformation="FALSE"
 				SubSystem="2"

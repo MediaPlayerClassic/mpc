@@ -56,7 +56,7 @@ protected:
 	mad_stream m_stream;
 	mad_frame m_frame;
 	mad_synth m_synth;
-	bool m_ps2_sync;
+	bool m_ps2pcm_sync;
 
 	CArray<BYTE> m_buff;
 	REFERENCE_TIME m_rtStart;
