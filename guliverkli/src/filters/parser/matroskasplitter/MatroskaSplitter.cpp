@@ -389,38 +389,64 @@ HRESULT CMatroskaSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 				else if(CodecID.Find("A_AAC/") == 0)
 				{
 					mt.subtype = FOURCCMap(pwfe->wFormatTag = WAVE_FORMAT_AAC);
-					BYTE* pExtra = mt.ReallocFormatBuffer(sizeof(WAVEFORMATEX)+2) + sizeof(WAVEFORMATEX);
-					((WAVEFORMATEX*)mt.pbFormat)->cbSize = 2;
+					BYTE* pExtra = mt.ReallocFormatBuffer(sizeof(WAVEFORMATEX)+5) + sizeof(WAVEFORMATEX);
+					(pwfe = (WAVEFORMATEX*)mt.pbFormat)->cbSize = 2;
 
 					char profile, srate_idx;
 
-					// Recreate the 'private data' which faad2 uses in its initialization.
-					// A_AAC/MPEG2/MAIN
-					// 0123456789012345
 					if(CodecID.Find("/MAIN") > 0) profile = 0;
+					else if(CodecID.Find("/SBR") > 0) profile = -1;
 					else if(CodecID.Find("/LC") > 0) profile = 1;
 					else if(CodecID.Find("/SSR") > 0) profile = 2;
 					else if(CodecID.Find("/LTP") > 0) profile = 3;
-					else if(CodecID.Find("/SBR") > 0) profile = 4;
-					else profile = 5;
+					else continue;
 
-					if(92017 <= pTE->a.SamplingFrequency) srate_idx = 0;
-					else if(75132 <= pTE->a.SamplingFrequency) srate_idx = 1;
-					else if(55426 <= pTE->a.SamplingFrequency) srate_idx = 2;
-					else if(46009 <= pTE->a.SamplingFrequency) srate_idx = 3;
-					else if(37566 <= pTE->a.SamplingFrequency) srate_idx = 4;
-					else if(27713 <= pTE->a.SamplingFrequency) srate_idx = 5;
-					else if(23004 <= pTE->a.SamplingFrequency) srate_idx = 6;
-					else if(18783 <= pTE->a.SamplingFrequency) srate_idx = 7;
-					else if(13856 <= pTE->a.SamplingFrequency) srate_idx = 8;
-					else if(11502 <= pTE->a.SamplingFrequency) srate_idx = 9;
-					else if(9391 <= pTE->a.SamplingFrequency) srate_idx = 10;
+					if(92017 <= pwfe->nSamplesPerSec) srate_idx = 0;
+					else if(75132 <= pwfe->nSamplesPerSec) srate_idx = 1;
+					else if(55426 <= pwfe->nSamplesPerSec) srate_idx = 2;
+					else if(46009 <= pwfe->nSamplesPerSec) srate_idx = 3;
+					else if(37566 <= pwfe->nSamplesPerSec) srate_idx = 4;
+					else if(27713 <= pwfe->nSamplesPerSec) srate_idx = 5;
+					else if(23004 <= pwfe->nSamplesPerSec) srate_idx = 6;
+					else if(18783 <= pwfe->nSamplesPerSec) srate_idx = 7;
+					else if(13856 <= pwfe->nSamplesPerSec) srate_idx = 8;
+					else if(11502 <= pwfe->nSamplesPerSec) srate_idx = 9;
+					else if(9391 <= pwfe->nSamplesPerSec) srate_idx = 10;
 					else srate_idx = 11;
    
-					pExtra[0] = ((profile + 1) << 3) | ((srate_idx & 0xe) >> 1);
+					pExtra[0] = ((abs(profile) + 1) << 3) | ((srate_idx & 0xe) >> 1);
 					pExtra[1] = ((srate_idx & 0x1) << 7) | ((BYTE)pTE->a.Channels << 3);
 
 					mts.Add(mt);
+
+					if(profile < 0)
+					{
+						pExtra[0] = ((abs(profile) + 1) << 3) | ((srate_idx & 0xe) >> 1);
+
+						((WAVEFORMATEX*)mt.pbFormat)->cbSize = 5;
+
+						pwfe->nSamplesPerSec *= 2;
+						pwfe->nAvgBytesPerSec *= 2;
+
+						if(92017 <= pwfe->nSamplesPerSec) srate_idx = 0;
+						else if(75132 <= pwfe->nSamplesPerSec) srate_idx = 1;
+						else if(55426 <= pwfe->nSamplesPerSec) srate_idx = 2;
+						else if(46009 <= pwfe->nSamplesPerSec) srate_idx = 3;
+						else if(37566 <= pwfe->nSamplesPerSec) srate_idx = 4;
+						else if(27713 <= pwfe->nSamplesPerSec) srate_idx = 5;
+						else if(23004 <= pwfe->nSamplesPerSec) srate_idx = 6;
+						else if(18783 <= pwfe->nSamplesPerSec) srate_idx = 7;
+						else if(13856 <= pwfe->nSamplesPerSec) srate_idx = 8;
+						else if(11502 <= pwfe->nSamplesPerSec) srate_idx = 9;
+						else if(9391 <= pwfe->nSamplesPerSec) srate_idx = 10;
+						else srate_idx = 11;
+
+						pExtra[2] = 0x2B7>>3;
+						pExtra[3] = (0x2B7<<5) | 5;
+						pExtra[4] = (1<<7) | (srate_idx<<3);
+
+						mts.InsertAt(0, mt);
+					}
 				}
 				else if(CodecID.Find("A_REAL/") == 0 && CodecID.GetLength() >= 11)
 				{
@@ -1048,7 +1074,18 @@ HRESULT CMatroskaSplitterOutputPin::DeliverPacket(CAutoPtr<Packet> p)
 		if(!mp1->b->BlockDuration.IsValid())
 		{
 			mp1->b->BlockDuration.Set(1); // just to set it valid
-			mp1->rtStop = mp2->rtStart;
+
+			if(mp1->rtStart >= mp2->rtStart)
+			{
+/*				CString str;
+				str.Format(_T("mp1->rtStart (%I64d) >= mp2->rtStart (%I64d)!!!\n"), mp1->rtStart, mp2->rtStart);
+				AfxMessageBox(str);
+*/				TRACE(_T("mp1->rtStart (%I64d) >= mp2->rtStart (%I64d)!!!\n"), mp1->rtStart, mp2->rtStart);
+			}
+			else
+			{
+				mp1->rtStop = mp2->rtStart;
+			}
 		}
 	}
 
@@ -1077,8 +1114,8 @@ HRESULT CMatroskaSplitterOutputPin::DeliverBlock(MatroskaPacket* p)
 	if(m_tos.GetCount())
 	{
 		timeoverride to = m_tos.RemoveHead();
-//		if(p->TrackNumber == 3)
-//		TRACE(_T("(track=%d) %I64d, %I64d -> %I64d, %I64d\n"), p->TrackNumber, p->rtStart, p->rtStop, to.rtStart, to.rtStop);
+		if(p->TrackNumber == 2)
+		TRACE(_T("(track=%d) %I64d, %I64d -> %I64d, %I64d\n"), p->TrackNumber, p->rtStart, p->rtStop, to.rtStart, to.rtStop);
 		p->rtStart = to.rtStart;
 		p->rtStop = to.rtStop;
 	}

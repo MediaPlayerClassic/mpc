@@ -12,7 +12,7 @@
 
 CAsyncFileReader::CAsyncFileReader(CString fn, HRESULT& hr) : CUnknown(NAME(""), NULL, &hr)
 {
-	hr = Open(fn, modeRead|shareDenyWrite|typeBinary) ? S_OK : E_FAIL;
+	hr = Open(fn, modeRead|shareDenyWrite|typeBinary|osSequentialScan) ? S_OK : E_FAIL;
 }
 
 STDMETHODIMP CAsyncFileReader::NonDelegatingQueryInterface(REFIID riid, void** ppv)

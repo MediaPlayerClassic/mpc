@@ -68,7 +68,7 @@ public:
 		bool IsRawSubtitleStream();
 	};
 	CAutoPtrArray<strm_t> m_strms;
-	CMap<DWORD, DWORD&, CStringA, CStringA&> m_info;
+	CMap<DWORD, DWORD, CStringA, CStringA&> m_info;
 	CAutoPtr<AVIOLDINDEX> m_idx1;
 
 	CList<UINT64> m_movis;
@@ -356,16 +356,11 @@ HRESULT CAviSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 		CStringA str;
 		DWORD id;
 
-		id = FCC('INAM');
-		if(m_pFile->m_info.Lookup(id, str)) SetMediaContentStr(CStringW(CString(str)), Title);
-		id = FCC('IART');
-		if(m_pFile->m_info.Lookup(id, str)) SetMediaContentStr(CStringW(CString(str)), AuthorName);
-		id = FCC('ICOP');
-		if(m_pFile->m_info.Lookup(id, str)) SetMediaContentStr(CStringW(CString(str)), Copyright);
-		id = FCC('ISBJ');
-		if(m_pFile->m_info.Lookup(id, str)) SetMediaContentStr(CStringW(CString(str)), Description);
-//		id = FCC();
-//		if(m_pFile->m_info.Lookup(id, str)) SetMediaContentStr(CStringW(CString(str)), Rating);
+		if(m_pFile->m_info.Lookup(FCC('INAM'), str)) SetMediaContentStr(CStringW(CString(str)), Title);
+		if(m_pFile->m_info.Lookup(FCC('IART'), str)) SetMediaContentStr(CStringW(CString(str)), AuthorName);
+		if(m_pFile->m_info.Lookup(FCC('ICOP'), str)) SetMediaContentStr(CStringW(CString(str)), Copyright);
+		if(m_pFile->m_info.Lookup(FCC('ISBJ'), str)) SetMediaContentStr(CStringW(CString(str)), Description);
+//		if(m_pFile->m_info.Lookup(FCC(), str)) SetMediaContentStr(CStringW(CString(str)), Rating);
 	}
 
 	m_tFrame.Attach(new DWORD[m_pFile->m_avih.dwStreams]);
@@ -828,9 +823,8 @@ STDMETHODIMP CAviSplitterFilter::Read(LPCOLESTR pszPropName, VARIANT* pVar, IErr
 	CStringW name(pszPropName);
 	if(name.Find(L"INFO/") == 0 && name.GetLength() == 9)
 	{
-		DWORD fcc = mmioFOURCC(name[5], name[6], name[7], name[8]);
 		CStringA str;
-		if(m_pFile->m_info.Lookup(fcc, str))
+		if(m_pFile->m_info.Lookup(mmioFOURCC(name[5], name[6], name[7], name[8]), str))
 		{
 			*pVar = CComVariant(str);
 			return S_OK;

@@ -84,6 +84,13 @@ public:
 	STDMETHODIMP Notify(IBaseFilter* pSender, Quality q);
 };
 
+[uuid("38E2D43D-915D-493C-B373-888DB16EE3DC")]
+interface IMatroskaMuxer : public IUnknown
+{
+	STDMETHOD (CorrectTimeOffset) (bool fNegative, bool fPositive) = 0;
+	// TODO: chapters
+};
+
 [uuid("1E1299A2-9D42-4F12-8791-D79E376F4143")]
 class CMatroskaMuxerFilter
 	: public CBaseFilter
@@ -91,12 +98,15 @@ class CMatroskaMuxerFilter
 	, public CAMThread
 	, public IAMFilterMiscFlags
 	, public IMediaSeeking
+	, public IMatroskaMuxer
 {
 protected:
 	CAutoPtrList<CMatroskaMuxerInputPin> m_pInputs;
 	CAutoPtr<CMatroskaMuxerOutputPin> m_pOutput;
 
 	REFERENCE_TIME m_rtCurrent;
+
+	bool m_fNegative, m_fPositive;
 
 	enum {CMD_EXIT, CMD_RUN};
 	DWORD ThreadProc();
@@ -145,5 +155,9 @@ public:
 	STDMETHODIMP SetRate(double dRate);
 	STDMETHODIMP GetRate(double* pdRate);
 	STDMETHODIMP GetPreroll(LONGLONG* pllPreroll);
+
+	// IMatroskaMuxer
+
+	STDMETHODIMP CorrectTimeOffset(bool fNegative, bool fPositive);
 };
 
