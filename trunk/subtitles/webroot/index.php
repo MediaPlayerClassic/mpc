@@ -98,15 +98,21 @@ if(!empty($movies))
 			$movies[$i]['subs'][$j]['language'] = empty($isolang[$sub['iso639_2']]) ? 'Unknown' : $isolang[$sub['iso639_2']];
 			$movies[$i]['subs'][$j]['files'] = array();
 
-			foreach($files as $file)
+			if($db->count("file_subtitle where subtitle_id = {$movies[$i]['subs'][$j]['id']} && file_id in (select id from file)") > 0)
 			{
-				$cnt = $db->count(
-					"file_subtitle where subtitle_id = {$movies[$i]['subs'][$j]['id']} && file_id in ".
-					" (select id from file where hash = '{$file['hash']}' && size = '{$file['size']}') ");
-				if($cnt > 0)
+				$movies[$i]['subs'][$j]['has_file'] = true;
+			
+				foreach($files as $file)
 				{
-					$movies[$i]['subs'][$j]['files'][] = $file;
-					break;
+					$cnt = $db->count(
+						"file_subtitle where subtitle_id = {$movies[$i]['subs'][$j]['id']} && file_id in ".
+						" (select id from file where hash = '{$file['hash']}' && size = '{$file['size']}') ");
+					if($cnt > 0)
+					{
+						$movies[$i]['subs'][$j]['files'][] = $file;
+						$movies[$i]['found_file'] = true;
+						break;
+					}
 				}
 			}
 		}
@@ -121,8 +127,8 @@ if(!empty($movies))
 	
 	function cmp($a, $b)
 	{
-		if(isset($a['has_files']) && !isset($b['has_files'])) return -1;
-		if(!isset($a['has_files']) && isset($b['has_files'])) return +1;
+		if(isset($a['found_file']) && !isset($b['found_file'])) return -1;
+		if(!isset($a['found_file']) && isset($b['found_file'])) return +1;
 		return $b['updated'] - $a['updated'];
 	}
 	

@@ -4,16 +4,12 @@ require '../include/MySmarty.class.php';
 require '../include/DataBase.php';
 require '../include/isolang.inc';
 
-
-// FIXME: $_SESSION['titles_imdb'][$imdb_id] <- $_SESSION['titles_imdb'.$imdb_id]
-// ['titles_imdb'][$imdb_id] doesn't work with php 4.3.4
-
 session_start();
 
 if(isset($_GET['clearimdb']))
 {
-	$imdb_id = intval($_GET['clearimdb']);
-	unset($_SESSION['titles_imdb'.$imdb_id]);
+	unset($_SESSION['imdb_id']);
+	unset($_SESSION['imdb_titles']);
 	RedirAndExit($_SERVER['PHP_SELF']);
 }
 
@@ -35,7 +31,6 @@ if(!empty($_GET))
 		$_SESSION['file'][$i+1] = $file;
 		// TODO: search imdb on name || size || hash -> imdb
 	}
-
 	RedirAndExit($_SERVER['PHP_SELF']);
 }
 
@@ -46,18 +41,22 @@ $maxsubs = 8;
 
 //
 
-function getIMDbTitles($imdb)
+function getIMDbTitles($imdb_url)
 {
 	$titles = array();
 
-	if(($str = @file_get_contents(rtrim($imdb, '/')))
-	|| ($str = @file_get_contents(eregi_replace('\.com/', '.com.nyud.net:8090/', rtrim($imdb, '/')))))
+	set_time_limit(60);
+	
+	if(($str = @file_get_contents(rtrim($imdb_url, '/')))
+	|| ($str = @file_get_contents(eregi_replace('\.com/', '.com.nyud.net:8090/', rtrim($imdb_url, '/')))))
 	{
 		$str = str_replace("&#32;", "", $str);
 		$str = str_replace("\r", "", $str);
 		$str = str_replace("\n", "|", $str);
+		
 		if(preg_match('/<title>(.+)<\/title>/i', $str, $regs))
-			$titles[] = trim($regs[1]);
+//		if(preg_match('/<strong class="title">(.+)<\/strong>/i', $str, $regs))
+			$titles[] = trim(strip_tags($regs[1]));
 
 		// TODO: stripos
 		$aka = '<b class="ch">Also Known As';
@@ -93,7 +92,7 @@ function mergeTitles($a, $b)
 	return $ret;
 }
 
-function storeMovie($imdb, $titles)
+function storeMovie($imdb_id, $titles)
 {
 	$db_titles = array();
 	foreach($titles as $title)
@@ -102,7 +101,7 @@ function storeMovie($imdb, $titles)
 	$movie_id = 0;
 
 	global $db;
-	$db->query("select * from movie where imdb = $imdb && imdb != 0 ");
+	$db->query("select * from movie where imdb = $imdb_id && imdb != 0 ");
 
 	if($row = $db->fetchRow())
 	{
@@ -110,7 +109,7 @@ function storeMovie($imdb, $titles)
 	}
 	else
 	{
-		$db->query("insert into movie (imdb) values ($imdb) ");
+		$db->query("insert into movie (imdb) values ($imdb_id) ");
 		$movie_id = $db->fetchLastInsertId();
 	}
 
@@ -120,27 +119,6 @@ function storeMovie($imdb, $titles)
 
 	return $movie_id;
 }
-/*
-
-set_time_limit(0);
-for($i = 200000; $i < 1000000; $i++)
-{
-	if($db->count("title where movie_id in (select id from movie where imdb = $i)") > 0)
-		continue;
-
-//	$tmp = getIMDbTitles(sprintf("http://imdb.com.nyud.net:8090/title/tt%07d/", $i));
-	$tmp = getIMDbTitles(sprintf("http://imdb.com/title/tt%07d/", $i));
-	if(empty($tmp)) 
-		continue;
-
-	echo $i."\r\n";
-	var_dump($tmp);
-	echo "\r\n";
-	storeMovie($i, $tmp);
-//	sleep(3);
-}
-exit;
-*/
 
 if(isset($_POST['update']) || isset($_POST['submit']))
 {
@@ -154,48 +132,49 @@ if(isset($_POST['update']) || isset($_POST['submit']))
 	for($i = 0; $i < $maxtitles; $i++)
 		if($title = trim(strip_tags(getParam('title', $i))))
 			$titles[] = $title;
-	$imdb = trim(getParam('imdb'));
+	$imdb_url = trim(getParam('imdb_url'));
 	$nick = strip_tags(getParam('nick'));
 	$email = strip_tags(getParam('email'));
 
-	if(!empty($imdb))
+	if(!empty($imdb_url))
 	{
-		if(eregi('/title/tt([0-9]+)', $imdb, $regs))
+		$imdb_titles = array();
+		
+		if(eregi('/title/tt([0-9]+)', $imdb_url, $regs))
 		{
 			$imdb_id = intval($regs[1]);
-			$titles_imdb = array();
-			
-			if(empty($titles_imdb))
+
+			if(empty($imdb_titles))
 			{
-				if(!empty($_SESSION['titles_imdb'.$imdb_id]))
-					$titles_imdb = $_SESSION['titles_imdb'.$imdb_id];
+				if(isset($_SESSION['imdb_id']) && $_SESSION['imdb_id'] == $imdb_id)
+					$_SESSION['imdb_titles'] = $imdb_titles;
 			}
 
-			if(empty($titles_imdb))
+			if(empty($imdb_titles))
 			{
 				$db->query("select title from title where movie_id in (select id from movie where imdb = $imdb_id)");
-				while($row = $db->fetchRow()) $titles_imdb[] = $row['title'];
-				$_SESSION['titles_imdb'.$imdb_id] = $titles_imdb;
+				while($row = $db->fetchRow()) $imdb_titles[] = $row['title'];
+				$_SESSION['imdb_id'] = $imdb_id;
+				$_SESSION['imdb_titles'] = $imdb_titles;
 			}
 
-			if(empty($titles_imdb))
+			if(empty($imdb_titles))
 			{
-				$titles_imdb = getIMDbTitles($imdb);
-				$_SESSION['titles_imdb'.$imdb_id] = $titles_imdb;
-				storeMovie($imdb_id, $titles_imdb);
+				$imdb_titles = getIMDbTitles($imdb_url);
+				$_SESSION['imdb_id'] = $imdb_id;
+				$_SESSION['imdb_titles'] = $imdb_titles;
+				storeMovie($imdb_id, $imdb_titles);
 			}
-
-//var_dump($titles_imdb);
-//exit;
-			$imdb = $imdb_id;
-			$titles = mergeTitles($titles_imdb, $titles);
 		}
 
-		if(empty($titles_imdb)) $_SESSION['err']['imdb'] = true;
+		$titles = mergeTitles($imdb_titles, $titles);
+
+		if(empty($imdb_titles))
+			$_SESSION['err']['imdb_url'] = true;
 	}
 	else
 	{
-		$imdb = 0;
+		$imdb_id = 0;
 	}
 	
 	if(empty($titles)) $_SESSION['err']['title'][0] = true;
@@ -238,7 +217,7 @@ if(isset($_POST['update']) || isset($_POST['submit']))
 	$db_nick = addslashes($nick);
 	$db_email = addslashes($email);
 
-	$movie_id = storeMovie($imdb, $titles);
+	$movie_id = storeMovie($imdb_id, $titles);
 	$files = array();
 	
 	for($i = 0; $i < $maxsubs; $i++)
@@ -311,7 +290,7 @@ if(isset($_POST['update']) || isset($_POST['submit']))
 		$args = array();
 		foreach($files as $i => $file)
 			foreach($file as $param => $value)
-				$args[] .= "$param[$i]=$value";
+				$args[] .= "{$param}[$i]=$value";
 		RedirAndExit('index.php?'.implode('&', $args));
 	}
 
@@ -354,13 +333,12 @@ function assign_cookie($param)
 // titles, imdb
 
 assign('title', $maxtitles);
-assign('imdb');
+assign('imdb_url');
 
-if(eregi('/title/tt([0-9]+)', getParam('imdb'), $regs) && !empty($_SESSION['titles_imdb'.intval($regs[1])]))
+if(isset($_SESSION['imdb_id']) && !empty($_SESSION['imdb_titles']))
 {
-	$imdb_id = intval($regs[1]);
-	$smarty->assign('imdb_id', $imdb_id);
-	$smarty->assign('titles_imdb', $_SESSION['titles_imdb'.$imdb_id]);
+	$smarty->assign('imdb_id', $_SESSION['imdb_id']);
+	$smarty->assign('imdb_titles', $_SESSION['imdb_titles']);
 }
 
 // nick, email
