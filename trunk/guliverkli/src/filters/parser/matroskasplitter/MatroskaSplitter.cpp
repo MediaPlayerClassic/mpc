@@ -476,6 +476,7 @@ HRESULT CMatroskaSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 				}
 				else if(CodecID.Find("A_REAL/") == 0 && CodecID.GetLength() >= 11)
 				{
+					mt.bTemporalCompression = TRUE;
 					mt.subtype = FOURCCMap((DWORD)CodecID[7]|((DWORD)CodecID[8]<<8)|((DWORD)CodecID[9]<<16)|((DWORD)CodecID[10]<<24));
 					BYTE* p = mt.ReallocFormatBuffer(sizeof(WAVEFORMATEX) + pTE->CodecPrivate.GetCount());
 					memcpy(p + sizeof(WAVEFORMATEX), pTE->CodecPrivate.GetData(), pTE->CodecPrivate.GetCount());

@@ -280,6 +280,7 @@ HRESULT CRealMediaSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 		{
 			mt.majortype = MEDIATYPE_Audio;
 			mt.formattype = FORMAT_WaveFormatEx;
+			mt.bTemporalCompression = 1;
 
 			WAVEFORMATEX* pwfe = (WAVEFORMATEX*)mt.AllocFormatBuffer(sizeof(WAVEFORMATEX) + pmp->typeSpecData.GetCount());
 			memset(mt.Format(), 0, mt.FormatLength());
