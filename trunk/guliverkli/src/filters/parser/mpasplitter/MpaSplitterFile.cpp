@@ -176,9 +176,10 @@ bool CMpaSplitterFile::Sync(mpahdr& h, int limit)
 
 	while(GetPos() <= endpos - 4)
 	{
-		if(Read(h, m_endpos - GetPos(), true)
+		if(Read(h, endpos - GetPos(), true)
 		&& m_firsthdr.version == h.version
-		&& m_firsthdr.layer == h.layer)
+		&& m_firsthdr.layer == h.layer
+		&& m_firsthdr.channels == h.channels)
 		{
 			Seek(GetPos() - 4);
 

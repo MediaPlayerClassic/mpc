@@ -388,7 +388,9 @@ HRESULT CAviSplitterFilter::ReIndex(__int64 end, UINT64* pSize)
 					CAviFile::strm_t::chunk c;
 					c.filepos = pos;
 					c.size = pSize[TrackNumber];
+					c.orgsize = size;
 					c.fKeyFrame = size > 0; // TODO: find a better way...
+					c.fChunkHdr = true;
 					s->cs.Add(c);
 
 					pSize[TrackNumber] += s->GetChunkSize(size);
@@ -501,24 +503,33 @@ bool CAviSplitterFilter::DoDeliverLoop()
 
 			m_pFile->Seek(s->cs[f].filepos);
 
-			DWORD id = 0, size = 0;
-			if(S_OK != m_pFile->Read(id) || id == 0 || minTrack != TRACKNUM(id)
-			|| S_OK != m_pFile->Read(size))
+			DWORD size = 0;
+
+			if(s->cs[f].fChunkHdr)
 			{
-				fDiscontinuity[minTrack] = true;
-				break;
+				DWORD id = 0;
+				if(S_OK != m_pFile->Read(id) || id == 0 || minTrack != TRACKNUM(id)
+				|| S_OK != m_pFile->Read(size))
+				{
+					fDiscontinuity[minTrack] = true;
+					break;
+				}
+
+				UINT64 expectedsize = -1;
+				expectedsize = f < (DWORD)s->cs.GetCount()-1
+					? s->cs[f+1].size - s->cs[f].size
+					: s->totalsize - s->cs[f].size;
+
+				if(expectedsize != s->GetChunkSize(size))
+				{
+					fDiscontinuity[minTrack] = true;
+					// ASSERT(0);
+					break;
+				}
 			}
-
-			UINT64 expectedsize = -1;
-			expectedsize = f < (DWORD)s->cs.GetCount()-1
-				? s->cs[f+1].size - s->cs[f].size
-				: s->totalsize - s->cs[f].size;
-
-			if(expectedsize != s->GetChunkSize(size))
+			else
 			{
-				fDiscontinuity[minTrack] = true;
-				// ASSERT(0);
-				break;
+				size = s->cs[f].orgsize;
 			}
 
 			CAutoPtr<Packet> p(new Packet());

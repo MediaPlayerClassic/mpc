@@ -23,7 +23,7 @@ public:
 		CArray<BYTE> strf;
 		CStringA strn;
 		CAutoPtr<AVISUPERINDEX> indx;
-		struct chunk {UINT64 fKeyFrame:1, size:63; UINT64 filepos;};
+		struct chunk {UINT64 fKeyFrame:1, fChunkHdr:1, size:62; UINT64 filepos; DWORD orgsize;};
 		CArray<chunk> cs;
 		UINT64 totalsize;
 		REFERENCE_TIME GetRefTime(DWORD frame, UINT64 size);

@@ -268,9 +268,17 @@ HRESULT CAviFile::BuildIndex()
 				for(int k = 0, l = 0; k < (int)p->nEntriesInUse; k++)
 				{
 					s->cs[frame].size = size;
-					s->cs[frame].filepos = p->qwBaseOffset + p->aIndex[k].dwOffset - 8;
-					s->cs[frame].fKeyFrame = !(p->aIndex[k].dwSize&AVISTDINDEX_DELTAFRAME)
+					s->cs[frame].filepos = p->qwBaseOffset + p->aIndex[k].dwOffset;
+					s->cs[frame].fKeyFrame = !(p->aIndex[k].dwSize&AVISTDINDEX_DELTAFRAME) 
 						|| s->strh.fccType == FCC('auds');
+					s->cs[frame].fChunkHdr = false;
+					s->cs[frame].orgsize = p->aIndex[k].dwSize&AVISTDINDEX_SIZEMASK;
+
+					if(m_idx1)
+					{
+						s->cs[frame].filepos -= 8;
+						s->cs[frame].fChunkHdr = true;
+					}
 
 					frame++;
 					size += s->GetChunkSize(p->aIndex[k].dwSize&AVISTDINDEX_SIZEMASK);
@@ -326,6 +334,8 @@ HRESULT CAviFile::BuildIndex()
 					s->cs[frame].fKeyFrame = !!(idx->aIndex[j].dwFlags&AVIIF_KEYFRAME) 
 						|| s->strh.fccType == FCC('auds') // FIXME: some audio index is without any kf flag
 						|| frame == 0; // grrr
+					s->cs[frame].fChunkHdr = false;
+					s->cs[frame].orgsize = idx->aIndex[j].dwSize;
 
 					frame++;
 					size += s->GetChunkSize(idx->aIndex[j].dwSize);
