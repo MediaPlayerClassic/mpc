@@ -10,14 +10,6 @@
 #include "ConvertDlg.h"
 #include ".\convertdlg.h"
 
-class CTreeItem
-{
-public:
-	CComPtr<IUnknown> pUnk;	
-	CString fn;
-	~CTreeItem() {}
-};
-
 // CConvertDlg dialog
 
 CConvertDlg::CConvertDlg(CWnd* pParent /*=NULL*/)
@@ -48,10 +40,11 @@ void CConvertDlg::AddFile(CString fn)
 	
 	HTREEITEM hTI = m_tree.InsertItem(path);
 
-	CTreeItem* t = new CTreeItem;
+	CTreeItem* t = new CTreeItem();
 	t->pUnk = pBF;
 	t->fn = fn;
 	m_tree.SetItemData(hTI, (DWORD_PTR)t);
+	m_pTIs.AddTail(t);
 
 	AddFilter(hTI, pBF);
 
@@ -59,9 +52,9 @@ void CConvertDlg::AddFile(CString fn)
 	m_tree.EnsureVisible(hTI);
 }
 
-void CConvertDlg::AddFilter(HTREEITEM hTIParent, IBaseFilter* pBF)
+void CConvertDlg::AddFilter(HTREEITEM hTIParent, IBaseFilter* pBFParent)
 {
-	BeginEnumPins(pBF, pEP, pPin)
+	BeginEnumPins(pBFParent, pEP, pPin)
 	{
 		PIN_DIRECTION dir;
 		CComPtr<IPin> pPinTo;
@@ -75,17 +68,59 @@ void CConvertDlg::AddFilter(HTREEITEM hTIParent, IBaseFilter* pBF)
 
 		bool fTheEnd = pBF == m_pMux;
 
-		CTreeItem* t = new CTreeItem;
+		CTreeItem* t = new CTreeItem();
 		t->pUnk = fTheEnd ? (IUnknown*)pPin : (IUnknown*)pBF;
 		m_tree.SetItemData(hTI, (DWORD_PTR)t);
-
-		m_tree.Expand(hTI, TVE_EXPAND);
+		m_pTIs.AddTail(t);
 
 		UpdateTreeNode(hTI);
 
 		if(!fTheEnd) AddFilter(hTI, pBF);
 	}
 	EndEnumPins
+
+	if(CComQIPtr<IDSMResourceBag> pRB = pBFParent)
+	{
+		if(DWORD cnt = pRB->ResGetCount())
+		{
+			HTREEITEM hTIRes = m_tree.InsertItem(_T("Resources"), hTIParent);
+			CTreeItem* t = new CTreeItem();
+			m_tree.SetItemData(hTIRes, (DWORD_PTR)t);
+			m_pTIs.AddTail(t);
+
+			for(DWORD i = 0; i < cnt; i++)
+			{
+				CComBSTR name, mime, desc;
+				BYTE* pData = NULL;
+				DWORD len = 0;
+				if(FAILED(pRB->ResGet(i, &name, &desc, &mime, &pData, &len, NULL)))
+					continue;
+
+				if(len > 0)
+				{
+					HTREEITEM hTI = m_tree.InsertItem(name, hTIRes);
+
+					t = new CTreeItem();
+					t->res.name = name; t->res.name.Trim();
+					t->res.desc = desc; t->res.desc.Trim();
+					t->res.mime = mime; t->res.mime.Trim(); t->res.mime.MakeLower();
+					t->res.data.SetSize(len);
+					memcpy(t->res.data.GetData(), pData, t->res.data.GetSize());
+					m_tree.SetItemData(hTI, (DWORD_PTR)t);
+					m_pTIs.AddTail(t);
+
+					UpdateTreeNode(hTI);
+				}
+
+				CoTaskMemFree(pData);
+			}
+
+			if(m_tree.ItemHasChildren(hTIRes)) m_tree.Expand(hTIRes, TVE_EXPAND);
+			else DeleteTreeNode(hTIRes);
+		}
+	}
+
+	m_tree.Expand(hTIParent, TVE_EXPAND);
 }
 
 void CConvertDlg::DeleteFilter(IBaseFilter* pBF)
@@ -123,6 +158,8 @@ void CConvertDlg::DeleteTreeNode(HTREEITEM hTI)
 		}
 	}
 
+	CTreeItem* pTI = (CTreeItem*)m_tree.GetItemData(hTI);
+	if(POSITION pos = m_pTIs.Find(pTI)) m_pTIs.RemoveAt(pos);
 	delete (CTreeItem*)m_tree.GetItemData(hTI);
 	m_tree.DeleteItem(hTI);
 }
@@ -158,6 +195,16 @@ void CConvertDlg::UpdateTreeNode(HTREEITEM hTI)
 	{
 		label = CString(GetFilterName(pBF));
 	}
+	else if(pTI->res.data.GetSize())
+	{
+		label = CString(pTI->res.name);
+		if(!pTI->fResEnabled) label = _T("[D] ") + label;
+
+		CStringW mime = pTI->res.mime;
+		if(mime == L"application/x-truetype-font") m_tree.SetItemImage(hTI, 4, 4);
+		else if(mime.Find(L"text/") == 0) m_tree.SetItemImage(hTI, 5, 5);
+		else m_tree.SetItemImage(hTI, 6, 6);
+	}
 
 	m_tree.SetItemText(hTI, label);
 }
@@ -187,10 +234,10 @@ void CConvertDlg::ShowPopup(CPoint p)
 	{
 	case 1:
 		{
-		CFileDialog fd(TRUE, NULL, m_fn, 
-			OFN_EXPLORER|OFN_ENABLESIZING|OFN_HIDEREADONLY, 
-			_T("Media files|*.*||"), this, 0);
-		if(fd.DoModal() == IDOK) AddFile(fd.GetPathName());
+			CFileDialog fd(TRUE, NULL, m_fn, 
+				OFN_EXPLORER|OFN_ENABLESIZING|OFN_HIDEREADONLY, 
+				_T("Media files|*.*||"), this, 0);
+			if(fd.DoModal() == IDOK) AddFile(fd.GetPathName());
 		}
 		break;
 	case 2:
@@ -232,7 +279,7 @@ void CConvertDlg::ShowPinPopup(HTREEITEM hTI, CPoint p)
 	m.CreatePopupMenu();
 
 	int i = 1;
-	m.AppendMenu(MF_STRING, i++, !pPinTo ? _T("Connect") : _T("Disconnect"));
+	m.AppendMenu(MF_STRING, i++, !pPinTo ? _T("Enable") : _T("Disable"));
 	m.AppendMenu(MF_SEPARATOR);
 	m.AppendMenu(MF_STRING | (!pPinTo ? MF_GRAYED : 0), i++, _T("Pin Properties..."));
 
@@ -245,6 +292,46 @@ void CConvertDlg::ShowPinPopup(HTREEITEM hTI, CPoint p)
 		break;
 	case 2:
 		EditProperties(CComQIPtr<IDSMPropertyBag>(pPinTo));
+		break;
+	}
+}
+
+void CConvertDlg::ShowResourcePopup(HTREEITEM hTI, CPoint p)
+{
+	CTreeItem* pTI = (CTreeItem*)m_tree.GetItemData(hTI);
+
+	CMenu m;
+	m.CreatePopupMenu();
+
+	int i = 1;
+	m.AppendMenu(MF_STRING, i++, pTI->fResEnabled ? _T("Disable") : _T("Enable"));
+	m.AppendMenu(MF_STRING, i++, _T("Save As..."));
+	m.AppendMenu(MF_SEPARATOR);
+	m.AppendMenu(MF_STRING, i++, _T("Resource Properties..."));
+
+	switch((int)m.TrackPopupMenu(TPM_LEFTBUTTON|TPM_RETURNCMD, p.x, p.y, this))
+	{
+	case 1:
+		pTI->fResEnabled = !pTI->fResEnabled;
+		UpdateTreeNode(hTI);
+		break;
+	case 2:
+		{
+			CFileDialog fd(FALSE, NULL, CString(pTI->res.name), 
+				OFN_EXPLORER|OFN_ENABLESIZING|OFN_HIDEREADONLY|OFN_OVERWRITEPROMPT,
+				_T("All files|*.*||"), this, 0);
+			if(fd.DoModal() == IDOK)
+			{
+				if(FILE* f = _tfopen(fd.GetPathName(), _T("wb")))
+				{
+					fwrite(pTI->res.data.GetData(), 1, pTI->res.data.GetSize(), f);
+					fclose(f);
+				}
+			}
+		}
+		break;
+	case 3:
+		// TODO
 		break;
 	}
 }
@@ -268,9 +355,7 @@ void CConvertDlg::EditProperties(IDSMPropertyBag* pPB)
 		HRESULT hr;
 		CComVariant var;
 		if(SUCCEEDED(pPB->Read(1, &PropBag, NULL, &var, &hr)) && SUCCEEDED(hr))
-		{
 			dlg.m_props[CString(PropBag.pstrName)] = CString(var);
-		}
 
 		CoTaskMemFree(PropBag.pstrName);
 	}
@@ -308,6 +393,9 @@ BOOL CConvertDlg::OnInitDialog()
 {
 	__super::OnInitDialog();
 
+	SetIcon(AfxGetApp()->LoadIcon(IDR_MAINFRAME), TRUE);
+	SetIcon(AfxGetApp()->LoadIcon(IDR_MAINFRAME), FALSE);
+
 	AddAnchor(IDC_TREE1, TOP_LEFT, BOTTOM_RIGHT);
 	AddAnchor(IDC_EDIT1, BOTTOM_LEFT, BOTTOM_RIGHT);
 	AddAnchor(IDC_BUTTON1, BOTTOM_RIGHT);
@@ -320,7 +408,7 @@ BOOL CConvertDlg::OnInitDialog()
 	SetMinTrackSize(s);
 
 	m_streamtypesbm.LoadBitmap(IDB_STREAMTYPES);
-	m_streamtypes.Create(16, 16, ILC_MASK|ILC_COLOR32, 0, 4);
+	m_streamtypes.Create(16, 18, ILC_MASK|ILC_COLOR32, 0, 4);
 	m_streamtypes.Add(&m_streamtypesbm, 0xffffff);
 	m_tree.SetImageList(&m_streamtypes, TVSIL_NORMAL);
 
@@ -328,7 +416,7 @@ BOOL CConvertDlg::OnInitDialog()
 	m_nIDEventStatus = SetTimer(1, 1000, NULL);
 
 	HRESULT hr;
-	m_pMux = new CDSMMuxerFilter(NULL, &hr, false, true);
+	m_pMux = new CDSMMuxerFilter(NULL, &hr, true /* FIXME */, false);
 
 	if(FAILED(m_pCGB.CoCreateInstance(CLSID_CaptureGraphBuilder2))
 	|| FAILED(m_pGB.CoCreateInstance(CLSID_FilterGraph))
@@ -467,6 +555,10 @@ void CConvertDlg::OnNMRclickTree1(NMHDR* pNMHDR, LRESULT* pResult)
 		{
 			ShowFilePopup(hTI, sp);
 		}
+		else if(pTI->res.data.GetSize())
+		{
+			ShowResourcePopup(hTI, sp);
+		}
 	}
 	else
 	{
@@ -581,6 +673,20 @@ void CConvertDlg::OnBnClickedButton2()
 		pPB->SetProperty(L"APPL", L"Media Player Classic");
 	}
 
+	if(CComQIPtr<IDSMResourceBag> pRB = m_pMux)
+	{
+		pRB->ResRemoveAll(0);
+		POSITION pos = m_pTIs.GetHeadPosition();
+		while(pos)
+		{
+			CTreeItem* pTI = m_pTIs.GetNext(pos);
+			if(!pTI->res.data.GetSize()) continue;
+			pRB->ResAppend(pTI->res.name, pTI->res.desc, pTI->res.mime, pTI->res.data.GetData(), pTI->res.data.GetSize(), NULL);
+		}		
+	}
+
+	// TODO: chapters
+
 	if(m_pMC) 
 	{
 		if(SUCCEEDED(m_pMC->Run()))
@@ -666,28 +772,41 @@ BOOL CFilterTreeCtrl::OnToolTipText(UINT id, NMHDR* pNMHDR, LRESULT* pResult)
 
 	UINT nID = pNMHDR->idFrom;
 
-	CString strTipText;
-	// Do not process the message from built in tooltip 
-	if( nID == (UINT)m_hWnd &&
-		(( pNMHDR->code == TTN_NEEDTEXTA && pTTTA->uFlags & TTF_IDISHWND ) ||
-		( pNMHDR->code == TTN_NEEDTEXTW && pTTTW->uFlags & TTF_IDISHWND ) ) )
+	if(nID == (UINT)m_hWnd
+	&& (pNMHDR->code == TTN_NEEDTEXTA && (pTTTA->uFlags & TTF_IDISHWND)
+	|| pNMHDR->code == TTN_NEEDTEXTW && (pTTTW->uFlags & TTF_IDISHWND)))
 		return FALSE;
 
 	HTREEITEM hTI = (HTREEITEM)nID;
 
-	CTreeItem* pTI = (CTreeItem*)GetItemData(hTI);
+	CConvertDlg::CTreeItem* pTI = (CConvertDlg::CTreeItem*)GetItemData(hTI);
 	if(!pTI) return FALSE;
 
-	CComQIPtr<IPin> pPin = pTI->pUnk;
-	if(!pPin) return FALSE;
-
-	CMediaTypeEx mt;
-	pPin->ConnectionMediaType(&mt);
-
+	CString str;
 	static CStringA m_strTipTextA;
 	static CStringW m_strTipTextW;
-	
-	CString str = mt.ToString(pPin);
+
+	CComQIPtr<IPin> pPin = pTI->pUnk;
+	if(pPin)
+	{
+		CMediaTypeEx mt;
+		pPin->ConnectionMediaType(&mt);
+		str = mt.ToString(pPin);
+	}
+	else if(!pTI->fn.IsEmpty())
+	{
+		str = pTI->fn;
+	}
+	else if(pTI->res.data.GetSize())
+	{
+		str = _T("Mime: ") + CString(pTI->res.mime);
+		if(!pTI->res.desc.IsEmpty()) str += _T("\r\nDesc: ") + CString(pTI->res.desc);
+	}
+	else
+	{
+		return FALSE;
+	}
+
 	m_strTipTextA = str;
 	m_strTipTextW = str;
 

@@ -1636,9 +1636,6 @@
 				RelativePath=".\res\authhdrpic.bmp">
 			</File>
 			<File
-				RelativePath=".\res\bitmap2.bmp">
-			</File>
-			<File
 				RelativePath="res\icon.ico">
 			</File>
 			<File
@@ -1702,28 +1699,10 @@
 				RelativePath="res\stereo.bmp">
 			</File>
 			<File
-				RelativePath=".\res\streamtype.bmp">
-			</File>
-			<File
 				RelativePath=".\res\streamtypes.bmp">
 			</File>
 			<File
 				RelativePath="res\toolbar1.bmp">
-			</File>
-			<File
-				RelativePath=".\res\toolbar2.bmp">
-			</File>
-			<File
-				RelativePath=".\res\toolbar_tuner.bmp">
-			</File>
-			<File
-				RelativePath=".\res\toolbar_tuner_16.bmp">
-			</File>
-			<File
-				RelativePath=".\res\toolbar_tuner_d.bmp">
-			</File>
-			<File
-				RelativePath=".\res\toolbar_tuner_h.bmp">
 			</File>
 			<Filter
 				Name="web"

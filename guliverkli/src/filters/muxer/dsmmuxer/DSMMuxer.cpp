@@ -208,17 +208,23 @@ void CDSMMuxerFilter::MuxHeader(IBitStream* pBS)
 	{
 		for(CComPtr<IPin> pPin = m_pPins.GetNext(pos)->GetConnected(); pPin; pPin = GetUpStreamPin(GetFilterFromPin(pPin)))
 		{
-			CComQIPtr<IDSMResourceBag> pPB = GetFilterFromPin(pPin);
-			if(pPB && !pRBs.Find(pPB)) pRBs.AddTail(pPB);
+			if(m_fAutoRes)
+			{
+				CComQIPtr<IDSMResourceBag> pPB = GetFilterFromPin(pPin);
+				if(pPB && !pRBs.Find(pPB)) pRBs.AddTail(pPB);
+			}
 
-			if(!pAMES) pAMES = GetFilterFromPin(pPin);
+			if(m_fAutoChap)
+			{
+				if(!pAMES) pAMES = GetFilterFromPin(pPin);
+			}
 		}
 	}
 
 	// resources
 
 	pos = pRBs.GetHeadPosition();
-	while(m_fAutoRes && pos)
+	while(pos)
 	{
 		IDSMResourceBag* pRB = pRBs.GetNext(pos);
 
@@ -254,7 +260,7 @@ void CDSMMuxerFilter::MuxHeader(IBitStream* pBS)
 
 	// chapters
 
-	if(m_fAutoChap && pAMES)
+	if(pAMES)
 	{
 		long MarkerCount = 0;
 		if(SUCCEEDED(pAMES->get_MarkerCount(&MarkerCount)) && MarkerCount > 0)
