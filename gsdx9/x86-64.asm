@@ -514,7 +514,7 @@ SwizzleBlock32_amd64 proc public
 	mov			rsi, rdx
 	mov			rcx, 4
 
-	test		r9d, 0ffffffffh
+	cmp			r9d, 0ffffffffh
 	jnz			SwizzleBlock32_amd64@WM
 
 	align 16

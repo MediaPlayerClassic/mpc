@@ -1,7 +1,7 @@
 #include "stdafx.h"
 #include "GSTables.h"
 
-void unSwizzleBlock32_c(BYTE* src, BYTE* dst, int dstpitch)
+void __fastcall unSwizzleBlock32_c(BYTE* src, BYTE* dst, int dstpitch)
 {
 	WORD* s = &columnTable32[0][0];
 
@@ -10,7 +10,7 @@ void unSwizzleBlock32_c(BYTE* src, BYTE* dst, int dstpitch)
 			*(DWORD*)dst = ((DWORD*)src)[*s++];
 }
 
-void unSwizzleBlock16_c(BYTE* src, BYTE* dst, int dstpitch)
+void __fastcall unSwizzleBlock16_c(BYTE* src, BYTE* dst, int dstpitch)
 {
 	WORD* s = &columnTable16[0][0];
 
@@ -19,7 +19,7 @@ void unSwizzleBlock16_c(BYTE* src, BYTE* dst, int dstpitch)
 			*(WORD*)dst = ((WORD*)src)[*s++];
 }
 
-void unSwizzleBlock8_c(BYTE* src, BYTE* dst, int dstpitch)
+void __fastcall unSwizzleBlock8_c(BYTE* src, BYTE* dst, int dstpitch)
 {
 	WORD* s = &columnTable8[0][0];
 
@@ -28,7 +28,7 @@ void unSwizzleBlock8_c(BYTE* src, BYTE* dst, int dstpitch)
 			*dst++ = src[*s++];
 }
 
-void unSwizzleBlock4_c(BYTE* src, BYTE* dst, int dstpitch)
+void __fastcall unSwizzleBlock4_c(BYTE* src, BYTE* dst, int dstpitch)
 {
 	WORD* s = &columnTable4[0][0];
 
@@ -44,7 +44,7 @@ void unSwizzleBlock4_c(BYTE* src, BYTE* dst, int dstpitch)
 	}
 }
 
-void SwizzleBlock32_c(BYTE* dst, BYTE* src, int srcpitch, DWORD WriteMask)
+void __fastcall SwizzleBlock32_c(BYTE* dst, BYTE* src, int srcpitch, DWORD WriteMask)
 {
 	WORD* d = &columnTable32[0][0];
 
@@ -62,7 +62,7 @@ void SwizzleBlock32_c(BYTE* dst, BYTE* src, int srcpitch, DWORD WriteMask)
 	}
 }
 
-void SwizzleBlock16_c(BYTE* dst, BYTE* src, int srcpitch)
+void __fastcall SwizzleBlock16_c(BYTE* dst, BYTE* src, int srcpitch)
 {
 	WORD* d = &columnTable16[0][0];
 
@@ -71,7 +71,7 @@ void SwizzleBlock16_c(BYTE* dst, BYTE* src, int srcpitch)
 			((WORD*)dst)[*d++] = *(WORD*)src;
 }
 
-void SwizzleBlock8_c(BYTE* dst, BYTE* src, int srcpitch)
+void __fastcall SwizzleBlock8_c(BYTE* dst, BYTE* src, int srcpitch)
 {
 	WORD* d = &columnTable8[0][0];
 
@@ -80,7 +80,7 @@ void SwizzleBlock8_c(BYTE* dst, BYTE* src, int srcpitch)
 			dst[*d++] = *src;
 }
 
-void SwizzleBlock4_c(BYTE* dst, BYTE* src, int srcpitch)
+void __fastcall SwizzleBlock4_c(BYTE* dst, BYTE* src, int srcpitch)
 {
 	WORD* d = &columnTable4[0][0];
 

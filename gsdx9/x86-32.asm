@@ -9,21 +9,21 @@
 ; memsetd
 ;
 
-_memsetd proc public
+@memsetd@12 proc public
 
 	push	edi
-
-	mov		edi, [esp+4+4]
-	mov		eax, [esp+8+4]
-	mov		ecx, [esp+12+4]
+	
+	mov		edi, ecx
+	mov		eax, edx
+	mov		ecx, [esp+4+4]
 	cld
 	rep		stosd
 	
 	pop		edi
 
-	ret
+	ret		4
 	
-_memsetd endp
+@memsetd@12 endp
 
 ;
 ; ticks
@@ -40,27 +40,25 @@ _ticks endp
 ; SaturateColor
 ;
 			
-_SaturateColor_sse2 proc public
-
-	mov			eax, [esp+4]
+@SaturateColor_sse2@4 proc public
 
 	pxor		xmm0, xmm0
-	movaps		xmm1, [eax]
+	movaps		xmm1, [ecx]
 	packssdw	xmm1, xmm0
 	packuswb	xmm1, xmm0
 	punpcklbw	xmm1, xmm0
 	punpcklwd	xmm1, xmm0
-	movaps		[eax], xmm1
+	movaps		[ecx], xmm1
 
 	ret
 
-_SaturateColor_sse2 endp
+@SaturateColor_sse2@4 endp
 
-_SaturateColor_asm proc public
+@SaturateColor_asm@4 proc public
 
 	push	esi
 
-	mov		esi, [esp+4+4]
+	mov		esi, ecx
 
 	xor		eax, eax
 	mov		edx, 000000ffh
@@ -95,7 +93,9 @@ _SaturateColor_asm proc public
 	
 	pop		esi
 	
-_SaturateColor_asm endp
+	ret
+	
+@SaturateColor_asm@4 endp
 
 ;
 ; swizzling
@@ -159,108 +159,97 @@ punpcknb macro
 ; unSwizzleBlock32
 ;
 
-_unSwizzleBlock32_sse2 proc public
+@unSwizzleBlock32_sse2@12 proc public
 
-	push		esi
-	push		edi
+	push		ebx
 
-	mov			esi, [esp+4+8]
-	mov			edi, [esp+8+8]
-	mov			edx, [esp+12+8]
-	mov			ecx, 4
+	mov			ebx, [esp+4+4]
+	mov			eax, 4
 
 	align 16
 @@:
-	movaps		xmm0, [esi+16*0]
-	movaps		xmm1, [esi+16*1]
-	movaps		xmm2, [esi+16*2]
-	movaps		xmm3, [esi+16*3]
+	movaps		xmm0, [ecx+16*0]
+	movaps		xmm1, [ecx+16*1]
+	movaps		xmm2, [ecx+16*2]
+	movaps		xmm3, [ecx+16*3]
 
 	punpck		qdq, 0, 2, 1, 3, 4, 6
 
-	movaps		[edi], xmm0
-	movaps		[edi+16], xmm2
-	movaps		[edi+edx], xmm4
-	movaps		[edi+edx+16], xmm6
+	movaps		[edx], xmm0
+	movaps		[edx+16], xmm2
+	movaps		[edx+ebx], xmm4
+	movaps		[edx+ebx+16], xmm6
 
-	add			esi, 64
-	lea			edi, [edi+edx*2]
+	add			ecx, 64
+	lea			edx, [edx+ebx*2]
 
-	dec			ecx
+	dec			eax
 	jnz			@B
 
-	pop			edi
-	pop			esi
+	pop			ebx
 
-	ret
+	ret			4
 
-_unSwizzleBlock32_sse2 endp
+@unSwizzleBlock32_sse2@12 endp
 
 ;
 ; unSwizzleBlock16
 ;
 
-_unSwizzleBlock16_sse2 proc public
+@unSwizzleBlock16_sse2@12 proc public
 
-	push		esi
-	push		edi
+	push		ebx
 
-	mov			esi, [esp+4+8]
-	mov			edi, [esp+8+8]
-	mov			edx, [esp+12+8]
-	mov			ecx, 4
+	mov			ebx, [esp+4+4]
+	mov			eax, 4
 	
 	align 16
 @@:
-	movaps		xmm0, [esi+16*0]
-	movaps		xmm1, [esi+16*1]
-	movaps		xmm2, [esi+16*2]
-	movaps		xmm3, [esi+16*3]
+	movaps		xmm0, [ecx+16*0]
+	movaps		xmm1, [ecx+16*1]
+	movaps		xmm2, [ecx+16*2]
+	movaps		xmm3, [ecx+16*3]
 
 	punpck		wd, 0, 2, 1, 3, 4, 6
 	punpck		dq, 0, 4, 2, 6, 1, 3
 	punpck		wd, 0, 4, 1, 3, 2, 6
 
-	movaps		[edi], xmm0
-	movaps		[edi+16], xmm2
-	movaps		[edi+edx], xmm4
-	movaps		[edi+edx+16], xmm6
+	movaps		[edx], xmm0
+	movaps		[edx+16], xmm2
+	movaps		[edx+ebx], xmm4
+	movaps		[edx+ebx+16], xmm6
 
-	add			esi, 64
-	lea			edi, [edi+edx*2]
+	add			ecx, 64
+	lea			edx, [edx+ebx*2]
 
-	dec			ecx
+	dec			eax
 	jnz			@B
 	
-	pop			edi
-	pop			esi
+	pop			ebx
 	
-	ret
+	ret			4
 	
-_unSwizzleBlock16_sse2 endp
+@unSwizzleBlock16_sse2@12 endp
 
 ;
 ; unSwizzleBlock8
 ;
 
-_unSwizzleBlock8_sse2 proc public
+@unSwizzleBlock8_sse2@12 proc public
 
-	push		esi
-	push		edi
+	push		ebx
 
-	mov			esi, [esp+4+8]
-	mov			edi, [esp+8+8]
-	mov			edx, [esp+12+8]
-	mov			ecx, 2
+	mov			ebx, [esp+4+4]
+	mov			eax, 2
 
 	align 16
 @@:
 	; col 0, 2
 
-	movaps		xmm0, [esi+16*0]
-	movaps		xmm1, [esi+16*1]
-	movaps		xmm4, [esi+16*2]
-	movaps		xmm5, [esi+16*3]
+	movaps		xmm0, [ecx+16*0]
+	movaps		xmm1, [ecx+16*1]
+	movaps		xmm4, [ecx+16*2]
+	movaps		xmm5, [ecx+16*3]
 
 	punpck		bw,  0, 4, 1, 5, 2, 6
 	punpck		wd,  0, 2, 4, 6, 1, 3
@@ -270,20 +259,20 @@ _unSwizzleBlock8_sse2 proc public
 	pshufd		xmm1, xmm1, 0b1h
 	pshufd		xmm3, xmm3, 0b1h
 
-	movaps		[edi], xmm0
-	movaps		[edi+edx], xmm2
-	lea			edi, [edi+edx*2]
+	movaps		[edx], xmm0
+	movaps		[edx+ebx], xmm2
+	lea			edx, [edx+ebx*2]
 
-	movaps		[edi], xmm1
-	movaps		[edi+edx], xmm3
-	lea			edi, [edi+edx*2]
+	movaps		[edx], xmm1
+	movaps		[edx+ebx], xmm3
+	lea			edx, [edx+ebx*2]
 
 	; col 1, 3
 
-	movaps		xmm0, [esi+16*4]
-	movaps		xmm1, [esi+16*5]
-	movaps		xmm4, [esi+16*6]
-	movaps		xmm5, [esi+16*7]
+	movaps		xmm0, [ecx+16*4]
+	movaps		xmm1, [ecx+16*5]
+	movaps		xmm4, [ecx+16*6]
+	movaps		xmm5, [ecx+16*7]
 
 	punpck		bw,  0, 4, 1, 5, 2, 6
 	punpck		wd,  0, 2, 4, 6, 1, 3
@@ -293,52 +282,48 @@ _unSwizzleBlock8_sse2 proc public
 	pshufd		xmm0, xmm0, 0b1h
 	pshufd		xmm2, xmm2, 0b1h
 
-	movaps		[edi], xmm0
-	movaps		[edi+edx], xmm2
-	lea			edi, [edi+edx*2]
+	movaps		[edx], xmm0
+	movaps		[edx+ebx], xmm2
+	lea			edx, [edx+ebx*2]
 
-	movaps		[edi], xmm1
-	movaps		[edi+edx], xmm3
-	lea			edi, [edi+edx*2]
+	movaps		[edx], xmm1
+	movaps		[edx+ebx], xmm3
+	lea			edx, [edx+ebx*2]
 
-	add			esi, 128
+	add			ecx, 128
 
-	dec			ecx
+	dec			eax
 	jnz			@B
 
-	pop			edi
-	pop			esi
+	pop			ebx
 	
-	ret
+	ret			4
 
-_unSwizzleBlock8_sse2 endp
+@unSwizzleBlock8_sse2@12 endp
 
 ;
 ; unSwizzleBlock4
 ;
 
-_unSwizzleBlock4_sse2 proc public
+@unSwizzleBlock4_sse2@12 proc public
 
-	push		esi
-	push		edi
-
-	mov			esi, [esp+4+8]
-	mov			edi, [esp+8+8]
-	mov			edx, [esp+12+8]
-	mov			ecx, 2
+	push		ebx
 
 	mov         eax, 0f0f0f0fh
 	movd        xmm7, eax 
 	pshufd      xmm7, xmm7, 0
 
+	mov			ebx, [esp+4+4]
+	mov			eax, 2
+
 	align 16
 @@:
 	; col 0, 2
 
-	movaps		xmm0, [esi+16*0]
-	movaps		xmm1, [esi+16*1]
-	movaps		xmm4, [esi+16*2]
-	movaps		xmm3, [esi+16*3]
+	movaps		xmm0, [ecx+16*0]
+	movaps		xmm1, [ecx+16*1]
+	movaps		xmm4, [ecx+16*2]
+	movaps		xmm3, [ecx+16*3]
 
 	punpck		dq, 0, 4, 1, 3, 2, 6
 	punpck		dq, 0, 2, 4, 6, 1, 3
@@ -358,20 +343,20 @@ _unSwizzleBlock4_sse2 proc public
 	pshufhw		xmm1, xmm1, 0b1h
 	pshufhw		xmm3, xmm3, 0b1h
 
-	movaps		[edi], xmm0
-	movaps		[edi+edx], xmm2
-	lea			edi, [edi+edx*2]
+	movaps		[edx], xmm0
+	movaps		[edx+ebx], xmm2
+	lea			edx, [edx+ebx*2]
 
-	movaps		[edi], xmm1
-	movaps		[edi+edx], xmm3
-	lea			edi, [edi+edx*2]
+	movaps		[edx], xmm1
+	movaps		[edx+ebx], xmm3
+	lea			edx, [edx+ebx*2]
 
 	; col 1, 3
 
-	movaps		xmm0, [esi+16*4]
-	movaps		xmm1, [esi+16*5]
-	movaps		xmm4, [esi+16*6]
-	movaps		xmm3, [esi+16*7]
+	movaps		xmm0, [ecx+16*4]
+	movaps		xmm1, [ecx+16*5]
+	movaps		xmm4, [ecx+16*6]
+	movaps		xmm3, [ecx+16*7]
 
 	punpck		dq, 0, 4, 1, 3, 2, 6
 	punpck		dq, 0, 2, 4, 6, 1, 3
@@ -391,25 +376,24 @@ _unSwizzleBlock4_sse2 proc public
 	pshufhw		xmm0, xmm0, 0b1h
 	pshufhw		xmm2, xmm2, 0b1h
 
-	movaps		[edi], xmm0
-	movaps		[edi+edx], xmm2
-	lea			edi, [edi+edx*2]
+	movaps		[edx], xmm0
+	movaps		[edx+ebx], xmm2
+	lea			edx, [edx+ebx*2]
 
-	movaps		[edi], xmm1
-	movaps		[edi+edx], xmm3
-	lea			edi, [edi+edx*2]
+	movaps		[edx], xmm1
+	movaps		[edx+ebx], xmm3
+	lea			edx, [edx+ebx*2]
 
-	add			esi, 128
+	add			ecx, 128
 
-	dec			ecx
+	dec			eax
 	jnz			@B
 
-	pop			edi
-	pop			esi
+	pop			ebx
 	
-	ret
+	ret			4
 
-_unSwizzleBlock4_sse2 endp
+@unSwizzleBlock4_sse2@12 endp
 
 ;
 ; swizzling
@@ -419,18 +403,18 @@ _unSwizzleBlock4_sse2 endp
 ; SwizzleBlock32_sse2
 ;
 
-_SwizzleBlock32_sse2 proc public
+@SwizzleBlock32_sse2@16 proc public
 
 	push		esi
 	push		edi
 
-	mov			edi, [esp+4+8]
-	mov			esi, [esp+8+8]
-	mov			edx, [esp+12+8]
+	mov			edi, ecx
+	mov			esi, edx
+	mov			edx, [esp+4+8]
 	mov			ecx, 4
 
-	mov			eax, [esp+16+8]
-	test		eax, 0ffffffffh
+	mov			eax, [esp+8+8]
+	cmp			eax, 0ffffffffh
 	jnz			SwizzleBlock32_sse2@WM
 
 	align 16
@@ -456,7 +440,7 @@ _SwizzleBlock32_sse2 proc public
 	pop			edi
 	pop			esi
 
-	ret
+	ret			8
 
 SwizzleBlock32_sse2@WM:
 
@@ -507,147 +491,136 @@ SwizzleBlock32_sse2@WM:
 	pop			edi
 	pop			esi
 
-	ret
+	ret			8
 	
-_SwizzleBlock32_sse2 endp
+@SwizzleBlock32_sse2@16 endp
 
 ;
 ; SwizzleBlock16
 ;
 
-_SwizzleBlock16_sse2 proc public
+@SwizzleBlock16_sse2@12 proc public
 
-	push		esi
-	push		edi
+	push		ebx
 
-	mov			edi, [esp+4+8]
-	mov			esi, [esp+8+8]
-	mov			edx, [esp+12+8]
-	mov			ecx, 4
+	mov			ebx, [esp+4+4]
+	mov			eax, 4
 
 	align 16
 @@:
-	movaps		xmm0, [esi]
-	movaps		xmm1, [esi+16]
-	movaps		xmm2, [esi+edx]
-	movaps		xmm3, [esi+edx+16]
+	movaps		xmm0, [edx]
+	movaps		xmm1, [edx+16]
+	movaps		xmm2, [edx+ebx]
+	movaps		xmm3, [edx+ebx+16]
 
 	punpck		wd, 0, 2, 1, 3, 4, 6
 	punpck		qdq, 0, 4, 2, 6, 1, 5
 
-	movaps		[edi+16*0], xmm0
-	movaps		[edi+16*1], xmm1
-	movaps		[edi+16*2], xmm4
-	movaps		[edi+16*3], xmm5
+	movaps		[ecx+16*0], xmm0
+	movaps		[ecx+16*1], xmm1
+	movaps		[ecx+16*2], xmm4
+	movaps		[ecx+16*3], xmm5
 
-	lea			esi, [esi+edx*2]
-	add			edi, 64
+	lea			edx, [edx+ebx*2]
+	add			ecx, 64
 
-	dec			ecx
+	dec			eax
 	jnz			@B
 
-	pop			edi
-	pop			esi
+	pop			ebx
 
-	ret
+	ret			4
 
-_SwizzleBlock16_sse2 endp
+@SwizzleBlock16_sse2@12 endp
 
 ;
 ; SwizzleBlock8
 ;
 
-_SwizzleBlock8_sse2 proc public
+@SwizzleBlock8_sse2@12 proc public
 
-	push		esi
-	push		edi
+	push		ebx
 
-	mov			edi, [esp+4+8]
-	mov			esi, [esp+8+8]
-	mov			edx, [esp+12+8]
-	mov			ecx, 2
+	mov			ebx, [esp+4+4]
+	mov			eax, 2
 
 	align 16
 @@:
 	; col 0, 2
 
-	movaps		xmm0, [esi]
-	movaps		xmm2, [esi+edx]
-	lea			esi, [esi+edx*2]
+	movaps		xmm0, [edx]
+	movaps		xmm2, [edx+ebx]
+	lea			edx, [edx+ebx*2]
 
-	pshufd		xmm1, [esi], 0b1h
-	pshufd		xmm3, [esi+edx], 0b1h
-	lea			esi, [esi+edx*2]
+	pshufd		xmm1, [edx], 0b1h
+	pshufd		xmm3, [edx+ebx], 0b1h
+	lea			edx, [edx+ebx*2]
 
 	punpck		bw, 0, 2, 1, 3, 4, 6
 	punpck		wd, 0, 2, 4, 6, 1, 3
 	punpck		qdq, 0, 1, 2, 3, 4, 5
 
-	movaps		[edi+16*0], xmm0
-	movaps		[edi+16*1], xmm4
-	movaps		[edi+16*2], xmm1
-	movaps		[edi+16*3], xmm5
+	movaps		[ecx+16*0], xmm0
+	movaps		[ecx+16*1], xmm4
+	movaps		[ecx+16*2], xmm1
+	movaps		[ecx+16*3], xmm5
 
 	; col 1, 3
 
-	pshufd		xmm0, [esi], 0b1h
-	pshufd		xmm2, [esi+edx], 0b1h
-	lea			esi, [esi+edx*2]
+	pshufd		xmm0, [edx], 0b1h
+	pshufd		xmm2, [edx+ebx], 0b1h
+	lea			edx, [edx+ebx*2]
 
-	movaps		xmm1, [esi]
-	movaps		xmm3, [esi+edx]
-	lea			esi, [esi+edx*2]
+	movaps		xmm1, [edx]
+	movaps		xmm3, [edx+ebx]
+	lea			edx, [edx+ebx*2]
 
 	punpck		bw, 0, 2, 1, 3, 4, 6
 	punpck		wd, 0, 2, 4, 6, 1, 3
 	punpck		qdq, 0, 1, 2, 3, 4, 5
 
-	movaps		[edi+16*4], xmm0
-	movaps		[edi+16*5], xmm4
-	movaps		[edi+16*6], xmm1
-	movaps		[edi+16*7], xmm5
+	movaps		[ecx+16*4], xmm0
+	movaps		[ecx+16*5], xmm4
+	movaps		[ecx+16*6], xmm1
+	movaps		[ecx+16*7], xmm5
 
-	add			edi, 128
+	add			ecx, 128
 
-	dec			ecx
+	dec			eax
 	jnz			@B
 
-	pop			edi
-	pop			esi
+	pop			ebx
 
-	ret
+	ret			4
 	
-_SwizzleBlock8_sse2 endp
+@SwizzleBlock8_sse2@12 endp
 
 ;
 ; SwizzleBlock4
 ;
 
-_SwizzleBlock4_sse2 proc public
+@SwizzleBlock4_sse2@12 proc public
 
-	push		esi
-	push		edi
+	push		ebx
 	
-	mov			edi, [esp+4+8]
-	mov			esi, [esp+8+8]
-	mov			edx, [esp+12+8]
-	mov			ecx, 2
-
 	mov         eax, 0f0f0f0fh
 	movd        xmm7, eax 
 	pshufd      xmm7, xmm7, 0
+
+	mov			ebx, [esp+4+4]
+	mov			eax, 2
 
 	align 16
 @@:
 	; col 0, 2
 
-	movaps		xmm0, [esi]
-	movaps		xmm2, [esi+edx]
-	lea			esi, [esi+edx*2]
+	movaps		xmm0, [edx]
+	movaps		xmm2, [edx+ebx]
+	lea			edx, [edx+ebx*2]
 
-	movaps		xmm1, [esi]
-	movaps		xmm3, [esi+edx]
-	lea			esi, [esi+edx*2]
+	movaps		xmm1, [edx]
+	movaps		xmm3, [edx+ebx]
+	lea			edx, [edx+ebx*2]
 
 	pshuflw		xmm1, xmm1, 0b1h
 	pshuflw		xmm3, xmm3, 0b1h
@@ -659,20 +632,20 @@ _SwizzleBlock4_sse2 proc public
 	punpck		bw, 0, 2, 1, 3, 4, 6
 	punpck		qdq, 0, 4, 2, 6, 1, 3
 
-	movaps		[edi+16*0], xmm0
-	movaps		[edi+16*1], xmm1
-	movaps		[edi+16*2], xmm4
-	movaps		[edi+16*3], xmm3
+	movaps		[ecx+16*0], xmm0
+	movaps		[ecx+16*1], xmm1
+	movaps		[ecx+16*2], xmm4
+	movaps		[ecx+16*3], xmm3
 
 	; col 1, 3
 
-	movaps		xmm0, [esi]
-	movaps		xmm2, [esi+edx]
-	lea			esi, [esi+edx*2]
+	movaps		xmm0, [edx]
+	movaps		xmm2, [edx+ebx]
+	lea			edx, [edx+ebx*2]
 
-	movaps		xmm1, [esi]
-	movaps		xmm3, [esi+edx]
-	lea			esi, [esi+edx*2]
+	movaps		xmm1, [edx]
+	movaps		xmm3, [edx+ebx]
+	lea			edx, [edx+ebx*2]
 
 	pshuflw		xmm0, xmm0, 0b1h
 	pshuflw		xmm2, xmm2, 0b1h
@@ -684,21 +657,20 @@ _SwizzleBlock4_sse2 proc public
 	punpck		bw, 0, 2, 1, 3, 4, 6
 	punpck		qdq, 0, 4, 2, 6, 1, 3
 
-	movaps		[edi+16*4], xmm0
-	movaps		[edi+16*5], xmm1
-	movaps		[edi+16*6], xmm4
-	movaps		[edi+16*7], xmm3
+	movaps		[ecx+16*4], xmm0
+	movaps		[ecx+16*5], xmm1
+	movaps		[ecx+16*6], xmm4
+	movaps		[ecx+16*7], xmm3
 
-	add			edi, 128
+	add			ecx, 128
 
-	dec			ecx
+	dec			eax
 	jnz			@B
 
-	pop			edi
-	pop			esi
+	pop			ebx
 
-	ret
+	ret			4
 
-_SwizzleBlock4_sse2 endp
+@SwizzleBlock4_sse2@12 endp
 
 	end
