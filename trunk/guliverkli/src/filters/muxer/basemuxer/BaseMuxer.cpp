@@ -88,18 +88,18 @@ HRESULT CBaseMuxerFilter::CreateInput(CStringW name, CBaseMuxerInputPin** ppPin)
 void CBaseMuxerFilter::Receive(IMediaSample* pIn, CBaseMuxerInputPin* pPin)
 {
 	int nPackets = 0;
-
+/*
 	{
 		CAutoLock cAutoLock(&m_csQueue);
 		nPackets = m_pActivePins[pPin];
 	}
 
-	// i -= nPackets looks silly at first, but looping once seems to be enough
+	// i -= nPackets looks silly at first, but looping once seems to be enough (update: more than enough, lots of time is wasted, FIXME!)
 	for(int i = nPackets; IsActive() && (PeekQueue() || i > 0) && !pPin->IsFlushing(); i -= nPackets) 
 	{
 		Sleep(1);
 	}
-
+*/
 	CAutoPtr<Packet> pPacket(new Packet());
 
 	pPacket->pPin = pPin;
