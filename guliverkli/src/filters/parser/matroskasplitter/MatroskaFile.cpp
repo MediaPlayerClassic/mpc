@@ -51,6 +51,13 @@ CMatroskaFile::CMatroskaFile(IAsyncReader* pAsyncReader, HRESULT& hr)
 	m_pos = 0;
 	m_length = (QWORD)total;
 
+	DWORD dw;
+	if(FAILED(Read(dw)) || dw != 0x1A45DFA3)
+	{
+		hr = E_FAIL;
+		return;
+	}
+
 	CMatroskaNode Root(this);
 	if(FAILED(hr = Parse(&Root)))
 		return;
@@ -69,8 +76,7 @@ QWORD CMatroskaFile::GetLength()
 HRESULT CMatroskaFile::SeekTo(QWORD pos)
 {
 	CheckPointer(m_pAsyncReader, E_NOINTERFACE);
-	if(m_pos > pos)
-		TRACE(_T("SeekTo: %I64d\n"), pos);
+//	if(m_pos > pos) TRACE(_T("SeekTo: %I64d\n"), pos);
 	m_pos = pos;
 	return S_OK;
 }
@@ -527,7 +533,7 @@ HRESULT CLength::Parse(CMatroskaNode* pMN)
 	if(m_val == UnknownSize)
 	{
 		m_val = pMN->GetLength() - pMN->GetPos();
-		TRACE(_T("Unspecified chunk size at %I64d\n"), pMN->GetPos());
+		TRACE(_T("CLength: Unspecified chunk size at %I64d\n"), pMN->GetPos());
 	}
 
 	return S_OK;

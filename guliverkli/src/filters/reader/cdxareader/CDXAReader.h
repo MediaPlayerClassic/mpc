@@ -7,11 +7,25 @@
 class CCDXAStream : public CAsyncStream
 {
 private:
+	enum 
+	{
+		RIFFCDXA_HEADER_SIZE = 44, // usually...
+		RAW_SYNC_SIZE = 12, // 00 FF .. FF 00
+		RAW_HEADER_SIZE = 4,
+		RAW_SUBHEADER_SIZE = 8,
+		RAW_DATA_SIZE = 2324,
+		RAW_EDC_SIZE = 4,
+		RAW_SECTOR_SIZE = 2352
+	};
+
     CCritSec m_csLock;
 
 	HANDLE m_hFile;
 	LONGLONG m_llPosition, m_llLength;
 	int m_nFirstSector;
+
+	int m_nBufferedSector;
+	BYTE m_sector[RAW_SECTOR_SIZE];
 
 	bool LookForMediaSubType();
 

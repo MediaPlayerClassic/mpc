@@ -11,3 +11,4 @@
 #include ".\transform\DeCSSFilter\DeCSSFilter.h"
 #include ".\muxer\wavdest\wavdest.h"
 #include ".\parser\StreamDriveThru\StreamDriveThru.h"
+#include ".\parser\MatroskaSplitter\MatroskaSplitter.h"

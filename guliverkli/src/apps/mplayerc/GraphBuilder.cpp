@@ -6,6 +6,7 @@
 #include "..\..\filters\filters.h"
 #include "..\..\..\include\moreuuids.h"
 #include "..\..\..\include\Ogg\OggDS.h"
+#include "..\..\..\include\matroska\matroska.h"
 #include "DX7AllocatorPresenter.h"
 #include "DX9AllocatorPresenter.h"
 
@@ -83,6 +84,8 @@ CGraphBuilder::CGraphBuilder(IGraphBuilder* pGB, HWND hWnd)
 		m_ARMerit += 0x100;
 	}
 
+	// transform filters
+
 	CList<GUID> guids;
 
 	guids.AddTail(MEDIATYPE_Audio);
@@ -91,6 +94,13 @@ CGraphBuilder::CGraphBuilder(IGraphBuilder* pGB, HWND hWnd)
 	guids.AddTail(MEDIASUBTYPE_WAVE_DTS);
 	AddFilter(new CGraphCustomFilter(__uuidof(CAVI2AC3Filter), guids, L"AVI<->AC3/DTS", LMERIT(0x00680000)+1));
 	guids.RemoveAll();
+
+	guids.AddTail(MEDIATYPE_Stream);
+	guids.AddTail(MEDIASUBTYPE_Matroska);
+	AddFilter(new CGraphCustomFilter(__uuidof(CMatroskaSplitterFilter), guids, L"Matroska Splitter", LMERIT_PREFERRED));
+	guids.RemoveAll();
+
+	// renderer filters
 
 	AppSettings& s = AfxGetAppSettings();
 
@@ -363,6 +373,14 @@ HRESULT CGraphBuilder::Render(LPCTSTR lpsz)
 	{
 		hr = S_OK;
 		CComPtr<IFileSourceFilter> pReader = new CDTSAC3Source(NULL, &hr);
+		if(SUCCEEDED(hr) && SUCCEEDED(pReader->Load(fnw, NULL)))
+			pBF = pReader;
+	}
+
+	if(!pBF) //&& (ext == _T(".mkv") || ext == _T(".mka") || ext == _T(".mks")))
+	{
+		hr = S_OK;
+		CComPtr<IFileSourceFilter> pReader = new CMatroskaSourceFilter(NULL, &hr);
 		if(SUCCEEDED(hr) && SUCCEEDED(pReader->Load(fnw, NULL)))
 			pBF = pReader;
 	}
@@ -1291,6 +1309,7 @@ HRESULT CGraphCustomFilter::Create(IBaseFilter** ppBF, IUnknown** ppUnk)
 		m_clsid == __uuidof(CAVI2AC3Filter) ? (IBaseFilter*)new CAVI2AC3Filter(NULL, &hr) : 
 		m_clsid == __uuidof(CDeCSSFilter) ? (IBaseFilter*)new CDeCSSFilter(NULL, &hr) : 
 		m_clsid == __uuidof(CAudioSwitcherFilter) ? (IBaseFilter*)new CAudioSwitcherFilter(NULL, &hr) : 
+		m_clsid == __uuidof(CMatroskaSplitterFilter) ? (IBaseFilter*)new CMatroskaSplitterFilter(NULL, &hr) : 	
 		NULL;
 
 	if(!*ppBF) hr = E_FAIL;
