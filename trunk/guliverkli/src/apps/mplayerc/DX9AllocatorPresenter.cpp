@@ -428,6 +428,33 @@ STDMETHODIMP CDX9AllocatorPresenter::CreateRenderer(IUnknown** ppRenderer)
 	return E_NOTIMPL;
 }
 
+static bool ClipToSurface(IDirect3DSurface9* pSurface, CRect& s, CRect& d)   
+{   
+	D3DSURFACE_DESC d3dsd;   
+	ZeroMemory(&d3dsd, sizeof(d3dsd));   
+	if(FAILED(pSurface->GetDesc(&d3dsd)))   
+		return(false);   
+
+	int w = d3dsd.Width, h = d3dsd.Height;   
+	int sw = s.Width(), sh = s.Height();   
+	int dw = d.Width(), dh = d.Height();   
+
+	if(d.left >= w || d.right < 0 || d.top >= h || d.bottom < 0   
+	|| sw <= 0 || sh <= 0 || dw <= 0 || dh <= 0)   
+	{   
+		s.SetRectEmpty();   
+		d.SetRectEmpty();   
+		return(true);   
+	}   
+
+	if(d.right > w) {s.right -= (d.right-w)*sw/dw; d.right = w;}   
+	if(d.bottom > h) {s.bottom -= (d.bottom-h)*sh/dh; d.bottom = h;}   
+	if(d.left < 0) {s.left += (0-d.left)*sw/dw; d.left = 0;}   
+	if(d.top < 0) {s.top += (0-d.top)*sh/dh; d.top = 0;}   
+
+	return(true);   
+} 
+
 STDMETHODIMP_(bool) CDX9AllocatorPresenter::Paint(bool fAll)
 {
 	CAutoLock cAutoLock(this);
@@ -463,7 +490,13 @@ STDMETHODIMP_(bool) CDX9AllocatorPresenter::Paint(bool fAll)
 			{
 				CComPtr<IDirect3DSurface9> pBackBuffer;
 				if(SUCCEEDED(hr = m_pD3DDev->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &pBackBuffer)))
+				{
+					ClipToSurface(pBackBuffer, rSrcVid, rDstVid); // grrr
+					// IMPORTANT: rSrcVid has to be aligned on mod2 for yuy2->rgb conversion with StretchRect!!!
+					rSrcVid.left &= ~1; rSrcVid.right &= ~1;
+					rSrcVid.top &= ~1; rSrcVid.bottom &= ~1;
 					hr = m_pD3DDev->StretchRect(m_pVideoSurface, rSrcVid, pBackBuffer, rDstVid, m_Filter);
+				}
 			}
 		}
 
@@ -827,6 +860,10 @@ STDMETHODIMP CVMR9AllocatorPresenter::InitializeDevice(DWORD_PTR dwUserID, VMR9A
 		return E_POINTER;
 
 	if(!m_pIVMRSurfAllocNotify)
+		return E_FAIL;
+
+	// StretchRect's yv12 -> rgb conversion looks horribly bright compared to the result of yuy2 -> rgb
+	if(lpAllocInfo->Format == '21VY' || lpAllocInfo->Format == '024Y')
 		return E_FAIL;
 
 	DeleteSurfaces();

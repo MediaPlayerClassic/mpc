@@ -401,13 +401,15 @@ void CPPageFormats::SetListItemState(int nItem)
 
 	CString str = AfxGetAppSettings().Formats[(int)m_list.GetItemData(nItem)].GetExtsWithPeriod();
 
-	int i = 0, j = 0, k = 0;
-	for(CString ext = str.Tokenize(_T(" "), i); !ext.IsEmpty(); ext = str.Tokenize(_T(" "), i), j++)
-	{
-		if(IsRegistered(ext)) k++;
-	}
+	CList<CString> exts;
+	ExplodeMin(str, exts, ' ');
 
-	SetChecked(nItem, k == 0 ? 0 : k == j ? 1 : 2);
+	int cnt = 0;
+
+	POSITION pos = exts.GetHeadPosition();
+	while(pos) if(IsRegistered(exts.GetNext(pos))) cnt++;
+
+	SetChecked(nItem, cnt == 0 ? 0 : cnt == exts.GetCount() ? 1 : 2);
 }
 
 BEGIN_MESSAGE_MAP(CPPageFormats, CPPageBase)
@@ -516,13 +518,11 @@ BOOL CPPageFormats::OnApply()
 		int iChecked = GetChecked(i);
 		if(iChecked == 2) continue;
 
-		CString str = mf[(int)m_list.GetItemData(i)].GetExtsWithPeriod();
+		CList<CString> exts;
+		Explode(mf[(int)m_list.GetItemData(i)].GetExtsWithPeriod(), exts, ' ');
 
-		int k = 0;
-		for(CString ext = str.Tokenize(_T(" "), k); !ext.IsEmpty(); ext = str.Tokenize(_T(" "), k))
-		{
-			RegisterExt(ext, !!iChecked);
-		}
+		POSITION pos = exts.GetHeadPosition();
+		while(pos) RegisterExt(exts.GetNext(pos), !!iChecked);
 	}
 
 	{

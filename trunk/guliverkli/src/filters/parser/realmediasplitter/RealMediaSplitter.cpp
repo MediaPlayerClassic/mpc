@@ -878,28 +878,17 @@ CRealMediaSourceFilter::CRealMediaSourceFilter(LPUNKNOWN pUnk, HRESULT* phr)
 // CRMFile
 //
 
-CRMFile::CRMFile(IAsyncReader* pReader, HRESULT& hr) 
-	: m_pReader(pReader)
-	, m_pos(0), m_len(0)
+CRMFile::CRMFile(IAsyncReader* pAsyncReader, HRESULT& hr)
+	: CBaseSplitterFile(pAsyncReader, hr)
 {
-	LONGLONG total = 0, available;
-	pReader->Length(&total, &available);
-	m_len = total;
-
+	if(FAILED(hr)) return;
 	hr = Init();
-}
-
-HRESULT CRMFile::Read(BYTE* pData, LONG len)
-{
-	HRESULT hr = m_pReader->SyncRead(m_pos, len, pData);
-	m_pos += len;
-	return hr;
 }
 
 template<typename T> 
 HRESULT CRMFile::Read(T& var)
 {
-	HRESULT hr = Read((BYTE*)&var, sizeof(var));
+	HRESULT hr = __super::Read((BYTE*)&var, sizeof(var));
 	bswap(var);
 	return hr;
 }
@@ -945,7 +934,7 @@ HRESULT CRMFile::Read(MediaPacketHeader& mph, bool fFull)
 	if(fFull)
 	{
 		mph.pData.SetSize(len);
-		if(mph.len > 0 && S_OK != (hr = Read(mph.pData.GetData(), len)))
+		if(mph.len > 0 && S_OK != (hr = __super::Read(mph.pData.GetData(), len)))
 			return hr;
 	}
 	else
@@ -959,8 +948,6 @@ HRESULT CRMFile::Read(MediaPacketHeader& mph, bool fFull)
 
 HRESULT CRMFile::Init()
 {
-	if(!m_pReader) return E_UNEXPECTED;
-
 	Seek(0);
 
 	bool fFirstChunk = true;
@@ -970,7 +957,7 @@ HRESULT CRMFile::Init()
 	ChunkHdr hdr;
 	while(m_pos < m_len && S_OK == (hr = Read(hdr)))
 	{
-		UINT64 pos = m_pos - sizeof(hdr);
+		__int64 pos = m_pos - sizeof(hdr);
 
 		if(fFirstChunk && hdr.object_id != '.RMF')
 			return E_FAIL;
@@ -995,13 +982,13 @@ HRESULT CRMFile::Init()
 			case 'CONT':
 				UINT16 slen;
 				if(S_OK != (hr = Read(slen))) return hr;
-				if(slen > 0 && S_OK != (hr = Read((BYTE*)m_cd.title.GetBufferSetLength(slen), slen))) return hr;
+				if(slen > 0 && S_OK != (hr = __super::Read((BYTE*)m_cd.title.GetBufferSetLength(slen), slen))) return hr;
 				if(S_OK != (hr = Read(slen))) return hr;
-				if(slen > 0 && S_OK != (hr = Read((BYTE*)m_cd.author.GetBufferSetLength(slen), slen))) return hr;
+				if(slen > 0 && S_OK != (hr = __super::Read((BYTE*)m_cd.author.GetBufferSetLength(slen), slen))) return hr;
 				if(S_OK != (hr = Read(slen))) return hr;
-				if(slen > 0 && S_OK != (hr = Read((BYTE*)m_cd.copyright.GetBufferSetLength(slen), slen))) return hr;
+				if(slen > 0 && S_OK != (hr = __super::Read((BYTE*)m_cd.copyright.GetBufferSetLength(slen), slen))) return hr;
 				if(S_OK != (hr = Read(slen))) return hr;
-				if(slen > 0 && S_OK != (hr = Read((BYTE*)m_cd.comment.GetBufferSetLength(slen), slen))) return hr;
+				if(slen > 0 && S_OK != (hr = __super::Read((BYTE*)m_cd.comment.GetBufferSetLength(slen), slen))) return hr;
 				break;
 			case 'PROP':
 				if(S_OK != (hr = Read(m_p.maxBitRate))) return hr;
@@ -1031,13 +1018,13 @@ HRESULT CRMFile::Init()
 				if(S_OK != (hr = Read(mp->tDuration))) return hr;
 				UINT8 slen;
 				if(S_OK != (hr = Read(slen))) return hr;
-				if(slen > 0 && S_OK != (hr = Read((BYTE*)mp->name.GetBufferSetLength(slen), slen))) return hr;
+				if(slen > 0 && S_OK != (hr = __super::Read((BYTE*)mp->name.GetBufferSetLength(slen), slen))) return hr;
 				if(S_OK != (hr = Read(slen))) return hr;
-				if(slen > 0 && S_OK != (hr = Read((BYTE*)mp->mime.GetBufferSetLength(slen), slen))) return hr;
+				if(slen > 0 && S_OK != (hr = __super::Read((BYTE*)mp->mime.GetBufferSetLength(slen), slen))) return hr;
 				UINT32 tsdlen;
 				if(S_OK != (hr = Read(tsdlen))) return hr;
 				mp->typeSpecData.SetSize(tsdlen);
-				if(tsdlen > 0 && S_OK != (hr = Read(mp->typeSpecData.GetData(), tsdlen))) return hr;
+				if(tsdlen > 0 && S_OK != (hr = __super::Read(mp->typeSpecData.GetData(), tsdlen))) return hr;
 				mp->width = mp->height = 0;
 				m_mps.AddTail(mp);
 				break;

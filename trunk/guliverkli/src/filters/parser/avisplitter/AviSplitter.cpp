@@ -26,24 +26,18 @@
 
 /////////
 
-#include <Aviriff.h> // conflicts with vfw.h..., so we have to define CAviFile here and not in the .h file
+#include <Aviriff.h> // conflicts with vfw.h..., so we have to declare CAviFile here and not in the .h file
 
-class CAviFile
+class CAviFile : public CBaseSplitterFile
 {
-	CComPtr<IAsyncReader> m_pReader;
-	UINT64 m_pos, m_len;
-
 	HRESULT Init();
-	HRESULT Parse(DWORD parentid, UINT64 end);
+	HRESULT Parse(DWORD parentid, __int64 end);
 
 public:
-	CAviFile(IAsyncReader* pReader, HRESULT& hr);
+	CAviFile(IAsyncReader* pAsyncReader, HRESULT& hr);
 
-	UINT64 GetPos() {return m_pos;}
-	UINT64 GetLength() {return m_len;}
-	void Seek(UINT64 pos) {m_pos = pos;}
-	HRESULT Read(void* pData, LONG len);
 	template<typename T> HRESULT Read(T& var, int offset = 0);
+	HRESULT Read(BYTE* pData, __int64 len) {return __super::Read(pData, len);}
 
 	AVIMAINHEADER m_avih;
 	struct ODMLExtendedAVIHeader {DWORD dwTotalFrames;} m_dmlh;
@@ -279,6 +273,8 @@ HRESULT CAviSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 
             WAVEFORMATEX* pwfe = (WAVEFORMATEX*)s->strf.GetData();
 
+			if(pwfe->nBlockAlign == 0) continue;
+
 			mt.majortype = MEDIATYPE_Audio;
 			mt.subtype = FOURCCMap(pwfe->wFormatTag);
 			mt.formattype = FORMAT_WaveFormatEx;
@@ -370,7 +366,7 @@ bool CAviSplitterFilter::InitDeliverLoop()
 
 	bool fReIndex = false;
 
-	for(int i = 0; i < m_pFile->m_avih.dwStreams && !fReIndex; i++)
+	for(int i = 0; i < (int)m_pFile->m_avih.dwStreams && !fReIndex; i++)
 	{
 		if(m_pFile->m_strms[i]->cs.GetCount() == 0) 
 			fReIndex = true;
@@ -398,13 +394,13 @@ bool CAviSplitterFilter::InitDeliverLoop()
 	return(true);
 }
 
-HRESULT CAviSplitterFilter::ReIndex(UINT64 end)
+HRESULT CAviSplitterFilter::ReIndex(__int64 end)
 {
 	HRESULT hr = S_OK;
 
 	while(S_OK == hr && m_pFile->GetPos() < end && SUCCEEDED(hr) && !m_fAbort)
 	{
-		UINT64 pos = m_pFile->GetPos();
+		__int64 pos = m_pFile->GetPos();
 
 		DWORD id = 0, size;
 		if(S_OK != m_pFile->Read(id) || id == 0)
@@ -480,7 +476,7 @@ void CAviSplitterFilter::SeekDeliverLoop(REFERENCE_TIME rt)
 	{
 		UINT64 minfilepos = ~0;
 
-		for(int j = 0; j < m_pFile->m_strms.GetCount(); j++)
+		for(int j = 0; j < (int)m_pFile->m_strms.GetCount(); j++)
 		{
 			CAviFile::strm_t* s = m_pFile->m_strms[j];
 
@@ -493,7 +489,7 @@ void CAviSplitterFilter::SeekDeliverLoop(REFERENCE_TIME rt)
 
 		m_pFile->Seek(minfilepos);
 
-		for(int j = 0; j < m_pFile->m_strms.GetCount(); j++)
+		for(int j = 0; j < (int)m_pFile->m_strms.GetCount(); j++)
 		{
 			CAviFile::strm_t* s = m_pFile->m_strms[j];
 
@@ -519,12 +515,12 @@ void CAviSplitterFilter::DoDeliverLoop()
 
 	HRESULT hr = S_OK;
 
-	for(int i = 0; i < m_pFile->m_strms.GetCount() && SUCCEEDED(hr) && !CheckRequest(NULL); i++)
+	for(int i = 0; i < (int)m_pFile->m_strms.GetCount() && SUCCEEDED(hr) && !CheckRequest(NULL); i++)
 	{
 		CAviFile::strm_t* s = m_pFile->m_strms[i];
 		if(!s->IsRawSubtitleStream()) continue;
 
-		for(int j = 0; j < s->cs.GetCount() && SUCCEEDED(hr) && !CheckRequest(NULL); j++)
+		for(int j = 0; j < (int)s->cs.GetCount() && SUCCEEDED(hr) && !CheckRequest(NULL); j++)
 		{
 			CAviFile::strm_t::chunk& c = s->cs[j];
 
@@ -553,13 +549,13 @@ void CAviSplitterFilter::DoDeliverLoop()
 	while(FAILED(hr) && Resync());
 }
 
-HRESULT CAviSplitterFilter::DoDeliverLoop(UINT64 end)
+HRESULT CAviSplitterFilter::DoDeliverLoop(__int64 end)
 {
 	HRESULT hr = S_OK;
 
 	while(m_pFile->GetPos() < end && SUCCEEDED(hr) && !CheckRequest(NULL))
 	{
-		UINT64 pos = m_pFile->GetPos();
+		__int64 pos = m_pFile->GetPos();
 
 		DWORD id = 0, size;
 		if(S_OK != m_pFile->Read(id) || id == 0)
@@ -656,7 +652,8 @@ HRESULT CAviSplitterFilter::DoDeliverLoop(UINT64 end)
 
 		ASSERT(pos + size <= m_pFile->GetLength());
 
-		m_pFile->Seek(pos + size);
+		if(SUCCEEDED(hr))
+			m_pFile->Seek(pos + size);
 	}
 
 	return hr;
@@ -825,7 +822,6 @@ STDMETHODIMP CAviSplitterFilter::SetPositions(LONGLONG* pCurrent, DWORD dwCurren
 {
 	if(m_timeformat != TIME_FORMAT_FRAME)
 		return __super::SetPositions(pCurrent, dwCurrentFlags, pStop, dwStopFlags);
-
 
 	if(!pCurrent && !pStop
 	|| (dwCurrentFlags&AM_SEEKING_PositioningBitsMask) == AM_SEEKING_NoPositioning 
@@ -1021,22 +1017,11 @@ HRESULT CAviSplitterOutputPin::CheckConnect(IPin* pPin)
 // CAviFile
 //
 
-CAviFile::CAviFile(IAsyncReader* pReader, HRESULT& hr)
-	: m_pReader(pReader)
-	, m_pos(0), m_len(0)
+CAviFile::CAviFile(IAsyncReader* pAsyncReader, HRESULT& hr)
+	: CBaseSplitterFile(pAsyncReader, hr)
 {
-	LONGLONG total = 0, available;
-	pReader->Length(&total, &available);
-	m_len = total;
-
+	if(FAILED(hr)) return;
 	hr = Init();
-}
-
-HRESULT CAviFile::Read(void* pData, LONG len)
-{
-	HRESULT hr = m_pReader->SyncRead(m_pos, len, (BYTE*)pData);
-	m_pos += len;
-	return hr;
 }
 
 template<typename T> 
@@ -1049,8 +1034,6 @@ HRESULT CAviFile::Read(T& var, int offset)
 
 HRESULT CAviFile::Init()
 {
-	if(!m_pReader) return E_UNEXPECTED;
-
 	Seek(0);
 	DWORD dw[3];
 	if(S_OK != Read(dw) || dw[0] != FCC('RIFF') || (dw[2] != FCC('AVI ') && dw[2] != FCC('AVIX')))
@@ -1067,7 +1050,7 @@ HRESULT CAviFile::Init()
 	if(m_avih.dwStreams != m_strms.GetCount())
 		return E_FAIL;
 
-	for(int i = 0; i < m_avih.dwStreams; i++)
+	for(int i = 0; i < (int)m_avih.dwStreams; i++)
 	{
 		strm_t* s = m_strms[i];
 		if(s->strh.fccType != FCC('auds')) continue;
@@ -1083,14 +1066,14 @@ HRESULT CAviFile::Init()
 
 	if(FAILED(BuildIndex()))
 		EmptyIndex();
-
+/*
 	if(!IsInterleaved())
 		return E_FAIL;
-
+*/
 	return S_OK;
 }
 
-HRESULT CAviFile::Parse(DWORD parentid, UINT64 end)
+HRESULT CAviFile::Parse(DWORD parentid, __int64 end)
 {
 	HRESULT hr = S_OK;
 
@@ -1166,7 +1149,7 @@ HRESULT CAviFile::Parse(DWORD parentid, UINT64 end)
 				case FCC('ITCH'): // Technician. Identifies the technician who digitized the subject file; for example, “Smith, John.”
 					{
 						CStringA str;
-						if(S_OK != Read(str.GetBufferSetLength(size), size)) return E_FAIL;
+						if(S_OK != Read((BYTE*)str.GetBufferSetLength(size), size)) return E_FAIL;
 						m_info[id] = str;
 						break;
 					}
@@ -1187,7 +1170,7 @@ HRESULT CAviFile::Parse(DWORD parentid, UINT64 end)
 				if(S_OK != Read(strm->strh, 8)) return E_FAIL;
 				break;
 			case FCC('strn'):
-				if(S_OK != Read(strm->strn.GetBufferSetLength(size), size)) return E_FAIL;
+				if(S_OK != Read((BYTE*)strm->strn.GetBufferSetLength(size), size)) return E_FAIL;
 				break;
 			case FCC('strf'):
 				if(!strm) strm.Attach(new strm_t());
@@ -1233,7 +1216,7 @@ REFERENCE_TIME CAviFile::GetTotalTime()
 {
 	REFERENCE_TIME t = 0/*10i64*m_avih.dwMicroSecPerFrame*m_avih.dwTotalFrames*/;
 
-	for(int i = 0; i < m_avih.dwStreams; i++)
+	for(int i = 0; i < (int)m_avih.dwStreams; i++)
 	{
 		strm_t* s = m_strms[i];
 		REFERENCE_TIME t2 = s->GetRefTime(s->cs.GetCount(), s->totalsize);
@@ -1251,7 +1234,7 @@ HRESULT CAviFile::BuildIndex()
 
 	int nSuperIndexes = 0;
 
-	for(int i = 0; i < m_avih.dwStreams; i++)
+	for(int i = 0; i < (int)m_avih.dwStreams; i++)
 	{
 		strm_t* s = m_strms[i];
 		if(s->indx && s->indx->nEntriesInUse > 0) nSuperIndexes++;
@@ -1259,7 +1242,7 @@ HRESULT CAviFile::BuildIndex()
 
 	if(nSuperIndexes == m_avih.dwStreams)
 	{
-		for(int i = 0; i < m_avih.dwStreams; i++)
+		for(int i = 0; i < (int)m_avih.dwStreams; i++)
 		{
 			strm_t* s = m_strms[i];
 
@@ -1267,12 +1250,12 @@ HRESULT CAviFile::BuildIndex()
 
 			DWORD nEntriesInUse = 0;
 
-			for(int j = 0; j < idx->nEntriesInUse; j++)
+			for(int j = 0; j < (int)idx->nEntriesInUse; j++)
 			{
 				Seek(idx->aIndex[j].qwOffset);
 
 				AVISTDINDEX stdidx;
-				if(S_OK != Read(&stdidx, FIELD_OFFSET(AVISTDINDEX, aIndex)))
+				if(S_OK != Read((BYTE*)&stdidx, FIELD_OFFSET(AVISTDINDEX, aIndex)))
 				{
 					EmptyIndex();
 					return E_FAIL;
@@ -1286,18 +1269,18 @@ HRESULT CAviFile::BuildIndex()
 			DWORD frame = 0;
 			UINT64 size = 0;
 
-			for(int j = 0; j < idx->nEntriesInUse; j++)
+			for(int j = 0; j < (int)idx->nEntriesInUse; j++)
 			{
 				Seek(idx->aIndex[j].qwOffset);
 
 				CAutoPtr<AVISTDINDEX> p((AVISTDINDEX*)new BYTE[idx->aIndex[j].dwSize]);
-				if(!p || S_OK != Read((AVISTDINDEX*)p, idx->aIndex[j].dwSize)) 
+				if(!p || S_OK != Read((BYTE*)(AVISTDINDEX*)p, idx->aIndex[j].dwSize)) 
 				{
 					EmptyIndex();
 					return E_FAIL;
 				}
 
-				for(int k = 0, l = 0; k < p->nEntriesInUse; k++)
+				for(int k = 0, l = 0; k < (int)p->nEntriesInUse; k++)
 				{
 					s->cs[frame].size = size;
 					s->cs[frame].filepos = p->qwBaseOffset + p->aIndex[k].dwOffset - 8;
@@ -1315,7 +1298,7 @@ HRESULT CAviFile::BuildIndex()
 	{
 		int len = idx->cb/sizeof(idx->aIndex[0]);
 
-		for(int i = 0; i < m_avih.dwStreams; i++)
+		for(int i = 0; i < (int)m_avih.dwStreams; i++)
 		{
 			strm_t* s = m_strms[i];
 
@@ -1367,7 +1350,7 @@ HRESULT CAviFile::BuildIndex()
 	}
 
 	m_idx1.Free();
-	for(int i = 0; i < m_avih.dwStreams; i++)
+	for(int i = 0; i < (int)m_avih.dwStreams; i++)
 		m_strms[i]->indx.Free();
 
 	return S_OK;
@@ -1375,7 +1358,7 @@ HRESULT CAviFile::BuildIndex()
 
 void CAviFile::EmptyIndex()
 {
-	for(int i = 0; i < m_avih.dwStreams; i++)
+	for(int i = 0; i < (int)m_avih.dwStreams; i++)
 	{
 		strm_t* s = m_strms[i];
 		s->cs.RemoveAll();
@@ -1420,7 +1403,7 @@ bool CAviFile::IsInterleaved()
 	if(m_avih.dwFlags&AVIF_ISINTERLEAVED) // not reliable, nandub can write f*cked up files and still sets it
 		return(true);
 */
-	for(int i = 0; i < m_avih.dwStreams; i++)
+	for(int i = 0; i < (int)m_avih.dwStreams; i++)
 		m_strms[i]->cs2.SetSize(m_strms[i]->cs.GetSize());
 
 	DWORD* curchunks = new DWORD[m_avih.dwStreams];
@@ -1438,7 +1421,7 @@ clock_t t = clock();
 		UINT64 fpmin = _I64_MAX;
 
 		DWORD n = -1;
-		for(int i = 0; i < m_avih.dwStreams; i++)
+		for(int i = 0; i < (int)m_avih.dwStreams; i++)
 		{
 			int curchunk = curchunks[i];
 			CArray<strm_t::chunk>& cs = m_strms[i]->cs;
@@ -1478,7 +1461,7 @@ t = clock();
 		strm_t::chunk2 cs2min = {LONG_MAX, LONG_MAX};
 
 		int n = -1;
-		for(int i = 0; i < m_avih.dwStreams; i++)
+		for(int i = 0; i < (int)m_avih.dwStreams; i++)
 		{
 			int curchunk = curchunks[i];
 			if(curchunk >= m_strms[i]->cs2.GetSize()) continue;
@@ -1516,7 +1499,7 @@ t = clock();
 	delete [] cursizes;
 
 	// this is not needed anymore, let's save a little memory then
-	for(int i = 0; i < m_avih.dwStreams; i++)
+	for(int i = 0; i < (int)m_avih.dwStreams; i++)
 		m_strms[i]->cs2.SetSize(0);
 
 	return(true);
@@ -1530,11 +1513,15 @@ REFERENCE_TIME CAviFile::strm_t::GetRefTime(DWORD frame, UINT64 size)
 	{
 		WAVEFORMATEX* wfe = (WAVEFORMATEX*)strf.GetData();
 
-		rt = ((10000000i64 * size + (wfe->nBlockAlign>>1)) / wfe->nBlockAlign * strh.dwScale + (strh.dwRate>>1)) / strh.dwRate;
+		rt = wfe->nBlockAlign && strh.dwRate
+			? ((10000000i64 * size + (wfe->nBlockAlign>>1)) / wfe->nBlockAlign * strh.dwScale + (strh.dwRate>>1)) / strh.dwRate 
+			: 0;
 	}
 	else
 	{
-		rt = (10000000i64 * frame * strh.dwScale + (strh.dwRate>>1)) / strh.dwRate;
+		rt = strh.dwRate
+			? (10000000i64 * frame * strh.dwScale + (strh.dwRate>>1)) / strh.dwRate
+			: 0;
 	}
 
 	return(rt);
@@ -1548,7 +1535,9 @@ int CAviFile::strm_t::GetFrame(REFERENCE_TIME rt)
 	{
 		WAVEFORMATEX* wfe = (WAVEFORMATEX*)strf.GetData();
 
-		INT64 size = ((rt * strh.dwRate + strh.dwScale/2) / strh.dwScale * wfe->nBlockAlign + 10000000i64/2) / 10000000i64;
+		INT64 size = strh.dwScale
+			? ((rt * strh.dwRate + strh.dwScale/2) / strh.dwScale * wfe->nBlockAlign + 10000000i64/2) / 10000000i64
+			: 0;
 
 		for(frame = 0; frame < cs.GetCount(); frame++)
 		{
@@ -1561,7 +1550,9 @@ int CAviFile::strm_t::GetFrame(REFERENCE_TIME rt)
 	}
 	else
 	{
-		frame = (int)(((rt * strh.dwRate + strh.dwScale/2) / strh.dwScale + 10000000i64/2) / 10000000i64);
+		frame = strh.dwScale
+			? (int)(((rt * strh.dwRate + strh.dwScale/2) / strh.dwScale + 10000000i64/2) / 10000000i64)
+			: 0;
 	}
 
 	if(frame >= cs.GetCount())
@@ -1582,7 +1573,9 @@ DWORD CAviFile::strm_t::GetChunkSize(DWORD size)
 	if(strh.fccType == FCC('auds'))
 	{
 		WORD nBlockAlign = ((WAVEFORMATEX*)strf.GetData())->nBlockAlign;
-		size = (size + (nBlockAlign-1)) / nBlockAlign * nBlockAlign; // round up for nando's vbr hack
+		size = nBlockAlign
+			? (size + (nBlockAlign-1)) / nBlockAlign * nBlockAlign // round up for nando's vbr hack
+			: 0;
 	}
 
 	return(size);

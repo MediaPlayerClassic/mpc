@@ -38,18 +38,14 @@ struct OggAudioHeader
 struct OggStreamHeader
 {
 	char streamtype[8], subtype[4];
-
 	DWORD size;
 	__int64 time_unit, samples_per_unit;
 	DWORD default_len;
     DWORD buffersize;
-	DWORD bps;
-
-    union 
-	{
-		OggVideoHeader v;
-		OggAudioHeader a;
-    };
+	WORD bps;
+	WORD alignmentfix1;
+    union {OggVideoHeader v; OggAudioHeader a;};
+	DWORD alignmentfix2;
 };
 #pragma pack(pop)
 
@@ -66,9 +62,9 @@ class COggFile : public CBaseSplitterFile
 	HRESULT Init();
 
 public:
-	COggFile(IAsyncReader* pReader, HRESULT& hr);
+	COggFile(IAsyncReader* pAsyncReader, HRESULT& hr);
 
-	bool Sync();
-	bool Read(OggPageHeader& hdr);
-	bool Read(OggPage& page, bool fFull = true);
+	bool Sync(HANDLE hBreak = NULL);
+	bool Read(OggPageHeader& hdr, HANDLE hBreak = NULL);
+	bool Read(OggPage& page, bool fFull = true, HANDLE hBreak = NULL);
 };

@@ -5,7 +5,6 @@ COggFile::COggFile(IAsyncReader* pAsyncReader, HRESULT& hr)
 	: CBaseSplitterFile(pAsyncReader, hr)
 {
 	if(FAILED(hr)) return;
-
 	hr = Init();
 }
 
@@ -17,13 +16,14 @@ HRESULT COggFile::Init()
 	return S_OK;
 }
 
-bool COggFile::Sync()
+bool COggFile::Sync(HANDLE hBreak)
 {
 	__int64 pos = m_pos;
 
 	DWORD dw;
-	for(int i = 0; // 64k is the max page size usually, ... rfc's suggestion
-		i < 65536 && S_OK == __super::Read((BYTE*)&dw, sizeof(dw)); 
+	for(__int64 i = 0, j = hBreak ? m_len - m_pos : 65536;
+		i < j && S_OK == __super::Read((BYTE*)&dw, sizeof(dw)) 
+			&& ((i&0xffff) || !hBreak || WaitForSingleObject(hBreak, 0) != WAIT_OBJECT_0); 
 		i++, m_pos = pos + i)
 	{
 		if(dw == 'SggO')
@@ -38,18 +38,18 @@ bool COggFile::Sync()
 	return(false);
 }
 
-bool COggFile::Read(OggPageHeader& hdr)
+bool COggFile::Read(OggPageHeader& hdr, HANDLE hBreak)
 {
-	return Sync() && S_OK == __super::Read((BYTE*)&hdr, sizeof(hdr)) && hdr.capture_pattern == 'SggO';
+	return Sync(hBreak) && S_OK == __super::Read((BYTE*)&hdr, sizeof(hdr)) && hdr.capture_pattern == 'SggO';
 }
 
-bool COggFile::Read(OggPage& page, bool fFull)
+bool COggFile::Read(OggPage& page, bool fFull, HANDLE hBreak)
 {
 	memset(&page.m_hdr, 0, sizeof(page.m_hdr));
 	page.m_lens.RemoveAll();
 	page.SetSize(0);
 
-	if(!Read(page.m_hdr))
+	if(!Read(page.m_hdr, hBreak))
 		return(false);
 
 	int pagelen = 0, packetlen = 0;

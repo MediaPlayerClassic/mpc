@@ -118,20 +118,14 @@ struct rainfo5 : rainfo
 
 #pragma pack(pop)
 
-class CRMFile
+class CRMFile : public CBaseSplitterFile
 {
-	CComPtr<IAsyncReader> m_pReader;
-	UINT64 m_pos, m_len;
-
 	HRESULT Init();
 	void GetDimensions();
 
 public:
-	CRMFile(IAsyncReader* pReader, HRESULT& hr);
-	UINT64 GetPos() {return m_pos;}
-	UINT64 GetLength() {return m_len;}
-	void Seek(UINT64 pos) {m_pos = pos;}
-	HRESULT Read(BYTE* pData, LONG len);
+	CRMFile(IAsyncReader* pAsyncReader, HRESULT& hr);
+
 	template<typename T> HRESULT Read(T& var);
 	HRESULT Read(RMFF::ChunkHdr& hdr);
 	HRESULT Read(RMFF::MediaPacketHeader& mph, bool fFull = true);

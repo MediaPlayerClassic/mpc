@@ -63,7 +63,7 @@ STDMETHODIMP_(HANDLE) CAsyncFileReader::GetFileHandle()
 // CBaseSplitterFile
 //
 
-CBaseSplitterFile::CBaseSplitterFile(IAsyncReader* pAsyncReader, HRESULT& hr, UINT64 cachetotal)
+CBaseSplitterFile::CBaseSplitterFile(IAsyncReader* pAsyncReader, HRESULT& hr, int cachetotal)
 	: m_pAsyncReader(pAsyncReader)
 	, m_pos(0), m_len(0), m_cachepos(0), m_cachelen(0)
 {
@@ -79,7 +79,7 @@ CBaseSplitterFile::CBaseSplitterFile(IAsyncReader* pAsyncReader, HRESULT& hr, UI
 	hr = S_OK;
 }
 
-HRESULT CBaseSplitterFile::Read(BYTE* pData, UINT64 len)
+HRESULT CBaseSplitterFile::Read(BYTE* pData, __int64 len)
 {
 	CheckPointer(m_pAsyncReader, E_NOINTERFACE);
 
@@ -88,7 +88,6 @@ HRESULT CBaseSplitterFile::Read(BYTE* pData, UINT64 len)
 	if(m_cachetotal == 0 || !m_pCache)
 	{
 		hr = m_pAsyncReader->SyncRead(m_pos, (long)len, pData);
-//LOG(_T("Read [%I64d] <-> [%I64d]\n"), m_pos, m_pos+len);
 		m_pos += len;
 		return hr;
 	}
@@ -97,7 +96,7 @@ HRESULT CBaseSplitterFile::Read(BYTE* pData, UINT64 len)
 
 	if(m_cachepos <= m_pos && m_pos < m_cachepos + m_cachelen)
 	{
-		UINT64 minlen = min(len, m_cachelen - (m_pos - m_cachepos));
+		__int64 minlen = min(len, m_cachelen - (m_pos - m_cachepos));
 
 		memcpy(pData, &pCache[m_pos - m_cachepos], (size_t)minlen);
 
@@ -108,7 +107,6 @@ HRESULT CBaseSplitterFile::Read(BYTE* pData, UINT64 len)
 
 	while(len > m_cachetotal)
 	{
-//LOG(_T("Read [%I64d] <-> [%I64d]\n"), m_pos, m_pos+sizeof(m_cache));
 		hr = m_pAsyncReader->SyncRead(m_pos, (long)m_cachetotal, pData);
 		if(S_OK != hr) return hr;
 
@@ -119,10 +117,10 @@ HRESULT CBaseSplitterFile::Read(BYTE* pData, UINT64 len)
 
 	while(len > 0)
 	{
-		UINT64 maxlen = min(m_len - m_pos, m_cachetotal);
-		UINT64 minlen = min(len, maxlen);
+		__int64 maxlen = min(m_len - m_pos, m_cachetotal);
+		__int64 minlen = min(len, maxlen);
 		if(minlen <= 0) return S_FALSE;
-//LOG(_T("Read [%I64d] <-> [%I64d]\n"), m_pos, m_pos+maxlen);
+
 		hr = m_pAsyncReader->SyncRead(m_pos, (long)maxlen, pCache);
 		if(S_OK != hr) return hr;
 
@@ -748,8 +746,11 @@ HRESULT CBaseSplitterFilter::DeliverPacket(CAutoPtr<Packet> p)
 
 	ASSERT(p->rtStart <= p->rtStop);
 
+	if(!m_bDiscontinuitySent.Find(p->TrackNumber))
+		p->bDiscontinuity = TRUE;
+
 	DWORD TrackNumber = p->TrackNumber;
-	BOOL bDiscontinuity = p->bDiscontinuity = !m_bDiscontinuitySent.Find(p->TrackNumber);
+	BOOL bDiscontinuity = p->bDiscontinuity;
 
 	hr = pPin->QueuePacket(p);
 
@@ -987,7 +988,7 @@ STDMETHODIMP CBaseSplitterFilter::SetPositions(LONGLONG* pCurrent, DWORD dwCurre
 	if(m_rtCurrent == rtCurrent && m_rtStop == rtStop)
 		return S_OK;
 
-DbgLog((LOG_TRACE, 0, _T("Seek Started")));
+DbgLog((LOG_TRACE, 0, _T("Seek Started %I64d"), rtCurrent));
 
 	m_rtNewStart = m_rtCurrent = rtCurrent;
 	m_rtNewStop = rtStop;

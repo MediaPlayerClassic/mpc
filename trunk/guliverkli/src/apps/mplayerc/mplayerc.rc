@@ -255,7 +255,7 @@ BEGIN
     LTEXT           "Media Player Classic",IDC_STATIC1,40,10,126,8,
                     SS_NOPREFIX
     LTEXT           "Copyright (C) 2002-2003 Gabest",IDC_STATIC,40,21,113,8
-    LTEXT           "Version:\t6.4.7.0",IDC_STATIC,40,33,92,8
+    LTEXT           "Version:\t6.4.7.1",IDC_STATIC,40,33,92,8
     PUSHBUTTON      "OK",IDOK,160,8,50,14,WS_GROUP
     LTEXT           "This program is freeware and released under the GNU General Public License.\nDistribution in Codec Packs is allowed, but the author (Gabest) is not liable for the additional content.",
                     IDC_STATIC,11,47,199,34
@@ -340,7 +340,7 @@ BEGIN
                     BS_AUTORADIOBUTTON,15,35,76,10
     EDITTEXT        IDC_DVDPATH,29,50,180,14,ES_AUTOHSCROLL | WS_GROUP
     PUSHBUTTON      "...",IDC_BUTTON1,215,50,15,14
-    GROUPBOX        "Prefered language for DVD Navigator and OGM Splitter",
+    GROUPBOX        "Prefered language for DVD Navigator and the external OGM Splitter",
                     IDC_STATIC,5,77,235,73
     CONTROL         "Menu",IDC_LANGRADIO1,"Button",BS_AUTORADIOBUTTON | 
                     WS_GROUP,15,95,33,10
@@ -434,7 +434,7 @@ BEGIN
     LTEXT           "Set 0 to disable buffering\n(not recommended)",
                     IDC_STATIC,191,55,90,17
     LTEXT           "Maximum texture resolution:",IDC_STATIC,14,79,92,8
-    LTEXT           "Subtitling for DirectShow is available when the video renderer called ""VMR7 (renderless)"" or ""VMR9 (renderless)"" is set. VMR7 requires Windows XP, VMR9 requires DirectX 9, and both require a hw accelerated D3D video card.",
+    LTEXT           "Subtitling for DirectShow is available when the video renderer called ""VMR7 (renderless)"" or ""VMR9 (renderless)"" is set. VMR7 requires Windows XP, VMR9 requires DirectX 9, and both require a HW accelerated D3D video card.",
                     IDC_STATIC,14,148,267,25
     GROUPBOX        "Before you ask",IDC_STATIC,5,136,284,65
     LTEXT           "If you override and enable full-screen antialiasing somewhere at your videocard's settings, subtitles aren't going to look any better but it will surely eat your cpu.",
@@ -442,7 +442,7 @@ BEGIN
     COMBOBOX        IDC_COMBO1,111,77,68,45,CBS_DROPDOWNLIST | WS_VSCROLL | 
                     WS_TABSTOP
     GROUPBOX        "Warning",IDC_STATIC,5,99,284,35
-    LTEXT           "RealMedia and QuickTime formats can be subtitled by setting their special renderers on the RM/QT page.",
+    LTEXT           "RealMedia and QuickTime formats can be subtitled by setting their special DirectX 7 or DirectX 9 renderers.",
                     IDC_STATIC,14,178,267,16
 END
 
@@ -1420,8 +1420,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 6,4,7,0
- PRODUCTVERSION 6,4,7,0
+ FILEVERSION 6,4,7,1
+ PRODUCTVERSION 6,4,7,1
  FILEFLAGSMASK 0x1fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -1439,12 +1439,12 @@ BEGIN
             VALUE "Comments", "http://gabest.org/"
             VALUE "CompanyName", "Gabest"
             VALUE "FileDescription", "Media Player Classic"
-            VALUE "FileVersion", "6, 4, 7, 0"
+            VALUE "FileVersion", "6, 4, 7, 1"
             VALUE "InternalName", "Media Player Classic"
-            VALUE "LegalCopyright", "Copyright (C) 2002 Gabest"
+            VALUE "LegalCopyright", "Copyright (C) 2002-2003 Gabest"
             VALUE "OriginalFilename", "mplayerc.EXE"
             VALUE "ProductName", "Media Player Classic"
-            VALUE "ProductVersion", "6, 4, 7, 0"
+            VALUE "ProductVersion", "6, 4, 7, 1"
         END
     END
     BLOCK "VarFileInfo"
