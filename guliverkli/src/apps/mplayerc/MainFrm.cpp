@@ -6585,7 +6585,9 @@ AddToRot(pGB, &m_dwRegister);
 			PostMessage(WM_COMMAND, ID_FILE_POST_OPENMEDIA);
 		}
 
-		while(m_iMediaLoadState != MLS_LOADED)
+		while(m_iMediaLoadState != MLS_LOADED 
+			&& m_iMediaLoadState != MLS_CLOSING // FIXME
+			)
 		{
 			Sleep(50);
 		}
