@@ -738,7 +738,26 @@ HRESULT CMatroskaMuxerInputPin::CompleteConnect(IPin* pPin)
 	{
 		m_pTE->TrackType.Set(TrackEntry::TypeVideo);
 
-		if(m_mt.formattype == FORMAT_VideoInfo)
+		if(m_mt.formattype == FORMAT_VideoInfo && m_mt.subtype == FOURCCMap('04VR'))
+		{
+			m_pTE->CodecID.Set("V_REAL/RV40");
+
+			VIDEOINFOHEADER* vih = (VIDEOINFOHEADER*)m_mt.pbFormat;
+			if(m_mt.cbFormat > sizeof(VIDEOINFOHEADER))
+			{
+			m_pTE->CodecPrivate.SetSize(m_mt.cbFormat - sizeof(VIDEOINFOHEADER));
+			memcpy(m_pTE->CodecPrivate, m_mt.pbFormat + sizeof(VIDEOINFOHEADER), m_pTE->CodecPrivate.GetSize());
+			}
+			m_pTE->DefaultDuration.Set(vih->AvgTimePerFrame*100); 
+			m_pTE->DescType = TrackEntry::DescVideo;
+			m_pTE->v.PixelWidth.Set(vih->bmiHeader.biWidth);
+			m_pTE->v.PixelHeight.Set(abs(vih->bmiHeader.biHeight));
+			if(vih->AvgTimePerFrame > 0)
+				m_pTE->v.FramePerSec.Set((float)(10000000.0 / vih->AvgTimePerFrame)); 
+
+			hr = S_OK;
+		}
+		else if(m_mt.formattype == FORMAT_VideoInfo)
 		{
 			m_pTE->CodecID.Set("V_MS/VFW/FOURCC");
 
@@ -1095,7 +1114,7 @@ STDMETHODIMP CMatroskaMuxerInputPin::Receive(IMediaSample* pSample)
 
 	CAutoPtr<BlockGroup> b(new BlockGroup());
 
-	if(S_OK != pSample->IsSyncPoint() && m_rtLastStart >= 0 && m_rtLastStart < rtStart)
+	if((S_OK != pSample->IsSyncPoint() || m_rtLastStart == rtStart) && m_rtLastStart >= 0 /*&& m_rtLastStart < rtStart*/)
 	{
 		b->ReferenceBlock.Set((m_rtLastStart - rtStart) / 10000);
 	}
