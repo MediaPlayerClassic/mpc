@@ -64,8 +64,8 @@ T Implode(CList<T>& sl, SEP sep)
 
 extern CString ExtractTag(CString tag, CMapStringToString& attribs, bool& fClosing);
 extern CStringA ConvertMBCS(CStringA str, DWORD SrcCharSet, DWORD DstCharSet);
-extern CString UrlEncode(CString str, bool fRaw = false);
-extern CString UrlDecode(CString str, bool fRaw = false);
+extern CStringA UrlEncode(CStringA str, bool fRaw = false);
+extern CStringA UrlDecode(CStringA str, bool fRaw = false);
 extern DWORD CharSetToCodePage(DWORD dwCharSet);
 extern CStringList& MakeLower(CStringList& sl);
 extern CStringList& MakeUpper(CStringList& sl);

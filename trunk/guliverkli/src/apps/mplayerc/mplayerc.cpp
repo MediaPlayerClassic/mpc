@@ -137,6 +137,9 @@ bool LoadType(CString fn, CString& type)
 	if(ext.IsEmpty() || !ext.CompareNoCase(_T("file")))
 		ext = _T(".") + fn.Mid(fn.ReverseFind('.')+1);
 
+	if(ERROR_SUCCESS != key.Open(HKEY_CLASSES_ROOT, ext))
+		return(false);
+
 	CString tmp = ext;
 
     while(ERROR_SUCCESS == key.Open(HKEY_CLASSES_ROOT, tmp))
@@ -149,6 +152,19 @@ bool LoadType(CString fn, CString& type)
 
 	type = tmp;
 
+	return(true);
+}
+
+bool LoadResource(UINT resid, CStringA& str, LPCTSTR restype)
+{
+	str.Empty();
+	HRSRC hrsrc = FindResource(AfxGetResourceHandle(), MAKEINTRESOURCE(resid), restype);
+	if(!hrsrc) return(false);
+	HGLOBAL hGlobal = LoadResource(AfxGetResourceHandle(), hrsrc);
+	if(!hGlobal) return(false);
+	DWORD size = SizeofResource(AfxGetResourceHandle(), hrsrc);
+	if(!size) return(false);
+	memcpy(str.GetBufferSetLength(size), LockResource(hGlobal), size);
 	return(true);
 }
 
@@ -259,7 +275,7 @@ void CMPlayerCApp::ShowCmdlnSwitches()
 		_T("/regvid\t\tRegister video formats\n")
 		_T("/regaud\t\tRegister audio formats\n")
 		_T("/unregvid\t\tUnregister video formats\n")
-		_T("/unregaud\t\tUnregister audio formats\n")
+		_T("/unregaud\tUnregister audio formats\n")
 		_T("/start ms\t\tStart playing at \"ms\" (= milliseconds)\n")
 		_T("/help /h /?\tShow help about command line switches. (this message box)\n");
 

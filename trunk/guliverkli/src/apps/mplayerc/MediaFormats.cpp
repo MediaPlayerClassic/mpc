@@ -242,6 +242,10 @@ engine_t CMediaFormats::GetEngine(CString path)
 	CString ext = CPath(path).GetExtension();
 	if(!ext.IsEmpty())
 	{
+		// HACK
+		if(path.Find(_T("://")) >= 0 && ext == _T(".ram"))
+			return RealMedia;
+
 		for(int i = 0; i < GetCount(); i++)
 		{
 			CMediaFormatCategory& mfc = GetAt(i);

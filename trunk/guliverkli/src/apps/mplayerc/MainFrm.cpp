@@ -2702,6 +2702,7 @@ BOOL CMainFrame::OnCopyData(CWnd* pWnd, COPYDATASTRUCT* pCDS)
 	if((s.nCLSwitches&CLSW_DVD) && !s.slFiles.IsEmpty())
 	{
 		SendMessage(WM_COMMAND, ID_FILE_CLOSEMEDIA);
+		SetForegroundWindow();
 
 		CAutoPtr<OpenDVDData> p(new OpenDVDData());
 		if(p) {p->path = s.slFiles.GetHead(); p->subs.AddTail(&s.slSubs);}
@@ -2710,6 +2711,7 @@ BOOL CMainFrame::OnCopyData(CWnd* pWnd, COPYDATASTRUCT* pCDS)
 	else if(s.nCLSwitches&CLSW_CD)
 	{
 		SendMessage(WM_COMMAND, ID_FILE_CLOSEMEDIA);
+		SetForegroundWindow();
 
 		CStringList sl;
 
@@ -2750,6 +2752,7 @@ BOOL CMainFrame::OnCopyData(CWnd* pWnd, COPYDATASTRUCT* pCDS)
 		else
 		{
 			SendMessage(WM_COMMAND, ID_FILE_CLOSEMEDIA);
+			SetForegroundWindow();
 
 			m_wndPlaylistBar.Open(sl, fMulti, &s.slSubs);
 			OpenCurPlaylistItem((s.nCLSwitches&CLSW_STARTVALID) ? s.rtStart : 0);
@@ -2771,9 +2774,9 @@ void CMainFrame::OnFileOpendvd()
 	if(m_iMediaLoadState == MLS_LOADING) return;
 
 	SendMessage(WM_COMMAND, ID_FILE_CLOSEMEDIA);
+	SetForegroundWindow();
 
 	ShowWindow(SW_SHOW);
-	SetForegroundWindow();
 
 	CAutoPtr<OpenDVDData> p(new OpenDVDData());
 	if(p)
@@ -2798,9 +2801,9 @@ void CMainFrame::OnFileOpendevice()
 		return;
 
 	SendMessage(WM_COMMAND, ID_FILE_CLOSEMEDIA);
+	SetForegroundWindow();
 
 	ShowWindow(SW_SHOW);
-	SetForegroundWindow();
 
 	CAutoPtr<OpenDeviceData> p(new OpenDeviceData());
 	if(p) {p->DisplayName[0] = capdlg.m_vidstr; p->DisplayName[1] = capdlg.m_audstr;}
@@ -2830,9 +2833,9 @@ void CMainFrame::OnFileOpenCD(UINT nID)
 		if(nID == 0)
 		{
 			SendMessage(WM_COMMAND, ID_FILE_CLOSEMEDIA);
+			SetForegroundWindow();
 
 			ShowWindow(SW_SHOW);
-			SetForegroundWindow();
 
 			m_wndPlaylistBar.Open(sl, true);
 			OpenCurPlaylistItem();
@@ -6246,6 +6249,8 @@ void CMainFrame::CloseMediaPrivate()
 	m_iSpeedLevel = 0;
 
 	m_fLiveWM = false;
+
+	m_fEndOfStream = false;
 
 	m_rtDurationOverride = -1;
 

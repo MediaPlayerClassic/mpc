@@ -1613,9 +1613,27 @@
 			<File
 				RelativePath="res\toolbar1.bmp">
 			</File>
+			<File
+				RelativePath=".\res\web1.bin">
+			</File>
+			<File
+				RelativePath=".\res\web2.bin">
+			</File>
 		</Filter>
 		<File
+			RelativePath=".\res\web\404.html">
+		</File>
+		<File
 			RelativePath="res\ani.avi">
+		</File>
+		<File
+			RelativePath=".\res\web\browser.html">
+		</File>
+		<File
+			RelativePath=".\res\web\default.css">
+		</File>
+		<File
+			RelativePath=".\res\web\index.html">
 		</File>
 	</Files>
 	<Globals>

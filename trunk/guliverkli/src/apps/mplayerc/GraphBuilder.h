@@ -109,7 +109,7 @@ public:
 class CGraphBuilder
 {
 public:
-	typedef struct {int nStream; CString filter, pin; CList<CMediaType> mts; CStringList path;} DeadEnd;
+	typedef struct {int nStream; CString clsid, filter, pin; CList<CMediaType> mts; CStringList path;} DeadEnd;
 
 protected:
 	HWND m_hWnd;

@@ -21,7 +21,6 @@
 
 #include "StdAfx.h"
 #include <mmreg.h>
-#include "..\..\..\DSUtil\DSUtil.h"
 #include "AviFile.h"
 #include "AviReportWnd.h"
 #include "AviSplitter.h"
@@ -186,14 +185,14 @@ HRESULT CAviSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 #endif
 		bool fHideWarning = !!AfxGetApp()->GetProfileInt(_T("Settings"), _T("HideAviSplitterWarning"), 0);
 
-		if(!fHideWarning || fShiftDown)
+		if((!fHideWarning || fShiftDown) && !dynamic_cast<CAviSourceFilter*>(this))
 		{
 			CAviReportWnd wnd;
 			fHideWarning = wnd.DoModal(m_pFile, fHideWarning, fShowWarningText);
 			AfxGetApp()->WriteProfileInt(_T("Settings"), _T("HideAviSplitterWarning"), fHideWarning);
 		}
 
-		hr = E_FAIL;
+		if(fShowWarningText) hr = E_FAIL;
 	}
 
 	if(FAILED(hr)) {m_pFile.Free(); return hr;}

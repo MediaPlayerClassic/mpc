@@ -256,7 +256,7 @@ BEGIN
     LTEXT           "Media Player Classic",IDC_STATIC1,40,10,126,8,
                     SS_NOPREFIX
     LTEXT           "Copyright (C) 2002-2003 Gabest",IDC_STATIC,40,21,113,8
-    LTEXT           "Version:\t6.4.7.2",IDC_STATIC,40,33,92,8
+    LTEXT           "Version:\t6.4.7.3",IDC_STATIC,40,33,92,8
     PUSHBUTTON      "OK",IDOK,160,8,50,14,WS_GROUP
     LTEXT           "This program is freeware and released under the GNU General Public License.\nDistribution in Codec Packs is allowed, but the author (Gabest) is not liable for the additional content.",
                     IDC_STATIC,11,47,199,34
@@ -1877,6 +1877,16 @@ IDR_AVI1                AVI                     "res\\ani.avi"
 
 /////////////////////////////////////////////////////////////////////////////
 //
+// HTML
+//
+
+IDR_HTML_INDEX          HTML                    "res\\web\\index.html"
+IDR_STYLESHEET_DEFAULT  HTML                    "res\\web\\default.css"
+IDR_HTML_404            HTML                    "res\\web\\404.html"
+IDR_HTML_BROWSER        HTML                    "res\\web\\browser.html"
+
+/////////////////////////////////////////////////////////////////////////////
+//
 // String Table
 //
 
@@ -2095,7 +2105,7 @@ BEGIN
     IDC_CHECK_DTSAC3        "6.4.0.0"
     IDC_CHECK_SHOUTCAST     "6.4.0.1"
     IDC_CHECK_RM            "6.4.0.7\nRealMedia format categories must be set to 'DirectShow' to make it load, doesn't support streaming"
-    IDC_CHECK_MATROSKA      "6.4.1.9"
+    IDC_CHECK_MATROSKA      "6.4.2.0"
     IDC_CHECK_ROQ           "6.4.0.0"
     IDC_CHECK_OGG           "6.4.0.0"
 END
