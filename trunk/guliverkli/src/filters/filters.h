@@ -40,3 +40,4 @@
 #include ".\parser\OggSplitter\OggSplitter.h"
 #include ".\parser\NutSplitter\NutSplitter.h"
 #include ".\parser\MpegSplitter\MpegSplitter.h"
+#include ".\parser\DiracSplitter\DiracSplitter.h"

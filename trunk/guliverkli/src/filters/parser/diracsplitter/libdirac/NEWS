@@ -1,0 +1,93 @@
+dirac-0.4.3
+===========
+  - Quality metric has changed from PSNR to one based on 4th powers of errors.
+    This results in pictures with more stable quality and fewer artefacts.
+  - Fixed bug with scaling motion vectors for non 4:4:4 formats.
+  - Fixed bug in encoder in downconverting a picture with odd valued dimensions
+  - Fixed bug in encoder in handling input with 4:1:1 chroma format.
+  - Fixed bug in diagnostics tool in handling input with 4:1:1 chroma format.
+  - Updated algorithm documentation
+
+dirac-0.4.2
+===========
+  - Fixed bugs in writing instrumentation data while encoding which
+    caused the diagnostics tool to go into an infinite loop
+  - Fixed bug in diagnostic tool when handling reference 2 and only
+    one reference frame is available
+  - Number of frames in encoded output header is now set correctly to
+    the number of frames encoded.
+  - Fixed bug with bit-rate being miscalculated when only a section of the 
+    sequence is encoded.
+  - Fixed bug with setting DC band perceptual weight.
+
+dirac-0.4.1
+===========
+  - Added support for build under Microsoft Windows using gnu autotools,
+    MSYS and no-cost MS VC++ 2003 compiler
+
+  - Fixed bug in building unit tests when older versions of cppunit are 
+    installed
+
+  - Fixed bugs in measurement of PSNR and motion estimation process
+
+dirac-0.4.0
+===========
+  - Added constant quality encoding interface using PSNR
+     as the quality measure, and using multi-pass frame
+     coding
+  - Added Intra-frame insertion and cut detection
+  - Added C interface for the decoder application to allow
+     interfacing to player software. Refer to the api documentation
+     in dirac_parser.h.
+  - Implemented unique frame headers to facilitate bit-stream
+     parsing
+  - Added instrumentation output from encoder and an 
+     instrumentation display tool for visualising encoder
+     decisions to help with algorithmic development
+  - Cleansed and refactored numerous code files to add comments,
+     improve readability and modularity
+  - Added a unit testing framework based on cppunit for testing
+     classes 
+  - Fixed bug with vertical block separation always being set
+     to 8 pixels
+  - Added feature to encode only a section of input video rather
+     than the whole sequence
+  - Tweaked motion estimation parameters to improve performance,
+     mostly for higher-res pictures
+  - Included document describing the syntax of Dirac bitstream v0.1
+    in the doc directory.
+  - Fixed bug 1008694 (Out-of-tree building fails)
+  - Fixed header and pkconfig installation
+  - Updated algorithm documentation
+
+Dirac-0.3.1
+===========
+  - Fixed compiling under Windows
+  - Video conversion utilites now build under Windows
+  - Colour conversion matrix coefficients corrected in conversion utilites
+
+Dirac-0.3.0
+===========
+  - Added conversion utilities for going to and from RGB and 
+     various YUV formats, plus bitmaps
+  - Fixed serious artifacts when frame dimensions are not multiples of 32
+  - Performance speed up writing output to disk
+  - Changed .hdr format from binary to text for cross-platform interoperability
+  - Added autotest framework with simple colour-bars test
+  - Added format conversion, MPlayer and ImageMagick examples to README
+  - Added decoder support for arbitrary temporal prediction structures
+  - Added support for I-frame only coding
+  - Added support for coding with a single initial I-frame
+  - Extended code documentation to all major classes
+
+Dirac-0.2.0
+===========
+  - Fixed crash when frame dimensions are not multiples of 32
+  - Removed dependency on XParam library
+  - Removed libtool for faster compiles and ease of debugging
+  - Included doxygen documentation of major classes
+  - Initial "programmer's guide" documentation - doc/dirac_algor.tex
+
+Dirac-0.1.0
+===========
+  - Initial Sourceforge release.

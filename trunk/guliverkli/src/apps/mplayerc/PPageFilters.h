@@ -68,4 +68,6 @@ public:
 	BOOL m_dts;
 	BOOL m_aac;
 	BOOL m_nut;
+	BOOL m_diracsplitter;
+	BOOL m_diracvideo;
 };

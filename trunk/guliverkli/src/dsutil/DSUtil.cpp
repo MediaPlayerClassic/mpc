@@ -28,6 +28,7 @@
 #include "..\..\include\winddk\devioctl.h"
 #include "..\..\include\winddk\ntddcdrm.h"
 #include "DSUtil.h"
+#include "..\..\include\moreuuids.h"
 
 void DumpStreamConfig(TCHAR* fn, IAMStreamConfig* pAMVSCCap)
 {
@@ -1026,7 +1027,7 @@ bool ExtractBIH(const AM_MEDIA_TYPE* pmt, BITMAPINFOHEADER* bih)
 			VIDEOINFOHEADER2* vih = (VIDEOINFOHEADER2*)pmt->pbFormat;
 			memcpy(bih, &vih->bmiHeader, sizeof(BITMAPINFOHEADER));
 		}
-		if(pmt->formattype == FORMAT_MPEGVideo)
+		else if(pmt->formattype == FORMAT_MPEGVideo)
 		{
 			VIDEOINFOHEADER* vih = &((MPEG1VIDEOINFO*)pmt->pbFormat)->hdr;
 			memcpy(bih, &vih->bmiHeader, sizeof(BITMAPINFOHEADER));
@@ -1034,6 +1035,11 @@ bool ExtractBIH(const AM_MEDIA_TYPE* pmt, BITMAPINFOHEADER* bih)
 		else if(pmt->formattype == FORMAT_MPEG2_VIDEO)
 		{
 			VIDEOINFOHEADER2* vih = &((MPEG2VIDEOINFO*)pmt->pbFormat)->hdr;
+			memcpy(bih, &vih->bmiHeader, sizeof(BITMAPINFOHEADER));
+		}
+		else if(pmt->formattype == FORMAT_DiracVideoInfo)
+		{
+			VIDEOINFOHEADER2* vih = &((DIRACINFOHEADER*)pmt->pbFormat)->hdr;
 			memcpy(bih, &vih->bmiHeader, sizeof(BITMAPINFOHEADER));
 		}
 

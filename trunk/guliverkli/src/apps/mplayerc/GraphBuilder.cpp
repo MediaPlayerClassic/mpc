@@ -38,10 +38,6 @@
 #include <D3d9.h>
 #include <Vmr9.h>
 
-//  {6B6D0800-9ADA-11d0-A520-00A0D10129C0}
-DEFINE_GUID(CLSID_NetShowSource, 
-0x6b6d0800, 0x9ada, 0x11d0, 0xa5, 0x20, 0x0, 0xa0, 0xd1, 0x1, 0x29, 0xc0);
-
 static void CheckStupidSharedFilesourceFilter()
 {
 	CRegKey key;
@@ -441,6 +437,24 @@ CGraphBuilder::CGraphBuilder(IGraphBuilder* pGB, HWND hWnd)
 		AddFilter(new CGraphCustomFilter(__uuidof(CRoQAudioDecoder), guids,
 			(s.TraFilters&TRA_REALVID) ? L"RoQ Audio Decoder" : L"RoQ Audio Decoder (low merit)",
 			(s.TraFilters&TRA_REALVID) ? LMERIT_ABOVE_DSHOW : LMERIT_DO_USE));
+		guids.RemoveAll();
+	}
+
+	{
+		guids.AddTail(MEDIATYPE_Stream);
+		guids.AddTail(MEDIASUBTYPE_Dirac);
+		AddFilter(new CGraphCustomFilter(__uuidof(CDiracSplitterFilter), guids, 
+			(s.SrcFilters&SRC_DIRAC) ? L"Dirac Splitter" : L"Dirac Splitter (low merit)",
+			(s.SrcFilters&SRC_DIRAC) ? LMERIT_ABOVE_DSHOW : LMERIT_DO_USE));
+		guids.RemoveAll();
+	}
+
+	{
+		guids.AddTail(MEDIATYPE_Video);
+		guids.AddTail(MEDIASUBTYPE_DiracVideo);
+		AddFilter(new CGraphCustomFilter(__uuidof(CDiracVideoDecoder), guids,
+			(s.TraFilters&TRA_DIRAC) ? L"Dirac Video Decoder" : L"Dirac Video Decoder (low merit)",
+			(s.TraFilters&TRA_DIRAC) ? LMERIT_ABOVE_DSHOW : LMERIT_DO_USE));
 		guids.RemoveAll();
 	}
 
@@ -864,6 +878,14 @@ HRESULT CGraphBuilder::Render(LPCTSTR lpsz)
 		{
 			hr = S_OK;
 			CComPtr<IFileSourceFilter> pReader = new CMpegSourceFilter(NULL, &hr);
+			if(SUCCEEDED(hr) && SUCCEEDED(pReader->Load(fnw, NULL)))
+				pBF = pReader;
+		}
+
+		if((s.SrcFilters&SRC_DIRAC) && !pBF)
+		{
+			hr = S_OK;
+			CComPtr<IFileSourceFilter> pReader = new CDiracSourceFilter(NULL, &hr);
 			if(SUCCEEDED(hr) && SUCCEEDED(pReader->Load(fnw, NULL)))
 				pBF = pReader;
 		}
@@ -1875,6 +1897,8 @@ HRESULT CGraphCustomFilter::Create(IBaseFilter** ppBF, IUnknown** ppUnk)
 		m_clsid == __uuidof(CMpegSplitterFilter) ? (IBaseFilter*)new CMpegSplitterFilter(NULL, &hr) :
 		m_clsid == __uuidof(CMpeg2DecFilter) ? (IBaseFilter*)new CMpeg2DecFilter(NULL, &hr) :
 		m_clsid == __uuidof(CMpaDecFilter) ? (IBaseFilter*)new CMpaDecFilter(NULL, &hr) :
+		m_clsid == __uuidof(CDiracSplitterFilter) ? (IBaseFilter*)new CDiracSplitterFilter(NULL, &hr) :
+		m_clsid == __uuidof(CDiracVideoDecoder) ? (IBaseFilter*)new CDiracVideoDecoder(NULL, &hr) :
 		m_clsid == __uuidof(CNullVideoRenderer) ? (IBaseFilter*)new CNullVideoRenderer() :
 		m_clsid == __uuidof(CNullAudioRenderer) ? (IBaseFilter*)new CNullAudioRenderer() :
 		m_clsid == __uuidof(CNullUVideoRenderer) ? (IBaseFilter*)new CNullUVideoRenderer() :

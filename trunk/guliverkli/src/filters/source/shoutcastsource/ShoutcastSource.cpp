@@ -113,9 +113,9 @@ STDAPI DllUnregisterServer()
 
 extern "C" BOOL WINAPI DllEntryPoint(HINSTANCE, ULONG, LPVOID);
 
-BOOL APIENTRY DllMain(HANDLE hModule, DWORD ul_reason_for_call, LPVOID lpReserved)
+BOOL APIENTRY DllMain(HANDLE hModule, DWORD dwReason, LPVOID lpReserved)
 {
-	if(ul_reason_for_call == DLL_PROCESS_ATTACH)
+	if(dwReason == DLL_PROCESS_ATTACH)
 	{
 		if(!AfxWinInit(::GetModuleHandle(NULL), NULL, ::GetCommandLine(), 0))
 		{
@@ -129,12 +129,12 @@ BOOL APIENTRY DllMain(HANDLE hModule, DWORD ul_reason_for_call, LPVOID lpReserve
 			return FALSE;
 		}
 	}
-	else if(ul_reason_for_call == DLL_PROCESS_DETACH)
+	else if(dwReason == DLL_PROCESS_DETACH)
 	{
 		AfxWinTerm();
 	}
 
-    return DllEntryPoint((HINSTANCE)hModule, ul_reason_for_call, 0); // "DllMain" of the dshow baseclasses;
+    return DllEntryPoint((HINSTANCE)hModule, dwReason, 0); // "DllMain" of the dshow baseclasses;
 }
 
 #endif

@@ -57,6 +57,8 @@ CPPageFilters::CPPageFilters()
 	, m_dts(FALSE)
 	, m_aac(FALSE)
 	, m_nut(FALSE)
+	, m_diracsplitter(FALSE)
+	, m_diracvideo(FALSE)
 {
 }
 
@@ -91,6 +93,8 @@ void CPPageFilters::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_CHECK_DTS, m_dts);
 	DDX_Check(pDX, IDC_CHECK_AAC, m_aac);
 	DDX_Check(pDX, IDC_CHECK_NUT, m_nut);
+	DDX_Check(pDX, IDC_CHECK_DIRAC_SPLITTER, m_diracsplitter);
+	DDX_Check(pDX, IDC_CHECK_DIRAC_DECODER, m_diracvideo);
 }
 
 BEGIN_MESSAGE_MAP(CPPageFilters, CPPageBase)
@@ -129,6 +133,8 @@ BOOL CPPageFilters::OnInitDialog()
 	m_dts = !!(s.TraFilters&TRA_DTS);
 	m_aac = !!(s.TraFilters&TRA_AAC);
 	m_nut = !!(s.SrcFilters&SRC_NUT);
+	m_diracsplitter = !!(s.SrcFilters&SRC_DIRAC);
+	m_diracvideo = !!(s.TraFilters&TRA_DIRAC);
 
 	UpdateData(FALSE);
 
@@ -178,6 +184,8 @@ BOOL CPPageFilters::OnApply()
 	if(m_dts) s.TraFilters |= TRA_DTS;
 	if(m_aac) s.TraFilters |= TRA_AAC;
 	if(m_nut) s.SrcFilters |= SRC_NUT;
+	if(m_diracsplitter) s.SrcFilters |= SRC_DIRAC;
+	if(m_diracvideo) s.TraFilters |= TRA_DIRAC;
 
 	return __super::OnApply();
 }

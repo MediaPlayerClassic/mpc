@@ -10,8 +10,12 @@
 
 static bool aspi_GetSectorInfo(const HANDLE hDrive, DWORD* sec_size, DWORD* max_sec)
 {
+	LARGE_INTEGER size;
+	size.LowPart = GetFileSize(hDrive, (DWORD*)&size.HighPart);
+
 	*sec_size = 2048;
-	*max_sec = GetFileSize(hDrive, NULL) / *sec_size;
+	*max_sec = size.QuadPart / *sec_size;
+
 	return true;
 }
 

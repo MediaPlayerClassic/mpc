@@ -216,7 +216,7 @@ UINT64 CBaseSplitterFile::BitRead(int nBits, bool fPeek)
 	while(m_bitlen < nBits)
 	{
 		m_bitbuff <<= 8;
-		Read((BYTE*)&m_bitbuff, 1);
+		if(S_OK != Read((BYTE*)&m_bitbuff, 1)) {ASSERT(0); return 0;} // EOF?
 		m_bitlen += 8;
 	}
 

@@ -131,9 +131,9 @@ STDAPI DllUnregisterServer()
 
 extern "C" BOOL WINAPI DllEntryPoint(HINSTANCE, ULONG, LPVOID);
 
-BOOL APIENTRY DllMain(HANDLE hModule, DWORD ul_reason_for_call, LPVOID lpReserved)
+BOOL APIENTRY DllMain(HANDLE hModule, DWORD dwReason, LPVOID lpReserved)
 {
-	if(ul_reason_for_call == DLL_PROCESS_ATTACH)
+	if(dwReason == DLL_PROCESS_ATTACH)
 	{
 		_WIDTH = GetProfileInt(_T("SubtitleSource"), _T("w"), 640);
 		_HEIGHT = GetProfileInt(_T("SubtitleSource"), _T("h"), 480);
@@ -148,7 +148,7 @@ BOOL APIENTRY DllMain(HANDLE hModule, DWORD ul_reason_for_call, LPVOID lpReserve
 		WriteProfileString(_T("SubtitleSource"), _T("atpf"), str);
 	}
 
-    return DllEntryPoint((HINSTANCE)hModule, ul_reason_for_call, 0); // "DllMain" of the dshow baseclasses;
+    return DllEntryPoint((HINSTANCE)hModule, dwReason, 0); // "DllMain" of the dshow baseclasses;
 }
 
 //
