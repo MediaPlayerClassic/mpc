@@ -52,8 +52,8 @@ data size (1-8 bytes)
 
 [... data ...]
 
-FileInfo : extends Packet (dsmp_t: DSMP_FILEINFO)
--------------------------------------------------
+FileInfo : extends Packet (DSMP_FILEINFO)
+-----------------------------------------
 
 version (1 byte, DSMF_VERSION)
 
@@ -77,8 +77,8 @@ Notes:
 	"DATE": Encoding date
 	... more to be defined ...
 
-MediaType : extends Packet (dsmp_t: DSMP_MEDIATYPE)
----------------------------------------------------
+MediaType : extends Packet (DSMP_MEDIATYPE)
+-------------------------------------------
 
 stream id (1 byte)
 
@@ -95,8 +95,8 @@ Notes:
 - Multiple MediaTypes per stream is NOT allowed
 - bFixedSizeSamples, bTemporalCompression, lSampleSize are only there to preserve compatibility with dshow's media type structure, they aren't playing a role in anything really.
 
-StreamInfo : extends Packet (dsmp_t: DSMP_STREAMINFO)
------------------------------------------------------
+StreamInfo : extends Packet (DSMP_STREAMINFO)
+---------------------------------------------
 
 stream id (1 byte)
 
@@ -114,8 +114,8 @@ Notes:
 	"DESC": Description
 	... more to be defined ...
 
-Chapters : extends Packet (dsmp_t: DSMP_CHAPTERS)
-------------------------------------------------
+Chapters : extends Packet (DSMP_CHAPTERS)
+-----------------------------------------
 
 ... repeated n times ...
 
@@ -130,8 +130,8 @@ string
 Notes: 
 - "timestamp delta" holds the difference to the previous value, starts at 0.
 
-Sample : extends Packet (dsmp_t: DSMP_SAMPLE)
----------------------------------------------
+Sample : extends Packet (DSMP_SAMPLE)
+-------------------------------------
 
 stream id (1 byte)
 
@@ -149,10 +149,10 @@ Notes:
 - sign == 1 && timestamp length == 0 -> timestamp and duration is unknown (but for syncpoints it cannot be unknown!)
 - sign == 0 && timestamp length == 0 -> simply means the value is stored on zero bytes and its value is zero too.
 - timestamps of syncpoints must be strictly in increasing order.
-- timestamps can be negative (to allow cutting a file at anywhere preroll samples may need to be saved)
+- timestamps can be negative (to allow cutting a file at anywhere, preroll samples may need to be saved)
 
-SyncPoints : extends Packet (dsmp_t: DSMP_SYNCPOINTS)
------------------------------------------------------
+SyncPoints : extends Packet (DSMP_SYNCPOINTS)
+---------------------------------------------
 
 ... repeated n times ...
 

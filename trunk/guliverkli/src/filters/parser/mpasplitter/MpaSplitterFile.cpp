@@ -158,7 +158,7 @@ HRESULT CMpaSplitterFile::Init()
 
 	Seek(m_startpos);
 
-	if(m_mode == none && Read(m_mpahdr, min(m_endpos - GetPos(), 0x2000), true, &m_mt))
+	if(m_mode == none && Read(m_mpahdr, min(m_endpos - GetPos(), 0x100), true, &m_mt))
 	{
 		m_mode = mpa;
 
@@ -172,7 +172,7 @@ HRESULT CMpaSplitterFile::Init()
 
 	Seek(m_startpos);
 
-	if(m_mode == none && Read(m_aachdr, min(m_endpos - GetPos(), 0x2000), &m_mt))
+	if(m_mode == none && Read(m_aachdr, min(m_endpos - GetPos(), 0x100), &m_mt))
 	{
 		m_mode = mp4a;
 
