@@ -20,14 +20,13 @@
  */
 
 #pragma once
-#include "CmdUIDialog.h"
 #include "afxwin.h"
 
 // COpenDlg dialog
 
-class COpenDlg : public CCmdUIDialog
+class COpenDlg : public CResizableDialog
 {
-	DECLARE_DYNAMIC(COpenDlg)
+//	DECLARE_DYNAMIC(COpenDlg)
 
 public:
 	COpenDlg(CWnd* pParent = NULL);   // standard constructor

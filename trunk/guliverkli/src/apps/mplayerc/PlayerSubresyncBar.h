@@ -23,7 +23,6 @@
 
 #include <afxcview.h>
 #include "PlayerListCtrl.h"
-#include "..\..\ui\sizecbar\scbarg.h"
 #include "..\..\subtitles\RTS.h"
 #include "..\..\subtitles\VobSubFile.h"
 

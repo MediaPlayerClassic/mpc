@@ -56,31 +56,8 @@ void CPPageOutput::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_COMBO1, m_iAudioRendererTypeCtrl);
 }
 
-BOOL CPPageOutput::PreTranslateMessage(MSG* pMsg)
-{
-	if(pMsg->message >= WM_MOUSEFIRST && pMsg->message <= WM_MOUSELAST)
-	{
-		MSG msg;
-		memcpy(&msg, pMsg, sizeof(MSG));
-		for(HWND hWndParent = ::GetParent(msg.hwnd); 
-			hWndParent && hWndParent != m_hWnd;
-			hWndParent = ::GetParent(hWndParent))
-		{
-			msg.hwnd = hWndParent;
-		}
-
-		if(msg.hwnd)
-		{
-			m_wndToolTip.RelayEvent(&msg);
-		}
-	}
-
-	return CPPageBase::PreTranslateMessage(pMsg);
-}
-
 
 BEGIN_MESSAGE_MAP(CPPageOutput, CPPageBase)
-	ON_WM_DESTROY()
 END_MESSAGE_MAP()
 
 
@@ -172,15 +149,7 @@ BOOL CPPageOutput::OnInitDialog()
 		GetDlgItem(IDC_QTDX9)->EnableWindow(FALSE);
 	}
 
-	m_wndToolTip.Create(this);
-	m_wndToolTip.Activate(TRUE);
-	m_wndToolTip.SetMaxTipWidth(300);
-	for(CWnd* pChild = GetWindow(GW_CHILD); pChild; pChild = pChild->GetWindow(GW_HWNDNEXT))
-	{
-		CString strToolTip;
-		if(strToolTip.LoadString(pChild->GetDlgCtrlID()))
-			m_wndToolTip.AddTool(pChild, strToolTip);
-	}
+	CreateToolTip();
 
 	return TRUE;  // return TRUE unless you set the focus to a control
 	// EXCEPTION: OCX Property Pages should return FALSE
@@ -201,9 +170,3 @@ BOOL CPPageOutput::OnApply()
 	return __super::OnApply();
 }
 
-void CPPageOutput::OnDestroy()
-{
-	CPPageBase::OnDestroy();
-
-	m_wndToolTip.DestroyWindow();
-}

@@ -147,10 +147,21 @@ public:
 };
 
 [uuid("932E75D4-BBD4-4A0F-9071-6728FBDC4C98")]
-class CSubtitleSourceiApRGB : public CSubtitleSource
+class CSubtitleSourcePreview : public CSubtitleSource
 {
 public:
-	CSubtitleSourceiApRGB(LPUNKNOWN lpunk, HRESULT* phr);
+	CSubtitleSourcePreview(LPUNKNOWN lpunk, HRESULT* phr);
+#ifdef REGISTER_FILTER
+    static CUnknown* WINAPI CreateInstance(LPUNKNOWN lpunk, HRESULT* phr);
+#endif
+	HRESULT GetMediaType(CMediaType* pmt);
+};
+
+[uuid("CF0D7280-527D-415E-BA02-56017484D73E")]
+class CSubtitleSourceARGB : public CSubtitleSource
+{
+public:
+	CSubtitleSourceARGB(LPUNKNOWN lpunk, HRESULT* phr);
 #ifdef REGISTER_FILTER
     static CUnknown* WINAPI CreateInstance(LPUNKNOWN lpunk, HRESULT* phr);
 #endif

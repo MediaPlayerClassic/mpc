@@ -5,19 +5,22 @@
 
 class CServerSocket;
 class CClientSocket;
+class CMainFrame;
 
 class CWebServer
 {
-	CFrameWnd* m_pMainFrm;
+	CMainFrame* m_pMainFrm;
+	int m_nPort;
 
-    static DWORD WINAPI ThreadProc(LPVOID lpParam);
+	DWORD ThreadProc();
+    static DWORD WINAPI StaticThreadProc(LPVOID lpParam);
     DWORD m_ThreadId;
     HANDLE m_hThread;
 
 	CAutoPtrList<CClientSocket> m_clients;
 
 public:
-	CWebServer(CFrameWnd* pMainFrm);
+	CWebServer(CMainFrame* pMainFrm, int nPort = 13579);
 	virtual ~CWebServer();
 
 	void OnAccept(CServerSocket* pServer);

@@ -42,9 +42,9 @@ typedef struct
 
 // CMediaTypesDlg dialog
 
-IMPLEMENT_DYNAMIC(CMediaTypesDlg, CCmdUIDialog)
+//IMPLEMENT_DYNAMIC(CMediaTypesDlg, CResizableDialog)
 CMediaTypesDlg::CMediaTypesDlg(CGraphBuilder& gb, CWnd* pParent /*=NULL*/)
-	: CCmdUIDialog(CMediaTypesDlg::IDD, pParent)
+	: CResizableDialog(CMediaTypesDlg::IDD, pParent)
 {
 	CGraphBuilder::DeadEnd* pde;
 	for(int i = 0; pde = gb.GetDeadEnd(i); i++) m_DeadEnds.Add(pde);
@@ -58,7 +58,7 @@ CMediaTypesDlg::~CMediaTypesDlg()
 
 void CMediaTypesDlg::DoDataExchange(CDataExchange* pDX)
 {
-	CCmdUIDialog::DoDataExchange(pDX);
+	CResizableDialog::DoDataExchange(pDX);
 	DDX_Control(pDX, IDC_COMBO1, m_pins);
 	DDX_Control(pDX, IDC_EDIT1, m_report);
 }
@@ -226,7 +226,7 @@ void CMediaTypesDlg::AddMediaType(AM_MEDIA_TYPE* pmt)
 	}
 }
 
-BEGIN_MESSAGE_MAP(CMediaTypesDlg, CCmdUIDialog)
+BEGIN_MESSAGE_MAP(CMediaTypesDlg, CResizableDialog)
 	ON_CBN_SELCHANGE(IDC_COMBO1, OnCbnSelchangeCombo1)
 	ON_BN_CLICKED(IDC_BUTTON1, OnBnClickedButton1)
 	ON_UPDATE_COMMAND_UI(IDC_BUTTON1, OnUpdateButton1)
@@ -237,7 +237,7 @@ END_MESSAGE_MAP()
 
 BOOL CMediaTypesDlg::OnInitDialog()
 {
-	CCmdUIDialog::OnInitDialog();
+	CResizableDialog::OnInitDialog();
 
 	for(int i = 0; i < m_DeadEnds.GetCount(); i++)
 	{
@@ -248,6 +248,15 @@ BOOL CMediaTypesDlg::OnInitDialog()
 
 	m_pins.SetCurSel(0);
 	OnCbnSelchangeCombo1();
+
+	AddAnchor(IDC_STATIC1, TOP_LEFT, TOP_RIGHT);
+	AddAnchor(IDC_STATIC2, TOP_LEFT, TOP_RIGHT);
+	AddAnchor(IDC_COMBO1, TOP_LEFT, TOP_RIGHT);
+	AddAnchor(IDC_EDIT1, TOP_LEFT, BOTTOM_RIGHT);
+	AddAnchor(IDC_BUTTON1, BOTTOM_LEFT);
+	AddAnchor(IDOK, BOTTOM_RIGHT);
+
+	SetMinTrackSize(CSize(300, 200));
 
 	return TRUE;  // return TRUE unless you set the focus to a control
 	// EXCEPTION: OCX Property Pages should return FALSE

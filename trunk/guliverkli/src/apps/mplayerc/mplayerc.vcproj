@@ -45,7 +45,7 @@
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalOptions="/MACHINE:I386"
-				AdditionalDependencies="Delayimp.lib detours.lib qtmlClient.lib wmstub.lib dxguid.lib Dsound.lib strmbaseRU.lib dsutilRU.lib subpicRU.lib subtitlesRU.lib filtersRU.lib sizecbarRU.lib TreePropSheetRU.lib"
+				AdditionalDependencies="Delayimp.lib detours.lib qtmlClient.lib wmstub.lib dxguid.lib Dsound.lib strmbaseRU.lib dsutilRU.lib subpicRU.lib subtitlesRU.lib filtersRU.lib uiRU.lib"
 				OutputFile="$(OutDir)\$(ProjectName).exe"
 				LinkIncremental="1"
 				SuppressStartupBanner="TRUE"
@@ -118,7 +118,7 @@
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalOptions="/MACHINE:I386"
-				AdditionalDependencies="detours.lib qtmlClient.lib wmstub.lib Dsound.lib dxguid.lib strmbaseDU.lib dsutilDU.lib subpicDU.lib subtitlesDU.lib filtersDU.lib sizecbarDU.lib TreePropSheetDU.lib"
+				AdditionalDependencies="detours.lib qtmlClient.lib wmstub.lib Dsound.lib dxguid.lib strmbaseDU.lib dsutilDU.lib subpicDU.lib subtitlesDU.lib filtersDU.lib uiDU.lib"
 				OutputFile="$(OutDir)\$(ProjectName).exe"
 				LinkIncremental="2"
 				SuppressStartupBanner="TRUE"
@@ -188,7 +188,7 @@
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalOptions="/MACHINE:I386"
-				AdditionalDependencies="Delayimp.lib detours.lib qtmlClient.lib wmstub.lib Dsound.lib dxguid.lib strmbaseR.lib dsutilR.lib subpicR.lib subtitlesR.lib filtersR.lib sizecbarR.lib TreePropSheetR.lib"
+				AdditionalDependencies="Delayimp.lib detours.lib qtmlClient.lib wmstub.lib Dsound.lib dxguid.lib strmbaseR.lib dsutilR.lib subpicR.lib subtitlesR.lib filtersR.lib uiR.lib"
 				OutputFile="$(OutDir)\$(ProjectName).exe"
 				LinkIncremental="1"
 				SuppressStartupBanner="TRUE"
@@ -261,7 +261,7 @@
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalOptions="/MACHINE:I386"
-				AdditionalDependencies="Delayimp.lib detours.lib qtmlClient.lib wmstub.lib Dsound.lib dxguid.lib strmbaseD.lib dsutilD.lib subpicD.lib subtitlesD.lib filtersD.lib sizecbarD.lib TreePropSheetD.lib"
+				AdditionalDependencies="Delayimp.lib detours.lib qtmlClient.lib wmstub.lib Dsound.lib dxguid.lib strmbaseD.lib dsutilD.lib subpicD.lib subtitlesD.lib filtersD.lib uiD.lib"
 				OutputFile="$(OutDir)\$(ProjectName).exe"
 				LinkIncremental="2"
 				SuppressStartupBanner="TRUE"
@@ -353,15 +353,6 @@
 			</File>
 			<File
 				RelativePath=".\ChildView.cpp">
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE">
-					<Tool
-						Name="VCCLCompilerTool"/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath="CmdUIDialog.cpp">
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
 					ExcludedFromBuild="TRUE">
@@ -808,6 +799,9 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath=".\PPageWebServer.cpp">
+			</File>
+			<File
 				RelativePath="QuicktimeGraph.cpp">
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
@@ -969,15 +963,6 @@
 			</File>
 			<File
 				RelativePath=".\ChildView.h">
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE">
-					<Tool
-						Name="VCCustomBuildTool"/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath="CmdUIDialog.h">
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
 					ExcludedFromBuild="TRUE">
@@ -1428,6 +1413,9 @@
 					<Tool
 						Name="VCCustomBuildTool"/>
 				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\PPageWebServer.h">
 			</File>
 			<File
 				RelativePath="QuicktimeGraph.h">

@@ -31,15 +31,6 @@ namespace MatroskaReader
 
 	typedef unsigned __int64 QWORD;
 
-	class CBinary : public CArray<BYTE>
-	{
-	public:
-		CBinary& operator = (const CBinary& b) {Copy(b); return(*this);}
-		operator BYTE*() {return (BYTE*)GetData();}
-		CStringA ToString() {return CStringA((LPCSTR)GetData(), GetCount());}
-		HRESULT Parse(CMatroskaNode* pMN);
-	};
-
 	class CANSI : public CStringA {public: HRESULT Parse(CMatroskaNode* pMN);};
 	class CUTF8 : public CStringW {public: HRESULT Parse(CMatroskaNode* pMN);};
 
@@ -67,6 +58,16 @@ namespace MatroskaReader
 	class CID : public CSimpleVar<DWORD, CID> {public: HRESULT Parse(CMatroskaNode* pMN);};
 	class CLength : public CSimpleVar<UINT64, CLength> {bool m_fSigned; public: CLength(bool fSigned = false) : m_fSigned(fSigned) {} HRESULT Parse(CMatroskaNode* pMN);};
 	class CSignedLength : public CLength {public: CSignedLength() : CLength(true) {}};
+
+	class CBinary : public CArray<BYTE>
+	{
+	public:
+		CBinary& operator = (const CBinary& b) {Copy(b); return(*this);}
+		operator BYTE*() {return (BYTE*)GetData();}
+		CStringA ToString() {return CStringA((LPCSTR)GetData(), GetCount());}
+		bool Compress(CUInt& ContentCompAlgo), Decompress(CUInt& ContentCompAlgo);
+		HRESULT Parse(CMatroskaNode* pMN);
+	};
 
 	template<class T>
 	class CNode : public CAutoPtrList<T> {public: HRESULT Parse(CMatroskaNode* pMN);};
@@ -182,6 +183,50 @@ namespace MatroskaReader
 					HRESULT Parse(CMatroskaNode* pMN);
 				};
 
+						class ContentCompression
+						{
+						public:
+							CUInt ContentCompAlgo; enum {ZLIB, BZLIB, LZO1X};
+							CBinary ContentCompSettings;
+
+							ContentCompression() {ContentCompAlgo.Set(ZLIB);}
+							HRESULT Parse(CMatroskaNode* pMN);
+						};
+
+						class ContentEncryption
+						{
+						public:
+							CUInt ContentEncAlgo; enum {UNKE, DES, THREEDES, TWOFISH, BLOWFISH, AES};
+							CBinary ContentEncKeyID, ContentSignature, ContentSigKeyID;
+							CUInt ContentSigAlgo; enum {UNKS, RSA};
+							CUInt ContentSigHashAlgo; enum {UNKSH, SHA1_160, MD5};
+
+							ContentEncryption() {ContentEncAlgo.Set(0); ContentSigAlgo.Set(0); ContentSigHashAlgo.Set(0);}
+							HRESULT Parse(CMatroskaNode* pMN);
+						};
+
+					class ContentEncoding
+					{
+					public:
+						CUInt ContentEncodingOrder;
+						CUInt ContentEncodingScope; enum {AllFrameContents = 1, TracksPrivateData = 2};
+						CUInt ContentEncodingType; enum {Compression, Encryption};
+						ContentCompression cc;
+						ContentEncryption ce;
+
+						ContentEncoding() {ContentEncodingOrder.Set(0); ContentEncodingScope.Set(AllFrameContents); ContentEncodingType.Set(Compression);}
+						HRESULT Parse(CMatroskaNode* pMN);
+					};
+
+				class ContentEncodings
+				{
+				public:
+					CNode<ContentEncoding> ce;
+
+					ContentEncodings() {}
+					HRESULT Parse(CMatroskaNode* pMN);
+				};
+
 			class TrackEntry
 			{
 			public:
@@ -205,9 +250,12 @@ namespace MatroskaReader
 				int DescType;
 				Video v;
 				Audio a;
+				ContentEncodings ces;
 
 				TrackEntry() {DescType = NoDesc;}
 				HRESULT Parse(CMatroskaNode* pMN);
+
+				bool Expand(CBinary& data, UINT64 Scope);
 			};
 
 		class Track

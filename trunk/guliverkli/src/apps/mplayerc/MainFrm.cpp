@@ -41,6 +41,8 @@
 #include "PnSPresetsDlg.h"
 #include "MediaTypesDlg.h"
 #include "SaveTextFileDialog.h"
+#include "FavoriteAddDlg.h"
+#include "FavoriteOrganizeDlg.h"
 
 #include <mtype.h>
 #include <Mpconfig.h>
@@ -220,7 +222,8 @@ BEGIN_MESSAGE_MAP(CMainFrame, CFrameWnd)
 	ON_UPDATE_COMMAND_UI(ID_FILE_SAVESUBTITLES, OnUpdateFileSavesubtitles)
 	ON_COMMAND(ID_FILE_PROPERTIES, OnFileProperties)
 	ON_UPDATE_COMMAND_UI(ID_FILE_PROPERTIES, OnUpdateFileProperties)
-	ON_COMMAND(ID_FILE_CLOSEMEDIA, OnFileClosemedia)
+	ON_COMMAND(ID_FILE_CLOSEPLAYLIST, OnFileClosePlaylist)
+	ON_COMMAND(ID_FILE_CLOSEMEDIA, OnFileCloseMedia)
 	ON_UPDATE_COMMAND_UI(ID_FILE_CLOSEMEDIA, OnUpdateFileClose)
 
 	ON_COMMAND(ID_VIEW_CAPTIONMENU, OnViewCaptionmenu)
@@ -344,8 +347,7 @@ CMainFrame::CMainFrame() :
 	m_fLiveWM(false),
 	m_fOpeningAborted(false),
 	m_fBuffering(false),
-	m_fileDropTarget(this),
-	m_webserver(this)
+	m_fileDropTarget(this)
 {
 }
 
@@ -431,6 +433,9 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 
 	if(m_pGraphThread)
 		m_pGraphThread->SetMainFrame(this);
+
+	if(s.fEnableWebServer)
+		StartWebServer(s.nWebServerPort);
 
 	return 0;
 }
@@ -3001,9 +3006,14 @@ void CMainFrame::OnUpdateFileProperties(CCmdUI* pCmdUI)
 	pCmdUI->Enable(m_iMediaLoadState == MLS_LOADED && m_iPlaybackMode == PM_FILE);
 }
 
-void CMainFrame::OnFileClosemedia()
+void CMainFrame::OnFileCloseMedia()
 {
 	CloseMedia();
+}
+
+void CMainFrame::OnFileClosePlaylist()
+{
+	SendMessage(WM_COMMAND, ID_FILE_CLOSEMEDIA);
 	RestoreDefaultWindowRect();
 }
 
@@ -7014,13 +7024,11 @@ void CMainFrame::AddTextPassThruFilter()
 			hr = pPinTo->Disconnect();
 			hr = pPin->Disconnect();
 
-			CComPtr<IPin> pIn = GetFirstPin(pTPTF, PINDIR_INPUT);
-			CComPtr<IPin> pOut = GetFirstPin(pTPTF, PINDIR_OUTPUT);
-			
-			hr = pGB->Connect(pPin, pIn);
-			hr = pGB->Connect(pOut, pPinTo);
-
-			m_pSubStreams.AddTail(CComQIPtr<ISubStream>(pTPTF));
+			if(FAILED(hr = pGB->ConnectDirect(pPin, GetFirstPin(pTPTF, PINDIR_INPUT), NULL))
+			|| FAILED(hr = pGB->ConnectDirect(GetFirstPin(pTPTF, PINDIR_OUTPUT), pPinTo, NULL)))
+				hr = pGB->ConnectDirect(pPin, pPinTo, NULL);
+			else
+				m_pSubStreams.AddTail(CComQIPtr<ISubStream>(pTPTF));
 		}
 		EndEnumPins
 	}
@@ -7096,6 +7104,15 @@ void CMainFrame::SetSubtitle(ISubStream* pSubStream, bool fApplyDefStyle)
 				pVSF->SetAlignment(s.fOverridePlacement, s.nHorPos, s.nVerPos, 1, 1);
 			}
 		}
+		if(clsid == __uuidof(CVobSubStream))
+		{
+			CVobSubStream* pVSS = (CVobSubStream*)(ISubStream*)pSubStream;
+
+			if(fApplyDefStyle)
+			{
+				pVSS->SetAlignment(s.fOverridePlacement, s.nHorPos, s.nVerPos, 1, 1);
+			}
+		}
 		else if(clsid == __uuidof(CRenderedTextSubtitle))
 		{
 			CRenderedTextSubtitle* pRTS = (CRenderedTextSubtitle*)(ISubStream*)pSubStream;
@@ -7126,6 +7143,9 @@ void CMainFrame::SetSubtitle(ISubStream* pSubStream, bool fApplyDefStyle)
 	{
 		m_iSubtitleSel = -1;
 
+		if(pSubStream)
+		{
+
 		int i = 0;
 
 		POSITION pos = m_pSubStreams.GetHeadPosition();
@@ -7140,6 +7160,8 @@ void CMainFrame::SetSubtitle(ISubStream* pSubStream, bool fApplyDefStyle)
 			}
 
 			i += pSubStream2->GetStreamCount();
+		}
+
 		}
 	}
 
@@ -7620,17 +7642,31 @@ bool CMainFrame::StopCapture()
 
 void CMainFrame::ShowOptions(int idPage)
 {
+	AppSettings& s = AfxGetAppSettings();
+
 	CPPageSheet options(_T("Options"), pGB, this, idPage);
 
 	if(options.DoModal() == IDOK)
 	{
 		if(!m_fFullScreen)
-			SetAlwaysOnTop(AfxGetAppSettings().fAlwaysOnTop);
+			SetAlwaysOnTop(s.fAlwaysOnTop);
 
 		m_wndView.LoadLogo();
-		
-		AfxGetAppSettings().UpdateData(true);
+
+		s.UpdateData(true);
 	}
+}
+
+void CMainFrame::StartWebServer(int nPort)
+{
+	if(!m_pWebServer)
+		m_pWebServer.Attach(new CWebServer(this, nPort));
+}
+
+void CMainFrame::StopWebServer()
+{
+	if(m_pWebServer)
+		m_pWebServer.Free();
 }
 
 void CMainFrame::SendStatusMessage(CString msg, int nTimeOut)

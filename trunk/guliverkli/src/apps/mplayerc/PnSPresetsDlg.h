@@ -20,7 +20,6 @@
  */
 
 #pragma once
-#include "CmdUIDialog.h"
 #include "FloatEdit.h"
 
 // CPnSPresetsDlg dialog

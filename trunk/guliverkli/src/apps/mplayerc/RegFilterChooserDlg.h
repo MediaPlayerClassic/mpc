@@ -21,13 +21,12 @@
 
 #pragma once
 #include "afxwin.h"
-#include "CmdUIDialog.h"
 
 // CRegFilterChooserDlg dialog
 
-class CRegFilterChooserDlg : public CCmdUIDialog
+class CRegFilterChooserDlg : public CResizableDialog
 {
-	DECLARE_DYNAMIC(CRegFilterChooserDlg)
+//	DECLARE_DYNAMIC(CRegFilterChooserDlg)
 
 	CInterfaceList<IMoniker> m_monikers;
 	void AddToList(IMoniker* pMoniker);
@@ -40,7 +39,7 @@ public:
 
 // Dialog Data
 	enum { IDD = IDD_ADDREGFILTER };
-	CListBox m_list;
+	CListCtrl m_list;
 
 protected:
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV support
@@ -53,4 +52,5 @@ public:
 	afx_msg void OnUpdateOK(CCmdUI* pCmdUI);
 	afx_msg void OnBnClickedOk();
 	afx_msg void OnBnClickedButton1();
+	afx_msg void OnNMDblclkList2(NMHDR *pNMHDR, LRESULT *pResult);
 };

@@ -627,17 +627,19 @@ nooddpart:
 
 bool BitBltFromRGBToRGB(int w, int h, BYTE* dst, int dstpitch, int dbpp, BYTE* src, int srcpitch, int sbpp)
 {
-	if(sbpp != 16 && sbpp != 24 && sbpp != 32
-	|| dbpp != 16 && dbpp != 24 && dbpp != 32)
-		return(false);
-
 	if(dbpp == sbpp)
 	{
 		int pitch = min(abs(srcpitch), abs(dstpitch));
 		for(int y = 0; y < h; y++, src += srcpitch, dst += dstpitch)
 			memcpy_accel(dst, src, pitch);
+		return(true);
 	}
-	else if(dbpp == 16)
+	
+	if(sbpp != 16 && sbpp != 24 && sbpp != 32
+	|| dbpp != 16 && dbpp != 24 && dbpp != 32)
+		return(false);
+
+	if(dbpp == 16)
 	{
 		for(int y = 0; y < h; y++, src += srcpitch, dst += dstpitch)
 		{

@@ -20,8 +20,6 @@
  */
 
 #pragma once
-#include "CmdUIDialog.h"
-
 
 // CFavoriteAddDlg dialog
 

@@ -21,7 +21,6 @@
 
 #pragma once
 
-#include "..\..\ui\sizecbar\scbarg.h"
 #include "PlayerCaptureDialog.h"
 
 #ifndef baseCPlayerCaptureBar

@@ -27,15 +27,14 @@
 #include <dmo.h>
 #include "RegFilterChooserDlg.h"
 #include "GraphBuilder.h"
-#include ".\regfilterchooserdlg.h"
 #include "..\..\DSUtil\DSUtil.h"
 
 
 // CRegFilterChooserDlg dialog
 
-IMPLEMENT_DYNAMIC(CRegFilterChooserDlg, CDialog)
+//IMPLEMENT_DYNAMIC(CRegFilterChooserDlg, CResizableDialog)
 CRegFilterChooserDlg::CRegFilterChooserDlg(CWnd* pParent /*=NULL*/)
-	: CCmdUIDialog(CRegFilterChooserDlg::IDD, pParent)
+	: CResizableDialog(CRegFilterChooserDlg::IDD, pParent)
 {
 }
 
@@ -48,7 +47,7 @@ CRegFilterChooserDlg::~CRegFilterChooserDlg()
 void CRegFilterChooserDlg::DoDataExchange(CDataExchange* pDX)
 {
 	__super::DoDataExchange(pDX);
-	DDX_Control(pDX, IDC_LIST1, m_list);
+	DDX_Control(pDX, IDC_LIST2, m_list);
 }
 
 void CRegFilterChooserDlg::AddToList(IMoniker* pMoniker)
@@ -59,20 +58,21 @@ void CRegFilterChooserDlg::AddToList(IMoniker* pMoniker)
 		CComVariant var;
 		if(SUCCEEDED(pPB->Read(CComBSTR(_T("FriendlyName")), &var, NULL)))
 		{
-			m_list.SetItemDataPtr(
-				m_list.AddString(CString(CStringW(var.bstrVal))), 
-				m_monikers.AddTail(pMoniker));
+			m_list.SetItemData(
+				m_list.InsertItem(-1, CString(CStringW(var.bstrVal))),
+				(DWORD_PTR)m_monikers.AddTail(pMoniker));
 		}
 	}
 
 }
 
 
-BEGIN_MESSAGE_MAP(CRegFilterChooserDlg, CCmdUIDialog)
+BEGIN_MESSAGE_MAP(CRegFilterChooserDlg, CResizableDialog)
 	ON_LBN_DBLCLK(IDC_LIST1, OnLbnDblclkList1)
 	ON_UPDATE_COMMAND_UI(IDOK, OnUpdateOK)
 	ON_BN_CLICKED(IDOK, OnBnClickedOk)
 	ON_BN_CLICKED(IDC_BUTTON1, OnBnClickedButton1)
+	ON_NOTIFY(NM_DBLCLK, IDC_LIST2, OnNMDblclkList2)
 END_MESSAGE_MAP()
 
 
@@ -100,6 +100,12 @@ BOOL CRegFilterChooserDlg::OnInitDialog()
 	}
 	EndEnumSysDev
 
+	AddAnchor(IDC_LIST2, TOP_LEFT, BOTTOM_RIGHT);
+	AddAnchor(IDC_BUTTON1, BOTTOM_LEFT);
+	AddAnchor(IDOK, BOTTOM_RIGHT);
+	AddAnchor(IDCANCEL, BOTTOM_RIGHT);
+
+	SetMinTrackSize(CSize(300,100));
 
 	return TRUE;  // return TRUE unless you set the focus to a control
 	// EXCEPTION: OCX Property Pages should return FALSE
@@ -112,12 +118,17 @@ void CRegFilterChooserDlg::OnLbnDblclkList1()
 
 void CRegFilterChooserDlg::OnUpdateOK(CCmdUI* pCmdUI)
 {
-	pCmdUI->Enable(m_list.GetCurSel() >= 0);
+	pCmdUI->Enable(!!m_list.GetFirstSelectedItemPosition());
 }
 
 void CRegFilterChooserDlg::OnBnClickedOk()
 {
-	if(CComPtr<IMoniker> pMoniker = m_monikers.GetAt((POSITION)m_list.GetItemDataPtr(m_list.GetCurSel())))
+	CComPtr<IMoniker> pMoniker;
+
+	POSITION pos = m_list.GetFirstSelectedItemPosition();
+	if(pos) pos = (POSITION)m_list.GetItemData(m_list.GetNextSelectedItem(pos));
+	if(pos) pMoniker = m_monikers.GetAt(pos);
+	if(pMoniker)
 	{
 		CGraphRegFilter gf(pMoniker);
 		Filter* f = new Filter;
@@ -150,4 +161,14 @@ void CRegFilterChooserDlg::OnBnClickedButton1()
 
 		__super::OnOK();
 	}
+}
+
+void CRegFilterChooserDlg::OnNMDblclkList2(NMHDR *pNMHDR, LRESULT *pResult)
+{
+	if(m_list.GetFirstSelectedItemPosition())
+	{
+		OnBnClickedOk();
+	}
+
+	*pResult = 0;
 }

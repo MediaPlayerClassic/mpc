@@ -21,7 +21,6 @@
 
 #pragma once
 
-#include "CmdUIDialog.h"
 #include "afxcmn.h"
 #include "afxwin.h"
 

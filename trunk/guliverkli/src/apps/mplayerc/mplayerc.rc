@@ -106,7 +106,7 @@ IDD_CAPTUREDIALOG DIALOGEX 0, 0, 127, 289
 STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
-    GROUPBOX        "Video",IDC_STATIC,3,1,116,59
+    GROUPBOX        "Video",IDC_STATIC1,3,1,116,59
     COMBOBOX        IDC_COMBO4,10,10,62,116,CBS_DROPDOWNLIST | WS_DISABLED | 
                     WS_VSCROLL | WS_TABSTOP
     EDITTEXT        IDC_EDIT3,74,10,38,13,ES_RIGHT | ES_AUTOHSCROLL | 
@@ -231,14 +231,14 @@ STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION |
 CAPTION "Open"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
-    ICON            IDR_MAINFRAME,IDC_STATIC,9,8,21,20
+    ICON            IDR_MAINFRAME,IDC_STATIC,9,8,20,20
     LTEXT           "Type the address of a movie or audio file (on the Internet or your computer) and the player will open it for you.",
-                    IDC_STATIC,35,9,178,28
+                    IDC_STATIC1,35,9,178,28
     LTEXT           "Open:",IDC_STATIC,7,48,21,8
     COMBOBOX        IDC_COMBO1,33,46,163,76,CBS_DROPDOWN | CBS_AUTOHSCROLL | 
                     WS_VSCROLL | WS_TABSTOP
     PUSHBUTTON      "...",IDC_BROWSEBUTTON,200,46,18,13
-    LTEXT           "Dub:",IDC_STATIC1,7,68,16,8
+    LTEXT           "Dub:",IDC_STATIC,7,68,16,8
     COMBOBOX        IDC_COMBO2,33,66,163,20,CBS_DROPDOWN | CBS_AUTOHSCROLL | 
                     WS_VSCROLL | WS_TABSTOP
     PUSHBUTTON      "...",IDC_BROWSEBUTTON2,200,66,18,13
@@ -255,7 +255,7 @@ BEGIN
     LTEXT           "Media Player Classic",IDC_STATIC1,40,10,126,8,
                     SS_NOPREFIX
     LTEXT           "Copyright (C) 2002-2003 Gabest",IDC_STATIC,40,21,113,8
-    LTEXT           "Version:\t6.4.6.7",IDC_STATIC,40,33,92,8
+    LTEXT           "Version:\t6.4.6.8",IDC_STATIC,40,33,92,8
     PUSHBUTTON      "OK",IDOK,160,8,50,14,WS_GROUP
     LTEXT           "This program is freeware and released under the GNU General Public License.\nDistribution in Codec Packs is allowed, but the author (Gabest) is not liable for the additional content.",
                     IDC_STATIC,11,47,199,34
@@ -699,9 +699,9 @@ CAPTION "Warning"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
     LTEXT           "Media Player Classic could not render some of the pins in the graph, you may not have the needed codecs or filters installed on the system.",
-                    IDC_STATIC,7,7,282,18
+                    IDC_STATIC1,7,7,282,18
     LTEXT           "The following pin(s) failed to find a connectable filter:",
-                    IDC_STATIC,7,28,282,11
+                    IDC_STATIC2,7,28,282,11
     COMBOBOX        IDC_COMBO1,7,39,282,87,CBS_DROPDOWNLIST | WS_VSCROLL | 
                     WS_TABSTOP
     EDITTEXT        IDC_EDIT1,7,55,282,138,ES_MULTILINE | ES_AUTOHSCROLL | 
@@ -752,17 +752,18 @@ FONT 8, "MS Sans Serif", 0, 0, 0x0
 BEGIN
 END
 
-IDD_ADDREGFILTER DIALOGEX 0, 0, 202, 254
-STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | 
-    WS_SYSMENU
+IDD_ADDREGFILTER DIALOGEX 0, 0, 285, 182
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_MAXIMIZEBOX | WS_POPUP | 
+    WS_CAPTION | WS_SYSMENU
 CAPTION "Select Filter"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
-    LISTBOX         IDC_LIST1,5,5,192,226,LBS_SORT | LBS_NOINTEGRALHEIGHT | 
-                    WS_VSCROLL | WS_TABSTOP
-    PUSHBUTTON      "Browse...",IDC_BUTTON1,5,235,50,14
-    DEFPUSHBUTTON   "OK",IDOK,92,235,50,14
-    PUSHBUTTON      "Cancel",IDCANCEL,147,235,50,14
+    CONTROL         "",IDC_LIST2,"SysListView32",LVS_LIST | LVS_SINGLESEL | 
+                    LVS_SORTASCENDING | LVS_ALIGNLEFT | WS_TABSTOP,5,5,275,
+                    154,WS_EX_CLIENTEDGE
+    PUSHBUTTON      "Browse...",IDC_BUTTON1,5,163,50,14
+    DEFPUSHBUTTON   "OK",IDOK,177,163,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,230,163,50,14
 END
 
 IDD_PPAGESUBSTYLE DIALOGEX 0, 0, 296, 198
@@ -873,41 +874,43 @@ IDD_PPAGEFILTERS DIALOGEX 0, 0, 296, 200
 STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
-    GROUPBOX        "Enabled built-in filters",IDC_STATIC,6,5,238,165
-    CONTROL         "Avi Splitter",IDC_CHECK10,"Button",BS_AUTOCHECKBOX | 
+    GROUPBOX        "Enabled built-in filters",IDC_STATIC,6,5,252,180
+    CONTROL         "Avi Splitter",IDC_CHECK_AVI,"Button",BS_AUTOCHECKBOX | 
                     WS_TABSTOP,18,23,51,10
-    CONTROL         "Matroska Splitter",IDC_CHECK7,"Button",BS_AUTOCHECKBOX | 
-                    WS_TABSTOP,18,36,70,10
-    CONTROL         "RealMedia Splitter",IDC_CHECK9,"Button",BS_AUTOCHECKBOX | 
-                    WS_TABSTOP,18,51,73,10
-    CONTROL         "RealVideo Decoder",IDC_CHECK11,"Button",BS_AUTOCHECKBOX | 
-                    WS_TABSTOP,18,65,76,10
-    CONTROL         "RealAudio Decoder",IDC_CHECK12,"Button",BS_AUTOCHECKBOX | 
-                    WS_TABSTOP,18,79,77,10
-    CONTROL         "MPEG-1 Video Decoder",IDC_CHECK13,"Button",
+    CONTROL         "Matroska Splitter",IDC_CHECK_MATROSKA,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,18,36,70,10
+    CONTROL         "RealMedia Splitter",IDC_CHECK_RM,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,18,51,73,10
+    CONTROL         "RealVideo Decoder",IDC_CHECK_RV,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,18,65,76,10
+    CONTROL         "RealAudio Decoder",IDC_CHECK_RA,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,18,79,77,10
+    CONTROL         "MPEG-1 Video Decoder",IDC_CHECK_MPG1,"Button",
                     BS_AUTOCHECKBOX | WS_TABSTOP,18,93,89,10
-    CONTROL         "MPEG-2 Video Decoder",IDC_CHECK14,"Button",
+    CONTROL         "MPEG-2 Video Decoder",IDC_CHECK_MPG2,"Button",
                     BS_AUTOCHECKBOX | WS_TABSTOP,18,107,89,10
-    CONTROL         "MPEG Audio Decoder",IDC_CHECK15,"Button",
+    CONTROL         "MPEG Audio Decoder",IDC_CHECK_MPA,"Button",
                     BS_AUTOCHECKBOX | WS_TABSTOP,18,121,83,10
-    CONTROL         "Audio CD Reader",IDC_CHECK1,"Button",BS_AUTOCHECKBOX | 
-                    WS_TABSTOP,122,23,71,10
-    CONTROL         "VCD/SVCD/XCD Reader",IDC_CHECK2,"Button",
+    CONTROL         "Audio CD Reader",IDC_CHECK_CDDA,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,122,23,71,10
+    CONTROL         "VCD/SVCD/XCD Reader",IDC_CHECK_CDXA,"Button",
                     BS_AUTOCHECKBOX | WS_TABSTOP,122,36,91,10
-    CONTROL         "DVD Video Title Set Reader",IDC_CHECK3,"Button",
+    CONTROL         "DVD Video Title Set Reader",IDC_CHECK_VTS,"Button",
                     BS_AUTOCHECKBOX | WS_TABSTOP,122,51,102,10
-    CONTROL         "FLI/FLC Decoder",IDC_CHECK4,"Button",BS_AUTOCHECKBOX | 
-                    WS_TABSTOP,122,65,69,10
-    CONTROL         "DVD2AVI Project File Decoder",IDC_CHECK5,"Button",
+    CONTROL         "FLI/FLC Decoder",IDC_CHECK_FLIC,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,122,65,69,10
+    CONTROL         "DVD2AVI Project File Decoder",IDC_CHECK_D2V,"Button",
                     BS_AUTOCHECKBOX | WS_TABSTOP,122,79,111,10
-    CONTROL         "DTS/AC3 Parser",IDC_CHECK6,"Button",BS_AUTOCHECKBOX | 
-                    WS_TABSTOP,122,93,67,10
-    CONTROL         "SHOUTcast Receiver",IDC_CHECK8,"Button",BS_AUTOCHECKBOX | 
-                    WS_TABSTOP,122,107,82,10
-    CONTROL         "Smacker && Bink Decoder",IDC_CHECK16,"Button",
+    CONTROL         "DTS/AC3 Parser",IDC_CHECK_DTSAC3,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,122,93,67,10
+    CONTROL         "SHOUTcast Receiver",IDC_CHECK_SHOUTCAST,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,122,107,82,10
+    CONTROL         "Smacker && Bink Decoder",IDC_CHECK_RADGT,"Button",
                     BS_AUTOCHECKBOX | WS_TABSTOP,122,121,93,10
+    CONTROL         "RoQ Decoder (Id Software)",IDC_CHECK_ROQ,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,18,135,104,10
     LTEXT           "If you would like to use the stand-alone version from these filters or a some other replacement, disable them here.",
-                    IDC_STATIC,18,140,212,19
+                    IDC_STATIC,18,154,212,19
 END
 
 IDD_PPAGELOGO DIALOGEX 0, 0, 296, 203
@@ -1024,6 +1027,17 @@ BEGIN
     EDITTEXT        IDC_EDIT3,75,81,129,13,ES_PASSWORD | ES_AUTOHSCROLL
     CONTROL         "Remember my password",IDC_CHECK1,"Button",
                     BS_AUTOCHECKBOX | WS_TABSTOP,75,99,94,10
+END
+
+IDD_PPAGEWEBSERVER DIALOGEX 0, 0, 296, 178
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    CONTROL         "Listen on port:",IDC_CHECK1,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,7,4,63,10
+    CONTROL         "",IDC_STATIC,"Static",SS_ETCHEDHORZ,7,19,282,1
+    EDITTEXT        IDC_EDIT1,71,3,40,12,ES_AUTOHSCROLL
+    LTEXT           "Launch in web browser...",IDC_STATIC1,129,5,152,8
 END
 
 
@@ -1253,10 +1267,10 @@ BEGIN
     IDD_ADDREGFILTER, DIALOG
     BEGIN
         LEFTMARGIN, 5
-        RIGHTMARGIN, 197
+        RIGHTMARGIN, 280
         TOPMARGIN, 5
-        BOTTOMMARGIN, 249
-        HORZGUIDE, 231
+        BOTTOMMARGIN, 177
+        HORZGUIDE, 159
     END
 
     IDD_PPAGEFILTERS, DIALOG
@@ -1264,7 +1278,7 @@ BEGIN
         VERTGUIDE, 6
         VERTGUIDE, 18
         VERTGUIDE, 122
-        VERTGUIDE, 244
+        VERTGUIDE, 258
         VERTGUIDE, 289
         HORZGUIDE, 5
         HORZGUIDE, 33
@@ -1275,6 +1289,7 @@ BEGIN
         HORZGUIDE, 103
         HORZGUIDE, 117
         HORZGUIDE, 131
+        HORZGUIDE, 145
         HORZGUIDE, 198
     END
 
@@ -1310,6 +1325,13 @@ BEGIN
         VERTGUIDE, 75
         VERTGUIDE, 204
         BOTTOMMARGIN, 139
+    END
+
+    IDD_PPAGEWEBSERVER, DIALOG
+    BEGIN
+        RIGHTMARGIN, 289
+        VERTGUIDE, 7
+        VERTGUIDE, 289
     END
 END
 #endif    // APSTUDIO_INVOKED
@@ -1396,8 +1418,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 6,4,6,7
- PRODUCTVERSION 6,4,6,7
+ FILEVERSION 6,4,6,8
+ PRODUCTVERSION 6,4,6,8
  FILEFLAGSMASK 0x1fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -1415,12 +1437,12 @@ BEGIN
             VALUE "Comments", "http://gabest.org/"
             VALUE "CompanyName", "Gabest"
             VALUE "FileDescription", "Media Player Classic"
-            VALUE "FileVersion", "6, 4, 6, 7"
+            VALUE "FileVersion", "6, 4, 6, 8"
             VALUE "InternalName", "Media Player Classic"
             VALUE "LegalCopyright", "Copyright (C) 2002 Gabest"
             VALUE "OriginalFilename", "mplayerc.EXE"
             VALUE "ProductName", "Media Player Classic"
-            VALUE "ProductVersion", "6, 4, 6, 7"
+            VALUE "ProductVersion", "6, 4, 6, 8"
         END
     END
     BLOCK "VarFileInfo"
@@ -1443,7 +1465,7 @@ BEGIN
         MENUITEM "Open &DVD...\tCtrl+D",        ID_FILE_OPENDVD
         MENUITEM "Open De&vice...\tCtrl+V",     ID_FILE_OPENDEVICE
         MENUITEM "Open CD-RO&M",                ID_FILE_OPENCD32814
-        MENUITEM "&Close",                      ID_FILE_CLOSEMEDIA
+        MENUITEM "&Close",                      ID_FILE_CLOSEPLAYLIST
         MENUITEM SEPARATOR
         MENUITEM "&Save As...",                 ID_FILE_SAVEAS
         MENUITEM SEPARATOR
@@ -1684,7 +1706,7 @@ BEGIN
             MENUITEM "Open &DVD...\tCtrl+D",        ID_FILE_OPENDVD
             MENUITEM "Open De&vice...\tCtrl+V",     ID_FILE_OPENDEVICE
             MENUITEM "Open CD-RO&M",                ID_FILE_OPENCD314
-            MENUITEM "&Close",                      ID_FILE_CLOSEMEDIA
+            MENUITEM "&Close",                      ID_FILE_CLOSEPLAYLIST
             MENUITEM SEPARATOR
             MENUITEM "&Save As...",                 313
             MENUITEM SEPARATOR
@@ -2008,21 +2030,23 @@ BEGIN
     IDS_RS_QTVIDEORENDERERTYPE "QTVidRen"
     IDS_RS_APSURACEFUSAGE   "APSurfaceUsage"
     IDS_R_LOGINS            "Logins"
+    IDS_RS_ENABLEWEBSERVER  "EnableWebServer"
+    IDS_RS_WEBSERVERPORT    "WebServerPort"
 END
 
 STRINGTABLE 
 BEGIN
     IDC_DSSYSDEF            "Default video renderer filter for DirectShow. Others will fall back to this one when they can't be loaded for some reason. On Windown XP this is the same as VMR7 (windowed)."
-    IDC_DSOLD               "This is the default renderer of Windows 9x/me/2k. Depending on the visiblity of the video window and your video card's abilies, it will switch between GDI, DirectDraw, Overlay rendering modes dynamically. A true nightmare for developers."
-    IDC_DSVMR7WIN           "The default renderer of Windows XP. Very stable (perhaps with least bugs of all renderers) and just a little slower than the Overlay mixer. Uses DirectDraw and runs in Overlay when it can."
+    IDC_DSOLD               "This is the default renderer of Windows 9x/me/2k. Depending on the visiblity of the video window and your video card's abilies, it will switch between GDI, DirectDraw, Overlay rendering modes dynamically."
+    IDC_DSVMR7WIN           "The default renderer of Windows XP. Very stable and just a little slower than the Overlay mixer. Uses DirectDraw and runs in Overlay when it can."
     IDC_DSVMR9WIN           "Only available if you have DirectX 9 installed. Has the same abilies as VMR7 (windowed), but it will never use Overlay rendering and because of this it may be a little slower than VMR7 (windowed)."
     IDC_DSVMR7REN           "Same as the VMR7 (windowed), but with the Allocator-Presenter plugin of MPC for subtitling. Overlay video mirroring WILL NOT work. 'True Color' desktop color space recommended."
     IDC_DSVMR9REN           "Same as the VMR9 (windowed), but with the Allocator-Presenter plugin of MPC for subtitling. Overlay video mirroring MIGHT work. 'True Color' desktop color space recommended."
     IDC_RMSYSDEF            "Real's own renderer. SMIL scripts will work, but interaction not likely. Uses DirectDraw and runs in Overlay when it can."
-    IDC_RMDX7               "The output of Real's engine gets rendered by the DX7-based Allocator-Presenter of VMR7 (renderless)."
-    IDC_RMDX9               "The output of Real's engine gets rendered by the DX9-based Allocator-Presenter of VMR9 (renderless)."
+    IDC_RMDX7               "The output of Real's engine rendered by the DX7-based Allocator-Presenter of VMR7 (renderless)."
+    IDC_RMDX9               "The output of Real's engine rendered by the DX9-based Allocator-Presenter of VMR9 (renderless)."
     IDC_QTSYSDEF            "QuickTime's own renderer. Gets a little slow when its video area is resized or partially covered by another window. When Overlay is not available it likes to fall back to GDI."
-    IDC_QTDX7               "The output of QuickTime's engine gets rendered by the DX7-based Allocator-Presenter of VMR7 (renderless)."
+    IDC_QTDX7               "The output of QuickTime's engine rendered by the DX7-based Allocator-Presenter of VMR7 (renderless)."
     IDC_DSOVERLAYMIXER      "Always renders in overlay. Generally only YUV formats are allowed, but they are presented directly without any color conversion to RGB. This is the fastest rendering method of all and the only where you can be sure about full screen video mirroring to tv-out activating."
     IDC_REGULARSURF         "Video surface will be allocated as a regular offscreen surface."
     IDC_TEXTURESURF2D       "Video surface will be allocated as a texture but still the 2d functions will be used to copy and stretch it onto the backbuffer. Requires a video card which can allocate 32bit, RGBA, non-power-of-two sized textures and at least in the resolution of the video."
@@ -2031,13 +2055,39 @@ END
 
 STRINGTABLE 
 BEGIN
-    IDC_QTDX9               "The output of QuickTime's engine gets rendered by the DX9-based Allocator-Presenter of VMR9 (renderless)."
+    IDC_QTDX9               "The output of QuickTime's engine rendered by the DX9-based Allocator-Presenter of VMR9 (renderless)."
 END
 
 STRINGTABLE 
 BEGIN
     IDC_DSNULL_UNCOMP       "Same as the normal Null renderer, but this will only connect to uncompressed types."
     IDC_DSNULL_COMP         "Connects to any video-like media type and will send the incoming samples to nowhere. Use it when you don't need the video display and want to save the cpu from working unnecessarily."
+    IDC_CHECK_AVI           "6.4.0.3\nNon-interleaved files are not welcome"
+    IDC_CHECK_CDDA          "6.4.0.0\n2K/XP only"
+    IDC_CHECK_CDXA          "6.4.0.0"
+    IDC_CHECK_VTS           "6.4.0.0"
+    IDC_CHECK_FLIC          "6.4.0.0"
+    IDC_CHECK_D2V           "6.4.0.0"
+    IDC_CHECK_DTSAC3        "6.4.0.0"
+    IDC_CHECK_SHOUTCAST     "6.4.0.1"
+    IDC_CHECK_RM            "6.4.0.7\nRealMedia format categories must be set to 'DirectShow' to make it load, doesn't support streaming"
+    IDC_CHECK_MATROSKA      "6.4.1.9"
+    IDC_CHECK_ROQ           "6.4.0.0"
+END
+
+STRINGTABLE 
+BEGIN
+    IDD_PPAGEWEBSERVER      "Player::Web Interface"
+END
+
+STRINGTABLE 
+BEGIN
+    IDC_CHECK_RV            "6.4.0.7\nNeeds RealVideo decoder dlls, RV10 also works with ffdshow"
+    IDC_CHECK_RA            "6.4.0.7\nNeeds RealAudio decoder dlls, DNET also works with ac3filter"
+    IDC_CHECK_MPG1          "6.4.0.0\nBugus"
+    IDC_CHECK_MPG2          "6.4.0.0"
+    IDC_CHECK_MPA           "6.4.0.0\nDecodes all MPEG audio version and layer, and passes through LPCM"
+    IDC_CHECK_RADGT         "6.4.0.0\nNeeds smackw32.dll and binkw32.dll"
 END
 
 #endif    // English (U.S.) resources

@@ -300,7 +300,7 @@ void CPlayerPlaylistBar::ParsePlayList(CStringList& fns, CStringList* subs)
 						str.MakeLower();
 						str.Trim();
 						if(1 == sscanf(str, "http/%f 200 ok", &ver)) ver = ver;
-						else if(str.Find("content-type:") == 0) contenttype = str.Mid(13);
+						else if(str.Find("content-type:") == 0) contenttype = str.Mid(13).Trim();
 						str.Empty();
 					}
 					else
@@ -614,7 +614,7 @@ BEGIN_MESSAGE_MAP(CPlayerPlaylistBar, CSizingControlBarG)
 	ON_NOTIFY(NM_DBLCLK, IDC_PLAYLIST, OnNMDblclkList)
 //	ON_NOTIFY(NM_CUSTOMDRAW, IDC_PLAYLIST, OnCustomdrawList)
 	ON_WM_DRAWITEM()
-	ON_COMMAND_EX(ID_FILE_CLOSEMEDIA, OnFileClosemedia)
+	ON_COMMAND_EX(ID_FILE_CLOSEPLAYLIST, OnFileClosePlaylist)
 	ON_COMMAND_EX(ID_PLAY_PLAY, OnPlayPlay)
 	ON_WM_DROPFILES()
 	ON_NOTIFY(LVN_BEGINDRAG, IDC_PLAYLIST, OnBeginDrag)
@@ -837,7 +837,7 @@ void CPlayerPlaylistBar::OnDrawItem(int nIDCtl, LPDRAWITEMSTRUCT lpDrawItemStruc
 	}
 }
 
-BOOL CPlayerPlaylistBar::OnFileClosemedia(UINT nID)
+BOOL CPlayerPlaylistBar::OnFileClosePlaylist(UINT nID)
 {
 	Empty();
 	return FALSE;

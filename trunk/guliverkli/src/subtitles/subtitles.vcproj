@@ -296,6 +296,9 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath=".\SubtitleInputPin.cpp">
+			</File>
+			<File
 				RelativePath="TextFile.cpp">
 			</File>
 			<File
@@ -356,6 +359,9 @@
 			</File>
 			<File
 				RelativePath="STS.h">
+			</File>
+			<File
+				RelativePath=".\SubtitleInputPin.h">
 			</File>
 			<File
 				RelativePath="TextFile.h">

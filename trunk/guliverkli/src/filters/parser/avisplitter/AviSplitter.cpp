@@ -226,6 +226,8 @@ HRESULT CAviSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 	{
 		CAviFile::strm_t* s = m_pFile->m_strms[i];
 
+		if(s->cs.GetCount() == 0) continue;
+
 		CMediaType mt;
 		CArray<CMediaType> mts;
 		
@@ -587,7 +589,7 @@ HRESULT CAviSplitterFilter::DoDeliverLoop(UINT64 end)
 			{
 				CAviFile::strm_t* s = m_pFile->m_strms[TrackNumber];
 
-				if(!s->IsRawSubtitleStream())
+				if(!s->IsRawSubtitleStream() && s->cs.GetCount())
 				{
 					WORD type = TRACKTYPE(id);
 
@@ -1444,7 +1446,8 @@ clock_t t = clock();
 		if(!s->IsRawSubtitleStream())
 		{
 			strm_t::chunk2& cs2 = s->cs2[curchunk];
-			cs2.t = (DWORD)(s->GetRefTime(curchunk, cursize)>>13/*/10000*/); // for comparing later it is just as good as /10000 to get a near [ms] accuracy
+//			cs2.t = (DWORD)(s->GetRefTime(curchunk, cursize)>>13/*/10000*/); // for comparing later it is just as good as /10000 to get a near [ms] accuracy
+			cs2.t = (DWORD)(s->GetRefTime(curchunk, cursize)/10000);
 			cs2.n = end++;
 		}
 

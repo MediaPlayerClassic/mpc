@@ -268,15 +268,6 @@
 				RelativePath="DSUtil.cpp">
 			</File>
 			<File
-				RelativePath=".\HttpSocket.cpp">
-				<FileConfiguration
-					Name="Debug Unicode|Win32"
-					ExcludedFromBuild="TRUE">
-					<Tool
-						Name="VCCLCompilerTool"/>
-				</FileConfiguration>
-			</File>
-			<File
 				RelativePath="MediaTypes.cpp">
 			</File>
 			<File
@@ -310,6 +301,9 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath=".\text.cpp">
+			</File>
+			<File
 				RelativePath=".\vd.cpp">
 			</File>
 		</Filter>
@@ -320,15 +314,6 @@
 				RelativePath="DSUtil.h">
 			</File>
 			<File
-				RelativePath=".\HttpSocket.h">
-				<FileConfiguration
-					Name="Debug Unicode|Win32"
-					ExcludedFromBuild="TRUE">
-					<Tool
-						Name="VCCustomBuildTool"/>
-				</FileConfiguration>
-			</File>
-			<File
 				RelativePath="MediaTypes.h">
 			</File>
 			<File
@@ -336,6 +321,9 @@
 			</File>
 			<File
 				RelativePath="stdafx.h">
+			</File>
+			<File
+				RelativePath=".\text.h">
 			</File>
 			<File
 				RelativePath=".\vd.h">

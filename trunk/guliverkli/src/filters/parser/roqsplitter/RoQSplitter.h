@@ -23,6 +23,20 @@
 
 #include "..\BaseSplitter\BaseSplitter.h"
 
+// {48B93619-A959-45d9-B5FD-E12A67A96CF1}
+DEFINE_GUID(MEDIASUBTYPE_RoQ, 
+0x48b93619, 0xa959, 0x45d9, 0xb5, 0xfd, 0xe1, 0x2a, 0x67, 0xa9, 0x6c, 0xf1);
+
+// 56516F52-0000-0010-8000-00AA00389B71  'RoQV' == MEDIASUBTYPE_RoQV
+DEFINE_GUID(MEDIASUBTYPE_RoQV,
+0x56516F52, 0x0000, 0x0010, 0x80, 0x00, 0x00, 0xaa, 0x00, 0x38, 0x9b, 0x71);
+
+#define WAVE_FORMAT_RoQA 0x41516F52
+
+// 41516F52-0000-0010-8000-00AA00389B71  'RoQA' == MEDIASUBTYPE_RoQA
+DEFINE_GUID(MEDIASUBTYPE_RoQA,
+WAVE_FORMAT_RoQA, 0x0000, 0x0010, 0x80, 0x00, 0x00, 0xaa, 0x00, 0x38, 0x9b, 0x71);
+
 #pragma pack(push, 1)
 struct roq_chunk {WORD id; DWORD size; WORD arg;};
 struct roq_info {WORD w, h, unk1, unk2;};
@@ -32,8 +46,11 @@ struct roq_info {WORD w, h, unk1, unk2;};
 class CRoQSplitterFilter : public CBaseSplitterFilter
 {
 	CComPtr<IAsyncReader> m_pAsyncReader;
-
 	REFERENCE_TIME m_rtDuration;
+
+	struct index {REFERENCE_TIME rtv, rta; __int64 fp;};
+	CList<index> m_index;
+	POSITION m_indexpos;
 
 protected:
 	HRESULT CreateOutputs(IAsyncReader* pAsyncReader);
@@ -65,10 +82,13 @@ public:
 #endif
 };
 
-
 [uuid("FBEFC5EC-ABA0-4E6C-ACA3-D05FDFEFB853")]
 class CRoQVideoDecoder : public CTransformFilter
 {
+	CCritSec m_csReceive;
+
+	REFERENCE_TIME m_rtStart;
+
 	BYTE* m_y[2];
 	BYTE* m_u[2];
 	BYTE* m_v[2];
@@ -92,6 +112,9 @@ public:
 #ifdef REGISTER_FILTER
     static CUnknown* WINAPI CreateInstance(LPUNKNOWN lpunk, HRESULT* phr);
 #endif
+
+    HRESULT NewSegment(REFERENCE_TIME tStart, REFERENCE_TIME tStop, double dRate);
+
 	HRESULT Transform(IMediaSample* pIn, IMediaSample* pOut);
 	HRESULT CheckInputType(const CMediaType* mtIn);
 	HRESULT CheckTransform(const CMediaType* mtIn, const CMediaType* mtOut);

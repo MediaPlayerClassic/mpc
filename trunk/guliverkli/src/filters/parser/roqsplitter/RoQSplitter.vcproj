@@ -32,7 +32,8 @@
 			<Tool
 				Name="VCCustomBuildTool"/>
 			<Tool
-				Name="VCLibrarianTool"/>
+				Name="VCLibrarianTool"
+				OutputFile="../../../../lib/$(ProjectName)D.lib"/>
 			<Tool
 				Name="VCMIDLTool"/>
 			<Tool
@@ -76,7 +77,8 @@
 			<Tool
 				Name="VCCustomBuildTool"/>
 			<Tool
-				Name="VCLibrarianTool"/>
+				Name="VCLibrarianTool"
+				OutputFile="../../../../lib/$(ProjectName)R.lib"/>
 			<Tool
 				Name="VCMIDLTool"/>
 			<Tool
@@ -118,7 +120,8 @@
 			<Tool
 				Name="VCCustomBuildTool"/>
 			<Tool
-				Name="VCLibrarianTool"/>
+				Name="VCLibrarianTool"
+				OutputFile="../../../../lib/$(ProjectName)DU.lib"/>
 			<Tool
 				Name="VCMIDLTool"/>
 			<Tool
@@ -162,7 +165,8 @@
 			<Tool
 				Name="VCCustomBuildTool"/>
 			<Tool
-				Name="VCLibrarianTool"/>
+				Name="VCLibrarianTool"
+				OutputFile="../../../../lib/$(ProjectName)RU.lib"/>
 			<Tool
 				Name="VCMIDLTool"/>
 			<Tool

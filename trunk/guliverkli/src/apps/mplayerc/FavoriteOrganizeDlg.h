@@ -22,13 +22,14 @@
 #pragma once
 #include "afxcmn.h"
 #include "afxwin.h"
+#include "..\..\ui\ResizableLib\ResizableDialog.h"
 
 
 // CFavoriteOrganizeDlg dialog
 
-class CFavoriteOrganizeDlg : public CDialog
+class CFavoriteOrganizeDlg : public CResizableDialog
 {
-	DECLARE_DYNAMIC(CFavoriteOrganizeDlg)
+//	DECLARE_DYNAMIC(CFavoriteOrganizeDlg)
 
 private:
 	CStringList m_sl[3];
@@ -60,4 +61,5 @@ public:
 	afx_msg void OnBnClickedOk();
 	afx_msg void OnActivate(UINT nState, CWnd* pWndOther, BOOL bMinimized);
 	afx_msg void OnLvnEndlabeleditList2(NMHDR *pNMHDR, LRESULT *pResult);
+	afx_msg void OnSize(UINT nType, int cx, int cy);
 };

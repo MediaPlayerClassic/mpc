@@ -248,7 +248,7 @@ STDMETHODIMP CDX9SubPic::AlphaBlt(RECT* pSrc, RECT* pDst, SubPicDesc* pTarget)
 		hr = pD3DDev->SetSamplerState(0, D3DSAMP_ADDRESSU, D3DTADDRESS_CLAMP);
 		hr = pD3DDev->SetSamplerState(0, D3DSAMP_ADDRESSV, D3DTADDRESS_CLAMP);
 
-		//
+		/*//
 
 		D3DCAPS9 d3dcaps9;
 		hr = pD3DDev->GetDeviceCaps(&d3dcaps9);
@@ -259,7 +259,7 @@ STDMETHODIMP CDX9SubPic::AlphaBlt(RECT* pSrc, RECT* pDst, SubPicDesc* pTarget)
 			hr = pD3DDev->SetRenderState(D3DRS_ALPHAFUNC, D3DPCMPCAPS_LESS);
 		}
 
-		//
+		*///
 
 		if(FAILED(hr = pD3DDev->BeginScene()))
 			break;

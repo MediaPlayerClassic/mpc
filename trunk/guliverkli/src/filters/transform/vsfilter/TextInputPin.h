@@ -21,26 +21,20 @@
 
 #pragma once
 
+#include "..\..\..\subtitles\SubtitleInputPin.h"
+
 class CDirectVobSubFilter;
 
-class CTextInputPin : public CBaseInputPin
+class CTextInputPin : public CSubtitleInputPin
 {
-    CDirectVobSubFilter* m_pFilter;
+    CDirectVobSubFilter* m_pDVS;
 
-	CCritSec* m_pSubLock;
-	CComPtr<ISubStream> m_pSubStream;
-
-	CCritSec m_csReceive;
+protected:
+	void AddSubStream(ISubStream* pSubStream);
+	void RemoveSubStream(ISubStream* pSubStream);
+	void InvalidateSubtitle(REFERENCE_TIME rtStart, ISubStream* pSubStream);
 
 public:
     CTextInputPin(CDirectVobSubFilter* pFilter, CCritSec* pLock, CCritSec* pSubLock, HRESULT* phr);
-
-    HRESULT CheckMediaType(const CMediaType* pmt);
-	HRESULT CompleteConnect(IPin* pReceivePin);
-	HRESULT BreakConnect();
-    STDMETHODIMP NewSegment(REFERENCE_TIME tStart, REFERENCE_TIME tStop, double dRate);
-    STDMETHODIMP Receive(IMediaSample* pSample);
-
-	ISubStream* GetSubStream() {return m_pSubStream;}
 };
 

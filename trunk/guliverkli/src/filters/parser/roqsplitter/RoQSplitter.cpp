@@ -20,24 +20,9 @@
  */
 
 #include "StdAfx.h"
-#include "RoQSplitter.h"
-
 #include <initguid.h>
+#include "RoQSplitter.h"
 #include "..\..\..\..\include\moreuuids.h"
-
-// {48B93619-A959-45d9-B5FD-E12A67A96CF1}
-DEFINE_GUID(MEDIASUBTYPE_RoQ, 
-0x48b93619, 0xa959, 0x45d9, 0xb5, 0xfd, 0xe1, 0x2a, 0x67, 0xa9, 0x6c, 0xf1);
-
-// 56516F52-0000-0010-8000-00AA00389B71  'RoQV' == MEDIASUBTYPE_RoQV
-DEFINE_GUID(MEDIASUBTYPE_RoQV,
-0x56516F52, 0x0000, 0x0010, 0x80, 0x00, 0x00, 0xaa, 0x00, 0x38, 0x9b, 0x71);
-
-#define WAVE_FORMAT_RoQA 0x41516F52
-
-// 41516F52-0000-0010-8000-00AA00389B71  'RoQA' == MEDIASUBTYPE_RoQA
-DEFINE_GUID(MEDIASUBTYPE_RoQA,
-WAVE_FORMAT_RoQA, 0x0000, 0x0010, 0x80, 0x00, 0x00, 0xaa, 0x00, 0x38, 0x9b, 0x71);
 
 #ifdef REGISTER_FILTER
 
@@ -241,6 +226,9 @@ HRESULT CRoQSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 	int iHasVideo = 0;
 	int iHasAudio = 0;
 
+	m_index.RemoveAll();
+	__int64 audiosamples = 0;
+
 	roq_info ri;
 	memset(&ri, 0, sizeof(ri));
 
@@ -257,7 +245,7 @@ HRESULT CRoQSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 			if(S_OK != m_pAsyncReader->SyncRead(pos, sizeof(ri), (BYTE*)&ri) || ri.w == 0 || ri.h == 0)
 				break;
 		}
-		else if(rc.id == 0x1010 || rc.id == 0x1011)
+		else if(rc.id == 0x1002 || rc.id == 0x1011)
 		{
 			if(!iHasVideo && ri.w > 0 && ri.h > 0)
 			{
@@ -288,7 +276,16 @@ HRESULT CRoQSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 				}
 			}
 
-			iHasVideo++;
+			if(rc.id == 0x1002)
+			{
+				iHasVideo++;
+
+				index i;
+				i.rtv = 10000000i64*m_index.GetCount()/30;
+				i.rta = 10000000i64*audiosamples/22050;
+				i.fp = pos - sizeof(rc);
+				m_index.AddTail(i);
+			}
 		}
 		else if(rc.id == 0x1020 || rc.id == 0x1021)
 		{
@@ -319,6 +316,8 @@ HRESULT CRoQSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 			}
 
 			iHasAudio++;
+
+			audiosamples += rc.size / ((rc.id&1)+1);
 		}
 
 		pos += rc.size;
@@ -333,23 +332,36 @@ HRESULT CRoQSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 
 bool CRoQSplitterFilter::InitDeliverLoop()
 {
-	// TODO
+	m_indexpos = m_index.GetHeadPosition();
 
 	return(true);
 }
 
 void CRoQSplitterFilter::SeekDeliverLoop(REFERENCE_TIME rt)
 {
-	// TODO
+	if(rt <= 0)
+	{
+		m_indexpos = m_index.GetHeadPosition();
+	}
+	else
+	{
+		m_indexpos = m_index.GetTailPosition();
+		while(m_indexpos && m_index.GetPrev(m_indexpos).rtv > rt);
+	}
 }
 
 void CRoQSplitterFilter::DoDeliverLoop()
 {
-	REFERENCE_TIME rtVideo = 0, rtAudio = 0;
+	if(!m_indexpos) return;
+
+	index& i = m_index.GetAt(m_indexpos);
+
+	REFERENCE_TIME rtVideo = i.rtv, rtAudio = i.rta;
 
 	HRESULT hr = S_OK;
 
-	UINT64 pos = 8;
+	UINT64 pos = i.fp;
+
 	roq_chunk rc;
 	while(S_OK == (hr = m_pAsyncReader->SyncRead(pos, sizeof(rc), (BYTE*)&rc))
 		&& !CheckRequest(NULL))
@@ -579,8 +591,29 @@ void CRoQVideoDecoder::apply_motion_8x8(int x, int y, unsigned char mv, char mea
 	}
 }
 
+HRESULT CRoQVideoDecoder::NewSegment(REFERENCE_TIME tStart, REFERENCE_TIME tStop, double dRate)
+{
+	CAutoLock cAutoLock(&m_csReceive);
+
+	m_rtStart = tStart;
+
+	BITMAPINFOHEADER bih;
+	ExtractBIH(&m_pInput->CurrentMediaType(), &bih);
+
+	int size = bih.biWidth*bih.biHeight;
+
+	memset(m_y[0], 0, size);
+	memset(m_u[0], 0x80, size/2);
+	memset(m_y[1], 0, size);
+	memset(m_u[1], 0x80, size/2);
+
+	return __super::NewSegment(tStart, tStop, dRate);
+}
+
 HRESULT CRoQVideoDecoder::Transform(IMediaSample* pIn, IMediaSample* pOut)
 {
+	CAutoLock cAutoLock(&m_csReceive);
+
 	HRESULT hr;
 
 	AM_MEDIA_TYPE* pmt;
@@ -597,7 +630,7 @@ HRESULT CRoQVideoDecoder::Transform(IMediaSample* pIn, IMediaSample* pOut)
 	long len = pIn->GetActualDataLength();
 	if(len <= 0) return S_OK; // nothing to do
 
-	REFERENCE_TIME rtStart, rtStop;
+	REFERENCE_TIME rtStart = 0, rtStop = 0;
 	pIn->GetTime(&rtStart, &rtStop);
 
 	if(pIn->IsPreroll() == S_OK || rtStart < 0)
@@ -632,6 +665,8 @@ HRESULT CRoQVideoDecoder::Transform(IMediaSample* pIn, IMediaSample* pOut)
 		for(int i = 0; i < (int)nv2; i++)
 			for(int j = 0; j < 4; j++)
 				m_qcells[i].idx[j] = &m_cells[*pDataIn++];
+
+		return S_FALSE;
 	}
 	else if(rc->id == 0x1011)
 	{
@@ -719,7 +754,7 @@ HRESULT CRoQVideoDecoder::Transform(IMediaSample* pIn, IMediaSample* pOut)
 			if(xpos >= w) {xpos -= w; ypos += 16;}
 		}
 
-		if(rtStart == 0)
+		if(m_rtStart+rtStart == 0)
 		{
 			memcpy(m_y[1], m_y[0], w*h*3/2);
 		}
@@ -735,6 +770,9 @@ HRESULT CRoQVideoDecoder::Transform(IMediaSample* pIn, IMediaSample* pOut)
 	{
 		return E_UNEXPECTED;
 	}
+
+	if(rtStart < 0)
+		return S_FALSE;
 
 	Copy(pDataOut, m_y[1], w, h);
 
@@ -900,11 +938,6 @@ HRESULT CRoQVideoDecoder::StartStreaming()
 	m_y[1] = new BYTE[size*3/2];
 	m_u[1] = m_y[1] + size;
 	m_v[1] = m_y[1] + size*5/4;
-
-	memset(m_y[0], 0, size);
-	memset(m_u[0], 0x80, size/2);
-	memset(m_y[1], 0, size);
-	memset(m_u[1], 0x80, size/2);
 
 	m_pitch = bih.biWidth;
 
