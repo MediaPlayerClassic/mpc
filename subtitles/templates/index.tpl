@@ -1,33 +1,5 @@
 {* Smarty *}
 
-{if !empty($player)}
-
-{if !empty($movies)}
-ticket={$ticket}
-{foreach from=$movies item=m}
-movie={foreach from=$m.titles item=t}{$t}|{/foreach}
-
-{foreach from=$m.subs item=s}
-{if !empty($s.files)}
-subtitle={$s.id}
-name={$s.name}
-discs={$s.discs}
-disc_no={$s.disc_no}
-format={$s.format}
-iso639_2={$s.iso639_2}
-language={$s.language}
-nick={$s.nick}
-email={$s.email}
-endsubtitle
-{/if}
-{/foreach}
-endmovie
-{/foreach}
-end
-{/if}
-
-{else}
-
 <div class="search" align="center">
 
 	<form action="{$smarty.server.PHP_SELF}" method="GET">
@@ -146,5 +118,3 @@ end
 {/if}
 
 </div>
-
-{/if}

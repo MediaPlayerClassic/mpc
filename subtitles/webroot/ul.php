@@ -56,7 +56,7 @@ function getIMDbTitles($imdb_url)
 		
 		if(preg_match('/<title>(.+)<\/title>/i', $str, $regs))
 //		if(preg_match('/<strong class="title">(.+)<\/strong>/i', $str, $regs))
-			$titles[] = trim(strip_tags($regs[1]));
+			$titles[] = html2utf8(trim(strip_tags($regs[1])));
 
 		// TODO: stripos
 		$aka = '<b class="ch">Also Known As';
@@ -68,7 +68,7 @@ function getIMDbTitles($imdb_url)
 			{
 				$title = trim(strip_tags($title));
 				if($i = strpos($title, ') ')) $title = substr($title, 0, $i+1);
-				if(!empty($title) && strlen($title) > 1) $titles[] = $title;
+				if(!empty($title) && strlen($title) > 1) $titles[] = html2utf8($title);
 			}
 		}
 	}
@@ -278,8 +278,6 @@ if(isset($_POST['update']) || isset($_POST['submit']))
 			
 			$files[] = $_SESSION['file'][$file_sel];
 		}
-		
-		var_dump($files);
 	}
 	
 	if(!empty($email) && !empty($nick))
