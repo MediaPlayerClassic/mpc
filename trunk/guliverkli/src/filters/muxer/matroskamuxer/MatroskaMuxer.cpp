@@ -868,7 +868,7 @@ HRESULT CMatroskaMuxerInputPin::CompleteConnect(IPin* pPin)
 
 		if(m_mt.formattype == FORMAT_WaveFormatEx 
 		&& ((WAVEFORMATEX*)m_mt.pbFormat)->wFormatTag == WAVE_FORMAT_AAC
-		&& m_mt.cbFormat == sizeof(WAVEFORMATEX)+2)
+		&& m_mt.cbFormat >= sizeof(WAVEFORMATEX)+2)
 		{
 			switch((*(m_mt.pbFormat + sizeof(WAVEFORMATEX)) >> 3) - 1)
 			{
@@ -876,6 +876,8 @@ HRESULT CMatroskaMuxerInputPin::CompleteConnect(IPin* pPin)
 			case 0: m_pTE->CodecID.Set("A_AAC/MPEG2/MAIN"); break;
 			case 1: m_pTE->CodecID.Set("A_AAC/MPEG2/LC"); break;
 			case 2: m_pTE->CodecID.Set("A_AAC/MPEG2/SSR"); break;
+			case 3: m_pTE->CodecID.Set("A_AAC/MPEG4/LTP"); break;
+			case 4: m_pTE->CodecID.Set("A_AAC/MPEG4/SBR"); break;
 			}
 
 			WAVEFORMATEX* wfe = (WAVEFORMATEX*)m_mt.pbFormat;

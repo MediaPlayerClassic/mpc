@@ -143,13 +143,6 @@ HRESULT CTextPassThruFilter::Transform(IMediaSample* pIn, IMediaSample* pOut)
 				str.Replace("\r\n", "\n");
 				str.Trim();
 
-				str.Replace("<i>", "{\\i1}");
-				str.Replace("</i>", "{\\i}");
-				str.Replace("<b>", "{\\b1}");
-				str.Replace("</b>", "{\\b}");
-				str.Replace("<u>", "{\\u1}");
-				str.Replace("</u>", "{\\u}");
-
 				if(!str.IsEmpty() && rtStart < rtStop)
 				{
 					CAutoLock cAutoLock(&m_pMainFrame->m_csSubLock);
@@ -356,5 +349,22 @@ HRESULT CTextPassThruFilter::NewSegment(REFERENCE_TIME tStart, REFERENCE_TIME tS
 		pRTS->CreateSegments();
 	}
 
-	return __super::NewSegment(tStart, tStop, dRate);
+	HRESULT hr = __super::NewSegment(tStart, tStop, dRate);
+	if(FAILED(hr)) return hr;
+
+	if(m_pOutput->IsConnected() 
+	&& GetCLSID(GetFilterFromPin(m_pOutput->GetConnected())) == 
+		GUIDFromCString(_T("{48025243-2D39-11CE-875D-00608CB78066}"))) // ISCR
+	{
+		CComPtr<IMediaSample> pSample;
+		if(SUCCEEDED(m_pOutput->GetDeliveryBuffer(&pSample, NULL, NULL, 0)))
+		{
+			REFERENCE_TIME rtStart = 0, rtStop = 1;
+			pSample->SetTime(&rtStart, &rtStop);
+			pSample->SetActualDataLength(1);
+			m_pOutput->Deliver(pSample);
+		}
+	}
+
+	return hr;
 }

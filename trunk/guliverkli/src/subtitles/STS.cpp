@@ -155,6 +155,7 @@ struct htmlcolor {TCHAR* name; DWORD color;} hmtlcolors[] =
 	{_T("orchid"), 0xda70d6}, 
 	{_T("mediumorchid"), 0xba55d3}, 
 	{_T("mediumpurple"), 0x9370db}, 
+	{_T("purple"), 0x9370db}, 
 	{_T("blueviolet"), 0x8a2be2}, 
 	{_T("darkviolet"), 0x9400d3}, 
 	{_T("darkorchid"), 0x9932cc}, 

@@ -388,25 +388,32 @@ HRESULT CRealMediaSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 			fcc = 0;
 			fccstr[4] = 0;
 
-			rainfo rai = *(rainfo*)pmp->typeSpecData.GetData();
+			BYTE* fmt = pmp->typeSpecData.GetData();
+			for(int i = 0; i < pmp->typeSpecData.GetSize()-4; i++, fmt++)
+			{
+				if(fmt[0] == '.' || fmt[1] == 'r' || fmt[2] == 'a')
+					break;
+			}
+
+			rainfo rai = *(rainfo*)fmt;
 			rai.bswap();
 
 			if(rai.version2 == 4)
 			{
-				rainfo4 rai4 = *(rainfo4*)pmp->typeSpecData.GetData();
+				rainfo4 rai4 = *(rainfo4*)fmt;
 				rai4.bswap();
 				pwfe->nChannels = rai4.channels;
 				pwfe->wBitsPerSample = rai4.sample_size;
 				pwfe->nSamplesPerSec = rai4.sample_rate;
 				pwfe->nBlockAlign = rai4.frame_size;
-				BYTE* p = (BYTE*)((rainfo4*)pmp->typeSpecData.GetData()+1);
+				BYTE* p = (BYTE*)((rainfo4*)fmt+1);
 				int len = *p++; p += len; len = *p++; ASSERT(len == 4);
 				if(len == 4)
 				fcc = MAKEFOURCC(p[0],p[1],p[2],p[3]);
 			}
 			else if(rai.version2 == 5)
 			{
-				rainfo5 rai5 = *(rainfo5*)pmp->typeSpecData.GetData();
+				rainfo5 rai5 = *(rainfo5*)fmt;
 				rai5.bswap();
 				pwfe->nChannels = rai5.channels;
 				pwfe->wBitsPerSample = rai5.sample_size;
@@ -1939,21 +1946,27 @@ HRESULT CRealAudioDecoder::InitRA(const CMediaType* pmt)
 	if(pmt->FormatLength() <= sizeof(WAVEFORMATEX) + cbSize) // must have type_specific_data appended
 		return hr;
 
-	BYTE* tsd = pmt->Format() + sizeof(WAVEFORMATEX) + cbSize;
+	BYTE* fmt = pmt->Format() + sizeof(WAVEFORMATEX) + cbSize;
 	BYTE* p = NULL;
 
-	m_rai = *(rainfo*)tsd;
+	for(int i = 0, len = pmt->FormatLength() - (sizeof(WAVEFORMATEX) + cbSize); i < len-4; i++, fmt++)
+	{
+		if(fmt[0] == '.' || fmt[1] == 'r' || fmt[2] == 'a')
+			break;
+	}
+
+	m_rai = *(rainfo*)fmt;
 	m_rai.bswap();
 
 	if(m_rai.version2 == 4)
 	{
-		p = (BYTE*)((rainfo4*)tsd+1);
+		p = (BYTE*)((rainfo4*)fmt+1);
 		int len = *p++; p += len; len = *p++; p += len; 
 		ASSERT(len == 4);		
 	}
 	else if(m_rai.version2 == 5)
 	{
-		p = (BYTE*)((rainfo5*)tsd+1);
+		p = (BYTE*)((rainfo5*)fmt+1);
 	}
 	else
 	{
@@ -1964,12 +1977,12 @@ HRESULT CRealAudioDecoder::InitRA(const CMediaType* pmt)
 	if(m_rai.version2 == 5) p++;
 
 	#pragma pack(push, 1)
-	struct {DWORD freq; WORD bpsample, channels, quality; DWORD bpframe, packetsize, extralen; void* extra;} i =
+	struct {DWORD freq; WORD bpsample, channels, quality; DWORD bpframe, packetsize, extralen; void* extra;} initdata =
 		{pwfe->nSamplesPerSec, pwfe->wBitsPerSample, pwfe->nChannels, 100, 
 		m_rai.sub_packet_size, m_rai.coded_frame_size, *(DWORD*)p, p + 4};
 	#pragma pack(pop)
 
-	if(FAILED(hr = RAInitDecoder(m_dwCookie, &i)))
+	if(FAILED(hr = RAInitDecoder(m_dwCookie, &initdata)))
 		return hr;
 
 	if(RASetPwd)

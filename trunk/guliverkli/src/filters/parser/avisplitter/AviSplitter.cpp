@@ -23,11 +23,64 @@
 #include <mmreg.h>
 #include "..\..\..\DSUtil\DSUtil.h"
 #include "AviSplitter.h"
-/*
-#include <initguid.h>
-#include "..\..\..\..\include\ogg\OggDS.h"
-#include "..\..\..\..\include\moreuuids.h"
-*/
+
+/////////
+
+#include <Aviriff.h> // conflicts with vfw.h..., so we have to define CAviFile here and not in the .h file
+
+class CAviFile
+{
+	CComPtr<IAsyncReader> m_pReader;
+	UINT64 m_pos, m_len;
+
+	HRESULT Init();
+	HRESULT Parse(DWORD parentid, UINT64 end);
+
+public:
+	CAviFile(IAsyncReader* pReader, HRESULT& hr);
+
+	UINT64 GetPos() {return m_pos;}
+	UINT64 GetLength() {return m_len;}
+	void Seek(UINT64 pos) {m_pos = pos;}
+	HRESULT Read(void* pData, LONG len);
+	template<typename T> HRESULT Read(T& var, int offset = 0);
+
+	AVIMAINHEADER m_avih;
+	struct ODMLExtendedAVIHeader {DWORD dwTotalFrames;} m_dmlh;
+//	VideoPropHeader m_vprp;
+	struct strm_t
+	{
+		AVISTREAMHEADER strh;
+		CArray<BYTE> strf;
+		CStringA strn;
+		CAutoPtr<AVISUPERINDEX> indx;
+//		struct chunk {UINT64 size, filepos; bool fKeyFrame;};
+		struct chunk {union {UINT64 size:63, fKeyFrame:1;}; UINT64 filepos;}; // making it a union saves a couple of megs
+		CArray<chunk> cs;
+		UINT64 totalsize;
+		REFERENCE_TIME GetRefTime(DWORD frame, UINT64 size);
+		int GetFrame(REFERENCE_TIME rt);
+		int GetKeyFrame(REFERENCE_TIME rt);
+		DWORD GetChunkSize(DWORD size);
+		bool IsRawSubtitleStream();
+	};
+	CAutoPtrArray<strm_t> m_strms;
+	CMap<DWORD, DWORD&, CStringA, CStringA&> m_info;
+	CAutoPtr<AVIOLDINDEX> m_idx1;
+
+	CList<UINT64> m_movis;
+    
+	REFERENCE_TIME GetTotalTime();
+	HRESULT BuildIndex();
+	void EmptyIndex();
+	bool IsInterleaved();
+};
+
+#define TRACKNUM(fcc) (10*((fcc&0xff)-0x30) + (((fcc>>8)&0xff)-0x30))
+#define TRACKTYPE(fcc) ((WORD)((((DWORD)fcc>>24)&0xff)|((fcc>>8)&0xff00)))
+
+///////
+
 #ifdef REGISTER_FILTER
 
 const AMOVIESETUP_MEDIATYPE sudPinTypesIn[] =
@@ -434,7 +487,8 @@ void CAviSplitterFilter::SeekDeliverLoop(REFERENCE_TIME rt)
 			int f = s->GetKeyFrame(rt);
 			m_tFilePos[j] = f >= 0 ? s->cs[f].filepos : 0;
 
-			minfilepos = min(minfilepos, m_tFilePos[j]);
+			if(!s->IsRawSubtitleStream())
+				minfilepos = min(minfilepos, m_tFilePos[j]);
 		}
 
 		m_pFile->Seek(minfilepos);
@@ -570,13 +624,13 @@ HRESULT CAviSplitterFilter::DoDeliverLoop(UINT64 end)
 						{
 							p->pData.SetSize(size);
 							if(S_OK != (hr = m_pFile->Read(p->pData.GetData(), p->pData.GetSize()))) break;
-
+/*
 							DbgLog((LOG_TRACE, 0, _T("%d (%d): %I64d - %I64d, %I64d - %I64d (size = %d)"), 
 								p->TrackNumber, (int)p->bSyncPoint,
 								(p->rtStart)/10000, (p->rtStop)/10000, 
 								(p->rtStart-m_rtStart)/10000, (p->rtStop-m_rtStart)/10000,
 								size));
-
+*/
 							hr = DeliverPacket(p);
 						}
 					}
@@ -1105,11 +1159,11 @@ REFERENCE_TIME CAviFile::strm_t::GetRefTime(DWORD frame, UINT64 size)
 	{
 		WAVEFORMATEX* wfe = (WAVEFORMATEX*)strf.GetData();
 
-		rt = 10000000i64 * size / wfe->nBlockAlign * strh.dwScale / strh.dwRate;
+		rt = ((10000000i64 * size + wfe->nBlockAlign/2) / wfe->nBlockAlign * strh.dwScale + strh.dwRate/2) / strh.dwRate;
 	}
 	else
 	{
-		rt = 10000000i64 * frame * strh.dwScale / strh.dwRate;
+		rt = (10000000i64 * frame * strh.dwScale + strh.dwRate/2) / strh.dwRate;
 	}
 
 	return(rt);
@@ -1123,7 +1177,7 @@ int CAviFile::strm_t::GetFrame(REFERENCE_TIME rt)
 	{
 		WAVEFORMATEX* wfe = (WAVEFORMATEX*)strf.GetData();
 
-		INT64 size = rt * strh.dwRate / strh.dwScale * wfe->nBlockAlign / 10000000i64;
+		INT64 size = ((rt * strh.dwRate + strh.dwScale/2) / strh.dwScale * wfe->nBlockAlign + 10000000i64/2) / 10000000i64;
 
 		for(frame = 0; frame < cs.GetCount(); frame++)
 		{
@@ -1136,7 +1190,7 @@ int CAviFile::strm_t::GetFrame(REFERENCE_TIME rt)
 	}
 	else
 	{
-		frame = (int)(rt * strh.dwRate / strh.dwScale / 10000000i64);
+		frame = (int)(((rt * strh.dwRate + strh.dwScale/2) / strh.dwScale + 10000000i64/2) / 10000000i64);
 	}
 
 	if(frame >= cs.GetCount())

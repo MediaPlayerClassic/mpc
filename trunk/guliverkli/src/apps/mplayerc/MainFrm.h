@@ -47,6 +47,8 @@
 #include "QuicktimeGraph.h"
 #include "ShockwaveGraph.h"
 
+#include "..\..\..\include\IChapterInfo.h"
+
 enum {PM_NONE, PM_FILE, PM_DVD, PM_CAPTURE};
 
 class OpenMediaData
@@ -217,6 +219,11 @@ class CMainFrame : public CFrameWnd, public CDropTarget
 
 	CInterfaceArray<ISpecifyPropertyPages> m_spparray;
 	CInterfaceArray<IAMStreamSelect> m_ssarray;
+
+	// chapters (file mode)
+
+	typedef struct {REFERENCE_TIME rtStart, rtStop; CString name;} chapter_t;
+	CArray<chapter_t> m_chapters;
 
 	//
 
@@ -538,6 +545,8 @@ protected:  // control bar embedded members
 
 	afx_msg void OnNavigateSkip(UINT nID);
 	afx_msg void OnUpdateNavigateSkip(CCmdUI* pCmdUI);
+	afx_msg void OnNavigateSkipPlaylistItem(UINT nID);
+	afx_msg void OnUpdateNavigateSkipPlaylistItem(CCmdUI* pCmdUI);
 	afx_msg void OnNavigateMenu(UINT nID);
 	afx_msg void OnUpdateNavigateMenu(CCmdUI* pCmdUI);
 	afx_msg void OnNavigateAudio(UINT nID);

@@ -402,7 +402,9 @@ HRESULT CMatroskaSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 					if(CodecID.Find("/MAIN") > 0) profile = 0;
 					else if(CodecID.Find("/LC") > 0) profile = 1;
 					else if(CodecID.Find("/SSR") > 0) profile = 2;
-					else profile = 3;
+					else if(CodecID.Find("/LTP") > 0) profile = 3;
+					else if(CodecID.Find("/SBR") > 0) profile = 4;
+					else profile = 5;
 
 					if(92017 <= pTE->a.SamplingFrequency) srate_idx = 0;
 					else if(75132 <= pTE->a.SamplingFrequency) srate_idx = 1;
@@ -503,10 +505,10 @@ HRESULT CMatroskaSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 
 			HRESULT hr;
 
-			CAutoPtr<CBaseSplitterOutputPin> pPinOut(new CMatroskaSplitterOutputPin((int)pTE->MinCache, mts, Name, this, this, &hr));
+			CAutoPtr<CBaseSplitterOutputPin> pPinOut(new CMatroskaSplitterOutputPin(
+				(int)pTE->MinCache, pTE->DefaultDuration/100, mts, Name, this, this, &hr));
 			if(pPinOut)
 			{
-
 				m_pPinMap[(DWORD)pTE->TrackNumber] = pPinOut;
 				m_pTrackEntryMap[(DWORD)pTE->TrackNumber] = pTE;
 				m_pOutputs.AddTail(pPinOut);
@@ -923,9 +925,11 @@ CMatroskaSourceFilter::CMatroskaSourceFilter(LPUNKNOWN pUnk, HRESULT* phr)
 // CMatroskaSplitterOutputPin
 //
 
-CMatroskaSplitterOutputPin::CMatroskaSplitterOutputPin(int nMinCache, CArray<CMediaType>& mts, LPCWSTR pName, CBaseFilter* pFilter, CCritSec* pLock, HRESULT* phr)
+CMatroskaSplitterOutputPin::CMatroskaSplitterOutputPin(
+		int nMinCache, REFERENCE_TIME rtDefaultDuration,
+		CArray<CMediaType>& mts, LPCWSTR pName, CBaseFilter* pFilter, CCritSec* pLock, HRESULT* phr)
 	: CBaseSplitterOutputPin(mts, pName, pFilter, pLock, phr)
-	, m_nMinCache(nMinCache)
+	, m_nMinCache(nMinCache), m_rtDefaultDuration(rtDefaultDuration)
 {
 	m_nMinCache = max(m_nMinCache, 2);
 }
@@ -957,7 +961,9 @@ HRESULT CMatroskaSplitterOutputPin::DeliverEndOfStream()
 		MatroskaPacket* mp = m_rob.RemoveHead();
 		if(m_rob.GetCount() && !mp->b->BlockDuration.IsValid()) 
 			mp->rtStop = m_rob.GetHead()->rtStart;
-        
+		else if(m_rob.GetCount() == 0 && m_rtDefaultDuration > 0)
+			mp->rtStop = mp->rtStart + m_rtDefaultDuration;
+
 		timeoverride to = {mp->rtStart, mp->rtStop};
 		m_tos.AddTail(to);
 	}
@@ -976,51 +982,51 @@ HRESULT CMatroskaSplitterOutputPin::DeliverPacket(CAutoPtr<Packet> p)
 	MatroskaPacket* mp = dynamic_cast<MatroskaPacket*>(p.m_p);
 	if(!mp) return __super::DeliverPacket(p);
 
-	CAutoLock cAutoLock(&m_csQueue);
+	// don't try to understand what's happening here, it's magic
 
-	// step 1: append packets
+	CAutoLock cAutoLock(&m_csQueue);
 
 	CAutoPtr<MatroskaPacket> p2;
 	p.Detach();
 	p2.Attach(mp);
-	POSITION packetpos = m_packets.AddTail(p2);
+	m_packets.AddTail(p2);
 
-	// step 2: append, sort rob & remove, set duration of first element when cnt > m_nMinCache
+	POSITION pos = m_rob.GetTailPosition();
+	for(int i = m_nMinCache-1; i > 0 && pos && mp->b->ReferencePriority < m_rob.GetAt(pos)->b->ReferencePriority; i--)
+		m_rob.GetPrev(pos);
 
-	if(m_rob.GetCount() == m_nMinCache)
+	if(!pos) m_rob.AddHead(mp);
+	else m_rob.InsertAfter(pos, mp);
+
+	mp = NULL;
+
+	if(m_rob.GetCount() == m_nMinCache+1)
 	{
-		POSITION pos = m_rob.GetTailPosition();
-
-		for(int i = m_nMinCache-1; i > 0; i--)
+		ASSERT(m_nMinCache > 0);
+		pos = m_rob.GetHeadPosition();
+		MatroskaPacket* mp1 = m_rob.GetNext(pos);
+		MatroskaPacket* mp2 = m_rob.GetNext(pos);
+		if(!mp1->b->BlockDuration.IsValid())
 		{
-			MatroskaPacket* mp2 = m_rob.GetAt(pos);
-			if(mp->b->ReferencePriority >= mp2->b->ReferencePriority) break;
-			m_rob.GetPrev(pos);
+			mp1->b->BlockDuration.Set(1); // just to set it valid
+			mp1->rtStop = mp2->rtStart;
 		}
-
-		m_rob.InsertAfter(pos, mp);
-
 		mp = m_rob.RemoveHead();
-		if(!mp->b->BlockDuration.IsValid())
-		{
-			MatroskaPacket* mp2 = m_rob.GetHead();
-			mp->b->BlockDuration.Set(1); // just to set it valid
-			mp->rtStop = mp2->rtStart;
-		}
+	}
+	else 
+	{
+		MatroskaPacket* mp1 = m_rob.GetHead();
+		if(mp1->b->BlockDuration.IsValid() && mp1->b->ReferencePriority == 0)
+			mp = m_rob.RemoveHead();
+	}
 
+	if(mp)
+	{
 		timeoverride to = {mp->rtStart, mp->rtStop};
 		m_tos.AddTail(to);
 	}
-	else
-	{
-		ASSERT(m_rob.GetCount() < m_nMinCache);
 
-		m_rob.AddTail(mp);
-	}
-
-	// step 3: send out all packets with known ending time from the beginning of the queue
-
-	while(m_packets.GetCount() > m_rob.GetCount())
+	while(m_packets.GetCount())
 	{
 		mp = m_packets.GetHead();
 		if(!mp->b->BlockDuration.IsValid()) break;
@@ -1040,7 +1046,8 @@ HRESULT CMatroskaSplitterOutputPin::DeliverBlock(MatroskaPacket* p)
 	if(m_tos.GetCount())
 	{
 		timeoverride to = m_tos.RemoveHead();
-		TRACE(_T("%I64d, %I64d -> %I64d, %I64d\n"), p->rtStart, p->rtStop, to.rtStart, to.rtStop);
+//		if(p->TrackNumber == 3)
+//		TRACE(_T("(track=%d) %I64d, %I64d -> %I64d, %I64d\n"), p->TrackNumber, p->rtStart, p->rtStop, to.rtStart, to.rtStop);
 		p->rtStart = to.rtStart;
 		p->rtStop = to.rtStop;
 	}

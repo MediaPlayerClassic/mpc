@@ -255,7 +255,7 @@ BEGIN
     LTEXT           "Media Player Classic",IDC_STATIC1,40,10,126,8,
                     SS_NOPREFIX
     LTEXT           "Copyright (C) 2002-2003 Gabest",IDC_STATIC,40,21,113,8
-    LTEXT           "Version:\t6.4.5.8",IDC_STATIC,40,33,92,8
+    LTEXT           "Version:\t6.4.5.9",IDC_STATIC,40,33,92,8
     PUSHBUTTON      "OK",IDOK,160,8,50,14,WS_GROUP
     LTEXT           "This program is freeware and released under the GNU General Public License.\nDistribution in Codec Packs is allowed, but the author (Gabest) is not liable for the additional content.",
                     IDC_STATIC,11,47,199,34
@@ -593,29 +593,31 @@ BEGIN
     CONTROL         "Allow interaction with video (needs re-opening)",
                     IDC_CHECK2,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,14,34,
                     167,10
-    GROUPBOX        "QuickTime renderer settings",IDC_STATIC,6,57,282,61
+    GROUPBOX        "QuickTime renderer settings",IDC_STATIC,6,56,282,65
     CONTROL         "QuickTime Movie Controller (uses overlay when available, a bit kludgy)",
-                    IDC_RADIO1,"Button",BS_AUTORADIOBUTTON | WS_GROUP,14,72,
+                    IDC_RADIO1,"Button",BS_AUTORADIOBUTTON | WS_GROUP,14,70,
                     241,10
     CONTROL         "GDI (very fast, no image filtering)",IDC_RADIO2,"Button",
-                    BS_AUTORADIOBUTTON,14,86,124,10
+                    BS_AUTORADIOBUTTON,14,82,124,10
     CONTROL         "DirectX7 (hw accelerated d3d card is needed, enables subtitling)",
-                    IDC_RADIO3,"Button",BS_AUTORADIOBUTTON,14,100,221,10
-    GROUPBOX        "Framerate for microdvd subtitles",IDC_STATIC,6,123,282,
-                    36,WS_GROUP
-    EDITTEXT        IDC_EDIT2,14,136,33,13,ES_CENTER | ES_AUTOHSCROLL
+                    IDC_RADIO3,"Button",BS_AUTORADIOBUTTON,14,94,221,10
+    CONTROL         "DirectX9 (Same as DX7, but can be used for full screen video mirroring)",
+                    IDC_RADIO12,"Button",BS_AUTORADIOBUTTON,14,106,243,10
+    GROUPBOX        "Framerate for microdvd subtitles",IDC_STATIC,6,124,282,
+                    34,WS_GROUP
+    EDITTEXT        IDC_EDIT2,14,137,33,13,ES_CENTER | ES_AUTOHSCROLL
     LTEXT           "Note: MPC is unable to determine the framerate of RealMedia and QuickTime sources, yet.",
-                    IDC_STATIC,60,134,220,17
+                    IDC_STATIC,60,135,220,17
     GROUPBOX        "Real-Time Streaming Protocol handler (for rtsp://... URLs)",
-                    IDC_STATIC,6,164,282,28
+                    IDC_STATIC,6,162,282,28
     CONTROL         "RealMedia",IDC_RADIO4,"Button",BS_AUTORADIOBUTTON | 
-                    WS_GROUP,14,177,49,10
+                    WS_GROUP,14,175,49,10
     CONTROL         "QuickTime",IDC_RADIO5,"Button",BS_AUTORADIOBUTTON,64,
-                    177,48,10
+                    175,48,10
     CONTROL         "DirectShow",IDC_RADIO6,"Button",BS_AUTORADIOBUTTON,113,
-                    177,52,10
+                    175,52,10
     CONTROL         "Look file extension first",IDC_CHECK3,"Button",
-                    BS_AUTOCHECKBOX | WS_GROUP | WS_TABSTOP,173,177,90,10
+                    BS_AUTOCHECKBOX | WS_GROUP | WS_TABSTOP,173,175,90,10
 END
 
 IDD_FAVADD DIALOGEX 0, 0, 252, 70
@@ -1223,8 +1225,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 6,4,5,8
- PRODUCTVERSION 6,4,5,8
+ FILEVERSION 6,4,5,9
+ PRODUCTVERSION 6,4,5,9
  FILEFLAGSMASK 0x1fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -1242,12 +1244,12 @@ BEGIN
             VALUE "Comments", "http://gabest.org/"
             VALUE "CompanyName", "Gabest"
             VALUE "FileDescription", "Media Player Classic"
-            VALUE "FileVersion", "6, 4, 5, 8"
+            VALUE "FileVersion", "6, 4, 5, 9"
             VALUE "InternalName", "Media Player Classic"
             VALUE "LegalCopyright", "Copyright (C) 2002 Gabest"
             VALUE "OriginalFilename", "mplayerc.EXE"
             VALUE "ProductName", "Media Player Classic"
-            VALUE "ProductVersion", "6, 4, 5, 8"
+            VALUE "ProductVersion", "6, 4, 5, 9"
         END
     END
     BLOCK "VarFileInfo"
@@ -1269,7 +1271,7 @@ BEGIN
         MENUITEM "&Open File...\tCtrl+O",       ID_FILE_OPENMEDIA
         MENUITEM "Open &DVD...\tCtrl+D",        ID_FILE_OPENDVD
         MENUITEM "Open De&vice...\tCtrl+V",     ID_FILE_OPENDEVICE
-        MENUITEM "Open CD-&ROM",                ID_FILE_OPENCD32814
+        MENUITEM "Open CD-RO&M",                ID_FILE_OPENCD32814
         MENUITEM "&Close",                      ID_FILE_CLOSEMEDIA
         MENUITEM SEPARATOR
         MENUITEM "&Save As...",                 ID_FILE_SAVEAS
@@ -1277,7 +1279,7 @@ BEGIN
         MENUITEM "&Load Subtitle...\tCtrl+L",   ID_FILE_LOADSUBTITLE
         MENUITEM "Save Subtitle...\tCtrl+S",    ID_FILE_SAVESUBTITLES
         MENUITEM SEPARATOR
-        MENUITEM "Properties",                  ID_FILE_PROPERTIES
+        MENUITEM "P&roperties",                 ID_FILE_PROPERTIES
         MENUITEM SEPARATOR
         MENUITEM "E&xit\tAlt+X",                ID_FILE_EXIT
     END
@@ -1443,7 +1445,8 @@ BEGIN
             MENUITEM "&Jump To...",                 ID_NAVIGATE_JUMPTO289
             MENUITEM SEPARATOR
             MENUITEM "A&udio Language",             65535
-            MENUITEM "Su&btitle Language",          65535
+            MENUITEM "Su&btitle Language",          ID_NAVIGATE_SUBTITLELANGUAGE32817
+
             MENUITEM "Video Ang&le",                65535
             MENUITEM SEPARATOR
             MENUITEM "&Title Menu",                 ID_NAVIGATE_TITLEMENU
@@ -1454,9 +1457,9 @@ BEGIN
             MENUITEM "An&gle Menu",                 ID_NAVIGATE_ANGLEMENU
             MENUITEM "&Chapter Menu",               ID_NAVIGATE_CHAPTERMENU
         END
-        MENUITEM "&Favorites",                  65535
+        MENUITEM "&Favorites",                  ID__FAVORITES
         MENUITEM SEPARATOR
-        MENUITEM "&Filters",                    65535
+        MENUITEM "F&ilters",                    ID__FILTERS32816
         MENUITEM SEPARATOR
         MENUITEM "&Audio",                      65535
         MENUITEM "Su&btitles",                  65535
@@ -1468,7 +1471,7 @@ BEGIN
             MENUITEM "&Mute\tCtrl+M",               ID_VOLUME_MUTE
         END
         MENUITEM SEPARATOR
-        POPUP "&View"
+        POPUP "Vi&ew"
         BEGIN
             MENUITEM "Caption&&Menu",               ID_VIEW_CAPTIONMENU
             MENUITEM "Seek Bar",                    ID_VIEW_SEEKER
@@ -1489,6 +1492,7 @@ BEGIN
 
             END
         END
+        MENUITEM "P&roperties",                 ID_FILE_PROPERTIES
         MENUITEM "&Options...",                 ID_VIEW_OPTIONS
     END
 END
@@ -1502,7 +1506,7 @@ BEGIN
             MENUITEM "&Open File...\tCtrl+O",       ID_FILE_OPENMEDIA
             MENUITEM "Open &DVD...\tCtrl+D",        ID_FILE_OPENDVD
             MENUITEM "Open De&vice...\tCtrl+V",     ID_FILE_OPENDEVICE
-            MENUITEM "Open CD-&ROM",                ID_FILE_OPENCD314
+            MENUITEM "Open CD-RO&M",                ID_FILE_OPENCD314
             MENUITEM "&Close",                      ID_FILE_CLOSEMEDIA
             MENUITEM SEPARATOR
             MENUITEM "&Save As...",                 313
@@ -1510,7 +1514,7 @@ BEGIN
             MENUITEM "&Load Subtitle...\tCtrl+L",   ID_FILE_LOADSUBTITLE
             MENUITEM "Save Subtitle...\tCtrl+S",    ID_FILE_SAVESUBTITLES
             MENUITEM SEPARATOR
-            MENUITEM "Properties",                  ID_FILE_PROPERTIES
+            MENUITEM "Prope&rties",                 ID_FILE_PROPERTIES
         END
         POPUP "&View"
         BEGIN

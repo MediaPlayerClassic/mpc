@@ -1231,5 +1231,5 @@ STDMETHODIMP CQT7AllocatorPresenter::DoBlt(const BITMAP& bm)
 		}
 	}
 
-	return PNR_OK;
+	return S_OK;
 }

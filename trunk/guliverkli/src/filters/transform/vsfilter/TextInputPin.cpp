@@ -223,13 +223,6 @@ STDMETHODIMP CTextInputPin::Receive(IMediaSample* pSample)
 			str.Replace("\r\n", "\n");
 			str.Trim();
 
-			str.Replace("<i>", "{\\i1}");
-			str.Replace("</i>", "{\\i}");
-			str.Replace("<b>", "{\\b1}");
-			str.Replace("</b>", "{\\b}");
-			str.Replace("<u>", "{\\u1}");
-			str.Replace("</u>", "{\\u}");
-
 			if(!str.IsEmpty())
 			{
 				pRTS->Add(AToW(str), false, (int)(tStart / 10000), (int)(tStop / 10000));

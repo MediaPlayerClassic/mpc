@@ -191,6 +191,13 @@ CGraphBuilder::CGraphBuilder(IGraphBuilder* pGB, HWND hWnd)
 		AddFilter(new CGraphCustomFilter(__uuidof(CAviSplitterFilter), guids, L"Avi Splitter", LMERIT_PREFERRED));
 		guids.RemoveAll();
 	}
+	else
+	{
+		guids.AddTail(MEDIATYPE_Stream);
+		guids.AddTail(MEDIASUBTYPE_Avi);
+		AddFilter(new CGraphCustomFilter(__uuidof(CAviSplitterFilter), guids, L"Avi Splitter (for broken files)", LMERIT_NORMAL-1));
+		guids.RemoveAll();
+	}
 
 	{
 		guids.AddTail(MEDIATYPE_Video);

@@ -221,7 +221,8 @@ class CRenderedTextSubtitle : public CSimpleTextSubtitle, public ISubPicProvider
 	void ParseEffect(CSubtitle* sub, CString str);
 	void ParseString(CSubtitle* sub, CStringW str, STSStyle& style);
 	void ParsePolygon(CSubtitle* sub, CStringW str, STSStyle& style);
-	void ParseStyle(CSubtitle* sub, CStringW str, STSStyle& style, STSStyle& org, bool fAnimate = false);
+	bool ParseSSATag(CSubtitle* sub, CStringW str, STSStyle& style, STSStyle& org, bool fAnimate = false);
+	bool ParseHtmlTag(CSubtitle* sub, CStringW str, STSStyle& style, STSStyle& org);
 
 	double CalcAnimation(double dst, double src, bool fAnimate);
 
