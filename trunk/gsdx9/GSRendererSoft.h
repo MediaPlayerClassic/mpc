@@ -40,7 +40,7 @@ protected:
 	virtual void DrawLine(VERTEX* v) = 0;
 	virtual void DrawTriangle(VERTEX* v) = 0;
 	virtual void DrawSprite(VERTEX* v) = 0;
-	void DrawVertex(int x, int y, VERTEX& v);
+	virtual void DrawVertex(int x, int y, VERTEX& v);
 
 	class CTexture
 	{
@@ -102,6 +102,7 @@ protected:
 	void DrawLine(GSSoftVertex* v);
 	void DrawTriangle(GSSoftVertex* v);
 	void DrawSprite(GSSoftVertex* v);
+	// void DrawVertex(int x, int y, GSSoftVertex& v);
 
 public:
 	GSRendererSoftFX(HWND hWnd, HRESULT& hr);
