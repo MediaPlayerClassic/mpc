@@ -635,9 +635,9 @@ bool BitBltFromRGBToRGB(int w, int h, BYTE* dst, int dstpitch, int dbpp, BYTE* s
 {
 	if(dbpp == sbpp)
 	{
-//		int pitch = min(abs(srcpitch), abs(dstpitch));
+		int bytes = w*dbpp>>3;
 		for(int y = 0; y < h; y++, src += srcpitch, dst += dstpitch)
-			memcpy_accel(dst, src, w);
+			memcpy_accel(dst, src, bytes);
 		return(true);
 	}
 	
