@@ -21,7 +21,8 @@
 
 #include "stdafx.h"
 #include "GS.h"
-#include "GSState.h"
+#include "GSStateHW.h"
+#include "GSStateSoft.h"
 #include "GSWnd.h"
 #include "GSSettingsDlg.h"
 
@@ -71,7 +72,8 @@ EXPORT_C_(INT32) GSopen(void* pDsp, char* Title)
 		return -1;
 
 	HRESULT hr;
-	s_gs.Attach(new GSState(s_hWnd, hr));
+	if(!!AfxGetApp()->GetProfileInt(_T("Settings"), _T("SoftRenderer"), FALSE)) s_gs.Attach(new GSStateSoft(s_hWnd, hr));
+	else s_gs.Attach(new GSStateHW(s_hWnd, hr));
 	if(!s_gs || FAILED(hr))
 	{
 		s_gs.Free();

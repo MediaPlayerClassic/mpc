@@ -3,10 +3,10 @@
 // Used by GSdx9.rc
 //
 #define IDC_CHECK1                      2001
-#define IDC_RADIO1                      2004
 #define IDR_PIXELSHADER000              2007
 #define IDC_CHECK3                      2007
 #define IDR_PIXELSHADER010              2008
+#define IDC_CHECK2                      2008
 #define IDR_PIXELSHADER011              2009
 #define IDR_PIXELSHADER1x1              2010
 #define IDR_PIXELSHADER1x0              2011
@@ -28,7 +28,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        2023
 #define _APS_NEXT_COMMAND_VALUE         32771
-#define _APS_NEXT_CONTROL_VALUE         2008
+#define _APS_NEXT_CONTROL_VALUE         2009
 #define _APS_NEXT_SYMED_VALUE           2000
 #endif
 #endif

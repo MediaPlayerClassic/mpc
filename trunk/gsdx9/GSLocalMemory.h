@@ -118,20 +118,20 @@ public:
 	bool IsDirty(GIFRegTEX0& TEX0);
 	bool IsPalDirty(GIFRegTEX0& TEX0);
 
-	DWORD readTexel32(int x, int y, DWORD bp, DWORD bw, BYTE TCC, GIFRegTEXA& TEXA);
-	DWORD readTexel24(int x, int y, DWORD bp, DWORD bw, BYTE TCC, GIFRegTEXA& TEXA);
-	DWORD readTexel16(int x, int y, DWORD bp, DWORD bw, BYTE TCC, GIFRegTEXA& TEXA);
-	DWORD readTexel16S(int x, int y, DWORD bp, DWORD bw, BYTE TCC, GIFRegTEXA& TEXA);
-	DWORD readTexel8(int x, int y, DWORD bp, DWORD bw, BYTE TCC, GIFRegTEXA& TEXA);
-	DWORD readTexel8H(int x, int y, DWORD bp, DWORD bw, BYTE TCC, GIFRegTEXA& TEXA);
-	DWORD readTexel4(int x, int y, DWORD bp, DWORD bw, BYTE TCC, GIFRegTEXA& TEXA);
-	DWORD readTexel4HL(int x, int y, DWORD bp, DWORD bw, BYTE TCC, GIFRegTEXA& TEXA);
-	DWORD readTexel4HH(int x, int y, DWORD bp, DWORD bw, BYTE TCC, GIFRegTEXA& TEXA);
+	DWORD readTexel32(int x, int y, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
+	DWORD readTexel24(int x, int y, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
+	DWORD readTexel16(int x, int y, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
+	DWORD readTexel16S(int x, int y, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
+	DWORD readTexel8(int x, int y, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
+	DWORD readTexel8H(int x, int y, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
+	DWORD readTexel4(int x, int y, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
+	DWORD readTexel4HL(int x, int y, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
+	DWORD readTexel4HH(int x, int y, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
 
-	typedef DWORD (GSLocalMemory::*readTexel)(int x, int y, DWORD bp, DWORD bw, BYTE TCC, GIFRegTEXA& TEXA);
+	typedef DWORD (GSLocalMemory::*readTexel)(int x, int y, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
 	readTexel GetReadTexel(DWORD psm);
 
-	void setupCLUT(GIFRegTEX0& TEX0, GIFRegTEXCLUT& TEXCLUT, GIFRegTEXA& TEXA);
+	void setupCLUT(GIFRegTEX0 TEX0, GIFRegTEXCLUT& TEXCLUT, GIFRegTEXA& TEXA); // modifies TEX0!
 	DWORD readCLUT(BYTE c);
 
 };

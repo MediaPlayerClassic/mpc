@@ -46,12 +46,7 @@ void GSState::ReadStep()
 
 void GSState::WriteTransfer(BYTE* pMem, int len)
 {
-/*	CComPtr<IDirect3DTexture9> pRT;
-	if(m_pRenderTargets.Lookup(m_rs.BITBLTBUF.DBP, pRT))
-*/	{
-		m_tc.InvalidateByTBP(m_rs.BITBLTBUF.DBP);
-		m_tc.InvalidateByCBP(m_rs.BITBLTBUF.DBP);
-	}
+	InvalidateTexture(m_rs.BITBLTBUF.DBP);
 
 	if((m_rs.BITBLTBUF.DBP == m_de.CTXT[m_de.PRIM.CTXT].TEX0.TBP0
 	|| m_rs.BITBLTBUF.DBP == m_de.CTXT[m_de.PRIM.CTXT].TEX0.CBP)
@@ -202,112 +197,25 @@ void GSState::ReadTransfer(BYTE* pMem, int len)
 
 void GSState::MoveTransfer()
 {
+	if(m_rs.TRXPOS.SSAX == m_rs.TRXPOS.DSAX && m_rs.TRXPOS.SSAY == m_rs.TRXPOS.DSAY)
+		return;
+
 	GSLocalMemory::readPixel rp = m_lm.GetReadPixel(m_rs.BITBLTBUF.SPSM);
 	GSLocalMemory::writePixel wp = m_lm.GetWritePixel(m_rs.BITBLTBUF.DPSM);
-	for(int y = 0, sy = m_rs.TRXPOS.SSAY, dy = m_rs.TRXPOS.DSAY; y < m_rs.TRXREG.RRH; y++, sy++, dy++)
-		for(int x = 0, sx = m_rs.TRXPOS.SSAX, dx = m_rs.TRXPOS.DSAX; x < m_rs.TRXREG.RRW; x++, sx++, dx++)
+
+	int sx = m_rs.TRXPOS.SSAX;
+	int dx = m_rs.TRXPOS.DSAX;
+	int sy = m_rs.TRXPOS.SSAY;
+	int dy = m_rs.TRXPOS.DSAY;
+	int w = m_rs.TRXREG.RRW;
+	int h = m_rs.TRXREG.RRH;
+	int xinc = 1;
+	int yinc = 1;
+
+	if(sx < dx) sx += w-1, dx += w-1, xinc = -1;
+	if(sy < dy) sy += h-1, dy += h-1, yinc = -1;
+
+	for(int y = 0; y < h; y++, sy += yinc, dy += yinc, sx -= xinc*w, dx -= xinc*w)
+		for(int x = 0; x < w; x++, sx += xinc, dx += xinc)
 			(m_lm.*wp)(dx, dy, (m_lm.*rp)(sx, sy, m_rs.BITBLTBUF.SBP, m_rs.BITBLTBUF.SBW), m_rs.BITBLTBUF.DBP, m_rs.BITBLTBUF.DBW);
-}
-
-bool GSState::CreateTexture(GSTexture& t)
-{
-	DrawingContext* ctxt = &m_de.CTXT[m_de.PRIM.CTXT];
-
-	int tw = 1<<ctxt->TEX0.TW;
-	int th = 1<<ctxt->TEX0.TH;
-/*
-	CComPtr<IDirect3DTexture9> pRT;
-	if(!m_pRenderTargets.Lookup(ctxt->TEX0.TBP0, pRT))
-	{
-		if(m_lm.IsDirty(ctxt->TEX0))
-		{
-			LOG((_T("TBP0 dirty: %08x\n"), ctxt->TEX0.TBP0));
-			m_tc.InvalidateByTBP(ctxt->TEX0.TBP0);
-		}
-
-		if(m_lm.IsPalDirty(ctxt->TEX0))
-		{
-			LOG((_T("CBP dirty: %08x\n"), ctxt->TEX0.CBP));
-			m_tc.InvalidateByCBP(ctxt->TEX0.CBP);
-		}
-	}
-*/
-	tex_t tex;
-	tex.TEX0 = ctxt->TEX0;
-	tex.CLAMP = ctxt->CLAMP;
-	tex.TEXA = m_de.TEXA;
-	tex.TEXCLUT = m_de.TEXCLUT;
-
-	if(m_tc.Lookup(tex, t))
-		return(true);
-
-//	LOG((_T("TBP0/CBP: %08x/%08x\n"), ctxt->TEX0.TBP0, ctxt->TEX0.CBP));
-
-	m_lm.setupCLUT(ctxt->TEX0, m_de.TEXCLUT, m_de.TEXA);
-
-	GSLocalMemory::readTexel rt = m_lm.GetReadTexel(ctxt->TEX0.PSM);
-
-	CComPtr<IDirect3DTexture9> pTexture;
-	HRESULT hr = m_pD3DDev->CreateTexture(tw, th, 0, 0 , D3DFMT_A8R8G8B8, D3DPOOL_MANAGED, &pTexture, NULL);
-	if(FAILED(hr) || !pTexture) return(false);
-
-	D3DLOCKED_RECT r;
-	if(FAILED(hr = pTexture->LockRect(0, &r, NULL, 0)))
-		return(false);
-
-	BYTE* dst = (BYTE*)r.pBits;
-
-	if((ctxt->CLAMP.WMS&2) || (ctxt->CLAMP.WMT&2))
-	{
-		int tx, ty;
-
-		for(int y = 0, diff = r.Pitch - tw*4; y < th; y++, dst += diff)
-		{
-			for(int x = 0; x < tw; x++, dst += 4)
-			{
-				switch(ctxt->CLAMP.WMS)
-				{
-				default: tx = x; break;
-				case 2: tx = x < ctxt->CLAMP.MINU ? ctxt->CLAMP.MINU : x > ctxt->CLAMP.MAXU ? ctxt->CLAMP.MAXU : x; break;
-				case 3: tx = (x & ctxt->CLAMP.MINU) | ctxt->CLAMP.MAXU; break;
-				}
-
-				switch(ctxt->CLAMP.WMT)
-				{
-				default: ty = y; break;
-				case 2: ty = y < ctxt->CLAMP.MINV ? ctxt->CLAMP.MINV : y > ctxt->CLAMP.MAXV ? ctxt->CLAMP.MAXV : y; break;
-				case 3: ty = (y & ctxt->CLAMP.MINV) | ctxt->CLAMP.MAXV; break;
-				}
-
-				*(DWORD*)dst = (m_lm.*rt)(tx, ty, ctxt->TEX0.TBP0, ctxt->TEX0.TBW, ctxt->TEX0.TCC, m_de.TEXA);
-			}
-		}
-	}
-	else
-	{
-		for(int y = 0, diff = r.Pitch - tw*4; y < th; y++, dst += diff)
-			for(int x = 0; x < tw; x++, dst += 4)
-				*(DWORD*)dst = (m_lm.*rt)(x, y, ctxt->TEX0.TBP0, ctxt->TEX0.TBW, ctxt->TEX0.TCC, m_de.TEXA);
-	}
-
-	pTexture->UnlockRect(0);
-
-	m_tc.Add(tex, scale_t(1, 1), pTexture);
-	if(!m_tc.Lookup(tex, t)) // ehe
-		ASSERT(0);
-	
-//	t.m_pTexture = pTexture;
-//	t.m_tex = tex;
-//	t.m_scale = scale_t(1, 1);
-
-#ifdef DEBUG_SAVETEXTURES
-	CString fn;
-	fn.Format(_T("c:\\%08I64x_%I64d_%I64d_%I64d_%I64d_%I64d_%I64d_%I64d-%I64d_%I64d-%I64d.bmp"), 
-		ctxt->TEX0.TBP0, ctxt->TEX0.PSM, ctxt->TEX0.TBW, 
-		ctxt->TEX0.TW, ctxt->TEX0.TH,
-		ctxt->CLAMP.WMS, ctxt->CLAMP.WMT, ctxt->CLAMP.MINU, ctxt->CLAMP.MAXU, ctxt->CLAMP.MINV, ctxt->CLAMP.MAXV);
-	D3DXSaveTextureToFile(fn, D3DXIFF_BMP, pTexture, NULL);
-#endif
-
-	return(true);
 }

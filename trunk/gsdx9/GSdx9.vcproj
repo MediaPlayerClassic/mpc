@@ -142,15 +142,6 @@
 				RelativePath=".\GS.cpp">
 			</File>
 			<File
-				RelativePath=".\GSDraw.cpp">
-				<FileConfiguration
-					Name="Release|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						AssemblerOutput="0"/>
-				</FileConfiguration>
-			</File>
-			<File
 				RelativePath=".\GSdx9.cpp">
 			</File>
 			<File
@@ -158,12 +149,6 @@
 			</File>
 			<File
 				RelativePath=".\GSLocalMemory.cpp">
-				<FileConfiguration
-					Name="Release|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						OptimizeForProcessor="2"/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath=".\GSRegs.cpp">
@@ -175,13 +160,25 @@
 				RelativePath=".\GSSettingsDlg.h">
 			</File>
 			<File
+				RelativePath=".\GSSoftVertex.cpp">
+			</File>
+			<File
 				RelativePath=".\GSState.cpp">
+			</File>
+			<File
+				RelativePath=".\GSStateHW.cpp">
+			</File>
+			<File
+				RelativePath=".\GSStateSoft.cpp">
 			</File>
 			<File
 				RelativePath=".\GSTextureCache.cpp">
 			</File>
 			<File
 				RelativePath=".\GSTransfer.cpp">
+			</File>
+			<File
+				RelativePath=".\GSVertexList.cpp">
 			</File>
 			<File
 				RelativePath=".\GSWnd.cpp">
@@ -216,10 +213,22 @@
 				RelativePath=".\GSLocalMemory.h">
 			</File>
 			<File
+				RelativePath=".\GSSoftVertex.h">
+			</File>
+			<File
 				RelativePath=".\GSState.h">
 			</File>
 			<File
+				RelativePath=".\GSStateHW.h">
+			</File>
+			<File
+				RelativePath=".\GSStateSoft.h">
+			</File>
+			<File
 				RelativePath=".\GSTextureCache.h">
+			</File>
+			<File
+				RelativePath=".\GSVertexList.h">
 			</File>
 			<File
 				RelativePath=".\GSWnd.h">
