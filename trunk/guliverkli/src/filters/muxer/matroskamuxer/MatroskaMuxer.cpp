@@ -546,7 +546,7 @@ TRACE(_T("Muxing (%d): %I64d-%I64d dur=%I64d (c=%d, co=%dms), cnt=%d, ref=%d\n")
 							sh->Position.Set(GetStreamPosition(pStream) - segpos);
 							seek.SeekHeads.AddTail(sh);
 
-							c.Write(pStream);
+							c.Write(pStream); // TODO: write blocks
 						}
 
 						c.TimeCode.Set(c.TimeCode + MAXCLUSTERTIME);

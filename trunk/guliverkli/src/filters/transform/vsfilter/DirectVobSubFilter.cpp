@@ -34,6 +34,7 @@
 #include "..\..\..\DSUtil\MediaTypes.h"
 #include "..\..\..\SubPic\MemSubPic.h"
 #include "..\..\..\..\include\Ogg\OggDS.h"
+#include "..\..\..\..\include\matroska\matroska.h"
 
 ///////////////////////////////////////////////////////////////////////////
 
@@ -1703,8 +1704,11 @@ bool CDirectVobSubFilter2::ShouldWeAutoload(IFilterGraph* pGraph)
 			{
 				BeginEnumMediaTypes(pPin, pEM, pmt)
 				{
-					if(pmt->majortype == MEDIATYPE_Text) fRet = true;
-					if(fRet) break;
+					if(pmt->majortype == MEDIATYPE_Text || pmt->majortype == MEDIATYPE_Subtitle)
+					{
+						fRet = true;
+						break;
+					}
 				}
 				EndEnumMediaTypes(pmt)
 				if(fRet) break;
