@@ -41,7 +41,7 @@ public:
 
 	static void Deploy(CString dir);
 
-	bool ToLocalPath(CString& path);
+	bool ToLocalPath(CString& path, CString& redir);
 	bool LoadPage(UINT resid, CStringA& str, CString path = _T(""));
 
 	void OnAccept(CWebServerSocket* pServer);
