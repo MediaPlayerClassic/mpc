@@ -639,9 +639,10 @@ class SubtitlesDB extends DB
 		&& !ereg('192\.168\.[0-9]+\.[0-9]+', $db_host)
 		&& !ereg('10\.[0-9]+\.[0-9]+\.[0-9]+', $db_host))
 		{
-			$this->query("select id from mirror where host = '$db_host'");
+			$db_host_other = ereg('^www\.(.+)$', $db_host, $matches) ? $matches[1] : 'www.'.$db_host;
 			
-			if($row = $this->fetchRow())
+			$this->query("select id from mirror where host = '$db_host' || host = '$db_host_other'");
+						if($row = $this->fetchRow())
 			{
 				$this->query(
 					"update mirror set ".
