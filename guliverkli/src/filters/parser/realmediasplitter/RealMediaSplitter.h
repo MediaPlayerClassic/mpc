@@ -162,7 +162,7 @@ struct rainfo {
 #pragma pack(pop)
 
 #define MAXBUFFERS 2
-#define MAXPACKETS 100
+#define MAXPACKETS 1000
 
 typedef struct
 {
@@ -486,7 +486,7 @@ class CRealAudioDecoder : public CTransformFilter
 	typedef HRESULT (WINAPI *PInitDecoder)(DWORD, void*);
 	typedef HRESULT (WINAPI *POpenCodec)(void*);
 	typedef HRESULT (WINAPI *POpenCodec2)(void*, const char*);
-	typedef HRESULT (WINAPI *PSetFlavor)(DWORD,WORD*);
+	typedef HRESULT (WINAPI *PSetFlavor)(DWORD, WORD);
 	typedef void (WINAPI *PSetDLLAccessPath)(const char*);
 	typedef void (WINAPI *PSetPwd)(DWORD, const char*);
 
@@ -510,6 +510,13 @@ class CRealAudioDecoder : public CTransformFilter
 	void FreeRA();
 
 	REFERENCE_TIME m_tStart;
+
+	rainfo m_rai;
+	CAutoVectorPtr<BYTE> m_buff;
+	int m_bufflen;
+	REFERENCE_TIME m_rtBuffStart;
+	bool m_fBuffDiscontinuity;
+
 public:
 	CRealAudioDecoder(LPUNKNOWN lpunk, HRESULT* phr);
 	virtual ~CRealAudioDecoder();

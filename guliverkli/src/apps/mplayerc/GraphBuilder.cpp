@@ -686,7 +686,12 @@ HRESULT CGraphBuilder::Render(IPin* pPin)
 	CInterfaceList<IBaseFilter> pFilters;
 	SaveFilters(pFilters);
 
-	POSITION pos = pFilters.GetHeadPosition();
+	POSITION pos;
+
+	// FIXME: ffdshow likes to connect to the audio capture filter's fake input pins
+	if(!dynamic_cast<CGraphBuilderCapture*>(this))
+	{
+	pos = pFilters.GetHeadPosition();
 	while(pos)
 	{
 		CComPtr<IBaseFilter> pBF = pFilters.GetNext(pos);
@@ -699,6 +704,7 @@ HRESULT CGraphBuilder::Render(IPin* pPin)
 			if(SUCCEEDED(hr = Render(pBF)))
 				return hr;
 		}
+	}
 	}
 
 	// 4. registry+internal+external
