@@ -278,6 +278,8 @@ if(isset($_POST['update']) || isset($_POST['submit']))
 			
 			$files[] = $_SESSION['file'][$file_sel];
 		}
+		
+		var_dump($files);
 	}
 	
 	if(!empty($email) && !empty($nick))
@@ -285,16 +287,18 @@ if(isset($_POST['update']) || isset($_POST['submit']))
 		$db->query("update subtitle set nick = '$db_nick' where email = '$db_email'");
 	}
 	
+	$redir = 'index.php?text='.urlencode($titles[0]);
+	
 	if(!empty($files))
 	{
 		$args = array();
 		foreach($files as $i => $file)
 			foreach($file as $param => $value)
 				$args[] .= "{$param}[$i]=$value";
-		RedirAndExit('index.php?'.implode('&', $args));
+		$redir = 'index.php?'.implode('&', $args);
 	}
-
-	RedirAndExit('index.php?text='.urlencode($titles[0]));
+	
+	RedirAndExit($redir);
 }
 
 // subs
