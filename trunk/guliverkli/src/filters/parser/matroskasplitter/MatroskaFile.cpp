@@ -421,6 +421,7 @@ HRESULT Audio::Parse(CMatroskaNode* pMN0)
 {
 	BeginChunk
 	case 0xB5: SamplingFrequency.Parse(pMN); break;
+	case 0x78B5: OutputSamplingFrequency.Parse(pMN); break;
 	case 0x9F: Channels.Parse(pMN); break;
 	case 0x7D7B: ChannelPositions.Parse(pMN); break;
 	case 0x6264: BitDepth.Parse(pMN); break;
@@ -457,8 +458,16 @@ HRESULT Block::Parse(CMatroskaNode* pMN0, bool fFull)
 
 		CList<QWORD> lens;
 		QWORD tlen = 0;
-		if(Lacing&0x02)
+		QWORD FrameSize;
+		BYTE FramesInLaceLessOne;
+		switch((Lacing & 0x06) >> 1)
 		{
+		case 0:
+			// No lacing
+			lens.AddTail((pMN->m_start+pMN->m_len) - (pMN->GetPos()+tlen));
+			break;
+		case 1:
+			// Xiph lacing
 			BYTE n;
 			pMN->Read(n);
 			while(n-- > 0)
@@ -469,8 +478,39 @@ HRESULT Block::Parse(CMatroskaNode* pMN0, bool fFull)
 				lens.AddTail(len);
 				tlen += len;
 			}
+			lens.AddTail((pMN->m_start+pMN->m_len) - (pMN->GetPos()+tlen));
+			break;
+		case 2:
+			// Fixed-size lacing
+			// TODO : test that :>
+			pMN->Read(FramesInLaceLessOne);
+			FramesInLaceLessOne++;
+			FrameSize = ((pMN->m_start+pMN->m_len) - (pMN->GetPos()+tlen)) / FramesInLaceLessOne;
+			while(FramesInLaceLessOne-- > 0)
+				lens.AddTail(FrameSize);
+			break;
+		case 3:
+			// EBML lacing
+			pMN->Read(FramesInLaceLessOne);
+
+			CLength FirstFrameSize;
+			FirstFrameSize.Parse(pMN);
+			lens.AddTail(FirstFrameSize);
+			FramesInLaceLessOne--;
+			tlen = FirstFrameSize;
+
+			CSignedLength DiffSize;
+			FrameSize = FirstFrameSize;
+			while(FramesInLaceLessOne--)
+			{
+				DiffSize.Parse(pMN);
+				FrameSize += DiffSize;
+				lens.AddTail(FrameSize);
+				tlen += FrameSize;
+			}
+			lens.AddTail((pMN->m_start+pMN->m_len) - (pMN->GetPos()+tlen));
+			break;
 		}
-		lens.AddTail((pMN->m_start+pMN->m_len) - (pMN->GetPos()+tlen));
 
 		POSITION pos = lens.GetHeadPosition();
 		while(pos)
@@ -721,11 +761,61 @@ HRESULT CLength::Parse(CMatroskaNode* pMN)
 		TRACE(_T("CLength: Unspecified chunk size at %I64d (corrected to %I64d)\n"), pMN->GetPos(), m_val);
 	}
 
+	if(m_fSigned)
+		m_val -= (UnknownSize >> 1);
+
 	m_fValid = true;
 
 	return S_OK;
 }
+/*
+HRESULT CSignedLength::Parse(CMatroskaNode* pMN)
+{
+//	HRESULT hr = __super::Parse(pMN);
+//	if(FAILED(hr)) return hr;
 
+	m_val = 0;
+
+	BYTE b = 0;
+	HRESULT hr = pMN->Read(b);
+	if(FAILED(hr)) return hr;
+
+	int nMoreBytes = 0, nMoreBytesTmp = 0;
+
+	if((b&0x80) == 0x80) {m_val = b&0x7f; nMoreBytes = 0;}
+	else if((b&0xc0) == 0x40) {m_val = b&0x3f; nMoreBytes = 1;}
+	else if((b&0xe0) == 0x20) {m_val = b&0x1f; nMoreBytes = 2;}
+	else if((b&0xf0) == 0x10) {m_val = b&0x0f; nMoreBytes = 3;}
+	else if((b&0xf8) == 0x08) {m_val = b&0x07; nMoreBytes = 4;}
+	else if((b&0xfc) == 0x04) {m_val = b&0x03; nMoreBytes = 5;}
+	else if((b&0xfe) == 0x02) {m_val = b&0x01; nMoreBytes = 6;}
+	else if((b&0xff) == 0x01) {m_val = b&0x00; nMoreBytes = 7;}
+	else return E_FAIL;
+
+	nMoreBytesTmp = nMoreBytes;
+
+	QWORD UnknownSize = (1i64<<(7*(nMoreBytes+1)))-1;
+
+	while(nMoreBytes-- > 0)
+	{
+		m_val <<= 8;
+		hr = pMN->Read(*(BYTE*)&m_val);
+		if(FAILED(hr)) return hr;
+	}
+
+	if(m_val == UnknownSize)
+	{
+		m_val = pMN->GetLength() - pMN->GetPos();
+		TRACE(_T("CLength: Unspecified chunk size at %I64d (corrected to %I64d)\n"), pMN->GetPos(), m_val);
+	}
+
+	m_val -= (UnknownSize >> 1);
+
+	m_fValid = true;
+
+	return S_OK;
+}
+*/
 template<class T>
 HRESULT CNode<T>::Parse(CMatroskaNode* pMN)
 {

@@ -65,7 +65,8 @@ namespace MatroskaReader
 	class CShort : public CSimpleVar<short, CShort> {};
 	class CFloat : public CSimpleVar<float, CFloat> {};
 	class CID : public CSimpleVar<DWORD, CID> {public: HRESULT Parse(CMatroskaNode* pMN);};
-	class CLength : public CSimpleVar<UINT64, CLength> {public: HRESULT Parse(CMatroskaNode* pMN);};
+	class CLength : public CSimpleVar<UINT64, CLength> {bool m_fSigned; public: CLength(bool fSigned = false) : m_fSigned(fSigned) {} HRESULT Parse(CMatroskaNode* pMN);};
+	class CSignedLength : public CLength {public: CSignedLength() : CLength(true) {}};
 
 	template<class T>
 	class CNode : public CAutoPtrList<T> {public: HRESULT Parse(CMatroskaNode* pMN);};
@@ -172,6 +173,7 @@ namespace MatroskaReader
 				{
 				public:
 					CFloat SamplingFrequency;
+					CFloat OutputSamplingFrequency;
 					CUInt Channels;
 					CBinary ChannelPositions;
 					CUInt BitDepth;

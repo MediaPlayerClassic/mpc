@@ -132,6 +132,15 @@ CMatroskaSplitterFilter::~CMatroskaSplitterFilter()
 {
 }
 
+STDMETHODIMP CMatroskaSplitterFilter::NonDelegatingQueryInterface(REFIID riid, void** ppv)
+{
+	CheckPointer(ppv, E_POINTER);
+
+	return 
+		QI(ITrackInfo)
+		__super::NonDelegatingQueryInterface(riid, ppv);
+}
+
 HRESULT CMatroskaSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 {
 	CheckPointer(pAsyncReader, E_POINTER);
@@ -343,6 +352,11 @@ HRESULT CMatroskaSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 				else if(CodecID == "A_MPEG/L3")
 				{
 					mt.subtype = FOURCCMap(pwfe->wFormatTag = 0x55);
+					mts.Add(mt);
+				}
+				else if(CodecID == "A_MPEG/L2")
+				{
+					mt.subtype = FOURCCMap(pwfe->wFormatTag = 0x50);
 					mts.Add(mt);
 				}
 				else if(CodecID == "A_AC3")
@@ -1117,4 +1131,111 @@ HRESULT CMatroskaSplitterOutputPin::DeliverBlock(MatroskaPacket* p)
 	}
 
 	return hr;
+}
+
+// ITrackInfo
+
+TrackEntry* GetTrackEntryFromMapAt(UINT aTrackIdx, CMap<DWORD, DWORD, MatroskaReader::TrackEntry*, MatroskaReader::TrackEntry*> &m_pTrackEntryMap)
+{
+	if(aTrackIdx < 0 || aTrackIdx >= m_pTrackEntryMap.GetCount())
+		return NULL;
+
+	POSITION pos = m_pTrackEntryMap.GetStartPosition();
+	DWORD TrackNumber = 0;
+	TrackEntry* pTE = NULL;
+	for(int i = 0; i < m_pTrackEntryMap.GetCount() - aTrackIdx; i++)
+		m_pTrackEntryMap.GetNextAssoc(pos, TrackNumber, pTE);
+	return pTE;
+}
+
+STDMETHODIMP_(UINT) CMatroskaSplitterFilter::GetTrackCount()
+{	
+	return m_pTrackEntryMap.GetCount();
+}
+
+STDMETHODIMP_(BOOL) CMatroskaSplitterFilter::GetTrackInfo(UINT aTrackIdx, struct TrackElement* pStructureToFill)
+{
+	TrackEntry* pTE = GetTrackEntryFromMapAt(aTrackIdx,m_pTrackEntryMap);
+	if(pTE == NULL)
+		return FALSE;
+
+	pStructureToFill->FlagDefault = !!pTE->FlagDefault;
+	pStructureToFill->FlagLacing = !!pTE->FlagLacing;
+	strncpy(pStructureToFill->Language, pTE->Language, 3);
+	if(pStructureToFill->Language[0] == '\0')
+		strncpy(pStructureToFill->Language, "eng", 3);
+	pStructureToFill->Language[3] = '\0';
+	pStructureToFill->MaxCache = (UINT)pTE->MaxCache;
+	pStructureToFill->MinCache = (UINT)pTE->MinCache;
+	pStructureToFill->Type = (BYTE)pTE->TrackType;
+	return TRUE;
+}
+
+STDMETHODIMP_(BOOL) CMatroskaSplitterFilter::GetTrackExtendedInfo(UINT aTrackIdx, void* pStructureToFill)
+{
+	TrackEntry* pTE = GetTrackEntryFromMapAt(aTrackIdx,m_pTrackEntryMap);
+	if(pTE == NULL)
+		return FALSE;
+
+	if(pTE->TrackType == TrackEntry::TypeVideo)
+	{
+		TrackExtendedInfoVideo* pTEIV = (TrackExtendedInfoVideo*)pStructureToFill;
+		pTEIV->AspectRatioType = (BYTE)pTE->v.AspectRatioType;		
+		pTEIV->DisplayUnit = (BYTE)pTE->v.DisplayUnit;
+		pTEIV->DisplayWidth = (UINT)pTE->v.DisplayWidth;		
+		pTEIV->DisplayHeight = (UINT)pTE->v.DisplayHeight;
+		pTEIV->Interlaced = !!pTE->v.FlagInterlaced;
+		pTEIV->PixelWidth = (UINT)pTE->v.PixelWidth;
+		pTEIV->PixelHeight = (UINT)pTE->v.PixelHeight;
+	} else if(pTE->TrackType == TrackEntry::TypeAudio) {
+		TrackExtendedInfoAudio* pTEIA = (TrackExtendedInfoAudio*)pStructureToFill;
+		pTEIA->BitDepth = (UINT)pTE->a.BitDepth;
+		pTEIA->Channels = (UINT)pTE->a.Channels;
+		pTEIA->OutputSamplingFrequency = pTE->a.OutputSamplingFrequency;
+		pTEIA->SamplingFreq = pTE->a.SamplingFrequency;
+	} else {
+		return FALSE;
+	}
+	
+	return TRUE;
+}
+
+STDMETHODIMP_(BSTR) CMatroskaSplitterFilter::GetTrackName(UINT aTrackIdx)
+{
+	TrackEntry* pTE = GetTrackEntryFromMapAt(aTrackIdx,m_pTrackEntryMap);
+	if(pTE == NULL)
+		return NULL;
+	return pTE->Name.AllocSysString();
+}
+
+STDMETHODIMP_(BSTR) CMatroskaSplitterFilter::GetTrackCodecID(UINT aTrackIdx)
+{
+	TrackEntry* pTE = GetTrackEntryFromMapAt(aTrackIdx,m_pTrackEntryMap);
+	if(pTE == NULL)
+		return NULL;
+	return pTE->CodecID.ToString().AllocSysString();
+}
+
+STDMETHODIMP_(BSTR) CMatroskaSplitterFilter::GetTrackCodecName(UINT aTrackIdx)
+{
+	TrackEntry* pTE = GetTrackEntryFromMapAt(aTrackIdx,m_pTrackEntryMap);
+	if(pTE == NULL)
+		return NULL;
+	return pTE->CodecName.AllocSysString();
+}
+
+STDMETHODIMP_(BSTR) CMatroskaSplitterFilter::GetTrackCodecInfoURL(UINT aTrackIdx)
+{
+	TrackEntry* pTE = GetTrackEntryFromMapAt(aTrackIdx,m_pTrackEntryMap);
+	if(pTE == NULL)
+		return NULL;
+	return pTE->CodecInfoURL.AllocSysString();
+}
+
+STDMETHODIMP_(BSTR) CMatroskaSplitterFilter::GetTrackCodecDownloadURL(UINT aTrackIdx)
+{
+	TrackEntry* pTE = GetTrackEntryFromMapAt(aTrackIdx,m_pTrackEntryMap);
+	if(pTE == NULL)
+		return NULL;
+	return pTE->CodecDownloadURL.AllocSysString();
 }
