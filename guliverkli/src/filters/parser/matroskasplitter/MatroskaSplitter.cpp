@@ -902,9 +902,7 @@ HRESULT CMatroskaSplitterOutputPin::DeliverEndFlush()
 		CAutoLock cAutoLock(&m_csQueue);
 		m_packets.RemoveAll();
 		m_rob.RemoveAll();
-		
-		// HACK: temp mp4v code
-		m_timeoverrides.RemoveAll();
+		m_tos.RemoveAll();
 	}
 
 	return __super::DeliverEndFlush();
@@ -922,12 +920,8 @@ HRESULT CMatroskaSplitterOutputPin::DeliverEndOfStream()
 		if(m_rob.GetCount() && !mp->b->BlockDuration.IsValid()) 
 			mp->rtStop = m_rob.GetHead()->rtStart;
         
-		// HACK: temp mp4v code
-		if(m_mt.subtype == FOURCCMap('v4pm'))
-		{
-			timeoverride to = {mp->rtStart, mp->rtStop};
-			m_timeoverrides.AddTail(to);
-		}
+		timeoverride to = {mp->rtStart, mp->rtStop};
+		m_tos.AddTail(to);
 	}
 
 	while(m_packets.GetCount())
@@ -976,12 +970,8 @@ HRESULT CMatroskaSplitterOutputPin::DeliverPacket(CAutoPtr<Packet> p)
 			mp->rtStop = mp2->rtStart;
 		}
 
-		// HACK: temp mp4v code
-		if(m_mt.subtype == FOURCCMap('v4pm'))
-		{
-			timeoverride to = {mp->rtStart, mp->rtStop};
-			m_timeoverrides.AddTail(to);
-		}
+		timeoverride to = {mp->rtStart, mp->rtStop};
+		m_tos.AddTail(to);
 	}
 	else
 	{
@@ -1009,10 +999,9 @@ HRESULT CMatroskaSplitterOutputPin::DeliverBlock(MatroskaPacket* p)
 
 	HRESULT hr = S_FALSE;
 
-	// HACK: temp mp4v code
-	if(m_timeoverrides.GetCount())
+	if(m_tos.GetCount())
 	{
-		timeoverride to = m_timeoverrides.RemoveHead();
+		timeoverride to = m_tos.RemoveHead();
 		TRACE(_T("%I64d, %I64d -> %I64d, %I64d\n"), p->rtStart, p->rtStop, to.rtStart, to.rtStop);
 		p->rtStart = to.rtStart;
 		p->rtStop = to.rtStop;
