@@ -30,7 +30,9 @@
 // CStatusLabel
 
 IMPLEMENT_DYNAMIC(CStatusLabel, CStatic)
-CStatusLabel::CStatusLabel(bool fRightAlign) : m_fRightAlign(fRightAlign)
+CStatusLabel::CStatusLabel(bool fRightAlign, bool fAddEllipses) 
+	: m_fRightAlign(fRightAlign)
+	, m_fAddEllipses(fAddEllipses)
 {
 	HDC hdc = ::GetDC(NULL);
 	double s = 1.0*GetDeviceCaps(hdc, LOGPIXELSY) / 96.0;
@@ -72,6 +74,14 @@ void CStatusLabel::DrawItem(LPDRAWITEMSTRUCT lpDrawItemStruct)
 		dc.SetBkColor(0);
 		CSize size = dc.GetTextExtent(str);
 		CPoint p = CPoint(m_fRightAlign ? r.Width() - size.cx : 0, (r.Height()-size.cy)/2);
+
+		if(m_fAddEllipses)
+		while(size.cx > r.Width()-3 && str.GetLength() > 3)
+		{
+			str = str.Left(str.GetLength()-4) + _T("...");
+			size = dc.GetTextExtent(str);
+		}
+
 		dc.TextOut(p.x, p.y, str);
 		dc.ExcludeClipRect(CRect(p, size));
 		dc.SelectObject(&old);

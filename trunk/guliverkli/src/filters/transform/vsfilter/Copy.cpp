@@ -22,6 +22,9 @@
 #include "..\..\..\DSUtil\DSUtil.h"
 #include "..\..\..\DSUtil\MediaTypes.h"
 
+#include <initguid.h>
+#include "..\..\..\..\include\moreuuids.h"
+
 extern int c2y_yb[256];
 extern int c2y_yg[256];
 extern int c2y_yr[256];
@@ -392,12 +395,13 @@ row_loop3:
 	__asm emms;
 }
 
-HRESULT CDirectVobSubFilter::Copy(BYTE* pSub, BYTE* pIn, CSize sub, CSize in, int widthIn, int bpp, const GUID& subtype, DWORD black, bool fResX2)
+HRESULT CDirectVobSubFilter::Copy(BYTE* pSub, BYTE* pIn, CSize sub, CSize in, int bpp, const GUID& subtype, DWORD black)
 {
-	int wIn = in.cx, hIn = in.cy, pitchIn = ((/*wIn*/widthIn*bpp>>3)+3)&~3;
+	int wIn = in.cx, hIn = in.cy, pitchIn = ((wIn*bpp>>3)+3)&~3;
 	int wSub = sub.cx, hSub = sub.cy, pitchSub = ((wSub*bpp>>3)+3)&~3;
+	bool fScale2x = wIn*2 <= wSub;
 
-	if(fResX2) wIn <<= 1, hIn <<= 1;
+	if(fScale2x) wIn <<= 1, hIn <<= 1;
 
 	int left = ((wSub - wIn)>>1)&~1;
 	int mid = wIn;
@@ -422,9 +426,9 @@ HRESULT CDirectVobSubFilter::Copy(BYTE* pSub, BYTE* pIn, CSize sub, CSize in, in
 		j += hIn;
 
 		if(hIn > hSub)
-			pIn += pitchIn * ((hIn - hSub) >> (m_fResX2Active?2:1));
+			pIn += pitchIn * ((hIn - hSub) >> (fScale2x?2:1));
 
-		if(fResX2)
+		if(fScale2x)
 		{
 			Scale2x(subtype, 
 				pSub + dpLeft, pitchSub, pIn, pitchIn, 
@@ -463,14 +467,17 @@ void CDirectVobSubFilter::PrintMessages(BYTE* pOut)
 
 	const GUID& subtype = m_pOutput->CurrentMediaType().subtype;
 
+	BITMAPINFOHEADER bihOut;
+	ExtractBIH(&m_pOutput->CurrentMediaType(), &bihOut);
+
 	CString msg, tmp;
 
 	if(m_fOSD)
 	{
 		tmp.Format(_T("in: %dx%d %s\nout: %dx%d %s\n"), 
-			m_bihIn.biWidth, m_bihIn.biHeight, 
+			m_w, m_h, 
 			Subtype2String(m_pInput->CurrentMediaType().subtype),
-			m_bihOut.biWidth, m_bihOut.biHeight, 
+			bihOut.biWidth, bihOut.biHeight, 
 			Subtype2String(m_pOutput->CurrentMediaType().subtype));
 		msg += tmp;
 
@@ -523,24 +530,24 @@ void CDirectVobSubFilter::PrintMessages(BYTE* pOut)
 
 	BYTE* pIn = (BYTE*)bm.bmBits;
 	int pitchIn = bm.bmWidthBytes;
-	int pitchOut = m_bihOut.biWidth * m_bihOut.biBitCount >> 3;
+	int pitchOut = bihOut.biWidth * bihOut.biBitCount >> 3;
 
 	if(subtype == MEDIASUBTYPE_YV12 || subtype == MEDIASUBTYPE_I420 || subtype == MEDIASUBTYPE_IYUV)
-		pitchOut = m_bihOut.biWidth;
+		pitchOut = bihOut.biWidth;
 
 	pitchIn = (pitchIn+3)&~3;
 	pitchOut = (pitchOut+3)&~3;
 
-	if(m_bihOut.biHeight > 0 && m_bihOut.biCompression <= 3) // flip if the dst bitmap is flipped rgb (m_hbm is a top-down bitmap, not like the subpictures)
+	if(bihOut.biHeight > 0 && bihOut.biCompression <= 3) // flip if the dst bitmap is flipped rgb (m_hbm is a top-down bitmap, not like the subpictures)
 	{
-		pOut += pitchOut * (abs(m_bihOut.biHeight)-1);
+		pOut += pitchOut * (abs(bihOut.biHeight)-1);
 		pitchOut = -pitchOut;
 	}
 
 	pIn += pitchIn * r.top;
 	pOut += pitchOut * r.top;
 
-	for(int w = min(r.right, m_bihOut.biWidth), h = r.Height(); h--; pIn += pitchIn, pOut += pitchOut)
+	for(int w = min(r.right, m_w), h = r.Height(); h--; pIn += pitchIn, pOut += pitchOut)
 	{
 		BltLineRGB32((DWORD*)pOut, pIn, w, subtype);
 		memsetd(pIn, 0xff000000, r.right*4);

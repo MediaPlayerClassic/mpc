@@ -19,24 +19,11 @@
  *
  */
 
-#pragma once
+// stdafx.cpp : source file that includes just the standard includes
+// mpeg2decds.pch will be the pre-compiled header
+// stdafx.obj will contain the pre-compiled type information
 
-#include "..\..\..\DSUtil\DSUtil.h"
+#include "stdafx.h"
 
-class CDirectVobSubFilter;
-
-class CDirectVobSubInputPin : public CTransformInputPin/*, IPinConnection*/
-{
-    CDirectVobSubFilter* m_pFilter;
-
-public:
-    CDirectVobSubInputPin(CDirectVobSubFilter* pFilter, HRESULT* phr);
-
-	// IPin
-	STDMETHODIMP GetAllocator(IMemAllocator** ppAllocator);
-	STDMETHODIMP NotifyAllocator(IMemAllocator* pAllocator, BOOL bReadOnly);
-
-	STDMETHODIMP QueryAccept(const AM_MEDIA_TYPE* pmt);
-	STDMETHODIMP ReceiveConnection(IPin* pConnector, const AM_MEDIA_TYPE* pmt);
-};
-
+// TODO: reference any additional headers you need in STDAFX.H
+// and not in this file

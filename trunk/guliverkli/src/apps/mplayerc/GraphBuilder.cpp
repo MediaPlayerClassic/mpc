@@ -823,7 +823,7 @@ HRESULT CGraphBuilder::Render(LPCTSTR lpsz)
 			if(SUCCEEDED(hr) && SUCCEEDED(pReader->Load(fnw, NULL)))
 				pBF = pReader;
 		}
-///
+
 		if((s.SrcFilters&SRC_MATROSKA) && !pBF) //&& (ext == _T(".mkv") || ext == _T(".mka") || ext == _T(".mks")))
 		{
 			hr = S_OK;
@@ -906,7 +906,7 @@ HRESULT CGraphBuilder::Render(LPCTSTR lpsz)
 			if(SUCCEEDED(hr) && SUCCEEDED(pReader->Load(fnw, NULL)))
 				pBF = pReader;
 		}
-///
+
 		if(!pBF && fn.Find(_T("://")) < 0)
 		{
 			bool fWindowsMedia = (ext == _T(".asf") || ext == _T(".wmv") || ext == _T(".wma"));

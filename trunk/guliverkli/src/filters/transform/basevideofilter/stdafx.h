@@ -19,24 +19,25 @@
  *
  */
 
+// stdafx.h : include file for standard system include files,
+// or project specific include files that are used frequently, but
+// are changed infrequently
+//
+
 #pragma once
 
-#include "..\..\..\DSUtil\DSUtil.h"
+#define WIN32_LEAN_AND_MEAN		// Exclude rarely-used stuff from Windows headers
+#define _ATL_CSTRING_EXPLICIT_CONSTRUCTORS	// some CString constructors will be explicit
 
-class CDirectVobSubFilter;
+#ifndef VC_EXTRALEAN
+#define VC_EXTRALEAN		// Exclude rarely-used stuff from Windows headers
+#endif
 
-class CDirectVobSubInputPin : public CTransformInputPin/*, IPinConnection*/
-{
-    CDirectVobSubFilter* m_pFilter;
+#include <afx.h>
+#include <afxwin.h>         // MFC core and standard components
 
-public:
-    CDirectVobSubInputPin(CDirectVobSubFilter* pFilter, HRESULT* phr);
+// TODO: reference additional headers your program requires here
 
-	// IPin
-	STDMETHODIMP GetAllocator(IMemAllocator** ppAllocator);
-	STDMETHODIMP NotifyAllocator(IMemAllocator* pAllocator, BOOL bReadOnly);
-
-	STDMETHODIMP QueryAccept(const AM_MEDIA_TYPE* pmt);
-	STDMETHODIMP ReceiveConnection(IPin* pConnector, const AM_MEDIA_TYPE* pmt);
-};
-
+#include <streams.h>
+#include <dvdmedia.h>
+#include <amvideo.h>

@@ -34,9 +34,7 @@ CMpegSplitterFile::CMpegSplitterFile(IAsyncReader* pAsyncReader, HRESULT& hr)
 	, m_type(us)
 	, m_rate(0)
 {
-	SetCacheSize(16); // during initialization there will be a lot of skipping in the stream, having a large cache would be a waste
 	if(SUCCEEDED(hr)) hr = Init();
-	SetCacheSize(); // reset cache size
 }
 
 HRESULT CMpegSplitterFile::Init()

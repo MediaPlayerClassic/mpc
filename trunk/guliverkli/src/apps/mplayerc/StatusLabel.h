@@ -28,11 +28,11 @@ class CStatusLabel : public CStatic
 	DECLARE_DYNAMIC(CStatusLabel)
 
 private:
-	bool m_fRightAlign;
+	bool m_fRightAlign, m_fAddEllipses;
 	CFont m_font;
 
 public:
-	CStatusLabel(bool fRightAlign /*= false*/);
+	CStatusLabel(bool fRightAlign, bool fAddEllipses);
 	virtual ~CStatusLabel();
 
 	CFont& GetFont() {return m_font;}

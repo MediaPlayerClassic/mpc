@@ -1063,7 +1063,7 @@ bool ExtractBIH(IMediaSample* pMS, BITMAPINFOHEADER* bih)
 	return(false);
 }
 
-bool ExtractDim(const AM_MEDIA_TYPE* pmt, DWORD& w, DWORD& h, DWORD& arx, DWORD& ary)
+bool ExtractDim(const AM_MEDIA_TYPE* pmt, int& w, int& h, int& arx, int& ary)
 {
 	w = h = arx = ary = 0;
 

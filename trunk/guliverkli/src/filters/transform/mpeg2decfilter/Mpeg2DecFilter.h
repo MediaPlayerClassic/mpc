@@ -26,19 +26,19 @@
 #include <Videoacc.h>
 #include "IMpeg2DecFilter.h"
 #include "..\..\..\decss\DeCSSInputPin.h"
+#include "..\BaseVideoFilter\BaseVideoFilter.h"
 
 class CSubpicInputPin;
 class CClosedCaptionOutputPin;
 class CMpeg2Dec;
 
 [uuid("39F498AF-1A09-4275-B193-673B0BA3D478")]
-class CMpeg2DecFilter : public CTransformFilter, public IMpeg2DecFilter
+class CMpeg2DecFilter : public CBaseVideoFilter, public IMpeg2DecFilter
 {
 	CSubpicInputPin* m_pSubpicInput;
 	CClosedCaptionOutputPin* m_pClosedCaptionOutput;
 	CAutoPtr<CMpeg2Dec> m_dec;
 	REFERENCE_TIME m_AvgTimePerFrame;
-	CCritSec m_csReceive;
 	bool m_fWaitForKeyFrame;
 	bool m_fFilm;
 	struct framebuf 
@@ -65,14 +65,11 @@ class CMpeg2DecFilter : public CTransformFilter, public IMpeg2DecFilter
 		void free() {for(int i = 0; i < 6; i++) {_aligned_free(buf[i]); buf[i] = NULL;}}
 	} m_fb;
 
-	void Copy(BYTE* pOut, BYTE** ppIn, DWORD w, DWORD h, DWORD pitchIn);
-	void ResetMpeg2Decoder();
-	HRESULT ReconnectOutput(int w, int h);
-
-	DWORD m_win, m_hin, m_arxin, m_aryin;
-	DWORD m_wout, m_hout, m_arxout, m_aryout;
-
 	AM_SimpleRateChange m_rate;
+
+protected:
+	void InputTypeChanged();
+	HRESULT Transform(IMediaSample* pIn);
 
 public:
 	CMpeg2DecFilter(LPUNKNOWN lpunk, HRESULT* phr);
@@ -82,7 +79,6 @@ public:
     STDMETHODIMP NonDelegatingQueryInterface(REFIID riid, void** ppv);
 
 	HRESULT Deliver(bool fRepeatLast);
-	HRESULT CheckOutputMediaType(const CMediaType& mtOut);
 
 	int GetPinCount();
 	CBasePin* GetPin(int n);
@@ -91,15 +87,10 @@ public:
 	HRESULT BeginFlush();
 	HRESULT EndFlush();
     HRESULT NewSegment(REFERENCE_TIME tStart, REFERENCE_TIME tStop, double dRate);
-    HRESULT Receive(IMediaSample* pIn);
 
 	HRESULT CheckConnect(PIN_DIRECTION dir, IPin* pPin);
     HRESULT CheckInputType(const CMediaType* mtIn);
-    HRESULT CheckTransform(const CMediaType* mtIn, const CMediaType* mtOut);
-    HRESULT DecideBufferSize(IMemAllocator* pAllocator, ALLOCATOR_PROPERTIES* pProperties);
-    HRESULT GetMediaType(int iPosition, CMediaType* pMediaType);
-
-	HRESULT SetMediaType(PIN_DIRECTION dir, const CMediaType* pmt);
+	HRESULT CheckTransform(const CMediaType* mtIn, const CMediaType* mtOut);
 
 	HRESULT StartStreaming();
 	HRESULT StopStreaming();
@@ -224,14 +215,6 @@ public:
 	// IKsPropertySet
     STDMETHODIMP Set(REFGUID PropSet, ULONG Id, LPVOID InstanceData, ULONG InstanceLength, LPVOID PropertyData, ULONG DataLength);
     STDMETHODIMP QuerySupported(REFGUID PropSet, ULONG Id, ULONG* pTypeSupport);
-};
-
-class CMpeg2DecOutputPin : public CTransformOutputPin
-{
-public:
-	CMpeg2DecOutputPin(CTransformFilter* pTransformFilter, HRESULT* phr);
-
-    HRESULT CheckMediaType(const CMediaType* mtOut);
 };
 
 class CClosedCaptionOutputPin : public CBaseOutputPin

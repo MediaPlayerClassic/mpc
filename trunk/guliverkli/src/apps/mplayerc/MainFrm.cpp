@@ -363,13 +363,14 @@ CMainFrame::CMainFrame() :
 	m_fLiveWM(false),
 	m_fOpeningAborted(false),
 	m_fBuffering(false),
-	m_fileDropTarget(this)
+	m_fileDropTarget(this),
+	m_fTrayIcon(false)
 {
 }
 
 CMainFrame::~CMainFrame()
 {
-	m_owner.DestroyWindow();
+//	m_owner.DestroyWindow();
 }
 
 int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
@@ -434,10 +435,6 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	m_dockingbars.AddTail(&m_wndCaptureBar);
 
 	m_fileDropTarget.Register(this);
-
-	if(SUCCEEDED(m_pTaskbarList.CoCreateInstance(CLSID_TaskbarList)) && m_pTaskbarList)
-		if(FAILED(m_pTaskbarList->HrInit()))
-			m_pTaskbarList = NULL;
 
 	AppSettings& s = AfxGetAppSettings();
 
@@ -617,6 +614,7 @@ return;//
 
 LRESULT CMainFrame::OnTaskBarRestart(WPARAM, LPARAM)
 {
+	m_fTrayIcon = false;
 	ShowTrayIcon(AfxGetAppSettings().fTrayIcon);
 
 	return 0;
@@ -670,7 +668,7 @@ void CMainFrame::ShowTrayIcon(bool fShow)
 
 	if(fShow)
 	{
-		if(GetExStyle()&WS_EX_APPWINDOW)
+		if(!m_fTrayIcon)
 		{
 			NOTIFYICONDATA tnid; 
 			tnid.cbSize = sizeof(NOTIFYICONDATA); 
@@ -682,13 +680,13 @@ void CMainFrame::ShowTrayIcon(bool fShow)
 			tnid.uCallbackMessage = WM_NOTIFYICON; 
 			lstrcpyn(tnid.szTip, TEXT("Media Player Classic"), sizeof(tnid.szTip)); 
 			Shell_NotifyIcon(NIM_ADD, &tnid);
-			
-			ModifyStyleEx(WS_EX_APPWINDOW, 0);
+
+			m_fTrayIcon = true;
 		}
 	}
 	else
 	{
-		if(!(GetExStyle()&WS_EX_APPWINDOW))
+		if(m_fTrayIcon)
 		{
 			NOTIFYICONDATA tnid; 
 			tnid.cbSize = sizeof(NOTIFYICONDATA); 
@@ -696,7 +694,7 @@ void CMainFrame::ShowTrayIcon(bool fShow)
 			tnid.uID = IDR_MAINFRAME; 
 			Shell_NotifyIcon(NIM_DELETE, &tnid); 
 
-			ModifyStyleEx(0, WS_EX_APPWINDOW); 
+			m_fTrayIcon = false;
 		}
 	}
 
@@ -721,17 +719,7 @@ BOOL CMainFrame::PreCreateWindow(CREATESTRUCT& cs)
 		return FALSE;
 
 	cs.dwExStyle &= ~WS_EX_CLIENTEDGE;
-	cs.dwExStyle |= WS_EX_APPWINDOW;
 	cs.lpszClass = MPC_WND_CLASS_NAME; //AfxRegisterWndClass(0);
-
-	if(!IsWindow(m_owner.m_hWnd))
-	{
-		m_owner.CreateEx(0, 
-			AfxRegisterWndClass(0, 0, 0, LoadIcon(AfxGetInstanceHandle(), MAKEINTRESOURCE(IDR_MAINFRAME))),
-			_T(""), WS_OVERLAPPEDWINDOW, CRect(0,0,0,0), NULL, 0);
-	}
-
-	cs.hwndParent = m_owner.GetSafeHwnd();
 
 	return TRUE;
 }
@@ -901,7 +889,7 @@ void CMainFrame::OnSize(UINT nType, int cx, int cy)
 {
 	CFrameWnd::OnSize(nType, cx, cy);
 
-	if(nType == SIZE_RESTORED && !(GetWindowLong(m_hWnd, GWL_EXSTYLE)&WS_EX_APPWINDOW))
+	if(nType == SIZE_RESTORED && m_fTrayIcon)
 	{
 		ShowWindow(SW_SHOW);
 	}
@@ -930,7 +918,7 @@ void CMainFrame::OnSysCommand(UINT nID, LPARAM lParam)
 	{
 		TRACE(_T("SC_SCREENSAVE, nID = %d, lParam = %d\n"), nID, lParam);
 	}
-	else if((nID & 0xFFF0) == SC_MINIMIZE && !(GetWindowLong(m_hWnd, GWL_EXSTYLE)&WS_EX_APPWINDOW))
+	else if((nID & 0xFFF0) == SC_MINIMIZE && m_fTrayIcon)
 	{
 		ShowWindow(SW_HIDE);
 		return;
@@ -950,11 +938,6 @@ void CMainFrame::OnActivateApp(BOOL bActive, DWORD dwThreadID)
 	if(m_iMediaLoadState == MLS_LOADED && m_fFullScreen && !bActive && (mi.dwFlags&MONITORINFOF_PRIMARY))
 	{
 		OnViewFullscreen();
-	}
-
-	if(bActive && m_pTaskbarList && (GetWindowLong(m_hWnd, GWL_EXSTYLE)&WS_EX_APPWINDOW))
-	{
-		m_pTaskbarList->ActivateTab(GetSafeHwnd());
 	}
 }
 
@@ -5076,7 +5059,12 @@ void CMainFrame::SetDefaultWindowRect()
 //			+ 2; // ???
 		if(style&WS_CAPTION) h += GetSystemMetrics(SM_CYCAPTION);
 
-		if(s.fRememberWindowSize)
+		if(s.HasFixedWindowSize())
+		{
+			w = s.fixedWindowSize.cx;
+			h = s.fixedWindowSize.cy;
+		}
+		else if(s.fRememberWindowSize)
 		{
 			w = s.rcLastWindowPos.Width();
 			h = s.rcLastWindowPos.Height();
@@ -5124,11 +5112,13 @@ void CMainFrame::SetDefaultWindowRect()
 
 void CMainFrame::RestoreDefaultWindowRect()
 {
+	AppSettings& s = AfxGetAppSettings();
+
 	WINDOWPLACEMENT wp;
 	GetWindowPlacement(&wp);
 	if(!m_fFullScreen && wp.showCmd != SW_SHOWMAXIMIZED && wp.showCmd != SW_SHOWMINIMIZED
-	&& (GetExStyle()&WS_EX_APPWINDOW)
-	&& !AfxGetAppSettings().fRememberWindowSize)
+//	&& (GetExStyle()&WS_EX_APPWINDOW)
+	&& !s.fRememberWindowSize)
 	{
 		CRect r1, r2;
 		GetClientRect(&r1);
@@ -5154,15 +5144,21 @@ void CMainFrame::RestoreDefaultWindowRect()
 //			+ 2; // ???
 		if(style&WS_CAPTION) h += GetSystemMetrics(SM_CYCAPTION);
 
+		if(s.HasFixedWindowSize())
+		{
+			w = s.fixedWindowSize.cx;
+			h = s.fixedWindowSize.cy;
+		}
+
 		CRect r;
 		GetWindowRect(r);
 
 		int x = r.CenterPoint().x - w/2;
 		int y = r.CenterPoint().y - h/2;
 
-		if(AfxGetAppSettings().fRememberWindowPos)
+		if(s.fRememberWindowPos)
 		{
-			CRect r = AfxGetAppSettings().rcLastWindowPos;
+			CRect r = s.rcLastWindowPos;
 
 			x = r.TopLeft().x;
 			y = r.TopLeft().y;
@@ -5421,10 +5417,11 @@ void CMainFrame::ZoomVideoWindow(double scale)
 	if(m_iMediaLoadState != MLS_LOADED)
 		return;
 
+	AppSettings& s = AfxGetAppSettings();
+
 	if(scale <= 0)
 	{
-		int iZoomLevel = AfxGetAppSettings().iZoomLevel;
-		scale = iZoomLevel == 0 ? 0.5 : iZoomLevel == 2 ? 2.0 : 1.0;
+		scale = s.iZoomLevel == 0 ? 0.5 : s.iZoomLevel == 2 ? 2.0 : 1.0;
 	}
 
 	if(m_fFullScreen)
@@ -5486,7 +5483,7 @@ void CMainFrame::ZoomVideoWindow(double scale)
 	}
 
 	// center window
-	if(!AfxGetAppSettings().fRememberWindowPos)
+	if(!s.fRememberWindowPos)
 	{
 		CPoint cp = r.CenterPoint();
 		r.left = cp.x - w/2;
@@ -5504,7 +5501,11 @@ void CMainFrame::ZoomVideoWindow(double scale)
 	if(r.bottom > mi.rcWork.bottom) r.OffsetRect(0, mi.rcWork.bottom-r.bottom);
 	if(r.top < mi.rcWork.top) r.OffsetRect(0, mi.rcWork.top-r.top);
 
-	MoveWindow(r);
+	if(m_fFullScreen || !s.HasFixedWindowSize())
+	{
+		MoveWindow(r);
+	}
+
 //	ShowWindow(SW_SHOWNORMAL);
 
 	MoveVideoWindow();

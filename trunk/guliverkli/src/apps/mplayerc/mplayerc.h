@@ -92,7 +92,8 @@ enum
 	CLSW_UNREGEXTAUD=CLSW_UNREGEXTVID<<1,
 	CLSW_STARTVALID=CLSW_UNREGEXTAUD<<1,
 	CLSW_NOFOCUS=CLSW_STARTVALID<<1,
-	CLSW_UNRECOGNIZEDSWITCH=CLSW_NOFOCUS<<1	
+	CLSW_FIXEDSIZE=CLSW_NOFOCUS<<1,
+	CLSW_UNRECOGNIZEDSWITCH=CLSW_FIXEDSIZE<<1	
 };
 
 enum
@@ -325,6 +326,9 @@ public:
 		int nCLSwitches;
 		CStringList slFiles, slDubs, slSubs, slFilters;
 		__int64 rtStart;
+		CSize fixedWindowSize;
+		bool HasFixedWindowSize() {return fixedWindowSize.cx > 0 || fixedWindowSize.cy > 0;}
+		// int iFixedWidth, iFixedHeight;
 
 		void ParseCommandLine(CStringList& cmdln);
 

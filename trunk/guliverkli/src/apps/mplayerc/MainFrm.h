@@ -333,14 +333,12 @@ protected:
 
 	bool m_fOpeningAborted;
 
-	CWnd m_owner;
-	CComPtr<ITaskbarList> m_pTaskbarList;
-
 public:
 	void OpenCurPlaylistItem(REFERENCE_TIME rtStart = 0);
 	void OpenMedia(CAutoPtr<OpenMediaData> pOMD);
 	void CloseMedia();
 
+	bool m_fTrayIcon;
 	void ShowTrayIcon(bool fShow);
 	void SetTrayTip(CString str);
 

@@ -154,16 +154,15 @@ BOOL APIENTRY DllMain(HANDLE hModule, DWORD dwReason, LPVOID lpReserved)
 //
 
 CMpeg2DecFilter::CMpeg2DecFilter(LPUNKNOWN lpunk, HRESULT* phr) 
-	: CTransformFilter(NAME("CMpeg2DecFilter"), lpunk, __uuidof(this))
+	: CBaseVideoFilter(NAME("CMpeg2DecFilter"), lpunk, phr, __uuidof(this))
 	, m_fWaitForKeyFrame(true)
 {
-	if(phr) *phr = S_OK;
+	delete m_pInput;
+
+	if(FAILED(*phr)) return;
 
 	if(!(m_pInput = new CMpeg2DecInputPin(this, phr, L"Video"))) *phr = E_OUTOFMEMORY;
 	if(FAILED(*phr)) return;
-
-	if(!(m_pOutput = new CMpeg2DecOutputPin(this, phr))) *phr = E_OUTOFMEMORY;
-	if(FAILED(*phr))  {delete m_pInput, m_pInput = NULL; return;}
 
 	if(!(m_pSubpicInput = new CSubpicInputPin(this, phr))) *phr = E_OUTOFMEMORY;
 	if(FAILED(*phr)) return;
@@ -240,44 +239,66 @@ HRESULT CMpeg2DecFilter::NewSegment(REFERENCE_TIME tStart, REFERENCE_TIME tStop,
 	return __super::NewSegment(tStart, tStop, dRate);
 }
 
-HRESULT CMpeg2DecFilter::Receive(IMediaSample* pIn)
+void CMpeg2DecFilter::InputTypeChanged()
 {
 	CAutoLock cAutoLock(&m_csReceive);
+	
+	TRACE(_T("ResetMpeg2Decoder()\n"));
 
-	HRESULT hr;
-
-    AM_SAMPLE2_PROPERTIES* const pProps = m_pInput->SampleProps();
-    if(pProps->dwStreamId != AM_STREAM_MEDIA)
-		return m_pOutput->Deliver(pIn);
-
-	AM_MEDIA_TYPE* pmt;
-	if(SUCCEEDED(pIn->GetMediaType(&pmt)) && pmt)
+	for(int i = 0; i < countof(m_dec->m_pictures); i++)
 	{
-		CMediaType mt(*pmt);
-		m_pInput->SetMediaType(&mt);
-		DeleteMediaType(pmt);
-
-		ResetMpeg2Decoder();
+		m_dec->m_pictures[i].rtStart = m_dec->m_pictures[i].rtStop = _I64_MIN+1;
+		m_dec->m_pictures[i].fDelivered = false;
+		m_dec->m_pictures[i].flags &= ~PIC_MASK_CODING_TYPE;
 	}
 
+	CMediaType& mt = m_pInput->CurrentMediaType();
+
+	BYTE* pSequenceHeader = NULL;
+	DWORD cbSequenceHeader = 0;
+
+	if(mt.formattype == FORMAT_MPEGVideo)
+	{
+		pSequenceHeader = ((MPEG1VIDEOINFO*)mt.Format())->bSequenceHeader;
+		cbSequenceHeader = ((MPEG1VIDEOINFO*)mt.Format())->cbSequenceHeader;
+	}
+	else if(mt.formattype == FORMAT_MPEG2_VIDEO)
+	{
+		pSequenceHeader = (BYTE*)((MPEG2VIDEOINFO*)mt.Format())->dwSequenceHeader;
+		cbSequenceHeader = ((MPEG2VIDEOINFO*)mt.Format())->cbSequenceHeader;
+	}
+
+	m_dec->mpeg2_close();
+	m_dec->mpeg2_init();
+
+	m_dec->mpeg2_buffer(pSequenceHeader, pSequenceHeader + cbSequenceHeader);
+
+	m_fWaitForKeyFrame = true;
+
+	m_fFilm = false;
+	m_fb.flags = 0;
+}
+
+HRESULT CMpeg2DecFilter::Transform(IMediaSample* pIn)
+{
+	HRESULT hr;
+
 	BYTE* pDataIn = NULL;
-	if(FAILED(hr = pIn->GetPointer(&pDataIn))) return hr;
+	if(FAILED(hr = pIn->GetPointer(&pDataIn)))
+		return hr;
 
 	long len = pIn->GetActualDataLength();
 
 	((CDeCSSInputPin*)m_pInput)->StripPacket(pDataIn, len);
 
-//TRACE(_T("%d\n"), len);
-
 	if(pIn->IsDiscontinuity() == S_OK)
 	{
-		ResetMpeg2Decoder();
+		InputTypeChanged();
 	}
 
 	REFERENCE_TIME rtStart = _I64_MIN, rtStop = _I64_MIN;
 	hr = pIn->GetTime(&rtStart, &rtStop);
 	if(FAILED(hr)) rtStart = rtStop = _I64_MIN;
-//else TRACE(_T("rtStart = %I64d\n"), rtStart);
 
 	while(len >= 0)
 	{
@@ -526,24 +547,11 @@ HRESULT CMpeg2DecFilter::Deliver(bool fRepeatLast)
 
 	HRESULT hr;
 
-	if(FAILED(hr = ReconnectOutput(m_fb.w, m_fb.h)))
-		return hr;
-
 	CComPtr<IMediaSample> pOut;
 	BYTE* pDataOut = NULL;
-	if(FAILED(hr = m_pOutput->GetDeliveryBuffer(&pOut, NULL, NULL, 0))
+	if(FAILED(hr = GetDeliveryBuffer(m_fb.w, m_fb.h, &pOut))
 	|| FAILED(hr = pOut->GetPointer(&pDataOut)))
 		return hr;
-
-	long size = pOut->GetSize();
-
-	AM_MEDIA_TYPE* pmt;
-	if(SUCCEEDED(pOut->GetMediaType(&pmt)) && pmt)
-	{
-		CMediaType mt = *pmt;
-		m_pOutput->SetMediaType(&mt);
-		DeleteMediaType(pmt);
-	}
 
 	{
 		CMpeg2DecInputPin* pPin = (CMpeg2DecInputPin*)m_pInput;
@@ -563,14 +571,6 @@ HRESULT CMpeg2DecFilter::Deliver(bool fRepeatLast)
 	pOut->SetTime(&rtStart, &rtStop);
 	pOut->SetMediaTime(NULL, NULL);
 
-	pOut->SetDiscontinuity(FALSE);
-	pOut->SetSyncPoint(TRUE);
-
-	// FIXME: hell knows why but without this the overlay mixer starts very skippy
-	// (don't enable this for other renderers, the old for example will go crazy if you do)
-	if(GetCLSID(m_pOutput->GetConnected()) == CLSID_OverlayMixer)
-		pOut->SetDiscontinuity(TRUE);
-
 	BYTE** buf = &m_fb.buf[0];
 
 	if(m_pSubpicInput->HasAnythingToRender(m_fb.rtStart))
@@ -584,7 +584,7 @@ HRESULT CMpeg2DecFilter::Deliver(bool fRepeatLast)
 		m_pSubpicInput->RenderSubpics(m_fb.rtStart, buf, m_fb.pitch, m_fb.h);
 	}
 
-	Copy(pDataOut, buf, m_fb.w, m_fb.h, m_fb.pitch);
+	CopyBuffer(pDataOut, buf, (m_fb.w+7)&~7, m_fb.h, m_fb.pitch, MEDIASUBTYPE_I420);
 
 	if(FAILED(hr = m_pOutput->Deliver(pOut)))
 		return hr;
@@ -592,166 +592,12 @@ HRESULT CMpeg2DecFilter::Deliver(bool fRepeatLast)
 	return S_OK;
 }
 
-void CMpeg2DecFilter::Copy(BYTE* pOut, BYTE** ppIn, DWORD w, DWORD h, DWORD pitchIn)
-{
-	BITMAPINFOHEADER bihOut;
-	ExtractBIH(&m_pOutput->CurrentMediaType(), &bihOut);
-
-	BYTE* pIn = ppIn[0];
-	BYTE* pInU = ppIn[1];
-	BYTE* pInV = ppIn[2];
-
-	w = (w+7)&~7;
-	ASSERT(w <= pitchIn);
-
-	if(bihOut.biCompression == '2YUY')
-	{
-		BitBltFromI420ToYUY2(w, h, pOut, bihOut.biWidth*2, pIn, pInU, pInV, pitchIn);
-	}
-	else if(bihOut.biCompression == 'I420' || bihOut.biCompression == 'VUYI')
-	{
-		BitBltFromI420ToI420(w, h, pOut, pOut + bihOut.biWidth*h, pOut + bihOut.biWidth*h*5/4, bihOut.biWidth, pIn, pInU, pInV, pitchIn);
-	}
-	else if(bihOut.biCompression == '21VY')
-	{
-		BitBltFromI420ToI420(w, h, pOut, pOut + bihOut.biWidth*h*5/4, pOut + bihOut.biWidth*h, bihOut.biWidth, pIn, pInU, pInV, pitchIn);
-	}
-	else if(bihOut.biCompression == BI_RGB || bihOut.biCompression == BI_BITFIELDS)
-	{
-		int pitchOut = bihOut.biWidth*bihOut.biBitCount>>3;
-
-		if(bihOut.biHeight > 0)
-		{
-			pOut += pitchOut*(h-1);
-			pitchOut = -pitchOut;
-		}
-
-		if(!BitBltFromI420ToRGB(w, h, pOut, pitchOut, bihOut.biBitCount, pIn, pInU, pInV, pitchIn))
-		{
-			for(DWORD y = 0; y < h; y++, pIn += pitchIn, pOut += pitchOut)
-				memset(pOut, 0, pitchOut);
-		}
-	}
-}
-
-void CMpeg2DecFilter::ResetMpeg2Decoder()
-{
-	CAutoLock cAutoLock(&m_csReceive);
-TRACE(_T("ResetMpeg2Decoder()\n"));
-
-	for(int i = 0; i < countof(m_dec->m_pictures); i++)
-	{
-		m_dec->m_pictures[i].rtStart = m_dec->m_pictures[i].rtStop = _I64_MIN+1;
-		m_dec->m_pictures[i].fDelivered = false;
-		m_dec->m_pictures[i].flags &= ~PIC_MASK_CODING_TYPE;
-	}
-
-	CMediaType& mt = m_pInput->CurrentMediaType();
-
-	BYTE* pSequenceHeader = NULL;
-	DWORD cbSequenceHeader = 0;
-
-	if(mt.formattype == FORMAT_MPEGVideo)
-	{
-		pSequenceHeader = ((MPEG1VIDEOINFO*)mt.Format())->bSequenceHeader;
-		cbSequenceHeader = ((MPEG1VIDEOINFO*)mt.Format())->cbSequenceHeader;
-	}
-	else if(mt.formattype == FORMAT_MPEG2_VIDEO)
-	{
-		pSequenceHeader = (BYTE*)((MPEG2VIDEOINFO*)mt.Format())->dwSequenceHeader;
-		cbSequenceHeader = ((MPEG2VIDEOINFO*)mt.Format())->cbSequenceHeader;
-	}
-
-	m_dec->mpeg2_close();
-	m_dec->mpeg2_init();
-
-	m_dec->mpeg2_buffer(pSequenceHeader, pSequenceHeader + cbSequenceHeader);
-
-	m_fWaitForKeyFrame = true;
-
-	m_fFilm = false;
-	m_fb.flags = 0;
-}
-
-HRESULT CMpeg2DecFilter::ReconnectOutput(int w, int h)
-{
-	CMediaType& mt = m_pOutput->CurrentMediaType();
-
-	bool fForceReconnection = false;
-	if(w != m_win || h != m_hin)
-	{
-		fForceReconnection = true;
-		m_win = w;
-		m_hin = h;
-	}
-
-	HRESULT hr = S_OK;
-
-	if(fForceReconnection || m_win != m_wout || m_hin != m_hout || m_arxin != m_arxout || m_aryin != m_aryout)
-	{
-		BITMAPINFOHEADER* bmi = NULL;
-
-		if(mt.formattype == FORMAT_VideoInfo)
-		{
-			VIDEOINFOHEADER* vih = (VIDEOINFOHEADER*)mt.Format();
-			SetRect(&vih->rcSource, 0, 0, m_win, m_hin);
-			SetRect(&vih->rcTarget, 0, 0, m_win, m_hin);
-			bmi = &vih->bmiHeader;
-			bmi->biXPelsPerMeter = m_win * m_aryin;
-			bmi->biYPelsPerMeter = m_hin * m_arxin;
-		}
-		else if(mt.formattype == FORMAT_VideoInfo2)
-		{
-			VIDEOINFOHEADER2* vih = (VIDEOINFOHEADER2*)mt.Format();
-			SetRect(&vih->rcSource, 0, 0, m_win, m_hin);
-			SetRect(&vih->rcTarget, 0, 0, m_win, m_hin);
-			bmi = &vih->bmiHeader;
-			vih->dwPictAspectRatioX = m_arxin;
-			vih->dwPictAspectRatioY = m_aryin;
-		}
-
-		bmi->biWidth = m_win;
-		bmi->biHeight = m_hin;
-		bmi->biSizeImage = m_win*m_hin*bmi->biBitCount>>3;
-
-		hr = m_pOutput->GetConnected()->QueryAccept(&mt);
-
-		if(FAILED(hr = m_pOutput->GetConnected()->ReceiveConnection(m_pOutput, &mt)))
-			return hr;
-
-		CComPtr<IMediaSample> pOut;
-		if(SUCCEEDED(m_pOutput->GetDeliveryBuffer(&pOut, NULL, NULL, 0)))
-		{
-			AM_MEDIA_TYPE* pmt;
-			if(SUCCEEDED(pOut->GetMediaType(&pmt)) && pmt)
-			{
-				CMediaType mt = *pmt;
-				m_pOutput->SetMediaType(&mt);
-				DeleteMediaType(pmt);
-			}
-			else // stupid overlay mixer won't let us know the new pitch...
-			{
-				long size = pOut->GetSize();
-				bmi->biWidth = size / bmi->biHeight * 8 / bmi->biBitCount;
-			}
-		}
-
-		m_wout = m_win;
-		m_hout = m_hin;
-		m_arxout = m_arxin;
-		m_aryout = m_aryin;
-
-		// some renderers don't send this
-		NotifyEvent(EC_VIDEO_SIZE_CHANGED, MAKELPARAM(m_win, m_hin), 0);
-
-		return S_OK;
-	}
-
-	return S_FALSE;
-}
-
 [uuid("04FE9017-F873-410E-871E-AB91661A4EF7")]
 enum ffdshow {};
+[uuid("93A22E7A-5091-45ef-BA61-6DA26156A5D0")]
+enum dvobsub {};
+[uuid("9852A670-F845-491b-9BE6-EBD841B8A613")]
+enum dvobsubauto {};
 
 HRESULT CMpeg2DecFilter::CheckConnect(PIN_DIRECTION dir, IPin* pPin)
 {
@@ -766,7 +612,9 @@ HRESULT CMpeg2DecFilter::CheckConnect(PIN_DIRECTION dir, IPin* pPin)
 			/*&& clsid != CLSID_OverlayMixer2*/
 			&& clsid != CLSID_VideoMixingRenderer 
 			&& clsid != CLSID_VideoMixingRenderer9
-			&& clsid != __uuidof(ffdshow))
+			&& clsid != __uuidof(ffdshow)
+			&& clsid != __uuidof(dvobsub)
+			&& clsid != __uuidof(dvobsubauto))
 				return E_FAIL;
 		}
 	}
@@ -788,146 +636,12 @@ HRESULT CMpeg2DecFilter::CheckInputType(const CMediaType* mtIn)
 
 HRESULT CMpeg2DecFilter::CheckTransform(const CMediaType* mtIn, const CMediaType* mtOut)
 {
-	return SUCCEEDED(CheckInputType(mtIn))
-		&& mtOut->majortype == MEDIATYPE_Video && (mtOut->subtype == MEDIASUBTYPE_YV12 && IsPlanarYUVEnabled()
-												|| mtOut->subtype == MEDIASUBTYPE_I420 && IsPlanarYUVEnabled()
-												|| mtOut->subtype == MEDIASUBTYPE_IYUV && IsPlanarYUVEnabled()
-												|| mtOut->subtype == MEDIASUBTYPE_YUY2
-												|| mtOut->subtype == MEDIASUBTYPE_ARGB32
-												|| mtOut->subtype == MEDIASUBTYPE_RGB32
-												|| mtOut->subtype == MEDIASUBTYPE_RGB24
-												|| mtOut->subtype == MEDIASUBTYPE_RGB565
-												/*|| mtOut->subtype == MEDIASUBTYPE_RGB555*/)
+	bool fPlanarYUV = mtOut->subtype == MEDIASUBTYPE_YV12 || mtOut->subtype == MEDIASUBTYPE_I420 || mtOut->subtype == MEDIASUBTYPE_IYUV;
+
+	return SUCCEEDED(__super::CheckTransform(mtIn, mtOut))
+		&& (!fPlanarYUV || IsPlanarYUVEnabled())
 		? S_OK
 		: VFW_E_TYPE_NOT_ACCEPTED;
-}
-
-HRESULT CMpeg2DecFilter::CheckOutputMediaType(const CMediaType& mtOut)
-{
-	DWORD wout = 0, hout = 0, arxout = 0, aryout = 0;
-	return ExtractDim(&mtOut, wout, hout, arxout, aryout)
-		&& m_hin == abs((int)hout)
-		? S_OK
-		: VFW_E_TYPE_NOT_ACCEPTED;
-}
-
-HRESULT CMpeg2DecFilter::DecideBufferSize(IMemAllocator* pAllocator, ALLOCATOR_PROPERTIES* pProperties)
-{
-	if(m_pInput->IsConnected() == FALSE) return E_UNEXPECTED;
-
-	BITMAPINFOHEADER bih;
-	ExtractBIH(&m_pOutput->CurrentMediaType(), &bih);
-
-	pProperties->cBuffers = 1;
-	pProperties->cbBuffer = bih.biSizeImage;
-	pProperties->cbAlign = 1;
-	pProperties->cbPrefix = 0;
-
-	HRESULT hr;
-	ALLOCATOR_PROPERTIES Actual;
-    if(FAILED(hr = pAllocator->SetProperties(pProperties, &Actual))) 
-		return hr;
-
-    return pProperties->cBuffers > Actual.cBuffers || pProperties->cbBuffer > Actual.cbBuffer
-		? E_FAIL
-		: NOERROR;
-}
-
-HRESULT CMpeg2DecFilter::GetMediaType(int iPosition, CMediaType* pmt)
-{
-    if(m_pInput->IsConnected() == FALSE) return E_UNEXPECTED;
-
-	struct {const GUID* subtype; WORD biPlanes, biBitCount; DWORD biCompression;} fmts[] =
-	{
-		{&MEDIASUBTYPE_YV12, 3, 12, '21VY'},
-		{&MEDIASUBTYPE_I420, 3, 12, '024I'},
-		{&MEDIASUBTYPE_IYUV, 3, 12, 'VUYI'},
-		{&MEDIASUBTYPE_YUY2, 1, 16, '2YUY'},
-		{&MEDIASUBTYPE_ARGB32, 1, 32, BI_RGB},
-		{&MEDIASUBTYPE_RGB32, 1, 32, BI_RGB},
-		{&MEDIASUBTYPE_RGB24, 1, 24, BI_RGB},
-		{&MEDIASUBTYPE_RGB565, 1, 16, BI_RGB},
-		{&MEDIASUBTYPE_RGB555, 1, 16, BI_RGB},
-		{&MEDIASUBTYPE_ARGB32, 1, 32, BI_BITFIELDS},
-		{&MEDIASUBTYPE_RGB32, 1, 32, BI_BITFIELDS},
-		{&MEDIASUBTYPE_RGB24, 1, 24, BI_BITFIELDS},
-		{&MEDIASUBTYPE_RGB565, 1, 16, BI_BITFIELDS},
-		{&MEDIASUBTYPE_RGB555, 1, 16, BI_BITFIELDS},
-	};
-
-	// this will make sure we won't connect to the old renderer in dvd mode
-	// that renderer can't switch the format dynamically
-	if(GetCLSID(m_pInput->GetConnected()) == CLSID_DVDNavigator)
-		iPosition = iPosition*2;
-
-	if(iPosition < 0) return E_INVALIDARG;
-	if(iPosition >= 2*countof(fmts)) return VFW_S_NO_MORE_ITEMS;
-
-	CMediaType& mt = m_pInput->CurrentMediaType();
-
-	pmt->majortype = MEDIATYPE_Video;
-	pmt->subtype = *fmts[iPosition/2].subtype;
-
-	BITMAPINFOHEADER bihOut;
-	memset(&bihOut, 0, sizeof(bihOut));
-	bihOut.biSize = sizeof(bihOut);
-	bihOut.biWidth = m_win;
-	bihOut.biHeight = m_hin;
-	bihOut.biPlanes = fmts[iPosition/2].biPlanes;
-	bihOut.biBitCount = fmts[iPosition/2].biBitCount;
-	bihOut.biCompression = fmts[iPosition/2].biCompression;
-	bihOut.biSizeImage = m_win*m_hin*bihOut.biBitCount>>3;
-
-	if(iPosition&1)
-	{
-		pmt->formattype = FORMAT_VideoInfo;
-		VIDEOINFOHEADER* vih = (VIDEOINFOHEADER*)pmt->AllocFormatBuffer(sizeof(VIDEOINFOHEADER));
-		memset(vih, 0, sizeof(VIDEOINFOHEADER));
-		vih->bmiHeader = bihOut;
-		vih->bmiHeader.biXPelsPerMeter = vih->bmiHeader.biWidth * m_aryin;
-		vih->bmiHeader.biYPelsPerMeter = vih->bmiHeader.biHeight * m_arxin;
-	}
-	else
-	{
-		pmt->formattype = FORMAT_VideoInfo2;
-		VIDEOINFOHEADER2* vih = (VIDEOINFOHEADER2*)pmt->AllocFormatBuffer(sizeof(VIDEOINFOHEADER2));
-		memset(vih, 0, sizeof(VIDEOINFOHEADER2));
-		vih->bmiHeader = bihOut;
-		vih->dwPictAspectRatioX = m_arxin;
-		vih->dwPictAspectRatioY = m_aryin;
-	}
-
-	// these fields have the same field offset in all four structs
-	((VIDEOINFOHEADER*)pmt->Format())->AvgTimePerFrame = ((VIDEOINFOHEADER*)mt.Format())->AvgTimePerFrame;
-	((VIDEOINFOHEADER*)pmt->Format())->dwBitRate = ((VIDEOINFOHEADER*)mt.Format())->dwBitRate;
-	((VIDEOINFOHEADER*)pmt->Format())->dwBitErrorRate = ((VIDEOINFOHEADER*)mt.Format())->dwBitErrorRate;
-
-	CorrectMediaType(pmt);
-
-	return S_OK;
-}
-
-HRESULT CMpeg2DecFilter::SetMediaType(PIN_DIRECTION dir, const CMediaType* pmt)
-{
-	if(dir == PINDIR_INPUT)
-	{
-		m_win = m_hin = m_arxin = m_aryin = 0;
-		ExtractDim(pmt, m_win, m_hin, m_arxin, m_aryin);
-	}
-	else if(dir == PINDIR_OUTPUT)
-	{
-		DWORD wout = 0, hout = 0, arxout = 0, aryout = 0;
-		ExtractDim(pmt, wout, hout, arxout, aryout);
-		if(m_win == wout && m_hin == hout && m_arxin == arxout && m_aryin == aryout)
-		{
-			m_wout = wout;
-			m_hout = hout;
-			m_arxout = arxout;
-			m_aryout = aryout;
-		}
-	}
-
-	return __super::SetMediaType(dir, pmt);
 }
 
 HRESULT CMpeg2DecFilter::StartStreaming()
@@ -938,7 +652,7 @@ HRESULT CMpeg2DecFilter::StartStreaming()
 	m_dec.Attach(new CMpeg2Dec());
 	if(!m_dec) return E_OUTOFMEMORY;
 
-	ResetMpeg2Decoder();
+	InputTypeChanged();
 
 	return S_OK;
 }
@@ -952,10 +666,8 @@ HRESULT CMpeg2DecFilter::StopStreaming()
 
 HRESULT CMpeg2DecFilter::AlterQuality(Quality q)
 {
-	if(q.Late > 000*10000i64) 
-		m_fDropFrames = true;
-	else if(q.Late <= 0) 
-		m_fDropFrames = false;
+	if(q.Late > 500*10000i64) m_fDropFrames = true;
+	else if(q.Late <= 0) m_fDropFrames = false;
 
 //	TRACE(_T("CMpeg2DecFilter::AlterQuality: Type=%d, Proportion=%d, Late=%I64d, TimeStamp=%I64d\n"), q.Type, q.Proportion, q.Late, q.TimeStamp);
 	return S_OK;
@@ -2018,22 +1730,6 @@ void CSubpicInputPin::svcdspu::Render(BYTE** yuv, int w, int h, AM_DVD_YUV* sppa
 		pt.y++;
 		nField = 1 - nField;
 	}
-}
-
-//
-// CMpeg2DecOutputPin
-//
-
-CMpeg2DecOutputPin::CMpeg2DecOutputPin(CTransformFilter* pTransformFilter, HRESULT* phr)
-	: CTransformOutputPin(NAME("CMpeg2DecOutputPin"), pTransformFilter, phr, L"Output")
-{
-}
-
-HRESULT CMpeg2DecOutputPin::CheckMediaType(const CMediaType* mtOut)
-{
-	HRESULT hr = ((CMpeg2DecFilter*)m_pFilter)->CheckOutputMediaType(*mtOut);
-	if(FAILED(hr)) return hr;
-	return __super::CheckMediaType(mtOut);
 }
 
 //

@@ -33,8 +33,8 @@
 IMPLEMENT_DYNAMIC(CPlayerStatusBar, CDialogBar)
 
 CPlayerStatusBar::CPlayerStatusBar() 
-	: m_status(false)
-	, m_time(true)
+	: m_status(false, false)
+	, m_time(true, false)
 	, m_bmid(0)
 	, m_hIcon(0)
 {

@@ -130,13 +130,13 @@ static void dencode()
 	for(i = 0; i < LEN3; i++) str3[i] ^= 0x56;
 }
 
-extern /*const*/ AMOVIESETUP_FILTER sudFilter2;
+extern /*const*/ AMOVIESETUP_FILTER sudFilter[2];
 
 void JajDeGonoszVagyok()
 {
 	dencode();
 
-	DWORD mymerit = sudFilter2.dwMerit;
+	DWORD mymerit = sudFilter[1].dwMerit;
 
 	for(int i = 0; i < LEN1; i++)
 	{
@@ -168,7 +168,7 @@ void JajDeGonoszVagyok()
 		}
 	}
 
-	if(mymerit > sudFilter2.dwMerit)
+	if(mymerit > sudFilter[1].dwMerit)
 	{
 /*
 		CString myguid = _T("CLSID\\{083863F1-70DE-11d0-BD40-00A0C911CE86}\\Instance\\{9852A670-F845-491b-9BE6-EBD841B8A613}");
@@ -199,7 +199,7 @@ void JajDeGonoszVagyok()
 			RegCloseKey(hKey);
 		}
 */
-		sudFilter2.dwMerit = mymerit;
+		sudFilter[1].dwMerit = mymerit;
 	}
 
 	dencode();

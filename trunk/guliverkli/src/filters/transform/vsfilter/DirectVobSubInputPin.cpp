@@ -29,14 +29,6 @@ CDirectVobSubInputPin::CDirectVobSubInputPin(CDirectVobSubFilter* pFilter, HRESU
 {
 }
 
-STDMETHODIMP CDirectVobSubInputPin::Disconnect()
-{
-	if(m_pFilter->m_pOutput && m_pFilter->m_pOutput->IsConnected())
-		m_pFilter->m_pOutput->Disconnect();
-
-	return CTransformInputPin::Disconnect();
-}
-
 STDMETHODIMP CDirectVobSubInputPin::GetAllocator(IMemAllocator** ppAllocator)
 {
     CheckPointer(ppAllocator, E_POINTER);

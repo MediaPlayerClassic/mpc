@@ -29,6 +29,9 @@ interface IFileHandle : public IUnknown
 
 class CAsyncFileReader : public CUnknown, public IAsyncReader, public CFile, public IFileHandle
 {
+protected:
+	ULONGLONG m_len;
+
 public:
 	CAsyncFileReader(CString fn, HRESULT& hr);
 

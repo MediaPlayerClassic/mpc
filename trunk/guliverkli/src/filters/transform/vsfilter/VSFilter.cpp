@@ -110,105 +110,31 @@ const AMOVIESETUP_MEDIATYPE sudPinTypesOut[] =
 	{&MEDIATYPE_Video, &MEDIASUBTYPE_None},
 };
 
-
 const AMOVIESETUP_PIN sudpPins[] =
 {
-    { L"Input",             // Pins string name
-      FALSE,                // Is it rendered
-      FALSE,                // Is it an output
-      FALSE,                // Are we allowed none
-      FALSE,                // And allowed many
-      &CLSID_NULL,          // Connects to filter
-      NULL,                 // Connects to pin
-      countof(sudPinTypesIn), // Number of types
-      sudPinTypesIn         // Pin information
-    },
-    { L"Output",            // Pins string name
-      FALSE,                // Is it rendered
-      TRUE,                 // Is it an output
-      FALSE,                // Are we allowed none
-      FALSE,                // And allowed many
-      &CLSID_NULL,          // Connects to filter
-      NULL,                 // Connects to pin
-      countof(sudPinTypesOut), // Number of types
-      sudPinTypesOut       // Pin information
-    },
-    { L"Input2",            // Pins string name
-      TRUE,                 // Is it rendered
-      FALSE,                // Is it an output
-      FALSE,                // Are we allowed none
-      TRUE,                 // And allowed many
-      &CLSID_NULL,          // Connects to filter
-      NULL,                 // Connects to pin
-      countof(sudPinTypesIn2), // Number of types
-      sudPinTypesIn2       // Pin information
-    }
+    {L"Input", FALSE, FALSE, FALSE, FALSE, &CLSID_NULL, NULL, countof(sudPinTypesIn), sudPinTypesIn},
+    {L"Output", FALSE, TRUE, FALSE, FALSE, &CLSID_NULL, NULL, countof(sudPinTypesOut), sudPinTypesOut},
+    {L"Input2", TRUE, FALSE, FALSE, TRUE, &CLSID_NULL, NULL, countof(sudPinTypesIn2), sudPinTypesIn2}
 };
 
-const AMOVIESETUP_FILTER sudFilter =
+/*const*/ AMOVIESETUP_FILTER sudFilter[] =
 {
-    &CLSID_DirectVobSubFilter,    // Filter CLSID
-    L"DirectVobSub",        // String name
-    MERIT_DO_NOT_USE,       // Filter merit
-    countof(sudpPins), // Number of pins
-    sudpPins                // Pin information
-};
-
-/*removeme*/
-/*const*/ AMOVIESETUP_FILTER sudFilter2 =
-{
-    &CLSID_DirectVobSubFilter2,    // Filter CLSID
-    L"DirectVobSub (auto-loading version)", // String name
-    MERIT_PREFERRED+2,      // Filter merit
-    countof(sudpPins), // Number of pins
-    sudpPins                // Pin information
+	{&__uuidof(CDirectVobSubFilter), L"DirectVobSub", MERIT_DO_NOT_USE, countof(sudpPins), sudpPins},
+	{&__uuidof(CDirectVobSubFilter2), L"DirectVobSub (auto-loading version)", MERIT_PREFERRED+2, countof(sudpPins), sudpPins},
 };
 
 CFactoryTemplate g_Templates[] =
 {
-    { L"DirectVobSub"
-    , &CLSID_DirectVobSubFilter
-    , CDirectVobSubFilter::CreateInstance
-    , NULL
-    , &sudFilter }
-  ,
-    { L"DirectVobSub (auto-loading version)"
-    , &CLSID_DirectVobSubFilter2
-    , CDirectVobSubFilter2::CreateInstance
-    , NULL
-    , &sudFilter2 }
-  ,
-    { L"DVSMainPPage"
-    , &CLSID_DVSMainPPage
-    , CDVSMainPPage::CreateInstance }
-  ,
-    { L"DVSGeneralPPage"
-    , &CLSID_DVSGeneralPPage
-    , CDVSGeneralPPage::CreateInstance }
-  ,
-    { L"DVSMiscPPage"
-    , &CLSID_DVSMiscPPage
-    , CDVSMiscPPage::CreateInstance }
-  ,
-    { L"DVSTimingPPage"
-    , &CLSID_DVSTimingPPage
-    , CDVSTimingPPage::CreateInstance }
-  ,
-    { L"DVSZoomPPage"
-    , &CLSID_DVSZoomPPage
-    , CDVSZoomPPage::CreateInstance }
-  ,
-    { L"DVSColorPPage"
-    , &CLSID_DVSColorPPage
-    , CDVSColorPPage::CreateInstance }
-  ,
-    { L"DVSPathsPPage"
-    , &CLSID_DVSPathsPPage
-    , CDVSPathsPPage::CreateInstance }
-  ,
-    { L"DVSAboutPPage"
-    , &CLSID_DVSAboutPPage
-    , CDVSAboutPPage::CreateInstance }
+	{sudFilter[0].strName, sudFilter[0].clsID, CreateInstance<CDirectVobSubFilter>, NULL, &sudFilter[0]},
+    {sudFilter[1].strName, sudFilter[1].clsID, CreateInstance<CDirectVobSubFilter2>, NULL, &sudFilter[1]},
+    {L"DVSMainPPage", &__uuidof(CDVSMainPPage), CreateInstance<CDVSMainPPage>},
+    {L"DVSGeneralPPage", &__uuidof(CDVSGeneralPPage), CreateInstance<CDVSGeneralPPage>},
+    {L"DVSMiscPPage", &__uuidof(CDVSMiscPPage), CreateInstance<CDVSMiscPPage>},
+    {L"DVSTimingPPage", &__uuidof(CDVSTimingPPage), CreateInstance<CDVSTimingPPage>},
+	{L"DVSZoomPPage", &__uuidof(CDVSZoomPPage), CreateInstance<CDVSZoomPPage>},
+    {L"DVSColorPPage", &__uuidof(CDVSColorPPage), CreateInstance<CDVSColorPPage>},
+    {L"DVSPathsPPage", &__uuidof(CDVSPathsPPage), CreateInstance<CDVSPathsPPage>},
+	{L"DVSAboutPPage", &__uuidof(CDVSAboutPPage), CreateInstance<CDVSAboutPPage>},
 };
 
 int g_cTemplates = countof(g_Templates);
@@ -250,7 +176,7 @@ void CALLBACK DirectVobSub(HWND hwnd, HINSTANCE hinst, LPSTR lpszCmdLine, int nC
     CComPtr<IBaseFilter> pFilter;
 	CComQIPtr<ISpecifyPropertyPages> pSpecify;
 
-	if(SUCCEEDED(pFilter.CoCreateInstance(CLSID_DirectVobSubFilter)) && (pSpecify = pFilter))
+	if(SUCCEEDED(pFilter.CoCreateInstance(__uuidof(CDirectVobSubFilter))) && (pSpecify = pFilter))
 	{
 		ShowPPage(pFilter, hwnd);
 	}

@@ -39,14 +39,13 @@ CBaseSplitterFile::CBaseSplitterFile(IAsyncReader* pAsyncReader, HRESULT& hr, in
 	hr = m_pAsyncReader->Length(&total, &available);
 
 	m_fStreaming = total == 0 && available > 0;
+	m_len = available;
 
 	if(FAILED(hr) || !m_fStreaming && total != available || total < 0)
 	{
 		hr = E_FAIL;
 		return;
 	}
-
-	m_len = GetLength();
 
 	if(!SetCacheSize(cachelen))
 	{
@@ -75,8 +74,12 @@ __int64 CBaseSplitterFile::GetPos()
 
 __int64 CBaseSplitterFile::GetLength()
 {
-	LONGLONG total, available = 0;
-	if(SUCCEEDED(m_pAsyncReader->Length(&total, &available))) m_len = available;
+	if(m_fStreaming)
+	{
+		LONGLONG total, available = 0;
+		if(SUCCEEDED(m_pAsyncReader->Length(&total, &available))) m_len = available;
+	}
+
 	return m_len;
 }
 
