@@ -1086,7 +1086,7 @@ HRESULT CMatroskaSplitterOutputPin::DeliverBlock(MatroskaPacket* p)
 	if(m_tos.GetCount())
 	{
 		timeoverride to = m_tos.RemoveHead();
-		if(p->TrackNumber == 2)
+//		if(p->TrackNumber == 2)
 		TRACE(_T("(track=%d) %I64d, %I64d -> %I64d, %I64d\n"), p->TrackNumber, p->rtStart, p->rtStop, to.rtStart, to.rtStop);
 		p->rtStart = to.rtStart;
 		p->rtStop = to.rtStop;

@@ -27,7 +27,6 @@
 #include <ksmedia.h>
 #include "..\..\..\DSUtil\DSUtil.h"
 #include "..\..\..\DSUtil\MediaTypes.h"
-#include "..\..\..\DSUtil\vd.h"
 #include "RealMediaSplitter.h"
 
 //
@@ -1473,7 +1472,7 @@ void CRealVideoDecoder::ResizeWidth(BYTE* pIn, DWORD wi, DWORD hi, BYTE* pOut, D
 {
 	for(DWORD y = 0; y < hi; y++, pIn += wi, pOut += wo)
 	{
-		if(wi == wo) memcpy_mmx(pOut, pIn, wo);
+		if(wi == wo) memcpy_accel(pOut, pIn, wo);
 		else ResizeRow(pIn, wi, 1, pOut, wo, 1);
 	}
 }
@@ -1482,7 +1481,7 @@ void CRealVideoDecoder::ResizeHeight(BYTE* pIn, DWORD wi, DWORD hi, BYTE* pOut, 
 {
 	if(hi == ho) 
 	{
-		memcpy_mmx(pOut, pIn, wo*ho);
+		memcpy_accel(pOut, pIn, wo*ho);
 	}
 	else
 	{
@@ -1540,7 +1539,7 @@ void CRealVideoDecoder::Copy(BYTE* pOut, BYTE* pIn, DWORD wi, DWORD hi)
 		int pitchOut = bihOut.biWidth;
 
 		for(DWORD y = 0; y < hi; y++, pIn += pitchIn, pOut += pitchOut)
-			memcpy_mmx(pOut, pIn, min(pitchIn, pitchOut));
+			memcpy_accel(pOut, pIn, min(pitchIn, pitchOut));
 
 		pitchIn >>= 1;
 		pitchOut >>= 1;
@@ -1548,12 +1547,12 @@ void CRealVideoDecoder::Copy(BYTE* pOut, BYTE* pIn, DWORD wi, DWORD hi)
 		pIn = bihOut.biCompression == '21VY' ? pInV : pInU;
 
 		for(DWORD y = 0; y < hi; y+=2, pIn += pitchIn, pOut += pitchOut)
-			memcpy_mmx(pOut, pIn, min(pitchIn, pitchOut));
+			memcpy_accel(pOut, pIn, min(pitchIn, pitchOut));
 
 		pIn = bihOut.biCompression == '21VY' ? pInU : pInV;
 
 		for(DWORD y = 0; y < hi; y+=2, pIn += pitchIn, pOut += pitchOut)
-			memcpy_mmx(pOut, pIn, min(pitchIn, pitchOut));
+			memcpy_accel(pOut, pIn, min(pitchIn, pitchOut));
 	}
 	else if(bihOut.biCompression == BI_RGB || bihOut.biCompression == BI_BITFIELDS)
 	{

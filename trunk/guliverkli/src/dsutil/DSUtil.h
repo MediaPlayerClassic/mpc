@@ -24,6 +24,7 @@
 #include <afx.h>
 #include <afxwin.h>
 //#include "MediaTypes.h"
+#include "vd.h"
 
 extern void DumpStreamConfig(TCHAR* fn, IAMStreamConfig* pAMVSCCap);
 extern int CountPins(IBaseFilter* pBF, int& nIn, int& nOut, int& nInC, int& nOutC);

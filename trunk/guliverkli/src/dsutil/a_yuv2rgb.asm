@@ -20,9 +20,6 @@
 	.xmm
 	.model	flat
 
-	extern _MMX_enabled:byte
-	extern _ISSE_enabled:byte
-
 	extern _YUV_Y_table: dword
 	extern _YUV_U_table: dword
 	extern _YUV_V_table: dword
@@ -59,6 +56,12 @@ MMX_Vcoeff2	dq	00066FFCC00000066h
 	public _asm_YUVtoRGB32_row
 	public _asm_YUVtoRGB24_row
 	public _asm_YUVtoRGB16_row
+	public _asm_YUVtoRGB32_row_MMX
+	public _asm_YUVtoRGB24_row_MMX
+	public _asm_YUVtoRGB16_row_MMX
+	public _asm_YUVtoRGB32_row_ISSE
+	public _asm_YUVtoRGB24_row_ISSE
+	public _asm_YUVtoRGB16_row_ISSE
 
 ;	asm_YUVtoRGB_row(
 ;		Pixel *ARGB1_pointer,
@@ -79,9 +82,6 @@ V_pointer	equ	[esp+24+16]
 count		equ	[esp+28+16]
 
 _asm_YUVtoRGB32_row:
-	test	_MMX_enabled,1
-	jnz	_asm_YUVtoRGB32_row_MMX
-
 	push	ebx
 	push	esi
 	push	edi
@@ -225,9 +225,6 @@ col_loop_start:
 ;MMX_test	dq	7060504030201000h
 
 _asm_YUVtoRGB32_row_MMX:
-	test	_ISSE_enabled,1
-	jnz	_asm_YUVtoRGB32_row_ISSE
-
 	push	ebx
 	push	esi
 	push	edi
@@ -428,9 +425,6 @@ V_pointer	equ	[esp+24+16]
 count		equ	[esp+28+16]
 
 _asm_YUVtoRGB24_row:
-	test	_MMX_enabled,1
-	jnz	_asm_YUVtoRGB24_row_MMX
-
 	push	ebx
 	push	esi
 	push	edi
@@ -604,9 +598,6 @@ col_loop24:
 	ret
 
 _asm_YUVtoRGB24_row_MMX:
-	test	byte ptr _ISSE_enabled,1
-	jnz	_asm_YUVtoRGB24_row_ISSE
-
 	push	ebx
 	push	esi
 	push	edi
@@ -880,9 +871,6 @@ col_loop_MMX24:
 ;**************************************************************************
 
 _asm_YUVtoRGB16_row:
-	test	_MMX_enabled,1
-	jnz	_asm_YUVtoRGB16_row_MMX
-
 	push	ebx
 	push	esi
 	push	edi
@@ -952,10 +940,12 @@ col_loop16:
 	mov	bl,[_YUV_clip_table16+edi-3f00h]	;bl = blue
 	xor	dh,dh				;[1]
 
-	shl	bh,2				;[1]
+;565fix	shl	bh,2				;[1]
+	shl	bh,3				;[1]
 	mov	edi,ARGB1_pointer		;[1]
 
-	shl	edx,5				;[1]
+;565fix	shl	edx,5				;[1]
+	shl	edx,6				;[1]
 	mov	esi,Y1_pointer			;[2]
 
 	add	edx,ebx				;[1]
@@ -984,10 +974,12 @@ col_loop16:
 	mov	dl,[_YUV_clip_table16+esi-3f00h]	;dl = green
 	mov	bl,[_YUV_clip_table16+edi-3f00h]	;bl = blue
 
-	shl	edx,5				;[2]
+;565fix	shl	edx,5				;[2]
+	shl	edx,6				;[2]
 	mov	edi,ARGB1_pointer		;[2]
 
-	shl	bh,2				;[2]
+;565fix	shl	bh,2				;[2]
+	shl	bh,3				;[2]
 	mov	esi,Y2_pointer			;[3]
 
 	add	edx,ebx				;[2]
@@ -1014,13 +1006,15 @@ col_loop16:
 	mov	dl,[_YUV_clip_table16+edi-3f00h]	;dl = green
 	mov	edi,ARGB2_pointer		;[3]
 
-	shl	edx,5
+;565fix	shl	edx,5
+	shl	edx,6
 	mov	bh,[_YUV_clip_table16+ebx-3f00h]	;bh = red
 
 	mov	bl,[_YUV_clip_table16+esi-3f00h]	;bl = blue
 	mov	esi,Y2_pointer			;[4]
 
-	shl	bh,2				;[3]
+;565fix	shl	bh,2				;[3]
+	shl	bh,3				;[3]
 	nop
 
 	add	edx,ebx				;[3]
@@ -1047,10 +1041,12 @@ col_loop16:
 	mov	dl,[_YUV_clip_table16+ecx-3f00h]	;dl = green
 	mov	al,[_YUV_clip_table16+edi-3f00h]	;bl = blue
 
-	shl	edx,5
+;565fix	shl	edx,5
+	shl	edx,6
 	mov	ah,[_YUV_clip_table16+ebx-3f00h]	;bh = red
 
-	shl	ah,2
+;565fix	shl	ah,2
+	shl	ah,3
 
 	add	eax,edx
 
@@ -1069,9 +1065,6 @@ col_loop16:
 
 
 _asm_YUVtoRGB16_row_MMX:
-	test	byte ptr _ISSE_enabled,1
-	jnz	_asm_YUVtoRGB16_row_ISSE
-
 	push	ebx
 	push	esi
 	push	edi

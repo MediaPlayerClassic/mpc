@@ -15,8 +15,11 @@
 //	along with this program; if not, write to the Free Software
 //	Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
+#pragma once
 
-extern void memcpy_mmx(void* dst, const void* src, size_t len);
+class CCpuID {public: CCpuID(); enum flag_t {mmx=1, ssemmx=2, ssefpu=4, sse2=8, _3dnow=16} m_flags;};
+extern CCpuID g_cpuid;
+extern void memcpy_accel(void* dst, const void* src, size_t len);
 extern bool BitBltFromI420ToRGB(BYTE* dst, int pitch, BYTE* srcy, BYTE* srcu, BYTE* srcv, int w, int h, int bpp, int srcpitch = 0);
 extern bool BitBltFromI420ToYUY2(BYTE* dst, int pitch, BYTE* srcy, BYTE* srcu, BYTE* srcv, int w, int h, int srcpitch = 0);
 extern void DeinterlaceBlend(BYTE* dst, BYTE* src, DWORD rowbytes, DWORD h, DWORD pitch);
