@@ -1274,7 +1274,7 @@ void GSRendererSoftFX::DrawVertex(int x, int y, GSSoftVertex& v)
 		}
 	}
 
-	__declspec(align(16)) union {struct {int Rf, Gf, Bf, Af;}; int Cf[4];};
+	__declspec(align(16)) union {struct {int Rf, Gf, Bf, Af;}; int Cf[4]; __m128i RGBAf;};
 	v.GetColor(Cf);
 
 	if(m_de.PRIM.TME)

@@ -49,21 +49,17 @@ static void (*s_fpGSirq)();
 
 EXPORT_C_(INT32) GSinit()
 {
-	TRACE(_T("GSinit\n"));
 	return 0;
 }
 
 EXPORT_C GSshutdown()
 {
-	TRACE(_T("GSshutdown\n"));
 }
 
 static CGSWnd s_hWnd;
 
 EXPORT_C_(INT32) GSopen(void* pDsp, char* Title)
 {
-	TRACE(_T("GSopen\n"));
-
 	ASSERT(!s_gs);
 	s_gs.Free();
 
@@ -91,8 +87,6 @@ EXPORT_C_(INT32) GSopen(void* pDsp, char* Title)
 
 EXPORT_C GSclose()
 {
-	TRACE(_T("GSclose\n"));
-
 	ASSERT(s_gs);
 	s_gs.Free();
 
