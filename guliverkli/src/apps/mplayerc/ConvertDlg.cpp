@@ -34,7 +34,7 @@ void CConvertDlg::AddFile(CString fn)
 	CGraphBuilder gb(m_pGB, NULL);
 
 	CComPtr<IBaseFilter> pBF;
-	if(FAILED(gb.AddSourceFilter(fn, &pBF, true)))
+	if(FAILED(gb.AddSourceFilter(fn, &pBF)))
 		return;
 
 	int cnt = 0;
@@ -347,7 +347,7 @@ void CConvertDlg::ShowResourceFolderPopup(HTREEITEM hTI, CPoint p)
 					CRegKey key;
 					TCHAR mime[256];
 					ULONG len = countof(mime);
-					if(ERROR_SUCCESS == key.Open(HKEY_CLASSES_ROOT, path.GetExtension(), KEY_READ)
+					if(ERROR_SUCCESS == key.Open(HKEY_CLASSES_ROOT, path.GetExtension().MakeLower(), KEY_READ)
 					&& ERROR_SUCCESS == key.QueryStringValue(_T("Content Type"), mime, &len))
 						res.mime = mime;
 

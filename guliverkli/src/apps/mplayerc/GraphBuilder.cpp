@@ -749,7 +749,7 @@ void CGraphBuilder::Reset()
 //	m_log.RemoveAll();
 }
 
-HRESULT CGraphBuilder::AddSourceFilter(LPCTSTR lpsz, IBaseFilter** ppBF, bool fAllFilters)
+HRESULT CGraphBuilder::AddSourceFilter(LPCTSTR lpsz, IBaseFilter** ppBF, UINT SrcFilters)
 {
 	CheckPointer(lpsz, E_POINTER);
 	CheckPointer(ppBF, E_POINTER);
@@ -760,9 +760,6 @@ HRESULT CGraphBuilder::AddSourceFilter(LPCTSTR lpsz, IBaseFilter** ppBF, bool fA
 	if(fn.IsEmpty()) return E_FAIL;
 	CStringW fnw = fn;
 	CString ext = CPath(fn).GetExtension().MakeLower();
-
-	AppSettings& s = AfxGetAppSettings();
-	UINT SrcFilters = fAllFilters ? (UINT)-1 : s.SrcFilters;
 
 	HRESULT hr;
 
@@ -787,6 +784,14 @@ HRESULT CGraphBuilder::AddSourceFilter(LPCTSTR lpsz, IBaseFilter** ppBF, bool fA
 				if(SUCCEEDED(hr) && SUCCEEDED(pReader->Load(fnw, NULL)))
 					pBF = pReader;
 			}
+		}
+
+		if((SrcFilters&SRC_SUBS) && !pBF)
+		{
+			hr = S_OK;
+			CComPtr<IFileSourceFilter> pReader = new CSubtitleSourceASS(NULL, &hr);
+			if(SUCCEEDED(hr) && SUCCEEDED(pReader->Load(fnw, NULL)))
+				pBF = pReader;
 		}
 
 		if((SrcFilters&SRC_CDDA) && !pBF && ext == _T(".cda"))
@@ -1013,7 +1018,7 @@ HRESULT CGraphBuilder::Render(LPCTSTR lpsz)
 {
 	CComPtr<IBaseFilter> pBF;
 
-	HRESULT hr = AddSourceFilter(lpsz, &pBF);
+	HRESULT hr = AddSourceFilter(lpsz, &pBF, AfxGetAppSettings().SrcFilters & ~SRC_SUBS);
 	if(FAILED(hr)) return hr;
 
 	return pBF ? Render(pBF) : S_OK;
