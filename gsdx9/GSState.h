@@ -25,6 +25,8 @@
 #include "GSWnd.h"
 #include "GSLocalMemory.h"
 #include "GSTextureCache.h"
+#include "GSSoftVertex.h"
+#include "GSVertexList.h"
 
 // FIXME: sfex3
 
@@ -41,102 +43,158 @@
 
 // #define ENABLE_STRIPFAN
 
+struct GSDrawingContext
+{
+	struct GSDrawingContext() {memset(this, 0, sizeof(*this));}
+
+	GIFRegXYOFFSET	XYOFFSET;
+	GIFRegTEX0		TEX0;
+	GIFRegTEX1		TEX1;
+	GIFRegTEX2		TEX2;
+	GIFRegCLAMP		CLAMP;
+	GIFRegMIPTBP1	MIPTBP1;
+	GIFRegMIPTBP2	MIPTBP2;
+	GIFRegSCISSOR	SCISSOR;
+	GIFRegALPHA		ALPHA;
+	GIFRegTEST		TEST;
+	GIFRegFBA		FBA;
+	GIFRegFRAME		FRAME;
+	GIFRegZBUF		ZBUF;
+
+	GSLocalMemory::readTexel rp;
+	GSLocalMemory::writePixel wp;
+	GSLocalMemory::readPixel rz;
+	GSLocalMemory::writePixel wz;
+	GSLocalMemory::readTexel rt;
+};
+
+struct GSDrawingEnvironment
+{
+	struct GSDrawingEnvironment() {memset(this, 0, sizeof(*this));}
+
+	GIFRegPRIM			PRIM;
+	GIFRegPRMODECONT	PRMODECONT;
+	GIFRegTEXCLUT		TEXCLUT;
+	GIFRegSCANMSK		SCANMSK;
+	GIFRegTEXA			TEXA;
+	GIFRegFOGCOL		FOGCOL;
+	GIFRegDIMX			DIMX;
+	GIFRegDTHE			DTHE;
+	GIFRegCOLCLAMP		COLCLAMP;
+	GIFRegPABE			PABE;
+	GSDrawingContext	CTXT[2];
+};
+
+struct GSRegSet
+{
+	struct GSRegSet() {memset(this, 0, sizeof(*this));}
+
+	CSize GetSize(int en)
+	{
+		ASSERT(en >= 0 && en < 2);
+		CSize size;
+		size.cx = DISPLAY[en].DW / (DISPLAY[en].MAGH+1) + 1;
+		size.cy = DISPLAY[en].DH / (DISPLAY[en].MAGV+1) + 1;
+		if(SMODE2.INT && SMODE2.FFMD && size.cy > 1) size.cy >>= 1;
+		return size;
+	}
+
+	bool IsEnabled(int en)
+	{
+		ASSERT(en >= 0 && en < 2);
+		if(en == 0 && PMODE.EN1) {return(DISPLAY[0].DW || DISPLAY[0].DH);}
+		else if(en == 1 && PMODE.EN2) {return(DISPLAY[1].DW || DISPLAY[1].DH);}
+		return(false);
+	}
+
+	GSRegBGCOLOR	BGCOLOR;
+	GSRegBUSDIR		BUSDIR;
+	GSRegCSR		CSRw, CSRr;
+	GSRegDISPFB		DISPFB[2];
+	GSRegDISPLAY	DISPLAY[2];
+	GSRegEXTBUF		EXTBUF;
+	GSRegEXTDATA	EXTDATA;
+	GSRegEXTWRITE	EXTWRITE;
+	GSRegIMR		IMR;
+	GSRegPMODE		PMODE;
+	GSRegSIGLBLID	SIGLBLID;
+	GSRegSMODE1		SMODE1;
+	GSRegSMODE2		SMODE2;
+
+	GIFRegBITBLTBUF	BITBLTBUF;
+	GIFRegTRXDIR	TRXDIR;
+	GIFRegTRXPOS	TRXPOS;
+	GIFRegTRXREG	TRXREG;
+};
+
+struct GSVertex
+{
+	GIFRegRGBAQ		RGBAQ;
+	GIFRegST		ST;
+	GIFRegUV		UV;
+	GIFRegXYZ		XYZ;
+	GIFRegFOG		FOG;
+};
+
+class GSStats
+{
+	int m_frame, m_prim;
+	float m_fps, m_pps, m_ppf;
+	CList<clock_t> m_clk;
+	CList<int> m_prims;
+
+public:
+	GSStats() {Reset();}
+	void Reset() {m_frame = m_prim = 0; m_fps = m_pps = m_ppf = 0;}
+	void IncPrims(int n) {m_prim += n;}
+	void VSync()
+	{
+		m_prims.AddTail(m_prim);
+		if(m_clk.GetCount())
+		{
+			if(int dt = clock() - m_clk.GetHead())
+			{
+				m_fps = 1000.0f * m_clk.GetCount() / dt;
+
+				int prims = 0;
+				POSITION pos = m_prims.GetHeadPosition();
+				while(pos) prims += m_prims.GetNext(pos);
+				m_pps = 1000.0f * prims / dt;
+				m_ppf = 1.0f * prims / m_clk.GetCount();
+			}
+			if(m_clk.GetCount() > 10)
+			{
+				m_clk.RemoveHead();
+				m_prims.RemoveHead();
+			}
+		}
+		m_clk.AddTail(clock());
+		m_frame++;
+		m_prim = 0;
+	}
+	int GetFrame() {return m_frame;}
+	float GetFPS() {return m_fps;}
+	float GetPPS() {return m_pps;}
+	float GetPPF() {return m_ppf;}
+	CString ToString(int fps)
+	{
+		CString str; 
+		str.Format(_T("frame: %d | %.2f fps (%d%%) | %.0f ppf | %.0f pps"), 
+			m_frame, m_fps, (int)(100*m_fps/fps), m_ppf, m_pps); 
+		return str;
+	}
+};
+
 class GSState
 {
 protected:
 	static const int m_version = 1;
 
-	struct DrawingContext
-	{
-		struct DrawingContext() {memset(this, 0, sizeof(*this));}
-
-		GIFRegXYOFFSET	XYOFFSET;
-		GIFRegTEX0		TEX0;
-		GIFRegTEX1		TEX1;
-		GIFRegTEX2		TEX2;
-		GIFRegCLAMP		CLAMP;
-		GIFRegMIPTBP1	MIPTBP1;
-		GIFRegMIPTBP2	MIPTBP2;
-		GIFRegSCISSOR	SCISSOR;
-		GIFRegALPHA		ALPHA;
-		GIFRegTEST		TEST;
-		GIFRegFBA		FBA;
-		GIFRegFRAME		FRAME;
-		GIFRegZBUF		ZBUF;
-	};
-
-	struct DrawingEnvironment
-	{
-		struct DrawingEnvironment() {memset(this, 0, sizeof(*this));}
-
-		GIFRegPRIM			PRIM;
-		GIFRegPRMODECONT	PRMODECONT;
-		GIFRegTEXCLUT		TEXCLUT;
-		GIFRegSCANMSK		SCANMSK;
-		GIFRegTEXA			TEXA;
-		GIFRegFOGCOL		FOGCOL;
-		GIFRegDIMX			DIMX;
-		GIFRegDTHE			DTHE;
-		GIFRegCOLCLAMP		COLCLAMP;
-		GIFRegPABE			PABE;
-		DrawingContext		CTXT[2];
-	} m_de;
-
-	struct GSRegSet
-	{
-		struct GSRegSet() {memset(this, 0, sizeof(*this));}
-
-		CSize GetSize(int en)
-		{
-			ASSERT(en >= 0 && en < 2);
-			CSize size;
-			size.cx = DISPLAY[en].DW / (DISPLAY[en].MAGH+1) + 1;
-			size.cy = DISPLAY[en].DH / (DISPLAY[en].MAGV+1) + 1;
-			if(SMODE2.INT && SMODE2.FFMD && size.cy > 1) size.cy >>= 1;
-			return size;
-		}
-
-		bool IsEnabled(int en)
-		{
-			ASSERT(en >= 0 && en < 2);
-			if(en == 0 && PMODE.EN1) {return(DISPLAY[0].DW || DISPLAY[0].DH);}
-			else if(en == 1 && PMODE.EN2) {return(DISPLAY[1].DW || DISPLAY[1].DH);}
-			return(false);
-		}
-
-		GSRegBGCOLOR	BGCOLOR;
-		GSRegBUSDIR		BUSDIR;
-		GSRegCSR		CSRw, CSRr;
-		GSRegDISPFB		DISPFB[2];
-		GSRegDISPLAY	DISPLAY[2];
-		GSRegEXTBUF		EXTBUF;
-		GSRegEXTDATA	EXTDATA;
-		GSRegEXTWRITE	EXTWRITE;
-		GSRegIMR		IMR;
-		GSRegPMODE		PMODE;
-		GSRegSIGLBLID	SIGLBLID;
-		GSRegSMODE1		SMODE1;
-		GSRegSMODE2		SMODE2;
-
-		GIFRegBITBLTBUF	BITBLTBUF;
-		GIFRegTRXDIR	TRXDIR;
-		GIFRegTRXPOS	TRXPOS;
-		GIFRegTRXREG	TRXREG;
-	} m_rs;
-
-	struct GSVertex
-	{
-		GIFRegRGBAQ		RGBAQ;
-		GIFRegST		ST;
-		GIFRegUV		UV;
-		GIFRegXYZ		XYZ;
-		GIFRegFOG		FOG;
-	} m_v;
-
-	void VertexKick(bool fSkip);
-	void DrawingKick(bool fSkip);
-
 	GSLocalMemory m_lm;
+	GSDrawingEnvironment m_de;
+	GSRegSet m_rs;
+	GSVertex m_v;
+	GSStats m_stats;
 
 	int m_x, m_y;
 	void WriteStep();
@@ -144,136 +202,24 @@ protected:
 	void WriteTransfer(BYTE* pMem, int len);
 	void ReadTransfer(BYTE* pMem, int len);
 	void MoveTransfer();
-	bool CreateTexture(GSTexture& t);
-
-	// D3D
-
-	#define D3DFVF_CUSTOMVERTEX (D3DFVF_XYZRHW|D3DFVF_DIFFUSE|D3DFVF_TEX1)
-
-	struct CUSTOMVERTEX
-	{
-		float x, y, z, rhw;
-		D3DCOLOR color;
-		float tu, tv;
-//		float tu2, tv2;
-	};
-
-//	CList<CUSTOMVERTEX> m_vl;
-/*
-	// somewhat faster than using CList<CUSTOMVERTEX>
-	class CVertexList
-	{
-		CUSTOMVERTEX m_v[4];
-		int m_nv;
-	public:
-		CVertexList() {RemoveAll();}
-		void RemoveAll() {m_nv = 0;}
-		void AddTail(CUSTOMVERTEX v) {ASSERT(m_nv < 4); m_v[m_nv++] = v;}
-		void RemoveAt(int i, CUSTOMVERTEX& v) {GetAt(i, v); for(--m_nv; i < m_nv; i++) m_v[i] = m_v[i+1];}
-		void GetAt(int i, CUSTOMVERTEX& v) {ASSERT(m_nv > 0); v = m_v[i];}
-		int GetCount() {return m_nv;}
-	} m_vl;
-*/
-	class CVertexList
-	{
-		CUSTOMVERTEX m_v[4];
-		int m_head, m_tail, m_count;
-	public:
-		CVertexList() {RemoveAll();}
-		void RemoveAll() {m_head = m_tail = m_count = 0;}
-		void AddTail(CUSTOMVERTEX& v)
-		{
-			ASSERT(m_count < 4);
-			m_v[m_tail] = v;
-			m_tail = (m_tail+1)&3;
-			m_count++;
-		}
-		void RemoveAt(int i, CUSTOMVERTEX& v)
-		{
-			GetAt(i, v);
-			i = (m_head+i)&3;
-			if(i == m_head) m_head = (m_head+1)&3;
-			else for(m_tail = (m_tail+4-1)&3; i != m_tail; i = (i+1)&3) 
-				m_v[i] = m_v[(i+1)&3];
-			m_count--;
-		}
-		void GetAt(int i, CUSTOMVERTEX& v)
-		{
-			ASSERT(m_count > 0); 
-			v = m_v[(m_head+i)&3];
-		}
-		int GetCount() {return m_count;}
-	} m_vl;
 
 	HWND m_hWnd;
 	CComPtr<IDirect3D9> m_pD3D;
 	CComPtr<IDirect3DDevice9> m_pD3DDev;
 	CComPtr<IDirect3DSurface9> m_pOrgRenderTarget;
 	CComPtr<IDirect3DSurface9> m_pOrgDepthStencil;
-	CSurfMap<IDirect3DTexture9> m_pRenderTargets;
-	CSurfMap<IDirect3DSurface9> m_pDepthStencils;
 	CComPtr<IDirect3DPixelShader9> m_pPixelShaders[15];
-	CComPtr<IDirect3DVertexBuffer9> m_pVertexBuffer;
-	GSTextureCache m_tc;
 
-	CMap<DWORD, DWORD, CGSWnd*, CGSWnd*> m_pRenderWnds;
+	virtual void Reset();
+	virtual void VertexKick(bool fSkip) = 0;
+	virtual void DrawingKick(bool fSkip) = 0;
+	virtual void NewPrim() = 0;
+	virtual void FlushPrim() = 0;
+	virtual void Flip();
+	virtual void EndFrame() = 0;
+	virtual void InvalidateTexture(DWORD TBP0) {}
 
 	UINT32 m_PRIM;
-	D3DPRIMITIVETYPE m_primtype;
-	CUSTOMVERTEX* m_pVertices;
-	int m_nMaxVertices, m_nVertices, m_nPrims;
-	void QueuePrim(CUSTOMVERTEX* pVertices, D3DPRIMITIVETYPE pt);
-	void FlushPrim();
-
-	void ConvertRT(CComPtr<IDirect3DTexture9>& pTexture);
-
-	class Stats
-	{
-		int m_frame, m_prim;
-		float m_fps, m_pps, m_ppf;
-		CList<clock_t> m_clk;
-		CList<int> m_prims;
-	public:
-		Stats() {Reset();}
-		void Reset() {m_frame = m_prim = 0; m_fps = m_pps = m_ppf = 0;}
-		void IncPrims(int n) {m_prim += n;}
-		void VSync()
-		{
-			m_prims.AddTail(m_prim);
-			if(m_clk.GetCount())
-			{
-				if(int dt = clock() - m_clk.GetHead())
-				{
-					m_fps = 1000.0f * m_clk.GetCount() / dt;
-
-					int prims = 0;
-					POSITION pos = m_prims.GetHeadPosition();
-					while(pos) prims += m_prims.GetNext(pos);
-					m_pps = 1000.0f * prims / dt;
-					m_ppf = 1.0f * prims / m_clk.GetCount();
-				}
-				if(m_clk.GetCount() > 10)
-				{
-				m_clk.RemoveHead();
-				m_prims.RemoveHead();
-				}
-			}
-			m_clk.AddTail(clock());
-			m_frame++;
-			m_prim = 0;
-		}
-		int GetFrame() {return m_frame;}
-		float GetFPS() {return m_fps;}
-		float GetPPS() {return m_pps;}
-		float GetPPF() {return m_ppf;}
-		CString ToString(int fps)
-		{
-			CString str; 
-			str.Format(_T("frame: %d | %.2f fps (%d%%) | %.0f ppf | %.0f pps"), 
-				m_frame, m_fps, (int)(100*m_fps/fps), m_ppf, m_pps); 
-			return str;
-		}
-	} m_stats;
 
 	//
 
@@ -369,7 +315,6 @@ public:
 	BOOL m_fDisableShaders;
 	BOOL m_fHalfVRes;
 
-	void Reset();
 	UINT32 Freeze(freezeData* fd);
 	UINT32 Defrost(const freezeData* fd);
 	void Write64(GS_REG mem, GSReg* r);
@@ -383,8 +328,6 @@ public:
 	void GSirq(void (*fpGSirq)()) {m_fpGSirq = fpGSirq;}
 
 	UINT32 MakeSnapshot(char* path);
-
-	void Flip();
 
 	FILE* m_fp;
 
@@ -456,17 +399,5 @@ public:
 			_fputts(buff, m_fp); 
 		}
 		va_end(args);
-	}
-
-	void LOGVERTEX(CUSTOMVERTEX& v, LPCTSTR type)
-	{
-		DrawingContext* ctxt = &m_de.CTXT[m_de.PRIM.CTXT];
-		int tw = 1, th = 1;
-		if(m_de.PRIM.TME) {tw = 1<<ctxt->TEX0.TW; th = 1<<ctxt->TEX0.TH;}
-		LOG2((_T("\t %s (%.2f, %.2f, %.2f, %.2f) (%08x) (%f, %f) (%f, %f)\n"), 
-			type,
-			v.x, v.y, v.z, v.rhw, 
-			v.color, v.tu, v.tv,
-			v.tu*tw, v.tv*th));
 	}
 };

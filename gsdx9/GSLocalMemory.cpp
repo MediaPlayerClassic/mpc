@@ -556,60 +556,60 @@ bool GSLocalMemory::IsPalDirty(GIFRegTEX0& TEX0)
 
 ////////////////////
 
-DWORD GSLocalMemory::readTexel32(int x, int y, DWORD bp, DWORD bw, BYTE TCC, GIFRegTEXA& TEXA)
+DWORD GSLocalMemory::readTexel32(int x, int y, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA)
 {
-	DWORD c = readPixel32(x, y, bp, bw);
+	DWORD c = readPixel32(x, y, TEX0.TBP0, TEX0.TBW);
 	BYTE* sb = (BYTE*)&c;
 	return (sb[3] << 24) | (sb[0] << 16) | (sb[1] << 8) | (sb[2] << 0);
 }
 
-DWORD GSLocalMemory::readTexel24(int x, int y, DWORD bp, DWORD bw, BYTE TCC, GIFRegTEXA& TEXA)
+DWORD GSLocalMemory::readTexel24(int x, int y, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA)
 {
-	DWORD c = readPixel24(x, y, bp, bw);
+	DWORD c = readPixel24(x, y, TEX0.TBP0, TEX0.TBW);
 	BYTE* sb = (BYTE*)&c;
-	BYTE A = TCC == 0 ? 0x80 : (!TEXA.AEM|sb[0]|sb[1]|sb[2]) ? TEXA.TA0 : 0;
+	BYTE A = TEX0.TCC == 0 ? 0x80 : (!TEXA.AEM|sb[0]|sb[1]|sb[2]) ? TEXA.TA0 : 0;
 	return (A << 24) | (sb[0] << 16) | (sb[1] << 8) | (sb[2] << 0);
 }
 
-DWORD GSLocalMemory::readTexel16(int x, int y, DWORD bp, DWORD bw, BYTE TCC, GIFRegTEXA& TEXA)
+DWORD GSLocalMemory::readTexel16(int x, int y, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA)
 {
-	WORD c = (WORD)readPixel16(x, y, bp, bw);
+	WORD c = (WORD)readPixel16(x, y, TEX0.TBP0, TEX0.TBW);
 	BYTE* sb = (BYTE*)&c;
 	BYTE A = (sb[1]&0x80) ? TEXA.TA1 : (!TEXA.AEM|sb[0]|sb[1]) ? TEXA.TA0 : 0;
 	return (A << 24) | (((sb[0]&0x1f)<<3) << 16) | ((((sb[1]&0x03)<<6)|((sb[0]&0xe0)>>2)) << 8) | ((sb[1]&0x7c) << 1);
 }
 
-DWORD GSLocalMemory::readTexel16S(int x, int y, DWORD bp, DWORD bw, BYTE TCC, GIFRegTEXA& TEXA)
+DWORD GSLocalMemory::readTexel16S(int x, int y, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA)
 {
-	WORD c = (WORD)readPixel16S(x, y, bp, bw);
+	WORD c = (WORD)readPixel16S(x, y, TEX0.TBP0, TEX0.TBW);
 	BYTE* sb = (BYTE*)&c;
 	BYTE A = (sb[1]&0x80) ? TEXA.TA1 : (!TEXA.AEM|sb[0]|sb[1]) ? TEXA.TA0 : 0;
 	return (A << 24) | (((sb[0]&0x1f)<<3) << 16) | ((((sb[1]&0x03)<<6)|((sb[0]&0xe0)>>2)) << 8) | ((sb[1]&0x7c) << 1);
 }
 
-DWORD GSLocalMemory::readTexel8(int x, int y, DWORD bp, DWORD bw, BYTE TCC, GIFRegTEXA& TEXA)
+DWORD GSLocalMemory::readTexel8(int x, int y, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA)
 {
-	return m_clut[readPixel8(x, y, bp, bw)];
+	return m_clut[readPixel8(x, y, TEX0.TBP0, TEX0.TBW)];
 }
 
-DWORD GSLocalMemory::readTexel8H(int x, int y, DWORD bp, DWORD bw, BYTE TCC, GIFRegTEXA& TEXA)
+DWORD GSLocalMemory::readTexel8H(int x, int y, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA)
 {
-	return m_clut[readPixel8H(x, y, bp, bw)];
+	return m_clut[readPixel8H(x, y, TEX0.TBP0, TEX0.TBW)];
 }
 
-DWORD GSLocalMemory::readTexel4(int x, int y, DWORD bp, DWORD bw, BYTE TCC, GIFRegTEXA& TEXA)
+DWORD GSLocalMemory::readTexel4(int x, int y, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA)
 {
-	return m_clut[readPixel4(x, y, bp, bw)];
+	return m_clut[readPixel4(x, y, TEX0.TBP0, TEX0.TBW)];
 }
 
-DWORD GSLocalMemory::readTexel4HL(int x, int y, DWORD bp, DWORD bw, BYTE TCC, GIFRegTEXA& TEXA)
+DWORD GSLocalMemory::readTexel4HL(int x, int y, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA)
 {
-	return m_clut[readPixel4HL(x, y, bp, bw)];
+	return m_clut[readPixel4HL(x, y, TEX0.TBP0, TEX0.TBW)];
 }
 
-DWORD GSLocalMemory::readTexel4HH(int x, int y, DWORD bp, DWORD bw, BYTE TCC, GIFRegTEXA& TEXA)
+DWORD GSLocalMemory::readTexel4HH(int x, int y, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA)
 {
-	return m_clut[readPixel4HH(x, y, bp, bw)];
+	return m_clut[readPixel4HH(x, y, TEX0.TBP0, TEX0.TBW)];
 }
 
 GSLocalMemory::readTexel GSLocalMemory::GetReadTexel(DWORD psm)
@@ -635,9 +635,12 @@ GSLocalMemory::readTexel GSLocalMemory::GetReadTexel(DWORD psm)
 
 ////////////////////
 
-void GSLocalMemory::setupCLUT(GIFRegTEX0& TEX0, GIFRegTEXCLUT& TEXCLUT, GIFRegTEXA& TEXA)
+void GSLocalMemory::setupCLUT(GIFRegTEX0 TEX0, GIFRegTEXCLUT& TEXCLUT, GIFRegTEXA& TEXA)
 {
 	readTexel rt = GetReadTexel(TEX0.CPSM);
+
+	TEX0.TBP0 = TEX0.CBP;
+	TEX0.TBW = TEX0.CSM == 0 ? 1 : TEXCLUT.CBW;
 
 	if(TEX0.PSM == PSM_PSMT8 || TEX0.PSM == PSM_PSMT8H)
 	{
@@ -646,19 +649,19 @@ void GSLocalMemory::setupCLUT(GIFRegTEX0& TEX0, GIFRegTEXCLUT& TEXCLUT, GIFRegTE
 			for(int y = 0, cy = 0; y < 8; y++)
 			{
 				int i = 0;
-				for(int x = 0; x < 8; x++, i++) m_clut[y*32 + x] = (this->*rt)(i, cy, TEX0.CBP, 1, TEX0.TCC, TEXA);
-				for(int x = 16; x < 24; x++, i++) m_clut[y*32 + x] = (this->*rt)(i, cy, TEX0.CBP, 1, TEX0.TCC, TEXA);
+				for(int x = 0; x < 8; x++, i++) m_clut[y*32 + x] = (this->*rt)(i, cy, TEX0, TEXA);
+				for(int x = 16; x < 24; x++, i++) m_clut[y*32 + x] = (this->*rt)(i, cy, TEX0, TEXA);
 				cy++;
 				i = 0;
-				for(int x = 8; x < 16; x++, i++) m_clut[y*32 + x] = (this->*rt)(i, cy, TEX0.CBP, 1, TEX0.TCC, TEXA);
-				for(int x = 24; x < 32; x++, i++) m_clut[y*32 + x] = (this->*rt)(i, cy, TEX0.CBP, 1, TEX0.TCC, TEXA);
+				for(int x = 8; x < 16; x++, i++) m_clut[y*32 + x] = (this->*rt)(i, cy, TEX0, TEXA);
+				for(int x = 24; x < 32; x++, i++) m_clut[y*32 + x] = (this->*rt)(i, cy, TEX0, TEXA);
 				cy++;
 			}
 		}
 		else
 		{
 			for(int i = 0; i < 256; i++)
-				m_clut[i] = (this->*rt)((TEXCLUT.COU<<4) + i, TEXCLUT.COV, TEX0.CBP, TEXCLUT.CBW, TEX0.TCC, TEXA);
+				m_clut[i] = (this->*rt)((TEXCLUT.COU<<4) + i, TEXCLUT.COV, TEX0, TEXA);
 		}
 	}
 	else if(TEX0.PSM == PSM_PSMT4HH || TEX0.PSM == PSM_PSMT4HL || TEX0.PSM == PSM_PSMT4)
@@ -667,12 +670,12 @@ void GSLocalMemory::setupCLUT(GIFRegTEX0& TEX0, GIFRegTEXCLUT& TEXCLUT, GIFRegTE
 		{
 			for(int y = 0; y < 2; y++)
 				for(int x = 0; x < 8; x++)
-					m_clut[y*8 + x] = (this->*rt)(x, y, TEX0.CBP, 1, TEX0.TCC, TEXA);
+					m_clut[y*8 + x] = (this->*rt)(x, y, TEX0, TEXA);
 		}
 		else
 		{
 			for(int i = 0; i < 16; i++)
-				m_clut[i] = (this->*rt)((TEXCLUT.COU<<4) + i, TEXCLUT.COV, TEX0.CBP, TEXCLUT.CBW, TEX0.TCC, TEXA);
+				m_clut[i] = (this->*rt)((TEXCLUT.COU<<4) + i, TEXCLUT.COV, TEX0, TEXA);
 		}
 	}
 }

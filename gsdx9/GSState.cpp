@@ -27,7 +27,6 @@ GSState::GSState(HWND hWnd, HRESULT& hr)
 	: m_hWnd(hWnd)
 	, m_fp(NULL)
 	, m_PRIM(7)
-	, m_primtype(D3DPT_FORCE_DWORD)
 {
 	hr = E_FAIL;
 
@@ -164,9 +163,15 @@ GSState::GSState(HWND hWnd, HRESULT& hr)
     hr = m_pD3DDev->SetRenderState(D3DRS_CULLMODE, D3DCULL_NONE);
     hr = m_pD3DDev->SetRenderState(D3DRS_LIGHTING, FALSE);
 
-	hr = m_pD3DDev->SetSamplerState(0, D3DSAMP_MAGFILTER, D3DTEXF_LINEAR);
-    hr = m_pD3DDev->SetSamplerState(0, D3DSAMP_MINFILTER, D3DTEXF_LINEAR);
-//	hr = m_pD3DDev->SetSamplerState(0, D3DSAMP_MIPFILTER, D3DTEXF_LINEAR);
+	for(int i = 0; i < 8; i++)
+	{
+		hr = m_pD3DDev->SetSamplerState(i, D3DSAMP_MAGFILTER, D3DTEXF_LINEAR);
+		hr = m_pD3DDev->SetSamplerState(i, D3DSAMP_MINFILTER, D3DTEXF_LINEAR);
+		// hr = m_pD3DDev->SetSamplerState(i, D3DSAMP_MIPFILTER, D3DTEXF_LINEAR);
+
+		hr = m_pD3DDev->SetSamplerState(i, D3DSAMP_ADDRESSU, D3DTADDRESS_CLAMP);
+		hr = m_pD3DDev->SetSamplerState(i, D3DSAMP_ADDRESSV, D3DTADDRESS_CLAMP);
+	}
 
 	static const UINT nShaderIDs[] = 
 	{
@@ -205,7 +210,6 @@ GSState::GSState(HWND hWnd, HRESULT& hr)
 
 	hr = S_OK;
 
-	m_pVertices = new CUSTOMVERTEX[m_nMaxVertices = 256];
 	Reset();
 
 	::DeleteFile(_T("c:\\gs.txt"));
@@ -218,37 +222,8 @@ GSState::GSState(HWND hWnd, HRESULT& hr)
 GSState::~GSState()
 {
 	Reset();
-	delete [] m_pVertices;
 
 	if(m_fp) fclose(m_fp);
-}
-
-void GSState::Reset()
-{
-	memset(&m_de, 0, sizeof(m_de));
-	memset(&m_rs, 0, sizeof(m_rs));
-	memset(&m_tag, 0, sizeof(m_tag));
-	memset(&m_v, 0, sizeof(m_v));
-	m_nreg = 0;
-
-	m_PRIM = 7;
-	m_primtype = D3DPT_FORCE_DWORD;
-	m_nVertices = m_nPrims = 0;
-
-	if(m_pD3DDev) m_pD3DDev->Clear(0, NULL, D3DCLEAR_TARGET/*|D3DCLEAR_ZBUFFER*/, 0, 1.0f, 0);
-	m_pRenderTargets.RemoveAll();
-	m_tc.RemoveAll();
-
-	POSITION pos = m_pRenderWnds.GetStartPosition();
-	while(pos)
-	{
-		DWORD fbp;
-		CGSWnd* pWnd = NULL;
-		m_pRenderWnds.GetNextAssoc(pos, fbp, pWnd);
-		pWnd->DestroyWindow();
-		delete [] pWnd;
-	}
-	m_pRenderWnds.RemoveAll();
 }
 
 UINT32 GSState::Freeze(freezeData* fd)
@@ -256,7 +231,8 @@ UINT32 GSState::Freeze(freezeData* fd)
 	fd->size = sizeof(m_version)
 		+ sizeof(m_de) + sizeof(m_rs) + sizeof(m_v) 
 		+ sizeof(m_x) + sizeof(m_y) + 1024*1024*4
-		+ sizeof(m_vl) + sizeof(m_tag) + sizeof(m_nreg);
+		+ sizeof(m_tag) + sizeof(m_nreg)
+		/*+ sizeof(m_vl)*/;
 
 	if(!(fd->data = (BYTE*)malloc(fd->size))) 
 		return -1;
@@ -271,9 +247,9 @@ UINT32 GSState::Freeze(freezeData* fd)
 	memcpy(data, &m_x, sizeof(m_x)); data += sizeof(m_x);
 	memcpy(data, &m_y, sizeof(m_y)); data += sizeof(m_y);
 	memcpy(data, m_lm.GetVM(), 1024*1024*4); data += 1024*1024*4;
-	memcpy(data, &m_vl, sizeof(m_vl)); data += sizeof(m_vl);
 	memcpy(data, &m_tag, sizeof(m_tag)); data += sizeof(m_tag);
 	memcpy(data, &m_nreg, sizeof(m_nreg)); data += sizeof(m_nreg);
+	// memcpy(data, &m_vl, sizeof(m_vl)); data += sizeof(m_vl);
 
 	return 0;
 }
@@ -286,7 +262,8 @@ UINT32 GSState::Defrost(const freezeData* fd)
 	int size = sizeof(m_version)
 		+ sizeof(m_de) + sizeof(m_rs) + sizeof(m_v) 
 		+ sizeof(m_x) + sizeof(m_y) + 1024*1024*4
-		+ sizeof(m_vl) + sizeof(m_tag) + sizeof(m_nreg);
+		+ sizeof(m_tag) + sizeof(m_nreg)
+		/*+ sizeof(m_vl)*/;
 
 	if(fd->size != size) 
 		return -1;
@@ -305,9 +282,9 @@ UINT32 GSState::Defrost(const freezeData* fd)
 	memcpy(&m_x, data, sizeof(m_x)); data += sizeof(m_x);
 	memcpy(&m_y, data, sizeof(m_y)); data += sizeof(m_y);
 	memcpy(m_lm.GetVM(), data, 1024*1024*4); data += 1024*1024*4;
-	memcpy(&m_vl, data, sizeof(m_vl)); data += sizeof(m_vl);
 	memcpy(&m_tag, data, sizeof(m_tag)); data += sizeof(m_tag);
 	memcpy(&m_nreg, data, sizeof(m_nreg)); data += sizeof(m_nreg);
+	// memcpy(&m_vl, data, sizeof(m_vl)); data += sizeof(m_vl);
 
 	return 0;
 }
@@ -678,17 +655,60 @@ void GSState::VSync()
 	m_stats.VSync();
 	CString str = m_stats.ToString((m_rs.SMODE1.VMODE == GS_PAL ? 50 : 60) / (m_rs.SMODE2.INT ? 1 : 2));
 	LOG((_T("VSync(%s)\n"), str));
-	if(!(m_stats.GetFrame()&7))
-		SetWindowText(m_hWnd, str);
+	if(!(m_stats.GetFrame()&7)) SetWindowText(m_hWnd, str);
 
 	m_rs.CSRr.NFIELD = 1; // ?
 	if(m_rs.SMODE2.INT /*&& !m_rs.SMODE2.FFMD*/)
 		m_rs.CSRr.FIELD = 1 - m_rs.CSRr.FIELD;
 
-	//////
-
-	m_tc.IncAge(m_pRenderTargets);
-
 	Flip();
+
+	EndFrame();
 }
 
+void GSState::Reset()
+{
+	memset(&m_de, 0, sizeof(m_de));
+	memset(&m_rs, 0, sizeof(m_rs));
+	memset(&m_tag, 0, sizeof(m_tag));
+	memset(&m_v, 0, sizeof(m_v));
+	m_nreg = 0;
+
+	m_PRIM = 7;
+
+	if(m_pD3DDev) m_pD3DDev->Clear(0, NULL, D3DCLEAR_TARGET/*|D3DCLEAR_ZBUFFER*/, 0, 1.0f, 0);
+}
+
+void GSState::Flip()
+{
+	HRESULT hr;
+
+	hr = m_pD3DDev->SetRenderTarget(0, m_pOrgRenderTarget);
+	hr = m_pD3DDev->SetDepthStencilSurface(m_pOrgDepthStencil);
+	// hr = m_pD3DDev->Clear(0, NULL, D3DCLEAR_TARGET, 0, 1.0f, 0);
+
+    hr = m_pD3DDev->SetRenderState(D3DRS_CULLMODE, D3DCULL_NONE);
+    hr = m_pD3DDev->SetRenderState(D3DRS_LIGHTING, FALSE);
+	hr = m_pD3DDev->SetRenderState(D3DRS_ZENABLE, FALSE);
+    hr = m_pD3DDev->SetRenderState(D3DRS_ALPHABLENDENABLE, FALSE);
+	hr = m_pD3DDev->SetRenderState(D3DRS_ALPHATESTENABLE, FALSE); 
+	hr = m_pD3DDev->SetRenderState(D3DRS_SCISSORTESTENABLE, FALSE);
+
+	const float c[] = 
+	{
+		1.0f * m_rs.BGCOLOR.B / 255,
+		1.0f * m_rs.BGCOLOR.G / 255, 
+		1.0f * m_rs.BGCOLOR.R / 255,
+		1.0f * m_rs.PMODE.ALP / 255,
+		0.0f,
+		0.0f,
+		0.0f,
+		m_rs.PMODE.MMOD ? 1.0f : 0.0f,
+		0.0f,
+		0.0f,
+		0.0f,
+		m_rs.PMODE.SLBG ? 1.0f : 0.0f,
+	};
+
+	hr = m_pD3DDev->SetPixelShaderConstantF(0, c, 3);
+}

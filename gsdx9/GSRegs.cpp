@@ -194,7 +194,7 @@ void GSState::GIFRegHandlerPRIM(GIFReg* r)
 		m_de.PRIM.FIX = r->PRIM.FIX;
 	}
 
-	m_vl.RemoveAll();
+	NewPrim();
 }
 
 void GSState::GIFRegHandlerRGBAQ(GIFReg* r)
@@ -277,9 +277,10 @@ void GSState::GIFRegHandlerTEX0_1(GIFReg* r)
 	m_de.CTXT[0].TEX0 = r->TEX0;
 
 	ASSERT(r->TEX0.TW <= 10 && r->TEX0.TH <= 10);
-
 	if(r->TEX0.TW > 10) r->TEX0.TW = 10;
 	if(r->TEX0.TH > 10) r->TEX0.TH = 10;
+
+	m_de.CTXT[0].rt = m_lm.GetReadTexel(r->TEX0.PSM);
 }
 
 void GSState::GIFRegHandlerTEX0_2(GIFReg* r)
@@ -304,9 +305,10 @@ void GSState::GIFRegHandlerTEX0_2(GIFReg* r)
 	m_de.CTXT[1].TEX0 = r->TEX0;
 
 	ASSERT(r->TEX0.TW <= 10 && r->TEX0.TH <= 10);
-
 	if(r->TEX0.TW > 10) r->TEX0.TW = 10;
 	if(r->TEX0.TH > 10) r->TEX0.TH = 10;
+
+	m_de.CTXT[1].rt = m_lm.GetReadTexel(r->TEX0.PSM);
 }
 
 void GSState::GIFRegHandlerCLAMP_1(GIFReg* r)
@@ -812,6 +814,9 @@ void GSState::GIFRegHandlerFRAME_1(GIFReg* r)
 		FlushPrim();
 
 	m_de.CTXT[0].FRAME = r->FRAME;
+
+	m_de.CTXT[0].rp = m_lm.GetReadTexel(r->FRAME.PSM);
+	m_de.CTXT[0].wp = m_lm.GetWritePixel(r->FRAME.PSM);
 }
 
 void GSState::GIFRegHandlerFRAME_2(GIFReg* r)
@@ -826,6 +831,9 @@ void GSState::GIFRegHandlerFRAME_2(GIFReg* r)
 		FlushPrim();
 
 	m_de.CTXT[1].FRAME = r->FRAME;
+
+	m_de.CTXT[1].rp = m_lm.GetReadTexel(r->FRAME.PSM);
+	m_de.CTXT[1].wp = m_lm.GetWritePixel(r->FRAME.PSM);
 }
 
 void GSState::GIFRegHandlerZBUF_1(GIFReg* r)
@@ -839,6 +847,9 @@ void GSState::GIFRegHandlerZBUF_1(GIFReg* r)
 		FlushPrim();
 
 	m_de.CTXT[0].ZBUF = r->ZBUF;
+
+	m_de.CTXT[0].rz = m_lm.GetReadPixel(r->ZBUF.PSM);
+	m_de.CTXT[0].wz = m_lm.GetWritePixel(r->ZBUF.PSM);
 }
 
 void GSState::GIFRegHandlerZBUF_2(GIFReg* r)
@@ -852,6 +863,9 @@ void GSState::GIFRegHandlerZBUF_2(GIFReg* r)
 		FlushPrim();
 
 	m_de.CTXT[1].ZBUF = r->ZBUF;
+
+	m_de.CTXT[1].rz = m_lm.GetReadPixel(r->ZBUF.PSM);
+	m_de.CTXT[1].wz = m_lm.GetWritePixel(r->ZBUF.PSM);
 }
 
 void GSState::GIFRegHandlerBITBLTBUF(GIFReg* r)
