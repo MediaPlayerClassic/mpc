@@ -21,3 +21,5 @@ endmovie
 {/foreach}
 end
 {/if}
+
+{* 5th line is empty because smarty gets confused if not *}
