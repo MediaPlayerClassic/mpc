@@ -291,8 +291,9 @@ bool CWebClientSocket::OnCommand(CStringA& hdr, CStringA& body, CStringA& mime)
 		int id = _ttol(arg);
 
 		if(id > 0)
-		{
-			m_pMainFrame->SendMessage(WM_COMMAND, id);
+		{ 
+			if(id == ID_FILE_EXIT) m_pMainFrame->PostMessage(WM_COMMAND, id);
+			else m_pMainFrame->SendMessage(WM_COMMAND, id);
 		}
 		else
 		{
@@ -645,9 +646,10 @@ bool CWebClientSocket::OnStatus(CStringA& hdr, CStringA& body, CStringA& mime)
 	title.Replace(_T("'"), _T("\\'"));
 	status.Replace(_T("'"), _T("\\'"));
 
-	body.Format("OnStatus('%s', '%s', %d, '%s', %d, '%s')", // , '%s', '%s'
+	body.Format("OnStatus('%s', '%s', %d, '%s', %d, '%s', %d, %d)", // , '%s', '%s'
 		UTF8(title), UTF8(status), 
-		pos, UTF8(posstr), dur, UTF8(durstr)
+		pos, UTF8(posstr), dur, UTF8(durstr),
+		m_pMainFrame->IsMuted(), m_pMainFrame->GetVolume()
 		/*, UTF8(path), UTF8(dir)*/);
 
     return true;
@@ -680,6 +682,10 @@ bool CWebClientSocket::OnSnapShotJpeg(CStringA& hdr, CStringA& body, CStringA& m
 	{
 		if(CJpegEncoderMem().Encode(pData, jpeg))
 		{
+			hdr += 
+				"Expires: Thu, 19 Nov 1981 08:52:00 GMT\r\n"
+				"Cache-Control: no-store, no-cache, must-revalidate, post-check=0, pre-check=0\r\n"
+				"Pragma: no-cache\r\n";
 			body = CStringA((char*)jpeg.GetData(), jpeg.GetSize());
 			mime = "image/jpeg";
 			fRet = true;
