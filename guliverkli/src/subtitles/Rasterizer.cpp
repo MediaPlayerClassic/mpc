@@ -846,7 +846,7 @@ bool Rasterizer::Rasterize(int xsub, int ysub, bool fBorder, bool fBlur)
 			| ((((dst[wt]&0x0000ff00)*ia + (color&0x0000ff00)*a)&0x00ff0000)>>8) \
 			| ((((dst[wt]>>8)&0x00ff0000)*ia)&0xff000000);
 
-static const __int64 _00ff00ff00ff00ff = 0x00ff00ff00ff00ffi64;
+static const __int64 _0100010001000100 = 0x0100010001000100i64;
 
 CRect Rasterizer::Draw(SubPicDesc& spd, CRect& clipRect, byte* pAlphaMask, int xsub, int ysub, const long* switchpts, bool fBody, bool fBorder)
 {
@@ -927,7 +927,7 @@ CRect Rasterizer::Draw(SubPicDesc& spd, CRect& clipRect, byte* pAlphaMask, int x
 						imul		eax, 0x01010101
 
 						movd		mm1, eax
-						movq		mm2, _00ff00ff00ff00ff
+						movq		mm2, _0100010001000100
 						punpcklbw	mm1, mm0 // a
 						psubsw		mm2, mm1 // ia
 						pmullw		mm1, mm3 // a *= color
@@ -977,7 +977,7 @@ CRect Rasterizer::Draw(SubPicDesc& spd, CRect& clipRect, byte* pAlphaMask, int x
 						imul		eax, 0x01010101
 
 						movd		mm1, eax
-						movq		mm2, _00ff00ff00ff00ff
+						movq		mm2, _0100010001000100
 						punpcklbw	mm1, mm0 // a
 						psubsw		mm2, mm1 // ia
 						pmullw		mm1, mm3 // a *= color

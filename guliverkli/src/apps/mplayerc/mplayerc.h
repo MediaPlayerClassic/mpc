@@ -141,7 +141,8 @@ enum
 	SRC_REALMEDIA=SRC_SHOUTCAST<<1,
 	SRC_AVI=SRC_REALMEDIA<<1,
 	SRC_RADGT=SRC_AVI<<1,
-	SRC_LAST=SRC_RADGT<<1
+	SRC_ROQ=SRC_RADGT<<1,
+	SRC_LAST=SRC_ROQ<<1
 };
 
 enum
@@ -413,6 +414,9 @@ public:
 		DWORD mpegpreffmt;
 
 		bool fHideCDROMsSubMenu;
+
+		BOOL fEnableWebServer;
+		int nWebServerPort;
 
 	public:
 		Settings();

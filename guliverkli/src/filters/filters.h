@@ -36,3 +36,4 @@
 #include ".\parser\RealMediaSplitter\RealMediaSplitter.h"
 #include ".\parser\AviSplitter\AviSplitter.h"
 #include ".\parser\RadGtSplitter\RadGtSplitter.h"
+#include ".\parser\RoQSplitter\RoQSplitter.h"

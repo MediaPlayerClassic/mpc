@@ -29,9 +29,9 @@
 
 // COpenCapDeviceDlg dialog
 
-IMPLEMENT_DYNAMIC(COpenCapDeviceDlg, CDialog)
+//IMPLEMENT_DYNAMIC(COpenCapDeviceDlg, CResizableDialog)
 COpenCapDeviceDlg::COpenCapDeviceDlg(CWnd* pParent /*=NULL*/)
-	: CDialog(COpenCapDeviceDlg::IDD, pParent)
+	: CResizableDialog(COpenCapDeviceDlg::IDD, pParent)
 	, m_vidstr(_T(""))
 	, m_audstr(_T(""))
 {
@@ -43,13 +43,12 @@ COpenCapDeviceDlg::~COpenCapDeviceDlg()
 
 void COpenCapDeviceDlg::DoDataExchange(CDataExchange* pDX)
 {
-	CDialog::DoDataExchange(pDX);
+	__super::DoDataExchange(pDX);
 	DDX_Control(pDX, IDC_COMBO1, m_vidctrl);
 	DDX_Control(pDX, IDC_COMBO2, m_audctrl);
 }
 
-
-BEGIN_MESSAGE_MAP(COpenCapDeviceDlg, CDialog)
+BEGIN_MESSAGE_MAP(COpenCapDeviceDlg, CResizableDialog)
 	ON_BN_CLICKED(IDOK, OnBnClickedOk)
 END_MESSAGE_MAP()
 
@@ -58,7 +57,7 @@ END_MESSAGE_MAP()
 
 BOOL COpenCapDeviceDlg::OnInitDialog()
 {
-	CDialog::OnInitDialog();
+	__super::OnInitDialog();
 
 	BeginEnumSysDev(CLSID_VideoInputDeviceCategory, pMoniker)
 	{
@@ -105,6 +104,18 @@ BOOL COpenCapDeviceDlg::OnInitDialog()
 
 	if(m_audctrl.GetCount())
 		m_audctrl.SetCurSel(0);
+
+	AddAnchor(m_vidctrl, TOP_LEFT, TOP_RIGHT);
+	AddAnchor(m_audctrl, TOP_LEFT, TOP_RIGHT);
+	AddAnchor(IDOK, TOP_CENTER);
+	AddAnchor(IDCANCEL, TOP_CENTER);
+
+	CRect r;
+	GetWindowRect(r);
+	CSize s = r.Size();
+	SetMinTrackSize(s);
+	s.cx = 1000;
+	SetMaxTrackSize(s);
 
 	return TRUE;  // return TRUE unless you set the focus to a control
 	// EXCEPTION: OCX Property Pages should return FALSE

@@ -21,38 +21,26 @@
 
 #pragma once
 
-#include "..\..\subtitles\STS.h"
+class CTextPassThruInputPin;
 
 [uuid("E2BA9B7B-B65D-4804-ACB2-89C3E55511DB")]
-class CTextPassThruFilter : public CTransformFilter
+class CTextPassThruFilter : public CBaseFilter, public CCritSec
 {
-	REFERENCE_TIME m_rtOffset;
+	friend class CTextPassThruInputPin;
+	friend class CTextPassThruOutputPin;
+
+	CTextPassThruInputPin* m_pInput;
+	CTextPassThruOutputPin* m_pOutput;
 
 	CMainFrame* m_pMainFrame;
-	CComPtr<ISubStream> m_pRTS;
-
-	void SetName();
-
-	CCritSec m_csReceive;
 
 public:
 	CTextPassThruFilter(CMainFrame* pMainFrame);
 	virtual ~CTextPassThruFilter();
 
 	DECLARE_IUNKNOWN;
-	STDMETHODIMP NonDelegatingQueryInterface(REFIID riid, void** ppv)
-	{
-		return 
-			m_pRTS && riid == __uuidof(ISubStream) ? m_pRTS->QueryInterface(riid, ppv) :
-			__super::NonDelegatingQueryInterface(riid, ppv);
-	}
+	STDMETHODIMP NonDelegatingQueryInterface(REFIID riid, void** ppv);
 
-    HRESULT Transform(IMediaSample* pIn, IMediaSample* pOut);
-    HRESULT CheckInputType(const CMediaType* mtIn);
-    HRESULT CheckTransform(const CMediaType* mtIn, const CMediaType* mtOut);
-    HRESULT DecideBufferSize(IMemAllocator* pAllocator, ALLOCATOR_PROPERTIES* pProperties);
-    HRESULT GetMediaType(int iPosition, CMediaType* pMediaType);
-	HRESULT BreakConnect(PIN_DIRECTION dir);
-	HRESULT CompleteConnect(PIN_DIRECTION dir, IPin* pReceivePin);
-    HRESULT NewSegment(REFERENCE_TIME tStart, REFERENCE_TIME tStop, double dRate);
+	int GetPinCount();
+	CBasePin* GetPin(int n);
 };

@@ -24,6 +24,7 @@
 #include "TextFile.h"
 #include "..\..\include\unrar\unrar.h"
 #include "..\DSUtil\DSUtil.h"
+#include "..\DSUtil\text.h"
 #include "VobSubFile.h"
 
 //
@@ -1214,13 +1215,9 @@ STDMETHODIMP CVobSubFile::Render(SubPicDesc& spd, REFERENCE_TIME rt, double fps,
 
 	CRect bbox2;
 	GetDestrect(bbox2, spd.w, spd.h);
-
 	StretchBlt(spd, bbox2, m_img);
-
 	bbox2 &= CRect(CPoint(0, 0), CSize(spd.w, spd.h));
-	
 	bbox = bbox2;
-
 	return !bbox2.IsRectEmpty() ? S_OK : S_FALSE;
 }
 
@@ -1367,7 +1364,7 @@ static void StretchBlt(SubPicDesc& spd, CRect dstrect, CVobSubImage& src)
 		for(int sx = srcx; ptr < endptr; sx += (srcdx<<1), ptr++)
 		{
 //			PixelAtBiLinear(*ptr,	sx,			srcy,		src);
-//
+////
 			RGBQUAD cc[4];
 
 			PixelAtBiLinear(cc[0],	sx,			srcy,		src);
@@ -1379,11 +1376,12 @@ static void StretchBlt(SubPicDesc& spd, CRect dstrect, CVobSubImage& src)
 			ptr->rgbGreen = (cc[0].rgbGreen + cc[1].rgbGreen + cc[2].rgbGreen + cc[3].rgbGreen) >> 2;
 			ptr->rgbBlue = (cc[0].rgbBlue + cc[1].rgbBlue + cc[2].rgbBlue + cc[3].rgbBlue) >> 2;
 			ptr->rgbReserved = (cc[0].rgbReserved + cc[1].rgbReserved + cc[2].rgbReserved + cc[3].rgbReserved) >> 2;
-//
+////
 			ptr->rgbRed = ptr->rgbRed * ptr->rgbReserved >> 8;
 			ptr->rgbGreen = ptr->rgbGreen * ptr->rgbReserved >> 8;
 			ptr->rgbBlue = ptr->rgbBlue * ptr->rgbReserved >> 8;
 			ptr->rgbReserved = ~ptr->rgbReserved;
+
 		}
 	}
 }
@@ -2108,4 +2106,260 @@ bool CVobSubFile::SaveMaestro(CString fn)
 	memcpy(m_cuspal, tempCusPal, sizeof(m_cuspal));
 
 	return(true);
+}
+
+//
+// CVobSubStream
+//
+
+CVobSubStream::CVobSubStream(CCritSec* pLock)
+	: ISubPicProviderImpl(pLock)
+{
+}
+
+CVobSubStream::~CVobSubStream()
+{
+}
+
+void CVobSubStream::Open(CString name, BYTE* pData, int len)
+{
+	CAutoLock cAutoLock(&m_csSubPics);
+
+	m_name = name;
+
+	CList<CString> lines;
+	Explode(CString(CStringA((CHAR*)pData, len)), lines, '\n');
+	while(lines.GetCount())
+	{
+		CList<CString> sl;
+		Explode(lines.RemoveHead(), sl, ':', 2);
+		if(sl.GetCount() != 2) continue;
+		CString key = sl.GetHead();
+		CString value = sl.GetTail();
+		if(key == _T("size"))
+			_stscanf(value, _T("%dx %d"), &m_size.cx, &m_size.cy);
+		else if(key == _T("org"))
+			_stscanf(value, _T("%d, %d"), &m_org.x, &m_org.y);
+		else if(key == _T("scale"))
+			_stscanf(value, _T("%d%%, %d%%"), &m_scale_x, &m_scale_y);
+		else if(key == _T("alpha"))
+			_stscanf(value, _T("%d%%"), &m_alpha);
+		else if(key == _T("smooth"))
+			m_fSmooth = 
+				value == _T("0") || value == _T("OFF") ? 0 : 
+				value == _T("1") || value == _T("ON") ? 1 : 
+				value == _T("2") || value == _T("OLD") ? 2 : 
+				0;
+		else if(key == _T("align"))
+		{
+			Explode(value, sl, ' ');
+			if(sl.GetCount() == 4) sl.RemoveAt(sl.FindIndex(1));
+			if(sl.GetCount() == 3)
+			{
+				m_fAlign = sl.RemoveHead() == _T("ON");
+				CString hor = sl.GetHead(), ver = sl.GetTail();
+				m_alignhor = hor == _T("LEFT") ? 0 : hor == _T("CENTER") ? 1 : hor == _T("RIGHT") ? 2 : 1;
+				m_alignver = ver == _T("TOP") ? 0 : ver == _T("CENTER") ? 1 : ver == _T("BOTTOM") ? 2 : 2;
+			}
+		}
+		else if(key == _T("fade in/out"))
+			_stscanf(value, _T("%d%, %d%"), &m_fadein, &m_fadeout);
+		else if(key == _T("time offset"))
+			m_toff = _tcstol(value, NULL, 10);
+		else if(key == _T("forced subs"))
+			m_fOnlyShowForcedSubs = value == _T("1") || value == _T("ON");
+		else if(key == _T("palette"))
+		{
+			Explode(value, sl, ',', 16);
+			for(int i = 0; i < 16 && sl.GetCount(); i++)
+				*(DWORD*)&m_orgpal[i] = _tcstol(sl.RemoveHead(), NULL, 16);
+		}
+		else if(key == _T("custom colors"))
+		{
+			m_fCustomPal = Explode(value, sl, ',', 3) == _T("ON");
+			if(sl.GetCount() == 3)
+			{
+				sl.RemoveHead();
+				CList<CString> tridx, colors;
+				Explode(sl.RemoveHead(), tridx, ':', 2);
+				if(tridx.RemoveHead() == _T("tridx"))
+				{
+					TCHAR tr[4];
+					_stscanf(tridx.RemoveHead(), _T("%c%c%c%c"), &tr[0], &tr[1], &tr[2], &tr[3]);
+					for(int i = 0; i < 4; i++)
+						m_tridx |= ((tr[i]=='1')?1:0)<<i;
+				}
+				Explode(sl.RemoveHead(), colors, ':', 2);
+				if(colors.RemoveHead() == _T("colors"))
+				{
+					Explode(colors.RemoveHead(), colors, ',', 4);
+					for(int i = 0; i < 4 && colors.GetCount(); i++)
+						*(DWORD*)&m_cuspal[i] = _tcstol(colors.RemoveHead(), NULL, 16);
+				}
+			}
+		}
+	}
+}
+
+void CVobSubStream::Add(REFERENCE_TIME tStart, BYTE* pData, int len)
+{
+	if(len <= 4 || ((pData[0]<<8)|pData[1]) != len) return;
+
+	CVobSubImage vsi;
+	vsi.GetPacketInfo(pData, (pData[0]<<8)|pData[1], (pData[2]<<8)|pData[3]);
+
+	CAutoPtr<SubPic> p(new SubPic());
+	p->tStart = tStart;
+	p->tStop = tStart + 10000i64*vsi.delay;
+	p->pData.SetSize(len);
+	memcpy(p->pData.GetData(), pData, p->pData.GetSize());
+
+	CAutoLock cAutoLock(&m_csSubPics);
+	while(m_subpics.GetCount() && m_subpics.GetTail()->tStart >= tStart)
+		m_subpics.RemoveTail();
+	m_subpics.AddTail(p);
+}
+
+void CVobSubStream::RemoveAll()
+{
+	CAutoLock cAutoLock(&m_csSubPics);
+	m_subpics.RemoveAll();
+}
+
+STDMETHODIMP CVobSubStream::NonDelegatingQueryInterface(REFIID riid, void** ppv)
+{
+    CheckPointer(ppv, E_POINTER);
+    *ppv = NULL;
+
+    return 
+		QI(IPersist)
+		QI(ISubStream)
+		QI(ISubPicProvider)
+		__super::NonDelegatingQueryInterface(riid, ppv);
+}
+
+// ISubPicProvider
+	
+STDMETHODIMP_(POSITION) CVobSubStream::GetStartPosition(REFERENCE_TIME rt, double fps)
+{
+	CAutoLock cAutoLock(&m_csSubPics);
+	POSITION pos = m_subpics.GetTailPosition();
+	for(; pos; m_subpics.GetPrev(pos))
+	{
+		SubPic* sp = m_subpics.GetAt(pos);
+		if(sp->tStart <= rt)
+		{
+			if(sp->tStop <= rt) m_subpics.GetNext(pos);
+			break;
+		}
+	}
+	return(pos);
+}
+
+STDMETHODIMP_(POSITION) CVobSubStream::GetNext(POSITION pos)
+{
+	CAutoLock cAutoLock(&m_csSubPics);
+	m_subpics.GetNext(pos);
+    return pos;
+}
+
+STDMETHODIMP_(REFERENCE_TIME) CVobSubStream::GetStart(POSITION pos, double fps)
+{
+	CAutoLock cAutoLock(&m_csSubPics);
+	return m_subpics.GetAt(pos)->tStart;
+}
+
+STDMETHODIMP_(REFERENCE_TIME) CVobSubStream::GetStop(POSITION pos, double fps)
+{
+	CAutoLock cAutoLock(&m_csSubPics);
+	return m_subpics.GetAt(pos)->tStop;
+}
+
+STDMETHODIMP_(bool) CVobSubStream::IsAnimated(POSITION pos)
+{
+	return(false);
+}
+
+STDMETHODIMP CVobSubStream::Render(SubPicDesc& spd, REFERENCE_TIME rt, double fps, RECT& bbox)
+{
+	if(spd.bpp != 32) return E_INVALIDARG;
+
+	POSITION pos = m_subpics.GetTailPosition();
+	for(; pos; m_subpics.GetPrev(pos))
+	{
+		SubPic* sp = m_subpics.GetAt(pos);
+		if(sp->tStart <= rt && rt < sp->tStop)
+		{
+			if(m_img.iIdx != (int)pos)
+			{
+				BYTE* pData = sp->pData.GetData();				
+				m_img.Decode(
+					pData, (pData[0]<<8)|pData[1], (pData[2]<<8)|pData[3],
+					m_fCustomPal, m_tridx, m_orgpal, m_cuspal, true);
+				m_img.iIdx = (int)pos;
+			}
+
+			CRect bbox2;
+			GetDestrect(bbox2, spd.w, spd.h);
+			StretchBlt(spd, bbox2, m_img);
+/*
+CRenderedTextSubtitle rts(NULL);
+rts.CreateDefaultStyle(DEFAULT_CHARSET);
+rts.m_dstScreenSize.SetSize(m_size.cx, m_size.cy);
+CStringW assstr;
+m_img.Polygonize(assstr, false);
+REFERENCE_TIME rtStart = 10000i64*m_img.start, rtStop = 10000i64*(m_img.start+m_img.delay);
+rts.Add(assstr, true, rtStart, rtStop);
+rts.Render(spd, (rtStart+rtStop)/2, 25, bbox2);
+*/
+			bbox2 &= CRect(CPoint(0, 0), CSize(spd.w, spd.h));
+			bbox = bbox2;
+			return !bbox2.IsRectEmpty() ? S_OK : S_FALSE;
+		}
+	}
+
+	return E_FAIL;
+}
+
+// IPersist
+
+STDMETHODIMP CVobSubStream::GetClassID(CLSID* pClassID)
+{
+	return pClassID ? *pClassID = __uuidof(this), S_OK : E_POINTER;
+}
+
+// ISubStream
+
+STDMETHODIMP_(int) CVobSubStream::GetStreamCount()
+{
+	return 1;
+}
+
+STDMETHODIMP CVobSubStream::GetStreamInfo(int i, WCHAR** ppName, LCID* pLCID)
+{
+	CAutoLock cAutoLock(&m_csSubPics);
+
+	if(ppName)
+	{
+		if(!(*ppName = (WCHAR*)CoTaskMemAlloc((m_name.GetLength()+1)*sizeof(WCHAR))))
+			return E_OUTOFMEMORY;
+		wcscpy(*ppName, CStringW(m_name));
+	}
+
+	if(pLCID)
+	{
+		*pLCID = 0; // TODO
+	}
+
+	return S_OK;
+}
+
+STDMETHODIMP_(int) CVobSubStream::GetStream()
+{
+	return 0;
+}
+
+STDMETHODIMP CVobSubStream::SetStream(int iStream)
+{
+	return iStream == 0 ? S_OK : E_FAIL;
 }

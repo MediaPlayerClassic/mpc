@@ -41,11 +41,48 @@ CPPageBase::~CPPageBase()
 
 void CPPageBase::DoDataExchange(CDataExchange* pDX)
 {
-	CCmdUIPropertyPage::DoDataExchange(pDX);
+	__super::DoDataExchange(pDX);
 }
 
+void CPPageBase::CreateToolTip()
+{
+	m_wndToolTip.Create(this);
+	m_wndToolTip.Activate(TRUE);
+	m_wndToolTip.SetMaxTipWidth(300);
+	m_wndToolTip.SetDelayTime(TTDT_AUTOPOP, 10000);
+	for(CWnd* pChild = GetWindow(GW_CHILD); pChild; pChild = pChild->GetWindow(GW_HWNDNEXT))
+	{
+		CString strToolTip;
+		if(strToolTip.LoadString(pChild->GetDlgCtrlID()))
+			m_wndToolTip.AddTool(pChild, strToolTip);
+	}
+}
+
+BOOL CPPageBase::PreTranslateMessage(MSG* pMsg)
+{
+	if(IsWindow(m_wndToolTip))
+	if(pMsg->message >= WM_MOUSEFIRST && pMsg->message <= WM_MOUSELAST)
+	{
+		MSG msg;
+		memcpy(&msg, pMsg, sizeof(MSG));
+		for(HWND hWndParent = ::GetParent(msg.hwnd); 
+			hWndParent && hWndParent != m_hWnd;
+			hWndParent = ::GetParent(hWndParent))
+		{
+			msg.hwnd = hWndParent;
+		}
+
+		if(msg.hwnd)
+		{
+			m_wndToolTip.RelayEvent(&msg);
+		}
+	}
+
+	return __super::PreTranslateMessage(pMsg);
+}
 
 BEGIN_MESSAGE_MAP(CPPageBase, CCmdUIPropertyPage)
+	ON_WM_DESTROY()
 END_MESSAGE_MAP()
 
 
@@ -55,5 +92,12 @@ BOOL CPPageBase::OnSetActive()
 {
 	AfxGetApp()->WriteProfileInt(ResStr(IDS_R_SETTINGS), _T("LastUsedPage"), (UINT)m_pPSP->pszTemplate);
 
-	return CCmdUIPropertyPage::OnSetActive();
+	return __super::OnSetActive();
+}
+
+void CPPageBase::OnDestroy()
+{
+	__super::OnDestroy();
+
+	m_wndToolTip.DestroyWindow();
 }

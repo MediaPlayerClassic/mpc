@@ -204,7 +204,6 @@ CFactoryTemplate g_Templates[] =
 {
 	{L"RealMedia Splitter", &__uuidof(CRealMediaSplitterFilter), CRealMediaSplitterFilter::CreateInstance, NULL, &sudFilter[0]},
 	{L"RealMedia Source", &__uuidof(CRealMediaSourceFilter), CRealMediaSourceFilter::CreateInstance, NULL, &sudFilter[1]},
-////////////////////
     {L"RealVideo Decoder", &__uuidof(CRealVideoDecoder), CRealVideoDecoder::CreateInstance, NULL, &sudFilter2[0]},
     {L"RealAudio Decoder", &__uuidof(CRealAudioDecoder), CRealAudioDecoder::CreateInstance, NULL, &sudFilter2[1]},
 };

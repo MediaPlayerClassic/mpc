@@ -23,14 +23,13 @@
 
 #include <afxwin.h>
 #include <atlcoll.h>
-#include "CmdUIDialog.h"
 #include "GraphBuilder.h"
 
 // CMediaTypesDlg dialog
 
-class CMediaTypesDlg : public CCmdUIDialog
+class CMediaTypesDlg : public CResizableDialog
 {
-	DECLARE_DYNAMIC(CMediaTypesDlg)
+//	DECLARE_DYNAMIC(CMediaTypesDlg)
 
 private:
 	CArray<CGraphBuilder::DeadEnd*> m_DeadEnds;

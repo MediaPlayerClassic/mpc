@@ -21,7 +21,6 @@
 
 #pragma once
 
-#include "CmdUIDialog.h"
 #include "afxwin.h"
 
 // CSelectMediaType dialog

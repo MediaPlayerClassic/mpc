@@ -34,8 +34,6 @@
 #include "PPageSheet.h"
 #include "PPageFileInfoSheet.h"
 #include "OpenCapDeviceDlg.h"
-#include "FavoriteAddDlg.h"
-#include "FavoriteOrganizeDlg.h"
 
 #include "FileDropTarget.h"
 
@@ -268,7 +266,10 @@ class CMainFrame : public CFrameWnd, public CDropTarget
 
 	//
 
-	CWebServer m_webserver;
+	CAutoPtr<CWebServer> m_pWebServer;
+public:
+	void StartWebServer(int nPort);
+	void StopWebServer();
 
 public:
 	CMainFrame();
@@ -495,7 +496,8 @@ public:
 	afx_msg void OnUpdateFileSavesubtitles(CCmdUI* pCmdUI);
 	afx_msg void OnFileProperties();
 	afx_msg void OnUpdateFileProperties(CCmdUI* pCmdUI);
-	afx_msg void OnFileClosemedia();
+	afx_msg void OnFileClosePlaylist();
+	afx_msg void OnFileCloseMedia(); // no menu item
 	afx_msg void OnUpdateFileClose(CCmdUI* pCmdUI);
 
 	afx_msg void OnViewCaptionmenu();

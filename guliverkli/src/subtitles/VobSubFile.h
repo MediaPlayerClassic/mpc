@@ -138,3 +138,42 @@ public:
 	STDMETHODIMP_(int) GetStream();
 	STDMETHODIMP SetStream(int iStream);
 };
+
+[uuid("D7FBFB45-2D13-494F-9B3D-FFC9557D5C45")]
+class CVobSubStream : public CVobSubSettings, public ISubStream, public ISubPicProviderImpl
+{
+	CString m_name;
+
+	CCritSec m_csSubPics;
+	struct SubPic {REFERENCE_TIME tStart, tStop; CArray<BYTE> pData;};
+	CAutoPtrList<SubPic> m_subpics;
+
+public:
+	CVobSubStream(CCritSec* pLock);
+	virtual ~CVobSubStream();
+
+	void Open(CString name, BYTE* pData, int len);
+
+    void Add(REFERENCE_TIME tStart, BYTE* pData, int len);
+	void RemoveAll();
+
+	DECLARE_IUNKNOWN
+    STDMETHODIMP NonDelegatingQueryInterface(REFIID riid, void** ppv);
+
+	// ISubPicProvider
+	STDMETHODIMP_(POSITION) GetStartPosition(REFERENCE_TIME rt, double fps);
+	STDMETHODIMP_(POSITION) GetNext(POSITION pos);
+	STDMETHODIMP_(REFERENCE_TIME) GetStart(POSITION pos, double fps);
+	STDMETHODIMP_(REFERENCE_TIME) GetStop(POSITION pos, double fps);
+	STDMETHODIMP_(bool) IsAnimated(POSITION pos);
+	STDMETHODIMP Render(SubPicDesc& spd, REFERENCE_TIME rt, double fps, RECT& bbox);
+
+	// IPersist
+	STDMETHODIMP GetClassID(CLSID* pClassID);
+
+	// ISubStream
+	STDMETHODIMP_(int) GetStreamCount();
+	STDMETHODIMP GetStreamInfo(int i, WCHAR** ppName, LCID* pLCID);
+	STDMETHODIMP_(int) GetStream();
+	STDMETHODIMP SetStream(int iStream);
+};

@@ -177,6 +177,7 @@
 #define IDD_PPAGEOUTPUT                 335
 #define IDD_AUTHDLG                     336
 #define IDB_AUTHHDRPIC                  337
+#define IDD_PPAGEWEBSERVER              338
 #define IDS_R_SETTINGS                  500
 #define IDS_RS_CONTROLSTATE             501
 #define IDS_RS_VOLUME                   502
@@ -282,6 +283,8 @@
 #define IDS_RS_QTVIDEORENDERERTYPE      598
 #define IDS_RS_APSURACEFUSAGE           599
 #define IDS_R_LOGINS                    600
+#define IDS_RS_ENABLEWEBSERVER          601
+#define IDS_RS_WEBSERVERPORT            602
 #define IDC_BROWSEBUTTON                1016
 #define IDC_BROWSEBUTTON2               1017
 #define IDC_COMBO1                      1018
@@ -407,12 +410,18 @@
 #define IDC_LOGONAME                    1110
 #define IDC_LOGOFILENAME                1111
 #define IDC_CHECK11                     1112
+#define IDC_CHECK_RV                    1112
 #define IDC_CHECK12                     1113
+#define IDC_CHECK_RA                    1113
 #define IDC_CHECK13                     1114
+#define IDC_CHECK_MPG1                  1114
 #define IDC_CHECK14                     1115
+#define IDC_CHECK_MPG2                  1115
 #define IDC_SLIDER1                     1116
 #define IDC_CHECK15                     1117
+#define IDC_CHECK_MPA                   1117
 #define IDC_CHECK16                     1118
+#define IDC_CHECK_RADGT                 1118
 #define IDC_DESC                        1119
 #define IDC_DSSYSDEF                    1120
 #define IDC_DSOLD                       1121
@@ -433,6 +442,17 @@
 #define IDC_TEXTURESURF3D               1135
 #define IDC_DSNULL_UNCOMP               1136
 #define IDC_DSNULL_COMP                 1137
+#define IDC_CHECK_AVI                   1138
+#define IDC_CHECK_CDDA                  1139
+#define IDC_CHECK_CDXA                  1140
+#define IDC_CHECK_VTS                   1141
+#define IDC_CHECK_FLIC                  1142
+#define IDC_CHECK_D2V					1143
+#define IDC_CHECK_DTSAC3                1144
+#define IDC_CHECK_SHOUTCAST             1145
+#define IDC_CHECK_RM                    1146
+#define IDC_CHECK_MATROSKA              1147
+#define IDC_CHECK_ROQ                   1148
 #define IDD_COMPROPERTYPAGE             10002
 #define ID_DUMMYSEPARATOR               32768
 #define ID_VOLUME_MUTE_ON               32769
@@ -483,6 +503,7 @@
 #define ID_VIEW_VF_COMPMONDESKARDIFF    32820
 #define ID_PLAY_INCAUDDELAY             32821
 #define ID_PLAY_DECAUDDELAY             32822
+#define ID_FILE_CLOSEPLAYLIST           32823
 #define ID_FILTERS_SUBITEM_START        33000
 #define ID_FILTERS_SUBITEM_END          33099
 #define ID_FILTERSTREAMS_SUBITEM_START  33100
@@ -514,9 +535,9 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        338
-#define _APS_NEXT_COMMAND_VALUE         32823
-#define _APS_NEXT_CONTROL_VALUE         1137
+#define _APS_NEXT_RESOURCE_VALUE        339
+#define _APS_NEXT_COMMAND_VALUE         32824
+#define _APS_NEXT_CONTROL_VALUE         1149
 #define _APS_NEXT_SYMED_VALUE           10003
 #endif
 #endif

@@ -60,22 +60,23 @@ CPPageFilters::~CPPageFilters()
 void CPPageFilters::DoDataExchange(CDataExchange* pDX)
 {
 	__super::DoDataExchange(pDX);
-	DDX_Check(pDX, IDC_CHECK1, m_cdda);
-	DDX_Check(pDX, IDC_CHECK2, m_cdxa);
-	DDX_Check(pDX, IDC_CHECK3, m_vts);
-	DDX_Check(pDX, IDC_CHECK4, m_flic);
-	DDX_Check(pDX, IDC_CHECK5, m_dvd2avi);
-	DDX_Check(pDX, IDC_CHECK6, m_dtsac3);
-	DDX_Check(pDX, IDC_CHECK7, m_matroska);
-	DDX_Check(pDX, IDC_CHECK8, m_shoutcast);
-	DDX_Check(pDX, IDC_CHECK9, m_realmedia);
-	DDX_Check(pDX, IDC_CHECK10, m_avi);
-	DDX_Check(pDX, IDC_CHECK11, m_realvideo);
-	DDX_Check(pDX, IDC_CHECK12, m_realaudio);
-	DDX_Check(pDX, IDC_CHECK13, m_mpeg1);
-	DDX_Check(pDX, IDC_CHECK14, m_mpeg2);
-	DDX_Check(pDX, IDC_CHECK15, m_mpa);
-	DDX_Check(pDX, IDC_CHECK16, m_radgt);
+	DDX_Check(pDX, IDC_CHECK_CDDA, m_cdda);
+	DDX_Check(pDX, IDC_CHECK_CDXA, m_cdxa);
+	DDX_Check(pDX, IDC_CHECK_VTS, m_vts);
+	DDX_Check(pDX, IDC_CHECK_FLIC, m_flic);
+	DDX_Check(pDX, IDC_CHECK_D2V, m_dvd2avi);
+	DDX_Check(pDX, IDC_CHECK_DTSAC3, m_dtsac3);
+	DDX_Check(pDX, IDC_CHECK_MATROSKA, m_matroska);
+	DDX_Check(pDX, IDC_CHECK_SHOUTCAST, m_shoutcast);
+	DDX_Check(pDX, IDC_CHECK_RM, m_realmedia);
+	DDX_Check(pDX, IDC_CHECK_AVI, m_avi);
+	DDX_Check(pDX, IDC_CHECK_RV, m_realvideo);
+	DDX_Check(pDX, IDC_CHECK_RA, m_realaudio);
+	DDX_Check(pDX, IDC_CHECK_MPG1, m_mpeg1);
+	DDX_Check(pDX, IDC_CHECK_MPG2, m_mpeg2);
+	DDX_Check(pDX, IDC_CHECK_MPA, m_mpa);
+	DDX_Check(pDX, IDC_CHECK_RADGT, m_radgt);
+	DDX_Check(pDX, IDC_CHECK_ROQ, m_roq);
 }
 
 
@@ -107,8 +108,11 @@ BOOL CPPageFilters::OnInitDialog()
 	m_mpeg2 = !!(s.TraFilters&TRA_MPEG2);
 	m_mpa = !!(s.TraFilters&TRA_MPEGAUD);
 	m_radgt = !!(s.SrcFilters&SRC_RADGT);
+	m_roq = !!(s.SrcFilters&SRC_ROQ);
 
 	UpdateData(FALSE);
+
+	CreateToolTip();
 
 	return TRUE;  // return TRUE unless you set the focus to a control
 	// EXCEPTION: OCX Property Pages should return FALSE
@@ -137,6 +141,7 @@ BOOL CPPageFilters::OnApply()
 	if(m_mpeg2) s.TraFilters |= TRA_MPEG2;
 	if(m_mpa) s.TraFilters |= TRA_MPEGAUD;
 	if(m_radgt) s.SrcFilters |= SRC_RADGT;
+	if(m_roq) s.SrcFilters |= SRC_ROQ;
 
 	return __super::OnApply();
 }

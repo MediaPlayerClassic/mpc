@@ -21,13 +21,15 @@
 
 #pragma once
 
-#include "CmdUIDialog.h"
-
 // CPPageBase dialog
 
 class CPPageBase : public CCmdUIPropertyPage
 {
 	DECLARE_DYNAMIC(CPPageBase)
+
+protected:
+	CToolTipCtrl m_wndToolTip;
+	void CreateToolTip();
 
 public:
 	CPPageBase(UINT nIDTemplate, UINT nIDCaption = 0);
@@ -37,9 +39,11 @@ public:
 
 protected:
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV support
+	virtual BOOL PreTranslateMessage(MSG* pMsg);
+	virtual BOOL OnSetActive();
 
 	DECLARE_MESSAGE_MAP()
 
 public:
-	virtual BOOL OnSetActive();
+	afx_msg void OnDestroy();
 };

@@ -54,10 +54,7 @@
 #include "..\..\..\include\qt\qt.h"
 #include <afxole.h>
 
-extern CString Explode(CString str, CList<CString>& sl, TCHAR sep, int limit = 0);
-extern CString ExplodeMin(CString str, CList<CString>& sl, TCHAR sep, int limit = 0);
-extern CString UrlEncode(CString str, bool fRaw = false);
-extern CString UrlDecode(CString str, bool fRaw = false);
+#include "..\..\ui\ui.h"
 
 //{{AFX_INSERT_LOCATION}}
 // Microsoft Visual C++ will insert additional declarations immediately before the previous line.

@@ -4,6 +4,7 @@
 #include "MainFrm.h"
 #include <atlisapi.h>
 #include "WebServer.h"
+#include "..\..\DSUtil\text.h"
 
 class CServerSocket : public CAsyncSocket
 {
@@ -228,7 +229,7 @@ private:
 
 		if(!reshdr.IsEmpty())
 		{
-#ifdef DEBUG
+//#ifdef DEBUG
 			// TMP
 			{
 				resbody += "<hr>";
@@ -236,9 +237,9 @@ private:
 				POSITION pos;
 				pos = m_hdrlines.GetStartPosition();
 				while(pos) {m_hdrlines.GetNextAssoc(pos, key, value); resbody += "HEADER[" + key + "] = " + value + "<br>\r\n";}
-				resbody += "m_cmd: " + m_cmd + "<br>\r\n";
-				resbody += "m_path: " + m_path + "<br>\r\n";
-				resbody += "m_ver: " + m_ver + "<br>\r\n";
+				resbody += "cmd: " + m_cmd + "<br>\r\n";
+				resbody += "path: " + m_path + "<br>\r\n";
+				resbody += "ver: " + m_ver + "<br>\r\n";
 				pos = m_get.GetStartPosition();
 				while(pos) {m_get.GetNextAssoc(pos, key, value); resbody += "GET[" + key + "] = " + value + "<br>\r\n";}
 				pos = m_post.GetStartPosition();
@@ -248,7 +249,7 @@ private:
 				pos = m_request.GetStartPosition();
 				while(pos) {m_request.GetNextAssoc(pos, key, value); resbody += "REQUEST[" + key + "] = " + value + "<br>\r\n";}
 			}
-#endif
+//#endif
 			// append cookies to reshdr
 			{
 				POSITION pos = m_cookie.GetStartPosition();
@@ -335,11 +336,12 @@ public:
 
 ////////////
 
-CWebServer::CWebServer(CFrameWnd* pMainFrm)
+CWebServer::CWebServer(CMainFrame* pMainFrm, int nPort)
 	: m_pMainFrm(pMainFrm)
+	, m_nPort(nPort)
 {
 	m_ThreadId = 0;
-    m_hThread = ::CreateThread(NULL, 0, ThreadProc, (LPVOID)this, 0, &m_ThreadId);
+    m_hThread = ::CreateThread(NULL, 0, StaticThreadProc, (LPVOID)this, 0, &m_ThreadId);
 }
 
 CWebServer::~CWebServer()
@@ -352,12 +354,17 @@ CWebServer::~CWebServer()
     }
 }
 
-DWORD WINAPI CWebServer::ThreadProc(LPVOID lpParam)
+DWORD WINAPI CWebServer::StaticThreadProc(LPVOID lpParam)
+{
+	return ((CWebServer*)lpParam)->ThreadProc();
+}
+
+DWORD CWebServer::ThreadProc()
 {
 	if(!AfxSocketInit(NULL))
 		return -1;
 
-	CServerSocket s((CWebServer*)lpParam);
+	CServerSocket s(this, m_nPort);
 
 	MSG msg;
 	while((int)GetMessage(&msg, NULL, 0, 0) > 0)
@@ -392,6 +399,15 @@ void CWebServer::OnClose(CClientSocket* pClient)
 
 void CWebServer::OnRequest(CClientSocket* pClient, CStringA& hdr, CStringA& body)
 {
+	CString POST_id;
+	if(pClient->m_post.Lookup(_T("wmcommand"), POST_id))
+	{
+		int i = _tcstol(POST_id, NULL, 10);
+		if(i) m_pMainFrm->PostMessage(WM_COMMAND, i);
+	}
+
+	/////////////
+
 	body += 
 		"<html>\r\n"
 		"<head>\r\n"
@@ -401,14 +417,28 @@ void CWebServer::OnRequest(CClientSocket* pClient, CStringA& hdr, CStringA& body
 		"</head>\r\n"
 		"<body>\r\n";
 
-#ifdef DEBUG
+	body +=
+		"Sorry, this is just a little demo page for now, I'm still awaiting ideas what to put here ... and mostly why (hehe) \r\n"
+		"Anyway, I'm sure there will be some use of this web server in the future. You users can always come up with something.\r\n"
+		"<p>"
+		"And if you are already here, why don't you try sending a few commands to MPC, just to see if it works :)"
+		"<p>";
+
 	// TMP
-	body += 
-		"<form action=\"/\" method=\"POST\">\r\n"
-		"<input type=\"text\" value=\"Hello World!\" name=\"textbox\">\r\n"
-		"<input type=\"submit\" value=\"Push Me!\" name=\"submitbutton\">\r\n"
-		"</form>\r\n";
-#endif
+	body += "<form action=\"/\" method=\"POST\">\r\n";
+	body += "<select name=\"wmcommand\">\r\n";
+	AppSettings& s = AfxGetAppSettings();
+	POSITION pos = s.wmcmds.GetHeadPosition();
+	while(pos)
+	{
+		wmcmd& wc = s.wmcmds.GetNext(pos);
+		CStringA id;
+		id.Format("%d", wc.cmd);
+		body += "<option value=\"" + id + "\"" + (id == CStringA(POST_id) ? "selected" : "") + ">" + CStringA(wc.name) + "\r\n";
+	}
+	body += "</select>\r\n";
+	body += "<input type=\"submit\" value=\"Go!\" name=\"submit\">\r\n";
+	body += "</form>\r\n";
 
 	body += 
 		"</body>\r\n"

@@ -198,6 +198,26 @@ CGraphBuilder::CGraphBuilder(IGraphBuilder* pGB, HWND hWnd)
 	}
 
 	{
+		guids.AddTail(MEDIATYPE_Stream);
+		guids.AddTail(MEDIASUBTYPE_Bink);
+		guids.AddTail(MEDIATYPE_Stream);
+		guids.AddTail(MEDIASUBTYPE_Smacker);
+		AddFilter(new CGraphCustomFilter(__uuidof(CRadGtSplitterFilter), guids, 
+			(s.SrcFilters&SRC_RADGT) ? L"RadGt Splitter" : L"RadGt Splitter (low merit)",
+			(s.SrcFilters&SRC_RADGT) ? LMERIT_ABOVE_DSHOW : LMERIT_DO_USE));
+		guids.RemoveAll();
+	}
+
+	{
+		guids.AddTail(MEDIATYPE_Stream);
+		guids.AddTail(MEDIASUBTYPE_RoQ);
+		AddFilter(new CGraphCustomFilter(__uuidof(CRoQSplitterFilter), guids, 
+			(s.SrcFilters&SRC_ROQ) ? L"RoQ Splitter" : L"RoQ Splitter (low merit)",
+			(s.SrcFilters&SRC_ROQ) ? LMERIT_ABOVE_DSHOW : LMERIT_DO_USE));
+		guids.RemoveAll();
+	}
+
+	{
 		guids.AddTail(MEDIATYPE_Video);
 		guids.AddTail(MEDIASUBTYPE_MPEG1Packet);
 		guids.AddTail(MEDIATYPE_Video);
@@ -660,6 +680,14 @@ HRESULT CGraphBuilder::Render(LPCTSTR lpsz)
 		{
 			hr = S_OK;
 			CComPtr<IFileSourceFilter> pReader = new CRadGtSourceFilter(NULL, &hr);
+			if(SUCCEEDED(hr) && SUCCEEDED(pReader->Load(fnw, NULL)))
+				pBF = pReader;
+		}
+
+		if((s.SrcFilters&SRC_ROQ) && !pBF)
+		{
+			hr = S_OK;
+			CComPtr<IFileSourceFilter> pReader = new CRoQSourceFilter(NULL, &hr);
 			if(SUCCEEDED(hr) && SUCCEEDED(pReader->Load(fnw, NULL)))
 				pBF = pReader;
 		}
@@ -1643,6 +1671,8 @@ HRESULT CGraphCustomFilter::Create(IBaseFilter** ppBF, IUnknown** ppUnk)
 		m_clsid == __uuidof(CRealVideoDecoder) ? (IBaseFilter*)new CRealVideoDecoder(NULL, &hr) :
 		m_clsid == __uuidof(CRealAudioDecoder) ? (IBaseFilter*)new CRealAudioDecoder(NULL, &hr) :
 		m_clsid == __uuidof(CAviSplitterFilter) ? (IBaseFilter*)new CAviSplitterFilter(NULL, &hr) :
+		m_clsid == __uuidof(CRadGtSplitterFilter) ? (IBaseFilter*)new CRadGtSplitterFilter(NULL, &hr) :
+		m_clsid == __uuidof(CRoQSplitterFilter) ? (IBaseFilter*)new CRoQSplitterFilter(NULL, &hr) :
 		m_clsid == __uuidof(CMpeg2DecFilter) ? (IBaseFilter*)new CMpeg2DecFilter(NULL, &hr) :
 		m_clsid == __uuidof(CMpaDecFilter) ? (IBaseFilter*)new CMpaDecFilter(NULL, &hr) :
 		m_clsid == __uuidof(CNullVideoRenderer) ? (IBaseFilter*)new CNullVideoRenderer() :

@@ -288,16 +288,6 @@ HRESULT CDirectVobSubFilter::CompleteConnect(PIN_DIRECTION dir, IPin* pReceivePi
 			m_fMSMpeg4Fix = true;
 		}
 
-		int len = m_pTextInput.GetSize();
-		for(int i = 0; i < m_pTextInput.GetSize(); i++)
-			if(m_pTextInput[i]->IsConnected()) len--;
-
-		if(len == 0)
-		{
-			HRESULT hr = S_OK;
-			m_pTextInput.Add(new CTextInputPin(this, m_pLock, &m_csSubLock, &hr));
-		}
-
 		m_wIn = m_bihIn.biWidth;
 	}
 	else if(dir == PINDIR_OUTPUT)
@@ -572,7 +562,7 @@ DbgLog((LOG_TRACE, 0, _T("Transform: pIn->GetMediaType")));
 				pitchMin = min(pitchIn, pitchOut);
 			if(fFlip) {pIn += (h-1)*pitchIn; pitchIn = -pitchIn;}
 			for(int h2 = h; h2-- > 0; pIn += pitchIn, pOut += pitchOut)
-				memcpy(pOut, pIn, pitchMin);
+				memcpy_accel(pOut, pIn, pitchMin);
 			pitchIn = abs(pitchIn);
 
 			if(fYV12)
@@ -584,9 +574,9 @@ DbgLog((LOG_TRACE, 0, _T("Transform: pIn->GetMediaType")));
 				BYTE* pOutU = pOutV + pitchOut*h;
 				if(fFlip) {pInV += (h-1)*pitchIn; pInU += (h-1)*pitchIn; pitchIn = -pitchIn;}
 				for(int h2 = h; h2-- > 0; pInV += pitchIn, pOutV += pitchOut)
-					memcpy(pOutV, pInV, pitchMin);
+					memcpy_accel(pOutV, pInV, pitchMin);
 				for(int h2 = h; h2-- > 0; pInU += pitchIn, pOutU += pitchOut)
-					memcpy(pOutU, pInU, pitchMin);
+					memcpy_accel(pOutU, pInU, pitchMin);
 				pitchIn = abs(pitchIn);
 			}
 		}
@@ -1897,12 +1887,22 @@ void CDirectVobSubFilter::SetSubtitle(ISubStream* pSubStream, bool fApplyDefStyl
 
 		if(clsid == __uuidof(CVobSubFile))
 		{
-			CVobSubFile* pVSF = (CVobSubFile*)(ISubStream*)pSubStream;
+			CVobSubSettings* pVSS = (CVobSubFile*)(ISubStream*)pSubStream;
 
 			if(fApplyDefStyle)
 			{
-				pVSF->SetAlignment(m_fOverridePlacement, m_PlacementXperc, m_PlacementYperc, 1, 1);
-				pVSF->m_fOnlyShowForcedSubs = m_fOnlyShowForcedVobSubs;
+				pVSS->SetAlignment(m_fOverridePlacement, m_PlacementXperc, m_PlacementYperc, 1, 1);
+				pVSS->m_fOnlyShowForcedSubs = m_fOnlyShowForcedVobSubs;
+			}
+		}
+		else if(clsid == __uuidof(CVobSubStream))
+		{
+			CVobSubSettings* pVSS = (CVobSubStream*)(ISubStream*)pSubStream;
+
+			if(fApplyDefStyle)
+			{
+				pVSS->SetAlignment(m_fOverridePlacement, m_PlacementXperc, m_PlacementYperc, 1, 1);
+				pVSS->m_fOnlyShowForcedSubs = m_fOnlyShowForcedVobSubs;
 			}
 		}
 		else if(clsid == __uuidof(CRenderedTextSubtitle))
@@ -1975,6 +1975,16 @@ void CDirectVobSubFilter::AddSubStream(ISubStream* pSubStream)
 
 	POSITION pos = m_pSubStreams.Find(pSubStream);
 	if(!pos) m_pSubStreams.AddTail(pSubStream);
+
+	int len = m_pTextInput.GetSize();
+	for(int i = 0; i < m_pTextInput.GetSize(); i++)
+		if(m_pTextInput[i]->IsConnected()) len--;
+
+	if(len == 0)
+	{
+		HRESULT hr = S_OK;
+		m_pTextInput.Add(new CTextInputPin(this, m_pLock, &m_csSubLock, &hr));
+	}
 }
 
 void CDirectVobSubFilter::RemoveSubStream(ISubStream* pSubStream)

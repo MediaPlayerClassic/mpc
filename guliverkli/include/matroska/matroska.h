@@ -61,17 +61,6 @@ typedef struct {
 	DWORD dwOffset;	
 	CHAR IsoLang[4]; // three letter lang code + terminating zero
 } SUBTITLEINFO;
-typedef struct : SUBTITLEINFO
-{
-	bool bCompressed;
-	unsigned int w, h, x, y, sx, sy;
-	unsigned int alpha, smooth, align;
-	int tFadeIn, tFadeOut, tOffset;
-	bool bForcedSubs;
-	bool bCustomColors;
-	union {DWORD orgpal[16]; DWORD cuspal[4];};
-	char tridx;
-} VOBSUBINFO;
 #pragma pack(pop)
 
 // SUBTITLEINFO structure content starting at dwOffset (also the content of CodecPrivate)
@@ -96,7 +85,7 @@ typedef struct : SUBTITLEINFO
 //
 // MEDIATYPE_VOBSUB:
 //
-// Nothing.
+// TODO
 //
 
 // Data description of the media samples (everything is UTF-8 encoded here)

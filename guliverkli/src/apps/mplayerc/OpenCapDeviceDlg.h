@@ -26,9 +26,9 @@
 
 // COpenCapDeviceDlg dialog
 
-class COpenCapDeviceDlg : public CDialog
+class COpenCapDeviceDlg : public CResizableDialog
 {
-	DECLARE_DYNAMIC(COpenCapDeviceDlg)
+//	DECLARE_DYNAMIC(COpenCapDeviceDlg)
 
 private:
 	CStringArray m_vidnames, m_audnames;

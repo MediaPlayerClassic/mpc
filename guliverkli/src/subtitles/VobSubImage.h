@@ -25,7 +25,6 @@
 #include <afxtempl.h>
 #include <atlcoll.h>
 
-/*
 typedef CArray<CPoint> CPointArray;
 typedef CArray<int> CDirArray;
 
@@ -38,7 +37,6 @@ typedef struct
 } COutline;
 
 typedef CAutoPtrList<COutline> COutlineList;
-*/
 
 class CVobSubImage
 {
@@ -82,15 +80,18 @@ public:
 				int tridx, 
 				RGBQUAD* orgpal /*[16]*/, RGBQUAD* cuspal /*[4]*/, 
 				bool fTrim);
-/*
+
+	/////////
+
 private:
-	CAutoPtr<COutlineList> GetOutlineList(CPoint& topleft);
+	COutlineList* GetOutlineList(CPoint& topleft);
 	int GrabSegment(int start, COutline& o, COutline& ret);
 	void SplitOutline(COutline& o, COutline& o1, COutline& o2);
 	void AddSegment(COutline& o, CByteArray& pathTypes, CPointArray& pathPoints);
 
 public:
-	bool Polygonize(CByteArray& pathTypes, CPointArray& pathPoints, int scale);
-	bool Polygonize(CString& assstr, int scale = 3);
-*/
+	bool Polygonize(CByteArray& pathTypes, CPointArray& pathPoints, bool fSmooth, int scale);
+	bool Polygonize(CStringW& assstr, bool fSmooth = true, int scale = 3);
+
+    void Scale2x();
 };

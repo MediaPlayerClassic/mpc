@@ -188,7 +188,7 @@ STDMETHODIMP CDX7SubPic::AlphaBlt(RECT* pSrc, RECT* pDst, SubPicDesc* pTarget)
 
         m_pD3DDev->SetTextureStageState(0, D3DTSS_ADDRESS, D3DTADDRESS_CLAMP);
 
-		//
+		/*//
 
 		D3DDEVICEDESC7 d3ddevdesc;
 		m_pD3DDev->GetCaps(&d3ddevdesc);
@@ -199,7 +199,7 @@ STDMETHODIMP CDX7SubPic::AlphaBlt(RECT* pSrc, RECT* pDst, SubPicDesc* pTarget)
 			m_pD3DDev->SetRenderState(D3DRENDERSTATE_ALPHAFUNC, D3DPCMPCAPS_LESS);
 		}
 
-        //
+        *///
 
         if(FAILED(hr = m_pD3DDev->BeginScene()))
 			break;

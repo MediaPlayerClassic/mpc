@@ -766,7 +766,7 @@ CMPlayerCApp::Settings::Settings()
 	ADDCMD((ID_FILE_SAVEAS, 0, FVIRTKEY|FNOINVERT, _T("Save As")));
 	ADDCMD((ID_FILE_LOADSUBTITLE, 'L', FVIRTKEY|FCONTROL|FNOINVERT, _T("Load Subtitle")));
 	ADDCMD((ID_FILE_SAVESUBTITLES, 'S', FVIRTKEY|FCONTROL|FNOINVERT, _T("Save Subtitle")));
-	ADDCMD((ID_FILE_CLOSEMEDIA, 'C', FVIRTKEY|FCONTROL|FNOINVERT, _T("Close")));
+	ADDCMD((ID_FILE_CLOSEPLAYLIST, 'C', FVIRTKEY|FCONTROL|FNOINVERT, _T("Close")));
 	ADDCMD((ID_FILE_PROPERTIES, VK_F10, FVIRTKEY|FSHIFT|FNOINVERT, _T("Properties")));
 	ADDCMD((ID_FILE_EXIT, 'X', FVIRTKEY|FALT|FNOINVERT, _T("Exit")));
 	ADDCMD((ID_PLAY_PLAYPAUSE, VK_SPACE, FVIRTKEY|FNOINVERT, _T("Play/Pause"), APPCOMMAND_MEDIA_PLAY_PAUSE, wmcmd::LDOWN));
@@ -1056,7 +1056,10 @@ void CMPlayerCApp::Settings::UpdateData(bool fSave)
 		pApp->WriteProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_MPEGFORCEDSUBS), mpegforcedsubs);
 		pApp->WriteProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_MPEGPLANARYUV), mpegplanaryuv);
 
-		pApp->WriteProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_HIDECDROMSSUBMENU), fHideCDROMsSubMenu);		
+		pApp->WriteProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_HIDECDROMSSUBMENU), fHideCDROMsSubMenu);
+
+		pApp->WriteProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_ENABLEWEBSERVER), fEnableWebServer);
+		pApp->WriteProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_WEBSERVERPORT), nWebServerPort);
 	}
 	else
 	{
@@ -1329,6 +1332,9 @@ void CMPlayerCApp::Settings::UpdateData(bool fSave)
 		mpegplanaryuv = !!pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_MPEGPLANARYUV), 1);
 
 		fHideCDROMsSubMenu = !!pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_HIDECDROMSSUBMENU), 0);		
+
+		fEnableWebServer = !!pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_ENABLEWEBSERVER), FALSE);
+		nWebServerPort = pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_WEBSERVERPORT), 13579);
 
 		pApp->WriteProfileInt(ResStr(IDS_R_SETTINGS), _T("LastUsedPage"), 0);
 

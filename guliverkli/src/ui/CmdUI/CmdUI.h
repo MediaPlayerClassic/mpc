@@ -28,7 +28,9 @@ class CCmdUIDialog : public CDialog
 	DECLARE_DYNAMIC(CCmdUIDialog)
 
 public:
-	CCmdUIDialog(UINT nIDTemplate, CWnd* pParent = NULL);   // standard constructor
+	CCmdUIDialog();
+	CCmdUIDialog(UINT nIDTemplate, CWnd* pParent = NULL);
+	CCmdUIDialog(LPCTSTR lpszTemplateName, CWnd* pParent = NULL);
 	virtual ~CCmdUIDialog();
 
 protected:
@@ -38,6 +40,7 @@ protected:
 
 public:
 	afx_msg void OnKickIdle();
+	afx_msg void OnInitMenuPopup(CMenu *pPopupMenu, UINT nIndex,BOOL bSysMenu);
 };
 
 

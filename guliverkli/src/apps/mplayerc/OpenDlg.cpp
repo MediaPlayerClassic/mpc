@@ -30,9 +30,9 @@
 
 // COpenDlg dialog
 
-IMPLEMENT_DYNAMIC(COpenDlg, CCmdUIDialog)
+//IMPLEMENT_DYNAMIC(COpenDlg, CResizableDialog)
 COpenDlg::COpenDlg(CWnd* pParent /*=NULL*/)
-	: CCmdUIDialog(COpenDlg::IDD, pParent)
+	: CResizableDialog(COpenDlg::IDD, pParent)
 	, m_path(_T(""))
 	, m_path2(_T(""))
 	, m_fMultipleFiles(false)
@@ -55,7 +55,7 @@ void COpenDlg::DoDataExchange(CDataExchange* pDX)
 }
 
 
-BEGIN_MESSAGE_MAP(COpenDlg, CCmdUIDialog)
+BEGIN_MESSAGE_MAP(COpenDlg, CResizableDialog)
 	ON_BN_CLICKED(IDC_BROWSEBUTTON, OnBnClickedBrowsebutton)
 	ON_BN_CLICKED(IDC_BROWSEBUTTON2, OnBnClickedBrowsebutton2)
 	ON_BN_CLICKED(IDOK, OnBnClickedOk)
@@ -88,6 +88,21 @@ BOOL COpenDlg::OnInitDialog()
 	CorrectComboListWidth(m_mrucombo2, GetFont());
 
 	if(m_mrucombo.GetCount() > 0) m_mrucombo.SetCurSel(0);
+
+	AddAnchor(m_mrucombo, TOP_LEFT, TOP_RIGHT);
+	AddAnchor(m_mrucombo2, TOP_LEFT, TOP_RIGHT);
+	AddAnchor(IDC_BROWSEBUTTON, TOP_RIGHT);
+	AddAnchor(IDC_BROWSEBUTTON2, TOP_RIGHT);
+	AddAnchor(IDOK, TOP_CENTER);
+	AddAnchor(IDCANCEL, TOP_CENTER);
+	AddAnchor(IDC_STATIC1, TOP_LEFT, TOP_RIGHT);
+
+	CRect r;
+	GetWindowRect(r);
+	CSize s = r.Size();
+	SetMinTrackSize(s);
+	s.cx = 1000;
+	SetMaxTrackSize(s);
 
 	return TRUE;  // return TRUE unless you set the focus to a control
 	// EXCEPTION: OCX Property Pages should return FALSE

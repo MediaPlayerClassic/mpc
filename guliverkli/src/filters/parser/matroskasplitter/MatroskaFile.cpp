@@ -22,6 +22,7 @@
 #include "stdafx.h"
 #include "MatroskaFile.h"
 #include "..\..\..\DSUtil\DSUtil.h"
+#include "..\..\..\zlib\zlib.h"
 
 static void LOG(LPCTSTR fmt, ...)
 {
@@ -397,7 +398,47 @@ HRESULT TrackEntry::Parse(CMatroskaNode* pMN0)
 	case 0x23314F: TrackTimecodeScale.Parse(pMN); break;
 	case 0xE0: if(S_OK == v.Parse(pMN)) DescType |= DescVideo; break;
 	case 0xE1: if(S_OK == a.Parse(pMN)) DescType |= DescAudio; break;
+	case 0x6D80: ces.Parse(pMN); break;
 	EndChunk
+}
+
+static int cesort(const void* a, const void* b) 
+{
+	UINT64 ce1 = ((ContentEncoding*)a)->ContentEncodingOrder;
+	UINT64 ce2 = ((ContentEncoding*)b)->ContentEncodingOrder;
+
+	return (int)ce1 - (int)ce2; 
+}
+
+bool TrackEntry::Expand(CBinary& data, UINT64 Scope)
+{
+	if(ces.ce.GetCount() == 0) return(true);
+
+	CArray<ContentEncoding*> cearray;
+	POSITION pos = ces.ce.GetHeadPosition();
+	while(pos) cearray.Add(ces.ce.GetNext(pos));
+	qsort(cearray.GetData(), cearray.GetCount(), sizeof(ContentEncoding*), cesort);
+
+	for(int i = cearray.GetCount()-1; i >= 0; i--)
+	{
+		ContentEncoding* ce = cearray[i];
+
+		if(!(ce->ContentEncodingScope & Scope))
+			continue;
+
+		if(ce->ContentEncodingType == ContentEncoding::Compression)
+		{
+			if(!data.Decompress(ce->cc.ContentCompAlgo))
+				return(false);
+		}
+		else if(ce->ContentEncodingType == ContentEncoding::Encryption)
+		{
+			// TODO
+			return(false);
+		}
+	}
+
+	return(true);
 }
 
 HRESULT Video::Parse(CMatroskaNode* pMN0)
@@ -425,6 +466,44 @@ HRESULT Audio::Parse(CMatroskaNode* pMN0)
 	case 0x9F: Channels.Parse(pMN); break;
 	case 0x7D7B: ChannelPositions.Parse(pMN); break;
 	case 0x6264: BitDepth.Parse(pMN); break;
+	EndChunk
+}
+
+HRESULT ContentEncodings::Parse(CMatroskaNode* pMN0)
+{
+	BeginChunk
+	case 0x6240: ce.Parse(pMN); break;
+	EndChunk
+}
+
+HRESULT ContentEncoding::Parse(CMatroskaNode* pMN0)
+{
+	BeginChunk
+	case 0x5031: ContentEncodingOrder.Parse(pMN); break;
+	case 0x5032: ContentEncodingScope.Parse(pMN); break;
+	case 0x5033: ContentEncodingType.Parse(pMN); break;
+	case 0x5034: cc.Parse(pMN); break;
+	case 0x5035: ce.Parse(pMN); break;
+	EndChunk
+}
+
+HRESULT ContentCompression::Parse(CMatroskaNode* pMN0)
+{
+	BeginChunk
+	case 0x4254: ContentCompAlgo.Parse(pMN); break;
+	case 0x4255: ContentCompSettings.Parse(pMN); break;
+	EndChunk
+}
+
+HRESULT ContentEncryption::Parse(CMatroskaNode* pMN0)
+{
+	BeginChunk
+	case 0x47e1: ContentEncAlgo.Parse(pMN); break;
+	case 0x47e2: ContentEncKeyID.Parse(pMN); break;
+	case 0x47e3: ContentSignature.Parse(pMN); break;
+	case 0x47e4: ContentSigKeyID.Parse(pMN); break;
+	case 0x47e5: ContentSigAlgo.Parse(pMN); break;
+	case 0x47e6: ContentSigHashAlgo.Parse(pMN); break;
 	EndChunk
 }
 
@@ -636,6 +715,96 @@ HRESULT CBinary::Parse(CMatroskaNode* pMN)
 	ASSERT(pMN->m_len <= INT_MAX);
 	SetSize((INT_PTR)pMN->m_len);
 	return pMN->Read(GetData(), pMN->m_len);
+}
+
+bool CBinary::Compress(CUInt& ContentCompAlgo)
+{
+	if(ContentCompAlgo == ContentCompression::ZLIB)
+	{
+		int res;
+		z_stream c_stream;
+
+		c_stream.zalloc = (alloc_func)0;
+		c_stream.zfree = (free_func)0;
+		c_stream.opaque = (voidpf)0;
+
+		if(Z_OK != (res = deflateInit(&c_stream, 9)))
+			return(false);
+
+		c_stream.next_in = GetData();
+		c_stream.avail_in = GetSize();
+
+		BYTE* dst = NULL;
+		int n = 0;
+		do
+		{
+			dst = (BYTE*)realloc(dst, ++n*10);
+			c_stream.next_out = &dst[(n-1)*10];
+			c_stream.avail_out = 10;
+			if(Z_OK != (res = deflate(&c_stream, Z_FINISH)) && Z_STREAM_END != res)
+			{
+				free(dst);
+				return(false);
+			}
+		}
+		while(0 == c_stream.avail_out && Z_STREAM_END != res);
+
+		deflateEnd(&c_stream);
+
+		SetSize(c_stream.total_out);
+		memcpy(GetData(), dst, GetSize());
+
+		free(dst);
+
+		return(true);
+	}
+
+	return(false);
+}
+
+bool CBinary::Decompress(CUInt& ContentCompAlgo)
+{
+	if(ContentCompAlgo == ContentCompression::ZLIB)
+	{
+		int res;
+		z_stream d_stream;
+
+		d_stream.zalloc = (alloc_func)0;
+		d_stream.zfree = (free_func)0;
+		d_stream.opaque = (voidpf)0;
+
+		if(Z_OK != (res = inflateInit(&d_stream)))
+			return(false);
+
+		d_stream.next_in = GetData();
+		d_stream.avail_in = GetSize();
+
+		BYTE* dst = NULL;
+		int n = 0;
+		do
+		{
+			dst = (unsigned char *)realloc(dst, ++n*1000);
+			d_stream.next_out = &dst[(n-1)*1000];
+			d_stream.avail_out = 1000;
+			if(Z_OK != (res = inflate(&d_stream, Z_NO_FLUSH)) && Z_STREAM_END != res)
+			{
+				free(dst);
+				return(false);
+			}
+		}
+		while(0 == d_stream.avail_out && 0 != d_stream.avail_in && Z_STREAM_END != res);
+
+		inflateEnd(&d_stream);
+
+		SetSize(d_stream.total_out);
+		memcpy(GetData(), dst, GetSize());
+
+		free(dst);
+
+		return(true);
+	}
+
+	return(false);
 }
 
 HRESULT CANSI::Parse(CMatroskaNode* pMN)
@@ -864,6 +1033,7 @@ HRESULT CMatroskaNode::Parse()
 
 CAutoPtr<CMatroskaNode> CMatroskaNode::Child(DWORD id, bool fSearch)
 {
+	if(m_len == 0) return CAutoPtr<CMatroskaNode>();
 	SeekTo(m_start);
 	CAutoPtr<CMatroskaNode> pMN(new CMatroskaNode(this));
 	if(id && !pMN->Find(id, fSearch)) pMN.Free();

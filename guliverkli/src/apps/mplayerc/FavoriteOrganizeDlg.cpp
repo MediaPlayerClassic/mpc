@@ -29,9 +29,9 @@
 
 // CFavoriteOrganizeDlg dialog
 
-IMPLEMENT_DYNAMIC(CFavoriteOrganizeDlg, CDialog)
+//IMPLEMENT_DYNAMIC(CFavoriteOrganizeDlg, CResizableDialog)
 CFavoriteOrganizeDlg::CFavoriteOrganizeDlg(CWnd* pParent /*=NULL*/)
-	: CDialog(CFavoriteOrganizeDlg::IDD, pParent)
+	: CResizableDialog(CFavoriteOrganizeDlg::IDD, pParent)
 {
 }
 
@@ -85,13 +85,13 @@ void CFavoriteOrganizeDlg::SetupList(bool fSave)
 
 void CFavoriteOrganizeDlg::DoDataExchange(CDataExchange* pDX)
 {
-	CDialog::DoDataExchange(pDX);
+	__super::DoDataExchange(pDX);
 	DDX_Control(pDX, IDC_TAB1, m_tab);
 	DDX_Control(pDX, IDC_LIST2, m_list);
 }
 
 
-BEGIN_MESSAGE_MAP(CFavoriteOrganizeDlg, CDialog)
+BEGIN_MESSAGE_MAP(CFavoriteOrganizeDlg, CResizableDialog)
 	ON_NOTIFY(TCN_SELCHANGE, IDC_TAB1, OnTcnSelchangeTab1)
 	ON_WM_DRAWITEM()
 	ON_BN_CLICKED(IDC_BUTTON1, OnBnClickedButton1)
@@ -102,6 +102,7 @@ BEGIN_MESSAGE_MAP(CFavoriteOrganizeDlg, CDialog)
 	ON_BN_CLICKED(IDOK, OnBnClickedOk)
 	ON_WM_ACTIVATE()
 	ON_NOTIFY(LVN_ENDLABELEDIT, IDC_LIST2, OnLvnEndlabeleditList2)
+	ON_WM_SIZE()
 END_MESSAGE_MAP()
 
 
@@ -109,7 +110,7 @@ END_MESSAGE_MAP()
 
 BOOL CFavoriteOrganizeDlg::OnInitDialog()
 {
-	CDialog::OnInitDialog();
+	__super::OnInitDialog();
 
 	m_tab.InsertItem(0, _T("Files"));
 	m_tab.InsertItem(1, _T("DVDs"));
@@ -124,6 +125,14 @@ BOOL CFavoriteOrganizeDlg::OnInitDialog()
 	AfxGetAppSettings().GetFav(FAV_DEVICE, m_sl[2]);
 	
 	SetupList(false);
+
+	AddAnchor(IDC_TAB1, TOP_LEFT, BOTTOM_RIGHT);
+	AddAnchor(IDC_LIST2, TOP_LEFT, BOTTOM_RIGHT);
+	AddAnchor(IDC_BUTTON1, TOP_RIGHT);
+	AddAnchor(IDC_BUTTON2, TOP_RIGHT);
+	AddAnchor(IDC_BUTTON3, TOP_RIGHT);
+	AddAnchor(IDC_BUTTON7, TOP_RIGHT);
+	AddAnchor(IDOK, BOTTOM_RIGHT);
 
 	return TRUE;  // return TRUE unless you set the focus to a control
 	// EXCEPTION: OCX Property Pages should return FALSE
@@ -260,8 +269,16 @@ void CFavoriteOrganizeDlg::OnBnClickedOk()
 
 void CFavoriteOrganizeDlg::OnActivate(UINT nState, CWnd* pWndOther, BOOL bMinimized)
 {
-	CDialog::OnActivate(nState, pWndOther, bMinimized);
+	__super::OnActivate(nState, pWndOther, bMinimized);
 
 	if(nState == WA_ACTIVE)
 		m_list.SetWindowPos(&wndTop, 0, 0, 0, 0, SWP_NOMOVE|SWP_NOSIZE);
+}
+
+void CFavoriteOrganizeDlg::OnSize(UINT nType, int cx, int cy)
+{
+	__super::OnSize(nType, cx, cy);
+
+	if(IsWindow(m_list))
+		m_list.SetColumnWidth(0, LVSCW_AUTOSIZE_USEHEADER);
 }

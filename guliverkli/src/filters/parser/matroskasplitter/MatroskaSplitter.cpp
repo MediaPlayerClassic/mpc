@@ -22,6 +22,7 @@
 #include "StdAfx.h"
 #include <mmreg.h>
 #include "..\..\..\DSUtil\DSUtil.h"
+#include "..\..\..\DSUtil\text.h"
 #include "MatroskaSplitter.h"
 
 #include <initguid.h>
@@ -161,6 +162,8 @@ HRESULT CMatroskaSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 	m_rtNewStart = m_rtCurrent = 0;
 	m_rtNewStop = m_rtStop = 0;
 
+	int iVideo = 1, iAudio = 1, iSubtitle = 1;
+
 	POSITION pos = m_pFile->m_segment.Tracks.GetHeadPosition();
 	while(pos)
 	{
@@ -170,6 +173,9 @@ HRESULT CMatroskaSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 		while(pos2)
 		{
 			TrackEntry* pTE = pT->TrackEntries.GetNext(pos2);
+
+			if(!pTE->Expand(pTE->CodecPrivate, ContentEncoding::TracksPrivateData))
+				continue;
 
 			CStringA CodecID = pTE->CodecID.ToString();
 
@@ -181,7 +187,7 @@ HRESULT CMatroskaSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 
 			if(pTE->TrackType == TrackEntry::TypeVideo)
 			{
-				Name.Format(L"Video %I64d", (UINT64)pTE->TrackNumber);
+				Name.Format(L"Video %d", iVideo++);
 
 				if(CodecID == "V_MS/VFW/FOURCC")
 				{
@@ -290,7 +296,7 @@ HRESULT CMatroskaSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 			}
 			else if(pTE->TrackType == TrackEntry::TypeAudio)
 			{
-				Name.Format(L"Audio %I64d", (UINT64)pTE->TrackNumber);
+				Name.Format(L"Audio %d", iAudio++);
 
 				mt.majortype = MEDIATYPE_Audio;
 				mt.formattype = FORMAT_WaveFormatEx;
@@ -461,9 +467,9 @@ HRESULT CMatroskaSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 			}
 			else if(pTE->TrackType == TrackEntry::TypeSubtitle)
 			{
-				Name.Format(L"Subtitle %I64d", (UINT64)pTE->TrackNumber);
+				Name.Format(L"Subtitle %d", iSubtitle++);
 
-				mt.SetSampleSize(0x10000);
+				mt.SetSampleSize(1);
 
 				if(CodecID == "S_TEXT/ASCII")
 				{
@@ -472,53 +478,26 @@ HRESULT CMatroskaSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 					mt.formattype = FORMAT_None;
 					mts.Add(mt);
 				}
-				else if(CodecID == "S_TEXT/UTF8")
-				{
-					mt.majortype = MEDIATYPE_Subtitle;
-					mt.subtype = MEDIASUBTYPE_UTF8;
-					mt.formattype = FORMAT_SubtitleInfo;
-					SUBTITLEINFO* psi = (SUBTITLEINFO*)mt.AllocFormatBuffer(sizeof(SUBTITLEINFO));
-					memset(psi, 0, mt.FormatLength());
-					psi->dwOffset = sizeof(SUBTITLEINFO);
-					strncpy(psi->IsoLang, pTE->Language, 3);
-					mts.Add(mt);
-				}
-				else if(CodecID == "S_SSA" || CodecID == "S_TEXT/SSA")
-				{
-					mt.majortype = MEDIATYPE_Subtitle;
-					mt.subtype = MEDIASUBTYPE_SSA;
-					mt.formattype = FORMAT_SubtitleInfo;
-					SUBTITLEINFO* psi = (SUBTITLEINFO*)mt.AllocFormatBuffer(sizeof(SUBTITLEINFO) + pTE->CodecPrivate.GetSize());
-					memset(psi, 0, mt.FormatLength());
-					strncpy(psi->IsoLang, pTE->Language, 3);
-					memcpy(mt.pbFormat + (psi->dwOffset = sizeof(SUBTITLEINFO)), pTE->CodecPrivate.GetData(), pTE->CodecPrivate.GetSize());
-					mts.Add(mt);
-				}
-				else if(CodecID == "S_ASS" || CodecID == "S_TEXT/ASS")
-				{
-					mt.majortype = MEDIATYPE_Subtitle;
-					mt.subtype = MEDIASUBTYPE_ASS;
-					mt.formattype = FORMAT_SubtitleInfo;
-					SUBTITLEINFO* psi = (SUBTITLEINFO*)mt.AllocFormatBuffer(sizeof(SUBTITLEINFO) + pTE->CodecPrivate.GetSize());
-					memset(psi, 0, mt.FormatLength());
-					strncpy(psi->IsoLang, pTE->Language, 3);
-					memcpy(mt.pbFormat + (psi->dwOffset = sizeof(SUBTITLEINFO)), pTE->CodecPrivate.GetData(), pTE->CodecPrivate.GetSize());
-					mts.Add(mt);
-				}
-				else if(CodecID == "S_USF" || CodecID == "S_TEXT/USF")
-				{
-					mt.majortype = MEDIATYPE_Subtitle;
-					mt.subtype = MEDIASUBTYPE_USF;
-					mt.formattype = FORMAT_SubtitleInfo;
-					SUBTITLEINFO* psi = (SUBTITLEINFO*)mt.AllocFormatBuffer(sizeof(SUBTITLEINFO) + pTE->CodecPrivate.GetSize());
-					memset(psi, 0, mt.FormatLength());
-					strncpy(psi->IsoLang, pTE->Language, 3);
-					memcpy(mt.pbFormat + (psi->dwOffset = sizeof(SUBTITLEINFO)), pTE->CodecPrivate.GetData(), pTE->CodecPrivate.GetSize());
-					mts.Add(mt);
-				}
 				else
 				{
-					mts.RemoveAll();
+					mt.majortype = MEDIATYPE_Subtitle;
+					mt.formattype = FORMAT_SubtitleInfo;
+					SUBTITLEINFO* psi = (SUBTITLEINFO*)mt.AllocFormatBuffer(sizeof(SUBTITLEINFO) + pTE->CodecPrivate.GetSize());
+					memset(psi, 0, mt.FormatLength());
+					strncpy(psi->IsoLang, pTE->Language, 3);
+					// strncpy(psi->IsoLang, Language, 3);
+					memcpy(mt.pbFormat + (psi->dwOffset = sizeof(SUBTITLEINFO)), pTE->CodecPrivate.GetData(), pTE->CodecPrivate.GetSize());
+
+					mt.subtype = 
+						CodecID == "S_TEXT/UTF8" ? MEDIASUBTYPE_UTF8 :
+						CodecID == "S_TEXT/SSA" || CodecID == "S_SSA" ? MEDIASUBTYPE_SSA :
+						CodecID == "S_TEXT/ASS" || CodecID == "S_ASS" ? MEDIASUBTYPE_ASS :
+						CodecID == "S_TEXT/USF" || CodecID == "S_USF" ? MEDIASUBTYPE_USF :
+						CodecID == "S_VOBSUB" ? MEDIASUBTYPE_VOBSUB :
+						MEDIASUBTYPE_NULL;
+
+					if(mt.subtype != MEDIASUBTYPE_NULL)
+						mts.Add(mt);
 				}
 			}
 
@@ -527,6 +506,8 @@ HRESULT CMatroskaSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 				TRACE(_T("CMatroskaSourceFilter: Unsupported TrackType %s (%I64d)\n"), CString(CodecID), (UINT64)pTE->TrackType);
 				continue;
 			}
+
+			Name = pTE->Language.IsEmpty() ? L"English" : CStringW(ISO6392ToLanguage(pTE->Language)) + L" (" + Name + L")";
 
 			HRESULT hr;
 
@@ -821,6 +802,14 @@ void CMatroskaSplitterFilter::DoDeliverLoop()
 				p->rtStart = m_pFile->m_segment.GetRefTime((REFERENCE_TIME)c.TimeCode + p->b->TimeCode);
 				p->rtStop = p->rtStart + (p->b->BlockDuration.IsValid() ? m_pFile->m_segment.GetRefTime(p->b->BlockDuration) : 1);
 
+				POSITION pos = p->b->BlockData.GetHeadPosition();
+				while(pos)
+				{
+					if(!m_pTrackEntryMap[p->TrackNumber]->Expand(*(CBinary*)p->b->BlockData.GetNext(pos), ContentEncoding::AllFrameContents))
+						continue;
+				}
+
+				// HACK
 				p->rtStart -= m_rtOffset;
 				p->rtStop -= m_rtOffset;
 

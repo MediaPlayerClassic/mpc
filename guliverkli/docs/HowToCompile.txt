@@ -1,7 +1,7 @@
 Because Visual Studio becomes a turtle when there are many little projects, I didn't set up dependencies between them and didn't put them all into one workspace per application. These are more or less the base of everything, build them in this order first:
 1. deccs
 2. dsutil
-3. ui/*
+3. ui (run \lib\ui.bat to merge them)
 4. subpic
 5. subtitles
 6. filters (run \lib\filters.bat to merge them)
@@ -12,10 +12,13 @@ Required SDKs:
 - Windows Media Format SDK 9
 
 It is recommended that you add DX9's include and lib paths to Visual Studio before the others:
+
+- include:
 C:\DXSDK\Samples\C++\DirectShow\BaseClasses
 C:\DXSDK\Include
 ...
 
+- lib:
 C:\DXSDK\lib
 ...
 

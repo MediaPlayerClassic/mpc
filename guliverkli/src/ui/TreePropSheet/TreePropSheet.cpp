@@ -58,8 +58,7 @@ IMPLEMENT_DYNAMIC(CTreePropSheet, CPropertySheet)
 const UINT CTreePropSheet::s_unPageTreeId = 0x7EEE;
 
 CTreePropSheet::CTreePropSheet()
-:	CPropertySheet(),
-	m_bPageTreeSelChangedActive(FALSE),
+:	m_bPageTreeSelChangedActive(FALSE),
 	m_bTreeViewMode(TRUE),
 	m_bPageCaption(FALSE),
 	m_bTreeImages(FALSE),
@@ -743,7 +742,7 @@ BOOL CTreePropSheet::OnInitDialog()
 	}
 
 	// perform default implementation
-	BOOL bResult = CPropertySheet::OnInitDialog();
+	BOOL bResult = __super::OnInitDialog();
 
 	if (!m_bTreeViewMode)
 		// stop here, if we would like to use tabs
@@ -872,7 +871,7 @@ BOOL CTreePropSheet::OnInitDialog()
 
 void CTreePropSheet::OnDestroy() 
 {
-	CPropertySheet::OnDestroy();
+	__super::OnDestroy();
 	
 	if(m_pwndPageTree && m_pwndPageTree->m_hWnd)
 		m_pwndPageTree->DestroyWindow();
@@ -984,7 +983,7 @@ LRESULT CTreePropSheet::OnIsDialogMessage(WPARAM wParam, LPARAM lParam)
 	}
 
 
-	return CPropertySheet::DefWindowProc(PSM_ISDIALOGMESSAGE, wParam, lParam);
+	return __super::DefWindowProc(PSM_ISDIALOGMESSAGE, wParam, lParam);
 }
 
 } //namespace TreePropSheet

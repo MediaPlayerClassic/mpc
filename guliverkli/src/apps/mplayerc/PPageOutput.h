@@ -31,7 +31,6 @@ class CPPageOutput : public CPPageBase
 	DECLARE_DYNAMIC(CPPageOutput)
 
 private:
-	CToolTipCtrl m_wndToolTip;
 	CStringArray m_AudioRendererDisplayNames;
 
 public:
@@ -49,12 +48,10 @@ public:
 
 protected:
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV support
-	virtual BOOL PreTranslateMessage(MSG* pMsg);
 	virtual BOOL OnInitDialog();
 	virtual BOOL OnApply();
 
 	DECLARE_MESSAGE_MAP()
 
 public:
-	afx_msg void OnDestroy();
 };

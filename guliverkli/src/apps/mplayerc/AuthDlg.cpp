@@ -4,7 +4,7 @@
 #include "stdafx.h"
 #include "mplayerc.h"
 #include "AuthDlg.h"
-
+#include "..\..\DSUtil\text.h"
 
 // CAuthDlg dialog
 
