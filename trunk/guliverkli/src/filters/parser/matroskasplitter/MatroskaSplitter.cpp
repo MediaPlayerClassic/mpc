@@ -867,17 +867,21 @@ STDMETHODIMP_(UINT) CMatroskaSplitterFilter::GetChapterCurrentId()
 	return __super::GetChapterCurrentId();
 }
 
-STDMETHODIMP_(BOOL) CMatroskaSplitterFilter::GetChapterInfo(UINT aChapterID, struct ChapterElement* pStructureToFill)
+STDMETHODIMP_(BOOL) CMatroskaSplitterFilter::GetChapterInfo(UINT aChapterID, struct ChapterElement* pToFill)
 {
-	CheckPointer(pStructureToFill, E_POINTER);
+	CheckPointer(pToFill, E_POINTER);
 	CheckPointer(m_pFile, __super::GetChapterCurrentId());
 	ChapterAtom* ca = m_pFile->m_segment.FindChapterAtom(aChapterID);
 	if(!ca) return FALSE;
-	pStructureToFill->Size = sizeof(*pStructureToFill);
-	pStructureToFill->Type = ca->ChapterAtoms.IsEmpty() ? AtomicChapter : SubChapter; // ?
-	pStructureToFill->ChapterId = (UINT)ca->ChapterUID;
-	pStructureToFill->rtStart = ca->ChapterTimeStart / 100;
-	pStructureToFill->rtStop = ca->ChapterTimeEnd / 100;
+	if(pToFill->Size >= sizeof(*pToFill))
+	{
+		pToFill->Type = ca->ChapterAtoms.IsEmpty() ? AtomicChapter : SubChapter; // ?
+		pToFill->ChapterId = (UINT)ca->ChapterUID;
+		pToFill->rtStart = ca->ChapterTimeStart / 100;
+		pToFill->rtStop = ca->ChapterTimeEnd / 100;
+		if(pToFill->Size >= sizeof(ChapterElement2))
+			((ChapterElement2*)pToFill)->bDisabled = ca->ChapterFlagEnabled == 0;
+	}
 	return TRUE;
 }
 

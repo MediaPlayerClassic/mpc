@@ -1,5 +1,5 @@
 /* 
- *	Copyright (C) 2003 Gabest
+ *	Copyright (C) 2003-2004 Gabest
  *	http://www.gabest.org
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -36,6 +36,9 @@ struct ChapterElement {
     UINT ChapterId;			// unique identifier for this element
     REFERENCE_TIME rtStart;	// REFERENCE_TIME in 100ns
     REFERENCE_TIME rtStop;	// REFERENCE_TIME in 100ns
+};
+struct ChapterElement2 : ChapterElement {
+	BOOL bDisabled;
 };
 #pragma pack(pop)
 

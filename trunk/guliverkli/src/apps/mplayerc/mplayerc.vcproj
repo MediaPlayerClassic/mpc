@@ -1614,22 +1614,10 @@
 				RelativePath="res\single.ico">
 			</File>
 			<File
-				RelativePath=".\res\web\sliderbar.gif">
-			</File>
-			<File
-				RelativePath=".\res\web\slidergrip.gif">
-			</File>
-			<File
 				RelativePath="res\stereo.bmp">
 			</File>
 			<File
 				RelativePath="res\toolbar1.bmp">
-			</File>
-			<File
-				RelativePath=".\res\web\vbg.gif">
-			</File>
-			<File
-				RelativePath=".\res\web\vbs.GIF">
 			</File>
 			<Filter
 				Name="web"
@@ -1641,19 +1629,28 @@
 					RelativePath=".\res\web\browser.html">
 				</File>
 				<File
+					RelativePath=".\res\web\controls.html">
+				</File>
+				<File
 					RelativePath=".\res\web\default.css">
 				</File>
 				<File
 					RelativePath=".\res\web\index.html">
 				</File>
+				<File
+					RelativePath=".\res\web\sliderbar.gif">
+				</File>
+				<File
+					RelativePath=".\res\web\slidergrip.gif">
+				</File>
+				<File
+					RelativePath=".\res\web\vbg.gif">
+				</File>
+				<File
+					RelativePath=".\res\web\vbs.GIF">
+				</File>
 			</Filter>
 		</Filter>
-		<File
-			RelativePath=".\res\web\controls.html">
-		</File>
-		<File
-			RelativePath=".\res\default.css">
-		</File>
 	</Files>
 	<Globals>
 		<Global
