@@ -32,6 +32,7 @@
 class CMatroskaMuxerInputPin : public CBaseInputPin
 {
 	CAutoPtr<MatroskaWriter::TrackEntry> m_pTE;
+	CAutoPtrArray<MatroskaWriter::CBinary> m_pVorbisHdrs;
 
 	bool m_fActive;
 	CCritSec m_csReceive;

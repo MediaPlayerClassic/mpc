@@ -165,12 +165,14 @@ BEGIN
     EDITTEXT        IDC_EDIT4,10,231,86,13,ES_AUTOHSCROLL | ES_READONLY
     PUSHBUTTON      "...",IDC_BUTTON3,98,231,14,13
     CONTROL         "Avi",IDC_RADIO1,"Button",BS_AUTORADIOBUTTON | WS_GROUP,
-                    10,249,26,10
-    CONTROL         "Ogm",IDC_RADIO2,"Button",BS_AUTORADIOBUTTON,38,249,29,
+                    10,247,24,10
+    CONTROL         "Ogm",IDC_RADIO2,"Button",BS_AUTORADIOBUTTON,38,247,27,
                     10
-    PUSHBUTTON      "Record",IDC_BUTTON2,74,248,38,13,WS_DISABLED | WS_GROUP
-    CONTROL         "Output audio separately",IDC_CHECK7,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,10,262,94,10
+    CONTROL         "Matroska",IDC_RADIO3,"Button",BS_AUTORADIOBUTTON,69,247,
+                    42,10
+    CONTROL         "Audio to wav",IDC_CHECK7,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,10,260,57,10
+    PUSHBUTTON      "Record",IDC_BUTTON2,74,259,38,13,WS_DISABLED | WS_GROUP
 END
 
 IDD_PPAGEAUDIOSWITCHER DIALOGEX 0, 0, 296, 198

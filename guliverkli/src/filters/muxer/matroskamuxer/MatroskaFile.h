@@ -252,7 +252,7 @@ namespace MatroskaWriter
 				{
 				public:
 					CLength TrackNumber;
-					REFERENCE_TIME TimeCode;
+					REFERENCE_TIME TimeCode, TimeCodeStop;
 					CNode<CBinary> BlockData;
 
 					CBlock(DWORD id = 0xA1);

@@ -338,34 +338,10 @@ CMainFrame::CMainFrame() :
 	m_fBuffering(false),
 	m_fileDropTarget(this)
 {
-	m_pGraphThread = (CGraphThread*)AfxBeginThread(RUNTIME_CLASS(CGraphThread));
-	m_pKFFThread = (CKeyFrameFinderThread*)AfxBeginThread(RUNTIME_CLASS(CKeyFrameFinderThread));
 }
 
 CMainFrame::~CMainFrame()
 {
-	if(m_pGraphThread)
-	{
-		CAMEvent e;
-		m_pGraphThread->PostThreadMessage(CGraphThread::TM_EXIT, 0, (LPARAM)&e);
-		if(!e.Wait(5000))
-		{
-			TRACE(_T("ERROR: Must call TerminateThread() on CMainFrame::m_pGraphThread->m_hThread\n")); 
-			TerminateThread(m_pGraphThread->m_hThread, -1);
-		}
-	}
-
-	if(m_pKFFThread)
-	{
-		CAMEvent e;
-		m_pKFFThread->PostThreadMessage(CKeyFrameFinderThread::TM_EXIT, 0, (LPARAM)&e);
-		if(!e.Wait(5000))
-		{
-			TRACE(_T("ERROR: Must call TerminateThread() on CMainFrame::m_pKFFThread->m_hThread\n")); 
-			TerminateThread(m_pKFFThread->m_hThread, -1);
-		}
-	}
-
 	m_owner.DestroyWindow();
 }
 
@@ -442,6 +418,9 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 
 	SetFocus();
 
+	m_pGraphThread = (CGraphThread*)AfxBeginThread(RUNTIME_CLASS(CGraphThread));
+	m_pKFFThread = (CKeyFrameFinderThread*)AfxBeginThread(RUNTIME_CLASS(CKeyFrameFinderThread));
+
 	if(m_pGraphThread)
 		m_pGraphThread->SetMainFrame(this);
 
@@ -453,6 +432,28 @@ void CMainFrame::OnDestroy()
 	ShowTrayIcon(false);
 
 	m_fileDropTarget.Revoke();
+
+	if(m_pGraphThread)
+	{
+		CAMEvent e;
+		m_pGraphThread->PostThreadMessage(CGraphThread::TM_EXIT, 0, (LPARAM)&e);
+		if(!e.Wait(5000))
+		{
+			TRACE(_T("ERROR: Must call TerminateThread() on CMainFrame::m_pGraphThread->m_hThread\n")); 
+			TerminateThread(m_pGraphThread->m_hThread, -1);
+		}
+	}
+
+	if(m_pKFFThread)
+	{
+		CAMEvent e;
+		m_pKFFThread->PostThreadMessage(CKeyFrameFinderThread::TM_EXIT, 0, (LPARAM)&e);
+		if(!e.Wait(5000))
+		{
+			TRACE(_T("ERROR: Must call TerminateThread() on CMainFrame::m_pKFFThread->m_hThread\n")); 
+			TerminateThread(m_pKFFThread->m_hThread, -1);
+		}
+	}
 
 	CFrameWnd::OnDestroy();
 }
@@ -7191,7 +7192,7 @@ bool CMainFrame::BuildGraphVideoAudio(bool fVPreview, bool fVCapture, bool fAPre
 
 		if(fAudCap)
 		{
-			IBaseFilter* pBF[3] = {pAudBuffer, pAudEnc, pAudMux};
+			IBaseFilter* pBF[3] = {pAudBuffer, pAudEnc, pAudMux ? pAudMux : pMux};
 			HRESULT hr = BuildCapture(pAudCapPin, pBF, MEDIATYPE_Audio, &m_wndCaptureBar.m_capdlg.m_mtca);
 		}
 	}

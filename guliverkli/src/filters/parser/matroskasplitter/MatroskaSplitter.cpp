@@ -526,7 +526,8 @@ void CMatroskaSourceFilter::SendVorbisHeaderSample()
 		if(!(pTE && pPin && pPin->IsConnected()))
 			continue;
 
-		if(pTE->CodecID.ToString() == "A_VORBIS" && pPin->CurrentMediaType().subtype == MEDIASUBTYPE_Vorbis)
+		if(pTE->CodecID.ToString() == "A_VORBIS" && pPin->CurrentMediaType().subtype == MEDIASUBTYPE_Vorbis
+		&& pTE->CodecPrivate.GetSize() > 0)
 		{
 			BYTE* p = (BYTE*)pTE->CodecPrivate;
 
@@ -878,8 +879,8 @@ HRESULT CMatroskaSourceFilter::DeliverBlock(CAutoPtr<Block> b)
 		return S_FALSE;
 
 	REFERENCE_TIME 
-		rtStart = (b->TimeCode)*m_pFile->m_segment.SegmentInfo.TimeCodeScale/100 - m_rtStart, 
-		rtStop = (b->TimeCode + b->BlockDuration)*m_pFile->m_segment.SegmentInfo.TimeCodeScale/100 - m_rtStart;
+		rtStart = (b->TimeCode)*(INT64)m_pFile->m_segment.SegmentInfo.TimeCodeScale/100 - m_rtStart, 
+		rtStop = (b->TimeCode + b->BlockDuration)*(INT64)m_pFile->m_segment.SegmentInfo.TimeCodeScale/100 - m_rtStart;
 
 	ASSERT(rtStart < rtStop);
 
@@ -887,7 +888,7 @@ HRESULT CMatroskaSourceFilter::DeliverBlock(CAutoPtr<Block> b)
 
 	BOOL bDiscontinuity = !m_bDiscontinuitySent.Find(b->TrackNumber);
 	UINT64 TrackNumber = b->TrackNumber;
-TRACE(_T("pPin->DeliverBlock: TrackNumber (%d) %I64d, %I64d\n"), (int)TrackNumber, rtStart, rtStop);
+//TRACE(_T("pPin->DeliverBlock: TrackNumber (%d) %I64d, %I64d\n"), (int)TrackNumber, rtStart, rtStop);
 
 	hr = pPin->DeliverBlock(b, rtStart, rtStop, bDiscontinuity);
 
@@ -1216,9 +1217,12 @@ STDMETHODIMP CMatroskaSplitterInputPin::NonDelegatingQueryInterface(REFIID riid,
 
 HRESULT CMatroskaSplitterInputPin::CheckMediaType(const CMediaType* pmt)
 {
+	return S_OK;
+/*
 	return pmt->majortype == MEDIATYPE_Stream
 		? S_OK
 		: E_INVALIDARG;
+*/
 }
 
 HRESULT CMatroskaSplitterInputPin::CheckConnect(IPin* pPin)
