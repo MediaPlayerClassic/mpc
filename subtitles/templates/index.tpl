@@ -44,7 +44,7 @@
 	<ol>
 	{foreach from=$movies item=m}
 		{if $browser != 'Opera'}<li>{/if} {* grrrr *}
-		{if !empty($m.imdb)}<a href="http://www.imdb.com/title/tt{$m.imdb|string_format:"%07d"}/" style="float: right" target="_blank">[IMDb]</a>{/if}
+		{if !empty($m.imdb)}<a href="http://www.imdb.com/title/tt{$m.imdb|string_format:"%07d"}/" class="imdb" target="_blank">[IMDb]</a>{/if}
 		{if $browser == 'Opera'}<li>{/if}
 	
 		{include file="title.tpl" titles=$m.titles}<br>

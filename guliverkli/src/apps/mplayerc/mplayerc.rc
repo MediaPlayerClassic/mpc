@@ -1559,6 +1559,13 @@ BEGIN
         MENUITEM SEPARATOR
         MENUITEM "&Load Subtitle...\tCtrl+L",   ID_FILE_LOADSUBTITLE
         MENUITEM "Save Subtitle...\tCtrl+S",    ID_FILE_SAVESUBTITLES
+        POPUP "Subtitle Database"
+        BEGIN
+            MENUITEM "Search...",                   ID_SUBTITLEDATABASE_SEARCH
+
+            MENUITEM "Upload...",                   ID_SUBTITLEDATABASE_UPLOAD
+
+        END
         MENUITEM SEPARATOR
         MENUITEM "P&roperties",                 ID_FILE_PROPERTIES
         MENUITEM SEPARATOR
@@ -2262,6 +2269,7 @@ BEGIN
     IDS_RS_MPABOOST         "MpaBoost"
     IDS_RS_AACSC            "AACSpeakerConfig"
     IDS_RS_VMRSYNCFIX       "VMRSyncFix"
+    IDS_RS_ISDB             "ISDb"
 END
 
 STRINGTABLE 

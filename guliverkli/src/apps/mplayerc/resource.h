@@ -320,6 +320,7 @@
 #define IDS_RS_MPABOOST                 617
 #define IDS_RS_AACSC                    618
 #define IDS_RS_VMRSYNCFIX               619
+#define IDS_RS_ISDB                     620
 #define IDC_BROWSEBUTTON                1016
 #define IDC_BROWSEBUTTON2               1017
 #define IDC_COMBO1                      1018
@@ -562,6 +563,8 @@
 #define ID_SUBTITLEDATABASE_DOWNLOAD    32835
 #define ID_AFTERPLAYBACK_CLOSE          32836
 #define ID_AFTERPLAYBACK_SHUTDOWN       32837
+#define ID_FILE_SUBTITLEDATABASE32838   32838
+#define ID_SUBTITLEDATABASE_SEARCH      32839
 #define ID_FILTERS_SUBITEM_START        33000
 #define ID_FILTERS_SUBITEM_END          33099
 #define ID_FILTERSTREAMS_SUBITEM_START  33100
@@ -594,7 +597,7 @@
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        366
-#define _APS_NEXT_COMMAND_VALUE         32838
+#define _APS_NEXT_COMMAND_VALUE         32841
 #define _APS_NEXT_CONTROL_VALUE         1159
 #define _APS_NEXT_SYMED_VALUE           10003
 #endif

@@ -226,6 +226,10 @@ BEGIN_MESSAGE_MAP(CMainFrame, CFrameWnd)
 	ON_UPDATE_COMMAND_UI(ID_FILE_LOADSUBTITLE, OnUpdateFileLoadsubtitles)
 	ON_COMMAND(ID_FILE_SAVESUBTITLES, OnFileSavesubtitles)
 	ON_UPDATE_COMMAND_UI(ID_FILE_SAVESUBTITLES, OnUpdateFileSavesubtitles)
+	ON_COMMAND(ID_SUBTITLEDATABASE_SEARCH, OnSubtitledatabaseSearch)
+	ON_UPDATE_COMMAND_UI(ID_SUBTITLEDATABASE_SEARCH, OnUpdateSubtitledatabaseSearch)
+	ON_COMMAND(ID_SUBTITLEDATABASE_UPLOAD, OnSubtitledatabaseUpload)
+	ON_UPDATE_COMMAND_UI(ID_SUBTITLEDATABASE_UPLOAD, OnUpdateSubtitledatabaseUpload)
 	ON_COMMAND(ID_FILE_PROPERTIES, OnFileProperties)
 	ON_UPDATE_COMMAND_UI(ID_FILE_PROPERTIES, OnUpdateFileProperties)
 	ON_COMMAND(ID_FILE_CLOSEPLAYLIST, OnFileClosePlaylist)
@@ -3259,6 +3263,98 @@ void CMainFrame::OnFileSavesubtitles()
 void CMainFrame::OnUpdateFileSavesubtitles(CCmdUI* pCmdUI)
 {
 	pCmdUI->Enable(m_iSubtitleSel >= 0);
+}
+
+///////////////
+
+struct filehash {CString name; UINT64 size, hash;};
+
+static bool mpchash(LPCTSTR fn, filehash& fh)
+{
+	CFile f;
+	CFileException fe;
+	if(!f.Open(fn, CFile::modeRead|CFile::osSequentialScan|CFile::shareDenyNone, &fe))
+        return false;
+
+	CPath p(fn);
+	p.StripPath();
+	fh.name = (LPCTSTR)p;
+
+	fh.size = f.GetLength();
+	
+	fh.hash = fh.size;
+	for(UINT64 tmp = 0, i = 0; i < 65536/sizeof(tmp) && f.Read(&tmp, sizeof(tmp)); fh.hash += tmp, i++);
+	f.Seek(max(0, fh.size - 65536), CFile::begin);
+	for(UINT64 tmp = 0, i = 0; i < 65536/sizeof(tmp) && f.Read(&tmp, sizeof(tmp)); fh.hash += tmp, i++);
+
+	return true;
+}
+
+static void mpchash(CPlaylist& pl, CList<filehash>& fhs)
+{
+	fhs.RemoveAll();
+
+	POSITION pos = pl.GetHeadPosition();
+	while(pos)
+	{
+		CString fn = pl.GetNext(pos).m_fns.GetHead();
+		if(AfxGetAppSettings().Formats.FindExt(CPath(fn).GetExtension().MakeLower(), true))
+			continue;
+
+		filehash fh;
+		if(!mpchash(fn, fh))
+			continue;
+
+		fhs.AddTail(fh);
+	}
+}
+
+static CStringA makeargs(CPlaylist& pl)
+{
+	CList<filehash> fhs;
+	mpchash(pl, fhs);
+
+	CList<CStringA> args;
+
+	POSITION pos = fhs.GetHeadPosition();
+	for(int i = 0; pos; i++)
+	{
+		filehash& fh = fhs.GetNext(pos);
+
+		CStringA str;
+		str.Format("name[%d]=%s&size[%d]=%016I64x&hash[%d]=%016I64x",
+			i, UrlEncode(CStringA(fh.name)), 
+			i, fh.size,
+			i, fh.hash);
+
+		args.AddTail(str);
+	}
+
+	return Implode(args, '&');
+}
+
+void CMainFrame::OnSubtitledatabaseSearch()
+{
+	CStringA url = "http://" + AfxGetAppSettings().ISDb + "/index.php?";
+	CStringA args = makeargs(m_wndPlaylistBar.m_pl);
+	ShellExecute(m_hWnd, _T("open"), CString(url+args), NULL, NULL, SW_SHOWDEFAULT);
+}
+
+void CMainFrame::OnUpdateSubtitledatabaseSearch(CCmdUI *pCmdUI)
+{
+	pCmdUI->Enable(TRUE);
+}
+
+void CMainFrame::OnSubtitledatabaseUpload()
+{
+	CStringA url = "http://" + AfxGetAppSettings().ISDb + "/ul.php?";
+	CStringA args = makeargs(m_wndPlaylistBar.m_pl);
+	ShellExecute(m_hWnd, _T("open"), CString(url+args), NULL, NULL, SW_SHOWDEFAULT);
+}
+
+void CMainFrame::OnUpdateSubtitledatabaseUpload(CCmdUI *pCmdUI)
+{
+	pCmdUI->Enable(m_wndPlaylistBar.GetCount() > 0);
 }
 
 void CMainFrame::OnFileProperties()

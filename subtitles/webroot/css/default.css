@@ -37,6 +37,7 @@ th a:hover {text-decoration: underline; color: red;}
 .results td {border-bottom: 1px solid #abd; padding: 1px 2px; text-align: center;}
 .results td.notes {text-align: justify;}
 .results .dlme {color:red; font-weight: bold;}
+.results .imdb {float: right;}
 
 .subul input.text {width: 300px;}
 .subul table {text-align: center; margin-left: auto; margin-right: auto; border-collapse: collapse;}
