@@ -370,7 +370,7 @@ void CPlayerPlaylistBar::ParsePlayList(CStringList& fns, CStringList* subs)
 		if(re && REPARSE_ERROR_OK == re->Parse(_T("(^|\n){[^#][^\n]+}"), FALSE))
 			res.AddTail(re);
 	}
-	else if(ext == _T("asx") || ext == _T("wmx") || ext == _T("wvx") || ext == _T("wax"))
+	else if(ext == _T("asx") || ext == _T("asf") || ext == _T("wmx") || ext == _T("wvx") || ext == _T("wax"))
 	{
 		// <Ref href = "..."/>
 		re.Attach(new CAtlRegExp<>());

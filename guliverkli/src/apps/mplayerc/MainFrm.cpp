@@ -670,8 +670,8 @@ void CMainFrame::ShowTrayIcon(bool fShow)
 			tnid.cbSize = sizeof(NOTIFYICONDATA); 
 			tnid.hWnd = m_hWnd; 
 			tnid.uID = IDR_MAINFRAME; 
-			tnid.hIcon = (HICON)LoadIcon(AfxGetResourceHandle(), MAKEINTRESOURCE(IDR_MAINFRAME));
-//			tnid.hIcon = (HICON)LoadImage(AfxGetResourceHandle(), MAKEINTRESOURCE(IDR_MAINFRAME), IMAGE_ICON, 0, 0, LR_LOADTRANSPARENT);
+//			tnid.hIcon = (HICON)LoadIcon(AfxGetResourceHandle(), MAKEINTRESOURCE(IDR_MAINFRAME));
+			tnid.hIcon = (HICON)LoadImage(AfxGetResourceHandle(), MAKEINTRESOURCE(IDR_MAINFRAME), IMAGE_ICON, 0, 0, LR_DEFAULTCOLOR);
 			tnid.uFlags = NIF_MESSAGE|NIF_ICON|NIF_TIP; 
 			tnid.uCallbackMessage = WM_NOTIFYICON; 
 			lstrcpyn(tnid.szTip, TEXT("Media Player Classic"), sizeof(tnid.szTip)); 
