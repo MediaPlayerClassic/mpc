@@ -205,8 +205,9 @@
 			<Tool
 				Name="VCLinkerTool"
 				RegisterOutput="TRUE"
-				AdditionalDependencies="strmbaseD.lib"
+				AdditionalDependencies="dsutilD.lib strmbaseD.lib"
 				OutputFile="$(OutDir)/$(ProjectName).ax"
+				AdditionalLibraryDirectories="..\..\..\..\lib"
 				ModuleDefinitionFile="$(ProjectName).def"
 				GenerateDebugInformation="TRUE"
 				SubSystem="2"
@@ -257,8 +258,9 @@
 			<Tool
 				Name="VCLinkerTool"
 				RegisterOutput="TRUE"
-				AdditionalDependencies="strmbaseR.lib"
+				AdditionalDependencies="dsutilR.lib strmbaseR.lib"
 				OutputFile="$(OutDir)/$(ProjectName).ax"
+				AdditionalLibraryDirectories="..\..\..\..\lib"
 				ModuleDefinitionFile="$(ProjectName).def"
 				GenerateDebugInformation="TRUE"
 				SubSystem="2"
@@ -309,7 +311,7 @@
 			<Tool
 				Name="VCLinkerTool"
 				RegisterOutput="TRUE"
-				AdditionalDependencies="strmbaseDU.lib"
+				AdditionalDependencies="dsutilDU.lib strmbaseDU.lib"
 				OutputFile="$(OutDir)/$(ProjectName).ax"
 				AdditionalLibraryDirectories="..\..\..\..\lib"
 				ModuleDefinitionFile="$(ProjectName).def"
@@ -363,8 +365,9 @@
 			<Tool
 				Name="VCLinkerTool"
 				RegisterOutput="TRUE"
-				AdditionalDependencies="strmbaseRU.lib"
+				AdditionalDependencies="dsutilRU.lib strmbaseRU.lib"
 				OutputFile="$(OutDir)/$(ProjectName).ax"
+				AdditionalLibraryDirectories="..\..\..\..\lib"
 				ModuleDefinitionFile="$(ProjectName).def"
 				GenerateDebugInformation="TRUE"
 				SubSystem="2"
@@ -461,6 +464,9 @@
 			Name="Header Files"
 			Filter="h;hpp;hxx;hm;inl;inc">
 			<File
+				RelativePath=".\resource.h">
+			</File>
+			<File
 				RelativePath="stdafx.h">
 			</File>
 			<File
@@ -470,6 +476,9 @@
 		<Filter
 			Name="Resource Files"
 			Filter="rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe">
+			<File
+				RelativePath=".\streamdrivethru.rc">
+			</File>
 		</Filter>
 	</Files>
 	<Globals>

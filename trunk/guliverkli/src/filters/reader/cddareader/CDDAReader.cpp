@@ -20,8 +20,9 @@
  */
 
 #include "stdafx.h"
-#include "cddareader.h"
 #include "..\..\..\DSUtil\DSUtil.h"
+#include <initguid.h>
+#include "cddareader.h"
 
 #define RAW_SECTOR_SIZE 2352
 #define MSF2UINT(hgs) ((hgs[1]*4500)+(hgs[2]*75)+(hgs[3]))
@@ -72,8 +73,11 @@ int g_cTemplates = sizeof(g_Templates) / sizeof(g_Templates[0]);
 
 STDAPI DllRegisterServer()
 {
-	if(GetVersion()&0x80000000) 
+	if(GetVersion()&0x80000000)
+	{
+		::MessageBox(NULL, _T("Sorry, this will only run on Windows NT based operating system."), _T("CDDA Reader"), MB_OK);
 		return E_NOTIMPL;
+	}
 
 	SetRegKeyValue(
 		_T("Media Type\\{e436eb83-524f-11ce-9f53-0020af0ba770}"), _T("{54A35221-2C8D-4a31-A5DF-6D809847E393}"), 
