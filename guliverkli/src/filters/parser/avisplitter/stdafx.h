@@ -1,5 +1,5 @@
 /* 
- *	Media Player Classic.  Copyright (C) 2003 Gabest
+ *	Copyright (C) 2003 Gabest
  *	http://www.gabest.org
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -19,39 +19,25 @@
  *
  */
 
+// stdafx.h : include file for standard system include files,
+// or project specific include files that are used frequently, but
+// are changed infrequently
+//
+
 #pragma once
-#include "PPageBase.h"
-#include "afxwin.h"
 
-// CPPageSource dialog
+#define WIN32_LEAN_AND_MEAN		// Exclude rarely-used stuff from Windows headers
+#define _ATL_CSTRING_EXPLICIT_CONSTRUCTORS	// some CString constructors will be explicit
 
-class CPPageSource : public CPPageBase
-{
-	DECLARE_DYNAMIC(CPPageSource)
+#ifndef VC_EXTRALEAN
+#define VC_EXTRALEAN		// Exclude rarely-used stuff from Windows headers
+#endif
 
-public:
-	CPPageSource();
-	virtual ~CPPageSource();
+#include <afx.h>
+#include <afxwin.h>         // MFC core and standard components
 
-// Dialog Data
-	enum { IDD = IDD_PPAGESOURCE };
+// TODO: reference additional headers your program requires here
 
-protected:
-	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV support
-	virtual BOOL OnInitDialog();
-	virtual BOOL OnApply();
-
-	DECLARE_MESSAGE_MAP()
-
-public:
-	BOOL m_cdda;
-	BOOL m_cdxa;
-	BOOL m_vts;
-	BOOL m_flic;
-	BOOL m_dvd2avi;
-	BOOL m_dtsac3;
-	BOOL m_matroska;
-	BOOL m_realmedia;
-	BOOL m_shoutcast;
-	BOOL m_avi;
-};
+#include <dshow.h>
+#include <streams.h>
+#include <dvdmedia.h>

@@ -184,6 +184,14 @@ CGraphBuilder::CGraphBuilder(IGraphBuilder* pGB, HWND hWnd)
 		guids.RemoveAll();
 	}
 
+	if(s.SrcFilters&SRC_AVI)
+	{
+		guids.AddTail(MEDIATYPE_Stream);
+		guids.AddTail(MEDIASUBTYPE_Avi);
+		AddFilter(new CGraphCustomFilter(__uuidof(CAviSplitterFilter), guids, L"Avi Splitter", LMERIT_PREFERRED));
+		guids.RemoveAll();
+	}
+
 	{
 		guids.AddTail(MEDIATYPE_Video);
 		guids.AddTail(MEDIASUBTYPE_RV10);
@@ -524,6 +532,14 @@ HRESULT CGraphBuilder::Render(LPCTSTR lpsz)
 				pBF = pReader;
 		}
 
+		if((s.SrcFilters&SRC_AVI) && !pBF)
+		{
+			hr = S_OK;
+			CComPtr<IFileSourceFilter> pReader = new CAviSourceFilter(NULL, &hr);
+			if(SUCCEEDED(hr) && SUCCEEDED(pReader->Load(fnw, NULL)))
+				pBF = pReader;
+		}
+
 		if(!pBF && AfxGetAppSettings().fUseWMASFReader && fn.Find(_T("://")) < 0)
 		{
 			bool fWindowsMedia = (ext == _T(".asf") || ext == _T(".wmv") || ext == _T(".wma"));
@@ -549,7 +565,7 @@ HRESULT CGraphBuilder::Render(LPCTSTR lpsz)
 					pBF = pReader;
 			}
 		}
-
+/*
 		if(!pBF && fn.Find(_T("://")) < 0)
 		{
 			CFile f;
@@ -573,6 +589,7 @@ HRESULT CGraphBuilder::Render(LPCTSTR lpsz)
 				}
 			}
 		}
+*/
 	}
 
 	if(!pBF)
@@ -1453,6 +1470,7 @@ HRESULT CGraphCustomFilter::Create(IBaseFilter** ppBF, IUnknown** ppUnk)
 		m_clsid == __uuidof(CRealMediaSplitterFilter) ? (IBaseFilter*)new CRealMediaSplitterFilter(NULL, &hr) :
 		m_clsid == __uuidof(CRealVideoDecoder) ? (IBaseFilter*)new CRealVideoDecoder(NULL, &hr) :
 		m_clsid == __uuidof(CRealAudioDecoder) ? (IBaseFilter*)new CRealAudioDecoder(NULL, &hr) :
+		m_clsid == __uuidof(CAviSplitterFilter) ? (IBaseFilter*)new CAviSplitterFilter(NULL, &hr) :
 		NULL;
 
 	if(!*ppBF) hr = E_FAIL;

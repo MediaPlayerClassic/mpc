@@ -1,5 +1,5 @@
 /* 
- *	Media Player Classic.  Copyright (C) 2003 Gabest
+ *	Copyright (C) 2003 Gabest
  *	http://www.gabest.org
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -19,39 +19,11 @@
  *
  */
 
-#pragma once
-#include "PPageBase.h"
-#include "afxwin.h"
+// stdafx.cpp : source file that includes just the standard includes
+// AviSplitter.pch will be the pre-compiled header
+// stdafx.obj will contain the pre-compiled type information
 
-// CPPageSource dialog
+#include "stdafx.h"
 
-class CPPageSource : public CPPageBase
-{
-	DECLARE_DYNAMIC(CPPageSource)
-
-public:
-	CPPageSource();
-	virtual ~CPPageSource();
-
-// Dialog Data
-	enum { IDD = IDD_PPAGESOURCE };
-
-protected:
-	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV support
-	virtual BOOL OnInitDialog();
-	virtual BOOL OnApply();
-
-	DECLARE_MESSAGE_MAP()
-
-public:
-	BOOL m_cdda;
-	BOOL m_cdxa;
-	BOOL m_vts;
-	BOOL m_flic;
-	BOOL m_dvd2avi;
-	BOOL m_dtsac3;
-	BOOL m_matroska;
-	BOOL m_realmedia;
-	BOOL m_shoutcast;
-	BOOL m_avi;
-};
+// TODO: reference any additional headers you need in STDAFX.H
+// and not in this file

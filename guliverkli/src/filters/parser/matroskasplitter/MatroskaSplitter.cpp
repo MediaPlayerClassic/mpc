@@ -56,12 +56,12 @@ const AMOVIESETUP_FILTER sudFilter[] =
 {
 	{ &__uuidof(CMatroskaSplitterFilter)	// Filter CLSID
     , L"Matroska Splitter"					// String name
-    , MERIT_UNLIKELY						// Filter merit
+    , MERIT_NORMAL						// Filter merit
     , sizeof(sudpPins)/sizeof(sudpPins[0])	// Number of pins
 	, sudpPins},							// Pin information
 	{ &__uuidof(CMatroskaSourceFilter)	// Filter CLSID
     , L"Matroska Source"					// String name
-    , MERIT_UNLIKELY						// Filter merit
+    , MERIT_NORMAL						// Filter merit
     , 0										// Number of pins
 	, NULL},								// Pin information
 };
@@ -210,8 +210,8 @@ HRESULT CMatroskaSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 								pbmi->biBitCount == 32 ? MEDIASUBTYPE_RGB32 :
 								MEDIASUBTYPE_NULL;
 								break;
-					case BI_RLE8: mt.subtype = MEDIASUBTYPE_RGB8; break;
-					case BI_RLE4: mt.subtype = MEDIASUBTYPE_RGB4; break;
+//					case BI_RLE8: mt.subtype = MEDIASUBTYPE_RGB8; break;
+//					case BI_RLE4: mt.subtype = MEDIASUBTYPE_RGB4; break;
 					}
 					mt.SetSampleSize(pvih->bmiHeader.biWidth*pvih->bmiHeader.biHeight*4);
 					mts.Add(mt);
@@ -518,6 +518,25 @@ HRESULT CMatroskaSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 	m_rtNewStart = m_rtCurrent = 0;
 	m_rtNewStop = m_rtStop = (REFERENCE_TIME)(info.Duration*info.TimeCodeScale/100);
 
+#ifdef DEBUG
+	for(int i = 1, j = GetChapterCount(CHAPTER_ROOT_ID); i <= j; i++)
+	{
+		UINT id = GetChapterId(CHAPTER_ROOT_ID, i);
+		struct ChapterElement ce;
+		BOOL b = GetChapterInfo(id, &ce);
+		BSTR bstr = GetChapterStringInfo(id, "eng", "");
+		if(bstr) ::SysFreeString(bstr);
+	}
+#endif
+
+	// TODO
+
+	SetMediaContentStr(info.Title, Title);
+/*	SetMediaContentStr(, AuthorName);
+	SetMediaContentStr(, Copyright);
+	SetMediaContentStr(, Description);
+*/
+
 	return m_pOutputs.GetCount() > 0 ? S_OK : E_FAIL;
 }
 
@@ -572,48 +591,6 @@ void CMatroskaSplitterFilter::SendVorbisHeaderSample()
 
 			if(FAILED(hr))
 				TRACE(_T("ERROR: Vorbis initialization failed for stream %I64d\n"), TrackNumber);
-		}
-	}
-}
-
-void CMatroskaSplitterFilter::SendFakeTextSample()
-{
-	POSITION pos = m_pTrackEntryMap.GetStartPosition();
-	while(pos)
-	{
-		DWORD TrackNumber = 0;
-		TrackEntry* pTE = NULL;
-		m_pTrackEntryMap.GetNextAssoc(pos, TrackNumber, pTE);
-
-		CBaseSplitterOutputPin* pPin = NULL;
-		m_pPinMap.Lookup(TrackNumber, pPin);
-
-		if(!(pTE && pPin && pPin->IsConnected()))
-			continue;
-
-		if(pTE->TrackType != TrackEntry::TypeSubtitle)
-			continue;
-
-		CComPtr<IPin> pPinTo = pPin, pTmp;
-		while(pPinTo && SUCCEEDED(pPinTo->ConnectedTo(&pTmp)) && (pPinTo = pTmp))
-		{
-			pTmp = NULL;
-
-			CComPtr<IBaseFilter> pBF = GetFilterFromPin(pPinTo);
-
-			if(GetCLSID(pBF) == GUIDFromCString(_T("{48025243-2D39-11CE-875D-00608CB78066}"))) // ISCR
-			{
-				CAutoPtr<Packet> p(new Packet());
-				p->TrackNumber = (DWORD)pTE->TrackNumber;
-				p->rtStart = -1; p->rtStop = 0;
-				p->bSyncPoint = FALSE;
-				p->pData.SetSize(2);
-				strcpy((char*)p->pData.GetData(), " ");
-				DeliverPacket(p);
-				break;
-			}
-
-			pPinTo = GetFirstPin(pBF, PINDIR_OUTPUT);
 		}
 	}
 }
@@ -698,14 +675,6 @@ bool CMatroskaSplitterFilter::InitDeliverLoop()
 
 		m_fAbort = false;
 	}
-
-	// TODO
-/*
-	SetMediaContentStr(, Title);
-	SetMediaContentStr(, AuthorName);
-	SetMediaContentStr(, Copyright);
-	SetMediaContentStr(, Description);
-*/
 
 	m_pCluster.Free();
 	m_pBlock.Free();
@@ -817,8 +786,6 @@ void CMatroskaSplitterFilter::DoDeliverLoop()
 	
 	SendVorbisHeaderSample(); // HACK: init vorbis decoder with the headers
 
-	SendFakeTextSample(); // HACK: the internal script command renderer tends to freeze without one sample sent at the beginning
-
 	do
 	{
 		Cluster c;
@@ -880,7 +847,7 @@ STDMETHODIMP_(UINT) CMatroskaSplitterFilter::GetChapterId(UINT aParentChapterId,
 	CheckPointer(m_pFile, __super::GetChapterId(aParentChapterId, aIndex));
 	ChapterAtom* ca = m_pFile->m_segment.FindChapterAtom(aParentChapterId);
 	if(!ca) return CHAPTER_BAD_ID;
-	POSITION pos = ca->ChapterAtoms.FindIndex(aIndex);
+	POSITION pos = ca->ChapterAtoms.FindIndex(aIndex-1);
 	if(!pos) return CHAPTER_BAD_ID;
 	return (UINT)ca->ChapterAtoms.GetAt(pos)->ChapterUID;
 }

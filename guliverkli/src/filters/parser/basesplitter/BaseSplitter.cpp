@@ -148,6 +148,8 @@ STDMETHODIMP CBaseSplitterInputPin::EndFlush()
 CBaseSplitterOutputPin::CBaseSplitterOutputPin(CArray<CMediaType>& mts, LPCWSTR pName, CBaseFilter* pFilter, CCritSec* pLock, HRESULT* phr)
 	: CBaseOutputPin(NAME("CBaseSplitterOutputPin"), pFilter, pLock, phr, pName)
 	, m_hrDeliver(S_OK) // just in case it were asked before the worker thread could create and reset it
+	, m_fFlushing(false)
+	, m_eEndFlush(TRUE)
 {
 	m_mts.Copy(mts);
 }
@@ -173,7 +175,7 @@ HRESULT CBaseSplitterOutputPin::DecideBufferSize(IMemAllocator* pAlloc, ALLOCATO
     HRESULT hr = NOERROR;
 
 	pProperties->cBuffers = MAXBUFFERS;
-	pProperties->cbBuffer = m_mt.GetSampleSize();
+	pProperties->cbBuffer = m_mt.lSampleSize;
 
     ALLOCATOR_PROPERTIES Actual;
     if(FAILED(hr = pAlloc->SetProperties(pProperties, &Actual))) return hr;
@@ -238,11 +240,15 @@ HRESULT CBaseSplitterOutputPin::Inactive()
 
 HRESULT CBaseSplitterOutputPin::DeliverBeginFlush()
 {
+	m_eEndFlush.Reset();
+	m_fFlushed = false;
+	m_fFlushing = true;
+	m_hrDeliver = S_FALSE;
 	CAutoLock cAutoLock(&m_csQueueLock);
 	m_packets.RemoveAll();
-	m_hrDeliver = S_FALSE;
 	HRESULT hr = IsConnected() ? GetConnected()->BeginFlush() : S_OK;
-	return hr;
+	if(S_OK != hr) m_eEndFlush.Set();
+	return(hr);
 }
 
 HRESULT CBaseSplitterOutputPin::DeliverEndFlush()
@@ -250,14 +256,21 @@ HRESULT CBaseSplitterOutputPin::DeliverEndFlush()
 	if(!ThreadExists()) return S_FALSE;
 	HRESULT hr = IsConnected() ? GetConnected()->EndFlush() : S_OK;
 	m_hrDeliver = S_OK;
+	m_fFlushing = false;
+	m_fFlushed = true;
+	m_eEndFlush.Set();
 	return hr;
 }
 
 HRESULT CBaseSplitterOutputPin::DeliverNewSegment(REFERENCE_TIME tStart, REFERENCE_TIME tStop, double dRate)
 {
+	if(m_fFlushing) return S_FALSE;
 	m_rtStart = tStart;
 	if(!ThreadExists()) return S_FALSE;
-	return __super::DeliverNewSegment(tStart, tStop, dRate);
+	HRESULT hr = __super::DeliverNewSegment(tStart, tStop, dRate);
+	if(S_OK != hr) return hr;
+	MakeISCRHappy();
+	return hr;
 }
 
 HRESULT CBaseSplitterOutputPin::QueueEndOfStream()
@@ -289,8 +302,8 @@ HRESULT CBaseSplitterOutputPin::QueuePacket(CAutoPtr<Packet> p)
 DWORD CBaseSplitterOutputPin::ThreadProc()
 {
 	m_hrDeliver = S_OK;
-
-	::SetThreadPriority(m_hThread, THREAD_PRIORITY_ABOVE_NORMAL);
+	m_fFlushing = m_fFlushed = false;
+	m_eEndFlush.Set();
 
 	while(1)
 	{
@@ -319,14 +332,23 @@ DWORD CBaseSplitterOutputPin::ThreadProc()
 
 			if(S_OK == m_hrDeliver && cnt > 0)
 			{
+				ASSERT(!m_fFlushing);
+
+				m_fFlushed = false;
+
+				// flushing can still start here, to release a blocked deliver call
+
 				HRESULT hr = p 
 					? DeliverPacket(p) 
 					: DeliverEndOfStream();
 
-				if(hr != S_OK)
+				m_eEndFlush.Wait(); // .. so we have to wait until it is done
+
+				if(hr != S_OK && !m_fFlushed) // and only report the error in m_hrDeliver if we didn't flush the stream
 				{
 					CAutoLock cAutoLock(&m_csQueueLock);
 					m_hrDeliver = hr;
+					break;
 				}
 			}
 		}
@@ -341,15 +363,35 @@ HRESULT CBaseSplitterOutputPin::DeliverPacket(CAutoPtr<Packet> p)
 	if(p->pData.GetCount() == 0)
 		return S_OK;
 
+	double dRate = 1.0;
+	if(SUCCEEDED(((CBaseSplitterFilter*)m_pFilter)->GetRate(&dRate)))
+	{
+		p->rtStart = (REFERENCE_TIME)((double)p->rtStart / dRate);
+		p->rtStop = (REFERENCE_TIME)((double)p->rtStop / dRate);
+	}
+
 	do
 	{
 		CComPtr<IMediaSample> pSample;
-		BYTE* pData;
-
 		if(S_OK != (hr = GetDeliveryBuffer(&pSample, NULL, NULL, 0))) break;
-		if(S_OK != (hr = pSample->GetPointer(&pData))) break;
-		memcpy(pData, p->pData.GetData(), p->pData.GetCount());
-		if(S_OK != (hr = pSample->SetActualDataLength(p->pData.GetCount()))) break;
+		DWORD nBytes = p->pData.GetCount();
+		if(nBytes > pSample->GetSize())
+		{
+			pSample.Release();
+			if(S_OK != (hr = __super::DeliverBeginFlush())) break;
+			if(S_OK != (hr = __super::DeliverEndFlush())) break;
+			if(S_OK != (hr = m_pAllocator->Decommit())) break;
+			ALLOCATOR_PROPERTIES props, actual;
+			if(S_OK != (hr = m_pAllocator->GetProperties(&props))) break;
+			props.cbBuffer = nBytes*3/2;
+			if(S_OK != (hr = m_pAllocator->SetProperties(&props, &actual))) break;
+			if(S_OK != (hr = m_pAllocator->Commit())) break;
+			if(S_OK != (hr = GetDeliveryBuffer(&pSample, NULL, NULL, 0))) break;
+		}
+		BYTE* pData = NULL;
+		if(S_OK != (hr = pSample->GetPointer(&pData)) || !pData) break;
+		memcpy(pData, p->pData.GetData(), nBytes);
+		if(S_OK != (hr = pSample->SetActualDataLength(nBytes))) break;
 		if(S_OK != (hr = pSample->SetTime(&p->rtStart, &p->rtStop))) break;
 		if(S_OK != (hr = pSample->SetMediaTime(NULL, NULL))) break;
 		if(S_OK != (hr = pSample->SetDiscontinuity(p->bDiscontinuity))) break;
@@ -360,6 +402,31 @@ HRESULT CBaseSplitterOutputPin::DeliverPacket(CAutoPtr<Packet> p)
 	while(false);
 
 	return hr;
+}
+
+void CBaseSplitterOutputPin::MakeISCRHappy()
+{
+	CComPtr<IPin> pPinTo = this, pTmp;
+	while(pPinTo && SUCCEEDED(pPinTo->ConnectedTo(&pTmp)) && (pPinTo = pTmp))
+	{
+		pTmp = NULL;
+
+		CComPtr<IBaseFilter> pBF = GetFilterFromPin(pPinTo);
+
+		if(GetCLSID(pBF) == GUIDFromCString(_T("{48025243-2D39-11CE-875D-00608CB78066}"))) // ISCR
+		{
+			CAutoPtr<Packet> p(new Packet());
+			p->TrackNumber = (DWORD)-1;
+			p->rtStart = -1; p->rtStop = 0;
+			p->bSyncPoint = FALSE;
+			p->pData.SetSize(2);
+			strcpy((char*)p->pData.GetData(), " ");
+			QueuePacket(p);
+			break;
+		}
+
+		pPinTo = GetFirstPin(pBF, PINDIR_OUTPUT);
+	}
 }
 
 //
@@ -490,10 +557,7 @@ DWORD CBaseSplitterFilter::ThreadProc()
 HRESULT CBaseSplitterFilter::DeliverPacket(CAutoPtr<Packet> p)
 {
 	HRESULT hr = S_FALSE;
-/*
-	if(m_fFlushing)
-		return S_FALSE;
-*/
+
 	CBaseSplitterOutputPin* pPin = NULL;
 	if(!m_pPinMap.Lookup(p->TrackNumber, pPin) || !pPin 
 	|| !pPin->IsConnected() || !m_pActivePins.Find(pPin))
@@ -505,7 +569,7 @@ HRESULT CBaseSplitterFilter::DeliverPacket(CAutoPtr<Packet> p)
 	p->rtStop -= m_rtStart;
 
 	ASSERT(p->rtStart <= p->rtStop);
-	
+
 	DWORD TrackNumber = p->TrackNumber;
 	BOOL bDiscontinuity = p->bDiscontinuity = !m_bDiscontinuitySent.Find(p->TrackNumber);
 
@@ -739,6 +803,8 @@ STDMETHODIMP CBaseSplitterFilter::SetPositions(LONGLONG* pCurrent, DWORD dwCurre
 	if(m_rtCurrent == rtCurrent && m_rtStop == rtStop)
 		return S_OK;
 
+DbgLog((LOG_TRACE, 0, _T("Seek Started")));
+
 	m_rtNewStart = m_rtCurrent = rtCurrent;
 	m_rtNewStop = rtStop;
 
@@ -748,6 +814,8 @@ STDMETHODIMP CBaseSplitterFilter::SetPositions(LONGLONG* pCurrent, DWORD dwCurre
 		CallWorker(CMD_SEEK);
 		DeliverEndFlush();
 	}
+
+DbgLog((LOG_TRACE, 0, _T("Seek Ended")));
 
 	return S_OK;
 }
@@ -762,7 +830,7 @@ STDMETHODIMP CBaseSplitterFilter::GetAvailable(LONGLONG* pEarliest, LONGLONG* pL
 	if(pEarliest) *pEarliest = 0;
 	return GetDuration(pLatest);
 }
-STDMETHODIMP CBaseSplitterFilter::SetRate(double dRate) {return dRate == 1.0 ? S_OK : E_INVALIDARG;}
+STDMETHODIMP CBaseSplitterFilter::SetRate(double dRate) {return dRate > 0 ? m_dRate = dRate, S_OK : E_INVALIDARG;}
 STDMETHODIMP CBaseSplitterFilter::GetRate(double* pdRate) {return pdRate ? *pdRate = m_dRate, S_OK : E_POINTER;}
 STDMETHODIMP CBaseSplitterFilter::GetPreroll(LONGLONG* pllPreroll) {return pllPreroll ? *pllPreroll = 0, S_OK : E_POINTER;}
 
