@@ -46,7 +46,7 @@ protected:
 	BYTE m_bbt[256];
 
 	DWORD m_CBP[2];
-	WORD m_CLUT[512];
+	WORD m_CLUT[512*2]; // *2 for safety
 	DWORD m_clut[256];
 
 public:

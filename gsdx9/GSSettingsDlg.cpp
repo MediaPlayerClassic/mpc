@@ -35,8 +35,9 @@ static struct {DWORD id; const TCHAR* name;} s_psversions[] =
 {
 	{D3DVS_VERSION(3, 0), _T("Pixel Shader 3.0")},
 	{D3DVS_VERSION(2, 0), _T("Pixel Shader 2.0")},
-	{D3DVS_VERSION(1, 1), _T("Pixel Shader 1.1")},
-	{D3DVS_VERSION(0, 0), _T("Fixed Pipeline")},
+	{D3DVS_VERSION(1, 4), _T("Pixel Shader 1.4")},
+	{D3DVS_VERSION(1, 1), _T("Pixel Shader 1.1 (bogus)")},
+	{D3DVS_VERSION(0, 0), _T("Fixed Pipeline (bogus)")},
 };
 
 IMPLEMENT_DYNAMIC(CGSSettingsDlg, CDialog)

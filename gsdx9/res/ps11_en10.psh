@@ -5,6 +5,7 @@
 ; c2.a = SLBG
 
 ps_1_1
+
 tex t0
 
 mov r0, c1

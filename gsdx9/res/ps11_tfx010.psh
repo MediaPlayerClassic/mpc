@@ -5,7 +5,9 @@
 ; Av = At * Af
 
 ps_1_1
+
 tex t0
+
 mul_x2 r0.rgb, v0, t0
 mul_x4 r0.a, v0, t0
 lrp r0.rgb, v1.a, r0, v1

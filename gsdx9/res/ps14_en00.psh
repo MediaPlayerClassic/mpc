@@ -4,8 +4,10 @@
 ; c1.a = MMOD
 ; c2.a = SLBG
 
-ps_1_1
+ps_1_4
 
-tex t2
+texld r2, t2
 
-mov r0, t2
+mov r0.ga, r2
+mov r0.b, r2.r
+mov r0.r, r2.b
