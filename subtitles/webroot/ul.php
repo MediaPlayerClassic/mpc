@@ -381,6 +381,6 @@ if(isset($_SESSION['err']))
 
 //
 
-$smarty->display_gzip('main.tpl');
+$smarty->display('main.tpl');
 
 ?>

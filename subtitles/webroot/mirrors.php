@@ -25,6 +25,6 @@ while($row = $db->fetchRow())
 
 $smarty->assign('mirrors', $mirrors);
 
-$smarty->display_gzip('main.tpl');
+$smarty->display('main.tpl');
 
 ?>
