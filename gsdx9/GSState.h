@@ -355,7 +355,7 @@ public:
 	{
 		va_list args;
 		va_start(args, fmt);
-		/**/
+		/**/ //
 		if(_tcsstr(fmt, _T("VSync")) 
 		 || _tcsstr(fmt, _T("*** WARNING ***"))
 		 || _tcsstr(fmt, _T("Flush"))
@@ -366,7 +366,7 @@ public:
 		// || _tcsstr(fmt, _T("SMODE"))
 		// || _tcsstr(fmt, _T("PMODE"))
 		 || _tcsstr(fmt, _T("BITBLTBUF"))
-		// || _tcsstr(fmt, _T("TRX"))
+		 || _tcsstr(fmt, _T("TRX"))
 		// || _tcsstr(fmt, _T("PRIM"))
 		// || _tcsstr(fmt, _T("RGB"))
 		// || _tcsstr(fmt, _T("XYZ"))
@@ -375,6 +375,7 @@ public:
 		// || _tcsstr(fmt, _T("TEX"))
 		// || _tcsstr(fmt, _T("UV"))
 		// || _tcsstr(fmt, _T("FOG"))
+		// || _tcsstr(fmt, _T("ALPHA"))
 		// || _tcsstr(fmt, _T("TBP0")) == fmt
 		// || _tcsstr(fmt, _T("CBP")) == fmt
 		)

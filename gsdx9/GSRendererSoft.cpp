@@ -102,6 +102,13 @@ void GSRendererSoft<VERTEX>::DrawingKick(bool fSkip)
 		pVertices[1].v = pVertices[0].v;
 		pVertices[2].x = pVertices[0].x;
 		pVertices[2].u = pVertices[0].u;
+		/*
+		m_primtype = PRIM_TRIANGLE;
+		nVertices += 2;
+		pVertices[5] = pVertices[3];
+		pVertices[3] = pVertices[1];
+		pVertices[4] = pVertices[2];
+		*/
 		break;
 	case 1: // line
 		m_primtype = PRIM_LINE;
@@ -647,11 +654,6 @@ void GSRendererSoft<VERTEX>::DrawVertex(int x, int y, VERTEX& v)
 	(m_lm.*m_ctxt->wf)(x, y, c, FBP, FBW);
 }
 
-int zaddrcomp(const void* addr1, const void* addr2)
-{
-	return *(int*)addr1 - *(int*)addr2;
-}
-
 template <class VERTEX>
 bool GSRendererSoft<VERTEX>::DrawFilledRect(int left, int top, int right, int bottom, VERTEX& v)
 {
@@ -767,8 +769,8 @@ void GSRendererSoftFP::VertexKick(bool fSkip)
 {
 	GSSoftVertex v;
 
-	v.x = ((float)m_v.XYZ.X - m_ctxt->XYOFFSET.OFX) / 16;
-	v.y = ((float)m_v.XYZ.Y - m_ctxt->XYOFFSET.OFY) / 16;
+	v.x = ((float)m_v.XYZ.X - (m_ctxt->XYOFFSET.OFX&~15)) / 16;
+	v.y = ((float)m_v.XYZ.Y - (m_ctxt->XYOFFSET.OFY&~15)) / 16;
 	// v.x = (float)(m_v.XYZ.X>>4) - (m_ctxt->XYOFFSET.OFX>>4);
 	// v.y = (float)(m_v.XYZ.Y>>4) - (m_ctxt->XYOFFSET.OFY>>4);
 	v.z = (float)m_v.XYZ.Z / UINT_MAX;
@@ -875,8 +877,7 @@ void GSRendererSoftFP::DrawTriangle(GSSoftVertex* v)
 
 	for(int i = 0; i < 2; i++, v++)
 	{
- 		int top = int(v[0].y), bottom = int(v[1].y);
-//		float top = v[0].y, bottom = v[1].y;
+		int top = int(v[0].y), bottom = int(v[1].y); // FIXME
 
 		if(top < m_scissor.top)
 		{
@@ -893,8 +894,9 @@ void GSRendererSoftFP::DrawTriangle(GSSoftVertex* v)
 		{
 			scan = edge[0];
 
-			int left = int(edge[0].x), right = int(edge[1].x);
-//			float left = edge[0].x, right = edge[1].x;
+			float xi, xf = 1.0f - modf(edge[0].x, &xi);
+			float left = ceil(edge[0].x), right = edge[1].x;
+			if(xf < 1.0f) scan += dscan * xf;
 
 			if(left < m_scissor.left)
 			{
@@ -1000,8 +1002,8 @@ void GSRendererSoftFX::VertexKick(bool fSkip)
 {
 	GSSoftVertexFX v;
 
-	v.x = ((int)m_v.XYZ.X - m_ctxt->XYOFFSET.OFX) << 12;
-	v.y = ((int)m_v.XYZ.Y - m_ctxt->XYOFFSET.OFY) << 12;
+	v.x = ((int)m_v.XYZ.X - (m_ctxt->XYOFFSET.OFX&~15)) << 12;
+	v.y = ((int)m_v.XYZ.Y - (m_ctxt->XYOFFSET.OFY&~15)) << 12;
 	//v.x = (m_v.XYZ.X>>4) - (m_ctxt->XYOFFSET.OFX>>4) << 16;
 	//v.y = (m_v.XYZ.Y>>4) - (m_ctxt->XYOFFSET.OFY>>4) << 16;
 	v.z = (unsigned __int64)m_v.XYZ.Z << 32;
@@ -1093,8 +1095,8 @@ void GSRendererSoftFX::DrawTriangle(GSSoftVertex* v)
 	GSSoftVertex edge[2], dedge[2], scan, dscan;
 
 	int ledge, redge;
-	if(longest >= 0x10000) {ledge = 0; redge = 1;}
-	else if(longest <= -0x10000) {ledge = 1; redge = 0;}
+	if(longest > 0) {ledge = 0; redge = 1;}
+	else if(longest < 0) {ledge = 1; redge = 0;}
 	else return;
 
 	memset(dedge, 0, sizeof(dedge));
@@ -1108,8 +1110,7 @@ void GSRendererSoftFX::DrawTriangle(GSSoftVertex* v)
 
 	for(int i = 0; i < 2; i++, v++)
 	{
- 		int top = v[0].y, bottom = v[1].y;
-//		float top = v[0].y, bottom = v[1].y;
+ 		int top = v[0].y, bottom = v[1].y; // FIXME
 
 		if(top < m_scissor.top)
 		{
@@ -1126,8 +1127,9 @@ void GSRendererSoftFX::DrawTriangle(GSSoftVertex* v)
 		{
 			scan = edge[0];
 
-			int left = edge[0].x, right = edge[1].x;
-//			float left = edge[0].x, right = edge[1].x;
+			int /*xi = edge[0].x & 0xffff0000,*/ xf = 0x00010000 - (edge[0].x & 0x0000ffff);
+			int left = (edge[0].x + 0x0000ffff) & 0xffff0000, right = edge[1].x;
+			if(xf < 0x00010000) scan += dscan * xf;
 
 			if(left < m_scissor.left)
 			{
@@ -1140,9 +1142,9 @@ void GSRendererSoftFX::DrawTriangle(GSSoftVertex* v)
 				right = m_scissor.right;
 			}
 
-			for(left >>= 16, right >>= 16; left < right; left++)
+			for(; left < right; left += 0x10000)
 			{
-				DrawVertex(left, top, scan);
+				DrawVertex(left>>16, top, scan);
 				scan += dscan;
 			}
 
@@ -1221,246 +1223,3 @@ void GSRendererSoftFX::DrawSprite(GSSoftVertex* v)
 		edge[0] += dedge[0];
 	}
 }
-/*
-void GSRendererSoftFX::DrawVertex(int x, int y, GSSoftVertex& v)
-{
-	DWORD FBP = m_ctxt->FRAME.FBP<<5, FBW = m_ctxt->FRAME.FBW;
-
-	DWORD vz = v.GetZ();
-
-	if(m_ctxt->TEST.ZTE && m_ctxt->TEST.ZTST != 1)
-	{
-		if(m_ctxt->TEST.ZTST == 0)
-			return;
-
-		if(m_ctxt->rz)
-		{
-			DWORD z = (m_lm.*m_ctxt->rz)(x, y, m_ctxt->ZBUF.ZBP<<5, FBW);
-			if(m_ctxt->TEST.ZTST == 2 && vz < z || m_ctxt->TEST.ZTST == 3 && vz <= z)
-				return;
-		}
-	}
-
-	if(m_ctxt->TEST.DATE && m_ctxt->FRAME.PSM <= PSM_PSMCT16S)
-	{
-		GSLocalMemory::readPixel rp = m_lm.GetReadPixel(m_ctxt->FRAME.PSM);
-		BYTE A = (BYTE)(m_lm.*rp)(x, y, FBP, FBW) >> (m_ctxt->FRAME.PSM == PSM_PSMCT32 ? 31 : 15);
-		if(A ^ m_ctxt->TEST.DATM) return;
-	}
-
-	__declspec(align(16)) union {struct {int Rf, Gf, Bf, Af;}; int Cf[4];};
-	v.GetColor(Cf);
-
-	if(m_de.PRIM.TME)
-	{
-		int tw = 1 << m_ctxt->TEX0.TW;
-		int th = 1 << m_ctxt->TEX0.TH;
-
-		float tu = (float)v.u / v.q * tw;
-		float tv = (float)v.v / v.q * th;
-
-		// TODO
-		// float lod = m_ctxt->TEX1.K;
-		// if(!m_ctxt->TEX1.LCM) lod += log2(1/v.q) << m_ctxt->TEX1.L;
-
-		float ftu = modf(tu, &tu); // tu - 0.5f
-		float ftv = modf(tv, &tv); // tv - 0.5f
-
-		int itu[2] = {(int)tu, (int)tu+1};
-		int itv[2] = {(int)tv, (int)tv+1};
-
-		for(int i = 0; i < countof(itu); i++)
-		{
-			switch(m_ctxt->CLAMP.WMS)
-			{
-			case 0: itu[i] = itu[i] & (tw-1); break;
-			case 1: itu[i] = itu[i] < 0 ? 0 : itu[i] >= tw ? itu[i] = tw-1 : itu[i]; break;
-			case 2: itu[i] = itu[i] < m_ctxt->CLAMP.MINU ? m_ctxt->CLAMP.MINU : itu[i] > m_ctxt->CLAMP.MAXU ? m_ctxt->CLAMP.MAXU : itu[i]; break;
-			case 3: itu[i] = (int(itu[i]) & m_ctxt->CLAMP.MINU) | m_ctxt->CLAMP.MAXU; break;
-			}
-
-			ASSERT(itu[i] >= 0 && itu[i] < tw);
-		}
-
-		for(int i = 0; i < countof(itv); i++)
-		{
-			switch(m_ctxt->CLAMP.WMT)
-			{
-			case 0: itv[i] = itv[i] & (th-1); break;
-			case 1: itv[i] = itv[i] < 0 ? 0 : itv[i] >= th ? itv[i] = th-1 : itv[i]; break;
-			case 2: itv[i] = itv[i] < m_ctxt->CLAMP.MINV ? m_ctxt->CLAMP.MINV : itv[i] > m_ctxt->CLAMP.MAXV ? m_ctxt->CLAMP.MAXV : itv[i]; break;
-			case 3: itv[i] = (int(itv[i]) & m_ctxt->CLAMP.MINV) | m_ctxt->CLAMP.MAXV; break;
-			}
-
-			ASSERT(itv[i] >= 0 && itv[i] < th);
-		}
-
-		DWORD c[4];
-		WORD Bt, Gt, Rt, At;
-
-		// if(m_ctxt->TEX1.MMAG&1) // FIXME
-		{
-			if(ftu < 0) ftu += 1;
-			if(ftv < 0) ftv += 1;
-			float iftu = 1.0f - ftu;
-			float iftv = 1.0f - ftv;
-
-			if(m_pTexture)
-			{
-				c[0] = m_pTexture[(itv[0] << m_ctxt->TEX0.TW) + itu[0]];
-				c[1] = m_pTexture[(itv[0] << m_ctxt->TEX0.TW) + itu[1]];
-				c[2] = m_pTexture[(itv[1] << m_ctxt->TEX0.TW) + itu[0]];
-				c[3] = m_pTexture[(itv[1] << m_ctxt->TEX0.TW) + itu[1]];
-			}
-			else
-			{
-				c[0] = (m_lm.*m_ctxt->rt)(itu[0], itv[0], m_ctxt->TEX0, m_de.TEXA);
-				c[1] = (m_lm.*m_ctxt->rt)(itu[1], itv[0], m_ctxt->TEX0, m_de.TEXA);
-				c[2] = (m_lm.*m_ctxt->rt)(itu[0], itv[1], m_ctxt->TEX0, m_de.TEXA);
-				c[3] = (m_lm.*m_ctxt->rt)(itu[1], itv[1], m_ctxt->TEX0, m_de.TEXA);
-			}
-
-			float iuiv = iftu*iftv;
-			float uiv = ftu*iftv;
-			float iuv = iftu*ftv;
-			float uv = ftu*ftv;
-
-			Bt = (WORD)(iuiv*((c[0]>> 0)&0xff) + uiv*((c[1]>> 0)&0xff) + iuv*((c[2]>> 0)&0xff) + uv*((c[3]>> 0)&0xff) + 0.5f);
-			Gt = (WORD)(iuiv*((c[0]>> 8)&0xff) + uiv*((c[1]>> 8)&0xff) + iuv*((c[2]>> 8)&0xff) + uv*((c[3]>> 8)&0xff) + 0.5f);
-			Rt = (WORD)(iuiv*((c[0]>>16)&0xff) + uiv*((c[1]>>16)&0xff) + iuv*((c[2]>>16)&0xff) + uv*((c[3]>>16)&0xff) + 0.5f);
-			At = (WORD)(iuiv*((c[0]>>24)&0xff) + uiv*((c[1]>>24)&0xff) + iuv*((c[2]>>24)&0xff) + uv*((c[3]>>24)&0xff) + 0.5f);
-		}
-		// else 
-		if(0)
-		{
-			if(m_pTexture)
-			{
-				c[0] = m_pTexture[(itv[0] << m_ctxt->TEX0.TW) + itu[0]];
-			}
-			else
-			{
-				c[0] = (m_lm.*m_ctxt->rt)(itu[0], itv[0], m_ctxt->TEX0, m_de.TEXA);
-			}
-
-			Bt = (BYTE)((c[0]>>0)&0xff);
-			Gt = (BYTE)((c[0]>>8)&0xff);
-			Rt = (BYTE)((c[0]>>16)&0xff);
-			At = (BYTE)((c[0]>>24)&0xff);
-		}
-
-		switch(m_ctxt->TEX0.TFX)
-		{
-		case 0:
-			Rf = Rf * Rt >> 7;
-			Gf = Gf * Gt >> 7;
-			Bf = Bf * Bt >> 7;
-			Af = m_ctxt->TEX0.TCC ? (Af * At >> 7) : Af;
-			break;
-		case 1:
-			Rf = Rt;
-			Gf = Gt;
-			Bf = Bt;
-			Af = At;
-			break;
-		case 2:
-			Rf = (Rf * Rt >> 7) + Af;
-			Gf = (Gf * Gt >> 7) + Af;
-			Bf = (Bf * Bt >> 7) + Af;
-			Af = m_ctxt->TEX0.TCC ? (Af + At) : Af;
-			break;
-		case 3:
-			Rf = (Rf * Rt >> 7) + Af;
-			Gf = (Gf * Gt >> 7) + Af;
-			Bf = (Bf * Bt >> 7) + Af;
-			Af = m_ctxt->TEX0.TCC ? At : Af;
-			break;
-		}
-
-		Rf = m_clip[Rf+512];
-		Gf = m_clip[Gf+512];
-		Bf = m_clip[Bf+512];
-		Af = m_clip[Af+512];
-	}
-
-	if(m_de.PRIM.FGE)
-	{
-		BYTE F = (BYTE)v.fog;
-		Rf = (F * Rf + (255 - F) * m_de.FOGCOL.FCR) >> 8;
-		Gf = (F * Gf + (255 - F) * m_de.FOGCOL.FCG) >> 8;
-		Bf = (F * Bf + (255 - F) * m_de.FOGCOL.FCB) >> 8;
-	}
-
-	BOOL ZMSK = m_ctxt->ZBUF.ZMSK;
-	DWORD FBMSK = m_ctxt->FRAME.FBMSK;
-
-	if(m_ctxt->TEST.ATE)
-	{
-		bool fPass = true;
-
-		switch(m_ctxt->TEST.ATST)
-		{
-		case 0: fPass = false; break;
-		case 1: fPass = true; break;
-		case 2: fPass = Af < m_ctxt->TEST.AREF; break;
-		case 3: fPass = Af <= m_ctxt->TEST.AREF; break;
-		case 4: fPass = Af == m_ctxt->TEST.AREF; break;
-		case 5: fPass = Af >= m_ctxt->TEST.AREF; break;
-		case 6: fPass = Af > m_ctxt->TEST.AREF; break;
-		case 7: fPass = Af != m_ctxt->TEST.AREF; break;
-		}
-
-		if(!fPass)
-		{
-			switch(m_ctxt->TEST.AFAIL)
-			{
-			case 0: return;
-			case 1: ZMSK = 1; break; // RGBA
-			case 2: FBMSK = 0xffffffff; break; // Z
-			case 3: FBMSK = 0xff000000; ZMSK = 1; break; // RGB
-			}
-		}
-	}
-
-	if(!ZMSK && m_ctxt->wz)
-	{
-		(m_lm.*m_ctxt->wz)(x, y, vz, m_ctxt->ZBUF.ZBP<<5, FBW);
-	}
-
-	if((m_de.PRIM.ABE || (m_de.PRIM.PRIM == 1 || m_de.PRIM.PRIM == 2) && m_de.PRIM.AA1) && (!m_de.PABE.PABE || (Af&0x80)))
-	{
-		GIFRegTEX0 TEX0;
-		TEX0.TBP0 = FBP;
-		TEX0.TBW = FBW;
-		TEX0.TCC = m_ctxt->TEX0.TCC;
-		DWORD Cd = (m_lm.*m_ctxt->rp)(x, y, TEX0, m_de.TEXA);
-
-		BYTE R[3] = {Rf, (Cd>>16)&0xff, 0};
-		BYTE G[3] = {Gf, (Cd>>8)&0xff, 0};
-		BYTE B[3] = {Bf, (Cd>>0)&0xff, 0};
-		BYTE A[3] = {Af, (Cd>>24)&0xff, m_ctxt->ALPHA.FIX};
-
-		Rf = ((R[m_ctxt->ALPHA.A] - R[m_ctxt->ALPHA.B]) * A[m_ctxt->ALPHA.C] >> 7) + R[m_ctxt->ALPHA.D];
-		Gf = ((G[m_ctxt->ALPHA.A] - G[m_ctxt->ALPHA.B]) * A[m_ctxt->ALPHA.C] >> 7) + G[m_ctxt->ALPHA.D];
-		Bf = ((B[m_ctxt->ALPHA.A] - B[m_ctxt->ALPHA.B]) * A[m_ctxt->ALPHA.C] >> 7) + B[m_ctxt->ALPHA.D];
-	}
-
-	if(m_de.DTHE.DTHE)
-	{
-		WORD DMxy = (*((WORD*)&m_de.DIMX.i64 + (y&3)) >> ((x&3)<<2)) & 7;
-		Rf += DMxy;
-		Gf += DMxy;
-		Bf += DMxy;
-	}
-
-	Rf = m_clamp[Rf];
-	Gf = m_clamp[Gf];
-	Bf = m_clamp[Bf];
-	Af = m_clamp[Af]; // ?
-
-	Af |= (m_ctxt->FBA.FBA << 7);
-
-	DWORD color = ((Af << 24) | (Bf << 16) | (Gf << 8) | (Rf << 0)) & ~FBMSK;
-
-	(m_lm.*m_ctxt->wf)(x, y, color, FBP, FBW);
-}
-*/
