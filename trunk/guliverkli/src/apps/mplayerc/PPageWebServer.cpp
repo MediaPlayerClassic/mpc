@@ -26,7 +26,6 @@
 #include "mplayerc.h"
 #include "MainFrm.h"
 #include "PPageWebServer.h"
-#include ".\ppagewebserver.h"
 
 // CPPageWebServer dialog
 
@@ -227,33 +226,13 @@ void CPPageWebServer::OnBnClickedButton1()
 	}
 }
 
-static void PutFileContents(LPCTSTR fn, const CStringA& data)
-{
-	if(FILE* f = _tfopen(fn, _T("wb")))
-	{
-		fwrite((LPCSTR)data, 1, data.GetLength(), f);
-		fclose(f);
-	}
-}
-
 void CPPageWebServer::OnBnClickedButton2()
 {
 	CString dir;
 	if(PickDir(dir))
 	{
 		dir += _T("\\");
-		CStringA data;
-		if(LoadResource(IDR_HTML_INDEX, data, RT_HTML)) PutFileContents(dir + _T("index.html"), data);
-		if(LoadResource(IDR_HTML_BROWSER, data, RT_HTML)) PutFileContents(dir + _T("browser.html"), data);
-		if(LoadResource(IDR_HTML_CONTROLS, data, RT_HTML)) PutFileContents(dir + _T("controls.html"), data);
-		if(LoadResource(IDR_HTML_404, data, RT_HTML)) PutFileContents(dir + _T("404.html"), data);
-		if(LoadResource(IDF_DEFAULT_CSS, data, _T("FILE"))) PutFileContents(dir + _T("default.css"), data);
-		if(LoadResource(IDF_VBR_GIF, data, _T("FILE"))) PutFileContents(dir + _T("vbg.gif"), data);
-		if(LoadResource(IDF_VBS_GIF, data, _T("FILE"))) PutFileContents(dir + _T("vbs.gif"), data);
-		if(LoadResource(IDF_SLIDERBAR_GIF, data, _T("FILE"))) PutFileContents(dir + _T("sliderbar.gif"), data);
-		if(LoadResource(IDF_SLIDERGRIP_GIF, data, _T("FILE"))) PutFileContents(dir + _T("slidergrip.gif"), data);
-		if(LoadResource(IDF_SLIDERBACK_GIF, data, _T("FILE"))) PutFileContents(dir + _T("sliderback.gif"), data);
-		if(LoadResource(IDF_1PIX_GIF, data, _T("FILE"))) PutFileContents(dir + _T("1pix.gif"), data);
+		CWebServer::Deploy(dir);
 	}
 }
 

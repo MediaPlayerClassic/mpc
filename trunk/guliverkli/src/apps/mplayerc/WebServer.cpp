@@ -9,32 +9,60 @@
 #include "WebServer.h"
 #include "..\..\zlib\zlib.h"
 
-// TODO: wrap sessions into a class with the possibility of storing some private data
-// TODO: auto-set mimes
+CAtlMap<CString, CWebServer::RequestHandler, CStringElementTraits<CString> > CWebServer::m_internalpages;
+CAtlMap<CString, UINT, CStringElementTraits<CString> > CWebServer::m_downloads;
+CAtlMap<CStringA, CStringA, CStringElementTraits<CStringA> > CWebServer::m_mimes;
 
 CWebServer::CWebServer(CMainFrame* pMainFrame, int nPort)
 	: m_pMainFrame(pMainFrame)
 	, m_nPort(nPort)
 {
-	m_internalpages[_T("/")] = &CWebClientSocket::OnIndex;
-	m_internalpages[_T("/index.html")] = &CWebClientSocket::OnIndex;
-	m_internalpages[_T("/browser.html")] = &CWebClientSocket::OnBrowser;
-	m_internalpages[_T("/controls.html")] = &CWebClientSocket::OnControls;
-	m_internalpages[_T("/command.html")] = &CWebClientSocket::OnCommand;
-	m_internalpages[_T("/404.html")] = &CWebClientSocket::OnError404;
+	if(m_internalpages.IsEmpty())
+	{
+		m_internalpages[_T("/")] = &CWebClientSocket::OnIndex;
+		m_internalpages[_T("/index.html")] = &CWebClientSocket::OnIndex;
+		m_internalpages[_T("/browser.html")] = &CWebClientSocket::OnBrowser;
+		m_internalpages[_T("/controls.html")] = &CWebClientSocket::OnControls;
+		m_internalpages[_T("/command.html")] = &CWebClientSocket::OnCommand;
+		m_internalpages[_T("/status.html")] = &CWebClientSocket::OnStatus;
+		m_internalpages[_T("/player.html")] = &CWebClientSocket::OnPlayer;
+		m_internalpages[_T("/snapshot.jpg")] = &CWebClientSocket::OnSnapShotJpeg;	
+		m_internalpages[_T("/404.html")] = &CWebClientSocket::OnError404;
+	}
 
-	m_downloads[_T("/default.css")] = IDF_DEFAULT_CSS;
-	m_downloads[_T("/vbg.gif")] = IDF_VBR_GIF;
-	m_downloads[_T("/vbs.gif")] = IDF_VBS_GIF;
-	m_downloads[_T("/sliderbar.gif")] = IDF_SLIDERBAR_GIF;
-	m_downloads[_T("/slidergrip.gif")] = IDF_SLIDERGRIP_GIF;
-	m_downloads[_T("/sliderback.gif")] = IDF_SLIDERBACK_GIF;
-	m_downloads[_T("/1pix.gif")] = IDF_1PIX_GIF;
+	if(m_downloads.IsEmpty())
+	{
+		m_downloads[_T("/default.css")] = IDF_DEFAULT_CSS;
+		m_downloads[_T("/vbg.gif")] = IDF_VBR_GIF;
+		m_downloads[_T("/vbs.gif")] = IDF_VBS_GIF;
+		m_downloads[_T("/sliderbar.gif")] = IDF_SLIDERBAR_GIF;
+		m_downloads[_T("/slidergrip.gif")] = IDF_SLIDERGRIP_GIF;
+		m_downloads[_T("/sliderback.gif")] = IDF_SLIDERBACK_GIF;
+		m_downloads[_T("/1pix.gif")] = IDF_1PIX_GIF;
+		m_downloads[_T("/headericon.png")] = IDF_HEADERICON_PNG;
+		m_downloads[_T("/headerback.png")] = IDF_HEADERBACK_PNG;
+		m_downloads[_T("/headerclose.png")] = IDF_HEADERCLOSE_PNG;
+		m_downloads[_T("/leftside.png")] = IDF_LEFTSIDE_PNG;
+		m_downloads[_T("/rightside.png")] = IDF_RIGHTSIDE_PNG;
+		m_downloads[_T("/bottomside.png")] = IDF_BOTTOMSIDE_PNG;
+		m_downloads[_T("/leftbottomside.png")] = IDF_LEFTBOTTOMSIDE_PNG;
+		m_downloads[_T("/rightbottomside.png")] = IDF_RIGHTBOTTOMSIDE_PNG;
+		m_downloads[_T("/seekbarleft.png")] = IDF_SEEKBARLEFT_PNG;
+		m_downloads[_T("/seekbarmid.png")] = IDF_SEEKBARMID_PNG;
+		m_downloads[_T("/seekbarright.png")] = IDF_SEEKBARRIGHT_PNG;
+		m_downloads[_T("/seekbargrip.png")] = IDF_SEEKBARGRIP_PNG;
+	}
 
-	m_mimes[".html"] = "text/html";
-	m_mimes[".txt"] = "text/plain";
-	m_mimes[".css"] = "text/css";
-	m_mimes[".gif"] = "image/gif";
+	if(m_mimes.IsEmpty())
+	{
+		m_mimes[".html"] = "text/html";
+		m_mimes[".txt"] = "text/plain";
+		m_mimes[".css"] = "text/css";
+		m_mimes[".gif"] = "image/gif";
+		m_mimes[".jpeg"] = "image/jpeg";
+		m_mimes[".jpg"] = "image/jpeg";
+		m_mimes[".png"] = "image/png";
+	}
 
 	CRegKey key;
 	CString str(_T("MIME\\Database\\Content Type"));
@@ -103,6 +131,35 @@ DWORD CWebServer::ThreadProc()
 	return 0;
 }
 
+static void PutFileContents(LPCTSTR fn, const CStringA& data)
+{
+	if(FILE* f = _tfopen(fn, _T("wb")))
+	{
+		fwrite((LPCSTR)data, 1, data.GetLength(), f);
+		fclose(f);
+	}
+}
+
+void CWebServer::Deploy(CString dir)
+{
+	CStringA data;
+	if(LoadResource(IDR_HTML_INDEX, data, RT_HTML)) PutFileContents(dir + _T("index.html"), data);
+	if(LoadResource(IDR_HTML_BROWSER, data, RT_HTML)) PutFileContents(dir + _T("browser.html"), data);
+	if(LoadResource(IDR_HTML_CONTROLS, data, RT_HTML)) PutFileContents(dir + _T("controls.html"), data);
+	if(LoadResource(IDR_HTML_404, data, RT_HTML)) PutFileContents(dir + _T("404.html"), data);
+	if(LoadResource(IDR_HTML_PLAYER, data, RT_HTML)) PutFileContents(dir + _T("player.html"), data);
+
+	POSITION pos = m_downloads.GetStartPosition();
+	while(pos)
+	{
+		CString fn;
+		UINT id;
+		m_downloads.GetNextAssoc(pos, fn, id);
+		if(LoadResource(id, data, _T("FILE")))
+			PutFileContents(dir + fn, data);
+	}
+}
+
 bool CWebServer::LoadPage(UINT resid, CStringA& str, CString path)
 {
 	if(!path.IsEmpty())
@@ -164,7 +221,7 @@ void CWebServer::OnRequest(CWebClientSocket* pClient, CStringA& hdr, CStringA& b
 	hdr = "HTTP/1.0 200 OK\r\n";
 
 	RequestHandler rh = NULL;
-	if(!fHandled && m_internalpages.Lookup(pClient->m_path, rh) && (pClient->*rh)(hdr, body))
+	if(!fHandled && m_internalpages.Lookup(pClient->m_path, rh) && (pClient->*rh)(hdr, body, mime))
 	{
 		if(mime.IsEmpty()) mime = "text/html";
 
@@ -205,12 +262,13 @@ void CWebServer::OnRequest(CWebClientSocket* pClient, CStringA& hdr, CStringA& b
 		return;
 	}
 
+	hdr += 
+		"Expires: Thu, 19 Nov 1981 08:52:00 GMT\r\n"
+		"Cache-Control: no-store, no-cache, must-revalidate, post-check=0, pre-check=0\r\n"
+		"Pragma: no-cache\r\n";
+
 	if(mime == "text/html")
 	{
-		hdr += 
-			"Expires: Thu, 19 Nov 1981 08:52:00 GMT\r\n"
-			"Cache-Control: no-store, no-cache, must-revalidate, post-check=0, pre-check=0\r\n"
-			"Pragma: no-cache\r\n";
 
 		CStringA debug;
 		if(AfxGetAppSettings().fWebServerPrintDebugInfo)

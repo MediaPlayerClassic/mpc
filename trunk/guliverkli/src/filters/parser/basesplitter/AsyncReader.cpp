@@ -33,6 +33,8 @@
 CAsyncFileReader::CAsyncFileReader(CString fn, HRESULT& hr) 
 	: CUnknown(NAME("CAsyncFileReader"), NULL, &hr)
 	, m_len(-1)
+	, m_hBreakEvent(NULL)
+	, m_lOsError(0)
 {
 	hr = Open(fn, modeRead|shareDenyWrite|typeBinary|osSequentialScan) ? S_OK : E_FAIL;
 	if(SUCCEEDED(hr)) m_len = GetLength();
@@ -44,6 +46,7 @@ STDMETHODIMP CAsyncFileReader::NonDelegatingQueryInterface(REFIID riid, void** p
 
 	return 
 		QI(IAsyncReader)
+		QI(ISyncReader)
 		QI(IFileHandle)
 		__super::NonDelegatingQueryInterface(riid, ppv);
 }
@@ -52,28 +55,38 @@ STDMETHODIMP CAsyncFileReader::NonDelegatingQueryInterface(REFIID riid, void** p
 
 STDMETHODIMP CAsyncFileReader::SyncRead(LONGLONG llPosition, LONG lLength, BYTE* pBuffer)
 {
-	try
+	do
 	{
-		if(llPosition+lLength > GetLength()) return E_FAIL; // strange, but the Seek below can return llPosition even if the file is not that big (?)
-		if(llPosition != Seek(llPosition, begin)) return E_FAIL;
-		if((UINT)lLength < Read(pBuffer, lLength)) return E_FAIL;
+		try
+		{
+			if(llPosition+lLength > GetLength()) return E_FAIL; // strange, but the Seek below can return llPosition even if the file is not that big (?)
+			if(llPosition != Seek(llPosition, begin)) return E_FAIL;
+			if((UINT)lLength < Read(pBuffer, lLength)) return E_FAIL;
 
 #ifdef DEBUG
-		static __int64 s_total = 0, s_laststoppos = 0;
-		s_total += lLength;
-		if(s_laststoppos > llPosition)
-			TRACE(_T("[%I64d - %I64d] %d (%I64d)\n"), llPosition, llPosition + lLength, lLength, s_total);
-		s_laststoppos = llPosition + lLength;
+			static __int64 s_total = 0, s_laststoppos = 0;
+			s_total += lLength;
+			if(s_laststoppos > llPosition)
+				TRACE(_T("[%I64d - %I64d] %d (%I64d)\n"), llPosition, llPosition + lLength, lLength, s_total);
+			s_laststoppos = llPosition + lLength;
 #endif
 
+			return S_OK;
+		}
+		catch(CFileException* e)
+		{
+			m_lOsError = e->m_lOsError;
+			e->Delete();
+			Sleep(1);
+			CString fn = m_strFileName;
+			try {Close();} catch(CFileException* e) {e->Delete();}
+			try {Open(fn, modeRead|shareDenyWrite|typeBinary|osSequentialScan);} catch(CFileException* e) {e->Delete();}
+			m_strFileName = fn;
+		}
 	}
-	catch(CFileException* e)
-	{
-		e->Delete();
-		return E_FAIL;
-	}
+	while(m_hBreakEvent && WaitForSingleObject(m_hBreakEvent, 0) == WAIT_TIMEOUT);
 
-	return S_OK;
+	return E_FAIL;
 }
 
 STDMETHODIMP CAsyncFileReader::Length(LONGLONG* pTotal, LONGLONG* pAvailable)

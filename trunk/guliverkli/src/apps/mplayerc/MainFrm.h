@@ -269,6 +269,7 @@ class CMainFrame : public CFrameWnd, public CDropTarget
 
 	void ShowOptions(int idPage = 0);
 
+	bool GetDIB(BYTE** ppData, long& size, bool fSilent = false);
 	void SaveImage(LPCTSTR fn);
 
 	//
@@ -280,6 +281,8 @@ class CMainFrame : public CFrameWnd, public CDropTarget
 public:
 	void StartWebServer(int nPort);
 	void StopWebServer();
+
+	CString GetStatusMessage();
 
 public:
 	CMainFrame();

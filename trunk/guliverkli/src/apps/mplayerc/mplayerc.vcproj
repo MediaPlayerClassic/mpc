@@ -55,7 +55,6 @@
 				AdditionalLibraryDirectories="../../../lib;../../../lib/wm7;../../../lib/qt6;../../../lib/detours"
 				IgnoreDefaultLibraryNames="MSVCRT"
 				DelayLoadDLLs="d3d9.dll;msimg32.dll;gdiplus.dll"
-				GenerateDebugInformation="FALSE"
 				ProgramDatabaseFile="$(OutDir)\$(ProjectName).pdb"
 				SubSystem="2"
 				SupportUnloadOfDelayLoadedDLL="TRUE"/>
@@ -1715,6 +1714,9 @@
 					RelativePath=".\res\web\404.html">
 				</File>
 				<File
+					RelativePath=".\res\web\bottomside.PNG">
+				</File>
+				<File
 					RelativePath=".\res\web\browser.html">
 				</File>
 				<File
@@ -1724,7 +1726,43 @@
 					RelativePath=".\res\web\default.css">
 				</File>
 				<File
+					RelativePath=".\res\web\headerback.png">
+				</File>
+				<File
+					RelativePath=".\res\web\headerclose.png">
+				</File>
+				<File
+					RelativePath=".\res\web\headericon.png">
+				</File>
+				<File
 					RelativePath=".\res\web\index.html">
+				</File>
+				<File
+					RelativePath=".\res\web\leftbottomside.png">
+				</File>
+				<File
+					RelativePath=".\res\web\leftside.png">
+				</File>
+				<File
+					RelativePath=".\res\web\player.html">
+				</File>
+				<File
+					RelativePath=".\res\web\rightbottomside.png">
+				</File>
+				<File
+					RelativePath=".\res\web\rightside.png">
+				</File>
+				<File
+					RelativePath=".\res\web\seekbargrip.png">
+				</File>
+				<File
+					RelativePath=".\res\web\seekbarleft.png">
+				</File>
+				<File
+					RelativePath=".\res\web\seekbarmid.png">
+				</File>
+				<File
+					RelativePath=".\res\web\seekbarright.png">
 				</File>
 				<File
 					RelativePath=".\res\web\sliderback.gif">

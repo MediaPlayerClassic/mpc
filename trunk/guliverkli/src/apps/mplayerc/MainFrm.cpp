@@ -3013,15 +3013,21 @@ void CMainFrame::OnUpdateFileSaveas(CCmdUI* pCmdUI)
 	pCmdUI->Enable(TRUE);
 }
 
-#include "jpeg.h"
-
-void CMainFrame::SaveImage(LPCTSTR fn)
+bool CMainFrame::GetDIB(BYTE** ppData, long& size, bool fSilent)
 {
+	if(!ppData) return false;
+
+	*ppData = NULL;
+	size = 0;
+
 	bool fNeedsToPause = !m_pCAP;
 	if(fNeedsToPause) fNeedsToPause = !IsVMR7InGraph(pGB);
 	if(fNeedsToPause) fNeedsToPause = !IsVMR9InGraph(pGB);
 
 	OAFilterState fs = GetMediaState();
+
+	if(!(m_iMediaLoadState == MLS_LOADED && !m_fAudioOnly && (fs == State_Paused || fs == State_Running)))
+		return false;
 
 	if(fs == State_Running && fNeedsToPause)
 	{
@@ -3029,23 +3035,19 @@ void CMainFrame::SaveImage(LPCTSTR fn)
 		GetMediaState(); // wait for completion of the pause command
 	}
 
+	HRESULT hr;
 	CString errmsg;
 
 	do
 	{
-		HRESULT hr;
-
-		CAutoVectorPtr<BYTE> buff;
-		long size = 0;
-
 		if(m_pCAP)
 		{
 			hr = m_pCAP->GetDIB(NULL, (DWORD*)&size);
 			if(FAILED(hr)) {errmsg.Format(_T("GetDIB failed, hr = %08x"), hr); break;}
 
-			buff.Allocate(size);
+			if(!(*ppData = new BYTE[size])) return false;
 
-			hr = m_pCAP->GetDIB(buff, (DWORD*)&size);
+			hr = m_pCAP->GetDIB(*ppData, (DWORD*)&size);
 			if(FAILED(hr)) {errmsg.Format(_T("GetDIB failed, hr = %08x"), hr); break;}
 		}
 		else
@@ -3053,47 +3055,75 @@ void CMainFrame::SaveImage(LPCTSTR fn)
 			hr = pBV->GetCurrentImage(&size, NULL);
 			if(FAILED(hr)) {errmsg.Format(_T("GetCurrentImage failed, hr = %08x"), hr); break;}
 
-			buff.Allocate(size);
+			if(!(*ppData = new BYTE[size])) return false;
 
-			hr = pBV->GetCurrentImage(&size, (long*)(BYTE*)buff);
+			hr = pBV->GetCurrentImage(&size, (long*)*ppData);
 			if(FAILED(hr)) {errmsg.Format(_T("GetCurrentImage failed, hr = %08x"), hr); break;}
-		}
-
-		BITMAPINFO* bi = (BITMAPINFO*)(BYTE*)buff;
-
-		BITMAPFILEHEADER bfh;
-		bfh.bfType = 'MB';
-		bfh.bfOffBits = sizeof(bfh) + sizeof(bi->bmiHeader);
-		if(bi->bmiHeader.biBitCount <= 8)
-		{
-			if(bi->bmiHeader.biClrUsed) bfh.bfOffBits += bi->bmiHeader.biClrUsed * sizeof(bi->bmiColors[0]);
-			else bfh.bfOffBits += (1 << bi->bmiHeader.biBitCount) * sizeof(bi->bmiColors[0]);
-		}
-		bfh.bfSize = sizeof(bfh) + size;
-		bfh.bfReserved1 = bfh.bfReserved2 = 0;
-
-		CString ext = CString(CPath(fn).GetExtension()).MakeLower();
-		if(ext == _T(".bmp"))
-		{
-			FILE* f = _tfopen(fn, _T("wb"));
-			if(!f) {errmsg = _T("Cannot create file"); break;}
-			fwrite(&bfh, 1, sizeof(bfh), f);
-			fwrite(buff, 1, size, f);
-			fclose(f);
-		}
-		else if(ext == _T(".jpg"))
-		{
-			CJpegEncoder(fn, (BYTE*)buff);
 		}
 	}
 	while(0);
 
-	if(!errmsg.IsEmpty())
+	if(!fSilent)
 	{
-		AfxMessageBox(errmsg, MB_OK);
+		if(!errmsg.IsEmpty())
+		{
+			AfxMessageBox(errmsg, MB_OK);
+		}
 	}
-	else
+
+	if(fs == State_Running && GetMediaState() != State_Running)
 	{
+		pMC->Run();
+	}
+
+	return true;
+}
+
+#include "jpeg.h"
+
+void CMainFrame::SaveImage(LPCTSTR fn)
+{
+	BYTE* pData = NULL;
+	long size = 0;
+	if(GetDIB(&pData, size))
+	{
+		CString ext = CString(CPath(fn).GetExtension()).MakeLower();
+
+		if(ext == _T(".bmp"))
+		{
+			if(FILE* f = _tfopen(fn, _T("wb")))
+			{
+				BITMAPINFO* bi = (BITMAPINFO*)pData;
+
+				BITMAPFILEHEADER bfh;
+				bfh.bfType = 'MB';
+				bfh.bfOffBits = sizeof(bfh) + sizeof(bi->bmiHeader);
+				bfh.bfSize = sizeof(bfh) + size;
+				bfh.bfReserved1 = bfh.bfReserved2 = 0;
+
+				if(bi->bmiHeader.biBitCount <= 8)
+				{
+					if(bi->bmiHeader.biClrUsed) bfh.bfOffBits += bi->bmiHeader.biClrUsed * sizeof(bi->bmiColors[0]);
+					else bfh.bfOffBits += (1 << bi->bmiHeader.biBitCount) * sizeof(bi->bmiColors[0]);
+				}
+
+				fwrite(&bfh, 1, sizeof(bfh), f);
+				fwrite(pData, 1, size, f);
+
+				fclose(f);
+			}
+			else
+			{
+				AfxMessageBox(_T("Cannot create file"), MB_OK);
+			}
+		}
+		else if(ext == _T(".jpg"))
+		{
+			CJpegEncoderFile(fn).Encode(pData);
+		}
+
+		delete [] pData;
+
 		CPath p(fn);
 
 		if(CDC* pDC = m_wndStatusBar.m_status.GetDC())
@@ -3105,11 +3135,6 @@ void CMainFrame::SaveImage(LPCTSTR fn)
 		}
 
 		SendStatusMessage((LPCTSTR)p, 3000);
-	}
-
-	if(fs == State_Running && GetMediaState() != State_Running)
-	{
-		pMC->Run();
 	}
 }
 
@@ -8452,6 +8477,13 @@ void CMainFrame::StopWebServer()
 {
 	if(m_pWebServer)
 		m_pWebServer.Free();
+}
+
+CString CMainFrame::GetStatusMessage()
+{
+	CString str;
+	m_wndStatusBar.m_status.GetWindowText(str);
+	return str;
 }
 
 void CMainFrame::SendStatusMessage(CString msg, int nTimeOut)
