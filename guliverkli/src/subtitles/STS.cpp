@@ -1181,9 +1181,7 @@ int GetInt(CStringW& buff, char sep = ',') //throw(...)
 {
 	CStringW str;
 
-	try {str = GetStr(buff, sep);}
-	catch(...) {throw 1;}
-
+	str = GetStr(buff, sep);
 	str.MakeLower();
 
 	CStringW fmtstr = str.GetLength() > 2 && (str.Left(2) == L"&h" || str.Left(2) == L"0x")
@@ -1200,9 +1198,7 @@ double GetFloat(CStringW& buff, char sep = ',') //throw(...)
 {
 	CStringW str;
 
-	try {str = GetStr(buff, sep);}
-	catch(...) {throw 1;}
-
+	str = GetStr(buff, sep);
 	str.MakeLower();
 
 	float ret;

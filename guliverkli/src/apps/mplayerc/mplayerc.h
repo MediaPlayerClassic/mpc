@@ -287,6 +287,7 @@ public:
 		bool fHideCaptionMenu;
 		int iDefaultVideoSize;
 		bool fKeepAspectRatio;
+		bool fCompMonDeskARDiff;
 
 		CRecentFileAndURLList MRU;
 		CRecentFileAndURLList MRUDub;
