@@ -80,6 +80,10 @@ private:
 
 	void MakeISCRHappy();
 
+	// please only use DeliverPacket from the derived class
+    HRESULT GetDeliveryBuffer(IMediaSample** ppSample, REFERENCE_TIME* pStartTime, REFERENCE_TIME* pEndTime, DWORD dwFlags);
+    HRESULT Deliver(IMediaSample* pSample);
+
 protected:
 	REFERENCE_TIME m_rtStart;
 

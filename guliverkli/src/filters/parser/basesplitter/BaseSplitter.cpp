@@ -430,6 +430,16 @@ void CBaseSplitterOutputPin::MakeISCRHappy()
 	}
 }
 
+HRESULT CBaseSplitterOutputPin::GetDeliveryBuffer(IMediaSample** ppSample, REFERENCE_TIME* pStartTime, REFERENCE_TIME* pEndTime, DWORD dwFlags)
+{
+	return __super::GetDeliveryBuffer(ppSample, pStartTime, pEndTime, dwFlags);
+}
+
+HRESULT CBaseSplitterOutputPin::Deliver(IMediaSample* pSample)
+{
+	return __super::Deliver(pSample);
+}
+
 //
 // CBaseSplitterFilter
 //
