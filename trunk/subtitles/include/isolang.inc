@@ -314,7 +314,7 @@ $isolangraw = array(
 	array("North American Indian (Other)", "nai", ""),
 	array("Northern Sami", "sme", "se"),
 	array("Norwegian", "nor", "no"),
-	array("Norwegian Bokmål", "nob", "nb"),
+	array("Norwegian Bokm\xC3\xA5l", "nob", "nb"),
 	array("Norwegian Nynorsk", "nno", "nn"),
 	array("Nubian languages", "nub", ""),
 	array("Nyamwezi", "nym", ""),
@@ -491,6 +491,7 @@ $isolangraw = array(
 	array("Nogai", "nog", ""),
 	array("Haitian", "hat", "ht"),
 	array("Kalmyk", "xal", ""),
+	array("Portuguese (Brazilian)", "pob", "pb"), // self-invented
 	);
 	
 $isolangtmp = array();
