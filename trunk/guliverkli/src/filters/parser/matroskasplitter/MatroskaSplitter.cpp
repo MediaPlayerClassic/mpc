@@ -1001,11 +1001,12 @@ STDMETHODIMP CMatroskaSourceFilter::GetPositions(LONGLONG* pCurrent, LONGLONG* p
 	if(pStop) *pStop = m_rtStop;
 	return S_OK;
 }
-STDMETHODIMP CMatroskaSourceFilter::GetAvailable(LONGLONG* pEarliest, LONGLONG* pLatest) {return E_NOTIMPL;}
-STDMETHODIMP CMatroskaSourceFilter::SetRate(double dRate)
+STDMETHODIMP CMatroskaSourceFilter::GetAvailable(LONGLONG* pEarliest, LONGLONG* pLatest)
 {
-	return E_NOTIMPL;
+	if(pEarliest) *pEarliest = 0;
+	return GetDuration(pLatest);
 }
+STDMETHODIMP CMatroskaSourceFilter::SetRate(double dRate) {return dRate == 1.0 ? S_OK : E_NOTIMPL;}
 STDMETHODIMP CMatroskaSourceFilter::GetRate(double* pdRate) {return pdRate ? *pdRate = m_dRate, S_OK : E_POINTER;}
 STDMETHODIMP CMatroskaSourceFilter::GetPreroll(LONGLONG* pllPreroll) {return pllPreroll ? *pllPreroll = 0, S_OK : E_POINTER;}
 
@@ -1139,6 +1140,7 @@ STDMETHODIMP CMatroskaSplitterOutputPin::NonDelegatingQueryInterface(REFIID riid
 	CheckPointer(ppv, E_POINTER);
 
 	return 
+		riid == __uuidof(IMediaSeeking) ? m_pFilter->QueryInterface(riid, ppv) : 
 		__super::NonDelegatingQueryInterface(riid, ppv);
 }
 
