@@ -298,6 +298,8 @@ CDX9AllocatorPresenter::CDX9AllocatorPresenter(HWND hWnd, HRESULT& hr)
     }
 
 	m_pD3D.Attach(Direct3DCreate9(D3D_SDK_VERSION));
+	if(!m_pD3D) m_pD3D.Attach(Direct3DCreate9(D3D9b_SDK_VERSION));
+
 	if(!m_pD3D)
 	{
 		hr = E_FAIL;

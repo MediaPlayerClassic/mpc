@@ -469,6 +469,9 @@
 						UsePrecompiledHeader="1"/>
 				</FileConfiguration>
 			</File>
+			<File
+				RelativePath=".\StreamSwitcher.cpp">
+			</File>
 		</Filter>
 		<Filter
 			Name="Header Files"
@@ -481,6 +484,9 @@
 			</File>
 			<File
 				RelativePath="stdafx.h">
+			</File>
+			<File
+				RelativePath=".\StreamSwitcher.h">
 			</File>
 		</Filter>
 		<Filter

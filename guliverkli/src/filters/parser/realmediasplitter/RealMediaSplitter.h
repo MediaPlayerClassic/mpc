@@ -25,6 +25,7 @@
 #include <atlcoll.h>
 #include <afxtempl.h>
 #include "..\BaseSplitter\BaseSplitter.h"
+#include "..\..\transform\BaseVideoFilter\BaseVideoFilter.h"
 
 #pragma pack(push, 1)
 
@@ -229,7 +230,7 @@ public:
 ////////////
 
 [uuid("238D0F23-5DC9-45A6-9BE2-666160C324DD")]
-class CRealVideoDecoder : public CTransformFilter
+class CRealVideoDecoder : public CBaseVideoFilter
 {
 	typedef HRESULT (WINAPI *PRVCustomMessage)(void*, DWORD);
 	typedef HRESULT (WINAPI *PRVFree)(DWORD);
@@ -249,11 +250,8 @@ class CRealVideoDecoder : public CTransformFilter
 	HRESULT InitRV(const CMediaType* pmt);
 	void FreeRV();
 
-	void GetOutDim(int& wo, int& ho);
-
 	REFERENCE_TIME m_tStart;
 
-	void Copy(BYTE* pOut, BYTE* pIn, DWORD wi, DWORD hi);
 	void Resize(BYTE* pIn, DWORD wi, DWORD hi, BYTE* pOut, DWORD wo, DWORD ho);
 	void ResizeWidth(BYTE* pIn, DWORD wi, DWORD hi, BYTE* pOut, DWORD wo, DWORD ho);
 	void ResizeHeight(BYTE* pIn, DWORD wi, DWORD hi, BYTE* pOut, DWORD wo, DWORD ho);
@@ -265,19 +263,14 @@ public:
 	CRealVideoDecoder(LPUNKNOWN lpunk, HRESULT* phr);
 	virtual ~CRealVideoDecoder();
 
-	HRESULT Receive(IMediaSample* pIn);
+	HRESULT Transform(IMediaSample* pIn);
 	HRESULT CheckInputType(const CMediaType* mtIn);
 	HRESULT CheckTransform(const CMediaType* mtIn, const CMediaType* mtOut);
-	HRESULT DecideBufferSize(IMemAllocator* pAllocator, ALLOCATOR_PROPERTIES* pProperties);
-	HRESULT GetMediaType(int iPosition, CMediaType* pMediaType);
 
 	HRESULT StartStreaming();
 	HRESULT StopStreaming();
 
-    HRESULT EndOfStream();
-    HRESULT BeginFlush();
-    HRESULT EndFlush();
-    HRESULT NewSegment(REFERENCE_TIME tStart, REFERENCE_TIME tStop, double dRate);
+	HRESULT NewSegment(REFERENCE_TIME tStart, REFERENCE_TIME tStop, double dRate);
 
 	DWORD m_timestamp;
 	bool m_fDropFrames;

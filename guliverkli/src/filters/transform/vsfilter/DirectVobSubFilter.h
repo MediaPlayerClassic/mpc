@@ -23,10 +23,10 @@
 
 #include <atlsync.h>
 #include "DirectVobSub.h"
-#include "DirectVobSubAllocator.h"
+#include "..\BaseVideoFilter\BaseVideoFilter.h"
+//#include "DirectVobSubAllocator.h"
 #include "..\..\..\subtitles\VobSubFile.h"
 #include "..\..\..\subtitles\RTS.h"
-#include "..\..\..\..\include\moreuuids.h"
 
 typedef struct
 {
@@ -38,51 +38,52 @@ typedef struct
 
 /* This is for graphedit */
 
+[uuid("93A22E7A-5091-45ef-BA61-6DA26156A5D0")]
 class CDirectVobSubFilter
-	: public CTransformFilter
+	: public CBaseVideoFilter
 	, public CDirectVobSub
 	, public ISpecifyPropertyPages
 	, public IAMStreamSelect
 	, public CAMThread
 {
-    friend class CDirectVobSubInputPin;
-    friend class CDirectVobSubOutputPin;
     friend class CTextInputPin;
 
-public:
-    DECLARE_IUNKNOWN;
-    static CUnknown* WINAPI CreateInstance(LPUNKNOWN punk, HRESULT* phr);
+	CCritSec m_csQueueLock;
+	CComPtr<ISubPicQueue> m_pSubPicQueue;
+	void InitSubPicQueue();
+	SubPicDesc m_spd;
 
+	bool AdjustFrameSize(CSize& s);
+
+protected:
+	void GetOutputSize(int& w, int& h, int& arx, int& ary);
+	HRESULT Transform(IMediaSample* pIn);
+
+public:
+    CDirectVobSubFilter(LPUNKNOWN punk, HRESULT* phr, const GUID& clsid = __uuidof(CDirectVobSubFilter));
+	virtual ~CDirectVobSubFilter();
+
+    DECLARE_IUNKNOWN;
     STDMETHODIMP NonDelegatingQueryInterface(REFIID riid, void** ppv);
 
-    // Overriden from CTransformFilter base class
-	HRESULT Receive(IMediaSample* pSample),
-			Transform(IMediaSample* pIn, IMediaSample* pOut),
-			CheckInputType(const CMediaType* mtIn),
-			CheckTransform(const CMediaType* mtIn, const CMediaType* mtOut),
-			DecideBufferSize(IMemAllocator* pAlloc, ALLOCATOR_PROPERTIES* pProperties),
-			GetMediaType(int iPosition, CMediaType* pMediaType),
-			SetMediaType(PIN_DIRECTION direction, const CMediaType* pMediaType),
-			CheckConnect(PIN_DIRECTION direction, IPin* pPin),
-			CompleteConnect(PIN_DIRECTION direction, IPin* pReceivePin),
-			BreakConnect(PIN_DIRECTION direction),
+    // CBaseFilter
+
+	CBasePin* GetPin(int n);
+	int GetPinCount();
+
+	STDMETHODIMP JoinFilterGraph(IFilterGraph* pGraph, LPCWSTR pName);
+	STDMETHODIMP QueryFilterInfo(FILTER_INFO* pInfo);
+
+    // CTransformFilter
+	HRESULT SetMediaType(PIN_DIRECTION dir, const CMediaType* pMediaType),
+			CheckConnect(PIN_DIRECTION dir, IPin* pPin),
+			CompleteConnect(PIN_DIRECTION dir, IPin* pReceivePin),
+			BreakConnect(PIN_DIRECTION dir),
 			StartStreaming(), 
 			StopStreaming(),
 			NewSegment(REFERENCE_TIME tStart, REFERENCE_TIME tStop, double dRate);
 
-	HRESULT CheckOutputType(const CMediaType* mtOut);
-
-    // Overriden from CBaseFilter base class
-	STDMETHODIMP JoinFilterGraph(IFilterGraph* pGraph, LPCWSTR pName);
-	STDMETHODIMP QueryFilterInfo(FILTER_INFO* pInfo);
-
     CArray<CTextInputPin*> m_pTextInput;
-
-	CDirectVobSubAllocator m_Allocator;
-	bool m_fUsingOwnAllocator;
-
-	CBasePin* GetPin(int n);
-	int GetPinCount();
 
     // IDirectVobSub
     STDMETHODIMP put_FileName(WCHAR* fn);
@@ -119,18 +120,7 @@ public:
 	STDMETHODIMP GetClassID(CLSID* pClsid);
 
 protected:
-    CDirectVobSubFilter(TCHAR* tszName, LPUNKNOWN punk, HRESULT* phr, const GUID& guid);
-	virtual ~CDirectVobSubFilter();
-
-protected:
-	int m_wIn;
-	BITMAPINFOHEADER m_bihIn, m_bihOut;
-	CSize m_sizeSub;
-
 	HRESULT ChangeMediaType(int iPosition);
-
-	bool AdjustFrameSize(CSize& s);
-	HRESULT ConvertMediaTypeInputToOutput(CMediaType* pmt, int iVIHTemplate = -1, bool fVIH2 = false);
 
 	HDC m_hdc;
 	HBITMAP m_hbm;
@@ -138,9 +128,8 @@ protected:
 	void PrintMessages(BYTE* pOut);
 
 /* ResX2 */
-	bool m_fResX2Active;
 	CAutoVectorPtr<BYTE> m_pTempPicBuff;
-	HRESULT Copy(BYTE* pSub, BYTE* pIn, CSize sub, CSize in, int widthIn, int bpp, const GUID& subtype, DWORD black, bool fResX2);
+	HRESULT Copy(BYTE* pSub, BYTE* pIn, CSize sub, CSize in, int bpp, const GUID& subtype, DWORD black);
 
 	// segment start time, absolute time
 	CRefTime m_tPrev;
@@ -161,11 +150,6 @@ protected:
 
 	int FindPreferedLanguage(bool fHideToo = true);
 	void UpdatePreferedLanguages(CString lang);
-
-	CCritSec m_csQueueLock;
-	CComPtr<ISubPicQueue> m_pSubPicQueue;
-	void InitSubPicQueue();
-	SubPicDesc m_spd;
 
 	CCritSec m_csSubLock;
 	CInterfaceList<ISubStream> m_pSubStreams;
@@ -198,21 +182,17 @@ private:
 
 /* The "auto-loading" version */
 
-class CDirectVobSubFilter2
-	: public CDirectVobSubFilter
+[uuid("9852A670-F845-491b-9BE6-EBD841B8A613")]
+class CDirectVobSubFilter2 : public CDirectVobSubFilter
 {
 	bool ShouldWeAutoload(IFilterGraph* pGraph);
 	void GetRidOfInternalScriptRenderer();
 
 public:
-    static CUnknown* WINAPI CreateInstance(LPUNKNOWN punk, HRESULT* phr);
+    CDirectVobSubFilter2(LPUNKNOWN punk, HRESULT* phr, const GUID& clsid = __uuidof(CDirectVobSubFilter2));
 
-	// Overriden from CTransformFilter base class
 	HRESULT CheckConnect(PIN_DIRECTION dir, IPin* pPin);
 	STDMETHODIMP JoinFilterGraph(IFilterGraph* pGraph, LPCWSTR pName);
     HRESULT CheckInputType(const CMediaType* mtIn);
-
-private:
-    CDirectVobSubFilter2(TCHAR* tszName, LPUNKNOWN punk, HRESULT* phr, const GUID& guid);
 };
 

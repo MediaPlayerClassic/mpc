@@ -277,6 +277,7 @@ void CMPlayerCApp::ShowCmdlnSwitches()
 		_T("/unregvid\t\tUnregister video formats\n")
 		_T("/unregaud\tUnregister audio formats\n")
 		_T("/start ms\t\tStart playing at \"ms\" (= milliseconds)\n")
+		_T("/fixedsize w,h\tSet fixed window size.\n")
 		_T("/help /h /?\tShow help about command line switches. (this message box)\n");
 
 	AfxMessageBox(s);
@@ -903,6 +904,7 @@ CMPlayerCApp::Settings::Settings()
 	ADDCMD((ID_STREAM_SUB_NEXT, 'S', FVIRTKEY|FNOINVERT, _T("Next Subtitle")));
 	ADDCMD((ID_STREAM_SUB_PREV, 'S', FVIRTKEY|FSHIFT|FNOINVERT, _T("Prev Subtitle")));
 	ADDCMD((ID_STREAM_SUB_ONOFF, 'W', FVIRTKEY|FNOINVERT, _T("On/Off Subtitle")));
+	ADDCMD((ID_SUBTITLES_SUBITEM_START+2, 0, FVIRTKEY|FNOINVERT, _T("Reload Subtitles")));
 	ADDCMD((ID_OGM_AUDIO_NEXT, 0, FVIRTKEY|FNOINVERT, _T("Next Audio (OGM)")));
 	ADDCMD((ID_OGM_AUDIO_PREV, 0, FVIRTKEY|FNOINVERT, _T("Prev Audio (OGM)")));
 	ADDCMD((ID_OGM_SUB_NEXT, 0, FVIRTKEY|FNOINVERT, _T("Next Subtitle (OGM)")));
@@ -1454,6 +1456,7 @@ void CMPlayerCApp::Settings::ParseCommandLine(CStringList& cmdln)
 	slSubs.RemoveAll();
 	slFilters.RemoveAll();
 	rtStart = 0;
+	fixedWindowSize.SetSize(0, 0);
 
 	if(launchfullscreen) nCLSwitches |= CLSW_FULLSCREEN;
 
@@ -1487,6 +1490,17 @@ void CMPlayerCApp::Settings::ParseCommandLine(CStringList& cmdln)
 			else if(sw == _T("start") && pos) {rtStart = 10000i64*_tcstol(cmdln.GetNext(pos), NULL, 10); nCLSwitches |= CLSW_STARTVALID;}
 			else if(sw == _T("startpos") && pos) {/* TODO: mm:ss. */;}
 			else if(sw == _T("nofocus")) nCLSwitches |= CLSW_NOFOCUS;
+			else if(sw == _T("fixedsize") && pos)
+			{
+				CList<CString> sl;
+				Explode(cmdln.GetNext(pos), sl, ',', 2);
+				if(sl.GetCount() == 2)
+				{
+					fixedWindowSize.SetSize(_ttol(sl.GetHead()), _ttol(sl.GetTail()));
+					if(fixedWindowSize.cx > 0 && fixedWindowSize.cy > 0)
+						nCLSwitches |= CLSW_FIXEDSIZE;
+				}
+			}
 			else nCLSwitches |= CLSW_HELP|CLSW_UNRECOGNIZEDSWITCH;
 		}
 		else

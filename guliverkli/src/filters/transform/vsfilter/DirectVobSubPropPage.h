@@ -59,20 +59,9 @@ protected:
 	void BindControl(UINT id, CWnd& control);
 };
 
+[uuid("60765CF5-01C2-4ee7-A44B-C791CF25FEA0")]
 class CDVSMainPPage : public CDVSBasePPage
 {
-public:
-    static CUnknown* WINAPI CreateInstance(LPUNKNOWN lpunk, HRESULT* phr);
-
-protected:
-    virtual bool OnMessage(UINT uMsg, WPARAM wParam, LPARAM lParam);
-	virtual void UpdateControlData(bool fSave);
-	virtual void UpdateObjectData(bool fSave);
-
-private:
-    CDVSMainPPage(LPUNKNOWN lpunk);
-	virtual ~CDVSMainPPage();
-
 	void FreeLangs(), AllocLangs(int nLangs);
 
 	WCHAR m_fn[MAX_PATH];
@@ -88,21 +77,20 @@ private:
 	CButton m_oplacement;
 	CSpinButtonCtrl m_subposx, m_subposy;
 	CButton m_font, m_forcedsubs;
-};
-
-class CDVSGeneralPPage : public CDVSBasePPage
-{
-public:
-    static CUnknown* WINAPI CreateInstance(LPUNKNOWN lpunk, HRESULT* phr);
 
 protected:
     virtual bool OnMessage(UINT uMsg, WPARAM wParam, LPARAM lParam);
 	virtual void UpdateControlData(bool fSave);
 	virtual void UpdateObjectData(bool fSave);
 
-private:
-    CDVSGeneralPPage(LPUNKNOWN lpunk);
+public:
+    CDVSMainPPage(LPUNKNOWN lpunk, HRESULT* phr);
+	virtual ~CDVSMainPPage();
+};
 
+[uuid("0180E49C-13BF-46db-9AFD-9F52292E1C22")]
+class CDVSGeneralPPage : public CDVSBasePPage
+{
 	int m_HorExt, m_VerExt, m_ResX2, m_ResX2minw, m_ResX2minh;
 	int m_LoadLevel;
 	bool m_fExternalLoad, m_fWebLoad, m_fEmbeddedLoad;
@@ -113,39 +101,35 @@ private:
 	CSpinButtonCtrl m_resx2w, m_resx2h;
 	CComboBox m_load;
 	CButton m_extload, m_webload, m_embload;
-};
-
-class CDVSMiscPPage : public CDVSBasePPage
-{
-public:
-    static CUnknown* WINAPI CreateInstance(LPUNKNOWN lpunk, HRESULT* phr);
 
 protected:
     virtual bool OnMessage(UINT uMsg, WPARAM wParam, LPARAM lParam);
 	virtual void UpdateControlData(bool fSave);
 	virtual void UpdateObjectData(bool fSave);
 
-private:
-    CDVSMiscPPage(LPUNKNOWN lpunk);
+public:
+    CDVSGeneralPPage(LPUNKNOWN lpunk, HRESULT* phr);
+};
 
+[uuid("A8B25C0E-0894-4531-B668-AB1599FAF7F6")]
+class CDVSMiscPPage : public CDVSBasePPage
+{
 	bool m_fFlipPicture, m_fFlipSubtitles, m_fHideSubtitles, m_fOSD, m_fDoPreBuffering, m_fReloaderDisabled, m_fSaveFullPath;
 
 	CButton m_flippic, m_flipsub, m_hidesub, m_showosd, m_prebuff, m_autoreload, m_savefullpath, m_instupd;
-};
-
-class CDVSTimingPPage : public CDVSBasePPage
-{
-public:
-    static CUnknown* WINAPI CreateInstance(LPUNKNOWN lpunk, HRESULT* phr);
 
 protected:
     virtual bool OnMessage(UINT uMsg, WPARAM wParam, LPARAM lParam);
 	virtual void UpdateControlData(bool fSave);
 	virtual void UpdateObjectData(bool fSave);
 
-private:
-    CDVSTimingPPage(LPUNKNOWN lpunk);
+public:
+    CDVSMiscPPage(LPUNKNOWN lpunk, HRESULT* phr);
+};
 
+[uuid("ACE4747B-35BD-4e97-9DD7-1D4245B0695C")]
+class CDVSTimingPPage : public CDVSBasePPage
+{
 	int m_SubtitleSpeedMul, m_SubtitleSpeedDiv, m_SubtitleDelay;
 	bool m_fMediaFPSEnabled;
 	double m_MediaFPS;
@@ -153,71 +137,71 @@ private:
 	CButton m_modfps;
 	CEdit m_fps;
 	CSpinButtonCtrl m_subdelay, m_subspeedmul, m_subspeeddiv;
-};
-
-class CDVSAboutPPage : public CDVSBasePPage
-{
-public:
-    static CUnknown* WINAPI CreateInstance(LPUNKNOWN lpunk, HRESULT* phr);
-
-protected:
-    virtual bool OnMessage(UINT uMsg, WPARAM wParam, LPARAM lParam);
-
-private:
-    CDVSAboutPPage(LPUNKNOWN lpunk);
-};
-
-class CDVSZoomPPage : public CDVSBasePPage
-{
-public:
-    static CUnknown* WINAPI CreateInstance(LPUNKNOWN lpunk, HRESULT* phr);
 
 protected:
     virtual bool OnMessage(UINT uMsg, WPARAM wParam, LPARAM lParam);
 	virtual void UpdateControlData(bool fSave);
 	virtual void UpdateObjectData(bool fSave);
 
-private:
-    CDVSZoomPPage(LPUNKNOWN lpunk);
+public:
+    CDVSTimingPPage(LPUNKNOWN lpunk, HRESULT* phr);
+};
 
+[uuid("F544E0F5-CA3C-47ea-A64D-35FCF1602396")]
+class CDVSAboutPPage : public CDVSBasePPage
+{
+protected:
+    virtual bool OnMessage(UINT uMsg, WPARAM wParam, LPARAM lParam);
+
+public:
+    CDVSAboutPPage(LPUNKNOWN lpunk, HRESULT* phr);
+};
+
+[uuid("525F116F-04AD-40a2-AE2F-A0C4E1AFEF98")]
+class CDVSZoomPPage : public CDVSBasePPage
+{
 	NORMALIZEDRECT m_rect;
 
 	CSpinButtonCtrl m_posx, m_posy, m_scalex, m_scaley;
+
+protected:
+    virtual bool OnMessage(UINT uMsg, WPARAM wParam, LPARAM lParam);
+	virtual void UpdateControlData(bool fSave);
+	virtual void UpdateObjectData(bool fSave);
+
+public:
+    CDVSZoomPPage(LPUNKNOWN lpunk, HRESULT* phr);
 };
 
+[uuid("C2D6D98F-09CA-4524-AF64-1049B5665C9C")]
 class CDVSColorPPage : public CDVSBasePPage
 {
-public:
-    static CUnknown* WINAPI CreateInstance(LPUNKNOWN lpunk, HRESULT* phr);
-
-protected:
-    virtual bool OnMessage(UINT uMsg, WPARAM wParam, LPARAM lParam);
-	virtual void UpdateControlData(bool fSave);
-	virtual void UpdateObjectData(bool fSave);
-
-private:
-    CDVSColorPPage(LPUNKNOWN lpunk);
-
 	CListBox m_preflist, m_dynchglist;
 	CButton m_forcergb;
-};
-
-class CDVSPathsPPage : public CDVSBasePPage
-{
-public:
-    static CUnknown* WINAPI CreateInstance(LPUNKNOWN lpunk, HRESULT* phr);
 
 protected:
     virtual bool OnMessage(UINT uMsg, WPARAM wParam, LPARAM lParam);
 	virtual void UpdateControlData(bool fSave);
 	virtual void UpdateObjectData(bool fSave);
 
-private:
-    CDVSPathsPPage(LPUNKNOWN lpunk);
+public:
+    CDVSColorPPage(LPUNKNOWN lpunk, HRESULT* phr);
+};
 
+[uuid("CE77C59C-CFD2-429f-868C-8B04D23F94CA")]
+class CDVSPathsPPage : public CDVSBasePPage
+{
 	CStringArray m_paths;
 
 	CListBox m_pathlist;
 	CEdit m_path;
 	CButton m_browse, m_remove, m_add;
+
+protected:
+    virtual bool OnMessage(UINT uMsg, WPARAM wParam, LPARAM lParam);
+	virtual void UpdateControlData(bool fSave);
+	virtual void UpdateObjectData(bool fSave);
+
+public:
+    CDVSPathsPPage(LPUNKNOWN lpunk, HRESULT* phr);
 };

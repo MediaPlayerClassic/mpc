@@ -30,9 +30,12 @@
 // CAsyncFileReader
 //
 
-CAsyncFileReader::CAsyncFileReader(CString fn, HRESULT& hr) : CUnknown(NAME("CAsyncFileReader"), NULL, &hr)
+CAsyncFileReader::CAsyncFileReader(CString fn, HRESULT& hr) 
+	: CUnknown(NAME("CAsyncFileReader"), NULL, &hr)
+	, m_len(-1)
 {
 	hr = Open(fn, modeRead|shareDenyWrite|typeBinary|osSequentialScan) ? S_OK : E_FAIL;
+	if(SUCCEEDED(hr)) m_len = GetLength();
 }
 
 STDMETHODIMP CAsyncFileReader::NonDelegatingQueryInterface(REFIID riid, void** ppv)
@@ -75,8 +78,9 @@ STDMETHODIMP CAsyncFileReader::SyncRead(LONGLONG llPosition, LONG lLength, BYTE*
 
 STDMETHODIMP CAsyncFileReader::Length(LONGLONG* pTotal, LONGLONG* pAvailable)
 {
-	if(pTotal) *pTotal = GetLength();
-	if(pAvailable) *pAvailable = GetLength();
+	LONGLONG len = m_len >= 0 ? m_len : GetLength();
+	if(pTotal) *pTotal = len;
+	if(pAvailable) *pAvailable = len;
 	return S_OK;
 }
 
@@ -91,7 +95,8 @@ STDMETHODIMP_(HANDLE) CAsyncFileReader::GetFileHandle()
 // CAsyncUrlReader
 //
 
-CAsyncUrlReader::CAsyncUrlReader(CString url, HRESULT& hr) : CAsyncFileReader(url, hr)
+CAsyncUrlReader::CAsyncUrlReader(CString url, HRESULT& hr) 
+	: CAsyncFileReader(url, hr)
 {
 	if(SUCCEEDED(hr)) return;
 
@@ -101,6 +106,7 @@ CAsyncUrlReader::CAsyncUrlReader(CString url, HRESULT& hr) : CAsyncFileReader(ur
 		CallWorker(CMD_INIT);
 
 	hr = Open(m_fn, modeRead|shareDenyRead|typeBinary|osSequentialScan) ? S_OK : E_FAIL;
+	m_len = -1; // force GetLength() return actual length always
 }
 
 CAsyncUrlReader::~CAsyncUrlReader()

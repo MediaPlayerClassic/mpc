@@ -459,9 +459,17 @@ void CPlayerPlaylistBar::SetTime(int i, REFERENCE_TIME rt)
 
 	if(rt > 0)
 	{
+		rt /= 10000000;
+		int ss = int(rt%60);
+		rt /= 60;
+		int mm = int(rt%60);
+		rt /= 60;
+		int hh = int(rt);
+/*
 		int hh = int(rt/10000000/60/60);
 		int mm = int((rt/10000000/60)%60);
 		int ss = int((rt/10000000)%60);
+*/
 		t.Format(_T("%02d:%02d:%02d"), hh, mm, ss);
 	}
 

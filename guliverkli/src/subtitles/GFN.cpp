@@ -75,7 +75,7 @@ void GetSubFileNames(CString fn, CStringArray& paths, SubFiles& ret)
 
 	CString orgpath = fn.Left(l);
 	CString title = fn.Mid(l, l2-l);
-	CString filename = fn.Mid(l);
+	CString filename = title + _T(".nooneexpectsthespanishinquisition");
 
 	if(!fWeb)
 	{

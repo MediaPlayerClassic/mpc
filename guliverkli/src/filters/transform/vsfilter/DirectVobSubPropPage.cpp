@@ -278,15 +278,7 @@ void CDVSBasePPage::BindControl(UINT id, CWnd& control)
 
 /* CDVSMainPPage */
 
-CUnknown* CDVSMainPPage::CreateInstance(LPUNKNOWN lpunk, HRESULT* phr)
-{
-    CUnknown* punk = new CDVSMainPPage(lpunk);
-    if(punk == NULL) *phr = E_OUTOFMEMORY;
-
-    return punk;
-}
-
-CDVSMainPPage::CDVSMainPPage(LPUNKNOWN pUnk) :
+CDVSMainPPage::CDVSMainPPage(LPUNKNOWN pUnk, HRESULT* phr) :
     CDVSBasePPage(NAME("DirectVobSub Property Page (main)"), pUnk, IDD_DVSMAINPAGE, IDD_DVSMAINPAGE),
 	m_nLangs(0),
 	m_ppLangs(NULL)
@@ -444,15 +436,7 @@ void CDVSMainPPage::UpdateControlData(bool fSave)
 
 /* CDVSGeneralPPage */
 
-CUnknown* CDVSGeneralPPage::CreateInstance(LPUNKNOWN lpunk, HRESULT* phr)
-{
-    CUnknown* punk = new CDVSGeneralPPage(lpunk);
-    if(punk == NULL) *phr = E_OUTOFMEMORY;
-
-    return punk;
-}
-
-CDVSGeneralPPage::CDVSGeneralPPage(LPUNKNOWN pUnk) :
+CDVSGeneralPPage::CDVSGeneralPPage(LPUNKNOWN pUnk, HRESULT* phr) :
     CDVSBasePPage(NAME("DirectVobSub Property Page (global settings)"), pUnk, IDD_DVSGENERALPAGE, IDD_DVSGENERALPAGE)
 {
 	BindControl(IDC_VEREXTCOMBO, m_verext);
@@ -568,15 +552,7 @@ void CDVSGeneralPPage::UpdateControlData(bool fSave)
 
 /* CDVSMiscPPage */
 
-CUnknown* CDVSMiscPPage::CreateInstance(LPUNKNOWN lpunk, HRESULT* phr)
-{
-    CUnknown* punk = new CDVSMiscPPage(lpunk);
-    if(punk == NULL) *phr = E_OUTOFMEMORY;
-
-    return punk;
-}
-
-CDVSMiscPPage::CDVSMiscPPage(LPUNKNOWN pUnk) :
+CDVSMiscPPage::CDVSMiscPPage(LPUNKNOWN pUnk, HRESULT* phr) :
     CDVSBasePPage(NAME("DirectVobSub Property Page (misc settings)"), pUnk, IDD_DVSMISCPAGE, IDD_DVSMISCPAGE)
 {
 	BindControl(IDC_FLIP, m_flippic);
@@ -664,15 +640,7 @@ void CDVSMiscPPage::UpdateControlData(bool fSave)
 
 /* CDVSTimingPPage */
 
-CUnknown* CDVSTimingPPage::CreateInstance(LPUNKNOWN lpunk, HRESULT* phr)
-{
-    CUnknown* punk = new CDVSTimingPPage(lpunk);
-    if(punk == NULL) *phr = E_OUTOFMEMORY;
-
-    return punk;
-}
-
-CDVSTimingPPage::CDVSTimingPPage(LPUNKNOWN pUnk) :
+CDVSTimingPPage::CDVSTimingPPage(LPUNKNOWN pUnk, HRESULT* phr) :
     CDVSBasePPage(NAME("DirectVobSub Timing Property Page"), pUnk, IDD_DVSTIMINGPAGE, IDD_DVSTIMINGPAGE)
 {
 	BindControl(IDC_MODFPS, m_modfps);
@@ -765,15 +733,7 @@ void CDVSTimingPPage::UpdateControlData(bool fSave)
 
 /* CDVSAboutPPage */
 
-CUnknown* CDVSAboutPPage::CreateInstance(LPUNKNOWN lpunk, HRESULT* phr)
-{
-    CUnknown* punk = new CDVSAboutPPage(lpunk);
-    if(punk == NULL) *phr = E_OUTOFMEMORY;
-
-    return punk;
-}
-
-CDVSAboutPPage::CDVSAboutPPage(LPUNKNOWN lpunk) : 
+CDVSAboutPPage::CDVSAboutPPage(LPUNKNOWN lpunk, HRESULT* phr) : 
 	CDVSBasePPage(NAME("About Property Page"), lpunk, IDD_DVSABOUTPAGE, IDD_DVSABOUTPAGE)
 {
 
@@ -813,15 +773,7 @@ bool CDVSAboutPPage::OnMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 /* CDVSZoomPPage */
 
-CUnknown* CDVSZoomPPage::CreateInstance(LPUNKNOWN lpunk, HRESULT* phr)
-{
-    CUnknown* punk = new CDVSZoomPPage(lpunk);
-    if(punk == NULL) *phr = E_OUTOFMEMORY;
-
-    return punk;
-}
-
-CDVSZoomPPage::CDVSZoomPPage(LPUNKNOWN pUnk) :
+CDVSZoomPPage::CDVSZoomPPage(LPUNKNOWN pUnk, HRESULT* phr) :
     CDVSBasePPage(NAME("DirectVobSub Zoom Property Page"), pUnk, IDD_DVSZOOMPAGE, IDD_DVSZOOMPAGE)
 {
 	BindControl(IDC_SPIN1, m_posx);
@@ -897,15 +849,7 @@ void CDVSZoomPPage::UpdateObjectData(bool fSave)
 
 /* CDVSColorPPage */
 
-CUnknown* CDVSColorPPage::CreateInstance(LPUNKNOWN lpunk, HRESULT* phr)
-{
-    CUnknown* punk = new CDVSColorPPage(lpunk);
-    if(punk == NULL) *phr = E_OUTOFMEMORY;
-
-    return punk;
-}
-
-CDVSColorPPage::CDVSColorPPage(LPUNKNOWN pUnk) :
+CDVSColorPPage::CDVSColorPPage(LPUNKNOWN pUnk, HRESULT* phr) :
     CDVSBasePPage(NAME("DirectVobSub Color Property Page"), pUnk, IDD_DVSCOLORPAGE, IDD_DVSCOLORPAGE)
 {
 	BindControl(IDC_PREFLIST, m_preflist);
@@ -1063,15 +1007,7 @@ void CDVSColorPPage::UpdateControlData(bool fSave)
 
 /* CDVSPathsPPage */
 
-CUnknown* CDVSPathsPPage::CreateInstance(LPUNKNOWN lpunk, HRESULT* phr)
-{
-    CUnknown* punk = new CDVSPathsPPage(lpunk);
-    if(punk == NULL) *phr = E_OUTOFMEMORY;
-
-    return punk;
-}
-
-CDVSPathsPPage::CDVSPathsPPage(LPUNKNOWN pUnk) :
+CDVSPathsPPage::CDVSPathsPPage(LPUNKNOWN pUnk, HRESULT* phr) :
     CDVSBasePPage(NAME("DirectVobSub Paths Property Page"), pUnk, IDD_DVSPATHSPAGE, IDD_DVSPATHSPAGE)
 {
 	BindControl(IDC_PATHLIST, m_pathlist);
