@@ -146,7 +146,7 @@ int GSRendererSoft<VERTEX>::DrawingKick(bool fSkip)
 		return 0;
 	}
 
-	if(!m_de.PRIM.IIP)
+	if(!m_de.pPRIM->IIP)
 		memcpy(&pVertices[0], &pVertices[nVertices-1], sizeof(DWORD)*4); // copy RGBA-only
 
 	return nVertices;
@@ -310,7 +310,7 @@ void GSRendererSoft<VERTEX>::DrawVertex(int x, int y, VERTEX& v)
 	__declspec(align(16)) union {struct {int Rf, Gf, Bf, Af;}; int Cf[4]; __m128i RGBAf;};
 	v.GetColor(Cf);
 
-	if(m_de.PRIM.TME)
+	if(m_de.pPRIM->TME)
 	{
 		int tw = 1 << m_ctxt->TEX0.TW;
 		int th = 1 << m_ctxt->TEX0.TH;
@@ -436,7 +436,7 @@ void GSRendererSoft<VERTEX>::DrawVertex(int x, int y, VERTEX& v)
 
 	SaturateColor(&Cf[0]);
 
-	if(m_de.PRIM.FGE)
+	if(m_de.pPRIM->FGE)
 	{
 		BYTE F = v.GetFog();
 		Rf = (F * Rf + (255 - F) * m_de.FOGCOL.FCR) >> 8;
@@ -492,7 +492,7 @@ void GSRendererSoft<VERTEX>::DrawVertex(int x, int y, VERTEX& v)
 
 		// FIXME: for AA1 the value of Af should be calculated from the pixel coverage...
 
-		bool fABE = (m_de.PRIM.ABE || (m_de.PRIM.PRIM == 1 || m_de.PRIM.PRIM == 2) && m_de.PRIM.AA1) && (!m_de.PABE.PABE || (Af&0x80));
+		bool fABE = (m_de.pPRIM->ABE || (m_de.pPRIM->PRIM == 1 || m_de.pPRIM->PRIM == 2) && m_de.pPRIM->AA1) && (!m_de.PABE.PABE || (Af&0x80));
 
 		DWORD Cd = 0;
 
@@ -553,13 +553,13 @@ bool GSRendererSoft<VERTEX>::DrawFilledRect(int left, int top, int right, int bo
 	ASSERT(top >= 0);
 	ASSERT(bottom >= 0);
 
-	if(m_de.PRIM.IIP
+	if(m_de.pPRIM->IIP
 	|| m_ctxt->TEST.ZTE && m_ctxt->TEST.ZTST != 1
 	|| m_ctxt->TEST.ATE && m_ctxt->TEST.ATST != 1
 	|| m_ctxt->TEST.DATE
-	|| m_de.PRIM.TME
-	|| m_de.PRIM.ABE
-	|| m_de.PRIM.FGE
+	|| m_de.pPRIM->TME
+	|| m_de.pPRIM->ABE
+	|| m_de.pPRIM->FGE
 	|| m_de.DTHE.DTHE
 	|| m_ctxt->FRAME.FBMSK)
 		return(false);
@@ -591,11 +591,11 @@ bool GSRendererSoft<VERTEX>::DrawFilledRect(int left, int top, int right, int bo
 template <class VERTEX>
 void GSRendererSoft<VERTEX>::SetTexture()
 {
-	if(!m_de.PRIM.TME || !m_ctxt->rt)
+	if(!m_de.pPRIM->TME || !m_ctxt->rt)
 		return;
 
 // hell, it looks to be faster without caching!
-m_lm.setupCLUT(m_ctxt->TEX0, m_de.TEXCLUT, m_de.TEXA);
+m_lm.setupCLUT(m_ctxt->TEX0, m_de.TEXA);
 return;
 /**/
 	CTexture* t;
@@ -607,7 +607,7 @@ return;
 
 	InvalidateTexture(m_ctxt->TEX0.TBP0);
 
-	m_lm.setupCLUT(m_ctxt->TEX0, m_de.TEXCLUT, m_de.TEXA);
+	m_lm.setupCLUT(m_ctxt->TEX0, m_de.TEXA);
 
 	CAutoPtr<CTexture> p(new CTexture());
 
@@ -680,9 +680,9 @@ void GSRendererSoftFP::VertexKick(bool fSkip)
 
 	v.fog = (float)m_v.FOG.F;
 
-	if(m_de.PRIM.TME)
+	if(m_de.pPRIM->TME)
 	{
-		if(m_de.PRIM.FST)
+		if(m_de.pPRIM->FST)
 		{
 			v.u = (float)m_v.UV.U / (16<<m_ctxt->TEX0.TW);
 			v.v = (float)m_v.UV.V / (16<<m_ctxt->TEX0.TH);
@@ -915,9 +915,9 @@ void GSRendererSoftFX::VertexKick(bool fSkip)
 
 	v.fog = m_v.FOG.F << 16;
 
-	if(m_de.PRIM.TME)
+	if(m_de.pPRIM->TME)
 	{
-		if(m_de.PRIM.FST)
+		if(m_de.pPRIM->FST)
 		{
 			v.u = (__int64)(((float)m_v.UV.U / (16<<m_ctxt->TEX0.TW)) * INT_MAX);
 			v.v = (__int64)(((float)m_v.UV.V / (16<<m_ctxt->TEX0.TH)) * INT_MAX);
@@ -1154,7 +1154,7 @@ void GSRendererSoftFX::DrawVertex(int x, int y, GSSoftVertex& v)
 	__declspec(align(16)) union {struct {int Rf, Gf, Bf, Af;}; int Cf[4];};
 	v.GetColor(Cf);
 
-	if(m_de.PRIM.TME)
+	if(m_de.pPRIM->TME)
 	{
 		int tw = 1 << m_ctxt->TEX0.TW;
 		int th = 1 << m_ctxt->TEX0.TH;
@@ -1281,7 +1281,7 @@ void GSRendererSoftFX::DrawVertex(int x, int y, GSSoftVertex& v)
 
 	SaturateColor(&Cf[0]);
 
-	if(m_de.PRIM.FGE)
+	if(m_de.pPRIM->FGE)
 	{
 		BYTE F = v.GetFog();
 		Rf = (F * Rf + (255 - F) * m_de.FOGCOL.FCR) >> 8;
@@ -1337,7 +1337,7 @@ void GSRendererSoftFX::DrawVertex(int x, int y, GSSoftVertex& v)
 
 		// FIXME: for AA1 the value of Af should be calculated from the pixel coverage...
 
-		bool fABE = (m_de.PRIM.ABE || (m_de.PRIM.PRIM == 1 || m_de.PRIM.PRIM == 2) && m_de.PRIM.AA1) && (!m_de.PABE.PABE || (Af&0x80));
+		bool fABE = (m_de.pPRIM->ABE || (m_de.pPRIM->PRIM == 1 || m_de.pPRIM->PRIM == 2) && m_de.pPRIM->AA1) && (!m_de.PABE.PABE || (Af&0x80));
 
 		DWORD Cd = 0;
 

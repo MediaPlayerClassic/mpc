@@ -75,7 +75,7 @@ public:
 	{
 		int tw = 1, th = 1;
 		if(m_de.PRIM.TME) {tw = 1<<m_ctxt->TEX0.TW; th = 1<<m_ctxt->TEX0.TH;}
-		LOG2(_T("\t %s (%.2f, %.2f, %.2f, %.2f) (%08x) (%f, %f) (%f, %f)\n"), 
+		LOG2(_T("- %s (%.2f, %.2f, %.2f, %.2f) (%08x) (%.3f, %.3f) (%.2f, %.2f)\n"), 
 			type,
 			v.x, v.y, v.z, v.q, 
 			((BYTE)v.a << 24) | ((BYTE)v.r << 16) | ((BYTE)v.g << 8) | ((BYTE)v.b << 0),
@@ -87,7 +87,7 @@ public:
 	{
 		int tw = 1, th = 1;
 		if(m_de.PRIM.TME) {tw = 1<<m_ctxt->TEX0.TW; th = 1<<m_ctxt->TEX0.TH;}
-		LOG2(_T("\t %s (%.2f, %.2f, %.2f, %.2f) (%08x) (%f, %f) (%f, %f)\n"), 
+		LOG2(_T("- %s (%.2f, %.2f, %.2f, %.2f) (%08x) (%f, %f) (%f, %f)\n"), 
 			type,
 			(float)v.x/65536, (float)v.y/65536, (float)v.z/INT_MAX, (float)v.q/INT_MAX, 
 			((v.a>>16)<<24) | ((v.r>>16)<<16) | ((v.g>>16)<<8) | ((v.b>>16)<<0),

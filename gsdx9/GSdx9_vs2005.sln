@@ -2,10 +2,10 @@ Microsoft Visual Studio Solution File, Format Version 9.00
 # Visual Studio 2005
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "GSdx9", "GSdx9_vs2005.vcproj", "{345C9F24-0B9A-4289-B375-ADD3B63461B7}"
 	ProjectSection(ProjectDependencies) = postProject
-		{6BA829DC-20C1-4B6B-BF63-7601FEB64601} = {6BA829DC-20C1-4B6B-BF63-7601FEB64601}
+		{7CDC5863-9F36-468D-A634-6D7799E0A15E} = {7CDC5863-9F36-468D-A634-6D7799E0A15E}
 	EndProjectSection
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "BaseClasses", "C:\Program Files\Microsoft DirectX 9.0 SDK (Summer 2004)\Samples\C++\DirectShow\BaseClasses\baseclasses.vcproj", "{6BA829DC-20C1-4B6B-BF63-7601FEB64601}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "baseclasses", "G:\Program Files\Microsoft DirectX 9.0 SDK\Samples\C++\DirectShow\BaseClasses\baseclasses.vcproj", "{7CDC5863-9F36-468D-A634-6D7799E0A15E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -47,30 +47,30 @@ Global
 		{345C9F24-0B9A-4289-B375-ADD3B63461B7}.ReleaseSSE2|Win32.Build.0 = ReleaseSSE2|Win32
 		{345C9F24-0B9A-4289-B375-ADD3B63461B7}.ReleaseSSE2|Win64 (AMD64).ActiveCfg = ReleaseSSE2|Win64 (AMD64)
 		{345C9F24-0B9A-4289-B375-ADD3B63461B7}.ReleaseSSE2|Win64 (AMD64).Build.0 = ReleaseSSE2|Win64 (AMD64)
-		{6BA829DC-20C1-4B6B-BF63-7601FEB64601}.Debug Unicode|Win32.ActiveCfg = Debug Unicode|Win32
-		{6BA829DC-20C1-4B6B-BF63-7601FEB64601}.Debug Unicode|Win32.Build.0 = Debug Unicode|Win32
-		{6BA829DC-20C1-4B6B-BF63-7601FEB64601}.Debug Unicode|Win64 (AMD64).ActiveCfg = Debug Unicode|Win64 (AMD64)
-		{6BA829DC-20C1-4B6B-BF63-7601FEB64601}.Debug Unicode|Win64 (AMD64).Build.0 = Debug Unicode|Win64 (AMD64)
-		{6BA829DC-20C1-4B6B-BF63-7601FEB64601}.Debug|Win32.ActiveCfg = Debug|Win32
-		{6BA829DC-20C1-4B6B-BF63-7601FEB64601}.Debug|Win32.Build.0 = Debug|Win32
-		{6BA829DC-20C1-4B6B-BF63-7601FEB64601}.Debug|Win64 (AMD64).ActiveCfg = Debug|Win64 (AMD64)
-		{6BA829DC-20C1-4B6B-BF63-7601FEB64601}.Debug|Win64 (AMD64).Build.0 = Debug|Win64 (AMD64)
-		{6BA829DC-20C1-4B6B-BF63-7601FEB64601}.DebugSSE2|Win32.ActiveCfg = Debug|Win32
-		{6BA829DC-20C1-4B6B-BF63-7601FEB64601}.DebugSSE2|Win32.Build.0 = Debug|Win32
-		{6BA829DC-20C1-4B6B-BF63-7601FEB64601}.DebugSSE2|Win64 (AMD64).ActiveCfg = Debug|Win64 (AMD64)
-		{6BA829DC-20C1-4B6B-BF63-7601FEB64601}.DebugSSE2|Win64 (AMD64).Build.0 = Debug|Win64 (AMD64)
-		{6BA829DC-20C1-4B6B-BF63-7601FEB64601}.Release Unicode|Win32.ActiveCfg = Release Unicode|Win32
-		{6BA829DC-20C1-4B6B-BF63-7601FEB64601}.Release Unicode|Win32.Build.0 = Release Unicode|Win32
-		{6BA829DC-20C1-4B6B-BF63-7601FEB64601}.Release Unicode|Win64 (AMD64).ActiveCfg = Release Unicode|Win64 (AMD64)
-		{6BA829DC-20C1-4B6B-BF63-7601FEB64601}.Release Unicode|Win64 (AMD64).Build.0 = Release Unicode|Win64 (AMD64)
-		{6BA829DC-20C1-4B6B-BF63-7601FEB64601}.Release|Win32.ActiveCfg = Release|Win32
-		{6BA829DC-20C1-4B6B-BF63-7601FEB64601}.Release|Win32.Build.0 = Release|Win32
-		{6BA829DC-20C1-4B6B-BF63-7601FEB64601}.Release|Win64 (AMD64).ActiveCfg = Release|Win64 (AMD64)
-		{6BA829DC-20C1-4B6B-BF63-7601FEB64601}.Release|Win64 (AMD64).Build.0 = Release|Win64 (AMD64)
-		{6BA829DC-20C1-4B6B-BF63-7601FEB64601}.ReleaseSSE2|Win32.ActiveCfg = Release|Win32
-		{6BA829DC-20C1-4B6B-BF63-7601FEB64601}.ReleaseSSE2|Win32.Build.0 = Release|Win32
-		{6BA829DC-20C1-4B6B-BF63-7601FEB64601}.ReleaseSSE2|Win64 (AMD64).ActiveCfg = Release|Win64 (AMD64)
-		{6BA829DC-20C1-4B6B-BF63-7601FEB64601}.ReleaseSSE2|Win64 (AMD64).Build.0 = Release|Win64 (AMD64)
+		{7CDC5863-9F36-468D-A634-6D7799E0A15E}.Debug Unicode|Win32.ActiveCfg = Debug Unicode|Win32
+		{7CDC5863-9F36-468D-A634-6D7799E0A15E}.Debug Unicode|Win32.Build.0 = Debug Unicode|Win32
+		{7CDC5863-9F36-468D-A634-6D7799E0A15E}.Debug Unicode|Win64 (AMD64).ActiveCfg = Debug Unicode|Win64 (AMD64)
+		{7CDC5863-9F36-468D-A634-6D7799E0A15E}.Debug Unicode|Win64 (AMD64).Build.0 = Debug Unicode|Win64 (AMD64)
+		{7CDC5863-9F36-468D-A634-6D7799E0A15E}.Debug|Win32.ActiveCfg = Debug|Win32
+		{7CDC5863-9F36-468D-A634-6D7799E0A15E}.Debug|Win32.Build.0 = Debug|Win32
+		{7CDC5863-9F36-468D-A634-6D7799E0A15E}.Debug|Win64 (AMD64).ActiveCfg = Debug|Win64 (AMD64)
+		{7CDC5863-9F36-468D-A634-6D7799E0A15E}.Debug|Win64 (AMD64).Build.0 = Debug|Win64 (AMD64)
+		{7CDC5863-9F36-468D-A634-6D7799E0A15E}.DebugSSE2|Win32.ActiveCfg = Debug|Win32
+		{7CDC5863-9F36-468D-A634-6D7799E0A15E}.DebugSSE2|Win32.Build.0 = Debug|Win32
+		{7CDC5863-9F36-468D-A634-6D7799E0A15E}.DebugSSE2|Win64 (AMD64).ActiveCfg = Debug|Win64 (AMD64)
+		{7CDC5863-9F36-468D-A634-6D7799E0A15E}.DebugSSE2|Win64 (AMD64).Build.0 = Debug|Win64 (AMD64)
+		{7CDC5863-9F36-468D-A634-6D7799E0A15E}.Release Unicode|Win32.ActiveCfg = Release Unicode|Win32
+		{7CDC5863-9F36-468D-A634-6D7799E0A15E}.Release Unicode|Win32.Build.0 = Release Unicode|Win32
+		{7CDC5863-9F36-468D-A634-6D7799E0A15E}.Release Unicode|Win64 (AMD64).ActiveCfg = Release Unicode|Win64 (AMD64)
+		{7CDC5863-9F36-468D-A634-6D7799E0A15E}.Release Unicode|Win64 (AMD64).Build.0 = Release Unicode|Win64 (AMD64)
+		{7CDC5863-9F36-468D-A634-6D7799E0A15E}.Release|Win32.ActiveCfg = Release|Win32
+		{7CDC5863-9F36-468D-A634-6D7799E0A15E}.Release|Win32.Build.0 = Release|Win32
+		{7CDC5863-9F36-468D-A634-6D7799E0A15E}.Release|Win64 (AMD64).ActiveCfg = Release|Win64 (AMD64)
+		{7CDC5863-9F36-468D-A634-6D7799E0A15E}.Release|Win64 (AMD64).Build.0 = Release|Win64 (AMD64)
+		{7CDC5863-9F36-468D-A634-6D7799E0A15E}.ReleaseSSE2|Win32.ActiveCfg = Release Unicode|Win32
+		{7CDC5863-9F36-468D-A634-6D7799E0A15E}.ReleaseSSE2|Win32.Build.0 = Release Unicode|Win32
+		{7CDC5863-9F36-468D-A634-6D7799E0A15E}.ReleaseSSE2|Win64 (AMD64).ActiveCfg = Release Unicode|Win64 (AMD64)
+		{7CDC5863-9F36-468D-A634-6D7799E0A15E}.ReleaseSSE2|Win64 (AMD64).Build.0 = Release Unicode|Win64 (AMD64)
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -48,7 +48,7 @@ void GSState::WriteTransfer(BYTE* pMem, int len)
 {
 	if(len == 0) return;
 
-	if(m_de.PRIM.TME && (m_rs.BITBLTBUF.DBP == m_ctxt->TEX0.TBP0 || m_rs.BITBLTBUF.DBP == m_ctxt->TEX0.CBP))
+	if(m_de.pPRIM->TME && (m_rs.BITBLTBUF.DBP == m_ctxt->TEX0.TBP0 || m_rs.BITBLTBUF.DBP == m_ctxt->TEX0.CBP))
 		FlushPrim();
 
 	int x = m_x, y = m_y;

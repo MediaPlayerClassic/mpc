@@ -87,7 +87,7 @@ void GSRendererHW::VertexKick(bool fSkip)
 	//v.z = 1.0f * (m_v.XYZ.Z>>8)/(UINT_MAX>>8);
 	v.z = log(1.0 + m_v.XYZ.Z)/log_2pow32;
 	//v.z = (float)m_v.XYZ.Z / UINT_MAX;
-	v.rhw = m_v.RGBAQ.Q;
+	v.rhw = v.z ? 1.0f/v.z : m_v.RGBAQ.Q;
 
 	BYTE R = m_v.RGBAQ.R;
 	BYTE G = m_v.RGBAQ.G;
@@ -101,11 +101,11 @@ void GSRendererHW::VertexKick(bool fSkip)
 		B = (m_v.FOG.F * B + (0xff - m_v.FOG.F) * m_de.FOGCOL.FCB + 127) >> 8;
 	}
 */
-	if(m_de.PRIM.TME)
+	if(m_de.pPRIM->TME)
 	{
 		A = m_v.RGBAQ.A;
 
-		if(m_de.PRIM.FST)
+		if(m_de.pPRIM->FST)
 		{
 			v.tu = (float)m_v.UV.U / (16<<m_ctxt->TEX0.TW);
 			v.tv = (float)m_v.UV.V / (16<<m_ctxt->TEX0.TH);
@@ -123,8 +123,8 @@ void GSRendererHW::VertexKick(bool fSkip)
 		}
 	}
 
-	v.color = D3DCOLOR_ARGB(A, R, G, B);
-	v.fog = (m_de.PRIM.FGE ? m_v.FOG.F : 0xff) << 24;
+	v.color = D3DCOLOR_ARGB(A, B, G, R);
+	v.fog = (m_de.pPRIM->FGE ? m_v.FOG.F : 0xff) << 24;
 
 	m_vl.AddTail(v);
 
@@ -192,6 +192,7 @@ int GSRendererHW::DrawingKick(bool fSkip)
 		|| pVertices[nVertices-1].y >= size.cy && pVertices[nVertices-2].y >= size.cy)
 			{nVertices -= 2; break;}
 		nVertices += 2;
+
 /*
 		float lod;
 		if(m_ctxt->TEX1.LCM) lod = -log(pVertices[nVertices-1].rhw)/log(2.0f) * (1 << m_ctxt->TEX1.L) + m_ctxt->TEX1.K;
@@ -274,7 +275,7 @@ int GSRendererHW::DrawingKick(bool fSkip)
 		return 0;
 	}
 
-	if(!m_de.PRIM.IIP)
+	if(!m_de.pPRIM->IIP)
 	{
 		pVertices[0].color = pVertices[nVertices-1].color;
 		if(m_PRIM == 6) pVertices[3].color = pVertices[5].color;
@@ -287,7 +288,7 @@ int GSRendererHW::DrawingKick(bool fSkip)
 
 void GSRendererHW::FlushPrim()
 {
-	if(m_nVertices > 0 && (!m_de.PRIM.TME || m_ctxt->TEX0.TBP0 != m_ctxt->FRAME.Block()))
+	if(m_nVertices > 0 && (!m_de.pPRIM->TME || m_ctxt->TEX0.TBP0 != m_ctxt->FRAME.Block()))
 	{
 		int nPrims = 0;
 
@@ -363,7 +364,7 @@ scale.y = 1;
 		D3DSURFACE_DESC td;
 		ZeroMemory(&td, sizeof(td));
 
-		if(m_de.PRIM.TME && CreateTexture(t))
+		if(m_de.pPRIM->TME && CreateTexture(t))
 		{
 			// if(IsRenderTarget(t.m_pTexture)) ConvertRT(t.m_pTexture);
 			//t.m_pTexture->PreLoad();
@@ -385,13 +386,13 @@ scale.y = 1;
 
 		//////////////////////
 
-		hr = m_pD3DDev->SetRenderState(D3DRS_SHADEMODE, m_de.PRIM.IIP ? D3DSHADE_GOURAUD : D3DSHADE_FLAT);
+		hr = m_pD3DDev->SetRenderState(D3DRS_SHADEMODE, m_de.pPRIM->IIP ? D3DSHADE_GOURAUD : D3DSHADE_FLAT);
 
 		//////////////////////
 
 		float tsx = 1.0f, tsy = 1.0f;
 
-		if(m_de.PRIM.TME)
+		if(m_de.pPRIM->TME)
 		{
 			tsx = 1.0f * (1<<m_ctxt->TEX0.TW) / td.Width * t.m_scale.x;
 			tsy = 1.0f * (1<<m_ctxt->TEX0.TH) / td.Height * t.m_scale.y;
@@ -400,7 +401,7 @@ scale.y = 1;
 		SetupTexture(t, tsx, tsy);
 
 #ifdef DEBUG_WIREFRAME
-hr = m_pD3DDev->SetRenderState(D3DRS_FILLMODE, m_de.PRIM.TME ? m_dwFillMode : D3DFILL_SOLID);
+hr = m_pD3DDev->SetRenderState(D3DRS_FILLMODE, m_de.pPRIM->TME ? m_dwFillMode : D3DFILL_SOLID);
 #endif
 
 		//////////////////////
@@ -469,7 +470,7 @@ hr = m_pD3DDev->SetRenderState(D3DRS_FILLMODE, m_de.PRIM.TME ? m_dwFillMode : D3
 
 		//////////////////////
 
-if(m_de.PRIM.TME && (m_ctxt->FRAME.Block()) == 0x01e00 && m_ctxt->TEX0.TBP0 == 0x00000)
+if(m_de.pPRIM->TME && (m_ctxt->FRAME.Block()) == 0x01e00 && m_ctxt->TEX0.TBP0 == 0x00000)
 {
 	if(m_stats.GetFrame() > 1200)
 	{
@@ -490,7 +491,7 @@ if(m_de.PRIM.TME && (m_ctxt->FRAME.Block()) == 0x01e00 && m_ctxt->TEX0.TBP0 == 0
 				// pVertices->tu2 = pVertices->x / rd.Width;
 				// pVertices->tv2 = pVertices->y / rd.Height;
 
-				if(m_de.PRIM.TME)
+				if(m_de.pPRIM->TME)
 				{
 					float base, fract;
 					fract = modf(pVertices->tu, &base);
@@ -503,15 +504,15 @@ if(m_de.PRIM.TME && (m_ctxt->FRAME.Block()) == 0x01e00 && m_ctxt->TEX0.TBP0 == 0
 					pVertices->tv = base + fract;
 				}
 /*
-				if(m_de.PRIM.TME)
+				if(m_de.pPRIM->TME)
 				{
 					pVertices->tu *= tsx;
 					pVertices->tv *= tsy;
 				}
 */
-				if(m_de.PRIM.FGE)
+				if(m_de.pPRIM->FGE)
 				{
-					pVertices->fog = D3DCOLOR_ARGB(pVertices->fog>>24, m_de.FOGCOL.FCR, m_de.FOGCOL.FCG, m_de.FOGCOL.FCB);
+					pVertices->fog = D3DCOLOR_ARGB(pVertices->fog>>24, m_de.FOGCOL.FCB, m_de.FOGCOL.FCG, m_de.FOGCOL.FCR);
 				}
 			}
 		}
@@ -569,7 +570,7 @@ if(m_de.PRIM.TME && (m_ctxt->FRAME.Block()) == 0x01e00 && m_ctxt->TEX0.TBP0 == 0
 				hr = m_pD3DDev->DrawPrimitiveUP(m_primtype, nPrims, m_pVertices, sizeof(HWVERTEX));
 		}
 
-if(m_de.PRIM.TME && /*(m_ctxt->FRAME.Block()) == 0x00000 &&*/ m_ctxt->TEX0.TBP0 == 0x02320)
+if(m_de.pPRIM->TME && /*(m_ctxt->FRAME.Block()) == 0x00000 &&*/ m_ctxt->TEX0.TBP0 == 0x02320)
 {
 	if(m_stats.GetFrame() > 1200)
 	{
@@ -802,7 +803,7 @@ void GSRendererHW::InvalidateTexture(DWORD TBP0, int x, int y)
 			&& desc.Width >= w && desc.Height >= h
 			&& S_OK == t.m_pTexture->LockRect(0, &lr, r, 0))
 			{
-				m_lm.setupCLUT(m_ctxt->TEX0, m_de.TEXCLUT, m_de.TEXA);
+				m_lm.setupCLUT(m_ctxt->TEX0, m_de.TEXA);
 
 				GSLocalMemory::unSwizzleTexture st = m_lm.GetUnSwizzleTexture(m_ctxt->TEX0.PSM);
 				(m_lm.*st)(w, h, (BYTE*)lr.pBits, lr.Pitch, m_ctxt->TEX0, m_de.TEXA);
@@ -812,7 +813,7 @@ void GSRendererHW::InvalidateTexture(DWORD TBP0, int x, int y)
 
 				for(int y = 0, diff = lr.Pitch - w*4; y < h; y++, dst += diff)
 					for(int x = 0; x < w; x++, dst += 4)
-						*(DWORD*)dst = SwapRB((m_lm.*rt)(r.left + x, r.top + y, t.m_tex.TEX0, t.m_tex.TEXA));
+						*(DWORD*)dst = (m_lm.*rt)(r.left + x, r.top + y, t.m_tex.TEX0, t.m_tex.TEXA);
 */
 				t.m_pTexture->UnlockRect(0);
 
@@ -854,7 +855,7 @@ void GSRendererHW::InvalidateTexture(DWORD TBP0, int x, int y)
 
 					for(int y = r.top, diff = lr.Pitch - r.Width()*4; y < r.bottom; y++, dst += diff)
 						for(int x = r.left; x < r.right; x++, dst += 4)
-							*(DWORD*)dst = SwapRB((m_lm.*rt)(x, y, TEX0, TEXA));
+							*(DWORD*)dst = (m_lm.*rt)(x, y, TEX0, TEXA);
 				}
 
 				pTexture->UnlockRect(0);
@@ -1087,7 +1088,7 @@ bool GSRendererHW::CreateTexture(GSTexture& t)
 		CalcRegionToUpdate(tw, th);
 	}
 
-	m_lm.setupCLUT(m_ctxt->TEX0, m_de.TEXCLUT, m_de.TEXA);
+	m_lm.setupCLUT(m_ctxt->TEX0, m_de.TEXA);
 
 	GSLocalMemory::readTexel rt = m_lm.GetReadTexel(m_ctxt->TEX0.PSM);
 
@@ -1125,7 +1126,7 @@ bool GSRendererHW::CreateTexture(GSTexture& t)
 				case 3: ty = (y & m_ctxt->CLAMP.MINV) | m_ctxt->CLAMP.MAXV; break;
 				}
 
-				*(DWORD*)dst = SwapRB((m_lm.*rt)(tx, ty, m_ctxt->TEX0, m_de.TEXA));
+				*(DWORD*)dst = (m_lm.*rt)(tx, ty, m_ctxt->TEX0, m_de.TEXA);
 			}
 		}
 	}
@@ -1140,8 +1141,8 @@ bool GSRendererHW::CreateTexture(GSTexture& t)
 	m_tc.Add(tex, scale_t(1, 1), pTexture, CSize(tw, th));
 	if(!m_tc.Lookup(tex, t)) ASSERT(0); // ehe
 
-/*	t = GSTexture(tex, scale_t(1, 1), pTexture, CSize(tw, th));
-*/
+//	t = GSTexture(tex, scale_t(1, 1), pTexture, CSize(tw, th));
+
 	m_stats.IncReads(tw*th);
 
 #ifdef DEBUG_SAVETEXTURES
@@ -1165,7 +1166,7 @@ void GSRendererHW::SetupTexture(const GSTexture& t, float tsx, float tsy)
 	float repeatmin_x = 0, repeatmin_y = 0; 
 	float repeatmax_x = tsx, repeatmax_y = tsy;
 */
-	if(m_de.PRIM.TME && t.m_pTexture)
+	if(m_de.pPRIM->TME && t.m_pTexture)
 	{
 		hr = m_pD3DDev->SetTexture(0, t.m_pTexture);
 
@@ -1186,7 +1187,7 @@ void GSRendererHW::SetupTexture(const GSTexture& t, float tsx, float tsy)
 		hr = m_pD3DDev->SetSamplerState(0, D3DSAMP_ADDRESSU, u);
 		hr = m_pD3DDev->SetSamplerState(0, D3DSAMP_ADDRESSV, v);
 
-		if(!pPixelShader && m_caps.PixelShaderVersion >= D3DVS_VERSION(2, 0))
+		if(!pPixelShader && m_caps.PixelShaderVersion >= D3DVS_VERSION(2, 0) && m_pPixelShaderTFX[m_ctxt->TEX0.TFX])
 		{
 			pPixelShader = m_pPixelShaderTFX[m_ctxt->TEX0.TFX];
 		}
@@ -1304,12 +1305,17 @@ void GSRendererHW::SetupTexture(const GSTexture& t, float tsx, float tsy)
 	{
 		hr = m_pD3DDev->SetTexture(0, NULL);
 
-		if(!pPixelShader && m_caps.PixelShaderVersion >= D3DVS_VERSION(2, 0))
+		if(!pPixelShader && m_caps.PixelShaderVersion >= D3DVS_VERSION(3, 0) && m_pPixelShaderTFX[4])
 		{
 			pPixelShader = m_pPixelShaderTFX[4];
 		}
 
-		if(!pPixelShader && m_caps.PixelShaderVersion >= D3DVS_VERSION(1, 1))
+		if(!pPixelShader && m_caps.PixelShaderVersion >= D3DVS_VERSION(2, 0) && m_pPixelShaderTFX[4])
+		{
+			pPixelShader = m_pPixelShaderTFX[4];
+		}
+
+		if(!pPixelShader && m_caps.PixelShaderVersion >= D3DVS_VERSION(1, 1) && m_pPixelShaders[11])
 		{
 			pPixelShader = m_pPixelShaders[11];
 		}
@@ -1325,7 +1331,7 @@ void GSRendererHW::SetupTexture(const GSTexture& t, float tsx, float tsy)
 
 	float fConstData[] = 
 	{
-		m_ctxt->TEX0.TFX, !!m_ctxt->TEX0.TCC, t.m_fRT, !!(m_de.PRIM.TME && t.m_pTexture),
+		m_ctxt->TEX0.TFX, !!m_ctxt->TEX0.TCC, t.m_fRT, !!(m_de.pPRIM->TME && t.m_pTexture),
 		m_ctxt->TEX0.PSM, m_de.TEXA.AEM, (float)m_de.TEXA.TA0 / 255, (float)m_de.TEXA.TA1 / 255,
 /*		repeatmin_x, repeatmin_y, 0, 0, 
 		repeatmax_x, repeatmax_y, 0, 0, 
@@ -1343,7 +1349,7 @@ void GSRendererHW::SetupAlphaBlend()
 	DWORD ABE = FALSE;
 	hr = m_pD3DDev->GetRenderState(D3DRS_ALPHABLENDENABLE, &ABE);
 
-	bool fABE = m_de.PRIM.ABE || (m_primtype == D3DPT_LINELIST || m_primtype == D3DPT_LINESTRIP) && m_de.PRIM.AA1; // FIXME
+	bool fABE = m_de.pPRIM->ABE || (m_primtype == D3DPT_LINELIST || m_primtype == D3DPT_LINESTRIP) && m_de.pPRIM->AA1; // FIXME
 	if(fABE != !!ABE)
 		hr = m_pD3DDev->SetRenderState(D3DRS_ALPHABLENDENABLE, fABE);
 	if(fABE)
