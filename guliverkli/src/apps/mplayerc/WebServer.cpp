@@ -4,7 +4,6 @@
 #include "MainFrm.h"
 #include <atlisapi.h>
 #include "WebServer.h"
-#include "..\..\DSUtil\text.h"
 
 class CServerSocket : public CAsyncSocket
 {

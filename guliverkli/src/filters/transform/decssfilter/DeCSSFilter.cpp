@@ -47,7 +47,7 @@ const AMOVIESETUP_PIN sudpPins[] =
       FALSE,                // And allowed many
       &CLSID_NULL,          // Connects to filter
       NULL,                 // Connects to pin
-      sizeof(sudPinTypesIn)/sizeof(sudPinTypesIn[0]), // Number of types
+      countof(sudPinTypesIn), // Number of types
       sudPinTypesIn		// Pin information
     },
     { L"Output",            // Pins string name
@@ -57,14 +57,14 @@ const AMOVIESETUP_PIN sudpPins[] =
       FALSE,                // And allowed many
       &CLSID_NULL,          // Connects to filter
       NULL,                 // Connects to pin
-      sizeof(sudPinTypesOut)/sizeof(sudPinTypesOut[0]), // Number of types
+      countof(sudPinTypesOut), // Number of types
       sudPinTypesOut		// Pin information
     }
 };
 
 const AMOVIESETUP_FILTER sudFilter[] =
 {
-	{&__uuidof(CDeCSSFilter), L"DeCSSFilter", MERIT_DO_NOT_USE, sizeof(sudpPins)/sizeof(sudpPins[0]), sudpPins},
+	{&__uuidof(CDeCSSFilter), L"DeCSSFilter", MERIT_DO_NOT_USE, countof(sudpPins), sudpPins},
 };
 
 CFactoryTemplate g_Templates[] =
@@ -72,7 +72,7 @@ CFactoryTemplate g_Templates[] =
     {L"DeCSSFilter", &__uuidof(CDeCSSFilter), CDeCSSFilter::CreateInstance, NULL, &sudFilter[0]},
 };
 
-int g_cTemplates = sizeof(g_Templates) / sizeof(g_Templates[0]);
+int g_cTemplates = countof(g_Templates);
 
 STDAPI DllRegisterServer()
 {

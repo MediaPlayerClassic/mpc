@@ -57,7 +57,7 @@ const AMOVIESETUP_PIN sudpPins[] =
       FALSE,                // And allowed many
       &CLSID_NULL,          // Connects to filter
       NULL,                 // Connects to pin
-      sizeof(sudPinTypesOut)/sizeof(sudPinTypesOut[0]), // Number of types
+      countof(sudPinTypesOut), // Number of types
       sudPinTypesOut        // Pin information
     },
 };
@@ -67,7 +67,7 @@ const AMOVIESETUP_FILTER sudFilter[] =
 	{ &__uuidof(CMatroskaMuxerFilter)		// Filter CLSID
     , L"Matroska Muxer"						// String name
     , MERIT_DO_NOT_USE						// Filter merit
-    , sizeof(sudpPins)/sizeof(sudpPins[0])	// Number of pins
+    , countof(sudpPins)	// Number of pins
 	, sudpPins}							// Pin information
 };
 
@@ -80,7 +80,7 @@ CFactoryTemplate g_Templates[] =
 	, &sudFilter[0]},
 };
 
-int g_cTemplates = sizeof(g_Templates) / sizeof(g_Templates[0]);
+int g_cTemplates = countof(g_Templates);
 
 STDAPI DllRegisterServer()
 {
@@ -976,6 +976,12 @@ HRESULT CMatroskaMuxerInputPin::CompleteConnect(IPin* pPin)
 			m_pTE->a.Channels.Set(wfe->nChannels);
 			m_pTE->a.BitDepth.Set(wfe->wBitsPerSample);
 
+			if(wfe->cbSize)
+			{
+				m_pTE->CodecPrivate.SetSize(wfe->cbSize);
+				memcpy(m_pTE->CodecPrivate, m_mt.pbFormat + sizeof(WAVEFORMATEX), wfe->cbSize);
+			}
+
 			hr = S_OK;
 		}
 		else if(m_mt.formattype == FORMAT_WaveFormatEx 
@@ -1102,29 +1108,18 @@ HRESULT CMatroskaMuxerInputPin::CompleteConnect(IPin* pPin)
 	{
 		m_pTE->TrackType.Set(TrackEntry::TypeSubtitle);
 
-		if(m_mt.subtype == MEDIASUBTYPE_UTF8 && m_mt.formattype == FORMAT_SubtitleInfo)
-		{
-			m_pTE->CodecID.Set("S_TEXT/UTF8");
-			hr = S_OK;
-		}
-		else if(m_mt.subtype == MEDIASUBTYPE_SSA && m_mt.formattype == FORMAT_SubtitleInfo)
-		{
-			m_pTE->CodecID.Set("S_TEXT/SSA");
-			hr = S_OK;
-		}
-		else if(m_mt.subtype == MEDIASUBTYPE_ASS && m_mt.formattype == FORMAT_SubtitleInfo)
-		{
-			m_pTE->CodecID.Set("S_TEXT/ASS");
-			hr = S_OK;
-		}
-		else if(m_mt.subtype == MEDIASUBTYPE_USF && m_mt.formattype == FORMAT_SubtitleInfo)
-		{
-			m_pTE->CodecID.Set("S_TEXT/USF");
-			hr = S_OK;
-		}
+		m_pTE->CodecID.Set(
+			m_mt.subtype == MEDIASUBTYPE_UTF8 ? "S_TEXT/UTF8" :
+			m_mt.subtype == MEDIASUBTYPE_SSA ? "S_TEXT/SSA" :
+			m_mt.subtype == MEDIASUBTYPE_ASS ? "S_TEXT/ASS" :
+			m_mt.subtype == MEDIASUBTYPE_USF ? "S_TEXT/USF" :
+			m_mt.subtype == MEDIASUBTYPE_VOBSUB ? "S_VOBSUB" :
+			"");
 
-		if(S_OK == hr)
+		if(!m_pTE->CodecID.IsEmpty())
 		{
+			hr = S_OK;
+
 			SUBTITLEINFO* psi = (SUBTITLEINFO*)m_mt.pbFormat;
 			if(psi->dwOffset)
 			{

@@ -324,7 +324,7 @@ void CPPageFormats::AddAutoPlayToRegistry(autoplay_t ap, bool fRegister)
 	CString exe = buff;
 
 	int i = (int)ap;
-	if(i < 0 || i >= sizeof(handlers)/sizeof(handlers[0])) return;
+	if(i < 0 || i >= countof(handlers)) return;
 
 	CRegKey key;
 
@@ -369,14 +369,14 @@ bool CPPageFormats::IsAutoPlayRegistered(autoplay_t ap)
 	CString exe = buff;
 
 	int i = (int)ap;
-	if(i < 0 || i >= sizeof(handlers)/sizeof(handlers[0])) return(false);
+	if(i < 0 || i >= countof(handlers)) return(false);
 
 	CRegKey key;
 
 	if(ERROR_SUCCESS != key.Open(HKEY_LOCAL_MACHINE, 
 		CString(_T("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\AutoplayHandlers\\EventHandlers\\Play")) + handlers[i].verb + _T("OnArrival"),
 		KEY_READ)) return(false);
-	len = sizeof(buff)/sizeof(buff[0]);
+	len = countof(buff);
 	if(ERROR_SUCCESS != key.QueryStringValue(
 		CString(_T("MPCPlay")) + handlers[i].verb + _T("OnArrival"), 
 		buff, &len)) return(false);
@@ -385,7 +385,7 @@ bool CPPageFormats::IsAutoPlayRegistered(autoplay_t ap)
 	if(ERROR_SUCCESS != key.Open(HKEY_CLASSES_ROOT, 
 		CString(_T("MediaPlayerClassic.Autorun\\Shell\\Play")) + handlers[i].verb + _T("\\Command"),
 		KEY_READ)) return(false);
-	len = sizeof(buff)/sizeof(buff[0]);
+	len = countof(buff);
 	if(ERROR_SUCCESS != key.QueryStringValue(NULL, buff, &len))
 		return(false);
 	if(_tcsnicmp(exe, buff, exe.GetLength()))

@@ -23,8 +23,6 @@
 #include <winioctl.h>
 #include "TextFile.h"
 #include "..\..\include\unrar\unrar.h"
-#include "..\DSUtil\DSUtil.h"
-#include "..\DSUtil\text.h"
 #include "VobSubFile.h"
 
 //
@@ -179,7 +177,7 @@ struct lang_type {unsigned short id; TCHAR lang_long[64];} lang_tbl[] =
 
 int find_lang(unsigned short id)
 {
-	int mid, lo = 0, hi = sizeof(lang_tbl) / sizeof(lang_tbl[0]) - 1;
+	int mid, lo = 0, hi = countof(lang_tbl) - 1;
 
 	while(lo < hi)
 	{
@@ -2201,7 +2199,7 @@ void CVobSubStream::Open(CString name, BYTE* pData, int len)
 	}
 }
 
-void CVobSubStream::Add(REFERENCE_TIME tStart, BYTE* pData, int len)
+void CVobSubStream::Add(REFERENCE_TIME tStart, REFERENCE_TIME tStop, BYTE* pData, int len)
 {
 	if(len <= 4 || ((pData[0]<<8)|pData[1]) != len) return;
 
@@ -2210,7 +2208,7 @@ void CVobSubStream::Add(REFERENCE_TIME tStart, BYTE* pData, int len)
 
 	CAutoPtr<SubPic> p(new SubPic());
 	p->tStart = tStart;
-	p->tStop = tStart + 10000i64*vsi.delay;
+	p->tStop = vsi.delay > 0 ? (tStart + 10000i64*vsi.delay) : tStop;
 	p->pData.SetSize(len);
 	memcpy(p->pData.GetData(), pData, p->pData.GetSize());
 

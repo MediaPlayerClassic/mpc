@@ -41,7 +41,7 @@ const AMOVIESETUP_PIN sudpPins[] =
       FALSE,                // And allowed many
       &CLSID_NULL,          // Connects to filter
       NULL,                 // Connects to pin
-      sizeof(sudPinTypesIn)/sizeof(sudPinTypesIn[0]), // Number of types
+      countof(sudPinTypesIn), // Number of types
       sudPinTypesIn         // Pin information
     },
     { L"Output",            // Pins string name
@@ -58,7 +58,7 @@ const AMOVIESETUP_PIN sudpPins[] =
 
 const AMOVIESETUP_FILTER sudFilter[] =
 {
-	{&__uuidof(CRoQSplitterFilter), L"RoQ Splitter", MERIT_NORMAL+1, sizeof(sudpPins)/sizeof(sudpPins[0]), sudpPins},
+	{&__uuidof(CRoQSplitterFilter), L"RoQ Splitter", MERIT_NORMAL+1, countof(sudpPins), sudpPins},
 	{&__uuidof(CRoQSourceFilter), L"RoQ Source", MERIT_NORMAL+1, 0, NULL},
 };
 
@@ -83,7 +83,7 @@ const AMOVIESETUP_PIN sudpPins2[] =
       FALSE,                // And allowed many
       &CLSID_NULL,          // Connects to filter
       NULL,                 // Connects to pin
-      sizeof(sudPinTypesIn2)/sizeof(sudPinTypesIn2[0]),	// Number of types
+      countof(sudPinTypesIn2),	// Number of types
       sudPinTypesIn2			// Pin information
     },
     { L"Output",            // Pins string name
@@ -93,7 +93,7 @@ const AMOVIESETUP_PIN sudpPins2[] =
       FALSE,                // And allowed many
       &CLSID_NULL,          // Connects to filter
       NULL,                 // Connects to pin
-      sizeof(sudPinTypesOut2)/sizeof(sudPinTypesOut2[0]),	// Number of types
+      countof(sudPinTypesOut2),	// Number of types
       sudPinTypesOut2		// Pin information
     }
 };
@@ -117,7 +117,7 @@ const AMOVIESETUP_PIN sudpPins3[] =
       FALSE,                // And allowed many
       &CLSID_NULL,          // Connects to filter
       NULL,                 // Connects to pin
-      sizeof(sudPinTypesIn3)/sizeof(sudPinTypesIn3[0]),	// Number of types
+      countof(sudPinTypesIn3),	// Number of types
       sudPinTypesIn3			// Pin information
     },
     { L"Output",            // Pins string name
@@ -127,15 +127,15 @@ const AMOVIESETUP_PIN sudpPins3[] =
       FALSE,                // And allowed many
       &CLSID_NULL,          // Connects to filter
       NULL,                 // Connects to pin
-      sizeof(sudPinTypesOut3)/sizeof(sudPinTypesOut3[0]),	// Number of types
+      countof(sudPinTypesOut3),	// Number of types
       sudPinTypesOut3		// Pin information
     }
 };
 
 const AMOVIESETUP_FILTER sudFilter2[] =
 {
-	{&__uuidof(CRoQVideoDecoder), L"RoQ Video Decoder", MERIT_UNLIKELY, sizeof(sudpPins2)/sizeof(sudpPins2[0]), sudpPins2},
-	{&__uuidof(CRoQAudioDecoder), L"RoQ Audio Decoder", MERIT_UNLIKELY, sizeof(sudpPins3)/sizeof(sudpPins3[0]), sudpPins3},
+	{&__uuidof(CRoQVideoDecoder), L"RoQ Video Decoder", MERIT_UNLIKELY, countof(sudpPins2), sudpPins2},
+	{&__uuidof(CRoQAudioDecoder), L"RoQ Audio Decoder", MERIT_UNLIKELY, countof(sudpPins3), sudpPins3},
 };
 
 ////////////////////
@@ -148,7 +148,7 @@ CFactoryTemplate g_Templates[] =
     {L"RoQ Audio Decoder", &__uuidof(CRoQAudioDecoder), CRoQAudioDecoder::CreateInstance, NULL, &sudFilter2[1]},
 };
 
-int g_cTemplates = sizeof(g_Templates) / sizeof(g_Templates[0]);
+int g_cTemplates = countof(g_Templates);
 
 #include "..\..\registry.cpp"
 
@@ -897,7 +897,7 @@ HRESULT CRoQVideoDecoder::GetMediaType(int iPosition, CMediaType* pmt)
 	};
 
 	if(iPosition < 0) return E_INVALIDARG;
-	if(iPosition >= sizeof(fmts)/sizeof(fmts[0])) return VFW_S_NO_MORE_ITEMS;
+	if(iPosition >= countof(fmts)) return VFW_S_NO_MORE_ITEMS;
 
 	BITMAPINFOHEADER bih;
 	ExtractBIH(&m_pInput->CurrentMediaType(), &bih);

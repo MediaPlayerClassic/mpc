@@ -227,7 +227,7 @@ static HRESULT TextureBlt(CComPtr<IDirect3DDevice7> pD3DDev, CComPtr<IDirectDraw
 			{(float)dst.right, (float)dst.bottom, 0.5f, 2.0f, (float)src.right / w, (float)src.bottom / h},
 		};
 
-		for(int i = 0; i < sizeof(pVertices)/sizeof(pVertices[0]); i++)
+		for(int i = 0; i < countof(pVertices); i++)
 		{
 			pVertices[i].x -= 0.5;
 			pVertices[i].y -= 0.5;

@@ -49,6 +49,7 @@ extern CComModule _Module;
 
 #include <streams.h>
 #include <dvdmedia.h>
+#include "..\..\..\DSUtil\DSUtil.h"
 
 //{{AFX_INSERT_LOCATION}}
 // Microsoft Visual C++ will insert additional declarations immediately before the previous line.

@@ -231,6 +231,11 @@ static bool SearchFiles(CString mask, CStringList& sl)
 			while(FindNextFile(h, &fd));
 			
 			FindClose(h);
+
+			if(sl.GetCount() == 0 && mask.Find(_T(":\\")) == 1)
+			{
+				GetCDROMType(mask[0], sl);
+			}
 		}
 	}
 

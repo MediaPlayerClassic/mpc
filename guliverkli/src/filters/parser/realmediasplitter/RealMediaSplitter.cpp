@@ -96,7 +96,7 @@ const AMOVIESETUP_PIN sudpPins[] =
       FALSE,                // And allowed many
       &CLSID_NULL,          // Connects to filter
       NULL,                 // Connects to pin
-      sizeof(sudPinTypesIn)/sizeof(sudPinTypesIn[0]), // Number of types
+      countof(sudPinTypesIn), // Number of types
       sudPinTypesIn         // Pin information
     },
     { L"Output",            // Pins string name
@@ -113,7 +113,7 @@ const AMOVIESETUP_PIN sudpPins[] =
 
 const AMOVIESETUP_FILTER sudFilter[] =
 {
-	{&__uuidof(CRealMediaSplitterFilter), L"RealMedia Splitter", MERIT_NORMAL, sizeof(sudpPins)/sizeof(sudpPins[0]), sudpPins},
+	{&__uuidof(CRealMediaSplitterFilter), L"RealMedia Splitter", MERIT_NORMAL, countof(sudpPins), sudpPins},
 	{&__uuidof(CRealMediaSourceFilter), L"RealMedia Source", MERIT_NORMAL, 0, NULL},
 };
 
@@ -138,7 +138,7 @@ const AMOVIESETUP_PIN sudpPins2[] =
       FALSE,                // And allowed many
       &CLSID_NULL,          // Connects to filter
       NULL,                 // Connects to pin
-      sizeof(sudPinTypesIn2)/sizeof(sudPinTypesIn2[0]),	// Number of types
+      countof(sudPinTypesIn2),	// Number of types
       sudPinTypesIn2			// Pin information
     },
     { L"Output",            // Pins string name
@@ -148,7 +148,7 @@ const AMOVIESETUP_PIN sudpPins2[] =
       FALSE,                // And allowed many
       &CLSID_NULL,          // Connects to filter
       NULL,                 // Connects to pin
-      sizeof(sudPinTypesOut2)/sizeof(sudPinTypesOut2[0]),	// Number of types
+      countof(sudPinTypesOut2),	// Number of types
       sudPinTypesOut2		// Pin information
     }
 };
@@ -177,7 +177,7 @@ const AMOVIESETUP_PIN sudpPins3[] =
       FALSE,                // And allowed many
       &CLSID_NULL,          // Connects to filter
       NULL,                 // Connects to pin
-      sizeof(sudPinTypesIn3)/sizeof(sudPinTypesIn3[0]),	// Number of types
+      countof(sudPinTypesIn3),	// Number of types
       sudPinTypesIn3			// Pin information
     },
     { L"Output",            // Pins string name
@@ -187,15 +187,15 @@ const AMOVIESETUP_PIN sudpPins3[] =
       FALSE,                // And allowed many
       &CLSID_NULL,          // Connects to filter
       NULL,                 // Connects to pin
-      sizeof(sudPinTypesOut3)/sizeof(sudPinTypesOut3[0]),	// Number of types
+      countof(sudPinTypesOut3),	// Number of types
       sudPinTypesOut3		// Pin information
     }
 };
 
 const AMOVIESETUP_FILTER sudFilter2[] =
 {
-	{&__uuidof(CRealVideoDecoder), L"RealVideo Decoder", MERIT_UNLIKELY, sizeof(sudpPins2)/sizeof(sudpPins2[0]), sudpPins2},
-	{&__uuidof(CRealAudioDecoder), L"RealAudio Decoder", MERIT_UNLIKELY, sizeof(sudpPins3)/sizeof(sudpPins3[0]), sudpPins3},
+	{&__uuidof(CRealVideoDecoder), L"RealVideo Decoder", MERIT_UNLIKELY, countof(sudpPins2), sudpPins2},
+	{&__uuidof(CRealAudioDecoder), L"RealAudio Decoder", MERIT_UNLIKELY, countof(sudpPins3), sudpPins3},
 };
 
 ////////////////////
@@ -208,7 +208,7 @@ CFactoryTemplate g_Templates[] =
     {L"RealAudio Decoder", &__uuidof(CRealAudioDecoder), CRealAudioDecoder::CreateInstance, NULL, &sudFilter2[1]},
 };
 
-int g_cTemplates = sizeof(g_Templates) / sizeof(g_Templates[0]);
+int g_cTemplates = countof(g_Templates);
 
 #include "..\..\registry.cpp"
 
@@ -1723,7 +1723,7 @@ HRESULT CRealVideoDecoder::GetMediaType(int iPosition, CMediaType* pmt)
 		iPosition = iPosition*2 + 1;
 
 	if(iPosition < 0) return E_INVALIDARG;
-	if(iPosition >= 2*sizeof(fmts)/sizeof(fmts[0])) return VFW_S_NO_MORE_ITEMS;
+	if(iPosition >= 2*countof(fmts)) return VFW_S_NO_MORE_ITEMS;
 
 	BITMAPINFOHEADER bih;
 	ExtractBIH(&m_pInput->CurrentMediaType(), &bih);

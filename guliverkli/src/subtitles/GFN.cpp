@@ -46,8 +46,8 @@ void GetSubFileNames(CString fn, CStringArray& paths, SubFiles& ret)
 {
 	ret.RemoveAll();
 
-	int extlistnum = sizeof(ext) / sizeof(ext[0]);
-	int extsubnum = sizeof(ext[0]) / sizeof(ext[0][0]);
+	int extlistnum = countof(ext);
+	int extsubnum = countof(ext[0]);
 
 	fn.Replace('\\', '/');
 

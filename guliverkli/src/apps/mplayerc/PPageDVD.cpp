@@ -251,7 +251,7 @@ BOOL CPPageDVD::OnInitDialog()
 
 	UpdateData(FALSE);
 
-	for(int i = 0; i < sizeof(LCIDNameList) / sizeof(LCIDNameList[0]); i++)
+	for(int i = 0; i < countof(LCIDNameList); i++)
 	{
 		m_lcids.AddString(LCIDNameList[i].name);
 		m_lcids.SetItemData(i, LCIDNameList[i].lcid);

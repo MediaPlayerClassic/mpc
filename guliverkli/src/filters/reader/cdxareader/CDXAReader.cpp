@@ -149,7 +149,7 @@ CFactoryTemplate g_Templates[] =
 	, &sudCDXAReader}
 };
 
-int g_cTemplates = sizeof(g_Templates) / sizeof(g_Templates[0]);
+int g_cTemplates = countof(g_Templates);
 
 #include "..\..\registry.cpp"
 

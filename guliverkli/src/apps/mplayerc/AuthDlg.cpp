@@ -4,7 +4,6 @@
 #include "stdafx.h"
 #include "mplayerc.h"
 #include "AuthDlg.h"
-#include "..\..\DSUtil\text.h"
 
 // CAuthDlg dialog
 
@@ -62,7 +61,7 @@ BOOL CAuthDlg::OnInitDialog()
 			TCHAR username[256], password[256];
 			while(1)
 			{
-				DWORD unlen = sizeof(username)/sizeof(username[0]);
+				DWORD unlen = countof(username);
 				DWORD pwlen = sizeof(password);
 				DWORD type = REG_SZ;
 				if(ERROR_SUCCESS == RegEnumValue(

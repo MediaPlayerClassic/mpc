@@ -255,7 +255,7 @@ BEGIN
     LTEXT           "Media Player Classic",IDC_STATIC1,40,10,126,8,
                     SS_NOPREFIX
     LTEXT           "Copyright (C) 2002-2003 Gabest",IDC_STATIC,40,21,113,8
-    LTEXT           "Version:\t6.4.6.8",IDC_STATIC,40,33,92,8
+    LTEXT           "Version:\t6.4.6.9",IDC_STATIC,40,33,92,8
     PUSHBUTTON      "OK",IDOK,160,8,50,14,WS_GROUP
     LTEXT           "This program is freeware and released under the GNU General Public License.\nDistribution in Codec Packs is allowed, but the author (Gabest) is not liable for the additional content.",
                     IDC_STATIC,11,47,199,34
@@ -978,7 +978,7 @@ BEGIN
                     IDC_TEXTURESURF3D,"Button",BS_AUTORADIOBUTTON,113,92,157,
                     10
     GROUPBOX        "DirectShow Audio",IDC_STATIC,5,112,283,34
-    COMBOBOX        IDC_COMBO1,14,125,266,30,CBS_DROPDOWNLIST | WS_VSCROLL | 
+    COMBOBOX        IDC_COMBO1,14,125,266,66,CBS_DROPDOWNLIST | WS_VSCROLL | 
                     WS_TABSTOP
 END
 
@@ -1418,8 +1418,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 6,4,6,8
- PRODUCTVERSION 6,4,6,8
+ FILEVERSION 6,4,6,9
+ PRODUCTVERSION 6,4,6,9
  FILEFLAGSMASK 0x1fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -1437,12 +1437,12 @@ BEGIN
             VALUE "Comments", "http://gabest.org/"
             VALUE "CompanyName", "Gabest"
             VALUE "FileDescription", "Media Player Classic"
-            VALUE "FileVersion", "6, 4, 6, 8"
+            VALUE "FileVersion", "6, 4, 6, 9"
             VALUE "InternalName", "Media Player Classic"
             VALUE "LegalCopyright", "Copyright (C) 2002 Gabest"
             VALUE "OriginalFilename", "mplayerc.EXE"
             VALUE "ProductName", "Media Player Classic"
-            VALUE "ProductVersion", "6, 4, 6, 8"
+            VALUE "ProductVersion", "6, 4, 6, 9"
         END
     END
     BLOCK "VarFileInfo"

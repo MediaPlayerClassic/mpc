@@ -23,7 +23,6 @@
 #include <ddraw.h>
 #include <d3d.h>
 #include "DX7SubPic.h"
-#include "..\DSUtil\DSUtil.h"
 
 //
 // CDX7SubPic
@@ -164,7 +163,7 @@ STDMETHODIMP CDX7SubPic::AlphaBlt(RECT* pSrc, RECT* pDst, SubPicDesc* pTarget)
 			{(float)dst.right, (float)dst.bottom, 0.5f, 2.0f, (float)src.right / w, (float)src.bottom / h},
 		};
 /*
-		for(int i = 0; i < sizeof(pVertices)/sizeof(pVertices[0]); i++)
+		for(int i = 0; i < countof(pVertices); i++)
 		{
 			pVertices[i].x -= 0.5;
 			pVertices[i].y -= 0.5;

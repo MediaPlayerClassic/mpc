@@ -175,7 +175,7 @@ struct htmlcolor {TCHAR* name; DWORD color;} hmtlcolors[] =
 
 CHtmlColorMap::CHtmlColorMap()
 {
-	for(int i = 0; i < (sizeof(hmtlcolors) / sizeof(hmtlcolors[0])); i++)
+	for(int i = 0; i < countof(hmtlcolors); i++)
 		SetAt(hmtlcolors[i].name, (void*)hmtlcolors[i].color);
 }
 
@@ -231,7 +231,7 @@ TCHAR* CharSetNames[] =
 	_T("BALTIC"),
 };
 
-int CharSetLen = sizeof(CharSetList) / sizeof(CharSetList[0]);
+int CharSetLen = countof(CharSetList);
 
 //
 
@@ -1682,7 +1682,7 @@ static OpenFunctStruct OpenFuncts[] =
 	OpenUSF, TIME,
 };
 
-static int nOpenFuncts = sizeof(OpenFuncts) / sizeof(OpenFuncts[0]);
+static int nOpenFuncts = countof(OpenFuncts);
 
 //
 

@@ -94,7 +94,7 @@ const AMOVIESETUP_PIN sudOpPin[] =
 		FALSE,                  // Can we have many
 		&CLSID_NULL,            // Connects to filter
 		NULL,                   // Connects to pin
-		sizeof(sudPinTypesOut)/sizeof(sudPinTypesOut[0]), // Number of types
+		countof(sudPinTypesOut), // Number of types
 		sudPinTypesOut			// Pin details
 	},
 };
@@ -104,7 +104,7 @@ const AMOVIESETUP_FILTER sudFilter =
     &__uuidof(CShoutcastSource),	// Filter CLSID
     L"ShoutcastSource",				// String name
     MERIT_UNLIKELY,					// Filter merit
-    sizeof(sudOpPin)/sizeof(sudOpPin[0]), // Number of pins
+    countof(sudOpPin), // Number of pins
     sudOpPin						// Pin information
 };
 
@@ -117,7 +117,7 @@ CFactoryTemplate g_Templates[] =
 	, &sudFilter}
 };
 
-int g_cTemplates = sizeof(g_Templates) / sizeof(g_Templates[0]);
+int g_cTemplates = countof(g_Templates);
 
 #include "..\..\registry.cpp"
 
