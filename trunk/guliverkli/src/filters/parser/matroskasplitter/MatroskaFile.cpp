@@ -156,7 +156,7 @@ HRESULT Segment::ParseMinimal(CMatroskaNode* pMN0)
 
 	if(n == 3 && Cues.IsEmpty())
 	{
-		if((pMN = pMN0->Child()) && pMN->Find(0x1C53BB6B))
+		if(pMN = pMN0->Child(0x1C53BB6B))
 		{
 			do {Cues.Parse(pMN);} while(pMN->Next(true));
 		}
@@ -558,8 +558,9 @@ CMatroskaNode::CMatroskaNode(CMatroskaFile* pMF)
 	: m_pMF(pMF)
 	, m_pParent(NULL)
 {
+	ASSERT(m_pMF);
 	m_start = 0;
-	m_len.Set(m_pMF->GetLength()); 
+	m_len.Set(m_pMF ? m_pMF->GetLength() : 0); 
 }
 
 CMatroskaNode::CMatroskaNode(CMatroskaNode* pParent)
@@ -578,10 +579,12 @@ HRESULT CMatroskaNode::Parse()
 	return S_OK;
 }
 
-CAutoPtr<CMatroskaNode> CMatroskaNode::Child()
+CAutoPtr<CMatroskaNode> CMatroskaNode::Child(DWORD id)
 {
 	SeekTo(m_start);
-	return CAutoPtr<CMatroskaNode>(new CMatroskaNode(this));
+	CAutoPtr<CMatroskaNode> pMN(new CMatroskaNode(this));
+	if(id && !pMN->Find(id)) pMN.Free();
+	return pMN;
 }
 
 bool CMatroskaNode::Next(bool fSame)

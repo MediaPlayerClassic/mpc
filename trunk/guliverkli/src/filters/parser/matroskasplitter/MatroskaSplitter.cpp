@@ -132,7 +132,7 @@ CMatroskaSplitterFilter::CMatroskaSplitterFilter(LPUNKNOWN pUnk, HRESULT* phr)
 {
 	if(phr) *phr = S_OK;
 
-	m_pInput = new CMatroskaSplitterInputPin(NAME("CMatroskaSplitterInputPin"), this, this, phr);
+	m_pInput.Attach(new CMatroskaSplitterInputPin(NAME("CMatroskaSplitterInputPin"), this, this, phr));
 }
 
 CMatroskaSplitterFilter::~CMatroskaSplitterFilter()
@@ -141,8 +141,6 @@ CMatroskaSplitterFilter::~CMatroskaSplitterFilter()
 
 	CAMThread::CallWorker(CMD_EXIT);
 	CAMThread::Close();
-
-	delete m_pInput;
 }
 
 STDMETHODIMP CMatroskaSplitterFilter::NonDelegatingQueryInterface(REFIID riid, void** ppv)
@@ -256,21 +254,22 @@ void CMatroskaSplitterFilter::SendFakeTextSample()
 
 DWORD CMatroskaSplitterFilter::ThreadProc()
 {
-	while(!m_pFile) // not that m_pFile would ever change here... :P
+	CMatroskaNode Root(m_pFile);
+	CAutoPtr<CMatroskaNode> pSegment, pCluster;
+	if(!m_pFile
+	|| !(pSegment = Root.Child(0x18538067))
+	|| !(pCluster = pSegment->Child(0x1F43B675)))
 	{
-		DWORD cmd = GetRequest();
-		if(cmd == CMD_EXIT) m_hThread = NULL;
-		Reply(S_OK);
-		if(cmd == CMD_EXIT) return 0;
+		while(1)
+		{
+			DWORD cmd = GetRequest();
+			if(cmd == CMD_EXIT) m_hThread = NULL;
+			Reply(S_OK);
+			if(cmd == CMD_EXIT) return 0;
+		}
 	}
 
 	SendVorbisHeaderSample(); // HACK: init vorbis decoder with the headers
-
-	CMatroskaNode Root(m_pFile);
-	CAutoPtr<CMatroskaNode> pSegment = Root.Child();
-	pSegment->Find(0x18538067);
-	CAutoPtr<CMatroskaNode> pCluster = pSegment->Child();
-	pCluster->Find(0x1F43B675);
 
 	int LastBlockNumber = 0;
 
@@ -300,8 +299,7 @@ DWORD CMatroskaSplitterFilter::ThreadProc()
 
 				if(m_rtStart == 0)
 				{
-					pCluster = pSegment->Child();
-					pCluster->Find(0x1F43B675);
+					pCluster = pSegment->Child(0x1F43B675);
 				}
 				else
 				{
@@ -338,9 +336,7 @@ DWORD CMatroskaSplitterFilter::ThreadProc()
 								Cluster c;
 								c.ParseTimeCode(pCluster);
 
-								CAutoPtr<CMatroskaNode> pBlocks = pCluster->Child();
-
-								if(pBlocks->Find(0xA0))
+								if(CAutoPtr<CMatroskaNode> pBlocks = pCluster->Child(0xA0))
 								{
 									do
 									{
@@ -408,9 +404,8 @@ DWORD CMatroskaSplitterFilter::ThreadProc()
 				Cluster c;
 				c.ParseTimeCode(pCluster);
 
-				CAutoPtr<CMatroskaNode> pBlocks = pCluster->Child();
-				if(!pBlocks->Find(0xA0))
-					continue; 
+				CAutoPtr<CMatroskaNode> pBlocks = pCluster->Child(0xA0);
+				if(!pBlocks) continue; 
 
 				do
 				{
@@ -468,9 +463,7 @@ DWORD CMatroskaSplitterFilter::ThreadProc()
 			while(pos && !m_fSeeking && SUCCEEDED(hr) && !CheckRequest(&cmd))
 			{
 				Block* b = Blocks.GetNext(pos);
-
 				b->BlockDuration.Set((INT64)m_pFile->m_segment.SegmentInfo.Duration - b->TimeCode);
-
 				hr = DeliverBlock(b);
 			}
 
@@ -563,7 +556,6 @@ HRESULT CMatroskaSplitterFilter::BreakConnect(PIN_DIRECTION dir, CBasePin* pPin)
 	if(dir == PINDIR_INPUT)
 	{
 		CMatroskaSplitterInputPin* pIn = (CMatroskaSplitterInputPin*)pPin;
-
 /*
 		POSITION pos = m_pOutputs.GetHeadPosition();
 		while(pos) m_pOutputs.GetNext(pos)->Disconnect();

@@ -302,7 +302,7 @@ namespace Matroska
 		CMatroskaNode(CMatroskaFile* pMF); // creates the root
 		CMatroskaNode(CMatroskaNode* pParent);
 
-		CAutoPtr<CMatroskaNode> Child();
+		CAutoPtr<CMatroskaNode> Child(DWORD id = 0);
 		bool Next(bool fSame = false);
 		bool Find(DWORD id);
 

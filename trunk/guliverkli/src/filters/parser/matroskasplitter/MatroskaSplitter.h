@@ -66,7 +66,7 @@ class CMatroskaSplitterFilter
 	, protected CAMThread
 	, public IMediaSeeking
 {
-	CMatroskaSplitterInputPin* m_pInput;
+	CAutoPtr<CMatroskaSplitterInputPin> m_pInput;
 	CAutoPtrList<CMatroskaSplitterOutputPin> m_pOutputs;
 
 	CAutoPtr<Matroska::CMatroskaFile> m_pFile;
