@@ -8,6 +8,12 @@ require '../include/isolang.inc';
 
 unset($_SESSION['ticket']);
 
+$page = array(
+	'start' => max(0, intval(getParam('start'))),
+	'limit' => 10,
+	'total' => 0
+);
+
 $text = getParam('text');
 $discs = max(0, intval(getParam('discs')));
 $isolang_sel = addslashes(getParam('isolang_sel'));
@@ -47,12 +53,12 @@ else if(!empty($files))
 	foreach($files as $file)
 	{
 		$db->query( // close your eyes now...
-			"select * from movie where id in ".
+			"select SQL_CALC_FOUND_ROWS * from movie where id in ".
 			" (select distinct movie_id from movie_subtitle where subtitle_id in ".
 			"  (select id from subtitle where id in ".
 			"   (select distinct subtitle_id from file_subtitle where file_id in ".
 			"    (select id from file where hash = '{$file['hash']}' && size = '{$file['size']}')))) ".
-			"limit 20 ");
+			"limit {$page['start']}, {$page['limit']} ");
 
 		chkerr();
 			
@@ -71,7 +77,7 @@ else
 	if(!getParam('bw')) $db_text = '%'.$db_text;
 
 	$db->query(
-		"select distinct t1.* from movie t1 ".
+		"select SQL_CALC_FOUND_ROWS distinct t1.* from movie t1 ".
 		"join movie_subtitle t2 on t1.id = t2.movie_id ".
 		"where t1.id in ".
 		"	( ".
@@ -81,7 +87,7 @@ else
 			") ".
 		"and t1.id in (select distinct movie_id from movie_subtitle where subtitle_id in (select distinct id from subtitle)) ".
 		"order by t2.date desc " .
-		"limit 20 ");
+		"limit {$page['start']}, {$page['limit']} ");
 		
 	while($row = $db->fetchRow())
 		$movies[$row['id']] = $row;
@@ -91,6 +97,12 @@ else
 
 if(!empty($movies))
 {
+	$db->query("select FOUND_ROWS()");
+	if($row = $db->fetchRow()) $page['total'] = $row[0];
+	$page['count'] = count($movies);
+	
+	chkerr();
+	
 	$test_movie_id = "t1.movie_id in (".implode(',', array_keys($movies)).")";	
 
 	// titles
@@ -113,9 +125,10 @@ if(!empty($movies))
 		"join subtitle t2 on t1.subtitle_id = t2.id ".
 		"left outer join user t3 on t1.userid = t3.userid ".
 		"where $test_movie_id ".
-		(!empty($discs)?" && discs = '$discs' ":"").
-		(!empty($isolang_sel)?" && iso639_2 = '$isolang_sel' ":"").
-		(!empty($format_sel)?" && format = '$format_sel' ":"").
+		(!empty($discs)?" && t2.discs = '$discs' ":"").
+		(!empty($isolang_sel)?" && t1.iso639_2 = '$isolang_sel' ":"").
+		(!empty($format_sel)?" && t1.format = '$format_sel' ":"").
+		(!empty($nick_sel)?" && t3.nick = '$nick_sel' ":"").
 		"order by t1.date asc, t2.disc_no asc ");
 	foreach($movies as $id => $movie) $movies[$id]['subs'] = array();
 	while($row = $db->fetchRow()) $movies[$row['movie_id']]['subs'][] = $row;
@@ -175,6 +188,27 @@ if(isset($movies))
 {
 	if(empty($movies)) $smarty->assign('message', 'No matches were found');
 	$smarty->assign('movies', $movies);
+	
+	$page['index'] = array();
+	
+	if($page['limit'] < $page['total'])
+	{
+		$min = max(intval($page['start']/$page['limit']) - 9, 0);
+		$max = min(intval($page['start']/$page['limit']) + 9, intval(($page['total']-1)/$page['limit']));
+		for(; $min <= $max; $min++) $page['index'][] = $min*$page['limit'];
+	}
+	
+	if(!empty($page['index']))
+	{
+		$page['has_less'] = $page['index'][0] > 0;
+		$page['has_more'] = $page['index'][count($page['index'])-1] < ($page['total'] - $page['limit']);
+		
+		$cur = $page['start'] - $page['start']%$page['limit'];
+		if($cur > 0) $page['prev'] = $cur - $page['limit'];
+		if($cur + $page['limit'] < $page['total']) $page['next'] = $cur + $page['limit'];
+	}
+	
+	$smarty->assign('page', $page);
 }
 
 $smarty->assign('text', $text);

@@ -61,7 +61,23 @@
 
 {if !empty($movies)}
 
-	<ol>
+	{if $page.total > $page.count}
+	<p align="center">
+	{if isset($page.prev)}<a href="{$smarty.server.PHP_SELF}?start={$page.prev}">&laquo;</a>{/if}
+	{if $page.has_less}..{/if}
+	{foreach from=$page.index item=i}
+		{strip}
+		{if $i != $page.start}<a href="{$smarty.server.PHP_SELF}?start={$i}">{/if}
+		{$i/$page.limit+1}
+		{if $i != $page.start}</a>{/if}
+		{/strip}
+	{/foreach}
+	{if $page.has_more}..{/if}
+	{if isset($page.next)}<a href="{$smarty.server.PHP_SELF}?start={$page.next}">&raquo;</a>{/if}
+	</p>
+	{/if}
+
+	<ol start="{$page.start+1}">
 	{foreach from=$movies item=m}
 		{if $browser != 'Opera'}<li>{/if} {* grrrr *}
 		{if !empty($m.imdb)}<a href="http://www.imdb.com/title/tt{$m.imdb|string_format:"%07d"}/" class="imdb" target="_blank">[IMDb]</a>{/if}
@@ -120,7 +136,7 @@
 		</li>
 	{/foreach}
 	</ol>
-	
+
 {elseif !empty($files)}
 
 <p align="center">
