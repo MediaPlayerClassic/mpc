@@ -36,7 +36,6 @@ private:
 	int GetChecked(int iItem);
 	void SetChecked(int iItem, int fChecked);
 
-	bool m_fXpOrBetter;
 	typedef enum {AP_VIDEO=0,AP_MUSIC,AP_AUDIOCD,AP_DVDMOVIE} autoplay_t;
 	void AddAutoPlayToRegistry(autoplay_t ap, bool fRegister);
 	bool IsAutoPlayRegistered(autoplay_t ap);

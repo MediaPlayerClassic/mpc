@@ -877,10 +877,10 @@ CMPlayerCApp::Settings::Settings()
 	ADDCMD((ID_FILE_CLOSEMEDIA, 'C', FVIRTKEY|FCONTROL|FNOINVERT, _T("Close")));
 	ADDCMD((ID_FILE_PROPERTIES, VK_F10, FVIRTKEY|FSHIFT|FNOINVERT, _T("Properties")));
 	ADDCMD((ID_FILE_EXIT, 'X', FVIRTKEY|FALT|FNOINVERT, _T("Exit")));
-	ADDCMD((ID_PLAY_PLAYPAUSE, VK_SPACE, FVIRTKEY|FNOINVERT, _T("Play/Pause"), wmcmd::LDOWN));
+	ADDCMD((ID_PLAY_PLAYPAUSE, VK_SPACE, FVIRTKEY|FNOINVERT, _T("Play/Pause"), APPCOMMAND_MEDIA_PLAY_PAUSE, wmcmd::LDOWN));
 	ADDCMD((ID_PLAY_PLAY, 0, FVIRTKEY|FNOINVERT, _T("Play")));
 	ADDCMD((ID_PLAY_PAUSE, 0, FVIRTKEY|FNOINVERT, _T("Pause")));
-	ADDCMD((ID_PLAY_STOP, VK_OEM_PERIOD, FVIRTKEY|FNOINVERT, _T("Stop")));
+	ADDCMD((ID_PLAY_STOP, VK_OEM_PERIOD, FVIRTKEY|FNOINVERT, _T("Stop"), APPCOMMAND_MEDIA_STOP));
 	ADDCMD((ID_PLAY_FRAMESTEP, VK_RIGHT, FVIRTKEY|FNOINVERT, _T("Framestep")));
 	ADDCMD((ID_PLAY_FRAMESTEPCANCEL, VK_LEFT, FVIRTKEY|FNOINVERT, _T("Framestep back")));
 	ADDCMD((ID_PLAY_GOTO, 'G', FVIRTKEY|FCONTROL|FNOINVERT, _T("Go To")));
@@ -894,8 +894,8 @@ CMPlayerCApp::Settings::Settings()
 	ADDCMD((ID_PLAY_SEEKBACKWARDLARGE, 0, FVIRTKEY|FNOINVERT, _T("Jump Backward (large)")));
 	ADDCMD((ID_PLAY_SEEKKEYFORWARD, VK_RIGHT, FVIRTKEY|FSHIFT|FNOINVERT, _T("Jump Forward (keyframe)")));
 	ADDCMD((ID_PLAY_SEEKKEYBACKWARD, VK_LEFT, FVIRTKEY|FSHIFT|FNOINVERT, _T("Jump Backward (keyframe)")));
-	ADDCMD((ID_NAVIGATE_SKIPFORWARD, VK_NEXT, FVIRTKEY|FNOINVERT, _T("Next"), wmcmd::X2DOWN));
-	ADDCMD((ID_NAVIGATE_SKIPBACK, VK_PRIOR, FVIRTKEY|FNOINVERT, _T("Previous"), wmcmd::X1DOWN));
+	ADDCMD((ID_NAVIGATE_SKIPFORWARD, VK_NEXT, FVIRTKEY|FNOINVERT, _T("Next"), APPCOMMAND_MEDIA_NEXTTRACK, wmcmd::X2DOWN));
+	ADDCMD((ID_NAVIGATE_SKIPBACK, VK_PRIOR, FVIRTKEY|FNOINVERT, _T("Previous"), APPCOMMAND_MEDIA_PREVIOUSTRACK, wmcmd::X1DOWN));
 	ADDCMD((ID_NAVIGATE_SKIPFORWARDPLITEM, VK_NEXT, FVIRTKEY|FCONTROL|FNOINVERT, _T("Next Playlist Item")));
 	ADDCMD((ID_NAVIGATE_SKIPBACKPLITEM, VK_PRIOR, FVIRTKEY|FCONTROL|FNOINVERT, _T("Previous Playlist Item")));
 	ADDCMD((ID_VIEW_CAPTIONMENU, '0', FVIRTKEY|FCONTROL|FNOINVERT, _T("Toggle Caption&Menu")));
@@ -910,7 +910,7 @@ CMPlayerCApp::Settings::Settings()
 	ADDCMD((ID_VIEW_PRESETS_MINIMAL, '0', FVIRTKEY|FSHIFT|FCONTROL|FNOINVERT, _T("View Minimal")));
 	ADDCMD((ID_VIEW_PRESETS_COMPACT, '1', FVIRTKEY|FSHIFT|FCONTROL|FNOINVERT, _T("View Compact")));
 	ADDCMD((ID_VIEW_PRESETS_NORMAL, '2', FVIRTKEY|FSHIFT|FCONTROL|FNOINVERT, _T("View Normal")));
-	ADDCMD((ID_VIEW_FULLSCREEN, VK_RETURN, FVIRTKEY|FALT|FNOINVERT, _T("Fullscreen"), wmcmd::LDBLCLK));
+	ADDCMD((ID_VIEW_FULLSCREEN, VK_RETURN, FVIRTKEY|FALT|FNOINVERT, _T("Fullscreen"), 0, wmcmd::LDBLCLK));
 	ADDCMD((ID_VIEW_FULLSCREEN_SECONDARY, VK_RETURN, FVIRTKEY|FCONTROL|FNOINVERT, _T("Fullscreen (w/o res.change)")));
 	ADDCMD((ID_VIEW_ZOOM_50, '1', FVIRTKEY|FALT|FNOINVERT, _T("Zoom 50%")));
 	ADDCMD((ID_VIEW_ZOOM_100, '2', FVIRTKEY|FALT|FNOINVERT, _T("Zoom 100%")));
@@ -938,9 +938,9 @@ CMPlayerCApp::Settings::Settings()
 	ADDCMD((ID_PANSCAN_MOVEUPRIGHT, VK_NUMPAD9, FVIRTKEY|FCONTROL|FNOINVERT, _T("PnS Up/Right")));
 	ADDCMD((ID_PANSCAN_MOVEDOWNLEFT, VK_NUMPAD1, FVIRTKEY|FCONTROL|FNOINVERT, _T("PnS Down/Left")));
 	ADDCMD((ID_PANSCAN_MOVEDOWNRIGHT, VK_NUMPAD3, FVIRTKEY|FCONTROL|FNOINVERT, _T("PnS Down/Right")));
-	ADDCMD((ID_VOLUME_UP, VK_UP, FVIRTKEY|FNOINVERT, _T("Volume Up"), wmcmd::WUP));
-	ADDCMD((ID_VOLUME_DOWN, VK_DOWN, FVIRTKEY|FNOINVERT, _T("Volume Down"), wmcmd::WDOWN));
-	ADDCMD((ID_VOLUME_MUTE, 'M', FVIRTKEY|FCONTROL|FNOINVERT, _T("Volume Mute")));
+	ADDCMD((ID_VOLUME_UP, VK_UP, FVIRTKEY|FNOINVERT, _T("Volume Up"), APPCOMMAND_VOLUME_UP, wmcmd::WUP));
+	ADDCMD((ID_VOLUME_DOWN, VK_DOWN, FVIRTKEY|FNOINVERT, _T("Volume Down"), APPCOMMAND_VOLUME_DOWN, wmcmd::WDOWN));
+	ADDCMD((ID_VOLUME_MUTE, 'M', FVIRTKEY|FCONTROL|FNOINVERT, _T("Volume Mute"), APPCOMMAND_VOLUME_MUTE));
 	ADDCMD((ID_NAVIGATE_TITLEMENU, 0, FVIRTKEY|FNOINVERT, _T("DVD Title Menu")));
 	ADDCMD((ID_NAVIGATE_ROOTMENU, 0, FVIRTKEY|FNOINVERT, _T("DVD Root Menu")));
 	ADDCMD((ID_NAVIGATE_SUBPICTUREMENU, 0, FVIRTKEY|FNOINVERT, _T("DVD Subtitle Menu")));
@@ -955,7 +955,7 @@ CMPlayerCApp::Settings::Settings()
 	ADDCMD((ID_NAVIGATE_MENU_BACK, 0, FVIRTKEY|FNOINVERT, _T("DVD Menu Back")));
 	ADDCMD((ID_NAVIGATE_MENU_LEAVE, 0, FVIRTKEY|FNOINVERT, _T("DVD Menu Leave")));
 	ADDCMD((ID_BOSS, 'B', FVIRTKEY|FNOINVERT, _T("Boss key")));
-	ADDCMD((ID_MENU_PLAYER_SHORT, 0, FVIRTKEY|FNOINVERT, _T("Player Menu (short)"), wmcmd::RUP));
+	ADDCMD((ID_MENU_PLAYER_SHORT, 0, FVIRTKEY|FNOINVERT, _T("Player Menu (short)"), 0, wmcmd::RUP));
 	ADDCMD((ID_MENU_PLAYER_LONG, 0, FVIRTKEY|FNOINVERT, _T("Player Menu (long)")));
 	ADDCMD((ID_MENU_FILTERS, 0, FVIRTKEY|FNOINVERT, _T("Filters Menu")));
 	ADDCMD((ID_VIEW_OPTIONS, 'O', FVIRTKEY|FNOINVERT, _T("Options")));
@@ -1122,7 +1122,10 @@ void CMPlayerCApp::Settings::UpdateData(bool fSave)
 				CString str;
 				str.Format(_T("CommandMod%d"), i);
 				CString str2;
-				str2.Format(_T("%d %x %x %s %d %d"), wc.cmd, wc.fVirt, wc.key, _T("\"") + CString(wc.rmcmd) +  _T("\""), wc.rmrepcnt, wc.mouse);
+				str2.Format(_T("%d %x %x %s %d %d %d"), 
+					wc.cmd, wc.fVirt, wc.key, 
+					_T("\"") + CString(wc.rmcmd) +  _T("\""), wc.rmrepcnt,
+					wc.mouse, wc.appcmd);
 				pApp->WriteProfileString(ResStr(IDS_R_COMMANDS), str, str2);
 				i++;
 			}
@@ -1142,10 +1145,20 @@ void CMPlayerCApp::Settings::UpdateData(bool fSave)
 		Formats.UpdateData(true);
 
 		pApp->WriteProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_SRCFILTERS), SrcFilters);
+		pApp->WriteProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_TRAFILTERS), TraFilters);
+
+		pApp->WriteProfileString(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_LOGOFILE), logofn);
+		pApp->WriteProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_LOGOID), logoid);
+		pApp->WriteProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_LOGOEXT), logoext);
 	}
 	else
 	{
 		if(fInitialized) return;
+
+		OSVERSIONINFO vi;
+		vi.dwOSVersionInfoSize = sizeof(vi);
+		GetVersionEx(&vi);
+		fXpOrBetter = (vi.dwMajorVersion >= 5 && vi.dwMinorVersion >= 1 || vi.dwMajorVersion >= 6);
 
 		iVideoRendererAvailable = VIDRNDT_DEFAULT;
 		
@@ -1344,10 +1357,10 @@ void CMPlayerCApp::Settings::UpdateData(bool fSave)
 			str.Format(_T("CommandMod%d"), i);
 			str = pApp->GetProfileString(ResStr(IDS_R_COMMANDS), str, _T(""));
 			if(str.IsEmpty()) break;
-			int cmd, fVirt, key, repcnt, mouse;
+			int cmd, fVirt, key, repcnt, mouse, appcmd;
 			TCHAR buff[128];
 			int n;
-			if(5 > (n = _stscanf(str, _T("%d %x %x %s %d %d"), &cmd, &fVirt, &key, buff, &repcnt, &mouse)))
+			if(5 > (n = _stscanf(str, _T("%d %x %x %s %d %d %d"), &cmd, &fVirt, &key, buff, &repcnt, &mouse, &appcmd)))
 				break;
 			if(POSITION pos = wmcmds.Find(cmd))
 			{
@@ -1355,7 +1368,8 @@ void CMPlayerCApp::Settings::UpdateData(bool fSave)
                 wc.cmd = cmd;
 				wc.fVirt = fVirt;
 				wc.key = key;
-				if(n >= 6) wc.mouse = mouse;
+				if(n >= 6) wc.mouse = (UINT)mouse;
+				if(n >= 7) wc.appcmd = (UINT)appcmd;
 				wc.rmcmd = CStringA(buff).Trim('\"');
 				wc.rmrepcnt = repcnt;
 			}
@@ -1381,6 +1395,11 @@ void CMPlayerCApp::Settings::UpdateData(bool fSave)
 		Formats.UpdateData(false);
 
 		SrcFilters = pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_SRCFILTERS), ~0);
+		TraFilters = pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_TRAFILTERS), ~0);
+
+		logofn = pApp->GetProfileString(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_LOGOFILE), _T(""));
+		logoid = pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_LOGOID), IDB_LOGO2);
+		logoext = !!pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_LOGOEXT), 0);
 
 		pApp->WriteProfileInt(ResStr(IDS_R_SETTINGS), _T("LastUsedPage"), 0);
 

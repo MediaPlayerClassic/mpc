@@ -27,6 +27,7 @@ using namespace TreePropSheet;
 #include "PPagePlayer.h"
 #include "PPageFormats.h"
 #include "PPageAccelTbl.h"
+#include "PPageLogo.h"
 #include "PPagePlayback.h"
 #include "PPageDVD.h"
 #include "PPageRealMediaQuickTime.h"
@@ -62,6 +63,7 @@ private:
 	CPPagePlayer m_player;
 	CPPageFormats m_formats;
 	CPPageAccelTbl m_acceltbl;
+	CPPageLogo m_logo;
 	CPPagePlayback m_playback;
 	CPPageDVD m_dvd;
 	CPPageRealMediaQuickTime m_realmediaquicktime;

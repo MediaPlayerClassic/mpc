@@ -41,20 +41,7 @@ CChildView::CChildView() : m_vrect(0,0,0,0)
 	m_lastlmdowntime = 0;
 	m_lastlmdownpoint.SetPoint(0, 0);
 
-	CString logofile = AfxGetApp()->GetProfileString(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_LOGOFILE), _T(""));
-
-	if(!logofile.IsEmpty())
-	{
-		OSVERSIONINFO vi;
-		vi.dwOSVersionInfoSize = sizeof(vi);
-		GetVersionEx(&vi);
-		if(vi.dwMajorVersion >= 5 && vi.dwMinorVersion >= 1)
-			m_logo.Load(logofile);
-	}
-	else
-	{
-		m_logo.LoadFromResource(AfxGetInstanceHandle(), IDB_LOGO);
-	}
+	LoadLogo();
 }
 
 CChildView::~CChildView()
@@ -141,6 +128,30 @@ void CChildView::SetVideoRect(CRect r)
 	Invalidate();
 }
 
+void CChildView::LoadLogo()
+{
+	AppSettings& s = AfxGetAppSettings();
+
+	CAutoLock cAutoLock(&m_csLogo);
+
+	m_logo.Destroy();
+
+	if(s.logoext)
+	{
+		if(AfxGetAppSettings().fXpOrBetter)
+			m_logo.Load(s.logofn);
+		else if(HANDLE h = LoadImage(NULL, s.logofn, IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE))
+			m_logo.Attach((HBITMAP)h); // win9x bug: Inside Attach GetObject() will return all zeros in DIBSECTION and silly CImage uses that to init width, height, bpp, ... so we can't use CImage::Draw later
+	}
+
+	if(m_logo.IsNull())
+	{
+		m_logo.LoadFromResource(AfxGetInstanceHandle(), s.logoid);
+	}
+
+	if(m_hWnd) Invalidate();
+}
+
 IMPLEMENT_DYNAMIC(CChildView, CWnd)
 
 BEGIN_MESSAGE_MAP(CChildView, CWnd)
@@ -176,20 +187,30 @@ BOOL CChildView::OnEraseBkgnd(CDC* pDC)
 {
 	CRect r;
 
+	CAutoLock cAutoLock(&m_csLogo);
+
 	if(((CMainFrame*)GetParentFrame())->IsSomethingLoaded())
 	{
 		pDC->ExcludeClipRect(m_vrect);
 	}
 	else if(!m_logo.IsNull() && ((CMainFrame*)GetParentFrame())->IsPlaylistEmpty())
 	{
+		BITMAP bm;
+		GetObject(m_logo, sizeof(bm), &bm);
+
 		GetClientRect(r);
-		int w = min(m_logo.GetWidth(), r.Width());
-		int h = min(m_logo.GetHeight(), r.Height());
+		int w = min(bm.bmWidth, r.Width());
+		int h = min(abs(bm.bmHeight), r.Height());
+//		int w = min(m_logo.GetWidth(), r.Width());
+//		int h = min(m_logo.GetHeight(), r.Height());
 		int x = (r.Width() - w) / 2;
 		int y = (r.Height() - h) / 2;
 		r = CRect(CPoint(x, y), CSize(w, h));
 
-		m_logo.Draw(*pDC, r);
+		int oldmode = pDC->SetStretchBltMode(STRETCH_HALFTONE);
+		m_logo.StretchBlt(*pDC, r, CRect(0,0,bm.bmWidth,abs(bm.bmHeight)));
+//		m_logo.Draw(*pDC, r);
+		pDC->SetStretchBltMode(oldmode);
 
 		pDC->ExcludeClipRect(r);
 	}

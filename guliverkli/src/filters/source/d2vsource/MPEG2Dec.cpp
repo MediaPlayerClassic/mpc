@@ -48,7 +48,7 @@ extern void Initialize_REF_IDCT(void);
 extern void REF_IDCT(short *block);
 
 /* default intra quantization matrix */
-unsigned char default_intra_quantizer_matrix[64] =
+static unsigned char default_intra_quantizer_matrix[64] =
 {
 	8, 16, 19, 22, 26, 27, 29, 34,
 	16, 16, 22, 24, 27, 29, 34, 37,
@@ -61,7 +61,7 @@ unsigned char default_intra_quantizer_matrix[64] =
 };
 
 /* zig-zag and alternate scan patterns */
-unsigned char scan[2][64] =
+static unsigned char scan[2][64] =
 {
 	{ /* Zig-Zag scan pattern  */
 		0,  1,  8, 16,  9,  2,  3, 10,
@@ -87,7 +87,7 @@ unsigned char scan[2][64] =
 };
 
 /* non-linear quantization coefficient table */
-unsigned char Non_Linear_quantizer_scale[32] =
+static unsigned char Non_Linear_quantizer_scale[32] =
 {
 	0, 1, 2, 3, 4, 5, 6, 7,
 	8, 10, 12, 14, 16, 18, 20, 22,
@@ -106,19 +106,19 @@ typedef struct {
 } VLCtab;
 
 /* Table B-10, motion_code, codes 0001 ... 01xx */
-VLCtab MVtab0[8] =
+static VLCtab MVtab0[8] =
 {
 	{ERROR_VALUE,0}, {3,3}, {2,2}, {2,2}, {1,1}, {1,1}, {1,1}, {1,1}
 };
 
 /* Table B-10, motion_code, codes 0000011 ... 000011x */
-VLCtab MVtab1[8] =
+static VLCtab MVtab1[8] =
 {
 	{ERROR_VALUE,0}, {ERROR_VALUE,0}, {ERROR_VALUE,0}, {7,6}, {6,6}, {5,6}, {4,5}, {4,5}
 };
 
 /* Table B-10, motion_code, codes 0000001100 ... 000001011x */
-VLCtab MVtab2[12] =
+static VLCtab MVtab2[12] =
 {
 	{16,9}, {15,9}, {14,9}, {13,9},
 	{12,9}, {11,9}, {10,8}, {10,8},
@@ -126,7 +126,7 @@ VLCtab MVtab2[12] =
 };
 
 /* Table B-9, coded_block_pattern, codes 01000 ... 111xx */
-VLCtab CBPtab0[32] =
+static VLCtab CBPtab0[32] =
 {
 	{ERROR_VALUE,0}, {ERROR_VALUE,0}, {ERROR_VALUE,0}, {ERROR_VALUE,0},
 	{ERROR_VALUE,0}, {ERROR_VALUE,0}, {ERROR_VALUE,0}, {ERROR_VALUE,0},
@@ -136,7 +136,7 @@ VLCtab CBPtab0[32] =
 };
 
 /* Table B-9, coded_block_pattern, codes 00000100 ... 001111xx */
-VLCtab CBPtab1[64] =
+static VLCtab CBPtab1[64] =
 {
 	{ERROR_VALUE,0}, {ERROR_VALUE,0}, {ERROR_VALUE,0}, {ERROR_VALUE,0},
 	{58,8}, {54,8}, {46,8}, {30,8},
@@ -150,20 +150,20 @@ VLCtab CBPtab1[64] =
 };
 
 /* Table B-9, coded_block_pattern, codes 000000001 ... 000000111 */
-VLCtab CBPtab2[8] =
+static VLCtab CBPtab2[8] =
 {
 	{ERROR_VALUE,0}, {0,9}, {39,9}, {27,9}, {59,9}, {55,9}, {47,9}, {31,9}
 };
 
 /* Table B-1, macroblock_address_increment, codes 00010 ... 011xx */
-VLCtab MBAtab1[16] =
+static VLCtab MBAtab1[16] =
 {
 	{ERROR_VALUE,0}, {ERROR_VALUE,0}, {7,5}, {6,5}, {5,4}, {5,4}, {4,4},
 	{4,4}, {3,3}, {3,3}, {3,3}, {3,3}, {2,3}, {2,3}, {2,3}, {2,3}
 };
 
 /* Table B-1, macroblock_address_increment, codes 00000011000 ... 0000111xxxx */
-VLCtab MBAtab2[104] =
+static VLCtab MBAtab2[104] =
 {
 	{33,11}, {32,11}, {31,11}, {30,11}, {29,11}, {28,11}, {27,11}, {26,11},
 	{25,11}, {24,11}, {23,11}, {22,11}, {21,10}, {21,10}, {20,10}, {20,10},
@@ -181,7 +181,7 @@ VLCtab MBAtab2[104] =
 };
 
 /* Table B-12, dct_dc_size_luminance, codes 00xxx ... 11110 */
-VLCtab DClumtab0[32] =
+static VLCtab DClumtab0[32] =
 {
 	{1, 2}, {1, 2}, {1, 2}, {1, 2}, {1, 2}, {1, 2}, {1, 2}, {1, 2},
 	{2, 2}, {2, 2}, {2, 2}, {2, 2}, {2, 2}, {2, 2}, {2, 2}, {2, 2},
@@ -190,14 +190,14 @@ VLCtab DClumtab0[32] =
 };
 
 /* Table B-12, dct_dc_size_luminance, codes 111110xxx ... 111111111 */
-VLCtab DClumtab1[16] =
+static VLCtab DClumtab1[16] =
 {
 	{7, 6}, {7, 6}, {7, 6}, {7, 6}, {7, 6}, {7, 6}, {7, 6}, {7, 6},
 	{8, 7}, {8, 7}, {8, 7}, {8, 7}, {9, 8}, {9, 8}, {10,9}, {11,9}
 };
 
 /* Table B-13, dct_dc_size_chrominance, codes 00xxx ... 11110 */
-VLCtab DCchromtab0[32] =
+static VLCtab DCchromtab0[32] =
 {
 	{0, 2}, {0, 2}, {0, 2}, {0, 2}, {0, 2}, {0, 2}, {0, 2}, {0, 2},
 	{1, 2}, {1, 2}, {1, 2}, {1, 2}, {1, 2}, {1, 2}, {1, 2}, {1, 2},
@@ -206,7 +206,7 @@ VLCtab DCchromtab0[32] =
 };
 
 /* Table B-13, dct_dc_size_chrominance, codes 111110xxxx ... 1111111111 */
-VLCtab DCchromtab1[32] =
+static VLCtab DCchromtab1[32] =
 {
 	{6, 6}, {6, 6}, {6, 6}, {6, 6}, {6, 6}, {6, 6}, {6, 6}, {6, 6},
 	{6, 6}, {6, 6}, {6, 6}, {6, 6}, {6, 6}, {6, 6}, {6, 6}, {6, 6},
@@ -217,7 +217,7 @@ VLCtab DCchromtab1[32] =
 /* Table B-14, DCT coefficients table zero,
  * codes 0100 ... 1xxx (used for first (DC) coefficient)
  */
-DCTtab DCTtabfirst[12] =
+static DCTtab DCTtabfirst[12] =
 {
 	{0,2,4}, {2,1,4}, {1,1,3}, {1,1,3},
 	{0,1,1}, {0,1,1}, {0,1,1}, {0,1,1},
@@ -227,7 +227,7 @@ DCTtab DCTtabfirst[12] =
 /* Table B-14, DCT coefficients table zero,
  * codes 0100 ... 1xxx (used for all other coefficients)
  */
-DCTtab DCTtabnext[12] =
+static DCTtab DCTtabnext[12] =
 {
 	{0,2,4},  {2,1,4},  {1,1,3},  {1,1,3},
 	{64,0,2}, {64,0,2}, {64,0,2}, {64,0,2}, /* EOB */
@@ -237,7 +237,7 @@ DCTtab DCTtabnext[12] =
 /* Table B-14, DCT coefficients table zero,
  * codes 000001xx ... 00111xxx
  */
-DCTtab DCTtab0[60] =
+static DCTtab DCTtab0[60] =
 {
 	{65,0,6}, {65,0,6}, {65,0,6}, {65,0,6}, /* Escape */
 	{2,2,7}, {2,2,7}, {9,1,7}, {9,1,7},
@@ -259,7 +259,7 @@ DCTtab DCTtab0[60] =
 /* Table B-15, DCT coefficients table one,
  * codes 000001xx ... 11111111
 */
-DCTtab DCTtab0a[252] =
+static DCTtab DCTtab0a[252] =
 {
 	{65,0,6}, {65,0,6}, {65,0,6}, {65,0,6}, /* Escape */
 	{7,1,7}, {7,1,7}, {8,1,7}, {8,1,7},
@@ -329,7 +329,7 @@ DCTtab DCTtab0a[252] =
 /* Table B-14, DCT coefficients table zero,
  * codes 0000001000 ... 0000001111
  */
-DCTtab DCTtab1[8] =
+static DCTtab DCTtab1[8] =
 {
 	{16,1,10}, {5,2,10}, {0,7,10}, {2,3,10},
 	{1,4,10}, {15,1,10}, {14,1,10}, {4,2,10}
@@ -338,7 +338,7 @@ DCTtab DCTtab1[8] =
 /* Table B-15, DCT coefficients table one,
  * codes 000000100x ... 000000111x
  */
-DCTtab DCTtab1a[8] =
+static DCTtab DCTtab1a[8] =
 {
 	{5,2,9}, {5,2,9}, {14,1,9}, {14,1,9},
 	{2,4,10}, {16,1,10}, {15,1,9}, {15,1,9}
@@ -347,7 +347,7 @@ DCTtab DCTtab1a[8] =
 /* Table B-14/15, DCT coefficients table zero / one,
  * codes 000000010000 ... 000000011111
  */
-DCTtab DCTtab2[16] =
+static DCTtab DCTtab2[16] =
 {
 	{0,11,12}, {8,2,12}, {4,3,12}, {0,10,12},
 	{2,4,12}, {7,2,12}, {21,1,12}, {20,1,12},
@@ -358,7 +358,7 @@ DCTtab DCTtab2[16] =
 /* Table B-14/15, DCT coefficients table zero / one,
  * codes 0000000010000 ... 0000000011111
  */
-DCTtab DCTtab3[16] =
+static DCTtab DCTtab3[16] =
 {
 	{10,2,13}, {9,2,13}, {5,3,13}, {3,4,13},
 	{2,5,13}, {1,7,13}, {1,6,13}, {0,15,13},
@@ -369,7 +369,7 @@ DCTtab DCTtab3[16] =
 /* Table B-14/15, DCT coefficients table zero / one,
  * codes 00000000010000 ... 00000000011111
  */
-DCTtab DCTtab4[16] =
+static DCTtab DCTtab4[16] =
 {
 	{0,31,14}, {0,30,14}, {0,29,14}, {0,28,14},
 	{0,27,14}, {0,26,14}, {0,25,14}, {0,24,14},
@@ -380,7 +380,7 @@ DCTtab DCTtab4[16] =
 /* Table B-14/15, DCT coefficients table zero / one,
  * codes 000000000010000 ... 000000000011111
  */
-DCTtab DCTtab5[16] =
+static DCTtab DCTtab5[16] =
 {
 	{0,40,15}, {0,39,15}, {0,38,15}, {0,37,15},
 	{0,36,15}, {0,35,15}, {0,34,15}, {0,33,15},
@@ -391,7 +391,7 @@ DCTtab DCTtab5[16] =
 /* Table B-14/15, DCT coefficients table zero / one,
  * codes 0000000000010000 ... 0000000000011111
  */
-DCTtab DCTtab6[16] =
+static DCTtab DCTtab6[16] =
 {
 	{1,18,16}, {1,17,16}, {1,16,16}, {1,15,16},
 	{6,3,16}, {16,2,16}, {15,2,16}, {14,2,16},
@@ -400,7 +400,7 @@ DCTtab DCTtab6[16] =
 };
 
 /* Table B-3, macroblock_type in P-pictures, codes 001..1xx */
-VLCtab PMBtab0[8] =
+static VLCtab PMBtab0[8] =
 {
 	{ERROR_VALUE,0},
 	{MACROBLOCK_MOTION_FORWARD,3},
@@ -412,7 +412,7 @@ VLCtab PMBtab0[8] =
 };
 
 /* Table B-3, macroblock_type in P-pictures, codes 000001..00011x */
-VLCtab PMBtab1[8] =
+static VLCtab PMBtab1[8] =
 {
 	{ERROR_VALUE,0},
 	{MACROBLOCK_QUANT|MACROBLOCK_INTRA,6},
@@ -422,7 +422,7 @@ VLCtab PMBtab1[8] =
 };
 
 /* Table B-4, macroblock_type in B-pictures, codes 0010..11xx */
-VLCtab BMBtab0[16] =
+static VLCtab BMBtab0[16] =
 {
 	{ERROR_VALUE,0}, 
 	{ERROR_VALUE,0},
@@ -443,7 +443,7 @@ VLCtab BMBtab0[16] =
 };
 
 /* Table B-4, macroblock_type in B-pictures, codes 000001..00011x */
-VLCtab BMBtab1[8] =
+static VLCtab BMBtab1[8] =
 {
 	{ERROR_VALUE,0},
 	{MACROBLOCK_QUANT|MACROBLOCK_INTRA,6},
@@ -1145,7 +1145,7 @@ void CMPEG2Dec::copyright_extension()
 // getpic
 //
 
-const unsigned char cc_table[12] = {
+static const unsigned char cc_table[12] = {
 	0, 0, 0, 0, 1, 2, 1, 2, 1, 2, 1, 2
 };
 

@@ -199,6 +199,38 @@ HRESULT Segment::ParseMinimal(CMatroskaNode* pMN0)
 	return S_OK;
 }
 
+UINT64 Segment::GetMasterTrack()
+{
+	UINT64 TrackNumber = 0, AltTrackNumber = 0;
+
+	POSITION pos1 = Tracks.GetHeadPosition();
+	while(pos1 && TrackNumber == 0)
+	{
+		Track* pT = Tracks.GetNext(pos1);
+		
+		POSITION pos2 = pT->TrackEntries.GetHeadPosition();
+		while(pos2 && TrackNumber == 0)
+		{
+			TrackEntry* pTE = pT->TrackEntries.GetNext(pos2);
+
+			if(pTE->TrackType == TrackEntry::TypeVideo)
+			{
+				TrackNumber = pTE->TrackNumber;
+				break;
+			}
+			else if(pTE->TrackType == TrackEntry::TypeAudio && AltTrackNumber == 0)
+			{
+				AltTrackNumber = pTE->TrackNumber;
+			}
+		}
+	}
+
+	if(TrackNumber == 0) TrackNumber = AltTrackNumber;
+	if(TrackNumber == 0) TrackNumber = 1;
+
+	return TrackNumber;
+}
+
 ChapterAtom* ChapterAtom::FindChapterAtom(UINT64 id)
 {
 	if(ChapterUID == id)

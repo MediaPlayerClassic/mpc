@@ -117,7 +117,7 @@ STYLE DS_SETFONT | WS_CHILD
 FONT 8, "MS Sans Serif", 400, 0, 0x1
 BEGIN
     GROUPBOX        "",IDC_STATIC,7,7,232,151
-    LTEXT           "DirectVobSub 2.28\nCopyright 2001-2002 Gabest",
+    LTEXT           "DirectVobSub 2.28\nCopyright 2001-2003 Gabest",
                     IDC_STATIC,13,17,183,19
     LTEXT           "Credits:\n- SAMI format support by Sanger && Wilowisp of SPKOR\n- Handling of some basic html style modifier tags in SAMI done by [maven]",
                     IDC_STATIC,14,39,218,32
@@ -421,31 +421,33 @@ BEGIN
     CONTROL         "",IDC_SPIN9,"msctls_updown32",UDS_SETBUDDYINT | 
                     UDS_ALIGNRIGHT | UDS_AUTOBUDDY | UDS_ARROWKEYS | 
                     UDS_NOTHOUSANDS,296,37,11,14
-    GROUPBOX        "Colors && Transparency",IDC_STATIC,125,63,187,102
-    LTEXT           "Primary",IDC_STATIC,133,81,25,8
-    CONTROL         "",IDC_COLORPRI,"Static",SS_OWNERDRAW | SS_NOTIFY,175,78,
+    GROUPBOX        "Colors && Transparency",IDC_STATIC,125,63,187,110
+    LTEXT           "Primary",IDC_STATIC,133,88,25,8
+    CONTROL         "",IDC_COLORPRI,"Static",SS_OWNERDRAW | SS_NOTIFY,175,85,
                     16,14,WS_EX_DLGMODALFRAME
     CONTROL         "",IDC_SLIDER2,"msctls_trackbar32",TBS_BOTH | 
-                    TBS_NOTICKS | WS_TABSTOP,198,79,103,13
-    LTEXT           "Secondary",IDC_STATIC,133,98,34,8
-    CONTROL         "",IDC_COLORSEC,"Static",SS_OWNERDRAW | SS_NOTIFY,175,95,
-                    16,14,WS_EX_DLGMODALFRAME
+                    TBS_NOTICKS | WS_TABSTOP,198,86,103,13
+    LTEXT           "Secondary",IDC_STATIC,133,105,34,8
+    CONTROL         "",IDC_COLORSEC,"Static",SS_OWNERDRAW | SS_NOTIFY,175,
+                    102,16,14,WS_EX_DLGMODALFRAME
     CONTROL         "",IDC_SLIDER3,"msctls_trackbar32",TBS_BOTH | 
-                    TBS_NOTICKS | WS_TABSTOP,198,96,103,13
-    LTEXT           "Outline",IDC_STATIC,133,115,24,8
+                    TBS_NOTICKS | WS_TABSTOP,198,103,103,13
+    LTEXT           "Outline",IDC_STATIC,133,122,24,8
     CONTROL         "",IDC_COLOROUTL,"Static",SS_OWNERDRAW | SS_NOTIFY,175,
-                    112,16,14,WS_EX_DLGMODALFRAME
+                    119,16,14,WS_EX_DLGMODALFRAME
     CONTROL         "",IDC_SLIDER5,"msctls_trackbar32",TBS_BOTH | 
-                    TBS_NOTICKS | WS_TABSTOP,198,113,103,13
-    LTEXT           "Shadow",IDC_STATIC,133,132,26,8
+                    TBS_NOTICKS | WS_TABSTOP,198,120,103,13
+    LTEXT           "Shadow",IDC_STATIC,133,139,26,8
     CONTROL         "",IDC_COLORSHAD,"Static",SS_OWNERDRAW | SS_NOTIFY,175,
-                    129,16,14,WS_EX_DLGMODALFRAME
+                    136,16,14,WS_EX_DLGMODALFRAME
     CONTROL         "",IDC_SLIDER6,"msctls_trackbar32",TBS_BOTH | 
-                    TBS_NOTICKS | WS_TABSTOP,198,130,103,13
+                    TBS_NOTICKS | WS_TABSTOP,198,137,103,13
     CONTROL         "Link alpha channels",IDC_CHECK1,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,213,147,76,10
+                    BS_AUTOCHECKBOX | WS_TABSTOP,213,154,76,10
     PUSHBUTTON      "Cancel",IDCANCEL,211,197,50,14
     DEFPUSHBUTTON   "OK",IDOK,265,197,50,14
+    LTEXT           "100%",IDC_STATIC,289,76,20,8
+    LTEXT           "0%",IDC_STATIC,200,76,12,8
 END
 
 

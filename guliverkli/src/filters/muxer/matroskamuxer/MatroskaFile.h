@@ -199,6 +199,7 @@ namespace MatroskaWriter
 				{
 				public:
 					CFloat SamplingFrequency;
+					CFloat OutputSamplingFrequency;
 					CUInt Channels;
 					CBinary ChannelPositions;
 					CUInt BitDepth;

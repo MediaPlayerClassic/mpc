@@ -184,18 +184,36 @@ CGraphBuilder::CGraphBuilder(IGraphBuilder* pGB, HWND hWnd)
 		guids.RemoveAll();
 	}
 
-	if(s.SrcFilters&SRC_AVI)
 	{
 		guids.AddTail(MEDIATYPE_Stream);
 		guids.AddTail(MEDIASUBTYPE_Avi);
-		AddFilter(new CGraphCustomFilter(__uuidof(CAviSplitterFilter), guids, L"Avi Splitter", LMERIT_PREFERRED));
+		AddFilter(new CGraphCustomFilter(__uuidof(CAviSplitterFilter), guids, 
+			(s.SrcFilters&SRC_AVI) ? L"Avi Splitter" : L"Avi Splitter (for broken files)",
+			(s.SrcFilters&SRC_AVI) ? LMERIT_PREFERRED : LMERIT_DO_USE));
 		guids.RemoveAll();
 	}
-	else
+
 	{
-		guids.AddTail(MEDIATYPE_Stream);
-		guids.AddTail(MEDIASUBTYPE_Avi);
-		AddFilter(new CGraphCustomFilter(__uuidof(CAviSplitterFilter), guids, L"Avi Splitter (for broken files)", LMERIT_NORMAL-1));
+		guids.AddTail(MEDIATYPE_Video);
+		guids.AddTail(MEDIASUBTYPE_MPEG1Packet);
+		guids.AddTail(MEDIATYPE_Video);
+		guids.AddTail(MEDIASUBTYPE_MPEG1Payload);
+		AddFilter(new CGraphCustomFilter(__uuidof(CMpeg2DecFilter), guids, L"Mpeg1 Decoder", 
+			(s.TraFilters&TRA_MPEG1) ? LMERIT(0x40000002) : LMERIT_DO_USE));
+		guids.RemoveAll();
+	}
+
+	{
+		guids.AddTail(MEDIATYPE_DVD_ENCRYPTED_PACK);
+		guids.AddTail(MEDIASUBTYPE_MPEG2_VIDEO);
+		guids.AddTail(MEDIATYPE_MPEG2_PACK);
+		guids.AddTail(MEDIASUBTYPE_MPEG2_VIDEO);
+		guids.AddTail(MEDIATYPE_MPEG2_PES);
+		guids.AddTail(MEDIASUBTYPE_MPEG2_VIDEO);
+		guids.AddTail(MEDIATYPE_Video);
+		guids.AddTail(MEDIASUBTYPE_MPEG2_VIDEO);
+		AddFilter(new CGraphCustomFilter(__uuidof(CMpeg2DecFilter), guids, L"Mpeg2 Decoder", 
+			(s.TraFilters&TRA_MPEG2) ? LMERIT_PREFERRED : LMERIT_DO_USE));
 		guids.RemoveAll();
 	}
 
@@ -209,9 +227,12 @@ CGraphBuilder::CGraphBuilder(IGraphBuilder* pGB, HWND hWnd)
 		guids.AddTail(MEDIATYPE_Video);
 		guids.AddTail(MEDIASUBTYPE_RV40);
 		AddFilter(new CGraphCustomFilter(__uuidof(CRealVideoDecoder), guids, L"RealVideo Decoder", 
-			(s.SrcFilters&SRC_REALMEDIA) ? LMERIT_PREFERRED : LMERIT_DO_USE));
+			(s.TraFilters&TRA_REALVID)
+			/*(s.SrcFilters&SRC_REALMEDIA)*/ ? LMERIT_PREFERRED : LMERIT_DO_USE));
 		guids.RemoveAll();
+	}
 
+	{
 		guids.AddTail(MEDIATYPE_Audio);
 		guids.AddTail(MEDIASUBTYPE_14_4);
 		guids.AddTail(MEDIATYPE_Audio);
@@ -225,7 +246,8 @@ CGraphBuilder::CGraphBuilder(IGraphBuilder* pGB, HWND hWnd)
 		guids.AddTail(MEDIATYPE_Audio);
 		guids.AddTail(MEDIASUBTYPE_SIPR);
 		AddFilter(new CGraphCustomFilter(__uuidof(CRealAudioDecoder), guids, L"RealAudio Decoder", 
-			(s.SrcFilters&SRC_REALMEDIA) ? LMERIT_PREFERRED : LMERIT_DO_USE));
+			(s.TraFilters&TRA_REALAUD)
+			/*(s.SrcFilters&SRC_REALMEDIA)*/ ? LMERIT_PREFERRED : LMERIT_DO_USE));
 		guids.RemoveAll();
 	}
 
@@ -1067,6 +1089,27 @@ CGraphBuilderDVD::CGraphBuilderDVD(IGraphBuilder* pGB, HWND hWnd)
 	AddFilter(new CGraphRegFilter(CLSID_ElecardMpeg2, LMERIT(MERIT_DO_NOT_USE)));
 }
 
+#include "..\..\decss\VobFile.h"
+
+class CResetDVD : public CDVDSession
+{
+public:
+	CResetDVD(LPCTSTR path)
+	{
+		if(Open(path))
+		{
+			if(BeginSession())
+			{
+				Authenticate();
+				// GetDiscKey();
+				EndSession();
+			}
+
+			Close();
+		}
+	}
+};
+
 HRESULT CGraphBuilderDVD::Render(CString fn, CString& path)
 {
 	if(!m_pGB) return E_INVALIDARG;
@@ -1102,6 +1145,8 @@ HRESULT CGraphBuilderDVD::Render(CString fn, CString& path)
 
 	m_pUnks.AddTail(pDVDC);
 	m_pUnks.AddTail(pDVDI);
+
+	CResetDVD tmp(path);
 
 	return __super::Render(pBF);
 }
@@ -1489,6 +1534,7 @@ HRESULT CGraphCustomFilter::Create(IBaseFilter** ppBF, IUnknown** ppUnk)
 		m_clsid == __uuidof(CRealAudioDecoder) ? (IBaseFilter*)new CRealAudioDecoder(NULL, &hr) :
 		m_clsid == __uuidof(CAviSplitterFilter) ? (IBaseFilter*)new CAviSplitterFilter(NULL, &hr) :
 		m_clsid == __uuidof(CTextNullRenderer) ? (IBaseFilter*)new CTextNullRenderer(NULL, &hr) :
+		m_clsid == __uuidof(CMpeg2DecFilter) ? (IBaseFilter*)new CMpeg2DecFilter(NULL, &hr) :
 		NULL;
 
 	if(!*ppBF) hr = E_FAIL;

@@ -37,6 +37,7 @@ CPPageSheet::CPPageSheet(LPCTSTR pszCaption, IUnknown* pAudioSwitcher, CWnd* pPa
 	AddPage(&m_player);
 	AddPage(&m_formats);
 	AddPage(&m_acceltbl);
+	AddPage(&m_logo);
 	AddPage(&m_playback);
 	AddPage(&m_dvd);
 	AddPage(&m_realmediaquicktime);

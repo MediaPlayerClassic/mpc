@@ -27,6 +27,7 @@
 #include <ksmedia.h>
 #include "..\..\..\DSUtil\DSUtil.h"
 #include "..\..\..\DSUtil\MediaTypes.h"
+#include "..\..\..\DSUtil\vd.h"
 #include "RealMediaSplitter.h"
 
 //
@@ -213,35 +214,20 @@ int g_cTemplates = sizeof(g_Templates) / sizeof(g_Templates[0]);
 
 STDAPI DllRegisterServer()
 {
-	CString null = CStringFromGUID(GUID_NULL);
-	CString majortype = CStringFromGUID(MEDIATYPE_Stream);
-	CString subtype = CStringFromGUID(MEDIASUBTYPE_RealMedia);
-	CString asyncfilter = CStringFromGUID(CLSID_AsyncReader);
-	CString srcfilter = CStringFromGUID(__uuidof(CRealMediaSourceFilter));
-
-	SetRegKeyValue(_T("Media Type\\") + null, subtype, _T("0"), _T("0,4,,2E524D46")); // .RMF
-	SetRegKeyValue(_T("Media Type\\") + null, subtype, _T("Source Filter"), srcfilter);
-
-	SetRegKeyValue(_T("Media Type\\") + majortype, subtype, _T("0"), _T("0,4,,2E524D46")); // .RMF
-	SetRegKeyValue(_T("Media Type\\") + majortype, subtype, _T("Source Filter"), asyncfilter);
-
-	DeleteRegKey(_T("Media Type\\Extensions"), _T(".rm"));
-	DeleteRegKey(_T("Media Type\\Extensions"), _T(".rmvb"));
-	DeleteRegKey(_T("Media Type\\Extensions"), _T(".ram"));
+	RegisterSourceFilter(
+		__uuidof(CRealMediaSourceFilter), 
+		MEDIASUBTYPE_RealMedia, 
+		_T("0,4,,2E524D46"), 
+		_T(".rm"), _T(".rmvb"), _T(".ram"), NULL);
 
 	return AMovieDllRegisterServer2(TRUE);
 }
 
 STDAPI DllUnregisterServer()
 {
-	CString null = CStringFromGUID(GUID_NULL);
-	CString majortype = CStringFromGUID(MEDIATYPE_Stream);
-	CString subtype = CStringFromGUID(MEDIASUBTYPE_RealMedia);
+	UnRegisterSourceFilter(MEDIASUBTYPE_RealMedia);
 
-	DeleteRegKey(_T("Media Type\\") + null, subtype);
-	DeleteRegKey(_T("Media Type\\") + majortype, subtype);
-
-	return AMovieDllRegisterServer2(FALSE);
+	return AMovieDllRegisterServer2(TRUE);
 }
 
 extern "C" BOOL WINAPI DllEntryPoint(HINSTANCE, ULONG, LPVOID);
@@ -1447,7 +1433,7 @@ HRESULT CRealVideoDecoder::Receive(IMediaSample* pIn)
 		wi = wo; hi = ho;
 	}
 
-	Copy(pI420, pDataOut, wi, hi);
+	Copy(pDataOut, pI420, wi, hi);
 
 DbgLog((LOG_TRACE, 0, _T("V: rtStart=%I64d, rtStop=%I64d, disc=%d, sync=%d"), 
 	   rtStart, rtStop, pOut->IsDiscontinuity() == S_OK, pOut->IsSyncPoint() == S_OK));
@@ -1535,12 +1521,9 @@ void CRealVideoDecoder::ResizeRow(BYTE* pIn, DWORD wi, DWORD dpi, BYTE* pOut, DW
 	}
 }
 
-#include "vd/vbitmap.h"
-
-void CRealVideoDecoder::Copy(BYTE* pIn, BYTE* pOut, DWORD wi, DWORD hi)
+void CRealVideoDecoder::Copy(BYTE* pOut, BYTE* pIn, DWORD wi, DWORD hi)
 {
-	BITMAPINFOHEADER bihIn, bihOut;
-	ExtractBIH(&m_pInput->CurrentMediaType(), &bihIn);
+	BITMAPINFOHEADER bihOut;
 	ExtractBIH(&m_pOutput->CurrentMediaType(), &bihOut);
 
 	int pitchIn = wi;
@@ -1678,14 +1661,6 @@ HRESULT CRealVideoDecoder::CheckInputType(const CMediaType* mtIn)
 			if(c != '\\' && c != '/') newpath += '\\';
 			key.Close();
 		}
-		if(ERROR_SUCCESS == key.Open(HKEY_CURRENT_USER, _T("Helix\\HelixSDK\\10.0\\Preferences\\DT_Codecs"), KEY_READ)
-		&& ERROR_SUCCESS == key.QueryStringValue(NULL, buff, &len) && _tcslen(buff) > 0)
-		{
-			newpath = buff;
-			TCHAR c = newpath[newpath.GetLength()-1];
-			if(c != '\\' && c != '/') newpath += '\\';
-			key.Close();
-		}
 
 		if(!newpath.IsEmpty()) paths.AddTail(newpath + newdll);
 		if(!oldpath.IsEmpty()) paths.AddTail(oldpath + newdll);
@@ -1753,10 +1728,6 @@ HRESULT CRealVideoDecoder::CheckTransform(const CMediaType* mtIn, const CMediaTy
 HRESULT CRealVideoDecoder::DecideBufferSize(IMemAllocator* pAllocator, ALLOCATOR_PROPERTIES* pProperties)
 {
 	if(m_pInput->IsConnected() == FALSE) return E_UNEXPECTED;
-
-	CComPtr<IMemAllocator> pAllocatorIn;
-	m_pInput->GetAllocator(&pAllocatorIn);
-	if(!pAllocatorIn) return E_UNEXPECTED;
 
 	BITMAPINFOHEADER bih;
 	ExtractBIH(&m_pOutput->CurrentMediaType(), &bih);
@@ -2217,14 +2188,6 @@ HRESULT CRealAudioDecoder::CheckInputType(const CMediaType* mtIn)
 		}
 		len = sizeof(buff);
 		if(ERROR_SUCCESS == key.Open(HKEY_CLASSES_ROOT, _T("Helix\\HelixSDK\\10.0\\Preferences\\DT_Codecs"), KEY_READ)
-		&& ERROR_SUCCESS == key.QueryStringValue(NULL, buff, &len) && _tcslen(buff) > 0)
-		{
-			newpath = buff;
-			TCHAR c = newpath[newpath.GetLength()-1];
-			if(c != '\\' && c != '/') newpath += '\\';
-			key.Close();
-		}
-		if(ERROR_SUCCESS == key.Open(HKEY_CURRENT_USER, _T("Helix\\HelixSDK\\10.0\\Preferences\\DT_Codecs"), KEY_READ)
 		&& ERROR_SUCCESS == key.QueryStringValue(NULL, buff, &len) && _tcslen(buff) > 0)
 		{
 			newpath = buff;

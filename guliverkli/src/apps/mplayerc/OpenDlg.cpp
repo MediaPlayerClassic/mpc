@@ -119,7 +119,7 @@ void COpenDlg::OnBnClickedBrowsebutton()
 
 	filter += _T("|");
 
-	COpenFileDialog fd(mask, NULL, NULL, 
+	COpenFileDialog fd(mask, true, NULL, NULL, 
 		OFN_EXPLORER|OFN_ENABLESIZING|OFN_HIDEREADONLY|OFN_ALLOWMULTISELECT|OFN_ENABLEINCLUDENOTIFY, 
 		filter, this);
 
@@ -136,7 +136,7 @@ void COpenDlg::OnBnClickedBrowsebutton()
 	POSITION pos = fd.GetStartPosition();
 	while(pos) m_fns.AddTail(fd.GetNextPathName(pos));
 
-	if(m_fns.GetCount() > 1)
+	if(m_fns.GetCount() > 1 || m_fns.GetCount() == 1 && m_fns.GetHead()[m_fns.GetHead().GetLength()-1] == '\\')
 	{
 		m_fMultipleFiles = true;
 		EndDialog(IDOK);
@@ -177,7 +177,7 @@ void COpenDlg::OnBnClickedBrowsebutton2()
 
 	filter += _T("|");
 
-	COpenFileDialog fd(mask, NULL, NULL, 
+	COpenFileDialog fd(mask, false, NULL, NULL, 
 		OFN_EXPLORER|OFN_ENABLESIZING|OFN_HIDEREADONLY|OFN_ENABLEINCLUDENOTIFY, 
 		filter, this);
 
@@ -210,28 +210,56 @@ void COpenDlg::OnUpdateDub(CCmdUI* pCmdUI)
 //
 
 #include "OpenDlg.h"
+#include ".\opendlg.h"
+
+#include <dlgs.h>
+
+#define __DUMMY__ _T("__DUMMY__")
+
+bool COpenFileDialog::m_fAllowDirSelection = false;
+WNDPROC COpenFileDialog::m_wndProc = NULL;
 
 // COpenFileDialog
 
 IMPLEMENT_DYNAMIC(COpenFileDialog, CFileDialog)
-COpenFileDialog::COpenFileDialog(CStringArray& mask, LPCTSTR lpszDefExt, LPCTSTR lpszFileName,
+COpenFileDialog::COpenFileDialog(CStringArray& mask, bool fAllowDirSelection, LPCTSTR lpszDefExt, LPCTSTR lpszFileName,
 		DWORD dwFlags, LPCTSTR lpszFilter, CWnd* pParentWnd)
-	: CFileDialog(TRUE, lpszDefExt, lpszFileName, dwFlags, lpszFilter, pParentWnd, 0)
+	: CFileDialog(TRUE, lpszDefExt, lpszFileName, dwFlags|OFN_NOVALIDATE, lpszFilter, pParentWnd, 0)
 	, m_mask(mask)
 {
+	m_fAllowDirSelection = fAllowDirSelection;
 }
 
 COpenFileDialog::~COpenFileDialog()
 {
 }
 
-
 BEGIN_MESSAGE_MAP(COpenFileDialog, CFileDialog)
+	ON_WM_DESTROY()
 END_MESSAGE_MAP()
 
 
-
 // COpenFileDialog message handlers
+
+LRESULT CALLBACK COpenFileDialog::WindowProcNew(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
+{
+	CWnd* pWnd = CWnd::FromHandle(hwnd)->GetParent();
+
+	if(message ==  WM_COMMAND && HIWORD(wParam) == BN_CLICKED && LOWORD(wParam) == IDOK
+	&& m_fAllowDirSelection)
+	{
+		TCHAR path[MAX_PATH];
+		if(::GetDlgItemText(hwnd, cmb13, path, sizeof(path)) == 0)
+			::SendMessage(hwnd, CDM_SETCONTROLTEXT, edt1, (LPARAM)__DUMMY__);
+	}
+
+	return CallWindowProc(COpenFileDialog::m_wndProc, hwnd, message, wParam, lParam);
+}
+
+void COpenFileDialog::OnInitDone()
+{
+	m_wndProc = (WNDPROC)SetWindowLong(GetParent()->m_hWnd, GWL_WNDPROC, (LONG)WindowProcNew);
+}
 
 BOOL COpenFileDialog::OnNotify(WPARAM wParam, LPARAM lParam, LRESULT* pResult)
 {
@@ -278,4 +306,12 @@ BOOL COpenFileDialog::OnIncludeItem(OFNOTIFYEX* pOFNEx, LRESULT* pResult)
 	*pResult = mask.Find(ext) >= 0 || mask.Find(_T("*.*")) >= 0;
 
 	return TRUE;
+}
+
+void COpenFileDialog::OnDestroy()
+{
+	CFileDialog::OnDestroy();
+
+	int i = GetPathName().Find(__DUMMY__);
+	if(i >= 0) m_pOFN->lpstrFile[i] = m_pOFN->lpstrFile[i+1] = 0;
 }

@@ -936,34 +936,21 @@ LRESULT CMainFrame::OnAppCommand(WPARAM wParam, LPARAM lParam)
 
 	if(uDevice != FAPPCOMMAND_OEM)
 	{
-		switch(cmd)
+		AppSettings& s = AfxGetAppSettings();
+
+		BOOL fRet = FALSE;
+
+		POSITION pos = s.wmcmds.GetHeadPosition();
+		while(pos)
 		{
-		case APPCOMMAND_MEDIA_PLAY_PAUSE:
-			if(TRUE == SendMessage(WM_COMMAND, ID_PLAY_PLAYPAUSE)) return TRUE;
-			break;
-		case APPCOMMAND_MEDIA_STOP:
-			if(TRUE == SendMessage(WM_COMMAND, ID_PLAY_STOP)) return TRUE;
-			break;
-		case APPCOMMAND_MEDIA_NEXTTRACK:
-			if(TRUE == SendMessage(WM_COMMAND, ID_NAVIGATE_SKIPFORWARD)) return TRUE;
-			break;
-		case APPCOMMAND_MEDIA_PREVIOUSTRACK:
-			if(TRUE == SendMessage(WM_COMMAND, ID_NAVIGATE_SKIPBACK)) return TRUE;
-			break;
-		case APPCOMMAND_VOLUME_MUTE:
-			if(TRUE == SendMessage(WM_COMMAND, ID_VOLUME_MUTE)) return TRUE;
-			break;
-		case APPCOMMAND_VOLUME_DOWN:
-			if(TRUE == SendMessage(WM_COMMAND, ID_VOLUME_DOWN)) return TRUE;
-			break;
-		case APPCOMMAND_VOLUME_UP:
-			if(TRUE == SendMessage(WM_COMMAND, ID_VOLUME_UP)) return TRUE;
-			break;
-		default:
-			break;
+			wmcmd& wc = s.wmcmds.GetNext(pos);
+			if(wc.appcmd == cmd && TRUE == SendMessage(WM_COMMAND, wc.cmd)) 
+				fRet = TRUE;
 		}
+
+		if(fRet) return TRUE;
 	}
-    
+
 	return Default();
 }
 
@@ -1468,6 +1455,7 @@ LRESULT CMainFrame::OnGraphNotify(WPARAM wParam, LPARAM lParam)
 		{
 			m_iDVDDomain = (DVD_DOMAIN)evParam1;
 			TRACE(_T("EC_DVD_DOMAIN_CHANGE %d\n"), m_iDVDDomain);
+			MoveVideoWindow(); // AR might have changed
 		}
 		else if(EC_DVD_CURRENT_HMSF_TIME == evCode)
 		{
@@ -4729,7 +4717,13 @@ void CMainFrame::MoveVideoWindow(bool fShowStats)
 
 			long arx, ary;
 
-			if(m_pCAP)
+			DVD_VideoAttributes VATR;
+			if(m_iPlaybackMode == PM_DVD && SUCCEEDED(pDVDI->GetCurrentVideoAttributes(&VATR)))
+			{
+				arx = VATR.ulAspectX;
+				ary = VATR.ulAspectY;
+			}
+			else if(m_pCAP)
 			{
 				CSize vs = m_pCAP->GetVideoSize(fKeepAspectRatio);
 				if(vs.cx <= 0 || vs.cy <= 0)
@@ -7505,6 +7499,8 @@ void CMainFrame::ShowOptions(int idPage)
 	{
 		if(!m_fFullScreen)
 			SetAlwaysOnTop(AfxGetAppSettings().fAlwaysOnTop);
+
+		m_wndView.LoadLogo();
 		
 		AfxGetAppSettings().UpdateData(true);
 	}

@@ -27,6 +27,7 @@
 #include ".\transform\avi2ac3filter\AVI2AC3Filter.h"
 #include ".\transform\BufferFilter\BufferFilter.h"
 #include ".\transform\DeCSSFilter\DeCSSFilter.h"
+#include ".\transform\Mpeg2DecFilter\Mpeg2DecFilter.h"
 #include ".\muxer\wavdest\wavdest.h"
 #include ".\parser\StreamDriveThru\StreamDriveThru.h"
 #include ".\parser\MatroskaSplitter\MatroskaSplitter.h"

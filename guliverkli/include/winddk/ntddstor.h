@@ -19,6 +19,9 @@ Revision History:
 
 --*/
 
+#pragma once
+
+#include "devioctl.h"
 
 //
 // Interface GUIDs

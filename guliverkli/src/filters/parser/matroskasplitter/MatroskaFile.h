@@ -326,6 +326,8 @@ namespace MatroskaReader
 		HRESULT Parse(CMatroskaNode* pMN);
 		HRESULT ParseMinimal(CMatroskaNode* pMN);
 
+		UINT64 GetMasterTrack();
+
 		REFERENCE_TIME GetRefTime(INT64 t) {return t*(REFERENCE_TIME)(SegmentInfo.TimeCodeScale)/100;}
 		ChapterAtom* FindChapterAtom(UINT64 id, int nEditionEntry = 0);
 	};

@@ -21,7 +21,7 @@ bool DeleteRegKey(LPCTSTR pszKey, LPCTSTR pszSubkey)
 	bool bOK = false;
 
 	HKEY hKey;
-	LONG ec = ::RegCreateKeyEx(HKEY_CLASSES_ROOT, pszKey, 0, 0, REG_OPTION_NON_VOLATILE, KEY_ALL_ACCESS, 0, &hKey, 0);
+	LONG ec = ::RegOpenKeyEx(HKEY_CLASSES_ROOT, pszKey, 0, KEY_ALL_ACCESS, &hKey);
 	if(ec == ERROR_SUCCESS)
 	{
 		if(pszSubkey != 0)
@@ -65,4 +65,30 @@ bool SetRegKeyValue(LPCTSTR pszKey, LPCTSTR pszSubkey, LPCTSTR pszValueName, LPC
 bool SetRegKeyValue(LPCTSTR pszKey, LPCTSTR pszSubkey, LPCTSTR pszValue)
 {
 	return SetRegKeyValue(pszKey, pszSubkey, 0, pszValue);
+}
+
+void RegisterSourceFilter(const CLSID& clsid, const GUID& subtype2, LPCTSTR chkbytes, LPCTSTR ext = NULL, ...)
+{
+	CString null = CStringFromGUID(GUID_NULL);
+	CString majortype = CStringFromGUID(MEDIATYPE_Stream);
+	CString subtype = CStringFromGUID(subtype2);
+/*
+	SetRegKeyValue(_T("Media Type\\") + null, subtype, _T("0"), chkbytes);
+	SetRegKeyValue(_T("Media Type\\") + null, subtype, _T("Source Filter"), CStringFromGUID(clsid));
+*/
+	SetRegKeyValue(_T("Media Type\\") + majortype, subtype, _T("0"), chkbytes);
+	SetRegKeyValue(_T("Media Type\\") + majortype, subtype, _T("Source Filter"), CStringFromGUID(CLSID_AsyncReader));
+
+	DeleteRegKey(_T("Media Type\\") + null, subtype);
+
+	va_list marker;
+	va_start(marker, ext);
+	for(; ext; ext = va_arg(marker, LPCTSTR))
+		DeleteRegKey(_T("Media Type\\Extensions"), ext);
+	va_end(marker);
+}
+
+void UnRegisterSourceFilter(const GUID& subtype)
+{
+	DeleteRegKey(_T("Media Type\\") + CStringFromGUID(MEDIATYPE_Stream), CStringFromGUID(subtype));
 }

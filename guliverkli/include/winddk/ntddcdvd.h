@@ -270,12 +270,14 @@ typedef struct _DVD_ASF {
     UCHAR Reserved1:7;
 } DVD_ASF, * PDVD_ASF;
 
+#if 0
 typedef struct _DVD_REGION {
      UCHAR CopySystem;
      UCHAR RegionData;                      // current media region (not playable when set)
      UCHAR SystemRegion;                    // current drive region (playable when set)
      UCHAR ResetCount;                      // number of resets available
 } DVD_REGION, *PDVD_REGION;
+#endif
 
 #ifdef __cplusplus
 }

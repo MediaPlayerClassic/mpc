@@ -490,6 +490,7 @@ public:
 	}
 };
 
+#include "MacrovisionKicker.h"
 STDMETHODIMP CDX9AllocatorPresenter::CreateRenderer(IUnknown** ppRenderer)
 {
     CheckPointer(ppRenderer, E_POINTER);
@@ -500,14 +501,14 @@ STDMETHODIMP CDX9AllocatorPresenter::CreateRenderer(IUnknown** ppRenderer)
 
 	do
 	{
-/*		CMacrovisionKicker* pMK = new CMacrovisionKicker(NAME("CMacrovisionKicker"), NULL);
+		CMacrovisionKicker* pMK = new CMacrovisionKicker(NAME("CMacrovisionKicker"), NULL);
 		CComPtr<IUnknown> pUnk = (IUnknown*)(INonDelegatingUnknown*)pMK;
 		pMK->SetInner((IUnknown*)(INonDelegatingUnknown*)new COuterVMR9(NAME("COuterVMR9"), pUnk));
 		CComQIPtr<IBaseFilter> pBF = pUnk;
+/*
+		CComQIPtr<IBaseFilter> pBF = (IUnknown*)(INonDelegatingUnknown*)new COuterVMR9(NAME("COuterVMR9"), NULL);
+		if(!pBF) pBF.CoCreateInstance(CLSID_VideoMixingRenderer9);
 */
-		CComQIPtr<IBaseFilter> pBF;
-		pBF.CoCreateInstance(CLSID_VideoMixingRenderer9);
-
 		CComQIPtr<IVMRFilterConfig9> pConfig = pBF;
 		if(!pConfig)
 			break;
@@ -707,7 +708,7 @@ STDMETHODIMP CDX9AllocatorPresenter::InitializeDevice(DWORD_PTR dwUserID, VMR9Al
 		m_pD3DDev->Clear(0, NULL, D3DCLEAR_TARGET, 0, 0, 0);
 	}
 
-	m_NativeVideoSize = CSize(abs(1.0*lpAllocInfo->dwWidth), abs(1.0*lpAllocInfo->dwHeight));
+	m_NativeVideoSize = CSize(lpAllocInfo->dwWidth, abs((int)lpAllocInfo->dwHeight));
 	m_AspectRatio = m_NativeVideoSize;
 	int arx = lpAllocInfo->szAspectRatio.cx, ary = lpAllocInfo->szAspectRatio.cy;
 	if(arx > 0 && ary > 0) m_AspectRatio.SetSize(arx, ary);

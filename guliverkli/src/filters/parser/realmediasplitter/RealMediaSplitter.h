@@ -250,7 +250,7 @@ class CRealVideoDecoder : public CTransformFilter
 
 	REFERENCE_TIME m_tStart;
 
-	void Copy(BYTE* pIn, BYTE* pOut, DWORD wi, DWORD hi);
+	void Copy(BYTE* pOut, BYTE* pIn, DWORD wi, DWORD hi);
 	void Resize(BYTE* pIn, DWORD wi, DWORD hi, BYTE* pOut, DWORD wo, DWORD ho);
 	void ResizeWidth(BYTE* pIn, DWORD wi, DWORD hi, BYTE* pOut, DWORD wo, DWORD ho);
 	void ResizeHeight(BYTE* pIn, DWORD wi, DWORD hi, BYTE* pOut, DWORD wo, DWORD ho);

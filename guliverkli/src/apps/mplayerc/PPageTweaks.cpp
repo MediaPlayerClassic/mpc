@@ -38,9 +38,6 @@ CPPageTweaks::CPPageTweaks()
 	, m_nJumpDistM(0)
 	, m_nJumpDistL(0)
 {
-	DWORD ver = ::GetVersion();
-	m_fXPOrBetter = (int)ver >= 0 && (((ver<<8)&0xff00)|((ver>>8)&0xff)) >= 0x0501;
-
 	m_fWMASFReader = SUCCEEDED(CComPtr<IBaseFilter>().CoCreateInstance(
 		GUIDFromCString(_T("{187463A0-5BB7-11D3-ACBE-0080C75E246E}")))); // WM ASF Reader
 }
@@ -105,7 +102,7 @@ END_MESSAGE_MAP()
 
 void CPPageTweaks::OnUpdateCheck3(CCmdUI* pCmdUI)
 {
-	if(!m_fXPOrBetter)
+	if(!AfxGetAppSettings().fXpOrBetter)
 	{
 		pCmdUI->Enable(FALSE);
 		pCmdUI->SetCheck(TRUE);

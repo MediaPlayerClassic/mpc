@@ -78,6 +78,8 @@ void CPPageAccelTbl::SetupList()
 
 		m_list.SetItemText(row, COL_MOUSE, MakeMouseButtonLabel(wc.mouse));
 
+		m_list.SetItemText(row, COL_APPCMD, MakeAppCommandLabel(wc.appcmd));
+
 		m_list.SetItemText(row, COL_RMCMD, CString(wc.rmcmd));
 
 		CString repcnt;
@@ -503,6 +505,71 @@ CString CPPageAccelTbl::MakeMouseButtonLabel(UINT mouse)
 	return ret;
 }
 
+CString CPPageAccelTbl::MakeAppCommandLabel(UINT id)
+{
+	CString str;
+
+	ASSERT(id <= APPCOMMAND_LAST);
+
+	switch(id)
+	{
+	default: str = _T(""); break;
+	case APPCOMMAND_BROWSER_BACKWARD: str = _T("BROWSER_BACKWARD"); break;
+	case APPCOMMAND_BROWSER_FORWARD: str = _T("BROWSER_FORWARD"); break;
+	case APPCOMMAND_BROWSER_REFRESH: str = _T("BROWSER_REFRESH"); break;
+	case APPCOMMAND_BROWSER_STOP: str = _T("BROWSER_STOP"); break;
+	case APPCOMMAND_BROWSER_SEARCH: str = _T("BROWSER_SEARCH"); break;
+	case APPCOMMAND_BROWSER_FAVORITES: str = _T("BROWSER_FAVORITES"); break;
+	case APPCOMMAND_BROWSER_HOME: str = _T("BROWSER_HOME"); break;
+	case APPCOMMAND_VOLUME_MUTE: str = _T("VOLUME_MUTE"); break;
+	case APPCOMMAND_VOLUME_DOWN: str = _T("VOLUME_DOWN"); break;
+	case APPCOMMAND_VOLUME_UP: str = _T("VOLUME_UP"); break;
+	case APPCOMMAND_MEDIA_NEXTTRACK: str = _T("MEDIA_NEXTTRACK"); break;
+	case APPCOMMAND_MEDIA_PREVIOUSTRACK: str = _T("MEDIA_PREVIOUSTRACK"); break;
+	case APPCOMMAND_MEDIA_STOP: str = _T("MEDIA_STOP"); break;
+	case APPCOMMAND_MEDIA_PLAY_PAUSE: str = _T("MEDIA_PLAY_PAUSE"); break;
+	case APPCOMMAND_LAUNCH_MAIL: str = _T("LAUNCH_MAIL"); break;
+	case APPCOMMAND_LAUNCH_MEDIA_SELECT: str = _T("LAUNCH_MEDIA_SELECT"); break;
+	case APPCOMMAND_LAUNCH_APP1: str = _T("LAUNCH_APP1"); break;
+	case APPCOMMAND_LAUNCH_APP2: str = _T("LAUNCH_APP2"); break;
+	case APPCOMMAND_BASS_DOWN: str = _T("BASS_DOWN"); break;
+	case APPCOMMAND_BASS_BOOST: str = _T("BASS_BOOST"); break;
+	case APPCOMMAND_BASS_UP: str = _T("BASS_UP"); break;
+	case APPCOMMAND_TREBLE_DOWN: str = _T("TREBLE_DOWN"); break;
+	case APPCOMMAND_TREBLE_UP: str = _T("TREBLE_UP"); break;
+	case APPCOMMAND_MICROPHONE_VOLUME_MUTE: str = _T("MICROPHONE_VOLUME_MUTE"); break;
+	case APPCOMMAND_MICROPHONE_VOLUME_DOWN: str = _T("MICROPHONE_VOLUME_DOWN"); break;
+	case APPCOMMAND_MICROPHONE_VOLUME_UP: str = _T("MICROPHONE_VOLUME_UP"); break;
+	case APPCOMMAND_HELP: str = _T("HELP"); break;
+	case APPCOMMAND_FIND: str = _T("FIND"); break;
+	case APPCOMMAND_NEW: str = _T("NEW"); break;
+	case APPCOMMAND_OPEN: str = _T("OPEN"); break;
+	case APPCOMMAND_CLOSE: str = _T("CLOSE"); break;
+	case APPCOMMAND_SAVE: str = _T("SAVE"); break;
+	case APPCOMMAND_PRINT: str = _T("PRINT"); break;
+	case APPCOMMAND_UNDO: str = _T("UNDO"); break;
+	case APPCOMMAND_REDO: str = _T("REDO"); break;
+	case APPCOMMAND_COPY: str = _T("COPY"); break;
+	case APPCOMMAND_CUT: str = _T("CUT"); break;
+	case APPCOMMAND_PASTE: str = _T("PASTE"); break;
+	case APPCOMMAND_REPLY_TO_MAIL: str = _T("REPLY_TO_MAIL"); break;
+	case APPCOMMAND_FORWARD_MAIL: str = _T("FORWARD_MAIL"); break;
+	case APPCOMMAND_SEND_MAIL: str = _T("SEND_MAIL"); break;
+	case APPCOMMAND_SPELL_CHECK: str = _T("SPELL_CHECK"); break;
+	case APPCOMMAND_DICTATE_OR_COMMAND_CONTROL_TOGGLE: str = _T("DICTATE_OR_COMMAND_CONTROL_TOGGLE"); break;
+	case APPCOMMAND_MIC_ON_OFF_TOGGLE: str = _T("MIC_ON_OFF_TOGGLE"); break;
+	case APPCOMMAND_CORRECTION_LIST: str = _T("CORRECTION_LIST"); break;
+	case APPCOMMAND_MEDIA_PLAY: str = _T("MEDIA_PLAY"); break;
+	case APPCOMMAND_MEDIA_PAUSE: str = _T("MEDIA_PAUSE"); break;
+	case APPCOMMAND_MEDIA_RECORD: str = _T("MEDIA_RECORD"); break;
+	case APPCOMMAND_MEDIA_FAST_FORWARD: str = _T("MEDIA_FAST_FORWARD"); break;
+	case APPCOMMAND_MEDIA_REWIND: str = _T("MEDIA_REWIND"); break;
+	case APPCOMMAND_MEDIA_CHANNEL_UP: str = _T("MEDIA_CHANNEL_UP"); break;
+	case APPCOMMAND_MEDIA_CHANNEL_DOWN: str = _T("MEDIA_CHANNEL_DOWN"); break;
+	}
+
+	return str;
+}
 void CPPageAccelTbl::DoDataExchange(CDataExchange* pDX)
 {
 	__super::DoDataExchange(pDX);
@@ -561,6 +628,7 @@ BOOL CPPageAccelTbl::OnInitDialog()
 	m_list.InsertColumn(COL_TYPE, _T("Type"), LVCFMT_LEFT, 40);
 	m_list.InsertColumn(COL_ID, _T("ID"), LVCFMT_LEFT, 40);
 	m_list.InsertColumn(COL_MOUSE, _T("Mouse"), LVCFMT_LEFT, 80);
+	m_list.InsertColumn(COL_APPCMD, _T("App Command"), LVCFMT_LEFT, 120);
 	m_list.InsertColumn(COL_RMCMD, _T("RemoteCmd"), LVCFMT_LEFT, 80);
 	m_list.InsertColumn(COL_RMREPCNT, _T("RepCnt"), LVCFMT_CENTER, 60);
 
@@ -653,7 +721,8 @@ void CPPageAccelTbl::OnBeginlabeleditList(NMHDR* pNMHDR, LRESULT* pResult)
 		return;
 
 	if(pItem->iSubItem == COL_MOD || pItem->iSubItem == COL_KEY || pItem->iSubItem == COL_TYPE
-	|| pItem->iSubItem == COL_MOUSE || pItem->iSubItem == COL_RMCMD || pItem->iSubItem == COL_RMREPCNT)
+	|| pItem->iSubItem == COL_MOUSE || pItem->iSubItem == COL_APPCMD 
+	|| pItem->iSubItem == COL_RMCMD || pItem->iSubItem == COL_RMREPCNT)
 	{
 		*pResult = TRUE;
 	}
@@ -724,6 +793,18 @@ void CPPageAccelTbl::OnDolabeleditList(NMHDR* pNMHDR, LRESULT* pResult)
 
 		*pResult = TRUE;
 	}
+	else if(pItem->iSubItem == COL_APPCMD)
+	{
+		for(int i = 0; i <= APPCOMMAND_LAST; i++)
+		{
+			sl.AddTail(MakeAppCommandLabel(i));
+			if(wc.appcmd == i) nSel = i;
+		}
+
+		m_list.ShowInPlaceComboBox(pItem->iItem, pItem->iSubItem, sl, nSel);
+
+		*pResult = TRUE;
+	}
 	else if(pItem->iSubItem == COL_RMCMD)
 	{
 		m_list.ShowInPlaceEdit(pItem->iItem, pItem->iSubItem);
@@ -780,6 +861,16 @@ void CPPageAccelTbl::OnEndlabeleditList(NMHDR* pNMHDR, LRESULT* pResult)
 			wc.fVirt = (wc.fVirt&~FVIRTKEY) | (i == 0 ? FVIRTKEY : 0);
 			m_list.SetItemText(pItem->iItem, COL_KEY, MakeAccelVkeyLabel(wc.key, wc.fVirt&FVIRTKEY));
 			m_list.SetItemText(pItem->iItem, COL_TYPE, (wc.fVirt&FVIRTKEY)?_T("VIRTKEY"):_T("ASCII"));
+			*pResult = TRUE;
+		}
+	}
+	else if(pItem->iSubItem == COL_APPCMD)
+	{
+		int i = pItem->lParam;
+		if(i >= 0 && i <= APPCOMMAND_LAST)
+		{
+			wc.appcmd = (WORD)i;
+			m_list.SetItemText(pItem->iItem, COL_APPCMD, pItem->pszText);
 			*pResult = TRUE;
 		}
 	}

@@ -914,7 +914,10 @@ HRESULT CMatroskaMuxerInputPin::CompleteConnect(IPin* pPin)
 				rate2 = ((p[4]>>3)&15);
 
 				if(rate2 < rate1)
+				{
+					m_pTE->a.OutputSamplingFrequency.Set((float)nSamplesPerSec);
 					nSamplesPerSec /= 2;
+				}
 			}
 
 			switch(profile)
@@ -931,7 +934,7 @@ HRESULT CMatroskaMuxerInputPin::CompleteConnect(IPin* pPin)
 
 			m_pTE->DescType = TrackEntry::DescAudio;
 			m_pTE->a.SamplingFrequency.Set((float)nSamplesPerSec);
-			m_pTE->a.Channels.Set(wfe->nChannels);
+			m_pTE->a.Channels.Set(channels);
 			m_pTE->a.BitDepth.Set(wfe->wBitsPerSample);
 
 			hr = S_OK;
@@ -1247,28 +1250,28 @@ STDMETHODIMP CMatroskaMuxerInputPin::Receive(IMediaSample* pSample)
 		pSample->SetSyncPoint(TRUE); // HACK: some capture filters don't set this
 
 	CAutoPtr<BlockGroup> b(new BlockGroup());
-
+/*
 	// TODO: test this with a longer capture (pcm, mp3)
 	if(S_OK == pSample->IsSyncPoint() && rtStart < m_rtLastStart)
 	{
 		TRACE(_T("!!! timestamp went backwards, dropping this frame !!! rtStart (%I64) < m_rtLastStart (%I64)"), rtStart, m_rtLastStart);
 		return S_OK;
 	}
-
+*/
 	if((S_OK != pSample->IsSyncPoint() || m_rtLastStart == rtStart) && m_rtLastStart >= 0 /*&& m_rtLastStart < rtStart*/)
 	{
 		ASSERT(m_rtLastStart - rtStart <= 0);
-		b->ReferenceBlock.Set((m_rtLastStart - rtStart) / 10000);
+		b->ReferenceBlock.Set((m_rtLastStart - rtStart + 5000) / 10000);
 	}
 
 	b->Block.TrackNumber = ((CMatroskaMuxerFilter*)m_pFilter)->GetTrackNumber(this);
 
-	b->Block.TimeCode = rtStart / 10000;
-	b->Block.TimeCodeStop = rtStop / 10000;
+	b->Block.TimeCode = (rtStart + 5000) / 10000;
+	b->Block.TimeCodeStop = (rtStop + 5000) / 10000;
 
 	if(m_pTE->TrackType == TrackEntry::TypeSubtitle)
 	{
-		b->BlockDuration.Set((rtStop - rtStart) / 10000);
+		b->BlockDuration.Set((rtStop - rtStart + 5000) / 10000);
 	}
 
 	CAutoPtr<CBinary> data(new CBinary(0));
