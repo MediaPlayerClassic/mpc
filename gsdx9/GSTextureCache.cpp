@@ -72,6 +72,7 @@ POSITION GSTextureCache::Lookup(tex_t& tex, scale_t& scale, GSTexture& ret)
 		}
 
 		if(t.m_tex.TEX0.TBP0 == tex.TEX0.TBP0&& t.m_tex.TEX0.PSM == tex.TEX0.PSM && (tex.TEX0.PSM <= PSM_PSMCT16S || t.m_tex.TEX0.CBP == tex.TEX0.CBP)
+		&& t.m_tex.TEX0.TW == tex.TEX0.TW && t.m_tex.TEX0.TH == tex.TEX0.TH
 		&& (!(t.m_tex.CLAMP.WMS&2) && !(tex.CLAMP.WMS&2) && !(t.m_tex.CLAMP.WMT&2) && !(tex.CLAMP.WMT&2) || t.m_tex.CLAMP.i64 == tex.CLAMP.i64)
 		&& t.m_tex.TEXA.TA0 == tex.TEXA.TA0 && t.m_tex.TEXA.TA1 == tex.TEXA.TA1 && t.m_tex.TEXA.AEM == tex.TEXA.AEM
 		&& (t.m_tex.TEX0.PSM <= PSM_PSMCT16S || t.m_tex.TEXCLUT.COU == tex.TEXCLUT.COU && t.m_tex.TEXCLUT.COV == tex.TEXCLUT.COV && t.m_tex.TEXCLUT.CBW == tex.TEXCLUT.CBW)
@@ -101,6 +102,7 @@ POSITION GSTextureCache::Lookup(tex_t& tex, GSTexture& ret)
 		}
 
 		if(t.m_tex.TEX0.TBP0 == tex.TEX0.TBP0&& t.m_tex.TEX0.PSM == tex.TEX0.PSM && (tex.TEX0.PSM <= PSM_PSMCT16S || t.m_tex.TEX0.CBP == tex.TEX0.CBP)
+		&& t.m_tex.TEX0.TW == tex.TEX0.TW && t.m_tex.TEX0.TH == tex.TEX0.TH
 		&& (!(t.m_tex.CLAMP.WMS&2) && !(tex.CLAMP.WMS&2) && !(t.m_tex.CLAMP.WMT&2) && !(tex.CLAMP.WMT&2) || t.m_tex.CLAMP.i64 == tex.CLAMP.i64)
 		&& t.m_tex.TEXA.TA0 == tex.TEXA.TA0 && t.m_tex.TEXA.TA1 == tex.TEXA.TA1 && t.m_tex.TEXA.AEM == tex.TEXA.AEM
 		&& (t.m_tex.TEX0.PSM <= PSM_PSMCT16S || t.m_tex.TEXCLUT.COU == tex.TEXCLUT.COU && t.m_tex.TEXCLUT.COV == tex.TEXCLUT.COV && t.m_tex.TEXCLUT.CBW == tex.TEXCLUT.CBW))

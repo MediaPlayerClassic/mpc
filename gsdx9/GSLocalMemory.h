@@ -50,6 +50,27 @@ protected:
 	union {BYTE* m_vm8; WORD* m_vm16; DWORD* m_vm32;};
 	union {BYTE* m_sm8; WORD* m_sm16; DWORD* m_sm32;};
 
+	typedef DWORD (GSLocalMemory::*pixelAddress)(int x, int y, DWORD bp, DWORD bw);
+
+	DWORD pageAddress32(int x, int y, DWORD bp, DWORD bw);
+	DWORD pageAddress16(int x, int y, DWORD bp, DWORD bw);
+	DWORD pageAddress8(int x, int y, DWORD bp, DWORD bw);
+	DWORD pageAddress4(int x, int y, DWORD bp, DWORD bw);
+
+	pixelAddress GetPageAddress(DWORD psm);
+
+	DWORD blockAddress32(int x, int y, DWORD bp, DWORD bw);
+	DWORD blockAddress24(int x, int y, DWORD bp, DWORD bw);
+	DWORD blockAddress16(int x, int y, DWORD bp, DWORD bw);
+	DWORD blockAddress16S(int x, int y, DWORD bp, DWORD bw);
+	DWORD blockAddress8(int x, int y, DWORD bp, DWORD bw);
+	DWORD blockAddress4(int x, int y, DWORD bp, DWORD bw);
+	DWORD blockAddress32Z(int x, int y, DWORD bp, DWORD bw);
+	DWORD blockAddress16Z(int x, int y, DWORD bp, DWORD bw);
+	DWORD blockAddress16SZ(int x, int y, DWORD bp, DWORD bw);
+
+	pixelAddress GetBlockAddress(DWORD psm);
+
 	DWORD pixelAddressOrg32(int x, int y, DWORD bp, DWORD bw);
 	DWORD pixelAddressOrg24(int x, int y, DWORD bp, DWORD bw);
 	DWORD pixelAddressOrg16(int x, int y, DWORD bp, DWORD bw);
@@ -60,8 +81,7 @@ protected:
 	DWORD pixelAddressOrg16Z(int x, int y, DWORD bp, DWORD bw);
 	DWORD pixelAddressOrg16SZ(int x, int y, DWORD bp, DWORD bw);
 
-	typedef DWORD (GSLocalMemory::*pixelAddressOrg)(int x, int y, DWORD bp, DWORD bw);
-	pixelAddressOrg GetPixelAddressOrg(DWORD psm);
+	pixelAddress GetPixelAddressOrg(DWORD psm);
 
 	DWORD pixelAddress32(int x, int y, DWORD bp, DWORD bw);
 	DWORD pixelAddress24(int x, int y, DWORD bp, DWORD bw);
@@ -73,7 +93,6 @@ protected:
 	DWORD pixelAddress16Z(int x, int y, DWORD bp, DWORD bw);
 	DWORD pixelAddress16SZ(int x, int y, DWORD bp, DWORD bw);
 
-	typedef DWORD (GSLocalMemory::*pixelAddress)(int x, int y, DWORD bp, DWORD bw);
 	pixelAddress GetPixelAddress(DWORD psm);
 
 	DWORD m_clut[256];
@@ -160,4 +179,6 @@ public:
 
 	void setupCLUT(GIFRegTEX0 TEX0, GIFRegTEXCLUT& TEXCLUT, GIFRegTEXA& TEXA); // modifies TEX0!
 	DWORD readCLUT(BYTE c);
+
+	bool FillRect(CRect& r, DWORD c, DWORD psm, DWORD fbp, DWORD fbw);
 };
