@@ -317,6 +317,8 @@ void CShaderEditorDlg::OnClose()
 {
 	if(IDYES == AfxMessageBox(_T("Save changes?"), MB_YESNO))
 	{
+		OnBnClickedButton2();
+
 		CWinApp* pApp = AfxGetApp();
 
 		pApp->WriteProfileString(_T("Shaders"), NULL, NULL);
