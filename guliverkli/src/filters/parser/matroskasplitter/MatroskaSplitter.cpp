@@ -437,15 +437,14 @@ HRESULT CMatroskaSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 			{
 				Name.Format(L"Subtitle %I64d", (UINT64)pTE->TrackNumber);
 
-				mt.majortype = MEDIATYPE_Text;
-				mt.subtype = MEDIASUBTYPE_NULL;
-				mt.formattype = FORMAT_None;
 				mt.SetSampleSize(0x10000);
-				mts.Add(mt);
 
 				if(CodecID == "S_TEXT/ASCII")
 				{
-					// nothing to do, MEDIATYPE_Text was already added
+					mt.majortype = MEDIATYPE_Text;
+					mt.subtype = MEDIASUBTYPE_NULL;
+					mt.formattype = FORMAT_None;
+					mts.Add(mt);
 				}
 				else if(CodecID == "S_TEXT/UTF8")
 				{
@@ -456,7 +455,7 @@ HRESULT CMatroskaSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 					memset(psi, 0, mt.FormatLength());
 					psi->dwOffset = sizeof(SUBTITLEINFO);
 					strncpy(psi->IsoLang, pTE->Language, 3);
-					mts.InsertAt(0, mt);
+					mts.Add(mt);
 				}
 				else if(CodecID == "S_SSA" || CodecID == "S_TEXT/SSA")
 				{
@@ -467,7 +466,7 @@ HRESULT CMatroskaSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 					memset(psi, 0, mt.FormatLength());
 					strncpy(psi->IsoLang, pTE->Language, 3);
 					memcpy(mt.pbFormat + (psi->dwOffset = sizeof(SUBTITLEINFO)), pTE->CodecPrivate.GetData(), pTE->CodecPrivate.GetSize());
-					mts.InsertAt(0, mt);
+					mts.Add(mt);
 				}
 				else if(CodecID == "S_ASS" || CodecID == "S_TEXT/ASS")
 				{
@@ -478,7 +477,7 @@ HRESULT CMatroskaSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 					memset(psi, 0, mt.FormatLength());
 					strncpy(psi->IsoLang, pTE->Language, 3);
 					memcpy(mt.pbFormat + (psi->dwOffset = sizeof(SUBTITLEINFO)), pTE->CodecPrivate.GetData(), pTE->CodecPrivate.GetSize());
-					mts.InsertAt(0, mt);
+					mts.Add(mt);
 				}
 				else if(CodecID == "S_USF" || CodecID == "S_TEXT/USF")
 				{
@@ -489,7 +488,7 @@ HRESULT CMatroskaSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 					memset(psi, 0, mt.FormatLength());
 					strncpy(psi->IsoLang, pTE->Language, 3);
 					memcpy(mt.pbFormat + (psi->dwOffset = sizeof(SUBTITLEINFO)), pTE->CodecPrivate.GetData(), pTE->CodecPrivate.GetSize());
-					mts.InsertAt(0, mt);
+					mts.Add(mt);
 				}
 				else
 				{
@@ -753,7 +752,8 @@ void CMatroskaSplitterFilter::SeekDeliverLoop(REFERENCE_TIME rt)
 								{
 									Block* b = blocks.GetNext(pos4);
 
-									if(rt < s.GetRefTime(c.TimeCode+b->TimeCode)) 
+									if(b->TrackNumber == pCueTrackPositions->CueTrack && rt < s.GetRefTime(c.TimeCode+b->TimeCode)
+									|| rt + 5000000i64 < s.GetRefTime(c.TimeCode+b->TimeCode)) // allow 500ms difference between tracks, just in case intreleaving wasn't that much precise
 									{
 										fPassedCueTime = true;
 									}
@@ -910,6 +910,47 @@ STDMETHODIMP_(BSTR) CMatroskaSplitterFilter::GetChapterStringInfo(UINT aChapterI
 		NULL;
 }
 
+// IKeyFrameInfo
+
+STDMETHODIMP CMatroskaSplitterFilter::GetKeyFrameCount(UINT& nKFs)
+{
+	if(!m_pFile) return E_UNEXPECTED;
+
+	HRESULT hr = S_OK;
+
+	nKFs = 0;
+
+	POSITION pos = m_pFile->m_segment.Cues.GetHeadPosition();
+	while(pos) nKFs += m_pFile->m_segment.Cues.GetNext(pos)->CuePoints.GetCount();
+
+	return hr;
+}
+
+STDMETHODIMP CMatroskaSplitterFilter::GetKeyFrames(const GUID* pFormat, REFERENCE_TIME* pKFs, UINT& nKFs)
+{
+	CheckPointer(pFormat, E_POINTER);
+	CheckPointer(pKFs, E_POINTER);
+
+	if(!m_pFile) return E_UNEXPECTED;
+	if(*pFormat != TIME_FORMAT_MEDIA_TIME) return E_INVALIDARG;
+
+	UINT nKFsTmp = 0;
+
+	POSITION pos1 = m_pFile->m_segment.Cues.GetHeadPosition();
+	while(pos1 && nKFsTmp < nKFs)
+	{
+		Cue* pCue = m_pFile->m_segment.Cues.GetNext(pos1);
+
+		POSITION pos2 = pCue->CuePoints.GetHeadPosition();
+		while(pos2 && nKFsTmp < nKFs)
+			pKFs[nKFsTmp++] = m_pFile->m_segment.GetRefTime(pCue->CuePoints.GetNext(pos2)->CueTime);
+	}
+
+	nKFs = nKFsTmp;
+
+	return S_OK;
+}
+
 //
 // CMatroskaSourceFilter
 //
@@ -1011,25 +1052,17 @@ HRESULT CMatroskaSplitterOutputPin::DeliverPacket(CAutoPtr<Packet> p)
 			mp1->b->BlockDuration.Set(1); // just to set it valid
 			mp1->rtStop = mp2->rtStart;
 		}
-		mp = m_rob.RemoveHead();
-	}
-	else 
-	{
-		MatroskaPacket* mp1 = m_rob.GetHead();
-		if(mp1->b->BlockDuration.IsValid() && mp1->b->ReferencePriority == 0)
-			mp = m_rob.RemoveHead();
-	}
-
-	if(mp)
-	{
-		timeoverride to = {mp->rtStart, mp->rtStop};
-		m_tos.AddTail(to);
 	}
 
 	while(m_packets.GetCount())
 	{
 		mp = m_packets.GetHead();
 		if(!mp->b->BlockDuration.IsValid()) break;
+        
+		mp = m_rob.RemoveHead();
+		timeoverride to = {mp->rtStart, mp->rtStop};
+		m_tos.AddTail(to);
+
 		HRESULT hr = DeliverBlock(m_packets.RemoveHead());
 		if(hr != S_OK) return hr;
 	}

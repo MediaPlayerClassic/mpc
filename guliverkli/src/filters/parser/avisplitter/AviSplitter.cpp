@@ -41,7 +41,10 @@ public:
 
 	UINT64 GetPos() {return m_pos;}
 	UINT64 GetLength() {return m_len;}
-	void Seek(UINT64 pos) {m_pos = pos;}
+	void Seek(UINT64 pos)
+	{
+		m_pos = pos;
+	}
 	HRESULT Read(void* pData, LONG len);
 	template<typename T> HRESULT Read(T& var, int offset = 0);
 
@@ -181,6 +184,7 @@ CUnknown* WINAPI CAviSourceFilter::CreateInstance(LPUNKNOWN lpunk, HRESULT* phr)
 
 CAviSplitterFilter::CAviSplitterFilter(LPUNKNOWN pUnk, HRESULT* phr)
 	: CBaseSplitterFilter(NAME("CAviSplitterFilter"), pUnk, phr, __uuidof(this))
+	, m_timeformat(TIME_FORMAT_MEDIA_TIME)
 {
 }
 
@@ -612,7 +616,7 @@ HRESULT CAviSplitterFilter::DoDeliverLoop(UINT64 end)
 						}
 
 						p->bSyncPoint = 0 <= m_tFrame[TrackNumber] && m_tFrame[TrackNumber] < s->cs.GetCount() 
-								? s->cs[m_tFrame[TrackNumber]].fKeyFrame 
+								? (bool)s->cs[m_tFrame[TrackNumber]].fKeyFrame 
 								: TRUE;
 
 						p->rtStart = s->GetRefTime(m_tFrame[TrackNumber], m_tSize[TrackNumber]);
@@ -658,6 +662,154 @@ STDMETHODIMP CAviSplitterFilter::GetDuration(LONGLONG* pDuration)
 	return S_OK;
 }
 
+//
+
+STDMETHODIMP CAviSplitterFilter::IsFormatSupported(const GUID* pFormat)
+{
+	CheckPointer(pFormat, E_POINTER);
+	HRESULT hr = __super::IsFormatSupported(pFormat);
+	if(S_OK == hr) return hr;
+	return *pFormat == TIME_FORMAT_FRAME ? S_OK : S_FALSE;
+}
+
+STDMETHODIMP CAviSplitterFilter::GetTimeFormat(GUID* pFormat)
+{
+	CheckPointer(pFormat, E_POINTER);
+	*pFormat = m_timeformat;
+	return S_OK;
+}
+
+STDMETHODIMP CAviSplitterFilter::IsUsingTimeFormat(const GUID* pFormat)
+{
+	CheckPointer(pFormat, E_POINTER);
+	return *pFormat == m_timeformat ? S_OK : S_FALSE;
+}
+
+STDMETHODIMP CAviSplitterFilter::SetTimeFormat(const GUID* pFormat)
+{
+	CheckPointer(pFormat, E_POINTER);
+	if(S_OK != IsFormatSupported(pFormat)) return E_FAIL;
+	m_timeformat = *pFormat;
+	return S_OK;
+}
+
+STDMETHODIMP CAviSplitterFilter::GetStopPosition(LONGLONG* pStop)
+{
+	CheckPointer(pStop, E_POINTER);
+	if(FAILED(__super::GetStopPosition(pStop))) return E_FAIL;
+	if(m_timeformat == TIME_FORMAT_MEDIA_TIME) return S_OK;
+	LONGLONG rt = *pStop;
+	if(FAILED(ConvertTimeFormat(pStop, &TIME_FORMAT_FRAME, rt, &TIME_FORMAT_MEDIA_TIME))) return E_FAIL;
+	return S_OK;
+}
+
+STDMETHODIMP CAviSplitterFilter::ConvertTimeFormat(LONGLONG* pTarget, const GUID* pTargetFormat, LONGLONG Source, const GUID* pSourceFormat)
+{
+	CheckPointer(pTarget, E_POINTER);
+
+	GUID& SourceFormat = pSourceFormat ? *pSourceFormat : m_timeformat;
+	GUID& TargetFormat = pTargetFormat ? *pTargetFormat : m_timeformat;
+	
+	if(TargetFormat == SourceFormat)
+	{
+		*pTarget = Source; 
+		return S_OK;
+	}
+	else if(TargetFormat == TIME_FORMAT_FRAME && SourceFormat == TIME_FORMAT_MEDIA_TIME)
+	{
+		for(int i = 0; i < (int)m_pFile->m_strms.GetCount(); i++)
+		{
+			CAviFile::strm_t* s = m_pFile->m_strms[i];
+			if(s->strh.fccType == FCC('vids'))
+			{
+				*pTarget = s->GetFrame(Source);
+				return S_OK;
+			}
+		}
+	}
+	else if(TargetFormat == TIME_FORMAT_MEDIA_TIME && SourceFormat == TIME_FORMAT_FRAME)
+	{
+		for(int i = 0; i < (int)m_pFile->m_strms.GetCount(); i++)
+		{
+			CAviFile::strm_t* s = m_pFile->m_strms[i];
+			if(s->strh.fccType == FCC('vids'))
+			{
+				if(Source < 0 || Source >= s->cs.GetCount()) return E_FAIL;
+				CAviFile::strm_t::chunk& c = s->cs[(int)Source];
+				*pTarget = s->GetRefTime((DWORD)Source, c.size);
+				return S_OK;
+			}
+		}
+	}
+	
+	return E_FAIL;
+}
+
+STDMETHODIMP CAviSplitterFilter::SetPositions(LONGLONG* pCurrent, DWORD dwCurrentFlags, LONGLONG* pStop, DWORD dwStopFlags)
+{
+	if(m_timeformat != TIME_FORMAT_FRAME)
+		return __super::SetPositions(pCurrent, dwCurrentFlags, pStop, dwStopFlags);
+
+
+	if(!pCurrent && !pStop
+	|| (dwCurrentFlags&AM_SEEKING_PositioningBitsMask) == AM_SEEKING_NoPositioning 
+		&& (dwStopFlags&AM_SEEKING_PositioningBitsMask) == AM_SEEKING_NoPositioning)
+		return S_OK;
+
+	REFERENCE_TIME 
+		rtCurrent = m_rtCurrent,
+		rtStop = m_rtStop;
+
+	if((dwCurrentFlags&AM_SEEKING_PositioningBitsMask)
+	&& FAILED(ConvertTimeFormat(&rtCurrent, &TIME_FORMAT_FRAME, rtCurrent, &TIME_FORMAT_MEDIA_TIME))) 
+		return E_FAIL;
+	if((dwStopFlags&AM_SEEKING_PositioningBitsMask)
+	&& FAILED(ConvertTimeFormat(&rtStop, &TIME_FORMAT_FRAME, rtStop, &TIME_FORMAT_MEDIA_TIME)))
+		return E_FAIL;
+
+	if(pCurrent)
+	switch(dwCurrentFlags&AM_SEEKING_PositioningBitsMask)
+	{
+	case AM_SEEKING_NoPositioning: break;
+	case AM_SEEKING_AbsolutePositioning: rtCurrent = *pCurrent; break;
+	case AM_SEEKING_RelativePositioning: rtCurrent = rtCurrent + *pCurrent; break;
+	case AM_SEEKING_IncrementalPositioning: rtCurrent = rtCurrent + *pCurrent; break;
+	}
+
+	if(pStop)
+	switch(dwStopFlags&AM_SEEKING_PositioningBitsMask)
+	{
+	case AM_SEEKING_NoPositioning: break;
+	case AM_SEEKING_AbsolutePositioning: rtStop = *pStop; break;
+	case AM_SEEKING_RelativePositioning: rtStop += *pStop; break;
+	case AM_SEEKING_IncrementalPositioning: rtStop = rtCurrent + *pStop; break;
+	}
+
+	if((dwCurrentFlags&AM_SEEKING_PositioningBitsMask)
+	&& pCurrent)
+		if(FAILED(ConvertTimeFormat(pCurrent, &TIME_FORMAT_MEDIA_TIME, rtCurrent, &TIME_FORMAT_FRAME))) return E_FAIL;
+	if((dwStopFlags&AM_SEEKING_PositioningBitsMask)
+	&& pStop)
+		if(FAILED(ConvertTimeFormat(pStop, &TIME_FORMAT_MEDIA_TIME, rtStop, &TIME_FORMAT_FRAME))) return E_FAIL;
+
+	return __super::SetPositions(pCurrent, dwCurrentFlags, pStop, dwStopFlags);
+}
+
+STDMETHODIMP CAviSplitterFilter::GetPositions(LONGLONG* pCurrent, LONGLONG* pStop)
+{
+	HRESULT hr;
+	if(FAILED(hr = __super::GetPositions(pCurrent, pStop)) || m_timeformat != TIME_FORMAT_FRAME)
+		return hr;
+
+	if(pCurrent)
+		if(FAILED(ConvertTimeFormat(pCurrent, &TIME_FORMAT_FRAME, *pCurrent, &TIME_FORMAT_MEDIA_TIME))) return E_FAIL;
+	if(pStop)
+		if(FAILED(ConvertTimeFormat(pStop, &TIME_FORMAT_FRAME, *pStop, &TIME_FORMAT_MEDIA_TIME))) return E_FAIL;
+
+	return S_OK;
+}
+
+
 // IPropertyBag
 
 STDMETHODIMP CAviSplitterFilter::Read(LPCOLESTR pszPropName, VARIANT* pVar, IErrorLog* pErrorLog)
@@ -685,6 +837,67 @@ STDMETHODIMP CAviSplitterFilter::Read(LPCOLESTR pszPropName, VARIANT* pVar, IErr
 STDMETHODIMP CAviSplitterFilter::Write(LPCOLESTR pszPropName, VARIANT* pVar)
 {
 	return E_NOTIMPL;
+}
+
+// IKeyFrameInfo
+
+STDMETHODIMP CAviSplitterFilter::GetKeyFrameCount(UINT& nKFs)
+{
+	if(!m_pFile) return E_UNEXPECTED;
+
+	HRESULT hr = S_OK;
+
+	nKFs = 0;
+
+	for(int i = 0; i < (int)m_pFile->m_strms.GetCount(); i++)
+	{
+		CAviFile::strm_t* s = m_pFile->m_strms[i];
+		if(s->strh.fccType != FCC('vids')) continue;
+
+		for(int j = 0; j < s->cs.GetCount(); j++)
+		{
+			CAviFile::strm_t::chunk& c = s->cs[j];
+			if(c.fKeyFrame) nKFs++;
+		}
+
+		if(nKFs == s->cs.GetCount())
+			hr = S_FALSE;
+
+		break;
+	}
+
+	return hr;
+}
+
+STDMETHODIMP CAviSplitterFilter::GetKeyFrames(const GUID* pFormat, REFERENCE_TIME* pKFs, UINT& nKFs)
+{
+	CheckPointer(pFormat, E_POINTER);
+	CheckPointer(pKFs, E_POINTER);
+
+	if(!m_pFile) return E_UNEXPECTED;
+	if(*pFormat != TIME_FORMAT_MEDIA_TIME && *pFormat != TIME_FORMAT_FRAME) return E_INVALIDARG;
+
+	UINT nKFsTmp = 0;
+
+	for(int i = 0; i < (int)m_pFile->m_strms.GetCount(); i++)
+	{
+		CAviFile::strm_t* s = m_pFile->m_strms[i];
+		if(s->strh.fccType != FCC('vids')) continue;
+
+		bool fConvertToRefTime = !!(*pFormat == TIME_FORMAT_MEDIA_TIME);
+
+		for(int j = 0; j < s->cs.GetCount() && nKFsTmp < nKFs; j++)
+		{
+			if(s->cs[j].fKeyFrame)
+				pKFs[nKFsTmp++] = fConvertToRefTime ? s->GetRefTime(j, s->cs[j].size) : j;
+		}
+
+		break;
+	}
+
+	nKFs = nKFsTmp;
+
+	return S_OK;
 }
 
 //

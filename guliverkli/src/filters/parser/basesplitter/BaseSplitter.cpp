@@ -28,8 +28,9 @@ STDMETHODIMP CAsyncFileReader::NonDelegatingQueryInterface(REFIID riid, void** p
 
 STDMETHODIMP CAsyncFileReader::SyncRead(LONGLONG llPosition, LONG lLength, BYTE* pBuffer)
 {
+	if(llPosition+lLength > GetLength()) return E_FAIL; // strangly the Seek below can return llPosition even if the file is not that big (?)
 	if(llPosition != Seek(llPosition, begin)) return E_FAIL;
-	if((UINT)lLength < Read(pBuffer, lLength)) return S_FALSE;
+	if((UINT)lLength < Read(pBuffer, lLength)) return E_FAIL;
 	return S_OK;
 }
 
@@ -468,6 +469,7 @@ STDMETHODIMP CBaseSplitterFilter::NonDelegatingQueryInterface(REFIID riid, void*
 		QI(IAMOpenProgress)
 		QI2(IAMMediaContent)
 		QI(IChapterInfo)
+		QI(IKeyFrameInfo)
 		__super::NonDelegatingQueryInterface(riid, ppv);
 }
 
@@ -891,7 +893,7 @@ HRESULT CBaseSplitterFilter::GetMediaContentStr(BSTR* pBSTR, mctype type)
 HRESULT CBaseSplitterFilter::SetMediaContentStr(CStringW str, mctype type)
 {
 	CAutoLock cAutoLock(this);
-	m_mcs[(int)type] = str;
+	m_mcs[(int)type] = str.Trim();
 	return S_OK;
 }
 
@@ -921,4 +923,16 @@ STDMETHODIMP_(BOOL) CBaseSplitterFilter::GetChapterInfo(UINT aChapterID, struct 
 STDMETHODIMP_(BSTR) CBaseSplitterFilter::GetChapterStringInfo(UINT aChapterID, CHAR PreferredLanguage[3], CHAR CountryCode[2])
 {
 	return NULL;
+}
+
+// IKeyFrameInfo
+
+STDMETHODIMP CBaseSplitterFilter::GetKeyFrameCount(UINT& nKFs)
+{
+	return E_NOTIMPL;
+}
+
+STDMETHODIMP CBaseSplitterFilter::GetKeyFrames(const GUID* pFormat, REFERENCE_TIME* pKFs, UINT& nKFs)
+{
+	return E_NOTIMPL;
 }

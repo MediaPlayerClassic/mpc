@@ -287,10 +287,7 @@ CShoutcastStream::CShoutcastStream(const WCHAR* wfn, CShoutcastSource* pParent, 
 	if(fn.Find(_T("://")) < 0) fn = _T("http://") + fn;
 
 #ifdef REGISTER_FILTER
-//fn = _T("http://66.250.32.195:8012/");
 //fn = _T("http://localhost:8000/");
-//fn = _T("http://210.120.247.49:9570"); // 48khz/320kbps/stereo, choppy
-//fn = _T("http://205.188.234.38:8002"); // no output, freezes stop
 //fn = _T("http://64.236.34.141/stream/1005");
 //fn = _T("http://218.145.30.106:11000"); // 128kbps korean
 //fn = _T("http://65.206.46.110:8020"); // 96kbps

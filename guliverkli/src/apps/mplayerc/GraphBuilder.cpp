@@ -296,10 +296,20 @@ CGraphBuilder::CGraphBuilder(IGraphBuilder* pGB, HWND hWnd)
 		}
 	}
 
+	guids.AddTail(MEDIATYPE_Text);
+	guids.AddTail(MEDIASUBTYPE_NULL);
+	guids.AddTail(MEDIATYPE_Subtitle);
+	guids.AddTail(MEDIASUBTYPE_NULL);
+	AddFilter(new CGraphCustomFilter(__uuidof(CTextNullRenderer), guids, L"TextNullRenderer", LMERIT_DO_USE));
+	guids.RemoveAll();
+
 	// FIXME: "Subtitle Mixer" makes an access violation around 
 	// the 11-12th media type when enumerating them on its output.
 	CLSID CLSID_SubtitlerMixer = GUIDFromCString(_T("{00A95963-3BE5-48C0-AD9F-3356D67EA09D}"));
 	AddFilter(new CGraphRegFilter(CLSID_SubtitlerMixer, LMERIT(MERIT_DO_NOT_USE)));
+
+	// ISCR suxx
+	AddFilter(new CGraphRegFilter(GUIDFromCString(_T("{48025243-2D39-11CE-875D-00608CB78066}")), LMERIT(MERIT_DO_NOT_USE)));
 }
 
 CGraphBuilder::~CGraphBuilder()
@@ -1478,6 +1488,7 @@ HRESULT CGraphCustomFilter::Create(IBaseFilter** ppBF, IUnknown** ppUnk)
 		m_clsid == __uuidof(CRealVideoDecoder) ? (IBaseFilter*)new CRealVideoDecoder(NULL, &hr) :
 		m_clsid == __uuidof(CRealAudioDecoder) ? (IBaseFilter*)new CRealAudioDecoder(NULL, &hr) :
 		m_clsid == __uuidof(CAviSplitterFilter) ? (IBaseFilter*)new CAviSplitterFilter(NULL, &hr) :
+		m_clsid == __uuidof(CTextNullRenderer) ? (IBaseFilter*)new CTextNullRenderer(NULL, &hr) :
 		NULL;
 
 	if(!*ppBF) hr = E_FAIL;
@@ -1605,4 +1616,19 @@ HRESULT CGraphRendererFilter::Create(IBaseFilter** ppBF, IUnknown** ppUnk)
 	if(!*ppBF) hr = E_FAIL;
 
 	return hr;
+}
+
+//
+// CTextNullRenderer
+//
+
+HRESULT CTextNullRenderer::CTextInputPin::CheckMediaType(const CMediaType* pmt)
+{
+	return pmt->majortype == MEDIATYPE_Text || pmt->majortype == MEDIATYPE_Subtitle ? S_OK : E_FAIL;
+}
+
+CTextNullRenderer::CTextNullRenderer(LPUNKNOWN pUnk, HRESULT* phr)
+	: CBaseFilter(NAME("CTextNullRenderer"), pUnk, this, __uuidof(this), phr) 
+{
+	m_pInput.Attach(new CTextInputPin(this, this, phr));
 }

@@ -262,12 +262,12 @@ BOOL COpenFileDialog::OnIncludeItem(OFNOTIFYEX* pOFNEx, LRESULT* pResult)
 		return FALSE;
 
 	CString fn(buff);
-
+/*
 	WIN32_FILE_ATTRIBUTE_DATA fad;
 	if(GetFileAttributesEx(fn, GetFileExInfoStandard, &fad)
 	&& (fad.dwFileAttributes&FILE_ATTRIBUTE_DIRECTORY))
 		return FALSE;
-
+*/
 	int i = fn.ReverseFind('.'), j = fn.ReverseFind('\\');
 	if(i < 0 || i < j) 
 		return FALSE;

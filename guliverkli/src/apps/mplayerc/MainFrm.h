@@ -48,6 +48,7 @@
 #include "ShockwaveGraph.h"
 
 #include "..\..\..\include\IChapterInfo.h"
+#include "..\..\..\include\IKeyFrameInfo.h"
 
 enum {PM_NONE, PM_FILE, PM_DVD, PM_CAPTURE};
 
@@ -105,7 +106,7 @@ public:
 	afx_msg void OnOpen(WPARAM wParam, LPARAM lParam);
 	afx_msg void OnClose(WPARAM wParam, LPARAM lParam);
 };
-
+/*
 class CKeyFrameFinderThread : public CWinThread, public CCritSec
 {
 	DECLARE_DYNCREATE(CKeyFrameFinderThread);
@@ -124,7 +125,7 @@ public:
 	afx_msg void OnIndex(WPARAM wParam, LPARAM lParam);
 	afx_msg void OnBreak(WPARAM wParam, LPARAM lParam);
 };
-
+*/
 interface ISubClock;
 
 class CMainFrame : public CFrameWnd, public CDropTarget
@@ -313,7 +314,7 @@ protected:
 	friend class CGraphThread;
 	CGraphThread* m_pGraphThread;
 
-	CKeyFrameFinderThread* m_pKFFThread;
+	CArray<REFERENCE_TIME> m_kfs;
 
 	bool m_fOpeningAborted;
 

@@ -173,3 +173,20 @@ class CGraphBuilderCapture : public CGraphBuilderFile
 public:
 	CGraphBuilderCapture(IGraphBuilder* pGB, HWND hWnd);
 };
+
+[uuid("655D7613-C26C-4A25-BBBD-3C9C516122CC")]
+class CTextNullRenderer : public CBaseFilter, public CCritSec
+{
+	class CTextInputPin : public CBaseInputPin
+	{
+	public:
+		CTextInputPin(CBaseFilter* pFilter, CCritSec* pLock, HRESULT* phr) 
+			: CBaseInputPin(NAME("CTextInputPin"), pFilter, pLock, phr, L"In") {}
+	    HRESULT CheckMediaType(const CMediaType* pmt);
+	};
+	CAutoPtr<CTextInputPin> m_pInput;
+public:
+	CTextNullRenderer(LPUNKNOWN pUnk, HRESULT* phr);
+	int GetPinCount() {return (int)!!m_pInput;}
+	CBasePin* GetPin(int n) {return n == 0 ? (CBasePin*)m_pInput : NULL;}
+};

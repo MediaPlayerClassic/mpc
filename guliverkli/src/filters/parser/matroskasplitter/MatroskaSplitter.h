@@ -96,6 +96,11 @@ public:
 	STDMETHODIMP_(UINT) GetChapterCurrentId();
 	STDMETHODIMP_(BOOL) GetChapterInfo(UINT aChapterID, struct ChapterElement* pStructureToFill);
 	STDMETHODIMP_(BSTR) GetChapterStringInfo(UINT aChapterID, CHAR PreferredLanguage[3], CHAR CountryCode[2]);
+
+	// IKeyFrameInfo
+
+	STDMETHODIMP GetKeyFrameCount(UINT& nKFs);
+	STDMETHODIMP GetKeyFrames(const GUID* pFormat, REFERENCE_TIME* pKFs, UINT& nKFs);
 };
 
 [uuid("0A68C3B5-9164-4a54-AFAF-995B2FF0E0D4")]

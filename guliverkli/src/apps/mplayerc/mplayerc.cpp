@@ -435,7 +435,44 @@ HANDLE WINAPI Mine_CreateFileW(LPCWSTR p1, DWORD p2, DWORD p3, LPSECURITY_ATTRIB
 
 	return Real_CreateFileW(p1, p2, p3, p4, p5, p6, p7);
 }
+/*
+[uuid("5071DDEB-BFE3-48D8-9827-F2D9D6791701")]
+class CMyRenderer : public CBaseRenderer
+{
+public:
+	CMyRenderer(LPUNKNOWN pUnk, HRESULT* phr)
+		: CBaseRenderer(__uuidof(this), NAME("CMyRenderer"), pUnk, phr) 
+	{
+		*phr = S_OK;
+	}
 
+	HRESULT CheckMediaType(const CMediaType* pmt)
+	{
+		return pmt->majortype == MEDIATYPE_Video 
+			&& (pmt->subtype == MEDIASUBTYPE_RGB32 || pmt->subtype == MEDIASUBTYPE_RGB24 || pmt->subtype == MEDIASUBTYPE_YUY2)
+			&& pmt->formattype == FORMAT_VideoInfo
+			? S_OK : E_FAIL;
+	}
+
+	void OnReceiveFirstSample(IMediaSample* pSample)
+	{
+		CMediaType mt;
+		m_pInputPin->ConnectionMediaType(&mt);
+
+		BITMAPINFOHEADER& bih = ((VIDEOINFOHEADER*)mt.Format())->bmiHeader;
+
+		BYTE* p;
+		pSample->GetPointer(&p);
+
+		// do something with the pic
+	}
+
+	HRESULT DoRenderSample(IMediaSample* pSample)
+	{
+		return S_OK;
+	}
+};
+*/
 BOOL CMPlayerCApp::InitInstance()
 {
 	DetourFunctionWithTrampoline((PBYTE)Real_IsDebuggerPresent, (PBYTE)Mine_IsDebuggerPresent);
@@ -451,7 +488,30 @@ BOOL CMPlayerCApp::InitInstance()
         AfxMessageBox(_T("OleInitialize failed!"));
 		return FALSE;
 	}
+/*
+{
+	CComQIPtr<IGraphBuilder> pGB;
+	hr = pGB.CoCreateInstance(CLSID_FilterGraph);
 
+	CComPtr<IBaseFilter> pBF;
+	hr = pGB->AddSourceFilter(L"D:\\mp4test\\mp4-1fps.mkv", NULL, &pBF);
+
+	CComPtr<IBaseFilter> pBF2 = new CMyRenderer(NULL, &hr);
+	hr = pGB->AddFilter(pBF2, L"CMyRenderer");
+
+	hr = pGB->Connect(GetFirstPin(pBF, PINDIR_OUTPUT), GetFirstPin(pBF2, PINDIR_INPUT));
+
+	CComQIPtr<IMediaControl> pMC = pGB;
+	hr = pMC->Pause();
+
+	OAFilterState fs;
+	hr = pMC->GetState(INFINITE, &fs);
+
+	CComQIPtr<IMediaSeeking> pMS = pGB;
+	REFERENCE_TIME rtCurrent = 0;
+	hr = pMS->SetPositions(&rtCurrent, AM_SEEKING_AbsolutePositioning, NULL, AM_SEEKING_NoPositioning);
+}
+*/
     WNDCLASS wndcls;
     memset(&wndcls, 0, sizeof(WNDCLASS));
     wndcls.style = CS_DBLCLKS | CS_HREDRAW | CS_VREDRAW;

@@ -70,10 +70,26 @@ public:
 
 	STDMETHODIMP GetDuration(LONGLONG* pDuration);
 
+	// TODO: this is too ugly, integrate this with the baseclass somehow
+	GUID m_timeformat;
+	STDMETHODIMP IsFormatSupported(const GUID* pFormat);
+	STDMETHODIMP GetTimeFormat(GUID* pFormat);
+	STDMETHODIMP IsUsingTimeFormat(const GUID* pFormat);
+	STDMETHODIMP SetTimeFormat(const GUID* pFormat);
+	STDMETHODIMP GetStopPosition(LONGLONG* pStop);
+	STDMETHODIMP ConvertTimeFormat(LONGLONG* pTarget, const GUID* pTargetFormat, LONGLONG Source, const GUID* pSourceFormat);
+	STDMETHODIMP SetPositions(LONGLONG* pCurrent, DWORD dwCurrentFlags, LONGLONG* pStop, DWORD dwStopFlags);
+	STDMETHODIMP GetPositions(LONGLONG* pCurrent, LONGLONG* pStop);
+
 	// IPropertyBag
 
 	STDMETHODIMP Read(LPCOLESTR pszPropName, VARIANT* pVar, IErrorLog* pErrorLog);
 	STDMETHODIMP Write(LPCOLESTR pszPropName, VARIANT* pVar);
+
+	// IKeyFrameInfo
+
+	STDMETHODIMP GetKeyFrameCount(UINT& nKFs);
+	STDMETHODIMP GetKeyFrames(const GUID* pFormat, REFERENCE_TIME* pKFs, UINT& nKFs);
 };
 
 [uuid("CEA8DEFF-0AF7-4DB9-9A38-FB3C3AEFC0DE")]

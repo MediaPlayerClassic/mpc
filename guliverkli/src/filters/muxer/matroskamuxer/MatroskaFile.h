@@ -38,6 +38,7 @@ namespace MatroskaWriter
 
 	public:
 		CID(DWORD id);
+		DWORD GetID() {return m_id;}
 		virtual QWORD Size(bool fWithHeader = true);
 		virtual HRESULT Write(IStream* pStream);
 	};
@@ -361,6 +362,16 @@ namespace MatroskaWriter
 	{
 	public:
 		Segment(DWORD id = 0x18538067);
+		QWORD Size(bool fWithHeader = true);
+		HRESULT Write(IStream* pStream);
+	};
+
+	class Tags : public CID
+	{
+	public:
+		// TODO
+
+		Tags(DWORD id = 0x1254C367);
 		QWORD Size(bool fWithHeader = true);
 		HRESULT Write(IStream* pStream);
 	};

@@ -555,7 +555,7 @@ TRACE(_T("Muxing (%d): %I64d-%I64d dur=%I64d (c=%d, co=%dms), cnt=%d, ref=%d\n")
 						if(!c.BlockGroups.IsEmpty())
 						{
 							sh.Attach(new SeekHead());
-							sh->ID.Set(0x1F43B675);
+							sh->ID.Set(c.GetID()/*0x1F43B675*/);
 							sh->Position.Set(GetStreamPosition(pStream) - segpos);
 							seek.SeekHeads.AddTail(sh);
 
@@ -602,7 +602,7 @@ TRACE(_T("Muxing (%d): %I64d-%I64d dur=%I64d (c=%d, co=%dms), cnt=%d, ref=%d\n")
 			if(!c.BlockGroups.IsEmpty())
 			{
 				sh.Attach(new SeekHead());
-				sh->ID.Set(0x1F43B675);
+				sh->ID.Set(c.GetID()/*0x1F43B675*/);
 				sh->Position.Set(GetStreamPosition(pStream) - segpos);
 				seek.SeekHeads.AddTail(sh);
 
@@ -613,11 +613,22 @@ TRACE(_T("Muxing (%d): %I64d-%I64d dur=%I64d (c=%d, co=%dms), cnt=%d, ref=%d\n")
 			if(!cue.CuePoints.IsEmpty())
 			{
 				sh.Attach(new SeekHead());
-				sh->ID.Set(0x1C53BB6B);
+				sh->ID.Set(cue.GetID()/*0x1C53BB6B*/);
 				sh->Position.Set(GetStreamPosition(pStream) - segpos);
 				seek.SeekHeads.AddTail(sh);
 
 				cue.Write(pStream);
+			}
+
+			{
+				Tags tags;
+
+				sh.Attach(new SeekHead());
+				sh->ID.Set(tags.GetID());
+				sh->Position.Set(GetStreamPosition(pStream) - segpos);
+				seek.SeekHeads.AddTail(sh);
+
+				tags.Write(pStream);	
 			}
 
 			SetStreamPosition(pStream, voidpos);

@@ -29,6 +29,7 @@ Global
 		Debug Unicode = Debug Unicode
 		Release = Release
 		Release Unicode = Release Unicode
+		ResourceDLL = ResourceDLL
 	EndGlobalSection
 	GlobalSection(ProjectConfiguration) = postSolution
 		{8CE7E5D0-C821-47AC-A247-28EC95B34670}.Debug.ActiveCfg = Debug|Win32
@@ -39,6 +40,8 @@ Global
 		{8CE7E5D0-C821-47AC-A247-28EC95B34670}.Release.Build.0 = Release|Win32
 		{8CE7E5D0-C821-47AC-A247-28EC95B34670}.Release Unicode.ActiveCfg = Release Unicode|Win32
 		{8CE7E5D0-C821-47AC-A247-28EC95B34670}.Release Unicode.Build.0 = Release Unicode|Win32
+		{8CE7E5D0-C821-47AC-A247-28EC95B34670}.ResourceDLL.ActiveCfg = ResourceDLL|Win32
+		{8CE7E5D0-C821-47AC-A247-28EC95B34670}.ResourceDLL.Build.0 = ResourceDLL|Win32
 		{F41A1760-85B4-4819-BEE5-E120D76C9994}.Debug.ActiveCfg = Debug|Win32
 		{F41A1760-85B4-4819-BEE5-E120D76C9994}.Debug.Build.0 = Debug|Win32
 		{F41A1760-85B4-4819-BEE5-E120D76C9994}.Debug Unicode.ActiveCfg = Debug Unicode|Win32
@@ -47,6 +50,7 @@ Global
 		{F41A1760-85B4-4819-BEE5-E120D76C9994}.Release.Build.0 = Release|Win32
 		{F41A1760-85B4-4819-BEE5-E120D76C9994}.Release Unicode.ActiveCfg = Release Unicode|Win32
 		{F41A1760-85B4-4819-BEE5-E120D76C9994}.Release Unicode.Build.0 = Release Unicode|Win32
+		{F41A1760-85B4-4819-BEE5-E120D76C9994}.ResourceDLL.ActiveCfg = Release Unicode|Win32
 		{5E56335F-0FB1-4EEA-B240-D8DC5E0608E4}.Debug.ActiveCfg = Debug|Win32
 		{5E56335F-0FB1-4EEA-B240-D8DC5E0608E4}.Debug.Build.0 = Debug|Win32
 		{5E56335F-0FB1-4EEA-B240-D8DC5E0608E4}.Debug Unicode.ActiveCfg = Debug Unicode|Win32
@@ -55,6 +59,7 @@ Global
 		{5E56335F-0FB1-4EEA-B240-D8DC5E0608E4}.Release.Build.0 = Release|Win32
 		{5E56335F-0FB1-4EEA-B240-D8DC5E0608E4}.Release Unicode.ActiveCfg = Release Unicode|Win32
 		{5E56335F-0FB1-4EEA-B240-D8DC5E0608E4}.Release Unicode.Build.0 = Release Unicode|Win32
+		{5E56335F-0FB1-4EEA-B240-D8DC5E0608E4}.ResourceDLL.ActiveCfg = Release Unicode|Win32
 		{FC70988B-1AE5-4381-866D-4F405E28AC42}.Debug.ActiveCfg = Debug|Win32
 		{FC70988B-1AE5-4381-866D-4F405E28AC42}.Debug.Build.0 = Debug|Win32
 		{FC70988B-1AE5-4381-866D-4F405E28AC42}.Debug Unicode.ActiveCfg = Debug Unicode|Win32
@@ -63,6 +68,7 @@ Global
 		{FC70988B-1AE5-4381-866D-4F405E28AC42}.Release.Build.0 = Release|Win32
 		{FC70988B-1AE5-4381-866D-4F405E28AC42}.Release Unicode.ActiveCfg = Release Unicode|Win32
 		{FC70988B-1AE5-4381-866D-4F405E28AC42}.Release Unicode.Build.0 = Release Unicode|Win32
+		{FC70988B-1AE5-4381-866D-4F405E28AC42}.ResourceDLL.ActiveCfg = Release Unicode|Win32
 		{D514EA4D-EAFB-47A9-A437-A582CA571251}.Debug.ActiveCfg = Debug|Win32
 		{D514EA4D-EAFB-47A9-A437-A582CA571251}.Debug.Build.0 = Debug|Win32
 		{D514EA4D-EAFB-47A9-A437-A582CA571251}.Debug Unicode.ActiveCfg = Debug Unicode|Win32
@@ -71,6 +77,7 @@ Global
 		{D514EA4D-EAFB-47A9-A437-A582CA571251}.Release.Build.0 = Release|Win32
 		{D514EA4D-EAFB-47A9-A437-A582CA571251}.Release Unicode.ActiveCfg = Release Unicode|Win32
 		{D514EA4D-EAFB-47A9-A437-A582CA571251}.Release Unicode.Build.0 = Release Unicode|Win32
+		{D514EA4D-EAFB-47A9-A437-A582CA571251}.ResourceDLL.ActiveCfg = Release Unicode|Win32
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 	EndGlobalSection
