@@ -157,6 +157,7 @@ HRESULT CMatroskaFile::Read(BYTE* pData, QWORD len)
 	{
 		QWORD maxlen = min(m_length - m_pos, sizeof(m_cache));
 		QWORD minlen = min(len, maxlen);
+		if(minlen <= 0) return S_FALSE;
 //LOG(_T("Read [%I64d] <-> [%I64d]\n"), m_pos, m_pos+maxlen);
 		hr = m_pAsyncReader->SyncRead(m_pos, (LONG)maxlen, m_cache);
 		if(S_OK != hr) return hr;

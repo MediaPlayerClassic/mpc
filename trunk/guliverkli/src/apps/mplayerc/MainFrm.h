@@ -328,6 +328,7 @@ public:
 	void ShowTrayIcon(bool fShow);
 	void SetTrayTip(CString str);
 
+	CSize GetVideoSize();
 	void ToggleFullscreen(bool fToNearest, bool fSwitchScreenResWhenHasTo);
 	void MoveVideoWindow(bool fShowStats = false);
 	void RepaintVideo();
@@ -512,6 +513,8 @@ protected:  // control bar embedded members
 	afx_msg void OnUpdateViewDefaultVideoFrame(CCmdUI* pCmdUI);
 	afx_msg void OnViewKeepaspectratio();
 	afx_msg void OnUpdateViewKeepaspectratio(CCmdUI* pCmdUI);
+	afx_msg void OnViewCompMonDeskARDiff();
+	afx_msg void OnUpdateViewCompMonDeskARDiff(CCmdUI* pCmdUI);
 	afx_msg void OnViewPanNScan(UINT nID);
 	afx_msg void OnUpdateViewPanNScan(CCmdUI* pCmdUI);
 	afx_msg void OnViewPanNScanPresets(UINT nID);

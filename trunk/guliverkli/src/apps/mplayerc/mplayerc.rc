@@ -255,7 +255,7 @@ BEGIN
     LTEXT           "Media Player Classic",IDC_STATIC1,40,10,126,8,
                     SS_NOPREFIX
     LTEXT           "Copyright (C) 2002-2003 Gabest",IDC_STATIC,40,21,113,8
-    LTEXT           "Version:\t6.4.6.1",IDC_STATIC,40,33,92,8
+    LTEXT           "Version:\t6.4.6.2",IDC_STATIC,40,33,92,8
     PUSHBUTTON      "OK",IDOK,160,8,50,14,WS_GROUP
     LTEXT           "This program is freeware and released under the GNU General Public License.\nDistribution in Codec Packs is allowed, but the author (Gabest) is not liable for the additional content.",
                     IDC_STATIC,11,47,199,34
@@ -324,8 +324,8 @@ BEGIN
                     BS_AUTOCHECKBOX | WS_TABSTOP,140,129,127,10
     CONTROL         "Remember last window size",IDC_CHECK7,"Button",
                     BS_AUTOCHECKBOX | WS_TABSTOP,140,143,127,10
-    CONTROL         "Store settings in .ini file",IDC_CHECK8,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,140,157,91,10
+    CONTROL         "Store settings to .ini file",IDC_CHECK8,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,140,157,92,10
     CONTROL         "Keep history of recently opened files",IDC_CHECK1,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,140,171,133,10
 END
@@ -1304,8 +1304,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 6,4,6,1
- PRODUCTVERSION 6,4,6,1
+ FILEVERSION 6,4,6,2
+ PRODUCTVERSION 6,4,6,2
  FILEFLAGSMASK 0x1fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -1323,12 +1323,12 @@ BEGIN
             VALUE "Comments", "http://gabest.org/"
             VALUE "CompanyName", "Gabest"
             VALUE "FileDescription", "Media Player Classic"
-            VALUE "FileVersion", "6, 4, 6, 1"
+            VALUE "FileVersion", "6, 4, 6, 2"
             VALUE "InternalName", "Media Player Classic"
             VALUE "LegalCopyright", "Copyright (C) 2002 Gabest"
             VALUE "OriginalFilename", "mplayerc.EXE"
             VALUE "ProductName", "Media Player Classic"
-            VALUE "ProductVersion", "6, 4, 6, 1"
+            VALUE "ProductVersion", "6, 4, 6, 2"
         END
     END
     BLOCK "VarFileInfo"
@@ -1397,7 +1397,10 @@ BEGIN
             MENUITEM "Touch Window From &Inside",   ID_VIEW_VF_FROMINSIDE
             MENUITEM "Touch Window From &Outside",  ID_VIEW_VF_FROMOUTSIDE
             MENUITEM SEPARATOR
-            MENUITEM "&Keep Aspect Ratio",          ID_VIDEOFRAME_KEEPASPECTRATIO
+            MENUITEM "&Keep Aspect Ratio",          ID_VIEW_VF_KEEPASPECTRATIO
+
+            MENUITEM "Correct Monitor/Desktop AR Diff", 
+                                                    ID_VIEW_VF_COMPMONDESKARDIFF
 
         END
         POPUP "Pan&&S&can"
@@ -1497,7 +1500,11 @@ BEGIN
             MENUITEM "Touch Window From &Inside",   ID_VIEW_VF_FROMINSIDE
             MENUITEM "Touch Window From &Outside",  ID_VIEW_VF_FROMOUTSIDE
             MENUITEM SEPARATOR
-            MENUITEM "&Keep Aspect Ratio",          319
+            MENUITEM "&Keep Aspect Ratio",          ID_VIEW_VF_KEEPASPECTRATIO
+
+            MENUITEM "Correct Monitor/Desktop AR Diff", 
+                                                    ID_VIEW_VF_COMPMONDESKARDIFF
+
         END
         POPUP "Pan&&S&can"
         BEGIN
@@ -1635,7 +1642,11 @@ BEGIN
                 MENUITEM "Touch Window From &Outside",  ID_VIEW_VF_FROMOUTSIDE
 
                 MENUITEM SEPARATOR
-                MENUITEM "&Keep Aspect Ratio",          319
+                MENUITEM "&Keep Aspect Ratio",          ID_VIEW_VF_KEEPASPECTRATIO
+
+                MENUITEM "Correct Monitor/Desktop AR Diff", 
+                                                        ID_VIEW_VF_COMPMONDESKARDIFF
+
             END
             POPUP "Pan&&S&can"
             BEGIN
@@ -1892,6 +1903,11 @@ BEGIN
     IDS_RS_MPEGSAT          "MPEGSat"
     IDS_RS_MPEGFORCEDSUBS   "MPEGForcedSubs"
     IDS_RS_MPEGPLANARYUV    "MPEGPlanarYUV"
+END
+
+STRINGTABLE 
+BEGIN
+    IDS_RS_COMPMONDESKARDIFF "CompMonDeskARDiff"
 END
 
 #endif    // English (U.S.) resources

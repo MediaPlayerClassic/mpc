@@ -245,7 +245,7 @@ HRESULT CAviSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 			case BI_RGB: case BI_BITFIELDS: mt.subtype = 
 						pbmi->biBitCount == 16 ? MEDIASUBTYPE_RGB565 :
 						pbmi->biBitCount == 24 ? MEDIASUBTYPE_RGB24 :
-						pbmi->biBitCount == 32 ? MEDIASUBTYPE_RGB32 :
+						pbmi->biBitCount == 32 ? MEDIASUBTYPE_ARGB32 :
 						MEDIASUBTYPE_NULL;
 						break;
 //			case BI_RLE8: mt.subtype = MEDIASUBTYPE_RGB8; break;

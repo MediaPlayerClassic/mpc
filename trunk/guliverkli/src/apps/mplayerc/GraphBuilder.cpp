@@ -36,6 +36,9 @@
 #include <initguid.h>
 #include <dmodshow.h>
 
+#include <D3d9.h>
+#include <Vmr9.h>
+
 static void CheckStupidSharedFilesourceFilter()
 {
 	CRegKey key;
@@ -975,6 +978,10 @@ HRESULT CGraphBuilder::Render(IPin* pPin)
 				// maybe the application should do this...
 				if(CComQIPtr<IMixerPinConfig, &IID_IMixerPinConfig> pMPC = pUnk)
 					pMPC->SetAspectRatioMode(AM_ARMODE_STRETCHED);
+				if(CComQIPtr<IVMRAspectRatioControl> pARC = pBF)
+					pARC->SetAspectRatioMode(VMR_ARMODE_NONE);
+				if(CComQIPtr<IVMRAspectRatioControl9> pARC = pBF)
+					pARC->SetAspectRatioMode(VMR_ARMODE_NONE);
 
 				return hr;
 			}

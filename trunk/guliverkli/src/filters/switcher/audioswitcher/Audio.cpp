@@ -19,6 +19,8 @@
  *
  */
 
+// originally from virtualdub
+
 #include "stdafx.h"
 #include "Audio.h"
 

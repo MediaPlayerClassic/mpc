@@ -91,6 +91,7 @@ public:
     HRESULT NewSegment(REFERENCE_TIME tStart, REFERENCE_TIME tStop, double dRate);
     HRESULT Receive(IMediaSample* pIn);
 
+	HRESULT CheckConnect(PIN_DIRECTION dir, IPin* pPin);
     HRESULT CheckInputType(const CMediaType* mtIn);
     HRESULT CheckTransform(const CMediaType* mtIn, const CMediaType* mtOut);
     HRESULT DecideBufferSize(IMemAllocator* pAllocator, ALLOCATOR_PROPERTIES* pProperties);

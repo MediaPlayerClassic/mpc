@@ -755,6 +755,26 @@ HRESULT CMpeg2DecFilter::ReconnectOutput(int w, int h, CMediaType& mt)
 	return hr;
 }
 
+HRESULT CMpeg2DecFilter::CheckConnect(PIN_DIRECTION dir, IPin* pPin)
+{
+	if(dir == PINDIR_OUTPUT)
+	{
+		if(GetCLSID(GetFilterFromPin(m_pInput)) == CLSID_DVDNavigator)
+		{
+			// one of these needed for dynamic format changes
+
+			CLSID clsid = GetCLSID(GetFilterFromPin(pPin));
+			if(clsid != CLSID_OverlayMixer
+			/*&& clsid != CLSID_OverlayMixer2*/
+			&& clsid != CLSID_VideoMixingRenderer 
+			&& clsid != CLSID_VideoMixingRenderer9)
+				return E_FAIL;
+		}
+	}
+
+	return __super::CheckConnect(dir, pPin);
+}
+
 HRESULT CMpeg2DecFilter::CheckInputType(const CMediaType* mtIn)
 {
 	return (mtIn->majortype == MEDIATYPE_DVD_ENCRYPTED_PACK && mtIn->subtype == MEDIASUBTYPE_MPEG2_VIDEO
@@ -1723,24 +1743,36 @@ STDMETHODIMP CSubpicInputPin::Set(REFGUID PropSet, ULONG Id, LPVOID pInstanceDat
 
 			m_sphli.Free();
 
-			POSITION pos = m_sps.GetHeadPosition();
-			while(pos)
+			if(pSPHLI->HLISS)
 			{
-				sp_t* sp = m_sps.GetNext(pos);
-				if(sp->rtStart <= PTS2RT(pSPHLI->StartPTM) && PTS2RT(pSPHLI->StartPTM) < sp->rtStop)
+				POSITION pos = m_sps.GetHeadPosition();
+				while(pos)
 				{
-					fRefresh = true;
-					sp->sphli.Free();
-					if(pSPHLI->HLISS == 0) break;
-					sp->sphli.Attach(new AM_PROPERTY_SPHLI());
-					memcpy(sp->sphli.m_p, pSPHLI, sizeof(AM_PROPERTY_SPHLI));
+					sp_t* sp = m_sps.GetNext(pos);
+					if(sp->rtStart <= PTS2RT(pSPHLI->StartPTM) && PTS2RT(pSPHLI->StartPTM) < sp->rtStop)
+					{
+						fRefresh = true;
+						sp->sphli.Free();
+						sp->sphli.Attach(new AM_PROPERTY_SPHLI());
+						memcpy(sp->sphli.m_p, pSPHLI, sizeof(AM_PROPERTY_SPHLI));
+					}
+				}
+
+				if(!fRefresh) // save it for later, a subpic might be late for this hli
+				{
+					m_sphli.Attach(new AM_PROPERTY_SPHLI());
+					memcpy(m_sphli.m_p, pSPHLI, sizeof(AM_PROPERTY_SPHLI));
 				}
 			}
-
-			if(!fRefresh && pSPHLI->HLISS) // save it for later, a subpic might be late for this hli
+			else
 			{
-				m_sphli.Attach(new AM_PROPERTY_SPHLI());
-				memcpy(m_sphli.m_p, pSPHLI, sizeof(AM_PROPERTY_SPHLI));
+				POSITION pos = m_sps.GetHeadPosition();
+				while(pos)
+				{
+					sp_t* sp = m_sps.GetNext(pos);
+					fRefresh = !!(sp->sphli.m_p);
+					sp->sphli.Free();
+				}
 			}
 
 			DbgLog((LOG_TRACE, 0, _T("hli: %I64d - %I64d, (%d,%d) - (%d,%d)"), 

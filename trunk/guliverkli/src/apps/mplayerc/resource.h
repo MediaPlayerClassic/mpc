@@ -155,7 +155,6 @@
 #define IDD_SAVEDIALOG                  315
 #define IDR_AVI1                        316
 #define ID_Menu318                      318
-#define ID_VIDEOFRAME_KEEPASPECTRATIO   319
 #define ID_VIEW_VF_KEEPASPECTRATIO      319
 #define ID_Menu320                      320
 #define IDI_ICON1                       321
@@ -268,6 +267,7 @@
 #define IDS_RS_MPEGSAT                  589
 #define IDS_RS_MPEGFORCEDSUBS           590
 #define IDS_RS_MPEGPLANARYUV            591
+#define IDS_RS_COMPMONDESKARDIFF        592
 #define IDC_BROWSEBUTTON                1016
 #define IDC_BROWSEBUTTON2               1017
 #define IDC_COMBO1                      1018
@@ -442,6 +442,7 @@
 #define ID__FAVORITES                   32815
 #define ID__FILTERS32816                32816
 #define ID_NAVIGATE_SUBTITLELANGUAGE32817 32817
+#define ID_VIEW_VF_COMPMONDESKARDIFF    32820
 #define ID_FILTERS_SUBITEM_START        33000
 #define ID_FILTERS_SUBITEM_END          33099
 #define ID_FILTERSTREAMS_SUBITEM_START  33100
@@ -474,7 +475,7 @@
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        334
-#define _APS_NEXT_COMMAND_VALUE         32818
+#define _APS_NEXT_COMMAND_VALUE         32821
 #define _APS_NEXT_CONTROL_VALUE         1117
 #define _APS_NEXT_SYMED_VALUE           10003
 #endif

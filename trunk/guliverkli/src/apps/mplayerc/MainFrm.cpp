@@ -248,6 +248,8 @@ BEGIN_MESSAGE_MAP(CMainFrame, CFrameWnd)
 	ON_UPDATE_COMMAND_UI_RANGE(ID_VIEW_VF_HALF, ID_VIEW_VF_FROMOUTSIDE, OnUpdateViewDefaultVideoFrame)
 	ON_COMMAND(ID_VIEW_VF_KEEPASPECTRATIO, OnViewKeepaspectratio)
 	ON_UPDATE_COMMAND_UI(ID_VIEW_VF_KEEPASPECTRATIO, OnUpdateViewKeepaspectratio)
+	ON_COMMAND(ID_VIEW_VF_COMPMONDESKARDIFF, OnViewCompMonDeskARDiff)
+	ON_UPDATE_COMMAND_UI(ID_VIEW_VF_COMPMONDESKARDIFF, OnUpdateViewCompMonDeskARDiff)
 	ON_COMMAND_RANGE(ID_VIEW_INCSIZE, ID_VIEW_RESET, OnViewPanNScan)
 	ON_UPDATE_COMMAND_UI_RANGE(ID_VIEW_INCSIZE, ID_VIEW_RESET, OnUpdateViewPanNScan)
 	ON_COMMAND_RANGE(ID_PANSCAN_MOVELEFT, ID_PANSCAN_CENTER, OnViewPanNScan)
@@ -2913,7 +2915,7 @@ void CMainFrame::OnFileLoadsubtitles()
 
 void CMainFrame::OnUpdateFileLoadsubtitles(CCmdUI *pCmdUI)
 {
-	pCmdUI->Enable(/*m_pCAP &&*/ !m_fAudioOnly);
+	pCmdUI->Enable(m_iMediaLoadState == MLS_LOADED && /*m_pCAP &&*/ !m_fAudioOnly);
 }
 
 void CMainFrame::OnFileSavesubtitles()
@@ -3167,6 +3169,18 @@ void CMainFrame::OnUpdateViewKeepaspectratio(CCmdUI* pCmdUI)
 {
 	pCmdUI->Enable(m_iMediaLoadState == MLS_LOADED && !m_fAudioOnly);
 	pCmdUI->SetCheck(AfxGetAppSettings().fKeepAspectRatio);
+}
+
+void CMainFrame::OnViewCompMonDeskARDiff()
+{
+	AfxGetAppSettings().fCompMonDeskARDiff = !AfxGetAppSettings().fCompMonDeskARDiff;
+	MoveVideoWindow();
+}
+
+void CMainFrame::OnUpdateViewCompMonDeskARDiff(CCmdUI* pCmdUI)
+{
+	pCmdUI->Enable(m_iMediaLoadState == MLS_LOADED && !m_fAudioOnly);
+	pCmdUI->SetCheck(AfxGetAppSettings().fCompMonDeskARDiff);
 }
 
 void CMainFrame::OnViewPanNScan(UINT nID)
@@ -4612,6 +4626,69 @@ OAFilterState CMainFrame::GetMediaState()
 	return(ret);
 }
 
+CSize CMainFrame::GetVideoSize()
+{
+	bool fKeepAspectRatio = AfxGetAppSettings().fKeepAspectRatio;
+	bool fCompMonDeskARDiff = AfxGetAppSettings().fCompMonDeskARDiff;
+
+	CSize ret(0,0);
+	if(m_iMediaLoadState != MLS_LOADED || m_fAudioOnly)
+		return ret;
+
+	CSize wh(0, 0), arxy(0, 0);
+
+	if(m_pCAP)
+	{
+		wh = m_pCAP->GetVideoSize(false);
+		arxy = m_pCAP->GetVideoSize(fKeepAspectRatio);
+	}
+	else
+	{
+		pBV->GetVideoSize(&wh.cx, &wh.cy);
+
+		long arx = 0, ary = 0;
+		CComQIPtr<IBasicVideo2> pBV2 = pBV;
+		if(pBV2 && SUCCEEDED(pBV2->GetPreferredAspectRatio(&arx, &ary)) && arx > 0 && ary > 0)
+			arxy.SetSize(arx, ary);
+	}
+
+	if(wh.cx <= 0 || wh.cy <= 0)
+		return ret;
+
+	// with the overlay mixer IBasicVideo2 won't tell the new AR when changed dynamically
+	DVD_VideoAttributes VATR;
+	if(m_iPlaybackMode == PM_DVD && SUCCEEDED(pDVDI->GetCurrentVideoAttributes(&VATR)))
+		arxy.SetSize(VATR.ulAspectX, VATR.ulAspectY);
+
+	ret = (!fKeepAspectRatio || arxy.cx <= 0 || arxy.cy <= 0)
+		? wh
+		: CSize(MulDiv(wh.cy, arxy.cx, arxy.cy), wh.cy);
+
+	if(fCompMonDeskARDiff)
+	if(HDC hDC = ::GetDC(0))
+	{
+		int _HORZSIZE = GetDeviceCaps(hDC, HORZSIZE);
+		int _VERTSIZE = GetDeviceCaps(hDC, VERTSIZE);
+		int _HORZRES = GetDeviceCaps(hDC, HORZRES);
+		int _VERTRES = GetDeviceCaps(hDC, VERTRES);
+
+		if(_HORZSIZE > 0 && _VERTSIZE > 0 && _HORZRES > 0 && _VERTRES > 0)
+		{
+			double a = 1.0*_HORZSIZE/_VERTSIZE;
+			double b = 1.0*_HORZRES/_VERTRES;
+
+			if(b < a)
+				ret.cy = (DWORD)(1.0*ret.cy * a / b);
+			else if(a < b)
+				ret.cx = (DWORD)(1.0*ret.cx * b / a);
+		}
+
+		::ReleaseDC(0, hDC);
+	}
+
+	return ret;
+}
+
 void CMainFrame::ToggleFullscreen(bool fToNearest, bool fSwitchScreenResWhenHasTo)
 {
 	CRect r;
@@ -4712,36 +4789,7 @@ void CMainFrame::MoveVideoWindow(bool fShowStats)
 		OAFilterState fs = GetMediaState();
 		if(fs == State_Paused || fs == State_Running || fs == State_Stopped && (m_fShockwaveGraph || m_fQuicktimeGraph))
 		{
-			bool fKeepAspectRatio = AfxGetAppSettings().fKeepAspectRatio;
-
-			CSize wh(0, 0), arxy(0, 0);
-
-			if(m_pCAP)
-			{
-				wh = m_pCAP->GetVideoSize(false);
-				arxy = m_pCAP->GetVideoSize(fKeepAspectRatio);
-			}
-			else
-			{
-				pBV->GetVideoSize(&wh.cx, &wh.cy);
-
-				long arx = 0, ary = 0;
-				CComQIPtr<IBasicVideo2> pBV2 = pBV;
-				if(pBV2 && SUCCEEDED(pBV2->GetPreferredAspectRatio(&arx, &ary)) && arx > 0 && ary > 0)
-					arxy.SetSize(arx, ary);
-			}
-
-			if(wh.cx <= 0 || wh.cy <= 0)
-				return;
-
-			// with the overlay mixer this interface won't report the AR when changed dynamically
-			DVD_VideoAttributes VATR;
-			if(m_iPlaybackMode == PM_DVD && SUCCEEDED(pDVDI->GetCurrentVideoAttributes(&VATR)))
-				arxy.SetSize(VATR.ulAspectX, VATR.ulAspectY);
-
-			arxy = (!fKeepAspectRatio || arxy.cx <= 0 || arxy.cy <= 0)
-				? wh
-				: CSize(MulDiv(wh.cy, arxy.cx, arxy.cy), wh.cy);
+			CSize arxy = GetVideoSize();
 
 			int iDefaultVideoSize = AfxGetAppSettings().iDefaultVideoSize;
 
@@ -4754,7 +4802,7 @@ void CMainFrame::MoveVideoWindow(bool fShowStats)
 			int w = ws.cx;
 			int h = ws.cy;
 
-			if(!m_fShockwaveGraph /*&& !m_fQuicktimeGraph*/)
+			if(!m_fShockwaveGraph) //&& !m_fQuicktimeGraph)
 			{
 				if(iDefaultVideoSize == DVS_FROMINSIDE || iDefaultVideoSize == DVS_FROMOUTSIDE)
 				{
@@ -4840,35 +4888,10 @@ void CMainFrame::ZoomVideoWindow(double scale)
 
 	if(!m_fAudioOnly)
 	{
-		bool fKeepAspectRatio = AfxGetAppSettings().fKeepAspectRatio;
+		CSize arxy = GetVideoSize();
 
-		long lWidth = 0, lHeight = 0;
-
-		if(m_pCAP)
-		{
-			CSize size = m_pCAP->GetVideoSize(fKeepAspectRatio);
-			lWidth = size.cx;
-			lHeight = size.cy;
-		}
-		else
-		{
-			if(FAILED(pBV->GetVideoSize(&lWidth, &lHeight)))
-				return;
-
-			if(fKeepAspectRatio)
-			{
-				long arx = 0, ary = 0;
-				CComQIPtr<IBasicVideo2> pBV2 = pBV;
-				if(pBV2 && SUCCEEDED(pBV2->GetPreferredAspectRatio(&arx, &ary)) && arx > 0 && ary > 0)
-				{
-					lWidth = lHeight * arx / ary;
-				}
-			}
-
-		}
-
-		lWidth = int(lWidth * scale + 0.5);
-		lHeight = int(lHeight * scale + 0.5);
+		long lWidth = int(arxy.cx * scale + 0.5);
+		long lHeight = int(arxy.cy * scale + 0.5);
 
 		DWORD style = GetStyle();
 
