@@ -837,7 +837,8 @@ STDMETHODIMP_(BOOL) CRealMediaSplitterFilter::GetChapterInfo(UINT aChapterID, st
 	POSITION pos = m_pChapters.FindIndex(aChapterID-1);
 	if(!pos) return FALSE;
 	CChapter* p = m_pChapters.GetNext(pos);
-	if(pToFill->Size >= sizeof(ChapterElement))
+	WORD Size = pToFill->Size;
+	if(Size >= sizeof(ChapterElement))
 	{
 		pToFill->Size = sizeof(ChapterElement);
 		pToFill->Type = AtomicChapter;
