@@ -39,13 +39,17 @@ CString CMediaTypeEx::ToString(IPin* pPin)
 		if(formattype == FORMAT_VideoInfo || formattype == FORMAT_MPEGVideo)
 		{
 			VIDEOINFOHEADER* vih = (VIDEOINFOHEADER*)pbFormat;
-			rate.Format(_T("%0.2ffps %dKbps"), vih->AvgTimePerFrame ? 10000000.0f / vih->AvgTimePerFrame : 0.0f, vih->dwBitRate/1000);
+			if(vih->AvgTimePerFrame) rate.Format(_T("%0.2ffps "), 10000000.0f / vih->AvgTimePerFrame);
+			if(vih->dwBitRate) rate.Format(_T("%s%dKbps"), rate, vih->dwBitRate/1000);
 		}
 		else if(formattype == FORMAT_VideoInfo2 || formattype == FORMAT_MPEG2_VIDEO || formattype == FORMAT_DiracVideoInfo)
 		{
 			VIDEOINFOHEADER2* vih = (VIDEOINFOHEADER2*)pbFormat;
-			rate.Format(_T("%0.2ffps %dKbps"), vih->AvgTimePerFrame ? 10000000.0f / vih->AvgTimePerFrame : 0.0f, vih->dwBitRate/1000);
+			if(vih->AvgTimePerFrame) rate.Format(_T("%0.2ffps "), 10000000.0f / vih->AvgTimePerFrame);
+			if(vih->dwBitRate) rate.Format(_T("%s%dKbps"), rate, vih->dwBitRate/1000);
 		}
+
+		rate.Trim();
 
 		if(formattype == FORMAT_MPEGVideo)
 		{
@@ -75,7 +79,7 @@ CString CMediaTypeEx::ToString(IPin* pPin)
 				if(wfe->nChannels == 1) dim.Format(_T("%s mono"), CString(dim));
 				else if(wfe->nChannels == 2) dim.Format(_T("%s stereo"), CString(dim));
 				else dim.Format(_T("%s %dch"), CString(dim), wfe->nChannels);
-				rate.Format(_T("%dKbps"), wfe->nAvgBytesPerSec*8/1000);
+				if(wfe->nAvgBytesPerSec) rate.Format(_T("%dKbps"), wfe->nAvgBytesPerSec*8/1000);
 			}
 		}
 		else if(formattype == FORMAT_VorbisFormat)
@@ -87,7 +91,7 @@ CString CMediaTypeEx::ToString(IPin* pPin)
 			if(vf->nChannels == 1) dim.Format(_T("%s mono"), CString(dim));
 			else if(vf->nChannels == 2) dim.Format(_T("%s stereo"), CString(dim));
 			else dim.Format(_T("%s %dch"), CString(dim), vf->nChannels);
-			rate.Format(_T("%dKbps"), vf->nAvgBitsPerSec/1000);
+			if(vf->nAvgBitsPerSec) rate.Format(_T("%dKbps"), vf->nAvgBitsPerSec/1000);
 		}
 		else if(formattype == FORMAT_VorbisFormat2)
 		{
@@ -123,7 +127,7 @@ CString CMediaTypeEx::ToString(IPin* pPin)
 			int h = rtDur;
 			if(h) dur.Format(_T("%d:%02d:%02d"), h, m, s);
 			else if(m) dur.Format(_T("%02d:%02d"), m, s);
-			else if(s) dur.Format(_T("%d s"), s);
+			else if(s) dur.Format(_T("%ds"), s);
 		}
 	}
 
@@ -131,7 +135,7 @@ CString CMediaTypeEx::ToString(IPin* pPin)
 	if(!codec.IsEmpty()) str += codec + _T(", ");
 	if(!dim.IsEmpty()) str += dim + _T(" ");
 	if(!rate.IsEmpty()) str += rate + _T(" ");
-	if(!dur.IsEmpty()) str += dur + _T(" ");
+	if(!dur.IsEmpty()) str += _T(", ") + dur + _T(" ");
 	str.Trim(_T(" ,"));
 	
 	if(!str.IsEmpty()) str = type + _T(": ") + str;
