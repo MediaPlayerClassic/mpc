@@ -84,7 +84,11 @@ enum
 	CLSW_CD=CLSW_DVD<<1,
 	CLSW_ADD=CLSW_CD<<1,
 	CLSW_SHUTDOWN=CLSW_ADD<<1,
-	CLSW_MINIMIZED=CLSW_SHUTDOWN<<1
+	CLSW_MINIMIZED=CLSW_SHUTDOWN<<1,
+	CLSW_REGEXTVID=CLSW_MINIMIZED<<1,
+	CLSW_REGEXTAUD=CLSW_REGEXTVID<<1,
+	CLSW_UNREGEXTVID=CLSW_REGEXTAUD<<1,
+	CLSW_UNREGEXTAUD=CLSW_UNREGEXTVID<<1,
 };
 
 enum
@@ -260,8 +264,7 @@ public:
 	public:
 		// cmdline params
 		int nCLSwitches;
-		CString strFile;
-		CStringList slDubs, slSubs, slFilters;
+		CStringList slFiles, slDubs, slSubs, slFilters;
 
 		void ParseCommandLine(CStringList& cmdln);
 

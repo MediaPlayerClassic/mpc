@@ -51,8 +51,11 @@ CRealMediaPlayer::~CRealMediaPlayer()
 
 bool CRealMediaPlayer::Init()
 {
+	CString prefs(_T("Software\\RealNetworks\\Preferences"));
+
 	CRegKey key;
-	if(ERROR_SUCCESS != key.Open(HKEY_CLASSES_ROOT, _T("Software\\RealNetworks\\Preferences\\DT_Common"), KEY_READ))
+
+	if(ERROR_SUCCESS != key.Open(HKEY_CLASSES_ROOT, prefs + _T("\\DT_Common"), KEY_READ))
 		return(false);
 
 	TCHAR buff[MAX_PATH];
@@ -60,14 +63,46 @@ bool CRealMediaPlayer::Init()
 	if(ERROR_SUCCESS != key.QueryStringValue(NULL, buff, &len))
 		return(false);
 
+	key.Close();
+
 	if(!(m_hRealMediaCore = LoadLibrary(CString(buff) + _T("pnen3260.dll")))) 
 		return(false);
 
 	m_fpCreateEngine = (FPRMCREATEENGINE)GetProcAddress(m_hRealMediaCore, "CreateEngine");
 	m_fpCloseEngine = (FPRMCLOSEENGINE)GetProcAddress(m_hRealMediaCore, "CloseEngine");
+	m_fpSetDLLAccessPath = (FPRMSETDLLACCESSPATH)GetProcAddress(m_hRealMediaCore, "SetDLLAccessPath");
 	
-	if(m_fpCreateEngine == NULL || m_fpCloseEngine == NULL)
+	if(!m_fpCreateEngine || !m_fpCloseEngine || !m_fpSetDLLAccessPath)
 		return(false);
+
+	if(ERROR_SUCCESS == key.Open(HKEY_CLASSES_ROOT, prefs, KEY_READ))
+	{
+		CString dllpaths;
+
+		len = sizeof(buff);
+		for(int i = 0; ERROR_SUCCESS == key.EnumKey(i, buff, &len); i++, len = sizeof(buff))
+		{
+			CRegKey key2;
+			TCHAR buff2[MAX_PATH];
+			ULONG len2 = sizeof(buff2);
+			if(ERROR_SUCCESS != key2.Open(HKEY_CLASSES_ROOT, prefs + _T("\\") + buff, KEY_READ)
+			|| ERROR_SUCCESS != key2.QueryStringValue(NULL, buff2, &len2))
+				continue;
+
+			dllpaths += CString(buff) + '=' + buff2 + '|';
+		}
+
+		key.Close();
+
+		if(!dllpaths.IsEmpty())
+		{
+			char* s = new char[dllpaths.GetLength()+1];
+			strcpy(s, CStringA(dllpaths));
+			for(int i = 0, j = strlen(s); i < j; i++) {if(s[i] == '|') s[i] = '\0';}
+			m_fpSetDLLAccessPath(s);
+			delete [] s;
+		}
+	}
 
 	if(PNR_OK != m_fpCreateEngine(&m_pEngine))
 		return(false);
@@ -533,7 +568,7 @@ STDMETHODIMP CRealMediaGraph::RenderFile(LPCWSTR lpcwstrFile, LPCWSTR lpcwstrPla
 	WideCharToMultiByte(GetACP(), 0, lpcwstrFile, -1, buff, MAX_PATH, 0, 0);
 
 	CStringA fn(buff);
-	if(fn.Find("://") < 0) fn = "file:" + fn;
+	if(fn.Find("://") < 0) fn = "file://" + fn;
 
 	m_pRMP->m_unPercentComplete = 100;
 

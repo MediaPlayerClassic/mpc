@@ -105,7 +105,7 @@ STDAPI CloseEngine
  */
 typedef PN_RESULT (PNEXPORT_PTR FPRMCREATEENGINE)(IRMAClientEngine** ppEngine);
 typedef PN_RESULT (PNEXPORT_PTR FPRMCLOSEENGINE) (IRMAClientEngine*  pEngine);
-
+typedef PN_RESULT (PNEXPORT_PTR FPRMSETDLLACCESSPATH) (const char*);
 
 /****************************************************************************
  * 

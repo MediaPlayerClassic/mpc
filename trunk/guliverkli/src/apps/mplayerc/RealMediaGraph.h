@@ -71,9 +71,10 @@ protected:
 
 	//
 
-	FPRMCREATEENGINE	m_fpCreateEngine;
-	FPRMCLOSEENGINE	 	m_fpCloseEngine;
-	HMODULE				m_hRealMediaCore;
+	FPRMCREATEENGINE		m_fpCreateEngine;
+	FPRMCLOSEENGINE	 		m_fpCloseEngine;
+	FPRMSETDLLACCESSPATH	m_fpSetDLLAccessPath;
+	HMODULE					m_hRealMediaCore;
 
 	CComPtr<IRMAClientEngine> m_pEngine;
     CComPtr<IRMAPlayer> m_pPlayer;

@@ -437,7 +437,7 @@ void CPlayerPlaylistBar::Append(CStringList& fns, bool fMulti, CStringList* subs
 {
 	if(fMulti)
 	{
-		ASSERT(subs == NULL);
+		ASSERT(subs == NULL || subs->GetCount() == 0);
 		POSITION pos = fns.GetHeadPosition();
 		while(pos) ParsePlayList(fns.GetNext(pos), NULL);
 	}

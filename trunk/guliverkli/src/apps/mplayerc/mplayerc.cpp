@@ -488,12 +488,38 @@ BOOL CMPlayerCApp::InitInstance()
 		return FALSE;
 	}
 
-	if((m_s.nCLSwitches&CLSW_CLOSE) && m_s.strFile.IsEmpty())
+	if((m_s.nCLSwitches&CLSW_CLOSE) && m_s.slFiles.IsEmpty())
 	{
 		return FALSE;
 	}
 
 	m_s.UpdateData(false);
+
+	if((m_s.nCLSwitches&CLSW_REGEXTVID) || (m_s.nCLSwitches&CLSW_UNREGEXTVID)
+	|| (m_s.nCLSwitches&CLSW_REGEXTAUD) || (m_s.nCLSwitches&CLSW_UNREGEXTAUD))
+	{
+		CMediaFormats& mf = m_s.Formats;
+
+		for(int i = 0; i < mf.GetCount(); i++)
+		{
+			bool fAudioOnly = mf[i].IsAudioOnly();
+
+			int j = 0;
+			CString str = mf[i].GetExtsWithPeriod();
+			for(CString ext = str.Tokenize(_T(" "), j); !ext.IsEmpty(); ext = str.Tokenize(_T(" "), j))
+			{
+				if((m_s.nCLSwitches&CLSW_REGEXTVID) && !fAudioOnly
+				|| (m_s.nCLSwitches&CLSW_REGEXTAUD) && fAudioOnly)
+					CPPageFormats::RegisterExt(ext, true);
+				
+				if((m_s.nCLSwitches&CLSW_UNREGEXTVID) && !fAudioOnly
+				|| (m_s.nCLSwitches&CLSW_UNREGEXTAUD) && fAudioOnly)
+					CPPageFormats::RegisterExt(ext, false);
+			}
+		}
+
+		return FALSE;
+	}
 
 	m_mutexOneInstance.Create(NULL, TRUE, MPC_WND_CLASS_NAME);
 
@@ -1251,7 +1277,7 @@ void CMPlayerCApp::Settings::UpdateData(bool fSave)
 void CMPlayerCApp::Settings::ParseCommandLine(CStringList& cmdln)
 {
 	nCLSwitches = 0;
-	strFile.Empty();
+	slFiles.RemoveAll();
 	slDubs.RemoveAll();
 	slSubs.RemoveAll();
 	slFilters.RemoveAll();
@@ -1279,11 +1305,15 @@ void CMPlayerCApp::Settings::ParseCommandLine(CStringList& cmdln)
 			else if(sw == _T("cd")) nCLSwitches |= CLSW_CD;
 			else if(sw == _T("add")) nCLSwitches |= CLSW_ADD;
 			else if(sw == _T("shutdown")) nCLSwitches |= CLSW_SHUTDOWN;
+			else if(sw == _T("regvid")) nCLSwitches |= CLSW_REGEXTVID;
+			else if(sw == _T("regaud")) nCLSwitches |= CLSW_REGEXTAUD;
+			else if(sw == _T("unregvid")) nCLSwitches |= CLSW_UNREGEXTVID;
+			else if(sw == _T("unregaud")) nCLSwitches |= CLSW_UNREGEXTAUD;
 			else nCLSwitches |= CLSW_HELP;
 		}
-		else if(strFile.IsEmpty())
+		else
 		{
-			strFile = param;
+			slFiles.AddTail(param);
 		}
 	}
 }
