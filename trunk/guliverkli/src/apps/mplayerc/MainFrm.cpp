@@ -7396,11 +7396,27 @@ void CMainFrame::CloseMedia()
 		return;
 	}
 
+	int nTimeWaited = 0;
+
 	while(m_iMediaLoadState == MLS_LOADING)
 	{
 		m_fOpeningAborted = true;
+
 		if(pGB) pGB->Abort(); // TODO: lock on graph objects somehow, this is not thread safe
+
+		if(nTimeWaited > 5*1000 && m_pGraphThread)
+		{
+			MessageBeep(MB_ICONEXCLAMATION);
+			TRACE(_T("CRITICAL ERROR: !!! Must kill opener thread !!!"));
+			TerminateThread(m_pGraphThread->m_hThread, -1);
+			m_pGraphThread = (CGraphThread*)AfxBeginThread(RUNTIME_CLASS(CGraphThread));
+			s_fOpenedThruThread = false;
+			break;
+		}
+
 		Sleep(50);
+
+		nTimeWaited += 50;
 	}
 
 	m_fOpeningAborted = false;

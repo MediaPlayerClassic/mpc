@@ -26,7 +26,7 @@
 #include <afxtempl.h>
 #include "MatroskaFile.h"
 
-#define MAXCLUSTERTIME 5000
+#define MAXCLUSTERTIME 1000
 #define MAXBLOCKS 50
 
 class CMatroskaMuxerInputPin : public CBaseInputPin
@@ -52,7 +52,7 @@ public:
 
 	CCritSec m_csQueue;
 	CAutoPtrList<MatroskaWriter::BlockGroup> m_blocks;
-	bool m_fEndOfStreamReceived, m_fECCompletSent;
+	bool m_fEndOfStreamReceived;
 
     HRESULT CheckMediaType(const CMediaType* pmt);
     HRESULT BreakConnect();

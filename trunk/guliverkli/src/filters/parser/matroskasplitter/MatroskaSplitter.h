@@ -109,6 +109,7 @@ class CMatroskaSourceFilter
 #endif
 	, public IFileSourceFilter
 	, public IMediaSeeking
+    , public IAMOpenProgress
 {
 	class CFileReader : public CUnknown, public IAsyncReader
 	{
@@ -134,6 +135,9 @@ class CMatroskaSourceFilter
 
 	CStringW m_fn;
 	CAMEvent m_eEndFlush;
+
+	LONGLONG m_nOpenProgress;
+	bool m_fAbort;
 
 protected:
 	CAutoPtr<CMatroskaSplitterInputPin> m_pInput;
@@ -161,7 +165,7 @@ protected:
 	HRESULT DeliverBlock(CAutoPtr<MatroskaReader::Block> b);
 
 protected:
-	enum {CMD_EXIT, CMD_RUN};
+	enum {CMD_EXIT, CMD_SEEK};
     DWORD ThreadProc();
 
 #ifdef NONBLOCKINGSEEK
@@ -214,6 +218,11 @@ public:
 	STDMETHODIMP SetRate(double dRate);
 	STDMETHODIMP GetRate(double* pdRate);
 	STDMETHODIMP GetPreroll(LONGLONG* pllPreroll);
+
+	// IAMOpenProgress
+
+	STDMETHODIMP QueryProgress(LONGLONG* pllTotal, LONGLONG* pllCurrent);
+	STDMETHODIMP AbortOperation();
 };
 
 [uuid("149D2E01-C32E-4939-80F6-C07B81015A7A")]

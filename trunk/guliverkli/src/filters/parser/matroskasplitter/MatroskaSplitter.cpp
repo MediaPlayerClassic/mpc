@@ -142,6 +142,8 @@ CMatroskaSourceFilter::CMatroskaSourceFilter(LPUNKNOWN pUnk, HRESULT* phr)
 	: CBaseFilter(NAME("CMatroskaSourceFilter"), pUnk, this, __uuidof(this))
 	, m_rtStart(0), m_rtStop(0), m_rtCurrent(0)
 	, m_dRate(1.0)
+	, m_nOpenProgress(100)
+	, m_fAbort(false)
 {
 	if(phr) *phr = S_OK;
 }
@@ -166,6 +168,7 @@ STDMETHODIMP CMatroskaSourceFilter::NonDelegatingQueryInterface(REFIID riid, voi
 	return 
 		QI(IFileSourceFilter)
 		QI(IMediaSeeking)
+		QI(IAMOpenProgress)
 		__super::NonDelegatingQueryInterface(riid, ppv);
 }
 
@@ -581,8 +584,6 @@ void CMatroskaSourceFilter::SendVorbisHeaderSample()
 
 void CMatroskaSourceFilter::SendFakeTextSample()
 {
-	HRESULT hr;
-
 	POSITION pos = m_mapTrackToTrackEntry.GetStartPosition();
 	while(pos)
 	{
@@ -596,19 +597,31 @@ void CMatroskaSourceFilter::SendFakeTextSample()
 		if(!(pTE && pPin && pPin->IsConnected()))
 			continue;
 
-		if(pTE->TrackType == TrackEntry::TypeSubtitle)
-		{
-			hr = S_OK;
+		if(pTE->TrackType != TrackEntry::TypeSubtitle)
+			continue;
 
-			CAutoPtr<Block> b(new Block());
-			b->TrackNumber.Set(pTE->TrackNumber);
-			b->TimeCode.Set(0);
-			b->BlockDuration.Set(1);
-			CAutoPtr<CBinary> data(new CBinary());
-			data->SetSize(2);
-			strcpy((char*)data->GetData(), " ");
-			b->BlockData.AddTail(data);
-			DeliverBlock(b);
+		CComPtr<IPin> pPinTo = pPin, pTmp;
+		while(pPinTo && SUCCEEDED(pPinTo->ConnectedTo(&pTmp)) && (pPinTo = pTmp))
+		{
+			pTmp = NULL;
+
+			CComPtr<IBaseFilter> pBF = GetFilterFromPin(pPinTo);
+
+			if(GetCLSID(pBF) == GUIDFromCString(_T("{48025243-2D39-11CE-875D-00608CB78066}"))) // ISCR
+			{
+				CAutoPtr<Block> b(new Block());
+				b->TrackNumber.Set(pTE->TrackNumber);
+				b->TimeCode.Set(m_rtStart);
+				b->BlockDuration.Set(1);
+				CAutoPtr<CBinary> data(new CBinary());
+				data->SetSize(2);
+				strcpy((char*)data->GetData(), " ");
+				b->BlockData.AddTail(data);
+				DeliverBlock(b);
+				break;
+			}
+
+			pPinTo = GetFirstPin(pBF, PINDIR_OUTPUT);
 		}
 	}
 }
@@ -616,10 +629,11 @@ void CMatroskaSourceFilter::SendFakeTextSample()
 DWORD CMatroskaSourceFilter::ThreadProc()
 {
 	CMatroskaNode Root(m_pFile);
-	CAutoPtr<CMatroskaNode> pSegment, pCluster;
+	CAutoPtr<CMatroskaNode> pSegment, pCluster, pCueSearchCluster;
 	if(!m_pFile
 	|| !(pSegment = Root.Child(0x18538067))
-	|| !(pCluster = pSegment->Child(0x1F43B675)))
+	|| !(pCluster = pSegment->Child(0x1F43B675))
+	|| !(pCueSearchCluster = pSegment->Child(0x1F43B675)))
 	{
 		while(1)
 		{
@@ -630,213 +644,293 @@ DWORD CMatroskaSourceFilter::ThreadProc()
 		}
 	}
 
+	//
+
+	if(m_pFile->m_segment.Cues.GetCount() == 0 && m_pFile->m_segment.SegmentInfo.Duration > 0)
+	{
+		m_nOpenProgress = 0;
+		m_pFile->m_segment.SegmentInfo.Duration.Set(0);
+
+		UINT64 TrackNumber = 0, AltTrackNumber = 0;
+
+		POSITION pos = m_pFile->m_segment.Tracks.GetHeadPosition();
+		while(pos && TrackNumber == 0)
+		{
+			Track* pT = m_pFile->m_segment.Tracks.GetNext(pos);
+			
+			POSITION pos2 = pT->TrackEntries.GetHeadPosition();
+			while(pos2 && TrackNumber == 0)
+			{
+				TrackEntry* pTE = pT->TrackEntries.GetNext(pos2);
+
+				if(pTE->TrackType == TrackEntry::TypeVideo)
+				{
+					TrackNumber = pTE->TrackNumber;
+					break;
+				}
+				else if(pTE->TrackType == TrackEntry::TypeAudio && AltTrackNumber == 0)
+				{
+					AltTrackNumber = pTE->TrackNumber;
+				}
+			}				
+		}
+
+		if(TrackNumber == 0) TrackNumber = AltTrackNumber;
+		if(TrackNumber == 0) TrackNumber = 1;
+
+		CAutoPtr<Cue> pCue(new Cue());
+
+		do
+		{
+			Cluster c;
+			c.ParseTimeCode(pCueSearchCluster);
+
+			m_pFile->m_segment.SegmentInfo.Duration.Set((float)c.TimeCode);
+
+			CAutoPtr<CuePoint> pCuePoint(new CuePoint());
+			CAutoPtr<CueTrackPosition> pCueTrackPosition(new CueTrackPosition());
+			pCuePoint->CueTime.Set(c.TimeCode);
+			pCueTrackPosition->CueTrack.Set(TrackNumber);
+			pCueTrackPosition->CueClusterPosition.Set(pCueSearchCluster->m_filepos - pSegment->m_start);
+			pCuePoint->CueTrackPositions.AddTail(pCueTrackPosition);
+			pCue->CuePoints.AddTail(pCuePoint);
+
+			m_nOpenProgress = m_pFile->GetPos()*100/m_pFile->GetLength();
+
+			DWORD cmd;
+			if(CheckRequest(&cmd))
+			{
+				if(cmd == CMD_EXIT) m_fAbort = true;
+				else Reply(S_OK);
+			}
+		}
+		while(!m_fAbort && pCueSearchCluster->Next(true));
+
+		m_nOpenProgress = 100;
+
+		if(!m_fAbort)
+			m_pFile->m_segment.Cues.AddTail(pCue);
+
+		m_fAbort = false;
+	}
+
+	//
+
 	m_eEndFlush.Set();
 
 	int LastBlockNumber = 0;
 
+	bool fFirstRun = true;
+
 	while(1)
 	{
-		DWORD cmd = GetRequest();
+		DWORD cmd = fFirstRun ? -1 : GetRequest();
 
-		switch(cmd)
+		fFirstRun = false;
+
+		if(cmd == CMD_EXIT)
 		{
-		default:
-		case CMD_EXIT: 
 			CAMThread::m_hThread = NULL;
 			Reply(S_OK);
 			return 0;
+		}
 
-		case CMD_RUN:
+		m_rtStart = m_rtNewStart;
+		m_rtStop = m_rtNewStop;
 
-			m_rtStart = m_rtNewStart;
-			m_rtStop = m_rtNewStop;
+		LastBlockNumber = 0;
 
-			if(m_rtStart == 0)
+		if(m_rtStart == 0)
+		{
+			pCluster = pSegment->Child(0x1F43B675);
+		}
+		else
+		{
+			QWORD lastCueClusterPosition = -1;
+
+			POSITION pos1 = m_pFile->m_segment.Cues.GetHeadPosition();
+			while(pos1)
+			{
+				Cue* pCue = m_pFile->m_segment.Cues.GetNext(pos1);
+				POSITION pos2 = pCue->CuePoints.GetTailPosition();
+				while(pos2)
+				{
+					CuePoint* pCuePoint = pCue->CuePoints.GetPrev(pos2);
+
+					if(m_rtStart < (REFERENCE_TIME)(pCuePoint->CueTime*m_pFile->m_segment.SegmentInfo.TimeCodeScale/100))
+						continue;
+
+					POSITION pos3 = pCuePoint->CueTrackPositions.GetHeadPosition();
+					while(pos3)
+					{
+						CueTrackPosition* pCueTrackPositions = pCuePoint->CueTrackPositions.GetNext(pos3);
+
+						if(lastCueClusterPosition == pCueTrackPositions->CueClusterPosition)
+							continue;
+
+						lastCueClusterPosition = pCueTrackPositions->CueClusterPosition;
+
+						pCluster->SeekTo(pSegment->m_start + pCueTrackPositions->CueClusterPosition);
+						pCluster->Parse();
+
+						int BlockNumber = LastBlockNumber = 0;
+						bool fFoundKeyFrame = false;
+/*
+						if(pCueTrackPositions->CueBlockNumber > 0)
+						{
+							// TODO: CueBlockNumber only tells the block num of the track and not for all mixed in the cluster
+							LastBlockNumber = (int)pCueTrackPositions->CueBlockNumber;
+							fFoundKeyFrame = true;
+						}
+						else
+*/
+						{
+							Cluster c;
+							c.ParseTimeCode(pCluster);
+
+							if(CAutoPtr<CMatroskaNode> pBlocks = pCluster->Child(0xA0))
+							{
+								bool fPassedCueTime = false;
+
+								do
+								{
+									CBlockNode blocks;
+									blocks.Parse(pBlocks, false);
+									POSITION pos4 = blocks.GetHeadPosition();
+									while(!fPassedCueTime && pos4)
+									{
+										Block* b = blocks.GetNext(pos4);
+										if((REFERENCE_TIME)((c.TimeCode+b->TimeCode)*m_pFile->m_segment.SegmentInfo.TimeCodeScale/100) > m_rtStart) 
+										{
+											fPassedCueTime = true;
+										}
+										else if(b->TrackNumber == pCueTrackPositions->CueTrack && b->ReferenceBlock == 0)
+										{
+											fFoundKeyFrame = true;
+											LastBlockNumber = BlockNumber;
+										}
+									}
+
+									BlockNumber++;
+								}
+								while(!fPassedCueTime && pBlocks->Next(true));
+							}
+						}
+
+						if(fFoundKeyFrame)
+							pos1 = pos2 = pos3 = NULL;
+					}
+				}
+			}
+
+			if(lastCueClusterPosition == -1)
 			{
 				pCluster = pSegment->Child(0x1F43B675);
 			}
-			else
-			{
-				QWORD lastCueClusterPosition = -1;
+		}
 
-				POSITION pos1 = m_pFile->m_segment.Cues.GetHeadPosition();
-				while(pos1)
-				{
-					Cue* pCue = m_pFile->m_segment.Cues.GetNext(pos1);
-					POSITION pos2 = pCue->CuePoints.GetTailPosition();
-					while(pos2)
-					{
-						CuePoint* pCuePoint = pCue->CuePoints.GetPrev(pos2);
-
-						if(m_rtStart < (REFERENCE_TIME)(pCuePoint->CueTime*m_pFile->m_segment.SegmentInfo.TimeCodeScale/100))
-							continue;
-
-						POSITION pos3 = pCuePoint->CueTrackPositions.GetHeadPosition();
-						while(pos3)
-						{
-							CueTrackPosition* pCueTrackPositions = pCuePoint->CueTrackPositions.GetNext(pos3);
-
-							if(lastCueClusterPosition == pCueTrackPositions->CueClusterPosition)
-								continue;
-
-							lastCueClusterPosition = pCueTrackPositions->CueClusterPosition;
-
-							pCluster->SeekTo(pSegment->m_start + pCueTrackPositions->CueClusterPosition);
-							pCluster->Parse();
-
-							int BlockNumber = LastBlockNumber = 0;
-							bool fFoundKeyFrame = false;
-/*
-							if(pCueTrackPositions->CueBlockNumber > 0)
-							{
-								// TODO: CueBlockNumber only tells the block num of the track and not for all mixed in the cluster
-								LastBlockNumber = (int)pCueTrackPositions->CueBlockNumber;
-								fFoundKeyFrame = true;
-							}
-							else
-*/
-							{
-								Cluster c;
-								c.ParseTimeCode(pCluster);
-
-								if(CAutoPtr<CMatroskaNode> pBlocks = pCluster->Child(0xA0))
-								{
-									bool fPassedCueTime = false;
-
-									do
-									{
-										CBlockNode blocks;
-										blocks.Parse(pBlocks, false);
-										POSITION pos4 = blocks.GetHeadPosition();
-										while(!fPassedCueTime && pos4)
-										{
-											Block* b = blocks.GetNext(pos4);
-											if((REFERENCE_TIME)((c.TimeCode+b->TimeCode)*m_pFile->m_segment.SegmentInfo.TimeCodeScale/100) > m_rtStart) 
-											{
-												fPassedCueTime = true;
-											}
-											else if(b->TrackNumber == pCueTrackPositions->CueTrack && b->ReferenceBlock == 0)
-											{
-												fFoundKeyFrame = true;
-												LastBlockNumber = BlockNumber;
-											}
-										}
-
-										BlockNumber++;
-									}
-									while(!fPassedCueTime && pBlocks->Next(true));
-								}
-							}
-
-							if(fFoundKeyFrame)
-								pos1 = pos2 = pos3 = NULL;
-						}
-					}
-				}
-			}
-
+		if(cmd != -1)
 			Reply(S_OK);
 
-			m_eEndFlush.Wait();
+		m_eEndFlush.Wait();
 
-			m_bDiscontinuitySent.RemoveAll();
-			m_pActivePins.RemoveAll();
+		m_bDiscontinuitySent.RemoveAll();
+		m_pActivePins.RemoveAll();
 
-			POSITION pos = m_pOutputs.GetHeadPosition();
-			while(pos)
+		POSITION pos = m_pOutputs.GetHeadPosition();
+		while(pos)
+		{
+			CBaseOutputPin* pPin = m_pOutputs.GetNext(pos);
+			if(pPin->IsConnected())
 			{
-				CBaseOutputPin* pPin = m_pOutputs.GetNext(pos);
-				if(pPin->IsConnected())
-				{
-					pPin->DeliverNewSegment(m_rtStart, m_rtStop, m_dRate);
-					m_pActivePins.AddTail(pPin);
-				}
+				pPin->DeliverNewSegment(m_rtStart, m_rtStop, m_dRate);
+				m_pActivePins.AddTail(pPin);
 			}
+		}
 
-			SendVorbisHeaderSample(); // HACK: init vorbis decoder with the headers
+		SendVorbisHeaderSample(); // HACK: init vorbis decoder with the headers
 
-			SendFakeTextSample(); // HACK: the internal script command renderer tends to freeze without one sample sent at the beginning
+		SendFakeTextSample(); // HACK: the internal script command renderer tends to freeze without one sample sent at the beginning
 
-			HRESULT hr = S_OK;
+		HRESULT hr = S_OK;
 
-			CBlockNode Blocks;
+		CBlockNode Blocks;
+
+		do
+		{
+			Cluster c;
+			c.ParseTimeCode(pCluster);
+
+			CAutoPtr<CMatroskaNode> pBlocks = pCluster->Child(0xA0);
+			if(!pBlocks) continue; 
 
 			do
 			{
-				Cluster c;
-				c.ParseTimeCode(pCluster);
+				bool fNext = true;
+				while(LastBlockNumber > 0 && (fNext = pBlocks->Next(true))) LastBlockNumber--;
+				if(!fNext) break;
+				if(LastBlockNumber > 0) continue;
 
-				CAutoPtr<CMatroskaNode> pBlocks = pCluster->Child(0xA0);
-				if(!pBlocks) continue; 
+				CBlockNode tmp;
+				tmp.Parse(pBlocks, true);
 
-				do
+				while(tmp.GetCount())
 				{
-					bool fNext = true;
-					while(LastBlockNumber > 0 && (fNext = pBlocks->Next(true))) LastBlockNumber--;
-					if(!fNext) break;
-					if(LastBlockNumber > 0) continue;
+					CAutoPtr<Block> b = tmp.RemoveHead();
 
-					CBlockNode tmp;
-					tmp.Parse(pBlocks, true);
+					b->TimeCode.Set(c.TimeCode + b->TimeCode);
 
-					while(tmp.GetCount())
-					{
-						CAutoPtr<Block> b = tmp.RemoveHead();
-
-						b->TimeCode.Set(c.TimeCode + b->TimeCode);
-
-						POSITION pos = Blocks.GetHeadPosition();
-						while(pos && SUCCEEDED(hr) && !CheckRequest(&cmd))
-						{
-							Block* b2 = Blocks.GetNext(pos);
-
-							if(b2->BlockDuration == Block::INVALIDDURATION
-							&& b2->TrackNumber == b->TrackNumber)
-							{
-								b2->BlockDuration.Set(max(b->TimeCode - b2->TimeCode, 0));
-								break;
-							}
-						}
-
-						Blocks.AddTail(b);
-					}
-
-					pos = Blocks.GetHeadPosition();
+					POSITION pos = Blocks.GetHeadPosition();
 					while(pos && SUCCEEDED(hr) && !CheckRequest(&cmd))
 					{
-						POSITION next = pos;
+						Block* b2 = Blocks.GetNext(pos);
 
-						Block* b = Blocks.GetNext(next);
-
-						if(b->BlockDuration != Block::INVALIDDURATION)
+						if(b2->BlockDuration == Block::INVALIDDURATION
+						&& b2->TrackNumber == b->TrackNumber)
 						{
-							CAutoPtr<Block> pBlock;
-							pBlock.Attach(Blocks.GetAt(pos).Detach());
-							Blocks.RemoveAt(pos);
-							hr = DeliverBlock(pBlock);
+							b2->BlockDuration.Set(max(b->TimeCode - b2->TimeCode, 0));
+							break;
 						}
-
-						pos = next;
 					}
+
+					Blocks.AddTail(b);
 				}
-				while(pBlocks->Next(true) && SUCCEEDED(hr) && !CheckRequest(&cmd));
-			}
-			while(pCluster->Next(true) && SUCCEEDED(hr) && !CheckRequest(&cmd));
 
-			while(Blocks.GetCount() && SUCCEEDED(hr) && !CheckRequest(&cmd))
-			{
-				CAutoPtr<Block> b = Blocks.RemoveHead();
-				if(m_pFile->m_segment.SegmentInfo.Duration > 0)
-					b->BlockDuration.Set((INT64)m_pFile->m_segment.SegmentInfo.Duration - b->TimeCode);
-				if(b->BlockDuration == 0)
-					b->BlockDuration.Set(1);
-				hr = DeliverBlock(b);
-			}
+				pos = Blocks.GetHeadPosition();
+				while(pos && SUCCEEDED(hr) && !CheckRequest(&cmd))
+				{
+					POSITION next = pos;
 
-			pos = m_pActivePins.GetHeadPosition();
-			while(pos && !CheckRequest(&cmd))
-				m_pActivePins.GetNext(pos)->DeliverEndOfStream();
+					Block* b = Blocks.GetNext(next);
+
+					if(b->BlockDuration != Block::INVALIDDURATION)
+					{
+						CAutoPtr<Block> pBlock;
+						pBlock.Attach(Blocks.GetAt(pos).Detach());
+						Blocks.RemoveAt(pos);
+						hr = DeliverBlock(pBlock);
+					}
+
+					pos = next;
+				}
+			}
+			while(pBlocks->Next(true) && SUCCEEDED(hr) && !CheckRequest(&cmd));
 		}
+		while(pCluster->Next(true) && SUCCEEDED(hr) && !CheckRequest(&cmd));
+
+		while(Blocks.GetCount() && SUCCEEDED(hr) && !CheckRequest(&cmd))
+		{
+			CAutoPtr<Block> b = Blocks.RemoveHead();
+			if(m_pFile->m_segment.SegmentInfo.Duration > 0)
+				b->BlockDuration.Set((INT64)m_pFile->m_segment.SegmentInfo.Duration - b->TimeCode);
+			if(m_pFile->m_segment.SegmentInfo.Duration <= 0)
+				b->BlockDuration.Set(1);
+			hr = DeliverBlock(b);
+		}
+
+		pos = m_pActivePins.GetHeadPosition();
+		while(pos && !CheckRequest(&cmd))
+			m_pActivePins.GetNext(pos)->DeliverEndOfStream();
 	}
 
 	ASSERT(0); // we should only exit via CMD_EXIT
@@ -854,15 +948,9 @@ LRESULT CMatroskaSourceFilter::ThreadMessageProc(UINT uMsg, DWORD dwFlags, LPVOI
 		pEvent->Set(); 
 		return 1;
 	case TM_SEEK:
-TRACE(_T("-DeliverBeginFlush()\n"));
 		DeliverBeginFlush();
-TRACE(_T("+DeliverBeginFlush()\n"));
-TRACE(_T("-CallWorker(CMD_RUN)\n"));
-		CallWorker(CMD_RUN);
-TRACE(_T("+CallWorker(CMD_RUN)\n"));
-TRACE(_T("-DeliverEndFlush()\n"));
+		CallWorker(CMD_SEEK);
 		DeliverEndFlush();		
-TRACE(_T("+DeliverEndFlush()\n"));
 		break;
 	}
 
@@ -883,12 +971,12 @@ HRESULT CMatroskaSourceFilter::DeliverBlock(CAutoPtr<Block> b)
 	if(!m_mapTrackToTrackEntry.Lookup(b->TrackNumber, pTE) || !pTE)
 		return S_FALSE;
 
-	if(b->BlockDuration == 0)
+	if(b->BlockDuration == Block::INVALIDDURATION)
 		b->BlockDuration.Set(pTE->DefaultDuration);
 
-	ASSERT(b->BlockData.GetCount() > 0 && b->BlockDuration > 0);
+	ASSERT(b->BlockData.GetCount() > 0 && (INT64)b->BlockDuration > 0);
 
-	if(b->BlockData.GetCount() == 0 || b->BlockDuration == 0)
+	if(b->BlockData.GetCount() == 0 || (INT64)b->BlockDuration <= 0)
 		return S_FALSE;
 
 	REFERENCE_TIME 
@@ -1037,7 +1125,6 @@ STDMETHODIMP CMatroskaSourceFilter::Pause()
 		CreateThread();
 #endif
 		Create();
-		CallWorker(CMD_RUN);
 	}
 
 	return S_OK;
@@ -1166,7 +1253,7 @@ STDMETHODIMP CMatroskaSourceFilter::SetPositions(LONGLONG* pCurrent, DWORD dwCur
 		PutThreadMsg(TM_SEEK, 0, 0);
 #else
 		DeliverBeginFlush();
-		CallWorker(CMD_RUN);
+		CallWorker(CMD_SEEK);
 		DeliverEndFlush();		
 #endif
 	}
@@ -1187,6 +1274,25 @@ STDMETHODIMP CMatroskaSourceFilter::GetAvailable(LONGLONG* pEarliest, LONGLONG* 
 STDMETHODIMP CMatroskaSourceFilter::SetRate(double dRate) {return dRate == 1.0 ? S_OK : E_INVALIDARG;}
 STDMETHODIMP CMatroskaSourceFilter::GetRate(double* pdRate) {return pdRate ? *pdRate = m_dRate, S_OK : E_POINTER;}
 STDMETHODIMP CMatroskaSourceFilter::GetPreroll(LONGLONG* pllPreroll) {return pllPreroll ? *pllPreroll = 0, S_OK : E_POINTER;}
+
+// IAMOpenProgress
+
+STDMETHODIMP CMatroskaSourceFilter::QueryProgress(LONGLONG* pllTotal, LONGLONG* pllCurrent)
+{
+	CheckPointer(pllTotal, E_POINTER);
+	CheckPointer(pllCurrent, E_POINTER);
+
+	*pllTotal = 100;
+	*pllCurrent = m_nOpenProgress;
+
+	return S_OK;
+}
+
+STDMETHODIMP CMatroskaSourceFilter::AbortOperation()
+{
+	m_fAbort = true;
+	return S_OK;
+}
 
 //
 // CMatroskaSplitterFilter

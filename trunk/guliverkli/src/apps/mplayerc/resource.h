@@ -412,6 +412,8 @@
 #define ID_DVD_AUDIO_PREV               32810
 #define ID_DVD_SUB_NEXT                 32811
 #define ID_DVD_SUB_PREV                 32812
+#define ID_FILE_RELOADCURRENT           32813
+#define ID_FILE_OPENCD32814             32814
 #define ID_FILTERS_SUBITEM_START        33000
 #define ID_FILTERS_SUBITEM_END          33099
 #define ID_FILTERSTREAMS_SUBITEM_START  33100
@@ -444,7 +446,7 @@
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        331
-#define _APS_NEXT_COMMAND_VALUE         32813
+#define _APS_NEXT_COMMAND_VALUE         32815
 #define _APS_NEXT_CONTROL_VALUE         1109
 #define _APS_NEXT_SYMED_VALUE           10003
 #endif

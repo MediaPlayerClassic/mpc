@@ -184,7 +184,7 @@ HRESULT Segment::ParseMinimal(CMatroskaNode* pMN0)
 
 	if(n == 3 && Cues.IsEmpty())
 	{
-		if(pMN = pMN0->Child(0x1C53BB6B))
+		if(pMN = pMN0->Child(0x1C53BB6B, false))
 		{
 			do {Cues.Parse(pMN);} while(pMN->Next(true));
 		}
@@ -255,6 +255,7 @@ HRESULT TrackEntry::Parse(CMatroskaNode* pMN0)
 	case 0xAA: CodecDecodeAll.Parse(pMN); break;
 	case 0x6FAB: TrackOverlay.Parse(pMN); break;
 	case 0x23E383: case 0x2383E3: DefaultDuration.Parse(pMN); break;
+	case 0x23314F: TrackTimecodeScale.Parse(pMN); break;
 	case 0xE0: if(S_OK == v.Parse(pMN)) DescType |= DescVideo; break;
 	case 0xE1: if(S_OK == a.Parse(pMN)) DescType |= DescAudio; break;
 	EndChunk
@@ -581,6 +582,7 @@ CMatroskaNode::CMatroskaNode(CMatroskaNode* pParent)
 
 HRESULT CMatroskaNode::Parse()
 {
+	m_filepos = GetPos();
 	m_id.Parse(this);
 	m_len.Parse(this);
 	m_start = GetPos();
@@ -588,11 +590,11 @@ HRESULT CMatroskaNode::Parse()
 	return S_OK;
 }
 
-CAutoPtr<CMatroskaNode> CMatroskaNode::Child(DWORD id)
+CAutoPtr<CMatroskaNode> CMatroskaNode::Child(DWORD id, bool fSearch)
 {
 	SeekTo(m_start);
 	CAutoPtr<CMatroskaNode> pMN(new CMatroskaNode(this));
-	if(id && !pMN->Find(id)) pMN.Free();
+	if(id && !pMN->Find(id, fSearch)) pMN.Free();
 	return pMN;
 }
 
@@ -614,7 +616,7 @@ bool CMatroskaNode::Next(bool fSame)
 	return(false);
 }
 
-bool CMatroskaNode::Find(DWORD id)
+bool CMatroskaNode::Find(DWORD id, bool fSearch)
 {
 	QWORD pos = m_pParent && m_pParent->m_pParent && !m_pParent->m_pParent->m_pParent /*lvl1?*/ 
 		? FindId(id) 
@@ -624,7 +626,7 @@ bool CMatroskaNode::Find(DWORD id)
 	{
 		Parse();
 	}
-	else
+	else if(fSearch)
 	{
 		while(m_id != id && Next());
 	}

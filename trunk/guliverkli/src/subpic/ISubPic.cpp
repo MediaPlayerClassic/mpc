@@ -380,12 +380,13 @@ STDMETHODIMP CSubPicQueue::SetTime(REFERENCE_TIME rtNow)
 	return S_OK;
 }
 
-STDMETHODIMP CSubPicQueue::Invalidate()
+STDMETHODIMP CSubPicQueue::Invalidate(REFERENCE_TIME rtInvalidate)
 {
 	{
 //		CAutoLock cQueueLock(&m_csQueueLock);
 //		RemoveAll();
 
+		m_rtInvalidate = rtInvalidate;
 		m_fBreakBuffering = true;
 		SetEvent(m_ThreadEvents[EVENT_TIME]);
 	}
@@ -545,7 +546,12 @@ DWORD CSubPicQueue::ThreadProc()
 		if(m_fBreakBuffering)
 		{
 			CAutoLock cQueueLock(&m_csQueueLock);
-			RemoveAll();
+
+			REFERENCE_TIME rtInvalidate = m_rtInvalidate;
+
+			while(GetCount() && GetTail()->GetStop() > rtInvalidate)
+				RemoveTail();
+
 			m_fBreakBuffering = false;
 		}
 	}
@@ -568,7 +574,7 @@ CSubPicQueueNoThread::~CSubPicQueueNoThread()
 
 // ISubPicQueue
 
-STDMETHODIMP CSubPicQueueNoThread::Invalidate()
+STDMETHODIMP CSubPicQueueNoThread::Invalidate(REFERENCE_TIME rtInvalidate)
 {
 	CAutoLock cQueueLock(&m_csLock);
 

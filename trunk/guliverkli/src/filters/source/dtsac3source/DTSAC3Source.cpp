@@ -360,15 +360,15 @@ bool CDTSAC3Stream::CheckWAVEAC3(const CMediaType* pmt)
 		&& ((WAVEFORMATEX*)pmt->pbFormat)->wFormatTag == WAVE_FORMAT_DOLBY_AC3;
 }
 
-HRESULT CDTSAC3Stream::GetMediaType(int iPosition, CMediaType* pMediaType)
+HRESULT CDTSAC3Stream::GetMediaType(int iPosition, CMediaType* pmt)
 {
     CAutoLock cAutoLock(m_pFilter->pStateLock());
 
 	if(iPosition >= 0 && iPosition < 5)
 	{
-		pMediaType->subtype = m_subtype;
-		pMediaType->formattype = FORMAT_WaveFormatEx;
-		WAVEFORMATEX* wfe = (WAVEFORMATEX*)pMediaType->AllocFormatBuffer(sizeof(WAVEFORMATEX));
+		pmt->subtype = m_subtype;
+		pmt->formattype = FORMAT_WaveFormatEx;
+		WAVEFORMATEX* wfe = (WAVEFORMATEX*)pmt->AllocFormatBuffer(sizeof(WAVEFORMATEX));
 		memset(wfe, 0, sizeof(WAVEFORMATEX));
 		wfe->cbSize = sizeof(WAVEFORMATEX);
 		wfe->wFormatTag = WAVE_FORMAT_PCM;
@@ -379,19 +379,19 @@ HRESULT CDTSAC3Stream::GetMediaType(int iPosition, CMediaType* pMediaType)
 		switch(iPosition)
 		{
 		case 0:
-			pMediaType->majortype = MEDIATYPE_Audio;
+			pmt->majortype = MEDIATYPE_Audio;
 			break;
 		case 1:
-			pMediaType->ResetFormatBuffer();
-			pMediaType->formattype = FORMAT_None;
+			pmt->ResetFormatBuffer();
+			pmt->formattype = FORMAT_None;
 		case 2:
-			pMediaType->majortype = MEDIATYPE_MPEG2_PES;
+			pmt->majortype = MEDIATYPE_MPEG2_PES;
 			break;
 		case 3:
-			pMediaType->ResetFormatBuffer();
-			pMediaType->formattype = FORMAT_None;
+			pmt->ResetFormatBuffer();
+			pmt->formattype = FORMAT_None;
 		case 4:
-			pMediaType->majortype = MEDIATYPE_DVD_ENCRYPTED_PACK;
+			pmt->majortype = MEDIATYPE_DVD_ENCRYPTED_PACK;
 			break;
 		default:
 			return E_INVALIDARG;
@@ -399,10 +399,10 @@ HRESULT CDTSAC3Stream::GetMediaType(int iPosition, CMediaType* pMediaType)
 	}
 	else if(iPosition == 5)
 	{
-		pMediaType->majortype = MEDIATYPE_Audio;
-		pMediaType->subtype = m_subtype;
-		pMediaType->formattype = FORMAT_WaveFormatEx;
-		WAVEFORMATEX* wfe = (WAVEFORMATEX*)pMediaType->AllocFormatBuffer(sizeof(WAVEFORMATEX));
+		pmt->majortype = MEDIATYPE_Audio;
+		pmt->subtype = FOURCCMap(m_wFormatTag);
+		pmt->formattype = FORMAT_WaveFormatEx;
+		WAVEFORMATEX* wfe = (WAVEFORMATEX*)pmt->AllocFormatBuffer(sizeof(WAVEFORMATEX));
 		memset(wfe, 0, sizeof(WAVEFORMATEX));
 		wfe->cbSize = sizeof(WAVEFORMATEX);
 		wfe->wFormatTag = m_wFormatTag;
@@ -416,7 +416,7 @@ HRESULT CDTSAC3Stream::GetMediaType(int iPosition, CMediaType* pMediaType)
 		return VFW_S_NO_MORE_ITEMS;
 	}
 
-    pMediaType->SetTemporalCompression(FALSE);
+    pmt->SetTemporalCompression(FALSE);
 
 	return S_OK;
 }

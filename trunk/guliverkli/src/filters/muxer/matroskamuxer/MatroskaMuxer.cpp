@@ -374,6 +374,8 @@ DWORD CMatroskaMuxerFilter::ThreadProc()
 	info.MuxingApp.Set(L"DirectShow Matroska Muxer");
 	info.TimeCodeScale.Set(1000000);
 	info.Duration.Set((float)rtDur / 10000);
+	struct tm _2001 = {0, 0, 0, 1, 0, 101, 0, 0, 1};
+	info.DateUTC.Set((_time64(NULL) - _mktime64(&_2001)) * 1000000000);
 	info.Write(pStream);
 
 	// Tracks
@@ -411,6 +413,18 @@ DWORD CMatroskaMuxerFilter::ThreadProc()
 	Cluster c;
 	c.TimeCode.Set(0);
 
+	bool fFirstBlock = true;
+	INT64 firstTimeCode = 0;
+
+	CList<CMatroskaMuxerInputPin*> pActivePins;
+
+	POSITION pos = m_pInputs.GetHeadPosition();
+	while(pos)
+	{
+		CMatroskaMuxerInputPin* pPin = m_pInputs.GetNext(pos);
+		if(pPin->IsConnected()) pActivePins.AddTail(pPin);
+	}
+
 	while(1)
 	{
 		DWORD cmd = GetRequest();
@@ -439,55 +453,45 @@ DWORD CMatroskaMuxerFilter::ThreadProc()
 					continue;
 				}
 
-				int nPinsGotSomething = 0, nPinsNeeded = m_pInputs.GetCount();
+				int nPinsGotSomething = 0, nPinsNeeded = 0;
 				CMatroskaMuxerInputPin* pPin = NULL;
 				REFERENCE_TIME rtMin = _I64_MAX;
 
-				POSITION pos = m_pInputs.GetHeadPosition();
+				pos = pActivePins.GetHeadPosition();
 				while(pos)
 				{
-					CMatroskaMuxerInputPin* pTmp = m_pInputs.GetNext(pos);
+					CMatroskaMuxerInputPin* pTmp = pActivePins.GetNext(pos);
 
 					CAutoLock cAutoLock(&pTmp->m_csQueue);
 
-					if(pTmp->m_fECCompletSent || !pTmp->IsConnected() 
-					|| pTmp->GetTrackEntry()->TrackType == TrackEntry::TypeSubtitle)
-						nPinsNeeded--;
-				}
+					if(pTmp->m_blocks.GetCount() == 0 && pTmp->m_fEndOfStreamReceived)
+					{
+						pActivePins.RemoveAt(pActivePins.Find(pTmp));
+						continue;
+					}
 
-				pos = m_pInputs.GetHeadPosition();
-				while(pos)
-				{
-					CMatroskaMuxerInputPin* pTmp = m_pInputs.GetNext(pos);
-
-					CAutoLock cAutoLock(&pTmp->m_csQueue);
+					if(pTmp->GetTrackEntry()->TrackType != TrackEntry::TypeSubtitle)
+						nPinsNeeded++;
 
 					if(pTmp->m_blocks.GetCount() > 0)
 					{
-						nPinsGotSomething++;
+						if(pTmp->GetTrackEntry()->TrackType != TrackEntry::TypeSubtitle)
+							nPinsGotSomething++;
 
 						if(pTmp->m_blocks.GetCount() > 0)
 						{
 							REFERENCE_TIME rt = pTmp->m_blocks.GetHead()->Block.TimeCode;
 							if(rt < rtMin) {rtMin = rt; pPin = pTmp;}
 						}
-
-						ASSERT(!pTmp->m_fECCompletSent);
-					}
-					else if(pTmp->m_fEndOfStreamReceived)
-					{
-//						NotifyEvent(EC_COMPLETE, 0, 0);
-						pTmp->m_fEndOfStreamReceived = false;
-						pTmp->m_fECCompletSent = true;
 					}
 				}
 
-				if(nPinsNeeded == 0)
+				if(pActivePins.GetCount() == 0)
 				{
 					break;
 				}
 
-				if(nPinsNeeded > nPinsGotSomething)
+				if(!pPin || nPinsNeeded > nPinsGotSomething || nPinsGotSomething == 0)
 				{
 					Sleep(1);
 					continue;
@@ -497,11 +501,10 @@ DWORD CMatroskaMuxerFilter::ThreadProc()
 				{
 					CNode<Track> Tracks;
 					CAutoPtr<Track> pT(new Track());
-					POSITION pos = m_pInputs.GetHeadPosition();
+					POSITION pos = pActivePins.GetHeadPosition();
 					for(int i = 1; pos; i++)
 					{
-						CMatroskaMuxerInputPin* pPin = m_pInputs.GetNext(pos);
-						if(!pPin->IsConnected()) continue;
+						CMatroskaMuxerInputPin* pPin = pActivePins.GetNext(pos);
 
 						CAutoPtr<TrackEntry> pTE(new TrackEntry());
 						*pTE = *pPin->GetTrackEntry();
@@ -528,6 +531,15 @@ DWORD CMatroskaMuxerFilter::ThreadProc()
 
 				if(b)
 				{
+					if(fFirstBlock)
+					{
+//						firstTimeCode = b->Block.TimeCode;
+						fFirstBlock = false;
+					}
+
+					b->Block.TimeCode -= firstTimeCode;
+					b->Block.TimeCodeStop -= firstTimeCode;
+
 /*
 TRACE(_T("Muxing (%d): %I64d-%I64d dur=%I64d (c=%d, co=%dms), cnt=%d, ref=%d\n"), 
 	GetTrackNumber(pPin), 
@@ -537,7 +549,7 @@ TRACE(_T("Muxing (%d): %I64d-%I64d dur=%I64d (c=%d, co=%dms), cnt=%d, ref=%d\n")
 */
 					if(b->Block.TimeCode < SHRT_MIN /*0*/) {ASSERT(0); continue;}
 
-					if((INT64)(c.TimeCode + MAXCLUSTERTIME) < b->Block.TimeCode)
+					while((INT64)(c.TimeCode + MAXCLUSTERTIME) < b->Block.TimeCode)
 					{
 						if(!c.BlockGroups.IsEmpty())
 						{
@@ -799,7 +811,6 @@ HRESULT CMatroskaMuxerInputPin::CompleteConnect(IPin* pPin)
 	{
 		m_pTE->TrackType.Set(TrackEntry::TypeAudio);
 
-		
 		if(m_mt.formattype == FORMAT_WaveFormatEx 
 		&& ((WAVEFORMATEX*)m_mt.pbFormat)->wFormatTag == WAVE_FORMAT_AAC
 		&& m_mt.cbFormat == sizeof(WAVEFORMATEX)+2)
@@ -811,6 +822,32 @@ HRESULT CMatroskaMuxerInputPin::CompleteConnect(IPin* pPin)
 			case 1: m_pTE->CodecID.Set("A_AAC/MPEG2/LC"); break;
 			case 2: m_pTE->CodecID.Set("A_AAC/MPEG2/SSR"); break;
 			}
+
+			WAVEFORMATEX* wfe = (WAVEFORMATEX*)m_mt.pbFormat;
+			m_pTE->DescType = TrackEntry::DescAudio;
+			m_pTE->a.SamplingFrequency.Set((float)wfe->nSamplesPerSec);
+			m_pTE->a.Channels.Set(wfe->nChannels);
+			m_pTE->a.BitDepth.Set(wfe->wBitsPerSample);
+
+			hr = S_OK;
+		}			
+		else if(m_mt.formattype == FORMAT_WaveFormatEx 
+		&& ((WAVEFORMATEX*)m_mt.pbFormat)->wFormatTag == WAVE_FORMAT_DOLBY_AC3)
+		{
+			m_pTE->CodecID.Set("A_AC3");
+
+			WAVEFORMATEX* wfe = (WAVEFORMATEX*)m_mt.pbFormat;
+			m_pTE->DescType = TrackEntry::DescAudio;
+			m_pTE->a.SamplingFrequency.Set((float)wfe->nSamplesPerSec);
+			m_pTE->a.Channels.Set(wfe->nChannels);
+			m_pTE->a.BitDepth.Set(wfe->wBitsPerSample);
+
+			hr = S_OK;
+		}			
+		else if(m_mt.formattype == FORMAT_WaveFormatEx 
+		&& ((WAVEFORMATEX*)m_mt.pbFormat)->wFormatTag == WAVE_FORMAT_DVD_DTS)
+		{
+			m_pTE->CodecID.Set("A_DTS");
 
 			WAVEFORMATEX* wfe = (WAVEFORMATEX*)m_mt.pbFormat;
 			m_pTE->DescType = TrackEntry::DescAudio;
@@ -954,8 +991,8 @@ HRESULT CMatroskaMuxerInputPin::CompleteConnect(IPin* pPin)
 HRESULT CMatroskaMuxerInputPin::Active()
 {
 	m_fActive = true;
-	m_fECCompletSent = false;
 	m_rtLastStart = m_rtLastStop = -1;
+	m_fEndOfStreamReceived = false;
 	return __super::Active();
 }
 
@@ -963,7 +1000,6 @@ HRESULT CMatroskaMuxerInputPin::Inactive()
 {
 	m_fActive = false;
 	CAutoLock cAutoLock(&m_csQueue);
-	m_fEndOfStreamReceived = false;
 	m_blocks.RemoveAll();
 	m_pVorbisHdrs.RemoveAll();
 	return __super::Inactive();
@@ -1025,8 +1061,8 @@ STDMETHODIMP CMatroskaMuxerInputPin::Receive(IMediaSample* pSample)
 		return VFW_E_SAMPLE_TIME_NOT_SET;
 	}
 
-	rtStart += m_tStart;
-	rtStop += m_tStart;
+//	rtStart += m_tStart;
+//	rtStop += m_tStart;
 
 /*
 	TRACE(_T("Received (%d): %I64d-%I64d (c=%d, co=%dms), len=%d, d%d p%d s%d\n"), 
