@@ -138,7 +138,7 @@ private:
     HRESULT Deliver(IMediaSample* pSample);
 
 protected:
-	REFERENCE_TIME m_rtStart, m_rtPrev, m_rtOffset;
+	REFERENCE_TIME m_rtStart;
 
 	// override this if you need some second level stream specific demuxing (optional)
 	// the default implementation will send the sample as is
@@ -175,7 +175,6 @@ public:
 	HRESULT SetName(LPCWSTR pName);
 
     HRESULT DecideBufferSize(IMemAllocator* pAlloc, ALLOCATOR_PROPERTIES* pProperties);
-
     HRESULT CheckMediaType(const CMediaType* pmt);
     HRESULT GetMediaType(int iPosition, CMediaType* pmt);
 	CMediaType& CurrentMediaType() {return m_mt;}
@@ -183,6 +182,8 @@ public:
 	STDMETHODIMP Notify(IBaseFilter* pSender, Quality q);
 
 	// Queueing
+
+	HANDLE GetThreadHandle() {ASSERT(m_hThread != NULL); return m_hThread;}
 
 	HRESULT Active();
     HRESULT Inactive();
@@ -198,6 +199,9 @@ public:
 
 	// returns true for everything which (the lack of) would not block other streams (subtitle streams, basically)
 	virtual bool IsDiscontinuous();
+
+	// returns IStreamsSwitcherInputPin::IsActive(), when it can find one downstream
+	bool IsActive();
 };
 
 [uuid("46070104-1318-4A82-8822-E99AB7CD15C1")]
@@ -205,6 +209,7 @@ interface IBufferInfo : public IUnknown
 {
 	STDMETHOD_(int, GetCount()) = 0;
 	STDMETHOD(GetStatus(int i, int& samples, int& size)) = 0;
+	STDMETHOD_(DWORD, GetPriority()) = 0;
 };
 
 class CBaseSplitterFilter 
@@ -254,6 +259,8 @@ protected:
 	void DeliverBeginFlush();
 	void DeliverEndFlush();
 	HRESULT DeliverPacket(CAutoPtr<Packet> p);
+
+	DWORD m_priority;
 
 protected:
 	enum {CMD_EXIT, CMD_SEEK};
@@ -376,5 +383,6 @@ public:
 
 	STDMETHODIMP_(int) GetCount();
 	STDMETHODIMP GetStatus(int i, int& samples, int& size);
+	STDMETHODIMP_(DWORD) GetPriority();
 };
 

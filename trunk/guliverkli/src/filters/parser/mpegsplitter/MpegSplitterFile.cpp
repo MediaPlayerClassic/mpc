@@ -10,7 +10,9 @@
 
 CMpegSplitterFile::CMpegSplitterFile(IAsyncReader* pAsyncReader, HRESULT& hr)
 	: CBaseSplitterFile(pAsyncReader, hr)
+	, m_tslen(0)
 	, m_type(us)
+	, m_rate(0)
 {
 	if(SUCCEEDED(hr)) hr = Init();
 }
@@ -28,10 +30,8 @@ HRESULT CMpegSplitterFile::Init()
 	if(m_type == us)
 	{
 		int cnt = 0, limit = 4;
-		for(trhdr h; cnt < limit && Read(h); cnt++) 
-			Seek(GetPos() + h.bytes);
-		if(cnt >= limit)
-			m_type = ts;
+		for(trhdr h; cnt < limit && Read(h); cnt++) Seek(h.next);
+		if(cnt >= limit) m_type = ts;
 	}
 
 	Seek(0);
@@ -43,9 +43,12 @@ HRESULT CMpegSplitterFile::Init()
 		{
 			if(b == 0xba)
 			{
-				b = (BYTE)BitRead(8);
-				if((b&0xf1) == 0x21) m_type = ps; // mpeg1
-				else if((b&0xc4) == 0x44) m_type = ps; // mpeg2
+				pshdr h;
+				if(Read(h)) 
+				{
+					m_type = ps;
+					m_rate = h.bitrate/8;
+				}
 			}
 			else if((b&0xe0) == 0xc0 // audio, 110xxxxx, mpeg1/2/3
 				|| (b&0xf0) == 0xe0 // video, 1110xxxx, mpeg1/2
@@ -86,9 +89,13 @@ HRESULT CMpegSplitterFile::Init()
 	if(m_posMax - m_posMin <= 0 || m_rtMax - m_rtMin <= 0)
 		return E_FAIL;
 
-	m_rate = 10000000i64 * (m_posMax - m_posMin) / (m_rtMax - m_rtMin);
+	int indicated_rate = m_rate;
+	int detected_rate = 10000000i64 * (m_posMax - m_posMin) / (m_rtMax - m_rtMin);
+	// normally "detected" should always be less than "indicated", but sometimes it can be a few percent higher (+10% is allowed here)
+	if(indicated_rate == 0 || ((float)detected_rate / indicated_rate) < 1.1) m_rate = detected_rate;
+	else ; // TODO: in this case disable seeking, or try doing something less drastical...
 
-//#ifndef DEBUG
+#ifndef DEBUG
 	if(m_streams[video].GetCount() || m_streams[subpic].GetCount())
 	{
 		stream s;
@@ -97,7 +104,7 @@ HRESULT CMpegSplitterFile::Init()
 		s.mt.formattype = FORMAT_None;
 		m_streams[subpic].Insert(s);
 	}
-//#endif
+#endif
 
 	Seek(0);
 
@@ -158,8 +165,6 @@ REFERENCE_TIME CMpegSplitterFile::NextPTS(DWORD TrackNum)
 
 			rtpos = GetPos()-4;
 
-			__int64 pos = GetPos();
-
 			if(h.payload && h.payloadstart && ISVALIDPID(h.pid))
 			{
 				peshdr h2;
@@ -174,7 +179,7 @@ REFERENCE_TIME CMpegSplitterFile::NextPTS(DWORD TrackNum)
 				}
 			}
 
-			Seek(pos + h.bytes);
+			Seek(h.next);
 		}
 	}
 
@@ -217,7 +222,13 @@ HRESULT CMpegSplitterFile::SearchStreams(__int64 start, __int64 stop)
 				if(h.fpts)
 				{
 					if(m_rtMin == _I64_MAX) {m_rtMin = h.pts; m_posMin = GetPos();}
-					if(h.pts > m_rtMin && m_rtMax < h.pts) {m_rtMax = h.pts; m_posMax = GetPos();}
+					if(m_rtMin < h.pts && m_rtMax < h.pts) {m_rtMax = h.pts; m_posMax = GetPos();}
+/*
+int rate = 10000000i64 * (m_posMax - m_posMin) / (m_rtMax - m_rtMin); 
+if(m_rate == 0) m_rate = rate;
+TRACE(_T("rate = %d (%d), (h.pts = %I64d)\n"), rate, rate - m_rate, h.pts);
+m_rate = rate;
+*/
 				}
 
 				__int64 pos = GetPos();
@@ -234,24 +245,28 @@ HRESULT CMpegSplitterFile::SearchStreams(__int64 start, __int64 stop)
 
 			__int64 pos = GetPos();
 
-			if(h.payload && h.payloadstart && ISVALIDPID(h.pid))
+			if(h.payload && ISVALIDPID(h.pid))
 			{
 				peshdr h2;
-				if(Next(b, 4) && Read(h2, b)) // pes packet
+				if(h.payloadstart && Next(b, 4) && Read(h2, b)) // pes packet
 				{
 					if(h2.type == mpeg2 && h2.scrambling) {ASSERT(0); return E_FAIL;}
 
 					if(h2.fpts)
 					{
 						if(m_rtMin == _I64_MAX) {m_rtMin = h2.pts; m_posMin = GetPos();}
-						if(h2.pts > m_rtMin && m_rtMax < h2.pts) {m_rtMax = h2.pts; m_posMax = GetPos();}
+						if(m_rtMin < h2.pts && m_rtMax < h2.pts) {m_rtMax = h2.pts; m_posMax = GetPos();}
 					}
-
-					AddStream(h.pid, b, h.bytes - (GetPos() - pos));
 				}
+				else
+				{
+					b = 0;
+				}
+
+				AddStream(h.pid, b, h.bytes - (GetPos() - pos));
 			}
 
-			Seek(pos + h.bytes);
+			Seek(h.next);
 		}
 	}
 
@@ -260,6 +275,12 @@ HRESULT CMpegSplitterFile::SearchStreams(__int64 start, __int64 stop)
 
 DWORD CMpegSplitterFile::AddStream(WORD pid, BYTE pesid, DWORD len)
 {
+	if(pid)
+	{
+		if(pesid) m_pid2pes[pid] = pesid;
+		else m_pid2pes.Lookup(pid, pesid);
+	}
+
 	stream s;
 	s.pid = pid;
 	s.pesid = pesid;
@@ -276,14 +297,17 @@ DWORD CMpegSplitterFile::AddStream(WORD pid, BYTE pesid, DWORD len)
 	{
 		__int64 pos = GetPos();
 
-		CMpegSplitterFile::mpahdr h;
-		if(!m_streams[audio].Find(s) && Read(h, len, &s.mt))
-			type = audio;
+		if(type == unknown)
+		{
+			CMpegSplitterFile::mpahdr h;
+			if(!m_streams[audio].Find(s) && Read(h, len, &s.mt))
+				type = audio;
+		}
+
+		Seek(pos);
 
 		if(type == unknown)
 		{
-			Seek(pos);
-
 			CMpegSplitterFile::aachdr h;
 			if(!m_streams[audio].Find(s) && Read(h, len, &s.mt))
 				type = audio;
@@ -312,8 +336,6 @@ DWORD CMpegSplitterFile::AddStream(WORD pid, BYTE pesid, DWORD len)
 					if(Read(h, len, &s.mt))
 						type = audio;
 				}
-
-				Seek(pos);
 			}
 		}
 		else
@@ -746,10 +768,17 @@ bool CMpegSplitterFile::Read(mpahdr& h, int len, CMediaType* pmt)
 	h.modeext = BitRead(2);
 	h.copyright = BitRead(1);
 	h.original = BitRead(1);
-	h.emphasis = BitRead(1);
+	h.emphasis = BitRead(2);
 
-	if(h.version == 1 || h.layer == 0 || h.freq == 3 || h.bitrate == 15)
+	if(h.version == 1 || h.layer == 0 || h.freq == 3 || h.bitrate == 15 || h.emphasis == 2)
 		return(false);
+
+	if(h.version == 3 && h.layer == 2)
+	{
+		if((h.bitrate == 1 || h.bitrate == 2 || h.bitrate == 3 || h.bitrate == 5) && h.channels != 3
+		&& (h.bitrate >= 11 && h.bitrate <= 14) && h.channels == 3)
+			return(false);
+	}
 
 	h.layer = 4 - h.layer;
 
@@ -1077,26 +1106,54 @@ bool CMpegSplitterFile::Read(trhdr& h, bool fSync)
 
 	BitByteAlign();
 
+	if(m_tslen == 0)
+	{
+		__int64 pos = GetPos();
+
+		for(int i = 0; i < 192; i++)
+		{
+			if(BitRead(8, true) == 0x47)
+			{
+				__int64 pos = GetPos();
+				Seek(pos + 188);
+				if(BitRead(8, true) == 0x47) {m_tslen = 188; break;}
+				Seek(pos + 192);
+				if(BitRead(8, true) == 0x47) {m_tslen = 192; break;}
+			}
+
+			BitRead(8);
+		}
+
+		Seek(pos);
+
+		if(m_tslen == 0)
+		{
+			return(false);
+		}
+	}
+
 	if(fSync)
 	{
-		for(int i = 0; i < 188; i++)
+		for(int i = 0; i < m_tslen; i++)
 		{
 			if(BitRead(8, true) == 0x47)
 			{
 				if(i == 0) break;
-				Seek(GetPos()+188);
-				if(BitRead(8, true) == 0x47) {Seek(GetPos()-188); break;}
+				Seek(GetPos()+m_tslen);
+				if(BitRead(8, true) == 0x47) {Seek(GetPos()-m_tslen); break;}
 			}
 
 			BitRead(8);
 
-			if(i == 187)
+			if(i == m_tslen-1)
 				return(false);
 		}
 	}
 
 	if(BitRead(8, true) != 0x47)
 		return(false);
+
+	h.next = GetPos() + m_tslen;
 
 	h.sync = (BYTE)BitRead(8);
 	h.error = BitRead(1);

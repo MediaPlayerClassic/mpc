@@ -3,6 +3,7 @@
 #include <initguid.h>
 #include "..\..\..\..\include\moreuuids.h"
 #include "..\..\..\..\include\matroska\matroska.h"
+#include "..\..\switcher\AudioSwitcher\AudioSwitcher.h"
 #include "BaseSplitter.h"
 
 #define MAXBUFFERS 2
@@ -27,7 +28,7 @@ void CPacketQueue::Add(CAutoPtr<Packet> p)
 	{
 		m_size += p->GetSize();
 
-		if(p->bAppendable && !p->bDiscontinuity && GetCount() > 0
+		if(p->bAppendable && !p->bDiscontinuity && !p->pmt && GetCount() > 0
 		&& p->rtStart == Packet::INVALID_TIME
 		&& GetTail()->rtStart != Packet::INVALID_TIME)
 		{
@@ -482,8 +483,6 @@ HRESULT CBaseSplitterOutputPin::DeliverNewSegment(REFERENCE_TIME tStart, REFEREN
 {
 	if(m_fFlushing) return S_FALSE;
 	m_rtStart = tStart;
-	m_rtPrev = Packet::INVALID_TIME;
-	m_rtOffset = 0;
 	if(!ThreadExists()) return S_FALSE;
 	HRESULT hr = __super::DeliverNewSegment(tStart, tStop, dRate);
 	if(S_OK != hr) return hr;
@@ -533,14 +532,27 @@ bool CBaseSplitterOutputPin::IsDiscontinuous()
 		|| m_mt.subtype == MEDIASUBTYPE_SVCD_SUBPICTURE;
 }
 
+bool CBaseSplitterOutputPin::IsActive()
+{
+	CComPtr<IPin> pPin = this;
+	do
+	{
+		CComPtr<IPin> pPinTo;
+		CComQIPtr<IStreamSwitcherInputPin> pSSIP;
+		if(S_OK == pPin->ConnectedTo(&pPinTo) && (pSSIP = pPinTo) && !pSSIP->IsActive())
+			return(false);
+		pPin = GetFirstPin(GetFilterFromPin(pPinTo), PINDIR_OUTPUT);
+	}
+	while(pPin);
+
+	return(true);
+}
+
 DWORD CBaseSplitterOutputPin::ThreadProc()
 {
 	m_hrDeliver = S_OK;
 	m_fFlushing = m_fFlushed = false;
 	m_eEndFlush.Set();
-
-	if(m_mt.majortype == MEDIATYPE_Audio)
-		SetThreadPriority(m_hThread, THREAD_PRIORITY_ABOVE_NORMAL);
 
 	while(1)
 	{
@@ -596,20 +608,12 @@ DWORD CBaseSplitterOutputPin::ThreadProc()
 HRESULT CBaseSplitterOutputPin::DeliverPacket(CAutoPtr<Packet> p)
 {
 	HRESULT hr;
-
+/*
 	if(p->pData.GetCount() == 0)
 		return S_OK;
-
+*/
 	if(p->rtStart != Packet::INVALID_TIME)
 	{
-		if(p->rtStart + m_rtOffset + 1000000 < m_rtPrev)
-			m_rtOffset += m_rtPrev - (p->rtStart + m_rtOffset);
-
-		p->rtStart += m_rtOffset;
-		p->rtStop += m_rtOffset;
-
-		m_rtPrev = p->rtStart;
-
 		double dRate = 1.0;
 		if(SUCCEEDED(((CBaseSplitterFilter*)m_pFilter)->GetRate(&dRate)))
 		{
@@ -636,14 +640,14 @@ HRESULT CBaseSplitterOutputPin::DeliverPacket(CAutoPtr<Packet> p)
 			if(S_OK != (hr = m_pAllocator->Commit())) break;
 			if(S_OK != (hr = GetDeliveryBuffer(&pSample, NULL, NULL, 0))) break;
 		}
-
+/*
 //if(p->TrackNumber == 2)
 if(p->rtStart != Packet::INVALID_TIME)
 TRACE(_T("[%d]: d%d s%d p%d, b=%d, %I64d-%I64d \n"), 
 	  p->TrackNumber,
 	  p->bDiscontinuity, p->bSyncPoint, p->rtStart < 0,
 	  nBytes, p->rtStart, p->rtStop);
-
+*/
 		if(p->pmt)
 		{
 			pSample->SetMediaType(p->pmt);
@@ -790,6 +794,7 @@ CBaseSplitterFilter::CBaseSplitterFilter(LPCTSTR pName, LPUNKNOWN pUnk, HRESULT*
 	, m_fAbort(false)
 	, m_rtLastStart(_I64_MIN)
 	, m_rtLastStop(_I64_MIN)
+	, m_priority(THREAD_PRIORITY_NORMAL)
 {
 	if(phr) *phr = S_OK;
 
@@ -920,8 +925,6 @@ DWORD CBaseSplitterFilter::ThreadProc()
 		}
 	}
 
-	SetThreadPriority(m_hThread, THREAD_PRIORITY_ABOVE_NORMAL);
-
 	m_eEndFlush.Set();
 	m_fFlushing = false;
 
@@ -929,10 +932,12 @@ DWORD CBaseSplitterFilter::ThreadProc()
 	{
 		if(cmd == CMD_EXIT)
 		{
-			CAMThread::m_hThread = NULL;
+			m_hThread = NULL;
 			Reply(S_OK);
 			return 0;
 		}
+
+		SetThreadPriority(m_hThread, m_priority = THREAD_PRIORITY_NORMAL);
 
 		m_rtStart = m_rtNewStart;
 		m_rtStop = m_rtNewStop;
@@ -950,7 +955,7 @@ DWORD CBaseSplitterFilter::ThreadProc()
 		while(pos && !m_fFlushing)
 		{
 			CBaseSplitterOutputPin* pPin = m_pOutputs.GetNext(pos);
-			if(pPin->IsConnected())
+			if(pPin->IsConnected() && pPin->IsActive())
 			{
 				m_pActivePins.AddTail(pPin);
 				pPin->DeliverNewSegment(m_rtStart, m_rtStop, m_dRate);
@@ -967,7 +972,7 @@ DWORD CBaseSplitterFilter::ThreadProc()
 
 	ASSERT(0); // we should only exit via CMD_EXIT
 
-	CAMThread::m_hThread = NULL;
+	m_hThread = NULL;
 	return 0;
 }
 
@@ -1036,9 +1041,27 @@ bool CBaseSplitterFilter::IsAnyPinDrying()
 		int count = pPin->QueueCount();
 		int size = pPin->QueueSize();
 		if(!pPin->IsDiscontinuous() && (count < MINPACKETS || size < MINPACKETSIZE))
+		{
+//			if(m_priority != THREAD_PRIORITY_ABOVE_NORMAL && (count < MINPACKETS/3 || size < MINPACKETSIZE/3))
+			if(m_priority != THREAD_PRIORITY_BELOW_NORMAL && (count < MINPACKETS/3 || size < MINPACKETSIZE/3))
+			{
+				// SetThreadPriority(m_hThread, m_priority = THREAD_PRIORITY_ABOVE_NORMAL);
+				POSITION pos = m_pOutputs.GetHeadPosition();
+				while(pos) SetThreadPriority(m_pOutputs.GetNext(pos)->GetThreadHandle(), THREAD_PRIORITY_BELOW_NORMAL);
+				m_priority = THREAD_PRIORITY_BELOW_NORMAL;
+			}
 			return(true);
+		}
 		totalcount += count;
 		totalsize += size;
+	}
+
+	if(m_priority != THREAD_PRIORITY_NORMAL && (totalcount > MAXPACKETS*2/3 || totalsize > MAXPACKETSIZE*2/3))
+	{
+//		SetThreadPriority(m_hThread, m_priority = THREAD_PRIORITY_NORMAL);
+		POSITION pos = m_pOutputs.GetHeadPosition();
+		while(pos) SetThreadPriority(m_pOutputs.GetNext(pos)->GetThreadHandle(), THREAD_PRIORITY_NORMAL);
+		m_priority = THREAD_PRIORITY_NORMAL;
 	}
 
 	if(totalcount < MAXPACKETS && totalsize < MAXPACKETSIZE) 
@@ -1485,4 +1508,9 @@ STDMETHODIMP CBaseSplitterFilter::GetStatus(int i, int& samples, int& size)
 	}
 
 	return E_INVALIDARG;
+}
+
+STDMETHODIMP_(DWORD) CBaseSplitterFilter::GetPriority()
+{
+    return m_priority;
 }

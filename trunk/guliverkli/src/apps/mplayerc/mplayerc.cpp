@@ -534,6 +534,9 @@ BOOL CMPlayerCApp::InitInstance()
 
 		for(int i = 0; i < mf.GetCount(); i++)
 		{
+			// HACK
+			if(!mf[i].GetLabel().CompareNoCase(_T("Image file"))) continue;
+
 			bool fAudioOnly = mf[i].IsAudioOnly();
 
 			int j = 0;
@@ -1714,7 +1717,11 @@ bool FindRedir(CString& fn, CString ct, CList<CString>& fns, CAutoPtrList<CAtlRe
 				continue;
 
 			if(fn2.Find(_T(":")) < 0 && fn2.Find(_T("\\\\")) != 0 && fn2.Find(_T("//")) != 0)
-				fn2 = dir + fn2;
+			{
+				CPath p;
+				p.Combine(dir, fn2);
+				fn2 = (LPCTSTR)p;
+			}
 
 			if(!fn2.CompareNoCase(fn))
 				continue;
@@ -1915,12 +1922,22 @@ CString GetContentType(CString fn, CList<CString>* redir)
 			// #comment
 			// ...
 			re.Attach(new CAtlRegExp<>());
-			if(re && REPARSE_ERROR_OK == re->Parse(_T("^{[^#][^\n]+}"), FALSE))
+			if(re && REPARSE_ERROR_OK == re->Parse(_T("{[^#][^\n]+}"), FALSE))
+				res.AddTail(re);
+		}
+		else if(ct == _T("audio/x-pn-realaudio"))
+		{
+			// rtsp://...
+			re.Attach(new CAtlRegExp<>());
+			if(re && REPARSE_ERROR_OK == re->Parse(_T("{rtsp://[^\n]+}"), FALSE))
 				res.AddTail(re);
 		}
 
-		if(!body.IsEmpty()) FindRedir(url, ct, body, *redir, res);
-		else FindRedir(fn, ct, *redir, res);
+		if(!body.IsEmpty())
+		{
+			if(fn.Find(_T("://")) >= 0) FindRedir(url, ct, body, *redir, res);
+			else FindRedir(fn, ct, *redir, res);
+		}
 	}
 
 	return ct;

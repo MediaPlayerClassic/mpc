@@ -524,8 +524,8 @@ HRESULT CMatroskaSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 					mt.formattype = FORMAT_SubtitleInfo;
 					SUBTITLEINFO* psi = (SUBTITLEINFO*)mt.AllocFormatBuffer(sizeof(SUBTITLEINFO) + pTE->CodecPrivate.GetSize());
 					memset(psi, 0, mt.FormatLength());
-					strncpy(psi->IsoLang, pTE->Language, 3);
-					// strncpy(psi->IsoLang, Language, 3);
+					strncpy(psi->IsoLang, pTE->Language, countof(psi->IsoLang)-1);
+					wcsncpy(psi->TrackName, pTE->Name, countof(psi->TrackName)-1);
 					memcpy(mt.pbFormat + (psi->dwOffset = sizeof(SUBTITLEINFO)), pTE->CodecPrivate.GetData(), pTE->CodecPrivate.GetSize());
 
 					mt.subtype = 

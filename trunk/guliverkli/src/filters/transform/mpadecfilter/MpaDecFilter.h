@@ -71,6 +71,8 @@ protected:
 	HRESULT Deliver(CArray<float>& pBuff, DWORD nSamplesPerSec, WORD nChannels, DWORD dwChannelMask = 0);
 	HRESULT Deliver(BYTE* pBuff, int size, int bit_rate, BYTE type);
 	HRESULT ReconnectOutput(int nSamples, CMediaType& mt);
+	CMediaType CreateMediaType(SampleFormat sf, DWORD nSamplesPerSec, WORD nChannels, DWORD dwChannelMask = 0);
+	CMediaType CreateMediaTypeSPDIF();
 
 protected:
 	CCritSec m_csProps;

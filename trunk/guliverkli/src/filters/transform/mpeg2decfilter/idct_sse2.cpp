@@ -1,4 +1,5 @@
 #include "stdafx.h"
+#include "libmpeg2.h"
 
 // Intel's SSE2 implementation of iDCT
 // AP-945
@@ -343,40 +344,39 @@ __declspec(align(16)) short M128_tab_i_35[] =
 
 //assumes src and destination are aligned on a 16-byte boundary
 
-void idct_M128ASM(short* src, short* dst)
+static void idct_M128ASM(short* src)
 {
-	ASSERT(((DWORD)src & 0xf) == 0 && ((DWORD)dst & 0xf) == 0); //aligned on 16-byte boundary
+	ASSERT(((DWORD)src & 0xf) == 0); //aligned on 16-byte boundary
 
-	__asm mov eax, src
-	__asm mov edx, dst
+	__asm mov edx, src
 
-	__asm movdqa xmm0, XMMWORD PTR[eax] //row 1
+	__asm movdqa xmm0, XMMWORD PTR[edx] //row 1
 	__asm lea esi, M128_tab_i_04
-	__asm movdqa xmm4, XMMWORD PTR[eax+16*2] //row 3
+	__asm movdqa xmm4, XMMWORD PTR[edx+16*2] //row 3
 	__asm lea ecx, M128_tab_i_26
 	DCT_8_INV_ROW; //Row 1, tab_i_04 and Row 3, tab_i_26
 	__asm movdqa XMMWORD PTR[edx], xmm0
 	__asm movdqa XMMWORD PTR[edx+16*2], xmm4
 
-	__asm movdqa xmm0, XMMWORD PTR[eax+16*4] //row 5
+	__asm movdqa xmm0, XMMWORD PTR[edx+16*4] //row 5
 	//__asm lea esi, M128_tab_i_04
-	__asm movdqa xmm4, XMMWORD PTR[eax+16*6] //row 7
+	__asm movdqa xmm4, XMMWORD PTR[edx+16*6] //row 7
 	//__asm lea ecx, M128_tab_i_26
 	DCT_8_INV_ROW; //Row 5, tab_i_04 and Row 7, tab_i_26
 	__asm movdqa XMMWORD PTR[edx+16*4], xmm0
 	__asm movdqa XMMWORD PTR[edx+16*6], xmm4
 
-	__asm movdqa xmm0, XMMWORD PTR[eax+16*3] //row 4
+	__asm movdqa xmm0, XMMWORD PTR[edx+16*3] //row 4
 	__asm lea esi, M128_tab_i_35
-	__asm movdqa xmm4, XMMWORD PTR[eax+16*1] //row 2
+	__asm movdqa xmm4, XMMWORD PTR[edx+16*1] //row 2
 	__asm lea ecx, M128_tab_i_17
 	DCT_8_INV_ROW; //Row 4, tab_i_35 and Row 2, tab_i_17
 	__asm movdqa XMMWORD PTR[edx+16*3], xmm0
 	__asm movdqa XMMWORD PTR[edx+16*1], xmm4
 
-	__asm movdqa xmm0, XMMWORD PTR[eax+16*5] //row 6
+	__asm movdqa xmm0, XMMWORD PTR[edx+16*5] //row 6
 	//__asm lea esi, M128_tab_i_35
-	__asm movdqa xmm4, XMMWORD PTR[eax+16*7] //row 8
+	__asm movdqa xmm4, XMMWORD PTR[edx+16*7] //row 8
 	//__asm lea ecx, M128_tab_i_17
 	DCT_8_INV_ROW; //Row 6, tab_i_35 and Row 8, tab_i_17
 	//__asm movdqa XMMWORD PTR[edx+80], xmm0
@@ -385,4 +385,136 @@ void idct_M128ASM(short* src, short* dst)
 	//__asm movdqa xmm4, XMMWORD PTR [edx+7*16]/* 4 ; x7 */
 	DCT_8_INV_COL_8
 	// __asm emms
+}
+
+/////////////
+
+#define CLIP(x) (x < 0 ? 0 : x > 255 ? 255 : x)
+
+void mpeg2_idct_copy_sse2(int16_t* block, uint8_t* dest, const int stride)
+{
+	idct_M128ASM(block);
+/*
+    for(int i = 0; i < 8; i++)
+	{
+		dest[0] = CLIP(block[0]);
+		dest[1] = CLIP(block[1]);
+		dest[2] = CLIP(block[2]);
+		dest[3] = CLIP(block[3]);
+		dest[4] = CLIP(block[4]);
+		dest[5] = CLIP(block[5]);
+		dest[6] = CLIP(block[6]);
+		dest[7] = CLIP(block[7]);
+
+		memset(block, 0, sizeof(short)*8);
+
+		dest += stride;
+		block += 8;
+    }
+*/
+	__asm
+	{
+		mov esi, block
+		mov edi, dest
+		mov edx, stride
+		lea ecx, [edx+edx]
+
+		movdqa xmm0, [esi+16*0]
+		movdqa xmm1, [esi+16*1]
+		movdqa xmm2, [esi+16*2]
+		movdqa xmm3, [esi+16*3]
+		movdqa xmm4, [esi+16*4]
+		movdqa xmm5, [esi+16*5]
+		movdqa xmm6, [esi+16*6]
+		movdqa xmm7, [esi+16*7]
+		
+		packuswb xmm0, xmm1
+		packuswb xmm2, xmm3
+		packuswb xmm4, xmm5
+		packuswb xmm6, xmm7
+
+		movlps [edi], xmm0
+		movhps [edi+edx], xmm0
+		add edi, ecx
+		movlps [edi], xmm2
+		movhps [edi+edx], xmm2
+		add edi, ecx
+		movlps [edi], xmm4
+		movhps [edi+edx], xmm4
+		add edi, ecx
+		movlps [edi], xmm6
+		movhps [edi+edx], xmm6
+
+		xorps xmm7, xmm7
+		movdqa [esi+16*0], xmm7
+		movdqa [esi+16*1], xmm7
+		movdqa [esi+16*2], xmm7
+		movdqa [esi+16*3], xmm7
+		movdqa [esi+16*4], xmm7
+		movdqa [esi+16*5], xmm7
+		movdqa [esi+16*6], xmm7
+		movdqa [esi+16*7], xmm7
+	}
+
+}
+
+void mpeg2_idct_add_sse2(const int last, int16_t* block, uint8_t* dest, const int stride)
+{
+	idct_M128ASM(block);
+/*
+    for(int i = 0; i < 8; i++)
+	{
+		dest[0] = CLIP(block[0] + dest[0]);
+		dest[1] = CLIP(block[1] + dest[1]);
+		dest[2] = CLIP(block[2] + dest[2]);
+		dest[3] = CLIP(block[3] + dest[3]);
+		dest[4] = CLIP(block[4] + dest[4]);
+		dest[5] = CLIP(block[5] + dest[5]);
+		dest[6] = CLIP(block[6] + dest[6]);
+		dest[7] = CLIP(block[7] + dest[7]);
+
+		memset(block, 0, sizeof(short)*8);
+
+		dest += stride;
+		block += 8;
+    }
+*/
+	__asm
+	{
+		mov esi, block
+		mov edi, dest
+		mov ecx, 4
+		mov edx, stride
+		xorps xmm7, xmm7
+
+	mpeg2_idct_add_sse2_loop:
+
+		movdqa xmm0, [esi]
+		movdqa xmm1, [esi+16]
+
+		movlps xmm2, [edi]
+		punpcklbw xmm2, xmm7
+		paddsw xmm0, xmm2
+
+		movlps xmm2, [edi+edx]
+		punpcklbw xmm2, xmm7
+		paddsw xmm1, xmm2
+
+		packuswb xmm0, xmm1
+
+		movdqa [esi], xmm7
+		movdqa [esi+16], xmm7
+
+		movlps [edi], xmm0
+		movhps [edi+edx], xmm0
+
+		lea esi, [esi+16*2]
+		lea edi, [edi+edx*2]
+
+		loop mpeg2_idct_add_sse2_loop
+	}
+}
+
+void mpeg2_idct_init_sse2()
+{
 }

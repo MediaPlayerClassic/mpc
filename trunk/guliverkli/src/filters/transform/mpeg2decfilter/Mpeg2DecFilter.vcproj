@@ -425,6 +425,23 @@
 			</File>
 			<File
 				RelativePath=".\libmpeg2.cpp">
+				<FileConfiguration
+					Name="Release Unicode|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						InlineFunctionExpansion="1"
+						OptimizeForProcessor="1"/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release Unicode lib|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						InlineFunctionExpansion="1"
+						OptimizeForProcessor="1"/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\mc_sse2.cpp">
 			</File>
 			<File
 				RelativePath=".\Mpeg2DecFilter.cpp">
@@ -535,6 +552,6 @@
 	<Globals>
 		<Global
 			Name="DevPartner_IsInstrumented"
-			Value="0"/>
+			Value="1"/>
 	</Globals>
 </VisualStudioProject>

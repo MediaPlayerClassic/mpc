@@ -75,14 +75,50 @@ const AMOVIESETUP_PIN sudpPins[] =
     }
 };
 
+const AMOVIESETUP_MEDIATYPE sudPinTypesIn2[] =
+{
+	{&MEDIATYPE_Video, &MEDIASUBTYPE_NULL},
+};
+
+const AMOVIESETUP_MEDIATYPE sudPinTypesOut2[] =
+{
+	{&MEDIATYPE_Video, &MEDIASUBTYPE_NULL},
+};
+
+const AMOVIESETUP_PIN sudpPins2[] =
+{
+    { L"Input",             // Pins string name
+      FALSE,                // Is it rendered
+      FALSE,                // Is it an output
+      FALSE,                // Are we allowed none
+      FALSE,                // And allowed many
+      &CLSID_NULL,          // Connects to filter
+      NULL,                 // Connects to pin
+      countof(sudPinTypesIn2), // Number of types
+      sudPinTypesIn2		// Pin information
+    },
+    { L"Output",            // Pins string name
+      FALSE,                // Is it rendered
+      TRUE,                 // Is it an output
+      FALSE,                // Are we allowed none
+      FALSE,                // And allowed many
+      &CLSID_NULL,          // Connects to filter
+      NULL,                 // Connects to pin
+      countof(sudPinTypesOut2), // Number of types
+      sudPinTypesOut2		// Pin information
+    }
+};
+
 const AMOVIESETUP_FILTER sudFilter[] =
 {
-	{&__uuidof(CMpeg2DecFilter), L"Mpeg2Dec Filter", 0x40000002/*MERIT_PREFERRED*//*MERIT_DO_NOT_USE*/, countof(sudpPins), sudpPins},
+	{&__uuidof(CMpeg2DecFilter), L"Mpeg2Dec Filter", 0x40000002, countof(sudpPins), sudpPins},
+	{&__uuidof(CDXVAFilter), L"DXVA Filter", MERIT_DO_NOT_USE, countof(sudpPins2), sudpPins2},
 };
 
 CFactoryTemplate g_Templates[] =
 {
     {L"Mpeg2Dec Filter", &__uuidof(CMpeg2DecFilter), CMpeg2DecFilter::CreateInstance, NULL, &sudFilter[0]},
+    {L"DXVA Filter", &__uuidof(CDXVAFilter), CDXVAFilter::CreateInstance, NULL, &sudFilter[1]},
 };
 
 int g_cTemplates = countof(g_Templates);
@@ -172,6 +208,13 @@ BOOL APIENTRY DllMain(HANDLE hModule, DWORD ul_reason_for_call, LPVOID lpReserve
 CUnknown* WINAPI CMpeg2DecFilter::CreateInstance(LPUNKNOWN lpunk, HRESULT* phr)
 {
     CUnknown* punk = new CMpeg2DecFilter(lpunk, phr);
+    if(punk == NULL) *phr = E_OUTOFMEMORY;
+	return punk;
+}
+
+CUnknown* WINAPI CDXVAFilter::CreateInstance(LPUNKNOWN lpunk, HRESULT* phr)
+{
+    CUnknown* punk = new CDXVAFilter(lpunk, phr);
     if(punk == NULL) *phr = E_OUTOFMEMORY;
 	return punk;
 }
@@ -980,7 +1023,7 @@ HRESULT CMpeg2DecFilter::StopStreaming()
 
 HRESULT CMpeg2DecFilter::AlterQuality(Quality q)
 {
-	if(q.Late > 100*10000i64) 
+	if(q.Late > 000*10000i64) 
 		m_fDropFrames = true;
 	else if(q.Late <= 0) 
 		m_fDropFrames = false;
@@ -2110,3 +2153,402 @@ HRESULT CClosedCaptionOutputPin::DecideBufferSize(IMemAllocator* pAllocator, ALL
 		: NOERROR;
 }
 
+/////////////////////////
+
+static void LOG(LPCTSTR fmt, ...)
+{
+	va_list args;
+	va_start(args, fmt);
+	if(FILE* f = _tfopen(_T("c:\\dxva.txt"), _T("at")))
+	{
+		fseek(f, 0, 2);
+		_vftprintf(f, fmt, args);
+		fclose(f);
+	}
+	va_end(args);
+}
+
+#include <initguid.h>
+#include <dxva.h>
+
+CDXVAFilter::CDXVAFilter(LPUNKNOWN lpunk, HRESULT* phr) 
+	: CTransformFilter(NAME("CDXVAFilter"), lpunk, __uuidof(this))
+{
+	if(phr) *phr = S_OK;
+
+	if(!(m_pInput = new CDXVAInputPin(this, phr))) *phr = E_OUTOFMEMORY;
+	if(FAILED(*phr)) return;
+
+	if(!(m_pOutput = new CDXVAOutputPin(this, phr))) *phr = E_OUTOFMEMORY;
+	if(FAILED(*phr))  {delete m_pInput, m_pInput = NULL; return;}
+
+	LOG(_T("-------------------------\n"));
+}
+
+CDXVAFilter::~CDXVAFilter()
+{
+}
+
+STDMETHODIMP CDXVAFilter::NonDelegatingQueryInterface(REFIID riid, void** ppv)
+{
+	return
+		 __super::NonDelegatingQueryInterface(riid, ppv);
+}
+
+HRESULT CDXVAFilter::CheckConnect(PIN_DIRECTION dir,IPin *pPin)
+{
+	return S_OK;
+}
+
+HRESULT CDXVAFilter::BreakConnect(PIN_DIRECTION dir)
+{
+	if(dir == PINDIR_INPUT)
+	{
+		m_pIAMVANotify.Release();
+	}
+	else if(dir == PINDIR_OUTPUT)
+	{
+		m_pIAMVA.Release();
+	}
+
+	return S_OK;
+}
+
+HRESULT CDXVAFilter::CompleteConnect(PIN_DIRECTION dir, IPin* pReceivePin)
+{
+	if(dir == PINDIR_INPUT)
+	{
+		m_pIAMVANotify = pReceivePin;
+
+		HRESULT hr;
+		CComPtr<IBaseFilter> pBF;
+		if(SUCCEEDED(m_pGraph->FindFilterByName(L"Overlay Mixer", &pBF))
+		|| SUCCEEDED(hr = pBF.CoCreateInstance(CLSID_OverlayMixer)))
+		{
+			if(SUCCEEDED(hr = m_pGraph->AddFilter(pBF, L"Overlay Mixer")))
+			{
+				m_pIAMVA = GetFirstPin(pBF);
+
+				if(SUCCEEDED(hr = m_pGraph->ConnectDirect(m_pOutput, GetFirstPin(pBF), NULL)))
+				{
+					hr = hr;
+				}
+			}
+		}
+	}
+	else if(dir == PINDIR_OUTPUT)
+	{
+		m_pIAMVA = pReceivePin;
+	}
+
+	return S_OK;
+}
+
+HRESULT CDXVAFilter::CheckInputType(const CMediaType* mtIn)
+{
+	return S_OK;
+}
+
+HRESULT CDXVAFilter::CheckTransform(const CMediaType* mtIn, const CMediaType* mtOut)
+{
+	return S_OK;
+}
+
+HRESULT CDXVAFilter::DecideBufferSize(IMemAllocator* pAllocator, ALLOCATOR_PROPERTIES* pProperties)
+{
+	if(!m_pInput->IsConnected())
+		return E_UNEXPECTED;
+/*
+	CComPtr<IMemAllocator> pInputAllocator;
+	if(FAILED(m_pInput->GetAllocator(&pInputAllocator))
+	|| FAILED(pInputAllocator->GetProperties(pProperties)))
+		return E_FAIL;
+*/
+	BITMAPINFOHEADER bih;
+	ExtractBIH(&m_pOutput->CurrentMediaType(), &bih);
+
+	pProperties->cBuffers = 8;
+	pProperties->cbBuffer = bih.biSizeImage;
+	pProperties->cbAlign = 1;
+	pProperties->cbPrefix = 0;
+
+	HRESULT hr;
+	ALLOCATOR_PROPERTIES Actual;
+    if(FAILED(hr = pAllocator->SetProperties(pProperties, &Actual))) 
+		return hr;
+
+    return pProperties->cBuffers > Actual.cBuffers || pProperties->cbBuffer > Actual.cbBuffer
+		? E_FAIL
+		: NOERROR;
+}
+
+HRESULT CDXVAFilter::GetMediaType(int iPosition, CMediaType* pmt)
+{
+	if(!m_pInput->IsConnected())
+	{
+		if(iPosition == 0)
+		{
+			pmt->majortype = MEDIATYPE_Video;
+			pmt->subtype = DXVA_ModeMPEG2_D;
+			pmt->formattype = FORMAT_VideoInfo2;
+			VIDEOINFOHEADER2 vih;
+			memset(&vih, 0, sizeof(vih));
+			vih.bmiHeader.biSize = sizeof(vih.bmiHeader);
+			vih.bmiHeader.biCompression = '21VY';
+			vih.bmiHeader.biWidth = 1920;
+			vih.bmiHeader.biHeight = 1080;
+			vih.bmiHeader.biBitCount = 12;
+			vih.bmiHeader.biSizeImage = vih.bmiHeader.biWidth*vih.bmiHeader.biHeight*vih.bmiHeader.biBitCount>>3;
+			vih.dwPictAspectRatioX = 4;
+			vih.dwPictAspectRatioY = 3;
+			pmt->SetFormat((BYTE*)&vih, sizeof(vih));
+
+			return S_OK;
+		}
+
+		return VFW_S_NO_MORE_ITEMS;
+	}
+
+	CComPtr<IEnumMediaTypes> pEM;
+	if(FAILED(m_pInput->GetConnected()->EnumMediaTypes(&pEM)))
+		return VFW_S_NO_MORE_ITEMS;
+
+	if(iPosition > 0 && FAILED(pEM->Skip(iPosition)))
+		return VFW_S_NO_MORE_ITEMS;
+
+	AM_MEDIA_TYPE* tmp = NULL;
+	if(S_OK != pEM->Next(1, &tmp, NULL) || !tmp)
+		return VFW_S_NO_MORE_ITEMS;
+
+	CopyMediaType(pmt, tmp);
+	DeleteMediaType(tmp);
+
+	return S_OK;
+}
+
+//////
+
+CDXVAInputPin::CDXVAInputPin(CTransformFilter* pTransformFilter, HRESULT* phr)
+	: CTransformInputPin(NAME("CDXVAInputPin"), pTransformFilter, phr, L"Input")
+{
+}
+
+STDMETHODIMP CDXVAInputPin::NonDelegatingQueryInterface(REFIID riid, void** ppv)
+{
+	return
+		QI(IAMVideoAccelerator)
+		 __super::NonDelegatingQueryInterface(riid, ppv);
+}
+
+// IAMVideoAccelerator
+
+STDMETHODIMP CDXVAInputPin::GetVideoAcceleratorGUIDs(LPDWORD pdwNumGuidsSupported, LPGUID pGuidsSupported)
+{
+	LOG(_T("IAMVideoAccelerator::GetVideoAcceleratorGUIDs\n"));
+
+	if(((CDXVAFilter*)m_pFilter)->m_pIAMVA)
+	{
+		HRESULT hr = ((CDXVAFilter*)m_pFilter)->m_pIAMVA->GetVideoAcceleratorGUIDs(pdwNumGuidsSupported, pGuidsSupported);
+		return hr;
+	}
+
+	return E_NOTIMPL;
+}
+
+STDMETHODIMP CDXVAInputPin::GetUncompFormatsSupported(const GUID *pGuid, LPDWORD pdwNumFormatsSupported, LPDDPIXELFORMAT pFormatsSupported)
+{
+	LOG(_T("IAMVideoAccelerator::GetUncompFormatsSupported\n"));
+
+	if(((CDXVAFilter*)m_pFilter)->m_pIAMVA)
+	{
+		HRESULT hr = ((CDXVAFilter*)m_pFilter)->m_pIAMVA->GetUncompFormatsSupported(pGuid, pdwNumFormatsSupported, pFormatsSupported);
+		return hr;
+	}
+
+	return E_NOTIMPL;
+}
+
+STDMETHODIMP CDXVAInputPin::GetInternalMemInfo(const GUID *pGuid, const AMVAUncompDataInfo *pamvaUncompDataInfo, LPAMVAInternalMemInfo pamvaInternalMemInfo)
+{
+	LOG(_T("IAMVideoAccelerator::GetInternalMemInfo\n"));
+
+	if(((CDXVAFilter*)m_pFilter)->m_pIAMVA)
+	{
+		HRESULT hr = ((CDXVAFilter*)m_pFilter)->m_pIAMVA->GetInternalMemInfo(pGuid, pamvaUncompDataInfo, pamvaInternalMemInfo);
+		return hr;
+	}
+
+	return E_NOTIMPL;
+}
+
+STDMETHODIMP CDXVAInputPin::GetCompBufferInfo(const GUID *pGuid, const AMVAUncompDataInfo *pamvaUncompDataInfo, LPDWORD pdwNumTypesCompBuffers, LPAMVACompBufferInfo pamvaCompBufferInfo)
+{
+	LOG(_T("IAMVideoAccelerator::GetCompBufferInfo\n"));
+
+	if(((CDXVAFilter*)m_pFilter)->m_pIAMVA)
+	{
+		HRESULT hr = ((CDXVAFilter*)m_pFilter)->m_pIAMVA->GetCompBufferInfo(pGuid, pamvaUncompDataInfo, pdwNumTypesCompBuffers, pamvaCompBufferInfo);
+		return hr;
+	}
+
+	return E_NOTIMPL;
+}
+
+STDMETHODIMP CDXVAInputPin::GetInternalCompBufferInfo(LPDWORD pdwNumTypesCompBuffers, LPAMVACompBufferInfo pamvaCompBufferInfo)
+{
+	LOG(_T("IAMVideoAccelerator::GetInternalCompBufferInfo\n"));
+
+	if(((CDXVAFilter*)m_pFilter)->m_pIAMVA)
+	{
+		HRESULT hr = ((CDXVAFilter*)m_pFilter)->m_pIAMVA->GetInternalCompBufferInfo(pdwNumTypesCompBuffers, pamvaCompBufferInfo);
+		return hr;
+	}
+
+	return E_NOTIMPL;
+}
+
+STDMETHODIMP CDXVAInputPin::BeginFrame(const AMVABeginFrameInfo *amvaBeginFrameInfo)
+{
+	LOG(_T("IAMVideoAccelerator::BeginFrame\n"));
+
+	if(((CDXVAFilter*)m_pFilter)->m_pIAMVA)
+	{
+		HRESULT hr = ((CDXVAFilter*)m_pFilter)->m_pIAMVA->BeginFrame(amvaBeginFrameInfo);
+		return hr;
+	}
+
+	return E_NOTIMPL;
+}
+
+STDMETHODIMP CDXVAInputPin::EndFrame(const AMVAEndFrameInfo *pEndFrameInfo)
+{
+	LOG(_T("IAMVideoAccelerator::EndFrame\n"));
+
+	if(((CDXVAFilter*)m_pFilter)->m_pIAMVA)
+	{
+		HRESULT hr = ((CDXVAFilter*)m_pFilter)->m_pIAMVA->EndFrame(pEndFrameInfo);
+		return hr;
+	}
+
+	return E_NOTIMPL;
+}
+
+STDMETHODIMP CDXVAInputPin::GetBuffer(DWORD dwTypeIndex, DWORD dwBufferIndex, BOOL bReadOnly, LPVOID *ppBuffer, LONG *lpStride)
+{
+	LOG(_T("IAMVideoAccelerator::GetBuffer\n"));
+
+	if(((CDXVAFilter*)m_pFilter)->m_pIAMVA)
+	{
+		HRESULT hr = ((CDXVAFilter*)m_pFilter)->m_pIAMVA->GetBuffer(dwTypeIndex, dwBufferIndex, bReadOnly, ppBuffer, lpStride);
+		return hr;
+	}
+
+	return E_NOTIMPL;
+}
+
+STDMETHODIMP CDXVAInputPin::ReleaseBuffer(DWORD dwTypeIndex, DWORD dwBufferIndex)
+{
+	LOG(_T("IAMVideoAccelerator::ReleaseBuffer\n"));
+
+	if(((CDXVAFilter*)m_pFilter)->m_pIAMVA)
+	{
+		HRESULT hr = ((CDXVAFilter*)m_pFilter)->m_pIAMVA->ReleaseBuffer(dwTypeIndex, dwBufferIndex);
+		return hr;
+	}
+
+	return E_NOTIMPL;
+}
+
+STDMETHODIMP CDXVAInputPin::Execute(DWORD dwFunction, LPVOID lpPrivateInputData, DWORD cbPrivateInputData, LPVOID lpPrivateOutputDat, DWORD cbPrivateOutputData, DWORD dwNumBuffers, const AMVABUFFERINFO* pamvaBufferInfo)
+{
+	LOG(_T("IAMVideoAccelerator::Execute\n"));
+
+	if(((CDXVAFilter*)m_pFilter)->m_pIAMVA)
+	{
+		HRESULT hr = ((CDXVAFilter*)m_pFilter)->m_pIAMVA->Execute(dwFunction, lpPrivateInputData, cbPrivateInputData, lpPrivateOutputDat, cbPrivateOutputData, dwNumBuffers, pamvaBufferInfo);
+		return hr;
+	}
+
+	return E_NOTIMPL;
+}
+
+STDMETHODIMP CDXVAInputPin::QueryRenderStatus(DWORD dwTypeIndex, DWORD dwBufferIndex, DWORD dwFlags)
+{
+	LOG(_T("IAMVideoAccelerator::QueryRenderStatus\n"));
+
+	if(((CDXVAFilter*)m_pFilter)->m_pIAMVA)
+	{
+		HRESULT hr = ((CDXVAFilter*)m_pFilter)->m_pIAMVA->QueryRenderStatus(dwTypeIndex, dwBufferIndex, dwFlags);
+		return hr;
+	}
+
+	return E_NOTIMPL;
+}
+
+STDMETHODIMP CDXVAInputPin::DisplayFrame(DWORD dwFlipToIndex, IMediaSample* pMediaSample)
+{
+	LOG(_T("IAMVideoAccelerator::DisplayFrame\n"));
+
+	if(((CDXVAFilter*)m_pFilter)->m_pIAMVA)
+	{
+		HRESULT hr = ((CDXVAFilter*)m_pFilter)->m_pIAMVA->DisplayFrame(dwFlipToIndex, pMediaSample);
+		return hr;
+	}
+
+	return E_NOTIMPL;
+}
+
+//////
+
+CDXVAOutputPin::CDXVAOutputPin(CTransformFilter* pTransformFilter, HRESULT* phr)
+	: CTransformOutputPin(NAME("CDXVAOutputPin"), pTransformFilter, phr, L"Output")
+{
+}
+
+STDMETHODIMP CDXVAOutputPin::NonDelegatingQueryInterface(REFIID riid, void** ppv)
+{
+	return
+		QI(IAMVideoAcceleratorNotify)
+		 __super::NonDelegatingQueryInterface(riid, ppv);
+}
+
+// IAMVideoAcceleratorNotify
+
+STDMETHODIMP CDXVAOutputPin::GetUncompSurfacesInfo(const GUID *pGuid, LPAMVAUncompBufferInfo pUncompBufferInfo)
+{
+	LOG(_T("IAMVideoAcceleratorNotify::GetUncompSurfacesInfo\n"));
+
+	if(((CDXVAFilter*)m_pFilter)->m_pIAMVANotify)
+	{
+		HRESULT hr = ((CDXVAFilter*)m_pFilter)->m_pIAMVANotify->GetUncompSurfacesInfo(pGuid, pUncompBufferInfo);
+		return hr;
+	}
+
+	return E_NOTIMPL;
+}
+
+STDMETHODIMP CDXVAOutputPin::SetUncompSurfacesInfo(DWORD dwActualUncompSurfacesAllocated)
+{
+	LOG(_T("IAMVideoAcceleratorNotify::SetUncompSurfacesInfo\n"));
+
+	if(((CDXVAFilter*)m_pFilter)->m_pIAMVANotify)
+	{
+		HRESULT hr = ((CDXVAFilter*)m_pFilter)->m_pIAMVANotify->SetUncompSurfacesInfo(dwActualUncompSurfacesAllocated);
+		return hr;
+	}
+
+	return E_NOTIMPL;
+}
+
+STDMETHODIMP CDXVAOutputPin::GetCreateVideoAcceleratorData(const GUID *pGuid, LPDWORD pdwSizeMiscData, LPVOID *ppMiscData)
+{
+	LOG(_T("IAMVideoAcceleratorNotify::GetCreateVideoAcceleratorData\n"));
+
+	if(((CDXVAFilter*)m_pFilter)->m_pIAMVANotify)
+	{
+		HRESULT hr = ((CDXVAFilter*)m_pFilter)->m_pIAMVANotify->GetCreateVideoAcceleratorData(pGuid, pdwSizeMiscData, ppMiscData);
+		return hr;
+	}
+
+	return E_NOTIMPL;
+}

@@ -582,6 +582,8 @@ bool CAviSplitterFilter::DoDeliverLoop()
 
 		f++;
 	}
+
+	return(true);
 }
 
 // IMediaSeeking

@@ -141,6 +141,12 @@ bool CPPageFormats::IsRegistered(CString ext)
 	len = sizeof(buff);
 	memset(buff, 0, len);
 
+	if(ERROR_SUCCESS == key2.Open(HKEY_CLASSES_ROOT, extfile + _T("\\shell\\open\\DropTarget"), KEY_READ))
+		return(false);
+
+	len = sizeof(buff);
+	memset(buff, 0, len);
+
 	return(ERROR_SUCCESS == key.QueryStringValue(NULL, buff, &len) 
 		&& !CString(buff).CompareNoCase(cmd));
 }
@@ -238,6 +244,7 @@ bool CPPageFormats::RegisterExt(CString ext, bool fRegister)
 			}
 
 			key.RecurseDeleteKey(_T("ddeexec"));
+			key.RecurseDeleteKey(_T("DropTarget"));
 		}
 
 		if(ERROR_SUCCESS == key.Open(HKEY_CURRENT_USER, _T("Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\FileExts\\") + ext))

@@ -186,7 +186,9 @@ bool CMpegSplitterFilter::InitDeliverLoop()
 
 void CMpegSplitterFilter::SeekDeliverLoop(REFERENCE_TIME rt)
 {
-	if(rt <= 0 || m_rtDuration <= 0)
+	REFERENCE_TIME rtPreroll = 10000000;
+
+	if(rt <= rtPreroll || m_rtDuration <= 0)
 	{
 		m_pFile->Seek(0);
 	}
@@ -196,8 +198,8 @@ void CMpegSplitterFilter::SeekDeliverLoop(REFERENCE_TIME rt)
 		__int64 seekpos = (__int64)(1.0*rt/m_rtDuration*len);
 		__int64 minseekpos = _I64_MAX;
 
-		REFERENCE_TIME rtmax = rt + m_pFile->m_rtMin;
-		REFERENCE_TIME rtmin = rtmax - 5000000i64;
+		REFERENCE_TIME rtmax = rt + m_pFile->m_rtMin - rtPreroll;
+		REFERENCE_TIME rtmin = rtmax - 5000000;
 
 		for(int i = 0; i < countof(m_pFile->m_streams)-1; i++)
 		{
@@ -217,7 +219,7 @@ void CMpegSplitterFilter::SeekDeliverLoop(REFERENCE_TIME rt)
 					{
 						REFERENCE_TIME rt = m_pFile->NextPTS(TrackNum);
 						// TRACE(_T("[%d/%04x]: rt=%I64d, fp=%I64d\n"), i, TrackNum, rt, m_pFile->GetPos());
-				
+
 						if(rt < 0) break;
 
 						REFERENCE_TIME dt = rt - rtmax;
@@ -331,7 +333,7 @@ bool CMpegSplitterFilter::DoDeliverLoop()
 				}
 			}
 
-			m_pFile->Seek(pos + h.bytes);
+			m_pFile->Seek(h.next);
 		}
 	}
 
@@ -451,6 +453,17 @@ CMpegSplitterOutputPin::~CMpegSplitterOutputPin()
 {
 }
 
+HRESULT CMpegSplitterOutputPin::DeliverNewSegment(REFERENCE_TIME tStart, REFERENCE_TIME tStop, double dRate)
+{
+	{
+		CAutoLock cAutoLock(this);
+		m_rtPrev = Packet::INVALID_TIME;
+		m_rtOffset = 0;
+	}
+
+	return __super::DeliverNewSegment(tStart, tStop, dRate);
+}
+
 HRESULT CMpegSplitterOutputPin::DeliverEndFlush()
 {
 	{
@@ -464,6 +477,17 @@ HRESULT CMpegSplitterOutputPin::DeliverEndFlush()
 HRESULT CMpegSplitterOutputPin::DeliverPacket(CAutoPtr<Packet> p)
 {
 	CAutoLock cAutoLock(this);
+
+	if(p->rtStart != Packet::INVALID_TIME)
+	{
+		if(p->rtStart + m_rtOffset + 1000000 < m_rtPrev)
+			m_rtOffset += m_rtPrev - (p->rtStart + m_rtOffset);
+
+		p->rtStart += m_rtOffset;
+		p->rtStop += m_rtOffset;
+
+		m_rtPrev = p->rtStart;
+	}
 
 	if(m_mt.subtype == MEDIASUBTYPE_AAC) // special code for aac, the currently available decoders only like whole frame samples
 	{
@@ -500,12 +524,22 @@ HRESULT CMpegSplitterOutputPin::DeliverPacket(CAutoPtr<Packet> p)
 			BYTE* base = m_p->pData.GetData();
 			BYTE* s = base;
 			BYTE* e = s + m_p->pData.GetSize();
+			//bool layer0 = ((s[3]>>1)&3) == 0;
 			int len = ((s[3]&3)<<11)|(s[4]<<3)|(s[5]>>5);
 			bool crc = !(s[3]&1);
 			s += 7; len -= 7;
 			if(crc) s += 2, len -= 2;
 
-			if(e - s < len) break;
+			if(e - s < len)
+			{
+				break;
+			}
+
+			if(len <= 0 || e - s >= len + 2 && (s[len] != 0xff || (s[len+1]&0xf6) != 0xf0))
+			{
+				m_p.Free();
+				break;
+			}
 
 			CAutoPtr<Packet> p(new Packet());
 			p->TrackNumber = m_p->TrackNumber;

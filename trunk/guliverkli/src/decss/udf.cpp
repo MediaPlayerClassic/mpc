@@ -8,7 +8,7 @@
 #include "stdafx.h"
 #include "udf.h"
 
-static aspi_GetSectorInfo(const HANDLE hDrive, DWORD* sec_size, DWORD* max_sec)
+static bool aspi_GetSectorInfo(const HANDLE hDrive, DWORD* sec_size, DWORD* max_sec)
 {
 	*sec_size = 2048;
 	*max_sec = GetFileSize(hDrive, NULL) / *sec_size;
