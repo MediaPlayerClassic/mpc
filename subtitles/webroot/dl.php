@@ -43,7 +43,20 @@ $db->query("update subtitle set downloads = downloads+1 where id = $id");
 header("Content-Type: application/octet-stream");
 header("Content-Disposition: attachment; filename=\"$name\"");
 header("Pragma: no-cache");
-echo gzuncompress($sub);
+$sub = gzuncompress($sub);
+
+if(!headers_sent() && extension_loaded("zlib")
+&& ereg("gzip", $_SERVER["HTTP_ACCEPT_ENCODING"]))
+{
+	$sub = gzencode($sub, 9);
+
+	header("Content-Encoding: gzip");
+	header("Vary: Accept-Encoding");
+	header("Content-Length: ".strlen($sub));
+}
+
+echo $sub;
+
 exit;
 
 ?>
