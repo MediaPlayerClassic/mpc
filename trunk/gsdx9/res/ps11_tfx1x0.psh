@@ -5,7 +5,9 @@
 ; Av = At
 
 ps_1_1
+
 tex t0
+
 mov r0.rgb, t0
 mov_x2 r0.a, t0
 lrp r0.rgb, v1.a, r0, v1

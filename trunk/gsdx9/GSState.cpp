@@ -313,7 +313,7 @@ m_dwFillMode = D3DFILL_SOLID;
 		}
 	}
 
-	// ps_1_1
+	// ps_1_1 + ps_1_4
 
 	if(m_caps.PixelShaderVersion >= D3DVS_VERSION(1, 1))
 	{
@@ -324,7 +324,8 @@ m_dwFillMode = D3DFILL_SOLID;
 			IDR_PS11_TFX200, IDR_PS11_TFX210, IDR_PS11_TFX211,
 			IDR_PS11_TFX300, IDR_PS11_TFX310, IDR_PS11_TFX311,
 			IDR_PS11_TFX4xx,
-			IDR_PS11_EN11, IDR_PS11_EN01, IDR_PS11_EN10, IDR_PS11_EN00
+			IDR_PS11_EN11, IDR_PS11_EN01, IDR_PS11_EN10, IDR_PS11_EN00,
+			IDR_PS14_EN11, IDR_PS14_EN01, IDR_PS14_EN10, IDR_PS14_EN00
 		};
 
 		for(int i = 0; i < countof(nShaderIDs); i++)
@@ -938,19 +939,35 @@ void GSState::FinishFlip(FlipSrc rt[2], bool fShiftField)
 		pPixelShader = m_pPixelShaderMerge[PS_M32];
 	}
 
+	if(!pPixelShader && m_caps.PixelShaderVersion >= D3DVS_VERSION(1, 4))
+	{
+		if(fEN[0] && fEN[1]) // RAO1 + RAO2
+		{
+			pPixelShader = m_pPixelShaders[PS14_EN11];
+		}
+		else if(fEN[0]) // RAO1
+		{
+			pPixelShader = m_pPixelShaders[PS14_EN10];
+		}
+		else if(fEN[1]) // RAO2
+		{
+			pPixelShader = m_pPixelShaders[PS14_EN01];
+		}
+	}
+
 	if(!pPixelShader && m_caps.PixelShaderVersion >= D3DVS_VERSION(1, 1))
 	{
 		if(fEN[0] && fEN[1]) // RAO1 + RAO2
 		{
-			pPixelShader = m_pPixelShaders[PS_EN11];
+			pPixelShader = m_pPixelShaders[PS11_EN11];
 		}
 		else if(fEN[0]) // RAO1
 		{
-			pPixelShader = m_pPixelShaders[PS_EN10];
+			pPixelShader = m_pPixelShaders[PS11_EN10];
 		}
 		else if(fEN[1]) // RAO2
 		{
-			pPixelShader = m_pPixelShaders[PS_EN01];
+			pPixelShader = m_pPixelShaders[PS11_EN01];
 		}
 	}
 

@@ -5,11 +5,12 @@
 ; c2.a = SLBG
 
 ps_1_1
+
 tex t0
 tex t1
 
-mov r0, c1
 mov r1, t0
+mov r0, c1
 cnd r1.a, r0.a, c0, r1
 
 mov r0, c2

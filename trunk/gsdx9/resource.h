@@ -25,20 +25,25 @@
 #define IDR_PS11_TFX4xx                 2012
 #define IDC_BUTTON2                     2012
 #define IDR_PS11_EN11                   2013
+#define IDC_CUSTOM1                     2013
 #define IDR_PS11_EN01                   2014
 #define IDR_PS11_EN10                   2015
 #define IDR_PS11_EN00                   2016
 #define IDR_PS20_TFX                    2017
 #define IDR_PS20_MERGE                  2018
 #define IDD_CAPTURE                     2018
+#define IDR_PS14_EN11                   2019
+#define IDR_PS14_EN01                   2020
+#define IDR_PS14_EN10                   2021
+#define IDR_PS14_EN00                   2022
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        2019
+#define _APS_NEXT_RESOURCE_VALUE        2023
 #define _APS_NEXT_COMMAND_VALUE         32771
-#define _APS_NEXT_CONTROL_VALUE         2013
+#define _APS_NEXT_CONTROL_VALUE         2014
 #define _APS_NEXT_SYMED_VALUE           2000
 #endif
 #endif

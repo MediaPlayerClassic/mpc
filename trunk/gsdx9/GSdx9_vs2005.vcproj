@@ -324,10 +324,10 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="2"
-				GlobalOptimizations="TRUE"
-				InlineFunctionExpansion="2"
+				GlobalOptimizations="FALSE"
+				InlineFunctionExpansion="0"
 				EnableIntrinsicFunctions="TRUE"
-				FavorSizeOrSpeed="1"
+				FavorSizeOrSpeed="0"
 				OmitFramePointers="TRUE"
 				AdditionalIncludeDirectories="C:\Program Files\Microsoft DirectX 9.0 SDK (Summer 2004)\Include"
 				PreprocessorDefinitions="_WINDOWS;NDEBUG;_USRDLL"
@@ -1293,6 +1293,22 @@
 			</File>
 			<File
 				RelativePath=".\res\ps11_tfx4xx.psh"
+				>
+			</File>
+			<File
+				RelativePath=".\res\ps14_en00.psh"
+				>
+			</File>
+			<File
+				RelativePath=".\res\ps14_en01.psh"
+				>
+			</File>
+			<File
+				RelativePath=".\res\ps14_en10.psh"
+				>
+			</File>
+			<File
+				RelativePath=".\res\ps14_en11.psh"
 				>
 			</File>
 			<File

@@ -1066,14 +1066,16 @@ void GSLocalMemory::writeCLUT(GIFRegTEX0 TEX0, GIFRegTEXCLUT TEXCLUT)
 	DWORD bp = TEX0.CBP;
 	DWORD bw = TEX0.CSM == 0 ? 1 : TEXCLUT.CBW;
 
-	WORD* CLUTLW = m_CLUT + (TEX0.CSA<<4);
-	WORD* CLUTHW = CLUTLW + 256;
+	// WORD* CLUTLW = m_CLUT + (TEX0.CSA<<4);
+	// WORD* CLUTHW = CLUTLW + 256;
 
 	if(TEX0.PSM == PSM_PSMT8 || TEX0.PSM == PSM_PSMT8H)
 	{
 		if(TEX0.CPSM == PSM_PSMCT16 || TEX0.CPSM == PSM_PSMCT16S)
 		{
 			ASSERT(TEX0.CSA <= 16);
+
+			WORD* CLUTLW = m_CLUT + (min(TEX0.CSA, 16) << 4);
 
 			if(TEX0.CSM == 0)
 			{
@@ -1100,6 +1102,9 @@ void GSLocalMemory::writeCLUT(GIFRegTEX0 TEX0, GIFRegTEXCLUT TEXCLUT)
 		else if(TEX0.CPSM == PSM_PSMCT32)
 		{
 			ASSERT(TEX0.CSA == 0);
+
+			WORD* CLUTLW = m_CLUT;
+			WORD* CLUTHW = CLUTLW + 256;
 
 			if(TEX0.CSM == 0)
 			{
@@ -1137,6 +1142,8 @@ void GSLocalMemory::writeCLUT(GIFRegTEX0 TEX0, GIFRegTEXCLUT TEXCLUT)
 		{
 			ASSERT(TEX0.CSA <= 31);
 
+			WORD* CLUTLW = m_CLUT + (min(TEX0.CSA, 32) << 4);
+
 			if(TEX0.CSM == 0)
 			{
 				for(int y = 0; y < 2; y++)
@@ -1158,6 +1165,9 @@ void GSLocalMemory::writeCLUT(GIFRegTEX0 TEX0, GIFRegTEXCLUT TEXCLUT)
 		else if(TEX0.CPSM == PSM_PSMCT32)
 		{
 			ASSERT(TEX0.CSA <= 15);
+
+			WORD* CLUTLW = m_CLUT + (min(TEX0.CSA, 15) << 4);
+			WORD* CLUTHW = CLUTLW + 256;
 
 			if(TEX0.CSM == 0)
 			{
@@ -1188,18 +1198,24 @@ void GSLocalMemory::readCLUT(GIFRegTEX0 TEX0, GIFRegTEXA TEXA, DWORD* pCLUT)
 {
 	ASSERT(pCLUT);
 
-	WORD* CLUTLW = m_CLUT + (TEX0.CSA<<4);
-	WORD* CLUTHW = CLUTLW + 256;
+	// WORD* CLUTLW = m_CLUT + (TEX0.CSA<<4);
+	// WORD* CLUTHW = CLUTLW + 256;
 
 	if(TEX0.CPSM == PSM_PSMCT32)
 	{
 		if(TEX0.PSM == PSM_PSMT8 || TEX0.PSM == PSM_PSMT8H)
 		{
+			WORD* CLUTLW = m_CLUT;
+			WORD* CLUTHW = CLUTLW + 256;
+
 			for(int i = 0; i < 256; i++) 
 				pCLUT[i] = ((DWORD)CLUTHW[i] << 16) | CLUTLW[i];
 		}
 		else if(TEX0.PSM == PSM_PSMT4HH || TEX0.PSM == PSM_PSMT4HL || TEX0.PSM == PSM_PSMT4)
 		{
+			WORD* CLUTLW = m_CLUT + (min(TEX0.CSA, 15) << 4);
+			WORD* CLUTHW = CLUTLW + 256;
+
 			for(int i = 0; i < 16; i++) 
 				pCLUT[i] = ((DWORD)CLUTHW[i] << 16) | CLUTLW[i];
 		}
@@ -1208,11 +1224,15 @@ void GSLocalMemory::readCLUT(GIFRegTEX0 TEX0, GIFRegTEXA TEXA, DWORD* pCLUT)
 	{
 		if(TEX0.PSM == PSM_PSMT8 || TEX0.PSM == PSM_PSMT8H)
 		{
+			WORD* CLUTLW = m_CLUT + (min(TEX0.CSA, 16) << 4);
+
 			for(int i = 0; i < 256; i++) 
 				pCLUT[i] = From16To32(CLUTLW[i], TEXA, m_bbt);
 		}
 		else if(TEX0.PSM == PSM_PSMT4HH || TEX0.PSM == PSM_PSMT4HL || TEX0.PSM == PSM_PSMT4)
 		{
+			WORD* CLUTLW = m_CLUT + (min(TEX0.CSA, 32) << 4);
+
 			for(int i = 0; i < 16; i++) 
 				pCLUT[i] = From16To32(CLUTLW[i], TEXA, m_bbt);
 		}
