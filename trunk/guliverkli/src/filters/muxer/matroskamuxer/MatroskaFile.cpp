@@ -176,7 +176,7 @@ HRESULT CUInt::Write(IStream* pStream)
 QWORD CInt::Size(bool fWithHeader)
 {
 	if(!m_fSet) return 0;
-	// TODO: check this function in the debugger
+
 	QWORD len = 0;
 
 	if(m_val == 0)
@@ -339,7 +339,7 @@ Segment::Segment(DWORD id)
 
 QWORD Segment::Size(bool fWithHeader)
 {
-	return 0xffffffffffffffi64;
+	return 0x00FFFFFFFFFFFFFFi64;
 /*
 	QWORD len = 0;
 	if(fWithHeader) len += HeaderSize(len);

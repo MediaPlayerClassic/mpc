@@ -429,12 +429,10 @@ DWORD CMatroskaMuxerFilter::ThreadProc()
 
 			while(!CheckRequest(NULL))
 			{
+				if(m_State == State_Paused)
 				{
-					if(m_State == State_Paused)
-					{
-						Sleep(10);
-						continue;
-					}
+					Sleep(10);
+					continue;
 				}
 
 				int nPinsGotSomething = 0, nPinsNeeded = m_pInputs.GetCount();
@@ -543,8 +541,6 @@ TRACE(_T("%d: %I64d-%I64d (c=%d, co=%dms), cnt=%d, ref=%d\n"),
 					b->Block.TimeCode -= c.TimeCode;
 					c.BlockGroups.AddTail(b);
 				}
-
-				// TODO: create clusters, write them to stream
 
 				{
 					CAutoLock cAutoLock(&pPin->m_csQueue);
