@@ -63,9 +63,14 @@ public:
 	DWORD_PTR tag;
 	CStringW name, desc, mime;
 	CArray<BYTE> data;
-	CDSMResource() : mime(_T("application/octet-stream")), tag(0) {}
+	CDSMResource();
 	CDSMResource(LPCWSTR name, LPCWSTR desc, LPCWSTR mime, BYTE* pData, int len, DWORD_PTR tag = 0);
+	virtual ~CDSMResource();
 	void operator = (const CDSMResource& r);
+
+	// global access to all resources
+	static CCritSec m_csResources;
+	static CAtlMap<DWORD, CDSMResource*> m_resources;
 };
 
 class CDSMResourceBag : public IDSMResourceBag

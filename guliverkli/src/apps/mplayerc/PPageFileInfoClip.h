@@ -30,7 +30,6 @@ class CPPageFileInfoClip : public CPropertyPage
 
 private:
 	CComPtr<IFilterGraph> m_pFG;
-
 	HICON m_hIcon;
 
 public:

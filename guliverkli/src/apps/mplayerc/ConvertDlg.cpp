@@ -1,3 +1,24 @@
+/* 
+ *	Copyright (C) 2003-2005 Gabest
+ *	http://www.gabest.org
+ *
+ *  This Program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2, or (at your option)
+ *  any later version.
+ *   
+ *  This Program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ *  GNU General Public License for more details.
+ *   
+ *  You should have received a copy of the GNU General Public License
+ *  along with GNU Make; see the file COPYING.  If not, write to
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  http://www.gnu.org/copyleft/gpl.html
+ *
+ */
+
 // ConvertDlg.cpp : implementation file
 //
 
@@ -1174,23 +1195,15 @@ bool CConvertDlg::CTreeItemResourceFolder::ToolTip(CString& str)
 
 //
 
-CCritSec CConvertDlg::CTreeItemResource::m_csGlobalRes;
-CAtlMap<DWORD, CDSMResource*> CConvertDlg::CTreeItemResource::m_GlobalRes;
-
 CConvertDlg::CTreeItemResource::CTreeItemResource(const CDSMResource& res, CTreeCtrl& tree, HTREEITEM hTIParent)
 	: CTreeItem(tree, hTIParent)
 {
 	m_res = res;
 	Update();
-
-	CAutoLock cAutoLock(&m_csGlobalRes);
-	m_GlobalRes.SetAt((DWORD)&m_res, &m_res);
 }
 
 CConvertDlg::CTreeItemResource::~CTreeItemResource()
 {
-	CAutoLock cAutoLock(&m_csGlobalRes);
-	m_GlobalRes.RemoveKey((DWORD)&m_res);
 }
 
 void CConvertDlg::CTreeItemResource::Update()

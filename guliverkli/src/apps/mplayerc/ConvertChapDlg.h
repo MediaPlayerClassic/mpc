@@ -21,31 +21,25 @@
 
 #pragma once
 
-#include "PPageFileInfoClip.h"
-#include "PPageFileInfoDetails.h"
-#include "PPageFileInfoRes.h"
+// CConvertChapDlg dialog
 
-class CMainFrame;
-
-// CPPageFileInfoSheet
-
-class CPPageFileInfoSheet : public CPropertySheet
+class CConvertChapDlg : public CResizableDialog
 {
-	DECLARE_DYNAMIC(CPPageFileInfoSheet)
-
-private:
-	CPPageFileInfoClip m_clip;
-	CPPageFileInfoDetails m_details;
-	CPPageFileInfoRes m_res;
-
 public:
-	CPPageFileInfoSheet(CString fn, CMainFrame* pParentWnd);
-	virtual ~CPPageFileInfoSheet();
+	CConvertChapDlg(CWnd* pParent = NULL);   // standard constructor
+	virtual ~CConvertChapDlg();
+
+// Dialog Data
+	enum { IDD = IDD_CONVERTCHAPDIALOG };
+	CString m_time;
+	CString m_name;
 
 protected:
+	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV support
 	virtual BOOL OnInitDialog();
+	virtual void OnOK();
 
 	DECLARE_MESSAGE_MAP()
+public:
+	afx_msg void OnUpdateOK(CCmdUI* pCmdUI);
 };
-
-
