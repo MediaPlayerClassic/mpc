@@ -576,7 +576,7 @@ void CWebServer::OnRequest(CClientSocket* pClient, CStringA& hdr, CStringA& body
 		if(!sl.Find(_T("gzip"))) break;;
 
 		CHAR path[MAX_PATH], fn[MAX_PATH];
-		if(!GetTempPathA(MAX_PATH, path) || !GetTempFileNameA(path, "gz", 0, fn))
+		if(!GetTempPathA(MAX_PATH, path) || !GetTempFileNameA(path, "mpc_gz", 0, fn))
 			break;
 
 		gzFile gf = gzopen(fn, "wb9");

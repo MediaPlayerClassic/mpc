@@ -590,7 +590,7 @@ BOOL CMatroskaSplitterFilter::InstallFontFile(const void* data, UINT len)
 	// write the font to a temporary file
 	CFile f;
 	TCHAR path[MAX_PATH], fn[MAX_PATH];
-	if(!GetTempPath(MAX_PATH, path) || !GetTempFileName(path, _T("msf"), 0, fn))
+	if(!GetTempPath(MAX_PATH, path) || !GetTempFileName(path, _T("mpc_msf"), 0, fn))
 		return FALSE;
 
 	if(f.Open(fn, CFile::modeWrite))
