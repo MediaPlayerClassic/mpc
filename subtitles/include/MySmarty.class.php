@@ -30,12 +30,12 @@ class MySmarty extends Smarty
 		
 		global $ServerName;
 		$this->assign('ServerName', $ServerName);
+
+		@header('Content-Type: text/html; charset=UTF-8');
 	}
 
 	function display($resource_name, $cache_id = null, $compile_id = null)
 	{
-		@header('Content-Type: text/html; charset=UTF-8');
-		
 		Smarty::display($resource_name, $cache_id, $compile_id);
 	}
 }
