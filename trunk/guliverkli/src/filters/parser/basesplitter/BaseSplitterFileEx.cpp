@@ -452,11 +452,13 @@ bool CBaseSplitterFileEx::Read(mpahdr& h, int len, bool fAllowV25, CMediaType* p
 
 	static int freq[][4] = {{11025,0,22050,44100},{12000,0,24000,48000},{8000,0,16000,32000}};
 
+	bool l3ext = h.layer == 3 && !(h.version&1);
+
 	h.nSamplesPerSec = freq[h.freq][h.version];
 	h.FrameSize = h.layer == 1
 		? (12 * bitrate / h.nSamplesPerSec + h.padding) * 4
-		: (h.layer == 3 && !(h.version&1) ? 72 : 144) * bitrate / h.nSamplesPerSec + h.padding;
-	h.rtDuration = 10000000i64 * (h.layer == 1 ? 384 : 1152) / h.nSamplesPerSec / (1 << h.channels);
+		: (l3ext ? 72 : 144) * bitrate / h.nSamplesPerSec + h.padding;
+	h.rtDuration = 10000000i64 * (h.layer == 1 ? 384 : l3ext ? 576 : 1152) / h.nSamplesPerSec;// / (h.channels == 3 ? 1 : 2);
 	h.nBytesPerSec = bitrate / 8;
 
 	if(!pmt) return(true);
