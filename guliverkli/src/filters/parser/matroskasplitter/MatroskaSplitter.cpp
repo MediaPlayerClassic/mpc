@@ -151,7 +151,8 @@ HRESULT CMatroskaSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 
 	m_pFile.Free();
 	m_pPinMap.RemoveAll();
-	m_pTrackEntryMap.RemoveAll(); 
+	m_pTrackEntryMap.RemoveAll();
+	m_pOrderedTrackArray.RemoveAll();
 
 	m_pFile.Attach(new CMatroskaFile(pAsyncReader, hr));
 	if(!m_pFile) return E_OUTOFMEMORY;
@@ -534,7 +535,8 @@ HRESULT CMatroskaSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 			if(pPinOut)
 			{
 				m_pPinMap[(DWORD)pTE->TrackNumber] = pPinOut;
-				m_pTrackEntryMap[(DWORD)pTE->TrackNumber] = pTE;
+				m_pTrackEntryMap[(DWORD)pTE->TrackNumber] = pTE;				
+				m_pOrderedTrackArray.Add(pTE);
 				m_pOutputs.AddTail(pPinOut);
 			}
 		}
@@ -1135,18 +1137,13 @@ HRESULT CMatroskaSplitterOutputPin::DeliverBlock(MatroskaPacket* p)
 
 // ITrackInfo
 
-TrackEntry* GetTrackEntryFromMapAt(UINT aTrackIdx, CMap<DWORD, DWORD, MatroskaReader::TrackEntry*, MatroskaReader::TrackEntry*> &m_pTrackEntryMap)
+TrackEntry* CMatroskaSplitterFilter::GetTrackEntryAt(UINT aTrackIdx)
 {
-	if(aTrackIdx < 0 || aTrackIdx >= m_pTrackEntryMap.GetCount())
-		return NULL;
-
-	POSITION pos = m_pTrackEntryMap.GetStartPosition();
-	DWORD TrackNumber = 0;
-	TrackEntry* pTE = NULL;
-	for(int i = 0; i < m_pTrackEntryMap.GetCount() - aTrackIdx; i++)
-		m_pTrackEntryMap.GetNextAssoc(pos, TrackNumber, pTE);
-	return pTE;
+	if(aTrackIdx < 0 || aTrackIdx >= m_pOrderedTrackArray.GetCount())
+		return NULL;	
+	return m_pOrderedTrackArray[aTrackIdx];
 }
+
 
 STDMETHODIMP_(UINT) CMatroskaSplitterFilter::GetTrackCount()
 {	
@@ -1155,7 +1152,7 @@ STDMETHODIMP_(UINT) CMatroskaSplitterFilter::GetTrackCount()
 
 STDMETHODIMP_(BOOL) CMatroskaSplitterFilter::GetTrackInfo(UINT aTrackIdx, struct TrackElement* pStructureToFill)
 {
-	TrackEntry* pTE = GetTrackEntryFromMapAt(aTrackIdx,m_pTrackEntryMap);
+	TrackEntry* pTE = GetTrackEntryAt(aTrackIdx);
 	if(pTE == NULL)
 		return FALSE;
 
@@ -1173,7 +1170,7 @@ STDMETHODIMP_(BOOL) CMatroskaSplitterFilter::GetTrackInfo(UINT aTrackIdx, struct
 
 STDMETHODIMP_(BOOL) CMatroskaSplitterFilter::GetTrackExtendedInfo(UINT aTrackIdx, void* pStructureToFill)
 {
-	TrackEntry* pTE = GetTrackEntryFromMapAt(aTrackIdx,m_pTrackEntryMap);
+	TrackEntry* pTE = GetTrackEntryAt(aTrackIdx);
 	if(pTE == NULL)
 		return FALSE;
 
@@ -1202,7 +1199,7 @@ STDMETHODIMP_(BOOL) CMatroskaSplitterFilter::GetTrackExtendedInfo(UINT aTrackIdx
 
 STDMETHODIMP_(BSTR) CMatroskaSplitterFilter::GetTrackName(UINT aTrackIdx)
 {
-	TrackEntry* pTE = GetTrackEntryFromMapAt(aTrackIdx,m_pTrackEntryMap);
+	TrackEntry* pTE = GetTrackEntryAt(aTrackIdx);
 	if(pTE == NULL)
 		return NULL;
 	return pTE->Name.AllocSysString();
@@ -1210,7 +1207,7 @@ STDMETHODIMP_(BSTR) CMatroskaSplitterFilter::GetTrackName(UINT aTrackIdx)
 
 STDMETHODIMP_(BSTR) CMatroskaSplitterFilter::GetTrackCodecID(UINT aTrackIdx)
 {
-	TrackEntry* pTE = GetTrackEntryFromMapAt(aTrackIdx,m_pTrackEntryMap);
+	TrackEntry* pTE = GetTrackEntryAt(aTrackIdx);
 	if(pTE == NULL)
 		return NULL;
 	return pTE->CodecID.ToString().AllocSysString();
@@ -1218,7 +1215,7 @@ STDMETHODIMP_(BSTR) CMatroskaSplitterFilter::GetTrackCodecID(UINT aTrackIdx)
 
 STDMETHODIMP_(BSTR) CMatroskaSplitterFilter::GetTrackCodecName(UINT aTrackIdx)
 {
-	TrackEntry* pTE = GetTrackEntryFromMapAt(aTrackIdx,m_pTrackEntryMap);
+	TrackEntry* pTE = GetTrackEntryAt(aTrackIdx);
 	if(pTE == NULL)
 		return NULL;
 	return pTE->CodecName.AllocSysString();
@@ -1226,7 +1223,7 @@ STDMETHODIMP_(BSTR) CMatroskaSplitterFilter::GetTrackCodecName(UINT aTrackIdx)
 
 STDMETHODIMP_(BSTR) CMatroskaSplitterFilter::GetTrackCodecInfoURL(UINT aTrackIdx)
 {
-	TrackEntry* pTE = GetTrackEntryFromMapAt(aTrackIdx,m_pTrackEntryMap);
+	TrackEntry* pTE = GetTrackEntryAt(aTrackIdx);
 	if(pTE == NULL)
 		return NULL;
 	return pTE->CodecInfoURL.AllocSysString();
@@ -1234,7 +1231,7 @@ STDMETHODIMP_(BSTR) CMatroskaSplitterFilter::GetTrackCodecInfoURL(UINT aTrackIdx
 
 STDMETHODIMP_(BSTR) CMatroskaSplitterFilter::GetTrackCodecDownloadURL(UINT aTrackIdx)
 {
-	TrackEntry* pTE = GetTrackEntryFromMapAt(aTrackIdx,m_pTrackEntryMap);
+	TrackEntry* pTE = GetTrackEntryAt(aTrackIdx);
 	if(pTE == NULL)
 		return NULL;
 	return pTE->CodecDownloadURL.AllocSysString();

@@ -26,7 +26,6 @@
 #include <afxtempl.h>
 #include "MatroskaFile.h"
 #include "..\BaseSplitter\BaseSplitter.h"
-#include "..\..\..\..\include\ITrackInfo.h"
 
 class MatroskaPacket : public Packet
 {
@@ -73,6 +72,8 @@ protected:
 	HRESULT CreateOutputs(IAsyncReader* pAsyncReader);
 
 	CMap<DWORD, DWORD, MatroskaReader::TrackEntry*, MatroskaReader::TrackEntry*> m_pTrackEntryMap;
+	CArray<MatroskaReader::TrackEntry* > m_pOrderedTrackArray;
+	MatroskaReader::TrackEntry* GetTrackEntryAt(UINT aTrackIdx);
 
 	REFERENCE_TIME m_rtOffset;
 
