@@ -200,14 +200,7 @@ STDMETHODIMP CBaseMuxerInputPin::Receive(IMediaSample* pSample)
 	pPacket->pData.SetSize(len);
 	memcpy(pPacket->pData.GetData(), pData, len);
 
-	if(m_mt.formattype == FORMAT_WaveFormatEx 
-	&& (((WAVEFORMATEX*)m_mt.pbFormat)->wFormatTag == WAVE_FORMAT_PCM
-	|| ((WAVEFORMATEX*)m_mt.pbFormat)->wFormatTag == WAVE_FORMAT_MPEGLAYER3))
-	{
-		pPacket->flags |= MuxerPacket::syncpoint; // HACK: some capture filters don't set this
-	}
-
-	if(S_OK == pSample->IsSyncPoint())
+	if(S_OK == pSample->IsSyncPoint() || m_mt.majortype == MEDIATYPE_Audio && !m_mt.bTemporalCompression)
 	{
 		pPacket->flags |= MuxerPacket::syncpoint;
 	}
