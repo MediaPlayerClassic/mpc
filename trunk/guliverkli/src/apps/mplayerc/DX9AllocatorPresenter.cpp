@@ -513,13 +513,12 @@ STDMETHODIMP_(bool) CDX9AllocatorPresenter::Paint(bool fAll)
 
 					if(diff >= 10*60*CLOCKS_PER_SEC) start = stop; // reset after 10 min (ps float has its limits in both range and accuracy)
 
-					float fConstData[] = 
+					float fConstData[][4] = 
 					{
-						(float)m_NativeVideoSize.cx, (float)m_NativeVideoSize.cy, 
-						(float)(counter++), (float)diff / CLOCKS_PER_SEC
+						{(float)m_NativeVideoSize.cx, (float)m_NativeVideoSize.cy, (float)(counter++), (float)diff / CLOCKS_PER_SEC},
 					};
 
-					hr = m_pD3DDev->SetPixelShaderConstantF(0, fConstData, countof(fConstData)/4);
+					hr = m_pD3DDev->SetPixelShaderConstantF(0, (float*)fConstData, countof(fConstData));
 					hr = m_pD3DDev->SetPixelShader(m_pPixelShader);
 				}
 

@@ -136,6 +136,7 @@ private:
 	CList<CTreeItem*> m_pTIs;
 
 	void AddFile(CString fn);
+	bool SetOutputFile(LPCTSTR fn);
 	void AddFilter(HTREEITEM hTI, IBaseFilter* pBF);
 	void DeleteFilter(IBaseFilter* pBF);
 	void DeleteItem(HTREEITEM hTI);
