@@ -282,10 +282,10 @@ HRESULT CMatroskaSourceFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 						mts.InsertAt(0, mt);
 					}
 				}
-				else if(CodecID.Find("V_REAL/RV40") == 0) // TODO: handle rv*0
+				else if(CodecID.Find("V_REAL/RV") == 0)
 				{
 					mt.majortype = MEDIATYPE_Video;
-					mt.subtype = FOURCCMap('04VR');
+					mt.subtype = FOURCCMap('00VR' + ((CodecID[9]-0x30)<<16));
 					mt.formattype = FORMAT_VideoInfo;
 					VIDEOINFOHEADER* pvih = (VIDEOINFOHEADER*)mt.AllocFormatBuffer(sizeof(VIDEOINFOHEADER) + pTE->CodecPrivate.GetCount());
 					memset(mt.Format(), 0, mt.FormatLength());
@@ -293,7 +293,7 @@ HRESULT CMatroskaSourceFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 					pvih->bmiHeader.biSize = sizeof(pvih->bmiHeader);
 					pvih->bmiHeader.biWidth = (LONG)pTE->v.PixelWidth;
 					pvih->bmiHeader.biHeight = (LONG)pTE->v.PixelHeight;
-					pvih->bmiHeader.biCompression = '04VR';
+					pvih->bmiHeader.biCompression = mt.subtype.Data1;
 					if(pTE->v.FramePerSec > 0) 
 						pvih->AvgTimePerFrame = (REFERENCE_TIME)(10000000i64 / pTE->v.FramePerSec);
 					else if(pTE->DefaultDuration > 0)
@@ -440,6 +440,14 @@ HRESULT CMatroskaSourceFilter::CreateOutputs(IAsyncReader* pAsyncReader)
    
 					pExtra[0] = ((profile + 1) << 3) | ((srate_idx & 0xe) >> 1);
 					pExtra[1] = ((srate_idx & 0x1) << 7) | ((BYTE)pTE->a.Channels << 3);
+
+					mts.Add(mt);
+				}
+				else if(CodecID.Find("A_REAL/") == 0 && CodecID.GetLength() >= 11)
+				{
+					mt.subtype = FOURCCMap((DWORD)CodecID[7]|((DWORD)CodecID[8]<<8)|((DWORD)CodecID[9]<<16)|((DWORD)CodecID[10]<<24));
+					BYTE* p = mt.ReallocFormatBuffer(sizeof(WAVEFORMATEX) + pTE->CodecPrivate.GetCount());
+					memcpy(p + sizeof(WAVEFORMATEX), pTE->CodecPrivate.GetData(), pTE->CodecPrivate.GetCount());
 
 					mts.Add(mt);
 				}

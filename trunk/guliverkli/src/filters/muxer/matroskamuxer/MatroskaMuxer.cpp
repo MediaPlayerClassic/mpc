@@ -688,12 +688,19 @@ STDMETHODIMP CMatroskaMuxerInputPin::NonDelegatingQueryInterface(REFIID riid, vo
 
 HRESULT CMatroskaMuxerInputPin::CheckMediaType(const CMediaType* pmt)
 {
-	return pmt->majortype == MEDIATYPE_Video && (pmt->formattype == FORMAT_VideoInfo || pmt->formattype == FORMAT_VideoInfo2)
+	return pmt->majortype == MEDIATYPE_Video && (pmt->formattype == FORMAT_VideoInfo 
+												|| pmt->formattype == FORMAT_VideoInfo2)
 //		|| pmt->majortype == MEDIATYPE_Video && pmt->subtype == MEDIASUBTYPE_MPEG1Payload && pmt->formattype == FORMAT_MPEGVideo
 //		|| pmt->majortype == MEDIATYPE_Video && pmt->subtype == MEDIASUBTYPE_MPEG2_VIDEO && pmt->formattype == FORMAT_MPEG2_VIDEO
 		|| pmt->majortype == MEDIATYPE_Audio && pmt->formattype == FORMAT_WaveFormatEx && pmt->subtype == FOURCCMap(((WAVEFORMATEX*)pmt->pbFormat)->wFormatTag)
 		|| pmt->majortype == MEDIATYPE_Audio && pmt->subtype == MEDIASUBTYPE_Vorbis && pmt->formattype == FORMAT_VorbisFormat
 		|| pmt->majortype == MEDIATYPE_Audio && pmt->subtype == MEDIASUBTYPE_Vorbis2 && pmt->formattype == FORMAT_VorbisFormat2
+		|| pmt->majortype == MEDIATYPE_Audio && (pmt->subtype == MEDIASUBTYPE_14_4 
+												|| pmt->subtype == MEDIASUBTYPE_28_8
+												|| pmt->subtype == MEDIASUBTYPE_ATRC
+												|| pmt->subtype == MEDIASUBTYPE_COOK
+												|| pmt->subtype == MEDIASUBTYPE_DNET
+												|| pmt->subtype == MEDIASUBTYPE_SIPR) && pmt->formattype == FORMAT_WaveFormatEx
 		|| pmt->majortype == MEDIATYPE_Text && pmt->subtype == MEDIASUBTYPE_NULL && pmt->formattype == FORMAT_None
 		|| pmt->majortype == MEDIATYPE_Subtitle && pmt->formattype == FORMAT_SubtitleInfo
 		? S_OK
@@ -738,9 +745,11 @@ HRESULT CMatroskaMuxerInputPin::CompleteConnect(IPin* pPin)
 	{
 		m_pTE->TrackType.Set(TrackEntry::TypeVideo);
 
-		if(m_mt.formattype == FORMAT_VideoInfo && m_mt.subtype == FOURCCMap('04VR'))
+		if(m_mt.formattype == FORMAT_VideoInfo 
+		&& m_mt.subtype == FOURCCMap('01VR') || m_mt.subtype == FOURCCMap('02VR') || m_mt.subtype == FOURCCMap('03VR') || m_mt.subtype == FOURCCMap('04VR'))
 		{
-			m_pTE->CodecID.Set("V_REAL/RV40");
+			m_pTE->CodecID.Set("V_REAL/RV00");
+			m_pTE->CodecID[9] = m_mt.subtype.Data1>>16;
 
 			VIDEOINFOHEADER* vih = (VIDEOINFOHEADER*)m_mt.pbFormat;
 			if(m_mt.cbFormat > sizeof(VIDEOINFOHEADER))
@@ -875,7 +884,38 @@ HRESULT CMatroskaMuxerInputPin::CompleteConnect(IPin* pPin)
 			m_pTE->a.BitDepth.Set(wfe->wBitsPerSample);
 
 			hr = S_OK;
-		}			
+		}
+		else if(m_mt.formattype == FORMAT_WaveFormatEx 
+		&& (m_mt.subtype == MEDIASUBTYPE_14_4
+		|| m_mt.subtype == MEDIASUBTYPE_28_8
+		|| m_mt.subtype == MEDIASUBTYPE_ATRC
+		|| m_mt.subtype == MEDIASUBTYPE_COOK
+		|| m_mt.subtype == MEDIASUBTYPE_DNET
+		|| m_mt.subtype == MEDIASUBTYPE_SIPR))
+		{
+			CStringA id;
+			id.Format("A_REAL/%c%c%c%c", 
+				(char)((m_mt.subtype.Data1>>0)&0xff),
+				(char)((m_mt.subtype.Data1>>8)&0xff),
+				(char)((m_mt.subtype.Data1>>16)&0xff),
+				(char)((m_mt.subtype.Data1>>24)&0xff));
+
+			m_pTE->CodecID.Set(id);
+
+			WAVEFORMATEX* wfe = (WAVEFORMATEX*)m_mt.pbFormat;
+			DWORD cbSize = sizeof(WAVEFORMATEX) + wfe->cbSize;
+			if(m_mt.cbFormat > cbSize)
+			{
+			m_pTE->CodecPrivate.SetSize(m_mt.cbFormat - cbSize);
+			memcpy(m_pTE->CodecPrivate, m_mt.pbFormat + cbSize, m_pTE->CodecPrivate.GetSize());
+			}
+			m_pTE->DescType = TrackEntry::DescAudio;
+			m_pTE->a.SamplingFrequency.Set((float)wfe->nSamplesPerSec);
+			m_pTE->a.Channels.Set(wfe->nChannels);
+			m_pTE->a.BitDepth.Set(wfe->wBitsPerSample);
+
+			hr = S_OK;
+		}
 		else if(m_mt.formattype == FORMAT_WaveFormatEx)
 		{
 			m_pTE->CodecID.Set("A_MS/ACM");
