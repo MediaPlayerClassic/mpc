@@ -22,11 +22,12 @@
 #pragma once
 
 enum SampleFormat {SF_PCM16, SF_PCM24, SF_PCM32, SF_FLOAT32};
+enum {AAC_ASIS, AAC_STEREO};
 
 [uuid("2067C60F-752F-4EBD-B0B1-4CBC5E00741C")]
 interface IMpaDecFilter : public IUnknown
 {
-	enum enctype {ac3, dts};
+	enum enctype {ac3, dts, aac, etlast};
 
 	STDMETHOD(SetSampleFormat(SampleFormat sf)) = 0;
 	STDMETHOD_(SampleFormat, GetSampleFormat()) = 0;
@@ -36,4 +37,6 @@ interface IMpaDecFilter : public IUnknown
 	STDMETHOD_(int, GetSpeakerConfig(enctype et)) = 0;
 	STDMETHOD(SetDynamicRangeControl(enctype et, bool fDRC)) = 0;
 	STDMETHOD_(bool, GetDynamicRangeControl(enctype et)) = 0;
+	STDMETHOD(SetBoost(float boost)) = 0;
+	STDMETHOD_(float, GetBoost()) = 0;
 };

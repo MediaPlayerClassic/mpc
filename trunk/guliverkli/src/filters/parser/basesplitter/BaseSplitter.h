@@ -11,12 +11,12 @@ class Packet
 {
 public:
 	DWORD TrackNumber;
-	BOOL bDiscontinuity, bSyncPoint;
-	static const REFERENCE_TIME INVALID_TIME = ~0;
+	BOOL bDiscontinuity, bSyncPoint, bAppendable;
+	static const REFERENCE_TIME INVALID_TIME = _I64_MIN;
 	REFERENCE_TIME rtStart, rtStop;
 	CArray<BYTE> pData;
 	AM_MEDIA_TYPE* pmt;
-	Packet() {pmt = NULL; bDiscontinuity = FALSE;}
+	Packet() {pmt = NULL; bDiscontinuity = bAppendable = FALSE;}
 	virtual ~Packet() {if(pmt) DeleteMediaType(pmt);}
 	virtual int GetSize() {return pData.GetSize();}
 };
@@ -24,45 +24,12 @@ public:
 class CPacketQueue : public CCritSec, protected CAutoPtrList<Packet>
 {
 	int m_size;
-
 public:
-	CPacketQueue() : m_size(0) {}
-
-	void Add(CAutoPtr<Packet> p)
-	{
-		CAutoLock cAutoLock(this);
-		if(p) m_size += p->GetSize();
-		AddTail(p);
-	}
-
-	CAutoPtr<Packet> Remove()
-	{
-		CAutoLock cAutoLock(this);
-		ASSERT(__super::GetCount() > 0);
-		CAutoPtr<Packet> p = RemoveHead();
-		if(p) m_size -= p->GetSize();
-		return p;
-	}
-
-	void RemoveAll()
-	{
-		CAutoLock cAutoLock(this);
-		m_size = 0;
-		__super::RemoveAll();
-	}
-
-	int GetCount()
-	{
-		CAutoLock cAutoLock(this); 
-		return __super::GetCount();
-	}
-	
-	int GetSize()
-	{
-		CAutoLock cAutoLock(this); 
-		return m_size;
-	}
-
+	CPacketQueue();
+	void Add(CAutoPtr<Packet> p);
+	CAutoPtr<Packet> Remove();
+	void RemoveAll();
+	int GetCount(), GetSize();
 };
 
 [uuid("7D55F67A-826E-40B9-8A7D-3DF0CBBD272D")]
@@ -171,7 +138,7 @@ private:
     HRESULT Deliver(IMediaSample* pSample);
 
 protected:
-	REFERENCE_TIME m_rtStart;
+	REFERENCE_TIME m_rtStart, m_rtPrev, m_rtOffset;
 
 	// override this if you need some second level stream specific demuxing (optional)
 	// the default implementation will send the sample as is
@@ -295,7 +262,7 @@ protected:
 	// ... and also override all these too
 	virtual bool InitDeliverLoop() = 0;
 	virtual void SeekDeliverLoop(REFERENCE_TIME rt) = 0;
-	virtual void DoDeliverLoop() = 0;
+	virtual bool DoDeliverLoop() = 0;
 
 protected:
 	enum mctype {AuthorName, Title, Rating, Description, Copyright, MCLast};

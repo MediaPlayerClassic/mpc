@@ -359,6 +359,21 @@ CGraphBuilder::CGraphBuilder(IGraphBuilder* pGB, HWND hWnd)
 	}
 
 	{
+		guids.AddTail(MEDIATYPE_DVD_ENCRYPTED_PACK);
+		guids.AddTail(MEDIASUBTYPE_AAC);
+		guids.AddTail(MEDIATYPE_MPEG2_PACK);
+		guids.AddTail(MEDIASUBTYPE_AAC);
+		guids.AddTail(MEDIATYPE_MPEG2_PES);
+		guids.AddTail(MEDIASUBTYPE_AAC);
+		guids.AddTail(MEDIATYPE_Audio);
+		guids.AddTail(MEDIASUBTYPE_AAC);
+		AddFilter(new CGraphCustomFilter(__uuidof(CMpaDecFilter), guids, 
+			(s.TraFilters&TRA_AAC) ? L"AAC Decoder" : L"AAC Decoder (low merit)",
+			(s.TraFilters&TRA_AAC) ? LMERIT_ABOVE_DSHOW+1 : LMERIT_DO_USE));
+		guids.RemoveAll();
+	}
+
+	{
 		guids.AddTail(MEDIATYPE_Video);
 		guids.AddTail(MEDIASUBTYPE_RV10);
 		guids.AddTail(MEDIATYPE_Video);
@@ -440,13 +455,13 @@ CGraphBuilder::CGraphBuilder(IGraphBuilder* pGB, HWND hWnd)
 		case VIDRNDT_DS_NULL_COMP:
 			guids.AddTail(MEDIATYPE_Video);
 			guids.AddTail(MEDIASUBTYPE_NULL);
-			AddFilter(new CGraphCustomFilter(__uuidof(CNullVideoRenderer), guids, L"Null Video Renderer (Any)", LMERIT_ABOVE_DSHOW+1));
+			AddFilter(new CGraphCustomFilter(__uuidof(CNullVideoRenderer), guids, L"Null Video Renderer (Any)", LMERIT_ABOVE_DSHOW+2));
 			guids.RemoveAll();
 			break;
 		case VIDRNDT_DS_NULL_UNCOMP:
 			guids.AddTail(MEDIATYPE_Video);
 			guids.AddTail(MEDIASUBTYPE_NULL);
-			AddFilter(new CGraphCustomFilter(__uuidof(CNullUVideoRenderer), guids, L"Null Video Renderer (Uncompressed)", LMERIT_ABOVE_DSHOW+1));
+			AddFilter(new CGraphCustomFilter(__uuidof(CNullUVideoRenderer), guids, L"Null Video Renderer (Uncompressed)", LMERIT_ABOVE_DSHOW+2));
 			guids.RemoveAll();
 			break;
 	}
@@ -455,14 +470,14 @@ CGraphBuilder::CGraphBuilder(IGraphBuilder* pGB, HWND hWnd)
 	{
 		guids.AddTail(MEDIATYPE_Audio);
 		guids.AddTail(MEDIASUBTYPE_NULL);
-		AddFilter(new CGraphCustomFilter(__uuidof(CNullAudioRenderer), guids, AUDRNDT_NULL_COMP, LMERIT_ABOVE_DSHOW+1));
+		AddFilter(new CGraphCustomFilter(__uuidof(CNullAudioRenderer), guids, AUDRNDT_NULL_COMP, LMERIT_ABOVE_DSHOW+2));
 		guids.RemoveAll();
 	}
 	else if(s.AudioRendererDisplayName == AUDRNDT_NULL_UNCOMP)
 	{
 		guids.AddTail(MEDIATYPE_Audio);
 		guids.AddTail(MEDIASUBTYPE_NULL);
-		AddFilter(new CGraphCustomFilter(__uuidof(CNullUAudioRenderer), guids, AUDRNDT_NULL_UNCOMP, LMERIT_ABOVE_DSHOW+1));
+		AddFilter(new CGraphCustomFilter(__uuidof(CNullUAudioRenderer), guids, AUDRNDT_NULL_UNCOMP, LMERIT_ABOVE_DSHOW+2));
 		guids.RemoveAll();
 	}
 	else if(!s.AudioRendererDisplayName.IsEmpty())
@@ -507,8 +522,17 @@ CGraphBuilder::CGraphBuilder(IGraphBuilder* pGB, HWND hWnd)
 
 	guids.AddTail(MEDIATYPE_Text);
 	guids.AddTail(MEDIASUBTYPE_NULL);
+	guids.AddTail(MEDIATYPE_ScriptCommand);
+	guids.AddTail(MEDIASUBTYPE_NULL);
 	guids.AddTail(MEDIATYPE_Subtitle);
 	guids.AddTail(MEDIASUBTYPE_NULL);
+	guids.AddTail(MEDIATYPE_NULL);
+	guids.AddTail(MEDIASUBTYPE_DVD_SUBPICTURE);
+	guids.AddTail(MEDIATYPE_NULL);
+	guids.AddTail(MEDIASUBTYPE_CVD_SUBPICTURE);
+	guids.AddTail(MEDIATYPE_NULL);
+	guids.AddTail(MEDIASUBTYPE_SVCD_SUBPICTURE);
+
 	AddFilter(new CGraphCustomFilter(__uuidof(CNullTextRenderer), guids, L"NullTextRenderer", LMERIT_DO_USE));
 	guids.RemoveAll();
 
@@ -1192,9 +1216,29 @@ HRESULT CGraphBuilder::Render(IPin* pPin)
 			}
 		}
 
-		if(CComQIPtr<IMpeg2DecFilter> pMpeg2DecFilter = pBF)
+		if(CComQIPtr<IMpeg2DecFilter> m_pMpeg2DecFilter = pBF)
 		{
-			pMpeg2DecFilter->EnablePlanarYUV(AfxGetAppSettings().mpegplanaryuv);
+			AppSettings& s = AfxGetAppSettings();
+			m_pMpeg2DecFilter->SetDeinterlaceMethod((ditype)s.mpegdi);
+			m_pMpeg2DecFilter->SetBrightness(s.mpegbright);
+			m_pMpeg2DecFilter->SetContrast(s.mpegcont);
+			m_pMpeg2DecFilter->SetHue(s.mpeghue);
+			m_pMpeg2DecFilter->SetSaturation(s.mpegsat);
+			m_pMpeg2DecFilter->EnableForcedSubtitles(s.mpegforcedsubs);
+			m_pMpeg2DecFilter->EnablePlanarYUV(s.mpegplanaryuv);
+		}
+
+		if(CComQIPtr<IMpaDecFilter> m_pMpaDecFilter = pBF)
+		{
+			AppSettings& s = AfxGetAppSettings();
+			m_pMpaDecFilter->SetSampleFormat((SampleFormat)s.mpasf);
+			m_pMpaDecFilter->SetNormalize(s.mpanormalize);
+			m_pMpaDecFilter->SetSpeakerConfig(IMpaDecFilter::ac3, s.ac3sc);
+			m_pMpaDecFilter->SetDynamicRangeControl(IMpaDecFilter::ac3, s.ac3drc);
+			m_pMpaDecFilter->SetSpeakerConfig(IMpaDecFilter::dts, s.dtssc);
+			m_pMpaDecFilter->SetDynamicRangeControl(IMpaDecFilter::dts, s.dtsdrc);
+			m_pMpaDecFilter->SetSpeakerConfig(IMpaDecFilter::aac, s.aacsc);
+			m_pMpaDecFilter->SetBoost(s.mpaboost);
 		}
 
 		HRESULT hr = E_FAIL;

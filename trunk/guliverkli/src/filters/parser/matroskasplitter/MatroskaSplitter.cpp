@@ -848,7 +848,7 @@ void CMatroskaSplitterFilter::SeekDeliverLoop(REFERENCE_TIME rt)
 	}
 }
 
-void CMatroskaSplitterFilter::DoDeliverLoop()
+bool CMatroskaSplitterFilter::DoDeliverLoop()
 {
 	HRESULT hr = S_OK;
 	
@@ -897,6 +897,8 @@ void CMatroskaSplitterFilter::DoDeliverLoop()
 	while(m_pCluster->Next(true) && SUCCEEDED(hr) && !CheckRequest(NULL));
 
 	m_pCluster.Free();
+
+	return(true);
 }
 
 // IMediaSeeking

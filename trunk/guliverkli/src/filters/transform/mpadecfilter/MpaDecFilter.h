@@ -26,10 +26,21 @@
 #include "libmad-0.15.0b\msvc++\mad.h"
 #include "a52dec-0.7.4\vc++\inttypes.h"
 #include "a52dec-0.7.4\include\a52.h"
-//#include "dtsdec-0.0.1\vc++\inttypes.h"
 #include "dtsdec-0.0.1\include\dts.h"
+// #include "faad2\include\neaacdec.h" // conflicts with dxtrans.h
 #include "..\..\..\decss\DeCSSInputPin.h"
 #include "IMpaDecFilter.h"
+
+struct aac_state_t
+{
+	void* h; // NeAACDecHandle h;
+	DWORD freq;
+	BYTE channels;
+
+	aac_state_t();
+	~aac_state_t();
+	bool init(CMediaType& mt);
+};
 
 [uuid("3D446B6F-71DE-4437-BE15-8CE47174340F")]
 class CMpaDecFilter : public CTransformFilter, public IMpaDecFilter
@@ -38,12 +49,11 @@ protected:
 	CCritSec m_csReceive;
 
 	a52_state_t* m_a52_state;
-
 	dts_state_t* m_dts_state;
-
-	struct mad_stream m_stream;
-	struct mad_frame m_frame;
-	struct mad_synth m_synth;
+	aac_state_t m_aac_state;
+	mad_stream m_stream;
+	mad_frame m_frame;
+	mad_synth m_synth;
 
 	CArray<BYTE> m_buff;
 	REFERENCE_TIME m_rtStart;
@@ -54,6 +64,7 @@ protected:
 	HRESULT ProcessLPCM();
 	HRESULT ProcessAC3();
 	HRESULT ProcessDTS();
+	HRESULT ProcessAAC();
 	HRESULT ProcessMPA();
 
 	HRESULT GetDeliveryBuffer(IMediaSample** pSample, BYTE** pData);
@@ -65,8 +76,9 @@ protected:
 	CCritSec m_csProps;
 	SampleFormat m_iSampleFormat;
 	bool m_fNormalize;
-	int m_iAc3SpeakerConfig, m_iDtsSpeakerConfig;
-	bool m_fAc3DynamicRangeControl, m_fDtsDynamicRangeControl;
+	int m_iSpeakerConfig[etlast];
+	bool m_fDynamicRangeControl[etlast];
+	float m_boost;
 
 public:
 	CMpaDecFilter(LPUNKNOWN lpunk, HRESULT* phr);
@@ -103,6 +115,8 @@ public:
 	STDMETHODIMP_(int) GetSpeakerConfig(enctype et);
 	STDMETHODIMP SetDynamicRangeControl(enctype et, bool fDRC);
 	STDMETHODIMP_(bool) GetDynamicRangeControl(enctype et);
+	STDMETHODIMP SetBoost(float boost);
+	STDMETHODIMP_(float) GetBoost();
 };
 
 class CMpaDecInputPin : public CDeCSSInputPin

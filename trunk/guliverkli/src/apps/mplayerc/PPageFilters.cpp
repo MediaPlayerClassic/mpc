@@ -52,9 +52,10 @@ CPPageFilters::CPPageFilters()
 	, m_mpa(FALSE)
 	, m_radgt(FALSE)
 	, m_ogg(FALSE)
+	, m_lpcm(FALSE)
 	, m_ac3(FALSE)
 	, m_dts(FALSE)
-	, m_lpcm(FALSE)
+	, m_aac(FALSE)
 	, m_nut(FALSE)
 {
 }
@@ -88,6 +89,7 @@ void CPPageFilters::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_CHECK_LPCM, m_lpcm);
 	DDX_Check(pDX, IDC_CHECK_AC3, m_ac3);
 	DDX_Check(pDX, IDC_CHECK_DTS, m_dts);
+	DDX_Check(pDX, IDC_CHECK_AAC, m_aac);
 	DDX_Check(pDX, IDC_CHECK_NUT, m_nut);
 }
 
@@ -125,6 +127,7 @@ BOOL CPPageFilters::OnInitDialog()
 	m_lpcm = !!(s.TraFilters&TRA_LPCM);
 	m_ac3 = !!(s.TraFilters&TRA_AC3);
 	m_dts = !!(s.TraFilters&TRA_DTS);
+	m_aac = !!(s.TraFilters&TRA_AAC);
 	m_nut = !!(s.SrcFilters&SRC_NUT);
 
 	UpdateData(FALSE);
@@ -173,6 +176,7 @@ BOOL CPPageFilters::OnApply()
 	if(m_lpcm) s.TraFilters |= TRA_LPCM;
 	if(m_ac3) s.TraFilters |= TRA_AC3;
 	if(m_dts) s.TraFilters |= TRA_DTS;
+	if(m_aac) s.TraFilters |= TRA_AAC;
 	if(m_nut) s.SrcFilters |= SRC_NUT;
 
 	return __super::OnApply();

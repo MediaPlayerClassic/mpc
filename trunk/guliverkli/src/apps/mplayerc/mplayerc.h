@@ -91,7 +91,8 @@ enum
 	CLSW_UNREGEXTVID=CLSW_REGEXTAUD<<1,
 	CLSW_UNREGEXTAUD=CLSW_UNREGEXTVID<<1,
 	CLSW_STARTVALID=CLSW_UNREGEXTAUD<<1,
-	CLSW_UNRECOGNIZEDSWITCH=CLSW_STARTVALID<<1,
+	CLSW_NOFOCUS=CLSW_STARTVALID<<1,
+	CLSW_UNRECOGNIZEDSWITCH=CLSW_NOFOCUS<<1	
 };
 
 enum
@@ -161,7 +162,8 @@ enum
 	TRA_LPCM=TRA_MPEGAUD<<1,
 	TRA_AC3=TRA_LPCM<<1,
 	TRA_DTS=TRA_AC3<<1,
-	TRA_LAST=TRA_DTS<<1
+	TRA_AAC=TRA_DTS<<1,
+	TRA_LAST=TRA_AAC<<1
 };
 
 enum
@@ -426,12 +428,14 @@ public:
 
 		int mpasf;
 		bool mpanormalize;
-		int ac3sc, dtssc;
+		int ac3sc, dtssc, aacsc;
 		bool ac3drc, dtsdrc;
+		float mpaboost;
 
 		bool fHideCDROMsSubMenu;
 
 		DWORD priority;
+		bool launchfullscreen;
 
 		BOOL fEnableWebServer;
 		int nWebServerPort;

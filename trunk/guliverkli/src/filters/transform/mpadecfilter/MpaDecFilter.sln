@@ -6,6 +6,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MpaDecFilter", "MpaDecFilte
 		{F41A1760-85B4-4819-BEE5-E120D76C9994} = {F41A1760-85B4-4819-BEE5-E120D76C9994}
 		{FC70988B-1AE5-4381-866D-4F405E28AC42} = {FC70988B-1AE5-4381-866D-4F405E28AC42}
 		{62FE6D94-E17C-4A8E-8D3C-7A589A70D865} = {62FE6D94-E17C-4A8E-8D3C-7A589A70D865}
+		{5EFCFACB-1835-422C-ACDA-E3B3A2F51387} = {5EFCFACB-1835-422C-ACDA-E3B3A2F51387}
+		{54F609FD-A8CE-43CF-94AD-23E877B97C13} = {54F609FD-A8CE-43CF-94AD-23E877B97C13}
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "dsutil", "..\..\..\dsutil\dsutil.vcproj", "{FC70988B-1AE5-4381-866D-4F405E28AC42}"
@@ -29,6 +31,10 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "liba52", "a52dec-0.7.4\vc++
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libdts", "dtsdec-0.0.1\vc++\libdts.vcproj", "{54F609FD-A8CE-43CF-94AD-23E877B97C13}"
+	ProjectSection(ProjectDependencies) = postProject
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libfaad", "faad2\libfaad\libfaad.vcproj", "{5EFCFACB-1835-422C-ACDA-E3B3A2F51387}"
 	ProjectSection(ProjectDependencies) = postProject
 	EndProjectSection
 EndProject
@@ -156,6 +162,22 @@ Global
 		{54F609FD-A8CE-43CF-94AD-23E877B97C13}.Release Unicode.Build.0 = Release|Win32
 		{54F609FD-A8CE-43CF-94AD-23E877B97C13}.Release Unicode lib.ActiveCfg = Release|Win32
 		{54F609FD-A8CE-43CF-94AD-23E877B97C13}.Release Unicode lib.Build.0 = Release|Win32
+		{5EFCFACB-1835-422C-ACDA-E3B3A2F51387}.Debug.ActiveCfg = Debug|Win32
+		{5EFCFACB-1835-422C-ACDA-E3B3A2F51387}.Debug.Build.0 = Debug|Win32
+		{5EFCFACB-1835-422C-ACDA-E3B3A2F51387}.Debug lib.ActiveCfg = Debug|Win32
+		{5EFCFACB-1835-422C-ACDA-E3B3A2F51387}.Debug lib.Build.0 = Debug|Win32
+		{5EFCFACB-1835-422C-ACDA-E3B3A2F51387}.Debug Unicode.ActiveCfg = Debug|Win32
+		{5EFCFACB-1835-422C-ACDA-E3B3A2F51387}.Debug Unicode.Build.0 = Debug|Win32
+		{5EFCFACB-1835-422C-ACDA-E3B3A2F51387}.Debug Unicode lib.ActiveCfg = Debug|Win32
+		{5EFCFACB-1835-422C-ACDA-E3B3A2F51387}.Debug Unicode lib.Build.0 = Debug|Win32
+		{5EFCFACB-1835-422C-ACDA-E3B3A2F51387}.Release.ActiveCfg = Release|Win32
+		{5EFCFACB-1835-422C-ACDA-E3B3A2F51387}.Release.Build.0 = Release|Win32
+		{5EFCFACB-1835-422C-ACDA-E3B3A2F51387}.Release lib.ActiveCfg = Release|Win32
+		{5EFCFACB-1835-422C-ACDA-E3B3A2F51387}.Release lib.Build.0 = Release|Win32
+		{5EFCFACB-1835-422C-ACDA-E3B3A2F51387}.Release Unicode.ActiveCfg = Release|Win32
+		{5EFCFACB-1835-422C-ACDA-E3B3A2F51387}.Release Unicode.Build.0 = Release|Win32
+		{5EFCFACB-1835-422C-ACDA-E3B3A2F51387}.Release Unicode lib.ActiveCfg = Release|Win32
+		{5EFCFACB-1835-422C-ACDA-E3B3A2F51387}.Release Unicode lib.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 	EndGlobalSection

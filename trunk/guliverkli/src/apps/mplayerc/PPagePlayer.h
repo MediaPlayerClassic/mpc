@@ -47,6 +47,7 @@ public:
 	BOOL m_fKeepHistory;
 	BOOL m_fHideCDROMsSubMenu;
 	BOOL m_priority;
+	BOOL m_launchfullscreen;
 
 // Dialog Data
 	enum { IDD = IDD_PPAGEPLAYER };
@@ -61,5 +62,4 @@ protected:
 public:
 	afx_msg void OnBnClickedCheck8();
 	afx_msg void OnUpdateTimeout(CCmdUI* pCmdUI);
-
 };

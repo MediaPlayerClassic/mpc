@@ -223,7 +223,7 @@ void CNutSplitterFilter::SeekDeliverLoop(REFERENCE_TIME rt)
 	}
 }
 
-void CNutSplitterFilter::DoDeliverLoop()
+bool CNutSplitterFilter::DoDeliverLoop()
 {
 	bool fKeyFrame = false;
 
@@ -350,6 +350,8 @@ TRACE(_T("[%I64d]: %I64d:%I64d\n"), stream_id, sh->msb_timestamp, lsb_timestamp)
 
 		m_pFile->Seek(ph.pos + ph.fptr);
 	}
+
+	return(true);
 }
 
 // IMediaSeeking

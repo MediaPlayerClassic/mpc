@@ -107,6 +107,7 @@ public:
 	HRESULT StartStreaming();
 	HRESULT StopStreaming();
 
+	bool m_fDropFrames;
 	HRESULT AlterQuality(Quality q);
 
 protected:

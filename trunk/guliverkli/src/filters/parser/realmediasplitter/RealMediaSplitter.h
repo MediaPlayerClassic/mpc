@@ -196,7 +196,7 @@ protected:
 
 	bool InitDeliverLoop();
 	void SeekDeliverLoop(REFERENCE_TIME rt);
-	void DoDeliverLoop();
+	bool DoDeliverLoop();
 
 	POSITION m_seekpos;
 	UINT32 m_seekpacket;

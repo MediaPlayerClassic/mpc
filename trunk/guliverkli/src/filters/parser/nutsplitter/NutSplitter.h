@@ -38,7 +38,7 @@ protected:
 
 	bool InitDeliverLoop();
 	void SeekDeliverLoop(REFERENCE_TIME rt);
-	void DoDeliverLoop();
+	bool DoDeliverLoop();
 
 public:
 	CNutSplitterFilter(LPUNKNOWN pUnk, HRESULT* phr);

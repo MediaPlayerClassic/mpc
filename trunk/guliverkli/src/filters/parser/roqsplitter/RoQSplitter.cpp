@@ -338,9 +338,9 @@ void CRoQSplitterFilter::SeekDeliverLoop(REFERENCE_TIME rt)
 	}
 }
 
-void CRoQSplitterFilter::DoDeliverLoop()
+bool CRoQSplitterFilter::DoDeliverLoop()
 {
-	if(!m_indexpos) return;
+	if(!m_indexpos) return(true);
 
 	index& i = m_index.GetAt(m_indexpos);
 
@@ -392,6 +392,8 @@ void CRoQSplitterFilter::DoDeliverLoop()
 
 		pos += rc.size;
 	}
+
+	return(true);
 }
 
 //

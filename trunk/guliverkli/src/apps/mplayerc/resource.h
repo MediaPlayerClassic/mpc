@@ -192,6 +192,8 @@
 #define IDF_1PIX_GIF                    360
 #define IDR_FILE1                       362
 #define IDF_SLIDERBACK_GIF              362
+#define IDB_LOGO7                       364
+#define IDI_ICON2                       365
 #define IDS_R_SETTINGS                  500
 #define IDS_RS_CONTROLSTATE             501
 #define IDS_RS_VOLUME                   502
@@ -314,6 +316,9 @@
 #define IDS_RS_SNAPSHOTPATH             613
 #define IDS_RS_PRIORITY                 614
 #define IDS_RS_SNAPSHOTEXT              615
+#define IDS_RS_LAUNCHFULLSCREEN         616
+#define IDS_RS_MPABOOST                 617
+#define IDS_RS_AACSC                    618
 #define IDC_BROWSEBUTTON                1016
 #define IDC_BROWSEBUTTON2               1017
 #define IDC_COMBO1                      1018
@@ -489,6 +494,8 @@
 #define IDC_CHECK_DTS                   1152
 #define IDC_CHECK_NUT                   1153
 #define IDC_CHECK_MPG                   1154
+#define IDC_CHECK_AAC                   1155
+#define IDC_AUTHOR                      1156
 #define IDD_COMPROPERTYPAGE             10002
 #define ID_DUMMYSEPARATOR               32768
 #define ID_VOLUME_MUTE_ON               32769
@@ -578,9 +585,9 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        363
+#define _APS_NEXT_RESOURCE_VALUE        366
 #define _APS_NEXT_COMMAND_VALUE         32833
-#define _APS_NEXT_CONTROL_VALUE         1155
+#define _APS_NEXT_CONTROL_VALUE         1157
 #define _APS_NEXT_SYMED_VALUE           10003
 #endif
 #endif
