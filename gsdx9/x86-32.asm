@@ -42,13 +42,15 @@ _ticks endp
 			
 _SaturateColor_sse2 proc public
 
+	mov			eax, [esp+4]
+
 	pxor		xmm0, xmm0
-	movaps		xmm1, [esp+4]
+	movaps		xmm1, [eax]
 	packssdw	xmm1, xmm0
 	packuswb	xmm1, xmm0
 	punpcklbw	xmm1, xmm0
 	punpcklwd	xmm1, xmm0
-	movaps		[esp+4], xmm1
+	movaps		[eax], xmm1
 
 	ret
 
