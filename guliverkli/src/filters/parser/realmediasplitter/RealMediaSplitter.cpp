@@ -270,8 +270,9 @@ HRESULT CRealMediaSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 				pvih2->bmiHeader = bmi;
 				pvih2->bmiHeader.biWidth = (DWORD)pmp->width;
 				pvih2->bmiHeader.biHeight = (DWORD)pmp->height;
-				pvih2->dwPictAspectRatioX = bmi.biWidth;
-				pvih2->dwPictAspectRatioY = bmi.biHeight;
+				pvih2->dwPictAspectRatioX = rvi.w;
+				pvih2->dwPictAspectRatioY = rvi.h;
+
 				mts.InsertAt(0, mt);
 			}
 		}
@@ -1132,6 +1133,7 @@ HRESULT CRMFile::Init()
 				mp->typeSpecData.SetSize(tsdlen);
 				if(tsdlen > 0 && S_OK != (hr = Read(mp->typeSpecData.GetData(), tsdlen))) return hr;
 				mp->width = mp->height = 0;
+				mp->interlaced = mp->top_field_first = false;
 				m_mps.AddTail(mp);
 				break;
 				}
@@ -1409,16 +1411,13 @@ void CRMFile::GetDimensions()
 
 				if(len > 0)
 				{
-					bool interlaced, top_field_first, repeat_field;
-					/* todo: implement handling of interlaced */
+					bool repeat_field;
+					if(rvi.fcc2 == '14VR') ::GetDimensions_X10(p, &pmp->width, &pmp->height, &pmp->interlaced, &pmp->top_field_first, &repeat_field);
+					else ::GetDimensions(p, &pmp->width, &pmp->height);
 
-					if (rvi.fcc2 == '14VR')
-						::GetDimensions_X10(p, &pmp->width, &pmp->height, 
-							&interlaced, &top_field_first, &repeat_field);						
-					else
-						::GetDimensions(p, &pmp->width, &pmp->height);
 					if(rvi.w == pmp->width && rvi.h == pmp->height)
 						pmp->width = pmp->height = 0;
+
 					break;
 				}
 			}
@@ -1527,12 +1526,16 @@ HRESULT CRealVideoDecoder::Transform(IMediaSample* pIn)
 
 	rtStart += m_tStart;
 
+	int offset = 1+((*pDataIn)+1)*8;
+
 	#pragma pack(push, 1)
 	struct {DWORD len, unk1, chunks; DWORD* extra; DWORD unk2, timestamp;} transform_in = 
-		{len - (1+((*pDataIn)+1)*8), 0, *pDataIn, (DWORD*)(pDataIn+1), 0, (DWORD)(rtStart/10000)};
+		{len - offset, 0, *pDataIn, (DWORD*)(pDataIn+1), 0, (DWORD)(rtStart/10000)};
 	struct {DWORD unk1, unk2, timestamp, w, h;} transform_out = 
 		{0,0,0,0,0};
 	#pragma pack(pop)
+
+	pDataIn += offset;
 
 	if(m_fDropFrames && m_timestamp+1 == transform_in.timestamp)
 	{
@@ -1540,7 +1543,11 @@ HRESULT CRealVideoDecoder::Transform(IMediaSample* pIn)
 		return S_OK;
 	}
 
-	hr = RVTransform(pDataIn + (1+((*pDataIn)+1)*8), (BYTE*)m_pI420, &transform_in, &transform_out, m_dwCookie);
+	hr = RVTransform(pDataIn, (BYTE*)m_pI420, &transform_in, &transform_out, m_dwCookie);
+
+	unsigned int tmp1, tmp2;
+	bool interlaced = false, tmp3, tmp4;
+	::GetDimensions_X10(pDataIn, &tmp1, &tmp2, &interlaced, &tmp3, &tmp4);
 
 	m_timestamp = transform_in.timestamp;
 
@@ -1561,24 +1568,32 @@ HRESULT CRealVideoDecoder::Transform(IMediaSample* pIn)
 	|| FAILED(hr = pOut->GetPointer(&pDataOut)))
 		return hr;
 
-	rtStart = 10000i64*transform_out.timestamp - m_tStart;
-	rtStop = rtStart + 1;
-	pOut->SetTime(&rtStart, /*NULL*/&rtStop);
-	pOut->SetMediaTime(NULL, NULL);
+	BYTE* pI420[3] = {m_pI420, m_pI420Tmp, NULL};
 
-	pOut->SetDiscontinuity(pIn->IsDiscontinuity() == S_OK);
-
-	BYTE* pI420 = m_pI420;
+	if(interlaced)
+	{
+		int size = m_w*m_h;
+		DeinterlaceBlend(pI420[1], pI420[0], m_w, m_h, m_w);
+		DeinterlaceBlend(pI420[1]+size, pI420[0]+size, m_w/2, m_h/2, m_w/2);
+		DeinterlaceBlend(pI420[1]+size*5/4, pI420[0]+size*5/4, m_w/2, m_h/2, m_w/2);
+		pI420[2] = pI420[1], pI420[1] = pI420[0], pI420[0] = pI420[2];
+	}
 
 	if(transform_out.w != m_w || transform_out.h != m_h)
 	{
-		Resize(pI420, transform_out.w, transform_out.h, m_pI420Tmp, m_w, m_h);
-
+		Resize(pI420[0], transform_out.w, transform_out.h, pI420[1], m_w, m_h);
 		// only one of these can be true, and when it happens the result image must be in the tmp buffer
-		if(transform_out.w == m_w || transform_out.h == m_h) pI420 = m_pI420Tmp; 
+		if(transform_out.w == m_w || transform_out.h == m_h)
+			pI420[2] = pI420[1], pI420[1] = pI420[0], pI420[0] = pI420[2];
 	}
 
-	CopyBuffer(pDataOut, pI420, m_w, m_h, m_w, MEDIASUBTYPE_I420);
+	rtStart = 10000i64*transform_out.timestamp - m_tStart;
+	rtStop = rtStart + 1;
+	pOut->SetTime(&rtStart, /*NULL*/&rtStop);
+
+	pOut->SetDiscontinuity(pIn->IsDiscontinuity() == S_OK);
+
+	CopyBuffer(pDataOut, pI420[0], m_w, m_h, m_w, MEDIASUBTYPE_I420);
 
 DbgLog((LOG_TRACE, 0, _T("V: rtStart=%I64d, rtStop=%I64d, disc=%d, sync=%d"), 
 	   rtStart, rtStop, pOut->IsDiscontinuity() == S_OK, pOut->IsSyncPoint() == S_OK));
@@ -1769,7 +1784,8 @@ HRESULT CRealVideoDecoder::CheckTransform(const CMediaType* mtIn, const CMediaTy
 
 HRESULT CRealVideoDecoder::StartStreaming()
 {
-	if(FAILED(InitRV(&m_pInput->CurrentMediaType())))
+	const CMediaType& mt = m_pInput->CurrentMediaType();
+	if(FAILED(InitRV(&mt)))
 		return E_FAIL;
 
 	int size = m_w*m_h;
