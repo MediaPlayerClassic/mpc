@@ -234,7 +234,7 @@ if(isset($_POST['update']) || isset($_POST['submit']))
 		
 		$sub = @file_get_contents($_FILES['sub']['tmp_name'][$i]);
 		$db_sub = addslashes(gzcompress($sub, 9));
-		$db_name = addslashes(basename($_FILES['sub']['name'][$i]));
+		$db_name = addslashes(basename(stripslashes($_FILES['sub']['name'][$i])));
 		$db_hash = md5($sub);
 		$db_mime = addslashes($_FILES['sub']['type'][$i]);
 		$format_sel = getParam('format_sel', $i); // TODO: verify this
