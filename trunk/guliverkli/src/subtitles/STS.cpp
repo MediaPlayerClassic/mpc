@@ -1826,6 +1826,7 @@ void CSimpleTextSubtitle::Add(CStringW str, bool fUnicode, int start, int end, C
 	str.Remove('\r');
 	str.Replace(L"\n", L"\\N");
 	if(style.IsEmpty()) style = _T("Default");
+	style.TrimLeft('*');
 
 	STSEntry sub;
 	sub.str = str;
@@ -2272,6 +2273,7 @@ int CSimpleTextSubtitle::TranslateSegmentEnd(int i, double fps)
 STSStyle* CSimpleTextSubtitle::GetStyle(int i)
 {
 	STSStyle* style = (STSStyle*)m_styles[GetAt(i).style];
+	if(!style) style = (STSStyle*)m_styles[_T("Default")];
 	ASSERT(style);
 	return(style);
 }

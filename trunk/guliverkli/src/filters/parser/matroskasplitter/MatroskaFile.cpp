@@ -23,6 +23,19 @@
 #include "MatroskaFile.h"
 #include "..\..\..\DSUtil\DSUtil.h"
 
+static void LOG(LPCTSTR fmt, ...)
+{
+	va_list args;
+	va_start(args, fmt);
+	if(FILE* f = _tfopen(_T("c:\\matroskasplitterlog.txt"), _T("at")))
+	{
+		fseek(f, 0, 2);
+		_vftprintf(f, fmt, args);
+		fclose(f);
+	}
+	va_end(args);
+}
+
 using namespace MatroskaReader;
 
 #define BeginChunk	\
@@ -56,6 +69,7 @@ static void bswap(BYTE* s, int len)
 CMatroskaFile::CMatroskaFile(IAsyncReader* pAsyncReader, HRESULT& hr) 
 	: m_pAsyncReader(pAsyncReader)
 	, m_pos(0), m_length(0)
+	, m_cachepos(0), m_cachelen(0)
 {
 	if(!pAsyncReader)
 	{
@@ -98,7 +112,7 @@ QWORD CMatroskaFile::GetLength()
 HRESULT CMatroskaFile::SeekTo(QWORD pos)
 {
 	CheckPointer(m_pAsyncReader, E_NOINTERFACE);
-//	if(m_pos > pos) TRACE(_T("SeekTo: %I64d\n"), pos);
+//	if(m_pos != pos) LOG(_T("SeekTo [%I64d] -> [%I64d]\n"), m_pos, pos);
 	m_pos = pos;
 	return S_OK;
 }
@@ -115,8 +129,50 @@ HRESULT CMatroskaFile::Read(BYTE* pData, QWORD len)
 {
 	CheckPointer(m_pAsyncReader, E_NOINTERFACE);
 	ASSERT(len <= LONG_MAX);
-	HRESULT hr = m_pAsyncReader->SyncRead(m_pos, (LONG)len, pData);
-	if(S_OK == hr) m_pos += len;
+
+	HRESULT hr = S_OK;
+
+	if(m_cachepos <= m_pos && m_pos < m_cachepos+m_cachelen)
+	{
+		QWORD minlen = min(len, m_cachelen - (m_pos-m_cachepos));
+		memcpy(pData, &m_cache[m_pos - m_cachepos], (size_t)minlen);
+
+		len -= minlen;
+		m_pos += minlen;
+		pData += minlen;
+	}
+
+	while(len > sizeof(m_cache))
+	{
+//LOG(_T("Read [%I64d] <-> [%I64d]\n"), m_pos, m_pos+sizeof(m_cache));
+		hr = m_pAsyncReader->SyncRead(m_pos, sizeof(m_cache), pData);
+		if(S_OK != hr) return hr;
+
+		len -= sizeof(m_cache);
+		m_pos += sizeof(m_cache);
+		pData += sizeof(m_cache);
+	}
+
+	while(len > 0)
+	{
+		QWORD maxlen = min(m_length - m_pos, sizeof(m_cache));
+		QWORD minlen = min(len, maxlen);
+//LOG(_T("Read [%I64d] <-> [%I64d]\n"), m_pos, m_pos+maxlen);
+		hr = m_pAsyncReader->SyncRead(m_pos, (LONG)maxlen, m_cache);
+		if(S_OK != hr) return hr;
+
+		m_cachepos = m_pos;
+		m_cachelen = maxlen;
+
+		memcpy(pData, m_cache, (size_t)minlen);
+		len -= minlen;
+		m_pos += minlen;
+		pData += minlen;
+	}
+
+//	HRESULT hr = m_pAsyncReader->SyncRead(m_pos, (LONG)len, pData);
+//LOG(_T("Read [%I64d] <-> [%I64d]\n"), m_pos, m_pos+len);
+//	if(S_OK == hr) m_pos += len;
 	return hr;
 }
 
@@ -187,7 +243,7 @@ HRESULT Segment::ParseMinimal(CMatroskaNode* pMN0)
 	{
 		pMN->SeekTo(pos);
 		pMN->Parse();
-		ASSERT(pMN->m_id == 0x114D9B74);
+		if(pMN->m_id != 0x114D9B74) {ASSERT(0); break;}
 		MetaSeekInfo.Parse(pMN);
 	}
 

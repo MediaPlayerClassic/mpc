@@ -60,7 +60,51 @@ CCpuID g_cpuid;
 
 void memcpy_accel(void* dst, const void* src, size_t len)
 {
-	if(g_cpuid.m_flags & CCpuID::flag_t::mmx)
+	if((g_cpuid.m_flags & CCpuID::flag_t::ssefpu) && len >= 128)
+	{
+		__asm
+		{
+			mov     esi, dword ptr [src]
+			mov     edi, dword ptr [dst]
+			mov     ecx, len
+			shr     ecx, 7
+	memcpy_accel_sse_loop:
+			prefetchnta	[esi]
+			movaps		xmm0, [esi]
+			movaps		xmm1, [esi+16*1]
+			movaps		xmm2, [esi+16*2]
+			movaps		xmm3, [esi+16*3]
+			movaps		xmm4, [esi+16*4]
+			movaps		xmm5, [esi+16*5]
+			movaps		xmm6, [esi+16*6]
+			movaps		xmm7, [esi+16*7]
+			movntps		[edi], xmm0
+			movntps		[edi+16*1], xmm1
+			movntps		[edi+16*2], xmm2
+			movntps		[edi+16*3], xmm3
+			movntps		[edi+16*4], xmm4
+			movntps		[edi+16*5], xmm5
+			movntps		[edi+16*6], xmm6
+			movntps		[edi+16*7], xmm7
+			add			esi, 128
+			add			edi, 128
+			loop	memcpy_accel_sse_loop
+			mov     ecx, len
+			and     ecx, 127
+			cmp     ecx, 0
+			je		memcpy_accel_sse_end
+	memcpy_accel_sse_loop2:
+			mov		dl, byte ptr[esi] 
+			mov		byte ptr[edi], dl
+			inc		esi
+			inc		edi
+			dec		ecx
+			jne		memcpy_accel_sse_loop2
+	memcpy_accel_sse_end:
+			sfence
+		}
+	}
+	else if((g_cpuid.m_flags & CCpuID::flag_t::mmx) && len >= 64)
 	{
 		__asm 
 		{
@@ -68,38 +112,38 @@ void memcpy_accel(void* dst, const void* src, size_t len)
 			mov     edi, dword ptr [dst]
 			mov     ecx, len
 			shr     ecx, 6
-	memcpy_accel_loop:
-			movq    mm0, qword ptr[esi]
-			movq    mm1, qword ptr[esi+8*1]
-			movq    mm2, qword ptr[esi+8*2]
-			movq    mm3, qword ptr[esi+8*3]
-			movq    mm4, qword ptr[esi+8*4]
-			movq    mm5, qword ptr[esi+8*5]
-			movq    mm6, qword ptr[esi+8*6]
-			movq    mm7, qword ptr[esi+8*7]
-			movq    qword ptr[edi], mm0
-			movq    qword ptr[edi+8*1], mm1
-			movq    qword ptr[edi+8*2], mm2
-			movq    qword ptr[edi+8*3], mm3
-			movq    qword ptr[edi+8*4], mm4
-			movq    qword ptr[edi+8*5], mm5
-			movq    qword ptr[edi+8*6], mm6
-			movq    qword ptr[edi+8*7], mm7
+	memcpy_accel_mmx_loop:
+			movq    mm0, qword ptr [esi]
+			movq    mm1, qword ptr [esi+8*1]
+			movq    mm2, qword ptr [esi+8*2]
+			movq    mm3, qword ptr [esi+8*3]
+			movq    mm4, qword ptr [esi+8*4]
+			movq    mm5, qword ptr [esi+8*5]
+			movq    mm6, qword ptr [esi+8*6]
+			movq    mm7, qword ptr [esi+8*7]
+			movq    qword ptr [edi], mm0
+			movq    qword ptr [edi+8*1], mm1
+			movq    qword ptr [edi+8*2], mm2
+			movq    qword ptr [edi+8*3], mm3
+			movq    qword ptr [edi+8*4], mm4
+			movq    qword ptr [edi+8*5], mm5
+			movq    qword ptr [edi+8*6], mm6
+			movq    qword ptr [edi+8*7], mm7
 			add     esi, 64
 			add     edi, 64
-			loop	memcpy_accel_loop
+			loop	memcpy_accel_mmx_loop
 			mov     ecx, len
 			and     ecx, 63
 			cmp     ecx, 0
-			je		memcpy_accel_end
-	memcpy_accel_loop2:
-			mov		dl, byte ptr[esi] 
-			mov		byte ptr[edi], dl
+			je		memcpy_accel_mmx_end
+	memcpy_accel_mmx_loop2:
+			mov		dl, byte ptr [esi] 
+			mov		byte ptr [edi], dl
 			inc		esi
 			inc		edi
 			dec		ecx
-			jne		memcpy_accel_loop2
-	memcpy_accel_end:
+			jne		memcpy_accel_mmx_loop2
+	memcpy_accel_mmx_end:
 			emms
 		}
 	}
