@@ -33,6 +33,8 @@ class CTextPassThruFilter : public CTransformFilter
 
 	void SetName();
 
+	CCritSec m_csReceive;
+
 public:
 	CTextPassThruFilter(CMainFrame* pMainFrame);
 	virtual ~CTextPassThruFilter();

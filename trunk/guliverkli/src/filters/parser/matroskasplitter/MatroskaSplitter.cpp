@@ -611,7 +611,7 @@ void CMatroskaSourceFilter::SendFakeTextSample()
 			{
 				CAutoPtr<Block> b(new Block());
 				b->TrackNumber.Set(pTE->TrackNumber);
-				b->TimeCode.Set(m_rtStart);
+				b->TimeCode.Set(-1);
 				b->BlockDuration.Set(1);
 				CAutoPtr<CBinary> data(new CBinary());
 				data->SetSize(2);

@@ -550,7 +550,12 @@ DWORD CSubPicQueue::ThreadProc()
 			REFERENCE_TIME rtInvalidate = m_rtInvalidate;
 
 			while(GetCount() && GetTail()->GetStop() > rtInvalidate)
-				RemoveTail();
+			{
+				if(GetTail()->GetStart() < rtInvalidate)
+					GetTail()->SetStop(rtInvalidate);
+				else
+					RemoveTail();
+			}
 
 			m_fBreakBuffering = false;
 		}

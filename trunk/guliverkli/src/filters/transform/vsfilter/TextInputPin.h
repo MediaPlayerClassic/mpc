@@ -30,12 +30,15 @@ class CTextInputPin : public CBaseInputPin
 	CCritSec* m_pSubLock;
 	CComPtr<ISubStream> m_pSubStream;
 
+	CCritSec m_csReceive;
+
 public:
     CTextInputPin(CDirectVobSubFilter* pFilter, CCritSec* pLock, CCritSec* pSubLock, HRESULT* phr);
 
     HRESULT CheckMediaType(const CMediaType* pmt);
 	HRESULT CompleteConnect(IPin* pReceivePin);
 	HRESULT BreakConnect();
+    STDMETHODIMP NewSegment(REFERENCE_TIME tStart, REFERENCE_TIME tStop, double dRate);
     STDMETHODIMP Receive(IMediaSample* pSample);
 
 	ISubStream* GetSubStream() {return m_pSubStream;}

@@ -187,7 +187,7 @@
 				Name="VCCustomBuildTool"/>
 			<Tool
 				Name="VCLinkerTool"
-				RegisterOutput="FALSE"
+				RegisterOutput="TRUE"
 				AdditionalOptions="/MACHINE:I386"
 				AdditionalDependencies="delayimp.lib strmbaseRU.lib dsutilRU.lib subtitlesRU.lib subpicRU.lib"
 				OutputFile="$(OutDir)/$(ProjectName).dll"
