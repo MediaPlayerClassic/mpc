@@ -119,8 +119,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 1,0,0,3
- PRODUCTVERSION 1,0,0,3
+ FILEVERSION 1,0,0,4
+ PRODUCTVERSION 1,0,0,4
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -138,12 +138,12 @@ BEGIN
             VALUE "Comments", "http://gabest.org/"
             VALUE "CompanyName", "Gabest"
             VALUE "FileDescription", "GS plugin for ps2 emulators"
-            VALUE "FileVersion", "1.0.0.3"
+            VALUE "FileVersion", "1.0.0.4"
             VALUE "InternalName", "GSdx9.dll"
             VALUE "LegalCopyright", "Copyright (c) 2004 Gabest.  All rights reserved."
             VALUE "OriginalFilename", "GSdx9.dll"
             VALUE "ProductName", "GSdx9"
-            VALUE "ProductVersion", "1.0.0.3"
+            VALUE "ProductVersion", "1.0.0.4"
         END
     END
     BLOCK "VarFileInfo"
@@ -151,31 +151,6 @@ BEGIN
         VALUE "Translation", 0x409, 1252
     END
 END
-
-
-/////////////////////////////////////////////////////////////////////////////
-//
-// RCDATA
-//
-
-IDR_PS11_TFX000      RCDATA             "res\\ps11_tfx000.psh"
-IDR_PS11_TFX010      RCDATA             "res\\ps11_tfx010.psh"
-IDR_PS11_TFX011      RCDATA             "res\\ps11_tfx011.psh"
-IDR_PS11_TFX1x1      RCDATA             "res\\ps11_tfx1x1.psh"
-IDR_PS11_TFX1x0      RCDATA             "res\\ps11_tfx1x0.psh"
-IDR_PS11_TFX200      RCDATA             "res\\ps11_tfx200.psh"
-IDR_PS11_TFX210      RCDATA             "res\\ps11_tfx210.psh"
-IDR_PS11_TFX211      RCDATA             "res\\ps11_tfx211.psh"
-IDR_PS11_TFX300      RCDATA             "res\\ps11_tfx300.psh"
-IDR_PS11_TFX310      RCDATA             "res\\ps11_tfx310.psh"
-IDR_PS11_TFX311      RCDATA             "res\\ps11_tfx311.psh"
-IDR_PS11_TFX4xx      RCDATA             "res\\ps11_tfx4xx.psh"
-IDR_PS11_EN11        RCDATA             "res\\ps11_en11.psh"
-IDR_PS11_EN01        RCDATA             "res\\ps11_en01.psh"
-IDR_PS11_EN10        RCDATA             "res\\ps11_en10.psh"
-IDR_PS11_EN00        RCDATA             "res\\ps11_en00.psh"
-IDR_PS20_TFX         RCDATA             "res\\ps20_tfx.fx"
-IDR_PS20_MERGE       RCDATA             "res\\ps20_merge.fx"
 
 #endif    // English (U.S.) resources
 /////////////////////////////////////////////////////////////////////////////

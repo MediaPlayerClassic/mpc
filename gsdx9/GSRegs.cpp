@@ -37,42 +37,41 @@ void GSState::GIFPackedRegHandlerPRIM(GIFPackedReg* r)
 	GIFRegHandlerPRIM(&r2);
 }
 
-void GSState::GIFPackedRegHandlerRGBAQ(GIFPackedReg* r)
+void GSState::GIFPackedRegHandlerRGBA(GIFPackedReg* r)
 {
-	LOG((_T("Packed ")));
-	GIFReg r2;
-	r2.RGBAQ.R = r->RGBA.R;
-	r2.RGBAQ.G = r->RGBA.G;
-	r2.RGBAQ.B = r->RGBA.B;
-	r2.RGBAQ.A = r->RGBA.A;
-	r2.RGBAQ.Q = m_v.RGBAQ.Q;
-	GIFRegHandlerRGBAQ(&r2);
+	LOG((_T("Packed RGBA(R=%x G=%x B=%x A=%x)\n"),
+		r->RGBA.R,
+		r->RGBA.G,
+		r->RGBA.B,
+		r->RGBA.A));
+
+	m_v.RGBAQ.R = r->RGBA.R;
+	m_v.RGBAQ.G = r->RGBA.G;
+	m_v.RGBAQ.B = r->RGBA.B;
+	m_v.RGBAQ.A = r->RGBA.A;
 }
 
-void GSState::GIFPackedRegHandlerST(GIFPackedReg* r)
+void GSState::GIFPackedRegHandlerSTQ(GIFPackedReg* r)
 {
-	LOG((_T("Packed ")));
-	GIFReg r2;
-	r2.ST.S = r->STQ.S;
-	r2.ST.T = r->STQ.T;
-	GIFRegHandlerST(&r2);
+	LOG((_T("Packed STQ(S=%.4f T=%.4f, Q=%.4f)\n"), 
+		r->STQ.S,
+		r->STQ.T,
+		r->STQ.Q));
+
+	m_v.ST.S = r->STQ.S;
+	m_v.ST.T = r->STQ.T;
 	// for some reason only ST would have to be saved here (eeuser_e.pdf p154), but not in reality...
-	LOG((_T("Packed ")));
-	r2.RGBAQ.R = m_v.RGBAQ.R;
-	r2.RGBAQ.G = m_v.RGBAQ.G;
-	r2.RGBAQ.B = m_v.RGBAQ.B;
-	r2.RGBAQ.A = m_v.RGBAQ.A;
-	r2.RGBAQ.Q = r->STQ.Q;
-	GIFRegHandlerRGBAQ(&r2);
+	m_v.RGBAQ.Q = r->STQ.Q;
 }
 
 void GSState::GIFPackedRegHandlerUV(GIFPackedReg* r)
 {
-	LOG((_T("Packed ")));
-	GIFReg r2;
-	r2.UV.U = r->UV.U;
-	r2.UV.V = r->UV.V;
-	GIFRegHandlerUV(&r2);
+	LOG((_T("Packed UV(U=%.4f V=%.4f)\n"), 
+		(float)r->UV.U/16,
+		(float)r->UV.V/16));
+
+	m_v.UV.U = r->UV.U;
+	m_v.UV.V = r->UV.V;
 }
 
 void GSState::GIFPackedRegHandlerXYZF2(GIFPackedReg* r)
@@ -122,10 +121,10 @@ void GSState::GIFPackedRegHandlerCLAMP_2(GIFPackedReg* r)
 
 void GSState::GIFPackedRegHandlerFOG(GIFPackedReg* r)
 {
-	LOG((_T("Packed ")));
-	GIFReg r2;
-	r2.FOG.F = r->FOG.F;
-	GIFRegHandlerFOG(&r2);
+	LOG((_T("Packed FOG(F=%x)\n"),
+		r->FOG.F));
+
+	m_v.FOG.F = r->FOG.F;
 }
 
 void GSState::GIFPackedRegHandlerXYZF3(GIFPackedReg* r)

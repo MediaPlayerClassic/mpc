@@ -440,7 +440,7 @@ void GSRendererSoft<VERTEX>::DrawVertex(int x, int y, VERTEX& v)
 		}
 	}
 
-#ifdef USE_SIMD
+#if _M_IX86_FP >= 2
 	SaturateColor(RGBAf);
 #else
 	SaturateColor(&Cf[0]);
@@ -631,9 +631,15 @@ return;
 	p->m_pTexture = m_pTexture = new DWORD[tw*th];
 
 	DWORD* dst = m_pTexture;
+
 	for(int j = 0; j < th; j++)
 		for(int i = 0; i < tw; i++)
 			*dst++ = (m_lm.*m_ctxt->rt)(i, j, m_ctxt->TEX0, m_de.TEXA);
+/*
+//	TODO: unSwizzleTexture* to ABGR
+	GSLocalMemory::unSwizzleTexture st = m_lm.GetUnSwizzleTexture(m_ctxt->TEX0.PSM);
+	(m_lm.*st)(tw, th, (BYTE*)dst, tw*4, m_ctxt->TEX0, m_de.TEXA);
+*/
 
 	m_tc.AddHead(p);
 }
@@ -1166,8 +1172,10 @@ void GSRendererSoftFX::DrawVertex(int x, int y, GSSoftVertex& v)
 		__int64 tv = (v.v << 16 << m_ctxt->TEX0.TH) / v.q;
 
 		// TODO
-/*		float lod = m_ctxt->TEX1.K;
-		if(!m_ctxt->TEX1.LCM) lod += (int)(-log((float)v.q/INT_MAX)/log(2.0f)) << m_ctxt->TEX1.L;
+/*		static const float log_2 = log(2.0f);
+		float lod = m_ctxt->TEX1.K;
+		//if(!m_ctxt->TEX1.LCM) lod += (int)(-log((float)v.q/INT_MAX)/log_2) << m_ctxt->TEX1.L;
+		if(!m_ctxt->TEX1.LCM) lod += (int)(-log((float)v.q) / log_2 + 31) << m_ctxt->TEX1.L;
 */
 		DWORD ftu = (tu&0xffff) >> 1, iftu = (1<<15) - ftu;
 		DWORD ftv = (tv&0xffff) >> 1, iftv = (1<<15) - ftv;
@@ -1206,7 +1214,7 @@ void GSRendererSoftFX::DrawVertex(int x, int y, GSSoftVertex& v)
 		DWORD c[4];
 		WORD Bt, Gt, Rt, At;
 
-		//if((lod <= 0 ? m_ctxt->TEX1.MMAG : m_ctxt->TEX1.MMIN) & 1)
+//		if((lod <= 0 ? m_ctxt->TEX1.MMAG : m_ctxt->TEX1.MMIN) & 1)
 		{
 			if(m_pTexture)
 			{
@@ -1234,7 +1242,7 @@ void GSRendererSoftFX::DrawVertex(int x, int y, GSSoftVertex& v)
 			At = (WORD)(iuiv*((c[0]>>24)&0xff) + uiv*((c[1]>>24)&0xff) + iuv*((c[2]>>24)&0xff) + uv*((c[3]>>24)&0xff) >> 15);
 		}
 		/*
-		else 
+		else
 		{
 			if(m_pTexture)
 			{
@@ -1281,7 +1289,7 @@ void GSRendererSoftFX::DrawVertex(int x, int y, GSSoftVertex& v)
 		}
 	}
 
-#ifdef USE_SIMD
+#if _M_IX86_FP >= 2
 	SaturateColor(RGBAf);
 #else
 	SaturateColor(&Cf[0]);

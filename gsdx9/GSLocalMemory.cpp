@@ -27,37 +27,37 @@
 #include "StdAfx.h"
 #include "GSLocalMemory.h"
 
-__forceinline static DWORD From24To32(DWORD c, BYTE TCC, BYTE AEM, BYTE TA0, BYTE TA1, BYTE* bbt)
+__forceinline static DWORD From24To32(DWORD c, BYTE TCC, GIFRegTEXA& TEXA, BYTE* bbt)
 {
 //	BYTE A = TEX0.TCC == 0 ? 0x80 : (!TEXA.AEM|c[0]|c[1]|c[2]) ? TEXA.TA0 : 0;
 	BYTE MASK1 = bbt[TCC]; // TEX0.TCC
-	BYTE MASK2 = bbt[!AEM|(c&0xff)|((c>>8)&0xff)|((c>>16)&0xff)];
-	BYTE A = (~MASK1 & 0x80) | (MASK1 & (MASK2 & TA0));
+	BYTE MASK2 = bbt[!TEXA.AEM|(c&0xff)|((c>>8)&0xff)|((c>>16)&0xff)];
+	BYTE A = (~MASK1 & 0x80) | (MASK1 & (MASK2 & TEXA.TA0));
 	return (A<<24) | (c&0x00ffffff);
 }
 
-__forceinline static DWORD From16To32(WORD c, BYTE AEM, BYTE TA0, BYTE TA1, BYTE* bbt)
+__forceinline static DWORD From16To32(WORD c, GIFRegTEXA& TEXA, BYTE* bbt)
 {
 //	BYTE A = (c[1]&0x80) ? TEXA.TA1 : (!TEXA.AEM|c[0]|c[1]) ? TEXA.TA0 : 0;
 	BYTE MASK1 = bbt[c>>15];
-	BYTE MASK2 = bbt[!AEM|(c&0xff)|((c>>8)&0x7f)];
-	BYTE A = (MASK1 & TA1) | (~MASK1 & (MASK2 & TA0));
+	BYTE MASK2 = bbt[!TEXA.AEM|(c&0xff)|((c>>8)&0x7f)];
+	BYTE A = (MASK1 & TEXA.TA1) | (~MASK1 & (MASK2 & TEXA.TA0));
 	return (A << 24) | ((c&0x7c00) << 9) | ((c&0x03e0) << 6) | ((c&0x001f) << 3);
 }
 
-__forceinline static DWORD From24To32ARGB(DWORD c, BYTE TCC, BYTE AEM, BYTE TA0, BYTE TA1, BYTE* bbt)
+__forceinline static DWORD From24To32ARGB(DWORD c, BYTE TCC, GIFRegTEXA& TEXA, BYTE* bbt)
 {
 	BYTE MASK1 = bbt[TCC]; // TEX0.TCC
-	BYTE MASK2 = bbt[!AEM|(c&0xff)|((c>>8)&0xff)|((c>>16)&0xff)];
-	BYTE A = (~MASK1 & 0x80) | (MASK1 & (MASK2 & TA0));
+	BYTE MASK2 = bbt[!TEXA.AEM|(c&0xff)|((c>>8)&0xff)|((c>>16)&0xff)];
+	BYTE A = (~MASK1 & 0x80) | (MASK1 & (MASK2 & TEXA.TA0));
 	return (A<<24) | ((c&0x00ff0000)>>16) | (c&0x0000ff00) | ((c&0x000000ff)<<16);
 }
 
-__forceinline static DWORD From16To32ARGB(WORD c, BYTE AEM, BYTE TA0, BYTE TA1, BYTE* bbt)
+__forceinline static DWORD From16To32ARGB(WORD c, GIFRegTEXA& TEXA, BYTE* bbt)
 {
 	BYTE MASK1 = bbt[c>>15];
-	BYTE MASK2 = bbt[!AEM|(c&0xff)|((c>>8)&0x7f)];
-	BYTE A = (MASK1 & TA1) | (~MASK1 & (MASK2 & TA0));
+	BYTE MASK2 = bbt[!TEXA.AEM|(c&0xff)|((c>>8)&0x7f)];
+	BYTE A = (MASK1 & TEXA.TA1) | (~MASK1 & (MASK2 & TEXA.TA0));
 	return (A << 24) | ((c&0x7c00) >> 7) | ((c&0x03e0) << 6) | ((c&0x001f) << 19);
 }
 
@@ -691,17 +691,17 @@ DWORD GSLocalMemory::readTexel32(int x, int y, GIFRegTEX0& TEX0, GIFRegTEXA& TEX
 
 DWORD GSLocalMemory::readTexel24(int x, int y, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA)
 {
-	return From24To32(m_vm32[pixelAddress32(x, y, TEX0.TBP0, TEX0.TBW)], TEX0.ai32[1]&4, TEXA.AEM, TEXA.TA0, TEXA.TA1, m_bbt);
+	return From24To32(m_vm32[pixelAddress32(x, y, TEX0.TBP0, TEX0.TBW)], TEX0.ai32[1]&4, TEXA, m_bbt);
 }
 
 DWORD GSLocalMemory::readTexel16(int x, int y, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA)
 {
-	return From16To32(m_vm16[pixelAddress16(x, y, TEX0.TBP0, TEX0.TBW)], TEXA.AEM, TEXA.TA0, TEXA.TA1, m_bbt);
+	return From16To32(m_vm16[pixelAddress16(x, y, TEX0.TBP0, TEX0.TBW)], TEXA, m_bbt);
 }
 
 DWORD GSLocalMemory::readTexel16S(int x, int y, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA)
 {
-	return From16To32(m_vm16[pixelAddress16S(x, y, TEX0.TBP0, TEX0.TBW)], TEXA.AEM, TEXA.TA0, TEXA.TA1, m_bbt);
+	return From16To32(m_vm16[pixelAddress16S(x, y, TEX0.TBP0, TEX0.TBW)], TEXA, m_bbt);
 }
 
 DWORD GSLocalMemory::readTexel8(int x, int y, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA)
@@ -974,17 +974,17 @@ DWORD GSLocalMemory::readTexel32(int x, int y, DWORD addr, GIFRegTEX0& TEX0, GIF
 
 DWORD GSLocalMemory::readTexel24(int x, int y, DWORD addr, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA)
 {
-	return From24To32(m_vm32[addr], TEX0.ai32[1]&4, TEXA.AEM, TEXA.TA0, TEXA.TA1, m_bbt);
+	return From24To32(m_vm32[addr], TEX0.ai32[1]&4, TEXA, m_bbt);
 }
 
 DWORD GSLocalMemory::readTexel16(int x, int y, DWORD addr, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA)
 {
-	return From16To32(m_vm16[addr], TEXA.AEM, TEXA.TA0, TEXA.TA1, m_bbt);
+	return From16To32(m_vm16[addr], TEXA, m_bbt);
 }
 
 DWORD GSLocalMemory::readTexel16S(int x, int y, DWORD addr, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA)
 {
-	return From16To32(m_vm16[addr], TEXA.AEM, TEXA.TA0, TEXA.TA1, m_bbt);
+	return From16To32(m_vm16[addr], TEXA, m_bbt);
 }
 
 DWORD GSLocalMemory::readTexel8(int x, int y, DWORD addr, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA)
@@ -1184,7 +1184,7 @@ bool GSLocalMemory::FillRect(CRect& r, DWORD c, DWORD psm, DWORD fbp, DWORD fbw)
 
 void GSLocalMemory::unSwizzleBlock32(BYTE* src, BYTE* dst, int dstpitch)
 {
-#ifdef USE_SIMD
+#if _M_IX86_FP >= 2
 	__asm
 	{
 		mov			esi, src
@@ -1231,7 +1231,7 @@ void GSLocalMemory::unSwizzleBlock16(BYTE* src, BYTE* dst, int dstpitch)
 		for(int i = 0; i < 16; i++)
             src[j*16 + i] = columnTable16[j][i];
 */
-#ifdef USE_SIMD
+#if _M_IX86_FP >= 2
 	__asm
 	{
 		mov			esi, src
@@ -1301,7 +1301,7 @@ void GSLocalMemory::unSwizzleBlock8(BYTE* src, BYTE* dst, int dstpitch)
 		for(int i = 0; i < 16; i++)
 			src[columnTable8[j][i]] = k++;
 */
-#ifdef USE_SIMD
+#if _M_IX86_FP >= 2
 	// TODO: there might be a shorter way doing this
 	__asm
 	{
@@ -1473,9 +1473,8 @@ void GSLocalMemory::unSwizzleBlock4(BYTE* src, BYTE* dst, int dstpitch)
 		{
 			DWORD addr = *s++;
 			BYTE c = (src[addr>>1] >> ((addr&1) << 2)) & 0x0f;
-
 			int shift = (i&1) << 2;
-			dst[i >> 1] = (dst[i >> 1] & (0xf0 >> shift)) | ((c & 0x0f) << shift);
+			dst[i >> 1] = (dst[i >> 1] & (0xf0 >> shift)) | (c << shift);
 		}
 	}
 
@@ -1494,8 +1493,6 @@ void GSLocalMemory::unSwizzleTexture32(int tw, int th, BYTE* dst, int dstpitch, 
 
     DWORD bp = TEX0.TBP0;
 	DWORD bw = TEX0.TBW;
-
-	TRACE(_T("unSwizzleTexture32 %dx%d, %05x %d\n"), tw, th, bp, bw*64);
 /*
 	for(int y = 0, diff = dstpitch - tw*4 + dstpitch*7; y < th; y += 8, dst += diff)
 		for(int x = 0; x < tw; x += 8, dst += 8*4)
@@ -1530,12 +1527,7 @@ void GSLocalMemory::unSwizzleTexture24(int tw, int th, BYTE* dst, int dstpitch, 
     DWORD bp = TEX0.TBP0;
 	DWORD bw = TEX0.TBW;
 
-	TRACE(_T("unSwizzleTexture24 %dx%d, %05x %d\n"), tw, th, bp, bw*64);
-
 	BYTE TCC = TEX0.TCC;
-	BYTE AEM = TEXA.AEM;
-	BYTE TA0 = TEXA.TA0;
-	BYTE TA1 = TEXA.TA1;
 
 	__declspec(align(16)) DWORD block[8*8];
 
@@ -1550,7 +1542,7 @@ void GSLocalMemory::unSwizzleTexture24(int tw, int th, BYTE* dst, int dstpitch, 
 
 			for(int j = 0, diff2 = (dstpitch>>2) - 8; j < 8; j++, d += diff2)
 				for(int i = 0; i < 8; i++)
-					*d++ = From24To32ARGB(*s++, TCC, AEM, TA0, TA1, m_bbt);
+					*d++ = From24To32ARGB(*s++, TCC, TEXA, m_bbt);
 		}
 	}
 }
@@ -1566,12 +1558,6 @@ void GSLocalMemory::unSwizzleTexture16(int tw, int th, BYTE* dst, int dstpitch, 
     DWORD bp = TEX0.TBP0;
 	DWORD bw = TEX0.TBW;
 
-	TRACE(_T("unSwizzleTexture16 %dx%d, %05x %d\n"), tw, th, bp, bw*64);
-
-	BYTE AEM = TEXA.AEM;
-	BYTE TA0 = TEXA.TA0;
-	BYTE TA1 = TEXA.TA1;
-
 	__declspec(align(16)) WORD block[16*8];
 
 	for(int y = 0, diff = dstpitch - tw*4 + dstpitch*7; y < th; y += 8, dst += diff)
@@ -1585,7 +1571,7 @@ void GSLocalMemory::unSwizzleTexture16(int tw, int th, BYTE* dst, int dstpitch, 
 
 			for(int j = 0, diff2 = (dstpitch>>2) - 16; j < 8; j++, d += diff2)
 				for(int i = 0; i < 16; i++)
-					*d++ = From16To32ARGB(*s++, AEM, TA0, TA1, m_bbt);
+					*d++ = From16To32ARGB(*s++, TEXA, m_bbt);
 		}
 	}
 }
@@ -1601,12 +1587,6 @@ void GSLocalMemory::unSwizzleTexture16S(int tw, int th, BYTE* dst, int dstpitch,
     DWORD bp = TEX0.TBP0;
 	DWORD bw = TEX0.TBW;
 
-	TRACE(_T("unSwizzleTexture16S %dx%d, %05x %d\n"), tw, th, bp, bw*64);
-
-	BYTE AEM = TEXA.AEM;
-	BYTE TA0 = TEXA.TA0;
-	BYTE TA1 = TEXA.TA1;
-
 	__declspec(align(16)) WORD block[16*8];
 
 	for(int y = 0, diff = dstpitch - tw*4 + dstpitch*7; y < th; y += 8, dst += diff)
@@ -1620,7 +1600,7 @@ void GSLocalMemory::unSwizzleTexture16S(int tw, int th, BYTE* dst, int dstpitch,
 
 			for(int j = 0, diff2 = (dstpitch>>2) - 16; j < 8; j++, d += diff2)
 				for(int i = 0; i < 16; i++)
-					*d++ = From16To32ARGB(*s++, AEM, TA0, TA1, m_bbt);
+					*d++ = From16To32ARGB(*s++, TEXA, m_bbt);
 		}
 	}
 }
@@ -1635,8 +1615,6 @@ void GSLocalMemory::unSwizzleTexture8(int tw, int th, BYTE* dst, int dstpitch, G
 
     DWORD bp = TEX0.TBP0;
 	DWORD bw = TEX0.TBW;
-
-	TRACE(_T("unSwizzleTexture8 %dx%d, %05x %d\n"), tw, th, bp, bw*64);
 
 	__declspec(align(16)) BYTE block[16*16];
 
@@ -1670,8 +1648,6 @@ void GSLocalMemory::unSwizzleTexture8H(int tw, int th, BYTE* dst, int dstpitch, 
 	DWORD bp = TEX0.TBP0;
 	DWORD bw = TEX0.TBW;
 
-	TRACE(_T("unSwizzleTexture8H %dx%d, %05x %d\n"), tw, th, bp, bw*64);
-
 	__declspec(align(16)) DWORD block[8*8];
 
 	DWORD clut[256];
@@ -1703,8 +1679,6 @@ void GSLocalMemory::unSwizzleTexture4(int tw, int th, BYTE* dst, int dstpitch, G
 
     DWORD bp = TEX0.TBP0;
 	DWORD bw = TEX0.TBW;
-
-	TRACE(_T("unSwizzleTexture4 %dx%d, %05x %d\n"), tw, th, bp, bw*64);
 
 	__declspec(align(16)) BYTE block[(32/2)*16];
 
@@ -1738,8 +1712,6 @@ void GSLocalMemory::unSwizzleTexture4HL(int tw, int th, BYTE* dst, int dstpitch,
     DWORD bp = TEX0.TBP0;
 	DWORD bw = TEX0.TBW;
 
-	TRACE(_T("unSwizzleTexture4HL %dx%d, %05x %d\n"), tw, th, bp, bw*64);
-
 	__declspec(align(16)) DWORD block[8*8];
 
 	DWORD clut[16];
@@ -1772,8 +1744,6 @@ void GSLocalMemory::unSwizzleTexture4HH(int tw, int th, BYTE* dst, int dstpitch,
     DWORD bp = TEX0.TBP0;
 	DWORD bw = TEX0.TBW;
 
-	TRACE(_T("unSwizzleTexture4HH %dx%d, %05x %d\n"), tw, th, bp, bw*64);
-
 	__declspec(align(16)) DWORD block[8*8];
 
 	DWORD clut[16];
@@ -1797,8 +1767,6 @@ void GSLocalMemory::unSwizzleTexture4HH(int tw, int th, BYTE* dst, int dstpitch,
 
 void GSLocalMemory::unSwizzleTextureX(int tw, int th, BYTE* dst, int dstpitch, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA)
 {
-	TRACE(_T("unSwizzleTexture(%d) %dx%d, %05x %d\n"), TEX0.PSM, tw, th, TEX0.TBP0, TEX0.TBW*64);
-
 	readTexel rt = GetReadTexel(TEX0.PSM);
 
 	for(int y = 0, diff = dstpitch - tw*4; y < th; y++, dst += diff)
@@ -1829,10 +1797,10 @@ GSLocalMemory::unSwizzleTexture GSLocalMemory::GetUnSwizzleTexture(DWORD psm)
 
 ////////////////////
 
-void GSLocalMemory::SwizzleBlock32(BYTE* dst, BYTE* src, int srcpitch)
+void GSLocalMemory::SwizzleBlock32(BYTE* dst, BYTE* src, int srcpitch, DWORD WriteMask)
 {
-#ifdef USE_SIMD
-	__asm
+#if _M_IX86_FP >= 2
+	if(WriteMask == 0xffffffff) __asm
 	{
 		mov			esi, src
 		mov			edi, dst
@@ -1841,9 +1809,9 @@ void GSLocalMemory::SwizzleBlock32(BYTE* dst, BYTE* src, int srcpitch)
 
 SwizzleBlock32_loop:
 		movaps		xmm0, [esi]
-		movaps		xmm2, [esi+16*1]
+		movaps		xmm2, [esi+16]
 		movaps		xmm1, [esi+edx]
-		movaps		xmm3, [esi+edx+16*1]
+		movaps		xmm3, [esi+edx+16]
 
 		movaps		xmm4, xmm0
 		pshufd		xmm6, xmm2, 0xe4
@@ -1863,11 +1831,140 @@ SwizzleBlock32_loop:
 
 		loop		SwizzleBlock32_loop
 	}
+	else __asm
+	{
+		mov			esi, src
+		mov			edi, dst
+		mov			edx, srcpitch
+		mov			ecx, 4
+
+		mov			eax, WriteMask
+		movd		xmm7, eax
+		pshufd		xmm7, xmm7, 0
+
+SwizzleBlock32WM_loop:
+		movaps		xmm0, [esi]
+		movaps		xmm2, [esi+16]
+		movaps		xmm1, [esi+edx]
+		movaps		xmm3, [esi+edx+16]
+
+		movaps		xmm4, xmm0
+		pshufd		xmm6, xmm2, 0xe4
+
+		punpcklqdq	xmm0, xmm1
+		punpcklqdq	xmm2, xmm3
+		punpckhqdq	xmm4, xmm1
+		punpckhqdq	xmm6, xmm3
+
+		movaps		xmm3, xmm7
+		pshufd		xmm5, xmm7, 0xe4
+
+		movaps		xmm1, [edi+16*0]
+		pand		xmm0, xmm7
+		pandn		xmm3, xmm1
+		por			xmm0, xmm3
+		movaps		[edi+16*0], xmm0
+
+		movaps		xmm1, [edi+16*1]
+		pand		xmm4, xmm7
+		pandn		xmm5, xmm1
+		por			xmm4, xmm5
+		movaps		[edi+16*1], xmm4
+
+		movaps		xmm3, xmm7
+		pshufd		xmm5, xmm7, 0xe4
+
+		movaps		xmm1, [edi+16*2]
+		pand		xmm2, xmm7
+		pandn		xmm3, xmm1
+		por			xmm2, xmm3
+		movaps		[edi+16*2], xmm2
+
+		movaps		xmm1, [edi+16*3]
+		pand		xmm6, xmm7
+		pandn		xmm5, xmm1
+		por			xmm6, xmm5
+		movaps		[edi+16*3], xmm6
+
+		lea			esi, [esi+edx*2]
+		add			edi, 64
+
+		dec			ecx
+		jnz			SwizzleBlock32WM_loop
+	}
+
 #else
 	WORD* d = &columnTable32[0][0];
-	for(int j = 0, diff = srcpitch - 8*4; j < 8; j++, src += diff)
-		for(int i = 0; i < 8; i++, src += 4)
-			((DWORD*)dst)[*d++] = *(DWORD*)src;
+
+	if(WriteMask == 0xffffffff)
+	{
+		for(int j = 0, diff = srcpitch - 8*4; j < 8; j++, src += diff)
+			for(int i = 0; i < 8; i++, src += 4)
+				((DWORD*)dst)[*d++] = *(DWORD*)src;
+	}
+	else
+	{
+		for(int j = 0, diff = srcpitch - 8*4; j < 8; j++, src += diff)
+			for(int i = 0; i < 8; i++, src += 4, d++)
+				((DWORD*)dst)[*d] = (((DWORD*)dst)[*d] & ~WriteMask) | (*(DWORD*)src & WriteMask);
+	}
+
+#endif
+}
+
+void GSLocalMemory::SwizzleBlock16(BYTE* dst, BYTE* src, int srcpitch)
+{
+/*
+	WORD* tmp = &columnTable16[0][0];
+    for(int j = 0; j < 8; j++)
+	    for(int i = 0; i < 16; i++)
+			((WORD*)src)[j*srcpitch/2+i] = *tmp++;
+*/
+#if _M_IX86_FP >= 2
+	__asm
+	{
+		mov			esi, src
+		mov			edi, dst
+		mov			edx, srcpitch
+		mov			ecx, 4
+
+SwizzleBlock16_loop:
+		movaps		xmm0, [esi]
+		movaps		xmm1, [esi+16]
+		movaps		xmm2, [esi+edx]
+		movaps		xmm3, [esi+edx+16]
+
+		movaps		xmm4, xmm0
+		pshufd		xmm6, xmm2, 0xe4
+
+		punpcklwd	xmm0, xmm1
+		punpcklwd	xmm2, xmm3
+		punpckhwd	xmm4, xmm1
+		punpckhwd	xmm6, xmm3
+
+		movaps		xmm1, xmm0
+		pshufd		xmm5, xmm4, 0xe4
+
+		punpcklqdq	xmm0, xmm2
+		punpckhqdq	xmm1, xmm2
+		punpcklqdq	xmm4, xmm6
+		punpckhqdq	xmm5, xmm6
+
+		movaps		[edi+16*0], xmm0
+		movaps		[edi+16*1], xmm1
+		movaps		[edi+16*2], xmm4
+		movaps		[edi+16*3], xmm5
+
+		lea			esi, [esi+edx*2]
+		add			edi, 64
+
+		loop		SwizzleBlock16_loop
+	}
+#else
+	WORD* d = &columnTable16[0][0];
+	for(int j = 0, diff = srcpitch - 16*2; j < 8; j++, src += diff)
+		for(int i = 0; i < 16; i++, src += 2)
+			((WORD*)dst)[*d++] = *(WORD*)src;
 #endif
 }
 
@@ -1879,7 +1976,7 @@ void GSLocalMemory::SwizzleBlock8(BYTE* dst, BYTE* src, int srcpitch)
 	    for(int i = 0; i < 16; i++)
 			src[j*srcpitch+i] = *tmp++;
 */
-#ifdef USE_SIMD
+#if _M_IX86_FP >= 2
 	__asm
 	{
 		mov			esi, src
@@ -1980,6 +2077,24 @@ SwizzleBlock8_loop:
 #endif
 }
 
+void GSLocalMemory::SwizzleBlock4(BYTE* dst, BYTE* src, int srcpitch)
+{
+	WORD* d = &columnTable4[0][0];
+
+	for(int j = 0; j < 16; j++, src += srcpitch)
+	{
+		for(int i = 0; i < 32; i++)
+		{
+			DWORD addr = *d++;
+			BYTE c = (src[i>>1] >> ((i&1) << 2)) & 0x0f;
+			int shift = (addr&1) << 2;
+			dst[addr >> 1] = (dst[addr >> 1] & (0xf0 >> shift)) | (c << shift);
+		}
+	}
+
+	// TODO: assembly version, if possible (unpack half byte to byte + SwizzleBlock8)
+}
+
 ///////////////////
 
 static void SwizzleTextureStep(int& tx, int& ty, GIFRegTRXPOS& TRXPOS, GIFRegTRXREG& TRXREG)
@@ -2017,6 +2132,91 @@ void GSLocalMemory::SwizzleTexture32(int& tx, int& ty, BYTE* src, int len, GIFRe
 	}
 }
 
+void GSLocalMemory::SwizzleTexture24(int& tx, int& ty, BYTE* src, int len, GIFRegBITBLTBUF& BITBLTBUF, GIFRegTRXPOS& TRXPOS, GIFRegTRXREG& TRXREG)
+{
+	int tw = TRXREG.RRW, srcpitch = tw*3;
+	int th = len / srcpitch;
+
+	DWORD bp = BITBLTBUF.DBP;
+	DWORD bw = BITBLTBUF.DBW;
+
+	if(TRXPOS.DSAX || tx || (ty & 7) || (tw & 7) || (th & 7) || (len % srcpitch))
+	{
+		SwizzleTextureX(tx, ty, src, len, BITBLTBUF, TRXPOS, TRXREG);
+	}
+	else
+	{
+		__declspec(align(16)) DWORD block[8*8];
+
+		th += ty;
+
+		for(int y = ty, diff = srcpitch - tw*3 + srcpitch*7; y < th; y += 8, src += diff)
+		{
+			for(int x = 0; x < tw; x += 8, src += 8*3)
+			{
+				BYTE* s = src;
+				DWORD* d = block;
+
+				for(int j = 0, diff2 = srcpitch - 8*3; j < 8; j++, s += diff2)
+					for(int i = 0; i < 8; i++, s += 3)
+						*d++ = (s[2]<<16)|(s[1]<<8)|s[0];
+
+				SwizzleBlock32((BYTE*)&m_vm32[blockAddress32(x, y, bp, bw)], (BYTE*)block, sizeof(block)/8, 0x00ffffff);
+			}
+		}
+
+		ty = th;
+	}
+}
+
+void GSLocalMemory::SwizzleTexture16(int& tx, int& ty, BYTE* src, int len, GIFRegBITBLTBUF& BITBLTBUF, GIFRegTRXPOS& TRXPOS, GIFRegTRXREG& TRXREG)
+{
+	int tw = TRXREG.RRW, srcpitch = tw*2;
+	int th = len / srcpitch;
+
+	DWORD bp = BITBLTBUF.DBP;
+	DWORD bw = BITBLTBUF.DBW;
+
+	if(TRXPOS.DSAX || tx || (ty & 7) || (tw & 15) || (th & 7) || (len % srcpitch))
+	{
+		SwizzleTextureX(tx, ty, src, len, BITBLTBUF, TRXPOS, TRXREG);
+	}
+	else
+	{
+		th += ty;
+
+		for(int y = ty, diff = srcpitch - tw*2 + srcpitch*7; y < th; y += 8, src += diff)
+			for(int x = 0; x < tw; x += 16, src += 16*2)
+				SwizzleBlock16((BYTE*)&m_vm16[blockAddress16(x, y, bp, bw)], (BYTE*)src, srcpitch);
+
+		ty = th;
+	}
+}
+
+void GSLocalMemory::SwizzleTexture16S(int& tx, int& ty, BYTE* src, int len, GIFRegBITBLTBUF& BITBLTBUF, GIFRegTRXPOS& TRXPOS, GIFRegTRXREG& TRXREG)
+{
+	int tw = TRXREG.RRW, srcpitch = tw*2;
+	int th = len / srcpitch;
+
+	DWORD bp = BITBLTBUF.DBP;
+	DWORD bw = BITBLTBUF.DBW;
+
+	if(TRXPOS.DSAX || tx || (ty & 7) || (tw & 15) || (th & 7) || (len % srcpitch))
+	{
+		SwizzleTextureX(tx, ty, src, len, BITBLTBUF, TRXPOS, TRXREG);
+	}
+	else
+	{
+		th += ty;
+
+		for(int y = ty, diff = srcpitch - tw*2 + srcpitch*7; y < th; y += 8, src += diff)
+			for(int x = 0; x < tw; x += 16, src += 16*2)
+				SwizzleBlock16((BYTE*)&m_vm16[blockAddress16S(x, y, bp, bw)], (BYTE*)src, srcpitch);
+
+		ty = th;
+	}
+}
+
 void GSLocalMemory::SwizzleTexture8(int& tx, int& ty, BYTE* src, int len, GIFRegBITBLTBUF& BITBLTBUF, GIFRegTRXPOS& TRXPOS, GIFRegTRXREG& TRXREG)
 {
 	int tw = TRXREG.RRW, srcpitch = tw;
@@ -2036,6 +2236,141 @@ void GSLocalMemory::SwizzleTexture8(int& tx, int& ty, BYTE* src, int len, GIFReg
 		for(int y = ty, diff = srcpitch - tw + srcpitch*15; y < th; y += 16, src += diff)
 			for(int x = 0; x < tw; x += 16, src += 16)
 				SwizzleBlock8((BYTE*)&m_vm8[blockAddress8(x, y, bp, bw)], (BYTE*)src, srcpitch);
+
+		ty = th;
+	}
+}
+
+void GSLocalMemory::SwizzleTexture8H(int& tx, int& ty, BYTE* src, int len, GIFRegBITBLTBUF& BITBLTBUF, GIFRegTRXPOS& TRXPOS, GIFRegTRXREG& TRXREG)
+{
+	int tw = TRXREG.RRW, srcpitch = tw;
+	int th = len / srcpitch;
+
+	DWORD bp = BITBLTBUF.DBP;
+	DWORD bw = BITBLTBUF.DBW;
+
+	if(TRXPOS.DSAX || tx || (ty & 7) || (tw & 7) || (th & 7) || (len % srcpitch))
+	{
+		SwizzleTextureX(tx, ty, src, len, BITBLTBUF, TRXPOS, TRXREG);
+	}
+	else
+	{
+		__declspec(align(16)) DWORD block[8*8];
+
+		th += ty;
+
+		for(int y = ty, diff = srcpitch - tw + srcpitch*7; y < th; y += 8, src += diff)
+		{
+			for(int x = 0; x < tw; x += 8, src += 8)
+			{
+				BYTE* s = src;
+				DWORD* d = block;
+
+				for(int j = 0, diff2 = srcpitch - 8; j < 8; j++, s += diff2)
+					for(int i = 0; i < 8; i++)
+						*d++ = *s++ << 24;
+
+				SwizzleBlock32((BYTE*)&m_vm32[blockAddress32(x, y, bp, bw)], (BYTE*)block, sizeof(block)/8, 0xff000000);
+			}
+		}
+
+		ty = th;
+	}
+}
+
+void GSLocalMemory::SwizzleTexture4(int& tx, int& ty, BYTE* src, int len, GIFRegBITBLTBUF& BITBLTBUF, GIFRegTRXPOS& TRXPOS, GIFRegTRXREG& TRXREG)
+{
+	int tw = TRXREG.RRW, srcpitch = tw/2;
+	int th = len / srcpitch;
+
+	DWORD bp = BITBLTBUF.DBP;
+	DWORD bw = BITBLTBUF.DBW;
+
+	if(TRXPOS.DSAX || tx || (ty & 15) || (tw & 31) || (th & 15) || (len % srcpitch))
+	{
+		SwizzleTextureX(tx, ty, src, len, BITBLTBUF, TRXPOS, TRXREG);
+	}
+	else
+	{
+		th += ty;
+
+		for(int y = ty, diff = srcpitch - tw/2 + srcpitch*15; y < th; y += 16, src += diff)
+			for(int x = 0; x < tw; x += 32, src += 32/2)
+				SwizzleBlock4((BYTE*)&m_vm8[blockAddress4(x, y, bp, bw)>>1], (BYTE*)src, srcpitch);
+
+		ty = th;
+	}
+}
+
+void GSLocalMemory::SwizzleTexture4HL(int& tx, int& ty, BYTE* src, int len, GIFRegBITBLTBUF& BITBLTBUF, GIFRegTRXPOS& TRXPOS, GIFRegTRXREG& TRXREG)
+{
+	int tw = TRXREG.RRW, srcpitch = tw/2;
+	int th = len / srcpitch;
+
+	DWORD bp = BITBLTBUF.DBP;
+	DWORD bw = BITBLTBUF.DBW;
+
+	if(TRXPOS.DSAX || tx || (ty & 7) || (tw & 7) || (th & 7) || (len % srcpitch))
+	{
+		SwizzleTextureX(tx, ty, src, len, BITBLTBUF, TRXPOS, TRXREG);
+	}
+	else
+	{
+		__declspec(align(16)) DWORD block[8*8];
+
+		th += ty;
+
+		for(int y = ty, diff = srcpitch - tw/2 + srcpitch*7; y < th; y += 8, src += diff)
+		{
+			for(int x = 0; x < tw; x += 8, src += 8/2)
+			{
+				BYTE* s = src;
+				DWORD* d = block;
+
+				for(int j = 0, diff2 = srcpitch - 8/2; j < 8; j++, s += diff2)
+					for(int i = 0; i < 8/2; i++, s++)
+						*d++ = (*s&0x0f) << 24, *d++ = (*s&0xf0) << 20;
+
+				SwizzleBlock32((BYTE*)&m_vm32[blockAddress32(x, y, bp, bw)], (BYTE*)block, sizeof(block)/8, 0x0f000000);
+			}
+		}
+
+		ty = th;
+	}
+}
+
+void GSLocalMemory::SwizzleTexture4HH(int& tx, int& ty, BYTE* src, int len, GIFRegBITBLTBUF& BITBLTBUF, GIFRegTRXPOS& TRXPOS, GIFRegTRXREG& TRXREG)
+{
+	int tw = TRXREG.RRW, srcpitch = tw/2;
+	int th = len / srcpitch;
+
+	DWORD bp = BITBLTBUF.DBP;
+	DWORD bw = BITBLTBUF.DBW;
+
+	if(TRXPOS.DSAX || tx || (ty & 7) || (tw & 7) || (th & 7) || (len % srcpitch))
+	{
+		SwizzleTextureX(tx, ty, src, len, BITBLTBUF, TRXPOS, TRXREG);
+	}
+	else
+	{
+		__declspec(align(16)) DWORD block[8*8];
+
+		th += ty;
+
+		for(int y = ty, diff = srcpitch - tw/2 + srcpitch*7; y < th; y += 8, src += diff)
+		{
+			for(int x = 0; x < tw; x += 8, src += 8/2)
+			{
+				BYTE* s = src;
+				DWORD* d = block;
+
+				for(int j = 0, diff2 = srcpitch - 8/2; j < 8; j++, s += diff2)
+					for(int i = 0; i < 8/2; i++, s++)
+						*d++ = (*s&0x0f) << 28, *d++ = (*s&0xf0) << 24;
+
+				SwizzleBlock32((BYTE*)&m_vm32[blockAddress32(x, y, bp, bw)], (BYTE*)block, sizeof(block)/8, 0xf0000000);
+			}
+		}
 
 		ty = th;
 	}
@@ -2117,14 +2452,14 @@ GSLocalMemory::SwizzleTexture GSLocalMemory::GetSwizzleTexture(DWORD psm)
 	{
 	default: st = &GSLocalMemory::SwizzleTextureX; break;
 	case PSM_PSMCT32: st = &GSLocalMemory::SwizzleTexture32; break;
-	//case PSM_PSMCT24: st = &GSLocalMemory::SwizzleTexture24; break;
-	//case PSM_PSMCT16: st = &GSLocalMemory::SwizzleTexture16; break;
-	//case PSM_PSMCT16S: st = &GSLocalMemory::SwizzleTexture16S; break;
+	case PSM_PSMCT24: st = &GSLocalMemory::SwizzleTexture24; break;
+	case PSM_PSMCT16: st = &GSLocalMemory::SwizzleTexture16; break;
+	case PSM_PSMCT16S: st = &GSLocalMemory::SwizzleTexture16S; break;
 	case PSM_PSMT8: st = &GSLocalMemory::SwizzleTexture8; break;
-	//case PSM_PSMT8H: st = &GSLocalMemory::SwizzleTexture8H; break;
-	//case PSM_PSMT4: st = &GSLocalMemory::SwizzleTexture4; break;
-	//case PSM_PSMT4HL: st = &GSLocalMemory::SwizzleTexture4HL; break;
-	//case PSM_PSMT4HH: st = &GSLocalMemory::SwizzleTexture4HH; break;
+	case PSM_PSMT8H: st = &GSLocalMemory::SwizzleTexture8H; break;
+	case PSM_PSMT4: st = &GSLocalMemory::SwizzleTexture4; break;
+	case PSM_PSMT4HL: st = &GSLocalMemory::SwizzleTexture4HL; break;
+	case PSM_PSMT4HH: st = &GSLocalMemory::SwizzleTexture4HH; break;
 	//case PSM_PSMZ32: st = &GSLocalMemory::SwizzleTexture32Z; break;
 	//case PSM_PSMZ24: st = &GSLocalMemory::SwizzleTexture24Z; break;
 	//case PSM_PSMZ16: st = &GSLocalMemory::SwizzleTexture16Z; break;

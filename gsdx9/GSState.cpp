@@ -59,8 +59,8 @@ GSState::GSState(int w, int h, HWND hWnd, HRESULT& hr)
 		m_fpGIFPackedRegHandlers[i] = &GSState::GIFPackedRegHandlerNull;
 
 	m_fpGIFPackedRegHandlers[GIF_REG_PRIM] = &GSState::GIFPackedRegHandlerPRIM;
-	m_fpGIFPackedRegHandlers[GIF_REG_RGBAQ] = &GSState::GIFPackedRegHandlerRGBAQ;
-	m_fpGIFPackedRegHandlers[GIF_REG_ST] = &GSState::GIFPackedRegHandlerST;
+	m_fpGIFPackedRegHandlers[GIF_REG_RGBA] = &GSState::GIFPackedRegHandlerRGBA;
+	m_fpGIFPackedRegHandlers[GIF_REG_STQ] = &GSState::GIFPackedRegHandlerSTQ;
 	m_fpGIFPackedRegHandlers[GIF_REG_UV] = &GSState::GIFPackedRegHandlerUV;
 	m_fpGIFPackedRegHandlers[GIF_REG_XYZF2] = &GSState::GIFPackedRegHandlerXYZF2;
 	m_fpGIFPackedRegHandlers[GIF_REG_XYZ2] = &GSState::GIFPackedRegHandlerXYZ2;
@@ -151,11 +151,15 @@ GSState::GSState(int w, int h, HWND hWnd, HRESULT& hr)
 	d3dpp.Windowed = TRUE;
 	d3dpp.hDeviceWindow = hWnd;
 	d3dpp.SwapEffect = D3DSWAPEFFECT_COPY/*D3DSWAPEFFECT_DISCARD*//*D3DSWAPEFFECT_FLIP*/;
-	d3dpp.BackBufferFormat = D3DFMT_X8R8G8B8;
+	d3dpp.BackBufferFormat = D3DFMT_A8R8G8B8;
 	d3dpp.BackBufferWidth = w;
 	d3dpp.BackBufferHeight = h;
 //	d3dpp.Flags = D3DPRESENTFLAG_LOCKABLE_BACKBUFFER;
-
+/*
+d3dpp.Windowed = FALSE;
+d3dpp.BackBufferWidth = 1024;
+d3dpp.BackBufferHeight = 768;
+*/
 	if(FAILED(m_pD3D->CreateDevice(D3DADAPTER_DEFAULT, /*D3DDEVTYPE_REF*/D3DDEVTYPE_HAL, hWnd,
 		m_caps.VertexProcessingCaps ? D3DCREATE_HARDWARE_VERTEXPROCESSING : D3DCREATE_SOFTWARE_VERTEXPROCESSING, 
 		&d3dpp, &m_pD3DDev)))
@@ -728,7 +732,10 @@ void GSState::FinishFlip(FlipSrc rt[2], bool fShiftField)
 
 	bool fEN[2];
 	for(int i = 0; i < countof(fEN); i++)
+	{
 		fEN[i] = m_rs.IsEnabled(i) && rt[i].pRT;
+		if(!fEN[i]) rt[i].rd.Width = rt[i].rd.Height = 1; // to avoid div by zero below
+	}
 
 	if(!fEN[0] && !fEN[1])
 	{
