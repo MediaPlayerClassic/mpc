@@ -129,6 +129,7 @@ EXPORT_C_(INT32) GSopen(void* pDsp, char* Title)
 		return -1;
 	}
 
+	// FIXME: fullscreen mode
 	s_hWnd.Show();
 
 	s_gs->GSirq(s_fpGSirq);

@@ -2160,6 +2160,8 @@ static void SwizzleTextureStep(int& tx, int& ty, GIFRegTRXPOS& TRXPOS, GIFRegTRX
 
 void GSLocalMemory::SwizzleTexture32(int& tx, int& ty, BYTE* src, int len, GIFRegBITBLTBUF& BITBLTBUF, GIFRegTRXPOS& TRXPOS, GIFRegTRXREG& TRXREG)
 {
+	if(TRXREG.RRW == 0) return;
+
 	int tw = TRXREG.RRW, srcpitch = tw*4;
 	int th = len / srcpitch;
 
@@ -2184,6 +2186,8 @@ void GSLocalMemory::SwizzleTexture32(int& tx, int& ty, BYTE* src, int len, GIFRe
 
 void GSLocalMemory::SwizzleTexture24(int& tx, int& ty, BYTE* src, int len, GIFRegBITBLTBUF& BITBLTBUF, GIFRegTRXPOS& TRXPOS, GIFRegTRXREG& TRXREG)
 {
+	if(TRXREG.RRW == 0) return;
+
 	int tw = TRXREG.RRW, srcpitch = tw*3;
 	int th = len / srcpitch;
 
@@ -2221,6 +2225,8 @@ void GSLocalMemory::SwizzleTexture24(int& tx, int& ty, BYTE* src, int len, GIFRe
 
 void GSLocalMemory::SwizzleTexture16(int& tx, int& ty, BYTE* src, int len, GIFRegBITBLTBUF& BITBLTBUF, GIFRegTRXPOS& TRXPOS, GIFRegTRXREG& TRXREG)
 {
+	if(TRXREG.RRW == 0) return;
+
 	int tw = TRXREG.RRW, srcpitch = tw*2;
 	int th = len / srcpitch;
 
@@ -2245,6 +2251,8 @@ void GSLocalMemory::SwizzleTexture16(int& tx, int& ty, BYTE* src, int len, GIFRe
 
 void GSLocalMemory::SwizzleTexture16S(int& tx, int& ty, BYTE* src, int len, GIFRegBITBLTBUF& BITBLTBUF, GIFRegTRXPOS& TRXPOS, GIFRegTRXREG& TRXREG)
 {
+	if(TRXREG.RRW == 0) return;
+
 	int tw = TRXREG.RRW, srcpitch = tw*2;
 	int th = len / srcpitch;
 
@@ -2269,6 +2277,8 @@ void GSLocalMemory::SwizzleTexture16S(int& tx, int& ty, BYTE* src, int len, GIFR
 
 void GSLocalMemory::SwizzleTexture8(int& tx, int& ty, BYTE* src, int len, GIFRegBITBLTBUF& BITBLTBUF, GIFRegTRXPOS& TRXPOS, GIFRegTRXREG& TRXREG)
 {
+	if(TRXREG.RRW == 0) return;
+
 	int tw = TRXREG.RRW, srcpitch = tw;
 	int th = len / srcpitch;
 
@@ -2293,6 +2303,8 @@ void GSLocalMemory::SwizzleTexture8(int& tx, int& ty, BYTE* src, int len, GIFReg
 
 void GSLocalMemory::SwizzleTexture8H(int& tx, int& ty, BYTE* src, int len, GIFRegBITBLTBUF& BITBLTBUF, GIFRegTRXPOS& TRXPOS, GIFRegTRXREG& TRXREG)
 {
+	if(TRXREG.RRW == 0) return;
+
 	int tw = TRXREG.RRW, srcpitch = tw;
 	int th = len / srcpitch;
 
@@ -2330,6 +2342,8 @@ void GSLocalMemory::SwizzleTexture8H(int& tx, int& ty, BYTE* src, int len, GIFRe
 
 void GSLocalMemory::SwizzleTexture4(int& tx, int& ty, BYTE* src, int len, GIFRegBITBLTBUF& BITBLTBUF, GIFRegTRXPOS& TRXPOS, GIFRegTRXREG& TRXREG)
 {
+	if(TRXREG.RRW == 0) return;
+
 	int tw = TRXREG.RRW, srcpitch = tw/2;
 	int th = len / srcpitch;
 
@@ -2354,6 +2368,8 @@ void GSLocalMemory::SwizzleTexture4(int& tx, int& ty, BYTE* src, int len, GIFReg
 
 void GSLocalMemory::SwizzleTexture4HL(int& tx, int& ty, BYTE* src, int len, GIFRegBITBLTBUF& BITBLTBUF, GIFRegTRXPOS& TRXPOS, GIFRegTRXREG& TRXREG)
 {
+	if(TRXREG.RRW == 0) return;
+
 	int tw = TRXREG.RRW, srcpitch = tw/2;
 	int th = len / srcpitch;
 
@@ -2391,6 +2407,8 @@ void GSLocalMemory::SwizzleTexture4HL(int& tx, int& ty, BYTE* src, int len, GIFR
 
 void GSLocalMemory::SwizzleTexture4HH(int& tx, int& ty, BYTE* src, int len, GIFRegBITBLTBUF& BITBLTBUF, GIFRegTRXPOS& TRXPOS, GIFRegTRXREG& TRXREG)
 {
+	if(TRXREG.RRW == 0) return;
+
 	int tw = TRXREG.RRW, srcpitch = tw/2;
 	int th = len / srcpitch;
 
