@@ -449,6 +449,8 @@ void CWebServer::OnRequest(CClientSocket* pClient, CStringA& hdr, CStringA& body
 		if(pClient->m_get.Lookup(_T("redir"), redir)
 		|| pClient->m_post.Lookup(_T("redir"), redir))
 		{
+			if(redir.IsEmpty()) redir = '/';
+
 			hdr = 
 				"HTTP/1.0 302 Found\r\n"
 				"Location: " + CStringA(redir) + "\r\n";

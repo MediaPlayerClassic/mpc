@@ -196,18 +196,15 @@ void CPPagePlayback::OnBnClickedRadio12(UINT nID)
 
 void CPPagePlayback::OnUpdateLoopNum(CCmdUI* pCmdUI)
 {
-	UpdateData();
-	pCmdUI->Enable(m_iLoopForever == 0);
+	pCmdUI->Enable(!!IsDlgButtonChecked(IDC_RADIO1));
 }
 
 void CPPagePlayback::OnUpdateAutoZoomCombo(CCmdUI* pCmdUI)
 {
-	UpdateData();
-	pCmdUI->Enable(m_iRememberZoomLevel);
+	pCmdUI->Enable(!!IsDlgButtonChecked(IDC_CHECK5));
 }
 
 void CPPagePlayback::OnUpdateDispModeCombo(CCmdUI* pCmdUI)
 {
-	UpdateData();
-	pCmdUI->Enable(m_fSetFullscreenRes);
+	pCmdUI->Enable(!!IsDlgButtonChecked(IDC_CHECK4));
 }

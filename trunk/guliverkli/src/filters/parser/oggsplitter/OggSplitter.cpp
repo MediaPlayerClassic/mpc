@@ -577,20 +577,23 @@ STDMETHODIMP_(UINT) COggSplitterFilter::GetChapterId(UINT aParentChapterId, UINT
 	return aIndex;
 }
 
-STDMETHODIMP_(BOOL) COggSplitterFilter::GetChapterInfo(UINT aChapterID, struct ChapterElement* pStructureToFill)
+STDMETHODIMP_(BOOL) COggSplitterFilter::GetChapterInfo(UINT aChapterID, struct ChapterElement* pToFill)
 {
 	REFERENCE_TIME rtDur = 0;
 	GetDuration(&rtDur);
 
-	CheckPointer(pStructureToFill, E_POINTER);
+	CheckPointer(pToFill, E_POINTER);
 	POSITION pos = m_pChapters.FindIndex(aChapterID-1);
 	if(!pos) return FALSE;
 	CChapter* p = m_pChapters.GetNext(pos);
-	pStructureToFill->Size = sizeof(*pStructureToFill);
-	pStructureToFill->Type = AtomicChapter;
-	pStructureToFill->ChapterId = aChapterID;
-	pStructureToFill->rtStart = p->m_rt;
-	pStructureToFill->rtStop = pos ? m_pChapters.GetNext(pos)->m_rt : rtDur;
+	if(pToFill->Size >= sizeof(ChapterElement))
+	{
+		pToFill->Size = sizeof(ChapterElement);
+		pToFill->Type = AtomicChapter;
+		pToFill->ChapterId = aChapterID;
+		pToFill->rtStart = p->m_rt;
+		pToFill->rtStop = pos ? m_pChapters.GetNext(pos)->m_rt : rtDur;
+	}
 	return TRUE;
 }
 
