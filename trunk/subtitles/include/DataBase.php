@@ -1,6 +1,6 @@
 <?php
 
-require "pwd.inc";
+require_once "pwd.php";
 
 /*****************************************************************************
  * Generic mySQL database access management class.  This can be used for	 *
