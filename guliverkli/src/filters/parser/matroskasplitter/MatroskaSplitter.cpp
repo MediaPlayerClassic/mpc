@@ -94,6 +94,7 @@ STDAPI DllUnregisterServer()
 	DeleteRegKey(_T("Media Type\\{e436eb83-524f-11ce-9f53-0020af0ba770}"), CStringFromGUID(MEDIASUBTYPE_Matroska));
 	DeleteRegKey(_T("Media Type\\Extensions"), _T(".mkv"));
 	DeleteRegKey(_T("Media Type\\Extensions"), _T(".mka"));
+	DeleteRegKey(_T("Media Type\\Extensions"), _T(".mks"));
 
 	return AMovieDllRegisterServer2(FALSE);
 }
@@ -695,16 +696,16 @@ HRESULT CMatroskaSourceFilter::DeliverBlock(Block* b)
 
 		CComPtr<IMediaSample> pSample;
 		BYTE* pData;
-		if(FAILED(hr = pPin->GetDeliveryBuffer(&pSample, NULL, NULL, 0))
-		|| FAILED(hr = pSample->GetPointer(&pData))
+		if(S_OK != (hr = pPin->GetDeliveryBuffer(&pSample, NULL, NULL, 0))
+		|| S_OK != (hr = pSample->GetPointer(&pData))
 		|| (hr = memcpy(pData, pBlockData->GetData(), pBlockData->GetSize()) ? S_OK : E_FAIL)
-		|| FAILED(hr = pSample->SetActualDataLength((long)pBlockData->GetSize()))
-		|| FAILED(hr = pSample->SetTime(&rtStart, &rtStop))
-		|| FAILED(hr = pSample->SetMediaTime(NULL, NULL))
-		|| FAILED(hr = pSample->SetDiscontinuity(bDiscontinuity))
-		|| FAILED(hr = pSample->SetSyncPoint(b->ReferenceBlock == 0))
-		|| FAILED(hr = pSample->SetPreroll(rtStart < 0))
-		|| FAILED(hr = pPin->Deliver(pSample)))
+		|| S_OK != (hr = pSample->SetActualDataLength((long)pBlockData->GetSize()))
+		|| S_OK != (hr = pSample->SetTime(&rtStart, &rtStop))
+		|| S_OK != (hr = pSample->SetMediaTime(NULL, NULL))
+		|| S_OK != (hr = pSample->SetDiscontinuity(bDiscontinuity))
+		|| S_OK != (hr = pSample->SetSyncPoint(b->ReferenceBlock == 0))
+		|| S_OK != (hr = pSample->SetPreroll(rtStart < 0))
+		|| S_OK != (hr = pPin->Deliver(pSample)))
 		{
 			if(POSITION pos = m_pActivePins.Find(pPin))
 				m_pActivePins.RemoveAt(pos);
