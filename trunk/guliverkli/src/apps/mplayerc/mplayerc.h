@@ -448,6 +448,8 @@ public:
 
 		CString SnapShotPath, SnapShotExt;
 
+		CString ISDb;
+
 	public:
 		Settings();
 		virtual ~Settings();
