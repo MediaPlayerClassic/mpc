@@ -221,6 +221,11 @@ CAutoPtr<MuxerPacket> CBaseMuxerFilter::GetPacket()
 	{
 		pPacket = pPinMin->PopPacket();
 	}
+	else
+	{
+		pos = m_pActivePins.GetHeadPosition();
+		while(pos) m_pActivePins.GetNext(pos)->m_evAcceptPacket.Set();
+	}
 
 	return pPacket;
 }
