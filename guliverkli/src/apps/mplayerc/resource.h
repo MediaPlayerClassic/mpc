@@ -497,6 +497,8 @@
 #define IDC_CHECK_MPG                   1154
 #define IDC_CHECK_AAC                   1155
 #define IDC_AUTHOR                      1156
+#define IDC_CHECK_DIRAC_SPLITTER        1157
+#define IDC_CHECK_DIRAC_DECODER         1158
 #define IDD_COMPROPERTYPAGE             10002
 #define ID_DUMMYSEPARATOR               32768
 #define ID_VOLUME_MUTE_ON               32769
@@ -593,7 +595,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        366
 #define _APS_NEXT_COMMAND_VALUE         32838
-#define _APS_NEXT_CONTROL_VALUE         1157
+#define _APS_NEXT_CONTROL_VALUE         1159
 #define _APS_NEXT_SYMED_VALUE           10003
 #endif
 #endif

@@ -256,7 +256,7 @@ BEGIN
     LTEXT           "Media Player Classic",IDC_STATIC1,40,10,126,8,
                     SS_NOPREFIX
     LTEXT           "Copyright (C) 2002-2004 Gabest",IDC_STATIC,40,21,113,8
-    LTEXT           "Version: 6.4.8.2",IDC_STATIC,40,33,92,8
+    LTEXT           "Version: 6.4.8.3",IDC_STATIC,40,33,92,8
     PUSHBUTTON      "OK",IDOK,160,8,50,14,WS_GROUP
     LTEXT           "This program is freeware and released under the GNU General Public License.\nDistribution in Codec Packs is allowed, but the author (Gabest) is not liable for the additional content.",
                     IDC_STATIC,11,47,199,34
@@ -879,57 +879,61 @@ IDD_PPAGEFILTERS DIALOGEX 0, 0, 296, 200
 STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
-    GROUPBOX        "Enabled built-in filters",IDC_STATIC,6,5,252,186
+    GROUPBOX        "Enabled built-in filters",IDC_STATIC,6,3,252,190
     CONTROL         "Avi Splitter",IDC_CHECK_AVI,"Button",BS_AUTOCHECKBOX | 
-                    WS_TABSTOP,18,20,51,10
+                    WS_TABSTOP,18,13,51,10
     CONTROL         "Matroska Splitter",IDC_CHECK_MATROSKA,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,18,32,70,10
+                    BS_AUTOCHECKBOX | WS_TABSTOP,18,25,70,10
     CONTROL         "Ogg Splitter",IDC_CHECK_OGG,"Button",BS_AUTOCHECKBOX | 
-                    WS_TABSTOP,18,44,54,10
+                    WS_TABSTOP,18,37,54,10
     CONTROL         "RealMedia Splitter",IDC_CHECK_RM,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,18,56,73,10
+                    BS_AUTOCHECKBOX | WS_TABSTOP,18,49,73,10
     CONTROL         "RealVideo Decoder",IDC_CHECK_RV,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,18,68,76,10
+                    BS_AUTOCHECKBOX | WS_TABSTOP,18,61,76,10
     CONTROL         "RealAudio Decoder",IDC_CHECK_RA,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,18,80,77,10
+                    BS_AUTOCHECKBOX | WS_TABSTOP,18,73,77,10
     CONTROL         "MPEG Splitter",IDC_CHECK_MPG,"Button",BS_AUTOCHECKBOX | 
-                    WS_TABSTOP,18,92,59,10
+                    WS_TABSTOP,18,85,59,10
     CONTROL         "MPEG-1 Video Decoder",IDC_CHECK_MPG1,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,18,104,89,10
+                    BS_AUTOCHECKBOX | WS_TABSTOP,18,97,89,10
     CONTROL         "MPEG-2 Video Decoder",IDC_CHECK_MPG2,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,18,116,89,10
+                    BS_AUTOCHECKBOX | WS_TABSTOP,18,109,89,10
     CONTROL         "MPEG Audio Decoder",IDC_CHECK_MPA,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,18,128,83,10
+                    BS_AUTOCHECKBOX | WS_TABSTOP,18,121,83,10
     CONTROL         "AC3 Decoder",IDC_CHECK_AC3,"Button",BS_AUTOCHECKBOX | 
-                    WS_TABSTOP,18,140,58,10
+                    WS_TABSTOP,18,133,58,10
     CONTROL         "LPCM Decoder",IDC_CHECK_LPCM,"Button",BS_AUTOCHECKBOX | 
-                    WS_TABSTOP,18,152,62,10
+                    WS_TABSTOP,18,145,62,10
     CONTROL         "Audio CD Reader",IDC_CHECK_CDDA,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,128,20,71,10
+                    BS_AUTOCHECKBOX | WS_TABSTOP,128,13,71,10
     CONTROL         "VCD/SVCD/XCD Reader",IDC_CHECK_CDXA,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,128,32,91,10
+                    BS_AUTOCHECKBOX | WS_TABSTOP,128,25,91,10
     CONTROL         "DVD Video Title Set Reader",IDC_CHECK_VTS,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,128,44,102,10
+                    BS_AUTOCHECKBOX | WS_TABSTOP,128,37,102,10
     CONTROL         "FLI/FLC Decoder",IDC_CHECK_FLIC,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,128,56,69,10
+                    BS_AUTOCHECKBOX | WS_TABSTOP,128,49,69,10
     CONTROL         "DVD2AVI Project File Decoder",IDC_CHECK_D2V,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,128,68,111,10
+                    BS_AUTOCHECKBOX | WS_TABSTOP,128,61,111,10
     CONTROL         "DTS/AC3 Parser",IDC_CHECK_DTSAC3,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,128,80,67,10
+                    BS_AUTOCHECKBOX | WS_TABSTOP,128,73,67,10
     CONTROL         "SHOUTcast Receiver",IDC_CHECK_SHOUTCAST,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,128,92,82,10
+                    BS_AUTOCHECKBOX | WS_TABSTOP,128,85,82,10
     CONTROL         "Smacker && Bink Decoder",IDC_CHECK_RADGT,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,128,104,114,10
+                    BS_AUTOCHECKBOX | WS_TABSTOP,128,97,114,10
     CONTROL         "RoQ Decoder (Id Software)",IDC_CHECK_ROQ,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,128,116,104,10
+                    BS_AUTOCHECKBOX | WS_TABSTOP,128,109,104,10
     CONTROL         "AAC Decoder",IDC_CHECK_AAC,"Button",BS_AUTOCHECKBOX | 
-                    WS_TABSTOP,128,128,59,10
+                    WS_TABSTOP,128,121,59,10
     CONTROL         "DTS Decoder",IDC_CHECK_DTS,"Button",BS_AUTOCHECKBOX | 
-                    WS_TABSTOP,128,140,57,10
+                    WS_TABSTOP,128,133,57,10
     CONTROL         "Nut Splitter (experimental)",IDC_CHECK_NUT,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,128,152,101,10
+                    BS_AUTOCHECKBOX | WS_TABSTOP,128,145,101,10
     LTEXT           "If you would like to use the stand-alone version from these filters or a some other replacement, disable them here.",
-                    IDC_STATIC,18,168,232,18
+                    IDC_STATIC,18,171,232,18
+    CONTROL         "Dirac Video Reader",IDC_CHECK_DIRAC_SPLITTER,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,18,158,77,10
+    CONTROL         "Dirac Video Decoder",IDC_CHECK_DIRAC_DECODER,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,128,158,80,10
 END
 
 IDD_PPAGELOGO DIALOGEX 0, 0, 296, 203
@@ -1358,20 +1362,9 @@ BEGIN
         VERTGUIDE, 128
         VERTGUIDE, 258
         VERTGUIDE, 289
-        HORZGUIDE, 5
-        HORZGUIDE, 30
-        HORZGUIDE, 42
-        HORZGUIDE, 54
-        HORZGUIDE, 66
-        HORZGUIDE, 78
-        HORZGUIDE, 90
-        HORZGUIDE, 102
-        HORZGUIDE, 114
-        HORZGUIDE, 126
-        HORZGUIDE, 138
-        HORZGUIDE, 150
-        HORZGUIDE, 162
+        HORZGUIDE, 3
         HORZGUIDE, 168
+        HORZGUIDE, 171
         HORZGUIDE, 198
     END
 
@@ -1512,8 +1505,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 6,4,8,2
- PRODUCTVERSION 6,4,8,2
+ FILEVERSION 6,4,8,3
+ PRODUCTVERSION 6,4,8,3
  FILEFLAGSMASK 0x1fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -1531,12 +1524,12 @@ BEGIN
             VALUE "Comments", "http://gabest.org/"
             VALUE "CompanyName", "Gabest"
             VALUE "FileDescription", "Media Player Classic"
-            VALUE "FileVersion", "6, 4, 8, 2"
+            VALUE "FileVersion", "6, 4, 8, 3"
             VALUE "InternalName", "Media Player Classic"
             VALUE "LegalCopyright", "Copyright (C) 2002-2004 Gabest"
             VALUE "OriginalFilename", "mplayerc.EXE"
             VALUE "ProductName", "Media Player Classic"
-            VALUE "ProductVersion", "6, 4, 8, 2"
+            VALUE "ProductVersion", "6, 4, 8, 3"
         END
     END
     BLOCK "VarFileInfo"

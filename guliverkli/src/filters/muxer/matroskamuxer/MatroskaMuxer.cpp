@@ -68,9 +68,9 @@ STDAPI DllUnregisterServer()
 
 extern "C" BOOL WINAPI DllEntryPoint(HINSTANCE, ULONG, LPVOID);
 
-BOOL APIENTRY DllMain(HANDLE hModule, DWORD ul_reason_for_call, LPVOID lpReserved)
+BOOL APIENTRY DllMain(HANDLE hModule, DWORD dwReason, LPVOID lpReserved)
 {
-    return DllEntryPoint((HINSTANCE)hModule, ul_reason_for_call, 0); // "DllMain" of the dshow baseclasses;
+    return DllEntryPoint((HINSTANCE)hModule, dwReason, 0); // "DllMain" of the dshow baseclasses;
 }
 
 #endif
@@ -682,6 +682,7 @@ HRESULT CMatroskaMuxerInputPin::CheckMediaType(const CMediaType* pmt)
 												|| pmt->formattype == FORMAT_VideoInfo2)
 //		|| pmt->majortype == MEDIATYPE_Video && pmt->subtype == MEDIASUBTYPE_MPEG1Payload && pmt->formattype == FORMAT_MPEGVideo
 //		|| pmt->majortype == MEDIATYPE_Video && pmt->subtype == MEDIASUBTYPE_MPEG2_VIDEO && pmt->formattype == FORMAT_MPEG2_VIDEO
+		|| pmt->majortype == MEDIATYPE_Video && pmt->subtype == MEDIASUBTYPE_DiracVideo && pmt->formattype == FORMAT_DiracVideoInfo
 		|| pmt->majortype == MEDIATYPE_Audio && pmt->formattype == FORMAT_WaveFormatEx && pmt->subtype == FOURCCMap(((WAVEFORMATEX*)pmt->pbFormat)->wFormatTag)
 		|| pmt->majortype == MEDIATYPE_Audio && pmt->subtype == MEDIASUBTYPE_Vorbis && pmt->formattype == FORMAT_VorbisFormat
 		|| pmt->majortype == MEDIATYPE_Audio && pmt->subtype == MEDIASUBTYPE_Vorbis2 && pmt->formattype == FORMAT_VorbisFormat2
@@ -813,6 +814,24 @@ HRESULT CMatroskaMuxerInputPin::CompleteConnect(IPin* pPin)
 			m_pTE->v.DisplayHeight.Set(vih->dwPictAspectRatioY);
 			if(vih->AvgTimePerFrame > 0)
 				m_pTE->v.FramePerSec.Set((float)(10000000.0 / vih->AvgTimePerFrame)); 
+
+			hr = S_OK;
+		}
+		else if(m_mt.formattype == FORMAT_DiracVideoInfo)
+		{
+			m_pTE->CodecID.Set("V_DIRAC");
+
+			DIRACINFOHEADER* vih = (DIRACINFOHEADER*)m_mt.pbFormat;
+			m_pTE->CodecPrivate.SetSize(vih->cbSequenceHeader);
+			memcpy(m_pTE->CodecPrivate, (BYTE*)&vih->dwSequenceHeader[0], m_pTE->CodecPrivate.GetSize());
+			m_pTE->DefaultDuration.Set(vih->hdr.AvgTimePerFrame*100);
+			m_pTE->DescType = TrackEntry::DescVideo;
+			m_pTE->v.PixelWidth.Set(vih->hdr.bmiHeader.biWidth);
+			m_pTE->v.PixelHeight.Set(abs(vih->hdr.bmiHeader.biHeight));
+			// m_pTE->v.DisplayWidth.Set(vih->dwPictAspectRatioX);
+			// m_pTE->v.DisplayHeight.Set(vih->dwPictAspectRatioY);
+			if(vih->hdr.AvgTimePerFrame > 0)
+				m_pTE->v.FramePerSec.Set((float)(10000000.0 / vih->hdr.AvgTimePerFrame)); 
 
 			hr = S_OK;
 		}
@@ -1237,7 +1256,7 @@ STDMETHODIMP CMatroskaMuxerInputPin::Receive(IMediaSample* pSample)
 	{
 		ASSERT(m_rtLastStart - rtStart <= 0);
 		REFERENCE_TIME rtDiff = m_rtLastStart - rtStart;
-		b->ReferenceBlock.Set((rtDiff + (rtDiff >= 0 ? 5000 : - 5000)) / 10000);
+		b->ReferenceBlock.Set((rtDiff + (rtDiff >= 0 ? 5000 : -5000)) / 10000);
 	}
 
 	b->Block.TrackNumber = ((CMatroskaMuxerFilter*)m_pFilter)->GetTrackNumber(this);

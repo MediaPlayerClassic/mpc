@@ -620,8 +620,8 @@ STDMETHODIMP CAviSplitterFilter::ConvertTimeFormat(LONGLONG* pTarget, const GUID
 {
 	CheckPointer(pTarget, E_POINTER);
 
-	GUID& SourceFormat = pSourceFormat ? *pSourceFormat : m_timeformat;
-	GUID& TargetFormat = pTargetFormat ? *pTargetFormat : m_timeformat;
+	const GUID& SourceFormat = pSourceFormat ? *pSourceFormat : m_timeformat;
+	const GUID& TargetFormat = pTargetFormat ? *pTargetFormat : m_timeformat;
 	
 	if(TargetFormat == SourceFormat)
 	{

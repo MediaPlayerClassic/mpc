@@ -263,7 +263,6 @@
 				Name="VCCustomBuildTool"/>
 			<Tool
 				Name="VCLinkerTool"
-				RegisterOutput="TRUE"
 				AdditionalDependencies="strmbaseR.lib dsutilR.lib"
 				OutputFile="$(OutDir)/$(ProjectName).ax"
 				AdditionalLibraryDirectories="..\..\..\..\lib"
