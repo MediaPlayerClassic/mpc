@@ -49,6 +49,7 @@ CPPageFilters::CPPageFilters()
 	, m_mpeg1(FALSE)
 	, m_mpeg2(FALSE)
 	, m_mpa(FALSE)
+	, m_radgt(FALSE)
 {
 }
 
@@ -74,6 +75,7 @@ void CPPageFilters::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_CHECK13, m_mpeg1);
 	DDX_Check(pDX, IDC_CHECK14, m_mpeg2);
 	DDX_Check(pDX, IDC_CHECK15, m_mpa);
+	DDX_Check(pDX, IDC_CHECK16, m_radgt);
 }
 
 
@@ -104,6 +106,7 @@ BOOL CPPageFilters::OnInitDialog()
 	m_mpeg1 = !!(s.TraFilters&TRA_MPEG1);
 	m_mpeg2 = !!(s.TraFilters&TRA_MPEG2);
 	m_mpa = !!(s.TraFilters&TRA_MPEGAUD);
+	m_radgt = !!(s.SrcFilters&SRC_RADGT);
 
 	UpdateData(FALSE);
 
@@ -133,6 +136,7 @@ BOOL CPPageFilters::OnApply()
 	if(m_mpeg1) s.TraFilters |= TRA_MPEG1;
 	if(m_mpeg2) s.TraFilters |= TRA_MPEG2;
 	if(m_mpa) s.TraFilters |= TRA_MPEGAUD;
+	if(m_radgt) s.SrcFilters |= SRC_RADGT;
 
 	return __super::OnApply();
 }

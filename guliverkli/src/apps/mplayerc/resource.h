@@ -269,6 +269,9 @@
 #define IDS_RS_MPEGFORCEDSUBS           590
 #define IDS_RS_MPEGPLANARYUV            591
 #define IDS_RS_COMPMONDESKARDIFF        592
+#define IDS_RS_HIDECDROMSSUBMENU        593
+#define IDS_RS_VMRTEXTURE               594
+#define IDS_RS_VMR3D                    595
 #define IDC_BROWSEBUTTON                1016
 #define IDC_BROWSEBUTTON2               1017
 #define IDC_COMBO1                      1018
@@ -396,6 +399,7 @@
 #define IDC_CHECK14                     1115
 #define IDC_SLIDER1                     1116
 #define IDC_CHECK15                     1117
+#define IDC_CHECK16                     1118
 #define IDD_COMPROPERTYPAGE             10002
 #define ID_DUMMYSEPARATOR               32768
 #define ID_VOLUME_MUTE_ON               32769
@@ -444,8 +448,8 @@
 #define ID__FAVORITES                   32815
 #define ID__FILTERS32816                32816
 #define ID_VIEW_VF_COMPMONDESKARDIFF    32820
-#define ID_PLAY_INCAUDDELAY				32821
-#define ID_PLAY_DECAUDDELAY				32822
+#define ID_PLAY_INCAUDDELAY             32821
+#define ID_PLAY_DECAUDDELAY             32822
 #define ID_FILTERS_SUBITEM_START        33000
 #define ID_FILTERS_SUBITEM_END          33099
 #define ID_FILTERSTREAMS_SUBITEM_START  33100
@@ -479,7 +483,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        335
 #define _APS_NEXT_COMMAND_VALUE         32823
-#define _APS_NEXT_CONTROL_VALUE         1118
+#define _APS_NEXT_CONTROL_VALUE         1119
 #define _APS_NEXT_SYMED_VALUE           10003
 #endif
 #endif

@@ -1346,7 +1346,7 @@ void CPlayerCaptureDialog::OnOpenFile()
 {
 	CFileDialog fd(FALSE, NULL, NULL, 
 		OFN_EXPLORER|OFN_ENABLESIZING|OFN_HIDEREADONLY|OFN_OVERWRITEPROMPT, 
-		_T("Media files (*.avi,*.ogm)|*.avi;*.ogm|"), this, 0);
+		_T("Media files (*.avi,*.ogm,*.mkv)|*.avi;*.ogm;*.mkv|"), this, 0);
 
 	if(fd.DoModal() == IDOK)
 	{

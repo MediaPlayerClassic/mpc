@@ -194,12 +194,14 @@ void CMediaFormats::UpdateData(bool fSave)
 		ADDFMT((_T("MPEG4 Audio file"), _T("aac"), true));
 		ADDFMT((_T("Matroska Media file"), _T("mkv")));
 		ADDFMT((_T("Matroska Audio file"), _T("mka"), true));
+		ADDFMT((_T("Smacker/Bink Media file"), _T("smk bik"), false, _T("smackw32/binkw32.dll in dll path")));
 		ADDFMT((_T("Real Media file"), _T("rm ram rmvb rpm rt rp smi smil"), false, _T("RealOne or codec pack"), RealMedia));
 		ADDFMT((_T("Real Audio file"), _T("ra"), true, _T("RealOne or codec pack"), RealMedia));
 		ADDFMT((_T("Shockwave Flash file"), _T("swf"), false, _T("ShockWave ActiveX control"), ShockWave));
 		ADDFMT((_T("Quicktime file"), _T("mov qt"), false, _T("QuickTime Player or codec pack"), QuickTime));
 		ADDFMT((_T("Image file"), _T("jpeg jpg bmp gif pic png dib tiff tif")));
-		ADDFMT((_T("Playlist file"), _T("asx m3u pls wvx wax wmx"), false));
+		ADDFMT((_T("Playlist file"), _T("asx m3u pls wvx wax wmx")));
+		ADDFMT((_T("Other"), _T("divx")));
 #undef ADDFMT
 
 		m_iRtspHandler = (engine_t)AfxGetApp()->GetProfileInt(_T("FileFormats"), _T("RtspHandler"), (int)RealMedia);

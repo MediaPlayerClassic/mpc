@@ -119,7 +119,8 @@ enum
 	SRC_SHOUTCAST=SRC_MATROSKA<<1,
 	SRC_REALMEDIA=SRC_SHOUTCAST<<1,
 	SRC_AVI=SRC_REALMEDIA<<1,
-	SRC_LAST=SRC_AVI<<1
+	SRC_RADGT=SRC_AVI<<1,
+	SRC_LAST=SRC_RADGT<<1
 };
 
 enum
@@ -386,6 +387,9 @@ public:
 		double mpegbright, mpegcont, mpeghue, mpegsat;
 		bool mpegforcedsubs, mpegplanaryuv;
 		DWORD mpegpreffmt;
+
+		bool fHideCDROMsSubMenu;
+		bool fVMRTexture, fVMR3D;
 
 	public:
 		Settings();

@@ -1748,9 +1748,8 @@ void CMainFrame::OnMouseMove(UINT nFlags, CPoint point)
 
 	CSize diff = m_lastMouseMove - point;
 
-	if(m_fFullScreen && (abs(diff.cx)+abs(diff.cy)) >= 2)
+	if(m_fFullScreen && (abs(diff.cx)+abs(diff.cy)) >= 1)
 	{
-
 		int nTimeOut = AfxGetAppSettings().nShowBarsWhenFullScreenTimeOut;
 
 		if(nTimeOut < 0)
@@ -1775,6 +1774,12 @@ void CMainFrame::OnMouseMove(UINT nFlags, CPoint point)
 				CSize s = pNext->CalcFixedLayout(FALSE, TRUE);
 				if(AfxGetAppSettings().nCS&i) r.top -= s.cy;
 			}
+
+			// HACK: the controls would cover the menu too early hiding some buttons
+			if(m_iPlaybackMode == PM_DVD
+			&& (m_iDVDDomain == DVD_DOMAIN_VideoManagerMenu
+			|| m_iDVDDomain == DVD_DOMAIN_VideoTitleSetMenu))
+				r.top = r.bottom - 10;
 
 			m_fHideCursor = false;
 
@@ -2998,6 +3003,7 @@ void CMainFrame::OnUpdateFileProperties(CCmdUI* pCmdUI)
 void CMainFrame::OnFileClosemedia()
 {
 	CloseMedia();
+	RestoreDefaultWindowRect();
 }
 
 void CMainFrame::OnUpdateFileClose(CCmdUI* pCmdUI)
@@ -4640,6 +4646,45 @@ void CMainFrame::SetDefaultWindowRect()
 	}
 }
 
+void CMainFrame::RestoreDefaultWindowRect()
+{
+	WINDOWPLACEMENT wp;
+	GetWindowPlacement(&wp);
+	if(!m_fFullScreen && wp.showCmd != SW_SHOWMAXIMIZED && wp.showCmd != SW_SHOWMINIMIZED
+	&& (GetExStyle()&WS_EX_APPWINDOW)
+	&& !AfxGetAppSettings().fRememberWindowSize)
+	{
+		DWORD style = GetStyle();
+
+		MENUBARINFO mbi;
+		memset(&mbi, 0, sizeof(mbi));
+		mbi.cbSize = sizeof(mbi);
+		::GetMenuBarInfo(m_hWnd, OBJID_MENU, 0, &mbi);
+
+		int w = DEFCLIENTW + GetSystemMetrics((style&WS_CAPTION)?SM_CXSIZEFRAME:SM_CXFIXEDFRAME)*2;
+		int h = DEFCLIENTH + GetSystemMetrics((style&WS_CAPTION)?SM_CYSIZEFRAME:SM_CYFIXEDFRAME)*2
+			+ (mbi.rcBar.bottom - mbi.rcBar.top)
+			+ 2; // ???
+		if(style&WS_CAPTION) h += GetSystemMetrics(SM_CYCAPTION);
+
+		CRect r;
+		GetWindowRect(r);
+
+		int x = r.CenterPoint().x - w/2;
+		int y = r.CenterPoint().y - h/2;
+
+		if(AfxGetAppSettings().fRememberWindowPos)
+		{
+			CRect r = AfxGetAppSettings().rcLastWindowPos;
+
+			x = r.TopLeft().x;
+			y = r.TopLeft().y;
+		}
+
+		MoveWindow(x, y, w, h);
+	}
+}
+
 OAFilterState CMainFrame::GetMediaState()
 {
 	OAFilterState ret = -1;
@@ -6141,6 +6186,8 @@ void CMainFrame::SetupOpenCDSubMenu()
 	else while(pSub->RemoveMenu(0, MF_BYPOSITION));
 
 	if(m_iMediaLoadState == MLS_LOADING) return;
+
+	if(AfxGetAppSettings().fHideCDROMsSubMenu) return;
 
 	UINT id = ID_FILE_OPEN_CD_START;
 

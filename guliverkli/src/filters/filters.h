@@ -35,3 +35,4 @@
 #include ".\muxer\MatroskaMuxer\MatroskaMuxer.h"
 #include ".\parser\RealMediaSplitter\RealMediaSplitter.h"
 #include ".\parser\AviSplitter\AviSplitter.h"
+#include ".\parser\RadGtSplitter\RadGtSplitter.h"

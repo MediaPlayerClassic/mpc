@@ -59,10 +59,15 @@ public:
 		CArray<chunk> cs;
 		UINT64 totalsize;
 		REFERENCE_TIME GetRefTime(DWORD frame, UINT64 size);
+		int GetTime(DWORD frame, UINT64 size);
 		int GetFrame(REFERENCE_TIME rt);
 		int GetKeyFrame(REFERENCE_TIME rt);
 		DWORD GetChunkSize(DWORD size);
 		bool IsRawSubtitleStream();
+
+		// tmp
+		struct chunk2 {DWORD t; DWORD n;};
+		CArray<chunk2> cs2;
 	};
 	CAutoPtrArray<strm_t> m_strms;
 	CMap<DWORD, DWORD, CStringA, CStringA&> m_info;
@@ -101,20 +106,22 @@ const AMOVIESETUP_PIN sudpPins[] =
       sizeof(sudPinTypesIn)/sizeof(sudPinTypesIn[0]), // Number of types
       sudPinTypesIn         // Pin information
     },
+    { L"Output",            // Pins string name
+      FALSE,                // Is it rendered
+      TRUE,                 // Is it an output
+      FALSE,                // Are we allowed none
+      FALSE,                // And allowed many
+      &CLSID_NULL,          // Connects to filter
+      NULL,                 // Connects to pin
+      0,					// Number of types
+      NULL					// Pin information
+    },
 };
 
 const AMOVIESETUP_FILTER sudFilter[] =
 {
-	{ &__uuidof(CAviSplitterFilter)			// Filter CLSID
-    , L"Avi Splitter"						// String name
-    , MERIT_NORMAL+1						// Filter merit
-    , sizeof(sudpPins)/sizeof(sudpPins[0])	// Number of pins
-	, sudpPins},							// Pin information
-	{ &__uuidof(CAviSourceFilter)			// Filter CLSID
-    , L"Avi Source"							// String name
-    , MERIT_NORMAL+1						// Filter merit
-    , 0										// Number of pins
-	, NULL},								// Pin information
+	{&__uuidof(CAviSplitterFilter), L"Avi Splitter", MERIT_NORMAL+1, sizeof(sudpPins)/sizeof(sudpPins[0]), sudpPins},
+	{&__uuidof(CAviSourceFilter), L"Avi Source", MERIT_NORMAL+1, 0, NULL},
 };
 
 CFactoryTemplate g_Templates[] =
@@ -130,7 +137,7 @@ int g_cTemplates = sizeof(g_Templates) / sizeof(g_Templates[0]);
 STDAPI DllRegisterServer()
 {
 	RegisterSourceFilter(
-		__uuidof(CAviSourceFilter), 
+		CLSID_AsyncReader, 
 		MEDIASUBTYPE_Avi, 
 		_T("0,4,,52494646,8,4,41564920"), 
 		_T(".avi"), _T(".divx"), NULL);
@@ -369,6 +376,8 @@ bool CAviSplitterFilter::InitDeliverLoop()
 
 	if(fReIndex)
 	{
+		m_pFile->EmptyIndex();
+
 		m_fAbort = false;
 		m_nOpenProgress = 0;
 
@@ -423,7 +432,7 @@ HRESULT CAviSplitterFilter::ReIndex(UINT64 end)
 				WORD type = TRACKTYPE(id);
 
 				if(type == 'db' || type == 'dc' || /*type == 'pc' ||*/ type == 'wb'
-				|| type == 'iv' || type == '__')
+				|| type == 'iv' || type == '__' || type == 'xx')
 				{
 					CAviFile::strm_t::chunk c;
 					c.filepos = pos;
@@ -474,7 +483,7 @@ void CAviSplitterFilter::SeekDeliverLoop(REFERENCE_TIME rt)
 			CAviFile::strm_t* s = m_pFile->m_strms[j];
 
 			int f = s->GetKeyFrame(rt);
-			m_tFilePos[j] = f >= 0 ? s->cs[f].filepos : 0;
+			m_tFilePos[j] = f >= 0 ? s->cs[f].filepos : m_pFile->GetLength();
 
 			if(!s->IsRawSubtitleStream())
 				minfilepos = min(minfilepos, m_tFilePos[j]);
@@ -582,8 +591,9 @@ HRESULT CAviSplitterFilter::DoDeliverLoop(UINT64 end)
 				{
 					WORD type = TRACKTYPE(id);
 
-					if(type == 'db' || type == 'dc' /*|| type == 'pc'*/ || type == 'wb'
-					|| type == 'iv' || type == '__') // TODO: check these agains the fcc in the index
+					if(type != 'pc')
+//						type == 'db' || type == 'dc' /*|| type == 'pc'*/ || type == 'wb'
+//					|| type == 'iv' || type == '__' || type == 'xx') // TODO: check these agains the fcc in the index
 					{
 						CAutoPtr<Packet> p(new Packet());
 
@@ -1391,9 +1401,6 @@ static void ReportError()
 	}
 }
 
-struct tfp_t {DWORD t; DWORD n;};
-static int tfpcomp(const void* tfp1, const void* tfp2) {return ((tfp_t*)tfp1)->t - ((tfp_t*)tfp2)->t;}
-
 bool CAviFile::IsInterleaved()
 {
 	if(m_strms.GetCount() < 2)
@@ -1402,35 +1409,24 @@ bool CAviFile::IsInterleaved()
 	if(m_avih.dwFlags&AVIF_ISINTERLEAVED) // not reliable, nandub can write f*cked up files and still sets it
 		return(true);
 */
-
-	// TODO: make this run faster (P4 2.4GHz/~700MB avi/~3-400000 chunks --> 200ms)
-
-	int len = 0;
 	for(int i = 0; i < m_avih.dwStreams; i++)
-		len += m_strms[i]->cs.GetCount();
+		m_strms[i]->cs2.SetSize(m_strms[i]->cs.GetSize());
 
-	if(len <= 0)
-		return(true);
+	DWORD* curchunks = new DWORD[m_avih.dwStreams];
+	UINT64* cursizes = new UINT64[m_avih.dwStreams];
 
-	CArray<tfp_t> chunks;
-	chunks.SetSize(len);
+	memset(curchunks, 0, sizeof(DWORD)*m_avih.dwStreams);
+	memset(cursizes, 0, sizeof(UINT64)*m_avih.dwStreams);
 
-	CArray<DWORD> curchunks;
-	CArray<UINT64> cursizes;
-	curchunks.SetSize(m_avih.dwStreams);
-	memset(curchunks.GetData(), 0, sizeof(DWORD)*m_avih.dwStreams);
-	cursizes.SetSize(m_avih.dwStreams);
-	memset(cursizes.GetData(), 0, sizeof(UINT64)*m_avih.dwStreams);
-
-	tfp_t* chunkptr = chunks.GetData();
-
-	len = 0;
-
+	int end = 0;
+/*
+clock_t t = clock();
+*/
 	while(1)
 	{
 		UINT64 fpmin = _I64_MAX;
-		DWORD n = -1;
 
+		DWORD n = -1;
 		for(int i = 0; i < m_avih.dwStreams; i++)
 		{
 			int curchunk = curchunks[i];
@@ -1439,96 +1435,78 @@ bool CAviFile::IsInterleaved()
             UINT64 fp = cs[curchunk].filepos;
 			if(fp < fpmin) {fpmin = fp; n = i;}
 		}
-
 		if(n == -1) break;
 
-		if(!m_strms[n]->IsRawSubtitleStream())
+		strm_t* s = m_strms[n];
+		DWORD& curchunk = curchunks[n];
+		UINT64& cursize = cursizes[n];
+
+		if(!s->IsRawSubtitleStream())
 		{
-			REFERENCE_TIME rt = m_strms[n]->GetRefTime(curchunks[n], cursizes[n]);
-			chunkptr->t = (DWORD)(rt>>13/*/10000*/); // for comparing later it is just as good as /10000 to get a near [ms] accuracy
-			chunkptr->n = len++;
-			chunkptr++;
+			strm_t::chunk2& cs2 = s->cs2[curchunk];
+			cs2.t = (DWORD)(s->GetRefTime(curchunk, cursize)>>13/*/10000*/); // for comparing later it is just as good as /10000 to get a near [ms] accuracy
+			cs2.n = end++;
 		}
 
-		cursizes[n] = m_strms[n]->cs[curchunks[n]].size;
-		curchunks[n]++;
+		cursize = s->cs[curchunk].size;
+		curchunk++;
 	}
-
-	qsort(chunks.GetData(), len, sizeof(tfp_t), tfpcomp);
-
-	int maxdiff = INT_MIN, mindiff = INT_MAX;
-
-	for(int i = 1; i < len; i++)
-	{
-		int diff = chunks[i].n - chunks[i-1].n;
-#ifdef DEBUG
-		if(diff > maxdiff) maxdiff = diff;
-		if(diff < mindiff) mindiff = diff;
-#else
-		if(abs(diff) > 500)
-		{
-			ReportError();
-			return(false);
-		}
-#endif
-	}
-
-#ifdef DEBUG
-	if(max(abs(maxdiff), abs(mindiff)) > 500)
-	{
-		ReportError();
-		return(false);
-	}
-#endif
-
-	//
 /*
-	for(int i = 0; i < m_avih.dwStreams; i++)
-	{
-		if(m_strms[i]->cs.GetCount() < 500) continue; // we can buffer up to 500 samples...
-
-		for(int j = 0; j < m_avih.dwStreams; j++)
-		{
-			if(i == j) continue;
-
-			if(m_strms[j]->IsRawSubtitleStream()) continue;
-
-			CArray<strm_t::chunk>& cs1 = m_strms[i]->cs;
-			CArray<strm_t::chunk>& cs2 = m_strms[j]->cs;
-
-			if(cs2.GetCount() == 0) continue;
-
-			if(cs1[cs1.GetCount()-1].filepos < cs2[0].filepos)
-				return(false);
-		}
-	}
+CString str;
+str.Format(_T("%d\n"), clock() - t);
+MessageBox(NULL, str, NULL, MB_OK);
+t = clock();
 */
-/*
-	if(AVIOLDINDEX* idx = m_idx1)
+	memset(curchunks, 0, sizeof(DWORD)*m_avih.dwStreams);
+
+	strm_t::chunk2 cs2last = {-1, 0};
+
+	while(1)
 	{
-		int len = idx->cb/sizeof(idx->aIndex[0]);
+		strm_t::chunk2 cs2min = {LONG_MAX, LONG_MAX};
 
-		CList<DWORD> ids;
-
-		for(int i = 1; i < len; i++)
+		int n = -1;
+		for(int i = 0; i < m_avih.dwStreams; i++)
 		{
-			if(idx->aIndex[i-1].dwChunkId != idx->aIndex[i].dwChunkId)
-			{
-				if(ids.Find(idx->aIndex[i].dwChunkId))
-					return(true);
+			int curchunk = curchunks[i];
+			if(curchunk >= m_strms[i]->cs2.GetSize()) continue;
+			strm_t::chunk2& cs2 = m_strms[i]->cs2[curchunk];
+			if(cs2.t < cs2min.t) {cs2min = cs2; n = i;}
+		}
+		if(n == -1) break;
 
-				ids.AddTail(idx->aIndex[i-1].dwChunkId);
+		curchunks[n]++;
+
+		if(cs2last.t >= 0)
+		{
+			if(abs(cs2min.n - cs2last.n) >= 500)
+			{
+/*
+CString str;
+str.Format(_T("%d\n"), clock() - t);
+MessageBox(NULL, str, NULL, MB_OK);
+t = clock();
+*/
+				ReportError();
+				return(false);
 			}
 		}
 
-		return(false);
+		cs2last = cs2min;
 	}
-	else
-	{
-		// TODO
-	}
+/*
+str;
+str.Format(_T("%d\n"), clock() - t);
+MessageBox(NULL, str, NULL, MB_OK);
+t = clock();
 */
-//	return(false);
+	delete [] curchunks;
+	delete [] cursizes;
+
+	// this is not needed anymore, let's save a little memory then
+	for(int i = 0; i < m_avih.dwStreams; i++)
+		m_strms[i]->cs2.SetSize(0);
+
 	return(true);
 }
 
@@ -1540,11 +1518,11 @@ REFERENCE_TIME CAviFile::strm_t::GetRefTime(DWORD frame, UINT64 size)
 	{
 		WAVEFORMATEX* wfe = (WAVEFORMATEX*)strf.GetData();
 
-		rt = ((10000000i64 * size + wfe->nBlockAlign/2) / wfe->nBlockAlign * strh.dwScale + strh.dwRate/2) / strh.dwRate;
+		rt = ((10000000i64 * size + (wfe->nBlockAlign>>1)) / wfe->nBlockAlign * strh.dwScale + (strh.dwRate>>1)) / strh.dwRate;
 	}
 	else
 	{
-		rt = (10000000i64 * frame * strh.dwScale + strh.dwRate/2) / strh.dwRate;
+		rt = (10000000i64 * frame * strh.dwScale + (strh.dwRate>>1)) / strh.dwRate;
 	}
 
 	return(rt);
@@ -1600,6 +1578,6 @@ DWORD CAviFile::strm_t::GetChunkSize(DWORD size)
 
 bool CAviFile::strm_t::IsRawSubtitleStream()
 {
-	return(strh.fccType == FCC('txts') && cs.GetCount() == 1);
+	return strh.fccType == FCC('txts') && cs.GetCount() == 1;
 }
 

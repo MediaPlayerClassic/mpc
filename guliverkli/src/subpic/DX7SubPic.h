@@ -47,7 +47,7 @@ public:
 
 // CDX7SubPicAllocator
 
-class CDX7SubPicAllocator : public ISubPicAllocatorImpl
+class CDX7SubPicAllocator : public ISubPicAllocatorImpl, public CCritSec
 {
     CComPtr<IDirect3DDevice7> m_pD3DDev;
 	CSize m_maxsize;
@@ -56,4 +56,7 @@ class CDX7SubPicAllocator : public ISubPicAllocatorImpl
 
 public:
 	CDX7SubPicAllocator(IDirect3DDevice7* pD3DDev, SIZE maxsize);
+
+	// ISubPicAllocator
+	STDMETHODIMP ChangeDevice(IUnknown* pDev);
 };

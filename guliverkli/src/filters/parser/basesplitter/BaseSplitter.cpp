@@ -4,7 +4,7 @@
 #include "BaseSplitter.h"
 
 #define MAXBUFFERS 2
-#define MINPACKETS 5
+#define MINPACKETS 2
 #define MAXPACKETS 500
 
 //
@@ -22,6 +22,7 @@ STDMETHODIMP CAsyncFileReader::NonDelegatingQueryInterface(REFIID riid, void** p
 
 	return 
 		QI(IAsyncReader)
+		QI(IFileHandle)
 		__super::NonDelegatingQueryInterface(riid, ppv);
 }
 
@@ -29,9 +30,18 @@ STDMETHODIMP CAsyncFileReader::NonDelegatingQueryInterface(REFIID riid, void** p
 
 STDMETHODIMP CAsyncFileReader::SyncRead(LONGLONG llPosition, LONG lLength, BYTE* pBuffer)
 {
-	if(llPosition+lLength > GetLength()) return E_FAIL; // strangly the Seek below can return llPosition even if the file is not that big (?)
-	if(llPosition != Seek(llPosition, begin)) return E_FAIL;
-	if((UINT)lLength < Read(pBuffer, lLength)) return E_FAIL;
+	try
+	{
+		if(llPosition+lLength > GetLength()) return E_FAIL; // strangly the Seek below can return llPosition even if the file is not that big (?)
+		if(llPosition != Seek(llPosition, begin)) return E_FAIL;
+		if((UINT)lLength < Read(pBuffer, lLength)) return E_FAIL;
+	}
+	catch(CFileException* e)
+	{
+		e->Delete();
+		return E_FAIL;
+	}
+
 	return S_OK;
 }
 
@@ -40,6 +50,13 @@ STDMETHODIMP CAsyncFileReader::Length(LONGLONG* pTotal, LONGLONG* pAvailable)
 	if(pTotal) *pTotal = GetLength();
 	if(pAvailable) *pAvailable = GetLength();
 	return S_OK;
+}
+
+// IFileHandle
+
+STDMETHODIMP_(HANDLE) CAsyncFileReader::GetFileHandle()
+{
+	return m_hFile;
 }
 
 //
@@ -147,13 +164,14 @@ STDMETHODIMP CBaseSplitterInputPin::EndFlush()
 // CBaseSplitterOutputPin
 //
 
-CBaseSplitterOutputPin::CBaseSplitterOutputPin(CArray<CMediaType>& mts, LPCWSTR pName, CBaseFilter* pFilter, CCritSec* pLock, HRESULT* phr)
+CBaseSplitterOutputPin::CBaseSplitterOutputPin(CArray<CMediaType>& mts, LPCWSTR pName, CBaseFilter* pFilter, CCritSec* pLock, HRESULT* phr, int nBuffers)
 	: CBaseOutputPin(NAME("CBaseSplitterOutputPin"), pFilter, pLock, phr, pName)
-	, m_hrDeliver(S_OK) // just in case it were asked before the worker thread could create and reset it
+	, m_hrDeliver(S_OK) // just in case it were asked before the worker thread could be created and reset it
 	, m_fFlushing(false)
 	, m_eEndFlush(TRUE)
 {
 	m_mts.Copy(mts);
+	m_nBuffers = nBuffers > 0 ? nBuffers : MAXBUFFERS;
 }
 
 CBaseSplitterOutputPin::~CBaseSplitterOutputPin()
@@ -176,7 +194,7 @@ HRESULT CBaseSplitterOutputPin::DecideBufferSize(IMemAllocator* pAlloc, ALLOCATO
 
     HRESULT hr = NOERROR;
 
-	pProperties->cBuffers = MAXBUFFERS;
+	pProperties->cBuffers = m_nBuffers;
 	pProperties->cbBuffer = m_mt.lSampleSize;
 
     ALLOCATOR_PROPERTIES Actual;
@@ -192,10 +210,9 @@ HRESULT CBaseSplitterOutputPin::CheckMediaType(const CMediaType* pmt)
 {
 	for(int i = 0; i < m_mts.GetCount(); i++)
 	{
-		if(pmt->majortype == m_mts[i].majortype && pmt->subtype == m_mts[i].subtype)
-		{
+		if(*pmt == m_mts[i])
+		// if(pmt->majortype == m_mts[i].majortype && pmt->subtype == m_mts[i].subtype)
 			return S_OK;
-		}
 	}
 
 	return E_INVALIDARG;
@@ -304,8 +321,8 @@ HRESULT CBaseSplitterOutputPin::QueuePacket(CAutoPtr<Packet> p)
 
 	do
 	{
-		if(/*QueueCount() < MAXPACKETS/2
-		||*/ (((CBaseSplitterFilter*)m_pFilter)->IsAnyPinDrying()
+		if(//QueueCount() < MAXPACKETS/2 ||
+		 (((CBaseSplitterFilter*)m_pFilter)->IsAnyPinDrying()
 			&& QueueCount() < MAXPACKETS)) break;
 		else Sleep(1);
 /*

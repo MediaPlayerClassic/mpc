@@ -1053,6 +1053,10 @@ void CMPlayerCApp::Settings::UpdateData(bool fSave)
 		pApp->WriteProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_MPEGSAT), (int)(mpegsat*100));
 		pApp->WriteProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_MPEGFORCEDSUBS), mpegforcedsubs);
 		pApp->WriteProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_MPEGPLANARYUV), mpegplanaryuv);
+
+		pApp->WriteProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_HIDECDROMSSUBMENU), fHideCDROMsSubMenu);		
+		pApp->WriteProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_VMRTEXTURE), fVMRTexture);
+		pApp->WriteProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_VMR3D), fVMR3D);
 	}
 	else
 	{
@@ -1312,6 +1316,10 @@ void CMPlayerCApp::Settings::UpdateData(bool fSave)
 		mpegsat = (double)pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_MPEGSAT), 100) / 100;
 		mpegforcedsubs = !!pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_MPEGFORCEDSUBS), 1);
 		mpegplanaryuv = !!pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_MPEGPLANARYUV), 1);
+
+		fHideCDROMsSubMenu = !!pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_HIDECDROMSSUBMENU), 0);		
+		fVMRTexture = !!pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_VMRTEXTURE), 1);
+		fVMR3D = !!pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_VMR3D), 1);
 
 		pApp->WriteProfileInt(ResStr(IDS_R_SETTINGS), _T("LastUsedPage"), 0);
 

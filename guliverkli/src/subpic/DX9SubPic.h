@@ -46,7 +46,7 @@ public:
 
 // CDX9SubPicAllocator
 
-class CDX9SubPicAllocator : public ISubPicAllocatorImpl
+class CDX9SubPicAllocator : public ISubPicAllocatorImpl, public CCritSec
 {
 	CComPtr<IDirect3DDevice9> m_pD3DDev;
 	CSize m_maxsize;
@@ -55,4 +55,7 @@ class CDX9SubPicAllocator : public ISubPicAllocatorImpl
 
 public:
 	CDX9SubPicAllocator(IDirect3DDevice9* pD3DDev, SIZE maxsize);
+
+	// ISubPicAllocator
+	STDMETHODIMP ChangeDevice(IUnknown* pDev);
 };

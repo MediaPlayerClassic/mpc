@@ -36,41 +36,53 @@
 
 //#include <d3dx9.h>
 
-
 namespace DSObjects
 {
 
 class CDX9AllocatorPresenter
 	: public ISubPicAllocatorPresenterImpl
-	, public IVMRSurfaceAllocator9
-	, public IVMRImagePresenter9
-	, public IVMRWindowlessControl9
 {
 protected:
 	CSize m_ScreenSize;
 
 	CComPtr<IDirect3D9> m_pD3D;
     CComPtr<IDirect3DDevice9> m_pD3DDev;
-	D3DCAPS9 m_devcaps;
-
-	CComPtr<IVMRSurfaceAllocatorNotify9> m_pIVMRSurfAllocNotify;
-	CInterfaceArray<IDirect3DSurface9> m_pSurfaces;
-
+	CComPtr<IDirect3DTexture9> m_pVideoTexture;
 	CComPtr<IDirect3DSurface9> m_pVideoSurface;
 
     virtual HRESULT CreateDevice();
+	virtual HRESULT AllocSurfaces();
 	virtual void DeleteSurfaces();
 
 public:
 	CDX9AllocatorPresenter(HWND hWnd, HRESULT& hr);
-	virtual ~CDX9AllocatorPresenter();
+
+	// ISubPicAllocatorPresenter
+	STDMETHODIMP CreateRenderer(IUnknown** ppRenderer);
+	STDMETHODIMP_(bool) Paint(bool fAll);
+};
+
+class CVMR9AllocatorPresenter
+	: public CDX9AllocatorPresenter
+	, public IVMRSurfaceAllocator9
+	, public IVMRImagePresenter9
+	, public IVMRWindowlessControl9
+{
+protected:
+	CComPtr<IVMRSurfaceAllocatorNotify9> m_pIVMRSurfAllocNotify;
+	CInterfaceArray<IDirect3DSurface9> m_pSurfaces;
+
+	HRESULT CreateDevice();
+	void DeleteSurfaces();
+
+public:
+	CVMR9AllocatorPresenter(HWND hWnd, HRESULT& hr);
 
 	DECLARE_IUNKNOWN
     STDMETHODIMP NonDelegatingQueryInterface(REFIID riid, void** ppv);
 
 	// ISubPicAllocatorPresenter
 	STDMETHODIMP CreateRenderer(IUnknown** ppRenderer);
-	STDMETHODIMP_(bool) Paint(bool fAll);
 
     // IVMRSurfaceAllocator9
     STDMETHODIMP InitializeDevice(DWORD_PTR dwUserID, VMR9AllocationInfo* lpAllocInfo, DWORD* lpNumBuffers);
@@ -103,11 +115,14 @@ class CQT9AllocatorPresenter
 	: public CDX9AllocatorPresenter
 	, public IQTVideoSurface
 {
-	HRESULT AllocateSurfaces(CSize size);
+	CComPtr<IDirect3DSurface9> m_pVideoSurfaceOff;
+
+protected:
+	 HRESULT AllocSurfaces();
+	 void DeleteSurfaces();
 
 public:
 	CQT9AllocatorPresenter(HWND hWnd, HRESULT& hr);
-	virtual ~CQT9AllocatorPresenter();
 
 	DECLARE_IUNKNOWN
     STDMETHODIMP NonDelegatingQueryInterface(REFIID riid, void** ppv);
@@ -129,7 +144,7 @@ HRESULT CreateAP9(const CLSID& clsid, HWND hWnd, ISubPicAllocatorPresenter** ppA
 	*ppAP = NULL;
 
 	HRESULT hr;
-	if(clsid == CLSID_VMR9AllocatorPresenter && !(*ppAP = new CDX9AllocatorPresenter(hWnd, hr))
+	if(clsid == CLSID_VMR9AllocatorPresenter && !(*ppAP = new CVMR9AllocatorPresenter(hWnd, hr))
 //	|| clsid == CLSID_RM9AllocatorPresenter && !(*ppAP = new CRM9AllocatorPresenter(hWnd, hr))
 	|| clsid == CLSID_QT9AllocatorPresenter && !(*ppAP = new CQT9AllocatorPresenter(hWnd, hr)))
 		return E_OUTOFMEMORY;
@@ -150,7 +165,81 @@ HRESULT CreateAP9(const CLSID& clsid, HWND hWnd, ISubPicAllocatorPresenter** ppA
 
 //
 
-#define MY_USER_ID 0x6ABE51
+static HRESULT TextureBlt(CComPtr<IDirect3DTexture9> pTexture, CRect dst, CRect src)
+{
+	if(!pTexture)
+		return E_POINTER;
+
+	CComPtr<IDirect3DDevice9> pD3DDev;
+	if(FAILED(pTexture->GetDevice(&pD3DDev)) || !pD3DDev)
+		return E_FAIL;
+
+	HRESULT hr;
+
+    do
+	{
+		D3DSURFACE_DESC d3dsd;
+		ZeroMemory(&d3dsd, sizeof(d3dsd));
+		if(FAILED(pTexture->GetLevelDesc(0, &d3dsd)))
+			break;
+
+        float w = (float)d3dsd.Width;
+        float h = (float)d3dsd.Height;
+
+		struct
+		{
+			float x, y, z, rhw;
+			float tu, tv;
+		}
+		pVertices[] =
+		{
+			{(float)dst.left, (float)dst.top, 0.5f, 2.0f, (float)src.left / w, (float)src.top / h},
+			{(float)dst.right, (float)dst.top, 0.5f, 2.0f, (float)src.right / w, (float)src.top / h},
+			{(float)dst.left, (float)dst.bottom, 0.5f, 2.0f, (float)src.left / w, (float)src.bottom / h},
+			{(float)dst.right, (float)dst.bottom, 0.5f, 2.0f, (float)src.right / w, (float)src.bottom / h},
+		};
+
+		for(int i = 0; i < sizeof(pVertices)/sizeof(pVertices[0]); i++)
+		{
+			pVertices[i].x -= 0.5;
+			pVertices[i].y -= 0.5;
+		}
+
+        hr = pD3DDev->SetTexture(0, pTexture);
+
+        hr = pD3DDev->SetRenderState(D3DRS_CULLMODE, D3DCULL_NONE);
+        hr = pD3DDev->SetRenderState(D3DRS_LIGHTING, FALSE);
+		hr = pD3DDev->SetRenderState(D3DRS_ZENABLE, FALSE);
+    	hr = pD3DDev->SetRenderState(D3DRS_ALPHABLENDENABLE, FALSE);
+		hr = pD3DDev->SetRenderState(D3DRS_ALPHATESTENABLE, FALSE); 
+
+		hr = pD3DDev->SetSamplerState(0, D3DSAMP_MAGFILTER, D3DTEXF_LINEAR);
+        hr = pD3DDev->SetSamplerState(0, D3DSAMP_MINFILTER, D3DTEXF_LINEAR);
+        hr = pD3DDev->SetSamplerState(0, D3DSAMP_MIPFILTER, D3DTEXF_LINEAR);
+
+		hr = pD3DDev->SetSamplerState(0, D3DSAMP_ADDRESSU, D3DTADDRESS_CLAMP);
+		hr = pD3DDev->SetSamplerState(0, D3DSAMP_ADDRESSV, D3DTADDRESS_CLAMP);
+
+		//
+
+		if(FAILED(hr = pD3DDev->BeginScene()))
+			break;
+
+        hr = pD3DDev->SetFVF(D3DFVF_XYZRHW | D3DFVF_TEX1);
+		hr = pD3DDev->DrawPrimitiveUP(D3DPT_TRIANGLESTRIP, 2, pVertices, sizeof(pVertices[0]));
+
+		hr = pD3DDev->EndScene();
+
+        //
+
+		pD3DDev->SetTexture(0, NULL);
+
+		return S_OK;
+    }
+	while(0);
+
+    return E_FAIL;
+}
 
 // CDX9AllocatorPresenter
 
@@ -158,8 +247,6 @@ CDX9AllocatorPresenter::CDX9AllocatorPresenter(HWND hWnd, HRESULT& hr)
 	: ISubPicAllocatorPresenterImpl(hWnd)
 	, m_ScreenSize(0, 0)
 {
-	CAutoLock cAutoLock(this);
-
     if(!IsWindow(m_hWnd))
     {
         hr = E_INVALIDARG;
@@ -178,28 +265,11 @@ CDX9AllocatorPresenter::CDX9AllocatorPresenter(HWND hWnd, HRESULT& hr)
 	hr = CreateDevice();
 }
 
-CDX9AllocatorPresenter::~CDX9AllocatorPresenter()
-{
-}
-
-STDMETHODIMP CDX9AllocatorPresenter::NonDelegatingQueryInterface(REFIID riid, void** ppv)
-{
-    CheckPointer(ppv, E_POINTER);
-
-	return 
-		QI(IVMRSurfaceAllocator9)
-		QI(IVMRImagePresenter9)
-		QI(IVMRWindowlessControl9)
-		__super::NonDelegatingQueryInterface(riid, ppv);
-}
-
 HRESULT CDX9AllocatorPresenter::CreateDevice()
 {
     m_pD3DDev = NULL;
-	m_pAllocator = NULL;
-	m_pSubPicQueue = NULL;
 
-    D3DDISPLAYMODE d3ddm;
+	D3DDISPLAYMODE d3ddm;
 	ZeroMemory(&d3ddm, sizeof(d3ddm));
 	if(FAILED(m_pD3D->GetAdapterDisplayMode(D3DADAPTER_DEFAULT, &d3ddm)))
 		return E_UNEXPECTED;
@@ -210,7 +280,7 @@ HRESULT CDX9AllocatorPresenter::CreateDevice()
     ZeroMemory(&pp, sizeof(pp));
     pp.Windowed = TRUE;
     pp.hDeviceWindow = m_hWnd;
-    pp.SwapEffect = D3DSWAPEFFECT_COPY; // TODO
+    pp.SwapEffect = D3DSWAPEFFECT_COPY;
 	pp.Flags = D3DPRESENTFLAG_VIDEO;
 	pp.BackBufferWidth = d3ddm.Width;
 	pp.BackBufferHeight = d3ddm.Height;
@@ -222,7 +292,10 @@ HRESULT CDX9AllocatorPresenter::CreateDevice()
 	if(FAILED(hr))
 		return hr;
 
-	m_pD3DDev->GetDeviceCaps(&m_devcaps);
+	//
+
+	CComPtr<ISubPicProvider> pSubPicProvider;
+	if(m_pSubPicQueue) m_pSubPicQueue->GetSubPicProvider(&pSubPicProvider);
 
 	CSize size;
 	switch(AfxGetAppSettings().nSPCMaxRes)
@@ -235,9 +308,16 @@ HRESULT CDX9AllocatorPresenter::CreateDevice()
 	case 5: size.SetSize(384, 288); break;
 	}
 
-	m_pAllocator = new CDX9SubPicAllocator(m_pD3DDev, size);
-	if(!m_pAllocator)
-		return E_FAIL;
+	if(m_pAllocator)
+	{
+		m_pAllocator->ChangeDevice(m_pD3DDev);
+	}
+	else
+	{
+		m_pAllocator = new CDX9SubPicAllocator(m_pD3DDev, size);
+		if(!m_pAllocator)
+			return E_FAIL;
+	}
 
 	hr = S_OK;
 	m_pSubPicQueue = AfxGetAppSettings().nSPCSize > 0 
@@ -246,15 +326,165 @@ HRESULT CDX9AllocatorPresenter::CreateDevice()
 	if(!m_pSubPicQueue || FAILED(hr))
 		return E_FAIL;
 
+	if(pSubPicProvider) m_pSubPicQueue->SetSubPicProvider(pSubPicProvider);
+
 	return S_OK;
 } 
+
+HRESULT CDX9AllocatorPresenter::AllocSurfaces()
+{
+    CAutoLock cAutoLock(this);
+
+	m_pVideoTexture = NULL;
+	m_pVideoSurface = NULL;
+
+	HRESULT hr;
+
+	if(AfxGetAppSettings().fVMRTexture)
+	{
+		if(FAILED(hr = m_pD3DDev->CreateTexture(
+			m_NativeVideoSize.cx, m_NativeVideoSize.cy, 1, D3DUSAGE_RENDERTARGET, D3DFMT_X8R8G8B8/*D3DFMT_A8R8G8B8*/, 
+			D3DPOOL_DEFAULT, &m_pVideoTexture, NULL)))
+			return hr;
+
+		if(FAILED(hr = m_pVideoTexture->GetSurfaceLevel(0, &m_pVideoSurface)))
+			return hr;
+
+		if(!AfxGetAppSettings().fVMR3D) m_pVideoTexture = NULL;
+	}
+	else
+	{
+		if(FAILED(hr = m_pD3DDev->CreateOffscreenPlainSurface(
+			m_NativeVideoSize.cx, m_NativeVideoSize.cy, D3DFMT_A8R8G8B8, 
+			D3DPOOL_DEFAULT, &m_pVideoSurface, NULL)))
+			return hr;
+	}
+
+	hr = m_pD3DDev->ColorFill(m_pVideoSurface, NULL, 0);
+
+	return S_OK;
+}
 
 void CDX9AllocatorPresenter::DeleteSurfaces()
 {
     CAutoLock cAutoLock(this);
 
+	m_pVideoTexture = NULL;
 	m_pVideoSurface = NULL;
+}
+
+// ISubPicAllocatorPresenter
+
+STDMETHODIMP CDX9AllocatorPresenter::CreateRenderer(IUnknown** ppRenderer)
+{
+	return E_NOTIMPL;
+}
+
+STDMETHODIMP_(bool) CDX9AllocatorPresenter::Paint(bool fAll)
+{
+	CAutoLock cAutoLock(this);
+
+	if(m_WindowRect.right <= m_WindowRect.left || m_WindowRect.bottom <= m_WindowRect.top
+	|| m_NativeVideoSize.cx <= 0 || m_NativeVideoSize.cy <= 0
+	|| !m_pVideoSurface)
+		return(false);
+
+	HRESULT hr;
+
+	CRect rSrcVid(CPoint(0, 0), m_NativeVideoSize);
+	CRect rDstVid(m_VideoRect);
+
+	CRect rSrcPri(CPoint(0, 0), m_WindowRect.Size());
+	CRect rDstPri(m_WindowRect);
+
+	if(fAll)
+	{
+		// clear the backbuffer
+
+		hr = m_pD3DDev->Clear(0, NULL, D3DCLEAR_TARGET, 0, 1.0f, 0);
+
+		// paint the video on the backbuffer
+
+		if(!rDstVid.IsRectEmpty())
+		{
+			if(m_pVideoTexture)
+			{
+				hr = TextureBlt(m_pVideoTexture, rDstVid, rSrcVid);
+			}
+			else
+			{
+				CComPtr<IDirect3DSurface9> pBackBuffer;
+				if(SUCCEEDED(hr = m_pD3DDev->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &pBackBuffer)))
+					hr = m_pD3DDev->StretchRect(m_pVideoSurface, rSrcVid, pBackBuffer, rDstVid, D3DTEXF_LINEAR);
+			}
+		}
+
+		// paint the text on the backbuffer
+
+		AlphaBltSubPic(rSrcPri.Size());
+	}
+
+	hr = m_pD3DDev->Present(rSrcPri, rDstPri, NULL, NULL);
+
+	if(hr == D3DERR_DEVICELOST)
+	{
+		if(m_pD3DDev->TestCooperativeLevel() == D3DERR_DEVICENOTRESET) 
+		{
+			DeleteSurfaces();
+			if(FAILED(hr = CreateDevice()) || FAILED(hr = AllocSurfaces()))
+				return(false);
+		}
+
+		hr = S_OK;
+	}
+
+	return(true);
+}
+
+//
+// CVMR9AllocatorPresenter
+//
+
+#define MY_USER_ID 0x6ABE51
+
+CVMR9AllocatorPresenter::CVMR9AllocatorPresenter(HWND hWnd, HRESULT& hr) 
+	: CDX9AllocatorPresenter(hWnd, hr)
+{
+}
+
+STDMETHODIMP CVMR9AllocatorPresenter::NonDelegatingQueryInterface(REFIID riid, void** ppv)
+{
+    CheckPointer(ppv, E_POINTER);
+
+	return 
+		QI(IVMRSurfaceAllocator9)
+		QI(IVMRImagePresenter9)
+		QI(IVMRWindowlessControl9)
+		__super::NonDelegatingQueryInterface(riid, ppv);
+}
+
+HRESULT CVMR9AllocatorPresenter::CreateDevice()
+{
+	HRESULT hr = __super::CreateDevice();
+	if(FAILED(hr)) return hr;
+
+	if(m_pIVMRSurfAllocNotify)
+	{
+		HMONITOR hMonitor = m_pD3D->GetAdapterMonitor(D3DADAPTER_DEFAULT);
+		if(FAILED(hr = m_pIVMRSurfAllocNotify->ChangeD3DDevice(m_pD3DDev, hMonitor)))
+			return(false);
+	}
+
+	return hr;
+}
+
+void CVMR9AllocatorPresenter::DeleteSurfaces()
+{
+    CAutoLock cAutoLock(this);
+
 	m_pSurfaces.RemoveAll();
+
+	return __super::DeleteSurfaces();
 }
 
 // ISubPicAllocatorPresenter
@@ -498,7 +728,7 @@ public:
 };
 
 #include "MacrovisionKicker.h"
-STDMETHODIMP CDX9AllocatorPresenter::CreateRenderer(IUnknown** ppRenderer)
+STDMETHODIMP CVMR9AllocatorPresenter::CreateRenderer(IUnknown** ppRenderer)
 {
     CheckPointer(ppRenderer, E_POINTER);
 
@@ -541,135 +771,9 @@ STDMETHODIMP CDX9AllocatorPresenter::CreateRenderer(IUnknown** ppRenderer)
     return E_FAIL;
 }
 
-static bool ClipToSurface(IDirect3DSurface9* pSurface, CRect& s, CRect& d)
-{
-	D3DSURFACE_DESC d3dsd;
-	ZeroMemory(&d3dsd, sizeof(d3dsd));
-	if(FAILED(pSurface->GetDesc(&d3dsd)))
-		return(false);
-
-	int w = d3dsd.Width, h = d3dsd.Height;
-	int sw = s.Width(), sh = s.Height();
-	int dw = d.Width(), dh = d.Height();
-
-	if(d.left >= w || d.right < 0 || d.top >= h || d.bottom < 0 
-	|| sw <= 0 || sh <= 0 || dw <= 0 || dh <= 0)
-	{
-		s.SetRectEmpty();
-		d.SetRectEmpty();
-		return(true);
-	}
-
-	if(d.right > w) {s.right -= (d.right-w)*sw/dw; d.right = w;}
-	if(d.bottom > h) {s.bottom -= (d.bottom-h)*sh/dh; d.bottom = h;}
-	if(d.left < 0) {s.left += (0-d.left)*sw/dw; d.left = 0;}
-	if(d.top < 0) {s.top += (0-d.top)*sh/dh; d.top = 0;}
-
-	return(true);
-}
-
-STDMETHODIMP_(bool) CDX9AllocatorPresenter::Paint(bool fAll)
-{
-	CAutoLock cAutoLock(this);
-
-	if(m_WindowRect.right <= m_WindowRect.left || m_WindowRect.bottom <= m_WindowRect.top
-	|| m_NativeVideoSize.cx <= 0 || m_NativeVideoSize.cy <= 0
-	|| !m_pVideoSurface)
-		return(false);
-
-	HRESULT hr;
-
-	CComPtr<IDirect3DDevice9> pD3DDev;
-	if(FAILED(hr = m_pVideoSurface->GetDevice(&pD3DDev)))
-		return(false);
-
-	CComPtr<IDirect3DSurface9> pBackBuffer;
-	if(FAILED(pD3DDev->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &pBackBuffer)))
-		return(false);
-
-	CRect rSrcVid(CPoint(0, 0), m_NativeVideoSize);
-	CRect rDstVid(m_VideoRect);
-
-	CRect rSrcPri(CPoint(0, 0), m_WindowRect.Size());
-	CRect rDstPri(m_WindowRect);
-
-	if(fAll)
-	{
-		// clear the backbuffer
-
-		CRect rl(0, 0, rDstVid.left, rSrcPri.bottom);
-		CRect rr(rDstVid.right, 0, rSrcPri.right, rSrcPri.bottom);
-		CRect rt(0, 0, rSrcPri.right, rDstVid.top);
-		CRect rb(0, rDstVid.bottom, rSrcPri.right, rSrcPri.bottom);
-
-		if(!rl.IsRectEmpty()) hr = pD3DDev->ColorFill(pBackBuffer, rl, 0);
-		if(!rr.IsRectEmpty()) hr = pD3DDev->ColorFill(pBackBuffer, rr, 0);
-		if(!rt.IsRectEmpty()) hr = pD3DDev->ColorFill(pBackBuffer, rt, 0);
-		if(!rb.IsRectEmpty()) hr = pD3DDev->ColorFill(pBackBuffer, rb, 0);
-
-		// paint the video on the backbuffer, with clipping (argh, stupid StretchRect...)
-		ClipToSurface(pBackBuffer, rSrcVid, rDstVid);
-
-		// IMPORTANT: rSrcVid has to be aligned on mod2 for yuy2->rgb conversion with StretchRect!!!
-		rSrcVid.left &= ~1; rSrcVid.right &= ~1;
-		rSrcVid.top &= ~1; rSrcVid.bottom &= ~1;
-		
-		// DX9BUG(?): without this StretchRect will use point sampling, tested with nvidia detonator 4282 whql and 4300
-		rSrcVid.DeflateRect(2,2,0,0);
-
-		if(m_pVideoSurface && !rDstVid.IsRectEmpty())
-		{
-			DWORD mask = D3DPTFILTERCAPS_MINFLINEAR|D3DPTFILTERCAPS_MAGFLINEAR;
-			hr = pD3DDev->StretchRect(m_pVideoSurface, rSrcVid, pBackBuffer, rDstVid, 
-				(m_devcaps.StretchRectFilterCaps&mask)==mask ? D3DTEXF_LINEAR : D3DTEXF_NONE);
-		}
-
-		// paint the text on the backbuffer
-
-		CComPtr<ISubPic> pSubPic;
-		if(m_pSubPicQueue->LookupSubPic(m_rtNow, &pSubPic))
-		{
-			SubPicDesc spd;
-			pSubPic->GetDesc(spd);
-
-			CRect r;
-			pSubPic->GetDirtyRect(r);
-
-			CRect rDstText(rSrcPri);
-			rDstText.SetRect(
-				r.left * rSrcPri.Width() / spd.w,
-				r.top * rSrcPri.Height() / spd.h,
-				r.right * rSrcPri.Width() / spd.w,
-				r.bottom * rSrcPri.Height() / spd.h);
-
-			pSubPic->AlphaBlt(r, rDstText);
-		}
-	}
-
-	hr = pD3DDev->Present(rSrcPri, rDstPri, NULL, NULL);
-
-	if(hr == D3DERR_DEVICELOST)
-	{
-		if(m_pD3DDev->TestCooperativeLevel() == D3DERR_DEVICENOTRESET) 
-		{
-			DeleteSurfaces();
-			if(FAILED(hr = CreateDevice()))
-				return(false);
-
-			HMONITOR hMonitor = m_pD3D->GetAdapterMonitor(D3DADAPTER_DEFAULT);
-			if(FAILED(hr = m_pIVMRSurfAllocNotify->ChangeD3DDevice(m_pD3DDev, hMonitor)))
-				return(false);
-		}
-
-		hr = S_OK;
-	}
-
-	return(true);
-}
-
 // IVMRSurfaceAllocator9
 
-STDMETHODIMP CDX9AllocatorPresenter::InitializeDevice(DWORD_PTR dwUserID, VMR9AllocationInfo* lpAllocInfo, DWORD* lpNumBuffers)
+STDMETHODIMP CVMR9AllocatorPresenter::InitializeDevice(DWORD_PTR dwUserID, VMR9AllocationInfo* lpAllocInfo, DWORD* lpNumBuffers)
 {
 	if(!lpAllocInfo || !lpNumBuffers)
 		return E_POINTER;
@@ -677,59 +781,42 @@ STDMETHODIMP CDX9AllocatorPresenter::InitializeDevice(DWORD_PTR dwUserID, VMR9Al
 	if(!m_pIVMRSurfAllocNotify)
 		return E_FAIL;
 
-    HRESULT hr;
-/*
-	{
-		CComPtr<IDirect3DSurface9> pBackBuffer;
-		D3DSURFACE_DESC d3dsd;
-		ZeroMemory(&d3dsd, sizeof(d3dsd));
-		if(FAILED(hr = m_pD3DDev->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &pBackBuffer))
-		|| FAILED(hr = pBackBuffer->GetDesc(&d3dsd)))
-			return E_FAIL;
-
-		// this likes to return false info...
-		hr = m_pD3D->CheckDeviceFormatConversion(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, lpAllocInfo->Format, d3dsd.Format);
-		if(hr != D3D_OK)
-			return E_FAIL;
-
-	}
-*/
-//    lpAllocInfo->dwFlags &= ~VMR9AllocFlag_TextureSurface;
-
-    DeleteSurfaces();
+	DeleteSurfaces();
 	m_pSurfaces.SetCount(*lpNumBuffers);
+
+    HRESULT hr;
 
 	hr = m_pIVMRSurfAllocNotify->AllocateSurfaceHelper(lpAllocInfo, lpNumBuffers, &m_pSurfaces[0]);
 	if(FAILED(hr))
 		return hr;
-
-	{
-		CComPtr<IDirect3DSurface9> pBackBuffer;
-		if(FAILED(hr = m_pD3DDev->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &pBackBuffer))
-		|| FAILED(hr = m_pD3DDev->StretchRect(m_pSurfaces[0], NULL, pBackBuffer, NULL, D3DTEXF_NONE)))
-		{
-			DeleteSurfaces();
-			return E_FAIL;
-		}
-
-		m_pD3DDev->Clear(0, NULL, D3DCLEAR_TARGET, 0, 0, 0);
-	}
 
 	m_NativeVideoSize = CSize(lpAllocInfo->dwWidth, abs((int)lpAllocInfo->dwHeight));
 	m_AspectRatio = m_NativeVideoSize;
 	int arx = lpAllocInfo->szAspectRatio.cx, ary = lpAllocInfo->szAspectRatio.cy;
 	if(arx > 0 && ary > 0) m_AspectRatio.SetSize(arx, ary);
 
+	if(FAILED(hr = AllocSurfaces()))
+		return hr;
+
+	// test if the colorspace is acceptable
+	if(FAILED(hr = m_pD3DDev->StretchRect(m_pSurfaces[0], NULL, m_pVideoSurface, NULL, D3DTEXF_NONE)))
+	{
+		DeleteSurfaces();
+		return E_FAIL;
+	}
+
+	hr = m_pD3DDev->ColorFill(m_pVideoSurface, NULL, 0);
+
 	return hr;
 }
 
-STDMETHODIMP CDX9AllocatorPresenter::TerminateDevice(DWORD_PTR dwUserID)
+STDMETHODIMP CVMR9AllocatorPresenter::TerminateDevice(DWORD_PTR dwUserID)
 {
     DeleteSurfaces();
     return S_OK;
 }
 
-STDMETHODIMP CDX9AllocatorPresenter::GetSurface(DWORD_PTR dwUserID, DWORD SurfaceIndex, DWORD SurfaceFlags, IDirect3DSurface9** lplpSurface)
+STDMETHODIMP CVMR9AllocatorPresenter::GetSurface(DWORD_PTR dwUserID, DWORD SurfaceIndex, DWORD SurfaceFlags, IDirect3DSurface9** lplpSurface)
 {
     if(!lplpSurface)
 		return E_POINTER;
@@ -744,7 +831,7 @@ STDMETHODIMP CDX9AllocatorPresenter::GetSurface(DWORD_PTR dwUserID, DWORD Surfac
 	return S_OK;
 }
 
-STDMETHODIMP CDX9AllocatorPresenter::AdviseNotify(IVMRSurfaceAllocatorNotify9* lpIVMRSurfAllocNotify)
+STDMETHODIMP CVMR9AllocatorPresenter::AdviseNotify(IVMRSurfaceAllocatorNotify9* lpIVMRSurfAllocNotify)
 {
     CAutoLock cAutoLock(this);
 	
@@ -760,7 +847,7 @@ STDMETHODIMP CDX9AllocatorPresenter::AdviseNotify(IVMRSurfaceAllocatorNotify9* l
 
 // IVMRImagePresenter9
 
-STDMETHODIMP CDX9AllocatorPresenter::StartPresenting(DWORD_PTR dwUserID)
+STDMETHODIMP CVMR9AllocatorPresenter::StartPresenting(DWORD_PTR dwUserID)
 {
     CAutoLock cAutoLock(this);
 
@@ -769,12 +856,12 @@ STDMETHODIMP CDX9AllocatorPresenter::StartPresenting(DWORD_PTR dwUserID)
 	return m_pD3DDev ? S_OK : E_FAIL;
 }
 
-STDMETHODIMP CDX9AllocatorPresenter::StopPresenting(DWORD_PTR dwUserID)
+STDMETHODIMP CVMR9AllocatorPresenter::StopPresenting(DWORD_PTR dwUserID)
 {
 	return S_OK;
 }
 
-STDMETHODIMP CDX9AllocatorPresenter::PresentImage(DWORD_PTR dwUserID, VMR9PresentationInfo* lpPresInfo)
+STDMETHODIMP CVMR9AllocatorPresenter::PresentImage(DWORD_PTR dwUserID, VMR9PresentationInfo* lpPresInfo)
 {
     HRESULT hr;
 
@@ -815,7 +902,7 @@ STDMETHODIMP CDX9AllocatorPresenter::PresentImage(DWORD_PTR dwUserID, VMR9Presen
 
 		CAutoLock cAutoLock(this);
 
-		m_pVideoSurface = lpPresInfo->lpSurf;
+		hr = m_pD3DDev->StretchRect(lpPresInfo->lpSurf, NULL, m_pVideoSurface, NULL, D3DTEXF_NONE);
 
 		m_fps = 10000000.0 / (lpPresInfo->rtEnd - lpPresInfo->rtStart);
 		if(m_pSubPicQueue)
@@ -844,7 +931,7 @@ STDMETHODIMP CDX9AllocatorPresenter::PresentImage(DWORD_PTR dwUserID, VMR9Presen
 // menu handling, which needs to know a few things about the 
 // location of our window.
 
-STDMETHODIMP CDX9AllocatorPresenter::GetNativeVideoSize(LONG* lpWidth, LONG* lpHeight, LONG* lpARWidth, LONG* lpARHeight)
+STDMETHODIMP CVMR9AllocatorPresenter::GetNativeVideoSize(LONG* lpWidth, LONG* lpHeight, LONG* lpARWidth, LONG* lpARHeight)
 {
 	if(lpWidth) *lpWidth = m_NativeVideoSize.cx;
 	if(lpHeight) *lpHeight = m_NativeVideoSize.cy;
@@ -852,29 +939,27 @@ STDMETHODIMP CDX9AllocatorPresenter::GetNativeVideoSize(LONG* lpWidth, LONG* lpH
 	if(lpARHeight) *lpARHeight = m_AspectRatio.cy;
 	return S_OK;
 }
-STDMETHODIMP CDX9AllocatorPresenter::GetMinIdealVideoSize(LONG* lpWidth, LONG* lpHeight) {return E_NOTIMPL;}
-STDMETHODIMP CDX9AllocatorPresenter::GetMaxIdealVideoSize(LONG* lpWidth, LONG* lpHeight) {return E_NOTIMPL;}
-STDMETHODIMP CDX9AllocatorPresenter::SetVideoPosition(const LPRECT lpSRCRect, const LPRECT lpDSTRect) {return E_NOTIMPL;} // we have our own method for this
-STDMETHODIMP CDX9AllocatorPresenter::GetVideoPosition(LPRECT lpSRCRect, LPRECT lpDSTRect)
+STDMETHODIMP CVMR9AllocatorPresenter::GetMinIdealVideoSize(LONG* lpWidth, LONG* lpHeight) {return E_NOTIMPL;}
+STDMETHODIMP CVMR9AllocatorPresenter::GetMaxIdealVideoSize(LONG* lpWidth, LONG* lpHeight) {return E_NOTIMPL;}
+STDMETHODIMP CVMR9AllocatorPresenter::SetVideoPosition(const LPRECT lpSRCRect, const LPRECT lpDSTRect) {return E_NOTIMPL;} // we have our own method for this
+STDMETHODIMP CVMR9AllocatorPresenter::GetVideoPosition(LPRECT lpSRCRect, LPRECT lpDSTRect)
 {
 	CopyRect(lpSRCRect, CRect(CPoint(0, 0), m_NativeVideoSize));
 	CopyRect(lpDSTRect, &m_VideoRect);
 	return S_OK;
 }
-STDMETHODIMP CDX9AllocatorPresenter::GetAspectRatioMode(DWORD* lpAspectRatioMode)
+STDMETHODIMP CVMR9AllocatorPresenter::GetAspectRatioMode(DWORD* lpAspectRatioMode)
 {
-	if(lpAspectRatioMode) *lpAspectRatioMode = 
-		(AfxGetAppSettings().iDefaultVideoSize == DVS_STRETCH) ? AM_ARMODE_STRETCHED : AM_ARMODE_LETTER_BOX;
-
+	if(lpAspectRatioMode) *lpAspectRatioMode = AM_ARMODE_STRETCHED;
 	return S_OK;
 }
-STDMETHODIMP CDX9AllocatorPresenter::SetAspectRatioMode(DWORD AspectRatioMode) {return E_NOTIMPL;}
-STDMETHODIMP CDX9AllocatorPresenter::SetVideoClippingWindow(HWND hwnd) {return E_NOTIMPL;}
-STDMETHODIMP CDX9AllocatorPresenter::RepaintVideo(HWND hwnd, HDC hdc) {return E_NOTIMPL;}
-STDMETHODIMP CDX9AllocatorPresenter::DisplayModeChanged() {return E_NOTIMPL;}
-STDMETHODIMP CDX9AllocatorPresenter::GetCurrentImage(BYTE** lpDib) {return E_NOTIMPL;}
-STDMETHODIMP CDX9AllocatorPresenter::SetBorderColor(COLORREF Clr) {return E_NOTIMPL;}
-STDMETHODIMP CDX9AllocatorPresenter::GetBorderColor(COLORREF* lpClr)
+STDMETHODIMP CVMR9AllocatorPresenter::SetAspectRatioMode(DWORD AspectRatioMode) {return E_NOTIMPL;}
+STDMETHODIMP CVMR9AllocatorPresenter::SetVideoClippingWindow(HWND hwnd) {return E_NOTIMPL;}
+STDMETHODIMP CVMR9AllocatorPresenter::RepaintVideo(HWND hwnd, HDC hdc) {return E_NOTIMPL;}
+STDMETHODIMP CVMR9AllocatorPresenter::DisplayModeChanged() {return E_NOTIMPL;}
+STDMETHODIMP CVMR9AllocatorPresenter::GetCurrentImage(BYTE** lpDib) {return E_NOTIMPL;}
+STDMETHODIMP CVMR9AllocatorPresenter::SetBorderColor(COLORREF Clr) {return E_NOTIMPL;}
+STDMETHODIMP CVMR9AllocatorPresenter::GetBorderColor(COLORREF* lpClr)
 {
 	if(lpClr) *lpClr = 0;
 	return S_OK;
@@ -887,12 +972,6 @@ STDMETHODIMP CDX9AllocatorPresenter::GetBorderColor(COLORREF* lpClr)
 CQT9AllocatorPresenter::CQT9AllocatorPresenter(HWND hWnd, HRESULT& hr) 
 	: CDX9AllocatorPresenter(hWnd, hr)
 {
-    if(FAILED(hr))
-		return;
-}
-
-CQT9AllocatorPresenter::~CQT9AllocatorPresenter()
-{
 }
 
 STDMETHODIMP CQT9AllocatorPresenter::NonDelegatingQueryInterface(REFIID riid, void** ppv)
@@ -904,56 +983,57 @@ STDMETHODIMP CQT9AllocatorPresenter::NonDelegatingQueryInterface(REFIID riid, vo
 		__super::NonDelegatingQueryInterface(riid, ppv);
 }
 
-HRESULT CQT9AllocatorPresenter::AllocateSurfaces(CSize size)
+HRESULT CQT9AllocatorPresenter::AllocSurfaces()
 {
-    CAutoLock cAutoLock(this);
+	HRESULT hr;
 
-	DeleteSurfaces();
+	m_pVideoSurfaceOff = NULL;
 
-	CComPtr<IDirect3DSurface9> pBackBuffer;
-	D3DSURFACE_DESC d3dsd;
-	ZeroMemory(&d3dsd, sizeof(d3dsd));
-	if(FAILED(m_pD3DDev->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &pBackBuffer))
-	|| FAILED(pBackBuffer->GetDesc(&d3dsd)))
-		return(false);
+	if(FAILED(hr = m_pD3DDev->CreateOffscreenPlainSurface(
+		m_NativeVideoSize.cx, m_NativeVideoSize.cy, D3DFMT_X8R8G8B8, 
+		D3DPOOL_DEFAULT, &m_pVideoSurfaceOff, NULL)))
+		return hr;
 
-	if(FAILED(m_pD3DDev->CreateOffscreenPlainSurface(
-		size.cx, size.cy, d3dsd.Format, D3DPOOL_DEFAULT, &m_pVideoSurface, NULL)))
-		return(false);
+	return __super::AllocSurfaces();
+}
 
-	m_pD3DDev->ColorFill(m_pVideoSurface, NULL, 0);
+void CQT9AllocatorPresenter::DeleteSurfaces()
+{
+	m_pVideoSurfaceOff = NULL;
 
-	m_NativeVideoSize = m_AspectRatio = size;
-
-	return S_OK;
+	__super::DeleteSurfaces();
 }
 
 // IQTVideoSurface
 
 STDMETHODIMP CQT9AllocatorPresenter::BeginBlt(const BITMAP& bm)
 {
-	return AllocateSurfaces(CSize(bm.bmWidth, abs(bm.bmHeight)));
+    CAutoLock cAutoLock(this);
+
+	DeleteSurfaces();
+
+	m_NativeVideoSize = m_AspectRatio = CSize(bm.bmWidth, abs(bm.bmHeight));
+
+	HRESULT hr;
+	if(FAILED(hr = AllocSurfaces()))
+		return hr;
+
+	return S_OK;
 }
 
 STDMETHODIMP CQT9AllocatorPresenter::DoBlt(const BITMAP& bm)
 {
-	if(!m_pVideoSurface)
+	if(!m_pVideoSurface || !m_pVideoSurfaceOff)
 		return E_FAIL;
+
+	bool fOk = false;
 
 	D3DSURFACE_DESC d3dsd;
 	ZeroMemory(&d3dsd, sizeof(d3dsd));
-	if(FAILED(m_pVideoSurface->GetDesc(&d3dsd)))
+	if(FAILED(m_pVideoSurfaceOff->GetDesc(&d3dsd)))
 		return E_FAIL;
 
 	int bppin = bm.bmBitsPixel;
-	int bppout = 0;
-	switch(d3dsd.Format)
-	{
-	case D3DFMT_X8R8G8B8: case D3DFMT_A8R8G8B8: bppout = 32; break;
-	case D3DFMT_R8G8B8: bppout = 24; break;
-	case D3DFMT_R5G6B5: bppout = 16; break;
-	default: return E_FAIL;
-	}
 
 	int w = bm.bmWidth;
 	int h = abs(bm.bmHeight);
@@ -961,7 +1041,7 @@ STDMETHODIMP CQT9AllocatorPresenter::DoBlt(const BITMAP& bm)
 	if((bppin == 16 || bppin == 24 || bppin == 32) && w == d3dsd.Width && h == d3dsd.Height)
 	{
 		D3DLOCKED_RECT r;
-		if(SUCCEEDED(m_pVideoSurface->LockRect(&r, NULL, 0)))
+		if(SUCCEEDED(m_pVideoSurfaceOff->LockRect(&r, NULL, 0)))
 		{
 			int pitchIn = bm.bmWidthBytes;
 			int pitchOut = r.Pitch;
@@ -978,41 +1058,11 @@ STDMETHODIMP CQT9AllocatorPresenter::DoBlt(const BITMAP& bm)
 
 			for(int y = 0; y < h; y++, pDataIn += pitchIn, pDataOut += pitchOut)
 			{
-				if(bppin == bppout)
+				if(bppin == 32)
 				{
 					memcpy(pDataOut, pDataIn, pitchMin);
 				}
-				else if(bppin == 16 && bppout == 32)
-				{
-					WORD* pIn = (WORD*)pDataIn;
-					DWORD* pOut = (DWORD*)pDataOut;
-					for(int x = 0; x < w; x++)
-					{
-						*pOut++ = ((*pIn&0xf800)<<8)|((*pIn&0x07e0)<<5)|(*pIn&0x001f);
-						pIn++;
-					}
-				}
-				else if(bppin == 32 && bppout == 16)
-				{
-					DWORD* pIn = (DWORD*)pDataIn;
-					WORD* pOut = (WORD*)pDataOut;
-					for(int x = 0; x < w; x++)
-					{
-						*pOut++ = (WORD)(((*pIn>>8)&0xf800)|((*pIn>>5)&0x07e0)|((*pIn>>3)&0x001f));
-						pIn++;
-					}
-				}
-				else if(bppin == 24 && bppout == 16)
-				{
-					BYTE* pIn = pDataIn;
-					WORD* pOut = (WORD*)pDataOut;
-					for(int x = 0; x < w; x++)
-					{
-						*pOut++ = (WORD)(((*((DWORD*)pIn)>>8)&0xf800)|((*((DWORD*)pIn)>>5)&0x07e0)|((*((DWORD*)pIn)>>3)&0x001f));
-						pIn += 3;
-					}
-				}
-				else if(bppin == 24 && bppout == 32)
+				else if(bppin == 24)
 				{
 					BYTE* pIn = pDataIn;
 					DWORD* pOut = (DWORD*)pDataOut;
@@ -1022,32 +1072,45 @@ STDMETHODIMP CQT9AllocatorPresenter::DoBlt(const BITMAP& bm)
 						pIn += 3;
 					}
 				}
+				else if(bppin == 16)
+				{
+					WORD* pIn = (WORD*)pDataIn;
+					DWORD* pOut = (DWORD*)pDataOut;
+					for(int x = 0; x < w; x++)
+					{
+						*pOut++ = ((*pIn&0xf800)<<8)|((*pIn&0x07e0)<<5)|((*pIn&0x001f)<<3);
+						pIn++;
+					}
+				}
 			}
 
-			m_pVideoSurface->UnlockRect();
+			m_pVideoSurfaceOff->UnlockRect();
+
+			fOk = true;
 		}
-		
-		Paint(true);
 	}
-	else
+
+	if(!fOk)
 	{
-		m_pD3DDev->ColorFill(m_pVideoSurface, NULL, 0);
+		m_pD3DDev->ColorFill(m_pVideoSurfaceOff, NULL, 0);
 
 		HDC hDC;
-		if(SUCCEEDED(m_pVideoSurface->GetDC(&hDC)))
+		if(SUCCEEDED(m_pVideoSurfaceOff->GetDC(&hDC)))
 		{
 			CString str;
 			str.Format(_T("Sorry, this color format is not supported"));
 
 			SetBkColor(hDC, 0);
-			SetTextColor(hDC, 0x202020);
+			SetTextColor(hDC, 0x404040);
 			TextOut(hDC, 10, 10, str, str.GetLength());
 
-			m_pVideoSurface->ReleaseDC(hDC);
-			
-			Paint(true);
+			m_pVideoSurfaceOff->ReleaseDC(hDC);
 		}
 	}
+
+	m_pD3DDev->StretchRect(m_pVideoSurfaceOff, NULL, m_pVideoSurface, NULL, D3DTEXF_NONE);
+
+	Paint(true);
 
 	return S_OK;
 }

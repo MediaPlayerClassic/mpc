@@ -76,9 +76,13 @@ void RegisterSourceFilter(const CLSID& clsid, const GUID& subtype2, LPCTSTR chkb
 	SetRegKeyValue(_T("Media Type\\") + null, subtype, _T("0"), chkbytes);
 	SetRegKeyValue(_T("Media Type\\") + null, subtype, _T("Source Filter"), CStringFromGUID(clsid));
 */
+/*
 	SetRegKeyValue(_T("Media Type\\") + majortype, subtype, _T("0"), chkbytes);
 	SetRegKeyValue(_T("Media Type\\") + majortype, subtype, _T("Source Filter"), CStringFromGUID(CLSID_AsyncReader));
-
+*/
+	SetRegKeyValue(_T("Media Type\\") + majortype, subtype, _T("0"), chkbytes);
+	SetRegKeyValue(_T("Media Type\\") + majortype, subtype, _T("Source Filter"), CStringFromGUID(clsid));
+	
 	DeleteRegKey(_T("Media Type\\") + null, subtype);
 
 	va_list marker;

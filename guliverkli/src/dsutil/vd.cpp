@@ -168,14 +168,14 @@ extern "C" void asm_YUVtoRGB16_row_ISSE(void* ARGB1, void* ARGB2, BYTE* Y1, BYTE
 
 bool BitBltFromI420ToRGB(BYTE* dst, int dstpitch, BYTE* srcy, BYTE* srcu, BYTE* srcv, int w, int h, int bpp, int srcpitch)
 {
-	if(w<=0 || h<=0 || (w&7) || (h&1))
+	if(w<=0 || h<=0 || (w&1) || (h&1))
 		return(false);
 
 	if(srcpitch == 0) srcpitch = w;
 
 	void (*asm_YUVtoRGB_row)(void* ARGB1, void* ARGB2, BYTE* Y1, BYTE* Y2, BYTE* U, BYTE* V, long width) = NULL;;
 
-	if(g_cpuid.m_flags & CCpuID::flag_t::ssefpu)
+	if((g_cpuid.m_flags & CCpuID::flag_t::ssefpu) && !(w&7))
 	{
 		switch(bpp)
 		{
@@ -184,7 +184,7 @@ bool BitBltFromI420ToRGB(BYTE* dst, int dstpitch, BYTE* srcy, BYTE* srcu, BYTE* 
 		case 32: asm_YUVtoRGB_row = asm_YUVtoRGB32_row_ISSE; break;
 		}
 	}
-	else if(g_cpuid.m_flags & CCpuID::flag_t::mmx)
+	else if((g_cpuid.m_flags & CCpuID::flag_t::mmx) && !(w&7))
 	{
 		switch(bpp)
 		{
@@ -193,7 +193,6 @@ bool BitBltFromI420ToRGB(BYTE* dst, int dstpitch, BYTE* srcy, BYTE* srcu, BYTE* 
 		case 32: asm_YUVtoRGB_row = asm_YUVtoRGB32_row_MMX; break;
 		}
 	}
-	
 	else
 	{
 		switch(bpp)
@@ -355,7 +354,7 @@ yuvtoyuy2row_avg_loop:
 
 bool BitBltFromI420ToYUY2(BYTE* dst, int dstpitch, BYTE* srcy, BYTE* srcu, BYTE* srcv, int w, int h, int srcpitch)
 {
-	if(w<=0 || h<=0 || (w&7) || (h&1))
+	if(w<=0 || h<=0 || (w&1) || (h&1))
 		return(false);
 
 	if(srcpitch == 0) srcpitch = w;
@@ -363,7 +362,7 @@ bool BitBltFromI420ToYUY2(BYTE* dst, int dstpitch, BYTE* srcy, BYTE* srcu, BYTE*
 	void (*yuvtoyuy2row)(BYTE* dst, BYTE* srcy, BYTE* srcu, BYTE* srcv, DWORD width) = NULL;
 	void (*yuvtoyuy2row_avg)(BYTE* dst, BYTE* srcy, BYTE* srcu, BYTE* srcv, DWORD width, DWORD pitchuv) = NULL;
 
-	if(g_cpuid.m_flags & CCpuID::flag_t::mmx)
+	if((g_cpuid.m_flags & CCpuID::flag_t::mmx) && !(w&7))
 	{
 		yuvtoyuy2row = yuvtoyuy2row_MMX;
 		yuvtoyuy2row_avg = yuvtoyuy2row_avg_MMX;

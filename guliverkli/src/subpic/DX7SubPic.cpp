@@ -163,7 +163,13 @@ STDMETHODIMP CDX7SubPic::AlphaBlt(RECT* pSrc, RECT* pDst, SubPicDesc* pTarget)
 			{(float)dst.left, (float)dst.bottom, 0.5f, 2.0f, (float)src.left / w, (float)src.bottom / h},
 			{(float)dst.right, (float)dst.bottom, 0.5f, 2.0f, (float)src.right / w, (float)src.bottom / h},
 		};
-
+/*
+		for(int i = 0; i < sizeof(pVertices)/sizeof(pVertices[0]); i++)
+		{
+			pVertices[i].x -= 0.5;
+			pVertices[i].y -= 0.5;
+		}
+*/
         hr = m_pD3DDev->SetTexture(0, m_pSurface);
 
         m_pD3DDev->SetRenderState(D3DRENDERSTATE_CULLMODE, D3DCULL_NONE);
@@ -225,12 +231,27 @@ CDX7SubPicAllocator::CDX7SubPicAllocator(IDirect3DDevice7* pD3DDev, SIZE maxsize
 {
 }
 
+// ISubPicAllocator
+
+STDMETHODIMP CDX7SubPicAllocator::ChangeDevice(IUnknown* pDev)
+{
+	CComQIPtr<IDirect3DDevice7, &IID_IDirect3DDevice7> pD3DDev = pDev;
+	if(!pD3DDev) return E_NOINTERFACE;
+
+	CAutoLock cAutoLock(this);
+	m_pD3DDev = pD3DDev;
+
+	return __super::ChangeDevice(pDev);
+}
+
 // ISubPicAllocatorImpl
 
 bool CDX7SubPicAllocator::Alloc(bool fStatic, ISubPic** ppSubPic)
 {
 	if(!ppSubPic) 
 		return(false);
+
+	CAutoLock cAutoLock(this);
 
 	DDSURFACEDESC2 ddsd;
 	INITDDSTRUCT(ddsd);
