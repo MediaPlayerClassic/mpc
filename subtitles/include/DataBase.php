@@ -672,6 +672,17 @@ class SubtitlesDB extends DB
 			$_SESSION['user_nick'] = $this->nick;
 			$_SESSION['user_passwordhash'] = $this->passwordhash;
 		}
+		
+		// accesslog
+		
+		$http_user_agent = addslashes($_SERVER['HTTP_USER_AGENT']);
+		$remote_addr = addslashes($_SERVER['REMOTE_ADDR']);
+		$remote_host = addslashes($_SERVER['REMOTE_HOST']);
+		$php_self = addslashes($_SERVER['PHP_SELF']);
+		
+		$this->query(
+			"insert into accesslog (http_user_agent, remote_addr, at, php_self, userid) ".
+			"values ('$http_user_agent', '$remote_addr', NOW(), '$php_self', {$this->userid}) ");
 	}
 	
 	function Login($username, $password, $rememberme)

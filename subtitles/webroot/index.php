@@ -34,7 +34,7 @@ if(isset($_GET['del']))
 	$ms_id = intval($_GET['del']);
 	$succeeded = false;
 	
-	if($db->count("movie_subtitle where id = $ms_id && userid = {$db->userid} && userid") > 0)
+	if($db->count("movie_subtitle where id = $ms_id && userid = {$db->userid}") > 0)
 	{
 		$db->query("delete from movie_subtitle where id = $ms_id");
 		$succeeded = true;
