@@ -140,6 +140,10 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libfaad", "transform\mpadec
 	ProjectSection(ProjectDependencies) = postProject
 	EndProjectSection
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "BaseClasses", "C:\Program Files\Microsoft DirectX 9.0 SDK (Summer 2004)\Samples\C++\DirectShow\BaseClasses\baseclasses.vcproj", "{6BA829DC-20C1-4B6B-BF63-7601FEB64601}"
+	ProjectSection(ProjectDependencies) = postProject
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfiguration) = preSolution
 		Debug = Debug
@@ -664,6 +668,22 @@ Global
 		{5EFCFACB-1835-422C-ACDA-E3B3A2F51387}.Release Unicode.Build.0 = Release|Win32
 		{5EFCFACB-1835-422C-ACDA-E3B3A2F51387}.Release Unicode lib.ActiveCfg = Release|Win32
 		{5EFCFACB-1835-422C-ACDA-E3B3A2F51387}.Release Unicode lib.Build.0 = Release|Win32
+		{6BA829DC-20C1-4B6B-BF63-7601FEB64601}.Debug.ActiveCfg = Debug|Win32
+		{6BA829DC-20C1-4B6B-BF63-7601FEB64601}.Debug.Build.0 = Debug|Win32
+		{6BA829DC-20C1-4B6B-BF63-7601FEB64601}.Debug lib.ActiveCfg = Debug|Win32
+		{6BA829DC-20C1-4B6B-BF63-7601FEB64601}.Debug lib.Build.0 = Debug|Win32
+		{6BA829DC-20C1-4B6B-BF63-7601FEB64601}.Debug Unicode.ActiveCfg = Debug Unicode|Win32
+		{6BA829DC-20C1-4B6B-BF63-7601FEB64601}.Debug Unicode.Build.0 = Debug Unicode|Win32
+		{6BA829DC-20C1-4B6B-BF63-7601FEB64601}.Debug Unicode lib.ActiveCfg = Debug Unicode|Win32
+		{6BA829DC-20C1-4B6B-BF63-7601FEB64601}.Debug Unicode lib.Build.0 = Debug Unicode|Win32
+		{6BA829DC-20C1-4B6B-BF63-7601FEB64601}.Release.ActiveCfg = Release|Win32
+		{6BA829DC-20C1-4B6B-BF63-7601FEB64601}.Release.Build.0 = Release|Win32
+		{6BA829DC-20C1-4B6B-BF63-7601FEB64601}.Release lib.ActiveCfg = Release Unicode|Win32
+		{6BA829DC-20C1-4B6B-BF63-7601FEB64601}.Release lib.Build.0 = Release Unicode|Win32
+		{6BA829DC-20C1-4B6B-BF63-7601FEB64601}.Release Unicode.ActiveCfg = Release Unicode|Win32
+		{6BA829DC-20C1-4B6B-BF63-7601FEB64601}.Release Unicode.Build.0 = Release Unicode|Win32
+		{6BA829DC-20C1-4B6B-BF63-7601FEB64601}.Release Unicode lib.ActiveCfg = Release Unicode|Win32
+		{6BA829DC-20C1-4B6B-BF63-7601FEB64601}.Release Unicode lib.Build.0 = Release Unicode|Win32
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 	EndGlobalSection

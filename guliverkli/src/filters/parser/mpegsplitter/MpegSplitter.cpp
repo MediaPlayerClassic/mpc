@@ -200,7 +200,7 @@ void CMpegSplitterFilter::SeekDeliverLoop(REFERENCE_TIME rt)
 		__int64 seekpos = (__int64)(1.0*rt/m_rtDuration*len);
 		__int64 minseekpos = _I64_MAX;
 
-		REFERENCE_TIME rtmax = rt + m_pFile->m_rtMin - rtPreroll;
+		REFERENCE_TIME rtmax = rt - rtPreroll;
 		REFERENCE_TIME rtmin = rtmax - 5000000;
 
 		for(int i = 0; i < countof(m_pFile->m_streams)-1; i++)

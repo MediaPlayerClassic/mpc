@@ -1929,7 +1929,25 @@ static struct {LPCSTR name, iso6392, iso6391;} s_isolangs[] =
 	{"Zhuang; Chuang", "zha", "za"},
 	{"Zulu", "zul", "zu"},
 	{"Zuni", "zun", ""},
-	{"", "", ""}
+	{"Classical Newari", "nwc", ""},
+	{"Klingon", "tlh", ""},
+	{"Blin", "byn", ""},
+	{"Lojban", "jbo", ""},
+	{"Lower Sorbian", "dsb", ""},
+	{"Upper Sorbian", "hsb", ""},
+	{"Kashubian", "csb", ""},
+	{"Crimean Turkish", "crh", ""},
+	{"Erzya", "myv", ""},
+	{"Moksha", "mdf", ""},
+	{"Karachay-Balkar", "krc", ""},
+	{"Adyghe", "ady", ""},
+	{"Udmurt", "udm", ""},
+	{"Dargwa", "dar", ""},
+	{"Ingush", "inh", ""},
+	{"Nogai", "nog", ""},
+	{"Haitian", "hat", "ht"},
+	{"Kalmyk", "xal", ""},
+	{"", "", ""},
 };
 
 CString ISO6391ToLanguage(LPCSTR code)

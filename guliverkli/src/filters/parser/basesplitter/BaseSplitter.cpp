@@ -877,24 +877,35 @@ HRESULT CBaseSplitterFilter::AddOutputPin(DWORD TrackNum, CAutoPtr<CBaseSplitter
 	return S_OK;
 }
 
+CAutoPtrList<CBaseSplitterOutputPin> s_pOutputs;
+
 HRESULT CBaseSplitterFilter::DeleteOutputs()
 {
 	m_rtDuration = 0;
-	return m_pOutputs.IsEmpty() ? S_OK : E_FAIL; // FIXME
-/*
-	CAutoLock cAutoLock(this);
+
+//	return m_pOutputs.IsEmpty() ? S_OK : E_FAIL; // FIXME
+
+	m_pRetiredOutputs.RemoveAll();
+
+	CAutoLock cAutoLockF(this);
 	if(m_State != State_Stopped) return VFW_E_NOT_STOPPED;
 
-	m_pOutputs.RemoveAll();
+	while(m_pOutputs.GetCount())
+	{
+		CAutoPtr<CBaseSplitterOutputPin> pPin = m_pOutputs.RemoveHead();
+		if(IPin* pPinTo = pPin->GetConnected()) pPinTo->Disconnect();
+		pPin->Disconnect();
+		// we can't just let it be deleted now, something might have AddRefed on it (graphedit...)
+		m_pRetiredOutputs.AddTail(pPin);
+	}
 
-	CAutoLock cAutoLock(&m_csPinMap);
+	CAutoLock cAutoLockPM(&m_csPinMap);
 	m_pPinMap.RemoveAll();
 
-	CAutoLock cAutoLock(&m_csmtnew);
+	CAutoLock cAutoLockMT(&m_csmtnew);
 	m_mtnew.RemoveAll();
 
 	return S_OK;
-*/
 }
 
 void CBaseSplitterFilter::DeliverBeginFlush()
@@ -1107,6 +1118,7 @@ HRESULT CBaseSplitterFilter::CompleteConnect(PIN_DIRECTION dir, CBasePin* pPin)
 	}
 	else if(dir == PINDIR_OUTPUT)
 	{
+		m_pRetiredOutputs.RemoveAll();
 	}
 	else
 	{

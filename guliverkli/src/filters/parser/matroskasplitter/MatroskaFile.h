@@ -55,7 +55,7 @@ namespace MatroskaReader
 	class CInt : public CSimpleVar<INT64, CInt> {public: HRESULT Parse(CMatroskaNode* pMN);};
 	class CByte : public CSimpleVar<BYTE, CByte> {};
 	class CShort : public CSimpleVar<short, CShort> {};
-	class CFloat : public CSimpleVar<float, CFloat> {};
+	class CFloat : public CSimpleVar<double, CFloat> {public: HRESULT Parse(CMatroskaNode* pMN);};
 	class CID : public CSimpleVar<DWORD, CID> {public: HRESULT Parse(CMatroskaNode* pMN);};
 	class CLength : public CSimpleVar<UINT64, CLength> {bool m_fSigned; public: CLength(bool fSigned = false) : m_fSigned(fSigned) {} HRESULT Parse(CMatroskaNode* pMN);};
 	class CSignedLength : public CLength {public: CSignedLength() : CLength(true) {}};
@@ -252,8 +252,7 @@ namespace MatroskaReader
 				Video v;
 				Audio a;
 				ContentEncodings ces;
-
-				TrackEntry() {DescType = NoDesc; FlagEnabled.Set(1); FlagDefault.Set(1); FlagLacing.Set(1);}
+				TrackEntry() {DescType = NoDesc; FlagEnabled.Set(1); FlagDefault.Set(1); FlagLacing.Set(1); }
 				HRESULT Parse(CMatroskaNode* pMN);
 
 				bool Expand(CBinary& data, UINT64 Scope);
