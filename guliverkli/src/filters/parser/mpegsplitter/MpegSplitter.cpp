@@ -147,7 +147,7 @@ bool CMpegSplitterFilter::InitDeliverLoop()
 {
 	if(!m_pFile) return(false);
 
-	// TODO
+	m_rtStartOffset = 0;
 
 	return(true);
 }
@@ -155,7 +155,7 @@ bool CMpegSplitterFilter::InitDeliverLoop()
 void CMpegSplitterFilter::SeekDeliverLoop(REFERENCE_TIME rt)
 {
 	REFERENCE_TIME rtPreroll = 10000000;
-
+	
 	if(rt <= rtPreroll || m_rtDuration <= 0)
 	{
 		m_pFile->Seek(0);
@@ -169,6 +169,7 @@ void CMpegSplitterFilter::SeekDeliverLoop(REFERENCE_TIME rt)
 		REFERENCE_TIME rtmax = rt - rtPreroll;
 		REFERENCE_TIME rtmin = rtmax - 5000000;
 
+		if(m_rtStartOffset == 0)
 		for(int i = 0; i < countof(m_pFile->m_streams)-1; i++)
 		{
 			POSITION pos = m_pFile->m_streams[i].GetHeadPosition();
@@ -211,7 +212,20 @@ void CMpegSplitterFilter::SeekDeliverLoop(REFERENCE_TIME rt)
 			}
 		}
 
-		if(minseekpos != _I64_MAX) seekpos = minseekpos;
+		if(minseekpos != _I64_MAX)
+		{
+			seekpos = minseekpos;
+		}
+		else
+		{
+			// this file is probably screwed up, try plan B, seek simply by bitrate
+
+			rt -= rtPreroll;
+			seekpos = (__int64)(1.0*rt/m_rtDuration*len);
+			m_pFile->Seek(seekpos);
+			m_rtStartOffset = m_pFile->m_rtMin + m_pFile->NextPTS(m_pFile->m_streams[0].GetHead()) - rt;
+		}
+
 		m_pFile->Seek(seekpos);
 	}
 }
@@ -219,6 +233,8 @@ void CMpegSplitterFilter::SeekDeliverLoop(REFERENCE_TIME rt)
 bool CMpegSplitterFilter::DoDeliverLoop()
 {
 	HRESULT hr = S_OK;
+
+	REFERENCE_TIME rtStartOffset = m_rtStartOffset ? m_rtStartOffset : m_pFile->m_rtMin;
 
 	while(SUCCEEDED(hr) && !CheckRequest(NULL) && m_pFile->GetPos() < m_pFile->GetLength())
 	{
@@ -256,7 +272,7 @@ bool CMpegSplitterFilter::DoDeliverLoop()
 					p->TrackNumber = TrackNumber;
 					p->bSyncPoint = !!h.fpts;
 					p->bAppendable = !h.fpts;
-					p->rtStart = h.fpts ? (h.pts - m_pFile->m_rtMin) : Packet::INVALID_TIME;
+					p->rtStart = h.fpts ? (h.pts - rtStartOffset) : Packet::INVALID_TIME;
 					p->rtStop = p->rtStart+1;
 					p->pData.SetSize(h.len - (m_pFile->GetPos() - pos));
 					m_pFile->ByteRead(p->pData.GetData(), h.len - (m_pFile->GetPos() - pos));
@@ -293,7 +309,7 @@ bool CMpegSplitterFilter::DoDeliverLoop()
 					p->TrackNumber = TrackNumber;
 					p->bSyncPoint = !!h2.fpts;
 					p->bAppendable = !h2.fpts;
-					p->rtStart = h2.fpts ? (h2.pts - m_pFile->m_rtMin) : Packet::INVALID_TIME;
+					p->rtStart = h2.fpts ? (h2.pts - rtStartOffset) : Packet::INVALID_TIME;
 					p->rtStop = p->rtStart+1;
 					p->pData.SetSize(h.bytes - (m_pFile->GetPos() - pos));
 					m_pFile->ByteRead(p->pData.GetData(), h.bytes - (m_pFile->GetPos() - pos));
@@ -319,7 +335,7 @@ bool CMpegSplitterFilter::DoDeliverLoop()
 				p->TrackNumber = TrackNumber;
 				p->bSyncPoint = !!h.fpts;
 				p->bAppendable = !h.fpts;
-				p->rtStart = h.fpts ? (h.pts - m_pFile->m_rtMin) : Packet::INVALID_TIME;
+				p->rtStart = h.fpts ? (h.pts - rtStartOffset) : Packet::INVALID_TIME;
 				p->rtStop = p->rtStart+1;
 				p->pData.SetSize(h.length);
 				m_pFile->ByteRead(p->pData.GetData(), h.length);
