@@ -305,23 +305,33 @@ HRESULT CTextPassThruFilter::CompleteConnect(PIN_DIRECTION dir, IPin* pReceivePi
 
 		SetName();
 			
-		CMediaType& mt = m_pInput->CurrentMediaType();
+		CMediaType mt = m_pInput->CurrentMediaType();
 
 		if(mt.majortype == MEDIATYPE_Subtitle)
 		{
 			SUBTITLEINFO* psi = (SUBTITLEINFO*)mt.pbFormat;
+			DWORD dwOffset = psi->dwOffset;
+
+			CAutoLock cAutoLock(&m_pMainFrame->m_csSubLock);
 
 			CStringA name(psi->IsoLang);
 			if(!name.IsEmpty())
 			{
-				CAutoLock cAutoLock(&m_pMainFrame->m_csSubLock);
 				pRTS->m_name = name + _T(" (embeded)");
 			}
 
-			if((mt.subtype == MEDIASUBTYPE_SSA || mt.subtype == MEDIASUBTYPE_ASS) && psi->dwOffset > 0)
+			if((mt.subtype == MEDIASUBTYPE_SSA || mt.subtype == MEDIASUBTYPE_ASS) && dwOffset > 0)
 			{
-				CAutoLock cAutoLock(&m_pMainFrame->m_csSubLock);
-				pRTS->Open(mt.pbFormat + psi->dwOffset, mt.cbFormat - psi->dwOffset, DEFAULT_CHARSET, pRTS->m_name);
+				if(mt.pbFormat[dwOffset+0] != 0xef
+				&& mt.pbFormat[dwOffset+1] != 0xbb
+				&& mt.pbFormat[dwOffset+2] != 0xfb)
+				{
+					dwOffset -= 3;
+					mt.pbFormat[dwOffset+0] = 0xef;
+					mt.pbFormat[dwOffset+1] = 0xbb;
+					mt.pbFormat[dwOffset+2] = 0xbf;
+				}
+				pRTS->Open(mt.pbFormat + dwOffset, mt.cbFormat - dwOffset, DEFAULT_CHARSET, pRTS->m_name);
 			}
 		}
 	}
