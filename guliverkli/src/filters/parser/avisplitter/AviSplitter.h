@@ -40,11 +40,8 @@ public:
 class CAviSplitterFilter : public CBaseSplitterFilter, public IPropertyBag
 {
 	CAutoVectorPtr<DWORD> m_tFrame;
-	CAutoVectorPtr<UINT64> m_tSize, m_tFilePos;
 
 	REFERENCE_TIME m_rtDuration;
-
-	bool Resync();
 
 protected:
 	CAutoPtr<CAviFile> m_pFile;
@@ -54,8 +51,7 @@ protected:
 	void SeekDeliverLoop(REFERENCE_TIME rt);
 	void DoDeliverLoop();
 
-	HRESULT ReIndex(__int64 end);
-	HRESULT DoDeliverLoop(__int64 end);
+	HRESULT ReIndex(__int64 end, UINT64* pSize);
 
 public:
 	CAviSplitterFilter(LPUNKNOWN pUnk, HRESULT* phr);

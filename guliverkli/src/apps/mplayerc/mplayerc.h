@@ -89,6 +89,7 @@ enum
 	CLSW_REGEXTAUD=CLSW_REGEXTVID<<1,
 	CLSW_UNREGEXTVID=CLSW_REGEXTAUD<<1,
 	CLSW_UNREGEXTAUD=CLSW_UNREGEXTVID<<1,
+	CLSW_STARTVALID=CLSW_UNREGEXTAUD<<1,
 };
 
 enum
@@ -310,6 +311,7 @@ public:
 		// cmdline params
 		int nCLSwitches;
 		CStringList slFiles, slDubs, slSubs, slFilters;
+		__int64 rtStart;
 
 		void ParseCommandLine(CStringList& cmdln);
 
@@ -358,6 +360,7 @@ public:
 		bool fRememberWindowPos;
 		bool fRememberWindowSize;
 		CRect rcLastWindowPos;
+		UINT lastWindowType;
 		bool fKeepHistory;
 
 		CString sDVDPath;

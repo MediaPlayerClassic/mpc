@@ -394,12 +394,12 @@ void COggSplitterFilter::SeekDeliverLoop(REFERENCE_TIME rt)
 
 			if(rtPos < rt && rtPos < m_rtDuration)
 			{
-				newpos = startpos + (len - startpos) * (rt - rtPos)/(m_rtDuration - rtPos) + 1024;
+				newpos = startpos + (__int64)((1.0*(rt - rtPos)/(m_rtDuration - rtPos)) * (len - startpos)) + 1024;
 	            if(newpos < endpos) newpos = endpos + 1024;
 			}
 			else if(rtPos > rt && rtPos > 0)
 			{
-				newpos = startpos - (startpos - 0) * (rtPos - rt)/(rtPos - 0) - 1024;
+				newpos = startpos - (__int64)((1.0*(rtPos - rt)/(rtPos - 0)) * (startpos - 0)) - 1024;
 	            if(newpos >= startpos) newpos = startpos - 1024;
 			}
 			else if(rtPos == rt)
@@ -715,8 +715,12 @@ HRESULT COggSplitterOutputPin::UnpackPage(OggPage& page)
 				if(last == pos && page.m_hdr.granule_position != -1)
 				{
 					p->bDiscontinuity = m_fSkip;
-
+REFERENCE_TIME rtLast = m_rtLast;
 					m_rtLast = GetRefTime(page.m_hdr.granule_position);
+// some bad encodings have a +/-1 frame difference from the normal timeline, 
+// but these seem to cancel eachother out nicely so we can just ignore them 
+// to make it play a bit more smooth.
+if(abs(rtLast - m_rtLast) == GetRefTime(1)) m_rtLast = rtLast; // FIXME
 					m_fSkip = false;
 				}
 
@@ -724,12 +728,12 @@ HRESULT COggSplitterOutputPin::UnpackPage(OggPage& page)
 
 				if(S_OK == UnpackPacket(p, pData + i, j-i))
 				{
-/*
+
 if(p->TrackNumber == 0)
 TRACE(_T("[%d]: %d, %I64d -> %I64d (skip=%d, disc=%d, sync=%d)\n"), 
 		(int)p->TrackNumber, p->pData.GetSize(), p->rtStart, p->rtStop,
 		(int)m_fSkip, (int)p->bDiscontinuity, (int)p->bSyncPoint);
-*/
+
 					CAutoLock csAutoLock(&m_csPackets);
 
 					m_rtLast = p->rtStop;

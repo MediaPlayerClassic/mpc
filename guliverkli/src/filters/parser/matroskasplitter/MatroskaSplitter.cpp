@@ -378,6 +378,9 @@ HRESULT CMatroskaSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 					BYTE* pExtra = mt.ReallocFormatBuffer(sizeof(WAVEFORMATEX) + pTE->CodecPrivate.GetCount()) + sizeof(WAVEFORMATEX);
 					memcpy(pExtra, pTE->CodecPrivate.GetData(), pTE->CodecPrivate.GetCount());
 					mts.Add(mt);
+
+					mt.subtype = MEDIASUBTYPE_FLAC_FRAMED;
+					mts.InsertAt(0, mt);
 				}
 				else if(CodecID == "A_MS/ACM")
 				{

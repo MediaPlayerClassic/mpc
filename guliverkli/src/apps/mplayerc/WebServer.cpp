@@ -159,7 +159,7 @@ private:
 				int len = _tcstol(str, NULL, 10);
 				str.Empty();
 				char c;
-				while(len-- > 0 && Receive(&c, 1))
+				while(len-- > 0 && Receive(&c, 1) > 0)
 				{
 					if(c == '\r') continue;
 					str += c;

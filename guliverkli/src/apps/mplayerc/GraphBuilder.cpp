@@ -341,7 +341,7 @@ CGraphBuilder::CGraphBuilder(IGraphBuilder* pGB, HWND hWnd)
 	}
 
 	{
-		guids.AddTail(MEDIATYPE_Video);
+		guids.AddTail(MEDIATYPE_Audio);
 		guids.AddTail(MEDIASUBTYPE_RoQA);
 		AddFilter(new CGraphCustomFilter(__uuidof(CRoQAudioDecoder), guids,
 			(s.TraFilters&TRA_REALVID) ? L"RoQ Audio Decoder" : L"RoQ Audio Decoder (low merit)",
@@ -407,7 +407,7 @@ CGraphBuilder::CGraphBuilder(IGraphBuilder* pGB, HWND hWnd)
 		AddFilter(new CGraphRegFilter(s.AudioRendererDisplayName, m_ARMerit));
 	}
 
-	WORD lowmerit = 0;
+	WORD lowmerit = 1;
 	POSITION pos = s.filters.GetTailPosition();
 	while(pos)
 	{
@@ -975,14 +975,13 @@ HRESULT CGraphBuilder::Render(IPin* pPin)
 		if(CComQIPtr<IAsyncReader> pReader = pPin)
 		{
 			BYTE buff[4];
-			if(S_OK == pReader->SyncRead(0, 4, buff))
-			{
-				if(*(DWORD*)buff == 'SggO') guids[1] = MEDIASUBTYPE_Ogg;
-				// TODO: add more recognized types for defective parser filters which 
-				// are unable to use MEDIATYPE_Stream/MEDIASUBTYPE_NULL and to detect 
-				// (doing like this) if they can connect.
-			}
+			if(S_OK == pReader->SyncRead(0, 4, buff) && *(DWORD*)buff == 'SggO')
+				guids[1] = MEDIASUBTYPE_Ogg;
 		}
+	}
+	else if(guids.GetCount() == 2 && guids[0] == MEDIATYPE_Video && guids[1] == FOURCCMap('MGXD'))
+	{
+		guids[1] = FOURCCMap('XVID');
 	}
 
 	CAutoPtrList<CGraphFilter> autogfs;

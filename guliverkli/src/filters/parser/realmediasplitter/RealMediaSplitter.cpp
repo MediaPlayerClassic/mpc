@@ -1960,14 +1960,15 @@ HRESULT CRealAudioDecoder::Receive(IMediaSample* pIn)
 	memcpy(&m_buff[m_bufflen], pDataIn, len);
 	m_bufflen += len;
 
-	if(S_OK != pIn->IsSyncPoint())
+	int w = m_rai.coded_frame_size;
+	int h = m_rai.sub_packet_h;
+	int sps = m_rai.sub_packet_size;
+
+	len = w*h;
+
+/*	if(S_OK != pIn->IsSyncPoint())
 	{
-		int w = m_rai.coded_frame_size;
-		int h = m_rai.sub_packet_h;
-		int sps = m_rai.sub_packet_size;
-
-		len = w*h;
-
+*/
 		if(m_bufflen >= len)
 		{
 			ASSERT(m_bufflen == len);
@@ -2071,7 +2072,7 @@ DbgLog((LOG_TRACE, 0, _T("A: rtStart=%I64d, rtStop=%I64d, disc=%d, sync=%d"),
 
 			m_bufflen = 0;
 		}
-	}
+//	}
 
 	return S_OK;
 }

@@ -39,9 +39,10 @@ CStatusLabel::CStatusLabel(bool fRightAlign) : m_fRightAlign(fRightAlign)
 		_T("Microsoft Sans Serif"));
 	if(!m_font.m_hObject)
 */
-	m_font.CreateFont(int(15.0 * GetDeviceCaps(hdc, LOGPIXELSY) / 96.0), 0, 0, 0, FW_NORMAL, 0, 0, 0, 1, 
+	m_font.CreateFont(int(14.0 * GetDeviceCaps(hdc, LOGPIXELSY) / 96.0), 0, 0, 0, FW_NORMAL, 0, 0, 0, 1, 
 		OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY, DEFAULT_PITCH|FF_DONTCARE, 
 		_T("MS Sans Serif"));
+//		_T("Tahoma"));
 	::ReleaseDC(0, hdc);
 }
 

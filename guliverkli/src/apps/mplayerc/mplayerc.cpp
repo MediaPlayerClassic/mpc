@@ -251,6 +251,7 @@ void CMPlayerCApp::ShowCmdlnSwitches()
 		_T("/regaud\t\tRegister audio formats\n")
 		_T("/unregvid\t\tUnregister video formats\n")
 		_T("/unregaud\t\tUnregister audio formats\n")
+		_T("/start ms\t\tStart playing at \"ms\" (= milliseconds)\n")
 		_T("/help /h /?\tShow help about command line switches. (this message box)\n");
 
 	AfxMessageBox(s);
@@ -319,7 +320,8 @@ void CMPlayerCApp::PreProcessCommandLine()
 			LPTSTR p = NULL;
 			CString str2;
 			str2.ReleaseBuffer(GetFullPathName(str, MAX_PATH, str2.GetBuffer(MAX_PATH), &p));
-			if(!str2.IsEmpty()) str = str2;
+			CFileStatus fs;
+			if(!str2.IsEmpty() && CFile::GetStatus(str2, fs)) str = str2;
 		}
 
 		m_cmdln.AddTail(str);
@@ -916,6 +918,7 @@ void CMPlayerCApp::Settings::UpdateData(bool fSave)
 		pApp->WriteProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_REMEMBERWINDOWPOS), fRememberWindowPos);
 		pApp->WriteProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_REMEMBERWINDOWSIZE), fRememberWindowSize);
 		pApp->WriteProfileBinary(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_LASTWINDOWRECT), (BYTE*)&rcLastWindowPos, sizeof(rcLastWindowPos));
+		pApp->WriteProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_LASTWINDOWTYPE), lastWindowType);
 		pApp->WriteProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_KEEPHISTORY), fKeepHistory);
 		pApp->WriteProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_DSVIDEORENDERERTYPE), iDSVideoRendererType);
 		pApp->WriteProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_RMVIDEORENDERERTYPE), iRMVideoRendererType);
@@ -1139,6 +1142,7 @@ void CMPlayerCApp::Settings::UpdateData(bool fSave)
 		{
 			fRememberWindowPos = false;
 		}
+		lastWindowType = pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_LASTWINDOWTYPE), SIZE_RESTORED);
 		sDVDPath = pApp->GetProfileString(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_DVDPATH), _T(""));
 		fUseDVDPath = !!pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_USEDVDPATH), 0);
 		idMenuLang = pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_MENULANG), ::GetUserDefaultLCID());
@@ -1353,6 +1357,7 @@ void CMPlayerCApp::Settings::ParseCommandLine(CStringList& cmdln)
 	slDubs.RemoveAll();
 	slSubs.RemoveAll();
 	slFilters.RemoveAll();
+	rtStart = 0;
 
 	POSITION pos = cmdln.GetHeadPosition();
 	while(pos)
@@ -1381,6 +1386,7 @@ void CMPlayerCApp::Settings::ParseCommandLine(CStringList& cmdln)
 			else if(sw == _T("regaud")) nCLSwitches |= CLSW_REGEXTAUD;
 			else if(sw == _T("unregvid")) nCLSwitches |= CLSW_UNREGEXTVID;
 			else if(sw == _T("unregaud")) nCLSwitches |= CLSW_UNREGEXTAUD;
+			else if(sw == _T("start") && pos) {rtStart = 10000i64*_tcstol(cmdln.GetNext(pos), NULL, 10); nCLSwitches |= CLSW_STARTVALID;}
 			else nCLSwitches |= CLSW_HELP;
 		}
 		else
