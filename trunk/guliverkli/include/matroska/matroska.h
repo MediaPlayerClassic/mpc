@@ -31,12 +31,15 @@ DEFINE_GUID(FORMAT_SubtitleInfo,
 #pragma pack(push, 1)
 typedef struct {
 	DWORD dwOffset;	
-	CHAR IsoLang[4];
+	CHAR IsoLang[4]; // three letter lang code + terminating zero
 } SUBTITLEINFO;
 #pragma pack(pop)
 
 // SUBTITLEINFO structure content starting at dwOffset (also the content of CodecPrivate)
 // --------------------------------------------------------------------------------------
+//
+// Here the text should start with the Byte Order Mark, even though 
+// UTF-8 is prefered, it also helps identifying the encoding type.
 //
 // MEDIASUBTYPE_USF: 
 //
@@ -52,10 +55,6 @@ typedef struct {
 //
 // The file header and all sub-sections except [Events]
 //
-// MEDIASUBTYPE_RAWASS
-//
-// Nothing.
-
 
 // Data description of the media samples (everything is UTF-8 encoded here)
 // ------------------------------------------------------------------------
@@ -82,8 +81,9 @@ typedef struct {
 // Matroka CodecID mappings
 // ------------------------
 //
-// MEDIASUBTYPE_UTF8	<-> S_TEXT/UTF8
-// MEDIASUBTYPE_RAWASS	<-> S_RAWASS
-// MEDIASUBTYPE_SSA		<-> S_SSA
-// MEDIASUBTYPE_ASS		<-> S_ASS
-// MEDIASUBTYPE_USF		<-> S_USF
+// S_TEXT/ASCII	<->	MEDIATYPE_Text		MEDIASUBTYPE_NULL	FORMAT_None
+// S_TEXT/UTF8	<->	MEDIATYPE_Subtitle	MEDIASUBTYPE_UTF8	FORMAT_SubtitleInfo
+// S_SSA		<->	MEDIATYPE_Subtitle	MEDIASUBTYPE_SSA	FORMAT_SubtitleInfo
+// S_ASS		<->	MEDIATYPE_Subtitle	MEDIASUBTYPE_ASS	FORMAT_SubtitleInfo
+// S_USF		<->	MEDIATYPE_Subtitle	MEDIASUBTYPE_USF	FORMAT_SubtitleInfo
+//
