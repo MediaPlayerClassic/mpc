@@ -697,9 +697,9 @@ void GSState::FlushPrim()
 	hr = m_pD3DDev->SetScissorRect(scissor);
 
 	//////////////////////
-//////
-	ASSERT(!m_de.PABE.PABE);
-	ASSERT(!ctxt->FBA.FBA);
+////////
+	ASSERT(!m_de.PABE.PABE); // bios
+	ASSERT(!ctxt->FBA.FBA); // bios
 	ASSERT(!ctxt->TEST.DATE); // sfex3, after the capcom logo
 
 	//////////////////////
@@ -734,14 +734,35 @@ if(m_de.PRIM.TME && m_nVertices == 6 && (ctxt->FRAME.Block()) == 0x00000 && ctxt
 //		hr = D3DXSaveTextureToFile(_T("c:\\rtbefore.bmp"), D3DXIFF_BMP, pRT, NULL);
 	}
 }
+/**/
+	int Size = m_nVertices*sizeof(CUSTOMVERTEX);
+	D3DVERTEXBUFFER_DESC vbdesc;
+	memset(&vbdesc, 0, sizeof(vbdesc));
+	if(m_pVertexBuffer) hr = m_pVertexBuffer->GetDesc(&vbdesc);
+	if(vbdesc.Size < Size) m_pVertexBuffer = NULL;
+	if(!m_pVertexBuffer)
+	{
+		hr = m_pD3DDev->CreateVertexBuffer(
+			Size, D3DUSAGE_WRITEONLY|D3DUSAGE_DYNAMIC, D3DFVF_CUSTOMVERTEX, 
+			D3DPOOL_DEFAULT, &m_pVertexBuffer, NULL);
+	}
+	CUSTOMVERTEX* pVertices = NULL;
+	if(S_OK == m_pVertexBuffer->Lock(0, 0, (void**)&pVertices, D3DLOCK_DISCARD|D3DLOCK_NOOVERWRITE))
+	{
+		memcpy(pVertices, m_pVertices, Size);
+		m_pVertexBuffer->Unlock();
+	}
 
+	hr = m_pD3DDev->SetStreamSource(0, m_pVertexBuffer, 0, sizeof(CUSTOMVERTEX));
+
+/*
 	CComPtr<IDirect3DVertexBuffer9> pVB;
 
 	hr = m_pD3DDev->CreateVertexBuffer(
 		m_nVertices*sizeof(CUSTOMVERTEX), 
-		D3DUSAGE_WRITEONLY|D3DUSAGE_DYNAMIC/**/,
+		D3DUSAGE_WRITEONLY|D3DUSAGE_DYNAMIC,
 		D3DFVF_CUSTOMVERTEX,
-		/*D3DPOOL_MANAGED*/D3DPOOL_DEFAULT,
+		D3DPOOL_DEFAULT,
 		&pVB, NULL);
 
 	CUSTOMVERTEX* pVertices = NULL;
@@ -752,18 +773,18 @@ if(m_de.PRIM.TME && m_nVertices == 6 && (ctxt->FRAME.Block()) == 0x00000 && ctxt
 	}
 
 	hr = m_pD3DDev->SetStreamSource(0, pVB, 0, sizeof(CUSTOMVERTEX));
-
+*/
+	
 	hr = m_pD3DDev->BeginScene();
 
 	hr = m_pD3DDev->SetFVF(D3DFVF_CUSTOMVERTEX);
 
+	if(pPixelShader) hr = m_pD3DDev->SetPixelShader(pPixelShader);
+
 	if(1)//!m_de.PABE.PABE)
 	{
-		if(pPixelShader) hr = m_pD3DDev->SetPixelShader(pPixelShader);
-
+//		hr = m_pD3DDev->DrawPrimitiveUP(m_primtype, nPrims, m_pVertices, sizeof(CUSTOMVERTEX));
 		hr = m_pD3DDev->DrawPrimitive(m_primtype, 0, nPrims);
-
-		if(pPixelShader) hr = m_pD3DDev->SetPixelShader(NULL);
 /*
 		if(m_primtype == D3DPT_TRIANGLELIST && m_nVertices != 6)
 		{
@@ -790,7 +811,7 @@ if(m_de.PRIM.TME && m_nVertices == 6 && (ctxt->FRAME.Block()) == 0x00000 && ctxt
 			hr = m_pD3DDev->DrawPrimitive(m_primtype, 0, nPrims);
 		}
 */	}
-/*	else
+	else
 	{
 		ASSERT(!ctxt->TEST.ATE); // TODO
 
@@ -805,7 +826,9 @@ if(m_de.PRIM.TME && m_nVertices == 6 && (ctxt->FRAME.Block()) == 0x00000 && ctxt
 		hr = m_pD3DDev->SetRenderState(D3DRS_ALPHABLENDENABLE, FALSE);
 		hr = m_pD3DDev->DrawPrimitive(m_primtype, 0, nPrims);
 	}
-
+    
+	if(pPixelShader) hr = m_pD3DDev->SetPixelShader(NULL);
+/*
 	if(ctxt->TEST.ATE && ctxt->TEST.AFAIL && ctxt->TEST.ATST != 1)
 	{
 		ASSERT(!m_de.PABE.PABE);
@@ -886,7 +909,7 @@ if(m_de.PRIM.TME && m_nVertices == 6 && (ctxt->FRAME.Block()) == 0x00000 && ctxt
 
 // slooooooooooooooow
 
-/*
+
 void GSState::ConvertRT(CComPtr<IDirect3DTexture9>& pTexture)
 {
 	DrawingContext* ctxt = &m_de.CTXT[m_de.PRIM.CTXT];
@@ -1056,7 +1079,7 @@ void GSState::ConvertRT(CComPtr<IDirect3DTexture9>& pTexture)
 	pTexture = pRT;
 
 }
-*/
+
 void GSState::Flip()
 {
 	DrawingContext* ctxt = &m_de.CTXT[m_de.PRIM.CTXT];

@@ -172,7 +172,7 @@ protected:
 	public:
 		CVertexList() {RemoveAll();}
 		void RemoveAll() {m_head = m_tail = m_count = 0;}
-		void AddTail(CUSTOMVERTEX v)
+		void AddTail(CUSTOMVERTEX& v)
 		{
 			ASSERT(m_count < 4);
 			m_v[m_tail] = v;
@@ -204,6 +204,7 @@ protected:
 	CSurfMap<IDirect3DTexture9> m_pRenderTargets;
 	CSurfMap<IDirect3DSurface9> m_pDepthStencils;
 	CComPtr<IDirect3DPixelShader9> m_pPixelShaders[15];
+	CComPtr<IDirect3DVertexBuffer9> m_pVertexBuffer;
 	GSTextureCache m_tc;
 
 	CMap<DWORD, DWORD, CGSWnd*, CGSWnd*> m_pRenderWnds;
@@ -396,23 +397,23 @@ public:
 	{
 		va_list args;
 		va_start(args, fmt);
-		/**///////////////
+		/**/
 		if(_tcsstr(fmt, _T("VSync")) 
-		 || _tcsstr(fmt, _T("*** WARNING ***"))
+		// || _tcsstr(fmt, _T("*** WARNING ***"))
 		 || _tcsstr(fmt, _T("Flush"))
 		// || _tcsstr(fmt, _T("CSR"))
-		 || _tcsstr(fmt, _T("DISP"))
-		 || _tcsstr(fmt, _T("FRAME"))
-		 || _tcsstr(fmt, _T("ZBUF"))
+		// || _tcsstr(fmt, _T("DISP"))
+		// || _tcsstr(fmt, _T("FRAME"))
+		// || _tcsstr(fmt, _T("ZBUF"))
 		// || _tcsstr(fmt, _T("SMODE"))
 		// || _tcsstr(fmt, _T("PMODE"))
-		 || _tcsstr(fmt, _T("BITBLTBUF"))
+		// || _tcsstr(fmt, _T("BITBLTBUF"))
 		// || _tcsstr(fmt, _T("TRX"))
 		// || _tcsstr(fmt, _T("PRIM"))
 		// || _tcsstr(fmt, _T("RGB"))
-		 || _tcsstr(fmt, _T("XYZ"))
+		// || _tcsstr(fmt, _T("XYZ"))
 		// || _tcsstr(fmt, _T("XYOFFSET"))
-		 || _tcsstr(fmt, _T("TEX"))
+		// || _tcsstr(fmt, _T("TEX"))
 		// || _tcsstr(fmt, _T("UV"))
 		// || _tcsstr(fmt, _T("FOG"))
 		// || _tcsstr(fmt, _T("TBP0")) == fmt
