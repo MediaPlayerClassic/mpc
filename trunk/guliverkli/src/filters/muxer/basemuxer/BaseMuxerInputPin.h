@@ -46,7 +46,6 @@ private:
 	CCritSec m_csReceive;
 	REFERENCE_TIME m_rtMaxStart, m_rtDuration;
 	bool m_fEOS;
-	int m_iID;
 
 	CCritSec m_csQueue;
 	CAutoPtrList<MuxerPacket> m_queue;
@@ -57,6 +56,7 @@ private:
 	friend class CBaseMuxerFilter;
 
 public:
+int m_iID;
 	CBaseMuxerInputPin(LPCWSTR pName, CBaseFilter* pFilter, CCritSec* pLock, HRESULT* phr);
 	virtual ~CBaseMuxerInputPin();
 
@@ -66,6 +66,7 @@ public:
 	REFERENCE_TIME GetDuration() {return m_rtDuration;}
 	int GetID() {return m_iID;}
 	CMediaType& CurrentMediaType() {return m_mt;}
+	bool IsSubtitleStream();
 
     HRESULT CheckMediaType(const CMediaType* pmt);
     HRESULT BreakConnect();

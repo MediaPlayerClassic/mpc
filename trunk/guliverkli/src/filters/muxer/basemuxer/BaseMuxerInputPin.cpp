@@ -58,6 +58,11 @@ STDMETHODIMP CBaseMuxerInputPin::NonDelegatingQueryInterface(REFIID riid, void**
 		__super::NonDelegatingQueryInterface(riid, ppv);
 }
 
+bool CBaseMuxerInputPin::IsSubtitleStream()
+{
+	return m_mt.majortype == MEDIATYPE_Subtitle || m_mt.majortype == MEDIATYPE_Text;
+}
+
 void CBaseMuxerInputPin::PushPacket(CAutoPtr<MuxerPacket> pPacket)
 {
 	for(int i = 0; m_pFilter->IsActive() && !m_bFlushing

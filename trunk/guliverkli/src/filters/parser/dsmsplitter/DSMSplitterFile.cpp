@@ -241,8 +241,6 @@ bool CDSMSplitterFile::Read(UINT64 len, CArray<Chapter>& cs)
 
 bool CDSMSplitterFile::Read(UINT64 len, CStreamInfoMap& im)
 {
-	// TESTME
-
 	while(len >= 5)
 	{
 		CStringA key;

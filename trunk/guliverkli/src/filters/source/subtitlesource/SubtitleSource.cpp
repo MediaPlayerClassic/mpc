@@ -41,17 +41,7 @@ const AMOVIESETUP_MEDIATYPE sudPinTypesOut[] =
 
 const AMOVIESETUP_PIN sudOpPin[] =
 {
-	{
-		L"Output",              // Pin string name
-		FALSE,                  // Is it rendered
-		TRUE,                   // Is it an output
-		FALSE,                  // Can we have none
-		FALSE,                  // Can we have many
-		&CLSID_NULL,            // Connects to filter
-		NULL,                   // Connects to pin
-		countof(sudPinTypesOut), // Number of types
-		sudPinTypesOut			// Pin details
-	},
+	{L"Output", FALSE, TRUE, FALSE, FALSE, &CLSID_NULL, NULL, countof(sudPinTypesOut), sudPinTypesOut},
 };
 
 const AMOVIESETUP_FILTER sudFilter[] =
@@ -67,13 +57,13 @@ const AMOVIESETUP_FILTER sudFilter[] =
 
 CFactoryTemplate g_Templates[] =
 {
-	{L"SubtitleSource (S_TEXT/ASCII)", &__uuidof(CSubtitleSourceASCII), CreateInstance<CSubtitleSourceASCII>, NULL, &sudFilter[0]},
-	{L"SubtitleSource (S_TEXT/UTF8)", &__uuidof(CSubtitleSourceUTF8), CreateInstance<CSubtitleSourceUTF8>, NULL, &sudFilter[1]},
-	{L"SubtitleSource (S_TEXT/SSA)", &__uuidof(CSubtitleSourceSSA), CreateInstance<CSubtitleSourceSSA>, NULL, &sudFilter[2]},
-	{L"SubtitleSource (S_TEXT/ASS)", &__uuidof(CSubtitleSourceASS), CreateInstance<CSubtitleSourceASS>, NULL, &sudFilter[3]},
-//	{L"SubtitleSource (S_TEXT/USF)", &__uuidof(CSubtitleSourceUSF), CreateInstance<CSubtitleSourceUSF>, NULL, &sudFilter[4]},
-	{L"SubtitleSource (Preview)", &__uuidof(CSubtitleSourcePreview), CreateInstance<CSubtitleSourcePreview>, NULL, &sudFilter[5]},
-	{L"SubtitleSource (ARGB)", &__uuidof(CSubtitleSourceARGB), CreateInstance<CSubtitleSourceARGB>, NULL, &sudFilter[6]},
+	{sudFilter[0].strName, sudFilter[0].clsID, CreateInstance<CSubtitleSourceASCII>, NULL, &sudFilter[0]},
+	{sudFilter[1].strName, sudFilter[1].clsID, CreateInstance<CSubtitleSourceUTF8>, NULL, &sudFilter[1]},
+	{sudFilter[2].strName, sudFilter[2].clsID, CreateInstance<CSubtitleSourceSSA>, NULL, &sudFilter[2]},
+	{sudFilter[3].strName, sudFilter[3].clsID, CreateInstance<CSubtitleSourceASS>, NULL, &sudFilter[3]},
+//	{sudFilter[4].strName, sudFilter[4].clsID, CreateInstance<CSubtitleSourceUSF>, NULL, &sudFilter[4]},
+	{sudFilter[5].strName, sudFilter[5].clsID, CreateInstance<CSubtitleSourcePreview>, NULL, &sudFilter[5]},
+	{sudFilter[6].strName, sudFilter[6].clsID, CreateInstance<CSubtitleSourceARGB>, NULL, &sudFilter[6]},
 };
 
 int g_cTemplates = countof(g_Templates);
