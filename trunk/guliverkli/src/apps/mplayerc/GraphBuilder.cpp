@@ -247,6 +247,8 @@ CGraphBuilder::CGraphBuilder(IGraphBuilder* pGB, HWND hWnd)
 		guids.AddTail(MEDIASUBTYPE_MPEG2_PROGRAM);
 		guids.AddTail(MEDIATYPE_Stream);
 		guids.AddTail(MEDIASUBTYPE_MPEG2_TRANSPORT);
+		guids.AddTail(MEDIATYPE_Stream);
+		guids.AddTail(MEDIASUBTYPE_MPEG2_PVA);
 		AddFilter(new CGraphCustomFilter(__uuidof(CMpegSplitterFilter), guids, 
 			(s.SrcFilters&SRC_MPEG) ? L"Mpeg Splitter" : L"Mpeg Splitter (low merit)",
 			(s.SrcFilters&SRC_MPEG) ? LMERIT_ABOVE_DSHOW : LMERIT_DO_USE));

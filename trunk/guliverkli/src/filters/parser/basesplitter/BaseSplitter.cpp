@@ -640,14 +640,14 @@ HRESULT CBaseSplitterOutputPin::DeliverPacket(CAutoPtr<Packet> p)
 			if(S_OK != (hr = m_pAllocator->Commit())) break;
 			if(S_OK != (hr = GetDeliveryBuffer(&pSample, NULL, NULL, 0))) break;
 		}
-/*
-//if(p->TrackNumber == 2)
-if(p->rtStart != Packet::INVALID_TIME)
+
+//if(p->TrackNumber == 1)
+//if(p->rtStart != Packet::INVALID_TIME)
 TRACE(_T("[%d]: d%d s%d p%d, b=%d, %I64d-%I64d \n"), 
 	  p->TrackNumber,
 	  p->bDiscontinuity, p->bSyncPoint, p->rtStart < 0,
 	  nBytes, p->rtStart, p->rtStop);
-*/
+
 		if(p->pmt)
 		{
 			pSample->SetMediaType(p->pmt);
@@ -1047,7 +1047,7 @@ bool CBaseSplitterFilter::IsAnyPinDrying()
 			{
 				// SetThreadPriority(m_hThread, m_priority = THREAD_PRIORITY_ABOVE_NORMAL);
 				POSITION pos = m_pOutputs.GetHeadPosition();
-				while(pos) SetThreadPriority(m_pOutputs.GetNext(pos)->GetThreadHandle(), THREAD_PRIORITY_BELOW_NORMAL);
+				while(pos) m_pOutputs.GetNext(pos)->SetThreadPriority(THREAD_PRIORITY_BELOW_NORMAL);
 				m_priority = THREAD_PRIORITY_BELOW_NORMAL;
 			}
 			return(true);
@@ -1060,7 +1060,7 @@ bool CBaseSplitterFilter::IsAnyPinDrying()
 	{
 //		SetThreadPriority(m_hThread, m_priority = THREAD_PRIORITY_NORMAL);
 		POSITION pos = m_pOutputs.GetHeadPosition();
-		while(pos) SetThreadPriority(m_pOutputs.GetNext(pos)->GetThreadHandle(), THREAD_PRIORITY_NORMAL);
+		while(pos) m_pOutputs.GetNext(pos)->SetThreadPriority(THREAD_PRIORITY_NORMAL);
 		m_priority = THREAD_PRIORITY_NORMAL;
 	}
 

@@ -33,6 +33,7 @@ const AMOVIESETUP_MEDIATYPE sudPinTypesIn[] =
 //	{&MEDIATYPE_Stream, &MEDIASUBTYPE_MPEG1VideoCD}, // cdxa filter should take care of this
 	{&MEDIATYPE_Stream, &MEDIASUBTYPE_MPEG2_PROGRAM},
 	{&MEDIATYPE_Stream, &MEDIASUBTYPE_MPEG2_TRANSPORT},
+	{&MEDIATYPE_Stream, &MEDIASUBTYPE_MPEG2_PVA},
 	{&MEDIATYPE_Stream, &MEDIASUBTYPE_NULL},
 };
 
@@ -81,6 +82,7 @@ STDAPI DllRegisterServer()
 	RegisterSourceFilter(CLSID_AsyncReader, MEDIASUBTYPE_MPEG1System, _T("0,16,FFFFFFFFF100010001800001FFFFFFFF,000001BA2100010001800001000001BB"), NULL);
 	RegisterSourceFilter(CLSID_AsyncReader, MEDIASUBTYPE_MPEG2_PROGRAM, _T("0,5,FFFFFFFFC0,000001BA40"), NULL);
 	RegisterSourceFilter(CLSID_AsyncReader, MEDIASUBTYPE_MPEG2_TRANSPORT, _T("0,4,,47,188,4,,47,376,4,,47"), NULL);
+	RegisterSourceFilter(CLSID_AsyncReader, MEDIASUBTYPE_MPEG2_PVA, _T("0,8,fffffc00ffe00000,4156000055000000"), NULL);
 
 	return AMovieDllRegisterServer2(TRUE);
 }
@@ -335,6 +337,31 @@ bool CMpegSplitterFilter::DoDeliverLoop()
 
 			m_pFile->Seek(h.next);
 		}
+		else if(m_pFile->m_type == CMpegSplitterFile::pva)
+		{
+			CMpegSplitterFile::pvahdr h;
+			if(!m_pFile->Read(h))
+				return(false);
+
+			DWORD TrackNumber = h.streamid;
+
+			__int64 pos = m_pFile->GetPos();
+
+			if(GetOutputPin(TrackNumber))
+			{
+				CAutoPtr<Packet> p(new Packet());
+				p->TrackNumber = TrackNumber;
+				p->bSyncPoint = !!h.fpts;
+				p->bAppendable = !h.fpts;
+				p->rtStart = h.fpts ? (h.pts - m_pFile->m_rtMin) : Packet::INVALID_TIME;
+				p->rtStop = p->rtStart+1;
+				p->pData.SetSize(h.length);
+				m_pFile->ByteRead(p->pData.GetData(), h.length);
+				hr = DeliverPacket(p);
+			}
+
+			m_pFile->Seek(pos + h.length);
+		}
 	}
 
 	return(true);
@@ -480,7 +507,7 @@ HRESULT CMpegSplitterOutputPin::DeliverPacket(CAutoPtr<Packet> p)
 
 	if(p->rtStart != Packet::INVALID_TIME)
 	{
-		if(p->rtStart + m_rtOffset + 1000000 < m_rtPrev)
+		if(p->rtStart + m_rtOffset + 10000000 < m_rtPrev)
 			m_rtOffset += m_rtPrev - (p->rtStart + m_rtOffset);
 
 		p->rtStart += m_rtOffset;

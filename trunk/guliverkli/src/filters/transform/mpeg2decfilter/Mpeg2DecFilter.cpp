@@ -207,6 +207,20 @@ BOOL APIENTRY DllMain(HANDLE hModule, DWORD ul_reason_for_call, LPVOID lpReserve
 
 CUnknown* WINAPI CMpeg2DecFilter::CreateInstance(LPUNKNOWN lpunk, HRESULT* phr)
 {
+/*	int len = 1024*1024*100;
+	char* src = (char*)_aligned_malloc(len, 16);
+	char* dst = (char*)_aligned_malloc(len, 16);
+	for(int i = 0; i < 20; i++)
+		memcpy_accel(dst, src, len);
+	_aligned_free(src);
+	_aligned_free(dst);
+
+	__int64 start, end;
+	ReadTSC(start);
+	ReadTSC(end);
+	__int64 dt = end - start;
+	TRACE(_T("memcpy: len=%d, dt=%I64d, %.6f b/clks\n"), len, dt, (float)len/dt);
+*/
     CUnknown* punk = new CMpeg2DecFilter(lpunk, phr);
     if(punk == NULL) *phr = E_OUTOFMEMORY;
 	return punk;
@@ -393,14 +407,7 @@ HRESULT CMpeg2DecFilter::Receive(IMediaSample* pIn)
 			rtStart = _I64_MIN;
 			m_dec->m_picture->fDelivered = false;
 
-			if(m_fDropFrames && (m_dec->m_picture->flags&PIC_MASK_CODING_TYPE) == PIC_FLAG_CODING_TYPE_B)
-			{
-				m_dec->mpeg2_skip(true);
-			}
-			else
-			{
-				m_dec->mpeg2_skip(false);
-			}
+			m_dec->mpeg2_skip(m_fDropFrames && (m_dec->m_picture->flags&PIC_MASK_CODING_TYPE) == PIC_FLAG_CODING_TYPE_B);
 
 			break;
 		case STATE_SLICE:

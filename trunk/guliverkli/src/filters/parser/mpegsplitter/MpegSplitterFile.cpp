@@ -38,8 +38,17 @@ HRESULT CMpegSplitterFile::Init()
 
 	if(m_type == us)
 	{
+		int cnt = 0, limit = 4;
+		for(pvahdr h; cnt < limit && Read(h); cnt++) Seek(GetPos() + h.length);
+		if(cnt >= limit) m_type = pva;
+	}
+
+	Seek(0);
+
+	if(m_type == us)
+	{
 		BYTE b;
-		if(Next(b))
+		for(int i = 0; i < 4 && m_type == us && Next(b); i++)
 		{
 			if(b == 0xba)
 			{
@@ -54,7 +63,11 @@ HRESULT CMpegSplitterFile::Init()
 				|| (b&0xf0) == 0xe0 // video, 1110xxxx, mpeg1/2
 				|| (b&0xbd) == 0xbd) // private stream 1, 0xbd, ac3/dts/lpcm/subpic
 			{
-				m_type = es;
+				peshdr h;
+				if(Read(h, b))
+				{
+					m_type = es;
+				}
 			}
 		}
 	}
@@ -181,6 +194,17 @@ REFERENCE_TIME CMpegSplitterFile::NextPTS(DWORD TrackNum)
 
 			Seek(h.next);
 		}
+		else if(m_type == pva)
+		{
+			pvahdr h;
+			if(!Read(h)) continue;
+
+			if(h.fpts)
+			{
+				rt = h.pts;
+				break;
+			}
+		}
 	}
 
 	if(rtpos >= 0) Seek(rtpos);
@@ -267,6 +291,22 @@ m_rate = rate;
 			}
 
 			Seek(h.next);
+		}
+		else if(m_type == pva)
+		{
+			pvahdr h;
+			if(!Read(h)) continue;
+
+			if(h.fpts)
+			{
+				if(m_rtMin == _I64_MAX) {m_rtMin = h.pts; m_posMin = GetPos();}
+				if(m_rtMin < h.pts && m_rtMax < h.pts) {m_rtMax = h.pts; m_posMax = GetPos();}
+			}
+
+			__int64 pos = GetPos();
+			if(h.streamid == 1) AddStream(h.streamid, 0xe0, h.length);
+			else if(h.streamid == 2) AddStream(h.streamid, 0xc0, h.length);
+			if(h.length) Seek(pos + h.length);
 		}
 	}
 
@@ -1185,6 +1225,60 @@ bool CMpegSplitterFile::Read(trhdr& h, bool fSync)
 
 		h.bytes = 183 - h.length;
 	}
+
+	return(true);
+}
+
+bool CMpegSplitterFile::Read(pvahdr& h, bool fSync)
+{
+	memset(&h, 0, sizeof(h));
+
+	BitByteAlign();
+
+	if(fSync)
+	{
+		for(int i = 0; i < 65536; i++)
+		{
+			if((BitRead(64, true)&0xfffffc00ffe00000i64) == 0x4156000055000000i64) 
+				break;
+			BitRead(8);
+		}
+	}
+
+	if((BitRead(64, true)&0xfffffc00ffe00000i64) != 0x4156000055000000i64)
+		return(false);
+
+	h.sync = (WORD)BitRead(16);
+	h.streamid = (BYTE)BitRead(8);
+	h.counter = (BYTE)BitRead(8);
+	h.res1 = (BYTE)BitRead(8);
+	h.res2 = BitRead(3);
+	h.fpts = BitRead(1);
+	h.postbytes = BitRead(2);
+	h.prebytes = BitRead(2);
+	h.length = (WORD)BitRead(16);
+
+	if(h.length > 6136)
+		return(false);
+
+	__int64 pos = GetPos();
+
+	if(h.streamid == 1 && h.fpts)
+	{
+		h.pts = 10000*BitRead(32)/90;
+	}
+	else if(h.streamid == 2 && (h.fpts || (BitRead(32, true)&0xffffffe0) == 0x000001c0))
+	{
+		BYTE b;
+		if(!Next(b, 4)) return(false);
+		peshdr h2;
+		if(!Read(h2, b)) return(false);
+		if(h.fpts = h2.fpts) h.pts = h2.pts;
+	}
+
+	BitRead(8*h.prebytes);
+
+	h.length -= GetPos() - pos;
 
 	return(true);
 }

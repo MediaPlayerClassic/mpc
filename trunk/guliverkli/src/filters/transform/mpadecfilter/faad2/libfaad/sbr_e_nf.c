@@ -46,6 +46,8 @@ void extract_envelope_data(sbr_info *sbr, uint8_t ch)
             for (k = 1; k < sbr->n[sbr->f[ch][l]]; k++)
             {
                 sbr->E[ch][k][l] = sbr->E[ch][k - 1][l] + sbr->E[ch][k][l];
+                if (sbr->E[ch][k][l] < 0)
+                    sbr->E[ch][k][l] = 0;
             }
 
         } else { /* bs_df_env == 1 */

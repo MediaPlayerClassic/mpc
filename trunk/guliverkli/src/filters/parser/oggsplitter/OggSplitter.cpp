@@ -258,6 +258,9 @@ HRESULT COggSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 		}
 	}
 
+	if(m_pOutputs.IsEmpty())
+		return E_FAIL;
+
 	m_pFile->Seek(max(m_pFile->GetLength()-65536, 0));
 	while(m_pFile->Read(page))
 	{

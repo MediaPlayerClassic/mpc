@@ -67,7 +67,7 @@
 			<Tool
 				Name="VCPostBuildEventTool"
 				CommandLine="..\..\..\bin\upx.exe --best &quot;$(TargetPath)&quot;"
-				ExcludedFromBuild="FALSE"/>
+				ExcludedFromBuild="TRUE"/>
 			<Tool
 				Name="VCPreBuildEventTool"/>
 			<Tool

@@ -1642,6 +1642,9 @@ HRESULT CRealVideoDecoder::Receive(IMediaSample* pIn)
 	pOut->SetDiscontinuity(pIn->IsDiscontinuity() == S_OK);
 	pOut->SetSyncPoint(pIn->IsSyncPoint() == S_OK);
 
+	if(GetCLSID(m_pOutput->GetConnected()) == CLSID_OverlayMixer)
+		pOut->SetDiscontinuity(TRUE);
+
 	BYTE* pI420 = m_pI420;
 	int wi = transform_out.w, hi = transform_out.h, wo, ho;
 	GetOutDim(wo, ho);

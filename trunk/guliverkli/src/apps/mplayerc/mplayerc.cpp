@@ -1856,7 +1856,9 @@ CString GetContentType(CString fn, CList<CString>* redir)
 					return "video/quicktime";
 			}
 
-			if(redir && (ct == _T("video/x-ms-asf") || ct == _T("audio/x-scpls") || ct == _T("audio/x-mpegurl")))
+			if(redir && (ct == _T("video/x-ms-asf")
+				|| ct == _T("audio/x-scpls") 
+				|| ct == _T("audio/x-mpegurl")))
 			{
 				while(body.GetLength() < 4*1024) // should be enough for a playlist...
 				{
@@ -1875,6 +1877,7 @@ CString GetContentType(CString fn, CList<CString>* redir)
 		if(ext == _T(".asx")) ct = _T("video/x-ms-asf");
 		else if(ext == _T(".pls")) ct = _T("audio/x-scpls");
 		else if(ext == _T(".m3u")) ct = _T("audio/x-mpegurl");
+		else if(ext == _T(".qtl")) ct = _T("application/x-quicktimeplayer");
 
 		if(FILE* f = _tfopen(fn, _T("rb")))
 		{
