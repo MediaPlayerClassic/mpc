@@ -48,6 +48,6 @@ $smarty->assign('email', isset($_SESSION['email']) ? $_SESSION['email'] : "");
 $smarty->assign('rememberme', isset($_SESSION['rememberme']) ? $_SESSION['rememberme'] : false);
 $smarty->assign('err', isset($_SESSION['err']) ? $_SESSION['err'] : null);
 
-$smarty->display_gzip('main.tpl');
+$smarty->display('main.tpl');
 
 ?>
