@@ -25,8 +25,8 @@
 #include <Shlwapi.h>
 #include <atlpath.h>
 #include <Vfw.h>
-#include <devioctl.h>
-#include <ntddcdrm.h>
+#include "..\..\include\winddk\devioctl.h"
+#include "..\..\include\winddk\ntddcdrm.h"
 #include "DSUtil.h"
 
 void DumpStreamConfig(TCHAR* fn, IAMStreamConfig* pAMVSCCap)
