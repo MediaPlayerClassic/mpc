@@ -1079,8 +1079,6 @@ HRESULT CMatroskaSplitterOutputPin::DeliverPacket(CAutoPtr<Packet> p)
 
 HRESULT CMatroskaSplitterOutputPin::DeliverBlock(MatroskaPacket* p)
 {
-	Block* b = p->b;
-
 	HRESULT hr = S_FALSE;
 
 	if(m_tos.GetCount())
@@ -1094,26 +1092,20 @@ HRESULT CMatroskaSplitterOutputPin::DeliverBlock(MatroskaPacket* p)
 		
 	REFERENCE_TIME 
 		rtStart = p->rtStart,
-		rtDelta = (p->rtStop - p->rtStart) / b->BlockData.GetCount(),
+		rtDelta = (p->rtStop - p->rtStart) / p->b->BlockData.GetCount(),
 		rtStop = p->rtStart + rtDelta;
 
-	POSITION pos = b->BlockData.GetHeadPosition();
+	POSITION pos = p->b->BlockData.GetHeadPosition();
 	while(pos)
 	{
-		CBinary* pBlockData = b->BlockData.GetNext(pos);
-
-		CComPtr<IMediaSample> pSample;
-		BYTE* pData;
-		if(S_OK != (hr = GetDeliveryBuffer(&pSample, NULL, NULL, 0))) break;
-		if(S_OK != (hr = pSample->GetPointer(&pData))) break;
-		memcpy(pData, pBlockData->GetData(), pBlockData->GetSize());
-		if(S_OK != (hr = pSample->SetActualDataLength((long)pBlockData->GetSize()))) break;
-		if(S_OK != (hr = pSample->SetTime(&rtStart, &rtStop))) break;
-		if(S_OK != (hr = pSample->SetMediaTime(NULL, NULL))) break;
-		if(S_OK != (hr = pSample->SetDiscontinuity(p->bDiscontinuity))) break;
-		if(S_OK != (hr = pSample->SetSyncPoint(p->bSyncPoint))) break;
-		if(S_OK != (hr = pSample->SetPreroll(rtStart < 0))) break;
-		if(S_OK != (hr = Deliver(pSample))) break;
+		CAutoPtr<Packet> tmp(new Packet());
+		tmp->TrackNumber = -1;
+		tmp->bDiscontinuity = p->bDiscontinuity;
+		tmp->bSyncPoint = p->bSyncPoint;
+		tmp->rtStart = rtStart;
+		tmp->rtStop = rtStop;
+		tmp->pData.Copy(*p->b->BlockData.GetNext(pos));
+		if(S_OK != (hr = DeliverPacket(tmp))) break;
 
 		rtStart += rtDelta;
 		rtStop += rtDelta;
