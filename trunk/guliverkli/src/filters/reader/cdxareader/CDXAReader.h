@@ -78,10 +78,6 @@ public:
     CCDXAReader(IUnknown* pUnk, HRESULT* phr);
 	~CCDXAReader();
 
-#ifdef REGISTER_FILTER
-    static CUnknown* WINAPI CreateInstance(LPUNKNOWN lpunk, HRESULT* phr);
-#endif
-
     DECLARE_IUNKNOWN
     STDMETHODIMP NonDelegatingQueryInterface(REFIID riid, void** ppv);
 

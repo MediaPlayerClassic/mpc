@@ -54,10 +54,6 @@ protected:
 public:
 	CAviSplitterFilter(LPUNKNOWN pUnk, HRESULT* phr);
 
-#ifdef REGISTER_FILTER
-    static CUnknown* WINAPI CreateInstance(LPUNKNOWN lpunk, HRESULT* phr);
-#endif
-
 	DECLARE_IUNKNOWN;
     STDMETHODIMP NonDelegatingQueryInterface(REFIID riid, void** ppv);
 
@@ -93,8 +89,4 @@ class CAviSourceFilter : public CAviSplitterFilter
 {
 public:
 	CAviSourceFilter(LPUNKNOWN pUnk, HRESULT* phr);
-
-#ifdef REGISTER_FILTER
-    static CUnknown* WINAPI CreateInstance(LPUNKNOWN lpunk, HRESULT* phr);
-#endif
 };

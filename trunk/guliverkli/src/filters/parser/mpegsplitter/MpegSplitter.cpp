@@ -27,8 +27,6 @@
 
 #ifdef REGISTER_FILTER
 
-#include "..\..\registry.cpp"
-
 const AMOVIESETUP_MEDIATYPE sudPinTypesIn[] =
 {
 	{&MEDIATYPE_Stream, &MEDIASUBTYPE_MPEG1System},
@@ -53,8 +51,8 @@ const AMOVIESETUP_FILTER sudFilter[] =
 
 CFactoryTemplate g_Templates[] =
 {
-	{L"Mpeg Splitter", &__uuidof(CMpegSplitterFilter), CreateInstance<CMpegSplitterFilter>, NULL, &sudFilter[0]},
-	{L"Mpeg Source", &__uuidof(CMpegSourceFilter), CreateInstance<CMpegSourceFilter>, NULL, &sudFilter[1]},
+	{sudFilter[0].strName, sudFilter[0].clsID, CreateInstance<CMpegSplitterFilter>, NULL, &sudFilter[0]},
+	{sudFilter[1].strName, sudFilter[1].clsID, CreateInstance<CMpegSourceFilter>, NULL, &sudFilter[1]},
 };
 
 int g_cTemplates = countof(g_Templates);

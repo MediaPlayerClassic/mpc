@@ -30,10 +30,6 @@ public:
 	CDeCSSFilter(LPUNKNOWN lpunk, HRESULT* phr);
 	virtual ~CDeCSSFilter();
 
-#ifdef REGISTER_FILTER
-    static CUnknown* WINAPI CreateInstance(LPUNKNOWN lpunk, HRESULT* phr);
-#endif
-
     HRESULT Transform(IMediaSample* pIn, IMediaSample* pOut);
     HRESULT CheckInputType(const CMediaType* mtIn);
     HRESULT CheckTransform(const CMediaType* mtIn, const CMediaType* mtOut);

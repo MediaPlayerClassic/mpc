@@ -153,10 +153,6 @@ public:
 	COggSplitterFilter(LPUNKNOWN pUnk, HRESULT* phr);
 	virtual ~COggSplitterFilter();
 
-#ifdef REGISTER_FILTER
-    static CUnknown* WINAPI CreateInstance(LPUNKNOWN lpunk, HRESULT* phr);
-#endif
-
 	// IChapterInfo
 
 	STDMETHODIMP_(UINT) GetChapterCount(UINT aChapterID);
@@ -170,8 +166,4 @@ class COggSourceFilter : public COggSplitterFilter
 {
 public:
 	COggSourceFilter(LPUNKNOWN pUnk, HRESULT* phr);
-
-#ifdef REGISTER_FILTER
-    static CUnknown* WINAPI CreateInstance(LPUNKNOWN lpunk, HRESULT* phr);
-#endif
 };

@@ -20,9 +20,9 @@
  */
 
 #include "stdafx.h"
-#include "..\..\..\DSUtil\DSUtil.h"
 #include <initguid.h>
 #include "cddareader.h"
+#include "..\..\..\DSUtil\DSUtil.h"
 
 #define RAW_SECTOR_SIZE 2352
 #define MSF2UINT(hgs) ((hgs[1]*4500)+(hgs[2]*75)+(hgs[3]))
@@ -36,40 +36,20 @@ const AMOVIESETUP_MEDIATYPE sudPinTypesOut[] =
 
 const AMOVIESETUP_PIN sudOpPin[] =
 {
-	{
-		L"Output",              // Pin string name
-		FALSE,                  // Is it rendered
-		TRUE,                   // Is it an output
-		FALSE,                  // Can we have none
-		FALSE,                  // Can we have many
-		&CLSID_NULL,            // Connects to filter
-		NULL,                   // Connects to pin
-		countof(sudPinTypesOut), // Number of types
-		sudPinTypesOut			// Pin details
-	},
+	{L"Output", FALSE, TRUE, FALSE, FALSE, &CLSID_NULL, NULL, countof(sudPinTypesOut), sudPinTypesOut},
 };
 
-const AMOVIESETUP_FILTER sudFilter =
+const AMOVIESETUP_FILTER sudFilter[] =
 {
-    &__uuidof(CCDDAReader),	// Filter CLSID
-    L"CDDA Reader",			// String name
-    MERIT_UNLIKELY,			// Filter merit
-    countof(sudOpPin),	// Number of pins
-    sudOpPin				// Pin information
+	{&__uuidof(CCDDAReader), L"CDDA Reader", MERIT_UNLIKELY, countof(sudOpPin), sudOpPin}
 };
 
 CFactoryTemplate g_Templates[] =
 {
-	{ L"CDDA Reader"
-	, &__uuidof(CCDDAReader)
-	, CCDDAReader::CreateInstance
-	, NULL
-	, &sudFilter}
+	{sudFilter[0].strName, sudFilter[0].clsID, CreateInstance<CCDDAReader>, NULL, &sudFilter[0]}
 };
 
 int g_cTemplates = countof(g_Templates);
-
-#include "..\..\registry.cpp"
 
 STDAPI DllRegisterServer()
 {
@@ -109,18 +89,11 @@ BOOL APIENTRY DllMain(HANDLE hModule, DWORD ul_reason_for_call, LPVOID lpReserve
     return DllEntryPoint((HINSTANCE)hModule, ul_reason_for_call, 0); // "DllMain" of the dshow baseclasses;
 }
 
+#endif
+
 //
 // CCDDAReader
 //
-
-CUnknown* WINAPI CCDDAReader::CreateInstance(LPUNKNOWN lpunk, HRESULT* phr)
-{
-    CUnknown* punk = new CCDDAReader(lpunk, phr);
-    if(punk == NULL) *phr = E_OUTOFMEMORY;
-	return punk;
-}
-
-#endif
 
 CCDDAReader::CCDDAReader(IUnknown* pUnk, HRESULT* phr)
 	: CAsyncReader(NAME("CCDDAReader"), pUnk, &m_stream, phr, __uuidof(this))

@@ -210,6 +210,7 @@
 				RegisterOutput="TRUE"
 				AdditionalDependencies="strmbaseD.lib"
 				OutputFile="$(OutDir)/$(ProjectName).ax"
+				AdditionalLibraryDirectories="../../../../lib"
 				ModuleDefinitionFile="wavdest.def"
 				GenerateDebugInformation="TRUE"
 				SubSystem="2"
@@ -261,6 +262,7 @@
 				RegisterOutput="TRUE"
 				AdditionalDependencies="strmbaseDU.lib"
 				OutputFile="$(OutDir)/$(ProjectName).ax"
+				AdditionalLibraryDirectories="../../../../lib"
 				ModuleDefinitionFile="wavdest.def"
 				GenerateDebugInformation="TRUE"
 				SubSystem="2"
@@ -313,6 +315,7 @@
 				RegisterOutput="TRUE"
 				AdditionalDependencies="strmbaseR.lib"
 				OutputFile="$(OutDir)/$(ProjectName).ax"
+				AdditionalLibraryDirectories="../../../../lib"
 				ModuleDefinitionFile="wavdest.def"
 				SubSystem="2"
 				TargetMachine="1"/>
@@ -364,6 +367,7 @@
 				RegisterOutput="TRUE"
 				AdditionalDependencies="strmbaseRU.lib"
 				OutputFile="$(OutDir)/$(ProjectName).ax"
+				AdditionalLibraryDirectories="../../../../lib"
 				ModuleDefinitionFile="wavdest.def"
 				SubSystem="2"
 				TargetMachine="1"/>

@@ -29,10 +29,6 @@ class CD2VSource : public CBaseSource<CD2VStream>
 public:
 	CD2VSource(LPUNKNOWN lpunk, HRESULT* phr);
 	virtual ~CD2VSource();
-
-#ifdef REGISTER_FILTER
-    static CUnknown* WINAPI CreateInstance(LPUNKNOWN lpunk, HRESULT* phr);
-#endif
 };
 
 class CMPEG2Dec;

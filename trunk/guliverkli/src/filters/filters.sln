@@ -15,6 +15,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "cdxareader", "reader\cdxare
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "d2vsource", "source\d2vsource\d2vsource.vcproj", "{83CC6B88-A112-4192-BD5A-F2A249AF2277}"
 	ProjectSection(ProjectDependencies) = postProject
+		{F50E74C2-5BE7-4C9B-B1E7-6CA19CFAD34E} = {F50E74C2-5BE7-4C9B-B1E7-6CA19CFAD34E}
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "flicsource", "source\flicsource\flicsource.vcproj", "{431DD5B6-3F2F-47EE-A23F-514BC044B704}"
@@ -47,6 +48,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "wavdest", "muxer\wavdest\wa
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "vtsreader", "reader\vtsreader\vtsreader.vcproj", "{664E726B-EEEE-403A-AC15-345D9C9E1375}"
 	ProjectSection(ProjectDependencies) = postProject
+		{9F31D122-E84D-485A-A58D-09DAD01A56CE} = {9F31D122-E84D-485A-A58D-09DAD01A56CE}
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "streamdrivethru", "parser\streamdrivethru\streamdrivethru.vcproj", "{AE399B7E-2B2C-4A96-9016-C5C74B0A2FA0}"
@@ -55,6 +57,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "streamdrivethru", "parser\s
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "dtsac3source", "source\dtsac3source\dtsac3source.vcproj", "{30D48874-899F-41C6-9B26-A40C96C91102}"
 	ProjectSection(ProjectDependencies) = postProject
+		{F50E74C2-5BE7-4C9B-B1E7-6CA19CFAD34E} = {F50E74C2-5BE7-4C9B-B1E7-6CA19CFAD34E}
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "shoutcastsource", "source\shoutcastsource\shoutcastsource.vcproj", "{42B599D7-BB84-481F-A42A-2DBE0E2E2D7E}"
@@ -64,6 +67,7 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MatroskaSplitter", "parser\matroskasplitter\MatroskaSplitter.vcproj", "{3F5EA225-F4B7-4413-AEB3-4E4E5751E438}"
 	ProjectSection(ProjectDependencies) = postProject
 		{37768B3F-89BC-4C16-B2A8-767C5DA84C3F} = {37768B3F-89BC-4C16-B2A8-767C5DA84C3F}
+		{2FCD4B66-9CF9-4C8F-BC70-37CD20002D49} = {2FCD4B66-9CF9-4C8F-BC70-37CD20002D49}
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MatroskaMuxer", "muxer\matroskamuxer\MatroskaMuxer.vcproj", "{67827491-8162-4039-9132-F934ABC836A0}"
@@ -102,6 +106,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libmad", "transform\mpadecf
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "RadGtSplitter", "parser\radgtsplitter\RadGtSplitter.vcproj", "{28F0F6E8-21DE-4C3D-A439-4A5912457399}"
 	ProjectSection(ProjectDependencies) = postProject
+		{37768B3F-89BC-4C16-B2A8-767C5DA84C3F} = {37768B3F-89BC-4C16-B2A8-767C5DA84C3F}
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "RoQSplitter", "parser\roqsplitter\RoQSplitter.vcproj", "{23E1898F-8262-435C-8848-D4D8824E6D71}"

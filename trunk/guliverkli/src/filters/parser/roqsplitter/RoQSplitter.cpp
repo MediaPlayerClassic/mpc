@@ -34,123 +34,59 @@ const AMOVIESETUP_MEDIATYPE sudPinTypesIn[] =
 
 const AMOVIESETUP_PIN sudpPins[] =
 {
-    { L"Input",             // Pins string name
-      FALSE,                // Is it rendered
-      FALSE,                // Is it an output
-      FALSE,                // Are we allowed none
-      FALSE,                // And allowed many
-      &CLSID_NULL,          // Connects to filter
-      NULL,                 // Connects to pin
-      countof(sudPinTypesIn), // Number of types
-      sudPinTypesIn         // Pin information
-    },
-    { L"Output",            // Pins string name
-      FALSE,                // Is it rendered
-      TRUE,                 // Is it an output
-      FALSE,                // Are we allowed none
-      FALSE,                // And allowed many
-      &CLSID_NULL,          // Connects to filter
-      NULL,                 // Connects to pin
-      0,					// Number of types
-      NULL					// Pin information
-    },
+    {L"Input", FALSE, FALSE, FALSE, FALSE, &CLSID_NULL, NULL, countof(sudPinTypesIn), sudPinTypesIn},
+    {L"Output", FALSE, TRUE, FALSE, FALSE, &CLSID_NULL, NULL, 0, NULL}
+};
+
+const AMOVIESETUP_MEDIATYPE sudPinTypesIn2[] =
+{
+	{&MEDIATYPE_Video, &MEDIASUBTYPE_RoQV},
+};
+
+const AMOVIESETUP_MEDIATYPE sudPinTypesOut2[] =
+{
+	{&MEDIATYPE_Video, &MEDIASUBTYPE_NULL},
+};
+
+const AMOVIESETUP_PIN sudpPins2[] =
+{
+    {L"Input", FALSE, FALSE, FALSE, FALSE, &CLSID_NULL, NULL, countof(sudPinTypesIn2), sudPinTypesIn2},
+    {L"Output", FALSE, TRUE, FALSE, FALSE, &CLSID_NULL, NULL, countof(sudPinTypesOut2), sudPinTypesOut2}
+};
+
+const AMOVIESETUP_MEDIATYPE sudPinTypesIn3[] =
+{
+	{&MEDIATYPE_Audio, &MEDIASUBTYPE_RoQA},
+};
+
+const AMOVIESETUP_MEDIATYPE sudPinTypesOut3[] =
+{
+	{&MEDIATYPE_Audio, &MEDIASUBTYPE_PCM},
+};
+
+const AMOVIESETUP_PIN sudpPins3[] =
+{
+    {L"Input", FALSE, FALSE, FALSE, FALSE, &CLSID_NULL, NULL, countof(sudPinTypesIn3), sudPinTypesIn3},
+    {L"Output", FALSE, TRUE, FALSE, FALSE, &CLSID_NULL, NULL, countof(sudPinTypesOut3), sudPinTypesOut3}
 };
 
 const AMOVIESETUP_FILTER sudFilter[] =
 {
 	{&__uuidof(CRoQSplitterFilter), L"RoQ Splitter", MERIT_NORMAL+1, countof(sudpPins), sudpPins},
 	{&__uuidof(CRoQSourceFilter), L"RoQ Source", MERIT_NORMAL+1, 0, NULL},
-};
-
-/////////////////
-
-const AMOVIESETUP_MEDIATYPE sudPinTypesIn2[] =
-{
-	{&MEDIATYPE_Video, &MEDIASUBTYPE_NULL},
-};
-
-const AMOVIESETUP_MEDIATYPE sudPinTypesOut2[] =
-{
-	{&MEDIATYPE_Video, &MEDIASUBTYPE_RoQV},
-};
-
-const AMOVIESETUP_PIN sudpPins2[] =
-{
-    { L"Input",             // Pins string name
-      FALSE,                // Is it rendered
-      FALSE,                // Is it an output
-      FALSE,                // Are we allowed none
-      FALSE,                // And allowed many
-      &CLSID_NULL,          // Connects to filter
-      NULL,                 // Connects to pin
-      countof(sudPinTypesIn2),	// Number of types
-      sudPinTypesIn2			// Pin information
-    },
-    { L"Output",            // Pins string name
-      FALSE,                // Is it rendered
-      TRUE,                 // Is it an output
-      FALSE,                // Are we allowed none
-      FALSE,                // And allowed many
-      &CLSID_NULL,          // Connects to filter
-      NULL,                 // Connects to pin
-      countof(sudPinTypesOut2),	// Number of types
-      sudPinTypesOut2		// Pin information
-    }
-};
-
-const AMOVIESETUP_MEDIATYPE sudPinTypesIn3[] =
-{
-	{&MEDIATYPE_Audio, &MEDIASUBTYPE_NULL},
-};
-
-const AMOVIESETUP_MEDIATYPE sudPinTypesOut3[] =
-{
-	{&MEDIATYPE_Audio, &MEDIASUBTYPE_RoQA},
-};
-
-const AMOVIESETUP_PIN sudpPins3[] =
-{
-    { L"Input",             // Pins string name
-      FALSE,                // Is it rendered
-      FALSE,                // Is it an output
-      FALSE,                // Are we allowed none
-      FALSE,                // And allowed many
-      &CLSID_NULL,          // Connects to filter
-      NULL,                 // Connects to pin
-      countof(sudPinTypesIn3),	// Number of types
-      sudPinTypesIn3			// Pin information
-    },
-    { L"Output",            // Pins string name
-      FALSE,                // Is it rendered
-      TRUE,                 // Is it an output
-      FALSE,                // Are we allowed none
-      FALSE,                // And allowed many
-      &CLSID_NULL,          // Connects to filter
-      NULL,                 // Connects to pin
-      countof(sudPinTypesOut3),	// Number of types
-      sudPinTypesOut3		// Pin information
-    }
-};
-
-const AMOVIESETUP_FILTER sudFilter2[] =
-{
 	{&__uuidof(CRoQVideoDecoder), L"RoQ Video Decoder", MERIT_UNLIKELY, countof(sudpPins2), sudpPins2},
 	{&__uuidof(CRoQAudioDecoder), L"RoQ Audio Decoder", MERIT_UNLIKELY, countof(sudpPins3), sudpPins3},
 };
 
-////////////////////
-
 CFactoryTemplate g_Templates[] =
 {
-	{L"RoQ Splitter", &__uuidof(CRoQSplitterFilter), CRoQSplitterFilter::CreateInstance, NULL, &sudFilter[0]},
-	{L"RoQ Source", &__uuidof(CRoQSourceFilter), CRoQSourceFilter::CreateInstance, NULL, &sudFilter[1]},
-    {L"RoQ Video Decoder", &__uuidof(CRoQVideoDecoder), CRoQVideoDecoder::CreateInstance, NULL, &sudFilter2[0]},
-    {L"RoQ Audio Decoder", &__uuidof(CRoQAudioDecoder), CRoQAudioDecoder::CreateInstance, NULL, &sudFilter2[1]},
+	{sudFilter[0].strName, sudFilter[0].clsID, CreateInstance<CRoQSplitterFilter>, NULL, &sudFilter[0]},
+	{sudFilter[1].strName, sudFilter[1].clsID, CreateInstance<CRoQSourceFilter>, NULL, &sudFilter[1]},
+    {sudFilter[2].strName, sudFilter[2].clsID, CreateInstance<CRoQVideoDecoder>, NULL, &sudFilter[2]},
+    {sudFilter[3].strName, sudFilter[3].clsID, CreateInstance<CRoQAudioDecoder>, NULL, &sudFilter[3]},
 };
 
 int g_cTemplates = countof(g_Templates);
-
-#include "..\..\registry.cpp"
 
 STDAPI DllRegisterServer()
 {
@@ -171,20 +107,6 @@ extern "C" BOOL WINAPI DllEntryPoint(HINSTANCE, ULONG, LPVOID);
 BOOL APIENTRY DllMain(HANDLE hModule, DWORD ul_reason_for_call, LPVOID lpReserved)
 {
     return DllEntryPoint((HINSTANCE)hModule, ul_reason_for_call, 0); // "DllMain" of the dshow baseclasses;
-}
-
-CUnknown* WINAPI CRoQSplitterFilter::CreateInstance(LPUNKNOWN lpunk, HRESULT* phr)
-{
-    CUnknown* punk = new CRoQSplitterFilter(lpunk, phr);
-    if(punk == NULL) *phr = E_OUTOFMEMORY;
-	return punk;
-}
-
-CUnknown* WINAPI CRoQSourceFilter::CreateInstance(LPUNKNOWN lpunk, HRESULT* phr)
-{
-    CUnknown* punk = new CRoQSourceFilter(lpunk, phr);
-    if(punk == NULL) *phr = E_OUTOFMEMORY;
-	return punk;
 }
 
 #endif
@@ -420,15 +342,6 @@ CRoQVideoDecoder::CRoQVideoDecoder(LPUNKNOWN lpunk, HRESULT* phr)
 CRoQVideoDecoder::~CRoQVideoDecoder()
 {
 }
-
-#ifdef REGISTER_FILTER
-CUnknown* WINAPI CRoQVideoDecoder::CreateInstance(LPUNKNOWN lpunk, HRESULT* phr)
-{
-    CUnknown* punk = new CRoQVideoDecoder(lpunk, phr);
-    if(punk == NULL) *phr = E_OUTOFMEMORY;
-	return punk;
-}
-#endif
 
 void CRoQVideoDecoder::apply_vector_2x2(int x, int y, roq_cell* cell)
 {
@@ -946,15 +859,6 @@ CRoQAudioDecoder::CRoQAudioDecoder(LPUNKNOWN lpunk, HRESULT* phr)
 CRoQAudioDecoder::~CRoQAudioDecoder()
 {
 }
-
-#ifdef REGISTER_FILTER
-CUnknown* WINAPI CRoQAudioDecoder::CreateInstance(LPUNKNOWN lpunk, HRESULT* phr)
-{
-    CUnknown* punk = new CRoQAudioDecoder(lpunk, phr);
-    if(punk == NULL) *phr = E_OUTOFMEMORY;
-	return punk;
-}
-#endif
 
 HRESULT CRoQAudioDecoder::Transform(IMediaSample* pIn, IMediaSample* pOut)
 {

@@ -34,7 +34,7 @@
 			<Tool
 				Name="VCLinkerTool"
 				RegisterOutput="TRUE"
-				AdditionalDependencies="dsutilD.lib asyncreaderD.lib strmbaseD.lib"
+				AdditionalDependencies="asyncreaderD.lib strmbaseD.lib"
 				OutputFile="$(OutDir)/$(ProjectName).ax"
 				AdditionalLibraryDirectories="../../../../lib"
 				ModuleDefinitionFile="CDXAReader.def"
@@ -88,7 +88,7 @@
 			<Tool
 				Name="VCLinkerTool"
 				RegisterOutput="TRUE"
-				AdditionalDependencies="dsutilR.lib asyncreaderR.lib strmbaseR.lib"
+				AdditionalDependencies="asyncreaderR.lib strmbaseR.lib"
 				OutputFile="$(OutDir)/$(ProjectName).ax"
 				AdditionalLibraryDirectories="../../../../lib"
 				ModuleDefinitionFile="CDXAReader.def"
@@ -142,7 +142,7 @@
 			<Tool
 				Name="VCLinkerTool"
 				RegisterOutput="TRUE"
-				AdditionalDependencies="dsutilDU.lib asyncreaderDU.lib strmbaseDU.lib"
+				AdditionalDependencies="asyncreaderDU.lib strmbaseDU.lib"
 				OutputFile="$(OutDir)/$(ProjectName).ax"
 				AdditionalLibraryDirectories="../../../../lib"
 				ModuleDefinitionFile="CDXAReader.def"
@@ -196,7 +196,7 @@
 			<Tool
 				Name="VCLinkerTool"
 				RegisterOutput="TRUE"
-				AdditionalDependencies="dsutilRU.lib asyncreaderRU.lib strmbaseRU.lib"
+				AdditionalDependencies="asyncreaderRU.lib strmbaseRU.lib"
 				OutputFile="$(OutDir)/$(ProjectName).ax"
 				AdditionalLibraryDirectories="../../../../lib"
 				ModuleDefinitionFile="CDXAReader.def"

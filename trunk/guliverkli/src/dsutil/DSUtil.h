@@ -21,6 +21,20 @@
 
 #pragma once
 
+#ifdef UNICODE
+#ifdef DEBUG
+#pragma comment(lib, "dsutilDU")
+#else
+#pragma comment(lib, "dsutilRU")
+#endif
+#else
+#ifdef DEBUG
+#pragma comment(lib, "dsutilD")
+#else
+#pragma comment(lib, "dsutilR")
+#endif
+#endif
+
 #include <afx.h>
 #include <afxwin.h>
 #include "NullRenderers.h"
@@ -90,6 +104,11 @@ extern CString ISO6392ToLanguage(LPCSTR code);
 extern CString ISO6391To6392(LPCSTR code);
 extern int MakeAACInitData(BYTE* pData, int profile, int freq, int channels);
 extern BOOL CFileGetStatus(LPCTSTR lpszFileName, CFileStatus& status);
+extern bool DeleteRegKey(LPCTSTR pszKey, LPCTSTR pszSubkey);
+extern bool SetRegKeyValue(LPCTSTR pszKey, LPCTSTR pszSubkey, LPCTSTR pszValueName, LPCTSTR pszValue);
+extern bool SetRegKeyValue(LPCTSTR pszKey, LPCTSTR pszSubkey, LPCTSTR pszValue);
+extern void RegisterSourceFilter(const CLSID& clsid, const GUID& subtype2, LPCTSTR chkbytes, LPCTSTR ext = NULL, ...);
+extern void UnRegisterSourceFilter(const GUID& subtype);
 
 class CPinInfo : public PIN_INFO
 {
@@ -155,3 +174,11 @@ template <typename T> __inline void INITDDSTRUCT(T& dd)
 }
 
 #define countof(array) (sizeof(array)/sizeof(array[0]))
+
+template <class T>
+static CUnknown* WINAPI CreateInstance(LPUNKNOWN lpunk, HRESULT* phr)
+{
+    CUnknown* punk = new T(lpunk, phr);
+    if(punk == NULL) *phr = E_OUTOFMEMORY;
+	return punk;
+}

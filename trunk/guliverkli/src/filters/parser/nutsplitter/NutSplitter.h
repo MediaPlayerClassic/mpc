@@ -43,12 +43,7 @@ protected:
 public:
 	CNutSplitterFilter(LPUNKNOWN pUnk, HRESULT* phr);
 
-#ifdef REGISTER_FILTER
-    static CUnknown* WINAPI CreateInstance(LPUNKNOWN lpunk, HRESULT* phr);
-#endif
-
 	// IMediaSeeking
-
 	STDMETHODIMP GetDuration(LONGLONG* pDuration);
 };
 
@@ -57,8 +52,4 @@ class CNutSourceFilter : public CNutSplitterFilter
 {
 public:
 	CNutSourceFilter(LPUNKNOWN pUnk, HRESULT* phr);
-
-#ifdef REGISTER_FILTER
-    static CUnknown* WINAPI CreateInstance(LPUNKNOWN lpunk, HRESULT* phr);
-#endif
 };

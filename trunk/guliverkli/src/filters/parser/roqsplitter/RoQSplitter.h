@@ -60,10 +60,6 @@ protected:
 
 public:
 	CRoQSplitterFilter(LPUNKNOWN pUnk, HRESULT* phr);
-
-#ifdef REGISTER_FILTER
-    static CUnknown* WINAPI CreateInstance(LPUNKNOWN lpunk, HRESULT* phr);
-#endif
 };
 
 [uuid("02B8E5C2-4E1F-45D3-9A8E-B8F1EDE6DE09")]
@@ -71,10 +67,6 @@ class CRoQSourceFilter : public CRoQSplitterFilter
 {
 public:
 	CRoQSourceFilter(LPUNKNOWN pUnk, HRESULT* phr);
-
-#ifdef REGISTER_FILTER
-    static CUnknown* WINAPI CreateInstance(LPUNKNOWN lpunk, HRESULT* phr);
-#endif
 };
 
 [uuid("FBEFC5EC-ABA0-4E6C-ACA3-D05FDFEFB853")]
@@ -103,10 +95,6 @@ class CRoQVideoDecoder : public CTransformFilter
 public:
 	CRoQVideoDecoder(LPUNKNOWN lpunk, HRESULT* phr);
 	virtual ~CRoQVideoDecoder();
-
-#ifdef REGISTER_FILTER
-    static CUnknown* WINAPI CreateInstance(LPUNKNOWN lpunk, HRESULT* phr);
-#endif
 
     HRESULT NewSegment(REFERENCE_TIME tStart, REFERENCE_TIME tStop, double dRate);
 

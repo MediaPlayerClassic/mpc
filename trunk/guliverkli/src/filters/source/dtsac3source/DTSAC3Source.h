@@ -33,10 +33,6 @@ class CDTSAC3Source : public CBaseSource<CDTSAC3Stream>
 public:
 	CDTSAC3Source(LPUNKNOWN lpunk, HRESULT* phr);
 	virtual ~CDTSAC3Source();
-
-#ifdef REGISTER_FILTER
-    static CUnknown* WINAPI CreateInstance(LPUNKNOWN lpunk, HRESULT* phr);
-#endif
 };
 
 class CDTSAC3Stream : public CBaseStream
