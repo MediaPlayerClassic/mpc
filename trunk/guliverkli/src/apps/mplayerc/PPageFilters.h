@@ -59,4 +59,5 @@ public:
 	BOOL m_mpeg1;
 	BOOL m_mpeg2;
 	BOOL m_mpa;
+	BOOL m_radgt;
 };

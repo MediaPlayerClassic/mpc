@@ -121,6 +121,8 @@ interface ISubPicAllocator : public IUnknown
 	STDMETHOD (AllocDynamic) (ISubPic** ppSubPic /*[out]*/) PURE;
 
 	STDMETHOD_(bool, IsDynamicWriteOnly) () PURE;
+
+	STDMETHOD (ChangeDevice) (IUnknown* pDev) PURE;
 };
 
 
@@ -148,6 +150,7 @@ public:
 	STDMETHODIMP GetStatic(ISubPic** ppSubPic);
 	STDMETHODIMP AllocDynamic(ISubPic** ppSubPic);
 	STDMETHODIMP_(bool) IsDynamicWriteOnly();
+	STDMETHODIMP ChangeDevice(IUnknown* pDev);
 };
 
 //
@@ -342,6 +345,8 @@ protected:
 
 	CComPtr<ISubPicAllocator> m_pAllocator;
 	CComPtr<ISubPicQueue> m_pSubPicQueue;
+
+	void AlphaBltSubPic(CSize size, SubPicDesc* pTarget = NULL);
 
 public:
 	ISubPicAllocatorPresenterImpl(HWND hWnd);

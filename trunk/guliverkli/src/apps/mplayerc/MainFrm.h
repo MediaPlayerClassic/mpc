@@ -193,6 +193,7 @@ class CMainFrame : public CFrameWnd, public CDropTarget
 	void ShowControls(int nCS, bool fSave = true);
 
 	void SetDefaultWindowRect();
+	void RestoreDefaultWindowRect();
 	void ZoomVideoWindow(double scale = -1);
 
 	void SetAlwaysOnTop(bool f);

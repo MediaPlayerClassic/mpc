@@ -657,6 +657,14 @@ HRESULT CGraphBuilder::Render(LPCTSTR lpsz)
 				pBF = pReader;
 		}
 
+		if((s.SrcFilters&SRC_RADGT) && !pBF)
+		{
+			hr = S_OK;
+			CComPtr<IFileSourceFilter> pReader = new CRadGtSourceFilter(NULL, &hr);
+			if(SUCCEEDED(hr) && SUCCEEDED(pReader->Load(fnw, NULL)))
+				pBF = pReader;
+		}
+
 		if(!pBF && AfxGetAppSettings().fUseWMASFReader && fn.Find(_T("://")) < 0)
 		{
 			bool fWindowsMedia = (ext == _T(".asf") || ext == _T(".wmv") || ext == _T(".wma"));

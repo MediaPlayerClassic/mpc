@@ -51,6 +51,7 @@ public:
 	CSpinButtonCtrl m_nTimeOutCtrl;
 	BOOL m_fTrayIcon;
 	BOOL m_fKeepHistory;
+	BOOL m_fHideCDROMsSubMenu;
 
 // Dialog Data
 	enum { IDD = IDD_PPAGEPLAYER };

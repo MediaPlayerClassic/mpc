@@ -26,8 +26,6 @@
 #include "mplayerc.h"
 #include "mainfrm.h"
 #include "PlayerSubresyncBar.h"
-//#include "StyleEditorDialog.h"
-
 
 // CPlayerSubresyncBar
 
@@ -119,7 +117,7 @@ void CPlayerSubresyncBar::SetSubtitle(ISubStream* pSubStream, double fps)
 		for(int i = 0, j = sp.GetSize(); i < j; i++)
 		{
 			CString str;
-			str.Format(_T("%d,%d,%d"), sp[i].vobid, sp[i].cellid, sp[i].fForced);
+			str.Format(_T("%d,%d,%d,%d"), sp[i].vobid, sp[i].cellid, sp[i].fForced, i);
 			m_sts.Add(TToW(str), false, (int)sp[i].start, (int)sp[i].stop);
 		}
 
@@ -237,9 +235,16 @@ void CPlayerSubresyncBar::SaveSubtitle()
 
 		for(int i = 0, j = sp.GetSize(); i < j; i++) 
 		{
-			sp[i].start = m_sts[i].start;
-			sp[i].stop = m_sts[i].end;
-			sp[i].fValid = true;
+			sp[i].fValid = false;
+		}
+
+		for(int i = 0, j = m_sts.GetSize(); i < j; i++) 
+		{
+			int vobid, cellid, forced, spnum, c;
+			if(_stscanf(m_sts.GetStr(i), _T("%d%c%d%c%d%c%d"), &vobid, &c, &cellid, &c, &forced, &c, &spnum) != 7) continue;
+            sp[spnum].start = m_sts[i].start;
+			sp[spnum].stop = m_sts[i].end;
+			sp[spnum].fValid = true;
 		}
 	}
 	else if(clsid == __uuidof(CRenderedTextSubtitle) && m_mode == TEXTSUB)
@@ -776,28 +781,28 @@ void CPlayerSubresyncBar::OnRclickList(NMHDR* pNMHDR, LRESULT* pResult)
 		if(m_mode == VOBSUB || m_mode == TEXTSUB)
 		{
 			m.AppendMenu(MF_STRING|MF_ENABLED, TOGSEP, _T("&Separator"));
-			m.AppendMenu(MF_SEPARATOR, 0, _T("-"));
-			m.AppendMenu(MF_STRING|MF_ENABLED, DUPITEM, _T("&Duplicate"));
+			m.AppendMenu(MF_SEPARATOR);
+			if(m_mode == TEXTSUB) m.AppendMenu(MF_STRING|MF_ENABLED, DUPITEM, _T("&Duplicate"));
 			m.AppendMenu(MF_STRING|MF_ENABLED, DELITEM, _T("&Delete"));
 		}
 
 		if(lpnmlv->iSubItem == COL_START && (m_mode == VOBSUB || m_mode == TEXTSUB))
 		{
-			m.AppendMenu(MF_SEPARATOR, 0, _T("-"));
+			m.AppendMenu(MF_SEPARATOR);
 			m.AppendMenu(MF_STRING|MF_ENABLED, RESETS, _T("&Reset"));
 			m.AppendMenu(MF_STRING|MF_ENABLED, SETOS, _T("&Original"));
 			m.AppendMenu(MF_STRING|MF_ENABLED, SETCS, _T("&Current"));
 		}
 		else if(lpnmlv->iSubItem == COL_END && m_mode == TEXTSUB)
 		{
-			m.AppendMenu(MF_SEPARATOR, 0, _T("-"));
+			m.AppendMenu(MF_SEPARATOR);
 			m.AppendMenu(MF_STRING|MF_ENABLED, RESETE, _T("&Reset"));
 			m.AppendMenu(MF_STRING|MF_ENABLED, SETOE, _T("&Original"));
 			m.AppendMenu(MF_STRING|MF_ENABLED, SETCE, _T("&Current"));
 		}
 		else if(lpnmlv->iSubItem == COL_STYLE && m_mode == TEXTSUB)
 		{
-			m.AppendMenu(MF_SEPARATOR, 0, _T("-"));
+			m.AppendMenu(MF_SEPARATOR);
 
 			int id = STYLEFIRST;
 
@@ -815,19 +820,19 @@ void CPlayerSubresyncBar::OnRclickList(NMHDR* pNMHDR, LRESULT* pResult)
 
 			if(id > STYLEFIRST && m_list.GetSelectedCount() == 1)
 			{
-				m.AppendMenu(MF_SEPARATOR, 0, _T("-"));
+				m.AppendMenu(MF_SEPARATOR);
 				m.AppendMenu(MF_STRING|MF_ENABLED, STYLEEDIT, _T("&Edit..."));
 			}
 		}
 		else if(lpnmlv->iSubItem == COL_UNICODE && m_mode == TEXTSUB)
 		{
-			m.AppendMenu(MF_SEPARATOR, 0, _T("-"));
+			m.AppendMenu(MF_SEPARATOR);
 			m.AppendMenu(MF_STRING|MF_ENABLED, UNICODEYES, _T("&Yes"));
 			m.AppendMenu(MF_STRING|MF_ENABLED, UNICODENO, _T("&No"));
 		}
  		else if(lpnmlv->iSubItem == COL_LAYER && m_mode == TEXTSUB)
 		{
-			m.AppendMenu(MF_SEPARATOR, 0, _T("-"));
+			m.AppendMenu(MF_SEPARATOR);
 			m.AppendMenu(MF_STRING|MF_ENABLED, LAYERDEC, _T("&Decrease"));
 			m.AppendMenu(MF_STRING|MF_ENABLED, LAYERINC, _T("&Increase"));
 		}
@@ -842,7 +847,7 @@ void CPlayerSubresyncBar::OnRclickList(NMHDR* pNMHDR, LRESULT* pResult)
 
 			if(actormap.GetCount() > 0)
 			{
-				m.AppendMenu(MF_SEPARATOR, 0, _T("-"));
+				m.AppendMenu(MF_SEPARATOR);
 
 				int id = ACTORFIRST;
 
@@ -870,7 +875,7 @@ void CPlayerSubresyncBar::OnRclickList(NMHDR* pNMHDR, LRESULT* pResult)
 
 			if(effectmap.GetCount() > 0)
 			{
-				m.AppendMenu(MF_SEPARATOR, 0, _T("-"));
+				m.AppendMenu(MF_SEPARATOR);
 
 				int id = EFFECTFIRST;
 

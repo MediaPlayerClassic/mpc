@@ -424,10 +424,17 @@ clock_t startt = clock();
 	{
 		double dRate = m_pInput->CurrentRate();
 		m_tPrev = m_pInput->CurrentStartTime() + dRate*tStart;
-		m_fps = (10000000.0/(tEnd-tStart)) / dRate;
+		REFERENCE_TIME rtAvgTimePerFrame = tEnd-tStart;
+		if(CComQIPtr<ISubClock2> pSC2 = m_pSubClock)
+		{
+			REFERENCE_TIME rt;
+			 if(S_OK == pSC2->GetAvgTimePerFrame(&rt))
+				 rtAvgTimePerFrame = rt;
+		}
+		m_fps = 10000000.0/rtAvgTimePerFrame / dRate;
 	}
 
-TRACE(_T("m_tPrev = %I64d\n"), m_tPrev);
+//TRACE(_T("m_tPrev = %I64d\n"), m_tPrev);
 
 	CAutoLock cAutoLock(&m_csQueueLock);
 

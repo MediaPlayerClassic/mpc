@@ -50,20 +50,22 @@ const AMOVIESETUP_PIN sudpPins[] =
       sizeof(sudPinTypesIn)/sizeof(sudPinTypesIn[0]), // Number of types
       sudPinTypesIn         // Pin information
     },
+    { L"Output",            // Pins string name
+      FALSE,                // Is it rendered
+      TRUE,                 // Is it an output
+      FALSE,                // Are we allowed none
+      FALSE,                // And allowed many
+      &CLSID_NULL,          // Connects to filter
+      NULL,                 // Connects to pin
+      0,					// Number of types
+      NULL					// Pin information
+    },
 };
 
 const AMOVIESETUP_FILTER sudFilter[] =
 {
-	{ &__uuidof(CMatroskaSplitterFilter)	// Filter CLSID
-    , L"Matroska Splitter"					// String name
-    , MERIT_NORMAL						// Filter merit
-    , sizeof(sudpPins)/sizeof(sudpPins[0])	// Number of pins
-	, sudpPins},							// Pin information
-	{ &__uuidof(CMatroskaSourceFilter)	// Filter CLSID
-    , L"Matroska Source"					// String name
-    , MERIT_NORMAL						// Filter merit
-    , 0										// Number of pins
-	, NULL},								// Pin information
+	{&__uuidof(CMatroskaSplitterFilter), L"Matroska Splitter", MERIT_NORMAL, sizeof(sudpPins)/sizeof(sudpPins[0]), sudpPins},
+	{&__uuidof(CMatroskaSourceFilter), L"Matroska Source", MERIT_NORMAL, 0, NULL},
 };
 
 CFactoryTemplate g_Templates[] =
@@ -79,7 +81,7 @@ int g_cTemplates = sizeof(g_Templates) / sizeof(g_Templates[0]);
 STDAPI DllRegisterServer()
 {
 	RegisterSourceFilter(
-		__uuidof(CMatroskaSourceFilter), 
+		CLSID_AsyncReader, 
 		MEDIASUBTYPE_Matroska, 
 		_T("0,4,,1A45DFA3"), 
 		_T(".mkv"), _T(".mka"), _T(".mks"), NULL);

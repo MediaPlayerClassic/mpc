@@ -99,20 +99,22 @@ const AMOVIESETUP_PIN sudpPins[] =
       sizeof(sudPinTypesIn)/sizeof(sudPinTypesIn[0]), // Number of types
       sudPinTypesIn         // Pin information
     },
+    { L"Output",            // Pins string name
+      FALSE,                // Is it rendered
+      TRUE,                 // Is it an output
+      FALSE,                // Are we allowed none
+      FALSE,                // And allowed many
+      &CLSID_NULL,          // Connects to filter
+      NULL,                 // Connects to pin
+      0,					// Number of types
+      NULL					// Pin information
+    },
 };
 
 const AMOVIESETUP_FILTER sudFilter[] =
 {
-	{ &__uuidof(CRealMediaSplitterFilter)	// Filter CLSID
-    , L"RealMedia Splitter"					// String name
-    , MERIT_NORMAL						// Filter merit
-    , sizeof(sudpPins)/sizeof(sudpPins[0])	// Number of pins
-	, sudpPins},							// Pin information
-	{ &__uuidof(CRealMediaSourceFilter)		// Filter CLSID
-    , L"RealMedia Source"					// String name
-    , MERIT_NORMAL						// Filter merit
-    , 0										// Number of pins
-	, NULL},								// Pin information
+	{&__uuidof(CRealMediaSplitterFilter), L"RealMedia Splitter", MERIT_NORMAL, sizeof(sudpPins)/sizeof(sudpPins[0]), sudpPins},
+	{&__uuidof(CRealMediaSourceFilter), L"RealMedia Source", MERIT_NORMAL, 0, NULL},
 };
 
 /////////////////////
@@ -214,7 +216,7 @@ int g_cTemplates = sizeof(g_Templates) / sizeof(g_Templates[0]);
 STDAPI DllRegisterServer()
 {
 	RegisterSourceFilter(
-		__uuidof(CRealMediaSourceFilter), 
+		CLSID_AsyncReader, 
 		MEDIASUBTYPE_RealMedia, 
 		_T("0,4,,2E524D46"), 
 		_T(".rm"), _T(".rmvb"), _T(".ram"), NULL);

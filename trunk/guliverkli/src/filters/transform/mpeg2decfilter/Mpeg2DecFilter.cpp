@@ -382,6 +382,7 @@ HRESULT CMpeg2DecFilter::Receive(IMediaSample* pIn)
 		case STATE_END:
 			{
 				mpeg2_picture_t* picture = m_dec->m_info.m_display_picture;
+				mpeg2_picture_t* picture_2nd = m_dec->m_info.m_display_picture_2nd;
 				mpeg2_fbuf_t* fbuf = m_dec->m_info.m_display_fbuf;
 
 				if(picture && fbuf)
@@ -392,7 +393,7 @@ HRESULT CMpeg2DecFilter::Receive(IMediaSample* pIn)
 
 					m_fb.rtStart = picture->rtStart;
 					if(m_fb.rtStart == _I64_MIN) m_fb.rtStart = m_fb.rtStop;
-					m_fb.rtStop = m_fb.rtStart + m_AvgTimePerFrame * picture->nb_fields / 2;
+					m_fb.rtStop = m_fb.rtStart + m_AvgTimePerFrame * picture->nb_fields / (picture_2nd ? 1 : 2);
 
 					// flags
 
@@ -536,7 +537,7 @@ HRESULT CMpeg2DecFilter::Deliver(bool fRepeatLast)
 
 	if((m_fb.flags&PIC_MASK_CODING_TYPE) == PIC_FLAG_CODING_TYPE_I)
 		m_fWaitForKeyFrame = false;
-/*
+
 	TCHAR frametype[] = {'?','I', 'P', 'B', 'D'};
 //	TRACE(_T("%010I64d - %010I64d [%c] [prsq %d prfr %d tff %d rff %d nb_fields %d ref %d] (%dx%d/%dx%d)\n"), 
 	TRACE(_T("%010I64d - %010I64d [%c] [prsq %d prfr %d tff %d rff %d] (%dx%d %d) (preroll %d)\n"), 
@@ -550,7 +551,7 @@ HRESULT CMpeg2DecFilter::Deliver(bool fRepeatLast)
 //		m_dec->m_info.m_display_picture->temporal_reference,
 		m_fb.w, m_fb.h, m_fb.pitch,
 		!!(m_fb.rtStart < 0 || m_fWaitForKeyFrame));
-*/
+
 	if(m_fb.rtStart < 0 || m_fWaitForKeyFrame)
 		return S_OK;
 

@@ -1806,6 +1806,9 @@ bool CRenderedTextSubtitle::ParseSSATag(CSubtitle* sub, CStringW str, STSStyle& 
 		{
 			p.Empty();
 
+			m_animStart = m_animEnd = 0;
+			m_animAccel = 1;
+
 			if(params.GetCount() == 1)
 			{
 				p = params[0];

@@ -251,11 +251,15 @@ extern "C" {
     [uuid("FE6EC6A0-21CA-4970-9EF0-B296F7F38AF0")]
 	interface ISubClock : public IUnknown
 	{
-        STDMETHOD (SetTime) (THIS_
-					REFERENCE_TIME rt
-				) PURE;
-        STDMETHOD_(REFERENCE_TIME, GetTime) (THIS_
-				) PURE;
+        STDMETHOD(SetTime)(REFERENCE_TIME rt) PURE;
+        STDMETHOD_(REFERENCE_TIME, GetTime)() PURE;
+	};
+
+    [uuid("0665B760-FBC1-46C3-A35F-E471527C96A4")]
+	interface ISubClock2 : public ISubClock
+	{
+        STDMETHOD(SetAvgTimePerFrame)(REFERENCE_TIME rt) PURE;
+        STDMETHOD(GetAvgTimePerFrame)(REFERENCE_TIME* prt) PURE; // return S_OK only if *prt was set and is valid
 	};
 
     [uuid("AB52FC9C-2415-4dca-BC1C-8DCC2EAE8150")]

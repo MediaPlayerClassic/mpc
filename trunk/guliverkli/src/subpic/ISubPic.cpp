@@ -188,6 +188,12 @@ STDMETHODIMP_(bool) ISubPicAllocatorImpl::IsDynamicWriteOnly()
 	return(m_fDynamicWriteOnly);
 }
 
+STDMETHODIMP ISubPicAllocatorImpl::ChangeDevice(IUnknown* pDev)
+{
+	m_pStatic = NULL;
+	return S_OK;
+}
+
 //
 // ISubPicProviderImpl
 //
@@ -717,6 +723,30 @@ STDMETHODIMP ISubPicAllocatorPresenterImpl::NonDelegatingQueryInterface(REFIID r
 	return 
 		QI(ISubPicAllocatorPresenter)
 		__super::NonDelegatingQueryInterface(riid, ppv);
+}
+
+void ISubPicAllocatorPresenterImpl::AlphaBltSubPic(CSize size, SubPicDesc* pTarget)
+{
+	CComPtr<ISubPic> pSubPic;
+	if(m_pSubPicQueue->LookupSubPic(m_rtNow, &pSubPic))
+	{
+		SubPicDesc spd;
+		pSubPic->GetDesc(spd);
+
+		CRect r;
+		pSubPic->GetDirtyRect(r);
+
+		// FIXME
+		r.DeflateRect(1, 1);
+
+		CRect rDstText(
+			r.left * size.cx / spd.w,
+			r.top * size.cy / spd.h,
+			r.right * size.cx / spd.w,
+			r.bottom * size.cy / spd.h);
+
+		pSubPic->AlphaBlt(r, rDstText, pTarget);
+	}
 }
 
 // ISubPicAllocatorPresenter

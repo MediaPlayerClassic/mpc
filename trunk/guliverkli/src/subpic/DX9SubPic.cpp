@@ -221,7 +221,13 @@ STDMETHODIMP CDX9SubPic::AlphaBlt(RECT* pSrc, RECT* pDst, SubPicDesc* pTarget)
 			{(float)dst.left, (float)dst.bottom, 0.5f, 2.0f, (float)src.left / w, (float)src.bottom / h},
 			{(float)dst.right, (float)dst.bottom, 0.5f, 2.0f, (float)src.right / w, (float)src.bottom / h},
 		};
-
+/*
+		for(int i = 0; i < sizeof(pVertices)/sizeof(pVertices[0]); i++)
+		{
+			pVertices[i].x -= 0.5;
+			pVertices[i].y -= 0.5;
+		}
+*/
         hr = pD3DDev->SetTexture(0, pTexture);
 
         hr = pD3DDev->SetRenderState(D3DRS_CULLMODE, D3DCULL_NONE);
@@ -255,17 +261,17 @@ STDMETHODIMP CDX9SubPic::AlphaBlt(RECT* pSrc, RECT* pDst, SubPicDesc* pTarget)
 
 		//
 
-        if(FAILED(hr = pD3DDev->BeginScene()))
+		if(FAILED(hr = pD3DDev->BeginScene()))
 			break;
 
         hr = pD3DDev->SetFVF(D3DFVF_XYZRHW | D3DFVF_TEX1);
-		hr = pD3DDev->DrawPrimitiveUP(D3DPT_TRIANGLESTRIP, 4, pVertices, sizeof(pVertices[0]));
+		hr = pD3DDev->DrawPrimitiveUP(D3DPT_TRIANGLESTRIP, 2, pVertices, sizeof(pVertices[0]));
 
 		hr = pD3DDev->EndScene();
 
         //
 
-        pD3DDev->SetTexture(0, NULL);
+		pD3DDev->SetTexture(0, NULL);
 
 		return S_OK;
     }
@@ -287,12 +293,27 @@ CDX9SubPicAllocator::CDX9SubPicAllocator(IDirect3DDevice9* pD3DDev, SIZE maxsize
 	m_maxsize = maxsize;
 }
 
+// ISubPicAllocator
+
+STDMETHODIMP CDX9SubPicAllocator::ChangeDevice(IUnknown* pDev)
+{
+	CComQIPtr<IDirect3DDevice9> pD3DDev = pDev;
+	if(!pD3DDev) return E_NOINTERFACE;
+
+	CAutoLock cAutoLock(this);
+	m_pD3DDev = pD3DDev;
+
+	return __super::ChangeDevice(pDev);
+}
+
 // ISubPicAllocatorImpl
 
 bool CDX9SubPicAllocator::Alloc(bool fStatic, ISubPic** ppSubPic)
 {
 	if(!ppSubPic) 
 		return(false);
+
+	CAutoLock cAutoLock(this);
 
 	*ppSubPic = NULL;
 

@@ -604,7 +604,6 @@ STDMETHODIMP CDirectVobSub::put_LoadSettings(int level, bool fExternalLoad, bool
 STDMETHODIMP CDirectVobSub::AdviseSubClock(ISubClock* pSubClock)
 {
 	m_pSubClock = pSubClock;
-
 	return S_OK;
 }
 

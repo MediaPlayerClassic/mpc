@@ -39,6 +39,8 @@ public:
 	CButton m_fDisabeXPToolbarsCtrl;
 	BOOL m_fUseWMASFReader;
 	CButton m_fUseWMASFReaderCtrl;
+	BOOL m_fVMRTexture;
+	BOOL m_fVMR3D;
 
 // Dialog Data
 	enum { IDD = IDD_PPAGETWEAKS };
@@ -57,4 +59,5 @@ public:
 	afx_msg void OnUpdateCheck3(CCmdUI* pCmdUI);
 	afx_msg void OnUpdateCheck2(CCmdUI* pCmdUI);
 	afx_msg void OnBnClickedButton1();
+	afx_msg void OnUpdateCheck4(CCmdUI* pCmdUI);
 };

@@ -45,6 +45,7 @@ CPPagePlayer::CPPagePlayer()
 	, m_fUseIni(FALSE)
 	, m_fSetFullscreenRes(FALSE)
 	, m_fKeepHistory(FALSE)
+	, m_fHideCDROMsSubMenu(FALSE)
 {
 }
 
@@ -69,6 +70,7 @@ void CPPagePlayer::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_CHECK9, m_fSetFullscreenRes);
 	DDX_Control(pDX, IDC_COMBO1, m_dispmodecombo);
 	DDX_Check(pDX, IDC_CHECK1, m_fKeepHistory);
+	DDX_Check(pDX, IDC_CHECK10, m_fHideCDROMsSubMenu);
 }
 
 
@@ -124,6 +126,7 @@ BOOL CPPagePlayer::OnInitDialog()
 	m_fRememberWindowSize = s.fRememberWindowSize;
 	m_fUseIni = ((CMPlayerCApp*)AfxGetApp())->IsIniValid();
 	m_fKeepHistory = s.fKeepHistory;
+	m_fHideCDROMsSubMenu = s.fHideCDROMsSubMenu;
 
 	UpdateData(FALSE);
 
@@ -150,6 +153,7 @@ BOOL CPPagePlayer::OnApply()
 	s.fRememberWindowPos = !!m_fRememberWindowPos;
 	s.fRememberWindowSize = !!m_fRememberWindowSize;
 	s.fKeepHistory = !!m_fKeepHistory;
+	s.fHideCDROMsSubMenu = !!m_fHideCDROMsSubMenu;
 
 	if(!m_fKeepHistory)
 	{

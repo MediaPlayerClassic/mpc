@@ -17,7 +17,13 @@ public:
 	CArray<BYTE> pData;
 };
 
-class CAsyncFileReader : public CUnknown, public IAsyncReader, public CFile
+[uuid("7D55F67A-826E-40B9-8A7D-3DF0CBBD272D")]
+interface IFileHandle : public IUnknown
+{
+	STDMETHOD_(HANDLE, GetFileHandle)() = 0;
+};
+
+class CAsyncFileReader : public CUnknown, public IAsyncReader, public CFile, public IFileHandle
 {
 public:
 	CAsyncFileReader(CString fn, HRESULT& hr);
@@ -35,6 +41,10 @@ public:
 	STDMETHODIMP Length(LONGLONG* pTotal, LONGLONG* pAvailable);
 	STDMETHODIMP BeginFlush() {return E_NOTIMPL;}
 	STDMETHODIMP EndFlush() {return E_NOTIMPL;}
+
+	// IFileHandle
+
+	STDMETHODIMP_(HANDLE) GetFileHandle();
 };
 
 class CBaseSplitterFilter;
@@ -65,7 +75,9 @@ public:
 
 class CBaseSplitterOutputPin : public CBaseOutputPin, protected CAMThread
 {
+protected:
 	CArray<CMediaType> m_mts;
+	int m_nBuffers;
 
 private:
 	CCritSec m_csQueueLock;
@@ -95,7 +107,7 @@ protected:
 	virtual HRESULT DeliverPacket(CAutoPtr<Packet> p);
 
 public:
-	CBaseSplitterOutputPin(CArray<CMediaType>& mts, LPCWSTR pName, CBaseFilter* pFilter, CCritSec* pLock, HRESULT* phr);
+	CBaseSplitterOutputPin(CArray<CMediaType>& mts, LPCWSTR pName, CBaseFilter* pFilter, CCritSec* pLock, HRESULT* phr, int nBuffers = 0);
 	virtual ~CBaseSplitterOutputPin();
 
 	DECLARE_IUNKNOWN;
