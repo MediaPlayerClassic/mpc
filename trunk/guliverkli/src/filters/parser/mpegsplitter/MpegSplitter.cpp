@@ -365,32 +365,14 @@ void CMpegSplitterFilter::SeekDeliverLoop(REFERENCE_TIME rt)
 
 bool CMpegSplitterFilter::DoDeliverLoop()
 {
-	HRESULT hr = S_OK;
-
 	REFERENCE_TIME rtStartOffset = m_rtStartOffset ? m_rtStartOffset : m_pFile->m_rtMin;
-	bool fStreaming = m_pFile->IsStreaming();
 
-	while(SUCCEEDED(hr) && !CheckRequest(NULL) && (fStreaming || m_pFile->GetPos() < m_pFile->GetLength()))
+	HRESULT hr = S_OK;
+	while(SUCCEEDED(hr) && !CheckRequest(NULL))
 	{
-		if(fStreaming)
-		{
-			__int64 limit = 1024*500;
-			__int64 available = m_pFile->GetLength() - m_pFile->GetPos();
-
-			if(available < limit)
-			{
+		if((hr = m_pFile->HasMoreData(1024*500)) == S_OK)
+			if((hr = DemuxNextPacket(rtStartOffset)) == S_FALSE)
 				Sleep(1);
-				continue;
-			}
-		}
-
-		int ret = DemuxNextPacket(rtStartOffset);
-
-		if(ret == E_FAIL || !fStreaming && ret != S_OK)
-			break;
-
-		if(ret == S_FALSE)
-			Sleep(1);
 	}
 
 	return(true);

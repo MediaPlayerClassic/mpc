@@ -62,6 +62,23 @@ public:
 	STDMETHODIMP_(HANDLE) GetFileHandle();
 };
 
+class CAsyncUrlReader : public CAsyncFileReader, protected CAMThread
+{
+	CString m_url, m_fn;
+
+protected:
+	enum {CMD_EXIT, CMD_INIT};
+    DWORD ThreadProc();
+
+public:
+	CAsyncUrlReader(CString url, HRESULT& hr);
+	virtual ~CAsyncUrlReader();
+
+	// IAsyncReader
+
+	STDMETHODIMP Length(LONGLONG* pTotal, LONGLONG* pAvailable);
+};
+
 class CBaseSplitterFile
 {
 	CComPtr<IAsyncReader> m_pAsyncReader;
@@ -79,8 +96,6 @@ public:
 	CBaseSplitterFile(IAsyncReader* pReader, HRESULT& hr, int cachelen = 2048);
 	virtual ~CBaseSplitterFile() {}
 
-	bool IsStreaming() {return m_fStreaming;}
-
 	__int64 GetPos() {return m_pos - (m_bitlen>>3);}
 	__int64 GetLength()
 	{
@@ -94,6 +109,9 @@ public:
 	UINT64 BitRead(int nBits, bool fPeek = false);
 	void BitByteAlign(), BitFlush();
 	HRESULT ByteRead(BYTE* pData, __int64 len);
+
+	bool IsStreaming() {return m_fStreaming;}
+	HRESULT HasMoreData(__int64 len = 1, DWORD ms = 1);
 };
 
 class CBaseSplitterFilter;

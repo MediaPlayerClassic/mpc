@@ -1,4 +1,6 @@
 #include "StdAfx.h"
+#include <afxinet.h>
+#include <afxsock.h>
 #include "..\..\..\DSUtil\DSUtil.h"
 #include <initguid.h>
 #include "..\..\..\..\include\moreuuids.h"
@@ -76,7 +78,7 @@ int CPacketQueue::GetSize()
 // CAsyncFileReader
 //
 
-CAsyncFileReader::CAsyncFileReader(CString fn, HRESULT& hr) : CUnknown(NAME(""), NULL, &hr)
+CAsyncFileReader::CAsyncFileReader(CString fn, HRESULT& hr) : CUnknown(NAME("CAsyncFileReader"), NULL, &hr)
 {
 	hr = Open(fn, modeRead|shareDenyWrite|typeBinary|osSequentialScan) ? S_OK : E_FAIL;
 }
@@ -122,6 +124,102 @@ STDMETHODIMP CAsyncFileReader::Length(LONGLONG* pTotal, LONGLONG* pAvailable)
 STDMETHODIMP_(HANDLE) CAsyncFileReader::GetFileHandle()
 {
 	return m_hFile;
+}
+
+//
+// CAsyncUrlReader
+//
+
+CAsyncUrlReader::CAsyncUrlReader(CString url, HRESULT& hr) : CAsyncFileReader(url, hr)
+{
+	if(SUCCEEDED(hr)) return;
+
+	m_url = url;
+
+	if(CAMThread::Create())
+		CallWorker(CMD_INIT);
+
+	CFileException fe;
+	hr = Open(m_fn, modeRead|shareDenyRead|typeBinary|osSequentialScan, &fe) ? S_OK : E_FAIL;
+}
+
+CAsyncUrlReader::~CAsyncUrlReader()
+{
+	if(ThreadExists())
+		CallWorker(CMD_EXIT);
+
+	if(!m_fn.IsEmpty())
+	{
+		CFile::Close();
+		DeleteFile(m_fn);
+	}
+}
+
+// IAsyncReader
+
+STDMETHODIMP CAsyncUrlReader::Length(LONGLONG* pTotal, LONGLONG* pAvailable)
+{
+	if(pTotal) *pTotal = 0;
+	return __super::Length(NULL, pAvailable);
+}
+
+// CAMThread
+
+DWORD CAsyncUrlReader::ThreadProc()
+{
+	AfxSocketInit(NULL);
+
+	DWORD cmd = GetRequest();
+	if(cmd != CMD_INIT) {Reply(E_FAIL); return E_FAIL;}
+
+	try
+	{
+		CInternetSession is;
+		CAutoPtr<CStdioFile> fin(is.OpenURL(m_url, 1, INTERNET_FLAG_TRANSFER_BINARY|INTERNET_FLAG_EXISTING_CONNECT|INTERNET_FLAG_NO_CACHE_WRITE));
+
+		TCHAR path[MAX_PATH], fn[MAX_PATH];
+		CFile fout;
+		if(GetTempPath(MAX_PATH, path) && GetTempFileName(path, _T("mpc_http"), 0, fn)
+		&& fout.Open(fn, modeCreate|modeWrite|shareDenyWrite|typeBinary))
+		{
+			m_fn = fn;
+
+			char buff[1024];
+			int len = fin->Read(buff, sizeof(buff));
+			if(len > 0) fout.Write(buff, len);
+
+			Reply(S_OK);
+
+			while(!CheckRequest(&cmd))
+			{
+				int len = fin->Read(buff, sizeof(buff));
+				if(len > 0) fout.Write(buff, len);
+			}
+		}
+		else
+		{
+			Reply(E_FAIL);
+		}
+
+		fin->Close(); // must close it because the desctructor doesn't seem to do it and we will get an exception when "is" is destroying
+	}
+	catch(CInternetException* ie)
+	{
+		ie->Delete();
+		Reply(E_FAIL);
+	}
+
+	//
+
+	cmd = GetRequest();
+	ASSERT(cmd == CMD_EXIT);
+	Reply(S_OK);
+
+	//
+
+	m_hThread = NULL;
+
+	return S_OK;
 }
 
 //
@@ -253,6 +351,24 @@ HRESULT CBaseSplitterFile::ByteRead(BYTE* pData, __int64 len)
 {
     Seek(GetPos());
 	return Read(pData, len);
+}
+
+HRESULT CBaseSplitterFile::HasMoreData(__int64 len, DWORD ms)
+{
+	__int64 available = GetLength() - GetPos();
+
+	if(!m_fStreaming)
+	{
+		return available < 1 ? E_FAIL : S_OK;
+	}
+
+	if(available < len)
+	{
+		if(ms > 0) Sleep(ms);
+		return S_FALSE;
+	}
+
+	return S_OK;
 }
 
 //
