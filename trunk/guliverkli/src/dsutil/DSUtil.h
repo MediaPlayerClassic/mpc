@@ -1,0 +1,125 @@
+#pragma once
+
+#include <afx.h>
+#include <afxwin.h>
+//#include "MediaTypes.h"
+
+extern void DumpStreamConfig(TCHAR* fn, IAMStreamConfig* pAMVSCCap);
+extern int CountPins(IBaseFilter* pBF, int& nIn, int& nOut, int& nInC, int& nOutC);
+extern bool IsSplitter(IBaseFilter* pBF, bool fCountConnectedOnly = false);
+extern bool IsMultiplexer(IBaseFilter* pBF, bool fCountConnectedOnly = false);
+extern bool IsStreamStart(IBaseFilter* pBF);
+extern bool IsStreamEnd(IBaseFilter* pBF);
+extern bool IsVideoRenderer(IBaseFilter* pBF);
+extern bool IsAudioWaveRenderer(IBaseFilter* pBF);
+extern IBaseFilter* GetUpStreamFilter(IBaseFilter* pBF, IPin* pInputPin = NULL);
+extern IPin* GetUpStreamPin(IBaseFilter* pBF, IPin* pInputPin = NULL);
+extern IPin* GetFirstPin(IBaseFilter* pBF, PIN_DIRECTION dir = PINDIR_INPUT);
+extern IPin* GetFirstDisconnectedPin(IBaseFilter* pBF, PIN_DIRECTION dir);
+extern int RenderFilterPins(IBaseFilter* pBF, IGraphBuilder* pGB, bool fAll = false);
+extern void NukeDownstream(IBaseFilter* pBF, IFilterGraph* pFG);
+extern void NukeDownstream(IPin* pPin, IFilterGraph* pFG);
+extern HRESULT AddFilterToGraph(IFilterGraph* pFG, IBaseFilter* pBF, WCHAR* pName);
+extern IBaseFilter* FindFilter(LPCWSTR clsid, IFilterGraph* pFG);
+extern IBaseFilter* FindFilter(const CLSID& clsid, IFilterGraph* pFG);
+extern CStringW GetFilterName(IBaseFilter* pBF);
+extern CStringW GetPinName(IPin* pPin);
+extern IFilterGraph* GetGraphFromFilter(IBaseFilter* pBF);
+extern IBaseFilter* GetFilterFromPin(IPin* pPin);
+extern IPin* AppendFilter(IPin* pPin, CString DisplayName, IGraphBuilder* pGB);
+extern IPin* InsertFilter(IPin* pPin, CString DisplayName, IGraphBuilder* pGB);
+extern void ShowPPage(CString DisplayName, HWND hParentWnd);
+extern void ShowPPage(IUnknown* pUnknown, HWND hParentWnd);
+extern CLSID GetCLSID(IBaseFilter* pBF);
+extern CLSID GetCLSID(IPin* pPin);
+extern bool IsCLSIDRegistered(LPCTSTR clsid);
+extern bool IsCLSIDRegistered(const CLSID& clsid);
+extern void StringToBin(CString s, CByteArray& data);
+extern CString BinToString(BYTE* ptr, int len);
+typedef enum {CDROM_NotFound, CDROM_Audio, CDROM_VideoCD, CDROM_Unknown} cdrom_t;
+extern cdrom_t GetCDROMType(TCHAR drive, CStringList& files);
+extern CString GetDriveLabel(TCHAR drive);
+extern bool GetKeyFrames(CString fn, CUIntArray& kfs);
+extern DVD_HMSF_TIMECODE RT2HMSF(REFERENCE_TIME rt, double fps);
+extern DVD_HMSF_TIMECODE RT2HMSF(REFERENCE_TIME rt);
+extern REFERENCE_TIME HMSF2RT(DVD_HMSF_TIMECODE hmsf, double fps);
+extern REFERENCE_TIME HMSF2RT(DVD_HMSF_TIMECODE hmsf);
+extern HRESULT AddToRot(IUnknown* pUnkGraph, DWORD* pdwRegister);
+extern void RemoveFromRot(DWORD& dwRegister);
+extern void memsetd(void* dst, unsigned int c, int nbytes);
+extern bool ExtractBIH(const AM_MEDIA_TYPE* pmt, BITMAPINFOHEADER* bih);
+extern bool ExtractBIH(IMediaSample* pMS, BITMAPINFOHEADER* bih);
+extern unsigned __int64 GetFileVersion(LPCTSTR fn);
+extern bool CreateFilter(CStringW DisplayName, IBaseFilter** ppBF, CStringW& FriendlyName);
+extern IBaseFilter* AppendFilter(IPin* pPin, IMoniker* pMoniker, IGraphBuilder* pGB);
+extern HRESULT LoadExternalObject(LPCTSTR path, REFCLSID clsid, REFIID iid, void** ppv);
+extern HRESULT LoadExternalFilter(LPCTSTR path, REFCLSID clsid, IBaseFilter** ppBF);
+extern HRESULT LoadExternalPropertyPage(IPersist* pP, REFCLSID clsid, IPropertyPage** ppPP);
+extern void UnloadExternalObjects();
+extern CString MakeFullPath(LPCTSTR path);
+extern CString GetMediaTypeName(const GUID& guid);
+extern GUID GUIDFromCString(CString str);
+extern CString CStringFromGUID(const GUID& guid);
+
+class CPinInfo : public PIN_INFO
+{
+public:
+	CPinInfo() {pFilter = NULL;}
+	~CPinInfo() {if(pFilter) pFilter->Release();}
+};
+
+class CFilterInfo : public FILTER_INFO
+{
+public:
+	CFilterInfo() {pGraph = NULL;}
+	~CFilterInfo() {if(pGraph) pGraph->Release();}
+};
+
+#define BeginEnumFilters(pFilterGraph, pEnumFilters, pBaseFilter) \
+	{CComPtr<IEnumFilters> pEnumFilters; \
+	if(pFilterGraph && SUCCEEDED(pFilterGraph->EnumFilters(&pEnumFilters))) \
+	{ \
+		for(CComPtr<IBaseFilter> pBaseFilter; S_OK == pEnumFilters->Next(1, &pBaseFilter, 0); pBaseFilter = NULL) \
+		{ \
+
+#define EndEnumFilters }}}
+
+#define BeginEnumPins(pBaseFilter, pEnumPins, pPin) \
+	{CComPtr<IEnumPins> pEnumPins; \
+	if(pBaseFilter && SUCCEEDED(pBaseFilter->EnumPins(&pEnumPins))) \
+	{ \
+		for(CComPtr<IPin> pPin; S_OK == pEnumPins->Next(1, &pPin, 0); pPin = NULL) \
+		{ \
+
+#define EndEnumPins }}}
+
+#define BeginEnumMediaTypes(pPin, pEnumMediaTypes, pMediaType) \
+	{CComPtr<IEnumMediaTypes> pEnumMediaTypes; \
+	if(pPin && SUCCEEDED(pPin->EnumMediaTypes(&pEnumMediaTypes))) \
+	{ \
+		AM_MEDIA_TYPE* pMediaType = NULL; \
+		for(; S_OK == pEnumMediaTypes->Next(1, &pMediaType, NULL); DeleteMediaType(pMediaType), pMediaType = NULL) \
+		{ \
+
+#define EndEnumMediaTypes(pMediaType) } if(pMediaType) DeleteMediaType(pMediaType); }}
+
+#define BeginEnumSysDev(clsid, pMoniker) \
+	{CComPtr<ICreateDevEnum> pDevEnum4$##clsid; \
+	pDevEnum4$##clsid.CoCreateInstance(CLSID_SystemDeviceEnum); \
+	CComPtr<IEnumMoniker> pClassEnum4$##clsid; \
+	if(SUCCEEDED(pDevEnum4$##clsid->CreateClassEnumerator(clsid, &pClassEnum4$##clsid, 0)) \
+	&& pClassEnum4$##clsid) \
+	{ \
+		for(CComPtr<IMoniker> pMoniker; pClassEnum4$##clsid->Next(1, &pMoniker, 0) == S_OK; pMoniker = NULL) \
+		{ \
+
+#define EndEnumSysDev }}}
+
+#define QI(i) (riid == __uuidof(i)) ? GetInterface((i*)this, ppv) :
+#define QI2(i) (riid == IID_##i) ? GetInterface((i*)this, ppv) :
+
+template <typename T> __inline void INITDDSTRUCT(T& dd)
+{
+    ZeroMemory(&dd, sizeof(dd));
+    dd.dwSize = sizeof(dd);
+}
