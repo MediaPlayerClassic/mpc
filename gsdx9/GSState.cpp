@@ -284,16 +284,23 @@ GSState::~GSState()
 	if(m_fp) fclose(m_fp);
 }
 
-UINT32 GSState::Freeze(freezeData* fd)
+UINT32 GSState::Freeze(freezeData* fd, bool fSizeOnly)
 {
-	fd->size = sizeof(m_version)
+	int size = sizeof(m_version)
 		+ sizeof(m_de) + sizeof(m_rs) + sizeof(m_v) 
 		+ sizeof(m_x) + sizeof(m_y) + 1024*1024*4
 		+ sizeof(m_tag) + sizeof(m_nreg)
 		/*+ sizeof(m_vl)*/;
 
-	if(!(fd->data = (BYTE*)malloc(fd->size))) 
+	if(fSizeOnly)
+	{
+		fd->size = size;
+		return 0;
+	}
+	else if(!fd->data || fd->size < size)
+	{
 		return -1;
+	}
 
 	FlushPrim();
 

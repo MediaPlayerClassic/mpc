@@ -373,28 +373,32 @@
 					Name="Debug|Win32">
 					<Tool
 						Name="VCCustomBuildTool"
-						CommandLine="ml /nologo /c /Zi /Fo&quot;$(IntDir)\$(InputName).obj&quot; &quot;$(InputPath)&quot;"
+						CommandLine="ml /nologo /c /Zi /Fo&quot;$(IntDir)\$(InputName).obj&quot; &quot;$(InputPath)&quot;
+"
 						Outputs="$(IntDir)\$(InputName).obj"/>
 				</FileConfiguration>
 				<FileConfiguration
 					Name="Release|Win32">
 					<Tool
 						Name="VCCustomBuildTool"
-						CommandLine="ml /nologo /c /Zi /Fo&quot;$(IntDir)\$(InputName).obj&quot; &quot;$(InputPath)&quot;"
+						CommandLine="ml /nologo /c /Zi /Fo&quot;$(IntDir)\$(InputName).obj&quot; &quot;$(InputPath)&quot;
+"
 						Outputs="$(IntDir)\$(InputName).obj"/>
 				</FileConfiguration>
 				<FileConfiguration
 					Name="DebugSSE2|Win32">
 					<Tool
 						Name="VCCustomBuildTool"
-						CommandLine="ml /nologo /c /Zi /Fo&quot;$(IntDir)\$(InputName).obj&quot; &quot;$(InputPath)&quot;"
+						CommandLine="ml /nologo /c /Zi /Fo&quot;$(IntDir)\$(InputName).obj&quot; &quot;$(InputPath)&quot;
+"
 						Outputs="$(IntDir)\$(InputName).obj"/>
 				</FileConfiguration>
 				<FileConfiguration
 					Name="ReleaseSSE2|Win32">
 					<Tool
 						Name="VCCustomBuildTool"
-						CommandLine="ml /nologo /c /Zi /Fo&quot;$(IntDir)\$(InputName).obj&quot; &quot;$(InputPath)&quot;"
+						CommandLine="ml /nologo /c /Zi /Fo&quot;$(IntDir)\$(InputName).obj&quot; &quot;$(InputPath)&quot;
+"
 						Outputs="$(IntDir)\$(InputName).obj"/>
 				</FileConfiguration>
 			</File>
@@ -427,6 +431,12 @@
 			</File>
 			<File
 				RelativePath=".\x86.cpp">
+				<FileConfiguration
+					Name="ReleaseSSE2|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						AssemblerOutput="4"/>
+				</FileConfiguration>
 			</File>
 		</Filter>
 		<Filter
