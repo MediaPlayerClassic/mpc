@@ -24,6 +24,9 @@
 #include "TextInputPin.h"
 #include "..\..\..\DSUtil\DSUtil.h"
 
+#include <initguid.h>
+#include "..\..\..\..\include\matroska\matroska.h"
+
 // our first format id
 #define __GAB1__ "GAB1"
 
@@ -53,7 +56,10 @@ CTextInputPin::CTextInputPin(CDirectVobSubFilter* pFilter, CCritSec* pLock, CCri
 
 HRESULT CTextInputPin::CheckMediaType(const CMediaType* pmt)
 {
-	return(IsEqualGUID(*pmt->Type(), MEDIATYPE_Text) ? S_OK : E_FAIL);
+	return pmt->majortype == MEDIATYPE_Text && pmt->subtype == MEDIASUBTYPE_NULL
+		|| pmt->majortype == MEDIATYPE_Subtitle && pmt->subtype == MEDIASUBTYPE_UTF8
+		? S_OK 
+		: E_FAIL;
 }
 
 HRESULT CTextInputPin::CompleteConnect(IPin* pReceivePin)
@@ -61,7 +67,20 @@ HRESULT CTextInputPin::CompleteConnect(IPin* pReceivePin)
 	if(!(m_pSubStream = new CRenderedTextSubtitle(m_pSubLock))) return E_FAIL;
 
 	CRenderedTextSubtitle* pRTS = (CRenderedTextSubtitle*)(ISubStream*)m_pSubStream;
-	pRTS->m_name = GetPinName(pReceivePin) + _T(" (embeded)");
+
+	if(m_mt.majortype == MEDIATYPE_Text)
+	{
+		pRTS->m_name = GetPinName(pReceivePin) + _T(" (embeded)");
+	}
+	else if(m_mt.majortype == MEDIATYPE_Subtitle)
+	{
+		CStringA name(((SUBTITLEINFO*)m_mt.pbFormat)->IsoLang, 3);
+
+		pRTS->m_name.Empty();
+		if(!name.IsEmpty()) pRTS->m_name += name + ' ';
+		pRTS->m_name += _T("(embeded)");
+	}
+
 	pRTS->CreateDefaultStyle(DEFAULT_CHARSET);
 
 	m_pFilter->AddSubStream(m_pSubStream);
@@ -103,13 +122,14 @@ TRACE(_T("CTextInputPin: tStart = %I64d, tStop = %I64d\n"), tStart, tStop);
     hr = pSample->GetPointer(&pData);
     if(FAILED(hr) || pData == NULL) return hr;
 
+	int len = pSample->GetActualDataLength();
+
 	bool fInvalidate = false;
 
+	if(m_mt.majortype == MEDIATYPE_Text)
 	{
 		CAutoLock cAutoLock(m_pSubLock);
 		CRenderedTextSubtitle* pRTS = (CRenderedTextSubtitle*)(ISubStream*)m_pSubStream;
-
-		int len = pSample->GetActualDataLength();
 
 		if(!strncmp((char*)pData, __GAB1__, strlen(__GAB1__)))
 		{
@@ -168,7 +188,7 @@ TRACE(_T("CTextInputPin: tStart = %I64d, tStop = %I64d\n"), tStart, tStop);
 		}
 		else if(pData != 0 && len > 1 && *pData != 0)
 		{
-			CStringA str = (char*)pData;
+			CStringA str((char*)pData, len);
 
 			str.Replace("\r\n", "\n");
 			str.Trim();
@@ -189,12 +209,27 @@ TRACE(_T("CTextInputPin: tStart = %I64d, tStop = %I64d\n"), tStart, tStop);
 			}
 		}
 	}
+	else if(m_mt.majortype == MEDIATYPE_Subtitle)
+	{
+		CAutoLock cAutoLock(m_pSubLock);
+		CRenderedTextSubtitle* pRTS = (CRenderedTextSubtitle*)(ISubStream*)m_pSubStream;
 
+		if(m_mt.subtype == MEDIASUBTYPE_UTF8)
+		{
+			CStringW str = UTF8To16(CStringA((LPCSTR)pData, len)).Trim();
+			if(!str.IsEmpty())
+			{
+				pRTS->Add(str, true, (int)(tStart / 10000), (int)(tStop / 10000));
+				fInvalidate = true;
+			}
+		}
+	}
+/*
 	if(fInvalidate)
 	{
 		// IMPORTANT: m_pSubLock must not be locked when calling this
 		m_pFilter->InvalidateSubtitle((DWORD_PTR)(ISubStream*)m_pSubStream);
 	}
-
+*/
     return S_OK;
 }

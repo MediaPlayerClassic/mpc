@@ -21,6 +21,7 @@
 
 #include "stdafx.h"
 #include "MatroskaFile.h"
+#include "..\..\..\DSUtil\DSUtil.h"
 
 using namespace MatroskaWriter;
 
@@ -97,11 +98,13 @@ HRESULT CANSI::Write(IStream* pStream)
 	HeaderWrite(pStream);
 	return pStream->Write((LPCSTR)*this, GetLength(), NULL);
 }
-/*
+
 QWORD CUTF8::Size(bool fWithHeader)
 {
+	if(GetLength() == 0) return 0;
+
 	QWORD len = 0;
-	len += ;
+	len += UTF16To8(*this).GetLength();
 	if(fWithHeader) len += HeaderSize(len);
 	return len;
 }
@@ -109,10 +112,11 @@ QWORD CUTF8::Size(bool fWithHeader)
 HRESULT CUTF8::Write(IStream* pStream)
 {
 	if(GetLength() == 0) return S_OK;
+
 	HeaderWrite(pStream);
-	return pStream->Write(, , NULL);
+	CStringA str = UTF16To8(*this);
+	return pStream->Write((BYTE*)(LPCSTR)str, str.GetLength(), NULL);
 }
-*/
 
 template<class T, class BASE>
 QWORD CSimpleVar<T, BASE>::Size(bool fWithHeader)

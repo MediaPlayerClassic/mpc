@@ -66,6 +66,8 @@
 #include "DX7AllocatorPresenter.h"
 #include "DX9AllocatorPresenter.h"
 
+#include "..\..\..\include\matroska\matroska.h"
+
 #define DEFCLIENTW 292
 #define DEFCLIENTH 262
 
@@ -460,13 +462,13 @@ void CMainFrame::OnDestroy()
 
 void CMainFrame::OnClose()
 {
-	ShowWindow(SW_HIDE);
-
-	CloseMedia();
-
 	SaveControlBar(&m_wndSubresyncBar, _T("ToolBars\\Subresync"));
 	SaveControlBar(&m_wndPlaylistBar, _T("ToolBars\\Playlist"));
 	SaveControlBar(&m_wndCaptureBar, _T("ToolBars\\Capture"));
+
+	ShowWindow(SW_HIDE);
+
+	CloseMedia();
 
 	__super::OnClose();
 }
@@ -554,7 +556,10 @@ void CMainFrame::LoadControlBar(CControlBar* pBar, CString section, UINT defDock
 		FloatControlBar(pBar, p);
 	}
 
-	pBar->ShowWindow(pApp->GetProfileInt(section, _T("Visible"), FALSE)?SW_SHOW:SW_HIDE);
+	pBar->ShowWindow(
+		pApp->GetProfileInt(section, _T("Visible"), FALSE) && pBar != &m_wndSubresyncBar && pBar != &m_wndCaptureBar
+		? SW_SHOW
+		: SW_HIDE);
 
 	if(pBar->IsKindOf(RUNTIME_CLASS(CSizingControlBar)))
 	{
@@ -1127,7 +1132,7 @@ void CMainFrame::OnTimer(UINT nIDEvent)
 			CString info;
 			int val;
 			pQP->get_AvgFrameRate(&val);
-			info.Format(_T("%d.%d %s"), val/100, val%100, rate);
+			info.Format(_T("%d.%02d %s"), val/100, val%100, rate);
 			m_wndStatsBar.SetLine(_T("Frame-rate"), info);
 			pQP->get_AvgSyncOffset(&val);
 			info.Format(_T("%d ms"), val);
@@ -5060,10 +5065,13 @@ void CMainFrame::OpenFile(OpenFileData* pOFD)
 			}
 		}
 
-		CRecentFileList* pMRU = fFirst ? &s.MRU : &s.MRUDub;
-		pMRU->ReadList();
-		pMRU->Add(fn);
-		pMRU->WriteList();
+		if(s.fKeepHistory)
+		{
+			CRecentFileList* pMRU = fFirst ? &s.MRU : &s.MRUDub;
+			pMRU->ReadList();
+			pMRU->Add(fn);
+			pMRU->WriteList();
+		}
 
 		if(fFirst)
 		{
@@ -5703,20 +5711,20 @@ bool CMainFrame::OpenMediaPrivate(CAutoPtr<OpenMediaData> pOMD)
 	// FIXME: Don't show "Closed" initially
 	PostMessage(WM_KICKIDLE);
 
-	CString err;
+	CString err, aborted(_T("Aborted"));
 
 	try
 	{
-		if(m_fOpeningAborted) throw _T("");
+		if(m_fOpeningAborted) throw aborted;
 
 		OpenCreateGraphObject(pOMD);
 AddToRot(pGB, &m_dwRegister);
 
-		if(m_fOpeningAborted) throw _T("");
+		if(m_fOpeningAborted) throw aborted;
 
 		SetupIViAudReg();
 
-		if(m_fOpeningAborted) throw _T("");
+		if(m_fOpeningAborted) throw aborted;
 
 		if(OpenFileData* p = dynamic_cast<OpenFileData*>(pOMD.m_p))
 		{
@@ -5735,15 +5743,15 @@ AddToRot(pGB, &m_dwRegister);
 			throw _T("Can't open, invalid input parameters");
 		}
 
-		if(m_fOpeningAborted) throw _T("");
+		if(m_fOpeningAborted) throw aborted;
 
 		OpenCustomizeGraph();
 
-		if(m_fOpeningAborted) throw _T("");
+		if(m_fOpeningAborted) throw aborted;
 
 		OpenSetupVideoWindow();
 
-		if(m_fOpeningAborted) throw _T("");
+		if(m_fOpeningAborted) throw aborted;
 
 		if(m_pCAP && (!m_fAudioOnly || m_fRealMediaGraph))
 		{
@@ -5754,7 +5762,7 @@ AddToRot(pGB, &m_dwRegister);
 				SetSubtitle(m_pSubStreams.GetHead());
 		}
 
-		if(m_fOpeningAborted) throw _T("");
+		if(m_fOpeningAborted) throw aborted;
 
 		OpenSetupWindowTitle(pOMD->title);
 
@@ -5806,7 +5814,8 @@ AddToRot(pGB, &m_dwRegister);
 		CloseMediaPrivate();
 		m_closingmsg = err;
 
-		if(OpenFileData* p = dynamic_cast<OpenFileData*>(pOMD.m_p))
+		OpenFileData* p = dynamic_cast<OpenFileData*>(pOMD.m_p);
+		if(p && err != aborted)
 		{
 			m_wndPlaylistBar.SetCurValid(false);
 			if(m_wndPlaylistBar.GetCount() > 1)
@@ -5875,8 +5884,6 @@ RemoveFromRot(m_dwRegister);
 	m_pSubClock = NULL;
 
 	m_pProv.Release();
-
-	m_pTPTFA.RemoveAll();
 
 	{
 		CAutoLock cAutoLock(&m_csSubLock);
@@ -6655,15 +6662,11 @@ void CMainFrame::AddTextPassThruFilter()
 			CComPtr<IPin> pPinTo;
 			AM_MEDIA_TYPE mt;
 			if(FAILED(pPin->ConnectedTo(&pPinTo)) || !pPinTo 
-			|| FAILED(pPin->ConnectionMediaType(&mt)) || mt.majortype != MEDIATYPE_Text)
+			|| FAILED(pPin->ConnectionMediaType(&mt)) 
+			|| mt.majortype != MEDIATYPE_Text && mt.majortype != MEDIATYPE_Subtitle)
 				continue;
 
-			CAutoPtr<CRenderedTextSubtitle> pRTS(new CRenderedTextSubtitle(&m_csSubLock));
-			pRTS->m_name = _T("(embeded)"); // TODO
-			pRTS->CreateDefaultStyle(DEFAULT_CHARSET);
-			pRTS->m_dstScreenSize = CSize(384, 288);
-
-			CComQIPtr<IBaseFilter> pTPTF = new CTextPassThruFilter(this, pRTS, &m_csSubLock);
+			CComQIPtr<IBaseFilter> pTPTF = new CTextPassThruFilter(this);
 			CStringW name;
 			name.Format(L"TextPassThru%08x", pTPTF);
 			if(FAILED(pGB->AddFilter(pTPTF, name)))
@@ -6680,8 +6683,7 @@ void CMainFrame::AddTextPassThruFilter()
 			hr = pGB->Connect(pPin, pIn);
 			hr = pGB->Connect(pOut, pPinTo);
 
-			m_pTPTFA.AddTail(pTPTF);
-			m_pSubStreams.AddTail(pRTS.Detach());
+			m_pSubStreams.AddTail(CComQIPtr<ISubStream>(pTPTF));
 		}
 		EndEnumPins
 	}

@@ -44,6 +44,7 @@ CPPagePlayer::CPPagePlayer()
 	, m_fRememberWindowSize(FALSE)
 	, m_fUseIni(FALSE)
 	, m_fSetFullscreenRes(FALSE)
+	, m_fKeepHistory(FALSE)
 {
 }
 
@@ -67,6 +68,7 @@ void CPPagePlayer::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_SPIN1, m_nTimeOutCtrl);
 	DDX_Check(pDX, IDC_CHECK9, m_fSetFullscreenRes);
 	DDX_Control(pDX, IDC_COMBO1, m_dispmodecombo);
+	DDX_Check(pDX, IDC_CHECK1, m_fKeepHistory);
 }
 
 
@@ -121,6 +123,7 @@ BOOL CPPagePlayer::OnInitDialog()
 	m_fRememberWindowPos = s.fRememberWindowPos;
 	m_fRememberWindowSize = s.fRememberWindowSize;
 	m_fUseIni = ((CMPlayerCApp*)AfxGetApp())->IsIniValid();
+	m_fKeepHistory = s.fKeepHistory;
 
 	UpdateData(FALSE);
 
@@ -146,6 +149,15 @@ BOOL CPPagePlayer::OnApply()
 	s.fExitFullScreenAtTheEnd = !!m_fExitFullScreenAtTheEnd;
 	s.fRememberWindowPos = !!m_fRememberWindowPos;
 	s.fRememberWindowSize = !!m_fRememberWindowSize;
+	s.fKeepHistory = !!m_fKeepHistory;
+
+	if(!m_fKeepHistory)
+	{
+		for(int i = 0; i < s.MRU.GetSize(); i++) s.MRU.Remove(i);
+		for(int i = 0; i < s.MRUDub.GetSize(); i++) s.MRUDub.Remove(i);
+		s.MRU.WriteList();
+		s.MRUDub.WriteList();
+	}
 
 	((CMainFrame*)AfxGetMainWnd())->ShowTrayIcon(s.fTrayIcon);
 

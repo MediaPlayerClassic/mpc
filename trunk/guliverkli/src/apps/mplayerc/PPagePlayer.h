@@ -49,6 +49,8 @@ public:
 	BOOL m_fRememberWindowSize;
 	BOOL m_fUseIni;
 	CSpinButtonCtrl m_nTimeOutCtrl;
+	BOOL m_fTrayIcon;
+	BOOL m_fKeepHistory;
 
 // Dialog Data
 	enum { IDD = IDD_PPAGEPLAYER };
@@ -64,5 +66,4 @@ public:
 	afx_msg void OnBnClickedCheck8();
 	afx_msg void OnUpdateTimeout(CCmdUI* pCmdUI);
 	afx_msg void OnUpdateDispModeCombo(CCmdUI* pCmdUI);
-	BOOL m_fTrayIcon;
 };

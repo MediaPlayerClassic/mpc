@@ -1318,4 +1318,22 @@ CString CStringFromGUID(const GUID& guid)
 	return CString(StringFromGUID2(guid, buff, 127) > 0 ? buff : null);
 }
 
+CStringW UTF8To16(LPCSTR utf8)
+{
+	CStringW str;
+	int n = MultiByteToWideChar(CP_UTF8, 0, utf8, -1, NULL, 0)-1;
+	if(n < 0) return str;
+	str.ReleaseBuffer(MultiByteToWideChar(CP_UTF8, 0, utf8, -1, str.GetBuffer(n), n+1)-1);
+	return str;
+}
+
+CStringA UTF16To8(LPCWSTR utf16)
+{
+	CStringA str;
+	int n = WideCharToMultiByte(CP_UTF8, 0, utf16, -1, NULL, 0, NULL, NULL)-1;
+	if(n < 0) return str;
+	str.ReleaseBuffer(WideCharToMultiByte(CP_UTF8, 0, utf16, -1, str.GetBuffer(n), n+1, NULL, NULL)-1);
+	return str;
+}
+
 

@@ -410,7 +410,8 @@ void CPlayerPlaylistBar::ParsePlayList(CStringList& fns, CStringList* subs)
 			fn.Format(_T("%.*s"), szEnd - szStart, szStart);
 			fn.Trim();
 			if(fn.CompareNoCase(_T("asf path")) == 0) continue;
-			if(fn.Find(_T(":")) < 0) fn = dir + fn;
+			if(fn.Find(_T(":")) < 0 && fn.Find(_T("\\\\")) != 0 && fn.Find(_T("//")) != 0)
+				fn = dir + fn;
 
 			ParsePlayList(fn, NULL);
 		}

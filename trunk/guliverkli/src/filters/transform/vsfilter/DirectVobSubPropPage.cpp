@@ -417,6 +417,7 @@ void CDVSMainPPage::UpdateControlData(bool fSave)
 #else
 		mbstowcs(m_fn, fn, fn.GetLength()+1);
 #endif
+		m_iSelectedLanguage = m_langs.GetCurSel();
 		m_fOverridePlacement = !!m_oplacement.GetCheck();
 		m_PlacementXperc = m_subposx.GetPos();
 		m_PlacementYperc = m_subposy.GetPos();

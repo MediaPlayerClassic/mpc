@@ -251,6 +251,7 @@
 #define IDS_RS_JUMPDISTL                578
 #define IDS_RS_REPORTFAILEDPINS         579
 #define IDS_RS_SRCFILTERS               580
+#define IDS_RS_KEEPHISTORY              581
 #define IDC_BROWSEBUTTON                1016
 #define IDC_BROWSEBUTTON2               1017
 #define IDC_COMBO1                      1018

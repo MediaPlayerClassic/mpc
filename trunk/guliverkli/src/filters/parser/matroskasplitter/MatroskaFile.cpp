@@ -21,6 +21,7 @@
 
 #include "stdafx.h"
 #include "MatroskaFile.h"
+#include "..\..\..\DSUtil\DSUtil.h"
 
 using namespace MatroskaReader;
 
@@ -437,34 +438,12 @@ HRESULT CANSI::Parse(CMatroskaNode* pMN)
 HRESULT CUTF8::Parse(CMatroskaNode* pMN)
 {
 	Empty();
-
-	QWORD len = pMN->m_len;
-	BYTE b;
-	while(len-- && SUCCEEDED(pMN->Read(b)))
-	{
-		WCHAR c = '?';
-		if(!(b&0x80)) // 0xxxxxxx
-		{
-			c = b&0x7f;
-		}
-		else if((b&0xe0) == 0xc0) // 110xxxxx 10xxxxxx
-		{
-			c = (b&0x1f)<<6;
-			if(!(len--) || FAILED(pMN->Read(b))) break;
-			c |= (b&0x3f);
-		}
-		else if((b&0xf0) == 0xe0) // 1110xxxx 10xxxxxx 10xxxxxx
-		{
-			c = (b&0x0f)<<12;
-			if(!(len--) || FAILED(pMN->Read(b))) break;
-			c |= (b&0x3f)<<6;
-			if(!(len--) || FAILED(pMN->Read(b))) break;
-			c |= (b&0x3f);
-		}
-		*this += c;
-	}
-
-	return(len == -1 ? S_OK : E_FAIL);
+	CAutoVectorPtr<BYTE> buff;
+	if(!buff.Allocate((UINT)pMN->m_len + 1) || S_OK != pMN->Read(buff, pMN->m_len))
+		return E_FAIL;
+	buff[pMN->m_len] = 0;
+	CStringW::operator = (UTF8To16((LPCSTR)(BYTE*)buff));
+	return S_OK;
 }
 
 HRESULT CUInt::Parse(CMatroskaNode* pMN)
