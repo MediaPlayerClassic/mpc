@@ -52,7 +52,7 @@ else if(!empty($files))
 			"  (select id from subtitle where id in ".
 			"   (select distinct subtitle_id from file_subtitle where file_id in ".
 			"    (select id from file where hash = '{$file['hash']}' && size = '{$file['size']}')))) ".
-			"limit 10 ");
+			"limit 20 ");
 
 		chkerr();
 			
@@ -79,7 +79,7 @@ else
 			"select distinct movie_id from movie_subtitle where name like _utf8 '$db_text%' ".
 			") ".
 		"and id in (select distinct movie_id from movie_subtitle where subtitle_id in (select distinct id from subtitle)) ".
-		"limit 100 ",
+		"limit 20 ",
 		$movies);
 
 	chkerr();
