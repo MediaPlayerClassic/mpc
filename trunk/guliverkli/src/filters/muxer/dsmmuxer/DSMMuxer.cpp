@@ -196,7 +196,7 @@ void CDSMMuxerFilter::MuxHeader(IBitStream* pBS)
 	// TODO: write chapters
 }
 
-void CDSMMuxerFilter::MuxPacket(IBitStream* pBS, Packet* pPacket)
+void CDSMMuxerFilter::MuxPacket(IBitStream* pBS, MuxerPacket* pPacket)
 {
 	if(pPacket->IsEOS())
 		return;
@@ -287,7 +287,7 @@ void CDSMMuxerFilter::MuxFooter(IBitStream* pBS)
 	}
 }
 
-void CDSMMuxerFilter::IndexSyncPoint(Packet* p, __int64 fp)
+void CDSMMuxerFilter::IndexSyncPoint(MuxerPacket* p, __int64 fp)
 {
 	// FIXME: the very last syncpoints won't get moved to m_isps because there are no more syncpoints to trigger it!
 
@@ -301,7 +301,6 @@ void CDSMMuxerFilter::IndexSyncPoint(Packet* p, __int64 fp)
 	sp.fp = fp;
 	sp.id = p->pPin->GetID();
 	sp.rtStart = p->rtStart;
-	sp.rtStop = p->pPin->IsSubtitleStream() ? p->rtStop : _I64_MAX;
 
 	if(m_isps.IsEmpty()) 
 	{

@@ -23,12 +23,39 @@
 
 #include "..\..\..\DSUtil\DSMPropertyBag.h"
 
+class CBaseMuxerInputPin;
+
+struct MuxerPacket
+{
+	CBaseMuxerInputPin* pPin;
+	REFERENCE_TIME rtStart, rtStop;
+	CArray<BYTE> pData;
+	enum flag_t {empty = 0, timevalid = 1, syncpoint = 2, discontinuity = 4, eos = 8, bogus = 16};
+	DWORD flags;
+	struct MuxerPacket(CBaseMuxerInputPin* pPin) {this->pPin = pPin; rtStart = rtStop = _I64_MIN; flags = empty;}
+	bool IsTimeValid() {return !!(flags & timevalid);}
+	bool IsSyncPoint() {return !!(flags & syncpoint);}
+	bool IsDiscontinuity() {return !!(flags & discontinuity);}
+	bool IsEOS() {return !!(flags & eos);}
+	bool IsBogus() {return !!(flags & bogus);}
+};
+
 class CBaseMuxerInputPin : public CBaseInputPin, public CDSMPropertyBag
 {
+public:
+private:
 	CCritSec m_csReceive;
 	REFERENCE_TIME m_rtMaxStart, m_rtDuration;
 	bool m_fEOS;
 	int m_iID;
+
+	CCritSec m_csQueue;
+	CAutoPtrList<MuxerPacket> m_queue;
+	void PushPacket(CAutoPtr<MuxerPacket> pPacket);
+	CAutoPtr<MuxerPacket> PopPacket();
+	CAMEvent m_evAcceptPacket;
+
+	friend class CBaseMuxerFilter;
 
 public:
 	CBaseMuxerInputPin(LPCWSTR pName, CBaseFilter* pFilter, CCritSec* pLock, HRESULT* phr);
@@ -48,6 +75,7 @@ public:
     HRESULT CompleteConnect(IPin* pReceivePin);
 
 	HRESULT Active();
+	HRESULT Inactive();
 
     STDMETHODIMP NewSegment(REFERENCE_TIME tStart, REFERENCE_TIME tStop, double dRate);
 	STDMETHODIMP Receive(IMediaSample* pSample);

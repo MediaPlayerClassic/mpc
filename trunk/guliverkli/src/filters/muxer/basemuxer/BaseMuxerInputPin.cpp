@@ -28,6 +28,8 @@
 #include <initguid.h>
 #include "..\..\..\..\include\ogg\OggDS.h"
 
+#define MAXQUEUESIZE 10
+
 //
 // CBaseMuxerInputPin
 //
@@ -35,6 +37,7 @@
 CBaseMuxerInputPin::CBaseMuxerInputPin(LPCWSTR pName, CBaseFilter* pFilter, CCritSec* pLock, HRESULT* phr)
 	: CBaseInputPin(NAME("CBaseMuxerInputPin"), pFilter, pLock, phr, pName)
 	, m_rtDuration(0)
+	, m_evAcceptPacket(TRUE)
 {
 	static int s_iID = 0;
 	m_iID = s_iID++;
@@ -58,6 +61,35 @@ STDMETHODIMP CBaseMuxerInputPin::NonDelegatingQueryInterface(REFIID riid, void**
 bool CBaseMuxerInputPin::IsSubtitleStream()
 {
 	return m_mt.majortype == MEDIATYPE_Text || m_mt.majortype == MEDIATYPE_Subtitle; // TODO
+}
+
+void CBaseMuxerInputPin::PushPacket(CAutoPtr<MuxerPacket> pPacket)
+{
+	for(int i = 0; m_pFilter->IsActive() && !IsFlushing()
+		&& !m_evAcceptPacket.Wait(1) 
+		&& i < 1000; 
+		i++);
+
+	CAutoLock cAutoLock(&m_csQueue);
+
+	m_queue.AddTail(pPacket);
+
+	if(m_queue.GetCount() >= MAXQUEUESIZE)
+		m_evAcceptPacket.Reset();
+}
+
+CAutoPtr<MuxerPacket> CBaseMuxerInputPin::PopPacket()
+{
+	CAutoPtr<MuxerPacket> pPacket;
+
+	CAutoLock cAutoLock(&m_csQueue);
+
+	if(m_queue.GetCount()) 
+		pPacket = m_queue.RemoveHead();
+	if(m_queue.GetCount() < MAXQUEUESIZE)
+		m_evAcceptPacket.Set();
+
+	return pPacket;
 }
 
 HRESULT CBaseMuxerInputPin::CheckMediaType(const CMediaType* pmt)
@@ -131,7 +163,16 @@ HRESULT CBaseMuxerInputPin::Active()
 {
 	m_rtMaxStart = _I64_MIN;
 	m_fEOS = false;
+	m_evAcceptPacket.Set();
 	return __super::Active();
+}
+
+HRESULT CBaseMuxerInputPin::Inactive()
+{
+	CAutoLock cAutoLock(&m_csQueue);
+	m_queue.RemoveAll();
+
+	return __super::Inactive();
 }
 
 STDMETHODIMP CBaseMuxerInputPin::NewSegment(REFERENCE_TIME tStart, REFERENCE_TIME tStop, double dRate)
@@ -148,29 +189,51 @@ STDMETHODIMP CBaseMuxerInputPin::Receive(IMediaSample* pSample)
 	HRESULT hr = __super::Receive(pSample);
 	if(FAILED(hr)) return hr;
 
+	CAutoPtr<MuxerPacket> pPacket(new MuxerPacket(this));
+
+	long len = pSample->GetActualDataLength();
+
+	BYTE* pData = NULL;
+	if(FAILED(pSample->GetPointer(&pData)) || !pData)
+		return S_OK;
+
+	pPacket->pData.SetSize(len);
+	memcpy(pPacket->pData.GetData(), pData, len);
+
 	if(m_mt.formattype == FORMAT_WaveFormatEx 
 	&& (((WAVEFORMATEX*)m_mt.pbFormat)->wFormatTag == WAVE_FORMAT_PCM
 	|| ((WAVEFORMATEX*)m_mt.pbFormat)->wFormatTag == WAVE_FORMAT_MPEGLAYER3))
-		pSample->SetSyncPoint(TRUE); // HACK: some capture filters don't set this
-
-	REFERENCE_TIME rtStart = _I64_MAX, rtStop;
-	if(SUCCEEDED(pSample->GetTime(&rtStart, &rtStop)))
 	{
-		rtStart += m_tStart; 
-		rtStop += m_tStart;
-		pSample->SetTime(&rtStart, &rtStop);
-
-		if(S_OK == pSample->IsSyncPoint() && rtStart < m_rtMaxStart)
-			pSample->SetSyncPoint(FALSE);
-
-		m_rtMaxStart = max(m_rtMaxStart,  rtStart);
-	}
-	else
-	{
-		pSample->SetSyncPoint(FALSE);
+		pPacket->flags |= MuxerPacket::syncpoint; // HACK: some capture filters don't set this
 	}
 
-	((CBaseMuxerFilter*)m_pFilter)->Receive(pSample, this);
+	if(S_OK == pSample->IsSyncPoint())
+	{
+		pPacket->flags |= MuxerPacket::syncpoint;
+	}
+
+	if(S_OK == pSample->GetTime(&pPacket->rtStart, &pPacket->rtStop))
+	{
+		pPacket->flags |= MuxerPacket::timevalid;
+
+		pPacket->rtStart += m_tStart; 
+		pPacket->rtStop += m_tStart;
+
+		if((pPacket->flags & MuxerPacket::syncpoint) && pPacket->rtStart < m_rtMaxStart)
+		{
+			pPacket->flags &= ~MuxerPacket::syncpoint;
+			pPacket->flags |= MuxerPacket::bogus;
+		}
+
+		m_rtMaxStart = max(m_rtMaxStart,  pPacket->rtStart);
+	}
+
+	if(S_OK == pSample->IsDiscontinuity())
+	{
+		pPacket->flags |= MuxerPacket::discontinuity;
+	}
+
+	PushPacket(pPacket);
 
 	return S_OK;
 }
@@ -182,7 +245,11 @@ STDMETHODIMP CBaseMuxerInputPin::EndOfStream()
 	HRESULT hr = __super::EndOfStream();
 	if(FAILED(hr)) return hr;
 
-	((CBaseMuxerFilter*)m_pFilter)->Receive(NULL, this);
+	ASSERT(!m_fEOS);
+
+	CAutoPtr<MuxerPacket> pPacket(new MuxerPacket(this));
+	pPacket->flags |= MuxerPacket::eos;
+	PushPacket(pPacket);
 
 	m_fEOS = true;
 

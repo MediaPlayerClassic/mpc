@@ -30,7 +30,7 @@ class CDSMMuxerFilter : public CBaseMuxerFilter
 	struct SyncPoint {BYTE id; REFERENCE_TIME rtStart, rtStop; __int64 fp;};
 	CList<SyncPoint> m_sps, m_isps;
 	REFERENCE_TIME m_rtPrevSyncPoint;
-	void IndexSyncPoint(Packet* p, __int64 fp);
+	void IndexSyncPoint(MuxerPacket* p, __int64 fp);
 
 	void MuxPacketHeader(IBitStream* pBS, dsmp_t type, UINT64 len);
 	void MuxFileInfo(IBitStream* pBS);
@@ -39,7 +39,7 @@ class CDSMMuxerFilter : public CBaseMuxerFilter
 protected:
 	void MuxInit();
 	void MuxHeader(IBitStream* pBS);
-	void MuxPacket(IBitStream* pBS, Packet* pPacket);
+	void MuxPacket(IBitStream* pBS, MuxerPacket* pPacket);
 	void MuxFooter(IBitStream* pBS);
 
 public:

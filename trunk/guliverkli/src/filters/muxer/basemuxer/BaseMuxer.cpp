@@ -85,71 +85,6 @@ HRESULT CBaseMuxerFilter::CreateInput(CStringW name, CBaseMuxerInputPin** ppPin)
 	return hr;
 }
 
-void CBaseMuxerFilter::Receive(IMediaSample* pIn, CBaseMuxerInputPin* pPin)
-{
-	int nPackets = 0;
-/*
-	{
-		CAutoLock cAutoLock(&m_csQueue);
-		nPackets = m_pActivePins[pPin];
-	}
-
-	// i -= nPackets looks silly at first, but looping once seems to be enough (update: more than enough, lots of time is wasted, FIXME!)
-	for(int i = nPackets; IsActive() && (PeekQueue() || i > 0) && !pPin->IsFlushing(); i -= nPackets) 
-	{
-		Sleep(1);
-	}
-*/
-	CAutoPtr<Packet> pPacket(new Packet());
-
-	pPacket->pPin = pPin;
-
-	if(pIn)
-	{
-		long len = pIn->GetActualDataLength();
-
-		BYTE* pData = NULL;
-		if(FAILED(pIn->GetPointer(&pData)) || !pData)
-			return;
-
-		pPacket->pData.SetSize(len);
-		memcpy(pPacket->pData.GetData(), pData, len);
-
-		if(S_OK == pIn->GetTime(&pPacket->rtStart, &pPacket->rtStop))
-			pPacket->flags |= Packet::timevalid;
-
-		if(S_OK == pIn->IsSyncPoint())
-			pPacket->flags |= Packet::syncpoint;
-
-		if(S_OK == pIn->IsDiscontinuity())
-			pPacket->flags |= Packet::discontinuity;
-	}
-	else
-	{
-		pPacket->flags |= Packet::eos;
-	}
-
-	CAutoLock cAutoLock(&m_csQueue);
-
-	if(pPacket->IsTimeValid() || pPacket->IsEOS())
-	{
-		ASSERT(m_pActivePins.Lookup(pPin));
-		m_pActivePins[pPin]++;
-	}
-
-	POSITION pos = NULL;
-
-	for(pos = m_queue.GetTailPosition(); pos; m_queue.GetPrev(pos))
-	{
-		Packet* p = m_queue.GetAt(pos);
-		if(p->pPin == pPacket->pPin || p->IsTimeValid() && pPacket->IsTimeValid() && p->rtStart <= pPacket->rtStart)
-            break;
-	}
-
-	if(pos) m_queue.InsertAfter(pos, pPacket);
-	else m_queue.AddHead(pPacket);
-}
-
 //
 
 DWORD CBaseMuxerFilter::ThreadProc()
@@ -180,7 +115,7 @@ DWORD CBaseMuxerFilter::ThreadProc()
 				CBaseMuxerInputPin* pPin = m_pInputs.GetNext(pos);
 				if(pPin->IsConnected())
 				{
-					m_pActivePins[pPin] = 0;
+					m_pActivePins.AddTail(pPin);
 					m_pPins.AddTail(pPin);
 				}
 			}
@@ -198,43 +133,36 @@ DWORD CBaseMuxerFilter::ThreadProc()
 
 			MuxInit();
 
-//			TRACE(_T("WriteHeader\r\n"));
+//			TRACE(_T("WriteHeader\n"));
 			pos = m_pBitStreams.GetHeadPosition();
 			while(pos) MuxHeader(m_pBitStreams.GetNext(pos));
 
 			while(!CheckRequest(NULL) && m_pActivePins.GetCount())
 			{
 				if(m_State == State_Paused) {Sleep(10); continue;}
-				if(!PeekQueue()) {Sleep(1); continue;}
 
-				CAutoPtr<Packet> pPacket;
-
-				{
-					CAutoLock cAutoLock(&m_csQueue);
-					pPacket = m_queue.RemoveHead();
-				}
-
-				if(pPacket->IsTimeValid() || pPacket->IsEOS())
-					EXECUTE_ASSERT(m_pActivePins[pPacket->pPin]-- > 0);
+				CAutoPtr<MuxerPacket> pPacket = GetPacket();
+				if(!pPacket) {Sleep(1); continue;}
 
 				if(pPacket->IsTimeValid())
 					m_rtCurrent = pPacket->rtStart;
 
 				if(pPacket->IsEOS())
-					m_pActivePins.RemoveKey(pPacket->pPin);
-
-				TRACE(_T("WritePacket pPin=%x, size=%d, syncpoint=%d, eos=%d, rt=(%I64d-%I64d)\r\n"), 
+					m_pActivePins.RemoveAt(m_pActivePins.Find(pPacket->pPin));
+/*
+				TRACE(_T("WritePacket pPin=%x, size=%d, s%d e%d b%d, rt=(%I64d-%I64d)\n"), 
 					pPacket->pPin->GetID(),
 					pPacket->pData.GetSize(),
-					!!(pPacket->flags&Packet::syncpoint),
-					!!(pPacket->flags&Packet::eos), 
+					!!(pPacket->flags & MuxerPacket::syncpoint),
+					!!(pPacket->flags & MuxerPacket::eos), 
+					!!(pPacket->flags & MuxerPacket::bogus), 
 					pPacket->rtStart/10000, pPacket->rtStop/10000);
-/**/
+*/
 				pos = m_pBitStreams.GetHeadPosition();
 				while(pos) MuxPacket(m_pBitStreams.GetNext(pos), pPacket);
 			}
 
-//			TRACE(_T("WriteFooter\r\n"));
+//			TRACE(_T("WriteFooter\n"));
 			pos = m_pBitStreams.GetHeadPosition();
 			while(pos) MuxFooter(m_pBitStreams.GetNext(pos));
 
@@ -244,11 +172,6 @@ DWORD CBaseMuxerFilter::ThreadProc()
 			m_pPins.RemoveAll();
 
 			m_pBitStreams.RemoveAll();
-
-			{
-				CAutoLock cAutoLock(&m_csQueue);
-				m_queue.RemoveAll();
-			}
 
 			break;
 		}
@@ -260,44 +183,46 @@ DWORD CBaseMuxerFilter::ThreadProc()
 	return 0;
 }
 
-bool CBaseMuxerFilter::PeekQueue()
+CAutoPtr<MuxerPacket> CBaseMuxerFilter::GetPacket()
 {
-	CAutoLock cAutoLock(&m_csQueue);
+	REFERENCE_TIME rtMin = _I64_MAX;
+	CBaseMuxerInputPin* pPinMin = NULL;
+	int i = m_pActivePins.GetCount();
 
-	int nZeroPackets = 0;
-	int nSubZeroPackets = 0; // ;)
-	int nMinNonZeroPackets = m_queue.GetCount();
-
-	POSITION pos = m_pActivePins.GetStartPosition();
+	POSITION pos = m_pActivePins.GetHeadPosition();
 	while(pos)
 	{
-		CBaseMuxerInputPin* pPin = NULL;
-		int nPackets = 0;
-		m_pActivePins.GetNextAssoc(pos, pPin, nPackets);
+		CBaseMuxerInputPin* pPin = m_pActivePins.GetNext(pos);
 
-		if(nPackets == 0)
+		CAutoLock cAutoLock(&pPin->m_csQueue);
+		if(!pPin->m_queue.GetCount()) continue;
+
+		MuxerPacket* p = pPin->m_queue.GetHead();
+
+		if(p->IsBogus() || !p->IsTimeValid() || p->IsEOS())
 		{
-			nZeroPackets++;
-			if(pPin->IsSubtitleStream())
-				nSubZeroPackets++;
+			pPinMin = pPin;
+			i = 0;
+			break;
 		}
-		else
+
+		if(p->rtStart < rtMin)
 		{
-			nMinNonZeroPackets = min(nMinNonZeroPackets, nPackets);
+			rtMin = p->rtStart;
+			pPinMin = pPin;
 		}
+
+		i--;
 	}
 
-	// About " || nZeroPackets == nSubZeroPackets && nMinNonZeroPackets > 100":
-	//
-	// This is avoid large number of packets piling up because of discontinous streams (~subtitles). 
-	// Removing it assures correct interleaving, but do it only if you want to risk buffering 
-	// the whole file into the memory just because there were no subtitles in the whole stream. 
-	// In that case, the only "sample" is going to be the EOS packet, which releases the queue 
-	// at the end and everything gets written out at once.
+	CAutoPtr<MuxerPacket> pPacket;
 
-	// TODO: find the optimal value (100?)
+	if(pPinMin && i == 0)
+	{
+		pPacket = pPinMin->PopPacket();
+	}
 
-	return nZeroPackets == 0 || nZeroPackets == nSubZeroPackets && nMinNonZeroPackets > 100;
+	return pPacket;
 }
 
 //

@@ -32,43 +32,25 @@ class CBaseMuxerFilter
 	, public IMediaSeeking
 	, public CDSMPropertyBag
 {
-protected:
-	struct Packet
-	{
-		CBaseMuxerInputPin* pPin;
-		REFERENCE_TIME rtStart, rtStop;
-		CArray<BYTE> pData;
-		enum flag_t {empty = 0, timevalid = 1, syncpoint = 2, discontinuity = 4, eos = 8};
-		DWORD flags;
-		struct Packet() {pPin = NULL; rtStart = rtStop = _I64_MIN; flags = empty;}
-		bool IsTimeValid() {return !!(flags & timevalid);}
-		bool IsSyncPoint() {return !!(flags & syncpoint);}
-		bool IsDiscontinuity() {return !!(flags & discontinuity);}
-		bool IsEOS() {return !!(flags & eos);}
-	};
-
 private:
 	CAutoPtrList<CBaseMuxerInputPin> m_pInputs;
 	CAutoPtr<CBaseMuxerOutputPin> m_pOutput;
 
-	REFERENCE_TIME m_rtCurrent;
-
-	CCritSec m_csQueue;
-	CAutoPtrList<Packet> m_queue;
-	CAtlMap<CBaseMuxerInputPin*, int> m_pActivePins;
-	bool PeekQueue();
-
 	enum {CMD_EXIT, CMD_RUN};
 	DWORD ThreadProc();
 
+	REFERENCE_TIME m_rtCurrent;
 	CInterfaceList<IBitStream> m_pBitStreams;
+	CList<CBaseMuxerInputPin*> m_pActivePins;
+
+	CAutoPtr<MuxerPacket> GetPacket();
 
 protected:
 	CList<CBaseMuxerInputPin*> m_pPins;
 
 	virtual void MuxInit() = 0;
 	virtual void MuxHeader(IBitStream* pBS) = 0;
-	virtual void MuxPacket(IBitStream* pBS, Packet* pPacket) = 0;
+	virtual void MuxPacket(IBitStream* pBS, MuxerPacket* pPacket) = 0;
 	virtual void MuxFooter(IBitStream* pBS) = 0;
 
 	virtual HRESULT CreateInput(CStringW name, CBaseMuxerInputPin** ppPin);
@@ -81,7 +63,7 @@ public:
     STDMETHODIMP NonDelegatingQueryInterface(REFIID riid, void** ppv);
 
 	void AddInput();
-	void Receive(IMediaSample* pIn, CBaseMuxerInputPin* pPin);
+	//void Receive(CAutoPtr<Packet> pPacket);
 
 	int GetPinCount();
 	CBasePin* GetPin(int n);
