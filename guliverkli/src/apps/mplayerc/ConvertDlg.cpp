@@ -58,22 +58,57 @@ void CConvertDlg::AddFile(CString fn)
 	if(FAILED(gb.AddSourceFilter(fn, &pBF)))
 		return;
 
+	int cnt = 0;
+	while(S_OK == m_pCGB->RenderStream(NULL, NULL, pBF, NULL, m_pMux)) cnt++;
+	if(!cnt) {MessageBeep(-1); DeleteFilter(pBF); return;}
+
 	if(m_tree.GetCount() == 0)
 	{
 		if(CComQIPtr<IDSMPropertyBag> pPB = m_pMux)
 			pPB->DelAllProperties();
+
+		if(CString(_T(".dsm")).CompareNoCase(path.GetExtension()) != 0)
+		{
+			CPath p(fn);
+			p.RemoveExtension();
+			SetOutputFile(CString((LPCTSTR)p) + _T(".dsm"));
+		}
 	}
 
-	int cnt = 0;
-	while(S_OK == m_pCGB->RenderStream(NULL, NULL, pBF, NULL, m_pMux)) cnt++;
-	if(!cnt) {MessageBeep(-1); DeleteFilter(pBF); return;}
-	
 	CTreeItemFile* t = new CTreeItemFile(fn, pBF, m_tree, NULL);
 
 	AddFilter(*t, pBF);
 
 	m_tree.Expand(*t, TVE_EXPAND);
 	m_tree.EnsureVisible(*t);
+}
+
+bool CConvertDlg::SetOutputFile(LPCTSTR fn)
+{
+	if(!m_pGB || !m_pMux)
+		return false;
+
+	NukeDownstream(m_pMux, m_pGB);
+
+	CComPtr<IBaseFilter> pFW;
+	CComQIPtr<IFileSinkFilter2> pFSF = m_pMux;
+	if(pFSF) {pFW = m_pMux;}
+	else {pFW.CoCreateInstance(CLSID_FileWriter); pFSF = pFW;}
+
+	if(!pFSF
+	|| FAILED(m_pGB->AddFilter(pFW, NULL))
+	|| FAILED(pFSF->SetFileName(CStringW(fn), NULL))
+	|| FAILED(pFSF->SetMode(AM_FILE_OVERWRITE))
+	|| FAILED(m_pCGB->RenderStream(NULL, NULL, m_pMux, NULL, pFW)))
+	{
+		m_pGB->RemoveFilter(pFW);
+		return false;
+	}
+
+	m_fn = fn;
+	UpdateData(FALSE);
+
+	return true;
 }
 
 void CConvertDlg::AddFilter(HTREEITEM hTIParent, IBaseFilter* pBFParent)
@@ -842,27 +877,10 @@ void CConvertDlg::OnBnClickedButton1()
 
 	if(fd.DoModal() != IDOK) return;
 
-	NukeDownstream(m_pMux, m_pGB);
-
-	CComPtr<IBaseFilter> pFW;
-	CComQIPtr<IFileSinkFilter2> pFSF = m_pMux;
-	if(pFSF) {pFW = m_pMux;}
-	else {pFW.CoCreateInstance(CLSID_FileWriter); pFSF = pFW;}
-
-	if(!pFSF
-	|| FAILED(m_pGB->AddFilter(pFW, NULL))
-	|| FAILED(pFSF->SetFileName(CStringW(fd.GetPathName()), NULL))
-	|| FAILED(pFSF->SetMode(AM_FILE_OVERWRITE))
-	|| FAILED(m_pCGB->RenderStream(NULL, NULL, m_pMux, NULL, pFW)))
+	if(!SetOutputFile(fd.GetPathName()))
 	{
-		m_pGB->RemoveFilter(pFW);
 		AfxMessageBox(_T("Could not set output file"));
-		return;
 	}
-
-	m_fn = fd.GetPathName();
-
-	UpdateData(FALSE);
 }
 
 void CConvertDlg::OnUpdateButton1(CCmdUI* pCmdUI)

@@ -832,7 +832,7 @@ void ISubPicAllocatorPresenterImpl::Transform(CRect r, Vector v[4])
 	v[3] = Vector(r.right, r.bottom, 0);
 
 	Vector center(r.CenterPoint().x, r.CenterPoint().y, 0);
-	int l = Vector(r.Size().cx, r.Size().cy, 0).Length()*1.5f+1;
+	int l = (int)(Vector(r.Size().cx, r.Size().cy, 0).Length()*1.5f)+1;
 
 	for(int i = 0; i < 4; i++)
 	{

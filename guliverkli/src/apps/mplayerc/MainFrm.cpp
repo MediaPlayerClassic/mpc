@@ -384,7 +384,7 @@ CMainFrame::~CMainFrame()
 
 int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 {
-	if(CFrameWnd::OnCreate(lpCreateStruct) == -1)
+	if(__super::OnCreate(lpCreateStruct) == -1)
 		return -1;
 
 	m_popup.LoadMenu(IDR_POPUP);
@@ -727,7 +727,7 @@ void CMainFrame::SetTrayTip(CString str)
 
 BOOL CMainFrame::PreCreateWindow(CREATESTRUCT& cs)
 {
-	if(!CFrameWnd::PreCreateWindow(cs))
+	if(!__super::PreCreateWindow(cs))
 		return FALSE;
 
 	cs.dwExStyle &= ~WS_EX_CLIENTEDGE;
@@ -768,7 +768,7 @@ BOOL CMainFrame::PreTranslateMessage(MSG* pMsg)
 		}
 	}
 
-	return CFrameWnd::PreTranslateMessage(pMsg);
+	return __super::PreTranslateMessage(pMsg);
 }
 
 void CMainFrame::RecalcLayout(BOOL bNotify)
@@ -790,12 +790,12 @@ void CMainFrame::RecalcLayout(BOOL bNotify)
 #ifdef _DEBUG
 void CMainFrame::AssertValid() const
 {
-	CFrameWnd::AssertValid();
+	__super::AssertValid();
 }
 
 void CMainFrame::Dump(CDumpContext& dc) const
 {
-	CFrameWnd::Dump(dc);
+	__super::Dump(dc);
 }
 
 #endif //_DEBUG
@@ -832,7 +832,7 @@ BOOL CMainFrame::OnCmdMsg(UINT nID, int nCode, void* pExtra, AFX_CMDHANDLERINFO*
 	}
 
 	// otherwise, do default handling
-	return CFrameWnd::OnCmdMsg(nID, nCode, pExtra, pHandlerInfo);
+	return __super::OnCmdMsg(nID, nCode, pExtra, pHandlerInfo);
 }
 
 void CMainFrame::OnGetMinMaxInfo(MINMAXINFO* lpMMI)
@@ -883,12 +883,12 @@ void CMainFrame::OnGetMinMaxInfo(MINMAXINFO* lpMMI)
 	if(IsWindow(m_wndCaptureBar.m_hWnd) && m_wndCaptureBar.IsWindowVisible() && !m_wndCaptureBar.IsFloating())
 		lpMMI->ptMinTrackSize.y += m_wndCaptureBar.CalcFixedLayout(TRUE, TRUE).cy-2;
 
-	CFrameWnd::OnGetMinMaxInfo(lpMMI);
+	__super::OnGetMinMaxInfo(lpMMI);
 }
 
 void CMainFrame::OnMove(int x, int y)
 {
-	CFrameWnd::OnMove(x, y);
+	__super::OnMove(x, y);
 
 	MoveVideoWindow();
 
@@ -900,7 +900,7 @@ void CMainFrame::OnMove(int x, int y)
 
 void CMainFrame::OnSize(UINT nType, int cx, int cy)
 {
-	CFrameWnd::OnSize(nType, cx, cy);
+	__super::OnSize(nType, cx, cy);
 
 	if(nType == SIZE_RESTORED && m_fTrayIcon)
 	{
@@ -937,12 +937,12 @@ void CMainFrame::OnSysCommand(UINT nID, LPARAM lParam)
 		return;
 	}
 
-	CFrameWnd::OnSysCommand(nID, lParam);
+	__super::OnSysCommand(nID, lParam);
 }
 
 void CMainFrame::OnActivateApp(BOOL bActive, DWORD dwThreadID)
 {
-	CFrameWnd::OnActivateApp(bActive, dwThreadID);
+	__super::OnActivateApp(bActive, dwThreadID);
 
 	MONITORINFO mi;
 	mi.cbSize = sizeof(MONITORINFO);
@@ -1333,7 +1333,7 @@ void CMainFrame::OnTimer(UINT nIDEvent)
 		m_playingmsg.Empty();
 	}
 
-	CFrameWnd::OnTimer(nIDEvent);
+	__super::OnTimer(nIDEvent);
 }
 
 static bool Shutdown()
@@ -1829,8 +1829,8 @@ void CMainFrame::OnMouseMove(UINT nFlags, CPoint point)
 {
 	if(m_iPlaybackMode == PM_DVD)
 	{
-		CPoint p = point - m_wndView.GetVideoRect().TopLeft();
-		pDVDC->SelectAtPosition(p);
+		CPoint vp = point - m_wndView.GetVideoRect().TopLeft();
+		pDVDC->SelectAtPosition(vp);
 	}
 
 	CSize diff = m_lastMouseMove - point;
@@ -1896,13 +1896,12 @@ void CMainFrame::OnMouseMove(UINT nFlags, CPoint point)
 
 	m_lastMouseMove = point;
 
-	CFrameWnd::OnMouseMove(nFlags, point);
+	__super::OnMouseMove(nFlags, point);
 }
-
 
 UINT CMainFrame::OnNcHitTest(CPoint point)
 {
-	UINT nHitTest = CFrameWnd::OnNcHitTest(point);
+	UINT nHitTest = __super::OnNcHitTest(point);
 	return ((IsCaptionMenuHidden()) && nHitTest == HTCLIENT) ? HTCAPTION : nHitTest;
 }
 
@@ -1917,12 +1916,12 @@ void CMainFrame::OnHScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrollBar)
 		SeekTo(m_wndSeekBar.GetPos(), !!(::GetKeyState(VK_SHIFT)&0x8000));
 	}
 
-	CFrameWnd::OnHScroll(nSBCode, nPos, pScrollBar);
+	__super::OnHScroll(nSBCode, nPos, pScrollBar);
 }
 
 void CMainFrame::OnInitMenu(CMenu* pMenu)
 {
-	CFrameWnd::OnInitMenu(pMenu);
+	__super::OnInitMenu(pMenu);
 
 	MENUITEMINFO mii;
 	mii.cbSize = sizeof(mii);
@@ -1954,7 +1953,7 @@ void CMainFrame::OnInitMenu(CMenu* pMenu)
 
 void CMainFrame::OnInitMenuPopup(CMenu* pPopupMenu, UINT nIndex, BOOL bSysMenu)
 {
-	CFrameWnd::OnInitMenuPopup(pPopupMenu, nIndex, bSysMenu);
+	__super::OnInitMenuPopup(pPopupMenu, nIndex, bSysMenu);
 
 	MENUITEMINFO mii;
 	mii.cbSize = sizeof(mii);

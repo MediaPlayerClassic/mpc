@@ -282,7 +282,7 @@
 			<Tool
 				Name="VCPostBuildEventTool"
 				CommandLine="..\..\..\..\bin\upx.exe --best --compress-icons=0 &quot;$(TargetPath)&quot;"
-				ExcludedFromBuild="TRUE"/>
+				ExcludedFromBuild="FALSE"/>
 			<Tool
 				Name="VCPreBuildEventTool"/>
 			<Tool
@@ -377,22 +377,10 @@
 				RelativePath="DirectVobSub.h">
 			</File>
 			<File
-				RelativePath="DirectVobSubAllocator.h">
-			</File>
-			<File
 				RelativePath=".\DirectVobSubFilter.h">
 			</File>
 			<File
-				RelativePath="DirectVobSubInputPin.h">
-			</File>
-			<File
-				RelativePath="DirectVobSubOutputPin.h">
-			</File>
-			<File
 				RelativePath=".\DirectVobSubPropPage.h">
-			</File>
-			<File
-				RelativePath=".\DirectVobSubUIDs.h">
 			</File>
 			<File
 				RelativePath=".\IDirectVobSub.h">
