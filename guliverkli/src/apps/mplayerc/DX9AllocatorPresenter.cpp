@@ -508,11 +508,18 @@ STDMETHODIMP_(bool) CDX9AllocatorPresenter::Paint(bool fAll)
 					static __int64 i = 0, j = clock();
 					float fConstData[] = {(float)m_NativeVideoSize.cx, (float)m_NativeVideoSize.cy, (float)(i++), (float)(clock()-j)};
 					hr = m_pD3DDev->SetPixelShaderConstantF(0, fConstData, countof(fConstData)/4);
+					hr = m_pD3DDev->SetPixelShader(m_pPixelShader);
 				}
 
 				Vector v[4];
 				Transform(rDstVid, v);
 				hr = TextureBlt(m_pVideoTexture, v, rSrcVid);
+
+				if(m_pPixelShader)
+				{
+					hr = m_pD3DDev->SetPixelShader(NULL);
+				}
+
 			}
 			else
 			{
@@ -635,9 +642,6 @@ STDMETHODIMP CDX9AllocatorPresenter::SetPixelShader(LPCSTR pSrcData, LPCSTR pTar
 	}
 
 	hr = m_pD3DDev->CreatePixelShader((DWORD*)pShader->GetBufferPointer(), &m_pPixelShader);
-	if(FAILED(hr)) return hr;
-
-	hr = m_pD3DDev->SetPixelShader(m_pPixelShader);
 	if(FAILED(hr)) return hr;
 
 	Paint(true);
