@@ -209,6 +209,7 @@ protected:
 
 	CMap<DWORD, DWORD, CGSWnd*, CGSWnd*> m_pRenderWnds;
 
+	UINT32 m_PRIM;
 	D3DPRIMITIVETYPE m_primtype;
 	CUSTOMVERTEX* m_pVertices;
 	int m_nMaxVertices, m_nVertices, m_nPrims;

@@ -89,7 +89,17 @@ void GSState::VertexKick(bool fSkip)
 
 	static const int vmin[8] = {1, 2, 2, 3, 3, 3, 2, 0};
 	while(m_vl.GetCount() >= vmin[m_de.PRIM.PRIM])
+	{
+		if(m_nVertices+6 > m_nMaxVertices)
+		{
+			CUSTOMVERTEX* pVertices = new CUSTOMVERTEX[m_nMaxVertices <<= 1];
+			memcpy(pVertices, m_pVertices, m_nVertices*sizeof(CUSTOMVERTEX));
+			delete [] m_pVertices;
+			m_pVertices = pVertices;
+		}
+
 		DrawingKick(fSkip);
+	}
 }
 
 ///////////////////////////////////////////////
@@ -98,42 +108,43 @@ void GSState::DrawingKick(bool fSkip)
 {
 	LOG((_T("DrawingKick %d\n"), m_de.PRIM.PRIM));
 
-	DrawingContext* ctxt = &m_de.CTXT[m_de.PRIM.CTXT];
+	if(m_PRIM != m_de.PRIM.PRIM && m_nVertices > 0) FlushPrim();
+	m_PRIM = m_de.PRIM.PRIM;
 
-	D3DPRIMITIVETYPE primtype;
-	CUSTOMVERTEX pVertices[4];
+	CUSTOMVERTEX* pVertices = &m_pVertices[m_nVertices];
 	int nVertices = 0;
 
-	switch(m_de.PRIM.PRIM)
+	switch(m_PRIM)
 	{
-	case 3: // triangle
-		primtype = D3DPT_TRIANGLELIST;
-		m_vl.RemoveAt(0, pVertices[nVertices++]);
-		m_vl.RemoveAt(0, pVertices[nVertices++]);
-		m_vl.RemoveAt(0, pVertices[nVertices++]);
-		break;
 	case 4: // triangle strip
-#ifdef ENABLE_STRIPFAN
-		primtype = D3DPT_TRIANGLESTRIP;
-#else ENABLE_STRIPFAN
-		primtype = D3DPT_TRIANGLELIST;
-#endif
+		m_primtype = D3DPT_TRIANGLELIST;
 		m_vl.RemoveAt(0, pVertices[nVertices++]);
 		m_vl.GetAt(0, pVertices[nVertices++]);
 		m_vl.GetAt(1, pVertices[nVertices++]);
+		LOGV((pVertices[0], _T("TriStrip")));
+		LOGV((pVertices[1], _T("TriStrip")));
+		LOGV((pVertices[2], _T("TriStrip")));
+		break;
+	case 3: // triangle list
+		m_primtype = D3DPT_TRIANGLELIST;
+		m_vl.RemoveAt(0, pVertices[nVertices++]);
+		m_vl.RemoveAt(0, pVertices[nVertices++]);
+		m_vl.RemoveAt(0, pVertices[nVertices++]);
+		LOGV((pVertices[0], _T("TriList")));
+		LOGV((pVertices[1], _T("TriList")));
+		LOGV((pVertices[2], _T("TriList")));
 		break;
 	case 5: // triangle fan
-#ifdef ENABLE_STRIPFAN
-		primtype = D3DPT_TRIANGLEFAN;
-#else ENABLE_STRIPFAN
-		primtype = D3DPT_TRIANGLELIST;
-#endif
+		m_primtype = D3DPT_TRIANGLELIST;
 		m_vl.GetAt(0, pVertices[nVertices++]);
 		m_vl.RemoveAt(1, pVertices[nVertices++]);
 		m_vl.GetAt(1, pVertices[nVertices++]);
+		LOGV((pVertices[0], _T("TriFan")));
+		LOGV((pVertices[1], _T("TriFan")));
+		LOGV((pVertices[2], _T("TriFan")));
 		break;
 	case 6: // sprite
-		primtype = D3DPT_TRIANGLELIST;
+		m_primtype = D3DPT_TRIANGLELIST;
 		m_vl.RemoveAt(0, pVertices[nVertices++]);
 		m_vl.RemoveAt(0, pVertices[nVertices++]);
 		nVertices += 2;
@@ -145,100 +156,39 @@ void GSState::DrawingKick(bool fSkip)
 		pVertices[1].tv = pVertices[0].tv;
 		pVertices[2].x = pVertices[0].x;
 		pVertices[2].tu = pVertices[0].tu;
+		LOGV((pVertices[0], _T("Sprite")));
+		LOGV((pVertices[1], _T("Sprite")));
+		LOGV((pVertices[2], _T("Sprite")));
+		LOGV((pVertices[3], _T("Sprite")));
+		nVertices += 2;
+		pVertices[5] = pVertices[3];
+		pVertices[3] = pVertices[1];
+		pVertices[4] = pVertices[2];
 		break;
 	case 1: // line
-		primtype = D3DPT_LINELIST;
+		m_primtype = D3DPT_LINELIST;
 		m_vl.RemoveAt(0, pVertices[nVertices++]);
 		m_vl.RemoveAt(0, pVertices[nVertices++]);
+		LOGV((pVertices[0], _T("LineList")));
+		LOGV((pVertices[1], _T("LineList")));
 		break;
 	case 2: // line strip
-#ifdef ENABLE_STRIPFAN
-		primtype = D3DPT_LINESTRIP;
-#else
-		primtype = D3DPT_LINELIST;
-#endif
+		m_primtype = D3DPT_LINELIST;
 		m_vl.RemoveAt(0, pVertices[nVertices++]);
 		m_vl.GetAt(0, pVertices[nVertices++]);
+		LOGV((pVertices[0], _T("LineStrip")));
+		LOGV((pVertices[1], _T("LineStrip")));
 		break;
 	case 0: // point
-		primtype = D3DPT_POINTLIST;
+		m_primtype = D3DPT_POINTLIST;
 		m_vl.RemoveAt(0, pVertices[nVertices++]);
+		LOGV((pVertices[0], _T("PointList")));
 		break;
 	default:
 		ASSERT(0);
 		return;
 	}
-/*
-	POSITION pos;
 
-	switch(m_de.PRIM.PRIM)
-	{
-	case 3: // triangle
-		primtype = D3DPT_TRIANGLELIST;
-		pVertices[nVertices++] = m_vl.RemoveHead();
-		pVertices[nVertices++] = m_vl.RemoveHead();
-		pVertices[nVertices++] = m_vl.RemoveHead();
-		break;
-	case 4: // triangle strip
-#ifdef ENABLE_STRIPFAN
-		primtype = D3DPT_TRIANGLESTRIP;
-#else ENABLE_STRIPFAN
-		primtype = D3DPT_TRIANGLELIST;
-#endif
-		pVertices[nVertices++] = m_vl.RemoveHead();
-		pos = m_vl.GetHeadPosition();
-		pVertices[nVertices++] = m_vl.GetNext(pos);
-		pVertices[nVertices++] = m_vl.GetNext(pos);
-		break;
-	case 5: // triangle fan
-#ifdef ENABLE_STRIPFAN
-		primtype = D3DPT_TRIANGLEFAN;
-#else ENABLE_STRIPFAN
-		primtype = D3DPT_TRIANGLELIST;
-#endif
-		pos = m_vl.GetHeadPosition();
-		pVertices[nVertices++] = m_vl.GetNext(pos);
-		pVertices[nVertices++] = m_vl.GetNext(pos);
-		pVertices[nVertices++] = m_vl.GetNext(pos);
-		m_vl.RemoveAt(m_vl.FindIndex(1));
-		break;
-	case 6: // sprite
-		primtype = D3DPT_TRIANGLELIST;
-		pVertices[nVertices++] = m_vl.RemoveHead();
-		pVertices[nVertices++] = m_vl.RemoveHead();
-		nVertices += 2;
-		// ASSERT(pVertices[0].z == pVertices[1].z);
-		pVertices[0].z = pVertices[1].z;
-		pVertices[2] = pVertices[1];
-		pVertices[3] = pVertices[1];
-		pVertices[1].y = pVertices[0].y;
-		pVertices[1].tv = pVertices[0].tv;
-		pVertices[2].x = pVertices[0].x;
-		pVertices[2].tu = pVertices[0].tu;
-		break;
-	case 1: // line
-		primtype = D3DPT_LINELIST;
-		pVertices[nVertices++] = m_vl.RemoveHead();
-		pVertices[nVertices++] = m_vl.RemoveHead();
-		break;
-	case 2: // line strip
-#ifdef ENABLE_STRIPFAN
-		primtype = D3DPT_LINESTRIP;
-#else
-		primtype = D3DPT_LINELIST;
-#endif
-		pVertices[nVertices++] = m_vl.RemoveHead();
-		pVertices[nVertices++] = m_vl.GetHead();
-		break;
-	case 0: // point
-		primtype = D3DPT_POINTLIST;
-		pVertices[nVertices++] = m_vl.RemoveHead();
-		break;
-	default:
-		ASSERT(0);
-		return;
-	}
-*/
 	if(!(m_rs.PMODE.EN1|m_rs.PMODE.EN2) || fSkip)
 	{
 #ifdef ENABLE_STRIPFAN
@@ -247,120 +197,28 @@ void GSState::DrawingKick(bool fSkip)
 		return;
 	}
 
+	DrawingContext* ctxt = &m_de.CTXT[m_de.PRIM.CTXT];
+
 	LOG2((_T("Prim %05x %05x %04x\n"), 
 		ctxt->FRAME.Block(), m_de.PRIM.TME ? (UINT32)ctxt->TEX0.TBP0 : 0xfffff,
 		(m_de.PRIM.ABE || (m_primtype == D3DPT_LINELIST || m_primtype == D3DPT_LINESTRIP) && m_de.PRIM.AA1)
 			? ((ctxt->ALPHA.A<<12)|(ctxt->ALPHA.B<<8)|(ctxt->ALPHA.C<<4)|ctxt->ALPHA.D) 
 			: 0xffff));
 
-	switch(primtype)
-	{
-	case D3DPT_TRIANGLELIST:
-		if(nVertices == 4)
-		{
-			LOGV((pVertices[0], _T("Sprite")));
-			LOGV((pVertices[1], _T("Sprite")));
-			LOGV((pVertices[2], _T("Sprite")));
-			LOGV((pVertices[3], _T("Sprite")));
-			QueuePrim(pVertices, D3DPT_TRIANGLELIST);
-			QueuePrim(pVertices+1, D3DPT_TRIANGLELIST);
-		}
-		else
-		{
-			LOGV((pVertices[0], _T("TriList")));
-			LOGV((pVertices[1], _T("TriList")));
-			LOGV((pVertices[2], _T("TriList")));
-			QueuePrim(pVertices, D3DPT_TRIANGLELIST);
-		}
-		break;
-	case D3DPT_TRIANGLESTRIP:
-		LOGV((pVertices[0], _T("TriStrip")));
-		LOGV((pVertices[1], _T("TriStrip")));
-		LOGV((pVertices[2], _T("TriStrip")));
-		QueuePrim(pVertices, D3DPT_TRIANGLESTRIP);
-		break;
-	case D3DPT_TRIANGLEFAN:
-		LOGV((pVertices[0], _T("TriFan")));
-		LOGV((pVertices[1], _T("TriFan")));
-		LOGV((pVertices[2], _T("TriFan")));
-		QueuePrim(pVertices, D3DPT_TRIANGLEFAN);
-		break;
-	case D3DPT_LINELIST:
-		LOGV((pVertices[0], _T("LineList")));
-		LOGV((pVertices[1], _T("LineList")));
-		QueuePrim(pVertices, D3DPT_LINELIST);
-		break;
-	case D3DPT_LINESTRIP:
-		LOGV((pVertices[0], _T("LineStrip")));
-		LOGV((pVertices[1], _T("LineStrip")));
-		QueuePrim(pVertices, D3DPT_LINESTRIP);
-		break;
-	case D3DPT_POINTLIST:
-		LOGV((pVertices[0], _T("PointList")));
-		QueuePrim(pVertices, D3DPT_POINTLIST);
-		break;
-	default:
-		break;
-	}
-}
-
-void GSState::QueuePrim(CUSTOMVERTEX* pNewVertices, D3DPRIMITIVETYPE pt)
-{
-	if(m_primtype != pt && m_nVertices > 0)
-		FlushPrim();
-
-	m_primtype = pt;
-
-	int nNewVertices = 0;
-
-	switch(m_primtype)
-	{
-	case D3DPT_TRIANGLELIST: nNewVertices = 3; break;
-	case D3DPT_TRIANGLESTRIP: nNewVertices = 3; if(m_nVertices > 0) {nNewVertices-=2; pNewVertices+=2;} break;
-	case D3DPT_TRIANGLEFAN: nNewVertices = 3; if(m_nVertices > 0) {nNewVertices-=2; pNewVertices+=2;} break;
-	case D3DPT_LINELIST: nNewVertices = 2; break;
-	case D3DPT_LINESTRIP: nNewVertices = 2; if(m_nVertices > 0) {nNewVertices--; pNewVertices++;} break;
-	case D3DPT_POINTLIST: nNewVertices = 1; break;
-	default: ASSERT(0); return;
-	}
-
-	if(nNewVertices > 1)
-	{
-		int j = nNewVertices-1;
-
-		for(int i = 1; i < nNewVertices; i++, j--)
-		{
-			if(pNewVertices[i-1].x != pNewVertices[i].x
-			|| pNewVertices[i-1].y != pNewVertices[i].y
-			|| pNewVertices[i-1].z != pNewVertices[i].z)
-				break;
-		}
-
-		if(j == 0) return;
-	}
-
-	if(m_nVertices+nNewVertices > m_nMaxVertices)
-	{
-		CUSTOMVERTEX* pVertices = new CUSTOMVERTEX[m_nMaxVertices <<= 1];
-		memcpy(pVertices, m_pVertices, m_nVertices*sizeof(CUSTOMVERTEX));
-		delete [] m_pVertices;
-		m_pVertices = pVertices;
-	}
+	m_nVertices += nVertices;
 
 	if(!m_de.PRIM.IIP)
 	{
-		for(int i = nNewVertices-1; i > 0; i--)
-			pNewVertices[i-1].color = pNewVertices[i].color;
+		for(int i = nVertices-1; i > 0; i--)
+			pVertices[i-1].color = pVertices[i].color;
 	}
-
-	memcpy(&m_pVertices[m_nVertices], pNewVertices, sizeof(CUSTOMVERTEX)*nNewVertices);
-	m_nVertices += nNewVertices;
-
+/*
 	if(::GetAsyncKeyState(VK_SPACE)&0x80000000)
 	{
 		FlushPrim();
 		Flip();
 	}
+*/
 }
 
 void GSState::FlushPrim()
@@ -734,7 +592,7 @@ if(m_de.PRIM.TME && m_nVertices == 6 && (ctxt->FRAME.Block()) == 0x00000 && ctxt
 //		hr = D3DXSaveTextureToFile(_T("c:\\rtbefore.bmp"), D3DXIFF_BMP, pRT, NULL);
 	}
 }
-/**/
+/*
 	int Size = m_nVertices*sizeof(CUSTOMVERTEX);
 	D3DVERTEXBUFFER_DESC vbdesc;
 	memset(&vbdesc, 0, sizeof(vbdesc));
@@ -754,7 +612,7 @@ if(m_de.PRIM.TME && m_nVertices == 6 && (ctxt->FRAME.Block()) == 0x00000 && ctxt
 	}
 
 	hr = m_pD3DDev->SetStreamSource(0, m_pVertexBuffer, 0, sizeof(CUSTOMVERTEX));
-
+*/
 /*
 	CComPtr<IDirect3DVertexBuffer9> pVB;
 
@@ -783,8 +641,8 @@ if(m_de.PRIM.TME && m_nVertices == 6 && (ctxt->FRAME.Block()) == 0x00000 && ctxt
 
 	if(1)//!m_de.PABE.PABE)
 	{
-//		hr = m_pD3DDev->DrawPrimitiveUP(m_primtype, nPrims, m_pVertices, sizeof(CUSTOMVERTEX));
-		hr = m_pD3DDev->DrawPrimitive(m_primtype, 0, nPrims);
+		hr = m_pD3DDev->DrawPrimitiveUP(m_primtype, nPrims, m_pVertices, sizeof(CUSTOMVERTEX));
+//		hr = m_pD3DDev->DrawPrimitive(m_primtype, 0, nPrims);
 /*
 		if(m_primtype == D3DPT_TRIANGLELIST && m_nVertices != 6)
 		{
@@ -898,6 +756,7 @@ if(m_de.PRIM.TME && m_nVertices == 6 && (ctxt->FRAME.Block()) == 0x00000 && ctxt
 
 	//////////////////////
 
+	m_PRIM = 7;
 	m_primtype = D3DPT_FORCE_DWORD;
 	m_nVertices = 0;
 
