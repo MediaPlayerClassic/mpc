@@ -376,6 +376,21 @@ CGraphBuilder::CGraphBuilder(IGraphBuilder* pGB, HWND hWnd)
 	}
 
 	{
+		guids.AddTail(MEDIATYPE_DVD_ENCRYPTED_PACK);
+		guids.AddTail(MEDIASUBTYPE_PS2_PCM);
+		guids.AddTail(MEDIATYPE_MPEG2_PACK);
+		guids.AddTail(MEDIASUBTYPE_PS2_PCM);
+		guids.AddTail(MEDIATYPE_MPEG2_PES);
+		guids.AddTail(MEDIASUBTYPE_PS2_PCM);
+		guids.AddTail(MEDIATYPE_Audio);
+		guids.AddTail(MEDIASUBTYPE_PS2_PCM);
+		AddFilter(new CGraphCustomFilter(__uuidof(CMpaDecFilter), guids, 
+			(s.TraFilters&TRA_PS2AUD) ? L"PS2 Audio Decoder" : L"PS2 Audio Decoder (low merit)",
+			(s.TraFilters&TRA_PS2AUD) ? LMERIT_ABOVE_DSHOW : LMERIT_DO_USE));
+		guids.RemoveAll();
+	}
+
+	{
 		guids.AddTail(MEDIATYPE_Video);
 		guids.AddTail(MEDIASUBTYPE_RV10);
 		guids.AddTail(MEDIATYPE_Video);

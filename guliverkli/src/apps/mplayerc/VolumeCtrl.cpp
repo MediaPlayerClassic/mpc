@@ -45,7 +45,7 @@ bool CVolumeCtrl::Create(CWnd* pParentWnd)
 
 	SetRange(1, 100);
 	SetPosInternal(AfxGetAppSettings().nVolume);
-	SetPageSize(10);
+	SetPageSize(8);
 	SetLineSize(0);
 
 	return(true);

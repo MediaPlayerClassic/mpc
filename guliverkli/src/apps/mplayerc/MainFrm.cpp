@@ -325,6 +325,7 @@ BEGIN_MESSAGE_MAP(CMainFrame, CFrameWnd)
 
 	ON_COMMAND(ID_HELP_HOMEPAGE, OnHelpHomepage)
 	ON_COMMAND(ID_HELP_DONATE, OnHelpDonate)
+
 	END_MESSAGE_MAP()
 
 /////////////////////////////////////////////////////////////////////////////
