@@ -43,6 +43,9 @@ class CMatroskaSplitterOutputPin : public CBaseSplitterOutputPin
 	CAutoPtrList<MatroskaPacket> m_packets;
 	CList<MatroskaPacket*> m_rob;
 
+	typedef struct {REFERENCE_TIME rtStart, rtStop;} timeoverride;
+	CList<timeoverride> m_timeoverrides;
+
 protected:
 	HRESULT DeliverPacket(CAutoPtr<Packet> p);
 

@@ -294,7 +294,8 @@ CShoutcastStream::CShoutcastStream(const WCHAR* wfn, CShoutcastSource* pParent, 
 //fn = _T("http://64.236.34.141/stream/1005");
 //fn = _T("http://218.145.30.106:11000"); // 128kbps korean
 //fn = _T("http://65.206.46.110:8020"); // 96kbps
-fn = _T("http://64.236.34.72:80/stream/1003");
+//fn = _T("http://64.236.34.72:80/stream/1003");
+fn = _T("http://64.236.34.72:80/stream/1011");
 //fn = _T("http://218.145.30.106:11000");
 //fn = _T("http://radio.sluchaj.com:8000/radio.ogg"); // ogg
 // http://www.oddsock.org/icecast2yp/ // more ogg via icecast2
@@ -406,6 +407,8 @@ HRESULT CShoutcastStream::FillBuffer(IMediaSample* pSample)
 		DeliverBeginFlush();
 		DeliverEndFlush();
 
+		DeliverNewSegment(0, ~0, 1.0);
+
 		TRACE(_T("END BUFFERING\n"));
 		m_fBuffering = false;
 	}
@@ -471,7 +474,7 @@ UINT CShoutcastStream::SocketThreadProc()
 {
 	fExitThread = false;
 
-	SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_ABOVE_NORMAL);
+	SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_TIME_CRITICAL);
 
 #ifdef REGISTER_FILTER
 	AFX_MANAGE_STATE(AfxGetStaticModuleState());
@@ -560,6 +563,7 @@ int CShoutcastStream::CShoutcastSocket::Receive(void* lpBuf, int nBufLen, int nF
 		if(1 == __super::Receive(&b, 1) && b && b*16 == __super::Receive(buff, b*16))
 		{
 			CStringA str = (LPCSTR)buff, title("StreamTitle='");
+TRACE(_T("Metainfo: %s\n"), CString(str));
 			int i = str.Find(title);
 			if(i >= 0)
 			{
@@ -567,6 +571,49 @@ int CShoutcastStream::CShoutcastSocket::Receive(void* lpBuf, int nBufLen, int nF
 				int j = str.Find('\'', i);
 				if(j > i) m_title = str.Mid(i, j - i);
 			}
+			else
+			{
+TRACE(_T("!!!!!!!!!Missing StreamTitle!!!!!!!!!\n"));
+			}
+		}
+	}
+	else if(m_metaint > 0)
+	{
+		char* p = (char*)lpBuf;
+		char* p0 = p;
+		char* pend = p + len - 13;
+		for(; p < pend; p++)
+		{
+			if(strncmp(p, "StreamTitle='", 13))
+				continue;
+
+TRACE(_T("!!!!!!!!!StreamTitle found inside mp3 data!!!!!!!!! offset=%d\n"), p - p0);
+TRACE(_T("resyncing...\n"));
+			while(p-- > p0)
+			{
+				if((BYTE)*p >= 0x20)
+					continue;
+
+TRACE(_T("found possible length byte: %d, skipping %d bytes\n"), *p, 1 + *p*16);
+				p += 1 + *p*16;
+				len = (p0 + len) - p;
+TRACE(_T("returning the remaining bytes in the packet: %d\n"), len);
+				if(len <= 0)
+				{
+TRACE(_T("nothing to return, reading a bit more in\n"));
+					if(len < 0) __super::Receive(lpBuf, -len, nFlags);
+
+					int len = __super::Receive(lpBuf, nBufLen, nFlags);
+					if(len <= 0) return len;
+				}
+				
+				m_nBytesRead = len; 
+				memcpy(lpBuf, p, len);
+
+				break;
+			}
+
+			break;
 		}
 	}
 
