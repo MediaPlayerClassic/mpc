@@ -104,12 +104,28 @@ HRESULT CTextInputPin::BreakConnect()
     return CBaseInputPin::BreakConnect();
 }
 
+STDMETHODIMP CTextInputPin::NewSegment(REFERENCE_TIME tStart, REFERENCE_TIME tStop, double dRate)
+{
+	CAutoLock cAutoLock(&m_csReceive);
+
+	{
+		CAutoLock cAutoLock(m_pSubLock);
+		CRenderedTextSubtitle* pRTS = (CRenderedTextSubtitle*)(ISubStream*)m_pSubStream;
+		pRTS->RemoveAll();
+		pRTS->CreateSegments();
+	}
+
+	return __super::NewSegment(tStart, tStop, dRate);
+}
+
 STDMETHODIMP CTextInputPin::Receive(IMediaSample* pSample)
 {
 	HRESULT hr;
 
 	hr = CBaseInputPin::Receive(pSample);
     if(FAILED(hr)) return hr;
+
+	CAutoLock cAutoLock(&m_csReceive);
 
 	REFERENCE_TIME tStart, tStop;
     pSample->GetTime(&tStart, &tStop);

@@ -1812,6 +1812,96 @@ void CSimpleTextSubtitle::Add(CStringW str, bool fUnicode, int start, int end, C
 	str.Replace(L"\n", L"\\N");
 	if(style.IsEmpty()) style = _T("Default");
 
+	STSEntry sub;
+	sub.str = str;
+	sub.fUnicode = fUnicode;
+	sub.style = style;
+	sub.actor = actor;
+	sub.effect = effect;
+	sub.marginRect = marginRect;
+	sub.layer = layer;
+	sub.start = start;
+	sub.end = end;
+	sub.readorder = GetSize();
+	int n = CSTSArray::Add(sub);
+
+	int len = m_segments.GetSize();
+
+    if(len == 0)
+	{
+		STSSegment stss(start, end);
+		stss.subs.Add(n);
+		m_segments.Add(stss);
+	}
+	else if(end <= m_segments[0].start)
+	{
+		STSSegment stss(start, end);
+		stss.subs.Add(n);
+		m_segments.InsertAt(0, stss);
+	}
+	else if(start >= m_segments[len-1].end)
+	{
+		STSSegment stss(start, end);
+		stss.subs.Add(n);
+		m_segments.Add(stss);
+	}
+	else
+	{
+		if(start < m_segments[0].start)
+		{
+			STSSegment stss(start, m_segments[0].start);
+			stss.subs.Add(n);
+			start = m_segments[0].start;
+			m_segments.InsertAt(0, stss);
+		}
+
+		for(int i = 0; i < m_segments.GetCount(); i++)
+		{
+			STSSegment& s = m_segments[i];
+
+			if(start >= s.end)
+				continue;
+
+			if(end <= s.start)
+				break;
+
+			if(s.start < start && start < s.end)
+			{
+				STSSegment stss(s.start, start);
+				stss.subs.Copy(s.subs);
+				s.start = start;
+				m_segments.InsertAt(i, stss);
+				continue;
+			}
+
+			if(start <= s.start && s.end <= end)
+			{
+				s.subs.Add(n);
+			}
+			
+			if(s.start < end && end < s.end)
+			{
+				STSSegment stss(s.start, end);
+				stss.subs.Copy(s.subs);
+				stss.subs.Add(n);
+				s.start = end;
+				m_segments.InsertAt(i, stss);
+			}
+		}
+
+		if(end > m_segments[m_segments.GetCount()-1].end)
+		{
+			STSSegment stss(m_segments[0].end, end);
+			stss.subs.Add(n);
+			m_segments.Add(stss);
+		}
+	}
+
+/*
+	str.Remove('\r');
+	str.Replace(L"\n", L"\\N");
+	if(style.IsEmpty()) style = _T("Default");
+
 	int j = m_segments.GetSize();
 	for(int i = j-1; i >= 0; i--)
 	{
@@ -1852,64 +1942,7 @@ void CSimpleTextSubtitle::Add(CStringW str, bool fUnicode, int start, int end, C
 	sub.end = end;
 	sub.readorder = GetSize();
 	CSTSArray::Add(sub);
-
-/*
-	if(str.Trim().IsEmpty() || start > end) return;
-
-	str.Replace(L"\n", L"\\N");
-	if(style.IsEmpty()) style = _T("Default");
-
-	STSEntry sub;
-	sub.str = str;
-	sub.fUnicode = fUnicode;
-	sub.style = style;
-	sub.actor = actor;
-	sub.effect = effect;
-	sub.marginRect = marginRect;
-	sub.layer = layer;
-	sub.start = start;
-	sub.end = end;
-	sub.readorder = GetSize();
-	int n = CSTSArray::Add(sub);
-
-	for(int i = m_segments.GetCount()-1; i >= 0 && m_segments[i].start > start; i--)
-	{
-		STSSegment& s = m_segments[i];
-
-		bool fKeepIt = false;
-
-		for(int j = 0; j < s.subs.GetCount(); j++)
-		{
-			if(GetAt(s.subs[j]).start <= start)
-			{
-				fKeepIt = true;
-				break;
-			}
-		}
-
-		if(!fKeepIt)
-		{
-			m_segments.RemoveAt(i);
-			continue;
-		}
-	}
-/*
-	if(m_segments.GetSize() == 0)
-	{
-		STSSegment stss(start, end);
-		stss.subs.Add(n);
-		m_segments.Add(stss);
-	}
-	else
-	{
-	}
 */
-
-/*
-	if(m_segments.GetSize() == 0) 
-		CSTSArray::RemoveAll();
-*/
-
 }
 
 void CSimpleTextSubtitle::CreateDefaultStyle(int CharSet)

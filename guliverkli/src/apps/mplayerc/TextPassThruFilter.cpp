@@ -69,6 +69,8 @@ void CTextPassThruFilter::SetName()
 
 HRESULT CTextPassThruFilter::Transform(IMediaSample* pIn, IMediaSample* pOut)
 {
+	CAutoLock cAutoLock(&m_csReceive);
+
 	BYTE* pDataIn = NULL;
 	BYTE* pDataOut = NULL;
 
@@ -78,7 +80,8 @@ HRESULT CTextPassThruFilter::Transform(IMediaSample* pIn, IMediaSample* pOut)
 	long len = pIn->GetActualDataLength();
 	long size = pOut->GetSize();
 
-	if(!pDataIn || !pDataOut || len > size || len <= 0) return S_FALSE;
+	if(!pDataIn || !pDataOut || len > size || len <= 0) 
+		return S_FALSE;
 
 	memcpy(pDataOut, pDataIn, min(len, size));
 	pOut->SetActualDataLength(min(len, size));
@@ -88,8 +91,14 @@ HRESULT CTextPassThruFilter::Transform(IMediaSample* pIn, IMediaSample* pOut)
 	REFERENCE_TIME rtStart, rtStop;
 	if(SUCCEEDED(pIn->GetTime(&rtStart, &rtStop)))
 	{
-		int tstart = (int)((rtStart + m_rtOffset) / 10000);
-		int tstop = (int)((rtStop + m_rtOffset) / 10000);
+		if(rtStart <= 0 && rtStop <= 0)
+			return S_OK;
+
+		rtStart += m_rtOffset;
+		rtStop += m_rtOffset;
+
+		int tstart = (int)(rtStart / 10000);
+		int tstop = (int)(rtStop / 10000);
 
 		CMediaType& mt = m_pInput->CurrentMediaType();
 
@@ -141,7 +150,7 @@ HRESULT CTextPassThruFilter::Transform(IMediaSample* pIn, IMediaSample* pOut)
 					SetName();
 
 					pRTS->Add(AToW(str), false, tstart, tstop);
-					m_pMainFrame->InvalidateSubtitle((DWORD_PTR)pRTS, rtStart + m_rtOffset);
+					m_pMainFrame->InvalidateSubtitle((DWORD_PTR)(ISubStream*)m_pRTS, rtStart);
 				}
 			}
 		}
@@ -149,16 +158,19 @@ HRESULT CTextPassThruFilter::Transform(IMediaSample* pIn, IMediaSample* pOut)
 		{
 			CAutoLock cAutoLock(&m_pMainFrame->m_csSubLock);
 			CStringW str = UTF8To16(CStringA((LPCSTR)pDataIn, len)).Trim();
+
 			if(!str.IsEmpty())
 			{
 				pRTS->Add(str, true, tstart, tstop);
-				m_pMainFrame->InvalidateSubtitle((DWORD_PTR)pRTS, rtStart + m_rtOffset);
+				m_pMainFrame->InvalidateSubtitle((DWORD_PTR)(ISubStream*)m_pRTS, rtStart);
 			}
 		}
 		// TODO: handle SSA, ASS, USF subtypes
 	}
 
-	return S_OK;
+	return GetCLSID(GetFilterFromPin(m_pOutput->GetConnected())) == GUIDFromCString(_T("{48025243-2D39-11CE-875D-00608CB78066}"))
+		? S_FALSE
+		: S_OK;
 }
 
 HRESULT CTextPassThruFilter::CheckInputType(const CMediaType* mtIn)
@@ -260,6 +272,8 @@ HRESULT CTextPassThruFilter::CompleteConnect(PIN_DIRECTION dir, IPin* pReceivePi
 
 HRESULT CTextPassThruFilter::NewSegment(REFERENCE_TIME tStart, REFERENCE_TIME tStop, double dRate)
 {
+	CAutoLock cAutoLock(&m_csReceive);
+
 	m_rtOffset = tStart;
 
 	CMediaType& mt = m_pInput->CurrentMediaType();
@@ -267,6 +281,13 @@ HRESULT CTextPassThruFilter::NewSegment(REFERENCE_TIME tStart, REFERENCE_TIME tS
 	if(mt.majortype == MEDIATYPE_Text)
 	{
 		SetName();
+	}
+
+	{
+		CAutoLock cAutoLock(&m_pMainFrame->m_csSubLock);
+		CRenderedTextSubtitle* pRTS = (CRenderedTextSubtitle*)(ISubStream*)m_pRTS;
+		pRTS->RemoveAll();
+		pRTS->CreateSegments();
 	}
 
 	return __super::NewSegment(tStart, tStop, dRate);
