@@ -558,7 +558,13 @@ class SubtitlesDB extends DB
 	  `passwordhash` varchar(32) NOT NULL default '',
 	  `email` varchar(64) NOT NULL default '',
 	  PRIMARY KEY  (`userid`)
-	) ENGINE=InnoDB DEFAULT CHARSET=utf8	
+	) ENGINE=InnoDB DEFAULT CHARSET=utf8
+	
+	CREATE TABLE `settings` (
+	  `param` varchar(16) NOT NULL default '',
+	  `value` varchar(255) NOT NULL default '',
+	  PRIMARY KEY  (`param`)
+	) ENGINE=InnoDB DEFAULT CHARSET=utf8
 	
 	*/
 
