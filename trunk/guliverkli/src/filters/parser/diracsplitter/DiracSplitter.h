@@ -38,10 +38,6 @@ protected:
 public:
 	CDiracSplitterFilter(LPUNKNOWN pUnk, HRESULT* phr);
 
-#ifdef REGISTER_FILTER
-    static CUnknown* WINAPI CreateInstance(LPUNKNOWN lpunk, HRESULT* phr);
-#endif
-
 	DECLARE_IUNKNOWN
     STDMETHODIMP NonDelegatingQueryInterface(REFIID riid, void** ppv);
 };
@@ -51,10 +47,6 @@ class CDiracSourceFilter : public CDiracSplitterFilter
 {
 public:
 	CDiracSourceFilter(LPUNKNOWN pUnk, HRESULT* phr);
-
-#ifdef REGISTER_FILTER
-    static CUnknown* WINAPI CreateInstance(LPUNKNOWN lpunk, HRESULT* phr);
-#endif
 };
 
 [uuid("F78CF248-180E-4713-B107-B13F7B5C31E1")]

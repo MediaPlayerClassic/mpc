@@ -54,6 +54,50 @@ END
 
 #endif    // APSTUDIO_INVOKED
 
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog
+//
+
+IDD_SHADEREDITORDIALOG DIALOGEX 0, 0, 301, 219
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | 
+    WS_SYSMENU
+EXSTYLE WS_EX_PALETTEWINDOW
+CAPTION "Shader Editor"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    COMBOBOX        IDC_COMBO1,7,7,144,51,CBS_DROPDOWN | CBS_SORT | 
+                    WS_VSCROLL | WS_TABSTOP
+    EDITTEXT        IDC_EDIT1,7,23,287,160,ES_MULTILINE | ES_AUTOVSCROLL | 
+                    ES_AUTOHSCROLL | ES_WANTRETURN | WS_VSCROLL
+    COMBOBOX        IDC_COMBO2,153,7,64,42,CBS_DROPDOWN | CBS_SORT | 
+                    WS_VSCROLL | WS_TABSTOP
+    PUSHBUTTON      "Delete",IDC_BUTTON1,219,7,36,13
+    PUSHBUTTON      "Save",IDC_BUTTON2,258,7,36,13
+    EDITTEXT        IDC_EDIT2,7,185,287,27,ES_MULTILINE | ES_AUTOHSCROLL | 
+                    ES_READONLY | WS_VSCROLL
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// DESIGNINFO
+//
+
+#ifdef APSTUDIO_INVOKED
+GUIDELINES DESIGNINFO 
+BEGIN
+    IDD_SHADEREDITORDIALOG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 294
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 212
+    END
+END
+#endif    // APSTUDIO_INVOKED
+
 #endif    // Hungarian resources
 /////////////////////////////////////////////////////////////////////////////
 
@@ -231,7 +275,7 @@ STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION |
 CAPTION "Open"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
-    ICON            11128,IDC_STATIC,9,8,20,20
+    ICON            IDR_MAINFRAME,IDC_STATIC,9,8,20,20
     LTEXT           "Type the address of a movie or audio file (on the Internet or your computer) and the player will open it for you.",
                     IDC_STATIC1,35,9,178,28
     LTEXT           "Open:",IDC_STATIC,7,48,21,8
@@ -572,6 +616,8 @@ BEGIN
     EDITTEXT        IDC_EDIT6,73,94,148,13,ES_AUTOHSCROLL | ES_READONLY | 
                     NOT WS_BORDER
     CONTROL         "",IDC_STATIC,"Static",SS_ETCHEDHORZ,8,114,213,1
+    EDITTEXT        IDC_EDIT7,8,121,213,69,ES_MULTILINE | ES_AUTOHSCROLL | 
+                    ES_READONLY | WS_HSCROLL
 END
 
 IDD_FILEPROPCLIP DIALOGEX 0, 0, 234, 202
@@ -962,22 +1008,24 @@ BEGIN
                     IDC_STATIC,105,56,183,53
     CONTROL         "Use regular offscreen plain surfaces",IDC_REGULARSURF,
                     "Button",BS_AUTORADIOBUTTON | WS_GROUP,113,70,131,10
-    CONTROL         "Use texture surfaces and render video in 2d",
-                    IDC_TEXTURESURF2D,"Button",BS_AUTORADIOBUTTON,113,81,157,
+    CONTROL         "Use texture surfaces and render video in 2D",
+                    IDC_TEXTURESURF2D,"Button",BS_AUTORADIOBUTTON,113,81,158,
                     10
-    CONTROL         "Use texture surfaces and render video in 3d",
-                    IDC_TEXTURESURF3D,"Button",BS_AUTORADIOBUTTON,113,92,157,
+    CONTROL         "Use texture surfaces and render video in 3D ***",
+                    IDC_TEXTURESURF3D,"Button",BS_AUTORADIOBUTTON,113,92,172,
                     10
     GROUPBOX        "DirectShow Audio",IDC_STATIC,5,112,283,34
     COMBOBOX        IDC_COMBO1,14,125,266,66,CBS_DROPDOWNLIST | WS_VSCROLL | 
                     WS_TABSTOP
     LTEXT           "* Saving images won't work with these renderers",
-                    IDC_STATIC,13,175,158,8
-    LTEXT           "** Required for loading subtitles",IDC_STATIC,13,185,
+                    IDC_STATIC,13,168,158,8
+    LTEXT           "** Required for loading subtitles",IDC_STATIC,13,178,
                     104,8
     CONTROL         "Lock back-buffer before presenting (may fix broken vertical syncronization)",
                     IDC_CHECK1,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,13,151,
                     257,10
+    LTEXT           "*** Required for image rotation and pixelshaders (DX9-only)",
+                    IDC_STATIC,13,188,195,8
 END
 
 IDD_PPAGEMPEG DIALOGEX 0, 0, 296, 203
@@ -1646,6 +1694,7 @@ BEGIN
         MENUITEM "&Increase Rate\tCtrl+Up",     ID_PLAY_INCRATE
         MENUITEM SEPARATOR
         MENUITEM "&Filters",                    ID_PLAY_FILTERS
+        MENUITEM "S&haders",                    ID_PLAY_SHADERS32849
         MENUITEM SEPARATOR
         MENUITEM "&Audio",                      ID_PLAY_AUDIO
         MENUITEM "Su&btitles",                  ID_PLAY_SUBTITLES
@@ -1762,8 +1811,9 @@ BEGIN
         MENUITEM "&Favorites",                  ID__FAVORITES
         MENUITEM SEPARATOR
         MENUITEM "F&ilters",                    ID__FILTERS32816
+        MENUITEM "S&haders",                    ID__SHADERS
         MENUITEM SEPARATOR
-        MENUITEM "&Audio",                      65535
+        MENUITEM "&Audio",                      ID__AUDIO
         MENUITEM "Su&btitles",                  65535
         MENUITEM SEPARATOR
         POPUP "Vol&ume"
@@ -1955,6 +2005,7 @@ BEGIN
         END
         MENUITEM SEPARATOR
         MENUITEM "&Filters",                    ID_PLAY_FILTERS
+        MENUITEM "S&haders",                    ID__SHADERS32852
         MENUITEM SEPARATOR
         MENUITEM "&Audio",                      ID_PLAY_AUDIO
         MENUITEM "Su&btitles",                  ID_PLAY_SUBTITLES

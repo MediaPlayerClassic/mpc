@@ -137,6 +137,11 @@ public:
 		WORD aac_frame_length:13;
 		WORD adts_buffer_fullness:11;
 		WORD no_raw_data_blocks_in_frame:2;
+
+		WORD crc;
+
+		int FrameSize, nBytesPerSec;
+		REFERENCE_TIME rtDuration;
 	};
 
 	class ac3hdr

@@ -398,6 +398,14 @@ public:
 
 	bool IsTunerActive();
 
+	bool SetVideoInput(int input);
+	bool SetVideoChannel(int channel);
+	bool SetAudioInput(int input);
+
+	int GetVideoInput();
+	int GetVideoChannel();
+	int GetAudioInput();
+
 protected:
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV support
 	virtual BOOL PreTranslateMessage(MSG* pMsg);

@@ -808,7 +808,7 @@ CString BinToString(BYTE* ptr, int len)
 	return(ret);
 }
 
-static void FindFiles(CString fn, CStringList& files)
+static void FindFiles(CString fn, CList<CString>& files)
 {
 	CString path = fn;
 	path.Replace('/', '\\');
@@ -825,7 +825,7 @@ static void FindFiles(CString fn, CStringList& files)
 	}
 }
 
-cdrom_t GetCDROMType(TCHAR drive, CStringList& files)
+cdrom_t GetCDROMType(TCHAR drive, CList<CString>& files)
 {
 	files.RemoveAll();
 
@@ -1075,7 +1075,7 @@ bool ExtractDim(const AM_MEDIA_TYPE* pmt, int& w, int& h, int& arx, int& ary)
 		arx = w * vih->bmiHeader.biYPelsPerMeter;
 		ary = h * vih->bmiHeader.biXPelsPerMeter;
 	}
-	else if(pmt->formattype == FORMAT_VideoInfo2 || pmt->formattype == FORMAT_MPEG2_VIDEO)
+	else if(pmt->formattype == FORMAT_VideoInfo2 || pmt->formattype == FORMAT_MPEG2_VIDEO || pmt->formattype == FORMAT_DiracVideoInfo)
 	{
 		VIDEOINFOHEADER2* vih = (VIDEOINFOHEADER2*)pmt->pbFormat;
 		w = vih->bmiHeader.biWidth;
@@ -1086,6 +1086,12 @@ bool ExtractDim(const AM_MEDIA_TYPE* pmt, int& w, int& h, int& arx, int& ary)
 	else
 	{
 		return(false);
+	}
+
+	if(!arx || !ary)
+	{
+		arx = w;
+		ary = h;
 	}
 
 	BYTE* ptr = NULL;
@@ -1239,6 +1245,27 @@ IBaseFilter* AppendFilter(IPin* pPin, IMoniker* pMoniker, IGraphBuilder* pGB)
 	while(false);
 
 	return(NULL);
+}
+
+CStringW GetFriendlyName(CStringW DisplayName)
+{
+	CStringW FriendlyName;
+
+	CComPtr<IBindCtx> pBindCtx;
+	CreateBindCtx(0, &pBindCtx);
+
+	CComPtr<IMoniker> pMoniker;
+	ULONG chEaten;
+	if(S_OK != MkParseDisplayName(pBindCtx, CComBSTR(DisplayName), &chEaten, &pMoniker))
+		return(false);
+
+	CComPtr<IPropertyBag> pPB;
+	CComVariant var;
+	if(SUCCEEDED(pMoniker->BindToStorage(pBindCtx, 0, IID_IPropertyBag, (void**)&pPB))
+	&& SUCCEEDED(pPB->Read(CComBSTR(_T("FriendlyName")), &var, NULL)))
+		FriendlyName = var.bstrVal;
+
+	return FriendlyName;
 }
 
 typedef struct

@@ -174,24 +174,25 @@ bool CMpaSplitterFilter::DoDeliverLoop()
 {
 	HRESULT hr = S_OK;
 
-	CMpaSplitterFile::mpahdr h;
+	int FrameSize;
+	REFERENCE_TIME rtDuration;
 
 	while(SUCCEEDED(hr) && !CheckRequest(NULL) && m_pFile->GetPos() < m_pFile->GetEndPos())
 	{
-		if(!m_pFile->Sync(h)) {Sleep(1); continue;}
+		if(!m_pFile->Sync(FrameSize, rtDuration)) {Sleep(1); continue;}
 
 		CAutoPtr<Packet> p(new Packet());
-		p->pData.SetSize(h.FrameSize);
-		m_pFile->Read(p->pData.GetData(), h.FrameSize);
+		p->pData.SetSize(FrameSize);
+		m_pFile->Read(p->pData.GetData(), FrameSize);
 
 		p->TrackNumber = 0;
 		p->rtStart = m_rtStart;
-		p->rtStop = m_rtStart + h.rtDuration;
+		p->rtStop = m_rtStart + rtDuration;
 		p->bSyncPoint = TRUE;
 
 		hr = DeliverPacket(p);
 
-		m_rtStart += h.rtDuration;
+		m_rtStart += rtDuration;
 	}
 
 	return(true);

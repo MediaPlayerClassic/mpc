@@ -2,9 +2,9 @@
 
 #include <afxtempl.h>
 
-// extern CString ExplodeMin(CString str, CStringList& sl, TCHAR sep, int limit = 0);
-// extern CString Explode(CString str, CStringList& sl, TCHAR sep, int limit = 0);
-// extern CString Implode(CStringList& sl, TCHAR sep);
+// extern CString ExplodeMin(CString str, CList<CString>& sl, TCHAR sep, int limit = 0);
+// extern CString Explode(CString str, CList<CString>& sl, TCHAR sep, int limit = 0);
+// extern CString Implode(CList<CString>& sl, TCHAR sep);
 
 template<class T, typename SEP>
 T Explode(T str, CList<T>& sl, SEP sep, int limit = 0)
@@ -67,7 +67,7 @@ extern CStringA ConvertMBCS(CStringA str, DWORD SrcCharSet, DWORD DstCharSet);
 extern CStringA UrlEncode(CStringA str, bool fRaw = false);
 extern CStringA UrlDecode(CStringA str, bool fRaw = false);
 extern DWORD CharSetToCodePage(DWORD dwCharSet);
-extern CStringList& MakeLower(CStringList& sl);
-extern CStringList& MakeUpper(CStringList& sl);
-extern CStringList& RemoveStrings(CStringList& sl, int minlen, int maxlen);
+extern CList<CString>& MakeLower(CList<CString>& sl);
+extern CList<CString>& MakeUpper(CList<CString>& sl);
+extern CList<CString>& RemoveStrings(CList<CString>& sl, int minlen, int maxlen);
 

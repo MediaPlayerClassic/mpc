@@ -58,14 +58,14 @@ public:
 //	OpenMediaData() {}
 	virtual ~OpenMediaData() {} // one virtual funct is needed to enable rtti
 	CString title;
-	CStringList subs;
+	CList<CString> subs;
 };
 
 class OpenFileData : public OpenMediaData 
 {
 public:
 	OpenFileData() : rtStart(0) {}
-	CStringList fns; 
+	CList<CString> fns; 
 	REFERENCE_TIME rtStart;
 };
 
@@ -80,8 +80,9 @@ public:
 class OpenDeviceData : public OpenMediaData
 {
 public: 
-//	OpenDeviceData() {}
+	OpenDeviceData() {vinput = vchannel = ainput = -1;}
 	CStringW DisplayName[2];
+	int vinput, vchannel, ainput;
 };
 
 class CMainFrame;
@@ -210,6 +211,7 @@ class CMainFrame : public CFrameWnd, public CDropTarget
 	void SetupNavAngleSubMenu();
 	void SetupNavChaptersSubMenu();
 	void SetupFavoritesSubMenu();
+	void SetupShadersSubMenu();
 
 	void SetupNavOgmSubMenu(CMenu* pSub, UINT id, CString type);
 	void OnNavOgmSubMenu(UINT id, CString type);
@@ -221,6 +223,8 @@ class CMainFrame : public CFrameWnd, public CDropTarget
 	CMenu m_navaudio, m_navsubtitle, m_navangle;
 	CMenu m_navchapters, m_navtitles;
 	CMenu m_favorites;
+	CMenu m_shaders;
+	CString m_shaderlabel;
 
 	CInterfaceArray<ISpecifyPropertyPages> m_spparray;
 	CInterfaceArray<IAMStreamSelect> m_ssarray;
@@ -307,6 +311,7 @@ protected:
 	int m_iSpeedLevel;
 
 	double m_ZoomX, m_ZoomY, m_PosX, m_PosY;
+	int m_AngleX, m_AngleY, m_AngleZ;
 
 // Operations
 	bool OpenMediaPrivate(CAutoPtr<OpenMediaData> pOMD);
@@ -337,6 +342,8 @@ public:
 	void OpenCurPlaylistItem(REFERENCE_TIME rtStart = 0);
 	void OpenMedia(CAutoPtr<OpenMediaData> pOMD);
 	void CloseMedia();
+
+	void AddCurDevToPlaylist();
 
 	bool m_fTrayIcon;
 	void ShowTrayIcon(bool fShow);
@@ -546,6 +553,8 @@ public:
 	afx_msg void OnUpdateViewPanNScan(CCmdUI* pCmdUI);
 	afx_msg void OnViewPanNScanPresets(UINT nID);
 	afx_msg void OnUpdateViewPanNScanPresets(CCmdUI* pCmdUI);
+	afx_msg void OnViewRotate(UINT nID);
+	afx_msg void OnUpdateViewRotate(CCmdUI* pCmdUI);
 	afx_msg void OnViewOntop(UINT nID);
 	afx_msg void OnUpdateViewOntop(CCmdUI* pCmdUI);
 	afx_msg void OnViewOptions();
@@ -568,6 +577,8 @@ public:
 	afx_msg void OnUpdatePlayChangeAudDelay(CCmdUI* pCmdUI);
 	afx_msg void OnPlayFilters(UINT nID);
 	afx_msg void OnUpdatePlayFilters(CCmdUI* pCmdUI);
+	afx_msg void OnPlayShaders(UINT nID);
+	afx_msg void OnUpdatePlayShaders(CCmdUI* pCmdUI);
 	afx_msg void OnPlayAudio(UINT nID);
 	afx_msg void OnUpdatePlayAudio(CCmdUI* pCmdUI);
 	afx_msg void OnPlaySubtitles(UINT nID);

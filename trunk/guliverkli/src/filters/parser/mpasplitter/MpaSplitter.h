@@ -42,10 +42,6 @@ protected:
 public:
 	CMpaSplitterFilter(LPUNKNOWN pUnk, HRESULT* phr);
 
-#ifdef REGISTER_FILTER
-    static CUnknown* WINAPI CreateInstance(LPUNKNOWN lpunk, HRESULT* phr);
-#endif
-
 	DECLARE_IUNKNOWN
     STDMETHODIMP NonDelegatingQueryInterface(REFIID riid, void** ppv);
 };
@@ -55,8 +51,4 @@ class CMpaSourceFilter : public CMpaSplitterFilter
 {
 public:
 	CMpaSourceFilter(LPUNKNOWN pUnk, HRESULT* phr);
-
-#ifdef REGISTER_FILTER
-    static CUnknown* WINAPI CreateInstance(LPUNKNOWN lpunk, HRESULT* phr);
-#endif
 };

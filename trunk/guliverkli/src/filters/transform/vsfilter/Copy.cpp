@@ -463,6 +463,9 @@ HRESULT CDirectVobSubFilter::Copy(BYTE* pSub, BYTE* pIn, CSize sub, CSize in, in
 
 void CDirectVobSubFilter::PrintMessages(BYTE* pOut)
 {
+	if(!m_hdc || !m_hbm)
+		return;
+
 	ColorConvInit();
 
 	const GUID& subtype = m_pOutput->CurrentMediaType().subtype;

@@ -76,7 +76,7 @@ extern bool IsCLSIDRegistered(const CLSID& clsid);
 extern void StringToBin(CString s, CByteArray& data);
 extern CString BinToString(BYTE* ptr, int len);
 typedef enum {CDROM_NotFound, CDROM_Audio, CDROM_VideoCD, CDROM_DVDVideo, CDROM_Unknown} cdrom_t;
-extern cdrom_t GetCDROMType(TCHAR drive, CStringList& files);
+extern cdrom_t GetCDROMType(TCHAR drive, CList<CString>& files);
 extern CString GetDriveLabel(TCHAR drive);
 extern bool GetKeyFrames(CString fn, CUIntArray& kfs);
 extern DVD_HMSF_TIMECODE RT2HMSF(REFERENCE_TIME rt, double fps = 0);
@@ -90,6 +90,7 @@ extern bool ExtractDim(const AM_MEDIA_TYPE* pmt, int& w, int& h, int& arx, int& 
 extern unsigned __int64 GetFileVersion(LPCTSTR fn);
 extern bool CreateFilter(CStringW DisplayName, IBaseFilter** ppBF, CStringW& FriendlyName);
 extern IBaseFilter* AppendFilter(IPin* pPin, IMoniker* pMoniker, IGraphBuilder* pGB);
+extern CStringW GetFriendlyName(CStringW DisplayName);
 extern HRESULT LoadExternalObject(LPCTSTR path, REFCLSID clsid, REFIID iid, void** ppv);
 extern HRESULT LoadExternalFilter(LPCTSTR path, REFCLSID clsid, IBaseFilter** ppBF);
 extern HRESULT LoadExternalPropertyPage(IPersist* pP, REFCLSID clsid, IPropertyPage** ppPP);

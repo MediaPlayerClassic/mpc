@@ -363,7 +363,7 @@ bool CVobFile::HasTitleKey(BYTE* key)
 	return m_fHasTitleKey;
 }
 
-bool CVobFile::Open(CString fn, CStringList& vobs)
+bool CVobFile::Open(CString fn, CList<CString>& vobs)
 {
 	CFile f;
 	if(!f.Open(fn, CFile::modeRead|CFile::typeBinary|CFile::shareDenyWrite))
@@ -411,7 +411,7 @@ bool CVobFile::Open(CString fn, CStringList& vobs)
 	return Open(vobs, offset);
 }
 
-bool CVobFile::Open(CStringList& vobs, int offset)
+bool CVobFile::Open(CList<CString>& vobs, int offset)
 {
 	Close();
 

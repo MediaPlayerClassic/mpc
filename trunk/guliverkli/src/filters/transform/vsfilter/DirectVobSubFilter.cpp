@@ -22,10 +22,7 @@
 #include "stdafx.h"
 #include <math.h>
 #include <time.h>
-#include "DirectVobSubUIDs.h"
 #include "DirectVobSubFilter.h"
-#include "DirectVobSubInputPin.h"
-#include "DirectVobSubOutputPin.h"
 #include "TextInputPin.h"
 #include "DirectVobSubPropPage.h"
 #include "VSFilter.h"
@@ -417,6 +414,7 @@ HRESULT CDirectVobSubFilter::CompleteConnect(PIN_DIRECTION dir, IPin* pReceivePi
 			m_hSystrayThread = CreateThread(0, 0, SystrayThreadProc, &m_tbid, 0, &tid);
 		}
 
+		// HACK: triggers CBaseVideoFilter::SetMediaType to adjust m_w/m_h/.. and InitSubPicQueue() to realloc buffers
 		m_pInput->SetMediaType(&m_pInput->CurrentMediaType());
 	}
 
@@ -462,9 +460,6 @@ HRESULT CDirectVobSubFilter::StartStreaming()
 HRESULT CDirectVobSubFilter::StopStreaming()
 {
 	InvalidateSubtitle();
-
-	if(m_hbm) {DeleteObject(m_hbm); m_hbm = NULL;}
-	if(m_hdc) {DeleteDC(m_hdc); m_hdc = NULL;}
 
 	return __super::StopStreaming();
 }
@@ -803,6 +798,8 @@ STDMETHODIMP CDirectVobSubFilter::GetClassID(CLSID* pClsid)
 
 STDMETHODIMP CDirectVobSubFilter::GetPages(CAUUID* pPages)
 {
+    CheckPointer(pPages, E_POINTER);
+
 	pPages->cElems = 7;
     pPages->pElems = (GUID*)CoTaskMemAlloc(sizeof(GUID)*pPages->cElems);
 

@@ -428,6 +428,8 @@ BEGIN_MESSAGE_MAP(CPPageFormats, CPPageBase)
 	ON_BN_CLICKED(IDC_BUTTON11, OnBnClickedButton11)
 	ON_BN_CLICKED(IDC_BUTTON14, OnBnClickedButton14)
 	ON_BN_CLICKED(IDC_BUTTON13, OnBnClickedButton13)
+	ON_UPDATE_COMMAND_UI(IDC_BUTTON12, OnUpdateButtonDefault)
+	ON_UPDATE_COMMAND_UI(IDC_BUTTON11, OnUpdateButtonSet)
 END_MESSAGE_MAP()
 
 // CPPageFormats message handlers
@@ -607,7 +609,7 @@ void CPPageFormats::OnDolabeleditList(NMHDR* pNMHDR, LRESULT* pResult)
 
 	CMediaFormatCategory& mfc = AfxGetAppSettings().Formats[m_list.GetItemData(pItem->iItem)];
 
-	CStringList sl;
+	CList<CString> sl;
 	int nSel = -1;
 
 	if(pItem->iSubItem == COL_ENGINE)
@@ -727,4 +729,32 @@ void CPPageFormats::OnBnClickedButton11()
 	UpdateData(FALSE);
     
 	SetModified();
+}
+
+void CPPageFormats::OnUpdateButtonDefault(CCmdUI* pCmdUI)
+{
+	int i = m_list.GetSelectionMark();
+	if(i < 0) {pCmdUI->Enable(FALSE); return;}
+	i = (int)m_list.GetItemData(i);
+
+	CString orgexts, newexts;
+	GetDlgItem(IDC_EDIT1)->GetWindowText(newexts);
+	newexts.Trim();
+	orgexts = AfxGetAppSettings().Formats[i].GetBackupExtsWithPeriod();
+
+	pCmdUI->Enable(!!newexts.CompareNoCase(orgexts));
+}
+
+void CPPageFormats::OnUpdateButtonSet(CCmdUI* pCmdUI)
+{
+	int i = m_list.GetSelectionMark();
+	if(i < 0) {pCmdUI->Enable(FALSE); return;}
+	i = (int)m_list.GetItemData(i);
+
+	CString orgexts, newexts;
+	GetDlgItem(IDC_EDIT1)->GetWindowText(newexts);
+	newexts.Trim();
+	orgexts = AfxGetAppSettings().Formats[i].GetExtsWithPeriod();
+
+	pCmdUI->Enable(!!newexts.CompareNoCase(orgexts));
 }

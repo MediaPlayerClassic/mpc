@@ -52,7 +52,7 @@ CPPageFileInfoClip::~CPPageFileInfoClip()
 
 void CPPageFileInfoClip::DoDataExchange(CDataExchange* pDX)
 {
-	CPropertyPage::DoDataExchange(pDX);
+	__super::DoDataExchange(pDX);
 	DDX_Control(pDX, IDC_DEFAULTICON, m_icon);
 	DDX_Text(pDX, IDC_EDIT1, m_fn);
 	DDX_Text(pDX, IDC_EDIT4, m_clip);
@@ -71,7 +71,7 @@ END_MESSAGE_MAP()
 
 BOOL CPPageFileInfoClip::OnInitDialog()
 {
-	CPropertyPage::OnInitDialog();
+	__super::OnInitDialog();
 
 	if(m_hIcon = LoadIcon(m_fn, false))
 		m_icon.SetIcon(m_hIcon);

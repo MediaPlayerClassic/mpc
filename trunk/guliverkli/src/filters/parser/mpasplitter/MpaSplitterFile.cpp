@@ -73,8 +73,10 @@ static const LPCTSTR s_genre[] =
 
 CMpaSplitterFile::CMpaSplitterFile(IAsyncReader* pAsyncReader, HRESULT& hr)
 	: CBaseSplitterFileEx(pAsyncReader, hr)
+	, m_mode(none)
 	, m_rtDuration(0)
-	, m_startpos(0), m_endpos(0)
+	, m_startpos(0)
+	, m_endpos(0)
 	, m_totalbps(0)
 {
 	if(SUCCEEDED(hr)) hr = Init();
@@ -151,50 +153,114 @@ HRESULT CMpaSplitterFile::Init()
 		// TODO: read tags
 	}
 
+	__int64 startpos;
+	int nBytesPerSec = 0;
+
 	Seek(m_startpos);
 
-	if(!Read(m_firsthdr, min(m_endpos - GetPos(), 0x2000), true, &m_mt))
+	if(m_mode == none && Read(m_mpahdr, min(m_endpos - GetPos(), 0x2000), true, &m_mt))
+	{
+		m_mode = mpa;
+
+		startpos = GetPos() - 4;
+		nBytesPerSec = m_mpahdr.nBytesPerSec;
+		
+		// make sure the first frame is followed by another of the same kind (validates m_mpahdr basically)
+		Seek(startpos + m_mpahdr.FrameSize);
+		if(!Sync(4)) m_mode = none;
+	}
+
+	Seek(m_startpos);
+
+	if(m_mode == none && Read(m_aachdr, min(m_endpos - GetPos(), 0x2000), &m_mt))
+	{
+		m_mode = mp4a;
+
+		startpos = GetPos() - (m_aachdr.fcrc?7:9);
+		nBytesPerSec = ((WAVEFORMATEX*)m_mt.Format())->nAvgBytesPerSec;
+
+		// make sure the first frame is followed by another of the same kind (validates m_aachdr basically)
+		Seek(startpos + m_aachdr.aac_frame_length);
+		if(!Sync(9)) m_mode = none;
+	}
+
+	if(m_mode == none)
 		return E_FAIL;
 
-	m_startpos = GetPos() - 4;
+	m_startpos = startpos;
 
-	// initial duration, may not be correct (for VBR files)
-	
-	m_rtDuration = 10000000i64 * (m_endpos - m_startpos) / m_firsthdr.nBytesPerSec;
-
-	// make sure the first frame is followed by another of the same kind (validates m_firsthdr basically)
-	Seek(m_startpos + m_firsthdr.FrameSize);
-	mpahdr tmp;
-	if(!Sync(tmp, 4)) return E_FAIL;
+	// initial duration, may not be correct (VBR files...)
+	m_rtDuration = 10000000i64 * (m_endpos - m_startpos) / nBytesPerSec;
 
 	return S_OK;
 }
 
-bool CMpaSplitterFile::Sync(mpahdr& h, int limit)
+bool CMpaSplitterFile::Sync(int limit)
+{
+	int FrameSize;
+	REFERENCE_TIME rtDuration;
+	return Sync(FrameSize, rtDuration, limit);
+}
+
+bool CMpaSplitterFile::Sync(int& FrameSize, REFERENCE_TIME& rtDuration, int limit)
 {
 	__int64 endpos = min(m_endpos, GetPos() + limit);
 
-	while(GetPos() <= endpos - 4)
+	if(m_mode == mpa)
 	{
-		if(Read(h, endpos - GetPos(), true)
-		&& m_firsthdr.version == h.version
-		&& m_firsthdr.layer == h.layer
-		&& m_firsthdr.channels == h.channels)
+		while(GetPos() <= endpos - 4)
 		{
-			Seek(GetPos() - 4);
+			mpahdr h;
 
-			int rValue;
-			if(!m_pos2bps.Lookup(GetPos(), rValue))
+			if(Read(h, endpos - GetPos(), true)
+			&& m_mpahdr.version == h.version
+			&& m_mpahdr.layer == h.layer
+			&& m_mpahdr.channels == h.channels)
 			{
-				m_totalbps += h.nBytesPerSec;
-				m_pos2bps.SetAt(GetPos(), h.nBytesPerSec);
-				__int64 avgbps = m_totalbps / m_pos2bps.GetCount();
-				m_rtDuration = 10000000i64 * (m_endpos - m_startpos) / avgbps;
-			}
+				Seek(GetPos() - 4);
+				AdjustDuration(h.nBytesPerSec);
 
-			return true;
+				FrameSize = h.FrameSize;
+				rtDuration = h.rtDuration;
+
+				return true;
+			}
+		}
+	}
+	else if(m_mode == mp4a)
+	{
+		while(GetPos() <= endpos - 9)
+		{
+			aachdr h;
+
+			if(Read(h, endpos - GetPos())
+			&& m_aachdr.version == h.version
+			&& m_aachdr.layer == h.layer
+			&& m_aachdr.channels == h.channels)
+			{
+				Seek(GetPos() - (h.fcrc?7:9));
+				AdjustDuration(h.nBytesPerSec);
+				Seek(GetPos() + (h.fcrc?7:9));
+
+				FrameSize = h.FrameSize;
+				rtDuration = h.rtDuration;
+
+				return true;
+			}
 		}
 	}
 
 	return false;
+}
+
+void CMpaSplitterFile::AdjustDuration(int nBytesPerSec)
+{
+	int rValue;
+	if(!m_pos2bps.Lookup(GetPos(), rValue))
+	{
+		m_totalbps += nBytesPerSec;
+		m_pos2bps.SetAt(GetPos(), nBytesPerSec);
+		__int64 avgbps = m_totalbps / m_pos2bps.GetCount();
+		m_rtDuration = 10000000i64 * (m_endpos - m_startpos) / avgbps;
+	}
 }

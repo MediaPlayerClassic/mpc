@@ -334,6 +334,28 @@ bool CMPlayerCApp::IsIniValid()
 	return CFileGetStatus(GetIniPath(), fs) && fs.m_size > 0;
 }
 
+bool CMPlayerCApp::GetAppDataPath(CString& path)
+{
+	path.Empty();
+
+	CRegKey key;
+	if(ERROR_SUCCESS == key.Open(HKEY_CURRENT_USER, _T("Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders"), KEY_READ))
+	{
+		ULONG len = MAX_PATH;
+		if(ERROR_SUCCESS == key.QueryStringValue(_T("AppData"), path.GetBuffer(MAX_PATH), &len))
+			path.ReleaseBufferSetLength(len);
+	}
+
+	if(path.IsEmpty())
+		return(false);
+
+	CPath p;
+	p.Combine(path, _T("Media Player Classic"));
+	path = (LPCTSTR)p;
+
+	return(true);
+}
+
 void CMPlayerCApp::PreProcessCommandLine()
 {
 	m_cmdln.RemoveAll();
@@ -469,6 +491,14 @@ HANDLE WINAPI Mine_CreateFileW(LPCWSTR p1, DWORD p2, DWORD p3, LPSECURITY_ATTRIB
 	return Real_CreateFileW(p1, p2, p3, p4, p5, p6, p7);
 }
 
+DETOUR_TRAMPOLINE(MMRESULT WINAPI Real_mixerSetControlDetails(HMIXEROBJ hmxobj, LPMIXERCONTROLDETAILS pmxcd, DWORD fdwDetails), mixerSetControlDetails);
+MMRESULT WINAPI Mine_mixerSetControlDetails(HMIXEROBJ hmxobj, LPMIXERCONTROLDETAILS pmxcd, DWORD fdwDetails)
+{
+	if(fdwDetails == (MIXER_OBJECTF_HMIXER|MIXER_SETCONTROLDETAILSF_VALUE)) 
+		return MMSYSERR_NOERROR; // don't touch the mixer, kthx
+	return Real_mixerSetControlDetails(hmxobj, pmxcd, fdwDetails);
+}
+
 BOOL CMPlayerCApp::InitInstance()
 {
 	DetourFunctionWithTrampoline((PBYTE)Real_IsDebuggerPresent, (PBYTE)Mine_IsDebuggerPresent);
@@ -476,6 +506,7 @@ BOOL CMPlayerCApp::InitInstance()
 	DetourFunctionWithTrampoline((PBYTE)Real_ChangeDisplaySettingsExW, (PBYTE)Mine_ChangeDisplaySettingsExW);
 	DetourFunctionWithTrampoline((PBYTE)Real_CreateFileA, (PBYTE)Mine_CreateFileA);
 	DetourFunctionWithTrampoline((PBYTE)Real_CreateFileW, (PBYTE)Mine_CreateFileW);
+	DetourFunctionWithTrampoline((PBYTE)Real_mixerSetControlDetails, (PBYTE)Mine_mixerSetControlDetails);
 	CFilterMapper2::Init();
 
 	HRESULT hr;
@@ -512,6 +543,10 @@ BOOL CMPlayerCApp::InitInstance()
 
 	if(IsIniValid()) StoreSettingsToIni();
 	else StoreSettingsToRegistry();
+
+	CString AppDataPath;
+	if(GetAppDataPath(AppDataPath))
+		CreateDirectory(AppDataPath, NULL);
 
 	m_s.ParseCommandLine(m_cmdln);
 
@@ -878,6 +913,12 @@ CMPlayerCApp::Settings::Settings()
 	ADDCMD((ID_PANSCAN_MOVEUPRIGHT, VK_NUMPAD9, FVIRTKEY|FCONTROL|FNOINVERT, _T("PnS Up/Right")));
 	ADDCMD((ID_PANSCAN_MOVEDOWNLEFT, VK_NUMPAD1, FVIRTKEY|FCONTROL|FNOINVERT, _T("PnS Down/Left")));
 	ADDCMD((ID_PANSCAN_MOVEDOWNRIGHT, VK_NUMPAD3, FVIRTKEY|FCONTROL|FNOINVERT, _T("PnS Down/Right")));
+	ADDCMD((ID_PANSCAN_ROTATEXP, VK_NUMPAD8, FVIRTKEY|FALT|FNOINVERT, _T("PnS Rotate X+")));
+	ADDCMD((ID_PANSCAN_ROTATEXM, VK_NUMPAD2, FVIRTKEY|FALT|FNOINVERT, _T("PnS Rotate X-")));
+	ADDCMD((ID_PANSCAN_ROTATEYP, VK_NUMPAD4, FVIRTKEY|FALT|FNOINVERT, _T("PnS Rotate Y+")));
+	ADDCMD((ID_PANSCAN_ROTATEYM, VK_NUMPAD6, FVIRTKEY|FALT|FNOINVERT, _T("PnS Rotate Y-")));
+	ADDCMD((ID_PANSCAN_ROTATEZP, VK_NUMPAD1, FVIRTKEY|FALT|FNOINVERT, _T("PnS Rotate Z+")));
+	ADDCMD((ID_PANSCAN_ROTATEZM, VK_NUMPAD3, FVIRTKEY|FALT|FNOINVERT, _T("PnS Rotate Z-")));
 	ADDCMD((ID_VOLUME_UP, VK_UP, FVIRTKEY|FNOINVERT, _T("Volume Up"), APPCOMMAND_VOLUME_UP, wmcmd::WUP));
 	ADDCMD((ID_VOLUME_DOWN, VK_DOWN, FVIRTKEY|FNOINVERT, _T("Volume Down"), APPCOMMAND_VOLUME_DOWN, wmcmd::WDOWN));
 	ADDCMD((ID_VOLUME_MUTE, 'M', FVIRTKEY|FCONTROL|FNOINVERT, _T("Volume Mute"), APPCOMMAND_VOLUME_MUTE));
@@ -1432,10 +1473,8 @@ void CMPlayerCApp::Settings::UpdateData(bool fSave)
 		if(ERROR_SUCCESS == key.Open(HKEY_CURRENT_USER, _T("Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders"), KEY_READ))
 		{
 			ULONG len = MAX_PATH;
-			if(ERROR_SUCCESS == key.QueryStringValue(_T("My Pictures"), MyPictures.GetBuffer(MAX_PATH), &len))
-				MyPictures.ReleaseBufferSetLength(len);
-			else
-				MyPictures.Empty();
+			if(ERROR_SUCCESS == key.QueryStringValue(_T("My Pictures"), MyPictures.GetBuffer(MAX_PATH), &len)) MyPictures.ReleaseBufferSetLength(len);
+			else MyPictures.Empty();
 		}
 		SnapShotPath = pApp->GetProfileString(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_SNAPSHOTPATH), MyPictures);
 		SnapShotExt = pApp->GetProfileString(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_SNAPSHOTEXT), _T(".bmp"));
@@ -1444,11 +1483,22 @@ void CMPlayerCApp::Settings::UpdateData(bool fSave)
 
 		pApp->WriteProfileInt(ResStr(IDS_R_SETTINGS), _T("LastUsedPage"), 0);
 
+		if(!pApp->GetProfileInt(_T("Shaders"), _T("Initialized"), 0))
+		{
+			pApp->WriteProfileString(_T("Shaders"), NULL, NULL);
+			pApp->WriteProfileInt(_T("Shaders"), _T("Initialized"), 1);
+			CString hdr = _T("|ps_2_0|sampler s0 : register(s0);\\nfloat4 p0 : register(c0);\\n\\n#define width (p0[0])\\n#define height (p0[1])\\n#define counter (p0[2])\\n#define clock (p0[3])\\n\\nfloat4 main(float2 t0 : TEXCOORD0) : COLOR\\n{\\n");
+			CString ftr = _T("\\t\\n\\treturn c0;\\n}\\n");
+			pApp->WriteProfileString(_T("Shaders"), _T("0"), _T("contour") + hdr + _T("\\tfloat dx = 4/width;\\n\\tfloat dy = 4/height;\\n\\t\\n\\tfloat4 c2 = tex2D(s0, t0 + float2(0,-dy));\\n\\tfloat4 c4 = tex2D(s0, t0 + float2(-dx,0));\\n\\tfloat4 c5 = tex2D(s0, t0 + float2(0,0));\\n\\tfloat4 c6 = tex2D(s0, t0 + float2(dx,0));\\n\\tfloat4 c8 = tex2D(s0, t0 + float2(0,dy));\\n\\t\\n\\tfloat4 c0 = (-c2-c4+c5*4-c6-c8);\\n\\tif(length(c0) < 1.0) c0 = float4(0,0,0,0);\\n\\telse c0 = float4(1,1,1,0);\\n") + ftr);
+			pApp->WriteProfileString(_T("Shaders"), _T("1"), _T("invert") + hdr + _T("\\tfloat4 c0 = float4(1, 1, 1, 1) - tex2D(s0, t0);\\n") + ftr);
+			pApp->WriteProfileString(_T("Shaders"), _T("2"), _T("spotlight") + hdr + _T("\\tfloat4 c0 = tex2D(s0, t0);\\n\\tfloat3 lightsrc = float3(sin(clock*3.1415/1500)/2+0.5,cos(clock*3.1415/1000)/2+0.5,1);\\n\\tfloat3 light = normalize(lightsrc - float3(t0.x,t0.y,0));\\n\\tc0 *= pow(dot(light, float3(0,0,1)), 50);\\n") + ftr);
+		}
+
 		fInitialized = true;
 	}
 }
 
-void CMPlayerCApp::Settings::ParseCommandLine(CStringList& cmdln)
+void CMPlayerCApp::Settings::ParseCommandLine(CList<CString>& cmdln)
 {
 	nCLSwitches = 0;
 	slFiles.RemoveAll();
@@ -1510,7 +1560,7 @@ void CMPlayerCApp::Settings::ParseCommandLine(CStringList& cmdln)
 	}
 }
 
-void CMPlayerCApp::Settings::GetFav(favtype ft, CStringList& sl)
+void CMPlayerCApp::Settings::GetFav(favtype ft, CList<CString>& sl)
 {
 	sl.RemoveAll();
 
@@ -1534,7 +1584,7 @@ void CMPlayerCApp::Settings::GetFav(favtype ft, CStringList& sl)
 	}
 }
 
-void CMPlayerCApp::Settings::SetFav(favtype ft, CStringList& sl)
+void CMPlayerCApp::Settings::SetFav(favtype ft, CList<CString>& sl)
 {
 	CString root;
 
@@ -1560,7 +1610,7 @@ void CMPlayerCApp::Settings::SetFav(favtype ft, CStringList& sl)
 
 void CMPlayerCApp::Settings::AddFav(favtype ft, CString s)
 {
-	CStringList sl;
+	CList<CString> sl;
 	GetFav(ft, sl);
 	if(sl.Find(s)) return;
 	sl.AddTail(s);
@@ -1899,7 +1949,7 @@ CString GetContentType(CString fn, CList<CString>* redir)
 			}
 		}
 	}
-	else
+	else if(!fn.IsEmpty())
 	{
 		CPath p(fn);
 		CString ext = p.GetExtension().MakeLower();
@@ -1924,6 +1974,9 @@ CString GetContentType(CString fn, CList<CString>* redir)
 			return "audio/x-pn-realaudio";
 		if(!strncmp((LPCSTR)str, "FWS", 3))
 			return "application/x-shockwave-flash";
+		if(strstr((LPCSTR)str, "MPCPLAYLIST"))
+			return "application/x-mpc-playlist";
+
 	}
 
 	if(redir && !ct.IsEmpty())

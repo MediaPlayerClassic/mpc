@@ -609,9 +609,8 @@ STDMETHODIMP CBaseVideoInputPin::ReceiveConnection(IPin* pConnector, const AM_ME
 			return E_FAIL;
 
 		BITMAPINFOHEADER bih;
-		ExtractBIH(pmt, &bih);
-
-		props.cbBuffer = bih.biSizeImage;
+		if(ExtractBIH(pmt, &bih) && bih.biSizeImage)
+			props.cbBuffer = bih.biSizeImage;
 
 		if(FAILED(pMemAllocator->SetProperties(&props, &actual))
 		|| FAILED(pMemAllocator->Commit())

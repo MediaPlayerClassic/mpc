@@ -1656,7 +1656,7 @@ HRESULT CRealVideoDecoder::CheckInputType(const CMediaType* mtIn)
 	{
 		if(m_hDrvDll) {FreeLibrary(m_hDrvDll); m_hDrvDll = NULL;}
 
-		CStringList paths;
+		CList<CString> paths;
 		CString olddll, newdll, oldpath, newpath;
 
 		olddll.Format(_T("drv%c3260.dll"), (TCHAR)((mtIn->subtype.Data1>>16)&0xff));
@@ -2082,7 +2082,7 @@ HRESULT CRealAudioDecoder::CheckInputType(const CMediaType* mtIn)
 	{
 		if(m_hDrvDll) {FreeLibrary(m_hDrvDll); m_hDrvDll = NULL;}
 
-		CStringList paths;
+		CList<CString> paths;
 		CString olddll, newdll, oldpath, newpath;
 
 		TCHAR fourcc[5] = 

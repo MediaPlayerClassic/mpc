@@ -598,6 +598,8 @@ enum ffdshow {};
 enum dvobsub {};
 [uuid("9852A670-F845-491b-9BE6-EBD841B8A613")]
 enum dvobsubauto {};
+[uuid("fd501043-8ebe-11ce-8183-00aa00577da1")]
+enum dladapter {};
 
 HRESULT CMpeg2DecFilter::CheckConnect(PIN_DIRECTION dir, IPin* pPin)
 {
@@ -614,7 +616,8 @@ HRESULT CMpeg2DecFilter::CheckConnect(PIN_DIRECTION dir, IPin* pPin)
 			&& clsid != CLSID_VideoMixingRenderer9
 			&& clsid != __uuidof(ffdshow)
 			&& clsid != __uuidof(dvobsub)
-			&& clsid != __uuidof(dvobsubauto))
+			&& clsid != __uuidof(dvobsubauto)
+			&& clsid != __uuidof(dladapter))
 				return E_FAIL;
 		}
 	}

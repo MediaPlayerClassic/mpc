@@ -212,6 +212,14 @@ HRESULT CAviSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 //			case BI_RLE4: mt.subtype = MEDIASUBTYPE_RGB4; break;
 			}
 
+			if(s->cs.GetCount() && pvih->AvgTimePerFrame > 0)
+			{
+				__int64 size = 0;
+				for(int i = 0; i < s->cs.GetCount(); i++)
+					size += s->cs[i].orgsize;
+				pvih->dwBitRate = size*8 / s->cs.GetCount() * 10000000i64 / pvih->AvgTimePerFrame;
+			}
+
 			mt.SetSampleSize(s->strh.dwSuggestedBufferSize > 0 
 				? s->strh.dwSuggestedBufferSize*3/2
 				: (pvih->bmiHeader.biWidth*pvih->bmiHeader.biHeight*4));

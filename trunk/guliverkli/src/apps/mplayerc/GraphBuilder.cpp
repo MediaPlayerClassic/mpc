@@ -365,6 +365,14 @@ CGraphBuilder::CGraphBuilder(IGraphBuilder* pGB, HWND hWnd)
 		guids.AddTail(MEDIASUBTYPE_AAC);
 		guids.AddTail(MEDIATYPE_Audio);
 		guids.AddTail(MEDIASUBTYPE_AAC);
+		guids.AddTail(MEDIATYPE_DVD_ENCRYPTED_PACK);
+		guids.AddTail(MEDIASUBTYPE_MP4A);
+		guids.AddTail(MEDIATYPE_MPEG2_PACK);
+		guids.AddTail(MEDIASUBTYPE_MP4A);
+		guids.AddTail(MEDIATYPE_MPEG2_PES);
+		guids.AddTail(MEDIASUBTYPE_MP4A);
+		guids.AddTail(MEDIATYPE_Audio);
+		guids.AddTail(MEDIASUBTYPE_MP4A);
 		AddFilter(new CGraphCustomFilter(__uuidof(CMpaDecFilter), guids, 
 			(s.TraFilters&TRA_AAC) ? L"AAC Decoder" : L"AAC Decoder (low merit)",
 			(s.TraFilters&TRA_AAC) ? LMERIT_ABOVE_DSHOW+1 : LMERIT_DO_USE));

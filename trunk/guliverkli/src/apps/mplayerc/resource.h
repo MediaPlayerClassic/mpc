@@ -197,6 +197,14 @@
 #define IDD_DIALOG3                     366
 #define IDD_SUBTITLEDLDLG               366
 #define IDD_PPAGESUBDB                  367
+#define ID_PANSCAN_ROTATEXP             368
+#define ID_PANSCAN_ROTATEXM             369
+#define ID_PANSCAN_ROTATEYP             370
+#define ID_PANSCAN_ROTATEYM             371
+#define ID_PANSCAN_ROTATEZP             372
+#define ID_PANSCAN_ROTATEZM             373
+#define IDD_SHADEREDITOR                374
+#define IDD_SHADEREDITORDIALOG          374
 #define IDS_R_SETTINGS                  500
 #define IDS_RS_CONTROLSTATE             501
 #define IDS_RS_VOLUME                   502
@@ -529,7 +537,6 @@
 #define IDS_TRA_DIRAC                   1157
 #define IDC_CHECK_DIRAC_DECODER         1158
 #define IDS_TRA_PS2AUD                  1158
-#define IDC_HINT                        1159
 #define IDD_COMPROPERTYPAGE             10002
 #define ID_DUMMYSEPARATOR               32768
 #define ID_VOLUME_MUTE_ON               32769
@@ -595,6 +602,20 @@
 #define ID_AFTERPLAYBACK_SHUTDOWN       32837
 #define ID_FILE_SUBTITLEDATABASE32838   32838
 #define ID_SUBTITLEDATABASE_SEARCH      32839
+#define ID_BUTTON32842                  32842
+#define ID_TUNER_PREV                   32842
+#define ID_BUTTON32843                  32843
+#define ID_TUNER_NEXT                   32843
+#define ID_BUTTON32844                  32844
+#define ID_TUNER_GO                     32844
+#define ID_LOCATION                     32845
+#define ID_PLAY_SHADERS                 32846
+#define ID_SHADERS_EDIT                 32847
+#define ID_SHADERS_EDIT32848            32848
+#define ID_PLAY_SHADERS32849            32849
+#define ID__AUDIO                       32850
+#define ID__SHADERS                     32851
+#define ID__SHADERS32852                32852
 #define ID_FILTERS_SUBITEM_START        33000
 #define ID_FILTERS_SUBITEM_END          33099
 #define ID_FILTERSTREAMS_SUBITEM_START  33100
@@ -621,13 +642,15 @@
 #define ID_FILE_OPEN_CD_END             35099
 #define ID_PANNSCAN_PRESETS_START       35100
 #define ID_PANNSCAN_PRESETS_END         35199
+#define ID_SHADERS_START                35200
+#define ID_SHADERS_END                  35299
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        368
-#define _APS_NEXT_COMMAND_VALUE         32842
+#define _APS_NEXT_RESOURCE_VALUE        375
+#define _APS_NEXT_COMMAND_VALUE         32853
 #define _APS_NEXT_CONTROL_VALUE         1160
 #define _APS_NEXT_SYMED_VALUE           10003
 #endif

@@ -21,6 +21,7 @@
 
 #pragma once
 #include "..\..\subpic\ISubPic.h"
+#include "afxwin.h"
 
 // CPPageFileInfoDetails dialog
 
@@ -33,6 +34,10 @@ private:
 	CComPtr<ISubPicAllocatorPresenter> m_pCAP;
 
 	HICON m_hIcon;
+    
+	void InitEncoding();
+	CString GetVideoCodecName(const GUID& subtype, DWORD biCompression);
+	CString GetAudioCodecName(const GUID& subtype, WORD wFormatTag);
 
 public:
 	CPPageFileInfoDetails(CString fn, IFilterGraph* pFG, ISubPicAllocatorPresenter* pCAP);
@@ -48,6 +53,7 @@ public:
 	CString m_time;
 	CString m_res;
 	CString m_created;
+	CEdit m_encoding;
 
 protected:
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV support

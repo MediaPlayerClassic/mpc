@@ -29,9 +29,13 @@ class CPlaylistItem
 
 public:
 	UINT m_id;
-	CStringList m_fns;
-	CStringList m_subs;
-	REFERENCE_TIME m_duration;
+	CString m_label;
+	CList<CString> m_fns;
+	CList<CString> m_subs;
+	enum type_t {file, device} m_type;
+	REFERENCE_TIME m_duration; 
+	int m_vinput, m_vchannel;
+	int m_ainput;
 	bool m_fInvalid;
 
 public:
@@ -42,6 +46,8 @@ public:
 	CPlaylistItem& operator = (const CPlaylistItem& pli);
 
 	POSITION FindFile(CString path);
+
+	CString GetLabel(int i = 0);
 };
 
 class CPlaylist : public CList<CPlaylistItem>
