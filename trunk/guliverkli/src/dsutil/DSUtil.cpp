@@ -960,20 +960,10 @@ DVD_HMSF_TIMECODE RT2HMSF(REFERENCE_TIME rt, double fps)
 	return hmsf;
 }
 
-DVD_HMSF_TIMECODE RT2HMSF(REFERENCE_TIME rt)
-{
-	return RT2HMSF(rt, 0);;
-}
-
 REFERENCE_TIME HMSF2RT(DVD_HMSF_TIMECODE hmsf, double fps)
 {
+	if(fps == 0) {hmsf.bFrames = 0; fps = 1;}
 	return (REFERENCE_TIME)((((REFERENCE_TIME)hmsf.bHours*60+hmsf.bMinutes)*60+hmsf.bSeconds)*1000+1.0*hmsf.bFrames*1000/fps)*10000;
-}
-
-REFERENCE_TIME HMSF2RT(DVD_HMSF_TIMECODE hmsf)
-{
-	hmsf.bFrames = 0;
-	return HMSF2RT(hmsf, 1);
 }
 
 HRESULT AddToRot(IUnknown* pUnkGraph, DWORD* pdwRegister) 

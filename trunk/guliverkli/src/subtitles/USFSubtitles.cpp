@@ -681,7 +681,7 @@ void CUSFSubtitles::ParseSubtitle(CComPtr<IXMLDOMNode> pNode, int start, int sto
 			t->effect = GetAttrib(L"effect", pNode);
 			ParsePal(pNode, t->pal);
 			ParseText(pNode, t->str);
-			texts.AddTail();
+			texts.AddTail(t);
 		}
 
 		return;

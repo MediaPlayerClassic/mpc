@@ -26,7 +26,7 @@
 #include "mplayerc.h"
 #include "PlayerStatusBar.h"
 #include "MainFrm.h"
-
+#include "..\..\DSUtil\DSUtil.h"
 
 // CPlayerStatusBar
 
@@ -169,6 +169,48 @@ void CPlayerStatusBar::SetStatusTimer(CString str)
 	m_time.SetWindowText(str);
 
 	Relayout();
+}
+
+void CPlayerStatusBar::SetStatusTimer(REFERENCE_TIME rtNow, REFERENCE_TIME rtDur, bool fHighPrecision, const GUID* pTimeFormat)
+{
+	ASSERT(pTimeFormat);
+
+	CString str;
+	CString posstr, durstr;
+
+	if(*pTimeFormat == TIME_FORMAT_MEDIA_TIME)
+	{
+		DVD_HMSF_TIMECODE tcNow = RT2HMSF(rtNow);
+		DVD_HMSF_TIMECODE tcDur = RT2HMSF(rtDur);
+
+		if(tcDur.bHours > 0 || (rtNow >= rtDur && tcNow.bHours > 0)) 
+			posstr.Format(_T("%02d:%02d:%02d"), tcNow.bHours, tcNow.bMinutes, tcNow.bSeconds);
+		else 
+			posstr.Format(_T("%02d:%02d"), tcNow.bMinutes, tcNow.bSeconds);
+
+		if(tcDur.bHours > 0)
+			durstr.Format(_T("%02d:%02d:%02d"), tcDur.bHours, tcDur.bMinutes, tcDur.bSeconds);
+		else
+			durstr.Format(_T("%02d:%02d"), tcDur.bMinutes, tcDur.bSeconds);
+
+		if(fHighPrecision)
+		{
+			str.Format(_T("%s.%03d"), posstr, (rtNow/10000)%1000);
+			posstr = str;
+			str.Format(_T("%s.%03d"), durstr, (rtDur/10000)%1000);
+			durstr = str;
+			str.Empty();
+		}
+	}
+	else if(*pTimeFormat == TIME_FORMAT_FRAME)
+	{
+		posstr.Format(_T("%I64d"), rtNow);
+		durstr.Format(_T("%I64d"), rtDur);
+	}
+
+	str = (/*start <= 0 &&*/ rtDur <= 0) ? posstr : posstr + _T(" / ") + durstr;
+
+	SetStatusTimer(str);
 }
 
 void CPlayerStatusBar::ShowTimer(bool fShow)

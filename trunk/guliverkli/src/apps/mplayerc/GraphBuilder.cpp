@@ -1280,11 +1280,12 @@ ChkLen(8)
 #undef ChkLen
 
 	}
-
+/*
 	if(CLSID_MMSPLITTER == m_clsid && m_merit.val == LMERIT(MERIT_NORMAL-1))
 	{
 		m_merit.val = LMERIT(MERIT_NORMAL+1); // take this mpeg2 demux...
 	}
+*/
 }
 
 HRESULT CGraphRegFilter::Create(IBaseFilter** ppBF, IUnknown** ppUnk)

@@ -947,6 +947,65 @@ static CStringW SMI2SSA(CStringW str, int CharSet)
 		for(; k+l < j && lstr[k+l] != '>'; l++);
 		l++;
 
+// Modified by Cookie Monster 
+		if (lstr.Find(L"<font ", k) == k)
+		{
+			CStringW args = lstr.Mid(k+6, l-6);	// delete "<font "
+			CStringW arg ;
+
+			args.Remove('\"'); args.Remove('#');	// may include 2 * " + #
+			arg.TrimLeft(); arg.TrimRight(L" >");
+
+			for (;;)
+			{
+				args.TrimLeft();
+				arg = args.SpanExcluding(L" \t>");
+				args = args.Mid(arg.GetLength());
+
+				if(arg.IsEmpty())
+					break;
+				if (arg.Find(L"color=") == 0 )
+				{
+					DWORD color;
+
+					arg = arg.Mid(6);	// delete "color="
+					if ( arg.IsEmpty())
+						continue;
+
+					CString key = WToT(arg);
+					void* val;
+					if(g_colors.Lookup(key, val))
+						color = (DWORD)val;
+					else if ( (color = wcstol(arg, NULL, 16) ) == 0 )
+						color = 0x00ffffff;  // default is white
+
+					arg.Format(L"%02x%02x%02x", color&0xff, (color>>8)&0xff, (color>>16)&0xff);
+					lstr.Insert(k + l + chars_inserted, CStringW(L"{\\c&H") + arg + L"&}");
+					str.Insert(k + l + chars_inserted, CStringW(L"{\\c&H") + arg + L"&}");
+					chars_inserted += 5 + arg.GetLength() + 2;
+				}
+/*
+				else if (arg.Find(_T("size=" )) == 0 )
+				{
+					uint fsize;
+
+					arg = arg.Mid(5);	// delete "size="
+					if ( arg.GetLength() == 0)
+						continue;
+
+					if ( fsize = _tcstol(arg, &tmp, 10) == 0 )
+						continue;
+					
+					lstr.Insert(k + l + chars_inserted, CString(_T("{\\fs")) + arg + _T("&}"));
+					str.Insert(k + l + chars_inserted, CString(_T("{\\fs")) + arg + _T("&}"));
+					chars_inserted += 4 + arg.GetLength() + 2;
+				}
+*/
+			}
+		}
+
+// Original Code
+/*
 		if (lstr.Find(L"<font color=", k) == k)
 		{
 			CStringW arg = lstr.Mid(k+12, l-12); // may include 2 * " + #
@@ -971,6 +1030,7 @@ static CStringW SMI2SSA(CStringW str, int CharSet)
 			str.Insert(k + l + chars_inserted, L"{\\c&H" + arg + L"&}");
 			chars_inserted += 5 + arg.GetLength() + 2;
 		}
+*/
 		else if (lstr.Find(L"</font>", k) == k)
 		{
 			lstr.Insert(k + l + chars_inserted, L"{\\c}");
