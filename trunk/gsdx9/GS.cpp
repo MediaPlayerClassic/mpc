@@ -28,6 +28,7 @@
 
 #define PS2E_LT_GS 0x01
 #define PS2E_GS_VERSION 0x0004
+#define PS2E_DLL_VERSION 0x04
 
 EXPORT_C_(UINT32) PS2EgetLibType()
 {
@@ -36,12 +37,18 @@ EXPORT_C_(UINT32) PS2EgetLibType()
 
 EXPORT_C_(char*) PS2EgetLibName()
 {
+#if _M_IX86_FP >= 2
+	return "GSdx9 (SSE2)";
+#elif _M_IX86_FP >= 1
+	return "GSdx9 (SSE)";
+#else
 	return "GSdx9";
+#endif
 }
 
 EXPORT_C_(UINT32) PS2EgetLibVersion2(UINT32 type)
 {
-	return (PS2E_GS_VERSION<<16)|(0x00<<8)|0x03;
+	return (PS2E_GS_VERSION<<16)|(0x00<<8)|PS2E_DLL_VERSION;
 }
 
 static CAutoPtr<GSState> s_gs;

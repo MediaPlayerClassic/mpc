@@ -37,6 +37,8 @@ struct HWVERTEX
 
 class GSRendererHW : public GSRenderer<HWVERTEX>
 {
+	void CalcRegionToUpdate(int& tw, int& th);
+
 protected:
 	CSurfMap<IDirect3DTexture9> m_pRenderTargets;
 	CSurfMap<IDirect3DSurface9> m_pDepthStencils;

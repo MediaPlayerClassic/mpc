@@ -28,8 +28,6 @@
 #include "GSSoftVertex.h"
 #include "GSVertexList.h"
 
-// FIXME: sfex3
-
 //
 //#define DEBUG_SAVETEXTURES
 //#define DEBUG_LOG
@@ -155,18 +153,22 @@ struct GSVertex
 
 class GSStats
 {
-	int m_frame, m_prim;
-	float m_fps, m_pps, m_ppf;
+	int m_frame, m_prim, m_write, m_read;
+	float m_fps, m_pps, m_ppf, m_wps, m_wpf, m_rps, m_rpf;
 	CList<clock_t> m_clk;
-	CList<int> m_prims;
+	CList<int> m_prims, m_writes, m_reads;
 
 public:
 	GSStats() {Reset();}
-	void Reset() {m_frame = m_prim = 0; m_fps = m_pps = m_ppf = 0;}
+	void Reset() {m_frame = m_prim = m_write = m_read = 0; m_fps = m_pps = m_ppf = m_wps = m_wpf = m_rps = m_rpf = 0;}
 	void IncPrims(int n) {m_prim += n;}
+	void IncWrites(int bytes) {m_write += bytes;}
+	void IncReads(int pixels) {m_read += pixels;}
 	void VSync()
 	{
 		m_prims.AddTail(m_prim);
+		m_writes.AddTail(m_write);
+		m_reads.AddTail(m_read);
 		if(m_clk.GetCount())
 		{
 			if(int dt = clock() - m_clk.GetHead())
@@ -178,26 +180,40 @@ public:
 				while(pos) prims += m_prims.GetNext(pos);
 				m_pps = 1000.0f * prims / dt;
 				m_ppf = 1.0f * prims / m_clk.GetCount();
+
+				int bytes = 0;
+				pos = m_writes.GetHeadPosition();
+				while(pos) bytes += m_writes.GetNext(pos);
+				m_wps = 1000.0f * bytes / dt;
+				m_wpf = 1.0f * bytes / m_clk.GetCount();
+
+				int pixels = 0;
+				pos = m_reads.GetHeadPosition();
+				while(pos) pixels += m_reads.GetNext(pos);
+				m_rps = 1000.0f * pixels / dt;
+				m_rpf = 1.0f * pixels / m_clk.GetCount();
 			}
 			if(m_clk.GetCount() > 10)
 			{
 				m_clk.RemoveHead();
 				m_prims.RemoveHead();
+				m_writes.RemoveHead();
+				m_reads.RemoveHead();
 			}
 		}
 		m_clk.AddTail(clock());
 		m_frame++;
 		m_prim = 0;
+		m_write = 0;
+		m_read = 0;
 	}
 	int GetFrame() {return m_frame;}
-	float GetFPS() {return m_fps;}
-	float GetPPS() {return m_pps;}
-	float GetPPF() {return m_ppf;}
 	CString ToString(int fps)
 	{
 		CString str; 
-		str.Format(_T("frame: %d | %.2f fps (%d%%) | %.0f ppf | %.0f pps"), 
-			m_frame, m_fps, (int)(100*m_fps/fps), m_ppf, m_pps); 
+		str.Format(_T("frame: %d | %.2f fps (%d%%) | %d ppf | %.2f kbpf | %.2f ktpf"), 
+			m_frame, m_fps, (int)(100*m_fps/fps), 
+			(int)m_ppf, m_wpf / 1024, m_rpf / 1024); 
 		return str;
 	}
 };
@@ -259,8 +275,8 @@ protected:
 
 	void GIFPackedRegHandlerNull(GIFPackedReg* r);
 	void GIFPackedRegHandlerPRIM(GIFPackedReg* r);
-	void GIFPackedRegHandlerRGBAQ(GIFPackedReg* r);
-	void GIFPackedRegHandlerST(GIFPackedReg* r);
+	void GIFPackedRegHandlerRGBA(GIFPackedReg* r);
+	void GIFPackedRegHandlerSTQ(GIFPackedReg* r);
 	void GIFPackedRegHandlerUV(GIFPackedReg* r);
 	void GIFPackedRegHandlerXYZF2(GIFPackedReg* r);
 	void GIFPackedRegHandlerXYZ2(GIFPackedReg* r);

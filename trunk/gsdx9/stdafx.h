@@ -62,6 +62,3 @@
 
 #define EXPORT_C extern "C" __declspec(dllexport) void __stdcall
 #define EXPORT_C_(type) extern "C" __declspec(dllexport) type __stdcall
-//
-#define USE_SIMD
-

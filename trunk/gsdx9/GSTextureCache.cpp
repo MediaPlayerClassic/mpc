@@ -22,7 +22,8 @@
 #include "StdAfx.h"
 #include "GSTextureCache.h"
 
-GSTexture::GSTexture() : m_scale(1, 1)
+GSTexture::GSTexture()
+	: m_scale(1, 1), m_valid(0, 0)
 {
 	m_tex.TEX0.i64 = -1;
 	m_tex.CLAMP.i64 = 0;
@@ -32,8 +33,8 @@ GSTexture::GSTexture() : m_scale(1, 1)
 	m_fRT = false;
 }
 
-GSTexture::GSTexture(tex_t& tex, scale_t& scale, CComPtr<IDirect3DTexture9> pTexture)
-	: m_tex(tex) , m_scale(scale), m_pTexture(pTexture), m_age(0)
+GSTexture::GSTexture(tex_t& tex, scale_t& scale, CComPtr<IDirect3DTexture9> pTexture, CSize valid)
+	: m_tex(tex), m_scale(scale), m_pTexture(pTexture), m_age(0), m_valid(valid)
 {
 	ASSERT(pTexture);
 	m_fRT = IsRenderTarget(m_pTexture);
@@ -45,11 +46,11 @@ GSTextureCache::GSTextureCache()
 {
 }
 
-void GSTextureCache::Add(tex_t& tex, scale_t& scale, CComPtr<IDirect3DTexture9> pTexture)
+void GSTextureCache::Add(tex_t& tex, scale_t& scale, CComPtr<IDirect3DTexture9> pTexture, CSize valid)
 {
 	InvalidateByTBP(tex.TEX0.TBP0);
 	InvalidateByCBP(tex.TEX0.TBP0);
-	AddHead(GSTexture(tex, scale, pTexture));
+	AddHead(GSTexture(tex, scale, pTexture, valid));
 }
 
 void GSTextureCache::Update(tex_t& tex, scale_t& scale, CComPtr<IDirect3DTexture9> pTexture)
@@ -170,7 +171,6 @@ void GSTextureCache::IncAge(CSurfMap<IDirect3DTexture9>& pRTs)
 		GSTexture& t = GetNext(pos);
 		if(++t.m_age > 3)
 		{
-			TRACE(_T("Removing texture: %05x\n"), t.m_tex.TEX0.TBP0);
 			pRTs.RemoveKey(t.m_tex.TEX0.TBP0);
 			RemoveAt(cur);
 		}

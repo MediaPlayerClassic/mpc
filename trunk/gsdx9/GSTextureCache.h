@@ -53,19 +53,20 @@ class GSTexture
 public:
 	tex_t m_tex;
 	scale_t m_scale;
+	CSize m_valid;
 	CComPtr<IDirect3DTexture9> m_pTexture;
 	bool m_fRT;
 	int m_age;
 
 	class GSTexture();
-	class GSTexture(tex_t& tex, scale_t& m_scale, CComPtr<IDirect3DTexture9> pTexture);
+	class GSTexture(tex_t& tex, scale_t& m_scale, CComPtr<IDirect3DTexture9> pTexture, CSize valid = CSize(0, 0));
 };
 
 class GSTextureCache : public CList<GSTexture>
 {
 public:
 	GSTextureCache();
-	void Add(tex_t& tex, scale_t& m_scale, CComPtr<IDirect3DTexture9> pTexture);
+	void Add(tex_t& tex, scale_t& m_scale, CComPtr<IDirect3DTexture9> pTexture, CSize valid = CSize(0, 0));
 	void Update(tex_t& tex, scale_t& m_scale, CComPtr<IDirect3DTexture9> pTexture);
 	POSITION Lookup(tex_t& tex, scale_t& m_scale, GSTexture& ret);
 	POSITION Lookup(tex_t& tex, GSTexture& ret);

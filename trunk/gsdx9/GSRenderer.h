@@ -43,7 +43,7 @@ protected:
 	{
 		LOG((_T("VertexKick(%d)\n"), fSkip));
 
-		static const int vmin[8] = {1, 2, 2, 3, 3, 3, 2, 0};
+		static const int vmin[8] = {1, 2, 2, 3, 3, 3, 2, 1};
 		while(m_vl.GetCount() >= vmin[m_de.PRIM.PRIM])
 		{
 			if(m_nVertices+6 > m_nMaxVertices)
