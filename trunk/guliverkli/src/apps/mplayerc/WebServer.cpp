@@ -103,8 +103,9 @@ CWebServer::CWebServer(CMainFrame* pMainFrame, int nPort)
 
 	CString WebRoot = AfxGetAppSettings().WebRoot;
 	WebRoot.Replace('/', '\\');
+	WebRoot.Trim();
 	CPath p(WebRoot);
-	if(!p.IsDirectory()) m_webroot.Append(p);
+	if(WebRoot.Find(_T(":\\")) < 0 && WebRoot.Find(_T("\\\\")) < 0) m_webroot.Append(WebRoot);
 	else m_webroot = p;
 	m_webroot.Canonicalize();
 	m_webroot.MakePretty();

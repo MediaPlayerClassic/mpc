@@ -31,10 +31,8 @@ template<class T>
 class CFormatElem
 {
 public:
-	AM_MEDIA_TYPE* pmt;
+	CMediaType mt;
 	T caps;
-	CFormatElem() {pmt = NULL;}
-	virtual ~CFormatElem() {if(pmt) DeleteMediaType(pmt);}
 };
 
 template<class T>
@@ -81,7 +79,7 @@ public:
 			for(int j = 0; j < (int)pf->GetCount(); j++)
 			{
 				CFormatElem<T>* pfe = pf->GetAt(j);
-				if(!pmt || (pfe->pmt->majortype == pmt->majortype && pfe->pmt->subtype == pmt->subtype))
+				if(!pmt || (pfe->mt.majortype == pmt->majortype && pfe->mt.subtype == pmt->subtype))
 				{
                     if(ppf) *ppf = pf;
 					return(true);
@@ -102,8 +100,7 @@ public:
 			for(int j = 0; j < (int)pf->GetCount(); j++)
 			{
 				CFormatElem<T>* pfe = pf->GetAt(j);
-				if((!pmt || CMediaType(*pfe->pmt) == *pmt)
-				&& (!pcaps || !memcmp(pcaps, &pfe->caps, sizeof(T))))
+				if((!pmt || pfe->mt == *pmt) && (!pcaps || !memcmp(pcaps, &pfe->caps, sizeof(T))))
 				{
                     if(ppf) *ppf = pf;
                     if(ppfe) *ppfe = pfe;
@@ -126,11 +123,18 @@ public:
 		if(!pf) {DeleteMediaType(pmt); return(false);}
 
 		CAutoPtr<CFormatElem<T> > pfe(new CFormatElem<T>());
-		pfe->pmt = pmt;
+		pfe->mt = *pmt;
 		pfe->caps = caps;
 		pf->Add(pfe);
 
 		return(true);
+	}
+
+	bool AddFormat(AM_MEDIA_TYPE* pmt, void* pcaps, int size)
+	{
+		if(!pcaps) return false;
+		ASSERT(size == sizeof(T));
+		return AddFormat(pmt, *(T*)pcaps);
 	}
 
 	virtual CString MakeFormatName(AM_MEDIA_TYPE* pmt) = 0;
@@ -197,19 +201,19 @@ public:
 
 		if(!pfe) return(str);
 
-		BITMAPINFOHEADER* bih = (pfe->pmt->formattype == FORMAT_VideoInfo)
-			? &((VIDEOINFOHEADER*)pfe->pmt->pbFormat)->bmiHeader
-			: (pfe->pmt->formattype == FORMAT_VideoInfo2)
-			? &((VIDEOINFOHEADER2*)pfe->pmt->pbFormat)->bmiHeader
+		BITMAPINFOHEADER* bih = (pfe->mt.formattype == FORMAT_VideoInfo)
+			? &((VIDEOINFOHEADER*)pfe->mt.pbFormat)->bmiHeader
+			: (pfe->mt.formattype == FORMAT_VideoInfo2)
+			? &((VIDEOINFOHEADER2*)pfe->mt.pbFormat)->bmiHeader
 			: NULL;
 
 		if(bih == NULL) return(str);
 
-		str.Format(_T("%dx%d %.2f"), bih->biWidth, bih->biHeight, (float)10000000/((VIDEOINFOHEADER*)pfe->pmt->pbFormat)->AvgTimePerFrame);
+		str.Format(_T("%dx%d %.2f"), bih->biWidth, bih->biHeight, (float)10000000/((VIDEOINFOHEADER*)pfe->mt.pbFormat)->AvgTimePerFrame);
 
-		if(pfe->pmt->formattype == FORMAT_VideoInfo2)
+		if(pfe->mt.formattype == FORMAT_VideoInfo2)
 		{
-			VIDEOINFOHEADER2* vih2 = (VIDEOINFOHEADER2*)pfe->pmt->pbFormat;
+			VIDEOINFOHEADER2* vih2 = (VIDEOINFOHEADER2*)pfe->mt.pbFormat;
 			CString str2;
 			str2.Format(_T(" i%02x %d:%d"), vih2->dwInterlaceFlags, vih2->dwPictAspectRatioX, vih2->dwPictAspectRatioY);
 			str += str2;
@@ -264,8 +268,8 @@ public:
 
 		if(!pfe) return(str);
 
-		WAVEFORMATEX* wfe = (pfe->pmt->formattype == FORMAT_WaveFormatEx)
-			? (WAVEFORMATEX*)pfe->pmt->pbFormat
+		WAVEFORMATEX* wfe = (pfe->mt.formattype == FORMAT_WaveFormatEx)
+			? (WAVEFORMATEX*)pfe->mt.pbFormat
 			: NULL;
 
 		if(!wfe) return(str);
@@ -361,6 +365,8 @@ public:
 	CComboBox m_viddimension;
 	CSpinButtonCtrl m_vidhor;
 	CSpinButtonCtrl m_vidver;
+	CEdit m_vidhoredit;
+	CEdit m_vidveredit;
 	CFloatEdit m_vidfpsedit;
 	float m_vidfps;
 	CButton m_vidsetres;

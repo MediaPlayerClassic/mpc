@@ -563,6 +563,8 @@ public:
 	afx_msg void OnUpdateViewPanNScanPresets(CCmdUI* pCmdUI);
 	afx_msg void OnViewRotate(UINT nID);
 	afx_msg void OnUpdateViewRotate(CCmdUI* pCmdUI);
+	afx_msg void OnViewAspectRatio(UINT nID);
+	afx_msg void OnUpdateViewAspectRatio(CCmdUI* pCmdUI);
 	afx_msg void OnViewOntop(UINT nID);
 	afx_msg void OnUpdateViewOntop(CCmdUI* pCmdUI);
 	afx_msg void OnViewOptions();
@@ -627,4 +629,5 @@ public:
 	afx_msg void OnHelpDonate();
 public:
 	afx_msg void OnClose();
+	afx_msg void OnSizing(UINT fwSide, LPRECT pRect);
 };

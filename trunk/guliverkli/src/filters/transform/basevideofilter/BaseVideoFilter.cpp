@@ -178,10 +178,10 @@ HRESULT CBaseVideoFilter::ReconnectOutput(int w, int h)
 
 		hr = m_pOutput->GetConnected()->QueryAccept(&mt);
 		ASSERT(SUCCEEDED(hr)); // should better not fail, after all "mt" is the current media type, just with a different resolution
-
+HRESULT hr1 = 0, hr2 = 0;
 		CComPtr<IMediaSample> pOut;
-		if(SUCCEEDED(m_pOutput->GetConnected()->ReceiveConnection(m_pOutput, &mt))
-		&& SUCCEEDED(m_pOutput->GetDeliveryBuffer(&pOut, NULL, NULL, 0)))
+		if(SUCCEEDED(hr1 = m_pOutput->GetConnected()->ReceiveConnection(m_pOutput, &mt))
+		&& SUCCEEDED(hr2 = m_pOutput->GetDeliveryBuffer(&pOut, NULL, NULL, 0)))
 		{
 			AM_MEDIA_TYPE* pmt;
 			if(SUCCEEDED(pOut->GetMediaType(&pmt)) && pmt)
@@ -306,7 +306,12 @@ HRESULT CBaseVideoFilter::CopyBuffer(BYTE* pOut, BYTE** ppIn, int w, int h, int 
 			subtype == MEDIASUBTYPE_RGB24 ? 24 :
 			subtype == MEDIASUBTYPE_RGB565 ? 16 : 0;
 
-		if(bihOut.biCompression == BI_RGB || bihOut.biCompression == BI_BITFIELDS)
+		if(bihOut.biCompression == '2YUY')
+		{
+			// TODO
+			// BitBltFromRGBToYUY2();
+		}
+		else if(bihOut.biCompression == BI_RGB || bihOut.biCompression == BI_BITFIELDS)
 		{
 			if(!BitBltFromRGBToRGB(w, h, pOut, pitchOut, bihOut.biBitCount, ppIn[0], pitchIn, sbpp))
 			{
@@ -445,9 +450,17 @@ HRESULT CBaseVideoFilter::GetMediaType(int iPosition, CMediaType* pmt)
 
 	// this will make sure we won't connect to the old renderer in dvd mode
 	// that renderer can't switch the format dynamically
-	if(FindFilter(CLSID_DVDNavigator, m_pGraph)
-	|| m_pInput->CurrentMediaType().formattype == FORMAT_VideoInfo2)
+
+	bool fFoundDVDNavigator = false;
+	CComPtr<IBaseFilter> pBF = this;
+	CComPtr<IPin> pPin = m_pInput;
+	for(; !fFoundDVDNavigator && (pBF = GetFilterFromPin(GetUpStreamPin(pBF, pPin))); pPin = GetFirstPin(pBF))
+        fFoundDVDNavigator = GetCLSID(pBF) == CLSID_DVDNavigator;
+
+	if(fFoundDVDNavigator || m_pInput->CurrentMediaType().formattype == FORMAT_VideoInfo2)
 		iPosition = iPosition*2;
+
+	//
 
 	if(iPosition < 0) return E_INVALIDARG;
 	if(iPosition >= 2*countof(fmts)) return VFW_S_NO_MORE_ITEMS;

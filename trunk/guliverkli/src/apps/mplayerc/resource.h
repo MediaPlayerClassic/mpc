@@ -238,6 +238,7 @@
 #define IDB_STREAMTYPES                 404
 #define IDD_CONVERTRESDIALOG            405
 #define IDD_CONVERTCHAPDIALOG           406
+#define IDF_SHADER_RESIZER              407
 #define IDS_R_SETTINGS                  500
 #define IDS_RS_CONTROLSTATE             501
 #define IDS_RS_VOLUME                   502
@@ -368,7 +369,10 @@
 #define IDS_RS_POW2TEX                  621
 #define IDS_R_INTERNAL_FILTERS          622
 #define IDS_RS_WEBROOT                  623
-#define IDS_RS_WEBSERVERLOCALHOSTONLY	624
+#define IDS_RS_WEBSERVERLOCALHOSTONLY   624
+#define IDS_RS_ASPECTRATIO_X            625
+#define IDS_RS_ASPECTRATIO_Y            626
+#define IDS_RS_DX9_RESIZER              627
 #define IDC_BROWSEBUTTON                1016
 #define IDC_BROWSEBUTTON2               1017
 #define IDC_COMBO1                      1018
@@ -581,6 +585,7 @@
 #define IDC_HLINE                       1164
 #define IDS_SRC_DSM                     1165
 #define IDS_SRC_MPA                     1166
+#define IDC_DX9RESIZER_COMBO            1167
 #define IDD_COMPROPERTYPAGE             10002
 #define IDD_FILEPROPCLIP1               10003
 #define IDD_FILEPROPRES                 10003
@@ -664,6 +669,13 @@
 #define ID__SHADERS32852                32852
 #define ID_FILE_CONVERT                 32853
 #define ID_FILE_UTILS                   32854
+#define ID_VIEW_ASPECTRATIO             32855
+#define ID_ASPECTRATIO_START            32856
+#define ID_ASPECTRATIO_SOURCE           32856
+#define ID_ASPECTRATIO_4                32857
+#define ID_ASPECTRATIO_5                32858
+#define ID_ASPECTRATIO_16               32859
+#define ID_ASPECTRATIO_END              32865
 #define ID_FILTERS_SUBITEM_START        33000
 #define ID_FILTERS_SUBITEM_END          33099
 #define ID_FILTERSTREAMS_SUBITEM_START  33100
@@ -697,9 +709,9 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        407
-#define _APS_NEXT_COMMAND_VALUE         32855
-#define _APS_NEXT_CONTROL_VALUE         1167
+#define _APS_NEXT_RESOURCE_VALUE        409
+#define _APS_NEXT_COMMAND_VALUE         32866
+#define _APS_NEXT_CONTROL_VALUE         1168
 #define _APS_NEXT_SYMED_VALUE           10003
 #endif
 #endif

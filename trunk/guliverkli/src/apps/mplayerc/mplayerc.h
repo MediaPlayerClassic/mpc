@@ -355,6 +355,7 @@ public:
 		int iQTVideoRendererType;
 		int iAPSurfaceUsage;
 		bool fVMRSyncFix;
+		int iDX9Resizer;
 
 		int nVolume;
 		int nBalance;
@@ -383,6 +384,7 @@ public:
 		bool fRememberWindowSize;
 		CRect rcLastWindowPos;
 		UINT lastWindowType;
+		CSize AspectRatio;
 		bool fKeepHistory;
 
 		CString sDVDPath;

@@ -31,8 +31,7 @@ class COpenCapDeviceDlg : public CResizableDialog
 //	DECLARE_DYNAMIC(COpenCapDeviceDlg)
 
 private:
-	CStringArray m_vidnames, m_audnames;
-//	CInterfaceArray<IMoniker> m_vidmonikers, m_audmonikers;
+	CArray<CString> m_vidnames, m_audnames;
 
 public:
 	COpenCapDeviceDlg(CWnd* pParent = NULL);   // standard constructor
@@ -40,10 +39,10 @@ public:
 
 	CComboBox m_vidctrl;
 	CComboBox m_audctrl;
+	CComboBox m_countryctrl;
 
-//	CString m_vidfrstr, m_audfrstr;
 	CString m_vidstr, m_audstr;
-//	CComPtr<IBaseFilter> m_pVidCap, m_pAudCap;
+	long m_country;
 
 // Dialog Data
 	enum { IDD = IDD_OPENCAPDEVICEDIALOG };

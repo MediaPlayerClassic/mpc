@@ -34,6 +34,7 @@ CPlayerSubresyncBar::CPlayerSubresyncBar()
 {
 	m_rt = 0;
 	m_fUnlink = false;
+	m_lastSegment = -1;
 }
 
 CPlayerSubresyncBar::~CPlayerSubresyncBar()

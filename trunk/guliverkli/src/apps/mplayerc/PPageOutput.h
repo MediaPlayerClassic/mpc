@@ -44,6 +44,8 @@ public:
 	int m_iAPSurfaceUsage;
 	int m_iAudioRendererType;
 	CComboBox m_iAudioRendererTypeCtrl;
+	BOOL m_fVMRSyncFix;
+	int m_iDX9Resizer;
 
 protected:
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV support
@@ -53,5 +55,4 @@ protected:
 	DECLARE_MESSAGE_MAP()
 
 public:
-	BOOL m_fVMRSyncFix;
 };

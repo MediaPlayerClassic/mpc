@@ -36,6 +36,8 @@ public:
 	REFERENCE_TIME m_duration; 
 	int m_vinput, m_vchannel;
 	int m_ainput;
+	long m_country;
+
 	bool m_fInvalid;
 
 public:
