@@ -278,6 +278,12 @@
 			</File>
 			<File
 				RelativePath=".\GSLocalMemory.cpp">
+				<FileConfiguration
+					Name="ReleaseSSE2|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						AssemblerOutput="4"/>
+				</FileConfiguration>
 			</File>
 			<File
 				RelativePath=".\GSRegs.cpp">
