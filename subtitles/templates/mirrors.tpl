@@ -10,6 +10,7 @@
 	{if !empty($m.name)}{$m.name|escape:"html"}{else}{$m.url|escape:"html"}{/if}
 	</a>
 	{/strip}
+	{if $m.lastseen > 0}(last seen {$m.lastseen} day{if $m.lastseen > 1}s{/if} ago){/if}
 </li>
 {/foreach}
 </ol>

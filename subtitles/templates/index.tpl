@@ -9,7 +9,9 @@
 	<table>
 	<tr>
 		<th>Title</th>
-		<td><input class="text blueborder" type="text" name="text" value="{$text|escape:"quote"}" /></td>
+		<td onmouseover="return overlib('At least 3 characters<br>Wildcards are allowed (*, ?)', WRAP);" onmouseout="return nd();">
+			<input class="text blueborder" type="text" name="text" value="{$text|escape:"quote"}" />
+		</td>
 	</tr>
 	<tr>
 		<th>Disc(s)</th>
@@ -38,6 +40,8 @@
 		</td>
 	</tr>
 	</table>
+	
+	{*<div align="center">* minimum 3 characters, wildcards (*,?) allowed</div>*}
 	
 	<div style="padding-top: 10px;" align="center">
 		<input type="submit" value="Search" />
