@@ -12,4 +12,13 @@
 
 <body bgcolor="#ffffff">
 
+<div id="navcontainer">
+
+<ul id="navlist">
+	<li><a href="index.php" title="Search">Search</a></li>
+	<li><a href="ul.php" title="Upload">Upload</a></li>
+</ul>
+
+</div>
+
 <div id="content">

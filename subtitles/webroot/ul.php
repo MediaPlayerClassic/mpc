@@ -239,7 +239,8 @@ if(isset($_POST['update']) || isset($_POST['submit']))
 	$db_email = addslashes($email);
 
 	$movie_id = storeMovie($imdb, $titles);
-
+	$files = array();
+	
 	for($i = 0; $i < $maxsubs; $i++)
 	{
 		if(empty($_FILES['sub']['tmp_name'][$i])) continue;
@@ -282,13 +283,12 @@ if(isset($_POST['update']) || isset($_POST['submit']))
 		{
 			$file = $_SESSION['file'][$file_sel];
 			
-			$db_name = $file['name'];
 			$hash = $file['hash'];
 			$size = $file['size'];
 
-			$db->query("select * from file where name = '$db_name' && hash = '$hash' && size = '$size'");
+			$db->query("select * from file where hash = '$hash' && size = '$size'");
 			if($row = $db->fetchRow()) $file_id = $row['id'];
-			else {$db->query("insert into file (name, hash, size) values ('$db_name', '$hash', '$size')"); $file_id = $db->fetchLastInsertId();}
+			else {$db->query("insert into file (hash, size) values ('$hash', '$size')"); $file_id = $db->fetchLastInsertId();}
 			
 			chkerr();
 
@@ -296,12 +296,23 @@ if(isset($_POST['update']) || isset($_POST['submit']))
 				$db->query("insert into file_subtitle (file_id, subtitle_id) values($file_id, $subtitle_id)");
 	
 			chkerr();
+			
+			$files[] = $_SESSION['file'][$file_sel];
 		}
 	}
 	
 	if(!empty($email) && !empty($nick))
 	{
 		$db->query("update subtitle set nick = '$db_nick' where email = '$db_email'");
+	}
+	
+	if(!empty($files))
+	{
+		$args = array();
+		foreach($files as $i => $file)
+			foreach($file as $param => $value)
+				$args[] .= "$param[$i]=$value";
+		RedirAndExit('index.php?'.implode('&', $args));
 	}
 
 	RedirAndExit('index.php?text='.urlencode($titles[0]));
