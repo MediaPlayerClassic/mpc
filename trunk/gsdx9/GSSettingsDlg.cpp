@@ -33,6 +33,7 @@ static struct {int id; const TCHAR* name;} s_renderers[] =
 
 static struct {DWORD id; const TCHAR* name;} s_psversions[] =
 {
+	{D3DVS_VERSION(3, 0), _T("Pixel Shader 3.0")},
 	{D3DVS_VERSION(2, 0), _T("Pixel Shader 2.0")},
 	{D3DVS_VERSION(1, 1), _T("Pixel Shader 1.1")},
 	{D3DVS_VERSION(0, 0), _T("Fixed Pipeline")},

@@ -37,7 +37,7 @@ static BOOL IsDepthFormatOk(IDirect3D9* pD3D, D3DFORMAT DepthFormat, D3DFORMAT A
 GSState::GSState(int w, int h, HWND hWnd, HRESULT& hr) 
 	: m_hWnd(hWnd)
 	, m_fp(NULL)
-	, m_PRIM(7)
+	, m_PRIM(8)
 	, m_ctxt(NULL)
 {
 	hr = E_FAIL;
@@ -165,11 +165,15 @@ GSState::GSState(int w, int h, HWND hWnd, HRESULT& hr)
 		d3dpp.BackBufferWidth = ModeWidth;
 		d3dpp.BackBufferHeight = ModeHeight;
 		d3dpp.FullScreen_RefreshRateInHz = ModeRefreshRate;
+
+		::SetWindowLong(hWnd, GWL_STYLE, ::GetWindowLong(hWnd, GWL_STYLE) & ~(WS_CAPTION|WS_THICKFRAME));
+		::SetWindowPos(hWnd, NULL, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE);
+		::SetMenu(hWnd, NULL);
 	}
 
 	if(FAILED(hr = m_pD3D->CreateDevice(
 		// m_pD3D->GetAdapterCount()-1, D3DDEVTYPE_REF,
-		D3DADAPTER_DEFAULT, /*D3DDEVTYPE_REF*/D3DDEVTYPE_HAL, 
+		D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, 
 		hWnd,
 		m_caps.VertexProcessingCaps ? D3DCREATE_HARDWARE_VERTEXPROCESSING : D3DCREATE_SOFTWARE_VERTEXPROCESSING, 
 		&d3dpp, &m_pD3DDev)))
@@ -204,7 +208,65 @@ m_dwFillMode = D3DFILL_SOLID;
 	HMODULE hModule = AfxGetResourceHandle();
 
 	DWORD PixelShaderVersion = pApp->GetProfileInt(_T("Settings"), _T("PixelShaderVersion"), D3DVS_VERSION(2, 0));
+
+	if(PixelShaderVersion > m_caps.PixelShaderVersion)
+	{
+		CString str;
+		str.Format(_T("Supported pixel shader version is too low!\n\nSupported: %d.%d\nSelected: %d.%d"),
+			D3DSHADER_VERSION_MAJOR(m_caps.PixelShaderVersion), D3DSHADER_VERSION_MINOR(m_caps.PixelShaderVersion),
+			D3DSHADER_VERSION_MAJOR(PixelShaderVersion), D3DSHADER_VERSION_MINOR(PixelShaderVersion));
+		AfxMessageBox(str);
+		m_pD3DDev = NULL;
+		hr = E_FAIL;
+		return;
+	}
+
 	m_caps.PixelShaderVersion = min(PixelShaderVersion, m_caps.PixelShaderVersion);
+
+	// ps_3_0
+
+	if(m_caps.PixelShaderVersion >= D3DVS_VERSION(3, 0))
+	{
+		for(int i = 0; i < 5; i++)
+		{
+			if(m_pPixelShaderTFX[i]) continue;
+
+			CString main;
+			main.Format(_T("main_tfx%d"), i);
+			// main.Format(_T("main_tfx"));
+
+			CComPtr<ID3DXBuffer> pShader, pErrorMsgs;
+			HRESULT hr = D3DXCompileShaderFromResource(
+				hModule, MAKEINTRESOURCE(IDR_PS20_TFX), NULL, NULL, main, _T("ps_3_0"), 
+				0, &pShader, &pErrorMsgs, NULL);
+
+			if(SUCCEEDED(hr))
+			{
+				hr = m_pD3DDev->CreatePixelShader((DWORD*)pShader->GetBufferPointer(), &m_pPixelShaderTFX[i]);
+				ASSERT(SUCCEEDED(hr));
+			}
+		}
+
+		for(int i = 0; i < 3; i++)
+		{
+			if(m_pPixelShaderMerge[i]) continue;
+
+			CString main;
+			main.Format(_T("main%d"), i);
+
+			CComPtr<ID3DXBuffer> pShader, pErrorMsgs;
+			HRESULT hr = D3DXCompileShaderFromResource(
+				hModule, MAKEINTRESOURCE(IDR_PS20_MERGE), NULL, NULL, main, _T("ps_3_0"), 
+				0, &pShader, &pErrorMsgs, NULL);
+			ASSERT(SUCCEEDED(hr));
+
+			if(SUCCEEDED(hr))
+			{
+				hr = m_pD3DDev->CreatePixelShader((DWORD*)pShader->GetBufferPointer(), &m_pPixelShaderMerge[i]);
+				ASSERT(SUCCEEDED(hr));
+			}
+		}
+	}
 
 	// ps_2_0
 
@@ -212,6 +274,8 @@ m_dwFillMode = D3DFILL_SOLID;
 	{
 		for(int i = 0; i < 5; i++)
 		{
+			if(m_pPixelShaderTFX[i]) continue;
+
 			CString main;
 			main.Format(_T("main_tfx%d"), i);
 			// main.Format(_T("main_tfx"));
@@ -230,6 +294,8 @@ m_dwFillMode = D3DFILL_SOLID;
 
 		for(int i = 0; i < 3; i++)
 		{
+			if(m_pPixelShaderMerge[i]) continue;
+
 			CString main;
 			main.Format(_T("main%d"), i);
 
@@ -280,8 +346,8 @@ m_dwFillMode = D3DFILL_SOLID;
 	Reset();
 
 #ifdef DEBUG_LOG
-	::DeleteFile(_T("c:\\gs.txt"));
-	m_fp = _tfopen(_T("c:\\gs.txt"), _T("at"));
+	::DeleteFile(_T("g:\\gs.txt"));
+	m_fp = _tfopen(_T("g:\\gs.txt"), _T("at"));
 #endif
 
 //	m_rs.CSRr.REV = 0x20;
@@ -360,6 +426,9 @@ UINT32 GSState::Defrost(const freezeData* fd)
 	memcpy(&m_tag, data, sizeof(m_tag)); data += sizeof(m_tag);
 	memcpy(&m_nreg, data, sizeof(m_nreg)); data += sizeof(m_nreg);
 	// memcpy(&m_vl, data, sizeof(m_vl)); data += sizeof(m_vl);
+
+	m_de.pPRIM = !m_de.PRMODECONT.AC ? (GIFRegPRIM*)&m_de.PRMODE : &m_de.PRIM;
+	m_ctxt = &m_de.CTXT[m_de.pPRIM->CTXT];
 
 	return 0;
 }
@@ -780,7 +849,11 @@ void GSState::Reset()
 	memset(&m_v, 0, sizeof(m_v));
 	m_nreg = 0;
 
-	m_PRIM = 7;
+	m_de.PRMODECONT.AC = 1;
+	m_de.pPRIM = &m_de.PRIM;
+	m_ctxt = &m_de.CTXT[0];
+
+	m_PRIM = 8;
 
 	if(m_pD3DDev) m_pD3DDev->Clear(0, NULL, D3DCLEAR_TARGET/*|D3DCLEAR_ZBUFFER|D3DCLEAR_STENCIL*/, 0, 1.0f, 0);
 }
@@ -860,7 +933,7 @@ void GSState::FinishFlip(FlipSrc rt[2], bool fShiftField)
 
 	CComPtr<IDirect3DPixelShader9> pPixelShader;
 
-	if(!pPixelShader && m_caps.PixelShaderVersion >= D3DVS_VERSION(2, 0))
+	if(!pPixelShader && m_caps.PixelShaderVersion >= D3DVS_VERSION(2, 0) && m_pPixelShaderMerge[PS_M32])
 	{
 		pPixelShader = m_pPixelShaderMerge[PS_M32];
 	}

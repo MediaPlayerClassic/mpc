@@ -35,7 +35,7 @@
 #define DEBUG_LOG
 #define DEBUG_LOG2
 #define DEBUG_LOGVERTICES
-//#define DEBUG_RENDERTARGETS
+#define DEBUG_RENDERTARGETS
 */
 struct GSDrawingContext
 {
@@ -81,9 +81,10 @@ struct GSDrawingContext
 
 struct GSDrawingEnvironment
 {
-	struct GSDrawingEnvironment() {memset(this, 0, sizeof(*this));}
+	struct GSDrawingEnvironment() {memset(this, 0, sizeof(*this)); pPRIM = &PRIM;}
 
 	GIFRegPRIM			PRIM;
+	GIFRegPRMODE		PRMODE;
 	GIFRegPRMODECONT	PRMODECONT;
 	GIFRegTEXCLUT		TEXCLUT;
 	GIFRegSCANMSK		SCANMSK;
@@ -94,6 +95,7 @@ struct GSDrawingEnvironment
 	GIFRegCOLCLAMP		COLCLAMP;
 	GIFRegPABE			PABE;
 	GSDrawingContext	CTXT[2];
+	GIFRegPRIM*			pPRIM;
 };
 
 struct GSRegSet
@@ -177,7 +179,8 @@ protected:
 	CComPtr<IDirect3D9> m_pD3D;
 	CComPtr<IDirect3DDevice9> m_pD3DDev;
 	CComPtr<IDirect3DSurface9> m_pOrgRenderTarget;
-	CComPtr<IDirect3DPixelShader9> m_pPixelShaders[16], m_pPixelShaderTFX[5], m_pPixelShaderMerge[3];
+	CComPtr<IDirect3DPixelShader9> m_pPixelShaders[16];
+	CComPtr<IDirect3DPixelShader9> m_pPixelShaderTFX[5], m_pPixelShaderMerge[3];
 	enum {PS_EN11 = 12, PS_EN01 = 13, PS_EN10 = 14, PS_EN00 = 15};
 	enum {PS_M16 = 0, PS_M24 = 1, PS_M32 = 2};
 	D3DCAPS9 m_caps;

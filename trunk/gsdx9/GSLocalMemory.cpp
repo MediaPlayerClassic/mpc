@@ -46,7 +46,7 @@ __forceinline static DWORD From16To32(WORD c, GIFRegTEXA& TEXA, BYTE* bbt)
 	return (A << 24) | ((c&0x7c00) << 9) | ((c&0x03e0) << 6) | ((c&0x001f) << 3);
 }
 
-__forceinline static DWORD From24To32ARGB(DWORD c, BYTE TCC, GIFRegTEXA& TEXA, BYTE* bbt)
+/*__forceinline static DWORD From24To32ARGB(DWORD c, BYTE TCC, GIFRegTEXA& TEXA, BYTE* bbt)
 {
 	BYTE MASK1 = bbt[TCC]; // TEX0.TCC
 	BYTE MASK2 = bbt[!TEXA.AEM|(c&0xff)|((c>>8)&0xff)|((c>>16)&0xff)];
@@ -61,7 +61,7 @@ __forceinline static DWORD From16To32ARGB(WORD c, GIFRegTEXA& TEXA, BYTE* bbt)
 	BYTE A = (MASK1 & TEXA.TA1) | (~MASK1 & (MASK2 & TEXA.TA0));
 	return (A << 24) | ((c&0x7c00) >> 7) | ((c&0x03e0) << 6) | ((c&0x001f) << 19);
 }
-
+*/
 //
 
 WORD GSLocalMemory::pageOffset32[32][32][64];
@@ -83,6 +83,7 @@ GSLocalMemory::GSLocalMemory()
 	memset(m_vm8, 0, len);
 
 	memset(m_clut, 0, sizeof(m_clut));
+	memset(m_CLUT, 0, sizeof(m_CLUT));
 
 	for(int bp = 0; bp < 32; bp++)
 	{
@@ -747,7 +748,7 @@ GSLocalMemory::readTexel GSLocalMemory::GetReadTexel(DWORD psm)
 
 	switch(psm)
 	{
-	default: ASSERT(0);
+	default: ;//ASSERT(0);
 	case PSM_PSMCT32: rt = &GSLocalMemory::readTexel32; break;
 	case PSM_PSMCT24: rt = &GSLocalMemory::readTexel24; break;
 	case PSM_PSMCT16: rt = &GSLocalMemory::readTexel16; break;
@@ -1047,57 +1048,182 @@ GSLocalMemory::readTexelAddr GSLocalMemory::GetReadTexelAddr(DWORD psm)
 
 ////////////////////
 
-void GSLocalMemory::setupCLUT(GIFRegTEX0 TEX0, GIFRegTEXCLUT& TEXCLUT, GIFRegTEXA& TEXA)
+void GSLocalMemory::writeCLUT(GIFRegTEX0 TEX0, GIFRegTEXCLUT TEXCLUT)
 {
-	TEX0.TBP0 = TEX0.CBP;
-	TEX0.TBW = TEX0.CSM == 0 ? 1 : TEXCLUT.CBW;
+	switch(TEX0.CLD)
+	{
+	default:
+	case 0: return;
+	case 1: break;
+	case 2: m_CBP[0] = TEX0.CBP; break;
+	case 3: m_CBP[1] = TEX0.CBP; break;
+	case 4: if(m_CBP[0] == TEX0.CBP) return; break;
+	case 5: if(m_CBP[1] == TEX0.CBP) return; break;
+	}
+
+	readPixel rp = GetReadPixel(TEX0.CPSM);
+
+	DWORD bp = TEX0.CBP;
+	DWORD bw = TEX0.CSM == 0 ? 1 : TEXCLUT.CBW;
+
+	WORD* CLUTLW = m_CLUT + (TEX0.CSA<<4);
+	WORD* CLUTHW = CLUTLW + 256;
 
 	if(TEX0.PSM == PSM_PSMT8 || TEX0.PSM == PSM_PSMT8H)
 	{
-		readTexel rt = GetReadTexel(TEX0.CPSM);
-
-		if(TEX0.CSM == 0)
+		if(TEX0.CPSM == PSM_PSMCT16 || TEX0.CPSM == PSM_PSMCT16S)
 		{
-			for(int y = 0, cy = 0; y < 8; y++)
+			ASSERT(TEX0.CSA <= 16);
+
+			if(TEX0.CSM == 0)
 			{
-				int i = 0;
-				for(int x = 0; x < 8; x++, i++) m_clut[y*32 + x] = (this->*rt)(i, cy, TEX0, TEXA);
-				for(int x = 16; x < 24; x++, i++) m_clut[y*32 + x] = (this->*rt)(i, cy, TEX0, TEXA);
-				cy++;
-				i = 0;
-				for(int x = 8; x < 16; x++, i++) m_clut[y*32 + x] = (this->*rt)(i, cy, TEX0, TEXA);
-				for(int x = 24; x < 32; x++, i++) m_clut[y*32 + x] = (this->*rt)(i, cy, TEX0, TEXA);
-				cy++;
+				for(int y = 0, cy = 0; y < 8; y++)
+				{
+					int i = 0;
+					for(int x = 0; x < 8; x++, i++) CLUTLW[y*32 + x] = (WORD)(this->*rp)(i, cy, bp, bw);
+					for(int x = 16; x < 24; x++, i++) CLUTLW[y*32 + x] = (WORD)(this->*rp)(i, cy, bp, bw);
+					cy++;
+					i = 0;
+					for(int x = 8; x < 16; x++, i++) CLUTLW[y*32 + x] = (WORD)(this->*rp)(i, cy, bp, bw);
+					for(int x = 24; x < 32; x++, i++) CLUTLW[y*32 + x] = (WORD)(this->*rp)(i, cy, bp, bw);
+					cy++;
+				}
+			}
+			else
+			{
+				for(int i = 0; i < 256; i++)
+				{
+					CLUTLW[i] = (WORD)(this->*rp)((TEXCLUT.COU<<4) + i, TEXCLUT.COV, bp, bw);
+				}
 			}
 		}
-		else
+		else if(TEX0.CPSM == PSM_PSMCT32)
 		{
-			for(int i = 0; i < 256; i++)
-				m_clut[i] = (this->*rt)((TEXCLUT.COU<<4) + i, TEXCLUT.COV, TEX0, TEXA);
+			ASSERT(TEX0.CSA == 0);
+
+			if(TEX0.CSM == 0)
+			{
+				for(int y = 0, cy = 0; y < 8; y++)
+				{
+					int i = 0;
+					for(int x = 0; x < 8; x++, i++)
+					{
+						DWORD dw = (this->*rp)(i, cy, bp, bw); 
+						CLUTLW[y*32 + x] = (WORD)(dw & 0xffff); 
+						CLUTHW[y*32 + x] = (WORD)(dw >> 16);
+					}
+					for(int x = 16; x < 24; x++, i++) {DWORD dw = (this->*rp)(i, cy, bp, bw); CLUTLW[y*32 + x] = (WORD)(dw & 0xffff); CLUTHW[y*32 + x] = (WORD)(dw >> 16);}
+					cy++;
+					i = 0;
+					for(int x = 8; x < 16; x++, i++) {DWORD dw = (this->*rp)(i, cy, bp, bw); CLUTLW[y*32 + x] = (WORD)(dw & 0xffff); CLUTHW[y*32 + x] = (WORD)(dw >> 16);}
+					for(int x = 24; x < 32; x++, i++) {DWORD dw = (this->*rp)(i, cy, bp, bw); CLUTLW[y*32 + x] = (WORD)(dw & 0xffff); CLUTHW[y*32 + x] = (WORD)(dw >> 16);}
+					cy++;
+				}
+			}
+			else
+			{
+				for(int i = 0; i < 256; i++)
+				{
+					DWORD dw = (this->*rp)((TEXCLUT.COU<<4) + i, TEXCLUT.COV, bp, bw);
+					CLUTLW[i] = (WORD)(dw & 0xffff);
+					CLUTHW[i] = (WORD)(dw >> 16);
+				}
+			}
 		}
 	}
 	else if(TEX0.PSM == PSM_PSMT4HH || TEX0.PSM == PSM_PSMT4HL || TEX0.PSM == PSM_PSMT4)
 	{
-		readTexel rt = GetReadTexel(TEX0.CPSM);
+		if(TEX0.CPSM == PSM_PSMCT16 || TEX0.CPSM == PSM_PSMCT16S)
+		{
+			ASSERT(TEX0.CSA <= 31);
 
-		if(TEX0.CSM == 0)
-		{
-			for(int y = 0; y < 2; y++)
-				for(int x = 0; x < 8; x++)
-					m_clut[y*8 + x] = (this->*rt)(x, y, TEX0, TEXA);
+			if(TEX0.CSM == 0)
+			{
+				for(int y = 0; y < 2; y++)
+				{
+					for(int x = 0; x < 8; x++)
+					{
+						CLUTLW[y*8 + x] = (WORD)(this->*rp)(x, y, bp, bw);
+					}
+				}
+			}
+			else
+			{
+				for(int i = 0; i < 16; i++)
+				{
+					CLUTLW[i] = (WORD)(this->*rp)((TEXCLUT.COU<<4) + i, TEXCLUT.COV, bp, bw);
+				}
+			}
 		}
-		else
+		else if(TEX0.CPSM == PSM_PSMCT32)
 		{
-			for(int i = 0; i < 16; i++)
-				m_clut[i] = (this->*rt)((TEXCLUT.COU<<4) + i, TEXCLUT.COV, TEX0, TEXA);
+			ASSERT(TEX0.CSA <= 15);
+
+			if(TEX0.CSM == 0)
+			{
+				for(int y = 0; y < 2; y++)
+				{
+					for(int x = 0; x < 8; x++)
+					{
+						DWORD dw = (this->*rp)(x, y, bp, bw);
+						CLUTLW[y*8 + x] = (WORD)(dw & 0xffff);
+						CLUTHW[y*8 + x] = (WORD)(dw >> 16);
+					}
+				}
+			}
+			else
+			{
+				for(int i = 0; i < 16; i++)
+				{
+					DWORD dw = (this->*rp)((TEXCLUT.COU<<4) + i, TEXCLUT.COV, bp, bw);
+					CLUTLW[i] = (WORD)(dw & 0xffff);
+					CLUTHW[i] = (WORD)(dw >> 16);
+				}
+			}
 		}
 	}
 }
 
-DWORD GSLocalMemory::readCLUT(BYTE c)
+void GSLocalMemory::readCLUT(GIFRegTEX0 TEX0, GIFRegTEXA TEXA, DWORD* pCLUT)
 {
-	return m_clut[c];
+	ASSERT(pCLUT);
+
+	WORD* CLUTLW = m_CLUT + (TEX0.CSA<<4);
+	WORD* CLUTHW = CLUTLW + 256;
+
+	if(TEX0.CPSM == PSM_PSMCT32)
+	{
+		if(TEX0.PSM == PSM_PSMT8 || TEX0.PSM == PSM_PSMT8H)
+		{
+			for(int i = 0; i < 256; i++) 
+				pCLUT[i] = ((DWORD)CLUTHW[i] << 16) | CLUTLW[i];
+		}
+		else if(TEX0.PSM == PSM_PSMT4HH || TEX0.PSM == PSM_PSMT4HL || TEX0.PSM == PSM_PSMT4)
+		{
+			for(int i = 0; i < 16; i++) 
+				pCLUT[i] = ((DWORD)CLUTHW[i] << 16) | CLUTLW[i];
+		}
+	}
+	else if(TEX0.CPSM == PSM_PSMCT16 || TEX0.CPSM == PSM_PSMCT16S)
+	{
+		if(TEX0.PSM == PSM_PSMT8 || TEX0.PSM == PSM_PSMT8H)
+		{
+			for(int i = 0; i < 256; i++) 
+				pCLUT[i] = From16To32(CLUTLW[i], TEXA, m_bbt);
+		}
+		else if(TEX0.PSM == PSM_PSMT4HH || TEX0.PSM == PSM_PSMT4HL || TEX0.PSM == PSM_PSMT4)
+		{
+			for(int i = 0; i < 16; i++) 
+				pCLUT[i] = From16To32(CLUTLW[i], TEXA, m_bbt);
+		}
+	}
 }
+
+void GSLocalMemory::setupCLUT(GIFRegTEX0 TEX0, GIFRegTEXA TEXA)
+{
+	readCLUT(TEX0, TEXA, m_clut);
+}
+
 
 ////////////////////
 
@@ -1191,28 +1317,10 @@ void GSLocalMemory::unSwizzleTexture32(int tw, int th, BYTE* dst, int dstpitch, 
 
     DWORD bp = TEX0.TBP0;
 	DWORD bw = TEX0.TBW;
-/*
+
 	for(int y = 0, diff = dstpitch*8 - tw*4; y < th; y += 8, dst += diff)
 		for(int x = 0; x < tw; x += 8, dst += 8*4)
 			unSwizzleBlock32((BYTE*)&m_vm32[blockAddress32(x, y, bp, bw)], (BYTE*)dst, dstpitch);
-*/
-	__declspec(align(16)) DWORD block[8*8];
-
-	for(int y = 0, diff = dstpitch*8 - tw*4; y < th; y += 8, dst += diff)
-	{
-		for(int x = 0; x < tw; x += 8, dst += 8*4)
-		{
-			unSwizzleBlock32((BYTE*)&m_vm32[blockAddress32(x, y, bp, bw)], (BYTE*)block, sizeof(block)/8);
-
-            DWORD* s = block;
-			DWORD* d = (DWORD*)dst;
-
-			for(int j = 0, diff2 = (dstpitch>>2) - 8; j < 8; j++, d += diff2)
-				for(int i = 0; i < 8; i++)
-					*d++ = SwapRB(*s++);
-		}
-	}
-
 }
 
 void GSLocalMemory::unSwizzleTexture24(int tw, int th, BYTE* dst, int dstpitch, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA)
@@ -1241,7 +1349,7 @@ void GSLocalMemory::unSwizzleTexture24(int tw, int th, BYTE* dst, int dstpitch, 
 
 			for(int j = 0, diff2 = (dstpitch>>2) - 8; j < 8; j++, d += diff2)
 				for(int i = 0; i < 8; i++)
-					*d++ = From24To32ARGB(*s++, TCC, TEXA, m_bbt);
+					*d++ = From24To32(*s++, TCC, TEXA, m_bbt);
 		}
 	}
 }
@@ -1270,7 +1378,7 @@ void GSLocalMemory::unSwizzleTexture16(int tw, int th, BYTE* dst, int dstpitch, 
 
 			for(int j = 0, diff2 = (dstpitch>>2) - 16; j < 8; j++, d += diff2)
 				for(int i = 0; i < 16; i++)
-					*d++ = From16To32ARGB(*s++, TEXA, m_bbt);
+					*d++ = From16To32(*s++, TEXA, m_bbt);
 		}
 	}
 }
@@ -1299,7 +1407,7 @@ void GSLocalMemory::unSwizzleTexture16S(int tw, int th, BYTE* dst, int dstpitch,
 
 			for(int j = 0, diff2 = (dstpitch>>2) - 16; j < 8; j++, d += diff2)
 				for(int i = 0; i < 16; i++)
-					*d++ = From16To32ARGB(*s++, TEXA, m_bbt);
+					*d++ = From16To32(*s++, TEXA, m_bbt);
 		}
 	}
 }
@@ -1317,8 +1425,7 @@ void GSLocalMemory::unSwizzleTexture8(int tw, int th, BYTE* dst, int dstpitch, G
 
 	__declspec(align(16)) BYTE block[16*16];
 
-	DWORD clut[256];
-	for(int i = 0; i < 256; i++) clut[i] = SwapRB(m_clut[i]);
+	// setupCLUT(TEX0, TEXA);
 
 	for(int y = 0, diff = dstpitch*16 - tw*4; y < th; y += 16, dst += diff)
 	{
@@ -1331,7 +1438,7 @@ void GSLocalMemory::unSwizzleTexture8(int tw, int th, BYTE* dst, int dstpitch, G
 
 			for(int j = 0, diff2 = (dstpitch>>2) - 16; j < 16; j++, d += diff2)
 				for(int i = 0; i < 16; i++)
-					*d++ = clut[*s++];
+					*d++ = m_clut[*s++];
 		}
 	}
 }
@@ -1349,8 +1456,7 @@ void GSLocalMemory::unSwizzleTexture8H(int tw, int th, BYTE* dst, int dstpitch, 
 
 	__declspec(align(16)) DWORD block[8*8];
 
-	DWORD clut[256];
-	for(int i = 0; i < 256; i++) clut[i] = SwapRB(m_clut[i]);
+	// setupCLUT(TEX0, TEXA);
 
 	for(int y = 0, diff = dstpitch*8 - tw*4; y < th; y += 8, dst += diff)
 	{
@@ -1363,7 +1469,7 @@ void GSLocalMemory::unSwizzleTexture8H(int tw, int th, BYTE* dst, int dstpitch, 
 
 			for(int j = 0, diff2 = (dstpitch>>2) - 8; j < 8; j++, d += diff2)
 				for(int i = 0; i < 8; i++)
-					*d++ = clut[*s++ >> 24];
+					*d++ = m_clut[*s++ >> 24];
 		}
 	}
 }
@@ -1381,8 +1487,7 @@ void GSLocalMemory::unSwizzleTexture4(int tw, int th, BYTE* dst, int dstpitch, G
 
 	__declspec(align(16)) BYTE block[(32/2)*16];
 
-	DWORD clut[16];
-	for(int i = 0; i < 16; i++) clut[i] = SwapRB(m_clut[i]);
+	// setupCLUT(TEX0, TEXA);
 
 	for(int y = 0, diff = dstpitch*16 - tw*4; y < th; y += 16, dst += diff)
 	{
@@ -1395,7 +1500,7 @@ void GSLocalMemory::unSwizzleTexture4(int tw, int th, BYTE* dst, int dstpitch, G
 
 			for(int j = 0, diff2 = (dstpitch>>2) - 32; j < 16; j++, d += diff2)
 				for(int i = 0; i < 32; i += 2)
-					*d++ = clut[*s&0x0f], *d++ = clut[*s++>>4];
+					*d++ = m_clut[*s&0x0f], *d++ = m_clut[*s++>>4];
 		}
 	}
 }
@@ -1413,8 +1518,7 @@ void GSLocalMemory::unSwizzleTexture4HL(int tw, int th, BYTE* dst, int dstpitch,
 
 	__declspec(align(16)) DWORD block[8*8];
 
-	DWORD clut[16];
-	for(int i = 0; i < 16; i++) clut[i] = SwapRB(m_clut[i]);
+	// setupCLUT(TEX0, TEXA);
 
 	for(int y = 0, diff = dstpitch*8 - tw*4; y < th; y += 8, dst += diff)
 	{
@@ -1427,7 +1531,7 @@ void GSLocalMemory::unSwizzleTexture4HL(int tw, int th, BYTE* dst, int dstpitch,
 
 			for(int j = 0, diff2 = (dstpitch>>2) - 8; j < 8; j++, d += diff2)
 				for(int i = 0; i < 8; i++)
-					*d++ = clut[(*s++ >> 24)&0x0f];
+					*d++ = m_clut[(*s++ >> 24)&0x0f];
 		}
 	}
 }
@@ -1445,8 +1549,7 @@ void GSLocalMemory::unSwizzleTexture4HH(int tw, int th, BYTE* dst, int dstpitch,
 
 	__declspec(align(16)) DWORD block[8*8];
 
-	DWORD clut[16];
-	for(int i = 0; i < 16; i++) clut[i] = SwapRB(m_clut[i]);
+	// setupCLUT(TEX0, TEXA);
 
 	for(int y = 0, diff = dstpitch*8 - tw*4; y < th; y += 8, dst += diff)
 	{
@@ -1459,7 +1562,7 @@ void GSLocalMemory::unSwizzleTexture4HH(int tw, int th, BYTE* dst, int dstpitch,
 
 			for(int j = 0, diff2 = (dstpitch>>2) - 8; j < 8; j++, d += diff2)
 				for(int i = 0; i < 8; i++)
-					*d++ = clut[*s++ >> 28];
+					*d++ = m_clut[*s++ >> 28];
 		}
 	}
 }
@@ -1468,9 +1571,11 @@ void GSLocalMemory::unSwizzleTextureX(int tw, int th, BYTE* dst, int dstpitch, G
 {
 	readTexel rt = GetReadTexel(TEX0.PSM);
 
+	// setupCLUT(TEX0, TEXA);
+
 	for(int y = 0, diff = dstpitch - tw*4; y < th; y++, dst += diff)
 		for(int x = 0; x < tw; x++, dst += 4)
-			*(DWORD*)dst = SwapRB((this->*rt)(x, y, TEX0, TEXA));
+			*(DWORD*)dst = (this->*rt)(x, y, TEX0, TEXA);
 }
 
 GSLocalMemory::unSwizzleTexture GSLocalMemory::GetUnSwizzleTexture(DWORD psm)

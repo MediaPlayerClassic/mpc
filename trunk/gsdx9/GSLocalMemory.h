@@ -23,12 +23,12 @@
 
 #include "GS.h"
 #include "GSTables.h"
-
+/*
 __forceinline DWORD SwapRB(DWORD c)
 {
 	return (c&0xff000000)|((c<<16)&0x00ff0000)|(c&0x0000ff00)|((c>>16)&0x000000ff);
 }
-
+*/
 class GSLocalMemory
 {
 protected:
@@ -43,8 +43,11 @@ protected:
 
 	union {BYTE* m_vm8; WORD* m_vm16; DWORD* m_vm32;};
 
-	DWORD m_clut[256];
 	BYTE m_bbt[256];
+
+	DWORD m_CBP[2];
+	WORD m_CLUT[512];
+	DWORD m_clut[256];
 
 public:
 	GSLocalMemory();
@@ -205,8 +208,9 @@ public:
 
 	readTexelAddr GetReadTexelAddr(DWORD psm);
 
-	void setupCLUT(GIFRegTEX0 TEX0, GIFRegTEXCLUT& TEXCLUT, GIFRegTEXA& TEXA); // modifies TEX0!
-	DWORD readCLUT(BYTE c);
+	void writeCLUT(GIFRegTEX0 TEX0, GIFRegTEXCLUT TEXCLUT);
+	void readCLUT(GIFRegTEX0 TEX0, GIFRegTEXA TEXA, DWORD* pCLUT);
+	void setupCLUT(GIFRegTEX0 TEX0, GIFRegTEXA TEXA);
 
 	bool FillRect(CRect& r, DWORD c, DWORD psm, DWORD fbp, DWORD fbw);
 

@@ -9,27 +9,26 @@ float4 Params1 : register(c0);
 
 float4 Params2 : register(c1);
 
-#define AMOD	(Params2[0] > 0)
+#define AMOD	(Params2[0] != 0)
 #define EN1		(Params2[1])
 #define EN2		(Params2[2])
-#define MMOD	(Params2[3] > 0)
+#define MMOD	(Params2[3] != 0)
 
 float4 Params3 : register(c2);
 
 #define AEM		(Params3[0])
 #define TA0		(Params3[1])
 #define TA1		(Params3[2])
-#define SLBG	(Params3[3] > 0)
+#define SLBG	(Params3[3] != 0)
 
 float4 Merge(float4 Color1 : COLOR, float4 Color2 : COLOR) : COLOR
 {
 	float Alpha = EN1 * (MMOD ? ALP : Color1.a);
 	
-	float4 Output;
-	Output = lerp(Color2, Color1, Alpha);
-	// Output.a = AMOD ? Color2.a : Color1.a; // not used
-	// Output.rgba = Output.bgra;
-	return Output;
+	float4 c = lerp(Color2, Color1, Alpha);
+	// c.a = AMOD ? Color2.a : Color1.a; // not used
+	c.rgba = c.bgra;
+	return c;
 }
 
 // 16
