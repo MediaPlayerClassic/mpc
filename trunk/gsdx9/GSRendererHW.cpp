@@ -38,10 +38,13 @@ GSRendererHW::GSRendererHW(HWND hWnd, HRESULT& hr)
 {
 	Reset();
 
-	hr = m_pD3DDev->SetRenderState(D3DRS_SEPARATEALPHABLENDENABLE, TRUE);
-	hr = m_pD3DDev->SetRenderState(D3DRS_BLENDOPALPHA, D3DBLENDOP_ADD);
-	hr = m_pD3DDev->SetRenderState(D3DRS_SRCBLENDALPHA, D3DBLEND_ONE);
-	hr = m_pD3DDev->SetRenderState(D3DRS_DESTBLENDALPHA, D3DBLEND_ZERO);
+	if(m_pD3DDev)
+	{
+		hr = m_pD3DDev->SetRenderState(D3DRS_SEPARATEALPHABLENDENABLE, TRUE);
+		hr = m_pD3DDev->SetRenderState(D3DRS_BLENDOPALPHA, D3DBLENDOP_ADD);
+		hr = m_pD3DDev->SetRenderState(D3DRS_SRCBLENDALPHA, D3DBLEND_ONE);
+		hr = m_pD3DDev->SetRenderState(D3DRS_DESTBLENDALPHA, D3DBLEND_ZERO);
+	}
 }
 
 GSRendererHW::~GSRendererHW()
@@ -165,6 +168,23 @@ int GSRendererHW::DrawingKick(bool fSkip)
 		m_vl.RemoveAt(0, pVertices[nVertices++]);
 		m_vl.RemoveAt(0, pVertices[nVertices++]);
 		nVertices += 2;
+/*
+		float lod;
+		if(m_ctxt->TEX1.LCM) lod = -log(pVertices[nVertices-1].rhw)/log(2.0f) * (1 << m_ctxt->TEX1.L) + m_ctxt->TEX1.K;
+		else lod = m_ctxt->TEX1.K;
+
+		int filter;
+		if(lod < 0) filter = m_ctxt->TEX1.MMAG&1;
+		else filter = m_ctxt->TEX1.MMIN&1;
+
+//		if(!filter)
+		{
+			pVertices[nVertices-2].x -= 0.5f;
+			pVertices[nVertices-2].y -= 0.5f;
+			pVertices[nVertices-1].x -= 0.5f;
+			pVertices[nVertices-1].y -= 0.5f;
+		}
+*/
 		// ASSERT(pVertices[0].z == pVertices[1].z);
 		pVertices[0].z = pVertices[1].z;
 		pVertices[2] = pVertices[1];

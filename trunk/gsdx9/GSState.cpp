@@ -206,6 +206,7 @@ GSState::GSState(int w, int h, HWND hWnd, HRESULT& hr)
 		{
 			CString main;
 			main.Format(_T("main_tfx%d"), i);
+			// main.Format(_T("main_tfx"));
 
 			CComPtr<ID3DXBuffer> pShader, pErrorMsgs;
 			HRESULT hr = D3DXCompileShaderFromResource(hModule, MAKEINTRESOURCE(IDR_PS20_TFX), NULL, NULL, main, _T("ps_2_0"), 0, &pShader, &pErrorMsgs, NULL);
@@ -732,7 +733,7 @@ void GSState::Reset()
 
 	m_PRIM = 7;
 
-	if(m_pD3DDev) m_pD3DDev->Clear(0, NULL, D3DCLEAR_TARGET/*|D3DCLEAR_ZBUFFER*/, 0, 1.0f, 0);
+	if(m_pD3DDev) m_pD3DDev->Clear(0, NULL, D3DCLEAR_TARGET/*|D3DCLEAR_ZBUFFER|D3DCLEAR_STENCIL*/, 0, 1.0f, 0);
 }
 
 void GSState::FinishFlip(FlipSrc rt[2], bool fShiftField)

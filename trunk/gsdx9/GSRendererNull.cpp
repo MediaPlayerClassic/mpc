@@ -82,7 +82,10 @@ int GSRendererNull::DrawingKick(bool fSkip)
 		return 0;
 	}
 
-	m_stats.IncPrims(1);
+	if(!fSkip)
+	{
+		m_stats.IncPrims(1);
+	}
 
 	return 0;
 }

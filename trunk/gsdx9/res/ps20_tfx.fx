@@ -26,50 +26,6 @@ float4 Params2 : register(c1); // PSM (TEX0), AEM, TA0, TA1
 #define PSM_PSMCT16		2
 #define PSM_PSMCT16S	10
 
-/*
-void ApplyTFX(inout float4 Diff : COLOR, in float4 TexColor : COLOR)
-{
-	if(TFX == 1)
-	{
-		Diff = TexColor;
-	}
-	else
-	{
-		Diff.rgb *= TexColor.rgb * 2;
-		
-		if(TFX == 0)
-		{
-			if(fTCC) Diff.a *= TexColor.a;
-		}
-		else
-		{
-			Diff.rgb += Diff.a;
-
-			if(fTCC)
-			{
-				TexColor.a /= 2;
-
-				if(TFX == 2)
-				{
-					Diff.a += TexColor.a;
-				}
-				else if(TFX == 3)
-				{
-					Diff.a = TexColor.a;
-				}
-			}
-		}
-	}
-}
-
-float4 main(float4 Diff : COLOR0, float4 Fog : COLOR1, float2 Tex : TEXCOORD0) : COLOR
-{
-	if(fTME) ApplyTFX(Diff, SampleTexture(Tex));
-
-	return ApplyFog(Diff, Fog);
-}
-*/
-
 void CorrectTexColor(inout float4 TexColor : COLOR)
 {
 	if(PSM != PSM_PSMCT32)
@@ -153,6 +109,49 @@ float4 main_tfx3(float4 Diff : COLOR0, float4 Fog : COLOR1, float2 Tex : TEXCOOR
 float4 main_tfx4(float4 Diff : COLOR0, float4 Fog : COLOR1, float2 Tex : TEXCOORD0) : COLOR
 {
 	Diff.a *= 2;
+	return ApplyFog(Diff, Fog);
+}
+
+
+void ApplyTFX(inout float4 Diff : COLOR, in float4 TexColor : COLOR)
+{
+	if(TFX == 1)
+	{
+		Diff = TexColor;
+	}
+	else
+	{
+		Diff.rgb *= TexColor.rgb * 2;
+		
+		if(TFX == 0)
+		{
+			if(fTCC) Diff.a *= TexColor.a;
+		}
+		else
+		{
+			Diff.rgb += Diff.a;
+
+			if(fTCC)
+			{
+				TexColor.a /= 2;
+
+				if(TFX == 2)
+				{
+					Diff.a += TexColor.a;
+				}
+				else if(TFX == 3)
+				{
+					Diff.a = TexColor.a;
+				}
+			}
+		}
+	}
+}
+
+float4 main_tfx(float4 Diff : COLOR0, float4 Fog : COLOR1, float2 Tex : TEXCOORD0) : COLOR
+{
+	if(fTME) ApplyTFX(Diff, SampleTexture(Tex));
+
 	return ApplyFog(Diff, Fog);
 }
 
