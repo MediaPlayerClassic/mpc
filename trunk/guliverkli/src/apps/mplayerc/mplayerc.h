@@ -454,6 +454,7 @@ public:
 		int nWebServerPort;
 		bool fWebServerPrintDebugInfo;
 		bool fWebServerUseCompression;
+		CString WebRoot;
 
 		CString SnapShotPath, SnapShotExt;
 

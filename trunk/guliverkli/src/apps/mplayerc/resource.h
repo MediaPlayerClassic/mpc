@@ -335,6 +335,7 @@
 #define IDS_RS_ISDB                     620
 #define IDS_RS_POW2TEX                  621
 #define IDS_R_INTERNAL_FILTERS          622
+#define IDS_RS_WEBROOT                  623
 #define IDC_BROWSEBUTTON                1016
 #define IDC_BROWSEBUTTON2               1017
 #define IDC_COMBO1                      1018

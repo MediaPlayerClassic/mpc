@@ -4,7 +4,7 @@ Because Visual Studio becomes a turtle when there are many little projects, I di
 3. ui (run \lib\ui.bat to merge them)
 4. subpic
 5. subtitles
-6. filters
+6. filters (for mpc only build those configurations which output a lib, the rest outputs stand-alone filters)
 
 Required SDKs:
 - DirectX 9 SDK (you may need to add "Debug Unicode" and "Release Unicode" configs to the project file of the directshow baseclasses)
@@ -14,12 +14,12 @@ Required SDKs:
 It is recommended that you add DX9's include and lib paths to Visual Studio before the others:
 
 - include:
-C:\DXSDK\Samples\C++\DirectShow\BaseClasses
-C:\DXSDK\Include
+<DXSDK>\Samples\C++\DirectShow\BaseClasses
+<DXSDK>\Include
 ...
 
 - lib:
-C:\DXSDK\lib
+<DXSDK>\lib
 ...
 
 Other external header files are included directly, modify the path in the sources if your installation differs. (but don't COMMIT it to the CVS!)
@@ -27,4 +27,3 @@ Other external header files are included directly, modify the path in the source
 Debug builds use dynamic, Release builds use static linking to standard C/C++ and MFC libs. Don't forget to change this in the baseclasses. Also IMPORTANT: add winmm.lib to the baseclasses or else you will get a few unresolved externals later.
 
 Subresync and Submux aren't working yet, they are just there because I might convert them to fit the new libs someday.
-

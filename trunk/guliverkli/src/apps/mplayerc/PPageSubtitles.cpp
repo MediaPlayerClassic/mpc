@@ -116,14 +116,14 @@ BOOL CPPageSubtitles::OnApply()
 	|| s.nVerPos != m_nVerPos
 	|| s.nSPCSize != m_nSPCSize
 	|| s.nSPCMaxRes != m_spmaxres.GetCurSel()
-	|| s.fSPCPow2Tex != m_fSPCPow2Tex)
+	|| s.fSPCPow2Tex != !!m_fSPCPow2Tex)
 	{
 		s.fOverridePlacement = !!m_fOverridePlacement;
 		s.nHorPos = m_nHorPos;
 		s.nVerPos = m_nVerPos;
 		s.nSPCSize = m_nSPCSize;
 		s.nSPCMaxRes = m_spmaxres.GetCurSel();
-		s.fSPCPow2Tex = m_fSPCPow2Tex;
+		s.fSPCPow2Tex = !!m_fSPCPow2Tex;
 
 		if(CMainFrame* pFrame = (CMainFrame*)GetParentFrame())
 			pFrame->UpdateSubtitle(true);

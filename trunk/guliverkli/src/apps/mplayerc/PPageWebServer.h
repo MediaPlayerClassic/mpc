@@ -32,6 +32,9 @@ class CPPageWebServer : public CPPageBase
 	DECLARE_DYNAMIC(CPPageWebServer)
 
 private:
+	CString GetMPCDir();
+	CString GetCurWebRoot();
+	bool PickDir(CString& dir);
 
 public:
 	CPPageWebServer();
@@ -45,6 +48,8 @@ public:
 	CStaticLink m_launch;
 	BOOL m_fWebServerPrintDebugInfo;
 	BOOL m_fWebServerUseCompression;
+	BOOL m_fWebRoot;
+	CString m_WebRoot;
 
 protected:
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV support
@@ -56,4 +61,7 @@ protected:
 
 public:
 	afx_msg void OnEnChangeEdit1();
+	afx_msg void OnBnClickedButton1();
+	afx_msg void OnBnClickedButton2();
+	afx_msg void OnUpdateButton2(CCmdUI* pCmdUI);
 };
