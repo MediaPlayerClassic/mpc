@@ -22,8 +22,8 @@
 #pragma once
 
 #include <atlbase.h>
-#include <devioctl.h>
-#include <ntddcdrm.h>
+#include "..\..\..\..\include\winddk\devioctl.h"
+#include "..\..\..\..\include\winddk\ntddcdrm.h"
 #include <qnetwork.h>
 #include "..\asyncreader\asyncio.h"
 #include "..\asyncreader\asyncrdr.h"
