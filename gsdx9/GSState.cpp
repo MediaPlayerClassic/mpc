@@ -233,7 +233,7 @@ d3dpp.BackBufferHeight = 768;
 		static const UINT nShaderIDs[] = 
 		{
 			IDR_PS11_TFX000, IDR_PS11_TFX010, IDR_PS11_TFX011, 
-			IDR_PS11_TFX1x1, IDR_PS11_TFX1x0,
+			IDR_PS11_TFX1x0, IDR_PS11_TFX1x1,
 			IDR_PS11_TFX200, IDR_PS11_TFX210, IDR_PS11_TFX211,
 			IDR_PS11_TFX300, IDR_PS11_TFX310, IDR_PS11_TFX311,
 			IDR_PS11_TFX4xx,
@@ -255,6 +255,7 @@ d3dpp.BackBufferHeight = 768;
 	}
 
 //m_caps.PixelShaderVersion = D3DVS_VERSION(1, 1);
+//m_caps.PixelShaderVersion = D3DVS_VERSION(0, 0);
 
 	hr = S_OK;
 

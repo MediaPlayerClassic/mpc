@@ -1202,8 +1202,8 @@ unSwizzleBlock32_loop:
 		pshufd		xmm6, xmm2, 0xe4
 
 		punpcklqdq	xmm0, xmm1
-		punpcklqdq	xmm2, xmm3
 		punpckhqdq	xmm4, xmm1
+		punpcklqdq	xmm2, xmm3
 		punpckhqdq	xmm6, xmm3
 
 		movaps		[edi], xmm0
@@ -1249,8 +1249,8 @@ unSwizzleBlock16_loop:
 		pshufd		xmm6, xmm2, 0xe4
 
 		punpcklwd	xmm0, xmm1
-		punpcklwd	xmm2, xmm3
 		punpckhwd	xmm4, xmm1
+		punpcklwd	xmm2, xmm3
 		punpckhwd	xmm6, xmm3
 
 		movaps		xmm1, xmm0
@@ -1291,16 +1291,11 @@ unSwizzleBlock16_loop:
 void GSLocalMemory::unSwizzleBlock8(BYTE* src, BYTE* dst, int dstpitch)
 {
 /*
-	WORD* tmp = &columnTable8[0][0];
-	for(int j = 0; j < 16; j++)
-		for(int i = 0; i < 16; i++)
-            src[j*16 + i] = columnTable8[j][i]-(j>>2)*64;
-*/
-/*
 	for(int j = 0, k = 0; j < 16; j++)
 		for(int i = 0; i < 16; i++)
 			src[columnTable8[j][i]] = k++;
 */
+
 #if _M_IX86_FP >= 2
 	// TODO: there might be a shorter way doing this
 	__asm
@@ -1314,139 +1309,117 @@ unSwizzleBlock8_loop:
 
 		// col 0, 2
 
-		mov         eax, 0x00ff00ff
-		movd        xmm6, eax 
-		pshufd      xmm6, xmm6, 0
-		movaps		xmm7, xmm6
-		psllw		xmm7, 8
-
-		pshufd		xmm0, [esi+16*0], 0xd8
-		movaps		xmm1, xmm0
-		pshufd		xmm2, [esi+16*2], 0xd8
-		movaps		xmm3, xmm2
-
-		psllw		xmm2, 8
-		psrlw		xmm3, 8
-		por			xmm2, xmm3
-		por			xmm3, xmm2
-
-		pand		xmm0, xmm6
-		pand		xmm1, xmm7
-		pand		xmm2, xmm6
-		pand		xmm3, xmm7
-		por			xmm0, xmm3
-		por			xmm1, xmm2
-
-		pshufd		xmm2, [esi+16*1], 0xd8
-		movaps		xmm3, xmm2
-		pshufd		xmm4, [esi+16*3], 0xd8
-		movaps		xmm5, xmm4
-
-		psllw		xmm4, 8
-		psrlw		xmm5, 8
-		por			xmm4, xmm5
-		por			xmm5, xmm4
-
-		pand		xmm2, xmm6
-		pand		xmm3, xmm7
-		pand		xmm4, xmm6
-		pand		xmm5, xmm7
-		por			xmm2, xmm5
-		por			xmm3, xmm4
-
-		movaps		xmm4, xmm0
-		pshufd		xmm5, xmm1, 0xe4
-
-		punpcklbw	xmm0, xmm2
-		punpcklbw	xmm1, xmm3
-		punpckhbw	xmm4, xmm2
-		punpckhbw	xmm5, xmm3
+		movaps		xmm0, [esi+16*0]
+		movaps		xmm1, [esi+16*1]
+		movaps		xmm4, [esi+16*2]
+		movaps		xmm5, [esi+16*3]
 
 		movaps		xmm2, xmm0
-		pshufd		xmm6, xmm1, 0xe4
+		pshufd		xmm6, xmm4, 0xe4
 
-		punpcklbw	xmm0, xmm4
-		punpcklbw	xmm1, xmm5
-		punpckhbw	xmm2, xmm4
+		punpcklbw	xmm0, xmm1
+		punpckhbw	xmm2, xmm1
+		punpcklbw	xmm4, xmm5
 		punpckhbw	xmm6, xmm5
 
-		movaps		[edi], xmm0
-		movaps		[edi+edx], xmm2
-		lea			edi, [edi+edx*2]
-
-		movaps		[edi], xmm1
-		movaps		[edi+edx], xmm6
-		lea			edi, [edi+edx*2]
-
-		// col 1, 3
-
-		mov         eax, 0x00ff00ff
-		movd        xmm6, eax 
-		pshufd      xmm6, xmm6, 0
-		movaps		xmm7, xmm6
-		psllw		xmm7, 8
-
-		pshufd		xmm0, [esi+16*4], 0xd8
 		movaps		xmm1, xmm0
-		pshufd		xmm2, [esi+16*6], 0xd8
-		movaps		xmm3, xmm2
+		pshufd		xmm5, xmm4, 0xe4
 
-		psllw		xmm2, 8
-		psrlw		xmm3, 8
-		por			xmm2, xmm3
-		por			xmm3, xmm2
-
-		pand		xmm0, xmm6
-		pand		xmm1, xmm7
-		pand		xmm2, xmm6
-		pand		xmm3, xmm7
-		por			xmm0, xmm3
-		por			xmm1, xmm2
-
-		pshufd		xmm2, [esi+16*5], 0xd8
-		movaps		xmm3, xmm2
-		pshufd		xmm4, [esi+16*7], 0xd8
-		movaps		xmm5, xmm4
-
-		psllw		xmm4, 8
-		psrlw		xmm5, 8
-		por			xmm4, xmm5
-		por			xmm5, xmm4
-
-		pand		xmm2, xmm6
-		pand		xmm3, xmm7
-		pand		xmm4, xmm6
-		pand		xmm5, xmm7
-		por			xmm2, xmm5
-		por			xmm3, xmm4
-
-		movaps		xmm4, xmm0
-		pshufd		xmm5, xmm1, 0xe4
-
-		punpcklbw	xmm0, xmm2
-		punpcklbw	xmm1, xmm3
-		punpckhbw	xmm4, xmm2
-		punpckhbw	xmm5, xmm3
+		punpcklqdq	xmm0, xmm2
+		punpckhqdq	xmm1, xmm2
+		punpcklqdq	xmm4, xmm6
+		punpckhqdq	xmm5, xmm6
 
 		movaps		xmm2, xmm0
-		pshufd		xmm6, xmm1, 0xe4
+		pshufd		xmm6, xmm4, 0xe4
 
-		punpcklbw	xmm0, xmm4
-		punpcklbw	xmm1, xmm5
-		punpckhbw	xmm2, xmm4
+		punpcklbw	xmm0, xmm1
+		punpckhbw	xmm2, xmm1
+		punpcklbw	xmm4, xmm5
 		punpckhbw	xmm6, xmm5
 
-		// FIXME
-		pshufd		xmm0, xmm0, 0xb1
-		pshufd		xmm2, xmm2, 0xb1
-		pshufd		xmm1, xmm1, 0xb1
+		movaps		xmm1, xmm0
+		pshufd		xmm5, xmm2, 0xe4
+
+		punpckldq	xmm0, xmm4
+		punpckhdq	xmm1, xmm4
+		punpckldq	xmm2, xmm6
+		punpckhdq	xmm5, xmm6
+
+		movaps		xmm4, xmm0
+		pshufd		xmm6, xmm2, 0xe4
+
+		punpcklqdq	xmm0, xmm1
+		punpckhqdq	xmm4, xmm1
+		punpcklqdq	xmm2, xmm5
+		punpckhqdq	xmm6, xmm5
+
+		pshufd		xmm4, xmm4, 0xb1
 		pshufd		xmm6, xmm6, 0xb1
 
 		movaps		[edi], xmm0
 		movaps		[edi+edx], xmm2
 		lea			edi, [edi+edx*2]
 
-		movaps		[edi], xmm1
+		movaps		[edi], xmm4
+		movaps		[edi+edx], xmm6
+		lea			edi, [edi+edx*2]
+
+		// col 1, 3
+
+		movaps		xmm0, [esi+16*4]
+		movaps		xmm1, [esi+16*5]
+		movaps		xmm4, [esi+16*6]
+		movaps		xmm5, [esi+16*7]
+
+		movaps		xmm2, xmm0
+		pshufd		xmm6, xmm4, 0xe4
+
+		punpcklbw	xmm0, xmm1
+		punpckhbw	xmm2, xmm1
+		punpcklbw	xmm4, xmm5
+		punpckhbw	xmm6, xmm5
+
+		movaps		xmm1, xmm0
+		pshufd		xmm5, xmm4, 0xe4
+
+		punpcklqdq	xmm0, xmm2
+		punpckhqdq	xmm1, xmm2
+		punpcklqdq	xmm4, xmm6
+		punpckhqdq	xmm5, xmm6
+
+		movaps		xmm2, xmm0
+		pshufd		xmm6, xmm4, 0xe4
+
+		punpcklbw	xmm0, xmm1
+		punpckhbw	xmm2, xmm1
+		punpcklbw	xmm4, xmm5
+		punpckhbw	xmm6, xmm5
+
+		movaps		xmm1, xmm0
+		pshufd		xmm5, xmm2, 0xe4
+
+		punpckldq	xmm0, xmm4
+		punpckhdq	xmm1, xmm4
+		punpckldq	xmm2, xmm6
+		punpckhdq	xmm5, xmm6
+
+		movaps		xmm4, xmm0
+		pshufd		xmm6, xmm2, 0xe4
+
+		punpcklqdq	xmm0, xmm1
+		punpckhqdq	xmm4, xmm1
+		punpcklqdq	xmm2, xmm5
+		punpckhqdq	xmm6, xmm5
+
+		pshufd		xmm0, xmm0, 0xb1
+		pshufd		xmm2, xmm2, 0xb1
+
+		movaps		[edi], xmm0
+		movaps		[edi+edx], xmm2
+		lea			edi, [edi+edx*2]
+
+		movaps		[edi], xmm4
 		movaps		[edi+edx], xmm6
 		lea			edi, [edi+edx*2]
 
@@ -1465,6 +1438,359 @@ unSwizzleBlock8_loop:
 
 void GSLocalMemory::unSwizzleBlock4(BYTE* src, BYTE* dst, int dstpitch)
 {
+/*
+	BYTE tmp[32*16];
+	for(int j = 0, k = 0; j < 16; j++)
+		for(int i = 0; i < 32; i++)
+			tmp[columnTable4[j][i]] = k++;
+*/
+/*
+	memset(src, 0, 16*16);
+	for(int j = 0, k = 0; j < 16; j++)
+	{
+		for(int i = 0; i < 32; i += 2)
+		{
+			WORD addr = columnTable4[j][i];
+			if(addr&1) src[addr>>1] |= k++ << 4;
+			else src[addr>>1] |= k++ & 15;
+			addr = columnTable4[j][i+1];
+			if(addr&1) src[addr>>1] |= k++ << 4;
+			else src[addr>>1] |= k++ & 15;
+		}
+	}
+*/
+#if _M_IX86_FP >= 2
+	__asm
+	{
+		mov			esi, src
+		mov			edi, dst
+		mov			edx, dstpitch
+		mov			ecx, 2
+
+		mov         eax, 0x0f0f0f0f
+		movd        xmm7, eax 
+		pshufd      xmm7, xmm7, 0
+
+unSwizzleBlock4_loop:
+
+		// col 0, 2
+
+		movaps		xmm0, [esi+16*0]
+		movaps		xmm1, [esi+16*1]
+		movaps		xmm2, [esi+16*2]
+		movaps		xmm3, [esi+16*3]
+
+		// unpack nibble to byte ("punpcknb" xmm0, xmm1)
+
+		movaps		xmm4, xmm0
+		pshufd		xmm5, xmm1, 0xe4
+
+		psllq		xmm1, 4
+		psrlq		xmm4, 4
+
+		movaps		xmm6, xmm7
+		pand		xmm0, xmm7
+		pandn		xmm6, xmm1
+		por			xmm0, xmm6
+
+		movaps		xmm6, xmm7
+		pand		xmm4, xmm7
+		pandn		xmm6, xmm5
+		por			xmm4, xmm6
+
+		movaps		xmm1, xmm4
+
+		// unpack nibble to byte ("punpcknb" xmm2, xmm3)
+
+		movaps		xmm4, xmm2
+		pshufd		xmm5, xmm3, 0xe4
+
+		psllq		xmm3, 4
+		psrlq		xmm4, 4
+
+		movaps		xmm6, xmm7
+		pand		xmm2, xmm7
+		pandn		xmm6, xmm3
+		por			xmm2, xmm6
+
+		movaps		xmm6, xmm7
+		pand		xmm4, xmm7
+		pandn		xmm6, xmm5
+		por			xmm4, xmm6
+
+		movaps		xmm3, xmm4
+
+		// fix the result of "punpcknb"
+
+		movaps		xmm4, xmm0
+		pshufd		xmm6, xmm2, 0xe4
+
+		punpcklbw	xmm0, xmm1
+		punpckhbw	xmm4, xmm1
+		punpcklbw	xmm2, xmm3
+		punpckhbw	xmm6, xmm3
+
+		// punpckbw
+
+		movaps		xmm1, xmm0
+		pshufd		xmm5, xmm4, 0xe4
+
+		punpcklbw	xmm0, xmm2
+		punpckhbw	xmm1, xmm2
+		punpcklbw	xmm4, xmm6
+		punpckhbw	xmm5, xmm6
+
+		// FIXME
+		movaps		xmm2, xmm4
+		pshufd		xmm3, xmm5, 0xe4
+
+		// unpack nibble to byte ("punpcknb" xmm0, xmm1)
+
+		movaps		xmm4, xmm0
+		pshufd		xmm5, xmm1, 0xe4
+
+		psllq		xmm1, 4
+		psrlq		xmm4, 4
+
+		movaps		xmm6, xmm7
+		pand		xmm0, xmm7
+		pandn		xmm6, xmm1
+		por			xmm0, xmm6
+
+		movaps		xmm6, xmm7
+		pand		xmm4, xmm7
+		pandn		xmm6, xmm5
+		por			xmm4, xmm6
+
+		movaps		xmm1, xmm4
+
+		// unpack nibble to byte ("punpcknb" xmm2, xmm3)
+
+		movaps		xmm4, xmm2
+		pshufd		xmm5, xmm3, 0xe4
+
+		psllq		xmm3, 4
+		psrlq		xmm4, 4
+
+		movaps		xmm6, xmm7
+		pand		xmm2, xmm7
+		pandn		xmm6, xmm3
+		por			xmm2, xmm6
+
+		movaps		xmm6, xmm7
+		pand		xmm4, xmm7
+		pandn		xmm6, xmm5
+		por			xmm4, xmm6
+
+		movaps		xmm3, xmm4
+
+		// fix the result of "punpcknb"
+
+		movaps		xmm4, xmm0
+		pshufd		xmm6, xmm2, 0xe4
+
+		punpcklbw	xmm0, xmm1
+		punpckhbw	xmm4, xmm1
+		punpcklbw	xmm2, xmm3
+		punpckhbw	xmm6, xmm3
+
+		// 2 x punpckdq
+
+		movaps		xmm1, xmm0
+		pshufd		xmm5, xmm2, 0xe4
+
+		punpckldq	xmm0, xmm4
+		punpckhdq	xmm1, xmm4
+		punpckldq	xmm2, xmm6
+		punpckhdq	xmm5, xmm6
+
+		movaps		xmm3, xmm0
+		pshufd		xmm4, xmm2, 0xe4
+
+		punpckldq	xmm0, xmm1
+		punpckhdq	xmm3, xmm1
+		punpckldq	xmm2, xmm5
+		punpckhdq	xmm4, xmm5
+
+		//
+
+		pshuflw		xmm3, xmm3, 0xb1
+		pshufhw		xmm3, xmm3, 0xb1
+		pshuflw		xmm4, xmm4, 0xb1
+		pshufhw		xmm4, xmm4, 0xb1
+
+		//
+
+		movaps		[edi], xmm0
+		movaps		[edi+edx], xmm2
+		lea			edi, [edi+edx*2]
+
+		movaps		[edi], xmm3
+		movaps		[edi+edx], xmm4
+		lea			edi, [edi+edx*2]
+
+		// col 1, 3
+
+		movaps		xmm0, [esi+16*4]
+		movaps		xmm1, [esi+16*5]
+		movaps		xmm2, [esi+16*6]
+		movaps		xmm3, [esi+16*7]
+
+		// unpack nibble to byte ("punpcknb" xmm0, xmm1)
+
+		movaps		xmm4, xmm0
+		pshufd		xmm5, xmm1, 0xe4
+
+		psllq		xmm1, 4
+		psrlq		xmm4, 4
+
+		movaps		xmm6, xmm7
+		pand		xmm0, xmm7
+		pandn		xmm6, xmm1
+		por			xmm0, xmm6
+
+		movaps		xmm6, xmm7
+		pand		xmm4, xmm7
+		pandn		xmm6, xmm5
+		por			xmm4, xmm6
+
+		movaps		xmm1, xmm4
+
+		// unpack nibble to byte ("punpcknb" xmm2, xmm3)
+
+		movaps		xmm4, xmm2
+		pshufd		xmm5, xmm3, 0xe4
+
+		psllq		xmm3, 4
+		psrlq		xmm4, 4
+
+		movaps		xmm6, xmm7
+		pand		xmm2, xmm7
+		pandn		xmm6, xmm3
+		por			xmm2, xmm6
+
+		movaps		xmm6, xmm7
+		pand		xmm4, xmm7
+		pandn		xmm6, xmm5
+		por			xmm4, xmm6
+
+		movaps		xmm3, xmm4
+
+		// fix the result of "punpcknb"
+
+		movaps		xmm4, xmm0
+		pshufd		xmm6, xmm2, 0xe4
+
+		punpcklbw	xmm0, xmm1
+		punpckhbw	xmm4, xmm1
+		punpcklbw	xmm2, xmm3
+		punpckhbw	xmm6, xmm3
+
+		// punpckbw
+
+		movaps		xmm1, xmm0
+		pshufd		xmm5, xmm4, 0xe4
+
+		punpcklbw	xmm0, xmm2
+		punpckhbw	xmm1, xmm2
+		punpcklbw	xmm4, xmm6
+		punpckhbw	xmm5, xmm6
+
+		// FIXME
+		movaps		xmm2, xmm4
+		pshufd		xmm3, xmm5, 0xe4
+
+		// unpack nibble to byte ("punpcknb" xmm0, xmm1)
+
+		movaps		xmm4, xmm0
+		pshufd		xmm5, xmm1, 0xe4
+
+		psllq		xmm1, 4
+		psrlq		xmm4, 4
+
+		movaps		xmm6, xmm7
+		pand		xmm0, xmm7
+		pandn		xmm6, xmm1
+		por			xmm0, xmm6
+
+		movaps		xmm6, xmm7
+		pand		xmm4, xmm7
+		pandn		xmm6, xmm5
+		por			xmm4, xmm6
+
+		movaps		xmm1, xmm4
+
+		// unpack nibble to byte ("punpcknb" xmm2, xmm3)
+
+		movaps		xmm4, xmm2
+		pshufd		xmm5, xmm3, 0xe4
+
+		psllq		xmm3, 4
+		psrlq		xmm4, 4
+
+		movaps		xmm6, xmm7
+		pand		xmm2, xmm7
+		pandn		xmm6, xmm3
+		por			xmm2, xmm6
+
+		movaps		xmm6, xmm7
+		pand		xmm4, xmm7
+		pandn		xmm6, xmm5
+		por			xmm4, xmm6
+
+		movaps		xmm3, xmm4
+
+		// fix the result of "punpcknb"
+
+		movaps		xmm4, xmm0
+		pshufd		xmm6, xmm2, 0xe4
+
+		punpcklbw	xmm0, xmm1
+		punpckhbw	xmm4, xmm1
+		punpcklbw	xmm2, xmm3
+		punpckhbw	xmm6, xmm3
+
+		// 2 x punpckdq
+
+		movaps		xmm1, xmm0
+		pshufd		xmm5, xmm2, 0xe4
+
+		punpckldq	xmm0, xmm4
+		punpckhdq	xmm1, xmm4
+		punpckldq	xmm2, xmm6
+		punpckhdq	xmm5, xmm6
+
+		movaps		xmm3, xmm0
+		pshufd		xmm4, xmm2, 0xe4
+
+		punpckldq	xmm0, xmm1
+		punpckhdq	xmm3, xmm1
+		punpckldq	xmm2, xmm5
+		punpckhdq	xmm4, xmm5
+
+		//
+
+		pshuflw		xmm0, xmm0, 0xb1
+		pshufhw		xmm0, xmm0, 0xb1
+		pshuflw		xmm2, xmm2, 0xb1
+		pshufhw		xmm2, xmm2, 0xb1
+
+		//
+
+		movaps		[edi], xmm0
+		movaps		[edi+edx], xmm2
+		lea			edi, [edi+edx*2]
+
+		movaps		[edi], xmm3
+		movaps		[edi+edx], xmm4
+		lea			edi, [edi+edx*2]
+
+		add			esi, 128
+
+		dec			ecx
+		jnz			unSwizzleBlock4_loop
+	}
+#else
 	WORD* s = &columnTable4[0][0];
 
 	for(int j = 0; j < 16; j++, dst += dstpitch)
@@ -1477,8 +1803,8 @@ void GSLocalMemory::unSwizzleBlock4(BYTE* src, BYTE* dst, int dstpitch)
 			dst[i >> 1] = (dst[i >> 1] & (0xf0 >> shift)) | (c << shift);
 		}
 	}
-
 	// TODO: assembly version, if possible
+#endif
 }
 
 ////////////////////
@@ -1494,13 +1820,13 @@ void GSLocalMemory::unSwizzleTexture32(int tw, int th, BYTE* dst, int dstpitch, 
     DWORD bp = TEX0.TBP0;
 	DWORD bw = TEX0.TBW;
 /*
-	for(int y = 0, diff = dstpitch - tw*4 + dstpitch*7; y < th; y += 8, dst += diff)
+	for(int y = 0, diff = dstpitch*8 - tw*4; y < th; y += 8, dst += diff)
 		for(int x = 0; x < tw; x += 8, dst += 8*4)
 			unSwizzleBlock32((BYTE*)&m_vm32[blockAddress32(x, y, bp, bw)], (BYTE*)dst, dstpitch);
 */
 	__declspec(align(16)) DWORD block[8*8];
 
-	for(int y = 0, diff = dstpitch - tw*4 + dstpitch*7; y < th; y += 8, dst += diff)
+	for(int y = 0, diff = dstpitch*8 - tw*4; y < th; y += 8, dst += diff)
 	{
 		for(int x = 0; x < tw; x += 8, dst += 8*4)
 		{
@@ -1531,7 +1857,7 @@ void GSLocalMemory::unSwizzleTexture24(int tw, int th, BYTE* dst, int dstpitch, 
 
 	__declspec(align(16)) DWORD block[8*8];
 
-	for(int y = 0, diff = dstpitch - tw*4 + dstpitch*7; y < th; y += 8, dst += diff)
+	for(int y = 0, diff = dstpitch*8 - tw*4; y < th; y += 8, dst += diff)
 	{
 		for(int x = 0; x < tw; x += 8, dst += 8*4)
 		{
@@ -1560,7 +1886,7 @@ void GSLocalMemory::unSwizzleTexture16(int tw, int th, BYTE* dst, int dstpitch, 
 
 	__declspec(align(16)) WORD block[16*8];
 
-	for(int y = 0, diff = dstpitch - tw*4 + dstpitch*7; y < th; y += 8, dst += diff)
+	for(int y = 0, diff = dstpitch*8 - tw*4; y < th; y += 8, dst += diff)
 	{
 		for(int x = 0; x < tw; x += 16, dst += 16*4)
 		{
@@ -1589,7 +1915,7 @@ void GSLocalMemory::unSwizzleTexture16S(int tw, int th, BYTE* dst, int dstpitch,
 
 	__declspec(align(16)) WORD block[16*8];
 
-	for(int y = 0, diff = dstpitch - tw*4 + dstpitch*7; y < th; y += 8, dst += diff)
+	for(int y = 0, diff = dstpitch*8 - tw*4; y < th; y += 8, dst += diff)
 	{
 		for(int x = 0; x < tw; x += 16, dst += 16*4)
 		{
@@ -1621,7 +1947,7 @@ void GSLocalMemory::unSwizzleTexture8(int tw, int th, BYTE* dst, int dstpitch, G
 	DWORD clut[256];
 	for(int i = 0; i < 256; i++) clut[i] = SwapRB(m_clut[i]);
 
-	for(int y = 0, diff = dstpitch - tw*4 + dstpitch*15; y < th; y += 16, dst += diff)
+	for(int y = 0, diff = dstpitch*16 - tw*4; y < th; y += 16, dst += diff)
 	{
 		for(int x = 0; x < tw; x += 16, dst += 16*4)
 		{
@@ -1653,7 +1979,7 @@ void GSLocalMemory::unSwizzleTexture8H(int tw, int th, BYTE* dst, int dstpitch, 
 	DWORD clut[256];
 	for(int i = 0; i < 256; i++) clut[i] = SwapRB(m_clut[i]);
 
-	for(int y = 0, diff = dstpitch - tw*4 + dstpitch*7; y < th; y += 8, dst += diff)
+	for(int y = 0, diff = dstpitch*8 - tw*4; y < th; y += 8, dst += diff)
 	{
 		for(int x = 0; x < tw; x += 8, dst += 8*4)
 		{
@@ -1685,7 +2011,7 @@ void GSLocalMemory::unSwizzleTexture4(int tw, int th, BYTE* dst, int dstpitch, G
 	DWORD clut[16];
 	for(int i = 0; i < 16; i++) clut[i] = SwapRB(m_clut[i]);
 
-	for(int y = 0, diff = dstpitch - tw*4 + dstpitch*15; y < th; y += 16, dst += diff)
+	for(int y = 0, diff = dstpitch*16 - tw*4; y < th; y += 16, dst += diff)
 	{
 		for(int x = 0; x < tw; x += 32, dst += 32*4)
 		{
@@ -1717,7 +2043,7 @@ void GSLocalMemory::unSwizzleTexture4HL(int tw, int th, BYTE* dst, int dstpitch,
 	DWORD clut[16];
 	for(int i = 0; i < 16; i++) clut[i] = SwapRB(m_clut[i]);
 
-	for(int y = 0, diff = dstpitch - tw*4 + dstpitch*7; y < th; y += 8, dst += diff)
+	for(int y = 0, diff = dstpitch*8 - tw*4; y < th; y += 8, dst += diff)
 	{
 		for(int x = 0; x < tw; x += 8, dst += 8*4)
 		{
@@ -1749,7 +2075,7 @@ void GSLocalMemory::unSwizzleTexture4HH(int tw, int th, BYTE* dst, int dstpitch,
 	DWORD clut[16];
 	for(int i = 0; i < 16; i++) clut[i] = SwapRB(m_clut[i]);
 
-	for(int y = 0, diff = dstpitch - tw*4 + dstpitch*7; y < th; y += 8, dst += diff)
+	for(int y = 0, diff = dstpitch*8 - tw*4; y < th; y += 8, dst += diff)
 	{
 		for(int x = 0; x < tw; x += 8, dst += 8*4)
 		{
@@ -1817,8 +2143,8 @@ SwizzleBlock32_loop:
 		pshufd		xmm6, xmm2, 0xe4
 
 		punpcklqdq	xmm0, xmm1
-		punpcklqdq	xmm2, xmm3
 		punpckhqdq	xmm4, xmm1
+		punpcklqdq	xmm2, xmm3
 		punpckhqdq	xmm6, xmm3
 
 		movaps		[edi+16*0], xmm0
@@ -1852,8 +2178,8 @@ SwizzleBlock32WM_loop:
 		pshufd		xmm6, xmm2, 0xe4
 
 		punpcklqdq	xmm0, xmm1
-		punpcklqdq	xmm2, xmm3
 		punpckhqdq	xmm4, xmm1
+		punpcklqdq	xmm2, xmm3
 		punpckhqdq	xmm6, xmm3
 
 		movaps		xmm3, xmm7
@@ -1938,8 +2264,8 @@ SwizzleBlock16_loop:
 		pshufd		xmm6, xmm2, 0xe4
 
 		punpcklwd	xmm0, xmm1
-		punpcklwd	xmm2, xmm3
 		punpckhwd	xmm4, xmm1
+		punpcklwd	xmm2, xmm3
 		punpckhwd	xmm6, xmm3
 
 		movaps		xmm1, xmm0
@@ -2000,8 +2326,8 @@ SwizzleBlock8_loop:
 		pshufd		xmm6, xmm2, 0xe4
 
 		punpcklbw	xmm0, xmm1
-		punpcklbw	xmm2, xmm3
 		punpckhbw	xmm4, xmm1
+		punpcklbw	xmm2, xmm3
 		punpckhbw	xmm6, xmm3
 
 		movaps		xmm1, xmm0
@@ -2039,8 +2365,8 @@ SwizzleBlock8_loop:
 		pshufd		xmm6, xmm2, 0xe4
 
 		punpcklbw	xmm0, xmm1
-		punpcklbw	xmm2, xmm3
 		punpckhbw	xmm4, xmm1
+		punpcklbw	xmm2, xmm3
 		punpckhbw	xmm6, xmm3
 
 		movaps		xmm1, xmm0
@@ -2079,6 +2405,214 @@ SwizzleBlock8_loop:
 
 void GSLocalMemory::SwizzleBlock4(BYTE* dst, BYTE* src, int srcpitch)
 {
+#if _M_IX86_FP >= 2
+	__asm
+	{
+		mov			esi, src
+		mov			edi, dst
+		mov			edx, srcpitch
+		mov			ecx, 2
+
+		mov         eax, 0x0f0f0f0f
+		movd        xmm7, eax 
+		pshufd      xmm7, xmm7, 0
+
+SwizzleBlock4_loop:
+
+		// col 0, 2
+
+		movaps		xmm0, [esi]
+		movaps		xmm2, [esi+edx]
+		lea			esi, [esi+edx*2]
+
+		movaps		xmm1, [esi]
+		movaps		xmm3, [esi+edx]
+		lea			esi, [esi+edx*2]
+
+		pshufhw		xmm1, xmm1, 0xb1
+		pshuflw		xmm1, xmm1, 0xb1
+		pshufhw		xmm3, xmm3, 0xb1
+		pshuflw		xmm3, xmm3, 0xb1
+
+		// unpack nibble to byte ("punpcknb" xmm0, xmm1)
+
+		movaps		xmm4, xmm0
+		pshufd		xmm5, xmm1, 0xe4
+
+		psllq		xmm1, 4
+		psrlq		xmm4, 4
+
+		movaps		xmm6, xmm7
+		pand		xmm0, xmm7
+		pandn		xmm6, xmm1
+		por			xmm0, xmm6
+
+		movaps		xmm6, xmm7
+		pand		xmm4, xmm7
+		pandn		xmm6, xmm5
+		por			xmm4, xmm6
+
+		movaps		xmm1, xmm4
+
+		// unpack nibble to byte ("punpcknb" xmm2, xmm3)
+
+		movaps		xmm4, xmm2
+		pshufd		xmm5, xmm3, 0xe4
+
+		psllq		xmm3, 4
+		psrlq		xmm4, 4
+
+		movaps		xmm6, xmm7
+		pand		xmm2, xmm7
+		pandn		xmm6, xmm3
+		por			xmm2, xmm6
+
+		movaps		xmm6, xmm7
+		pand		xmm4, xmm7
+		pandn		xmm6, xmm5
+		por			xmm4, xmm6
+
+		movaps		xmm3, xmm4
+
+		// 3 x punpckbw + 1 x punpckqdq
+
+		movaps		xmm4, xmm0
+		pshufd		xmm6, xmm2, 0xe4
+
+		punpcklbw	xmm0, xmm1
+		punpckhbw	xmm4, xmm1
+		punpcklbw	xmm2, xmm3
+		punpckhbw	xmm6, xmm3
+
+		movaps		xmm1, xmm0
+		pshufd		xmm3, xmm2, 0xe4
+
+		punpcklbw	xmm0, xmm4
+		punpckhbw	xmm1, xmm4
+		punpcklbw	xmm2, xmm6
+		punpckhbw	xmm3, xmm6
+
+		movaps		xmm4, xmm0
+		pshufd		xmm5, xmm2, 0xe4
+
+		punpcklbw	xmm0, xmm1
+		punpckhbw	xmm4, xmm1
+		punpcklbw	xmm2, xmm3
+		punpckhbw	xmm5, xmm3
+
+		movaps		xmm1, xmm0
+		pshufd		xmm3, xmm4, 0xe4
+
+		punpcklqdq	xmm0, xmm2
+		punpckhqdq	xmm1, xmm2
+		punpcklqdq	xmm4, xmm5
+		punpckhqdq	xmm3, xmm5
+
+		movaps		[edi+16*0], xmm0
+		movaps		[edi+16*1], xmm1
+		movaps		[edi+16*2], xmm4
+		movaps		[edi+16*3], xmm3
+
+		// col 1, 3
+
+		movaps		xmm0, [esi]
+		movaps		xmm2, [esi+edx]
+		lea			esi, [esi+edx*2]
+
+		movaps		xmm1, [esi]
+		movaps		xmm3, [esi+edx]
+		lea			esi, [esi+edx*2]
+
+		pshufhw		xmm0, xmm0, 0xb1
+		pshuflw		xmm0, xmm0, 0xb1
+		pshufhw		xmm2, xmm2, 0xb1
+		pshuflw		xmm2, xmm2, 0xb1
+
+		// unpack nibble to byte ("punpcknb" xmm0, xmm1)
+
+		movaps		xmm4, xmm0
+		pshufd		xmm5, xmm1, 0xe4
+
+		psllq		xmm1, 4
+		psrlq		xmm4, 4
+
+		movaps		xmm6, xmm7
+		pand		xmm0, xmm7
+		pandn		xmm6, xmm1
+		por			xmm0, xmm6
+
+		movaps		xmm6, xmm7
+		pand		xmm4, xmm7
+		pandn		xmm6, xmm5
+		por			xmm4, xmm6
+
+		movaps		xmm1, xmm4
+
+		// unpack nibble to byte ("punpcknb" xmm2, xmm3)
+
+		movaps		xmm4, xmm2
+		pshufd		xmm5, xmm3, 0xe4
+
+		psllq		xmm3, 4
+		psrlq		xmm4, 4
+
+		movaps		xmm6, xmm7
+		pand		xmm2, xmm7
+		pandn		xmm6, xmm3
+		por			xmm2, xmm6
+
+		movaps		xmm6, xmm7
+		pand		xmm4, xmm7
+		pandn		xmm6, xmm5
+		por			xmm4, xmm6
+
+		movaps		xmm3, xmm4
+
+		// 3 x punpckbw + 1 x punpckqdq
+
+		movaps		xmm4, xmm0
+		pshufd		xmm6, xmm2, 0xe4
+
+		punpcklbw	xmm0, xmm1
+		punpckhbw	xmm4, xmm1
+		punpcklbw	xmm2, xmm3
+		punpckhbw	xmm6, xmm3
+
+		movaps		xmm1, xmm0
+		pshufd		xmm3, xmm2, 0xe4
+
+		punpcklbw	xmm0, xmm4
+		punpckhbw	xmm1, xmm4
+		punpcklbw	xmm2, xmm6
+		punpckhbw	xmm3, xmm6
+
+		movaps		xmm4, xmm0
+		pshufd		xmm5, xmm2, 0xe4
+
+		punpcklbw	xmm0, xmm1
+		punpckhbw	xmm4, xmm1
+		punpcklbw	xmm2, xmm3
+		punpckhbw	xmm5, xmm3
+
+		movaps		xmm1, xmm0
+		pshufd		xmm3, xmm4, 0xe4
+
+		punpcklqdq	xmm0, xmm2
+		punpckhqdq	xmm1, xmm2
+		punpcklqdq	xmm4, xmm5
+		punpckhqdq	xmm3, xmm5
+
+		movaps		[edi+16*4], xmm0
+		movaps		[edi+16*5], xmm1
+		movaps		[edi+16*6], xmm4
+		movaps		[edi+16*7], xmm3
+
+		add			edi, 128
+
+		dec			ecx
+		jnz			SwizzleBlock4_loop
+	}
+#else
 	WORD* d = &columnTable4[0][0];
 
 	for(int j = 0; j < 16; j++, src += srcpitch)
@@ -2091,8 +2625,7 @@ void GSLocalMemory::SwizzleBlock4(BYTE* dst, BYTE* src, int srcpitch)
 			dst[addr >> 1] = (dst[addr >> 1] & (0xf0 >> shift)) | (c << shift);
 		}
 	}
-
-	// TODO: assembly version, if possible (unpack half byte to byte + SwizzleBlock8)
+#endif
 }
 
 ///////////////////
@@ -2124,7 +2657,7 @@ void GSLocalMemory::SwizzleTexture32(int& tx, int& ty, BYTE* src, int len, GIFRe
 	{
 		th += ty;
 
-		for(int y = ty, diff = srcpitch - tw*4 + srcpitch*7; y < th; y += 8, src += diff)
+		for(int y = ty, diff = srcpitch*8 - tw*4; y < th; y += 8, src += diff)
 			for(int x = 0; x < tw; x += 8, src += 8*4)
 				SwizzleBlock32((BYTE*)&m_vm32[blockAddress32(x, y, bp, bw)], (BYTE*)src, srcpitch);
 
@@ -2150,7 +2683,7 @@ void GSLocalMemory::SwizzleTexture24(int& tx, int& ty, BYTE* src, int len, GIFRe
 
 		th += ty;
 
-		for(int y = ty, diff = srcpitch - tw*3 + srcpitch*7; y < th; y += 8, src += diff)
+		for(int y = ty, diff = srcpitch*8 - tw*3; y < th; y += 8, src += diff)
 		{
 			for(int x = 0; x < tw; x += 8, src += 8*3)
 			{
@@ -2185,7 +2718,7 @@ void GSLocalMemory::SwizzleTexture16(int& tx, int& ty, BYTE* src, int len, GIFRe
 	{
 		th += ty;
 
-		for(int y = ty, diff = srcpitch - tw*2 + srcpitch*7; y < th; y += 8, src += diff)
+		for(int y = ty, diff = srcpitch*8 - tw*2; y < th; y += 8, src += diff)
 			for(int x = 0; x < tw; x += 16, src += 16*2)
 				SwizzleBlock16((BYTE*)&m_vm16[blockAddress16(x, y, bp, bw)], (BYTE*)src, srcpitch);
 
@@ -2209,7 +2742,7 @@ void GSLocalMemory::SwizzleTexture16S(int& tx, int& ty, BYTE* src, int len, GIFR
 	{
 		th += ty;
 
-		for(int y = ty, diff = srcpitch - tw*2 + srcpitch*7; y < th; y += 8, src += diff)
+		for(int y = ty, diff = srcpitch*8 - tw*2; y < th; y += 8, src += diff)
 			for(int x = 0; x < tw; x += 16, src += 16*2)
 				SwizzleBlock16((BYTE*)&m_vm16[blockAddress16S(x, y, bp, bw)], (BYTE*)src, srcpitch);
 
@@ -2233,7 +2766,7 @@ void GSLocalMemory::SwizzleTexture8(int& tx, int& ty, BYTE* src, int len, GIFReg
 	{
 		th += ty;
 
-		for(int y = ty, diff = srcpitch - tw + srcpitch*15; y < th; y += 16, src += diff)
+		for(int y = ty, diff = srcpitch*16 - tw; y < th; y += 16, src += diff)
 			for(int x = 0; x < tw; x += 16, src += 16)
 				SwizzleBlock8((BYTE*)&m_vm8[blockAddress8(x, y, bp, bw)], (BYTE*)src, srcpitch);
 
@@ -2259,7 +2792,7 @@ void GSLocalMemory::SwizzleTexture8H(int& tx, int& ty, BYTE* src, int len, GIFRe
 
 		th += ty;
 
-		for(int y = ty, diff = srcpitch - tw + srcpitch*7; y < th; y += 8, src += diff)
+		for(int y = ty, diff = srcpitch*8 - tw; y < th; y += 8, src += diff)
 		{
 			for(int x = 0; x < tw; x += 8, src += 8)
 			{
@@ -2294,7 +2827,7 @@ void GSLocalMemory::SwizzleTexture4(int& tx, int& ty, BYTE* src, int len, GIFReg
 	{
 		th += ty;
 
-		for(int y = ty, diff = srcpitch - tw/2 + srcpitch*15; y < th; y += 16, src += diff)
+		for(int y = ty, diff = srcpitch*16 - tw/2; y < th; y += 16, src += diff)
 			for(int x = 0; x < tw; x += 32, src += 32/2)
 				SwizzleBlock4((BYTE*)&m_vm8[blockAddress4(x, y, bp, bw)>>1], (BYTE*)src, srcpitch);
 
@@ -2320,7 +2853,7 @@ void GSLocalMemory::SwizzleTexture4HL(int& tx, int& ty, BYTE* src, int len, GIFR
 
 		th += ty;
 
-		for(int y = ty, diff = srcpitch - tw/2 + srcpitch*7; y < th; y += 8, src += diff)
+		for(int y = ty, diff = srcpitch*8 - tw/2; y < th; y += 8, src += diff)
 		{
 			for(int x = 0; x < tw; x += 8, src += 8/2)
 			{
@@ -2357,7 +2890,7 @@ void GSLocalMemory::SwizzleTexture4HH(int& tx, int& ty, BYTE* src, int len, GIFR
 
 		th += ty;
 
-		for(int y = ty, diff = srcpitch - tw/2 + srcpitch*7; y < th; y += 8, src += diff)
+		for(int y = ty, diff = srcpitch*8 - tw/2; y < th; y += 8, src += diff)
 		{
 			for(int x = 0; x < tw; x += 8, src += 8/2)
 			{

@@ -9,8 +9,8 @@
 #define IDR_PS11_TFX000              2001
 #define IDR_PS11_TFX010              2002
 #define IDR_PS11_TFX011              2003
-#define IDR_PS11_TFX1x1              2004
-#define IDR_PS11_TFX1x0              2005
+#define IDR_PS11_TFX1x0              2004
+#define IDR_PS11_TFX1x1              2005
 #define IDR_PS11_TFX200              2006
 #define IDR_PS11_TFX210              2007
 #define IDR_PS11_TFX211              2008

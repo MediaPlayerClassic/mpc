@@ -143,6 +143,7 @@ POSITION GSTextureCache::LookupByCBP(UINT32 CBP, GSTexture& ret)
 			return pos;
 		}
 	}
+
 	return NULL;
 }
 
@@ -185,4 +186,50 @@ void GSTextureCache::ResetAge(UINT32 TBP0)
 		GSTexture& t = GetNext(pos);
 		if(t.m_tex.TEX0.TBP0 == TBP0) t.m_age = 0;
 	}
+}
+
+//
+
+HRESULT GSTextureCache::CreateTexture(GIFRegTEX0& TEX0, IDirect3DDevice9* pD3DDev, IDirect3DTexture9** ppTexture)
+{
+	ASSERT(pD3DDev && ppTexture);
+	ASSERT(TEX0.TW <= 10 && TEX0.TH <= 10);
+
+	int tw = 1 << TEX0.TW;
+	int th = 1 << TEX0.TH;
+
+	POSITION pos = m_pTexturePool.GetHeadPosition();
+	while(pos)
+	{
+		CComPtr<IDirect3DTexture9> pTexture = m_pTexturePool.GetNext(pos);
+
+		D3DSURFACE_DESC desc;
+		memset(&desc, 0, sizeof(desc));
+		pTexture->GetLevelDesc(0, &desc);
+
+		if(tw == desc.Width && th == desc.Height)
+		{
+			bool fTextureInCache = false;
+
+			POSITION pos = GetHeadPosition();
+			while(pos && !fTextureInCache)
+				fTextureInCache = GetNext(pos).m_pTexture == pTexture;
+
+			if(!fTextureInCache)
+			{
+				(*ppTexture = pTexture)->AddRef();
+				return S_OK;
+			}			
+		}
+	}
+
+	while(m_pTexturePool.GetCount() > 10)
+		m_pTexturePool.RemoveTail();
+
+	HRESULT hr = pD3DDev->CreateTexture(tw, th, 1, 0, D3DFMT_A8R8G8B8, D3DPOOL_MANAGED, ppTexture, NULL);
+	if(FAILED(hr)) return hr;
+
+	m_pTexturePool.AddHead(*ppTexture);
+
+	return S_OK;
 }

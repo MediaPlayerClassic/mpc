@@ -777,7 +777,7 @@ void GSRendererHW::CalcRegionToUpdate(int& tw, int& th)
 		else if(m_ctxt->CLAMP.WMS == 2)
 		{
 			float minu = 1.0f * m_ctxt->CLAMP.MINU / (1<<m_ctxt->TEX0.TW);
-			float maxu = 1.0f * (m_ctxt->CLAMP.MAXU + 1) / (1<<m_ctxt->TEX0.TW);
+			float maxu = 1.0f * m_ctxt->CLAMP.MAXU / (1<<m_ctxt->TEX0.TW);
 			if(tumin < minu) tumin = minu;
 			if(tumax > maxu) tumax = maxu;
 		}
@@ -801,7 +801,7 @@ void GSRendererHW::CalcRegionToUpdate(int& tw, int& th)
 		else if(m_ctxt->CLAMP.WMT == 2)
 		{
 			float minv = 1.0f * m_ctxt->CLAMP.MINV / (1<<m_ctxt->TEX0.TH);
-			float maxv = 1.0f * (m_ctxt->CLAMP.MAXV + 1) / (1<<m_ctxt->TEX0.TH);
+			float maxv = 1.0f * m_ctxt->CLAMP.MAXV / (1<<m_ctxt->TEX0.TH);
 			if(tvmin < minv) tvmin = minv;
 			if(tvmax > maxv) tvmax = maxv;
 		}
@@ -821,8 +821,8 @@ void GSRendererHW::CalcRegionToUpdate(int& tw, int& th)
 
 bool GSRendererHW::CreateTexture(GSTexture& t)
 {
-	int tw = 1<<m_ctxt->TEX0.TW;
-	int th = 1<<m_ctxt->TEX0.TH;
+	int tw = 1 << m_ctxt->TEX0.TW;
+	int th = 1 << m_ctxt->TEX0.TH;
 
 	HRESULT hr;
 	CComPtr<IDirect3DTexture9> pTexture;
@@ -845,7 +845,8 @@ bool GSRendererHW::CreateTexture(GSTexture& t)
 	}
 	else
 	{
-		hr = m_pD3DDev->CreateTexture(tw, th, 1, 0, D3DFMT_A8R8G8B8, D3DPOOL_MANAGED, &pTexture, NULL);
+		hr = m_tc.CreateTexture(m_ctxt->TEX0, m_pD3DDev, &pTexture);
+		//hr = m_pD3DDev->CreateTexture(tw, th, 1, 0, D3DFMT_A8R8G8B8, D3DPOOL_MANAGED, &pTexture, NULL);
 		if(FAILED(hr) || !pTexture) return(false);
 
 		CalcRegionToUpdate(tw, th);
