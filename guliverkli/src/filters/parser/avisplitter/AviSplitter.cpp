@@ -76,6 +76,8 @@ public:
 };
 
 #define VERIFYTRACKNUM(fcc) ((fcc&0xff) >= 0x30 && (fcc&0xff) < 0x3a && ((fcc>>8)&0xff) >= 0x30 && ((fcc>>8)&0xff) < 0x3a)
+#define VERIFYODMLIDX(fcc) ((fcc&0xffff) == 'xi' && ((fcc>>16)&0xff) >= 0x30 && ((fcc>>16)&0xff) < 0x3a && ((fcc>>24)&0xff) >= 0x30 && ((fcc>>24)&0xff) < 0x3a)
+#define VERIFYOLDIDX(fcc) (fcc == '1xdi')
 #define TRACKNUM(fcc) (10*((fcc&0xff)-0x30) + (((fcc>>8)&0xff)-0x30))
 #define TRACKTYPE(fcc) ((WORD)((((DWORD)fcc>>24)&0xff)|((fcc>>8)&0xff00)))
 
@@ -368,7 +370,7 @@ bool CAviSplitterFilter::InitDeliverLoop()
 
 	for(int i = 0; i < (int)m_pFile->m_avih.dwStreams && !fReIndex; i++)
 	{
-		if(m_pFile->m_strms[i]->cs.GetCount() == 0) 
+		if(m_pFile->m_strms[i]->cs.GetCount() == 0 && GetOutputPin(i)) 
 			fReIndex = true;
 	}
 
@@ -580,7 +582,7 @@ HRESULT CAviSplitterFilter::DoDeliverLoop(__int64 end)
 				return E_FAIL;
 
 			if((pos + size) > m_pFile->GetLength()
-			|| !VERIFYTRACKNUM(id) && id != FCC('JUNK'))
+			|| !VERIFYTRACKNUM(id) && !VERIFYODMLIDX(id) && !VERIFYOLDIDX(id) && id != FCC('JUNK'))
 			{
 				m_pFile->Seek(pos); // restore file pos for Resync()
 				return E_FAIL;
@@ -672,7 +674,9 @@ bool CAviSplitterFilter::Resync()
 {
 	UINT64 pos = m_pFile->GetPos();
 
-	for(int i = 0, cnt = (int)m_pFile->m_strms.GetCount(); i < cnt; i++)
+	int cnt = (int)m_pFile->m_strms.GetCount();
+/*
+	for(int i = 0; i < cnt; i++)
 	{
 		CArray<CAviFile::strm_t::chunk>& cs = m_pFile->m_strms[i]->cs;
 
@@ -706,8 +710,65 @@ bool CAviSplitterFilter::Resync()
 			break;
 		}
 	}
+*/
+	bool fRet = false;
 
-	return(false);
+	CAutoVectorPtr<DWORD> m_tFrameTmp;
+	m_tFrameTmp.Allocate(cnt);
+	memcpy(m_tFrameTmp, m_tFrame, cnt*sizeof(DWORD));
+
+	m_nOpenProgress = 0;
+
+	pos = m_pFile->GetPos();
+
+	while(!CheckRequest(NULL))
+	{
+		int minstream = cnt;
+		__int64 minfilepos = _I64_MAX;
+
+		for(int i = 0; i < cnt; i++)
+		{
+			CArray<CAviFile::strm_t::chunk>& cs = m_pFile->m_strms[i]->cs;
+
+			DWORD f = m_tFrameTmp[i];
+			if(f >= cs.GetCount()) continue;
+
+			__int64 filepos = cs[f].filepos;
+			if(filepos >= pos && filepos < minfilepos)
+			{
+				minstream = i;
+				minfilepos = filepos;
+			}
+		}
+
+		m_nOpenProgress = 100*(minfilepos-pos)/(m_pFile->GetLength()-pos);
+
+		if(minstream < cnt)
+		{
+			CArray<CAviFile::strm_t::chunk>& cs = m_pFile->m_strms[minstream]->cs;
+
+			m_pFile->Seek(minfilepos);
+
+			DWORD id = 0;
+			if(S_OK == m_pFile->Read(id) && VERIFYTRACKNUM(id) && TRACKNUM(id) == minstream)
+			{
+	            m_pFile->Seek(minfilepos);
+				fRet = true;
+				break;
+			}
+
+			++m_tFrameTmp[minstream];
+			// m_tSize[minstream] = cs[++m_tFrame[minstream]].size;
+		}
+		else
+		{
+			break;
+		}
+	}
+
+	m_nOpenProgress = 100;
+
+	return(fRet);
 }
 
 // IMediaSeeking
@@ -1066,10 +1127,10 @@ HRESULT CAviFile::Init()
 
 	if(FAILED(BuildIndex()))
 		EmptyIndex();
-/*
+
 	if(!IsInterleaved())
 		return E_FAIL;
-*/
+
 	return S_OK;
 }
 
