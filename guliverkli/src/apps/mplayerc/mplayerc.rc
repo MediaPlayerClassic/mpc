@@ -1473,7 +1473,7 @@ END
 
 // Icon with lowest ID value placed first to ensure application icon
 // remains consistent on all systems.
-IDR_MAINFRAME           ICON                    "res\\main.ico"
+IDR_MAINFRAME           ICON                    "res\\icon.ico"
 IDI_SINGLE              ICON                    "res\\single.ico"
 IDI_MULTI               ICON                    "res\\multi.ico"
 IDI_AUDIOCD             ICON                    "res\\Icon_41.ico"
