@@ -61,7 +61,7 @@ struct lang_type {unsigned short id; TCHAR lang_long[64];} lang_tbl[] =
 	{'et', _T("Estonian")},
 	{'eu', _T("Basque")},
 	{'fa', _T("Persian")},
-	{'fi', _T("Finish")},
+	{'fi', _T("Finnish")},
 	{'fj', _T("Fiji")},
 	{'fo', _T("Faroese")},
 	{'fr', _T("Francais")},

@@ -1,11 +1,21 @@
 #include "StdAfx.h"
 #include "..\..\..\DSUtil\DSUtil.h"
 #include <initguid.h>
+#include "..\..\..\..\include\moreuuids.h"
+#include "..\..\..\..\include\matroska\matroska.h"
 #include "BaseSplitter.h"
 
 #define MAXBUFFERS 2
+/*
 #define MINPACKETS 10
 #define MAXPACKETS 500
+#define MINPACKETSIZE 1024*1024*1/2
+#define MAXPACKETSIZE 1024*1024*2
+*/
+#define MINPACKETS 10
+#define MINPACKETSIZE 100*1024
+#define MAXPACKETS 10000
+#define MAXPACKETSIZE 1024*1024
 
 //
 // CAsyncFileReader
@@ -178,6 +188,12 @@ void CBaseSplitterFile::BitFlush()
 	m_bitlen = 0;
 }
 
+HRESULT CBaseSplitterFile::ByteRead(BYTE* pData, __int64 len)
+{
+    Seek(GetPos());
+	return Read(pData, len);
+}
+
 //
 // CBaseSplitterInputPin
 //
@@ -324,7 +340,7 @@ HRESULT CBaseSplitterOutputPin::DecideBufferSize(IMemAllocator* pAlloc, ALLOCATO
     HRESULT hr = NOERROR;
 
 	pProperties->cBuffers = m_nBuffers;
-	pProperties->cbBuffer = m_mt.lSampleSize;
+	pProperties->cbBuffer = max(m_mt.lSampleSize, 1);
 
     ALLOCATOR_PROPERTIES Actual;
     if(FAILED(hr = pAlloc->SetProperties(pProperties, &Actual))) return hr;
@@ -391,8 +407,7 @@ HRESULT CBaseSplitterOutputPin::DeliverBeginFlush()
 	m_fFlushed = false;
 	m_fFlushing = true;
 	m_hrDeliver = S_FALSE;
-	CAutoLock cAutoLock(&m_csQueueLock);
-	m_packets.RemoveAll();
+	m_queue.RemoveAll();
 	HRESULT hr = IsConnected() ? GetConnected()->BeginFlush() : S_OK;
 	if(S_OK != hr) m_eEndFlush.Set();
 	return(hr);
@@ -422,20 +437,12 @@ HRESULT CBaseSplitterOutputPin::DeliverNewSegment(REFERENCE_TIME tStart, REFEREN
 
 int CBaseSplitterOutputPin::QueueCount()
 {
-	CAutoLock cAutoLock(&m_csQueueLock);
-	return m_packets.GetCount();
+	return m_queue.GetCount();
 }
 
-void CBaseSplitterOutputPin::QueueAdd(CAutoPtr<Packet> p)
+int CBaseSplitterOutputPin::QueueSize()
 {
-	CAutoLock cAutoLock(&m_csQueueLock);
-	m_packets.AddHead(p);
-}
-
-CAutoPtr<Packet> CBaseSplitterOutputPin::QueueRemove()
-{
-	CAutoLock cAutoLock(&m_csQueueLock);
-	return m_packets.RemoveTail();
+	return m_queue.GetSize();
 }
 
 HRESULT CBaseSplitterOutputPin::QueueEndOfStream()
@@ -449,22 +456,28 @@ HRESULT CBaseSplitterOutputPin::QueuePacket(CAutoPtr<Packet> p)
 
 	do
 	{
-		if(//QueueCount() < MAXPACKETS/2 ||
-		 (((CBaseSplitterFilter*)m_pFilter)->IsAnyPinDrying()
-			&& QueueCount() < MAXPACKETS)) break;
-		else Sleep(1);
-/*
-		if(QueueCount() >= MAXPACKETS) Sleep(1);
-		else break;
-*/
+		if(((CBaseSplitterFilter*)m_pFilter)->IsAnyPinDrying()
+		/*|| ((CBaseSplitterFilter*)m_pFilter)->()*/)
+			break;
+		else
+			Sleep(1);
 	}
 	while(S_OK == m_hrDeliver);
 
 	if(S_OK != m_hrDeliver) return m_hrDeliver;
 
-	QueueAdd(p);
+	m_queue.Add(p);
 
 	return m_hrDeliver;
+}
+
+bool CBaseSplitterOutputPin::IsDiscontinuous()
+{
+	return m_mt.majortype == MEDIATYPE_Text
+		|| m_mt.majortype == MEDIATYPE_Subtitle 
+		|| m_mt.subtype == MEDIASUBTYPE_DVD_SUBPICTURE 
+		|| m_mt.subtype == MEDIASUBTYPE_CVD_SUBPICTURE 
+		|| m_mt.subtype == MEDIASUBTYPE_SVCD_SUBPICTURE;
 }
 
 DWORD CBaseSplitterOutputPin::ThreadProc()
@@ -493,9 +506,9 @@ DWORD CBaseSplitterOutputPin::ThreadProc()
 			CAutoPtr<Packet> p;
 
 			{
-				CAutoLock cAutoLock(&m_csQueueLock);
-				if((cnt = QueueCount()) > 0)
-					p = QueueRemove();
+				CAutoLock cAutoLock(&m_queue);
+				if((cnt = m_queue.GetCount()) > 0)
+					p = m_queue.Remove();
 			}
 
 			if(S_OK == m_hrDeliver && cnt > 0)
@@ -514,7 +527,7 @@ DWORD CBaseSplitterOutputPin::ThreadProc()
 
 				if(hr != S_OK && !m_fFlushed) // and only report the error in m_hrDeliver if we didn't flush the stream
 				{
-					CAutoLock cAutoLock(&m_csQueueLock);
+					// CAutoLock cAutoLock(&m_csQueueLock);
 					m_hrDeliver = hr;
 					break;
 				}
@@ -532,7 +545,7 @@ HRESULT CBaseSplitterOutputPin::DeliverPacket(CAutoPtr<Packet> p)
 		return S_OK;
 
 	double dRate = 1.0;
-	if(SUCCEEDED(((CBaseSplitterFilter*)m_pFilter)->GetRate(&dRate)))
+	if(p->rtStart != Packet::INVALID_TIME && SUCCEEDED(((CBaseSplitterFilter*)m_pFilter)->GetRate(&dRate)))
 	{
 		p->rtStart = (REFERENCE_TIME)((double)p->rtStart / dRate);
 		p->rtStop = (REFERENCE_TIME)((double)p->rtStop / dRate);
@@ -556,11 +569,29 @@ HRESULT CBaseSplitterOutputPin::DeliverPacket(CAutoPtr<Packet> p)
 			if(S_OK != (hr = m_pAllocator->Commit())) break;
 			if(S_OK != (hr = GetDeliveryBuffer(&pSample, NULL, NULL, 0))) break;
 		}
+
+//if(p->TrackNumber == 2)
+if(p->rtStart != Packet::INVALID_TIME)
+TRACE(_T("[%d]: d%d s%d p%d, b=%d, %I64d-%I64d \n"), 
+	  p->TrackNumber,
+	  p->bDiscontinuity, p->bSyncPoint, p->rtStart < 0,
+	  nBytes, p->rtStart, p->rtStop);
+
+		if(p->pmt)
+		{
+			pSample->SetMediaType(p->pmt);
+			p->bDiscontinuity = true;
+
+		    CAutoLock cAutoLock(m_pLock);
+			m_mts.RemoveAll();
+			m_mts.Add(*p->pmt);
+		}
+
 		BYTE* pData = NULL;
 		if(S_OK != (hr = pSample->GetPointer(&pData)) || !pData) break;
 		memcpy(pData, p->pData.GetData(), nBytes);
 		if(S_OK != (hr = pSample->SetActualDataLength(nBytes))) break;
-		if(S_OK != (hr = pSample->SetTime(&p->rtStart, &p->rtStop))) break;
+		if(S_OK != (hr = pSample->SetTime(p->rtStart != Packet::INVALID_TIME ? &p->rtStart : NULL, p->rtStart != Packet::INVALID_TIME ? &p->rtStop : NULL))) break;
 		if(S_OK != (hr = pSample->SetMediaTime(NULL, NULL))) break;
 		if(S_OK != (hr = pSample->SetDiscontinuity(p->bDiscontinuity))) break;
 		if(S_OK != (hr = pSample->SetSyncPoint(p->bSyncPoint))) break;
@@ -721,18 +752,51 @@ STDMETHODIMP CBaseSplitterFilter::NonDelegatingQueryInterface(REFIID riid, void*
 		QI2(IAMExtendedSeeking)
 		QI(IChapterInfo)
 		QI(IKeyFrameInfo)
+		QI(IBufferInfo)
 		__super::NonDelegatingQueryInterface(riid, ppv);
 }
 
 CBaseSplitterOutputPin* CBaseSplitterFilter::GetOutputPin(DWORD TrackNum)
 {
+	CAutoLock cAutoLock(&m_csPinMap);
+
     CBaseSplitterOutputPin* pPin = NULL;
 	m_pPinMap.Lookup(TrackNum, pPin);
 	return pPin;
 }
 
+HRESULT CBaseSplitterFilter::RenameOutputPin(DWORD TrackNumSrc, DWORD TrackNumDst, const AM_MEDIA_TYPE* pmt)
+{
+	CAutoLock cAutoLock(&m_csPinMap);
+
+	CBaseSplitterOutputPin* pPin;
+	if(m_pPinMap.Lookup(TrackNumSrc, pPin))
+	{
+		if(CComQIPtr<IPin> pPinTo = pPin->GetConnected())
+		{
+			if(pmt && S_OK != pPinTo->QueryAccept(pmt))
+				return VFW_E_TYPE_NOT_ACCEPTED;
+		}
+
+		m_pPinMap.RemoveKey(TrackNumSrc);
+		m_pPinMap[TrackNumDst] = pPin;
+
+		if(pmt)
+		{
+			CAutoLock cAutoLock(&m_csmtnew);
+			m_mtnew[TrackNumDst] = *pmt;
+		}
+
+		return S_OK;
+	}
+
+	return E_FAIL;
+}
+
 HRESULT CBaseSplitterFilter::AddOutputPin(DWORD TrackNum, CAutoPtr<CBaseSplitterOutputPin> pPin)
 {
+	CAutoLock cAutoLock(&m_csPinMap);
+
 	if(!pPin) return E_INVALIDARG;
 	m_pPinMap[TrackNum] = pPin;
 	m_pOutputs.AddTail(pPin);
@@ -746,8 +810,15 @@ HRESULT CBaseSplitterFilter::DeleteOutputs()
 /*
 	CAutoLock cAutoLock(this);
 	if(m_State != State_Stopped) return VFW_E_NOT_STOPPED;
-	m_pPinMap.RemoveAll();
+
 	m_pOutputs.RemoveAll();
+
+	CAutoLock cAutoLock(&m_csPinMap);
+	m_pPinMap.RemoveAll();
+
+	CAutoLock cAutoLock(&m_csmtnew);
+	m_mtnew.RemoveAll();
+
 	return S_OK;
 */
 }
@@ -780,7 +851,7 @@ DWORD CBaseSplitterFilter::ThreadProc()
 		}
 	}
 
-	SetThreadPriority(m_hThread, THREAD_PRIORITY_ABOVE_NORMAL);
+	// SetThreadPriority(m_hThread, THREAD_PRIORITY_ABOVE_NORMAL);
 
 	m_eEndFlush.Set();
 	m_fFlushing = false;
@@ -839,12 +910,26 @@ HRESULT CBaseSplitterFilter::DeliverPacket(CAutoPtr<Packet> p)
 	if(!pPin || !pPin->IsConnected() || !m_pActivePins.Find(pPin))
 		return S_FALSE;
 
-	m_rtCurrent = p->rtStart;
+	if(p->rtStart != Packet::INVALID_TIME)
+	{
+		m_rtCurrent = p->rtStart;
 
-	p->rtStart -= m_rtStart;
-	p->rtStop -= m_rtStart;
+		p->rtStart -= m_rtStart;
+		p->rtStop -= m_rtStart;
 
-	ASSERT(p->rtStart <= p->rtStop);
+		ASSERT(p->rtStart <= p->rtStop);
+	}
+
+	{
+		CAutoLock cAutoLock(&m_csmtnew);
+
+		CMediaType mt;
+		if(m_mtnew.Lookup(p->TrackNumber, mt))
+		{
+			p->pmt = CreateMediaType(&mt);
+			m_mtnew.RemoveKey(p->TrackNumber);
+		}
+	}
 
 	if(!m_bDiscontinuitySent.Find(p->TrackNumber))
 		p->bDiscontinuity = TRUE;
@@ -874,12 +959,22 @@ HRESULT CBaseSplitterFilter::DeliverPacket(CAutoPtr<Packet> p)
 
 bool CBaseSplitterFilter::IsAnyPinDrying()
 {
+	int totalcount = 0, totalsize = 0;
+
 	POSITION pos = m_pActivePins.GetHeadPosition();
 	while(pos)
 	{
-		if(m_pActivePins.GetNext(pos)->QueueCount() < MINPACKETS)
+		CBaseSplitterOutputPin* pPin = m_pActivePins.GetNext(pos);
+		int count = pPin->QueueCount();
+		int size = pPin->QueueSize();
+		if(!pPin->IsDiscontinuous() && (count < MINPACKETS || size < MINPACKETSIZE))
 			return(true);
+		totalcount += count;
+		totalsize += size;
 	}
+
+	if(totalcount < MAXPACKETS && totalsize < MAXPACKETSIZE) 
+		return(true);
 
 	return(false);
 }
@@ -1298,4 +1393,28 @@ STDMETHODIMP CBaseSplitterFilter::GetKeyFrameCount(UINT& nKFs)
 STDMETHODIMP CBaseSplitterFilter::GetKeyFrames(const GUID* pFormat, REFERENCE_TIME* pKFs, UINT& nKFs)
 {
 	return E_NOTIMPL;
+}
+
+// IBufferInfo
+
+STDMETHODIMP_(int) CBaseSplitterFilter::GetCount()
+{
+	CAutoLock cAutoLock(m_pLock);
+
+	return m_pOutputs.GetCount();
+}
+
+STDMETHODIMP CBaseSplitterFilter::GetStatus(int i, int& samples, int& size)
+{
+	CAutoLock cAutoLock(m_pLock);
+
+	if(POSITION pos = m_pOutputs.FindIndex(i))
+	{
+		CBaseSplitterOutputPin* pPin = m_pOutputs.GetAt(pos);
+		samples = pPin->QueueCount();
+		size = pPin->QueueSize();
+		return pPin->IsConnected() ? S_OK : S_FALSE;
+	}
+
+	return E_INVALIDARG;
 }

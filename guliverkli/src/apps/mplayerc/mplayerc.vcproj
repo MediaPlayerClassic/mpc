@@ -470,6 +470,9 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath=".\jpeg.cpp">
+			</File>
+			<File
 				RelativePath="KeyProvider.cpp">
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
@@ -1090,6 +1093,12 @@
 					<Tool
 						Name="VCCustomBuildTool"/>
 				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\jpeg.h">
+			</File>
+			<File
+				RelativePath=".\jpeg_tables.h">
 			</File>
 			<File
 				RelativePath="KeyProvider.h">

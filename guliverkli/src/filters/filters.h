@@ -39,3 +39,4 @@
 #include ".\parser\RoQSplitter\RoQSplitter.h"
 #include ".\parser\OggSplitter\OggSplitter.h"
 #include ".\parser\NutSplitter\NutSplitter.h"
+#include ".\parser\MpegSplitter\MpegSplitter.h"

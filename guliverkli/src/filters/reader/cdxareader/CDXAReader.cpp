@@ -404,27 +404,10 @@ bool CCDXAStream::LookForMediaSubType()
 			m_llLength -= iSectorsRead*RAW_DATA_SIZE;
 			m_nFirstSector = iSectorsRead;
 
-			for(iSectorsRead = 0;
-				Read(buff, RAW_DATA_SIZE, 1, NULL) == S_OK && iSectorsRead < 1000;
-				iSectorsRead++)
-			{
-				for(int i = 0; i < RAW_DATA_SIZE-4-3; i++)
-				{
-					if(*((DWORD*)&buff[i]) == 0xb3010000)
-					{
-						int w = (buff[i+4]<<4) | (buff[i+5]>>4);
-						int h = ((buff[i+5]&0x0f)<<8) | buff[i+6];
+			if((buff[4]&0xc4) == 0x44) m_subtype = MEDIASUBTYPE_MPEG2_PROGRAM;
+			else if((buff[4]&0xf1) == 0x21) m_subtype = MEDIASUBTYPE_MPEG1System;
 
-						m_subtype = (w <= 384 && h <= 288) // 352
-							? MEDIASUBTYPE_MPEG1System 
-							: MEDIASUBTYPE_MPEG2_PROGRAM;
-
-						return(true);
-					}
-				}
-			}
-
-			return(false);
+			return m_subtype != MEDIASUBTYPE_NULL;
 		}
 		else if(*((DWORD*)&buff[0]) == 'SggO') 
 		{

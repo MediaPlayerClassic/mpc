@@ -56,6 +56,7 @@ public:
 	BOOL m_realmedia;
 	BOOL m_realvideo;
 	BOOL m_realaudio;
+	BOOL m_mpeg;
 	BOOL m_mpeg1;
 	BOOL m_mpeg2;
 	BOOL m_mpa;

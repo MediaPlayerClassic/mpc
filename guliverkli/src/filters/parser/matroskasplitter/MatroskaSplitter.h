@@ -30,6 +30,14 @@
 
 class MatroskaPacket : public Packet
 {
+protected:
+	int GetSize()
+	{
+		int size = 0;
+		POSITION pos = b->BlockData.GetHeadPosition();
+		while(pos) {size += b->BlockData.GetNext(pos)->GetSize();}
+		return size;
+	}
 public:
 	CAutoPtr<MatroskaReader::Block> b;
 };
@@ -65,6 +73,11 @@ public:
 class CMatroskaSplitterFilter : public CBaseSplitterFilter, public ITrackInfo
 {
 	void SendVorbisHeaderSample();
+
+	static HANDLE (WINAPI *pAddFontMemResourceEx)(PVOID,DWORD,PVOID,DWORD*);
+	static BOOL (WINAPI *pRemoveFontMemResourceEx)(HANDLE);
+	CArray<HANDLE> m_Fonts;
+	void InstallFonts();
 
 	CAutoPtr<MatroskaReader::CMatroskaNode> m_pSegment, m_pCluster, m_pBlock;
 

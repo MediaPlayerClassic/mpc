@@ -178,8 +178,8 @@ void CMediaFormats::UpdateData(bool fSave)
 		ADDFMT((_T("Windows Media Audio file"), _T("wma"), true));
 		ADDFMT((_T("Video file"), _T("avi")));
 		ADDFMT((_T("Audio file"), _T("wav"), true));
-		ADDFMT((_T("Movie file (MPEG)"), _T("mpg mpeg mpe m1v m2v mpv2 mp2v dat")));
-		ADDFMT((_T("Movie audio file (MPEG)"), _T("mpa mp2 m1a m2a"), true));
+		ADDFMT((_T("MPEG Media file"), _T("mpg mpeg mpe m1v m2v mpv2 mp2v dat ts")));
+		ADDFMT((_T("MPEG Audio file"), _T("mpa mp2 m1a m2a"), true));
 		ADDFMT((_T("DVD file"), _T("vob ifo")));
 		ADDFMT((_T("DVD Audio file"), _T("ac3 dts"), true));
 		ADDFMT((_T("MP3 Format Sound"), _T("mp3"), true));
@@ -198,8 +198,8 @@ void CMediaFormats::UpdateData(bool fSave)
 		ADDFMT((_T("Matroska Audio file"), _T("mka"), true));
 		ADDFMT((_T("Smacker/Bink Media file"), _T("smk bik"), false, _T("smackw32/binkw32.dll in dll path")));
 		ADDFMT((_T("RoQ Media file"), _T("roq"), false));
-		ADDFMT((_T("Real Media file (dshow compatible)"), _T("rm ram rmvb rpm"), false, _T("RealOne or codec pack")));
-		ADDFMT((_T("Real Audio file (old format)"), _T("ra"), true, _T("RealOne or codec pack"), RealMedia));
+		ADDFMT((_T("Real Media file "), _T("rm ram rmvb rpm"), false, _T("RealOne or codec pack")));
+		ADDFMT((_T("Real Audio file "), _T("ra"), true, _T("RealOne or codec pack")));
 		ADDFMT((_T("Real Script file"), _T("rt rp smi smil"), false, _T("RealOne or codec pack"), RealMedia));
 		ADDFMT((_T("Shockwave Flash file"), _T("swf"), false, _T("ShockWave ActiveX control"), ShockWave));
 		ADDFMT((_T("Quicktime file"), _T("mov qt"), false, _T("QuickTime Player or codec pack"), QuickTime));

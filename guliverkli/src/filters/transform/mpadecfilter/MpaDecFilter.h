@@ -58,7 +58,7 @@ protected:
 
 	HRESULT GetDeliveryBuffer(IMediaSample** pSample, BYTE** pData);
 	HRESULT Deliver(CArray<float>& pBuff, DWORD nSamplesPerSec, WORD nChannels, DWORD dwChannelMask = 0);
-	HRESULT Deliver(CArray<BYTE>& pBuff, DWORD nSamplesPerSec, REFERENCE_TIME rtDur);
+	HRESULT Deliver(BYTE* pBuff, int size, int bit_rate, BYTE type);
 	HRESULT ReconnectOutput(int nSamples, CMediaType& mt);
 
 protected:

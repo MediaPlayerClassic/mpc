@@ -46,6 +46,7 @@ CPPageFilters::CPPageFilters()
 	, m_realmedia(FALSE)
 	, m_realvideo(FALSE)
 	, m_realaudio(FALSE)
+	, m_mpeg(FALSE)
 	, m_mpeg1(FALSE)
 	, m_mpeg2(FALSE)
 	, m_mpa(FALSE)
@@ -77,6 +78,7 @@ void CPPageFilters::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_CHECK_AVI, m_avi);
 	DDX_Check(pDX, IDC_CHECK_RV, m_realvideo);
 	DDX_Check(pDX, IDC_CHECK_RA, m_realaudio);
+	DDX_Check(pDX, IDC_CHECK_MPG, m_mpeg);
 	DDX_Check(pDX, IDC_CHECK_MPG1, m_mpeg1);
 	DDX_Check(pDX, IDC_CHECK_MPG2, m_mpeg2);
 	DDX_Check(pDX, IDC_CHECK_MPA, m_mpa);
@@ -113,6 +115,7 @@ BOOL CPPageFilters::OnInitDialog()
 	m_realmedia = !!(s.SrcFilters&SRC_REALMEDIA);
 	m_realvideo = !!(s.TraFilters&TRA_REALVID);
 	m_realaudio = !!(s.TraFilters&TRA_REALAUD);
+	m_mpeg = !!(s.SrcFilters&SRC_MPEG);
 	m_mpeg1 = !!(s.TraFilters&TRA_MPEG1);
 	m_mpeg2 = !!(s.TraFilters&TRA_MPEG2);
 	m_mpa = !!(s.TraFilters&TRA_MPEGAUD);
@@ -160,6 +163,7 @@ BOOL CPPageFilters::OnApply()
 	if(m_realmedia) s.SrcFilters |= SRC_REALMEDIA;
 	if(m_realvideo) s.TraFilters |= TRA_REALVID;
 	if(m_realaudio) s.TraFilters |= TRA_REALAUD;
+	if(m_mpeg) s.SrcFilters |= SRC_MPEG;
 	if(m_mpeg1) s.TraFilters |= TRA_MPEG1;
 	if(m_mpeg2) s.TraFilters |= TRA_MPEG2;
 	if(m_mpa) s.TraFilters |= TRA_MPEGAUD;

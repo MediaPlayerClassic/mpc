@@ -24,15 +24,25 @@
 #include "TextFile.h"
 #include "GFN.h"
 
-TCHAR* exttypestr[9] = 
+TCHAR* exttypestr[] = 
 {
-	_T("srt"), _T("sub"), _T("smi"), _T("psb"), _T("ssa"), _T("ass"), _T("idx"), _T("usf"), _T("xss")
+	_T("srt"), _T("sub"), _T("smi"), _T("psb"), 
+	_T("ssa"), _T("ass"), _T("idx"), _T("usf"), 
+	_T("xss"), _T("txt")
 };
 
-static TCHAR* ext[2][9] = 
+static TCHAR* ext[2][countof(exttypestr)] = 
 {
-	{_T(".srt"), _T(".sub"), _T(".smi"), _T(".psb"), _T(".ssa"), _T(".ass"), _T(".idx"), _T(".usf"), _T(".xss")},
-	{_T(".*.srt"), _T(".*.sub"), _T(".*.smi"), _T(".*.psb"), _T(".*.ssa"), _T(".*.ass"), _T(".*.dummyidx"), _T(".*.usf"), _T(".*.xss")}, 
+	{
+		_T(".srt"), _T(".sub"), _T(".smi"), _T(".psb"), 
+		_T(".ssa"), _T(".ass"), _T(".idx"), _T(".usf"), 
+		_T(".xss"), _T(".txt")
+	},
+	{
+		_T(".*.srt"), _T(".*.sub"), _T(".*.smi"), _T(".*.psb"), 
+		_T(".*.ssa"), _T(".*.ass"), _T(".*.dummyidx"), _T(".*.usf"), 
+		_T(".*.xss"), _T(".*.txt")
+	}, 
 };
 
 #define WEBSUBEXT _T(".wse")

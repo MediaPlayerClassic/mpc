@@ -113,7 +113,13 @@ HRESULT CNullUAudioRenderer::CheckMediaType(const CMediaType* pmt)
 
 HRESULT CNullTextRenderer::CTextInputPin::CheckMediaType(const CMediaType* pmt)
 {
-	return pmt->majortype == MEDIATYPE_Text || pmt->majortype == MEDIATYPE_Subtitle ? S_OK : E_FAIL;
+	return pmt->majortype == MEDIATYPE_Text
+		|| pmt->majortype == MEDIATYPE_Subtitle 
+		|| pmt->subtype == MEDIASUBTYPE_DVD_SUBPICTURE 
+		|| pmt->subtype == MEDIASUBTYPE_CVD_SUBPICTURE 
+		|| pmt->subtype == MEDIASUBTYPE_SVCD_SUBPICTURE 
+		? S_OK 
+		: E_FAIL;
 }
 
 CNullTextRenderer::CNullTextRenderer(LPUNKNOWN pUnk, HRESULT* phr)

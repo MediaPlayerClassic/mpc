@@ -578,6 +578,15 @@ BOOL CMPlayerCApp::InitInstance()
 		return FALSE;
 	}
 
+	CRegKey key;
+	if(ERROR_SUCCESS == key.Create(HKEY_LOCAL_MACHINE, _T("Software\\Gabest\\Media Player Classic")))
+	{
+		CString path;
+		GetModuleFileName(AfxGetInstanceHandle(), path.GetBuffer(MAX_PATH), MAX_PATH);
+		path.ReleaseBuffer();
+		key.SetStringValue(_T("ExePath"), path);
+	}
+
 	AfxEnableControlContainer();
 
 	CMainFrame* pFrame = new CMainFrame;
@@ -1101,12 +1110,15 @@ void CMPlayerCApp::Settings::UpdateData(bool fSave)
 
 		pApp->WriteProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_HIDECDROMSSUBMENU), fHideCDROMsSubMenu);
 
+		pApp->WriteProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_PRIORITY), priority);
+
 		pApp->WriteProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_ENABLEWEBSERVER), fEnableWebServer);
 		pApp->WriteProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_WEBSERVERPORT), nWebServerPort);
 		pApp->WriteProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_WEBSERVERPRINTDEBUGINFO), fWebServerPrintDebugInfo);
 		pApp->WriteProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_WEBSERVERUSECOMPRESSION), fWebServerUseCompression);
 
 		pApp->WriteProfileString(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_SNAPSHOTPATH), SnapShotPath);
+		pApp->WriteProfileString(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_SNAPSHOTEXT), SnapShotExt);
 	}
 	else
 	{
@@ -1388,15 +1400,29 @@ void CMPlayerCApp::Settings::UpdateData(bool fSave)
 
 		fHideCDROMsSubMenu = !!pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_HIDECDROMSSUBMENU), 0);		
 
+		priority = pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_PRIORITY), NORMAL_PRIORITY_CLASS);
+
 		fEnableWebServer = !!pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_ENABLEWEBSERVER), FALSE);
 		nWebServerPort = pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_WEBSERVERPORT), 13579);
 		fWebServerPrintDebugInfo = !!pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_WEBSERVERPRINTDEBUGINFO), FALSE);
 		fWebServerUseCompression = !!pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_WEBSERVERUSECOMPRESSION), TRUE);
 
 		CString MyPictures;
-		if(!SHGetSpecialFolderPath(NULL, MyPictures.GetBufferSetLength(MAX_PATH), CSIDL_MYPICTURES, TRUE)) MyPictures.Empty();
-		else MyPictures.ReleaseBuffer();
+
+		CRegKey key;
+		// grrrrr
+		// if(!SHGetSpecialFolderPath(NULL, MyPictures.GetBufferSetLength(MAX_PATH), CSIDL_MYPICTURES, TRUE)) MyPictures.Empty();
+		// else MyPictures.ReleaseBuffer();
+		if(ERROR_SUCCESS == key.Open(HKEY_CURRENT_USER, _T("Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders"), KEY_READ))
+		{
+			ULONG len = MAX_PATH;
+			if(ERROR_SUCCESS == key.QueryStringValue(_T("My Pictures"), MyPictures.GetBuffer(MAX_PATH), &len))
+				MyPictures.ReleaseBufferSetLength(len);
+			else
+				MyPictures.Empty();
+		}
 		SnapShotPath = pApp->GetProfileString(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_SNAPSHOTPATH), MyPictures);
+		SnapShotExt = pApp->GetProfileString(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_SNAPSHOTEXT), _T(".bmp"));
 
 		pApp->WriteProfileInt(ResStr(IDS_R_SETTINGS), _T("LastUsedPage"), 0);
 
@@ -1781,14 +1807,37 @@ CString GetContentType(CString fn, CList<CString>* redir)
 				CStringA& hdrline = sl.GetNext(pos);
 				CList<CStringA> sl2;
 				Explode(hdrline, sl2, ':', 2);
-				if(sl2.RemoveHead().MakeLower() != "content-type" || sl2.IsEmpty())
-					continue;
-				ct = sl2.GetHead();
+				CStringA field = sl2.RemoveHead().MakeLower();
+				if(field == "location" && !sl2.IsEmpty())
+					return GetContentType(CString(sl2.GetHead()), redir);
+				if(field == "content-type" && !sl2.IsEmpty())
+					ct = sl2.GetHead();
+			}
+
+			while(body.GetLength() < 256)
+			{
+				CStringA str;
+				str.ReleaseBuffer(s.Receive(str.GetBuffer(256), 256)); // SOCKET_ERROR == -1, also suitable for ReleaseBuffer
+				if(str.IsEmpty()) break;
+				body += str;
+			}
+
+			if(body.GetLength() >= 8)
+			{
+				CStringA str = TToA(body);
+				if(!strncmp((LPCSTR)str, ".ra", 3))
+					return "audio/x-pn-realaudio";
+				if(!strncmp((LPCSTR)str, ".RMF", 4))
+					return "audio/x-pn-realaudio";
+				if(*(DWORD*)(LPCSTR)str == 0x75b22630)
+					return "video/x-ms-wmv";
+				if(!strncmp((LPCSTR)str+4, "moov", 4))
+					return "video/quicktime";
 			}
 
 			if(redir && (ct == _T("video/x-ms-asf") || ct == _T("audio/x-scpls") || ct == _T("audio/x-mpegurl")))
 			{
-				while(1)
+				while(body.GetLength() < 4*1024) // should be enough for a playlist...
 				{
 					CStringA str;
 					str.ReleaseBuffer(s.Receive(str.GetBuffer(256), 256)); // SOCKET_ERROR == -1, also suitable for ReleaseBuffer
@@ -1805,6 +1854,23 @@ CString GetContentType(CString fn, CList<CString>* redir)
 		if(ext == _T(".asx")) ct = _T("video/x-ms-asf");
 		else if(ext == _T(".pls")) ct = _T("audio/x-scpls");
 		else if(ext == _T(".m3u")) ct = _T("audio/x-mpegurl");
+
+		if(FILE* f = _tfopen(fn, _T("rb")))
+		{
+			CStringA str;
+			str.ReleaseBufferSetLength(fread(str.GetBuffer(256), 1, 256, f));
+			body = AToT(str);
+			fclose(f);
+		}
+	}
+
+	if(body.GetLength() >= 4) // here only those which cannot be opened through dshow
+	{
+		CStringA str = TToA(body);
+		if(!strncmp((LPCSTR)str, ".ra", 3))
+			return "audio/x-pn-realaudio";
+		if(!strncmp((LPCSTR)str, "FWS", 3))
+			return "application/x-shockwave-flash";
 	}
 
 	if(redir && !ct.IsEmpty())

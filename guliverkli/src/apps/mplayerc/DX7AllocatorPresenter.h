@@ -36,3 +36,5 @@ DEFINE_GUID(CLSID_QT7AllocatorPresenter,
 0x36cc5a71, 0x441c, 0x462a, 0x9d, 0x10, 0x48, 0xa1, 0x94, 0x85, 0x93, 0x8d);
 
 extern HRESULT CreateAP7(const CLSID& clsid, HWND hWnd, ISubPicAllocatorPresenter** ppAP);
+
+extern bool IsVMR7InGraph(IFilterGraph* pFG);

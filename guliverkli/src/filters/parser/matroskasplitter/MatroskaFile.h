@@ -308,6 +308,7 @@ namespace MatroskaReader
 				CUTF8 FileName;
 				CANSI FileMimeType;
 				QWORD FileDataPos, FileDataLen; // BYTE* FileData
+				CUInt FileUID;
 
 				AttachedFile() {FileDataPos = FileDataLen = 0;}
 				HRESULT Parse(CMatroskaNode* pMN);

@@ -40,6 +40,14 @@
 
 //#include <d3dx9.h>
 
+bool IsVMR9InGraph(IFilterGraph* pFG)
+{
+	BeginEnumFilters(pFG, pEF, pBF)
+		if(CComQIPtr<IVMRWindowlessControl9>(pBF)) return(true);
+	EndEnumFilters
+	return(false);
+}
+
 namespace DSObjects
 {
 
