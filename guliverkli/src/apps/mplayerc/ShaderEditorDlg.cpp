@@ -482,16 +482,16 @@ void CShaderEditorDlg::OnClose()
 		pApp->WriteProfileString(_T("Shaders"), NULL, NULL);
 		pApp->WriteProfileInt(_T("Shaders"), _T("Initialized"), 1);
 
-		for(int i = 0; i < m_labels.GetCount(); i++)
+		for(int i = 0, id = 0; i < m_labels.GetCount(); i++)
 		{
 			CString label;
 			m_labels.GetLBText(i, label);
 
 			shader_t s;
-			if(m_shaders.Lookup(label, s))
+			if(!label.IsEmpty() && m_shaders.Lookup(label, s))
 			{
 				CString str;
-				str.Format(_T("%d"), i);
+				str.Format(_T("%d"), id++);
 				s.srcdata.Replace(_T("\r"), _T(""));
 				s.srcdata.Replace(_T("\n"), _T("\\n"));
 				s.srcdata.Replace(_T("\t"), _T("\\t"));
