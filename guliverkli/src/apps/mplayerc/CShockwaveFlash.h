@@ -16,9 +16,7 @@
 // Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA, or visit
 // http://www.gnu.org/copyleft/gpl.html
 
-// CShockwaveFlash.h  : Declaration of ActiveX Control 
-wrapper class(es) 
-created by Microsoft Visual C++
+// CShockwaveFlash.h  : Declaration of ActiveX Control wrapper class(es) created by Microsoft Visual C++
 
 #pragma once
 
