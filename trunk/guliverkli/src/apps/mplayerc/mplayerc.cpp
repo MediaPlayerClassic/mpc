@@ -1303,7 +1303,7 @@ void CMPlayerCApp::Settings::UpdateData(bool fSave)
 		Formats.UpdateData(false);
 
 		SrcFilters = pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_SRCFILTERS), ~0);
-		TraFilters = pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_TRAFILTERS), ~0);
+		TraFilters = pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_TRAFILTERS), ~0^TRA_MPEG1);
 
 		logofn = pApp->GetProfileString(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_LOGOFILE), _T(""));
 		logoid = pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_LOGOID), IDB_LOGO2);
