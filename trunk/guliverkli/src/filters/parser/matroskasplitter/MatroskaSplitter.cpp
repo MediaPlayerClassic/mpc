@@ -646,7 +646,7 @@ DWORD CMatroskaSourceFilter::ThreadProc()
 
 	//
 
-	if(m_pFile->m_segment.Cues.GetCount() == 0 && m_pFile->m_segment.SegmentInfo.Duration > 0)
+	if(m_pFile->m_segment.Cues.GetCount() == 0 /*&& m_pFile->m_segment.SegmentInfo.Duration > 0*/)
 	{
 		m_nOpenProgress = 0;
 		m_pFile->m_segment.SegmentInfo.Duration.Set(0);

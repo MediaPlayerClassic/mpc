@@ -321,7 +321,7 @@ interface ISubPicAllocatorPresenter : public IUnknown
 	STDMETHOD_(double, GetFPS) () PURE;
 
 	STDMETHOD_(void, SetSubPicProvider) (ISubPicProvider* pSubPicProvider) PURE;	
-	STDMETHOD_(void, Invalidate) () PURE;
+	STDMETHOD_(void, Invalidate) (REFERENCE_TIME rtInvalidate = -1) PURE;
 };
 
 class ISubPicAllocatorPresenterImpl 
@@ -362,7 +362,7 @@ public:
 	STDMETHODIMP_(double) GetFPS();
 
 	STDMETHODIMP_(void) SetSubPicProvider(ISubPicProvider* pSubPicProvider);	
-	STDMETHODIMP_(void) Invalidate();
+	STDMETHODIMP_(void) Invalidate(REFERENCE_TIME rtInvalidate = -1);
 };
 
 //

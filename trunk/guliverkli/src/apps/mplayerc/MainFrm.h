@@ -331,7 +331,7 @@ public:
 	bool LoadSubtitle(CString fn);
 	void UpdateSubtitle(bool fApplyDefStyle = false);
 	void SetSubtitle(ISubStream* pSubStream, bool fApplyDefStyle = false);
-	void InvalidateSubtitle(__int64 start = 0, DWORD_PTR nSubtitleId = -1);
+	void InvalidateSubtitle(DWORD_PTR nSubtitleId = -1, REFERENCE_TIME rtInvalidate = -1);
 
 	// capturing
 	bool m_fCapturing;

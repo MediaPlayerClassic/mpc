@@ -21,6 +21,7 @@
 
 #include "stdafx.h"
 #include "fakefiltermapper2.h"
+#include "MacrovisionKicker.h"
 #include "..\..\..\include\detours\detours.h"
 #include "..\..\DSUtil\DSUtil.h"
 
@@ -102,6 +103,22 @@ HRESULT WINAPI Mine_CoCreateInstance(IN REFCLSID rclsid, IN LPUNKNOWN pUnkOuter,
 		}
 	}
 */
+
+	if(rclsid == CLSID_VideoMixingRenderer || rclsid == CLSID_VideoMixingRenderer9
+	|| rclsid == CLSID_VideoRenderer || rclsid == CLSID_VideoRendererDefault
+	|| rclsid == CLSID_OverlayMixer /*|| rclsid == CLSID_OverlayMixer2 - where is this declared?*/)
+	{
+		CMacrovisionKicker* pMK = new CMacrovisionKicker(NAME("CMacrovisionKicker"), pUnkOuter);
+		CComPtr<IUnknown> pUnk = (IUnknown*)(INonDelegatingUnknown*)pMK;
+		CComPtr<IUnknown> pInner;
+		HRESULT hr;
+		if(SUCCEEDED(hr = Real_CoCreateInstance(rclsid, pUnk, dwClsContext, __uuidof(IUnknown), (void**)&pInner)))
+		{
+			pMK->SetInner(pInner);
+			return pUnk->QueryInterface(riid, ppv);
+		}
+	}
+
 	return Real_CoCreateInstance(rclsid, pUnkOuter, dwClsContext, riid, ppv);
 }
 

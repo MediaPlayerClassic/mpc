@@ -779,8 +779,8 @@ STDMETHODIMP_(void) ISubPicAllocatorPresenterImpl::SetSubPicProvider(ISubPicProv
 		m_pSubPicQueue->SetSubPicProvider(pSPP); // pSPP == NULL is ok, we use it to empty the provider
 }
 
-STDMETHODIMP_(void) ISubPicAllocatorPresenterImpl::Invalidate()
+STDMETHODIMP_(void) ISubPicAllocatorPresenterImpl::Invalidate(REFERENCE_TIME rtInvalidate)
 {
 	if(m_pSubPicQueue)
-		m_pSubPicQueue->Invalidate();
+		m_pSubPicQueue->Invalidate(rtInvalidate);
 }
