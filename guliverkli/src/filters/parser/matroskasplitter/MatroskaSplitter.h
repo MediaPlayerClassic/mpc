@@ -28,10 +28,6 @@
 
 // buggy...
 //#define NONBLOCKINGSEEK
-// 1 would be enough but 2 is needed at least to be able to send those fake samples at the beginning 
-#define MAXBUFFERS 2
-// this is enough for about 3 sec preload
-#define MAXPACKETS 100
 
 class CMatroskaSplitterInputPin : public CBasePin
 {

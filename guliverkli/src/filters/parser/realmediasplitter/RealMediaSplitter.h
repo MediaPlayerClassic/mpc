@@ -25,9 +25,10 @@
 #include <atlcoll.h>
 #include <afxtempl.h>
 
-namespace RealMedia
-{
 #pragma pack(push, 1)
+
+namespace RMFF
+{
 	typedef struct {union {char id[4]; UINT32 object_id;}; UINT32 size; UINT16 object_version;} ChunkHdr;
 	typedef struct {UINT32 version, nHeaders;} FileHdr;
 	typedef struct 
@@ -60,10 +61,8 @@ namespace RealMedia
 	} MediaPacketHeader;
 	typedef struct {UINT32 nIndices; UINT16 stream; UINT32 ptrNext;} IndexChunkHeader;
 	typedef struct {UINT32 tStart, ptrFilePos, packet;} IndexRecord;
-#pragma pack(pop)
 }
 
-#pragma pack(push, 1)
 struct rvinfo
 {
 	DWORD dwSize, fcc1, fcc2; 
@@ -115,54 +114,7 @@ struct rainfo5 : rainfo
 	void bswap();
 };
 
-/*
-struct rainfo {
-	UINT32 unknown1; // No clue
-	UINT16 unknown2; // just need to skip 6 bytes
-	UINT16 header_version;
-	UINT16 unknown3; // 00 00
-	UINT32 format; //? .ra4 or .ra5
-	UINT32 unknown4; // ???
-	UINT16 format_version; // version (4 or 5)
-	UINT32 header_size; // header size == 0x4E 
-	UINT16 codec_flavor; // codec flavor id, Also called the codec_audience_number
-	UINT32 coded_frame_size; // coded frame size, needed by codec
-	UINT32 unknown5; // big number
-	UINT32 unknown6; // bigger number
-	UINT32 unknown7; // 2 || -''-
-	UINT16 sub_packet_h; //Sub packet header???
-	UINT16 frame_size;
-	UINT16 sub_packet_size;
-	UINT16 unknown8; //Two bytes of 0's
-
-	//Here if format_version == 5
-	UINT32 unknown9;
-	UINT16 unknown10;
-	//End if format_version == 5
-
-	UINT16 sample_rate;
-	UINT16 unknown11;
-	UINT16 sample_size;
-	UINT16 channels;
-
-	//Here if format_version == 5
-	UINT32 unknown12;
-	UINT32 codec_name;
-	//End if format_version == 5
-
-	//If codec_name == "cook"
-	UINT16 unknown13; // Skip 3 unknown bytes 
-	UINT8 unknown14;
-	UINT8 unknown15;  // Skip 1 additional unknown byte If format_version == 5
-	UINT32 codecdata_length;
-	UINT8 *codecdata; //This is the size codecdata_length
-	//End if codec_name == "cook"
-};
-*/
 #pragma pack(pop)
-
-#define MAXBUFFERS 2
-#define MAXPACKETS 1000
 
 typedef struct
 {
@@ -186,15 +138,15 @@ public:
 	void Seek(UINT64 pos) {m_pos = pos;}
 	HRESULT Read(BYTE* pData, LONG len);
 	template<typename T> HRESULT Read(T& var);
-	HRESULT Read(RealMedia::ChunkHdr& hdr);
-	HRESULT Read(RealMedia::MediaPacketHeader& mph, bool fFull = true);
+	HRESULT Read(RMFF::ChunkHdr& hdr);
+	HRESULT Read(RMFF::MediaPacketHeader& mph, bool fFull = true);
 
-	RealMedia::FileHdr m_fh;
-	RealMedia::ContentDesc m_cd;
-	RealMedia::Properies m_p;
-	CAutoPtrList<RealMedia::MediaProperies> m_mps;
-	CAutoPtrList<RealMedia::DataChunk> m_dcs;
-	CAutoPtrList<RealMedia::IndexRecord> m_irs;
+	RMFF::FileHdr m_fh;
+	RMFF::ContentDesc m_cd;
+	RMFF::Properies m_p;
+	CAutoPtrList<RMFF::MediaProperies> m_mps;
+	CAutoPtrList<RMFF::DataChunk> m_dcs;
+	CAutoPtrList<RMFF::IndexRecord> m_irs;
 
 	int GetMasterStream();
 };
@@ -248,13 +200,14 @@ private:
 		REFERENCE_TIME rtStart;
 #endif
 	} segment;
-	class CSegments : public CAutoPtrList<segment>
+	class CSegments : public CAutoPtrList<segment>, public CCritSec
 	{
 	public:
 		REFERENCE_TIME rtStart; 
 		bool fDiscontinuity, fSyncPoint, fMerged;
 		void Clear()
 		{
+			CAutoLock cAutoLock(this);
 			rtStart = 0;
 			fDiscontinuity = fSyncPoint = fMerged = false;
 			RemoveAll();
@@ -445,9 +398,13 @@ class CRealVideoDecoder : public CTransformFilter
 	CAutoPtrList<chunk> m_data;
 
 	HRESULT Decode(bool fPreroll);
-*/	void Copy(BYTE* pIn, BYTE* pOut, int w, int h);
+*/	void Copy(BYTE* pIn, BYTE* pOut, DWORD wi, DWORD hi);
+	void Resize(BYTE* pIn, DWORD wi, DWORD hi, BYTE* pOut, DWORD wo, DWORD ho);
+	void ResizeWidth(BYTE* pIn, DWORD wi, DWORD hi, BYTE* pOut, DWORD wo, DWORD ho);
+	void ResizeHeight(BYTE* pIn, DWORD wi, DWORD hi, BYTE* pOut, DWORD wo, DWORD ho);
+	void ResizeRow(BYTE* pIn, DWORD wi, DWORD dpi, BYTE* pOut, DWORD wo, DWORD dpo);
 
-	CAutoVectorPtr<BYTE> m_pI420FrameBuff;
+	CAutoVectorPtr<BYTE> m_pI420, m_pI420Tmp;
 
 public:
 	CRealVideoDecoder(LPUNKNOWN lpunk, HRESULT* phr);

@@ -23,8 +23,7 @@
 
 #include <atlcoll.h>
 #include <afxtempl.h>
-
-typedef enum {DirectShow = 0, RealMedia, QuickTime, ShockWave} engine_t;
+#include "BaseGraph.h"
 
 class CMediaFormatCategory
 {
@@ -57,10 +56,11 @@ public:
 	bool FindExt(CString ext) {return m_exts.Find(ext.TrimLeft(_T(".")).MakeLower()) != NULL;}
 
 	CString GetLabel() {return m_label;}
-	CString GetFilter(), GetExts(), GetExtsWithPeriod();
+	CString GetFilter(), GetExts(bool fAppendEngine = false), GetExtsWithPeriod(bool fAppendEngine = false);
 	CString GetSpecReqNote() {return m_specreqnote;}
 	bool IsAudioOnly() {return m_fAudioOnly;}
 	engine_t GetEngineType() {return m_engine;}
+	void SetEngineType(engine_t e) {m_engine = e;}
 };
 
 class CMediaFormats : public CArray<CMediaFormatCategory>

@@ -3,7 +3,7 @@
 	ProjectType="Visual C++"
 	Version="7.10"
 	Name="RealMediaSplitter"
-	ProjectGUID="{53CF9195-19DB-457d-8F55-8DB1706DFA84}"
+	ProjectGUID="{53CF9195-19DB-457D-8F55-8DB1706DFA84}"
 	Keyword="Win32Proj">
 	<Platforms>
 		<Platform
@@ -242,9 +242,11 @@
 			CharacterSet="2">
 			<Tool
 				Name="VCCLCompilerTool"
-				Optimization="2"
-				InlineFunctionExpansion="1"
+				Optimization="3"
+				InlineFunctionExpansion="2"
+				FavorSizeOrSpeed="1"
 				OmitFramePointers="TRUE"
+				OptimizeForProcessor="0"
 				PreprocessorDefinitions="REGISTER_FILTER;WIN32;NDEBUG"
 				StringPooling="TRUE"
 				RuntimeLibrary="0"

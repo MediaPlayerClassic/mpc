@@ -673,3 +673,6 @@ STDMETHODIMP CRealMediaGraph::QueryProgress(LONGLONG* pllTotal, LONGLONG* pllCur
 	*pllCurrent = m_pRMP->m_unPercentComplete > 0 ? m_pRMP->m_unPercentComplete : 100; // after seeking it drops to 0 and would show annoying "Buffering... (0%)" messages on the status line
 	return S_OK;
 }
+
+// IGraphEngine
+STDMETHODIMP_(engine_t) CRealMediaGraph::GetEngine() {return RealMedia;}

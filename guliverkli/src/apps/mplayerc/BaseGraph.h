@@ -34,6 +34,14 @@ protected:
 	DECLARE_MESSAGE_MAP()
 };
 
+typedef enum {DirectShow = 0, RealMedia, QuickTime, ShockWave} engine_t;
+
+[uuid("B110CDE5-6331-4118-8AAF-A870D6F7E2E4")]
+interface IGraphEngine : public IUnknown
+{
+	STDMETHOD_(engine_t, GetEngine) () = 0;
+};
+
 namespace DSObjects
 {
 
@@ -53,6 +61,7 @@ class CBaseGraph
 	, public IBasicVideo
 	, public IBasicAudio
 	, public IAMOpenProgress
+	, public IGraphEngine
 {
 	OAHWND m_hNotifyWnd;
 	long m_lNotifyMsg;
@@ -226,6 +235,9 @@ protected:
 	// IAMOpenProgress
 	STDMETHODIMP QueryProgress(LONGLONG* pllTotal, LONGLONG* pllCurrent);
 	STDMETHODIMP AbortOperation();
+
+	// IGraphEngine
+	STDMETHODIMP_(engine_t) GetEngine();
 };
 
 }

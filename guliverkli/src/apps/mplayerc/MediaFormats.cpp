@@ -66,11 +66,11 @@ void CMediaFormatCategory::UpdateData(bool fSave)
 {
 	if(fSave)
 	{
-		AfxGetApp()->WriteProfileString(_T("FileFormats"), m_label, GetExts());
+		AfxGetApp()->WriteProfileString(_T("FileFormats"), m_label, GetExts(true));
 	}
 	else
 	{
-		SetExts(AfxGetApp()->GetProfileString(_T("FileFormats"), m_label, GetExts()));
+		SetExts(AfxGetApp()->GetProfileString(_T("FileFormats"), m_label, GetExts(true)));
 	}
 }
 
@@ -110,7 +110,12 @@ void CMediaFormatCategory::SetExts(CString exts)
 	m_exts.RemoveAll();
 	int i = 0;
 	for(CString token = exts.Tokenize(_T(" "), i); !token.IsEmpty(); token = exts.Tokenize(_T(" "), i))
-		m_exts.AddTail(token.TrimLeft('.'));
+	{
+		if(token[0] == '\\')
+			m_engine = (engine_t)_tcstol(token.TrimLeft('\\'), NULL, 10); // note: default engine type and _tcstol's default return type are both 0, we are ok here
+		else
+			m_exts.AddTail(token.TrimLeft('.'));
+	}
 }
 
 CString CMediaFormatCategory::GetFilter()
@@ -122,21 +127,23 @@ CString CMediaFormatCategory::GetFilter()
 	return(filter);
 }
 
-CString CMediaFormatCategory::GetExts()
+CString CMediaFormatCategory::GetExts(bool fAppendEngine)
 {
 	CString exts;
 	POSITION pos = m_exts.GetHeadPosition();
 	while(pos) exts += m_exts.GetNext(pos) + _T(" ");
 	exts.TrimRight(_T(" ")); // cheap...
+	if(fAppendEngine) exts += CString(_T(" \\")) + (TCHAR)(0x30 + (int)m_engine);
 	return(exts);
 }
 
-CString CMediaFormatCategory::GetExtsWithPeriod()
+CString CMediaFormatCategory::GetExtsWithPeriod(bool fAppendEngine)
 {
 	CString exts;
 	POSITION pos = m_exts.GetHeadPosition();
 	while(pos) exts += _T(".") + m_exts.GetNext(pos) + _T(" ");
 	exts.TrimRight(_T(" ")); // cheap...
+	if(fAppendEngine) exts += CString(_T(" \\")) + (TCHAR)(0x30 + (int)m_engine);
 	return(exts);
 }
 
@@ -180,17 +187,17 @@ void CMediaFormats::UpdateData(bool fSave)
 		ADDFMT((_T("AU Format Sound"), _T("au snd"), true));
 		ADDFMT((_T("Ogg Media file"), _T("ogm")));
 		ADDFMT((_T("Ogg Vorbis Audio file"), _T("ogg"), true));
-		ADDFMT((_T("CD Audio Track"), _T("cda"), true, _T("Only for 2k/xp+")));
+		ADDFMT((_T("CD Audio Track"), _T("cda"), true, _T("Windows 2000/XP or better")));
 		ADDFMT((_T("FLIC file"), _T("fli flc flic")));
 		ADDFMT((_T("DVD2AVI Project file"), _T("d2v")));
 		ADDFMT((_T("MPEG4 file"), _T("mp4")));
 		ADDFMT((_T("MPEG4 Audio file"), _T("aac"), true));
 		ADDFMT((_T("Matroska Media file"), _T("mkv")));
 		ADDFMT((_T("Matroska Audio file"), _T("mka"), true));
-		ADDFMT((_T("Real Media file"), _T("rm rmvb rpm rt rp smi smil"), false, _T("with RealPlayer/RealOne or codec pack"), RealMedia));
-		ADDFMT((_T("Real Audio file"), _T("ra ram"), true, _T("needs RealPlayer/RealOne or codec pack"), RealMedia));
-		ADDFMT((_T("Shockwave Flash file"), _T("swf"), false, _T("ActiveX control must be installed"), ShockWave));
-		ADDFMT((_T("Quicktime file"), _T("mov qt"), false, _T("needs QuickTime Player or codec pack"), QuickTime));
+		ADDFMT((_T("Real Media file"), _T("rm ram rmvb rpm rt rp smi smil"), false, _T("RealOne or codec pack"), RealMedia));
+		ADDFMT((_T("Real Audio file"), _T("ra"), true, _T("RealOne or codec pack"), RealMedia));
+		ADDFMT((_T("Shockwave Flash file"), _T("swf"), false, _T("ShockWave ActiveX control"), ShockWave));
+		ADDFMT((_T("Quicktime file"), _T("mov qt"), false, _T("QuickTime Player or codec pack"), QuickTime));
 		ADDFMT((_T("Image file"), _T("jpeg jpg bmp gif pic png dib tiff tif")));
 		ADDFMT((_T("Playlist file"), _T("asx m3u pls wvx wax wmx"), false));
 #undef ADDFMT

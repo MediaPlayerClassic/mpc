@@ -227,3 +227,6 @@ STDMETHODIMP CShockwaveGraph::QueryProgress(LONGLONG* pllTotal, LONGLONG* pllCur
 	*pllCurrent = m_wndDestFrame.PercentLoaded();
 	return S_OK;
 }
+
+// IGraphEngine
+STDMETHODIMP_(engine_t) CShockwaveGraph::GetEngine() {return ShockWave;}

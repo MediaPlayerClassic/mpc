@@ -746,10 +746,11 @@ HRESULT CMatroskaMuxerInputPin::CompleteConnect(IPin* pPin)
 		m_pTE->TrackType.Set(TrackEntry::TypeVideo);
 
 		if(m_mt.formattype == FORMAT_VideoInfo 
-		&& m_mt.subtype == FOURCCMap('01VR') || m_mt.subtype == FOURCCMap('02VR') || m_mt.subtype == FOURCCMap('03VR') || m_mt.subtype == FOURCCMap('04VR'))
+		&& m_mt.subtype == FOURCCMap('01VR') || m_mt.subtype == FOURCCMap('02VR')
+		|| m_mt.subtype == FOURCCMap('03VR') || m_mt.subtype == FOURCCMap('04VR'))
 		{
 			m_pTE->CodecID.Set("V_REAL/RV00");
-			m_pTE->CodecID[9] = m_mt.subtype.Data1>>16;
+			m_pTE->CodecID[9] = (CHAR)(m_mt.subtype.Data1>>16);
 
 			VIDEOINFOHEADER* vih = (VIDEOINFOHEADER*)m_mt.pbFormat;
 			if(m_mt.cbFormat > sizeof(VIDEOINFOHEADER))

@@ -51,5 +51,6 @@ public:
 	BOOL m_dvd2avi;
 	BOOL m_dtsac3;
 	BOOL m_matroska;
+	BOOL m_realmedia;
 	BOOL m_shoutcast;
 };

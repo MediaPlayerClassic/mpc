@@ -327,6 +327,9 @@ STDMETHODIMP CQuicktimeGraph::CancelStep()
 	return E_NOTIMPL;
 }
 
+// IGraphEngine
+STDMETHODIMP_(engine_t) CQuicktimeGraph::GetEngine() {return QuickTime;}
+
 //
 // CQuicktimeWindow
 //
@@ -643,7 +646,7 @@ void CQuicktimeWindow::OnTimer(UINT nIDEvent)
 	__super::OnTimer(nIDEvent);
 }
 
-void DSObjects::CQuicktimeWindow::OnPaint()
+void CQuicktimeWindow::OnPaint()
 {
 	CPaintDC dc(this); // device context for painting
 
