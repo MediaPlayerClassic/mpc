@@ -155,6 +155,7 @@ protected:
 		float x, y, z, rhw;
 		D3DCOLOR color;
 		float tu, tv;
+//		float tu2, tv2;
 	};
 
 //	CList<CUSTOMVERTEX> m_vl;
@@ -409,7 +410,7 @@ public:
 	{
 		va_list args;
 		va_start(args, fmt);
-		/**/////////////
+		/**///////////////////////
 		if(_tcsstr(fmt, _T("VSync")) 
 		 || _tcsstr(fmt, _T("*** WARNING ***"))
 		 || _tcsstr(fmt, _T("Flush"))
@@ -421,12 +422,13 @@ public:
 		 || _tcsstr(fmt, _T("PMODE"))
 		 || _tcsstr(fmt, _T("BITBLTBUF"))
 		// || _tcsstr(fmt, _T("TRX"))
-		// || _tcsstr(fmt, _T("PRIM"))
-		// || _tcsstr(fmt, _T("RGB"))
-		// || _tcsstr(fmt, _T("XYZ"))
+		 || _tcsstr(fmt, _T("PRIM"))
+		 || _tcsstr(fmt, _T("RGB"))
+		 || _tcsstr(fmt, _T("XYZ"))
+		 || _tcsstr(fmt, _T("ST"))
 		// || _tcsstr(fmt, _T("XYOFFSET"))
-		// || _tcsstr(fmt, _T("TEX"))
-		// || _tcsstr(fmt, _T("UV"))
+		 || _tcsstr(fmt, _T("TEX"))
+		 || _tcsstr(fmt, _T("UV"))
 		// || _tcsstr(fmt, _T("FOG"))
 		// || _tcsstr(fmt, _T("TBP0")) == fmt
 		// || _tcsstr(fmt, _T("CBP")) == fmt

@@ -657,7 +657,6 @@ void GSLocalMemory::setupCLUT(GIFRegTEX0& TEX0, GIFRegTEXCLUT& TEXCLUT, GIFRegTE
 		}
 		else
 		{
-			ASSERT(0); // TESTME
 			for(int i = 0; i < 256; i++)
 				m_clut[i] = (this->*rt)((TEXCLUT.COU<<4) + i, TEXCLUT.COV, TEX0.CBP, TEXCLUT.CBW, TEX0.TCC, TEXA);
 		}

@@ -46,8 +46,8 @@ void GSState::VertexKick(bool fSkip)
 	v.y = ((float)m_v.XYZ.Y - ctxt->XYOFFSET.OFY)/16;
 //	v.x = (float)m_v.XYZ.X/16 - (ctxt->XYOFFSET.OFX>>4);
 //	v.y = (float)m_v.XYZ.Y/16 - (ctxt->XYOFFSET.OFY>>4);
-	// if(m_v.XYZ.Z && m_v.XYZ.Z < 0x100) m_v.XYZ.Z = 0x100;
-	// v.z = 1.0f * (m_v.XYZ.Z>>8)/(UINT_MAX>>8);
+	//if(m_v.XYZ.Z && m_v.XYZ.Z < 0x100) m_v.XYZ.Z = 0x100;
+	//v.z = 1.0f * (m_v.XYZ.Z>>8)/(UINT_MAX>>8);
 	v.z = log(1.0 + m_v.XYZ.Z)/log_2pow32;
 	v.rhw = m_v.RGBAQ.Q;
 
@@ -645,18 +645,24 @@ void GSState::FlushPrim()
 
 	//////////////////////
 ////////
-	// ASSERT(!m_de.PABE.PABE); // bios
-	// ASSERT(!ctxt->FBA.FBA); // bios
+	ASSERT(!m_de.PABE.PABE); // bios
+	ASSERT(!ctxt->FBA.FBA); // bios
 	// ASSERT(!ctxt->TEST.DATE); // sfex3 (after the capcom logo), vf4 (first menu fading in)
 
 	//////////////////////
 
 	{
+//hr = m_pD3DDev->SetTextureStageState(1, D3DTSS_TEXCOORDINDEX, 1);
+//hr = m_pD3DDev->SetTexture(1, pRT);
+
 		CUSTOMVERTEX* pVertices = m_pVertices;
 		for(int i = m_nVertices; i-- > 0; pVertices++)
 		{
 			pVertices->x *= scale.x;
 			pVertices->y *= scale.y;
+
+//pVertices->tu2 = pVertices->x / rd.Width;
+//pVertices->tv2 = pVertices->y / rd.Height;
 
 			if(m_de.PRIM.TME)
 			{
