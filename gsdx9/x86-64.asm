@@ -558,6 +558,8 @@ SwizzleBlock32_amd64@WM:
 
 	movaps		xmm3, xmm7
 	pshufd		xmm5, xmm7, 0e4h
+	movaps		xmm9, xmm7
+	pshufd		xmm11, xmm7, 0e4h
 
 	pandn		xmm3, [rdi+16*0]
 	pand		xmm0, xmm7
@@ -569,17 +571,14 @@ SwizzleBlock32_amd64@WM:
 	por			xmm2, xmm5
 	movaps		[rdi+16*1], xmm2
 
-	movaps		xmm3, xmm7
-	pshufd		xmm5, xmm7, 0e4h
-
-	pandn		xmm3, [rdi+16*2]
+	pandn		xmm9, [rdi+16*2]
 	pand		xmm4, xmm7
-	por			xmm4, xmm3
+	por			xmm4, xmm9
 	movaps		[rdi+16*2], xmm4
 
-	pandn		xmm5, [rdi+16*3]
+	pandn		xmm11, [rdi+16*3]
 	pand		xmm6, xmm7
-	por			xmm6, xmm5
+	por			xmm6, xmm11
 	movaps		[edi+16*3], xmm6
 
 	lea			rsi, [rsi+r8*2]
