@@ -136,7 +136,7 @@ STDMETHODIMP CMatroskaMuxerFilter::NonDelegatingQueryInterface(REFIID riid, void
 	*ppv = NULL;
 
 	return 
-		QI(IAMFilterMiscFlags)
+//		QI(IAMFilterMiscFlags)
 		QI(IMediaSeeking)
 		__super::NonDelegatingQueryInterface(riid, ppv);
 }
@@ -446,12 +446,19 @@ DWORD CMatroskaMuxerFilter::ThreadProc()
 
 					CAutoLock cAutoLock(&pTmp->m_csQueue);
 
-					if(pTmp->m_fECCompletSent || !pTmp->IsConnected()) // || pTmp->m_mt.majortype == MEDIATYPE_Text || pTmp->m_mt.majortype == MEDIATYPE_Subtitle
-					{
+					if(pTmp->m_fECCompletSent || !pTmp->IsConnected() 
+					|| pTmp->GetTrackEntry()->TrackType == TrackEntry::TypeSubtitle)
 						nPinsNeeded--;
-					}
+				}
 
-					if(pTmp->m_blocks.GetCount() > 0 || pTmp->m_fEndOfStreamReceived)
+				pos = m_pInputs.GetHeadPosition();
+				while(pos)
+				{
+					CMatroskaMuxerInputPin* pTmp = m_pInputs.GetNext(pos);
+
+					CAutoLock cAutoLock(&pTmp->m_csQueue);
+
+					if(pTmp->m_blocks.GetCount() > 0)
 					{
 						nPinsGotSomething++;
 
@@ -463,6 +470,12 @@ DWORD CMatroskaMuxerFilter::ThreadProc()
 
 						ASSERT(!pTmp->m_fECCompletSent);
 					}
+					else if(pTmp->m_fEndOfStreamReceived)
+					{
+//						NotifyEvent(EC_COMPLETE, 0, 0);
+						pTmp->m_fEndOfStreamReceived = false;
+						pTmp->m_fECCompletSent = true;
+					}
 				}
 
 				if(nPinsNeeded == 0)
@@ -470,11 +483,13 @@ DWORD CMatroskaMuxerFilter::ThreadProc()
 					break;
 				}
 
-				if(nPinsNeeded != nPinsGotSomething)
+				if(nPinsNeeded > nPinsGotSomething)
 				{
 					Sleep(1);
 					continue;
 				}
+
+				ASSERT(pPin);
 
 				CAutoPtr<BlockGroup> b;
 
@@ -485,13 +500,13 @@ DWORD CMatroskaMuxerFilter::ThreadProc()
 
 				if(b)
 				{
-/*
-TRACE(_T("%d: %I64d-%I64d (c=%d, co=%dms), cnt=%d, ref=%d\n"), 
+
+TRACE(_T("Muxing (%d): %I64d-%I64d (c=%d, co=%dms), cnt=%d, ref=%d\n"), 
 	GetTrackNumber(pPin), 
 	(INT64)b->Block.TimeCode, (UINT64)b->BlockDuration,
 	(int)((b->Block.TimeCode)/MAXCLUSTERTIME), (int)(b->Block.TimeCode%MAXCLUSTERTIME),
 	b->Block.BlockData.GetCount(), (int)b->ReferenceBlock);
-*/
+
 					if(b->Block.TimeCode < 0) {ASSERT(0); continue;}
 
 					if(c.TimeCode + MAXCLUSTERTIME < b->Block.TimeCode)
@@ -540,17 +555,6 @@ TRACE(_T("%d: %I64d-%I64d (c=%d, co=%dms), cnt=%d, ref=%d\n"),
 
 					b->Block.TimeCode -= c.TimeCode;
 					c.BlockGroups.AddTail(b);
-				}
-
-				{
-					CAutoLock cAutoLock(&pPin->m_csQueue);
-
-					if(pPin->m_fEndOfStreamReceived && pPin->m_blocks.GetCount() == 0)
-					{
-						NotifyEvent(EC_COMPLETE, 0, 0);
-						pPin->m_fEndOfStreamReceived = false;
-						pPin->m_fECCompletSent = true;
-					}
 				}
 			}
 
@@ -606,6 +610,8 @@ TRACE(_T("%d: %I64d-%I64d (c=%d, co=%dms), cnt=%d, ref=%d\n"),
 
 			// TODO: write some tags
 
+			m_pOutput->DeliverEndOfStream();
+
 			break;
 		}
 	}
@@ -644,7 +650,9 @@ HRESULT CMatroskaMuxerInputPin::CheckMediaType(const CMediaType* pmt)
 {
 	return pmt->majortype == MEDIATYPE_Video && (pmt->formattype == FORMAT_VideoInfo || pmt->formattype == FORMAT_VideoInfo2)
 		|| pmt->majortype == MEDIATYPE_Audio && (pmt->formattype == FORMAT_WaveFormatEx || pmt->formattype == FORMAT_VorbisFormat)
-//		|| pmt->majortype == MEDIATYPE_Text && pmt->subtype == MEDIASUBTYPE_NULL
+		|| pmt->majortype == MEDIATYPE_Audio && pmt->subtype == MEDIASUBTYPE_Vorbis2 && pmt->formattype == FORMAT_VorbisFormat2
+		|| pmt->majortype == MEDIATYPE_Text && pmt->subtype == MEDIASUBTYPE_NULL && pmt->formattype == FORMAT_None // TODO
+		|| pmt->majortype == MEDIATYPE_Subtitle && pmt->formattype == FORMAT_SubtitleInfo
 		? S_OK
 		: E_INVALIDARG;
 }
@@ -686,6 +694,7 @@ HRESULT CMatroskaMuxerInputPin::CompleteConnect(IPin* pPin)
 	if(m_mt.majortype == MEDIATYPE_Video)
 	{
 		m_pTE->TrackType.Set(TrackEntry::TypeVideo);
+
 		if(m_mt.formattype == FORMAT_VideoInfo)
 		{
 			m_pTE->CodecID.Set("V_MS/VFW/FOURCC");
@@ -736,6 +745,100 @@ HRESULT CMatroskaMuxerInputPin::CompleteConnect(IPin* pPin)
 			m_pTE->a.SamplingFrequency.Set((float)wfe->nSamplesPerSec);
 			m_pTE->a.Channels.Set(wfe->nChannels);
 			m_pTE->a.BitDepth.Set(wfe->wBitsPerSample);
+
+			hr = S_OK;
+		}
+		else if(m_mt.formattype == FORMAT_VorbisFormat2)
+		{
+			m_pTE->CodecID.Set("A_VORBIS");
+
+			VORBISFORMAT2* pvf2 = (VORBISFORMAT2*)m_mt.pbFormat;
+			m_pTE->DescType = TrackEntry::DescAudio;
+			m_pTE->a.SamplingFrequency.Set((float)pvf2->SamplesPerSec);
+			m_pTE->a.Channels.Set(pvf2->Channels);
+			m_pTE->a.BitDepth.Set(pvf2->BitsPerSample);
+
+			int len = 1;
+			for(int i = 0; i < 2; i++) len += pvf2->HeaderSize[i]/255 + 1;
+			for(int i = 0; i < 3; i++) len += pvf2->HeaderSize[i];
+			m_pTE->CodecPrivate.SetSize(len);
+
+			BYTE* src = (BYTE*)m_mt.pbFormat + sizeof(VORBISFORMAT2);
+			BYTE* dst = m_pTE->CodecPrivate.GetData();
+
+			*dst++ = 2;
+			for(int i = 0; i < 2; i++)
+				for(int len = pvf2->HeaderSize[i]; len >= 0; len -= 255)
+					*dst++ = min(len, 255);
+
+			memcpy(dst, src, pvf2->HeaderSize[0]); 
+			dst += pvf2->HeaderSize[0]; 
+			src += pvf2->HeaderSize[0];
+			memcpy(dst, src, pvf2->HeaderSize[1]); 
+			dst += pvf2->HeaderSize[1]; 
+			src += pvf2->HeaderSize[1];
+			memcpy(dst, src, pvf2->HeaderSize[2]); 
+			dst += pvf2->HeaderSize[2]; 
+			src += pvf2->HeaderSize[2];
+
+			ASSERT(src <= m_mt.pbFormat + m_mt.cbFormat);
+			ASSERT(dst <= m_pTE->CodecPrivate.GetData() + m_pTE->CodecPrivate.GetSize());
+
+			hr = S_OK;
+		}
+	}
+	else if(m_mt.majortype == MEDIATYPE_Text)
+	{
+		m_pTE->TrackType.Set(TrackEntry::TypeSubtitle);
+
+		if(m_mt.formattype == FORMAT_None)
+		{
+			m_pTE->CodecID.Set("S_TEXT/ASCII");
+
+			hr = S_OK;
+		}
+	}
+	else if(m_mt.majortype == MEDIATYPE_Subtitle)
+	{
+		m_pTE->TrackType.Set(TrackEntry::TypeSubtitle);
+
+		if(m_mt.subtype == MEDIASUBTYPE_UTF8 && m_mt.formattype == FORMAT_SubtitleInfo)
+		{
+			m_pTE->CodecID.Set("S_TEXT/UTF8");
+
+			SUBTITLEINFO* psi = (SUBTITLEINFO*)m_mt.pbFormat;
+			m_pTE->CodecPrivate.SetSize(m_mt.cbFormat);
+			memcpy(m_pTE->CodecPrivate, psi, m_pTE->CodecPrivate.GetSize());
+
+			hr = S_OK;
+		}
+		else if(m_mt.subtype == MEDIASUBTYPE_SSA && m_mt.formattype == FORMAT_SubtitleInfo)
+		{
+			m_pTE->CodecID.Set("S_SSA");
+
+			SUBTITLEINFO* psi = (SUBTITLEINFO*)m_mt.pbFormat;
+			m_pTE->CodecPrivate.SetSize(m_mt.cbFormat);
+			memcpy(m_pTE->CodecPrivate, psi, m_pTE->CodecPrivate.GetSize());
+
+			hr = S_OK;
+		}
+		else if(m_mt.subtype == MEDIASUBTYPE_ASS && m_mt.formattype == FORMAT_SubtitleInfo)
+		{
+			m_pTE->CodecID.Set("S_ASS");
+
+			SUBTITLEINFO* psi = (SUBTITLEINFO*)m_mt.pbFormat;
+			m_pTE->CodecPrivate.SetSize(m_mt.cbFormat);
+			memcpy(m_pTE->CodecPrivate, psi, m_pTE->CodecPrivate.GetSize());
+
+			hr = S_OK;
+		}
+		else if(m_mt.subtype == MEDIASUBTYPE_USF && m_mt.formattype == FORMAT_SubtitleInfo)
+		{
+			m_pTE->CodecID.Set("S_USF");
+
+			SUBTITLEINFO* psi = (SUBTITLEINFO*)m_mt.pbFormat;
+			m_pTE->CodecPrivate.SetSize(m_mt.cbFormat);
+			memcpy(m_pTE->CodecPrivate, psi, m_pTE->CodecPrivate.GetSize());
 
 			hr = S_OK;
 		}
@@ -819,20 +922,17 @@ STDMETHODIMP CMatroskaMuxerInputPin::Receive(IMediaSample* pSample)
 
 	rtStart += m_tStart;
 	rtStop += m_tStart;
-/*
-	int nCluster = (int)((rtStart/10000)/MAXCLUSTERTIME);
-	int nClusterOffset = (int)((rtStart/10000)%MAXCLUSTERTIME);
-*/
+
 	long len = pSample->GetActualDataLength();
-/*
-	TRACE(_T("%d: %I64d-%I64d (c=%d, co=%dms), len=%d, d%d p%d s%d\n"), 
+
+	TRACE(_T("Received (%d): %I64d-%I64d (c=%d, co=%dms), len=%d, d%d p%d s%d\n"), 
 		((CMatroskaMuxerFilter*)m_pFilter)->GetTrackNumber(this), 
-		rtStart, rtStop, nCluster, nClusterOffset,
+		rtStart, rtStop, (int)((rtStart/10000)/MAXCLUSTERTIME), (int)((rtStart/10000)%MAXCLUSTERTIME),
 		len,
 		pSample->IsDiscontinuity() == S_OK ? 1 : 0,
 		pSample->IsPreroll() == S_OK ? 1 : 0,
 		pSample->IsSyncPoint() == S_OK ? 1 : 0);
-*/
+
 	CAutoPtr<BlockGroup> b(new BlockGroup());
 
 	if(S_OK != pSample->IsSyncPoint() && m_rtLastStart >= 0 && m_rtLastStart < rtStart)
@@ -840,12 +940,14 @@ STDMETHODIMP CMatroskaMuxerInputPin::Receive(IMediaSample* pSample)
 		b->ReferenceBlock.Set((m_rtLastStart - rtStart) / 10000);
 	}
 
-	// TODO
-//	b->BlockDuration
-
 	b->Block.TrackNumber = ((CMatroskaMuxerFilter*)m_pFilter)->GetTrackNumber(this);
 
 	b->Block.TimeCode = rtStart / 10000;
+
+	if(m_pTE->TrackType == TrackEntry::TypeSubtitle)
+	{
+		b->BlockDuration.Set((rtStop - rtStart) / 10000);
+	}
 
 	BYTE* pData = NULL;
 	pSample->GetPointer(&pData);

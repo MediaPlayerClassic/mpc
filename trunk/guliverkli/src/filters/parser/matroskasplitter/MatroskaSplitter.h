@@ -26,9 +26,12 @@
 #include <afxtempl.h>
 #include "MatroskaFile.h"
 
+// buggy...
 //#define NONBLOCKINGSEEK
+// 1 would be enough but 2 is needed at least to be able to send those fake samples at the beginning 
 #define MAXBUFFERS 2
-#define MAXPACKETS 50
+// this is enough for about 3 sec preload
+#define MAXPACKETS 100
 
 class CMatroskaSplitterInputPin : public CBasePin
 {
@@ -60,8 +63,8 @@ class CMatroskaSplitterOutputPin : public CBaseOutputPin, protected CAMThread
 
 public:
 	enum {EMPTY, EOS, BLOCK};
-	typedef struct {int type; REFERENCE_TIME rtStart, rtStop; CAutoPtr<Matroska::Block> b; BOOL bDiscontinuity;} packet;
-	HRESULT DeliverBlock(CAutoPtr<Matroska::Block> b, REFERENCE_TIME rtStart, REFERENCE_TIME rtStop, BOOL bDiscontinuity);
+	typedef struct {int type; REFERENCE_TIME rtStart, rtStop; CAutoPtr<MatroskaReader::Block> b; BOOL bDiscontinuity;} packet;
+	HRESULT DeliverBlock(CAutoPtr<MatroskaReader::Block> b, REFERENCE_TIME rtStart, REFERENCE_TIME rtStop, BOOL bDiscontinuity);
 
 private:
 	CCritSec m_csQueueLock;
@@ -136,11 +139,11 @@ protected:
 	CAutoPtr<CMatroskaSplitterInputPin> m_pInput;
 	CAutoPtrList<CMatroskaSplitterOutputPin> m_pOutputs;
 
-	CAutoPtr<Matroska::CMatroskaFile> m_pFile;
+	CAutoPtr<MatroskaReader::CMatroskaFile> m_pFile;
 	HRESULT CreateOutputs(IAsyncReader* pAsyncReader);
 
 	CMap<UINT64, UINT64, CMatroskaSplitterOutputPin*, CMatroskaSplitterOutputPin*> m_mapTrackToPin;
-	CMap<UINT64, UINT64, Matroska::TrackEntry*, Matroska::TrackEntry*> m_mapTrackToTrackEntry;
+	CMap<UINT64, UINT64, MatroskaReader::TrackEntry*, MatroskaReader::TrackEntry*> m_mapTrackToTrackEntry;
 
 	CCritSec m_csSend;
 
@@ -155,7 +158,7 @@ protected:
 
 	void DeliverBeginFlush();
 	void DeliverEndFlush();
-	HRESULT DeliverBlock(CAutoPtr<Matroska::Block> b);
+	HRESULT DeliverBlock(CAutoPtr<MatroskaReader::Block> b);
 
 protected:
 	enum {CMD_EXIT, CMD_RUN};

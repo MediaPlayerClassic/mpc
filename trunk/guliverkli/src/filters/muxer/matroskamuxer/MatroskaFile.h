@@ -58,7 +58,8 @@ namespace MatroskaWriter
 		CBinary(DWORD id) : CID(id) {}
 		CBinary& operator = (const CBinary& b) {Copy(b); return(*this);}
 		operator BYTE*() {return (BYTE*)GetData();}
-		CBinary& Set(CStringA str) {SetSize(str.GetLength()); memcpy((char*)GetData(), str, str.GetLength()); return(*this);}
+		CBinary& Set(CStringA str) {SetSize(str.GetLength()+1); strcpy((char*)GetData(), str); return(*this);}
+//		CBinary& Set(CStringA str) {SetSize(str.GetLength()); memcpy((char*)GetData(), str, str.GetLength()); return(*this);}
 		QWORD Size(bool fWithHeader = true);
 		HRESULT Write(IStream* pStream);
 	};
@@ -91,7 +92,7 @@ namespace MatroskaWriter
 		T m_val;
 		bool m_fSet;
 	public:
-		CSimpleVar(DWORD id, T val = 0) : CID(id), m_val(val) {m_fSet = !!val;}
+		explicit CSimpleVar(DWORD id, T val = 0) : CID(id), m_val(val) {m_fSet = !!val;}
 		operator T() {return m_val;}
 		BASE& Set(T val) {m_val = val; m_fSet = true; return(*(BASE*)this);}
 		void UnSet() {m_fSet = false;}
