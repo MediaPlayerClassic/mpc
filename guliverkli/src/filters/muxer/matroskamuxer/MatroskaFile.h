@@ -73,18 +73,15 @@ namespace MatroskaWriter
 		HRESULT Write(IStream* pStream);
 	};
 
-	typedef CANSI CUTF8;
-
-	// TODO
-/*
 	class CUTF8 : public CStringW, public CID
 	{
 	public: 
 		CUTF8(DWORD id) : CID(id) {}
+		CUTF8& Set(CStringW str) {CStringW::operator = (str); return(*this);}
 		QWORD Size(bool fWithHeader = true); 
 		HRESULT Write(IStream* pStream);
 	};
-*/
+
 	template<class T, class BASE>
 	class CSimpleVar : public CID
 	{

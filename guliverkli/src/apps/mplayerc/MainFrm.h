@@ -176,8 +176,9 @@ class CMainFrame : public CFrameWnd, public CDropTarget
 	CCritSec m_csSubLock;
 	CInterfaceList<ISubStream> m_pSubStreams;
 	int m_iSubtitleSel; // if(m_iSubtitleSel&(1<<31)): disabled
-	CInterfaceList<IBaseFilter> m_pTPTFA;
 	DWORD_PTR m_nSubtitleId;
+
+	friend class CTextPassThruFilter;
 
 	// windowing
 

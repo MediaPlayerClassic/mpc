@@ -81,6 +81,8 @@ extern CString MakeFullPath(LPCTSTR path);
 extern CString GetMediaTypeName(const GUID& guid);
 extern GUID GUIDFromCString(CString str);
 extern CString CStringFromGUID(const GUID& guid);
+extern CStringW UTF8To16(LPCSTR utf8);
+extern CStringA UTF16To8(LPCWSTR utf16);
 
 class CPinInfo : public PIN_INFO
 {

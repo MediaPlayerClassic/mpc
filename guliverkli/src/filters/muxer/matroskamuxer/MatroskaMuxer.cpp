@@ -371,7 +371,7 @@ DWORD CMatroskaMuxerFilter::ThreadProc()
 
 	ULONGLONG infopos = GetStreamPosition(pStream);
 	Info info;
-	info.MuxingApp.Set("DirectShow Matroska Muxer");
+	info.MuxingApp.Set(L"DirectShow Matroska Muxer");
 	info.TimeCodeScale.Set(1000000);
 	info.Duration.Set((float)rtDur / 10000);
 	info.Write(pStream);
@@ -677,7 +677,9 @@ STDMETHODIMP CMatroskaMuxerInputPin::NonDelegatingQueryInterface(REFIID riid, vo
 HRESULT CMatroskaMuxerInputPin::CheckMediaType(const CMediaType* pmt)
 {
 	return pmt->majortype == MEDIATYPE_Video && (pmt->formattype == FORMAT_VideoInfo || pmt->formattype == FORMAT_VideoInfo2)
-		|| pmt->majortype == MEDIATYPE_Audio && (pmt->formattype == FORMAT_WaveFormatEx || pmt->formattype == FORMAT_VorbisFormat)
+//		|| pmt->majortype == MEDIATYPE_Video && pmt->subtype == MEDIASUBTYPE_MPEG1Payload && pmt->formattype == FORMAT_MPEGVideo
+//		|| pmt->majortype == MEDIATYPE_Video && pmt->subtype == MEDIASUBTYPE_MPEG2_VIDEO && pmt->formattype == FORMAT_MPEG2_VIDEO
+		|| pmt->majortype == MEDIATYPE_Audio && pmt->formattype == FORMAT_WaveFormatEx && pmt->subtype == FOURCCMap(((WAVEFORMATEX*)pmt->pbFormat)->wFormatTag)
 		|| pmt->majortype == MEDIATYPE_Audio && pmt->subtype == MEDIASUBTYPE_Vorbis && pmt->formattype == FORMAT_VorbisFormat
 		|| pmt->majortype == MEDIATYPE_Audio && pmt->subtype == MEDIASUBTYPE_Vorbis2 && pmt->formattype == FORMAT_VorbisFormat2
 		|| pmt->majortype == MEDIATYPE_Text && pmt->subtype == MEDIASUBTYPE_NULL && pmt->formattype == FORMAT_None
@@ -758,6 +760,40 @@ HRESULT CMatroskaMuxerInputPin::CompleteConnect(IPin* pPin)
 
 			hr = S_OK;
 		}
+/*
+		else if(m_mt.formattype == FORMAT_MPEGVideo)
+		{
+			m_pTE->CodecID.Set("V_DSHOW/MPEG1VIDEO"); // V_MPEG1
+
+			MPEG1VIDEOINFO* pm1vi = (MPEG1VIDEOINFO*)m_mt.pbFormat;
+			m_pTE->CodecPrivate.SetSize(m_mt.FormatLength());
+			memcpy(m_pTE->CodecPrivate, m_mt.pbFormat, m_pTE->CodecPrivate.GetSize());
+			m_pTE->DefaultDuration.Set(pm1vi->hdr.AvgTimePerFrame*100);
+			m_pTE->DescType = TrackEntry::DescVideo;
+			m_pTE->v.PixelWidth.Set(pm1vi->hdr.bmiHeader.biWidth);
+			m_pTE->v.PixelHeight.Set(abs(pm1vi->hdr.bmiHeader.biHeight));
+			if(pm1vi->hdr.AvgTimePerFrame > 0)
+				m_pTE->v.FramePerSec.Set((float)(10000000.0 / pm1vi->hdr.AvgTimePerFrame)); 
+
+			hr = S_OK;
+		}
+		else if(m_mt.formattype == FORMAT_MPEG2_VIDEO)
+		{
+			m_pTE->CodecID.Set("V_DSHOW/MPEG2VIDEO"); // V_MPEG2
+
+			MPEG2VIDEOINFO* pm2vi = (MPEG2VIDEOINFO*)m_mt.pbFormat;
+			m_pTE->CodecPrivate.SetSize(m_mt.FormatLength());
+			memcpy(m_pTE->CodecPrivate, m_mt.pbFormat, m_pTE->CodecPrivate.GetSize());
+			m_pTE->DefaultDuration.Set(pm2vi->hdr.AvgTimePerFrame*100);
+			m_pTE->DescType = TrackEntry::DescVideo;
+			m_pTE->v.PixelWidth.Set(pm2vi->hdr.bmiHeader.biWidth);
+			m_pTE->v.PixelHeight.Set(abs(pm2vi->hdr.bmiHeader.biHeight));
+			if(pm2vi->hdr.AvgTimePerFrame > 0)
+				m_pTE->v.FramePerSec.Set((float)(10000000.0 / pm2vi->hdr.AvgTimePerFrame)); 
+
+			hr = S_OK;
+		}
+*/
 	}
 	else if(m_mt.majortype == MEDIATYPE_Audio)
 	{
@@ -807,7 +843,7 @@ HRESULT CMatroskaMuxerInputPin::CompleteConnect(IPin* pPin)
 			m_pTE->a.SamplingFrequency.Set((float)pvf->nSamplesPerSec);
 			m_pTE->a.Channels.Set(pvf->nChannels);
 
-//			m_pTE->CodecPrivate.SetSize(5000); // TODO: fill this later
+			// m_pTE->CodecPrivate will be filled later
 
 			hr = S_OK;
 		}
@@ -973,6 +1009,11 @@ STDMETHODIMP CMatroskaMuxerInputPin::Receive(IMediaSample* pSample)
 	if(FAILED(hr = __super::Receive(pSample)))
 		return hr;
 
+	BYTE* pData = NULL;
+	pSample->GetPointer(&pData);
+
+	long len = pSample->GetActualDataLength();
+
 	REFERENCE_TIME rtStart = -1, rtStop = -1;
 	hr = pSample->GetTime(&rtStart, &rtStop);
 
@@ -987,10 +1028,6 @@ STDMETHODIMP CMatroskaMuxerInputPin::Receive(IMediaSample* pSample)
 	rtStart += m_tStart;
 	rtStop += m_tStart;
 
-	BYTE* pData = NULL;
-	pSample->GetPointer(&pData);
-
-	long len = pSample->GetActualDataLength();
 /*
 	TRACE(_T("Received (%d): %I64d-%I64d (c=%d, co=%dms), len=%d, d%d p%d s%d\n"), 
 		((CMatroskaMuxerFilter*)m_pFilter)->GetTrackNumber(this), 

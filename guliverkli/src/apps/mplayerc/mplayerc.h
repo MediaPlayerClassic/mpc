@@ -304,6 +304,7 @@ public:
 		bool fRememberWindowPos;
 		bool fRememberWindowSize;
 		CRect rcLastWindowPos;
+		bool fKeepHistory;
 
 		CString sDVDPath;
 		bool fUseDVDPath;
