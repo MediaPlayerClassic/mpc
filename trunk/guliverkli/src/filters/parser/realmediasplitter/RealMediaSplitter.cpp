@@ -29,8 +29,7 @@
 #include "..\..\..\DSUtil\MediaTypes.h"
 #include "RealMediaSplitter.h"
 
-
-///
+//
 
 #include <initguid.h>
 #include "..\..\..\..\include\moreuuids.h"
@@ -353,6 +352,21 @@ HRESULT CRealMediaSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 			pvih->bmiHeader.biSizeImage = rvi.w*rvi.h*3/2;
 
 			mts.Add(mt);
+
+			if(pmp->width > 0 && pmp->height > 0)
+			{
+				BITMAPINFOHEADER bmi = pvih->bmiHeader;
+				mt.formattype = FORMAT_VideoInfo2;
+				VIDEOINFOHEADER2* pvih2 = (VIDEOINFOHEADER2*)mt.ReallocFormatBuffer(sizeof(VIDEOINFOHEADER2) + pmp->typeSpecData.GetCount());
+				memset(mt.Format() + FIELD_OFFSET(VIDEOINFOHEADER2, dwInterlaceFlags), 0, mt.FormatLength() - FIELD_OFFSET(VIDEOINFOHEADER2, dwInterlaceFlags));
+				memcpy(pvih2 + 1, pmp->typeSpecData.GetData(), pmp->typeSpecData.GetCount());
+				pvih2->bmiHeader = bmi;
+				pvih2->bmiHeader.biWidth = (DWORD)pmp->width;
+				pvih2->bmiHeader.biHeight = (DWORD)pmp->height;
+				pvih2->dwPictAspectRatioX = bmi.biWidth;
+				pvih2->dwPictAspectRatioY = bmi.biHeight;
+				mts.InsertAt(0, mt);
+			}
 		}
 		else if(pmp->mime == "audio/x-pn-realaudio")
 		{
@@ -424,21 +438,6 @@ HRESULT CRealMediaSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 					pwfe->wFormatTag = WAVE_FORMAT_DOLBY_AC3;
 					mts.Add(mt);
 				}
-
-/*
-				if(fcc == 'SIPR')
-				{
-					pwfe = (WAVEFORMATEX*)mt.ReallocFormatBuffer(sizeof(WAVEFORMATEX)+4);
-					pwfe->cbSize = 4;
-					//pwfe->wBitsPerSample = 0;
-					//pwfe->nAvgBytesPerSec = 1055;
-					//pwfe->nBlockAlign = 19;
-					memset(pwfe+1, 0, 4);
-					WORD* p = (WORD*)(pwfe+1);
-					*p = 1;
-					mts.Add(mt);
-				}
-*/
 			}
 		}
 
@@ -682,7 +681,11 @@ CRealMediaSplitterOutputPin::~CRealMediaSplitterOutputPin()
 
 HRESULT CRealMediaSplitterOutputPin::DeliverEndFlush()
 {
-	m_segments.Clear();
+	{
+		CAutoLock cAutoLock(&m_csQueue);
+		m_segments.Clear();
+	}
+
 	return __super::DeliverEndFlush();
 }
 
@@ -772,6 +775,8 @@ HRESULT CRealMediaSplitterOutputPin::DeliverPacket(CAutoPtr<Packet> p)
 	if(m_mt.subtype == MEDIASUBTYPE_RV10 || m_mt.subtype == MEDIASUBTYPE_RV20
 	|| m_mt.subtype == MEDIASUBTYPE_RV30 || m_mt.subtype == MEDIASUBTYPE_RV40)
 	{
+		CAutoLock cAutoLock(&m_csQueue);
+
 		int len = p->pData.GetCount();
 		BYTE* pIn = p->pData.GetData();
 		BYTE* pInOrg = pIn;
@@ -1021,6 +1026,7 @@ HRESULT CRMFile::Init()
 				if(S_OK != (hr = Read(tsdlen))) return hr;
 				mp->typeSpecData.SetSize(tsdlen);
 				if(tsdlen > 0 && S_OK != (hr = Read(mp->typeSpecData.GetData(), tsdlen))) return hr;
+				mp->width = mp->height = 0;
 				m_mps.AddTail(mp);
 				break;
 				}
@@ -1031,6 +1037,7 @@ HRESULT CRMFile::Init()
 				if(S_OK != (hr = Read(dc->ptrNext))) return hr;
 				dc->pos = m_pos;
 				m_dcs.AddTail(dc);
+                GetDimensions();
 				break;
 				}
 			case 'INDX':
@@ -1068,6 +1075,154 @@ HRESULT CRMFile::Init()
 	}
 
 	return S_OK;
+}
+
+#define GetBits(n) GetBits2(n, pbitstream, bit_offset, bit_buffer)
+
+unsigned int GetBits2(int n, unsigned char*& pbitstream, unsigned int& bit_offset, unsigned int& bit_buffer)
+{
+	unsigned int ret = ((unsigned int)bit_buffer >> (32-(n)));
+
+	bit_offset += n;
+	bit_buffer <<= n;
+	if(bit_offset > (32-16))
+	{
+		pbitstream += bit_offset >> 3;
+		bit_offset &= 7;
+		bit_buffer = (unsigned int)pbitstream[0] << 24;
+		bit_buffer |= (unsigned int)pbitstream[1] << 16;
+		bit_buffer |= (unsigned int)pbitstream[2] << 8;
+		bit_buffer |= (unsigned int)pbitstream[3];
+		bit_buffer <<= bit_offset;
+	}
+
+   	return ret;
+}
+
+void GetDimensions(unsigned char* pbitstream, unsigned int* wi, unsigned int* hi)
+{
+	unsigned int w, h, c;
+
+	const unsigned int cw[8] = {160, 176, 240, 320, 352, 640, 704, 0};
+	const unsigned int ch1[8] = {120, 132, 144, 240, 288, 480, 0, 0};
+	const unsigned int ch2[4] = {180, 360, 576, 0};
+
+	unsigned int bit_offset = 0;
+	unsigned int bit_buffer = 0;
+
+	GetBits(0);
+    
+   	GetBits(13);
+
+	GetBits(13);
+
+	w = cw[GetBits(3)];
+	if(w == 0)
+	{
+		do
+		{
+			c = GetBits(8);
+			w += (c << 2);
+		}
+		while(c == 255);
+	}
+
+	c = GetBits(3);
+
+	h = ch1[c];
+	if(h == 0)
+	{
+		c = ((c << 1) | GetBits(1)) & 3;
+
+		h = ch2[c];
+		if(h == 0)
+		{
+			do
+			{
+				c = GetBits(8);
+				h += (c << 2);
+			}
+			while(c == 255);
+		}
+	}
+
+	*wi = w;
+	*hi = h;    
+}
+
+void CRMFile::GetDimensions()
+{
+	POSITION pos = m_mps.GetHeadPosition();
+	while(pos)
+	{
+		UINT64 filepos = GetPos();
+
+		MediaProperies* pmp = m_mps.GetNext(pos);
+		if(pmp->mime == "video/x-pn-realvideo")
+		{
+			pmp->width = pmp->height = 0;
+
+			rvinfo rvi = *(rvinfo*)pmp->typeSpecData.GetData();
+			rvi.bswap();
+
+			if(rvi.fcc2 != '04VR')
+				continue;
+
+			MediaPacketHeader mph;
+			while(S_OK == Read(mph))
+			{
+				if(mph.stream != pmp->stream || mph.len == 0)
+					continue;
+
+				BYTE* p = mph.pData.GetData();
+				BYTE* p0 = p;
+				int len = mph.pData.GetCount();
+
+				BYTE hdr = *p++;
+				DWORD packetlen = 0, packetoffset = 0;
+
+				if((hdr&0xc0) == 0x40)
+				{
+					packetlen = len - (++p - p0);
+				}
+				else
+				{
+					if((hdr&0x40) == 0) p++;
+
+					#define GetWORD(var) \
+						var = (var<<8)|(*p++); \
+						var = (var<<8)|(*p++); \
+
+					GetWORD(packetlen);
+					if((packetlen&0x4000) == 0) {GetWORD(packetlen); packetlen &= 0x3fffffff;}
+					else packetlen &= 0x3fff;
+
+					GetWORD(packetoffset);
+					if((packetoffset&0x4000) == 0) {GetWORD(packetoffset); packetoffset &= 0x3fffffff;}
+					else packetoffset &= 0x3fff;
+
+					#undef GetWORD
+
+					if((hdr&0xc0) == 0xc0) packetoffset = 0;
+					else if((hdr&0xc0) == 0x80) packetoffset = packetlen - packetoffset;
+
+					p++;
+				}
+
+				len = min(len - (p - p0), packetlen - packetoffset);
+
+				if(len > 0)
+				{
+					::GetDimensions(p, &pmp->width, &pmp->height);
+					if(rvi.w == pmp->width && rvi.h == pmp->height)
+						pmp->width = pmp->height = 0;
+					break;
+				}
+			}
+		}
+		
+		Seek(filepos);
+	}
 }
 
 int CRMFile::GetMasterStream()
@@ -1123,7 +1278,7 @@ HRESULT CRealVideoDecoder::InitRV(const CMediaType* pmt)
 
 	HRESULT hr = VFW_E_TYPE_NOT_ACCEPTED;
 
-	rvinfo rvi = *(rvinfo*)(pmt->Format() + sizeof(VIDEOINFOHEADER));
+	rvinfo rvi = *(rvinfo*)(pmt->Format() + (pmt->formattype == FORMAT_VideoInfo ? sizeof(VIDEOINFOHEADER) : sizeof(VIDEOINFOHEADER2)));
 	rvi.bswap();
 
 	#pragma pack(push, 1)
@@ -1154,6 +1309,25 @@ void CRealVideoDecoder::FreeRV()
 	{
 		RVFree(m_dwCookie);
 		m_dwCookie = 0;
+	}
+}
+
+void CRealVideoDecoder::GetOutDim(int& wo, int& ho)
+{
+	ASSERT(m_pInput && m_pInput->IsConnected());
+	ASSERT(m_pOutput && m_pOutput->IsConnected());
+
+	BITMAPINFOHEADER bih;
+	ExtractBIH(&m_pInput->CurrentMediaType(), &bih);
+
+	wo = bih.biWidth;
+	ho = bih.biHeight;
+
+	if(m_pInput->CurrentMediaType().formattype == FORMAT_VideoInfo2
+	&& m_pOutput->CurrentMediaType().formattype == FORMAT_VideoInfo)
+	{
+		wo = ((VIDEOINFOHEADER2*)m_pInput->CurrentMediaType().Format())->dwPictAspectRatioX;
+		ho = ((VIDEOINFOHEADER2*)m_pInput->CurrentMediaType().Format())->dwPictAspectRatioY;
 	}
 }
 
@@ -1230,11 +1404,9 @@ HRESULT CRealVideoDecoder::Receive(IMediaSample* pIn)
 	pOut->SetDiscontinuity(pIn->IsDiscontinuity() == S_OK);
 	pOut->SetSyncPoint(pIn->IsSyncPoint() == S_OK);
 
-	BITMAPINFOHEADER& bih = ((VIDEOINFOHEADER*)m_pInput->CurrentMediaType().Format())->bmiHeader;
-
 	BYTE* pI420 = m_pI420;
-	DWORD wi = transform_out.w, hi = transform_out.h;
-	DWORD wo = bih.biWidth, ho = bih.biHeight;
+	int wi = transform_out.w, hi = transform_out.h, wo, ho;
+	GetOutDim(wo, ho);
 
 	if(wi != wo || hi != ho)
 	{
@@ -1336,8 +1508,9 @@ void CRealVideoDecoder::ResizeRow(BYTE* pIn, DWORD wi, DWORD dpi, BYTE* pOut, DW
 
 void CRealVideoDecoder::Copy(BYTE* pIn, BYTE* pOut, DWORD wi, DWORD hi)
 {
-	BITMAPINFOHEADER& bihIn = ((VIDEOINFOHEADER*)m_pInput->CurrentMediaType().Format())->bmiHeader;
-	BITMAPINFOHEADER& bihOut = ((VIDEOINFOHEADER*)m_pOutput->CurrentMediaType().Format())->bmiHeader;
+	BITMAPINFOHEADER bihIn, bihOut;
+	ExtractBIH(&m_pInput->CurrentMediaType(), &bihIn);
+	ExtractBIH(&m_pOutput->CurrentMediaType(), &bihOut);
 
 	int pitchIn = wi;
 	int pitchInUV = pitchIn>>1;
@@ -1427,10 +1600,18 @@ void CRealVideoDecoder::Copy(BYTE* pIn, BYTE* pOut, DWORD wi, DWORD hi)
 HRESULT CRealVideoDecoder::CheckInputType(const CMediaType* mtIn)
 {
 	if(mtIn->majortype != MEDIATYPE_Video 
-	|| mtIn->subtype != FOURCCMap('02VR') 
-	&& mtIn->subtype != FOURCCMap('03VR') 
-	&& mtIn->subtype != FOURCCMap('04VR'))
+	|| mtIn->subtype != MEDIASUBTYPE_RV20
+	&& mtIn->subtype != MEDIASUBTYPE_RV30 
+	&& mtIn->subtype != MEDIASUBTYPE_RV40)
 		return VFW_E_TYPE_NOT_ACCEPTED;
+
+	if(mtIn->formattype == FORMAT_VideoInfo2)
+	{
+		VIDEOINFOHEADER2* vih2 = (VIDEOINFOHEADER2*)mtIn->Format();
+		if(vih2->dwPictAspectRatioX < vih2->bmiHeader.biWidth
+		|| vih2->dwPictAspectRatioY < vih2->bmiHeader.biHeight)
+			return VFW_E_TYPE_NOT_ACCEPTED;
+	}
 
 	if(!m_pInput->IsConnected())
 	{
@@ -1510,9 +1691,9 @@ HRESULT CRealVideoDecoder::CheckInputType(const CMediaType* mtIn)
 
 HRESULT CRealVideoDecoder::CheckTransform(const CMediaType* mtIn, const CMediaType* mtOut)
 {
-	return mtIn->majortype == MEDIATYPE_Video && (mtIn->subtype == FOURCCMap('02VR')
-												|| mtIn->subtype == FOURCCMap('03VR')
-												|| mtIn->subtype == FOURCCMap('04VR'))
+	return mtIn->majortype == MEDIATYPE_Video && (mtIn->subtype == MEDIASUBTYPE_RV20
+												|| mtIn->subtype == MEDIASUBTYPE_RV30
+												|| mtIn->subtype == MEDIASUBTYPE_RV40)
 		&& mtOut->majortype == MEDIATYPE_Video && (mtOut->subtype == MEDIASUBTYPE_YUY2
 												|| mtOut->subtype == MEDIASUBTYPE_YV12
 												|| mtOut->subtype == MEDIASUBTYPE_I420
@@ -1534,7 +1715,8 @@ HRESULT CRealVideoDecoder::DecideBufferSize(IMemAllocator* pAllocator, ALLOCATOR
 	m_pInput->GetAllocator(&pAllocatorIn);
 	if(!pAllocatorIn) return E_UNEXPECTED;
 
-	BITMAPINFOHEADER& bih = ((VIDEOINFOHEADER*)m_pOutput->CurrentMediaType().Format())->bmiHeader;
+	BITMAPINFOHEADER bih;
+	ExtractBIH(&m_pOutput->CurrentMediaType(), &bih);
 
 	pProperties->cBuffers = 1;
 	pProperties->cbBuffer = bih.biSizeImage;
@@ -1573,23 +1755,51 @@ HRESULT CRealVideoDecoder::GetMediaType(int iPosition, CMediaType* pmt)
 		{&MEDIASUBTYPE_RGB555, 1, 16, BI_BITFIELDS},
 	};
 
-	if(iPosition < 0) return E_INVALIDARG;
-	if(iPosition >= sizeof(fmts)/sizeof(fmts[0])) return VFW_S_NO_MORE_ITEMS;
+	if(m_pInput->CurrentMediaType().formattype == FORMAT_VideoInfo)
+		iPosition = iPosition*2 + 1;
 
-	BITMAPINFOHEADER& bih = ((VIDEOINFOHEADER*)m_pInput->CurrentMediaType().Format())->bmiHeader;
+	if(iPosition < 0) return E_INVALIDARG;
+	if(iPosition >= 2*sizeof(fmts)/sizeof(fmts[0])) return VFW_S_NO_MORE_ITEMS;
+
+	BITMAPINFOHEADER bih;
+	ExtractBIH(&m_pInput->CurrentMediaType(), &bih);
 
 	pmt->majortype = MEDIATYPE_Video;
-	pmt->subtype = *fmts[iPosition].subtype;
-	pmt->formattype = FORMAT_VideoInfo;
-	VIDEOINFOHEADER* vih = (VIDEOINFOHEADER*)pmt->AllocFormatBuffer(sizeof(VIDEOINFOHEADER));
-	memset(vih, 0, sizeof(VIDEOINFOHEADER));
-	vih->bmiHeader.biSize = sizeof(vih->bmiHeader);
-	vih->bmiHeader.biWidth = bih.biWidth;
-	vih->bmiHeader.biHeight = bih.biHeight;
-	vih->bmiHeader.biPlanes = fmts[iPosition].biPlanes;
-	vih->bmiHeader.biBitCount = fmts[iPosition].biBitCount;
-	vih->bmiHeader.biCompression = fmts[iPosition].biCompression;
-	vih->bmiHeader.biSizeImage = bih.biWidth*bih.biHeight*vih->bmiHeader.biBitCount>>3;
+	pmt->subtype = *fmts[iPosition/2].subtype;
+
+	BITMAPINFOHEADER bihOut;
+	memset(&bihOut, 0, sizeof(bihOut));
+	bihOut.biSize = sizeof(bihOut);
+	bihOut.biWidth = bih.biWidth;
+	bihOut.biHeight = bih.biHeight;
+	bihOut.biPlanes = fmts[iPosition/2].biPlanes;
+	bihOut.biBitCount = fmts[iPosition/2].biBitCount;
+	bihOut.biCompression = fmts[iPosition/2].biCompression;
+	bihOut.biSizeImage = bih.biWidth*bih.biHeight*bihOut.biBitCount>>3;
+
+	if(iPosition&1)
+	{
+		pmt->formattype = FORMAT_VideoInfo;
+		VIDEOINFOHEADER* vih = (VIDEOINFOHEADER*)pmt->AllocFormatBuffer(sizeof(VIDEOINFOHEADER));
+		memset(vih, 0, sizeof(VIDEOINFOHEADER));
+		vih->bmiHeader = bihOut;
+
+		if(m_pInput->CurrentMediaType().formattype == FORMAT_VideoInfo2)
+		{
+			vih->bmiHeader.biWidth = ((VIDEOINFOHEADER2*)m_pInput->CurrentMediaType().Format())->dwPictAspectRatioX;
+			vih->bmiHeader.biHeight = ((VIDEOINFOHEADER2*)m_pInput->CurrentMediaType().Format())->dwPictAspectRatioY;
+			vih->bmiHeader.biSizeImage = vih->bmiHeader.biWidth*vih->bmiHeader.biHeight*vih->bmiHeader.biBitCount>>3;
+		}
+	}
+	else
+	{
+		pmt->formattype = FORMAT_VideoInfo2;
+		VIDEOINFOHEADER2* vih2 = (VIDEOINFOHEADER2*)pmt->AllocFormatBuffer(sizeof(VIDEOINFOHEADER2));
+		memset(vih2, 0, sizeof(VIDEOINFOHEADER2));
+		vih2->bmiHeader = bihOut;
+		vih2->dwPictAspectRatioX = ((VIDEOINFOHEADER2*)m_pInput->CurrentMediaType().Format())->dwPictAspectRatioX;
+		vih2->dwPictAspectRatioY = ((VIDEOINFOHEADER2*)m_pInput->CurrentMediaType().Format())->dwPictAspectRatioY;
+	}
 
 	CorrectMediaType(pmt);
 
@@ -1601,8 +1811,10 @@ HRESULT CRealVideoDecoder::StartStreaming()
 	if(FAILED(InitRV(&m_pInput->CurrentMediaType())))
 		return E_FAIL;
 
-	BITMAPINFOHEADER& bih = ((VIDEOINFOHEADER*)m_pInput->CurrentMediaType().Format())->bmiHeader;
-	int size = bih.biWidth*bih.biHeight;
+	int wo, ho;
+	GetOutDim(wo, ho);
+
+	int size = wo*ho;
 	m_pI420.Allocate(size*3/2);
 	memset(m_pI420, 0, size);
 	memset(m_pI420 + size, 0x80, size/2);
@@ -1625,19 +1837,16 @@ HRESULT CRealVideoDecoder::StopStreaming()
 
 HRESULT CRealVideoDecoder::EndOfStream()
 {
-//DbgLog((LOG_TRACE, 0, _T("CRealVideoDecoder::EndOfStream()")));
 	return __super::EndOfStream();
 }
 
 HRESULT CRealVideoDecoder::BeginFlush()
 {
-//DbgLog((LOG_TRACE, 0, _T("CRealVideoDecoder::BeginFlush()")));
 	return __super::BeginFlush();
 }
 
 HRESULT CRealVideoDecoder::EndFlush()
 {
-//DbgLog((LOG_TRACE, 0, _T("CRealVideoDecoder::EndFlush()")));
 	return __super::EndFlush();
 }
 
@@ -1651,7 +1860,6 @@ HRESULT CRealVideoDecoder::NewSegment(REFERENCE_TIME tStart, REFERENCE_TIME tSto
 	DWORD tmp[2] = {20, 0};
 	RVHiveMessage(tmp, m_dwCookie);
 
-//DbgLog((LOG_TRACE, 0, _T("CRealVideoDecoder::NewSegment()")));
 	m_tStart = tStart;
 	return __super::NewSegment(tStart, tStop, dRate);
 }
@@ -2034,7 +2242,6 @@ HRESULT CRealAudioDecoder::CheckTransform(const CMediaType* mtIn, const CMediaTy
 		&& mtOut->majortype == MEDIATYPE_Audio && mtOut->subtype == MEDIASUBTYPE_PCM												
 		? S_OK
 		: VFW_E_TYPE_NOT_ACCEPTED;
-	// TODO
 }
 
 HRESULT CRealAudioDecoder::DecideBufferSize(IMemAllocator* pAllocator, ALLOCATOR_PROPERTIES* pProperties)

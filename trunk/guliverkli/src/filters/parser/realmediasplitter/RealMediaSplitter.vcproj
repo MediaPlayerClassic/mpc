@@ -316,6 +316,7 @@
 				AdditionalDependencies="strmbaseDU.lib dsutilDU.lib basesplitterDU.lib"
 				OutputFile="$(OutDir)/$(ProjectName).ax"
 				AdditionalLibraryDirectories="..\..\..\..\lib"
+				IgnoreDefaultLibraryNames="libc.lib"
 				ModuleDefinitionFile="$(ProjectName).def"
 				DelayLoadDLLs=""
 				GenerateDebugInformation="TRUE"
@@ -406,6 +407,12 @@
 			Filter="cpp;c;cxx;def;odl;idl;hpj;bat;asm">
 			<File
 				RelativePath="RealMediaSplitter.cpp">
+				<FileConfiguration
+					Name="Debug Unicode|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						GeneratePreprocessedFile="0"/>
+				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="RealMediaSplitter.def">

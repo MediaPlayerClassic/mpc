@@ -750,6 +750,9 @@
 				RelativePath="res\imovie.ico">
 			</File>
 			<File
+				RelativePath=".\res\logo.bmp">
+			</File>
+			<File
 				RelativePath="res\mono.bmp">
 			</File>
 			<File

@@ -49,6 +49,7 @@ namespace RMFF
 		UINT32 tStart, tPreroll, tDuration;
 		CStringA name, mime;
 		CArray<BYTE> typeSpecData;
+		UINT32 width, height;
 	} MediaProperies;
 	typedef struct {CStringA title, author, copyright, comment;} ContentDesc;
 	typedef struct {UINT64 pos; UINT32 nPackets, ptrNext;} DataChunk;
@@ -123,6 +124,7 @@ class CRMFile
 	UINT64 m_pos, m_len;
 
 	HRESULT Init();
+	void GetDimensions();
 
 public:
 	CRMFile(IAsyncReader* pReader, HRESULT& hr);
@@ -162,6 +164,8 @@ private:
 			RemoveAll();
 		}
 	} m_segments;
+
+	CCritSec m_csQueue;
 
 	HRESULT DeliverSegments();
 
@@ -236,6 +240,8 @@ class CRealVideoDecoder : public CTransformFilter
 
 	HRESULT InitRV(const CMediaType* pmt);
 	void FreeRV();
+
+	void GetOutDim(int& wo, int& ho);
 
 	REFERENCE_TIME m_tStart;
 

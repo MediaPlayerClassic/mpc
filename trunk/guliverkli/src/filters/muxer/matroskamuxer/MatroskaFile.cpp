@@ -195,6 +195,8 @@ QWORD CInt::Size(bool fWithHeader)
 			if(((0xffi64<<((i-1)*8))&val))
 			{
 				len += i; 
+				if(m_val < 0 && !(m_val&(0x80<<(i-1))))
+					len++;
 				break;
 			}
 		}

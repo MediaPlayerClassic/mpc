@@ -25,207 +25,71 @@
 #include <atlcoll.h>
 #include <afxtempl.h>
 #include "MatroskaFile.h"
+#include "..\BaseSplitter\BaseSplitter.h"
 
-// buggy...
-//#define NONBLOCKINGSEEK
-
-class CMatroskaSplitterInputPin : public CBasePin
+class MatroskaPacket : public Packet
 {
-	CComQIPtr<IAsyncReader> m_pAsyncReader;
-
 public:
-	CMatroskaSplitterInputPin(TCHAR* pName, CBaseFilter* pFilter, CCritSec* pLock, HRESULT* phr);
-	virtual ~CMatroskaSplitterInputPin();
-
-	HRESULT GetAsyncReader(IAsyncReader** ppAsyncReader);
-
-	DECLARE_IUNKNOWN;
-    STDMETHODIMP NonDelegatingQueryInterface(REFIID riid, void** ppv);
-
-    HRESULT CheckMediaType(const CMediaType* pmt);
-
-    HRESULT CheckConnect(IPin* pPin);
-    HRESULT BreakConnect();
-	HRESULT CompleteConnect(IPin* pPin);
-
-	STDMETHODIMP BeginFlush();
-	STDMETHODIMP EndFlush();
+	CAutoPtr<MatroskaReader::Block> b;
 };
 
-class CMatroskaSplitterOutputPin : public CBaseOutputPin, protected CAMThread
+class CMatroskaSplitterOutputPin : public CBaseSplitterOutputPin
 {
-	CArray<CMediaType> m_mts;
-	void DontGoWild();
+	HRESULT DeliverBlock(MatroskaPacket* p);
 
-public:
-	enum {EMPTY, EOS, BLOCK};
-	typedef struct {int type; REFERENCE_TIME rtStart, rtStop; CAutoPtr<MatroskaReader::Block> b; BOOL bDiscontinuity;} packet;
-	HRESULT DeliverBlock(CAutoPtr<MatroskaReader::Block> b, REFERENCE_TIME rtStart, REFERENCE_TIME rtStop, BOOL bDiscontinuity);
+	int m_nMinCache;
 
-private:
-	CCritSec m_csQueueLock;
-	CAutoPtrList<packet> m_packets;
-	HRESULT m_hrDeliver;
-	enum {CMD_EXIT};
-    DWORD ThreadProc();
-
-public:
-	CMatroskaSplitterOutputPin(CArray<CMediaType>& mts, LPCWSTR pName, CBaseFilter* pFilter, CCritSec* pLock, HRESULT* phr);
-	virtual ~CMatroskaSplitterOutputPin();
-
-	DECLARE_IUNKNOWN;
-    STDMETHODIMP NonDelegatingQueryInterface(REFIID riid, void** ppv);
-
-    HRESULT DecideBufferSize(IMemAllocator* pAlloc, ALLOCATOR_PROPERTIES* pProperties);
-
-    HRESULT CheckMediaType(const CMediaType* pmt);
-    HRESULT GetMediaType(int iPosition, CMediaType* pmt);
-	CMediaType& CurrentMediaType() {return m_mt;}
-
-	STDMETHODIMP Notify(IBaseFilter* pSender, Quality q);
-
-	// Queueing
-
-	HRESULT Active();
-    HRESULT Inactive();
-
-    HRESULT DeliverEndOfStream();
-    HRESULT DeliverBeginFlush();
-	HRESULT DeliverEndFlush();
-    HRESULT DeliverNewSegment(REFERENCE_TIME tStart, REFERENCE_TIME tStop, double dRate);
-};
-
-[uuid("0A68C3B5-9164-4a54-AFAF-995B2FF0E0D4")]
-class CMatroskaSourceFilter 
-	: public CBaseFilter
-	, public CCritSec
-	, protected CAMThread
-#ifdef NONBLOCKINGSEEK
-	, protected CMsgThread
-#endif
-	, public IFileSourceFilter
-	, public IMediaSeeking
-    , public IAMOpenProgress
-{
-	class CFileReader : public CUnknown, public IAsyncReader
-	{
-		CFile m_file;
-
-	public:
-		CFileReader(CString fn, HRESULT& hr);
-
-		DECLARE_IUNKNOWN;
-		STDMETHODIMP NonDelegatingQueryInterface(REFIID riid, void** ppv);
-
-		// IAsyncReader
-
-		STDMETHODIMP RequestAllocator(IMemAllocator* pPreferred, ALLOCATOR_PROPERTIES* pProps, IMemAllocator** ppActual) {return E_NOTIMPL;}
-        STDMETHODIMP Request(IMediaSample* pSample, DWORD_PTR dwUser) {return E_NOTIMPL;}
-        STDMETHODIMP WaitForNext(DWORD dwTimeout, IMediaSample** ppSample, DWORD_PTR* pdwUser) {return E_NOTIMPL;}
-		STDMETHODIMP SyncReadAligned(IMediaSample* pSample) {return E_NOTIMPL;}
-		STDMETHODIMP SyncRead(LONGLONG llPosition, LONG lLength, BYTE* pBuffer);
-		STDMETHODIMP Length(LONGLONG* pTotal, LONGLONG* pAvailable);
-		STDMETHODIMP BeginFlush() {return E_NOTIMPL;}
-		STDMETHODIMP EndFlush() {return E_NOTIMPL;}
-	};
-
-	CStringW m_fn;
-	CAMEvent m_eEndFlush;
-
-	LONGLONG m_nOpenProgress;
-	bool m_fAbort;
+	CCritSec m_csQueue;
+	CAutoPtrList<MatroskaPacket> m_packets;
+	CList<POSITION> m_rob;
 
 protected:
-	CAutoPtr<CMatroskaSplitterInputPin> m_pInput;
-	CAutoPtrList<CMatroskaSplitterOutputPin> m_pOutputs;
+	HRESULT DeliverPacket(CAutoPtr<Packet> p);
 
-	CAutoPtr<MatroskaReader::CMatroskaFile> m_pFile;
-	HRESULT CreateOutputs(IAsyncReader* pAsyncReader);
+public:
+	CMatroskaSplitterOutputPin(int nMinCache, CArray<CMediaType>& mts, LPCWSTR pName, CBaseFilter* pFilter, CCritSec* pLock, HRESULT* phr);
+	virtual ~CMatroskaSplitterOutputPin();
 
-	CMap<UINT64, UINT64, CMatroskaSplitterOutputPin*, CMatroskaSplitterOutputPin*> m_mapTrackToPin;
-	CMap<UINT64, UINT64, MatroskaReader::TrackEntry*, MatroskaReader::TrackEntry*> m_mapTrackToTrackEntry;
+	HRESULT DeliverEndFlush();
+	HRESULT DeliverEndOfStream();
+};
 
-	CCritSec m_csSend;
-
-	REFERENCE_TIME m_rtStart, m_rtStop, m_rtCurrent, m_rtNewStart, m_rtNewStop;
-	double m_dRate;
-
+[uuid("149D2E01-C32E-4939-80F6-C07B81015A7A")]
+class CMatroskaSplitterFilter : public CBaseSplitterFilter
+{
 	void SendVorbisHeaderSample();
 	void SendFakeTextSample();
 
-	CList<UINT64> m_bDiscontinuitySent;
-	CList<CBaseOutputPin*> m_pActivePins;
-
-	void DeliverBeginFlush();
-	void DeliverEndFlush();
-	HRESULT DeliverBlock(CAutoPtr<MatroskaReader::Block> b);
+	CAutoPtr<MatroskaReader::CMatroskaNode> m_pSegment, m_pCluster, m_pBlock;
 
 protected:
-	enum {CMD_EXIT, CMD_SEEK};
-    DWORD ThreadProc();
+	CAutoPtr<MatroskaReader::CMatroskaFile> m_pFile;
+	HRESULT CreateOutputs(IAsyncReader* pAsyncReader);
 
-#ifdef NONBLOCKINGSEEK
-	enum {TM_EXIT=WM_APP, TM_SEEK};
-    LRESULT ThreadMessageProc(UINT uMsg, DWORD dwFlags, LPVOID lpParam, CAMEvent* pEvent);
-#endif
+	CMap<DWORD, DWORD, MatroskaReader::TrackEntry*, MatroskaReader::TrackEntry*> m_pTrackEntryMap;
+
+	bool InitDeliverLoop();
+	void SeekDeliverLoop(REFERENCE_TIME rt);
+	void DoDeliverLoop();
 
 public:
-	CMatroskaSourceFilter(LPUNKNOWN pUnk, HRESULT* phr);
-	virtual ~CMatroskaSourceFilter();
+	CMatroskaSplitterFilter(LPUNKNOWN pUnk, HRESULT* phr);
+	virtual ~CMatroskaSplitterFilter();
 
 #ifdef REGISTER_FILTER
     static CUnknown* WINAPI CreateInstance(LPUNKNOWN lpunk, HRESULT* phr);
 #endif
 
-	DECLARE_IUNKNOWN;
-    STDMETHODIMP NonDelegatingQueryInterface(REFIID riid, void** ppv);
-
-	HRESULT BreakConnect(PIN_DIRECTION dir, CBasePin* pPin);
-	HRESULT CompleteConnect(PIN_DIRECTION dir, CBasePin* pPin);
-
-	int GetPinCount();
-	CBasePin* GetPin(int n);
-
-	STDMETHODIMP Stop();
-	STDMETHODIMP Pause();
-	STDMETHODIMP Run(REFERENCE_TIME tStart);
-
-	// IFileSourceFilter
-
-	STDMETHODIMP Load(LPCOLESTR pszFileName, const AM_MEDIA_TYPE* pmt);
-	STDMETHODIMP GetCurFile(LPOLESTR* ppszFileName, AM_MEDIA_TYPE* pmt);
-
 	// IMediaSeeking
 
-	STDMETHODIMP GetCapabilities(DWORD* pCapabilities);
-	STDMETHODIMP CheckCapabilities(DWORD* pCapabilities);
-	STDMETHODIMP IsFormatSupported(const GUID* pFormat);
-	STDMETHODIMP QueryPreferredFormat(GUID* pFormat);
-	STDMETHODIMP GetTimeFormat(GUID* pFormat);
-	STDMETHODIMP IsUsingTimeFormat(const GUID* pFormat);
-	STDMETHODIMP SetTimeFormat(const GUID* pFormat);
 	STDMETHODIMP GetDuration(LONGLONG* pDuration);
-	STDMETHODIMP GetStopPosition(LONGLONG* pStop);
-	STDMETHODIMP GetCurrentPosition(LONGLONG* pCurrent);
-	STDMETHODIMP ConvertTimeFormat(LONGLONG* pTarget, const GUID* pTargetFormat, LONGLONG Source, const GUID* pSourceFormat);
-	STDMETHODIMP SetPositions(LONGLONG* pCurrent, DWORD dwCurrentFlags, LONGLONG* pStop, DWORD dwStopFlags);
-	STDMETHODIMP GetPositions(LONGLONG* pCurrent, LONGLONG* pStop);
-	STDMETHODIMP GetAvailable(LONGLONG* pEarliest, LONGLONG* pLatest);
-	STDMETHODIMP SetRate(double dRate);
-	STDMETHODIMP GetRate(double* pdRate);
-	STDMETHODIMP GetPreroll(LONGLONG* pllPreroll);
-
-	// IAMOpenProgress
-
-	STDMETHODIMP QueryProgress(LONGLONG* pllTotal, LONGLONG* pllCurrent);
-	STDMETHODIMP AbortOperation();
 };
 
-[uuid("149D2E01-C32E-4939-80F6-C07B81015A7A")]
-class CMatroskaSplitterFilter : public CMatroskaSourceFilter
+[uuid("0A68C3B5-9164-4a54-AFAF-995B2FF0E0D4")]
+class CMatroskaSourceFilter : public CMatroskaSplitterFilter
 {
 public:
-	CMatroskaSplitterFilter(LPUNKNOWN pUnk, HRESULT* phr);
+	CMatroskaSourceFilter(LPUNKNOWN pUnk, HRESULT* phr);
 
 #ifdef REGISTER_FILTER
     static CUnknown* WINAPI CreateInstance(LPUNKNOWN lpunk, HRESULT* phr);

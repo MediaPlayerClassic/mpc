@@ -1168,7 +1168,7 @@ ID_PLAYERTOOLBAR        BITMAP                  "res\\toolbar1.bmp"
 IDB_MONO                BITMAP                  "res\\mono.bmp"
 IDB_STEREO              BITMAP                  "res\\stereo.bmp"
 IDB_NOAUDIO             BITMAP                  "res\\noaudio.bmp"
-IDB_LOGO                BITMAP                  "res\\ClassicMediaPlayer.bmp"
+IDB_LOGO                BITMAP                  "res\\logo.bmp"
 
 /////////////////////////////////////////////////////////////////////////////
 //
