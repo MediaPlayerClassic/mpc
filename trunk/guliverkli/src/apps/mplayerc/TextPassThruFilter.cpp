@@ -314,11 +314,8 @@ HRESULT CTextPassThruFilter::CompleteConnect(PIN_DIRECTION dir, IPin* pReceivePi
 
 			CAutoLock cAutoLock(&m_pMainFrame->m_csSubLock);
 
-			CStringA name(psi->IsoLang);
-			if(!name.IsEmpty())
-			{
-				pRTS->m_name = name + _T(" (embeded)");
-			}
+			pRTS->m_name = ISO6392ToLanguage(psi->IsoLang);
+			if(pRTS->m_name.IsEmpty()) pRTS->m_name = _T("English");
 
 			if((mt.subtype == MEDIASUBTYPE_SSA || mt.subtype == MEDIASUBTYPE_ASS) && dwOffset > 0)
 			{

@@ -26,10 +26,14 @@
 #include <ks.h>
 #include <ksmedia.h>
 #include "..\..\..\DSUtil\DSUtil.h"
+#include "..\..\..\DSUtil\MediaTypes.h"
 #include "RealMediaSplitter.h"
 
 #include <initguid.h>
 #include "..\..\..\..\include\moreuuids.h"
+
+#define MAXBUFFERS 2
+#define MAXPACKETS 1000
 
 template<typename T>
 static void bswap(T& var)
@@ -75,7 +79,7 @@ void rainfo5::bswap()
 	::bswap(channels);
 }
 
-using namespace RealMedia;
+using namespace RMFF;
 
 #ifdef REGISTER_FILTER
 
@@ -582,6 +586,7 @@ DWORD CRealMediaSourceFilter::ThreadProc()
 
 	while(1)
 	{
+DbgLog((LOG_TRACE, 0, _T("fFirstRun: %d"), fFirstRun));
 		DWORD cmd = fFirstRun ? -1 : GetRequest();
 
 		fFirstRun = false;
@@ -706,7 +711,7 @@ DWORD CRealMediaSourceFilter::ThreadProc()
 			DataChunk* pdc = m_pFile->m_dcs.GetNext(pos);
 
 			m_pFile->Seek(seekfilepos > 0 ? seekfilepos : pdc->pos);
-//TRACE(_T("m_pFile->Seek(%I64d)\n"), m_pFile->GetPos());
+DbgLog((LOG_TRACE, 0, _T("m_pFile->Seek(%I64d)"), m_pFile->GetPos()));
 
 			for(UINT32 i = seekpacket; i < pdc->nPackets && SUCCEEDED(hr) && !CheckRequest(&cmd); i++)
 			{
@@ -726,12 +731,13 @@ DWORD CRealMediaSourceFilter::ThreadProc()
 
 			seekpacket = 0;
 			seekfilepos = 0;
-//TRACE(_T("Exited deliver loop\n"));
+DbgLog((LOG_TRACE, 0, _T("Exited deliver loop, hr=%08x, cmd=%d"), hr, cmd));
 		}
 
 		pos = m_pActivePins.GetHeadPosition();
 		while(pos && !CheckRequest(&cmd))
 			m_pActivePins.GetNext(pos)->DeliverEndOfStream();
+DbgLog((LOG_TRACE, 0, _T("EndOfStream, hr=%08x, cmd=%d"), hr, cmd));
 	}
 
 	ASSERT(0); // we should only exit via CMD_EXIT
@@ -1013,14 +1019,14 @@ STDMETHODIMP CRealMediaSourceFilter::SetPositions(LONGLONG* pCurrent, DWORD dwCu
 
 	if(ThreadExists())
 	{
-//DbgLog((LOG_TRACE, 0, _T("m_rtNewStart=%I64d"), m_rtNewStart));
-//DbgLog((LOG_TRACE, 0, _T("DeliverBeginFlush()")));
+DbgLog((LOG_TRACE, 0, _T("m_rtNewStart=%I64d"), m_rtNewStart));
+DbgLog((LOG_TRACE, 0, _T("DeliverBeginFlush()")));
 		DeliverBeginFlush();
-//DbgLog((LOG_TRACE, 0, _T("CallWorker(CMD_SEEK)")));
+DbgLog((LOG_TRACE, 0, _T("CallWorker(CMD_SEEK)")));
 		CallWorker(CMD_SEEK);
-//DbgLog((LOG_TRACE, 0, _T("DeliverEndFlush()")));
+DbgLog((LOG_TRACE, 0, _T("DeliverEndFlush()")));
 		DeliverEndFlush();
-//DbgLog((LOG_TRACE, 0, _T("Seeking ended")));
+DbgLog((LOG_TRACE, 0, _T("Seeking ended")));
 	}
 
 	return S_OK;
@@ -1179,6 +1185,7 @@ STDMETHODIMP CRealMediaSplitterInputPin::EndFlush()
 
 CRealMediaSplitterOutputPin::CRealMediaSplitterOutputPin(CArray<CMediaType>& mts, LPCWSTR pName, CBaseFilter* pFilter, CCritSec* pLock, HRESULT* phr)
 	: CBaseOutputPin(NAME("CRealMediaSplitterOutputPin"), pFilter, pLock, phr, pName)
+	, m_hrDeliver(S_OK) // just in case it were asked before the worker thread could create and reset it
 {
 	m_mts.Copy(mts);
 }
@@ -1478,6 +1485,16 @@ DWORD CRealMediaSplitterOutputPin::ThreadProc()
 //						TRACE(_T("WARNING: CRealMediaSplitterOutputPin::ThreadProc() sending incomplete segments\n"));
 
 //TRACE(_T("sending not terminated segments\n"));
+#ifdef DEBUG
+						{
+							POSITION pos = m_segments.GetHeadPosition();
+							while(pos)
+							{
+								segment* s = m_segments.GetNext(pos);
+								ASSERT(s->rtStart == m_segments.rtStart);
+							}
+						}
+#endif
 						if(S_OK != (hr = DeliverSegments(m_segments)))
 						{
 //TRACE(_T("S_OK != (hr = DeliverSegments(m_segments))\n"));
@@ -1555,9 +1572,9 @@ DWORD CRealMediaSplitterOutputPin::ThreadProc()
 
 						pIn += len2;
 
-						if((hdr&0x80) /*|| packetoffset+len2 >= packetlen*/)
+						if((hdr&0x80) || packetoffset+len2 >= packetlen)
 						{
-//TRACE(_T("sending terminated segments\n"));
+//TRACE(_T("sending terminated/complete segments\n"));
 							if(S_OK != (hr = DeliverSegments(m_segments)))
 							{
 //TRACE(_T("S_OK != (hr = DeliverSegments(m_segments))\n"));
@@ -1713,12 +1730,19 @@ HRESULT CRMFile::Init()
 {
 	if(!m_pReader) return E_UNEXPECTED;
 
+	bool fFirstChunk = true;
+
 	HRESULT hr;
 
 	ChunkHdr hdr;
 	while(m_pos < m_len && S_OK == (hr = Read(hdr)))
 	{
 		UINT64 pos = m_pos - sizeof(hdr);
+
+		if(fFirstChunk && hdr.object_id != '.RMF')
+			return E_FAIL;
+
+		fFirstChunk = false;
 
 		if(pos + hdr.size > m_len && hdr.object_id != 'DATA') // truncated?
 			break;
@@ -1953,13 +1977,14 @@ HRESULT CRealVideoDecoder::Receive(IMediaSample* pIn)
 		return S_OK;
 	}
 
-	hr = RVTransform(pDataIn + (1+((*pDataIn)+1)*8), (BYTE*)m_pI420FrameBuff, &transform_in, &transform_out, m_dwCookie);
+	hr = RVTransform(pDataIn + (1+((*pDataIn)+1)*8), (BYTE*)m_pI420, &transform_in, &transform_out, m_dwCookie);
 
 	m_timestamp = transform_in.timestamp;
 
 	if(FAILED(hr))
 	{
 		TRACE(_T("RV returned an error code!!!\n"));
+		ASSERT(!(transform_out.unk1&1)); // error allowed when the "render" flag is not set
 //		return hr;
 	}
 
@@ -1979,18 +2004,7 @@ HRESULT CRealVideoDecoder::Receive(IMediaSample* pIn)
 		m_pOutput->SetMediaType(&mt);
 		DeleteMediaType(pmt);
 	}
-/*
-CMediaType mt = m_pOutput->CurrentMediaType();
-VIDEOINFOHEADER* vih = (VIDEOINFOHEADER*)mt.Format();
-if(vih->rcSource.right != transform_out.w || vih->rcSource.bottom != transform_out.h)
-{
-vih->rcSource.right = transform_out.w;
-vih->rcSource.bottom = transform_out.h;
-vih->rcTarget.right = ((VIDEOINFOHEADER*)m_pInput->CurrentMediaType().Format())->bmiHeader.biWidth;
-vih->rcTarget.bottom = ((VIDEOINFOHEADER*)m_pInput->CurrentMediaType().Format())->bmiHeader.biHeight;
-pOut->SetMediaType(&mt);
-}
-*/
+
 	rtStart = 10000i64*transform_out.timestamp - m_tStart;
 	rtStop = rtStart + 1;
 	pOut->SetTime(&rtStart, /*NULL*/&rtStop);
@@ -1999,34 +2013,131 @@ pOut->SetMediaType(&mt);
 	pOut->SetDiscontinuity(pIn->IsDiscontinuity() == S_OK);
 	pOut->SetSyncPoint(pIn->IsSyncPoint() == S_OK);
 
-	Copy(m_pI420FrameBuff, pDataOut, transform_out.w, transform_out.h);
+	BITMAPINFOHEADER& bih = ((VIDEOINFOHEADER*)m_pInput->CurrentMediaType().Format())->bmiHeader;
+
+	BYTE* pI420 = m_pI420;
+	DWORD wi = transform_out.w, hi = transform_out.h;
+	DWORD wo = bih.biWidth, ho = bih.biHeight;
+
+	if(wi != wo || hi != ho)
+	{
+		Resize(pI420, wi, hi, m_pI420Tmp, wo, ho);
+
+		// only one of these can be true, and when it happens the result image must be in the tmp buffer
+		if(wi == wo || hi == ho) pI420 = m_pI420Tmp; 
+
+		wi = wo; hi = ho;
+	}
+
+	Copy(pI420, pDataOut, wi, hi);
+
 DbgLog((LOG_TRACE, 0, _T("V: rtStart=%I64d, rtStop=%I64d, disc=%d, sync=%d"), 
 	   rtStart, rtStop, pOut->IsDiscontinuity() == S_OK, pOut->IsSyncPoint() == S_OK));
+
 	return m_pOutput->Deliver(pOut);
 }
 
-void CRealVideoDecoder::Copy(BYTE* pIn, BYTE* pOut, int w, int h)
+void CRealVideoDecoder::Resize(BYTE* pIn, DWORD wi, DWORD hi, BYTE* pOut, DWORD wo, DWORD ho)
+{
+	int si = wi*hi, so = wo*ho;
+	ASSERT(((si*so)&3) == 0);
+
+	if(wi < wo)
+	{
+		ResizeWidth(pIn, wi, hi, pOut, wo, ho);
+		ResizeWidth(pIn + si, wi/2, hi/2, pOut + so, wo/2, ho/2);
+		ResizeWidth(pIn + si + si/4, wi/2, hi/2, pOut + so + so/4, wo/2, ho/2);
+		if(hi == ho) return; 
+		ResizeHeight(pOut, wo, hi, pIn, wo, ho);
+		ResizeHeight(pOut + so, wo/2, hi/2, pIn + so, wo/2, ho/2);
+		ResizeHeight(pOut + so + so/4, wo/2, hi/2, pIn + so + so/4, wo/2, ho/2);
+	}
+	else if(hi < ho)
+	{
+		ResizeHeight(pIn, wi, hi, pOut, wo, ho);
+		ResizeHeight(pIn + si, wi/2, hi/2, pOut + so, wo/2, ho/2);
+		ResizeHeight(pIn + si + si/4, wi/2, hi/2, pOut + so + so/4, wo/2, ho/2);
+		if(wi == wo) return;
+		ResizeWidth(pOut, wi, ho, pIn, wo, ho);
+		ResizeWidth(pOut + so, wi/2, ho/2, pIn + so, wo/2, ho/2);
+		ResizeWidth(pOut + so + so/4, wi/2, ho/2, pIn + so + so/4, wo/2, ho/2);
+	}
+}
+
+void CRealVideoDecoder::ResizeWidth(BYTE* pIn, DWORD wi, DWORD hi, BYTE* pOut, DWORD wo, DWORD ho)
+{
+	for(DWORD y = 0; y < hi; y++, pIn += wi, pOut += wo)
+	{
+		if(wi == wo) memcpy(pOut, pIn, wo);
+		else ResizeRow(pIn, wi, 1, pOut, wo, 1);
+	}
+}
+
+void CRealVideoDecoder::ResizeHeight(BYTE* pIn, DWORD wi, DWORD hi, BYTE* pOut, DWORD wo, DWORD ho)
+{
+	if(hi == ho) 
+	{
+		memcpy(pOut, pIn, wo*ho);
+	}
+	else
+	{
+		for(DWORD x = 0; x < wo; x++, pIn++, pOut++)
+			ResizeRow(pIn, hi, wo, pOut, ho, wo);
+	}
+}
+
+void CRealVideoDecoder::ResizeRow(BYTE* pIn, DWORD wi, DWORD dpi, BYTE* pOut, DWORD wo, DWORD dpo)
+{
+	ASSERT(wi < wo);
+
+    if(dpo == 1)
+	{
+		for(DWORD i = 0, j = 0, dj = (wi<<16)/wo; i < wo-1; i++, pOut++, j += dj)
+//			pOut[i] = pIn[j>>8];
+		{
+			BYTE* p = &pIn[j>>16];
+			DWORD jf = j&0xffff;
+			*pOut = ((p[0]*(0xffff-jf) + p[1]*jf) + 0x7fff) >> 16;
+		}
+
+		*pOut = pIn[wi-1];
+	}
+	else
+	{
+		for(DWORD i = 0, j = 0, dj = (wi<<16)/wo; i < wo-1; i++, pOut += dpo, j += dj)
+//			*pOut = pIn[dpi*(j>>16)];
+		{
+			BYTE* p = &pIn[dpi*(j>>16)];
+			DWORD jf = j&0xffff;
+			*pOut = ((p[0]*(0xffff-jf) + p[dpi]*jf) + 0x7fff) >> 16;
+		}
+
+		*pOut = pIn[dpi*(wi-1)];
+	}
+}
+
+void CRealVideoDecoder::Copy(BYTE* pIn, BYTE* pOut, DWORD wi, DWORD hi)
 {
 	BITMAPINFOHEADER& bihIn = ((VIDEOINFOHEADER*)m_pInput->CurrentMediaType().Format())->bmiHeader;
 	BITMAPINFOHEADER& bihOut = ((VIDEOINFOHEADER*)m_pOutput->CurrentMediaType().Format())->bmiHeader;
 
-	int pitchIn = w;
+	int pitchIn = wi;
 	int pitchInUV = pitchIn>>1;
-	BYTE* pInU = pIn + pitchIn*h;
-	BYTE* pInV = pInU + pitchInUV*h/2;
+	BYTE* pInU = pIn + pitchIn*hi;
+	BYTE* pInV = pInU + pitchInUV*hi/2;
 
 	if(bihOut.biCompression == '2YUY')
 	{
 		int pitchOut = bihOut.biWidth*2;
 
-		for(int y = 0; y < h; y+=2, pIn += pitchIn*2, pInU += pitchInUV, pInV += pitchInUV, pOut += pitchOut*2)
+		for(DWORD y = 0; y < hi; y+=2, pIn += pitchIn*2, pInU += pitchInUV, pInV += pitchInUV, pOut += pitchOut*2)
 		{
 			BYTE* pDataIn = pIn;
 			BYTE* pDataInU = pInU;
 			BYTE* pDataInV = pInV;
 			WORD* pDataOut = (WORD*)pOut;
 
-			for(int x = 0; x < w; x+=2)
+			for(DWORD x = 0; x < wi; x+=2)
 			{
 				*pDataOut++ = (*pDataInU++<<8)|*pDataIn++;
 				*pDataOut++ = (*pDataInV++<<8)|*pDataIn++;
@@ -2037,9 +2148,9 @@ void CRealVideoDecoder::Copy(BYTE* pIn, BYTE* pOut, int w, int h)
 			pDataInV = pInV;
 			pDataOut = (WORD*)(pOut + pitchOut);
 
-			if(y < h-2)
+			if(y < hi-2)
 			{
-				for(int x = 0; x < w; x+=2, pDataInU++, pDataInV++)
+				for(DWORD x = 0; x < wi; x+=2, pDataInU++, pDataInV++)
 				{
 					*pDataOut++ = (((pDataInU[0]+pDataInU[pitchInUV])>>1)<<8)|*pDataIn++;
 					*pDataOut++ = (((pDataInV[0]+pDataInV[pitchInUV])>>1)<<8)|*pDataIn++;
@@ -2047,7 +2158,7 @@ void CRealVideoDecoder::Copy(BYTE* pIn, BYTE* pOut, int w, int h)
 			}
 			else
 			{
-				for(int x = 0; x < w; x+=2)
+				for(DWORD x = 0; x < wi; x+=2)
 				{
 					*pDataOut++ = (*pDataInU++<<8)|*pDataIn++;
 					*pDataOut++ = (*pDataInV++<<8)|*pDataIn++;
@@ -2055,11 +2166,11 @@ void CRealVideoDecoder::Copy(BYTE* pIn, BYTE* pOut, int w, int h)
 			}
 		}
 	}
-	else if(bihOut.biCompression == '21VY')
+	else if(bihOut.biCompression == '21VY' || bihOut.biCompression == 'I420' || bihOut.biCompression == 'VUYI')
 	{
 		int pitchOut = bihOut.biWidth;
 
-		for(int y = 0; y < h; y++, pIn += pitchIn, pOut += pitchOut)
+		for(DWORD y = 0; y < hi; y++, pIn += pitchIn, pOut += pitchOut)
 		{
 			memcpy(pOut, pIn, min(pitchIn, pitchOut));
 		}
@@ -2067,18 +2178,30 @@ void CRealVideoDecoder::Copy(BYTE* pIn, BYTE* pOut, int w, int h)
 		pitchIn >>= 1;
 		pitchOut >>= 1;
 
-		pIn = pInV;
+		pIn = bihOut.biCompression == '21VY' ? pInV : pInU;
 
-		for(int y = 0; y < h; y+=2, pIn += pitchIn, pOut += pitchOut)
+		for(DWORD y = 0; y < hi; y+=2, pIn += pitchIn, pOut += pitchOut)
 		{
 			memcpy(pOut, pIn, min(pitchIn, pitchOut));
 		}
 
-		pIn = pInU;
+		pIn = bihOut.biCompression == '21VY' ? pInU : pInV;
 
-		for(int y = 0; y < h; y+=2, pIn += pitchIn, pOut += pitchOut)
+		for(DWORD y = 0; y < hi; y+=2, pIn += pitchIn, pOut += pitchOut)
 		{
 			memcpy(pOut, pIn, min(pitchIn, pitchOut));
+		}
+	}
+	else if(bihOut.biCompression == BI_RGB || bihOut.biCompression == BI_BITFIELDS)
+	{
+		int pitchOut = bihOut.biWidth*bihOut.biBitCount>>3;
+
+		// TODO: color convert
+		// now we just paint it to black...
+
+		for(DWORD y = 0; y < hi; y++, pOut += pitchOut)
+		{
+			memset(pOut, 0, pitchOut);
 		}
 	}
 }
@@ -2172,8 +2295,15 @@ HRESULT CRealVideoDecoder::CheckTransform(const CMediaType* mtIn, const CMediaTy
 	return mtIn->majortype == MEDIATYPE_Video && (mtIn->subtype == FOURCCMap('02VR')
 												|| mtIn->subtype == FOURCCMap('03VR')
 												|| mtIn->subtype == FOURCCMap('04VR'))
-		&& mtOut->majortype == MEDIATYPE_Video && (mtOut->subtype == FOURCCMap('21VY')
-												|| mtOut->subtype == FOURCCMap('2YUY'))
+		&& mtOut->majortype == MEDIATYPE_Video && (mtOut->subtype == MEDIASUBTYPE_YUY2
+												|| mtOut->subtype == MEDIASUBTYPE_YV12
+												|| mtOut->subtype == MEDIASUBTYPE_I420
+												|| mtOut->subtype == MEDIASUBTYPE_IYUV
+												|| mtOut->subtype == MEDIASUBTYPE_ARGB32
+												|| mtOut->subtype == MEDIASUBTYPE_RGB32
+												|| mtOut->subtype == MEDIASUBTYPE_RGB24
+												|| mtOut->subtype == MEDIASUBTYPE_RGB565
+												|| mtOut->subtype == MEDIASUBTYPE_RGB555)
 		? S_OK
 		: VFW_E_TYPE_NOT_ACCEPTED;
 }
@@ -2188,7 +2318,7 @@ HRESULT CRealVideoDecoder::DecideBufferSize(IMemAllocator* pAllocator, ALLOCATOR
 
 	BITMAPINFOHEADER& bih = ((VIDEOINFOHEADER*)m_pOutput->CurrentMediaType().Format())->bmiHeader;
 
-	pProperties->cBuffers = 2;
+	pProperties->cBuffers = 1;
 	pProperties->cbBuffer = bih.biSizeImage;
 	pProperties->cbAlign = 1;
 	pProperties->cbPrefix = 0;
@@ -2207,23 +2337,43 @@ HRESULT CRealVideoDecoder::GetMediaType(int iPosition, CMediaType* pmt)
 {
     if(m_pInput->IsConnected() == FALSE) return E_UNEXPECTED;
 
+	struct {const GUID* subtype; WORD biPlanes, biBitCount; DWORD biCompression;} fmts[] =
+	{
+		{&MEDIASUBTYPE_YV12, 3, 12, '21VY'},
+		{&MEDIASUBTYPE_I420, 3, 12, '024I'},
+		{&MEDIASUBTYPE_IYUV, 3, 12, 'VUYI'},
+		{&MEDIASUBTYPE_YUY2, 1, 16, '2YUY'},
+		{&MEDIASUBTYPE_ARGB32, 1, 32, BI_RGB},
+		{&MEDIASUBTYPE_RGB32, 1, 32, BI_RGB},
+		{&MEDIASUBTYPE_RGB24, 1, 24, BI_RGB},
+		{&MEDIASUBTYPE_RGB565, 1, 16, BI_RGB},
+		{&MEDIASUBTYPE_RGB555, 1, 16, BI_RGB},
+		{&MEDIASUBTYPE_ARGB32, 1, 32, BI_BITFIELDS},
+		{&MEDIASUBTYPE_RGB32, 1, 32, BI_BITFIELDS},
+		{&MEDIASUBTYPE_RGB24, 1, 24, BI_BITFIELDS},
+		{&MEDIASUBTYPE_RGB565, 1, 16, BI_BITFIELDS},
+		{&MEDIASUBTYPE_RGB555, 1, 16, BI_BITFIELDS},
+	};
+
 	if(iPosition < 0) return E_INVALIDARG;
-	if(iPosition > 1) return VFW_S_NO_MORE_ITEMS;
-iPosition = 1-iPosition;
+	if(iPosition >= sizeof(fmts)/sizeof(fmts[0])) return VFW_S_NO_MORE_ITEMS;
+
 	BITMAPINFOHEADER& bih = ((VIDEOINFOHEADER*)m_pInput->CurrentMediaType().Format())->bmiHeader;
 
 	pmt->majortype = MEDIATYPE_Video;
-	pmt->subtype = iPosition == 0 ? MEDIASUBTYPE_YUY2 : MEDIASUBTYPE_YV12;
+	pmt->subtype = *fmts[iPosition].subtype;
 	pmt->formattype = FORMAT_VideoInfo;
 	VIDEOINFOHEADER* vih = (VIDEOINFOHEADER*)pmt->AllocFormatBuffer(sizeof(VIDEOINFOHEADER));
 	memset(vih, 0, sizeof(VIDEOINFOHEADER));
 	vih->bmiHeader.biSize = sizeof(vih->bmiHeader);
 	vih->bmiHeader.biWidth = bih.biWidth;
 	vih->bmiHeader.biHeight = bih.biHeight;
-	vih->bmiHeader.biPlanes = iPosition == 0 ? 1 : 3;
-	vih->bmiHeader.biBitCount = iPosition == 0 ? 16 : 12;
-	vih->bmiHeader.biCompression = iPosition == 0 ? '2YUY' : '21VY';
+	vih->bmiHeader.biPlanes = fmts[iPosition].biPlanes;
+	vih->bmiHeader.biBitCount = fmts[iPosition].biBitCount;
+	vih->bmiHeader.biCompression = fmts[iPosition].biCompression;
 	vih->bmiHeader.biSizeImage = bih.biWidth*bih.biHeight*vih->bmiHeader.biBitCount>>3;
+
+	CorrectMediaType(pmt);
 
 	return S_OK;
 }
@@ -2235,16 +2385,20 @@ HRESULT CRealVideoDecoder::StartStreaming()
 
 	BITMAPINFOHEADER& bih = ((VIDEOINFOHEADER*)m_pInput->CurrentMediaType().Format())->bmiHeader;
 	int size = bih.biWidth*bih.biHeight;
-	m_pI420FrameBuff.Allocate(size*3/2);
-	memset(m_pI420FrameBuff, 0, size);
-	memset(m_pI420FrameBuff + size, 0x80, size/2);
+	m_pI420.Allocate(size*3/2);
+	memset(m_pI420, 0, size);
+	memset(m_pI420 + size, 0x80, size/2);
+	m_pI420Tmp.Allocate(size*3/2);
+	memset(m_pI420Tmp, 0, size);
+	memset(m_pI420Tmp + size, 0x80, size/2);
 
 	return __super::StartStreaming();
 }
 
 HRESULT CRealVideoDecoder::StopStreaming()
 {
-	m_pI420FrameBuff.Free();
+	m_pI420.Free();
+	m_pI420Tmp.Free();
 
 	FreeRV();
 
@@ -2308,6 +2462,7 @@ CRealAudioDecoder::CRealAudioDecoder(LPUNKNOWN lpunk, HRESULT* phr)
 
 CRealAudioDecoder::~CRealAudioDecoder()
 {
+//	FreeRA();
 	if(m_hDrvDll) FreeLibrary(m_hDrvDll);
 }
 

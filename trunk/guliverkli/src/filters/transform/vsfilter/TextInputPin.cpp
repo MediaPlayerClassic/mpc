@@ -78,11 +78,8 @@ HRESULT CTextInputPin::CompleteConnect(IPin* pReceivePin)
 		SUBTITLEINFO* psi = (SUBTITLEINFO*)m_mt.pbFormat;
 		DWORD dwOffset = psi->dwOffset;
 
-		CStringA name(psi->IsoLang, 3);
-		name.Trim();
-		pRTS->m_name.Empty();
-		if(name != "") pRTS->m_name += name + ' ';
-		pRTS->m_name += _T("(embeded)");
+		pRTS->m_name = ISO6392ToLanguage(psi->IsoLang);
+		if(pRTS->m_name.IsEmpty()) pRTS->m_name = _T("English");
 
 		if((m_mt.subtype == MEDIASUBTYPE_SSA || m_mt.subtype == MEDIASUBTYPE_ASS) && dwOffset > 0)
 		{

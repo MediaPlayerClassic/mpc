@@ -22,6 +22,7 @@
 #pragma once
 #include "PPageBase.h"
 #include "afxwin.h"
+#include "PlayerListCtrl.h"
 
 // CPPageFormats dialog
 
@@ -49,7 +50,8 @@ public:
 	static bool IsRegistered(CString ext);
 	static bool RegisterExt(CString ext, bool fRegister);
 
-	CListCtrl m_list;
+	enum {COL_CATEGORY, COL_ENGINE};
+	CPlayerListCtrl m_list;
 	CString m_exts;
 	CStatic m_autoplay;
 	CButton m_apvideo;
@@ -70,6 +72,9 @@ protected:
 public:
 	afx_msg void OnNMClickList1(NMHDR* pNMHDR, LRESULT* pResult);
 	afx_msg void OnLvnItemchangedList1(NMHDR *pNMHDR, LRESULT *pResult);
+	afx_msg void OnBeginlabeleditList(NMHDR* pNMHDR, LRESULT* pResult);
+	afx_msg void OnDolabeleditList(NMHDR* pNMHDR, LRESULT* pResult);
+	afx_msg void OnEndlabeleditList(NMHDR* pNMHDR, LRESULT* pResult);
 	afx_msg void OnBnClickedButton1();
 	afx_msg void OnBnClickedButton14();
 	afx_msg void OnBnClickedButton13();

@@ -565,6 +565,8 @@ BOOL CMPlayerCApp::InitInstance()
 
 	SendCommandLine(m_pMainWnd->m_hWnd);
 
+	pFrame->SetFocus();
+
 	return TRUE;
 }
 

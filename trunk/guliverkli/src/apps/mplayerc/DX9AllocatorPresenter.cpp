@@ -659,7 +659,7 @@ STDMETHODIMP CDX9AllocatorPresenter::InitializeDevice(DWORD_PTR dwUserID, VMR9Al
 		|| FAILED(hr = pBackBuffer->GetDesc(&d3dsd)))
 			return E_FAIL;
 
-		// this likes to return false info
+		// this likes to return false info...
 		hr = m_pD3D->CheckDeviceFormatConversion(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, lpAllocInfo->Format, d3dsd.Format);
 		if(hr != D3D_OK)
 			return E_FAIL;

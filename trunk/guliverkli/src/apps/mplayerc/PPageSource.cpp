@@ -58,6 +58,7 @@ void CPPageSource::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_CHECK6, m_dtsac3);
 	DDX_Check(pDX, IDC_CHECK7, m_matroska);
 	DDX_Check(pDX, IDC_CHECK8, m_shoutcast);
+	DDX_Check(pDX, IDC_CHECK9, m_realmedia);
 }
 
 
@@ -80,6 +81,7 @@ BOOL CPPageSource::OnInitDialog()
 	m_dvd2avi = !!(s.SrcFilters&SRC_DVD2AVI);
 	m_dtsac3 = !!(s.SrcFilters&SRC_DTSAC3);
 	m_matroska = !!(s.SrcFilters&SRC_MATROSKA);
+	m_realmedia = !!(s.SrcFilters&SRC_REALMEDIA);
 	m_shoutcast = !!(s.SrcFilters&SRC_SHOUTCAST);
 
 	UpdateData(FALSE);
@@ -102,6 +104,7 @@ BOOL CPPageSource::OnApply()
 	if(m_dvd2avi) s.SrcFilters |= SRC_DVD2AVI;
 	if(m_dtsac3) s.SrcFilters |= SRC_DTSAC3;
 	if(m_matroska) s.SrcFilters |= SRC_MATROSKA;
+	if(m_realmedia) s.SrcFilters |= SRC_REALMEDIA;
 	if(m_shoutcast) s.SrcFilters |= SRC_SHOUTCAST;
 
 	return __super::OnApply();

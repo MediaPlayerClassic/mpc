@@ -294,7 +294,8 @@ CShoutcastStream::CShoutcastStream(const WCHAR* wfn, CShoutcastSource* pParent, 
 //fn = _T("http://64.236.34.141/stream/1005");
 //fn = _T("http://218.145.30.106:11000"); // 128kbps korean
 //fn = _T("http://65.206.46.110:8020"); // 96kbps
-fn = _T("http://218.145.30.106:11000");
+fn = _T("http://64.236.34.72:80/stream/1003");
+//fn = _T("http://218.145.30.106:11000");
 //fn = _T("http://radio.sluchaj.com:8000/radio.ogg"); // ogg
 // http://www.oddsock.org/icecast2yp/ // more ogg via icecast2
 #endif
@@ -581,43 +582,66 @@ bool CShoutcastStream::CShoutcastSocket::Connect(CUrl& url)
 	str.Format(
 		"GET %s HTTP/1.0\r\n"
 		"Icy-MetaData:1\r\n"
-//		"User-Agent: shoutcastsource\r\n"
+		"User-Agent: shoutcastsource\r\n"
 		"Host: %s\r\n"
 		"Accept: */*\r\n"
 		"Connection: Keep-Alive\r\n"
 		"\r\n", CStringA(url.GetUrlPath()), CStringA(url.GetHostName()));
-	int len = Send((BYTE*)(LPCSTR)str, str.GetLength());
-
-	m_nBytesRead = 0;
-	m_metaint = 0;
-	m_bitrate = 0;
 
 	bool fOK = false;
+	bool fTryAgain = false;
 	int metaint = 0;
 
-	str.Empty();
-	BYTE cur = 0, prev = 0;
-	while(Receive(&cur, 1) == 1 && cur && !(cur == '\n' && prev == '\n'))
+	do
 	{
-		if(cur == '\r')
-			continue;
+		int len = Send((BYTE*)(LPCSTR)str, str.GetLength());
 
-		if(cur == '\n')
+		m_nBytesRead = 0;
+		m_metaint = metaint = 0;
+		m_bitrate = 0;
+
+		str.Empty();
+		BYTE cur = 0, prev = 0;
+		while(Receive(&cur, 1) == 1 && cur && !(cur == '\n' && prev == '\n'))
 		{
-			str.MakeLower();
-			if(str.Find("icy 200 ok") >= 0) fOK = true;
-			else if(1 == sscanf(str, "icy-br:%d", &m_bitrate)) m_bitrate *= 1000;
-			else if(1 == sscanf(str, "icy-metaint:%d", &metaint)) metaint = metaint;
-			str.Empty();
+			if(cur == '\r')
+				continue;
+
+			if(cur == '\n')
+			{
+				str.MakeLower();
+				if(str.Find("icy 200 ok") >= 0) fOK = true;
+				else if(1 == sscanf(str, "icy-br:%d", &m_bitrate)) m_bitrate *= 1000;
+				else if(1 == sscanf(str, "icy-metaint:%d", &metaint)) metaint = metaint;
+				str.Empty();
+			}
+			else
+			{
+				str += cur;
+			}
+
+			prev = cur;
+			cur = 0;
+		}
+
+		if(!fOK && GetLastError() == WSAECONNRESET && !fTryAgain)
+		{
+			str.Format(
+				"GET %s HTTP/1.0\r\n"
+				"Icy-MetaData:1\r\n"
+				"Host: %s\r\n"
+				"Accept: */*\r\n"
+				"Connection: Keep-Alive\r\n"
+				"\r\n", CStringA(url.GetUrlPath()), CStringA(url.GetHostName()));
+
+			fTryAgain = true;
 		}
 		else
 		{
-			str += cur;
+			fTryAgain = false;
 		}
-
-		prev = cur;
-		cur = 0;
 	}
+	while(fTryAgain);
 
 	if(!fOK || m_bitrate == 0) {Close(); return(false);}
 

@@ -81,6 +81,8 @@ extern GUID GUIDFromCString(CString str);
 extern CString CStringFromGUID(const GUID& guid);
 extern CStringW UTF8To16(LPCSTR utf8);
 extern CStringA UTF16To8(LPCWSTR utf16);
+extern CString ISO6391ToLanguage(LPCSTR code);
+extern CString ISO6392ToLanguage(LPCSTR code);
 
 class CPinInfo : public PIN_INFO
 {

@@ -31,3 +31,4 @@
 #include ".\parser\StreamDriveThru\StreamDriveThru.h"
 #include ".\parser\MatroskaSplitter\MatroskaSplitter.h"
 #include ".\muxer\MatroskaMuxer\MatroskaMuxer.h"
+#include ".\parser\RealMediaSplitter\RealMediaSplitter.h"

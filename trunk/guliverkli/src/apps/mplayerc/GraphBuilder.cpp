@@ -176,6 +176,44 @@ CGraphBuilder::CGraphBuilder(IGraphBuilder* pGB, HWND hWnd)
 		guids.RemoveAll();
 	}
 
+	if(s.SrcFilters&SRC_REALMEDIA)
+	{
+		guids.AddTail(MEDIATYPE_Stream);
+		guids.AddTail(MEDIASUBTYPE_RealMedia);
+		AddFilter(new CGraphCustomFilter(__uuidof(CRealMediaSplitterFilter), guids, L"RealMedia Splitter", LMERIT_PREFERRED));
+		guids.RemoveAll();
+	}
+
+	{
+		guids.AddTail(MEDIATYPE_Video);
+		guids.AddTail(MEDIASUBTYPE_RV10);
+		guids.AddTail(MEDIATYPE_Video);
+		guids.AddTail(MEDIASUBTYPE_RV20);
+		guids.AddTail(MEDIATYPE_Video);
+		guids.AddTail(MEDIASUBTYPE_RV30);
+		guids.AddTail(MEDIATYPE_Video);
+		guids.AddTail(MEDIASUBTYPE_RV40);
+		AddFilter(new CGraphCustomFilter(__uuidof(CRealVideoDecoder), guids, L"RealVideo Decoder", 
+			(s.SrcFilters&SRC_REALMEDIA) ? LMERIT_PREFERRED : LMERIT_DO_USE));
+		guids.RemoveAll();
+
+		guids.AddTail(MEDIATYPE_Audio);
+		guids.AddTail(MEDIASUBTYPE_14_4);
+		guids.AddTail(MEDIATYPE_Audio);
+		guids.AddTail(MEDIASUBTYPE_28_8);
+		guids.AddTail(MEDIATYPE_Audio);
+		guids.AddTail(MEDIASUBTYPE_ATRC);
+		guids.AddTail(MEDIATYPE_Audio);
+		guids.AddTail(MEDIASUBTYPE_COOK);
+		guids.AddTail(MEDIATYPE_Audio);
+		guids.AddTail(MEDIASUBTYPE_DNET);
+		guids.AddTail(MEDIATYPE_Audio);
+		guids.AddTail(MEDIASUBTYPE_SIPR);
+		AddFilter(new CGraphCustomFilter(__uuidof(CRealAudioDecoder), guids, L"RealAudio Decoder", 
+			(s.SrcFilters&SRC_REALMEDIA) ? LMERIT_PREFERRED : LMERIT_DO_USE));
+		guids.RemoveAll();
+	}
+
 	// renderer filters
 
 	switch(s.iVideoRendererType)
@@ -411,115 +449,127 @@ HRESULT CGraphBuilder::Render(LPCTSTR lpsz)
 
 	CComQIPtr<IBaseFilter> pBF;
 
-	if((s.SrcFilters&SRC_CDDA) && !pBF && ext == _T(".cda"))
+	CComQIPtr<IGraphEngine> pGE = m_pGB;
+	if(!pGE || pGE->GetEngine() == DirectShow)
 	{
-		hr = S_OK;
-		CComPtr<IFileSourceFilter> pReader = new CCDDAReader(NULL, &hr);
-		if(SUCCEEDED(hr) && SUCCEEDED(pReader->Load(fnw, NULL)))
-			pBF = pReader;
-	}
-
-	if((s.SrcFilters&SRC_CDXA) && !pBF)
-	{
-		hr = S_OK;
-		CComPtr<IFileSourceFilter> pReader = new CCDXAReader(NULL, &hr);
-		if(SUCCEEDED(hr) && SUCCEEDED(pReader->Load(fnw, NULL)))
-			pBF = pReader;
-	}
-
-	if((s.SrcFilters&SRC_VTS) && !pBF) //&& ext == _T(".ifo"))
-	{
-		hr = S_OK;
-		CComPtr<IFileSourceFilter> pReader = new CVTSReader(NULL, &hr);
-		if(SUCCEEDED(hr) && SUCCEEDED(pReader->Load(fnw, NULL)))
-			pBF = pReader;
-	}
-
-	if((s.SrcFilters&SRC_FLIC) && !pBF) //&& (ext == _T(".fli") || ext == _T(".flc")))
-	{
-		hr = S_OK;
-		CComPtr<IFileSourceFilter> pReader = new CFLICSource(NULL, &hr);
-		if(SUCCEEDED(hr) && SUCCEEDED(pReader->Load(fnw, NULL)))
-			pBF = pReader;
-	}
-
-	if((s.SrcFilters&SRC_DVD2AVI) && !pBF) //&& ext == _T(".d2v"))
-	{
-		hr = S_OK;
-		CComPtr<IFileSourceFilter> pReader = new CD2VSource(NULL, &hr);
-		if(SUCCEEDED(hr) && SUCCEEDED(pReader->Load(fnw, NULL)))
-			pBF = pReader;
-	}
-
-	if((s.SrcFilters&SRC_DTSAC3) && !pBF) //&& (ext == _T(".dts") || ext == _T(".ac3")))
-	{
-		hr = S_OK;
-		CComPtr<IFileSourceFilter> pReader = new CDTSAC3Source(NULL, &hr);
-		if(SUCCEEDED(hr) && SUCCEEDED(pReader->Load(fnw, NULL)))
-			pBF = pReader;
-	}
-
-	if((s.SrcFilters&SRC_MATROSKA) && !pBF) //&& (ext == _T(".mkv") || ext == _T(".mka") || ext == _T(".mks")))
-	{
-		hr = S_OK;
-		CComPtr<IFileSourceFilter> pReader = new CMatroskaSourceFilter(NULL, &hr);
-		if(SUCCEEDED(hr) && SUCCEEDED(pReader->Load(fnw, NULL)))
-			pBF = pReader;
-	}
-
-	if((s.SrcFilters&SRC_SHOUTCAST) && !pBF && fn.Find(_T("://")) >= 0)
-	{
-		hr = S_OK;
-		CComPtr<IFileSourceFilter> pReader = new CShoutcastSource(NULL, &hr);
-		if(SUCCEEDED(hr) && SUCCEEDED(pReader->Load(fnw, NULL)))
-			pBF = pReader;
-	}
-
-	if(!pBF && AfxGetAppSettings().fUseWMASFReader && fn.Find(_T("://")) < 0)
-	{
-		bool fWindowsMedia = (ext == _T(".asf") || ext == _T(".wmv") || ext == _T(".wma"));
-
-		if(!fWindowsMedia)
+		if((s.SrcFilters&SRC_CDDA) && !pBF && ext == _T(".cda"))
 		{
-			CFile f;
-			if(f.Open(fn, CFile::modeRead))
-			{
-				BYTE buff[4];
-				memset(buff, 0, sizeof(buff));
-				f.Read(buff, sizeof(buff));
-				if(*(DWORD*)buff == 0x75b22630)
-					fWindowsMedia = true;
-			}
-		}
-
-		if(fWindowsMedia)
-		{
-			CComPtr<IFileSourceFilter> pReader;
-			hr = pReader.CoCreateInstance(CLSID_WMAsfReader);
+			hr = S_OK;
+			CComPtr<IFileSourceFilter> pReader = new CCDDAReader(NULL, &hr);
 			if(SUCCEEDED(hr) && SUCCEEDED(pReader->Load(fnw, NULL)))
 				pBF = pReader;
 		}
-	}
 
-	if(!pBF && fn.Find(_T("://")) < 0)
-	{
-		CFile f;
-		if(f.Open(fn, CFile::modeRead|CFile::shareDenyWrite))
+		if((s.SrcFilters&SRC_CDXA) && !pBF)
 		{
-			ULONGLONG len = f.GetLength();
-			BYTE buff[12];
-			memset(buff, 0, sizeof(buff));
-			f.Read(buff, sizeof(buff));
-			if(*((DWORD*)&buff[0]) == 'FFIR' && *((DWORD*)&buff[8]) == ' IVA')
-			{
-				if(len < *((DWORD*)&buff[4])+8)
-				{
-					MessageBeep(-1);
+			hr = S_OK;
+			CComPtr<IFileSourceFilter> pReader = new CCDXAReader(NULL, &hr);
+			if(SUCCEEDED(hr) && SUCCEEDED(pReader->Load(fnw, NULL)))
+				pBF = pReader;
+		}
 
-					CComPtr<IFileSourceFilter> pReader;
-					hr = pReader.CoCreateInstance(CLSID_AVIDoc);
-					if(SUCCEEDED(hr) && SUCCEEDED(pReader->Load(fnw, NULL)))
-						pBF = pReader;
+		if((s.SrcFilters&SRC_VTS) && !pBF) //&& ext == _T(".ifo"))
+		{
+			hr = S_OK;
+			CComPtr<IFileSourceFilter> pReader = new CVTSReader(NULL, &hr);
+			if(SUCCEEDED(hr) && SUCCEEDED(pReader->Load(fnw, NULL)))
+				pBF = pReader;
+		}
+
+		if((s.SrcFilters&SRC_FLIC) && !pBF) //&& (ext == _T(".fli") || ext == _T(".flc")))
+		{
+			hr = S_OK;
+			CComPtr<IFileSourceFilter> pReader = new CFLICSource(NULL, &hr);
+			if(SUCCEEDED(hr) && SUCCEEDED(pReader->Load(fnw, NULL)))
+				pBF = pReader;
+		}
+
+		if((s.SrcFilters&SRC_DVD2AVI) && !pBF) //&& ext == _T(".d2v"))
+		{
+			hr = S_OK;
+			CComPtr<IFileSourceFilter> pReader = new CD2VSource(NULL, &hr);
+			if(SUCCEEDED(hr) && SUCCEEDED(pReader->Load(fnw, NULL)))
+				pBF = pReader;
+		}
+
+		if((s.SrcFilters&SRC_DTSAC3) && !pBF) //&& (ext == _T(".dts") || ext == _T(".ac3")))
+		{
+			hr = S_OK;
+			CComPtr<IFileSourceFilter> pReader = new CDTSAC3Source(NULL, &hr);
+			if(SUCCEEDED(hr) && SUCCEEDED(pReader->Load(fnw, NULL)))
+				pBF = pReader;
+		}
+
+		if((s.SrcFilters&SRC_SHOUTCAST) && !pBF && fn.Find(_T("://")) >= 0)
+		{
+			hr = S_OK;
+			CComPtr<IFileSourceFilter> pReader = new CShoutcastSource(NULL, &hr);
+			if(SUCCEEDED(hr) && SUCCEEDED(pReader->Load(fnw, NULL)))
+				pBF = pReader;
+		}
+
+		if((s.SrcFilters&SRC_MATROSKA) && !pBF) //&& (ext == _T(".mkv") || ext == _T(".mka") || ext == _T(".mks")))
+		{
+			hr = S_OK;
+			CComPtr<IFileSourceFilter> pReader = new CMatroskaSourceFilter(NULL, &hr);
+			if(SUCCEEDED(hr) && SUCCEEDED(pReader->Load(fnw, NULL)))
+				pBF = pReader;
+		}
+
+		if((s.SrcFilters&SRC_REALMEDIA) && !pBF)
+		{
+			hr = S_OK;
+			CComPtr<IFileSourceFilter> pReader = new CRealMediaSourceFilter(NULL, &hr);
+			if(SUCCEEDED(hr) && SUCCEEDED(pReader->Load(fnw, NULL)))
+				pBF = pReader;
+		}
+
+		if(!pBF && AfxGetAppSettings().fUseWMASFReader && fn.Find(_T("://")) < 0)
+		{
+			bool fWindowsMedia = (ext == _T(".asf") || ext == _T(".wmv") || ext == _T(".wma"));
+
+			if(!fWindowsMedia)
+			{
+				CFile f;
+				if(f.Open(fn, CFile::modeRead))
+				{
+					BYTE buff[4];
+					memset(buff, 0, sizeof(buff));
+					f.Read(buff, sizeof(buff));
+					if(*(DWORD*)buff == 0x75b22630)
+						fWindowsMedia = true;
+				}
+			}
+
+			if(fWindowsMedia)
+			{
+				CComPtr<IFileSourceFilter> pReader;
+				hr = pReader.CoCreateInstance(CLSID_WMAsfReader);
+				if(SUCCEEDED(hr) && SUCCEEDED(pReader->Load(fnw, NULL)))
+					pBF = pReader;
+			}
+		}
+
+		if(!pBF && fn.Find(_T("://")) < 0)
+		{
+			CFile f;
+			if(f.Open(fn, CFile::modeRead|CFile::shareDenyWrite))
+			{
+				ULONGLONG len = f.GetLength();
+				BYTE buff[12];
+				memset(buff, 0, sizeof(buff));
+				f.Read(buff, sizeof(buff));
+				if(*((DWORD*)&buff[0]) == 'FFIR' && *((DWORD*)&buff[8]) == ' IVA')
+				{
+					if(len < *((DWORD*)&buff[4])+8)
+					{
+						MessageBeep(-1);
+
+						CComPtr<IFileSourceFilter> pReader;
+						hr = pReader.CoCreateInstance(CLSID_AVIDoc);
+						if(SUCCEEDED(hr) && SUCCEEDED(pReader->Load(fnw, NULL)))
+							pBF = pReader;
+					}
 				}
 			}
 		}
@@ -843,7 +893,6 @@ HRESULT CGraphBuilder::Render(IPin* pPin)
 
 		if(SUCCEEDED(hr) || SUCCEEDED(ConnectDirect(pPin, pBF, NULL)))
 		{
-
 			fDeadEnd = false;
 
 			int nCurrentStream = m_nCurrentStream;
@@ -1400,8 +1449,11 @@ HRESULT CGraphCustomFilter::Create(IBaseFilter** ppBF, IUnknown** ppUnk)
 	*ppBF = 
 		m_clsid == __uuidof(CAVI2AC3Filter) ? (IBaseFilter*)new CAVI2AC3Filter(NULL, &hr) : 
 		m_clsid == __uuidof(CDeCSSFilter) ? (IBaseFilter*)new CDeCSSFilter(NULL, &hr) : 
-		m_clsid == __uuidof(CAudioSwitcherFilter) ? (IBaseFilter*)new CAudioSwitcherFilter(NULL, &hr) : 
-		m_clsid == __uuidof(CMatroskaSplitterFilter) ? (IBaseFilter*)new CMatroskaSplitterFilter(NULL, &hr) : 	
+		m_clsid == __uuidof(CAudioSwitcherFilter) ? (IBaseFilter*)new CAudioSwitcherFilter(NULL, &hr) :
+		m_clsid == __uuidof(CMatroskaSplitterFilter) ? (IBaseFilter*)new CMatroskaSplitterFilter(NULL, &hr) :
+		m_clsid == __uuidof(CRealMediaSplitterFilter) ? (IBaseFilter*)new CRealMediaSplitterFilter(NULL, &hr) :
+		m_clsid == __uuidof(CRealVideoDecoder) ? (IBaseFilter*)new CRealVideoDecoder(NULL, &hr) :
+		m_clsid == __uuidof(CRealAudioDecoder) ? (IBaseFilter*)new CRealAudioDecoder(NULL, &hr) :
 		NULL;
 
 	if(!*ppBF) hr = E_FAIL;

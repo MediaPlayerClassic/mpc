@@ -2309,8 +2309,6 @@ void CMainFrame::OnFilePostOpenmedia()
 	// still running and the renderer window was created on
 	// the same worker-thread
 
-//	SetFocus();
-
 	{
 		WINDOWPLACEMENT wp;
 		wp.length = sizeof(wp);
@@ -5929,10 +5927,7 @@ void CMainFrame::SetupFiltersSubMenu()
 			CString name(GetFilterName(pBF));
 			if(name.GetLength() >= 43) name = name.Left(40) + _T("...");
 
-			CLSID clsid;
-			memcpy(&clsid, &GUID_NULL, sizeof(clsid));
-			pBF->GetClassID(&clsid);
-
+			CLSID clsid = GetCLSID(pBF);
 			if(clsid == CLSID_AVIDec)
 			{
 				CComPtr<IPin> pPin = GetFirstPin(pBF);
@@ -5960,6 +5955,12 @@ void CMainFrame::SetupFiltersSubMenu()
 					WORD c = ((WAVEFORMATEX*)mt.pbFormat)->wFormatTag;
 					name.Format(_T("%s (0x%04x)"), CString(name), (int)c);
 				}
+			}
+			else if(clsid == __uuidof(CTextPassThruFilter)
+				|| clsid == GUIDFromCString(_T("{48025243-2D39-11CE-875D-00608CB78066}"))) // ISCR
+			{
+				// hide these
+				continue;
 			}
 
 			CAutoPtr<CMenu> pSubSub(new CMenu);

@@ -29,6 +29,11 @@
 #include "..\..\..\..\include\ogg\OggDS.h"
 #include "..\..\..\..\include\moreuuids.h"
 
+// 1 would be enough but 2 is needed at least to be able to send those fake samples at the beginning 
+#define MAXBUFFERS 2
+// this is enough for about 3 sec preload
+#define MAXPACKETS 100
+
 using namespace MatroskaReader;
 
 #ifdef REGISTER_FILTER
@@ -473,7 +478,8 @@ HRESULT CMatroskaSourceFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 					mt.formattype = FORMAT_SubtitleInfo;
 					SUBTITLEINFO* psi = (SUBTITLEINFO*)mt.AllocFormatBuffer(sizeof(SUBTITLEINFO));
 					memset(psi, 0, mt.FormatLength());
-					// TODO: set psi->IsoLang when the language code is available
+					psi->dwOffset = sizeof(SUBTITLEINFO);
+					strncpy(psi->IsoLang, pTE->Language, 3);
 					mts.InsertAt(0, mt);
 				}
 				else if(CodecID == "S_SSA" || CodecID == "S_TEXT/SSA")
@@ -483,7 +489,7 @@ HRESULT CMatroskaSourceFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 					mt.formattype = FORMAT_SubtitleInfo;
 					SUBTITLEINFO* psi = (SUBTITLEINFO*)mt.AllocFormatBuffer(sizeof(SUBTITLEINFO) + pTE->CodecPrivate.GetSize());
 					memset(psi, 0, mt.FormatLength());
-					// TODO: set psi->IsoLang when the language code is available
+					strncpy(psi->IsoLang, pTE->Language, 3);
 					memcpy(mt.pbFormat + (psi->dwOffset = sizeof(SUBTITLEINFO)), pTE->CodecPrivate.GetData(), pTE->CodecPrivate.GetSize());
 					mts.InsertAt(0, mt);
 				}
@@ -494,7 +500,7 @@ HRESULT CMatroskaSourceFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 					mt.formattype = FORMAT_SubtitleInfo;
 					SUBTITLEINFO* psi = (SUBTITLEINFO*)mt.AllocFormatBuffer(sizeof(SUBTITLEINFO) + pTE->CodecPrivate.GetSize());
 					memset(psi, 0, mt.FormatLength());
-					// TODO: set psi->IsoLang when the language code is available
+					strncpy(psi->IsoLang, pTE->Language, 3);
 					memcpy(mt.pbFormat + (psi->dwOffset = sizeof(SUBTITLEINFO)), pTE->CodecPrivate.GetData(), pTE->CodecPrivate.GetSize());
 					mts.InsertAt(0, mt);
 				}
@@ -505,7 +511,7 @@ HRESULT CMatroskaSourceFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 					mt.formattype = FORMAT_SubtitleInfo;
 					SUBTITLEINFO* psi = (SUBTITLEINFO*)mt.AllocFormatBuffer(sizeof(SUBTITLEINFO) + pTE->CodecPrivate.GetSize());
 					memset(psi, 0, mt.FormatLength());
-					// TODO: set psi->IsoLang when the language code is available
+					strncpy(psi->IsoLang, pTE->Language, 3);
 					memcpy(mt.pbFormat + (psi->dwOffset = sizeof(SUBTITLEINFO)), pTE->CodecPrivate.GetData(), pTE->CodecPrivate.GetSize());
 					mts.InsertAt(0, mt);
 				}
@@ -1441,6 +1447,7 @@ STDMETHODIMP CMatroskaSplitterInputPin::EndFlush()
 
 CMatroskaSplitterOutputPin::CMatroskaSplitterOutputPin(CArray<CMediaType>& mts, LPCWSTR pName, CBaseFilter* pFilter, CCritSec* pLock, HRESULT* phr)
 	: CBaseOutputPin(NAME("CMatroskaSplitterOutputPin"), pFilter, pLock, phr, pName)
+	, m_hrDeliver(S_OK) // just in case it were asked before the worker thread could create and reset it
 {
 	m_mts.Copy(mts);
 }

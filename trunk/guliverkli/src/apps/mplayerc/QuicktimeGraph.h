@@ -120,6 +120,9 @@ protected:
     STDMETHODIMP Step(DWORD dwFrames, IUnknown* pStepObject);
     STDMETHODIMP CanStep(long bMultiple, IUnknown* pStepObject);    
     STDMETHODIMP CancelStep();
+
+	// IGraphEngine
+	STDMETHODIMP_(engine_t) GetEngine();
 };
 
 }

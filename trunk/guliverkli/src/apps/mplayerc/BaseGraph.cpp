@@ -90,6 +90,7 @@ STDMETHODIMP CBaseGraph::NonDelegatingQueryInterface(REFIID riid, void** ppv)
 		QI(IBasicVideo)
 		QI(IBasicAudio)
 		QI(IAMOpenProgress)
+		QI(IGraphEngine)
 		__super::NonDelegatingQueryInterface(riid, ppv);
 }
 
@@ -329,3 +330,6 @@ STDMETHODIMP CBaseGraph::get_Balance(long* plBalance) {return E_NOTIMPL;}
 // IAMOpenProgress
 STDMETHODIMP CBaseGraph::QueryProgress(LONGLONG* pllTotal, LONGLONG* pllCurrent) {return E_NOTIMPL;}
 STDMETHODIMP CBaseGraph::AbortOperation() {return E_NOTIMPL;}
+
+// IGraphEngine
+STDMETHODIMP_(engine_t) CBaseGraph::GetEngine() {return DirectShow;}

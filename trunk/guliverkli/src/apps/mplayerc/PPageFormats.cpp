@@ -33,6 +33,7 @@
 IMPLEMENT_DYNAMIC(CPPageFormats, CPPageBase)
 CPPageFormats::CPPageFormats()
 	: CPPageBase(CPPageFormats::IDD, CPPageFormats::IDD)
+	, m_list(0)
 	, m_exts(_T(""))
 {
 }
@@ -408,6 +409,9 @@ void CPPageFormats::SetListItemState(int nItem)
 BEGIN_MESSAGE_MAP(CPPageFormats, CPPageBase)
 	ON_NOTIFY(NM_CLICK, IDC_LIST1, OnNMClickList1)
 	ON_NOTIFY(LVN_ITEMCHANGED, IDC_LIST1, OnLvnItemchangedList1)
+	ON_NOTIFY(LVN_BEGINLABELEDIT, IDC_LIST1, OnBeginlabeleditList)
+	ON_NOTIFY(LVN_DOLABELEDIT, IDC_LIST1, OnDolabeleditList)
+	ON_NOTIFY(LVN_ENDLABELEDIT, IDC_LIST1, OnEndlabeleditList)
 	ON_BN_CLICKED(IDC_BUTTON1, OnBnClickedButton1)
 	ON_BN_CLICKED(IDC_BUTTON12, OnBnClickedButton12)
 	ON_BN_CLICKED(IDC_BUTTON11, OnBnClickedButton11)
@@ -421,7 +425,10 @@ BOOL CPPageFormats::OnInitDialog()
 {
 	__super::OnInitDialog();
 
-	m_list.InsertColumn(0, _T("Format"), LVCFMT_LEFT, 100);
+	m_list.SetExtendedStyle(m_list.GetExtendedStyle()|LVS_EX_FULLROWSELECT);
+
+	m_list.InsertColumn(COL_CATEGORY, _T("Category"), LVCFMT_LEFT, 300);
+	m_list.InsertColumn(COL_ENGINE, _T("Engine"), LVCFMT_RIGHT, 60);
 
 	m_onoff.Create(IDB_ONOFF, 12, 3, 0xffffff);
 	m_list.SetImageList(&m_onoff, LVSIL_SMALL);
@@ -430,14 +437,20 @@ BOOL CPPageFormats::OnInitDialog()
 	for(int i = 0; i < mf.GetCount(); i++)
 	{
 		CString label = mf[i].GetLabel();
-		// HACK:
+		// HACK: sorry, mpc is just not an image viewer :)
 		if(!label.CompareNoCase(_T("Image file"))) continue;
-		CString specreqnote = mf[i].GetSpecReqNote();
-		if(!specreqnote.IsEmpty()) label += _T(" (") + specreqnote + _T(")");
-		m_list.SetItemData(m_list.InsertItem(i, label), i);
+		int iItem = m_list.InsertItem(i, label);
+		m_list.SetItemData(iItem, i);
+		engine_t e = mf[i].GetEngineType();
+		m_list.SetItemText(iItem, COL_ENGINE, 
+			e == DirectShow ? _T("DirectShow") : 
+			e == RealMedia ? _T("RealMedia") : 
+			e == QuickTime ? _T("QuickTime") : 
+			e == ShockWave ? _T("ShockWave") : _T("-"));
 	}
 
-	m_list.SetColumnWidth(0, LVSCW_AUTOSIZE);
+//	m_list.SetColumnWidth(COL_CATEGORY, LVSCW_AUTOSIZE);
+	m_list.SetColumnWidth(COL_ENGINE, LVSCW_AUTOSIZE_USEHEADER);
 
 	m_list.SetSelectionMark(0);
 	m_list.SetItemState(0, LVIS_SELECTED, LVIS_SELECTED);
@@ -523,7 +536,7 @@ void CPPageFormats::OnNMClickList1(NMHDR* pNMHDR, LRESULT* pResult)
 {
 	LPNMLISTVIEW lpnmlv = (LPNMLISTVIEW)pNMHDR;
 
-	if(lpnmlv->iItem >= 0 && lpnmlv->iSubItem == 0)
+	if(lpnmlv->iItem >= 0 && lpnmlv->iSubItem == COL_CATEGORY)
 	{
 		CRect r;
 		m_list.GetItemRect(lpnmlv->iItem, r, LVIR_ICON);
@@ -541,13 +554,86 @@ void CPPageFormats::OnLvnItemchangedList1(NMHDR *pNMHDR, LRESULT *pResult)
 {
 	LPNMLISTVIEW pNMLV = reinterpret_cast<LPNMLISTVIEW>(pNMHDR);
 
-	if(pNMLV->iItem >= 0 && (pNMLV->uChanged&LVIF_STATE) && (pNMLV->uNewState&LVIS_SELECTED))
+	if(pNMLV->iItem >= 0 && pNMLV->iSubItem == COL_CATEGORY
+	&& (pNMLV->uChanged&LVIF_STATE) && (pNMLV->uNewState&LVIS_SELECTED))
 	{
 		m_exts = AfxGetAppSettings().Formats[(int)m_list.GetItemData(pNMLV->iItem)].GetExtsWithPeriod();
 		UpdateData(FALSE);
 	}
 
 	*pResult = 0;
+}
+
+void CPPageFormats::OnBeginlabeleditList(NMHDR* pNMHDR, LRESULT* pResult) 
+{
+	LV_DISPINFO* pDispInfo = (LV_DISPINFO*)pNMHDR;
+	LV_ITEM* pItem = &pDispInfo->item;
+
+	*pResult = FALSE;
+
+	if(pItem->iItem < 0) 
+		return;
+
+	if(pItem->iSubItem == COL_ENGINE)
+	{
+		*pResult = TRUE;
+	}
+}
+
+void CPPageFormats::OnDolabeleditList(NMHDR* pNMHDR, LRESULT* pResult) 
+{
+	LV_DISPINFO* pDispInfo = (LV_DISPINFO*)pNMHDR;
+	LV_ITEM* pItem = &pDispInfo->item;
+
+	*pResult = FALSE;
+
+	if(pItem->iItem < 0) 
+		return;
+
+	CMediaFormatCategory& mfc = AfxGetAppSettings().Formats[m_list.GetItemData(pItem->iItem)];
+
+	CStringList sl;
+	int nSel = -1;
+
+	if(pItem->iSubItem == COL_ENGINE)
+	{
+		sl.AddTail(_T("DirectShow"));
+		sl.AddTail(_T("RealMedia"));
+		sl.AddTail(_T("QuickTime"));
+		sl.AddTail(_T("ShockWave"));
+
+		nSel = (int)mfc.GetEngineType();
+
+		m_list.ShowInPlaceComboBox(pItem->iItem, pItem->iSubItem, sl, nSel);
+
+		*pResult = TRUE;
+	}
+}
+
+void CPPageFormats::OnEndlabeleditList(NMHDR* pNMHDR, LRESULT* pResult) 
+{
+	LV_DISPINFO* pDispInfo = (LV_DISPINFO*)pNMHDR;
+	LV_ITEM* pItem = &pDispInfo->item;
+
+	*pResult = FALSE;
+
+	if(!m_list.m_fInPlaceDirty)
+		return;
+
+	if(pItem->iItem < 0) 
+		return;
+
+	CMediaFormatCategory& mfc = AfxGetAppSettings().Formats[m_list.GetItemData(pItem->iItem)];
+
+	if(pItem->iSubItem == COL_ENGINE && pItem->lParam >= 0)
+	{
+		mfc.SetEngineType((engine_t)pItem->lParam);
+		m_list.SetItemText(pItem->iItem, pItem->iSubItem, pItem->pszText);
+		*pResult = TRUE;
+	}
+
+	if(*pResult)
+		SetModified();
 }
 
 void CPPageFormats::OnBnClickedButton1()

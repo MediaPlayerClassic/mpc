@@ -543,6 +543,14 @@ STDMETHODIMP CVMR7AllocatorPresenter::AllocateSurface(DWORD_PTR dwUserID, VMRALL
 
     DeleteSurfaces();
 
+	// HACK: yv12 will fail to blt onto the backbuffer anyway, but if we first
+	// allocate it and then let our FreeSurface callback call m_pSA->FreeSurface,
+	// then that might stall for about 30 seconds because of some unknown buggy code 
+	// behind <ddraw surface>->Release()
+
+	if(lpAllocInfo->lpHdr->biBitCount < 16)
+		return E_FAIL;
+
 	hr = m_pSA->AllocateSurface(dwUserID, lpAllocInfo, lpdwBuffer, lplpSurface);
 	if(FAILED(hr))
 		return hr;
