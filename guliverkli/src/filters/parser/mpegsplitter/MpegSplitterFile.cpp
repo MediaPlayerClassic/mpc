@@ -241,7 +241,7 @@ m_rate = rate;
 			trhdr h;
 			if(!Read(h)) continue;
 
-			if(h.scrambling) {ASSERT(0); return E_FAIL;}
+			// if(h.scrambling) {ASSERT(0); return E_FAIL;}
 
 			__int64 pos = GetPos();
 
