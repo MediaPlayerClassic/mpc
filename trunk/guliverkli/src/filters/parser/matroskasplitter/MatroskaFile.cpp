@@ -253,6 +253,7 @@ HRESULT TrackEntry::Parse(CMatroskaNode* pMN0)
 	case 0x26B240: CodecDownloadURL.Parse(pMN); break;
 	case 0xAA: CodecDecodeAll.Parse(pMN); break;
 	case 0x6FAB: TrackOverlay.Parse(pMN); break;
+	case 0x2383E3: DefaultDuration.Parse(pMN); break;
 	case 0xE0: if(S_OK == v.Parse(pMN)) DescType |= DescVideo; break;
 	case 0xE1: if(S_OK == a.Parse(pMN)) DescType |= DescAudio; break;
 	EndChunk
@@ -271,7 +272,7 @@ HRESULT Video::Parse(CMatroskaNode* pMN0)
 	case 0x54B3: AspectRatioType.Parse(pMN); break;
 	case 0x2EB524: ColourSpace.Parse(pMN); break;
 	case 0x2FB523: GammaValue.Parse(pMN); break;
-	case 0x2383E3: DefaultDuration.Parse(pMN); break;
+	case 0x2383E3: FramePerSec.Parse(pMN); break;
 	EndChunk
 }
 
@@ -298,7 +299,7 @@ HRESULT Cluster::Parse(CMatroskaNode* pMN0)
 HRESULT Cluster::ParseTimeCode(CMatroskaNode* pMN0)
 {
 	BeginChunk
-	case 0xE7: TimeCode.Parse(pMN); break;
+	case 0xE7: TimeCode.Parse(pMN); return S_OK;
 	EndChunk
 }
 
@@ -307,7 +308,9 @@ HRESULT Block::Parse(CMatroskaNode* pMN0, bool fFull)
 	BeginChunk
 	case 0xA1:
 	{
-		TrackNumber.Parse(pMN); CShort s; s.Parse(pMN); TimeCode.Set(s); Lacing.Parse(pMN);
+		TrackNumber.Parse(pMN); 
+		CShort s; s.Parse(pMN); TimeCode.Set(s); 
+		Lacing.Parse(pMN);
 		
 		if(!fFull) break;
 

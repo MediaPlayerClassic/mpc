@@ -217,8 +217,10 @@ HRESULT CMatroskaSourceFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 					VIDEOINFOHEADER* pvih = (VIDEOINFOHEADER*)mt.AllocFormatBuffer(sizeof(VIDEOINFOHEADER) + pTE->CodecPrivate.GetCount() - sizeof(BITMAPINFOHEADER));
 					memset(pvih, 0, mt.FormatLength());
 					memcpy(&pvih->bmiHeader, pbmi, pTE->CodecPrivate.GetCount());
-					if(pTE->v.DefaultDuration > 0) 
-						pvih->AvgTimePerFrame = (REFERENCE_TIME)(10000000i64 / pTE->v.DefaultDuration);
+					if(pTE->v.FramePerSec > 0) 
+						pvih->AvgTimePerFrame = (REFERENCE_TIME)(10000000i64 / pTE->v.FramePerSec);
+					else if(pTE->DefaultDuration > 0)
+						pvih->AvgTimePerFrame = (REFERENCE_TIME)pTE->DefaultDuration / 100;
 					switch(pbmi->biCompression)
 					{
 					case BI_RGB: case BI_BITFIELDS: mt.subtype = 
@@ -396,16 +398,7 @@ HRESULT CMatroskaSourceFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 				TRACE(_T("CMatroskaSourceFilter: Unsupported TrackType %s (%I64d)\n"), CString(CodecID), (UINT64)pTE->TrackType);
 				continue;
 			}
-/*
-			if(mt.majortype == MEDIATYPE_NULL)
-			{
-				TRACE(_T("CMatroskaSourceFilter: Unsupported TrackType %s (%I64d)\n"), CString(CodecID), (UINT64)pTE->TrackType);
-				continue;
-			}
 
-			ASSERT(maxlen > 0);
-			mt.SetSampleSize((ULONG)maxlen);
-*/
 			HRESULT hr;
 			CAutoPtr<CMatroskaSplitterOutputPin> pPinOut(new CMatroskaSplitterOutputPin(mts, Name, this, this, &hr));
 			if(!pPinOut) continue;
@@ -695,7 +688,7 @@ DWORD CMatroskaSourceFilter::ThreadProc()
 							if(b2->BlockDuration == Block::INVALIDDURATION
 							&& b2->TrackNumber == b->TrackNumber)
 							{
-								b2->BlockDuration.Set(b->TimeCode <= b2->TimeCode ? 1 : b->TimeCode - b2->TimeCode);
+								b2->BlockDuration.Set(max(b->TimeCode - b2->TimeCode, 0));
 								break;
 							}
 						}
@@ -782,6 +775,9 @@ HRESULT CMatroskaSourceFilter::DeliverBlock(CAutoPtr<Block> b)
 	TrackEntry* pTE = NULL;
 	if(!m_mapTrackToTrackEntry.Lookup(b->TrackNumber, pTE) || !pTE)
 		return S_FALSE;
+
+	if(b->BlockDuration == 0)
+		b->BlockDuration.Set(pTE->DefaultDuration);
 
 	ASSERT(b->BlockData.GetCount() > 0 && b->BlockDuration > 0);
 
@@ -1005,7 +1001,7 @@ STDMETHODIMP CMatroskaSourceFilter::IsFormatSupported(const GUID* pFormat) {retu
 STDMETHODIMP CMatroskaSourceFilter::QueryPreferredFormat(GUID* pFormat) {return GetTimeFormat(pFormat);}
 STDMETHODIMP CMatroskaSourceFilter::GetTimeFormat(GUID* pFormat) {return pFormat ? *pFormat = TIME_FORMAT_MEDIA_TIME, S_OK : E_POINTER;}
 STDMETHODIMP CMatroskaSourceFilter::IsUsingTimeFormat(const GUID* pFormat) {return IsFormatSupported(pFormat);}
-STDMETHODIMP CMatroskaSourceFilter::SetTimeFormat(const GUID* pFormat) {return IsFormatSupported(pFormat);}
+STDMETHODIMP CMatroskaSourceFilter::SetTimeFormat(const GUID* pFormat) {return S_OK == IsFormatSupported(pFormat) ? S_OK : E_INVALIDARG;}
 STDMETHODIMP CMatroskaSourceFilter::GetDuration(LONGLONG* pDuration)
 {
 	CheckPointer(pDuration, E_POINTER);
@@ -1416,7 +1412,7 @@ DWORD CMatroskaSplitterOutputPin::ThreadProc()
 				while(pos)
 				{
 					CBinary* pBlockData = p->b->BlockData.GetNext(pos);
-TRACE(_T("-Deliver\n"));
+
 					CComPtr<IMediaSample> pSample;
 					BYTE* pData;
 					if(S_OK != (hr = GetDeliveryBuffer(&pSample, NULL, NULL, 0))
@@ -1430,10 +1426,8 @@ TRACE(_T("-Deliver\n"));
 					|| S_OK != (hr = pSample->SetPreroll(rtStart < 0))
 					|| S_OK != (hr = Deliver(pSample)))
 					{
-TRACE(_T("*Deliver\n"));
 						break;
 					}
-TRACE(_T("+Deliver\n"));
 
 					rtStart += rtDelta;
 					rtStop += rtDelta;
