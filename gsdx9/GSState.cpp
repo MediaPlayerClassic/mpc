@@ -21,6 +21,7 @@
 
 #include "StdAfx.h"
 #include "GSState.h"
+#include "resource.h"
 
 GSState::GSState(HWND hWnd, HRESULT& hr) 
 	: m_hWnd(hWnd)
@@ -117,7 +118,16 @@ GSState::GSState(HWND hWnd, HRESULT& hr)
 	if(!(m_pD3D = Direct3DCreate9(D3D_SDK_VERSION)))
 		return;
 
-	// Set up the structure used to create the D3DDevice
+	D3DCAPS9 d3dcaps;
+	ZeroMemory(&d3dcaps, sizeof(d3dcaps));
+	m_pD3D->GetDeviceCaps(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, &d3dcaps);
+/*
+	if(d3dcaps.VertexShaderVersion < D3DVS_VERSION(1, 1))
+		return;
+*/
+	if(d3dcaps.PixelShaderVersion < D3DPS_VERSION(1, 1))
+		return;
+
 	D3DPRESENT_PARAMETERS d3dpp;
 	ZeroMemory(&d3dpp, sizeof(d3dpp));
 	d3dpp.Windowed = TRUE;
@@ -132,7 +142,11 @@ GSState::GSState(HWND hWnd, HRESULT& hr)
 	d3dpp.EnableAutoDepthStencil = TRUE;
 	d3dpp.AutoDepthStencilFormat = D3DFMT_D24X8;
 */
-	// Create the D3DDevice
+
+	DWORD BehaviorFlags = d3dcaps.VertexProcessingCaps
+		? D3DCREATE_HARDWARE_VERTEXPROCESSING
+		: D3DCREATE_SOFTWARE_VERTEXPROCESSING;
+
 	if(FAILED(m_pD3D->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, hWnd,
 		D3DCREATE_SOFTWARE_VERTEXPROCESSING, &d3dpp, &m_pD3DDev)))
 		return;
@@ -148,6 +162,40 @@ GSState::GSState(HWND hWnd, HRESULT& hr)
 	hr = m_pD3DDev->SetSamplerState(0, D3DSAMP_MAGFILTER, D3DTEXF_LINEAR);
     hr = m_pD3DDev->SetSamplerState(0, D3DSAMP_MINFILTER, D3DTEXF_LINEAR);
 //	hr = m_pD3DDev->SetSamplerState(0, D3DSAMP_MIPFILTER, D3DTEXF_LINEAR);
+
+	static const UINT nShaderIDs[] = 
+	{
+		IDR_PIXELSHADER000, IDR_PIXELSHADER010, IDR_PIXELSHADER011,
+		IDR_PIXELSHADER1x0, IDR_PIXELSHADER1x1,
+		IDR_PIXELSHADER200, IDR_PIXELSHADER210, IDR_PIXELSHADER211,
+		IDR_PIXELSHADER300, IDR_PIXELSHADER310, IDR_PIXELSHADER311,
+		IDR_PIXELSHADER_EN11, IDR_PIXELSHADER_EN10, IDR_PIXELSHADER_EN01, IDR_PIXELSHADER_EN00,
+	};
+
+	AFX_MANAGE_STATE(AfxGetStaticModuleState());
+
+	for(int i = 0; i < countof(nShaderIDs); i++)
+	{
+		CStringA str;
+		HRSRC hrsrc = FindResource(AfxGetResourceHandle(), MAKEINTRESOURCE(nShaderIDs[i]), _T("PixelShader"));
+		HGLOBAL hGlobal = LoadResource(AfxGetResourceHandle(), hrsrc);
+		DWORD size = SizeofResource(AfxGetResourceHandle(), hrsrc);
+		memcpy(str.GetBufferSetLength(size), LockResource(hGlobal), size);
+
+		CComPtr<ID3DXBuffer> pShader, pErrorMsgs;
+		hr = D3DXAssembleShader((LPCSTR)str, str.GetLength(), NULL, NULL, 0, &pShader, &pErrorMsgs);
+
+		if(FAILED(hr))
+		{
+			TRACE(_T("%s\n"), CString((char*)pErrorMsgs->GetBufferPointer())); 
+			ASSERT(0);
+		}
+		else
+		{
+			hr = m_pD3DDev->CreatePixelShader((DWORD*)pShader->GetBufferPointer(), &m_pPixelShaders[i]);
+			ASSERT(SUCCEEDED(hr));
+		}
+	}
 
 	hr = S_OK;
 
@@ -192,6 +240,68 @@ void GSState::Reset()
 		pWnd->DestroyWindow();
 		delete [] pWnd;
 	}
+	m_pRenderWnds.RemoveAll();
+}
+
+UINT32 GSState::Freeze(freezeData* fd)
+{
+	fd->size = sizeof(m_version)
+		+ sizeof(m_de) + sizeof(m_rs) + sizeof(m_v) 
+		+ sizeof(m_x) + sizeof(m_y) + 1024*1024*4
+		+ sizeof(m_vl) + sizeof(m_tag) + sizeof(m_nreg);
+
+	if(!(fd->data = (BYTE*)malloc(fd->size))) 
+		return -1;
+
+	FlushPrim();
+
+	BYTE* data = fd->data;
+	memcpy(data, &m_version, sizeof(m_version)); data += sizeof(m_version);
+	memcpy(data, &m_de, sizeof(m_de)); data += sizeof(m_de);
+	memcpy(data, &m_rs, sizeof(m_rs)); data += sizeof(m_rs);
+	memcpy(data, &m_v, sizeof(m_v)); data += sizeof(m_v);
+	memcpy(data, &m_x, sizeof(m_x)); data += sizeof(m_x);
+	memcpy(data, &m_y, sizeof(m_y)); data += sizeof(m_y);
+	memcpy(data, m_lm.GetVM(), 1024*1024*4); data += 1024*1024*4;
+	memcpy(data, &m_vl, sizeof(m_vl)); data += sizeof(m_vl);
+	memcpy(data, &m_tag, sizeof(m_tag)); data += sizeof(m_tag);
+	memcpy(data, &m_nreg, sizeof(m_nreg)); data += sizeof(m_nreg);
+
+	return 0;
+}
+
+UINT32 GSState::Defrost(const freezeData* fd)
+{
+	if(!fd || !fd->data || fd->size == 0) 
+		return -1;
+
+	int size = sizeof(m_version)
+		+ sizeof(m_de) + sizeof(m_rs) + sizeof(m_v) 
+		+ sizeof(m_x) + sizeof(m_y) + 1024*1024*4
+		+ sizeof(m_vl) + sizeof(m_tag) + sizeof(m_nreg);
+
+	if(fd->size != size) 
+		return -1;
+
+	BYTE* data = fd->data;
+
+	int version = 0;
+	memcpy(&version, data, sizeof(version)); data += sizeof(version);
+	if(m_version != version) return -1;
+
+	FlushPrim();
+
+	memcpy(&m_de, data, sizeof(m_de)); data += sizeof(m_de);
+	memcpy(&m_rs, data, sizeof(m_rs)); data += sizeof(m_rs);
+	memcpy(&m_v, data, sizeof(m_v)); data += sizeof(m_v);
+	memcpy(&m_x, data, sizeof(m_x)); data += sizeof(m_x);
+	memcpy(&m_y, data, sizeof(m_y)); data += sizeof(m_y);
+	memcpy(m_lm.GetVM(), data, 1024*1024*4); data += 1024*1024*4;
+	memcpy(&m_vl, data, sizeof(m_vl)); data += sizeof(m_vl);
+	memcpy(&m_tag, data, sizeof(m_tag)); data += sizeof(m_tag);
+	memcpy(&m_nreg, data, sizeof(m_nreg)); data += sizeof(m_nreg);
+
+	return 0;
 }
 
 void GSState::Write64(GS_REG mem, GSReg* r)
@@ -574,396 +684,3 @@ void GSState::VSync()
 	Flip();
 }
 
-void GSState::Flip()
-{
-	DrawingContext* ctxt = &m_de.CTXT[m_de.PRIM.CTXT];
-
-	HRESULT hr;
-
-	hr = m_pD3DDev->SetRenderTarget(0, m_pOrgRenderTarget);
-	hr = m_pD3DDev->SetDepthStencilSurface(m_pOrgDepthStencil);
-	hr = m_pD3DDev->Clear(0, NULL, D3DCLEAR_TARGET, 0, 1.0f, 0);
-
-    hr = m_pD3DDev->SetRenderState(D3DRS_CULLMODE, D3DCULL_NONE);
-    hr = m_pD3DDev->SetRenderState(D3DRS_LIGHTING, FALSE);
-	hr = m_pD3DDev->SetRenderState(D3DRS_ZENABLE, FALSE);
-    hr = m_pD3DDev->SetRenderState(D3DRS_ALPHABLENDENABLE, FALSE);
-	hr = m_pD3DDev->SetRenderState(D3DRS_ALPHATESTENABLE, FALSE); 
-	hr = m_pD3DDev->SetRenderState(D3DRS_SCISSORTESTENABLE, FALSE);
-
-	hr = m_pD3DDev->SetSamplerState(0, D3DSAMP_MAGFILTER, D3DTEXF_LINEAR);
-    hr = m_pD3DDev->SetSamplerState(0, D3DSAMP_MINFILTER, D3DTEXF_LINEAR);
-    // hr = m_pD3DDev->SetSamplerState(0, D3DSAMP_MIPFILTER, D3DTEXF_LINEAR);
-
-	hr = m_pD3DDev->SetSamplerState(0, D3DSAMP_ADDRESSU, D3DTADDRESS_CLAMP);
-	hr = m_pD3DDev->SetSamplerState(0, D3DSAMP_ADDRESSV, D3DTADDRESS_CLAMP);
-
-	for(int i = 0; i < 3; i++)
-	{
-		hr = m_pD3DDev->SetTextureStageState(i, D3DTSS_COLOROP, D3DTOP_DISABLE);
-		hr = m_pD3DDev->SetTextureStageState(i, D3DTSS_ALPHAOP, D3DTOP_DISABLE);
-		hr = m_pD3DDev->SetTextureStageState(i, D3DTSS_RESULTARG, D3DTA_CURRENT);
-		hr = m_pD3DDev->SetTextureStageState(i, D3DTSS_CONSTANT, D3DCOLOR_ARGB(m_rs.PMODE.ALP, m_rs.BGCOLOR.R, m_rs.BGCOLOR.G, m_rs.BGCOLOR.B));
-		hr = m_pD3DDev->SetTexture(i, NULL);
-	}
-
-	CComPtr<IDirect3DSurface9> pBackBuff;
-	hr = m_pD3DDev->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &pBackBuff);
-
-	D3DSURFACE_DESC bd;
-	ZeroMemory(&bd, sizeof(bd));
-	pBackBuff->GetDesc(&bd);
-
-	CRect dst(0, 0, bd.Width, bd.Height);
-
-#ifdef DEBUG_RENDERTARGETS
-	if(!m_pRenderWnds.IsEmpty())
-	{
-		POSITION pos = m_pRenderWnds.GetStartPosition();
-		while(pos)
-		{
-			DWORD fbp;
-			CGSWnd* pWnd = NULL;
-			m_pRenderWnds.GetNextAssoc(pos, fbp, pWnd);
-
-			CComPtr<IDirect3DTexture9> pRT;
-			if(m_pRenderTargets.Lookup(fbp, pRT))
-			{
-				D3DSURFACE_DESC rd;
-				ZeroMemory(&rd, sizeof(rd));
-				hr = pRT->GetLevelDesc(0, &rd);
-
-				hr = m_pD3DDev->SetTexture(0, pRT);
-
-				CSize size = m_rs.GetSize(0);
-				float xscale = (float)bd.Width / size.cx;
-				float yscale = (float)bd.Height / size.cy;
-
-				CRect src(0, 0, xscale*size.cx, yscale*size.cy);
-
-				struct
-				{
-					float x, y, z, rhw;
-					float tu, tv;
-				}
-				pVertices[] =
-				{
-					{(float)dst.left, (float)dst.top, 0.5f, 2.0f, (float)src.left / rd.Width, (float)src.top / rd.Height},
-					{(float)dst.right, (float)dst.top, 0.5f, 2.0f, (float)src.right / rd.Width, (float)src.top / rd.Height},
-					{(float)dst.left, (float)dst.bottom, 0.5f, 2.0f, (float)src.left / rd.Width, (float)src.bottom / rd.Height},
-					{(float)dst.right, (float)dst.bottom, 0.5f, 2.0f, (float)src.right / rd.Width, (float)src.bottom / rd.Height},
-				};
-
-				for(int i = 0; i < countof(pVertices); i++)
-				{
-					pVertices[i].x -= 0.5;
-					pVertices[i].y -= 0.5;
-				}
-
-				hr = m_pD3DDev->SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_SELECTARG1);
-				hr = m_pD3DDev->SetTextureStageState(0, D3DTSS_COLORARG1, D3DTA_TEXTURE);
-				hr = m_pD3DDev->SetTextureStageState(0, D3DTSS_ALPHAOP, D3DTOP_DISABLE);
-
-				hr = m_pD3DDev->SetRenderState(D3DRS_ALPHABLENDENABLE, FALSE);
-
-				hr = m_pD3DDev->BeginScene();
-				hr = m_pD3DDev->SetFVF(D3DFVF_XYZRHW | D3DFVF_TEX1);
-				hr = m_pD3DDev->DrawPrimitiveUP(D3DPT_TRIANGLESTRIP, 2, pVertices, sizeof(pVertices[0]));
-				hr = m_pD3DDev->EndScene();
-
-				hr = m_pD3DDev->Present(NULL, NULL, pWnd->m_hWnd, NULL);
-
-				hr = m_pD3DDev->Clear(0, NULL, D3DCLEAR_TARGET, 0, 1.0f, 0);
-
-				CString str;
-				str.Format(_T("PCSX2 - %05x"), fbp);
-				if(fbp == (ctxt->FRAME.Block()))
-				{
-					// pWnd->SetFocus();
-					str += _T(" - Drawing");
-				}
-				pWnd->SetWindowText(str);
-
-				MSG msg;
-				ZeroMemory(&msg, sizeof(msg));
-				while(msg.message != WM_QUIT)
-				{
-					if(PeekMessage(&msg, NULL, 0U, 0U, PM_REMOVE))
-					{
-						TranslateMessage(&msg);
-						DispatchMessage(&msg);
-					}
-					else if(!(::GetAsyncKeyState(VK_RCONTROL)&0x80000000))
-					{
-						break;
-					}
-				}
-
-				if(::GetAsyncKeyState(VK_LCONTROL)&0x80000000)
-					Sleep(500);
-			}
-			else
-			{
-				if(IsWindow(pWnd->m_hWnd)) pWnd->DestroyWindow();
-				m_pRenderWnds.RemoveKey(fbp);
-			}
-
-			CString str;
-			str.Format(_T("PCSX2 - %05x"), ctxt->FRAME.Block());
-			SetWindowText(m_hWnd, str);
-		}
-	}
-	else
-	{
-		SetWindowText(m_hWnd, _T("PCSX2"));
-	}
-#endif
-
-	CComPtr<IDirect3DTexture9> pRT[3];
-	D3DSURFACE_DESC rd[3];
-	CSize size[3];
-	float xscale[3], yscale[3];
-	CRect src[3];
-
-	for(int i = 0; i < countof(rd); i++)
-	{
-		if(m_rs.PMODE.EN1 && i == 0 || m_rs.PMODE.EN2 && i == 1 || i == 2)
-		{
-			UINT32 FBP = i == 2 || (::GetAsyncKeyState(VK_SPACE)&0x80000000) ? ctxt->FRAME.Block() : (m_rs.DISPFB[i].FBP<<5);
-
-			if(i < 2)
-			{
-				size[i] = m_rs.GetSize(i);
-				xscale[i] = yscale[i] = 1;
-				src[i] = CRect(0, 0, size[i].cx, size[i].cy);
-			}
-
-			if(CSurfMap<IDirect3DTexture9>::CPair* pPair = m_pRenderTargets.PLookup(FBP))
-			{
-				pRT[i] = pPair->value;
-				m_tc.ResetAge(pPair->key);
-				ZeroMemory(&rd[i], sizeof(rd[i]));
-				hr = pRT[i]->GetLevelDesc(0, &rd[i]);
-				size[i] = m_rs.GetSize(i);
-				xscale[i] = (float)bd.Width / size[i].cx;
-				yscale[i] = (float)bd.Height / size[i].cy;
-				src[i] = CRect(0, 0, xscale[i]*size[i].cx, yscale[i]*size[i].cy);
-			}
-		}
-	}
-
-	bool fShiftField = m_rs.SMODE2.INT && !!(ctxt->XYOFFSET.OFY&0xf);
-		// m_rs.CSRr.FIELD && m_rs.SMODE2.INT /*&& !m_rs.SMODE2.FFMD*/;
-
-	if(m_rs.PMODE.EN1 && m_rs.PMODE.EN2 && pRT[0] && pRT[1]) // RAO1 + RAO2
-	{
-		struct
-		{
-			float x, y, z, rhw;
-			float tu1, tv1;
-			float tu2, tv2;
-		}
-		pVertices[] =
-		{
-			{(float)dst.left, (float)dst.top, 0.5f, 2.0f, 
-				(float)src[0].left / rd[0].Width, (float)src[0].top / rd[0].Height, 
-				(float)src[1].left / rd[1].Width, (float)src[1].top / rd[1].Height},
-			{(float)dst.right, (float)dst.top, 0.5f, 2.0f, 
-				(float)src[0].right / rd[0].Width, (float)src[0].top / rd[0].Height, 
-				(float)src[1].right / rd[1].Width, (float)src[1].top / rd[1].Height},
-			{(float)dst.left, (float)dst.bottom, 0.5f, 2.0f, 
-				(float)src[0].left / rd[0].Width, (float)src[0].bottom / rd[0].Height, 
-				(float)src[1].left / rd[1].Width, (float)src[1].bottom / rd[1].Height},
-			{(float)dst.right, (float)dst.bottom, 0.5f, 2.0f, 
-				(float)src[0].right / rd[0].Width, (float)src[0].bottom / rd[0].Height, 
-				(float)src[1].right / rd[1].Width, (float)src[1].bottom / rd[1].Height},
-		};
-
-		for(int i = 0; i < countof(pVertices); i++)
-		{
-			pVertices[i].x -= 0.5;
-			pVertices[i].y -= 0.5;
-
-			if(fShiftField)
-			{
-				pVertices[i].tv1 += yscale[0]*0.5f / rd[0].Height;
-				pVertices[i].tv2 += yscale[1]*0.5f / rd[1].Height;
-			}
-		}
-
-		hr = m_pD3DDev->SetTexture(0, pRT[0]);
-		hr = m_pD3DDev->SetTexture(1, pRT[1]);
-
-		hr = m_pD3DDev->SetTextureStageState(0, D3DTSS_TEXCOORDINDEX, 1);
-		hr = m_pD3DDev->SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_SELECTARG1);
-		hr = m_pD3DDev->SetTextureStageState(0, D3DTSS_COLORARG1, D3DTA_TEXTURE);
-
-		hr = m_pD3DDev->SetTextureStageState(1, D3DTSS_TEXCOORDINDEX, 1);
-		hr = m_pD3DDev->SetTextureStageState(1, D3DTSS_COLOROP, D3DTOP_LERP);
-		hr = m_pD3DDev->SetTextureStageState(1, D3DTSS_COLORARG1, D3DTA_CURRENT);
-		hr = m_pD3DDev->SetTextureStageState(1, D3DTSS_COLORARG2, m_rs.PMODE.SLBG ? D3DTA_CONSTANT : D3DTA_TEXTURE);
-		hr = m_pD3DDev->SetTextureStageState(1, D3DTSS_COLORARG0, D3DTA_ALPHAREPLICATE|(m_rs.PMODE.MMOD ? D3DTA_CONSTANT : D3DTA_TEXTURE));
-
-		hr = m_pD3DDev->SetTextureStageState(2, D3DTSS_COLOROP, D3DTOP_DISABLE);
-
-		hr = m_pD3DDev->SetRenderState(D3DRS_ALPHABLENDENABLE, FALSE);
-
-		hr = m_pD3DDev->BeginScene();
-		hr = m_pD3DDev->SetFVF(D3DFVF_XYZRHW|D3DFVF_TEX2);
-		hr = m_pD3DDev->DrawPrimitiveUP(D3DPT_TRIANGLESTRIP, 2, pVertices, sizeof(pVertices[0]));
-		hr = m_pD3DDev->EndScene();
-
-		// hr = D3DXSaveSurfaceToFile(_T("c:\\en1.bmp"), D3DXIFF_BMP, m_pOrgRenderTarget, NULL, NULL);
-	}
-	else if(m_rs.PMODE.EN1 && pRT[0]) // RAO1
-	{
-		struct
-		{
-			float x, y, z, rhw;
-			float tu, tv;
-		}
-		pVertices[] =
-		{
-			{(float)dst.left, (float)dst.top, 0.5f, 2.0f, (float)src[0].left / rd[0].Width, (float)src[0].top / rd[0].Height},
-			{(float)dst.right, (float)dst.top, 0.5f, 2.0f, (float)src[0].right / rd[0].Width, (float)src[0].top / rd[0].Height},
-			{(float)dst.left, (float)dst.bottom, 0.5f, 2.0f, (float)src[0].left / rd[0].Width, (float)src[0].bottom / rd[0].Height},
-			{(float)dst.right, (float)dst.bottom, 0.5f, 2.0f, (float)src[0].right / rd[0].Width, (float)src[0].bottom / rd[0].Height},
-		};
-
-		for(int i = 0; i < countof(pVertices); i++)
-		{
-			pVertices[i].x -= 0.5;
-			pVertices[i].y -= 0.5;
-
-			if(fShiftField)
-			{
-				pVertices[i].tv += yscale[0]*0.5f / rd[0].Height;
-			}
-		}
-
-		hr = m_pD3DDev->SetTexture(0, pRT[0]);
-
-		hr = m_pD3DDev->SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_SELECTARG1);
-		hr = m_pD3DDev->SetTextureStageState(0, D3DTSS_ALPHAOP, D3DTOP_SELECTARG1);
-		hr = m_pD3DDev->SetTextureStageState(0, D3DTSS_COLORARG1, D3DTA_TEXTURE);
-		hr = m_pD3DDev->SetTextureStageState(0, D3DTSS_ALPHAARG1, m_rs.PMODE.MMOD ? D3DTA_CONSTANT : D3DTA_TEXTURE);
-		hr = m_pD3DDev->SetTextureStageState(1, D3DTSS_COLOROP, D3DTOP_DISABLE);
-		hr = m_pD3DDev->SetTextureStageState(1, D3DTSS_ALPHAOP, D3DTOP_DISABLE);
-
-		hr = m_pD3DDev->SetRenderState(D3DRS_ALPHABLENDENABLE, TRUE);
-		hr = m_pD3DDev->SetRenderState(D3DRS_BLENDOP, D3DBLENDOP_ADD);
-		hr = m_pD3DDev->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_SRCALPHA);
-		hr = m_pD3DDev->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_ZERO);
-
-		hr = m_pD3DDev->BeginScene();
-		hr = m_pD3DDev->SetFVF(D3DFVF_XYZRHW | D3DFVF_TEX1);
-		hr = m_pD3DDev->DrawPrimitiveUP(D3DPT_TRIANGLESTRIP, 2, pVertices, sizeof(pVertices[0]));
-		hr = m_pD3DDev->EndScene();
-
-		// hr = D3DXSaveSurfaceToFile(_T("c:\\en1.bmp"), D3DXIFF_BMP, m_pOrgRenderTarget, NULL, NULL);
-	}
-	else if(m_rs.PMODE.EN2 && pRT[1]) // RAO2
-	{
-		struct
-		{
-			float x, y, z, rhw;
-			float tu, tv;
-		}
-		pVertices[] =
-		{
-			{(float)dst.left, (float)dst.top, 0.5f, 2.0f, (float)src[1].left / rd[1].Width, (float)src[1].top / rd[1].Height},
-			{(float)dst.right, (float)dst.top, 0.5f, 2.0f, (float)src[1].right / rd[1].Width, (float)src[1].top / rd[1].Height},
-			{(float)dst.left, (float)dst.bottom, 0.5f, 2.0f, (float)src[1].left / rd[1].Width, (float)src[1].bottom / rd[1].Height},
-			{(float)dst.right, (float)dst.bottom, 0.5f, 2.0f, (float)src[1].right / rd[1].Width, (float)src[1].bottom / rd[1].Height},
-		};
-
-		for(int i = 0; i < countof(pVertices); i++)
-		{
-			pVertices[i].x -= 0.5;
-			pVertices[i].y -= 0.5;
-
-			if(fShiftField)
-			{
-				pVertices[i].tv += yscale[1]*0.5f / rd[1].Height;
-			}
-		}
-
-		hr = m_pD3DDev->SetTexture(0, pRT[1]);
-
-		hr = m_pD3DDev->SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_SELECTARG1);
-		hr = m_pD3DDev->SetTextureStageState(0, D3DTSS_ALPHAOP, D3DTOP_DISABLE);
-		hr = m_pD3DDev->SetTextureStageState(0, D3DTSS_COLORARG1, D3DTA_TEXTURE);
-
-		hr = m_pD3DDev->SetRenderState(D3DRS_ALPHABLENDENABLE, FALSE);
-
-/*
-		hr = m_pD3DDev->Clear(0, NULL, D3DCLEAR_TARGET, 0x00000000, 1.0f, 0);
-
-		hr = m_pD3DDev->SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_SELECTARG1);
-		hr = m_pD3DDev->SetTextureStageState(0, D3DTSS_ALPHAOP, D3DTOP_DISABLE);
-		hr = m_pD3DDev->SetTextureStageState(0, D3DTSS_COLORARG1, m_rs.PMODE.SLBG ? D3DTA_CONSTANT : D3DTA_TEXTURE);
-
-		hr = m_pD3DDev->SetRenderState(D3DRS_ALPHABLENDENABLE, TRUE);
-		hr = m_pD3DDev->SetRenderState(D3DRS_BLENDOP, D3DBLENDOP_ADD);
-		hr = m_pD3DDev->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_INVDESTALPHA);
-		hr = m_pD3DDev->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_ONE);
-*/
-		hr = m_pD3DDev->BeginScene();
-		hr = m_pD3DDev->SetFVF(D3DFVF_XYZRHW | D3DFVF_TEX1);
-		hr = m_pD3DDev->DrawPrimitiveUP(D3DPT_TRIANGLESTRIP, 2, pVertices, sizeof(pVertices[0]));
-		hr = m_pD3DDev->EndScene();
-		
-		// hr = D3DXSaveSurfaceToFile(_T("c:\\en2.bmp"), D3DXIFF_BMP, m_pOrgRenderTarget, NULL, NULL);
-	}
-	else if((m_rs.PMODE.EN1 || m_rs.PMODE.EN2) && pRT[2])
-	{
-		struct
-		{
-			float x, y, z, rhw;
-			float tu, tv;
-		}
-		pVertices[] =
-		{
-			{(float)dst.left, (float)dst.top, 0.5f, 2.0f, (float)src[2].left / rd[2].Width, (float)src[2].top / rd[2].Height},
-			{(float)dst.right, (float)dst.top, 0.5f, 2.0f, (float)src[2].right / rd[2].Width, (float)src[2].top / rd[2].Height},
-			{(float)dst.left, (float)dst.bottom, 0.5f, 2.0f, (float)src[2].left / rd[2].Width, (float)src[2].bottom / rd[2].Height},
-			{(float)dst.right, (float)dst.bottom, 0.5f, 2.0f, (float)src[2].right / rd[2].Width, (float)src[2].bottom / rd[2].Height},
-		};
-
-		for(int i = 0; i < countof(pVertices); i++)
-		{
-			pVertices[i].x -= 0.5;
-			pVertices[i].y -= 0.5;
-
-			if(fShiftField)
-			{
-				pVertices[i].tv += yscale[2]*0.5f / rd[2].Height;
-			}
-		}
-
-		hr = m_pD3DDev->SetTexture(0, pRT[2]);
-
-		hr = m_pD3DDev->SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_SELECTARG1);
-		hr = m_pD3DDev->SetTextureStageState(0, D3DTSS_ALPHAOP, D3DTOP_DISABLE);
-		hr = m_pD3DDev->SetTextureStageState(0, D3DTSS_COLORARG1, D3DTA_TEXTURE);
-
-		hr = m_pD3DDev->SetRenderState(D3DRS_ALPHABLENDENABLE, FALSE);
-
-		hr = m_pD3DDev->BeginScene();
-		hr = m_pD3DDev->SetFVF(D3DFVF_XYZRHW | D3DFVF_TEX1);
-		hr = m_pD3DDev->DrawPrimitiveUP(D3DPT_TRIANGLESTRIP, 2, pVertices, sizeof(pVertices[0]));
-		hr = m_pD3DDev->EndScene();
-	}
-/*
-	HDC hDC;
-	if(S_OK == pBackBuff->GetDC(&hDC))
-	{
-		// SetBkMode(hDC, TRANSPARENT);
-		SetBkColor(hDC, 0);
-		SetTextColor(hDC, 0xffffff);
-		TextOut(hDC, 10, 10, str, str.GetLength());
-		pBackBuff->ReleaseDC(hDC);
-	}
-*/
-	hr = m_pD3DDev->Present(NULL, NULL, NULL, NULL);
-}

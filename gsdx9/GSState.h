@@ -28,7 +28,7 @@
 
 // FIXME: sfex3
 
-
+//
 //#define DEBUG_SAVETEXTURES
 //#define DEBUG_LOG
 //#define DEBUG_LOG2
@@ -44,6 +44,8 @@
 class GSState
 {
 protected:
+
+	static const int m_version = 1;
 
 	struct DrawingContext
 	{
@@ -148,7 +150,7 @@ protected:
 	};
 
 //	CList<CUSTOMVERTEX> m_vl;
-
+/*
 	// somewhat faster than using CList<CUSTOMVERTEX>
 	class CVertexList
 	{
@@ -162,15 +164,46 @@ protected:
 		void GetAt(int i, CUSTOMVERTEX& v) {ASSERT(m_nv > 0); v = m_v[i];}
 		int GetCount() {return m_nv;}
 	} m_vl;
+*/
+	class CVertexList
+	{
+		CUSTOMVERTEX m_v[4];
+		int m_head, m_tail, m_count;
+	public:
+		CVertexList() {RemoveAll();}
+		void RemoveAll() {m_head = m_tail = m_count = 0;}
+		void AddTail(CUSTOMVERTEX v)
+		{
+			ASSERT(m_count < 4);
+			m_v[m_tail] = v;
+			m_tail = (m_tail+1)&3;
+			m_count++;
+		}
+		void RemoveAt(int i, CUSTOMVERTEX& v)
+		{
+			GetAt(i, v);
+			i = (m_head+i)&3;
+			if(i == m_head) m_head = (m_head+1)&3;
+			else for(m_tail = (m_tail+4-1)&3; i != m_tail; i = (i+1)&3) 
+				m_v[i] = m_v[(i+1)&3];
+			m_count--;
+		}
+		void GetAt(int i, CUSTOMVERTEX& v)
+		{
+			ASSERT(m_count > 0); 
+			v = m_v[(m_head+i)&3];
+		}
+		int GetCount() {return m_count;}
+	} m_vl;
 
 	HWND m_hWnd;
 	CComPtr<IDirect3D9> m_pD3D;
 	CComPtr<IDirect3DDevice9> m_pD3DDev;
 	CComPtr<IDirect3DSurface9> m_pOrgRenderTarget;
 	CComPtr<IDirect3DSurface9> m_pOrgDepthStencil;
-
 	CSurfMap<IDirect3DTexture9> m_pRenderTargets;
 	CSurfMap<IDirect3DSurface9> m_pDepthStencils;
+	CComPtr<IDirect3DPixelShader9> m_pPixelShaders[15];
 	GSTextureCache m_tc;
 
 	CMap<DWORD, DWORD, CGSWnd*, CGSWnd*> m_pRenderWnds;
@@ -323,6 +356,8 @@ public:
 	virtual ~GSState();
 
 	void Reset();
+	UINT32 Freeze(freezeData* fd);
+	UINT32 Defrost(const freezeData* fd);
 	void Write64(GS_REG mem, GSReg* r);
 	UINT32 Read32(GS_REG mem);
 	UINT64 Read64(GS_REG mem);
@@ -361,27 +396,27 @@ public:
 	{
 		va_list args;
 		va_start(args, fmt);
-		/**///
+		/**///////////////
 		if(_tcsstr(fmt, _T("VSync")) 
 		 || _tcsstr(fmt, _T("*** WARNING ***"))
 		 || _tcsstr(fmt, _T("Flush"))
 		// || _tcsstr(fmt, _T("CSR"))
 		 || _tcsstr(fmt, _T("DISP"))
 		 || _tcsstr(fmt, _T("FRAME"))
-		// || _tcsstr(fmt, _T("ZBUF"))
+		 || _tcsstr(fmt, _T("ZBUF"))
 		// || _tcsstr(fmt, _T("SMODE"))
 		// || _tcsstr(fmt, _T("PMODE"))
 		 || _tcsstr(fmt, _T("BITBLTBUF"))
-		 || _tcsstr(fmt, _T("TRX"))
+		// || _tcsstr(fmt, _T("TRX"))
 		// || _tcsstr(fmt, _T("PRIM"))
-		 || _tcsstr(fmt, _T("RGB"))
+		// || _tcsstr(fmt, _T("RGB"))
 		 || _tcsstr(fmt, _T("XYZ"))
 		// || _tcsstr(fmt, _T("XYOFFSET"))
 		 || _tcsstr(fmt, _T("TEX"))
 		// || _tcsstr(fmt, _T("UV"))
 		// || _tcsstr(fmt, _T("FOG"))
-		 || _tcsstr(fmt, _T("TBP0")) == fmt
-		 || _tcsstr(fmt, _T("CBP")) == fmt
+		// || _tcsstr(fmt, _T("TBP0")) == fmt
+		// || _tcsstr(fmt, _T("CBP")) == fmt
 		)
 		if(m_fp)
 		{

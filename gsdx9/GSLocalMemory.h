@@ -61,6 +61,9 @@ public:
 	GSLocalMemory();
 	virtual ~GSLocalMemory();
 
+	BYTE* GetVM() {return m_vm8;}
+	BYTE* GetSM() {return m_sm8;}
+
 	void writePixel32(int x, int y, DWORD c, DWORD bp, DWORD bw);
 	void writePixel24(int x, int y, DWORD c, DWORD bp, DWORD bw);
 	void writePixel16(int x, int y, DWORD c, DWORD bp, DWORD bw);

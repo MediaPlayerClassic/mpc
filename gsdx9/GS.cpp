@@ -159,14 +159,6 @@ EXPORT_C GSvsync()
 
 ////////
 
-enum {KEYPRESS=1, KEYRELEASE=2};
-struct keyEvent {UINT32 key, event;};
-
-enum {FREEZE_LOAD=0, FREEZE_SAVE=1};
-struct freezeData {int size; BYTE* data;};
-
-struct winInfo {HWND hWnd; HMENU hMenu; HWND hStatusWnd;};
-
 EXPORT_C_(UINT32) GSmakeSnapshot(char* path)
 {
 	return s_gs->MakeSnapshot(path);
@@ -186,13 +178,13 @@ EXPORT_C GSkeyEvent(keyEvent* ev)
 
 EXPORT_C_(INT32) GSfreeze(int mode, freezeData* data)
 {
-	if(mode == FREEZE_LOAD)
+	if(mode == FREEZE_SAVE)
 	{
-		return -1;
+		return -1;//s_gs->Freeze(data);
 	}
-	else if(mode == FREEZE_SAVE)
+	else if(mode == FREEZE_LOAD)
 	{
-		return -1;
+		return -1;//s_gs->Defrost(data);
 	}
 
 	return 0;

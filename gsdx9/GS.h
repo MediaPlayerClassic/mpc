@@ -897,3 +897,10 @@ REG_SET_END
 
 #pragma pack(pop)
 
+enum {KEYPRESS=1, KEYRELEASE=2};
+struct keyEvent {UINT32 key, event;};
+
+enum {FREEZE_LOAD=0, FREEZE_SAVE=1};
+struct freezeData {int size; BYTE* data;};
+
+struct winInfo {HWND hWnd; HMENU hMenu; HWND hStatusWnd;};
