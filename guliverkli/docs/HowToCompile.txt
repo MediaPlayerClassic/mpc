@@ -21,7 +21,7 @@ C:\DXSDK\lib
 
 Other external header files are included directly, modify the path in the sources if your installation differs. (but don't COMMIT it to the CVS!)
 
-Debug builds use dynamic, Release builds use static linking to standard C/C++ and MFC libs.
+Debug builds use dynamic, Release builds use static linking to standard C/C++ and MFC libs. Don't forget to change this in the baseclasses. Also IMPORTANT: add winmm.lib to the baseclasses or else you will get a few unresolved externals later.
 
 Subresync and Submux aren't working yet, they are just there because I might convert them to fit the new libs someday.
 
