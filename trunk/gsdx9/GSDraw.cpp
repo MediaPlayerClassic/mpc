@@ -32,6 +32,8 @@ inline BYTE SCALE_ALPHA(BYTE a)
 	return (((a)&0xa0)?0xff:((a+a+a)>>1));
 }
 
+static const double log_2pow32 = log(2.0)*32;
+
 void GSState::VertexKick(bool fSkip)
 {
 	LOG((_T("VertexKick(%d)\n"), fSkip));
@@ -46,7 +48,7 @@ void GSState::VertexKick(bool fSkip)
 //	v.y = (float)m_v.XYZ.Y/16 - (ctxt->XYOFFSET.OFY>>4);
 	// if(m_v.XYZ.Z && m_v.XYZ.Z < 0x100) m_v.XYZ.Z = 0x100;
 	// v.z = 1.0f * (m_v.XYZ.Z>>8)/(UINT_MAX>>8);
-	v.z = log(1.0 + m_v.XYZ.Z)/log(2.0)/32;
+	v.z = log(1.0 + m_v.XYZ.Z)/log_2pow32;
 	v.rhw = m_v.RGBAQ.Q;
 
 	BYTE R = m_v.RGBAQ.R;
@@ -116,15 +118,6 @@ void GSState::DrawingKick(bool fSkip)
 
 	switch(m_PRIM)
 	{
-	case 4: // triangle strip
-		m_primtype = D3DPT_TRIANGLELIST;
-		m_vl.RemoveAt(0, pVertices[nVertices++]);
-		m_vl.GetAt(0, pVertices[nVertices++]);
-		m_vl.GetAt(1, pVertices[nVertices++]);
-		LOGV((pVertices[0], _T("TriStrip")));
-		LOGV((pVertices[1], _T("TriStrip")));
-		LOGV((pVertices[2], _T("TriStrip")));
-		break;
 	case 3: // triangle list
 		m_primtype = D3DPT_TRIANGLELIST;
 		m_vl.RemoveAt(0, pVertices[nVertices++]);
@@ -133,6 +126,15 @@ void GSState::DrawingKick(bool fSkip)
 		LOGV((pVertices[0], _T("TriList")));
 		LOGV((pVertices[1], _T("TriList")));
 		LOGV((pVertices[2], _T("TriList")));
+		break;
+	case 4: // triangle strip
+		m_primtype = D3DPT_TRIANGLELIST;
+		m_vl.RemoveAt(0, pVertices[nVertices++]);
+		m_vl.GetAt(0, pVertices[nVertices++]);
+		m_vl.GetAt(1, pVertices[nVertices++]);
+		LOGV((pVertices[0], _T("TriStrip")));
+		LOGV((pVertices[1], _T("TriStrip")));
+		LOGV((pVertices[2], _T("TriStrip")));
 		break;
 	case 5: // triangle fan
 		m_primtype = D3DPT_TRIANGLELIST;
@@ -209,16 +211,17 @@ void GSState::DrawingKick(bool fSkip)
 
 	if(!m_de.PRIM.IIP)
 	{
-		for(int i = nVertices-1; i > 0; i--)
-			pVertices[i-1].color = pVertices[i].color;
+		pVertices[0].color = pVertices[nVertices-1].color;
+		/*for(int i = nVertices-1; i > 0; i--)
+			pVertices[i-1].color = pVertices[i].color;*/
 	}
-/*
+
 	if(::GetAsyncKeyState(VK_SPACE)&0x80000000)
 	{
 		FlushPrim();
 		Flip();
 	}
-*/
+
 }
 
 void GSState::FlushPrim()
@@ -373,7 +376,87 @@ void GSState::FlushPrim()
 			break;
 		}
 
-		ASSERT(pPixelShader);
+		// ASSERT(pPixelShader);
+
+		if(!pPixelShader)
+		{
+			int stage = 0;
+
+			switch(ctxt->TEX0.TFX)
+			{
+			case 0:
+				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_COLOROP, D3DTOP_MODULATE2X);
+				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_COLORARG1, D3DTA_TEXTURE);
+				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_COLORARG2, D3DTA_DIFFUSE);
+				if(ctxt->TEX0.TCC)
+				{
+					hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_ALPHAOP, fRT ? D3DTOP_MODULATE2X : D3DTOP_MODULATE4X);
+					hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_ALPHAARG1, D3DTA_TEXTURE);
+					hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_ALPHAARG2, D3DTA_DIFFUSE);
+				}
+				else
+				{
+					hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_ALPHAOP, D3DTOP_ADD);
+					hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_ALPHAARG1, D3DTA_DIFFUSE);
+					hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_ALPHAARG2, D3DTA_DIFFUSE);
+				}
+				stage++;
+				break;
+			case 1:
+				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_COLOROP, D3DTOP_SELECTARG1);
+				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_COLORARG1, D3DTA_TEXTURE);
+				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_ALPHAOP, fRT ? D3DTOP_SELECTARG1 : D3DTOP_ADD);
+				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_ALPHAARG1, D3DTA_TEXTURE);
+				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_ALPHAARG2, D3DTA_TEXTURE);
+				stage++;
+				break;
+			case 2:
+				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_COLOROP, D3DTOP_MODULATE2X);
+				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_COLORARG1, D3DTA_TEXTURE);
+				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_COLORARG2, D3DTA_DIFFUSE);
+				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_ALPHAOP, D3DTOP_SELECTARG1);
+				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_ALPHAARG1, D3DTA_DIFFUSE);
+				if(ctxt->TEX0.TCC)
+				{
+					hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_ALPHAOP, D3DTOP_ADD);
+					hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_ALPHAARG2, D3DTA_TEXTURE);
+					ASSERT(!fRT); // FIXME
+				}
+				stage++;
+				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_COLOROP, D3DTOP_ADD);
+				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_COLORARG1, D3DTA_CURRENT);
+				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_COLORARG2, D3DTA_ALPHAREPLICATE|D3DTA_DIFFUSE);
+				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_ALPHAOP, D3DTOP_ADD);
+				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_ALPHAARG1, D3DTA_CURRENT);
+				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_ALPHAARG2, D3DTA_CURRENT);
+				stage++;
+				break;
+			case 3:
+				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_COLOROP, D3DTOP_MODULATE2X);
+				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_COLORARG1, D3DTA_TEXTURE);
+				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_COLORARG2, D3DTA_DIFFUSE);
+				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_ALPHAOP, D3DTOP_SELECTARG1);
+				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_ALPHAARG1, D3DTA_DIFFUSE);
+				if(ctxt->TEX0.TCC)
+				{
+					hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_ALPHAOP, D3DTOP_SELECTARG1);
+					hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_ALPHAARG2, D3DTA_TEXTURE);
+					ASSERT(!fRT); // FIXME
+				}
+				stage++;
+				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_COLOROP, D3DTOP_ADD);
+				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_COLORARG1, D3DTA_CURRENT);
+				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_COLORARG2, D3DTA_ALPHAREPLICATE|D3DTA_DIFFUSE);
+				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_ALPHAOP, D3DTOP_ADD);
+				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_ALPHAARG1, D3DTA_CURRENT);
+				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_ALPHAARG2, D3DTA_CURRENT);
+				stage++;
+				break;
+			}
+
+			hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_COLOROP, D3DTOP_DISABLE);
+			hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_ALPHAOP, D3DTOP_DISABLE);
+		}
 	}
 	else
 	{
@@ -1010,6 +1093,7 @@ void GSState::Flip()
 				hr = pRT->GetLevelDesc(0, &rd);
 
 				hr = m_pD3DDev->SetTexture(0, pRT);
+				hr = m_pD3DDev->SetTextureStageState(0, D3DTSS_TEXCOORDINDEX, 0);
 
 				CSize size = m_rs.GetSize(0);
 				float xscale = (float)bd.Width / size.cx;
@@ -1202,15 +1286,67 @@ void GSState::Flip()
 	{
 		pPixelShader = m_pPixelShaders[14];
 	}
-
-	if(pPixelShader)
+	else
 	{
-		hr = m_pD3DDev->BeginScene();
-		hr = m_pD3DDev->SetPixelShader(pPixelShader);
-		hr = m_pD3DDev->DrawPrimitiveUP(D3DPT_TRIANGLESTRIP, 2, pVertices, sizeof(pVertices[0]));
-		hr = m_pD3DDev->SetPixelShader(NULL);
-		hr = m_pD3DDev->EndScene();
+		hr = m_pD3DDev->Present(NULL, NULL, NULL, NULL);
+		return;
 	}
+
+	if(!pPixelShader)
+	{
+		int stage = 0;
+
+		hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_COLOROP, D3DTOP_SELECTARG1);
+		hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_COLORARG1, D3DTA_TEXTURE);
+		hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_ALPHAOP, D3DTOP_DISABLE);
+		stage++;
+
+		if(m_rs.PMODE.EN1 && m_rs.PMODE.EN2 && rt[0].pRT && rt[1].pRT) // RAO1 + RAO2
+		{
+			if(m_rs.PMODE.ALP < 0xff)
+			{
+				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_COLOROP, D3DTOP_LERP);
+				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_COLORARG1, D3DTA_CURRENT);
+				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_COLORARG2, m_rs.PMODE.SLBG ? D3DTA_CONSTANT : D3DTA_TEXTURE);
+				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_COLORARG0, D3DTA_ALPHAREPLICATE|(m_rs.PMODE.MMOD ? D3DTA_CONSTANT : D3DTA_TEXTURE));
+				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_ALPHAOP, D3DTOP_DISABLE);
+				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_CONSTANT, D3DCOLOR_ARGB(m_rs.PMODE.ALP, m_rs.BGCOLOR.R, m_rs.BGCOLOR.G, m_rs.BGCOLOR.B));
+				stage++;
+			}
+		}
+		else if(m_rs.PMODE.EN1 && rt[0].pRT) // RAO1
+		{
+			if(m_rs.PMODE.ALP < 0xff)
+			{
+				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_COLOROP, D3DTOP_MODULATE);
+				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_COLORARG1, D3DTA_CURRENT);
+				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_COLORARG2, D3DTA_ALPHAREPLICATE|(m_rs.PMODE.MMOD ? D3DTA_CONSTANT : D3DTA_TEXTURE));
+				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_ALPHAOP, D3DTOP_DISABLE);
+				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_CONSTANT, D3DCOLOR_ARGB(m_rs.PMODE.ALP, 0, 0, 0));
+				stage++;
+			}
+		}
+		else if(m_rs.PMODE.EN2 && rt[1].pRT) // RAO2
+		{
+			hr = m_pD3DDev->SetTexture(0, rt[1].pRT);
+			hr = m_pD3DDev->SetTextureStageState(0, D3DTSS_TEXCOORDINDEX, 1);
+		}
+		else if((m_rs.PMODE.EN1 || m_rs.PMODE.EN2) && rt[2].pRT)
+		{
+			hr = m_pD3DDev->SetTexture(0, rt[2].pRT);
+			hr = m_pD3DDev->SetTextureStageState(0, D3DTSS_TEXCOORDINDEX, 2);
+		}
+
+		hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_COLOROP, D3DTOP_DISABLE);
+		hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_ALPHAOP, D3DTOP_DISABLE);
+	}
+
+	hr = m_pD3DDev->BeginScene();
+	hr = m_pD3DDev->SetPixelShader(pPixelShader);
+	hr = m_pD3DDev->DrawPrimitiveUP(D3DPT_TRIANGLESTRIP, 2, pVertices, sizeof(pVertices[0]));
+	hr = m_pD3DDev->SetPixelShader(NULL);
+	hr = m_pD3DDev->EndScene();
+
 /*
 	HDC hDC;
 	if(S_OK == pBackBuff->GetDC(&hDC))

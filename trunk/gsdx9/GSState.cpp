@@ -125,10 +125,10 @@ GSState::GSState(HWND hWnd, HRESULT& hr)
 /*
 	if(d3dcaps.VertexShaderVersion < D3DVS_VERSION(1, 1))
 		return;
-*/
+
 	if(d3dcaps.PixelShaderVersion < D3DPS_VERSION(1, 1))
 		return;
-
+*/
 	D3DPRESENT_PARAMETERS d3dpp;
 	ZeroMemory(&d3dpp, sizeof(d3dpp));
 	d3dpp.Windowed = TRUE;
@@ -149,7 +149,7 @@ GSState::GSState(HWND hWnd, HRESULT& hr)
 		: D3DCREATE_SOFTWARE_VERTEXPROCESSING;
 
 	if(FAILED(m_pD3D->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, hWnd,
-		D3DCREATE_SOFTWARE_VERTEXPROCESSING, &d3dpp, &m_pD3DDev)))
+		BehaviorFlags, &d3dpp, &m_pD3DDev)))
 		return;
 
 	hr = m_pD3DDev->Clear(0, NULL, D3DCLEAR_TARGET/*|D3DCLEAR_ZBUFFER*/, 0, 1.0f, 0);
@@ -178,9 +178,9 @@ GSState::GSState(HWND hWnd, HRESULT& hr)
 	for(int i = 0; i < countof(nShaderIDs); i++)
 	{
 		CStringA str;
-		HRSRC hrsrc = FindResource(AfxGetResourceHandle(), MAKEINTRESOURCE(nShaderIDs[i]), _T("PixelShader"));
-		HGLOBAL hGlobal = LoadResource(AfxGetResourceHandle(), hrsrc);
-		DWORD size = SizeofResource(AfxGetResourceHandle(), hrsrc);
+		HRSRC hRsrc = FindResource(AfxGetResourceHandle(), MAKEINTRESOURCE(nShaderIDs[i]), _T("PixelShader"));
+		HGLOBAL hGlobal = LoadResource(AfxGetResourceHandle(), hRsrc);
+		DWORD size = SizeofResource(AfxGetResourceHandle(), hRsrc);
 		memcpy(str.GetBufferSetLength(size), LockResource(hGlobal), size);
 
 		CComPtr<ID3DXBuffer> pShader, pErrorMsgs;
