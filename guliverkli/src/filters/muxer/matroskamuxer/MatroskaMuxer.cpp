@@ -381,6 +381,8 @@ DWORD CMatroskaMuxerFilter::ThreadProc()
 	sh->Position.Set(GetStreamPosition(pStream) - segpos);
 	seek.SeekHeads.AddTail(sh);
 
+	UINT64 TrackNumber = 0;
+
 	CNode<Track> Tracks;
 	CAutoPtr<Track> pT(new Track());
 	POSITION pos = m_pInputs.GetHeadPosition();
@@ -391,10 +393,14 @@ DWORD CMatroskaMuxerFilter::ThreadProc()
 
 		CAutoPtr<TrackEntry> pTE(new TrackEntry());
 		*pTE = *pPin->GetTrackEntry();
+		if(TrackNumber == 0 && pTE->TrackType == TrackEntry::TypeVideo) 
+			TrackNumber = pTE->TrackNumber;
 		pT->TrackEntries.AddTail(pTE);
 	}
 	Tracks.AddTail(pT);
 	Tracks.Write(pStream);
+
+	if(TrackNumber == 0) TrackNumber = 1;
 
 	//
 
@@ -507,12 +513,12 @@ TRACE(_T("%d: %I64d-%I64d (c=%d, co=%dms), cnt=%d, ref=%d\n"),
 						nBlocksInCueTrack = 0;
 					}
 
-					if(b->Block.TrackNumber == 1)
+					if(b->Block.TrackNumber == TrackNumber)
 					{
 						nBlocksInCueTrack++;
 					}
 
-					if(b->ReferenceBlock == 0 && b->Block.TrackNumber == 1) // TODO: test TrackNumber agains a video track instead of just the first one
+					if(b->ReferenceBlock == 0 && b->Block.TrackNumber == TrackNumber) // TODO: test TrackNumber agains a video track instead of just the first one
 					{
 						ULONGLONG clusterpos = GetStreamPosition(pStream) - segpos;
 						if(lastcueclusterpos != clusterpos || lastcuetimecode + 1000 < b->Block.TimeCode)
