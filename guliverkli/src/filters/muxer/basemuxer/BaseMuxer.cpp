@@ -21,7 +21,6 @@
 
 #include "StdAfx.h"
 #include "BaseMuxer.h"
-#include "..\..\..\DSUtil\DSUtil.h"
 
 #include <initguid.h>
 #include "..\..\..\..\include\moreuuids.h"
@@ -134,18 +133,7 @@ void CBaseMuxerFilter::Receive(IMediaSample* pIn, CBaseMuxerInputPin* pPin)
 
 DWORD CBaseMuxerFilter::ThreadProc()
 {
-	CComQIPtr<IStream> pStream;
-	
-	if(!m_pOutput || !(pStream = m_pOutput->GetConnected()))
-	{
-		while(1)
-		{
-			DWORD cmd = GetRequest();
-			if(cmd == CMD_EXIT) CAMThread::m_hThread = NULL;
-			Reply(S_OK);
-			if(cmd == CMD_EXIT) return 0;
-		}
-	}
+	SetThreadPriority(m_hThread, THREAD_PRIORITY_ABOVE_NORMAL);
 
 	POSITION pos;
 
@@ -162,11 +150,8 @@ DWORD CBaseMuxerFilter::ThreadProc()
 			return 0;
 
 		case CMD_RUN:
-			m_pStream.Attach(new CStream(pStream));
 			m_pActivePins.RemoveAll();
 			m_pPins.RemoveAll();
-			m_pIndexMap.RemoveAll();
-			m_pIndexMapSyncPoint.RemoveAll();
 
 			pos = m_pInputs.GetHeadPosition();
 			while(pos)
@@ -179,36 +164,39 @@ DWORD CBaseMuxerFilter::ThreadProc()
 				}
 			}
 
+			if(m_pOutput)
+			if(CComQIPtr<IStream> pStream = m_pOutput->GetConnected())
+			{
+				CComPtr<IBitStream> pBitStream = new CBitStream(pStream);
+				m_pBitStreams.AddTail(pBitStream);
+			}
+
 			Reply(S_OK);
 
-			TRACE(_T("WriteHeader\r\n"));
+			MuxInit();
 
-			WriteHeader();
+//			TRACE(_T("WriteHeader\r\n"));
+			pos = m_pBitStreams.GetHeadPosition();
+			while(pos) MuxHeader(m_pBitStreams.GetNext(pos));
 
 			while(!CheckRequest(NULL) && m_pActivePins.GetCount())
 			{
-				if(m_State == State_Paused)
+				if(m_State == State_Paused) {Sleep(10); continue;}
+				if(!PeekQueue()) {Sleep(1); continue;}
+
+				CAutoPtr<Packet> pPacket;
+
 				{
-					Sleep(10);
-					continue;
+					CAutoLock cAutoLock(&m_csQueue);
+					pPacket = m_queue.RemoveHead();
 				}
-
-				if(!PeekQueue())
-				{
-					Sleep(1);
-					continue;
-				}
-
-				CAutoLock cAutoLock(&m_csQueue);
-
-				CAutoPtr<Packet> pPacket = m_queue.RemoveHead();
 
 				if(pPacket->IsTimeValid() || pPacket->IsEOS())
 					EXECUTE_ASSERT(m_pActivePins[pPacket->pPin]-- > 0);
 
 				if(pPacket->IsEOS())
 				{
-					POSITION pos = m_pActivePins.GetStartPosition();
+					pos = m_pActivePins.GetStartPosition();
 					while(pos)
 					{
 						CBaseMuxerInputPin* pPin = NULL;
@@ -222,37 +210,31 @@ DWORD CBaseMuxerFilter::ThreadProc()
 						}
 					}
 				}
-				else
-				{
-					Index i(pPacket->IsSyncPoint(), m_pStream->GetPos(), pPacket->rtStart);
-					m_pIndexMap[pPacket->pPin].AddTail(i);
-					if(pPacket->IsSyncPoint()) m_pIndexMapSyncPoint[pPacket->pPin].AddTail(i);
-				}
 
 				if(pPacket->IsTimeValid())
 					m_rtCurrent = pPacket->rtStart;
-
+/*
 				TRACE(_T("WritePacket pPin=%x, size=%d, syncpoint=%d, eos=%d, rt=(%I64d-%I64d)\r\n"), 
 					pPacket->pPin->GetID(),
 					pPacket->pData.GetSize(),
 					!!(pPacket->flags&Packet::syncpoint),
 					!!(pPacket->flags&Packet::eos), 
 					pPacket->rtStart/10000, pPacket->rtStop/10000);
-
-				WritePacket(pPacket);
+*/
+				pos = m_pBitStreams.GetHeadPosition();
+				while(pos) MuxPacket(m_pBitStreams.GetNext(pos), pPacket);
 			}
 
-			TRACE(_T("WriteFooter\r\n"));
-
-			WriteFooter();
+//			TRACE(_T("WriteFooter\r\n"));
+			pos = m_pBitStreams.GetHeadPosition();
+			while(pos) MuxFooter(m_pBitStreams.GetNext(pos));
 
 			m_pOutput->DeliverEndOfStream();
 
-			m_pStream.Free();
 			m_pActivePins.RemoveAll();
 			m_pPins.RemoveAll();
-			m_pIndexMap.RemoveAll();
-			m_pIndexMapSyncPoint.RemoveAll();
+
+			m_pBitStreams.RemoveAll();
 
 			break;
 		}
@@ -409,86 +391,3 @@ STDMETHODIMP CBaseMuxerFilter::GetAvailable(LONGLONG* pEarliest, LONGLONG* pLate
 STDMETHODIMP CBaseMuxerFilter::SetRate(double dRate) {return E_NOTIMPL;}
 STDMETHODIMP CBaseMuxerFilter::GetRate(double* pdRate) {return E_NOTIMPL;}
 STDMETHODIMP CBaseMuxerFilter::GetPreroll(LONGLONG* pllPreroll) {return E_NOTIMPL;}
-
-//
-// CBaseMuxerFilter::CStream
-//
-
-CBaseMuxerFilter::CStream::CStream(IStream* pStream)
-	: m_pStream(pStream)
-	, m_bitlen(0)
-{
-	ASSERT(m_pStream);
-
-	LARGE_INTEGER li = {0};
-	m_pStream->Seek(li, STREAM_SEEK_SET, NULL);
-
-	ULARGE_INTEGER uli = {0};
-	m_pStream->SetSize(uli);
-}
-
-CBaseMuxerFilter::CStream::~CStream()
-{
-	BitFlush();
-}
-
-UINT64 CBaseMuxerFilter::CStream::GetPos()
-{
-	ULARGE_INTEGER pos = {0, 0};
-	m_pStream->Seek(*(LARGE_INTEGER*)&pos, STREAM_SEEK_CUR, &pos);
-	return pos.QuadPart;
-}
-
-UINT64 CBaseMuxerFilter::CStream::Seek(UINT64 pos)
-{
-	BitFlush();
-
-	LARGE_INTEGER li;
-	li.QuadPart = pos;
-	ULARGE_INTEGER linew;
-	linew.QuadPart = -1;
-	m_pStream->Seek(li, STREAM_SEEK_SET, &linew);
-	ASSERT(li.QuadPart == linew.QuadPart);
-	return linew.QuadPart;
-}
-
-void CBaseMuxerFilter::CStream::ByteWrite(const void* pData, int len)
-{
-	BitFlush();
-
-	if(len > 0)
-	{
-		ULONG cbWritten = 0;
-		m_pStream->Write(pData, len, &cbWritten);
-		ASSERT(len == cbWritten);
-	}
-}
-
-void CBaseMuxerFilter::CStream::BitWrite(UINT64 data, int len)
-{
-	ASSERT(len >= 0 && len <= 64);
-
-	if(len > 56) {BitWrite(data >> 56, len - 56); len = 56;}
-
-	m_bitbuff <<= len;
-	m_bitbuff |= data & ((1ui64 << len) - 1);
-	m_bitlen += len;
-	
-	while(m_bitlen >= 8)
-	{
-		BYTE b = (BYTE)(m_bitbuff >> (m_bitlen - 8));
-		m_pStream->Write(&b, 1, NULL);
-		m_bitlen -= 8;
-	}
-}
-
-void CBaseMuxerFilter::CStream::BitFlush()
-{
-	if(m_bitlen > 0)
-	{
-		ASSERT(m_bitlen < 8);
-		BYTE b = (BYTE)(m_bitbuff << (8 - m_bitlen));
-		m_pStream->Write(&b, 1, NULL);
-		m_bitlen = 0;
-	}
-}

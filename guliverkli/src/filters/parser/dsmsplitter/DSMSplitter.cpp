@@ -157,171 +157,7 @@ bool CDSMSplitterFilter::InitDeliverLoop()
 
 void CDSMSplitterFilter::SeekDeliverLoop(REFERENCE_TIME rt)
 {
-	REFERENCE_TIME 
-		rtFirst = m_pFile->m_rtFirst, 
-		rtDuration = m_pFile->m_rtDuration;
-
-	if(!rtDuration || rt <= 0)
-	{
-		m_pFile->Seek(0);
-	}
-	else
-	{
-		m_pFile->Seek(m_pFile->FindSyncPoint(rt));
-/*
-		CMap<DWORD,DWORD,__int64,__int64&> id2fp;
-
-		POSITION pos = m_pOutputs.GetHeadPosition();
-		while(pos)
-		{
-			CBaseSplitterOutputPin* pPin = m_pOutputs.GetNext(pos);
-			BYTE id = (BYTE)GetOutputTrackNum(pPin);
-
-
-
-			__int64 seekpos = 0;
-
-			m_pFile->Seek(seekpos);
-
-			while(m_pFile->GetPos() < m_pFile->GetLength())
-			{
-				dsmp_t type;
-				UINT64 len;
-				if(!m_pFile->Sync(type, len))
-					continue;
-
-				__int64 pos = m_pFile->GetPos();
-
-				if(type == DSMP_SAMPLE)
-				{
-					CAutoPtr<Packet> p(new Packet());
-					if(m_pFile->Read(len, p, false) && p->rtStart != Packet::INVALID_TIME)
-					{
-						REFERENCE_TIME dt = (p->rtStart -= rtFirst) - rt;
-
-						if(dt > 0)
-						{
-							if(maxpos == pos) rtpos = maxpos;
-							maxpos = pos;
-							maxrt = p->rtStart;
-						}
-						else
-						{
-							minpos = pos;
-							minrt = p->rtStart;
-						}
-						
-						if(dt > 0 || dt < -1000000)
-							break;
-					}
-				}
-
-				m_pFile->Seek(pos + len);
-			}
-
-		}
-
-
-
-
-		__int64 minpos = 0, maxpos = m_pFile->GetLength(), rtpos = -1;
-		REFERENCE_TIME minrt = 0, maxrt = rtDuration;
-
-		while(minpos < maxpos && rtpos < 0)
-		{
-			m_pFile->Seek((minpos + maxpos) / 2);
-
-			while(m_pFile->GetPos() < maxpos)
-			{
-				dsmp_t type;
-				UINT64 len;
-				if(!m_pFile->Sync(type, len))
-					continue;
-
-				__int64 pos = m_pFile->GetPos();
-
-				if(type == DSMP_SAMPLE)
-				{
-					CAutoPtr<Packet> p(new Packet());
-					if(m_pFile->Read(len, p, false) && p->rtStart != Packet::INVALID_TIME)
-					{
-						REFERENCE_TIME dt = (p->rtStart -= rtFirst) - rt;
-
-						if(dt > 0)
-						{
-							if(maxpos == pos) rtpos = maxpos;
-							maxpos = pos;
-							maxrt = p->rtStart;
-						}
-						else
-						{
-							minpos = pos;
-							minrt = p->rtStart;
-						}
-						
-						if(dt > 0 || dt < -1000000)
-							break;
-					}
-				}
-
-				m_pFile->Seek(pos + len);
-			}
-		}
-
-		rtpos = rtpos;
-*/
-/*
-		__int64 minpos = 0, maxpos = m_pFile->GetLength(), syncpointpos = 0;
-		REFERENCE_TIME minrt = 0, maxrt = rtDuration;
-		bool fCloseEnough = false;
-		int i = 0;
-
-		while(!fCloseEnough && minpos < maxpos)
-		{
-			__int64 seekpos = minpos + 1.0 * (maxpos - minpos) * (rt - minrt) / (maxrt - minrt);
-			m_pFile->Seek(seekpos);
-
-			while(m_pFile->GetPos() < maxpos)
-			{
-				dsmp_t type;
-				UINT64 len;
-
-				if(!m_pFile->Sync(type, len))
-				{
-//					if(m_pFile->GetPos() >= maxpos) maxpos = seekpos;
-					continue;
-				}
-
-				__int64 pos = m_pFile->GetPos();
-
-				if(type == DSMP_SAMPLE)
-				{
-					CAutoPtr<Packet> p(new Packet());
-					if(m_pFile->Read(len, p, false) && p->rtStart != Packet::INVALID_TIME)
-					{
-						REFERENCE_TIME dt = (p->rtStart -= rtFirst) - rt;
-
-						if(dt > 0)
-						{
-							maxpos = pos;
-							maxrt = p->rtStart;
-							break;
-						}
-						else if(p->bSyncPoint)
-						{
-							syncpointpos = max(seekpos, pos);
-						}
-					}
-				}
-
-				m_pFile->Seek(pos + len);
-			}
-
-//			__int64 minpos = 0, maxpos = m_pFile->GetLength();
-//			REFERENCE_TIME minrt = 0, maxrt = rtDuration;
-		}
-*/
-	}
+	m_pFile->Seek(m_pFile->FindSyncPoint(rt));
 }
 
 bool CDSMSplitterFilter::DoDeliverLoop()
@@ -354,13 +190,51 @@ bool CDSMSplitterFilter::DoDeliverLoop()
 
 	return(true);
 }
-/*
+
+// IAMExtendedSeeking
+
+STDMETHODIMP CDSMSplitterFilter::get_MarkerCount(long* pMarkerCount)
+{
+	CheckPointer(pMarkerCount, E_POINTER);
+	CheckPointer(m_pFile, E_UNEXPECTED);
+	*pMarkerCount = m_pFile->m_cs.GetCount();
+	return S_OK;
+}
+
+STDMETHODIMP CDSMSplitterFilter::get_CurrentMarker(long* pCurrentMarker)
+{
+	CheckPointer(pCurrentMarker, E_POINTER);
+	CheckPointer(m_pFile, E_UNEXPECTED);
+	int i = range_bsearch(m_pFile->m_cs, m_rtCurrent);
+	if(i < 0) return E_FAIL;
+	*pCurrentMarker = (long)i;
+	return S_OK;
+}
+
+STDMETHODIMP CDSMSplitterFilter::GetMarkerTime(long MarkerNum, double* pMarkerTime)
+{
+	CheckPointer(pMarkerTime, E_POINTER);
+	CheckPointer(m_pFile, E_UNEXPECTED);
+	if(MarkerNum < 0 || MarkerNum >= m_pFile->m_cs.GetCount()) return E_INVALIDARG;
+	*pMarkerTime = 1.0 * m_pFile->m_cs[MarkerNum].rt / 10000000;
+	return S_OK;
+}
+
+STDMETHODIMP CDSMSplitterFilter::GetMarkerName(long MarkerNum, BSTR* pbstrMarkerName)
+{
+	CheckPointer(pbstrMarkerName, E_POINTER);
+	CheckPointer(m_pFile, E_UNEXPECTED);
+	if(MarkerNum < 0 || MarkerNum >= m_pFile->m_cs.GetCount()) return E_INVALIDARG;
+	*pbstrMarkerName = m_pFile->m_cs[MarkerNum].name.AllocSysString();
+	return *pbstrMarkerName ? S_OK : E_FAIL;
+}
+
 // IKeyFrameInfo
 
 STDMETHODIMP CDSMSplitterFilter::GetKeyFrameCount(UINT& nKFs)
 {
-	if(!m_pFile) return E_UNEXPECTED;
-	nKFs = m_pFile->m_irs.GetCount();
+	CheckPointer(m_pFile, E_UNEXPECTED);
+	nKFs = m_pFile->m_sps.GetCount();
 	return S_OK;
 }
 
@@ -368,62 +242,16 @@ STDMETHODIMP CDSMSplitterFilter::GetKeyFrames(const GUID* pFormat, REFERENCE_TIM
 {
 	CheckPointer(pFormat, E_POINTER);
 	CheckPointer(pKFs, E_POINTER);
+	CheckPointer(m_pFile, E_UNEXPECTED);
 
-	if(!m_pFile) return E_UNEXPECTED;
 	if(*pFormat != TIME_FORMAT_MEDIA_TIME) return E_INVALIDARG;
 
-	UINT nKFsTmp = 0;
-	POSITION pos = m_pFile->m_irs.GetHeadPosition();
-	for(int i = 0; pos && nKFsTmp < nKFs; i++)
-		pKFs[nKFsTmp++] = 10000i64*m_pFile->m_irs.GetNext(pos)->tStart;
-	nKFs = nKFsTmp;
+	// these aren't really the keyframes, but quicky accessable points in the stream
+	for(nKFs = 0; nKFs < m_pFile->m_sps.GetCount(); nKFs++)
+		pKFs[nKFs] = m_pFile->m_sps[nKFs].rt;
 
 	return S_OK;
 }
-
-// IChapterInfo
-
-STDMETHODIMP_(UINT) CDSMSplitterFilter::GetChapterCount(UINT aChapterID)
-{
-	return aChapterID == CHAPTER_ROOT_ID ? m_pChapters.GetCount() : 0;
-}
-
-STDMETHODIMP_(UINT) CDSMSplitterFilter::GetChapterId(UINT aParentChapterId, UINT aIndex)
-{
-	POSITION pos = m_pChapters.FindIndex(aIndex-1);
-	if(aParentChapterId != CHAPTER_ROOT_ID || !pos)
-		return CHAPTER_BAD_ID;
-	return aIndex;
-}
-
-STDMETHODIMP_(BOOL) CDSMSplitterFilter::GetChapterInfo(UINT aChapterID, struct ChapterElement* pToFill)
-{
-	REFERENCE_TIME rtDur = 0;
-	GetDuration(&rtDur);
-
-	CheckPointer(pToFill, E_POINTER);
-	POSITION pos = m_pChapters.FindIndex(aChapterID-1);
-	if(!pos) return FALSE;
-	CChapter* p = m_pChapters.GetNext(pos);
-	WORD Size = pToFill->Size;
-	if(Size >= sizeof(ChapterElement))
-	{
-		pToFill->Size = sizeof(ChapterElement);
-		pToFill->Type = AtomicChapter;
-		pToFill->ChapterId = aChapterID;
-		pToFill->rtStart = p->m_rt;
-		pToFill->rtStop = pos ? m_pChapters.GetNext(pos)->m_rt : rtDur;
-	}
-	return TRUE;
-}
-
-STDMETHODIMP_(BSTR) CDSMSplitterFilter::GetChapterStringInfo(UINT aChapterID, CHAR PreferredLanguage[3], CHAR CountryCode[2])
-{
-	POSITION pos = m_pChapters.FindIndex(aChapterID-1);
-	if(!pos) return NULL;
-	return m_pChapters.GetAt(pos)->m_name.AllocSysString();
-}
-*/
 
 //
 // CDSMSourceFilter

@@ -380,9 +380,9 @@ void CShaderEditorDlg::OnCbnSelchangeCombo1()
 			"#define counter (p0[2])\r\n"
             "#define clock (p0[3])\r\n"
 			"\r\n"
-			"float4 main(float2 t0 : TEXCOORD0) : COLOR\r\n"
+			"float4 main(float2 tex : TEXCOORD0) : COLOR\r\n"
 			"{\r\n"
-			"\tfloat4 c0 = tex2D(s0, t0);\r\n"
+			"\tfloat4 c0 = tex2D(s0, tex);\r\n"
 			"\t// TODO\r\n"
 			"\treturn c0;\r\n"
 			"}\r\n";
@@ -450,9 +450,9 @@ void CShaderEditorDlg::OnTimer(UINT nIDEvent)
 			}
 			else
 			{
-				err = "D3DXCompileShader(..) succeeded\n";
+				err = "D3DXCompileShader succeeded\n";
 				if(m_pCAP && FAILED(m_pCAP->SetPixelShader(CStringA(srcdata), CStringA(target), NULL, 0)))
-					err += "SetPixelShader(..) failed\n";
+					err += "SetPixelShader failed\n";
 				err += "\n";
 
 				CComPtr<ID3DXBuffer> pDisAsm;

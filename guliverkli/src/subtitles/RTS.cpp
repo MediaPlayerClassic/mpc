@@ -791,6 +791,7 @@ CSubtitle::CSubtitle()
 {
 	memset(m_effects, 0, sizeof(Effect*)*EF_NUMBEROFEFFECTS);
 	m_pClipper = NULL;
+	m_scalex = m_scaley = 1;
 }
 
 CSubtitle::~CSubtitle()
@@ -1175,8 +1176,6 @@ CRect CScreenLayoutAllocator::AllocRect(CSubtitle* s, int segment, int entry, in
 CRenderedTextSubtitle::CRenderedTextSubtitle(CCritSec* pLock)
 	: ISubPicProviderImpl(pLock)
 {
-	m_screenRatioX = m_screenRatioY = 1;
-	
 	m_size = CSize(0, 0);
 
 	if(g_hDC_refcnt == 0) 
@@ -1202,13 +1201,10 @@ void CRenderedTextSubtitle::Copy(CSimpleTextSubtitle& sts)
 {
 	CSimpleTextSubtitle::Copy(sts);
 
-	m_screenRatioX = m_screenRatioY = 1;
 	m_size = CSize(0, 0);
 
 	if(CRenderedTextSubtitle* pRTS = dynamic_cast<CRenderedTextSubtitle*>(&sts))
 	{
-		m_screenRatioX = pRTS->m_screenRatioX;
-		m_screenRatioY = pRTS->m_screenRatioY;
 		m_size = pRTS->m_nSize;
 	}
 }
@@ -1242,9 +1238,6 @@ bool CRenderedTextSubtitle::Init(CSize size, CRect vidrect)
 {
 	Deinit();
 
-	m_screenRatioX = m_dstScreenSize.cx > 0 ? 1.0 * size.cx / m_dstScreenSize.cx : 1.0;
-	m_screenRatioY = m_dstScreenSize.cy > 0 ? 1.0 * size.cy / m_dstScreenSize.cy : 1.0;
-
 	m_size = CSize(size.cx*8, size.cy*8);
 	m_vidrect = CRect(vidrect.left*8, vidrect.top*8, vidrect.right*8, vidrect.bottom*8);
 
@@ -1268,7 +1261,6 @@ void CRenderedTextSubtitle::Deinit()
 
 	m_sla.Empty();
 
-	m_screenRatioX = m_screenRatioY = 1;
 	m_size = CSize(0, 0);
 	m_vidrect.SetRectEmpty();
 }
@@ -1292,9 +1284,9 @@ void CRenderedTextSubtitle::ParseEffect(CSubtitle* sub, CString str)
 		if(!e) return;
 
 		sub->m_effects[e->type = EF_BANNER] = e;
-		e->param[0] = (int)(max(1.0*delay/m_screenRatioX, 1));
+		e->param[0] = (int)(max(1.0*delay/sub->m_scalex, 1));
 		e->param[1] = lefttoright;
-		e->param[2] = (int)(m_screenRatioX*fadeawaywidth);
+		e->param[2] = (int)(sub->m_scalex*fadeawaywidth);
 
 		sub->m_wrapStyle = 2;
 	}
@@ -1309,11 +1301,11 @@ void CRenderedTextSubtitle::ParseEffect(CSubtitle* sub, CString str)
 		if(!e) return;
 
 		sub->m_effects[e->type = EF_SCROLL] = e;
-		e->param[0] = (int)(m_screenRatioY*top*8);
-		e->param[1] = (int)(m_screenRatioY*bottom*8);
-		e->param[2] = (int)(max(1.0*delay/m_screenRatioY, 1));
+		e->param[0] = (int)(sub->m_scaley*top*8);
+		e->param[1] = (int)(sub->m_scaley*bottom*8);
+		e->param[2] = (int)(max(1.0*delay/sub->m_scaley, 1));
 		e->param[3] = (effect.GetLength() == 12);
-		e->param[4] = (int)(m_screenRatioY*fadeawayheight);
+		e->param[4] = (int)(sub->m_scaley*fadeawayheight);
 	}
 }
 
@@ -1368,7 +1360,7 @@ void CRenderedTextSubtitle::ParsePolygon(CSubtitle* sub, CStringW str, STSStyle&
 {
 	if(!sub || !str.GetLength() || !m_nPolygon) return;
 
-	if(CWord* w = new CPolygon(style, str, m_ktype, m_kstart, m_kend, m_screenRatioX/(1<<(m_nPolygon-1)), m_screenRatioY/(1<<(m_nPolygon-1)), m_polygonBaselineOffset))
+	if(CWord* w = new CPolygon(style, str, m_ktype, m_kstart, m_kend, sub->m_scalex/(1<<(m_nPolygon-1)), sub->m_scaley/(1<<(m_nPolygon-1)), m_polygonBaselineOffset))
 	{
 		sub->m_words.AddTail(w); 
 		m_kstart = m_kend;
@@ -1555,22 +1547,20 @@ bool CRenderedTextSubtitle::ParseSSATag(CSubtitle* sub, CStringW str, STSStyle& 
 		{
 			if(params.GetCount() == 1 && !sub->m_pClipper)
 			{
-				sub->m_pClipper = new CClipper(params[0], CSize(m_size.cx>>3, m_size.cy>>3), 
-					m_screenRatioX, m_screenRatioY);
+				sub->m_pClipper = new CClipper(params[0], CSize(m_size.cx>>3, m_size.cy>>3), sub->m_scalex, sub->m_scaley);
 			}
 			else if(params.GetCount() == 2 && !sub->m_pClipper)
 			{
 				int scale = max(wcstol(p, NULL, 10), 1);
-				sub->m_pClipper = new CClipper(params[1], CSize(m_size.cx>>3, m_size.cy>>3), 
-					m_screenRatioX/(1<<(scale-1)), m_screenRatioY/(1<<(scale-1)));
+				sub->m_pClipper = new CClipper(params[1], CSize(m_size.cx>>3, m_size.cy>>3), sub->m_scalex/(1<<(scale-1)), sub->m_scaley/(1<<(scale-1)));
 			}
 			else if(params.GetCount() == 4)
 			{
 				sub->m_clip.SetRect(
-					(int)CalcAnimation(m_screenRatioX*wcstol(params[0], NULL, 10), sub->m_clip.left, fAnimate),
-					(int)CalcAnimation(m_screenRatioY*wcstol(params[1], NULL, 10), sub->m_clip.top, fAnimate),
-					(int)CalcAnimation(m_screenRatioX*wcstol(params[2], NULL, 10), sub->m_clip.right, fAnimate),
-					(int)CalcAnimation(m_screenRatioY*wcstol(params[3], NULL, 10), sub->m_clip.bottom, fAnimate));
+					(int)CalcAnimation(sub->m_scalex*wcstol(params[0], NULL, 10), sub->m_clip.left, fAnimate),
+					(int)CalcAnimation(sub->m_scaley*wcstol(params[1], NULL, 10), sub->m_clip.top, fAnimate),
+					(int)CalcAnimation(sub->m_scalex*wcstol(params[2], NULL, 10), sub->m_clip.right, fAnimate),
+					(int)CalcAnimation(sub->m_scaley*wcstol(params[3], NULL, 10), sub->m_clip.bottom, fAnimate));
 			}
 		}
 		else if(cmd == L"c")
@@ -1723,10 +1713,10 @@ bool CRenderedTextSubtitle::ParseSSATag(CSubtitle* sub, CStringW str, STSStyle& 
 			{
 				if(Effect* e = new Effect)
 				{
-					e->param[0] = (int)(m_screenRatioX*wcstol(params[0], NULL, 10)*8);
-					e->param[1] = (int)(m_screenRatioY*wcstol(params[1], NULL, 10)*8);
-					e->param[2] = (int)(m_screenRatioX*wcstol(params[2], NULL, 10)*8);
-					e->param[3] = (int)(m_screenRatioY*wcstol(params[3], NULL, 10)*8);
+					e->param[0] = (int)(sub->m_scalex*wcstol(params[0], NULL, 10)*8);
+					e->param[1] = (int)(sub->m_scaley*wcstol(params[1], NULL, 10)*8);
+					e->param[2] = (int)(sub->m_scalex*wcstol(params[2], NULL, 10)*8);
+					e->param[3] = (int)(sub->m_scaley*wcstol(params[3], NULL, 10)*8);
 
 					e->t[0] = e->t[1] = -1;
 
@@ -1746,8 +1736,8 @@ bool CRenderedTextSubtitle::ParseSSATag(CSubtitle* sub, CStringW str, STSStyle& 
 			{
 				if(Effect* e = new Effect)
 				{
-					e->param[0] = (int)(m_screenRatioX*wcstol(params[0], NULL, 10)*8);
-					e->param[1] = (int)(m_screenRatioY*wcstol(params[1], NULL, 10)*8);
+					e->param[0] = (int)(sub->m_scalex*wcstol(params[0], NULL, 10)*8);
+					e->param[1] = (int)(sub->m_scaley*wcstol(params[1], NULL, 10)*8);
 
 					sub->m_effects[EF_ORG] = e;
 				}
@@ -1763,8 +1753,8 @@ bool CRenderedTextSubtitle::ParseSSATag(CSubtitle* sub, CStringW str, STSStyle& 
 			{
 				if(Effect* e = new Effect)
 				{
-					e->param[0] = e->param[2] = (int)(m_screenRatioX*wcstol(params[0], NULL, 10)*8);
-					e->param[1] = e->param[3] = (int)(m_screenRatioY*wcstol(params[1], NULL, 10)*8);
+					e->param[0] = e->param[2] = (int)(sub->m_scalex*wcstol(params[0], NULL, 10)*8);
+					e->param[1] = e->param[3] = (int)(sub->m_scaley*wcstol(params[1], NULL, 10)*8);
 					e->t[0] = e->t[1] = 0;
 
 					sub->m_effects[EF_MOVE] = e;
@@ -1983,24 +1973,29 @@ double CRenderedTextSubtitle::CalcAnimation(double dst, double src, bool fAnimat
 
 CSubtitle* CRenderedTextSubtitle::GetSubtitle(int entry)
 {
-	CSubtitle* ret;
-	if(m_subtitleCache.Lookup(entry, ret)) 
+	CSubtitle* sub;
+	if(m_subtitleCache.Lookup(entry, sub)) 
 	{
-		if(ret->m_fAnimated) {delete ret; ret = NULL;}
-		else return(ret);
+		if(sub->m_fAnimated) {delete sub; sub = NULL;}
+		else return(sub);
 	}
 
-	ret = new CSubtitle();
-	if(!ret) return(NULL);
+	sub = new CSubtitle();
+	if(!sub) return(NULL);
 
 	CStringW str = GetStrW(entry, true);
 
-	STSStyle s = *GetStyle(entry), org = s;
+	STSStyle stss, orgstss;
+	GetStyle(entry, stss);
+	orgstss = stss;
 
-	ret->m_clip.SetRect(0, 0, m_size.cx>>3, m_size.cy>>3);
-	ret->m_scrAlignment = -s.scrAlignment;
-	ret->m_wrapStyle = m_defaultWrapStyle;
-	ret->m_fAnimated = false;
+	sub->m_clip.SetRect(0, 0, m_size.cx>>3, m_size.cy>>3);
+	sub->m_scrAlignment = -stss.scrAlignment;
+	sub->m_wrapStyle = m_defaultWrapStyle;
+	sub->m_fAnimated = false;
+
+	sub->m_scalex = m_dstScreenSize.cx > 0 ? 1.0 * (stss.relativeTo == 1 ? m_vidrect.Width() : m_size.cx) / (m_dstScreenSize.cx*8) : 1.0;
+	sub->m_scaley = m_dstScreenSize.cy > 0 ? 1.0 * (stss.relativeTo == 1 ? m_vidrect.Height() : m_size.cy) / (m_dstScreenSize.cy*8) : 1.0;
 
 	m_animStart = m_animEnd = 0;
 	m_animAccel = 1;
@@ -2008,7 +2003,7 @@ CSubtitle* CRenderedTextSubtitle::GetSubtitle(int entry)
 	m_nPolygon = 0;
 	m_polygonBaselineOffset = 0;
 
-	ParseEffect(ret, GetAt(entry).effect);
+	ParseEffect(sub, GetAt(entry).effect);
 
 	while(!str.IsEmpty())
 	{
@@ -2018,12 +2013,12 @@ CSubtitle* CRenderedTextSubtitle::GetSubtitle(int entry)
 
 		if(str[0] == '{' && (i = str.Find(L'}')) > 0)
 		{
-			if(fParsed = ParseSSATag(ret, str.Mid(1, i-1), s, org))
+			if(fParsed = ParseSSATag(sub, str.Mid(1, i-1), stss, orgstss))
 				str = str.Mid(i+1);
 		}
 		else if(str[0] == '<' && (i = str.Find(L'>')) > 0)
 		{
-			if(fParsed = ParseHtmlTag(ret, str.Mid(1, i-1), s, org))
+			if(fParsed = ParseHtmlTag(sub, str.Mid(1, i-1), stss, orgstss))
 				str = str.Mid(i+1);
 		}
 
@@ -2040,42 +2035,43 @@ CSubtitle* CRenderedTextSubtitle::GetSubtitle(int entry)
 			i++;
 		}
 
-		STSStyle tmp = s;
+		STSStyle tmp = stss;
 
-		tmp.fontSize = m_screenRatioY*tmp.fontSize*64;
-		tmp.fontSpacing = m_screenRatioX*tmp.fontSpacing*64;
-		tmp.outlineWidth *= (m_fScaledBAS ? ((m_screenRatioX+m_screenRatioY)/2) : 1) * 8;
-		tmp.shadowDepth *= (m_fScaledBAS ? ((m_screenRatioX+m_screenRatioY)/2) : 1) * 8;
+		tmp.fontSize = sub->m_scaley*tmp.fontSize*64;
+		tmp.fontSpacing = sub->m_scalex*tmp.fontSpacing*64;
+		tmp.outlineWidth *= (m_fScaledBAS ? ((sub->m_scalex+sub->m_scaley)/2) : 1) * 8;
+		tmp.shadowDepth *= (m_fScaledBAS ? ((sub->m_scalex+sub->m_scaley)/2) : 1) * 8;
 
 		if(m_nPolygon)
 		{
-			ParsePolygon(ret, str.Left(i), tmp);
+			ParsePolygon(sub, str.Left(i), tmp);
 		}
 		else
 		{
-			ParseString(ret, str.Left(i), tmp);
+			ParseString(sub, str.Left(i), tmp);
 		}
 
 		str = str.Mid(i);
 	}
 
 	// just a "work-around" solution... in most cases nobody will want to use \org together with moving but without rotating the subs
-	if(ret->m_effects[EF_ORG] && (ret->m_effects[EF_MOVE] || ret->m_effects[EF_BANNER] || ret->m_effects[EF_SCROLL]))
-		ret->m_fAnimated = true;
+	if(sub->m_effects[EF_ORG] && (sub->m_effects[EF_MOVE] || sub->m_effects[EF_BANNER] || sub->m_effects[EF_SCROLL]))
+		sub->m_fAnimated = true;
 
-	ret->m_scrAlignment = abs(ret->m_scrAlignment);
+	sub->m_scrAlignment = abs(sub->m_scrAlignment);
 
 	STSEntry stse = GetAt(entry);
 	CRect marginRect = stse.marginRect;
-	if(marginRect.left == 0) marginRect.left = org.marginRect.left;
-	if(marginRect.top == 0) marginRect.top = org.marginRect.top;
-	if(marginRect.right == 0) marginRect.right = org.marginRect.right;
-	if(marginRect.bottom == 0) marginRect.bottom = org.marginRect.bottom;
-	marginRect.left = (int)(m_screenRatioX*marginRect.left*8);
-	marginRect.top = (int)(m_screenRatioY*marginRect.top*8);
-	marginRect.right = (int)(m_screenRatioX*marginRect.right*8);
-	marginRect.bottom = (int)(m_screenRatioY*marginRect.bottom*8);
-	if(s.relativeTo == 1)
+	if(marginRect.left == 0) marginRect.left = orgstss.marginRect.left;
+	if(marginRect.top == 0) marginRect.top = orgstss.marginRect.top;
+	if(marginRect.right == 0) marginRect.right = orgstss.marginRect.right;
+	if(marginRect.bottom == 0) marginRect.bottom = orgstss.marginRect.bottom;
+	marginRect.left = (int)(sub->m_scalex*marginRect.left*8);
+	marginRect.top = (int)(sub->m_scaley*marginRect.top*8);
+	marginRect.right = (int)(sub->m_scalex*marginRect.right*8);
+	marginRect.bottom = (int)(sub->m_scaley*marginRect.bottom*8);
+	
+	if(stss.relativeTo == 1)
 	{
 		marginRect.left += m_vidrect.left;
 		marginRect.top += m_vidrect.top;
@@ -2083,13 +2079,13 @@ CSubtitle* CRenderedTextSubtitle::GetSubtitle(int entry)
 		marginRect.bottom += m_size.cy - m_vidrect.bottom;
 	}
 
-	ret->CreateClippers(m_size);
+	sub->CreateClippers(m_size);
 
-	ret->MakeLines(m_size, marginRect);
+	sub->MakeLines(m_size, marginRect);
 
-	m_subtitleCache[entry] = ret;
+	m_subtitleCache[entry] = sub;
 
-	return(ret);
+	return(sub);
 }
 
 //
@@ -2206,7 +2202,6 @@ STDMETHODIMP CRenderedTextSubtitle::Render(SubPicDesc& spd, REFERENCE_TIME rt, d
 		int entry = subs[i].idx;
 
 		STSEntry stse = GetAt(entry);
-		STSStyle* style = GetStyle(entry);
 
 		{
 			int start = TranslateStart(entry, fps);

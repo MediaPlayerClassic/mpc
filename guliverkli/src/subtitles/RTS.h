@@ -172,6 +172,8 @@ public:
 	CRect m_rect, m_clip;
 	int m_topborder, m_bottomborder;
 
+	double m_scalex, m_scaley;
+
 public:
 	CSubtitle();
 	virtual ~CSubtitle();
@@ -206,7 +208,6 @@ class CRenderedTextSubtitle : public CSimpleTextSubtitle, public ISubPicProvider
 
 	CScreenLayoutAllocator m_sla;
 
-	double m_screenRatioX, m_screenRatioY;
 	CSize m_size;
 	CRect m_vidrect;
 

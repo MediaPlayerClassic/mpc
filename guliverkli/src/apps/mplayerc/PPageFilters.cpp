@@ -36,6 +36,7 @@ static struct filter_t {LPCTSTR label; int type; int flag; UINT nHintID;} s_filt
 	{_T("CDDA (Audio CD)"), 0, SRC_CDDA, IDS_SRC_CDDA},
 	{_T("CDXA (VCD/SVCD/XCD)"), 0, SRC_CDXA, IDS_SRC_CDXA},
 	{_T("Dirac"), 0, SRC_DIRAC, IDS_SRC_DIRAC},
+	{_T("DSM"), 0, SRC_DSM, 0/*IDS_SRC_DSM*/},
 	{_T("DTS/AC3"), 0, SRC_DTSAC3, IDS_SRC_DTSAC3},
 	{_T("DVD Video Title Set"), 0, SRC_VTS, IDS_SRC_VTS},
 	{_T("DVD2AVI Project File"), 0, SRC_D2V, IDS_SRC_D2V},

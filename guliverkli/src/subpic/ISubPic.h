@@ -61,8 +61,7 @@ interface ISubPic : public IUnknown
 	STDMETHOD (SetDirtyRect) (RECT* pDirtyRect /*[in]*/) PURE;
 
 	STDMETHOD (GetMaxSize) (SIZE* pMaxSize /*[out]*/) PURE;
-	STDMETHOD (SetSize) (SIZE pSize /*[in]*/) PURE;
-	STDMETHOD (SetVidRect) (RECT vidrect /*[in]*/) PURE;
+	STDMETHOD (SetSize) (SIZE pSize /*[in]*/, RECT vidrect /*[in]*/) PURE;
 
 	STDMETHOD (Lock) (SubPicDesc& spd /*[out]*/) PURE;
 	STDMETHOD (Unlock) (RECT* pDirtyRect /*[in]*/) PURE;
@@ -99,8 +98,7 @@ public:
 	STDMETHODIMP SetDirtyRect(RECT* pDirtyRect);
 
 	STDMETHODIMP GetMaxSize(SIZE* pMaxSize);
-	STDMETHODIMP SetSize(SIZE size);
-	STDMETHODIMP SetVidRect(RECT vidrect);
+	STDMETHODIMP SetSize(SIZE size, RECT vidrect);
 
 	STDMETHODIMP Lock(SubPicDesc& spd) = 0;
 	STDMETHODIMP Unlock(RECT* pDirtyRect) = 0;

@@ -112,7 +112,7 @@ CStringA UrlEncode(CStringA str, bool fRaw)
 	{
 		CHAR c = str[i];
 		if(fRaw && c == '+') urlstr += "%2B";
-		else if(c > 0x20 && c < 0x7f) urlstr += c;
+		else if(c > 0x20 && c < 0x7f && c != '&') urlstr += c;
 		else if(c == 0x20) urlstr += fRaw ? ' ' : '+';
 		else {CStringA tmp; tmp.Format("%%%02x", (BYTE)c); urlstr += tmp;}
 	}

@@ -1735,7 +1735,7 @@ CSimpleTextSubtitle::CSimpleTextSubtitle()
 	m_dstScreenSize = CSize(0, 0);
 	m_defaultWrapStyle = 0;
 	m_collisions = 0;
-	m_fScaledBAS = false;
+	m_fScaledBAS = true;
 	m_encoding = CTextFile::ASCII;
 }
 
@@ -2319,9 +2319,23 @@ STSStyle* CSimpleTextSubtitle::GetStyle(int i)
 	return(style);
 }
 
+bool CSimpleTextSubtitle::GetStyle(int i, STSStyle& stss)
+{
+	STSStyle* style = (STSStyle*)m_styles[GetAt(i).style];
+	STSStyle* defstyle = (STSStyle*)m_styles[_T("Default")];
+	if(!style) style = defstyle;
+	if(!style) {ASSERT(0); return(false);}
+	stss = *style;
+	if(stss.relativeTo == 2 && defstyle)
+		stss.relativeTo = defstyle->relativeTo;
+	return(true);
+}
+
 int CSimpleTextSubtitle::GetCharSet(int i)
 {
-	return(GetStyle(i)->charSet);
+	STSStyle stss;
+	GetStyle(i, stss);
+	return(stss.charSet);
 }
 
 bool CSimpleTextSubtitle::IsEntryUnicode(int i)
@@ -2864,7 +2878,7 @@ void STSStyle::SetDefault()
 	fStrikeOut = false;
 	fBlur = false;
 	fontAngleZ = fontAngleX = fontAngleY = 0;
-	relativeTo = 0;
+	relativeTo = 2;
 }
 
 bool STSStyle::operator == (STSStyle& s)

@@ -51,6 +51,7 @@ CPPageSubStyle::CPPageSubStyle()
 	, m_screenalignment(0)
 	, m_margin(0,0,0,0)
 	, m_linkalphasliders(FALSE)
+	, m_relativeTo(FALSE)
 {
 	m_stss = AfxGetAppSettings().subdefstyle;
 	m_fUseDefaultStyle = true;
@@ -121,6 +122,7 @@ void CPPageSubStyle::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_SLIDER5, m_alphasliders[2]);
 	DDX_Control(pDX, IDC_SLIDER6, m_alphasliders[3]);
 	DDX_Check(pDX, IDC_CHECK1, m_linkalphasliders);
+	DDX_Check(pDX, IDC_CHECK_RELATIVETO, m_relativeTo);
 }
 
 
@@ -175,6 +177,7 @@ BOOL CPPageSubStyle::OnInitDialog()
 	m_marginrightspin.SetRange32(-10000, 10000);
 	m_margintopspin.SetRange32(-10000, 10000);
 	m_marginbottomspin.SetRange32(-10000, 10000);
+	m_relativeTo = m_stss.relativeTo;
 
 	for(int i = 0; i < 4; i++)
 	{
@@ -186,6 +189,8 @@ BOOL CPPageSubStyle::OnInitDialog()
 	m_linkalphasliders = FALSE;
 
 	UpdateData(FALSE);
+
+	CreateToolTip();
 
 	return TRUE;  // return TRUE unless you set the focus to a control
 	// EXCEPTION: OCX Property Pages should return FALSE
@@ -207,6 +212,7 @@ BOOL CPPageSubStyle::OnApply()
 
 	m_stss.scrAlignment = m_screenalignment+1;
 	m_stss.marginRect = m_margin;
+	m_stss.relativeTo = m_relativeTo;
 
 	for(int i = 0; i < 4; i++) m_stss.alpha[i] = 255-m_alpha[i];
 

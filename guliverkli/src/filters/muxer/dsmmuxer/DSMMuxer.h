@@ -29,15 +29,15 @@ class CDSMMuxerFilter : public CBaseMuxerFilter
 {
 	struct SyncPoint {BYTE id; REFERENCE_TIME rtStart, rtStop; __int64 fp;};
 	CList<SyncPoint> m_sps, m_isps;
-	void IndexSyncPoint(Packet* p);
+	void IndexSyncPoint(Packet* p, __int64 fp);
 
-	int GetByteLength(UINT64 data, int min = 1);
-	void WritePacketHeader(dsmp_t type, UINT64 len);
+	void MuxPacketHeader(IBitStream* pBS, dsmp_t type, UINT64 len);
 
 protected:
-	void WriteHeader();
-	void WritePacket(Packet* pPacket);
-	void WriteFooter();
+	void MuxInit();
+	void MuxHeader(IBitStream* pBS);
+	void MuxPacket(IBitStream* pBS, Packet* pPacket);
+	void MuxFooter(IBitStream* pBS);
 
 public:
 	CDSMMuxerFilter(LPUNKNOWN pUnk, HRESULT* phr);

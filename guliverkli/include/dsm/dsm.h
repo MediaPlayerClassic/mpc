@@ -13,10 +13,10 @@ enum dsmp_t {DSMP_FILE, DSMP_STREAMINFO, DSMP_MEDIATYPE, DSMP_CHAPTERS, DSMP_SAM
 The .dsm file structure
 -----------------------
 
-File + MediaType*N [+ StreamInfo + Chapters] + Sample*M [+ SyncPoints]
+File + MediaType*N [+ StreamInfo [+ SyncPoints] + Chapters] + Sample*M [+ SyncPoints]
 
 Notes: 
-- SyncPoints is optional, seeking can be performed by searching for packet syncpoints and their timestamps.
+- SyncPoints is optional (may appear before or after the samples), seeking can be performed by searching for packet syncpoints and their timestamps.
 - This layout is fine for streaming. (TODO: introduce NewSegment packet, but _only_ for streaming)
 - The resolution of timestamp and duration is 100ns.
 - Strings are zero terminated utf-8 strings.
@@ -25,8 +25,8 @@ Packet
 ------
 
 DSMSW (DSMSW_SIZE bytes) (DirectShow Media SyncWord)
-enum dsmp_t {DSMP_FILE, DSMP_STREAMINFO, DSMP_MEDIATYPE, DSMP_CHAPTERS, DSMP_SAMPLE} (5 bits)
-data size length (3 bits, 1-8 bytes)
+enum dsmp_t {DSMP_FILE, DSMP_STREAMINFO, DSMP_MEDIATYPE, DSMP_CHAPTERS, DSMP_SAMPLE, DSMP_SYNCPOINTS} (5 bits)
+data size length (3 bits -> 1-8 bytes)
 data size (1-8 bytes)
 
 [... data ...]
@@ -63,6 +63,9 @@ formattype (sizeof(GUID))
 
 [... format data ...]
 
+Notes:
+- bFixedSizeSamples, bTemporalCompression, lSampleSize are only there to preserve compatibility with dshow's media type structure, they aren't playing a role in anything really.
+
 StreamInfo : extends Packet (dsmp_t: DSMP_STREAMINFO)
 -----------------------------------------------------
 
@@ -88,12 +91,16 @@ Chapters : extends Packet (dsmp_t: DSMP_CHAPTERS)
 
 ... repeated n times ...
 
-timestamp length (3 bits)
-reserved (5 bits)
-timestamp (0-7 bytes)
+timestamp delta sign (1 bit, <0?)
+timestamp delta length (3 bits -> 0-7 bytes)
+reserved (4 bits)
+timestamp delta (0-7 bytes)
 string
 
 ... repeated n times ...
+
+Notes: 
+- "timestamp delta" holds the difference to the previous value, starts at 0.
 
 Sample : extends Packet (dsmp_t: DSMP_SAMPLE)
 ---------------------------------------------
@@ -112,8 +119,8 @@ duration (0-7 bytes)
 
 Notes:
 - sign == 1 && timestamps length == 0 -> timestamp and duration is unknown (but for syncpoints it cannot be unknown!)
-- sign == 0 && ... length == 0 -> simply means the value is stored on zero bytes and its value is zero too.
-- syncpoint timestamps must be strictly in increasing order.
+- sign == 0 && * length == 0 -> simply means the value is stored on zero bytes and its value is zero too.
+- timestamps of syncpoints must be strictly in increasing order.
 
 SyncPoints : extends Packet (dsmp_t: DSMP_SYNCPOINTS)
 -----------------------------------------------------

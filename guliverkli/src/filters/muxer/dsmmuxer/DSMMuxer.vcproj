@@ -3,7 +3,7 @@
 	ProjectType="Visual C++"
 	Version="7.10"
 	Name="DSMMuxer"
-	ProjectGUID="{65361C7C-83D6-42e4-870C-4DC85AE641FE}"
+	ProjectGUID="{65361C7C-83D6-42E4-870C-4DC85AE641FE}"
 	Keyword="Win32Proj">
 	<Platforms>
 		<Platform
