@@ -247,6 +247,10 @@ void CMPlayerCApp::ShowCmdlnSwitches()
 		_T("/minimized\tStart in minimized mode.\n")
 		_T("/new\t\tUse a new instance of the player.\n")
 		_T("/add\t\tAdd \"pathname\" to playlist, can be combined with /open and /play.\n")
+		_T("/regvid\t\tRegister video formats\n")
+		_T("/regaud\t\tRegister audio formats\n")
+		_T("/unregvid\t\tUnregister video formats\n")
+		_T("/unregaud\t\tUnregister audio formats\n")
 		_T("/help /h /?\tShow help about command line switches. (this message box)\n");
 
 	AfxMessageBox(s);

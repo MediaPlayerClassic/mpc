@@ -1231,7 +1231,7 @@ void VSFRipperData::Copy(VSFRipperData& rd)
 			PGC& src = rd.pgcs[i];
 			PGC& dst = pgcs[i];
 			dst.nAngles = src.nAngles;
-			for(int i = 0; i < sizeof(dst.angles)/sizeof(dst.angles[0]); i++)
+			for(int i = 0; i < countof(dst.angles); i++)
 				dst.angles[i].Copy(src.angles[i]);
 			dst.iSelAngle = src.iSelAngle;
 			memcpy(dst.pal, src.pal, sizeof(src.pal));

@@ -60,7 +60,7 @@ const AMOVIESETUP_PIN sudpPins[] =
       FALSE,                // And allowed many
       &CLSID_NULL,          // Connects to filter
       NULL,                 // Connects to pin
-      sizeof(sudPinTypesIn)/sizeof(sudPinTypesIn[0]), // Number of types
+      countof(sudPinTypesIn), // Number of types
       sudPinTypesIn		// Pin information
     },
     { L"Output",            // Pins string name
@@ -70,14 +70,14 @@ const AMOVIESETUP_PIN sudpPins[] =
       FALSE,                // And allowed many
       &CLSID_NULL,          // Connects to filter
       NULL,                 // Connects to pin
-      sizeof(sudPinTypesOut)/sizeof(sudPinTypesOut[0]), // Number of types
+      countof(sudPinTypesOut), // Number of types
       sudPinTypesOut		// Pin information
     }
 };
 
 const AMOVIESETUP_FILTER sudFilter[] =
 {
-	{&__uuidof(CMpeg2DecFilter), L"Mpeg2Dec Filter", 0x40000002/*MERIT_PREFERRED*//*MERIT_DO_NOT_USE*/, sizeof(sudpPins)/sizeof(sudpPins[0]), sudpPins},
+	{&__uuidof(CMpeg2DecFilter), L"Mpeg2Dec Filter", 0x40000002/*MERIT_PREFERRED*//*MERIT_DO_NOT_USE*/, countof(sudpPins), sudpPins},
 };
 
 CFactoryTemplate g_Templates[] =
@@ -85,7 +85,7 @@ CFactoryTemplate g_Templates[] =
     {L"Mpeg2Dec Filter", &__uuidof(CMpeg2DecFilter), CMpeg2DecFilter::CreateInstance, NULL, &sudFilter[0]},
 };
 
-int g_cTemplates = sizeof(g_Templates) / sizeof(g_Templates[0]);
+int g_cTemplates = countof(g_Templates);
 
 STDAPI DllRegisterServer()
 {
@@ -668,7 +668,7 @@ void CMpeg2DecFilter::ResetMpeg2Decoder()
 	CAutoLock cAutoLock(&m_csReceive);
 TRACE(_T("ResetMpeg2Decoder()\n"));
 
-	for(int i = 0; i < sizeof(m_dec->m_pictures)/sizeof(m_dec->m_pictures[0]); i++)
+	for(int i = 0; i < countof(m_dec->m_pictures); i++)
 	{
 		m_dec->m_pictures[i].rtStart = m_dec->m_pictures[i].rtStop = _I64_MIN+1;
 		m_dec->m_pictures[i].fDelivered = false;
@@ -872,7 +872,7 @@ HRESULT CMpeg2DecFilter::GetMediaType(int iPosition, CMediaType* pmt)
 		iPosition = iPosition*2;
 
 	if(iPosition < 0) return E_INVALIDARG;
-	if(iPosition >= 2*sizeof(fmts)/sizeof(fmts[0])) return VFW_S_NO_MORE_ITEMS;
+	if(iPosition >= 2*countof(fmts)) return VFW_S_NO_MORE_ITEMS;
 
 	CMediaType& mt = m_pInput->CurrentMediaType();
 

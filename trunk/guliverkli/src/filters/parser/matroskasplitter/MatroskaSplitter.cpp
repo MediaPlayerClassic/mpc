@@ -21,8 +21,6 @@
 
 #include "StdAfx.h"
 #include <mmreg.h>
-#include "..\..\..\DSUtil\DSUtil.h"
-#include "..\..\..\DSUtil\text.h"
 #include "MatroskaSplitter.h"
 
 #include <initguid.h>
@@ -48,7 +46,7 @@ const AMOVIESETUP_PIN sudpPins[] =
       FALSE,                // And allowed many
       &CLSID_NULL,          // Connects to filter
       NULL,                 // Connects to pin
-      sizeof(sudPinTypesIn)/sizeof(sudPinTypesIn[0]), // Number of types
+      countof(sudPinTypesIn), // Number of types
       sudPinTypesIn         // Pin information
     },
     { L"Output",            // Pins string name
@@ -65,7 +63,7 @@ const AMOVIESETUP_PIN sudpPins[] =
 
 const AMOVIESETUP_FILTER sudFilter[] =
 {
-	{&__uuidof(CMatroskaSplitterFilter), L"Matroska Splitter", MERIT_NORMAL, sizeof(sudpPins)/sizeof(sudpPins[0]), sudpPins},
+	{&__uuidof(CMatroskaSplitterFilter), L"Matroska Splitter", MERIT_NORMAL, countof(sudpPins), sudpPins},
 	{&__uuidof(CMatroskaSourceFilter), L"Matroska Source", MERIT_NORMAL, 0, NULL},
 };
 
@@ -75,7 +73,7 @@ CFactoryTemplate g_Templates[] =
 	{L"Matroska Source", &__uuidof(CMatroskaSourceFilter), CMatroskaSourceFilter::CreateInstance, NULL, &sudFilter[1]},
 };
 
-int g_cTemplates = sizeof(g_Templates) / sizeof(g_Templates[0]);
+int g_cTemplates = countof(g_Templates);
 
 #include "..\..\registry.cpp"
 
@@ -379,6 +377,9 @@ HRESULT CMatroskaSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 				else if(CodecID == "A_FLAC")
 				{
 					mt.subtype = FOURCCMap(pwfe->wFormatTag = WAVE_FORMAT_FLAC);
+					pwfe->cbSize = pTE->CodecPrivate.GetCount();
+					BYTE* pExtra = mt.ReallocFormatBuffer(sizeof(WAVEFORMATEX) + pTE->CodecPrivate.GetCount()) + sizeof(WAVEFORMATEX);
+					memcpy(pExtra, pTE->CodecPrivate.GetData(), pTE->CodecPrivate.GetCount());
 					mts.Add(mt);
 				}
 				else if(CodecID == "A_MS/ACM")
@@ -512,7 +513,9 @@ HRESULT CMatroskaSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 				continue;
 			}
 
-			Name = pTE->Language.IsEmpty() ? L"English" : CStringW(ISO6392ToLanguage(pTE->Language)) + L" (" + Name + L")";
+			Name = CStringW(pTE->Language.IsEmpty() ? L"English" : CStringW(ISO6392ToLanguage(pTE->Language)))
+				+ (pTE->Name.IsEmpty() ? L"" : L", " + pTE->Name)
+				+ (L" (" + Name + L")");
 
 			HRESULT hr;
 

@@ -29,14 +29,14 @@ class CMediaFormatCategory
 public:
 protected:
 	CString m_label, m_specreqnote;
-	CStringList m_exts, m_backupexts;
+	CList<CString> m_exts, m_backupexts;
 	bool m_fAudioOnly;
 	engine_t m_engine;
 
 public:
 	CMediaFormatCategory();
 	CMediaFormatCategory(
-		CString label, const CStringList& exts, bool fAudioOnly = false,
+		CString label, CList<CString>& exts, bool fAudioOnly = false,
 		CString specreqnote =  _T(""), engine_t e = DirectShow);
 	CMediaFormatCategory(
 		CString label, CString exts, bool fAudioOnly = false,
@@ -45,11 +45,11 @@ public:
 
 	void UpdateData(bool fSave);
 
-	CMediaFormatCategory(const CMediaFormatCategory& mfc);
+	CMediaFormatCategory(CMediaFormatCategory& mfc);
 	CMediaFormatCategory& operator = (const CMediaFormatCategory& mfc);
 
 	void RestoreDefaultExts();
-	void SetExts(CStringList& exts);
+	void SetExts(CList<CString>& exts);
 	void SetExts(CString exts);
 
 	bool FindExt(CString ext) {return m_exts.Find(ext.TrimLeft(_T(".")).MakeLower()) != NULL;}

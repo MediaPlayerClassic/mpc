@@ -30,7 +30,6 @@
 #include "DirectVobSubPropPage.h"
 #include "VSFilter.h"
 #include "systray.h"
-#include "..\..\..\DSUtil\DSUtil.h"
 #include "..\..\..\DSUtil\MediaTypes.h"
 #include "..\..\..\SubPic\MemSubPic.h"
 #include "..\..\..\..\include\Ogg\OggDS.h"
@@ -1671,7 +1670,7 @@ bool CDirectVobSubFilter2::ShouldWeAutoload(IFilterGraph* pGraph)
 		_T("producer."), // this is real's producer
 	};
 
-	for(int i = 0; i < sizeof(blacklistedapps)/sizeof(blacklistedapps[0]); i++)
+	for(int i = 0; i < countof(blacklistedapps); i++)
 	{
 		if(theApp.m_AppName.Find(blacklistedapps[i]) >= 0) 
 			return(false);

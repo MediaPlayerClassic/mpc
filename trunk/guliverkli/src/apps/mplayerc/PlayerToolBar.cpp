@@ -69,7 +69,7 @@ BOOL CPlayerToolBar::Create(CWnd* pParentWnd)
 		/*TBBS_SEPARATOR,*/
 	};
 
-	for(int i = 0; i < sizeof(styles) / sizeof(styles[0]); i++)
+	for(int i = 0; i < countof(styles); i++)
 		SetButtonStyle(i, styles[i]|TBBS_DISABLED);
 
 	m_volctrl.Create(this);

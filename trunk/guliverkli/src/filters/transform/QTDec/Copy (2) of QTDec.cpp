@@ -29,7 +29,7 @@ const AMOVIESETUP_PIN sudpPins[] =
       FALSE,                // And allowed many
       &CLSID_NULL,          // Connects to filter
       NULL,                 // Connects to pin
-      sizeof(sudPinTypesIn)/sizeof(sudPinTypesIn[0]),	// Number of types
+      countof(sudPinTypesIn),	// Number of types
       sudPinTypesIn			// Pin information
     },
     { L"Output",            // Pins string name
@@ -39,7 +39,7 @@ const AMOVIESETUP_PIN sudpPins[] =
       FALSE,                // And allowed many
       &CLSID_NULL,          // Connects to filter
       NULL,                 // Connects to pin
-      sizeof(sudPinTypesOut)/sizeof(sudPinTypesOut[0]),	// Number of types
+      countof(sudPinTypesOut),	// Number of types
       sudPinTypesOut		// Pin information
     }
 };
@@ -49,7 +49,7 @@ const AMOVIESETUP_FILTER sudFilter =
     &CLSID_QTDec,			// Filter CLSID
     L"QuickTime Decoder",	// String name
     MERIT_DO_NOT_USE/*MERIT_NORMAL*/,			// Filter merit
-    sizeof(sudpPins)/sizeof(sudpPins[0]),	// Number of pins
+    countof(sudpPins),	// Number of pins
     sudpPins                // Pin information
 };
 
@@ -62,7 +62,7 @@ CFactoryTemplate g_Templates[] =
     , &sudFilter }
 };
 
-int g_cTemplates = sizeof(g_Templates) / sizeof(g_Templates[0]);
+int g_cTemplates = countof(g_Templates);
 
 STDAPI DllRegisterServer()
 {

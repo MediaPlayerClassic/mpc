@@ -154,7 +154,7 @@ public:
 
 	void Open(CString name, BYTE* pData, int len);
 
-    void Add(REFERENCE_TIME tStart, BYTE* pData, int len);
+    void Add(REFERENCE_TIME tStart, REFERENCE_TIME tStop, BYTE* pData, int len);
 	void RemoveAll();
 
 	DECLARE_IUNKNOWN

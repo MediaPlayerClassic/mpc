@@ -26,7 +26,6 @@
 #include "TextInputPin.h"
 #include "DirectVobSubPropPage.h"
 #include "VSFilter.h"
-#include "..\..\..\DSUtil\DSUtil.h"
 #include "..\..\..\DSUtil\MediaTypes.h"
 
 #include <initguid.h>
@@ -121,7 +120,7 @@ const AMOVIESETUP_PIN sudpPins[] =
       FALSE,                // And allowed many
       &CLSID_NULL,          // Connects to filter
       NULL,                 // Connects to pin
-      sizeof(sudPinTypesIn)/sizeof(sudPinTypesIn[0]), // Number of types
+      countof(sudPinTypesIn), // Number of types
       sudPinTypesIn         // Pin information
     },
     { L"Output",            // Pins string name
@@ -131,7 +130,7 @@ const AMOVIESETUP_PIN sudpPins[] =
       FALSE,                // And allowed many
       &CLSID_NULL,          // Connects to filter
       NULL,                 // Connects to pin
-      sizeof(sudPinTypesOut)/sizeof(sudPinTypesOut[0]), // Number of types
+      countof(sudPinTypesOut), // Number of types
       sudPinTypesOut       // Pin information
     },
     { L"Input2",            // Pins string name
@@ -141,7 +140,7 @@ const AMOVIESETUP_PIN sudpPins[] =
       TRUE,                 // And allowed many
       &CLSID_NULL,          // Connects to filter
       NULL,                 // Connects to pin
-      sizeof(sudPinTypesIn2)/sizeof(sudPinTypesIn2[0]), // Number of types
+      countof(sudPinTypesIn2), // Number of types
       sudPinTypesIn2       // Pin information
     }
 };
@@ -151,7 +150,7 @@ const AMOVIESETUP_FILTER sudFilter =
     &CLSID_DirectVobSubFilter,    // Filter CLSID
     L"DirectVobSub",        // String name
     MERIT_DO_NOT_USE,       // Filter merit
-    sizeof(sudpPins)/sizeof(sudpPins[0]), // Number of pins
+    countof(sudpPins), // Number of pins
     sudpPins                // Pin information
 };
 
@@ -161,7 +160,7 @@ const AMOVIESETUP_FILTER sudFilter =
     &CLSID_DirectVobSubFilter2,    // Filter CLSID
     L"DirectVobSub (auto-loading version)", // String name
     MERIT_PREFERRED+2,      // Filter merit
-    sizeof(sudpPins)/sizeof(sudpPins[0]), // Number of pins
+    countof(sudpPins), // Number of pins
     sudpPins                // Pin information
 };
 
@@ -212,7 +211,7 @@ CFactoryTemplate g_Templates[] =
     , CDVSAboutPPage::CreateInstance }
 };
 
-int g_cTemplates = sizeof(g_Templates) / sizeof(g_Templates[0]);
+int g_cTemplates = countof(g_Templates);
 
 //////////////////////////////
 /*removeme*/

@@ -49,20 +49,20 @@ const AMOVIESETUP_PIN sudOpPin[] =
 		FALSE,                  // Can we have many
 		&CLSID_NULL,            // Connects to filter
 		NULL,                   // Connects to pin
-		sizeof(sudPinTypesOut)/sizeof(sudPinTypesOut[0]), // Number of types
+		countof(sudPinTypesOut), // Number of types
 		sudPinTypesOut			// Pin details
 	},
 };
 
 const AMOVIESETUP_FILTER sudFilter[] =
 {
-	{&__uuidof(CSubtitleSourceASCII), L"SubtitleSource (S_TEXT/ASCII)", MERIT_UNLIKELY, sizeof(sudOpPin)/sizeof(sudOpPin[0]), sudOpPin},
-	{&__uuidof(CSubtitleSourceUTF8), L"SubtitleSource (S_TEXT/UTF8)", MERIT_UNLIKELY, sizeof(sudOpPin)/sizeof(sudOpPin[0]), sudOpPin},
-	{&__uuidof(CSubtitleSourceSSA), L"SubtitleSource (S_TEXT/SSA)", MERIT_UNLIKELY, sizeof(sudOpPin)/sizeof(sudOpPin[0]), sudOpPin},
-	{&__uuidof(CSubtitleSourceASS), L"SubtitleSource (S_TEXT/ASS)", MERIT_UNLIKELY, sizeof(sudOpPin)/sizeof(sudOpPin[0]), sudOpPin},
-	{&__uuidof(CSubtitleSourceUSF), L"SubtitleSource (S_TEXT/USF)", MERIT_UNLIKELY, sizeof(sudOpPin)/sizeof(sudOpPin[0]), sudOpPin},
-	{&__uuidof(CSubtitleSourcePreview), L"SubtitleSource (Preview)", MERIT_UNLIKELY, sizeof(sudOpPin)/sizeof(sudOpPin[0]), sudOpPin},
-	{&__uuidof(CSubtitleSourceARGB), L"SubtitleSource (ARGB)", MERIT_UNLIKELY, sizeof(sudOpPin)/sizeof(sudOpPin[0]), sudOpPin},
+	{&__uuidof(CSubtitleSourceASCII), L"SubtitleSource (S_TEXT/ASCII)", MERIT_UNLIKELY, countof(sudOpPin), sudOpPin},
+	{&__uuidof(CSubtitleSourceUTF8), L"SubtitleSource (S_TEXT/UTF8)", MERIT_UNLIKELY, countof(sudOpPin), sudOpPin},
+	{&__uuidof(CSubtitleSourceSSA), L"SubtitleSource (S_TEXT/SSA)", MERIT_UNLIKELY, countof(sudOpPin), sudOpPin},
+	{&__uuidof(CSubtitleSourceASS), L"SubtitleSource (S_TEXT/ASS)", MERIT_UNLIKELY, countof(sudOpPin), sudOpPin},
+	{&__uuidof(CSubtitleSourceUSF), L"SubtitleSource (S_TEXT/USF)", MERIT_UNLIKELY, countof(sudOpPin), sudOpPin},
+	{&__uuidof(CSubtitleSourcePreview), L"SubtitleSource (Preview)", MERIT_UNLIKELY, countof(sudOpPin), sudOpPin},
+	{&__uuidof(CSubtitleSourceARGB), L"SubtitleSource (ARGB)", MERIT_UNLIKELY, countof(sudOpPin), sudOpPin},
 };
 
 CFactoryTemplate g_Templates[] =
@@ -76,7 +76,7 @@ CFactoryTemplate g_Templates[] =
 	{L"SubtitleSource (ARGB)", &__uuidof(CSubtitleSourceARGB), CSubtitleSourceARGB::CreateInstance, NULL, &sudFilter[6]},
 };
 
-int g_cTemplates = sizeof(g_Templates) / sizeof(g_Templates[0]);
+int g_cTemplates = countof(g_Templates);
 
 #include "..\..\registry.cpp"
 

@@ -748,7 +748,7 @@ void CPPageAccelTbl::OnDolabeleditList(NMHDR* pNMHDR, LRESULT* pResult)
 
 	if(pItem->iSubItem == COL_MOD)
 	{
-		for(int i = 0; i < sizeof(s_mods)/sizeof(s_mods[0]); i++)
+		for(int i = 0; i < countof(s_mods); i++)
 		{
 			sl.AddTail(MakeAccelModLabel(s_mods[i]));
 			if((a.fVirt&~3) == s_mods[i]) nSel = i;
@@ -836,7 +836,7 @@ void CPPageAccelTbl::OnEndlabeleditList(NMHDR* pNMHDR, LRESULT* pResult)
 
 	if(pItem->iSubItem == COL_MOD)
 	{
-		if(pItem->lParam >= 0 && pItem->lParam < sizeof(s_mods)/sizeof(s_mods[0]))
+		if(pItem->lParam >= 0 && pItem->lParam < countof(s_mods))
 		{
 			wc.fVirt = (wc.fVirt&3) | (s_mods[pItem->lParam]&~3);
 			m_list.SetItemText(pItem->iItem, COL_MOD, pItem->pszText);

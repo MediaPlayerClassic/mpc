@@ -22,7 +22,6 @@
 #include "stdafx.h"
 #include <math.h>
 #include <time.h>
-#include "..\DSUtil\DSUtil.h"
 #include "RTS.h"
 
 // WARNING: this isn't very thread safe, use only one RTS a time.

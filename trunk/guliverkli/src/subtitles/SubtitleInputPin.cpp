@@ -23,8 +23,6 @@
 #include "SubtitleInputPin.h"
 #include "VobSubFile.h"
 #include "RTS.h"
-#include "..\DSUtil\DSUtil.h"
-#include "..\DSUtil\text.h"
 
 #include <initguid.h>
 #include "..\..\include\matroska\matroska.h"
@@ -303,7 +301,7 @@ STDMETHODIMP CSubtitleInputPin::Receive(IMediaSample* pSample)
 		else if(m_mt.subtype == MEDIASUBTYPE_VOBSUB)
 		{
 			CVobSubStream* pVSS = (CVobSubStream*)(ISubStream*)m_pSubStream;
-			pVSS->Add(tStart, pData, len);
+			pVSS->Add(tStart, tStop, pData, len);
 		}
 	}
 

@@ -6557,9 +6557,12 @@ void CMainFrame::SetupNavAudioSubMenu()
 			if(Language == DefLanguage) flags |= MF_DEFAULT;
             if(i == ulCurrentStream) flags |= MF_CHECKED;
 
-			CString str;
-			int len = GetLocaleInfo(Language, LOCALE_SENGLANGUAGE, str.GetBuffer(64), 64);
-			str.ReleaseBufferSetLength(max(len-1, 0));
+			CString str(_T("Unknown"));
+			if(Language)
+			{
+				int len = GetLocaleInfo(Language, LOCALE_SENGLANGUAGE, str.GetBuffer(256), 256);
+				str.ReleaseBufferSetLength(max(len-1, 0));
+			}
 
 			DVD_AudioAttributes ATR;
 			if(SUCCEEDED(pDVDI->GetAudioAttributes(i, &ATR)))
@@ -6621,9 +6624,12 @@ void CMainFrame::SetupNavSubtitleSubMenu()
 			if(Language == DefLanguage) flags |= MF_DEFAULT;
             if(i == ulCurrentStream) flags |= MF_CHECKED;
 
-			CString str;
-			int len = GetLocaleInfo(Language, LOCALE_SENGLANGUAGE, str.GetBuffer(64), 64);
-			str.ReleaseBufferSetLength(max(len-1, 0));
+			CString str(_T("Unknown"));
+			if(Language)
+			{
+				int len = GetLocaleInfo(Language, LOCALE_SENGLANGUAGE, str.GetBuffer(256), 256);
+				str.ReleaseBufferSetLength(max(len-1, 0));
+			}
 
 			DVD_SubpictureAttributes ATR;
 			if(SUCCEEDED(pDVDI->GetSubpictureAttributes(i, &ATR)))

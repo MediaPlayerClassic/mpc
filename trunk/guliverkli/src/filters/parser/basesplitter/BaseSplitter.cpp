@@ -4,7 +4,7 @@
 #include "BaseSplitter.h"
 
 #define MAXBUFFERS 2
-#define MINPACKETS 2
+#define MINPACKETS 5
 #define MAXPACKETS 500
 
 //
@@ -171,6 +171,15 @@ CBaseSplitterOutputPin::CBaseSplitterOutputPin(CArray<CMediaType>& mts, LPCWSTR 
 	, m_eEndFlush(TRUE)
 {
 	m_mts.Copy(mts);
+	m_nBuffers = nBuffers > 0 ? nBuffers : MAXBUFFERS;
+}
+
+CBaseSplitterOutputPin::CBaseSplitterOutputPin(LPCWSTR pName, CBaseFilter* pFilter, CCritSec* pLock, HRESULT* phr, int nBuffers)
+	: CBaseOutputPin(NAME("CBaseSplitterOutputPin"), pFilter, pLock, phr, pName)
+	, m_hrDeliver(S_OK) // just in case it were asked before the worker thread could be created and reset it
+	, m_fFlushing(false)
+	, m_eEndFlush(TRUE)
+{
 	m_nBuffers = nBuffers > 0 ? nBuffers : MAXBUFFERS;
 }
 

@@ -19,6 +19,8 @@
  *
  */
 
+#include "..\..\..\DSUtil\DSUtil.h"
+
 static TCHAR str1[][256] = 
 /*
 {
@@ -115,10 +117,10 @@ static TCHAR str3[] = // _T("FriendlyName");
 };
 
 
-#define LEN1 (sizeof(str1) / sizeof(str1[0]))
-#define LEN11 (sizeof(str1[0]) / sizeof(str1[0][0]))
-#define LEN2 (sizeof(str2) / sizeof(str2[0]))
-#define LEN3 (sizeof(str3) / sizeof(str3[0]))
+#define LEN1 (countof(str1))
+#define LEN11 (countof(str1[0]))
+#define LEN2 (countof(str2))
+#define LEN3 (countof(str3))
 
 static void dencode()
 {

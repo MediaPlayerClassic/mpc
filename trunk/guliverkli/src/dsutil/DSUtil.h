@@ -26,6 +26,7 @@
 #include "NullRenderers.h"
 //#include "MediaTypes.h"
 #include "vd.h"
+#include "text.h"
 
 extern void DumpStreamConfig(TCHAR* fn, IAMStreamConfig* pAMVSCCap);
 extern int CountPins(IBaseFilter* pBF, int& nIn, int& nOut, int& nInC, int& nOutC);
@@ -150,3 +151,5 @@ template <typename T> __inline void INITDDSTRUCT(T& dd)
     ZeroMemory(&dd, sizeof(dd));
     dd.dwSize = sizeof(dd);
 }
+
+#define countof(array) (sizeof(array)/sizeof(array[0]))

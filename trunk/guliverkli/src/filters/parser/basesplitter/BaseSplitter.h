@@ -108,6 +108,7 @@ protected:
 
 public:
 	CBaseSplitterOutputPin(CArray<CMediaType>& mts, LPCWSTR pName, CBaseFilter* pFilter, CCritSec* pLock, HRESULT* phr, int nBuffers = 0);
+	CBaseSplitterOutputPin(LPCWSTR pName, CBaseFilter* pFilter, CCritSec* pLock, HRESULT* phr, int nBuffers = 0);
 	virtual ~CBaseSplitterOutputPin();
 
 	DECLARE_IUNKNOWN;

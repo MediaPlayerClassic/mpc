@@ -322,6 +322,24 @@ CGraphBuilder::CGraphBuilder(IGraphBuilder* pGB, HWND hWnd)
 		guids.RemoveAll();
 	}
 
+	{
+		guids.AddTail(MEDIATYPE_Video);
+		guids.AddTail(MEDIASUBTYPE_RoQV);
+		AddFilter(new CGraphCustomFilter(__uuidof(CRoQVideoDecoder), guids,
+			(s.TraFilters&TRA_REALVID) ? L"RoQ Video Decoder" : L"RoQ Video Decoder (low merit)",
+			(s.TraFilters&TRA_REALVID) ? LMERIT_ABOVE_DSHOW : LMERIT_DO_USE));
+		guids.RemoveAll();
+	}
+
+	{
+		guids.AddTail(MEDIATYPE_Video);
+		guids.AddTail(MEDIASUBTYPE_RoQA);
+		AddFilter(new CGraphCustomFilter(__uuidof(CRoQAudioDecoder), guids,
+			(s.TraFilters&TRA_REALVID) ? L"RoQ Audio Decoder" : L"RoQ Audio Decoder (low merit)",
+			(s.TraFilters&TRA_REALVID) ? LMERIT_ABOVE_DSHOW : LMERIT_DO_USE));
+		guids.RemoveAll();
+	}
+
 	// renderer filters
 
 	switch(s.iDSVideoRendererType)
@@ -1670,6 +1688,8 @@ HRESULT CGraphCustomFilter::Create(IBaseFilter** ppBF, IUnknown** ppUnk)
 		m_clsid == __uuidof(CRealMediaSplitterFilter) ? (IBaseFilter*)new CRealMediaSplitterFilter(NULL, &hr) :
 		m_clsid == __uuidof(CRealVideoDecoder) ? (IBaseFilter*)new CRealVideoDecoder(NULL, &hr) :
 		m_clsid == __uuidof(CRealAudioDecoder) ? (IBaseFilter*)new CRealAudioDecoder(NULL, &hr) :
+		m_clsid == __uuidof(CRoQVideoDecoder) ? (IBaseFilter*)new CRoQVideoDecoder(NULL, &hr) :
+		m_clsid == __uuidof(CRoQAudioDecoder) ? (IBaseFilter*)new CRoQAudioDecoder(NULL, &hr) :
 		m_clsid == __uuidof(CAviSplitterFilter) ? (IBaseFilter*)new CAviSplitterFilter(NULL, &hr) :
 		m_clsid == __uuidof(CRadGtSplitterFilter) ? (IBaseFilter*)new CRadGtSplitterFilter(NULL, &hr) :
 		m_clsid == __uuidof(CRoQSplitterFilter) ? (IBaseFilter*)new CRoQSplitterFilter(NULL, &hr) :

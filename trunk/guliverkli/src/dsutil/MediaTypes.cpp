@@ -23,6 +23,7 @@
 #include <initguid.h>
 #include "..\..\include\moreuuids.h"
 #include "MediaTypes.h"
+#include "DSUtil.h"
 
 #define VIH_NORMAL (sizeof(VIDEOINFOHEADER))
 #define VIH_BITFIELDS (sizeof(VIDEOINFOHEADER)+3*sizeof(RGBQUAD))
@@ -318,7 +319,7 @@ VIH2 vih2s[] =
 	},
 };
 
-int VIHSIZE = (sizeof(vihs) / sizeof(vihs[0]));
+int VIHSIZE = countof(vihs);
 
 CString VIH2String(int i)
 {

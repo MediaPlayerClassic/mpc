@@ -81,6 +81,7 @@ public:
 	bool IsInterleaved();
 };
 
+#define VERIFYTRACKNUM(fcc) ((fcc&0xff) >= 0x30 && (fcc&0xff) < 0x3a && ((fcc>>8)&0xff) >= 0x30 && ((fcc>>8)&0xff) < 0x3a)
 #define TRACKNUM(fcc) (10*((fcc&0xff)-0x30) + (((fcc>>8)&0xff)-0x30))
 #define TRACKTYPE(fcc) ((WORD)((((DWORD)fcc>>24)&0xff)|((fcc>>8)&0xff00)))
 
@@ -103,7 +104,7 @@ const AMOVIESETUP_PIN sudpPins[] =
       FALSE,                // And allowed many
       &CLSID_NULL,          // Connects to filter
       NULL,                 // Connects to pin
-      sizeof(sudPinTypesIn)/sizeof(sudPinTypesIn[0]), // Number of types
+      countof(sudPinTypesIn), // Number of types
       sudPinTypesIn         // Pin information
     },
     { L"Output",            // Pins string name
@@ -120,7 +121,7 @@ const AMOVIESETUP_PIN sudpPins[] =
 
 const AMOVIESETUP_FILTER sudFilter[] =
 {
-	{&__uuidof(CAviSplitterFilter), L"Avi Splitter", MERIT_NORMAL+1, sizeof(sudpPins)/sizeof(sudpPins[0]), sudpPins},
+	{&__uuidof(CAviSplitterFilter), L"Avi Splitter", MERIT_NORMAL+1, countof(sudpPins), sudpPins},
 	{&__uuidof(CAviSourceFilter), L"Avi Source", MERIT_NORMAL+1, 0, NULL},
 };
 
@@ -130,7 +131,7 @@ CFactoryTemplate g_Templates[] =
 	{L"Avi Source", &__uuidof(CAviSourceFilter), CAviSourceFilter::CreateInstance, NULL, &sudFilter[1]},
 };
 
-int g_cTemplates = sizeof(g_Templates) / sizeof(g_Templates[0]);
+int g_cTemplates = countof(g_Templates);
 
 #include "..\..\registry.cpp"
 
@@ -222,11 +223,17 @@ HRESULT CAviSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 	m_rtNewStart = m_rtCurrent = 0;
 	m_rtNewStop = m_rtStop = m_rtDuration = m_pFile->GetTotalTime();
 
+	bool fHasIndex = false;
+
+	for(DWORD i = 0; !fHasIndex && i < m_pFile->m_strms.GetCount(); i++)
+		if(m_pFile->m_strms[i]->cs.GetCount() > 0) 
+			fHasIndex = true;
+
 	for(DWORD i = 0; i < m_pFile->m_strms.GetCount(); i++)
 	{
 		CAviFile::strm_t* s = m_pFile->m_strms[i];
 
-		if(s->cs.GetCount() == 0) continue;
+		if(fHasIndex && s->cs.GetCount() == 0) continue;
 
 		CMediaType mt;
 		CArray<CMediaType> mts;
@@ -666,7 +673,7 @@ bool CAviSplitterFilter::Resync()
 {
 	UINT64 pos = m_pFile->GetPos();
 
-	for(int i = 0; i < (int)m_pFile->m_strms.GetCount(); i++)
+	for(int i = 0, cnt = (int)m_pFile->m_strms.GetCount(); i < cnt; i++)
 	{
 		CArray<CAviFile::strm_t::chunk>& cs = m_pFile->m_strms[i]->cs;
 
@@ -685,7 +692,7 @@ bool CAviSplitterFilter::Resync()
 				m_pFile->Seek(pos);
 
 				DWORD id = 0;
-				if(S_OK == m_pFile->Read(id) && id != 0)
+				if(S_OK == m_pFile->Read(id) && VERIFYTRACKNUM(id) && TRACKNUM(id) < cnt)
 				{
 	                m_pFile->Seek(pos);
 					m_nOpenProgress = 100;
