@@ -29,6 +29,10 @@ if(!empty($_GET))
 		$file['size'] = $_GET['size'][$i];
 		sscanf($_GET['size'][$i], "%x", $file['intsize']);
 		$_SESSION['file'][$i+1] = $file;
+		
+		if(!isset($_SESSION['POST']['guessedtitle']))
+			$_SESSION['POST']['guessedtitle'] = $file['name'];
+	
 		// TODO: search imdb on name || size || hash -> imdb
 	}
 	RedirAndExit($_SERVER['PHP_SELF']);
@@ -45,7 +49,7 @@ function getIMDbTitles($imdb_url)
 {
 	$titles = array();
 
-	set_time_limit(60);
+	set_time_limit(180);
 	
 	if(($str = @file_get_contents(rtrim($imdb_url, '/')))
 	|| ($str = @file_get_contents(eregi_replace('\.com/', '.com.nyud.net:8090/', rtrim($imdb_url, '/')))))
@@ -211,6 +215,8 @@ if(isset($_POST['update']) || isset($_POST['submit']))
 	}
 
 	//
+	
+	$db->begin();
 
 	$movie_id = storeMovie($imdb_id, $titles);
 	$files = array();
@@ -298,6 +304,8 @@ if(isset($_POST['update']) || isset($_POST['submit']))
 	unset($_SESSION['file']);
 	unset($_SESSION['imdb_id']);
 	unset($_SESSION['imdb_titles']);	
+
+	$db->commit();
 	
 	RedirAndExit($redir);
 }
@@ -338,6 +346,7 @@ function assign_cookie($param)
 // titles, imdb
 
 assign('title', $maxtitles);
+assign('guessedtitle');
 assign('imdb_url');
 
 if(isset($_SESSION['imdb_id']) && !empty($_SESSION['imdb_titles']))
@@ -345,11 +354,6 @@ if(isset($_SESSION['imdb_id']) && !empty($_SESSION['imdb_titles']))
 	$smarty->assign('imdb_id', $_SESSION['imdb_id']);
 	$smarty->assign('imdb_titles', $_SESSION['imdb_titles']);
 }
-
-// nick, email
-
-assign_cookie('nick');
-assign_cookie('email');
 
 // subs
 

@@ -23,7 +23,7 @@
 	<table>
 	
 	<tr class="optional{if isset($err.imdb_url)} invalid{/if}">
-		<th><a href="http://imdb.com/" target="_blank">IMDb</a> (given this url, Title #1 can be left blank)</th>
+		<th><a href="http://imdb.com/{if !empty($guessedtitle)}find?tt=on;nm=on;mx=20;q={$guessedtitle|escape:"url"}{/if}" target="_blank">IMDb</a> (given this url, Title #1 can be left blank)</th>
 		<td>
 		{if !empty($imdb_titles)}
 			<input type="hidden" name="imdb_url" value="{$imdb_url|escape:"quotes"}" />

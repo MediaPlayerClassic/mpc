@@ -39,7 +39,8 @@ if(!($sub = @file_get_contents($fn)) || empty($sub))
 
 $db->query("update subtitle set downloads = downloads+1 where id = $id");
 
-header("Content-Type: $mime}");
+//header("Content-Type: $mime");
+header("Content-Type: application/octet-stream");
 header("Content-Disposition: attachment; filename=\"$name\"");
 header("Pragma: no-cache");
 echo gzuncompress($sub);
