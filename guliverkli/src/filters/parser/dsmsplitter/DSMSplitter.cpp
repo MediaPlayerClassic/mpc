@@ -172,12 +172,6 @@ HRESULT CDSMSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 		SetProperty(CStringW(key), value);
 	}
 
-	SetMediaContentStr(m_pFile->m_fim["TITL"], Title);
-	SetMediaContentStr(m_pFile->m_fim["AUTH"], AuthorName);
-	SetMediaContentStr(m_pFile->m_fim["RTNG"], Rating);
-	SetMediaContentStr(m_pFile->m_fim["CPYR"], Copyright);
-	SetMediaContentStr(m_pFile->m_fim["DESC"], Description);
-
 	for(int i = 0; i < m_resources.GetCount(); i++)
 	{
 		const CDSMResource& r = m_resources[i];

@@ -207,7 +207,6 @@ HRESULT CRealMediaSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 	HRESULT hr = E_FAIL;
 
 	m_pFile.Free();
-	m_pChapters.RemoveAll();
 
 	m_pFile.Attach(new CRMFile(pAsyncReader, hr));
 	if(!m_pFile) return E_OUTOFMEMORY;
@@ -440,17 +439,9 @@ HRESULT CRealMediaSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 					if(!lfi.Lookup(key, value) || value.IsEmpty())
 						value.Format("Chapter %d", n);
 
-					CAutoPtr<CChapter> p(new CChapter(
+					ChapAppend(
 						((((REFERENCE_TIME)h*60+m)*60+s)*1000+ms)*10000, 
-						CStringW(CString(value))));
-
-					POSITION insertpos = m_pChapters.GetTailPosition();
-					for(; insertpos; m_pChapters.GetPrev(insertpos))
-					{
-						CChapter* p2 = m_pChapters.GetAt(insertpos);
-						if(p->m_rt >= p2->m_rt) break;
-					}
-					m_pChapters.InsertAfter(insertpos, p);
+						CStringW(CString(value)));
 				}
 			}
 		}
@@ -495,10 +486,10 @@ HRESULT CRealMediaSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 
 	m_rtDuration = m_rtNewStop = m_rtStop = 10000i64*m_pFile->m_p.tDuration;
 
-	SetMediaContentStr(CStringW(m_pFile->m_cd.title), Title);
-	SetMediaContentStr(CStringW(m_pFile->m_cd.author), AuthorName);
-	SetMediaContentStr(CStringW(m_pFile->m_cd.copyright), Copyright);
-	SetMediaContentStr(CStringW(m_pFile->m_cd.comment), Description);
+	SetProperty(L"TITL", CStringW(m_pFile->m_cd.title));
+	SetProperty(L"AUTH", CStringW(m_pFile->m_cd.author));
+	SetProperty(L"CPYR", CStringW(m_pFile->m_cd.copyright));
+	SetProperty(L"DESC", CStringW(m_pFile->m_cd.comment));
 
 	return m_pOutputs.GetCount() > 0 ? S_OK : E_FAIL;
 }
@@ -746,49 +737,6 @@ STDMETHODIMP CRealMediaSplitterFilter::GetKeyFrames(const GUID* pFormat, REFEREN
 	nKFs = nKFsTmp;
 
 	return S_OK;
-}
-
-// IChapterInfo
-
-STDMETHODIMP_(UINT) CRealMediaSplitterFilter::GetChapterCount(UINT aChapterID)
-{
-	return aChapterID == CHAPTER_ROOT_ID ? m_pChapters.GetCount() : 0;
-}
-
-STDMETHODIMP_(UINT) CRealMediaSplitterFilter::GetChapterId(UINT aParentChapterId, UINT aIndex)
-{
-	POSITION pos = m_pChapters.FindIndex(aIndex-1);
-	if(aParentChapterId != CHAPTER_ROOT_ID || !pos)
-		return CHAPTER_BAD_ID;
-	return aIndex;
-}
-
-STDMETHODIMP_(BOOL) CRealMediaSplitterFilter::GetChapterInfo(UINT aChapterID, struct ChapterElement* pToFill)
-{
-	REFERENCE_TIME rtDur = 0;
-	GetDuration(&rtDur);
-
-	CheckPointer(pToFill, E_POINTER);
-	POSITION pos = m_pChapters.FindIndex(aChapterID-1);
-	if(!pos) return FALSE;
-	CChapter* p = m_pChapters.GetNext(pos);
-	WORD Size = pToFill->Size;
-	if(Size >= sizeof(ChapterElement))
-	{
-		pToFill->Size = sizeof(ChapterElement);
-		pToFill->Type = AtomicChapter;
-		pToFill->ChapterId = aChapterID;
-		pToFill->rtStart = p->m_rt;
-		pToFill->rtStop = pos ? m_pChapters.GetNext(pos)->m_rt : rtDur;
-	}
-	return TRUE;
-}
-
-STDMETHODIMP_(BSTR) CRealMediaSplitterFilter::GetChapterStringInfo(UINT aChapterID, CHAR PreferredLanguage[3], CHAR CountryCode[2])
-{
-	POSITION pos = m_pChapters.FindIndex(aChapterID-1);
-	if(!pos) return NULL;
-	return m_pChapters.GetAt(pos)->m_name.AllocSysString();
 }
 
 //

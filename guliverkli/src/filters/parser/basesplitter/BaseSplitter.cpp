@@ -475,7 +475,7 @@ HRESULT CBaseSplitterOutputPin::DeliverPacket(CAutoPtr<Packet> p)
 	{
 		CComPtr<IMediaSample> pSample;
 		if(S_OK != (hr = GetDeliveryBuffer(&pSample, NULL, NULL, 0))) break;
-		DWORD nBytes = p->pData.GetCount();
+		INT_PTR nBytes = p->pData.GetCount();
 		if(nBytes > pSample->GetSize())
 		{
 			pSample.Release();
@@ -675,13 +675,13 @@ STDMETHODIMP CBaseSplitterFilter::NonDelegatingQueryInterface(REFIID riid, void*
 		QI(IAMOpenProgress)
 		QI2(IAMMediaContent)
 		QI2(IAMExtendedSeeking)
-		QI(IChapterInfo)
 		QI(IKeyFrameInfo)
 		QI(IBufferInfo)
 		QI(IPropertyBag)
 		QI(IPropertyBag2)
 		QI(IDSMPropertyBag)
 		QI(IDSMResourceBag)
+		QI(IDSMChapterBag)
 		__super::NonDelegatingQueryInterface(riid, ppv);
 }
 
@@ -773,6 +773,8 @@ HRESULT CBaseSplitterFilter::DeleteOutputs()
 	m_mtnew.RemoveAll();
 
 	RemoveAll();
+	ResRemoveAll();
+	ChapRemoveAll();
 
 	m_fontinst.UninstallFonts();
 
@@ -1243,42 +1245,27 @@ STDMETHODIMP CBaseSplitterFilter::AbortOperation()
 
 STDMETHODIMP CBaseSplitterFilter::get_AuthorName(BSTR* pbstrAuthorName)
 {
-	return GetMediaContentStr(pbstrAuthorName, AuthorName);
+	return GetProperty(L"AUTH", pbstrAuthorName);
 }
 
 STDMETHODIMP CBaseSplitterFilter::get_Title(BSTR* pbstrTitle)
 {
-	return GetMediaContentStr(pbstrTitle, Title);
+	return GetProperty(L"TITL", pbstrTitle);
 }
 
 STDMETHODIMP CBaseSplitterFilter::get_Rating(BSTR* pbstrRating)
 {
-	return GetMediaContentStr(pbstrRating, Rating);
+	return GetProperty(L"RTNG", pbstrRating);
 }
 
 STDMETHODIMP CBaseSplitterFilter::get_Description(BSTR* pbstrDescription)
 {
-	return GetMediaContentStr(pbstrDescription, Description);
+	return GetProperty(L"DESC", pbstrDescription);
 }
 
 STDMETHODIMP CBaseSplitterFilter::get_Copyright(BSTR* pbstrCopyright)
 {
-	return GetMediaContentStr(pbstrCopyright, Copyright);
-}
-
-HRESULT CBaseSplitterFilter::GetMediaContentStr(BSTR* pBSTR, mctype type)
-{
-	CheckPointer(pBSTR, E_POINTER);
-	CAutoLock cAutoLock(this);
-	*pBSTR = m_mcs[(int)type].AllocSysString();
-	return S_OK;
-}
-
-HRESULT CBaseSplitterFilter::SetMediaContentStr(CStringW str, mctype type)
-{
-	CAutoLock cAutoLock(this);
-	m_mcs[(int)type] = str.Trim();
-	return S_OK;
+	return GetProperty(L"CPYR", pbstrCopyright);
 }
 
 // IAMExtendedSeeking
@@ -1287,91 +1274,39 @@ STDMETHODIMP CBaseSplitterFilter::get_ExSeekCapabilities(long* pExCapabilities)
 {
 	CheckPointer(pExCapabilities, E_POINTER);
 	*pExCapabilities = AM_EXSEEK_CANSEEK;
-	if(GetChapterCount(CHAPTER_ROOT_ID) > 0) *pExCapabilities |= AM_EXSEEK_MARKERSEEK;
+	if(ChapGetCount()) *pExCapabilities |= AM_EXSEEK_MARKERSEEK;
 	return S_OK;
 }
 
 STDMETHODIMP CBaseSplitterFilter::get_MarkerCount(long* pMarkerCount)
 {
 	CheckPointer(pMarkerCount, E_POINTER);
-	*pMarkerCount = GetChapterCount(CHAPTER_ROOT_ID);
+	*pMarkerCount = (long)ChapGetCount();
 	return S_OK;
 }
 
 STDMETHODIMP CBaseSplitterFilter::get_CurrentMarker(long* pCurrentMarker)
 {
 	CheckPointer(pCurrentMarker, E_POINTER);
-	UINT id = GetChapterCurrentId();
-	if(id != CHAPTER_BAD_ID)
-		for(UINT i = 1, cnt = GetChapterCount(CHAPTER_ROOT_ID); i <= cnt; i++) 
-	{
-		if(id == GetChapterId(CHAPTER_ROOT_ID, i))
-		{
-			*pCurrentMarker = i;
-			return S_OK;
-		}
-	}
-	return E_FAIL;
+	REFERENCE_TIME rt = m_rtCurrent;
+	long i = ChapLookup(&rt);
+	if(i < 0) return E_FAIL;
+	*pCurrentMarker = i;
+	return S_OK;
 }
 
 STDMETHODIMP CBaseSplitterFilter::GetMarkerTime(long MarkerNum, double* pMarkerTime)
 {
 	CheckPointer(pMarkerTime, E_POINTER);
-	ChapterElement ce;
-	if(!GetChapterInfo(GetChapterId(CHAPTER_ROOT_ID, MarkerNum), &ce))
-		return E_INVALIDARG;
-	*pMarkerTime = (double)ce.rtStart / 10000000;
+	REFERENCE_TIME rt;
+	if(FAILED(ChapGet((int)MarkerNum, &rt))) return E_FAIL;
+	*pMarkerTime = (double)rt / 10000000;
 	return S_OK;
 }
 
 STDMETHODIMP CBaseSplitterFilter::GetMarkerName(long MarkerNum, BSTR* pbstrMarkerName)
 {
-	CheckPointer(pbstrMarkerName, E_POINTER);
-	CHAR pl[3] = {0}, cc[2] = {0};
-	*pbstrMarkerName = GetChapterStringInfo(GetChapterId(CHAPTER_ROOT_ID, MarkerNum), pl, cc);
-	return *pbstrMarkerName ? S_OK : E_INVALIDARG;
-}
-
-// IChapterInfo
-
-STDMETHODIMP_(UINT) CBaseSplitterFilter::GetChapterCount(UINT aChapterID)
-{
-	return 0;
-}
-
-STDMETHODIMP_(UINT) CBaseSplitterFilter::GetChapterId(UINT aParentChapterId, UINT aIndex)
-{
-	return CHAPTER_BAD_ID;
-}
-
-STDMETHODIMP_(UINT) CBaseSplitterFilter::GetChapterCurrentId()
-{
-	int i = (int)GetChapterCount(CHAPTER_ROOT_ID);
-
-	while(i-- > 0)
-	{
-		UINT id = GetChapterId(CHAPTER_ROOT_ID, i);
-
-		struct ChapterElement ce;
-		if(!GetChapterInfo(id, &ce))
-			break;
-
-		if(m_rtCurrent >= ce.rtStart)
-            return id;
-	}
-
-	return CHAPTER_BAD_ID;
-}
-
-STDMETHODIMP_(BOOL) CBaseSplitterFilter::GetChapterInfo(UINT aChapterID, struct ChapterElement* pStructureToFill)
-{
-	CheckPointer(pStructureToFill, E_POINTER);
-	return FALSE;
-}
-
-STDMETHODIMP_(BSTR) CBaseSplitterFilter::GetChapterStringInfo(UINT aChapterID, CHAR PreferredLanguage[3], CHAR CountryCode[2])
-{
-	return NULL;
+	return ChapGet((int)MarkerNum, NULL, pbstrMarkerName);
 }
 
 // IKeyFrameInfo

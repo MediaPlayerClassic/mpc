@@ -113,6 +113,10 @@ CString CMediaTypeEx::ToString(IPin* pPin)
 		type = _T("Subtitle");
 		codec = GetSubtitleCodecName(subtype);
 	}
+	else
+	{
+		type = _T("Unknown");
+	}
 
 	if(CComQIPtr<IMediaSeeking> pMS = pPin)
 	{
@@ -253,7 +257,8 @@ CString CMediaTypeEx::GetAudioCodecName(const GUID& subtype, WORD wFormatTag)
 
 	if(!names.Lookup(wFormatTag, str))
 	{
-		if(subtype == MEDIASUBTYPE_Vorbis || subtype == MEDIASUBTYPE_Vorbis2) str = _T("Vorbis");
+		if(subtype == MEDIASUBTYPE_Vorbis) str = _T("Vorbis (deprecated)");
+		else if(subtype == MEDIASUBTYPE_Vorbis2) str = _T("Vorbis");
 		else if(subtype == MEDIASUBTYPE_MP4A) str = _T("MPEG4 Audio");
 		else if(subtype == MEDIASUBTYPE_FLAC_FRAMED) str = _T("FLAC (framed)");
 		// else if(subtype == ) str = _T("");

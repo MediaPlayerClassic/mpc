@@ -2025,10 +2025,7 @@ CString ISO6391To6392(LPCSTR code)
 	_strlwr(tmp);
 	for(int i = 0, j = countof(s_isolangs); i < j; i++)
 		if(!strcmp(s_isolangs[i].iso6391, tmp))
-		{
-			CString ret = CString(CStringA(s_isolangs[i].iso6392));
-			return ret;
-		}
+			return CString(CStringA(s_isolangs[i].iso6392));
 	return(_T(""));
 }
 

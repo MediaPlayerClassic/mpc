@@ -66,7 +66,7 @@ STDMETHODIMP CDSMPropertyBag::GetPropertyInfo(ULONG iProperty, ULONG cProperties
 	for(ULONG i = 0; i < cProperties; i++, iProperty++, (*pcProperties)++) 
 	{
 		CStringW key = GetKeyAt(iProperty);
-		pPropBag[i].pstrName = (LPWSTR)CoTaskMemAlloc((key.GetLength()+1)*sizeof(WCHAR));
+		pPropBag[i].pstrName = (BSTR)CoTaskMemAlloc((key.GetLength()+1)*sizeof(WCHAR));
 		if(!pPropBag[i].pstrName) return E_FAIL;
         wcscpy(pPropBag[i].pstrName, key);
 	}
@@ -97,6 +97,16 @@ HRESULT CDSMPropertyBag::SetProperty(LPCWSTR key, VARIANT* var)
 	return SetProperty(key, var->bstrVal);
 }
 
+HRESULT CDSMPropertyBag::GetProperty(LPCWSTR key, BSTR* value)
+{
+	CheckPointer(key, E_POINTER);
+	CheckPointer(value, E_POINTER);
+	int i = FindKey(key);
+	if(i < 0) return E_FAIL;
+	*value = GetValueAt(i).AllocSysString();
+	return S_OK;
+}
+
 HRESULT CDSMPropertyBag::DelAllProperties()
 {
 	RemoveAll();
@@ -106,6 +116,29 @@ HRESULT CDSMPropertyBag::DelAllProperties()
 HRESULT CDSMPropertyBag::DelProperty(LPCWSTR key)
 {
 	return Remove(key) ? S_OK : S_FALSE;
+}
+
+//
+// CDSMResource
+//
+
+CDSMResource::CDSMResource(LPCWSTR name, LPCWSTR desc, LPCWSTR mime, BYTE* pData, int len, DWORD_PTR tag)
+{
+	this->name = name;
+	this->desc = desc;
+	this->mime = mime;
+	data.SetSize(len);
+	memcpy(data.GetData(), pData, data.GetSize());
+	this->tag = tag;
+}
+
+void CDSMResource::operator = (const CDSMResource& r)
+{
+	tag = r.tag;
+	name = r.name;
+	desc = r.desc;
+	mime = r.mime;
+	data.Copy(r.data);
 }
 
 //
@@ -127,6 +160,9 @@ STDMETHODIMP CDSMResourceBag::ResGet(DWORD iIndex, BSTR* ppName, BSTR* ppDesc, B
 {
 	if(ppData) CheckPointer(pDataLen, E_POINTER);
 
+	if((INT_PTR)iIndex >= m_resources.GetCount())
+		return E_INVALIDARG;
+
 	CDSMResource& r = m_resources[iIndex];
 
 	if(ppName) *ppName = r.name.AllocSysString();
@@ -140,7 +176,7 @@ STDMETHODIMP CDSMResourceBag::ResGet(DWORD iIndex, BSTR* ppName, BSTR* ppDesc, B
 
 STDMETHODIMP CDSMResourceBag::ResSet(DWORD iIndex, LPCWSTR pName, LPCWSTR pDesc, LPCWSTR pMime, BYTE* pData, DWORD len, DWORD_PTR tag)
 {
-	if(iIndex >= m_resources.GetCount())
+	if((INT_PTR)iIndex >= m_resources.GetCount())
 		return E_INVALIDARG;
 
 	CDSMResource& r = m_resources[iIndex];
@@ -154,14 +190,14 @@ STDMETHODIMP CDSMResourceBag::ResSet(DWORD iIndex, LPCWSTR pName, LPCWSTR pDesc,
 	return S_OK;
 }
 
-STDMETHODIMP_(DWORD) CDSMResourceBag::ResAppend(LPCWSTR pName, LPCWSTR pDesc, LPCWSTR pMime, BYTE* pData, DWORD len, DWORD_PTR tag)
+STDMETHODIMP CDSMResourceBag::ResAppend(LPCWSTR pName, LPCWSTR pDesc, LPCWSTR pMime, BYTE* pData, DWORD len, DWORD_PTR tag)
 {
 	return ResSet(m_resources.Add(CDSMResource()), pName, pDesc, pMime, pData, len, tag);
 }
 
 STDMETHODIMP CDSMResourceBag::ResRemoveAt(DWORD iIndex)
 {
-	if(iIndex >= m_resources.GetCount())
+	if((INT_PTR)iIndex >= m_resources.GetCount())
 		return E_INVALIDARG;
 
 	m_resources.RemoveAt(iIndex);
@@ -183,4 +219,112 @@ STDMETHODIMP CDSMResourceBag::ResRemoveAll(DWORD_PTR tag)
 	}
 
 	return S_OK;
+}
+
+//
+// CDSMChapter
+//
+
+CDSMChapter::CDSMChapter(REFERENCE_TIME rt, LPCWSTR name)
+{
+	this->rt = rt;
+	this->name = name;
+}
+
+void CDSMChapter::operator = (const CDSMChapter& c)
+{
+	rt = c.rt;
+	name = c.name;
+}
+
+//
+// CDSMChapterBag
+//
+
+CDSMChapterBag::CDSMChapterBag()
+{
+	m_fSorted = false;
+}
+
+// IDSMRChapterBag
+
+STDMETHODIMP_(DWORD) CDSMChapterBag::ChapGetCount()
+{
+	return m_chapters.GetCount();
+}
+
+STDMETHODIMP CDSMChapterBag::ChapGet(DWORD iIndex, REFERENCE_TIME* prt, BSTR* ppName)
+{
+	if((INT_PTR)iIndex >= m_chapters.GetCount())
+		return E_INVALIDARG;
+
+	CDSMChapter& c = m_chapters[iIndex];
+
+	if(prt) *prt = c.rt;
+	if(ppName) *ppName = c.name.AllocSysString();
+
+	return S_OK;
+}
+
+STDMETHODIMP CDSMChapterBag::ChapSet(DWORD iIndex, REFERENCE_TIME rt, LPCWSTR pName)
+{
+	if((INT_PTR)iIndex >= m_chapters.GetCount())
+		return E_INVALIDARG;
+
+	CDSMChapter& c = m_chapters[iIndex];
+
+	c.rt = rt;
+	if(pName) c.name = pName;
+
+	m_fSorted = false;
+
+	return S_OK;
+}
+
+STDMETHODIMP CDSMChapterBag::ChapAppend(REFERENCE_TIME rt, LPCWSTR pName)
+{
+	return ChapSet(m_chapters.Add(CDSMChapter()), rt, pName);
+}
+
+STDMETHODIMP CDSMChapterBag::ChapRemoveAt(DWORD iIndex)
+{
+	if((INT_PTR)iIndex >= m_chapters.GetCount())
+		return E_INVALIDARG;
+
+	m_chapters.RemoveAt(iIndex);
+
+	return S_OK;
+}
+
+STDMETHODIMP CDSMChapterBag::ChapRemoveAll()
+{
+	m_chapters.RemoveAll();
+	m_fSorted = false;
+	return S_OK;
+}
+
+static int chapter_comp(const void* a, const void* b)
+{
+	if(((CDSMChapter*)a)->rt > ((CDSMChapter*)b)->rt) return 1;
+	else if(((CDSMChapter*)a)->rt < ((CDSMChapter*)b)->rt) return -1;
+	return 0;
+}
+
+STDMETHODIMP_(long) CDSMChapterBag::ChapLookup(REFERENCE_TIME* prt, BSTR* ppName)
+{
+	CheckPointer(prt, -1);
+
+	if(!m_fSorted)
+	{
+		qsort(m_chapters.GetData(), m_chapters.GetCount(), sizeof(CDSMChapter), chapter_comp);
+		m_fSorted = true;
+	}
+
+	int i = range_bsearch(m_chapters, *prt);
+	if(i < 0) return -1;
+
+	*prt = m_chapters[i].rt;
+	if(ppName) *ppName = m_chapters[i].name.AllocSysString();
+
+	return i;
 }

@@ -389,6 +389,9 @@
 				RelativePath=".\ConvertPropsDlg.cpp">
 			</File>
 			<File
+				RelativePath=".\ConvertResDlg.cpp">
+			</File>
+			<File
 				RelativePath="CShockwaveFlash.cpp">
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
@@ -1033,6 +1036,9 @@
 			</File>
 			<File
 				RelativePath=".\ConvertPropsDlg.h">
+			</File>
+			<File
+				RelativePath=".\ConvertResDlg.h">
 			</File>
 			<File
 				RelativePath="CShockwaveFlash.h">
