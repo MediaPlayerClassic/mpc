@@ -575,7 +575,8 @@ DWORD CMatroskaSourceFilter::ThreadProc()
 					{
 						CuePoint* pCuePoint = pCue->CuePoints.GetPrev(pos2);
 
-						if(m_rtStart < (REFERENCE_TIME)(pCuePoint->CueTime*m_pFile->m_segment.SegmentInfo.TimeCodeScale/100)) continue;
+						if(m_rtStart < (REFERENCE_TIME)(pCuePoint->CueTime*m_pFile->m_segment.SegmentInfo.TimeCodeScale/100))
+							continue;
 
 						POSITION pos3 = pCuePoint->CueTrackPositions.GetHeadPosition();
 						while(pos3)
@@ -591,36 +592,47 @@ DWORD CMatroskaSourceFilter::ThreadProc()
 							pCluster->Parse();
 
 							int BlockNumber = LastBlockNumber = 0;
-
-							bool fFoundKeyFrame = false, fPassedCueTime = false;
-
-							Cluster c;
-							c.ParseTimeCode(pCluster);
-
-							if(CAutoPtr<CMatroskaNode> pBlocks = pCluster->Child(0xA0))
+							bool fFoundKeyFrame = false;
+/*
+							if(pCueTrackPositions->CueBlockNumber > 0)
 							{
-								do
-								{
-									CBlockNode blocks;
-									blocks.Parse(pBlocks, false);
-									POSITION pos4 = blocks.GetHeadPosition();
-									while(!fPassedCueTime && pos4)
-									{
-										Block* b = blocks.GetNext(pos4);
-										if((REFERENCE_TIME)((c.TimeCode+b->TimeCode)*m_pFile->m_segment.SegmentInfo.TimeCodeScale/100) > m_rtStart) 
-										{
-											fPassedCueTime = true;
-										}
-                                        else if(b->TrackNumber == pCueTrackPositions->CueTrack && b->ReferenceBlock == 0)
-										{
-											fFoundKeyFrame = true;
-											LastBlockNumber = BlockNumber;
-										}
-									}
+								// TODO: CueBlockNumber only tells the block num of the track and not for all mixed in the cluster
+								LastBlockNumber = (int)pCueTrackPositions->CueBlockNumber;
+								fFoundKeyFrame = true;
+							}
+							else
+*/
+							{
+								Cluster c;
+								c.ParseTimeCode(pCluster);
 
-									BlockNumber++;
+								if(CAutoPtr<CMatroskaNode> pBlocks = pCluster->Child(0xA0))
+								{
+									bool fPassedCueTime = false;
+
+									do
+									{
+										CBlockNode blocks;
+										blocks.Parse(pBlocks, false);
+										POSITION pos4 = blocks.GetHeadPosition();
+										while(!fPassedCueTime && pos4)
+										{
+											Block* b = blocks.GetNext(pos4);
+											if((REFERENCE_TIME)((c.TimeCode+b->TimeCode)*m_pFile->m_segment.SegmentInfo.TimeCodeScale/100) > m_rtStart) 
+											{
+												fPassedCueTime = true;
+											}
+											else if(b->TrackNumber == pCueTrackPositions->CueTrack && b->ReferenceBlock == 0)
+											{
+												fFoundKeyFrame = true;
+												LastBlockNumber = BlockNumber;
+											}
+										}
+
+										BlockNumber++;
+									}
+									while(!fPassedCueTime && pBlocks->Next(true));
 								}
-								while(!fPassedCueTime && pBlocks->Next(true));
 							}
 
 							if(fFoundKeyFrame)
