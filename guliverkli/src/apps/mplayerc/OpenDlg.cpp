@@ -232,8 +232,6 @@ void COpenDlg::OnUpdateDub(CCmdUI* pCmdUI)
 //
 
 #include "OpenDlg.h"
-#include ".\opendlg.h"
-
 #include <dlgs.h>
 
 #define __DUMMY__ _T("*.*")

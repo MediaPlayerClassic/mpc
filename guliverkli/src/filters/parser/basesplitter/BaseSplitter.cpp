@@ -1194,7 +1194,7 @@ STDMETHODIMP CBaseSplitterFilter::get_CurrentMarker(long* pCurrentMarker)
 STDMETHODIMP CBaseSplitterFilter::GetMarkerTime(long MarkerNum, double* pMarkerTime)
 {
 	CheckPointer(pMarkerTime, E_POINTER);
-	struct ChapterElement ce;
+	ChapterElement ce;
 	if(!GetChapterInfo(GetChapterId(CHAPTER_ROOT_ID, MarkerNum), &ce))
 		return E_INVALIDARG;
 	*pMarkerTime = (double)ce.rtStart / 10000000;

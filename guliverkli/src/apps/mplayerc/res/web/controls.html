@@ -5,7 +5,7 @@
 		<link rel="stylesheet" type="text/css" href="/default.css">
 		<script language="JavaScript" type="text/JavaScript">
 
-		// var filedir = "[filedir]";
+		// var filedir = "[filedirarg]";
 		var filepath = "[filepath]";
 		var curpos = [position];
 		var length = [duration];
@@ -25,12 +25,13 @@
 		var AP
 		var RL
 		var rpt
+		var etaup=false
 		
 		if (eta==0) eta=(state<0 && filepath.length>0)?2:120;
 
 		function init()
 		{
-			if (eta>0) RL=setTimeout("postform(0,'null',0);",1000*eta);
+			if (eta>0) RL=setTimeout("etaup=true; if (re.checked==true) postform(0,'null',0);",1000*eta);
 			Live=(length<1);
 			starttime=starttime-curpos;
 			rdirt=length*pbr/slidersize;
@@ -67,6 +68,11 @@
 		}
 		function autoplay(a)
 		{
+			if (etaup && re.checked==true)
+			{
+				etaup=false;
+				RL=setTimeout("etaup=true; if (re.checked==true) postform(0,'null',0);",5000);
+			}
 			AP=setTimeout('autoplay()',rdirt);
 			var ct = (new Date()).getTime();
 			var cap=pbr*(ct-starttime);
@@ -217,45 +223,47 @@
 				<a href="https://sourceforge.net/forum/message.php?msg_id=2357783">this topic</a>.
 			</strong>
 		</p>
-		File Info
-		<noscript>: disabled (component requires javascript)</noscript>
-		<br>
-		<table border="2" cellspacing="1" cellpadding="4">
-			<tr>
-				<td colspan="4">
-					<nobr>
-						Loaded file: <a href="[browserpath]?path=[filepatharg]&redir=[path]">[filepath]</a>
-						<a href="[browserpath]?path=[filedirarg]">Browse...</a>
-					</nobr>
-				</td>
-			</tr>
-			<tr>
-				<td>
-					Status: [statestring]
-				</td>
-				<td align="center">
-					<table>
-						<tr>
-							<td id="time">[positionstring]</td>
-							<td>/</td>
-							<td>[durationstring]</td>
-						</tr>
-					</table>
-				</td>
-				<td>
-					<input type="checkbox" id="reloadenabled" checked>
-				</td>
-				<td align="center">
-					<noscript>
-						<form action="[commandpath]" method="POST">
-					</noscript>
-					<input type="submit" value="Refresh" name="submit" onclick="window.location=window.location; return false;">
-					<noscript></form></noscript>
-				</td>
-			</tr>
-		</table>
 		<p>
-			<form action="[commandpath]" method="POST" onsubmit="">
+			File Info
+			<noscript>: disabled (component requires javascript)</noscript>
+			<br>
+			<table border="2" cellspacing="1" cellpadding="4">
+				<tr>
+					<td colspan="4">
+						<nobr>
+							Loaded file: <a href="[browserpath]?path=[filepatharg]&redir=[path]">[filepath]</a>
+							<a href="[browserpath]?path=[filedirarg]">Browse...</a>
+						</nobr>
+					</td>
+				</tr>
+				<tr>
+					<td>
+						Status: [statestring]
+					</td>
+					<td align="center">
+						<table>
+							<tr>
+								<td id="time">[positionstring]</td>
+								<td>/</td>
+								<td>[durationstring]</td>
+							</tr>
+						</table>
+					</td>
+					<td>
+						<input type="checkbox" id="reloadenabled" checked>
+					</td>
+					<td align="center">
+						<noscript>
+							<form action="[commandpath]" method="POST">
+						</noscript>
+						<input type="submit" value="Refresh" name="submit" onclick="window.location=window.location; return false;">
+						<noscript></form></noscript>
+					</td>
+				</tr>
+			</table>
+		</p>
+		<p>
+			<form action="[commandpath]" method="POST">
 				<input type="hidden" name="[wmcname]" value="-1"> Goto control
 				<noscript>: (position slider disabled)</noscript>
 				<br>
@@ -586,6 +594,32 @@
 				</tr>
 			</table>
 		</p>
+		<!-- sorry chobits, I was thinking of doing this differently :) p>
+			<form action="[commandpath]" method="POST">
+				Playlist Editor<br>
+				<table border="2" cellspacing="1" cellpadding="4">
+					<tr align="center">
+						<td colspan="4">
+							<input type="hidden" name="[wmcname]" value="-3">
+							<textarea name="playlist" multiple cols="60" rows="10" wrap="off">[playlist]</textarea>
+						</td>
+					</tr>
+					<tr>
+						<td align="center">
+							Play changes on update&nbsp;
+							<input type="checkbox" name="playupdate" checked>
+						</td>
+						<td align="center">
+							Playlist playing position&nbsp;
+							<input type="text" name="playlistposition" size=4 value="[currentplaylistposition]">
+						</td>
+						<td align="center">
+							<input type="submit" value="Update" name="submit">
+						</td>
+					</tr>
+				</table>
+			</form>
+		</p -->
 		<p>
 			<table border="0" cellspacing="0" cellpadding="0">
 				<tr>

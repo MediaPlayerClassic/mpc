@@ -182,8 +182,8 @@ void CComPropertySheet::OnActivated(CPropertyPage* pPage)
 
 	if(!bounds.IsRectEmpty())
 	{
-		CWnd* pChild = pPage->GetWindow(GW_CHILD);
-		pChild->MoveWindow(bounds);
+		if(CWnd* pChild = pPage->GetWindow(GW_CHILD))
+			pChild->MoveWindow(bounds);
 		CRect r = twr;
 		pTC->AdjustRect(FALSE, r);
 		ScreenToClient(r);

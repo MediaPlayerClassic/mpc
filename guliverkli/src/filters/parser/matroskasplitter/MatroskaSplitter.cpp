@@ -873,14 +873,18 @@ STDMETHODIMP_(BOOL) CMatroskaSplitterFilter::GetChapterInfo(UINT aChapterID, str
 	CheckPointer(m_pFile, __super::GetChapterCurrentId());
 	ChapterAtom* ca = m_pFile->m_segment.FindChapterAtom(aChapterID);
 	if(!ca) return FALSE;
-	if(pToFill->Size >= sizeof(*pToFill))
+	if(pToFill->Size >= sizeof(ChapterElement))
 	{
+		pToFill->Size = sizeof(ChapterElement);
 		pToFill->Type = ca->ChapterAtoms.IsEmpty() ? AtomicChapter : SubChapter; // ?
 		pToFill->ChapterId = (UINT)ca->ChapterUID;
-		pToFill->rtStart = ca->ChapterTimeStart / 100;
-		pToFill->rtStop = ca->ChapterTimeEnd / 100;
+		pToFill->rtStart = ca->ChapterTimeStart / 100 - m_rtOffset;
+		pToFill->rtStop = ca->ChapterTimeEnd / 100 - m_rtOffset;
 		if(pToFill->Size >= sizeof(ChapterElement2))
+		{
+			pToFill->Size = sizeof(ChapterElement2);
 			((ChapterElement2*)pToFill)->bDisabled = ca->ChapterFlagEnabled == 0;
+		}
 	}
 	return TRUE;
 }

@@ -330,8 +330,8 @@ CGraphBuilder::CGraphBuilder(IGraphBuilder* pGB, HWND hWnd)
 		guids.AddTail(MEDIATYPE_Audio);
 		guids.AddTail(MEDIASUBTYPE_WAVE_DTS);
 		AddFilter(new CGraphCustomFilter(__uuidof(CMpaDecFilter), guids, 
-			(s.TraFilters&TRA_AC3) ? L"DTS Pass-through to S/PDIF" : L"DTS Pass-through to S/PDIF (low merit)",
-			(s.TraFilters&TRA_AC3) ? LMERIT_ABOVE_DSHOW : LMERIT_DO_USE));
+			(s.TraFilters&TRA_DTS) ? L"DTS Pass-through to S/PDIF" : L"DTS Pass-through to S/PDIF (low merit)",
+			(s.TraFilters&TRA_DTS) ? LMERIT_ABOVE_DSHOW : LMERIT_DO_USE));
 		guids.RemoveAll();
 	}
 
@@ -363,6 +363,8 @@ CGraphBuilder::CGraphBuilder(IGraphBuilder* pGB, HWND hWnd)
 		guids.AddTail(MEDIASUBTYPE_DNET);
 		guids.AddTail(MEDIATYPE_Audio);
 		guids.AddTail(MEDIASUBTYPE_SIPR);
+		guids.AddTail(MEDIATYPE_Audio);
+		guids.AddTail(MEDIASUBTYPE_RAAC);
 		AddFilter(new CGraphCustomFilter(__uuidof(CRealAudioDecoder), guids, 
 			(s.TraFilters&TRA_REALAUD) ? L"RealAudio Decoder" : L"RealAudio Decoder (low merit)",
 			(s.TraFilters&TRA_REALAUD) ? LMERIT_ABOVE_DSHOW : LMERIT_DO_USE));

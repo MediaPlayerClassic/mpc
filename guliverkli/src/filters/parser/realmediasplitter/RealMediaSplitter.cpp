@@ -167,6 +167,8 @@ const AMOVIESETUP_MEDIATYPE sudPinTypesOut3[] =
 	{&MEDIATYPE_Audio, &MEDIASUBTYPE_COOK},
 	{&MEDIATYPE_Audio, &MEDIASUBTYPE_DNET},
 	{&MEDIATYPE_Audio, &MEDIASUBTYPE_SIPR},
+	{&MEDIATYPE_Audio, &MEDIASUBTYPE_RAAC},
+	{&MEDIATYPE_Audio, &MEDIASUBTYPE_RACP},
 };
 
 const AMOVIESETUP_PIN sudpPins3[] =
@@ -376,6 +378,8 @@ HRESULT CRealMediaSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 			rainfo rai = *(rainfo*)fmt;
 			rai.bswap();
 
+			BYTE* extra = NULL;
+
 			if(rai.version2 == 4)
 			{
 				rainfo4 rai4 = *(rainfo4*)fmt;
@@ -388,6 +392,7 @@ HRESULT CRealMediaSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 				int len = *p++; p += len; len = *p++; ASSERT(len == 4);
 				if(len == 4)
 				fcc = MAKEFOURCC(p[0],p[1],p[2],p[3]);
+				extra = p + len + 3;
 			}
 			else if(rai.version2 == 5)
 			{
@@ -398,6 +403,11 @@ HRESULT CRealMediaSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 				pwfe->nSamplesPerSec = rai5.sample_rate;
 				pwfe->nBlockAlign = rai5.frame_size;
 				fcc = rai5.fourcc3;
+				extra = fmt + sizeof(rainfo5) + 4;
+			}
+			else
+			{
+				continue;
 			}
 
 			_strupr(fccstr);
@@ -414,6 +424,8 @@ HRESULT CRealMediaSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 			case 'COOK': pwfe->wFormatTag = WAVE_FORMAT_COOK; break;
 			case 'DNET': pwfe->wFormatTag = WAVE_FORMAT_DNET; break;
 			case 'SIPR': pwfe->wFormatTag = WAVE_FORMAT_SIPR; break;
+			case 'RAAC': pwfe->wFormatTag = WAVE_FORMAT_RAAC; break;
+			case 'RACP': pwfe->wFormatTag = WAVE_FORMAT_RACP; break;
 			}
 
 			if(pwfe->wFormatTag)
@@ -422,9 +434,20 @@ HRESULT CRealMediaSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 
 				if(fcc == 'DNET')
 				{
-					mt.subtype = MEDIASUBTYPE_WAVE_DOLBY_AC3;
-					pwfe->wFormatTag = WAVE_FORMAT_DOLBY_AC3;
-					mts.Add(mt);
+					mt.subtype = FOURCCMap(pwfe->wFormatTag = WAVE_FORMAT_DOLBY_AC3); 
+					mts.InsertAt(0, mt);
+				}
+				else if(fcc == 'RAAC' || fcc == 'RACP')
+				{
+					mt.subtype = FOURCCMap(pwfe->wFormatTag = WAVE_FORMAT_AAC); 
+					int extralen = *(DWORD*)extra; extra += 4;
+					::bswap(extralen);
+					ASSERT(*extra == 2); // always 2? why? what does it mean?
+					extra++; extralen--;
+					WAVEFORMATEX* pwfe = (WAVEFORMATEX*)mt.ReallocFormatBuffer(sizeof(WAVEFORMATEX) + extralen);
+					pwfe->cbSize = extralen;
+					memcpy(pwfe + 1, extra, extralen);
+					mts.InsertAt(0, mt);
 				}
 			}
 		}
@@ -744,7 +767,6 @@ void CRealMediaSplitterFilter::DoDeliverLoop()
 			p->rtStart = 10000i64*(mph.tStart);
 			p->rtStop = p->rtStart+1;
 			p->pData.Copy(mph.pData);
-
 			hr = DeliverPacket(p);
 		}
 
@@ -806,20 +828,23 @@ STDMETHODIMP_(UINT) CRealMediaSplitterFilter::GetChapterId(UINT aParentChapterId
 	return aIndex;
 }
 
-STDMETHODIMP_(BOOL) CRealMediaSplitterFilter::GetChapterInfo(UINT aChapterID, struct ChapterElement* pStructureToFill)
+STDMETHODIMP_(BOOL) CRealMediaSplitterFilter::GetChapterInfo(UINT aChapterID, struct ChapterElement* pToFill)
 {
 	REFERENCE_TIME rtDur = 0;
 	GetDuration(&rtDur);
 
-	CheckPointer(pStructureToFill, E_POINTER);
+	CheckPointer(pToFill, E_POINTER);
 	POSITION pos = m_pChapters.FindIndex(aChapterID-1);
 	if(!pos) return FALSE;
 	CChapter* p = m_pChapters.GetNext(pos);
-	pStructureToFill->Size = sizeof(*pStructureToFill);
-	pStructureToFill->Type = AtomicChapter;
-	pStructureToFill->ChapterId = aChapterID;
-	pStructureToFill->rtStart = p->m_rt;
-	pStructureToFill->rtStop = pos ? m_pChapters.GetNext(pos)->m_rt : rtDur;
+	if(pToFill->Size >= sizeof(ChapterElement))
+	{
+		pToFill->Size = sizeof(ChapterElement);
+		pToFill->Type = AtomicChapter;
+		pToFill->ChapterId = aChapterID;
+		pToFill->rtStart = p->m_rt;
+		pToFill->rtStop = pos ? m_pChapters.GetNext(pos)->m_rt : rtDur;
+	}
 	return TRUE;
 }
 
@@ -1003,6 +1028,51 @@ HRESULT CRealMediaSplitterOutputPin::DeliverPacket(CAutoPtr<Packet> p)
 			    if(S_OK != (hr = DeliverSegments()))
 					return hr;
 			}
+		}
+	}
+	else if(m_mt.subtype == MEDIASUBTYPE_RAAC || m_mt.subtype == MEDIASUBTYPE_RACP
+		 || m_mt.subtype == MEDIASUBTYPE_AAC)
+	{
+		BYTE* ptr = p->pData.GetData()+2;
+
+		CList<WORD> sizes;
+		int total = 0;
+		int remaining = p->pData.GetSize()-2;
+		int expected = *(ptr-1)>>4;
+
+		while(total < remaining)
+		{
+			int size = (ptr[0]<<8)|(ptr[1]);
+			sizes.AddTail(size);
+			total += size;
+			ptr += 2;
+			remaining -= 2;
+			expected--;
+		}
+
+		ASSERT(total == remaining);
+		ASSERT(expected == 0);
+
+		WAVEFORMATEX* wfe = (WAVEFORMATEX*)m_mt.pbFormat;
+		REFERENCE_TIME rtDur = 20480000000i64/(wfe->nChannels*wfe->nSamplesPerSec); // 2048 samples per sec (but always?)
+		REFERENCE_TIME rtStart = p->rtStart;
+		BOOL bDiscontinuity = p->bDiscontinuity;
+
+		POSITION pos = sizes.GetHeadPosition();
+		while(pos)
+		{
+			CAutoPtr<Packet> p(new Packet);
+			p->bDiscontinuity = bDiscontinuity;
+			p->bSyncPoint = true;
+			p->rtStart = rtStart;
+			p->rtStop = rtStart + rtDur;
+			p->pData.SetSize(sizes.GetNext(pos));
+			memcpy(p->pData.GetData(), ptr, p->pData.GetSize());
+			ptr += p->pData.GetSize();
+			rtStart = p->rtStop;
+			bDiscontinuity = false;
+			if(S_OK != (hr = __super::DeliverPacket(p)))
+				break;
 		}
 	}
 	else
@@ -2077,7 +2147,7 @@ HRESULT CRealAudioDecoder::InitRA(const CMediaType* pmt)
 	if(RASetPwd)
 		RASetPwd(m_dwCookie, "Ardubancel Quazanga");
 
-	if(FAILED(hr = RASetFlavor(m_dwCookie, m_rai.flavor)))
+	if(RASetFlavor && FAILED(hr = RASetFlavor(m_dwCookie, m_rai.flavor)))
 		return hr;
 
 	return hr;
@@ -2125,24 +2195,33 @@ HRESULT CRealAudioDecoder::Receive(IMediaSample* pIn)
 		m_fBuffDiscontinuity = pIn->IsDiscontinuity() == S_OK;
 	}
 
-	memcpy(&m_buff[m_bufflen], pDataIn, len);
-	m_bufflen += len;
+	BYTE* src = NULL;
+	BYTE* dst = NULL;
 
 	int w = m_rai.coded_frame_size;
 	int h = m_rai.sub_packet_h;
 	int sps = m_rai.sub_packet_size;
 
-	len = w*h;
-
-/*	if(S_OK != pIn->IsSyncPoint())
+	if(m_pInput->CurrentMediaType().subtype == MEDIASUBTYPE_RAAC
+	|| m_pInput->CurrentMediaType().subtype == MEDIASUBTYPE_RACP)
 	{
-*/
+		src = pDataIn;
+		dst = pDataIn + len;
+		w = len;
+	}
+	else
+	{
+		memcpy(&m_buff[m_bufflen], pDataIn, len);
+		m_bufflen += len;
+
+		len = w*h;
+
 		if(m_bufflen >= len)
 		{
 			ASSERT(m_bufflen == len);
 
-			BYTE* src = m_buff;
-			BYTE* dst = m_buff + len;
+			src = m_buff;
+			dst = m_buff + len;
 
 			if(sps > 0
 			&& (m_pInput->CurrentMediaType().subtype == MEDIASUBTYPE_COOK
@@ -2177,70 +2256,70 @@ HRESULT CRealAudioDecoder::Receive(IMediaSample* pIn)
 					int i=bs*sipr_swaps[n][0];
 					int o=bs*sipr_swaps[n][1];
 				// swap nibbles of block 'i' with 'o'      TODO: optimize
-				for(int j=0;j<bs;j++){
-					int x=(i&1) ? (src[(i>>1)]>>4) : (src[(i>>1)]&15);
-					int y=(o&1) ? (src[(o>>1)]>>4) : (src[(o>>1)]&15);
-					if(o&1) src[(o>>1)]=(src[(o>>1)]&0x0F)|(x<<4);
-						else  src[(o>>1)]=(src[(o>>1)]&0xF0)|x;
-					if(i&1) src[(i>>1)]=(src[(i>>1)]&0x0F)|(y<<4);
-						else  src[(i>>1)]=(src[(i>>1)]&0xF0)|y;
-					++i;++o;
-				}
+					for(int j=0;j<bs;j++){
+						int x=(i&1) ? (src[(i>>1)]>>4) : (src[(i>>1)]&15);
+						int y=(o&1) ? (src[(o>>1)]>>4) : (src[(o>>1)]&15);
+						if(o&1) src[(o>>1)]=(src[(o>>1)]&0x0F)|(x<<4);
+							else  src[(o>>1)]=(src[(o>>1)]&0xF0)|x;
+						if(i&1) src[(i>>1)]=(src[(i>>1)]&0x0F)|(y<<4);
+							else  src[(i>>1)]=(src[(i>>1)]&0xF0)|y;
+						++i;++o;
+					}
 				}
 			}
-
-			rtStart = m_rtBuffStart;
-
-			for(; src < dst; src += w)
-			{
-				CComPtr<IMediaSample> pOut;
-				BYTE* pDataOut = NULL;
-				if(FAILED(hr = m_pOutput->GetDeliveryBuffer(&pOut, NULL, NULL, 0))
-				|| FAILED(hr = pOut->GetPointer(&pDataOut)))
-					return hr;
-
-				AM_MEDIA_TYPE* pmt;
-				if(SUCCEEDED(pOut->GetMediaType(&pmt)) && pmt)
-				{
-					CMediaType mt(*pmt);
-					m_pOutput->SetMediaType(&mt);
-					DeleteMediaType(pmt);
-				}
-
-				hr = RADecode(m_dwCookie, src, w, pDataOut, &len, -1);
-
-				if(FAILED(hr))
-				{
-					TRACE(_T("RA returned an error code!!!\n"));
-					continue;
-//					return hr;
-				}
-
-				WAVEFORMATEX* pwfe = (WAVEFORMATEX*)m_pOutput->CurrentMediaType().Format();
-
-				rtStop = rtStart + 1000i64*len/pwfe->nAvgBytesPerSec*10000;
-				pOut->SetTime(&rtStart, &rtStop);
-				pOut->SetMediaTime(NULL, NULL);
-
-				pOut->SetDiscontinuity(m_fBuffDiscontinuity); m_fBuffDiscontinuity = false;
-				pOut->SetSyncPoint(TRUE);
-
-				pOut->SetActualDataLength(len);
-
-DbgLog((LOG_TRACE, 0, _T("A: rtStart=%I64d, rtStop=%I64d, disc=%d, sync=%d"), 
-	   rtStart, rtStop, pOut->IsDiscontinuity() == S_OK, pOut->IsSyncPoint() == S_OK));
-
-				if(rtStart >= 0 && S_OK != (hr = m_pOutput->Deliver(pOut)))
-					return hr;
-
-				rtStart = rtStop;
-			}
-
-			m_rtBuffStart = rtStart;
 
 			m_bufflen = 0;
 		}
-//	}
+	}
+
+	rtStart = m_rtBuffStart;
+
+	for(; src < dst; src += w)
+	{
+		CComPtr<IMediaSample> pOut;
+		BYTE* pDataOut = NULL;
+		if(FAILED(hr = m_pOutput->GetDeliveryBuffer(&pOut, NULL, NULL, 0))
+		|| FAILED(hr = pOut->GetPointer(&pDataOut)))
+			return hr;
+
+		AM_MEDIA_TYPE* pmt;
+		if(SUCCEEDED(pOut->GetMediaType(&pmt)) && pmt)
+		{
+			CMediaType mt(*pmt);
+			m_pOutput->SetMediaType(&mt);
+			DeleteMediaType(pmt);
+		}
+
+		hr = RADecode(m_dwCookie, src, w, pDataOut, &len, -1);
+
+		if(FAILED(hr))
+		{
+			TRACE(_T("RA returned an error code!!!\n"));
+			continue;
+//			return hr;
+		}
+
+		WAVEFORMATEX* pwfe = (WAVEFORMATEX*)m_pOutput->CurrentMediaType().Format();
+
+		rtStop = rtStart + 1000i64*len/pwfe->nAvgBytesPerSec*10000;
+		pOut->SetTime(&rtStart, &rtStop);
+		pOut->SetMediaTime(NULL, NULL);
+
+		pOut->SetDiscontinuity(m_fBuffDiscontinuity); m_fBuffDiscontinuity = false;
+		pOut->SetSyncPoint(TRUE);
+
+		pOut->SetActualDataLength(len);
+
+DbgLog((LOG_TRACE, 0, _T("A: rtStart=%I64d, rtStop=%I64d, disc=%d, sync=%d"), 
+rtStart, rtStop, pOut->IsDiscontinuity() == S_OK, pOut->IsSyncPoint() == S_OK));
+
+		if(rtStart >= 0 && S_OK != (hr = m_pOutput->Deliver(pOut)))
+			return hr;
+
+		rtStart = rtStop;
+	}
+
+	m_rtBuffStart = rtStart;
 
 	return S_OK;
 }
@@ -2253,7 +2332,9 @@ HRESULT CRealAudioDecoder::CheckInputType(const CMediaType* mtIn)
 	&& mtIn->subtype != MEDIASUBTYPE_ATRC
 	&& mtIn->subtype != MEDIASUBTYPE_COOK
 	&& mtIn->subtype != MEDIASUBTYPE_DNET
-	&& mtIn->subtype != MEDIASUBTYPE_SIPR)
+	&& mtIn->subtype != MEDIASUBTYPE_SIPR
+	&& mtIn->subtype != MEDIASUBTYPE_RAAC
+	&& mtIn->subtype != MEDIASUBTYPE_RACP)
 		return VFW_E_TYPE_NOT_ACCEPTED;
 
 	if(!m_pInput->IsConnected())
@@ -2263,17 +2344,20 @@ HRESULT CRealAudioDecoder::CheckInputType(const CMediaType* mtIn)
 		CStringList paths;
 		CString olddll, newdll, oldpath, newpath;
 
-		olddll.Format(_T("%c%c%c%c3260.dll"), 
+		TCHAR fourcc[5] = 
+		{
 			(TCHAR)((mtIn->subtype.Data1>>0)&0xff),
 			(TCHAR)((mtIn->subtype.Data1>>8)&0xff),
 			(TCHAR)((mtIn->subtype.Data1>>16)&0xff),
-			(TCHAR)((mtIn->subtype.Data1>>24)&0xff));
+			(TCHAR)((mtIn->subtype.Data1>>24)&0xff),
+			0
+		};
 
-		newdll.Format(_T("%c%c%c%c.dll"), 
-			(TCHAR)((mtIn->subtype.Data1>>0)&0xff),
-			(TCHAR)((mtIn->subtype.Data1>>8)&0xff),
-			(TCHAR)((mtIn->subtype.Data1>>16)&0xff),
-			(TCHAR)((mtIn->subtype.Data1>>24)&0xff));
+		if(!_tcscmp(_T("RACP"), fourcc))
+			_tcscpy(fourcc, _T("RAAC"));
+
+		olddll.Format(_T("%s3260.dll"), fourcc);
+		newdll.Format(_T("%s.dll"), fourcc);
 
 		CRegKey key;
 		TCHAR buff[MAX_PATH];
@@ -2323,7 +2407,7 @@ HRESULT CRealAudioDecoder::CheckInputType(const CMediaType* mtIn)
 
 		if(!m_hDrvDll || !RACloseCodec || !RADecode /*|| !RAFlush*/
 		|| !RAFreeDecoder || !RAGetFlavorProperty || !RAInitDecoder 
-		|| !(RAOpenCodec || RAOpenCodec2) || !RASetFlavor)
+		|| !(RAOpenCodec || RAOpenCodec2) /*|| !RASetFlavor*/)
 			return VFW_E_TYPE_NOT_ACCEPTED;
 
 		if(m_hDrvDll)
@@ -2352,7 +2436,9 @@ HRESULT CRealAudioDecoder::CheckTransform(const CMediaType* mtIn, const CMediaTy
 												|| mtIn->subtype == MEDIASUBTYPE_ATRC
 												|| mtIn->subtype == MEDIASUBTYPE_COOK
 												|| mtIn->subtype == MEDIASUBTYPE_DNET
-												|| mtIn->subtype == MEDIASUBTYPE_SIPR)
+												|| mtIn->subtype == MEDIASUBTYPE_SIPR
+												|| mtIn->subtype == MEDIASUBTYPE_RAAC
+												|| mtIn->subtype == MEDIASUBTYPE_RACP)
 		&& mtOut->majortype == MEDIATYPE_Audio && mtOut->subtype == MEDIASUBTYPE_PCM												
 		? S_OK
 		: VFW_E_TYPE_NOT_ACCEPTED;
