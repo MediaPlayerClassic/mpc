@@ -71,14 +71,16 @@ else
 	if(!getParam('bw')) $db_text = '%'.$db_text;
 
 	$db->fetchAll(
-		"select * from movie ".
-		"where id in ".
+		"select distinct t1.* from movie t1 ".
+		"join movie_subtitle t2 on t1.id = t2.movie_id ".
+		"where t1.id in ".
 		"	( ".
 			"select distinct movie_id from title where title like _utf8 '$db_text%' ".
 			"union ".
-			"select distinct movie_id from movie_subtitle where name like _utf8 '$db_text%' ".
+			"select distinct movie_id from movie_subtitle where name like _utf8 '$db_text%' order by date desc ".
 			") ".
-		"and id in (select distinct movie_id from movie_subtitle where subtitle_id in (select distinct id from subtitle)) ".
+		"and t1.id in (select distinct movie_id from movie_subtitle where subtitle_id in (select distinct id from subtitle)) ".
+		"order by t2.date desc " .
 		"limit 20 ",
 		$movies);
 
