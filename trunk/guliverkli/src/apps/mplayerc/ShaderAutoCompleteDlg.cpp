@@ -4,12 +4,10 @@
 #include "stdafx.h"
 #include "mplayerc.h"
 #include "ShaderAutoCompleteDlg.h"
-#include ".\shaderautocompletedlg.h"
 
 
 // CShaderAutoCompleteDlg dialog
 
-IMPLEMENT_DYNAMIC(CShaderAutoCompleteDlg, CResizableDialog)
 CShaderAutoCompleteDlg::CShaderAutoCompleteDlg(CWnd* pParent /*=NULL*/)
 	: CResizableDialog(CShaderAutoCompleteDlg::IDD, pParent)
 {

@@ -6,8 +6,6 @@
 
 class CShaderAutoCompleteDlg : public CResizableDialog
 {
-	DECLARE_DYNAMIC(CShaderAutoCompleteDlg)
-
     TOOLINFO m_ti;
 	HWND m_hToolTipWnd;
 	TCHAR m_text[1024];
