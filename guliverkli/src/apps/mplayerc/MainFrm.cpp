@@ -651,7 +651,7 @@ void CMainFrame::ShowTrayIcon(bool fShow)
 			tnid.hWnd = m_hWnd; 
 			tnid.uID = IDR_MAINFRAME; 
 //			tnid.hIcon = (HICON)LoadIcon(AfxGetResourceHandle(), MAKEINTRESOURCE(IDR_MAINFRAME));
-			tnid.hIcon = (HICON)LoadImage(AfxGetResourceHandle(), MAKEINTRESOURCE(IDR_MAINFRAME), IMAGE_ICON, 0, 0, LR_DEFAULTCOLOR);
+			tnid.hIcon = (HICON)LoadImage(AfxGetResourceHandle(), MAKEINTRESOURCE(IDR_MAINFRAME), IMAGE_ICON, 16, 16, LR_DEFAULTCOLOR);
 			tnid.uFlags = NIF_MESSAGE|NIF_ICON|NIF_TIP; 
 			tnid.uCallbackMessage = WM_NOTIFYICON; 
 			lstrcpyn(tnid.szTip, TEXT("Media Player Classic"), sizeof(tnid.szTip)); 
@@ -971,7 +971,7 @@ void CMainFrame::OnTimer(UINT nIDEvent)
 
 			if(m_rtDurationOverride >= 0) rtDur = m_rtDurationOverride;
             
-			m_wndSeekBar.Enable(FALSE);
+			m_wndSeekBar.Enable(false);
 			m_wndSeekBar.SetRange(0, rtDur);
 			m_wndSeekBar.SetPos(rtNow);
 		}
@@ -6224,7 +6224,7 @@ void CMainFrame::SetupFiltersSubMenu()
 					name.Format(_T("%s (0x%04x)"), CString(name), (int)c);
 				}
 			}
-			else if(clsid == __uuidof(CTextPassThruFilter) || clsid == __uuidof(CTextNullRenderer)
+			else if(clsid == __uuidof(CTextPassThruFilter) || clsid == __uuidof(CNullTextRenderer)
 				|| clsid == GUIDFromCString(_T("{48025243-2D39-11CE-875D-00608CB78066}"))) // ISCR
 			{
 				// hide these
@@ -7101,6 +7101,8 @@ REFERENCE_TIME CMainFrame::GetPos()
 void CMainFrame::SeekTo(REFERENCE_TIME rtPos, bool fSeekToKeyFrame)
 {
 	OAFilterState fs = GetMediaState();
+
+	if(rtPos < 0) rtPos = 0;
 
 	if(m_iPlaybackMode == PM_FILE)
 	{

@@ -246,7 +246,8 @@ bool IsAudioWaveRenderer(IBaseFilter* pBF)
 	memcpy(&clsid, &GUID_NULL, sizeof(clsid));
 	pBF->GetClassID(&clsid);
 
-	return(clsid == CLSID_DSoundRender || clsid == CLSID_AudioRender || clsid == CLSID_ReClock);
+	return(clsid == CLSID_DSoundRender || clsid == CLSID_AudioRender || clsid == CLSID_ReClock
+		|| clsid == __uuidof(CNullAudioRenderer) || clsid == __uuidof(CNullUAudioRenderer));
 }
 
 IBaseFilter* GetUpStreamFilter(IBaseFilter* pBF, IPin* pInputPin)
@@ -453,6 +454,7 @@ CStringW GetPinName(IPin* pPin)
 
 IFilterGraph* GetGraphFromFilter(IBaseFilter* pBF)
 {
+	if(!pBF) return NULL;
 	IFilterGraph* pGraph = NULL;
 	CFilterInfo fi;
 	if(pBF && SUCCEEDED(pBF->QueryFilterInfo(&fi)))
@@ -462,6 +464,7 @@ IFilterGraph* GetGraphFromFilter(IBaseFilter* pBF)
 
 IBaseFilter* GetFilterFromPin(IPin* pPin)
 {
+	if(!pPin) return NULL;
 	IBaseFilter* pBF = NULL;
 	CPinInfo pi;
 	if(pPin && SUCCEEDED(pPin->QueryPinInfo(&pi)))

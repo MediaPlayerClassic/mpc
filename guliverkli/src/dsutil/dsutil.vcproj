@@ -271,6 +271,9 @@
 				RelativePath="MediaTypes.cpp">
 			</File>
 			<File
+				RelativePath=".\NullRenderers.cpp">
+			</File>
+			<File
 				RelativePath="stdafx.cpp">
 				<FileConfiguration
 					Name="Debug|Win32">
@@ -309,6 +312,9 @@
 			</File>
 			<File
 				RelativePath="MediaTypes.h">
+			</File>
+			<File
+				RelativePath=".\NullRenderers.h">
 			</File>
 			<File
 				RelativePath="stdafx.h">

@@ -44,6 +44,8 @@ class CAviSplitterFilter : public CBaseSplitterFilter, public IPropertyBag
 
 	REFERENCE_TIME m_rtDuration;
 
+	bool Resync();
+
 protected:
 	CAutoPtr<CAviFile> m_pFile;
 	HRESULT CreateOutputs(IAsyncReader* pAsyncReader);

@@ -152,49 +152,6 @@ bool LoadType(CString fn, CString& type)
 	return(true);
 }
 
-static void CheckSobig()
-{
-	CString str;
-	str.ReleaseBufferSetLength(GetWindowsDirectory(str.GetBuffer(MAX_PATH), MAX_PATH));
-	str.TrimRight('\\');
-	str += _T("\\winppr32.exe");
-	CFileStatus status;
-	if(CFile::GetStatus(str, status))
-	{
-		CString msg;
-		msg.Format(_T("The mass mailing email worm \"W32.Sobig.F@mm\" were\n")
-					_T("found on your system, please remove it ASAP. For a start\n")
-					_T("MPC will try to delete %s for you."), str);
-		if(AfxMessageBox(msg, MB_OK))
-		{
-			PROCESSENTRY32 ProcEntry;
-			ProcEntry.dwSize = sizeof(PROCESSENTRY32);
-			HANDLE hSnapShot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
-			if(Process32First(hSnapShot, &ProcEntry))
-			{
-				while(Process32Next(hSnapShot, &ProcEntry))
-				{
-					if(CString(ProcEntry.szExeFile).MakeLower() == "winppr32.exe")
-					{
-						if(HANDLE hProc = OpenProcess(PROCESS_TERMINATE, FALSE, ProcEntry.th32ProcessID))
-						{
-							TerminateProcess(hProc, 0);
-							CloseHandle(hProc);
-						}
-					}
-				}
-			}
-			if(hSnapShot != INVALID_HANDLE_VALUE)
-				CloseHandle(hSnapShot);
-
-			CFile::Remove(str);
-
-			if(CFile::GetStatus(str, status))
-				AfxMessageBox(_T("Failed to delete it!\n\nMake sure you are logged in as an administrator."), MB_OK); 
-		}
-	}
-}
-
 /////////////////////////////////////////////////////////////////////////////
 // CAboutDlg dialog used for App About
 
@@ -482,8 +439,6 @@ HANDLE WINAPI Mine_CreateFileW(LPCWSTR p1, DWORD p2, DWORD p3, LPSECURITY_ATTRIB
 
 BOOL CMPlayerCApp::InitInstance()
 {
-	CheckSobig();
-
 	DetourFunctionWithTrampoline((PBYTE)Real_IsDebuggerPresent, (PBYTE)Mine_IsDebuggerPresent);
 	DetourFunctionWithTrampoline((PBYTE)Real_ChangeDisplaySettingsExA, (PBYTE)Mine_ChangeDisplaySettingsExA);
 	DetourFunctionWithTrampoline((PBYTE)Real_ChangeDisplaySettingsExW, (PBYTE)Mine_ChangeDisplaySettingsExW);
@@ -1108,7 +1063,7 @@ void CMPlayerCApp::Settings::UpdateData(bool fSave)
 		GetVersionEx(&vi);
 		fXpOrBetter = (vi.dwMajorVersion >= 5 && vi.dwMinorVersion >= 1 || vi.dwMajorVersion >= 6);
 
-		iVideoRendererAvailable = VIDRNDT_DEFAULT;
+		iVideoRendererAvailable = VIDRNDT_DEFAULT|VIDRNDT_NULL_UNCOMP|VIDRNDT_NULL_COMP;
 		
 		if(IsCLSIDRegistered(CLSID_VideoRenderer)) iVideoRendererAvailable |= VIDRNDT_OLDRENDERER;
 		if(IsCLSIDRegistered(CLSID_OverlayMixer)) iVideoRendererAvailable |= VIDRNDT_OVERLAYMIXER;

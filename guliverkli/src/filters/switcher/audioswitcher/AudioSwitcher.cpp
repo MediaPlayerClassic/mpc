@@ -307,9 +307,50 @@ CStreamSwitcherInputPin::CStreamSwitcherInputPin(CStreamSwitcherFilter* pFilter,
 	, m_bUsingOwnAllocator(FALSE)
 	, m_evBlock(TRUE)
 	, m_fCanBlock(false)
+	, m_hNotifyEvent(NULL)
 {
 	m_bCanReconnectWhenActive = TRUE;
 }
+
+[uuid("138130AF-A79B-45D5-B4AA-87697457BA87")]
+enum NeroAudioDecoder {};
+
+STDMETHODIMP CStreamSwitcherInputPin::NonDelegatingQueryInterface(REFIID riid, void** ppv)
+{
+	return
+		IsConnected() && GetCLSID(GetFilterFromPin(GetConnected())) == __uuidof(NeroAudioDecoder) && QI(IPinConnection)
+		__super::NonDelegatingQueryInterface(riid, ppv);
+}
+
+// IPinConnection
+
+STDMETHODIMP CStreamSwitcherInputPin::DynamicQueryAccept(const AM_MEDIA_TYPE* pmt)
+{
+	return QueryAccept(pmt);
+}
+
+STDMETHODIMP CStreamSwitcherInputPin::NotifyEndOfStream(HANDLE hNotifyEvent)
+{
+	if(m_hNotifyEvent) SetEvent(m_hNotifyEvent);
+	m_hNotifyEvent = hNotifyEvent;
+	return S_OK;
+}
+
+STDMETHODIMP CStreamSwitcherInputPin::IsEndPin()
+{
+	return S_OK;
+}
+
+STDMETHODIMP CStreamSwitcherInputPin::DynamicDisconnect()
+{
+	CAutoLock cAutoLock(&m_csReceive);
+
+	Disconnect();
+
+	return S_OK;
+}
+
+//
 
 HRESULT CStreamSwitcherInputPin::QueryAcceptDownstream(const AM_MEDIA_TYPE* pmt)
 {
@@ -489,6 +530,8 @@ HRESULT CStreamSwitcherInputPin::CompleteConnect(IPin* pReceivePin)
 	if(!fForkedSomewhere)
 		m_fCanBlock = true;
 
+	m_hNotifyEvent = NULL;
+
 	return S_OK;
 }
 
@@ -593,6 +636,12 @@ STDMETHODIMP CStreamSwitcherInputPin::EndOfStream()
 	CStreamSwitcherOutputPin* pOut = ((CStreamSwitcherFilter*)m_pFilter)->GetOutputPin();
 	if(!IsConnected() || !pOut || !pOut->IsConnected())
 		return VFW_E_NOT_CONNECTED;
+
+	if(m_hNotifyEvent)
+	{
+		SetEvent(m_hNotifyEvent), m_hNotifyEvent = NULL;
+		return S_OK;
+	}
 
 	return IsSelected() ? pOut->DeliverEndOfStream() : S_OK;
 }

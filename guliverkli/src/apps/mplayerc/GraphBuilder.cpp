@@ -255,6 +255,21 @@ CGraphBuilder::CGraphBuilder(IGraphBuilder* pGB, HWND hWnd)
 	}
 
 	{
+		guids.AddTail(MEDIATYPE_DVD_ENCRYPTED_PACK);
+		guids.AddTail(MEDIASUBTYPE_DVD_LPCM_AUDIO);
+		guids.AddTail(MEDIATYPE_MPEG2_PACK);
+		guids.AddTail(MEDIASUBTYPE_DVD_LPCM_AUDIO);
+		guids.AddTail(MEDIATYPE_MPEG2_PES);
+		guids.AddTail(MEDIASUBTYPE_DVD_LPCM_AUDIO);
+		guids.AddTail(MEDIATYPE_Audio);
+		guids.AddTail(MEDIASUBTYPE_DVD_LPCM_AUDIO);
+		AddFilter(new CGraphCustomFilter(__uuidof(CMpaDecFilter), guids, 
+			(s.TraFilters&TRA_MPEGAUD) ? L"LPCM Audio Decoder" : L"LPCM Audio Decoder (low merit)",
+			(s.TraFilters&TRA_MPEGAUD) ? LMERIT_ABOVE_DSHOW : LMERIT_DO_USE));
+		guids.RemoveAll();
+	}
+
+	{
 		guids.AddTail(MEDIATYPE_Video);
 		guids.AddTail(MEDIASUBTYPE_RV10);
 		guids.AddTail(MEDIATYPE_Video);
@@ -313,9 +328,35 @@ CGraphBuilder::CGraphBuilder(IGraphBuilder* pGB, HWND hWnd)
 		case VIDRNDT_VMR9RENDERLESS:
 			AddFilter(new CGraphRendererFilter(CLSID_VMR9AllocatorPresenter, m_hWnd, L"Video Mixing Render 9 (Renderless)", m_VRMerit));
 			break;
+		case VIDRNDT_NULL_COMP:
+			guids.AddTail(MEDIATYPE_Video);
+			guids.AddTail(MEDIASUBTYPE_NULL);
+			AddFilter(new CGraphCustomFilter(__uuidof(CNullVideoRenderer), guids, L"Null Video Renderer (Any)", LMERIT_ABOVE_DSHOW+1));
+			guids.RemoveAll();
+			break;
+		case VIDRNDT_NULL_UNCOMP:
+			guids.AddTail(MEDIATYPE_Video);
+			guids.AddTail(MEDIASUBTYPE_NULL);
+			AddFilter(new CGraphCustomFilter(__uuidof(CNullUVideoRenderer), guids, L"Null Video Renderer (Uncompressed)", LMERIT_ABOVE_DSHOW+1));
+			guids.RemoveAll();
+			break;
 	}
 
-	if(!s.AudioRendererDisplayName.IsEmpty())
+	if(s.AudioRendererDisplayName == AUDRNDT_NULL_COMP)
+	{
+		guids.AddTail(MEDIATYPE_Audio);
+		guids.AddTail(MEDIASUBTYPE_NULL);
+		AddFilter(new CGraphCustomFilter(__uuidof(CNullAudioRenderer), guids, AUDRNDT_NULL_COMP, LMERIT_ABOVE_DSHOW+1));
+		guids.RemoveAll();
+	}
+	else if(s.AudioRendererDisplayName == AUDRNDT_NULL_UNCOMP)
+	{
+		guids.AddTail(MEDIATYPE_Audio);
+		guids.AddTail(MEDIASUBTYPE_NULL);
+		AddFilter(new CGraphCustomFilter(__uuidof(CNullUAudioRenderer), guids, AUDRNDT_NULL_UNCOMP, LMERIT_ABOVE_DSHOW+1));
+		guids.RemoveAll();
+	}
+	else if(!s.AudioRendererDisplayName.IsEmpty())
 	{
 		AddFilter(new CGraphRegFilter(s.AudioRendererDisplayName, m_ARMerit));
 	}
@@ -359,7 +400,7 @@ CGraphBuilder::CGraphBuilder(IGraphBuilder* pGB, HWND hWnd)
 	guids.AddTail(MEDIASUBTYPE_NULL);
 	guids.AddTail(MEDIATYPE_Subtitle);
 	guids.AddTail(MEDIASUBTYPE_NULL);
-	AddFilter(new CGraphCustomFilter(__uuidof(CTextNullRenderer), guids, L"TextNullRenderer", LMERIT_DO_USE));
+	AddFilter(new CGraphCustomFilter(__uuidof(CNullTextRenderer), guids, L"NullTextRenderer", LMERIT_DO_USE));
 	guids.RemoveAll();
 
 	// FIXME: "Subtitle Mixer" makes an access violation around 
@@ -776,6 +817,16 @@ HRESULT CGraphBuilder::Render(IPin* pPin)
 	if(FAILED(pPin->QueryDirection(&dir)) || dir != PINDIR_OUTPUT
 	|| SUCCEEDED(pPin->ConnectedTo(&pPinTmp)))
 		return E_UNEXPECTED;
+
+	if(GetCLSID(GetFilterFromPin(pPin)) == CLSID_MPEG2Demultiplexer)
+	{
+		CComQIPtr<IMediaSeeking> pMS = pPin;
+		if(!pMS) return E_FAIL;
+		REFERENCE_TIME rtDur = 0;
+		if(FAILED(pMS->GetDuration(&rtDur)) || rtDur <= 0)
+			 return E_FAIL;
+		rtDur = rtDur;
+	}
 
 	bool fDeadEnd = true;
 
@@ -1522,11 +1573,12 @@ ChkLen(8)
 #undef ChkLen
 
 	}
-
+/*
 	if(CLSID_MMSPLITTER == m_clsid && m_merit.val == LMERIT(MERIT_NORMAL-1))
 	{
 		m_merit.val = LMERIT(MERIT_NORMAL)+1; // take this mpeg2 demux...
 	}
+*/
 }
 
 HRESULT CGraphRegFilter::Create(IBaseFilter** ppBF, IUnknown** ppUnk)
@@ -1583,9 +1635,13 @@ HRESULT CGraphCustomFilter::Create(IBaseFilter** ppBF, IUnknown** ppUnk)
 		m_clsid == __uuidof(CRealVideoDecoder) ? (IBaseFilter*)new CRealVideoDecoder(NULL, &hr) :
 		m_clsid == __uuidof(CRealAudioDecoder) ? (IBaseFilter*)new CRealAudioDecoder(NULL, &hr) :
 		m_clsid == __uuidof(CAviSplitterFilter) ? (IBaseFilter*)new CAviSplitterFilter(NULL, &hr) :
-		m_clsid == __uuidof(CTextNullRenderer) ? (IBaseFilter*)new CTextNullRenderer(NULL, &hr) :
 		m_clsid == __uuidof(CMpeg2DecFilter) ? (IBaseFilter*)new CMpeg2DecFilter(NULL, &hr) :
 		m_clsid == __uuidof(CMpaDecFilter) ? (IBaseFilter*)new CMpaDecFilter(NULL, &hr) :
+		m_clsid == __uuidof(CNullVideoRenderer) ? (IBaseFilter*)new CNullVideoRenderer() :
+		m_clsid == __uuidof(CNullAudioRenderer) ? (IBaseFilter*)new CNullAudioRenderer() :
+		m_clsid == __uuidof(CNullUVideoRenderer) ? (IBaseFilter*)new CNullUVideoRenderer() :
+		m_clsid == __uuidof(CNullUAudioRenderer) ? (IBaseFilter*)new CNullUAudioRenderer() :
+		m_clsid == __uuidof(CNullTextRenderer) ? (IBaseFilter*)new CNullTextRenderer(NULL, &hr) :
 		NULL;
 
 	if(!*ppBF) hr = E_FAIL;
@@ -1603,8 +1659,9 @@ HRESULT CGraphCustomFilter::Create(IBaseFilter** ppBF, IUnknown** ppUnk)
 		if(m_clsid == __uuidof(CAudioSwitcherFilter))
 		{
 			*ppUnk = (IUnknown*)CComQIPtr<IAudioSwitcherFilter>(*ppBF).Detach();
+			CComQIPtr<IAudioSwitcherFilter> pASF = *ppUnk;
 
-			if(CComQIPtr<IAudioSwitcherFilter> pASF = *ppUnk)
+			if(pASF)
 			{
 				AppSettings& s = AfxGetAppSettings();
 				pASF->SetSpeakerConfig(s.fCustomChannelMapping, s.pSpeakerToChannelMap);
@@ -1715,17 +1772,3 @@ HRESULT CGraphRendererFilter::Create(IBaseFilter** ppBF, IUnknown** ppUnk)
 	return hr;
 }
 
-//
-// CTextNullRenderer
-//
-
-HRESULT CTextNullRenderer::CTextInputPin::CheckMediaType(const CMediaType* pmt)
-{
-	return pmt->majortype == MEDIATYPE_Text || pmt->majortype == MEDIATYPE_Subtitle ? S_OK : E_FAIL;
-}
-
-CTextNullRenderer::CTextNullRenderer(LPUNKNOWN pUnk, HRESULT* phr)
-	: CBaseFilter(NAME("CTextNullRenderer"), pUnk, this, __uuidof(this), phr) 
-{
-	m_pInput.Attach(new CTextInputPin(this, this, phr));
-}

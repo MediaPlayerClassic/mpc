@@ -336,6 +336,8 @@ HRESULT CMpeg2DecFilter::Receive(IMediaSample* pIn)
 	{
 		mpeg2_state_t state = m_dec->mpeg2_parse();
 
+		__asm emms; // this one is missing somewhere in the precompiled mmx obj files
+
 		switch(state)
 		{
 		case STATE_BUFFER:
@@ -554,8 +556,7 @@ HRESULT CMpeg2DecFilter::Deliver(bool fRepeatLast)
 
 	HRESULT hr;
 
-	CMediaType mt;
-	if(FAILED(hr = ReconnectOutput(m_fb.w, m_fb.h, mt)))
+	if(FAILED(hr = ReconnectOutput(m_fb.w, m_fb.h)))
 		return hr;
 
 	CComPtr<IMediaSample> pOut;
@@ -567,14 +568,9 @@ HRESULT CMpeg2DecFilter::Deliver(bool fRepeatLast)
 	AM_MEDIA_TYPE* pmt;
 	if(SUCCEEDED(pOut->GetMediaType(&pmt)) && pmt)
 	{
-		mt = *pmt;
+		CMediaType mt = *pmt;
 		m_pOutput->SetMediaType(&mt);
 		DeleteMediaType(pmt);
-	}
-	else if(mt.majortype != GUID_NULL)
-	{
-		pOut->SetMediaType(&mt);
-		// TODO: put m_pOutput->SetMediaType(&mt) here, maybe
 	}
 
 	{
@@ -717,61 +713,64 @@ TRACE(_T("ResetMpeg2Decoder()\n"));
 	m_fb.flags = 0;
 }
 
-HRESULT CMpeg2DecFilter::ReconnectOutput(int w, int h, CMediaType& mt)
+HRESULT CMpeg2DecFilter::ReconnectOutput(int w, int h)
 {
-	CMediaType& mtIn = m_pInput->CurrentMediaType();
-	DWORD win = 0, hin = 0, arxin = 0, aryin = 0;
-	ExtractDim(&mtIn, win, hin, arxin, aryin);
+	CMediaType& mt = m_pOutput->CurrentMediaType();
+	DWORD wout = 0, hout = 0, arxout = 0, aryout = 0;
+	ExtractDim(&mt, wout, hout, arxout, aryout);
 
-	if(w != win || h != hin)
+	if(w > m_win || h != m_hin)
 	{
-		TRACE(_T("CMpeg2DecFilter (ERROR): input and real video dimensions do not match (%dx%d %dx%d)"), w, h, win, hin);
+		TRACE(_T("CMpeg2DecFilter (ERROR): input and real video dimensions do not match (%dx%d %dx%d)"), w, h, m_win, m_hin);
 		ASSERT(0);
 		return E_FAIL;
 	}
 
-	CMediaType& mtOut = m_pOutput->CurrentMediaType();
-	DWORD wout = 0, hout = 0, arxout = 0, aryout = 0;
-	ExtractDim(&mtOut, wout, hout, arxout, aryout);
+	bool fForceReconnection = false;
+	if(w != m_win || h != m_hin)
+	{
+		fForceReconnection = true;
+		m_win = w;
+		m_hin = h;
+	}
 
 	HRESULT hr = S_OK;
 
-	if(win > wout || hin != hout || arxin != arxout && arxout || aryin != aryout && aryout)
+	if(fForceReconnection || m_win > wout || m_hin != hout || m_arxin != arxout && arxout || m_aryin != aryout && aryout)
 	{
-		mt = mtOut;
-
 		BITMAPINFOHEADER* bmi = NULL;
 
 		if(mt.formattype == FORMAT_VideoInfo)
 		{
 			VIDEOINFOHEADER* vih = (VIDEOINFOHEADER*)mt.Format();
+			SetRect(&vih->rcSource, 0, 0, m_win, m_hin);
+			SetRect(&vih->rcTarget, 0, 0, m_win, m_hin);
 			bmi = &vih->bmiHeader;
-			bmi->biXPelsPerMeter = win * aryin;
-			bmi->biYPelsPerMeter = hin * arxin;
+			bmi->biXPelsPerMeter = m_win * m_aryin;
+			bmi->biYPelsPerMeter = m_hin * m_arxin;
 		}
 		else if(mt.formattype == FORMAT_VideoInfo2)
 		{
 			VIDEOINFOHEADER2* vih = (VIDEOINFOHEADER2*)mt.Format();
+			SetRect(&vih->rcSource, 0, 0, m_win, m_hin);
+			SetRect(&vih->rcTarget, 0, 0, m_win, m_hin);
 			bmi = &vih->bmiHeader;
-			vih->dwPictAspectRatioX = arxin;
-			vih->dwPictAspectRatioY = aryin;
+			vih->dwPictAspectRatioX = m_arxin;
+			vih->dwPictAspectRatioY = m_aryin;
 		}
 
-		if(win > wout || hin != hout)
+		if(fForceReconnection || m_win > wout || m_hin != hout)
 		{
-			bmi->biWidth = win;
-			bmi->biHeight = hin;
-			bmi->biSizeImage = win*hin*bmi->biBitCount>>3;
+			bmi->biWidth = m_win;
+			bmi->biHeight = m_hin;
+			bmi->biSizeImage = m_win*m_hin*bmi->biBitCount>>3;
 
 			if(FAILED(hr = m_pOutput->GetConnected()->ReceiveConnection(m_pOutput, &mt)))
 				return hr;
 
 			// some renderers don't send this
-			NotifyEvent(EC_VIDEO_SIZE_CHANGED, MAKELPARAM(win, hin), 0);
+			NotifyEvent(EC_VIDEO_SIZE_CHANGED, MAKELPARAM(m_win, m_hin), 0);
 		}
-
-		// TODO: move this to the caller, maybe
-		m_pOutput->SetMediaType(&mt);
 	}
 
 	return hr;
@@ -827,11 +826,9 @@ HRESULT CMpeg2DecFilter::CheckTransform(const CMediaType* mtIn, const CMediaType
 
 HRESULT CMpeg2DecFilter::CheckOutputMediaType(const CMediaType& mtOut)
 {
-	DWORD win = 0, hin = 0, arxin = 0, aryin = 0;
 	DWORD wout = 0, hout = 0, arxout = 0, aryout = 0;
-	return ExtractDim(&m_pInput->CurrentMediaType(), win, hin, arxin, aryin)
-		&& ExtractDim(&mtOut, wout, hout, arxout, aryout)
-		&& hin == abs((int)hout)
+	return ExtractDim(&mtOut, wout, hout, arxout, aryout)
+		&& m_hin == abs((int)hout)
 		? S_OK
 		: VFW_E_TYPE_NOT_ACCEPTED;
 }
@@ -890,21 +887,18 @@ HRESULT CMpeg2DecFilter::GetMediaType(int iPosition, CMediaType* pmt)
 
 	CMediaType& mt = m_pInput->CurrentMediaType();
 
-	DWORD w = 0, h = 0, arx = 0, ary = 0;
-	ExtractDim(&mt, w, h, arx, ary);
-
 	pmt->majortype = MEDIATYPE_Video;
 	pmt->subtype = *fmts[iPosition/2].subtype;
 
 	BITMAPINFOHEADER bihOut;
 	memset(&bihOut, 0, sizeof(bihOut));
 	bihOut.biSize = sizeof(bihOut);
-	bihOut.biWidth = w;
-	bihOut.biHeight = h;
+	bihOut.biWidth = m_win;
+	bihOut.biHeight = m_hin;
 	bihOut.biPlanes = fmts[iPosition/2].biPlanes;
 	bihOut.biBitCount = fmts[iPosition/2].biBitCount;
 	bihOut.biCompression = fmts[iPosition/2].biCompression;
-	bihOut.biSizeImage = w*h*bihOut.biBitCount>>3;
+	bihOut.biSizeImage = m_win*m_hin*bihOut.biBitCount>>3;
 
 	if(iPosition&1)
 	{
@@ -912,8 +906,8 @@ HRESULT CMpeg2DecFilter::GetMediaType(int iPosition, CMediaType* pmt)
 		VIDEOINFOHEADER* vih = (VIDEOINFOHEADER*)pmt->AllocFormatBuffer(sizeof(VIDEOINFOHEADER));
 		memset(vih, 0, sizeof(VIDEOINFOHEADER));
 		vih->bmiHeader = bihOut;
-		vih->bmiHeader.biXPelsPerMeter = vih->bmiHeader.biWidth * ary;
-		vih->bmiHeader.biYPelsPerMeter = vih->bmiHeader.biHeight * arx;
+		vih->bmiHeader.biXPelsPerMeter = vih->bmiHeader.biWidth * m_aryin;
+		vih->bmiHeader.biYPelsPerMeter = vih->bmiHeader.biHeight * m_arxin;
 	}
 	else
 	{
@@ -921,8 +915,8 @@ HRESULT CMpeg2DecFilter::GetMediaType(int iPosition, CMediaType* pmt)
 		VIDEOINFOHEADER2* vih = (VIDEOINFOHEADER2*)pmt->AllocFormatBuffer(sizeof(VIDEOINFOHEADER2));
 		memset(vih, 0, sizeof(VIDEOINFOHEADER2));
 		vih->bmiHeader = bihOut;
-		vih->dwPictAspectRatioX = arx;
-		vih->dwPictAspectRatioY = ary;
+		vih->dwPictAspectRatioX = m_arxin;
+		vih->dwPictAspectRatioY = m_aryin;
 	}
 
 	// these fields have the same field offset in all four structs
@@ -933,6 +927,17 @@ HRESULT CMpeg2DecFilter::GetMediaType(int iPosition, CMediaType* pmt)
 	CorrectMediaType(pmt);
 
 	return S_OK;
+}
+
+HRESULT CMpeg2DecFilter::SetMediaType(PIN_DIRECTION dir, const CMediaType* pmt)
+{
+	if(dir == PINDIR_INPUT)
+	{
+		m_win = m_hin = m_arxin = m_aryin = 0;
+		ExtractDim(pmt, m_win, m_hin, m_arxin, m_aryin);
+	}
+
+	return __super::SetMediaType(dir, pmt);
 }
 
 HRESULT CMpeg2DecFilter::StartStreaming()

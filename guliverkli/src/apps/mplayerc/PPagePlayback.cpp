@@ -107,7 +107,7 @@ BOOL CPPagePlayback::OnInitDialog()
 	m_iRememberZoomLevel = s.fRememberZoomLevel;
 
 	m_iVideoRendererTypeCtrl.SetItemData(m_iVideoRendererTypeCtrl.AddString(_T("System Default")), VIDRNDT_DEFAULT);
-	
+
 	if(s.iVideoRendererAvailable&VIDRNDT_OLDRENDERER)
 		m_iVideoRendererTypeCtrl.SetItemData(m_iVideoRendererTypeCtrl.AddString(_T("Old Video Renderer")), VIDRNDT_OLDRENDERER);
 	if(s.iVideoRendererAvailable&VIDRNDT_OVERLAYMIXER)
@@ -120,6 +120,10 @@ BOOL CPPagePlayback::OnInitDialog()
 		m_iVideoRendererTypeCtrl.SetItemData(m_iVideoRendererTypeCtrl.AddString(_T("Video Mixing Renderer 7 (Renderless)")), VIDRNDT_VMR7RENDERLESS);
 	if(s.iVideoRendererAvailable&VIDRNDT_VMR9WINDOWED)
 		m_iVideoRendererTypeCtrl.SetItemData(m_iVideoRendererTypeCtrl.AddString(_T("Video Mixing Renderer 9 (Renderless)")), VIDRNDT_VMR9RENDERLESS);
+	if(s.iVideoRendererAvailable&VIDRNDT_NULL_COMP)
+		m_iVideoRendererTypeCtrl.SetItemData(m_iVideoRendererTypeCtrl.AddString(_T("Null Video Renderer (Any)")), VIDRNDT_NULL_COMP);
+	if(s.iVideoRendererAvailable&VIDRNDT_NULL_UNCOMP)
+		m_iVideoRendererTypeCtrl.SetItemData(m_iVideoRendererTypeCtrl.AddString(_T("Null Video Renderer (Uncompressed)")), VIDRNDT_NULL_UNCOMP);
 
 	m_iVideoRendererType = 0;
 	for(int i = 0; i < m_iVideoRendererTypeCtrl.GetCount(); i++)
@@ -176,6 +180,16 @@ BOOL CPPagePlayback::OnInitDialog()
 		}
 	}
 	EndEnumSysDev
+
+	m_AudioRendererDisplayNames.Add(AUDRNDT_NULL_COMP);
+	m_iAudioRendererTypeCtrl.AddString(AUDRNDT_NULL_COMP);
+	if(s.AudioRendererDisplayName == AUDRNDT_NULL_COMP && m_iAudioRendererType == 0)
+		m_iAudioRendererType = m_iAudioRendererTypeCtrl.GetCount()-1;
+
+	m_AudioRendererDisplayNames.Add(AUDRNDT_NULL_UNCOMP);
+	m_iAudioRendererTypeCtrl.AddString(AUDRNDT_NULL_UNCOMP);
+	if(s.AudioRendererDisplayName == AUDRNDT_NULL_UNCOMP && m_iAudioRendererType == 0)
+		m_iAudioRendererType = m_iAudioRendererTypeCtrl.GetCount()-1;
 
 	CorrectComboListWidth(m_iVideoRendererTypeCtrl, GetFont());
 	CorrectComboListWidth(m_iAudioRendererTypeCtrl, GetFont());

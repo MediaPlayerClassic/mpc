@@ -270,7 +270,7 @@ HRESULT CDX7AllocatorPresenter::CreateDevice()
 
 	INITDDSTRUCT(ddsd);
     ddsd.dwFlags        = DDSD_CAPS | DDSD_WIDTH | DDSD_HEIGHT;
-    ddsd.ddsCaps.dwCaps = DDSCAPS_OFFSCREENPLAIN | DDSCAPS_VIDEOMEMORY | DDSCAPS_3DDEVICE;
+    ddsd.ddsCaps.dwCaps = /*DDSCAPS_OFFSCREENPLAIN |*/ DDSCAPS_VIDEOMEMORY | DDSCAPS_3DDEVICE;
 	ddsd.dwWidth = m_ScreenSize.cx;
 	ddsd.dwHeight = m_ScreenSize.cy;
 	if(FAILED(hr = m_pDD->CreateSurface(&ddsd, &m_pBackBuffer, NULL)))
@@ -383,6 +383,9 @@ STDMETHODIMP_(bool) CDX7AllocatorPresenter::Paint(bool fAll)
 		if(!rb.IsRectEmpty()) hr = m_pBackBuffer->Blt(&rb, NULL, NULL, DDBLT_WAIT|DDBLT_COLORFILL, &fx);
 
 		// paint the video on the backbuffer
+
+		// DX9BUG(?): Now with DX90b+detonator4523 this is also broken, like the dx9 allocator-presenter...
+		rSrcVid.DeflateRect(2,2,0,0);
 
 		if(m_pVideoSurface && !rDstVid.IsRectEmpty())
 			hr = m_pBackBuffer->Blt(rDstVid, m_pVideoSurface, rSrcVid, DDBLT_WAIT, NULL);
