@@ -1,5 +1,7 @@
 #pragma once
 
+#include "..\BaseSplitter\BaseSplitter.h"
+
 #pragma pack(push, 1)
 struct OggPageHeader
 {
@@ -59,23 +61,14 @@ public:
 	OggPage() {memset(&m_hdr, 0, sizeof(m_hdr));}
 };
 
-class COggFile
+class COggFile : public CBaseSplitterFile
 {
-	CComPtr<IAsyncReader> m_pReader;
-	UINT64 m_pos, m_len;
-
 	HRESULT Init();
 
 public:
 	COggFile(IAsyncReader* pReader, HRESULT& hr);
-	virtual ~COggFile();
-
-	UINT64 GetPos() {return m_pos;}
-	UINT64 GetLength() {return m_len;}
-	void Seek(UINT64 pos) {m_pos = pos;}
-	HRESULT Read(BYTE* pData, LONG len);
 
 	bool Sync();
 	bool Read(OggPageHeader& hdr);
-	bool Read(OggPage& page);
+	bool Read(OggPage& page, bool fFull = true);
 };

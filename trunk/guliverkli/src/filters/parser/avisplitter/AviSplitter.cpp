@@ -583,6 +583,13 @@ HRESULT CAviSplitterFilter::DoDeliverLoop(UINT64 end)
 			if(S_OK != m_pFile->Read(size))
 				return E_FAIL;
 
+			if((pos + size) > m_pFile->GetLength()
+			|| !VERIFYTRACKNUM(id) && id != FCC('JUNK'))
+			{
+				m_pFile->Seek(pos); // restore file pos for Resync()
+				return E_FAIL;
+			}
+
 			DWORD TrackNumber = TRACKNUM(id);
 
 			if(TrackNumber < m_pFile->m_strms.GetCount())
@@ -646,6 +653,8 @@ HRESULT CAviSplitterFilter::DoDeliverLoop(UINT64 end)
 
 			size += (size&1) + 8;
 		}
+
+		ASSERT(pos + size <= m_pFile->GetLength());
 
 		m_pFile->Seek(pos + size);
 	}
@@ -1446,8 +1455,8 @@ clock_t t = clock();
 		if(!s->IsRawSubtitleStream())
 		{
 			strm_t::chunk2& cs2 = s->cs2[curchunk];
-//			cs2.t = (DWORD)(s->GetRefTime(curchunk, cursize)>>13/*/10000*/); // for comparing later it is just as good as /10000 to get a near [ms] accuracy
-			cs2.t = (DWORD)(s->GetRefTime(curchunk, cursize)/10000);
+			cs2.t = (DWORD)(s->GetRefTime(curchunk, cursize)>>13); // for comparing later it is just as good as /10000 to get a near [ms] accuracy
+//			cs2.t = (DWORD)(s->GetRefTime(curchunk, cursize)/10000);
 			cs2.n = end++;
 		}
 

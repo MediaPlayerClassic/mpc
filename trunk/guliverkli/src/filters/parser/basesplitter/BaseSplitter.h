@@ -47,6 +47,25 @@ public:
 	STDMETHODIMP_(HANDLE) GetFileHandle();
 };
 
+class CBaseSplitterFile
+{
+	CComPtr<IAsyncReader> m_pAsyncReader;
+	CAutoVectorPtr<BYTE> m_pCache;
+	UINT64 m_cachepos, m_cachelen, m_cachetotal;
+
+protected:
+	UINT64 m_pos, m_len;
+
+public:
+	CBaseSplitterFile(IAsyncReader* pReader, HRESULT& hr, UINT64 cachelen = 2048);
+	virtual ~CBaseSplitterFile() {}
+
+	UINT64 GetPos() {return m_pos;}
+	UINT64 GetLength() {return m_len;}
+	void Seek(UINT64 pos) {m_pos = pos;}
+	HRESULT Read(BYTE* pData, UINT64 len);
+};
+
 class CBaseSplitterFilter;
 
 class CBaseSplitterInputPin : public CBasePin
