@@ -26,21 +26,42 @@
 class GSLocalMemory
 {
 protected:
-	static int blockTable32[4][8];
-	static int blockTable32Z[4][8];
-	static int blockTable16[8][4];
-	static int blockTable16S[8][4];
-	static int blockTable16Z[8][4];
-	static int blockTable16SZ[8][4];
-	static int blockTable8[4][8];
-	static int blockTable4[8][4];
-	static int columnTable32[8][8];
-	static int columnTable16[8][16];
-	static int columnTable8[16][16];
-	static int columnTable4[16][32];
+	static WORD blockTable32[4][8];
+	static WORD blockTable32Z[4][8];
+	static WORD blockTable16[8][4];
+	static WORD blockTable16S[8][4];
+	static WORD blockTable16Z[8][4];
+	static WORD blockTable16SZ[8][4];
+	static WORD blockTable8[4][8];
+	static WORD blockTable4[8][4];
+	static WORD columnTable32[8][8];
+	static WORD columnTable16[8][16];
+	static WORD columnTable8[16][16];
+	static WORD columnTable4[16][32];
+	static WORD pageOffset32[32][32][64];
+	static WORD pageOffset32Z[32][32][64];
+	static WORD pageOffset16[32][64][64];
+	static WORD pageOffset16S[32][64][64];
+	static WORD pageOffset16Z[32][64][64];
+	static WORD pageOffset16SZ[32][64][64];
+	static WORD pageOffset8[32][64][128];
+	static WORD pageOffset4[32][128][128];
 
 	union {BYTE* m_vm8; WORD* m_vm16; DWORD* m_vm32;};
 	union {BYTE* m_sm8; WORD* m_sm16; DWORD* m_sm32;};
+
+	DWORD pixelAddressOrg32(int x, int y, DWORD bp, DWORD bw);
+	DWORD pixelAddressOrg24(int x, int y, DWORD bp, DWORD bw);
+	DWORD pixelAddressOrg16(int x, int y, DWORD bp, DWORD bw);
+	DWORD pixelAddressOrg16S(int x, int y, DWORD bp, DWORD bw);
+	DWORD pixelAddressOrg8(int x, int y, DWORD bp, DWORD bw);
+	DWORD pixelAddressOrg4(int x, int y, DWORD bp, DWORD bw);
+	DWORD pixelAddressOrg32Z(int x, int y, DWORD bp, DWORD bw);
+	DWORD pixelAddressOrg16Z(int x, int y, DWORD bp, DWORD bw);
+	DWORD pixelAddressOrg16SZ(int x, int y, DWORD bp, DWORD bw);
+
+	typedef DWORD (GSLocalMemory::*pixelAddressOrg)(int x, int y, DWORD bp, DWORD bw);
+	pixelAddressOrg GetPixelAddressOrg(DWORD psm);
 
 	DWORD pixelAddress32(int x, int y, DWORD bp, DWORD bw);
 	DWORD pixelAddress24(int x, int y, DWORD bp, DWORD bw);
