@@ -215,17 +215,6 @@ HRESULT CMatroskaSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 					}
 					mt.SetSampleSize(pvih->bmiHeader.biWidth*pvih->bmiHeader.biHeight*4);
 					mts.Add(mt);
-
-					if(pTE->v.DisplayWidth != 0 && pTE->v.DisplayHeight != 0)
-					{
-						mt.formattype = FORMAT_VideoInfo2;
-						VIDEOINFOHEADER2* pvih2 = (VIDEOINFOHEADER2*)mt.ReallocFormatBuffer(sizeof(VIDEOINFOHEADER2) + pTE->CodecPrivate.GetCount() - sizeof(BITMAPINFOHEADER));
-						memset(mt.Format() + FIELD_OFFSET(VIDEOINFOHEADER2, dwInterlaceFlags), 0, mt.FormatLength() - FIELD_OFFSET(VIDEOINFOHEADER2, dwInterlaceFlags));
-						memcpy(&pvih2->bmiHeader, pbmi, pTE->CodecPrivate.GetCount());
-						pvih2->dwPictAspectRatioX = (DWORD)pTE->v.DisplayWidth;
-						pvih2->dwPictAspectRatioY = (DWORD)pTE->v.DisplayHeight;
-						mts.InsertAt(0, mt);
-					}
 				}
 				else if(CodecID == "V_UNCOMPRESSED")
 				{
@@ -248,17 +237,7 @@ HRESULT CMatroskaSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 					mt.SetSampleSize(pvih->bmiHeader.biWidth*pvih->bmiHeader.biHeight*4);
 					mts.Add(mt);
 
-					if(pTE->v.DisplayWidth != 0 && pTE->v.DisplayHeight != 0)
-					{
-						BITMAPINFOHEADER tmp = pvih->bmiHeader;
-						mt.formattype = FORMAT_VideoInfo2;
-						VIDEOINFOHEADER2* pvih2 = (VIDEOINFOHEADER2*)mt.ReallocFormatBuffer(sizeof(VIDEOINFOHEADER2) + pTE->CodecPrivate.GetCount() - sizeof(BITMAPINFOHEADER));
-						memset(pvih2, 0, mt.FormatLength());
-						pvih2->bmiHeader = tmp;
-						pvih2->dwPictAspectRatioX = (DWORD)pTE->v.DisplayWidth;
-						pvih2->dwPictAspectRatioY = (DWORD)pTE->v.DisplayHeight;
-						mts.InsertAt(0, mt);
-					}
+					// TODO: add (-1,0) dummy frame to timeoverride when it is /asp (that is having b-frames almost certainly)
 				}
 				else if(CodecID.Find("V_REAL/RV") == 0)
 				{
@@ -278,19 +257,6 @@ HRESULT CMatroskaSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 						pvih->AvgTimePerFrame = (REFERENCE_TIME)pTE->DefaultDuration / 100;
 					mt.SetSampleSize(pvih->bmiHeader.biWidth*pvih->bmiHeader.biHeight*4);
 					mts.Add(mt);
-
-					if(pTE->v.DisplayWidth != 0 && pTE->v.DisplayHeight != 0)
-					{
-						BITMAPINFOHEADER tmp = pvih->bmiHeader;
-						mt.formattype = FORMAT_VideoInfo2;
-						VIDEOINFOHEADER2* pvih2 = (VIDEOINFOHEADER2*)mt.ReallocFormatBuffer(sizeof(VIDEOINFOHEADER2) + pTE->CodecPrivate.GetCount());
-						memset(pvih2, 0, mt.FormatLength());
-						memcpy(mt.Format() + sizeof(VIDEOINFOHEADER2), pTE->CodecPrivate.GetData(), pTE->CodecPrivate.GetCount());
-						pvih2->bmiHeader = tmp;
-						pvih2->dwPictAspectRatioX = (DWORD)pTE->v.DisplayWidth;
-						pvih2->dwPictAspectRatioY = (DWORD)pTE->v.DisplayHeight;
-						mts.InsertAt(0, mt);
-					}
 				}
 /*
 				else if(CodecID == "V_DSHOW/MPEG1VIDEO") // V_MPEG1
@@ -304,6 +270,28 @@ HRESULT CMatroskaSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 					mts.Add(mt);
 				}
 */
+				if(pTE->v.DisplayWidth != 0 && pTE->v.DisplayHeight != 0)
+				{
+					for(int i = 0; i < mts.GetCount(); i++)
+					{
+						if(mts[i].formattype != FORMAT_VideoInfo)
+							continue;
+
+						DWORD vih1 = FIELD_OFFSET(VIDEOINFOHEADER, bmiHeader);
+						DWORD vih2 = FIELD_OFFSET(VIDEOINFOHEADER2, bmiHeader);
+						DWORD bmi = mts[i].FormatLength() - FIELD_OFFSET(VIDEOINFOHEADER, bmiHeader);
+
+						mt.formattype = FORMAT_VideoInfo2;
+						mt.AllocFormatBuffer(vih2 + bmi);
+						memcpy(mt.Format(), mts[i].Format(), vih1);
+						memset(mt.Format() + vih1, 0, vih2 - vih1);
+						memcpy(mt.Format() + vih2, mts[i].Format() + vih1, bmi);
+						((VIDEOINFOHEADER2*)mt.Format())->dwPictAspectRatioX = (DWORD)pTE->v.DisplayWidth;
+						((VIDEOINFOHEADER2*)mt.Format())->dwPictAspectRatioY = (DWORD)pTE->v.DisplayHeight;
+
+						mts.InsertAt(i++, mt);
+					}
+				}
 			}
 			else if(pTE->TrackType == TrackEntry::TypeAudio)
 			{
@@ -530,7 +518,7 @@ HRESULT CMatroskaSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 	m_rtNewStart = m_rtCurrent = 0;
 	m_rtNewStop = m_rtStop = (REFERENCE_TIME)(info.Duration*info.TimeCodeScale/100);
 
-	return S_OK;
+	return m_pOutputs.GetCount() > 0 ? S_OK : E_FAIL;
 }
 
 void CMatroskaSplitterFilter::SendVorbisHeaderSample()
@@ -711,6 +699,14 @@ bool CMatroskaSplitterFilter::InitDeliverLoop()
 		m_fAbort = false;
 	}
 
+	// TODO
+/*
+	SetMediaContentStr(, Title);
+	SetMediaContentStr(, AuthorName);
+	SetMediaContentStr(, Copyright);
+	SetMediaContentStr(, Description);
+*/
+
 	m_pCluster.Free();
 	m_pBlock.Free();
 
@@ -842,7 +838,7 @@ void CMatroskaSplitterFilter::DoDeliverLoop()
 				p->b = b.RemoveHead();
 				p->bSyncPoint = !p->b->ReferenceBlock.IsValid();
 				p->TrackNumber = (DWORD)p->b->TrackNumber;
-				p->rtStart = m_pFile->m_segment.GetRefTime(c.TimeCode + p->b->TimeCode);
+				p->rtStart = m_pFile->m_segment.GetRefTime((REFERENCE_TIME)c.TimeCode + p->b->TimeCode);
 				p->rtStop = p->rtStart + (p->b->BlockDuration.IsValid() ? m_pFile->m_segment.GetRefTime(p->b->BlockDuration) : 1);
 				
 				hr = DeliverPacket(p);
@@ -870,6 +866,81 @@ STDMETHODIMP CMatroskaSplitterFilter::GetDuration(LONGLONG* pDuration)
 	return S_OK;
 }
 
+// IChapterInfo
+
+STDMETHODIMP_(UINT) CMatroskaSplitterFilter::GetChapterCount(UINT aChapterID)
+{
+	CheckPointer(m_pFile, __super::GetChapterCount(aChapterID));
+	ChapterAtom* ca = m_pFile->m_segment.FindChapterAtom(aChapterID);
+	return ca ? ca->ChapterAtoms.GetCount() : 0;
+}
+
+STDMETHODIMP_(UINT) CMatroskaSplitterFilter::GetChapterId(UINT aParentChapterId, UINT aIndex)
+{
+	CheckPointer(m_pFile, __super::GetChapterId(aParentChapterId, aIndex));
+	ChapterAtom* ca = m_pFile->m_segment.FindChapterAtom(aParentChapterId);
+	if(!ca) return CHAPTER_BAD_ID;
+	POSITION pos = ca->ChapterAtoms.FindIndex(aIndex);
+	if(!pos) return CHAPTER_BAD_ID;
+	return (UINT)ca->ChapterAtoms.GetAt(pos)->ChapterUID;
+}
+
+STDMETHODIMP_(UINT) CMatroskaSplitterFilter::GetChapterCurrentId()
+{
+	CheckPointer(m_pFile, __super::GetChapterCurrentId());
+	// TODO
+	return CHAPTER_BAD_ID;
+}
+
+STDMETHODIMP_(BOOL) CMatroskaSplitterFilter::GetChapterInfo(UINT aChapterID, struct ChapterElement* pStructureToFill)
+{
+	CheckPointer(pStructureToFill, E_POINTER);
+	CheckPointer(m_pFile, __super::GetChapterCurrentId());
+	ChapterAtom* ca = m_pFile->m_segment.FindChapterAtom(aChapterID);
+	if(!ca) return FALSE;
+	pStructureToFill->Size = sizeof(*pStructureToFill);
+	pStructureToFill->Type = ca->ChapterAtoms.IsEmpty() ? AtomicChapter : SubChapter; // ?
+	pStructureToFill->ChapterId = (UINT)ca->ChapterUID;
+	pStructureToFill->rtStart = ca->ChapterTimeStart / 100;
+	pStructureToFill->rtStop = ca->ChapterTimeEnd / 100;
+	return TRUE;
+}
+
+STDMETHODIMP_(BSTR) CMatroskaSplitterFilter::GetChapterStringInfo(UINT aChapterID, CHAR PreferredLanguage[3], CHAR CountryCode[2])
+{
+	CheckPointer(m_pFile, __super::GetChapterStringInfo(aChapterID, PreferredLanguage, CountryCode));
+	ChapterAtom* ca = m_pFile->m_segment.FindChapterAtom(aChapterID);
+	if(!ca) return NULL;
+
+	if(!PreferredLanguage[0]) strncpy(PreferredLanguage, "eng", 3);
+	tolower(PreferredLanguage[0]); tolower(PreferredLanguage[1]); tolower(PreferredLanguage[2]);
+	tolower(CountryCode[0]); tolower(CountryCode[1]);
+
+	ChapterDisplay* first = NULL;
+	ChapterDisplay* partial = NULL;
+
+	POSITION pos = ca->ChapterDisplays.GetHeadPosition();
+	while(pos)
+	{
+		ChapterDisplay* cd = ca->ChapterDisplays.GetNext(pos);
+
+		if(!first) first = cd;
+
+		if(!strncmp(cd->ChapLanguage, PreferredLanguage, 3))
+		{
+			if(!strncmp(cd->ChapCountry, CountryCode, 2))
+				return cd->ChapString.AllocSysString();
+
+			if(!partial) partial = cd;
+		}
+	}
+
+	return 
+		partial ? partial->ChapString.AllocSysString() : 
+		first ? first->ChapString.AllocSysString() : 
+		NULL;
+}
+
 //
 // CMatroskaSourceFilter
 //
@@ -889,7 +960,7 @@ CMatroskaSplitterOutputPin::CMatroskaSplitterOutputPin(int nMinCache, CArray<CMe
 	: CBaseSplitterOutputPin(mts, pName, pFilter, pLock, phr)
 	, m_nMinCache(nMinCache)
 {
-	m_nMinCache = max(m_nMinCache, 1);
+	m_nMinCache = max(m_nMinCache, 2);
 }
 
 CMatroskaSplitterOutputPin::~CMatroskaSplitterOutputPin()
@@ -1011,8 +1082,6 @@ HRESULT CMatroskaSplitterOutputPin::DeliverBlock(MatroskaPacket* p)
 		rtStart = p->rtStart,
 		rtDelta = (p->rtStop - p->rtStart) / b->BlockData.GetCount(),
 		rtStop = p->rtStart + rtDelta;
-
-//	ASSERT(p->rtStart <= p->rtStop);
 
 	POSITION pos = b->BlockData.GetHeadPosition();
 	while(pos)

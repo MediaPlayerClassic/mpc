@@ -270,6 +270,45 @@ namespace MatroskaReader
 			HRESULT Parse(CMatroskaNode* pMN);
 		};
 
+					class ChapterDisplay
+					{
+					public:
+						CUTF8 ChapString;
+						CANSI ChapLanguage;
+						CANSI ChapCountry;
+
+						ChapterDisplay() {ChapLanguage.CStringA::operator = ("eng");}
+						HRESULT Parse(CMatroskaNode* pMN);
+					};
+
+				class ChapterAtom
+				{
+				public:
+					CUInt ChapterUID;
+					CUInt ChapterTimeStart, ChapterTimeEnd;
+//					CNode<CUInt> ChapterTracks; // TODO
+					CNode<ChapterDisplay> ChapterDisplays;
+					CNode<ChapterAtom> ChapterAtoms;
+					
+					ChapterAtom() {ChapterUID.Set(rand());}
+					HRESULT Parse(CMatroskaNode* pMN);
+					ChapterAtom* FindChapterAtom(UINT64 id);
+				};
+
+			class EditionEntry : public ChapterAtom
+			{
+			public:
+				HRESULT Parse(CMatroskaNode* pMN);
+			};
+
+		class Chapter
+		{
+		public:
+			CNode<EditionEntry> EditionEntries;
+
+			HRESULT Parse(CMatroskaNode* pMN);
+		};
+
 	class Segment
 	{
 	public:
@@ -280,13 +319,15 @@ namespace MatroskaReader
 		CNode<Track> Tracks;
 		CNode<Cue> Cues;
 		CNode<Attachment> Attachments;
+		CNode<Chapter> Chapters;
 		// TODO: Chapters
 		// TODO: Tags
 
 		HRESULT Parse(CMatroskaNode* pMN);
 		HRESULT ParseMinimal(CMatroskaNode* pMN);
 
-		REFERENCE_TIME GetRefTime(INT64 t) {return (REFERENCE_TIME)(t*SegmentInfo.TimeCodeScale/100);}
+		REFERENCE_TIME GetRefTime(INT64 t) {return t*(REFERENCE_TIME)(SegmentInfo.TimeCodeScale)/100;}
+		ChapterAtom* FindChapterAtom(UINT64 id, int nEditionEntry = 0);
 	};
 
 	class CMatroskaFile

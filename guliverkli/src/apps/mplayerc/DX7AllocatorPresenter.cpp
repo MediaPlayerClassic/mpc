@@ -118,7 +118,7 @@ public:
 	STDMETHODIMP GetColorKey(COLORREF* lpClr);
 };
 
-class CRMAllocatorPresenter
+class CRM7AllocatorPresenter
 	: public CDX7AllocatorPresenter
 	, public IRMAVideoSurface
 {
@@ -132,8 +132,8 @@ class CRMAllocatorPresenter
     RMABitmapInfoHeader m_lastBitmapInfo;
 
 public:
-	CRMAllocatorPresenter(HWND hWnd, HRESULT& hr);
-	virtual ~CRMAllocatorPresenter();
+	CRM7AllocatorPresenter(HWND hWnd, HRESULT& hr);
+	virtual ~CRM7AllocatorPresenter();
 
 	DECLARE_IUNKNOWN
     STDMETHODIMP NonDelegatingQueryInterface(REFIID riid, void** ppv);
@@ -147,7 +147,7 @@ public:
     STDMETHODIMP GetPreferredFormat(REF(RMA_COMPRESSION_TYPE) /*OUT*/ ulType);
 };
 
-class CQTAllocatorPresenter
+class CQT7AllocatorPresenter
 	: public CDX7AllocatorPresenter
 	, public IQTVideoSurface
 {
@@ -156,8 +156,8 @@ class CQTAllocatorPresenter
 	HRESULT AllocateSurfaces(CSize size);
 
 public:
-	CQTAllocatorPresenter(HWND hWnd, HRESULT& hr);
-	virtual ~CQTAllocatorPresenter();
+	CQT7AllocatorPresenter(HWND hWnd, HRESULT& hr);
+	virtual ~CQT7AllocatorPresenter();
 
 	DECLARE_IUNKNOWN
     STDMETHODIMP NonDelegatingQueryInterface(REFIID riid, void** ppv);
@@ -180,8 +180,8 @@ HRESULT CreateAP7(const CLSID& clsid, HWND hWnd, ISubPicAllocatorPresenter** ppA
 
 	HRESULT hr;
 	if(clsid == CLSID_VMR7AllocatorPresenter && !(*ppAP = new CVMR7AllocatorPresenter(hWnd, hr))
-	|| clsid == CLSID_RMAllocatorPresenter && !(*ppAP = new CRMAllocatorPresenter(hWnd, hr))
-	|| clsid == CLSID_QTAllocatorPresenter && !(*ppAP = new CQTAllocatorPresenter(hWnd, hr)))
+	|| clsid == CLSID_RM7AllocatorPresenter && !(*ppAP = new CRM7AllocatorPresenter(hWnd, hr))
+	|| clsid == CLSID_QT7AllocatorPresenter && !(*ppAP = new CQT7AllocatorPresenter(hWnd, hr)))
 		return E_OUTOFMEMORY;
 
 	if(*ppAP == NULL)
@@ -742,21 +742,21 @@ static HRESULT AllocDX7Surface(IDirectDraw7* pDD, CSize size, DWORD compression,
 }
 
 //
-// CRMAllocatorPresenter
+// CRM7AllocatorPresenter
 //
 
-CRMAllocatorPresenter::CRMAllocatorPresenter(HWND hWnd, HRESULT& hr) 
+CRM7AllocatorPresenter::CRM7AllocatorPresenter(HWND hWnd, HRESULT& hr) 
 	: CDX7AllocatorPresenter(hWnd, hr)
 {
     if(FAILED(hr))
 		return;
 }
 
-CRMAllocatorPresenter::~CRMAllocatorPresenter()
+CRM7AllocatorPresenter::~CRM7AllocatorPresenter()
 {
 }
 
-STDMETHODIMP CRMAllocatorPresenter::NonDelegatingQueryInterface(REFIID riid, void** ppv)
+STDMETHODIMP CRM7AllocatorPresenter::NonDelegatingQueryInterface(REFIID riid, void** ppv)
 {
     CheckPointer(ppv, E_POINTER);
 
@@ -765,7 +765,7 @@ STDMETHODIMP CRMAllocatorPresenter::NonDelegatingQueryInterface(REFIID riid, voi
 		__super::NonDelegatingQueryInterface(riid, ppv);
 }
 
-HRESULT CRMAllocatorPresenter::AllocateSurfaces(CSize size)
+HRESULT CRM7AllocatorPresenter::AllocateSurfaces(CSize size)
 {
     CAutoLock cAutoLock(this);
 
@@ -796,7 +796,7 @@ HRESULT CRMAllocatorPresenter::AllocateSurfaces(CSize size)
 	return S_OK;
 }
 
-void CRMAllocatorPresenter::DeleteSurfaces()
+void CRM7AllocatorPresenter::DeleteSurfaces()
 {
     CAutoLock cAutoLock(this);
 
@@ -805,7 +805,7 @@ void CRMAllocatorPresenter::DeleteSurfaces()
 	__super::DeleteSurfaces();
 }
 
-bool CRMAllocatorPresenter::OnDeviceLost()
+bool CRM7AllocatorPresenter::OnDeviceLost()
 {
 	if(!__super::OnDeviceLost())
 		return(false);
@@ -818,7 +818,7 @@ bool CRMAllocatorPresenter::OnDeviceLost()
 
 // IRMAVideoSurface
 
-STDMETHODIMP CRMAllocatorPresenter::Blt(UCHAR* /*IN*/ pImageData, RMABitmapInfoHeader* /*IN*/ pBitmapInfo, REF(PNxRect) /*IN*/ inDestRect, REF(PNxRect) /*IN*/ inSrcRect)
+STDMETHODIMP CRM7AllocatorPresenter::Blt(UCHAR* /*IN*/ pImageData, RMABitmapInfoHeader* /*IN*/ pBitmapInfo, REF(PNxRect) /*IN*/ inDestRect, REF(PNxRect) /*IN*/ inSrcRect)
 {
 	CRect src((RECT*)&inSrcRect), dst((RECT*)&inDestRect), src2(CPoint(0,0), src.Size());
 
@@ -1027,29 +1027,29 @@ STDMETHODIMP CRMAllocatorPresenter::Blt(UCHAR* /*IN*/ pImageData, RMABitmapInfoH
 	return PNR_OK;
 }
 
-STDMETHODIMP CRMAllocatorPresenter::BeginOptimizedBlt(RMABitmapInfoHeader* /*IN*/ pBitmapInfo)
+STDMETHODIMP CRM7AllocatorPresenter::BeginOptimizedBlt(RMABitmapInfoHeader* /*IN*/ pBitmapInfo)
 {
 	AllocateSurfaces(CSize(pBitmapInfo->biWidth, abs(pBitmapInfo->biHeight)));
 
 	return PNR_NOTIMPL;
 }
 
-STDMETHODIMP CRMAllocatorPresenter::OptimizedBlt(UCHAR* /*IN*/ pImageBits, REF(PNxRect) /*IN*/ rDestRect, REF(PNxRect) /*IN*/ rSrcRect)
+STDMETHODIMP CRM7AllocatorPresenter::OptimizedBlt(UCHAR* /*IN*/ pImageBits, REF(PNxRect) /*IN*/ rDestRect, REF(PNxRect) /*IN*/ rSrcRect)
 {
 	return PNR_NOTIMPL;
 }
 
-STDMETHODIMP CRMAllocatorPresenter::EndOptimizedBlt()
+STDMETHODIMP CRM7AllocatorPresenter::EndOptimizedBlt()
 {
 	return PNR_NOTIMPL;
 }
 
-STDMETHODIMP CRMAllocatorPresenter::GetOptimizedFormat(REF(RMA_COMPRESSION_TYPE) /*OUT*/ ulType)
+STDMETHODIMP CRM7AllocatorPresenter::GetOptimizedFormat(REF(RMA_COMPRESSION_TYPE) /*OUT*/ ulType)
 {
 	return PNR_NOTIMPL;
 }
 
-STDMETHODIMP CRMAllocatorPresenter::GetPreferredFormat(REF(RMA_COMPRESSION_TYPE) /*OUT*/ ulType)
+STDMETHODIMP CRM7AllocatorPresenter::GetPreferredFormat(REF(RMA_COMPRESSION_TYPE) /*OUT*/ ulType)
 {
 //	ulType = RMA_YUY2;
 	ulType = RMA_I420;
@@ -1057,21 +1057,21 @@ STDMETHODIMP CRMAllocatorPresenter::GetPreferredFormat(REF(RMA_COMPRESSION_TYPE)
 }
 
 //
-// CQTAllocatorPresenter
+// CQT7AllocatorPresenter
 //
 
-CQTAllocatorPresenter::CQTAllocatorPresenter(HWND hWnd, HRESULT& hr) 
+CQT7AllocatorPresenter::CQT7AllocatorPresenter(HWND hWnd, HRESULT& hr) 
 	: CDX7AllocatorPresenter(hWnd, hr)
 {
     if(FAILED(hr))
 		return;
 }
 
-CQTAllocatorPresenter::~CQTAllocatorPresenter()
+CQT7AllocatorPresenter::~CQT7AllocatorPresenter()
 {
 }
 
-STDMETHODIMP CQTAllocatorPresenter::NonDelegatingQueryInterface(REFIID riid, void** ppv)
+STDMETHODIMP CQT7AllocatorPresenter::NonDelegatingQueryInterface(REFIID riid, void** ppv)
 {
     CheckPointer(ppv, E_POINTER);
 
@@ -1080,7 +1080,7 @@ STDMETHODIMP CQTAllocatorPresenter::NonDelegatingQueryInterface(REFIID riid, voi
 		__super::NonDelegatingQueryInterface(riid, ppv);
 }
 
-HRESULT CQTAllocatorPresenter::AllocateSurfaces(CSize size)
+HRESULT CQT7AllocatorPresenter::AllocateSurfaces(CSize size)
 {
     CAutoLock cAutoLock(this);
 
@@ -1103,7 +1103,7 @@ HRESULT CQTAllocatorPresenter::AllocateSurfaces(CSize size)
 	return S_OK;
 }
 
-bool CQTAllocatorPresenter::OnDeviceLost()
+bool CQT7AllocatorPresenter::OnDeviceLost()
 {
 	if(!__super::OnDeviceLost())
 		return(false);
@@ -1116,12 +1116,12 @@ bool CQTAllocatorPresenter::OnDeviceLost()
 
 // IQTVideoSurface
 
-STDMETHODIMP CQTAllocatorPresenter::BeginBlt(const BITMAP& bm)
+STDMETHODIMP CQT7AllocatorPresenter::BeginBlt(const BITMAP& bm)
 {
 	return AllocateSurfaces(CSize(bm.bmWidth, abs(bm.bmHeight)));
 }
 
-STDMETHODIMP CQTAllocatorPresenter::DoBlt(const BITMAP& bm)
+STDMETHODIMP CQT7AllocatorPresenter::DoBlt(const BITMAP& bm)
 {
 	if(!m_pVideoSurface)
 		return E_FAIL;

@@ -3,6 +3,8 @@
 #include <atlbase.h>
 #include <atlcoll.h>
 #include <afxtempl.h>
+#include <qnetwork.h>
+#include "..\..\..\..\include\IChapterInfo.h"
 
 class Packet
 {
@@ -114,6 +116,8 @@ class CBaseSplitterFilter
 	, public IFileSourceFilter
 	, public IMediaSeeking
 	, public IAMOpenProgress
+	, public IAMMediaContent
+	, public IChapterInfo
 {
 protected:
 	CStringW m_fn;
@@ -149,6 +153,12 @@ protected:
 	virtual bool InitDeliverLoop() = 0;
 	virtual void SeekDeliverLoop(REFERENCE_TIME rt) = 0;
 	virtual void DoDeliverLoop() = 0;
+
+protected:
+	enum mctype {AuthorName, Title, Rating, Description, Copyright, MCLast};
+	CStringW m_mcs[MCLast];
+	HRESULT GetMediaContentStr(BSTR* pBSTR, mctype type);
+	HRESULT SetMediaContentStr(CStringW str, mctype type);
 
 public:
 	CBaseSplitterFilter(LPCTSTR pName, LPUNKNOWN pUnk, HRESULT* phr, const CLSID& clsid);
@@ -196,5 +206,33 @@ public:
 
 	STDMETHODIMP QueryProgress(LONGLONG* pllTotal, LONGLONG* pllCurrent);
 	STDMETHODIMP AbortOperation();
+
+	// IAMMediaContent
+
+	STDMETHODIMP GetTypeInfoCount(UINT* pctinfo) {return E_NOTIMPL;}
+	STDMETHODIMP GetTypeInfo(UINT itinfo, LCID lcid, ITypeInfo** pptinfo) {return E_NOTIMPL;}
+	STDMETHODIMP GetIDsOfNames(REFIID riid, OLECHAR** rgszNames, UINT cNames, LCID lcid, DISPID* rgdispid) {return E_NOTIMPL;}
+	STDMETHODIMP Invoke(DISPID dispidMember, REFIID riid, LCID lcid, WORD wFlags, DISPPARAMS* pdispparams, VARIANT* pvarResult, EXCEPINFO* pexcepinfo, UINT* puArgErr) {return E_NOTIMPL;}
+	STDMETHODIMP get_AuthorName(BSTR* pbstrAuthorName);
+	STDMETHODIMP get_Title(BSTR* pbstrTitle);
+	STDMETHODIMP get_Rating(BSTR* pbstrRating);
+	STDMETHODIMP get_Description(BSTR* pbstrDescription);
+	STDMETHODIMP get_Copyright(BSTR* pbstrCopyright);
+	STDMETHODIMP get_BaseURL(BSTR* pbstrBaseURL) {return E_NOTIMPL;}
+	STDMETHODIMP get_LogoURL(BSTR* pbstrLogoURL) {return E_NOTIMPL;}
+	STDMETHODIMP get_LogoIconURL(BSTR* pbstrLogoURL) {return E_NOTIMPL;}
+	STDMETHODIMP get_WatermarkURL(BSTR* pbstrWatermarkURL) {return E_NOTIMPL;}
+	STDMETHODIMP get_MoreInfoURL(BSTR* pbstrMoreInfoURL) {return E_NOTIMPL;}
+	STDMETHODIMP get_MoreInfoBannerImage(BSTR* pbstrMoreInfoBannerImage) {return E_NOTIMPL;}
+	STDMETHODIMP get_MoreInfoBannerURL(BSTR* pbstrMoreInfoBannerURL) {return E_NOTIMPL;}
+	STDMETHODIMP get_MoreInfoText(BSTR* pbstrMoreInfoText) {return E_NOTIMPL;}
+
+	// IChapterInfo
+
+	STDMETHODIMP_(UINT) GetChapterCount(UINT aChapterID);
+	STDMETHODIMP_(UINT) GetChapterId(UINT aParentChapterId, UINT aIndex);
+	STDMETHODIMP_(UINT) GetChapterCurrentId();
+	STDMETHODIMP_(BOOL) GetChapterInfo(UINT aChapterID, struct ChapterElement* pStructureToFill);
+	STDMETHODIMP_(BSTR) GetChapterStringInfo(UINT aChapterID, CHAR PreferredLanguage[3], CHAR CountryCode[2]);
 };
 

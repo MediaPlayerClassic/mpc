@@ -459,7 +459,7 @@ void CRealMediaPlayerWindowed::DestroySite(IRMASite* pSite)
 CRealMediaPlayerWindowless::CRealMediaPlayerWindowless(HWND hWndParent, CRealMediaGraph* pRMG) 
 	: CRealMediaPlayer(hWndParent, pRMG) 
 {
-	if(FAILED(CreateAP7(CLSID_RMAllocatorPresenter, hWndParent, &m_pRMAP)))
+	if(FAILED(CreateAP7(CLSID_RM7AllocatorPresenter, hWndParent, &m_pRMAP)))
 		return;
 }
 

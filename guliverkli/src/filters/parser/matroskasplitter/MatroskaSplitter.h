@@ -86,6 +86,14 @@ public:
 	// IMediaSeeking
 
 	STDMETHODIMP GetDuration(LONGLONG* pDuration);
+
+	// IChapterInfo
+
+	STDMETHODIMP_(UINT) GetChapterCount(UINT aChapterID);
+	STDMETHODIMP_(UINT) GetChapterId(UINT aParentChapterId, UINT aIndex);
+	STDMETHODIMP_(UINT) GetChapterCurrentId();
+	STDMETHODIMP_(BOOL) GetChapterInfo(UINT aChapterID, struct ChapterElement* pStructureToFill);
+	STDMETHODIMP_(BSTR) GetChapterStringInfo(UINT aChapterID, CHAR PreferredLanguage[3], CHAR CountryCode[2]);
 };
 
 [uuid("0A68C3B5-9164-4a54-AFAF-995B2FF0E0D4")]

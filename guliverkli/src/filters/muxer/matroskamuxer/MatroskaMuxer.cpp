@@ -533,7 +533,8 @@ DWORD CMatroskaMuxerFilter::ThreadProc()
 				{
 					if(fFirstBlock)
 					{
-//						firstTimeCode = b->Block.TimeCode;
+						if(b->Block.TimeCode < 0)
+							firstTimeCode = b->Block.TimeCode;
 						fFirstBlock = false;
 					}
 
@@ -571,7 +572,7 @@ TRACE(_T("Muxing (%d): %I64d-%I64d dur=%I64d (c=%d, co=%dms), cnt=%d, ref=%d\n")
 						nBlocksInCueTrack++;
 					}
 
-					if(b->ReferenceBlock == 0 && b->Block.TrackNumber == TrackNumber) // TODO: test TrackNumber agains a video track instead of just the first one
+					if(b->ReferenceBlock == 0 && b->Block.TrackNumber == TrackNumber)
 					{
 						ULONGLONG clusterpos = GetStreamPosition(pStream) - segpos;
 						if(lastcueclusterpos != clusterpos || lastcuetimecode + 1000 < b->Block.TimeCode)
@@ -942,6 +943,19 @@ HRESULT CMatroskaMuxerInputPin::CompleteConnect(IPin* pPin)
 
 			hr = S_OK;
 		}
+		else if(m_mt.formattype == FORMAT_WaveFormatEx
+		&& ((WAVEFORMATEX*)m_mt.pbFormat)->wFormatTag == WAVE_FORMAT_PCM)
+		{
+			m_pTE->CodecID.Set("A_PCM/INT/LIT");
+
+			WAVEFORMATEX* wfe = (WAVEFORMATEX*)m_mt.pbFormat;
+			m_pTE->DescType = TrackEntry::DescAudio;
+			m_pTE->a.SamplingFrequency.Set((float)wfe->nSamplesPerSec);
+			m_pTE->a.Channels.Set(wfe->nChannels);
+			m_pTE->a.BitDepth.Set(wfe->wBitsPerSample);
+
+			hr = S_OK;
+		}			
 		else if(m_mt.formattype == FORMAT_WaveFormatEx)
 		{
 			m_pTE->CodecID.Set("A_MS/ACM");
@@ -1177,6 +1191,10 @@ STDMETHODIMP CMatroskaMuxerInputPin::Receive(IMediaSample* pSample)
 
 		return S_OK;
 	}
+
+	if(m_mt.formattype == FORMAT_WaveFormatEx 
+	&& ((WAVEFORMATEX*)m_mt.pbFormat)->wFormatTag == WAVE_FORMAT_PCM)
+		pSample->SetSyncPoint(TRUE); // HACK: some capture filters don't set this
 
 	CAutoPtr<BlockGroup> b(new BlockGroup());
 
