@@ -195,7 +195,7 @@ HRESULT CMatroskaSourceFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 		{
 			TrackEntry* pTE = pT->TrackEntries.GetNext(pos2);
 
-			CStringA CodecID(pTE->CodecID);
+			CStringA CodecID = pTE->CodecID.ToString();
 
 			CStringW Name;
 			Name.Format(L"Output %I64d", (UINT64)pTE->TrackNumber);
@@ -447,7 +447,7 @@ void CMatroskaSourceFilter::SendVorbisHeaderSample()
 		if(!(pTE && pPin && pPin->IsConnected()))
 			continue;
 
-		if(CStringA(pTE->CodecID) == "A_VORBIS" && pPin->CurrentMediaType().subtype == MEDIASUBTYPE_Vorbis)
+		if(pTE->CodecID.ToString() == "A_VORBIS" && pPin->CurrentMediaType().subtype == MEDIASUBTYPE_Vorbis)
 		{
 			BYTE* p = (BYTE*)pTE->CodecPrivate;
 
@@ -503,7 +503,7 @@ void CMatroskaSourceFilter::SendFakeTextSample()
 		if(!(pTE && pPin && pPin->IsConnected()))
 			continue;
 
-		if(CStringA(pTE->CodecID) == "S_TEXT/ASCII")
+		if(pTE->CodecID.ToString() == "S_TEXT/ASCII")
 		{
 			hr = S_OK;
 

@@ -36,6 +36,7 @@ namespace Matroska
 	public:
 		CBinary& operator = (const CBinary& b) {Copy(b); return(*this);}
 		operator BYTE*() {return (BYTE*)GetData();}
+		CStringA ToString() {return CStringA((LPCSTR)GetData(), GetCount());}
 		HRESULT Parse(CMatroskaNode* pMN);
 	};
 
