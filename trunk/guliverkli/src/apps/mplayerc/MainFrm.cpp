@@ -7584,7 +7584,6 @@ bool CMainFrame::LoadSubtitle(CString fn)
 	}
 	catch(CException* e)
 	{
-		e->ReportError();
 		e->Delete();
 	}
 

@@ -31,6 +31,9 @@ extern CString FindLangFromId(WORD id);
 
 class CVobSubSettings
 {
+protected:
+	HRESULT Render(SubPicDesc& spd, RECT& bbox);
+
 public:
 	CSize m_size;
 	int m_x, m_y;

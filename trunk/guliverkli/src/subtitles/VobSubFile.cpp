@@ -1195,10 +1195,6 @@ STDMETHODIMP_(bool) CVobSubFile::IsAnimated(POSITION pos)
 	return(false);
 }
 
-static void StretchBlt(SubPicDesc& spd, CRect dstrect, CVobSubImage& src);
-
-#include "RTS.h"
-
 STDMETHODIMP CVobSubFile::Render(SubPicDesc& spd, REFERENCE_TIME rt, double fps, RECT& bbox)
 {
 	if(spd.bpp != 32) return E_INVALIDARG;
@@ -1211,12 +1207,7 @@ STDMETHODIMP CVobSubFile::Render(SubPicDesc& spd, REFERENCE_TIME rt, double fps,
 	if(rt >= (m_img.start + m_img.delay))
 		return E_FAIL;
 
-	CRect bbox2;
-	GetDestrect(bbox2, spd.w, spd.h);
-	StretchBlt(spd, bbox2, m_img);
-	bbox2 &= CRect(CPoint(0, 0), CSize(spd.w, spd.h));
-	bbox = bbox2;
-	return !bbox2.IsRectEmpty() ? S_OK : S_FALSE;
+	return __super::Render(spd, bbox);
 }
 
 // IPersist
@@ -1491,6 +1482,28 @@ void CVobSubSettings::SetAlignment(bool fAlign, int x, int y, int hor, int ver)
 		m_org.x = m_x;
 		m_org.y = m_y;
 	}
+}
+
+#include "RTS.h"
+
+HRESULT CVobSubSettings::Render(SubPicDesc& spd, RECT& bbox)
+{
+	CRect r;
+	GetDestrect(r, spd.w, spd.h);
+	StretchBlt(spd, r, m_img);
+/*
+CRenderedTextSubtitle rts(NULL);
+rts.CreateDefaultStyle(DEFAULT_CHARSET);
+rts.m_dstScreenSize.SetSize(m_size.cx, m_size.cy);
+CStringW assstr;
+m_img.Polygonize(assstr, false);
+REFERENCE_TIME rtStart = 10000i64*m_img.start, rtStop = 10000i64*(m_img.start+m_img.delay);
+rts.Add(assstr, true, rtStart, rtStop);
+rts.Render(spd, (rtStart+rtStop)/2, 25, r);
+*/
+	r &= CRect(CPoint(0, 0), CSize(spd.w, spd.h));
+	bbox = r;
+	return !r.IsRectEmpty() ? S_OK : S_FALSE;
 }
 
 /////////////////////////////////////////////////////////
@@ -2304,22 +2317,7 @@ STDMETHODIMP CVobSubStream::Render(SubPicDesc& spd, REFERENCE_TIME rt, double fp
 				m_img.iIdx = (int)pos;
 			}
 
-			CRect bbox2;
-			GetDestrect(bbox2, spd.w, spd.h);
-			StretchBlt(spd, bbox2, m_img);
-/*
-CRenderedTextSubtitle rts(NULL);
-rts.CreateDefaultStyle(DEFAULT_CHARSET);
-rts.m_dstScreenSize.SetSize(m_size.cx, m_size.cy);
-CStringW assstr;
-m_img.Polygonize(assstr, false);
-REFERENCE_TIME rtStart = 10000i64*m_img.start, rtStop = 10000i64*(m_img.start+m_img.delay);
-rts.Add(assstr, true, rtStart, rtStop);
-rts.Render(spd, (rtStart+rtStop)/2, 25, bbox2);
-*/
-			bbox2 &= CRect(CPoint(0, 0), CSize(spd.w, spd.h));
-			bbox = bbox2;
-			return !bbox2.IsRectEmpty() ? S_OK : S_FALSE;
+			return __super::Render(spd, bbox);
 		}
 	}
 
