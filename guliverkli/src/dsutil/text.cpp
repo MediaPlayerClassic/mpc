@@ -104,37 +104,40 @@ CStringA ConvertMBCS(CStringA str, DWORD SrcCharSet, DWORD DstCharSet)
 	return str;
 }
 
-CString UrlEncode(CString str, bool fRaw)
+CStringA UrlEncode(CStringA str, bool fRaw)
 {
-	CString urlstr;
+	CStringA urlstr;
 
 	for(int i = 0; i < str.GetLength(); i++)
 	{
-		TCHAR c = str[i];
+		CHAR c = str[i];
 		if(c > 0x20 && c < 0x7f) urlstr += c;
 		else if(c == 0x20) urlstr += fRaw ? ' ' : '+';
-		else {CString tmp; tmp.Format(_T("%%%02x"), (BYTE)c); urlstr += tmp;}
+		else {CStringA tmp; tmp.Format("%%%02x", (BYTE)c); urlstr += tmp;}
 	}
 
 	return urlstr;
 }
 
-CString UrlDecode(CString str, bool fRaw)
+CStringA UrlDecode(CStringA str, bool fRaw)
 {
-	str.Replace(_T("&amp;"), _T("&"));
+	str.Replace("&amp;", "&");
 
-	TCHAR* s = str.GetBuffer(str.GetLength());
-	TCHAR* e = s + str.GetLength();
-	TCHAR* s1 = s;
-	TCHAR* s2 = s;
+	CHAR* s = str.GetBuffer(str.GetLength());
+	CHAR* e = s + str.GetLength();
+	CHAR* s1 = s;
+	CHAR* s2 = s;
 	while(s1 < e)
 	{
+		CHAR s11 = (s1 < e-1) ? (__isascii(s1[1]) && isupper(s1[1]) ? tolower(s1[1]) : s1[1]) : 0;
+		CHAR s12 = (s1 < e-2) ? (__isascii(s1[2]) && isupper(s1[2]) ? tolower(s1[2]) : s1[2]) : 0;
+
 		if(*s1 == '%' && s1 < e-2
-		&& (s1[1] >= '0' && s1[1] <= '9' || _tolower(s1[1]) >= 'a' && _tolower(s1[1]) <= 'f')
-		&& (s1[2] >= '0' && s1[2] <= '9' || _tolower(s1[2]) >= 'a' && _tolower(s1[2]) <= 'f'))
+		&& (s1[1] >= '0' && s1[1] <= '9' || s11 >= 'a' && s11 <= 'f')
+		&& (s1[2] >= '0' && s1[2] <= '9' || s12 >= 'a' && s12 <= 'f'))
 		{
-			s1[1] = tolower(s1[1]);
-			s1[2] = tolower(s1[2]);
+			s1[1] = s11;
+			s1[2] = s12;
 			*s2 = 0;
 			if(s1[1] >= '0' && s1[1] <= '9') *s2 |= s1[1]-'0';
 			else if(s1[1] >= 'a' && s1[1] <= 'f') *s2 |= s1[1]-'a'+10;

@@ -266,7 +266,9 @@ class CMainFrame : public CFrameWnd, public CDropTarget
 
 	//
 
+	friend class CWebServer;
 	CAutoPtr<CWebServer> m_pWebServer;
+
 public:
 	void StartWebServer(int nPort);
 	void StopWebServer();

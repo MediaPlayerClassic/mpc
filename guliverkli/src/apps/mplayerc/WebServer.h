@@ -19,6 +19,14 @@ class CWebServer
 
 	CAutoPtrList<CClientSocket> m_clients;
 
+	typedef bool (CWebServer::*RequestHandler)(CClientSocket* pClient, CStringA& hdr, CStringA& body);
+	CMap<CString,LPCTSTR,CWebServer::RequestHandler,CWebServer::RequestHandler> m_internalpages;
+
+	bool HandlerStyleSheetDefault(CClientSocket* pClient, CStringA& hdr, CStringA& body);
+	bool HandlerIndex(CClientSocket* pClient, CStringA& hdr, CStringA& body);
+	bool HandlerBrowser(CClientSocket* pClient, CStringA& hdr, CStringA& body);
+	bool Handler404(CClientSocket* pClient, CStringA& hdr, CStringA& body);
+
 public:
 	CWebServer(CMainFrame* pMainFrm, int nPort = 13579);
 	virtual ~CWebServer();

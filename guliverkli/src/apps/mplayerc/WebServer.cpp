@@ -5,6 +5,14 @@
 #include <atlisapi.h>
 #include "WebServer.h"
 
+// TODO: wrap sessions into a class with the possibility of storing some private data
+// TODO: auto-set mimes
+
+static bool LoadHtml(UINT resid, CStringA& str)
+{
+	return LoadResource(resid, str, RT_HTML);
+}
+
 class CServerSocket : public CAsyncSocket
 {
 	CWebServer* m_pWebServer;
@@ -166,7 +174,7 @@ private:
 					if(c == '\n' || len == 0)
 					{
 						CList<CString> sl;
-						Explode(UrlDecode(str), sl, '&');
+						Explode(AToT(UrlDecode(TToA(str))), sl, '&'); // FIXME
 						POSITION pos = sl.GetHeadPosition();
 						while(pos)
 						{
@@ -193,7 +201,7 @@ private:
 
 			if(!sl.IsEmpty())
 			{
-				Explode(UrlDecode(Explode(sl.GetTail(), sl, '#', 2)), sl, '&'); // oh yeah
+				Explode(AToT(UrlDecode(TToA(Explode(sl.GetTail(), sl, '#', 2)))), sl, '&'); // oh yeah
 				POSITION pos = sl.GetHeadPosition();
 				while(pos)
 				{
@@ -226,29 +234,10 @@ private:
 			reshdr = "HTTP/1.0 400 Bad Request\r\n";
 		}
 
+		bool fHtml = reshdr.Find("text/html") >= 0;
+
 		if(!reshdr.IsEmpty())
 		{
-//#ifdef DEBUG
-			// TMP
-			{
-				resbody += "<hr>";
-				CString key, value;
-				POSITION pos;
-				pos = m_hdrlines.GetStartPosition();
-				while(pos) {m_hdrlines.GetNextAssoc(pos, key, value); resbody += "HEADER[" + key + "] = " + value + "<br>\r\n";}
-				resbody += "cmd: " + m_cmd + "<br>\r\n";
-				resbody += "path: " + m_path + "<br>\r\n";
-				resbody += "ver: " + m_ver + "<br>\r\n";
-				pos = m_get.GetStartPosition();
-				while(pos) {m_get.GetNextAssoc(pos, key, value); resbody += "GET[" + key + "] = " + value + "<br>\r\n";}
-				pos = m_post.GetStartPosition();
-				while(pos) {m_post.GetNextAssoc(pos, key, value); resbody += "POST[" + key + "] = " + value + "<br>\r\n";}
-				pos = m_cookie.GetStartPosition();
-				while(pos) {m_cookie.GetNextAssoc(pos, key, value); resbody += "COOKIE[" + key + "] = " + value + "<br>\r\n";}
-				pos = m_request.GetStartPosition();
-				while(pos) {m_request.GetNextAssoc(pos, key, value); resbody += "REQUEST[" + key + "] = " + value + "<br>\r\n";}
-			}
-//#endif
 			// append cookies to reshdr
 			{
 				POSITION pos = m_cookie.GetStartPosition();
@@ -270,6 +259,26 @@ private:
 					reshdr += "\r\n";
 				}
 			}
+
+			CStringA debug;
+			{
+				debug += "<hr>";
+				CString key, value;
+				POSITION pos;
+				pos = m_hdrlines.GetStartPosition();
+				while(pos) {m_hdrlines.GetNextAssoc(pos, key, value); debug += "HEADER[" + key + "] = " + value + "<br>\r\n";}
+				debug += "cmd: " + m_cmd + "<br>\r\n";
+				debug += "path: " + m_path + "<br>\r\n";
+				debug += "ver: " + m_ver + "<br>\r\n";
+				pos = m_get.GetStartPosition();
+				while(pos) {m_get.GetNextAssoc(pos, key, value); debug += "GET[" + key + "] = " + value + "<br>\r\n";}
+				pos = m_post.GetStartPosition();
+				while(pos) {m_post.GetNextAssoc(pos, key, value); debug += "POST[" + key + "] = " + value + "<br>\r\n";}
+				pos = m_cookie.GetStartPosition();
+				while(pos) {m_cookie.GetNextAssoc(pos, key, value); debug += "COOKIE[" + key + "] = " + value + "<br>\r\n";}
+				pos = m_request.GetStartPosition();
+				while(pos) {m_request.GetNextAssoc(pos, key, value); debug += "REQUEST[" + key + "] = " + value + "<br>\r\n";}
+			}
 /*
 			// TMP
 			{
@@ -290,6 +299,14 @@ private:
 
 			if(!resbody.IsEmpty() && m_cmd != _T("HEAD"))
 			{
+				if(fHtml)
+				{
+					resbody.Replace("[path]", CStringA(m_path));
+					resbody.Replace("[debug]", debug);
+					// TODO: add more general tags to replace
+
+				}
+
 				Send(resbody, resbody.GetLength());
 			}
 
@@ -339,6 +356,12 @@ CWebServer::CWebServer(CMainFrame* pMainFrm, int nPort)
 	: m_pMainFrm(pMainFrm)
 	, m_nPort(nPort)
 {
+	m_internalpages[CString(_T("/default.css"))] = HandlerStyleSheetDefault;
+	m_internalpages[CString(_T("/"))] = HandlerIndex;
+	m_internalpages[CString(_T("/index.html"))] = HandlerIndex;
+	m_internalpages[CString(_T("/browser.html"))] = HandlerBrowser;
+	m_internalpages[CString(_T("/404.html"))] = Handler404;
+
 	m_ThreadId = 0;
     m_hThread = ::CreateThread(NULL, 0, StaticThreadProc, (LPVOID)this, 0, &m_ThreadId);
 }
@@ -398,48 +421,227 @@ void CWebServer::OnClose(CClientSocket* pClient)
 
 void CWebServer::OnRequest(CClientSocket* pClient, CStringA& hdr, CStringA& body)
 {
-	CString POST_id;
-	if(pClient->m_post.Lookup(_T("wmcommand"), POST_id))
-	{
-		int i = _tcstol(POST_id, NULL, 10);
-		if(i) m_pMainFrm->PostMessage(WM_COMMAND, i);
-	}
+	RequestHandler rh = NULL;
+	
+	if(m_internalpages.Lookup(pClient->m_path, rh)
+	&& (this->*rh)(pClient, hdr, body))
+		return;
 
-	/////////////
+	hdr = 
+		"HTTP/1.0 301 OK\r\n"
+		"Location: /404.html\r\n";
+}
 
-	body += 
-		"<html>\r\n"
-		"<head>\r\n"
-		"<title>MPC WebServer</title>\r\n"
-		"<style type=\"text/css\"><!--\r\n"
-		"--></style>\r\n"
-		"</head>\r\n"
-		"<body>\r\n";
+//////////////
 
-	body +=
-		"Sorry, this is just a little demo page for now, I'm still awaiting ideas what to put here ... and mostly why (hehe) \r\n"
-		"Anyway, I'm sure there will be some use of this web server in the future. You users can always come up with something.\r\n"
-		"<p>"
-		"And if you are already here, why don't you try sending a few commands to MPC, just to see if it works :)"
-		"<p>";
+bool CWebServer::HandlerStyleSheetDefault(CClientSocket* pClient, CStringA& hdr, CStringA& body)
+{
+	hdr = 
+		"HTTP/1.0 200 OK\r\n"
+		"Content-Type: text/css\r\n";
 
-	// TMP
-	body += "<form action=\"/\" method=\"POST\">\r\n";
-	body += "<select name=\"wmcommand\">\r\n";
+	LoadHtml(IDR_STYLESHEET_DEFAULT, body);
+
+	return(true);
+}
+
+bool CWebServer::HandlerIndex(CClientSocket* pClient, CStringA& hdr, CStringA& body)
+{
+	const char wmcname[] = "wm_command";
+	CStringA wmcoptions;
+
+	// process POST
+
+	CString id;
+	if(pClient->m_post.Lookup(CString(wmcname), id))
+		m_pMainFrm->PostMessage(WM_COMMAND, _tcstol(id, NULL, 10));
+
+	// generate page
+
 	AppSettings& s = AfxGetAppSettings();
 	POSITION pos = s.wmcmds.GetHeadPosition();
 	while(pos)
 	{
 		wmcmd& wc = s.wmcmds.GetNext(pos);
-		CStringA id;
-		id.Format("%d", wc.cmd);
-		body += "<option value=\"" + id + "\"" + (id == CStringA(POST_id) ? "selected" : "") + ">" + CStringA(wc.name) + "\r\n";
+		CStringA str;
+		str.Format("%d", wc.cmd);
+		wmcoptions += "<option value=\"" + str + "\"" 
+			+ (str == CStringA(id) ? "selected" : "") + ">" 
+			+ CStringA(wc.name) + "\r\n";
 	}
-	body += "</select>\r\n";
-	body += "<input type=\"submit\" value=\"Go!\" name=\"submit\">\r\n";
-	body += "</form>\r\n";
 
-	body += 
-		"</body>\r\n"
-		"</html>\r\n";
+	LoadHtml(IDR_HTML_INDEX, body);
+	body.Replace("[wmcname]", wmcname);
+	body.Replace("[wmcoptions]", wmcoptions);
+
+	return(true);
+}
+
+bool CWebServer::HandlerBrowser(CClientSocket* pClient, CStringA& hdr, CStringA& body)
+{
+	CList<CStringA> rootdrives;
+	for(TCHAR drive[] = _T("A:"); drive[0] <= 'Z'; drive[0]++)
+		if(GetDriveType(drive) != DRIVE_NO_ROOT_DIR)
+			rootdrives.AddTail(CStringA(drive) + '\\');
+
+	// process GET
+
+	CString path;
+	CFileStatus fs;
+	if(pClient->m_get.Lookup(_T("path"), path))
+	{
+		path = WToT(UTF8To16(TToA(path)));
+
+		if(CFile::GetStatus(path, fs) && !(fs.m_attribute&CFile::directory))
+		{
+			// TODO: make a new message for just opening files, this is a bit overkill now...
+
+			int len = (path.GetLength()+1)*sizeof(TCHAR);
+
+			CAutoVectorPtr<BYTE> buff;
+			if(buff.Allocate(4+len))
+			{
+				BYTE* p = buff;
+				*(DWORD*)p = 1; 
+				p += sizeof(DWORD);
+				memcpy(p, path, len);
+				p += len;
+
+				COPYDATASTRUCT cds;
+				cds.dwData = 0x6ABE51;
+				cds.cbData = p - buff;
+				cds.lpData = (void*)(BYTE*)buff;
+				m_pMainFrm->SendMessage(WM_COPYDATA, (WPARAM)NULL, (LPARAM)&cds);
+			}
+
+			CPath p(path);
+			p.RemoveFileSpec();
+			path = (LPCTSTR)p;
+		}
+	}
+	else
+	{
+		path = m_pMainFrm->m_wndPlaylistBar.GetCur();
+	}
+
+	if(path.Find(_T("://")) >= 0)
+		path.Empty();
+
+	if(CFile::GetStatus(path, fs) && (fs.m_attribute&CFile::directory))
+	{
+		CPath p(path);
+		p.Canonicalize();
+		p.MakePretty();
+		p.AddBackslash();
+		path = (LPCTSTR)p;
+	}
+
+	CStringA files;
+
+	if(path.IsEmpty())
+	{
+		POSITION pos = rootdrives.GetHeadPosition();
+		while(pos)
+		{
+			CStringA& drive = rootdrives.GetNext(pos);
+			
+			files += "<tr>\r\n";
+			files += 
+				"<td><a href=\"[path]?path=" + UrlEncode(drive) + "\">" + drive + "</a></td>"
+				"<td>Directory</td>"
+				"<td>&nbsp</td>\r\n"
+				"<td>&nbsp</td>";
+			files += "</tr>\r\n";
+		}
+
+		path = "Root";
+	}
+	else
+	{
+		CString parent;
+
+		if(path.GetLength() > 3)
+		{
+			CPath p(path + "..");
+			p.Canonicalize();
+			p.AddBackslash();
+			parent = (LPCTSTR)p;
+		}
+
+		files += "<tr>\r\n";
+		files += 
+			"<td><a href=\"[path]?path=" + parent + "\">..</a></td>"
+			"<td>Directory</td>"
+			"<td>&nbsp</td>\r\n"
+			"<td>&nbsp</td>";
+		files += "</tr>\r\n";
+
+		WIN32_FIND_DATA fd = {0};
+
+		HANDLE hFind = FindFirstFile(path + "*.*", &fd);
+		if(hFind != INVALID_HANDLE_VALUE)
+		{
+			do
+			{
+				if(!(fd.dwFileAttributes&FILE_ATTRIBUTE_DIRECTORY) || fd.cFileName[0] == '.')
+					continue;
+
+				CString fullpath = path + fd.cFileName;
+
+				files += "<tr>\r\n";
+				files += 
+					"<td><a href=\"[path]?path=" + UrlEncode(UTF16To8(TToW(fullpath))) + "\">" + UTF16To8(TToW(fd.cFileName)) + "</a></td>"
+					"<td>Directory</td>"
+					"<td>&nbsp</td>\r\n"
+					"<td><nobr>" + CStringA(CTime(fd.ftLastWriteTime).Format(_T("%Y.%m.%d %H:%M"))) + "</nobr></td>";
+				files += "</tr>\r\n";
+			}
+			while(FindNextFile(hFind, &fd));
+			
+			FindClose(hFind);
+		}
+
+		hFind = FindFirstFile(path + "*.*", &fd);
+		if(hFind != INVALID_HANDLE_VALUE)
+		{
+			do
+			{
+				if(fd.dwFileAttributes&FILE_ATTRIBUTE_DIRECTORY)
+					continue;
+
+				CString fullpath = path + fd.cFileName;
+
+				CStringA size;
+				size.Format("%I64dK", ((UINT64)fd.nFileSizeHigh<<22)|(fd.nFileSizeLow>>10));
+
+				CString type(_T("&nbsp"));
+				LoadType(fullpath, type);
+
+				files += "<tr>\r\n";
+				files += 
+					"<td><a href=\"[path]?path=" + UrlEncode(UTF16To8(TToW(fullpath))) + "\">" + UTF16To8(TToW(fd.cFileName)) + "</a></td>"
+					"<td><nobr>" + UTF16To8(TToW(type)) + "</nobr></td>"
+					"<td align=\"right\"><nobr>" + size + "</nobr></td>\r\n"
+					"<td><nobr>" + CStringA(CTime(fd.ftLastWriteTime).Format(_T("%Y.%m.%d %H:%M"))) + "</nobr></td>";
+				files += "</tr>\r\n";
+			}
+			while(FindNextFile(hFind, &fd));
+			
+			FindClose(hFind);
+		}
+	}
+
+	LoadHtml(IDR_HTML_BROWSER, body);
+	body.Replace("[charset]", "UTF-8"); // FIXME: win9x build...
+	body.Replace("[currentdir]", TToA(path));
+	body.Replace("[currentfiles]", files);
+
+	return(true);
+}
+
+bool CWebServer::Handler404(CClientSocket* pClient, CStringA& hdr, CStringA& body)
+{
+	LoadHtml(IDR_HTML_404, body);
+
+	return(true);
 }

@@ -723,7 +723,7 @@ HRESULT CGraphBuilder::Render(LPCTSTR lpsz)
 				pBF = pReader;
 		}
 
-		if(!pBF && AfxGetAppSettings().fUseWMASFReader && fn.Find(_T("://")) < 0)
+		if(!pBF && fn.Find(_T("://")) < 0)
 		{
 			bool fWindowsMedia = (ext == _T(".asf") || ext == _T(".wmv") || ext == _T(".wma"));
 
@@ -743,7 +743,7 @@ HRESULT CGraphBuilder::Render(LPCTSTR lpsz)
 			if(fWindowsMedia)
 			{
 				CComPtr<IFileSourceFilter> pReader;
-				hr = pReader.CoCreateInstance(CLSID_NetShowSource/*CLSID_WMAsfReader*/);
+				hr = pReader.CoCreateInstance(AfxGetAppSettings().fUseWMASFReader ? CLSID_WMAsfReader : CLSID_NetShowSource);
 				if(SUCCEEDED(hr) && SUCCEEDED(pReader->Load(fnw, NULL)))
 					pBF = pReader;
 			}
@@ -1146,6 +1146,7 @@ HRESULT CGraphBuilder::Render(IPin* pPin)
 	{
 		CAutoPtr<DeadEnd> de(new DeadEnd);
 		de->nStream = m_nCurrentStream;
+		de->clsid = CStringFromGUID(GetCLSID(pPin));
 		de->filter = GetFilterName(GetFilterFromPin(pPin));
 		de->pin = GetPinName(pPin);
 		ExtractMediaTypes(pPin, de->mts);

@@ -238,7 +238,7 @@ public:
 	// override these
 	virtual HRESULT CheckMediaType(const CMediaType* pmt) = 0;
 	virtual HRESULT Transform(IMediaSample* pIn, IMediaSample* pOut);
-	virtual CMediaType CreateNewOutputMediaType(CMediaType mt, REFERENCE_TIME rtLen);
+	virtual CMediaType CreateNewOutputMediaType(CMediaType mt, long& cbBuffer);
 	virtual void OnNewOutputMediaType(const CMediaType& mtIn, const CMediaType& mtOut) {}
 
 	// IAMStreamSelect
@@ -288,7 +288,7 @@ public:
 
 	HRESULT CheckMediaType(const CMediaType* pmt);
 	HRESULT Transform(IMediaSample* pIn, IMediaSample* pOut);
-	CMediaType CreateNewOutputMediaType(CMediaType mt, REFERENCE_TIME rtLen);
+	CMediaType CreateNewOutputMediaType(CMediaType mt, long& cbBuffer);
 	void OnNewOutputMediaType(const CMediaType& mtIn, const CMediaType& mtOut);
 
 	// IAudioSwitcherFilter

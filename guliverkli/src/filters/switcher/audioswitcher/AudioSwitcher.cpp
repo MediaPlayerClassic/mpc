@@ -313,7 +313,7 @@ CStreamSwitcherInputPin::CStreamSwitcherInputPin(CStreamSwitcherFilter* pFilter,
 }
 
 [uuid("138130AF-A79B-45D5-B4AA-87697457BA87")]
-enum NeroAudioDecoder {};
+class NeroAudioDecoder {};
 
 STDMETHODIMP CStreamSwitcherInputPin::NonDelegatingQueryInterface(REFIID riid, void** ppv)
 {
@@ -344,9 +344,7 @@ STDMETHODIMP CStreamSwitcherInputPin::IsEndPin()
 STDMETHODIMP CStreamSwitcherInputPin::DynamicDisconnect()
 {
 	CAutoLock cAutoLock(&m_csReceive);
-
 	Disconnect();
-
 	return S_OK;
 }
 
@@ -463,12 +461,12 @@ HRESULT CStreamSwitcherInputPin::CheckConnect(IPin* pPin)
 {
 	return (IPin*)((CStreamSwitcherFilter*)m_pFilter)->GetOutputPin() == pPin 
 		? E_FAIL
-		: CBaseInputPin::CheckConnect(pPin);
+		: __super::CheckConnect(pPin);
 }
 
 HRESULT CStreamSwitcherInputPin::CompleteConnect(IPin* pReceivePin)
 {
-	HRESULT hr = CBaseInputPin::CompleteConnect(pReceivePin);
+	HRESULT hr = __super::CompleteConnect(pReceivePin);
 	if(FAILED(hr)) return hr;
 
     ((CStreamSwitcherFilter*)m_pFilter)->CompleteConnect(PINDIR_INPUT, this, pReceivePin);
@@ -539,21 +537,21 @@ HRESULT CStreamSwitcherInputPin::Active()
 {
 	Block(!IsSelected());
 
-	return CBaseInputPin::Active();
+	return __super::Active();
 }
 
 HRESULT CStreamSwitcherInputPin::Inactive()
 {
 	Block(false);
 
-	return CBaseInputPin::Inactive();
+	return __super::Inactive();
 }
 
 // IPin
 
 STDMETHODIMP CStreamSwitcherInputPin::QueryAccept(const AM_MEDIA_TYPE* pmt)
 {
-	HRESULT hr = CBaseInputPin::QueryAccept(pmt);
+	HRESULT hr = __super::QueryAccept(pmt);
 	if(S_OK != hr) return hr;
 
 	return QueryAcceptDownstream(pmt);
@@ -571,7 +569,7 @@ STDMETHODIMP CStreamSwitcherInputPin::ReceiveConnection(IPin* pConnector, const 
 	if(m_Connected) 
 		m_Connected->Release(), m_Connected = NULL;
 
-	return SUCCEEDED(CBaseInputPin::ReceiveConnection(pConnector, pmt)) ? S_OK : E_FAIL;
+	return SUCCEEDED(__super::ReceiveConnection(pConnector, pmt)) ? S_OK : E_FAIL;
 }
 
 STDMETHODIMP CStreamSwitcherInputPin::GetAllocator(IMemAllocator** ppAllocator)
@@ -591,7 +589,7 @@ STDMETHODIMP CStreamSwitcherInputPin::GetAllocator(IMemAllocator** ppAllocator)
 
 STDMETHODIMP CStreamSwitcherInputPin::NotifyAllocator(IMemAllocator* pAllocator, BOOL bReadOnly)
 {
-	HRESULT hr = CBaseInputPin::NotifyAllocator(pAllocator, bReadOnly);
+	HRESULT hr = __super::NotifyAllocator(pAllocator, bReadOnly);
 	if(FAILED(hr)) return hr;
 
 	m_bUsingOwnAllocator = (pAllocator == (IMemAllocator*)&m_Allocator);
@@ -607,7 +605,7 @@ STDMETHODIMP CStreamSwitcherInputPin::BeginFlush()
     if(!IsConnected() || !pOut || !pOut->IsConnected())
 		return VFW_E_NOT_CONNECTED;
 
-	HRESULT hr = CBaseInputPin::BeginFlush();
+	HRESULT hr = __super::BeginFlush();
     if(FAILED(hr)) 
 		return hr;
 
@@ -622,7 +620,7 @@ STDMETHODIMP CStreamSwitcherInputPin::EndFlush()
     if(!IsConnected() || !pOut || !pOut->IsConnected())
 		return VFW_E_NOT_CONNECTED;
 
-	HRESULT hr = CBaseInputPin::EndFlush();
+	HRESULT hr = __super::EndFlush();
     if(FAILED(hr)) 
 		return hr;
 
@@ -685,7 +683,7 @@ STDMETHODIMP CStreamSwitcherInputPin::Receive(IMediaSample* pSample)
 	CStreamSwitcherOutputPin* pOut = ((CStreamSwitcherFilter*)m_pFilter)->GetOutputPin();
 	ASSERT(pOut->GetConnected());
 
-	HRESULT hr = CBaseInputPin::Receive(pSample);
+	HRESULT hr = __super::Receive(pSample);
 	if(S_OK != hr) return hr;
 
 	if(m_SampleProps.dwStreamId != AM_STREAM_MEDIA)
@@ -705,45 +703,44 @@ STDMETHODIMP CStreamSwitcherInputPin::Receive(IMediaSample* pSample)
 		//
 	}
 
+	long cbBuffer = pSample->GetActualDataLength();
+
 	CMediaType mtOut = m_mt;
-	mtOut.lSampleSize = props.cbBuffer;
-	mtOut = ((CStreamSwitcherFilter*)m_pFilter)->CreateNewOutputMediaType(mtOut, rtStop-rtStart);
+	mtOut = ((CStreamSwitcherFilter*)m_pFilter)->CreateNewOutputMediaType(mtOut, cbBuffer);
 
 	bool fTypeChanged = false;
 
-	if(mtOut != pOut->CurrentMediaType() || mtOut.lSampleSize > pOut->CurrentMediaType().lSampleSize
-	|| ((CStreamSwitcherFilter*)m_pFilter)->m_fResetOutputMediaType)
+	if(mtOut != pOut->CurrentMediaType() || cbBuffer > actual.cbBuffer)
 	{
-		((CStreamSwitcherFilter*)m_pFilter)->m_fResetOutputMediaType = false;
-
 		fTypeChanged = true;
 
 		m_SampleProps.dwSampleFlags |= AM_SAMPLE_TYPECHANGED/*|AM_SAMPLE_DATADISCONTINUITY|AM_SAMPLE_TIMEDISCONTINUITY*/;
 
 /*
-		if(CComQIPtr<IPinConnection> pPC(pOut->CurrentPinConnection()))
+		if(CComQIPtr<IPinConnection> pPC = pOut->CurrentPinConnection())
 		{
 			HANDLE hEOS = CreateEvent(NULL, FALSE, FALSE, NULL);
 			hr = pPC->NotifyEndOfStream(hEOS);
 			hr = pOut->DeliverEndOfStream();
 			WaitForSingleObject(hEOS, 3000);
 			CloseHandle(hEOS);
+			hr = pOut->DeliverBeginFlush();
+			hr = pOut->DeliverEndFlush();
 		}
 */
+
 		if(props.cBuffers < 8 && mtOut.majortype == MEDIATYPE_Audio)
 			props.cBuffers = 8;
 
-		props.cbBuffer = mtOut.lSampleSize;
+		props.cbBuffer = cbBuffer;
 
-		if(/*memcmp(&actual, &props, sizeof(ALLOCATOR_PROPERTIES))*/
-		   actual.cbAlign != props.cbAlign
+		if(actual.cbAlign != props.cbAlign
 		|| actual.cbPrefix != props.cbPrefix
 		|| actual.cBuffers < props.cBuffers
 		|| actual.cbBuffer < props.cbBuffer)
 		{
 			hr = pOut->DeliverBeginFlush();
 			hr = pOut->DeliverEndFlush();
-
 			hr = pOut->CurrentAllocator()->Decommit();
 			hr = pOut->CurrentAllocator()->SetProperties(&props, &actual);
 			hr = pOut->CurrentAllocator()->Commit();
@@ -766,8 +763,8 @@ STDMETHODIMP CStreamSwitcherInputPin::Receive(IMediaSample* pSample)
 	if(fTypeChanged)
 	{
 		pOut->SetMediaType(&mtOut);
-		pOutSample->SetMediaType(&mtOut);
 		((CStreamSwitcherFilter*)m_pFilter)->OnNewOutputMediaType(m_mt, mtOut);
+		pOutSample->SetMediaType(&mtOut);
 	}
 
 	// Transform
@@ -780,11 +777,12 @@ STDMETHODIMP CStreamSwitcherInputPin::Receive(IMediaSample* pSample)
 	{
 		hr = pOut->Deliver(pOutSample);
         m_bSampleSkipped = FALSE;
-
+/*
 		if(FAILED(hr))
 		{
-			((CStreamSwitcherFilter*)m_pFilter)->ResetOutputMediaType();
+			ASSERT(0);
 		}
+*/
 	}
     else if(S_FALSE == hr)
 	{
@@ -909,16 +907,18 @@ HRESULT CStreamSwitcherOutputPin::DecideBufferSize(IMemAllocator* pAllocator, AL
 
 // virtual
 
+[uuid("AEFA5024-215A-4FC7-97A4-1043C86FD0B8")]
+class MatrixMixer {};
+
 HRESULT CStreamSwitcherOutputPin::CheckConnect(IPin* pPin)
 {
 	CComPtr<IBaseFilter> pBF = GetFilterFromPin(pPin);
-	CLSID matrixmixer = GUIDFromCString(_T("{AEFA5024-215A-4FC7-97A4-1043C86FD0B8}"));
 
 	return 
-		IsAudioWaveRenderer(pBF) || GetCLSID(pBF) == matrixmixer
-		? CBaseOutputPin::CheckConnect(pPin) 
+		IsAudioWaveRenderer(pBF) || GetCLSID(pBF) == __uuidof(MatrixMixer)
+		? __super::CheckConnect(pPin) 
 		: E_FAIL;
-	;
+
 //	return CComQIPtr<IPinConnection>(pPin) ? CBaseOutputPin::CheckConnect(pPin) : E_NOINTERFACE;
 //	return CBaseOutputPin::CheckConnect(pPin);
 }
@@ -926,13 +926,13 @@ HRESULT CStreamSwitcherOutputPin::CheckConnect(IPin* pPin)
 HRESULT CStreamSwitcherOutputPin::BreakConnect()
 {
 	m_pPinConnection = NULL;
-	return CBaseOutputPin::BreakConnect();
+	return __super::BreakConnect();
 }
 
 HRESULT CStreamSwitcherOutputPin::CompleteConnect(IPin* pReceivePin)
 {
 	m_pPinConnection = CComQIPtr<IPinConnection>(pReceivePin);
-	return CBaseOutputPin::CompleteConnect(pReceivePin);
+	return __super::CompleteConnect(pReceivePin);
 }
 
 HRESULT CStreamSwitcherOutputPin::CheckMediaType(const CMediaType* pmt)
@@ -952,12 +952,12 @@ HRESULT CStreamSwitcherOutputPin::GetMediaType(int iPosition, CMediaType* pmt)
 	if(iPosition > 0 && FAILED(pEM->Skip(iPosition)))
 		return VFW_S_NO_MORE_ITEMS;
 
-	AM_MEDIA_TYPE* pmt2 = NULL;
-	if(S_OK != pEM->Next(1, &pmt2, NULL) || !pmt2)
+	AM_MEDIA_TYPE* tmp = NULL;
+	if(S_OK != pEM->Next(1, &tmp, NULL) || !tmp)
 		return VFW_S_NO_MORE_ITEMS;
 
-	CopyMediaType(pmt, pmt2);
-	DeleteMediaType(pmt2);
+	CopyMediaType(pmt, tmp);
+	DeleteMediaType(tmp);
 /*
 	if(iPosition < 0) return E_INVALIDARG;
     if(iPosition > 0) return VFW_S_NO_MORE_ITEMS;
@@ -971,7 +971,7 @@ HRESULT CStreamSwitcherOutputPin::GetMediaType(int iPosition, CMediaType* pmt)
 
 STDMETHODIMP CStreamSwitcherOutputPin::QueryAccept(const AM_MEDIA_TYPE* pmt)
 {
-	HRESULT hr = CBaseOutputPin::QueryAccept(pmt);
+	HRESULT hr = __super::QueryAccept(pmt);
 	if(S_OK != hr) return hr;
 
 	return QueryAcceptUpstream(pmt);
@@ -1017,7 +1017,6 @@ STDMETHODIMP CStreamSwitcherOutputPin::Backout(IPin* ppinOut, IGraphBuilder* pGr
 
 CStreamSwitcherFilter::CStreamSwitcherFilter(LPUNKNOWN lpunk, HRESULT* phr, const CLSID& clsid) 
 	: CBaseFilter(NAME("CStreamSwitcherFilter"), lpunk, &m_csState, clsid)
-	, m_fResetOutputMediaType(false)
 {
 	if(phr) *phr = S_OK;
 
@@ -1065,7 +1064,7 @@ STDMETHODIMP CStreamSwitcherFilter::NonDelegatingQueryInterface(REFIID riid, voi
 {
 	return
 		QI(IAMStreamSelect)
-		CBaseFilter::NonDelegatingQueryInterface(riid, ppv);
+		__super::NonDelegatingQueryInterface(riid, ppv);
 }
 
 //
@@ -1183,8 +1182,6 @@ void CStreamSwitcherFilter::SelectInput(CStreamSwitcherInputPin* pInput)
 	{
 		m_pOutput->DeliverBeginFlush();
 		m_pOutput->DeliverEndFlush();
-
-		ResetOutputMediaType();
 	}
 
 	if(!pInput) return;
@@ -1218,7 +1215,7 @@ HRESULT CStreamSwitcherFilter::Transform(IMediaSample* pIn, IMediaSample* pOut)
 	return S_OK;
 }
 
-CMediaType CStreamSwitcherFilter::CreateNewOutputMediaType(CMediaType mt, REFERENCE_TIME rtLen)
+CMediaType CStreamSwitcherFilter::CreateNewOutputMediaType(CMediaType mt, long& cbBuffer)
 {
 	return(mt);
 }
@@ -1322,22 +1319,14 @@ const AMOVIESETUP_PIN sudpPins[] =
     }
 };
 
-const AMOVIESETUP_FILTER sudFilter =
+const AMOVIESETUP_FILTER sudFilter[] =
 {
-    &__uuidof(CAudioSwitcherFilter),	// Filter CLSID
-    L"AudioSwitcher",			// String name
-    MERIT_DO_NOT_USE,       // Filter merit // MERIT_PREFERRED+1
-    countof(sudpPins), // Number of pins
-    sudpPins                // Pin information
+	{&__uuidof(CAudioSwitcherFilter), L"AudioSwitcher", MERIT_DO_NOT_USE, countof(sudpPins), sudpPins}
 };
 
 CFactoryTemplate g_Templates[] =
 {
-    { L"AudioSwitcher"
-    , &__uuidof(CAudioSwitcherFilter)
-    , CAudioSwitcherFilter::CreateInstance
-    , NULL
-    , &sudFilter }
+    {L"AudioSwitcher", &__uuidof(CAudioSwitcherFilter), CAudioSwitcherFilter::CreateInstance, NULL, &sudFilter[0]}
 };
 
 int g_cTemplates = countof(g_Templates);
@@ -1397,7 +1386,7 @@ STDMETHODIMP CAudioSwitcherFilter::NonDelegatingQueryInterface(REFIID riid, void
 {
 	return
 		QI(IAudioSwitcherFilter)
-		CStreamSwitcherFilter::NonDelegatingQueryInterface(riid, ppv);
+		__super::NonDelegatingQueryInterface(riid, ppv);
 }
 
 HRESULT CAudioSwitcherFilter::CheckMediaType(const CMediaType* pmt)
@@ -1554,7 +1543,7 @@ HRESULT CAudioSwitcherFilter::Transform(IMediaSample* pIn, IMediaSample* pOut)
 	else
 	{
 		HRESULT hr;
-		if(S_OK != (hr = CStreamSwitcherFilter::Transform(pIn, pOut)))
+		if(S_OK != (hr = __super::Transform(pIn, pOut)))
 			return hr;
 	}
 
@@ -1586,17 +1575,17 @@ HRESULT CAudioSwitcherFilter::Transform(IMediaSample* pIn, IMediaSample* pOut)
 	return S_OK;
 }
 
-CMediaType CAudioSwitcherFilter::CreateNewOutputMediaType(CMediaType mt, REFERENCE_TIME rtLen)
+CMediaType CAudioSwitcherFilter::CreateNewOutputMediaType(CMediaType mt, long& cbBuffer)
 {
 	CStreamSwitcherInputPin* pInPin = GetInputPin();
 	CStreamSwitcherOutputPin* pOutPin = GetOutputPin();
 	if(!pInPin || !pOutPin || ((WAVEFORMATEX*)mt.pbFormat)->wFormatTag == WAVE_FORMAT_DOLBY_AC3_SPDIF) 
-		return __super::CreateNewOutputMediaType(mt, rtLen);
+		return __super::CreateNewOutputMediaType(mt, cbBuffer);
+
+	WAVEFORMATEX* wfe = (WAVEFORMATEX*)pInPin->CurrentMediaType().pbFormat;
 
 	if(m_fCustomChannelMapping)
 	{
-		WAVEFORMATEX* wfe = (WAVEFORMATEX*)pInPin->CurrentMediaType().pbFormat;
-
 		m_chs[wfe->nChannels-1].RemoveAll();
 
 		DWORD mask = DWORD((__int64(1)<<wfe->nChannels)-1);
@@ -1632,19 +1621,24 @@ CMediaType CAudioSwitcherFilter::CreateNewOutputMediaType(CMediaType mt, REFEREN
 		}
 	}
 
-	WAVEFORMATEX* wfe = (WAVEFORMATEX*)mt.pbFormat;
+	WAVEFORMATEX* wfeout = (WAVEFORMATEX*)mt.pbFormat;
 
 	if(m_fDownSampleTo441)
 	{
-		if(wfe->nSamplesPerSec > 44100 && wfe->wBitsPerSample <= 16)
+		if(wfeout->nSamplesPerSec > 44100 && wfeout->wBitsPerSample <= 16)
 		{
-			wfe->nSamplesPerSec = 44100;
-			wfe->nAvgBytesPerSec = wfe->nBlockAlign*wfe->nSamplesPerSec;
+			wfeout->nSamplesPerSec = 44100;
+			wfeout->nAvgBytesPerSec = wfeout->nBlockAlign*wfeout->nSamplesPerSec;
 		}
 	}
 
-	mt.lSampleSize = (ULONG)max(mt.lSampleSize, wfe->nAvgBytesPerSec * rtLen / 10000000i64);
-	mt.lSampleSize = (mt.lSampleSize + (wfe->nBlockAlign-1)) & ~(wfe->nBlockAlign-1);
+	int bps = wfe->wBitsPerSample>>3;
+	int len = cbBuffer / (bps*wfe->nChannels);
+	int lenout = len * wfeout->nSamplesPerSec / wfe->nSamplesPerSec;
+	cbBuffer = lenout*bps*wfeout->nChannels;
+
+//	mt.lSampleSize = (ULONG)max(mt.lSampleSize, wfe->nAvgBytesPerSec * rtLen / 10000000i64);
+//	mt.lSampleSize = (mt.lSampleSize + (wfe->nBlockAlign-1)) & ~(wfe->nBlockAlign-1);
 
 	return mt;
 }

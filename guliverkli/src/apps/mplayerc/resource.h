@@ -178,6 +178,11 @@
 #define IDD_AUTHDLG                     336
 #define IDB_AUTHHDRPIC                  337
 #define IDD_PPAGEWEBSERVER              338
+#define IDR_HTML_INDEX                  340
+#define IDR_STYLESHEET_DEFAULT          342
+#define IDR_HTML_404                    343
+#define IDR_HTML1                       344
+#define IDR_HTML_BROWSER                344
 #define IDS_R_SETTINGS                  500
 #define IDS_RS_CONTROLSTATE             501
 #define IDS_RS_VOLUME                   502
@@ -541,7 +546,7 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        339
+#define _APS_NEXT_RESOURCE_VALUE        345
 #define _APS_NEXT_COMMAND_VALUE         32830
 #define _APS_NEXT_CONTROL_VALUE         1150
 #define _APS_NEXT_SYMED_VALUE           10003
