@@ -73,6 +73,34 @@ void CConvertDlg::AddFilter(HTREEITEM hTIParent, IBaseFilter* pBFParent)
 	}
 	EndEnumPins
 
+	if(CComQIPtr<IDSMPropertyBag> pPB = pBFParent)
+	{
+		ULONG props;
+		if(FAILED(pPB->CountProperties(&props)))
+			props = 0;
+
+		for(ULONG i = 0; i < props; i++)
+		{
+			PROPBAG2 PropBag;
+			memset(&PropBag, 0, sizeof(PropBag));
+			ULONG cPropertiesReturned = 0;
+			if(FAILED(pPB->GetPropertyInfo(i, 1, &PropBag, &cPropertiesReturned)))
+				continue;
+
+			HRESULT hr;
+			CComVariant var;
+			if(SUCCEEDED(pPB->Read(1, &PropBag, NULL, &var, &hr)) && SUCCEEDED(hr))
+			{
+				CComQIPtr<IDSMPropertyBag> pPBMux = m_pMux;
+				CComBSTR value;
+				if(pPBMux && FAILED(pPBMux->GetProperty(PropBag.pstrName, &value)))
+					pPBMux->SetProperty(PropBag.pstrName, var.bstrVal);
+			}
+
+			CoTaskMemFree(PropBag.pstrName);
+		}
+	}
+
 	CTreeItem* t2 = new CTreeItemResourceFolder(m_tree, hTIParent);
 	if(CComQIPtr<IDSMResourceBag> pRB = pBFParent)
 	{
