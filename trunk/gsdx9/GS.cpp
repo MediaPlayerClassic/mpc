@@ -255,11 +255,15 @@ EXPORT_C_(INT32) GSfreeze(int mode, freezeData* data)
 {
 	if(mode == FREEZE_SAVE)
 	{
-		return -1;//s_gs->Freeze(data);
+		return s_gs->Freeze(data, false);
+	}
+	else if(mode == FREEZE_SIZE)
+	{
+		return s_gs->Freeze(data, true);
 	}
 	else if(mode == FREEZE_LOAD)
 	{
-		return -1;//s_gs->Defrost(data);
+		return s_gs->Defrost(data);
 	}
 
 	return 0;

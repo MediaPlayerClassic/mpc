@@ -296,7 +296,7 @@ public:
 	GSState(int w, int h, HWND hWnd, HRESULT& hr);
 	virtual ~GSState();
 
-	UINT32 Freeze(freezeData* fd);
+	UINT32 Freeze(freezeData* fd, bool fSizeOnly);
 	UINT32 Defrost(const freezeData* fd);
 	void Write64(GS_REG mem, GSReg* r);
 	UINT32 Read32(GS_REG mem);
