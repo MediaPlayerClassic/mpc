@@ -25,7 +25,7 @@
 #include <atlcoll.h>
 
 #pragma pack(push, 1)
-typedef struct SubPicDesc_t
+struct SubPicDesc
 {
 	int type;
 	int w, h, bpp, pitch, pitchUV;
@@ -34,8 +34,8 @@ typedef struct SubPicDesc_t
 	BYTE* bitsV;
 	RECT vidrect; // video rectangle
 
-	struct SubPicDesc_t() {type = 0; w = h = bpp = pitch = pitchUV = 0; bits = NULL; bitsU = bitsV = NULL;}
-} SubPicDesc;
+	struct SubPicDesc() {type = 0; w = h = bpp = pitch = pitchUV = 0; bits = NULL; bitsU = bitsV = NULL;}
+};
 #pragma pack(pop)
 
 //
@@ -323,8 +323,10 @@ interface ISubPicAllocatorPresenter : public IUnknown
 	STDMETHOD_(void, SetTime) (REFERENCE_TIME rtNow) PURE;
 	STDMETHOD_(double, GetFPS) () PURE;
 
-	STDMETHOD_(void, SetSubPicProvider) (ISubPicProvider* pSubPicProvider) PURE;	
+	STDMETHOD_(void, SetSubPicProvider) (ISubPicProvider* pSubPicProvider) PURE;
 	STDMETHOD_(void, Invalidate) (REFERENCE_TIME rtInvalidate = -1) PURE;
+
+	STDMETHOD (GetDIB) (BYTE* lpDib, DWORD* size) PURE;
 };
 
 class ISubPicAllocatorPresenterImpl 
@@ -368,6 +370,8 @@ public:
 
 	STDMETHODIMP_(void) SetSubPicProvider(ISubPicProvider* pSubPicProvider);	
 	STDMETHODIMP_(void) Invalidate(REFERENCE_TIME rtInvalidate = -1);
+
+	STDMETHODIMP GetDIB(BYTE* lpDib, DWORD* size) {return E_NOTIMPL;}
 };
 
 //

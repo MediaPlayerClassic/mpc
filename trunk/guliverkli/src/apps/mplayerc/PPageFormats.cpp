@@ -93,7 +93,7 @@ static bool MakeRegParams(CString ext, CString& path, CString& fn, CString& extf
 
 	extfile = ext.TrimLeft('.')+_T("file");
 
-	cmd = _T("\"") + path + _T("\" \"%L\"");
+	cmd = _T("\"") + path + _T("\" \"%1\"");
 
 	return(true);
 }
@@ -307,10 +307,10 @@ bool CPPageFormats::RegisterExt(CString ext, bool fRegister)
 
 static struct {TCHAR verb[20], cmd[20], action[100];} handlers[] =
 {
-	{_T("VideoFiles"), _T(" %L"), _T("Play Video")},
-	{_T("MusicFiles"), _T(" %L"), _T("Play Music")},
-	{_T("CDAudio"), _T(" %L /cd"), _T("Play Audio CD")},
-	{_T("DVDMovie"), _T(" %L /dvd"), _T("Play DVD Movie")},
+	{_T("VideoFiles"), _T(" %1"), _T("Play Video")},
+	{_T("MusicFiles"), _T(" %1"), _T("Play Music")},
+	{_T("CDAudio"), _T(" %1 /cd"), _T("Play Audio CD")},
+	{_T("DVDMovie"), _T(" %1 /dvd"), _T("Play DVD Movie")},
 };
 
 void CPPageFormats::AddAutoPlayToRegistry(autoplay_t ap, bool fRegister)

@@ -303,10 +303,15 @@
 #define IDS_RS_ONTOP                    604
 #define IDS_RS_MPASF                    605
 #define IDS_RS_MPASC                    606
+#define IDS_RS_AC3SC                    606
 #define IDS_RS_MPADRC                   607
+#define IDS_RS_AC3DRC                   607
 #define IDS_RS_WEBSERVERPRINTDEBUGINFO  608
 #define IDS_RS_WEBSERVERUSECOMPRESSION  609
 #define IDS_RS_MPANORMALIZE             610
+#define IDS_RS_DTSSC                    611
+#define IDS_RS_DTSDRC                   612
+#define IDS_RS_SNAPSHOTPATH             613
 #define IDC_BROWSEBUTTON                1016
 #define IDC_BROWSEBUTTON2               1017
 #define IDC_COMBO1                      1018
@@ -324,6 +329,7 @@
 #define IDC_SLIDER4                     1026
 #define IDC_EDIT2                       1026
 #define IDC_COMBO13                     1026
+#define IDC_CHECK17                     1026
 #define IDC_EDIT3                       1027
 #define IDC_CHECK9                      1027
 #define IDC_CHECK2                      1028
@@ -536,6 +542,8 @@
 #define ID_ONTOP_NEVER                  32826
 #define ID_ONTOP_ALWAYS                 32827
 #define ID_ONTOP_WHILEPLAYING           32828
+#define ID_FILE_SAVE_IMAGE              32829
+#define ID_FILE_SAVE_IMAGE_AUTO         32830
 #define ID_FILTERS_SUBITEM_START        33000
 #define ID_FILTERS_SUBITEM_END          33099
 #define ID_FILTERSTREAMS_SUBITEM_START  33100
@@ -568,7 +576,7 @@
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        363
-#define _APS_NEXT_COMMAND_VALUE         32830
+#define _APS_NEXT_COMMAND_VALUE         32833
 #define _APS_NEXT_CONTROL_VALUE         1154
 #define _APS_NEXT_SYMED_VALUE           10003
 #endif

@@ -53,7 +53,7 @@ extern void CorrectComboListWidth(CComboBox& box, CFont* pWndFont);
 extern HICON LoadIcon(CString fn, bool fSmall);
 extern bool LoadType(CString fn, CString& type);
 extern bool LoadResource(UINT resid, CStringA& str, LPCTSTR restype);
-extern CStringA GetContentType(CString fn);
+extern CString GetContentType(CString fn, CList<CString>* redir = NULL);
 
 /////////////////////////////////////////////////////////////////////////////
 // CMPlayerCApp:
@@ -423,9 +423,10 @@ public:
 		bool mpegforcedsubs, mpegplanaryuv;
 		DWORD mpegpreffmt;
 
-		int mpasf, mpasc;
-		bool mpadrc;
+		int mpasf;
 		bool mpanormalize;
+		int ac3sc, dtssc;
+		bool ac3drc, dtsdrc;
 
 		bool fHideCDROMsSubMenu;
 
@@ -433,6 +434,8 @@ public:
 		int nWebServerPort;
 		bool fWebServerPrintDebugInfo;
 		bool fWebServerUseCompression;
+
+		CString SnapShotPath;
 
 	public:
 		Settings();

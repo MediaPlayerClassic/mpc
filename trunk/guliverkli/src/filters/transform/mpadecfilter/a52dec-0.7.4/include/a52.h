@@ -21,14 +21,14 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
+#ifndef A52_H
+#define A52_H
+
 #define LIBA52_DOUBLE
 
 # ifdef __cplusplus
 extern "C" {
 # endif
-
-#ifndef A52_H
-#define A52_H
 
 #ifndef LIBA52_DOUBLE
 typedef float sample_t;
@@ -65,8 +65,8 @@ void a52_dynrng (a52_state_t * state,
 int a52_block (a52_state_t * state);
 void a52_free (a52_state_t * state);
 
-#endif /* A52_H */
-
 # ifdef __cplusplus
 }
 # endif
+
+#endif /* A52_H */

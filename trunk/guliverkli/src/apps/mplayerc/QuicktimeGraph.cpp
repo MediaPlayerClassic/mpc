@@ -505,7 +505,7 @@ bool CQuicktimeWindow::OpenMovie(CString fn)
 			bmi.bmiHeader.biWidth		= m_size.cx;
 			bmi.bmiHeader.biHeight		= -m_size.cy;
 			bmi.bmiHeader.biPlanes		= 1;
-			bmi.bmiHeader.biBitCount	= bpp;
+			bmi.bmiHeader.biBitCount	= 32/*bpp*/;
 
 			bmi.bmiColors[0] = /*bpp == 16 ? 0xf800 :*/ 0xff0000;
 			bmi.bmiColors[1] = /*bpp == 16 ? 0x07e0 :*/ 0x00ff00;

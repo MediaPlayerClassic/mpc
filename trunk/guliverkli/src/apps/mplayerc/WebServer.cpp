@@ -698,7 +698,7 @@ bool CWebServer::HandlerBrowser(CClientSocket* pClient, CStringA& hdr, CStringA&
 	{
 		path = WToT(UTF8To16(TToA(path)));
 
-		if(CFile::GetStatus(path, fs) && !(fs.m_attribute&CFile::directory))
+		if(CFileGetStatus(path, fs) && !(fs.m_attribute&CFile::directory))
 		{
 			// TODO: make a new message for just opening files, this is a bit overkill now...
 
@@ -729,7 +729,7 @@ bool CWebServer::HandlerBrowser(CClientSocket* pClient, CStringA& hdr, CStringA&
 	{
 		path = m_pMainFrm->m_wndPlaylistBar.GetCur();
 
-		if(CFile::GetStatus(path, fs) && !(fs.m_attribute&CFile::directory))
+		if(CFileGetStatus(path, fs) && !(fs.m_attribute&CFile::directory))
 		{
 			CPath p(path);
 			p.RemoveFileSpec();
@@ -740,7 +740,7 @@ bool CWebServer::HandlerBrowser(CClientSocket* pClient, CStringA& hdr, CStringA&
 	if(path.Find(_T("://")) >= 0)
 		path.Empty();
 
-	if(CFile::GetStatus(path, fs) && (fs.m_attribute&CFile::directory)
+	if(CFileGetStatus(path, fs) && (fs.m_attribute&CFile::directory)
 	|| path.Find(_T("\\")) == 0) // FIXME
 	{
 		CPath p(path);

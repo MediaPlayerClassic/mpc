@@ -41,11 +41,17 @@ public:
 // Dialog Data
 	enum { IDD = IDD_PPAGEAUDIODEC };
 	int m_iSampleFormat;
-	BOOL m_fSpeakerConfig;
-	int m_iSpeakerConfig;
-	BOOL m_fSpeakerConfigLFE;
-	BOOL m_fDynamicRangeControl;
-	CComboBox m_sclist;
+	BOOL m_fNormalize;
+	BOOL m_fAc3SpeakerConfig;
+	int m_iAc3SpeakerConfig;
+	BOOL m_fAc3SpeakerConfigLFE;
+	BOOL m_fAc3DynamicRangeControl;
+	CComboBox m_ac3sclist;
+	BOOL m_fDtsSpeakerConfig;
+	int m_iDtsSpeakerConfig;
+	BOOL m_fDtsSpeakerConfigLFE;
+	BOOL m_fDtsDynamicRangeControl;
+	CComboBox m_dtssclist;
 
 protected:
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV support
@@ -53,6 +59,4 @@ protected:
 	virtual BOOL OnApply();
 
 	DECLARE_MESSAGE_MAP()
-public:
-	BOOL m_fNormalize;
 };

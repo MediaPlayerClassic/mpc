@@ -2038,7 +2038,7 @@ void CDirectVobSubFilter::SetupFRD(CStringArray& paths, CArray<HANDLE>& handles)
 		CString fn = m_frd.files.GetNext(pos);
 
 		CFileStatus status;
-		if(CFile::GetStatus(fn, status)) 
+		if(CFileGetStatus(fn, status)) 
 			m_frd.mtime[i] = status.m_mtime;
 
 		fn.Replace('\\', '/');
@@ -2099,7 +2099,7 @@ DWORD CDirectVobSubFilter::ThreadProc()
 				CString fn = m_frd.files.GetNext(pos);
 
 				CFileStatus status;
-				if(CFile::GetStatus(fn, status) && m_frd.mtime[i] != status.m_mtime) 
+				if(CFileGetStatus(fn, status) && m_frd.mtime[i] != status.m_mtime) 
 				{
 					for(j = 0; j < 10; j++)
 					{
@@ -2130,7 +2130,7 @@ DWORD CDirectVobSubFilter::ThreadProc()
 				for(int i = 0; pos; i++)
 				{
 					CFileStatus status;
-					if(CFile::GetStatus(m_frd.files.GetNext(pos), status) 
+					if(CFileGetStatus(m_frd.files.GetNext(pos), status) 
 						&& m_frd.mtime[i] != status.m_mtime) 
 					{
 						Open();

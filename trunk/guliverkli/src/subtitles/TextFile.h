@@ -43,7 +43,7 @@ public:
 
 	// CFile
 
-	CString GetFilePath() const {return __super::GetFilePath();}
+	CString GetFilePath() const;
 
 	// CStdioFile
 

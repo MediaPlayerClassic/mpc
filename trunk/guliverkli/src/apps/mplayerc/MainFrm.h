@@ -142,6 +142,7 @@ class CMainFrame : public CFrameWnd, public CDropTarget
 	};
 
 	friend class CPPageFileInfoSheet;
+	friend class CPPageLogo;
 
 	// TODO: wrap these graph objects into a class to make it look cleaner
 
@@ -263,6 +264,8 @@ class CMainFrame : public CFrameWnd, public CDropTarget
 	CComPtr<IBaseFilter> pAudioDubSrc;
 
 	void ShowOptions(int idPage = 0);
+
+	void SaveImage(LPCTSTR fn);
 
 	//
 
@@ -494,6 +497,9 @@ public:
 	afx_msg void OnDropFiles(HDROP hDropInfo); // no menu item
 	afx_msg void OnFileSaveas();
 	afx_msg void OnUpdateFileSaveas(CCmdUI* pCmdUI);
+	afx_msg void OnFileSaveImage();
+	afx_msg void OnFileSaveImageAuto();
+	afx_msg void OnUpdateFileSaveImage(CCmdUI *pCmdUI);
 	afx_msg void OnFileLoadsubtitles();
 	afx_msg void OnUpdateFileLoadsubtitles(CCmdUI* pCmdUI);
 	afx_msg void OnFileSavesubtitles();

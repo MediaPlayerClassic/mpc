@@ -111,7 +111,7 @@ bool CVobSubFileRipper::LoadIfo(CString fn)
 	CString str;
 
 	CFileStatus status;
-	if(!CFile::GetStatus(fn, status) || !status.m_size)
+	if(!CFileGetStatus(fn, status) || !status.m_size)
 	{
 		Log(LOG_ERROR, _T("Invalid ifo"));
 		return(false);
@@ -378,7 +378,7 @@ bool CVobSubFileRipper::LoadVob(CString fn)
 		vob.Format(_T("%s%d.vob"), fn, i);
 
 		CFileStatus status;
-		if(!(CFile::GetStatus(vob, status) && status.m_size))
+		if(!(CFileGetStatus(vob, status) && status.m_size))
 		{
 			if(i > 0) break;
 			else continue;

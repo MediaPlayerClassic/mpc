@@ -340,7 +340,7 @@ CGraphBuilder::CGraphBuilder(IGraphBuilder* pGB, HWND hWnd)
 		guids.AddTail(MEDIATYPE_Audio);
 		guids.AddTail(MEDIASUBTYPE_WAVE_DTS);
 		AddFilter(new CGraphCustomFilter(__uuidof(CMpaDecFilter), guids, 
-			(s.TraFilters&TRA_DTS) ? L"DTS Pass-through to S/PDIF" : L"DTS Pass-through to S/PDIF (low merit)",
+			(s.TraFilters&TRA_DTS) ? L"DTS Decoder" : L"DTS Decoder (low merit)",
 			(s.TraFilters&TRA_DTS) ? LMERIT_ABOVE_DSHOW : LMERIT_DO_USE));
 		guids.RemoveAll();
 	}
@@ -675,8 +675,10 @@ HRESULT CGraphBuilder::Render(LPCTSTR lpsz)
 	{
 		if(!pBF && fn.Find(_T("://")) > 0)
 		{
-			if(GetContentType(fn) == "video/x-ms-asf") // TODO: if there are more to check, do GetContentType only once
+			CList<CString> mms;
+			if(GetContentType(fn, &mms) == _T("video/x-ms-asf")) // TODO: if there are more to check, do GetContentType only once
 			{
+				if(!mms.IsEmpty()) fnw = mms.GetHead();
 				fnw.Replace(L"&MSWMExt=.asf", L"");
 
 				CComPtr<IFileSourceFilter> pReader;

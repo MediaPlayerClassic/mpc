@@ -32,11 +32,15 @@ IMPLEMENT_DYNAMIC(CPPageAudioDecoder, CPPageBase)
 CPPageAudioDecoder::CPPageAudioDecoder(IFilterGraph* pFG)
 	: CPPageBase(CPPageAudioDecoder::IDD, CPPageAudioDecoder::IDD)
 	, m_iSampleFormat(0)
-	, m_fSpeakerConfig(FALSE)
-	, m_iSpeakerConfig(0)
-	, m_fSpeakerConfigLFE(FALSE)
-	, m_fDynamicRangeControl(FALSE)
 	, m_fNormalize(FALSE)
+	, m_fAc3SpeakerConfig(FALSE)
+	, m_iAc3SpeakerConfig(0)
+	, m_fAc3SpeakerConfigLFE(FALSE)
+	, m_fAc3DynamicRangeControl(FALSE)
+	, m_fDtsSpeakerConfig(FALSE)
+	, m_iDtsSpeakerConfig(0)
+	, m_fDtsSpeakerConfigLFE(FALSE)
+	, m_fDtsDynamicRangeControl(FALSE)
 {
 	BeginEnumFilters(pFG, pEF, pBF)
 		if(CComQIPtr<IMpaDecFilter> pMpaDecFilter = pBF)
@@ -52,12 +56,17 @@ void CPPageAudioDecoder::DoDataExchange(CDataExchange* pDX)
 {
 	__super::DoDataExchange(pDX);
 	DDX_Radio(pDX, IDC_RADIO1, m_iSampleFormat);
-	DDX_Radio(pDX, IDC_RADIO5, m_fSpeakerConfig);
-	DDX_CBIndex(pDX, IDC_COMBO1, m_iSpeakerConfig);
-	DDX_Check(pDX, IDC_CHECK1, m_fSpeakerConfigLFE);
-	DDX_Check(pDX, IDC_CHECK2, m_fDynamicRangeControl);
-	DDX_Control(pDX, IDC_COMBO1, m_sclist);
 	DDX_Check(pDX, IDC_CHECK3, m_fNormalize);
+	DDX_Radio(pDX, IDC_RADIO5, m_fAc3SpeakerConfig);
+	DDX_CBIndex(pDX, IDC_COMBO1, m_iAc3SpeakerConfig);
+	DDX_Check(pDX, IDC_CHECK1, m_fAc3SpeakerConfigLFE);
+	DDX_Check(pDX, IDC_CHECK2, m_fAc3DynamicRangeControl);
+	DDX_Control(pDX, IDC_COMBO1, m_ac3sclist);
+	DDX_Radio(pDX, IDC_RADIO12, m_fDtsSpeakerConfig);
+	DDX_CBIndex(pDX, IDC_COMBO2, m_iDtsSpeakerConfig);
+	DDX_Check(pDX, IDC_CHECK17, m_fDtsSpeakerConfigLFE);
+	DDX_Check(pDX, IDC_CHECK4, m_fDtsDynamicRangeControl);
+	DDX_Control(pDX, IDC_COMBO2, m_dtssclist);
 }
 
 
@@ -74,29 +83,53 @@ BOOL CPPageAudioDecoder::OnInitDialog()
 	AppSettings& s = AfxGetAppSettings();
 
 	m_iSampleFormat = s.mpasf;
-	m_fSpeakerConfig = s.mpasc < 0;
-	m_iSpeakerConfig = A52_STEREO;
-	m_fSpeakerConfigLFE = !!(abs(s.mpasc)&A52_LFE);
-	m_fDynamicRangeControl = s.mpadrc;
 	m_fNormalize = s.mpanormalize;
+	m_fAc3SpeakerConfig = s.ac3sc < 0;
+	m_iAc3SpeakerConfig = A52_STEREO;
+	m_fAc3SpeakerConfigLFE = !!(abs(s.ac3sc)&A52_LFE);
+	m_fAc3DynamicRangeControl = s.ac3drc;
+	m_fDtsSpeakerConfig = s.dtssc < 0;
+	m_iDtsSpeakerConfig = DTS_STEREO;
+	m_fDtsSpeakerConfigLFE = !!(abs(s.dtssc)&DTS_LFE);
+	m_fDtsDynamicRangeControl = s.dtsdrc;
 
-	m_sclist.SetItemData(m_sclist.AddString(_T("Mono")), A52_MONO);
-	m_sclist.SetItemData(m_sclist.AddString(_T("Dual Mono")), A52_CHANNEL);
-	m_sclist.SetItemData(m_sclist.AddString(_T("Stereo")), A52_STEREO);
-	m_sclist.SetItemData(m_sclist.AddString(_T("Dolby Stereo")), A52_DOLBY);
-	m_sclist.SetItemData(m_sclist.AddString(_T("3 Front")), A52_3F);
-	m_sclist.SetItemData(m_sclist.AddString(_T("2 Front + 1 Rear")), A52_2F1R);
-	m_sclist.SetItemData(m_sclist.AddString(_T("3 Front + 1 Rear")), A52_3F1R);
-	m_sclist.SetItemData(m_sclist.AddString(_T("2 Front + 2 Rear")), A52_2F2R);
-	m_sclist.SetItemData(m_sclist.AddString(_T("3 Front + 2 Rear")), A52_3F2R);
-	m_sclist.SetItemData(m_sclist.AddString(_T("Channel 1")), A52_CHANNEL1);
-	m_sclist.SetItemData(m_sclist.AddString(_T("Channel 2")), A52_CHANNEL2);
+	m_ac3sclist.SetItemData(m_ac3sclist.AddString(_T("Mono")), A52_MONO);
+	m_ac3sclist.SetItemData(m_ac3sclist.AddString(_T("Dual Mono")), A52_CHANNEL);
+	m_ac3sclist.SetItemData(m_ac3sclist.AddString(_T("Stereo")), A52_STEREO);
+	m_ac3sclist.SetItemData(m_ac3sclist.AddString(_T("Dolby Stereo")), A52_DOLBY);
+	m_ac3sclist.SetItemData(m_ac3sclist.AddString(_T("3 Front")), A52_3F);
+	m_ac3sclist.SetItemData(m_ac3sclist.AddString(_T("2 Front + 1 Rear")), A52_2F1R);
+	m_ac3sclist.SetItemData(m_ac3sclist.AddString(_T("3 Front + 1 Rear")), A52_3F1R);
+	m_ac3sclist.SetItemData(m_ac3sclist.AddString(_T("2 Front + 2 Rear")), A52_2F2R);
+	m_ac3sclist.SetItemData(m_ac3sclist.AddString(_T("3 Front + 2 Rear")), A52_3F2R);
+	m_ac3sclist.SetItemData(m_ac3sclist.AddString(_T("Channel 1")), A52_CHANNEL1);
+	m_ac3sclist.SetItemData(m_ac3sclist.AddString(_T("Channel 2")), A52_CHANNEL2);
 
-	for(int i = 0, j = abs(s.mpasc)&A52_CHANNEL_MASK; i < m_sclist.GetCount(); i++)
+	for(int i = 0, j = abs(s.ac3sc)&A52_CHANNEL_MASK; i < m_ac3sclist.GetCount(); i++)
 	{
-		if(m_sclist.GetItemData(i) == j)
+		if(m_ac3sclist.GetItemData(i) == j)
 		{
-			m_iSpeakerConfig = i;
+			m_iAc3SpeakerConfig = i;
+			break;
+		}
+	}
+
+	m_dtssclist.SetItemData(m_dtssclist.AddString(_T("Mono")), DTS_MONO);
+	m_dtssclist.SetItemData(m_dtssclist.AddString(_T("Dual Mono")), DTS_CHANNEL);
+	m_dtssclist.SetItemData(m_dtssclist.AddString(_T("Stereo")), DTS_STEREO);
+	//m_dtssclist.SetItemData(m_dtssclist.AddString(_T("Stereo ..")), DTS_STEREO_SUMDIFF);
+	//m_dtssclist.SetItemData(m_dtssclist.AddString(_T("Stereo ..")), DTS_STEREO_TOTAL);
+	m_dtssclist.SetItemData(m_dtssclist.AddString(_T("3 Front")), DTS_3F);
+	m_dtssclist.SetItemData(m_dtssclist.AddString(_T("2 Front + 1 Rear")), DTS_2F1R);
+	m_dtssclist.SetItemData(m_dtssclist.AddString(_T("3 Front + 1 Rear")), DTS_3F1R);
+	m_dtssclist.SetItemData(m_dtssclist.AddString(_T("2 Front + 2 Rear")), DTS_2F2R);
+	m_dtssclist.SetItemData(m_dtssclist.AddString(_T("3 Front + 2 Rear")), DTS_3F2R);
+
+	for(int i = 0, j = abs(s.dtssc)&DTS_CHANNEL_MASK; i < m_dtssclist.GetCount(); i++)
+	{
+		if(m_dtssclist.GetItemData(i) == j)
+		{
+			m_iDtsSpeakerConfig = i;
 			break;
 		}
 	}
@@ -114,11 +147,15 @@ BOOL CPPageAudioDecoder::OnApply()
 	AppSettings& s = AfxGetAppSettings();
 
 	s.mpasf = m_iSampleFormat;
-	s.mpasc = m_sclist.GetItemData(m_sclist.GetCurSel());
-	s.mpasc |= m_fSpeakerConfigLFE?A52_LFE:0;
-	s.mpasc *= m_fSpeakerConfig?-1:1;
-	s.mpadrc = !!m_fDynamicRangeControl;
 	s.mpanormalize = !!m_fNormalize;
+	s.ac3sc = m_ac3sclist.GetItemData(m_ac3sclist.GetCurSel());
+	s.ac3sc |= m_fAc3SpeakerConfigLFE?A52_LFE:0;
+	s.ac3sc *= m_fAc3SpeakerConfig?-1:1;
+	s.ac3drc = !!m_fAc3DynamicRangeControl;
+	s.dtssc = m_dtssclist.GetItemData(m_dtssclist.GetCurSel());
+	s.dtssc |= m_fDtsSpeakerConfigLFE?DTS_LFE:0;
+	s.dtssc *= m_fDtsSpeakerConfig?-1:1;
+	s.dtsdrc = !!m_fDtsDynamicRangeControl;
 
 	POSITION pos = m_pMDFs.GetHeadPosition();
 	while(pos)
@@ -126,8 +163,10 @@ BOOL CPPageAudioDecoder::OnApply()
 		CComPtr<IMpaDecFilter> pMpaDecFilter = m_pMDFs.GetNext(pos);
 		pMpaDecFilter->SetSampleFormat((SampleFormat)s.mpasf);
 		pMpaDecFilter->SetNormalize(s.mpanormalize);
-		pMpaDecFilter->SetSpeakerConfig(s.mpasc);
-		pMpaDecFilter->SetDynamicRangeControl(s.mpadrc);
+		pMpaDecFilter->SetSpeakerConfig(IMpaDecFilter::ac3, s.ac3sc);
+		pMpaDecFilter->SetDynamicRangeControl(IMpaDecFilter::ac3, s.ac3drc);
+		pMpaDecFilter->SetSpeakerConfig(IMpaDecFilter::dts, s.dtssc);
+		pMpaDecFilter->SetDynamicRangeControl(IMpaDecFilter::dts, s.dtsdrc);
 	}
 
 	return __super::OnApply();

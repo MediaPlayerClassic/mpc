@@ -53,7 +53,8 @@ void GetSubFileNames(CString fn, CStringArray& paths, SubFiles& ret)
 
 	bool fWeb = false;
 	{
-		int i = fn.Find(_T("://"));
+//		int i = fn.Find(_T("://"));
+		int i = fn.Find(_T("http://"));
 		if(i > 0) {fn = _T("http") + fn.Mid(i); fWeb = true;}
 	}
 

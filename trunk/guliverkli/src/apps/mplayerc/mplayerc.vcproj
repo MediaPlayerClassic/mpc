@@ -39,7 +39,8 @@
 				ObjectFile=".\$(OutDir)/"
 				ProgramDataBaseFileName=".\$(OutDir)/"
 				WarningLevel="3"
-				SuppressStartupBanner="TRUE"/>
+				SuppressStartupBanner="TRUE"
+				DebugInformationFormat="0"/>
 			<Tool
 				Name="VCCustomBuildTool"/>
 			<Tool
@@ -118,13 +119,13 @@
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalOptions="/MACHINE:I386"
-				AdditionalDependencies="detours.lib qtmlClient.lib wmstub.lib Dsound.lib dxguid.lib strmbaseDU.lib dsutilDU.lib subpicDU.lib subtitlesDU.lib filtersDU.lib uiDU.lib"
+				AdditionalDependencies="Delayimp.lib detours.lib qtmlClient.lib wmstub.lib Dsound.lib dxguid.lib strmbaseDU.lib dsutilDU.lib subpicDU.lib subtitlesDU.lib filtersDU.lib uiDU.lib"
 				OutputFile="$(OutDir)\$(ProjectName).exe"
 				LinkIncremental="2"
 				SuppressStartupBanner="TRUE"
 				AdditionalLibraryDirectories="../../../lib;../../../lib/wm7;../../../lib/qt6;../../../lib/detours"
 				IgnoreDefaultLibraryNames="MSVCRT;LIBCMT"
-				DelayLoadDLLs=""
+				DelayLoadDLLs="d3d9.dll;msimg32.dll;gdiplus.dll"
 				GenerateDebugInformation="TRUE"
 				ProgramDatabaseFile="$(OutDir)\$(ProjectName).pdb"
 				SubSystem="2"/>
@@ -1614,9 +1615,6 @@
 				RelativePath="res\single.ico">
 			</File>
 			<File
-				RelativePath=".\res\web\sliderback.gif">
-			</File>
-			<File
 				RelativePath="res\stereo.bmp">
 			</File>
 			<File
@@ -1642,6 +1640,9 @@
 				</File>
 				<File
 					RelativePath=".\res\web\index.html">
+				</File>
+				<File
+					RelativePath=".\res\web\sliderback.gif">
 				</File>
 				<File
 					RelativePath=".\res\web\sliderbar.gif">

@@ -62,6 +62,7 @@ public:
 	// ISubPicAllocatorPresenter
 	STDMETHODIMP CreateRenderer(IUnknown** ppRenderer);
 	STDMETHODIMP_(bool) Paint(bool fAll);
+	STDMETHODIMP GetDIB(BYTE* lpDib, DWORD* size);
 };
 
 class CVMR7AllocatorPresenter
@@ -546,6 +547,61 @@ STDMETHODIMP_(bool) CDX7AllocatorPresenter::Paint(bool fAll)
 	return(true);
 }
 
+STDMETHODIMP CDX7AllocatorPresenter::GetDIB(BYTE* lpDib, DWORD* size)
+{
+	CheckPointer(size, E_POINTER);
+
+	HRESULT hr;
+
+	DDSURFACEDESC2 ddsd;
+	INITDDSTRUCT(ddsd);
+	if(FAILED(m_pVideoSurface->GetSurfaceDesc(&ddsd)))
+		return E_FAIL;
+
+	if(ddsd.ddpfPixelFormat.dwRGBBitCount != 16 && ddsd.ddpfPixelFormat.dwRGBBitCount != 32)
+		return E_FAIL;
+
+	DWORD required = sizeof(BITMAPINFOHEADER) + (ddsd.dwWidth*ddsd.dwHeight*32>>3);
+	if(!lpDib) {*size = required; return S_OK;}
+	if(*size < required) return E_OUTOFMEMORY;
+	*size = required;
+
+	INITDDSTRUCT(ddsd);
+	if(FAILED(hr = m_pVideoSurface->Lock(NULL, &ddsd, DDLOCK_WAIT|DDLOCK_SURFACEMEMORYPTR|DDLOCK_READONLY|DDLOCK_NOSYSLOCK, NULL)))
+	{
+		// TODO
+		return hr;
+	}
+
+	BITMAPINFOHEADER* bih = (BITMAPINFOHEADER*)lpDib;
+	memset(bih, 0, sizeof(BITMAPINFOHEADER));
+	bih->biSize = sizeof(BITMAPINFOHEADER);
+	bih->biWidth = ddsd.dwWidth;
+	bih->biHeight = ddsd.dwHeight;
+	bih->biBitCount = 32;
+	bih->biPlanes = 1;
+	bih->biSizeImage = bih->biWidth*bih->biHeight*bih->biBitCount>>3;
+
+	BitBltFromRGBToRGB(
+		bih->biWidth, bih->biHeight, 
+		(BYTE*)(bih + 1), bih->biWidth*bih->biBitCount>>3, bih->biBitCount,
+		(BYTE*)ddsd.lpSurface + ddsd.lPitch*(ddsd.dwHeight-1), -(int)ddsd.lPitch, ddsd.ddpfPixelFormat.dwRGBBitCount);
+
+	m_pVideoSurface->Unlock(NULL);
+
+/*
+			BitBltFromRGBToRGB(
+				w, h, 
+				(BYTE*)ddsd.lpSurface, ddsd.lPitch, ddsd.ddpfPixelFormat.dwRGBBitCount,
+				(BYTE*)bm.bmBits, bm.bmWidthBytes, bm.bmBitsPixel);
+			m_pVideoSurfaceOff->Unlock(NULL);
+			fOk = true;
+		}
+*/
+
+	return S_OK;
+}
+
 //
 // CVMR7AllocatorPresenter
 //
@@ -1005,12 +1061,18 @@ STDMETHODIMP CRM7AllocatorPresenter::Blt(UCHAR* pImageData, RMABitmapInfoHeader*
 			{
 				BitBltFromYUY2ToYUY2(src.Width(), src.Height(), (BYTE*)ddsd.lpSurface, ddsd.lPitch, yvyu, pitch);
 				m_pVideoSurfaceYUY2->Unlock(src2);
-				fRGB = true;
+				fYUY2 = true;
 			}
 		}
 		else
 		{
-			// TODO: BitBltFromYUY2ToRGB
+			INITDDSTRUCT(ddsd);
+			if(SUCCEEDED(m_pVideoSurfaceOff->Lock(src2, &ddsd, DDLOCK_WAIT|DDLOCK_SURFACEMEMORYPTR|DDLOCK_WRITEONLY, NULL)))
+			{
+				BitBltFromYUY2ToRGB(src.Width(), src.Height(), (BYTE*)ddsd.lpSurface, ddsd.lPitch, ddsd.ddpfPixelFormat.dwRGBBitCount, yvyu, pitch);
+				m_pVideoSurfaceOff->Unlock(src2);
+				fRGB = true;
+			}
 		}
 	}
 	else if(pBitmapInfo->biCompression == 0 || pBitmapInfo->biCompression == 3

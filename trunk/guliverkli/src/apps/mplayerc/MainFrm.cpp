@@ -218,6 +218,10 @@ BEGIN_MESSAGE_MAP(CMainFrame, CFrameWnd)
 	ON_WM_DROPFILES()
 	ON_COMMAND(ID_FILE_SAVEAS, OnFileSaveas)
 	ON_UPDATE_COMMAND_UI(ID_FILE_SAVEAS, OnUpdateFileSaveas)
+	ON_COMMAND(ID_FILE_SAVE_IMAGE, OnFileSaveImage)
+	ON_COMMAND(ID_FILE_SAVE_IMAGE_AUTO, OnFileSaveImageAuto)
+	ON_UPDATE_COMMAND_UI(ID_FILE_SAVE_IMAGE, OnUpdateFileSaveImage)
+	ON_UPDATE_COMMAND_UI(ID_FILE_SAVE_IMAGE_AUTO, OnUpdateFileSaveImage)
 	ON_COMMAND(ID_FILE_LOADSUBTITLE, OnFileLoadsubtitles)
 	ON_UPDATE_COMMAND_UI(ID_FILE_LOADSUBTITLE, OnUpdateFileLoadsubtitles)
 	ON_COMMAND(ID_FILE_SAVESUBTITLES, OnFileSavesubtitles)
@@ -321,7 +325,7 @@ BEGIN_MESSAGE_MAP(CMainFrame, CFrameWnd)
 
 	ON_COMMAND(ID_HELP_HOMEPAGE, OnHelpHomepage)
 	ON_COMMAND(ID_HELP_DONATE, OnHelpDonate)
-END_MESSAGE_MAP()
+	END_MESSAGE_MAP()
 
 /////////////////////////////////////////////////////////////////////////////
 // CMainFrame construction/destruction
@@ -2756,9 +2760,13 @@ BOOL CMainFrame::OnCopyData(CWnd* pWnd, COPYDATASTRUCT* pCDS)
 		}
 		else
 		{
+			CString dir;
+			dir.ReleaseBufferSetLength(GetCurrentDirectory(MAX_PATH, dir.GetBuffer(MAX_PATH)));
+
+			GetCDROMType(dir[0], sl);			
+
 			for(TCHAR drive = 'C'; sl.IsEmpty() && drive <= 'Z'; drive++)
 			{
-				sl.RemoveAll();
 				GetCDROMType(drive, sl);
 			}
 		}
@@ -2962,6 +2970,129 @@ void CMainFrame::OnUpdateFileSaveas(CCmdUI* pCmdUI)
 	}
 
 	pCmdUI->Enable(TRUE);
+}
+
+void CMainFrame::SaveImage(LPCTSTR fn)
+{
+	OAFilterState fs = GetMediaState();
+
+	if(fs == State_Running)
+	{
+		pMC->Pause();
+		GetMediaState();
+	}
+
+	CString errmsg;
+
+	do
+	{
+		HRESULT hr;
+
+		CAutoVectorPtr<BYTE> buff;
+		long size = 0;
+
+		if(m_pCAP)
+		{
+			hr = m_pCAP->GetDIB(NULL, (DWORD*)&size);
+			if(FAILED(hr)) {errmsg.Format(_T("GetDIB failed, hr = %08x"), hr); break;}
+
+			buff.Allocate(size);
+
+			hr = m_pCAP->GetDIB(buff, (DWORD*)&size);
+			if(FAILED(hr)) {errmsg.Format(_T("GetDIB failed, hr = %08x"), hr); break;}
+		}
+		else
+		{
+			hr = pBV->GetCurrentImage(&size, NULL);
+			if(FAILED(hr)) {errmsg.Format(_T("GetCurrentImage failed, hr = %08x"), hr); break;}
+
+			buff.Allocate(size);
+
+			hr = pBV->GetCurrentImage(&size, (long*)(BYTE*)buff);
+			if(FAILED(hr)) {errmsg.Format(_T("GetCurrentImage failed, hr = %08x"), hr); break;}
+		}
+
+		FILE* f = _tfopen(fn, _T("wb"));
+		if(!f) {errmsg = _T("Cannot create file"); break;}
+
+		BITMAPINFO* bi = (BITMAPINFO*)(BYTE*)buff;
+
+		BITMAPFILEHEADER bfh;
+		bfh.bfType = 'MB';
+		bfh.bfOffBits = sizeof(bfh) + sizeof(bi->bmiHeader);
+		if(bi->bmiHeader.biBitCount <= 8)
+		{
+			if(bi->bmiHeader.biClrUsed) bfh.bfOffBits += bi->bmiHeader.biClrUsed * sizeof(bi->bmiColors[0]);
+			else bfh.bfOffBits += (1 << bi->bmiHeader.biBitCount) * sizeof(bi->bmiColors[0]);
+		}
+		bfh.bfSize = sizeof(bfh) + size;
+		bfh.bfReserved1 = bfh.bfReserved2 = 0;
+
+		fwrite(&bfh, 1, sizeof(bfh), f);
+		fwrite(buff, 1, size, f);
+
+		fclose(f);
+	}
+	while(0);
+
+	if(!errmsg.IsEmpty())
+	{
+		AfxMessageBox(errmsg, MB_OK);
+	}
+
+	if(fs == State_Running)
+	{
+		pMC->Run();
+	}
+}
+
+static CString MakeSnapshotFileName()
+{
+	CTime t = CTime::GetCurrentTime();
+	CString fn;
+	fn.Format(_T("snapshot%s.bmp"), t.Format(_T("%Y%m%d%H%M%S")));
+	return fn;
+}
+
+void CMainFrame::OnFileSaveImage()
+{
+	AppSettings& s = AfxGetAppSettings();
+
+	CFileDialog fd(FALSE, 0, s.SnapShotPath + '\\' + MakeSnapshotFileName(), 
+		OFN_EXPLORER|OFN_ENABLESIZING|OFN_HIDEREADONLY|OFN_OVERWRITEPROMPT|OFN_PATHMUSTEXIST, 
+		_T("Bitmaps (*.bmp)|*.bmp||"), this, 0);
+	if(fd.DoModal() != IDOK) return;
+
+	CPath p(fd.GetPathName());
+	p.RemoveFileSpec();
+	s.SnapShotPath = (LPCTSTR)p;
+
+	SaveImage(fd.GetPathName());
+}
+
+void CMainFrame::OnFileSaveImageAuto()
+{
+	CString fn;
+	fn.Format(_T("%s\\%s"), AfxGetAppSettings().SnapShotPath, MakeSnapshotFileName());
+
+	CPath p(fn);
+	if(CDC* pDC = m_wndStatusBar.m_status.GetDC())
+	{
+		CRect r;
+		m_wndStatusBar.m_status.GetClientRect(r);
+		p.CompactPath(pDC->m_hDC, r.Width());
+		m_wndStatusBar.m_status.ReleaseDC(pDC);
+	}
+	SendStatusMessage((LPCTSTR)p, 3000);
+
+	SaveImage(fn);
+}
+
+void CMainFrame::OnUpdateFileSaveImage(CCmdUI* pCmdUI)
+{
+	OAFilterState fs = GetMediaState();
+	pCmdUI->Enable(m_iMediaLoadState == MLS_LOADED && !m_fAudioOnly 
+		&& (fs == State_Paused || fs == State_Running));
 }
 
 void CMainFrame::OnFileLoadsubtitles()
@@ -3874,6 +4005,7 @@ void CMainFrame::OnUpdatePlayChangeAudDelay(CCmdUI* pCmdUI)
 }
 
 #include "ComPropertySheet.h"
+#include ".\mainfrm.h"
 
 void CMainFrame::OnPlayFilters(UINT nID)
 {
@@ -5825,8 +5957,10 @@ void CMainFrame::OpenCustomizeGraph()
 			AppSettings& s = AfxGetAppSettings();
 			m_pMpaDecFilter->SetSampleFormat((SampleFormat)s.mpasf);
 			m_pMpaDecFilter->SetNormalize(s.mpanormalize);
-			m_pMpaDecFilter->SetSpeakerConfig(s.mpasc);
-			m_pMpaDecFilter->SetDynamicRangeControl(s.mpadrc);
+			m_pMpaDecFilter->SetSpeakerConfig(IMpaDecFilter::ac3, s.ac3sc);
+			m_pMpaDecFilter->SetDynamicRangeControl(IMpaDecFilter::ac3, s.ac3drc);
+			m_pMpaDecFilter->SetSpeakerConfig(IMpaDecFilter::dts, s.dtssc);
+			m_pMpaDecFilter->SetDynamicRangeControl(IMpaDecFilter::dts, s.dtsdrc);
 		}
 	}
 	EndEnumFilters
@@ -7234,18 +7368,27 @@ bool CMainFrame::LoadSubtitle(CString fn)
 {
 	CComPtr<ISubStream> pSubStream;
 
-	if(!pSubStream)
+	// TMP: maybe this will catch something for those who get a runtime error dialog when opening subtitles from cds
+	try
 	{
-		CAutoPtr<CVobSubFile> pVSF(new CVobSubFile(&m_csSubLock));
-		if(pVSF && pVSF->Open(fn) && pVSF->GetStreamCount() > 0)
-			pSubStream = pVSF.Detach();
-	}
+		if(!pSubStream)
+		{
+			CAutoPtr<CVobSubFile> pVSF(new CVobSubFile(&m_csSubLock));
+			if(pVSF && pVSF->Open(fn) && pVSF->GetStreamCount() > 0)
+				pSubStream = pVSF.Detach();
+		}
 
-	if(!pSubStream)
+		if(!pSubStream)
+		{
+			CAutoPtr<CRenderedTextSubtitle> pRTS(new CRenderedTextSubtitle(&m_csSubLock));
+			if(pRTS && pRTS->Open(fn, DEFAULT_CHARSET) && pRTS->GetStreamCount() > 0)
+				pSubStream = pRTS.Detach();
+		}
+	}
+	catch(CException* e)
 	{
-		CAutoPtr<CRenderedTextSubtitle> pRTS(new CRenderedTextSubtitle(&m_csSubLock));
-		if(pRTS && pRTS->Open(fn, DEFAULT_CHARSET) && pRTS->GetStreamCount() > 0)
-			pSubStream = pRTS.Detach();
+		e->ReportError();
+		e->Delete();
 	}
 
 	if(pSubStream)
@@ -8007,6 +8150,7 @@ IMPLEMENT_DYNCREATE(CGraphThread, CWinThread)
 
 BOOL CGraphThread::InitInstance()
 {
+	AfxSocketInit();
 	return SUCCEEDED(CoInitialize(0)) ? TRUE : FALSE;
 }
 
@@ -8042,4 +8186,3 @@ void CGraphThread::OnClose(WPARAM wParam, LPARAM lParam)
 	if(m_pMainFrame) m_pMainFrame->CloseMediaPrivate();
 	if(CAMEvent* e = (CAMEvent*)lParam) e->Set();
 }
-
