@@ -1,5 +1,5 @@
 /* 
- *	Media Player Classic.  Copyright (C) 2003 Gabest
+ *	Copyright (C) 2003-2004 Gabest
  *	http://www.gabest.org
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -155,7 +155,10 @@ enum
 	TRA_REALVID=TRA_MPEG2<<1,
 	TRA_REALAUD=TRA_REALVID<<1,
 	TRA_MPEGAUD=TRA_REALAUD<<1,
-	TRA_LAST=TRA_MPEGAUD<<1
+	TRA_LPCM=TRA_MPEGAUD<<1,
+	TRA_AC3=TRA_LPCM<<1,
+	TRA_DTS=TRA_AC3<<1,
+	TRA_LAST=TRA_DTS<<1
 };
 
 enum
@@ -418,10 +421,15 @@ public:
 		bool mpegforcedsubs, mpegplanaryuv;
 		DWORD mpegpreffmt;
 
+		int mpasf, mpasc;
+		bool mpadrc;
+
 		bool fHideCDROMsSubMenu;
 
 		BOOL fEnableWebServer;
 		int nWebServerPort;
+		bool fWebServerPrintDebugInfo;
+		bool fWebServerUseCompression;
 
 	public:
 		Settings();

@@ -1,5 +1,5 @@
 /* 
- *	Copyright (C) 2003 Gabest
+ *	Copyright (C) 2003-2004 Gabest
  *	http://www.gabest.org
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -28,6 +28,7 @@
 #include "..\..\..\DSUtil\DSUtil.h"
 #include "..\..\..\DSUtil\MediaTypes.h"
 #include "RealMediaSplitter.h"
+#include "..\..\..\subtitles\SubtitleInputPin.h"
 
 //
 
@@ -280,6 +281,7 @@ HRESULT CRealMediaSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 	HRESULT hr = E_FAIL;
 
 	m_pFile.Free();
+	m_pChapters.RemoveAll();
 
 	m_pFile.Attach(new CRMFile(pAsyncReader, hr));
 	if(!m_pFile) return E_OUTOFMEMORY;
@@ -426,6 +428,64 @@ HRESULT CRealMediaSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 				}
 			}
 		}
+		else if(pmp->mime == "logical-fileinfo")
+		{
+			CMap<CStringA,LPCSTR,CStringA,LPCSTR> lfi;
+			CStringA key, value;
+
+			BYTE* p = pmp->typeSpecData.GetData();
+			BYTE* end = p + pmp->typeSpecData.GetCount();
+			p += 8;
+
+			DWORD cnt = p <= end-4 ? *(DWORD*)p : 0; bswap(cnt); p += 4;
+
+			while(p < end-4 && cnt-- > 0)
+			{
+				BYTE* base = p;
+				DWORD len = *(DWORD*)p; bswap(len); p += 4;
+				if(base + len > end) break;
+
+				p++;
+				WORD keylen = *(WORD*)p; bswap(keylen); p += 2;
+				memcpy(key.GetBufferSetLength(keylen), p, keylen);
+				p += keylen;
+
+				p+=4;
+				WORD valuelen = *(WORD*)p; bswap(valuelen); p += 2;
+				memcpy(value.GetBufferSetLength(valuelen), p, valuelen);
+				p += valuelen;
+
+				ASSERT(p == base + len);
+				p = base + len;
+				
+				lfi[key] = value;
+			}
+
+			POSITION pos = lfi.GetStartPosition();
+			while(pos)
+			{
+				lfi.GetNextAssoc(pos, key, value);
+
+				int n;
+				if(key.Find("CHAPTER") == 0 && key.Find("TIME") == key.GetLength()-4
+				&& (n = strtol(key.Mid(7), NULL, 10)) > 0)
+				{
+					int h, m, s, ms;
+					char c;
+					if(7 != sscanf(value, "%d%c%d%c%d%c%d", &h, &c, &m, &c, &s, &c, &ms))
+						continue;
+
+					key.Format("CHAPTER%02dNAME", n);
+					if(!lfi.Lookup(key, value) || value.IsEmpty())
+						value.Format("Chapter %d", n);
+
+					CAutoPtr<CChapter> p(new CChapter(
+						((((REFERENCE_TIME)h*60+m)*60+s)*1000+ms)*10000, 
+						CStringW(CString(value))));
+					m_pChapters.AddTail(p);
+				}
+			}
+		}
 
 		if(mts.IsEmpty())
 		{
@@ -441,6 +501,28 @@ HRESULT CRealMediaSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 			if(!m_rtStop)
 				m_pFile->m_p.tDuration = max(m_pFile->m_p.tDuration, pmp->tDuration);
 		}
+	}
+
+	pos = m_pFile->m_subs.GetHeadPosition();
+	for(DWORD stream = 0; pos; stream++)
+	{
+		CRMFile::subtitle& s = m_pFile->m_subs.GetNext(pos);
+
+		CStringW name;
+		name.Format(L"Subtitle %02d", stream);
+		if(!s.name.IsEmpty()) name += L" (" + CStringW(CString(s.name)) + L")";
+
+		CMediaType mt;
+		mt.SetSampleSize(1);
+		mt.majortype = MEDIATYPE_Text;
+
+		CArray<CMediaType> mts;
+		mts.Add(mt);
+
+		HRESULT hr;
+
+		CAutoPtr<CBaseSplitterOutputPin> pPinOut(new CRealMediaSplitterOutputPin(mts, name, this, this, &hr));
+		AddOutputPin((DWORD)~stream, pPinOut);
 	}
 
 	m_rtNewStop = m_rtStop;
@@ -613,8 +695,37 @@ void CRealMediaSplitterFilter::SeekDeliverLoop(REFERENCE_TIME rt)
 void CRealMediaSplitterFilter::DoDeliverLoop()
 {
 	HRESULT hr = S_OK;
+	POSITION pos;
 
-	POSITION pos = m_seekpos; 
+	pos = m_pFile->m_subs.GetHeadPosition();
+	for(DWORD stream = 0; pos && SUCCEEDED(hr) && !CheckRequest(NULL); stream++)
+	{
+		CRMFile::subtitle& s = m_pFile->m_subs.GetNext(pos);
+
+		CAutoPtr<Packet> p(new Packet);
+
+		p->TrackNumber = ~stream;
+		p->bSyncPoint = TRUE;
+		p->rtStart = 0;
+		p->rtStop = 1;
+
+		p->pData.SetSize((4+1) + (2+4+(s.name.GetLength()+1)*2) + (2+4+s.data.GetLength()));
+		BYTE* ptr = p->pData.GetData();
+
+		strcpy((char*)ptr, "GAB2"); ptr += 4+1;
+
+		*(WORD*)ptr = 2; ptr += 2;
+		*(DWORD*)ptr = (s.name.GetLength()+1)*2; ptr += 4;
+		wcscpy((WCHAR*)ptr, CStringW(s.name)); ptr += (s.name.GetLength()+1)*2;
+
+		*(WORD*)ptr = 4; ptr += 2;
+		*(DWORD*)ptr = s.data.GetLength(); ptr += 4;
+		memcpy((char*)ptr, s.data, s.data.GetLength()); ptr += s.name.GetLength();
+
+		hr = DeliverPacket(p);
+	}
+
+	pos = m_seekpos; 
 	while(pos && SUCCEEDED(hr) && !CheckRequest(NULL))
 	{
 		DataChunk* pdc = m_pFile->m_dcs.GetNext(pos);
@@ -678,6 +789,45 @@ STDMETHODIMP CRealMediaSplitterFilter::GetKeyFrames(const GUID* pFormat, REFEREN
 	nKFs = nKFsTmp;
 
 	return S_OK;
+}
+
+// IChapterInfo
+
+STDMETHODIMP_(UINT) CRealMediaSplitterFilter::GetChapterCount(UINT aChapterID)
+{
+	return aChapterID == CHAPTER_ROOT_ID ? m_pChapters.GetCount() : 0;
+}
+
+STDMETHODIMP_(UINT) CRealMediaSplitterFilter::GetChapterId(UINT aParentChapterId, UINT aIndex)
+{
+	POSITION pos = m_pChapters.FindIndex(aIndex-1);
+	if(aParentChapterId != CHAPTER_ROOT_ID || !pos)
+		return CHAPTER_BAD_ID;
+	return aIndex;
+}
+
+STDMETHODIMP_(BOOL) CRealMediaSplitterFilter::GetChapterInfo(UINT aChapterID, struct ChapterElement* pStructureToFill)
+{
+	REFERENCE_TIME rtDur = 0;
+	GetDuration(&rtDur);
+
+	CheckPointer(pStructureToFill, E_POINTER);
+	POSITION pos = m_pChapters.FindIndex(aChapterID-1);
+	if(!pos) return FALSE;
+	CChapter* p = m_pChapters.GetNext(pos);
+	pStructureToFill->Size = sizeof(*pStructureToFill);
+	pStructureToFill->Type = AtomicChapter;
+	pStructureToFill->ChapterId = aChapterID;
+	pStructureToFill->rtStart = p->m_rt;
+	pStructureToFill->rtStop = pos ? m_pChapters.GetNext(pos)->m_rt : rtDur;
+	return TRUE;
+}
+
+STDMETHODIMP_(BSTR) CRealMediaSplitterFilter::GetChapterStringInfo(UINT aChapterID, CHAR PreferredLanguage[3], CHAR CountryCode[2])
+{
+	POSITION pos = m_pChapters.FindIndex(aChapterID-1);
+	if(!pos) return NULL;
+	return m_pChapters.GetAt(pos)->m_name.AllocSysString();
 }
 
 //
@@ -1061,6 +1211,24 @@ HRESULT CRMFile::Init()
 				}
 				break;
 				}
+			case '.SUB':
+				if(hdr.size > sizeof(hdr))
+				{
+					int size = hdr.size - sizeof(hdr);
+					CAutoVectorPtr<char> buff;
+					if(!buff.Allocate(size)) return E_OUTOFMEMORY;
+					char* p = buff;
+					if(S_OK != (hr = Read((BYTE*)p, size))) return hr;
+					for(char* end = p + size; p < end; )
+					{
+						subtitle s;
+						s.name = p; p += s.name.GetLength()+1;
+						CStringA len(p); p += len.GetLength()+1;
+						s.data = CStringA(p, strtol(len, NULL, 10)); p += s.data.GetLength();
+						m_subs.AddTail(s);
+					}
+				}
+				break;
 			}
 		}
 

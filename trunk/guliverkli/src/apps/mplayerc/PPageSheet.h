@@ -1,5 +1,5 @@
 /* 
- *	Media Player Classic.  Copyright (C) 2003 Gabest
+ *	Copyright (C) 2003-2004 Gabest
  *	http://www.gabest.org
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -35,6 +35,7 @@ using namespace TreePropSheet;
 #include "PPageFilters.h"
 #include "PPageAudioSwitcher.h"
 #include "PPageMpegDecoder.h"
+#include "PPageAudioDecoder.h"
 #include "PPageOverrides.h"
 #include "PPageSubtitles.h"
 #include "PPageSubStyle.h"
@@ -76,9 +77,9 @@ private:
 	CPPageFilters m_filters;
 	CPPageAudioSwitcher m_audioswitcher;
 	CPPageMpegDecoder m_mpegdecoder;
+	CPPageAudioDecoder m_audiodecoder;
 	CPPageOverrides m_overrides;
 	CPPageTweaks m_tweaks;
-
 
 	CTreeCtrl* CreatePageTreeObject();
 

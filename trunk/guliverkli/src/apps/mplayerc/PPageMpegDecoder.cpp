@@ -1,5 +1,5 @@
 /* 
- *	Media Player Classic.  Copyright (C) 2003 Gabest
+ *	Copyright (C) 2003-2004 Gabest
  *	http://www.gabest.org
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -25,9 +25,7 @@
 
 #include "stdafx.h"
 #include "mplayerc.h"
-#include "MainFrm.h"
 #include "PPageMpegDecoder.h"
-#include "..\..\DSUtil\DSUtil.h"
 #include "..\..\filters\transform\Mpeg2DecFilter\Mpeg2DecFilter.h"
 
 // CPPageMpegDecoder dialog
@@ -77,10 +75,14 @@ BOOL CPPageMpegDecoder::OnInitDialog()
 
 	AppSettings& s = AfxGetAppSettings();
 
-	m_dilist.SetItemData(m_dilist.AddString(_T("Auto")), 0);
-	m_dilist.SetItemData(m_dilist.AddString(_T("Weave")), 1);
-	m_dilist.SetItemData(m_dilist.AddString(_T("Blend")), 2);
-	m_dilist.SetCurSel(s.mpegdi);
+	m_dilist.SetItemData(m_dilist.AddString(_T("Auto")), (DWORD)DIAuto);
+	m_dilist.SetItemData(m_dilist.AddString(_T("Weave")), (DWORD)DIWeave);
+	m_dilist.SetItemData(m_dilist.AddString(_T("Blend")), (DWORD)DIBlend);
+	m_dilist.SetItemData(m_dilist.AddString(_T("Bob")), (DWORD)DIBob);
+	m_dilist.SetCurSel(0);
+	for(int i = 0; i < m_dilist.GetCount(); i++)
+		if((int)m_dilist.GetItemData(i) == s.mpegdi)
+			m_dilist.SetCurSel(i);
 	m_brightctrl.SetRange(0, 2*128);
 	m_brightctrl.SetTic(128);
 	m_brightctrl.SetPos((int)(s.mpegbright)+128);
@@ -108,7 +110,7 @@ BOOL CPPageMpegDecoder::OnApply()
 
 	AppSettings& s = AfxGetAppSettings();
 
-	s.mpegdi = m_dilist.GetCurSel();
+	s.mpegdi = (int)m_dilist.GetItemData(m_dilist.GetCurSel());
 	s.mpegbright = (double)m_brightctrl.GetPos()-128;
 	s.mpegcont = (double)m_contctrl.GetPos() / 100;
 	s.mpeghue = (double)m_huectrl.GetPos()-180;
@@ -135,7 +137,7 @@ void CPPageMpegDecoder::OnCbnSelchangeCombo2()
 	SetModified();
 
 	if(m_pMpeg2DecFilter)
-		m_pMpeg2DecFilter->SetDeinterlaceMethod((ditype)m_dilist.GetCurSel());
+		m_pMpeg2DecFilter->SetDeinterlaceMethod((ditype)m_dilist.GetItemData(m_dilist.GetCurSel()));
 }
 
 void CPPageMpegDecoder::OnCbnSelchangeCombo1()

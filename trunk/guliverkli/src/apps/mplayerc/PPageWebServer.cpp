@@ -1,5 +1,5 @@
 /* 
- *	Media Player Classic.  Copyright (C) 2003 Gabest
+ *	Copyright (C) 2003-2004 Gabest
  *	http://www.gabest.org
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -26,7 +26,6 @@
 #include "mplayerc.h"
 #include "MainFrm.h"
 #include "PPageWebServer.h"
-#include ".\ppagewebserver.h"
 
 // CPPageWebServer dialog
 
@@ -36,6 +35,8 @@ CPPageWebServer::CPPageWebServer()
 	, m_fEnableWebServer(FALSE)
 	, m_nWebServerPort(0)
 	, m_launch(_T("http://localhost:13579/"))
+	, m_fWebServerPrintDebugInfo(FALSE)
+	, m_fWebServerUseCompression(FALSE)
 {
 }
 
@@ -50,6 +51,8 @@ void CPPageWebServer::DoDataExchange(CDataExchange* pDX)
 	DDX_Text(pDX, IDC_EDIT1, m_nWebServerPort);
 	DDX_Control(pDX, IDC_EDIT1, m_nWebServerPortCtrl);
 	DDX_Control(pDX, IDC_STATIC1, m_launch);
+	DDX_Check(pDX, IDC_CHECK2, m_fWebServerPrintDebugInfo);
+	DDX_Check(pDX, IDC_CHECK3, m_fWebServerUseCompression);
 }
 
 BOOL CPPageWebServer::PreTranslateMessage(MSG* pMsg)
@@ -84,6 +87,8 @@ BOOL CPPageWebServer::OnInitDialog()
 
 	m_fEnableWebServer = s.fEnableWebServer;
 	m_nWebServerPort = s.nWebServerPort;
+	m_fWebServerPrintDebugInfo = s.fWebServerPrintDebugInfo;
+	m_fWebServerUseCompression = s.fWebServerUseCompression;
 
 	UpdateData(FALSE);
 
@@ -114,6 +119,8 @@ BOOL CPPageWebServer::OnApply()
 
 	s.fEnableWebServer = !!m_fEnableWebServer;
 	s.nWebServerPort = m_nWebServerPort;
+	s.fWebServerPrintDebugInfo = !!m_fWebServerPrintDebugInfo;
+	s.fWebServerUseCompression = !!m_fWebServerUseCompression;
 
 	return __super::OnApply();
 }

@@ -1,5 +1,5 @@
 /* 
- *	Media Player Classic.  Copyright (C) 2003 Gabest
+ *	Copyright (C) 2003-2004 Gabest
  *	http://www.gabest.org
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -296,8 +296,42 @@ CGraphBuilder::CGraphBuilder(IGraphBuilder* pGB, HWND hWnd)
 		guids.AddTail(MEDIATYPE_Audio);
 		guids.AddTail(MEDIASUBTYPE_DVD_LPCM_AUDIO);
 		AddFilter(new CGraphCustomFilter(__uuidof(CMpaDecFilter), guids, 
-			(s.TraFilters&TRA_MPEGAUD) ? L"LPCM Audio Decoder" : L"LPCM Audio Decoder (low merit)",
-			(s.TraFilters&TRA_MPEGAUD) ? LMERIT_ABOVE_DSHOW : LMERIT_DO_USE));
+			(s.TraFilters&TRA_LPCM) ? L"LPCM Audio Decoder" : L"LPCM Audio Decoder (low merit)",
+			(s.TraFilters&TRA_LPCM) ? LMERIT_ABOVE_DSHOW : LMERIT_DO_USE));
+		guids.RemoveAll();
+	}
+
+	{
+		guids.AddTail(MEDIATYPE_DVD_ENCRYPTED_PACK);
+		guids.AddTail(MEDIASUBTYPE_DOLBY_AC3);
+		guids.AddTail(MEDIATYPE_MPEG2_PACK);
+		guids.AddTail(MEDIASUBTYPE_DOLBY_AC3);
+		guids.AddTail(MEDIATYPE_MPEG2_PES);
+		guids.AddTail(MEDIASUBTYPE_DOLBY_AC3);
+		guids.AddTail(MEDIATYPE_Audio);
+		guids.AddTail(MEDIASUBTYPE_DOLBY_AC3);
+		guids.AddTail(MEDIATYPE_Audio);
+		guids.AddTail(MEDIASUBTYPE_WAVE_DOLBY_AC3);
+		AddFilter(new CGraphCustomFilter(__uuidof(CMpaDecFilter), guids, 
+			(s.TraFilters&TRA_AC3) ? L"AC3 Audio Decoder" : L"AC3 Audio Decoder (low merit)",
+			(s.TraFilters&TRA_AC3) ? LMERIT_ABOVE_DSHOW : LMERIT_DO_USE));
+		guids.RemoveAll();
+	}
+
+	{
+		guids.AddTail(MEDIATYPE_DVD_ENCRYPTED_PACK);
+		guids.AddTail(MEDIASUBTYPE_DTS);
+		guids.AddTail(MEDIATYPE_MPEG2_PACK);
+		guids.AddTail(MEDIASUBTYPE_DTS);
+		guids.AddTail(MEDIATYPE_MPEG2_PES);
+		guids.AddTail(MEDIASUBTYPE_DTS);
+		guids.AddTail(MEDIATYPE_Audio);
+		guids.AddTail(MEDIASUBTYPE_DTS);
+		guids.AddTail(MEDIATYPE_Audio);
+		guids.AddTail(MEDIASUBTYPE_WAVE_DTS);
+		AddFilter(new CGraphCustomFilter(__uuidof(CMpaDecFilter), guids, 
+			(s.TraFilters&TRA_AC3) ? L"DTS Pass-through to S/PDIF" : L"DTS Pass-through to S/PDIF (low merit)",
+			(s.TraFilters&TRA_AC3) ? LMERIT_ABOVE_DSHOW : LMERIT_DO_USE));
 		guids.RemoveAll();
 	}
 
@@ -723,6 +757,14 @@ HRESULT CGraphBuilder::Render(LPCTSTR lpsz)
 				pBF = pReader;
 		}
 
+		if((s.SrcFilters&SRC_OGG) && !pBF)
+		{
+			hr = S_OK;
+			CComPtr<IFileSourceFilter> pReader = new COggSourceFilter(NULL, &hr);
+			if(SUCCEEDED(hr) && SUCCEEDED(pReader->Load(fnw, NULL)))
+				pBF = pReader;
+		}
+
 		if(!pBF && fn.Find(_T("://")) < 0)
 		{
 			bool fWindowsMedia = (ext == _T(".asf") || ext == _T(".wmv") || ext == _T(".wma"));
@@ -747,6 +789,16 @@ HRESULT CGraphBuilder::Render(LPCTSTR lpsz)
 				if(SUCCEEDED(hr) && SUCCEEDED(pReader->Load(fnw, NULL)))
 					pBF = pReader;
 			}
+		}
+
+		if(!pBF && fnw.Find(L"://") >= 0 && fnw.Find(L"&MSWMExt=.asf") >= 0)
+		{
+			fnw.Replace(L"&MSWMExt=.asf", L"");
+
+			CComPtr<IFileSourceFilter> pReader;
+			hr = pReader.CoCreateInstance(CLSID_NetShowSource);
+			if(SUCCEEDED(hr) && SUCCEEDED(pReader->Load(fnw, NULL)))
+				pBF = pReader;
 		}
 /*
 		if(!pBF && fn.Find(_T("://")) < 0)

@@ -34,7 +34,7 @@
 			<Tool
 				Name="VCLinkerTool"
 				RegisterOutput="TRUE"
-				AdditionalDependencies="libmadD.lib decssD.lib dsutilD.lib strmbaseD.lib"
+				AdditionalDependencies="libmadD.lib liba52D.lib decssD.lib dsutilD.lib strmbaseD.lib"
 				OutputFile="$(OutDir)/$(ProjectName).ax"
 				AdditionalLibraryDirectories="../../../../lib"
 				ModuleDefinitionFile="MpaDecFilter.def"
@@ -87,7 +87,7 @@
 				Name="VCCustomBuildTool"/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="libmadR.lib decssR.lib dsutilR.lib strmbaseR.lib"
+				AdditionalDependencies="libmadR.lib liba52R.lib decssR.lib dsutilR.lib strmbaseR.lib"
 				OutputFile="$(OutDir)/$(ProjectName).ax"
 				AdditionalLibraryDirectories="../../../../lib"
 				ModuleDefinitionFile="MpaDecFilter.def"
@@ -141,7 +141,7 @@
 			<Tool
 				Name="VCLinkerTool"
 				RegisterOutput="TRUE"
-				AdditionalDependencies="libmadD.lib decssDU.lib dsutilDU.lib strmbaseDU.lib"
+				AdditionalDependencies="libmadD.lib liba52D.lib decssDU.lib dsutilDU.lib strmbaseDU.lib"
 				OutputFile="$(OutDir)/$(ProjectName).ax"
 				AdditionalLibraryDirectories="../../../../lib"
 				ModuleDefinitionFile="MpaDecFilter.def"
@@ -195,7 +195,7 @@
 			<Tool
 				Name="VCLinkerTool"
 				RegisterOutput="TRUE"
-				AdditionalDependencies="libmadR.lib decssRU.lib dsutilRU.lib strmbaseRU.lib"
+				AdditionalDependencies="libmadR.lib liba52R.lib decssRU.lib dsutilRU.lib strmbaseRU.lib"
 				OutputFile="$(OutDir)/$(ProjectName).ax"
 				AdditionalLibraryDirectories="../../../../lib"
 				ModuleDefinitionFile="MpaDecFilter.def"
@@ -248,7 +248,7 @@
 				Name="VCCustomBuildTool"/>
 			<Tool
 				Name="VCLibrarianTool"
-				AdditionalDependencies="libmadD.lib"
+				AdditionalDependencies="libmadD.lib liba52D.lib"
 				OutputFile="../../../../lib/$(ProjectName)D.lib"
 				AdditionalLibraryDirectories="../../../../lib"/>
 			<Tool
@@ -293,7 +293,7 @@
 				Name="VCCustomBuildTool"/>
 			<Tool
 				Name="VCLibrarianTool"
-				AdditionalDependencies="libmadD.lib"
+				AdditionalDependencies="libmadD.lib liba52D.lib"
 				OutputFile="../../../../lib/$(ProjectName)DU.lib"
 				AdditionalLibraryDirectories="../../../../lib"/>
 			<Tool
@@ -340,7 +340,7 @@
 				Name="VCCustomBuildTool"/>
 			<Tool
 				Name="VCLibrarianTool"
-				AdditionalDependencies="libmadR.lib"
+				AdditionalDependencies="libmadR.lib liba52R.lib"
 				OutputFile="../../../../lib/$(ProjectName)R.lib"
 				AdditionalLibraryDirectories="../../../../lib"/>
 			<Tool
@@ -387,7 +387,7 @@
 				Name="VCCustomBuildTool"/>
 			<Tool
 				Name="VCLibrarianTool"
-				AdditionalDependencies="libmadR.lib"
+				AdditionalDependencies="libmadR.lib liba52R.lib"
 				OutputFile="../../../../lib/$(ProjectName)RU.lib"
 				AdditionalLibraryDirectories="../../../../lib"/>
 			<Tool
@@ -474,6 +474,9 @@
 		<Filter
 			Name="Header Files"
 			Filter="h;hpp;hxx;hm;inl;inc">
+			<File
+				RelativePath=".\IMpaDecFilter.h">
+			</File>
 			<File
 				RelativePath=".\MpaDecFilter.h">
 			</File>

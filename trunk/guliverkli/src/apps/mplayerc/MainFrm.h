@@ -1,5 +1,5 @@
 /* 
- *	Media Player Classic.  Copyright (C) 2003 Gabest
+ *	Copyright (C) 2003-2004 Gabest
  *	http://www.gabest.org
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -345,7 +345,7 @@ public:
 	void RepaintVideo();
 
 	OAFilterState GetMediaState();
-	REFERENCE_TIME GetPos();
+	REFERENCE_TIME GetPos(), GetDur();
 	void SeekTo(REFERENCE_TIME rt, bool fSeekToKeyFrame = false);
 
 	bool LoadSubtitle(CString fn);

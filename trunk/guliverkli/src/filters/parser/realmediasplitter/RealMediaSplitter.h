@@ -1,5 +1,5 @@
 /* 
- *	Copyright (C) 2003 Gabest
+ *	Copyright (C) 2003-2004 Gabest
  *	http://www.gabest.org
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -139,6 +139,9 @@ public:
 	CAutoPtrList<RMFF::DataChunk> m_dcs;
 	CAutoPtrList<RMFF::IndexRecord> m_irs;
 
+	typedef struct {CStringA name, data;} subtitle;
+	CList<subtitle> m_subs;
+
 	int GetMasterStream();
 };
 
@@ -178,6 +181,15 @@ public:
 [uuid("E21BE468-5C18-43EB-B0CC-DB93A847D769")]
 class CRealMediaSplitterFilter : public CBaseSplitterFilter
 {
+	class CChapter
+	{
+	public:
+		REFERENCE_TIME m_rt;
+		CStringW m_name;
+		CChapter(REFERENCE_TIME rt, CStringW name) : m_rt(rt), m_name(name) {}
+	};
+	CAutoPtrList<CChapter> m_pChapters;
+
 protected:
 	CAutoPtr<CRMFile> m_pFile;
 	HRESULT CreateOutputs(IAsyncReader* pAsyncReader);
@@ -206,6 +218,13 @@ public:
 
 	STDMETHODIMP_(HRESULT) GetKeyFrameCount(UINT& nKFs);
 	STDMETHODIMP_(HRESULT) GetKeyFrames(const GUID* pFormat, REFERENCE_TIME* pKFs, UINT& nKFs);
+
+	// IChapterInfo
+
+	STDMETHODIMP_(UINT) GetChapterCount(UINT aChapterID);
+	STDMETHODIMP_(UINT) GetChapterId(UINT aParentChapterId, UINT aIndex);
+	STDMETHODIMP_(BOOL) GetChapterInfo(UINT aChapterID, struct ChapterElement* pStructureToFill);
+	STDMETHODIMP_(BSTR) GetChapterStringInfo(UINT aChapterID, CHAR PreferredLanguage[3], CHAR CountryCode[2]);
 };
 
 [uuid("765035B3-5944-4A94-806B-20EE3415F26F")]

@@ -1,13 +1,13 @@
 /* 
- *	Copyright (C) 2003 Gabest
+ *	Copyright (C) 2003-2004 Gabest
  *	http://www.gabest.org
  *
- *  Mpeg2DecFilter.ax is free software; you can redistribute it and/or modify
+ *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
  *   
- *  Mpeg2DecFilter.ax is distributed in the hope that it will be useful,
+ *  This Program is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  *  GNU General Public License for more details.
@@ -395,6 +395,9 @@ HRESULT CMpeg2DecFilter::Receive(IMediaSample* pIn)
 					if(m_fb.rtStart == _I64_MIN) m_fb.rtStart = m_fb.rtStop;
 					m_fb.rtStop = m_fb.rtStart + m_AvgTimePerFrame * picture->nb_fields / (picture_2nd ? 1 : 2);
 
+					REFERENCE_TIME rtStart = m_fb.rtStart;
+					REFERENCE_TIME rtStop = m_fb.rtStop;
+
 					// flags
 
 					if(!(m_dec->m_info.m_sequence->flags&SEQ_FLAG_PROGRESSIVE_SEQUENCE)
@@ -433,7 +436,7 @@ ASSERT(!(m_fb.flags&PIC_FLAG_SKIP));
 
 					ditype di = GetDeinterlaceMethod();
 
-					if(di == DIAuto || di != DIWeave && di != DIBlend)
+					if(di == DIAuto || di != DIWeave && di != DIBlend && di != DIBob)
 					{
 						if(!!(m_dec->m_info.m_sequence->flags&SEQ_FLAG_PROGRESSIVE_SEQUENCE))
 							di = DIWeave; // hurray!
@@ -462,64 +465,79 @@ ASSERT(!(m_fb.flags&PIC_FLAG_SKIP));
 						DeinterlaceBlend(m_fb.buf[1], fbuf->buf[1], w/2, h/2, pitch/2);
 						DeinterlaceBlend(m_fb.buf[2], fbuf->buf[2], w/2, h/2, pitch/2);
 					}
+					else if(di == DIBob)
+					{
+						if(m_fb.flags&PIC_FLAG_TOP_FIELD_FIRST)
+						{
+							BitBltFromRGBToRGB(w, h/2, m_fb.buf[0], pitch*2, 8, fbuf->buf[0], pitch*2, 8);
+							AvgLines8(m_fb.buf[0], h, pitch);
+							BitBltFromRGBToRGB(w/2, h/4, m_fb.buf[1], pitch, 8, fbuf->buf[1], pitch, 8);
+							AvgLines8(m_fb.buf[1], h/2, pitch/2);
+							BitBltFromRGBToRGB(w/2, h/4, m_fb.buf[2], pitch, 8, fbuf->buf[2], pitch, 8);
+							AvgLines8(m_fb.buf[2], h/2, pitch/2);
+						}
+						else
+						{
+							BitBltFromRGBToRGB(w, h/2, m_fb.buf[0]+pitch, pitch*2, 8, fbuf->buf[0]+pitch, pitch*2, 8);
+							AvgLines8(m_fb.buf[0]+pitch, h-1, pitch);
+							BitBltFromRGBToRGB(w/2, h/4, m_fb.buf[1]+pitch/2, pitch, 8, fbuf->buf[1]+pitch/2, pitch, 8);
+							AvgLines8(m_fb.buf[1]+pitch/2, (h-1)/2, pitch/2);
+							BitBltFromRGBToRGB(w/2, h/4, m_fb.buf[2]+pitch/2, pitch, 8, fbuf->buf[2]+pitch/2, pitch, 8);
+							AvgLines8(m_fb.buf[2]+pitch/2, (h-1)/2, pitch/2);
+						}
+
+						m_fb.rtStart = rtStart;
+						m_fb.rtStop = (rtStart + rtStop) / 2;
+					}
 
 					// postproc
 
 					ApplyBrContHueSat(m_fb.buf[0], m_fb.buf[1], m_fb.buf[2], w, h, pitch);
-/*
-					// TODO: add all kinds of nice postprocessing here :P
 
-					// simple lame deblocking, don't use it
-					{
-						int w = m_fb.w, h = m_fb.h, p = m_fb.pw;
-
-						for(int y = 5; y <= h-6; y += 8)
-						{
-							BYTE* a[6];
-							for(int j = 0; j < 6; j++)
-								a[j] = m_fb.buf[0] + p*(y+j);
-
-							for(int x = 0; x < w; x++)
-							{
-								int dif = a[3][x] - a[2][x];
-								if(abs(dif) > 16) continue;
-								a[0][x] = a[0][x] + (dif>>3);
-								a[1][x] = a[1][x] + (dif>>2);
-								a[2][x] = a[2][x] + (dif>>1);
-								a[3][x] = a[3][x] - (dif>>1);
-								a[4][x] = a[4][x] - (dif>>2);
-								a[5][x] = a[5][x] - (dif>>3);
-							}
-						}
-					}
-
-					{
-						int w = m_fb.w, h = m_fb.h, p = m_fb.pw;
-
-						for(int x = 5; x <= w-6; x += 8)
-						{
-							BYTE* a = m_fb.buf[0] + x;
-
-							for(int y = 0; y < h; y++, a+=p)
-							{
-								int dif = a[3] - a[2];
-								if(abs(dif) > 16) continue;
-								a[0] = a[0] + (dif>>3);
-								a[1] = a[1] + (dif>>2);
-								a[2] = a[2] + (dif>>1);
-								a[3] = a[3] - (dif>>1);
-								a[4] = a[4] - (dif>>2);
-								a[5] = a[5] - (dif>>3);
-							}
-						}
-					}
-*/
-					//
+					// deliver
 
 					picture->fDelivered = true;
 
 					if(FAILED(hr = Deliver(false)))
 						return hr;
+
+					// spec code for bob
+
+					if(di == DIBob)
+					{
+						if(m_fb.flags&PIC_FLAG_TOP_FIELD_FIRST)
+						{
+							BitBltFromRGBToRGB(w, h/2, m_fb.buf[0]+pitch, pitch*2, 8, fbuf->buf[0]+pitch, pitch*2, 8);
+							AvgLines8(m_fb.buf[0]+pitch, h-1, pitch);
+							BitBltFromRGBToRGB(w/2, h/4, m_fb.buf[1]+pitch/2, pitch, 8, fbuf->buf[1]+pitch/2, pitch, 8);
+							AvgLines8(m_fb.buf[1]+pitch/2, (h-1)/2, pitch/2);
+							BitBltFromRGBToRGB(w/2, h/4, m_fb.buf[2]+pitch/2, pitch, 8, fbuf->buf[2]+pitch/2, pitch, 8);
+							AvgLines8(m_fb.buf[2]+pitch/2, (h-1)/2, pitch/2);
+						}
+						else
+						{
+							BitBltFromRGBToRGB(w, h/2, m_fb.buf[0], pitch*2, 8, fbuf->buf[0], pitch*2, 8);
+							AvgLines8(m_fb.buf[0], h, pitch);
+							BitBltFromRGBToRGB(w/2, h/4, m_fb.buf[1], pitch, 8, fbuf->buf[1], pitch, 8);
+							AvgLines8(m_fb.buf[1], h/2, pitch/2);
+							BitBltFromRGBToRGB(w/2, h/4, m_fb.buf[2], pitch, 8, fbuf->buf[2], pitch, 8);
+							AvgLines8(m_fb.buf[2], h/2, pitch/2);
+						}
+
+						m_fb.rtStart = (rtStart + rtStop) / 2;
+						m_fb.rtStop = rtStop;
+
+						// postproc
+
+						ApplyBrContHueSat(m_fb.buf[0], m_fb.buf[1], m_fb.buf[2], w, h, pitch);
+
+						// deliver
+
+						picture->fDelivered = true;
+
+						if(FAILED(hr = Deliver(false)))
+							return hr;
+					}
 				}
 			}
 			break;
@@ -769,11 +787,11 @@ HRESULT CMpeg2DecFilter::CheckConnect(PIN_DIRECTION dir, IPin* pPin)
 {
 	if(dir == PINDIR_OUTPUT)
 	{
-		if(GetCLSID(GetFilterFromPin(m_pInput)) == CLSID_DVDNavigator)
+		if(GetCLSID(m_pInput) == CLSID_DVDNavigator)
 		{
 			// one of these needed for dynamic format changes
 
-			CLSID clsid = GetCLSID(GetFilterFromPin(pPin));
+			CLSID clsid = GetCLSID(pPin);
 			if(clsid != CLSID_OverlayMixer
 			/*&& clsid != CLSID_OverlayMixer2*/
 			&& clsid != CLSID_VideoMixingRenderer 

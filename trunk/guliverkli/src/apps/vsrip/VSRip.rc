@@ -180,7 +180,7 @@ BEGIN
             VALUE "FileDescription", "VobSub Subtitle Ripper Wizard"
             VALUE "FileVersion", "1, 0, 0, 6"
             VALUE "InternalName", "VSRip.exe"
-            VALUE "LegalCopyright", "2003 (c) Gabest.  All rights reserved."
+            VALUE "LegalCopyright", "2003-2004 (c) Gabest.  All rights reserved."
             VALUE "OriginalFilename", "VSRip.exe"
             VALUE "ProductName", "VSRip"
             VALUE "ProductVersion", "1, 0, 0, 6"

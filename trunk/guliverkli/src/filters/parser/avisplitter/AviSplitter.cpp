@@ -1,5 +1,5 @@
 /* 
- *	Copyright (C) 2003 Gabest
+ *	Copyright (C) 2003-2004 Gabest
  *	http://www.gabest.org
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -185,7 +185,7 @@ HRESULT CAviSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 #endif
 		bool fHideWarning = !!AfxGetApp()->GetProfileInt(_T("Settings"), _T("HideAviSplitterWarning"), 0);
 
-		if((!fHideWarning || fShiftDown) && !dynamic_cast<CAviSourceFilter*>(this))
+		if(!fHideWarning && !dynamic_cast<CAviSourceFilter*>(this) || fShiftDown)
 		{
 			CAviReportWnd wnd;
 			fHideWarning = wnd.DoModal(m_pFile, fHideWarning, fShowWarningText);

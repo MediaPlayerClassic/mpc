@@ -255,8 +255,8 @@ BEGIN
     ICON            IDR_MAINFRAME,IDC_STATIC,11,17,20,20
     LTEXT           "Media Player Classic",IDC_STATIC1,40,10,126,8,
                     SS_NOPREFIX
-    LTEXT           "Copyright (C) 2002-2003 Gabest",IDC_STATIC,40,21,113,8
-    LTEXT           "Version:\t6.4.7.3",IDC_STATIC,40,33,92,8
+    LTEXT           "Copyright (C) 2002-2004 Gabest",IDC_STATIC,40,21,113,8
+    LTEXT           "Version: 6.4.7.4",IDC_STATIC,40,33,92,8
     PUSHBUTTON      "OK",IDOK,160,8,50,14,WS_GROUP
     LTEXT           "This program is freeware and released under the GNU General Public License.\nDistribution in Codec Packs is allowed, but the author (Gabest) is not liable for the additional content.",
                     IDC_STATIC,11,47,199,34
@@ -875,45 +875,51 @@ IDD_PPAGEFILTERS DIALOGEX 0, 0, 296, 200
 STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
-    GROUPBOX        "Enabled built-in filters",IDC_STATIC,6,5,252,180
+    GROUPBOX        "Enabled built-in filters",IDC_STATIC,6,5,252,185
     CONTROL         "Avi Splitter",IDC_CHECK_AVI,"Button",BS_AUTOCHECKBOX | 
-                    WS_TABSTOP,18,22,51,10
+                    WS_TABSTOP,18,20,51,10
     CONTROL         "Matroska Splitter",IDC_CHECK_MATROSKA,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,18,36,70,10
+                    BS_AUTOCHECKBOX | WS_TABSTOP,18,32,70,10
+    CONTROL         "Ogg Splitter",IDC_CHECK_OGG,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,18,44,54,10
     CONTROL         "RealMedia Splitter",IDC_CHECK_RM,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,18,50,73,10
+                    BS_AUTOCHECKBOX | WS_TABSTOP,18,56,73,10
     CONTROL         "RealVideo Decoder",IDC_CHECK_RV,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,18,64,76,10
+                    BS_AUTOCHECKBOX | WS_TABSTOP,18,68,76,10
     CONTROL         "RealAudio Decoder",IDC_CHECK_RA,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,18,78,77,10
+                    BS_AUTOCHECKBOX | WS_TABSTOP,18,80,77,10
     CONTROL         "MPEG-1 Video Decoder",IDC_CHECK_MPG1,"Button",
                     BS_AUTOCHECKBOX | WS_TABSTOP,18,92,89,10
     CONTROL         "MPEG-2 Video Decoder",IDC_CHECK_MPG2,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,18,106,89,10
+                    BS_AUTOCHECKBOX | WS_TABSTOP,18,104,89,10
     CONTROL         "MPEG Audio Decoder",IDC_CHECK_MPA,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,18,120,83,10
-    CONTROL         "Ogg Splitter",IDC_CHECK_OGG,"Button",BS_AUTOCHECKBOX | 
-                    WS_TABSTOP,18,134,54,10
+                    BS_AUTOCHECKBOX | WS_TABSTOP,18,116,83,10
+    CONTROL         "AC3 Decoder",IDC_CHECK_AC3,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,18,128,58,10
+    CONTROL         "LPCM Decoder",IDC_CHECK_LPCM,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,18,140,62,10
     CONTROL         "Audio CD Reader",IDC_CHECK_CDDA,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,122,22,71,10
+                    BS_AUTOCHECKBOX | WS_TABSTOP,128,20,71,10
     CONTROL         "VCD/SVCD/XCD Reader",IDC_CHECK_CDXA,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,122,36,91,10
+                    BS_AUTOCHECKBOX | WS_TABSTOP,128,32,91,10
     CONTROL         "DVD Video Title Set Reader",IDC_CHECK_VTS,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,122,50,102,10
+                    BS_AUTOCHECKBOX | WS_TABSTOP,128,44,102,10
     CONTROL         "FLI/FLC Decoder",IDC_CHECK_FLIC,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,122,64,69,10
+                    BS_AUTOCHECKBOX | WS_TABSTOP,128,56,69,10
     CONTROL         "DVD2AVI Project File Decoder",IDC_CHECK_D2V,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,122,78,111,10
+                    BS_AUTOCHECKBOX | WS_TABSTOP,128,68,111,10
     CONTROL         "DTS/AC3 Parser",IDC_CHECK_DTSAC3,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,122,92,67,10
+                    BS_AUTOCHECKBOX | WS_TABSTOP,128,80,67,10
     CONTROL         "SHOUTcast Receiver",IDC_CHECK_SHOUTCAST,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,122,106,82,10
+                    BS_AUTOCHECKBOX | WS_TABSTOP,128,92,82,10
     CONTROL         "Smacker && Bink Decoder",IDC_CHECK_RADGT,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,122,120,93,10
+                    BS_AUTOCHECKBOX | WS_TABSTOP,128,104,93,10
     CONTROL         "RoQ Decoder (Id Software)",IDC_CHECK_ROQ,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,122,134,104,10
+                    BS_AUTOCHECKBOX | WS_TABSTOP,128,116,104,10
+    CONTROL         "DTS Pass-through to S/PDIF",IDC_CHECK_DTS,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,128,128,106,10
     LTEXT           "If you would like to use the stand-alone version from these filters or a some other replacement, disable them here.",
-                    IDC_STATIC,18,154,212,19
+                    IDC_STATIC,18,162,212,19
 END
 
 IDD_PPAGELOGO DIALOGEX 0, 0, 296, 203
@@ -1038,9 +1044,40 @@ FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
     CONTROL         "Listen on port:",IDC_CHECK1,"Button",BS_AUTOCHECKBOX | 
                     WS_TABSTOP,7,4,63,10
-    CONTROL         "",IDC_STATIC,"Static",SS_ETCHEDHORZ,7,19,282,1
     EDITTEXT        IDC_EDIT1,71,3,40,12,ES_AUTOHSCROLL
     LTEXT           "Launch in web browser...",IDC_STATIC1,129,5,152,8
+    CONTROL         "",IDC_STATIC,"Static",SS_ETCHEDHORZ,7,19,282,1
+    CONTROL         "Enable compression",IDC_CHECK3,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,7,28,79,10
+    CONTROL         "Print debug info",IDC_CHECK2,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,7,42,67,10
+END
+
+IDD_PPAGEAUDIODEC DIALOGEX 0, 0, 296, 203
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD
+FONT 8, "MS Shell Dlg", 400, 0, 0xEE
+BEGIN
+    LTEXT           "Output sample format for the MPEG Audio, LPCM, AC3 Decoders:",
+                    IDC_STATIC,5,5,233,8
+    CONTROL         "PCM 16 bit",IDC_RADIO1,"Button",BS_AUTORADIOBUTTON | 
+                    WS_GROUP,14,19,50,10
+    CONTROL         "PCM 24 bit",IDC_RADIO2,"Button",BS_AUTORADIOBUTTON,69,
+                    19,50,10
+    CONTROL         "PCM 32 bit",IDC_RADIO3,"Button",BS_AUTORADIOBUTTON,124,
+                    19,50,10
+    CONTROL         "IEEE Float",IDC_RADIO4,"Button",BS_AUTORADIOBUTTON,179,
+                    19,49,10
+    LTEXT           "AC3 Decoder settings:",IDC_STATIC,5,39,73,8
+    CONTROL         "Decode to speakers:",IDC_RADIO5,"Button",
+                    BS_AUTORADIOBUTTON | WS_GROUP,14,54,82,10
+    CONTROL         "S/PDIF",IDC_RADIO6,"Button",BS_AUTORADIOBUTTON,14,69,38,
+                    10
+    COMBOBOX        IDC_COMBO1,97,53,99,68,CBS_DROPDOWNLIST | WS_VSCROLL | 
+                    WS_TABSTOP
+    CONTROL         "LFE",IDC_CHECK1,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,
+                    201,55,27,10
+    CONTROL         "Dynamic Range Control",IDC_CHECK2,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,14,84,91,10
 END
 
 
@@ -1280,19 +1317,22 @@ BEGIN
     BEGIN
         VERTGUIDE, 6
         VERTGUIDE, 18
-        VERTGUIDE, 122
+        VERTGUIDE, 128
         VERTGUIDE, 258
         VERTGUIDE, 289
         HORZGUIDE, 5
-        HORZGUIDE, 32
-        HORZGUIDE, 46
-        HORZGUIDE, 60
-        HORZGUIDE, 74
-        HORZGUIDE, 88
+        HORZGUIDE, 30
+        HORZGUIDE, 42
+        HORZGUIDE, 54
+        HORZGUIDE, 66
+        HORZGUIDE, 78
+        HORZGUIDE, 90
         HORZGUIDE, 102
-        HORZGUIDE, 116
-        HORZGUIDE, 130
-        HORZGUIDE, 144
+        HORZGUIDE, 114
+        HORZGUIDE, 126
+        HORZGUIDE, 138
+        HORZGUIDE, 150
+        HORZGUIDE, 162
         HORZGUIDE, 198
     END
 
@@ -1335,6 +1375,16 @@ BEGIN
         RIGHTMARGIN, 289
         VERTGUIDE, 7
         VERTGUIDE, 289
+    END
+
+    IDD_PPAGEAUDIODEC, DIALOG
+    BEGIN
+        VERTGUIDE, 5
+        VERTGUIDE, 14
+        VERTGUIDE, 289
+        BOTTOMMARGIN, 200
+        HORZGUIDE, 5
+        HORZGUIDE, 29
     END
 END
 #endif    // APSTUDIO_INVOKED
@@ -1421,8 +1471,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 6,4,7,2
- PRODUCTVERSION 6,4,7,1
+ FILEVERSION 6,4,7,4
+ PRODUCTVERSION 6,4,7,4
  FILEFLAGSMASK 0x1fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -1440,12 +1490,12 @@ BEGIN
             VALUE "Comments", "http://gabest.org/"
             VALUE "CompanyName", "Gabest"
             VALUE "FileDescription", "Media Player Classic"
-            VALUE "FileVersion", "6, 4, 7, 2"
+            VALUE "FileVersion", "6, 4, 7, 4"
             VALUE "InternalName", "Media Player Classic"
-            VALUE "LegalCopyright", "Copyright (C) 2002-2003 Gabest"
+            VALUE "LegalCopyright", "Copyright (C) 2002-2004 Gabest"
             VALUE "OriginalFilename", "mplayerc.EXE"
             VALUE "ProductName", "Media Player Classic"
-            VALUE "ProductVersion", "6, 4, 7, 1"
+            VALUE "ProductVersion", "6, 4, 7, 4"
         END
     END
     BLOCK "VarFileInfo"
@@ -1881,9 +1931,20 @@ IDR_AVI1                AVI                     "res\\ani.avi"
 //
 
 IDR_HTML_INDEX          HTML                    "res\\web\\index.html"
-IDR_STYLESHEET_DEFAULT  HTML                    "res\\web\\default.css"
 IDR_HTML_404            HTML                    "res\\web\\404.html"
 IDR_HTML_BROWSER        HTML                    "res\\web\\browser.html"
+IDR_HTML_CONTROLS       HTML                    "res\\web\\controls.html"
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// FILE
+//
+
+IDF_DEFAULT_CSS         FILE                    "res\\web\\default.css"
+IDF_VBR_GIF             FILE                    "res\\web\\vbg.gif"
+IDF_VBS_GIF             FILE                    "res\\web\\vbs.GIF"
+IDF_SLIDERBAR_GIF       FILE                    "res\\web\\sliderbar.gif"
+IDF_SLIDERGRIP_GIF      FILE                    "res\\web\\slidergrip.gif"
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -2066,6 +2127,9 @@ BEGIN
     IDS_RS_WEBSERVERPORT    "WebServerPort"
     IDS_RS_LASTWINDOWTYPE   "LastWindowType"
     IDS_RS_ONTOP            "OnTop"
+    IDS_RS_MPASF            "MPASampleFormat"
+    IDS_RS_MPASC            "MPASpeakerConfig"
+    IDS_RS_MPADRC           "MPADynamicRangeControl"
 END
 
 STRINGTABLE 
@@ -2099,20 +2163,23 @@ BEGIN
     IDC_CHECK_AVI           "6.4.0.3\nNon-interleaved files are not welcome"
     IDC_CHECK_CDDA          "6.4.0.0\n2K/XP only"
     IDC_CHECK_CDXA          "6.4.0.0"
-    IDC_CHECK_VTS           "6.4.0.0"
+    IDC_CHECK_VTS           "6.4.0.0\nOpen VTS_xx_0.ifo to load VTS_xx_x.vob files as one"
     IDC_CHECK_FLIC          "6.4.0.0"
     IDC_CHECK_D2V           "6.4.0.0"
     IDC_CHECK_DTSAC3        "6.4.0.0"
     IDC_CHECK_SHOUTCAST     "6.4.0.1"
-    IDC_CHECK_RM            "6.4.0.7\nRealMedia format categories must be set to 'DirectShow' to make it load, doesn't support streaming"
+    IDC_CHECK_RM            "6.4.0.8\nRealMedia format categories must be set to 'DirectShow' to make it load, doesn't support streaming"
     IDC_CHECK_MATROSKA      "6.4.2.0"
     IDC_CHECK_ROQ           "6.4.0.0"
     IDC_CHECK_OGG           "6.4.0.0"
+    IDC_CHECK_LPCM          "6.4.0.0"
+    IDC_CHECK_AC3           "6.4.0.0"
 END
 
 STRINGTABLE 
 BEGIN
     IDD_PPAGEWEBSERVER      "Player::Web Interface"
+    IDD_PPAGEAUDIODEC       "Filters::Audio Decoders"
 END
 
 STRINGTABLE 
@@ -2121,8 +2188,19 @@ BEGIN
     IDC_CHECK_RA            "6.4.0.7\nNeeds RealAudio decoder dlls, DNET also works with ac3filter"
     IDC_CHECK_MPG1          "6.4.0.0\nBugus"
     IDC_CHECK_MPG2          "6.4.0.0"
-    IDC_CHECK_MPA           "6.4.0.0\nDecodes all MPEG audio version and layer, and passes through LPCM"
+    IDC_CHECK_MPA           "6.4.0.0\nDecodes all MPEG audio version and layer"
     IDC_CHECK_RADGT         "6.4.0.0\nNeeds smackw32.dll and binkw32.dll"
+END
+
+STRINGTABLE 
+BEGIN
+    IDS_RS_WEBSERVERPRINTDEBUGINFO "WebServerPrintDebugIfo"
+    IDS_RS_WEBSERVERUSECOMPRESSION "WebServerUseCompression"
+END
+
+STRINGTABLE 
+BEGIN
+    IDC_CHECK_DTS           "6.4.0.0"
 END
 
 #endif    // English (U.S.) resources

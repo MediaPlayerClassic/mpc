@@ -1,5 +1,5 @@
 /* 
- *	Copyright (C) 2003 Gabest
+ *	Copyright (C) 2003-2004 Gabest
  *	http://www.gabest.org
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -579,6 +579,9 @@ STDMETHODIMP_(UINT) COggSplitterFilter::GetChapterId(UINT aParentChapterId, UINT
 
 STDMETHODIMP_(BOOL) COggSplitterFilter::GetChapterInfo(UINT aChapterID, struct ChapterElement* pStructureToFill)
 {
+	REFERENCE_TIME rtDur = 0;
+	GetDuration(&rtDur);
+
 	CheckPointer(pStructureToFill, E_POINTER);
 	POSITION pos = m_pChapters.FindIndex(aChapterID-1);
 	if(!pos) return FALSE;
@@ -587,7 +590,7 @@ STDMETHODIMP_(BOOL) COggSplitterFilter::GetChapterInfo(UINT aChapterID, struct C
 	pStructureToFill->Type = AtomicChapter;
 	pStructureToFill->ChapterId = aChapterID;
 	pStructureToFill->rtStart = p->m_rt;
-	pStructureToFill->rtStop = pos ? m_pChapters.GetNext(pos)->m_rt : m_rtDuration;
+	pStructureToFill->rtStop = pos ? m_pChapters.GetNext(pos)->m_rt : rtDur;
 	return TRUE;
 }
 

@@ -1,5 +1,5 @@
 /* 
- *	Copyright (C) 2003 Gabest
+ *	Copyright (C) 2003-2004 Gabest
  *	http://www.gabest.org
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -25,8 +25,8 @@
 #include "stdafx.h"
 #include "VSRip.h"
 #include <atlcoll.h>
-#include <devioctl.h>
-#include <ntddcdrm.h>
+#include "..\..\..\include\winddk\devioctl.h"
+#include "..\..\..\include\winddk\ntddcdrm.h"
 #include "VSRipFileDlg.h"
 
 

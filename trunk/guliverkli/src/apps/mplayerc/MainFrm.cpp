@@ -1,5 +1,5 @@
 /* 
- *	Media Player Classic.  Copyright (C) 2003 Gabest
+ *	Copyright (C) 2003-2004 Gabest
  *	http://www.gabest.org
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -5760,6 +5760,14 @@ void CMainFrame::OpenCustomizeGraph()
 			m_pMpeg2DecFilter->EnableForcedSubtitles(s.mpegforcedsubs);
 			m_pMpeg2DecFilter->EnablePlanarYUV(s.mpegplanaryuv);
 		}
+
+		if(CComQIPtr<IMpaDecFilter> m_pMpaDecFilter = pBF)
+		{
+			AppSettings& s = AfxGetAppSettings();
+			m_pMpaDecFilter->SetSampleFormat((SampleFormat)s.mpasf);
+			m_pMpaDecFilter->SetSpeakerConfig(s.mpasc);
+			m_pMpaDecFilter->SetDynamicRangeControl(s.mpadrc);
+		}
 	}
 	EndEnumFilters
 
@@ -7296,6 +7304,13 @@ void CMainFrame::InvalidateSubtitle(DWORD_PTR nSubtitleId, REFERENCE_TIME rtInva
 REFERENCE_TIME CMainFrame::GetPos()
 {
 	return(m_iMediaLoadState == MLS_LOADED ? m_wndSeekBar.GetPos() : 0);
+}
+
+REFERENCE_TIME CMainFrame::GetDur()
+{
+	__int64 start, stop;
+	m_wndSeekBar.GetRange(start, stop);
+	return(m_iMediaLoadState == MLS_LOADED ? stop : 0);
 }
 
 void CMainFrame::SeekTo(REFERENCE_TIME rtPos, bool fSeekToKeyFrame)
