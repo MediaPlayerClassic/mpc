@@ -996,6 +996,7 @@ bool GSLocalMemory::FillRect(CRect& r, DWORD c, DWORD psm, DWORD fbp, DWORD fbw)
 		{
 		default: ASSERT(0); 
 		case PSM_PSMCT32: w = 8; h = 8; bpp = 32; break;
+		case PSM_PSMCT24: w = 8; h = 8; bpp = 32; break;
 		case PSM_PSMCT16: w = 16; h = 8; bpp = 16; break;
 		case PSM_PSMCT16S: w = 16; h = 8; bpp = 16; break;
 		case PSM_PSMZ32: w = 8; h = 8; bpp = 32; break;
@@ -1034,18 +1035,37 @@ bool GSLocalMemory::FillRect(CRect& r, DWORD c, DWORD psm, DWORD fbp, DWORD fbw)
 			for(int x = clip.right; x < r.right; x++)
 				(this->*wp)(x, ys, c, fbp, fbw);
 		}
+	}
 
-		for(int x = clip.left; x < clip.right; x += w)
+	if(psm == PSM_PSMCT24)
+	{
+		c &= 0x00ffffff;
+		for(int y = clip.top; y < clip.bottom; y += h)
 		{
-			void* p = &m_vm8[(this->*pa)(x, y, fbp, fbw) << 2 >> shift];
-
-			__asm
+			for(int x = clip.left; x < clip.right; x += w)
 			{
-				mov eax, c
-				mov ecx, dwords
-				mov edi, p
-				cld
-				rep stosd
+				DWORD* p = &m_vm32[(this->*pa)(x, y, fbp, fbw)];
+				for(int size = dwords; size-- > 0; p++)
+					*p = (*p&0xff000000)|c;
+			}
+		}
+	}
+	else
+	{
+		for(int y = clip.top; y < clip.bottom; y += h)
+		{
+			for(int x = clip.left; x < clip.right; x += w)
+			{
+				void* p = &m_vm8[(this->*pa)(x, y, fbp, fbw) << 2 >> shift];
+
+				__asm
+				{
+					mov eax, c
+					mov ecx, dwords
+					mov edi, p
+					cld
+					rep stosd
+				}
 			}
 		}
 	}
