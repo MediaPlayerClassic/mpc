@@ -687,8 +687,8 @@ CRect CLine::PaintOutline(SubPicDesc& spd, CRect& clipRect, BYTE* pAlphaMask, CP
 
 		if(w->m_fLineBreak) return(bbox); // should not happen since this class is just a line of text without any breaks
 
-		if((w->m_style.outlineWidth > 0 || w->m_style.borderStyle == 1 && w->m_style.outlineWidth == 0)
-		&& !(w->m_ktype == 2 && time < w->m_kstart))
+//		if((w->m_style.outlineWidth > 0 || w->m_style.borderStyle == 1 && w->m_style.outlineWidth == 0) && !(w->m_ktype == 2 && time < w->m_kstart))
+		if(w->m_style.outlineWidth > 0 && !(w->m_ktype == 2 && time < w->m_kstart))
 		{
 			int x = p.x;
 			int y = p.y + m_ascent - w->m_ascent;

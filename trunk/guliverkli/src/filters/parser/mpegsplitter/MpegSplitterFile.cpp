@@ -432,6 +432,24 @@ DWORD CMpegSplitterFile::AddStream(WORD pid, BYTE pesid, DWORD len)
 				if(!m_streams[subpic].Find(s) && Read(h, &s.mt))
 					type = subpic;
 			}
+			else if(w == 0xffa0) // ps2-mpg audio
+			{
+				s.ps1id = (BYTE)BitRead(8);
+				s.pid = (WORD)((BitRead(8) << 8) | BitRead(16)); // pid = 0xa000 | track id
+
+				CMpegSplitterFile::ps2audhdr h;
+				if(!m_streams[audio].Find(s) && Read(h, &s.mt))
+					type = audio;
+			}
+			else if(w == 0xff90) // ps2-mpg subtitles
+			{
+				s.ps1id = (BYTE)BitRead(8);
+				s.pid = (WORD)((BitRead(8) << 8) | BitRead(16)); // pid = 0x9000 | track id
+
+				CMpegSplitterFile::ps2subhdr h;
+				if(!m_streams[subpic].Find(s) && Read(h, &s.mt))
+					type = subpic;
+			}
 		}
 	}
 	else if(pesid == 0xbe) // padding
@@ -1135,6 +1153,69 @@ bool CMpegSplitterFile::Read(cvdspuhdr& h, CMediaType* pmt)
 
 	pmt->majortype = MEDIATYPE_Video;
 	pmt->subtype = MEDIASUBTYPE_CVD_SUBPICTURE;
+	pmt->formattype = FORMAT_None;
+
+	return(true);
+}
+
+bool CMpegSplitterFile::Read(ps2audhdr& h, CMediaType* pmt)
+{
+	memset(&h, 0, sizeof(h));
+
+	if(BitRead(16, true) != 'SS')
+		return(false);
+
+	__int64 pos = GetPos();
+
+	while(BitRead(16, true) == 'SS')
+	{
+		DWORD tag = (DWORD)BitRead(32, true);
+		DWORD size = 0;
+		
+		if(tag == 'SShd')
+		{
+			BitRead(32);
+			Read((BYTE*)&size, sizeof(size));
+			ASSERT(size == 0x18);
+			Seek(GetPos());
+			Read((BYTE*)&h, sizeof(h));
+		}
+		else if(tag == 'SSbd')
+		{
+			BitRead(32);
+			Read((BYTE*)&size, sizeof(size));
+			break;
+		}
+	}
+
+	Seek(pos);
+
+	if(!pmt) return(true);
+
+	WAVEFORMATEXPS2 wfe;
+	wfe.nChannels = (WORD)h.channels;
+	wfe.nSamplesPerSec = h.freq;
+	wfe.wBitsPerSample = 16; // always?
+	wfe.nBlockAlign = wfe.nChannels*wfe.wBitsPerSample>>3;
+	wfe.nAvgBytesPerSec = wfe.nBlockAlign*wfe.nSamplesPerSec;
+	wfe.dwInterleave = h.interleave;
+
+	pmt->majortype = MEDIATYPE_Audio;
+	pmt->subtype = MEDIASUBTYPE_PS2_PCM;
+	pmt->formattype = FORMAT_WaveFormatEx;
+	pmt->SetFormat((BYTE*)&wfe, sizeof(wfe));
+
+	return(true);
+}
+
+bool CMpegSplitterFile::Read(ps2subhdr& h, CMediaType* pmt)
+{
+	memset(&h, 0, sizeof(h));
+
+	if(!pmt) return(true);
+
+	pmt->majortype = MEDIATYPE_Subtitle;
+	pmt->subtype = MEDIASUBTYPE_PS2_SUB;
 	pmt->formattype = FORMAT_None;
 
 	return(true);

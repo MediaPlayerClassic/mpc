@@ -76,8 +76,16 @@ class CMatroskaSplitterFilter : public CBaseSplitterFilter, public ITrackInfo
 
 	static HANDLE (WINAPI *pAddFontMemResourceEx)(PVOID,DWORD,PVOID,DWORD*);
 	static BOOL (WINAPI *pRemoveFontMemResourceEx)(HANDLE);
+	static int (WINAPI *pAddFontResourceEx)(LPCTSTR,DWORD,PVOID);
+	static BOOL (WINAPI *pRemoveFontResourceEx)(LPCTSTR,DWORD,PVOID);
+	static BOOL (WINAPI *pMoveFileEx)(LPCTSTR, LPCTSTR,DWORD);
+
 	CArray<HANDLE> m_Fonts;
+	CArray<CString> m_FontsList;
 	void InstallFonts();
+	BOOL InstallFontMemory(const void* data, UINT len);
+	BOOL InstallFontFile(const void* data, UINT len);
+	void UninstallFonts();
 
 	CAutoPtr<MatroskaReader::CMatroskaNode> m_pSegment, m_pCluster, m_pBlock;
 
@@ -87,7 +95,7 @@ protected:
 
 	CMap<DWORD, DWORD, MatroskaReader::TrackEntry*, MatroskaReader::TrackEntry*> m_pTrackEntryMap;
 	CArray<MatroskaReader::TrackEntry* > m_pOrderedTrackArray;
-	MatroskaReader::TrackEntry* GetTrackEntryAt(UINT aTrackIdx);
+	MatroskaReader::TrackEntry* GetTrackEntryAt(UINT aTrackIdx);	
 
 	bool InitDeliverLoop();
 	void SeekDeliverLoop(REFERENCE_TIME rt);

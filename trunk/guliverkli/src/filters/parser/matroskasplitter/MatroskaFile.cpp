@@ -493,7 +493,6 @@ HRESULT Block::Parse(CMatroskaNode* pMN0, bool fFull)
 			break;
 		case 2:
 			// Fixed-size lacing
-			// TODO : test that :>
 			pMN->Read(FramesInLaceLessOne);
 			FramesInLaceLessOne++;
 			FrameSize = ((pMN->m_start+pMN->m_len) - (pMN->GetPos()+tlen)) / FramesInLaceLessOne;
@@ -795,6 +794,24 @@ HRESULT CInt::Parse(CMatroskaNode* pMN)
 	m_val >>= (8-pMN->m_len)*8;
 	m_fValid = true;
 	return S_OK;
+}
+
+HRESULT CFloat::Parse(CMatroskaNode* pMN)
+{
+	HRESULT hr = E_FAIL;
+	m_val = 0;
+
+	if(pMN->m_len == 4)
+	{
+		float val = 0;
+		hr = pMN->Read(val);
+		m_val = val;
+	} else if(pMN->m_len == 8) {
+		hr = pMN->Read(m_val);
+	}
+	if(SUCCEEDED(hr))
+		m_fValid = true;
+	return hr;
 }
 
 

@@ -229,6 +229,25 @@ public:
 		// nothing ;)
 	};
 
+	class ps2audhdr
+	{
+	public:
+		// 'SShd' + len (0x18)
+		DWORD unk1;
+		DWORD freq;
+		DWORD channels;
+		DWORD interleave; // bytes per channel
+		// padding: FF .. FF
+		// 'SSbd' + len
+		// raw pcm (adpcm?)
+	};
+
+	class ps2subhdr
+	{
+	public:
+		// nothing ;)
+	};
+
 	struct trhdr
 	{
 		BYTE sync; // 0x47
@@ -286,6 +305,8 @@ public:
 	bool Read(dvdspuhdr& h, CMediaType* pmt = NULL);
 	bool Read(svcdspuhdr& h, CMediaType* pmt = NULL);
 	bool Read(cvdspuhdr& h, CMediaType* pmt = NULL);
+	bool Read(ps2audhdr& h, CMediaType* pmt = NULL);
+	bool Read(ps2subhdr& h, CMediaType* pmt = NULL);
 	bool Read(trhdr& h, bool fSync = true);
 	bool Read(pvahdr& h, bool fSync = true);
 };

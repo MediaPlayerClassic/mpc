@@ -232,6 +232,8 @@ class CBaseSplitterFilter
 	CCritSec m_csmtnew;
 	CMap<DWORD, DWORD, CMediaType, CMediaType> m_mtnew;
 
+	CAutoPtrList<CBaseSplitterOutputPin> m_pRetiredOutputs;
+
 protected:
 	CStringW m_fn;
 
