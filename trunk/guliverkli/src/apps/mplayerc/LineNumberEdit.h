@@ -55,6 +55,8 @@ public:
     void SetLineNumberRange( UINT nMin, UINT nMax = 0 );
     void UseSystemColours( BOOL bUseEnabled = TRUE, BOOL bUseDisabled = TRUE );
 
+	int GetLineHeight() {return m_zero.cy;}
+
 protected:
 	virtual void PreSubclassWindow();
 

@@ -2,7 +2,7 @@
 
 #include "..\..\subpic\ISubPic.h"
 #include "LineNumberEdit.h"
-
+#include "ShaderAutoCompleteDlg.h"
 
 // Q174667
 
@@ -14,6 +14,23 @@ public:
 	DECLARE_MESSAGE_MAP()
 	afx_msg HBRUSH OnCtlColor(CDC* pDC, CWnd* pWnd, UINT nCtlColor);
 	afx_msg void OnDestroy();
+};
+
+class CShaderEdit : public CLineNumberEdit
+{
+	CShaderAutoCompleteDlg m_acdlg;
+	int m_nEndChar;
+	UINT m_nIDEvent;
+
+public:
+	CShaderEdit();
+	~CShaderEdit();
+
+	DECLARE_MESSAGE_MAP()
+	afx_msg void OnUpdate();
+	afx_msg void OnKillFocus(CWnd* pNewWnd);
+	afx_msg void OnTimer(UINT nIDEvent);
+	virtual BOOL PreTranslateMessage(MSG* pMsg);
 };
 
 // CShaderEditorDlg dialog
@@ -40,7 +57,7 @@ public:
 	enum { IDD = IDD_SHADEREDITORDIALOG };
 	CShaderLabelComboBox m_labels;
 	CComboBox m_targets;
-	CLineNumberEdit m_srcdata;
+	CShaderEdit m_srcdata;
 	CEdit m_output;
 
 protected:
@@ -60,4 +77,5 @@ public:
 	afx_msg void OnLButtonUp(UINT nFlags, CPoint point);
 	afx_msg void OnMouseMove(UINT nFlags, CPoint point);
 	afx_msg BOOL OnSetCursor(CWnd* pWnd, UINT nHitTest, UINT message);
+	afx_msg void OnKillFocus(CWnd* pNewWnd);
 };
