@@ -26,13 +26,7 @@
 #include <afxtempl.h>
 #include "OggFile.h"
 #include "..\BaseSplitter\BaseSplitter.h"
-/*
-class OggPacket : public Packet
-{
-public:
-	bool fStartValid;
-};
-*/
+
 class COggSplitterOutputPin : public CBaseSplitterOutputPin
 {
 protected:
@@ -55,13 +49,23 @@ public:
 
 class COggVorbisOutputPin : public COggSplitterOutputPin
 {
+	CAutoPtrList<Packet> m_initpackets;
+
 	DWORD m_audio_sample_rate;
+	DWORD m_blocksize[2], m_lastblocksize;
+	CArray<bool> m_blockflags;
 
 	virtual HRESULT UnpackPacket(CAutoPtr<Packet>& p, BYTE* pData, int len);
 	virtual REFERENCE_TIME GetRefTime(__int64 granule_position);
 
+	HRESULT DeliverPacket(CAutoPtr<Packet> p);
+    HRESULT DeliverNewSegment(REFERENCE_TIME tStart, REFERENCE_TIME tStop, double dRate);
+
 public:
 	COggVorbisOutputPin(OggVorbisIdHeader* h, LPCWSTR pName, CBaseFilter* pFilter, CCritSec* pLock, HRESULT* phr);
+
+	HRESULT UnpackInitPage(OggPage& page);
+	bool IsInitialized() {return m_initpackets.GetCount() >= 3;}
 };
 
 class COggDirectShowOutputPin : public COggSplitterOutputPin

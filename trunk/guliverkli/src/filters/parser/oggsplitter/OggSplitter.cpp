@@ -20,7 +20,6 @@
  */
 
 #include "StdAfx.h"
-//#include <mmreg.h>
 #include "OggSplitter.h"
 
 #include <initguid.h>
@@ -150,12 +149,12 @@ HRESULT COggSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 
 	m_pFile->Seek(0);
 	OggPage page;
-	for(int i = 0; m_pFile->Read(page) /*&& (page.m_hdr.header_type_flag & OggPageHeader::first)*/; i++)
+	for(int i = 0, nWaitForMore = 0; m_pFile->Read(page); i++)
 	{
 		BYTE* p = page.GetData();
 
 		BYTE type = *p++;
-		if(!(type&1))
+		if(!(type&1) && nWaitForMore == 0)
 			break;
 
 		CStringW name;
@@ -163,7 +162,7 @@ HRESULT COggSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 
 		HRESULT hr;
 
-		if(type == 1)
+		if(type == 1 && (page.m_hdr.header_type_flag & OggPageHeader::first))
 		{
 			CAutoPtr<CBaseSplitterOutputPin> pPinOut;
 
@@ -171,6 +170,7 @@ HRESULT COggSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 			{
 				name.Format(L"Vorbis %d", i);
 				pPinOut.Attach(new COggVorbisOutputPin((OggVorbisIdHeader*)(p+6), name, this, this, &hr));
+				nWaitForMore++;
 			}
 			else if(!memcmp(p, "video", 5))
 			{
@@ -199,13 +199,17 @@ HRESULT COggSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 				m_pOutputs.AddTail(pPinOut);
 			}
 		}
-		else if(type == 3)
+
+		if(type&1)
 		{
-			// TODO
-		}
-		else if(type == 5)
-		{
-			// TODO
+			CBaseSplitterOutputPin* pPin = NULL;
+			COggVorbisOutputPin* pOggVorbisPin = NULL;
+			if(m_pPinMap.Lookup(page.m_hdr.bitstream_serial_number, pPin)
+			&& (pOggVorbisPin = dynamic_cast<COggVorbisOutputPin*>(pPin)))
+			{
+				pOggVorbisPin->UnpackInitPage(page);
+				if(pOggVorbisPin->IsInitialized()) nWaitForMore--;
+			}
 		}
 	}
 
@@ -239,6 +243,7 @@ void COggSplitterFilter::SeekDeliverLoop(REFERENCE_TIME rt)
 {
 	if(rt <= 0)
 	{
+		m_pFile->Seek(0);
 	}
 	else
 	{
@@ -409,6 +414,8 @@ COggVorbisOutputPin::COggVorbisOutputPin(OggVorbisIdHeader* h, LPCWSTR pName, CB
 	: COggSplitterOutputPin(pName, pFilter, pLock, phr)
 {
 	m_audio_sample_rate = h->audio_sample_rate;
+	m_blocksize[0] = 1<<h->blocksize_0;
+	m_blocksize[1] = 1<<h->blocksize_1;
 
 	CMediaType mt;
 	mt.majortype = MEDIATYPE_Audio;
@@ -422,7 +429,7 @@ COggVorbisOutputPin::COggVorbisOutputPin(OggVorbisIdHeader* h, LPCWSTR pName, CB
 	vf->nMinBitsPerSec = h->bitrate_minimum;
 	vf->nMaxBitsPerSec = h->bitrate_maximum;
 	vf->fQuality = -1;
-	mt.SetSampleSize(max(1 << h->blocksize_1, 1));
+	mt.SetSampleSize(8192);
 	m_mts.Add(mt);
 }
 
@@ -432,10 +439,133 @@ REFERENCE_TIME COggVorbisOutputPin::GetRefTime(__int64 granule_position)
 	return rt;
 }
 
+class bitstream
+{
+	BYTE* m_p;
+	int m_len, m_pos;
+public:
+	bitstream(BYTE* p, int len, bool startattheend = false) : m_p(p), m_len(len*8) {m_pos = !startattheend ? 0 : len*8;}
+	bool hasbits(int cnt)
+	{
+		int pos = m_pos+cnt;
+		return(pos >= 0 && pos < m_len);
+	}
+	unsigned int showbits(int cnt) // a bit unclean, but works and can read backwards too! :P
+	{
+		if(!hasbits(cnt)) {ASSERT(0); return 0;}
+		unsigned int ret = 0, off = 0;
+		BYTE* p = m_p;
+		if(cnt < 0)
+		{
+			p += (m_pos+cnt)>>3;
+			off = (m_pos+cnt)&7;
+			cnt = abs(cnt);
+			ret = (*p++&(~0<<off))>>off; off = 8 - off; cnt -= off;
+		}
+		else
+		{
+			p += m_pos>>3;
+			off = m_pos&7;
+			ret = (*p++>>off)&((1<<min(cnt,8))-1); off = 0; cnt -= 8 - off;
+		}
+		while(cnt > 0) {ret |= (*p++&((1<<min(cnt,8))-1)) << off; off += 8; cnt -= 8;}
+		return ret;
+	}
+	unsigned int getbits(int cnt)
+	{
+		unsigned int ret = showbits(cnt);
+		m_pos += cnt;
+		return ret;
+	}
+};
+
+HRESULT COggVorbisOutputPin::UnpackInitPage(OggPage& page)
+{
+	HRESULT hr = __super::UnpackPage(page);
+
+	while(m_packets.GetCount())
+	{
+		Packet* p = m_packets.GetHead();
+		if(p->pData.GetCount() >= 6 && p->pData.GetData()[0] == 0x05)
+		{
+			bitstream bs(p->pData.GetData(), p->pData.GetCount(), true);
+			while(bs.hasbits(-1) && bs.getbits(-1) != 1);
+			for(int cnt = 0; bs.hasbits(-8-16-16-1-6); cnt++)
+			{
+				unsigned int modes = bs.showbits(-6)+1;
+
+				unsigned int mapping = bs.getbits(-8);
+				unsigned int transformtype = bs.getbits(-16);
+				unsigned int windowtype = bs.getbits(-16);
+				unsigned int blockflag = bs.getbits(-1);
+
+				if(transformtype != 0 || windowtype != 0)
+				{
+					ASSERT(modes == cnt);
+					break;
+				}
+
+				m_blockflags.InsertAt(0, !!blockflag);
+			}
+		}
+
+		m_initpackets.AddTail(m_packets.RemoveHead());
+	}
+
+	return hr;
+}
+
 HRESULT COggVorbisOutputPin::UnpackPacket(CAutoPtr<Packet>& p, BYTE* pData, int len)
 {
-	// TODO
-	return S_FALSE;
+	if(len > 0 && m_blockflags.GetCount())
+	{
+		bitstream bs(pData, len);
+		if(bs.getbits(1) == 0)
+		{
+			int x = m_blockflags.GetCount()-1, n = 0;
+			while(x) {n++; x >>= 1;}
+			DWORD blocksize = m_blocksize[m_blockflags[bs.getbits(n)]?1:0];
+			if(m_lastblocksize) m_rt += GetRefTime((m_lastblocksize + blocksize) >> 2);
+			m_lastblocksize = blocksize;
+		}
+	}
+
+	p->bSyncPoint = TRUE;
+	p->rtStart = m_rt;
+	p->rtStop = m_rt;
+	p->pData.SetSize(len);
+	memcpy(p->pData.GetData(), pData, len);
+
+	return S_OK;
+}
+
+HRESULT COggVorbisOutputPin::DeliverPacket(CAutoPtr<Packet> p)
+{
+	if(p->pData.GetSize() > 0 && (p->pData.GetData()[0]&1))
+		return S_OK;
+
+	return __super::DeliverPacket(p);
+}
+
+HRESULT COggVorbisOutputPin::DeliverNewSegment(REFERENCE_TIME tStart, REFERENCE_TIME tStop, double dRate)
+{
+	HRESULT hr = __super::DeliverNewSegment(tStart, tStop, dRate);
+
+	m_lastblocksize = 0;
+
+	POSITION pos = m_initpackets.GetHeadPosition();
+	while(pos)
+	{
+		Packet* pi = m_initpackets.GetNext(pos);
+		CAutoPtr<Packet> p(new Packet());
+		p->TrackNumber = pi->TrackNumber;
+		p->bDiscontinuity = p->bSyncPoint = TRUE;
+		p->rtStart = p->rtStop = 0;
+		p->pData.Copy(pi->pData);
+		__super::DeliverPacket(p);
+	}
+
+	return hr;
 }
 
 //
@@ -449,18 +579,48 @@ COggDirectShowOutputPin::COggDirectShowOutputPin(AM_MEDIA_TYPE* pmt, LPCWSTR pNa
 	memcpy((AM_MEDIA_TYPE*)&mt, pmt, FIELD_OFFSET(AM_MEDIA_TYPE, pUnk));
 	mt.SetFormat((BYTE*)(pmt+1), pmt->cbFormat);
 	mt.SetSampleSize(1);
-	m_mts.Add(mt);
+	if(mt.majortype == MEDIATYPE_Video) // TODO: find samples for audio and find out what to return in GetRefTime...
+		m_mts.Add(mt);
 }
 
 REFERENCE_TIME COggDirectShowOutputPin::GetRefTime(__int64 granule_position)
 {
 	REFERENCE_TIME rt = 0; // TODO
+
+	if(m_mt.majortype == MEDIATYPE_Video)
+	{
+		rt = granule_position * ((VIDEOINFOHEADER*)m_mt.Format())->AvgTimePerFrame;
+	}
+	else if(m_mt.majortype == MEDIATYPE_Audio)
+	{
+		rt = granule_position; // ((WAVEFORMATEX*)m_mt.Format())->
+	}
+
 	return rt;
 }
 
 HRESULT COggDirectShowOutputPin::UnpackPacket(CAutoPtr<Packet>& p, BYTE* pData, int len)
 {
-	// TODO
+	int i = 0;
+
+	BYTE hdr = pData[i++];
+
+	if(!(hdr&1))
+	{
+		BYTE nLenBytes = (hdr>>6)|((hdr&2)<<1);
+		__int64 Length = 0;
+		for(int j = 0; j < nLenBytes; j++)
+			Length |= (__int64)pData[i++] << (j << 3);
+
+		p->bSyncPoint = !!(hdr&8);
+		p->rtStart = m_rt;
+		p->rtStop = m_rt + (nLenBytes ? GetRefTime(Length) : GetRefTime(1));
+		p->pData.SetSize(len-i);
+		memcpy(p->pData.GetData(), &pData[i], len-i);
+
+		return S_OK;
+	}
+
 	return S_FALSE;
 }
 
