@@ -1307,7 +1307,6 @@ HRESULT CRealMediaSplitterOutputPin::DeliverEndFlush()
 {
 	if(!ThreadExists()) return S_FALSE;
 	HRESULT hr = IsConnected() ? GetConnected()->EndFlush() : S_OK;
-	m_segments.Clear();
 	m_hrDeliver = S_OK;
 	return hr;
 }
@@ -1315,6 +1314,7 @@ HRESULT CRealMediaSplitterOutputPin::DeliverEndFlush()
 HRESULT CRealMediaSplitterOutputPin::DeliverNewSegment(REFERENCE_TIME tStart, REFERENCE_TIME tStop, double dRate)
 {
 	m_rtStart = tStart;
+	m_segments.Clear(); // FIXME: !!!!!!!!!!!!!!!!!!!!! this is not thread safe, can crash any time !!!!!!!!!!!!!!!!!!!!!!!!
 	if(!ThreadExists()) return S_FALSE;
 	return __super::DeliverNewSegment(tStart, tStop, dRate);
 }
@@ -1980,6 +1980,17 @@ HRESULT CRealVideoDecoder::Receive(IMediaSample* pIn)
 		DeleteMediaType(pmt);
 	}
 
+CMediaType mt = m_pOutput->CurrentMediaType();
+VIDEOINFOHEADER* vih = (VIDEOINFOHEADER*)mt.Format();
+if(vih->rcSource.right != transform_out.w || vih->rcSource.bottom != transform_out.h)
+{
+vih->rcSource.right = transform_out.w;
+vih->rcSource.bottom = transform_out.h;
+vih->rcTarget.right = ((VIDEOINFOHEADER*)m_pInput->CurrentMediaType().Format())->bmiHeader.biWidth;
+vih->rcTarget.bottom = ((VIDEOINFOHEADER*)m_pInput->CurrentMediaType().Format())->bmiHeader.biHeight;
+pOut->SetMediaType(&mt);
+}
+
 	rtStart = 10000i64*transform_out.timestamp - m_tStart;
 	rtStop = rtStart + 1;
 	pOut->SetTime(&rtStart, /*NULL*/&rtStop);
@@ -2547,9 +2558,15 @@ HRESULT CRealAudioDecoder::CheckInputType(const CMediaType* mtIn)
 		if(m_hDrvDll) {FreeLibrary(m_hDrvDll); m_hDrvDll = NULL;}
 
 		CStringList paths;
-		CString dll, oldpath, newpath;
+		CString olddll, newdll, oldpath, newpath;
 
-		dll.Format(_T("%c%c%c%c3260.dll"), 
+		olddll.Format(_T("%c%c%c%c3260.dll"), 
+			(TCHAR)((mtIn->subtype.Data1>>0)&0xff),
+			(TCHAR)((mtIn->subtype.Data1>>8)&0xff),
+			(TCHAR)((mtIn->subtype.Data1>>16)&0xff),
+			(TCHAR)((mtIn->subtype.Data1>>24)&0xff));
+
+		newdll.Format(_T("%c%c%c%c.dll"), 
 			(TCHAR)((mtIn->subtype.Data1>>0)&0xff),
 			(TCHAR)((mtIn->subtype.Data1>>8)&0xff),
 			(TCHAR)((mtIn->subtype.Data1>>16)&0xff),
@@ -2584,9 +2601,12 @@ HRESULT CRealAudioDecoder::CheckInputType(const CMediaType* mtIn)
 			key.Close();
 		}
 
-		if(!newpath.IsEmpty()) paths.AddTail(newpath + dll);
-		if(!oldpath.IsEmpty()) paths.AddTail(oldpath + dll);
-		paths.AddTail(dll); // default dll paths
+		if(!newpath.IsEmpty()) paths.AddTail(newpath + newdll);
+		if(!oldpath.IsEmpty()) paths.AddTail(oldpath + newdll);
+		paths.AddTail(newdll); // default dll paths
+		if(!newpath.IsEmpty()) paths.AddTail(newpath + olddll);
+		if(!oldpath.IsEmpty()) paths.AddTail(oldpath + olddll);
+		paths.AddTail(olddll); // default dll paths
 
 		POSITION pos = paths.GetHeadPosition();
 		while(pos && !(m_hDrvDll = LoadLibrary(paths.GetNext(pos))));

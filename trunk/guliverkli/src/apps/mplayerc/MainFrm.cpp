@@ -2309,7 +2309,7 @@ void CMainFrame::OnFilePostOpenmedia()
 	// still running and the renderer window was created on
 	// the same worker-thread
 
-	SetFocus();
+//	SetFocus();
 
 	{
 		WINDOWPLACEMENT wp;
