@@ -222,3 +222,71 @@ inline GSSoftVertexFX operator / (GSSoftVertexFX& v1, GSSoftVertexFX::s32 f)
 	for(int i = 4; i < 8; i++) v0.qw[i] = (GSSoftVertexFX::s64)((float)v1.qw[i] * f2);
 	return v0;
 }
+
+////////
+
+#ifdef USE_SIMD
+
+inline void ClipColor(__m128i& c)
+{
+	// c = (lt & 0) | (~lt & ((gt & 255) | (~gt & c)))
+
+	/*
+	__m128i _4xff = _mm_set1_epi32(0xff);
+	__m128i _4x00 = _mm_set1_epi32(0x00);
+	__m128i gt = _mm_cmpgt_epi32(c, _4xff);
+	__m128i lt = _mm_cmplt_epi32(c, _4x00);
+	c = _mm_or_si128(_mm_and_si128(lt, _4x00), _mm_andnot_si128(lt, _mm_or_si128(_mm_and_si128(gt, _4xff), _mm_andnot_si128(gt, c))));
+	*/
+
+	__asm
+	{
+		pxor	xmm0, xmm0
+		mov		eax, 0xFF
+		movd	xmm1, eax 
+		pshufd	xmm1, xmm1, 0
+
+		// xmm0 = 0, xmm1 = ff
+
+		mov		esi, c
+		movaps	xmm2, [esi]
+		movaps	xmm3, xmm2
+
+		// xmm2 = c, xmm3 = c
+
+		pxor	xmm4, xmm4
+        pcmpgtd	xmm4, xmm3
+		pcmpgtd	xmm3, xmm1
+
+		movaps	xmm5, xmm3
+		pshufd	xmm6, xmm4, 0xe4
+
+		// xmm3/5 = gt, xmm4/6 = lt
+
+		pand	xmm3, xmm1
+		pandn	xmm5, xmm2
+		por		xmm3, xmm5
+
+		// xmm3 = (gt & 255) | (~gt & c)
+
+		pand	xmm4, xmm0
+		pandn	xmm6, xmm3
+		por		xmm4, xmm6
+
+		// xmm4 = (lt & 0) | (~lt & xmm3)
+
+		movaps	[esi], xmm4
+	}
+}
+
+inline void MaskColor(__m128i& c)
+{
+	c = _mm_and_si128(c, _mm_set1_epi32(0xff));
+}
+
+inline void PackColor(__m128i& c)
+{
+	c = _mm_packus_epi16(_mm_packs_epi32(c, c), c);
+}
+
+#endif
