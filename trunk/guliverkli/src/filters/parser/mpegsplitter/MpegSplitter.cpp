@@ -99,6 +99,7 @@ STDMETHODIMP CMpegSplitterFilter::NonDelegatingQueryInterface(REFIID riid, void*
 
     return 
 		QI(IAMStreamSelect)
+		QI(IAMOpenProgress)
 		__super::NonDelegatingQueryInterface(riid, ppv);
 }
 
@@ -271,9 +272,11 @@ bool CMpegSplitterFilter::InitDeliverLoop()
 
 void CMpegSplitterFilter::SeekDeliverLoop(REFERENCE_TIME rt)
 {
+	if(m_pFile->IsStreaming()) return;
+
 	REFERENCE_TIME rtPreroll = 10000000;
 	
-	if(rt <= rtPreroll || m_rtDuration <= 0 || m_pFile->IsStreaming())
+	if(rt <= rtPreroll || m_rtDuration <= 0)
 	{
 		m_pFile->Seek(0);
 	}
@@ -354,9 +357,20 @@ bool CMpegSplitterFilter::DoDeliverLoop()
 	REFERENCE_TIME rtStartOffset = m_rtStartOffset ? m_rtStartOffset : m_pFile->m_rtMin;
 	bool fStreaming = m_pFile->IsStreaming();
 
-	// TODO: do something against buffer underrun when fStreaming (stop if not enough data is available and display Buffering...)
 	while(SUCCEEDED(hr) && !CheckRequest(NULL) && (fStreaming || m_pFile->GetPos() < m_pFile->GetLength()))
 	{
+		if(fStreaming)
+		{
+			__int64 limit = 1024*500;
+			__int64 available = m_pFile->GetLength() - m_pFile->GetPos();
+
+			if(available < limit)
+			{
+				Sleep(1);
+				continue;
+			}
+		}
+
 		int ret = DemuxNextPacket(rtStartOffset);
 
 		if(ret == E_FAIL || !fStreaming && ret != S_OK)

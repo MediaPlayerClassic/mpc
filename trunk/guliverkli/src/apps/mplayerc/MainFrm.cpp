@@ -2283,7 +2283,7 @@ void CMainFrame::OnUpdatePlayerStatus(CCmdUI* pCmdUI)
 		}
 		else if(pAMOP)
 		{
-			__int64 t, c;
+			__int64 t = 0, c = 0;
 			if(SUCCEEDED(pAMOP->QueryProgress(&t, &c)) && t > 0 && c < t)
 			{
 				msg.Format(_T("Buffering... (%d%%)"), c*100/t);
