@@ -26,6 +26,7 @@
 #include <afxtempl.h>
 #include "MatroskaFile.h"
 #include "..\BaseSplitter\BaseSplitter.h"
+#include "..\..\..\..\include\ITrackInfo.h"
 
 class MatroskaPacket : public Packet
 {
@@ -61,7 +62,7 @@ public:
 };
 
 [uuid("149D2E01-C32E-4939-80F6-C07B81015A7A")]
-class CMatroskaSplitterFilter : public CBaseSplitterFilter
+class CMatroskaSplitterFilter : public CBaseSplitterFilter, public ITrackInfo
 {
 	void SendVorbisHeaderSample();
 
@@ -87,6 +88,9 @@ public:
     static CUnknown* WINAPI CreateInstance(LPUNKNOWN lpunk, HRESULT* phr);
 #endif
 
+	DECLARE_IUNKNOWN;
+    STDMETHODIMP NonDelegatingQueryInterface(REFIID riid, void** ppv);
+
 	// IMediaSeeking
 
 	STDMETHODIMP GetDuration(LONGLONG* pDuration);
@@ -103,6 +107,17 @@ public:
 
 	STDMETHODIMP GetKeyFrameCount(UINT& nKFs);
 	STDMETHODIMP GetKeyFrames(const GUID* pFormat, REFERENCE_TIME* pKFs, UINT& nKFs);
+
+	// ITrackInfo
+
+	STDMETHODIMP_(UINT) GetTrackCount();
+	STDMETHODIMP_(BOOL) GetTrackInfo(UINT aTrackIdx, struct TrackElement* pStructureToFill);	
+	STDMETHODIMP_(BOOL) GetTrackExtendedInfo(UINT aTrackIdx, void* pStructureToFill);
+	STDMETHODIMP_(BSTR) GetTrackName(UINT aTrackIdx);
+	STDMETHODIMP_(BSTR) GetTrackCodecID(UINT aTrackIdx);
+	STDMETHODIMP_(BSTR) GetTrackCodecName(UINT aTrackIdx);
+	STDMETHODIMP_(BSTR) GetTrackCodecInfoURL(UINT aTrackIdx);
+	STDMETHODIMP_(BSTR) GetTrackCodecDownloadURL(UINT aTrackIdx);
 };
 
 [uuid("0A68C3B5-9164-4a54-AFAF-995B2FF0E0D4")]
