@@ -2186,7 +2186,7 @@ END
 
 STRINGTABLE 
 BEGIN
-    AFX_IDS_APP_TITLE       "WebServerCGI"
+    AFX_IDS_APP_TITLE       "Media Player Classic"
 END
 
 STRINGTABLE 
