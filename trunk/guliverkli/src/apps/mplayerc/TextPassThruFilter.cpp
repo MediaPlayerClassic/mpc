@@ -24,7 +24,7 @@
 #include <commdlg.h>
 #include "mplayerc.h"
 #include "mainfrm.h"
-#include "textpassthrufilter.h"
+#include "TextPassThruFilter.h"
 #include "..\..\..\include\matroska\matroska.h"
 #include "..\..\DSUtil\DSUtil.h"
 
@@ -211,9 +211,7 @@ HRESULT CTextPassThruFilter::Transform(IMediaSample* pIn, IMediaSample* pOut)
 	if(fInvalidate)
 		m_pMainFrame->InvalidateSubtitle((DWORD_PTR)(ISubStream*)m_pRTS, rtStart);
 
-	return GetCLSID(GetFilterFromPin(m_pOutput->GetConnected())) == GUIDFromCString(_T("{48025243-2D39-11CE-875D-00608CB78066}"))
-		? S_FALSE
-		: S_OK;
+	return S_OK;
 }
 
 HRESULT CTextPassThruFilter::CheckInputType(const CMediaType* mtIn)
@@ -349,22 +347,5 @@ HRESULT CTextPassThruFilter::NewSegment(REFERENCE_TIME tStart, REFERENCE_TIME tS
 		pRTS->CreateSegments();
 	}
 
-	HRESULT hr = __super::NewSegment(tStart, tStop, dRate);
-	if(FAILED(hr)) return hr;
-
-	if(m_pOutput->IsConnected() 
-	&& GetCLSID(GetFilterFromPin(m_pOutput->GetConnected())) == 
-		GUIDFromCString(_T("{48025243-2D39-11CE-875D-00608CB78066}"))) // ISCR
-	{
-		CComPtr<IMediaSample> pSample;
-		if(SUCCEEDED(m_pOutput->GetDeliveryBuffer(&pSample, NULL, NULL, 0)))
-		{
-			REFERENCE_TIME rtStart = 0, rtStop = 1;
-			pSample->SetTime(&rtStart, &rtStop);
-			pSample->SetActualDataLength(1);
-			m_pOutput->Deliver(pSample);
-		}
-	}
-
-	return hr;
+	return __super::NewSegment(tStart, tStop, dRate);
 }

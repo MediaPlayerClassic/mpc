@@ -814,6 +814,26 @@ HRESULT SeekHead::Write(IStream* pStream)
 	return S_OK;
 }
 
+Tags::Tags(DWORD id)
+	: CID(id)
+{
+}
+
+QWORD Tags::Size(bool fWithHeader)
+{
+	QWORD len = 0;
+//	len += .Size();
+	if(fWithHeader) len += HeaderSize(len);
+	return len;
+}
+
+HRESULT Tags::Write(IStream* pStream)
+{
+	HeaderWrite(pStream);
+//	.Write(pStream);
+	return S_OK;
+}
+
 Void::Void(QWORD len, DWORD id)
 	: CID(id)
 	, m_len(len)

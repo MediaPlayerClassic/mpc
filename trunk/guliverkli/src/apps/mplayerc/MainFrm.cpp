@@ -312,7 +312,7 @@ BEGIN_MESSAGE_MAP(CMainFrame, CFrameWnd)
 
 	ON_COMMAND(ID_HELP_HOMEPAGE, OnHelpHomepage)
 	ON_COMMAND(ID_HELP_DONATE, OnHelpDonate)
-	END_MESSAGE_MAP()
+END_MESSAGE_MAP()
 
 /////////////////////////////////////////////////////////////////////////////
 // CMainFrame construction/destruction
@@ -423,7 +423,6 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	SetFocus();
 
 	m_pGraphThread = (CGraphThread*)AfxBeginThread(RUNTIME_CLASS(CGraphThread));
-	m_pKFFThread = (CKeyFrameFinderThread*)AfxBeginThread(RUNTIME_CLASS(CKeyFrameFinderThread));
 
 	if(m_pGraphThread)
 		m_pGraphThread->SetMainFrame(this);
@@ -445,17 +444,6 @@ void CMainFrame::OnDestroy()
 		{
 			TRACE(_T("ERROR: Must call TerminateThread() on CMainFrame::m_pGraphThread->m_hThread\n")); 
 			TerminateThread(m_pGraphThread->m_hThread, -1);
-		}
-	}
-
-	if(m_pKFFThread)
-	{
-		CAMEvent e;
-		m_pKFFThread->PostThreadMessage(CKeyFrameFinderThread::TM_EXIT, 0, (LPARAM)&e);
-		if(!e.Wait(5000))
-		{
-			TRACE(_T("ERROR: Must call TerminateThread() on CMainFrame::m_pKFFThread->m_hThread\n")); 
-			TerminateThread(m_pKFFThread->m_hThread, -1);
 		}
 	}
 
@@ -2911,6 +2899,17 @@ void CMainFrame::OnUpdateFileSaveas(CCmdUI* pCmdUI)
 
 void CMainFrame::OnFileLoadsubtitles()
 {
+	if(!m_pCAP)
+	{
+		AfxMessageBox(_T("To load subtitles you have change the video renderer type and reopen the file.\n")
+					_T("- DirectShow: VMR7 or VMR9 renderless\n")
+					_T("- RealMedia: Special renderer for RealMedia, or open it through DirectShow\n")
+					_T("- Quicktime: DX7 or DX9 renderer for QuickTime\n")
+					_T("- ShockWave: n/a\n")
+					, MB_OK);
+		return;
+	}
+
 	static TCHAR BASED_CODE szFilter[] = 
 		_T(".srt .sub .ssa .ass .smi .psb .txt .idx .usf .xss|")
 		_T("*.srt;*.sub;*.ssa;*.ass;*smi;*.psb;*.txt;*.idx;*.usf;*.xss||");
@@ -2927,7 +2926,7 @@ void CMainFrame::OnFileLoadsubtitles()
 
 void CMainFrame::OnUpdateFileLoadsubtitles(CCmdUI *pCmdUI)
 {
-	pCmdUI->Enable(m_pCAP && !m_fAudioOnly);
+	pCmdUI->Enable(/*m_pCAP &&*/ !m_fAudioOnly);
 }
 
 void CMainFrame::OnFileSavesubtitles()
@@ -3534,18 +3533,10 @@ void CMainFrame::OnUpdatePlayFramestep(CCmdUI* pCmdUI)
 	&& m_iPlaybackMode != PM_CAPTURE
 	&& !m_fLiveWM)
 	{
-		if(S_OK == pMS->IsFormatSupported(&TIME_FORMAT_FRAME))
-		{
-			fEnable = true;
-		}
-        else if(pCmdUI->m_nID == ID_PLAY_FRAMESTEP)
-		{
-			if(pFS && pFS->CanStep(0, NULL) == S_OK)
-			{
-				fEnable = true;
-			}
-		}
-        else if(m_fQuicktimeGraph && pFS)
+		REFTIME AvgTimePerFrame = 0;
+        if(S_OK == pMS->IsFormatSupported(&TIME_FORMAT_FRAME)
+		|| pCmdUI->m_nID == ID_PLAY_FRAMESTEP && pFS && pFS->CanStep(0, NULL) == S_OK
+		|| m_fQuicktimeGraph && pFS)
 		{
 			fEnable = true;
 		}
@@ -3575,16 +3566,16 @@ void CMainFrame::OnPlaySeek(UINT nID)
 	SeekTo(m_wndSeekBar.GetPos() + dt);
 }
 
-static int rangebsearch(UINT val, CUIntArray& uia)
+static int rangebsearch(REFERENCE_TIME val, CArray<REFERENCE_TIME>& rta)
 {
-	int i = 0, j = uia.GetSize() - 1, ret = -1;
+	int i = 0, j = rta.GetSize() - 1, ret = -1;
 
-	if(j >= 0 && val >= uia[j]) return(j);
+	if(j >= 0 && val >= rta[j]) return(j);
 
 	while(i < j)
 	{
-		UINT mid = (i + j) >> 1;
-		UINT midt = uia[mid];
+		int mid = (i + j) >> 1;
+		REFERENCE_TIME midt = rta[mid];
 		if(val == midt) {ret = mid; break;}
 		else if(val < midt) {ret = -1; if(j == mid) mid--; j = mid;}
 		else if(val > midt) {ret = mid; if(i == mid) mid++; i = mid;}
@@ -3595,44 +3586,33 @@ static int rangebsearch(UINT val, CUIntArray& uia)
 
 void CMainFrame::OnPlaySeekKey(UINT nID)
 {
-	if(!m_pKFFThread) return;
-
-	CAutoLock cAutoLock(m_pKFFThread);
-
-	CUIntArray& kfs = m_pKFFThread->m_kfs;
-
-	if(kfs.GetCount() > 0)
+	if(m_kfs.GetCount() > 0)
 	{
 		HRESULT hr;
 
 		if(GetMediaState() == State_Stopped)
 			SendMessage(WM_COMMAND, ID_PLAY_PAUSE);
 
-		REFERENCE_TIME rtCurrent, rtStop;
-		hr = pMS->GetPositions(&rtCurrent, &rtStop);
-
-		rtCurrent = (rtCurrent + 5000) / 10000;
+		REFERENCE_TIME rtCurrent, rtDur;
+		hr = pMS->GetCurrentPosition(&rtCurrent);
+		hr = pMS->GetDuration(&rtDur);
 
 		int dec = 1;
-		int i = rangebsearch((UINT)rtCurrent, kfs);
-		if(i > 0) dec = (UINT)max(min(rtCurrent - kfs[i-1], 1000), 0);
+		int i = rangebsearch(rtCurrent, m_kfs);
+		if(i > 0) dec = (UINT)max(min(rtCurrent - m_kfs[i-1], 10000000), 0);
 
 		rtCurrent = 
 			nID == ID_PLAY_SEEKKEYBACKWARD ? max(rtCurrent - dec, 0) : 
 			nID == ID_PLAY_SEEKKEYFORWARD ? rtCurrent : 0;
 
-		i = rangebsearch((UINT)rtCurrent, kfs);
+		i = rangebsearch(rtCurrent, m_kfs);
 
 		if(nID == ID_PLAY_SEEKKEYBACKWARD)
-		{
-			i = max(i, 0);
-		}
-		else if(nID == ID_PLAY_SEEKKEYFORWARD)
-		{
-			i = min(i + 1, kfs.GetCount()-1);
-		}
-
-		rtCurrent = 10000i64*kfs[i];
+			rtCurrent = m_kfs[max(i, 0)];
+		else if(nID == ID_PLAY_SEEKKEYFORWARD && i < m_kfs.GetCount()-1)
+			rtCurrent = m_kfs[i+1];
+		else
+			return;
 
 		hr = pMS->SetPositions(
 			&rtCurrent, AM_SEEKING_AbsolutePositioning|AM_SEEKING_SeekToKeyFrame, 
@@ -5184,15 +5164,6 @@ void CMainFrame::OpenFile(OpenFileData* pOFD)
 		if(fFirst)
 		{
 			pOFD->title = fn;
-
-			if(m_pKFFThread)
-			{
-				if(TCHAR* buff = new TCHAR[fn.GetLength()+1])
-				{
-					_tcscpy(buff, fn);
-					m_pKFFThread->PostThreadMessage(CKeyFrameFinderThread::TM_INDEX, 0, (LPARAM)buff);
-				}
-			}
 		}
 
 		fFirst = false;
@@ -5308,6 +5279,18 @@ void CMainFrame::OpenFile(OpenFileData* pOFD)
 			break;
 		}
 		EndEnumFilters
+	}
+
+	CComQIPtr<IKeyFrameInfo> pKFI;
+	BeginEnumFilters(pGB, pEF, pBF)
+		if(pKFI = pBF) break;
+	EndEnumFilters
+	UINT nKFs = 0, nKFsTmp = 0;
+	if(pKFI && S_OK == pKFI->GetKeyFrameCount(nKFs) && nKFs > 0)
+	{
+		m_kfs.SetSize(nKFsTmp = nKFs);
+		if(S_OK != pKFI->GetKeyFrames(&TIME_FORMAT_MEDIA_TIME, m_kfs.GetData(), nKFsTmp) || nKFsTmp != nKFs)
+			m_kfs.SetSize(0);
 	}
 
 	m_iPlaybackMode = PM_FILE;
@@ -6060,8 +6043,7 @@ void CMainFrame::CloseMediaPrivate()
 
 	m_rtDurationOverride = -1;
 
-	if(m_pKFFThread)
-		m_pKFFThread->PostThreadMessage(CKeyFrameFinderThread::TM_BREAK, 0, 0);
+	m_kfs.RemoveAll();
 
 RemoveFromRot(m_dwRegister);
 
@@ -6191,7 +6173,7 @@ void CMainFrame::SetupFiltersSubMenu()
 					name.Format(_T("%s (0x%04x)"), CString(name), (int)c);
 				}
 			}
-			else if(clsid == __uuidof(CTextPassThruFilter)
+			else if(clsid == __uuidof(CTextPassThruFilter) || clsid == __uuidof(CTextNullRenderer)
 				|| clsid == GUIDFromCString(_T("{48025243-2D39-11CE-875D-00608CB78066}"))) // ISCR
 			{
 				// hide these
@@ -6597,9 +6579,9 @@ void CMainFrame::SetupNavChaptersSubMenu()
 			{
 				chapter_t& c = m_chapters[i];
 
-				int s = (c.rtStart/10000000)%60;
-				int m = (c.rtStart/10000000/60)%60;
-				int h = (c.rtStart/10000000/60/60);
+				int s = (int)((c.rtStart/10000000)%60);
+				int m = (int)((c.rtStart/10000000/60)%60);
+				int h = (int)((c.rtStart/10000000/60/60));
 
 				CString t;
 				t.Format(_T("[%02d:%02d:%02d] "), h, m, s);
@@ -7076,16 +7058,13 @@ void CMainFrame::SeekTo(REFERENCE_TIME rtPos, bool fSeekToKeyFrame)
 
 		HRESULT hr;
 
-		if(fSeekToKeyFrame && m_pKFFThread)
+		if(fSeekToKeyFrame)
 		{
-			CAutoLock cAutoLock(m_pKFFThread);
-
-			CUIntArray& kfs = m_pKFFThread->m_kfs;
-			if(!kfs.IsEmpty())
+			if(!m_kfs.IsEmpty())
 			{
-				int i = rangebsearch((UINT)((rtPos+5000)/10000), kfs);
-				if(i >= 0 && i < kfs.GetCount())
-					rtPos = kfs[i]*10000;
+				int i = rangebsearch(rtPos, m_kfs);
+				if(i >= 0 && i < m_kfs.GetCount())
+					rtPos = m_kfs[i];
 			}
 		}
 
@@ -7701,120 +7680,5 @@ void CGraphThread::OnClose(WPARAM wParam, LPARAM lParam)
 {
 	if(m_pMainFrame) m_pMainFrame->CloseMediaPrivate();
 	if(CAMEvent* e = (CAMEvent*)lParam) e->Set();
-}
-
-//
-// CKeyFrameFinderThread
-//
-
-IMPLEMENT_DYNCREATE(CKeyFrameFinderThread, CWinThread)
-
-BOOL CKeyFrameFinderThread::InitInstance()
-{
-	SetThreadPriority(THREAD_PRIORITY_LOWEST);
-	return SUCCEEDED(CoInitialize(0)) ? TRUE : FALSE;
-}
-
-int CKeyFrameFinderThread::ExitInstance()
-{
-	CoUninitialize();
-	return __super::ExitInstance();
-}
-
-BEGIN_MESSAGE_MAP(CKeyFrameFinderThread, CWinThread)
-	ON_THREAD_MESSAGE(TM_EXIT, OnExit)
-	ON_THREAD_MESSAGE(TM_INDEX, OnIndex)
-	ON_THREAD_MESSAGE(TM_BREAK, OnBreak)
-END_MESSAGE_MAP()
-
-void CKeyFrameFinderThread::OnExit(WPARAM wParam, LPARAM lParam)
-{
-	PostQuitMessage(0);
-	if(CAMEvent* e = (CAMEvent*)lParam) e->Set();
-}
-
-#include <Vfw.h>
-
-void CKeyFrameFinderThread::OnIndex(WPARAM wParam, LPARAM lParam)
-{
-	if(!lParam) return;
-
-	CString fn = (LPTSTR)lParam;
-	delete [] (LPTSTR)lParam;
-
-	CFile f;
-	if(f.Open(fn, CFile::modeRead|CFile::shareDenyWrite))
-	{
-		ULONGLONG len = f.GetLength();
-		BYTE buff[12];
-		memset(buff, 0, sizeof(buff));
-		f.Read(buff, sizeof(buff));
-		if(*((DWORD*)&buff[0]) != 'FFIR' || *((DWORD*)&buff[8]) != ' IVA'
-		/*|| len != *((DWORD*)&buff[4])+8*/)
-			return;
-		f.Close();
-	}
-
-	AVIFileInit();
-
-	PAVIFILE pfile;
-	if(AVIFileOpen(&pfile, fn, OF_SHARE_DENY_WRITE, 0L) == 0)
-	{
-		AVIFILEINFO afi;
-		memset(&afi, 0, sizeof(afi));
-		AVIFileInfo(pfile, &afi, sizeof(AVIFILEINFO));
-
-		CComPtr<IAVIStream> pavi;
-		if(AVIFileGetStream(pfile, &pavi, streamtypeVIDEO, 0) == AVIERR_OK)
-		{
-			AVISTREAMINFO si;
-			AVIStreamInfo(pavi, &si, sizeof(si));
-
-			if(afi.dwCaps&AVIFILECAPS_ALLKEYFRAMES)
-			{
-				CAutoLock cAutoLock(this);
-				m_kfs.SetSize(si.dwLength);
-				for(int kf = 0; kf < si.dwLength; kf++) m_kfs[kf] = kf;
-			}
-			else
-			{
-				for(int kf = 0; ; kf++)
-				{
-					MSG msg;
-					if(PeekMessage(&msg, NULL, 0, 0, PM_NOREMOVE))
-					{
-						if(msg.message == TM_EXIT || msg.message == TM_INDEX
-						|| msg.message == TM_BREAK || msg.message == WM_QUIT)
-							break;
-					}
-
-					kf = pavi->FindSample(kf, FIND_KEY|FIND_NEXT);
-
-					UINT t = (UINT)((1000i64 * kf * si.dwScale + (si.dwRate/2)) / si.dwRate);
-
-					CAutoLock cAutoLock(this);
-					if(kf < 0 || m_kfs.GetCount() > 0 && m_kfs[m_kfs.GetCount()-1] >= t) break;
-					m_kfs.Add(t);
-				}
-
-				{
-					UINT t = (UINT)((1000i64 * (si.dwLength-1) * si.dwScale + (si.dwRate/2)) / si.dwRate);
-
-					CAutoLock cAutoLock(this);
-					if(m_kfs.GetCount() > 0 && m_kfs[m_kfs.GetCount()-1] < si.dwLength-1)
-						m_kfs.Add(t);
-				}
-			}
-		}
-
-		AVIFileRelease(pfile);
-	}
-
-	AVIFileExit();
-}
-void CKeyFrameFinderThread::OnBreak(WPARAM wParam, LPARAM lParam)
-{
-	CAutoLock cAutoLock(this);
-	m_kfs.RemoveAll();
 }
 

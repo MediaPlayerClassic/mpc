@@ -5,6 +5,7 @@
 #include <afxtempl.h>
 #include <qnetwork.h>
 #include "..\..\..\..\include\IChapterInfo.h"
+#include "..\..\..\..\include\IKeyFrameInfo.h"
 
 class Packet
 {
@@ -123,6 +124,7 @@ class CBaseSplitterFilter
 	, public IAMOpenProgress
 	, public IAMMediaContent
 	, public IChapterInfo
+	, public IKeyFrameInfo
 {
 protected:
 	CStringW m_fn;
@@ -242,5 +244,10 @@ public:
 	STDMETHODIMP_(UINT) GetChapterCurrentId();
 	STDMETHODIMP_(BOOL) GetChapterInfo(UINT aChapterID, struct ChapterElement* pStructureToFill);
 	STDMETHODIMP_(BSTR) GetChapterStringInfo(UINT aChapterID, CHAR PreferredLanguage[3], CHAR CountryCode[2]);
+
+	// IKeyFrameInfo
+
+	STDMETHODIMP_(HRESULT) GetKeyFrameCount(UINT& nKFs);
+	STDMETHODIMP_(HRESULT) GetKeyFrames(const GUID* pFormat, REFERENCE_TIME* pKFs, UINT& nKFs);
 };
 
