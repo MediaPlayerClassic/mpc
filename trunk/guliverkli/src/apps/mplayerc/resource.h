@@ -312,6 +312,8 @@
 #define IDS_RS_DTSSC                    611
 #define IDS_RS_DTSDRC                   612
 #define IDS_RS_SNAPSHOTPATH             613
+#define IDS_RS_PRIORITY                 614
+#define IDS_RS_SNAPSHOTEXT              615
 #define IDC_BROWSEBUTTON                1016
 #define IDC_BROWSEBUTTON2               1017
 #define IDC_COMBO1                      1018
@@ -486,6 +488,7 @@
 #define IDC_CHECK_AC3                   1151
 #define IDC_CHECK_DTS                   1152
 #define IDC_CHECK_NUT                   1153
+#define IDC_CHECK_MPG                   1154
 #define IDD_COMPROPERTYPAGE             10002
 #define ID_DUMMYSEPARATOR               32768
 #define ID_VOLUME_MUTE_ON               32769
@@ -577,7 +580,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        363
 #define _APS_NEXT_COMMAND_VALUE         32833
-#define _APS_NEXT_CONTROL_VALUE         1154
+#define _APS_NEXT_CONTROL_VALUE         1155
 #define _APS_NEXT_SYMED_VALUE           10003
 #endif
 #endif

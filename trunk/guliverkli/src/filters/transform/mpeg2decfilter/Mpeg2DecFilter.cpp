@@ -289,39 +289,9 @@ HRESULT CMpeg2DecFilter::Receive(IMediaSample* pIn)
 
 	long len = pIn->GetActualDataLength();
 
-	if(len <= 0) return S_OK;
+	((CDeCSSInputPin*)m_pInput)->StripPacket(pDataIn, len);
 
-	if(*(DWORD*)pDataIn == 0xBA010000) // MEDIATYPE_*_PACK
-	{
-		len -= 14; pDataIn += 14;
-		if(int stuffing = (pDataIn[-1]&7)) {len -= stuffing; pDataIn += stuffing;}
-	}
-
-	if(len <= 0) return S_OK;
-
-	if(*(DWORD*)pDataIn == 0xBB010000)
-	{
-		len -= 4; pDataIn += 4;
-		int hdrlen = ((pDataIn[0]<<8)|pDataIn[1]) + 2;
-		len -= hdrlen; pDataIn += hdrlen;
-	}
-
-	if(len <= 0) return S_OK;
-
-	if((*(DWORD*)pDataIn&0xE0FFFFFF) == 0xE0010000)
-	{
-		if(m_pInput->CurrentMediaType().subtype == MEDIASUBTYPE_MPEG1Packet)
-		{
-			len -= 4+2+12; pDataIn += 4+2+12;
-		}
-		else if(m_pInput->CurrentMediaType().subtype == MEDIASUBTYPE_MPEG2_VIDEO)
-		{
-			len -= 8; pDataIn += 8;
-			len -= *pDataIn+1; pDataIn += *pDataIn+1;
-		}
-	}
-
-	if(len <= 0) return S_OK;
+//TRACE(_T("%d\n"), len);
 
 	if(pIn->IsDiscontinuity() == S_OK)
 	{
@@ -331,6 +301,7 @@ HRESULT CMpeg2DecFilter::Receive(IMediaSample* pIn)
 	REFERENCE_TIME rtStart = _I64_MIN, rtStop = _I64_MIN;
 	hr = pIn->GetTime(&rtStart, &rtStop);
 	if(FAILED(hr)) rtStart = rtStop = _I64_MIN;
+//else TRACE(_T("rtStart = %I64d\n"), rtStart);
 
 	while(len >= 0)
 	{
@@ -350,7 +321,7 @@ HRESULT CMpeg2DecFilter::Receive(IMediaSample* pIn)
 //				ResetMpeg2Decoder();
 			break;
 		case STATE_GOP:
-			TRACE(_T("STATE_GOP\n"));
+			// TRACE(_T("STATE_GOP\n"));
 			if(m_dec->m_info.m_user_data_len > 4 && *(DWORD*)m_dec->m_info.m_user_data == 0xf8014343
 			&& m_pClosedCaptionOutput->IsConnected())
 			{
@@ -558,6 +529,7 @@ HRESULT CMpeg2DecFilter::Deliver(bool fRepeatLast)
 
 	TCHAR frametype[] = {'?','I', 'P', 'B', 'D'};
 //	TRACE(_T("%010I64d - %010I64d [%c] [prsq %d prfr %d tff %d rff %d nb_fields %d ref %d] (%dx%d/%dx%d)\n"), 
+/*
 	TRACE(_T("%010I64d - %010I64d [%c] [prsq %d prfr %d tff %d rff %d] (%dx%d %d) (preroll %d)\n"), 
 		m_fb.rtStart, m_fb.rtStop,
 		frametype[m_fb.flags&PIC_MASK_CODING_TYPE],
@@ -569,7 +541,7 @@ HRESULT CMpeg2DecFilter::Deliver(bool fRepeatLast)
 //		m_dec->m_info.m_display_picture->temporal_reference,
 		m_fb.w, m_fb.h, m_fb.pitch,
 		!!(m_fb.rtStart < 0 || m_fWaitForKeyFrame));
-
+*/
 	if(m_fb.rtStart < 0 || m_fWaitForKeyFrame)
 		return S_OK;
 
@@ -1358,14 +1330,27 @@ STDMETHODIMP CMpeg2DecInputPin::QuerySupported(REFGUID PropSet, ULONG Id, ULONG*
 CSubpicInputPin::CSubpicInputPin(CTransformFilter* pFilter, HRESULT* phr) 
 	: CMpeg2DecInputPin(pFilter, phr, L"SubPicture")
 	, m_spon(TRUE)
+	, m_fsppal(false)
 {
+	m_sppal[0].Y = 0x00;
+	m_sppal[0].U = m_sppal[0].V = 0x80;
+	m_sppal[1].Y = 0xe0;
+	m_sppal[1].U = m_sppal[1].V = 0x80;
+	m_sppal[2].Y = 0x80;
+	m_sppal[2].U = m_sppal[2].V = 0x80;
+	m_sppal[3].Y = 0x20;
+	m_sppal[3].U = m_sppal[3].V = 0x80;
 }
 
 HRESULT CSubpicInputPin::CheckMediaType(const CMediaType* mtIn)
 {
-	return (mtIn->majortype == MEDIATYPE_DVD_ENCRYPTED_PACK && mtIn->subtype == MEDIASUBTYPE_DVD_SUBPICTURE
-			|| mtIn->majortype == MEDIATYPE_MPEG2_PACK && mtIn->subtype == MEDIASUBTYPE_DVD_SUBPICTURE
-			|| mtIn->majortype == MEDIATYPE_MPEG2_PES && mtIn->subtype == MEDIASUBTYPE_DVD_SUBPICTURE)
+	return (mtIn->majortype == MEDIATYPE_DVD_ENCRYPTED_PACK
+			|| mtIn->majortype == MEDIATYPE_MPEG2_PACK
+			|| mtIn->majortype == MEDIATYPE_MPEG2_PES
+			|| mtIn->majortype == MEDIATYPE_Video) 
+		&& (mtIn->subtype == MEDIASUBTYPE_DVD_SUBPICTURE
+			|| mtIn->subtype == MEDIASUBTYPE_CVD_SUBPICTURE
+			|| mtIn->subtype == MEDIASUBTYPE_SVCD_SUBPICTURE)
 		? S_OK
 		: VFW_E_TYPE_NOT_ACCEPTED;
 }
@@ -1373,239 +1358,6 @@ HRESULT CSubpicInputPin::CheckMediaType(const CMediaType* mtIn)
 HRESULT CSubpicInputPin::SetMediaType(const CMediaType* mtIn)
 {
 	return CBasePin::SetMediaType(mtIn);
-}
-
-bool CSubpicInputPin::DecodeSubpic(sp_t* sp, AM_PROPERTY_SPHLI& sphli, DWORD& offset1, DWORD& offset2)
-{
-	memset(&sphli, 0, sizeof(sphli));
-
-	sp->fForced = false;
-
-	BYTE* p = sp->pData.GetData();
-
-	WORD packetsize = (p[0]<<8)|p[1];
-	WORD datasize = (p[2]<<8)|p[3];
-
-    if(packetsize > sp->pData.GetSize() || datasize > packetsize)
-		return(false);
-
-	int i, next = datasize;
-
-	#define GetWORD (p[i]<<8)|p[i+1]; i += 2
-
-	do
-	{
-		i = next;
-
-		int pts = GetWORD;
-		next = GetWORD;
-
-		if(next > packetsize || next < datasize)
-			return(false);
-
-		for(bool fBreak = false; !fBreak; )
-		{
-			int len = 0;
-
-			switch(p[i])
-			{
-				case 0x00: len = 0; break;
-				case 0x01: len = 0; break;
-				case 0x02: len = 0; break;
-				case 0x03: len = 2; break;
-				case 0x04: len = 2; break;
-				case 0x05: len = 6; break;
-				case 0x06: len = 4; break;
-				default: len = 0; break;
-			}
-
-			if(i+len >= packetsize)
-			{
-				TRACE(_T("Warning: Wrong subpicture parameter block ending\n"));
-				break;
-			}
-
-			switch(p[i++])
-			{
-				case 0x00: // forced start displaying
-					sp->fForced = true;
-					break;
-				case 0x01: // normal start displaying
-					sp->fForced = false;
-					break;
-				case 0x02: // stop displaying
-					sp->rtStop = sp->rtStart + 1024*PTS2RT(pts);
-					break;
-				case 0x03:
-					sphli.ColCon.emph2col = p[i]>>4;
-					sphli.ColCon.emph1col = p[i]&0xf;
-					sphli.ColCon.patcol = p[i+1]>>4;
-					sphli.ColCon.backcol = p[i+1]&0xf;
-					i += 2;
-					break;
-				case 0x04:
-					sphli.ColCon.emph2con = p[i]>>4;
-					sphli.ColCon.emph1con = p[i]&0xf;
-					sphli.ColCon.patcon = p[i+1]>>4;
-					sphli.ColCon.backcon = p[i+1]&0xf;
-					i += 2;
-					break;
-				case 0x05:
-					sphli.StartX = (p[i]<<4) + (p[i+1]>>4);
-					sphli.StopX = ((p[i+1]&0x0f)<<8) + p[i+2]+1;
-					sphli.StartY = (p[i+3]<<4) + (p[i+4]>>4);
-					sphli.StopY = ((p[i+4]&0x0f)<<8) + p[i+5]+1;
-					i += 6;
-					break;
-				case 0x06:
-					offset1 = GetWORD;
-					offset2 = GetWORD;
-					break;
-				case 0xff: // end of ctrlblk
-					fBreak = true;
-					continue;
-				default: // skip this ctrlblk
-					fBreak = true;
-					break;
-			}
-		}
-	}
-	while(i <= next && i < packetsize);
-
-	return(true);
-}
-
-static __inline BYTE GetNibble(BYTE* p, DWORD* offset, int& nField, int& fAligned)
-{
-	BYTE ret = (p[offset[nField]] >> (fAligned << 2)) & 0x0f;
-	offset[nField] += 1-fAligned;
-	fAligned = !fAligned;
-    return ret;
-}
-
-static __inline void DrawPixel(BYTE** yuv, CPoint pt, int pitch, BYTE color, BYTE contrast, AM_DVD_YUV* sppal)
-{
-	if(contrast == 0) return;
-
-	BYTE* p = &yuv[0][pt.y*pitch + pt.x];
-//	*p = (*p*(15-contrast) + sppal[color].Y*contrast)>>4;
-	*p -= (*p - sppal[color].Y) * contrast >> 4;
-
-	if(pt.y&1) return; // since U/V is half res there is no need to overwrite the same line again
-
-	pt.x = (pt.x + 1) / 2;
-	pt.y = (pt.y /*+ 1*/) / 2; // only paint the upper field always, don't round it
-	pitch /= 2;
-
-	// U/V is exchanged? wierd but looks true when comparing the outputted colors from other decoders
-
-	p = &yuv[1][pt.y*pitch + pt.x];
-//	*p = (BYTE)(((((int)*p-0x80)*(15-contrast) + ((int)sppal[color].V-0x80)*contrast) >> 4) + 0x80);
-	*p -= (*p - sppal[color].V) * contrast >> 4;
-
-	p = &yuv[2][pt.y*pitch + pt.x];
-//	*p = (BYTE)(((((int)*p-0x80)*(15-contrast) + ((int)sppal[color].U-0x80)*contrast) >> 4) + 0x80);
-	*p -= (*p - sppal[color].U) * contrast >> 4;
-
-	// Neighter of the blending formulas are accurate (">>4" should be "/15").
-	// Even though the second one is a bit worse, since we are scaling the difference only,
-	// the error is still not noticable.
-}
-
-static __inline void DrawPixels(BYTE** yuv, CPoint pt, int pitch, int len, BYTE color, 
-								AM_PROPERTY_SPHLI& sphli, CRect& rc,
-								AM_PROPERTY_SPHLI* sphli_hli, CRect& rchli,
-								AM_DVD_YUV* sppal)
-{
-    if(pt.y < rc.top || pt.y >= rc.bottom) return;
-	if(pt.x < rc.left) {len -= rc.left - pt.x; pt.x = rc.left;}
-	if(pt.x + len > rc.right) len = rc.right - pt.x;
-	if(len <= 0 || pt.x >= rc.right) return;
-
-	BYTE contrast = 0, color_hli, contrast_hli = 0;
-
-	if(sphli_hli) switch(color)
-	{
-	case 0: color_hli = sphli_hli->ColCon.backcol; contrast_hli = sphli_hli->ColCon.backcon; break;
-	case 1: color_hli = sphli_hli->ColCon.patcol; contrast_hli = sphli_hli->ColCon.patcon; break;
-	case 2: color_hli = sphli_hli->ColCon.emph1col; contrast_hli = sphli_hli->ColCon.emph1con; break;
-	case 3: color_hli = sphli_hli->ColCon.emph2col; contrast_hli = sphli_hli->ColCon.emph2con; break;
-	default: ASSERT(0); return;
-	}
-	
-	switch(color)
-	{
-	case 0: color = sphli.ColCon.backcol; contrast = sphli.ColCon.backcon; break;
-	case 1: color = sphli.ColCon.patcol; contrast = sphli.ColCon.patcon; break;
-	case 2: color = sphli.ColCon.emph1col; contrast = sphli.ColCon.emph1con; break;
-	case 3: color = sphli.ColCon.emph2col; contrast = sphli.ColCon.emph2con; break;
-	default: ASSERT(0); return;
-	}
-
-	if(contrast == 0)
-	{
-		if(contrast_hli == 0)
-			return;
-
-		if(rchli.IsRectEmpty())
-			return;
-
-		if(pt.y < rchli.top || pt.y >= rchli.bottom 
-		|| pt.x+len < rchli.left || pt.x >= rchli.right)
-			return;
-	}
-
-	while(len-- > 0)
-	{
-		bool hli = sphli_hli && rchli.PtInRect(pt);
-		DrawPixel(yuv, pt, pitch, hli ? color_hli : color, hli ? contrast_hli : contrast, sppal);
-		pt.x++;
-	}
-}
-
-void CSubpicInputPin::RenderSubpic(sp_t* sp, BYTE** p, int w, int h, AM_PROPERTY_SPHLI* sphli_hli)
-{
-	AM_PROPERTY_SPHLI sphli;
-	DWORD offset[2];
-	if(!DecodeSubpic(sp, sphli, offset[0], offset[1]))
-		return;
-
-	BYTE* pData = sp->pData.GetData();
-	CPoint pt(sphli.StartX, sphli.StartY);
-	CRect rc(pt, CPoint(sphli.StopX, sphli.StopY));
-	CRect rchli(0,0,0,0);
-
-	if(sphli_hli)
-	{
-		rchli = rc & CRect(CPoint(sphli_hli->StartX, sphli_hli->StartY), CPoint(sphli_hli->StopX, sphli_hli->StopY));
-	}
-
-	int nField = 0;
-	int fAligned = 1;
-
-	DWORD end[2] = {offset[1], (pData[2]<<8)|pData[3]};
-
-	while((nField == 0 && offset[0] < end[0]) || (nField == 1 && offset[1] < end[1]))
-	{
-		DWORD code;
-
-		if((code = GetNibble(pData, offset, nField, fAligned)) >= 0x4
-		|| (code = (code << 4) | GetNibble(pData, offset, nField, fAligned)) >= 0x10
-		|| (code = (code << 4) | GetNibble(pData, offset, nField, fAligned)) >= 0x40
-		|| (code = (code << 4) | GetNibble(pData, offset, nField, fAligned)) >= 0x100)
-		{
-			DrawPixels(p, pt, w, code >> 2, (BYTE)(code & 3), sphli, rc, sphli_hli, rchli, m_sppal);
-			if((pt.x += code >> 2) < rc.right) continue;
-		}
-
-		DrawPixels(p, pt, w, rc.right - pt.x, (BYTE)(code & 3), sphli, rc, sphli_hli, rchli, m_sppal);
-
-		if(!fAligned) GetNibble(pData, offset, nField, fAligned); // align to byte
-
-		pt.x = rc.left;
-		pt.y++;
-		nField = 1 - nField;
-	}
 }
 
 bool CSubpicInputPin::HasAnythingToRender(REFERENCE_TIME rt)
@@ -1617,17 +1369,15 @@ bool CSubpicInputPin::HasAnythingToRender(REFERENCE_TIME rt)
 	POSITION pos = m_sps.GetHeadPosition();
 	while(pos)
 	{
-		sp_t* sp = m_sps.GetNext(pos);
-		if(sp->rtStart <= rt && rt < sp->rtStop && (/*sp->sphli ||*/ sp->fForced || m_spon))
-		{
+		spu* sp = m_sps.GetNext(pos);
+		if(sp->m_rtStart <= rt && rt < sp->m_rtStop && (/*sp->m_psphli ||*/ sp->m_fForced || m_spon))
 			return(true);
-		}
 	}
 
 	return(false);
 }
 
-void CSubpicInputPin::RenderSubpics(REFERENCE_TIME rt, BYTE** p, int w, int h)
+void CSubpicInputPin::RenderSubpics(REFERENCE_TIME rt, BYTE** yuv, int w, int h)
 {
 	CAutoLock cAutoLock(&m_csReceive);
 
@@ -1638,19 +1388,17 @@ void CSubpicInputPin::RenderSubpics(REFERENCE_TIME rt, BYTE** p, int w, int h)
 	while(pos)
 	{
 		POSITION cur = pos;
-		sp_t* sp = m_sps.GetNext(pos);
-		if(sp->rtStop <= rt) m_sps.RemoveAt(cur);
+		spu* sp = m_sps.GetNext(pos);
+		if(sp->m_rtStop <= rt) m_sps.RemoveAt(cur);
 	}
 
 	pos = m_sps.GetHeadPosition();
 	while(pos)
 	{
-		sp_t* sp = m_sps.GetNext(pos);
-		if(sp->rtStart <= rt && rt < sp->rtStop 
-		&& (m_spon || sp->fForced && (((CMpeg2DecFilter*)m_pFilter)->IsForcedSubtitlesEnabled() || sp->sphli)))
-		{
-			RenderSubpic(sp, p, w, h, sp->sphli);
-		}
+		spu* sp = m_sps.GetNext(pos);
+		if(sp->m_rtStart <= rt && rt < sp->m_rtStop 
+		&& (m_spon || sp->m_fForced && (((CMpeg2DecFilter*)m_pFilter)->IsForcedSubtitlesEnabled() || sp->m_psphli)))
+			sp->Render(yuv, w, h, m_sppal, m_fsppal);
 	}
 }
 
@@ -1658,27 +1406,27 @@ HRESULT CSubpicInputPin::Transform(IMediaSample* pSample)
 {
 	HRESULT hr;
 
+	AM_MEDIA_TYPE* pmt;
+	if(SUCCEEDED(pSample->GetMediaType(&pmt)) && pmt)
+	{
+		CMediaType mt(*pmt);
+		SetMediaType(&mt);
+		DeleteMediaType(pmt);
+	}
+
 	BYTE* pDataIn = NULL;
 	if(FAILED(hr = pSample->GetPointer(&pDataIn))) return hr;
 
 	long len = pSample->GetActualDataLength();
-	if(len <= 0) return S_FALSE;
 
-	if(*(DWORD*)pDataIn == 0xBA010000) // MEDIATYPE_*_PACK
-	{
-		len -= 14; pDataIn += 14;
-		if(int stuffing = (pDataIn[-1]&7)) {len -= stuffing; pDataIn += stuffing;}
-	}
+	StripPacket(pDataIn, len);
 
 	if(len <= 0) return S_FALSE;
 
-	if(*(DWORD*)pDataIn == 0xBD010000)
+	if(m_mt.subtype == MEDIASUBTYPE_SVCD_SUBPICTURE)
 	{
-		if(m_mt.subtype == MEDIASUBTYPE_DVD_SUBPICTURE)
-		{
-			len -= 8; pDataIn += 8;
-			len -= *pDataIn+1+1; pDataIn += *pDataIn+1+1;
-		}
+		pDataIn += 4;
+		len -= 4;
 	}
 
 	if(len <= 0) return S_FALSE;
@@ -1687,16 +1435,16 @@ HRESULT CSubpicInputPin::Transform(IMediaSample* pSample)
 
 	REFERENCE_TIME rtStart = 0, rtStop = 0;
 	hr = pSample->GetTime(&rtStart, &rtStop);
-	
+
 	bool fRefresh = false;
 
 	if(FAILED(hr))
 	{
 		if(!m_sps.IsEmpty())
 		{
-			sp_t* sp = m_sps.GetTail();
-			sp->pData.SetSize(sp->pData.GetSize() + len);
-			memcpy(sp->pData.GetData() + sp->pData.GetSize() - len, pDataIn, len);
+			spu* sp = m_sps.GetTail();
+			sp->m_pData.SetSize(sp->m_pData.GetSize() + len);
+			memcpy(sp->m_pData.GetData() + sp->m_pData.GetSize() - len, pDataIn, len);
 		}
 	}
 	else
@@ -1705,23 +1453,30 @@ HRESULT CSubpicInputPin::Transform(IMediaSample* pSample)
 		while(pos)
 		{
 			POSITION cur = pos;
-			sp_t* sp = m_sps.GetPrev(pos);
-			if(sp->rtStop == _I64_MAX)
+			spu* sp = m_sps.GetPrev(pos);
+			if(sp->m_rtStop == _I64_MAX)
 			{
-				sp->rtStop = rtStart;
+				sp->m_rtStop = rtStart;
 				break;
 			}
 		}
 
-		CAutoPtr<sp_t> p(new sp_t());
-		p->rtStart = rtStart;
-		p->rtStop = _I64_MAX;
-		p->pData.SetSize(len);
-		memcpy(p->pData.GetData(), pDataIn, len);
+		CAutoPtr<spu> p;
 
-		if(m_sphli && p->rtStart == PTS2RT(m_sphli->StartPTM))
+		if(m_mt.subtype == MEDIASUBTYPE_DVD_SUBPICTURE) p.Attach(new dvdspu());
+		else if(m_mt.subtype == MEDIASUBTYPE_CVD_SUBPICTURE) p.Attach(new cvdspu());
+		else if(m_mt.subtype == MEDIASUBTYPE_SVCD_SUBPICTURE) p.Attach(new svcdspu());
+		else return E_FAIL;
+
+		p->m_rtStart = rtStart;
+		p->m_rtStop = _I64_MAX;
+
+		p->m_pData.SetSize(len);
+		memcpy(p->m_pData.GetData(), pDataIn, len);
+
+		if(m_sphli && p->m_rtStart == PTS2RT(m_sphli->StartPTM))
 		{
-			p->sphli = m_sphli;
+			p->m_psphli = m_sphli;
 			fRefresh = true;
 		}
 
@@ -1730,10 +1485,7 @@ HRESULT CSubpicInputPin::Transform(IMediaSample* pSample)
 
 	if(!m_sps.IsEmpty())
 	{
-		AM_PROPERTY_SPHLI sphli;
-		DWORD offset[2];
-		if(DecodeSubpic(m_sps.GetTail(), sphli, offset[0], offset[1]))
-			DbgLog((LOG_TRACE, 0, _T("transform: %I64d - %I64d"), m_sps.GetTail()->rtStart/10000, m_sps.GetTail()->rtStop/10000));
+		m_sps.GetTail()->Parse();
 	}
 
 	if(fRefresh)
@@ -1767,6 +1519,7 @@ STDMETHODIMP CSubpicInputPin::Set(REFGUID PropSet, ULONG Id, LPVOID pInstanceDat
 			CAutoLock cAutoLock(&m_csReceive);
 			AM_PROPERTY_SPPAL* pSPPAL = (AM_PROPERTY_SPPAL*)pPropertyData;
 			memcpy(m_sppal, pSPPAL->sppal, sizeof(AM_PROPERTY_SPPAL));
+			m_fsppal = true;
 
 			DbgLog((LOG_TRACE, 0, _T("new palette")));
 		}
@@ -1784,20 +1537,20 @@ STDMETHODIMP CSubpicInputPin::Set(REFGUID PropSet, ULONG Id, LPVOID pInstanceDat
 				POSITION pos = m_sps.GetHeadPosition();
 				while(pos)
 				{
-					sp_t* sp = m_sps.GetNext(pos);
-					if(sp->rtStart <= PTS2RT(pSPHLI->StartPTM) && PTS2RT(pSPHLI->StartPTM) < sp->rtStop)
+					spu* sp = m_sps.GetNext(pos);
+					if(sp->m_rtStart <= PTS2RT(pSPHLI->StartPTM) && PTS2RT(pSPHLI->StartPTM) < sp->m_rtStop)
 					{
 						fRefresh = true;
-						sp->sphli.Free();
-						sp->sphli.Attach(new AM_PROPERTY_SPHLI());
-						memcpy(sp->sphli.m_p, pSPHLI, sizeof(AM_PROPERTY_SPHLI));
+						sp->m_psphli.Free();
+						sp->m_psphli.Attach(new AM_PROPERTY_SPHLI());
+						memcpy((AM_PROPERTY_SPHLI*)sp->m_psphli, pSPHLI, sizeof(AM_PROPERTY_SPHLI));
 					}
 				}
 
 				if(!fRefresh) // save it for later, a subpic might be late for this hli
 				{
 					m_sphli.Attach(new AM_PROPERTY_SPHLI());
-					memcpy(m_sphli.m_p, pSPHLI, sizeof(AM_PROPERTY_SPHLI));
+					memcpy((AM_PROPERTY_SPHLI*)m_sphli, pSPHLI, sizeof(AM_PROPERTY_SPHLI));
 				}
 			}
 			else
@@ -1805,9 +1558,9 @@ STDMETHODIMP CSubpicInputPin::Set(REFGUID PropSet, ULONG Id, LPVOID pInstanceDat
 				POSITION pos = m_sps.GetHeadPosition();
 				while(pos)
 				{
-					sp_t* sp = m_sps.GetNext(pos);
-					fRefresh = !!(sp->sphli.m_p);
-					sp->sphli.Free();
+					spu* sp = m_sps.GetNext(pos);
+					fRefresh |= !!sp->m_psphli;
+					sp->m_psphli.Free();
 				}
 			}
 
@@ -1857,6 +1610,428 @@ STDMETHODIMP CSubpicInputPin::QuerySupported(REFGUID PropSet, ULONG Id, ULONG* p
 	}
 	
 	return S_OK;
+}
+
+// CSubpicInputPin::spu
+
+static __inline BYTE GetNibble(BYTE* p, DWORD* offset, int& nField, int& fAligned)
+{
+	BYTE ret = (p[offset[nField]] >> (fAligned << 2)) & 0x0f;
+	offset[nField] += 1-fAligned;
+	fAligned = !fAligned;
+    return ret;
+}
+
+static __inline BYTE GetHalfNibble(BYTE* p, DWORD* offset, int& nField, int& n)
+{
+	BYTE ret = (p[offset[nField]] >> (n << 1)) & 0x03;
+	if(!n) offset[nField]++;
+	n = (n-1+4)&3;
+    return ret;
+}
+
+static __inline void DrawPixel(BYTE** yuv, CPoint pt, int pitch, AM_DVD_YUV& c)
+{
+	if(c.Reserved == 0) return;
+
+	BYTE* p = &yuv[0][pt.y*pitch + pt.x];
+//	*p = (*p*(15-contrast) + sppal[color].Y*contrast)>>4;
+	*p -= (*p - c.Y) * c.Reserved >> 4;
+
+	if(pt.y&1) return; // since U/V is half res there is no need to overwrite the same line again
+
+	pt.x = (pt.x + 1) / 2;
+	pt.y = (pt.y /*+ 1*/) / 2; // only paint the upper field always, don't round it
+	pitch /= 2;
+
+	// U/V is exchanged? wierd but looks true when comparing the outputted colors from other decoders
+
+	p = &yuv[1][pt.y*pitch + pt.x];
+//	*p = (BYTE)(((((int)*p-0x80)*(15-contrast) + ((int)sppal[color].V-0x80)*contrast) >> 4) + 0x80);
+	*p -= (*p - c.V) * c.Reserved >> 4;
+
+	p = &yuv[2][pt.y*pitch + pt.x];
+//	*p = (BYTE)(((((int)*p-0x80)*(15-contrast) + ((int)sppal[color].U-0x80)*contrast) >> 4) + 0x80);
+	*p -= (*p - c.U) * c.Reserved >> 4;
+
+	// Neighter of the blending formulas are accurate (">>4" should be "/15").
+	// Even though the second one is a bit worse, since we are scaling the difference only,
+	// the error is still not noticable.
+}
+
+static __inline void DrawPixels(BYTE** yuv, int pitch, CPoint pt, int len, AM_DVD_YUV& c, CRect& rc)
+{
+    if(pt.y < rc.top || pt.y >= rc.bottom) return;
+	if(pt.x < rc.left) {len -= rc.left - pt.x; pt.x = rc.left;}
+	if(pt.x + len > rc.right) len = rc.right - pt.x;
+	if(len <= 0 || pt.x >= rc.right) return;
+
+	if(c.Reserved == 0)
+	{
+		if(rc.IsRectEmpty())
+			return;
+
+		if(pt.y < rc.top || pt.y >= rc.bottom 
+		|| pt.x+len < rc.left || pt.x >= rc.right)
+			return;
+	}
+
+	while(len-- > 0)
+	{
+		DrawPixel(yuv, pt, pitch, c);
+		pt.x++;
+	}
+}
+
+// CSubpicInputPin::dvdspu
+
+bool CSubpicInputPin::dvdspu::Parse()
+{
+	BYTE* p = m_pData.GetData();
+
+	WORD packetsize = (p[0]<<8)|p[1];
+	WORD datasize = (p[2]<<8)|p[3];
+
+    if(packetsize > m_pData.GetSize() || datasize > packetsize)
+		return(false);
+
+	int i, next = datasize;
+
+	#define GetWORD (p[i]<<8)|p[i+1]; i += 2
+
+	do
+	{
+		i = next;
+
+		int pts = GetWORD;
+		next = GetWORD;
+
+		if(next > packetsize || next < datasize)
+			return(false);
+
+		for(bool fBreak = false; !fBreak; )
+		{
+			int len = 0;
+
+			switch(p[i])
+			{
+				case 0x00: len = 0; break;
+				case 0x01: len = 0; break;
+				case 0x02: len = 0; break;
+				case 0x03: len = 2; break;
+				case 0x04: len = 2; break;
+				case 0x05: len = 6; break;
+				case 0x06: len = 4; break;
+				default: len = 0; break;
+			}
+
+			if(i+len >= packetsize)
+			{
+				TRACE(_T("Warning: Wrong subpicture parameter block ending\n"));
+				break;
+			}
+
+			switch(p[i++])
+			{
+				case 0x00: // forced start displaying
+					m_fForced = true;
+					break;
+				case 0x01: // normal start displaying
+					m_fForced = false;
+					break;
+				case 0x02: // stop displaying
+					m_rtStop = m_rtStart + 1024*PTS2RT(pts);
+					break;
+				case 0x03:
+					m_sphli.ColCon.emph2col = p[i]>>4;
+					m_sphli.ColCon.emph1col = p[i]&0xf;
+					m_sphli.ColCon.patcol = p[i+1]>>4;
+					m_sphli.ColCon.backcol = p[i+1]&0xf;
+					i += 2;
+					break;
+				case 0x04:
+					m_sphli.ColCon.emph2con = p[i]>>4;
+					m_sphli.ColCon.emph1con = p[i]&0xf;
+					m_sphli.ColCon.patcon = p[i+1]>>4;
+					m_sphli.ColCon.backcon = p[i+1]&0xf;
+					i += 2;
+					break;
+				case 0x05:
+					m_sphli.StartX = (p[i]<<4) + (p[i+1]>>4);
+					m_sphli.StopX = ((p[i+1]&0x0f)<<8) + p[i+2]+1;
+					m_sphli.StartY = (p[i+3]<<4) + (p[i+4]>>4);
+					m_sphli.StopY = ((p[i+4]&0x0f)<<8) + p[i+5]+1;
+					i += 6;
+					break;
+				case 0x06:
+					m_offset[0] = GetWORD;
+					m_offset[1] = GetWORD;
+					break;
+				case 0xff: // end of ctrlblk
+					fBreak = true;
+					continue;
+				default: // skip this ctrlblk
+					fBreak = true;
+					break;
+			}
+		}
+	}
+	while(i <= next && i < packetsize);
+
+	return(true);
+}
+
+void CSubpicInputPin::dvdspu::Render(BYTE** yuv, int w, int h, AM_DVD_YUV* sppal, bool fsppal)
+{
+	BYTE* p = m_pData.GetData();
+	DWORD offset[2] = {m_offset[0], m_offset[1]};
+
+	AM_PROPERTY_SPHLI sphli = m_sphli;
+	CPoint pt(sphli.StartX, sphli.StartY);
+	CRect rc(pt, CPoint(sphli.StopX, sphli.StopY));
+
+	CRect rcclip(0, 0, w, h);
+	rcclip &= rc;
+
+	if(m_psphli)
+	{
+		rcclip &= CRect(m_psphli->StartX, m_psphli->StartY, m_psphli->StopX, m_psphli->StopY);
+		sphli = *m_psphli;
+	}
+
+	AM_DVD_YUV pal[4];
+	pal[0] = sppal[fsppal ? sphli.ColCon.backcol : 0];
+	pal[0].Reserved = sphli.ColCon.backcon;
+	pal[1] = sppal[fsppal ? sphli.ColCon.patcol : 1];
+	pal[1].Reserved = sphli.ColCon.patcon;
+	pal[2] = sppal[fsppal ? sphli.ColCon.emph1col : 2];
+	pal[2].Reserved = sphli.ColCon.emph1con;
+	pal[3] = sppal[fsppal ? sphli.ColCon.emph2col : 3];
+	pal[3].Reserved = sphli.ColCon.emph2con;
+
+	int nField = 0;
+	int fAligned = 1;
+
+	DWORD end[2] = {offset[1], (p[2]<<8)|p[3]};
+
+	while((nField == 0 && offset[0] < end[0]) || (nField == 1 && offset[1] < end[1]))
+	{
+		DWORD code;
+
+		if((code = GetNibble(p, offset, nField, fAligned)) >= 0x4
+		|| (code = (code << 4) | GetNibble(p, offset, nField, fAligned)) >= 0x10
+		|| (code = (code << 4) | GetNibble(p, offset, nField, fAligned)) >= 0x40
+		|| (code = (code << 4) | GetNibble(p, offset, nField, fAligned)) >= 0x100)
+		{
+			DrawPixels(yuv, w, pt, code >> 2, pal[code&3], rcclip);
+			if((pt.x += code >> 2) < rc.right) continue;
+		}
+
+		DrawPixels(yuv, w, pt, rc.right - pt.x, pal[code&3], rcclip);
+
+		if(!fAligned) GetNibble(p, offset, nField, fAligned); // align to byte
+
+		pt.x = rc.left;
+		pt.y++;
+		nField = 1 - nField;
+	}
+}
+
+// CSubpicInputPin::cvdspu
+
+bool CSubpicInputPin::cvdspu::Parse()
+{
+	BYTE* p = m_pData.GetData();
+
+	WORD packetsize = (p[0]<<8)|p[1];
+	WORD datasize = (p[2]<<8)|p[3];
+
+    if(packetsize > m_pData.GetSize() || datasize > packetsize)
+		return(false);
+
+	p = m_pData.GetData() + datasize;
+
+	for(int i = datasize, j = packetsize-4; i <= j; i+=4, p+=4)
+	{
+		switch(p[0])
+		{
+		case 0x0c: 
+			break;
+		case 0x04: 
+			m_rtStop = m_rtStart + 10000i64*((p[1]<<16)|(p[2]<<8)|p[3])/90;
+			break;
+		case 0x17: 
+			m_sphli.StartX = ((p[1]&0x0f)<<6) + (p[2]>>2);
+			m_sphli.StartY = ((p[2]&0x03)<<8) + p[3];
+			break;
+		case 0x1f: 
+			m_sphli.StopX = ((p[1]&0x0f)<<6) + (p[2]>>2);
+			m_sphli.StopY = ((p[2]&0x03)<<8) + p[3];
+			break;
+		case 0x24: case 0x25: case 0x26: case 0x27: 
+			m_sppal[0][p[0]-0x24].Y = p[1];
+			m_sppal[0][p[0]-0x24].U = p[2];
+			m_sppal[0][p[0]-0x24].V = p[3];
+			break;
+		case 0x2c: case 0x2d: case 0x2e: case 0x2f: 
+			m_sppal[1][p[0]-0x2c].Y = p[1];
+			m_sppal[1][p[0]-0x2c].U = p[2];
+			m_sppal[1][p[0]-0x2c].V = p[3];
+			break;
+		case 0x37: 
+			m_sppal[0][3].Reserved = p[2]>>4;
+			m_sppal[0][2].Reserved = p[2]&0xf;
+			m_sppal[0][1].Reserved = p[3]>>4;
+			m_sppal[0][0].Reserved = p[3]&0xf;
+			break;
+		case 0x3f: 
+			m_sppal[1][3].Reserved = p[2]>>4;
+			m_sppal[1][2].Reserved = p[2]&0xf;
+			m_sppal[1][1].Reserved = p[3]>>4;
+			m_sppal[1][0].Reserved = p[3]&0xf;
+			break;
+		case 0x47: 
+			m_offset[0] = (p[2]<<8)|p[3];
+			break;
+		case 0x4f: 
+			m_offset[1] = (p[2]<<8)|p[3];
+			break;
+		default: 
+			break;
+		}
+	}
+
+	return(true);
+}
+
+void CSubpicInputPin::cvdspu::Render(BYTE** yuv, int w, int h, AM_DVD_YUV* sppal, bool fsppal)
+{
+	BYTE* p = m_pData.GetData();
+	DWORD offset[2] = {m_offset[0], m_offset[1]};
+
+	CRect rcclip(0, 0, w, h);
+
+	/* FIXME: startx/y looks to be wrong in the sample I tested
+	CPoint pt(m_sphli.StartX, m_sphli.StartY);
+	CRect rc(pt, CPoint(m_sphli.StopX, m_sphli.StopY));
+	*/
+
+	CSize size(m_sphli.StopX - m_sphli.StartX, m_sphli.StopY - m_sphli.StartY);
+	CPoint pt((rcclip.Width() - size.cx) / 2, (rcclip.Height()*3 - size.cy*1) / 4);
+	CRect rc(pt, size);
+
+	int nField = 0;
+	int fAligned = 1;
+
+	DWORD end[2] = {offset[1], (p[2]<<8)|p[3]};
+
+	while((nField == 0 && offset[0] < end[0]) || (nField == 1 && offset[1] < end[1]))
+	{
+		BYTE code;
+
+		if((code = GetNibble(p, offset, nField, fAligned)) >= 0x4)
+		{
+			DrawPixels(yuv, w, pt, code >> 2, m_sppal[0][code&3], rcclip);
+			pt.x += code >> 2;
+			continue;
+		}
+
+		code = GetNibble(p, offset, nField, fAligned);
+		DrawPixels(yuv, w, pt, rc.right - pt.x, m_sppal[0][code&3], rcclip);
+
+		if(!fAligned) GetNibble(p, offset, nField, fAligned); // align to byte
+
+		pt.x = rc.left;
+		pt.y++;
+		nField = 1 - nField;
+	}
+}
+
+// CSubpicInputPin::svcdspu
+
+bool CSubpicInputPin::svcdspu::Parse()
+{
+	BYTE* p = m_pData.GetData();
+	BYTE* p0 = p;
+
+	if(m_pData.GetSize() < 2) 
+		return(false);
+
+	WORD packetsize = (p[0]<<8)|p[1]; p += 2;
+
+    if(packetsize > m_pData.GetSize())
+		return(false);
+
+	bool duration = !!(*p++&0x04);
+
+	*p++; // unknown
+
+	if(duration)
+	{
+		m_rtStop = m_rtStart + 10000i64*((p[0]<<24)|(p[1]<<16)|(p[2]<<8)|p[3])/90;
+		p += 4;
+	}
+
+	m_sphli.StartX = m_sphli.StopX = (p[0]<<8)|p[1]; p += 2;
+	m_sphli.StartY = m_sphli.StopY = (p[0]<<8)|p[1]; p += 2;
+	m_sphli.StopX += (p[0]<<8)|p[1]; p += 2;
+	m_sphli.StopY += (p[0]<<8)|p[1]; p += 2;
+
+	for(int i = 0; i < 4; i++)
+	{
+		m_sppal[i].Y = *p++;
+		m_sppal[i].U = *p++;
+		m_sppal[i].V = *p++;
+		m_sppal[i].Reserved = *p++ >> 4;
+	}
+
+	if(*p++&0xc0)
+		p += 4; // duration of the shift operation should be here, but it is untested
+
+	m_offset[1] = (p[0]<<8)|p[1]; p += 2;
+
+	m_offset[0] = p - p0;
+	m_offset[1] += m_offset[0];
+
+	return(true);
+}
+
+void CSubpicInputPin::svcdspu::Render(BYTE** yuv, int w, int h, AM_DVD_YUV* sppal, bool fsppal)
+{
+	BYTE* p = m_pData.GetData();
+	DWORD offset[2] = {m_offset[0], m_offset[1]};
+
+	CRect rcclip(0, 0, w, h);
+
+	/* FIXME: startx/y looks to be wrong in the sample I tested (yes, this one too!)
+	CPoint pt(m_sphli.StartX, m_sphli.StartY);
+	CRect rc(pt, CPoint(m_sphli.StopX, m_sphli.StopY));
+	*/
+
+	CSize size(m_sphli.StopX - m_sphli.StartX, m_sphli.StopY - m_sphli.StartY);
+	CPoint pt((rcclip.Width() - size.cx) / 2, (rcclip.Height()*3 - size.cy*1) / 4);
+	CRect rc(pt, size);
+
+	int nField = 0;
+	int n = 3;
+
+	DWORD end[2] = {offset[1], (p[2]<<8)|p[3]};
+
+	while((nField == 0 && offset[0] < end[0]) || (nField == 1 && offset[1] < end[1]))
+	{
+		BYTE code = GetHalfNibble(p, offset, nField, n);
+		BYTE repeat = 1 + (code == 0 ? GetHalfNibble(p, offset, nField, n) : 0);
+
+		DrawPixels(yuv, w, pt, repeat, m_sppal[code&3], rcclip);
+		if((pt.x += repeat) < rc.right) continue;
+
+		while(n != 3)
+			GetHalfNibble(p, offset, nField, n); // align to byte
+
+		pt.x = rc.left;
+		pt.y++;
+		nField = 1 - nField;
+	}
 }
 
 //

@@ -2012,7 +2012,7 @@ CSubtitle* CRenderedTextSubtitle::GetSubtitle(int entry)
 
 	while(!str.IsEmpty())
 	{
-		bool fParsed = true;
+		bool fParsed = false;
 
 		int i;
 
@@ -2036,7 +2036,7 @@ CSubtitle* CRenderedTextSubtitle::GetSubtitle(int entry)
 		else
 		{
 			i = str.Mid(1).FindOneOf(L"{<");
-			if(i < 0) i = str.GetLength();
+			if(i < 0) i = str.GetLength()-1;
 			i++;
 		}
 

@@ -267,59 +267,12 @@ HRESULT CMpaDecFilter::Receive(IMediaSample* pIn)
 		m_sample_max = 0.1f;
 	}
 
-	const GUID& subtype = m_pInput->CurrentMediaType().subtype;
-
 	BYTE* pDataIn = NULL;
 	if(FAILED(hr = pIn->GetPointer(&pDataIn))) return hr;
 
 	long len = pIn->GetActualDataLength();
 
-	if(len <= 0) return S_OK;
-
-	if(*(DWORD*)pDataIn == 0xBA010000) // MEDIATYPE_*_PACK
-	{
-		len -= 14; pDataIn += 14;
-		if(int stuffing = (pDataIn[-1]&7)) {len -= stuffing; pDataIn += stuffing;}
-	}
-
-	if(len <= 0) return S_OK;
-
-	if(*(DWORD*)pDataIn == 0xBB010000)
-	{
-		len -= 4; pDataIn += 4;
-		int hdrlen = ((pDataIn[0]<<8)|pDataIn[1]) + 2;
-		len -= hdrlen; pDataIn += hdrlen;
-	}
-
-	if(len <= 0) return S_OK;
-
-	if((*(DWORD*)pDataIn&0xE0FFFFFF) == 0xC0010000 || *(DWORD*)pDataIn == 0xBD010000)
-	{
-		if(subtype == MEDIASUBTYPE_MPEG1Packet)
-		{
-			len -= 4+2+7; pDataIn += 4+2+7; // is it always ..+7 ?
-		}
-		else if(subtype == MEDIASUBTYPE_MPEG2_AUDIO) // can this be after 0x000001BD too?
-		{
-			len -= 8; pDataIn += 8;
-			len -= *pDataIn+1; pDataIn += *pDataIn+1;
-		}
-		else if(subtype == MEDIASUBTYPE_DVD_LPCM_AUDIO)
-		{
-			len -= 8; pDataIn += 8;
-			len -= *pDataIn+1; pDataIn += *pDataIn+1;
-			len -= 7; pDataIn += 7;
-		}
-		else if(subtype == MEDIASUBTYPE_DOLBY_AC3 || subtype == MEDIASUBTYPE_WAVE_DOLBY_AC3
-			|| subtype == MEDIASUBTYPE_DTS || subtype == MEDIASUBTYPE_WAVE_DTS)
-		{
-			len -= 8; pDataIn += 8;
-			len -= *pDataIn+1; pDataIn += *pDataIn+1;
-			len -= 4; pDataIn += 4;
-		}
-	}
-
-	if(len <= 0) return S_OK;
+	((CDeCSSInputPin*)m_pInput)->StripPacket(pDataIn, len);
 
 	REFERENCE_TIME rtStart = _I64_MIN, rtStop = _I64_MIN;
 	hr = pIn->GetTime(&rtStart, &rtStop);
@@ -329,8 +282,8 @@ HRESULT CMpaDecFilter::Receive(IMediaSample* pIn)
 		m_fDiscontinuity = true;
 		m_buff.RemoveAll();
 		m_sample_max = 0.1f;
-		ASSERT(SUCCEEDED(hr)); // what to do if not?
-		if(FAILED(hr)) return S_OK; // lets wait then...
+		// ASSERT(SUCCEEDED(hr)); // what to do if not?
+		if(FAILED(hr)) {TRACE(_T("mpa: disc. w/o timestamp\n")); return S_OK;} // lets wait then...
 		m_rtStart = rtStart;
 	}
 
@@ -344,6 +297,8 @@ HRESULT CMpaDecFilter::Receive(IMediaSample* pIn)
 	m_buff.SetSize(m_buff.GetSize() + len);
 	memcpy(m_buff.GetData() + tmp, pDataIn, len);
 	len += tmp;
+
+	const GUID& subtype = m_pInput->CurrentMediaType().subtype;
 
 	if(subtype == MEDIASUBTYPE_DVD_LPCM_AUDIO)
 		hr = ProcessLPCM();
@@ -392,7 +347,7 @@ HRESULT CMpaDecFilter::ProcessAC3()
 
 		if((size = a52_syncinfo(p, &flags, &sample_rate, &bit_rate)) > 0)
 		{
-			TRACE(_T("ac3: size=%d, flags=%08x, sample_rate=%d, bit_rate=%d\n"), size, flags, sample_rate, bit_rate);
+//			TRACE(_T("ac3: size=%d, flags=%08x, sample_rate=%d, bit_rate=%d\n"), size, flags, sample_rate, bit_rate);
 
 			bool fEnoughData = p + size <= end;
 
@@ -402,20 +357,8 @@ HRESULT CMpaDecFilter::ProcessAC3()
 
 				if(iSpeakerConfig < 0)
 				{
-					CArray<BYTE> pBuff;
-					pBuff.SetSize(0x1800); // sizeof(WORD)*4 + size
-
-					WORD* pDataOut = (WORD*)pBuff.GetData();
-					pDataOut[0] = 0xf872;
-					pDataOut[1] = 0x4e1f;
-					pDataOut[2] = 0x0001;
-					pDataOut[3] = size*8;
-					_swab((char*)p, (char*)&pDataOut[4], size);
-
-					REFERENCE_TIME rtDur = 10000000i64 * size*8 / bit_rate; // should be 320000 * 100ns
-
 					HRESULT hr;
-					if(S_OK != (hr = Deliver(pBuff, sample_rate, rtDur)))
+					if(S_OK != (hr = Deliver(p, size, bit_rate, 0x0001)))
 						return hr;
 				}
 				else
@@ -483,103 +426,9 @@ HRESULT CMpaDecFilter::ProcessAC3()
 
 	return S_OK;
 }
-/*
-static int dts_syncinfo(BYTE* p, int* sample_rate, int* bit_rate)
-{
-	if(*(DWORD*)p != 0x0180FE7F)
-		return 0;
 
-	p += 4;
-
-	int frametype = (p[0]>>7); // 1
-	int deficitsamplecount = (p[0]>>2)&31; // 5
-	int crcpresent = (p[0]>>1)&1; // 1
-	int npcmsampleblocks = ((p[0]&1)<<6)|(p[1]>>2); // 7
-	int framebytes = (((p[1]&3)<<12)|(p[2]<<4)|(p[3]>>4)) + 1; // 14
-	int audiochannelarrangement = (p[3]&15)<<2|(p[4]>>6); // 6
-	int freq = (p[4]>>2)&15; // 4
-	int transbitrate = ((p[4]&3)<<3)|(p[5]>>5); // 5
-
-	int freqtbl[] = 
-	{
-		0,8000,16000,32000,
-		0,0,
-		11025,22050,44100,
-		0,0,
-		12000,24000,48000,
-		0,0
-	};
-
-	int bitratetbl[] = 
-	{
-		32000,56000,64000,96000,112000,128000,192000,224000,
-		256000,320000,384000,448000,512000,576000,640000,754500,
-		960000,1024000,1152000,1280000,1344000,1408000,1411200,1472000,
-		1509750,1920000,2048000,3072000,3840000,0,0,0
-	};
-
-	*sample_rate = freqtbl[freq];
-	*bit_rate = bitratetbl[transbitrate];
-
-	return framebytes;
-}
-*/
 HRESULT CMpaDecFilter::ProcessDTS()
 {
-/*
-	BYTE* p = m_buff.GetData();
-	BYTE* base = p;
-	BYTE* end = p + m_buff.GetSize();
-
-	while(end - p >= 10) // ?
-	{
-		int size = 0, sample_rate, bit_rate;
-
-		// TODO!!!
-		if((size = dts_syncinfo(p, &sample_rate, &bit_rate)) > 0)
-		{
-			TRACE(_T("size=%d, sample_rate=%d, bit_rate=%d\n"), size, sample_rate, bit_rate);
-
-			bool fEnoughData = p + size <= end;
-
-			if(fEnoughData)
-			{
-				CArray<BYTE> pBuff;
-				pBuff.SetSize(0x800); // sizeof(WORD)*4 + size
-
-				WORD* pDataOut = (WORD*)pBuff.GetData();
-				pDataOut[0] = 0xf872;
-				pDataOut[1] = 0x4e1f;
-				pDataOut[2] = 0x000b;
-				pDataOut[3] = size*8;
-				_swab((char*)p, (char*)&pDataOut[4], size);
-
-				REFERENCE_TIME rtDur = 10000000i64 * size*8 / bit_rate; // should be 106667 * 100 ns
-
-				HRESULT hr;
-				if(S_OK != (hr = Deliver(pBuff, sample_rate, rtDur)))
-					return hr;
-
-				p += size;
-			}
-
-			memmove(base, p, end - p);
-			end = base + (end - p);
-			p = base;
-
-			if(!fEnoughData)
-				break;
-		}
-		else
-		{
-			p++;
-		}
-	}
-
-	m_buff.SetSize(end - p);
-
-	return S_OK;
-*/
 	BYTE* p = m_buff.GetData();
 	BYTE* base = p;
 	BYTE* end = p + m_buff.GetSize();
@@ -590,8 +439,7 @@ HRESULT CMpaDecFilter::ProcessDTS()
 
 		if((size = dts_syncinfo(m_dts_state, p, &flags, &sample_rate, &bit_rate, &frame_length)) > 0)
 		{
-			TRACE(_T("dts: size=%d, flags=%08x, sample_rate=%d, bit_rate=%d, frame_length=%d\n"), 
-				size, flags, sample_rate, bit_rate, frame_length);
+//			TRACE(_T("dts: size=%d, flags=%08x, sample_rate=%d, bit_rate=%d, frame_length=%d\n"), size, flags, sample_rate, bit_rate, frame_length);
 
 			bool fEnoughData = p + size <= end;
 
@@ -601,20 +449,8 @@ HRESULT CMpaDecFilter::ProcessDTS()
 
 				if(iSpeakerConfig < 0)
 				{
-					CArray<BYTE> pBuff;
-					pBuff.SetSize(0x800); // sizeof(WORD)*4 + size
-
-					WORD* pDataOut = (WORD*)pBuff.GetData();
-					pDataOut[0] = 0xf872;
-					pDataOut[1] = 0x4e1f;
-					pDataOut[2] = 0x000b;
-					pDataOut[3] = size*8;
-					_swab((char*)p, (char*)&pDataOut[4], size);
-
-					REFERENCE_TIME rtDur = 10000000i64 * size*8 / bit_rate; // should be 106667 * 100 ns
-
 					HRESULT hr;
-					if(S_OK != (hr = Deliver(pBuff, sample_rate, rtDur)))
+					if(S_OK != (hr = Deliver(p, size, bit_rate, 0x000b)))
 						return hr;
 				}
 				else
@@ -708,15 +544,27 @@ HRESULT CMpaDecFilter::ProcessMPA()
 				break;
 			}
 
-			TRACE(_T("*m_stream.error == %d\n"), m_stream.error);
-
 			if(!MAD_RECOVERABLE(m_stream.error))
+			{
+				TRACE(_T("*m_stream.error == %d\n"), m_stream.error);
 				return E_FAIL;
+			}
 
-			m_fDiscontinuity = true;
+			// FIXME: the renderer doesn't like this
+			// m_fDiscontinuity = true;
 			continue;
 		}
-
+/*
+// TODO: need to be tested... (has anybody got an external mpeg audio decoder?)
+HRESULT hr;
+if(S_OK != (hr = Deliver(
+   (BYTE*)m_stream.this_frame, 
+   m_stream.next_frame - m_stream.this_frame, 
+   m_frame.header.bitrate, 
+   m_frame.header.layer == 1 ? 0x0004 : 0x0005)))
+	return hr;
+continue;
+*/
 		mad_synth_frame(&m_synth, &m_frame);
 
 		WAVEFORMATEX* wfein = (WAVEFORMATEX*)m_pInput->CurrentMediaType().Format();
@@ -821,8 +669,8 @@ HRESULT CMpaDecFilter::Deliver(CArray<float>& pBuff, DWORD nSamplesPerSec, WORD 
 	REFERENCE_TIME rtDur = 10000000i64*nSamples/wfe->nSamplesPerSec;
 	REFERENCE_TIME rtStart = m_rtStart, rtStop = m_rtStart + rtDur;
 	m_rtStart += rtDur;
-TRACE(_T("CMpaDecFilter: %I64d - %I64d\n"), rtStart/10000, rtStop/10000);
-	if(rtStart < 200000 /* < 0, FIXME: 0 makes strange noises */)
+//TRACE(_T("CMpaDecFilter: %I64d - %I64d\n"), rtStart/10000, rtStop/10000);
+	if(rtStart < 0 /*200000*/ /* < 0, FIXME: 0 makes strange noises */)
 		return S_OK;
 
 	if(hr == S_OK)
@@ -903,7 +751,7 @@ ASSERT(wfeout->nSamplesPerSec == wfe->nSamplesPerSec);
 	return hr;
 }
 
-HRESULT CMpaDecFilter::Deliver(CArray<BYTE>& pBuff, DWORD nSamplesPerSec, REFERENCE_TIME rtDur)
+HRESULT CMpaDecFilter::Deliver(BYTE* pBuff, int size, int bit_rate, BYTE type)
 {
 	HRESULT hr;
 
@@ -916,7 +764,7 @@ HRESULT CMpaDecFilter::Deliver(CArray<BYTE>& pBuff, DWORD nSamplesPerSec, REFERE
 	WAVEFORMATEX wfe;
 	memset(&wfe, 0, sizeof(wfe));
 	wfe.wFormatTag = WAVE_FORMAT_DOLBY_AC3_SPDIF;
-	wfe.nSamplesPerSec = nSamplesPerSec;
+	wfe.nSamplesPerSec = 48000;
 	wfe.nChannels = 2;
 	wfe.wBitsPerSample = 16;
 	wfe.nBlockAlign = wfe.nChannels * wfe.wBitsPerSample / 8;
@@ -925,17 +773,35 @@ HRESULT CMpaDecFilter::Deliver(CArray<BYTE>& pBuff, DWORD nSamplesPerSec, REFERE
 
 	mt.SetFormat((BYTE*)&wfe, sizeof(wfe) + wfe.cbSize);
 
-	if(FAILED(hr = ReconnectOutput(pBuff.GetSize() / wfe.nBlockAlign, mt)))
-		return hr;
+	int length = 0;
+	while(length < size+sizeof(WORD)*4) length += 0x800;
+	int size2 = 1i64 * wfe.nBlockAlign * wfe.nSamplesPerSec * size*8 / bit_rate;
+	while(length < size2) length += 0x800;
 
+	if(FAILED(hr = ReconnectOutput(length / wfe.nBlockAlign, mt)))
+		return hr;
+#ifdef DEBUG
+	if(hr == S_OK)
+	{
+		HRESULT hr2 = m_pOutput->GetConnected()->QueryAccept(&mt);
+		if(FAILED(hr2))
+		{
+			CString str;
+			str.Format(_T("%08x\n"), hr2);
+			AfxMessageBox(str, MB_OK);
+			return hr2;
+		}
+	}
+#endif
 	CComPtr<IMediaSample> pOut;
 	BYTE* pDataOut = NULL;
 	if(FAILED(GetDeliveryBuffer(&pOut, &pDataOut)))
 		return E_FAIL;
 
+	REFERENCE_TIME rtDur = 10000000i64 * size*8 / bit_rate;
 	REFERENCE_TIME rtStart = m_rtStart, rtStop = m_rtStart + rtDur;
 	m_rtStart += rtDur;
-//TRACE(_T("CMpaDecFilter: %I64d - %I64d\n"), rtStart/10000, rtStop/10000);
+
 	if(rtStart < 0)
 		return S_OK;
 
@@ -952,8 +818,14 @@ HRESULT CMpaDecFilter::Deliver(CArray<BYTE>& pBuff, DWORD nSamplesPerSec, REFERE
 	pOut->SetDiscontinuity(m_fDiscontinuity); m_fDiscontinuity = false;
 	pOut->SetSyncPoint(TRUE);
 
-	pOut->SetActualDataLength(pBuff.GetSize());
-	memcpy(pDataOut, pBuff.GetData(), pBuff.GetSize());
+	pOut->SetActualDataLength(length);
+
+	WORD* pDataOutW = (WORD*)pDataOut;
+	pDataOutW[0] = 0xf872;
+	pDataOutW[1] = 0x4e1f;
+	pDataOutW[2] = type;
+	pDataOutW[3] = size*8;
+	_swab((char*)pBuff, (char*)&pDataOutW[4], size);
 
 	return m_pOutput->Deliver(pOut);
 }
@@ -1085,11 +957,25 @@ HRESULT CMpaDecFilter::GetMediaType(int iPosition, CMediaType* pmt)
 
 	WAVEFORMATEX* wfe = (WAVEFORMATEX*)pmt->AllocFormatBuffer(sizeof(WAVEFORMATEX));
 	memset(wfe, 0, pmt->FormatLength());
-	wfe->cbSize = 0;
-	wfe->wFormatTag = WAVE_FORMAT_PCM;
-	wfe->nChannels = 2;
-	wfe->wBitsPerSample = 16;
-	wfe->nSamplesPerSec = 44100;
+
+	const GUID& subtype = m_pInput->CurrentMediaType().subtype;
+
+	if(GetSpeakerConfig(ac3) < 0 && (subtype == MEDIASUBTYPE_DOLBY_AC3 || subtype == MEDIASUBTYPE_WAVE_DOLBY_AC3)
+	|| GetSpeakerConfig(dts) < 0 && (subtype == MEDIASUBTYPE_DTS || subtype == MEDIASUBTYPE_WAVE_DTS))
+	{
+		wfe->wFormatTag = WAVE_FORMAT_DOLBY_AC3_SPDIF;
+		wfe->nChannels = 2;
+		wfe->wBitsPerSample = 16;
+		wfe->nSamplesPerSec = 48000;
+	}
+	else
+	{
+		wfe->wFormatTag = WAVE_FORMAT_PCM;
+		wfe->nChannels = 2;
+		wfe->wBitsPerSample = 16;
+		wfe->nSamplesPerSec = 44100;
+	}
+
 	wfe->nBlockAlign = wfe->nChannels*wfe->wBitsPerSample/8;
 	wfe->nAvgBytesPerSec = wfe->nSamplesPerSec*wfe->nBlockAlign;
 

@@ -312,6 +312,7 @@ BOOL COpenFileDialog::OnNotify(WPARAM wParam, LPARAM lParam, LRESULT* pResult)
 	case CDN_INCLUDEITEM:
 		if(OnIncludeItem((OFNOTIFYEX*)lParam, pResult))
 			return TRUE;
+		break;
 	}
 
 	return FALSE;   // not handled

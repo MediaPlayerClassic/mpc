@@ -1105,6 +1105,33 @@ void CMainFrame::OnTimer(UINT nIDEvent)
 			m_wndStatsBar.SetLine(_T("Jitter"), info);
 		}
 
+		BeginEnumFilters(pGB, pEF, pBF)
+		{
+			if(CComQIPtr<IBufferInfo> pBI = pBF)
+			{
+				CList<CString> sl;
+				
+				for(int i = 0, j = pBI->GetCount(); i < j; i++)
+				{
+					int samples, size;
+					if(S_OK == pBI->GetStatus(i, samples, size))
+					{
+						CString str;
+						str.Format(_T("[%d]: %03d/%dKB"), i, samples, size / 1024);
+						sl.AddTail(str);
+					}
+				}
+				
+				if(!sl.IsEmpty())
+				{
+					m_wndStatsBar.SetLine(_T("Buffers"), Implode(sl, ' '));
+				}
+
+				break;
+			}
+		}
+		EndEnumFilters
+
 		if(m_iPlaybackMode == PM_DVD) // we also use this timer to update the info panel for dvd playback
 		{
 			ULONG ulAvailable, ulCurrent;
@@ -2972,14 +2999,20 @@ void CMainFrame::OnUpdateFileSaveas(CCmdUI* pCmdUI)
 	pCmdUI->Enable(TRUE);
 }
 
+#include "jpeg.h"
+
 void CMainFrame::SaveImage(LPCTSTR fn)
 {
+	bool fNeedsToPause = !m_pCAP;
+	if(fNeedsToPause) fNeedsToPause = !IsVMR7InGraph(pGB);
+	if(fNeedsToPause) fNeedsToPause = !IsVMR9InGraph(pGB);
+
 	OAFilterState fs = GetMediaState();
 
-	if(fs == State_Running)
+	if(fs == State_Running && fNeedsToPause)
 	{
 		pMC->Pause();
-		GetMediaState();
+		GetMediaState(); // wait for completion of the pause command
 	}
 
 	CString errmsg;
@@ -3012,9 +3045,6 @@ void CMainFrame::SaveImage(LPCTSTR fn)
 			if(FAILED(hr)) {errmsg.Format(_T("GetCurrentImage failed, hr = %08x"), hr); break;}
 		}
 
-		FILE* f = _tfopen(fn, _T("wb"));
-		if(!f) {errmsg = _T("Cannot create file"); break;}
-
 		BITMAPINFO* bi = (BITMAPINFO*)(BYTE*)buff;
 
 		BITMAPFILEHEADER bfh;
@@ -3028,10 +3058,19 @@ void CMainFrame::SaveImage(LPCTSTR fn)
 		bfh.bfSize = sizeof(bfh) + size;
 		bfh.bfReserved1 = bfh.bfReserved2 = 0;
 
-		fwrite(&bfh, 1, sizeof(bfh), f);
-		fwrite(buff, 1, size, f);
-
-		fclose(f);
+		CString ext = CString(CPath(fn).GetExtension()).MakeLower();
+		if(ext == _T(".bmp"))
+		{
+			FILE* f = _tfopen(fn, _T("wb"));
+			if(!f) {errmsg = _T("Cannot create file"); break;}
+			fwrite(&bfh, 1, sizeof(bfh), f);
+			fwrite(buff, 1, size, f);
+			fclose(f);
+		}
+		else if(ext == _T(".jpg"))
+		{
+			CJpegEncoder(fn, (BYTE*)buff);
+		}
 	}
 	while(0);
 
@@ -3039,8 +3078,22 @@ void CMainFrame::SaveImage(LPCTSTR fn)
 	{
 		AfxMessageBox(errmsg, MB_OK);
 	}
+	else
+	{
+		CPath p(fn);
 
-	if(fs == State_Running)
+		if(CDC* pDC = m_wndStatusBar.m_status.GetDC())
+		{
+			CRect r;
+			m_wndStatusBar.m_status.GetClientRect(r);
+			p.CompactPath(pDC->m_hDC, r.Width());
+			m_wndStatusBar.m_status.ReleaseDC(pDC);
+		}
+
+		SendStatusMessage((LPCTSTR)p, 3000);
+	}
+
+	if(fs == State_Running && GetMediaState() != State_Running)
 	{
 		pMC->Run();
 	}
@@ -3050,7 +3103,8 @@ static CString MakeSnapshotFileName()
 {
 	CTime t = CTime::GetCurrentTime();
 	CString fn;
-	fn.Format(_T("snapshot%s.bmp"), t.Format(_T("%Y%m%d%H%M%S")));
+	fn.Format(_T("snapshot%s%s"), 
+		t.Format(_T("%Y%m%d%H%M%S")), AfxGetAppSettings().SnapShotExt);
 	return fn;
 }
 
@@ -3060,31 +3114,31 @@ void CMainFrame::OnFileSaveImage()
 
 	CFileDialog fd(FALSE, 0, s.SnapShotPath + '\\' + MakeSnapshotFileName(), 
 		OFN_EXPLORER|OFN_ENABLESIZING|OFN_HIDEREADONLY|OFN_OVERWRITEPROMPT|OFN_PATHMUSTEXIST, 
-		_T("Bitmaps (*.bmp)|*.bmp||"), this, 0);
+		_T("Bitmaps (*.bmp)|*.bmp|Jpeg (*.jpg)|*.jpg||"), this, 0);
+
+	if(s.SnapShotExt == _T(".bmp")) fd.m_pOFN->nFilterIndex = 1;
+	else if(s.SnapShotExt == _T(".jpg")) fd.m_pOFN->nFilterIndex = 2;
+
 	if(fd.DoModal() != IDOK) return;
 
+	if(fd.m_pOFN->nFilterIndex == 1) s.SnapShotExt = _T(".bmp");
+	else if(fd.m_pOFN->nFilterIndex = 2) s.SnapShotExt = _T(".jpg");
+
+	CString path = fd.GetPathName();
+
 	CPath p(fd.GetPathName());
+	p.AddExtension(s.SnapShotExt);
+	path = (LPCTSTR)p;
 	p.RemoveFileSpec();
 	s.SnapShotPath = (LPCTSTR)p;
 
-	SaveImage(fd.GetPathName());
+	SaveImage(path);
 }
 
 void CMainFrame::OnFileSaveImageAuto()
 {
 	CString fn;
 	fn.Format(_T("%s\\%s"), AfxGetAppSettings().SnapShotPath, MakeSnapshotFileName());
-
-	CPath p(fn);
-	if(CDC* pDC = m_wndStatusBar.m_status.GetDC())
-	{
-		CRect r;
-		m_wndStatusBar.m_status.GetClientRect(r);
-		p.CompactPath(pDC->m_hDC, r.Width());
-		m_wndStatusBar.m_status.ReleaseDC(pDC);
-	}
-	SendStatusMessage((LPCTSTR)p, 3000);
-
 	SaveImage(fn);
 }
 
@@ -3663,7 +3717,8 @@ void CMainFrame::OnPlayStop()
 	{
 		KillTimer(TIMER_STREAMPOSPOLLER2);
 		KillTimer(TIMER_STREAMPOSPOLLER);
-		KillTimer(TIMER_STATS);
+//		KillTimer(TIMER_STATS);
+
 		MoveVideoWindow();
 
 		if(m_iMediaLoadState == MLS_LOADED)
@@ -4194,7 +4249,8 @@ void CMainFrame::OnPlayLanguage(UINT nID)
 	CComPtr<IAMStreamSelect> pAMSS = m_ssarray[nID];
 	UINT i = nID;
 	while(i > 0 && pAMSS == m_ssarray[i-1]) i--;
-	pAMSS->Enable(nID-i, AMSTREAMSELECTENABLE_ENABLE);
+	if(FAILED(pAMSS->Enable(nID-i, AMSTREAMSELECTENABLE_ENABLE)))
+		MessageBeep(-1);
 
 	OpenSetupStatusBar();
 }
@@ -6145,6 +6201,7 @@ void CMainFrame::OpenSetupStatsBar()
 			m_wndStatsBar.SetLine(_T("Frames Drawn"), info);
 			m_wndStatsBar.SetLine(_T("Frames Dropped"), info);
 			m_wndStatsBar.SetLine(_T("Jitter"), info);
+			m_wndStatsBar.SetLine(_T("Buffers"), info);
 			RecalcLayout();
 			break;
 		}
@@ -7976,7 +8033,7 @@ bool CMainFrame::StopCapture()
 
 	hr = pME->RestoreDefaultHandling(EC_REPAINT);
 
-	::SetPriorityClass(::GetCurrentProcess(), NORMAL_PRIORITY_CLASS);
+	::SetPriorityClass(::GetCurrentProcess(), AfxGetAppSettings().priority);
 
 	m_rtDurationOverride = -1;
 

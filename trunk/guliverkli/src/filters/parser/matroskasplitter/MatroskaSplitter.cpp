@@ -122,6 +122,9 @@ CUnknown* WINAPI CMatroskaSourceFilter::CreateInstance(LPUNKNOWN lpunk, HRESULT*
 // CMatroskaSplitterFilter
 //
 
+BOOL (WINAPI *CMatroskaSplitterFilter::pRemoveFontMemResourceEx)(HANDLE) = NULL;
+HANDLE (WINAPI *CMatroskaSplitterFilter::pAddFontMemResourceEx)(PVOID,DWORD,PVOID,DWORD*) = NULL;
+
 CMatroskaSplitterFilter::CMatroskaSplitterFilter(LPUNKNOWN pUnk, HRESULT* phr)
 	: CBaseSplitterFilter(NAME("CMatroskaSplitterFilter"), pUnk, phr, __uuidof(this))
 {
@@ -129,6 +132,15 @@ CMatroskaSplitterFilter::CMatroskaSplitterFilter(LPUNKNOWN pUnk, HRESULT* phr)
 
 CMatroskaSplitterFilter::~CMatroskaSplitterFilter()
 {
+	// unregister fonts
+
+	if(!pRemoveFontMemResourceEx)
+		if(HMODULE hGdi = GetModuleHandle(_T("gdi32.dll")))
+			pRemoveFontMemResourceEx = (BOOL (WINAPI *)(HANDLE))GetProcAddress(hGdi, "RemoveFontMemResourceEx");
+
+	if(pRemoveFontMemResourceEx)
+		for(int i = 0; i < m_Fonts.GetSize(); ++i)
+			pRemoveFontMemResourceEx(m_Fonts[i]);
 }
 
 STDMETHODIMP CMatroskaSplitterFilter::NonDelegatingQueryInterface(REFIID riid, void** ppv)
@@ -493,6 +505,8 @@ HRESULT CMatroskaSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 			}
 			else if(pTE->TrackType == TrackEntry::TypeSubtitle)
 			{
+				if(iSubtitle == 1) InstallFonts();
+
 				Name.Format(L"Subtitle %d", iSubtitle++);
 
 				mt.SetSampleSize(1);
@@ -571,6 +585,47 @@ HRESULT CMatroskaSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 */
 
 	return m_pOutputs.GetCount() > 0 ? S_OK : E_FAIL;
+}
+
+void CMatroskaSplitterFilter::InstallFonts()
+{
+	if(!pAddFontMemResourceEx)
+		if(HMODULE hGdi = GetModuleHandle(_T("gdi32.dll")))
+			pAddFontMemResourceEx = (HANDLE (WINAPI *)(PVOID,DWORD,PVOID,DWORD*))GetProcAddress(hGdi, "AddFontMemResourceEx");
+
+	if(!pAddFontMemResourceEx)
+		return;
+
+	POSITION pos = m_pFile->m_segment.Attachments.GetHeadPosition();
+	while(pos)
+	{
+		Attachment* pA = m_pFile->m_segment.Attachments.GetNext(pos);
+
+		POSITION p2 = pA->AttachedFiles.GetHeadPosition();
+		while(p2)
+		{
+			AttachedFile* pF = pA->AttachedFiles.GetNext(p2);
+
+			if(pF->FileMimeType == "application/x-truetype-font")
+			{
+				// assume this is a font resource
+
+				if(BYTE* data = new BYTE[pF->FileDataLen])
+				{
+					m_pFile->Seek(pF->FileDataPos);
+
+					if(SUCCEEDED(m_pFile->Read(data,pF->FileDataLen)))
+					{
+						DWORD nfonts;
+						if(HANDLE  hF = pAddFontMemResourceEx(data, pF->FileDataLen, NULL, &nfonts))
+							m_Fonts.Add(hF);
+					}
+
+					delete[] data;
+				}
+			}
+		}
+	}
 }
 
 void CMatroskaSplitterFilter::SendVorbisHeaderSample()
@@ -1087,7 +1142,8 @@ HRESULT CMatroskaSplitterOutputPin::DeliverPacket(CAutoPtr<Packet> p)
 /*				CString str;
 				str.Format(_T("mp1->rtStart (%I64d) >= mp2->rtStart (%I64d)!!!\n"), mp1->rtStart, mp2->rtStart);
 				AfxMessageBox(str);
-*/				TRACE(_T("mp1->rtStart (%I64d) >= mp2->rtStart (%I64d)!!!\n"), mp1->rtStart, mp2->rtStart);
+*/				
+				// TRACE(_T("mp1->rtStart (%I64d) >= mp2->rtStart (%I64d)!!!\n"), mp1->rtStart, mp2->rtStart);
 			}
 			else
 			{
@@ -1120,7 +1176,10 @@ HRESULT CMatroskaSplitterOutputPin::DeliverBlock(MatroskaPacket* p)
 	{
 		timeoverride to = m_tos.RemoveHead();
 //		if(p->TrackNumber == 2)
-		TRACE(_T("(track=%d) %I64d, %I64d -> %I64d, %I64d\n"), p->TrackNumber, p->rtStart, p->rtStop, to.rtStart, to.rtStop);
+/*		TRACE(_T("(track=%d) %I64d, %I64d -> %I64d, %I64d (buffcnt=%d)\n"), 
+			p->TrackNumber, p->rtStart, p->rtStop, to.rtStart, to.rtStop,
+			QueueCount());
+*/
 		p->rtStart = to.rtStart;
 		p->rtStop = to.rtStop;
 	}
@@ -1134,7 +1193,7 @@ HRESULT CMatroskaSplitterOutputPin::DeliverBlock(MatroskaPacket* p)
 	while(pos)
 	{
 		CAutoPtr<Packet> tmp(new Packet());
-		tmp->TrackNumber = -1;
+		tmp->TrackNumber = p->TrackNumber;
 		tmp->bDiscontinuity = p->bDiscontinuity;
 		tmp->bSyncPoint = p->bSyncPoint;
 		tmp->rtStart = rtStart;

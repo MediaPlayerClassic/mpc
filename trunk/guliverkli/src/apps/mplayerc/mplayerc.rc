@@ -256,7 +256,7 @@ BEGIN
     LTEXT           "Media Player Classic",IDC_STATIC1,40,10,126,8,
                     SS_NOPREFIX
     LTEXT           "Copyright (C) 2002-2004 Gabest",IDC_STATIC,40,21,113,8
-    LTEXT           "Version: 6.4.7.8",IDC_STATIC,40,33,92,8
+    LTEXT           "Version: 6.4.7.9",IDC_STATIC,40,33,92,8
     PUSHBUTTON      "OK",IDOK,160,8,50,14,WS_GROUP
     LTEXT           "This program is freeware and released under the GNU General Public License.\nDistribution in Codec Packs is allowed, but the author (Gabest) is not liable for the additional content.",
                     IDC_STATIC,11,47,199,34
@@ -305,28 +305,30 @@ BEGIN
     CONTROL         "Always on top",IDC_CHECK2,"Button",BS_AUTO3STATE | 
                     WS_TABSTOP,140,19,61,10
     CONTROL         "Tray icon",IDC_CHECK3,"Button",BS_AUTOCHECKBOX | 
-                    WS_TABSTOP,140,34,45,10
+                    WS_TABSTOP,140,33,45,10
     CONTROL         "Show controls in fullscreen for",IDC_CHECK4,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,140,49,112,10
-    EDITTEXT        IDC_EDIT1,152,64,32,13,ES_CENTER | ES_AUTOHSCROLL | 
+                    BS_AUTOCHECKBOX | WS_TABSTOP,140,47,112,10
+    EDITTEXT        IDC_EDIT1,152,62,32,13,ES_CENTER | ES_AUTOHSCROLL | 
                     ES_READONLY | ES_NUMBER
     CONTROL         "",IDC_SPIN1,"msctls_updown32",UDS_SETBUDDYINT | 
                     UDS_ALIGNRIGHT | UDS_AUTOBUDDY | UDS_ARROWKEYS | 
-                    UDS_NOTHOUSANDS | UDS_HOTTRACK,175,65,11,14
-    LTEXT           "sec(s)",IDC_STATIC1,188,66,20,8
-    LTEXT           "0: auto-hide\n-1: don't hide",IDC_STATIC2,218,62,48,17
+                    UDS_NOTHOUSANDS | UDS_HOTTRACK,175,63,11,14
+    LTEXT           "sec(s)",IDC_STATIC1,188,64,20,8
+    LTEXT           "0: auto-hide\n-1: don't hide",IDC_STATIC2,218,60,48,17
     CONTROL         "Exit fullscreen at the end of playback",IDC_CHECK5,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,140,83,135,10
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,140,81,135,10
     CONTROL         "Remember last window position",IDC_CHECK6,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,140,99,127,10
+                    BS_AUTOCHECKBOX | WS_TABSTOP,140,96,127,10
     CONTROL         "Remember last window size",IDC_CHECK7,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,140,115,127,10
+                    BS_AUTOCHECKBOX | WS_TABSTOP,140,111,127,10
     CONTROL         "Store settings to .ini file",IDC_CHECK8,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,140,131,92,10
+                    BS_AUTOCHECKBOX | WS_TABSTOP,140,126,92,10
     CONTROL         "Keep history of recently opened files",IDC_CHECK1,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,140,147,133,10
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,140,141,133,10
     CONTROL         "Hide CD-ROMs menu",IDC_CHECK10,"Button",BS_AUTOCHECKBOX | 
-                    WS_TABSTOP,140,163,82,10
+                    WS_TABSTOP,140,156,82,10
+    CONTROL         "Process priority above normal",IDC_CHECK9,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,140,171,111,10
 END
 
 IDD_PPAGEDVD DIALOGEX 0, 0, 296, 193
@@ -875,7 +877,7 @@ IDD_PPAGEFILTERS DIALOGEX 0, 0, 296, 200
 STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
-    GROUPBOX        "Enabled built-in filters",IDC_STATIC,6,5,252,185
+    GROUPBOX        "Enabled built-in filters",IDC_STATIC,6,5,252,186
     CONTROL         "Avi Splitter",IDC_CHECK_AVI,"Button",BS_AUTOCHECKBOX | 
                     WS_TABSTOP,18,20,51,10
     CONTROL         "Matroska Splitter",IDC_CHECK_MATROSKA,"Button",
@@ -888,16 +890,18 @@ BEGIN
                     BS_AUTOCHECKBOX | WS_TABSTOP,18,68,76,10
     CONTROL         "RealAudio Decoder",IDC_CHECK_RA,"Button",
                     BS_AUTOCHECKBOX | WS_TABSTOP,18,80,77,10
+    CONTROL         "MPEG Splitter",IDC_CHECK_MPG,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,18,92,59,10
     CONTROL         "MPEG-1 Video Decoder",IDC_CHECK_MPG1,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,18,92,89,10
-    CONTROL         "MPEG-2 Video Decoder",IDC_CHECK_MPG2,"Button",
                     BS_AUTOCHECKBOX | WS_TABSTOP,18,104,89,10
+    CONTROL         "MPEG-2 Video Decoder",IDC_CHECK_MPG2,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,18,116,89,10
     CONTROL         "MPEG Audio Decoder",IDC_CHECK_MPA,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,18,116,83,10
+                    BS_AUTOCHECKBOX | WS_TABSTOP,18,128,83,10
     CONTROL         "AC3 Decoder",IDC_CHECK_AC3,"Button",BS_AUTOCHECKBOX | 
-                    WS_TABSTOP,18,128,58,10
+                    WS_TABSTOP,18,140,58,10
     CONTROL         "LPCM Decoder",IDC_CHECK_LPCM,"Button",BS_AUTOCHECKBOX | 
-                    WS_TABSTOP,18,140,62,10
+                    WS_TABSTOP,18,152,62,10
     CONTROL         "Audio CD Reader",IDC_CHECK_CDDA,"Button",
                     BS_AUTOCHECKBOX | WS_TABSTOP,128,20,71,10
     CONTROL         "VCD/SVCD/XCD Reader",IDC_CHECK_CDXA,"Button",
@@ -916,12 +920,12 @@ BEGIN
                     BS_AUTOCHECKBOX | WS_TABSTOP,128,104,114,10
     CONTROL         "RoQ Decoder (Id Software)",IDC_CHECK_ROQ,"Button",
                     BS_AUTOCHECKBOX | WS_TABSTOP,128,116,104,10
-    CONTROL         "DTS Decoder (experimental)",IDC_CHECK_DTS,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,128,128,106,10
-    LTEXT           "If you would like to use the stand-alone version from these filters or a some other replacement, disable them here.",
-                    IDC_STATIC,18,162,212,18
+    CONTROL         "DTS Decoder",IDC_CHECK_DTS,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,128,128,57,10
     CONTROL         "Nut Splitter (experimental)",IDC_CHECK_NUT,"Button",
                     BS_AUTOCHECKBOX | WS_TABSTOP,128,140,101,10
+    LTEXT           "If you would like to use the stand-alone version from these filters or a some other replacement, disable them here.",
+                    IDC_STATIC,18,168,232,18
 END
 
 IDD_PPAGELOGO DIALOGEX 0, 0, 296, 203
@@ -1353,6 +1357,7 @@ BEGIN
         HORZGUIDE, 138
         HORZGUIDE, 150
         HORZGUIDE, 162
+        HORZGUIDE, 168
         HORZGUIDE, 198
     END
 
@@ -1492,8 +1497,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 6,4,7,8
- PRODUCTVERSION 6,4,7,8
+ FILEVERSION 6,4,7,9
+ PRODUCTVERSION 6,4,7,9
  FILEFLAGSMASK 0x1fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -1511,12 +1516,12 @@ BEGIN
             VALUE "Comments", "http://gabest.org/"
             VALUE "CompanyName", "Gabest"
             VALUE "FileDescription", "Media Player Classic"
-            VALUE "FileVersion", "6, 4, 7, 8"
+            VALUE "FileVersion", "6, 4, 7, 9"
             VALUE "InternalName", "Media Player Classic"
             VALUE "LegalCopyright", "Copyright (C) 2002-2004 Gabest"
             VALUE "OriginalFilename", "mplayerc.EXE"
             VALUE "ProductName", "Media Player Classic"
-            VALUE "ProductVersion", "6, 4, 7, 8"
+            VALUE "ProductVersion", "6, 4, 7, 9"
         END
     END
     BLOCK "VarFileInfo"
@@ -2194,7 +2199,7 @@ BEGIN
     IDC_CHECK_DTSAC3        "6.4.0.0"
     IDC_CHECK_SHOUTCAST     "6.4.0.1"
     IDC_CHECK_RM            "6.4.0.9\nRealMedia format categories must be set to 'DirectShow' to make it load, doesn't support streaming"
-    IDC_CHECK_MATROSKA      "6.4.2.1"
+    IDC_CHECK_MATROSKA      "6.4.2.3"
     IDC_CHECK_ROQ           "6.4.0.0"
     IDC_CHECK_OGG           "6.4.0.0"
     IDC_CHECK_LPCM          "6.4.0.0"
@@ -2225,11 +2230,13 @@ BEGIN
     IDS_RS_DTSSC            "DTSSpeakerConfig"
     IDS_RS_DTSDRC           "DTSDynamicRangeControl"
     IDS_RS_SNAPSHOTPATH     "SnapShotPath"
+    IDS_RS_PRIORITY         "Priority"
+    IDS_RS_SNAPSHOTEXT      "SnapShotExt"
 END
 
 STRINGTABLE 
 BEGIN
-    IDC_CHECK_DTS           "6.4.0.0\nlibdts 0.0.1, http://www.videolan.org/dtsdec.html"
+    IDC_CHECK_DTS           "6.4.0.1\nlibdts 0.0.2, http://www.videolan.org/dtsdec.html"
     IDC_CHECK_NUT           "6.4.0.0\nBased on ""NUT Open Container Format DRAFT 20030906""\nStill very incomplete, if you have or can make test files, please contact me."
 END
 

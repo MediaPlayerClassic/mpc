@@ -10,12 +10,59 @@
 class Packet
 {
 public:
-	Packet() {bDiscontinuity = FALSE;}
-	virtual ~Packet() {}
 	DWORD TrackNumber;
 	BOOL bDiscontinuity, bSyncPoint;
+	static const REFERENCE_TIME INVALID_TIME = ~0;
 	REFERENCE_TIME rtStart, rtStop;
 	CArray<BYTE> pData;
+	AM_MEDIA_TYPE* pmt;
+	Packet() {pmt = NULL; bDiscontinuity = FALSE;}
+	virtual ~Packet() {if(pmt) DeleteMediaType(pmt);}
+	virtual int GetSize() {return pData.GetSize();}
+};
+
+class CPacketQueue : public CCritSec, protected CAutoPtrList<Packet>
+{
+	int m_size;
+
+public:
+	CPacketQueue() : m_size(0) {}
+
+	void Add(CAutoPtr<Packet> p)
+	{
+		CAutoLock cAutoLock(this);
+		if(p) m_size += p->GetSize();
+		AddTail(p);
+	}
+
+	CAutoPtr<Packet> Remove()
+	{
+		CAutoLock cAutoLock(this);
+		ASSERT(__super::GetCount() > 0);
+		CAutoPtr<Packet> p = RemoveHead();
+		if(p) m_size -= p->GetSize();
+		return p;
+	}
+
+	void RemoveAll()
+	{
+		CAutoLock cAutoLock(this);
+		m_size = 0;
+		__super::RemoveAll();
+	}
+
+	int GetCount()
+	{
+		CAutoLock cAutoLock(this); 
+		return __super::GetCount();
+	}
+	
+	int GetSize()
+	{
+		CAutoLock cAutoLock(this); 
+		return m_size;
+	}
+
 };
 
 [uuid("7D55F67A-826E-40B9-8A7D-3DF0CBBD272D")]
@@ -54,23 +101,24 @@ class CBaseSplitterFile
 	CAutoVectorPtr<BYTE> m_pCache;
 	__int64 m_cachepos, m_cachelen, m_cachetotal;
 
+protected:
 	UINT64 m_bitbuff;
 	int m_bitlen;
 
-protected:
 	__int64 m_pos, m_len;
 
 public:
 	CBaseSplitterFile(IAsyncReader* pReader, HRESULT& hr, int cachelen = 2048);
 	virtual ~CBaseSplitterFile() {}
 
-	__int64 GetPos() {return m_pos;} // TODO: correct m_pos with m_bitlen (nothing needs it yet)
+	__int64 GetPos() {return m_pos - (m_bitlen>>3);}
 	__int64 GetLength() {return m_len;}
-	void Seek(UINT64 pos) {m_pos = max(pos, 0); BitFlush();}
-	HRESULT Read(BYTE* pData, __int64 len);
+	virtual void Seek(__int64 pos) {m_pos = min(max(pos, 0), m_len); BitFlush();}
+	virtual HRESULT Read(BYTE* pData, __int64 len);
 
 	UINT64 BitRead(int nBits, bool fPeek = false);
 	void BitByteAlign(), BitFlush();
+	HRESULT ByteRead(BYTE* pData, __int64 len);
 };
 
 class CBaseSplitterFilter;
@@ -106,8 +154,8 @@ protected:
 	int m_nBuffers;
 
 private:
-	CCritSec m_csQueueLock;
-	CAutoPtrList<Packet> m_packets;
+	CPacketQueue m_queue;
+
 	HRESULT m_hrDeliver;
 
 	bool m_fFlushing, m_fFlushed;
@@ -121,9 +169,6 @@ private:
 	// please only use DeliverPacket from the derived class
     HRESULT GetDeliveryBuffer(IMediaSample** ppSample, REFERENCE_TIME* pStartTime, REFERENCE_TIME* pEndTime, DWORD dwFlags);
     HRESULT Deliver(IMediaSample* pSample);
-
-	void QueueAdd(CAutoPtr<Packet> p);
-	CAutoPtr<Packet> QueueRemove();
 
 protected:
 	REFERENCE_TIME m_rtStart;
@@ -180,8 +225,19 @@ public:
     HRESULT DeliverNewSegment(REFERENCE_TIME tStart, REFERENCE_TIME tStop, double dRate);
 
 	int QueueCount();
+	int QueueSize();
     HRESULT QueueEndOfStream();
 	HRESULT QueuePacket(CAutoPtr<Packet> p);
+
+	// returns true for everything which (the lack of) would not block other streams (subtitle streams, basically)
+	virtual bool IsDiscontinuous();
+};
+
+[uuid("46070104-1318-4A82-8822-E99AB7CD15C1")]
+interface IBufferInfo : public IUnknown
+{
+	STDMETHOD_(int, GetCount()) = 0;
+	STDMETHOD(GetStatus(int i, int& samples, int& size)) = 0;
 };
 
 class CBaseSplitterFilter 
@@ -195,8 +251,13 @@ class CBaseSplitterFilter
 	, public IAMExtendedSeeking
 	, public IChapterInfo
 	, public IKeyFrameInfo
+	, public IBufferInfo
 {
+	CCritSec m_csPinMap;
 	CMap<DWORD, DWORD, CBaseSplitterOutputPin*, CBaseSplitterOutputPin*> m_pPinMap;
+
+	CCritSec m_csmtnew;
+	CMap<DWORD, DWORD, CMediaType, CMediaType> m_mtnew;
 
 protected:
 	CStringW m_fn;
@@ -206,6 +267,7 @@ protected:
 
 	CBaseSplitterOutputPin* GetOutputPin(DWORD TrackNum);
 	HRESULT AddOutputPin(DWORD TrackNum, CAutoPtr<CBaseSplitterOutputPin> pPin);
+	HRESULT RenameOutputPin(DWORD TrackNumSrc, DWORD TrackNumDst, const AM_MEDIA_TYPE* pmt);
 	virtual HRESULT DeleteOutputs();
 	virtual HRESULT CreateOutputs(IAsyncReader* pAsyncReader) = 0; // override this ...
 
@@ -342,5 +404,10 @@ public:
 
 	STDMETHODIMP_(HRESULT) GetKeyFrameCount(UINT& nKFs);
 	STDMETHODIMP_(HRESULT) GetKeyFrames(const GUID* pFormat, REFERENCE_TIME* pKFs, UINT& nKFs);
+
+	// IBufferInfo
+
+	STDMETHODIMP_(int) GetCount();
+	STDMETHODIMP GetStatus(int i, int& samples, int& size);
 };
 

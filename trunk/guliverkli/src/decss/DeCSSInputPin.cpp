@@ -30,6 +30,9 @@
 #include "CSSauth.h"
 #include "CSSscramble.h"
 
+#include <initguid.h>
+#include "..\..\include\moreuuids.h"
+
 //
 // CDeCSSInputPin
 //
@@ -55,13 +58,17 @@ STDMETHODIMP CDeCSSInputPin::NonDelegatingQueryInterface(REFIID riid, void** ppv
 
 STDMETHODIMP CDeCSSInputPin::Receive(IMediaSample* pSample)
 {
-	if(m_mt.majortype == MEDIATYPE_DVD_ENCRYPTED_PACK && pSample->GetActualDataLength() == 2048)
+	long len = pSample->GetActualDataLength();
+	
+	BYTE* p = NULL;
+	if(SUCCEEDED(pSample->GetPointer(&p)) && len > 0)
 	{
-		BYTE* pBuffer = NULL;
-		if(SUCCEEDED(pSample->GetPointer(&pBuffer)) && (pBuffer[0x14]&0x30))
+		BYTE* base = p;
+
+		if(m_mt.majortype == MEDIATYPE_DVD_ENCRYPTED_PACK && len == 2048 && (p[0x14]&0x30))
 		{
-			CSSdescramble(pBuffer, m_TitleKey);
-			pBuffer[0x14] &= ~0x30;
+			CSSdescramble(p, m_TitleKey);
+			p[0x14] &= ~0x30;
 
 			if(CComQIPtr<IMediaSample2> pMS2 = pSample)
 			{
@@ -79,9 +86,79 @@ STDMETHODIMP CDeCSSInputPin::Receive(IMediaSample* pSample)
 
 	HRESULT hr = Transform(pSample);
 
-	return 
-		hr == S_OK ? __super::Receive(pSample) :
+	return hr == S_OK ? __super::Receive(pSample) :
 		hr == S_FALSE ? S_OK : hr;
+}
+
+void CDeCSSInputPin::StripPacket(BYTE*& p, long& len)
+{
+	if(len > 0 && *(DWORD*)p == 0xba010000) // MEDIATYPE_*_PACK
+	{
+		len -= 14; p += 14;
+		if(int stuffing = (p[-1]&7)) {len -= stuffing; p += stuffing;}
+	}
+
+	if(len > 0 && *(DWORD*)p == 0xbb010000)
+	{
+		len -= 4; p += 4;
+		int hdrlen = ((p[0]<<8)|p[1]) + 2;
+		len -= hdrlen; p += hdrlen;
+	}
+
+	if(len > 0 
+	&& ((*(DWORD*)p&0xf0ffffff) == 0xe0010000 
+	|| (*(DWORD*)p&0xe0ffffff) == 0xc0010000
+	|| (*(DWORD*)p&0xbdffffff) == 0xbd010000)) // PES
+	{
+		bool ps1 = (*(DWORD*)p&0xbdffffff) == 0xbd010000;
+
+		len -= 4; p += 4;
+		int expected = ((p[0]<<8)|p[1]);
+		len -= 2; p += 2;
+		BYTE* p0 = p;
+
+		for(int i = 0; i < 16 && *p == 0xff; i++, len--, p++);
+
+		if((*p&0xc0) == 0x80) // mpeg2
+		{
+			len -= 2; p += 2;
+			len -= *p+1; p += *p+1;
+		}
+		else // mpeg1
+		{
+			if((*p&0xc0) == 0x40) 
+			{
+				len -= 2; p += 2;
+			}
+
+			if((*p&0x30) == 0x30 || (*p&0x30) == 0x20)
+			{
+				bool pts = !!(*p&0x20), dts = !!(*p&0x10);
+				if(pts) len -= 5; p += 5;
+				if(dts) {ASSERT((*p&0xf0) == 0x10); len -= 5; p += 5;}
+			}
+			else
+			{
+				len--; p++;
+			}
+		}
+
+		if(ps1)
+		{
+			len--; p++;
+			if(m_mt.subtype == MEDIASUBTYPE_DVD_LPCM_AUDIO) {len -= 6; p += 6;}
+			else if(m_mt.subtype == MEDIASUBTYPE_DOLBY_AC3 || m_mt.subtype == MEDIASUBTYPE_WAVE_DOLBY_AC3 
+				|| m_mt.subtype == MEDIASUBTYPE_DTS || m_mt.subtype == MEDIASUBTYPE_WAVE_DTS) {len -= 3; p += 3;}
+		}
+
+		if(expected > 0)
+		{
+			expected -= (p - p0);
+			len = min(expected, len);
+		}
+	}
+
+	if(len < 0) {ASSERT(0); len = 0;}
 }
 
 // IKsPropertySet

@@ -153,7 +153,7 @@ void CAviReportWnd::OnMouseMove(UINT nFlags, CPoint p)
 		int dist = m_graph.GetChunkDist(p.x - r2.left);
 		CString str;
 		str.Format(_T("%s (chunk distance: %d"), TITLE, dist);
-		if(dist >= 500) str += _T(" - over the limit!");
+		if(dist >= 1000) str += _T(" - over the limit!");
 		str += ")";
 		SetWindowText(str);
 	}
@@ -292,7 +292,7 @@ bool CAviPlotterWnd::Create(CAviFile* pAF, CRect r, CWnd* pParentWnd)
 
 			int dist = abs(cs2min.n - cs2last.n);
 
-			if(cs2last.t >= 0 /*&& dist >= 500*/)
+			if(cs2last.t >= 0 /*&& dist >= 1000*/)
 			{
 				if(p.x >= 0 && p.x < w)
 				{
@@ -309,7 +309,7 @@ bool CAviPlotterWnd::Create(CAviFile* pAF, CRect r, CWnd* pParentWnd)
 
 		for(int x = 0; x < w; x++)
 		{
-			CPen* pOldPen = m_dc.SelectObject(m_chunkdist[x] >= 500 ? &red : &green);
+			CPen* pOldPen = m_dc.SelectObject(m_chunkdist[x] >= 1000 ? &red : &green);
 			m_dc.MoveTo(x, h);
 			m_dc.LineTo(x, h + GRAPHFOOTER);
 			m_dc.SelectObject(pOldPen);

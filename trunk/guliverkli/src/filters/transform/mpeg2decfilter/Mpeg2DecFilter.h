@@ -165,18 +165,45 @@ class CSubpicInputPin : public CMpeg2DecInputPin
 
 	AM_PROPERTY_COMPOSIT_ON m_spon;
 	AM_DVD_YUV m_sppal[16];
+	bool m_fsppal;
 	CAutoPtr<AM_PROPERTY_SPHLI> m_sphli; // temp
-	struct sp_t
-	{
-		REFERENCE_TIME rtStart, rtStop; 
-		CArray<BYTE> pData;
-		CAutoPtr<AM_PROPERTY_SPHLI> sphli; // hli
-		bool fForced;
-	};
-	CAutoPtrList<sp_t> m_sps;
 
-	bool DecodeSubpic(sp_t* sp, AM_PROPERTY_SPHLI& sphli, DWORD& offset1, DWORD& offset2);
-	void RenderSubpic(sp_t* sp, BYTE** p, int w, int h, AM_PROPERTY_SPHLI* sphli_hli = NULL);
+	struct spu
+	{
+		bool m_fForced;
+		REFERENCE_TIME m_rtStart, m_rtStop; 
+		CArray<BYTE> m_pData;
+		DWORD m_offset[2];
+		AM_PROPERTY_SPHLI m_sphli; // parsed
+		CAutoPtr<AM_PROPERTY_SPHLI> m_psphli; // for the menu (optional)
+		struct spu() {memset(&m_sphli, 0, sizeof(m_sphli)); m_fForced = false; m_rtStart = m_rtStop = 0;}
+		virtual bool Parse() = 0;
+		virtual void Render(BYTE** p, int w, int h, AM_DVD_YUV* sppal, bool fsppal) = 0;
+	};
+
+	struct dvdspu : public spu
+	{
+		bool Parse();
+		void Render(BYTE** p, int w, int h, AM_DVD_YUV* sppal, bool fsppal);
+	};
+
+	struct cvdspu : public spu
+	{
+		AM_DVD_YUV m_sppal[2][4];
+		struct cvdspu() {memset(m_sppal, 0, sizeof(m_sppal));}
+		bool Parse();
+		void Render(BYTE** p, int w, int h, AM_DVD_YUV* sppal, bool fsppal);
+	};
+
+	struct svcdspu : public spu
+	{
+		AM_DVD_YUV m_sppal[4];
+		struct svcdspu() {memset(m_sppal, 0, sizeof(m_sppal));}
+		bool Parse();
+		void Render(BYTE** p, int w, int h, AM_DVD_YUV* sppal, bool fsppal);
+	};
+
+	CAutoPtrList<spu> m_sps;
 
 protected:
 	HRESULT Transform(IMediaSample* pSample);

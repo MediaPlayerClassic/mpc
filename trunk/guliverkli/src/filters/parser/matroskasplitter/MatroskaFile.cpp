@@ -186,6 +186,11 @@ HRESULT Segment::ParseMinimal(CMatroskaNode* pMN0)
 		{
 			do {Chapters.Parse(pMN); /*BIG UGLY HACK:*/ break;} while(pMN->Next(true));
 		}
+
+		if(Attachments.IsEmpty() && (pMN = pMN0->Child(0x1941A469, false)))
+		{
+			do {Attachments.Parse(pMN); /*BIG UGLY HACK:*/ break;} while (pMN->Next(true));
+		}
 	}
 
 	return S_OK;
@@ -589,14 +594,21 @@ HRESULT CueReference::Parse(CMatroskaNode* pMN0)
 HRESULT Attachment::Parse(CMatroskaNode* pMN0)
 {
 	BeginChunk
-		// TODO
+	case 0x61A7: AttachedFiles.Parse(pMN); break;
 	EndChunk
 }
 
 HRESULT AttachedFile::Parse(CMatroskaNode* pMN0)
 {
 	BeginChunk
-		// TODO
+	case 0x467E: FileDescription.Parse(pMN); break;
+	case 0x466E: FileName.Parse(pMN); break;
+	case 0x4660: FileMimeType.Parse(pMN); break;
+	case 0x465C: // binary
+		FileDataLen = (INT_PTR)pMN->m_len;
+		FileDataPos = pMN->m_start;
+		break;
+	case 0x46AE: FileUID.Parse(pMN); break;
 	EndChunk
 }
 

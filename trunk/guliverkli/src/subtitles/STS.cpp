@@ -1665,6 +1665,48 @@ static bool OpenUSF(CTextFile* file, CSimpleTextSubtitle& ret, int CharSet)
 	return(false);
 }
 
+static CStringW MPL22SSA(CStringW str)
+{
+	CList<CStringW> sl;
+	Explode(str, sl, '|');
+	POSITION pos = sl.GetHeadPosition();
+	while(pos)
+	{
+		CStringW& s = sl.GetNext(pos);
+		if(s[0] == '/') {s = L"{\\i1}" + s.Mid(1) + L"{\\i0}";}
+	}
+	str = Implode(sl, '\n');
+	str.Replace(L"\n", L"\\N");
+	return str;
+}
+
+static bool OpenMPL2(CTextFile* file, CSimpleTextSubtitle& ret, int CharSet)
+{
+	CStringW buff;;
+	while(file->ReadString(buff))
+	{
+		buff.Trim();
+		if(buff.IsEmpty()) continue;
+
+		int start, end;
+		int c = swscanf(buff, L"[%d][%d]", &start, &end);
+
+		if(c == 2)
+		{
+			ret.Add(
+				MPL22SSA(buff.Mid(buff.Find(']', buff.Find(']')+1)+1)), 
+				file->IsUnicode(),
+				start*100, end*100);
+		}
+		else if(c != EOF) // might be another format
+		{
+			return(false);
+		}
+	}
+
+	return(ret.GetCount() > 0);
+}
+
 typedef bool (*STSOpenFunct)(CTextFile* file, CSimpleTextSubtitle& ret, int CharSet);
 
 typedef struct {STSOpenFunct open; tmode mode;} OpenFunctStruct;
@@ -1680,6 +1722,7 @@ static OpenFunctStruct OpenFuncts[] =
 	OpenSubStationAlpha, TIME,
 	OpenXombieSub, TIME,
 	OpenUSF, TIME,
+	OpenMPL2, TIME,
 };
 
 static int nOpenFuncts = countof(OpenFuncts);

@@ -425,7 +425,7 @@ bool CAviFile::IsInterleaved(bool fKeepInfo)
 
 		curchunks[n]++;
 
-		if(cs2last.t >= 0 && abs(cs2min.n - cs2last.n) >= 500)
+		if(cs2last.t >= 0 && abs(cs2min.n - cs2last.n) >= 1000)
 			fInterleaved = false;
 
 		cs2last = cs2min;

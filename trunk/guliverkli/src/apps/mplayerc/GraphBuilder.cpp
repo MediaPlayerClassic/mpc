@@ -241,6 +241,19 @@ CGraphBuilder::CGraphBuilder(IGraphBuilder* pGB, HWND hWnd)
 	}
 
 	{
+		guids.AddTail(MEDIATYPE_Stream);
+		guids.AddTail(MEDIASUBTYPE_MPEG1System);
+		guids.AddTail(MEDIATYPE_Stream);
+		guids.AddTail(MEDIASUBTYPE_MPEG2_PROGRAM);
+		guids.AddTail(MEDIATYPE_Stream);
+		guids.AddTail(MEDIASUBTYPE_MPEG2_TRANSPORT);
+		AddFilter(new CGraphCustomFilter(__uuidof(CMpegSplitterFilter), guids, 
+			(s.SrcFilters&SRC_MPEG) ? L"Mpeg Splitter" : L"Mpeg Splitter (low merit)",
+			(s.SrcFilters&SRC_MPEG) ? LMERIT_ABOVE_DSHOW : LMERIT_DO_USE));
+		guids.RemoveAll();
+	}
+
+	{
 		guids.AddTail(MEDIATYPE_Video);
 		guids.AddTail(MEDIASUBTYPE_MPEG1Packet);
 		guids.AddTail(MEDIATYPE_Video);
@@ -676,7 +689,9 @@ HRESULT CGraphBuilder::Render(LPCTSTR lpsz)
 		if(!pBF && fn.Find(_T("://")) > 0)
 		{
 			CList<CString> mms;
-			if(GetContentType(fn, &mms) == _T("video/x-ms-asf")) // TODO: if there are more to check, do GetContentType only once
+			CString ct = GetContentType(fn, &mms); // TODO: if there are more to check, do GetContentType only once
+			if(ct == _T("video/x-ms-asf") || ct == _T("video/x-ms-wmv")
+			|| ct == _T("video/x-ms-wvx") || ct == _T("video/x-ms-wax"))
 			{
 				if(!mms.IsEmpty()) fnw = mms.GetHead();
 				fnw.Replace(L"&MSWMExt=.asf", L"");
@@ -799,6 +814,14 @@ HRESULT CGraphBuilder::Render(LPCTSTR lpsz)
 		{
 			hr = S_OK;
 			CComPtr<IFileSourceFilter> pReader = new CNutSourceFilter(NULL, &hr);
+			if(SUCCEEDED(hr) && SUCCEEDED(pReader->Load(fnw, NULL)))
+				pBF = pReader;
+		}
+
+		if((s.SrcFilters&SRC_MPEG) && !pBF)
+		{
+			hr = S_OK;
+			CComPtr<IFileSourceFilter> pReader = new CMpegSourceFilter(NULL, &hr);
 			if(SUCCEEDED(hr) && SUCCEEDED(pReader->Load(fnw, NULL)))
 				pBF = pReader;
 		}
@@ -1787,6 +1810,7 @@ HRESULT CGraphCustomFilter::Create(IBaseFilter** ppBF, IUnknown** ppUnk)
 		m_clsid == __uuidof(CRoQSplitterFilter) ? (IBaseFilter*)new CRoQSplitterFilter(NULL, &hr) :
 		m_clsid == __uuidof(COggSplitterFilter) ? (IBaseFilter*)new COggSplitterFilter(NULL, &hr) :
 		m_clsid == __uuidof(CNutSplitterFilter) ? (IBaseFilter*)new CNutSplitterFilter(NULL, &hr) :
+		m_clsid == __uuidof(CMpegSplitterFilter) ? (IBaseFilter*)new CMpegSplitterFilter(NULL, &hr) :
 		m_clsid == __uuidof(CMpeg2DecFilter) ? (IBaseFilter*)new CMpeg2DecFilter(NULL, &hr) :
 		m_clsid == __uuidof(CMpaDecFilter) ? (IBaseFilter*)new CMpaDecFilter(NULL, &hr) :
 		m_clsid == __uuidof(CNullVideoRenderer) ? (IBaseFilter*)new CNullVideoRenderer() :

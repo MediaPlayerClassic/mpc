@@ -138,10 +138,18 @@ void CCDecoder::DecodeCC(BYTE* buff, int len, __int64 time)
 		}
 		else if(buff[i] != 0x80 && i < len-1)
 		{
+			// codes and special characters are supposed to be doubled
+			if(i < len-3 && buff[i] == buff[i+2] && buff[i+1] == buff[i+3])
+ 				i += 2;
+
 			c = buff[i+1]&0x7f;
 			if(buff[i] == 0x91 && c >= 0x20 && c < 0x30) // formating
 			{
 				// TODO
+			}
+			else if(buff[i] == 0x91 && c == 0x39) // transparent space
+			{
+ 				OffsetCursor(1, 0);
 			}
 			else if(buff[i] == 0x91 && c >= 0x30 && c < 0x40) // special characters
 			{
@@ -156,7 +164,7 @@ void CCDecoder::DecodeCC(BYTE* buff, int len, __int64 time)
 					0x00a3, // pound
 					0x266a, // music
 					0x00e0, // a`
-					0x00ff, // hard space
+					0x00ff, // transparent space, handled above
 					0x00e8, // e`
 					0x00e2, // a^
 					0x00ea, // e^
@@ -259,16 +267,22 @@ void CCDecoder::DecodeCC(BYTE* buff, int len, __int64 time)
 			}
 			else if(buff[i] == 0x94 && buff[i+1] == 0x2f) // End Of Caption
 			{
-				m_fEndOfCaption = true;
-				memcpy(m_disp, m_buff, sizeof(m_disp));
-				m_time = time;
+ 				if(memcmp(m_disp, m_buff, sizeof(m_disp)) != 0)
+ 				{
+ 					if(m_fEndOfCaption)
+ 						SaveDisp(time + (i/2)*1000/30);
+ 
+ 					m_fEndOfCaption = true;
+ 					memcpy(m_disp, m_buff, sizeof(m_disp));
+ 					m_time = time + (i/2)*1000/30;
+ 				}
 			}
 			else if(buff[i] == 0x94 && buff[i+1] == 0x2c) // Erase Displayed Memory
 			{
 				if(m_fEndOfCaption)
 				{
 					m_fEndOfCaption = false;
-					SaveDisp(time);
+ 					SaveDisp(time + (i/2)*1000/30);
 				}
 
 				memset(m_disp, 0, sizeof(m_disp));

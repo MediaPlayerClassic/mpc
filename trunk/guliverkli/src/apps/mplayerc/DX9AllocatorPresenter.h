@@ -36,3 +36,5 @@ DEFINE_GUID(CLSID_QT9AllocatorPresenter,
 0x622a4032, 0x70ce, 0x4040, 0x82, 0x31, 0xf, 0x24, 0xf2, 0x88, 0x66, 0x18);
 
 extern HRESULT CreateAP9(const CLSID& clsid, HWND hWnd, ISubPicAllocatorPresenter** ppAP);
+
+extern bool IsVMR9InGraph(IFilterGraph* pFG);

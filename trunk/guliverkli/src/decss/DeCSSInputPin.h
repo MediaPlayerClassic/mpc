@@ -38,6 +38,8 @@ public:
 	DECLARE_IUNKNOWN
     STDMETHODIMP NonDelegatingQueryInterface(REFIID riid, void** ppv);
 
+	void StripPacket(BYTE*& p, long& len);
+
 	// IMemInputPin
     STDMETHODIMP Receive(IMediaSample* pSample);
 

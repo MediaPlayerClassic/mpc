@@ -36,6 +36,14 @@
 #include "..\..\..\include\RealMedia\rmavsurf.h"
 #include "IQTVideoSurface.h"
 
+bool IsVMR7InGraph(IFilterGraph* pFG)
+{
+	BeginEnumFilters(pFG, pEF, pBF)
+		if(CComQIPtr<IVMRWindowlessControl>(pBF)) return(true);
+	EndEnumFilters
+	return(false);
+}
+
 namespace DSObjects
 {
 

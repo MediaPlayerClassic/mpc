@@ -103,7 +103,7 @@ struct dts_state_s {
     int dynrange_coef;
 
     /* VQ encoded high frequency subbands */
-    int high_freq_vq[DTS_PRIM_CHANNELS_MAX][DTS_SUBSUBFAMES_MAX];
+    int high_freq_vq[DTS_PRIM_CHANNELS_MAX][DTS_SUBBANDS];
 
     /* Low frequency effect data */
     double lfe_data[2*DTS_SUBSUBFAMES_MAX*DTS_LFE_MAX * 2 /*history*/];
@@ -161,10 +161,6 @@ int dts_downmix_coeff (level_t * coeff, int acmod, int output, level_t level,
 void dts_downmix (sample_t * samples, int acmod, int output, sample_t bias,
                   level_t clev, level_t slev);
 void dts_upmix (sample_t * samples, int acmod, int output);
-
-void dts_imdct_init (uint32_t mm_accel);
-void dts_imdct_256 (sample_t * data, sample_t * delay, sample_t bias);
-void dts_imdct_512 (sample_t * data, sample_t * delay, sample_t bias);
 
 #define ROUND(x) ((int)((x) + ((x) > 0 ? 0.5 : -0.5)))
 

@@ -147,7 +147,8 @@ enum
 	SRC_ROQ=SRC_RADGT<<1,
 	SRC_OGG=SRC_ROQ<<1,
 	SRC_NUT=SRC_OGG<<1,
-	SRC_LAST=SRC_NUT<<1
+	SRC_MPEG=SRC_NUT<<1,
+	SRC_LAST=SRC_MPEG<<1
 };
 
 enum
@@ -430,12 +431,14 @@ public:
 
 		bool fHideCDROMsSubMenu;
 
+		DWORD priority;
+
 		BOOL fEnableWebServer;
 		int nWebServerPort;
 		bool fWebServerPrintDebugInfo;
 		bool fWebServerUseCompression;
 
-		CString SnapShotPath;
+		CString SnapShotPath, SnapShotExt;
 
 	public:
 		Settings();

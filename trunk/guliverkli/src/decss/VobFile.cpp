@@ -439,7 +439,7 @@ bool CVobFile::Open(CStringList& vobs, int offset)
 
 		file_t f;
 		f.fn = fn;
-		f.size = (int)((__int64(fd.nFileSizeHigh<<32)|fd.nFileSizeLow)/2048);
+		f.size = (int)(((__int64(fd.nFileSizeHigh)<<32)|fd.nFileSizeLow)/2048);
 		m_files.Add(f);
 
 		m_size += f.size;
