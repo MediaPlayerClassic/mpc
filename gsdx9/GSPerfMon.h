@@ -1,6 +1,6 @@
 #pragma once
 
-inline UINT64 __declspec(naked) rdtsc() {__asm rdtsc __asm ret}
+#include "x86.h"
 
 class GSPerfMon
 {

@@ -326,6 +326,9 @@
 				RelativePath=".\GSState.cpp">
 			</File>
 			<File
+				RelativePath=".\GSTables.cpp">
+			</File>
+			<File
 				RelativePath=".\GSTextureCache.cpp">
 			</File>
 			<File
@@ -363,6 +366,67 @@
 						Name="VCCLCompilerTool"
 						UsePrecompiledHeader="1"/>
 				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\x86-32.asm">
+				<FileConfiguration
+					Name="Debug|Win32">
+					<Tool
+						Name="VCCustomBuildTool"
+						CommandLine="ml /nologo /c /Zi /Fo&quot;$(IntDir)\$(InputName).obj&quot; &quot;$(InputPath)&quot;"
+						Outputs="$(IntDir)\$(InputName).obj"/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32">
+					<Tool
+						Name="VCCustomBuildTool"
+						CommandLine="ml /nologo /c /Zi /Fo&quot;$(IntDir)\$(InputName).obj&quot; &quot;$(InputPath)&quot;"
+						Outputs="$(IntDir)\$(InputName).obj"/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="DebugSSE2|Win32">
+					<Tool
+						Name="VCCustomBuildTool"
+						CommandLine="ml /nologo /c /Zi /Fo&quot;$(IntDir)\$(InputName).obj&quot; &quot;$(InputPath)&quot;"
+						Outputs="$(IntDir)\$(InputName).obj"/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="ReleaseSSE2|Win32">
+					<Tool
+						Name="VCCustomBuildTool"
+						CommandLine="ml /nologo /c /Zi /Fo&quot;$(IntDir)\$(InputName).obj&quot; &quot;$(InputPath)&quot;"
+						Outputs="$(IntDir)\$(InputName).obj"/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\x86-64.asm">
+				<FileConfiguration
+					Name="Debug|Win32"
+					ExcludedFromBuild="TRUE">
+					<Tool
+						Name="VCCustomBuildTool"/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32"
+					ExcludedFromBuild="TRUE">
+					<Tool
+						Name="VCCustomBuildTool"/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="DebugSSE2|Win32"
+					ExcludedFromBuild="TRUE">
+					<Tool
+						Name="VCCustomBuildTool"/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="ReleaseSSE2|Win32"
+					ExcludedFromBuild="TRUE">
+					<Tool
+						Name="VCCustomBuildTool"/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\x86.cpp">
 			</File>
 		</Filter>
 		<Filter
@@ -409,6 +473,9 @@
 				RelativePath=".\GSState.h">
 			</File>
 			<File
+				RelativePath=".\GSTables.h">
+			</File>
+			<File
 				RelativePath=".\GSTextureCache.h">
 			</File>
 			<File
@@ -422,6 +489,9 @@
 			</File>
 			<File
 				RelativePath=".\stdafx.h">
+			</File>
+			<File
+				RelativePath=".\x86.h">
 			</File>
 		</Filter>
 		<Filter
@@ -493,9 +563,6 @@
 				RelativePath=".\res\ps20_tfx.fx">
 			</File>
 		</Filter>
-		<File
-			RelativePath=".\VTune\GSdx9.vpj">
-		</File>
 	</Files>
 	<Globals>
 		<Global
