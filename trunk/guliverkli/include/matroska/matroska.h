@@ -48,6 +48,10 @@ DEFINE_GUID(MEDIASUBTYPE_ASS,
 DEFINE_GUID(MEDIASUBTYPE_USF, 
 0xb753b29a, 0xa96, 0x45be, 0x98, 0x5f, 0x68, 0x35, 0x1d, 0x9c, 0xab, 0x90);
 
+// {F7239E31-9599-4e43-8DD5-FBAF75CF37F1}
+DEFINE_GUID(MEDIASUBTYPE_VOBSUB, 
+0xf7239e31, 0x9599, 0x4e43, 0x8d, 0xd5, 0xfb, 0xaf, 0x75, 0xcf, 0x37, 0xf1);
+
 // {A33D2F7D-96BC-4337-B23B-A8B9FBC295E9}
 DEFINE_GUID(FORMAT_SubtitleInfo, 
 0xa33d2f7d, 0x96bc, 0x4337, 0xb2, 0x3b, 0xa8, 0xb9, 0xfb, 0xc2, 0x95, 0xe9);
@@ -57,6 +61,17 @@ typedef struct {
 	DWORD dwOffset;	
 	CHAR IsoLang[4]; // three letter lang code + terminating zero
 } SUBTITLEINFO;
+typedef struct : SUBTITLEINFO
+{
+	bool bCompressed;
+	unsigned int w, h, x, y, sx, sy;
+	unsigned int alpha, smooth, align;
+	int tFadeIn, tFadeOut, tOffset;
+	bool bForcedSubs;
+	bool bCustomColors;
+	union {DWORD orgpal[16]; DWORD cuspal[4];};
+	char tridx;
+} VOBSUBINFO;
 #pragma pack(pop)
 
 // SUBTITLEINFO structure content starting at dwOffset (also the content of CodecPrivate)
@@ -78,6 +93,10 @@ typedef struct {
 // MEDIASUBTYPE_SSA/ASS:
 //
 // The file header and all sub-sections except [Events]
+//
+// MEDIATYPE_VOBSUB:
+//
+// Nothing.
 //
 
 // Data description of the media samples (everything is UTF-8 encoded here)
@@ -101,6 +120,10 @@ typedef struct {
 //
 // If the source is only SSA, the Layer field can be left empty.
 //
+// MEDIATYPE_VOBSUB:
+//
+// Standard dvd subpic data, without the stream id at the beginning.
+//
 
 // Matroska CodecID mappings
 // ------------------------
@@ -110,6 +133,6 @@ typedef struct {
 // S_TEXT/SSA	<->	MEDIATYPE_Subtitle	MEDIASUBTYPE_SSA	FORMAT_SubtitleInfo
 // S_TEXT/ASS	<->	MEDIATYPE_Subtitle	MEDIASUBTYPE_ASS	FORMAT_SubtitleInfo
 // S_TEXT/USF	<->	MEDIATYPE_Subtitle	MEDIASUBTYPE_USF	FORMAT_SubtitleInfo
+// S_VOBSUB		<-> MEDIATYPE_Subtitle	MEDIASUBTYPE_VOBSUB	FORMAT_SubtitleInfo
+// S_VOBSUB/ZLIB<-> MEDIATYPE_Subtitle	MEDIASUBTYPE_VOBSUB	FORMAT_SubtitleInfo
 //
-
-
