@@ -58,7 +58,7 @@ namespace MatroskaWriter
 		CBinary(DWORD id) : CID(id) {}
 		CBinary& operator = (const CBinary& b) {Copy(b); return(*this);}
 		operator BYTE*() {return (BYTE*)GetData();}
-		CBinary& Set(CStringA str) {SetSize(str.GetLength()+1); strcpy((char*)GetData(), str); return(*this);}
+		CBinary& Set(CStringA str) {SetSize(str.GetLength()); memcpy((char*)GetData(), str, str.GetLength()); return(*this);}
 		QWORD Size(bool fWithHeader = true);
 		HRESULT Write(IStream* pStream);
 	};
