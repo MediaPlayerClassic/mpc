@@ -243,7 +243,6 @@ HRESULT TrackEntry::Parse(CMatroskaNode* pMN0)
 	case 0x9C: FlagLacing.Parse(pMN); break;
 	case 0x6DE7: MinCache.Parse(pMN); break;
 	case 0x6DF8: MaxCache.Parse(pMN); break;
-	case 0x2383E3: DefaultDuration.Parse(pMN); break;
 	case 0x536E: Name.Parse(pMN); break;
 	case 0x22B59C: Language.Parse(pMN); break;
 	case 0x86: CodecID.Parse(pMN); break;
@@ -272,6 +271,7 @@ HRESULT Video::Parse(CMatroskaNode* pMN0)
 	case 0x54B3: AspectRatioType.Parse(pMN); break;
 	case 0x2EB524: ColourSpace.Parse(pMN); break;
 	case 0x2FB523: GammaValue.Parse(pMN); break;
+	case 0x2383E3: DefaultDuration.Parse(pMN); break;
 	EndChunk
 }
 

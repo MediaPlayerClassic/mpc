@@ -163,6 +163,7 @@ namespace Matroska
 					CUInt AspectRatioType;
 					CUInt ColourSpace;
 					CFloat GammaValue;
+					CFloat DefaultDuration;
 
 					HRESULT Parse(CMatroskaNode* pMN);
 				};
@@ -185,7 +186,6 @@ namespace Matroska
 				CUInt TrackNumber, TrackUID, TrackType;
 				CUInt FlagEnabled, FlagDefault, FlagLacing;
 				CUInt MinCache, MaxCache;
-				CUInt DefaultDuration;
 				CUTF8 Name;
 				CANSI Language;
 				CBinary CodecID;
