@@ -369,6 +369,7 @@ namespace MatroskaReader
 		CMatroskaNode(CMatroskaFile* pMF); // creates the root
 		CMatroskaNode(CMatroskaNode* pParent);
 
+		CMatroskaNode* Parent() {return m_pParent;}
 		CAutoPtr<CMatroskaNode> Child(DWORD id = 0, bool fSearch = true);
 		bool Next(bool fSame = false);
 		bool Find(DWORD id, bool fSearch = true);

@@ -80,6 +80,7 @@ typedef struct {
 	int x, y;
     } display_offset[3];
 	__int64 rtStart, rtStop;
+	bool fDelivered;
 } mpeg2_picture_t;
 
 typedef struct {
@@ -133,6 +134,7 @@ typedef enum {
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
 typedef void mpeg2_mc_fct(uint8_t*, const uint8_t*, int, int);
+typedef struct {mpeg2_mc_fct* put[8]; mpeg2_mc_fct* avg[8];} mpeg2_mc_t;
 
 class CMpeg2Decoder
 {
@@ -180,6 +182,12 @@ private:
 
 	int slice_init(int code);
 
+	static bool m_idct_initialized;
+	void (*m_idct_init)();
+	void (*m_idct_copy)(int16_t* block, uint8_t* dest, const int stride);
+	void (*m_idct_add)(const int last, int16_t* block, uint8_t* dest, const int stride);
+	mpeg2_mc_t* m_mc;
+
 public:
 	CMpeg2Decoder();
 	virtual ~CMpeg2Decoder();
@@ -187,7 +195,7 @@ public:
 	void mpeg2_init_fbuf(uint8_t* current_fbuf[3], uint8_t* forward_fbuf[3], uint8_t* backward_fbuf[3]);
 	void mpeg2_slice(int code, const uint8_t* buffer);
 
-	__declspec(align(16)) int16_t m_DCTblock[64];
+	int16_t* m_DCTblock;
 
     /* bit parsing stuff */
     uint32_t m_bitstream_buf;		/* current 32 bit working set */

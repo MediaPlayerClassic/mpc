@@ -4,11 +4,11 @@
 #include <string.h>
 #include <malloc.h>
 #include "libmpeg2.h"
+#include "..\..\..\DSUtil\vd.h"
 
+#ifndef NULL
 #define NULL 0
-
-//#define ACCEL_NOTHING
-#define ACCEL_MMX
+#endif
 
 // decode
 
@@ -54,17 +54,13 @@ static uint8_t mpeg2_scan_alt_2[64] = {
     53, 61, 22, 30,  7, 15, 23, 31, 38, 46, 54, 62, 39, 47, 55, 63
 };
 
-typedef struct {mpeg2_mc_fct* put[8]; mpeg2_mc_fct* avg[8];} mpeg2_mc_t;
-
 // dummy
 extern "C" uint8_t mpeg2_scan_norm[64];
 extern "C" uint8_t mpeg2_scan_alt[64];
 uint8_t mpeg2_scan_norm[64];
 uint8_t mpeg2_scan_alt[64];
 
-#if defined(ACCEL_NOTHING)
-
-// idct
+// idct (c)
 
 #define W1 2841 /* 2048 * sqrt (2) * cos (1 * pi / 16) */
 #define W2 2676 /* 2048 * sqrt (2) * cos (2 * pi / 16) */
@@ -183,7 +179,7 @@ static void __inline idct_col(int16_t* block)
     block[8*7] = (a0 - b0) >> 17;
 }
 
-static void mpeg2_idct_copy(int16_t* block, uint8_t* dest, const int stride)
+static void mpeg2_idct_copy_c(int16_t* block, uint8_t* dest, const int stride)
 {
 	for(int i = 0; i < 8; i++) idct_row(block + 8 * i);
 	for(int i = 0; i < 8; i++) idct_col(block + i);
@@ -206,7 +202,7 @@ static void mpeg2_idct_copy(int16_t* block, uint8_t* dest, const int stride)
     }
 }
 
-static void mpeg2_idct_add(const int last, int16_t* block, uint8_t* dest, const int stride)
+static void mpeg2_idct_add_c(const int last, int16_t* block, uint8_t* dest, const int stride)
 {
     if(last != 129 || (block[0] & 7) == 4)
 	{
@@ -249,7 +245,7 @@ static void mpeg2_idct_add(const int last, int16_t* block, uint8_t* dest, const 
     }
 }
 
-static void mpeg2_idct_init()
+static void mpeg2_idct_init_c()
 {
 	for(int i = -3840; i < 3840 + 256; i++)
 	{
@@ -265,7 +261,7 @@ static void mpeg2_idct_init()
 	}
 }
 
-// mc
+// mc (c)
 
 #define avg2(a,b) ((a+b+1)>>1)
 #define avg4(a,b,c,d) ((a+b+c+d+2)>>2)
@@ -340,19 +336,12 @@ MC_FUNC(avg,xy)
 
 MPEG2_MC_EXTERN(c)
 
-#define mpeg2_mc mpeg2_mc_c
-
-#elif defined(ACCEL_MMX)
-
-// idct
+// idct (mmx)
 
 extern "C" void mpeg2_idct_copy_mmx(int16_t* block, uint8_t* dest, const int stride);
 extern "C" void mpeg2_idct_add_mmx(const int last, int16_t* block, uint8_t* dest, const int stride);
 
-#define mpeg2_idct_copy mpeg2_idct_copy_mmx
-#define mpeg2_idct_add mpeg2_idct_add_mmx
-
-static void mpeg2_idct_init()
+static void mpeg2_idct_init_mmx()
 {
     for(int i = 0; i < 64; i++)
 	{
@@ -361,12 +350,9 @@ static void mpeg2_idct_init()
     }
 }
 
-// mc
+// mc (mmx)
 
 extern "C" mpeg2_mc_t mpeg2_mc_mmx;
-#define mpeg2_mc mpeg2_mc_mmx
-
-#endif
 
 //
 
@@ -407,11 +393,6 @@ CMpeg2Dec::CMpeg2Dec()
 	//
 
 	mpeg2_init();
-
-	if(mpeg2_scan_norm_2[1] == 1)
-	{
-		mpeg2_idct_init();
-	}
 }
 
 CMpeg2Dec::~CMpeg2Dec()
@@ -956,6 +937,9 @@ int CMpeg2Dec::mpeg2_header_picture()
 			fbuf->buf[0] = (uint8_t*)_aligned_malloc(6 * size >> 2, 16);
 			fbuf->buf[1] = fbuf->buf[0] + size;
 			fbuf->buf[2] = fbuf->buf[1] + (size >> 2);
+			memset(fbuf->buf[0], 0x10, size);
+			memset(fbuf->buf[1], 0x80, size >> 2);
+			memset(fbuf->buf[2], 0x80, size >> 2);
 		}
 		mpeg2_set_fbuf(type);
 	}
@@ -1837,12 +1821,15 @@ static int non_linear_quantizer_scale [] = {
     56, 64, 72, 80, 88, 96, 104, 112
 };
 
+bool CMpeg2Decoder::m_idct_initialized = false;
+
 CMpeg2Decoder::CMpeg2Decoder()
 {
 	memset(&m_b_motion, 0, sizeof(m_b_motion));
 	memset(&m_f_motion, 0, sizeof(m_f_motion));
 
-	memset(&m_DCTblock, 0, sizeof(m_DCTblock));
+	m_DCTblock = (int16_t*)_aligned_malloc(64*sizeof(int16_t), 16);
+	memset(m_DCTblock, 0, 64*sizeof(int16_t));
 
     m_bitstream_buf = 0;
     m_bitstream_bits = 0;
@@ -1880,10 +1867,34 @@ CMpeg2Decoder::CMpeg2Decoder()
     m_second_field = 0;
 
 	m_mpeg1 = 0;
+
+	//
+
+	if(g_cpuid.m_flags&CCpuID::flag_t::mmx)
+	{
+		m_idct_init = mpeg2_idct_init_mmx;
+		m_idct_copy = mpeg2_idct_copy_mmx;
+		m_idct_add = mpeg2_idct_add_mmx;
+		m_mc = &mpeg2_mc_mmx;
+	}
+	else
+	{
+		m_idct_init = mpeg2_idct_init_c;
+		m_idct_copy = mpeg2_idct_copy_c;
+		m_idct_add = mpeg2_idct_add_c;
+		m_mc = &mpeg2_mc_c;
+	}
+
+	if(!m_idct_initialized)
+	{
+		m_idct_init();
+		m_idct_initialized = true;
+	}
 }
 
 CMpeg2Decoder::~CMpeg2Decoder()
 {
+	if(m_DCTblock) _aligned_free(m_DCTblock);
 }
 
 #define bit_buf (m_bitstream_buf)
@@ -2860,7 +2871,7 @@ void CMpeg2Decoder::slice_intra_DCT(const int cc, uint8_t* dest, int stride)
 		get_intra_block_B14();
 	}
 
-    mpeg2_idct_copy(m_DCTblock, dest, stride);
+    m_idct_copy(m_DCTblock, dest, stride);
 }
 
 void CMpeg2Decoder::slice_non_intra_DCT(uint8_t* dest, int stride)
@@ -2869,7 +2880,7 @@ void CMpeg2Decoder::slice_non_intra_DCT(uint8_t* dest, int stride)
 		? get_mpeg1_non_intra_block()
 		: get_non_intra_block ();
     
-	mpeg2_idct_add(last, m_DCTblock, dest, stride);
+	m_idct_add(last, m_DCTblock, dest, stride);
 }
 
 #define MOTION(table,ref,motion_x,motion_y,size,y)			      \
@@ -3020,12 +3031,12 @@ void CMpeg2Decoder::motion_fr_dmv(motion_t* motion, mpeg2_mc_fct * const * const
     m = m_top_field_first ? 1 : 3;
     other_x = ((motion_x * m + (motion_x > 0)) >> 1) + dmv_x;
     other_y = ((motion_y * m + (motion_y > 0)) >> 1) + dmv_y - 1;
-    MOTION_FIELD(mpeg2_mc.put, motion->ref[0], other_x, other_y, 0, | 1, 0);
+    MOTION_FIELD(m_mc->put, motion->ref[0], other_x, other_y, 0, | 1, 0);
 
     m = m_top_field_first ? 3 : 1;
     other_x = ((motion_x * m + (motion_x > 0)) >> 1) + dmv_x;
     other_y = ((motion_y * m + (motion_y > 0)) >> 1) + dmv_y + 1;
-    MOTION_FIELD(mpeg2_mc.put, motion->ref[0], other_x, other_y, 1, & ~1, 0);
+    MOTION_FIELD(m_mc->put, motion->ref[0], other_x, other_y, 1, & ~1, 0);
 
     pos_x = 2 * m_offset + motion_x;
     pos_y = m_v_offset + motion_y;
@@ -3041,16 +3052,16 @@ void CMpeg2Decoder::motion_fr_dmv(motion_t* motion, mpeg2_mc_fct * const * const
     }
     xy_half = ((pos_y & 1) << 1) | (pos_x & 1);
     offset = (pos_x >> 1) + (pos_y & ~1) * m_stride;
-    mpeg2_mc.avg[xy_half](m_dest[0] + m_offset, motion->ref[0][0] + offset, 2 * m_stride, 8);
-    mpeg2_mc.avg[xy_half](m_dest[0] + m_stride + m_offset, motion->ref[0][0] + m_stride + offset, 2 * m_stride, 8);
+    m_mc->avg[xy_half](m_dest[0] + m_offset, motion->ref[0][0] + offset, 2 * m_stride, 8);
+    m_mc->avg[xy_half](m_dest[0] + m_stride + m_offset, motion->ref[0][0] + m_stride + offset, 2 * m_stride, 8);
     motion_x /= 2; 
 	motion_y /= 2;
     xy_half = ((motion_y & 1) << 1) | (motion_x & 1);
     offset = ((m_offset + motion_x) >> 1) + ((m_v_offset >> 1) + (motion_y & ~1)) * m_uv_stride;
-    mpeg2_mc.avg[4+xy_half](m_dest[1] + (m_offset >> 1), motion->ref[0][1] + offset, 2 * m_uv_stride, 4);
-    mpeg2_mc.avg[4+xy_half](m_dest[1] + m_uv_stride + (m_offset >> 1), motion->ref[0][1] + m_uv_stride + offset, 2 * m_uv_stride, 4);
-    mpeg2_mc.avg[4+xy_half](m_dest[2] + (m_offset >> 1), motion->ref[0][2] + offset, 2 * m_uv_stride, 4);
-    mpeg2_mc.avg[4+xy_half](m_dest[2] + m_uv_stride + (m_offset >> 1), motion->ref[0][2] + m_uv_stride + offset, 2 * m_uv_stride, 4);
+    m_mc->avg[4+xy_half](m_dest[1] + (m_offset >> 1), motion->ref[0][1] + offset, 2 * m_uv_stride, 4);
+    m_mc->avg[4+xy_half](m_dest[1] + m_uv_stride + (m_offset >> 1), motion->ref[0][1] + m_uv_stride + offset, 2 * m_uv_stride, 4);
+    m_mc->avg[4+xy_half](m_dest[2] + (m_offset >> 1), motion->ref[0][2] + offset, 2 * m_uv_stride, 4);
+    m_mc->avg[4+xy_half](m_dest[2] + m_uv_stride + (m_offset >> 1), motion->ref[0][2] + m_uv_stride + offset, 2 * m_uv_stride, 4);
 }
 
 void CMpeg2Decoder::motion_reuse(motion_t* motion, mpeg2_mc_fct * const * const table)
@@ -3168,8 +3179,8 @@ void CMpeg2Decoder::motion_fi_dmv(motion_t* motion, mpeg2_mc_fct * const * const
     motion->pmv[1][1] = motion->pmv[0][1] = motion_y;
     other_y = ((motion_y + (motion_y > 0)) >> 1) + get_dmv () + m_dmv_offset;
 
-    MOTION(mpeg2_mc.put, motion->ref[0], motion_x, motion_y, 16, 0);
-    MOTION(mpeg2_mc.avg, motion->ref[1], other_x, other_y, 16, 0);
+    MOTION(m_mc->put, motion->ref[0], motion_x, motion_y, 16, 0);
+    MOTION(m_mc->avg, motion->ref[1], other_x, other_y, 16, 0);
 }
 
 void CMpeg2Decoder::motion_fi_conceal()
@@ -3194,9 +3205,9 @@ void CMpeg2Decoder::motion_fi_conceal()
 #define MOTION_CALL(routine, direction)				\
 do {								\
     if((direction) & MACROBLOCK_MOTION_FORWARD)		\
-	routine(&m_f_motion, mpeg2_mc.put);	\
+	routine(&m_f_motion, m_mc->put);	\
     if((direction) & MACROBLOCK_MOTION_BACKWARD)		\
-	routine(&m_b_motion, (direction & MACROBLOCK_MOTION_FORWARD) ? mpeg2_mc.avg : mpeg2_mc.put);	\
+	routine(&m_b_motion, (direction & MACROBLOCK_MOTION_FORWARD) ? m_mc->avg : m_mc->put);	\
 } while (0)
 
 #define NEXT_MACROBLOCK							\
@@ -3286,9 +3297,7 @@ int CMpeg2Decoder::slice_init(int code)
     }
 
     m_v_offset = (code - 1) * 16;
-    offset = 0;
-    if(!0/*(m_convert)*/ || m_coding_type != B_TYPE)
-		offset = (code - 1) * m_stride * 4;
+    offset = (code - 1) * m_stride * 4;
 
     m_dest[0] = m_picture_dest[0] + offset * 4;
     m_dest[1] = m_picture_dest[1] + offset;
@@ -3343,11 +3352,9 @@ int CMpeg2Decoder::slice_init(int code)
 	while(m_offset - m_width >= 0)
 	{
 		m_offset -= m_width;
-		if(!0/*(m_convert)*/ || m_coding_type != B_TYPE) {
-			m_dest[0] += 16 * m_stride;
-			m_dest[1] += 4 * m_stride;
-			m_dest[2] += 4 * m_stride;
-		}
+		m_dest[0] += 16 * m_stride;
+		m_dest[1] += 4 * m_stride;
+		m_dest[2] += 4 * m_stride;
 		m_v_offset += 16;
 	}
 
@@ -3388,11 +3395,8 @@ void CMpeg2Decoder::mpeg2_slice(int code, const uint8_t* buffer)
 
 			if(m_concealment_motion_vectors)
 			{
-				// ???
-				if(m_picture_structure == FRAME_PICTURE)
-					motion_fr_conceal();
-				else
-					motion_fi_conceal();
+				if(m_picture_structure == FRAME_PICTURE) motion_fr_conceal();
+				else motion_fi_conceal();
 			}
 			else
 			{
@@ -3615,3 +3619,4 @@ void CMpeg2Info::Reset()
     m_user_data = NULL;
 	m_user_data_len = 0;
 }
+

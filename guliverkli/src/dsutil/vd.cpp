@@ -16,88 +16,108 @@
 //	Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 #include "stdafx.h"
+#include "vd.h"
 
 #pragma warning(disable : 4799) // no emms... blahblahblah
 
-extern "C" {
-	bool MMX_enabled = true, ISSE_enabled = false; // TODO
-};
-
-void memcpy_mmx(void* dst, const void* src, size_t len)
+CCpuID::CCpuID()
 {
-    __asm 
-    {
-        mov     esi, dword ptr [src]
-        mov     edi, dword ptr [dst]
-        mov     ecx, len
-        shr     ecx, 6
-align 8
-CopyLoop:
-        movq    mm0, qword ptr[esi]
-        movq    mm1, qword ptr[esi+8*1]
-        movq    mm2, qword ptr[esi+8*2]
-        movq    mm3, qword ptr[esi+8*3]
-        movq    mm4, qword ptr[esi+8*4]
-        movq    mm5, qword ptr[esi+8*5]
-        movq    mm6, qword ptr[esi+8*6]
-        movq    mm7, qword ptr[esi+8*7]
-        movq    qword ptr[edi], mm0
-        movq    qword ptr[edi+8*1], mm1
-        movq    qword ptr[edi+8*2], mm2
-        movq    qword ptr[edi+8*3], mm3
-        movq    qword ptr[edi+8*4], mm4
-        movq    qword ptr[edi+8*5], mm5
-        movq    qword ptr[edi+8*6], mm6
-        movq    qword ptr[edi+8*7], mm7
-        add     esi, 64
-        add     edi, 64
-        loop CopyLoop
-        mov     ecx, len
-        and     ecx, 63
-        cmp     ecx, 0
-        je EndCopyLoop
-align 8
-CopyLoop2:
-        mov dl, byte ptr[esi] 
-        mov byte ptr[edi], dl
-        inc esi
-        inc edi
-        dec ecx
-        jne CopyLoop2
-EndCopyLoop:
-		emms
-    }
+	DWORD flags = 0;
+
+	__asm
+	{
+		mov			eax, 1
+		cpuid
+		test		edx, 0x00800000		// STD MMX
+		jz			TEST_SSE
+		or			[flags], 1
+TEST_SSE:
+		test		edx, 0x02000000		// STD SSE
+		jz			TEST_SSE2
+		or			[flags], 2
+		or			[flags], 4
+TEST_SSE2:
+		test		edx, 0x04000000		// SSE2	
+		jz			TEST_3DNOW
+		or			[flags], 8
+TEST_3DNOW:
+		mov			eax, 0x80000001
+		cpuid
+		test		edx, 0x80000000		// 3D NOW
+		jz			TEST_SSEMMX
+		or			[flags], 16
+TEST_SSEMMX:
+		test		edx, 0x00400000		// SSE MMX
+		jz			TEST_END
+		or			[flags], 2
+TEST_END:
+	}
+
+	m_flags = (flag_t)flags;
 }
 
-extern "C" void asm_YUVtoRGB32_row(
-		void *ARGB1_pointer,
-		void *ARGB2_pointer,
-		BYTE *Y1_pointer,
-		BYTE *Y2_pointer,
-		BYTE *U_pointer,
-		BYTE *V_pointer,
-		long width
-		);
+CCpuID g_cpuid;
 
-extern "C" void asm_YUVtoRGB24_row(
-		void *ARGB1_pointer,
-		void *ARGB2_pointer,
-		BYTE *Y1_pointer,
-		BYTE *Y2_pointer,
-		BYTE *U_pointer,
-		BYTE *V_pointer,
-		long width
-		);
+void memcpy_accel(void* dst, const void* src, size_t len)
+{
+	if(g_cpuid.m_flags & CCpuID::flag_t::mmx)
+	{
+		__asm 
+		{
+			mov     esi, dword ptr [src]
+			mov     edi, dword ptr [dst]
+			mov     ecx, len
+			shr     ecx, 6
+	memcpy_accel_loop:
+			movq    mm0, qword ptr[esi]
+			movq    mm1, qword ptr[esi+8*1]
+			movq    mm2, qword ptr[esi+8*2]
+			movq    mm3, qword ptr[esi+8*3]
+			movq    mm4, qword ptr[esi+8*4]
+			movq    mm5, qword ptr[esi+8*5]
+			movq    mm6, qword ptr[esi+8*6]
+			movq    mm7, qword ptr[esi+8*7]
+			movq    qword ptr[edi], mm0
+			movq    qword ptr[edi+8*1], mm1
+			movq    qword ptr[edi+8*2], mm2
+			movq    qword ptr[edi+8*3], mm3
+			movq    qword ptr[edi+8*4], mm4
+			movq    qword ptr[edi+8*5], mm5
+			movq    qword ptr[edi+8*6], mm6
+			movq    qword ptr[edi+8*7], mm7
+			add     esi, 64
+			add     edi, 64
+			loop	memcpy_accel_loop
+			mov     ecx, len
+			and     ecx, 63
+			cmp     ecx, 0
+			je		memcpy_accel_end
+	memcpy_accel_loop2:
+			mov		dl, byte ptr[esi] 
+			mov		byte ptr[edi], dl
+			inc		esi
+			inc		edi
+			dec		ecx
+			jne		memcpy_accel_loop2
+	memcpy_accel_end:
+			emms
+		}
+	}
+	else
+	{
+		memcpy(dst, src, len);
+	}
+}
 
-extern "C" void asm_YUVtoRGB16_row(
-		void *ARGB1_pointer,
-		void *ARGB2_pointer,
-		BYTE *Y1_pointer,
-		BYTE *Y2_pointer,
-		BYTE *U_pointer,
-		BYTE *V_pointer,
-		long width
-		);
+extern "C" void asm_YUVtoRGB32_row(void* ARGB1, void* ARGB2, BYTE* Y1, BYTE* Y2, BYTE* U, BYTE* V, long width);
+extern "C" void asm_YUVtoRGB24_row(void* ARGB1, void* ARGB2, BYTE* Y1, BYTE* Y2, BYTE* U, BYTE* V, long width);
+extern "C" void asm_YUVtoRGB16_row(void* ARGB1, void* ARGB2, BYTE* Y1, BYTE* Y2, BYTE* U, BYTE* V, long width);
+extern "C" void asm_YUVtoRGB32_row_MMX(void* ARGB1, void* ARGB2, BYTE* Y1, BYTE* Y2, BYTE* U, BYTE* V, long width);
+extern "C" void asm_YUVtoRGB24_row_MMX(void* ARGB1, void* ARGB2, BYTE* Y1, BYTE* Y2, BYTE* U, BYTE* V, long width);
+extern "C" void asm_YUVtoRGB16_row_MMX(void* ARGB1, void* ARGB2, BYTE* Y1, BYTE* Y2, BYTE* U, BYTE* V, long width);
+extern "C" void asm_YUVtoRGB32_row_ISSE(void* ARGB1, void* ARGB2, BYTE* Y1, BYTE* Y2, BYTE* U, BYTE* V, long width);
+extern "C" void asm_YUVtoRGB24_row_ISSE(void* ARGB1, void* ARGB2, BYTE* Y1, BYTE* Y2, BYTE* U, BYTE* V, long width);
+extern "C" void asm_YUVtoRGB16_row_ISSE(void* ARGB1, void* ARGB2, BYTE* Y1, BYTE* Y2, BYTE* U, BYTE* V, long width);
 
 bool BitBltFromI420ToRGB(BYTE* dst, int dstpitch, BYTE* srcy, BYTE* srcu, BYTE* srcv, int w, int h, int bpp, int srcpitch)
 {
@@ -106,64 +126,72 @@ bool BitBltFromI420ToRGB(BYTE* dst, int dstpitch, BYTE* srcy, BYTE* srcu, BYTE* 
 
 	if(srcpitch == 0) srcpitch = w;
 
-	switch(bpp) {
-	case 16:
-		do {
-			asm_YUVtoRGB16_row(dst + dstpitch, dst, srcy + srcpitch, srcy, srcu, srcv, w/2);
+	void (*asm_YUVtoRGB_row)(void* ARGB1, void* ARGB2, BYTE* Y1, BYTE* Y2, BYTE* U, BYTE* V, long width) = NULL;;
 
-			dst += 2*dstpitch;
-			srcy += srcpitch*2;
-			srcu += srcpitch/2;
-			srcv += srcpitch/2;
-		} while(h -= 2);
-		break;
-
-	case 24:
-		do {
-			asm_YUVtoRGB24_row(dst + dstpitch, dst, srcy + srcpitch, srcy, srcu, srcv, w/2);
-
-			dst += 2*dstpitch;
-			srcy += srcpitch*2;
-			srcu += srcpitch/2;
-			srcv += srcpitch/2;
-		} while(h -= 2);
-		break;
-
-	case 32:
-		do {
-			asm_YUVtoRGB32_row(dst + dstpitch, dst, srcy + srcpitch, srcy, srcu, srcv, w/2);
-
-			dst += 2*dstpitch;
-			srcy += srcpitch*2;
-			srcu += srcpitch/2;
-			srcv += srcpitch/2;
-		} while(h -= 2);
-		break;
-
-	default:
-		__assume(false);
+	if(g_cpuid.m_flags & CCpuID::flag_t::ssefpu)
+	{
+		switch(bpp)
+		{
+		case 16: asm_YUVtoRGB_row = asm_YUVtoRGB16_row/*_ISSE*/; break; // TODO: fix _ISSE (555->565)
+		case 24: asm_YUVtoRGB_row = asm_YUVtoRGB24_row_ISSE; break;
+		case 32: asm_YUVtoRGB_row = asm_YUVtoRGB32_row_ISSE; break;
+		}
+	}
+	else if(g_cpuid.m_flags & CCpuID::flag_t::mmx)
+	{
+		switch(bpp)
+		{
+		case 16: asm_YUVtoRGB_row = asm_YUVtoRGB16_row/*_MMX*/; break; // TODO: fix _MMX (555->565)
+		case 24: asm_YUVtoRGB_row = asm_YUVtoRGB24_row_MMX; break;
+		case 32: asm_YUVtoRGB_row = asm_YUVtoRGB32_row_MMX; break;
+		}
+	}
+	
+	else
+	{
+		switch(bpp)
+		{
+		case 16: asm_YUVtoRGB_row = asm_YUVtoRGB16_row; break;
+		case 24: asm_YUVtoRGB_row = asm_YUVtoRGB24_row; break;
+		case 32: asm_YUVtoRGB_row = asm_YUVtoRGB32_row; break;
+		}
 	}
 
-	if (MMX_enabled)
+	if(!asm_YUVtoRGB_row) 
+		return(false);
+
+	do
+	{
+		asm_YUVtoRGB_row(dst + dstpitch, dst, srcy + srcpitch, srcy, srcu, srcv, w/2);
+
+		dst += 2*dstpitch;
+		srcy += srcpitch*2;
+		srcu += srcpitch/2;
+		srcv += srcpitch/2;
+	}
+	while(h -= 2);
+		
+	if(g_cpuid.m_flags & CCpuID::flag_t::mmx)
 		__asm emms
 
-	if (ISSE_enabled)
+	if(g_cpuid.m_flags & CCpuID::flag_t::ssefpu)
 		__asm sfence
 
 	return true;
 }
 
-static void __declspec(naked) yuvtoyuy2row(BYTE* dst, BYTE* srcy, BYTE* srcu, BYTE* srcv, DWORD width)
+static void yuvtoyuy2row_c(BYTE* dst, BYTE* srcy, BYTE* srcu, BYTE* srcv, DWORD width)
 {
-	/*
-		WORD* dstw = (WORD*)dst;
-		for(; width > 1; width -= 2)
-		{
-			*dstw++ = (*srcu++<<8)|*srcy++;
-			*dstw++ = (*srcv++<<8)|*srcy++;
-		}
-	*/
+	WORD* dstw = (WORD*)dst;
+	for(; width > 1; width -= 2)
+	{
+		*dstw++ = (*srcu++<<8)|*srcy++;
+		*dstw++ = (*srcv++<<8)|*srcy++;
+	}
+}
 
+static void __declspec(naked) yuvtoyuy2row_MMX(BYTE* dst, BYTE* srcy, BYTE* srcu, BYTE* srcv, DWORD width)
+{
 	__asm {
 		push	ebp
 		push	edi
@@ -206,17 +234,18 @@ yuvtoyuy2row_loop:
 	};
 }
 
-static void __declspec(naked) yuvtoyuy2row_avg(BYTE* dst, BYTE* srcy, BYTE* srcu, BYTE* srcv, DWORD width, DWORD pitchuv)
+static void yuvtoyuy2row_avg_c(BYTE* dst, BYTE* srcy, BYTE* srcu, BYTE* srcv, DWORD width, DWORD pitchuv)
 {
-	/*
-		WORD* dstw = (WORD*)dst;
-		for(; width > 1; width -= 2, srcu++, srcv++)
-		{
-			*dstw++ = (((srcu[0]+srcu[pitchuv])>>1)<<8)|*srcy++;
-			*dstw++ = (((srcv[0]+srcv[pitchuv])>>1)<<8)|*srcy++;
-		}
-	*/
+	WORD* dstw = (WORD*)dst;
+	for(; width > 1; width -= 2, srcu++, srcv++)
+	{
+		*dstw++ = (((srcu[0]+srcu[pitchuv])>>1)<<8)|*srcy++;
+		*dstw++ = (((srcv[0]+srcv[pitchuv])>>1)<<8)|*srcy++;
+	}
+}
 
+static void __declspec(naked) yuvtoyuy2row_avg_MMX(BYTE* dst, BYTE* srcy, BYTE* srcu, BYTE* srcv, DWORD width, DWORD pitchuv)
+{
 	static const __int64 mask = 0x7f7f7f7f7f7f7f7fi64;
 
 	__asm {
@@ -284,7 +313,25 @@ bool BitBltFromI420ToYUY2(BYTE* dst, int dstpitch, BYTE* srcy, BYTE* srcu, BYTE*
 
 	if(srcpitch == 0) srcpitch = w;
 
-	do {
+	void (*yuvtoyuy2row)(BYTE* dst, BYTE* srcy, BYTE* srcu, BYTE* srcv, DWORD width) = NULL;
+	void (*yuvtoyuy2row_avg)(BYTE* dst, BYTE* srcy, BYTE* srcu, BYTE* srcv, DWORD width, DWORD pitchuv) = NULL;
+
+	if(g_cpuid.m_flags & CCpuID::flag_t::mmx)
+	{
+		yuvtoyuy2row = yuvtoyuy2row_MMX;
+		yuvtoyuy2row_avg = yuvtoyuy2row_avg_MMX;
+	}
+	else
+	{
+		yuvtoyuy2row = yuvtoyuy2row_c;
+		yuvtoyuy2row_avg = yuvtoyuy2row_avg_c;
+	}
+
+	if(!yuvtoyuy2row) 
+		return(false);
+
+	do
+	{
 		yuvtoyuy2row(dst, srcy, srcu, srcv, w);
 		yuvtoyuy2row_avg(dst + dstpitch, srcy + srcpitch, srcu, srcv, w, srcpitch/2);
 
@@ -292,18 +339,23 @@ bool BitBltFromI420ToYUY2(BYTE* dst, int dstpitch, BYTE* srcy, BYTE* srcu, BYTE*
 		srcy += srcpitch*2;
 		srcu += srcpitch/2;
 		srcv += srcpitch/2;
-	} while((h -= 2) > 2);
+	}
+	while((h -= 2) > 2);
 
 	yuvtoyuy2row(dst, srcy, srcu, srcv, w);
 	yuvtoyuy2row(dst + dstpitch, srcy + srcpitch, srcu, srcv, w);
 
-	if (MMX_enabled)
+	if(g_cpuid.m_flags & CCpuID::flag_t::mmx)
 		__asm emms
 
-	if (ISSE_enabled)
-		__asm sfence
-
 	return(true);
+}
+
+static void asm_blend_row_clipped_c(BYTE* dst, BYTE* src, DWORD w, DWORD srcpitch)
+{
+	BYTE* src2 = src + srcpitch;
+	do {*dst++ = (*src++ + *src2++ + 1) >> 1;}
+	while(w--);
 }
 
 static void __declspec(naked) asm_blend_row_clipped_MMX(BYTE* dst, BYTE* src, DWORD w, DWORD srcpitch)
@@ -322,7 +374,7 @@ static void __declspec(naked) asm_blend_row_clipped_MMX(BYTE* dst, BYTE* src, DW
 		mov		ebp,[esp+28]
 		mov		edx,[esp+32]
 
-		shr		ebp, 1
+		shr		ebp, 3
 
 		movq	mm6, _x0001000100010001
 		pxor	mm7, mm7
@@ -353,32 +405,20 @@ xloop:
 		dec		ebp
 		jne		xloop
 
-/*
-xloop:
-		mov		ecx,[esi]
-		mov		eax,0fefefefeh
-
-		mov		ebx,[esi+edx]
-		and		eax,ecx
-
-		shr		eax,1
-		and		ebx,0fefefefeh
-
-		shr		ebx,1
-		add		esi,4
-
-		add		eax,ebx
-		dec		ebp
-
-		mov		[edi+esi-4],eax
-		jnz		xloop
-*/
 		pop		ebx
 		pop		esi
 		pop		edi
 		pop		ebp
 		ret
 	};
+}
+
+static void asm_blend_row_c(BYTE* dst, BYTE* src, DWORD w, DWORD srcpitch)
+{
+	BYTE* src2 = src + srcpitch;
+	BYTE* src3 = src2 + srcpitch;
+	do {*dst++ = (*src++ + (*src2++ << 1) + *src3++ + 2) >> 2;}
+	while(w--);
 }
 
 static void __declspec(naked) asm_blend_row_MMX(BYTE* dst, BYTE* src, DWORD w, DWORD srcpitch)
@@ -400,7 +440,7 @@ static void __declspec(naked) asm_blend_row_MMX(BYTE* dst, BYTE* src, DWORD w, D
 		mov		ebp, [esp+28]
 		mov		edx, [esp+32]
 
-		shr		ebp, 1
+		shr		ebp, 3
 
 		movq	mm6, _x0002000200020002
 		pxor	mm7, mm7
@@ -510,20 +550,36 @@ nooddpart:
 
 void DeinterlaceBlend(BYTE* dst, BYTE* src, DWORD rowbytes, DWORD h, DWORD pitch)
 {
-	rowbytes >>= 2;
+	void (*asm_blend_row_clipped)(BYTE* dst, BYTE* src, DWORD w, DWORD srcpitch) = NULL;
+	void (*asm_blend_row)(BYTE* dst, BYTE* src, DWORD w, DWORD srcpitch) = NULL;
 
-	asm_blend_row_clipped_MMX(dst, src, rowbytes, pitch);
+	if(g_cpuid.m_flags & CCpuID::flag_t::mmx)
+	{
+		asm_blend_row_clipped = asm_blend_row_clipped_MMX;
+		asm_blend_row = asm_blend_row_MMX;
+	}
+	else
+	{
+		asm_blend_row_clipped = asm_blend_row_clipped_c;
+		asm_blend_row = asm_blend_row_c;
+	}
+
+	if(!asm_blend_row_clipped)
+		return;
+
+	asm_blend_row_clipped(dst, src, rowbytes, pitch);
 
 	if(h -= 2) do
 	{
 		dst += pitch;
-		asm_blend_row_MMX(dst, src, rowbytes, pitch);
+		asm_blend_row(dst, src, rowbytes, pitch);
         src += pitch;
 	}
 	while(--h);
 
-	asm_blend_row_clipped_MMX(dst + pitch, src, rowbytes, pitch);
+	asm_blend_row_clipped(dst + pitch, src, rowbytes, pitch);
 
-	__asm emms
+	if(g_cpuid.m_flags & CCpuID::flag_t::mmx)
+		__asm emms
 }
 

@@ -636,7 +636,7 @@ HRESULT CLength::Parse(CMatroskaNode* pMN)
 	HRESULT hr = pMN->Read(b);
 	if(FAILED(hr)) return hr;
 
-	int nMoreBytes = 0;
+	int nMoreBytes = 0, nMoreBytesTmp = 0;
 
 	if((b&0x80) == 0x80) {m_val = b&0x7f; nMoreBytes = 0;}
 	else if((b&0xc0) == 0x40) {m_val = b&0x3f; nMoreBytes = 1;}
@@ -647,6 +647,8 @@ HRESULT CLength::Parse(CMatroskaNode* pMN)
 	else if((b&0xfe) == 0x02) {m_val = b&0x01; nMoreBytes = 6;}
 	else if((b&0xff) == 0x01) {m_val = b&0x00; nMoreBytes = 7;}
 	else return E_FAIL;
+
+	nMoreBytesTmp = nMoreBytes;
 
 	QWORD UnknownSize = (1i64<<(7*(nMoreBytes+1)))-1;
 
@@ -660,7 +662,7 @@ HRESULT CLength::Parse(CMatroskaNode* pMN)
 	if(m_val == UnknownSize)
 	{
 		m_val = pMN->GetLength() - pMN->GetPos();
-		TRACE(_T("CLength: Unspecified chunk size at %I64d\n"), pMN->GetPos());
+		TRACE(_T("CLength: Unspecified chunk size at %I64d (corrected to %I64d)\n"), pMN->GetPos(), m_val);
 	}
 
 	m_fValid = true;
@@ -694,7 +696,7 @@ CMatroskaNode::CMatroskaNode(CMatroskaFile* pMF)
 	, m_pParent(NULL)
 {
 	ASSERT(m_pMF);
-	m_start = 0;
+	m_start = m_filepos = 0;
 	m_len.Set(m_pMF ? m_pMF->GetLength() : 0); 
 }
 
