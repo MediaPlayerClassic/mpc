@@ -497,6 +497,8 @@ BEGIN
     GROUPBOX        "Warning",IDC_STATIC,5,99,284,35
     LTEXT           "RealMedia and QuickTime formats can be subtitled by setting their special DirectX 7 or DirectX 9 renderers.",
                     IDC_STATIC,14,178,267,16
+    CONTROL         "Round up to power of two",IDC_CHECK_SPCPOW2TEX,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,184,79,97,10
 END
 
 IDD_PPAGESUBDB DIALOGEX 0, 0, 296, 203
@@ -2302,7 +2304,7 @@ BEGIN
     IDS_SRC_DTSAC3          "6.4.0.0"
     IDS_SRC_SHOUTCAST       "6.4.0.1"
     IDS_SRC_REALMEDIA       "6.4.0.9\nRealMedia format categories must be set to 'DirectShow' to make it load\nDoesn't support streaming"
-    IDS_SRC_MATROSKA        "6.4.2.4"
+    IDS_SRC_MATROSKA        "6.4.2.5"
     IDS_SRC_ROQ             "6.4.0.0"
     IDS_SRC_OGG             "6.4.0.0"
     IDS_TRA_LPCM            "6.4.0.0"
@@ -2340,6 +2342,8 @@ BEGIN
     IDS_RS_AACSC            "AACSpeakerConfig"
     IDS_RS_VMRSYNCFIX       "VMRSyncFix"
     IDS_RS_ISDB             "ISDb"
+    IDS_RS_POW2TEX          "SPCPow2Tex"
+    IDS_R_INTERNAL_FILTERS  "Internal Filters"
 END
 
 STRINGTABLE 
@@ -2347,10 +2351,11 @@ BEGIN
     IDS_TRA_DTS             "6.4.0.1\nBased on libdts 0.0.2, http://www.videolan.org/dtsdec.html"
     IDS_SRC_NUT             "6.4.0.0\nBased on ""NUT Open Container Format DRAFT 20030906""\nStill very incomplete, if you have or can make test files, please contact me."
     IDS_TRA_AAC             "6.4.0.0\nBased on libfaad 2.0, http://www.audiocoding.com/"
-    IDS_SRC_DIRAC           "6.4.0.0\nBased on libdirac 0.5.0"
+    IDS_SRC_DIRAC           "6.4.0.1\nBased on libdirac 0.5.0"
     IDS_TRA_DIRAC           "6.4.0.1\nBased on libdirac 0.5.0"
     IDS_TRA_PS2AUD          "Decodes audio streams of PSS files"
     IDC_CHECK_RELATIVETO    "Default state gets inherited to other styles where it is still undefined"
+    IDC_CHECK_SPCPOW2TEX    "Unchecking this frees up a little video memory and saves bandwidth on local to video memory transfers, but it may not work with older video cards."
 END
 
 STRINGTABLE 

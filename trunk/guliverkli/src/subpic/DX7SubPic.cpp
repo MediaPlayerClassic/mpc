@@ -223,8 +223,8 @@ STDMETHODIMP CDX7SubPic::AlphaBlt(RECT* pSrc, RECT* pDst, SubPicDesc* pTarget)
 // CDX7SubPicAllocator
 //
 
-CDX7SubPicAllocator::CDX7SubPicAllocator(IDirect3DDevice7* pD3DDev, SIZE maxsize) 
-	: ISubPicAllocatorImpl(maxsize, true)
+CDX7SubPicAllocator::CDX7SubPicAllocator(IDirect3DDevice7* pD3DDev, SIZE maxsize, bool fPow2Textures) 
+	: ISubPicAllocatorImpl(maxsize, true, fPow2Textures)
 	, m_pD3DDev(pD3DDev)
 	, m_maxsize(maxsize)
 {
@@ -257,8 +257,8 @@ bool CDX7SubPicAllocator::Alloc(bool fStatic, ISubPic** ppSubPic)
 	ddsd.dwFlags = DDSD_CAPS|DDSD_WIDTH|DDSD_HEIGHT|DDSD_PIXELFORMAT;
 	ddsd.ddsCaps.dwCaps = DDSCAPS_TEXTURE | (fStatic ? DDSCAPS_SYSTEMMEMORY : 0);
 	ddsd.ddsCaps.dwCaps2 = fStatic ? 0 : (DDSCAPS2_TEXTUREMANAGE|DDSCAPS2_HINTSTATIC);
-	for(ddsd.dwWidth = 1; ddsd.dwWidth < (DWORD)m_maxsize.cx; ddsd.dwWidth <<= 1);
-	for(ddsd.dwHeight = 1; ddsd.dwHeight < (DWORD)m_maxsize.cy; ddsd.dwHeight <<= 1);
+	ddsd.dwWidth = m_maxsize.cx;
+	ddsd.dwHeight = m_maxsize.cy;
 	ddsd.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
 	ddsd.ddpfPixelFormat.dwFlags = DDPF_RGB|DDPF_ALPHAPIXELS;
 	ddsd.ddpfPixelFormat.dwRGBBitCount = 32;
@@ -266,6 +266,14 @@ bool CDX7SubPicAllocator::Alloc(bool fStatic, ISubPic** ppSubPic)
 	ddsd.ddpfPixelFormat.dwRBitMask        = 0x00FF0000;
 	ddsd.ddpfPixelFormat.dwGBitMask        = 0x0000FF00;
 	ddsd.ddpfPixelFormat.dwBBitMask        = 0x000000FF;
+
+	if(m_fPow2Textures)
+	{
+		ddsd.dwWidth = ddsd.dwHeight = 1;
+		while(ddsd.dwWidth < m_maxsize.cx) ddsd.dwWidth <<= 1;
+		while(ddsd.dwHeight < m_maxsize.cy) ddsd.dwHeight <<= 1;
+	}
+
 
 	CComPtr<IDirect3D7> pD3D;
 	CComQIPtr<IDirectDraw7, &IID_IDirectDraw7> pDD;

@@ -284,8 +284,8 @@ STDMETHODIMP CDX9SubPic::AlphaBlt(RECT* pSrc, RECT* pDst, SubPicDesc* pTarget)
 // CDX9SubPicAllocator
 //
 
-CDX9SubPicAllocator::CDX9SubPicAllocator(IDirect3DDevice9* pD3DDev, SIZE maxsize) 
-	: ISubPicAllocatorImpl(maxsize, true)
+CDX9SubPicAllocator::CDX9SubPicAllocator(IDirect3DDevice9* pD3DDev, SIZE maxsize, bool fPow2Textures) 
+	: ISubPicAllocatorImpl(maxsize, true, fPow2Textures)
 	, m_pD3DDev(pD3DDev)
 	, m_maxsize(maxsize)
 {
@@ -319,9 +319,15 @@ bool CDX9SubPicAllocator::Alloc(bool fStatic, ISubPic** ppSubPic)
 
 	CComPtr<IDirect3DSurface9> pSurface;
 
-	int Width = 1, Height = 1;
-	while(Width < m_maxsize.cx) Width <<= 1;
-	while(Height < m_maxsize.cy) Height <<= 1;
+	int Width = m_maxsize.cx;
+	int Height = m_maxsize.cy;
+
+	if(m_fPow2Textures)
+	{
+		Width = Height = 1;
+		while(Width < m_maxsize.cx) Width <<= 1;
+		while(Height < m_maxsize.cy) Height <<= 1;
+	}
 
 	CComPtr<IDirect3DTexture9> pTexture;
 	if(FAILED(m_pD3DDev->CreateTexture(Width, Height, 1, 0, D3DFMT_A8R8G8B8, fStatic?D3DPOOL_SYSTEMMEM:D3DPOOL_DEFAULT, &pTexture, NULL)))

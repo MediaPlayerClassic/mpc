@@ -54,7 +54,7 @@ class CDX9SubPicAllocator : public ISubPicAllocatorImpl, public CCritSec
 	bool Alloc(bool fStatic, ISubPic** ppSubPic);
 
 public:
-	CDX9SubPicAllocator(IDirect3DDevice9* pD3DDev, SIZE maxsize);
+	CDX9SubPicAllocator(IDirect3DDevice9* pD3DDev, SIZE maxsize, bool fPow2Textures);
 
 	// ISubPicAllocator
 	STDMETHODIMP ChangeDevice(IUnknown* pDev);

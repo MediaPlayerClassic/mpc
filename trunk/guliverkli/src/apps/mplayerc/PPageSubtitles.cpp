@@ -36,6 +36,7 @@ CPPageSubtitles::CPPageSubtitles()
 	, m_nHorPos(0)
 	, m_nVerPos(0)
 	, m_nSPCSize(0)
+	, m_fSPCPow2Tex(FALSE)
 {
 }
 
@@ -56,6 +57,7 @@ void CPPageSubtitles::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_COMBO1, m_spmaxres);
 	DDX_Control(pDX, IDC_EDIT2, m_nHorPosEdit);
 	DDX_Control(pDX, IDC_EDIT3, m_nVerPosEdit);
+	DDX_Check(pDX, IDC_CHECK_SPCPOW2TEX, m_fSPCPow2Tex);
 }
 
 
@@ -93,8 +95,11 @@ BOOL CPPageSubtitles::OnInitDialog()
 	m_spmaxres.AddString(_T("512x384"));
 	m_spmaxres.AddString(_T("384x288"));
 	m_spmaxres.SetCurSel(s.nSPCMaxRes);
+	m_fSPCPow2Tex = s.fSPCPow2Tex;
 
 	UpdateData(FALSE);
+
+	CreateToolTip();
 
 	return TRUE;  // return TRUE unless you set the focus to a control
 	// EXCEPTION: OCX Property Pages should return FALSE
@@ -110,13 +115,15 @@ BOOL CPPageSubtitles::OnApply()
 	|| s.nHorPos != m_nHorPos
 	|| s.nVerPos != m_nVerPos
 	|| s.nSPCSize != m_nSPCSize
-	|| s.nSPCMaxRes != m_spmaxres.GetCurSel())
+	|| s.nSPCMaxRes != m_spmaxres.GetCurSel()
+	|| s.fSPCPow2Tex != m_fSPCPow2Tex)
 	{
 		s.fOverridePlacement = !!m_fOverridePlacement;
 		s.nHorPos = m_nHorPos;
 		s.nVerPos = m_nVerPos;
 		s.nSPCSize = m_nSPCSize;
 		s.nSPCMaxRes = m_spmaxres.GetCurSel();
+		s.fSPCPow2Tex = m_fSPCPow2Tex;
 
 		if(CMainFrame* pFrame = (CMainFrame*)GetParentFrame())
 			pFrame->UpdateSubtitle(true);

@@ -43,6 +43,7 @@ public:
 	int m_nSPCSize;
 	CSpinButtonCtrl m_nSPCSizeCtrl;
 	CComboBox m_spmaxres;
+	BOOL m_fSPCPow2Tex;
 
 // Dialog Data
 	enum { IDD = IDD_PPAGESUBTITLES };

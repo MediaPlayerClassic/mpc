@@ -24,6 +24,7 @@ Notes:
 - The resolution of timestamp and duration is 100ns.
 - Strings are zero terminated utf-8 strings.
 - Date format string: "%Y-%m-%d %H:%M:%S". (GMT)
+- Byte order is big-endian
 
 Definitions
 -----------
@@ -230,8 +231,8 @@ other syncpoints, just like 2 hides 4, 5 and even 3 fully (which requires specia
 see "NOT!"). That means such a subtitle, when it is too long, can influence seeking time 
 by a lot. It might be wise and worth limiting the duration of samples to a couple of minutes, 
 possibly sacrificing a bit of correctness by it. Splitters can also choose to ignore the 
-suggested seek position when it falls too far from the required and go on searching the 
-stream for syncpoints by themselves.
+suggested seek position, when it falls too far from the required, and go on searching the 
+stream for syncpoints themselves.
 
 Resource : extends Packet (DSMP_RESOURCE)
 -----------------------------------------

@@ -333,6 +333,8 @@
 #define IDS_RS_AACSC                    618
 #define IDS_RS_VMRSYNCFIX               619
 #define IDS_RS_ISDB                     620
+#define IDS_RS_POW2TEX                  621
+#define IDS_R_INTERNAL_FILTERS          622
 #define IDC_BROWSEBUTTON                1016
 #define IDC_BROWSEBUTTON2               1017
 #define IDC_COMBO1                      1018
@@ -540,6 +542,7 @@
 #define IDS_TRA_PS2AUD                  1158
 #define IDC_CHECK_RELATIVETO            1160
 #define IDC_COMBO14                     1161
+#define IDC_CHECK_SPCPOW2TEX            1162
 #define IDD_COMPROPERTYPAGE             10002
 #define ID_DUMMYSEPARATOR               32768
 #define ID_VOLUME_MUTE_ON               32769
@@ -654,7 +657,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        376
 #define _APS_NEXT_COMMAND_VALUE         32853
-#define _APS_NEXT_CONTROL_VALUE         1162
+#define _APS_NEXT_CONTROL_VALUE         1163
 #define _APS_NEXT_SYMED_VALUE           10003
 #endif
 #endif

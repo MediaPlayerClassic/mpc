@@ -104,13 +104,13 @@ HRESULT CDSMSplitterFile::Init(CArray<CDSMResource>& resources)
 	return m_mts.GetCount() > 0 ? S_OK : E_FAIL;
 }
 
-bool CDSMSplitterFile::Sync(dsmp_t& type, UINT64& len, UINT64 limit)
+bool CDSMSplitterFile::Sync(dsmp_t& type, UINT64& len, __int64 limit)
 {
 	UINT64 pos;
 	return Sync(pos, type, len, limit);
 }
 
-bool CDSMSplitterFile::Sync(UINT64& syncpos, dsmp_t& type, UINT64& len, UINT64 limit)
+bool CDSMSplitterFile::Sync(UINT64& syncpos, dsmp_t& type, UINT64& len, __int64 limit)
 {
 	BitByteAlign();
 
@@ -118,7 +118,7 @@ bool CDSMSplitterFile::Sync(UINT64& syncpos, dsmp_t& type, UINT64& len, UINT64 l
 
 	for(UINT64 id = 0; (id&((1ui64<<(DSMSW_SIZE<<3))-1)) != DSMSW; id = (id << 8) | (BYTE)BitRead(8))
 	{
-		if(limit-- == 0 || GetPos() >= GetLength()-2)
+		if(limit-- <= 0 || GetPos() >= GetLength()-2)
 			return(false);
 	}
 
@@ -129,7 +129,7 @@ bool CDSMSplitterFile::Sync(UINT64& syncpos, dsmp_t& type, UINT64& len, UINT64 l
 	return(true);
 }
 
-bool CDSMSplitterFile::Read(UINT64 len, BYTE& id, CMediaType& mt)
+bool CDSMSplitterFile::Read(__int64 len, BYTE& id, CMediaType& mt)
 {
 	id = (BYTE)BitRead(8);
 	ByteRead((BYTE*)&mt.majortype, sizeof(mt.majortype));
@@ -143,7 +143,7 @@ bool CDSMSplitterFile::Read(UINT64 len, BYTE& id, CMediaType& mt)
 	return true;
 }
 
-bool CDSMSplitterFile::Read(UINT64 len, Packet* p, bool fData)
+bool CDSMSplitterFile::Read(__int64 len, Packet* p, bool fData)
 {
 	if(!p) return false;
 
@@ -174,7 +174,7 @@ bool CDSMSplitterFile::Read(UINT64 len, Packet* p, bool fData)
 	return true;
 }
 
-bool CDSMSplitterFile::Read(UINT64 len, CArray<SyncPoint>& sps)
+bool CDSMSplitterFile::Read(__int64 len, CArray<SyncPoint>& sps)
 {
 	SyncPoint sp = {0, 0};
 	sps.RemoveAll();
@@ -204,7 +204,7 @@ bool CDSMSplitterFile::Read(UINT64 len, CArray<SyncPoint>& sps)
 	return true;
 }
 
-bool CDSMSplitterFile::Read(UINT64 len, CArray<Chapter>& cs)
+bool CDSMSplitterFile::Read(__int64 len, CArray<Chapter>& cs)
 {
 	// TESTME
 
@@ -237,7 +237,7 @@ bool CDSMSplitterFile::Read(UINT64 len, CArray<Chapter>& cs)
 	return true;
 }
 
-bool CDSMSplitterFile::Read(UINT64 len, CStreamInfoMap& im)
+bool CDSMSplitterFile::Read(__int64 len, CStreamInfoMap& im)
 {
 	while(len >= 5)
 	{
@@ -250,7 +250,7 @@ bool CDSMSplitterFile::Read(UINT64 len, CStreamInfoMap& im)
 	return len == 0;
 }
 
-bool CDSMSplitterFile::Read(UINT64 len, CArray<CDSMResource>& resources)
+bool CDSMSplitterFile::Read(__int64 len, CArray<CDSMResource>& resources)
 {
 	BYTE compression = (BYTE)BitRead(2);
 	BYTE reserved = (BYTE)BitRead(6);
@@ -271,11 +271,11 @@ bool CDSMSplitterFile::Read(UINT64 len, CArray<CDSMResource>& resources)
 	return true;
 }
 
-UINT64 CDSMSplitterFile::Read(UINT64 len, CStringW& str)
+__int64 CDSMSplitterFile::Read(__int64 len, CStringW& str)
 {
 	char c;
 	CStringA s;
-	UINT64 i = 0;
+	__int64 i = 0;
 	while(i++ < len && (c = (char)BitRead(8)) != 0) s += c;
 	str = UTF8To16(s);
 	return i;

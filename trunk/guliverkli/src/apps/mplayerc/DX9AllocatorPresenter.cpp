@@ -375,7 +375,7 @@ HRESULT CDX9AllocatorPresenter::CreateDevice()
 	}
 	else
 	{
-		m_pAllocator = new CDX9SubPicAllocator(m_pD3DDev, size);
+		m_pAllocator = new CDX9SubPicAllocator(m_pD3DDev, size, AfxGetAppSettings().fSPCPow2Tex);
 		if(!m_pAllocator)
 			return E_FAIL;
 	}

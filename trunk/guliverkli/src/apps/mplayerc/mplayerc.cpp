@@ -1027,6 +1027,7 @@ void CMPlayerCApp::Settings::UpdateData(bool fSave)
 		pApp->WriteProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_SPVERPOS), nVerPos);
 		pApp->WriteProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_SPCSIZE), nSPCSize);
 		pApp->WriteProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_SPCMAXRES), nSPCMaxRes);
+		pApp->WriteProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_POW2TEX), fSPCPow2Tex);
 		pApp->WriteProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_ENABLEAUDIOSWITCHER), fEnableAudioSwitcher);
 		pApp->WriteProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_ENABLEAUDIOTIMESHIFT), fAudioTimeShift);
 		pApp->WriteProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_AUDIOTIMESHIFT), tAudioTimeShift);
@@ -1133,8 +1134,8 @@ void CMPlayerCApp::Settings::UpdateData(bool fSave)
 
 		Formats.UpdateData(true);
 
-		pApp->WriteProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_SRCFILTERS), SrcFilters|~(SRC_LAST-1));
-		pApp->WriteProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_TRAFILTERS), TraFilters|~(TRA_LAST-1));
+		pApp->WriteProfileInt(ResStr(IDS_R_INTERNAL_FILTERS), ResStr(IDS_RS_SRCFILTERS), SrcFilters|~(SRC_LAST-1));
+		pApp->WriteProfileInt(ResStr(IDS_R_INTERNAL_FILTERS), ResStr(IDS_RS_TRAFILTERS), TraFilters|~(TRA_LAST-1));
 
 		pApp->WriteProfileString(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_LOGOFILE), logofn);
 		pApp->WriteProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_LOGOID), logoid);
@@ -1182,7 +1183,7 @@ void CMPlayerCApp::Settings::UpdateData(bool fSave)
 		{
 			CRegKey appkey, settingskey;
 			appkey.Attach(pApp->GetAppRegistryKey());
-			settingskey.Attach(pApp->GetSectionKey(ResStr(IDS_R_SETTINGS)));
+			settingskey.Attach(pApp->GetSectionKey(ResStr(IDS_R_INTERNAL_FILTERS)));
 			if(appkey && settingskey)
 			{
 				ULONGLONG ftapp = 0, ftsettings = 0;
@@ -1190,8 +1191,9 @@ void CMPlayerCApp::Settings::UpdateData(bool fSave)
 				RegQueryInfoKey(settingskey, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, (FILETIME*)&ftsettings);
 				if(ftapp < ftsettings)
 				{
-					pApp->WriteProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_SRCFILTERS), ~0);
-					pApp->WriteProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_TRAFILTERS), ~0^TRA_MPEG1);
+					AfxMessageBox(_T("dsfsf"), MB_OK);
+					pApp->WriteProfileInt(ResStr(IDS_R_INTERNAL_FILTERS), ResStr(IDS_RS_SRCFILTERS), ~0);
+					pApp->WriteProfileInt(ResStr(IDS_R_INTERNAL_FILTERS), ResStr(IDS_RS_TRAFILTERS), ~0^TRA_MPEG1);
 				}
 			}
 		}
@@ -1281,6 +1283,7 @@ void CMPlayerCApp::Settings::UpdateData(bool fSave)
 		nVerPos = pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_SPVERPOS), 90);
 		nSPCSize = pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_SPCSIZE), 3);
 		nSPCMaxRes = pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_SPCMAXRES), 2);
+		fSPCPow2Tex = pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_POW2TEX), TRUE);
 		fEnableAudioSwitcher = !!pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_ENABLEAUDIOSWITCHER), TRUE);
 		fAudioTimeShift = !!pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_ENABLEAUDIOTIMESHIFT), 0);
 		tAudioTimeShift = pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_AUDIOTIMESHIFT), 0);
@@ -1449,8 +1452,8 @@ void CMPlayerCApp::Settings::UpdateData(bool fSave)
 
 		Formats.UpdateData(false);
 
-		SrcFilters = pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_SRCFILTERS), ~0);
-		TraFilters = pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_TRAFILTERS), ~0^TRA_MPEG1);
+		SrcFilters = pApp->GetProfileInt(ResStr(IDS_R_INTERNAL_FILTERS), ResStr(IDS_RS_SRCFILTERS), ~0);
+		TraFilters = pApp->GetProfileInt(ResStr(IDS_R_INTERNAL_FILTERS), ResStr(IDS_RS_TRAFILTERS), ~0^TRA_MPEG1);
 
 		logofn = pApp->GetProfileString(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_LOGOFILE), _T(""));
 		logoid = pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_LOGOID), IDB_LOGO7);
