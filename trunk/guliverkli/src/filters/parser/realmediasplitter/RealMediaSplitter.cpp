@@ -34,9 +34,6 @@
 #include <initguid.h>
 #include "..\..\..\..\include\moreuuids.h"
 
-#define MAXBUFFERS 2
-#define MAXPACKETS 1000
-
 template<typename T>
 static void bswap(T& var)
 {
@@ -1171,7 +1168,8 @@ void CRMFile::GetDimensions()
 			MediaPacketHeader mph;
 			while(S_OK == Read(mph))
 			{
-				if(mph.stream != pmp->stream || mph.len == 0)
+				if(mph.stream != pmp->stream || mph.len == 0
+				|| !(mph.flags&MediaPacketHeader::PN_KEYFRAME_FLAG))
 					continue;
 
 				BYTE* p = mph.pData.GetData();
@@ -1334,7 +1332,6 @@ void CRealVideoDecoder::GetOutDim(int& wo, int& ho)
 HRESULT CRealVideoDecoder::Receive(IMediaSample* pIn)
 {
 	CAutoLock cAutoLock(&m_csReceive);
-//DbgLog((LOG_TRACE, 0, _T("CRealVideoDecoder::Receive()")));
 
 	HRESULT hr;
 
@@ -1352,8 +1349,6 @@ HRESULT CRealVideoDecoder::Receive(IMediaSample* pIn)
 	pIn->GetTime(&rtStart, &rtStop);
 
 	rtStart += m_tStart;
-
-//	TRACE(_T("in=%04x, start=%I64d, stop=%I64d\n"), len, rtStart, rtStop);
 
 	#pragma pack(push, 1)
 	struct {DWORD len, unk1, chunks; DWORD* extra; DWORD unk2, timestamp;} transform_in = 
@@ -1483,7 +1478,7 @@ void CRealVideoDecoder::ResizeRow(BYTE* pIn, DWORD wi, DWORD dpi, BYTE* pOut, DW
     if(dpo == 1)
 	{
 		for(DWORD i = 0, j = 0, dj = (wi<<16)/wo; i < wo-1; i++, pOut++, j += dj)
-//			pOut[i] = pIn[j>>8];
+//			pOut[i] = pIn[j>>16];
 		{
 			BYTE* p = &pIn[j>>16];
 			DWORD jf = j&0xffff;

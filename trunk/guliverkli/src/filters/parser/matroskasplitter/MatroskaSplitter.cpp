@@ -29,9 +29,6 @@
 #include "..\..\..\..\include\ogg\OggDS.h"
 #include "..\..\..\..\include\moreuuids.h"
 
-#define MAXBUFFERS 2
-#define MAXPACKETS 1000
-
 using namespace MatroskaReader;
 
 #ifdef REGISTER_FILTER
@@ -918,8 +915,8 @@ HRESULT CMatroskaSplitterOutputPin::DeliverEndOfStream()
 
 	while(m_rob.GetCount())
 	{
-		MatroskaPacket* mp = m_packets.GetAt(m_rob.RemoveHead());
-		if(m_rob.GetCount()) mp->rtStop = m_packets.GetAt(m_rob.GetHead())->rtStart;
+		MatroskaPacket* mp = m_rob.RemoveHead();
+		if(m_rob.GetCount()) mp->rtStop = m_rob.GetHead()->rtStart;
 	}
 
 	while(m_packets.GetCount())
@@ -953,17 +950,17 @@ HRESULT CMatroskaSplitterOutputPin::DeliverPacket(CAutoPtr<Packet> p)
 
 		for(int i = m_nMinCache; i > 0; i--)
 		{
-			MatroskaPacket* mp2 = m_packets.GetAt(m_rob.GetAt(pos));
+			MatroskaPacket* mp2 = m_rob.GetAt(pos);
 			if(mp->b->ReferencePriority >= mp2->b->ReferencePriority) break;
 			m_rob.GetPrev(pos);
 		}
 
-		m_rob.InsertAfter(pos, packetpos);
+		m_rob.InsertAfter(pos, mp);
 
-		mp = m_packets.GetAt(m_rob.RemoveHead());
+		mp = m_rob.RemoveHead();
 		if(!mp->b->BlockDuration.IsValid())
 		{
-			MatroskaPacket* mp2 = m_packets.GetAt(m_rob.GetHead());
+			MatroskaPacket* mp2 = m_rob.GetHead();
 			mp->b->BlockDuration.Set(1); // just to set it valid
 			mp->rtStop = mp2->rtStart;
 		}
@@ -972,7 +969,7 @@ HRESULT CMatroskaSplitterOutputPin::DeliverPacket(CAutoPtr<Packet> p)
 	{
 		ASSERT(m_rob.GetCount() < m_nMinCache);
 
-		m_rob.AddTail(packetpos);
+		m_rob.AddTail(mp);
 	}
 
 	// step 3: send out all packets with known ending time from the beginning of the queue
