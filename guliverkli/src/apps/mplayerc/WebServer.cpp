@@ -222,12 +222,14 @@ private:
 
 			if(!sl.IsEmpty())
 			{
-				Explode(AToT(UrlDecode(TToA(Explode(sl.GetTail(), sl, '#', 2)))), sl, '&'); // oh yeah
+				Explode(Explode(sl.GetTail(), sl, '#', 2), sl, '&'); // oh yeah
+				// Explode(AToT(UrlDecode(TToA(Explode(sl.GetTail(), sl, '#', 2)))), sl, '&'); // oh yeah
 				POSITION pos = sl.GetHeadPosition();
 				while(pos)
 				{
 					CList<CString> sl2;
-					Explode(sl.GetNext(pos), sl2, '=', 2);
+					Explode(AToT(UrlDecode(TToA(sl.GetNext(pos)))), sl2, '=', 2);
+					// Explode(sl.GetNext(pos), sl2, '=', 2);
 					m_get[sl2.GetHead()] = sl2.GetCount() == 2 ? sl2.GetTail() : _T("");
 				}
 			}

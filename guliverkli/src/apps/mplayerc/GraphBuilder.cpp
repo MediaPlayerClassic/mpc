@@ -1747,6 +1747,7 @@ void CGraphRegFilter::ExtractFilterData(BYTE* p, UINT len)
 {
 	CComPtr<IAMFilterData> pFD;
 	BYTE* ptr = NULL;
+
 	if(SUCCEEDED(pFD.CoCreateInstance(CLSID_FilterMapper2))
 	&& SUCCEEDED(pFD->ParseFilterData(p, len, (BYTE**)&ptr)))
 	{

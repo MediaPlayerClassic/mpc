@@ -1486,16 +1486,137 @@ void CMPlayerCApp::Settings::UpdateData(bool fSave)
 		if(!pApp->GetProfileInt(_T("Shaders"), _T("Initialized"), 0))
 		{
 			pApp->WriteProfileString(_T("Shaders"), NULL, NULL);
+
+			CString hdr = 
+				_T("|ps_2_0|")
+				_T("sampler s0 : register(s0);\\n")
+				_T("float4 p0 : register(c0);\\n")
+				_T("\\n")
+				_T("#define width (p0[0])\\n")
+				_T("#define height (p0[1])\\n")
+				_T("#define counter (p0[2])\\n")
+				_T("#define clock (p0[3])\\n")
+				_T("\\n")
+				_T("#define PI acos(-1)\\n")
+				_T("\\n")
+				_T("float4 main(float2 tex : TEXCOORD0) : COLOR\\n")
+				_T("{\\n");
+
+			CString ftr = 
+				_T("\\t\\n")
+				_T("\\treturn c0;\\n}")
+				_T("\\n");
+
+			pApp->WriteProfileString(_T("Shaders"), _T("0"), _T("contour") + hdr + 
+				_T("\\tfloat dx = 4/width;\\n")
+				_T("\\tfloat dy = 4/height;\\n")
+				_T("\\t\\n")
+				_T("\\tfloat4 c2 = tex2D(s0, tex + float2(0,-dy));\\n")
+				_T("\\tfloat4 c4 = tex2D(s0, tex + float2(-dx,0));\\n")
+				_T("\\tfloat4 c5 = tex2D(s0, tex + float2(0,0));\\n")
+				_T("\\tfloat4 c6 = tex2D(s0, tex + float2(dx,0));\\n")
+				_T("\\tfloat4 c8 = tex2D(s0, tex + float2(0,dy));\\n")
+				_T("\\t\\n")
+				_T("\\tfloat4 c0 = (-c2-c4+c5*4-c6-c8);\\n")
+				_T("\\tif(length(c0) < 1.0) c0 = float4(0,0,0,0);\\n")
+				_T("\\telse c0 = float4(1,1,1,0);\\n") + ftr);
+
+			pApp->WriteProfileString(_T("Shaders"), _T("1"), _T("deinterlace (blend)") + hdr + 
+				_T("\\tfloat4 c0 = tex2D(s0, tex);\\n")
+				_T("\\t\\n")
+				_T("\\tfloat2 h = float2(0, 1/height);\\n")
+				_T("\\tfloat4 c1 = tex2D(s0, tex-h);\\n")
+				_T("\\tfloat4 c2 = tex2D(s0, tex+h);\\n")
+				_T("\\tc0 = (c0*2+c1+c2)/4;\\n") + ftr);
+
+			pApp->WriteProfileString(_T("Shaders"), _T("2"), _T("emboss") + hdr + 
+				_T("\\tfloat dx = 1/width;\\n")
+				_T("\\tfloat dy = 1/height;\\n")
+				_T("\\t\\n")
+				_T("\\tfloat4 c1 = tex2D(s0, tex + float2(-dx,-dy));\\n")
+				_T("\\tfloat4 c2 = tex2D(s0, tex + float2(0,-dy));\\n")
+				_T("\\tfloat4 c4 = tex2D(s0, tex + float2(-dx,0));\\n")
+				_T("\\tfloat4 c6 = tex2D(s0, tex + float2(dx,0));\\n")
+				_T("\\tfloat4 c8 = tex2D(s0, tex + float2(0,dy));\\n")
+				_T("\\tfloat4 c9 = tex2D(s0, tex + float2(dx,dy));\\n")
+				_T("\\t\\n")
+				_T("\\tfloat4 c0 = (-c1-c2-c4+c6+c8+c9);\\n")
+				_T("\\tc0 = (c0.r+c0.g+c0.b)/3 + 0.5;\\n") + ftr);
+
+			pApp->WriteProfileString(_T("Shaders"), _T("3"), _T("invert") + hdr + 
+				_T("\\tfloat4 c0 = float4(1, 1, 1, 1) - tex2D(s0, tex);\\n") + ftr);
+
+			pApp->WriteProfileString(_T("Shaders"), _T("4"), _T("letterbox") + hdr + 
+				_T("\\tfloat4 c0 = 0;\\n")
+				_T("\\t\\n")
+				_T("\\tfloat2 ar = float2(16, 9);\\n")
+				_T("\\tfloat h = (1 - width/height * ar.y/ar.x) / 2;\\n")
+				_T("\\t\\n")
+				_T("\\tif(tex.y >= h && tex.y <= 1-h)\\n")
+				_T("\\t\\tc0 = tex2D(s0, tex);\\n") + ftr);
+
+			pApp->WriteProfileString(_T("Shaders"), _T("5"), _T("sphere") + hdr + 
+				_T("\\t// - this is a very simple raytracer, one sphere only\\n")
+				_T("\\t// - no reflection or refraction, yet (my ati 9800 has a 64 + 32 instruction limit...)\\n")
+				_T("\\t\\n")
+				_T("\\tfloat3 pl = float3(3,-3,-4); // light pos\\n")
+				_T("\\tfloat4 cl = 0.4; // light color\\n")
+				_T("\\t\\n")
+				_T("\\tfloat3 pc = float3(0,0,-1); // cam pos\\n")
+				_T("\\tfloat3 ps = float3(0,0,0.5); // sphere pos\\n")
+				_T("\\tfloat r = 0.65; // sphere radius\\n")
+				_T("\\t\\n")
+				_T("\\tfloat3 pd = normalize(float3(tex.x-0.5, tex.y-0.5, 0) - pc);\\n")
+				_T("\\t\\n")
+				_T("\\tfloat A = 1;\\n")
+				_T("\\tfloat B = 2*dot(pd, pc - ps);\\n")
+				_T("\\tfloat C = dot(pc - ps, pc - ps) - r*r;\\n")
+				_T("\\tfloat D = B*B - 4*A*C;\\n")
+				_T("\\t\\n")
+				_T("\\tfloat4 c0 = 0;\\n")
+				_T("\\t\\n")
+				_T("\\tif(D >= 0)\\n")
+				_T("\\t{\\n")
+				_T("\\t\\t// t2 is the smaller, obviously...\\n")
+				_T("\\t\\t// float t1 = (-B + sqrt(D)) / (2*A);\\n")
+				_T("\\t\\t// float t2 = (-B - sqrt(D)) / (2*A);\\n")
+				_T("\\t\\t// float t = min(t1, t2); \\n")
+				_T("\\t\\t\\n")
+				_T("\\t\\tfloat t = (-B - sqrt(D)) / (2*A);\\n")
+				_T("\\t\\t\\n")
+				_T("\\t\\t// intersection data\\n")
+				_T("\\t\\tfloat3 p = pc + pd*t;\\n")
+				_T("\\t\\tfloat3 n = normalize(p - ps);\\n")
+				_T("\\t\\tfloat3 l = normalize(pl - p);\\n")
+				_T("\\t\\t\\n")
+				_T("\\t\\t// mapping (and rotating) the image onto the sphere\\n")
+				_T("\\t\\ttex.x = frac(acos(-n.x/0.9) / PI + frac(clock/5));\\n")
+				_T("\\t\\ttex.y = acos(-n.y/0.9) / PI;\\n")
+				_T("\\t\\t\\n")
+				_T("\\t\\t// diffuse + specular\\n")
+				_T("\\t\\tc0 = tex2D(s0, tex) * dot(n, l) + cl * pow(max(dot(l, reflect(pd, n)), 0), 50);\\n")
+				_T("\\t}\\n") + ftr);
+
+			pApp->WriteProfileString(_T("Shaders"), _T("6"), _T("spotlight") + hdr + 
+				_T("\\tfloat4 c0 = tex2D(s0, tex);\\n")
+				_T("\\tfloat3 lightsrc = float3(sin(clock*3.1415/1.5)/2+0.5,cos(clock*3.1415)/2+0.5,1);\\n")
+				_T("\\tfloat3 light = normalize(lightsrc - float3(tex.x,tex.y,0));\\n")
+				_T("\\tc0 *= pow(dot(light, float3(0,0,1)), 50);\\n") + ftr);
+
+			pApp->WriteProfileString(_T("Shaders"), _T("7"), _T("wave") + hdr + 
+				_T("\\t// don't look at this for too long, you'll get dizzy :)\\n")
+				_T("\\t\\n")
+				_T("\\tfloat4 c0 = 0;\\n")
+				_T("\\t\\n")
+				_T("\\ttex.x += sin(tex.x+clock/0.3)/20;\\n")
+				_T("\\ttex.y += sin(tex.x+clock/0.3)/20;\\n")
+				_T("\\t\\n")
+				_T("\\tif(tex.x >= 0 && tex.x <= 1 && tex.y >= 0 && tex.y <= 1)\\n")
+				_T("\\t{\\n")
+				_T("\\t\\tc0 = tex2D(s0, tex);\\n")
+				_T("\\t}\\n") + ftr);
+
 			pApp->WriteProfileInt(_T("Shaders"), _T("Initialized"), 1);
-			CString hdr = _T("|ps_2_0|sampler s0 : register(s0);\\nfloat4 p0 : register(c0);\\n\\n#define width (p0[0])\\n#define height (p0[1])\\n#define counter (p0[2])\\n#define clock (p0[3])\\n\\nfloat4 main(float2 t0 : TEXCOORD0) : COLOR\\n{\\n");
-			CString ftr = _T("\\t\\n\\treturn c0;\\n}\\n");
-			pApp->WriteProfileString(_T("Shaders"), _T("0"), _T("contour") + hdr + _T("\\tfloat dx = 4/width;\\n\\tfloat dy = 4/height;\\n\\t\\n\\tfloat4 c2 = tex2D(s0, t0 + float2(0,-dy));\\n\\tfloat4 c4 = tex2D(s0, t0 + float2(-dx,0));\\n\\tfloat4 c5 = tex2D(s0, t0 + float2(0,0));\\n\\tfloat4 c6 = tex2D(s0, t0 + float2(dx,0));\\n\\tfloat4 c8 = tex2D(s0, t0 + float2(0,dy));\\n\\t\\n\\tfloat4 c0 = (-c2-c4+c5*4-c6-c8);\\n\\tif(length(c0) < 1.0) c0 = float4(0,0,0,0);\\n\\telse c0 = float4(1,1,1,0);\\n") + ftr);
-			pApp->WriteProfileString(_T("Shaders"), _T("1"), _T("deinterlace (blend)") + hdr + _T("\\tfloat4 c0 = tex2D(s0, t0);\\n\\t\\n\\tfloat2 h = float2(0, 1/height);\\n\\tfloat4 c1 = tex2D(s0, t0-h);\\n\\tfloat4 c2 = tex2D(s0, t0+h);\\n\\tc0 = (c0*2+c1+c2)/4;\\n") + ftr);
-			pApp->WriteProfileString(_T("Shaders"), _T("2"), _T("emboss") + hdr + _T("\\tfloat dx = 1/width;\\n\\tfloat dy = 1/height;\\n\\t\\n\\tfloat4 c1 = tex2D(s0, t0 + float2(-dx,-dy));\\n\\tfloat4 c2 = tex2D(s0, t0 + float2(0,-dy));\\n\\tfloat4 c4 = tex2D(s0, t0 + float2(-dx,0));\\n\\tfloat4 c6 = tex2D(s0, t0 + float2(dx,0));\\n\\tfloat4 c8 = tex2D(s0, t0 + float2(0,dy));\\n\\tfloat4 c9 = tex2D(s0, t0 + float2(dx,dy));\\n\\n\\tfloat4 c0 = (-c1-c2-c4+c6+c8+c9);\\n\\tc0 = (c0.r+c0.g+c0.b)/3 + 0.5;\\n") + ftr);
-			pApp->WriteProfileString(_T("Shaders"), _T("3"), _T("invert") + hdr + _T("\\tfloat4 c0 = float4(1, 1, 1, 1) - tex2D(s0, t0);\\n") + ftr);
-			pApp->WriteProfileString(_T("Shaders"), _T("4"), _T("letterbox") + hdr + _T("\\tfloat4 c0 = 0;\\n\\t\\n\\tfloat2 ar = float2(16, 9);\\n\\tfloat h = (1 - width/height * ar.y/ar.x) / 2;\\n\\t\\n\\tif(t0.y >= h && t0.y <= 1-h)\\n\\t\\tc0 = tex2D(s0, t0);\\n") + ftr);
-			pApp->WriteProfileString(_T("Shaders"), _T("5"), _T("spotlight") + hdr + _T("\\tfloat4 c0 = tex2D(s0, t0);\\n\\tfloat3 lightsrc = float3(sin(clock*3.1415/1500)/2+0.5,cos(clock*3.1415/1000)/2+0.5,1);\\n\\tfloat3 light = normalize(lightsrc - float3(t0.x,t0.y,0));\\n\\tc0 *= pow(dot(light, float3(0,0,1)), 50);\\n") + ftr);
-			pApp->WriteProfileString(_T("Shaders"), _T("6"), _T("wave") + hdr + _T("\\t// don't look at this for too long, you'll get dizzy :)\\n\\n\\tfloat4 c0 = 0;\\n\\n\\tt0.x += sin(t0.x+clock/300)/20;\\n\\tt0.y += sin(t0.x+clock/300)/20;\\n\\n\\tif(t0.x >= 0 && t0.x <= 1 && t0.y >= 0 && t0.y <= 1)\\n\\t{\\n\\t\\tc0 = tex2D(s0, t0);\\n\\t}\\n") + ftr);
 		}
 
 		fInitialized = true;

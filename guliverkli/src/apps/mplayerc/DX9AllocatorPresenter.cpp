@@ -505,8 +505,20 @@ STDMETHODIMP_(bool) CDX9AllocatorPresenter::Paint(bool fAll)
 			{
 				if(m_pPixelShader)
 				{
-					static __int64 i = 0, j = clock();
-					float fConstData[] = {(float)m_NativeVideoSize.cx, (float)m_NativeVideoSize.cy, (float)(i++), (float)(clock()-j)};
+					static __int64 counter = 0;
+					static long start = clock();
+
+					long stop = clock();
+					long diff = stop - start;
+
+					if(diff >= 10*60*CLOCKS_PER_SEC) start = stop; // reset after 10 min (ps float has its limits in both range and accuracy)
+
+					float fConstData[] = 
+					{
+						(float)m_NativeVideoSize.cx, (float)m_NativeVideoSize.cy, 
+						(float)(counter++), (float)diff / CLOCKS_PER_SEC
+					};
+
 					hr = m_pD3DDev->SetPixelShaderConstantF(0, fConstData, countof(fConstData)/4);
 					hr = m_pD3DDev->SetPixelShader(m_pPixelShader);
 				}
