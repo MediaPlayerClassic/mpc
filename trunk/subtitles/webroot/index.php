@@ -149,6 +149,13 @@ $smarty->assign('isolang_sel', $isolang_sel);
 
 $smarty->assign('ticket', $_SESSION['ticket'] = rand(1, 10000000)); // ;)
 
+if(!empty($_REQUEST['player']))
+{
+	$smarty->assign('player', $_REQUEST['player']);
+	$smarty->display('index.tpl');
+	exit;
+}
+
 $smarty->display('main.tpl');
 
 ?>
