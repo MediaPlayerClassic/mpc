@@ -3330,8 +3330,6 @@ void CMainFrame::OnSubtitledatabaseDownload()
 			else if(param == "" && value == "endsubtitle") {m.subs.AddTail(s);}
 			else if(param == "" && value == "endmovie") {movies.AddTail(m);}
 			else if(param == "" && value == "end") break;
-
-			TRACE(_T("%s=>%s\n"), CString(param), CString(value));
 		}
 
 		CSubtitleDlDlg dlg(movies, this);

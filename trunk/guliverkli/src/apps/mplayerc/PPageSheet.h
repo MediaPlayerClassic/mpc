@@ -39,6 +39,7 @@ using namespace TreePropSheet;
 #include "PPageOverrides.h"
 #include "PPageSubtitles.h"
 #include "PPageSubStyle.h"
+#include "PPageSubDB.h"
 #include "PPageTweaks.h"
 
 // CTreePropSheetTreeCtrl
@@ -74,6 +75,7 @@ private:
 	CPPageWebServer m_webserver;
 	CPPageSubtitles m_subtitles;
 	CPPageSubStyle m_substyle;
+	CPPageSubDB m_subdb;
 	CPPageFilters m_filters;
 	CPPageAudioSwitcher m_audioswitcher;
 	CPPageMpegDecoder m_mpegdecoder;
