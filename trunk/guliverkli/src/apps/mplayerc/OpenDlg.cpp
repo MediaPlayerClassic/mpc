@@ -243,22 +243,35 @@ END_MESSAGE_MAP()
 
 LRESULT CALLBACK COpenFileDialog::WindowProcNew(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
-	CWnd* pWnd = CWnd::FromHandle(hwnd)->GetParent();
-
 	if(message ==  WM_COMMAND && HIWORD(wParam) == BN_CLICKED && LOWORD(wParam) == IDOK
 	&& m_fAllowDirSelection)
 	{
-		TCHAR path[MAX_PATH];
-		if(::GetDlgItemText(hwnd, cmb13, path, sizeof(path)) == 0)
+		CAutoVectorPtr<TCHAR> path;
+		path.Allocate(MAX_PATH+1); // MAX_PATH should be bigger for multiple selection, but we are only interested if it's zero length
+		// note: allocating MAX_PATH only will cause a buffer overrun for too long strings, and will result in a silent app disappearing crash, 100% reproducable
+		if(::GetDlgItemText(hwnd, cmb13, (TCHAR*)path, MAX_PATH) == 0)
 			::SendMessage(hwnd, CDM_SETCONTROLTEXT, edt1, (LPARAM)__DUMMY__);
 	}
 
 	return CallWindowProc(COpenFileDialog::m_wndProc, hwnd, message, wParam, lParam);
 }
 
-void COpenFileDialog::OnInitDone()
+BOOL COpenFileDialog::OnInitDialog()
 {
+	CFileDialog::OnInitDialog();
+
 	m_wndProc = (WNDPROC)SetWindowLong(GetParent()->m_hWnd, GWL_WNDPROC, (LONG)WindowProcNew);
+
+	return TRUE;  // return TRUE unless you set the focus to a control
+	// EXCEPTION: OCX Property Pages should return FALSE
+}
+
+void COpenFileDialog::OnDestroy()
+{
+	int i = GetPathName().Find(__DUMMY__);
+	if(i >= 0) m_pOFN->lpstrFile[i] = m_pOFN->lpstrFile[i+1] = 0;
+
+	CFileDialog::OnDestroy();
 }
 
 BOOL COpenFileDialog::OnNotify(WPARAM wParam, LPARAM lParam, LRESULT* pResult)
@@ -306,12 +319,4 @@ BOOL COpenFileDialog::OnIncludeItem(OFNOTIFYEX* pOFNEx, LRESULT* pResult)
 	*pResult = mask.Find(ext) >= 0 || mask.Find(_T("*.*")) >= 0;
 
 	return TRUE;
-}
-
-void COpenFileDialog::OnDestroy()
-{
-	CFileDialog::OnDestroy();
-
-	int i = GetPathName().Find(__DUMMY__);
-	if(i >= 0) m_pOFN->lpstrFile[i] = m_pOFN->lpstrFile[i+1] = 0;
 }

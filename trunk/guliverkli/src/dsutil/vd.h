@@ -16,5 +16,7 @@
 //	Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 
-extern bool BitBltFromI420(BYTE* dst, int pitch, BYTE* srcy, BYTE* srcu, BYTE* srcv, int w, int h, int bpp, int srcpitch = 0);
+extern void memcpy_mmx(void* dst, const void* src, size_t len);
+extern bool BitBltFromI420ToRGB(BYTE* dst, int pitch, BYTE* srcy, BYTE* srcu, BYTE* srcv, int w, int h, int bpp, int srcpitch = 0);
+extern bool BitBltFromI420ToYUY2(BYTE* dst, int pitch, BYTE* srcy, BYTE* srcu, BYTE* srcv, int w, int h, int srcpitch = 0);
 extern void DeinterlaceBlend(BYTE* dst, BYTE* src, DWORD rowbytes, DWORD h, DWORD pitch);

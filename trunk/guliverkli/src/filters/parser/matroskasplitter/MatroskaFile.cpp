@@ -183,6 +183,14 @@ HRESULT Segment::ParseMinimal(CMatroskaNode* pMN0)
 	}
 	while(n < 3 && pMN->Next());
 
+	while(QWORD pos = pMN->FindPos(0x114D9B74, pMN->GetPos()))
+	{
+		pMN->SeekTo(pos);
+		pMN->Parse();
+		ASSERT(pMN->m_id == 0x114D9B74);
+		MetaSeekInfo.Parse(pMN);
+	}
+
 	if(n == 3)
 	{
 		if(Cues.IsEmpty() && (pMN = pMN0->Child(0x1C53BB6B, false)))
@@ -739,7 +747,7 @@ bool CMatroskaNode::Next(bool fSame)
 bool CMatroskaNode::Find(DWORD id, bool fSearch)
 {
 	QWORD pos = m_pParent && m_pParent->m_pParent && !m_pParent->m_pParent->m_pParent /*lvl1?*/ 
-		? FindId(id) 
+		? FindPos(id) 
 		: 0;
 
 	if(pos && SUCCEEDED(SeekTo(pos)))
@@ -761,7 +769,7 @@ template <class T>
 HRESULT CMatroskaNode::Read(T& var) {return m_pMF->Read(var);}
 HRESULT CMatroskaNode::Read(BYTE* pData, QWORD len) {return m_pMF->Read(pData, len);}
 
-QWORD CMatroskaNode::FindId(DWORD id, QWORD start)
+QWORD CMatroskaNode::FindPos(DWORD id, QWORD start)
 {
 	Segment& sm = m_pMF->m_segment;
 

@@ -26,7 +26,6 @@
 #include "mplayerc.h"
 #include "MainFrm.h"
 #include "PPageLogo.h"
-#include ".\ppagelogo.h"
 
 // CPPageLogo dialog
 
@@ -117,6 +116,7 @@ void CPPageLogo::OnBnClickedRadio1()
 	if(IDB_LOGO0 != m_logoids.GetAt(m_logoidpos))
 		m_logobm.LoadFromResource(::AfxGetInstanceHandle(), m_logoids.GetAt(m_logoidpos));
 	m_logopreview.SetBitmap(m_logobm);
+	Invalidate();
 
 	m_intext = 0;
 	UpdateData(FALSE);
@@ -132,6 +132,7 @@ void CPPageLogo::OnBnClickedRadio2()
 	else if(HANDLE h = LoadImage(NULL, m_logofn, IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE))
 		m_logobm.Attach((HBITMAP)h);
 	m_logopreview.SetBitmap(m_logobm);
+	Invalidate();
 
 	m_intext = 1;
 	UpdateData(FALSE);

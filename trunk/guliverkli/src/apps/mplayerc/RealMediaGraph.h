@@ -63,6 +63,7 @@ protected:
 
 	HWND m_hWndParent;
 	CSize m_VideoSize;
+	bool m_fVideoSizeChanged;
 
 	//
 

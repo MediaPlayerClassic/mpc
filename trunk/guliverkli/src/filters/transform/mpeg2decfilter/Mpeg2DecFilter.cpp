@@ -20,6 +20,7 @@
  */
 
 #include "stdafx.h"
+#include <math.h>
 #include <atlbase.h>
 #include <ks.h>
 #include <ksmedia.h>
@@ -180,52 +181,6 @@ CUnknown* WINAPI CMpeg2DecFilter::CreateInstance(LPUNKNOWN lpunk, HRESULT* phr)
 
 #endif
 
-static void memcpy_mmx(void* dst, const void* src, size_t len)
-{
-    __asm 
-    {
-        mov     esi, dword ptr [src]
-        mov     edi, dword ptr [dst]
-        mov     ecx, len
-        shr     ecx, 6
-align 8
-CopyLoop:
-        movq    mm0, qword ptr[esi]
-        movq    mm1, qword ptr[esi+8*1]
-        movq    mm2, qword ptr[esi+8*2]
-        movq    mm3, qword ptr[esi+8*3]
-        movq    mm4, qword ptr[esi+8*4]
-        movq    mm5, qword ptr[esi+8*5]
-        movq    mm6, qword ptr[esi+8*6]
-        movq    mm7, qword ptr[esi+8*7]
-        movq    qword ptr[edi], mm0
-        movq    qword ptr[edi+8*1], mm1
-        movq    qword ptr[edi+8*2], mm2
-        movq    qword ptr[edi+8*3], mm3
-        movq    qword ptr[edi+8*4], mm4
-        movq    qword ptr[edi+8*5], mm5
-        movq    qword ptr[edi+8*6], mm6
-        movq    qword ptr[edi+8*7], mm7
-        add     esi, 64
-        add     edi, 64
-        loop CopyLoop
-        mov     ecx, len
-        and     ecx, 63
-        cmp     ecx, 0
-        je EndCopyLoop
-align 8
-CopyLoop2:
-        mov dl, byte ptr[esi] 
-        mov byte ptr[edi], dl
-        inc esi
-        inc edi
-        dec ecx
-        jne CopyLoop2
-EndCopyLoop:
-		emms
-    }
-}
-
 CMpeg2DecFilter::CMpeg2DecFilter(LPUNKNOWN lpunk, HRESULT* phr) 
 	: CTransformFilter(NAME("CMpeg2DecFilter"), lpunk, __uuidof(this))
 	, m_fWaitForKeyFrame(true)
@@ -243,12 +198,27 @@ CMpeg2DecFilter::CMpeg2DecFilter(LPUNKNOWN lpunk, HRESULT* phr)
 
 	if(!(m_pClosedCaptionOutput = new CClosedCaptionOutputPin(this, m_pLock, phr))) *phr = E_OUTOFMEMORY;
 	if(FAILED(*phr)) return;
+
+	SetDeinterlaceMethod(DIAuto);
+	SetBrightness(0.0);
+	SetContrast(1.0);
+	SetHue(0.0);
+	SetSaturation(1.0);
+	EnableForcedSubtitles(true);
+	EnablePlanarYUV(true);
 }
 
 CMpeg2DecFilter::~CMpeg2DecFilter()
 {
 	delete m_pSubpicInput;
 	delete m_pClosedCaptionOutput;
+}
+
+STDMETHODIMP CMpeg2DecFilter::NonDelegatingQueryInterface(REFIID riid, void** ppv)
+{
+	return
+		QI(IMpeg2DecFilter)
+		 __super::NonDelegatingQueryInterface(riid, ppv);
 }
 
 int CMpeg2DecFilter::GetPinCount()
@@ -293,6 +263,8 @@ HRESULT CMpeg2DecFilter::NewSegment(REFERENCE_TIME tStart, REFERENCE_TIME tStop,
 	m_pClosedCaptionOutput->DeliverNewSegment(tStart, tStop, dRate);
 	return __super::NewSegment(tStart, tStop, dRate);
 }
+
+int nframe = 0;
 
 HRESULT CMpeg2DecFilter::Receive(IMediaSample* pIn)
 {
@@ -391,52 +363,46 @@ HRESULT CMpeg2DecFilter::Receive(IMediaSample* pIn)
 			break;
 		case STATE_SEQUENCE:
 			m_AvgTimePerFrame = 10i64 * m_dec->m_info.m_sequence->frame_period / 27;
+			if(m_AvgTimePerFrame == 0) m_AvgTimePerFrame = ((VIDEOINFOHEADER*)m_pInput->CurrentMediaType().Format())->AvgTimePerFrame;
 			break;
 		case STATE_PICTURE:
-			{
-				TCHAR frametype[] = {'?','I', 'P', 'B', 'D'};
-				TRACE(_T("[%c]\n"), frametype[m_dec->m_picture->flags&PIC_MASK_CODING_TYPE]);
-
-				m_dec->m_picture->rtStart = rtStart;
-				rtStart = _I64_MIN;
-			}
+			m_dec->m_picture->rtStart = rtStart;
+			rtStart = _I64_MIN;
 			break;
 		case STATE_SLICE:
 		case STATE_END:
 			if(m_dec->m_info.m_display_picture)
 			{
-				//
+				// start - end
 
 				m_fb.rtStart = m_dec->m_info.m_display_picture->rtStart;
+				if(m_fb.rtStart == _I64_MIN) m_fb.rtStart = m_fb.rtStop;
+				m_fb.rtStop = m_fb.rtStart + m_AvgTimePerFrame * m_dec->m_info.m_display_picture->nb_fields / 2;
 
-				if(m_fb.rtStart != _I64_MIN)
+				// flags
+
+				if(!(m_dec->m_info.m_sequence->flags&SEQ_FLAG_PROGRESSIVE_SEQUENCE)
+				&& (m_dec->m_info.m_display_picture->flags&PIC_FLAG_PROGRESSIVE_FRAME))
 				{
-					// HACK: ntsc is wierd...
-					if(m_fb.rtFrame > 0 && m_dec->m_info.m_sequence->frame_period == 900900)
+					if(!m_fFilm
+					&& (m_dec->m_info.m_display_picture->flags&PIC_FLAG_REPEAT_FIRST_FIELD)
+					&& !(m_fb.flags&PIC_FLAG_REPEAT_FIRST_FIELD))
 					{
-						int dt = (int)((m_fb.rtStart - m_fb.rtOffset) / m_fb.rtFrame);
-						if(m_AvgTimePerFrame == 333666 && abs(dt-333666) > 10000 && abs(dt-417083) < 10000)
-							m_AvgTimePerFrame = 417083;
-//						else if(m_AvgTimePerFrame == 417083 && abs(dt-417083) > 10000 && abs(dt-333666) < 10000)
-//							m_AvgTimePerFrame = 333666;
+						TRACE(_T("m_fFilm = true\n"));
+						m_fFilm = true;
 					}
-
-					m_fb.rtOffset = m_fb.rtStart;
-					m_fb.rtFrame = 0;
+					else if(m_fFilm
+					&& !(m_dec->m_info.m_display_picture->flags&PIC_FLAG_REPEAT_FIRST_FIELD)
+					&& !(m_fb.flags&PIC_FLAG_REPEAT_FIRST_FIELD))
+					{
+						TRACE(_T("m_fFilm = false\n"));
+						m_fFilm = false;
+					}
 				}
-				else
-				{
-					m_fb.rtStart = m_fb.rtOffset + m_fb.rtFrame*m_AvgTimePerFrame;
-				}
-
-				m_fb.rtStop = m_fb.rtStart + m_AvgTimePerFrame;
-				m_fb.rtFrame++;
-
-				//
 
 				m_fb.flags = m_dec->m_info.m_display_picture->flags;
 
-				//
+				// frame buffer
 
 				int w = m_dec->m_info.m_sequence->width;
 				int h = m_dec->m_info.m_sequence->height;
@@ -448,26 +414,98 @@ HRESULT CMpeg2DecFilter::Receive(IMediaSample* pIn)
 				if(m_fb.pw != pw || m_fb.ph != ph)
 					m_fb.pw = pw, m_fb.ph = ph;
 
-				// TODO: find out when it is really needed to deinterlace
-				if(m_fb.flags & PIC_FLAG_PROGRESSIVE_FRAME)
+				// deinterlace
+
+				ditype di = GetDeinterlaceMethod();
+
+				if(di == DIAuto || di != DIWeave && di != DIBlend)
+				{
+					if(!!(m_dec->m_info.m_sequence->flags&SEQ_FLAG_PROGRESSIVE_SEQUENCE))
+						di = DIWeave; // hurray!
+					else if(m_fFilm)
+						di = DIWeave; // we are lucky
+					else if(!(m_fb.flags&PIC_FLAG_PROGRESSIVE_FRAME))
+						di = DIBlend; // ok, clear thing
+					else
+						// big trouble here, the progressive_frame bit is not reliable :'(
+						// frames without temporal field diffs can be only detected when ntsc 
+						// uses the repeat field flag (signaled with m_fFilm), if it's not set 
+						// or we have pal then we might end up blending the fields unnecessarily...
+						di = DIBlend;
+				}
+
+				if(di == DIWeave)
 				{
 					memcpy_mmx(m_fb.buf[0], m_dec->m_info.m_display_fbuf->buf[0], m_fb.w*m_fb.h);
 					memcpy_mmx(m_fb.buf[1], m_dec->m_info.m_display_fbuf->buf[1], m_fb.w*m_fb.h/4);
 					memcpy_mmx(m_fb.buf[2], m_dec->m_info.m_display_fbuf->buf[2], m_fb.w*m_fb.h/4);
 				}
-				else
+				else if(di == DIBlend)
 				{
 					DeinterlaceBlend(m_fb.buf[0], m_dec->m_info.m_display_fbuf->buf[0], m_fb.pw, m_fb.ph, m_fb.w);
 					DeinterlaceBlend(m_fb.buf[1], m_dec->m_info.m_display_fbuf->buf[1], m_fb.pw/2, m_fb.ph/2, m_fb.w/2);
 					DeinterlaceBlend(m_fb.buf[2], m_dec->m_info.m_display_fbuf->buf[2], m_fb.pw/2, m_fb.ph/2, m_fb.w/2);
 				}
 
+				// postproc
+
+				ApplyBrContHueSat(m_fb.buf[0], m_fb.buf[1], m_fb.buf[2], m_fb.w, m_fb.h, m_fb.pw);
+/*
 				// TODO: add all kinds of nice postprocessing here :P
+				{
+					int w = m_fb.w, h = m_fb.h, p = m_fb.pw;
 
+					for(int y = 5; y <= h-6; y += 8)
+					{
+						BYTE* a[6];
+						for(int j = 0; j < 6; j++)
+							a[j] = m_fb.buf[0] + p*(y+j);
+
+						for(int x = 0; x < w; x++)
+						{
+							int dif = a[3][x] - a[2][x];
+							if(abs(dif) > 16) continue;
+							a[0][x] = a[0][x] + (dif>>3);
+							a[1][x] = a[1][x] + (dif>>2);
+							a[2][x] = a[2][x] + (dif>>1);
+							a[3][x] = a[3][x] - (dif>>1);
+							a[4][x] = a[4][x] - (dif>>2);
+							a[5][x] = a[5][x] - (dif>>3);
+						}
+					}
+				}
+
+
+				{
+					int w = m_fb.w, h = m_fb.h, p = m_fb.pw;
+
+					for(int x = 5; x <= w-6; x += 8)
+					{
+						BYTE* a = m_fb.buf[0] + x;
+
+						for(int y = 0; y < h; y++, a+=p)
+						{
+							int dif = a[3] - a[2];
+							if(abs(dif) > 16) continue;
+							a[0] = a[0] + (dif>>3);
+							a[1] = a[1] + (dif>>2);
+							a[2] = a[2] + (dif>>1);
+							a[3] = a[3] - (dif>>1);
+							a[4] = a[4] - (dif>>2);
+							a[5] = a[5] - (dif>>3);
+						}
+					}
+				}
+*/
 				//
-
-				hr = Deliver(false);
-				if(FAILED(hr)) return hr;
+/*
+	Tweak(m_fb.buf[0], m_fb.buf[1], m_fb.buf[2], m_fb.w, m_fb.h, m_fb.pw,
+//		0.0, 1.0, 0.0, 1.0);
+		0.0, 1.0*nframe++*10/250, 0.0, 1.0);
+	if(nframe >= 250) nframe = 0;
+*/
+				if(FAILED(hr = Deliver(false)))
+					return hr;
 			}
 			break;
 		default:
@@ -480,24 +518,38 @@ HRESULT CMpeg2DecFilter::Receive(IMediaSample* pIn)
 
 HRESULT CMpeg2DecFilter::Deliver(bool fRepeatLast)
 {
-	CAutoLock cAutoLock(&m_csReceive);
+	if(fRepeatLast)
+	{
+		BeginFlush();
+		EndFlush();
+	}
 
-	TCHAR frametype[] = {'?','I', 'P', 'B', 'D'};
-	TRACE(_T("m_rtFrame: %I64d, %I64d - %I64d [%c] (%dx%d %dx%d)\n"), 
-		m_fb.rtFrame, m_fb.rtStart, m_fb.rtStop, 
-		frametype[m_fb.flags&PIC_MASK_CODING_TYPE],
-		m_fb.w, m_fb.h, m_fb.pw, m_fb.ph);
+	CAutoLock cAutoLock(&m_csReceive);
 
 	if((m_fb.flags&PIC_MASK_CODING_TYPE) == PIC_FLAG_CODING_TYPE_I)
 		m_fWaitForKeyFrame = false;
+
+	TCHAR frametype[] = {'?','I', 'P', 'B', 'D'};
+	TRACE(_T("%010I64d - %010I64d [%c] [prsq %d prfr %d tff %d rff %d nb_fields %d ref %d] (%dx%d/%dx%d) (preroll %d)\n"), 
+		m_fb.rtStart, m_fb.rtStop, 
+		frametype[m_fb.flags&PIC_MASK_CODING_TYPE],
+		!!(m_dec->m_info.m_sequence->flags&SEQ_FLAG_PROGRESSIVE_SEQUENCE),
+		!!(m_fb.flags&PIC_FLAG_PROGRESSIVE_FRAME),
+		!!(m_fb.flags&PIC_FLAG_TOP_FIELD_FIRST),
+		!!(m_fb.flags&PIC_FLAG_REPEAT_FIRST_FIELD),
+		m_dec->m_info.m_display_picture->nb_fields,
+		m_dec->m_info.m_display_picture->temporal_reference,
+		m_fb.w, m_fb.h, m_fb.pw, m_fb.ph,
+		!!(m_fb.rtStart < 0 || m_fWaitForKeyFrame));
 
 	if(m_fb.rtStart < 0 || m_fWaitForKeyFrame)
 		return S_OK;
 
 	HRESULT hr;
 
-	hr = ReconnectOutput(m_fb.pw, m_fb.ph);
-	if(FAILED(hr)) return hr;
+	CMediaType mt;
+	if(FAILED(hr = ReconnectOutput(m_fb.pw, m_fb.ph, mt)))
+		return hr;
 
 	CComPtr<IMediaSample> pOut;
 	BYTE* pDataOut = NULL;
@@ -508,9 +560,14 @@ HRESULT CMpeg2DecFilter::Deliver(bool fRepeatLast)
 	AM_MEDIA_TYPE* pmt;
 	if(SUCCEEDED(pOut->GetMediaType(&pmt)) && pmt)
 	{
-		CMediaType mt(*pmt);
+		mt = *pmt;
 		m_pOutput->SetMediaType(&mt);
 		DeleteMediaType(pmt);
+	}
+	else if(mt.majortype != GUID_NULL)
+	{
+		pOut->SetMediaType(&mt);
+		// TODO: put m_pOutput->SetMediaType(&mt) here, maybe
 	}
 
 	pOut->SetTime(&m_fb.rtStart, &m_fb.rtStop);
@@ -540,181 +597,28 @@ HRESULT CMpeg2DecFilter::Deliver(bool fRepeatLast)
 	return S_OK;
 }
 
-static void __declspec(naked) yuvtoyuy2row(
-	BYTE* pDataOut, BYTE* pDataIn, BYTE* pDataInU, BYTE* pDataInV, DWORD width)
-{
-	__asm {
-		push	ebp
-		push	edi
-		push	esi
-		push	ebx
-
-		mov		edi, [esp+20] // pDataOut
-		mov		ebp, [esp+24] // pDataIn
-		mov		ebx, [esp+28] // pDataInU
-		mov		esi, [esp+32] // pDataInV
-		mov		ecx, [esp+36] // width
-		shr		ecx, 3
-
-yuvtoyuy2row_loop:
-
-		movd		mm0, [ebx]
-		punpcklbw	mm0, [esi]
-
-		movq		mm1, [ebp]
-		movq		mm2, mm1
-		punpcklbw	mm1, mm0
-		punpckhbw	mm2, mm0
-
-		movq		[edi], mm1
-		movq		[edi+8], mm2
-
-		add		ebp, 8
-		add		ebx, 4
-		add		esi, 4
-        add		edi, 16
-
-		loop	yuvtoyuy2row_loop
-
-		pop		ebx
-		pop		esi
-		pop		edi
-		pop		ebp
-		ret
-	};
-}
-
-static void __declspec(naked) yuvtoyuy2row_avg(
-	BYTE* pDataOut, BYTE* pDataIn, BYTE* pDataInU, BYTE* pDataInV, DWORD pitchInUV, DWORD width)
-{
-	__asm {
-		push	ebp
-		push	edi
-		push	esi
-		push	ebx
-
-		mov		eax, 0x7f7f7f7f
-		movd	mm6, eax
-		movd	mm7, eax
-		punpckldq	mm7, mm6
-
-		mov		edi, [esp+20] // pDataOut
-		mov		ebp, [esp+24] // pDataIn
-		mov		ebx, [esp+28] // pDataInU
-		mov		esi, [esp+32] // pDataInV
-		mov		eax, [esp+36] // pitchInUV
-		mov		ecx, [esp+40] // width
-		shr		ecx, 3
-
-yuvtoyuy2row_avg_loop:
-
-		movd		mm0, [ebx]
-		punpcklbw	mm0, [esi]
-		movq		mm1, mm0
-
-		movd		mm2, [ebx + eax]
-		punpcklbw	mm2, [esi + eax]
-		movq		mm3, mm2
-
-		// (x+y)>>1 == (x&y)+((x^y)>>1)
-
-		pand		mm0, mm2
-		pxor		mm1, mm3
-		psrlq		mm1, 1
-		pand		mm1, mm7
-		paddb		mm0, mm1
-
-		movq		mm1, [ebp]
-		movq		mm2, mm1
-		punpcklbw	mm1, mm0
-		punpckhbw	mm2, mm0
-
-		movq		[edi], mm1
-		movq		[edi+8], mm2
-
-		add		ebp, 8
-		add		ebx, 4
-		add		esi, 4
-        add		edi, 16
-
-		loop	yuvtoyuy2row_avg_loop
-
-		pop		ebx
-		pop		esi
-		pop		edi
-		pop		ebp
-		ret
-	};
-}
-
 void CMpeg2DecFilter::Copy(BYTE* pOut, BYTE** ppIn, DWORD w, DWORD h, DWORD pitchIn)
 {
 	BITMAPINFOHEADER bihOut;
 	ExtractBIH(&m_pOutput->CurrentMediaType(), &bihOut);
 
-	DWORD pitchInUV = pitchIn>>1;
 	BYTE* pIn = ppIn[0];
 	BYTE* pInU = ppIn[1];
 	BYTE* pInV = ppIn[2];
 
+	w = (w+7)&~7;
+	ASSERT(w <= pitchIn);
+
 	if(bihOut.biCompression == '2YUY')
 	{
-		int pitchOut = bihOut.biWidth*2;
-
-		for(DWORD y = 0; y < h; y+=2, pIn += pitchIn*2, pInU += pitchInUV, pInV += pitchInUV, pOut += pitchOut*2)
-		{
-			BYTE* pDataIn = pIn;
-			BYTE* pDataInU = pInU;
-			BYTE* pDataInV = pInV;
-			WORD* pDataOut = (WORD*)pOut;
-/*
-			for(DWORD x = 0; x < w; x+=2)
-			{
-				*pDataOut++ = (*pDataInU++<<8)|*pDataIn++;
-				*pDataOut++ = (*pDataInV++<<8)|*pDataIn++;
-			}
-*/
-			yuvtoyuy2row((BYTE*)pDataOut, pDataIn, pDataInU, pDataInV, w);
-
-			pDataIn = pIn + pitchIn;
-			pDataInU = pInU;
-			pDataInV = pInV;
-			pDataOut = (WORD*)(pOut + pitchOut);
-// 
-			if(y < h-2)
-			{
-/*
-				for(DWORD x = 0; x < w; x+=2, pDataInU++, pDataInV++)
-				{
-					*pDataOut++ = (((pDataInU[0]+pDataInU[pitchInUV])>>1)<<8)|*pDataIn++;
-					*pDataOut++ = (((pDataInV[0]+pDataInV[pitchInUV])>>1)<<8)|*pDataIn++;
-				}
-*/
-				yuvtoyuy2row_avg((BYTE*)pDataOut, pDataIn, pDataInU, pDataInV, pitchInUV, w);
-			}
-			else
-			{
-/*
-				for(DWORD x = 0; x < w; x+=2)
-				{
-					*pDataOut++ = (*pDataInU++<<8)|*pDataIn++;
-					*pDataOut++ = (*pDataInV++<<8)|*pDataIn++;
-				}
-*/
-				yuvtoyuy2row((BYTE*)pDataOut, pDataIn, pDataInU, pDataInV, w);
-			}
-		}
-
-		__asm emms;
+		BitBltFromI420ToYUY2(pOut, bihOut.biWidth*2, pIn, pInU, pInV, w, h, pitchIn);
 	}
 	else if(bihOut.biCompression == '21VY' || bihOut.biCompression == 'I420' || bihOut.biCompression == 'VUYI')
 	{
 		DWORD pitchOut = bihOut.biWidth;
 
 		for(DWORD y = 0; y < h; y++, pIn += pitchIn, pOut += pitchOut)
-		{
 			memcpy_mmx(pOut, pIn, min(pitchIn, pitchOut));
-		}
 
 		pitchIn >>= 1;
 		pitchOut >>= 1;
@@ -722,16 +626,12 @@ void CMpeg2DecFilter::Copy(BYTE* pOut, BYTE** ppIn, DWORD w, DWORD h, DWORD pitc
 		pIn = bihOut.biCompression == '21VY' ? pInV : pInU;
 
 		for(DWORD y = 0; y < h; y+=2, pIn += pitchIn, pOut += pitchOut)
-		{
 			memcpy_mmx(pOut, pIn, min(pitchIn, pitchOut));
-		}
 
 		pIn = bihOut.biCompression == '21VY' ? pInU : pInV;
 
 		for(DWORD y = 0; y < h; y+=2, pIn += pitchIn, pOut += pitchOut)
-		{
 			memcpy_mmx(pOut, pIn, min(pitchIn, pitchOut));
-		}
 	}
 	else if(bihOut.biCompression == BI_RGB || bihOut.biCompression == BI_BITFIELDS)
 	{
@@ -743,7 +643,7 @@ void CMpeg2DecFilter::Copy(BYTE* pOut, BYTE** ppIn, DWORD w, DWORD h, DWORD pitc
 			pitchOut = -pitchOut;
 		}
 
-		if(!BitBltFromI420(pOut, pitchOut, pIn, pInU, pInV, w, h, bihOut.biBitCount, pitchIn))
+		if(!BitBltFromI420ToRGB(pOut, pitchOut, pIn, pInU, pInV, w, h, bihOut.biBitCount, pitchIn))
 		{
 			for(DWORD y = 0; y < h; y++, pIn += pitchIn, pOut += pitchOut)
 				memset(pOut, 0, pitchOut);
@@ -780,57 +680,64 @@ void CMpeg2DecFilter::ResetMpeg2Decoder()
 	m_dec->mpeg2_buffer(pSequenceHeader, pSequenceHeader + cbSequenceHeader);
 
 	m_fWaitForKeyFrame = true;
+
+	m_fFilm = false;
+	m_fb.flags = 0;
 }
 
-HRESULT CMpeg2DecFilter::ReconnectOutput(int w, int h)
+HRESULT CMpeg2DecFilter::ReconnectOutput(int w, int h, CMediaType& mt)
 {
-	CMediaType& mtOut = m_pOutput->CurrentMediaType();
-	VIDEOINFOHEADER2* vihout = ((VIDEOINFOHEADER2*)mtOut.Format());
-
-	DWORD arx = vihout->dwPictAspectRatioX;
-	DWORD ary = vihout->dwPictAspectRatioY;
-
 	CMediaType& mtIn = m_pInput->CurrentMediaType();
-	if(mtIn.formattype == FORMAT_MPEG2_VIDEO)
+	DWORD win = 0, hin = 0, arxin = 0, aryin = 0;
+	ExtractDim(&mtIn, win, hin, arxin, aryin);
+
+	if(w != win || h != hin)
 	{
-		arx = ((MPEG2VIDEOINFO*)mtIn.Format())->hdr.dwPictAspectRatioX;
-		ary = ((MPEG2VIDEOINFO*)mtIn.Format())->hdr.dwPictAspectRatioY;
+		ASSERT(0);
+		return E_FAIL;
 	}
+
+	CMediaType& mtOut = m_pOutput->CurrentMediaType();
+	DWORD wout = 0, hout = 0, arxout = 0, aryout = 0;
+	ExtractDim(&mtOut, wout, hout, arxout, aryout);
 
 	HRESULT hr = S_OK;
 
-	if(vihout->bmiHeader.biWidth < w || abs(vihout->bmiHeader.biHeight) != h
-	|| vihout->dwPictAspectRatioX != arx || vihout->dwPictAspectRatioY != ary)
+	if(win > wout || hin != hout || arxin != arxout && arxout || aryin != aryout && aryout)
 	{
-		CMediaType mt = mtOut;
+		mt = mtOut;
 
-		vihout = (VIDEOINFOHEADER2*)mt.Format();
-		vihout->bmiHeader.biWidth = w;
-		vihout->bmiHeader.biHeight = h;
-		vihout->bmiHeader.biSizeImage = w*h*vihout->bmiHeader.biBitCount>>3;
-//		vihout->bmiHeader.biXPelsPerMeter = w*ary;
-//		vihout->bmiHeader.biYPelsPerMeter = h*arx;
-		vihout->dwPictAspectRatioX = arx;
-		vihout->dwPictAspectRatioY = ary;
+		BITMAPINFOHEADER* bmi = NULL;
 
-		CComPtr<IPin> pPin = m_pOutput->GetConnected();
+		if(mt.formattype == FORMAT_VideoInfo)
+		{
+			VIDEOINFOHEADER* vih = (VIDEOINFOHEADER*)mt.Format();
+			bmi = &vih->bmiHeader;
+			bmi->biXPelsPerMeter = win * aryin;
+			bmi->biYPelsPerMeter = hin * arxin;
+		}
+		else if(mt.formattype == FORMAT_VideoInfo2)
+		{
+			VIDEOINFOHEADER2* vih = (VIDEOINFOHEADER2*)mt.Format();
+			bmi = &vih->bmiHeader;
+			vih->dwPictAspectRatioX = arxin;
+			vih->dwPictAspectRatioY = aryin;
+		}
 
-		// only the overlay mixer needs this, the vmr doesn't seem so
-		CComQIPtr<IMemInputPin> pMemPin = pPin;
-		CComPtr<IMemAllocator> pAlloc;
-		hr = pMemPin->GetAllocator(&pAlloc);
-		hr = pAlloc->Decommit();
-		ALLOCATOR_PROPERTIES props;
-		hr = pAlloc->GetProperties(&props);
-		props.cbBuffer = vihout->bmiHeader.biSizeImage;
-		hr = pAlloc->Commit();
-		if(FAILED(hr)) return hr;
+		if(win > wout || hin != hout)
+		{
+			bmi->biWidth = win;
+			bmi->biHeight = hin;
+			bmi->biSizeImage = win*hin*bmi->biBitCount>>3;
 
-		hr = pPin->ReceiveConnection(m_pOutput, &mt);
-		if(FAILED(hr)) return hr;
+			if(FAILED(hr = m_pOutput->GetConnected()->ReceiveConnection(m_pOutput, &mt)))
+				return hr;
 
-		NotifyEvent(EC_VIDEO_SIZE_CHANGED, MAKELPARAM(w, h), 0);
-		
+			// some renderers don't send this
+			NotifyEvent(EC_VIDEO_SIZE_CHANGED, MAKELPARAM(win, hin), 0);
+		}
+
+		// TODO: move this to the caller, maybe
 		m_pOutput->SetMediaType(&mt);
 	}
 
@@ -852,10 +759,10 @@ HRESULT CMpeg2DecFilter::CheckInputType(const CMediaType* mtIn)
 HRESULT CMpeg2DecFilter::CheckTransform(const CMediaType* mtIn, const CMediaType* mtOut)
 {
 	return SUCCEEDED(mtIn)
-		&& mtOut->majortype == MEDIATYPE_Video && (mtOut->subtype == MEDIASUBTYPE_YUY2
-												|| mtOut->subtype == MEDIASUBTYPE_YV12
-												|| mtOut->subtype == MEDIASUBTYPE_I420
-												|| mtOut->subtype == MEDIASUBTYPE_IYUV
+		&& mtOut->majortype == MEDIATYPE_Video && (mtOut->subtype == MEDIASUBTYPE_YV12 && IsPlanarYUVEnabled()
+												|| mtOut->subtype == MEDIASUBTYPE_I420 && IsPlanarYUVEnabled()
+												|| mtOut->subtype == MEDIASUBTYPE_IYUV && IsPlanarYUVEnabled()
+												|| mtOut->subtype == MEDIASUBTYPE_YUY2
 												|| mtOut->subtype == MEDIASUBTYPE_ARGB32
 												|| mtOut->subtype == MEDIASUBTYPE_RGB32
 												|| mtOut->subtype == MEDIASUBTYPE_RGB24
@@ -867,22 +774,10 @@ HRESULT CMpeg2DecFilter::CheckTransform(const CMediaType* mtIn, const CMediaType
 
 HRESULT CMpeg2DecFilter::CheckOutputMediaType(const CMediaType& mtOut)
 {
-	CMediaType& mt = m_pInput->CurrentMediaType();
-
-	int w = 0, h = 0;
-
-	if(mt.formattype == FORMAT_MPEGVideo)
-	{
-		w = ((MPEG1VIDEOINFO*)mt.Format())->hdr.bmiHeader.biWidth;
-		h = ((MPEG1VIDEOINFO*)mt.Format())->hdr.bmiHeader.biHeight;
-	}
-	else if(mt.formattype == FORMAT_MPEG2_VIDEO)
-	{
-		w = ((MPEG2VIDEOINFO*)mt.Format())->hdr.bmiHeader.biWidth;
-		h = ((MPEG2VIDEOINFO*)mt.Format())->hdr.bmiHeader.biHeight;
-	}
-
-	return mtOut.formattype == FORMAT_VideoInfo2 && h == abs(((VIDEOINFOHEADER2*)mtOut.Format())->bmiHeader.biHeight)
+	BITMAPINFOHEADER bihIn, bihOut;
+	return ExtractBIH(&m_pInput->CurrentMediaType(), &bihIn) 
+		&& ExtractBIH(&mtOut, &bihOut) 
+		&& bihIn.biHeight == abs(bihOut.biHeight)
 		? S_OK
 		: VFW_E_TYPE_NOT_ACCEPTED;
 }
@@ -931,45 +826,55 @@ HRESULT CMpeg2DecFilter::GetMediaType(int iPosition, CMediaType* pmt)
 		{&MEDIASUBTYPE_RGB555, 1, 16, BI_BITFIELDS},
 	};
 
+	// this will make sure we won't connect to the old renderer in dvd mode
+	// that renderer can't switch the format dynamically
+	if(GetCLSID(GetFilterFromPin(m_pInput->GetConnected())) == CLSID_DVDNavigator)
+		iPosition = iPosition*2;
+
 	if(iPosition < 0) return E_INVALIDARG;
-	if(iPosition >= sizeof(fmts)/sizeof(fmts[0])) return VFW_S_NO_MORE_ITEMS;
+	if(iPosition >= 2*sizeof(fmts)/sizeof(fmts[0])) return VFW_S_NO_MORE_ITEMS;
 
 	CMediaType& mt = m_pInput->CurrentMediaType();
 
-	BITMAPINFOHEADER bih;
-	ExtractBIH(&mt, &bih);
+	DWORD w = 0, h = 0, arx = 0, ary = 0;
+	ExtractDim(&mt, w, h, arx, ary);
 
 	pmt->majortype = MEDIATYPE_Video;
-	pmt->subtype = *fmts[iPosition].subtype;
+	pmt->subtype = *fmts[iPosition/2].subtype;
 
 	BITMAPINFOHEADER bihOut;
 	memset(&bihOut, 0, sizeof(bihOut));
 	bihOut.biSize = sizeof(bihOut);
-	bihOut.biWidth = bih.biWidth;
-	bihOut.biHeight = bih.biHeight;
-	bihOut.biPlanes = fmts[iPosition].biPlanes;
-	bihOut.biBitCount = fmts[iPosition].biBitCount;
-	bihOut.biCompression = fmts[iPosition].biCompression;
-	bihOut.biSizeImage = bih.biWidth*bih.biHeight*bihOut.biBitCount>>3;
+	bihOut.biWidth = w;
+	bihOut.biHeight = h;
+	bihOut.biPlanes = fmts[iPosition/2].biPlanes;
+	bihOut.biBitCount = fmts[iPosition/2].biBitCount;
+	bihOut.biCompression = fmts[iPosition/2].biCompression;
+	bihOut.biSizeImage = w*h*bihOut.biBitCount>>3;
 
-	pmt->formattype = FORMAT_VideoInfo2;
-	VIDEOINFOHEADER2* vih2 = (VIDEOINFOHEADER2*)pmt->AllocFormatBuffer(sizeof(VIDEOINFOHEADER2));
-	memset(vih2, 0, sizeof(VIDEOINFOHEADER2));
-	vih2->bmiHeader = bihOut;
-	vih2->AvgTimePerFrame = ((VIDEOINFOHEADER*)mt.Format())->AvgTimePerFrame;
-	vih2->dwBitRate = ((VIDEOINFOHEADER*)mt.Format())->dwBitRate;
-	vih2->dwBitErrorRate = ((VIDEOINFOHEADER*)mt.Format())->dwBitErrorRate;
+	if(iPosition&1)
+	{
+		pmt->formattype = FORMAT_VideoInfo;
+		VIDEOINFOHEADER* vih = (VIDEOINFOHEADER*)pmt->AllocFormatBuffer(sizeof(VIDEOINFOHEADER));
+		memset(vih, 0, sizeof(VIDEOINFOHEADER));
+		vih->bmiHeader = bihOut;
+		vih->bmiHeader.biXPelsPerMeter = vih->bmiHeader.biWidth * ary;
+		vih->bmiHeader.biYPelsPerMeter = vih->bmiHeader.biHeight * arx;
+	}
+	else
+	{
+		pmt->formattype = FORMAT_VideoInfo2;
+		VIDEOINFOHEADER2* vih = (VIDEOINFOHEADER2*)pmt->AllocFormatBuffer(sizeof(VIDEOINFOHEADER2));
+		memset(vih, 0, sizeof(VIDEOINFOHEADER2));
+		vih->bmiHeader = bihOut;
+		vih->dwPictAspectRatioX = arx;
+		vih->dwPictAspectRatioY = ary;
+	}
 
-	if(mt.formattype == FORMAT_MPEGVideo)
-	{
-		vih2->dwPictAspectRatioX = bih.biWidth*((MPEG1VIDEOINFO*)mt.Format())->hdr.bmiHeader.biYPelsPerMeter;
-		vih2->dwPictAspectRatioY = bih.biHeight*((MPEG1VIDEOINFO*)mt.Format())->hdr.bmiHeader.biXPelsPerMeter;
-	}
-	else if(mt.formattype == FORMAT_MPEG2_VIDEO)
-	{
-		vih2->dwPictAspectRatioX = ((VIDEOINFOHEADER2*)mt.Format())->dwPictAspectRatioX;
-		vih2->dwPictAspectRatioY = ((VIDEOINFOHEADER2*)mt.Format())->dwPictAspectRatioY;
-	}
+	// these fields have the same field offset in all four structs
+	((VIDEOINFOHEADER*)pmt->Format())->AvgTimePerFrame = ((VIDEOINFOHEADER*)mt.Format())->AvgTimePerFrame;
+	((VIDEOINFOHEADER*)pmt->Format())->dwBitRate = ((VIDEOINFOHEADER*)mt.Format())->dwBitRate;
+	((VIDEOINFOHEADER*)pmt->Format())->dwBitErrorRate = ((VIDEOINFOHEADER*)mt.Format())->dwBitErrorRate;
 
 	CorrectMediaType(pmt);
 
@@ -1001,7 +906,166 @@ HRESULT CMpeg2DecFilter::AlterQuality(Quality q)
 //	if(q.Late > 500*10000i64) m_fDropFrames = true;
 //	if(q.Late <= 0) m_fDropFrames = false;
 //	TRACE(_T("CMpeg2DecFilter::AlterQuality: Type=%d, Proportion=%d, Late=%I64d, TimeStamp=%I64d\n"), q.Type, q.Proportion, q.Late, q.TimeStamp);
-	return E_NOTIMPL;
+	return S_OK;
+}
+
+// IMpeg2DecFilter
+
+STDMETHODIMP CMpeg2DecFilter::SetDeinterlaceMethod(ditype di)
+{
+	CAutoLock cAutoLock(&m_csProps);
+	m_di = di;
+	return S_OK;
+}
+
+STDMETHODIMP_(ditype) CMpeg2DecFilter::GetDeinterlaceMethod()
+{
+	CAutoLock cAutoLock(&m_csProps);
+	return m_di;
+}
+
+void CMpeg2DecFilter::CalcBrCont(BYTE* YTbl, double bright, double cont)
+{
+	int Cont = (int)(cont * 512);
+	int Bright = (int)bright;
+
+	for(int i = 0; i < 256; i++)
+	{
+		int y = ((Cont * (i - 16)) >> 9) + Bright + 16;
+		YTbl[i] = min(max(y, 16), 235);
+	}
+}
+
+void CMpeg2DecFilter::CalcHueSat(BYTE* UTbl, BYTE* VTbl, double hue, double sat)
+{
+	int Sat = (int)(sat * 512);
+	double Hue = (hue * 3.1415926) / 180.0;
+	int Sin = (int)(sin(Hue) * 4096);
+	int Cos = (int)(cos(Hue) * 4096);
+
+	for(int y = 0; y < 256; y++)
+	{
+		for(int x = 0; x < 256; x++)
+		{
+			int u = x - 128; 
+			int v = y - 128;
+			int ux = (u * Cos + v * Sin) >> 12;
+			v = (v * Cos - u * Sin) >> 12;
+			u = ((ux * Sat) >> 9) + 128;
+			v = ((v * Sat) >> 9) + 128;
+			u = min(max(u,16),235);
+			v = min(max(v,16),235);
+			UTbl[(y << 8) | x] = u;
+			VTbl[(y << 8) | x] = v;
+		}
+	}
+}
+
+void CMpeg2DecFilter::ApplyBrContHueSat(BYTE* srcy, BYTE* srcu, BYTE* srcv, int w, int h, int pitch)
+{
+	CAutoLock cAutoLock(&m_csProps);
+
+	if(!(m_bright == 0 && m_cont == 1.0))
+	for(int y = 0; y < h; y++)
+	{
+		for(int x = 0; x < w; x++, srcy += pitch - w)
+		{
+			*srcy++ = m_YTbl[*srcy];
+		}
+	}
+
+	pitch /= 2;
+	w /= 2;
+	h /= 2;
+
+	if(!(m_hue == 0.0 && m_sat == 1.0))
+	for(int y = 0; y < h; y++, srcu += pitch - w, srcv += pitch - w)
+	{
+		for(int x = 0; x < w; x++)
+		{
+			WORD uv = (*srcv<<8)|*srcu;
+			*srcu++ = m_UTbl[uv];
+			*srcv++ = m_VTbl[uv];
+		}
+	}
+}
+
+STDMETHODIMP CMpeg2DecFilter::SetBrightness(double bright)
+{
+	CAutoLock cAutoLock(&m_csProps);
+	CalcBrCont(m_YTbl, m_bright = bright, m_cont);
+	return S_OK;
+}
+
+STDMETHODIMP CMpeg2DecFilter::SetContrast(double cont)
+{
+	CAutoLock cAutoLock(&m_csProps);
+	CalcBrCont(m_YTbl, m_bright, m_cont = cont);
+	return S_OK;
+}
+
+STDMETHODIMP CMpeg2DecFilter::SetHue(double hue)
+{
+	CAutoLock cAutoLock(&m_csProps);
+	CalcHueSat(m_UTbl, m_VTbl, m_hue = hue, m_sat);
+	return S_OK;
+}
+
+STDMETHODIMP CMpeg2DecFilter::SetSaturation(double sat)
+{
+	CAutoLock cAutoLock(&m_csProps);
+	CalcHueSat(m_UTbl, m_VTbl, m_hue, m_sat = sat);
+	return S_OK;
+}
+
+STDMETHODIMP_(double) CMpeg2DecFilter::GetBrightness()
+{
+	CAutoLock cAutoLock(&m_csProps);
+	return m_bright;
+}
+
+STDMETHODIMP_(double) CMpeg2DecFilter::GetContrast()
+{
+	CAutoLock cAutoLock(&m_csProps);
+	return m_cont;
+}
+
+STDMETHODIMP_(double) CMpeg2DecFilter::GetHue()
+{
+	CAutoLock cAutoLock(&m_csProps);
+	return m_hue;
+}
+
+STDMETHODIMP_(double) CMpeg2DecFilter::GetSaturation()
+{
+	CAutoLock cAutoLock(&m_csProps);
+	return m_sat;
+}
+
+STDMETHODIMP CMpeg2DecFilter::EnableForcedSubtitles(bool fEnable)
+{
+	CAutoLock cAutoLock(&m_csProps);
+	m_fForcedSubs = fEnable;
+	return S_OK;
+}
+
+STDMETHODIMP_(bool) CMpeg2DecFilter::IsForcedSubtitlesEnabled()
+{
+	CAutoLock cAutoLock(&m_csProps);
+	return m_fForcedSubs;
+}
+
+STDMETHODIMP CMpeg2DecFilter::EnablePlanarYUV(bool fEnable)
+{
+	CAutoLock cAutoLock(&m_csProps);
+	m_fPlanarYUV = fEnable;
+	return S_OK;
+}
+
+STDMETHODIMP_(bool) CMpeg2DecFilter::IsPlanarYUVEnabled()
+{
+	CAutoLock cAutoLock(&m_csProps);
+	return m_fPlanarYUV;
 }
 
 //
@@ -1275,7 +1339,7 @@ bool CSubpicInputPin::DecodeSubpic(sp_t* sp, AM_PROPERTY_SPHLI& sphli, DWORD& of
 	WORD packetsize = (p[0]<<8)|p[1];
 	WORD datasize = (p[2]<<8)|p[3];
 
-    if(packetsize > sp->pData.GetSize()-4 || datasize > packetsize)
+    if(packetsize > sp->pData.GetSize() || datasize > packetsize)
 		return(false);
 
 	int i, next = datasize;
@@ -1518,7 +1582,8 @@ void CSubpicInputPin::RenderSubpics(REFERENCE_TIME rt, BYTE** p, int w, int h)
 	while(pos)
 	{
 		sp_t* sp = m_sps.GetNext(pos);
-		if(sp->rtStart <= rt && rt < sp->rtStop && (/*sp->sphli ||*/ sp->fForced || m_spon))
+		if(sp->rtStart <= rt && rt < sp->rtStop 
+		&& (m_spon || sp->fForced && (((CMpeg2DecFilter*)m_pFilter)->IsForcedSubtitlesEnabled() || sp->sphli)))
 		{
 			RenderSubpic(sp, p, w, h, sp->sphli);
 		}

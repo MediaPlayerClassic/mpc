@@ -24,6 +24,7 @@
 #include "afxcmn.h"
 #include "PPageBase.h"
 #include "FloatEdit.h"
+#include "..\..\filters\switcher\AudioSwitcher\AudioSwitcher.h"
 
 // CPPageAudioSwitcher dialog
 
@@ -32,12 +33,12 @@ class CPPageAudioSwitcher : public CPPageBase
 	DECLARE_DYNAMIC(CPPageAudioSwitcher)
 
 private:
-	CComPtr<IUnknown> m_pAudioSwitcher;
+	CComQIPtr<IAudioSwitcherFilter> m_pAudioSwitcher;
 	DWORD m_pSpeakerToChannelMap[18][18];
 	DWORD m_dwChannelMask;
 
 public:
-	CPPageAudioSwitcher(IUnknown* pAudioSwitcher);
+	CPPageAudioSwitcher(IFilterGraph* pFG);
 	virtual ~CPPageAudioSwitcher();
 
 // Dialog Data

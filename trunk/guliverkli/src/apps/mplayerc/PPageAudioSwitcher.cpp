@@ -25,12 +25,12 @@
 #include "stdafx.h"
 #include "mplayerc.h"
 #include "PPageAudioSwitcher.h"
-#include "..\..\filters\switcher\AudioSwitcher\AudioSwitcher.h"
+#include "..\..\DSUtil\DSUtil.h"
 
 // CPPageAudioSwitcher dialog
 
 IMPLEMENT_DYNAMIC(CPPageAudioSwitcher, CPPageBase)
-CPPageAudioSwitcher::CPPageAudioSwitcher(IUnknown* pAudioSwitcher)
+CPPageAudioSwitcher::CPPageAudioSwitcher(IFilterGraph* pFG)
 	: CPPageBase(CPPageAudioSwitcher::IDD, CPPageAudioSwitcher::IDD)
 	, m_fDownSampleTo441(FALSE)
 	, m_fCustomChannelMapping(FALSE)
@@ -40,7 +40,7 @@ CPPageAudioSwitcher::CPPageAudioSwitcher(IUnknown* pAudioSwitcher)
 	, m_tAudioTimeShift(0)
 	, m_fAudioTimeShift(FALSE)
 {
-	m_pAudioSwitcher = pAudioSwitcher;
+	m_pAudioSwitcher = FindFilter(__uuidof(CAudioSwitcherFilter), pFG);
 }
 
 CPPageAudioSwitcher::~CPPageAudioSwitcher()
@@ -100,14 +100,14 @@ BOOL CPPageAudioSwitcher::OnInitDialog()
 	m_fCustomChannelMapping = s.fCustomChannelMapping;
 	memcpy(m_pSpeakerToChannelMap, s.pSpeakerToChannelMap, sizeof(s.pSpeakerToChannelMap));
 
-	if(CComQIPtr<IAudioSwitcherFilter> pASF = m_pAudioSwitcher)
-		pASF->GetInputSpeakerConfig(&m_dwChannelMask);
+	if(m_pAudioSwitcher)
+		m_pAudioSwitcher->GetInputSpeakerConfig(&m_dwChannelMask);
 
 	m_nChannels = 1;
 	m_nChannelsSpinCtrl.SetRange(1, 18);
 
-	if(CComQIPtr<IAudioSwitcherFilter> pASF = m_pAudioSwitcher)
-		m_nChannels = pASF->GetNumberOfInputChannels();		
+	if(m_pAudioSwitcher)
+		m_nChannels = m_pAudioSwitcher->GetNumberOfInputChannels();		
 
 	m_list.InsertColumn(0, _T(""), LVCFMT_LEFT, 100);
 	m_list.InsertItem(0, _T(""));
@@ -160,11 +160,11 @@ BOOL CPPageAudioSwitcher::OnApply()
 	s.fCustomChannelMapping = !!m_fCustomChannelMapping;
 	memcpy(s.pSpeakerToChannelMap, m_pSpeakerToChannelMap, sizeof(m_pSpeakerToChannelMap));
 
-	if(CComQIPtr<IAudioSwitcherFilter> pASF = m_pAudioSwitcher)
+	if(m_pAudioSwitcher)
 	{
-		pASF->SetSpeakerConfig(s.fCustomChannelMapping, m_pSpeakerToChannelMap);
-		pASF->EnableDownSamplingTo441(s.fDownSampleTo441);
-		pASF->SetAudioTimeShift(m_fAudioTimeShift ? 10000i64*m_tAudioTimeShift : 0);
+		m_pAudioSwitcher->SetSpeakerConfig(s.fCustomChannelMapping, m_pSpeakerToChannelMap);
+		m_pAudioSwitcher->EnableDownSamplingTo441(s.fDownSampleTo441);
+		m_pAudioSwitcher->SetAudioTimeShift(m_fAudioTimeShift ? 10000i64*m_tAudioTimeShift : 0);
 	}
 
 	return __super::OnApply();

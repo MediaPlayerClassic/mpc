@@ -80,7 +80,7 @@ public:
 	static WNDPROC m_wndProc;
 	static LRESULT CALLBACK WindowProcNew(HWND hwnd,UINT message, WPARAM wParam, LPARAM lParam);
 
-	void OnInitDone();
+	virtual BOOL OnInitDialog();
 
 protected:
 	DECLARE_MESSAGE_MAP()
