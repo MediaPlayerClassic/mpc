@@ -36,6 +36,7 @@ class GSStateSoft : public GSState
 	void FlushPrim();
 	void Flip();
 	void EndFrame();
+	void InvalidateTexture(DWORD TBP0);
 
 	enum {PRIM_NONE, PRIM_SPRITE, PRIM_TRIANGLE, PRIM_LINE, PRIM_POINT} m_primtype;
 	GSSoftVertex* m_pVertices;
@@ -46,6 +47,25 @@ class GSStateSoft : public GSState
 	void DrawTriangle(GSSoftVertex* v);
 	void DrawSprite(GSSoftVertex* v);
 	void DrawVertex(int x, int y, GSSoftVertex& v);
+
+	class CTexture
+	{
+	public:
+		GIFRegTEX0 m_TEX0;
+		GIFRegTEXA m_TEXA;
+		GIFRegTEXCLUT m_TEXCLUT;
+		DWORD* m_pTexture;
+		CTexture() {m_pTexture = NULL;}
+		~CTexture() {delete [] m_pTexture;}
+	};
+
+	CAutoPtrList<CTexture> m_tc;
+
+	DWORD* m_pTexture;
+	void SetTexture();
+	CTexture* LookupTexture();
+
+	BYTE m_clip[512+256+512];
 
 public:
 	GSStateSoft(HWND hWnd, HRESULT& hr);

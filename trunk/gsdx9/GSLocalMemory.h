@@ -131,7 +131,12 @@ public:
 	typedef DWORD (GSLocalMemory::*readTexel)(int x, int y, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
 	readTexel GetReadTexel(DWORD psm);
 
+	void writeFrame16(int x, int y, DWORD c, DWORD bp, DWORD bw);
+	void writeFrame16S(int x, int y, DWORD c, DWORD bp, DWORD bw);
+
+	typedef void (GSLocalMemory::*writeFrame)(int x, int y, DWORD c, DWORD bp, DWORD bw);
+	writeFrame GetWriteFrame(DWORD psm);
+
 	void setupCLUT(GIFRegTEX0 TEX0, GIFRegTEXCLUT& TEXCLUT, GIFRegTEXA& TEXA); // modifies TEX0!
 	DWORD readCLUT(BYTE c);
-
 };

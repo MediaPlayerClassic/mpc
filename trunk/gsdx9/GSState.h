@@ -62,7 +62,7 @@ struct GSDrawingContext
 	GIFRegZBUF		ZBUF;
 
 	GSLocalMemory::readTexel rp;
-	GSLocalMemory::writePixel wp;
+	GSLocalMemory::writeFrame wf;
 	GSLocalMemory::readPixel rz;
 	GSLocalMemory::writePixel wz;
 	GSLocalMemory::readTexel rt;
