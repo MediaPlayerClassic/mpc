@@ -16,8 +16,7 @@
 // Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA, or visit
 // http://www.gnu.org/copyleft/gpl.html
 
-// ChildView.cpp : implementation of the CChildView 
-class
+// ChildView.cpp : implementation of the CChildView class
 //
 
 #include "stdafx.h"
