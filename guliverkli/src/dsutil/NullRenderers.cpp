@@ -114,6 +114,7 @@ HRESULT CNullUAudioRenderer::CheckMediaType(const CMediaType* pmt)
 HRESULT CNullTextRenderer::CTextInputPin::CheckMediaType(const CMediaType* pmt)
 {
 	return pmt->majortype == MEDIATYPE_Text
+		|| pmt->majortype == MEDIATYPE_ScriptCommand
 		|| pmt->majortype == MEDIATYPE_Subtitle 
 		|| pmt->subtype == MEDIASUBTYPE_DVD_SUBPICTURE 
 		|| pmt->subtype == MEDIASUBTYPE_CVD_SUBPICTURE 

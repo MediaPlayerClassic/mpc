@@ -34,6 +34,7 @@ CPPageLogo::CPPageLogo()
 	: CPPageBase(CPPageLogo::IDD, CPPageLogo::IDD)
 	, m_intext(0)
 	, m_logofn(_T(""))
+	, m_author(_T(""))
 {
 	m_logoids.AddTail(IDB_LOGO0);
 	m_logoids.AddTail(IDB_LOGO1);
@@ -42,6 +43,7 @@ CPPageLogo::CPPageLogo()
 	m_logoids.AddTail(IDB_LOGO4);
 	m_logoids.AddTail(IDB_LOGO5);
 	m_logoids.AddTail(IDB_LOGO6);
+	m_logoids.AddTail(IDB_LOGO7);
 }
 
 CPPageLogo::~CPPageLogo()
@@ -54,6 +56,7 @@ void CPPageLogo::DoDataExchange(CDataExchange* pDX)
 	DDX_Radio(pDX, IDC_RADIO1, m_intext);
 	DDX_Text(pDX, IDC_LOGOFILENAME, m_logofn);
 	DDX_Control(pDX, IDC_LOGOPREVIEW, m_logopreview);
+	DDX_Text(pDX, IDC_AUTHOR, m_author);
 }
 
 
@@ -115,9 +118,16 @@ void CPPageLogo::OnBnClickedRadio1()
 {
 	ASSERT(m_logoidpos);
 
+	m_author.Empty();
+
 	m_logobm.Destroy();
-	if(IDB_LOGO0 != m_logoids.GetAt(m_logoidpos))
-		m_logobm.LoadFromResource(::AfxGetInstanceHandle(), m_logoids.GetAt(m_logoidpos));
+	UINT id = m_logoids.GetAt(m_logoidpos);
+	if(IDB_LOGO0 != id)
+	{
+		m_logobm.LoadFromResource(::AfxGetInstanceHandle(), id);
+		if(!m_author.LoadString(id))
+			m_author = _T("Author unknown. Contact me if you made this logo!");
+	}
 	m_logopreview.SetBitmap(m_logobm);
 	Invalidate();
 
@@ -130,6 +140,8 @@ void CPPageLogo::OnBnClickedRadio1()
 void CPPageLogo::OnBnClickedRadio2()
 {
 	UpdateData();
+
+	m_author.Empty();
 
 	m_logobm.Destroy();
 	if(AfxGetAppSettings().fXpOrBetter)

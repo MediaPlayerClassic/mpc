@@ -147,7 +147,7 @@ protected:
 
 	bool InitDeliverLoop();
 	void SeekDeliverLoop(REFERENCE_TIME rt);
-	void DoDeliverLoop();
+	bool DoDeliverLoop();
 
 public:
 	COggSplitterFilter(LPUNKNOWN pUnk, HRESULT* phr);

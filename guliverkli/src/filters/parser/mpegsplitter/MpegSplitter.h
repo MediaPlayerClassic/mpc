@@ -33,7 +33,7 @@ protected:
 
 	bool InitDeliverLoop();
 	void SeekDeliverLoop(REFERENCE_TIME rt);
-	void DoDeliverLoop();
+	bool DoDeliverLoop();
 
 public:
 	CMpegSplitterFilter(LPUNKNOWN pUnk, HRESULT* phr);
@@ -60,4 +60,17 @@ public:
 #ifdef REGISTER_FILTER
     static CUnknown* WINAPI CreateInstance(LPUNKNOWN lpunk, HRESULT* phr);
 #endif
+};
+
+class CMpegSplitterOutputPin : public CBaseSplitterOutputPin, protected CCritSec
+{
+	CAutoPtr<Packet> m_p;
+
+protected:
+	HRESULT DeliverPacket(CAutoPtr<Packet> p);
+	HRESULT DeliverEndFlush();
+
+public:
+	CMpegSplitterOutputPin(CArray<CMediaType>& mts, LPCWSTR pName, CBaseFilter* pFilter, CCritSec* pLock, HRESULT* phr);
+	virtual ~CMpegSplitterOutputPin();
 };

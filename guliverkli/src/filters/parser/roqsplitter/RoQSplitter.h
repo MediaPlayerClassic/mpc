@@ -56,7 +56,7 @@ protected:
 
 	bool InitDeliverLoop();
 	void SeekDeliverLoop(REFERENCE_TIME rt);
-	void DoDeliverLoop();
+	bool DoDeliverLoop();
 
 public:
 	CRoQSplitterFilter(LPUNKNOWN pUnk, HRESULT* phr);

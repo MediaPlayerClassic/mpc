@@ -322,7 +322,17 @@ BOOL COpenFileDialog::OnIncludeItem(OFNOTIFYEX* pOFNEx, LRESULT* pResult)
 {
 	TCHAR buff[MAX_PATH];
 	if(!SHGetPathFromIDList((LPCITEMIDLIST)pOFNEx->pidl, buff)) 
-		return FALSE;
+	{
+		STRRET s;
+		HRESULT hr = ((IShellFolder*)pOFNEx->psf)->GetDisplayNameOf((LPCITEMIDLIST)pOFNEx->pidl, SHGDN_NORMAL|SHGDN_FORPARSING, &s);
+		if(S_OK != hr) return FALSE;
+		switch(s.uType)
+		{
+		case STRRET_CSTR: _tcscpy(buff, CString(s.cStr)); break;
+		case STRRET_WSTR: _tcscpy(buff, CString(s.pOleStr)); SHFree(s.pOleStr); break;
+		default: return FALSE;
+		}
+	}
 
 	CString fn(buff);
 /*

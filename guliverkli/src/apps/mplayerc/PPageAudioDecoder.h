@@ -24,6 +24,7 @@
 #include "PPageBase.h"
 #include "..\..\filters\transform\MpaDecFilter\MpaDecFilter.h"
 #include "afxwin.h"
+#include "afxcmn.h"
 
 // CPPageAudioDecoder dialog
 
@@ -52,6 +53,9 @@ public:
 	BOOL m_fDtsSpeakerConfigLFE;
 	BOOL m_fDtsDynamicRangeControl;
 	CComboBox m_dtssclist;
+	int m_iAacSpeakerConfig;
+	int m_boost;
+	CSliderCtrl m_boostctrl;
 
 protected:
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV support
@@ -59,4 +63,6 @@ protected:
 	virtual BOOL OnApply();
 
 	DECLARE_MESSAGE_MAP()
+public:
+	afx_msg void OnHScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrollBar);
 };

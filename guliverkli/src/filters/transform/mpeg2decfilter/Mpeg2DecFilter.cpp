@@ -261,6 +261,7 @@ HRESULT CMpeg2DecFilter::NewSegment(REFERENCE_TIME tStart, REFERENCE_TIME tStop,
 {
 	CAutoLock cAutoLock(&m_csReceive);
 	m_pClosedCaptionOutput->DeliverNewSegment(tStart, tStop, dRate);
+	m_fDropFrames = false;
 	return __super::NewSegment(tStart, tStop, dRate);
 }
 
@@ -348,6 +349,16 @@ HRESULT CMpeg2DecFilter::Receive(IMediaSample* pIn)
 */			m_dec->m_picture->rtStart = rtStart;
 			rtStart = _I64_MIN;
 			m_dec->m_picture->fDelivered = false;
+
+			if(m_fDropFrames && (m_dec->m_picture->flags&PIC_MASK_CODING_TYPE) == PIC_FLAG_CODING_TYPE_B)
+			{
+				m_dec->mpeg2_skip(true);
+			}
+			else
+			{
+				m_dec->mpeg2_skip(false);
+			}
+
 			break;
 		case STATE_SLICE:
 		case STATE_END:
@@ -356,7 +367,7 @@ HRESULT CMpeg2DecFilter::Receive(IMediaSample* pIn)
 				mpeg2_picture_t* picture_2nd = m_dec->m_info.m_display_picture_2nd;
 				mpeg2_fbuf_t* fbuf = m_dec->m_info.m_display_fbuf;
 
-				if(picture && fbuf)
+				if(picture && fbuf && !(picture->flags&PIC_FLAG_SKIP))
 				{
 					ASSERT(!picture->fDelivered);
 
@@ -969,8 +980,11 @@ HRESULT CMpeg2DecFilter::StopStreaming()
 
 HRESULT CMpeg2DecFilter::AlterQuality(Quality q)
 {
-//	if(q.Late > 500*10000i64) m_fDropFrames = true;
-//	if(q.Late <= 0) m_fDropFrames = false;
+	if(q.Late > 100*10000i64) 
+		m_fDropFrames = true;
+	else if(q.Late <= 0) 
+		m_fDropFrames = false;
+
 //	TRACE(_T("CMpeg2DecFilter::AlterQuality: Type=%d, Proportion=%d, Late=%I64d, TimeStamp=%I64d\n"), q.Type, q.Proportion, q.Late, q.TimeStamp);
 	return S_OK;
 }

@@ -2765,10 +2765,12 @@ BOOL CMainFrame::OnCopyData(CWnd* pWnd, COPYDATASTRUCT* pCDS)
 		}
 	}
 
+	bool fSetForegroundWindow = false;
+
 	if((s.nCLSwitches&CLSW_DVD) && !s.slFiles.IsEmpty())
 	{
 		SendMessage(WM_COMMAND, ID_FILE_CLOSEMEDIA);
-		SetForegroundWindow();
+		fSetForegroundWindow = true;
 
 		CAutoPtr<OpenDVDData> p(new OpenDVDData());
 		if(p) {p->path = s.slFiles.GetHead(); p->subs.AddTail(&s.slSubs);}
@@ -2777,7 +2779,7 @@ BOOL CMainFrame::OnCopyData(CWnd* pWnd, COPYDATASTRUCT* pCDS)
 	else if(s.nCLSwitches&CLSW_CD)
 	{
 		SendMessage(WM_COMMAND, ID_FILE_CLOSEMEDIA);
-		SetForegroundWindow();
+		fSetForegroundWindow = true;
 
 		CStringList sl;
 
@@ -2822,7 +2824,7 @@ BOOL CMainFrame::OnCopyData(CWnd* pWnd, COPYDATASTRUCT* pCDS)
 		else
 		{
 			SendMessage(WM_COMMAND, ID_FILE_CLOSEMEDIA);
-			SetForegroundWindow();
+			fSetForegroundWindow = true;
 
 			m_wndPlaylistBar.Open(sl, fMulti, &s.slSubs);
 			OpenCurPlaylistItem((s.nCLSwitches&CLSW_STARTVALID) ? s.rtStart : 0);
@@ -2835,6 +2837,11 @@ BOOL CMainFrame::OnCopyData(CWnd* pWnd, COPYDATASTRUCT* pCDS)
 	{
 		s.nCLSwitches = CLSW_NONE;
 	}
+
+	if(fSetForegroundWindow && !(s.nCLSwitches&CLSW_NOFOCUS))
+		SetForegroundWindow();
+
+	s.nCLSwitches &= ~CLSW_NOFOCUS;
 
 	return TRUE;
 }
@@ -3717,7 +3724,7 @@ void CMainFrame::OnPlayStop()
 	{
 		KillTimer(TIMER_STREAMPOSPOLLER2);
 		KillTimer(TIMER_STREAMPOSPOLLER);
-//		KillTimer(TIMER_STATS);
+		KillTimer(TIMER_STATS);
 
 		MoveVideoWindow();
 
@@ -5990,33 +5997,6 @@ void CMainFrame::OpenCustomizeGraph()
 					}
 				}
 			}
-		}
-	}
-	EndEnumFilters
-
-	BeginEnumFilters(pGB, pEF, pBF)
-	{
-		if(CComQIPtr<IMpeg2DecFilter> m_pMpeg2DecFilter = pBF)
-		{
-			AppSettings& s = AfxGetAppSettings();
-			m_pMpeg2DecFilter->SetDeinterlaceMethod((ditype)s.mpegdi);
-			m_pMpeg2DecFilter->SetBrightness(s.mpegbright);
-			m_pMpeg2DecFilter->SetContrast(s.mpegcont);
-			m_pMpeg2DecFilter->SetHue(s.mpeghue);
-			m_pMpeg2DecFilter->SetSaturation(s.mpegsat);
-			m_pMpeg2DecFilter->EnableForcedSubtitles(s.mpegforcedsubs);
-			m_pMpeg2DecFilter->EnablePlanarYUV(s.mpegplanaryuv);
-		}
-
-		if(CComQIPtr<IMpaDecFilter> m_pMpaDecFilter = pBF)
-		{
-			AppSettings& s = AfxGetAppSettings();
-			m_pMpaDecFilter->SetSampleFormat((SampleFormat)s.mpasf);
-			m_pMpaDecFilter->SetNormalize(s.mpanormalize);
-			m_pMpaDecFilter->SetSpeakerConfig(IMpaDecFilter::ac3, s.ac3sc);
-			m_pMpaDecFilter->SetDynamicRangeControl(IMpaDecFilter::ac3, s.ac3drc);
-			m_pMpaDecFilter->SetSpeakerConfig(IMpaDecFilter::dts, s.dtssc);
-			m_pMpaDecFilter->SetDynamicRangeControl(IMpaDecFilter::dts, s.dtsdrc);
 		}
 	}
 	EndEnumFilters

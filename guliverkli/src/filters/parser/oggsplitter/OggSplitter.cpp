@@ -530,7 +530,7 @@ t1 = clock();
 	}
 }
 
-void COggSplitterFilter::DoDeliverLoop()
+bool COggSplitterFilter::DoDeliverLoop()
 {
 	HRESULT hr = S_OK;
 
@@ -548,6 +548,8 @@ void COggSplitterFilter::DoDeliverLoop()
 				hr = DeliverPacket(p);
 		}
 	}
+
+	return(true);
 }
 
 // IChapterInfo

@@ -95,6 +95,7 @@ bool CAviReportWnd::DoModal(CAviFile* pAF, bool fHideChecked, bool fShowWarningT
 	ReleaseDC(pDC);
 
 	SetWindowPos(&wndTop, 0, 0, 0, 0, SWP_NOMOVE|SWP_NOSIZE);
+	SetForegroundWindow();
 	ShowWindow(SW_SHOWNORMAL);
 
 	return !!RunModalLoop();

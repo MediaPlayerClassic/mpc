@@ -5,7 +5,8 @@
 #include <initguid.h>
 #include "..\..\..\..\include\moreuuids.h"
 
-#define MEGABYTE 1024*10240
+#define MEGABYTE 1024*1024
+#define ISVALIDPID(pid) (pid >= 0x10 && pid < 0x1fff)
 
 CMpegSplitterFile::CMpegSplitterFile(IAsyncReader* pAsyncReader, HRESULT& hr)
 	: CBaseSplitterFile(pAsyncReader, hr)
@@ -19,6 +20,7 @@ HRESULT CMpegSplitterFile::Init()
 	HRESULT hr;
 
 	// get the type first
+
 	m_type = us;
 
 	Seek(0);
@@ -73,7 +75,7 @@ HRESULT CMpegSplitterFile::Init()
 	for(__int64 pfp = 0; fps.GetCount(); )
 	{
 		__int64 fp = fps.RemoveHead();
-		fp = min(GetLength() - MEGABYTE/4, fp);
+		fp = min(GetLength() - MEGABYTE/8, fp);
 		fp = max(pfp, fp);
 		__int64 nfp = fp + (pfp == 0 ? 5*MEGABYTE : MEGABYTE/8);
 		if(FAILED(hr = SearchStreams(fp, nfp)))
@@ -158,7 +160,7 @@ REFERENCE_TIME CMpegSplitterFile::NextPTS(DWORD TrackNum)
 
 			__int64 pos = GetPos();
 
-			if(h.payload && h.payloadstart && h.pid >= 16 && h.pid < 0x1fff)
+			if(h.payload && h.payloadstart && ISVALIDPID(h.pid))
 			{
 				peshdr h2;
 				if(Next(b, 4) && Read(h2, b)) // pes packet
@@ -232,7 +234,7 @@ HRESULT CMpegSplitterFile::SearchStreams(__int64 start, __int64 stop)
 
 			__int64 pos = GetPos();
 
-			if(h.payload && h.payloadstart && h.pid >= 16 && h.pid < 0x1fff)
+			if(h.payload && h.payloadstart && ISVALIDPID(h.pid))
 			{
 				peshdr h2;
 				if(Next(b, 4) && Read(h2, b)) // pes packet
@@ -280,66 +282,94 @@ DWORD CMpegSplitterFile::AddStream(WORD pid, BYTE pesid, DWORD len)
 
 		if(type == unknown)
 		{
-		Seek(pos);
+			Seek(pos);
 
-		CMpegSplitterFile::aachdr h2;
-		if(!m_streams[audio].Find(s) && Read(h2, len, &s.mt))
-			type = audio;
+			CMpegSplitterFile::aachdr h;
+			if(!m_streams[audio].Find(s) && Read(h, len, &s.mt))
+				type = audio;
 		}
 	}
 	else if(pesid == 0xbd) // private stream 1
 	{
-		BYTE b = (BYTE)BitRead(8, true);
-		WORD w = (WORD)BitRead(16, true);
-		DWORD dw = (DWORD)BitRead(32, true);
+		if(s.pid)
+		{
+			if(!m_streams[audio].Find(s))
+			{
+				__int64 pos = GetPos();
 
-		if(b >= 0x80 && b < 0x88 || w == 0x0b77) // ac3
-		{
-			s.ps1id = (b >= 0x80 && b < 0x88) ? (BYTE)(BitRead(32) >> 24) : 0x80;
-	
-			CMpegSplitterFile::ac3hdr h;
-			if(!m_streams[audio].Find(s) && Read(h, len, &s.mt))
-				type = audio;
-		}
-		else if(b >= 0x88 && b < 0x90 || dw == 0x7ffe8001) // dts
-		{
-			s.ps1id = (b >= 0x88 && b < 0x90) ? (BYTE)(BitRead(32) >> 24) : 0x88;
+				if(type == unknown)
+				{
+					CMpegSplitterFile::ac3hdr h;
+					if(Read(h, len, &s.mt))
+						type = audio;
+				}
 
-			CMpegSplitterFile::dtshdr h;
-			if(!m_streams[audio].Find(s) && Read(h, len, &s.mt))
-				type = audio;
-		}
-		else if(b >= 0xa0 && b < 0xa8) // lpcm
-		{
-			s.ps1id = (b >= 0xa0 && b < 0xa8) ? (BYTE)(BitRead(32) >> 24) : 0xa0;
-			
-			CMpegSplitterFile::lpcmhdr h;
-			if(Read(h, &s.mt) && !m_streams[audio].Find(s)) // note the reversed order, the header should be stripped always even if it's not a new stream
-				type = audio;
-		}
-		else if(b >= 0x20 && b < 0x40) // DVD subpic
-		{
-			s.ps1id = (BYTE)BitRead(8);
+				Seek(pos);
 
-			CMpegSplitterFile::dvdspuhdr h;
-			if(!m_streams[subpic].Find(s) && Read(h, &s.mt))
-				type = subpic;
-		}
-		else if(b >= 0x70 && b < 0x80) // SVCD subpic
-		{
-			s.ps1id = (BYTE)BitRead(8);
+				if(type == unknown)
+				{
+					CMpegSplitterFile::dtshdr h;
+					if(Read(h, len, &s.mt))
+						type = audio;
+				}
 
-			CMpegSplitterFile::svcdspuhdr h;
-			if(!m_streams[subpic].Find(s) && Read(h, &s.mt))
-				type = subpic;
+				Seek(pos);
+			}
 		}
-		else if(b >= 0x00 && b < 0x10) // CVD subpic
+		else
 		{
-			s.ps1id = (BYTE)BitRead(8);
+			BYTE b = (BYTE)BitRead(8, true);
+			WORD w = (WORD)BitRead(16, true);
+			DWORD dw = (DWORD)BitRead(32, true);
 
-			CMpegSplitterFile::cvdspuhdr h;
-			if(!m_streams[subpic].Find(s) && Read(h, &s.mt))
-				type = subpic;
+			if(b >= 0x80 && b < 0x88 || w == 0x0b77) // ac3
+			{
+				s.ps1id = (b >= 0x80 && b < 0x88) ? (BYTE)(BitRead(32) >> 24) : 0x80;
+		
+				CMpegSplitterFile::ac3hdr h;
+				if(!m_streams[audio].Find(s) && Read(h, len, &s.mt))
+					type = audio;
+			}
+			else if(b >= 0x88 && b < 0x90 || dw == 0x7ffe8001) // dts
+			{
+				s.ps1id = (b >= 0x88 && b < 0x90) ? (BYTE)(BitRead(32) >> 24) : 0x88;
+
+				CMpegSplitterFile::dtshdr h;
+				if(!m_streams[audio].Find(s) && Read(h, len, &s.mt))
+					type = audio;
+			}
+			else if(b >= 0xa0 && b < 0xa8) // lpcm
+			{
+				s.ps1id = (b >= 0xa0 && b < 0xa8) ? (BYTE)(BitRead(32) >> 24) : 0xa0;
+				
+				CMpegSplitterFile::lpcmhdr h;
+				if(Read(h, &s.mt) && !m_streams[audio].Find(s)) // note the reversed order, the header should be stripped always even if it's not a new stream
+					type = audio;
+			}
+			else if(b >= 0x20 && b < 0x40) // DVD subpic
+			{
+				s.ps1id = (BYTE)BitRead(8);
+
+				CMpegSplitterFile::dvdspuhdr h;
+				if(!m_streams[subpic].Find(s) && Read(h, &s.mt))
+					type = subpic;
+			}
+			else if(b >= 0x70 && b < 0x80) // SVCD subpic
+			{
+				s.ps1id = (BYTE)BitRead(8);
+
+				CMpegSplitterFile::svcdspuhdr h;
+				if(!m_streams[subpic].Find(s) && Read(h, &s.mt))
+					type = subpic;
+			}
+			else if(b >= 0x00 && b < 0x10) // CVD subpic
+			{
+				s.ps1id = (BYTE)BitRead(8);
+
+				CMpegSplitterFile::cvdspuhdr h;
+				if(!m_streams[subpic].Find(s) && Read(h, &s.mt))
+					type = subpic;
+			}
 		}
 	}
 	else if(pesid == 0xbe) // padding
@@ -467,7 +497,7 @@ bool CMpegSplitterFile::Read(peshdr& h, BYTE code)
 			if(h.len) h.len -= 2;
 			b = (BYTE)BitRead(2);
 		}
-		
+
 		if(b == 0)
 		{
 			h.fpts = (BYTE)BitRead(1);
@@ -834,19 +864,22 @@ bool CMpegSplitterFile::Read(aachdr& h, int len, CMediaType* pmt)
 
 	if(!pmt) return(true);
 
-	// TODO
-
-	WAVEFORMATEX wfe;
-	memset(&wfe, 0, sizeof(wfe));
-	wfe.wFormatTag = WAVE_FORMAT_AAC;
-	wfe.nChannels = h.channels <= 6 ? h.channels : 2;
+	WAVEFORMATEX* wfe = (WAVEFORMATEX*)new BYTE[sizeof(WAVEFORMATEX)+5];
+	memset(wfe, 0, sizeof(WAVEFORMATEX)+5);
+	wfe->wFormatTag = WAVE_FORMAT_AAC;
+	wfe->nChannels = h.channels <= 6 ? h.channels : 2;
     static int freq[] = {96000, 88200, 64000, 48000, 44100, 32000, 24000, 22050, 16000, 12000, 11025, 8000};
-	wfe.nSamplesPerSec = freq[h.freq];
+	wfe->nSamplesPerSec = freq[h.freq];
+	wfe->nBlockAlign = h.aac_frame_length;
+	wfe->nAvgBytesPerSec = wfe->nBlockAlign * wfe->nSamplesPerSec / 2048;
+	wfe->cbSize = MakeAACInitData((BYTE*)(wfe+1), h.profile, wfe->nSamplesPerSec, wfe->nChannels);
 
 	pmt->majortype = MEDIATYPE_Audio;
-	pmt->subtype = FOURCCMap(wfe.wFormatTag);
+	pmt->subtype = MEDIASUBTYPE_AAC;
 	pmt->formattype = FORMAT_WaveFormatEx;
-	pmt->SetFormat((BYTE*)&wfe, sizeof(wfe));
+	pmt->SetFormat((BYTE*)wfe, sizeof(WAVEFORMATEX)+wfe->cbSize);
+
+	delete [] wfe;
 
 	return(true);
 }
@@ -974,6 +1007,9 @@ bool CMpegSplitterFile::Read(lpcmhdr& h, CMediaType* pmt)
 	h.channels = BitRead(3);
 	h.drc = (BYTE)BitRead(8);
 
+	if(h.channels > 2 || h.reserved1 || h.reserved2)
+		return(false);
+
 	if(!pmt) return(true);
 
 	WAVEFORMATEX wfe;
@@ -1043,21 +1079,13 @@ bool CMpegSplitterFile::Read(trhdr& h, bool fSync)
 
 	if(fSync)
 	{
-		bool fDoubleCheck = BitRead(8, true) != 0x47;
-
 		for(int i = 0; i < 188; i++)
 		{
 			if(BitRead(8, true) == 0x47)
 			{
-				if(!fDoubleCheck)
-					break;
-
+				if(i == 0) break;
 				Seek(GetPos()+188);
-				if(BitRead(8, true) == 0x47)
-				{
-					Seek(GetPos()-188);
-					break;
-				}
+				if(BitRead(8, true) == 0x47) {Seek(GetPos()-188); break;}
 			}
 
 			BitRead(8);
@@ -1065,21 +1093,11 @@ bool CMpegSplitterFile::Read(trhdr& h, bool fSync)
 			if(i == 187)
 				return(false);
 		}
-/*
-		for(int i = 0; i < 188 && BitRead(8, true) != 0x47; i++)
-			BitRead(8);
-
-		if(BitRead(8, true) == 0x47 && fDoubleCheck)
-		{
-			Seek(GetPos()+188);
-			if(BitRead(8) != 0x47) return(false);
-			Seek(GetPos()-189);
-		}
-*/	}
+	}
 
 	if(BitRead(8, true) != 0x47)
 		return(false);
-ASSERT(GetPos()!=0x59228);
+
 	h.sync = (BYTE)BitRead(8);
 	h.error = BitRead(1);
 	h.payloadstart = BitRead(1);

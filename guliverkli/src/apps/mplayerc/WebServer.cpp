@@ -702,16 +702,38 @@ bool CWebServer::HandlerBrowser(CClientSocket* pClient, CStringA& hdr, CStringA&
 		{
 			// TODO: make a new message for just opening files, this is a bit overkill now...
 
-			int len = (path.GetLength()+1)*sizeof(TCHAR);
+			CList<CString> cmdln;
+
+			cmdln.AddTail(path);
+
+			CString focus;
+			if(pClient->m_get.Lookup(_T("focus"), focus) && !focus.CompareNoCase(_T("no")))
+				cmdln.AddTail(_T("/nofocus"));
+
+			int len = 0;
+			
+			POSITION pos = cmdln.GetHeadPosition();
+			while(pos)
+			{
+				CString& str = cmdln.GetNext(pos);
+				len += (str.GetLength()+1)*sizeof(TCHAR);
+			}
 
 			CAutoVectorPtr<BYTE> buff;
 			if(buff.Allocate(4+len))
 			{
 				BYTE* p = buff;
-				*(DWORD*)p = 1; 
+				*(DWORD*)p = cmdln.GetCount(); 
 				p += sizeof(DWORD);
-				memcpy(p, path, len);
-				p += len;
+
+				POSITION pos = cmdln.GetHeadPosition();
+				while(pos)
+				{
+					CString& str = cmdln.GetNext(pos);
+					len = (str.GetLength()+1)*sizeof(TCHAR);
+					memcpy(p, (LPCTSTR)str, len);
+					p += len;
+				}
 
 				COPYDATASTRUCT cds;
 				cds.dwData = 0x6ABE51;

@@ -47,7 +47,7 @@ protected:
 
 	bool InitDeliverLoop();
 	void SeekDeliverLoop(REFERENCE_TIME rt);
-	void DoDeliverLoop();
+	bool DoDeliverLoop();
 
 	HRESULT ReIndex(__int64 end, UINT64* pSize);
 

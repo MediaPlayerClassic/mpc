@@ -66,5 +66,6 @@ public:
 	BOOL m_lpcm;
 	BOOL m_ac3;
 	BOOL m_dts;
+	BOOL m_aac;
 	BOOL m_nut;
 };

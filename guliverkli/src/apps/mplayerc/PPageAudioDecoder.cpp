@@ -23,8 +23,10 @@
 //
 
 #include "stdafx.h"
+#include <math.h>
 #include "mplayerc.h"
 #include "PPageAudioDecoder.h"
+#include ".\ppageaudiodecoder.h"
 
 // CPPageAudioDecoder dialog
 
@@ -41,6 +43,8 @@ CPPageAudioDecoder::CPPageAudioDecoder(IFilterGraph* pFG)
 	, m_iDtsSpeakerConfig(0)
 	, m_fDtsSpeakerConfigLFE(FALSE)
 	, m_fDtsDynamicRangeControl(FALSE)
+	, m_iAacSpeakerConfig(0)
+	, m_boost(0)
 {
 	BeginEnumFilters(pFG, pEF, pBF)
 		if(CComQIPtr<IMpaDecFilter> pMpaDecFilter = pBF)
@@ -67,10 +71,14 @@ void CPPageAudioDecoder::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_CHECK17, m_fDtsSpeakerConfigLFE);
 	DDX_Check(pDX, IDC_CHECK4, m_fDtsDynamicRangeControl);
 	DDX_Control(pDX, IDC_COMBO2, m_dtssclist);
+	DDX_Check(pDX, IDC_CHECK5, m_iAacSpeakerConfig);
+	DDX_Slider(pDX, IDC_SLIDER1, m_boost);
+	DDX_Control(pDX, IDC_SLIDER1, m_boostctrl);
 }
 
 
 BEGIN_MESSAGE_MAP(CPPageAudioDecoder, CPPageBase)
+	ON_WM_HSCROLL()
 END_MESSAGE_MAP()
 
 
@@ -92,6 +100,9 @@ BOOL CPPageAudioDecoder::OnInitDialog()
 	m_iDtsSpeakerConfig = DTS_STEREO;
 	m_fDtsSpeakerConfigLFE = !!(abs(s.dtssc)&DTS_LFE);
 	m_fDtsDynamicRangeControl = s.dtsdrc;
+	m_iAacSpeakerConfig = s.aacsc; // FIXME
+	m_boost = (int)(50.0f*log10(s.mpaboost));
+	m_boostctrl.SetRange(0, 100);
 
 	m_ac3sclist.SetItemData(m_ac3sclist.AddString(_T("Mono")), A52_MONO);
 	m_ac3sclist.SetItemData(m_ac3sclist.AddString(_T("Dual Mono")), A52_CHANNEL);
@@ -156,6 +167,8 @@ BOOL CPPageAudioDecoder::OnApply()
 	s.dtssc |= m_fDtsSpeakerConfigLFE?DTS_LFE:0;
 	s.dtssc *= m_fDtsSpeakerConfig?-1:1;
 	s.dtsdrc = !!m_fDtsDynamicRangeControl;
+	s.aacsc = !!m_iAacSpeakerConfig;
+	s.mpaboost = (float)pow(10.0, (double)m_boost/50);
 
 	POSITION pos = m_pMDFs.GetHeadPosition();
 	while(pos)
@@ -167,7 +180,16 @@ BOOL CPPageAudioDecoder::OnApply()
 		pMpaDecFilter->SetDynamicRangeControl(IMpaDecFilter::ac3, s.ac3drc);
 		pMpaDecFilter->SetSpeakerConfig(IMpaDecFilter::dts, s.dtssc);
 		pMpaDecFilter->SetDynamicRangeControl(IMpaDecFilter::dts, s.dtsdrc);
+		pMpaDecFilter->SetSpeakerConfig(IMpaDecFilter::aac, s.aacsc);
+		pMpaDecFilter->SetBoost(s.mpaboost);
 	}
 
 	return __super::OnApply();
+}
+
+void CPPageAudioDecoder::OnHScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrollBar)
+{
+	SetModified();
+
+	CPPageBase::OnHScroll(nSBCode, nPos, pScrollBar);
 }

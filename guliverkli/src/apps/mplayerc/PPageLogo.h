@@ -56,4 +56,5 @@ public:
 	afx_msg void OnBnClickedRadio2();
 	afx_msg void OnDeltaposSpin1(NMHDR *pNMHDR, LRESULT *pResult);
 	afx_msg void OnBnClickedButton2();
+	CString m_author;
 };

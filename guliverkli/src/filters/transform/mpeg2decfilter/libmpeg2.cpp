@@ -376,6 +376,71 @@ static void mpeg2_idct_init_mmx()
 
 extern "C" mpeg2_mc_t mpeg2_mc_mmx;
 
+// idct (sse2)
+
+extern void idct_M128ASM(short* src, short* dst);
+
+static void mpeg2_idct_copy_sse2(int16_t* block, uint8_t* dest, const int stride)
+{
+	__declspec(align(16)) short tmp[64];
+	idct_M128ASM(block, tmp);
+	memset(block, 0, sizeof(short)*64);
+	block = tmp;
+    for(int i = 0; i < 8; i++)
+	{
+		dest[0] = CLIP(block[0]);
+		dest[1] = CLIP(block[1]);
+		dest[2] = CLIP(block[2]);
+		dest[3] = CLIP(block[3]);
+		dest[4] = CLIP(block[4]);
+		dest[5] = CLIP(block[5]);
+		dest[6] = CLIP(block[6]);
+		dest[7] = CLIP(block[7]);
+
+		dest += stride;
+		block += 8;
+    }
+}
+
+static void mpeg2_idct_add_sse2(const int last, int16_t* block, uint8_t* dest, const int stride)
+{
+	__declspec(align(16)) short tmp[64];
+	idct_M128ASM(block, tmp);
+	memset(block, 0, sizeof(short)*64);
+	block = tmp;
+    for(int i = 0; i < 8; i++)
+	{
+		dest[0] = CLIP(block[0] + dest[0]);
+		dest[1] = CLIP(block[1] + dest[1]);
+		dest[2] = CLIP(block[2] + dest[2]);
+		dest[3] = CLIP(block[3] + dest[3]);
+		dest[4] = CLIP(block[4] + dest[4]);
+		dest[5] = CLIP(block[5] + dest[5]);
+		dest[6] = CLIP(block[6] + dest[6]);
+		dest[7] = CLIP(block[7] + dest[7]);
+
+		dest += stride;
+		block += 8;
+    }
+}
+
+static void mpeg2_idct_init_sse2()
+{
+	for(int i = -3840; i < 3840 + 256; i++)
+	{
+		CLIP(i) = (i < 0) ? 0 : ((i > 255) ? 255 : i);
+	}
+/*
+	// only needed with idct_c
+
+	for(int i = 0; i < 64; i++)
+	{
+		mpeg2_scan_norm_2[i] = ((mpeg2_scan_norm_2[i] & 0x36) >> 1) | ((mpeg2_scan_norm_2[i] & 0x09) << 2);
+		mpeg2_scan_alt_2[i] = ((mpeg2_scan_alt_2[i] & 0x36) >> 1) | ((mpeg2_scan_alt_2[i] & 0x09) << 2);
+	}
+*/
+}
+
 //
 
 CMpeg2Dec::CMpeg2Dec()
@@ -1898,7 +1963,14 @@ CMpeg2Decoder::CMpeg2Decoder()
 
 	//
 
-	if(g_cpuid.m_flags&CCpuID::flag_t::mmx)
+	if(g_cpuid.m_flags&CCpuID::flag_t::sse2)
+	{
+		m_idct_init = mpeg2_idct_init_sse2;
+		m_idct_copy = mpeg2_idct_copy_sse2;
+		m_idct_add = mpeg2_idct_add_sse2;
+		m_mc = &mpeg2_mc_mmx;
+	}
+	else if(g_cpuid.m_flags&CCpuID::flag_t::mmx)
 	{
 		m_idct_init = mpeg2_idct_init_mmx;
 		m_idct_copy = mpeg2_idct_copy_mmx;

@@ -6,16 +6,70 @@
 #include "BaseSplitter.h"
 
 #define MAXBUFFERS 2
-/*
-#define MINPACKETS 10
-#define MAXPACKETS 500
-#define MINPACKETSIZE 1024*1024*1/2
-#define MAXPACKETSIZE 1024*1024*2
-*/
 #define MINPACKETS 10
 #define MINPACKETSIZE 100*1024
 #define MAXPACKETS 10000
 #define MAXPACKETSIZE 1024*1024
+
+//
+// CPacketQueue
+//
+
+CPacketQueue::CPacketQueue() : m_size(0)
+{
+}
+
+void CPacketQueue::Add(CAutoPtr<Packet> p)
+{
+	CAutoLock cAutoLock(this);
+
+	if(p)
+	{
+		m_size += p->GetSize();
+
+		if(p->bAppendable && !p->bDiscontinuity && GetCount() > 0
+		&& p->rtStart == Packet::INVALID_TIME
+		&& GetTail()->rtStart != Packet::INVALID_TIME)
+		{
+			Packet* tail = GetTail();
+			int oldsize = tail->pData.GetSize();
+			int newsize = tail->pData.GetSize() + p->pData.GetSize();
+			tail->pData.SetSize(newsize, max(1024, newsize)); // doubles the reserved buffer size
+			memcpy(tail->pData.GetData() + oldsize, p->pData.GetData(), p->pData.GetSize());
+			return;
+		}
+	}
+
+	AddTail(p);
+}
+
+CAutoPtr<Packet> CPacketQueue::Remove()
+{
+	CAutoLock cAutoLock(this);
+	ASSERT(__super::GetCount() > 0);
+	CAutoPtr<Packet> p = RemoveHead();
+	if(p) m_size -= p->GetSize();
+	return p;
+}
+
+void CPacketQueue::RemoveAll()
+{
+	CAutoLock cAutoLock(this);
+	m_size = 0;
+	__super::RemoveAll();
+}
+
+int CPacketQueue::GetCount()
+{
+	CAutoLock cAutoLock(this); 
+	return __super::GetCount();
+}
+
+int CPacketQueue::GetSize()
+{
+	CAutoLock cAutoLock(this); 
+	return m_size;
+}
 
 //
 // CAsyncFileReader
@@ -428,6 +482,8 @@ HRESULT CBaseSplitterOutputPin::DeliverNewSegment(REFERENCE_TIME tStart, REFEREN
 {
 	if(m_fFlushing) return S_FALSE;
 	m_rtStart = tStart;
+	m_rtPrev = Packet::INVALID_TIME;
+	m_rtOffset = 0;
 	if(!ThreadExists()) return S_FALSE;
 	HRESULT hr = __super::DeliverNewSegment(tStart, tStop, dRate);
 	if(S_OK != hr) return hr;
@@ -454,17 +510,13 @@ HRESULT CBaseSplitterOutputPin::QueuePacket(CAutoPtr<Packet> p)
 {
 	if(!ThreadExists()) return S_FALSE;
 
-	do
-	{
-		if(((CBaseSplitterFilter*)m_pFilter)->IsAnyPinDrying()
-		/*|| ((CBaseSplitterFilter*)m_pFilter)->()*/)
-			break;
-		else
-			Sleep(1);
-	}
-	while(S_OK == m_hrDeliver);
+	while(S_OK == m_hrDeliver 
+	&& (!((CBaseSplitterFilter*)m_pFilter)->IsAnyPinDrying()
+		|| m_queue.GetSize() > MAXPACKETSIZE*100))
+		Sleep(1);
 
-	if(S_OK != m_hrDeliver) return m_hrDeliver;
+	if(S_OK != m_hrDeliver)
+		return m_hrDeliver;
 
 	m_queue.Add(p);
 
@@ -474,6 +526,7 @@ HRESULT CBaseSplitterOutputPin::QueuePacket(CAutoPtr<Packet> p)
 bool CBaseSplitterOutputPin::IsDiscontinuous()
 {
 	return m_mt.majortype == MEDIATYPE_Text
+		|| m_mt.majortype == MEDIATYPE_ScriptCommand
 		|| m_mt.majortype == MEDIATYPE_Subtitle 
 		|| m_mt.subtype == MEDIASUBTYPE_DVD_SUBPICTURE 
 		|| m_mt.subtype == MEDIASUBTYPE_CVD_SUBPICTURE 
@@ -485,6 +538,9 @@ DWORD CBaseSplitterOutputPin::ThreadProc()
 	m_hrDeliver = S_OK;
 	m_fFlushing = m_fFlushed = false;
 	m_eEndFlush.Set();
+
+	if(m_mt.majortype == MEDIATYPE_Audio)
+		SetThreadPriority(m_hThread, THREAD_PRIORITY_ABOVE_NORMAL);
 
 	while(1)
 	{
@@ -544,11 +600,22 @@ HRESULT CBaseSplitterOutputPin::DeliverPacket(CAutoPtr<Packet> p)
 	if(p->pData.GetCount() == 0)
 		return S_OK;
 
-	double dRate = 1.0;
-	if(p->rtStart != Packet::INVALID_TIME && SUCCEEDED(((CBaseSplitterFilter*)m_pFilter)->GetRate(&dRate)))
+	if(p->rtStart != Packet::INVALID_TIME)
 	{
-		p->rtStart = (REFERENCE_TIME)((double)p->rtStart / dRate);
-		p->rtStop = (REFERENCE_TIME)((double)p->rtStop / dRate);
+		if(p->rtStart + m_rtOffset + 1000000 < m_rtPrev)
+			m_rtOffset += m_rtPrev - (p->rtStart + m_rtOffset);
+
+		p->rtStart += m_rtOffset;
+		p->rtStop += m_rtOffset;
+
+		m_rtPrev = p->rtStart;
+
+		double dRate = 1.0;
+		if(SUCCEEDED(((CBaseSplitterFilter*)m_pFilter)->GetRate(&dRate)))
+		{
+			p->rtStart = (REFERENCE_TIME)((double)p->rtStart / dRate);
+			p->rtStop = (REFERENCE_TIME)((double)p->rtStop / dRate);
+		}
 	}
 
 	do
@@ -586,6 +653,8 @@ TRACE(_T("[%d]: d%d s%d p%d, b=%d, %I64d-%I64d \n"),
 			m_mts.RemoveAll();
 			m_mts.Add(*p->pmt);
 		}
+
+		ASSERT(!p->bSyncPoint || p->rtStart != Packet::INVALID_TIME);
 
 		BYTE* pData = NULL;
 		if(S_OK != (hr = pSample->GetPointer(&pData)) || !pData) break;
@@ -851,7 +920,7 @@ DWORD CBaseSplitterFilter::ThreadProc()
 		}
 	}
 
-	// SetThreadPriority(m_hThread, THREAD_PRIORITY_ABOVE_NORMAL);
+	SetThreadPriority(m_hThread, THREAD_PRIORITY_ABOVE_NORMAL);
 
 	m_eEndFlush.Set();
 	m_fFlushing = false;
@@ -875,7 +944,6 @@ DWORD CBaseSplitterFilter::ThreadProc()
 
 		m_eEndFlush.Wait();
 
-		m_bDiscontinuitySent.RemoveAll();
 		m_pActivePins.RemoveAll();
 
 		POSITION pos = m_pOutputs.GetHeadPosition();
@@ -889,7 +957,8 @@ DWORD CBaseSplitterFilter::ThreadProc()
 			}
 		}
 
-		DoDeliverLoop();
+		do {m_bDiscontinuitySent.RemoveAll();}
+		while(!DoDeliverLoop());
 
 		pos = m_pActivePins.GetHeadPosition();
 		while(pos && !CheckRequest(&cmd))
@@ -955,7 +1024,6 @@ HRESULT CBaseSplitterFilter::DeliverPacket(CAutoPtr<Packet> p)
 
 	return hr;
 }
-
 
 bool CBaseSplitterFilter::IsAnyPinDrying()
 {

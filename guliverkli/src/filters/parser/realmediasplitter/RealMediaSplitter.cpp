@@ -724,7 +724,7 @@ void CRealMediaSplitterFilter::SeekDeliverLoop(REFERENCE_TIME rt)
 	}
 }
 
-void CRealMediaSplitterFilter::DoDeliverLoop()
+bool CRealMediaSplitterFilter::DoDeliverLoop()
 {
 	HRESULT hr = S_OK;
 	POSITION pos;
@@ -782,6 +782,8 @@ void CRealMediaSplitterFilter::DoDeliverLoop()
 		m_seekpacket = 0;
 		m_seekfilepos = 0;
 	}
+
+	return(true);
 }
 
 // IKeyFrameInfo

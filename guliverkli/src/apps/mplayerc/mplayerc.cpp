@@ -1107,10 +1107,13 @@ void CMPlayerCApp::Settings::UpdateData(bool fSave)
 		pApp->WriteProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_AC3DRC), ac3drc);
 		pApp->WriteProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_DTSSC), dtssc);
 		pApp->WriteProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_DTSDRC), dtsdrc);
+		pApp->WriteProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_AACSC), aacsc);
+		pApp->WriteProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_MPABOOST), (int)mpaboost);
 
 		pApp->WriteProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_HIDECDROMSSUBMENU), fHideCDROMsSubMenu);
 
 		pApp->WriteProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_PRIORITY), priority);
+		pApp->WriteProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_LAUNCHFULLSCREEN), launchfullscreen);
 
 		pApp->WriteProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_ENABLEWEBSERVER), fEnableWebServer);
 		pApp->WriteProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_WEBSERVERPORT), nWebServerPort);
@@ -1380,7 +1383,7 @@ void CMPlayerCApp::Settings::UpdateData(bool fSave)
 		TraFilters = pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_TRAFILTERS), ~0^TRA_MPEG1);
 
 		logofn = pApp->GetProfileString(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_LOGOFILE), _T(""));
-		logoid = pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_LOGOID), IDB_LOGO2);
+		logoid = pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_LOGOID), IDB_LOGO7);
 		logoext = !!pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_LOGOEXT), 0);
 
 		mpegdi = pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_MPEGDI), 0);
@@ -1397,10 +1400,14 @@ void CMPlayerCApp::Settings::UpdateData(bool fSave)
 		ac3drc = !!pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_AC3DRC), FALSE);
 		dtssc = (int)pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_DTSSC), 2);
 		dtsdrc = !!pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_DTSDRC), FALSE);
+		aacsc = (int)pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_AACSC), 1);
+		mpaboost = (float)pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_MPABOOST), 1);
 
 		fHideCDROMsSubMenu = !!pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_HIDECDROMSSUBMENU), 0);		
 
 		priority = pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_PRIORITY), NORMAL_PRIORITY_CLASS);
+		::SetPriorityClass(::GetCurrentProcess(), priority);
+		launchfullscreen = !!pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_LAUNCHFULLSCREEN), FALSE);
 
 		fEnableWebServer = !!pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_ENABLEWEBSERVER), FALSE);
 		nWebServerPort = pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_WEBSERVERPORT), 13579);
@@ -1439,6 +1446,8 @@ void CMPlayerCApp::Settings::ParseCommandLine(CStringList& cmdln)
 	slFilters.RemoveAll();
 	rtStart = 0;
 
+	if(launchfullscreen) nCLSwitches |= CLSW_FULLSCREEN;
+
 	POSITION pos = cmdln.GetHeadPosition();
 	while(pos)
 	{
@@ -1467,6 +1476,7 @@ void CMPlayerCApp::Settings::ParseCommandLine(CStringList& cmdln)
 			else if(sw == _T("unregvid")) nCLSwitches |= CLSW_UNREGEXTVID;
 			else if(sw == _T("unregaud")) nCLSwitches |= CLSW_UNREGEXTAUD;
 			else if(sw == _T("start") && pos) {rtStart = 10000i64*_tcstol(cmdln.GetNext(pos), NULL, 10); nCLSwitches |= CLSW_STARTVALID;}
+			else if(sw == _T("nofocus")) nCLSwitches |= CLSW_NOFOCUS;
 			else nCLSwitches |= CLSW_HELP|CLSW_UNRECOGNIZEDSWITCH;
 		}
 		else
@@ -1786,6 +1796,8 @@ CString GetContentType(CString fn, CList<CString>* redir)
 				"Accept: */*\r\n"
 				"\r\n", path, host);
 
+// MessageBox(NULL, CString(hdr), _T("Sending..."), MB_OK);
+
 			if(s.Send((LPCSTR)hdr, hdr.GetLength()) < hdr.GetLength()) return "";
 
 			hdr.Empty();
@@ -1798,6 +1810,8 @@ CString GetContentType(CString fn, CList<CString>* redir)
 				int hdrend = hdr.Find("\r\n\r\n");
 				if(hdrend >= 0) {body = hdr.Mid(hdrend+4); hdr = hdr.Left(hdrend); break;}
 			}
+
+// MessageBox(NULL, CString(hdr), _T("Received..."), MB_OK);
 
 			CList<CStringA> sl;
 			Explode(hdr, sl, '\n');
@@ -1858,7 +1872,7 @@ CString GetContentType(CString fn, CList<CString>* redir)
 		if(FILE* f = _tfopen(fn, _T("rb")))
 		{
 			CStringA str;
-			str.ReleaseBufferSetLength(fread(str.GetBuffer(256), 1, 256, f));
+			str.ReleaseBufferSetLength(fread(str.GetBuffer(10240), 1, 10240, f));
 			body = AToT(str);
 			fclose(f);
 		}

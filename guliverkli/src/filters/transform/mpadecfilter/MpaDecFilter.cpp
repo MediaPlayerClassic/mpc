@@ -20,6 +20,7 @@
  */
 
 #include "stdafx.h"
+#include <math.h>
 #include <atlbase.h>
 #include <mmreg.h>
 #include "MpaDecFilter.h"
@@ -28,6 +29,8 @@
 
 #include <initguid.h>
 #include "..\..\..\..\include\moreuuids.h"
+
+#include "faad2\include\neaacdec.h"
 
 #ifdef REGISTER_FILTER
 
@@ -55,6 +58,10 @@ const AMOVIESETUP_MEDIATYPE sudPinTypesIn[] =
 	{&MEDIATYPE_MPEG2_PACK, &MEDIASUBTYPE_DVD_LPCM_AUDIO},
 	{&MEDIATYPE_MPEG2_PES, &MEDIASUBTYPE_DVD_LPCM_AUDIO},
 	{&MEDIATYPE_Audio, &MEDIASUBTYPE_DVD_LPCM_AUDIO},
+	{&MEDIATYPE_DVD_ENCRYPTED_PACK, &MEDIASUBTYPE_AAC},
+	{&MEDIATYPE_MPEG2_PACK, &MEDIASUBTYPE_AAC},
+	{&MEDIATYPE_MPEG2_PES, &MEDIASUBTYPE_AAC},
+	{&MEDIATYPE_Audio, &MEDIASUBTYPE_AAC},
 };
 
 const AMOVIESETUP_MEDIATYPE sudPinTypesOut[] =
@@ -197,8 +204,7 @@ CMpaDecFilter::CMpaDecFilter(LPUNKNOWN lpunk, HRESULT* phr)
 	: CTransformFilter(NAME("CMpaDecFilter"), lpunk, __uuidof(this))
 	, m_iSampleFormat(SF_PCM16)
 	, m_fNormalize(false)
-	, m_iAc3SpeakerConfig(A52_STEREO), m_iDtsSpeakerConfig(DTS_STEREO)
-	, m_fAc3DynamicRangeControl(false), m_fDtsDynamicRangeControl(false)
+	, m_boost(1)
 {
 	if(phr) *phr = S_OK;
 
@@ -207,6 +213,13 @@ CMpaDecFilter::CMpaDecFilter(LPUNKNOWN lpunk, HRESULT* phr)
 
 	if(!(m_pOutput = new CTransformOutputPin(NAME("CTransformOutputPin"), this, phr, L"Out"))) *phr = E_OUTOFMEMORY;
 	if(FAILED(*phr))  {delete m_pInput, m_pInput = NULL; return;}
+
+	m_iSpeakerConfig[ac3] = A52_STEREO;
+	m_iSpeakerConfig[dts] = DTS_STEREO;
+	m_iSpeakerConfig[aac] = AAC_ASIS; // AAC_STEREO
+	m_fDynamicRangeControl[ac3] = false;
+	m_fDynamicRangeControl[dts] = false;
+	m_fDynamicRangeControl[aac] = false;
 }
 
 CMpaDecFilter::~CMpaDecFilter()
@@ -265,6 +278,7 @@ HRESULT CMpaDecFilter::Receive(IMediaSample* pIn)
 		DeleteMediaType(pmt);
 		pmt = NULL;
 		m_sample_max = 0.1f;
+		m_aac_state.init(mt);
 	}
 
 	BYTE* pDataIn = NULL;
@@ -287,7 +301,7 @@ HRESULT CMpaDecFilter::Receive(IMediaSample* pIn)
 		m_rtStart = rtStart;
 	}
 
-	if(SUCCEEDED(hr) && abs(m_rtStart - rtStart) > 1000000) // +-100ms jitter is allowed for now
+	if(SUCCEEDED(hr) && abs((int)(m_rtStart - rtStart)) > 1000000) // +-100ms jitter is allowed for now
 	{
 		m_buff.RemoveAll();
 		m_rtStart = rtStart;
@@ -306,6 +320,8 @@ HRESULT CMpaDecFilter::Receive(IMediaSample* pIn)
 		hr = ProcessAC3();
 	else if(subtype == MEDIASUBTYPE_DTS || subtype == MEDIASUBTYPE_WAVE_DTS)
 		hr = ProcessDTS();
+	else if(subtype == MEDIASUBTYPE_AAC)
+		hr = ProcessAAC();
 	else // if(.. the rest ..)
 		hr = ProcessMPA();
 
@@ -521,6 +537,72 @@ HRESULT CMpaDecFilter::ProcessDTS()
 	return S_OK;
 }
 
+HRESULT CMpaDecFilter::ProcessAAC()
+{
+	int iSpeakerConfig = GetSpeakerConfig(aac);
+
+	NeAACDecConfigurationPtr c = NeAACDecGetCurrentConfiguration(m_aac_state.h);
+	c->downMatrix = iSpeakerConfig;
+	NeAACDecSetConfiguration(m_aac_state.h, c);
+
+	NeAACDecFrameInfo info;
+	float* src = (float*)NeAACDecDecode(m_aac_state.h, &info, m_buff.GetData(), m_buff.GetSize());
+	m_buff.SetSize(0);
+	if(!src) return E_FAIL;
+	if(info.samples == 0) return S_OK;
+
+	CArray<float> pBuff;
+	pBuff.SetSize(info.samples);
+	float* dst = pBuff.GetData();
+
+	CMap<int,int,int,int> chmask;
+	chmask[FRONT_CHANNEL_CENTER] = SPEAKER_FRONT_CENTER;
+	chmask[FRONT_CHANNEL_LEFT] = SPEAKER_FRONT_LEFT;
+	chmask[FRONT_CHANNEL_RIGHT] = SPEAKER_FRONT_RIGHT;
+	chmask[SIDE_CHANNEL_LEFT] = SPEAKER_SIDE_LEFT;
+	chmask[SIDE_CHANNEL_RIGHT] = SPEAKER_SIDE_RIGHT;
+	chmask[BACK_CHANNEL_LEFT] = SPEAKER_TOP_BACK_LEFT;
+	chmask[BACK_CHANNEL_RIGHT] = SPEAKER_TOP_BACK_RIGHT;
+	chmask[BACK_CHANNEL_CENTER] = SPEAKER_TOP_BACK_CENTER;
+	chmask[LFE_CHANNEL] = SPEAKER_LOW_FREQUENCY;
+
+	DWORD dwChannelMask = 0;
+	for(int i = 0; i < info.channels; i++)
+	{
+		if(info.channel_position[i] == UNKNOWN_CHANNEL) {ASSERT(0); return E_FAIL;}
+		dwChannelMask |= chmask[info.channel_position[i]];
+	}
+
+	int chmap[countof(info.channel_position)];
+	memset(chmap, 0, sizeof(chmap));
+
+	for(int i = 0; i < info.channels; i++)
+	{
+		unsigned int ch = 0, mask = chmask[info.channel_position[i]];
+
+		for(int j = 0; j < 32; j++)
+		{
+			if(dwChannelMask & (1 << j))
+			{
+				if((1 << j) == mask) {chmap[i] = ch; break;}
+				ch++;
+			}
+		}
+	}
+
+	if(info.channels <= 2) dwChannelMask = 0;
+
+	for(int j = 0; j < info.samples; j += info.channels, dst += info.channels)
+		for(int i = 0; i < info.channels; i++)
+			dst[chmap[i]] = *src++;
+
+	HRESULT hr;
+	if(S_OK != (hr = Deliver(pBuff, info.samplerate, info.channels, dwChannelMask)))
+		return hr;
+
+	return S_OK;
+}
+
 static inline float fscale(mad_fixed_t sample)
 {
 	if(sample >= MAD_F_ONE) sample = MAD_F_ONE - 1;
@@ -555,7 +637,7 @@ HRESULT CMpaDecFilter::ProcessMPA()
 			continue;
 		}
 /*
-// TODO: need to be tested... (has anybody got an external mpeg audio decoder?)
+// TODO: needs to be tested... (has anybody got an external mpeg audio decoder?)
 HRESULT hr;
 if(S_OK != (hr = Deliver(
    (BYTE*)m_stream.this_frame, 
@@ -708,17 +790,19 @@ ASSERT(wfeout->nSamplesPerSec == wfe->nSamplesPerSec);
 		pDataIn = pBuff.GetData();
 	}
 
+	bool fBoost = m_boost > 1;
+
 	for(int i = 0, len = pBuff.GetSize(); i < len; i++)
 	{
 		float f = *pDataIn++;
 
-		if(f < -1 || f > 1)
-			TRACE(_T("CMpaDecFilter: sample clipped: %.3f\n"), f);
-//		ASSERT(f >= -1 && f <= 1);
-
 		// TODO: move this into the audio switcher
+
 		if(m_fNormalize) 
 			f *= sample_mul;
+
+		if(fBoost)
+			f *= 1+log10(m_boost);
 
 		if(f < -1) f = -1;
 		else if(f > 1) f = 1;
@@ -780,19 +864,7 @@ HRESULT CMpaDecFilter::Deliver(BYTE* pBuff, int size, int bit_rate, BYTE type)
 
 	if(FAILED(hr = ReconnectOutput(length / wfe.nBlockAlign, mt)))
 		return hr;
-#ifdef DEBUG
-	if(hr == S_OK)
-	{
-		HRESULT hr2 = m_pOutput->GetConnected()->QueryAccept(&mt);
-		if(FAILED(hr2))
-		{
-			CString str;
-			str.Format(_T("%08x\n"), hr2);
-			AfxMessageBox(str, MB_OK);
-			return hr2;
-		}
-	}
-#endif
+
 	CComPtr<IMediaSample> pOut;
 	BYTE* pDataOut = NULL;
 	if(FAILED(GetDeliveryBuffer(&pOut, &pDataOut)))
@@ -907,6 +979,10 @@ HRESULT CMpaDecFilter::CheckInputType(const CMediaType* mtIn)
 			|| mtIn->majortype == MEDIATYPE_MPEG2_PACK && mtIn->subtype == MEDIASUBTYPE_DVD_LPCM_AUDIO
 			|| mtIn->majortype == MEDIATYPE_MPEG2_PES && mtIn->subtype == MEDIASUBTYPE_DVD_LPCM_AUDIO
 			|| mtIn->majortype == MEDIATYPE_Audio && mtIn->subtype == MEDIASUBTYPE_DVD_LPCM_AUDIO
+			|| mtIn->majortype == MEDIATYPE_DVD_ENCRYPTED_PACK && mtIn->subtype == MEDIASUBTYPE_AAC
+			|| mtIn->majortype == MEDIATYPE_MPEG2_PACK && mtIn->subtype == MEDIASUBTYPE_AAC
+			|| mtIn->majortype == MEDIATYPE_MPEG2_PES && mtIn->subtype == MEDIASUBTYPE_AAC
+			|| mtIn->majortype == MEDIATYPE_Audio && mtIn->subtype == MEDIASUBTYPE_AAC
 			)
 		? S_OK
 		: VFW_E_TYPE_NOT_ACCEPTED;
@@ -991,6 +1067,8 @@ HRESULT CMpaDecFilter::StartStreaming()
 
 	m_dts_state = dts_init(0);
 
+	m_aac_state.init(m_pInput->CurrentMediaType());
+
 	mad_stream_init(&m_stream);
 	mad_frame_init(&m_frame);
 	mad_synth_init(&m_synth);
@@ -1048,25 +1126,21 @@ STDMETHODIMP_(bool) CMpaDecFilter::GetNormalize()
 STDMETHODIMP CMpaDecFilter::SetSpeakerConfig(enctype et, int sc)
 {
 	CAutoLock cAutoLock(&m_csProps);
-	if(et == ac3) m_iAc3SpeakerConfig = sc;
-	else if(et == dts) m_iDtsSpeakerConfig = sc;
-	else return E_INVALIDARG;
+	if(et >= 0 && et < etlast) m_iSpeakerConfig[et] = sc;
 	return S_OK;
 }
 
 STDMETHODIMP_(int) CMpaDecFilter::GetSpeakerConfig(enctype et)
 {
 	CAutoLock cAutoLock(&m_csProps);
-	if(et == ac3) return m_iAc3SpeakerConfig;
-	else if(et == dts) return m_iDtsSpeakerConfig;
+	if(et >= 0 && et < etlast) return m_iSpeakerConfig[et];
 	return -1;
 }
 
 STDMETHODIMP CMpaDecFilter::SetDynamicRangeControl(enctype et, bool fDRC)
 {
 	CAutoLock cAutoLock(&m_csProps);
-	if(et == ac3) m_fAc3DynamicRangeControl = fDRC;
-	else if(et == dts) m_fDtsDynamicRangeControl = fDRC;
+	if(et >= 0 && et < etlast) m_fDynamicRangeControl[et] = fDRC;
 	else return E_INVALIDARG;
 	return S_OK;
 }
@@ -1074,9 +1148,21 @@ STDMETHODIMP CMpaDecFilter::SetDynamicRangeControl(enctype et, bool fDRC)
 STDMETHODIMP_(bool) CMpaDecFilter::GetDynamicRangeControl(enctype et)
 {
 	CAutoLock cAutoLock(&m_csProps);
-	if(et == ac3) return m_fAc3DynamicRangeControl;
-	else if(et == dts) return m_fDtsDynamicRangeControl;
+	if(et >= 0 && et < etlast) return m_fDynamicRangeControl[et];
 	return false;
+}
+
+STDMETHODIMP CMpaDecFilter::SetBoost(float boost)
+{
+	CAutoLock cAutoLock(&m_csProps);
+	m_boost = max(boost, 1);
+	return S_OK;
+}
+
+STDMETHODIMP_(float) CMpaDecFilter::GetBoost()
+{
+	CAutoLock cAutoLock(&m_csProps);
+	return m_boost;
 }
 
 //
@@ -1086,4 +1172,28 @@ STDMETHODIMP_(bool) CMpaDecFilter::GetDynamicRangeControl(enctype et)
 CMpaDecInputPin::CMpaDecInputPin(CTransformFilter* pFilter, HRESULT* phr, LPWSTR pName)
 	: CDeCSSInputPin(NAME("CMpaDecInputPin"), pFilter, phr, pName)
 {
+}
+
+//
+// aac_state_t
+//
+
+aac_state_t::aac_state_t() : freq(0), channels(0)
+{
+	h = NeAACDecOpen();
+	NeAACDecConfigurationPtr c = NeAACDecGetCurrentConfiguration(h);
+	c->outputFormat = FAAD_FMT_FLOAT;
+	NeAACDecSetConfiguration(h, c);
+}
+
+aac_state_t::~aac_state_t()
+{
+	NeAACDecClose(h);
+}
+
+bool aac_state_t::init(CMediaType& mt)
+{
+	if(mt.subtype != MEDIASUBTYPE_AAC) return(true); // nothing to do
+	WAVEFORMATEX* wfe = (WAVEFORMATEX*)mt.Format();
+	return !NeAACDecInit2(h, (BYTE*)(wfe+1), wfe->cbSize, &freq, &channels);
 }

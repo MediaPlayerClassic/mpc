@@ -284,6 +284,8 @@ HRESULT CAviFile::BuildIndex()
 	{
 		int len = idx->cb/sizeof(idx->aIndex[0]);
 
+		UINT64 offset = m_movis.GetHead() + 8;
+
 		for(int i = 0; i < (int)m_avih.dwStreams; i++)
 		{
 			strm_t* s = m_strms[i];
@@ -300,8 +302,6 @@ HRESULT CAviFile::BuildIndex()
 
 			DWORD frame = 0;
 			UINT64 size = 0;
-
-			UINT64 offset = m_movis.GetHead() + 8;
 
 			for(int j = 0, k = 0; j < len; j++)
 			{
