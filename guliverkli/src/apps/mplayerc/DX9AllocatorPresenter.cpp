@@ -23,19 +23,19 @@
 #include "mplayerc.h"
 #include <atlbase.h>
 #include <atlcoll.h>
-#include "DX9AllocatorPresenter.h"
-//#include "MacrovisionKicker.h"
 #include "..\..\DSUtil\DSUtil.h"
 
 #include <Videoacc.h>
 
 #include <initguid.h>
+#include "DX9AllocatorPresenter.h"
 #include <d3d9.h>
 #include <Vmr9.h>
-
-#include <d3dx9.h>
-
 #include "..\..\SubPic\DX9SubPic.h"
+#include "IQTVideoSurface.h"
+
+//#include <d3dx9.h>
+
 
 namespace DSObjects
 {
@@ -46,6 +46,7 @@ class CDX9AllocatorPresenter
 	, public IVMRImagePresenter9
 	, public IVMRWindowlessControl9
 {
+protected:
 	CSize m_ScreenSize;
 
 	CComPtr<IDirect3D9> m_pD3D;
@@ -57,8 +58,8 @@ class CDX9AllocatorPresenter
 
 	CComPtr<IDirect3DSurface9> m_pVideoSurface;
 
-    HRESULT CreateDevice();
-	void DeleteSurfaces();
+    virtual HRESULT CreateDevice();
+	virtual void DeleteSurfaces();
 
 public:
 	CDX9AllocatorPresenter(HWND hWnd, HRESULT& hr);
@@ -98,6 +99,23 @@ public:
 	STDMETHODIMP GetBorderColor(COLORREF* lpClr);
 };
 
+class CQT9AllocatorPresenter
+	: public CDX9AllocatorPresenter
+	, public IQTVideoSurface
+{
+	HRESULT AllocateSurfaces(CSize size);
+
+public:
+	CQT9AllocatorPresenter(HWND hWnd, HRESULT& hr);
+	virtual ~CQT9AllocatorPresenter();
+
+	DECLARE_IUNKNOWN
+    STDMETHODIMP NonDelegatingQueryInterface(REFIID riid, void** ppv);
+
+	// IQTVideoSurface
+	STDMETHODIMP BeginBlt(const BITMAP& bm);
+	STDMETHODIMP DoBlt(const BITMAP& bm);
+};
 
 }
 using namespace DSObjects;
@@ -111,7 +129,9 @@ HRESULT CreateAP9(const CLSID& clsid, HWND hWnd, ISubPicAllocatorPresenter** ppA
 	*ppAP = NULL;
 
 	HRESULT hr;
-	if(clsid == CLSID_VMR9AllocatorPresenter && !(*ppAP = new CDX9AllocatorPresenter(hWnd, hr)))
+	if(clsid == CLSID_VMR9AllocatorPresenter && !(*ppAP = new CDX9AllocatorPresenter(hWnd, hr))
+//	|| clsid == CLSID_RM9AllocatorPresenter && !(*ppAP = new CRM9AllocatorPresenter(hWnd, hr))
+	|| clsid == CLSID_QT9AllocatorPresenter && !(*ppAP = new CQT9AllocatorPresenter(hWnd, hr)))
 		return E_OUTOFMEMORY;
 
 	if(*ppAP == NULL)
@@ -852,3 +872,174 @@ STDMETHODIMP CDX9AllocatorPresenter::GetBorderColor(COLORREF* lpClr)
 	return S_OK;
 }
 
+//
+// CQT9AllocatorPresenter
+//
+
+CQT9AllocatorPresenter::CQT9AllocatorPresenter(HWND hWnd, HRESULT& hr) 
+	: CDX9AllocatorPresenter(hWnd, hr)
+{
+    if(FAILED(hr))
+		return;
+}
+
+CQT9AllocatorPresenter::~CQT9AllocatorPresenter()
+{
+}
+
+STDMETHODIMP CQT9AllocatorPresenter::NonDelegatingQueryInterface(REFIID riid, void** ppv)
+{
+    CheckPointer(ppv, E_POINTER);
+
+	return 
+		QI(IQTVideoSurface)
+		__super::NonDelegatingQueryInterface(riid, ppv);
+}
+
+HRESULT CQT9AllocatorPresenter::AllocateSurfaces(CSize size)
+{
+    CAutoLock cAutoLock(this);
+
+	DeleteSurfaces();
+
+	CComPtr<IDirect3DSurface9> pBackBuffer;
+	D3DSURFACE_DESC d3dsd;
+	ZeroMemory(&d3dsd, sizeof(d3dsd));
+	if(FAILED(m_pD3DDev->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &pBackBuffer))
+	|| FAILED(pBackBuffer->GetDesc(&d3dsd)))
+		return(false);
+
+	if(FAILED(m_pD3DDev->CreateOffscreenPlainSurface(
+		size.cx, size.cy, d3dsd.Format, D3DPOOL_DEFAULT, &m_pVideoSurface, NULL)))
+		return(false);
+
+	m_pD3DDev->ColorFill(m_pVideoSurface, NULL, 0);
+
+	m_NativeVideoSize = m_AspectRatio = size;
+
+	return S_OK;
+}
+
+// IQTVideoSurface
+
+STDMETHODIMP CQT9AllocatorPresenter::BeginBlt(const BITMAP& bm)
+{
+	return AllocateSurfaces(CSize(bm.bmWidth, abs(bm.bmHeight)));
+}
+
+STDMETHODIMP CQT9AllocatorPresenter::DoBlt(const BITMAP& bm)
+{
+	if(!m_pVideoSurface)
+		return E_FAIL;
+
+	D3DSURFACE_DESC d3dsd;
+	ZeroMemory(&d3dsd, sizeof(d3dsd));
+	if(FAILED(m_pVideoSurface->GetDesc(&d3dsd)))
+		return E_FAIL;
+
+	int bppin = bm.bmBitsPixel;
+	int bppout = 0;
+	switch(d3dsd.Format)
+	{
+	case D3DFMT_X8R8G8B8: case D3DFMT_A8R8G8B8: bppout = 32; break;
+	case D3DFMT_R8G8B8: bppout = 24; break;
+	case D3DFMT_R5G6B5: bppout = 16; break;
+	default: return E_FAIL;
+	}
+
+	int w = bm.bmWidth;
+	int h = abs(bm.bmHeight);
+
+	if((bppin == 16 || bppin == 24 || bppin == 32) && w == d3dsd.Width && h == d3dsd.Height)
+	{
+		D3DLOCKED_RECT r;
+		if(SUCCEEDED(m_pVideoSurface->LockRect(&r, NULL, 0)))
+		{
+			int pitchIn = bm.bmWidthBytes;
+			int pitchOut = r.Pitch;
+			int pitchMin = min(pitchIn, pitchOut);
+
+			BYTE* pDataIn = (BYTE*)bm.bmBits;
+			BYTE* pDataOut = (BYTE*)r.pBits;
+
+			if(bm.bmHeight < 0)
+			{
+				pDataIn += (h-1)*pitchIn;
+				pitchIn = -pitchIn;
+			}
+
+			for(int y = 0; y < h; y++, pDataIn += pitchIn, pDataOut += pitchOut)
+			{
+				if(bppin == bppout)
+				{
+					memcpy(pDataOut, pDataIn, pitchMin);
+				}
+				else if(bppin == 16 && bppout == 32)
+				{
+					WORD* pIn = (WORD*)pDataIn;
+					DWORD* pOut = (DWORD*)pDataOut;
+					for(int x = 0; x < w; x++)
+					{
+						*pOut++ = ((*pIn&0xf800)<<8)|((*pIn&0x07e0)<<5)|(*pIn&0x001f);
+						pIn++;
+					}
+				}
+				else if(bppin == 32 && bppout == 16)
+				{
+					DWORD* pIn = (DWORD*)pDataIn;
+					WORD* pOut = (WORD*)pDataOut;
+					for(int x = 0; x < w; x++)
+					{
+						*pOut++ = (WORD)(((*pIn>>8)&0xf800)|((*pIn>>5)&0x07e0)|((*pIn>>3)&0x001f));
+						pIn++;
+					}
+				}
+				else if(bppin == 24 && bppout == 16)
+				{
+					BYTE* pIn = pDataIn;
+					WORD* pOut = (WORD*)pDataOut;
+					for(int x = 0; x < w; x++)
+					{
+						*pOut++ = (WORD)(((*((DWORD*)pIn)>>8)&0xf800)|((*((DWORD*)pIn)>>5)&0x07e0)|((*((DWORD*)pIn)>>3)&0x001f));
+						pIn += 3;
+					}
+				}
+				else if(bppin == 24 && bppout == 32)
+				{
+					BYTE* pIn = pDataIn;
+					DWORD* pOut = (DWORD*)pDataOut;
+					for(int x = 0; x < w; x++)
+					{
+						*pOut++ = *((DWORD*)pIn)&0xffffff;
+						pIn += 3;
+					}
+				}
+			}
+
+			m_pVideoSurface->UnlockRect();
+		}
+		
+		Paint(true);
+	}
+	else
+	{
+		m_pD3DDev->ColorFill(m_pVideoSurface, NULL, 0);
+
+		HDC hDC;
+		if(SUCCEEDED(m_pVideoSurface->GetDC(&hDC)))
+		{
+			CString str;
+			str.Format(_T("Sorry, this color format is not supported"));
+
+			SetBkColor(hDC, 0);
+			SetTextColor(hDC, 0x202020);
+			TextOut(hDC, 10, 10, str, str.GetLength());
+
+			m_pVideoSurface->ReleaseDC(hDC);
+			
+			Paint(true);
+		}
+	}
+
+	return S_OK;
+}

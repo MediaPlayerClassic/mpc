@@ -288,6 +288,8 @@ BEGIN_MESSAGE_MAP(CMainFrame, CFrameWnd)
 
 	ON_COMMAND_RANGE(ID_NAVIGATE_SKIPBACK, ID_NAVIGATE_SKIPFORWARD, OnNavigateSkip)
 	ON_UPDATE_COMMAND_UI_RANGE(ID_NAVIGATE_SKIPBACK, ID_NAVIGATE_SKIPFORWARD, OnUpdateNavigateSkip)
+	ON_COMMAND_RANGE(ID_NAVIGATE_SKIPBACKPLITEM, ID_NAVIGATE_SKIPFORWARDPLITEM, OnNavigateSkipPlaylistItem)
+	ON_UPDATE_COMMAND_UI_RANGE(ID_NAVIGATE_SKIPBACKPLITEM, ID_NAVIGATE_SKIPFORWARDPLITEM, OnUpdateNavigateSkipPlaylistItem)
 	ON_COMMAND_RANGE(ID_NAVIGATE_TITLEMENU, ID_NAVIGATE_CHAPTERMENU, OnNavigateMenu)
 	ON_UPDATE_COMMAND_UI_RANGE(ID_NAVIGATE_TITLEMENU, ID_NAVIGATE_CHAPTERMENU, OnUpdateNavigateMenu)
 	ON_COMMAND_RANGE(ID_NAVIGATE_AUDIO_SUBITEM_START, ID_NAVIGATE_AUDIO_SUBITEM_END, OnNavigateAudio)
@@ -3603,46 +3605,38 @@ void CMainFrame::OnPlaySeekKey(UINT nID)
 	{
 		HRESULT hr;
 
-		if(S_OK == pMS->IsFormatSupported(&TIME_FORMAT_FRAME)
-		&& S_OK == pMS->SetTimeFormat(&TIME_FORMAT_FRAME))
+		if(GetMediaState() == State_Stopped)
+			SendMessage(WM_COMMAND, ID_PLAY_PAUSE);
+
+		REFERENCE_TIME rtCurrent, rtStop;
+		hr = pMS->GetPositions(&rtCurrent, &rtStop);
+
+		rtCurrent = (rtCurrent + 5000) / 10000;
+
+		int dec = 1;
+		int i = rangebsearch((UINT)rtCurrent, kfs);
+		if(i > 0) dec = (UINT)max(min(rtCurrent - kfs[i-1], 1000), 0);
+
+		rtCurrent = 
+			nID == ID_PLAY_SEEKKEYBACKWARD ? max(rtCurrent - dec, 0) : 
+			nID == ID_PLAY_SEEKKEYFORWARD ? rtCurrent : 0;
+
+		i = rangebsearch((UINT)rtCurrent, kfs);
+
+		if(nID == ID_PLAY_SEEKKEYBACKWARD)
 		{
-			if(GetMediaState() == State_Stopped)
-				SendMessage(WM_COMMAND, ID_PLAY_PAUSE);
-
-			REFERENCE_TIME rtCurrent, rtStop;
-			hr = pMS->GetPositions(&rtCurrent, &rtStop);
-
-			int dec = 1;
-			int i = rangebsearch((UINT)rtCurrent, kfs);
-			if(i > 0) dec = (UINT)max(min(rtCurrent - kfs[i-1], 25), 0);
-
-			rtCurrent = 
-				nID == ID_PLAY_SEEKKEYBACKWARD ? rtCurrent - dec : 
-				nID == ID_PLAY_SEEKKEYFORWARD ? rtCurrent : 0;
-
-			i = rangebsearch((UINT)rtCurrent, kfs);
-
-			if(nID == ID_PLAY_SEEKKEYBACKWARD)
-			{
-				i = max(i, 0);
-			}
-			else if(nID == ID_PLAY_SEEKKEYFORWARD)
-			{
-				i = min(i + 1, kfs.GetCount() - 1);
-			}
-
-			hr = pMS->ConvertTimeFormat(
-				&rtCurrent, &TIME_FORMAT_MEDIA_TIME, 
-				REFERENCE_TIME(kfs[i]), &TIME_FORMAT_FRAME);
-
-			pMS->SetTimeFormat(&TIME_FORMAT_MEDIA_TIME);
-
-			hr = pMS->SetPositions(
-				&rtCurrent, AM_SEEKING_AbsolutePositioning|AM_SEEKING_SeekToKeyFrame, 
-				NULL, AM_SEEKING_NoPositioning);
-
-			return;
+			i = max(i, 0);
 		}
+		else if(nID == ID_PLAY_SEEKKEYFORWARD)
+		{
+			i = min(i + 1, kfs.GetCount()-1);
+		}
+
+		rtCurrent = 10000i64*kfs[i];
+
+		hr = pMS->SetPositions(
+			&rtCurrent, AM_SEEKING_AbsolutePositioning|AM_SEEKING_SeekToKeyFrame, 
+			NULL, AM_SEEKING_NoPositioning);
 	}
 }
 
@@ -3851,11 +3845,64 @@ void CMainFrame::OnUpdatePlayAudio(CCmdUI* pCmdUI)
 
 void CMainFrame::OnPlaySubtitles(UINT nID)
 {
-	int i = (int)nID - (2 + ID_SUBTITLES_SUBITEM_START);
+	int i = (int)nID - (3 + ID_SUBTITLES_SUBITEM_START);
 
-	if(i == -2)
+	if(i == -3)
 	{
 		ShowOptions(CPPageSubtitles::IDD);
+	}
+	else if(i == -2)
+	{
+		int i = m_iSubtitleSel;
+
+		POSITION pos = m_pSubStreams.GetHeadPosition();
+		while(pos && i >= 0)
+		{
+			CComPtr<ISubStream> pSubStream = m_pSubStreams.GetNext(pos);
+
+			if(i < pSubStream->GetStreamCount())
+			{
+				CLSID clsid;
+				if(FAILED(pSubStream->GetClassID(&clsid)))
+					continue;
+
+				if(clsid == __uuidof(CRenderedTextSubtitle))
+				{
+					CRenderedTextSubtitle* pRTS = (CRenderedTextSubtitle*)(ISubStream*)pSubStream;
+
+					CAutoPtrArray<CPPageSubStyle> pages;
+					CArray<STSStyle*> styles;
+
+					POSITION pos = pRTS->m_styles.GetStartPosition();
+					for(int i = 0; pos; i++)
+					{
+						CString key;
+						void* val;
+						pRTS->m_styles.GetNextAssoc(pos, key, val);
+
+						CAutoPtr<CPPageSubStyle> page(new CPPageSubStyle());
+						page->InitStyle(key, *(STSStyle*)val);
+						pages.Add(page);
+						styles.Add((STSStyle*)val);
+					}
+
+					CPropertySheet dlg(_T("Styles..."), this);
+					for(int i = 0; i < (int)pages.GetCount(); i++) 
+						dlg.AddPage(pages[i]);
+
+					if(dlg.DoModal() == IDOK)
+					{
+						for(int j = 0; j < (int)pages.GetCount(); j++)
+							pages[j]->GetStyle(*styles[j]);
+						UpdateSubtitle(false);
+					}
+
+					return;
+				}
+			}
+
+			i -= pSubStream->GetStreamCount();
+		}
 	}
 	else if(i == -1)
 	{
@@ -3872,11 +3919,38 @@ void CMainFrame::OnPlaySubtitles(UINT nID)
 void CMainFrame::OnUpdatePlaySubtitles(CCmdUI* pCmdUI)
 {
 	UINT nID = pCmdUI->m_nID;
-	int i = (int)nID - (2 + ID_SUBTITLES_SUBITEM_START);
+	int i = (int)nID - (3 + ID_SUBTITLES_SUBITEM_START);
 
 	pCmdUI->Enable(m_pCAP && !m_fAudioOnly);
 
-	if(i == -1)
+	if(i == -2)
+	{
+		pCmdUI->Enable(FALSE);
+
+		int i = m_iSubtitleSel;
+
+		POSITION pos = m_pSubStreams.GetHeadPosition();
+		while(pos && i >= 0)
+		{
+			CComPtr<ISubStream> pSubStream = m_pSubStreams.GetNext(pos);
+
+			if(i < pSubStream->GetStreamCount())
+			{
+				CLSID clsid;
+				if(FAILED(pSubStream->GetClassID(&clsid)))
+					continue;
+
+				if(clsid == __uuidof(CRenderedTextSubtitle))
+				{
+					pCmdUI->Enable(TRUE);
+					break;
+				}
+			}
+
+			i -= pSubStream->GetStreamCount();
+		}
+	}
+	else if(i == -1)
 	{
 		pCmdUI->SetCheck(m_iSubtitleSel >= 0);
 	}
@@ -3925,23 +3999,46 @@ void CMainFrame::OnNavigateSkip(UINT nID)
 
 	if(m_iPlaybackMode == PM_FILE)
 	{
-		if(m_wndPlaylistBar.GetCount() == 1)
+		if(m_chapters.GetCount())
 		{
-			SendMessage(WM_COMMAND, ID_PLAY_STOP); // do not remove this, unless you want a circular call with OnPlayPlay()
-			SendMessage(WM_COMMAND, ID_PLAY_PLAY);
-		}
-		else
-		{
+			REFERENCE_TIME rtNow, rtDur;
+			pMS->GetCurrentPosition(&rtNow);
+			pMS->GetDuration(&rtDur);
+
 			if(nID == ID_NAVIGATE_SKIPBACK)
 			{
-				m_wndPlaylistBar.SetPrev();
+				for(int i = m_chapters.GetCount()-1; i >= 0; i--)
+				{
+					if(rtNow >= m_chapters[i].rtStart)
+					{
+						if(rtNow < m_chapters[i].rtStart + 10000000 && i > 0) i--;
+						SeekTo(m_chapters[i].rtStart);
+						SendStatusMessage(_T("Chapter: ") + m_chapters[i].name, 3000);
+						return;
+					}
+				}
 			}
 			else if(nID == ID_NAVIGATE_SKIPFORWARD)
 			{
-				m_wndPlaylistBar.SetNext();
+				for(int i = 0; i < m_chapters.GetCount(); i++)
+				{
+					if(rtNow < m_chapters[i].rtStart)
+					{
+						SeekTo(m_chapters[i].rtStart);
+						SendStatusMessage(_T("Chapter: ") + m_chapters[i].name, 3000);
+						return;
+					}
+				}
 			}
+		}
 
-			OpenCurPlaylistItem();
+		if(nID == ID_NAVIGATE_SKIPBACK)
+		{
+			SendMessage(WM_COMMAND, ID_NAVIGATE_SKIPBACKPLITEM);
+		}
+		else if(nID == ID_NAVIGATE_SKIPFORWARD)
+		{
+			SendMessage(WM_COMMAND, ID_NAVIGATE_SKIPFORWARDPLITEM);
 		}
 	}
 	else if(m_iPlaybackMode == PM_DVD)
@@ -4037,8 +4134,41 @@ void CMainFrame::OnUpdateNavigateSkip(CCmdUI* pCmdUI)
 		&& ((m_iPlaybackMode == PM_DVD 
 				&& m_iDVDDomain != DVD_DOMAIN_VideoManagerMenu 
 				&& m_iDVDDomain != DVD_DOMAIN_VideoTitleSetMenu)
-			|| (m_iPlaybackMode == PM_FILE && m_wndPlaylistBar.GetCount() > 1/*0*/)
+			|| (m_iPlaybackMode == PM_FILE && (m_wndPlaylistBar.GetCount() > 1/*0*/ || m_chapters.GetCount() > 1))
 			|| (m_iPlaybackMode == PM_CAPTURE && pAMTuner && !m_fCapturing))); // TODO
+}
+
+void CMainFrame::OnNavigateSkipPlaylistItem(UINT nID)
+{
+	m_iSpeedLevel = 0;
+
+	if(m_iPlaybackMode == PM_FILE)
+	{
+		if(m_wndPlaylistBar.GetCount() == 1)
+		{
+			SendMessage(WM_COMMAND, ID_PLAY_STOP); // do not remove this, unless you want a circular call with OnPlayPlay()
+			SendMessage(WM_COMMAND, ID_PLAY_PLAY);
+		}
+		else
+		{
+			if(nID == ID_NAVIGATE_SKIPBACKPLITEM)
+			{
+				m_wndPlaylistBar.SetPrev();
+			}
+			else if(nID == ID_NAVIGATE_SKIPFORWARDPLITEM)
+			{
+				m_wndPlaylistBar.SetNext();
+			}
+
+			OpenCurPlaylistItem();
+		}
+	}
+}
+
+void CMainFrame::OnUpdateNavigateSkipPlaylistItem(CCmdUI* pCmdUI)
+{
+	pCmdUI->Enable(m_iMediaLoadState == MLS_LOADED
+		&& (m_iPlaybackMode == PM_FILE && m_wndPlaylistBar.GetCount() > 1/*0*/));
 }
 
 void CMainFrame::OnNavigateMenu(UINT nID)
@@ -4130,6 +4260,14 @@ void CMainFrame::OnNavigateChapters(UINT nID)
 
 	if(m_iPlaybackMode == PM_FILE)
 	{
+		if((int)nID >= 0 && (int)nID < m_chapters.GetCount())
+		{
+			SeekTo(m_chapters[nID].rtStart);
+			SendStatusMessage(_T("Chapter: ") + m_chapters[nID].name, 3000);
+			return;
+		}
+		nID -= m_chapters.GetCount();
+
 		if((int)nID >= 0 && (int)nID < m_wndPlaylistBar.GetCount()
 		&& m_wndPlaylistBar.GetSelIdx() != (int)nID)
 		{
@@ -5071,8 +5209,103 @@ void CMainFrame::OpenFile(OpenFileData* pOFD)
 	if(!(pAMOP = pGB))
 	{
 		BeginEnumFilters(pGB, pEF, pBF)
-		{
 			if(pAMOP = pBF) break;
+		EndEnumFilters
+	}
+
+	if(m_chapters.IsEmpty())
+	{
+		CComQIPtr<IChapterInfo> pCI;
+		BeginEnumFilters(pGB, pEF, pBF)
+			if(pCI = pBF) break;
+		EndEnumFilters
+		if(pCI)
+		{
+			REFERENCE_TIME rtDur = 0;
+			pMS->GetDuration(&rtDur);
+
+			CHAR iso6391[3];
+			::GetLocaleInfoA(LOCALE_USER_DEFAULT, LOCALE_SISO639LANGNAME, iso6391, 3);
+			CStringA iso6392 = ISO6391To6392(iso6391);
+			if(iso6392.GetLength() < 3) iso6392 = "eng";
+
+			UINT cnt = pCI->GetChapterCount(CHAPTER_ROOT_ID);
+			for(UINT i = 1; i <= cnt; i++)
+			{
+				UINT cid = pCI->GetChapterId(CHAPTER_ROOT_ID, i);
+				ChapterElement ce;
+				CComBSTR bstr;
+				CHAR pl[3] = {iso6392[0], iso6392[1], iso6392[2]};
+				CHAR cc[] = "  ";
+				if(pCI->GetChapterInfo(cid, &ce))
+				{
+					chapter_t c;
+					c.rtStart = ce.rtStart;
+					c.rtStop = rtDur/*ce.rtStop*/; // TODO
+
+					bstr.Attach(pCI->GetChapterStringInfo(cid, pl, cc));
+					c.name = CString(bstr);
+
+					if(m_chapters.GetCount() > 0)
+						m_chapters[m_chapters.GetCount()-1].rtStop = c.rtStart;
+
+					m_chapters.Add(c);
+				}
+			}
+		}
+	}
+
+	if(m_chapters.IsEmpty())
+	{
+		BeginEnumFilters(pGB, pEF, pBF)
+		{
+			if(GetCLSID(pBF) != CLSID_OggSplitter)
+				continue;
+
+			REFERENCE_TIME rtDur = 0;
+			pMS->GetDuration(&rtDur);
+
+			BeginEnumPins(pBF, pEP, pPin)
+			{
+				if(CComQIPtr<IPropertyBag> pPB = pPin)
+				{
+            		for(int i = 1; ; i++)
+					{
+						CStringW str;
+						CComVariant var;
+
+						var.Clear();
+						str.Format(L"CHAPTER%02d", i);
+						if(S_OK != pPB->Read(str, &var, NULL)) 
+							break;
+
+						int h, m, s, ms;
+						WCHAR wc;
+						if(7 != swscanf(CStringW(var), L"%d%c%d%c%d%c%d", &h, &wc, &m, &wc, &s, &wc, &ms)) 
+							break;
+
+						chapter_t c;
+						c.rtStart = 10000i64*(((h*60 + m)*60 + s)*1000 + ms);
+						c.rtStop = rtDur ? rtDur : c.rtStart;
+
+						var.Clear();
+                        str += L"NAME";
+						if(S_OK == pPB->Read(str, &var, NULL))
+							c.name = var;
+
+						if(m_chapters.GetCount() > 0)
+							m_chapters[m_chapters.GetCount()-1].rtStop = c.rtStart;
+
+						m_chapters.Add(c);
+					}
+				}
+
+				if(!m_chapters.IsEmpty())
+					break;
+			}
+			EndEnumPins
+
+			break;
 		}
 		EndEnumFilters
 	}
@@ -5860,6 +6093,8 @@ RemoveFromRot(m_dwRegister);
 		m_pSubStreams.RemoveAll();
 	}
 
+	m_chapters.RemoveAll();
+
 	m_closingmsg = _T("Closed");
 
 	AfxGetAppSettings().nCLSwitches &= CLSW_OPEN|CLSW_PLAY|CLSW_SHUTDOWN|CLSW_CLOSE;
@@ -6136,6 +6371,7 @@ void CMainFrame::SetupSubtitlesSubMenu()
 	if(pos)
 	{
 		pSub->AppendMenu(MF_BYCOMMAND|MF_STRING|MF_ENABLED, id++, _T("&Options..."));
+		pSub->AppendMenu(MF_BYCOMMAND|MF_STRING|MF_ENABLED, id++, _T("&Styles..."));
 		pSub->AppendMenu(MF_SEPARATOR);
 
 		pSub->AppendMenu(MF_BYCOMMAND|MF_STRING|MF_ENABLED, id++, _T("&Enable"));
@@ -6351,15 +6587,42 @@ void CMainFrame::SetupNavChaptersSubMenu()
 
 	UINT id = ID_NAVIGATE_CHAP_SUBITEM_START;
 
-	if(m_iPlaybackMode == PM_FILE && m_wndPlaylistBar.GetCount() > 1)
+	if(m_iPlaybackMode == PM_FILE)
 	{
-		POSITION pos = m_wndPlaylistBar.m_pl.GetHeadPosition();
-		while(pos)
+		if(m_chapters.GetCount())
 		{
-			UINT flags = MF_BYCOMMAND|MF_STRING|MF_ENABLED;
-			if(pos == m_wndPlaylistBar.m_pl.GetPos()) flags |= MF_CHECKED;
-			CPlaylistItem& pli = m_wndPlaylistBar.m_pl.GetNext(pos);
-			pSub->AppendMenu(flags, id++, pli.m_fns.GetHead());
+			REFERENCE_TIME rt = GetPos();
+
+			for(int i = 0; i < m_chapters.GetCount(); i++)
+			{
+				chapter_t& c = m_chapters[i];
+
+				int s = (c.rtStart/10000000)%60;
+				int m = (c.rtStart/10000000/60)%60;
+				int h = (c.rtStart/10000000/60/60);
+
+				CString t;
+				t.Format(_T("[%02d:%02d:%02d] "), h, m, s);
+
+				UINT flags = MF_BYCOMMAND|MF_STRING|MF_ENABLED;
+				if(c.rtStart <= rt && rt < c.rtStop) flags |= MF_CHECKED;
+				if(id != ID_NAVIGATE_CHAP_SUBITEM_START && i == 0) pSub->AppendMenu(MF_SEPARATOR);
+				pSub->AppendMenu(flags, id++, t + c.name);
+			}
+		}
+
+		if(m_wndPlaylistBar.GetCount() > 1)
+		{
+			POSITION pos = m_wndPlaylistBar.m_pl.GetHeadPosition();
+			while(pos)
+			{
+				UINT flags = MF_BYCOMMAND|MF_STRING|MF_ENABLED;
+				if(pos == m_wndPlaylistBar.m_pl.GetPos()) flags |= MF_CHECKED;
+				if(id != ID_NAVIGATE_CHAP_SUBITEM_START && pos == m_wndPlaylistBar.m_pl.GetHeadPosition())
+					pSub->AppendMenu(MF_SEPARATOR);
+				CPlaylistItem& pli = m_wndPlaylistBar.m_pl.GetNext(pos);
+				pSub->AppendMenu(flags, id++, pli.m_fns.GetHead());
+			}
 		}
 	}
 	else if(m_iPlaybackMode == PM_DVD)
@@ -6436,7 +6699,7 @@ void CMainFrame::SetupNavOgmSubMenu(CMenu* pSub, UINT id, CString type)
 				continue;
 
 			if(dwPrevGroup != -1 && dwPrevGroup != dwGroup)
-				pSub->AppendMenu(MF_SEPARATOR|MF_ENABLED);
+				pSub->AppendMenu(MF_SEPARATOR);
 			dwPrevGroup = dwGroup;
 
 			CString str;
@@ -6813,34 +7076,16 @@ void CMainFrame::SeekTo(REFERENCE_TIME rtPos, bool fSeekToKeyFrame)
 
 		HRESULT hr;
 
-		if(fSeekToKeyFrame && m_pKFFThread
-		&& S_OK == pMS->IsFormatSupported(&TIME_FORMAT_FRAME)
-		&& S_OK == pMS->SetTimeFormat(&TIME_FORMAT_FRAME))
+		if(fSeekToKeyFrame && m_pKFFThread)
 		{
 			CAutoLock cAutoLock(m_pKFFThread);
 
 			CUIntArray& kfs = m_pKFFThread->m_kfs;
-
-			if(!kfs.IsEmpty()
-			&& S_OK == pMS->IsFormatSupported(&TIME_FORMAT_FRAME)
-			&& S_OK == pMS->SetTimeFormat(&TIME_FORMAT_FRAME))
+			if(!kfs.IsEmpty())
 			{
-				REFERENCE_TIME rtFrame = -1;
-
-				hr = pMS->ConvertTimeFormat(
-					&rtFrame, &TIME_FORMAT_FRAME, 
-					rtPos, &TIME_FORMAT_MEDIA_TIME);
-
-				int i = rangebsearch((UINT)rtFrame, kfs);
-
+				int i = rangebsearch((UINT)((rtPos+5000)/10000), kfs);
 				if(i >= 0 && i < kfs.GetCount())
-				{
-					hr = pMS->ConvertTimeFormat(
-						&rtPos, &TIME_FORMAT_MEDIA_TIME,
-						REFERENCE_TIME(kfs[i]), &TIME_FORMAT_FRAME);
-				}
-
-				pMS->SetTimeFormat(&TIME_FORMAT_MEDIA_TIME);
+					rtPos = kfs[i]*10000;
 			}
 		}
 
@@ -7492,26 +7737,28 @@ void CKeyFrameFinderThread::OnExit(WPARAM wParam, LPARAM lParam)
 
 void CKeyFrameFinderThread::OnIndex(WPARAM wParam, LPARAM lParam)
 {
-	TCHAR* buff = (LPTSTR)lParam;
-	if(!buff) return;
+	if(!lParam) return;
+
+	CString fn = (LPTSTR)lParam;
+	delete [] (LPTSTR)lParam;
 
 	CFile f;
-	if(f.Open(buff, CFile::modeRead|CFile::shareDenyWrite))
+	if(f.Open(fn, CFile::modeRead|CFile::shareDenyWrite))
 	{
 		ULONGLONG len = f.GetLength();
 		BYTE buff[12];
 		memset(buff, 0, sizeof(buff));
 		f.Read(buff, sizeof(buff));
 		if(*((DWORD*)&buff[0]) != 'FFIR' || *((DWORD*)&buff[8]) != ' IVA'
-		|| len != *((DWORD*)&buff[4])+8)
+		/*|| len != *((DWORD*)&buff[4])+8*/)
 			return;
 		f.Close();
 	}
 
 	AVIFileInit();
-	    
+
 	PAVIFILE pfile;
-	if(AVIFileOpen(&pfile, buff, OF_SHARE_DENY_WRITE, 0L) == 0)
+	if(AVIFileOpen(&pfile, fn, OF_SHARE_DENY_WRITE, 0L) == 0)
 	{
 		AVIFILEINFO afi;
 		memset(&afi, 0, sizeof(afi));
@@ -7543,15 +7790,19 @@ void CKeyFrameFinderThread::OnIndex(WPARAM wParam, LPARAM lParam)
 
 					kf = pavi->FindSample(kf, FIND_KEY|FIND_NEXT);
 
+					UINT t = (UINT)((1000i64 * kf * si.dwScale + (si.dwRate/2)) / si.dwRate);
+
 					CAutoLock cAutoLock(this);
-					if(kf < 0 || m_kfs.GetCount() > 0 && m_kfs[m_kfs.GetCount()-1] >= kf) break;
-					m_kfs.Add(kf);
+					if(kf < 0 || m_kfs.GetCount() > 0 && m_kfs[m_kfs.GetCount()-1] >= t) break;
+					m_kfs.Add(t);
 				}
 
 				{
+					UINT t = (UINT)((1000i64 * (si.dwLength-1) * si.dwScale + (si.dwRate/2)) / si.dwRate);
+
 					CAutoLock cAutoLock(this);
 					if(m_kfs.GetCount() > 0 && m_kfs[m_kfs.GetCount()-1] < si.dwLength-1)
-						m_kfs.Add(si.dwLength-1);
+						m_kfs.Add(t);
 				}
 			}
 		}
@@ -7560,8 +7811,6 @@ void CKeyFrameFinderThread::OnIndex(WPARAM wParam, LPARAM lParam)
 	}
 
 	AVIFileExit();
-
-	delete [] buff;
 }
 void CKeyFrameFinderThread::OnBreak(WPARAM wParam, LPARAM lParam)
 {

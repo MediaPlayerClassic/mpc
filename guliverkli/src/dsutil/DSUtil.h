@@ -83,6 +83,7 @@ extern CStringW UTF8To16(LPCSTR utf8);
 extern CStringA UTF16To8(LPCWSTR utf16);
 extern CString ISO6391ToLanguage(LPCSTR code);
 extern CString ISO6392ToLanguage(LPCSTR code);
+extern CString ISO6391To6392(LPCSTR code);
 
 class CPinInfo : public PIN_INFO
 {

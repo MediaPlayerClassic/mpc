@@ -22,6 +22,7 @@
 #pragma once
 #include "BaseGraph.h"
 #include "DX7AllocatorPresenter.h"
+#include "DX9AllocatorPresenter.h"
 
 namespace DSObjects
 {
@@ -70,7 +71,7 @@ public:
 class CQuicktimeGraph : public CBaseGraph, public IVideoFrameStep
 {
 public:
-	enum {MC, GDI, DX7};
+	enum {MC, GDI, DX7, DX9};
 	int m_iRenderer;
 
 protected:

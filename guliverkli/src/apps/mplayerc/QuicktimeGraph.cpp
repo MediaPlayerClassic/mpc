@@ -54,6 +54,17 @@ CQuicktimeGraph::CQuicktimeGraph(HWND hWndParent, int iRenderer, HRESULT& hr)
 		else
             dwStyle &= ~WS_VISIBLE;
 	}
+	else if(m_iRenderer == DX9)
+	{
+		hr = CreateAP9(CLSID_QT9AllocatorPresenter, hWndParent, &m_pQTAP);
+		if(FAILED(hr)) 
+		{
+			m_iRenderer = MC;
+			hr = S_OK;
+		}
+		else
+            dwStyle &= ~WS_VISIBLE;
+	}
 
 	m_fQtInitialized = false;
 	if(InitializeQTML(0) != 0) {hr = E_FAIL; return;}
@@ -510,7 +521,7 @@ bool CQuicktimeWindow::OpenMovie(CString fn)
 
 			SetMovieGWorld(theMovie, m_offscreenGWorld, GetGWorldDevice(m_offscreenGWorld));
 
-			if(m_pGraph->m_iRenderer == CQuicktimeGraph::DX7)
+			if(m_pGraph->m_iRenderer == CQuicktimeGraph::DX7 || m_pGraph->m_iRenderer == CQuicktimeGraph::DX9)
 			{
 				if(CComQIPtr<IQTVideoSurface> pQTVS = (IUnknown*)(INonDelegatingUnknown*)m_pGraph)
 				{

@@ -35,7 +35,7 @@ CStatusLabel::CStatusLabel(bool fRightAlign) : m_fRightAlign(fRightAlign)
 	HDC hdc = ::GetDC(NULL);
 	double s = 1.0*GetDeviceCaps(hdc, LOGPIXELSY) / 96.0;
 	m_font.CreateFont(int(15.0 * GetDeviceCaps(hdc, LOGPIXELSY) / 96.0), 0, 0, 0, FW_NORMAL, 0, 0, 0, 1, 
-		OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, ANTIALIASED_QUALITY, DEFAULT_PITCH|FF_DONTCARE, 
+		OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY/*ANTIALIASED_QUALITY*/, DEFAULT_PITCH|FF_DONTCARE, 
 		_T("MS Sans Serif"));
 	::ReleaseDC(0, hdc);
 }

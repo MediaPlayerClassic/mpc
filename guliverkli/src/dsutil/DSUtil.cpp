@@ -1872,3 +1872,18 @@ CString ISO6392ToLanguage(LPCSTR code)
 		}
 	return(_T(""));
 }
+
+CString ISO6391To6392(LPCSTR code)
+{
+	CHAR tmp[2+1];
+	strncpy(tmp, code, 2);
+	tmp[2] = 0;
+	_strlwr(tmp);
+	for(int i = 0, j = sizeof(s_isolangs)/sizeof(s_isolangs[0]); i < j; i++)
+		if(!strcmp(s_isolangs[i].iso6391, tmp))
+		{
+			CString ret = CString(CStringA(s_isolangs[i].iso6392));
+			return ret;
+		}
+	return(_T(""));
+}

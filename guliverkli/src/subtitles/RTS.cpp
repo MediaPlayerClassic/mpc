@@ -1375,9 +1375,11 @@ void CRenderedTextSubtitle::ParsePolygon(CSubtitle* sub, CStringW str, STSStyle&
 	}
 }
 
-void CRenderedTextSubtitle::ParseStyle(CSubtitle* sub, CStringW str, STSStyle& style, STSStyle& org, bool fAnimate)
+bool CRenderedTextSubtitle::ParseSSATag(CSubtitle* sub, CStringW str, STSStyle& style, STSStyle& org, bool fAnimate)
 {
-	if(!sub) return;
+	if(!sub) return(false);
+
+	int nTags = 0, nUnrecognizedTags = 0;
 
 	for(int i = 0, j; (j = str.Find('\\', i)) >= 0; i = j)
 	{
@@ -1479,6 +1481,10 @@ void CRenderedTextSubtitle::ParseStyle(CSubtitle* sub, CStringW str, STSStyle& s
 			;
 		else if(!cmd.Find(L"u"))
 			params.Add(cmd.Mid(1)), cmd = cmd.Left(1);
+		else
+			nUnrecognizedTags++;
+
+		nTags++;
 
 		// TODO: call ParseStyleModifier(cmd, params, ..) and move the rest there
 
@@ -1823,7 +1829,7 @@ void CRenderedTextSubtitle::ParseStyle(CSubtitle* sub, CStringW str, STSStyle& s
 				p = params[3];
 			}
 
-			ParseStyle(sub, p, style, org, true);
+			ParseSSATag(sub, p, style, org, true);
 
 			sub->m_fAnimated = true;
 		}
@@ -1835,6 +1841,91 @@ void CRenderedTextSubtitle::ParseStyle(CSubtitle* sub, CStringW str, STSStyle& s
 				: org.fUnderline;
 		}
 	}
+
+//	return(nUnrecognizedTags < nTags);
+	return(true); // there are ppl keeping coments inside {}, lets make them happy now
+}
+
+bool CRenderedTextSubtitle::ParseHtmlTag(CSubtitle* sub, CStringW str, STSStyle& style, STSStyle& org)
+{
+	if(str.Find(L"!--") == 0)
+		return(true);
+
+	bool fClosing = str[0] == '/';
+	str.Trim(L" /");
+
+	int i = str.Find(' ');
+	if(i < 0) i = str.GetLength();
+
+	CStringW tag = str.Left(i).MakeLower();
+	str = str.Mid(i).Trim();
+
+	CArray<CStringW> attribs, params;
+	while((i = str.Find('=')) > 0)
+	{
+		attribs.Add(str.Left(i).Trim().MakeLower());
+		str = str.Mid(i+1);
+		for(i = 0; _istspace(str[i]); i++);
+		str = str.Mid(i);
+		if(str[0] == '\"') {str = str.Mid(1); i = str.Find('\"');}
+		else i = str.Find(' ');
+		if(i < 0) i = str.GetLength();
+		params.Add(str.Left(i).Trim().MakeLower());
+		str = str.Mid(i+1);
+	}
+
+	if(tag == L"b" || tag == L"strong")
+		style.fontWeight = !fClosing ? FW_BOLD : org.fontWeight;
+	else if(tag == L"i" || tag == L"em")
+		style.fItalic = !fClosing ? true : org.fItalic;
+	else if(tag == L"u")
+		style.fUnderline = !fClosing ? true : org.fUnderline;
+	else if(tag == L"s" || tag == L"strike" || tag == L"del")
+		style.fStrikeOut = !fClosing ? true : org.fStrikeOut;
+	else if(tag == L"font")
+	{
+		if(!fClosing)
+		{
+			for(i = 0; i < attribs.GetCount(); i++)
+			{
+				if(params[i].IsEmpty()) continue;
+
+				if(attribs[i] == L"face")
+				{
+					style.fontName = params[i];
+				}
+				else if(attribs[i] == L"size")
+				{
+					if(params[i][0] == '+')
+						style.fontSize += wcstol(params[i], NULL, 10);
+					else if(params[i][0] == '-')
+						style.fontSize -= wcstol(params[i], NULL, 10);
+					else
+						style.fontSize = wcstol(params[i], NULL, 10);
+				}
+				else if(attribs[i] == L"color")
+				{
+					CString key = WToT(params[i]).TrimLeft('#');
+					void* val;
+					if(g_colors.Lookup(key, val))
+						style.colors[0] = (DWORD)val;
+					else if ((style.colors[0] = _tcstol(key, NULL, 16)) == 0)
+						style.colors[0] = 0x00ffffff;  // default is white
+					else style.colors[0] = ((style.colors[0]>>16)&0xff)|((style.colors[0]&0xff)<<16)|(style.colors[0]&0x00ff00);
+				}
+			}
+		}
+		else
+		{
+			style.fontName = org.fontName;
+			style.fontSize = org.fontSize;
+			style.colors[0] = org.colors[0];
+		}
+	}
+	else 
+		return(false);
+
+	return(true);
 }
 
 double CRenderedTextSubtitle::CalcAnimation(double dst, double src, bool fAnimate)
@@ -1885,48 +1976,51 @@ CSubtitle* CRenderedTextSubtitle::GetSubtitle(int entry)
 
 	ParseEffect(ret, GetAt(entry).effect);
 
-	int nStyle = 0;
-	for(int i = 0; !str.IsEmpty();)
+	while(!str.IsEmpty())
 	{
-		if(nStyle == 0) i = str.FindOneOf(L"{");
-//		if(nStyle == 0) i = str.FindOneOf(L"{<");
-		else if(nStyle == 1) i = str.Find(L'}');
-		else if(nStyle == 2) i = str.Find(L'>');
+		bool fParsed = true;
 
-		if(i < 0) i = str.GetLength();
+		int i;
 
-		CStringW str2 = str.Left(i).Trim(L"{}");
-//		CStringW str2 = str.Left(i).Trim(L"{}<>");
-
-		if(nStyle == 0)
+		if(str[0] == '{' && (i = str.Find(L'}')) > 0)
 		{
-			STSStyle tmp = s;
-
-			tmp.fontSize = m_screenRatioY*tmp.fontSize*64;
-			tmp.fontSpacing = m_screenRatioX*tmp.fontSpacing*64;
-			tmp.outlineWidth *= (m_fScaledBAS ? ((m_screenRatioX+m_screenRatioY)/2) : 1) * 8;
-			tmp.shadowDepth *= (m_fScaledBAS ? ((m_screenRatioX+m_screenRatioY)/2) : 1) * 8;
-
-			if(m_nPolygon)
-			{
-				ParsePolygon(ret, str2, tmp);
-			}
-			else
-			{
-				ParseString(ret, str2, tmp);
-			}
+			if(fParsed = ParseSSATag(ret, str.Mid(1, i-1), s, org))
+				str = str.Mid(i+1);
 		}
-		else if(nStyle == 1)
+		else if(str[0] == '<' && (i = str.Find(L'>')) > 0)
 		{
-			ParseStyle(ret, str2, s, org);
-		}
-		else if(nStyle == 2)
-		{
-			// TODO: parse html tag
+			if(fParsed = ParseHtmlTag(ret, str.Mid(1, i-1), s, org))
+				str = str.Mid(i+1);
 		}
 
-		if(nStyle == 0) nStyle = str[i] == '{' ? 1 : str[i] == '<' ? 2 : 0;
-		else nStyle = 0;
+		if(fParsed)
+		{
+			i = str.FindOneOf(L"{<");
+			if(i < 0) i = str.GetLength();
+			if(i == 0) continue;
+		}
+		else
+		{
+			i = str.Mid(1).FindOneOf(L"{<");
+			if(i < 0) i = str.GetLength();
+			i++;
+		}
+
+		STSStyle tmp = s;
+
+		tmp.fontSize = m_screenRatioY*tmp.fontSize*64;
+		tmp.fontSpacing = m_screenRatioX*tmp.fontSpacing*64;
+		tmp.outlineWidth *= (m_fScaledBAS ? ((m_screenRatioX+m_screenRatioY)/2) : 1) * 8;
+		tmp.shadowDepth *= (m_fScaledBAS ? ((m_screenRatioX+m_screenRatioY)/2) : 1) * 8;
+
+		if(m_nPolygon)
+		{
+			ParsePolygon(ret, str.Left(i), tmp);
+		}
+		else
+		{
+			ParseString(ret, str.Left(i), tmp);
+		}
 
 		str = str.Mid(i);
 	}

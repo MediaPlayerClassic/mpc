@@ -38,6 +38,7 @@ class CMatroskaSplitterOutputPin : public CBaseSplitterOutputPin
 	HRESULT DeliverBlock(MatroskaPacket* p);
 
 	int m_nMinCache;
+	REFERENCE_TIME m_rtDefaultDuration;
 
 	CCritSec m_csQueue;
 	CAutoPtrList<MatroskaPacket> m_packets;
@@ -50,7 +51,9 @@ protected:
 	HRESULT DeliverPacket(CAutoPtr<Packet> p);
 
 public:
-	CMatroskaSplitterOutputPin(int nMinCache, CArray<CMediaType>& mts, LPCWSTR pName, CBaseFilter* pFilter, CCritSec* pLock, HRESULT* phr);
+	CMatroskaSplitterOutputPin(
+		int nMinCache, REFERENCE_TIME rtDefaultDuration, 
+		CArray<CMediaType>& mts, LPCWSTR pName, CBaseFilter* pFilter, CCritSec* pLock, HRESULT* phr);
 	virtual ~CMatroskaSplitterOutputPin();
 
 	HRESULT DeliverEndFlush();

@@ -166,6 +166,8 @@
 #define IDD_PPAGESUBSTYLE               328
 #define IDD_PPAGEMOUSE                  329
 #define IDD_PPAGESOURCE                 330
+#define ID_NAVIGATE_SKIPBACKPLITEM      331
+#define ID_NAVIGATE_SKIPFORWARDPLITEM   332
 #define IDS_R_SETTINGS                  500
 #define IDS_RS_CONTROLSTATE             501
 #define IDS_RS_VOLUME                   502
@@ -415,6 +417,9 @@
 #define ID_DVD_SUB_PREV                 32812
 #define ID_FILE_RELOADCURRENT           32813
 #define ID_FILE_OPENCD32814             32814
+#define ID__FAVORITES                   32815
+#define ID__FILTERS32816                32816
+#define ID_NAVIGATE_SUBTITLELANGUAGE32817 32817
 #define ID_FILTERS_SUBITEM_START        33000
 #define ID_FILTERS_SUBITEM_END          33099
 #define ID_FILTERSTREAMS_SUBITEM_START  33100
@@ -446,8 +451,8 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        331
-#define _APS_NEXT_COMMAND_VALUE         32815
+#define _APS_NEXT_RESOURCE_VALUE        333
+#define _APS_NEXT_COMMAND_VALUE         32818
 #define _APS_NEXT_CONTROL_VALUE         1109
 #define _APS_NEXT_SYMED_VALUE           10003
 #endif
