@@ -398,17 +398,17 @@ public:
 	{
 		va_list args;
 		va_start(args, fmt);
-		/**/
+		/**/////////////
 		if(_tcsstr(fmt, _T("VSync")) 
-		// || _tcsstr(fmt, _T("*** WARNING ***"))
+		 || _tcsstr(fmt, _T("*** WARNING ***"))
 		 || _tcsstr(fmt, _T("Flush"))
 		// || _tcsstr(fmt, _T("CSR"))
-		// || _tcsstr(fmt, _T("DISP"))
-		// || _tcsstr(fmt, _T("FRAME"))
+		 || _tcsstr(fmt, _T("DISP"))
+		 || _tcsstr(fmt, _T("FRAME"))
 		// || _tcsstr(fmt, _T("ZBUF"))
-		// || _tcsstr(fmt, _T("SMODE"))
-		// || _tcsstr(fmt, _T("PMODE"))
-		// || _tcsstr(fmt, _T("BITBLTBUF"))
+		 || _tcsstr(fmt, _T("SMODE"))
+		 || _tcsstr(fmt, _T("PMODE"))
+		 || _tcsstr(fmt, _T("BITBLTBUF"))
 		// || _tcsstr(fmt, _T("TRX"))
 		// || _tcsstr(fmt, _T("PRIM"))
 		// || _tcsstr(fmt, _T("RGB"))
