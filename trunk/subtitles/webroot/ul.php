@@ -253,8 +253,8 @@ if(isset($_POST['update']) || isset($_POST['submit']))
 		else
 		{
 			$db->query(
-				"insert into subtitle (discs, disc_no, sub, hash, mime, format, iso639_2) ".
-				"values ($discs, $disc_no, '$db_sub', '$db_hash', '$db_mime', '$format_sel', '$isolang_sel')");
+				"insert into subtitle (discs, disc_no, sub, hash, mime) ".
+				"values ($discs, $disc_no, '$db_sub', '$db_hash', '$db_mime')");
 				
 			$subtitle_id = $db->fetchLastInsertId();
 		}
@@ -263,8 +263,8 @@ if(isset($_POST['update']) || isset($_POST['submit']))
 
 		if($db->count("movie_subtitle where movie_id = $movie_id && subtitle_id = $subtitle_id") == 0)
 			$db->query(
-				"insert into movie_subtitle (movie_id, subtitle_id, name, userid, date, notes) ".
-				"values($movie_id, $subtitle_id, '$db_name', {$db->userid}, NOW(), '$db_notes') ");
+				"insert into movie_subtitle (movie_id, subtitle_id, name, userid, date, notes, format, iso639_2) ".
+				"values($movie_id, $subtitle_id, '$db_name', {$db->userid}, NOW(), '$db_notes', '$format_sel', '$isolang_sel') ");
 
 		chkerr();
 		
@@ -366,7 +366,7 @@ if(isset($_SESSION['imdb_id']) && !empty($_SESSION['imdb_titles']))
 
 $smarty->assign('isolang', $isolang);
 assign('isolang_sel', $maxsubs);
-$smarty->assign('format', $db->enumsetValues('subtitle', 'format'));
+$smarty->assign('format', $db->enumsetValues('movie_subtitle', 'format'));
 assign('format_sel', $maxsubs);
 assign('discs', $maxsubs);
 assign('disc_no', $maxsubs);

@@ -101,8 +101,8 @@ if(!empty($movies))
 		$movies[$i]['subs'] = array();
 
 		$db->fetchAll(
-			"select t1.id as ms_id, t1.name, t1.userid, t1.date, t1.notes, ".
-			" t2.id, t2.discs, t2.disc_no, t2.format, t2.iso639_2, t2.downloads ".
+			"select t1.id as ms_id, t1.name, t1.userid, t1.date, t1.notes, t1.format, t1.iso639_2, ".
+			" t2.id, t2.discs, t2.disc_no, t2.downloads ".
 			"from movie_subtitle t1 ".
 			"join subtitle t2 on t1.subtitle_id = t2.id ".
 			"where t1.movie_id = {$movie['id']} ".
@@ -188,7 +188,7 @@ $smarty->assign('discs', $discs);
 $smarty->assign('isolang', $isolang);
 $smarty->assign('isolang_sel', $isolang_sel);
 
-$smarty->assign('format', $db->enumsetValues('subtitle', 'format'));
+$smarty->assign('format', $db->enumsetValues('movie_subtitle', 'format'));
 $smarty->assign('format_sel', $format_sel);
 
 $smarty->assign('ticket', $_SESSION['ticket'] = rand(1, 10000000)); // ;)
