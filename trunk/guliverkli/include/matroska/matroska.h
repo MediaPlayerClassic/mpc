@@ -34,3 +34,36 @@ typedef struct {
 	CHAR IsoLang[3];
 } SUBTITLEINFO;
 #pragma pack(pop)
+
+// SUBTITLEINFO structure content starting at dwOffset
+// ---------------------------------------------------
+//
+// MEDIASUBTYPE_USF: 
+//
+// <?xml version="1.0" encoding="UTF-8"?>
+// <!-- DOCTYPE USFSubtitles SYSTEM "USFV100.dtd" -->
+// <?xml-stylesheet type="text/xsl" href="USFV100.xsl"?>
+// 
+// <USFSubtitles version="1.0">
+// ... every element excluding <subtitles></subtitles> ...
+// </USFSubtitles>
+//
+// MEDIASUBTYPE_SSA/ASS:
+//
+// The file header and all sub-sections except [Events]
+
+
+// Data description of the media samples
+// -------------------------------------
+//
+// MEDIASUBTYPE_USF:
+//
+// The text _inside_ the <subtitle>..</subtitle> element. 
+//
+// Since timing is set on the sample, there is no need to put
+// <subtitle start=".." stop=".." duration=".."> into the data.
+//
+// MEDIASUBTYPE_SSA/ASS:
+//
+// The whole "Dialogue: ..." line. For the timing applications 
+// should prefer the timestamps set on the media samples.
