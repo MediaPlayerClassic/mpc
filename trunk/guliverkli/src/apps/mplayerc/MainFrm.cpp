@@ -259,8 +259,8 @@ BEGIN_MESSAGE_MAP(CMainFrame, CFrameWnd)
 	ON_UPDATE_COMMAND_UI_RANGE(ID_PANSCAN_MOVELEFT, ID_PANSCAN_CENTER, OnUpdateViewPanNScan)
 	ON_COMMAND_RANGE(ID_PANNSCAN_PRESETS_START, ID_PANNSCAN_PRESETS_END, OnViewPanNScanPresets)
 	ON_UPDATE_COMMAND_UI_RANGE(ID_PANNSCAN_PRESETS_START, ID_PANNSCAN_PRESETS_END, OnUpdateViewPanNScanPresets)
-	ON_COMMAND(ID_VIEW_ALWAYSONTOP, OnViewAlwaysontop)
-	ON_UPDATE_COMMAND_UI(ID_VIEW_ALWAYSONTOP, OnUpdateViewAlwaysontop)
+	ON_COMMAND_RANGE(ID_ONTOP_NEVER, ID_ONTOP_WHILEPLAYING, OnViewOntop)
+	ON_UPDATE_COMMAND_UI_RANGE(ID_ONTOP_NEVER, ID_ONTOP_WHILEPLAYING, OnUpdateViewOntop)
 	ON_COMMAND(ID_VIEW_OPTIONS, OnViewOptions)
 
 	ON_COMMAND(ID_PLAY_PLAY, OnPlayPlay)
@@ -423,7 +423,7 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 
 	ShowControls(s.nCS);
 
-	SetAlwaysOnTop(s.fAlwaysOnTop);
+	SetAlwaysOnTop(s.iOnTop);
 
 	ShowTrayIcon(s.fTrayIcon);
 
@@ -784,7 +784,7 @@ void CMainFrame::Dump(CDumpContext& dc) const
 // CMainFrame message handlers
 void CMainFrame::OnSetFocus(CWnd* pOldWnd)
 {
-	SetAlwaysOnTop(AfxGetAppSettings().fAlwaysOnTop);
+	SetAlwaysOnTop(AfxGetAppSettings().iOnTop);
 
 	// forward focus to the view window
 	if(IsWindow(m_wndView.m_hWnd))
@@ -985,6 +985,15 @@ void CMainFrame::OnTimer(UINT nIDEvent)
 			m_wndSeekBar.Enable(false);
 			m_wndSeekBar.SetRange(0, rtDur);
 			m_wndSeekBar.SetPos(rtNow);
+/*
+			if(m_fCapturing)
+			{
+				if(rtNow > 10000i64*1000*60*60*3)
+				{
+					m_wndCaptureBar.m_capdlg.OnRecord();
+				}
+			}
+*/
 		}
 
 		if(m_pCAP) m_pCAP->SetTime(/*rtNow*/m_wndSeekBar.GetPos());
@@ -2353,6 +2362,8 @@ void CMainFrame::OnFilePostClosemedia()
 
 	SetWindowText(ResStr(IDR_MAINFRAME));
 
+	SetAlwaysOnTop(AfxGetAppSettings().iOnTop);
+
 	// this will prevent any further UI updates on the dynamically added menu items
 	SetupFiltersSubMenu();
 	SetupAudioSwitcherSubMenu();
@@ -3325,14 +3336,17 @@ void CMainFrame::OnUpdateViewPanNScanPresets(CCmdUI* pCmdUI)
 	pCmdUI->Enable(m_iMediaLoadState == MLS_LOADED && !m_fAudioOnly && nID >= 0 && nID <= s.m_pnspresets.GetCount());
 }
 
-void CMainFrame::OnViewAlwaysontop()
+void CMainFrame::OnViewOntop(UINT nID)
 {
-	SetAlwaysOnTop(!AfxGetAppSettings().fAlwaysOnTop);
+	nID -= ID_ONTOP_NEVER;
+	if(AfxGetAppSettings().iOnTop == nID)
+		nID = !nID;
+	SetAlwaysOnTop(nID);
 }
 
-void CMainFrame::OnUpdateViewAlwaysontop(CCmdUI* pCmdUI)
+void CMainFrame::OnUpdateViewOntop(CCmdUI* pCmdUI)
 {
-	pCmdUI->SetCheck(AfxGetAppSettings().fAlwaysOnTop);
+	pCmdUI->SetRadio(AfxGetAppSettings().iOnTop == (pCmdUI->m_nID - ID_ONTOP_NEVER));
 }
 
 void CMainFrame::OnViewOptions()
@@ -3378,6 +3392,8 @@ void CMainFrame::OnPlayPlay()
 			m_fFrameSteppingActive = false;
 			pBA->put_Volume(m_VolumeBeforeFrameStepping);
 		}
+
+		SetAlwaysOnTop(AfxGetAppSettings().iOnTop);
 	}
 
 	MoveVideoWindow();
@@ -3387,6 +3403,8 @@ void CMainFrame::OnPlayPause()
 {
 	if(m_iMediaLoadState == MLS_LOADED)
 	{
+		SetAlwaysOnTop(AfxGetAppSettings().iOnTop);
+
 		if(m_iPlaybackMode == PM_FILE)
 		{
 			pMC->Pause();
@@ -3486,6 +3504,8 @@ void CMainFrame::OnPlayStop()
 			GUID tf;
 			pMS->GetTimeFormat(&tf);
 			m_wndStatusBar.SetStatusTimer(m_wndSeekBar.GetPosReal(), stop, !!m_wndSubresyncBar.IsWindowVisible(), &tf);
+			
+			SetAlwaysOnTop(AfxGetAppSettings().iOnTop);
 		}
 	}
 }
@@ -4650,7 +4670,8 @@ void CMainFrame::SetDefaultWindowRect()
 		int h = _DEFCLIENTH + GetSystemMetrics((style&WS_CAPTION)?SM_CYSIZEFRAME:SM_CYFIXEDFRAME)*2
 			+ (mbi.rcBar.bottom - mbi.rcBar.top)
 			+ r1.Height() - r2.Height()
-			+ 2; // ???
+			+ 1; // ???
+//			+ 2; // ???
 		if(style&WS_CAPTION) h += GetSystemMetrics(SM_CYCAPTION);
 
 		if(s.fRememberWindowSize)
@@ -4679,13 +4700,16 @@ void CMainFrame::SetDefaultWindowRect()
 
 		MoveWindow(x, y, w, h);
 
-		WINDOWPLACEMENT wp;
-		memset(&wp, 0, sizeof(wp));
-		wp.length = sizeof(WINDOWPLACEMENT);
-		if(lastWindowType == SIZE_MAXIMIZED)
-			ShowWindow(SW_MAXIMIZE);
-		else if(lastWindowType == SIZE_MINIMIZED)
-			ShowWindow(SW_MAXIMIZE);
+		if(s.fRememberWindowSize && s.fRememberWindowPos)
+		{
+			WINDOWPLACEMENT wp;
+			memset(&wp, 0, sizeof(wp));
+			wp.length = sizeof(WINDOWPLACEMENT);
+			if(lastWindowType == SIZE_MAXIMIZED)
+				ShowWindow(SW_MAXIMIZE);
+			else if(lastWindowType == SIZE_MINIMIZED)
+				ShowWindow(SW_MINIMIZE);
+		}
 	}
 
 	if(s.fHideCaptionMenu)
@@ -4724,7 +4748,8 @@ void CMainFrame::RestoreDefaultWindowRect()
 		int h = _DEFCLIENTH + GetSystemMetrics((style&WS_CAPTION)?SM_CYSIZEFRAME:SM_CYFIXEDFRAME)*2
 			+ (mbi.rcBar.bottom - mbi.rcBar.top)
 			+ r1.Height() - r2.Height()
-			+ 2; // ???
+			+ 1; // ???
+//			+ 2; // ???
 		if(style&WS_CAPTION) h += GetSystemMetrics(SM_CYCAPTION);
 
 		CRect r;
@@ -4818,7 +4843,7 @@ CSize CMainFrame::GetVideoSize()
 void CMainFrame::ToggleFullscreen(bool fToNearest, bool fSwitchScreenResWhenHasTo)
 {
 	CRect r;
-	const CWnd* pWndInsertAfter;
+//	const CWnd* pWndInsertAfter;
 	DWORD dwRemove = 0, dwAdd = 0;
 	DWORD dwRemoveEx = 0, dwAddEx = 0;
 	HMENU hMenu;
@@ -4826,7 +4851,6 @@ void CMainFrame::ToggleFullscreen(bool fToNearest, bool fSwitchScreenResWhenHasT
 	if(!m_fFullScreen)
 	{
 		GetWindowRect(&m_lastWindowRect);
-		m_fOnTopBeforeFullScreen = !!(GetWindowLong(m_hWnd, GWL_EXSTYLE)&WS_EX_TOPMOST);
 
 		dispmode& dm = AfxGetAppSettings().dmFullscreenRes;
 		m_dmBeforeFullscreen.fValid = false;
@@ -4843,7 +4867,6 @@ void CMainFrame::ToggleFullscreen(bool fToNearest, bool fSwitchScreenResWhenHasT
 		dwRemove = WS_CAPTION|WS_THICKFRAME;
 		if(fToNearest) r = mi.rcMonitor;
 		else GetDesktopWindow()->GetWindowRect(&r);
-		pWndInsertAfter = &wndTopMost;
 		hMenu = NULL;
 	}
 	else
@@ -4853,7 +4876,6 @@ void CMainFrame::ToggleFullscreen(bool fToNearest, bool fSwitchScreenResWhenHasT
 
 		dwAdd = (AfxGetAppSettings().fHideCaptionMenu ? 0 : WS_CAPTION) | WS_THICKFRAME;
 		r = m_lastWindowRect;
-		pWndInsertAfter = m_fOnTopBeforeFullScreen?&wndTopMost:&wndNoTopMost;
 		hMenu = AfxGetAppSettings().fHideCaptionMenu ? NULL : m_hMenuDefault;
 	}
 
@@ -4864,10 +4886,12 @@ void CMainFrame::ToggleFullscreen(bool fToNearest, bool fSwitchScreenResWhenHasT
 
 	m_fFullScreen = !m_fFullScreen;
 
+	SetAlwaysOnTop(AfxGetAppSettings().iOnTop);
+
 	ModifyStyle(dwRemove, dwAdd, SWP_NOZORDER);
 	ModifyStyleEx(dwRemoveEx, dwAddEx, SWP_NOZORDER);
 	::SetMenu(m_hWnd, hMenu);
-	SetWindowPos(pWndInsertAfter, r.left, r.top, r.Width(), r.Height(), SWP_NOSENDCHANGING /*SWP_FRAMECHANGED*/);
+	SetWindowPos(NULL, r.left, r.top, r.Width(), r.Height(), SWP_NOZORDER|SWP_NOSENDCHANGING /*SWP_FRAMECHANGED*/);
 
 	if(m_fFullScreen)
 	{
@@ -5323,15 +5347,15 @@ void CMainFrame::OpenFile(OpenFileData* pOFD)
 
 	if(m_chapters.IsEmpty())
 	{
+		REFERENCE_TIME rtDur = 0;
+		pMS->GetDuration(&rtDur);
+
 		CComQIPtr<IChapterInfo> pCI;
-		BeginEnumFilters(pGB, pEF, pBF)
-			if(pCI = pBF) break;
-		EndEnumFilters
+		CComQIPtr<IAMExtendedSeeking, &IID_IAMExtendedSeeking> pES;
+		BeginEnumFilters(pGB, pEF, pBF) if(pCI = pBF) break; EndEnumFilters
+		BeginEnumFilters(pGB, pEF, pBF) if(pES = pBF) break; EndEnumFilters
 		if(pCI)
 		{
-			REFERENCE_TIME rtDur = 0;
-			pMS->GetDuration(&rtDur);
-
 			CHAR iso6391[3];
 			::GetLocaleInfoA(LOCALE_USER_DEFAULT, LOCALE_SISO639LANGNAME, iso6391, 3);
 			CStringA iso6392 = ISO6391To6392(iso6391);
@@ -5358,6 +5382,36 @@ void CMainFrame::OpenFile(OpenFileData* pOFD)
 						m_chapters[m_chapters.GetCount()-1].rtStop = c.rtStart;
 
 					m_chapters.Add(c);
+				}
+			}
+		}
+		else if(pES)
+		{
+			long MarkerCount = 0;
+			if(SUCCEEDED(pES->get_MarkerCount(&MarkerCount)))
+			{
+				for(long i = 1; i <= MarkerCount; i++)
+				{
+					double MarkerTime = 0;
+					if(SUCCEEDED(pES->GetMarkerTime(i, &MarkerTime)))
+					{
+						CString name;
+						name.Format(_T("Chapter %d"), i);
+
+						CComBSTR bstr;
+						if(S_OK == pES->GetMarkerName(i, &bstr))
+							name = CString(bstr);
+
+						chapter_t c;
+						c.rtStart = REFERENCE_TIME(MarkerTime*10000000);
+						c.rtStop = max(rtDur, c.rtStart);
+						c.name = name;
+	
+						if(m_chapters.GetCount() > 0)
+							m_chapters[m_chapters.GetCount()-1].rtStop = c.rtStart;
+
+						m_chapters.Add(c);
+					}
 				}
 			}
 		}
@@ -7026,11 +7080,27 @@ void CMainFrame::ShowControls(int nCS, bool fSave)
 	RecalcLayout();
 }
 
-
-void CMainFrame::SetAlwaysOnTop(bool f)
+void CMainFrame::SetAlwaysOnTop(int i)
 {
-	if(!m_fFullScreen) SetWindowPos(f ? &wndTopMost : &wndNoTopMost, 0, 0, 0, 0, SWP_NOMOVE|SWP_NOSIZE);
-	AfxGetAppSettings().fAlwaysOnTop = f;
+	AfxGetAppSettings().iOnTop = i;
+
+	if(!m_fFullScreen)
+	{
+		const CWnd* pInsertAfter = NULL;
+
+		if(i == 0)
+			pInsertAfter = &wndNoTopMost;
+		else if(i == 1)
+			pInsertAfter = &wndTopMost;
+		else // if(i == 2)
+			pInsertAfter = GetMediaState() == State_Running ? &wndTopMost : &wndNoTopMost;
+
+		SetWindowPos(pInsertAfter, 0, 0, 0, 0, SWP_NOMOVE|SWP_NOSIZE);
+	}
+	else if(!(GetWindowLong(m_hWnd, GWL_EXSTYLE)&WS_EX_TOPMOST))
+	{
+		SetWindowPos(&wndTopMost, 0, 0, 0, 0, SWP_NOMOVE|SWP_NOSIZE);
+	}
 }
 
 void CMainFrame::AddTextPassThruFilter()
@@ -7684,7 +7754,7 @@ void CMainFrame::ShowOptions(int idPage)
 	if(options.DoModal() == IDOK)
 	{
 		if(!m_fFullScreen)
-			SetAlwaysOnTop(s.fAlwaysOnTop);
+			SetAlwaysOnTop(s.iOnTop);
 
 		m_wndView.LoadLogo();
 

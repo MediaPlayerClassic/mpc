@@ -22,7 +22,7 @@ bool COggFile::Sync(HANDLE hBreak)
 
 	DWORD dw;
 	for(__int64 i = 0, j = hBreak ? m_len - m_pos : 65536;
-		i < j && S_OK == __super::Read((BYTE*)&dw, sizeof(dw)) 
+		i < j && S_OK == Read((BYTE*)&dw, sizeof(dw)) 
 			&& ((i&0xffff) || !hBreak || WaitForSingleObject(hBreak, 0) != WAIT_OBJECT_0); 
 		i++, m_pos = pos + i)
 	{
@@ -40,7 +40,7 @@ bool COggFile::Sync(HANDLE hBreak)
 
 bool COggFile::Read(OggPageHeader& hdr, HANDLE hBreak)
 {
-	return Sync(hBreak) && S_OK == __super::Read((BYTE*)&hdr, sizeof(hdr)) && hdr.capture_pattern == 'SggO';
+	return Sync(hBreak) && S_OK == Read((BYTE*)&hdr, sizeof(hdr)) && hdr.capture_pattern == 'SggO';
 }
 
 bool COggFile::Read(OggPage& page, bool fFull, HANDLE hBreak)
@@ -56,7 +56,7 @@ bool COggFile::Read(OggPage& page, bool fFull, HANDLE hBreak)
 	for(BYTE i = 0; i < page.m_hdr.number_page_segments; i++)
 	{
 		BYTE b;
-        if(S_OK != __super::Read(&b, 1)) return(false);
+        if(S_OK != Read(&b, 1)) return(false);
 		packetlen += b;
 		if(1/*b < 0xff*/) {page.m_lens.AddTail(packetlen); pagelen += packetlen; packetlen = 0;}
 	}
@@ -64,7 +64,7 @@ bool COggFile::Read(OggPage& page, bool fFull, HANDLE hBreak)
 	if(fFull)
 	{
 		page.SetSize(pagelen);
-		if(S_OK != __super::Read(page.GetData(), page.GetSize())) 
+		if(S_OK != Read(page.GetData(), page.GetSize())) 
 			return(false);
 	}
 	else

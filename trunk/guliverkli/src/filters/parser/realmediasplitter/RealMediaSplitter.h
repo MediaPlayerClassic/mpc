@@ -120,6 +120,8 @@ struct rainfo5 : rainfo
 
 class CRMFile : public CBaseSplitterFile
 {
+	using CBaseSplitterFile::Read;
+
 	HRESULT Init();
 	void GetDimensions();
 

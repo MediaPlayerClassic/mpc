@@ -90,7 +90,7 @@ BOOL CPPagePlayer::OnInitDialog()
 
 	m_iAllowMultipleInst = s.fAllowMultipleInst;
 	m_iTitleBarTextStyle = s.iTitleBarTextStyle;
-	m_iAlwaysOnTop = s.fAlwaysOnTop;
+	m_iAlwaysOnTop = s.iOnTop;
 	m_fTrayIcon = s.fTrayIcon;
 	m_iShowBarsWhenFullScreen = s.fShowBarsWhenFullScreen;
 	m_nShowBarsWhenFullScreenTimeOut = s.nShowBarsWhenFullScreenTimeOut;
@@ -116,7 +116,7 @@ BOOL CPPagePlayer::OnApply()
 
 	s.fAllowMultipleInst = !!m_iAllowMultipleInst;
 	s.iTitleBarTextStyle = m_iTitleBarTextStyle;
-	s.fAlwaysOnTop = !!m_iAlwaysOnTop;
+	s.iOnTop = m_iAlwaysOnTop;
 	s.fTrayIcon = !!m_fTrayIcon;
 	s.fShowBarsWhenFullScreen = !!m_iShowBarsWhenFullScreen;
 	s.nShowBarsWhenFullScreenTimeOut = m_nShowBarsWhenFullScreenTimeOut;

@@ -38,6 +38,10 @@
 #include <D3d9.h>
 #include <Vmr9.h>
 
+//  {6B6D0800-9ADA-11d0-A520-00A0D10129C0}
+DEFINE_GUID(CLSID_NetShowSource, 
+0x6b6d0800, 0x9ada, 0x11d0, 0xa5, 0x20, 0x0, 0xa0, 0xd1, 0x1, 0x29, 0xc0);
+
 static void CheckStupidSharedFilesourceFilter()
 {
 	CRegKey key;
@@ -739,7 +743,7 @@ HRESULT CGraphBuilder::Render(LPCTSTR lpsz)
 			if(fWindowsMedia)
 			{
 				CComPtr<IFileSourceFilter> pReader;
-				hr = pReader.CoCreateInstance(CLSID_WMAsfReader);
+				hr = pReader.CoCreateInstance(CLSID_NetShowSource/*CLSID_WMAsfReader*/);
 				if(SUCCEEDED(hr) && SUCCEEDED(pReader->Load(fnw, NULL)))
 					pBF = pReader;
 			}

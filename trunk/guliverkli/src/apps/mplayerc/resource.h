@@ -286,8 +286,7 @@
 #define IDS_RS_ENABLEWEBSERVER          601
 #define IDS_RS_WEBSERVERPORT            602
 #define IDS_RS_LASTWINDOWTYPE           603
-#define ID_RS_VOLUMELEVEL               604
-#define IDS_RS_VOLUMELEVEL              604
+#define IDS_RS_ONTOP                    604
 #define IDC_BROWSEBUTTON                1016
 #define IDC_BROWSEBUTTON2               1017
 #define IDC_COMBO1                      1018
@@ -508,6 +507,9 @@
 #define ID_PLAY_INCAUDDELAY             32821
 #define ID_PLAY_DECAUDDELAY             32822
 #define ID_FILE_CLOSEPLAYLIST           32823
+#define ID_ONTOP_NEVER                  32826
+#define ID_ONTOP_ALWAYS                 32827
+#define ID_ONTOP_WHILEPLAYING           32828
 #define ID_FILTERS_SUBITEM_START        33000
 #define ID_FILTERS_SUBITEM_END          33099
 #define ID_FILTERSTREAMS_SUBITEM_START  33100
@@ -540,7 +542,7 @@
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        339
-#define _APS_NEXT_COMMAND_VALUE         32824
+#define _APS_NEXT_COMMAND_VALUE         32830
 #define _APS_NEXT_CONTROL_VALUE         1150
 #define _APS_NEXT_SYMED_VALUE           10003
 #endif

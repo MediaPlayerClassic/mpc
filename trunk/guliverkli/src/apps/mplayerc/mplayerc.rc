@@ -302,7 +302,7 @@ BEGIN
     CONTROL         "Don't prefix anything",IDC_RADIO5,"Button",
                     BS_AUTORADIOBUTTON,16,173,83,10
     GROUPBOX        "Other",IDC_STATIC,130,7,159,184,WS_GROUP
-    CONTROL         "Always on top",IDC_CHECK2,"Button",BS_AUTOCHECKBOX | 
+    CONTROL         "Always on top",IDC_CHECK2,"Button",BS_AUTO3STATE | 
                     WS_TABSTOP,140,19,61,10
     CONTROL         "Tray icon",IDC_CHECK3,"Button",BS_AUTOCHECKBOX | 
                     WS_TABSTOP,140,34,45,10
@@ -1538,7 +1538,12 @@ BEGIN
             MENUITEM "Reset\tNumpad 5",             ID_VIEW_RESET
         END
         MENUITEM SEPARATOR
-        MENUITEM "Al&ways On Top\tCtrl+T",      ID_VIEW_ALWAYSONTOP
+        POPUP "On Top"
+        BEGIN
+            MENUITEM "Never",                       ID_ONTOP_NEVER
+            MENUITEM "Always",                      ID_ONTOP_ALWAYS
+            MENUITEM "While Playing",               ID_ONTOP_WHILEPLAYING
+        END
         MENUITEM "&Options...",                 ID_VIEW_OPTIONS
     END
     POPUP "&Play"
@@ -1675,6 +1680,14 @@ BEGIN
         MENUITEM SEPARATOR
         POPUP "Vi&ew"
         BEGIN
+            POPUP "On Top"
+            BEGIN
+                MENUITEM "Never",                       ID_ONTOP_NEVER
+                MENUITEM "Always",                      ID_ONTOP_ALWAYS
+                MENUITEM "While Playing",               ID_ONTOP_WHILEPLAYING
+
+            END
+            MENUITEM SEPARATOR
             MENUITEM "Caption&&Menu",               ID_VIEW_CAPTIONMENU
             MENUITEM "Seek Bar",                    ID_VIEW_SEEKER
             MENUITEM "Cont&rols",                   ID_VIEW_CONTROLS
@@ -1782,7 +1795,13 @@ BEGIN
                 MENUITEM "Reset\tNumpad 5",             ID_VIEW_RESET
             END
             MENUITEM SEPARATOR
-            MENUITEM "Al&ways On Top\tCtrl+T",      ID_VIEW_ALWAYSONTOP
+            POPUP "On Top"
+            BEGIN
+                MENUITEM "Never",                       ID_ONTOP_NEVER
+                MENUITEM "Always",                      ID_ONTOP_ALWAYS
+                MENUITEM "While Playing",               ID_ONTOP_WHILEPLAYING
+
+            END
             MENUITEM "&Options...",                 ID_VIEW_OPTIONS
         END
         POPUP "&Play"
@@ -2036,6 +2055,7 @@ BEGIN
     IDS_RS_ENABLEWEBSERVER  "EnableWebServer"
     IDS_RS_WEBSERVERPORT    "WebServerPort"
     IDS_RS_LASTWINDOWTYPE   "LastWindowType"
+    IDS_RS_ONTOP            "OnTop"
 END
 
 STRINGTABLE 

@@ -24,6 +24,7 @@
 				MinimalRebuild="TRUE"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="3"
+				ForceConformanceInForLoopScope="TRUE"
 				UsePrecompiledHeader="3"
 				WarningLevel="3"
 				Detect64BitPortabilityProblems="FALSE"
@@ -76,10 +77,10 @@
 				StringPooling="TRUE"
 				RuntimeLibrary="0"
 				EnableFunctionLevelLinking="TRUE"
+				ForceConformanceInForLoopScope="TRUE"
 				UsePrecompiledHeader="3"
 				WarningLevel="3"
-				Detect64BitPortabilityProblems="FALSE"
-				DebugInformationFormat="3"/>
+				Detect64BitPortabilityProblems="FALSE"/>
 			<Tool
 				Name="VCCustomBuildTool"/>
 			<Tool
@@ -128,6 +129,7 @@
 				MinimalRebuild="TRUE"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="3"
+				ForceConformanceInForLoopScope="TRUE"
 				UsePrecompiledHeader="3"
 				WarningLevel="3"
 				Detect64BitPortabilityProblems="FALSE"
@@ -180,10 +182,10 @@
 				StringPooling="TRUE"
 				RuntimeLibrary="0"
 				EnableFunctionLevelLinking="TRUE"
+				ForceConformanceInForLoopScope="TRUE"
 				UsePrecompiledHeader="3"
 				WarningLevel="3"
-				Detect64BitPortabilityProblems="FALSE"
-				DebugInformationFormat="3"/>
+				Detect64BitPortabilityProblems="FALSE"/>
 			<Tool
 				Name="VCCustomBuildTool"/>
 			<Tool
@@ -232,6 +234,7 @@
 				MinimalRebuild="TRUE"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="3"
+				ForceConformanceInForLoopScope="TRUE"
 				UsePrecompiledHeader="3"
 				WarningLevel="3"
 				Detect64BitPortabilityProblems="FALSE"
@@ -274,6 +277,7 @@
 				MinimalRebuild="TRUE"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="3"
+				ForceConformanceInForLoopScope="TRUE"
 				UsePrecompiledHeader="3"
 				WarningLevel="3"
 				Detect64BitPortabilityProblems="FALSE"
@@ -318,10 +322,10 @@
 				StringPooling="TRUE"
 				RuntimeLibrary="0"
 				EnableFunctionLevelLinking="TRUE"
+				ForceConformanceInForLoopScope="TRUE"
 				UsePrecompiledHeader="3"
 				WarningLevel="3"
-				Detect64BitPortabilityProblems="FALSE"
-				DebugInformationFormat="3"/>
+				Detect64BitPortabilityProblems="FALSE"/>
 			<Tool
 				Name="VCCustomBuildTool"/>
 			<Tool
@@ -362,10 +366,10 @@
 				StringPooling="TRUE"
 				RuntimeLibrary="0"
 				EnableFunctionLevelLinking="TRUE"
+				ForceConformanceInForLoopScope="TRUE"
 				UsePrecompiledHeader="3"
 				WarningLevel="3"
-				Detect64BitPortabilityProblems="FALSE"
-				DebugInformationFormat="3"/>
+				Detect64BitPortabilityProblems="FALSE"/>
 			<Tool
 				Name="VCCustomBuildTool"/>
 			<Tool

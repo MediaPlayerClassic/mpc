@@ -196,7 +196,7 @@ class CMainFrame : public CFrameWnd, public CDropTarget
 	void RestoreDefaultWindowRect();
 	void ZoomVideoWindow(double scale = -1);
 
-	void SetAlwaysOnTop(bool f);
+	void SetAlwaysOnTop(int i);
 
 	// dynamic menus
 
@@ -296,7 +296,6 @@ protected:
 	int m_iMediaLoadState;
 
 	bool m_fAudioOnly;
-	bool m_fOnTopBeforeFullScreen;
 	dispmode m_dmBeforeFullscreen;
 
 	DVD_DOMAIN m_iDVDDomain;
@@ -531,8 +530,8 @@ public:
 	afx_msg void OnUpdateViewPanNScan(CCmdUI* pCmdUI);
 	afx_msg void OnViewPanNScanPresets(UINT nID);
 	afx_msg void OnUpdateViewPanNScanPresets(CCmdUI* pCmdUI);
-	afx_msg void OnViewAlwaysontop();
-	afx_msg void OnUpdateViewAlwaysontop(CCmdUI* pCmdUI);
+	afx_msg void OnViewOntop(UINT nID);
+	afx_msg void OnUpdateViewOntop(CCmdUI* pCmdUI);
 	afx_msg void OnViewOptions();
 
 	afx_msg void OnPlayPlay();
