@@ -33,5 +33,5 @@ interface IChapterInfo : public IUnknown
 
 	//	\param PreferredLanguage Language code as in ISO-639-2 (3 chars)
 	//	\param CountryCode       Country code as in internet domains
-	STDMETHOD_(BSTR, GetChapterStringInfo) (UINT aChapterID, const CHAR PreferredLanguage[3], const CHAR CountryCode[2]) = 0;
+	STDMETHOD_(BSTR, GetChapterStringInfo) (UINT aChapterID, CHAR PreferredLanguage[3], CHAR CountryCode[2]) = 0;
 };
