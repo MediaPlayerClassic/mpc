@@ -52,7 +52,7 @@ else if(!empty($files))
 			"  (select id from subtitle where id in ".
 			"   (select distinct subtitle_id from file_subtitle where file_id in ".
 			"    (select id from file where hash = '{$file['hash']}' && size = '{$file['size']}')))) ".
-			"limit 100 ");
+			"limit 10 ");
 
 		chkerr();
 			
