@@ -6,10 +6,10 @@
 
 class CDSMSplitterFile : public CBaseSplitterFile
 {
-	HRESULT Init(CDSMResourceBag& res, CDSMChapterBag& chap);
+	HRESULT Init(IDSMResourceBagImpl& res, IDSMChapterBagImpl& chap);
 
 public:
-	CDSMSplitterFile(IAsyncReader* pReader, HRESULT& hr, CDSMResourceBag& res, CDSMChapterBag& chap);
+	CDSMSplitterFile(IAsyncReader* pReader, HRESULT& hr, IDSMResourceBagImpl& res, IDSMChapterBagImpl& chap);
 
 	CAtlMap<BYTE, CMediaType> m_mts;
 	REFERENCE_TIME m_rtFirst, m_rtDuration;
@@ -27,8 +27,8 @@ public:
 	bool Read(__int64 len, Packet* p, bool fData = true);
 	bool Read(__int64 len, CArray<SyncPoint>& sps);
 	bool Read(__int64 len, CStreamInfoMap& im);
-	bool Read(__int64 len, CDSMResourceBag& res);
-	bool Read(__int64 len, CDSMChapterBag& chap);
+	bool Read(__int64 len, IDSMResourceBagImpl& res);
+	bool Read(__int64 len, IDSMChapterBagImpl& chap);
 	__int64 Read(__int64 len, CStringW& str);
 	
 	__int64 FindSyncPoint(REFERENCE_TIME rt);

@@ -3,20 +3,20 @@
 #include "DSMPropertyBag.h"
 
 //
-// CDSMPropertyBag
+// IDSMPropertyBagImpl
 //
 
-CDSMPropertyBag::CDSMPropertyBag()
+IDSMPropertyBagImpl::IDSMPropertyBagImpl()
 {
 }
 
-CDSMPropertyBag::~CDSMPropertyBag()
+IDSMPropertyBagImpl::~IDSMPropertyBagImpl()
 {
 }
 
 // IPropertyBag
 
-STDMETHODIMP CDSMPropertyBag::Read(LPCOLESTR pszPropName, VARIANT* pVar, IErrorLog* pErrorLog)
+STDMETHODIMP IDSMPropertyBagImpl::Read(LPCOLESTR pszPropName, VARIANT* pVar, IErrorLog* pErrorLog)
 {
 	CheckPointer(pVar, E_POINTER);
 	if(pVar->vt != VT_EMPTY) return E_INVALIDARG;
@@ -26,14 +26,14 @@ STDMETHODIMP CDSMPropertyBag::Read(LPCOLESTR pszPropName, VARIANT* pVar, IErrorL
 	return S_OK;
 }
 
-STDMETHODIMP CDSMPropertyBag::Write(LPCOLESTR pszPropName, VARIANT* pVar)
+STDMETHODIMP IDSMPropertyBagImpl::Write(LPCOLESTR pszPropName, VARIANT* pVar)
 {
 	return SetProperty(pszPropName, pVar);
 }
 
 // IPropertyBag2
 
-STDMETHODIMP CDSMPropertyBag::Read(ULONG cProperties, PROPBAG2* pPropBag, IErrorLog* pErrLog, VARIANT* pvarValue, HRESULT* phrError)
+STDMETHODIMP IDSMPropertyBagImpl::Read(ULONG cProperties, PROPBAG2* pPropBag, IErrorLog* pErrLog, VARIANT* pvarValue, HRESULT* phrError)
 {
 	CheckPointer(pPropBag, E_POINTER);
 	CheckPointer(pvarValue, E_POINTER);
@@ -43,7 +43,7 @@ STDMETHODIMP CDSMPropertyBag::Read(ULONG cProperties, PROPBAG2* pPropBag, IError
 	return S_OK;
 }
 
-STDMETHODIMP CDSMPropertyBag::Write(ULONG cProperties, PROPBAG2* pPropBag, VARIANT* pvarValue)
+STDMETHODIMP IDSMPropertyBagImpl::Write(ULONG cProperties, PROPBAG2* pPropBag, VARIANT* pvarValue)
 {
 	CheckPointer(pPropBag, E_POINTER);
 	CheckPointer(pvarValue, E_POINTER);
@@ -52,14 +52,14 @@ STDMETHODIMP CDSMPropertyBag::Write(ULONG cProperties, PROPBAG2* pPropBag, VARIA
 	return S_OK;
 }
 
-STDMETHODIMP CDSMPropertyBag::CountProperties(ULONG* pcProperties)
+STDMETHODIMP IDSMPropertyBagImpl::CountProperties(ULONG* pcProperties)
 {
 	CheckPointer(pcProperties, E_POINTER);
 	*pcProperties = GetSize();
 	return S_OK;
 }
 
-STDMETHODIMP CDSMPropertyBag::GetPropertyInfo(ULONG iProperty, ULONG cProperties, PROPBAG2* pPropBag, ULONG* pcProperties)
+STDMETHODIMP IDSMPropertyBagImpl::GetPropertyInfo(ULONG iProperty, ULONG cProperties, PROPBAG2* pPropBag, ULONG* pcProperties)
 {
 	CheckPointer(pPropBag, E_POINTER);
 	CheckPointer(pcProperties, E_POINTER);
@@ -73,14 +73,14 @@ STDMETHODIMP CDSMPropertyBag::GetPropertyInfo(ULONG iProperty, ULONG cProperties
 	return S_OK;
 }
 
-STDMETHODIMP CDSMPropertyBag::LoadObject(LPCOLESTR pstrName, DWORD dwHint, IUnknown* pUnkObject, IErrorLog* pErrLog)
+STDMETHODIMP IDSMPropertyBagImpl::LoadObject(LPCOLESTR pstrName, DWORD dwHint, IUnknown* pUnkObject, IErrorLog* pErrLog)
 {
 	return E_NOTIMPL;
 }
 
 // IDSMProperyBag
 
-HRESULT CDSMPropertyBag::SetProperty(LPCWSTR key, LPCWSTR value)
+HRESULT IDSMPropertyBagImpl::SetProperty(LPCWSTR key, LPCWSTR value)
 {
 	CheckPointer(key, E_POINTER);
 	CheckPointer(value, E_POINTER);
@@ -89,7 +89,7 @@ HRESULT CDSMPropertyBag::SetProperty(LPCWSTR key, LPCWSTR value)
 	return S_OK;
 }
 
-HRESULT CDSMPropertyBag::SetProperty(LPCWSTR key, VARIANT* var)
+HRESULT IDSMPropertyBagImpl::SetProperty(LPCWSTR key, VARIANT* var)
 {
 	CheckPointer(key, E_POINTER);
 	CheckPointer(var, E_POINTER);
@@ -97,7 +97,7 @@ HRESULT CDSMPropertyBag::SetProperty(LPCWSTR key, VARIANT* var)
 	return SetProperty(key, var->bstrVal);
 }
 
-HRESULT CDSMPropertyBag::GetProperty(LPCWSTR key, BSTR* value)
+HRESULT IDSMPropertyBagImpl::GetProperty(LPCWSTR key, BSTR* value)
 {
 	CheckPointer(key, E_POINTER);
 	CheckPointer(value, E_POINTER);
@@ -107,13 +107,13 @@ HRESULT CDSMPropertyBag::GetProperty(LPCWSTR key, BSTR* value)
 	return S_OK;
 }
 
-HRESULT CDSMPropertyBag::DelAllProperties()
+HRESULT IDSMPropertyBagImpl::DelAllProperties()
 {
 	RemoveAll();
 	return S_OK;
 }
 
-HRESULT CDSMPropertyBag::DelProperty(LPCWSTR key)
+HRESULT IDSMPropertyBagImpl::DelProperty(LPCWSTR key)
 {
 	return Remove(key) ? S_OK : S_FALSE;
 }
@@ -162,21 +162,21 @@ void CDSMResource::operator = (const CDSMResource& r)
 }
 
 //
-// CDSMResourceBag
+// IDSMResourceBagImpl
 //
 
-CDSMResourceBag::CDSMResourceBag()
+IDSMResourceBagImpl::IDSMResourceBagImpl()
 {
 }
 
 // IDSMResourceBag
 
-STDMETHODIMP_(DWORD) CDSMResourceBag::ResGetCount()
+STDMETHODIMP_(DWORD) IDSMResourceBagImpl::ResGetCount()
 {
 	return m_resources.GetCount();
 }
 
-STDMETHODIMP CDSMResourceBag::ResGet(DWORD iIndex, BSTR* ppName, BSTR* ppDesc, BSTR* ppMime, BYTE** ppData, DWORD* pDataLen, DWORD_PTR* pTag)
+STDMETHODIMP IDSMResourceBagImpl::ResGet(DWORD iIndex, BSTR* ppName, BSTR* ppDesc, BSTR* ppMime, BYTE** ppData, DWORD* pDataLen, DWORD_PTR* pTag)
 {
 	if(ppData) CheckPointer(pDataLen, E_POINTER);
 
@@ -194,7 +194,7 @@ STDMETHODIMP CDSMResourceBag::ResGet(DWORD iIndex, BSTR* ppName, BSTR* ppDesc, B
 	return S_OK;
 }
 
-STDMETHODIMP CDSMResourceBag::ResSet(DWORD iIndex, LPCWSTR pName, LPCWSTR pDesc, LPCWSTR pMime, BYTE* pData, DWORD len, DWORD_PTR tag)
+STDMETHODIMP IDSMResourceBagImpl::ResSet(DWORD iIndex, LPCWSTR pName, LPCWSTR pDesc, LPCWSTR pMime, BYTE* pData, DWORD len, DWORD_PTR tag)
 {
 	if((INT_PTR)iIndex >= m_resources.GetCount())
 		return E_INVALIDARG;
@@ -210,12 +210,12 @@ STDMETHODIMP CDSMResourceBag::ResSet(DWORD iIndex, LPCWSTR pName, LPCWSTR pDesc,
 	return S_OK;
 }
 
-STDMETHODIMP CDSMResourceBag::ResAppend(LPCWSTR pName, LPCWSTR pDesc, LPCWSTR pMime, BYTE* pData, DWORD len, DWORD_PTR tag)
+STDMETHODIMP IDSMResourceBagImpl::ResAppend(LPCWSTR pName, LPCWSTR pDesc, LPCWSTR pMime, BYTE* pData, DWORD len, DWORD_PTR tag)
 {
 	return ResSet(m_resources.Add(CDSMResource()), pName, pDesc, pMime, pData, len, tag);
 }
 
-STDMETHODIMP CDSMResourceBag::ResRemoveAt(DWORD iIndex)
+STDMETHODIMP IDSMResourceBagImpl::ResRemoveAt(DWORD iIndex)
 {
 	if((INT_PTR)iIndex >= m_resources.GetCount())
 		return E_INVALIDARG;
@@ -225,7 +225,7 @@ STDMETHODIMP CDSMResourceBag::ResRemoveAt(DWORD iIndex)
 	return S_OK;
 }
 
-STDMETHODIMP CDSMResourceBag::ResRemoveAll(DWORD_PTR tag)
+STDMETHODIMP IDSMResourceBagImpl::ResRemoveAll(DWORD_PTR tag)
 {
 	if(tag)
 	{
@@ -258,22 +258,22 @@ void CDSMChapter::operator = (const CDSMChapter& c)
 }
 
 //
-// CDSMChapterBag
+// IDSMChapterBagImpl
 //
 
-CDSMChapterBag::CDSMChapterBag()
+IDSMChapterBagImpl::IDSMChapterBagImpl()
 {
 	m_fSorted = false;
 }
 
 // IDSMRChapterBag
 
-STDMETHODIMP_(DWORD) CDSMChapterBag::ChapGetCount()
+STDMETHODIMP_(DWORD) IDSMChapterBagImpl::ChapGetCount()
 {
 	return m_chapters.GetCount();
 }
 
-STDMETHODIMP CDSMChapterBag::ChapGet(DWORD iIndex, REFERENCE_TIME* prt, BSTR* ppName)
+STDMETHODIMP IDSMChapterBagImpl::ChapGet(DWORD iIndex, REFERENCE_TIME* prt, BSTR* ppName)
 {
 	if((INT_PTR)iIndex >= m_chapters.GetCount())
 		return E_INVALIDARG;
@@ -286,7 +286,7 @@ STDMETHODIMP CDSMChapterBag::ChapGet(DWORD iIndex, REFERENCE_TIME* prt, BSTR* pp
 	return S_OK;
 }
 
-STDMETHODIMP CDSMChapterBag::ChapSet(DWORD iIndex, REFERENCE_TIME rt, LPCWSTR pName)
+STDMETHODIMP IDSMChapterBagImpl::ChapSet(DWORD iIndex, REFERENCE_TIME rt, LPCWSTR pName)
 {
 	if((INT_PTR)iIndex >= m_chapters.GetCount())
 		return E_INVALIDARG;
@@ -301,12 +301,12 @@ STDMETHODIMP CDSMChapterBag::ChapSet(DWORD iIndex, REFERENCE_TIME rt, LPCWSTR pN
 	return S_OK;
 }
 
-STDMETHODIMP CDSMChapterBag::ChapAppend(REFERENCE_TIME rt, LPCWSTR pName)
+STDMETHODIMP IDSMChapterBagImpl::ChapAppend(REFERENCE_TIME rt, LPCWSTR pName)
 {
 	return ChapSet(m_chapters.Add(CDSMChapter()), rt, pName);
 }
 
-STDMETHODIMP CDSMChapterBag::ChapRemoveAt(DWORD iIndex)
+STDMETHODIMP IDSMChapterBagImpl::ChapRemoveAt(DWORD iIndex)
 {
 	if((INT_PTR)iIndex >= m_chapters.GetCount())
 		return E_INVALIDARG;
@@ -316,7 +316,7 @@ STDMETHODIMP CDSMChapterBag::ChapRemoveAt(DWORD iIndex)
 	return S_OK;
 }
 
-STDMETHODIMP CDSMChapterBag::ChapRemoveAll()
+STDMETHODIMP IDSMChapterBagImpl::ChapRemoveAll()
 {
 	m_chapters.RemoveAll();
 
@@ -325,7 +325,7 @@ STDMETHODIMP CDSMChapterBag::ChapRemoveAll()
 	return S_OK;
 }
 
-STDMETHODIMP_(long) CDSMChapterBag::ChapLookup(REFERENCE_TIME* prt, BSTR* ppName)
+STDMETHODIMP_(long) IDSMChapterBagImpl::ChapLookup(REFERENCE_TIME* prt, BSTR* ppName)
 {
 	CheckPointer(prt, -1);
 
@@ -347,10 +347,28 @@ static int chapter_comp(const void* a, const void* b)
 	return 0;
 }
 
-STDMETHODIMP CDSMChapterBag::ChapSort()
+STDMETHODIMP IDSMChapterBagImpl::ChapSort()
 {
 	if(m_fSorted) return S_FALSE;
 	qsort(m_chapters.GetData(), m_chapters.GetCount(), sizeof(CDSMChapter), chapter_comp);
 	m_fSorted = true;
 	return S_OK;
+}
+
+//
+// CDSMChapterBag
+//
+
+CDSMChapterBag::CDSMChapterBag(LPUNKNOWN pUnk, HRESULT* phr) 
+	: CUnknown(_T("CDSMChapterBag"), NULL)
+{
+}
+
+STDMETHODIMP CDSMChapterBag::NonDelegatingQueryInterface(REFIID riid, void** ppv)
+{
+    CheckPointer(ppv, E_POINTER);
+
+	return
+		QI(IDSMChapterBag)
+		 __super::NonDelegatingQueryInterface(riid, ppv);
 }

@@ -49,6 +49,8 @@ CDeCSSInputPin::CDeCSSInputPin(TCHAR* pObjectName, CTransformFilter* pFilter, HR
 
 STDMETHODIMP CDeCSSInputPin::NonDelegatingQueryInterface(REFIID riid, void** ppv)
 {
+    CheckPointer(ppv, E_POINTER);
+
 	return
 		QI(IKsPropertySet)
 		 __super::NonDelegatingQueryInterface(riid, ppv);

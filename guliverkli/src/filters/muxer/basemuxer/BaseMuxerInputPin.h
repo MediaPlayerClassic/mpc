@@ -40,7 +40,7 @@ struct MuxerPacket
 	bool IsBogus() const {return !!(flags & bogus);}
 };
 
-class CBaseMuxerInputPin : public CBaseInputPin, public CDSMPropertyBag
+class CBaseMuxerInputPin : public CBaseInputPin, public IDSMPropertyBagImpl
 {
 private:
 	int m_iID;

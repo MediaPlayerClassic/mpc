@@ -87,7 +87,7 @@ public:
 
 class CBaseSplitterOutputPin 
 	: public CBaseOutputPin
-	, public CDSMPropertyBag
+	, public IDSMPropertyBagImpl
 	, protected CAMThread
 	, public IMediaSeeking
 {
@@ -191,9 +191,9 @@ interface IBufferInfo : public IUnknown
 class CBaseSplitterFilter 
 	: public CBaseFilter
 	, public CCritSec
-	, public CDSMPropertyBag
-	, public CDSMResourceBag
-	, public CDSMChapterBag
+	, public IDSMPropertyBagImpl
+	, public IDSMResourceBagImpl
+	, public IDSMChapterBagImpl
 	, protected CAMThread
 	, public IFileSourceFilter
 	, public IMediaSeeking
