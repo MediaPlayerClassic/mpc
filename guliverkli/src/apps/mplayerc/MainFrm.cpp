@@ -1017,68 +1017,29 @@ void CMainFrame::OnTimer(UINT nIDEvent)
 		m_wndSeekBar.GetRange(start, stop);
 		pos = m_wndSeekBar.GetPosReal();
 
-		CString str;
-		CString posstr, durstr;
-
 		GUID tf;
 		pMS->GetTimeFormat(&tf);
 
-		if(tf == TIME_FORMAT_MEDIA_TIME)
+		if(m_iPlaybackMode == PM_CAPTURE && !m_fCapturing)
 		{
-			DVD_HMSF_TIMECODE tcNow = RT2HMSF(pos);
-			DVD_HMSF_TIMECODE tcDur = RT2HMSF(stop);
+			CString str = _T("Live");
 
-			if(tcDur.bHours > 0 || (pos >= stop && tcNow.bHours > 0)) posstr.Format(_T("%02d:%02d:%02d"), tcNow.bHours, tcNow.bMinutes, tcNow.bSeconds);
-			else posstr.Format(_T("%02d:%02d"), tcNow.bMinutes, tcNow.bSeconds);
-
-			if(tcDur.bHours > 0) durstr.Format(_T("%02d:%02d:%02d"), tcDur.bHours, tcDur.bMinutes, tcDur.bSeconds);
-			else durstr.Format(_T("%02d:%02d"), tcDur.bMinutes, tcDur.bSeconds);
-
-			if(m_wndSubresyncBar.IsWindowVisible())
+			long lChannel = 0, lVivSub = 0, lAudSub = 0;
+			if(pAMTuner 
+			&& m_wndCaptureBar.m_capdlg.IsTunerActive()
+			&& SUCCEEDED(pAMTuner->get_Channel(&lChannel, &lVivSub, &lAudSub)))
 			{
-				str.Format(_T("%s.%03d"), posstr, (pos/10000)%1000);
-				posstr = str;
-				str.Format(_T("%s.%03d"), durstr, (stop/10000)%1000);
-				durstr = str;
-				str.Empty();
+				CString ch;
+				ch.Format(_T(" (ch%d)"), lChannel);
+				str += ch;
 			}
+
+			m_wndStatusBar.SetStatusTimer(str);
 		}
-		else if(tf == TIME_FORMAT_FRAME)
+		else
 		{
-			if(start >= 0 && stop > 0)
-			{
-				posstr.Format(_T("%I64d"), pos);
-				durstr.Format(_T("%I64d"), stop);
-			}
+			m_wndStatusBar.SetStatusTimer(pos, stop, !!m_wndSubresyncBar.IsWindowVisible(), &tf);
 		}
-
-		if(m_iPlaybackMode == PM_FILE || m_iPlaybackMode == PM_DVD)
-		{
-			str = (start <= 0 && stop <= 0) ? posstr : posstr + _T(" / ") + durstr;
-		}
-		else if(m_iPlaybackMode == PM_CAPTURE)
-		{
-			if(m_fCapturing)
-			{
-				str = posstr + _T(" / ") + durstr;
-			}
-			else
-			{
-				str = _T("Live");
-
-				long lChannel = 0, lVivSub = 0, lAudSub = 0;
-				if(pAMTuner 
-				&& m_wndCaptureBar.m_capdlg.IsTunerActive()
-				&& SUCCEEDED(pAMTuner->get_Channel(&lChannel, &lVivSub, &lAudSub)))
-				{
-					CString ch;
-					ch.Format(_T(" (ch%d)"), lChannel);
-					str += ch;
-				}
-			}
-		}
-
-		m_wndStatusBar.SetStatusTimer(str);
 
 		m_wndSubresyncBar.SetTime(pos);
 
@@ -3480,6 +3441,15 @@ void CMainFrame::OnPlayStop()
 		KillTimer(TIMER_STREAMPOSPOLLER);
 		KillTimer(TIMER_STATS);
 		MoveVideoWindow();
+
+		if(m_iMediaLoadState == MLS_LOADED)
+		{
+			__int64 start, stop;
+			m_wndSeekBar.GetRange(start, stop);
+			GUID tf;
+			pMS->GetTimeFormat(&tf);
+			m_wndStatusBar.SetStatusTimer(m_wndSeekBar.GetPosReal(), stop, !!m_wndSubresyncBar.IsWindowVisible(), &tf);
+		}
 	}
 }
 

@@ -141,7 +141,7 @@ HRESULT CTextPassThruFilter::Transform(IMediaSample* pIn, IMediaSample* pOut)
 					SetName();
 
 					pRTS->Add(AToW(str), false, tstart, tstop);
-					m_pMainFrame->InvalidateSubtitle(rtStart + m_rtOffset, (DWORD_PTR)pRTS);
+					m_pMainFrame->InvalidateSubtitle((DWORD_PTR)pRTS, rtStart + m_rtOffset);
 				}
 			}
 		}
@@ -152,7 +152,7 @@ HRESULT CTextPassThruFilter::Transform(IMediaSample* pIn, IMediaSample* pOut)
 			if(!str.IsEmpty())
 			{
 				pRTS->Add(str, true, tstart, tstop);
-				m_pMainFrame->InvalidateSubtitle(rtStart + m_rtOffset, (DWORD_PTR)pRTS);
+				m_pMainFrame->InvalidateSubtitle((DWORD_PTR)pRTS, rtStart + m_rtOffset);
 			}
 		}
 		// TODO: handle SSA, ASS, USF subtypes

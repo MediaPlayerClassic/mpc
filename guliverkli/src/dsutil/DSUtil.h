@@ -61,10 +61,8 @@ typedef enum {CDROM_NotFound, CDROM_Audio, CDROM_VideoCD, CDROM_Unknown} cdrom_t
 extern cdrom_t GetCDROMType(TCHAR drive, CStringList& files);
 extern CString GetDriveLabel(TCHAR drive);
 extern bool GetKeyFrames(CString fn, CUIntArray& kfs);
-extern DVD_HMSF_TIMECODE RT2HMSF(REFERENCE_TIME rt, double fps);
-extern DVD_HMSF_TIMECODE RT2HMSF(REFERENCE_TIME rt);
-extern REFERENCE_TIME HMSF2RT(DVD_HMSF_TIMECODE hmsf, double fps);
-extern REFERENCE_TIME HMSF2RT(DVD_HMSF_TIMECODE hmsf);
+extern DVD_HMSF_TIMECODE RT2HMSF(REFERENCE_TIME rt, double fps = 0);
+extern REFERENCE_TIME HMSF2RT(DVD_HMSF_TIMECODE hmsf, double fps = 0);
 extern HRESULT AddToRot(IUnknown* pUnkGraph, DWORD* pdwRegister);
 extern void RemoveFromRot(DWORD& dwRegister);
 extern void memsetd(void* dst, unsigned int c, int nbytes);
