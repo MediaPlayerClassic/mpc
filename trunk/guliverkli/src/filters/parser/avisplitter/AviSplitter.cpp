@@ -132,25 +132,31 @@ int g_cTemplates = sizeof(g_Templates) / sizeof(g_Templates[0]);
 
 STDAPI DllRegisterServer()
 {
-	SetRegKeyValue(
-		_T("Media Type\\{e436eb83-524f-11ce-9f53-0020af0ba770}"), CStringFromGUID(MEDIASUBTYPE_Avi), 
-		_T("0"), _T("0,4,,52494646,8,4,41564920"));
+	CString null = CStringFromGUID(GUID_NULL);
+	CString majortype = CStringFromGUID(MEDIATYPE_Stream);
+	CString subtype = CStringFromGUID(MEDIASUBTYPE_Avi);
+	CString asyncfilter = CStringFromGUID(CLSID_AsyncReader);
+	CString srcfilter = CStringFromGUID(__uuidof(CAviSourceFilter));
 
-	SetRegKeyValue(
-		_T("Media Type\\{e436eb83-524f-11ce-9f53-0020af0ba770}"), CStringFromGUID(MEDIASUBTYPE_Avi), 
-		_T("Source Filter"), CStringFromGUID(CLSID_AsyncReader));
-/*
-	SetRegKeyValue(
-		_T("Media Type\\Extensions"), _T(".avi"), 
-		_T("Source Filter"), CStringFromGUID(__uuidof(CAviSourceFilter)));
-*/
+	SetRegKeyValue(_T("Media Type\\") + null, subtype, _T("0"), _T("0,4,,52494646,8,4,41564920")); // RIFFxxxxAVI_
+	SetRegKeyValue(_T("Media Type\\") + null, subtype, _T("Source Filter"), srcfilter);
+
+	SetRegKeyValue(_T("Media Type\\") + majortype, subtype, _T("0"), _T("0,4,,52494646,8,4,41564920")); // RIFFxxxxAVI_
+	SetRegKeyValue(_T("Media Type\\") + majortype, subtype, _T("Source Filter"), asyncfilter);
+
+	DeleteRegKey(_T("Media Type\\Extensions"), _T(".avi"));
+
 	return AMovieDllRegisterServer2(TRUE);
 }
 
 STDAPI DllUnregisterServer()
 {
-//	DeleteRegKey(_T("Media Type\\{e436eb83-524f-11ce-9f53-0020af0ba770}"), CStringFromGUID(MEDIASUBTYPE_Avi)); // leave it there for dshow's avi splitter
-//	DeleteRegKey(_T("Media Type\\Extensions"), _T(".avi"));
+	CString null = CStringFromGUID(GUID_NULL);
+	CString majortype = CStringFromGUID(MEDIATYPE_Stream);
+	CString subtype = CStringFromGUID(MEDIASUBTYPE_Avi);
+
+	DeleteRegKey(_T("Media Type\\") + null, subtype);
+	DeleteRegKey(_T("Media Type\\") + majortype, subtype);
 
 	return AMovieDllRegisterServer2(FALSE);
 }
@@ -601,7 +607,7 @@ HRESULT CAviSplitterFilter::DoDeliverLoop(UINT64 end)
 
 						ASSERT(s->cs.GetCount() == 0 || m_tFrame[TrackNumber] < s->cs.GetCount());
 
-						if(s->cs[m_tFrame[TrackNumber]].filepos != pos)
+						if(m_tFrame[TrackNumber] < s->cs.GetCount() && s->cs[m_tFrame[TrackNumber]].filepos != pos)
 						{
 							for(int i = m_tFrame[TrackNumber]; i < s->cs.GetCount(); i++)
 							{

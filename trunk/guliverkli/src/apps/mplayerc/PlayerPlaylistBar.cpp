@@ -387,8 +387,8 @@ void CPlayerPlaylistBar::ParsePlayList(CStringList& fns, CStringList* subs)
 	CString str('\n'); // FIXME: m3u regexp skips the first line for some reason
 
 	CWebTextFile f;
-	if(!f.Open(fn)) return;
-	for(CString tmp; f.ReadString(tmp); str += tmp + '\n');
+	if(f.Open(fn)) 
+		for(CString tmp; f.ReadString(tmp); str += tmp + '\n');
 
 	bool fFound = false;
 

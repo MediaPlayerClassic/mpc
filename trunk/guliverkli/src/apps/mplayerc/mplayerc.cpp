@@ -473,6 +473,7 @@ public:
 	}
 };
 */
+#include "..\..\filters\filters.h"
 BOOL CMPlayerCApp::InitInstance()
 {
 	DetourFunctionWithTrampoline((PBYTE)Real_IsDebuggerPresent, (PBYTE)Mine_IsDebuggerPresent);

@@ -5212,7 +5212,7 @@ void CMainFrame::OpenFile(OpenFileData* pOFD)
 				{
 					chapter_t c;
 					c.rtStart = ce.rtStart;
-					c.rtStop = rtDur/*ce.rtStop*/; // TODO
+					c.rtStop = max(rtDur, ce.rtStop); // TODO
 
 					bstr.Attach(pCI->GetChapterStringInfo(cid, pl, cc));
 					c.name = CString(bstr);

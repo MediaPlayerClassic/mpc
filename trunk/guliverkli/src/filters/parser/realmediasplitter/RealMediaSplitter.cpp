@@ -213,40 +213,33 @@ int g_cTemplates = sizeof(g_Templates) / sizeof(g_Templates[0]);
 
 STDAPI DllRegisterServer()
 {
-	SetRegKeyValue(
-		_T("Media Type\\{e436eb83-524f-11ce-9f53-0020af0ba770}"), CStringFromGUID(MEDIASUBTYPE_RealMedia), 
-		_T("0"), _T("0,4,,2E524D46")); // .RMF
+	CString null = CStringFromGUID(GUID_NULL);
+	CString majortype = CStringFromGUID(MEDIATYPE_Stream);
+	CString subtype = CStringFromGUID(MEDIASUBTYPE_RealMedia);
+	CString asyncfilter = CStringFromGUID(CLSID_AsyncReader);
+	CString srcfilter = CStringFromGUID(__uuidof(CRealMediaSourceFilter));
 
-	SetRegKeyValue(
-		_T("Media Type\\{e436eb83-524f-11ce-9f53-0020af0ba770}"), CStringFromGUID(MEDIASUBTYPE_RealMedia), 
-		_T("Source Filter"), CStringFromGUID(CLSID_AsyncReader));
+	SetRegKeyValue(_T("Media Type\\") + null, subtype, _T("0"), _T("0,4,,2E524D46")); // .RMF
+	SetRegKeyValue(_T("Media Type\\") + null, subtype, _T("Source Filter"), srcfilter);
 
-	SetRegKeyValue(
-		_T("Media Type\\Extensions"), _T(".rm"), 
-		_T("Source Filter"), CStringFromGUID(__uuidof(CRealMediaSourceFilter)));
+	SetRegKeyValue(_T("Media Type\\") + majortype, subtype, _T("0"), _T("0,4,,2E524D46")); // .RMF
+	SetRegKeyValue(_T("Media Type\\") + majortype, subtype, _T("Source Filter"), asyncfilter);
 
-	SetRegKeyValue(
-		_T("Media Type\\Extensions"), _T(".ra"), 
-		_T("Source Filter"), CStringFromGUID(__uuidof(CRealMediaSourceFilter)));
-
-	SetRegKeyValue(
-		_T("Media Type\\Extensions"), _T(".ram"), 
-		_T("Source Filter"), CStringFromGUID(__uuidof(CRealMediaSourceFilter)));
-
-	SetRegKeyValue(
-		_T("Media Type\\Extensions"), _T(".rmvb"), 
-		_T("Source Filter"), CStringFromGUID(__uuidof(CRealMediaSourceFilter)));
+	DeleteRegKey(_T("Media Type\\Extensions"), _T(".rm"));
+	DeleteRegKey(_T("Media Type\\Extensions"), _T(".rmvb"));
+	DeleteRegKey(_T("Media Type\\Extensions"), _T(".ram"));
 
 	return AMovieDllRegisterServer2(TRUE);
 }
 
 STDAPI DllUnregisterServer()
 {
-	DeleteRegKey(_T("Media Type\\{e436eb83-524f-11ce-9f53-0020af0ba770}"), CStringFromGUID(MEDIASUBTYPE_RealMedia));
-	DeleteRegKey(_T("Media Type\\Extensions"), _T(".rm"));
-	DeleteRegKey(_T("Media Type\\Extensions"), _T(".ra"));
-	DeleteRegKey(_T("Media Type\\Extensions"), _T(".ram"));
-	DeleteRegKey(_T("Media Type\\Extensions"), _T(".rmvb"));
+	CString null = CStringFromGUID(GUID_NULL);
+	CString majortype = CStringFromGUID(MEDIATYPE_Stream);
+	CString subtype = CStringFromGUID(MEDIASUBTYPE_RealMedia);
+
+	DeleteRegKey(_T("Media Type\\") + null, subtype);
+	DeleteRegKey(_T("Media Type\\") + majortype, subtype);
 
 	return AMovieDllRegisterServer2(FALSE);
 }
@@ -681,6 +674,32 @@ STDMETHODIMP CRealMediaSplitterFilter::GetDuration(LONGLONG* pDuration)
 	return S_OK;
 }
 
+// IKeyFrameInfo
+
+STDMETHODIMP CRealMediaSplitterFilter::GetKeyFrameCount(UINT& nKFs)
+{
+	if(!m_pFile) return E_UNEXPECTED;
+	nKFs = m_pFile->m_irs.GetCount();
+	return S_OK;
+}
+
+STDMETHODIMP CRealMediaSplitterFilter::GetKeyFrames(const GUID* pFormat, REFERENCE_TIME* pKFs, UINT& nKFs)
+{
+	CheckPointer(pFormat, E_POINTER);
+	CheckPointer(pKFs, E_POINTER);
+
+	if(!m_pFile) return E_UNEXPECTED;
+	if(*pFormat != TIME_FORMAT_MEDIA_TIME) return E_INVALIDARG;
+
+	UINT nKFsTmp = 0;
+	POSITION pos = m_pFile->m_irs.GetHeadPosition();
+	for(int i = 0; pos && nKFsTmp < nKFs; i++)
+		pKFs[nKFsTmp++] = 10000i64*m_pFile->m_irs.GetNext(pos)->tStart;
+	nKFs = nKFsTmp;
+
+	return S_OK;
+}
+
 //
 // CRealMediaSplitterOutputPin
 //
@@ -851,7 +870,7 @@ HRESULT CRealMediaSplitterOutputPin::DeliverPacket(CAutoPtr<Packet> p)
 
 			if((hdr&0x80) || packetoffset+len2 >= packetlen)
 			{
-				if(S_OK != (hr = DeliverSegments()))
+			    if(S_OK != (hr = DeliverSegments()))
 					return hr;
 			}
 		}

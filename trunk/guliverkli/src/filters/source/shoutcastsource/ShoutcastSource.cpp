@@ -139,32 +139,29 @@ STDAPI DllUnregisterServer()
 
 extern "C" BOOL WINAPI DllEntryPoint(HINSTANCE, ULONG, LPVOID);
 
-class CMyApp : public CWinApp
+BOOL APIENTRY DllMain(HANDLE hModule, DWORD ul_reason_for_call, LPVOID lpReserved)
 {
-public:
-	CMyApp() {}
-
-	BOOL InitInstance()
+	if(ul_reason_for_call == DLL_PROCESS_ATTACH)
 	{
+		if(!AfxWinInit(::GetModuleHandle(NULL), NULL, ::GetCommandLine(), 0))
+		{
+			AfxMessageBox(_T("AfxWinInit failed!"));
+			return FALSE;
+		}
+
 		if(!AfxSocketInit(NULL))
 		{
 			AfxMessageBox(_T("AfxSocketInit failed!"));
 			return FALSE;
 		}
-
-		return DllEntryPoint(AfxGetInstanceHandle(), DLL_PROCESS_ATTACH, 0) 
-			? __super::InitInstance() 
-			: FALSE;
 	}
-
-	int ExitInstance()
+	else if(ul_reason_for_call == DLL_PROCESS_DETACH)
 	{
-		DllEntryPoint(AfxGetInstanceHandle(), DLL_PROCESS_DETACH, 0); 
-		return __super::ExitInstance();
+		AfxWinTerm();
 	}
-};
 
-CMyApp theApp;
+    return DllEntryPoint((HINSTANCE)hModule, ul_reason_for_call, 0); // "DllMain" of the dshow baseclasses;
+}
 
 //
 // CShoutcastSource
@@ -286,7 +283,7 @@ CShoutcastStream::CShoutcastStream(const WCHAR* wfn, CShoutcastSource* pParent, 
 	CString fn(wfn);
 	if(fn.Find(_T("://")) < 0) fn = _T("http://") + fn;
 
-#ifdef REGISTER_FILTER
+#if defined(REGISTER_FILTER) && defined(DEBUG)
 //fn = _T("http://localhost:8000/");
 //fn = _T("http://64.236.34.141/stream/1005");
 //fn = _T("http://218.145.30.106:11000"); // 128kbps korean
@@ -309,10 +306,6 @@ fn = _T("http://64.236.34.72:80/stream/1011");
 
 	if(m_url.GetPortNumber() == ATL_URL_INVALID_PORT_NUMBER)
 		m_url.SetPortNumber(ATL_URL_DEFAULT_HTTP_PORT);
-
-#ifdef REGISTER_FILTER
-	AFX_MANAGE_STATE(AfxGetStaticModuleState());
-#endif
 
 	if(!m_socket.Create() || !m_socket.Connect(m_url))
 	{
@@ -472,10 +465,6 @@ UINT CShoutcastStream::SocketThreadProc()
 	fExitThread = false;
 
 	SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_TIME_CRITICAL);
-
-#ifdef REGISTER_FILTER
-	AFX_MANAGE_STATE(AfxGetStaticModuleState());
-#endif
 
 	AfxSocketInit();
 
