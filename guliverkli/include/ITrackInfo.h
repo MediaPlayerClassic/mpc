@@ -1,3 +1,5 @@
+#pragma once
+
 typedef enum TrackType {
 	TypeVideo		= 1,
 	TypeAudio		= 2,
