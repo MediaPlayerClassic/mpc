@@ -942,11 +942,6 @@ HRESULT CMatroskaMuxerInputPin::CompleteConnect(IPin* pPin)
 			m_pTE->CodecID.Set("S_TEXT/UTF8");
 			hr = S_OK;
 		}
-		else if(m_mt.subtype == MEDIASUBTYPE_RAWASS && m_mt.formattype == FORMAT_SubtitleInfo)
-		{
-			m_pTE->CodecID.Set("S_RAWASS");
-			hr = S_OK;
-		}
 		else if(m_mt.subtype == MEDIASUBTYPE_SSA && m_mt.formattype == FORMAT_SubtitleInfo)
 		{
 			m_pTE->CodecID.Set("S_SSA");

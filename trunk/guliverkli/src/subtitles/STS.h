@@ -143,7 +143,7 @@ public:
 	bool Open(BYTE* data, int len, int CharSet, CString name); 
 	bool SaveAs(CString fn, exttype et, double fps = -1, CTextFile::enc = CTextFile::ASCII);
 
-	void Add(CStringW str, bool fUnicode, int start, int end, CString style = _T("Default"), CString actor = _T(""), CString effect = _T(""), CRect marginRect = CRect(0,0,0,0), int layer = 0);
+	void Add(CStringW str, bool fUnicode, int start, int end, CString style = _T("Default"), CString actor = _T(""), CString effect = _T(""), CRect marginRect = CRect(0,0,0,0), int layer = 0, int readorder = -1);
 
 	void CreateDefaultStyle(int CharSet);
 	void ChangeUnknownStylesToDefault();

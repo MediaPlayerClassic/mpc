@@ -113,17 +113,6 @@ public:
 	HRESULT GetMediaType(CMediaType* pmt);
 };
 
-[uuid("41AB00CC-2C3B-4CC1-B160-74F45B893DAB")]
-class CSubtitleSourceRAWASS : public CSubtitleSource
-{
-public:
-	CSubtitleSourceRAWASS(LPUNKNOWN lpunk, HRESULT* phr);
-#ifdef REGISTER_FILTER
-    static CUnknown* WINAPI CreateInstance(LPUNKNOWN lpunk, HRESULT* phr);
-#endif
-	HRESULT GetMediaType(CMediaType* pmt);
-};
-
 [uuid("18316B1A-5877-4CC4-85FD-EDE65CD489EC")]
 class CSubtitleSourceSSA : public CSubtitleSource
 {
