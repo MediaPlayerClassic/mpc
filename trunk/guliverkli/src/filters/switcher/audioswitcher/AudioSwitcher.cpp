@@ -431,6 +431,10 @@ HRESULT CStreamSwitcherInputPin::CompleteConnect(IPin* pReceivePin)
 		if(clsid == CLSID_AviSplitter || clsid == CLSID_OggSplitter)
 			m_fCanBlock = true;
 
+		int nIn, nOut, nInC, nOutC;
+		CountPins(pBF, nIn, nOut, nInC, nOutC);
+		fForkedSomewhere = fForkedSomewhere || nInC > 1 || nOutC > 1;
+
 		if(CComQIPtr<IFileSourceFilter> pFSF = pBF)
 		{
 			WCHAR* pszName = NULL;
@@ -457,10 +461,6 @@ HRESULT CStreamSwitcherInputPin::CompleteConnect(IPin* pReceivePin)
 
 			break;
 		}
-
-		int nIn, nOut, nInC, nOutC;
-		CountPins(pBF, nIn, nOut, nInC, nOutC);
-		fForkedSomewhere = fForkedSomewhere || nInC > 1 || nOutC > 1;
 
 		pPin = GetFirstPin(pBF);
 	}
