@@ -35,7 +35,7 @@ typedef struct {
 } SUBTITLEINFO;
 #pragma pack(pop)
 
-// SUBTITLEINFO structure content starting at dwOffset
+// SUBTITLEINFO structure content starting at dwOffset (also the content of CodecPrivate)
 // ---------------------------------------------------
 //
 // MEDIASUBTYPE_USF: 
