@@ -54,7 +54,7 @@ SequenceDecompressor::SequenceDecompressor(std::istream* ip,bool verbosity)
 : 
 m_all_done(false),
 m_infile(ip),
-m_current_code_fnum(0),
+m_current_code_fnum(-1),
 m_delay(1),
 m_last_frame_read(-1),
 m_show_fnum(-1)
@@ -171,6 +171,10 @@ Frame& SequenceDecompressor::DecompressNextFrame(bool skip /* = false */)
     //come out - write them to screen or to file, as required.
 
     TEST (m_fdecoder != NULL);
+
+	// fixes random access
+	if (m_current_code_fnum < 0 && m_fdecoder->GetFrameParams().FSort() == I_frame) 
+		m_current_code_fnum = m_fdecoder->GetFrameParams().FrameNum();
 
     if (m_current_code_fnum!=0){
         //if we're not at the beginning, clean the buffer of frames that can be discarded

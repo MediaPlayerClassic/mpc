@@ -74,8 +74,6 @@ void dirac_decoder_close(dirac_decoder_t *decoder)
     decoder = NULL;
 }
 
-#include <Windows.h>
-
 void dirac_buffer (dirac_decoder_t *decoder, unsigned char *start, unsigned char *end)
 {
     TEST (decoder != NULL);

@@ -390,7 +390,6 @@ void WaveletTransform::VHSynth(const int xp, const int yp, const int xl, const i
 
     for ( j=0 ; j<yend ; ++j )
     {
-
         for ( i=0 , k=xl2 ; i<xl2; ++i , ++k )
         {
             line_data[i] = tmp_data[i][j]; 

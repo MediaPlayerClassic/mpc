@@ -12,7 +12,6 @@ class CDiracSplitterFile : public CBaseSplitterFile
 	CArray<BYTE> m_pBuff;
 
 	HRESULT Init();
-	UINT64 UnsignedGolombDecode();
 
 public:
 	CDiracSplitterFile(IAsyncReader* pAsyncReader, HRESULT& hr);
@@ -21,6 +20,7 @@ public:
 
 	bool Next(BYTE& code, __int64 len = -1);
 	const BYTE* NextBlock(BYTE& code, int& size, int& fnum);
+	UINT64 UnsignedGolombDecode();
 
 	const CMediaType& GetMediaType() {return m_mt;}
 	REFERENCE_TIME GetDuration() {return m_rtDuration;}

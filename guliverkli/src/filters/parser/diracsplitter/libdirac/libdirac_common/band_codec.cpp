@@ -294,27 +294,23 @@ void BandCodec::DecodeVal(PicArray& out_data)
 
 int BandCodec::ChooseContext(const PicArray& data, const int BinNumber) const
 {
-	static const int ctxa[2][2][4] = 
+	static const int ctxa[4][4] = 
 	{
-		{
-			{Z_BIN2_CTX, Z_BIN3_CTX, Z_BIN4_CTX, Z_BIN5plus_CTX},
-			{NZ_BIN2_CTX, NZ_BIN3_CTX, NZ_BIN4_CTX, NZ_BIN5plus_CTX}
-		},
-		{
-			{Z_BIN1z_CTX, Z_BIN1nz_CTX, Z_BIN1nz_CTX, 0},
-			{NZ_BIN1z_CTX, NZ_BIN1b_CTX, NZ_BIN1a_CTX, 0}
-		}
+		{Z_BIN2_CTX, Z_BIN3_CTX, Z_BIN4_CTX, Z_BIN5plus_CTX},
+		{NZ_BIN2_CTX, NZ_BIN3_CTX, NZ_BIN4_CTX, NZ_BIN5plus_CTX},
+		{Z_BIN1z_CTX, Z_BIN1nz_CTX, Z_BIN1nz_CTX, 0},
+		{NZ_BIN1z_CTX, NZ_BIN1b_CTX, NZ_BIN1a_CTX, 0}
 	};
 
 	int nz = m_parent_notzero || m_pxp == 0 && m_pyp == 0;
 
 	if(BinNumber > 1)
 	{
-		return ctxa[0][nz][std::min(BinNumber, 5)-2];
+		return ctxa[nz][std::min(BinNumber, 5)-2];
 	}
 	else
 	{
-		return ctxa[1][nz][m_nhood_sum == 0 ? 0 : m_nhood_sum > m_cut_off_point ? 1 : 2];
+		return ctxa[nz+2][m_nhood_sum == 0 ? 0 : m_nhood_sum > m_cut_off_point ? 1 : 2];
 	}
 /*
     //condition on neighbouring values and parent values
