@@ -51,37 +51,6 @@ BEGIN_MESSAGE_MAP(CSubtitleDlDlg, CResizableDialog)
 	ON_UPDATE_COMMAND_UI(IDOK, OnUpdateOk)
 END_MESSAGE_MAP()
 
-
-static CString htmldecode(CStringA str)
-{
-	CString ret;
-
-	LPCSTR s = str, e = s + str.GetLength();
-
-	while(s < e)
-	{
-		if(*s == '&' && *(s+1) == '#')
-		{
-			char* tmp = NULL;
-			long n = strtol(s+2, &tmp, 10);
-			if(*tmp == ';')
-			{
-#ifdef UNICODE
-                ret += (WCHAR)n;
-#else
-				ret += n < 256 ? (CHAR)n : '?';
-#endif
-				s = tmp+1;
-				continue;
-			}
-		}
-
-		ret += *s++;
-	}
-
-	return ret;
-}
-
 // CSubtitleDlDlg message handlers
 
 BOOL CSubtitleDlDlg::OnInitDialog()
