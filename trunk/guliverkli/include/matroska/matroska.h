@@ -78,7 +78,7 @@ typedef struct {
 // If the source is only SSA, the Layer field can be left empty.
 //
 
-// Matroka CodecID mappings
+// Matroska CodecID mappings
 // ------------------------
 //
 // S_TEXT/ASCII	<->	MEDIATYPE_Text		MEDIASUBTYPE_NULL	FORMAT_None
