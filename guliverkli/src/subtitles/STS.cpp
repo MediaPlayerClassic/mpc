@@ -783,13 +783,15 @@ static CStringW MicroDVD2SSA(CStringW str, bool fUnicode, int CharSet)
 				}
 				else if(!wcsnicmp(code, L"{y:", 3))
 				{
+					bool f = (_istupper(code[1]) == 0);
+
 					code.MakeLower();
 
 					ret += '{';
-					if(code.Find('b') >= 0) {ret += L"\\b1"; fRestore[BOLD] = true;}
-					if(code.Find('i') >= 0) {ret += L"\\i1"; fRestore[ITALIC] = true;}
-					if(code.Find('u') >= 0) {ret += L"\\u1"; fRestore[UNDERLINE] = true;}
-					if(code.Find('s') >= 0) {ret += L"\\s1"; fRestore[STRIKEOUT] = true;}
+					if(code.Find('b') >= 0) {ret += L"\\b1"; fRestore[BOLD] = f;}
+					if(code.Find('i') >= 0) {ret += L"\\i1"; fRestore[ITALIC] = f;}
+					if(code.Find('u') >= 0) {ret += L"\\u1"; fRestore[UNDERLINE] = f;}
+					if(code.Find('s') >= 0) {ret += L"\\s1"; fRestore[STRIKEOUT] = f;}
 					ret += '}';
 				}
 				else if(!wcsnicmp(code, L"{o:", 3))
@@ -2647,12 +2649,15 @@ bool CSimpleTextSubtitle::SaveAs(CString fn, exttype et, double fps, CTextFile::
 			}
 		}
 
-		str  = _T("\n");
-		str += _T("[Events]\n");
-		str += (et == EXTSSA) 
-			? _T("Format: Marked, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\n")
-			: _T("Format: Layer, Start, End, Style, Actor, MarginL, MarginR, MarginV, Effect, Text\n");
-		f.WriteString(str);
+		if(GetSize() > 0)
+		{
+			str  = _T("\n");
+			str += _T("[Events]\n");
+			str += (et == EXTSSA) 
+				? _T("Format: Marked, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\n")
+				: _T("Format: Layer, Start, End, Style, Actor, MarginL, MarginR, MarginV, Effect, Text\n");
+			f.WriteString(str);
+		}
 	}
 
 	CStringW fmt = 
