@@ -123,7 +123,6 @@ STDMETHODIMP CAviSplitterFilter::NonDelegatingQueryInterface(REFIID riid, void**
 	*ppv = NULL;
 
 	return 
-		QI(IPropertyBag)
 		__super::NonDelegatingQueryInterface(riid, ppv);
 }
 
@@ -302,14 +301,24 @@ HRESULT CAviSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 		AddOutputPin(i, pPinOut);
 	}
 
+	POSITION pos = m_pFile->m_info.GetStartPosition();
+	while(pos)
 	{
-		CStringA str;
+		DWORD fcc;
+		CStringA value;
+		m_pFile->m_info.GetNextAssoc(pos, fcc, value);
 
-		if(m_pFile->m_info.Lookup(FCC('INAM'), str)) SetMediaContentStr(CStringW(CString(str)), Title);
-		if(m_pFile->m_info.Lookup(FCC('IART'), str)) SetMediaContentStr(CStringW(CString(str)), AuthorName);
-		if(m_pFile->m_info.Lookup(FCC('ICOP'), str)) SetMediaContentStr(CStringW(CString(str)), Copyright);
-		if(m_pFile->m_info.Lookup(FCC('ISBJ'), str)) SetMediaContentStr(CStringW(CString(str)), Description);
-//		if(m_pFile->m_info.Lookup(FCC(), str)) SetMediaContentStr(CStringW(CString(str)), Rating);
+        switch(fcc)
+		{
+		case FCC('INAM'): SetMediaContentStr(CString(value), Title); break;
+		case FCC('IART'): SetMediaContentStr(CString(value), AuthorName); break;
+		case FCC('ICOP'): SetMediaContentStr(CString(value), Copyright); break;
+		case FCC('ISBJ'): SetMediaContentStr(CString(value), Description); break;
+		}
+
+		CStringA key;
+		key.Format("%.4s", (char*)&fcc);
+		SetProperty(CString(key), CString(value));
 	}
 
 	m_tFrame.Attach(new DWORD[m_pFile->m_avih.dwStreams]);
@@ -738,34 +747,6 @@ HRESULT CAviSplitterFilter::SetPositionsInternal(void* id, LONGLONG* pCurrent, D
 		if(FAILED(ConvertTimeFormat(pStop, &TIME_FORMAT_MEDIA_TIME, rtStop, &TIME_FORMAT_FRAME))) return E_FAIL;
 
 	return __super::SetPositionsInternal(id, pCurrent, dwCurrentFlags, pStop, dwStopFlags);
-}
-
-// IPropertyBag
-
-STDMETHODIMP CAviSplitterFilter::Read(LPCOLESTR pszPropName, VARIANT* pVar, IErrorLog* pErrorLog)
-{
-	CheckPointer(pszPropName, E_POINTER);
-	CheckPointer(pVar, E_POINTER);
-	if(pVar->vt != VT_EMPTY) return E_FAIL;
-	if(!m_pFile) return E_UNEXPECTED;
-
-	CStringW name(pszPropName);
-	if(name.Find(L"INFO/") == 0 && name.GetLength() == 9)
-	{
-		CStringA str;
-		if(m_pFile->m_info.Lookup(mmioFOURCC(name[5], name[6], name[7], name[8]), str))
-		{
-			*pVar = CComVariant(str);
-			return S_OK;
-		}
-	}
-
-	return E_FAIL;
-}
-
-STDMETHODIMP CAviSplitterFilter::Write(LPCOLESTR pszPropName, VARIANT* pVar)
-{
-	return E_NOTIMPL;
 }
 
 // IKeyFrameInfo

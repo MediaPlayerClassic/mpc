@@ -219,6 +219,7 @@ STDMETHODIMP CBaseSplitterOutputPin::NonDelegatingQueryInterface(REFIID riid, vo
 
 	return 
 //		riid == __uuidof(IMediaSeeking) ? m_pFilter->QueryInterface(riid, ppv) : 
+		QI(IPropertyBag)
 		QI(IPropertyBag2)
 		QI(IDSMPropertyBag)
 		QI(IMediaSeeking)
@@ -677,6 +678,9 @@ STDMETHODIMP CBaseSplitterFilter::NonDelegatingQueryInterface(REFIID riid, void*
 		QI(IChapterInfo)
 		QI(IKeyFrameInfo)
 		QI(IBufferInfo)
+		QI(IPropertyBag)
+		QI(IPropertyBag2)
+		QI(IDSMPropertyBag)
 		__super::NonDelegatingQueryInterface(riid, ppv);
 }
 
@@ -766,6 +770,8 @@ HRESULT CBaseSplitterFilter::DeleteOutputs()
 
 	CAutoLock cAutoLockMT(&m_csmtnew);
 	m_mtnew.RemoveAll();
+
+	RemoveAll();
 
 	return S_OK;
 }

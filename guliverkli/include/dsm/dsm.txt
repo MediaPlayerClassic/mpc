@@ -149,6 +149,7 @@ Notes:
 - sign == 1 && timestamp length == 0 -> timestamp and duration is unknown (but for syncpoints it cannot be unknown!)
 - sign == 0 && timestamp length == 0 -> simply means the value is stored on zero bytes and its value is zero too.
 - timestamps of syncpoints must be strictly in increasing order.
+- timestamps can be negative (to allow cutting a file at anywhere preroll samples may need to be saved)
 
 SyncPoints : extends Packet (dsmp_t: DSMP_SYNCPOINTS)
 -----------------------------------------------------
