@@ -28,7 +28,8 @@ public:
 	typedef CAtlMap<CString, CString, CStringElementTraits<CString>, CStringElementTraits<CString> > CAtlStringMap;
 
 	CString m_sessid;
-	CString m_cmd, m_path, m_ver;
+	CString m_cmd, m_path, m_query, m_ver;
+	CStringA m_data;
 	CAtlStringMap m_hdrlines;
 	CAtlStringMap m_get, m_post, m_cookie;
 	CAtlStringMap m_request;

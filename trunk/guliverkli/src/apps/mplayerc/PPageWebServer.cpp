@@ -40,6 +40,8 @@ CPPageWebServer::CPPageWebServer()
 	, m_fWebRoot(FALSE)
 	, m_WebRoot(_T(""))
 	, m_fWebServerLocalhostOnly(FALSE)
+	, m_WebServerCGI(_T(""))
+	, m_WebDefIndex(_T(""))
 {
 }
 
@@ -59,6 +61,8 @@ void CPPageWebServer::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_CHECK4, m_fWebRoot);
 	DDX_Text(pDX, IDC_EDIT2, m_WebRoot);
 	DDX_Check(pDX, IDC_CHECK5, m_fWebServerLocalhostOnly);
+	DDX_Text(pDX, IDC_EDIT3, m_WebServerCGI);
+	DDX_Text(pDX, IDC_EDIT9, m_WebDefIndex);
 }
 
 BOOL CPPageWebServer::PreTranslateMessage(MSG* pMsg)
@@ -99,6 +103,8 @@ BOOL CPPageWebServer::OnInitDialog()
 	m_fWebRoot = s.WebRoot.Find('*') < 0;
 	m_WebRoot = s.WebRoot;
 	m_WebRoot.TrimLeft(_T("*"));
+	m_WebDefIndex = s.WebDefIndex;
+	m_WebServerCGI = s.WebServerCGI;
 
 	UpdateData(FALSE);
 
@@ -116,8 +122,9 @@ BOOL CPPageWebServer::OnApply()
 
 	CString NewWebRoot = m_WebRoot;
 	if(!m_fWebRoot) NewWebRoot = _T("*") + NewWebRoot;
-
-	bool fRestart = s.nWebServerPort != m_nWebServerPort || s.WebRoot != NewWebRoot;
+	
+	bool fRestart = s.nWebServerPort != m_nWebServerPort
+		|| s.WebRoot != NewWebRoot || s.WebServerCGI != m_WebServerCGI;
 
 	s.fEnableWebServer = !!m_fEnableWebServer;
 	s.nWebServerPort = m_nWebServerPort;
@@ -125,6 +132,8 @@ BOOL CPPageWebServer::OnApply()
 	s.fWebServerLocalhostOnly = !!m_fWebServerLocalhostOnly;
 	s.fWebServerUseCompression = !!m_fWebServerUseCompression;
 	s.WebRoot = NewWebRoot;
+	s.WebDefIndex = m_WebDefIndex;
+	s.WebServerCGI = m_WebServerCGI;
 
 	if(CMainFrame* pWnd = (CMainFrame*)AfxGetMainWnd())
 	{

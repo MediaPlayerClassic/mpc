@@ -458,7 +458,8 @@ public:
 		bool fWebServerPrintDebugInfo;
 		bool fWebServerUseCompression;
 		bool fWebServerLocalhostOnly;
-		CString WebRoot;
+		CString WebRoot, WebDefIndex;
+		CString WebServerCGI;
 
 		CString SnapShotPath, SnapShotExt;
 

@@ -44,6 +44,7 @@ void CWebClientSocket::Clear()
 {
 	m_hdr.Empty();
 	m_hdrlines.RemoveAll();
+	m_data.Empty();
 
 	m_cmd.Empty();
 	m_path.Empty();
@@ -134,6 +135,7 @@ void CWebClientSocket::Header()
 			{
 				for(; len > 0 && (err = Receive(&c, 1)) > 0; len--)
 				{
+					m_data += c;
 					if(c == '\r') continue;
 					str += c;
 					if(c == '\n' || len == 1)
@@ -169,11 +171,14 @@ void CWebClientSocket::Header()
 		
 		Explode(m_path, sl, '?', 2);
 		m_path = sl.RemoveHead();
+		m_query.Empty();
 
 		if(!sl.IsEmpty())
 		{
-			Explode(Explode(sl.GetTail(), sl, '#', 2), sl, '&'); // oh yeah
-			// Explode(AToT(UrlDecode(TToA(Explode(sl.GetTail(), sl, '#', 2)))), sl, '&'); // oh yeah
+			m_query = sl.GetTail();
+
+			Explode(Explode(m_query, sl, '#', 2), sl, '&'); // oh yeah
+			// Explode(AToT(UrlDecode(TToA(Explode(m_query, sl, '#', 2)))), sl, '&'); // oh yeah
 			POSITION pos = sl.GetHeadPosition();
 			while(pos)
 			{

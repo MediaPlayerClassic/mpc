@@ -51,6 +51,8 @@ public:
 	BOOL m_fWebServerLocalhostOnly;
 	BOOL m_fWebRoot;
 	CString m_WebRoot;
+	CString m_WebServerCGI;
+	CString m_WebDefIndex;
 
 protected:
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV support
