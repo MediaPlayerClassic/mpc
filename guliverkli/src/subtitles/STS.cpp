@@ -1808,7 +1808,7 @@ void CSimpleTextSubtitle::Add(CStringW str, bool fUnicode, int start, int end, C
 {
 	if(str.Trim().IsEmpty() || start > end) return;
 
-	str.Replace(L"\r\n", L"\n");
+	str.Remove('\r');
 	str.Replace(L"\n", L"\\N");
 	if(style.IsEmpty()) style = _T("Default");
 

@@ -609,6 +609,9 @@ bool CMatroskaNode::Next(bool fSame)
 	{
 		Parse();
 
+		if(m_id == 0) 
+			return(false);
+
 		if(!fSame || m_id == id) 
 			return(true);
 	}
