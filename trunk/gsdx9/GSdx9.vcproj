@@ -93,7 +93,7 @@
 				UsePrecompiledHeader="3"
 				WarningLevel="3"
 				Detect64BitPortabilityProblems="TRUE"
-				DebugInformationFormat="0"/>
+				DebugInformationFormat="3"/>
 			<Tool
 				Name="VCCustomBuildTool"/>
 			<Tool
@@ -102,7 +102,7 @@
 				OutputFile="E:\pcsx2_0.6win\plugins\GSdx9.dll"
 				LinkIncremental="1"
 				ModuleDefinitionFile=".\GSdx9.def"
-				GenerateDebugInformation="FALSE"
+				GenerateDebugInformation="TRUE"
 				SubSystem="2"
 				OptimizeReferences="2"
 				EnableCOMDATFolding="2"
@@ -165,6 +165,12 @@
 			</File>
 			<File
 				RelativePath=".\GSRendererSoft.cpp">
+				<FileConfiguration
+					Name="Release|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						AssemblerOutput="4"/>
+				</FileConfiguration>
 			</File>
 			<File
 				RelativePath=".\GSSettingsDlg.cpp">
@@ -312,6 +318,12 @@
 		</Filter>
 		<File
 			RelativePath=".\VTune\GSdx9.vpj">
+		</File>
+		<File
+			RelativePath=".\res\merge.fx">
+		</File>
+		<File
+			RelativePath=".\res\tfxxxx.psh">
 		</File>
 	</Files>
 	<Globals>

@@ -23,6 +23,11 @@
 
 #include "GS.h"
 
+__forceinline DWORD SwapRB(DWORD c)
+{
+	return (c&0xff000000)|((c<<16)&0x00ff0000)|(c&0x0000ff00)|((c>>16)&0x000000ff);
+}
+
 class GSLocalMemory
 {
 protected:
@@ -67,6 +72,7 @@ public:
 	typedef void (GSLocalMemory::*writeFrameAddr)(int x, int y, DWORD c, DWORD addr);
 	typedef DWORD (GSLocalMemory::*readPixelAddr)(int x, int y, DWORD addr);
 	typedef DWORD (GSLocalMemory::*readTexelAddr)(int x, int y, DWORD addr, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
+	typedef void (GSLocalMemory::*unSwizzleTexture)(int tw, int th, BYTE* dst, int dstpitch, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);	
 
 	DWORD pageAddress32(int x, int y, DWORD bp, DWORD bw);
 	DWORD pageAddress16(int x, int y, DWORD bp, DWORD bw);
@@ -213,4 +219,23 @@ public:
 	DWORD readCLUT(BYTE c);
 
 	bool FillRect(CRect& r, DWORD c, DWORD psm, DWORD fbp, DWORD fbw);
+
+	void unSwizzleBlock32(BYTE* src, BYTE* dst, int dstpitch);
+	void unSwizzleBlock16(BYTE* src, BYTE* dst, int dstpitch);
+	void unSwizzleBlock8(BYTE* src, BYTE* dst, int dstpitch);
+	void unSwizzleBlock4(BYTE* src, BYTE* dst, int dstpitch);
+
+	// ARGB!
+	void unSwizzleTexture32(int tw, int th, BYTE* dst, int dstpitch, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
+	void unSwizzleTexture24(int tw, int th, BYTE* dst, int dstpitch, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
+	void unSwizzleTexture16(int tw, int th, BYTE* dst, int dstpitch, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
+	void unSwizzleTexture16S(int tw, int th, BYTE* dst, int dstpitch, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
+	void unSwizzleTexture8(int tw, int th, BYTE* dst, int dstpitch, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
+	void unSwizzleTexture8H(int tw, int th, BYTE* dst, int dstpitch, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
+	void unSwizzleTexture4(int tw, int th, BYTE* dst, int dstpitch, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
+	void unSwizzleTexture4HL(int tw, int th, BYTE* dst, int dstpitch, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
+	void unSwizzleTexture4HH(int tw, int th, BYTE* dst, int dstpitch, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
+	void unSwizzleTextureX(int tw, int th, BYTE* dst, int dstpitch, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
+
+	unSwizzleTexture GetUnSwizzleTexture(DWORD psm);
 };

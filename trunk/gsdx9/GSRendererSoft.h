@@ -70,6 +70,30 @@ protected:
 public:
 	GSRendererSoft(HWND hWnd, HRESULT& hr);
 	~GSRendererSoft();
+
+	void LOGVERTEX(GSSoftVertexFP& v, LPCTSTR type)
+	{
+		int tw = 1, th = 1;
+		if(m_de.PRIM.TME) {tw = 1<<m_ctxt->TEX0.TW; th = 1<<m_ctxt->TEX0.TH;}
+		LOG2((_T("\t %s (%.2f, %.2f, %.2f, %.2f) (%08x) (%f, %f) (%f, %f)\n"), 
+			type,
+			v.x, v.y, v.z, v.q, 
+			((BYTE)v.a << 24) | ((BYTE)v.r << 16) | ((BYTE)v.g << 8) | ((BYTE)v.b << 0),
+			v.u, v.v, 
+			v.u*tw, v.v*th));
+	}
+
+	void LOGVERTEX(GSSoftVertexFX& v, LPCTSTR type)
+	{
+		int tw = 1, th = 1;
+		if(m_de.PRIM.TME) {tw = 1<<m_ctxt->TEX0.TW; th = 1<<m_ctxt->TEX0.TH;}
+		LOG2((_T("\t %s (%.2f, %.2f, %.2f, %.2f) (%08x) (%f, %f) (%f, %f)\n"), 
+			type,
+			(float)v.x/65536, (float)v.y/65536, (float)v.z/INT_MAX, (float)v.q/INT_MAX, 
+			((v.a>>16)<<24) | ((v.r>>16)<<16) | ((v.g>>16)<<8) | ((v.b>>16)<<0),
+			(float)v.u/INT_MAX, (float)v.v/INT_MAX, 
+			(float)v.u/INT_MAX*tw, (float)v.v/INT_MAX*th));
+	}
 };
 
 class GSRendererSoftFP : GSRendererSoft<GSSoftVertexFP>

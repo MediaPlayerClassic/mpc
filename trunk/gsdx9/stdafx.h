@@ -55,8 +55,13 @@
 #include <atlcoll.h>
 #include <d3d9.h>
 #include <d3dx9.h>
+#include <xmmintrin.h>
+#include <emmintrin.h>
 
 #define countof(a) (sizeof(a)/sizeof(a[0]))
 
 #define EXPORT_C extern "C" __declspec(dllexport) void __stdcall
 #define EXPORT_C_(type) extern "C" __declspec(dllexport) type __stdcall
+//
+#define USE_SIMD
+

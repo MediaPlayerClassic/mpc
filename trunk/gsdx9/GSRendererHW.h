@@ -23,13 +23,13 @@
 
 #include "GSRenderer.h"
 
-#define D3DFVF_HWVERTEX (D3DFVF_XYZRHW|D3DFVF_DIFFUSE|D3DFVF_TEX1)
+#define D3DFVF_HWVERTEX (D3DFVF_XYZRHW|D3DFVF_DIFFUSE|D3DFVF_SPECULAR|D3DFVF_TEX1)
 
 #pragma pack(push, 1)
 struct HWVERTEX
 {
 	float x, y, z, rhw;
-	D3DCOLOR color;
+	D3DCOLOR color, fog;
 	float tu, tv;
 //	float tu2, tv2;
 };
@@ -44,6 +44,8 @@ protected:
 
 	GSTextureCache m_tc;
 	bool CreateTexture(GSTexture& t);
+	void SetupTexture(const GSTexture& t);
+	void SetupAlphaBlend();
 
 	void Reset();
 	void VertexKick(bool fSkip);
