@@ -162,6 +162,7 @@ public:
 	int m_scrAlignment;
 	int m_wrapStyle;
 	bool m_fAnimated;
+	int m_relativeTo;
 
 	Effect* m_effects[EF_NUMBEROFEFFECTS];
 

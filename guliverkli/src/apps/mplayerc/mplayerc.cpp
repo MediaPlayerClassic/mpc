@@ -1567,10 +1567,13 @@ void CMPlayerCApp::Settings::UpdateData(bool fSave)
 				_T("\\tfloat4 c0 = (-c1-c2-c4+c6+c8+c9);\\n")
 				_T("\\tc0 = (c0.r+c0.g+c0.b)/3 + 0.5;\\n") + ftr);
 
-			pApp->WriteProfileString(_T("Shaders"), _T("3"), _T("invert") + hdr + 
+			pApp->WriteProfileString(_T("Shaders"), _T("3"), _T("grayscale") + hdr + 
+				_T("\\tfloat c0 = dot(tex2D(s0, tex), float4(0.299, 0.587, 0.114, 0));\\n") + ftr);
+
+			pApp->WriteProfileString(_T("Shaders"), _T("4"), _T("invert") + hdr + 
 				_T("\\tfloat4 c0 = float4(1, 1, 1, 1) - tex2D(s0, tex);\\n") + ftr);
 
-			pApp->WriteProfileString(_T("Shaders"), _T("4"), _T("letterbox") + hdr + 
+			pApp->WriteProfileString(_T("Shaders"), _T("5"), _T("letterbox") + hdr + 
 				_T("\\tfloat4 c0 = 0;\\n")
 				_T("\\t\\n")
 				_T("\\tfloat2 ar = float2(16, 9);\\n")
@@ -1579,7 +1582,7 @@ void CMPlayerCApp::Settings::UpdateData(bool fSave)
 				_T("\\tif(tex.y >= h && tex.y <= 1-h)\\n")
 				_T("\\t\\tc0 = tex2D(s0, tex);\\n") + ftr);
 
-			pApp->WriteProfileString(_T("Shaders"), _T("5"), _T("sphere") + hdr + 
+			pApp->WriteProfileString(_T("Shaders"), _T("6"), _T("sphere") + hdr + 
 				_T("\\t// - this is a very simple raytracer, one sphere only\\n")
 				_T("\\t// - no reflection or refraction, yet (my ati 9800 has a 64 + 32 instruction limit...)\\n")
 				_T("\\t\\n")
@@ -1623,13 +1626,13 @@ void CMPlayerCApp::Settings::UpdateData(bool fSave)
 				_T("\\t\\tc0 = tex2D(s0, tex) * dot(n, l) + cl * pow(max(dot(l, reflect(pd, n)), 0), 50);\\n")
 				_T("\\t}\\n") + ftr);
 
-			pApp->WriteProfileString(_T("Shaders"), _T("6"), _T("spotlight") + hdr + 
+			pApp->WriteProfileString(_T("Shaders"), _T("7"), _T("spotlight") + hdr + 
 				_T("\\tfloat4 c0 = tex2D(s0, tex);\\n")
 				_T("\\tfloat3 lightsrc = float3(sin(clock*PI/1.5)/2+0.5,cos(clock*PI)/2+0.5,1);\\n")
 				_T("\\tfloat3 light = normalize(lightsrc - float3(tex.x,tex.y,0));\\n")
 				_T("\\tc0 *= pow(dot(light, float3(0,0,1)), 50);\\n") + ftr);
 
-			pApp->WriteProfileString(_T("Shaders"), _T("7"), _T("wave") + hdr + 
+			pApp->WriteProfileString(_T("Shaders"), _T("8"), _T("wave") + hdr + 
 				_T("\\t// don't look at this for too long, you'll get dizzy :)\\n")
 				_T("\\t\\n")
 				_T("\\tfloat4 c0 = 0;\\n")
