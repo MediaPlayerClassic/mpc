@@ -115,6 +115,50 @@ CUnknown* WINAPI COggSourceFilter::CreateInstance(LPUNKNOWN lpunk, HRESULT* phr)
 #endif
 
 //
+// bitstream
+//
+
+class bitstream
+{
+	BYTE* m_p;
+	int m_len, m_pos;
+public:
+	bitstream(BYTE* p, int len, bool rev = false) : m_p(p), m_len(len*8) {m_pos = !rev ? 0 : len*8;}
+	bool hasbits(int cnt)
+	{
+		int pos = m_pos+cnt;
+		return(pos >= 0 && pos < m_len);
+	}
+	unsigned int showbits(int cnt) // a bit unclean, but works and can read backwards too! :P
+	{
+		if(!hasbits(cnt)) {ASSERT(0); return 0;}
+		unsigned int ret = 0, off = 0;
+		BYTE* p = m_p;
+		if(cnt < 0)
+		{
+			p += (m_pos+cnt)>>3;
+			off = (m_pos+cnt)&7;
+			cnt = abs(cnt);
+			ret = (*p++&(~0<<off))>>off; off = 8 - off; cnt -= off;
+		}
+		else
+		{
+			p += m_pos>>3;
+			off = m_pos&7;
+			ret = (*p++>>off)&((1<<min(cnt,8))-1); off = 0; cnt -= 8 - off;
+		}
+		while(cnt > 0) {ret |= (*p++&((1<<min(cnt,8))-1)) << off; off += 8; cnt -= 8;}
+		return ret;
+	}
+	unsigned int getbits(int cnt)
+	{
+		unsigned int ret = showbits(cnt);
+		m_pos += cnt;
+		return ret;
+	}
+};
+
+//
 // COggSplitterFilter
 //
 
@@ -131,12 +175,10 @@ HRESULT COggSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 {
 	CheckPointer(pAsyncReader, E_POINTER);
 
-	if(m_pOutputs.GetCount() > 0) return VFW_E_ALREADY_CONNECTED;
-
 	HRESULT hr = E_FAIL;
 
 	m_pFile.Free();
-	m_pPinMap.RemoveAll();
+	m_pChapters.RemoveAll();
 
 	m_pFile.Attach(new COggFile(pAsyncReader, hr));
 	if(!m_pFile) return E_OUTOFMEMORY;
@@ -153,78 +195,139 @@ HRESULT COggSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 	{
 		BYTE* p = page.GetData();
 
-		BYTE type = *p++;
-		if(!(type&1) && nWaitForMore == 0)
-			break;
-
-		CStringW name;
-		name.Format(L"Stream %d", i);
-
-		HRESULT hr;
-
-		if(type == 1 && (page.m_hdr.header_type_flag & OggPageHeader::first))
+		if(!(page.m_hdr.header_type_flag & OggPageHeader::continued))
 		{
-			CAutoPtr<CBaseSplitterOutputPin> pPinOut;
+			BYTE type = *p++;
+			if(!(type&1) && nWaitForMore == 0)
+				break;
 
-			if(!memcmp(p, "vorbis", 6))
+			CStringW name;
+			name.Format(L"Stream %d", i);
+
+			HRESULT hr;
+
+			if(type == 1 && (page.m_hdr.header_type_flag & OggPageHeader::first))
 			{
-				name.Format(L"Vorbis %d", i);
-				pPinOut.Attach(new COggVorbisOutputPin((OggVorbisIdHeader*)(p+6), name, this, this, &hr));
-				nWaitForMore++;
-			}
-			else if(!memcmp(p, "video", 5))
-			{
-				name.Format(L"Video %d", i);
-				pPinOut.Attach(new COggVideoOutputPin((OggStreamHeader*)p, name, this, this, &hr));
-			}
-			else if(!memcmp(p, "audio", 5))
-			{
-				name.Format(L"Audio %d", i);
-				pPinOut.Attach(new COggAudioOutputPin((OggStreamHeader*)p, name, this, this, &hr));
-			}
-			else if(!memcmp(p, "text", 4))
-			{
-				name.Format(L"Text %d", i);
-				pPinOut.Attach(new COggTextOutputPin((OggStreamHeader*)p, name, this, this, &hr));
-			}
-			else if(!memcmp(p, "Direct Show Samples embedded in Ogg", 35))
-			{
-				name.Format(L"DirectShow %d", i);
-				pPinOut.Attach(new COggDirectShowOutputPin((AM_MEDIA_TYPE*)(p+35+sizeof(GUID)), name, this, this, &hr));
+				CAutoPtr<CBaseSplitterOutputPin> pPinOut;
+
+				if(!memcmp(p, "vorbis", 6))
+				{
+					name.Format(L"Vorbis %d", i);
+					pPinOut.Attach(new COggVorbisOutputPin((OggVorbisIdHeader*)(p+6), name, this, this, &hr));
+					nWaitForMore++;
+				}
+				else if(!memcmp(p, "video", 5))
+				{
+					name.Format(L"Video %d", i);
+					pPinOut.Attach(new COggVideoOutputPin((OggStreamHeader*)p, name, this, this, &hr));
+				}
+				else if(!memcmp(p, "audio", 5))
+				{
+					name.Format(L"Audio %d", i);
+					pPinOut.Attach(new COggAudioOutputPin((OggStreamHeader*)p, name, this, this, &hr));
+				}
+				else if(!memcmp(p, "text", 4))
+				{
+					name.Format(L"Text %d", i);
+					pPinOut.Attach(new COggTextOutputPin((OggStreamHeader*)p, name, this, this, &hr));
+				}
+				else if(!memcmp(p, "Direct Show Samples embedded in Ogg", 35))
+				{
+					name.Format(L"DirectShow %d", i);
+					pPinOut.Attach(new COggDirectShowOutputPin((AM_MEDIA_TYPE*)(p+35+sizeof(GUID)), name, this, this, &hr));
+				}
+
+				AddOutputPin(page.m_hdr.bitstream_serial_number, pPinOut);
 			}
 
-			if(pPinOut)
+			if(type == 3 && !memcmp(p, "vorbis", 6))
 			{
-				m_pPinMap[page.m_hdr.bitstream_serial_number] = pPinOut;
-				m_pOutputs.AddTail(pPinOut);
+				if(COggSplitterOutputPin* pOggPin = 
+					dynamic_cast<COggSplitterOutputPin*>(GetOutputPin(page.m_hdr.bitstream_serial_number)))
+				{
+					pOggPin->AddComment(p+6, page.GetSize()-6-1);
+				}
 			}
 		}
 
-		if(type&1)
+		if(COggVorbisOutputPin* pOggVorbisPin = 
+			dynamic_cast<COggVorbisOutputPin*>(GetOutputPin(page.m_hdr.bitstream_serial_number)))
 		{
-			CBaseSplitterOutputPin* pPin = NULL;
-			COggVorbisOutputPin* pOggVorbisPin = NULL;
-			if(m_pPinMap.Lookup(page.m_hdr.bitstream_serial_number, pPin)
-			&& (pOggVorbisPin = dynamic_cast<COggVorbisOutputPin*>(pPin)))
-			{
-				pOggVorbisPin->UnpackInitPage(page);
-				if(pOggVorbisPin->IsInitialized()) nWaitForMore--;
-			}
+			pOggVorbisPin->UnpackInitPage(page);
+			if(pOggVorbisPin->IsInitialized()) nWaitForMore--;
 		}
 	}
 
-	// m_rtDuration = // TODO
+	m_pFile->Seek(max(m_pFile->GetLength()-65536, 0));
+	while(m_pFile->Read(page))
+	{
+		COggSplitterOutputPin* pOggPin = dynamic_cast<COggSplitterOutputPin*>(GetOutputPin(page.m_hdr.bitstream_serial_number));
+		if(!pOggPin) {ASSERT(0); continue;}
+		if(page.m_hdr.granule_position == -1) continue;
+		REFERENCE_TIME rt = pOggPin->GetRefTime(page.m_hdr.granule_position);
+		m_rtDuration = max(rt, m_rtDuration);
+	}
 
 	m_rtNewStart = m_rtCurrent = 0;
 	m_rtNewStop = m_rtStop = m_rtDuration;
 
-	// TODO
-/*
-	SetMediaContentStr(, Title);
-	SetMediaContentStr(, AuthorName);
-	SetMediaContentStr(, Copyright);
-	SetMediaContentStr(, Description);
-*/
+	// comments
+
+	{
+		CStringW fmt;
+		fmt.Format(L"TITLE=%d,ARTIST=%d,COPYRIGHT=%d,DESCRIPTION=%d",
+			Title, AuthorName, Copyright, Description);
+
+		CList<CStringW> keys;
+		Explode(fmt, keys, ',');
+
+		POSITION pos2 = keys.GetHeadPosition();
+		while(pos2)
+		{
+			CList<CStringW> sl;
+			Explode(keys.GetNext(pos2), sl, '=', 2);
+
+			CStringW key = sl.GetHead();
+			mctype mct = (mctype)wcstol(sl.GetTail(), NULL, 10);
+
+			POSITION pos = m_pOutputs.GetHeadPosition();
+			while(pos)
+			{
+				CBaseSplitterOutputPin* pPin = m_pOutputs.GetNext(pos);
+				COggSplitterOutputPin* pOggPin = dynamic_cast<COggSplitterOutputPin*>(pPin);
+				CStringW value = pOggPin->GetComment(key);
+				if(!value.IsEmpty())
+				{
+					SetMediaContentStr(value, mct);
+					break;
+				}
+			}
+		}
+
+		POSITION pos = m_pOutputs.GetHeadPosition();
+		while(pos && m_pChapters.GetCount() == 0)
+		{
+			CBaseSplitterOutputPin* pPin = m_pOutputs.GetNext(pos);
+			COggSplitterOutputPin* pOggPin = dynamic_cast<COggSplitterOutputPin*>(pPin);
+
+			for(int i = 1; pOggPin; i++)
+			{
+				CStringW key; 
+				key.Format(L"CHAPTER%02d", i);
+				CStringW time = pOggPin->GetComment(key);
+				if(time.IsEmpty()) break;
+				key.Format(L"CHAPTER%02dNAME", i);
+				CStringW name = pOggPin->GetComment(key);
+				if(name.IsEmpty()) name.Format(L"Chapter %d", i);
+				int h, m, s, ms;
+				WCHAR c;
+				if(7 != swscanf(time, L"%d%c%d%c%d%c%d", &h, &c, &m, &c, &s, &c, &ms)) break;
+				REFERENCE_TIME rt = ((((REFERENCE_TIME)h*60+m)*60+s)*1000+ms)*10000;
+				CAutoPtr<CChapter> p(new CChapter(rt, name));
+				m_pChapters.AddTail(p);
+			}
+		}
+	}
 
 	return m_pOutputs.GetCount() > 0 ? S_OK : E_FAIL;
 }
@@ -232,9 +335,6 @@ HRESULT COggSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 bool COggSplitterFilter::InitDeliverLoop()
 {
 	if(!m_pFile) return(false);
-
-	// reindex if needed
-
 
 	return(true);
 }
@@ -247,6 +347,149 @@ void COggSplitterFilter::SeekDeliverLoop(REFERENCE_TIME rt)
 	}
 	else
 	{
+		// oh, the horror...
+
+		__int64 len = m_pFile->GetLength();
+		__int64 startpos = len * rt/m_rtDuration;
+		__int64 diff = 0;
+
+		while(1)
+		{
+			__int64 endpos = startpos;
+			REFERENCE_TIME rtPos = -1;
+
+			OggPage page;
+			m_pFile->Seek(startpos);
+			while(m_pFile->Read(page))
+			{
+				if(page.m_hdr.granule_position == -1) continue;
+
+				COggSplitterOutputPin* pOggPin = dynamic_cast<COggSplitterOutputPin*>(GetOutputPin(page.m_hdr.bitstream_serial_number));
+				if(!pOggPin) {ASSERT(0); continue;}
+
+				rtPos = pOggPin->GetRefTime(page.m_hdr.granule_position);
+				endpos = m_pFile->GetPos();
+
+				break;
+			}
+
+			if(rtPos < rt && diff < 0)
+			{
+				m_pFile->Seek(startpos);
+				break;
+			}
+
+			__int64 newpos = startpos;
+
+			if(rtPos < rt && rtPos < m_rtDuration)
+			{
+				newpos = startpos + (len - startpos) * (rt - rtPos)/(m_rtDuration - rtPos);
+	            if(newpos < endpos) newpos = endpos;
+			}
+			else if(rtPos > rt && rtPos > 0)
+			{
+				newpos = startpos - (startpos - 0) * (rtPos - rt)/(rtPos - 0) - 65536;
+	            if(newpos >= startpos) newpos = startpos - 65536;
+			}
+			else if(rtPos == rt)
+			{
+				m_pFile->Seek(startpos);
+				break;
+			}
+			else
+			{
+				ASSERT(0);
+				m_pFile->Seek(0);
+				break;
+			}
+
+			diff = newpos - startpos;
+
+			startpos = max(min(newpos, len), 0);
+		}
+
+		m_pFile->Seek(startpos);
+
+		POSITION pos = m_pOutputs.GetHeadPosition();
+		while(pos)
+		{
+			CBaseSplitterOutputPin* pPin = m_pOutputs.GetNext(pos);
+			COggVideoOutputPin* pOggVideoPin = dynamic_cast<COggVideoOutputPin*>(pPin);
+			if(!pOggVideoPin) continue;
+
+			bool fKeyFrameFound = false;
+			__int64 endpos = _I64_MAX;
+
+			while(!fKeyFrameFound && startpos > 0)
+			{
+				OggPage page;
+				while(!fKeyFrameFound && m_pFile->GetPos() < endpos && m_pFile->Read(page))
+				{
+					if(page.m_hdr.granule_position == -1) continue;
+
+					COggSplitterOutputPin* pOggPin = dynamic_cast<COggSplitterOutputPin*>(GetOutputPin(page.m_hdr.bitstream_serial_number));
+					if(pOggPin != pOggVideoPin) continue;
+
+					REFERENCE_TIME rtPos = pOggPin->GetRefTime(page.m_hdr.granule_position);
+					if(rtPos > rt)
+						break;
+
+					pOggPin->UnpackPage(page);
+
+					CAutoPtr<Packet> p;
+					while(p = pOggPin->GetPacket())
+					{
+						if(p->bSyncPoint)
+						{
+							fKeyFrameFound = true;
+							break;
+						}
+					}
+				}
+
+				if(!fKeyFrameFound) {endpos = startpos; startpos = max(startpos - 65536*10, 0);}
+
+				m_pFile->Seek(startpos);
+			}
+
+#ifdef DEBUG
+			// verify kf
+
+			{
+				fKeyFrameFound = false;
+
+				OggPage page;
+				while(!fKeyFrameFound && m_pFile->Read(page))
+				{
+					if(page.m_hdr.granule_position == -1) continue;
+
+					COggSplitterOutputPin* pOggPin = dynamic_cast<COggSplitterOutputPin*>(GetOutputPin(page.m_hdr.bitstream_serial_number));
+					if(pOggPin != pOggVideoPin) continue;
+
+					REFERENCE_TIME rtPos = pOggPin->GetRefTime(page.m_hdr.granule_position);
+					if(rtPos > rt)
+						break;
+
+					pOggPin->UnpackPage(page);
+
+					CAutoPtr<Packet> p;
+					while(p = pOggPin->GetPacket())
+					{
+						if(p->bSyncPoint)
+						{
+							fKeyFrameFound = true;
+							break;
+						}
+					}
+				}
+
+				ASSERT(fKeyFrameFound);
+
+				m_pFile->Seek(startpos);
+			}
+#endif
+			break;
+		}
 	}
 }
 
@@ -254,28 +497,13 @@ void COggSplitterFilter::DoDeliverLoop()
 {
 	HRESULT hr = S_OK;
 
-	// TODO: implement seeking
-	m_pFile->Seek(0);
-	REFERENCE_TIME rt = 0;
-
 	OggPage page;
 	while(m_pFile->Read(page) && SUCCEEDED(hr) && !CheckRequest(NULL))
 	{
-		CBaseSplitterOutputPin* pPin = NULL;
-		COggSplitterOutputPin* pOggPin = NULL;
-		if(!m_pPinMap.Lookup(page.m_hdr.bitstream_serial_number, pPin)
-		|| !(pOggPin = dynamic_cast<COggSplitterOutputPin*>(pPin)))
-		{
-			ASSERT(0);
-			continue;
-		}
-
-		if(!pOggPin->IsConnected())
-			continue;
-
-		if(FAILED(hr = pOggPin->UnpackPage(page))) 
-			break;
-
+		COggSplitterOutputPin* pOggPin = dynamic_cast<COggSplitterOutputPin*>(GetOutputPin(page.m_hdr.bitstream_serial_number));
+		if(!pOggPin) {ASSERT(0); continue;}
+		if(!pOggPin->IsConnected()) continue;
+		if(FAILED(hr = pOggPin->UnpackPage(page))) {ASSERT(0); break;}
 		CAutoPtr<Packet> p;
 		while((p = pOggPin->GetPacket()) && SUCCEEDED(hr = DeliverPacket(p)) && !CheckRequest(NULL));
 	}
@@ -291,6 +519,47 @@ STDMETHODIMP COggSplitterFilter::GetDuration(LONGLONG* pDuration)
 	*pDuration = m_rtDuration;
 
 	return S_OK;
+}
+
+// IChapterInfo
+
+STDMETHODIMP_(UINT) COggSplitterFilter::GetChapterCount(UINT aChapterID)
+{
+	return aChapterID == CHAPTER_ROOT_ID ? m_pChapters.GetCount() : 0;
+}
+
+STDMETHODIMP_(UINT) COggSplitterFilter::GetChapterId(UINT aParentChapterId, UINT aIndex)
+{
+	POSITION pos = m_pChapters.FindIndex(aIndex-1);
+	if(aParentChapterId != CHAPTER_ROOT_ID || !pos)
+		return CHAPTER_BAD_ID;
+	return aIndex;
+}
+
+STDMETHODIMP_(UINT) COggSplitterFilter::GetChapterCurrentId()
+{
+	return CHAPTER_BAD_ID;
+}
+
+STDMETHODIMP_(BOOL) COggSplitterFilter::GetChapterInfo(UINT aChapterID, struct ChapterElement* pStructureToFill)
+{
+	CheckPointer(pStructureToFill, E_POINTER);
+	POSITION pos = m_pChapters.FindIndex(aChapterID-1);
+	if(!pos) return FALSE;
+	CChapter* p = m_pChapters.GetNext(pos);
+	pStructureToFill->Size = sizeof(*pStructureToFill);
+	pStructureToFill->Type = AtomicChapter;
+	pStructureToFill->ChapterId = aChapterID;
+	pStructureToFill->rtStart = p->m_rt;
+	pStructureToFill->rtStop = pos ? m_pChapters.GetNext(pos)->m_rt : m_rtDuration;
+	return TRUE;
+}
+
+STDMETHODIMP_(BSTR) COggSplitterFilter::GetChapterStringInfo(UINT aChapterID, CHAR PreferredLanguage[3], CHAR CountryCode[2])
+{
+	POSITION pos = m_pChapters.FindIndex(aChapterID-1);
+	if(!pos) return NULL;
+	return m_pChapters.GetAt(pos)->m_name.AllocSysString();
 }
 
 //
@@ -310,16 +579,55 @@ COggSourceFilter::COggSourceFilter(LPUNKNOWN pUnk, HRESULT* phr)
 
 COggSplitterOutputPin::COggSplitterOutputPin(LPCWSTR pName, CBaseFilter* pFilter, CCritSec* pLock, HRESULT* phr)
 	: CBaseSplitterOutputPin(pName, pFilter, pLock, phr)
+	, m_rt(0)
+	, m_prev_page_sequence_number(-1)
 {
+}
+
+void COggSplitterOutputPin::AddComment(BYTE* p, int len)
+{
+	bitstream bs(p, len);
+	bs.getbits(bs.getbits(32)*8);
+	for(int n = bs.getbits(32); n-- > 0; )
+	{
+		CStringA str;
+		for(int len = bs.getbits(32); len-- > 0; )
+			str += (CHAR)bs.getbits(8);
+
+		CList<CStringA> sl;
+		Explode(str, sl, '=', 2);
+		if(sl.GetCount() == 2)
+		{
+			CAutoPtr<CComment> p(new CComment(UTF8To16(sl.GetHead()), UTF8To16(sl.GetTail())));
+			if(p->m_key == L"LANGUAGE") SetName(p->m_value /*+ L" (" + m_pName + L")"*/);
+			m_pComments.AddTail(p);
+		}
+	}
+	ASSERT(bs.getbits(1) == 1);
+}
+
+CStringW COggSplitterOutputPin::GetComment(CStringW key)
+{
+	key.MakeUpper();
+	CList<CStringW> sl;
+	POSITION pos = m_pComments.GetHeadPosition();
+	while(pos)
+	{
+		CComment* p = m_pComments.GetNext(pos);
+		if(key == p->m_key) sl.AddTail(p->m_value);
+	}
+	return Implode(sl, ';');
 }
 
 HRESULT COggSplitterOutputPin::UnpackPage(OggPage& page)
 {
-	/*
-	// TODO
-	ASSERT(m_prev_page_sequence_number == page.m_hdr.page_sequence_number);
-	page.m_hdr.page_sequence_number = page.m_hdr.page_sequence_number;
-	*/
+	if(m_prev_page_sequence_number != page.m_hdr.page_sequence_number-1)
+	{
+		TRACE(_T("%d != %d-1\n"), m_prev_page_sequence_number, page.m_hdr.page_sequence_number);
+		m_rt = 0;
+		m_lastpacket.Free();
+	}
+	m_prev_page_sequence_number = page.m_hdr.page_sequence_number;
 
 	POSITION first = page.m_lens.GetHeadPosition();
 	while(first && page.m_lens.GetAt(first) == 255) page.m_lens.GetNext(first);
@@ -342,7 +650,7 @@ HRESULT COggSplitterOutputPin::UnpackPage(OggPage& page)
 		{
 			if(first == pos && (page.m_hdr.header_type_flag & OggPageHeader::continued))
 			{
-				ASSERT(m_lastpacket);
+//				ASSERT(m_lastpacket);
 
 				if(m_lastpacket)
 				{
@@ -366,7 +674,7 @@ HRESULT COggSplitterOutputPin::UnpackPage(OggPage& page)
 
 				if(S_OK == UnpackPacket(p, pData + i, j-i))
 				{
-TRACE(_T("[%d]: %d, %I64d -> %I64d\n"), (int)p->TrackNumber, p->pData.GetSize(), p->rtStart, p->rtStop);
+// TRACE(_T("[%d]: %d, %I64d -> %I64d\n"), (int)p->TrackNumber, p->pData.GetSize(), p->rtStart, p->rtStop);
 
 					CAutoLock csAutoLock(&m_csPackets);
 
@@ -402,7 +710,8 @@ HRESULT COggSplitterOutputPin::DeliverEndFlush()
 HRESULT COggSplitterOutputPin::DeliverNewSegment(REFERENCE_TIME tStart, REFERENCE_TIME tStop, double dRate)
 {
 	CAutoLock csAutoLock(&m_csPackets);
-	m_rt = tStart;
+	m_rt = 0;
+	m_prev_page_sequence_number = -1;
 	return __super::DeliverNewSegment(tStart, tStop, dRate);
 }
 
@@ -416,6 +725,7 @@ COggVorbisOutputPin::COggVorbisOutputPin(OggVorbisIdHeader* h, LPCWSTR pName, CB
 	m_audio_sample_rate = h->audio_sample_rate;
 	m_blocksize[0] = 1<<h->blocksize_0;
 	m_blocksize[1] = 1<<h->blocksize_1;
+	m_lastblocksize = 0;
 
 	CMediaType mt;
 	mt.majortype = MEDIATYPE_Audio;
@@ -439,46 +749,6 @@ REFERENCE_TIME COggVorbisOutputPin::GetRefTime(__int64 granule_position)
 	return rt;
 }
 
-class bitstream
-{
-	BYTE* m_p;
-	int m_len, m_pos;
-public:
-	bitstream(BYTE* p, int len, bool startattheend = false) : m_p(p), m_len(len*8) {m_pos = !startattheend ? 0 : len*8;}
-	bool hasbits(int cnt)
-	{
-		int pos = m_pos+cnt;
-		return(pos >= 0 && pos < m_len);
-	}
-	unsigned int showbits(int cnt) // a bit unclean, but works and can read backwards too! :P
-	{
-		if(!hasbits(cnt)) {ASSERT(0); return 0;}
-		unsigned int ret = 0, off = 0;
-		BYTE* p = m_p;
-		if(cnt < 0)
-		{
-			p += (m_pos+cnt)>>3;
-			off = (m_pos+cnt)&7;
-			cnt = abs(cnt);
-			ret = (*p++&(~0<<off))>>off; off = 8 - off; cnt -= off;
-		}
-		else
-		{
-			p += m_pos>>3;
-			off = m_pos&7;
-			ret = (*p++>>off)&((1<<min(cnt,8))-1); off = 0; cnt -= 8 - off;
-		}
-		while(cnt > 0) {ret |= (*p++&((1<<min(cnt,8))-1)) << off; off += 8; cnt -= 8;}
-		return ret;
-	}
-	unsigned int getbits(int cnt)
-	{
-		unsigned int ret = showbits(cnt);
-		m_pos += cnt;
-		return ret;
-	}
-};
-
 HRESULT COggVorbisOutputPin::UnpackInitPage(OggPage& page)
 {
 	HRESULT hr = __super::UnpackPage(page);
@@ -488,6 +758,7 @@ HRESULT COggVorbisOutputPin::UnpackInitPage(OggPage& page)
 		Packet* p = m_packets.GetHead();
 		if(p->pData.GetCount() >= 6 && p->pData.GetData()[0] == 0x05)
 		{
+			// yeah, right, we are going to be parsing this backwards! :P
 			bitstream bs(p->pData.GetData(), p->pData.GetCount(), true);
 			while(bs.hasbits(-1) && bs.getbits(-1) != 1);
 			for(int cnt = 0; bs.hasbits(-8-16-16-1-6); cnt++)
@@ -585,7 +856,7 @@ COggDirectShowOutputPin::COggDirectShowOutputPin(AM_MEDIA_TYPE* pmt, LPCWSTR pNa
 
 REFERENCE_TIME COggDirectShowOutputPin::GetRefTime(__int64 granule_position)
 {
-	REFERENCE_TIME rt = 0; // TODO
+	REFERENCE_TIME rt = 0;
 
 	if(m_mt.majortype == MEDIATYPE_Video)
 	{
@@ -593,7 +864,7 @@ REFERENCE_TIME COggDirectShowOutputPin::GetRefTime(__int64 granule_position)
 	}
 	else if(m_mt.majortype == MEDIATYPE_Audio)
 	{
-		rt = granule_position; // ((WAVEFORMATEX*)m_mt.Format())->
+		rt = granule_position; // ((WAVEFORMATEX*)m_mt.Format())-> // TODO
 	}
 
 	return rt;
@@ -607,12 +878,13 @@ HRESULT COggDirectShowOutputPin::UnpackPacket(CAutoPtr<Packet>& p, BYTE* pData, 
 
 	if(!(hdr&1))
 	{
+		// TODO: verify if this was still present in the old format (haven't found one sample yet)
 		BYTE nLenBytes = (hdr>>6)|((hdr&2)<<1);
 		__int64 Length = 0;
 		for(int j = 0; j < nLenBytes; j++)
 			Length |= (__int64)pData[i++] << (j << 3);
 
-		p->bSyncPoint = !!(hdr&8);
+		p->bSyncPoint = !!(hdr&8); // FIXME: this doesn't seem to be the same as in the case of the new header byte format
 		p->rtStart = m_rt;
 		p->rtStop = m_rt + (nLenBytes ? GetRefTime(Length) : GetRefTime(1));
 		p->pData.SetSize(len-i);

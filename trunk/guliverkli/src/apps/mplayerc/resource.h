@@ -447,12 +447,13 @@
 #define IDC_CHECK_CDXA                  1140
 #define IDC_CHECK_VTS                   1141
 #define IDC_CHECK_FLIC                  1142
-#define IDC_CHECK_D2V					1143
+#define IDC_CHECK_D2V                   1143
 #define IDC_CHECK_DTSAC3                1144
 #define IDC_CHECK_SHOUTCAST             1145
 #define IDC_CHECK_RM                    1146
 #define IDC_CHECK_MATROSKA              1147
 #define IDC_CHECK_ROQ                   1148
+#define IDC_CHECK_OGG                   1149
 #define IDD_COMPROPERTYPAGE             10002
 #define ID_DUMMYSEPARATOR               32768
 #define ID_VOLUME_MUTE_ON               32769
@@ -537,7 +538,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        339
 #define _APS_NEXT_COMMAND_VALUE         32824
-#define _APS_NEXT_CONTROL_VALUE         1149
+#define _APS_NEXT_CONTROL_VALUE         1150
 #define _APS_NEXT_SYMED_VALUE           10003
 #endif
 #endif

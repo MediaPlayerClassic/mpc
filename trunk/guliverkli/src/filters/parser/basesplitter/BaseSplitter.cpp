@@ -196,6 +196,16 @@ STDMETHODIMP CBaseSplitterOutputPin::NonDelegatingQueryInterface(REFIID riid, vo
 		__super::NonDelegatingQueryInterface(riid, ppv);
 }
 
+HRESULT CBaseSplitterOutputPin::SetName(LPCWSTR pName)
+{
+	CheckPointer(pName, E_POINTER);
+	if(m_pName) delete [] m_pName;
+	m_pName = new WCHAR[wcslen(pName)+1];
+	CheckPointer(m_pName, E_OUTOFMEMORY);
+	wcscpy(m_pName, pName);
+	return S_OK;
+}
+
 HRESULT CBaseSplitterOutputPin::DecideBufferSize(IMemAllocator* pAlloc, ALLOCATOR_PROPERTIES* pProperties)
 {
     ASSERT(pAlloc);
@@ -531,6 +541,33 @@ STDMETHODIMP CBaseSplitterFilter::NonDelegatingQueryInterface(REFIID riid, void*
 		__super::NonDelegatingQueryInterface(riid, ppv);
 }
 
+CBaseSplitterOutputPin* CBaseSplitterFilter::GetOutputPin(DWORD TrackNum)
+{
+    CBaseSplitterOutputPin* pPin = NULL;
+	m_pPinMap.Lookup(TrackNum, pPin);
+	return pPin;
+}
+
+HRESULT CBaseSplitterFilter::AddOutputPin(DWORD TrackNum, CAutoPtr<CBaseSplitterOutputPin> pPin)
+{
+	if(!pPin) return E_INVALIDARG;
+	m_pPinMap[TrackNum] = pPin;
+	m_pOutputs.AddTail(pPin);
+	return S_OK;
+}
+
+HRESULT CBaseSplitterFilter::DeleteOutputs()
+{
+	return m_pOutputs.IsEmpty() ? S_OK : E_FAIL; // FIXME
+/*
+	CAutoLock cAutoLock(this);
+	if(m_State != State_Stopped) return VFW_E_NOT_STOPPED;
+	m_pPinMap.RemoveAll();
+	m_pOutputs.RemoveAll();
+	return S_OK;
+*/
+}
+
 void CBaseSplitterFilter::DeliverBeginFlush()
 {
 	m_fFlushing = true;
@@ -598,8 +635,8 @@ DWORD CBaseSplitterFilter::ThreadProc()
 			CBaseSplitterOutputPin* pPin = m_pOutputs.GetNext(pos);
 			if(pPin->IsConnected())
 			{
-				pPin->DeliverNewSegment(m_rtStart, m_rtStop, m_dRate);
 				m_pActivePins.AddTail(pPin);
+				pPin->DeliverNewSegment(m_rtStart, m_rtStop, m_dRate);
 			}
 		}
 
@@ -620,9 +657,8 @@ HRESULT CBaseSplitterFilter::DeliverPacket(CAutoPtr<Packet> p)
 {
 	HRESULT hr = S_FALSE;
 
-	CBaseSplitterOutputPin* pPin = NULL;
-	if(!m_pPinMap.Lookup(p->TrackNumber, pPin) || !pPin 
-	|| !pPin->IsConnected() || !m_pActivePins.Find(pPin))
+	CBaseSplitterOutputPin* pPin = GetOutputPin(p->TrackNumber);
+	if(!pPin || !pPin->IsConnected() || !m_pActivePins.Find(pPin))
 		return S_FALSE;
 
 	m_rtCurrent = p->rtStart;
@@ -673,15 +709,7 @@ HRESULT CBaseSplitterFilter::BreakConnect(PIN_DIRECTION dir, CBasePin* pPin)
 
 	if(dir == PINDIR_INPUT)
 	{
-		CBaseSplitterInputPin* pIn = (CBaseSplitterInputPin*)pPin;
-
-		// TODO: do something here!!!
-/*
-		POSITION pos = m_pOutputs.GetHeadPosition();
-		while(pos) m_pOutputs.GetNext(pos)->Disconnect();
-		m_pOutputs.RemoveAll();
-*/
-//		m_pFile.Free();
+		DeleteOutputs();
 	}
 	else if(dir == PINDIR_OUTPUT)
 	{
@@ -706,6 +734,7 @@ HRESULT CBaseSplitterFilter::CompleteConnect(PIN_DIRECTION dir, CBasePin* pPin)
 
 		CComPtr<IAsyncReader> pAsyncReader;
 		if(FAILED(hr = pIn->GetAsyncReader(&pAsyncReader))
+		|| FAILED(hr = DeleteOutputs())
 		|| FAILED(hr = CreateOutputs(pAsyncReader)))
 			return hr;
 	}
@@ -795,9 +824,9 @@ STDMETHODIMP CBaseSplitterFilter::Load(LPCOLESTR pszFileName, const AM_MEDIA_TYP
 
 	HRESULT hr = E_FAIL;
 	CComPtr<IAsyncReader> pAsyncReader = (IAsyncReader*)new CAsyncFileReader(CString(pszFileName), hr);
-	if(FAILED(hr)) return hr;
-
-	if(FAILED(hr = CreateOutputs(pAsyncReader)))
+	if(FAILED(hr)
+	|| FAILED(hr = DeleteOutputs())
+	|| FAILED(hr = CreateOutputs(pAsyncReader)))
 		return hr;
 
 	m_fn = pszFileName;

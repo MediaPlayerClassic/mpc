@@ -109,6 +109,10 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "zlib", "..\zlib\zlib.vcproj
 	ProjectSection(ProjectDependencies) = postProject
 	EndProjectSection
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "OggSplitter", "parser\oggsplitter\OggSplitter.vcproj", "{7FE0A205-3F39-4AC3-BC3C-C2D9E4D02475}"
+	ProjectSection(ProjectDependencies) = postProject
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfiguration) = preSolution
 		Debug = Debug
@@ -537,6 +541,22 @@ Global
 		{2FCD4B66-9CF9-4C8F-BC70-37CD20002D49}.Release Unicode.Build.0 = Release|Win32
 		{2FCD4B66-9CF9-4C8F-BC70-37CD20002D49}.Release Unicode lib.ActiveCfg = Release|Win32
 		{2FCD4B66-9CF9-4C8F-BC70-37CD20002D49}.Release Unicode lib.Build.0 = Release|Win32
+		{7FE0A205-3F39-4AC3-BC3C-C2D9E4D02475}.Debug.ActiveCfg = Debug|Win32
+		{7FE0A205-3F39-4AC3-BC3C-C2D9E4D02475}.Debug.Build.0 = Debug|Win32
+		{7FE0A205-3F39-4AC3-BC3C-C2D9E4D02475}.Debug lib.ActiveCfg = Debug lib|Win32
+		{7FE0A205-3F39-4AC3-BC3C-C2D9E4D02475}.Debug lib.Build.0 = Debug lib|Win32
+		{7FE0A205-3F39-4AC3-BC3C-C2D9E4D02475}.Debug Unicode.ActiveCfg = Debug Unicode|Win32
+		{7FE0A205-3F39-4AC3-BC3C-C2D9E4D02475}.Debug Unicode.Build.0 = Debug Unicode|Win32
+		{7FE0A205-3F39-4AC3-BC3C-C2D9E4D02475}.Debug Unicode lib.ActiveCfg = Debug Unicode lib|Win32
+		{7FE0A205-3F39-4AC3-BC3C-C2D9E4D02475}.Debug Unicode lib.Build.0 = Debug Unicode lib|Win32
+		{7FE0A205-3F39-4AC3-BC3C-C2D9E4D02475}.Release.ActiveCfg = Release|Win32
+		{7FE0A205-3F39-4AC3-BC3C-C2D9E4D02475}.Release.Build.0 = Release|Win32
+		{7FE0A205-3F39-4AC3-BC3C-C2D9E4D02475}.Release lib.ActiveCfg = Release lib|Win32
+		{7FE0A205-3F39-4AC3-BC3C-C2D9E4D02475}.Release lib.Build.0 = Release lib|Win32
+		{7FE0A205-3F39-4AC3-BC3C-C2D9E4D02475}.Release Unicode.ActiveCfg = Release Unicode|Win32
+		{7FE0A205-3F39-4AC3-BC3C-C2D9E4D02475}.Release Unicode.Build.0 = Release Unicode|Win32
+		{7FE0A205-3F39-4AC3-BC3C-C2D9E4D02475}.Release Unicode lib.ActiveCfg = Release Unicode lib|Win32
+		{7FE0A205-3F39-4AC3-BC3C-C2D9E4D02475}.Release Unicode lib.Build.0 = Release Unicode lib|Win32
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 	EndGlobalSection

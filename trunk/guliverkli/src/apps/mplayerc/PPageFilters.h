@@ -61,4 +61,5 @@ public:
 	BOOL m_mpa;
 	BOOL m_radgt;
 	BOOL m_roq;
+	BOOL m_ogg;
 };

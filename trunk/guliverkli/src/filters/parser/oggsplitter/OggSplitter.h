@@ -29,14 +29,26 @@
 
 class COggSplitterOutputPin : public CBaseSplitterOutputPin
 {
+	class CComment
+	{
+	public: 
+		CStringW m_key, m_value; 
+		CComment(CStringW key, CStringW value) : m_key(key), m_value(value) {m_key.MakeUpper();}
+	};
+	CAutoPtrList<CComment> m_pComments;
+
 protected:
 	CCritSec m_csPackets;
 	CAutoPtrList<Packet> m_packets;
 	CAutoPtr<Packet> m_lastpacket;
 	REFERENCE_TIME m_rt;
+	int m_prev_page_sequence_number;
 
 public:
 	COggSplitterOutputPin(LPCWSTR pName, CBaseFilter* pFilter, CCritSec* pLock, HRESULT* phr);
+
+	void AddComment(BYTE* p, int len);
+	CStringW GetComment(CStringW key);
 
 	HRESULT UnpackPage(OggPage& page);
 	virtual HRESULT UnpackPacket(CAutoPtr<Packet>& p, BYTE* pData, int len) = 0;
@@ -112,6 +124,15 @@ class COggSplitterFilter : public CBaseSplitterFilter
 {
 	REFERENCE_TIME m_rtDuration;
 
+	class CChapter
+	{
+	public:
+		REFERENCE_TIME m_rt;
+		CStringW m_name;
+		CChapter(REFERENCE_TIME rt, CStringW name) : m_rt(rt), m_name(name) {}
+	};
+	CAutoPtrList<CChapter> m_pChapters;
+
 protected:
 	CAutoPtr<COggFile> m_pFile;
 	HRESULT CreateOutputs(IAsyncReader* pAsyncReader);
@@ -131,6 +152,14 @@ public:
 	// IMediaSeeking
 
 	STDMETHODIMP GetDuration(LONGLONG* pDuration);
+
+	// IChapterInfo
+
+	STDMETHODIMP_(UINT) GetChapterCount(UINT aChapterID);
+	STDMETHODIMP_(UINT) GetChapterId(UINT aParentChapterId, UINT aIndex);
+	STDMETHODIMP_(UINT) GetChapterCurrentId();
+	STDMETHODIMP_(BOOL) GetChapterInfo(UINT aChapterID, struct ChapterElement* pStructureToFill);
+	STDMETHODIMP_(BSTR) GetChapterStringInfo(UINT aChapterID, CHAR PreferredLanguage[3], CHAR CountryCode[2]);
 };
 
 [uuid("6D3688CE-3E9D-42F4-92CA-8A11119D25CD")]
