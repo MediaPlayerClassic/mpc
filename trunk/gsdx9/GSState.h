@@ -30,13 +30,13 @@
 #include "GSCapture.h"
 #include "GSPerfMon.h"
 
-
-//#define DEBUG_SAVETEXTURES
-//#define DEBUG_LOG
-//#define DEBUG_LOG2
-//#define DEBUG_LOGVERTICES
+/*
+#define DEBUG_SAVETEXTURES
+#define DEBUG_LOG
+#define DEBUG_LOG2
+#define DEBUG_LOGVERTICES
 //#define DEBUG_RENDERTARGETS
-
+*/
 struct GSDrawingContext
 {
 	struct GSDrawingContext() {memset(this, 0, sizeof(*this));}
