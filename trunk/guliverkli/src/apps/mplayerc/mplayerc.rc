@@ -1004,6 +1004,9 @@ BEGIN
                     IDC_STATIC,13,175,158,8
     LTEXT           "** Required for loading subtitles",IDC_STATIC,13,185,
                     104,8
+    CONTROL         "Lock back-buffer before presenting (may fix broken vertical syncronization)",
+                    IDC_CHECK1,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,13,151,
+                    257,10
 END
 
 IDD_PPAGEMPEG DIALOGEX 0, 0, 296, 203
@@ -1656,6 +1659,12 @@ BEGIN
             MENUITEM "&Down\tDown Arrow",           ID_VOLUME_DOWN
             MENUITEM "&Mute\tCtrl+M",               ID_VOLUME_MUTE
         END
+        POPUP "After Playback"
+        BEGIN
+            MENUITEM "Close ",                      ID_AFTERPLAYBACK_CLOSE
+            MENUITEM "Shutdown",                    ID_AFTERPLAYBACK_SHUTDOWN
+
+        END
     END
     POPUP "&Navigate"
     BEGIN
@@ -1765,6 +1774,11 @@ BEGIN
             MENUITEM "&Up\tUp Arrow",               ID_VOLUME_UP
             MENUITEM "&Down\tDown Arrow",           ID_VOLUME_DOWN
             MENUITEM "&Mute\tCtrl+M",               ID_VOLUME_MUTE
+        END
+        POPUP "After Playback"
+        BEGIN
+            MENUITEM "Close ",                      32836
+            MENUITEM "Shutdown",                    32837
         END
         MENUITEM SEPARATOR
         POPUP "Vi&ew"
@@ -1944,6 +1958,11 @@ BEGIN
             MENUITEM "&Up\tUp Arrow",               ID_VOLUME_UP
             MENUITEM "&Down\tDown Arrow",           ID_VOLUME_DOWN
             MENUITEM "&Mute\tCtrl+M",               ID_VOLUME_MUTE
+        END
+        POPUP "After Playback"
+        BEGIN
+            MENUITEM "Close ",                      32836
+            MENUITEM "Shutdown",                    32837
         END
         MENUITEM SEPARATOR
         MENUITEM "E&xit\tAlt+X",                ID_FILE_EXIT
@@ -2249,6 +2268,7 @@ BEGIN
     IDS_RS_LAUNCHFULLSCREEN "LaunchFullScreen"
     IDS_RS_MPABOOST         "MpaBoost"
     IDS_RS_AACSC            "AACSpeakerConfig"
+    IDS_RS_VMRSYNCFIX       "VMRSyncFix"
 END
 
 STRINGTABLE 

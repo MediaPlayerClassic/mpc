@@ -538,7 +538,8 @@ int CMpeg2Dec::copy_chunk(int bytes)
 		mov byte ptr [edi], al
 		inc esi
 		inc edi
-		loop copy_chunk_loop
+		dec	ecx
+		jnz copy_chunk_loop
 
 	copy_chunk_end:
 

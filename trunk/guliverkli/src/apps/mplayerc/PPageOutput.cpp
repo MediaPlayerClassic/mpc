@@ -37,6 +37,7 @@ CPPageOutput::CPPageOutput()
 	, m_iQTVideoRendererType(0)
 	, m_iAPSurfaceUsage(0)
 	, m_iAudioRendererType(0)
+	, m_fVMRSyncFix(FALSE)
 {
 }
 
@@ -53,6 +54,7 @@ void CPPageOutput::DoDataExchange(CDataExchange* pDX)
 	DDX_Radio(pDX, IDC_REGULARSURF, m_iAPSurfaceUsage);
 	DDX_CBIndex(pDX, IDC_COMBO1, m_iAudioRendererType);
 	DDX_Control(pDX, IDC_COMBO1, m_iAudioRendererTypeCtrl);
+	DDX_Check(pDX, IDC_CHECK1, m_fVMRSyncFix);
 }
 
 
@@ -72,6 +74,7 @@ BOOL CPPageOutput::OnInitDialog()
 	m_iRMVideoRendererType = s.iRMVideoRendererType;
 	m_iQTVideoRendererType = s.iQTVideoRendererType;
 	m_iAPSurfaceUsage = s.iAPSurfaceUsage;
+	m_fVMRSyncFix = s.fVMRSyncFix;
 
 	m_AudioRendererDisplayNames.Add(_T(""));
 	m_iAudioRendererTypeCtrl.AddString(_T("System Default"));
@@ -164,6 +167,7 @@ BOOL CPPageOutput::OnApply()
 	s.iRMVideoRendererType = m_iRMVideoRendererType;
 	s.iQTVideoRendererType = m_iQTVideoRendererType;
 	s.iAPSurfaceUsage = m_iAPSurfaceUsage;
+	s.fVMRSyncFix = !!m_fVMRSyncFix;
 	s.AudioRendererDisplayName = m_AudioRendererDisplayNames[m_iAudioRendererType];
 
 	return __super::OnApply();

@@ -343,6 +343,7 @@ public:
 		int iRMVideoRendererType;
 		int iQTVideoRendererType;
 		int iAPSurfaceUsage;
+		bool fVMRSyncFix;
 
 		int nVolume;
 		int nBalance;

@@ -511,7 +511,8 @@ void mpeg2_idct_add_sse2(const int last, int16_t* block, uint8_t* dest, const in
 		lea esi, [esi+16*2]
 		lea edi, [edi+edx*2]
 
-		loop mpeg2_idct_add_sse2_loop
+		dec	ecx
+		jnz	mpeg2_idct_add_sse2_loop
 	}
 }
 

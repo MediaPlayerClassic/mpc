@@ -941,7 +941,8 @@ CRect Rasterizer::Draw(SubPicDesc& spd, CRect& clipRect, byte* pAlphaMask, int x
 
 						add			esi, 2
 						add			edi, 4
-						loop		pixmixloop
+						dec			ecx
+						jnz			pixmixloop
 					}
 				}
 				else if(!fBody && fBorder)
@@ -991,7 +992,8 @@ CRect Rasterizer::Draw(SubPicDesc& spd, CRect& clipRect, byte* pAlphaMask, int x
 
 						add			esi, 2
 						add			edi, 4
-						loop		pixmixloop2
+						dec			ecx
+						jnz			pixmixloop2
 					}
 				}
 

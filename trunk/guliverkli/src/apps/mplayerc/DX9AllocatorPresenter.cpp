@@ -56,6 +56,7 @@ class CDX9AllocatorPresenter
 {
 protected:
 	CSize m_ScreenSize;
+	bool m_fVMRSyncFix;
 
 	CComPtr<IDirect3D9> m_pD3D;
     CComPtr<IDirect3DDevice9> m_pD3DDev;
@@ -328,6 +329,9 @@ HRESULT CDX9AllocatorPresenter::CreateDevice()
 	pp.BackBufferWidth = d3ddm.Width;
 	pp.BackBufferHeight = d3ddm.Height;
 
+	if(m_fVMRSyncFix = AfxGetMyApp()->m_s.fVMRSyncFix)
+		pp.Flags = D3DPRESENTFLAG_LOCKABLE_BACKBUFFER;
+
 	HRESULT hr = m_pD3D->CreateDevice(
 						D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, m_hWnd,
 						D3DCREATE_SOFTWARE_VERTEXPROCESSING|D3DCREATE_MULTITHREADED, //D3DCREATE_MANAGED 
@@ -515,11 +519,14 @@ STDMETHODIMP_(bool) CDX9AllocatorPresenter::Paint(bool fAll)
 
 		AlphaBltSubPic(rSrcPri.Size());
 	}
-/*
-	D3DLOCKED_RECT lr;
-	if(SUCCEEDED(pBackBuffer->LockRect(&lr, NULL, D3DLOCK_READONLY)))
-		pBackBuffer->UnlockRect();
-*/
+
+	if(m_fVMRSyncFix)
+	{
+		D3DLOCKED_RECT lr;
+		if(SUCCEEDED(pBackBuffer->LockRect(&lr, NULL, 0)))
+			pBackBuffer->UnlockRect();
+	}
+
 	hr = m_pD3DDev->Present(rSrcPri, rDstPri, NULL, NULL);
 
 	if(hr == D3DERR_DEVICELOST)
