@@ -481,6 +481,9 @@ STDMETHODIMP_(bool) CDX9AllocatorPresenter::Paint(bool fAll)
 	CRect rSrcPri(CPoint(0, 0), m_WindowRect.Size());
 	CRect rDstPri(m_WindowRect);
 
+	CComPtr<IDirect3DSurface9> pBackBuffer;
+	m_pD3DDev->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &pBackBuffer);
+
 	if(fAll)
 	{
 		// clear the backbuffer
@@ -497,8 +500,7 @@ STDMETHODIMP_(bool) CDX9AllocatorPresenter::Paint(bool fAll)
 			}
 			else
 			{
-				CComPtr<IDirect3DSurface9> pBackBuffer;
-				if(SUCCEEDED(hr = m_pD3DDev->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &pBackBuffer)))
+				if(pBackBuffer)
 				{
 					ClipToSurface(pBackBuffer, rSrcVid, rDstVid); // grrr
 					// IMPORTANT: rSrcVid has to be aligned on mod2 for yuy2->rgb conversion with StretchRect!!!
@@ -513,7 +515,11 @@ STDMETHODIMP_(bool) CDX9AllocatorPresenter::Paint(bool fAll)
 
 		AlphaBltSubPic(rSrcPri.Size());
 	}
-
+/*
+	D3DLOCKED_RECT lr;
+	if(SUCCEEDED(pBackBuffer->LockRect(&lr, NULL, D3DLOCK_READONLY)))
+		pBackBuffer->UnlockRect();
+*/
 	hr = m_pD3DDev->Present(rSrcPri, rDstPri, NULL, NULL);
 
 	if(hr == D3DERR_DEVICELOST)
