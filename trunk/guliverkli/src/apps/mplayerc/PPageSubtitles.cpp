@@ -1,0 +1,112 @@
+// PPageSubtitles.cpp : implementation file
+//
+
+#include "stdafx.h"
+#include "mplayerc.h"
+#include "MainFrm.h"
+#include "PPageSubtitles.h"
+//#include "StyleEditorDialog.h"
+
+// CPPageSubtitles dialog
+
+IMPLEMENT_DYNAMIC(CPPageSubtitles, CPPageBase)
+CPPageSubtitles::CPPageSubtitles()
+	: CPPageBase(CPPageSubtitles::IDD, CPPageSubtitles::IDD)
+	, m_fOverridePlacement(FALSE)
+	, m_nHorPos(0)
+	, m_nVerPos(0)
+	, m_nSPCSize(0)
+{
+}
+
+CPPageSubtitles::~CPPageSubtitles()
+{
+}
+
+void CPPageSubtitles::DoDataExchange(CDataExchange* pDX)
+{
+	__super::DoDataExchange(pDX);
+	DDX_Check(pDX, IDC_CHECK3, m_fOverridePlacement);
+	DDX_Text(pDX, IDC_EDIT2, m_nHorPos);
+	DDX_Control(pDX, IDC_SPIN2, m_nHorPosCtrl);
+	DDX_Text(pDX, IDC_EDIT3, m_nVerPos);
+	DDX_Control(pDX, IDC_SPIN3, m_nVerPosCtrl);
+	DDX_Text(pDX, IDC_EDIT1, m_nSPCSize);
+	DDX_Control(pDX, IDC_SPIN1, m_nSPCSizeCtrl);
+	DDX_Control(pDX, IDC_COMBO1, m_spmaxres);
+	DDX_Control(pDX, IDC_EDIT2, m_nHorPosEdit);
+	DDX_Control(pDX, IDC_EDIT3, m_nVerPosEdit);
+}
+
+
+BEGIN_MESSAGE_MAP(CPPageSubtitles, CPPageBase)
+	ON_UPDATE_COMMAND_UI(IDC_EDIT2, OnUpdatePosOverride)
+	ON_UPDATE_COMMAND_UI(IDC_SPIN2, OnUpdatePosOverride)
+	ON_UPDATE_COMMAND_UI(IDC_EDIT3, OnUpdatePosOverride)
+	ON_UPDATE_COMMAND_UI(IDC_SPIN3, OnUpdatePosOverride)
+	ON_UPDATE_COMMAND_UI(IDC_STATIC1, OnUpdatePosOverride)
+	ON_UPDATE_COMMAND_UI(IDC_STATIC2, OnUpdatePosOverride)
+	ON_UPDATE_COMMAND_UI(IDC_STATIC3, OnUpdatePosOverride)
+	ON_UPDATE_COMMAND_UI(IDC_STATIC4, OnUpdatePosOverride)
+END_MESSAGE_MAP()
+
+
+// CPPageSubtitles message handlers
+
+BOOL CPPageSubtitles::OnInitDialog()
+{
+	__super::OnInitDialog();
+
+	AppSettings& s = AfxGetAppSettings();
+
+	m_fOverridePlacement = s.fOverridePlacement;
+	m_nHorPos = s.nHorPos;
+	m_nHorPosCtrl.SetRange(-10,110);
+	m_nVerPos = s.nVerPos;
+	m_nVerPosCtrl.SetRange(110,-10);
+	m_nSPCSize = s.nSPCSize;
+	m_nSPCSizeCtrl.SetRange(0, 10);
+	m_spmaxres.AddString(_T("Desktop"));
+	m_spmaxres.AddString(_T("1024x768"));
+	m_spmaxres.AddString(_T("800x600"));
+	m_spmaxres.AddString(_T("640x480"));
+	m_spmaxres.AddString(_T("512x384"));
+	m_spmaxres.AddString(_T("384x288"));
+	m_spmaxres.SetCurSel(s.nSPCMaxRes);
+
+	UpdateData(FALSE);
+
+	return TRUE;  // return TRUE unless you set the focus to a control
+	// EXCEPTION: OCX Property Pages should return FALSE
+}
+
+BOOL CPPageSubtitles::OnApply()
+{
+	UpdateData();
+
+	AppSettings& s = AfxGetAppSettings();
+
+	if(s.fOverridePlacement != !!m_fOverridePlacement
+	|| s.nHorPos != m_nHorPos
+	|| s.nVerPos != m_nVerPos
+	|| s.nSPCSize != m_nSPCSize
+	|| s.nSPCMaxRes != m_spmaxres.GetCurSel())
+	{
+		s.fOverridePlacement = !!m_fOverridePlacement;
+		s.nHorPos = m_nHorPos;
+		s.nVerPos = m_nVerPos;
+		s.nSPCSize = m_nSPCSize;
+		s.nSPCMaxRes = m_spmaxres.GetCurSel();
+
+		if(CMainFrame* pFrame = (CMainFrame*)GetParentFrame())
+			pFrame->UpdateSubtitle(true);
+	}
+
+	return __super::OnApply();
+}
+
+void CPPageSubtitles::OnUpdatePosOverride(CCmdUI* pCmdUI)
+{
+	UpdateData();
+	pCmdUI->Enable(m_fOverridePlacement);
+}

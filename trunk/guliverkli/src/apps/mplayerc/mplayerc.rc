@@ -1,0 +1,1761 @@
+// Microsoft Visual C++ generated resource script.
+//
+#include "resource.h"
+
+#define APSTUDIO_READONLY_SYMBOLS
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 2 resource.
+//
+#include "afxres.h"
+
+/////////////////////////////////////////////////////////////////////////////
+#undef APSTUDIO_READONLY_SYMBOLS
+
+/////////////////////////////////////////////////////////////////////////////
+// Hungarian resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_HUN)
+#ifdef _WIN32
+LANGUAGE LANG_HUNGARIAN, SUBLANG_DEFAULT
+#pragma code_page(1250)
+#endif //_WIN32
+
+#ifdef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// TEXTINCLUDE
+//
+
+1 TEXTINCLUDE 
+BEGIN
+    "resource.h\0"
+END
+
+2 TEXTINCLUDE 
+BEGIN
+    "#include ""afxres.h""\r\n"
+    "\0"
+END
+
+3 TEXTINCLUDE 
+BEGIN
+    "#define _AFX_NO_SPLITTER_RESOURCES\r\n"
+    "#define _AFX_NO_OLE_RESOURCES\r\n"
+    "#define _AFX_NO_TRACKER_RESOURCES\r\n"
+    "#define _AFX_NO_PROPERTY_RESOURCES\r\n"
+    "\r\n"
+    "#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)\r\n"
+    "LANGUAGE 9, 1\r\n"
+    "#pragma code_page(1252)\r\n"
+    "#include ""afxres.rc""         // Standard components\r\n"
+    "#endif\0"
+END
+
+#endif    // APSTUDIO_INVOKED
+
+#endif    // Hungarian resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+/////////////////////////////////////////////////////////////////////////////
+// English (U.S.) resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
+#ifdef _WIN32
+LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
+#pragma code_page(1252)
+#endif //_WIN32
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog
+//
+
+IDD_SELECTMEDIATYPE DIALOGEX 0, 0, 225, 47
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | 
+    WS_SYSMENU
+CAPTION "Select Media Type"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    COMBOBOX        IDC_COMBO1,7,7,211,120,CBS_DROPDOWN | WS_VSCROLL | 
+                    WS_TABSTOP
+    DEFPUSHBUTTON   "OK",IDOK,114,26,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,168,26,50,14
+END
+
+IDD_OPENCAPDEVICEDIALOG DIALOGEX 0, 0, 226, 81
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | 
+    WS_SYSMENU
+CAPTION "Select Capture Device"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    LTEXT           "The following input devices were found on your system:",
+                    IDC_STATIC,12,7,199,11
+    LTEXT           "Video",IDC_STATIC,12,23,18,8
+    COMBOBOX        IDC_COMBO1,38,20,173,30,CBS_DROPDOWN | CBS_AUTOHSCROLL | 
+                    WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Audio",IDC_STATIC,12,41,19,8
+    COMBOBOX        IDC_COMBO2,38,38,173,30,CBS_DROPDOWN | CBS_AUTOHSCROLL | 
+                    WS_VSCROLL | WS_TABSTOP
+    DEFPUSHBUTTON   "OK",IDOK,60,60,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,115,60,50,14
+END
+
+IDD_CAPTUREDIALOG DIALOGEX 0, 0, 127, 289
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    GROUPBOX        "Video",IDC_STATIC,3,1,116,59
+    COMBOBOX        IDC_COMBO4,10,10,62,116,CBS_DROPDOWNLIST | WS_DISABLED | 
+                    WS_VSCROLL | WS_TABSTOP
+    EDITTEXT        IDC_EDIT3,74,10,38,13,ES_RIGHT | ES_AUTOHSCROLL | 
+                    WS_DISABLED
+    COMBOBOX        IDC_COMBO1,10,26,37,89,CBS_DROPDOWNLIST | CBS_SORT | 
+                    WS_DISABLED | WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_COMBO5,50,26,62,89,CBS_DROPDOWNLIST | CBS_SORT | 
+                    WS_DISABLED | WS_VSCROLL | WS_TABSTOP
+    EDITTEXT        IDC_EDIT1,10,43,37,13,ES_RIGHT | ES_AUTOHSCROLL | 
+                    ES_READONLY
+    CONTROL         "",IDC_SPIN1,"msctls_updown32",UDS_SETBUDDYINT | 
+                    UDS_ALIGNRIGHT | UDS_AUTOBUDDY | UDS_ARROWKEYS | 
+                    UDS_NOTHOUSANDS | WS_DISABLED,35,46,11,14
+    EDITTEXT        IDC_EDIT2,50,43,35,13,ES_RIGHT | ES_AUTOHSCROLL | 
+                    ES_READONLY
+    CONTROL         "",IDC_SPIN2,"msctls_updown32",UDS_SETBUDDYINT | 
+                    UDS_ALIGNRIGHT | UDS_AUTOBUDDY | UDS_ARROWKEYS | 
+                    UDS_NOTHOUSANDS | WS_DISABLED,74,46,11,14
+    PUSHBUTTON      "Set",IDC_BUTTON1,89,43,23,13
+    GROUPBOX        "Audio",IDC_STATIC,3,61,116,43
+    COMBOBOX        IDC_COMBO3,10,71,62,99,CBS_DROPDOWNLIST | WS_DISABLED | 
+                    WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_COMBO2,74,71,38,98,CBS_DROPDOWNLIST | CBS_SORT | 
+                    WS_DISABLED | WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_COMBO6,10,87,102,118,CBS_DROPDOWNLIST | CBS_SORT | 
+                    WS_DISABLED | WS_VSCROLL | WS_TABSTOP
+    GROUPBOX        "Output",IDC_STATIC,3,105,116,171
+    CONTROL         "Record Video",IDC_CHECK2,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,10,114,58,10
+    CONTROL         "Preview",IDC_CHECK4,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,72,114,41,10
+    COMBOBOX        IDC_COMBO7,10,126,102,62,CBS_DROPDOWNLIST | WS_VSCROLL | 
+                    WS_TABSTOP
+    COMBOBOX        IDC_COMBO9,10,142,37,89,CBS_DROPDOWNLIST | CBS_SORT | 
+                    WS_DISABLED | WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_COMBO10,50,142,62,89,CBS_DROPDOWNLIST | CBS_SORT | 
+                    WS_DISABLED | WS_VSCROLL | WS_TABSTOP
+    CONTROL         "",IDC_STATIC,"Static",SS_ETCHEDHORZ,10,158,104,1
+    CONTROL         "Record Audio",IDC_CHECK3,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,10,161,59,10
+    CONTROL         "Preview",IDC_CHECK5,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,72,161,41,10
+    COMBOBOX        IDC_COMBO8,10,173,102,62,CBS_DROPDOWNLIST | WS_VSCROLL | 
+                    WS_TABSTOP
+    COMBOBOX        IDC_COMBO12,10,189,37,98,CBS_DROPDOWNLIST | CBS_SORT | 
+                    WS_DISABLED | WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_COMBO11,50,189,62,118,CBS_DROPDOWNLIST | CBS_SORT | 
+                    WS_DISABLED | WS_VSCROLL | WS_TABSTOP
+    CONTROL         "",IDC_STATIC,"Static",SS_ETCHEDHORZ,10,205,104,1
+    LTEXT           "V/A Buffers:",IDC_STATIC,10,211,40,8
+    EDITTEXT        IDC_EDIT9,52,209,28,12,ES_CENTER | ES_AUTOHSCROLL | 
+                    ES_NUMBER
+    EDITTEXT        IDC_EDIT12,83,209,28,12,ES_CENTER | ES_AUTOHSCROLL | 
+                    ES_NUMBER
+    CONTROL         "",IDC_STATIC,"Static",SS_ETCHEDHORZ,10,225,104,1
+    EDITTEXT        IDC_EDIT4,10,231,86,13,ES_AUTOHSCROLL | ES_READONLY
+    PUSHBUTTON      "...",IDC_BUTTON3,98,231,14,13
+    CONTROL         "Avi",IDC_RADIO1,"Button",BS_AUTORADIOBUTTON | WS_GROUP,
+                    10,249,26,10
+    CONTROL         "Ogm",IDC_RADIO2,"Button",BS_AUTORADIOBUTTON,38,249,29,
+                    10
+    PUSHBUTTON      "Record",IDC_BUTTON2,74,248,38,13,WS_DISABLED | WS_GROUP
+    CONTROL         "Output audio separately",IDC_CHECK7,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,10,262,94,10
+END
+
+IDD_PPAGEAUDIOSWITCHER DIALOGEX 0, 0, 296, 198
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    CONTROL         "Enable built-in audio switcher filter (needs re-opening, disables morgan switcher)",
+                    IDC_CHECK2,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,7,273,
+                    10
+    CONTROL         "",IDC_STATIC,"Static",SS_ETCHEDHORZ,7,21,282,1
+    CONTROL         "Down-sample to 44100 Hz",IDC_CHECK3,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,7,29,99,10
+    CONTROL         "Audio time shift (ms):",IDC_CHECK4,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,7,44,82,10
+    EDITTEXT        IDC_EDIT2,96,43,46,13,ES_AUTOHSCROLL,WS_EX_RIGHT
+    CONTROL         "",IDC_SPIN2,"msctls_updown32",UDS_SETBUDDYINT | 
+                    UDS_ALIGNRIGHT | UDS_AUTOBUDDY | UDS_ARROWKEYS | 
+                    UDS_NOTHOUSANDS | UDS_HOTTRACK,182,42,11,14
+    CONTROL         "Enable custom channel mapping",IDC_CHECK1,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,7,60,117,10
+    LTEXT           "Speaker configuration for ",IDC_STATIC1,7,76,84,8
+    EDITTEXT        IDC_EDIT1,95,75,29,13,ES_CENTER | ES_AUTOHSCROLL
+    CONTROL         "",IDC_SPIN1,"msctls_updown32",UDS_WRAP | 
+                    UDS_SETBUDDYINT | UDS_ALIGNRIGHT | UDS_AUTOBUDDY | 
+                    UDS_ARROWKEYS | UDS_NOTHOUSANDS | UDS_HOTTRACK,267,73,11,
+                    14
+    LTEXT           "input channels:",IDC_STATIC2,131,76,53,8
+    CONTROL         "",IDC_LIST1,"SysListView32",LVS_REPORT | 
+                    LVS_OWNERDRAWFIXED | LVS_ALIGNLEFT | LVS_NOCOLUMNHEADER | 
+                    WS_BORDER | WS_TABSTOP,7,93,282,94
+    CTEXT           "Hold shift for immediate changes when clicking something ",
+                    IDC_STATIC3,7,189,282,8
+END
+
+IDD_GOTODIALOG DIALOGEX 0, 0, 157, 113
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | 
+    WS_SYSMENU
+CAPTION "Go To..."
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    LTEXT           "Enter at most four numbers separated by anything but digits. One number only means ms, two numbers mean sec and ms, etc.",
+                    IDC_STATIC,7,7,143,27
+    LTEXT           "Time",IDC_STATIC,7,40,16,8
+    EDITTEXT        IDC_EDIT1,31,37,83,14,ES_AUTOHSCROLL
+    DEFPUSHBUTTON   "Go!",IDOK,119,37,31,14
+    LTEXT           "Enter two numbers to jump to a specified frame, the first is the frame number, the second is the frame-rate.",
+                    IDC_STATIC,7,62,143,26
+    LTEXT           "Frame",IDC_STATIC,7,95,20,8
+    EDITTEXT        IDC_EDIT4,31,92,83,14,ES_AUTOHSCROLL
+    DEFPUSHBUTTON   "Go!",IDOK2,119,92,31,14
+END
+
+IDD_OPENDIALOG DIALOGEX 0, 0, 227, 110
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | 
+    WS_SYSMENU
+CAPTION "Open"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    ICON            IDR_MAINFRAME,IDC_STATIC,9,8,21,20
+    LTEXT           "Type the address of a movie or audio file (on the Internet or your computer) and the player will open it for you.",
+                    IDC_STATIC,35,9,178,28
+    LTEXT           "Open:",IDC_STATIC,7,48,21,8
+    COMBOBOX        IDC_COMBO1,33,46,163,76,CBS_DROPDOWN | CBS_AUTOHSCROLL | 
+                    WS_VSCROLL | WS_TABSTOP
+    PUSHBUTTON      "...",IDC_BROWSEBUTTON,200,46,18,13
+    LTEXT           "Dub:",IDC_STATIC1,7,68,16,8
+    COMBOBOX        IDC_COMBO2,33,66,163,76,CBS_DROPDOWN | CBS_AUTOHSCROLL | 
+                    WS_VSCROLL | WS_TABSTOP
+    PUSHBUTTON      "...",IDC_BROWSEBUTTON2,200,66,18,13
+    DEFPUSHBUTTON   "OK",IDOK,61,88,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,115,88,50,14
+END
+
+IDD_ABOUTBOX DIALOGEX 0, 0, 188, 60
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Static"
+FONT 8, "MS Sans Serif", 0, 0, 0x0
+BEGIN
+    ICON            IDR_MAINFRAME,IDC_STATIC,11,17,20,20
+    LTEXT           "Media Player Classic",IDC_STATIC1,40,10,126,8,
+                    SS_NOPREFIX
+    LTEXT           "Copyright (C) 2002-2003 Gabest",IDC_STATIC,40,24,113,8
+    LTEXT           "Version:\t6.4.5.0",IDC_STATIC,40,38,71,8
+    PUSHBUTTON      "OK",IDOK,131,39,50,14,WS_GROUP
+END
+
+IDD_PLAYERSTATUSBAR DIALOGEX 0, 0, 183, 15
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+END
+
+IDD_PLAYERSEEKBAR DIALOGEX 0, 0, 254, 12
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+END
+
+IDD_PLAYERINFOBAR DIALOGEX 0, 0, 183, 12
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+END
+
+IDD_PPAGEPLAYER DIALOGEX 0, 0, 296, 198
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    GROUPBOX        "Open options",IDC_STATIC,5,7,117,119
+    CONTROL         "Use the same player for each media file",IDC_RADIO1,
+                    "Button",BS_AUTORADIOBUTTON | BS_MULTILINE | WS_GROUP,14,
+                    22,93,22
+    CONTROL         "Open a new player for each media file played",
+                    IDC_RADIO2,"Button",BS_AUTORADIOBUTTON | BS_MULTILINE,14,
+                    71,98,15
+    ICON            IDI_SINGLE,IDC_STATIC,51,45,20,20,SS_CENTERIMAGE | 
+                    WS_GROUP
+    ICON            IDI_MULTI,IDC_STATIC,51,93,20,20,SS_CENTERIMAGE
+    GROUPBOX        "Title bar",IDC_STATIC,5,130,117,61
+    CONTROL         "Display full path",IDC_RADIO3,"Button",
+                    BS_AUTORADIOBUTTON | WS_GROUP,16,143,67,10
+    CONTROL         "File name only",IDC_RADIO4,"Button",BS_AUTORADIOBUTTON,
+                    16,158,61,10
+    CONTROL         "Don't prefix anything",IDC_RADIO5,"Button",
+                    BS_AUTORADIOBUTTON,16,173,83,10
+    GROUPBOX        "Other",IDC_STATIC,130,7,159,184,WS_GROUP
+    CONTROL         "Always on top",IDC_CHECK2,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,140,21,61,10
+    CONTROL         "Tray icon",IDC_CHECK3,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,140,37,45,10
+    CONTROL         "Show controls in fullscreen for",IDC_CHECK4,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,140,53,112,10
+    EDITTEXT        IDC_EDIT1,152,67,32,13,ES_CENTER | ES_AUTOHSCROLL | 
+                    ES_READONLY | ES_NUMBER
+    CONTROL         "",IDC_SPIN1,"msctls_updown32",UDS_SETBUDDYINT | 
+                    UDS_ALIGNRIGHT | UDS_AUTOBUDDY | UDS_ARROWKEYS | 
+                    UDS_NOTHOUSANDS | UDS_HOTTRACK,175,68,11,14
+    LTEXT           "sec(s)",IDC_STATIC1,188,69,20,8
+    LTEXT           "0: auto-hide\n-1: don't hide",IDC_STATIC2,218,65,48,17
+    CONTROL         "Set fullscreen resolution:",IDC_CHECK9,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,140,87,95,10
+    COMBOBOX        IDC_COMBO1,152,101,103,64,CBS_DROPDOWNLIST | WS_VSCROLL | 
+                    WS_TABSTOP
+    CONTROL         "Exit fullscreen at the end of playback",IDC_CHECK5,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,140,121,135,10
+    CONTROL         "Remember last window position",IDC_CHECK6,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,140,137,127,10
+    CONTROL         "Remember last window size",IDC_CHECK7,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,140,153,127,10
+    CONTROL         "Store settings in .ini file",IDC_CHECK8,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,140,169,91,10
+END
+
+IDD_PPAGEDVD DIALOGEX 0, 0, 296, 193
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    GROUPBOX        "Location of the DVD drive or the ""VIDEO_TS"" folder",
+                    IDC_STATIC,5,7,235,66
+    CONTROL         "Default",IDC_LOCRADIO1,"Button",BS_AUTORADIOBUTTON | 
+                    WS_GROUP,15,21,39,10
+    CONTROL         "User defined path:",IDC_LOCRADIO2,"Button",
+                    BS_AUTORADIOBUTTON,15,35,76,10
+    EDITTEXT        IDC_DVDPATH,29,50,180,14,ES_AUTOHSCROLL | WS_GROUP
+    PUSHBUTTON      "...",IDC_BUTTON1,215,50,15,14
+    GROUPBOX        "Prefered language for DVD Navigator and OGM Splitter",
+                    IDC_STATIC,5,77,235,73
+    CONTROL         "Menu",IDC_LANGRADIO1,"Button",BS_AUTORADIOBUTTON | 
+                    WS_GROUP,15,95,33,10
+    CONTROL         "Audio",IDC_LANGRADIO2,"Button",BS_AUTORADIOBUTTON,15,
+                    111,34,10
+    CONTROL         "Subtitles",IDC_LANGRADIO3,"Button",BS_AUTORADIOBUTTON,
+                    15,127,43,10
+    LISTBOX         IDC_LIST1,74,90,156,53,WS_VSCROLL | WS_GROUP | 
+                    WS_TABSTOP
+    GROUPBOX        "Audio channels",IDC_STATIC,5,155,235,32
+    CONTROL         "Automatically set speaker count for the ivideo ac3 decoder",
+                    IDC_CHECK1,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,169,
+                    204,10
+END
+
+IDD_PPAGEPLAYBACK DIALOGEX 0, 0, 296, 198
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    GROUPBOX        "Audio",IDC_STATIC,5,7,284,58
+    LTEXT           "Volume",IDC_STATIC,66,19,24,8
+    LTEXT           "Min",IDC_STATIC,27,38,12,8
+    CONTROL         "",IDC_SLIDER2,"msctls_trackbar32",TBS_AUTOTICKS | 
+                    TBS_BOTH | WS_TABSTOP,41,31,75,24
+    LTEXT           "Max",IDC_STATIC,120,38,14,8
+    LTEXT           "Balance",IDC_STATIC,196,19,26,8
+    LTEXT           "L",IDC_STATIC,160,39,8,8
+    CONTROL         "",IDC_SLIDER3,"msctls_trackbar32",TBS_AUTOTICKS | 
+                    WS_TABSTOP,172,36,75,19
+    LTEXT           "R",IDC_STATIC,252,39,8,8
+    GROUPBOX        "Playback",IDC_STATIC,5,67,114,71
+    CONTROL         "Play",IDC_RADIO1,"Button",BS_AUTORADIOBUTTON | WS_GROUP,
+                    14,86,29,10
+    CONTROL         "Repeat forever",IDC_RADIO2,"Button",BS_AUTORADIOBUTTON,
+                    14,102,65,10
+    CONTROL         "Rewind when done playing",IDC_CHECK1,"Button",
+                    BS_AUTOCHECKBOX | WS_GROUP | WS_TABSTOP,14,119,101,10
+    EDITTEXT        IDC_EDIT1,52,85,20,13,ES_AUTOHSCROLL | ES_NUMBER
+    LTEXT           "time(s)",IDC_STATIC1,81,87,23,8
+    GROUPBOX        "Output",IDC_STATIC,126,67,163,71
+    LTEXT           "Zoom:",IDC_STATIC,136,82,21,8
+    COMBOBOX        IDC_COMBO1,164,80,49,47,CBS_DROPDOWNLIST | WS_VSCROLL | 
+                    WS_TABSTOP
+    CONTROL         "Auto-zoom",IDC_CHECK5,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,227,81,48,10
+    LTEXT           "Video:",IDC_STATIC,136,100,21,8
+    COMBOBOX        IDC_COMBO2,164,98,115,81,CBS_DROPDOWNLIST | WS_VSCROLL | 
+                    WS_TABSTOP
+    LTEXT           "Audio:",IDC_STATIC,136,118,22,8
+    COMBOBOX        IDC_COMBO13,164,116,115,87,CBS_DROPDOWNLIST | WS_VSCROLL | 
+                    WS_TABSTOP
+    GROUPBOX        "Open settings",IDC_STATIC,5,140,284,43
+    CONTROL         "Use worker thread to construct the filter graph",
+                    IDC_CHECK9,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,13,153,
+                    166,10
+    CONTROL         "Report pins which fail to render",IDC_CHECK6,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,13,167,116,10
+    CONTROL         "Auto-load audio files",IDC_CHECK2,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,193,153,81,10
+    CONTROL         "Auto-load subtitles",IDC_CHECK3,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,193,167,76,10
+END
+
+IDD_PPAGESUBTITLES DIALOGEX 0, 0, 296, 203
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD
+FONT 8, "MS Shell Dlg", 400, 0, 0xEE
+BEGIN
+    GROUPBOX        "",IDC_STATIC,5,3,188,38
+    CONTROL         "Override placement",IDC_CHECK3,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,14,3,75,10
+    LTEXT           "Horizontal:",IDC_STATIC1,14,22,35,8
+    EDITTEXT        IDC_EDIT2,54,20,32,12,ES_CENTER | ES_AUTOHSCROLL | 
+                    ES_READONLY | ES_NUMBER
+    CONTROL         "",IDC_SPIN2,"msctls_updown32",UDS_SETBUDDYINT | 
+                    UDS_ALIGNRIGHT | UDS_AUTOBUDDY | UDS_ARROWKEYS | 
+                    UDS_NOTHOUSANDS | UDS_HOTTRACK,74,25,11,14
+    LTEXT           "%",IDC_STATIC2,88,22,8,8
+    LTEXT           "Vertical:",IDC_STATIC3,107,22,26,8
+    EDITTEXT        IDC_EDIT3,139,20,32,12,ES_CENTER | ES_AUTOHSCROLL | 
+                    ES_READONLY | ES_NUMBER
+    CONTROL         "",IDC_SPIN3,"msctls_updown32",UDS_SETBUDDYINT | 
+                    UDS_ALIGNRIGHT | UDS_AUTOBUDDY | UDS_ARROWKEYS | 
+                    UDS_NOTHOUSANDS | UDS_HOTTRACK,159,26,11,14
+    LTEXT           "%",IDC_STATIC4,173,22,8,8
+    GROUPBOX        "Texture settings (open the video again to see the changes)",
+                    IDC_STATIC,5,43,284,55
+    LTEXT           "Number of subpictures to buffer ahead:",IDC_STATIC,14,
+                    60,128,8
+    EDITTEXT        IDC_EDIT1,147,58,32,12,ES_CENTER | ES_AUTOHSCROLL | 
+                    ES_READONLY | ES_NUMBER
+    CONTROL         "",IDC_SPIN1,"msctls_updown32",UDS_SETBUDDYINT | 
+                    UDS_ALIGNRIGHT | UDS_AUTOBUDDY | UDS_ARROWKEYS | 
+                    UDS_NOTHOUSANDS | UDS_HOTTRACK,168,63,11,14
+    LTEXT           "Set 0 to disable buffering\n(not recommended)",
+                    IDC_STATIC,191,55,90,17
+    LTEXT           "Maximum texture resolution:",IDC_STATIC,14,79,92,8
+    LTEXT           "Subtitling for DirectShow is available when the video renderer called ""VMR7 (renderless)"" or ""VMR9 (renderless)"" is set. VMR7 requires Windows XP, VMR9 requires DirectX 9, and both require a hw accelerated D3D video card.",
+                    IDC_STATIC,14,148,267,25
+    GROUPBOX        "Before you ask",IDC_STATIC,5,136,284,65
+    LTEXT           "If you override and enable full-screen antialiasing somewhere at your videocard's settings, subtitles aren't going to look any better but it will surely eat your cpu.",
+                    IDC_STATIC,14,110,267,19
+    COMBOBOX        IDC_COMBO1,111,77,68,45,CBS_DROPDOWNLIST | WS_VSCROLL | 
+                    WS_TABSTOP
+    GROUPBOX        "Warning",IDC_STATIC,5,99,284,35
+    LTEXT           "RealMedia and QuickTime formats can be subtitled by setting their special renderers on the RM/QT page.",
+                    IDC_STATIC,14,178,267,16
+END
+
+IDD_PPAGEFORMATS DIALOGEX 0, 0, 296, 198
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    CONTROL         "",IDC_LIST1,"SysListView32",LVS_REPORT | LVS_SINGLESEL | 
+                    LVS_SORTASCENDING | LVS_ALIGNLEFT | LVS_NOCOLUMNHEADER | 
+                    WS_BORDER | WS_TABSTOP,6,5,283,131
+    GROUPBOX        "File extensions",IDC_STATIC,6,137,283,34
+    EDITTEXT        IDC_EDIT1,13,149,192,14,ES_AUTOHSCROLL
+    PUSHBUTTON      "Default",IDC_BUTTON12,210,149,34,14
+    PUSHBUTTON      "Set",IDC_BUTTON11,247,149,34,14
+    LTEXT           "Autoplay:",IDC_STATIC1,6,174,32,8
+    CONTROL         "Video",IDC_CHECK1,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,
+                    6,186,31,10
+    CONTROL         "Music",IDC_CHECK2,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,
+                    38,186,31,10
+    CONTROL         "DVD",IDC_CHECK4,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,
+                    71,186,29,10
+    CONTROL         "Audio CD",IDC_CHECK3,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,101,186,43,10
+    PUSHBUTTON      "&Video",IDC_BUTTON14,184,180,33,14
+    PUSHBUTTON      "A&udio",IDC_BUTTON13,220,180,33,14
+    PUSHBUTTON      "&All",IDC_BUTTON1,256,180,33,14
+END
+
+IDD_PPAGETWEAKS DIALOGEX 0, 0, 296, 178
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    CONTROL         "Don't use XP-theming on the player controls (needs restart)",
+                    IDC_CHECK3,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,9,9,207,
+                    10
+    CONTROL         "Use the WM ASF Reader for Windows Media files (enables faster seeking, but won't seek with incomplete files at all)",
+                    IDC_CHECK2,"Button",BS_AUTOCHECKBOX | BS_MULTILINE | 
+                    WS_TABSTOP,9,25,260,17
+    GROUPBOX        "Jump distances (small, medium, large in ms)",IDC_STATIC,
+                    9,50,200,34
+    EDITTEXT        IDC_EDIT1,16,62,40,14,ES_RIGHT | ES_AUTOHSCROLL | 
+                    ES_NUMBER
+    EDITTEXT        IDC_EDIT2,62,62,40,14,ES_RIGHT | ES_AUTOHSCROLL | 
+                    ES_NUMBER
+    EDITTEXT        IDC_EDIT3,108,62,40,14,ES_RIGHT | ES_AUTOHSCROLL | 
+                    ES_NUMBER
+    PUSHBUTTON      "Default",IDC_BUTTON1,156,62,44,14
+END
+
+IDD_PPAGEFILTERS DIALOGEX 0, 0, 296, 200
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    LISTBOX         IDC_LIST1,6,5,208,102,LBS_OWNERDRAWFIXED | 
+                    LBS_HASSTRINGS | LBS_NOINTEGRALHEIGHT | WS_VSCROLL | 
+                    WS_TABSTOP
+    PUSHBUTTON      "Add Filter...",IDC_BUTTON1,220,5,69,13
+    PUSHBUTTON      "Remove",IDC_BUTTON2,220,20,69,13
+    CONTROL         "Prefer",IDC_RADIO1,"Button",BS_AUTORADIOBUTTON | 
+                    WS_GROUP,220,39,53,10
+    CONTROL         "Block",IDC_RADIO2,"Button",BS_AUTORADIOBUTTON,220,50,53,
+                    10
+    CONTROL         "Set merit:",IDC_RADIO3,"Button",BS_AUTORADIOBUTTON,220,
+                    61,47,10
+    EDITTEXT        IDC_EDIT1,220,73,69,12,ES_RIGHT | ES_AUTOHSCROLL | 
+                    WS_GROUP
+    PUSHBUTTON      "Up",IDC_BUTTON11,220,95,33,13
+    PUSHBUTTON      "Down",IDC_BUTTON6,256,95,33,13
+    CONTROL         "",IDC_STATIC,"Static",SS_ETCHEDHORZ,6,112,283,1
+    CONTROL         "",IDC_TREE2,"SysTreeView32",TVS_HASBUTTONS | 
+                    TVS_HASLINES | TVS_LINESATROOT | TVS_SHOWSELALWAYS | 
+                    WS_BORDER | WS_TABSTOP,6,117,208,81
+    PUSHBUTTON      "Add Media Type...",IDC_BUTTON13,220,117,69,13
+    PUSHBUTTON      "Add Sub Type...",IDC_BUTTON14,220,132,69,13
+    PUSHBUTTON      "Delete",IDC_BUTTON9,220,147,69,13
+    PUSHBUTTON      "Reset List",IDC_BUTTON10,220,185,69,13
+END
+
+IDD_FILEPROPDETAILS DIALOGEX 0, 0, 234, 202
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    ICON            "",IDC_DEFAULTICON,8,8,20,20,SS_REALSIZEIMAGE
+    EDITTEXT        IDC_EDIT1,35,16,186,12,ES_AUTOHSCROLL | ES_READONLY | 
+                    NOT WS_BORDER
+    CONTROL         "",IDC_STATIC,"Static",SS_ETCHEDHORZ,8,35,213,1
+    LTEXT           "Type:",IDC_STATIC,40,42,20,8
+    EDITTEXT        IDC_EDIT4,73,42,148,13,ES_AUTOHSCROLL | ES_READONLY | 
+                    NOT WS_BORDER
+    LTEXT           "Size:",IDC_STATIC,44,55,16,8
+    EDITTEXT        IDC_EDIT3,73,55,148,13,ES_AUTOHSCROLL | ES_READONLY | 
+                    NOT WS_BORDER
+    LTEXT           "Media length:",IDC_STATIC,16,68,44,8
+    EDITTEXT        IDC_EDIT2,73,68,148,13,ES_AUTOHSCROLL | ES_READONLY | 
+                    NOT WS_BORDER
+    LTEXT           "Video size:",IDC_STATIC,25,81,35,8
+    EDITTEXT        IDC_EDIT5,73,81,148,13,ES_AUTOHSCROLL | ES_READONLY | 
+                    NOT WS_BORDER
+    LTEXT           "Created:",IDC_STATIC,30,94,30,8
+    EDITTEXT        IDC_EDIT6,73,94,148,13,ES_AUTOHSCROLL | ES_READONLY | 
+                    NOT WS_BORDER
+    CONTROL         "",IDC_STATIC,"Static",SS_ETCHEDHORZ,8,114,213,1
+END
+
+IDD_FILEPROPCLIP DIALOGEX 0, 0, 234, 202
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    ICON            "",IDC_DEFAULTICON,8,8,20,20,SS_REALSIZEIMAGE
+    EDITTEXT        IDC_EDIT1,35,16,186,12,ES_AUTOHSCROLL | ES_READONLY | 
+                    NOT WS_BORDER
+    CONTROL         "",IDC_STATIC,"Static",SS_ETCHEDHORZ,8,35,213,1
+    LTEXT           "Clip:",IDC_STATIC,8,42,15,8
+    EDITTEXT        IDC_EDIT4,58,42,163,13,ES_AUTOHSCROLL | ES_READONLY | 
+                    NOT WS_BORDER
+    LTEXT           "Author:",IDC_STATIC,8,55,26,8
+    EDITTEXT        IDC_EDIT3,58,55,163,13,ES_AUTOHSCROLL | ES_READONLY | 
+                    NOT WS_BORDER
+    LTEXT           "Copyright:",IDC_STATIC,8,68,35,8
+    EDITTEXT        IDC_EDIT2,58,68,163,13,ES_AUTOHSCROLL | ES_READONLY | 
+                    NOT WS_BORDER
+    LTEXT           "Rating:",IDC_STATIC,8,81,24,8
+    EDITTEXT        IDC_EDIT5,58,81,163,13,ES_AUTOHSCROLL | ES_READONLY | 
+                    NOT WS_BORDER
+    CONTROL         "",IDC_STATIC,"Static",SS_ETCHEDHORZ,8,101,213,1
+    LTEXT           "Location:",IDC_STATIC,8,108,30,8
+    EDITTEXT        IDC_EDIT6,58,108,163,12,ES_AUTOHSCROLL | ES_READONLY | 
+                    NOT WS_BORDER
+    CONTROL         "",IDC_STATIC,"Static",SS_ETCHEDHORZ,8,123,213,1
+    LTEXT           "Description:",IDC_STATIC,8,132,39,8
+    EDITTEXT        IDC_EDIT7,58,132,144,47,ES_MULTILINE | ES_AUTOHSCROLL | 
+                    ES_READONLY
+END
+
+IDD_PPAGERMQT DIALOGEX 0, 0, 295, 194
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    GROUPBOX        "RealMedia renderer settings",IDC_STATIC,6,4,282,48
+    CONTROL         "Use special renderer for subtitling (works under every Windows version)",
+                    IDC_CHECK1,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,14,19,
+                    247,10
+    CONTROL         "Allow interaction with video (needs re-opening)",
+                    IDC_CHECK2,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,14,34,
+                    167,10
+    GROUPBOX        "QuickTime renderer settings",IDC_STATIC,6,57,282,61
+    CONTROL         "QuickTime Movie Controller (uses overlay when available, a bit kludgy)",
+                    IDC_RADIO1,"Button",BS_AUTORADIOBUTTON | WS_GROUP,14,72,
+                    241,10
+    CONTROL         "GDI (very fast, no image filtering)",IDC_RADIO2,"Button",
+                    BS_AUTORADIOBUTTON,14,86,124,10
+    CONTROL         "DirectX7 (hw accelerated d3d card is needed, enables subtitling)",
+                    IDC_RADIO3,"Button",BS_AUTORADIOBUTTON,14,100,221,10
+    GROUPBOX        "Framerate for microdvd subtitles",IDC_STATIC,6,123,282,
+                    36,WS_GROUP
+    EDITTEXT        IDC_EDIT2,14,136,33,13,ES_CENTER | ES_AUTOHSCROLL
+    LTEXT           "Note: MPC is unable to determine the framerate of RealMedia and QuickTime sources, yet.",
+                    IDC_STATIC,60,134,220,17
+    GROUPBOX        "Real-Time Streaming Protocol handler (for rtsp://... URLs)",
+                    IDC_STATIC,6,164,282,28
+    CONTROL         "RealMedia",IDC_RADIO4,"Button",BS_AUTORADIOBUTTON | 
+                    WS_GROUP,14,177,49,10
+    CONTROL         "QuickTime",IDC_RADIO5,"Button",BS_AUTORADIOBUTTON,64,
+                    177,48,10
+    CONTROL         "DirectShow",IDC_RADIO6,"Button",BS_AUTORADIOBUTTON,113,
+                    177,52,10
+    CONTROL         "Look file extension first",IDC_CHECK3,"Button",
+                    BS_AUTOCHECKBOX | WS_GROUP | WS_TABSTOP,173,177,90,10
+END
+
+IDD_FAVADD DIALOGEX 0, 0, 252, 70
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | 
+    WS_SYSMENU
+CAPTION "Add Favorite"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    GROUPBOX        "Choose a name for your shortcut:",IDC_STATIC,7,7,238,36
+    COMBOBOX        IDC_COMBO1,15,21,222,77,CBS_DROPDOWN | CBS_AUTOHSCROLL | 
+                    WS_VSCROLL | WS_TABSTOP
+    CONTROL         "Remember position",IDC_CHECK1,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,15,51,77,10
+    PUSHBUTTON      "Cancel",IDCANCEL,139,49,50,14
+    DEFPUSHBUTTON   "OK",IDOK,195,49,50,14
+END
+
+IDD_FAVORGANIZE DIALOGEX 0, 0, 276, 174
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | 
+    WS_SYSMENU
+CAPTION "Organize Favorites"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    CONTROL         "",IDC_TAB1,"SysTabControl32",0x0,7,7,204,160
+    CONTROL         "",IDC_LIST2,"SysListView32",LVS_REPORT | LVS_SINGLESEL | 
+                    LVS_EDITLABELS | LVS_OWNERDRAWFIXED | LVS_ALIGNLEFT | 
+                    LVS_NOCOLUMNHEADER | WS_BORDER | WS_TABSTOP,10,22,197,
+                    141,WS_EX_CLIENTEDGE
+    PUSHBUTTON      "Rename",IDC_BUTTON1,219,19,50,14
+    PUSHBUTTON      "Move Up",IDC_BUTTON3,219,41,50,14
+    PUSHBUTTON      "Move Down",IDC_BUTTON7,219,59,50,14
+    PUSHBUTTON      "Delete",IDC_BUTTON2,219,82,50,14
+    DEFPUSHBUTTON   "OK",IDOK,219,153,50,14
+END
+
+IDD_PNSPRESETDIALOG DIALOGEX 0, 0, 203, 121
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | 
+    WS_SYSMENU
+CAPTION "Pan&Scan Presets"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    LISTBOX         IDC_LIST1,7,7,123,50,LBS_NOINTEGRALHEIGHT | WS_VSCROLL | 
+                    WS_TABSTOP
+    EDITTEXT        IDC_EDIT1,7,60,189,13,ES_AUTOHSCROLL
+    EDITTEXT        IDC_EDIT2,135,18,29,12,ES_CENTER | ES_AUTOHSCROLL
+    EDITTEXT        IDC_EDIT3,167,18,29,12,ES_CENTER | ES_AUTOHSCROLL
+    EDITTEXT        IDC_EDIT4,135,44,29,12,ES_CENTER | ES_AUTOHSCROLL
+    EDITTEXT        IDC_EDIT5,167,44,29,12,ES_CENTER | ES_AUTOHSCROLL
+    PUSHBUTTON      "New",IDC_BUTTON2,7,77,33,12
+    PUSHBUTTON      "Delete",IDC_BUTTON6,41,77,33,12
+    PUSHBUTTON      "Up",IDC_BUTTON9,85,77,33,12
+    PUSHBUTTON      "Down",IDC_BUTTON10,119,77,33,12
+    PUSHBUTTON      "&Set",IDC_BUTTON1,163,77,33,12
+    CONTROL         "",IDC_STATIC,"Static",SS_ETCHEDHORZ,8,93,190,1
+    PUSHBUTTON      "&Cancel",IDCANCEL,49,100,50,14
+    PUSHBUTTON      "&Save",IDOK,105,100,50,14
+    LTEXT           "Pos: 0.0 -> 1.0",IDC_STATIC,135,7,61,8
+    LTEXT           "Zoom: 0.2 -> 3.0",IDC_STATIC,135,33,61,8
+END
+
+IDD_PPAGEACCELTBL DIALOGEX 0, 0, 296, 198
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    CONTROL         "",IDC_PLACEHOLDER,"Static",SS_BLACKFRAME | NOT 
+                    WS_VISIBLE,5,5,284,152
+    CONTROL         "",IDC_CHECK1,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,5,
+                    165,10,8
+    LTEXT           "WinLIRC:",IDC_STATICLINK,19,165,30,8
+    EDITTEXT        IDC_EDIT1,53,163,77,13,ES_AUTOHSCROLL
+    CONTROL         "",IDC_CHECK9,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,5,
+                    182,10,8
+    LTEXT           "uICE:",IDC_STATICLINK2,19,182,19,8
+    EDITTEXT        IDC_EDIT2,53,180,77,13,ES_AUTOHSCROLL
+    PUSHBUTTON      "Select All",IDC_BUTTON1,230,162,59,14
+    PUSHBUTTON      "Reset Selected",IDC_BUTTON2,230,179,59,14
+END
+
+IDD_MEDIATYPESDIALOG DIALOGEX 0, 0, 296, 219
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | 
+    WS_SYSMENU
+EXSTYLE WS_EX_TOOLWINDOW
+CAPTION "Warning"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    LTEXT           "Media Player Classic could not render some of the pins in the graph, you may not have the needed codecs or filters installed on the system.",
+                    IDC_STATIC,7,7,282,18
+    LTEXT           "The following pin(s) failed to find a connectable filter:",
+                    IDC_STATIC,7,28,282,11
+    COMBOBOX        IDC_COMBO1,7,39,282,87,CBS_DROPDOWNLIST | WS_VSCROLL | 
+                    WS_TABSTOP
+    EDITTEXT        IDC_EDIT1,7,55,282,138,ES_MULTILINE | ES_AUTOHSCROLL | 
+                    ES_READONLY | WS_VSCROLL | WS_HSCROLL
+    PUSHBUTTON      "Look for codecs on the net",IDC_BUTTON1,7,198,109,14
+    DEFPUSHBUTTON   "Close",IDOK,239,198,50,14
+END
+
+IDD_SAVEDIALOG DIALOGEX 0, 0, 250, 84
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | 
+    WS_SYSMENU
+CAPTION "Saving..."
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    CONTROL         "",IDC_ANIMATE1,"SysAnimate32",ACS_CENTER | 
+                    ACS_TRANSPARENT | WS_TABSTOP,7,3,187,30
+    CONTROL         "Static",IDC_FROMTO,"Static",SS_LEFTNOWORDWRAP | 
+                    WS_GROUP,7,38,235,17
+    CONTROL         "",IDC_PROGRESS1,"msctls_progress32",WS_BORDER,7,63,190,
+                    8
+    LTEXT           "",IDC_REPORT,7,74,189,8
+    PUSHBUTTON      "Cancel",IDCANCEL,203,62,39,14
+END
+
+IDD_SAVETEXTFILEDIALOGTEMPL DIALOGEX 0, 0, 304, 20
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD | WS_CLIPSIBLINGS | 
+    WS_CLIPCHILDREN
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    LTEXT           "Encoding:",IDC_STATIC,68,2,32,8
+    COMBOBOX        IDC_COMBO1,130,0,164,46,CBS_DROPDOWNLIST | WS_VSCROLL | 
+                    WS_TABSTOP
+END
+
+IDD_SAVETEXTFILEDIALOGTEMPL_400 DIALOGEX 0, 0, 222, 18
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD | WS_CLIPSIBLINGS | 
+    WS_CLIPCHILDREN
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    LTEXT           "Encoding:",IDC_STATIC,5,2,32,8
+    COMBOBOX        IDC_COMBO1,54,0,155,66,CBS_DROPDOWNLIST | WS_VSCROLL | 
+                    WS_TABSTOP
+END
+
+IDD_COMPROPERTYPAGE DIALOGEX 0, 0, 5, 5
+STYLE DS_SETFONT | WS_CHILD
+FONT 8, "MS Sans Serif", 0, 0, 0x0
+BEGIN
+END
+
+IDD_ADDREGFILTER DIALOGEX 0, 0, 202, 254
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | 
+    WS_SYSMENU
+CAPTION "Select Filter"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    LISTBOX         IDC_LIST1,5,5,192,226,LBS_SORT | LBS_NOINTEGRALHEIGHT | 
+                    WS_VSCROLL | WS_TABSTOP
+    PUSHBUTTON      "Browse...",IDC_BUTTON1,5,235,50,14
+    DEFPUSHBUTTON   "OK",IDOK,92,235,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,147,235,50,14
+END
+
+IDD_PPAGESUBSTYLE DIALOGEX 0, 0, 296, 198
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    GROUPBOX        "Font",IDC_STATIC,4,2,106,123
+    PUSHBUTTON      "Font",IDC_BUTTON1,11,13,89,13
+    COMBOBOX        IDC_COMBO1,11,30,90,52,CBS_DROPDOWNLIST | WS_VSCROLL | 
+                    WS_TABSTOP
+    LTEXT           "Spacing",IDC_STATIC,11,50,26,8
+    EDITTEXT        IDC_EDIT3,66,48,35,13,ES_RIGHT | ES_AUTOHSCROLL
+    CONTROL         "",IDC_SPIN3,"msctls_updown32",UDS_SETBUDDYINT | 
+                    UDS_ALIGNRIGHT | UDS_AUTOBUDDY | UDS_ARROWKEYS | 
+                    UDS_NOTHOUSANDS,93,48,11,14
+    LTEXT           "Angle (z,°)",IDC_STATIC,11,69,36,8
+    EDITTEXT        IDC_EDIT11,66,67,35,13,ES_RIGHT | ES_AUTOHSCROLL | 
+                    ES_NUMBER
+    CONTROL         "",IDC_SPIN10,"msctls_updown32",UDS_WRAP | 
+                    UDS_SETBUDDYINT | UDS_ALIGNRIGHT | UDS_AUTOBUDDY | 
+                    UDS_ARROWKEYS | UDS_NOTHOUSANDS,93,67,11,14
+    LTEXT           "Scale (x,%)",IDC_STATIC,11,88,39,8
+    EDITTEXT        IDC_EDIT5,66,86,35,13,ES_RIGHT | ES_AUTOHSCROLL
+    CONTROL         "",IDC_SPIN4,"msctls_updown32",UDS_SETBUDDYINT | 
+                    UDS_ALIGNRIGHT | UDS_AUTOBUDDY | UDS_ARROWKEYS | 
+                    UDS_NOTHOUSANDS,93,86,11,14
+    LTEXT           "Scale (y,%)",IDC_STATIC,11,107,39,8
+    EDITTEXT        IDC_EDIT6,66,105,35,13,ES_RIGHT | ES_AUTOHSCROLL
+    CONTROL         "",IDC_SPIN5,"msctls_updown32",UDS_SETBUDDYINT | 
+                    UDS_ALIGNRIGHT | UDS_AUTOBUDDY | UDS_ARROWKEYS | 
+                    UDS_NOTHOUSANDS,93,105,11,14
+    GROUPBOX        "Border Style",IDC_STATIC,4,127,106,68
+    CONTROL         "Outline",IDC_RADIO1,"Button",BS_AUTORADIOBUTTON | 
+                    WS_GROUP,11,140,39,10
+    CONTROL         "Opaque box",IDC_RADIO2,"Button",BS_AUTORADIOBUTTON,50,
+                    140,52,10
+    LTEXT           "Border width",IDC_STATIC,13,158,42,8
+    EDITTEXT        IDC_EDIT1,66,155,35,13,ES_RIGHT | ES_AUTOHSCROLL | 
+                    ES_NUMBER
+    CONTROL         "",IDC_SPIN1,"msctls_updown32",UDS_SETBUDDYINT | 
+                    UDS_ALIGNRIGHT | UDS_AUTOBUDDY | UDS_ARROWKEYS | 
+                    UDS_NOTHOUSANDS,94,154,11,14
+    LTEXT           "Shadow depth",IDC_STATIC,13,177,47,8
+    EDITTEXT        IDC_EDIT2,66,174,35,13,ES_RIGHT | ES_AUTOHSCROLL | 
+                    ES_NUMBER
+    CONTROL         "",IDC_SPIN2,"msctls_updown32",UDS_SETBUDDYINT | 
+                    UDS_ALIGNRIGHT | UDS_AUTOBUDDY | UDS_ARROWKEYS | 
+                    UDS_NOTHOUSANDS,93,175,11,14
+    GROUPBOX        "Screen Alignment && Margins",IDC_STATIC,116,2,174,52
+    CONTROL         "",IDC_RADIO3,"Button",BS_AUTORADIOBUTTON | WS_GROUP,124,
+                    37,11,8
+    CONTROL         "",IDC_RADIO4,"Button",BS_AUTORADIOBUTTON,136,37,11,8
+    CONTROL         "",IDC_RADIO5,"Button",BS_AUTORADIOBUTTON,148,37,11,8
+    CONTROL         "",IDC_RADIO6,"Button",BS_AUTORADIOBUTTON,124,26,11,8
+    CONTROL         "",IDC_RADIO7,"Button",BS_AUTORADIOBUTTON,136,26,11,8
+    CONTROL         "",IDC_RADIO8,"Button",BS_AUTORADIOBUTTON,148,26,11,8
+    CONTROL         "",IDC_RADIO9,"Button",BS_AUTORADIOBUTTON,124,15,11,8
+    CONTROL         "",IDC_RADIO10,"Button",BS_AUTORADIOBUTTON,136,15,11,8
+    CONTROL         "",IDC_RADIO11,"Button",BS_AUTORADIOBUTTON,148,15,11,8
+    LTEXT           "Left",IDC_STATIC,166,17,14,8
+    EDITTEXT        IDC_EDIT7,188,14,30,14,ES_RIGHT | ES_AUTOHSCROLL
+    CONTROL         "",IDC_SPIN6,"msctls_updown32",UDS_SETBUDDYINT | 
+                    UDS_ALIGNRIGHT | UDS_AUTOBUDDY | UDS_ARROWKEYS | 
+                    UDS_NOTHOUSANDS,217,14,11,14
+    LTEXT           "Right",IDC_STATIC,166,34,18,8
+    EDITTEXT        IDC_EDIT8,188,32,30,14,ES_RIGHT | ES_AUTOHSCROLL
+    CONTROL         "",IDC_SPIN7,"msctls_updown32",UDS_SETBUDDYINT | 
+                    UDS_ALIGNRIGHT | UDS_AUTOBUDDY | UDS_ARROWKEYS | 
+                    UDS_NOTHOUSANDS,217,32,11,14
+    LTEXT           "Top",IDC_STATIC,223,17,13,8
+    EDITTEXT        IDC_EDIT9,251,14,30,14,ES_RIGHT | ES_AUTOHSCROLL
+    CONTROL         "",IDC_SPIN8,"msctls_updown32",UDS_SETBUDDYINT | 
+                    UDS_ALIGNRIGHT | UDS_AUTOBUDDY | UDS_ARROWKEYS | 
+                    UDS_NOTHOUSANDS,280,12,11,14
+    LTEXT           "Bottom",IDC_STATIC,223,34,24,8
+    EDITTEXT        IDC_EDIT10,251,32,30,14,ES_RIGHT | ES_AUTOHSCROLL
+    CONTROL         "",IDC_SPIN9,"msctls_updown32",UDS_SETBUDDYINT | 
+                    UDS_ALIGNRIGHT | UDS_AUTOBUDDY | UDS_ARROWKEYS | 
+                    UDS_NOTHOUSANDS,280,32,11,14
+    GROUPBOX        "Colors && Transparency",IDC_STATIC,116,56,174,102
+    LTEXT           "Primary",IDC_STATIC,123,74,25,8
+    CONTROL         "",IDC_COLORPRI,"Static",SS_OWNERDRAW | SS_NOTIFY,165,71,
+                    16,14,WS_EX_DLGMODALFRAME
+    CONTROL         "",IDC_SLIDER2,"msctls_trackbar32",TBS_BOTH | 
+                    TBS_NOTICKS | WS_TABSTOP,187,72,92,13
+    LTEXT           "Secondary",IDC_STATIC,123,91,34,8
+    CONTROL         "",IDC_COLORSEC,"Static",SS_OWNERDRAW | SS_NOTIFY,165,88,
+                    16,14,WS_EX_DLGMODALFRAME
+    CONTROL         "",IDC_SLIDER3,"msctls_trackbar32",TBS_BOTH | 
+                    TBS_NOTICKS | WS_TABSTOP,187,89,92,13
+    LTEXT           "Outline",IDC_STATIC,123,108,24,8
+    CONTROL         "",IDC_COLOROUTL,"Static",SS_OWNERDRAW | SS_NOTIFY,165,
+                    105,16,14,WS_EX_DLGMODALFRAME
+    CONTROL         "",IDC_SLIDER5,"msctls_trackbar32",TBS_BOTH | 
+                    TBS_NOTICKS | WS_TABSTOP,187,106,92,13
+    LTEXT           "Shadow",IDC_STATIC,123,125,26,8
+    CONTROL         "",IDC_COLORSHAD,"Static",SS_OWNERDRAW | SS_NOTIFY,165,
+                    122,16,14,WS_EX_DLGMODALFRAME
+    CONTROL         "",IDC_SLIDER6,"msctls_trackbar32",TBS_BOTH | 
+                    TBS_NOTICKS | WS_TABSTOP,187,123,92,13
+    CONTROL         "Link alpha channels",IDC_CHECK1,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,195,140,76,10
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// DESIGNINFO
+//
+
+#ifdef APSTUDIO_INVOKED
+GUIDELINES DESIGNINFO 
+BEGIN
+    IDD_SELECTMEDIATYPE, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 218
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 40
+    END
+
+    IDD_OPENCAPDEVICEDIALOG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 219
+        VERTGUIDE, 12
+        VERTGUIDE, 38
+        VERTGUIDE, 211
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 74
+    END
+
+    IDD_CAPTUREDIALOG, DIALOG
+    BEGIN
+        RIGHTMARGIN, 125
+        VERTGUIDE, 3
+        VERTGUIDE, 10
+        VERTGUIDE, 47
+        VERTGUIDE, 50
+        VERTGUIDE, 72
+        VERTGUIDE, 74
+        VERTGUIDE, 112
+        VERTGUIDE, 119
+    END
+
+    IDD_PPAGEAUDIOSWITCHER, DIALOG
+    BEGIN
+        VERTGUIDE, 7
+        VERTGUIDE, 289
+        BOTTOMMARGIN, 193
+    END
+
+    IDD_GOTODIALOG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 150
+        VERTGUIDE, 31
+        VERTGUIDE, 114
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 106
+    END
+
+    IDD_OPENDIALOG, DIALOG
+    BEGIN
+        VERTGUIDE, 196
+        VERTGUIDE, 200
+        VERTGUIDE, 218
+    END
+
+    IDD_PPAGEPLAYER, DIALOG
+    BEGIN
+        VERTGUIDE, 15
+        VERTGUIDE, 140
+        VERTGUIDE, 289
+        BOTTOMMARGIN, 192
+    END
+
+    IDD_PPAGEDVD, DIALOG
+    BEGIN
+        VERTGUIDE, 5
+        VERTGUIDE, 15
+        VERTGUIDE, 240
+        HORZGUIDE, 57
+    END
+
+    IDD_PPAGEPLAYBACK, DIALOG
+    BEGIN
+        VERTGUIDE, 5
+        VERTGUIDE, 13
+        VERTGUIDE, 164
+        VERTGUIDE, 193
+        VERTGUIDE, 289
+    END
+
+    IDD_PPAGESUBTITLES, DIALOG
+    BEGIN
+        VERTGUIDE, 5
+        VERTGUIDE, 14
+        VERTGUIDE, 281
+        VERTGUIDE, 289
+        BOTTOMMARGIN, 200
+    END
+
+    IDD_PPAGEFORMATS, DIALOG
+    BEGIN
+        VERTGUIDE, 6
+        VERTGUIDE, 289
+        HORZGUIDE, 191
+    END
+
+    IDD_PPAGETWEAKS, DIALOG
+    BEGIN
+        RIGHTMARGIN, 289
+        VERTGUIDE, 9
+        VERTGUIDE, 289
+    END
+
+    IDD_PPAGEFILTERS, DIALOG
+    BEGIN
+        VERTGUIDE, 6
+        VERTGUIDE, 214
+        VERTGUIDE, 220
+        VERTGUIDE, 289
+        HORZGUIDE, 5
+        HORZGUIDE, 107
+        HORZGUIDE, 117
+        HORZGUIDE, 198
+    END
+
+    IDD_FILEPROPDETAILS, DIALOG
+    BEGIN
+        VERTGUIDE, 8
+        VERTGUIDE, 60
+        VERTGUIDE, 73
+        VERTGUIDE, 221
+        HORZGUIDE, 42
+        HORZGUIDE, 55
+        HORZGUIDE, 68
+        HORZGUIDE, 81
+        HORZGUIDE, 94
+    END
+
+    IDD_FILEPROPCLIP, DIALOG
+    BEGIN
+        VERTGUIDE, 8
+        VERTGUIDE, 35
+        VERTGUIDE, 58
+        VERTGUIDE, 221
+        HORZGUIDE, 42
+        HORZGUIDE, 55
+        HORZGUIDE, 68
+        HORZGUIDE, 81
+        HORZGUIDE, 108
+    END
+
+    IDD_PPAGERMQT, DIALOG
+    BEGIN
+        VERTGUIDE, 6
+        VERTGUIDE, 14
+        VERTGUIDE, 60
+        VERTGUIDE, 280
+        VERTGUIDE, 288
+        HORZGUIDE, 182
+    END
+
+    IDD_FAVADD, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 245
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 63
+    END
+
+    IDD_FAVORGANIZE, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 269
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 167
+    END
+
+    IDD_PNSPRESETDIALOG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 196
+        VERTGUIDE, 135
+        VERTGUIDE, 168
+        VERTGUIDE, 196
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 114
+    END
+
+    IDD_PPAGEACCELTBL, DIALOG
+    BEGIN
+        VERTGUIDE, 5
+        VERTGUIDE, 289
+        BOTTOMMARGIN, 197
+        HORZGUIDE, 169
+        HORZGUIDE, 186
+    END
+
+    IDD_MEDIATYPESDIALOG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 289
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 212
+    END
+
+    IDD_SAVEDIALOG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 242
+        TOPMARGIN, 3
+        BOTTOMMARGIN, 82
+    END
+
+    IDD_ADDREGFILTER, DIALOG
+    BEGIN
+        LEFTMARGIN, 5
+        RIGHTMARGIN, 197
+        TOPMARGIN, 5
+        BOTTOMMARGIN, 249
+        HORZGUIDE, 231
+    END
+END
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Icon
+//
+
+// Icon with lowest ID value placed first to ensure application icon
+// remains consistent on all systems.
+IDR_MAINFRAME           ICON                    "res\\icon.ico"
+IDI_SINGLE              ICON                    "res\\single.ico"
+IDI_MULTI               ICON                    "res\\multi.ico"
+IDI_AUDIOCD             ICON                    "res\\Icon_41.ico"
+IDI_DVD                 ICON                    "res\\Icon_114.ico"
+IDI_UNKNOWN             ICON                    "res\\Icon_116.ico"
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Bitmap
+//
+
+IDB_ONOFF               BITMAP                  "res\\onoff.bmp"
+ID_PLAYERTOOLBAR        BITMAP                  "res\\toolbar1.bmp"
+IDB_MONO                BITMAP                  "res\\mono.bmp"
+IDB_STEREO              BITMAP                  "res\\stereo.bmp"
+IDB_NOAUDIO             BITMAP                  "res\\noaudio.bmp"
+IDB_LOGO                BITMAP                  "res\\ClassicMediaPlayer.bmp"
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Toolbar
+//
+
+ID_PLAYERTOOLBAR TOOLBAR  16, 16
+BEGIN
+    BUTTON      ID_PLAY_PLAY
+    BUTTON      ID_PLAY_PAUSE
+    BUTTON      ID_PLAY_STOP
+    BUTTON      ID_BUTTONSEP
+    BUTTON      ID_NAVIGATE_SKIPBACK
+    BUTTON      ID_PLAY_DECRATE
+    BUTTON      ID_PLAY_INCRATE
+    BUTTON      ID_NAVIGATE_SKIPFORWARD
+    BUTTON      ID_BUTTONSEP
+    BUTTON      ID_PLAY_FRAMESTEP
+    BUTTON      ID_BUTTONSEP
+    BUTTON      ID_DUMMYSEPARATOR
+    BUTTON      ID_VOLUME_MUTE
+    BUTTON      ID_VOLUME_MUTE_ON
+    BUTTON      ID_VOLUME_MUTE_DISABLED
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog Info
+//
+
+IDD_PPAGEPLAYBACK DLGINIT
+BEGIN
+    IDC_COMBO1, 0x403, 4, 0
+0x3035, 0x0025, 
+    IDC_COMBO1, 0x403, 5, 0
+0x3031, 0x2530, "\000" 
+    IDC_COMBO1, 0x403, 5, 0
+0x3032, 0x2530, "\000" 
+    0
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Version
+//
+
+VS_VERSION_INFO VERSIONINFO
+ FILEVERSION 6,4,5,0
+ PRODUCTVERSION 6,4,5,0
+ FILEFLAGSMASK 0x1fL
+#ifdef _DEBUG
+ FILEFLAGS 0x1L
+#else
+ FILEFLAGS 0x0L
+#endif
+ FILEOS 0x4L
+ FILETYPE 0x1L
+ FILESUBTYPE 0x0L
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "040904b0"
+        BEGIN
+            VALUE "Comments", "http://gabest.org/"
+            VALUE "CompanyName", "Gabest"
+            VALUE "FileDescription", "Media Player Classic"
+            VALUE "FileVersion", "6, 4, 5, 0"
+            VALUE "InternalName", "Media Player Classic"
+            VALUE "LegalCopyright", "Copyright (C) 2002 Gabest"
+            VALUE "OriginalFilename", "mplayerc.EXE"
+            VALUE "ProductName", "Media Player Classic"
+            VALUE "ProductVersion", "6, 4, 5, 0"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x409, 1200
+    END
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Menu
+//
+
+IDR_MAINFRAME MENU 
+BEGIN
+    POPUP "&File"
+    BEGIN
+        MENUITEM "&Open File...\tCtrl+O",       ID_FILE_OPENMEDIA
+        MENUITEM "Open &DVD...\tCtrl+D",        ID_FILE_OPENDVD
+        MENUITEM "Open De&vice...\tCtrl+V",     ID_FILE_OPENDEVICE
+        MENUITEM "Open CD-&ROM",                65535
+        MENUITEM "&Close",                      ID_FILE_CLOSEMEDIA
+        MENUITEM SEPARATOR
+        MENUITEM "&Save As...",                 ID_FILE_SAVEAS
+        MENUITEM SEPARATOR
+        MENUITEM "&Load Subtitle...\tCtrl+L",   ID_FILE_LOADSUBTITLE
+        MENUITEM "Save Subtitle...\tCtrl+S",    ID_FILE_SAVESUBTITLES
+        MENUITEM SEPARATOR
+        MENUITEM "Properties",                  ID_FILE_PROPERTIES
+        MENUITEM SEPARATOR
+        MENUITEM "E&xit\tAlt+X",                ID_FILE_EXIT
+    END
+    POPUP "&View"
+    BEGIN
+        MENUITEM "Caption&&Menu\tCtrl+0",       ID_VIEW_CAPTIONMENU
+        MENUITEM "&Seek Bar\tCtrl+1",           ID_VIEW_SEEKER
+        MENUITEM "Cont&rols\tCtrl+2",           ID_VIEW_CONTROLS
+        MENUITEM "&Information\tCtrl+3",        ID_VIEW_INFORMATION
+        MENUITEM "S&tatistics\tCtrl+4",         ID_VIEW_STATISTICS
+        MENUITEM "St&atus\tCtrl+5",             ID_VIEW_STATUS
+        MENUITEM "Subresync\tCtrl+6",           ID_VIEW_SUBRESYNC
+        MENUITEM "Playlist\tCtrl+7",            ID_VIEW_PLAYLIST
+        MENUITEM "Capture\tCtrl+8",             ID_VIEW_CAPTURE
+        POPUP "Presets..."
+        BEGIN
+            MENUITEM "Minimal",                     ID_VIEW_PRESETS_MINIMAL
+            MENUITEM "Compact",                     ID_VIEW_PRESETS_COMPACT
+            MENUITEM "Normal",                      ID_VIEW_PRESETS_NORMAL
+        END
+        MENUITEM SEPARATOR
+        MENUITEM "Fu&ll Screen\tAlt+Enter",     ID_VIEW_FULLSCREEN
+        POPUP "&Zoom"
+        BEGIN
+            MENUITEM "&50%\tAlt+1",                 ID_VIEW_ZOOM_50
+            MENUITEM "&100%\tAlt+2",                ID_VIEW_ZOOM_100
+            MENUITEM "&200%\tAlt+3",                ID_VIEW_ZOOM_200
+        END
+        MENUITEM SEPARATOR
+        POPUP "&Video Frame"
+        BEGIN
+            MENUITEM "&Half Size",                  ID_VIEW_VF_HALF
+            MENUITEM "&Normal Size",                ID_VIEW_VF_NORMAL
+            MENUITEM "&Double Size",                ID_VIEW_VF_DOUBLE
+            MENUITEM "&Stretch To Window",          ID_VIEW_VF_STRETCH
+            MENUITEM "Touch Window From &Inside",   ID_VIEW_VF_FROMINSIDE
+            MENUITEM "Touch Window From &Outside",  ID_VIEW_VF_FROMOUTSIDE
+            MENUITEM SEPARATOR
+            MENUITEM "&Keep Aspect Ratio",          ID_VIDEOFRAME_KEEPASPECTRATIO
+
+        END
+        POPUP "Pan&&S&can"
+        BEGIN
+            MENUITEM "Increase Size\tNumpad 9",     ID_VIEW_INCSIZE
+            MENUITEM "Decrease Size\tNumpad 1",     ID_VIEW_DECSIZE
+            MENUITEM "Increase Width\tNumpad 6",    ID_VIEW_INCWIDTH
+            MENUITEM "Decrease Width\tNumpad 4",    ID_VIEW_DECWIDTH
+            MENUITEM "Increase Height\tNumpad 8",   ID_VIEW_INCHEIGHT
+            MENUITEM "Decrease Height\tNumpad 2",   ID_VIEW_DECHEIGHT
+            MENUITEM SEPARATOR
+            MENUITEM "Move Right\tCtrl+Numpad 6",   ID_PANSCAN_MOVERIGHT
+            MENUITEM "Move Left\tCtrl+Numpad 4",    ID_PANSCAN_MOVELEFT
+            MENUITEM "Move Up\tCtrl+Numpad 8",      ID_PANSCAN_MOVEUP
+            MENUITEM "Move Down\tCtrl+Numpad 2",    ID_PANSCAN_MOVEDOWN
+            MENUITEM "Center\tCtrl+Numpad 5",       ID_PANSCAN_CENTER
+            MENUITEM SEPARATOR
+            MENUITEM "Reset\tNumpad 5",             ID_VIEW_RESET
+        END
+        MENUITEM SEPARATOR
+        MENUITEM "Al&ways On Top\tCtrl+T",      ID_VIEW_ALWAYSONTOP
+        MENUITEM "&Options...",                 ID_VIEW_OPTIONS
+    END
+    POPUP "&Play"
+    BEGIN
+        MENUITEM "&Play/Pause\tSpace",          ID_PLAY_PLAYPAUSE
+        MENUITEM "&Stop\tPeriod",               ID_PLAY_STOP
+        MENUITEM "F&rame Step\tRight",          ID_PLAY_FRAMESTEP
+        MENUITEM "&Go To...\tCtrl+G",           ID_PLAY_GOTO
+        MENUITEM SEPARATOR
+        MENUITEM "&Decrease Rate\tCtrl+Down",   ID_PLAY_DECRATE
+        MENUITEM "&Increase Rate\tCtrl+Up",     ID_PLAY_INCRATE
+        MENUITEM SEPARATOR
+        MENUITEM "&Filters",                    ID_PLAY_FILTERS
+        MENUITEM SEPARATOR
+        MENUITEM "&Audio",                      ID_PLAY_AUDIO
+        MENUITEM "Su&btitles",                  ID_PLAY_SUBTITLES
+        MENUITEM SEPARATOR
+        POPUP "Vol&ume"
+        BEGIN
+            MENUITEM "&Up\tUp Arrow",               ID_VOLUME_UP
+            MENUITEM "&Down\tDown Arrow",           ID_VOLUME_DOWN
+            MENUITEM "&Mute\tCtrl+M",               ID_VOLUME_MUTE
+        END
+    END
+    POPUP "&Navigate"
+    BEGIN
+        MENUITEM "&Previous\tPage Up",          ID_NAVIGATE_SKIPBACK
+        MENUITEM "&Next\tPage Down",            ID_NAVIGATE_SKIPFORWARD
+        MENUITEM "&Jump To...",                 ID_NAVIGATE_JUMPTO
+        MENUITEM SEPARATOR
+        MENUITEM "A&udio Language",             65535
+        MENUITEM "Su&btitle Language",          65535
+        MENUITEM "Video Ang&le",                65535
+        MENUITEM SEPARATOR
+        MENUITEM "Title Menu",                  ID_NAVIGATE_TITLEMENU
+        MENUITEM "&Root Menu",                  ID_NAVIGATE_ROOTMENU
+        MENUITEM "&Subtitle Menu",              ID_NAVIGATE_SUBPICTUREMENU
+        MENUITEM "&Audio Menu",                 ID_NAVIGATE_AUDIOMENU
+        MENUITEM "An&gle Menu",                 ID_NAVIGATE_ANGLEMENU
+        MENUITEM "&Chapter Menu",               ID_NAVIGATE_CHAPTERMENU
+    END
+    MENUITEM "F&avorites",                  ID_FAVORITES
+    POPUP "&Help"
+    BEGIN
+        MENUITEM "Home Page",                   ID_HELP_HOMEPAGE
+        MENUITEM "Command Line Switches",       ID_HELP_SHOWCOMMANDLINESWITCHES
+
+        MENUITEM SEPARATOR
+        MENUITEM "Donate!",                     ID_HELP_DONATE
+        MENUITEM SEPARATOR
+        MENUITEM "&About...",                   ID_HELP_ABOUT
+    END
+END
+
+IDR_POPUP MENU 
+BEGIN
+    POPUP ""
+    BEGIN
+        MENUITEM "&Play/Pause",                 ID_PLAY_PLAYPAUSE
+        MENUITEM "&Stop",                       ID_PLAY_STOP
+        MENUITEM SEPARATOR
+        MENUITEM "Fu&ll Screen",                ID_VIEW_FULLSCREEN
+        POPUP "&Zoom"
+        BEGIN
+            MENUITEM "&50%\tAlt+1",                 ID_VIEW_ZOOM_50
+            MENUITEM "&100%\tAlt+2",                ID_VIEW_ZOOM_100
+            MENUITEM "&200%\tAlt+3",                ID_VIEW_ZOOM_200
+        END
+        MENUITEM SEPARATOR
+        POPUP "&Video Frame"
+        BEGIN
+            MENUITEM "&Half Size",                  ID_VIEW_VF_HALF
+            MENUITEM "&Normal Size",                ID_VIEW_VF_NORMAL
+            MENUITEM "&Double Size",                ID_VIEW_VF_DOUBLE
+            MENUITEM "&Stretch To Window",          ID_VIEW_VF_STRETCH
+            MENUITEM "Touch Window From &Inside",   ID_VIEW_VF_FROMINSIDE
+            MENUITEM "Touch Window From &Outside",  ID_VIEW_VF_FROMOUTSIDE
+            MENUITEM SEPARATOR
+            MENUITEM "&Keep Aspect Ratio",          319
+        END
+        POPUP "Pan&&S&can"
+        BEGIN
+            MENUITEM "Increase Size\tNumpad 9",     ID_VIEW_INCSIZE
+            MENUITEM "Decrease Size\tNumpad 1",     ID_VIEW_DECSIZE
+            MENUITEM "Increase Width\tNumpad 6",    ID_VIEW_INCWIDTH
+            MENUITEM "Decrease Width\tNumpad 4",    ID_VIEW_DECWIDTH
+            MENUITEM "Increase Height\tNumpad 8",   ID_VIEW_INCHEIGHT
+            MENUITEM "Decrease Height\tNumpad 2",   ID_VIEW_DECHEIGHT
+            MENUITEM SEPARATOR
+            MENUITEM "Move Right\tCtrl+Numpad 6",   ID_PANSCAN_MOVERIGHT
+            MENUITEM "Move Left\tCtrl+Numpad 4",    ID_PANSCAN_MOVELEFT
+            MENUITEM "Move Up\tCtrl+Numpad 8",      ID_PANSCAN_MOVEUP
+            MENUITEM "Move Down\tCtrl+Numpad 2",    ID_PANSCAN_MOVEDOWN
+            MENUITEM "Center\tCtrl+Numpad 5",       ID_PANSCAN_CENTER
+            MENUITEM SEPARATOR
+            MENUITEM "Reset\tNumpad 5",             ID_VIEW_RESET
+        END
+        MENUITEM SEPARATOR
+        POPUP "&Navigate"
+        BEGIN
+            MENUITEM "&Previous\tPage Up",          ID_NAVIGATE_SKIPBACK
+            MENUITEM "&Next\tPage Down",            ID_NAVIGATE_SKIPFORWARD
+            MENUITEM "&Jump To...",                 ID_NAVIGATE_JUMPTO289
+            MENUITEM SEPARATOR
+            MENUITEM "A&udio Language",             65535
+            MENUITEM "Su&btitle Language",          65535
+            MENUITEM "Video Ang&le",                65535
+            MENUITEM SEPARATOR
+            MENUITEM "&Title Menu",                 ID_NAVIGATE_TITLEMENU
+            MENUITEM "&Root Menu",                  ID_NAVIGATE_ROOTMENU
+            MENUITEM "&Subtitle Menu",              ID_NAVIGATE_SUBPICTUREMENU
+
+            MENUITEM "&Audio Menu",                 ID_NAVIGATE_AUDIOMENU
+            MENUITEM "An&gle Menu",                 ID_NAVIGATE_ANGLEMENU
+            MENUITEM "&Chapter Menu",               ID_NAVIGATE_CHAPTERMENU
+        END
+        MENUITEM "&Favorites",                  65535
+        MENUITEM SEPARATOR
+        MENUITEM "&Filters",                    65535
+        MENUITEM SEPARATOR
+        MENUITEM "&Audio",                      65535
+        MENUITEM "Su&btitles",                  65535
+        MENUITEM SEPARATOR
+        POPUP "Vol&ume"
+        BEGIN
+            MENUITEM "&Up\tUp Arrow",               ID_VOLUME_UP
+            MENUITEM "&Down\tDown Arrow",           ID_VOLUME_DOWN
+            MENUITEM "&Mute\tCtrl+M",               ID_VOLUME_MUTE
+        END
+        MENUITEM SEPARATOR
+        POPUP "&View"
+        BEGIN
+            MENUITEM "Caption&&Menu",               ID_VIEW_CAPTIONMENU
+            MENUITEM "Seek Bar",                    ID_VIEW_SEEKER
+            MENUITEM "Cont&rols",                   ID_VIEW_CONTROLS
+            MENUITEM "&Information",                ID_VIEW_INFORMATION
+            MENUITEM "St&atistics",                 ID_VIEW_STATISTICS
+            MENUITEM "S&tatus",                     ID_VIEW_STATUS
+            MENUITEM "Subresync",                   ID_VIEW_SUBRESYNC
+            MENUITEM "Playlist",                    ID_VIEW_PLAYLIST
+            MENUITEM "Capture",                     ID_VIEW_CAPTURE
+            POPUP "Presets..."
+            BEGIN
+                MENUITEM "Minimal",                     ID_VIEW_PRESETS_MINIMAL
+
+                MENUITEM "Compact",                     ID_VIEW_PRESETS_COMPACT
+
+                MENUITEM "Normal",                      ID_VIEW_PRESETS_NORMAL
+
+            END
+        END
+        MENUITEM "&Options...",                 ID_VIEW_OPTIONS
+    END
+END
+
+IDR_POPUPMAIN MENU 
+BEGIN
+    POPUP ""
+    BEGIN
+        POPUP "&File"
+        BEGIN
+            MENUITEM "&Open File...\tCtrl+O",       ID_FILE_OPENMEDIA
+            MENUITEM "Open &DVD...\tCtrl+D",        ID_FILE_OPENDVD
+            MENUITEM "Open De&vice...\tCtrl+V",     ID_FILE_OPENDEVICE
+            MENUITEM "Open CD-&ROM",                ID_FILE_OPENCD314
+            MENUITEM "&Close",                      ID_FILE_CLOSEMEDIA
+            MENUITEM SEPARATOR
+            MENUITEM "&Save As...",                 313
+            MENUITEM SEPARATOR
+            MENUITEM "&Load Subtitle...\tCtrl+L",   ID_FILE_LOADSUBTITLE
+            MENUITEM "Save Subtitle...\tCtrl+S",    ID_FILE_SAVESUBTITLES
+            MENUITEM SEPARATOR
+            MENUITEM "Properties",                  ID_FILE_PROPERTIES
+        END
+        POPUP "&View"
+        BEGIN
+            MENUITEM "Caption&&Menu\tCtrl+0",       ID_VIEW_CAPTIONMENU
+            MENUITEM "&Seek Bar\tCtrl+1",           ID_VIEW_SEEKER
+            MENUITEM "Cont&rols\tCtrl+2",           ID_VIEW_CONTROLS
+            MENUITEM "&Information\tCtrl+3",        ID_VIEW_INFORMATION
+            MENUITEM "S&tatistics\tCtrl+4",         ID_VIEW_STATISTICS
+            MENUITEM "St&atus\tCtrl+5",             ID_VIEW_STATUS
+            MENUITEM "Subresync\tCtrl+6",           ID_VIEW_SUBRESYNC
+            MENUITEM "Playlist\tCtrl+7",            ID_VIEW_PLAYLIST
+            MENUITEM "Capture\tCtrl+8",             ID_VIEW_CAPTURE
+            POPUP "Presets..."
+            BEGIN
+                MENUITEM "Minimal",                     ID_VIEW_PRESETS_MINIMAL
+
+                MENUITEM "Compact",                     ID_VIEW_PRESETS_COMPACT
+
+                MENUITEM "Normal",                      ID_VIEW_PRESETS_NORMAL
+
+            END
+            MENUITEM SEPARATOR
+            MENUITEM "Fu&ll Screen\tAlt+Enter",     ID_VIEW_FULLSCREEN
+            POPUP "&Zoom"
+            BEGIN
+                MENUITEM "&50%\tAlt+1",                 ID_VIEW_ZOOM_50
+                MENUITEM "&100%\tAlt+2",                ID_VIEW_ZOOM_100
+                MENUITEM "&200%\tAlt+3",                ID_VIEW_ZOOM_200
+            END
+            MENUITEM SEPARATOR
+            POPUP "&Video Frame"
+            BEGIN
+                MENUITEM "&Half Size",                  ID_VIEW_VF_HALF
+                MENUITEM "&Normal Size",                ID_VIEW_VF_NORMAL
+                MENUITEM "&Double Size",                ID_VIEW_VF_DOUBLE
+                MENUITEM "&Stretch To Window",          ID_VIEW_VF_STRETCH
+                MENUITEM "Touch Window From &Inside",   ID_VIEW_VF_FROMINSIDE
+
+                MENUITEM "Touch Window From &Outside",  ID_VIEW_VF_FROMOUTSIDE
+
+                MENUITEM SEPARATOR
+                MENUITEM "&Keep Aspect Ratio",          319
+            END
+            POPUP "Pan&&S&can"
+            BEGIN
+                MENUITEM "Increase Size\tNumpad 9",     ID_VIEW_INCSIZE
+                MENUITEM "Decrease Size\tNumpad 1",     ID_VIEW_DECSIZE
+                MENUITEM "Increase Width\tNumpad 6",    ID_VIEW_INCWIDTH
+                MENUITEM "Decrease Width\tNumpad 4",    ID_VIEW_DECWIDTH
+                MENUITEM "Increase Height\tNumpad 8",   ID_VIEW_INCHEIGHT
+                MENUITEM "Decrease Height\tNumpad 2",   ID_VIEW_DECHEIGHT
+                MENUITEM SEPARATOR
+                MENUITEM "Move Right\tCtrl+Numpad 6",   ID_PANSCAN_MOVERIGHT
+                MENUITEM "Move Left\tCtrl+Numpad 4",    ID_PANSCAN_MOVELEFT
+                MENUITEM "Move Up\tCtrl+Numpad 8",      ID_PANSCAN_MOVEUP
+                MENUITEM "Move Down\tCtrl+Numpad 2",    ID_PANSCAN_MOVEDOWN
+                MENUITEM "Center\tCtrl+Numpad 5",       ID_PANSCAN_CENTER
+                MENUITEM SEPARATOR
+                MENUITEM "Reset\tNumpad 5",             ID_VIEW_RESET
+            END
+            MENUITEM SEPARATOR
+            MENUITEM "Al&ways On Top\tCtrl+T",      ID_VIEW_ALWAYSONTOP
+            MENUITEM "&Options...",                 ID_VIEW_OPTIONS
+        END
+        POPUP "&Play"
+        BEGIN
+            MENUITEM "&Play/Pause\tSpace",          ID_PLAY_PLAYPAUSE
+            MENUITEM "&Stop\tPeriod",               ID_PLAY_STOP
+            MENUITEM "F&rame Step\tRight",          ID_PLAY_FRAMESTEP
+            MENUITEM "&Go To...\tCtrl+G",           ID_PLAY_GOTO
+            MENUITEM SEPARATOR
+            MENUITEM "&Decrease Rate\tCtrl+Down",   ID_PLAY_DECRATE
+            MENUITEM "&Increase Rate\tCtrl+Up",     ID_PLAY_INCRATE
+        END
+        POPUP "&Navigate"
+        BEGIN
+            MENUITEM "&Previous\tPage Up",          ID_NAVIGATE_SKIPBACK
+            MENUITEM "&Next\tPage Down",            ID_NAVIGATE_SKIPFORWARD
+            MENUITEM "&Jump To...",                 ID_NAVIGATE_JUMPTO
+            MENUITEM SEPARATOR
+            MENUITEM "A&udio Language",             65535
+            MENUITEM "Su&btitle Language",          65535
+            MENUITEM "Video Ang&le",                65535
+            MENUITEM SEPARATOR
+            MENUITEM "Title Menu",                  ID_NAVIGATE_TITLEMENU
+            MENUITEM "&Root Menu",                  ID_NAVIGATE_ROOTMENU
+            MENUITEM "&Subtitle Menu",              ID_NAVIGATE_SUBPICTUREMENU
+
+            MENUITEM "&Audio Menu",                 ID_NAVIGATE_AUDIOMENU
+            MENUITEM "An&gle Menu",                 ID_NAVIGATE_ANGLEMENU
+            MENUITEM "&Chapter Menu",               ID_NAVIGATE_CHAPTERMENU
+        END
+        MENUITEM "&Favorites",                  65535
+        POPUP "&Help"
+        BEGIN
+            MENUITEM "Home Page",                   ID_HELP_HOMEPAGE
+            MENUITEM "Command Line Switches",       ID_HELP_SHOWCOMMANDLINESWITCHES
+
+            MENUITEM SEPARATOR
+            MENUITEM "Donate!",                     ID_HELP_DONATE
+            MENUITEM SEPARATOR
+            MENUITEM "&About...",                   ID_HELP_ABOUT
+        END
+        MENUITEM SEPARATOR
+        MENUITEM "&Filters",                    ID_PLAY_FILTERS
+        MENUITEM SEPARATOR
+        MENUITEM "&Audio",                      ID_PLAY_AUDIO
+        MENUITEM "Su&btitles",                  ID_PLAY_SUBTITLES
+        MENUITEM SEPARATOR
+        POPUP "Vol&ume"
+        BEGIN
+            MENUITEM "&Up\tUp Arrow",               ID_VOLUME_UP
+            MENUITEM "&Down\tDown Arrow",           ID_VOLUME_DOWN
+            MENUITEM "&Mute\tCtrl+M",               ID_VOLUME_MUTE
+        END
+        MENUITEM SEPARATOR
+        MENUITEM "E&xit\tAlt+X",                ID_FILE_EXIT
+    END
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// RT_MANIFEST
+//
+
+1                       RT_MANIFEST             "res\\mplayerc.manifest"
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// AVI
+//
+
+IDR_AVI1                AVI                     "res\\ani.avi"
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// String Table
+//
+
+STRINGTABLE 
+BEGIN
+    IDR_MAINFRAME           "Media Player Classic"
+    IDS_RS_TITLEBARTEXTSTYLE "TitleBarTextStyle"
+    IDS_RS_USEWMASFREADER   "UseWMASFReader"
+END
+
+STRINGTABLE 
+BEGIN
+    IDS_R_SETTINGS          "Settings"
+    IDS_RS_CONTROLSTATE     "ControlState"
+    IDS_RS_VOLUME           "Volume"
+    IDS_RS_MUTE             "Mute"
+    IDS_RS_BALANCE          "Balance"
+    IDS_RS_LOOP             "Loop"
+    IDS_RS_LOOPNUM          "LoopNum"
+    IDS_RS_REWIND           "Rewind"
+    IDS_RS_ZOOM             "Zoom"
+    IDS_RS_MULTIINST        "AllowMultipleInstances"
+    IDS_RS_ALWAYSONTOP      "AlwaysOnTop"
+END
+
+STRINGTABLE 
+BEGIN
+    IDS_RS_AUTOZOOM         "AutoZoom"
+    IDS_RS_FULLSCREENCTRLS  "FullScreenCtrls"
+    IDS_RS_FULLSCREENCTRLSTIMEOUT "FullScreenCtrlsTimeOut"
+    IDS_RS_VIDEORENDERERTYPE "VideoRendererType"
+    IDS_RS_VMRFLIP          "VMRFlip"
+    IDS_RS_DVDPATH          "DVDPath"
+    IDS_RS_USEDVDPATH       "UseDVDPath"
+    IDS_RS_MENULANG         "MenuLang"
+    IDS_RS_AUDIOLANG        "AudioLang"
+    IDS_RS_SUBTITLESLANG    "SubtitlesLang"
+    IDS_RS_SPLOGFONT        "SPDefaultStyle"
+    IDS_RS_SPOVERRIDEPLACEMENT "SPOverridePlacement"
+    IDS_RS_SPHORPOS         "SPHorPos"
+END
+
+STRINGTABLE 
+BEGIN
+    AFX_IDS_APP_TITLE       "Media Player Classic"
+END
+
+STRINGTABLE 
+BEGIN
+    IDS_RS_SPVERPOS         "SPVerPos"
+    IDS_RS_SPCSIZE          "SPCSize"
+    IDS_RS_SPCMAXRES        "SPCMaxRes"
+    IDS_RS_INTREALMEDIA     "IntRealMedia"
+    IDS_RS_DISABLEXPTOOLBARS "DisableXPToolbars"
+    IDS_RS_USEDEDYNAMIC     "UseDeDynamic"
+    IDS_RS_DBLCLICKFULLSCREEN "DblClickFullScreen"
+    IDS_RS_EXITFULLSCREENATTHEEND "ExitFullscreenAtTheEnd"
+    IDS_RS_AUTOSPEAKERCONF  "AutoSpeakerConf"
+    IDS_RS_REMEMBERWINDOWPOS "RememberWindowPos"
+    IDS_RS_LASTWINDOWRECT   "LastWindowRect"
+    IDS_RS_AUDIORENDERERTYPE "AudioRendererType"
+    IDS_RS_SPEAKERTOCHANNELMAPPING "SpeakerToChannelMapping"
+END
+
+STRINGTABLE 
+BEGIN
+    IDD_PPAGEPLAYBACK       "Playback"
+    IDD_PPAGEPLAYER         "Player"
+    IDD_PPAGEDVD            "Playback::DVD/OGM"
+    IDD_PPAGESUBTITLES      "Subtitles"
+    IDD_PPAGEFORMATS        "Player::Formats"
+END
+
+STRINGTABLE 
+BEGIN
+    IDD_PPAGEAUDIOSWITCHER  "Filters::Audio Switcher"
+END
+
+STRINGTABLE 
+BEGIN
+    IDD_PPAGETWEAKS         "Tweaks"
+END
+
+STRINGTABLE 
+BEGIN
+    IDD_PPAGERMQT           "Playback::RM/QT"
+    IDD_PPAGEACCELTBL       "Player::Keys"
+END
+
+STRINGTABLE 
+BEGIN
+    IDD_PPAGEFILTERS        "Filters"
+    IDD_FILEPROPDETAILS     "Details"
+    IDD_FILEPROPCLIP        "Clip"
+END
+
+STRINGTABLE 
+BEGIN
+    IDS_RS_CUSTOMCHANNELMAPPING "CustomChannelMapping"
+    IDS_RS_DOWNSAMPLETO441  "DownSampleTo441"
+    IDS_RS_ENABLEAUDIOSWITCHER "EnableAudioSwitcher"
+    IDS_RS_HIDECAPTIONMENU  "HideCaptionMenu"
+    IDS_R_FILTERS           "Filters"
+    IDS_RS_DEFAULTVIDEOFRAME "DefaultVideoFrame"
+    IDS_RS_REMEMBERWINDOWSIZE "RememberWindowSize"
+    IDS_RS_REALMEDIARENDERLESS "RealMediaRenderless"
+    IDS_RS_QUICKTIMERENDERER "QuickTimeRenderer"
+    IDS_RS_REALMEDIAFPS     "RealMediaFPS"
+    IDS_RS_AUDIOTIMESHIFT   "AudioTimeShift"
+    IDS_RS_ENABLEAUDIOTIMESHIFT "EnableAudioTimeShift"
+    IDS_R_FAVFILES          "Favorites\\Files"
+    IDS_R_FAVDVDS           "Favorites\\DVDs"
+    IDS_R_FAVDEVICES        "Favorites\\Devices"
+END
+
+STRINGTABLE 
+BEGIN
+    IDS_RS_LOGOFILE         "LogoFile"
+    IDS_RS_ENABLEWORKERTHREADFOROPENING "EnableWorkerThreadForOpening"
+    IDS_RS_PNSPRESETS       "PnSPresets"
+    IDS_RS_AUTOLOADAUDIO    "AutoloadAudio"
+    IDS_RS_AUTOLOADSUBTITLES "AutoloadSubtitles"
+    IDS_RS_SEARCHKEYFRAMES  "SearchKeyframes"
+    IDS_RS_ACCELTBL         "AccelTbl"
+    IDS_RS_SETFULLSCREENRES "SetFullscreenRes"
+    IDS_RS_FULLSCREENRES    "FullscreenRes"
+    IDS_RS_WINLIRCADDR      "WinLircAddr"
+    IDS_R_COMMANDS          "Commands"
+    IDS_RS_WINLIRC          "UseWinLirc"
+    IDS_RS_TRAYICON         "TrayIcon"
+    IDS_RS_KEEPASPECTRATIO  "KeepAspectRatio"
+    IDS_RS_UICEADDR         "UICEAddr"
+    IDS_RS_UICE             "UseUICE"
+END
+
+STRINGTABLE 
+BEGIN
+    IDS_RS_JUMPDISTS        "JumpDistS"
+    IDS_RS_JUMPDISTM        "JumpDistM"
+    IDS_RS_JUMPDISTL        "JumpDistL"
+    IDS_RS_REPORTFAILEDPINS "ReportFailedPins"
+END
+
+STRINGTABLE 
+BEGIN
+    IDD_PPAGESUBSTYLE       "Subtitles::Default Style"
+END
+
+#endif    // English (U.S.) resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+
+#ifndef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 3 resource.
+//
+#define _AFX_NO_SPLITTER_RESOURCES
+#define _AFX_NO_OLE_RESOURCES
+#define _AFX_NO_TRACKER_RESOURCES
+#define _AFX_NO_PROPERTY_RESOURCES
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
+LANGUAGE 9, 1
+#pragma code_page(1252)
+#include "afxres.rc"         // Standard components
+#endif
+/////////////////////////////////////////////////////////////////////////////
+#endif    // not APSTUDIO_INVOKED
+
