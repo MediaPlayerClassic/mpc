@@ -2695,23 +2695,23 @@ BOOL CMainFrame::OnCopyData(CWnd* pWnd, COPYDATASTRUCT* pCDS)
 		}
 	}
 
-	if(s.nCLSwitches & CLSW_DVD)
+	if((s.nCLSwitches&CLSW_DVD) && !s.slFiles.IsEmpty())
 	{
 		SendMessage(WM_COMMAND, ID_FILE_CLOSEMEDIA);
 
 		CAutoPtr<OpenDVDData> p(new OpenDVDData());
-		if(p) {p->path = s.strFile; p->subs.AddTail(&s.slSubs);}
+		if(p) {p->path = s.slFiles.GetHead(); p->subs.AddTail(&s.slSubs);}
 		OpenMedia(p);
 	}
-	else if(s.nCLSwitches & CLSW_CD)
+	else if(s.nCLSwitches&CLSW_CD)
 	{
 		SendMessage(WM_COMMAND, ID_FILE_CLOSEMEDIA);
 
 		CStringList sl;
 
-		if(!s.strFile.IsEmpty())
+		if(!s.slFiles.IsEmpty())
 		{
-			GetCDROMType(s.strFile[0], sl);
+			GetCDROMType(s.slFiles.GetHead()[0], sl);
 		}
 		else
 		{
@@ -2725,15 +2725,17 @@ BOOL CMainFrame::OnCopyData(CWnd* pWnd, COPYDATASTRUCT* pCDS)
 		m_wndPlaylistBar.Open(sl, true);
 		OpenCurPlaylistItem();
 	}
-	else if(!s.strFile.IsEmpty())
+	else if(!s.slFiles.IsEmpty())
 	{
+		bool fMulti = s.slFiles.GetCount() > 1;
+
 		CStringList sl;
-		sl.AddTail(s.strFile);
-		sl.AddTail((CStringList*)&s.slDubs);
+		sl.AddTail((CStringList*)&s.slFiles);
+		if(!fMulti) sl.AddTail((CStringList*)&s.slDubs);
 
 		if((s.nCLSwitches&CLSW_ADD) && m_wndPlaylistBar.GetCount() > 0)
 		{
-			m_wndPlaylistBar.Append(sl, false, &s.slSubs);
+			m_wndPlaylistBar.Append(sl, fMulti, &s.slSubs);
 
  			if(s.nCLSwitches&(CLSW_OPEN|CLSW_PLAY))
 			{
@@ -2745,7 +2747,7 @@ BOOL CMainFrame::OnCopyData(CWnd* pWnd, COPYDATASTRUCT* pCDS)
 		{
 			SendMessage(WM_COMMAND, ID_FILE_CLOSEMEDIA);
 
-			m_wndPlaylistBar.Open(sl, false, &s.slSubs);
+			m_wndPlaylistBar.Open(sl, fMulti, &s.slSubs);
 			OpenCurPlaylistItem();
 		}
 	}
