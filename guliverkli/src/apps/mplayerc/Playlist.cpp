@@ -121,7 +121,7 @@ void CPlaylist::SortById()
 	for(int i = 0; i < a.GetCount(); i++)
 	{
 		AddTail(GetAt(a[i].pos));
-		RemoveAt(a[i].pos);
+		__super::RemoveAt(a[i].pos);
 		if(m_pos == a[i].pos) m_pos = GetTailPosition(); 
 	}
 }
@@ -141,7 +141,7 @@ void CPlaylist::SortByName()
 	for(int i = 0; i < a.GetCount(); i++)
 	{
 		AddTail(GetAt(a[i].pos));
-		RemoveAt(a[i].pos);
+		__super::RemoveAt(a[i].pos);
 		if(m_pos == a[i].pos) m_pos = GetTailPosition(); 
 	}
 }
@@ -157,7 +157,7 @@ void CPlaylist::SortByPath()
 	for(int i = 0; i < a.GetCount(); i++)
 	{
 		AddTail(GetAt(a[i].pos));
-		RemoveAt(a[i].pos);
+		__super::RemoveAt(a[i].pos);
 		if(m_pos == a[i].pos) m_pos = GetTailPosition(); 
 	}
 }
@@ -175,8 +175,9 @@ void CPlaylist::Randomize()
 	for(int i = 0; i < a.GetCount(); i++)
 	{
 		AddTail(GetAt(a[i].pos));
-		RemoveAt(a[i].pos);
-		if(m_pos == a[i].pos) m_pos = GetTailPosition(); 
+		__super::RemoveAt(a[i].pos);
+		if(m_pos == a[i].pos)
+			m_pos = GetTailPosition(); 
 	}
 }
 
