@@ -45,9 +45,9 @@ protected:
 	CAutoPtr<CAviFile> m_pFile;
 	HRESULT CreateOutputs(IAsyncReader* pAsyncReader);
 
-	bool InitDeliverLoop();
-	void SeekDeliverLoop(REFERENCE_TIME rt);
-	bool DoDeliverLoop();
+	bool DemuxInit();
+	void DemuxSeek(REFERENCE_TIME rt);
+	bool DemuxLoop();
 
 	HRESULT ReIndex(__int64 end, UINT64* pSize);
 

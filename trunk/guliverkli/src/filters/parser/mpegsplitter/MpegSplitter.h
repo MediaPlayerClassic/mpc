@@ -33,9 +33,9 @@ protected:
 	CAutoPtr<CMpegSplitterFile> m_pFile;
 	HRESULT CreateOutputs(IAsyncReader* pAsyncReader);
 
-	bool InitDeliverLoop();
-	void SeekDeliverLoop(REFERENCE_TIME rt);
-	bool DoDeliverLoop();
+	bool DemuxInit();
+	void DemuxSeek(REFERENCE_TIME rt);
+	bool DemuxLoop();
 
 	HRESULT DemuxNextPacket(REFERENCE_TIME rtStartOffset);
 

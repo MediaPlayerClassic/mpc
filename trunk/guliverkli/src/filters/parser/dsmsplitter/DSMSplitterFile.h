@@ -26,7 +26,7 @@ class CDSMSplitterFile : public CBaseSplitterFile
 public:
 	CDSMSplitterFile(IAsyncReader* pReader, HRESULT& hr);
 
-	CMap<BYTE,BYTE,CMediaType,CMediaType&> m_mts;
+	CAtlMap<BYTE, CMediaType> m_mts;
 	REFERENCE_TIME m_rtFirst, m_rtDuration;
 
 	struct SyncPoint {REFERENCE_TIME rt; __int64 fp;};
@@ -35,12 +35,17 @@ public:
 	struct Chapter {REFERENCE_TIME rt; CStringW name;};
 	CArray<Chapter> m_cs;
 
+	typedef CAtlMap<CStringA, CStringW, CStringElementTraits<CStringA>, CStringElementTraits<CStringW> > CStreamInfoMap;
+	CStreamInfoMap m_fim;
+	CAtlMap<BYTE, CStreamInfoMap> m_sim;
+
 	bool Sync(dsmp_t& type, UINT64& len, UINT64 limit = 65536);
 	bool Sync(UINT64& syncpos, dsmp_t& type, UINT64& len, UINT64 limit = 65536);
 	bool Read(UINT64 len, BYTE& id, CMediaType& mt);
 	bool Read(UINT64 len, Packet* p, bool fData = true);
 	bool Read(UINT64 len, CArray<SyncPoint>& sps);
 	bool Read(UINT64 len, CArray<Chapter>& cs);
+	bool Read(UINT64 len, CStreamInfoMap& im);
 	
 	__int64 FindSyncPoint(REFERENCE_TIME rt);
 };

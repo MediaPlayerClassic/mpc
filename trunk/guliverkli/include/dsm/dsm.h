@@ -1,11 +1,30 @@
+/* 
+ *	Copyright (C) 2003-2004 Gabest
+ *	http://www.gabest.org
+ *
+ *  This Program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2, or (at your option)
+ *  any later version.
+ *   
+ *  This Program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ *  GNU General Public License for more details.
+ *   
+ *  You should have received a copy of the GNU General Public License
+ *  along with GNU Make; see the file COPYING.  If not, write to
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  http://www.gnu.org/copyleft/gpl.html
+ *
+ */
+
 #pragma once
 
-//#define DSMSW 0x44534D5357ui64
-//#define DSMSW_SIZE 5
 #define DSMSW 0x44534D53ui64
 #define DSMSW_SIZE 4
 
-enum dsmp_t {DSMP_FILE, DSMP_STREAMINFO, DSMP_MEDIATYPE, DSMP_CHAPTERS, DSMP_SAMPLE, DSMP_SYNCPOINTS};
+enum dsmp_t {DSMP_FILEINFO, DSMP_STREAMINFO, DSMP_MEDIATYPE, DSMP_CHAPTERS, DSMP_SAMPLE, DSMP_SYNCPOINTS};
 
 /*
 
@@ -13,11 +32,17 @@ enum dsmp_t {DSMP_FILE, DSMP_STREAMINFO, DSMP_MEDIATYPE, DSMP_CHAPTERS, DSMP_SAM
 The .dsm file structure
 -----------------------
 
-File + MediaType*N [+ StreamInfo [+ SyncPoints] + Chapters] + Sample*M [+ SyncPoints]
+FileInfo + Header Packets + Samples + Footer Packets
+
+Header & Footer Packets:
+- MediaType: required
+- StreamInfo: optional
+- Chapters: optional
+- SyncPoints: optional
 
 Notes: 
-- SyncPoints is optional (may appear before or after the samples), seeking can be performed by searching for packet syncpoints and their timestamps.
-- This layout is fine for streaming. (TODO: introduce NewSegment packet, but _only_ for streaming)
+- SyncPoints is optional because seeking can be performed simply by searching for packet syncpoints and their timestamps.
+- This layout is fine for streaming. On connection send everything up to Sample packets, then the rest. (TODO: introduce NewSegment packet, but _only_ for streaming, to support seeking)
 - The resolution of timestamp and duration is 100ns.
 - Strings are zero terminated utf-8 strings.
 
@@ -25,29 +50,33 @@ Packet
 ------
 
 DSMSW (DSMSW_SIZE bytes) (DirectShow Media SyncWord)
-enum dsmp_t {DSMP_FILE, DSMP_STREAMINFO, DSMP_MEDIATYPE, DSMP_CHAPTERS, DSMP_SAMPLE, DSMP_SYNCPOINTS} (5 bits)
+enum dsmp_t {DSMP_FILEINFO, DSMP_STREAMINFO, DSMP_MEDIATYPE, DSMP_CHAPTERS, DSMP_SAMPLE, DSMP_SYNCPOINTS} (5 bits)
 data size length (3 bits -> 1-8 bytes)
 data size (1-8 bytes)
 
 [... data ...]
 
-File : extends Packet (dsmp_t: DSMP_FILE)
------------------------------------------
+FileInfo : extends Packet (dsmp_t: DSMP_FILEINFO)
+-------------------------------------------------
 
 ... repeated n times ...
 
-id (4cc, 4 bytes)
+id (4 bytes, alphanum)
 string
 
 ... repeated n times ...
 
 Notes:
-- Possible values of "id": 
-	'TITL': Title
-	'AUTH': Author
-	'COMM': Comment
+- Suggested values of "id": 
+	"TITL": Title
+	"AUTH": Author
+	"RTNG": Rating
+	"CPYR": Copyright
+	"DESC": Description
+	"APPL": Application
+	"MUXR": Muxer
+	"DATE": Encoding date
 	... more to be defined ...
-	'NMSP': Namespace (the following ids are part of this namespace and should be interpreted only if the parser knows about it, nested namespaces are not supported)
 
 MediaType : extends Packet (dsmp_t: DSMP_MEDIATYPE)
 ---------------------------------------------------
@@ -73,18 +102,17 @@ stream id (1 byte)
 
 ... repeated n times ...
 
-id (4cc, 4 bytes)
+id (4 bytes, alphanum)
 string
 
 ... repeated n times ...
 
 Notes:
-- Possible values of "id": 
-	'SGRP': Stream Group (groupped streams can be useful if the splitter is able to group and switch between them, but it's not a strict requirement towards dsm splitters)
-	'LANG': Language code (ISO 639-2)
-	'COMM': Comment
+- Suggested values of "id": 
+	"SGRP": Stream Group (groupped streams can be useful if the splitter is able to group and switch between them, but it's not a strict requirement towards dsm splitters)
+	"LANG": Language code (ISO 639-2)
+	"DESC": Description
 	... more to be defined ...
-	'NMSP': Namespace (the following ids are part of this namespace and should be interpreted only if the parser knows about it, nested namespaces are not supported)
 
 Chapters : extends Packet (dsmp_t: DSMP_CHAPTERS)
 ------------------------------------------------
@@ -118,8 +146,8 @@ duration (0-7 bytes)
 [... data ...]
 
 Notes:
-- sign == 1 && timestamps length == 0 -> timestamp and duration is unknown (but for syncpoints it cannot be unknown!)
-- sign == 0 && * length == 0 -> simply means the value is stored on zero bytes and its value is zero too.
+- sign == 1 && timestamp length == 0 -> timestamp and duration is unknown (but for syncpoints it cannot be unknown!)
+- sign == 0 && timestamp length == 0 -> simply means the value is stored on zero bytes and its value is zero too.
 - timestamps of syncpoints must be strictly in increasing order.
 
 SyncPoints : extends Packet (dsmp_t: DSMP_SYNCPOINTS)

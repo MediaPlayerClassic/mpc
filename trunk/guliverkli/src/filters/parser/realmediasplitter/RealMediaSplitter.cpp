@@ -503,7 +503,7 @@ HRESULT CRealMediaSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 	return m_pOutputs.GetCount() > 0 ? S_OK : E_FAIL;
 }
 
-bool CRealMediaSplitterFilter::InitDeliverLoop()
+bool CRealMediaSplitterFilter::DemuxInit()
 {
 	if(!m_pFile) return(false);
 
@@ -574,7 +574,7 @@ bool CRealMediaSplitterFilter::InitDeliverLoop()
 	return(true);
 }
 
-void CRealMediaSplitterFilter::SeekDeliverLoop(REFERENCE_TIME rt)
+void CRealMediaSplitterFilter::DemuxSeek(REFERENCE_TIME rt)
 {
 	if(rt <= 0)
 	{
@@ -660,7 +660,7 @@ void CRealMediaSplitterFilter::SeekDeliverLoop(REFERENCE_TIME rt)
 	}
 }
 
-bool CRealMediaSplitterFilter::DoDeliverLoop()
+bool CRealMediaSplitterFilter::DemuxLoop()
 {
 	HRESULT hr = S_OK;
 	POSITION pos;

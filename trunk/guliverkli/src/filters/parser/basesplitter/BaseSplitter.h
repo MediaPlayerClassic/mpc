@@ -29,6 +29,7 @@
 #include "..\..\..\..\include\IKeyFrameInfo.h"
 #include "BaseSplitterFileEx.h"
 #include "AsyncReader.h"
+#include "..\..\..\DSUtil\PropertyBag2.h"
 
 class Packet
 {
@@ -81,7 +82,7 @@ public:
 	STDMETHODIMP EndFlush();
 };
 
-class CBaseSplitterOutputPin : public CBaseOutputPin, protected CAMThread, public IMediaSeeking
+class CBaseSplitterOutputPin : public CBaseOutputPin, public CPropertyBag2, protected CAMThread, public IMediaSeeking
 {
 protected:
 	CArray<CMediaType> m_mts;
@@ -194,10 +195,10 @@ class CBaseSplitterFilter
 	, public IBufferInfo
 {
 	CCritSec m_csPinMap;
-	CMap<DWORD, DWORD, CBaseSplitterOutputPin*, CBaseSplitterOutputPin*> m_pPinMap;
+	CAtlMap<DWORD, CBaseSplitterOutputPin*> m_pPinMap;
 
 	CCritSec m_csmtnew;
-	CMap<DWORD, DWORD, CMediaType, CMediaType> m_mtnew;
+	CAtlMap<DWORD, CMediaType> m_mtnew;
 
 	CAutoPtrList<CBaseSplitterOutputPin> m_pRetiredOutputs;
 
@@ -238,9 +239,9 @@ protected:
     DWORD ThreadProc();
 
 	// ... and also override all these too
-	virtual bool InitDeliverLoop() = 0;
-	virtual void SeekDeliverLoop(REFERENCE_TIME rt) = 0;
-	virtual bool DoDeliverLoop() = 0;
+	virtual bool DemuxInit() = 0;
+	virtual void DemuxSeek(REFERENCE_TIME rt) = 0;
+	virtual bool DemuxLoop() = 0;
 
 protected:
 	enum mctype {AuthorName, Title, Rating, Description, Copyright, MCLast};

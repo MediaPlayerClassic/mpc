@@ -44,6 +44,15 @@ CBaseMuxerInputPin::~CBaseMuxerInputPin()
 {
 }
 
+STDMETHODIMP CBaseMuxerInputPin::NonDelegatingQueryInterface(REFIID riid, void** ppv)
+{
+	CheckPointer(ppv, E_POINTER);
+
+	return 
+		QI(IPropertyBag2)
+		__super::NonDelegatingQueryInterface(riid, ppv);
+}
+
 bool CBaseMuxerInputPin::IsSubtitleStream()
 {
 	return m_mt.majortype == MEDIATYPE_Text || m_mt.majortype == MEDIATYPE_Subtitle; // TODO
@@ -64,20 +73,52 @@ HRESULT CBaseMuxerInputPin::BreakConnect()
 	HRESULT hr = __super::BreakConnect();
 	if(FAILED(hr)) return hr;
 
+	RemoveAll();
+
 	// TODO: remove extra disconnected pins, leave one
 
 	return hr;
 }
 
-HRESULT CBaseMuxerInputPin::CompleteConnect(IPin* pPin)
+HRESULT CBaseMuxerInputPin::CompleteConnect(IPin* pReceivePin)
 {
-	HRESULT hr = __super::CompleteConnect(pPin);
+	HRESULT hr = __super::CompleteConnect(pReceivePin);
 	if(FAILED(hr)) return hr;
+
+	// duration
 
 	m_rtDuration = 0;
 	CComQIPtr<IMediaSeeking> pMS;
-	if((pMS = GetFilterFromPin(pPin)) || (pMS = pPin))
+	if((pMS = GetFilterFromPin(pReceivePin)) || (pMS = pReceivePin))
 		pMS->GetDuration(&m_rtDuration);
+
+	// properties
+
+	for(CComPtr<IPin> pPin = pReceivePin; pPin; pPin = GetUpStreamPin(GetFilterFromPin(pPin)))
+	{
+		if(CComQIPtr<IPropertyBag2> pPB2 = pPin)
+		{
+			ULONG cProperties = 0;
+			if(FAILED(pPB2->CountProperties(&cProperties)) || cProperties == 0)
+				continue;
+
+			for(ULONG iProperty = 0; iProperty < cProperties; iProperty++)
+			{
+				PROPBAG2 PropBag;
+				memset(&PropBag, 0, sizeof(PropBag));
+				ULONG cPropertiesReturned = 0;
+				if(FAILED(pPB2->GetPropertyInfo(iProperty, 1, &PropBag, &cPropertiesReturned)))
+					continue;
+
+				HRESULT hr;
+				CComVariant var;
+				if(SUCCEEDED(pPB2->Read(1, &PropBag, NULL, &var, &hr)) && SUCCEEDED(hr))
+					SetProperty(PropBag.pstrName, var);
+
+				CoTaskMemFree(PropBag.pstrName);
+			}
+		}
+	}
 
 	((CBaseMuxerFilter*)m_pFilter)->AddInput();
 

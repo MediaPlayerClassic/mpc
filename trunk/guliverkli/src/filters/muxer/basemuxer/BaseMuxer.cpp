@@ -67,9 +67,19 @@ void CBaseMuxerFilter::AddInput()
 	CStringW name;
 	name.Format(L"Input %d", m_pInputs.GetCount()+1);
 	
-	HRESULT hr;
-	CAutoPtr<CBaseMuxerInputPin> pPin(new CBaseMuxerInputPin(name, this, this, &hr));
-	m_pInputs.AddTail(pPin);
+	CBaseMuxerInputPin* pPin = NULL;
+	if(FAILED(CreateInput(name, &pPin)) || !pPin) {ASSERT(0); return;}
+
+	CAutoPtr<CBaseMuxerInputPin> pAutoPtrPin(pPin);
+	m_pInputs.AddTail(pAutoPtrPin);
+}
+
+HRESULT CBaseMuxerFilter::CreateInput(CStringW name, CBaseMuxerInputPin** ppPin)
+{
+	CheckPointer(ppPin, E_POINTER);
+	HRESULT hr = S_OK;
+	*ppPin = new CBaseMuxerInputPin(name, this, this, &hr);
+	return hr;
 }
 
 void CBaseMuxerFilter::Receive(IMediaSample* pIn, CBaseMuxerInputPin* pPin)
@@ -112,7 +122,7 @@ void CBaseMuxerFilter::Receive(IMediaSample* pIn, CBaseMuxerInputPin* pPin)
 
 	if(pPacket->IsTimeValid() || pPacket->IsEOS())
 	{
-		ASSERT(m_pActivePins.PLookup(pPin));
+		ASSERT(m_pActivePins.Lookup(pPin));
 		m_pActivePins[pPin]++;
 	}
 
@@ -169,6 +179,8 @@ DWORD CBaseMuxerFilter::ThreadProc()
 			{
 				CComPtr<IBitStream> pBitStream = new CBitStream(pStream);
 				m_pBitStreams.AddTail(pBitStream);
+
+				// TODO: figure out a way to smuggle socket based streams into m_pBitStreams
 			}
 
 			Reply(S_OK);
@@ -213,14 +225,14 @@ DWORD CBaseMuxerFilter::ThreadProc()
 
 				if(pPacket->IsTimeValid())
 					m_rtCurrent = pPacket->rtStart;
-/*
+
 				TRACE(_T("WritePacket pPin=%x, size=%d, syncpoint=%d, eos=%d, rt=(%I64d-%I64d)\r\n"), 
 					pPacket->pPin->GetID(),
 					pPacket->pData.GetSize(),
 					!!(pPacket->flags&Packet::syncpoint),
 					!!(pPacket->flags&Packet::eos), 
 					pPacket->rtStart/10000, pPacket->rtStop/10000);
-*/
+/**/
 				pos = m_pBitStreams.GetHeadPosition();
 				while(pos) MuxPacket(m_pBitStreams.GetNext(pos), pPacket);
 			}
@@ -235,6 +247,11 @@ DWORD CBaseMuxerFilter::ThreadProc()
 			m_pPins.RemoveAll();
 
 			m_pBitStreams.RemoveAll();
+
+			{
+				CAutoLock cAutoLock(&m_csQueue);
+				m_queue.RemoveAll();
+			}
 
 			break;
 		}
@@ -251,7 +268,7 @@ bool CBaseMuxerFilter::PeekQueue()
 	CAutoLock cAutoLock(&m_csQueue);
 
 	int nZeroPackets = 0;
-	int nSubZeroPackets = 0;
+	int nSubZeroPackets = 0; // ;)
 	int nMinNonZeroPackets = m_queue.GetCount();
 
 	POSITION pos = m_pActivePins.GetStartPosition();
@@ -261,13 +278,15 @@ bool CBaseMuxerFilter::PeekQueue()
 		int nPackets = 0;
 		m_pActivePins.GetNextAssoc(pos, pPin, nPackets);
 
-		nMinNonZeroPackets = min(nMinNonZeroPackets, nPackets);
-
 		if(nPackets == 0)
 		{
 			nZeroPackets++;
 			if(pPin->IsSubtitleStream())
 				nSubZeroPackets++;
+		}
+		else
+		{
+			nMinNonZeroPackets = min(nMinNonZeroPackets, nPackets);
 		}
 	}
 

@@ -740,7 +740,7 @@ void CMatroskaSplitterFilter::SendVorbisHeaderSample()
 	}
 }
 
-bool CMatroskaSplitterFilter::InitDeliverLoop()
+bool CMatroskaSplitterFilter::DemuxInit()
 {
 	CMatroskaNode Root(m_pFile);
 	if(!m_pFile
@@ -798,7 +798,7 @@ bool CMatroskaSplitterFilter::InitDeliverLoop()
 	return(true);
 }
 
-void CMatroskaSplitterFilter::SeekDeliverLoop(REFERENCE_TIME rt)
+void CMatroskaSplitterFilter::DemuxSeek(REFERENCE_TIME rt)
 {
 	m_pCluster = m_pSegment->Child(0x1F43B675);
 	m_pBlock.Free();
@@ -904,7 +904,7 @@ void CMatroskaSplitterFilter::SeekDeliverLoop(REFERENCE_TIME rt)
 	}
 }
 
-bool CMatroskaSplitterFilter::DoDeliverLoop()
+bool CMatroskaSplitterFilter::DemuxLoop()
 {
 	HRESULT hr = S_OK;
 	

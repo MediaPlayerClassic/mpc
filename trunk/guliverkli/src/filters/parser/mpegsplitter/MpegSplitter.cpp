@@ -260,7 +260,7 @@ HRESULT CMpegSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 	return m_pOutputs.GetCount() > 0 ? S_OK : E_FAIL;
 }
 
-bool CMpegSplitterFilter::InitDeliverLoop()
+bool CMpegSplitterFilter::DemuxInit()
 {
 	if(!m_pFile) return(false);
 
@@ -269,7 +269,7 @@ bool CMpegSplitterFilter::InitDeliverLoop()
 	return(true);
 }
 
-void CMpegSplitterFilter::SeekDeliverLoop(REFERENCE_TIME rt)
+void CMpegSplitterFilter::DemuxSeek(REFERENCE_TIME rt)
 {
 	CList<CMpegSplitterFile::stream>* pMasterStream = 
 		!m_pFile->m_streams[CMpegSplitterFile::video].IsEmpty() ? &m_pFile->m_streams[CMpegSplitterFile::video] :
@@ -362,7 +362,7 @@ void CMpegSplitterFilter::SeekDeliverLoop(REFERENCE_TIME rt)
 	}
 }
 
-bool CMpegSplitterFilter::DoDeliverLoop()
+bool CMpegSplitterFilter::DemuxLoop()
 {
 	REFERENCE_TIME rtStartOffset = m_rtStartOffset ? m_rtStartOffset : m_pFile->m_rtMin;
 

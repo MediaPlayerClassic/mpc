@@ -139,7 +139,7 @@ HRESULT CDiracSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 	return m_pOutputs.GetCount() > 0 ? S_OK : E_FAIL;
 }
 
-bool CDiracSplitterFilter::InitDeliverLoop()
+bool CDiracSplitterFilter::DemuxInit()
 {
 	if(!m_pFile) return(false);
 
@@ -148,7 +148,7 @@ bool CDiracSplitterFilter::InitDeliverLoop()
 	return(true);
 }
 
-void CDiracSplitterFilter::SeekDeliverLoop(REFERENCE_TIME rt)
+void CDiracSplitterFilter::DemuxSeek(REFERENCE_TIME rt)
 {
 	REFERENCE_TIME rtPreroll = 0; //10000000;
 
@@ -198,7 +198,7 @@ void CDiracSplitterFilter::SeekDeliverLoop(REFERENCE_TIME rt)
 	}
 }
 
-bool CDiracSplitterFilter::DoDeliverLoop()
+bool CDiracSplitterFilter::DemuxLoop()
 {
 	HRESULT hr = S_OK;
 	REFERENCE_TIME rtAvgTimePerFrame = ((DIRACINFOHEADER*)m_pFile->GetMediaType().Format())->hdr.AvgTimePerFrame;

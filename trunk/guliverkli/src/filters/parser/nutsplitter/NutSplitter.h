@@ -36,9 +36,9 @@ class CNutSplitterFilter : public CBaseSplitterFilter
 protected:
 	HRESULT CreateOutputs(IAsyncReader* pAsyncReader);
 
-	bool InitDeliverLoop();
-	void SeekDeliverLoop(REFERENCE_TIME rt);
-	bool DoDeliverLoop();
+	bool DemuxInit();
+	void DemuxSeek(REFERENCE_TIME rt);
+	bool DemuxLoop();
 
 public:
 	CNutSplitterFilter(LPUNKNOWN pUnk, HRESULT* phr);

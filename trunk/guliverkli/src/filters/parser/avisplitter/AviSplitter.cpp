@@ -317,7 +317,7 @@ HRESULT CAviSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 	return m_pOutputs.GetCount() > 0 ? S_OK : E_FAIL;
 }
 
-bool CAviSplitterFilter::InitDeliverLoop()
+bool CAviSplitterFilter::DemuxInit()
 {
 	if(!m_pFile) return(false);
 
@@ -426,7 +426,7 @@ HRESULT CAviSplitterFilter::ReIndex(__int64 end, UINT64* pSize)
 	return hr;
 }
 
-void CAviSplitterFilter::SeekDeliverLoop(REFERENCE_TIME rt)
+void CAviSplitterFilter::DemuxSeek(REFERENCE_TIME rt)
 {
 	memset((DWORD*)m_tFrame, 0, sizeof(DWORD)*m_pFile->m_avih.dwStreams);
 	m_pFile->Seek(0);
@@ -467,7 +467,7 @@ void CAviSplitterFilter::SeekDeliverLoop(REFERENCE_TIME rt)
 	}
 }
 
-bool CAviSplitterFilter::DoDeliverLoop()
+bool CAviSplitterFilter::DemuxLoop()
 {
 	HRESULT hr = S_OK;
 

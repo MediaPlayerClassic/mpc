@@ -17,13 +17,16 @@ HRESULT CDSMSplitterFile::Init()
 {
 	Seek(0);
 
-	if(BitRead(DSMSW_SIZE<<3) != DSMSW || BitRead(5) != DSMP_FILE)
+	if(BitRead(DSMSW_SIZE<<3) != DSMSW || BitRead(5) != DSMP_FILEINFO)
 		return E_FAIL;
 
 	Seek(0);
 
 	m_mts.RemoveAll();
 	m_rtFirst = m_rtDuration = 0;
+	m_cs.RemoveAll();
+	m_fim.RemoveAll();
+	m_sim.RemoveAll();
 
 	dsmp_t type;
 	UINT64 len;
@@ -50,14 +53,10 @@ HRESULT CDSMSplitterFile::Init()
 				break;
 			}
 		}
-		else if(type == DSMP_SYNCPOINTS)
-		{
-			Read(len, m_sps);
-		}
-		else if(type == DSMP_CHAPTERS)
-		{
-			Read(len, m_cs);
-		}
+		else if(type == DSMP_FILEINFO) {Read(len, m_fim);}
+		else if(type == DSMP_STREAMINFO) {Read(len-1, m_sim[(BYTE)BitRead(8)]);}
+		else if(type == DSMP_SYNCPOINTS) {Read(len, m_sps);}
+		else if(type == DSMP_CHAPTERS) {Read(len, m_cs);}
 
 		Seek(pos + len);
 	}
@@ -76,15 +75,7 @@ HRESULT CDSMSplitterFile::Init()
 		{
 			__int64 pos = GetPos();
 
-			if(type == DSMP_SYNCPOINTS)
-			{
-				Read(len, m_sps);
-			}
-			else if(type == DSMP_CHAPTERS)
-			{
-				Read(len, m_cs);
-			}
-			else if(type == DSMP_SAMPLE)
+			if(type == DSMP_SAMPLE)
 			{
 				Packet p;
 				if(Read(len, &p, false) && p.rtStart != Packet::INVALID_TIME)
@@ -93,6 +84,10 @@ HRESULT CDSMSplitterFile::Init()
 					i = j;
 				}	
 			}
+			else if(type == DSMP_FILEINFO) {Read(len, m_fim);}
+			else if(type == DSMP_STREAMINFO) {Read(len-1, m_sim[(BYTE)BitRead(8)]);}
+			else if(type == DSMP_SYNCPOINTS) {Read(len, m_sps);}
+			else if(type == DSMP_CHAPTERS) {Read(len, m_cs);}
 
 			Seek(pos + len);
 		}
@@ -111,7 +106,7 @@ bool CDSMSplitterFile::Sync(UINT64& syncpos, dsmp_t& type, UINT64& len, UINT64 l
 {
 	BitByteAlign();
 
-	limit += 5;
+	limit += DSMSW_SIZE;
 
 	for(UINT64 id = 0; (id&((1ui64<<(DSMSW_SIZE<<3))-1)) != DSMSW; id = (id << 8) | (BYTE)BitRead(8))
 	{
@@ -238,6 +233,27 @@ bool CDSMSplitterFile::Read(UINT64 len, CArray<Chapter>& cs)
 	return true;
 }
 
+bool CDSMSplitterFile::Read(UINT64 len, CStreamInfoMap& im)
+{
+	// TESTME
+
+	while(len >= 5)
+	{
+		CStringA key;
+		ByteRead((BYTE*)key.GetBufferSetLength(4), 4);
+
+		char ch;
+		CStringA value;
+		for(int i = 4; i < len && (ch = (char)BitRead(8)) != 0; i++) value += ch;
+		
+		im[key] = UTF8To16(value);
+
+		len -= 4 + value.GetLength()+1;
+	}
+
+	return !len;
+}
+
 __int64 CDSMSplitterFile::FindSyncPoint(REFERENCE_TIME rt)
 {
 	if(!m_sps.IsEmpty())
@@ -311,7 +327,7 @@ __int64 CDSMSplitterFile::FindSyncPoint(REFERENCE_TIME rt)
 
 	// 3. iterate backwards from maxpos and find at least one syncpoint for every stream, except for subtitle streams
 
-	CMap<BYTE,BYTE,BYTE,BYTE&> ids;
+	CAtlMap<BYTE,BYTE> ids;
 
 	{
 		POSITION pos = m_mts.GetStartPosition();

@@ -32,6 +32,8 @@ class CDSMMuxerFilter : public CBaseMuxerFilter
 	void IndexSyncPoint(Packet* p, __int64 fp);
 
 	void MuxPacketHeader(IBitStream* pBS, dsmp_t type, UINT64 len);
+	void MuxFileInfo(IBitStream* pBS, CBaseMuxerInputPin* pPin);
+	void MuxStreamInfo(IBitStream* pBS, CBaseMuxerInputPin* pPin);
 
 protected:
 	void MuxInit();
@@ -43,4 +45,3 @@ public:
 	CDSMMuxerFilter(LPUNKNOWN pUnk, HRESULT* phr);
 	virtual ~CDSMMuxerFilter();
 };
-

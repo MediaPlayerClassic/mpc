@@ -105,6 +105,32 @@ void CDSMMuxerFilter::MuxPacketHeader(IBitStream* pBS, dsmp_t type, UINT64 len)
 	pBS->BitWrite(len, i<<3);
 }
 
+void CDSMMuxerFilter::MuxStreamInfo(IBitStream* pBS, CBaseMuxerInputPin* pPin)
+{
+	int len = 1;
+	CSimpleMap<CStringA, CStringA> si;
+
+	for(int i = 0; i < pPin->GetSize(); i++)
+	{
+		CStringA key = CStringA(CString(pPin->GetKeyAt(i))), value = UTF16To8(pPin->GetValueAt(i));
+		if(key.GetLength() != 4) continue;
+		si.Add(key, value);
+		len += 4 + value.GetLength() + 1;
+	}
+
+	if(len > 1)
+	{
+		MuxPacketHeader(pBS, DSMP_STREAMINFO, len);
+		pBS->BitWrite(pPin->GetID(), 8);
+		for(int i = 0; i < si.GetSize(); i++)
+		{
+			CStringA key = si.GetKeyAt(i), value = si.GetValueAt(i);
+			pBS->ByteWrite((LPCSTR)key, 4);
+			pBS->ByteWrite((LPCSTR)value, value.GetLength()+1);
+		}
+	}
+}
+
 void CDSMMuxerFilter::MuxInit()
 {
 	m_sps.RemoveAll();
@@ -113,7 +139,7 @@ void CDSMMuxerFilter::MuxInit()
 
 void CDSMMuxerFilter::MuxHeader(IBitStream* pBS)
 {
-	MuxPacketHeader(pBS, DSMP_FILE, 0);
+	MuxPacketHeader(pBS, DSMP_FILEINFO, 0);
 
 	POSITION pos = m_pPins.GetHeadPosition();
 	while(pos)
@@ -132,6 +158,8 @@ void CDSMMuxerFilter::MuxHeader(IBitStream* pBS)
 		pBS->BitWrite(mt.lSampleSize, 30);
 		pBS->ByteWrite(&mt.formattype, sizeof(mt.formattype));
 		pBS->ByteWrite(mt.Format(), mt.FormatLength());
+		
+		MuxStreamInfo(pBS, pPin);
 	}
 
 	// TODO: write chapters
@@ -230,10 +258,14 @@ void CDSMMuxerFilter::MuxFooter(IBitStream* pBS)
 
 void CDSMMuxerFilter::IndexSyncPoint(Packet* p, __int64 fp)
 {
-	// TODO: the very last syncpoints won't get moved to m_isps because there are no more syncpoints to trigger it!
+	// FIXME: the very last syncpoints won't get moved to m_isps because there are no more syncpoints to trigger it!
 
 	if(fp < 0 || !p || !p->IsTimeValid() || !p->IsSyncPoint()) 
 		return;
+
+	static REFERENCE_TIME rtPrev = _I64_MIN;
+	ASSERT(p->rtStart >= rtPrev);
+	rtPrev = p->rtStart;
 
 	SyncPoint sp;
 	sp.fp = fp;
@@ -250,7 +282,7 @@ void CDSMMuxerFilter::IndexSyncPoint(Packet* p, __int64 fp)
 		SyncPoint& head = m_sps.GetHead();
 		SyncPoint& tail = m_sps.GetTail();
 
-		if(head.rtStart - m_isps.GetTail().rtStart > 1000000)
+		if(head.rtStart - m_isps.GetTail().rtStart > 1000000) // 100ms limit, just in case every stream had only keyframes, then sycnpoints would be too frequent
 		{
 			SyncPoint sp;
 			sp.fp = head.fp;
