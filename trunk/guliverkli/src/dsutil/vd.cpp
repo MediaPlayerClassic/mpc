@@ -872,12 +872,12 @@ asm_blend_row_clipped_SSE2_end:
 	}
 }
 
-void DeinterlaceBlend(BYTE* dst, BYTE* src, DWORD rowbytes, DWORD h, DWORD pitch)
+void DeinterlaceBlend(BYTE* dst, BYTE* src, DWORD rowbytes, DWORD h, DWORD dstpitch, DWORD srcpitch)
 {
 	void (*asm_blend_row_clipped)(BYTE* dst, BYTE* src, DWORD w, DWORD srcpitch) = NULL;
 	void (*asm_blend_row)(BYTE* dst, BYTE* src, DWORD w, DWORD srcpitch) = NULL;
 
-	if((g_cpuid.m_flags & CCpuID::flag_t::sse2) && !((DWORD)src&0xf) && !((DWORD)dst&0xf) && !(pitch&0xf))
+	if((g_cpuid.m_flags & CCpuID::flag_t::sse2) && !((DWORD)src&0xf) && !((DWORD)dst&0xf) && !(srcpitch&0xf))
 	{
 		asm_blend_row_clipped = asm_blend_row_clipped_SSE2;
 		asm_blend_row = asm_blend_row_SSE2;
@@ -896,17 +896,17 @@ void DeinterlaceBlend(BYTE* dst, BYTE* src, DWORD rowbytes, DWORD h, DWORD pitch
 	if(!asm_blend_row_clipped)
 		return;
 
-	asm_blend_row_clipped(dst, src, rowbytes, pitch);
+	asm_blend_row_clipped(dst, src, rowbytes, srcpitch);
 
-	if(h -= 2) do
+	if((h -= 2) > 0) do
 	{
-		dst += pitch;
-		asm_blend_row(dst, src, rowbytes, pitch);
-        src += pitch;
+		dst += dstpitch;
+		asm_blend_row(dst, src, rowbytes, srcpitch);
+        src += srcpitch;
 	}
 	while(--h);
 
-	asm_blend_row_clipped(dst + pitch, src, rowbytes, pitch);
+	asm_blend_row_clipped(dst + dstpitch, src, rowbytes, srcpitch);
 
 	if(g_cpuid.m_flags & CCpuID::flag_t::mmx)
 		__asm emms

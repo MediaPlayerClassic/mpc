@@ -6,8 +6,7 @@ float2 dx : register(c2);
 float2 dy : register(c3);
 
 #define size (p0.xy)
-#define	A (-0.61)
-#define PI acos(-1)
+#define	A _The_Value_Of_A_Is_Set_Here_
 
 float4 main_bilinear(float2 tex : TEXCOORD0) : COLOR
 {

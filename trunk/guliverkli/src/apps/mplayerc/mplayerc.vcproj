@@ -403,6 +403,9 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath=".\DeinterlacerFilter.cpp">
+			</File>
+			<File
 				RelativePath="DX7AllocatorPresenter.cpp">
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
@@ -1056,6 +1059,9 @@
 					<Tool
 						Name="VCCustomBuildTool"/>
 				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\DeinterlacerFilter.h">
 			</File>
 			<File
 				RelativePath="DX7AllocatorPresenter.h">

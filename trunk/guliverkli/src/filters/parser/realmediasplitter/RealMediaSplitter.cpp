@@ -1574,9 +1574,9 @@ HRESULT CRealVideoDecoder::Transform(IMediaSample* pIn)
 	if(interlaced)
 	{
 		int size = m_w*m_h;
-		DeinterlaceBlend(pI420[1], pI420[0], m_w, m_h, m_w);
-		DeinterlaceBlend(pI420[1]+size, pI420[0]+size, m_w/2, m_h/2, m_w/2);
-		DeinterlaceBlend(pI420[1]+size*5/4, pI420[0]+size*5/4, m_w/2, m_h/2, m_w/2);
+		DeinterlaceBlend(pI420[1], pI420[0], m_w, m_h, m_w, m_w);
+		DeinterlaceBlend(pI420[1]+size, pI420[0]+size, m_w/2, m_h/2, m_w/2, m_w/2);
+		DeinterlaceBlend(pI420[1]+size*5/4, pI420[0]+size*5/4, m_w/2, m_h/2, m_w/2, m_w/2);
 		pI420[2] = pI420[1], pI420[1] = pI420[0], pI420[0] = pI420[2];
 	}
 

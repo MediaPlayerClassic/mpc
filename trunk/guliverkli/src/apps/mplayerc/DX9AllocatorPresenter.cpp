@@ -61,7 +61,7 @@ protected:
     CComPtr<IDirect3DDevice9> m_pD3DDev;
 	CComPtr<IDirect3DTexture9> m_pVideoTexture[2];
 	CComPtr<IDirect3DSurface9> m_pVideoSurface[2];
-	CComPtr<IDirect3DPixelShader9> m_pPixelShader, m_pResizerPixelShader[2];
+	CComPtr<IDirect3DPixelShader9> m_pPixelShader, m_pResizerPixelShader[4];
 	D3DTEXTUREFILTERTYPE m_Filter;
 
 	virtual HRESULT CreateDevice();
@@ -449,10 +449,30 @@ HRESULT CDX9AllocatorPresenter::CreateDevice()
 			}
 
 			{
+				CStringA str = data;
+				str.Replace("_The_Value_Of_A_Is_Set_Here_", "(-0.60)");
 				CComPtr<ID3DXBuffer> pShader, pErrorMsgs;
-				HRESULT hr = D3DXCompileShader(data, data.GetLength(), NULL, NULL, "main_bicubic", "ps_2_0", 0, &pShader, &pErrorMsgs, NULL);
+				HRESULT hr = D3DXCompileShader(str, str.GetLength(), NULL, NULL, "main_bicubic", "ps_2_0", 0, &pShader, &pErrorMsgs, NULL);
 				if(SUCCEEDED(hr)) hr = m_pD3DDev->CreatePixelShader((DWORD*)pShader->GetBufferPointer(), &m_pResizerPixelShader[1]);
 			}
+
+			{
+				CStringA str = data;
+				str.Replace("_The_Value_Of_A_Is_Set_Here_", "(-0.75)");
+				CComPtr<ID3DXBuffer> pShader, pErrorMsgs;
+				HRESULT hr = D3DXCompileShader(str, str.GetLength(), NULL, NULL, "main_bicubic", "ps_2_0", 0, &pShader, &pErrorMsgs, NULL);
+				if(SUCCEEDED(hr)) hr = m_pD3DDev->CreatePixelShader((DWORD*)pShader->GetBufferPointer(), &m_pResizerPixelShader[2]);
+			}
+
+			{
+				CStringA str = data;
+				str.Replace("_The_Value_Of_A_Is_Set_Here_", "(-1.00)");
+				CComPtr<ID3DXBuffer> pShader, pErrorMsgs;
+				HRESULT hr = D3DXCompileShader(str, str.GetLength(), NULL, NULL, "main_bicubic", "ps_2_0", 0, &pShader, &pErrorMsgs, NULL);
+				if(SUCCEEDED(hr)) hr = m_pD3DDev->CreatePixelShader((DWORD*)pShader->GetBufferPointer(), &m_pResizerPixelShader[3]);
+			}
+
+
 		}
 	}
 
@@ -675,10 +695,10 @@ STDMETHODIMP_(bool) CDX9AllocatorPresenter::Paint(bool fAll)
 
 				if(rSrcVid != rDstVid)
 				{
-					if(resizer == 2 && m_pResizerPixelShader[0]) 
-						pResizerPixelShader = m_pResizerPixelShader[0];
-					else if(resizer == 3 && m_pResizerPixelShader[1])
-						pResizerPixelShader = m_pResizerPixelShader[1];
+					if(resizer == 2 && m_pResizerPixelShader[0]) pResizerPixelShader = m_pResizerPixelShader[0];
+					else if(resizer == 3 && m_pResizerPixelShader[1]) pResizerPixelShader = m_pResizerPixelShader[1];
+					else if(resizer == 4 && m_pResizerPixelShader[2]) pResizerPixelShader = m_pResizerPixelShader[2];
+					else if(resizer == 5 && m_pResizerPixelShader[3]) pResizerPixelShader = m_pResizerPixelShader[3];
 				}
 
 				if(pResizerPixelShader)
