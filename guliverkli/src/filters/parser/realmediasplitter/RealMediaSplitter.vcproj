@@ -205,7 +205,7 @@
 			<Tool
 				Name="VCLinkerTool"
 				RegisterOutput="TRUE"
-				AdditionalDependencies="strmbaseD.lib dsutilD.lib"
+				AdditionalDependencies="strmbaseD.lib dsutilD.lib basesplitterD.lib"
 				OutputFile="$(OutDir)/$(ProjectName).ax"
 				AdditionalLibraryDirectories="..\..\..\..\lib"
 				ModuleDefinitionFile="$(ProjectName).def"
@@ -260,7 +260,7 @@
 			<Tool
 				Name="VCLinkerTool"
 				RegisterOutput="TRUE"
-				AdditionalDependencies="strmbaseR.lib dsutilR.lib"
+				AdditionalDependencies="strmbaseR.lib dsutilR.lib basesplitterR.lib"
 				OutputFile="$(OutDir)/$(ProjectName).ax"
 				AdditionalLibraryDirectories="..\..\..\..\lib"
 				ModuleDefinitionFile="$(ProjectName).def"
@@ -313,7 +313,7 @@
 			<Tool
 				Name="VCLinkerTool"
 				RegisterOutput="TRUE"
-				AdditionalDependencies="strmbaseDU.lib dsutilDU.lib"
+				AdditionalDependencies="strmbaseDU.lib dsutilDU.lib basesplitterDU.lib"
 				OutputFile="$(OutDir)/$(ProjectName).ax"
 				AdditionalLibraryDirectories="..\..\..\..\lib"
 				ModuleDefinitionFile="$(ProjectName).def"
@@ -367,7 +367,7 @@
 			<Tool
 				Name="VCLinkerTool"
 				RegisterOutput="TRUE"
-				AdditionalDependencies="strmbaseRU.lib dsutilRU.lib"
+				AdditionalDependencies="strmbaseRU.lib dsutilRU.lib basesplitterRU.lib"
 				OutputFile="$(OutDir)/$(ProjectName).ax"
 				AdditionalLibraryDirectories="..\..\..\..\lib"
 				ModuleDefinitionFile="$(ProjectName).def"

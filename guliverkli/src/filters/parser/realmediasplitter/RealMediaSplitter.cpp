@@ -29,6 +29,9 @@
 #include "..\..\..\DSUtil\MediaTypes.h"
 #include "RealMediaSplitter.h"
 
+
+///
+
 #include <initguid.h>
 #include "..\..\..\..\include\moreuuids.h"
 
@@ -104,16 +107,16 @@ const AMOVIESETUP_PIN sudpPins[] =
 
 const AMOVIESETUP_FILTER sudFilter[] =
 {
-	{ &__uuidof(CRealMediaSourceFilter)	// Filter CLSID
-    , L"RealMedia Source"					// String name
-    , MERIT_UNLIKELY						// Filter merit
-    , 0										// Number of pins
-	, NULL},								// Pin information
 	{ &__uuidof(CRealMediaSplitterFilter)	// Filter CLSID
     , L"RealMedia Splitter"					// String name
     , MERIT_UNLIKELY						// Filter merit
     , sizeof(sudpPins)/sizeof(sudpPins[0])	// Number of pins
 	, sudpPins},							// Pin information
+	{ &__uuidof(CRealMediaSourceFilter)		// Filter CLSID
+    , L"RealMedia Source"					// String name
+    , MERIT_UNLIKELY						// Filter merit
+    , 0										// Number of pins
+	, NULL},								// Pin information
 };
 
 /////////////////////
@@ -201,8 +204,8 @@ const AMOVIESETUP_FILTER sudFilter2[] =
 
 CFactoryTemplate g_Templates[] =
 {
-	{L"RealMedia Source", &__uuidof(CRealMediaSourceFilter), CRealMediaSourceFilter::CreateInstance, NULL, &sudFilter[0]},
-	{L"RealMedia Splitter", &__uuidof(CRealMediaSplitterFilter), CRealMediaSplitterFilter::CreateInstance, NULL, &sudFilter[1]},
+	{L"RealMedia Splitter", &__uuidof(CRealMediaSplitterFilter), CRealMediaSplitterFilter::CreateInstance, NULL, &sudFilter[0]},
+	{L"RealMedia Source", &__uuidof(CRealMediaSourceFilter), CRealMediaSourceFilter::CreateInstance, NULL, &sudFilter[1]},
 ////////////////////
     {L"RealVideo Decoder", &__uuidof(CRealVideoDecoder), CRealVideoDecoder::CreateInstance, NULL, &sudFilter2[0]},
     {L"RealAudio Decoder", &__uuidof(CRealAudioDecoder), CRealAudioDecoder::CreateInstance, NULL, &sudFilter2[1]},
@@ -259,13 +262,6 @@ BOOL APIENTRY DllMain(HANDLE hModule, DWORD ul_reason_for_call, LPVOID lpReserve
     return DllEntryPoint((HINSTANCE)hModule, ul_reason_for_call, 0); // "DllMain" of the dshow baseclasses;
 }
 
-CUnknown* WINAPI CRealMediaSourceFilter::CreateInstance(LPUNKNOWN lpunk, HRESULT* phr)
-{
-    CUnknown* punk = new CRealMediaSourceFilter(lpunk, phr);
-    if(punk == NULL) *phr = E_OUTOFMEMORY;
-	return punk;
-}
-
 CUnknown* WINAPI CRealMediaSplitterFilter::CreateInstance(LPUNKNOWN lpunk, HRESULT* phr)
 {
     CUnknown* punk = new CRealMediaSplitterFilter(lpunk, phr);
@@ -273,47 +269,30 @@ CUnknown* WINAPI CRealMediaSplitterFilter::CreateInstance(LPUNKNOWN lpunk, HRESU
 	return punk;
 }
 
+CUnknown* WINAPI CRealMediaSourceFilter::CreateInstance(LPUNKNOWN lpunk, HRESULT* phr)
+{
+    CUnknown* punk = new CRealMediaSourceFilter(lpunk, phr);
+    if(punk == NULL) *phr = E_OUTOFMEMORY;
+	return punk;
+}
+
+
 #endif
 
 //
-// CRealMediaSourceFilter
+// CRealMediaSplitterFilter
 //
 
-CRealMediaSourceFilter::CRealMediaSourceFilter(LPUNKNOWN pUnk, HRESULT* phr)
-	: CBaseFilter(NAME("CRealMediaSourceFilter"), pUnk, this, __uuidof(this))
-	, m_rtStart(0), m_rtStop(0), m_rtCurrent(0)
-	, m_dRate(1.0)
-	, m_nOpenProgress(100)
-	, m_fAbort(false)
+CRealMediaSplitterFilter::CRealMediaSplitterFilter(LPUNKNOWN pUnk, HRESULT* phr)
+	: CBaseSplitterFilter(NAME("CRealMediaSplitterFilter"), pUnk, phr, __uuidof(this))
 {
-	if(phr) *phr = S_OK;
 }
 
-CRealMediaSourceFilter::~CRealMediaSourceFilter()
+CRealMediaSplitterFilter::~CRealMediaSplitterFilter()
 {
-	CAutoLock cAutoLock(this);
-
-	CAMThread::CallWorker(CMD_EXIT);
-	CAMThread::Close();
 }
 
-STDMETHODIMP CRealMediaSourceFilter::NonDelegatingQueryInterface(REFIID riid, void** ppv)
-{
-	CheckPointer(ppv, E_POINTER);
-
-	*ppv = NULL;
-
-	if(m_pInput && riid == __uuidof(IFileSourceFilter)) 
-		return E_NOINTERFACE;
-
-	return 
-		QI(IFileSourceFilter)
-		QI(IMediaSeeking)
-		QI(IAMOpenProgress)
-		__super::NonDelegatingQueryInterface(riid, ppv);
-}
-
-HRESULT CRealMediaSourceFilter::CreateOutputs(IAsyncReader* pAsyncReader)
+HRESULT CRealMediaSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 {
 	CheckPointer(pAsyncReader, E_POINTER);
 
@@ -322,7 +301,7 @@ HRESULT CRealMediaSourceFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 	HRESULT hr = E_FAIL;
 
 	m_pFile.Free();
-	m_mapTrackToPin.RemoveAll();
+	m_pPinMap.RemoveAll();
 
 	m_pFile.Attach(new CRMFile(pAsyncReader, hr));
 	if(!m_pFile) return E_OUTOFMEMORY;
@@ -470,14 +449,16 @@ HRESULT CRealMediaSourceFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 		}
 
 		HRESULT hr;
-		CAutoPtr<CRealMediaSplitterOutputPin> pPinOut(new CRealMediaSplitterOutputPin(mts, name, this, this, &hr));
-		if(!pPinOut) continue;
 
-		m_mapTrackToPin[(DWORD)pmp->stream] = pPinOut;
+		CAutoPtr<CBaseSplitterOutputPin> pPinOut(new CRealMediaSplitterOutputPin(mts, name, this, this, &hr));
+		if(pPinOut)
+		{
+			if(!m_rtStop)
+				m_pFile->m_p.tDuration = max(m_pFile->m_p.tDuration, pmp->tDuration);
 
-		m_pOutputs.AddTail(pPinOut);
-
-		m_rtStop = max(m_rtStop, 10000i64*(pmp->tStart+pmp->tDuration-pmp->tPreroll));
+			m_pPinMap[(DWORD)pmp->stream] = pPinOut;
+			m_pOutputs.AddTail(pPinOut);
+		}
 	}
 
 	m_rtNewStop = m_rtStop;
@@ -485,33 +466,9 @@ HRESULT CRealMediaSourceFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 	return S_OK;
 }
 
-void CRealMediaSourceFilter::DeliverBeginFlush()
+bool CRealMediaSplitterFilter::InitDeliverLoop()
 {
-	m_fFlushing = true;
-	POSITION pos = m_pOutputs.GetHeadPosition();
-	while(pos) m_pOutputs.GetNext(pos)->DeliverBeginFlush();
-}
-
-void CRealMediaSourceFilter::DeliverEndFlush()
-{
-	POSITION pos = m_pOutputs.GetHeadPosition();
-	while(pos) m_pOutputs.GetNext(pos)->DeliverEndFlush();
-	m_fFlushing = false;
-	m_eEndFlush.Set();
-}
-
-DWORD CRealMediaSourceFilter::ThreadProc()
-{
-	if(!m_pFile)
-	{
-		while(1)
-		{
-			DWORD cmd = GetRequest();
-			if(cmd == CMD_EXIT) CAMThread::m_hThread = NULL;
-			Reply(S_OK);
-			if(cmd == CMD_EXIT) return 0;
-		}
-	}
+	if(!m_pFile) return(false);
 
 	// reindex if needed
 
@@ -573,402 +530,134 @@ DWORD CRealMediaSourceFilter::ThreadProc()
 		m_fAbort = false;
 	}
 
-	//
+	m_seekpos = NULL;
+	m_seekpacket = 0;
+	m_seekfilepos = 0;
 
-	m_eEndFlush.Set();
-	m_fFlushing = false;
+	return(true);
+}
 
-	bool fFirstRun = true;
-
-	POSITION seekpos = NULL;
-	UINT32 seekpacket = 0;
-	UINT64 seekfilepos = 0;
-
-	while(1)
+void CRealMediaSplitterFilter::SeekDeliverLoop(REFERENCE_TIME rt)
+{
+	if(rt <= 0)
 	{
-DbgLog((LOG_TRACE, 0, _T("fFirstRun: %d"), fFirstRun));
-		DWORD cmd = fFirstRun ? -1 : GetRequest();
+		m_seekpos = m_pFile->m_dcs.GetHeadPosition(); 
+		m_seekpacket = 0;
+		m_seekfilepos = m_pFile->m_dcs.GetHead()->pos;
+	}
+	else
+	{
+		m_seekpos = NULL; 
 
-		fFirstRun = false;
-
-		if(cmd == CMD_EXIT)
+		POSITION pos = m_pFile->m_irs.GetTailPosition();
+		while(pos && !m_seekpos)
 		{
-			CAMThread::m_hThread = NULL;
-			Reply(S_OK);
-			return 0;
-		}
-
-		m_rtStart = m_rtNewStart;
-		m_rtStop = m_rtNewStop;
-
-		if(m_rtStart <= 0)
-		{
-			seekpos = m_pFile->m_dcs.GetHeadPosition(); 
-			seekpacket = 0;
-			seekfilepos = m_pFile->m_dcs.GetAt(seekpos)->pos;
-		}
-		else
-		{
-			seekpos = NULL; 
-
-			POSITION pos = m_pFile->m_irs.GetTailPosition();
-			while(pos && !seekpos)
+			IndexRecord* pir = m_pFile->m_irs.GetPrev(pos);
+			if(pir->tStart <= rt/10000)
 			{
-				IndexRecord* pir = m_pFile->m_irs.GetPrev(pos);
-				if(pir->tStart <= m_rtStart/10000)
+				m_seekpacket = pir->packet;
+
+				pos = m_pFile->m_dcs.GetTailPosition();
+				while(pos && !m_seekpos)
 				{
-					seekpacket = pir->packet;
+					POSITION tmp = pos;
 
-					pos = m_pFile->m_dcs.GetTailPosition();
-					while(pos && !seekpos)
+					DataChunk* pdc = m_pFile->m_dcs.GetPrev(pos);
+
+					if(pdc->pos <= pir->ptrFilePos)
 					{
-						POSITION tmp = pos;
+						m_seekpos = tmp;
+						m_seekfilepos = pir->ptrFilePos;
 
-						DataChunk* pdc = m_pFile->m_dcs.GetPrev(pos);
-
-						if(pdc->pos <= pir->ptrFilePos)
+						POSITION pos = m_pFile->m_dcs.GetHeadPosition();
+						while(pos != m_seekpos)
 						{
-							seekpos = tmp;
-							seekfilepos = pir->ptrFilePos;
-
-							POSITION pos = m_pFile->m_dcs.GetHeadPosition();
-							while(pos != seekpos)
-							{
-								seekpacket -= m_pFile->m_dcs.GetNext(pos)->nPackets;
-							}
+							m_seekpacket -= m_pFile->m_dcs.GetNext(pos)->nPackets;
 						}
 					}
-
-					// search the closest keyframe to the seek time (commented out 'cause rm seems to index all of its keyframes...)
-/*
-					if(seekpos)
-					{
-						DataChunk* pdc = m_pFile->m_dcs.GetAt(seekpos);
-
-						m_pFile->Seek(seekfilepos);
-
-						REFERENCE_TIME seektime = -1;
-						UINT32 seekstream = -1;
-
-						for(UINT32 i = seekpacket; i < pdc->nPackets; i++)
-						{
-							UINT64 filepos = m_pFile->GetPos();
-
-							MediaPacketHeader mph;
-							if(S_OK != m_pFile->Read(mph, false))
-								break;
-
-							if(seekstream == -1) seekstream = mph.stream;
-							if(seekstream != mph.stream) continue;
-
-							if(seektime == 10000i64*mph.tStart) continue;
-							if(m_rtStart < 10000i64*mph.tStart) break;
-
-							if((mph.flags&MediaPacketHeader::PN_KEYFRAME_FLAG))
-							{
-								seekpacket = i;
-								seekfilepos = filepos;
-								seektime = 10000i64*mph.tStart;
-							}
-						}
-					}
-*/
 				}
-			}
 
-			if(!seekpos)
-			{
-				seekpos = m_pFile->m_dcs.GetHeadPosition(); 
-				seekpacket = 0;
-				seekfilepos = m_pFile->m_dcs.GetAt(seekpos)->pos;
-			}
-		}
-
-		if(cmd != -1)
-			Reply(S_OK);
-
-		m_eEndFlush.Wait();
-
-		m_bDiscontinuitySent.RemoveAll();
-		m_pActivePins.RemoveAll();
-
-		POSITION pos = m_pOutputs.GetHeadPosition();
-		while(pos && !m_fFlushing)
-		{
-			CBaseOutputPin* pPin = m_pOutputs.GetNext(pos);
-			if(pPin->IsConnected())
-			{
-				pPin->DeliverNewSegment(m_rtStart, m_rtStop, m_dRate);
-				m_pActivePins.AddTail(pPin);
-			}
-		}
-
-		HRESULT hr = S_OK;
-
-		pos = seekpos; 
-		while(pos && SUCCEEDED(hr) && !CheckRequest(&cmd))
-		{
-			DataChunk* pdc = m_pFile->m_dcs.GetNext(pos);
-
-			m_pFile->Seek(seekfilepos > 0 ? seekfilepos : pdc->pos);
-DbgLog((LOG_TRACE, 0, _T("m_pFile->Seek(%I64d)"), m_pFile->GetPos()));
-
-			for(UINT32 i = seekpacket; i < pdc->nPackets && SUCCEEDED(hr) && !CheckRequest(&cmd); i++)
-			{
-				MediaPacketHeader mph;
-				if(S_OK != (hr = m_pFile->Read(mph)))
-					break;
-
-				CAutoPtr<RMBlock> b(new RMBlock);
-				b->TrackNumber = mph.stream;
-				b->bSyncPoint = !!(mph.flags&MediaPacketHeader::PN_KEYFRAME_FLAG);
-				b->rtStart = 10000i64*(mph.tStart /*- preload + start*/);
-				b->rtStop = b->rtStart+1;
-				b->pData.Copy(mph.pData); // yea, I know...
-
-				hr = DeliverBlock(b);
-			}
-
-			seekpacket = 0;
-			seekfilepos = 0;
-DbgLog((LOG_TRACE, 0, _T("Exited deliver loop, hr=%08x, cmd=%d"), hr, cmd));
-		}
-
-		pos = m_pActivePins.GetHeadPosition();
-		while(pos && !CheckRequest(&cmd))
-			m_pActivePins.GetNext(pos)->DeliverEndOfStream();
-DbgLog((LOG_TRACE, 0, _T("EndOfStream, hr=%08x, cmd=%d"), hr, cmd));
-	}
-
-	ASSERT(0); // we should only exit via CMD_EXIT
-
-	CAMThread::m_hThread = NULL;
-	return 0;
-}
-
-HRESULT CRealMediaSourceFilter::DeliverBlock(CAutoPtr<RMBlock> b)
-{
-	HRESULT hr = S_FALSE;
+				// search the closest keyframe to the seek time (commented out 'cause rm seems to index all of its keyframes...)
 /*
-	if(m_fFlushing)
-		return S_FALSE;
+				if(m_seekpos)
+				{
+					DataChunk* pdc = m_pFile->m_dcs.GetAt(m_seekpos);
+
+					m_pFile->Seek(m_seekfilepos);
+
+					REFERENCE_TIME seektime = -1;
+					UINT32 seekstream = -1;
+
+					for(UINT32 i = m_seekpacket; i < pdc->nPackets; i++)
+					{
+						UINT64 filepos = m_pFile->GetPos();
+
+						MediaPacketHeader mph;
+						if(S_OK != m_pFile->Read(mph, false))
+							break;
+
+						if(seekstream == -1) seekstream = mph.stream;
+						if(seekstream != mph.stream) continue;
+
+						if(seektime == 10000i64*mph.tStart) continue;
+						if(rt < 10000i64*mph.tStart) break;
+
+						if((mph.flags&MediaPacketHeader::PN_KEYFRAME_FLAG))
+						{
+							m_seekpacket = i;
+							m_seekfilepos = filepos;
+							seektime = 10000i64*mph.tStart;
+						}
+					}
+				}
 */
-	CRealMediaSplitterOutputPin* pPin = NULL;
-	if(!m_mapTrackToPin.Lookup(b->TrackNumber, pPin) || !pPin 
-	|| !pPin->IsConnected() || !m_pActivePins.Find(pPin))
-		return S_FALSE;
+			}
+		}
 
-	if(b->pData.GetCount() == 0)
-		return S_FALSE;
-
-	m_rtCurrent = b->rtStart;
-
-	b->rtStart -= m_rtStart;
-	b->rtStop -= m_rtStart;
-
-	ASSERT(b->rtStart < b->rtStop);
-
-	DWORD TrackNumber = b->TrackNumber;
-	BOOL bDiscontinuity = !m_bDiscontinuitySent.Find(TrackNumber);
-
-//TRACE(_T("pPin->DeliverBlock: TrackNumber (%d) %I64d, %I64d (disc=%d)\n"), (int)TrackNumber, b->rtStart, b->rtStop, bDiscontinuity);
-
-	hr = pPin->DeliverBlock(b, bDiscontinuity);
-
-	if(S_OK != hr)
-	{
-		if(POSITION pos = m_pActivePins.Find(pPin))
-			m_pActivePins.RemoveAt(pos);
-
-		if(!m_pActivePins.IsEmpty()) // only die when all pins are down
-			hr = S_OK;
-
-		return hr;
+		if(!m_seekpos)
+		{
+			m_seekpos = m_pFile->m_dcs.GetHeadPosition(); 
+			m_seekpacket = 0;
+			m_seekfilepos = m_pFile->m_dcs.GetAt(m_seekpos)->pos;
+		}
 	}
-
-	if(bDiscontinuity)
-		m_bDiscontinuitySent.AddTail(TrackNumber);
-
-	return hr;
 }
 
-HRESULT CRealMediaSourceFilter::BreakConnect(PIN_DIRECTION dir, CBasePin* pPin)
+void CRealMediaSplitterFilter::DoDeliverLoop()
 {
-	CheckPointer(pPin, E_POINTER);
+	HRESULT hr = S_OK;
 
-	if(dir == PINDIR_INPUT)
+	POSITION pos = m_seekpos; 
+	while(pos && SUCCEEDED(hr) && !CheckRequest(NULL))
 	{
-		CRealMediaSplitterInputPin* pIn = (CRealMediaSplitterInputPin*)pPin;
+		DataChunk* pdc = m_pFile->m_dcs.GetNext(pos);
 
-		// TODO: do something here!!!
-/*
-		POSITION pos = m_pOutputs.GetHeadPosition();
-		while(pos) m_pOutputs.GetNext(pos)->Disconnect();
-		m_pOutputs.RemoveAll();
-*/
-//		m_pFile.Free();
+		m_pFile->Seek(m_seekfilepos > 0 ? m_seekfilepos : pdc->pos);
+
+		for(UINT32 i = m_seekpacket; i < pdc->nPackets && SUCCEEDED(hr) && !CheckRequest(NULL); i++)
+		{
+			MediaPacketHeader mph;
+			if(S_OK != (hr = m_pFile->Read(mph)))
+				break;
+
+			CAutoPtr<Packet> p(new Packet);
+			p->TrackNumber = mph.stream;
+			p->bSyncPoint = !!(mph.flags&MediaPacketHeader::PN_KEYFRAME_FLAG);
+			p->rtStart = 10000i64*(mph.tStart);
+			p->rtStop = p->rtStart+1;
+			p->pData.Copy(mph.pData);
+
+			hr = DeliverPacket(p);
+		}
+
+		m_seekpacket = 0;
+		m_seekfilepos = 0;
 	}
-	else if(dir == PINDIR_OUTPUT)
-	{
-	}
-	else
-	{
-		return E_UNEXPECTED;
-	}
-
-	return S_OK;
-}
-
-HRESULT CRealMediaSourceFilter::CompleteConnect(PIN_DIRECTION dir, CBasePin* pPin)
-{
-	CheckPointer(pPin, E_POINTER);
-
-	if(dir == PINDIR_INPUT)
-	{
-		CRealMediaSplitterInputPin* pIn = (CRealMediaSplitterInputPin*)pPin;
-
-		HRESULT hr;
-
-		CComPtr<IAsyncReader> pAsyncReader;
-		if(FAILED(hr = pIn->GetAsyncReader(&pAsyncReader))
-		|| FAILED(hr = CreateOutputs(pAsyncReader)))
-			return hr;
-	}
-	else if(dir == PINDIR_OUTPUT)
-	{
-	}
-	else
-	{
-		return E_UNEXPECTED;
-	}
-
-	return S_OK;
-}
-
-int CRealMediaSourceFilter::GetPinCount()
-{
-	return (m_pInput ? 1 : 0) + m_pOutputs.GetCount();
-}
-
-CBasePin* CRealMediaSourceFilter::GetPin(int n)
-{
-    CAutoLock cAutoLock(this);
-
-	if(n >= 0 && n < (int)m_pOutputs.GetCount())
-	{
-		if(POSITION pos = m_pOutputs.FindIndex(n))
-			return m_pOutputs.GetAt(pos);
-	}
-
-	if(n == m_pOutputs.GetCount() && m_pInput)
-	{
-		return m_pInput;
-	}
-
-	return NULL;
-}
-
-STDMETHODIMP CRealMediaSourceFilter::Stop()
-{
-	CAutoLock cAutoLock(this);
-
-	DeliverBeginFlush();
-	CallWorker(CMD_EXIT);
-	DeliverEndFlush();
-
-	HRESULT hr;
-	if(FAILED(hr = __super::Stop()))
-		return hr;
-
-	return S_OK;
-}
-
-STDMETHODIMP CRealMediaSourceFilter::Pause()
-{
-	CAutoLock cAutoLock(this);
-
-	FILTER_STATE fs = m_State;
-
-	HRESULT hr;
-	if(FAILED(hr = __super::Pause()))
-		return hr;
-
-	if(fs == State_Stopped)
-	{
-		Create();
-	}
-
-	return S_OK;
-}
-
-STDMETHODIMP CRealMediaSourceFilter::Run(REFERENCE_TIME tStart)
-{
-	CAutoLock cAutoLock(this);
-
-	HRESULT hr;
-	if(FAILED(hr = __super::Run(tStart)))
-		return hr;
-
-	return S_OK;
-}
-
-// IFileSourceFilter
-
-STDMETHODIMP CRealMediaSourceFilter::Load(LPCOLESTR pszFileName, const AM_MEDIA_TYPE* pmt)
-{
-	CheckPointer(pszFileName, E_POINTER);
-
-	HRESULT hr;
-	CComPtr<IAsyncReader> pAsyncReader = (IAsyncReader*)new CFileReader(CString(pszFileName), hr);
-	if(FAILED(hr)) return hr;
-
-	if(FAILED(hr = CreateOutputs(pAsyncReader)))
-		return hr;
-
-	m_fn = pszFileName;
-
-	return S_OK;
-}
-
-STDMETHODIMP CRealMediaSourceFilter::GetCurFile(LPOLESTR* ppszFileName, AM_MEDIA_TYPE* pmt)
-{
-	CheckPointer(ppszFileName, E_POINTER);
-	if(!(*ppszFileName = (LPOLESTR)CoTaskMemAlloc((m_fn.GetLength()+1)*sizeof(WCHAR))))
-		return E_OUTOFMEMORY;
-	wcscpy(*ppszFileName, m_fn);
-	return S_OK;
 }
 
 // IMediaSeeking
 
-STDMETHODIMP CRealMediaSourceFilter::GetCapabilities(DWORD* pCapabilities)
-{
-	return pCapabilities ? *pCapabilities = 
-		AM_SEEKING_CanGetStopPos|
-		AM_SEEKING_CanGetDuration|
-		AM_SEEKING_CanSeekAbsolute|
-		AM_SEEKING_CanSeekForwards|
-		AM_SEEKING_CanSeekBackwards, S_OK : E_POINTER;
-}
-STDMETHODIMP CRealMediaSourceFilter::CheckCapabilities(DWORD* pCapabilities)
-{
-	CheckPointer(pCapabilities, E_POINTER);
-
-	if(*pCapabilities == 0) return S_OK;
-
-	DWORD caps;
-	GetCapabilities(&caps);
-
-	DWORD caps2 = caps & *pCapabilities;
-
-	return caps2 == 0 ? E_FAIL : caps2 == *pCapabilities ? S_OK : S_FALSE;
-}
-STDMETHODIMP CRealMediaSourceFilter::IsFormatSupported(const GUID* pFormat) {return !pFormat ? E_POINTER : *pFormat == TIME_FORMAT_MEDIA_TIME ? S_OK : S_FALSE;}
-STDMETHODIMP CRealMediaSourceFilter::QueryPreferredFormat(GUID* pFormat) {return GetTimeFormat(pFormat);}
-STDMETHODIMP CRealMediaSourceFilter::GetTimeFormat(GUID* pFormat) {return pFormat ? *pFormat = TIME_FORMAT_MEDIA_TIME, S_OK : E_POINTER;}
-STDMETHODIMP CRealMediaSourceFilter::IsUsingTimeFormat(const GUID* pFormat) {return IsFormatSupported(pFormat);}
-STDMETHODIMP CRealMediaSourceFilter::SetTimeFormat(const GUID* pFormat) {return S_OK == IsFormatSupported(pFormat) ? S_OK : E_INVALIDARG;}
-STDMETHODIMP CRealMediaSourceFilter::GetDuration(LONGLONG* pDuration)
+STDMETHODIMP CRealMediaSplitterFilter::GetDuration(LONGLONG* pDuration)
 {
 	CheckPointer(pDuration, E_POINTER);
 	CheckPointer(m_pFile, VFW_E_NOT_CONNECTED);
@@ -977,379 +666,33 @@ STDMETHODIMP CRealMediaSourceFilter::GetDuration(LONGLONG* pDuration)
 
 	return S_OK;
 }
-STDMETHODIMP CRealMediaSourceFilter::GetStopPosition(LONGLONG* pStop) {return GetDuration(pStop);}
-STDMETHODIMP CRealMediaSourceFilter::GetCurrentPosition(LONGLONG* pCurrent) {return E_NOTIMPL;}
-STDMETHODIMP CRealMediaSourceFilter::ConvertTimeFormat(LONGLONG* pTarget, const GUID* pTargetFormat, LONGLONG Source, const GUID* pSourceFormat) {return E_NOTIMPL;}
-STDMETHODIMP CRealMediaSourceFilter::SetPositions(LONGLONG* pCurrent, DWORD dwCurrentFlags, LONGLONG* pStop, DWORD dwStopFlags)
-{
-	CAutoLock cAutoLock(this);
-
-	if(!pCurrent && !pStop
-	|| (dwCurrentFlags&AM_SEEKING_PositioningBitsMask) == AM_SEEKING_NoPositioning 
-		&& (dwStopFlags&AM_SEEKING_PositioningBitsMask) == AM_SEEKING_NoPositioning)
-		return S_OK;
-
-	REFERENCE_TIME 
-		rtCurrent = m_rtCurrent,
-		rtStop = m_rtStop;
-
-	if(pCurrent)
-	switch(dwCurrentFlags&AM_SEEKING_PositioningBitsMask)
-	{
-	case AM_SEEKING_NoPositioning: break;
-	case AM_SEEKING_AbsolutePositioning: rtCurrent = *pCurrent; break;
-	case AM_SEEKING_RelativePositioning: rtCurrent = rtCurrent + *pCurrent; break;
-	case AM_SEEKING_IncrementalPositioning: rtCurrent = rtCurrent + *pCurrent; break;
-	}
-
-	if(pStop)
-	switch(dwStopFlags&AM_SEEKING_PositioningBitsMask)
-	{
-	case AM_SEEKING_NoPositioning: break;
-	case AM_SEEKING_AbsolutePositioning: rtStop = *pStop; break;
-	case AM_SEEKING_RelativePositioning: rtStop += *pStop; break;
-	case AM_SEEKING_IncrementalPositioning: rtStop = rtCurrent + *pStop; break;
-	}
-
-	if(m_rtCurrent == rtCurrent && m_rtStop == rtStop)
-		return S_OK;
-
-	m_rtNewStart = m_rtCurrent = rtCurrent;
-	m_rtNewStop = rtStop;
-
-	if(ThreadExists())
-	{
-DbgLog((LOG_TRACE, 0, _T("m_rtNewStart=%I64d"), m_rtNewStart));
-DbgLog((LOG_TRACE, 0, _T("DeliverBeginFlush()")));
-		DeliverBeginFlush();
-DbgLog((LOG_TRACE, 0, _T("CallWorker(CMD_SEEK)")));
-		CallWorker(CMD_SEEK);
-DbgLog((LOG_TRACE, 0, _T("DeliverEndFlush()")));
-		DeliverEndFlush();
-DbgLog((LOG_TRACE, 0, _T("Seeking ended")));
-	}
-
-	return S_OK;
-}
-STDMETHODIMP CRealMediaSourceFilter::GetPositions(LONGLONG* pCurrent, LONGLONG* pStop)
-{
-	if(pCurrent) *pCurrent = m_rtCurrent;
-	if(pStop) *pStop = m_rtStop;
-	return S_OK;
-}
-STDMETHODIMP CRealMediaSourceFilter::GetAvailable(LONGLONG* pEarliest, LONGLONG* pLatest)
-{
-	if(pEarliest) *pEarliest = 0;
-	return GetDuration(pLatest);
-}
-STDMETHODIMP CRealMediaSourceFilter::SetRate(double dRate) {return dRate == 1.0 ? S_OK : E_INVALIDARG;}
-STDMETHODIMP CRealMediaSourceFilter::GetRate(double* pdRate) {return pdRate ? *pdRate = m_dRate, S_OK : E_POINTER;}
-STDMETHODIMP CRealMediaSourceFilter::GetPreroll(LONGLONG* pllPreroll) {return pllPreroll ? *pllPreroll = 0, S_OK : E_POINTER;}
-
-// IAMOpenProgress
-
-STDMETHODIMP CRealMediaSourceFilter::QueryProgress(LONGLONG* pllTotal, LONGLONG* pllCurrent)
-{
-	CheckPointer(pllTotal, E_POINTER);
-	CheckPointer(pllCurrent, E_POINTER);
-
-	*pllTotal = 100;
-	*pllCurrent = m_nOpenProgress;
-
-	return S_OK;
-}
-
-STDMETHODIMP CRealMediaSourceFilter::AbortOperation()
-{
-	m_fAbort = true;
-	return S_OK;
-}
-
-//
-// CRealMediaSplitterFilter
-//
-
-CRealMediaSplitterFilter::CRealMediaSplitterFilter(LPUNKNOWN pUnk, HRESULT* phr)
-	: CRealMediaSourceFilter(pUnk, phr)
-{
-	m_pInput.Attach(new CRealMediaSplitterInputPin(NAME("CRealMediaSplitterInputPin"), this, this, phr));
-}
-
-//
-// CRealMediaSplitterInputPin
-//
-
-CRealMediaSplitterInputPin::CRealMediaSplitterInputPin(TCHAR* pName, CBaseFilter* pFilter, CCritSec* pLock, HRESULT* phr)
-	: CBasePin(pName, pFilter, pLock, phr, L"Input", PINDIR_INPUT)
-{
-}
-
-CRealMediaSplitterInputPin::~CRealMediaSplitterInputPin()
-{
-}
-
-HRESULT CRealMediaSplitterInputPin::GetAsyncReader(IAsyncReader** ppAsyncReader)
-{
-	CheckPointer(ppAsyncReader, E_POINTER);
-	*ppAsyncReader = NULL;
-	CheckPointer(m_pAsyncReader, VFW_E_NOT_CONNECTED);
-	(*ppAsyncReader = m_pAsyncReader)->AddRef();
-	return S_OK;
-}
-
-STDMETHODIMP CRealMediaSplitterInputPin::NonDelegatingQueryInterface(REFIID riid, void** ppv)
-{
-	CheckPointer(ppv, E_POINTER);
-
-	return 
-		__super::NonDelegatingQueryInterface(riid, ppv);
-}
-
-HRESULT CRealMediaSplitterInputPin::CheckMediaType(const CMediaType* pmt)
-{
-	return S_OK;
-/*
-	return pmt->majortype == MEDIATYPE_Stream
-		? S_OK
-		: E_INVALIDARG;
-*/
-}
-
-HRESULT CRealMediaSplitterInputPin::CheckConnect(IPin* pPin)
-{
-	HRESULT hr;
-
-	if(FAILED(hr = __super::CheckConnect(pPin)))
-		return hr;
-
-	if(CComQIPtr<IAsyncReader> pAsyncReader = pPin)
-	{
-		DWORD dw;
-		hr = S_OK == pAsyncReader->SyncRead(0, 4, (BYTE*)&dw) && dw == 'FMR.'
-			? S_OK 
-			: E_FAIL;
-	}
-	else
-	{
-		hr = E_NOINTERFACE;
-	}
-
-	return hr;
-}
-
-HRESULT CRealMediaSplitterInputPin::BreakConnect()
-{
-	HRESULT hr;
-
-	if(FAILED(hr = __super::BreakConnect()))
-		return hr;
-
-	if(FAILED(hr = ((CRealMediaSourceFilter*)m_pFilter)->BreakConnect(PINDIR_INPUT, this)))
-		return hr;
-
-	m_pAsyncReader.Release();
-
-	return S_OK;
-}
-
-HRESULT CRealMediaSplitterInputPin::CompleteConnect(IPin* pPin)
-{
-	HRESULT hr;
-
-	if(FAILED(hr = __super::CompleteConnect(pPin)))
-		return hr;
-
-	CheckPointer(pPin, E_POINTER);
-	m_pAsyncReader = pPin;
-	CheckPointer(m_pAsyncReader, E_NOINTERFACE);
-
-	if(FAILED(hr = ((CRealMediaSourceFilter*)m_pFilter)->CompleteConnect(PINDIR_INPUT, this)))
-		return hr;
-
-	return S_OK;
-}
-
-STDMETHODIMP CRealMediaSplitterInputPin::BeginFlush()
-{
-	return E_UNEXPECTED;
-}
-
-STDMETHODIMP CRealMediaSplitterInputPin::EndFlush()
-{
-	return E_UNEXPECTED;
-}
 
 //
 // CRealMediaSplitterOutputPin
 //
 
 CRealMediaSplitterOutputPin::CRealMediaSplitterOutputPin(CArray<CMediaType>& mts, LPCWSTR pName, CBaseFilter* pFilter, CCritSec* pLock, HRESULT* phr)
-	: CBaseOutputPin(NAME("CRealMediaSplitterOutputPin"), pFilter, pLock, phr, pName)
-	, m_hrDeliver(S_OK) // just in case it were asked before the worker thread could create and reset it
+	: CBaseSplitterOutputPin(mts, pName, pFilter, pLock, phr)
 {
-	m_mts.Copy(mts);
 }
 
 CRealMediaSplitterOutputPin::~CRealMediaSplitterOutputPin()
 {
 }
 
-STDMETHODIMP CRealMediaSplitterOutputPin::NonDelegatingQueryInterface(REFIID riid, void** ppv)
-{
-	CheckPointer(ppv, E_POINTER);
-
-	return 
-		riid == __uuidof(IMediaSeeking) ? m_pFilter->QueryInterface(riid, ppv) : 
-		__super::NonDelegatingQueryInterface(riid, ppv);
-}
-
-HRESULT CRealMediaSplitterOutputPin::DecideBufferSize(IMemAllocator* pAlloc, ALLOCATOR_PROPERTIES* pProperties)
-{
-    ASSERT(pAlloc);
-    ASSERT(pProperties);
-
-    HRESULT hr = NOERROR;
-
-	pProperties->cBuffers = MAXBUFFERS;
-	pProperties->cbBuffer = m_mt.GetSampleSize();
-
-    ALLOCATOR_PROPERTIES Actual;
-    if(FAILED(hr = pAlloc->SetProperties(pProperties, &Actual))) return hr;
-
-    if(Actual.cbBuffer < pProperties->cbBuffer) return E_FAIL;
-    ASSERT(Actual.cBuffers == pProperties->cBuffers);
-
-    return NOERROR;
-}
-
-HRESULT CRealMediaSplitterOutputPin::CheckMediaType(const CMediaType* pmt)
-{
-	for(int i = 0; i < m_mts.GetCount(); i++)
-	{
-		if(pmt->majortype == m_mts[i].majortype && pmt->subtype == m_mts[i].subtype)
-		{
-			return S_OK;
-		}
-	}
-
-	return E_INVALIDARG;
-}
-
-HRESULT CRealMediaSplitterOutputPin::GetMediaType(int iPosition, CMediaType* pmt)
-{
-    CAutoLock cAutoLock(m_pLock);
-
-	if(iPosition < 0) return E_INVALIDARG;
-	if(iPosition >= m_mts.GetCount()) return VFW_S_NO_MORE_ITEMS;
-
-	*pmt = m_mts[iPosition];
-
-	return S_OK;
-}
-
-STDMETHODIMP CRealMediaSplitterOutputPin::Notify(IBaseFilter* pSender, Quality q)
-{
-	return E_NOTIMPL;
-}
-
-//
-
-HRESULT CRealMediaSplitterOutputPin::Active()
-{
-    CAutoLock cAutoLock(m_pLock);
-
-	if(m_Connected) 
-		Create();
-
-	return __super::Active();
-}
-
-HRESULT CRealMediaSplitterOutputPin::Inactive()
-{
-    CAutoLock cAutoLock(m_pLock);
-
-	if(ThreadExists())
-		CallWorker(CMD_EXIT);
-
-	return __super::Inactive();
-}
-
-void CRealMediaSplitterOutputPin::DontGoWild()
-{
-	int cnt = 0;
-	do
-	{
-		if(cnt > MAXPACKETS) Sleep(1);
-		CAutoLock cAutoLock(&m_csQueueLock);
-		cnt = m_packets.GetCount();
-	}
-	while(S_OK == m_hrDeliver && cnt > MAXPACKETS);
-}
-
-HRESULT CRealMediaSplitterOutputPin::DeliverEndOfStream()
-{
-	if(!ThreadExists()) return S_FALSE;
-
-	DontGoWild();
-	if(S_OK != m_hrDeliver) return m_hrDeliver;
-
-	CAutoLock cAutoLock(&m_csQueueLock);
-	CAutoPtr<packet> p(new packet());
-	p->type = EOS;
-	m_packets.AddHead(p);
-
-	return m_hrDeliver;
-}
-
-HRESULT CRealMediaSplitterOutputPin::DeliverBeginFlush()
-{
-	CAutoLock cAutoLock(&m_csQueueLock);
-	m_packets.RemoveAll();
-	m_hrDeliver = S_FALSE;
-	HRESULT hr = IsConnected() ? GetConnected()->BeginFlush() : S_OK;
-	return hr;
-}
-
 HRESULT CRealMediaSplitterOutputPin::DeliverEndFlush()
 {
-	if(!ThreadExists()) return S_FALSE;
-	HRESULT hr = IsConnected() ? GetConnected()->EndFlush() : S_OK;
-	m_hrDeliver = S_OK;
-	return hr;
+	m_segments.Clear();
+	return __super::DeliverEndFlush();
 }
 
-HRESULT CRealMediaSplitterOutputPin::DeliverNewSegment(REFERENCE_TIME tStart, REFERENCE_TIME tStop, double dRate)
-{
-	m_rtStart = tStart;
-	m_segments.Clear(); // FIXME: !!!!!!!!!!!!!!!!!!!!! this is not thread safe, can crash any time !!!!!!!!!!!!!!!!!!!!!!!!
-	if(!ThreadExists()) return S_FALSE;
-	return __super::DeliverNewSegment(tStart, tStop, dRate);
-}
-
-HRESULT CRealMediaSplitterOutputPin::DeliverBlock(CAutoPtr<RMBlock> b, BOOL bDiscontinuity)
-{
-	if(!ThreadExists()) return S_FALSE;
-
-	DontGoWild();
-	if(S_OK != m_hrDeliver) return m_hrDeliver;
-
-	CAutoLock cAutoLock(&m_csQueueLock);
-	CAutoPtr<packet> p(new packet());
-	p->type = BLOCK;
-	p->b = b;
-	p->bDiscontinuity = bDiscontinuity;
-	m_packets.AddHead(p);
-
-	return m_hrDeliver;
-}
-
-HRESULT CRealMediaSplitterOutputPin::DeliverSegments(CSegments& segments)
+HRESULT CRealMediaSplitterOutputPin::DeliverSegments()
 {
 	HRESULT hr;
 
-	if(segments.GetCount() == 0)
+	if(m_segments.GetCount() == 0)
 	{
-		segments.Clear();
+		m_segments.Clear();
 		return S_OK;
 	}
 
@@ -1359,33 +702,33 @@ HRESULT CRealMediaSplitterOutputPin::DeliverSegments(CSegments& segments)
 	if(S_OK != (hr = GetDeliveryBuffer(&pSample, NULL, NULL, 0))
 	|| S_OK != (hr = pSample->GetPointer(&pData)) || !(pDataOrg = pData))
 	{
-		segments.Clear();
+		m_segments.Clear();
 		return hr;
 	}
 
-	*pData++ = segments.fMerged ? 0 : segments.GetCount()-1;
+	*pData++ = m_segments.fMerged ? 0 : m_segments.GetCount()-1;
 
-	if(segments.fMerged)
+	if(m_segments.fMerged)
 	{
 		*((DWORD*)pData) = 1; pData += 4;
 		*((DWORD*)pData) = 0; pData += 4;
 	}
 	else
 	{
-		POSITION pos = segments.GetHeadPosition();
+		POSITION pos = m_segments.GetHeadPosition();
 		while(pos)
 		{
-			segment* s = segments.GetNext(pos);
+			segment* s = m_segments.GetNext(pos);
 			*((DWORD*)pData) = 1; pData += 4;
 			*((DWORD*)pData) = s->offset; pData += 4;
 		}
 	}
 
 	DWORD len = 0, total = 0;
-	POSITION pos = segments.GetHeadPosition();
+	POSITION pos = m_segments.GetHeadPosition();
 	while(pos)
 	{
-		segment* s = segments.GetNext(pos);
+		segment* s = m_segments.GetNext(pos);
 		ASSERT(pSample->GetSize() >= (pData-pDataOrg) + s->offset + s->data.GetCount());
 		memcpy(pData + s->offset, s->data.GetData(), s->data.GetCount());
 		total = max(total, s->offset + s->data.GetCount());
@@ -1396,252 +739,126 @@ HRESULT CRealMediaSplitterOutputPin::DeliverSegments(CSegments& segments)
 
 	total += pData - pDataOrg;
 
-	REFERENCE_TIME rtStart = segments.rtStart;
+	REFERENCE_TIME rtStart = m_segments.rtStart;
 	REFERENCE_TIME rtStop = rtStart+1;
 
 	if(S_OK != (hr = pSample->SetActualDataLength(total))
 	|| S_OK != (hr = pSample->SetTime(&rtStart, &rtStop))
 	|| S_OK != (hr = pSample->SetMediaTime(NULL, NULL))
-	|| S_OK != (hr = pSample->SetDiscontinuity(segments.fDiscontinuity))
-	|| S_OK != (hr = pSample->SetSyncPoint(segments.fSyncPoint))
-	|| S_OK != (hr = pSample->SetPreroll(segments.rtStart < 0))
+	|| S_OK != (hr = pSample->SetDiscontinuity(m_segments.fDiscontinuity))
+	|| S_OK != (hr = pSample->SetSyncPoint(m_segments.fSyncPoint))
+	|| S_OK != (hr = pSample->SetPreroll(m_segments.rtStart < 0))
 	|| S_OK != (hr = Deliver(pSample)))
 		int empty = 0;
 
-	segments.Clear();
-
-	return S_OK;
-}
-
-DWORD CRealMediaSplitterOutputPin::ThreadProc()
-{
-	m_hrDeliver = S_OK;
-
-	::SetThreadPriority(m_hThread, THREAD_PRIORITY_ABOVE_NORMAL);
-
 	m_segments.Clear();
 
-	while(1)
+	return S_OK;
+}
+
+HRESULT CRealMediaSplitterOutputPin::DeliverPacket(CAutoPtr<Packet> p)
+{
+	HRESULT hr = S_OK;
+
+	ASSERT(p->rtStart < p->rtStop);
+
+	if(m_mt.subtype == MEDIASUBTYPE_WAVE_DOLBY_AC3)
 	{
-		Sleep(1);
-
-		DWORD cmd;
-		if(CheckRequest(&cmd))
-		{
-			m_hThread = NULL;
-			cmd = GetRequest();
-			Reply(S_OK);
-			ASSERT(cmd == CMD_EXIT);
-			return 0;
-		}
-
-		int cnt = 0;
-		do
-		{
-			CAutoPtr<packet> p;
-
-			{
-				CAutoLock cAutoLock(&m_csQueueLock);
-				cnt = m_packets.GetCount();
-				if(cnt > 0) {p = m_packets.RemoveTail(); cnt--;}
-			}
-
-			if(S_OK != m_hrDeliver) 
-				continue;
-
-			if(p && p->type == EOS)
-			{
-				HRESULT hr = GetConnected()->EndOfStream();
-				if(hr != S_OK)
-				{
-					CAutoLock cAutoLock(&m_csQueueLock);
-					m_hrDeliver = hr;
-				}
-			}
-			else if(p && p->type == BLOCK)
-			{
-				HRESULT hr = S_FALSE;
-//TRACE(_T("CRMSplitterOutputPin::ThreadProc: %I64d (disc=%d)\n"), p->b->rtStart, p->bDiscontinuity);
-
-				ASSERT(p->b->rtStart < p->b->rtStop);
-
-				if(m_mt.subtype == MEDIASUBTYPE_WAVE_DOLBY_AC3)
-				{
-					WORD* s = (WORD*)p->b->pData.GetData();
-					WORD* e = s + p->b->pData.GetSize()/2;
-					while(s < e) bswap(*s++);
-				}
-				
-				if(m_mt.subtype == FOURCCMap('01VR') || m_mt.subtype == FOURCCMap('02VR')
-				|| m_mt.subtype == FOURCCMap('03VR') || m_mt.subtype == FOURCCMap('04VR'))
-				{
-					int len = p->b->pData.GetCount();
-					BYTE* pIn = p->b->pData.GetData(), * pInOrg = pIn;
-
-					if(m_hrDeliver == S_OK && m_segments.rtStart != p->b->rtStart)
-					{
-//						ASSERT(m_segments.rtStart < p->b->rtStart);
-
-//						TRACE(_T("WARNING: CRealMediaSplitterOutputPin::ThreadProc() sending incomplete segments\n"));
-
-//TRACE(_T("sending not terminated segments\n"));
-#ifdef DEBUG
-						{
-							POSITION pos = m_segments.GetHeadPosition();
-							while(pos)
-							{
-								segment* s = m_segments.GetNext(pos);
-								ASSERT(s->rtStart == m_segments.rtStart);
-							}
-						}
-#endif
-						if(S_OK != (hr = DeliverSegments(m_segments)))
-						{
-//TRACE(_T("S_OK != (hr = DeliverSegments(m_segments))\n"));
-							CAutoLock cAutoLock(&m_csQueueLock);
-							m_hrDeliver = hr;
-							continue;
-						}
-					}
-
-					if(!m_segments.fDiscontinuity && p->bDiscontinuity)
-						m_segments.fDiscontinuity = true;
-					m_segments.fSyncPoint = !!p->b->bSyncPoint;
-					m_segments.rtStart = p->b->rtStart;
-
-					while(m_hrDeliver == S_OK && pIn - pInOrg < len)
-					{
-						BYTE hdr = *pIn++, subseq = 0, seqnum = 0;
-						DWORD packetlen = 0, packetoffset = 0;
-
-						if((hdr&0xc0) == 0x40)
-						{
-							pIn++;
-							packetlen = len - (pIn - pInOrg);
-						}
-						else
-						{
-							if((hdr&0x40) == 0)
-								subseq = (*pIn++)&0x7f;
-
-							#define GetWORD(var) \
-								var = (var<<8)|(*pIn++); \
-								var = (var<<8)|(*pIn++); \
-
-							GetWORD(packetlen);
-							if(packetlen&0x8000) m_segments.fMerged = true;
-							if((packetlen&0x4000) == 0) {GetWORD(packetlen); packetlen &= 0x3fffffff;}
-							else packetlen &= 0x3fff;
-
-							GetWORD(packetoffset);
-							if((packetoffset&0x4000) == 0) {GetWORD(packetoffset); packetoffset &= 0x3fffffff;}
-							else packetoffset &= 0x3fff;
-
-							#undef GetWORD
-
-							if((hdr&0xc0) == 0xc0)
-								m_segments.rtStart = 10000i64*packetoffset - m_rtStart, packetoffset = 0;
-							else if((hdr&0xc0) == 0x80)
-								packetoffset = packetlen - packetoffset;
-
-							seqnum = *pIn++;
-						}
-
-                        int len2 = min(len - (pIn - pInOrg), packetlen - packetoffset);
-
-						CAutoPtr<segment> s(new segment);
-						s->offset = packetoffset;
-						s->data.SetSize(len2);
-#ifdef DEBUG
-						s->rtStart = m_segments.rtStart;
-#endif
-						memcpy(s->data.GetData(), pIn, len2);
-						m_segments.AddTail(s);
-
-#ifdef DEBUG
-						{
-							POSITION pos = m_segments.GetHeadPosition();
-							while(pos)
-							{
-								segment* s = m_segments.GetNext(pos);
-								ASSERT(s->rtStart == m_segments.rtStart);
-							}
-						}
-#endif
-
-
-						pIn += len2;
-
-						if((hdr&0x80) || packetoffset+len2 >= packetlen)
-						{
-//TRACE(_T("sending terminated/complete segments\n"));
-							if(S_OK != (hr = DeliverSegments(m_segments)))
-							{
-//TRACE(_T("S_OK != (hr = DeliverSegments(m_segments))\n"));
-								CAutoLock cAutoLock(&m_csQueueLock);
-								m_hrDeliver = hr;
-							}
-						}
-
-					}
-				}
-				else
-				{
-					CComPtr<IMediaSample> pSample;
-					BYTE* pData;
-					if(S_OK != (hr = GetDeliveryBuffer(&pSample, NULL, NULL, 0))
-					|| S_OK != (hr = pSample->GetPointer(&pData))
-					|| (hr = (memcpy(pData, p->b->pData.GetData(), p->b->pData.GetCount()) ? S_OK : E_FAIL))
-					|| S_OK != (hr = pSample->SetActualDataLength(p->b->pData.GetCount()))
-					|| S_OK != (hr = pSample->SetTime(&p->b->rtStart, &p->b->rtStop))
-					|| S_OK != (hr = pSample->SetMediaTime(NULL, NULL))
-					|| S_OK != (hr = pSample->SetDiscontinuity(p->bDiscontinuity))
-					|| S_OK != (hr = pSample->SetSyncPoint(p->b->bSyncPoint))
-					|| S_OK != (hr = pSample->SetPreroll(p->b->rtStart < 0))
-					|| S_OK != (hr = Deliver(pSample)))
-					{
-						CAutoLock cAutoLock(&m_csQueueLock);
-						m_hrDeliver = hr;
-					}
-				}
-			}
-		}
-		while(cnt > 0);
+		WORD* s = (WORD*)p->pData.GetData();
+		WORD* e = s + p->pData.GetSize()/2;
+		while(s < e) bswap(*s++);
 	}
+
+	if(m_mt.subtype == MEDIASUBTYPE_RV10 || m_mt.subtype == MEDIASUBTYPE_RV20
+	|| m_mt.subtype == MEDIASUBTYPE_RV30 || m_mt.subtype == MEDIASUBTYPE_RV40)
+	{
+		int len = p->pData.GetCount();
+		BYTE* pIn = p->pData.GetData();
+		BYTE* pInOrg = pIn;
+
+		if(m_segments.rtStart != p->rtStart)
+		{
+			if(S_OK != (hr = DeliverSegments()))
+				return hr;
+		}
+
+		if(!m_segments.fDiscontinuity && p->bDiscontinuity)
+			m_segments.fDiscontinuity = true;
+		m_segments.fSyncPoint = !!p->bSyncPoint;
+		m_segments.rtStart = p->rtStart;
+
+		while(pIn - pInOrg < len)
+		{
+			BYTE hdr = *pIn++, subseq = 0, seqnum = 0;
+			DWORD packetlen = 0, packetoffset = 0;
+
+			if((hdr&0xc0) == 0x40)
+			{
+				pIn++;
+				packetlen = len - (pIn - pInOrg);
+			}
+			else
+			{
+				if((hdr&0x40) == 0)
+					subseq = (*pIn++)&0x7f;
+
+				#define GetWORD(var) \
+					var = (var<<8)|(*pIn++); \
+					var = (var<<8)|(*pIn++); \
+
+				GetWORD(packetlen);
+				if(packetlen&0x8000) m_segments.fMerged = true;
+				if((packetlen&0x4000) == 0) {GetWORD(packetlen); packetlen &= 0x3fffffff;}
+				else packetlen &= 0x3fff;
+
+				GetWORD(packetoffset);
+				if((packetoffset&0x4000) == 0) {GetWORD(packetoffset); packetoffset &= 0x3fffffff;}
+				else packetoffset &= 0x3fff;
+
+				#undef GetWORD
+
+				if((hdr&0xc0) == 0xc0)
+					m_segments.rtStart = 10000i64*packetoffset - m_rtStart, packetoffset = 0;
+				else if((hdr&0xc0) == 0x80)
+					packetoffset = packetlen - packetoffset;
+
+				seqnum = *pIn++;
+			}
+
+            int len2 = min(len - (pIn - pInOrg), packetlen - packetoffset);
+
+			CAutoPtr<segment> s(new segment);
+			s->offset = packetoffset;
+			s->data.SetSize(len2);
+			memcpy(s->data.GetData(), pIn, len2);
+			m_segments.AddTail(s);
+
+			pIn += len2;
+
+			if((hdr&0x80) || packetoffset+len2 >= packetlen)
+			{
+				if(S_OK != (hr = DeliverSegments()))
+					return hr;
+			}
+		}
+	}
+	else
+	{
+		hr = __super::DeliverPacket(p);
+	}
+
+	return hr;
 }
 
 //
-// CFileReader
+// CRealMediaSourceFilter
 //
 
-CRealMediaSourceFilter::CFileReader::CFileReader(CString fn, HRESULT& hr) : CUnknown(NAME(""), NULL, &hr)
+CRealMediaSourceFilter::CRealMediaSourceFilter(LPUNKNOWN pUnk, HRESULT* phr)
+	: CRealMediaSplitterFilter(pUnk, phr)
 {
-	hr = m_file.Open(fn, CFile::modeRead|CFile::shareDenyWrite|CFile::typeBinary) ? S_OK : E_FAIL;
-}
-
-STDMETHODIMP CRealMediaSourceFilter::CFileReader::NonDelegatingQueryInterface(REFIID riid, void** ppv)
-{
-	CheckPointer(ppv, E_POINTER);
-
-	return 
-		QI(IAsyncReader)
-		__super::NonDelegatingQueryInterface(riid, ppv);
-}
-
-// IAsyncReader
-
-STDMETHODIMP CRealMediaSourceFilter::CFileReader::SyncRead(LONGLONG llPosition, LONG lLength, BYTE* pBuffer)
-{
-	if(llPosition != m_file.Seek(llPosition, CFile::begin)) return E_FAIL;
-	if((UINT)lLength < m_file.Read(pBuffer, lLength)) return S_FALSE;
-	return S_OK;
-}
-
-STDMETHODIMP CRealMediaSourceFilter::CFileReader::Length(LONGLONG* pTotal, LONGLONG* pAvailable)
-{
-	if(pTotal) *pTotal = m_file.GetLength();
-	if(pAvailable) *pAvailable = m_file.GetLength();
-	return S_OK;
+	m_clsid = __uuidof(this);
+	m_pInput.Free();
 }
 
 //
@@ -2058,6 +1275,7 @@ void CRealVideoDecoder::Resize(BYTE* pIn, DWORD wi, DWORD hi, BYTE* pOut, DWORD 
 		ResizeHeight(pIn + si, wi/2, hi/2, pOut + so, wo/2, ho/2);
 		ResizeHeight(pIn + si + si/4, wi/2, hi/2, pOut + so + so/4, wo/2, ho/2);
 		if(wi == wo) return;
+		ASSERT(0); // this is uncreachable code, but anyway... looks nice being so symmetric
 		ResizeWidth(pOut, wi, ho, pIn, wo, ho);
 		ResizeWidth(pOut + so, wi/2, ho/2, pIn + so, wo/2, ho/2);
 		ResizeWidth(pOut + so + so/4, wi/2, ho/2, pIn + so + so/4, wo/2, ho/2);
@@ -2567,10 +1785,10 @@ HRESULT CRealAudioDecoder::Receive(IMediaSample* pIn)
 
 	REFERENCE_TIME rtStart, rtStop;
 	pIn->GetTime(&rtStart, &rtStop);
-
+/*
 	if(pIn->IsPreroll() == S_OK || rtStart < 0)
 		return S_OK;
-
+*/
 	//
 
 	if(S_OK == pIn->IsSyncPoint())
@@ -2684,7 +1902,7 @@ HRESULT CRealAudioDecoder::Receive(IMediaSample* pIn)
 DbgLog((LOG_TRACE, 0, _T("A: rtStart=%I64d, rtStop=%I64d, disc=%d, sync=%d"), 
 	   rtStart, rtStop, pOut->IsDiscontinuity() == S_OK, pOut->IsSyncPoint() == S_OK));
 
-				if(S_OK != (hr = m_pOutput->Deliver(pOut)))
+				if(rtStart >= 0 && S_OK != (hr = m_pOutput->Deliver(pOut)))
 					return hr;
 
 				rtStart = rtStop;
