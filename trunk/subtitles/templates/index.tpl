@@ -9,7 +9,7 @@
 	<table>
 	<tr>
 		<th>Title</th>
-		<td onmouseover="return overlib('At least 3 characters<br>Wildcards are allowed (*, ?)', WRAP);" onmouseout="return nd();">
+		<td onmouseover="return overlib('Wildcards are allowed (*, ?)', WRAP);" onmouseout="return nd();">
 			<input class="text blueborder" type="text" name="text" value="{$text|escape:"quote"}" />
 		</td>
 	</tr>
@@ -51,6 +51,12 @@
 
 </div>
 
+<div class="index">
+{foreach from=$index item=i}
+	{if $text != $i.mask}<a href="{$smarty.server.PHP_SELF}?text={$i.mask}&bw=1">{/if}{$i.label}{if $text != $i.mask}</a>{/if}
+{/foreach}
+</div>
+
 <div class="results">
 
 {if !empty($movies)}
@@ -80,7 +86,8 @@
 		<tr>
 			<td class="icons">
 			<nobr>
-				{if !empty($s.has_file)}<img src="img/video.gif" />{else}&nbsp;{/if}
+				{if !empty($s.has_file)}<img src="img/video.gif" />{/if}
+				{if !empty($s.notes)}<img src="img/note.png" onmouseover="return overlib('{$s.notes|escape:"quote"}', WRAP);" onmouseout="return nd();" />{/if}
 				{if $s.userid > 0 && $s.userid == $user.userid}<a href="{$smarty.server.PHP_SELF}?del={$s.ms_id}" onclick="return confirm('Are you sure you want to delete this?')"><img src="img/del.gif" /></a>{/if}
 			</nobr>
 			</td>
@@ -105,11 +112,6 @@
 				{/if}
 			</td>
 		</tr>
-		{if !empty($s.notes)}
-		<tr>
-		<td colspan="7" class="notes"><strong>Notes:</strong> {$s.notes|escape:"html"}</td>
-		</tr>
-		{/if}		
 		{/foreach}
 		</table>
 		<br>
