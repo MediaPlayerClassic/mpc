@@ -540,7 +540,7 @@ void GSRendererHW::Flip()
 	{
 		if(!m_rs.IsEnabled(i)) continue;
 
-		DWORD FBP = m_rs.DISPFB[i].FBP<<5;
+		DWORD FBP = /*(::GetAsyncKeyState(VK_SPACE)&0x80000000) ? m_ctxt->FRAME.Block() :*/ (m_rs.DISPFB[i].FBP<<5);
 
 		CSurfMap<IDirect3DTexture9>::CPair* pPair = m_pRenderTargets.PLookup(FBP);
 
@@ -710,22 +710,27 @@ void GSRendererHW::InvalidateTexture(DWORD TBP0, int x, int y)
 		D3DSURFACE_DESC desc;
 		D3DLOCKED_RECT lr;
 		CRect r(m_rs.TRXPOS.DSAX, y, m_rs.TRXREG.RRW, min(m_x == m_rs.TRXPOS.DSAX ? m_y : m_y+1, m_rs.TRXREG.RRH));
-		int w = r.Width(), h = r.Height();
+		int w = r.right, h = r.bottom;
 
 		if(m_tc.LookupByTBP(TBP0, t) && !t.m_fRT
 		&& !(t.m_tex.CLAMP.WMS&2) && !(t.m_tex.CLAMP.WMT&2)
 		&& t.m_scale.x == 1.0f && t.m_scale.y == 1.0f
 		&& S_OK == t.m_pTexture->GetLevelDesc(0, &desc)
-		&& S_OK == t.m_pTexture->LockRect(0, &lr, r, 0)
-		&& desc.Width >= w && desc.Height >= h)
+		&& desc.Width >= w && desc.Height >= h
+		&& S_OK == t.m_pTexture->LockRect(0, &lr, r, 0))
 		{
+			m_lm.setupCLUT(m_ctxt->TEX0, m_de.TEXCLUT, m_de.TEXA);
+
+			GSLocalMemory::unSwizzleTexture st = m_lm.GetUnSwizzleTexture(m_ctxt->TEX0.PSM);
+			(m_lm.*st)(w, h, (BYTE*)lr.pBits, lr.Pitch, m_ctxt->TEX0, m_de.TEXA);
+/*
 			BYTE* dst = (BYTE*)lr.pBits;
 			GSLocalMemory::readTexel rt = m_lm.GetReadTexel(t.m_tex.TEX0.PSM);
 
 			for(int y = 0, diff = lr.Pitch - w*4; y < h; y++, dst += diff)
 				for(int x = 0; x < w; x++, dst += 4)
 					*(DWORD*)dst = SwapRB((m_lm.*rt)(r.left + x, r.top + y, t.m_tex.TEX0, t.m_tex.TEXA));
-
+*/
 			t.m_pTexture->UnlockRect(0);
 
 			m_stats.IncReads(w*h);
@@ -821,8 +826,8 @@ void GSRendererHW::CalcRegionToUpdate(int& tw, int& th)
 
 bool GSRendererHW::CreateTexture(GSTexture& t)
 {
-	int tw = 1 << m_ctxt->TEX0.TW;
-	int th = 1 << m_ctxt->TEX0.TH;
+	int tw = 1 << m_ctxt->TEX0.TW, tw0 = tw;
+	int th = 1 << m_ctxt->TEX0.TH, th0 = th;
 
 	HRESULT hr;
 	CComPtr<IDirect3DTexture9> pTexture;
@@ -859,7 +864,7 @@ bool GSRendererHW::CreateTexture(GSTexture& t)
 	RECT rlock = {0, 0, tw, th};
 
 	D3DLOCKED_RECT r;
-	if(FAILED(hr = pTexture->LockRect(0, &r, &rlock, 0)))
+	if(FAILED(hr = pTexture->LockRect(0, &r, tw == tw0 && th == th0 ? NULL : &rlock, 0)))
 		return(false);
 
 	BYTE* dst = (BYTE*)r.pBits;

@@ -227,6 +227,7 @@ HRESULT GSTextureCache::CreateTexture(GIFRegTEX0& TEX0, IDirect3DDevice9* pD3DDe
 		m_pTexturePool.RemoveTail();
 
 	HRESULT hr = pD3DDev->CreateTexture(tw, th, 1, 0, D3DFMT_A8R8G8B8, D3DPOOL_MANAGED, ppTexture, NULL);
+//	HRESULT hr = pD3DDev->CreateTexture(tw, th, 1, D3DUSAGE_DYNAMIC, D3DFMT_A8R8G8B8, D3DPOOL_DEFAULT, ppTexture, NULL);
 	if(FAILED(hr)) return hr;
 
 	m_pTexturePool.AddHead(*ppTexture);

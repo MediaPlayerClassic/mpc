@@ -1190,7 +1190,7 @@ bool GSLocalMemory::FillRect(CRect& r, DWORD c, DWORD psm, DWORD fbp, DWORD fbw)
 	__asm punpckl##op	xmm##sd2, xmm##s3		\
 	__asm punpckh##op	xmm##d3, xmm##s3		\
 
-// unpacks nibble to byte (0, 1, 2, 3 -> 0, 2, 4, 6), xmm7 expected to be 0x0f..0f
+// unpacks nibble to byte (0, 1, 2, 3 -> 0, 2, 4, 6), xmm7 is expected to be 0x0f..0f
 #define punpcknb							\
 		__asm movaps	xmm4, xmm0			\
 		__asm pshufd	xmm5, xmm1, 0xe4	\
@@ -1233,7 +1233,16 @@ bool GSLocalMemory::FillRect(CRect& r, DWORD c, DWORD psm, DWORD fbp, DWORD fbw)
 void GSLocalMemory::unSwizzleBlock32(BYTE* src, BYTE* dst, int dstpitch)
 {
 #if _M_IX86_FP >= 2
-	__asm
+/*
+clock_t start = clock();
+for(int i = 0; i < 50000000; i++)
+{
+}
+clock_t diff = clock() - start;
+CString str;
+str.Format(_T("%d"), diff);
+AfxMessageBox(str, MB_OK);
+*/	__asm
 	{
 		mov			esi, src
 		mov			edi, dst
@@ -1253,8 +1262,9 @@ unSwizzleBlock32_loop:
 		movaps		[edi+edx], xmm4
 		movaps		[edi+edx+16], xmm6
 
-		add			esi, 64
 		lea			edi, [edi+edx*2]
+
+		add			esi, 64
 
 		loop		unSwizzleBlock32_loop
 	}
@@ -1268,6 +1278,10 @@ unSwizzleBlock32_loop:
 
 void GSLocalMemory::unSwizzleBlock16(BYTE* src, BYTE* dst, int dstpitch)
 {
+/*	for(int j = 0, k = 0; j < 8; j++)
+		for(int i = 0; i < 16; i++)
+			((WORD*)src)[columnTable16[j][i]] = k++;
+*/
 #if _M_IX86_FP >= 2
 	__asm
 	{
@@ -1279,12 +1293,12 @@ void GSLocalMemory::unSwizzleBlock16(BYTE* src, BYTE* dst, int dstpitch)
 unSwizzleBlock16_loop:
 		movaps		xmm0, [esi+16*0]
 		movaps		xmm1, [esi+16*1]
-		movaps		xmm4, [esi+16*2]
-		movaps		xmm5, [esi+16*3]
+		movaps		xmm2, [esi+16*2]
+		movaps		xmm3, [esi+16*3]
 
-		punpck(wd, 0, 4, 1, 5, 2, 6);
-		punpck(dq, 0, 4, 2, 6, 1, 5);
-		punpck(wd, 0, 4, 1, 5, 2, 6);
+		punpck(wd, 0, 2, 1, 3, 4, 6);
+		punpck(dq, 0, 4, 2, 6, 1, 3);
+		punpck(wd, 0, 4, 1, 3, 2, 6);
 
 		movaps		[edi], xmm0
 		movaps		[edi+16], xmm2
@@ -1331,20 +1345,19 @@ unSwizzleBlock8_loop:
 		movaps		xmm5, [esi+16*3]
 
 		punpck(bw,  0, 4, 1, 5, 2, 6);
-		punpck(qdq, 0, 4, 2, 6, 1, 5);
-		punpck(bw,  0, 4, 1, 5, 2, 6);
-		punpck(dq,  0, 2, 4, 6, 1, 5);
-		punpck(qdq, 0, 2, 1, 5, 4, 6);
+		punpck(wd,  0, 2, 4, 6, 1, 3);
+		punpck(bw,  0, 2, 1, 3, 4, 6);
+		punpck(qdq, 0, 2, 4, 6, 1, 3);
 
-		pshufd		xmm4, xmm4, 0xb1
-		pshufd		xmm6, xmm6, 0xb1
+		pshufd		xmm1, xmm1, 0xb1
+		pshufd		xmm3, xmm3, 0xb1
 
 		movaps		[edi], xmm0
 		movaps		[edi+edx], xmm2
 		lea			edi, [edi+edx*2]
 
-		movaps		[edi], xmm4
-		movaps		[edi+edx], xmm6
+		movaps		[edi], xmm1
+		movaps		[edi+edx], xmm3
 		lea			edi, [edi+edx*2]
 
 		// col 1, 3
@@ -1355,10 +1368,9 @@ unSwizzleBlock8_loop:
 		movaps		xmm5, [esi+16*7]
 
 		punpck(bw,  0, 4, 1, 5, 2, 6);
-		punpck(qdq, 0, 4, 2, 6, 1, 5);
-		punpck(bw,  0, 4, 1, 5, 2, 6);
-		punpck(dq,  0, 2, 4, 6, 1, 5);
-		punpck(qdq, 0, 2, 1, 5, 4, 6);
+		punpck(wd,  0, 2, 4, 6, 1, 3);
+		punpck(bw,  0, 2, 1, 3, 4, 6);
+		punpck(qdq, 0, 2, 4, 6, 1, 3);
 
 		pshufd		xmm0, xmm0, 0xb1
 		pshufd		xmm2, xmm2, 0xb1
@@ -1367,8 +1379,8 @@ unSwizzleBlock8_loop:
 		movaps		[edi+edx], xmm2
 		lea			edi, [edi+edx*2]
 
-		movaps		[edi], xmm4
-		movaps		[edi+edx], xmm6
+		movaps		[edi], xmm1
+		movaps		[edi+edx], xmm3
 		lea			edi, [edi+edx*2]
 
 		add			esi, 128
@@ -1425,46 +1437,54 @@ unSwizzleBlock4_loop:
 
 		movaps		xmm0, [esi+16*0]
 		movaps		xmm1, [esi+16*1]
-		movaps		xmm2, [esi+16*2]
+		movaps		xmm4, [esi+16*2]
 		movaps		xmm3, [esi+16*3]
 
+		punpck(dq, 0, 4, 1, 3, 2, 6);
+		punpck(dq, 0, 2, 4, 6, 1, 3);
 		punpcknb
-		punpck(bw, 0, 4, 2, 6, 1, 5);
-			// FIXME
-			movaps		xmm2, xmm4
-			pshufd		xmm3, xmm5, 0xe4
-		punpcknb
-		punpck(dq, 0, 2, 4, 6, 1, 5);
-		punpck(dq, 0, 2, 1, 5, 4, 6);
+		punpck(bw, 0, 2, 4, 6, 1, 3);
+		punpck(wd, 0, 2, 1, 3, 4, 6);
 
-		pshuflw		xmm4, xmm4, 0xb1
-		pshuflw		xmm6, xmm6, 0xb1
-		pshufhw		xmm4, xmm4, 0xb1
-		pshufhw		xmm6, xmm6, 0xb1
+		pshufd		xmm0, xmm0, 0xd8
+		pshufd		xmm2, xmm2, 0xd8
+		pshufd		xmm4, xmm4, 0xd8
+		pshufd		xmm6, xmm6, 0xd8
+
+		punpck(qdq, 0, 2, 4, 6, 1, 3);
+
+		pshuflw		xmm1, xmm1, 0xb1
+		pshuflw		xmm3, xmm3, 0xb1
+		pshufhw		xmm1, xmm1, 0xb1
+		pshufhw		xmm3, xmm3, 0xb1
 
 		movaps		[edi], xmm0
 		movaps		[edi+edx], xmm2
 		lea			edi, [edi+edx*2]
 
-		movaps		[edi], xmm4
-		movaps		[edi+edx], xmm6
+		movaps		[edi], xmm1
+		movaps		[edi+edx], xmm3
 		lea			edi, [edi+edx*2]
 
 		// col 1, 3
 
 		movaps		xmm0, [esi+16*4]
 		movaps		xmm1, [esi+16*5]
-		movaps		xmm2, [esi+16*6]
+		movaps		xmm4, [esi+16*6]
 		movaps		xmm3, [esi+16*7]
 
+		punpck(dq, 0, 4, 1, 3, 2, 6);
+		punpck(dq, 0, 2, 4, 6, 1, 3);
 		punpcknb
-		punpck(bw, 0, 4, 2, 6, 1, 5);
-			// FIXME
-			movaps		xmm2, xmm4
-			pshufd		xmm3, xmm5, 0xe4
-		punpcknb
-		punpck(dq, 0, 2, 4, 6, 1, 5);
-		punpck(dq, 0, 2, 1, 5, 4, 6);
+		punpck(bw, 0, 2, 4, 6, 1, 3);
+		punpck(wd, 0, 2, 1, 3, 4, 6);
+
+		pshufd		xmm0, xmm0, 0xd8
+		pshufd		xmm2, xmm2, 0xd8
+		pshufd		xmm4, xmm4, 0xd8
+		pshufd		xmm6, xmm6, 0xd8
+
+		punpck(qdq, 0, 2, 4, 6, 1, 3);
 
 		pshuflw		xmm0, xmm0, 0xb1
 		pshuflw		xmm2, xmm2, 0xb1
@@ -1475,8 +1495,8 @@ unSwizzleBlock4_loop:
 		movaps		[edi+edx], xmm2
 		lea			edi, [edi+edx*2]
 
-		movaps		[edi], xmm4
-		movaps		[edi+edx], xmm6
+		movaps		[edi], xmm1
+		movaps		[edi+edx], xmm3
 		lea			edi, [edi+edx*2]
 
 		add			esi, 128
