@@ -553,7 +553,28 @@ void COggSplitterOutputPin::AddComment(BYTE* p, int len)
 		if(sl.GetCount() == 2)
 		{
 			CAutoPtr<CComment> p(new CComment(UTF8To16(sl.GetHead()), UTF8To16(sl.GetTail())));
-			if(p->m_key == L"LANGUAGE") {SetName(p->m_value); SetProperty(L"NAME", p->m_value);}
+
+			if(p->m_key == L"LANGUAGE")
+			{
+				CString lang = ISO6392ToLanguage(sl.GetTail()), iso6392 = LanguageToISO6392(CString(p->m_value));
+
+				if(p->m_value.GetLength() == 3 && !lang.IsEmpty())
+				{
+					SetName(CStringW(lang));
+					SetProperty(L"LANG", p->m_value);
+				}
+				else if(!iso6392.IsEmpty())
+				{
+					SetName(p->m_value);
+					SetProperty(L"LANG", CStringW(iso6392));
+				}
+				else
+				{
+					SetName(p->m_value);
+					SetProperty(L"NAME", p->m_value);
+				}
+			}
+
 			m_pComments.AddTail(p);
 		}
 	}

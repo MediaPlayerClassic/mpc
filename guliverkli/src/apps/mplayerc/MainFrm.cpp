@@ -276,6 +276,8 @@ BEGIN_MESSAGE_MAP(CMainFrame, CFrameWnd)
 	ON_UPDATE_COMMAND_UI_RANGE(ID_PANNSCAN_PRESETS_START, ID_PANNSCAN_PRESETS_END, OnUpdateViewPanNScanPresets)
 	ON_COMMAND_RANGE(ID_PANSCAN_ROTATEXP, ID_PANSCAN_ROTATEZM, OnViewRotate)
 	ON_UPDATE_COMMAND_UI_RANGE(ID_PANSCAN_ROTATEXP, ID_PANSCAN_ROTATEZM, OnUpdateViewRotate)
+	ON_COMMAND_RANGE(ID_ASPECTRATIO_START, ID_ASPECTRATIO_END, OnViewAspectRatio)
+	ON_UPDATE_COMMAND_UI_RANGE(ID_ASPECTRATIO_START, ID_ASPECTRATIO_END, OnUpdateViewAspectRatio)
 	ON_COMMAND_RANGE(ID_ONTOP_NEVER, ID_ONTOP_WHILEPLAYING, OnViewOntop)
 	ON_UPDATE_COMMAND_UI_RANGE(ID_ONTOP_NEVER, ID_ONTOP_WHILEPLAYING, OnUpdateViewOntop)
 	ON_COMMAND(ID_VIEW_OPTIONS, OnViewOptions)
@@ -343,6 +345,7 @@ BEGIN_MESSAGE_MAP(CMainFrame, CFrameWnd)
 	ON_COMMAND(ID_HELP_HOMEPAGE, OnHelpHomepage)
 	ON_COMMAND(ID_HELP_DONATE, OnHelpDonate)
 
+	ON_WM_SIZING()
 	END_MESSAGE_MAP()
 
 /////////////////////////////////////////////////////////////////////////////
@@ -1154,6 +1157,11 @@ void CMainFrame::OnTimer(UINT nIDEvent)
 		}
 		EndEnumFilters
 
+		if(m_iPlaybackMode == PM_FILE)
+		{
+			SetupChapters();
+		}
+
 		if(m_iPlaybackMode == PM_DVD) // we also use this timer to update the info panel for dvd playback
 		{
 			ULONG ulAvailable, ulCurrent;
@@ -1517,6 +1525,11 @@ LRESULT CMainFrame::OnGraphNotify(WPARAM wParam, LPARAM lParam)
 			{
 				SendMessage(WM_COMMAND, ID_FILE_CLOSEMEDIA);
 			}
+		}
+		else if(EC_DVD_TITLE_CHANGE == evCode)
+		{
+			if(m_iPlaybackMode == PM_FILE)
+				SetupChapters();
 		}
 		else if(EC_DVD_DOMAIN_CHANGE == evCode)
 		{
@@ -1975,23 +1988,7 @@ void CMainFrame::OnInitMenuPopup(CMenu* pPopupMenu, UINT nIndex, BOOL bSysMenu)
 
 			pPopupMenu->EnableMenuItem(i, MF_BYPOSITION|fState);
 		}
-		else if(str == _T("Video Frame"))
-		{
-			UINT fState = (m_iMediaLoadState == MLS_LOADED && !m_fAudioOnly) 
-				? MF_ENABLED 
-				: (MF_DISABLED|MF_GRAYED);
-
-			pPopupMenu->EnableMenuItem(i, MF_BYPOSITION|fState);
-		}
-		else if(str == _T("PanScan"))
-		{
-			UINT fState = (m_iMediaLoadState == MLS_LOADED && !m_fAudioOnly) 
-				? MF_ENABLED 
-				: (MF_DISABLED|MF_GRAYED);
-
-			pPopupMenu->EnableMenuItem(i, MF_BYPOSITION|fState);
-		}
-		else if(str == _T("Zoom"))
+		else if(str == _T("Video Frame") || str == _T("PanScan") || str == _T("Aspect Ratio") || str == _T("Zoom"))
 		{
 			UINT fState = (m_iMediaLoadState == MLS_LOADED && !m_fAudioOnly) 
 				? MF_ENABLED 
@@ -3774,6 +3771,41 @@ void CMainFrame::OnUpdateViewRotate(CCmdUI* pCmdUI)
 	pCmdUI->Enable(m_iMediaLoadState == MLS_LOADED && !m_fAudioOnly && m_pCAP);
 }
 
+void CMainFrame::OnViewAspectRatio(UINT nID)
+{
+	CSize& ar = AfxGetAppSettings().AspectRatio;
+
+	switch(nID)
+	{
+	default: ar.SetSize(0, 0); break;
+	case ID_ASPECTRATIO_4: ar.SetSize(4, 3); break;
+	case ID_ASPECTRATIO_5: ar.SetSize(5, 4); break;
+	case ID_ASPECTRATIO_16: ar.SetSize(16, 9); break;
+	}
+
+	CString info;
+	if(ar.cx && ar.cy) info.Format(_T("Aspect Ratio: %d:%d"), ar.cx, ar.cy);
+	else info.Format(_T("Aspect Ratio: Default"));
+	SendStatusMessage(info, 3000);
+
+	MoveVideoWindow();
+}
+
+void CMainFrame::OnUpdateViewAspectRatio(CCmdUI* pCmdUI)
+{
+	const CSize& ar = AfxGetAppSettings().AspectRatio;
+
+	switch(pCmdUI->m_nID)
+	{
+	default: pCmdUI->SetRadio(ar == CSize(0, 0)); break;
+	case ID_ASPECTRATIO_4: pCmdUI->SetRadio(ar == CSize(4, 3)); break;
+	case ID_ASPECTRATIO_5: pCmdUI->SetRadio(ar == CSize(5, 4)); break;
+	case ID_ASPECTRATIO_16: pCmdUI->SetRadio(ar == CSize(16, 9)); break;
+	}
+
+	pCmdUI->Enable(m_iMediaLoadState == MLS_LOADED && !m_fAudioOnly);
+}
+
 void CMainFrame::OnViewOntop(UINT nID)
 {
 	nID -= ID_ONTOP_NEVER;
@@ -4714,7 +4746,8 @@ void CMainFrame::OnNavigateSkip(UINT nID)
 
 void CMainFrame::OnUpdateNavigateSkip(CCmdUI* pCmdUI)
 {
-	if(m_iPlaybackMode == PM_FILE) SetupChapters();
+	// moved to the timer callback function, that runs less frequent
+//	if(m_iPlaybackMode == PM_FILE) SetupChapters();
 
 	pCmdUI->Enable(m_iMediaLoadState == MLS_LOADED
 		&& ((m_iPlaybackMode == PM_DVD 
@@ -5349,6 +5382,9 @@ CSize CMainFrame::GetVideoSize()
 		if(pBV2 && SUCCEEDED(pBV2->GetPreferredAspectRatio(&arx, &ary)) && arx > 0 && ary > 0)
 			arxy.SetSize(arx, ary);
 	}
+
+	CSize& ar = AfxGetAppSettings().AspectRatio;
+	if(ar.cx && ar.cy) arxy = ar;
 
 	if(wh.cx <= 0 || wh.cy <= 0)
 		return ret;
@@ -6171,6 +6207,16 @@ void CMainFrame::OpenCapture(OpenDeviceData* pODD)
 			if(FAILED(pCGB->FindInterface(&PIN_CATEGORY_PREVIEW, &MEDIATYPE_Interleaved, pVidCap, IID_IAMStreamConfig, (void **)&pAMVSCPrev))
 			&& FAILED(pCGB->FindInterface(&PIN_CATEGORY_PREVIEW, &MEDIATYPE_Video, pVidCap, IID_IAMStreamConfig, (void **)&pAMVSCPrev)))
 				TRACE(_T("Warning: No IAMStreamConfig interface for vidcap capture"));
+
+			if(FAILED(pCGB->FindInterface(&PIN_CATEGORY_CAPTURE, &MEDIATYPE_Audio, pVidCap, IID_IAMStreamConfig, (void **)&pAMASC))
+			&& FAILED(pCGB->FindInterface(&PIN_CATEGORY_PREVIEW, &MEDIATYPE_Audio, pVidCap, IID_IAMStreamConfig, (void **)&pAMASC)))
+			{
+				TRACE(_T("Warning: No IAMStreamConfig interface for vidcap"));
+			}
+			else
+			{
+				pAudCap = pVidCap;
+			}
 		}
 		else
 		{
@@ -6205,9 +6251,18 @@ void CMainFrame::OpenCapture(OpenDeviceData* pODD)
 
 		if(pAMTuner) // load saved channel
 		{
+			pAMTuner->put_CountryCode(49);
+
 			int vchannel = pODD->vchannel;
 			if(vchannel < 0) vchannel = AfxGetApp()->GetProfileInt(_T("Capture\\") + CString(m_VidDispName), _T("Channel"), -1);
-			if(vchannel >= 0) pAMTuner->put_Channel(vchannel, AMTUNER_SUBCHAN_DEFAULT, AMTUNER_SUBCHAN_DEFAULT);
+			if(vchannel >= 0)
+			{
+				OAFilterState fs = State_Stopped;
+				pMC->GetState(0, &fs);
+				if(fs == State_Running) pMC->Pause();
+				pAMTuner->put_Channel(vchannel, AMTUNER_SUBCHAN_DEFAULT, AMTUNER_SUBCHAN_DEFAULT);
+				if(fs == State_Running) pMC->Run();
+			}
 		}
 	}
 
@@ -8718,3 +8773,96 @@ void CGraphThread::OnClose(WPARAM wParam, LPARAM lParam)
 	if(CAMEvent* e = (CAMEvent*)lParam) e->Set();
 }
 
+
+void CMainFrame::OnSizing(UINT fwSide, LPRECT pRect)
+{
+	__super::OnSizing(fwSide, pRect);
+
+	if(m_iMediaLoadState != MLS_LOADED || m_fFullScreen
+	|| AfxGetAppSettings().iDefaultVideoSize == DVS_STRETCH
+	|| !(GetAsyncKeyState(VK_CONTROL)&0x80000000))
+		return;
+
+	CSize wsize(pRect->right - pRect->left, pRect->bottom - pRect->top);
+	CSize vsize = GetVideoSize();
+	CSize fsize(0, 0);
+
+	if(!vsize.cx || !vsize.cy)
+		return;
+
+	// TODO
+	{
+		DWORD style = GetStyle();
+
+		MENUBARINFO mbi;
+		memset(&mbi, 0, sizeof(mbi));
+		mbi.cbSize = sizeof(mbi);
+		::GetMenuBarInfo(m_hWnd, OBJID_MENU, 0, &mbi);
+
+		fsize.cx += GetSystemMetrics((style&WS_CAPTION)?SM_CXSIZEFRAME:SM_CXFIXEDFRAME)*2;
+
+		if(style&WS_CAPTION) fsize.cy += GetSystemMetrics(SM_CYCAPTION);
+		if(style&WS_THICKFRAME) fsize.cy += GetSystemMetrics((style&WS_CAPTION)?SM_CYSIZEFRAME:SM_CYFIXEDFRAME)*2;
+		fsize.cy += mbi.rcBar.bottom - mbi.rcBar.top;
+		if(!AfxGetAppSettings().fHideCaptionMenu) fsize.cy += 3;
+
+		POSITION pos = m_bars.GetHeadPosition();
+		while(pos) 
+		{
+			CControlBar* pCB = m_bars.GetNext(pos);
+			if(IsWindow(pCB->m_hWnd) && pCB->IsVisible())
+				fsize.cy += pCB->CalcFixedLayout(TRUE, TRUE).cy;
+		}
+
+		if(IsWindow(m_wndSubresyncBar.m_hWnd) && m_wndSubresyncBar.IsWindowVisible())
+		{
+			if(m_wndSubresyncBar.IsHorzDocked())
+				fsize.cy += m_wndSubresyncBar.CalcFixedLayout(TRUE, TRUE).cy-2;
+			else if(m_wndSubresyncBar.IsVertDocked())
+				fsize.cx += m_wndSubresyncBar.CalcFixedLayout(TRUE, FALSE).cx;
+		}
+
+		if(IsWindow(m_wndPlaylistBar.m_hWnd) && m_wndPlaylistBar.IsWindowVisible())
+		{
+			if(m_wndPlaylistBar.IsHorzDocked())
+				fsize.cy += m_wndPlaylistBar.CalcFixedLayout(TRUE, TRUE).cy-2;
+			else if(m_wndPlaylistBar.IsVertDocked())
+				fsize.cx += m_wndPlaylistBar.CalcFixedLayout(TRUE, FALSE).cx;
+		}
+
+		if(IsWindow(m_wndCaptureBar.m_hWnd) && m_wndCaptureBar.IsWindowVisible())
+		{
+			if(m_wndCaptureBar.IsHorzDocked())
+				fsize.cy += m_wndCaptureBar.CalcFixedLayout(TRUE, TRUE).cy-2;
+			else if(m_wndCaptureBar.IsVertDocked())
+				fsize.cx += m_wndCaptureBar.CalcFixedLayout(TRUE, FALSE).cx;
+		}
+	}
+
+	wsize -= fsize;
+
+	bool fWider = wsize.cy < wsize.cx;
+
+	wsize.SetSize(
+		wsize.cy * vsize.cx / vsize.cy,
+		wsize.cx * vsize.cy / vsize.cx);
+
+	wsize += fsize;
+
+	if(fwSide == WMSZ_TOP || fwSide == WMSZ_BOTTOM || !fWider && (fwSide == WMSZ_TOPRIGHT || fwSide == WMSZ_BOTTOMRIGHT))
+	{
+		pRect->right = pRect->left + wsize.cx;
+	}
+	else if(fwSide == WMSZ_LEFT || fwSide == WMSZ_RIGHT || fWider && (fwSide == WMSZ_BOTTOMLEFT || fwSide == WMSZ_BOTTOMRIGHT))
+	{
+		pRect->bottom = pRect->top + wsize.cy;
+	}
+	else if(!fWider && (fwSide == WMSZ_TOPLEFT || fwSide == WMSZ_BOTTOMLEFT))
+	{
+		pRect->left = pRect->right - wsize.cx;
+	}
+	else if(fWider && (fwSide == WMSZ_TOPLEFT || fwSide == WMSZ_TOPRIGHT))
+	{
+		pRect->top = pRect->bottom - wsize.cy;
+	}
+}

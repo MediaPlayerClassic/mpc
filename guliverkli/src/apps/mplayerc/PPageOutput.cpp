@@ -38,6 +38,7 @@ CPPageOutput::CPPageOutput()
 	, m_iAPSurfaceUsage(0)
 	, m_iAudioRendererType(0)
 	, m_fVMRSyncFix(FALSE)
+	, m_iDX9Resizer(0)
 {
 }
 
@@ -55,6 +56,7 @@ void CPPageOutput::DoDataExchange(CDataExchange* pDX)
 	DDX_CBIndex(pDX, IDC_COMBO1, m_iAudioRendererType);
 	DDX_Control(pDX, IDC_COMBO1, m_iAudioRendererTypeCtrl);
 	DDX_Check(pDX, IDC_CHECK1, m_fVMRSyncFix);
+	DDX_CBIndex(pDX, IDC_DX9RESIZER_COMBO, m_iDX9Resizer);
 }
 
 
@@ -75,6 +77,7 @@ BOOL CPPageOutput::OnInitDialog()
 	m_iQTVideoRendererType = s.iQTVideoRendererType;
 	m_iAPSurfaceUsage = s.iAPSurfaceUsage;
 	m_fVMRSyncFix = s.fVMRSyncFix;
+	m_iDX9Resizer = s.iDX9Resizer;
 
 	m_AudioRendererDisplayNames.Add(_T(""));
 	m_iAudioRendererTypeCtrl.AddString(_T("System Default"));
@@ -169,6 +172,7 @@ BOOL CPPageOutput::OnApply()
 	s.iAPSurfaceUsage = m_iAPSurfaceUsage;
 	s.fVMRSyncFix = !!m_fVMRSyncFix;
 	s.AudioRendererDisplayName = m_AudioRendererDisplayNames[m_iAudioRendererType];
+	s.iDX9Resizer = m_iDX9Resizer;
 
 	return __super::OnApply();
 }

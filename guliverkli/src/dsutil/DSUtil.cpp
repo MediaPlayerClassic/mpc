@@ -1465,7 +1465,7 @@ static struct {LPCSTR name, iso6392, iso6391;} s_isolangs[] =
 	{"Akan", "aka", "ak"},
 	{"Akkadian", "akk", ""},
 	{"Albanian", "alb", "sq"},
-	{"", "sqi", "sq"},
+	{"Albanian", "sqi", "sq"},
 	{"Aleut", "ale", ""},
 	{"Algonquian languages", "alg", ""},
 	{"Altaic (Other)", "tut", ""},
@@ -1478,7 +1478,7 @@ static struct {LPCSTR name, iso6392, iso6391;} s_isolangs[] =
 	{"Araucanian", "arn", ""},
 	{"Arawak", "arw", ""},
 	{"Armenian", "arm", "hy"},
-	{"", "hye", "hy"},
+	{"Armenian", "hye", "hy"},
 	{"Artificial (Other)", "art", ""},
 	{"Assamese", "asm", "as"},
 	{"Asturian; Bable", "ast", ""},
@@ -1501,7 +1501,7 @@ static struct {LPCSTR name, iso6392, iso6391;} s_isolangs[] =
 	{"Basa", "bas", ""},
 	{"Bashkir", "bak", "ba"},
 	{"Basque", "baq", "eu"},
-	{"", "eus", "eu"},
+	{"Basque", "eus", "eu"},
 	{"Batak (Indonesia)", "btk", ""},
 	{"Beja", "bej", ""},
 	{"Belarusian", "bel", "be"},
@@ -1521,7 +1521,7 @@ static struct {LPCSTR name, iso6392, iso6391;} s_isolangs[] =
 	{"Bulgarian", "bul", "bg"},
 	{"Buriat", "bua", ""},
 	{"Burmese", "bur", "my"},
-	{"", "mya", "my"},
+	{"Burmese", "mya", "my"},
 	{"Caddo", "cad", ""},
 	{"Carib", "car", ""},
 	{"Spanish; Castilian", "spa", "es"},
@@ -1540,7 +1540,7 @@ static struct {LPCSTR name, iso6392, iso6391;} s_isolangs[] =
 	{"Chibcha", "chb", ""},
 	{"Chichewa; Chewa; Nyanja", "nya", "ny"},
 	{"Chinese", "chi", "zh"},
-	{"", "zho", "zh"},
+	{"Chinese", "zho", "zh"},
 	{"Chinook jargon", "chn", ""},
 	{"Chipewyan", "chp", ""},
 	{"Choctaw", "cho", ""},
@@ -1565,10 +1565,10 @@ static struct {LPCSTR name, iso6392, iso6391;} s_isolangs[] =
 	{"Creoles and pidgins,", "cpp", ""},
 	//   {"Portuguese-based (Other)", "", ""},
 	{"Croatian", "scr", "hr"},
-	{"", "hrv", "hr"},
+	{"Croatian", "hrv", "hr"},
 	{"Cushitic (Other)", "cus", ""},
 	{"Czech", "cze", "cs"},
-	{"", "ces", "cs"},
+	{"Czech", "ces", "cs"},
 	{"Dakota", "dak", ""},
 	{"Danish", "dan", "da"},
 	{"Dargwa", "dar", ""},
@@ -1581,7 +1581,7 @@ static struct {LPCSTR name, iso6392, iso6391;} s_isolangs[] =
 	{"Dravidian (Other)", "dra", ""},
 	{"Duala", "dua", ""},
 	{"Dutch; Flemish", "dut", "nl"},
-	{"", "nld", "nl"},
+	{"Dutch; Flemish", "nld", "nl"},
 	{"Dutch, Middle (ca. 1050-1350)", "dum", ""},
 	{"Dyula", "dyu", ""},
 	{"Dzongkha", "dzo", "dz"},
@@ -1603,10 +1603,10 @@ static struct {LPCSTR name, iso6392, iso6391;} s_isolangs[] =
 	{"Finnish", "fin", "fi"},
 	{"Finno-Ugrian (Other)", "fiu", ""},
 	{"Flemish; Dutch", "dut", "nl"},
-	{"", "nld", "nl"},
+	{"Flemish; Dutch", "nld", "nl"},
 	{"Fon", "fon", ""},
 	{"French", "fre", "fr"},
-	{"", "fra*", "fr"},
+	{"French", "fra*", "fr"},
 	{"French, Middle (ca.1400-1600)", "frm", ""},
 	{"French, Old (842-ca.1400)", "fro", ""},
 	{"Frisian", "fry", "fy"},
@@ -1620,9 +1620,9 @@ static struct {LPCSTR name, iso6392, iso6391;} s_isolangs[] =
 	{"Gbaya", "gba", ""},
 	{"Geez", "gez", ""},
 	{"Georgian", "geo", "ka"},
-	{"", "kat", "ka"},
+	{"Georgian", "kat", "ka"},
 	{"German", "ger", "de"},
-	{"", "deu", "de"},
+	{"German", "deu", "de"},
 	{"German, Low; Saxon, Low; Low German; Low Saxon", "nds", ""},
 	{"German, Middle High (ca.1050-1500)", "gmh", ""},
 	{"German, Old High (ca.750-1050)", "goh", ""},
@@ -1635,7 +1635,7 @@ static struct {LPCSTR name, iso6392, iso6391;} s_isolangs[] =
 	{"Grebo", "grb", ""},
 	{"Greek, Ancient (to 1453)", "grc", ""},
 	{"Greek, Modern (1453-)", "gre", "el"},
-	{"", "ell", "el"},
+	{"Greek, Modern (1453-)", "ell", "el"},
 	{"Greenlandic; Kalaallisut", "kal", "kl"},
 	{"Guarani", "grn", "gn"},
 	{"Gujarati", "guj", "gu"},
@@ -1655,7 +1655,7 @@ static struct {LPCSTR name, iso6392, iso6391;} s_isolangs[] =
 	{"Hupa", "hup", ""},
 	{"Iban", "iba", ""},
 	{"Icelandic", "ice", "is"},
-	{"", "isl", "is"},
+	{"Icelandic", "isl", "is"},
 	{"Ido", "ido", "io"},
 	{"Igbo", "ibo", "ig"},
 	{"Ijo", "ijo", ""},
@@ -1738,14 +1738,14 @@ static struct {LPCSTR name, iso6392, iso6391;} s_isolangs[] =
 	{"Lushai", "lus", ""},
 	{"Luxembourgish; Letzeburgesch", "ltz", "lb"},
 	{"Macedonian", "mac", "mk"},
-	{"", "mkd", "mk"},
+	{"Macedonian", "mkd", "mk"},
 	{"Madurese", "mad", ""},
 	{"Magahi", "mag", ""},
 	{"Maithili", "mai", ""},
 	{"Makasar", "mak", ""},
 	{"Malagasy", "mlg", "mg"},
 	{"Malay", "may", "ms"},
-	{"", "msa", "ms"},
+	{"Malay", "msa", "ms"},
 	{"Malayalam", "mal", "ml"},
 	{"Maltese", "mlt", "mt"},
 	{"Manchu", "mnc", ""},
@@ -1755,7 +1755,7 @@ static struct {LPCSTR name, iso6392, iso6391;} s_isolangs[] =
 	{"Manobo languages", "mno", ""},
 	{"Manx", "glv", "gv"},
 	{"Maori", "mao", "mi"},
-	{"", "mri", "mi"},
+	{"Maori", "mri", "mi"},
 	{"Marathi", "mar", "mr"},
 	{"Mari", "chm", ""},
 	{"Marshallese", "mah", "mh"},
@@ -1820,7 +1820,7 @@ static struct {LPCSTR name, iso6392, iso6391;} s_isolangs[] =
 	{"Papiamento", "pap", ""},
 	{"Papuan (Other)", "paa", ""},
 	{"Persian", "per", "fa"},
-	{"", "fas", "fa"},
+	{"Persian", "fas", "fa"},
 	{"Persian, Old (ca.600-400 B.C.)", "peo", ""},
 	{"Philippine (Other)", "phi", ""},
 	{"Phoenician", "phn", ""},
@@ -1839,7 +1839,7 @@ static struct {LPCSTR name, iso6392, iso6391;} s_isolangs[] =
 	{"Reserved for local use", "qaa-qtz", ""},
 	{"Romance (Other)", "roa", ""},
 	{"Romanian", "rum", "ro"},
-	{"", "ron", "ro"},
+	{"Romanian", "ron", "ro"},
 	{"Romany", "rom", ""},
 	{"Rundi", "run", "rn"},
 	{"Russian", "rus", "ru"},
@@ -1859,7 +1859,7 @@ static struct {LPCSTR name, iso6392, iso6391;} s_isolangs[] =
 	{"Selkup", "sel", ""},
 	{"Semitic (Other)", "sem", ""},
 	{"Serbian", "scc", "sr"},
-	{"", "srp", "sr"},
+	{"Serbian", "srp", "sr"},
 	{"Serer", "srr", ""},
 	{"Shan", "shn", ""},
 	{"Shona", "sna", "sn"},
@@ -1875,7 +1875,7 @@ static struct {LPCSTR name, iso6392, iso6391;} s_isolangs[] =
 	{"Slave (Athapascan)", "den", ""},
 	{"Slavic (Other)", "sla", ""},
 	{"Slovak", "slo", "sk"},
-	{"", "slk", "sk"},
+	{"Slovak", "slk", "sk"},
 	{"Slovenian", "slv", "sl"},
 	{"Sogdian", "sog", ""},
 	{"Somali", "som", "so"},
@@ -1908,7 +1908,7 @@ static struct {LPCSTR name, iso6392, iso6391;} s_isolangs[] =
 	{"Tetum", "tet", ""},
 	{"Thai", "tha", "th"},
 	{"Tibetan", "tib", "bo"},
-	{"", "bod", "bo"},
+	{"Tibetan", "bod", "bo"},
 	{"Tigre", "tig", ""},
 	{"Tigrinya", "tir", "ti"},
 	{"Timne", "tem", ""},
@@ -1947,7 +1947,7 @@ static struct {LPCSTR name, iso6392, iso6391;} s_isolangs[] =
 	{"Waray", "war", ""},
 	{"Washo", "was", ""},
 	{"Welsh", "wel", "cy"},
-	{"", "cym", "cy"},
+	{"Welsh", "cym", "cy"},
 	{"Wolof", "wol", "wo"},
 	{"Xhosa", "xho", "xh"},
 	{"Yakut", "sah", ""},
@@ -2007,6 +2007,7 @@ CString ISO6392ToLanguage(LPCSTR code)
 	tmp[3] = 0;
 	_strlwr(tmp);
 	for(int i = 0, j = countof(s_isolangs); i < j; i++)
+	{
 		if(!strcmp(s_isolangs[i].iso6392, tmp))
 		{
 			CString ret = CString(CStringA(s_isolangs[i].name));
@@ -2014,7 +2015,8 @@ CString ISO6392ToLanguage(LPCSTR code)
 			if(i > 0) ret = ret.Left(i);
 			return ret;
 		}
-	return(_T(""));
+	}
+	return _T("");
 }
 
 CString ISO6391To6392(LPCSTR code)
@@ -2026,7 +2028,25 @@ CString ISO6391To6392(LPCSTR code)
 	for(int i = 0, j = countof(s_isolangs); i < j; i++)
 		if(!strcmp(s_isolangs[i].iso6391, tmp))
 			return CString(CStringA(s_isolangs[i].iso6392));
-	return(_T(""));
+	return _T("");
+}
+
+CString LanguageToISO6392(LPCTSTR lang)
+{
+	CString str = lang;
+	str.MakeLower();
+	for(int i = 0, j = countof(s_isolangs); i < j; i++)
+	{
+		CList<CString> sl;
+		Explode(CString(s_isolangs[i].name), sl, ';');
+		POSITION pos = sl.GetHeadPosition();
+		while(pos)
+		{
+			if(!str.CompareNoCase(sl.GetNext(pos)))
+				return CString(s_isolangs[i].iso6392);
+		}
+	}
+	return _T("");
 }
 
 int MakeAACInitData(BYTE* pData, int profile, int freq, int channels)

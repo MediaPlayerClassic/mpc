@@ -340,6 +340,7 @@ bool CPlayerPlaylistBar::ParseMPCPlayList(CString fn)
 			else if(key == _T("vinput")) pli[i].m_vinput = _ttol(value);
 			else if(key == _T("vchannel")) pli[i].m_vchannel = _ttol(value);
 			else if(key == _T("ainput")) pli[i].m_ainput = _ttol(value);
+			else if(key == _T("country")) pli[i].m_country = _ttol(value);			
 		}
 	}
 
@@ -389,6 +390,8 @@ bool CPlayerPlaylistBar::SaveMPCPlayList(CString fn, CTextFile::enc e)
 			str.Format(_T("%d,vchannel,%d"), i, pli.m_vchannel);
 			f.WriteString(str + _T("\n"));
 			str.Format(_T("%d,ainput,%d"), i, pli.m_ainput);
+			f.WriteString(str + _T("\n"));
+			str.Format(_T("%d,country,%d"), i, pli.m_country);
 			f.WriteString(str + _T("\n"));
 		}
 	}

@@ -1839,6 +1839,13 @@
 					RelativePath=".\res\web\vbs.GIF">
 				</File>
 			</Filter>
+			<Filter
+				Name="shaders"
+				Filter="">
+				<File
+					RelativePath=".\res\shaders\resizer.psh">
+				</File>
+			</Filter>
 		</Filter>
 	</Files>
 	<Globals>

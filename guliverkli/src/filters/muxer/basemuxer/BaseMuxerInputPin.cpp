@@ -97,6 +97,18 @@ CAutoPtr<MuxerPacket> CBaseMuxerInputPin::PopPacket()
 
 HRESULT CBaseMuxerInputPin::CheckMediaType(const CMediaType* pmt)
 {
+	if(pmt->formattype == FORMAT_WaveFormatEx)
+	{
+		WORD wFormatTag = ((WAVEFORMATEX*)pmt->pbFormat)->wFormatTag;
+		if((wFormatTag == WAVE_FORMAT_PCM 
+		|| wFormatTag == WAVE_FORMAT_EXTENSIBLE
+		|| wFormatTag == WAVE_FORMAT_IEEE_FLOAT)
+		&& pmt->subtype != FOURCCMap(wFormatTag))
+		{
+			return E_INVALIDARG;
+		}
+	}
+
 	return pmt->majortype == MEDIATYPE_Video
 		|| pmt->majortype == MEDIATYPE_Audio && pmt->formattype != FORMAT_VorbisFormat
 		|| pmt->majortype == MEDIATYPE_Text && pmt->subtype == MEDIASUBTYPE_NULL && pmt->formattype == FORMAT_None

@@ -59,14 +59,16 @@ protected:
 
 	CComPtr<IDirect3D9> m_pD3D;
     CComPtr<IDirect3DDevice9> m_pD3DDev;
-	CComPtr<IDirect3DTexture9> m_pVideoTexture;
-	CComPtr<IDirect3DSurface9> m_pVideoSurface;
-	CComPtr<IDirect3DPixelShader9> m_pPixelShader;
+	CComPtr<IDirect3DTexture9> m_pVideoTexture[2];
+	CComPtr<IDirect3DSurface9> m_pVideoSurface[2];
+	CComPtr<IDirect3DPixelShader9> m_pPixelShader, m_pResizerPixelShader[2];
 	D3DTEXTUREFILTERTYPE m_Filter;
 
 	virtual HRESULT CreateDevice();
 	virtual HRESULT AllocSurfaces();
 	virtual void DeleteSurfaces();
+
+    UINT  GetAdapter(IDirect3D9 *pD3D);
 
 public:
 	CDX9AllocatorPresenter(HWND hWnd, HRESULT& hr);
@@ -210,7 +212,7 @@ HRESULT CreateAP9(const CLSID& clsid, HWND hWnd, ISubPicAllocatorPresenter** ppA
 
 //
 
-static HRESULT TextureBlt(CComPtr<IDirect3DTexture9> pTexture, Vector dst[4], CRect src)
+static HRESULT TextureBlt(CComPtr<IDirect3DTexture9> pTexture, Vector dst[4], CRect src, DWORD filter = D3DTEXF_LINEAR)
 {
 	if(!pTexture)
 		return E_POINTER;
@@ -238,6 +240,9 @@ static HRESULT TextureBlt(CComPtr<IDirect3DTexture9> pTexture, Vector dst[4], CR
 		}
 		pVertices[] =
 		{
+//			{(float)dst[0].x, (float)dst[0].y, (float)dst[0].z, 1.0f/(float)dst[0].z, (float)src.left / w, (float)src.top / h },
+//			{(float)(dst[0].x + 2*(dst[1].x-dst[0].x)), (float)(dst[0].y + 2*(dst[1].y-dst[0].y)), (float)dst[1].z, 1.0f/(float)dst[1].z, (float)(src.left + 2*(src.right-src.left)) / w, (float)src.top / h},
+//			{(float)(dst[0].x + 2*(dst[2].x-dst[0].x)), (float)(dst[0].y + 2*(dst[2].y-dst[0].y)), (float)dst[2].z, 1.0f/(float)dst[2].z, (float)src.left / w, (float)(src.top + 2*(src.bottom-src.top)) / h},
 			{(float)dst[0].x, (float)dst[0].y, (float)dst[0].z, 1.0f/(float)dst[0].z, (float)src.left / w, (float)src.top / h},
 			{(float)dst[1].x, (float)dst[1].y, (float)dst[1].z, 1.0f/(float)dst[1].z, (float)src.right / w, (float)src.top / h},
 			{(float)dst[2].x, (float)dst[2].y, (float)dst[2].z, 1.0f/(float)dst[2].z, (float)src.left / w, (float)src.bottom / h},
@@ -258,9 +263,86 @@ static HRESULT TextureBlt(CComPtr<IDirect3DTexture9> pTexture, Vector dst[4], CR
     	hr = pD3DDev->SetRenderState(D3DRS_ALPHABLENDENABLE, FALSE);
 		hr = pD3DDev->SetRenderState(D3DRS_ALPHATESTENABLE, FALSE); 
 
-		hr = pD3DDev->SetSamplerState(0, D3DSAMP_MAGFILTER, D3DTEXF_LINEAR);
-        hr = pD3DDev->SetSamplerState(0, D3DSAMP_MINFILTER, D3DTEXF_LINEAR);
-        hr = pD3DDev->SetSamplerState(0, D3DSAMP_MIPFILTER, D3DTEXF_LINEAR);
+		hr = pD3DDev->SetSamplerState(0, D3DSAMP_MAGFILTER, filter);
+        hr = pD3DDev->SetSamplerState(0, D3DSAMP_MINFILTER, filter);
+        hr = pD3DDev->SetSamplerState(0, D3DSAMP_MIPFILTER, filter);
+
+		hr = pD3DDev->SetSamplerState(0, D3DSAMP_ADDRESSU, D3DTADDRESS_CLAMP);
+		hr = pD3DDev->SetSamplerState(0, D3DSAMP_ADDRESSV, D3DTADDRESS_CLAMP);
+
+		//
+
+		if(FAILED(hr = pD3DDev->BeginScene()))
+			break;
+
+        hr = pD3DDev->SetFVF(D3DFVF_XYZRHW | D3DFVF_TEX1);
+//	    hr = pD3DDev->DrawPrimitiveUP(D3DPT_TRIANGLELIST, 1, pVertices, sizeof(pVertices[0]));
+		hr = pD3DDev->DrawPrimitiveUP(D3DPT_TRIANGLESTRIP, 2, pVertices, sizeof(pVertices[0]));
+
+		hr = pD3DDev->EndScene();
+
+        //
+
+		pD3DDev->SetTexture(0, NULL);
+
+		return S_OK;
+    }
+	while(0);
+
+    return E_FAIL;
+}
+
+static HRESULT TextureBlt(CComPtr<IDirect3DTexture9> pTexture, CRect dst, CRect src, DWORD filter = D3DTEXF_LINEAR)
+{
+	if(!pTexture)
+		return E_POINTER;
+
+	CComPtr<IDirect3DDevice9> pD3DDev;
+	if(FAILED(pTexture->GetDevice(&pD3DDev)) || !pD3DDev)
+		return E_FAIL;
+
+	HRESULT hr;
+
+    do
+	{
+		D3DSURFACE_DESC d3dsd;
+		ZeroMemory(&d3dsd, sizeof(d3dsd));
+		if(FAILED(pTexture->GetLevelDesc(0, &d3dsd)))
+			break;
+
+        float w = (float)d3dsd.Width;
+        float h = (float)d3dsd.Height;
+
+		struct
+		{
+			float x, y, z, rhw;
+			float tu, tv;
+		}
+		pVertices[] =
+		{
+			{(float)dst.left, (float)dst.top, 0.5f, 2.0f, (float)src.left / w, (float)src.top / h},
+			{(float)dst.right, (float)dst.top, 0.5f, 2.0f, (float)src.right / w, (float)src.top / h},
+			{(float)dst.left, (float)dst.bottom, 0.5f, 2.0f, (float)src.left / w, (float)src.bottom / h},
+			{(float)dst.right, (float)dst.bottom, 0.5f, 2.0f, (float)src.right / w, (float)src.bottom / h},
+		};
+
+		for(int i = 0; i < countof(pVertices); i++)
+		{
+			pVertices[i].x -= 0.5;
+			pVertices[i].y -= 0.5;
+		}
+
+        hr = pD3DDev->SetTexture(0, pTexture);
+
+        hr = pD3DDev->SetRenderState(D3DRS_CULLMODE, D3DCULL_NONE);
+        hr = pD3DDev->SetRenderState(D3DRS_LIGHTING, FALSE);
+		hr = pD3DDev->SetRenderState(D3DRS_ZENABLE, FALSE);
+    	hr = pD3DDev->SetRenderState(D3DRS_ALPHABLENDENABLE, FALSE);
+		hr = pD3DDev->SetRenderState(D3DRS_ALPHATESTENABLE, FALSE); 
+
+		hr = pD3DDev->SetSamplerState(0, D3DSAMP_MAGFILTER, filter);
+        hr = pD3DDev->SetSamplerState(0, D3DSAMP_MINFILTER, filter);
+        hr = pD3DDev->SetSamplerState(0, D3DSAMP_MIPFILTER, filter);
 
 		hr = pD3DDev->SetSamplerState(0, D3DSAMP_ADDRESSU, D3DTADDRESS_CLAMP);
 		hr = pD3DDev->SetSamplerState(0, D3DSAMP_ADDRESSV, D3DTADDRESS_CLAMP);
@@ -318,7 +400,7 @@ HRESULT CDX9AllocatorPresenter::CreateDevice()
 
 	D3DDISPLAYMODE d3ddm;
 	ZeroMemory(&d3ddm, sizeof(d3ddm));
-	if(FAILED(m_pD3D->GetAdapterDisplayMode(D3DADAPTER_DEFAULT, &d3ddm)))
+	if(FAILED(m_pD3D->GetAdapterDisplayMode(GetAdapter(m_pD3D), &d3ddm)))
 		return E_UNEXPECTED;
 
 	m_ScreenSize.SetSize(d3ddm.Width, d3ddm.Height);
@@ -336,7 +418,7 @@ HRESULT CDX9AllocatorPresenter::CreateDevice()
 		pp.Flags = D3DPRESENTFLAG_LOCKABLE_BACKBUFFER;
 
 	HRESULT hr = m_pD3D->CreateDevice(
-						D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, m_hWnd,
+						GetAdapter(m_pD3D), D3DDEVTYPE_HAL, m_hWnd,
 						D3DCREATE_SOFTWARE_VERTEXPROCESSING|D3DCREATE_MULTITHREADED, //D3DCREATE_MANAGED 
 						&pp, &m_pD3DDev);
 	if(FAILED(hr))
@@ -352,6 +434,27 @@ HRESULT CDX9AllocatorPresenter::CreateDevice()
 	if((caps.StretchRectFilterCaps&D3DPTFILTERCAPS_MINFLINEAR)
 	&& (caps.StretchRectFilterCaps&D3DPTFILTERCAPS_MAGFLINEAR))
 		m_Filter = D3DTEXF_LINEAR;
+
+	//
+
+	if(caps.PixelShaderVersion >= D3DVS_VERSION(2, 0))
+	{
+		CStringA data;
+		if(LoadResource(IDF_SHADER_RESIZER, data, _T("FILE")))
+		{
+			{
+				CComPtr<ID3DXBuffer> pShader, pErrorMsgs;
+				HRESULT hr = D3DXCompileShader(data, data.GetLength(), NULL, NULL, "main_bilinear", "ps_2_0", 0, &pShader, &pErrorMsgs, NULL);
+				if(SUCCEEDED(hr)) hr = m_pD3DDev->CreatePixelShader((DWORD*)pShader->GetBufferPointer(), &m_pResizerPixelShader[0]);
+			}
+
+			{
+				CComPtr<ID3DXBuffer> pShader, pErrorMsgs;
+				HRESULT hr = D3DXCompileShader(data, data.GetLength(), NULL, NULL, "main_bicubic", "ps_2_0", 0, &pShader, &pErrorMsgs, NULL);
+				if(SUCCEEDED(hr)) hr = m_pD3DDev->CreatePixelShader((DWORD*)pShader->GetBufferPointer(), &m_pResizerPixelShader[1]);
+			}
+		}
+	}
 
 	//
 
@@ -398,8 +501,10 @@ HRESULT CDX9AllocatorPresenter::AllocSurfaces()
 
 	AppSettings& s = AfxGetAppSettings();
 
-	m_pVideoTexture = NULL;
-	m_pVideoSurface = NULL;
+	m_pVideoTexture[0] = NULL;
+	m_pVideoTexture[1] = NULL;
+	m_pVideoSurface[0] = NULL;
+	m_pVideoSurface[1] = NULL;
 
 	HRESULT hr;
 
@@ -407,24 +512,35 @@ HRESULT CDX9AllocatorPresenter::AllocSurfaces()
 	{
 		if(FAILED(hr = m_pD3DDev->CreateTexture(
 			m_NativeVideoSize.cx, m_NativeVideoSize.cy, 1, D3DUSAGE_RENDERTARGET, /*D3DFMT_X8R8G8B8*/D3DFMT_A8R8G8B8, 
-			D3DPOOL_DEFAULT, &m_pVideoTexture, NULL)))
+			D3DPOOL_DEFAULT, &m_pVideoTexture[0], NULL)))
 			return hr;
 
-		if(FAILED(hr = m_pVideoTexture->GetSurfaceLevel(0, &m_pVideoSurface)))
+		if(FAILED(hr = m_pVideoTexture[0]->GetSurfaceLevel(0, &m_pVideoSurface[0])))
 			return hr;
 
-		if(s.iAPSurfaceUsage == VIDRNDT_AP_TEXTURE2D) 
-			m_pVideoTexture = NULL;
+		if(s.iAPSurfaceUsage == VIDRNDT_AP_TEXTURE3D)
+		{
+			if(FAILED(hr = m_pD3DDev->CreateTexture(
+				m_NativeVideoSize.cx, m_NativeVideoSize.cy, 1, D3DUSAGE_RENDERTARGET, /*D3DFMT_X8R8G8B8*/D3DFMT_A8R8G8B8, 
+				D3DPOOL_DEFAULT, &m_pVideoTexture[1], NULL)))
+				return hr;
+
+			if(FAILED(hr = m_pVideoTexture[1]->GetSurfaceLevel(0, &m_pVideoSurface[1])))
+				return hr;
+		}
+
+		if(s.iAPSurfaceUsage == VIDRNDT_AP_TEXTURE2D)
+			m_pVideoTexture[0] = NULL, m_pVideoTexture[1] = NULL;
 	}
 	else
 	{
 		if(FAILED(hr = m_pD3DDev->CreateOffscreenPlainSurface(
 			m_NativeVideoSize.cx, m_NativeVideoSize.cy, D3DFMT_X8R8G8B8/*D3DFMT_A8R8G8B8*/, 
-			D3DPOOL_DEFAULT, &m_pVideoSurface, NULL)))
+			D3DPOOL_DEFAULT, &m_pVideoSurface[0], NULL)))
 			return hr;
 	}
 
-	hr = m_pD3DDev->ColorFill(m_pVideoSurface, NULL, 0);
+	hr = m_pD3DDev->ColorFill(m_pVideoSurface[0], NULL, 0);
 
 	return S_OK;
 }
@@ -433,8 +549,25 @@ void CDX9AllocatorPresenter::DeleteSurfaces()
 {
     CAutoLock cAutoLock(this);
 
-	m_pVideoTexture = NULL;
-	m_pVideoSurface = NULL;
+	m_pVideoTexture[0] = m_pVideoTexture[1] = NULL;
+	m_pVideoSurface[0] = m_pVideoSurface[1] = NULL;
+}
+
+UINT CDX9AllocatorPresenter::GetAdapter(IDirect3D9 *pD3D)
+{
+	if(m_hWnd == NULL || pD3D == NULL)
+		return D3DADAPTER_DEFAULT;
+
+	HMONITOR hMonitor = MonitorFromWindow(m_hWnd, MONITOR_DEFAULTTONEAREST);
+	if(hMonitor == NULL) return D3DADAPTER_DEFAULT;
+
+	for(UINT adp = 0, num_adp = pD3D->GetAdapterCount(); adp < num_adp; ++adp)
+	{
+		HMONITOR hAdpMon = pD3D->GetAdapterMonitor(adp);
+		if(hAdpMon == hMonitor) return adp;
+	}
+
+	return D3DADAPTER_DEFAULT;
 }
 
 // ISubPicAllocatorPresenter
@@ -501,9 +634,11 @@ STDMETHODIMP_(bool) CDX9AllocatorPresenter::Paint(bool fAll)
 
 		if(!rDstVid.IsRectEmpty())
 		{
-			if(m_pVideoTexture)
+			if(m_pVideoTexture[0])
 			{
-				if(m_pPixelShader)
+				CComPtr<IDirect3DTexture9> pVideoTexture = m_pVideoTexture[0];
+
+				if(m_pVideoTexture[1] && m_pPixelShader)
 				{
 					static __int64 counter = 0;
 					static long start = clock();
@@ -516,21 +651,58 @@ STDMETHODIMP_(bool) CDX9AllocatorPresenter::Paint(bool fAll)
 					float fConstData[][4] = 
 					{
 						{(float)m_NativeVideoSize.cx, (float)m_NativeVideoSize.cy, (float)(counter++), (float)diff / CLOCKS_PER_SEC},
+						{1.0f / m_NativeVideoSize.cx, 1.0f / m_NativeVideoSize.cy, 0, 0},
+					};
+
+					CComPtr<IDirect3DSurface9> pRT;
+					hr = m_pD3DDev->GetRenderTarget(0, &pRT);
+					hr = m_pD3DDev->SetRenderTarget(0, m_pVideoSurface[1]);
+					hr = m_pD3DDev->SetPixelShaderConstantF(0, (float*)fConstData, countof(fConstData));
+					hr = m_pD3DDev->SetPixelShader(m_pPixelShader);
+
+					TextureBlt(m_pVideoTexture[0], rSrcVid, rSrcVid);
+
+					hr = m_pD3DDev->SetRenderTarget(0, pRT);
+					hr = m_pD3DDev->SetPixelShader(NULL);
+
+					pVideoTexture = m_pVideoTexture[1];
+				}
+
+				DWORD resizer = AfxGetAppSettings().iDX9Resizer;
+				DWORD filter = resizer == 0 ? D3DTEXF_POINT : D3DTEXF_LINEAR;
+
+				CComPtr<IDirect3DPixelShader9> pResizerPixelShader;
+
+				if(rSrcVid != rDstVid)
+				{
+					if(resizer == 2 && m_pResizerPixelShader[0]) 
+						pResizerPixelShader = m_pResizerPixelShader[0];
+					else if(resizer == 3 && m_pResizerPixelShader[1])
+						pResizerPixelShader = m_pResizerPixelShader[1];
+				}
+
+				if(pResizerPixelShader)
+				{
+					float fConstData[][4] = 
+					{
+						{(float)m_NativeVideoSize.cx, (float)m_NativeVideoSize.cy, 0, 0},
+						{1.0f / m_NativeVideoSize.cx, 1.0f / m_NativeVideoSize.cy, 0, 0},
+						{1.0f / m_NativeVideoSize.cx, 0, 0, 0},
+						{0, 1.0f / m_NativeVideoSize.cy, 0, 0},
 					};
 
 					hr = m_pD3DDev->SetPixelShaderConstantF(0, (float*)fConstData, countof(fConstData));
-					hr = m_pD3DDev->SetPixelShader(m_pPixelShader);
+					hr = m_pD3DDev->SetPixelShader(pResizerPixelShader);
+
+					filter = D3DTEXF_POINT;
 				}
 
 				Vector v[4];
 				Transform(rDstVid, v);
-				hr = TextureBlt(m_pVideoTexture, v, rSrcVid);
+				hr = TextureBlt(pVideoTexture, v, rSrcVid, filter);
 
-				if(m_pPixelShader)
-				{
+				if(pResizerPixelShader)
 					hr = m_pD3DDev->SetPixelShader(NULL);
-				}
-
 			}
 			else
 			{
@@ -540,7 +712,7 @@ STDMETHODIMP_(bool) CDX9AllocatorPresenter::Paint(bool fAll)
 					// IMPORTANT: rSrcVid has to be aligned on mod2 for yuy2->rgb conversion with StretchRect!!!
 					rSrcVid.left &= ~1; rSrcVid.right &= ~1;
 					rSrcVid.top &= ~1; rSrcVid.bottom &= ~1;
-					hr = m_pD3DDev->StretchRect(m_pVideoSurface, rSrcVid, pBackBuffer, rDstVid, m_Filter);
+					hr = m_pD3DDev->StretchRect(m_pVideoSurface[0], rSrcVid, pBackBuffer, rDstVid, m_Filter);
 				}
 			}
 		}
@@ -582,20 +754,20 @@ STDMETHODIMP CDX9AllocatorPresenter::GetDIB(BYTE* lpDib, DWORD* size)
 
 	D3DSURFACE_DESC desc;
 	memset(&desc, 0, sizeof(desc));
-	m_pVideoSurface->GetDesc(&desc);
+	m_pVideoSurface[0]->GetDesc(&desc);
 
 	DWORD required = sizeof(BITMAPINFOHEADER) + (desc.Width * desc.Height * 32 >> 3);
 	if(!lpDib) {*size = required; return S_OK;}
 	if(*size < required) return E_OUTOFMEMORY;
 	*size = required;
 
-	CComPtr<IDirect3DSurface9> pSurface = m_pVideoSurface;
+	CComPtr<IDirect3DSurface9> pSurface = m_pVideoSurface[0];
 	D3DLOCKED_RECT r;
 	if(FAILED(hr = pSurface->LockRect(&r, NULL, D3DLOCK_READONLY)))
 	{
 		pSurface = NULL;
 		if(FAILED(hr = m_pD3DDev->CreateOffscreenPlainSurface(desc.Width, desc.Height, desc.Format, D3DPOOL_SYSTEMMEM, &pSurface, NULL))
-		|| FAILED(hr = m_pD3DDev->GetRenderTargetData(m_pVideoSurface, pSurface))
+		|| FAILED(hr = m_pD3DDev->GetRenderTargetData(m_pVideoSurface[0], pSurface))
 		|| FAILED(hr = pSurface->LockRect(&r, NULL, D3DLOCK_READONLY)))
 			return hr;
 	}
@@ -689,7 +861,7 @@ HRESULT CVMR9AllocatorPresenter::CreateDevice()
 
 	if(m_pIVMRSurfAllocNotify)
 	{
-		HMONITOR hMonitor = m_pD3D->GetAdapterMonitor(D3DADAPTER_DEFAULT);
+		HMONITOR hMonitor = m_pD3D->GetAdapterMonitor(GetAdapter(m_pD3D));
 		if(FAILED(hr = m_pIVMRSurfAllocNotify->ChangeD3DDevice(m_pD3DDev, hMonitor)))
 			return(false);
 	}
@@ -1022,13 +1194,13 @@ STDMETHODIMP CVMR9AllocatorPresenter::InitializeDevice(DWORD_PTR dwUserID, VMR9A
 		return hr;
 
 	// test if the colorspace is acceptable
-	if(FAILED(hr = m_pD3DDev->StretchRect(m_pSurfaces[0], NULL, m_pVideoSurface, NULL, D3DTEXF_NONE)))
+	if(FAILED(hr = m_pD3DDev->StretchRect(m_pSurfaces[0], NULL, m_pVideoSurface[0], NULL, D3DTEXF_NONE)))
 	{
 		DeleteSurfaces();
 		return E_FAIL;
 	}
 
-	hr = m_pD3DDev->ColorFill(m_pVideoSurface, NULL, 0);
+	hr = m_pD3DDev->ColorFill(m_pVideoSurface[0], NULL, 0);
 
 	return hr;
 }
@@ -1061,7 +1233,7 @@ STDMETHODIMP CVMR9AllocatorPresenter::AdviseNotify(IVMRSurfaceAllocatorNotify9* 
 	m_pIVMRSurfAllocNotify = lpIVMRSurfAllocNotify;
 
 	HRESULT hr;
-    HMONITOR hMonitor = m_pD3D->GetAdapterMonitor(D3DADAPTER_DEFAULT);
+    HMONITOR hMonitor = m_pD3D->GetAdapterMonitor(GetAdapter(m_pD3D));
     if(FAILED(hr = m_pIVMRSurfAllocNotify->SetD3DDevice(m_pD3DDev, hMonitor)))
 		return hr;
 
@@ -1100,7 +1272,7 @@ STDMETHODIMP CVMR9AllocatorPresenter::PresentImage(DWORD_PTR dwUserID, VMR9Prese
 		}
 
 		HMONITOR hCurMonitor = m_pD3D->GetAdapterMonitor(Parameters.AdapterOrdinal);
-		HMONITOR hMonitor = m_pD3D->GetAdapterMonitor(D3DADAPTER_DEFAULT);
+		HMONITOR hMonitor = m_pD3D->GetAdapterMonitor(GetAdapter(m_pD3D));
 
 		if(hMonitor != hCurMonitor)
 		{
@@ -1123,7 +1295,7 @@ STDMETHODIMP CVMR9AllocatorPresenter::PresentImage(DWORD_PTR dwUserID, VMR9Prese
 
 		CAutoLock cAutoLock(this);
 
-		hr = m_pD3DDev->StretchRect(lpPresInfo->lpSurf, NULL, m_pVideoSurface, NULL, D3DTEXF_NONE);
+		hr = m_pD3DDev->StretchRect(lpPresInfo->lpSurf, NULL, m_pVideoSurface[0], NULL, D3DTEXF_NONE);
 
 		m_fps = 10000000.0 / (lpPresInfo->rtEnd - lpPresInfo->rtStart);
 		if(m_pSubPicQueue)
@@ -1366,9 +1538,9 @@ STDMETHODIMP CRM9AllocatorPresenter::Blt(UCHAR* pImageData, RMABitmapInfoHeader*
 	HRESULT hr;
 	
 	if(fRGB)
-		hr = m_pD3DDev->StretchRect(m_pVideoSurfaceOff, src2, m_pVideoSurface, dst, D3DTEXF_NONE);
+		hr = m_pD3DDev->StretchRect(m_pVideoSurfaceOff, src2, m_pVideoSurface[0], dst, D3DTEXF_NONE);
 	if(fYUY2)
-		hr = m_pD3DDev->StretchRect(m_pVideoSurfaceYUY2, src2, m_pVideoSurface, dst, D3DTEXF_NONE);
+		hr = m_pD3DDev->StretchRect(m_pVideoSurfaceYUY2, src2, m_pVideoSurface[0], dst, D3DTEXF_NONE);
 
 	Paint(true);
 
@@ -1506,7 +1678,7 @@ STDMETHODIMP CQT9AllocatorPresenter::DoBlt(const BITMAP& bm)
 		}
 	}
 
-	m_pD3DDev->StretchRect(m_pVideoSurfaceOff, NULL, m_pVideoSurface, NULL, D3DTEXF_NONE);
+	m_pD3DDev->StretchRect(m_pVideoSurfaceOff, NULL, m_pVideoSurface[0], NULL, D3DTEXF_NONE);
 
 	Paint(true);
 

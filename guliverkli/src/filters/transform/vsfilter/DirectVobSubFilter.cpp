@@ -234,12 +234,15 @@ HRESULT CDirectVobSubFilter::Transform(IMediaSample* pIn)
 	BITMAPINFOHEADER bihOut;
 	ExtractBIH(&m_pOutput->CurrentMediaType(), &bihOut);
 
-	bool fFlip = bihOut.biHeight < 0 && bihOut.biCompression <= 3; // flip if we are copying rgb and the signs aren't matching (we only check the output height since input is always > 0)
+	bool fInputFlipped = bihIn.biHeight >= 0 && bihIn.biCompression <= 3;
+	bool fOutputFlipped = bihOut.biHeight >= 0 && bihOut.biCompression <= 3;
+
+	bool fFlip = fInputFlipped != fOutputFlipped;
 	if(m_fFlipPicture) fFlip = !fFlip;
 	if(m_fMSMpeg4Fix) fFlip = !fFlip;
 //	if(m_fDivxPlusFix) fFlip = !fFlip;
 
-	bool fFlipSub = bihOut.biHeight >= 0 && bihOut.biCompression <= 3; // flip unless the dst bitmap is also a flipped rgb
+	bool fFlipSub = fOutputFlipped;
 	if(m_fFlipSubtitles) fFlipSub = !fFlipSub;
 //	if(m_fDivxPlusFix) fFlipSub = !fFlipSub;
 
@@ -264,7 +267,7 @@ HRESULT CDirectVobSubFilter::Transform(IMediaSample* pIn)
 		}
 	}
 
-	CopyBuffer(pDataOut, (BYTE*)spd.bits, spd.w, spd.h, spd.pitch, mt.subtype);
+	CopyBuffer(pDataOut, (BYTE*)spd.bits, spd.w, abs(spd.h)*(fFlip?-1:1), spd.pitch, mt.subtype);
 
 	PrintMessages(pDataOut);
 

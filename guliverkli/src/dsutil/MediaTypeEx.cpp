@@ -13,7 +13,22 @@ CMediaTypeEx::CMediaTypeEx()
 
 CString CMediaTypeEx::ToString(IPin* pPin)
 {
-	CString type, codec, dim, rate, dur;
+	CString packing, type, codec, dim, rate, dur;
+
+	// TODO
+
+	if(majortype == MEDIATYPE_DVD_ENCRYPTED_PACK)
+	{
+		packing = _T("Encrypted MPEG2 Pack");
+	}
+	else if(majortype == MEDIATYPE_MPEG2_PACK)
+	{
+		packing = _T("MPEG2 Pack");
+	}
+	else if(majortype == MEDIATYPE_MPEG2_PES)
+	{
+		packing = _T("MPEG2 PES");
+	}
 
 	if(majortype == MEDIATYPE_Video)
 	{
@@ -71,8 +86,8 @@ CString CMediaTypeEx::ToString(IPin* pPin)
 		if(formattype == FORMAT_WaveFormatEx)
 		{
 			WAVEFORMATEX* wfe = (WAVEFORMATEX*)Format();
-			if(wfe->wFormatTag > WAVE_FORMAT_PCM && wfe->wFormatTag < WAVE_FORMAT_EXTENSIBLE
-			&& wfe->wFormatTag != WAVE_FORMAT_IEEE_FLOAT)
+			if(wfe->wFormatTag/* > WAVE_FORMAT_PCM && wfe->wFormatTag < WAVE_FORMAT_EXTENSIBLE
+			&& wfe->wFormatTag != WAVE_FORMAT_IEEE_FLOAT*/)
 			{
 				codec = GetAudioCodecName(subtype, wfe->wFormatTag);
 				dim.Format(_T("%dHz"), wfe->nSamplesPerSec);
@@ -143,6 +158,7 @@ CString CMediaTypeEx::ToString(IPin* pPin)
 	str.Trim(_T(" ,"));
 	
 	if(!str.IsEmpty()) str = type + _T(": ") + str;
+	else str = type;
 
 	return str;
 }
@@ -191,6 +207,9 @@ CString CMediaTypeEx::GetAudioCodecName(const GUID& subtype, WORD wFormatTag)
 
 	if(names.IsEmpty())
 	{
+		names[WAVE_FORMAT_PCM] = _T("PCM");
+		names[WAVE_FORMAT_EXTENSIBLE] = _T("WAVE_FORMAT_EXTENSIBLE");
+		names[WAVE_FORMAT_IEEE_FLOAT] = _T("IEEE Float");
 		names[WAVE_FORMAT_ADPCM] = _T("MS ADPCM");
 		names[WAVE_FORMAT_ALAW] = _T("aLaw");
 		names[WAVE_FORMAT_MULAW] = _T("muLaw");
@@ -263,6 +282,12 @@ CString CMediaTypeEx::GetAudioCodecName(const GUID& subtype, WORD wFormatTag)
 		else if(subtype == MEDIASUBTYPE_FLAC_FRAMED) str = _T("FLAC (framed)");
 		// else if(subtype == ) str = _T("");
 		else str.Format(_T("0x%04x"), wFormatTag);
+	}
+
+	if(wFormatTag == WAVE_FORMAT_PCM)
+	{
+		if(subtype == MEDIASUBTYPE_DTS) str += _T(" (DTS)");
+		else if(subtype == MEDIASUBTYPE_DOLBY_AC3) str += _T(" (AC3)");
 	}
 
 	return str;
