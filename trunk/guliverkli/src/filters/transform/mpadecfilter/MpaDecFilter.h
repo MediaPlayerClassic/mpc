@@ -43,22 +43,24 @@ protected:
 
 	CArray<BYTE> m_buff;
 	REFERENCE_TIME m_rtStart;
+	bool m_fDiscontinuity;
 
-	HRESULT ProcessLPCM(bool fPreroll, bool fDiscontinuity);
-	HRESULT ProcessAC3(bool fPreroll, bool fDiscontinuity);
-	HRESULT ProcessDTS(bool fPreroll, bool fDiscontinuity);
-	HRESULT ProcessMPA(bool fPreroll, bool fDiscontinuity);
+	float m_sample_max;
+
+	HRESULT ProcessLPCM();
+	HRESULT ProcessAC3();
+	HRESULT ProcessDTS();
+	HRESULT ProcessMPA();
 
 	HRESULT GetDeliveryBuffer(IMediaSample** pSample, BYTE** pData);
-	HRESULT Deliver(CArray<float>& pBuff, bool fPreroll, bool fDiscontinuity, 
-		DWORD nSamplesPerSec, WORD nChannels, DWORD dwChannelMask = 0);
-	HRESULT Deliver(CArray<BYTE>& pBuff, bool fPreroll, bool fDiscontinuity, 
-		DWORD nSamplesPerSec, REFERENCE_TIME rtDur);
+	HRESULT Deliver(CArray<float>& pBuff, DWORD nSamplesPerSec, WORD nChannels, DWORD dwChannelMask = 0);
+	HRESULT Deliver(CArray<BYTE>& pBuff, DWORD nSamplesPerSec, REFERENCE_TIME rtDur);
 	HRESULT ReconnectOutput(int nSamples, CMediaType& mt);
 
 protected:
 	CCritSec m_csProps;
 	SampleFormat m_iSampleFormat;
+	bool m_fNormalize;
 	int m_iSpeakerConfig;
 	bool m_fDynamicRangeControl;
 
@@ -91,6 +93,8 @@ public:
 
 	STDMETHODIMP SetSampleFormat(SampleFormat sf);
 	STDMETHODIMP_(SampleFormat) GetSampleFormat();
+	STDMETHODIMP SetNormalize(bool fNormalize);
+	STDMETHODIMP_(bool) GetNormalize();
 	STDMETHODIMP SetSpeakerConfig(int sc);
 	STDMETHODIMP_(int) GetSpeakerConfig();
 	STDMETHODIMP SetDynamicRangeControl(bool fDRC);

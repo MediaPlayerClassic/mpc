@@ -1614,6 +1614,9 @@
 				RelativePath="res\single.ico">
 			</File>
 			<File
+				RelativePath=".\res\web\sliderback.gif">
+			</File>
+			<File
 				RelativePath="res\stereo.bmp">
 			</File>
 			<File
@@ -1622,6 +1625,9 @@
 			<Filter
 				Name="web"
 				Filter="">
+				<File
+					RelativePath=".\res\web\1pix.gif">
+				</File>
 				<File
 					RelativePath=".\res\web\404.html">
 				</File>

@@ -23,8 +23,25 @@
 //
 
 #pragma once
-#include "afxwin.h"
 
+#include <afxole.h>
+
+#define WM_OPENURL WM_APP
+
+class CUrlDropTarget : public COleDropTarget
+{
+public:
+	CUrlDropTarget() {}
+
+	DROPEFFECT OnDragEnter(CWnd* pWnd, COleDataObject* pDataObject, DWORD dwKeyState, CPoint point);
+	DROPEFFECT OnDragOver(CWnd* pWnd, COleDataObject* pDataObject, DWORD dwKeyState, CPoint point);
+	BOOL OnDrop(CWnd* pWnd, COleDataObject* pDataObject, DROPEFFECT dropEffect, CPoint point);
+	DROPEFFECT OnDropEx(CWnd* pWnd, COleDataObject* pDataObject, DROPEFFECT dropDefault, DROPEFFECT dropList, CPoint point);
+	void OnDragLeave(CWnd* pWnd);
+	DROPEFFECT OnDragScroll(CWnd* pWnd, DWORD dwKeyState, CPoint point);
+
+	DECLARE_MESSAGE_MAP()
+};
 
 // Casf2mkvDlg dialog
 class Casf2mkvDlg : public CResizableDialog
@@ -54,6 +71,8 @@ class Casf2mkvDlg : public CResizableDialog
 
 	void SetVideoRect();
 
+	CUrlDropTarget m_urlDropTarget;
+
 // Construction
 public:
 	Casf2mkvDlg(CWnd* pParent = NULL);	// standard constructor
@@ -64,7 +83,6 @@ public:
 	protected:
 	virtual void DoDataExchange(CDataExchange* pDX);	// DDX/DDV support
 
-
 // Implementation
 protected:
 	HICON m_hIcon;
@@ -74,6 +92,7 @@ protected:
 
 	// Generated message map functions
 	virtual BOOL OnInitDialog();
+	virtual BOOL DestroyWindow();
 	DECLARE_MESSAGE_MAP()
 
 public:
@@ -88,4 +107,5 @@ public:
 	afx_msg void OnSize(UINT nType, int cx, int cy);
 	afx_msg void OnTimer(UINT nIDEvent);
 	afx_msg void OnBnClickedButton2();
+	afx_msg LRESULT OnUrlOpen(WPARAM wParam, LPARAM lParam);
 };

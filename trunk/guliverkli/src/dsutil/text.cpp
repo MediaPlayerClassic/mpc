@@ -111,7 +111,8 @@ CStringA UrlEncode(CStringA str, bool fRaw)
 	for(int i = 0; i < str.GetLength(); i++)
 	{
 		CHAR c = str[i];
-		if(c > 0x20 && c < 0x7f) urlstr += c;
+		if(fRaw && c == '+') urlstr += "%2B";
+		else if(c > 0x20 && c < 0x7f) urlstr += c;
 		else if(c == 0x20) urlstr += fRaw ? ' ' : '+';
 		else {CStringA tmp; tmp.Format("%%%02x", (BYTE)c); urlstr += tmp;}
 	}

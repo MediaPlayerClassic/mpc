@@ -72,7 +72,12 @@ BOOL Casf2mkvApp::InitInstance()
 	// such as the name of your company or organization
 	SetRegistryKey(_T("Gabest"));
 
-	CoInitialize(0);
+	HRESULT hr;
+    if(FAILED(hr = OleInitialize(0)))
+	{
+        AfxMessageBox(_T("OleInitialize failed!"));
+		return FALSE;
+	}
 
 	Casf2mkvDlg dlg;
 	m_pMainWnd = &dlg;
@@ -95,7 +100,7 @@ BOOL Casf2mkvApp::InitInstance()
 
 int Casf2mkvApp::ExitInstance()
 {
-	CoUninitialize();
+    OleUninitialize();
 
 	return CWinApp::ExitInstance();
 }

@@ -90,7 +90,8 @@ CAPTION "About asf2mkv"
 FONT 8, "MS Shell Dlg", 0, 0, 0x1
 BEGIN
     ICON            IDR_MAINFRAME,IDC_STATIC,11,17,20,20
-    LTEXT           "asf2mkv Version 1.0",IDC_STATIC,40,10,119,8,SS_NOPREFIX
+    LTEXT           "asf2mkv Version 1.01",IDC_STATIC,40,10,119,8,
+                    SS_NOPREFIX
     LTEXT           "Copyright (C) 2003-2004",IDC_STATIC,40,25,119,8
     DEFPUSHBUTTON   "OK",IDOK,178,7,50,16,WS_GROUP
 END
@@ -117,8 +118,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 1,0,0,0
- PRODUCTVERSION 1,0,0,0
+ FILEVERSION 1,0,0,1
+ PRODUCTVERSION 1,0,0,1
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -136,12 +137,12 @@ BEGIN
             VALUE "Comments", "http://gabest.org/"
             VALUE "CompanyName", "Gabest"
             VALUE "FileDescription", "Records streaming windows media into the matroska container format."
-            VALUE "FileVersion", "1,0,0,0"
+            VALUE "FileVersion", "1, 0, 0, 1"
             VALUE "InternalName", "asf2mkv.exe"
             VALUE "LegalCopyright", "Copyright (C) 2003-2004 Gabest. All rights reserved."
             VALUE "OriginalFilename", "asf2mkv.exe"
             VALUE "ProductName", "asf2mkv recorder"
-            VALUE "ProductVersion", "1,0,0,0"
+            VALUE "ProductVersion", "1, 0, 0, 1"
         END
     END
     BLOCK "VarFileInfo"

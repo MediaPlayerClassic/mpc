@@ -493,7 +493,7 @@ HRESULT CStreamSwitcherInputPin::CompleteConnect(IPin* pReceivePin)
 
 		int nIn, nOut, nInC, nOutC;
 		CountPins(pBF, nIn, nOut, nInC, nOutC);
-		fForkedSomewhere = fForkedSomewhere || nInC > 1 || nOutC > 1;
+		fForkedSomewhere = fForkedSomewhere || nIn > 1 || nOut > 1;
 
 		if(CComQIPtr<IFileSourceFilter> pFSF = pBF)
 		{

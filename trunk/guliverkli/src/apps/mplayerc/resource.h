@@ -189,6 +189,9 @@
 #define IDF_VBR_GIF                     349
 #define IDF_VBS_GIF                     350
 #define IDF_SLIDERGRIP_GIF              359
+#define IDF_1PIX_GIF                    360
+#define IDR_FILE1                       362
+#define IDF_SLIDERBACK_GIF              362
 #define IDS_R_SETTINGS                  500
 #define IDS_RS_CONTROLSTATE             501
 #define IDS_RS_VOLUME                   502
@@ -303,6 +306,7 @@
 #define IDS_RS_MPADRC                   607
 #define IDS_RS_WEBSERVERPRINTDEBUGINFO  608
 #define IDS_RS_WEBSERVERUSECOMPRESSION  609
+#define IDS_RS_MPANORMALIZE             610
 #define IDC_BROWSEBUTTON                1016
 #define IDC_BROWSEBUTTON2               1017
 #define IDC_COMBO1                      1018
@@ -475,6 +479,7 @@
 #define IDC_CHECK_LPCM                  1150
 #define IDC_CHECK_AC3                   1151
 #define IDC_CHECK_DTS                   1152
+#define IDC_CHECK_NUT                   1153
 #define IDD_COMPROPERTYPAGE             10002
 #define ID_DUMMYSEPARATOR               32768
 #define ID_VOLUME_MUTE_ON               32769
@@ -522,6 +527,8 @@
 #define ID_FILE_OPENCD32814             32814
 #define ID__FAVORITES                   32815
 #define ID__FILTERS32816                32816
+#define ID_STREAM_SUB_ONOFF             32817
+#define ID_DVD_SUB_ONOFF                32818
 #define ID_VIEW_VF_COMPMONDESKARDIFF    32820
 #define ID_PLAY_INCAUDDELAY             32821
 #define ID_PLAY_DECAUDDELAY             32822
@@ -560,9 +567,9 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        360
+#define _APS_NEXT_RESOURCE_VALUE        363
 #define _APS_NEXT_COMMAND_VALUE         32830
-#define _APS_NEXT_CONTROL_VALUE         1153
+#define _APS_NEXT_CONTROL_VALUE         1154
 #define _APS_NEXT_SYMED_VALUE           10003
 #endif
 #endif

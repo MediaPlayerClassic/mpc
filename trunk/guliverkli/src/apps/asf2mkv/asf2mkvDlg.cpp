@@ -31,6 +31,7 @@
 #endif
 
 #include <initguid.h>
+#include ".\asf2mkvdlg.h"
 
 //  {6B6D0800-9ADA-11d0-A520-00A0D10129C0}
 DEFINE_GUID(CLSID_NetShowSource, 
@@ -66,6 +67,59 @@ void CAboutDlg::DoDataExchange(CDataExchange* pDX)
 BEGIN_MESSAGE_MAP(CAboutDlg, CDialog)
 END_MESSAGE_MAP()
 
+// CUrlDropTarget
+
+BEGIN_MESSAGE_MAP(CUrlDropTarget, COleDropTarget)
+END_MESSAGE_MAP()
+
+DROPEFFECT CUrlDropTarget::OnDragEnter(CWnd* pWnd, COleDataObject* pDataObject, DWORD dwKeyState, CPoint point)
+{
+	return DROPEFFECT_NONE;
+}
+
+DROPEFFECT CUrlDropTarget::OnDragOver(CWnd* pWnd, COleDataObject* pDataObject, DWORD dwKeyState, CPoint point)
+{
+	UINT CF_URL = RegisterClipboardFormat(_T("UniformResourceLocator"));
+	return pDataObject->IsDataAvailable(CF_URL) ? DROPEFFECT_COPY : DROPEFFECT_NONE;
+}
+
+BOOL CUrlDropTarget::OnDrop(CWnd* pWnd, COleDataObject* pDataObject, DROPEFFECT dropEffect, CPoint point)
+{
+	UINT CF_URL = RegisterClipboardFormat(_T("UniformResourceLocator"));
+
+	BOOL bResult = FALSE;
+
+	if(pDataObject->IsDataAvailable(CF_URL)) 
+	{
+		FORMATETC fmt = {CF_URL, NULL, DVASPECT_CONTENT, -1, TYMED_HGLOBAL};
+		if(HGLOBAL hGlobal = pDataObject->GetGlobalData(CF_URL, &fmt))
+		{
+			LPCSTR pText = (LPCSTR)GlobalLock(hGlobal);
+			if(AfxIsValidString(pText))
+			{
+				AfxGetMainWnd()->SendMessage(WM_OPENURL, 0, (LPARAM)pText);
+				GlobalUnlock(hGlobal);
+				bResult = TRUE;
+			}
+		}
+	}
+
+	return bResult;
+}
+
+DROPEFFECT CUrlDropTarget::OnDropEx(CWnd* pWnd, COleDataObject* pDataObject, DROPEFFECT dropDefault, DROPEFFECT dropList, CPoint point)
+{
+	return (DROPEFFECT)-1;
+}
+
+void CUrlDropTarget::OnDragLeave(CWnd* pWnd)
+{
+}
+
+DROPEFFECT CUrlDropTarget::OnDragScroll(CWnd* pWnd, DWORD dwKeyState, CPoint point)
+{
+	return DROPEFFECT_NONE;
+}
 
 // Casf2mkvDlg dialog
 
@@ -119,6 +173,7 @@ BEGIN_MESSAGE_MAP(Casf2mkvDlg, CResizableDialog)
 	ON_WM_SIZE()
 	ON_WM_TIMER()
 	ON_BN_CLICKED(IDC_BUTTON2, OnBnClickedButton2)
+	ON_MESSAGE(WM_APP, OnUrlOpen)
 END_MESSAGE_MAP()
 
 
@@ -165,7 +220,16 @@ BOOL Casf2mkvDlg::OnInitDialog()
 
 	SetWindowText(ResStr(IDS_TITLE));
 	
+	m_urlDropTarget.Register(this);
+
 	return TRUE;  // return TRUE  unless you set the focus to a control
+}
+
+BOOL Casf2mkvDlg::DestroyWindow()
+{
+	m_urlDropTarget.Revoke();
+
+	return __super::DestroyWindow();
 }
 
 void Casf2mkvDlg::OnSysCommand(UINT nID, LPARAM lParam)
@@ -488,6 +552,12 @@ void Casf2mkvDlg::OnBnClickedButton2()
 	CComPtr<IBaseFilter> pBF;
 	pBF.CoCreateInstance(CLSID_NetShowSource);
 	if(pBF) ShowPPage(pBF, m_hWnd);
+}
+
+LRESULT Casf2mkvDlg::OnUrlOpen(WPARAM wParam, LPARAM lParam)
+{
+	m_combo.SetWindowText(CString((char*)lParam));
+	return 0;
 }
 
 //////////////////

@@ -54,4 +54,5 @@ protected:
 
 	DECLARE_MESSAGE_MAP()
 public:
+	BOOL m_fNormalize;
 };

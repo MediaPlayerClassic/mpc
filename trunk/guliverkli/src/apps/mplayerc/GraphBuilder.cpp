@@ -200,7 +200,8 @@ CGraphBuilder::CGraphBuilder(IGraphBuilder* pGB, HWND hWnd)
 			(s.SrcFilters&SRC_AVI) ? LMERIT_ABOVE_DSHOW : LMERIT_DO_USE));
 		guids.RemoveAll();
 	}
-
+	
+	__if_exists(CRadGtSplitterFilter)
 	{
 		guids.AddTail(MEDIATYPE_Stream);
 		guids.AddTail(MEDIASUBTYPE_Bink);
@@ -227,6 +228,15 @@ CGraphBuilder::CGraphBuilder(IGraphBuilder* pGB, HWND hWnd)
 		AddFilter(new CGraphCustomFilter(__uuidof(COggSplitterFilter), guids, 
 			(s.SrcFilters&SRC_OGG) ? L"Ogg Splitter" : L"Ogg Splitter (low merit)",
 			(s.SrcFilters&SRC_OGG) ? LMERIT_ABOVE_DSHOW : LMERIT_DO_USE));
+		guids.RemoveAll();
+	}
+
+	{
+		guids.AddTail(MEDIATYPE_Stream);
+		guids.AddTail(MEDIASUBTYPE_Nut);
+		AddFilter(new CGraphCustomFilter(__uuidof(CNutSplitterFilter), guids, 
+			(s.SrcFilters&SRC_NUT) ? L"Nut Splitter" : L"Nut Splitter (low merit)",
+			(s.SrcFilters&SRC_NUT) ? LMERIT_ABOVE_DSHOW : LMERIT_DO_USE));
 		guids.RemoveAll();
 	}
 
@@ -663,6 +673,19 @@ HRESULT CGraphBuilder::Render(LPCTSTR lpsz)
 	CComQIPtr<IGraphEngine> pGE = m_pGB;
 	if(!pGE || pGE->GetEngine() == DirectShow)
 	{
+		if(!pBF && fn.Find(_T("://")) > 0)
+		{
+			if(GetContentType(fn) == "video/x-ms-asf") // TODO: if there are more to check, do GetContentType only once
+			{
+				fnw.Replace(L"&MSWMExt=.asf", L"");
+
+				CComPtr<IFileSourceFilter> pReader;
+				hr = pReader.CoCreateInstance(CLSID_NetShowSource);
+				if(SUCCEEDED(hr) && SUCCEEDED(pReader->Load(fnw, NULL)))
+					pBF = pReader;
+			}
+		}
+
 		if((s.SrcFilters&SRC_CDDA) && !pBF && ext == _T(".cda"))
 		{
 			hr = S_OK;
@@ -743,12 +766,15 @@ HRESULT CGraphBuilder::Render(LPCTSTR lpsz)
 				pBF = pReader;
 		}
 
+		__if_exists(CRadGtSplitterFilter)
+		{
 		if((s.SrcFilters&SRC_RADGT) && !pBF)
 		{
 			hr = S_OK;
 			CComPtr<IFileSourceFilter> pReader = new CRadGtSourceFilter(NULL, &hr);
 			if(SUCCEEDED(hr) && SUCCEEDED(pReader->Load(fnw, NULL)))
 				pBF = pReader;
+		}
 		}
 
 		if((s.SrcFilters&SRC_ROQ) && !pBF)
@@ -763,6 +789,14 @@ HRESULT CGraphBuilder::Render(LPCTSTR lpsz)
 		{
 			hr = S_OK;
 			CComPtr<IFileSourceFilter> pReader = new COggSourceFilter(NULL, &hr);
+			if(SUCCEEDED(hr) && SUCCEEDED(pReader->Load(fnw, NULL)))
+				pBF = pReader;
+		}
+
+		if((s.SrcFilters&SRC_NUT) && !pBF)
+		{
+			hr = S_OK;
+			CComPtr<IFileSourceFilter> pReader = new CNutSourceFilter(NULL, &hr);
 			if(SUCCEEDED(hr) && SUCCEEDED(pReader->Load(fnw, NULL)))
 				pBF = pReader;
 		}
@@ -791,16 +825,6 @@ HRESULT CGraphBuilder::Render(LPCTSTR lpsz)
 				if(SUCCEEDED(hr) && SUCCEEDED(pReader->Load(fnw, NULL)))
 					pBF = pReader;
 			}
-		}
-
-		if(!pBF && fnw.Find(L"://") >= 0 && fnw.Find(L"&MSWMExt=.asf") >= 0)
-		{
-			fnw.Replace(L"&MSWMExt=.asf", L"");
-
-			CComPtr<IFileSourceFilter> pReader;
-			hr = pReader.CoCreateInstance(CLSID_NetShowSource);
-			if(SUCCEEDED(hr) && SUCCEEDED(pReader->Load(fnw, NULL)))
-				pBF = pReader;
 		}
 /*
 		if(!pBF && fn.Find(_T("://")) < 0)
@@ -1758,9 +1782,9 @@ HRESULT CGraphCustomFilter::Create(IBaseFilter** ppBF, IUnknown** ppUnk)
 		m_clsid == __uuidof(CRoQVideoDecoder) ? (IBaseFilter*)new CRoQVideoDecoder(NULL, &hr) :
 		m_clsid == __uuidof(CRoQAudioDecoder) ? (IBaseFilter*)new CRoQAudioDecoder(NULL, &hr) :
 		m_clsid == __uuidof(CAviSplitterFilter) ? (IBaseFilter*)new CAviSplitterFilter(NULL, &hr) :
-		m_clsid == __uuidof(CRadGtSplitterFilter) ? (IBaseFilter*)new CRadGtSplitterFilter(NULL, &hr) :
 		m_clsid == __uuidof(CRoQSplitterFilter) ? (IBaseFilter*)new CRoQSplitterFilter(NULL, &hr) :
 		m_clsid == __uuidof(COggSplitterFilter) ? (IBaseFilter*)new COggSplitterFilter(NULL, &hr) :
+		m_clsid == __uuidof(CNutSplitterFilter) ? (IBaseFilter*)new CNutSplitterFilter(NULL, &hr) :
 		m_clsid == __uuidof(CMpeg2DecFilter) ? (IBaseFilter*)new CMpeg2DecFilter(NULL, &hr) :
 		m_clsid == __uuidof(CMpaDecFilter) ? (IBaseFilter*)new CMpaDecFilter(NULL, &hr) :
 		m_clsid == __uuidof(CNullVideoRenderer) ? (IBaseFilter*)new CNullVideoRenderer() :
@@ -1769,6 +1793,12 @@ HRESULT CGraphCustomFilter::Create(IBaseFilter** ppBF, IUnknown** ppUnk)
 		m_clsid == __uuidof(CNullUAudioRenderer) ? (IBaseFilter*)new CNullUAudioRenderer() :
 		m_clsid == __uuidof(CNullTextRenderer) ? (IBaseFilter*)new CNullTextRenderer(NULL, &hr) :
 		NULL;
+
+	__if_exists(CRadGtSplitterFilter)
+	{
+		if(*ppBF == NULL && m_clsid == __uuidof(CRadGtSplitterFilter))
+			 *ppBF = (IBaseFilter*)new CRadGtSplitterFilter(NULL, &hr);
+	}
 
 	if(!*ppBF) hr = E_FAIL;
 	else (*ppBF)->AddRef();

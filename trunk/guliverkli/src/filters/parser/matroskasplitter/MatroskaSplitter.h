@@ -76,8 +76,6 @@ protected:
 	CArray<MatroskaReader::TrackEntry* > m_pOrderedTrackArray;
 	MatroskaReader::TrackEntry* GetTrackEntryAt(UINT aTrackIdx);
 
-	REFERENCE_TIME m_rtOffset;
-
 	bool InitDeliverLoop();
 	void SeekDeliverLoop(REFERENCE_TIME rt);
 	void DoDeliverLoop();

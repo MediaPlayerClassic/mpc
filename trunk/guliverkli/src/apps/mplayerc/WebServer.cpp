@@ -7,6 +7,9 @@
 #include "WebServer.h"
 #include "..\..\zlib\zlib.h"
 
+#define UTF8(str) UTF16To8(TToW(str))
+#define UTF8Arg(str) UrlEncode(UTF8(str))
+
 #define CMD_SETPOS "-1"
 #define CMD_SETVOLUME "-2"
 
@@ -348,6 +351,8 @@ CWebServer::CWebServer(CMainFrame* pMainFrm, int nPort)
 	m_downloads[_T("/vbs.gif")] = IDF_VBS_GIF;
 	m_downloads[_T("/sliderbar.gif")] = IDF_SLIDERBAR_GIF;
 	m_downloads[_T("/slidergrip.gif")] = IDF_SLIDERGRIP_GIF;
+	m_downloads[_T("/sliderback.gif")] = IDF_SLIDERBACK_GIF;
+	m_downloads[_T("/1pix.gif")] = IDF_1PIX_GIF;
 
 	m_mimes[".html"] = "text/html";
 	m_mimes[".txt"] = "text/plain";
@@ -370,6 +375,12 @@ CWebServer::CWebServer(CMainFrame* pMainFrm, int nPort)
 				m_mimes[CStringA(ext).MakeLower()] = CStringA(buff).MakeLower();
 		}
 	}
+
+	GetModuleFileName(AfxGetInstanceHandle(), str.GetBuffer(MAX_PATH), MAX_PATH);
+	str.ReleaseBuffer();
+	m_wwwroot = CPath(str);
+	m_wwwroot.RemoveFileSpec();
+	m_wwwroot.Append(CPath(_T("wwwroot")));
 
 	m_ThreadId = 0;
     m_hThread = ::CreateThread(NULL, 0, StaticThreadProc, (LPVOID)this, 0, &m_ThreadId);
@@ -438,9 +449,34 @@ void CWebServer::OnRequest(CClientSocket* pClient, CStringA& hdr, CStringA& body
 	bool fHandled = false;
 
 	hdr = "HTTP/1.0 200 OK\r\n";
+/*
+	if(m_wwwroot.IsDirectory())
+	{
+		CString localpath = pClient->m_path;
+		localpath.Replace(_T("/"), _T("\\"));
+		localpath.TrimLeft('\\');
 
+		CPath path;
+		path.Combine(m_wwwroot, CPath(localpath));
+		path.Canonicalize();
+		if(path.m_strPath.GetLength() > m_wwwroot.m_strPath.GetLength()
+		&& path.FileExists())
+		{
+			if(FILE* f = _tfopen(path, _T("rb")))
+			{
+				fseek(f, 0, 2);
+				char* buff = body.GetBufferSetLength(ftell(f));
+				fseek(f, 0, 0);
+				int len = fread(buff, 1, body.GetLength(), f);
+				fHandled = len == body.GetLength();
+				fclose(f);
+			}
+		}
+	}
+*/
 	RequestHandler rh = NULL;
-	if(m_internalpages.Lookup(pClient->m_path, rh)
+	if(!fHandled 
+	&& m_internalpages.Lookup(pClient->m_path, rh)
 	&& (this->*rh)(pClient, hdr, body))
 	{
 		if(mime.IsEmpty()) mime = "text/html";
@@ -462,17 +498,14 @@ void CWebServer::OnRequest(CClientSocket* pClient, CStringA& hdr, CStringA& body
 
 	UINT resid;
 	CStringA res;
-	if(m_downloads.Lookup(pClient->m_path, resid)
+	if(!fHandled 
+	&& m_downloads.Lookup(pClient->m_path, resid)
 	&& LoadResource(resid, res, _T("FILE")))
 	{
 		if(mime.IsEmpty()) mime = "application/octet-stream";
-		
 		memcpy(body.GetBufferSetLength(res.GetLength()), res.GetBuffer(), res.GetLength());
-
 		fHandled = true;
 	}
-
-	// TODO: load external files
 
 	if(!fHandled)
 	{
@@ -771,7 +804,7 @@ bool CWebServer::HandlerBrowser(CClientSocket* pClient, CStringA& hdr, CStringA&
 
 				files += "<tr>\r\n";
 				files += 
-					"<td><a href=\"[path]?path=" + UrlEncode(UTF16To8(TToW(fullpath))) + "\">" + UTF16To8(TToW(fd.cFileName)) + "</a></td>"
+					"<td><a href=\"[path]?path=" + UTF8Arg(fullpath) + "\">" + UTF8(fd.cFileName) + "</a></td>"
 					"<td>Directory</td>"
 					"<td>&nbsp</td>\r\n"
 					"<td><nobr>" + CStringA(CTime(fd.ftLastWriteTime).Format(_T("%Y.%m.%d %H:%M"))) + "</nobr></td>";
@@ -800,8 +833,8 @@ bool CWebServer::HandlerBrowser(CClientSocket* pClient, CStringA& hdr, CStringA&
 
 				files += "<tr>\r\n";
 				files += 
-					"<td><a href=\"[path]?path=" + UrlEncode(UTF16To8(TToW(fullpath))) + "\">" + UTF16To8(TToW(fd.cFileName)) + "</a></td>"
-					"<td><nobr>" + UTF16To8(TToW(type)) + "</nobr></td>"
+					"<td><a href=\"[path]?path=" + UTF8Arg(fullpath) + "\">" + UTF8(fd.cFileName) + "</a></td>"
+					"<td><nobr>" + UTF8(type) + "</nobr></td>"
 					"<td align=\"right\"><nobr>" + size + "</nobr></td>\r\n"
 					"<td><nobr>" + CStringA(CTime(fd.ftLastWriteTime).Format(_T("%Y.%m.%d %H:%M"))) + "</nobr></td>";
 				files += "</tr>\r\n";
@@ -814,7 +847,7 @@ bool CWebServer::HandlerBrowser(CClientSocket* pClient, CStringA& hdr, CStringA&
 
 	LoadHtml(IDR_HTML_BROWSER, body);
 	body.Replace("[charset]", "UTF-8"); // FIXME: win9x build...
-	body.Replace("[currentdir]", TToA(path));
+	body.Replace("[currentdir]", UTF8(path));
 	body.Replace("[currentfiles]", files);
 
 	return(true);
@@ -866,20 +899,20 @@ bool CWebServer::HandlerControls(CClientSocket* pClient, CStringA& hdr, CStringA
 
 	LoadHtml(IDR_HTML_CONTROLS, body);
 	body.Replace("[charset]", "UTF-8"); // FIXME: win9x build...
-	body.Replace("[filepatharg]", UrlEncode(UTF16To8(TToW(path))));
-	body.Replace("[filepath]", UTF16To8(TToW(path)));
-	body.Replace("[filedirarg]", UrlEncode(UTF16To8(TToW(dir))));
-	body.Replace("[filedir]", UTF16To8(TToW(dir)));
-	body.Replace("[state]", UTF16To8(TToW(state)));
-	body.Replace("[statestring]", UTF16To8(TToW(statestring)));
-	body.Replace("[position]", UTF16To8(TToW(position)));
-	body.Replace("[positionstring]", UTF16To8(TToW(positionstring)));
-	body.Replace("[duration]", UTF16To8(TToW(duration)));
-	body.Replace("[durationstring]", UTF16To8(TToW(durationstring)));
-	body.Replace("[volumelevel]", UTF16To8(TToW(volumelevel)));
-	body.Replace("[muted]", UTF16To8(TToW(muted)));
-	body.Replace("[playbackrate]", UTF16To8(TToW(playbackrate)));
-	body.Replace("[reloadtime]", UTF16To8(TToW(reloadtime)));
+	body.Replace("[filepatharg]", UTF8Arg(path));
+	body.Replace("[filepath]", UTF8(path));
+	body.Replace("[filedirarg]", UTF8Arg(dir));
+	body.Replace("[filedir]", UTF8(dir));
+	body.Replace("[state]", UTF8(state));
+	body.Replace("[statestring]", UTF8(statestring));
+	body.Replace("[position]", UTF8(position));
+	body.Replace("[positionstring]", UTF8(positionstring));
+	body.Replace("[duration]", UTF8(duration));
+	body.Replace("[durationstring]", UTF8(durationstring));
+	body.Replace("[volumelevel]", UTF8(volumelevel));
+	body.Replace("[muted]", UTF8(muted));
+	body.Replace("[playbackrate]", UTF8(playbackrate));
+	body.Replace("[reloadtime]", UTF8(reloadtime));
 
 	return(true);
 }

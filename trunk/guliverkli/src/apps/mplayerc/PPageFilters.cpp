@@ -27,6 +27,7 @@
 #include "stdafx.h"
 #include "mplayerc.h"
 #include "PPageFilters.h"
+#include "..\..\filters\filters.h"
 
 // CPPageFilters dialog
 
@@ -53,6 +54,7 @@ CPPageFilters::CPPageFilters()
 	, m_ac3(FALSE)
 	, m_dts(FALSE)
 	, m_lpcm(FALSE)
+	, m_nut(FALSE)
 {
 }
 
@@ -84,6 +86,7 @@ void CPPageFilters::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_CHECK_LPCM, m_lpcm);
 	DDX_Check(pDX, IDC_CHECK_AC3, m_ac3);
 	DDX_Check(pDX, IDC_CHECK_DTS, m_dts);
+	DDX_Check(pDX, IDC_CHECK_NUT, m_nut);
 }
 
 BEGIN_MESSAGE_MAP(CPPageFilters, CPPageBase)
@@ -119,10 +122,20 @@ BOOL CPPageFilters::OnInitDialog()
 	m_lpcm = !!(s.TraFilters&TRA_LPCM);
 	m_ac3 = !!(s.TraFilters&TRA_AC3);
 	m_dts = !!(s.TraFilters&TRA_DTS);
+	m_nut = !!(s.SrcFilters&SRC_NUT);
 
 	UpdateData(FALSE);
 
 	CreateToolTip();
+
+	__if_not_exists(CRadGtSplitterFilter)
+	{
+		CWnd* pWnd = GetDlgItem(IDC_CHECK_RADGT);
+		pWnd->EnableWindow(FALSE);
+		CString str;
+		pWnd->GetWindowText(str);
+		pWnd->SetWindowText(str + _T(" (n/a)"));
+	}
 
 	return TRUE;  // return TRUE unless you set the focus to a control
 	// EXCEPTION: OCX Property Pages should return FALSE
@@ -156,6 +169,7 @@ BOOL CPPageFilters::OnApply()
 	if(m_lpcm) s.TraFilters |= TRA_LPCM;
 	if(m_ac3) s.TraFilters |= TRA_AC3;
 	if(m_dts) s.TraFilters |= TRA_DTS;
+	if(m_nut) s.SrcFilters |= SRC_NUT;
 
 	return __super::OnApply();
 }

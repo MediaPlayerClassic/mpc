@@ -180,36 +180,32 @@ HRESULT CMatroskaSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 			CMediaType mt;
 			CArray<CMediaType> mts;
 
+			mt.SetSampleSize(1);
+
 			if(pTE->TrackType == TrackEntry::TypeVideo)
 			{
 				Name.Format(L"Video %d", iVideo++);
 
+				mt.majortype = MEDIATYPE_Video;
+
 				if(CodecID == "V_MS/VFW/FOURCC")
 				{
-					BITMAPINFOHEADER* pbmi = (BITMAPINFOHEADER*)(BYTE*)pTE->CodecPrivate;
-
-					mt.majortype = MEDIATYPE_Video;
-					mt.subtype = FOURCCMap(pbmi->biCompression);
 					mt.formattype = FORMAT_VideoInfo;
 					VIDEOINFOHEADER* pvih = (VIDEOINFOHEADER*)mt.AllocFormatBuffer(sizeof(VIDEOINFOHEADER) + pTE->CodecPrivate.GetCount() - sizeof(BITMAPINFOHEADER));
 					memset(mt.Format(), 0, mt.FormatLength());
-					memcpy(&pvih->bmiHeader, pbmi, pTE->CodecPrivate.GetCount());
-					if(pTE->v.FramePerSec > 0) 
-						pvih->AvgTimePerFrame = (REFERENCE_TIME)(10000000i64 / pTE->v.FramePerSec);
-					else if(pTE->DefaultDuration > 0)
-						pvih->AvgTimePerFrame = (REFERENCE_TIME)pTE->DefaultDuration / 100;
-					switch(pbmi->biCompression)
+					memcpy(&pvih->bmiHeader, (BYTE*)pTE->CodecPrivate, pTE->CodecPrivate.GetCount());
+					mt.subtype = FOURCCMap(pvih->bmiHeader.biCompression);
+					switch(pvih->bmiHeader.biCompression)
 					{
 					case BI_RGB: case BI_BITFIELDS: mt.subtype = 
-								pbmi->biBitCount == 16 ? MEDIASUBTYPE_RGB565 :
-								pbmi->biBitCount == 24 ? MEDIASUBTYPE_RGB24 :
-								pbmi->biBitCount == 32 ? MEDIASUBTYPE_ARGB32 :
+								pvih->bmiHeader.biBitCount == 16 ? MEDIASUBTYPE_RGB565 :
+								pvih->bmiHeader.biBitCount == 24 ? MEDIASUBTYPE_RGB24 :
+								pvih->bmiHeader.biBitCount == 32 ? MEDIASUBTYPE_ARGB32 :
 								MEDIASUBTYPE_NULL;
 								break;
 //					case BI_RLE8: mt.subtype = MEDIASUBTYPE_RGB8; break;
 //					case BI_RLE4: mt.subtype = MEDIASUBTYPE_RGB4; break;
 					}
-					mt.SetSampleSize(pvih->bmiHeader.biWidth*pvih->bmiHeader.biHeight*4);
 					mts.Add(mt);
 				}
 				else if(CodecID == "V_UNCOMPRESSED")
@@ -217,7 +213,6 @@ HRESULT CMatroskaSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 				}
 				else if(CodecID.Find("V_MPEG4/") == 0) // TODO: find out which V_MPEG4/*/* ids can be mapped to 'mp4v'
 				{
-					mt.majortype = MEDIATYPE_Video;
 					mt.subtype = FOURCCMap('v4pm');
 					mt.formattype = FORMAT_VideoInfo;
 					VIDEOINFOHEADER* pvih = (VIDEOINFOHEADER*)mt.AllocFormatBuffer(sizeof(VIDEOINFOHEADER));
@@ -226,18 +221,12 @@ HRESULT CMatroskaSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 					pvih->bmiHeader.biWidth = (LONG)pTE->v.PixelWidth;
 					pvih->bmiHeader.biHeight = (LONG)pTE->v.PixelHeight;
 					pvih->bmiHeader.biCompression = 'v4pm';
-					if(pTE->v.FramePerSec > 0) 
-						pvih->AvgTimePerFrame = (REFERENCE_TIME)(10000000i64 / pTE->v.FramePerSec);
-					else if(pTE->DefaultDuration > 0)
-						pvih->AvgTimePerFrame = (REFERENCE_TIME)pTE->DefaultDuration / 100;
-					mt.SetSampleSize(pvih->bmiHeader.biWidth*pvih->bmiHeader.biHeight*4);
 					mts.Add(mt);
 
 					// TODO: add (-1,0) dummy frame to timeoverride when it is /asp (that is having b-frames almost certainly)
 				}
 				else if(CodecID.Find("V_REAL/RV") == 0)
 				{
-					mt.majortype = MEDIATYPE_Video;
 					mt.subtype = FOURCCMap('00VR' + ((CodecID[9]-0x30)<<16));
 					mt.formattype = FORMAT_VideoInfo;
 					VIDEOINFOHEADER* pvih = (VIDEOINFOHEADER*)mt.AllocFormatBuffer(sizeof(VIDEOINFOHEADER) + pTE->CodecPrivate.GetCount());
@@ -247,11 +236,55 @@ HRESULT CMatroskaSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 					pvih->bmiHeader.biWidth = (LONG)pTE->v.PixelWidth;
 					pvih->bmiHeader.biHeight = (LONG)pTE->v.PixelHeight;
 					pvih->bmiHeader.biCompression = mt.subtype.Data1;
-					if(pTE->v.FramePerSec > 0) 
-						pvih->AvgTimePerFrame = (REFERENCE_TIME)(10000000i64 / pTE->v.FramePerSec);
-					else if(pTE->DefaultDuration > 0)
-						pvih->AvgTimePerFrame = (REFERENCE_TIME)pTE->DefaultDuration / 100;
-					mt.SetSampleSize(pvih->bmiHeader.biWidth*pvih->bmiHeader.biHeight*4);
+					mts.Add(mt);
+				}
+				else if(CodecID == "V_MPEG2")
+				{
+					mt.subtype = MEDIASUBTYPE_MPEG2_VIDEO;
+					mt.formattype = FORMAT_MPEG2Video;
+					MPEG2VIDEOINFO* pm2vi = (MPEG2VIDEOINFO*)mt.AllocFormatBuffer(FIELD_OFFSET(MPEG2VIDEOINFO, dwSequenceHeader) + pTE->CodecPrivate.GetSize());
+					memset(mt.Format(), 0, mt.FormatLength());
+					pm2vi->hdr.bmiHeader.biSize = sizeof(pm2vi->hdr.bmiHeader);
+					pm2vi->hdr.bmiHeader.biWidth = (LONG)pTE->v.PixelWidth;
+					pm2vi->hdr.bmiHeader.biHeight = (LONG)pTE->v.PixelHeight;
+
+					BYTE* pSequenceHeader = (BYTE*)pm2vi->dwSequenceHeader;
+					memcpy(pSequenceHeader, pTE->CodecPrivate.GetData(), pTE->CodecPrivate.GetSize());
+					pm2vi->cbSequenceHeader = pTE->CodecPrivate.GetSize();
+					
+					// Fill profile and level
+					// .. 00 00 01 B5 1X Y. ..
+					// X -> BAAA
+					// AAA = Profile                 -> enum AM_MPEG2Profile {
+					// 101 Simple                    ->   AM_MPEG2Profile_Simple = 1,
+					// 100 Main                      ->   AM_MPEG2Profile_Main,
+					// 011 SNR Scalable              ->   AM_MPEG2Profile_SNRScalable,
+					// 010 Spatially Scalable        ->   AM_MPEG2Profile_SpatiallyScalable,    
+					// 001 High                      ->   AM_MPEG2Profile_High }
+					//
+					// Y = Level                     -> enum AM_MPEG2Level {
+					// 1010 Low                      ->   AM_MPEG2Level_Low = 1,
+					// 1001 (reserved)
+					// 1000 Main                     ->   AM_MPEG2Level_Main,
+					// 0111 (reserved)
+					// 0110 High 1440                ->   AM_MPEG2Level_High1440,
+					// 0101 (reserved)
+					// 0100 High                     ->   AM_MPEG2Level_High }
+					
+					char ArrayProfile[8] = { 0, AM_MPEG2Profile_High, AM_MPEG2Profile_SpatiallyScalable,
+						AM_MPEG2Profile_SNRScalable, AM_MPEG2Profile_Main, AM_MPEG2Profile_Simple, 0, 0 };
+					char ArrayLevel[16] = { 0, 0, 0, 0, AM_MPEG2Level_High, 0, AM_MPEG2Level_High1440,
+						0, AM_MPEG2Level_Main, 0, AM_MPEG2Level_Low, 0, 0, 0, 0, 0 };
+					for(int i = 0; i < pm2vi->cbSequenceHeader-6; i++, pSequenceHeader++)
+					{
+						if(*(DWORD*)pSequenceHeader == 0xb5010000 && (pSequenceHeader[4] & 0xf0) == 0x10)
+						{							
+							pm2vi->dwProfile = ArrayProfile[pSequenceHeader[4] & 0x07];
+							pm2vi->dwLevel = ArrayLevel[pSequenceHeader[5] >> 4];
+							break;
+						}
+					}
+
 					mts.Add(mt);
 				}
 /*
@@ -266,26 +299,49 @@ HRESULT CMatroskaSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 					mts.Add(mt);
 				}
 */
+				REFERENCE_TIME AvgTimePerFrame = 0;
+
+                if(pTE->v.FramePerSec > 0) 
+					AvgTimePerFrame = (REFERENCE_TIME)(10000000i64 / pTE->v.FramePerSec);
+				else if(pTE->DefaultDuration > 0)
+					AvgTimePerFrame = (REFERENCE_TIME)pTE->DefaultDuration / 100;
+
+				if(AvgTimePerFrame)
+				{
+					for(int i = 0; i < mts.GetCount(); i++)
+					{
+						if(mts[i].formattype == FORMAT_VideoInfo
+						|| mts[i].formattype == FORMAT_VideoInfo2
+						|| mts[i].formattype == FORMAT_MPEG2Video)
+						{
+							((VIDEOINFOHEADER*)mt.Format())->AvgTimePerFrame = AvgTimePerFrame;
+						}
+					}
+				}
+
 				if(pTE->v.DisplayWidth != 0 && pTE->v.DisplayHeight != 0)
 				{
 					for(int i = 0; i < mts.GetCount(); i++)
 					{
-						if(mts[i].formattype != FORMAT_VideoInfo)
-							continue;
-
-						DWORD vih1 = FIELD_OFFSET(VIDEOINFOHEADER, bmiHeader);
-						DWORD vih2 = FIELD_OFFSET(VIDEOINFOHEADER2, bmiHeader);
-						DWORD bmi = mts[i].FormatLength() - FIELD_OFFSET(VIDEOINFOHEADER, bmiHeader);
-
-						mt.formattype = FORMAT_VideoInfo2;
-						mt.AllocFormatBuffer(vih2 + bmi);
-						memcpy(mt.Format(), mts[i].Format(), vih1);
-						memset(mt.Format() + vih1, 0, vih2 - vih1);
-						memcpy(mt.Format() + vih2, mts[i].Format() + vih1, bmi);
-						((VIDEOINFOHEADER2*)mt.Format())->dwPictAspectRatioX = (DWORD)pTE->v.DisplayWidth;
-						((VIDEOINFOHEADER2*)mt.Format())->dwPictAspectRatioY = (DWORD)pTE->v.DisplayHeight;
-
-						mts.InsertAt(i++, mt);
+						if(mts[i].formattype == FORMAT_VideoInfo)
+						{
+							DWORD vih1 = FIELD_OFFSET(VIDEOINFOHEADER, bmiHeader);
+							DWORD vih2 = FIELD_OFFSET(VIDEOINFOHEADER2, bmiHeader);
+							DWORD bmi = mts[i].FormatLength() - FIELD_OFFSET(VIDEOINFOHEADER, bmiHeader);
+							mt.formattype = FORMAT_VideoInfo2;
+							mt.AllocFormatBuffer(vih2 + bmi);
+							memcpy(mt.Format(), mts[i].Format(), vih1);
+							memset(mt.Format() + vih1, 0, vih2 - vih1);
+							memcpy(mt.Format() + vih2, mts[i].Format() + vih1, bmi);
+							((VIDEOINFOHEADER2*)mt.Format())->dwPictAspectRatioX = (DWORD)pTE->v.DisplayWidth;
+							((VIDEOINFOHEADER2*)mt.Format())->dwPictAspectRatioY = (DWORD)pTE->v.DisplayHeight;
+							mts.InsertAt(i++, mt);
+						}
+						else if(mts[i].formattype == FORMAT_MPEG2Video)
+						{
+							((MPEG2VIDEOINFO*)mts[i].Format())->hdr.dwPictAspectRatioX = (DWORD)pTE->v.DisplayWidth;
+							((MPEG2VIDEOINFO*)mts[i].Format())->hdr.dwPictAspectRatioY = (DWORD)pTE->v.DisplayHeight;
+						}
 					}
 				}
 			}
@@ -302,7 +358,7 @@ HRESULT CMatroskaSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 				pwfe->wBitsPerSample = (WORD)pTE->a.BitDepth;
 				pwfe->nBlockAlign = (WORD)((pwfe->nChannels * pwfe->wBitsPerSample) / 8);
 				pwfe->nAvgBytesPerSec = pwfe->nSamplesPerSec * pwfe->nBlockAlign;
-				mt.SetSampleSize(pwfe->nChannels*pwfe->nSamplesPerSec*32>>3);
+				mt.SetSampleSize(1);
 
 				if(CodecID == "A_VORBIS")
 				{
@@ -335,8 +391,6 @@ HRESULT CMatroskaSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 						for(int i = 0; i < sizes.GetCount(); p += sizes[i], p2 += sizes[i], i++)
 							memcpy(p2, p, pvf2->HeaderSize[i] = sizes[i]);
 
-						mt.SetSampleSize(pvf2->Channels*pvf2->SamplesPerSec*32>>3);
-						mt.SetSampleSize(max(mt.GetSampleSize(), (UINT_PTR)pTE->CodecPrivate.GetSize()));
 						mts.Add(mt);
 					}
 
@@ -347,8 +401,6 @@ HRESULT CMatroskaSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 					pvf->nChannels = (WORD)pTE->a.Channels;
 					pvf->nSamplesPerSec = (DWORD)pTE->a.SamplingFrequency;
 					pvf->nMinBitsPerSec = pvf->nMaxBitsPerSec = pvf->nAvgBitsPerSec = -1;
-					mt.SetSampleSize(pvf->nChannels*pvf->nSamplesPerSec*32>>3);
-					mt.SetSampleSize(max(mt.GetSampleSize(), (UINT_PTR)pTE->CodecPrivate.GetSize()));
 					mts.Add(mt);
 				}
 				else if(CodecID == "A_MPEG/L3")
@@ -387,7 +439,6 @@ HRESULT CMatroskaSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 					pwfe = (WAVEFORMATEX*)mt.AllocFormatBuffer(pTE->CodecPrivate.GetCount());
 					memcpy(pwfe, (WAVEFORMATEX*)(BYTE*)pTE->CodecPrivate, pTE->CodecPrivate.GetCount());
 					mt.subtype = FOURCCMap(pwfe->wFormatTag);
-					mt.SetSampleSize(pwfe->nChannels*pwfe->nSamplesPerSec*32>>3);
 					mts.Add(mt);
 				}
 				else if(CodecID == "A_PCM/INT/LIT")
@@ -406,7 +457,7 @@ HRESULT CMatroskaSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 					BYTE* pExtra = mt.ReallocFormatBuffer(sizeof(WAVEFORMATEX)+5) + sizeof(WAVEFORMATEX);
 					(pwfe = (WAVEFORMATEX*)mt.pbFormat)->cbSize = 2;
 
-					char profile, srate_idx;
+					int profile;
 
 					if(CodecID.Find("/MAIN") > 0) profile = 0;
 					else if(CodecID.Find("/SBR") > 0) profile = -1;
@@ -415,49 +466,15 @@ HRESULT CMatroskaSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 					else if(CodecID.Find("/LTP") > 0) profile = 3;
 					else continue;
 
-					if(92017 <= pwfe->nSamplesPerSec) srate_idx = 0;
-					else if(75132 <= pwfe->nSamplesPerSec) srate_idx = 1;
-					else if(55426 <= pwfe->nSamplesPerSec) srate_idx = 2;
-					else if(46009 <= pwfe->nSamplesPerSec) srate_idx = 3;
-					else if(37566 <= pwfe->nSamplesPerSec) srate_idx = 4;
-					else if(27713 <= pwfe->nSamplesPerSec) srate_idx = 5;
-					else if(23004 <= pwfe->nSamplesPerSec) srate_idx = 6;
-					else if(18783 <= pwfe->nSamplesPerSec) srate_idx = 7;
-					else if(13856 <= pwfe->nSamplesPerSec) srate_idx = 8;
-					else if(11502 <= pwfe->nSamplesPerSec) srate_idx = 9;
-					else if(9391 <= pwfe->nSamplesPerSec) srate_idx = 10;
-					else srate_idx = 11;
-   
-					pExtra[0] = ((abs(profile) + 1) << 3) | ((srate_idx & 0xe) >> 1);
-					pExtra[1] = ((srate_idx & 0x1) << 7) | ((BYTE)pTE->a.Channels << 3);
+					WORD cbSize = MakeAACInitData(pExtra, profile, pwfe->nSamplesPerSec, pTE->a.Channels);
 
 					mts.Add(mt);
 
 					if(profile < 0)
 					{
-						pExtra[0] = ((abs(profile) + 1) << 3) | ((srate_idx & 0xe) >> 1);
-
-						((WAVEFORMATEX*)mt.pbFormat)->cbSize = 5;
-
+						pwfe->cbSize = cbSize;
 						pwfe->nSamplesPerSec *= 2;
 						pwfe->nAvgBytesPerSec *= 2;
-
-						if(92017 <= pwfe->nSamplesPerSec) srate_idx = 0;
-						else if(75132 <= pwfe->nSamplesPerSec) srate_idx = 1;
-						else if(55426 <= pwfe->nSamplesPerSec) srate_idx = 2;
-						else if(46009 <= pwfe->nSamplesPerSec) srate_idx = 3;
-						else if(37566 <= pwfe->nSamplesPerSec) srate_idx = 4;
-						else if(27713 <= pwfe->nSamplesPerSec) srate_idx = 5;
-						else if(23004 <= pwfe->nSamplesPerSec) srate_idx = 6;
-						else if(18783 <= pwfe->nSamplesPerSec) srate_idx = 7;
-						else if(13856 <= pwfe->nSamplesPerSec) srate_idx = 8;
-						else if(11502 <= pwfe->nSamplesPerSec) srate_idx = 9;
-						else if(9391 <= pwfe->nSamplesPerSec) srate_idx = 10;
-						else srate_idx = 11;
-
-						pExtra[2] = 0x2B7>>3;
-						pExtra[3] = (0x2B7<<5) | 5;
-						pExtra[4] = (1<<7) | (srate_idx<<3);
 
 						mts.InsertAt(0, mt);
 					}
@@ -617,10 +634,6 @@ bool CMatroskaSplitterFilter::InitDeliverLoop()
 	|| !(m_pCluster = m_pSegment->Child(0x1F43B675)))
 		return(false);
 
-	Cluster c0;
-	c0.ParseTimeCode(m_pCluster);
-	m_rtOffset = m_pFile->m_segment.GetRefTime(c0.TimeCode);
-
 	// reindex if needed
 
 	if(m_pFile->m_segment.Cues.GetCount() == 0)
@@ -637,7 +650,7 @@ bool CMatroskaSplitterFilter::InitDeliverLoop()
 			Cluster c;
 			c.ParseTimeCode(m_pCluster);
 
-			m_pFile->m_segment.SegmentInfo.Duration.Set((float)c.TimeCode - m_rtOffset/10000);
+			m_pFile->m_segment.SegmentInfo.Duration.Set((float)c.TimeCode - m_pFile->m_rtOffset/10000);
 
 			CAutoPtr<CuePoint> pCuePoint(new CuePoint());
 			CAutoPtr<CueTrackPosition> pCueTrackPosition(new CueTrackPosition());
@@ -676,14 +689,14 @@ void CMatroskaSplitterFilter::SeekDeliverLoop(REFERENCE_TIME rt)
 	m_pCluster = m_pSegment->Child(0x1F43B675);
 	m_pBlock.Free();
 
-	rt += m_rtOffset;
-
-	if(rt <= m_rtOffset)
+	if(rt <= 0)
 	{
 		m_pBlock = m_pCluster->Child(0xA0);
 	}
 	else
 	{
+		rt += m_pFile->m_rtOffset;
+
 		QWORD lastCueClusterPosition = -1;
 
 		Segment& s = m_pFile->m_segment;
@@ -813,8 +826,8 @@ void CMatroskaSplitterFilter::DoDeliverLoop()
 				}
 
 				// HACK
-				p->rtStart -= m_rtOffset;
-				p->rtStop -= m_rtOffset;
+				p->rtStart -= m_pFile->m_rtOffset;
+				p->rtStop -= m_pFile->m_rtOffset;
 
 				hr = DeliverPacket(p);
 			}
@@ -879,8 +892,8 @@ STDMETHODIMP_(BOOL) CMatroskaSplitterFilter::GetChapterInfo(UINT aChapterID, str
 		pToFill->Size = sizeof(ChapterElement);
 		pToFill->Type = ca->ChapterAtoms.IsEmpty() ? AtomicChapter : SubChapter; // ?
 		pToFill->ChapterId = (UINT)ca->ChapterUID;
-		pToFill->rtStart = ca->ChapterTimeStart / 100 - m_rtOffset;
-		pToFill->rtStop = ca->ChapterTimeEnd / 100 - m_rtOffset;
+		pToFill->rtStart = ca->ChapterTimeStart / 100 - m_pFile->m_rtOffset;
+		pToFill->rtStop = ca->ChapterTimeEnd / 100 - m_pFile->m_rtOffset;
 		if(Size >= sizeof(ChapterElement2))
 		{
 			pToFill->Size = sizeof(ChapterElement2);

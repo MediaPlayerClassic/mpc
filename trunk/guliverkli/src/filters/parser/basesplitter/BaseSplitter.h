@@ -54,6 +54,9 @@ class CBaseSplitterFile
 	CAutoVectorPtr<BYTE> m_pCache;
 	__int64 m_cachepos, m_cachelen, m_cachetotal;
 
+	UINT64 m_bitbuff;
+	int m_bitlen;
+
 protected:
 	__int64 m_pos, m_len;
 
@@ -61,10 +64,13 @@ public:
 	CBaseSplitterFile(IAsyncReader* pReader, HRESULT& hr, int cachelen = 2048);
 	virtual ~CBaseSplitterFile() {}
 
-	__int64 GetPos() {return m_pos;}
+	__int64 GetPos() {return m_pos;} // TODO: correct m_pos with m_bitlen (nothing needs it yet)
 	__int64 GetLength() {return m_len;}
-	void Seek(UINT64 pos) {m_pos = max(pos, 0);}
+	void Seek(UINT64 pos) {m_pos = max(pos, 0); BitFlush();}
 	HRESULT Read(BYTE* pData, __int64 len);
+
+	UINT64 BitRead(int nBits, bool fPeek = false);
+	void BitByteAlign(), BitFlush();
 };
 
 class CBaseSplitterFilter;
@@ -206,6 +212,7 @@ protected:
 	LONGLONG m_nOpenProgress;
 	bool m_fAbort;
 
+	REFERENCE_TIME m_rtDuration; // derived filter should set this at the end of CreateOutputs
 	REFERENCE_TIME m_rtStart, m_rtStop, m_rtCurrent, m_rtNewStart, m_rtNewStop;
 	double m_dRate;
 
@@ -267,7 +274,7 @@ public:
 	STDMETHODIMP GetTimeFormat(GUID* pFormat);
 	STDMETHODIMP IsUsingTimeFormat(const GUID* pFormat);
 	STDMETHODIMP SetTimeFormat(const GUID* pFormat);
-	STDMETHODIMP GetDuration(LONGLONG* pDuration) = 0; // and the final thing to override here
+	STDMETHODIMP GetDuration(LONGLONG* pDuration);
 	STDMETHODIMP GetStopPosition(LONGLONG* pStop);
 	STDMETHODIMP GetCurrentPosition(LONGLONG* pCurrent);
 	STDMETHODIMP ConvertTimeFormat(LONGLONG* pTarget, const GUID* pTargetFormat, LONGLONG Source, const GUID* pSourceFormat);

@@ -53,6 +53,7 @@ extern void CorrectComboListWidth(CComboBox& box, CFont* pWndFont);
 extern HICON LoadIcon(CString fn, bool fSmall);
 extern bool LoadType(CString fn, CString& type);
 extern bool LoadResource(UINT resid, CStringA& str, LPCTSTR restype);
+extern CStringA GetContentType(CString fn);
 
 /////////////////////////////////////////////////////////////////////////////
 // CMPlayerCApp:
@@ -145,7 +146,8 @@ enum
 	SRC_RADGT=SRC_AVI<<1,
 	SRC_ROQ=SRC_RADGT<<1,
 	SRC_OGG=SRC_ROQ<<1,
-	SRC_LAST=SRC_OGG<<1
+	SRC_NUT=SRC_OGG<<1,
+	SRC_LAST=SRC_NUT<<1
 };
 
 enum
@@ -423,6 +425,7 @@ public:
 
 		int mpasf, mpasc;
 		bool mpadrc;
+		bool mpanormalize;
 
 		bool fHideCDROMsSubMenu;
 

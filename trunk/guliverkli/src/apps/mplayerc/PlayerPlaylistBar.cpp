@@ -269,7 +269,7 @@ void CPlayerPlaylistBar::ParsePlayList(CStringList& fns, CStringList* subs)
 	CString ext = fn.Mid(fn.ReverseFind('.')+1).MakeLower();
 	CString dir = fn.Left(max(fn.ReverseFind('/'), fn.ReverseFind('\\'))+1); // "ReverseFindOneOf"
 
-	if(CString(fn).MakeLower().Find(_T("http://")) >= 0)
+	if(0/*CString(fn).MakeLower().Find(_T("http://")) >= 0*/)
 	{
 		if(!(ext == _T("pls") || ext == _T("m3u") || ext == _T("asx") /*|| ext == _T("asf")*/))
 		{
@@ -283,7 +283,6 @@ void CPlayerPlaylistBar::ParsePlayList(CStringList& fns, CStringList* subs)
 				"User-Agent: Media Player Classic\r\n"
 				"Host: %s\r\n"
 				"Accept: */*\r\n"
-				"Connection: Keep-Alive\r\n"
 				"\r\n", CStringA(url.GetUrlPath())+CStringA(url.GetExtraInfo()), CStringA(url.GetHostName()));
 
 			float ver = 0;
@@ -395,7 +394,8 @@ void CPlayerPlaylistBar::ParsePlayList(CStringList& fns, CStringList* subs)
 
 	CString str('\n'); // FIXME: m3u regexp skips the first line for some reason
 
-	CWebTextFile f;
+//	CWebTextFile f;
+	CTextFile f;
 	if(f.Open(fn)) 
 		for(CString tmp; f.ReadString(tmp); str += tmp + '\n');
 

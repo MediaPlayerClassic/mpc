@@ -41,8 +41,6 @@ class CAviSplitterFilter : public CBaseSplitterFilter, public IPropertyBag
 {
 	CAutoVectorPtr<DWORD> m_tFrame;
 
-	REFERENCE_TIME m_rtDuration;
-
 protected:
 	CAutoPtr<CAviFile> m_pFile;
 	HRESULT CreateOutputs(IAsyncReader* pAsyncReader);

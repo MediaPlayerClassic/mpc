@@ -28,6 +28,8 @@ interface IMpaDecFilter : public IUnknown
 {
 	STDMETHOD(SetSampleFormat(SampleFormat sf)) = 0;
 	STDMETHOD_(SampleFormat, GetSampleFormat()) = 0;
+	STDMETHOD(SetNormalize(bool fNormalize)) = 0;
+	STDMETHOD_(bool, GetNormalize()) = 0;
 	STDMETHOD(SetSpeakerConfig(int sc)) = 0; // sign of sc tells if spdif is active
 	STDMETHOD_(int, GetSpeakerConfig()) = 0;
 	STDMETHOD(SetDynamicRangeControl(bool fDRC)) = 0;

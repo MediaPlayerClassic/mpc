@@ -23,6 +23,7 @@ class CWebServer
 	CMap<CString,LPCTSTR,CWebServer::RequestHandler,CWebServer::RequestHandler> m_internalpages;
 	CMap<CString,LPCTSTR,UINT,UINT> m_downloads;
 	CMap<CStringA,LPCSTR,CStringA,CStringA> m_mimes;
+	CPath m_wwwroot;
 
 	bool HandlerCommand(CClientSocket* pClient, CStringA& hdr, CStringA& body);
 	bool HandlerIndex(CClientSocket* pClient, CStringA& hdr, CStringA& body);
