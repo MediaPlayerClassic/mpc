@@ -721,8 +721,10 @@ DWORD CMatroskaSourceFilter::ThreadProc()
 			while(Blocks.GetCount() && SUCCEEDED(hr) && !CheckRequest(&cmd))
 			{
 				CAutoPtr<Block> b = Blocks.RemoveHead();
-				b->BlockDuration.Set((INT64)m_pFile->m_segment.SegmentInfo.Duration - b->TimeCode);
-				if(b->BlockDuration == 0) b->BlockDuration.Set(1);
+				if(m_pFile->m_segment.SegmentInfo.Duration > 0)
+					b->BlockDuration.Set((INT64)m_pFile->m_segment.SegmentInfo.Duration - b->TimeCode);
+				if(b->BlockDuration == 0)
+					b->BlockDuration.Set(1);
 				hr = DeliverBlock(b);
 			}
 
