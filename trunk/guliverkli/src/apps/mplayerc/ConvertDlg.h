@@ -76,7 +76,6 @@ public:
 	{
 	public: 
 		CDSMResource m_res;
-		bool m_fEnabled; 
 		CTreeItemResource(const CDSMResource& res, CTreeCtrl& tree, HTREEITEM hTIParent);
 		void Update();
 		bool ToolTip(CString& str);

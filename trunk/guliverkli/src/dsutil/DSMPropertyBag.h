@@ -98,6 +98,7 @@ interface IDSMChapterBag : public IUnknown
 	STDMETHOD(ChapRemoveAt) (DWORD iIndex) = 0;
 	STDMETHOD(ChapRemoveAll) () = 0;
 	STDMETHOD_(long, ChapLookup) (REFERENCE_TIME* prt, BSTR* ppName) = 0;
+	STDMETHOD(ChapSort) () = 0;
 };
 
 class CDSMChapter
@@ -128,6 +129,7 @@ public:
 	STDMETHODIMP ChapRemoveAt(DWORD iIndex);
 	STDMETHODIMP ChapRemoveAll();
 	STDMETHODIMP_(long) ChapLookup(REFERENCE_TIME* prt, BSTR* ppName = NULL);
+	STDMETHODIMP ChapSort();
 };
 
 template<class T>

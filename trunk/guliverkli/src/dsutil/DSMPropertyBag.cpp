@@ -299,8 +299,25 @@ STDMETHODIMP CDSMChapterBag::ChapRemoveAt(DWORD iIndex)
 STDMETHODIMP CDSMChapterBag::ChapRemoveAll()
 {
 	m_chapters.RemoveAll();
+
 	m_fSorted = false;
+
 	return S_OK;
+}
+
+STDMETHODIMP_(long) CDSMChapterBag::ChapLookup(REFERENCE_TIME* prt, BSTR* ppName)
+{
+	CheckPointer(prt, -1);
+
+	ChapSort();
+
+	int i = range_bsearch(m_chapters, *prt);
+	if(i < 0) return -1;
+
+	*prt = m_chapters[i].rt;
+	if(ppName) *ppName = m_chapters[i].name.AllocSysString();
+
+	return i;
 }
 
 static int chapter_comp(const void* a, const void* b)
@@ -310,21 +327,10 @@ static int chapter_comp(const void* a, const void* b)
 	return 0;
 }
 
-STDMETHODIMP_(long) CDSMChapterBag::ChapLookup(REFERENCE_TIME* prt, BSTR* ppName)
+STDMETHODIMP CDSMChapterBag::ChapSort()
 {
-	CheckPointer(prt, -1);
-
-	if(!m_fSorted)
-	{
-		qsort(m_chapters.GetData(), m_chapters.GetCount(), sizeof(CDSMChapter), chapter_comp);
-		m_fSorted = true;
-	}
-
-	int i = range_bsearch(m_chapters, *prt);
-	if(i < 0) return -1;
-
-	*prt = m_chapters[i].rt;
-	if(ppName) *ppName = m_chapters[i].name.AllocSysString();
-
-	return i;
+	if(m_fSorted) return S_FALSE;
+	qsort(m_chapters.GetData(), m_chapters.GetCount(), sizeof(CDSMChapter), chapter_comp);
+	m_fSorted = true;
+	return S_OK;
 }
