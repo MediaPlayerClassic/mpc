@@ -136,7 +136,7 @@ CString CMediaTypeEx::ToString(IPin* pPin)
 	}
 
 	CString str;
-	if(!codec.IsEmpty()) str += codec + _T(", ");
+	if(!codec.IsEmpty()) str += codec + _T(" ");
 	if(!dim.IsEmpty()) str += dim + _T(" ");
 	if(!rate.IsEmpty()) str += rate + _T(" ");
 	if(!dur.IsEmpty()) str += dur + _T(" ");
