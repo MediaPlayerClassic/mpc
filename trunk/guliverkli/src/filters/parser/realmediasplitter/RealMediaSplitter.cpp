@@ -105,12 +105,12 @@ const AMOVIESETUP_FILTER sudFilter[] =
 {
 	{ &__uuidof(CRealMediaSplitterFilter)	// Filter CLSID
     , L"RealMedia Splitter"					// String name
-    , MERIT_UNLIKELY						// Filter merit
+    , MERIT_NORMAL						// Filter merit
     , sizeof(sudpPins)/sizeof(sudpPins[0])	// Number of pins
 	, sudpPins},							// Pin information
 	{ &__uuidof(CRealMediaSourceFilter)		// Filter CLSID
     , L"RealMedia Source"					// String name
-    , MERIT_UNLIKELY						// Filter merit
+    , MERIT_NORMAL						// Filter merit
     , 0										// Number of pins
 	, NULL},								// Pin information
 };
@@ -326,7 +326,7 @@ HRESULT CRealMediaSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 		CArray<CMediaType> mts;
 
 		CMediaType mt;
-		mt.SetSampleSize(max(pmp->maxPacketSize*256, 1));
+		mt.SetSampleSize(max(pmp->maxPacketSize*16/**/, 1));
 
 		if(pmp->mime == "video/x-pn-realvideo")
 		{
@@ -707,15 +707,28 @@ HRESULT CRealMediaSplitterOutputPin::DeliverSegments()
 		return S_OK;
 	}
 
-	CComPtr<IMediaSample> pSample;
-	BYTE* pData;
-	BYTE* pDataOrg;
-	if(S_OK != (hr = GetDeliveryBuffer(&pSample, NULL, NULL, 0))
-	|| S_OK != (hr = pSample->GetPointer(&pData)) || !(pDataOrg = pData))
+	CAutoPtr<Packet> p(new Packet());
+
+	p->TrackNumber = -1;
+	p->bDiscontinuity = m_segments.fDiscontinuity;
+	p->bSyncPoint = m_segments.fSyncPoint;
+	p->rtStart = m_segments.rtStart;
+	p->rtStop = m_segments.rtStart+1;
+
+	DWORD len = 0, total = 0;
+	POSITION pos = m_segments.GetHeadPosition();
+	while(pos)
 	{
-		m_segments.Clear();
-		return hr;
+		segment* s = m_segments.GetNext(pos);
+		len = max(len, s->offset + s->data.GetCount());
+		total += s->data.GetCount();
 	}
+	ASSERT(len == total);
+	len += 1 + 2*4*(!m_segments.fMerged ? m_segments.GetCount() : 1);
+	
+	p->pData.SetSize(len);
+
+	BYTE* pData = p->pData.GetData();
 
 	*pData++ = m_segments.fMerged ? 0 : m_segments.GetCount()-1;
 
@@ -726,45 +739,26 @@ HRESULT CRealMediaSplitterOutputPin::DeliverSegments()
 	}
 	else
 	{
-		POSITION pos = m_segments.GetHeadPosition();
+		pos = m_segments.GetHeadPosition();
 		while(pos)
 		{
-			segment* s = m_segments.GetNext(pos);
 			*((DWORD*)pData) = 1; pData += 4;
-			*((DWORD*)pData) = s->offset; pData += 4;
+			*((DWORD*)pData) = m_segments.GetNext(pos)->offset; pData += 4;
 		}
 	}
 
-	DWORD len = 0, total = 0;
-	POSITION pos = m_segments.GetHeadPosition();
+	pos = m_segments.GetHeadPosition();
 	while(pos)
 	{
 		segment* s = m_segments.GetNext(pos);
-		ASSERT(pSample->GetSize() >= (pData-pDataOrg) + s->offset + s->data.GetCount());
 		memcpy(pData + s->offset, s->data.GetData(), s->data.GetCount());
-		total = max(total, s->offset + s->data.GetCount());
-		len += s->data.GetCount();
 	}
 
-	ASSERT(total == len);
-
-	total += pData - pDataOrg;
-
-	REFERENCE_TIME rtStart = m_segments.rtStart;
-	REFERENCE_TIME rtStop = rtStart+1;
-
-	if(S_OK != (hr = pSample->SetActualDataLength(total))
-	|| S_OK != (hr = pSample->SetTime(&rtStart, &rtStop))
-	|| S_OK != (hr = pSample->SetMediaTime(NULL, NULL))
-	|| S_OK != (hr = pSample->SetDiscontinuity(m_segments.fDiscontinuity))
-	|| S_OK != (hr = pSample->SetSyncPoint(m_segments.fSyncPoint))
-	|| S_OK != (hr = pSample->SetPreroll(m_segments.rtStart < 0))
-	|| S_OK != (hr = Deliver(pSample)))
-		int empty = 0;
+	hr = __super::DeliverPacket(p);
 
 	m_segments.Clear();
 
-	return S_OK;
+	return hr;
 }
 
 HRESULT CRealMediaSplitterOutputPin::DeliverPacket(CAutoPtr<Packet> p)
@@ -989,7 +983,8 @@ HRESULT CRMFile::Init()
 			{
 			case '.RMF':
 				if(S_OK != (hr = Read(m_fh.version))) return hr;
-				if(S_OK != (hr = Read(m_fh.nHeaders))) return hr;
+				if(hdr.size == 0x10) {WORD w = 0; if(S_OK != (hr = Read(w))) return hr; m_fh.nHeaders = w;}
+				else if(S_OK != (hr = Read(m_fh.nHeaders))) return hr;
 				break;
 			case 'CONT':
 				UINT16 slen;
@@ -2138,6 +2133,8 @@ DbgLog((LOG_TRACE, 0, _T("A: rtStart=%I64d, rtStop=%I64d, disc=%d, sync=%d"),
 				rtStart = rtStop;
 			}
 
+			m_rtBuffStart = rtStart;
+
 			m_bufflen = 0;
 		}
 	}
@@ -2338,7 +2335,9 @@ HRESULT CRealAudioDecoder::StartStreaming()
 	int h = m_rai.sub_packet_h;
 	int sps = m_rai.sub_packet_size;
 
-	m_buff.Allocate(w*h*2);
+	int len = w*h;
+
+	m_buff.Allocate(len*2);
 	m_bufflen = 0;
 	m_rtBuffStart = 0;
 

@@ -77,6 +77,10 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "basesplitter", "parser\base
 	ProjectSection(ProjectDependencies) = postProject
 	EndProjectSection
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "AviSplitter", "parser\avisplitter\AviSplitter.vcproj", "{9738B023-FC46-48A2-953A-0035FD897678}"
+	ProjectSection(ProjectDependencies) = postProject
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfiguration) = preSolution
 		Debug = Debug
@@ -393,6 +397,22 @@ Global
 		{37768B3F-89BC-4C16-B2A8-767C5DA84C3F}.Release Unicode.Build.0 = Release Unicode lib|Win32
 		{37768B3F-89BC-4C16-B2A8-767C5DA84C3F}.Release Unicode lib.ActiveCfg = Release Unicode lib|Win32
 		{37768B3F-89BC-4C16-B2A8-767C5DA84C3F}.Release Unicode lib.Build.0 = Release Unicode lib|Win32
+		{9738B023-FC46-48A2-953A-0035FD897678}.Debug.ActiveCfg = Debug|Win32
+		{9738B023-FC46-48A2-953A-0035FD897678}.Debug.Build.0 = Debug|Win32
+		{9738B023-FC46-48A2-953A-0035FD897678}.Debug lib.ActiveCfg = Debug lib|Win32
+		{9738B023-FC46-48A2-953A-0035FD897678}.Debug lib.Build.0 = Debug lib|Win32
+		{9738B023-FC46-48A2-953A-0035FD897678}.Debug Unicode.ActiveCfg = Debug Unicode|Win32
+		{9738B023-FC46-48A2-953A-0035FD897678}.Debug Unicode.Build.0 = Debug Unicode|Win32
+		{9738B023-FC46-48A2-953A-0035FD897678}.Debug Unicode lib.ActiveCfg = Debug Unicode lib|Win32
+		{9738B023-FC46-48A2-953A-0035FD897678}.Debug Unicode lib.Build.0 = Debug Unicode lib|Win32
+		{9738B023-FC46-48A2-953A-0035FD897678}.Release.ActiveCfg = Release|Win32
+		{9738B023-FC46-48A2-953A-0035FD897678}.Release.Build.0 = Release|Win32
+		{9738B023-FC46-48A2-953A-0035FD897678}.Release lib.ActiveCfg = Release lib|Win32
+		{9738B023-FC46-48A2-953A-0035FD897678}.Release lib.Build.0 = Release lib|Win32
+		{9738B023-FC46-48A2-953A-0035FD897678}.Release Unicode.ActiveCfg = Release Unicode|Win32
+		{9738B023-FC46-48A2-953A-0035FD897678}.Release Unicode.Build.0 = Release Unicode|Win32
+		{9738B023-FC46-48A2-953A-0035FD897678}.Release Unicode lib.ActiveCfg = Release Unicode lib|Win32
+		{9738B023-FC46-48A2-953A-0035FD897678}.Release Unicode lib.Build.0 = Release Unicode lib|Win32
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 	EndGlobalSection

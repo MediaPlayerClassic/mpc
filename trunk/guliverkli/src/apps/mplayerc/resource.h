@@ -354,6 +354,7 @@
 #define IDC_TAB1                        1088
 #define IDC_CHECK8                      1089
 #define IDC_PLACEHOLDER                 1090
+#define IDC_CHECK10                     1090
 #define IDC_CUSTOM1                     1091
 #define IDC_SHOCKWAVEFLASH              1092
 #define IDC_STATIC1                     1093

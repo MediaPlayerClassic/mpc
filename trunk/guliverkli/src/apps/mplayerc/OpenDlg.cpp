@@ -36,7 +36,6 @@ COpenDlg::COpenDlg(CWnd* pParent /*=NULL*/)
 	, m_path(_T(""))
 	, m_path2(_T(""))
 	, m_fMultipleFiles(false)
-	, m_engine(0)
 {
 }
 
@@ -53,7 +52,6 @@ void COpenDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_CBString(pDX, IDC_COMBO2, m_path2);
 	DDX_Control(pDX, IDC_STATIC1, m_label2);
 	DDX_Control(pDX, IDC_BROWSEBUTTON2, m_openbtn2);
-	DDX_Radio(pDX, IDC_RADIO1, m_engine);
 }
 
 
@@ -64,7 +62,6 @@ BEGIN_MESSAGE_MAP(COpenDlg, CCmdUIDialog)
 	ON_UPDATE_COMMAND_UI(IDC_STATIC1, OnUpdateDub)
 	ON_UPDATE_COMMAND_UI(IDC_COMBO2, OnUpdateDub)
 	ON_UPDATE_COMMAND_UI(IDC_BROWSEBUTTON2, OnUpdateDub)
-	ON_UPDATE_COMMAND_UI_RANGE(IDC_RADIO1, IDC_RADIO2, OnUpdateEngine)
 END_MESSAGE_MAP()
 
 
@@ -207,12 +204,6 @@ void COpenDlg::OnUpdateDub(CCmdUI* pCmdUI)
 {
 	m_mrucombo.GetWindowText(m_path);
 	pCmdUI->Enable(AfxGetAppSettings().Formats.GetEngine(m_path) == DirectShow);
-}
-
-void COpenDlg::OnUpdateEngine(CCmdUI* pCmdUI)
-{
-	m_mrucombo.GetWindowText(m_path);
-	pCmdUI->SetRadio(AfxGetAppSettings().Formats.GetEngine(m_path) == (engine_t)(pCmdUI->m_nID-IDC_RADIO1));
 }
 
 // OpenDlg.cpp : implementation file

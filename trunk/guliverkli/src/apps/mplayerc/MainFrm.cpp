@@ -7495,6 +7495,19 @@ void CKeyFrameFinderThread::OnIndex(WPARAM wParam, LPARAM lParam)
 	TCHAR* buff = (LPTSTR)lParam;
 	if(!buff) return;
 
+	CFile f;
+	if(f.Open(buff, CFile::modeRead|CFile::shareDenyWrite))
+	{
+		ULONGLONG len = f.GetLength();
+		BYTE buff[12];
+		memset(buff, 0, sizeof(buff));
+		f.Read(buff, sizeof(buff));
+		if(*((DWORD*)&buff[0]) != 'FFIR' || *((DWORD*)&buff[8]) != ' IVA'
+		|| len != *((DWORD*)&buff[4])+8)
+			return;
+		f.Close();
+	}
+
 	AVIFileInit();
 	    
 	PAVIFILE pfile;

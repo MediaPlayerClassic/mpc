@@ -293,6 +293,7 @@ STDMETHODIMP CTextInputPin::Receive(IMediaSample* pSample)
 
 	if(fInvalidate)
 	{
+TRACE(_T("InvalidateSubtitle(%I64d, ..)\n"), tStart);
 		// IMPORTANT: m_pSubLock must not be locked when calling this
 		m_pFilter->InvalidateSubtitle(tStart, (DWORD_PTR)(ISubStream*)m_pSubStream);
 	}

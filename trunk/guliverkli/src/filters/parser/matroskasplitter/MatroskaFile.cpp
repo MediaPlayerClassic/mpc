@@ -228,7 +228,7 @@ ChapterAtom* Segment::FindChapterAtom(UINT64 id, int nEditionEntry)
 
 			if(nEditionEntry-- == 0)
 			{
-				return ee->FindChapterAtom(id);
+				return id == 0 ? ee : ee->FindChapterAtom(id);
 			}
 		}
 	}

@@ -71,8 +71,13 @@ private:
 	CAutoPtrList<Packet> m_packets;
 	HRESULT m_hrDeliver;
 
+	bool m_fFlushing, m_fFlushed;
+	CAMEvent m_eEndFlush;
+
 	enum {CMD_EXIT};
     DWORD ThreadProc();
+
+	void MakeISCRHappy();
 
 protected:
 	REFERENCE_TIME m_rtStart;
@@ -207,12 +212,15 @@ public:
 	STDMETHODIMP QueryProgress(LONGLONG* pllTotal, LONGLONG* pllCurrent);
 	STDMETHODIMP AbortOperation();
 
-	// IAMMediaContent
+	// IDispatch
 
 	STDMETHODIMP GetTypeInfoCount(UINT* pctinfo) {return E_NOTIMPL;}
 	STDMETHODIMP GetTypeInfo(UINT itinfo, LCID lcid, ITypeInfo** pptinfo) {return E_NOTIMPL;}
 	STDMETHODIMP GetIDsOfNames(REFIID riid, OLECHAR** rgszNames, UINT cNames, LCID lcid, DISPID* rgdispid) {return E_NOTIMPL;}
 	STDMETHODIMP Invoke(DISPID dispidMember, REFIID riid, LCID lcid, WORD wFlags, DISPPARAMS* pdispparams, VARIANT* pvarResult, EXCEPINFO* pexcepinfo, UINT* puArgErr) {return E_NOTIMPL;}
+
+	// IAMMediaContent
+
 	STDMETHODIMP get_AuthorName(BSTR* pbstrAuthorName);
 	STDMETHODIMP get_Title(BSTR* pbstrTitle);
 	STDMETHODIMP get_Rating(BSTR* pbstrRating);

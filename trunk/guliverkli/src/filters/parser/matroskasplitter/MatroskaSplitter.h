@@ -61,7 +61,6 @@ public:
 class CMatroskaSplitterFilter : public CBaseSplitterFilter
 {
 	void SendVorbisHeaderSample();
-	void SendFakeTextSample();
 
 	CAutoPtr<MatroskaReader::CMatroskaNode> m_pSegment, m_pCluster, m_pBlock;
 
