@@ -606,7 +606,7 @@ class SubtitlesDB extends DB
 			"  `nick` varchar(16) NOT NULL default '', ".
 			"  `passwordhash` varchar(32) NOT NULL default '', ".
 			"  `email` varchar(64) NOT NULL default '', ".
-			"  PRIMARY KEY  (`userid`) ".
+			"  PRIMARY KEY  (`userid`), ".
 			"  KEY `nick_pwh` (`nick`,`passwordhash`) ".
 			") ENGINE=InnoDB DEFAULT CHARSET=utf8 ".
 			"",
