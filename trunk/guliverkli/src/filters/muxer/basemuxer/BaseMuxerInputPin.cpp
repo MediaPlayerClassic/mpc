@@ -49,6 +49,7 @@ STDMETHODIMP CBaseMuxerInputPin::NonDelegatingQueryInterface(REFIID riid, void**
 	CheckPointer(ppv, E_POINTER);
 
 	return 
+		QI(IPropertyBag)
 		QI(IPropertyBag2)
 		QI(IDSMPropertyBag)
 		__super::NonDelegatingQueryInterface(riid, ppv);

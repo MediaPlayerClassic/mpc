@@ -184,6 +184,7 @@ interface IBufferInfo : public IUnknown
 class CBaseSplitterFilter 
 	: public CBaseFilter
 	, public CCritSec
+	, public CDSMPropertyBag
 	, protected CAMThread
 	, public IFileSourceFilter
 	, public IMediaSeeking

@@ -37,7 +37,7 @@ public:
 };
 
 [uuid("9736D831-9D6C-4E72-B6E7-560EF9181001")]
-class CAviSplitterFilter : public CBaseSplitterFilter, public IPropertyBag
+class CAviSplitterFilter : public CBaseSplitterFilter
 {
 	CAutoVectorPtr<DWORD> m_tFrame;
 
@@ -72,11 +72,6 @@ public:
 	STDMETHODIMP GetPositions(LONGLONG* pCurrent, LONGLONG* pStop);
 
 	HRESULT SetPositionsInternal(void* id, LONGLONG* pCurrent, DWORD dwCurrentFlags, LONGLONG* pStop, DWORD dwStopFlags);
-
-	// IPropertyBag
-
-	STDMETHODIMP Read(LPCOLESTR pszPropName, VARIANT* pVar, IErrorLog* pErrorLog);
-	STDMETHODIMP Write(LPCOLESTR pszPropName, VARIANT* pVar);
 
 	// IKeyFrameInfo
 
