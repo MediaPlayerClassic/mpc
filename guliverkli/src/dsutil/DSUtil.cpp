@@ -2128,15 +2128,33 @@ void RegisterSourceFilter(const CLSID& clsid, const GUID& subtype2, LPCTSTR chkb
 	CString null = CStringFromGUID(GUID_NULL);
 	CString majortype = CStringFromGUID(MEDIATYPE_Stream);
 	CString subtype = CStringFromGUID(subtype2);
-/*
-	SetRegKeyValue(_T("Media Type\\") + null, subtype, _T("0"), chkbytes);
-	SetRegKeyValue(_T("Media Type\\") + null, subtype, _T("Source Filter"), CStringFromGUID(clsid));
-*/
-/*
+
 	SetRegKeyValue(_T("Media Type\\") + majortype, subtype, _T("0"), chkbytes);
-	SetRegKeyValue(_T("Media Type\\") + majortype, subtype, _T("Source Filter"), CStringFromGUID(CLSID_AsyncReader));
-*/
-	SetRegKeyValue(_T("Media Type\\") + majortype, subtype, _T("0"), chkbytes);
+	SetRegKeyValue(_T("Media Type\\") + majortype, subtype, _T("Source Filter"), CStringFromGUID(clsid));
+	
+	DeleteRegKey(_T("Media Type\\") + null, subtype);
+
+	va_list marker;
+	va_start(marker, ext);
+	for(; ext; ext = va_arg(marker, LPCTSTR))
+		DeleteRegKey(_T("Media Type\\Extensions"), ext);
+	va_end(marker);
+}
+
+void RegisterSourceFilter(const CLSID& clsid, const GUID& subtype2, const CList<CString>& chkbytes, LPCTSTR ext, ...)
+{
+	CString null = CStringFromGUID(GUID_NULL);
+	CString majortype = CStringFromGUID(MEDIATYPE_Stream);
+	CString subtype = CStringFromGUID(subtype2);
+
+	POSITION pos = chkbytes.GetHeadPosition();
+	for(int i = 0; pos; i++)
+	{
+		CString idx;
+		idx.Format(_T("%d"), i);
+		SetRegKeyValue(_T("Media Type\\") + majortype, subtype, idx, chkbytes.GetNext(pos));
+	}
+
 	SetRegKeyValue(_T("Media Type\\") + majortype, subtype, _T("Source Filter"), CStringFromGUID(clsid));
 	
 	DeleteRegKey(_T("Media Type\\") + null, subtype);

@@ -37,6 +37,7 @@
 
 #include <afx.h>
 #include <afxwin.h>
+#include <afxtempl.h>
 #include "NullRenderers.h"
 //#include "MediaTypes.h"
 #include "vd.h"
@@ -108,6 +109,7 @@ extern bool DeleteRegKey(LPCTSTR pszKey, LPCTSTR pszSubkey);
 extern bool SetRegKeyValue(LPCTSTR pszKey, LPCTSTR pszSubkey, LPCTSTR pszValueName, LPCTSTR pszValue);
 extern bool SetRegKeyValue(LPCTSTR pszKey, LPCTSTR pszSubkey, LPCTSTR pszValue);
 extern void RegisterSourceFilter(const CLSID& clsid, const GUID& subtype2, LPCTSTR chkbytes, LPCTSTR ext = NULL, ...);
+extern void RegisterSourceFilter(const CLSID& clsid, const GUID& subtype2, const CList<CString>& chkbytes, LPCTSTR ext = NULL, ...);
 extern void UnRegisterSourceFilter(const GUID& subtype);
 
 class CPinInfo : public PIN_INFO

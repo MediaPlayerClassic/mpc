@@ -255,6 +255,28 @@ void CPlayerPlaylistBar::ParsePlayList(CStringList& fns, CStringList* subs)
 {
 	if(fns.IsEmpty()) return;
 
+	// resolve .lnk files
+
+	CComPtr<IShellLink> pSL;
+	pSL.CoCreateInstance(CLSID_ShellLink);
+	CComQIPtr<IPersistFile> pPF = pSL;
+
+	POSITION pos = fns.GetHeadPosition();
+	while(pSL && pPF && pos)
+	{
+		CString& fn = fns.GetNext(pos);
+		TCHAR buff[MAX_PATH];
+		if(CPath(fn).GetExtension().MakeLower() != _T(".lnk")
+		|| FAILED(pPF->Load(CStringW(fn), STGM_READ))
+		|| FAILED(pSL->Resolve(NULL, SLR_ANY_MATCH|SLR_NO_UI))
+		|| FAILED(pSL->GetPath(buff, countof(buff), NULL, 0)))
+			continue;
+
+		fn = buff;
+	}
+
+	//	
+
 	CStringList sl;
 	if(SearchFiles(fns.GetHead(), sl))
 	{

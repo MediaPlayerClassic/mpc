@@ -1402,7 +1402,7 @@ void CMPlayerCApp::Settings::UpdateData(bool fSave)
 		mpegplanaryuv = !!pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_MPEGPLANARYUV), 1);
 
 		mpasf = pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_MPASF), 0);
-		mpanormalize = !!pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_MPANORMALIZE), TRUE);
+		mpanormalize = !!pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_MPANORMALIZE), FALSE);
 		ac3sc = (int)pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_AC3SC), 2);
 		ac3drc = !!pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_AC3DRC), FALSE);
 		dtssc = (int)pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_DTSSC), 2);

@@ -891,61 +891,16 @@ IDD_PPAGEFILTERS DIALOGEX 0, 0, 296, 200
 STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
-    GROUPBOX        "Enabled built-in filters",IDC_STATIC,6,3,252,190
-    CONTROL         "Avi Splitter",IDC_CHECK_AVI,"Button",BS_AUTOCHECKBOX | 
-                    WS_TABSTOP,18,13,51,10
-    CONTROL         "Matroska Splitter",IDC_CHECK_MATROSKA,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,18,25,70,10
-    CONTROL         "Ogg Splitter",IDC_CHECK_OGG,"Button",BS_AUTOCHECKBOX | 
-                    WS_TABSTOP,18,37,54,10
-    CONTROL         "RealMedia Splitter",IDC_CHECK_RM,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,18,49,73,10
-    CONTROL         "RealVideo Decoder",IDC_CHECK_RV,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,18,61,76,10
-    CONTROL         "RealAudio Decoder",IDC_CHECK_RA,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,18,73,77,10
-    CONTROL         "MPEG Splitter",IDC_CHECK_MPG,"Button",BS_AUTOCHECKBOX | 
-                    WS_TABSTOP,18,85,59,10
-    CONTROL         "MPEG-1 Video Decoder",IDC_CHECK_MPG1,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,18,97,89,10
-    CONTROL         "MPEG-2 Video Decoder",IDC_CHECK_MPG2,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,18,109,89,10
-    CONTROL         "MPEG Audio Decoder",IDC_CHECK_MPA,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,18,121,83,10
-    CONTROL         "AC3 Decoder",IDC_CHECK_AC3,"Button",BS_AUTOCHECKBOX | 
-                    WS_TABSTOP,18,133,58,10
-    CONTROL         "LPCM Decoder",IDC_CHECK_LPCM,"Button",BS_AUTOCHECKBOX | 
-                    WS_TABSTOP,18,145,62,10
-    CONTROL         "Audio CD Reader",IDC_CHECK_CDDA,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,128,13,71,10
-    CONTROL         "VCD/SVCD/XCD Reader",IDC_CHECK_CDXA,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,128,25,91,10
-    CONTROL         "DVD Video Title Set Reader",IDC_CHECK_VTS,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,128,37,102,10
-    CONTROL         "FLI/FLC Decoder",IDC_CHECK_FLIC,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,128,49,69,10
-    CONTROL         "DVD2AVI Project File Decoder",IDC_CHECK_D2V,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,128,61,111,10
-    CONTROL         "DTS/AC3 Parser",IDC_CHECK_DTSAC3,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,128,73,67,10
-    CONTROL         "SHOUTcast Receiver",IDC_CHECK_SHOUTCAST,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,128,85,82,10
-    CONTROL         "Smacker && Bink Decoder",IDC_CHECK_RADGT,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,128,97,114,10
-    CONTROL         "RoQ Decoder (Id Software)",IDC_CHECK_ROQ,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,128,109,104,10
-    CONTROL         "AAC Decoder",IDC_CHECK_AAC,"Button",BS_AUTOCHECKBOX | 
-                    WS_TABSTOP,128,121,59,10
-    CONTROL         "DTS Decoder",IDC_CHECK_DTS,"Button",BS_AUTOCHECKBOX | 
-                    WS_TABSTOP,128,133,57,10
-    CONTROL         "Nut Splitter (experimental)",IDC_CHECK_NUT,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,128,145,101,10
+    GROUPBOX        "Source Filters",IDC_STATIC,5,27,130,165
     LTEXT           "If you would like to use the stand-alone version from these filters or a some other replacement, disable them here.",
-                    IDC_STATIC,18,171,232,18
-    CONTROL         "Dirac Video Reader",IDC_CHECK_DIRAC_SPLITTER,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,18,158,77,10
-    CONTROL         "Dirac Video Decoder",IDC_CHECK_DIRAC_DECODER,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,128,158,80,10
+                    IDC_STATIC,5,5,269,18
+    LISTBOX         IDC_LIST1,11,36,118,150,LBS_OWNERDRAWFIXED | 
+                    LBS_HASSTRINGS | LBS_NOINTEGRALHEIGHT | WS_VSCROLL | 
+                    WS_TABSTOP
+    GROUPBOX        "Transform Filters",IDC_STATIC,144,27,130,165
+    LISTBOX         IDC_LIST2,150,36,118,150,LBS_OWNERDRAWFIXED | 
+                    LBS_HASSTRINGS | LBS_NOINTEGRALHEIGHT | WS_VSCROLL | 
+                    WS_TABSTOP
 END
 
 IDD_PPAGELOGO DIALOGEX 0, 0, 296, 203
@@ -1389,14 +1344,14 @@ BEGIN
 
     IDD_PPAGEFILTERS, DIALOG
     BEGIN
-        VERTGUIDE, 6
-        VERTGUIDE, 18
-        VERTGUIDE, 128
-        VERTGUIDE, 258
+        VERTGUIDE, 5
+        VERTGUIDE, 274
         VERTGUIDE, 289
-        HORZGUIDE, 3
-        HORZGUIDE, 168
-        HORZGUIDE, 171
+        HORZGUIDE, 23
+        HORZGUIDE, 27
+        HORZGUIDE, 36
+        HORZGUIDE, 186
+        HORZGUIDE, 192
         HORZGUIDE, 198
     END
 
@@ -2280,20 +2235,20 @@ STRINGTABLE
 BEGIN
     IDC_DSNULL_UNCOMP       "Same as the normal Null renderer, but this will only connect to uncompressed types."
     IDC_DSNULL_COMP         "Connects to any video-like media type and will send the incoming samples to nowhere. Use it when you don't need the video display and want to save the cpu from working unnecessarily."
-    IDC_CHECK_AVI           "6.4.0.3\nNon-interleaved files are not welcome"
-    IDC_CHECK_CDDA          "6.4.0.0\n2K/XP only"
-    IDC_CHECK_CDXA          "6.4.0.0"
-    IDC_CHECK_VTS           "6.4.0.0\nOpen VTS_xx_0.ifo to load VTS_xx_x.vob files as one"
-    IDC_CHECK_FLIC          "6.4.0.0"
-    IDC_CHECK_D2V           "6.4.0.0"
-    IDC_CHECK_DTSAC3        "6.4.0.0"
-    IDC_CHECK_SHOUTCAST     "6.4.0.1"
-    IDC_CHECK_RM            "6.4.0.9\nRealMedia format categories must be set to 'DirectShow' to make it load, doesn't support streaming"
-    IDC_CHECK_MATROSKA      "6.4.2.3"
-    IDC_CHECK_ROQ           "6.4.0.0"
-    IDC_CHECK_OGG           "6.4.0.0"
-    IDC_CHECK_LPCM          "6.4.0.0"
-    IDC_CHECK_AC3           "6.4.0.0\nliba52 0.7.4, http://liba52.sourceforge.net/"
+    IDS_SRC_AVI             "6.4.0.3\nNon-interleaved files are not welcome"
+    IDS_SRC_CDDA            "6.4.0.0\n2K/XP only"
+    IDS_SRC_CDXA            "6.4.0.0"
+    IDS_SRC_VTS             "6.4.0.0\nOpen VTS_xx_0.ifo to load VTS_xx_x.vob files in one piece"
+    IDS_SRC_FLIC            "6.4.0.0"
+    IDS_SRC_D2V             "6.4.0.0"
+    IDS_SRC_DTSAC3          "6.4.0.0"
+    IDS_SRC_SHOUTCAST       "6.4.0.1"
+    IDS_SRC_REALMEDIA       "6.4.0.9\nRealMedia format categories must be set to 'DirectShow' to make it load\nDoesn't support streaming"
+    IDS_SRC_MATROSKA        "6.4.2.4"
+    IDS_SRC_ROQ             "6.4.0.0"
+    IDS_SRC_OGG             "6.4.0.0"
+    IDS_TRA_LPCM            "6.4.0.0"
+    IDS_TRA_AC3             "6.4.0.0\nBased on liba52 0.7.4, http://liba52.sourceforge.net/"
 END
 
 STRINGTABLE 
@@ -2304,12 +2259,12 @@ END
 
 STRINGTABLE 
 BEGIN
-    IDC_CHECK_RV            "6.4.0.9\nNeeds RealVideo decoder dlls, RV10 also works with ffdshow"
-    IDC_CHECK_RA            "6.4.0.9\nNeeds RealAudio decoder dlls, DNET also works with ac3filter"
-    IDC_CHECK_MPG1          "6.4.0.0\nlibmpeg2 (bugus)"
-    IDC_CHECK_MPG2          "6.4.0.0\nlibmpeg2"
-    IDC_CHECK_MPA           "6.4.0.0\nlibmad, decodes all MPEG audio version and layer"
-    IDC_CHECK_RADGT         "6.4.0.0\nNeeds smackw32.dll and binkw32.dll"
+    IDS_TRA_RV              "6.4.0.9\nRequires RealVideo decoder dlls, RV10 also works with ffdshow"
+    IDS_TRA_RA              "6.4.0.9\nRequires RealAudio decoder dlls, DNET also works with ac3filter"
+    IDS_TRA_MPEG1           "6.4.0.0\nBased on libmpeg2 (mpeg1 video decoding is bogus)"
+    IDS_TRA_MPEG2           "6.4.0.0\nBased on libmpeg2"
+    IDS_TRA_MPA             "6.4.0.0\nBased on libmad, decodes all MPEG audio version and layer"
+    IDS_SRC_RADGT           "6.4.0.0\nRequires smackw32.dll and binkw32.dll"
 END
 
 STRINGTABLE 
@@ -2331,9 +2286,35 @@ END
 
 STRINGTABLE 
 BEGIN
-    IDC_CHECK_DTS           "6.4.0.1\nlibdts 0.0.2, http://www.videolan.org/dtsdec.html"
-    IDC_CHECK_NUT           "6.4.0.0\nBased on ""NUT Open Container Format DRAFT 20030906""\nStill very incomplete, if you have or can make test files, please contact me."
-    IDC_CHECK_AAC           "6.4.0.0\nlibfaad 2.0, http://www.audiocoding.com/"
+    IDS_TRA_DTS             "6.4.0.1\nBased on libdts 0.0.2, http://www.videolan.org/dtsdec.html"
+    IDS_SRC_NUT             "6.4.0.0\nBased on ""NUT Open Container Format DRAFT 20030906""\nStill very incomplete, if you have or can make test files, please contact me."
+    IDS_TRA_AAC             "6.4.0.0\nBased on libfaad 2.0, http://www.audiocoding.com/"
+    IDS_SRC_DIRAC           "6.4.0.0\nBased on libdirac 0.4.3"
+    IDS_TRA_DIRAC           "6.4.0.0\nBased on libdirac 0.4.3"
+    IDS_TRA_PS2AUD          "Decodes audio streams of PSS files"
+END
+
+STRINGTABLE 
+BEGIN
+    ID_PLAY_PLAY            "Play\nPlay"
+    ID_PLAY_PAUSE           "Pause\nPause"
+    ID_PLAY_STOP            "Stop\nStop"
+    ID_PLAY_DECRATE         "Decrease speed\nDecrease speed"
+END
+
+STRINGTABLE 
+BEGIN
+    ID_PLAY_INCRATE         "Increase speed\nIncrease speed"
+    ID_VOLUME_MUTE          "Mute\nMute"
+    ID_NAVIGATE_SKIPBACK    "Skip back\nSkip back"
+    ID_NAVIGATE_SKIPFORWARD "Skip forward\nSkip forward"
+END
+
+STRINGTABLE 
+BEGIN
+    ID_VOLUME_MUTE_ON       "Mute\nMute"
+    ID_VOLUME_MUTE_DISABLED "No audio\nNo audio"
+    ID_PLAY_FRAMESTEP       "Step\nStep"
 END
 
 #endif    // English (U.S.) resources
