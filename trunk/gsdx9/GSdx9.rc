@@ -108,6 +108,27 @@ BEGIN
     END
 END
 
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// PIXELSHADER
+//
+
+IDR_PIXELSHADER000      PIXELSHADER             "res\\tfx000.psh"
+IDR_PIXELSHADER010      PIXELSHADER             "res\\tfx010.psh"
+IDR_PIXELSHADER011      PIXELSHADER             "res\\tfx011.psh"
+IDR_PIXELSHADER1x1      PIXELSHADER             "res\\tfx1x1.psh"
+IDR_PIXELSHADER1x0      PIXELSHADER             "res\\tfx1x0.psh"
+IDR_PIXELSHADER200      PIXELSHADER             "res\\tfx200.psh"
+IDR_PIXELSHADER210      PIXELSHADER             "res\\tfx210.psh"
+IDR_PIXELSHADER211      PIXELSHADER             "res\\tfx211.psh"
+IDR_PIXELSHADER300      PIXELSHADER             "res\\tfx300.psh"
+IDR_PIXELSHADER310      PIXELSHADER             "res\\tfx310.psh"
+IDR_PIXELSHADER311      PIXELSHADER             "res\\tfx311.psh"
+IDR_PIXELSHADER_EN11    PIXELSHADER             "res\\en11.psh"
+IDR_PIXELSHADER_EN01    PIXELSHADER             "res\\en01.psh"
+IDR_PIXELSHADER_EN10    PIXELSHADER             "res\\en10.psh"
+IDR_PIXELSHADER_EN00    PIXELSHADER             "res\\en00.psh"
 #endif    // English (U.S.) resources
 /////////////////////////////////////////////////////////////////////////////
 

@@ -53,6 +53,13 @@ void GSState::WriteTransfer(BYTE* pMem, int len)
 		m_tc.InvalidateByCBP(m_rs.BITBLTBUF.DBP);
 	}
 
+	if((m_rs.BITBLTBUF.DBP == m_de.CTXT[m_de.PRIM.CTXT].TEX0.TBP0
+	|| m_rs.BITBLTBUF.DBP == m_de.CTXT[m_de.PRIM.CTXT].TEX0.CBP)
+	 && m_de.PRIM.TME)
+	{
+		FlushPrim();
+	}
+
 	BYTE* pb = (BYTE*)pMem;
 	WORD* pw = (WORD*)pMem;
 	DWORD* pd = (DWORD*)pMem;
