@@ -18,6 +18,7 @@ $text = getParam('text');
 $discs = max(0, intval(getParam('discs')));
 $isolang_sel = addslashes(getParam('isolang_sel'));
 $format_sel = addslashes(getParam('format_sel'));
+$beginswith = getParam('bw');
 
 $files = array();
 
@@ -74,11 +75,12 @@ else
 	$db_text = str_replace('*', '%', $db_text);
 	$db_text = str_replace('?', '_', $db_text);
 	$db_text = addslashes($db_text);
-	if(!getParam('bw')) $db_text = '%'.$db_text;
+	if(!$beginswith) $db_text = '%'.$db_text;
 
 	$db->query(
 		"select SQL_CALC_FOUND_ROWS distinct t1.* from movie t1 ".
 		"join movie_subtitle t2 on t1.id = t2.movie_id ".
+		"join subtitle t3 on t2.subtitle_id = t3.id ".
 		"where t1.id in ".
 		"	( ".
 			"select distinct movie_id from title where title like _utf8 '$db_text%' ".
@@ -86,6 +88,9 @@ else
 			"select distinct movie_id from movie_subtitle where name like _utf8 '$db_text%' order by date desc ".
 			") ".
 		"and t1.id in (select distinct movie_id from movie_subtitle where subtitle_id in (select distinct id from subtitle)) ".
+		(!empty($discs)?" && t3.discs = '$discs' ":"").
+		(!empty($isolang_sel)?" && t2.iso639_2 = '$isolang_sel' ":"").
+		(!empty($format_sel)?" && t2.format = '$format_sel' ":"").
 		"order by t2.date desc " .
 		"limit {$page['start']}, {$page['limit']} ");
 		
@@ -128,7 +133,6 @@ if(!empty($movies))
 		(!empty($discs)?" && t2.discs = '$discs' ":"").
 		(!empty($isolang_sel)?" && t1.iso639_2 = '$isolang_sel' ":"").
 		(!empty($format_sel)?" && t1.format = '$format_sel' ":"").
-		(!empty($nick_sel)?" && t3.nick = '$nick_sel' ":"").
 		"order by t1.date asc, t2.disc_no asc ");
 	foreach($movies as $id => $movie) $movies[$id]['subs'] = array();
 	while($row = $db->fetchRow()) $movies[$row['movie_id']]['subs'][] = $row;
@@ -207,8 +211,19 @@ if(isset($movies))
 		if($cur > 0) $page['prev'] = $cur - $page['limit'];
 		if($cur + $page['limit'] < $page['total']) $page['next'] = $cur + $page['limit'];
 	}
-	
+
 	$smarty->assign('page', $page);
+	
+	$search = array();
+	if(!empty($text)) $search['text'] = $text;
+	if(!empty($discs)) $search['discs'] = $discs;
+	if(!empty($isolang_sel)) $search['isolang_sel'] = $isolang_sel;
+	if(!empty($format_sel)) $search['format_sel'] = $format_sel;
+	if(!empty($beginswith)) $search['bw'] = $beginswith;
+	$q = array();
+	foreach($search as $key => $value) $q[] = "$key=".urlencode("$value");
+	$search['q'] = implode('&', $q);
+	$smarty->assign('search', $search);
 }
 
 $smarty->assign('text', $text);

@@ -63,17 +63,17 @@
 
 	{if $page.total > $page.count}
 	<p align="center">
-	{if isset($page.prev)}<a href="{$smarty.server.PHP_SELF}?start={$page.prev}">&laquo;</a>{/if}
+	{if isset($page.prev)}<a href="{$smarty.server.PHP_SELF}?start={$page.prev}&{$search.q}">&laquo;</a>{/if}
 	{if $page.has_less}..{/if}
 	{foreach from=$page.index item=i}
 		{strip}
-		{if $i != $page.start}<a href="{$smarty.server.PHP_SELF}?start={$i}">{/if}
+		{if $i != $page.start}<a href="{$smarty.server.PHP_SELF}?start={$i}&{$search.q}">{/if}
 		{$i/$page.limit+1}
 		{if $i != $page.start}</a>{/if}
 		{/strip}
 	{/foreach}
 	{if $page.has_more}..{/if}
-	{if isset($page.next)}<a href="{$smarty.server.PHP_SELF}?start={$page.next}">&raquo;</a>{/if}
+	{if isset($page.next)}<a href="{$smarty.server.PHP_SELF}?start={$page.next}&{$search.q}">&raquo;</a>{/if}
 	</p>
 	{/if}
 
