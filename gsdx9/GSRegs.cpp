@@ -816,7 +816,7 @@ void GSState::GIFRegHandlerFRAME_1(GIFReg* r)
 	m_de.CTXT[0].FRAME = r->FRAME;
 
 	m_de.CTXT[0].rp = m_lm.GetReadTexel(r->FRAME.PSM);
-	m_de.CTXT[0].wp = m_lm.GetWritePixel(r->FRAME.PSM);
+	m_de.CTXT[0].wf = m_lm.GetWriteFrame(r->FRAME.PSM);
 }
 
 void GSState::GIFRegHandlerFRAME_2(GIFReg* r)
@@ -833,7 +833,7 @@ void GSState::GIFRegHandlerFRAME_2(GIFReg* r)
 	m_de.CTXT[1].FRAME = r->FRAME;
 
 	m_de.CTXT[1].rp = m_lm.GetReadTexel(r->FRAME.PSM);
-	m_de.CTXT[1].wp = m_lm.GetWritePixel(r->FRAME.PSM);
+	m_de.CTXT[1].wf = m_lm.GetWriteFrame(r->FRAME.PSM);
 }
 
 void GSState::GIFRegHandlerZBUF_1(GIFReg* r)

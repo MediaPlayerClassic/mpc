@@ -26,8 +26,13 @@ GSStateSoft::GSStateSoft(HWND hWnd, HRESULT& hr)
 	: GSState(hWnd, hr)
 {
 	if(FAILED(hr)) return;
-
 	m_pVertices = (GSSoftVertex*)_aligned_malloc(sizeof(GSSoftVertex) * (m_nMaxVertices = 256), 16);
+	Reset();
+
+	int i = -512;
+	for(; i < 0; i++) m_clip[i+512] = 0;
+	for(; i < 256; i++) m_clip[i+512] = i;
+	for(; i < 768; i++) m_clip[i+512] = 255;
 }
 
 GSStateSoft::~GSStateSoft()
@@ -39,6 +44,8 @@ void GSStateSoft::Reset()
 {
 	m_primtype = PRIM_NONE;
 	m_nVertices = m_nPrims = 0;
+	m_tc.RemoveAll();
+	m_pTexture = NULL;
 
 	__super::Reset();
 }
@@ -215,11 +222,7 @@ void GSStateSoft::FlushPrim()
 {
 	if(m_nVertices == 0) return;
 
-	if(m_nVertices && m_de.PRIM.TME)
-	{
-		GSDrawingContext* ctxt = &m_de.CTXT[m_de.PRIM.CTXT];
-		m_lm.setupCLUT(ctxt->TEX0, m_de.TEXCLUT, m_de.TEXA);
-	}
+	SetTexture();
 
 	DWORD nPrims = 0;
 	GSSoftVertex* pVertices = m_pVertices;
@@ -253,6 +256,8 @@ void GSStateSoft::FlushPrim()
 		ASSERT(m_nVertices == 0);
 		return;
 	}
+
+	InvalidateTexture(m_de.CTXT[m_de.PRIM.CTXT].FRAME.FBP<<5);
 
 	m_stats.IncPrims(nPrims);
 
@@ -455,6 +460,18 @@ void GSStateSoft::EndFrame()
 {
 }
 
+void GSStateSoft::InvalidateTexture(DWORD TBP0)
+{
+	POSITION pos = m_tc.GetHeadPosition();
+	while(pos)
+	{
+		POSITION cur = pos;
+		CTexture* p = m_tc.GetNext(pos);
+		if(p->m_TEX0.TBP0 == TBP0 || p->m_TEX0.CBP == TBP0)
+			m_tc.RemoveAt(cur);
+	}
+}
+
 void GSStateSoft::DrawPoint(GSSoftVertex* v)
 {
 	GSDrawingContext* ctxt = &m_de.CTXT[m_de.PRIM.CTXT];
@@ -545,7 +562,8 @@ void GSStateSoft::DrawTriangle(GSSoftVertex* v)
 				scan += dscan;
 			}
 
-			for(int i = 0; i < 2; i++) edge[i] += dedge[i];
+			edge[0] += dedge[0];
+			edge[1].x += dedge[1].x;
 		}
 
 		if(v[2].y > v[1].y)
@@ -617,7 +635,8 @@ void GSStateSoft::DrawSprite(GSSoftVertex* v)
 			scan += dscan;
 		}
 
-		for(int i = 0; i < 2; i++) edge[i] += dedge[i];
+		edge[0] += dedge[0];
+		edge[1].x += dedge[1].x;
 	}
 }
 
@@ -627,6 +646,23 @@ void GSStateSoft::DrawVertex(int x, int y, GSSoftVertex& v)
 
 	DWORD FBP = ctxt->FRAME.FBP<<5, FBW = ctxt->FRAME.FBW;
 
+	if(ctxt->TEST.ZTE && ctxt->TEST.ZTST != 1 && ctxt->rz)
+	{
+		if(ctxt->TEST.ZTST == 0)
+			return;
+
+		float z = (float)(m_lm.*ctxt->rz)(x, y, ctxt->ZBUF.ZBP<<5, FBW) / UINT_MAX;
+		if(ctxt->TEST.ZTST == 2 && v.z < z || ctxt->TEST.ZTST == 3 && v.z <= z)
+			return;
+	}
+
+	if(ctxt->TEST.DATE && ctxt->FRAME.PSM <= PSM_PSMCT16S)
+	{
+		GSLocalMemory::readPixel rp = m_lm.GetReadPixel(ctxt->FRAME.PSM);
+		BYTE A = (m_lm.*rp)(x, y, FBP, FBW) >> (ctxt->FRAME.PSM == PSM_PSMCT32 ? 31 : 15);
+		if(A ^ ctxt->TEST.DATM) return;
+	}
+
 	int Rf = (int)v.r;
 	int Gf = (int)v.g;
 	int Bf = (int)v.b;
@@ -634,53 +670,103 @@ void GSStateSoft::DrawVertex(int x, int y, GSSoftVertex& v)
 
 	if(m_de.PRIM.TME)
 	{
-		int tw = 1<<ctxt->TEX0.TW;
-		int th = 1<<ctxt->TEX0.TH;
+		int tw = 1 << ctxt->TEX0.TW;
+		int th = 1 << ctxt->TEX0.TH;
 
 		float tu = v.u / v.q * tw;
 		float tv = v.v / v.q * th;
+		
+		/* TODO
+		float lod = ctxt->TEX1.K;
+		if(!ctxt->TEX1.LCM) lod += log2(1/v.q) << ctxt->TEX1.L;
+		*/
 
-		float ftu = modf(tu /*- 0.5f*/, &tu), iftu = 1.0f - ftu;
-		float ftv = modf(tv /*- 0.5f*/, &tv), iftv = 1.0f - ftv;
+		float ftu = modf(tu /*- 0.5f*/, &tu);
+		float ftv = modf(tv /*- 0.5f*/, &tv);
 
 		int itu[2] = {tu, tu+1};
 		int itv[2] = {tv, tv+1};
 
 		for(int i = 0; i < countof(itu); i++)
-		switch(ctxt->CLAMP.WMS)
 		{
-		case 0: itu[i] = itu[i] & (tw-1); break;
-		case 1: itu[i] = itu[i] < 0 ? 0 : itu[i] > tw ? itu[i] = tw : itu[i]; break;
-		case 2: itu[i] = itu[i] < ctxt->CLAMP.MINU ? ctxt->CLAMP.MINU : itu[i] > ctxt->CLAMP.MAXU ? ctxt->CLAMP.MAXU : itu[i]; break;
-		case 3: itu[i] = (int(itu[i]) & ctxt->CLAMP.MINU) | ctxt->CLAMP.MAXU; break;
+			switch(ctxt->CLAMP.WMS)
+			{
+			case 0: itu[i] = itu[i] & (tw-1); break;
+			case 1: itu[i] = itu[i] < 0 ? 0 : itu[i] >= tw ? itu[i] = tw-1 : itu[i]; break;
+			case 2: itu[i] = itu[i] < ctxt->CLAMP.MINU ? ctxt->CLAMP.MINU : itu[i] > ctxt->CLAMP.MAXU ? ctxt->CLAMP.MAXU : itu[i]; break;
+			case 3: itu[i] = (int(itu[i]) & ctxt->CLAMP.MINU) | ctxt->CLAMP.MAXU; break;
+			}
+
+			ASSERT(itu[i] >= 0 && itu[i] < tw);
 		}
 
 		for(int i = 0; i < countof(itv); i++)
-		switch(ctxt->CLAMP.WMT)
 		{
-		case 0: itv[i] = itv[i] & (th-1); break;
-		case 1: itv[i] = itv[i] < 0 ? 0 : itv[i] > th ? itv[i] = th : itv[i]; break;
-		case 2: itv[i] = itv[i] < ctxt->CLAMP.MINV ? ctxt->CLAMP.MINV : itv[i] > ctxt->CLAMP.MAXV ? ctxt->CLAMP.MAXV : itv[i]; break;
-		case 3: itv[i] = (int(itv[i]) & ctxt->CLAMP.MINV) | ctxt->CLAMP.MAXV; break;
+			switch(ctxt->CLAMP.WMT)
+			{
+			case 0: itv[i] = itv[i] & (th-1); break;
+			case 1: itv[i] = itv[i] < 0 ? 0 : itv[i] >= th ? itv[i] = th-1 : itv[i]; break;
+			case 2: itv[i] = itv[i] < ctxt->CLAMP.MINV ? ctxt->CLAMP.MINV : itv[i] > ctxt->CLAMP.MAXV ? ctxt->CLAMP.MAXV : itv[i]; break;
+			case 3: itv[i] = (int(itv[i]) & ctxt->CLAMP.MINV) | ctxt->CLAMP.MAXV; break;
+			}
+
+			ASSERT(itv[i] >= 0 && itv[i] < th);
 		}
 
 		DWORD c[4];
+		WORD Bt, Gt, Rt, At;
 
-		c[0] = (m_lm.*ctxt->rt)(itu[0], itv[0], ctxt->TEX0, m_de.TEXA);
-		c[1] = (m_lm.*ctxt->rt)(itu[1], itv[0], ctxt->TEX0, m_de.TEXA);
-		c[2] = (m_lm.*ctxt->rt)(itu[0], itv[1], ctxt->TEX0, m_de.TEXA);
-		c[3] = (m_lm.*ctxt->rt)(itu[1], itv[1], ctxt->TEX0, m_de.TEXA);
+		/*if(ctxt->TEX1.MMAG&1) // FIXME*/
+		{
+			if(ftu < 0) ftu += 1;
+			if(ftv < 0) ftv += 1;
+			float iftu = 1.0f - ftu;
+			float iftv = 1.0f - ftv;
 
-		BYTE Bt = (BYTE)(iftu*iftv*(c[0]&0xff) + ftu*iftv*(c[1]&0xff) + iftu*ftv*(c[2]&0xff) + ftu*ftv*(c[3]&0xff) + 0.5f);
-		BYTE Gt = (BYTE)(iftu*iftv*((c[0]>>8)&0xff) + ftu*iftv*((c[1]>>8)&0xff) + iftu*ftv*((c[2]>>8)&0xff) + ftu*ftv*((c[3]>>8)&0xff) + 0.5f);
-		BYTE Rt = (BYTE)(iftu*iftv*((c[0]>>16)&0xff) + ftu*iftv*((c[1]>>16)&0xff) + iftu*ftv*((c[2]>>16)&0xff) + ftu*ftv*((c[3]>>16)&0xff) + 0.5f);
-		BYTE At = (BYTE)(iftu*iftv*((c[0]>>24)&0xff) + ftu*iftv*((c[1]>>24)&0xff) + iftu*ftv*((c[2]>>24)&0xff) + ftu*ftv*((c[3]>>24)&0xff) + 0.5f);
-/*
-		BYTE Bt = (BYTE)((c[0]>>0)&0xff);
-		BYTE Gt = (BYTE)((c[0]>>8)&0xff);
-		BYTE Rt = (BYTE)((c[0]>>16)&0xff);
-		BYTE At = (BYTE)((c[0]>>24)&0xff);
-*/
+			if(m_pTexture)
+			{
+				c[0] = m_pTexture[(itv[0] << ctxt->TEX0.TW) + itu[0]];
+				c[1] = m_pTexture[(itv[0] << ctxt->TEX0.TW) + itu[1]];
+				c[2] = m_pTexture[(itv[1] << ctxt->TEX0.TW) + itu[0]];
+				c[3] = m_pTexture[(itv[1] << ctxt->TEX0.TW) + itu[1]];
+			}
+			else
+			{
+				c[0] = (m_lm.*ctxt->rt)(itu[0], itv[0], ctxt->TEX0, m_de.TEXA);
+				c[1] = (m_lm.*ctxt->rt)(itu[1], itv[0], ctxt->TEX0, m_de.TEXA);
+				c[2] = (m_lm.*ctxt->rt)(itu[0], itv[1], ctxt->TEX0, m_de.TEXA);
+				c[3] = (m_lm.*ctxt->rt)(itu[1], itv[1], ctxt->TEX0, m_de.TEXA);
+			}
+
+			float iuiv = iftu*iftv;
+			float uiv = ftu*iftv;
+			float iuv = iftu*ftv;
+			float uv = ftu*ftv;
+
+			Bt = (WORD)(iuiv*((c[0]>> 0)&0xff) + uiv*((c[1]>> 0)&0xff) + iuv*((c[2]>> 0)&0xff) + uv*((c[3]>> 0)&0xff) + 0.5f);
+			Gt = (WORD)(iuiv*((c[0]>> 8)&0xff) + uiv*((c[1]>> 8)&0xff) + iuv*((c[2]>> 8)&0xff) + uv*((c[3]>> 8)&0xff) + 0.5f);
+			Rt = (WORD)(iuiv*((c[0]>>16)&0xff) + uiv*((c[1]>>16)&0xff) + iuv*((c[2]>>16)&0xff) + uv*((c[3]>>16)&0xff) + 0.5f);
+			At = (WORD)(iuiv*((c[0]>>24)&0xff) + uiv*((c[1]>>24)&0xff) + iuv*((c[2]>>24)&0xff) + uv*((c[3]>>24)&0xff) + 0.5f);
+		}
+		/*
+		else
+		{
+			if(m_pTexture)
+			{
+				c[0] = m_pTexture[(itv[0] << ctxt->TEX0.TW) + itu[0]];
+			}
+			else
+			{
+				c[0] = (m_lm.*ctxt->rt)(itu[0], itv[0], ctxt->TEX0, m_de.TEXA);
+			}
+
+			Bt = (BYTE)((c[0]>>0)&0xff);
+			Gt = (BYTE)((c[0]>>8)&0xff);
+			Rt = (BYTE)((c[0]>>16)&0xff);
+			At = (BYTE)((c[0]>>24)&0xff);
+		}
+		*/
+
 		switch(ctxt->TEX0.TFX)
 		{
 		case 0:
@@ -709,10 +795,10 @@ void GSStateSoft::DrawVertex(int x, int y, GSSoftVertex& v)
 			break;
 		}
 
-		if(Rf > 255) Rf = 255;
-		if(Gf > 255) Gf = 255;
-		if(Bf > 255) Bf = 255;
-		if(Af > 255) Af = 255;
+		Rf = m_clip[Rf+512];
+		Gf = m_clip[Gf+512];
+		Bf = m_clip[Bf+512];
+		Af = m_clip[Af+512];
 	}
 
 	if(m_de.PRIM.FGE)
@@ -754,33 +840,12 @@ void GSStateSoft::DrawVertex(int x, int y, GSSoftVertex& v)
 		}
 	}
 
-	if(ctxt->TEST.DATE && ctxt->FRAME.PSM <= PSM_PSMCT16S)
-	{
-		GSLocalMemory::readPixel rp = m_lm.GetReadPixel(ctxt->FRAME.PSM);
-		BYTE A = (m_lm.*rp)(x, y, FBP, FBW) >> (ctxt->FRAME.PSM == PSM_PSMCT32 ? 31 : 15);
-		if(A ^ ctxt->TEST.DATM) return;
-	}
-
-	if(ctxt->TEST.ZTE && ctxt->rz)
-	{
-		if(ctxt->TEST.ZTST == 0)
-			return;
-
-		if(ctxt->TEST.ZTST != 1)
-		{
-			float z = (float)(m_lm.*ctxt->rz)(x, y, ctxt->ZBUF.ZBP<<5, FBW) / UINT_MAX;
-			if(ctxt->TEST.ZTST == 2 && v.z < z || ctxt->TEST.ZTST == 3 && v.z <= z)
-				return;
-		}
-	}
-
-	if(!ZMSK && ctxt->wz)
+	if(!ZMSK && ctxt->rz)
 	{
 		(m_lm.*ctxt->wz)(x, y, (DWORD)(v.z * UINT_MAX), ctxt->ZBUF.ZBP<<5, FBW);
 	}
 
-	if((m_de.PRIM.ABE || (m_de.PRIM.PRIM == 1 || m_de.PRIM.PRIM == 2) && m_de.PRIM.AA1)
-	&& (!m_de.PABE.PABE || (Af&0x80)))
+	if((m_de.PRIM.ABE || (m_de.PRIM.PRIM == 1 || m_de.PRIM.PRIM == 2) && m_de.PRIM.AA1) && (!m_de.PABE.PABE || (Af&0x80)))
 	{
 		GIFRegTEX0 TEX0;
 		TEX0.TBP0 = FBP;
@@ -800,24 +865,75 @@ void GSStateSoft::DrawVertex(int x, int y, GSSoftVertex& v)
 
 	if(m_de.COLCLAMP.CLAMP)
 	{
-		if(Rf > 255) Rf = 255;
-		else if(Rf < 0) Rf = 0;
-		if(Gf > 255) Gf = 255;
-		else if(Gf < 0) Gf = 0;
-		if(Bf > 255) Bf = 255;
-		else if(Bf < 0) Bf = 0;
-		if(Af > 255) Af = 255;
-		else if(Af < 0) Af = 0;
+		Rf = m_clip[Rf+512];
+		Gf = m_clip[Gf+512];
+		Bf = m_clip[Bf+512];
+		Af = m_clip[Af+512];
 	}
-
-	if(ctxt->FBA.FBA)
+	else
 	{
-		Af |= 0x80;
+		Rf &= 0xff;
+		Gf &= 0xff;
+		Bf &= 0xff;
+		Af &= 0xff;
 	}
 
-	DWORD color = (Af << 24) | (Bf << 16) | (Gf << 8) | (Rf << 0);
+	Af |= (ctxt->FBA.FBA << 7);
 
-	color &= ~FBMSK;
+	DWORD color = ((Af << 24) | (Bf << 16) | (Gf << 8) | (Rf << 0)) & ~FBMSK;
 
-	(m_lm.*ctxt->wp)(x, y, color, FBP, FBW);
+	(m_lm.*ctxt->wf)(x, y, color, FBP, FBW);
+}
+
+void GSStateSoft::SetTexture()
+{
+	GSDrawingContext* ctxt = &m_de.CTXT[m_de.PRIM.CTXT];
+
+	if(!m_de.PRIM.TME || !ctxt->rt)
+		return;
+
+	if(CTexture* p = LookupTexture())
+	{
+		m_pTexture = p->m_pTexture;
+		return;
+	}
+
+	InvalidateTexture(ctxt->TEX0.TBP0);
+
+	m_lm.setupCLUT(ctxt->TEX0, m_de.TEXCLUT, m_de.TEXA);
+
+	CAutoPtr<CTexture> p(new CTexture());
+
+	p->m_TEX0 = ctxt->TEX0;
+	p->m_TEXA = m_de.TEXA;
+	p->m_TEXCLUT = m_de.TEXCLUT;
+
+	int w = 1 << ctxt->TEX0.TW;
+	int h = 1 << ctxt->TEX0.TH;
+
+	p->m_pTexture = m_pTexture = new DWORD[w*h];
+
+	DWORD* c = m_pTexture;
+	for(int j = 0; j < h; j++)
+		for(int i = 0; i < w; i++)
+			*c++ = (m_lm.*ctxt->rt)(i, j, ctxt->TEX0, m_de.TEXA);
+
+	m_tc.AddHead(p);
+}
+
+GSStateSoft::CTexture* GSStateSoft::LookupTexture()
+{
+	GSDrawingContext* ctxt = &m_de.CTXT[m_de.PRIM.CTXT];
+
+	POSITION pos = m_tc.GetHeadPosition();
+	while(pos)
+	{
+		CTexture* p = m_tc.GetNext(pos);
+		if(p->m_TEX0.i64 == ctxt->TEX0.i64
+		&& p->m_TEXA.i64 == m_de.TEXA.i64
+		&& p->m_TEXCLUT.i64 == m_de.TEXCLUT.i64)
+			return p;
+	}
+
+	return NULL;
 }

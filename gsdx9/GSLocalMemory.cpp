@@ -635,6 +635,36 @@ GSLocalMemory::readTexel GSLocalMemory::GetReadTexel(DWORD psm)
 
 ////////////////////
 
+void GSLocalMemory::writeFrame16(int x, int y, DWORD c, DWORD bp, DWORD bw)
+{
+	c = ((c>>16)&0x8000)|((c>>9)&0x7c00)|((c>>6)&0x03e0)|((c>>3)&0x001f);
+	writePixel16(x, y, c, bp, bw);
+}
+
+void GSLocalMemory::writeFrame16S(int x, int y, DWORD c, DWORD bp, DWORD bw)
+{
+	c = ((c>>16)&0x8000)|((c>>9)&0x7c00)|((c>>6)&0x03e0)|((c>>3)&0x001f);
+	writePixel16S(x, y, c, bp, bw);
+}
+
+GSLocalMemory::writeFrame GSLocalMemory::GetWriteFrame(DWORD psm)
+{
+	writeFrame wf = NULL;
+
+	switch(psm)
+	{
+	default: ASSERT(0);
+	case PSM_PSMCT32: wf = &GSLocalMemory::writePixel32; break;
+	case PSM_PSMCT24: wf = &GSLocalMemory::writePixel24; break;
+	case PSM_PSMCT16: wf = &GSLocalMemory::writeFrame16; break;
+	case PSM_PSMCT16S: wf = &GSLocalMemory::writeFrame16S; break;
+	}
+	
+	return wf;
+}
+
+////////////////////
+
 void GSLocalMemory::setupCLUT(GIFRegTEX0 TEX0, GIFRegTEXCLUT& TEXCLUT, GIFRegTEXA& TEXA)
 {
 	readTexel rt = GetReadTexel(TEX0.CPSM);

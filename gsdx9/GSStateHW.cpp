@@ -27,9 +27,6 @@
 inline BYTE SCALE_ALPHA(BYTE a) 
 {
 	return (((a)&0x80)?0xff:((a)<<1));
-	return a;
-	return (((a)&0x80)?0xff:(a));
-	return (((a)&0xa0)?0xff:((a+a+a)>>1));
 }
 
 static const double log_2pow32 = log(2.0)*32;
@@ -40,8 +37,8 @@ GSStateHW::GSStateHW(HWND hWnd, HRESULT& hr)
 	: GSState(hWnd, hr)
 {
 	if(FAILED(hr)) return;
-
 	m_pVertices = new CUSTOMVERTEX[m_nMaxVertices = 256];
+	Reset();
 }
 
 GSStateHW::~GSStateHW()

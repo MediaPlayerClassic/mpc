@@ -658,7 +658,7 @@ void GSState::VSync()
 	if(!(m_stats.GetFrame()&7)) SetWindowText(m_hWnd, str);
 
 	m_rs.CSRr.NFIELD = 1; // ?
-	if(m_rs.SMODE2.INT /*&& !m_rs.SMODE2.FFMD*/)
+	if(m_rs.SMODE2.INT /*&& !m_rs.SMODE2.FFMD*/);
 		m_rs.CSRr.FIELD = 1 - m_rs.CSRr.FIELD;
 
 	Flip();
