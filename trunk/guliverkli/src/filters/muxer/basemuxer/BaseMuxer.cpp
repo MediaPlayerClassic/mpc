@@ -153,7 +153,6 @@ DWORD CBaseMuxerFilter::ThreadProc()
 					if(pPacket->IsEOS())
 						m_pActivePins.RemoveAt(m_pActivePins.Find(pPacket->pPin));
 					
-					/*
 					TRACE(_T("WritePacket pPin=%x, size=%d, s%d e%d b%d, rt=(%I64d-%I64d)\n"), 
 						pPacket->pPin->GetID(),
 						pPacket->pData.GetSize(),
@@ -161,7 +160,6 @@ DWORD CBaseMuxerFilter::ThreadProc()
 						!!(pPacket->flags & MuxerPacket::eos), 
 						!!(pPacket->flags & MuxerPacket::bogus), 
 						pPacket->rtStart/10000, pPacket->rtStop/10000);
-					*/
 
 					if(pBitStream) MuxPacket(pBitStream, pPacket);
 					MuxPacket(pPacket);
