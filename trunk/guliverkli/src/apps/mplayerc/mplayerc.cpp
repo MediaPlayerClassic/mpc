@@ -1492,6 +1492,7 @@ void CMPlayerCApp::Settings::UpdateData(bool fSave)
 			pApp->WriteProfileString(_T("Shaders"), _T("0"), _T("contour") + hdr + _T("\\tfloat dx = 4/width;\\n\\tfloat dy = 4/height;\\n\\t\\n\\tfloat4 c2 = tex2D(s0, t0 + float2(0,-dy));\\n\\tfloat4 c4 = tex2D(s0, t0 + float2(-dx,0));\\n\\tfloat4 c5 = tex2D(s0, t0 + float2(0,0));\\n\\tfloat4 c6 = tex2D(s0, t0 + float2(dx,0));\\n\\tfloat4 c8 = tex2D(s0, t0 + float2(0,dy));\\n\\t\\n\\tfloat4 c0 = (-c2-c4+c5*4-c6-c8);\\n\\tif(length(c0) < 1.0) c0 = float4(0,0,0,0);\\n\\telse c0 = float4(1,1,1,0);\\n") + ftr);
 			pApp->WriteProfileString(_T("Shaders"), _T("1"), _T("invert") + hdr + _T("\\tfloat4 c0 = float4(1, 1, 1, 1) - tex2D(s0, t0);\\n") + ftr);
 			pApp->WriteProfileString(_T("Shaders"), _T("2"), _T("spotlight") + hdr + _T("\\tfloat4 c0 = tex2D(s0, t0);\\n\\tfloat3 lightsrc = float3(sin(clock*3.1415/1500)/2+0.5,cos(clock*3.1415/1000)/2+0.5,1);\\n\\tfloat3 light = normalize(lightsrc - float3(t0.x,t0.y,0));\\n\\tc0 *= pow(dot(light, float3(0,0,1)), 50);\\n") + ftr);
+			pApp->WriteProfileString(_T("Shaders"), _T("3"), _T("wave") + hdr + _T("\\t// don't look at this for too long, you'll get dizzy :)\\n\\n\\tfloat4 c0 = 0;\\n\\n\\tt0.x += sin(t0.x+clock/300)/20;\\n\\tt0.y += sin(t0.x+clock/300)/20;\\n\\n\\tif(t0.x >= 0 && t0.x <= 1 && t0.y >= 0 && t0.y <= 1)\\n\\t{\\n\\t\\tc0 = tex2D(s0, t0);\\n\\t}\\n") + ftr);
 		}
 
 		fInitialized = true;
