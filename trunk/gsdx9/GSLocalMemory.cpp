@@ -1297,7 +1297,6 @@ void GSLocalMemory::unSwizzleBlock8(BYTE* src, BYTE* dst, int dstpitch)
 */
 
 #if _M_IX86_FP >= 2
-	// TODO: there might be a shorter way doing this
 	__asm
 	{
 		mov			esi, src
