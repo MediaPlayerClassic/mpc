@@ -4,7 +4,7 @@
 #include "BaseSplitter.h"
 
 #define MAXBUFFERS 2
-#define MINPACKETS 105
+#define MINPACKETS 5
 #define MAXPACKETS 500
 
 //
