@@ -637,6 +637,11 @@ void GSState::FlushPrim()
 		hr = m_pD3DDev->SetRenderState(D3DRS_BLENDOP, blendmap[i].op);
 		hr = m_pD3DDev->SetRenderState(D3DRS_SRCBLEND, blendmap[i].src);
 		hr = m_pD3DDev->SetRenderState(D3DRS_DESTBLEND, blendmap[i].dst);
+
+		hr = m_pD3DDev->SetRenderState(D3DRS_SEPARATEALPHABLENDENABLE, TRUE);
+		hr = m_pD3DDev->SetRenderState(D3DRS_BLENDOPALPHA, D3DBLENDOP_ADD);
+		hr = m_pD3DDev->SetRenderState(D3DRS_SRCBLENDALPHA, D3DBLEND_ONE);
+		hr = m_pD3DDev->SetRenderState(D3DRS_DESTBLENDALPHA, D3DBLEND_ZERO);
 	}
 
 	//////////////////////
@@ -649,7 +654,7 @@ void GSState::FlushPrim()
 	if(ctxt->FRAME.FBMSK&0x000000ff) mask &= ~D3DCOLORWRITEENABLE_RED;
 	hr = m_pD3DDev->SetRenderState(D3DRS_COLORWRITEENABLE, mask);
 
-	ASSERT(ctxt->FRAME.FBMSK == 0);
+	ASSERT(ctxt->FRAME.FBMSK == 0); // wild arms (also 8H+pal on RT...)
 
 	//////////////////////
 
@@ -692,10 +697,10 @@ void GSState::FlushPrim()
 	hr = m_pD3DDev->SetScissorRect(scissor);
 
 	//////////////////////
-
-	// ASSERT(!m_de.PABE.PABE);
-	// ASSERT(!ctxt->FBA.FBA);
-	//ASSERT(!ctxt->TEST.DATE); // sfex3, after the capcom logo
+//////
+	ASSERT(!m_de.PABE.PABE);
+	ASSERT(!ctxt->FBA.FBA);
+	ASSERT(!ctxt->TEST.DATE); // sfex3, after the capcom logo
 
 	//////////////////////
 
@@ -785,7 +790,7 @@ if(m_de.PRIM.TME && m_nVertices == 6 && (ctxt->FRAME.Block()) == 0x00000 && ctxt
 			hr = m_pD3DDev->DrawPrimitive(m_primtype, 0, nPrims);
 		}
 */	}
-	else
+/*	else
 	{
 		ASSERT(!ctxt->TEST.ATE); // TODO
 
@@ -830,6 +835,7 @@ if(m_de.PRIM.TME && m_nVertices == 6 && (ctxt->FRAME.Block()) == 0x00000 && ctxt
 
 		hr = m_pD3DDev->DrawPrimitive(m_primtype, 0, nPrims);
 	}
+*/
 /*	else if(m_de.PABE.PABE)
 	{
 		hr = m_pD3DDev->SetRenderState(D3DRS_ALPHATESTENABLE, TRUE); 
@@ -846,8 +852,7 @@ if(m_de.PRIM.TME && m_nVertices == 6 && (ctxt->FRAME.Block()) == 0x00000 && ctxt
 */
 	hr = m_pD3DDev->EndScene();
 
-	for(int i = 0; i < 3; i++)
-		hr = m_pD3DDev->SetTexture(0, NULL);
+	hr = m_pD3DDev->SetRenderState(D3DRS_SEPARATEALPHABLENDENABLE, FALSE);
 
 if(m_de.PRIM.TME && m_nVertices == 6 && (ctxt->FRAME.Block()) == 0x00000 && ctxt->TEX0.TBP0 == 0x00f00)
 {
