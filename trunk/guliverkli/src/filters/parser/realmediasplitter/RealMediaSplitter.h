@@ -24,6 +24,7 @@
 #include <atlbase.h>
 #include <atlcoll.h>
 #include <afxtempl.h>
+#include "..\BaseSplitter\BaseSplitter.h"
 
 #pragma pack(push, 1)
 
@@ -116,14 +117,6 @@ struct rainfo5 : rainfo
 
 #pragma pack(pop)
 
-typedef struct
-{
-	DWORD TrackNumber;
-	CArray<BYTE> pData;
-	REFERENCE_TIME rtStart, rtStop;
-	BOOL bSyncPoint;
-} RMBlock;
-
 class CRMFile
 {
 	CComPtr<IAsyncReader> m_pReader;
@@ -151,55 +144,11 @@ public:
 	int GetMasterStream();
 };
 
-class CRealMediaSplitterInputPin : public CBasePin
+class CRealMediaSplitterOutputPin : public CBaseSplitterOutputPin
 {
-	CComQIPtr<IAsyncReader> m_pAsyncReader;
-
-public:
-	CRealMediaSplitterInputPin(TCHAR* pName, CBaseFilter* pFilter, CCritSec* pLock, HRESULT* phr);
-	virtual ~CRealMediaSplitterInputPin();
-
-	HRESULT GetAsyncReader(IAsyncReader** ppAsyncReader);
-
-	DECLARE_IUNKNOWN;
-    STDMETHODIMP NonDelegatingQueryInterface(REFIID riid, void** ppv);
-
-    HRESULT CheckMediaType(const CMediaType* pmt);
-
-    HRESULT CheckConnect(IPin* pPin);
-    HRESULT BreakConnect();
-	HRESULT CompleteConnect(IPin* pPin);
-
-	STDMETHODIMP BeginFlush();
-	STDMETHODIMP EndFlush();
-};
-
-class CRealMediaSplitterOutputPin : public CBaseOutputPin, protected CAMThread
-{
-	CArray<CMediaType> m_mts;
-	void DontGoWild();
-
-public:
-	enum {EMPTY, EOS, BLOCK};
-	typedef struct {int type; CAutoPtr<RMBlock> b; BOOL bDiscontinuity;} packet;
-	HRESULT DeliverBlock(CAutoPtr<RMBlock> b, BOOL bDiscontinuity);
-
 private:
-	CCritSec m_csQueueLock;
-	CAutoPtrList<packet> m_packets;
-	HRESULT m_hrDeliver;
-	enum {CMD_EXIT};
-    DWORD ThreadProc();
+	typedef struct {CArray<BYTE> data; DWORD offset;} segment;
 
-	REFERENCE_TIME m_rtStart;
-
-	typedef struct 
-	{
-		CArray<BYTE> data; DWORD offset; 
-#ifdef DEBUG
-		REFERENCE_TIME rtStart;
-#endif
-	} segment;
 	class CSegments : public CAutoPtrList<segment>, public CCritSec
 	{
 	public:
@@ -213,154 +162,52 @@ private:
 			RemoveAll();
 		}
 	} m_segments;
-	HRESULT DeliverSegments(CSegments& segments);
+
+	HRESULT DeliverSegments();
+
+protected:
+	HRESULT DeliverPacket(CAutoPtr<Packet> p);
 
 public:
 	CRealMediaSplitterOutputPin(CArray<CMediaType>& mts, LPCWSTR pName, CBaseFilter* pFilter, CCritSec* pLock, HRESULT* phr);
 	virtual ~CRealMediaSplitterOutputPin();
 
-	DECLARE_IUNKNOWN;
-    STDMETHODIMP NonDelegatingQueryInterface(REFIID riid, void** ppv);
-
-    HRESULT DecideBufferSize(IMemAllocator* pAlloc, ALLOCATOR_PROPERTIES* pProperties);
-
-    HRESULT CheckMediaType(const CMediaType* pmt);
-    HRESULT GetMediaType(int iPosition, CMediaType* pmt);
-	CMediaType& CurrentMediaType() {return m_mt;}
-
-	STDMETHODIMP Notify(IBaseFilter* pSender, Quality q);
-
-	// Queueing
-
-	HRESULT Active();
-    HRESULT Inactive();
-
-    HRESULT DeliverEndOfStream();
-    HRESULT DeliverBeginFlush();
 	HRESULT DeliverEndFlush();
-    HRESULT DeliverNewSegment(REFERENCE_TIME tStart, REFERENCE_TIME tStop, double dRate);
 };
 
-[uuid("765035B3-5944-4A94-806B-20EE3415F26F")]
-class CRealMediaSourceFilter 
-	: public CBaseFilter
-	, public CCritSec
-	, protected CAMThread
-	, public IFileSourceFilter
-	, public IMediaSeeking
-	, public IAMOpenProgress
+[uuid("E21BE468-5C18-43EB-B0CC-DB93A847D769")]
+class CRealMediaSplitterFilter : public CBaseSplitterFilter
 {
-	class CFileReader : public CUnknown, public IAsyncReader
-	{
-		CFile m_file;
-
-	public:
-		CFileReader(CString fn, HRESULT& hr);
-
-		DECLARE_IUNKNOWN;
-		STDMETHODIMP NonDelegatingQueryInterface(REFIID riid, void** ppv);
-
-		// IAsyncReader
-
-		STDMETHODIMP RequestAllocator(IMemAllocator* pPreferred, ALLOCATOR_PROPERTIES* pProps, IMemAllocator** ppActual) {return E_NOTIMPL;}
-        STDMETHODIMP Request(IMediaSample* pSample, DWORD_PTR dwUser) {return E_NOTIMPL;}
-        STDMETHODIMP WaitForNext(DWORD dwTimeout, IMediaSample** ppSample, DWORD_PTR* pdwUser) {return E_NOTIMPL;}
-		STDMETHODIMP SyncReadAligned(IMediaSample* pSample) {return E_NOTIMPL;}
-		STDMETHODIMP SyncRead(LONGLONG llPosition, LONG lLength, BYTE* pBuffer);
-		STDMETHODIMP Length(LONGLONG* pTotal, LONGLONG* pAvailable);
-		STDMETHODIMP BeginFlush() {return E_NOTIMPL;}
-		STDMETHODIMP EndFlush() {return E_NOTIMPL;}
-	};
-
-	CStringW m_fn;
-	CAMEvent m_eEndFlush;
-	bool m_fFlushing;
-
-	LONGLONG m_nOpenProgress;
-	bool m_fAbort;
-
 protected:
-	CAutoPtr<CRealMediaSplitterInputPin> m_pInput;
-	CAutoPtrList<CRealMediaSplitterOutputPin> m_pOutputs;
-
 	CAutoPtr<CRMFile> m_pFile;
 	HRESULT CreateOutputs(IAsyncReader* pAsyncReader);
 
-	CMap<DWORD, DWORD, CRealMediaSplitterOutputPin*, CRealMediaSplitterOutputPin*> m_mapTrackToPin;
+	bool InitDeliverLoop();
+	void SeekDeliverLoop(REFERENCE_TIME rt);
+	void DoDeliverLoop();
 
-	CCritSec m_csSend;
-
-	REFERENCE_TIME m_rtStart, m_rtStop, m_rtCurrent, m_rtNewStart, m_rtNewStop;
-	double m_dRate;
-
-	CList<UINT64> m_bDiscontinuitySent;
-	CList<CBaseOutputPin*> m_pActivePins;
-
-	void DeliverBeginFlush();
-	void DeliverEndFlush();
-	HRESULT DeliverBlock(CAutoPtr<RMBlock> b);
-
-protected:
-	enum {CMD_EXIT, CMD_SEEK};
-    DWORD ThreadProc();
+	POSITION m_seekpos;
+	UINT32 m_seekpacket;
+	UINT64 m_seekfilepos;
 
 public:
-	CRealMediaSourceFilter(LPUNKNOWN pUnk, HRESULT* phr);
-	virtual ~CRealMediaSourceFilter();
+	CRealMediaSplitterFilter(LPUNKNOWN pUnk, HRESULT* phr);
+	virtual ~CRealMediaSplitterFilter();
 
 #ifdef REGISTER_FILTER
     static CUnknown* WINAPI CreateInstance(LPUNKNOWN lpunk, HRESULT* phr);
 #endif
 
-	DECLARE_IUNKNOWN;
-    STDMETHODIMP NonDelegatingQueryInterface(REFIID riid, void** ppv);
-
-	HRESULT BreakConnect(PIN_DIRECTION dir, CBasePin* pPin);
-	HRESULT CompleteConnect(PIN_DIRECTION dir, CBasePin* pPin);
-
-	int GetPinCount();
-	CBasePin* GetPin(int n);
-
-	STDMETHODIMP Stop();
-	STDMETHODIMP Pause();
-	STDMETHODIMP Run(REFERENCE_TIME tStart);
-
-	// IFileSourceFilter
-
-	STDMETHODIMP Load(LPCOLESTR pszFileName, const AM_MEDIA_TYPE* pmt);
-	STDMETHODIMP GetCurFile(LPOLESTR* ppszFileName, AM_MEDIA_TYPE* pmt);
-
 	// IMediaSeeking
 
-	STDMETHODIMP GetCapabilities(DWORD* pCapabilities);
-	STDMETHODIMP CheckCapabilities(DWORD* pCapabilities);
-	STDMETHODIMP IsFormatSupported(const GUID* pFormat);
-	STDMETHODIMP QueryPreferredFormat(GUID* pFormat);
-	STDMETHODIMP GetTimeFormat(GUID* pFormat);
-	STDMETHODIMP IsUsingTimeFormat(const GUID* pFormat);
-	STDMETHODIMP SetTimeFormat(const GUID* pFormat);
 	STDMETHODIMP GetDuration(LONGLONG* pDuration);
-	STDMETHODIMP GetStopPosition(LONGLONG* pStop);
-	STDMETHODIMP GetCurrentPosition(LONGLONG* pCurrent);
-	STDMETHODIMP ConvertTimeFormat(LONGLONG* pTarget, const GUID* pTargetFormat, LONGLONG Source, const GUID* pSourceFormat);
-	STDMETHODIMP SetPositions(LONGLONG* pCurrent, DWORD dwCurrentFlags, LONGLONG* pStop, DWORD dwStopFlags);
-	STDMETHODIMP GetPositions(LONGLONG* pCurrent, LONGLONG* pStop);
-	STDMETHODIMP GetAvailable(LONGLONG* pEarliest, LONGLONG* pLatest);
-	STDMETHODIMP SetRate(double dRate);
-	STDMETHODIMP GetRate(double* pdRate);
-	STDMETHODIMP GetPreroll(LONGLONG* pllPreroll);
-
-	// IAMOpenProgress
-
-	STDMETHODIMP QueryProgress(LONGLONG* pllTotal, LONGLONG* pllCurrent);
-	STDMETHODIMP AbortOperation();
 };
 
-[uuid("E21BE468-5C18-43EB-B0CC-DB93A847D769")]
-class CRealMediaSplitterFilter : public CRealMediaSourceFilter
+[uuid("765035B3-5944-4A94-806B-20EE3415F26F")]
+class CRealMediaSourceFilter : public CRealMediaSplitterFilter
 {
 public:
-	CRealMediaSplitterFilter(LPUNKNOWN pUnk, HRESULT* phr);
+	CRealMediaSourceFilter(LPUNKNOWN pUnk, HRESULT* phr);
 
 #ifdef REGISTER_FILTER
     static CUnknown* WINAPI CreateInstance(LPUNKNOWN lpunk, HRESULT* phr);
@@ -391,14 +238,8 @@ class CRealVideoDecoder : public CTransformFilter
 	void FreeRV();
 
 	REFERENCE_TIME m_tStart;
-/*
-	REFERENCE_TIME m_rtLast, m_tStart;
-	DWORD m_packetlen;
-	typedef struct {CByteArray data; DWORD offset; bool fMerge;} chunk;
-	CAutoPtrList<chunk> m_data;
 
-	HRESULT Decode(bool fPreroll);
-*/	void Copy(BYTE* pIn, BYTE* pOut, DWORD wi, DWORD hi);
+	void Copy(BYTE* pIn, BYTE* pOut, DWORD wi, DWORD hi);
 	void Resize(BYTE* pIn, DWORD wi, DWORD hi, BYTE* pOut, DWORD wo, DWORD ho);
 	void ResizeWidth(BYTE* pIn, DWORD wi, DWORD hi, BYTE* pOut, DWORD wo, DWORD ho);
 	void ResizeHeight(BYTE* pIn, DWORD wi, DWORD hi, BYTE* pOut, DWORD wo, DWORD ho);
