@@ -40,9 +40,7 @@ void CShaderLabelComboBox::OnDestroy()
 
 CShaderEdit::CShaderEdit()
 {
-
 	m_acdlg.Create(CShaderAutoCompleteDlg::IDD, NULL);
-	m_acdlg.SetWindowPos(&wndTopMost, 0, 0, 0, 0, SWP_NOMOVE|SWP_NOSIZE);
 
 	m_nEndChar = -1;
 	m_nIDEvent = -1;
@@ -157,6 +155,7 @@ void CShaderEdit::OnUpdate()
 			CRect r(p, CSize(100, 100));
 
 			m_acdlg.MoveWindow(r);
+			m_acdlg.SetWindowPos(&wndTopMost, 0, 0, 0, 0, SWP_NOMOVE|SWP_NOSIZE|SWP_NOACTIVATE);
 			m_acdlg.ShowWindow(SW_SHOWNOACTIVATE);
 
 			m_nEndChar = nEndChar;
