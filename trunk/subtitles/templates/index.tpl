@@ -58,7 +58,7 @@
 		{if $browser == 'Opera'}<li>{/if}
 	
 		{include file="title.tpl" titles=$m.titles}<br>
-		Last updated: <strong>{$m.updated|date_format:"%Y %b %e"}</strong><br>
+		{*Last updated: <strong>{$m.updated|date_format:"%Y %b %e"}</strong><br>*}
 		
 		<br>
 	
@@ -84,7 +84,7 @@
 			{strip}
 				<nobr>
 				{if !empty($s.files)}<span class="dlme">&rarr;&nbsp;{/if}
-				<a href="dl.php?id={$s.ms_id}&ticket={$ticket}">{$s.name|escape:"html"}</a>
+				<a href="dl.php?id={$s.ms_id}&ticket={$ticket}">{$s.name|truncate_mid:50|escape:"html"}</a>
 				{if !empty($s.files)}&nbsp;&larr;</span>{/if}
 				</nobr>
 			{/strip}
