@@ -7,6 +7,10 @@
 
 class CMpegSplitterFile : public CBaseSplitterFile
 {
+	int m_tslen;
+
+	CMap<WORD,WORD,BYTE,BYTE> m_pid2pes;
+
 	HRESULT Init();
 
 public:
@@ -138,7 +142,7 @@ public:
 		WORD modeext:2;
 		WORD copyright:1;
 		WORD original:1;
-		WORD emphasis:1;
+		WORD emphasis:2;
 	};
 
 	class aachdr
@@ -249,6 +253,7 @@ public:
 		// TODO: add more fields here when the flags above are set (they aren't very interesting...)
 
 		int bytes;
+		__int64 next;
 	};
 
 #pragma pack(pop)

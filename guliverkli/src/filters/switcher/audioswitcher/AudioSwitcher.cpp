@@ -318,6 +318,7 @@ class NeroAudioDecoder {};
 STDMETHODIMP CStreamSwitcherInputPin::NonDelegatingQueryInterface(REFIID riid, void** ppv)
 {
 	return
+		QI(IStreamSwitcherInputPin)
 		IsConnected() && GetCLSID(GetFilterFromPin(GetConnected())) == __uuidof(NeroAudioDecoder) && QI(IPinConnection)
 		__super::NonDelegatingQueryInterface(riid, ppv);
 }
@@ -348,7 +349,15 @@ STDMETHODIMP CStreamSwitcherInputPin::DynamicDisconnect()
 	return S_OK;
 }
 
-//
+// IStreamSwitcherInputPin
+
+STDMETHODIMP_(bool) CStreamSwitcherInputPin::IsActive()
+{
+	// TODO: lock onto something here
+	return(this == ((CStreamSwitcherFilter*)m_pFilter)->GetInputPin());
+}
+
+// 
 
 HRESULT CStreamSwitcherInputPin::QueryAcceptDownstream(const AM_MEDIA_TYPE* pmt)
 {
@@ -368,11 +377,6 @@ HRESULT CStreamSwitcherInputPin::QueryAcceptDownstream(const AM_MEDIA_TYPE* pmt)
 	}
 
 	return hr;
-}
-
-bool CStreamSwitcherInputPin::IsSelected()
-{
-	return(this == ((CStreamSwitcherFilter*)m_pFilter)->GetInputPin());
 }
 
 void CStreamSwitcherInputPin::Block(bool fBlock)
@@ -535,7 +539,7 @@ HRESULT CStreamSwitcherInputPin::CompleteConnect(IPin* pReceivePin)
 
 HRESULT CStreamSwitcherInputPin::Active()
 {
-	Block(!IsSelected());
+	Block(!IsActive());
 
 	return __super::Active();
 }
@@ -609,7 +613,7 @@ STDMETHODIMP CStreamSwitcherInputPin::BeginFlush()
     if(FAILED(hr)) 
 		return hr;
 
-	return IsSelected() ? pOut->DeliverBeginFlush() : Block(false), S_OK;
+	return IsActive() ? pOut->DeliverBeginFlush() : Block(false), S_OK;
 }
 
 STDMETHODIMP CStreamSwitcherInputPin::EndFlush()
@@ -624,7 +628,7 @@ STDMETHODIMP CStreamSwitcherInputPin::EndFlush()
     if(FAILED(hr)) 
 		return hr;
 
-	return IsSelected() ? pOut->DeliverEndFlush() : Block(true), S_OK;
+	return IsActive() ? pOut->DeliverEndFlush() : Block(true), S_OK;
 }
 
 STDMETHODIMP CStreamSwitcherInputPin::EndOfStream()
@@ -641,7 +645,7 @@ STDMETHODIMP CStreamSwitcherInputPin::EndOfStream()
 		return S_OK;
 	}
 
-	return IsSelected() ? pOut->DeliverEndOfStream() : S_OK;
+	return IsActive() ? pOut->DeliverEndOfStream() : S_OK;
 }
 
 // IMemInputPin
@@ -666,7 +670,7 @@ STDMETHODIMP CStreamSwitcherInputPin::Receive(IMediaSample* pSample)
 		m_evBlock.Wait();
 #endif
 
-	if(!IsSelected())
+	if(!IsActive())
 	{
 #ifdef BLOCKSTREAM
 		if(m_fCanBlock)

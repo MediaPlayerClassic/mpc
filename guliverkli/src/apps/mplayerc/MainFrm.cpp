@@ -1121,10 +1121,13 @@ void CMainFrame::OnTimer(UINT nIDEvent)
 						sl.AddTail(str);
 					}
 				}
-				
+
 				if(!sl.IsEmpty())
 				{
-					m_wndStatsBar.SetLine(_T("Buffers"), Implode(sl, ' '));
+					CString str;
+					str.Format(_T("%s (p%d)"), Implode(sl, ' '), pBI->GetPriority());
+					
+					m_wndStatsBar.SetLine(_T("Buffers"), str);
 				}
 
 				break;
@@ -5430,6 +5433,8 @@ void CMainFrame::OpenCreateGraphObject(OpenMediaData* pOMD)
 		|| ct == "audio/x-pn-realaudio-plugin"
 		|| ct == "audio/x-realaudio-secure"
 		|| ct == "video/vnd.rn-realvideo-secure"
+		|| ct == "application/vnd.rn-realmedia"
+		|| ct.Find("vnd.rn-") >= 0
 		|| ct.Find("realaudio") >= 0
 		|| ct.Find("realvideo") >= 0)
 		{
@@ -6546,7 +6551,7 @@ RemoveFromRot(m_dwRegister);
 
 	m_closingmsg = _T("Closed");
 
-	AfxGetAppSettings().nCLSwitches &= CLSW_OPEN|CLSW_PLAY|CLSW_SHUTDOWN|CLSW_CLOSE;
+	AfxGetAppSettings().nCLSwitches &= CLSW_OPEN|CLSW_PLAY|CLSW_SHUTDOWN|CLSW_CLOSE||CLSW_NOFOCUS;
 
 	m_iMediaLoadState = MLS_CLOSED;
 }

@@ -32,8 +32,6 @@
 
 #include "faad2\include\neaacdec.h"
 
-#ifdef REGISTER_FILTER
-
 const AMOVIESETUP_MEDIATYPE sudPinTypesIn[] =
 {
 	{&MEDIATYPE_Audio, &MEDIASUBTYPE_MP3},
@@ -62,7 +60,13 @@ const AMOVIESETUP_MEDIATYPE sudPinTypesIn[] =
 	{&MEDIATYPE_MPEG2_PACK, &MEDIASUBTYPE_AAC},
 	{&MEDIATYPE_MPEG2_PES, &MEDIASUBTYPE_AAC},
 	{&MEDIATYPE_Audio, &MEDIASUBTYPE_AAC},
+	{&MEDIATYPE_DVD_ENCRYPTED_PACK, &MEDIASUBTYPE_MP4A},
+	{&MEDIATYPE_MPEG2_PACK, &MEDIASUBTYPE_MP4A},
+	{&MEDIATYPE_MPEG2_PES, &MEDIASUBTYPE_MP4A},
+	{&MEDIATYPE_Audio, &MEDIASUBTYPE_MP4A},
 };
+
+#ifdef REGISTER_FILTER
 
 const AMOVIESETUP_MEDIATYPE sudPinTypesOut[] =
 {
@@ -216,7 +220,7 @@ CMpaDecFilter::CMpaDecFilter(LPUNKNOWN lpunk, HRESULT* phr)
 
 	m_iSpeakerConfig[ac3] = A52_STEREO;
 	m_iSpeakerConfig[dts] = DTS_STEREO;
-	m_iSpeakerConfig[aac] = AAC_ASIS; // AAC_STEREO
+	m_iSpeakerConfig[aac] = AAC_STEREO;
 	m_fDynamicRangeControl[ac3] = false;
 	m_fDynamicRangeControl[dts] = false;
 	m_fDynamicRangeControl[aac] = false;
@@ -320,7 +324,7 @@ HRESULT CMpaDecFilter::Receive(IMediaSample* pIn)
 		hr = ProcessAC3();
 	else if(subtype == MEDIASUBTYPE_DTS || subtype == MEDIASUBTYPE_WAVE_DTS)
 		hr = ProcessDTS();
-	else if(subtype == MEDIASUBTYPE_AAC)
+	else if(subtype == MEDIASUBTYPE_AAC || subtype == MEDIASUBTYPE_MP4A)
 		hr = ProcessAAC();
 	else // if(.. the rest ..)
 		hr = ProcessMPA();
@@ -548,8 +552,8 @@ HRESULT CMpaDecFilter::ProcessAAC()
 	NeAACDecFrameInfo info;
 	float* src = (float*)NeAACDecDecode(m_aac_state.h, &info, m_buff.GetData(), m_buff.GetSize());
 	m_buff.SetSize(0);
-	if(!src) return E_FAIL;
-	if(info.samples == 0) return S_OK;
+	//if(!src) return E_FAIL;
+	if(!src || info.samples == 0) return S_OK;
 
 	CArray<float> pBuff;
 	pBuff.SetSize(info.samples);
@@ -699,44 +703,10 @@ HRESULT CMpaDecFilter::Deliver(CArray<float>& pBuff, DWORD nSamplesPerSec, WORD 
 {
 	HRESULT hr;
 
-	SampleFormat iSampleFormat = GetSampleFormat();
+	SampleFormat sf = GetSampleFormat();
 
-	CMediaType mt;
-
-	mt.majortype = MEDIATYPE_Audio;
-	mt.subtype = iSampleFormat == SF_FLOAT32 ? MEDIASUBTYPE_IEEE_FLOAT : MEDIASUBTYPE_PCM;
-	mt.formattype = FORMAT_WaveFormatEx;
-
-	WAVEFORMATEXTENSIBLE wfex;
-	memset(&wfex, 0, sizeof(wfex));
-	WAVEFORMATEX* wfe = &wfex.Format;
-	wfe->wFormatTag = (WORD)mt.subtype.Data1;
-	wfe->nChannels = nChannels;
-	wfe->nSamplesPerSec = nSamplesPerSec;
-	switch(iSampleFormat)
-	{
-	default:
-	case SF_PCM16: wfe->wBitsPerSample = 16; break;
-	case SF_PCM24: wfe->wBitsPerSample = 24; break;
-	case SF_PCM32: case SF_FLOAT32: wfe->wBitsPerSample = 32; break;
-	}
-	wfe->nBlockAlign = wfe->nChannels*wfe->wBitsPerSample/8;
-	wfe->nAvgBytesPerSec = wfe->nSamplesPerSec*wfe->nBlockAlign;
-
-	// FIXME: 24/32 bit only seems to work with WAVE_FORMAT_EXTENSIBLE
-	if(dwChannelMask == 0 && (iSampleFormat == SF_PCM24 || iSampleFormat == SF_PCM32))
-		dwChannelMask = nChannels == 2 ? (SPEAKER_FRONT_LEFT|SPEAKER_FRONT_RIGHT) : SPEAKER_FRONT_CENTER;
-
-	if(dwChannelMask)
-	{
-		wfex.Format.wFormatTag = WAVE_FORMAT_EXTENSIBLE;
-		wfex.Format.cbSize = sizeof(wfex) - sizeof(wfex.Format);
-		wfex.dwChannelMask = dwChannelMask;
-		wfex.Samples.wValidBitsPerSample = wfex.Format.wBitsPerSample;
-		wfex.SubFormat = mt.subtype;
-	}
-
-	mt.SetFormat((BYTE*)&wfex, sizeof(wfex.Format) + wfex.Format.cbSize);
+	CMediaType mt = CreateMediaType(sf, nSamplesPerSec, nChannels, dwChannelMask);
+	WAVEFORMATEX* wfe = (WAVEFORMATEX*)mt.Format();
 
 	int nSamples = pBuff.GetSize()/wfe->nChannels;
 
@@ -807,7 +777,7 @@ ASSERT(wfeout->nSamplesPerSec == wfe->nSamplesPerSec);
 		if(f < -1) f = -1;
 		else if(f > 1) f = 1;
 
-		switch(iSampleFormat)
+		switch(sf)
 		{
 		default:
 		case SF_PCM16:
@@ -831,38 +801,22 @@ ASSERT(wfeout->nSamplesPerSec == wfe->nSamplesPerSec);
 		}
 	}
 
-	hr = m_pOutput->Deliver(pOut);
-	return hr;
+	return m_pOutput->Deliver(pOut);
 }
 
 HRESULT CMpaDecFilter::Deliver(BYTE* pBuff, int size, int bit_rate, BYTE type)
 {
 	HRESULT hr;
 
-	CMediaType mt;
-
-	mt.majortype = MEDIATYPE_Audio;
-	mt.subtype = MEDIASUBTYPE_PCM;
-	mt.formattype = FORMAT_WaveFormatEx;
-
-	WAVEFORMATEX wfe;
-	memset(&wfe, 0, sizeof(wfe));
-	wfe.wFormatTag = WAVE_FORMAT_DOLBY_AC3_SPDIF;
-	wfe.nSamplesPerSec = 48000;
-	wfe.nChannels = 2;
-	wfe.wBitsPerSample = 16;
-	wfe.nBlockAlign = wfe.nChannels * wfe.wBitsPerSample / 8;
-	wfe.nAvgBytesPerSec = wfe.nSamplesPerSec * wfe.nBlockAlign;
-	wfe.cbSize = 0;
-
-	mt.SetFormat((BYTE*)&wfe, sizeof(wfe) + wfe.cbSize);
+	CMediaType mt = CreateMediaTypeSPDIF();
+	WAVEFORMATEX* wfe = (WAVEFORMATEX*)mt.Format();
 
 	int length = 0;
 	while(length < size+sizeof(WORD)*4) length += 0x800;
-	int size2 = 1i64 * wfe.nBlockAlign * wfe.nSamplesPerSec * size*8 / bit_rate;
+	int size2 = 1i64 * wfe->nBlockAlign * wfe->nSamplesPerSec * size*8 / bit_rate;
 	while(length < size2) length += 0x800;
 
-	if(FAILED(hr = ReconnectOutput(length / wfe.nBlockAlign, mt)))
+	if(FAILED(hr = ReconnectOutput(length / wfe->nBlockAlign, mt)))
 		return hr;
 
 	CComPtr<IMediaSample> pOut;
@@ -947,6 +901,55 @@ HRESULT CMpaDecFilter::ReconnectOutput(int nSamples, CMediaType& mt)
 	return S_FALSE;
 }
 
+CMediaType CMpaDecFilter::CreateMediaType(SampleFormat sf, DWORD nSamplesPerSec, WORD nChannels, DWORD dwChannelMask)
+{
+	CMediaType mt;
+
+	mt.majortype = MEDIATYPE_Audio;
+	mt.subtype = sf == SF_FLOAT32 ? MEDIASUBTYPE_IEEE_FLOAT : MEDIASUBTYPE_PCM;
+	mt.formattype = FORMAT_WaveFormatEx;
+
+	WAVEFORMATEXTENSIBLE wfex;
+	memset(&wfex, 0, sizeof(wfex));
+	WAVEFORMATEX* wfe = &wfex.Format;
+	wfe->wFormatTag = (WORD)mt.subtype.Data1;
+	wfe->nChannels = nChannels;
+	wfe->nSamplesPerSec = nSamplesPerSec;
+	switch(sf)
+	{
+	default:
+	case SF_PCM16: wfe->wBitsPerSample = 16; break;
+	case SF_PCM24: wfe->wBitsPerSample = 24; break;
+	case SF_PCM32: case SF_FLOAT32: wfe->wBitsPerSample = 32; break;
+	}
+	wfe->nBlockAlign = wfe->nChannels*wfe->wBitsPerSample/8;
+	wfe->nAvgBytesPerSec = wfe->nSamplesPerSec*wfe->nBlockAlign;
+
+	// FIXME: 24/32 bit only seems to work with WAVE_FORMAT_EXTENSIBLE
+	if(dwChannelMask == 0 && (sf == SF_PCM24 || sf == SF_PCM32))
+		dwChannelMask = nChannels == 2 ? (SPEAKER_FRONT_LEFT|SPEAKER_FRONT_RIGHT) : SPEAKER_FRONT_CENTER;
+
+	if(dwChannelMask)
+	{
+		wfex.Format.wFormatTag = WAVE_FORMAT_EXTENSIBLE;
+		wfex.Format.cbSize = sizeof(wfex) - sizeof(wfex.Format);
+		wfex.dwChannelMask = dwChannelMask;
+		wfex.Samples.wValidBitsPerSample = wfex.Format.wBitsPerSample;
+		wfex.SubFormat = mt.subtype;
+	}
+
+	mt.SetFormat((BYTE*)&wfex, sizeof(wfex.Format) + wfex.Format.cbSize);
+
+	return mt;
+}
+
+CMediaType CMpaDecFilter::CreateMediaTypeSPDIF()
+{
+	CMediaType mt = CreateMediaType(SF_PCM16, 48000, 2);
+	((WAVEFORMATEX*)mt.pbFormat)->wFormatTag = WAVE_FORMAT_DOLBY_AC3_SPDIF;
+	return mt;
+}
+
 HRESULT CMpaDecFilter::CheckInputType(const CMediaType* mtIn)
 {
 	// TODO: remove this limitation
@@ -957,35 +960,14 @@ HRESULT CMpaDecFilter::CheckInputType(const CMediaType* mtIn)
 			return VFW_E_TYPE_NOT_ACCEPTED;
 	}
 
-	return (mtIn->majortype == MEDIATYPE_Audio && mtIn->subtype == MEDIASUBTYPE_MP3
-			|| mtIn->majortype == MEDIATYPE_Audio && mtIn->subtype == MEDIASUBTYPE_MPEG1AudioPayload
-			|| mtIn->majortype == MEDIATYPE_Audio && mtIn->subtype == MEDIASUBTYPE_MPEG1Payload
-			|| mtIn->majortype == MEDIATYPE_Audio && mtIn->subtype == MEDIASUBTYPE_MPEG1Packet
-			|| mtIn->majortype == MEDIATYPE_DVD_ENCRYPTED_PACK && mtIn->subtype == MEDIASUBTYPE_MPEG2_AUDIO
-			|| mtIn->majortype == MEDIATYPE_MPEG2_PACK && mtIn->subtype == MEDIASUBTYPE_MPEG2_AUDIO
-			|| mtIn->majortype == MEDIATYPE_MPEG2_PES && mtIn->subtype == MEDIASUBTYPE_MPEG2_AUDIO
-			|| mtIn->majortype == MEDIATYPE_Audio && mtIn->subtype == MEDIASUBTYPE_MPEG2_AUDIO
-			|| mtIn->majortype == MEDIATYPE_DVD_ENCRYPTED_PACK && mtIn->subtype == MEDIASUBTYPE_DOLBY_AC3
-			|| mtIn->majortype == MEDIATYPE_MPEG2_PACK && mtIn->subtype == MEDIASUBTYPE_DOLBY_AC3
-			|| mtIn->majortype == MEDIATYPE_MPEG2_PES && mtIn->subtype == MEDIASUBTYPE_DOLBY_AC3
-			|| mtIn->majortype == MEDIATYPE_Audio && mtIn->subtype == MEDIASUBTYPE_DOLBY_AC3
-			|| mtIn->majortype == MEDIATYPE_Audio && mtIn->subtype == MEDIASUBTYPE_WAVE_DOLBY_AC3
-			|| mtIn->majortype == MEDIATYPE_DVD_ENCRYPTED_PACK && mtIn->subtype == MEDIASUBTYPE_DTS
-			|| mtIn->majortype == MEDIATYPE_MPEG2_PACK && mtIn->subtype == MEDIASUBTYPE_DTS
-			|| mtIn->majortype == MEDIATYPE_MPEG2_PES && mtIn->subtype == MEDIASUBTYPE_DTS
-			|| mtIn->majortype == MEDIATYPE_Audio && mtIn->subtype == MEDIASUBTYPE_DTS
-			|| mtIn->majortype == MEDIATYPE_Audio && mtIn->subtype == MEDIASUBTYPE_WAVE_DTS
-			|| mtIn->majortype == MEDIATYPE_DVD_ENCRYPTED_PACK && mtIn->subtype == MEDIASUBTYPE_DVD_LPCM_AUDIO
-			|| mtIn->majortype == MEDIATYPE_MPEG2_PACK && mtIn->subtype == MEDIASUBTYPE_DVD_LPCM_AUDIO
-			|| mtIn->majortype == MEDIATYPE_MPEG2_PES && mtIn->subtype == MEDIASUBTYPE_DVD_LPCM_AUDIO
-			|| mtIn->majortype == MEDIATYPE_Audio && mtIn->subtype == MEDIASUBTYPE_DVD_LPCM_AUDIO
-			|| mtIn->majortype == MEDIATYPE_DVD_ENCRYPTED_PACK && mtIn->subtype == MEDIASUBTYPE_AAC
-			|| mtIn->majortype == MEDIATYPE_MPEG2_PACK && mtIn->subtype == MEDIASUBTYPE_AAC
-			|| mtIn->majortype == MEDIATYPE_MPEG2_PES && mtIn->subtype == MEDIASUBTYPE_AAC
-			|| mtIn->majortype == MEDIATYPE_Audio && mtIn->subtype == MEDIASUBTYPE_AAC
-			)
-		? S_OK
-		: VFW_E_TYPE_NOT_ACCEPTED;
+	for(int i = 0; i < countof(sudPinTypesIn); i++)
+	{
+		if(*sudPinTypesIn[i].clsMajorType == mtIn->majortype
+		&& *sudPinTypesIn[i].clsMinorType == mtIn->subtype)
+			return S_OK;
+	}
+
+	return VFW_E_TYPE_NOT_ACCEPTED;
 }
 
 HRESULT CMpaDecFilter::CheckTransform(const CMediaType* mtIn, const CMediaType* mtOut)
@@ -1026,34 +1008,20 @@ HRESULT CMpaDecFilter::GetMediaType(int iPosition, CMediaType* pmt)
 
 	if(iPosition < 0) return E_INVALIDARG;
 	if(iPosition > 0) return VFW_S_NO_MORE_ITEMS;
-
-	pmt->majortype = MEDIATYPE_Audio;
-	pmt->subtype = MEDIASUBTYPE_PCM;
-	pmt->formattype = FORMAT_WaveFormatEx;
-
-	WAVEFORMATEX* wfe = (WAVEFORMATEX*)pmt->AllocFormatBuffer(sizeof(WAVEFORMATEX));
-	memset(wfe, 0, pmt->FormatLength());
-
-	const GUID& subtype = m_pInput->CurrentMediaType().subtype;
+	
+	CMediaType mt = m_pInput->CurrentMediaType();
+	const GUID& subtype = mt.subtype;
+	WAVEFORMATEX* wfe = (WAVEFORMATEX*)mt.Format();
 
 	if(GetSpeakerConfig(ac3) < 0 && (subtype == MEDIASUBTYPE_DOLBY_AC3 || subtype == MEDIASUBTYPE_WAVE_DOLBY_AC3)
 	|| GetSpeakerConfig(dts) < 0 && (subtype == MEDIASUBTYPE_DTS || subtype == MEDIASUBTYPE_WAVE_DTS))
 	{
-		wfe->wFormatTag = WAVE_FORMAT_DOLBY_AC3_SPDIF;
-		wfe->nChannels = 2;
-		wfe->wBitsPerSample = 16;
-		wfe->nSamplesPerSec = 48000;
+		*pmt = CreateMediaTypeSPDIF();
 	}
 	else
 	{
-		wfe->wFormatTag = WAVE_FORMAT_PCM;
-		wfe->nChannels = 2;
-		wfe->wBitsPerSample = 16;
-		wfe->nSamplesPerSec = 44100;
+		*pmt = CreateMediaType(GetSampleFormat(), wfe->nSamplesPerSec, min(2, wfe->nChannels));
 	}
-
-	wfe->nBlockAlign = wfe->nChannels*wfe->wBitsPerSample/8;
-	wfe->nAvgBytesPerSec = wfe->nSamplesPerSec*wfe->nBlockAlign;
 
 	return S_OK;
 }
@@ -1193,7 +1161,7 @@ aac_state_t::~aac_state_t()
 
 bool aac_state_t::init(CMediaType& mt)
 {
-	if(mt.subtype != MEDIASUBTYPE_AAC) return(true); // nothing to do
+	if(mt.subtype != MEDIASUBTYPE_AAC && mt.subtype != MEDIASUBTYPE_MP4A) return(true); // nothing to do
 	WAVEFORMATEX* wfe = (WAVEFORMATEX*)mt.Format();
 	return !NeAACDecInit2(h, (BYTE*)(wfe+1), wfe->cbSize, &freq, &channels);
 }

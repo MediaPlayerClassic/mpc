@@ -76,7 +76,7 @@ void memcpy_accel(void* dst, const void* src, size_t len)
 			mov     ecx, len
 			shr     ecx, 7
 	memcpy_accel_sse_loop:
-			prefetchnta	[esi]
+			prefetchnta	[esi+16*8]
 			movaps		xmm0, [esi]
 			movaps		xmm1, [esi+16*1]
 			movaps		xmm2, [esi+16*2]
@@ -434,10 +434,100 @@ bool BitBltFromI420ToYUY2(int w, int h, BYTE* dst, int dstpitch, BYTE* srcy, BYT
 	return(true);
 }
 
+bool BitBltFromRGBToRGB(int w, int h, BYTE* dst, int dstpitch, int dbpp, BYTE* src, int srcpitch, int sbpp)
+{
+	if(dbpp == sbpp)
+	{
+		int bytes = w*dbpp>>3;
+		for(int y = 0; y < h; y++, src += srcpitch, dst += dstpitch)
+			memcpy_accel(dst, src, bytes);
+		return(true);
+	}
+	
+	if(sbpp != 16 && sbpp != 24 && sbpp != 32
+	|| dbpp != 16 && dbpp != 24 && dbpp != 32)
+		return(false);
+
+	if(dbpp == 16)
+	{
+		for(int y = 0; y < h; y++, src += srcpitch, dst += dstpitch)
+		{
+			if(sbpp == 24)
+			{
+				BYTE* s = (BYTE*)src;
+				WORD* d = (WORD*)dst;
+				for(int x = 0; x < w; x++, s+=3, d++)
+					*d = (WORD)(((*((DWORD*)s)>>8)&0xf800)|((*((DWORD*)s)>>5)&0x07e0)|((*((DWORD*)s)>>3)&0x1f));
+			}
+			else if(sbpp == 32)
+			{
+				DWORD* s = (DWORD*)src;
+				WORD* d = (WORD*)dst;
+				for(int x = 0; x < w; x++, s++, d++)
+					*d = (WORD)(((*s>>8)&0xf800)|((*s>>5)&0x07e0)|((*s>>3)&0x1f));
+			}
+		}
+	}
+	else if(dbpp == 24)
+	{
+		for(int y = 0; y < h; y++, src += srcpitch, dst += dstpitch)
+		{
+			if(sbpp == 16)
+			{
+				WORD* s = (WORD*)src;
+				BYTE* d = (BYTE*)dst;
+				for(int x = 0; x < w; x++, s++, d+=3)
+				{	// not tested, r-g-b might be in reverse
+					d[0] = (*s&0x001f)<<3;
+					d[1] = (*s&0x07e0)<<5;
+					d[2] = (*s&0xf800)<<8;
+				}
+			}
+			else if(sbpp == 32)
+			{
+				BYTE* s = (BYTE*)src;
+				BYTE* d = (BYTE*)dst;
+				for(int x = 0; x < w; x++, s+=4, d+=3)
+					{d[0] = s[0]; d[1] = s[1]; d[2] = s[2];}
+			}
+		}
+	}
+	else if(dbpp == 32)
+	{
+		for(int y = 0; y < h; y++, src += srcpitch, dst += dstpitch)
+		{
+			if(sbpp == 16)
+			{
+				WORD* s = (WORD*)src;
+				DWORD* d = (DWORD*)dst;
+				for(int x = 0; x < w; x++, s++, d++)
+					*d = ((*s&0xf800)<<8)|((*s&0x07e0)<<5)|((*s&0x001f)<<3);
+			}
+			else if(sbpp == 24)
+			{	
+				BYTE* s = (BYTE*)src;
+				DWORD* d = (DWORD*)dst;
+				for(int x = 0; x < w; x++, s+=3, d++)
+					*d = *((DWORD*)s)&0xffffff;
+			}
+		}
+	}
+
+	return(true);
+}
+
 static void asm_blend_row_clipped_c(BYTE* dst, BYTE* src, DWORD w, DWORD srcpitch)
 {
 	BYTE* src2 = src + srcpitch;
 	do {*dst++ = (*src++ + *src2++ + 1) >> 1;}
+	while(w--);
+}
+
+static void asm_blend_row_c(BYTE* dst, BYTE* src, DWORD w, DWORD srcpitch)
+{
+	BYTE* src2 = src + srcpitch;
+	BYTE* src3 = src2 + srcpitch;
+	do {*dst++ = (*src++ + (*src2++ << 1) + *src3++ + 2) >> 2;}
 	while(w--);
 }
 
@@ -494,14 +584,6 @@ xloop:
 		pop		ebp
 		ret
 	};
-}
-
-static void asm_blend_row_c(BYTE* dst, BYTE* src, DWORD w, DWORD srcpitch)
-{
-	BYTE* src2 = src + srcpitch;
-	BYTE* src3 = src2 + srcpitch;
-	do {*dst++ = (*src++ + (*src2++ << 1) + *src3++ + 2) >> 2;}
-	while(w--);
 }
 
 static void __declspec(naked) asm_blend_row_MMX(BYTE* dst, BYTE* src, DWORD w, DWORD srcpitch)
@@ -631,86 +713,103 @@ nooddpart:
 	};
 }
 
-bool BitBltFromRGBToRGB(int w, int h, BYTE* dst, int dstpitch, int dbpp, BYTE* src, int srcpitch, int sbpp)
+__declspec(align(16)) static BYTE const_1_16_bytes[] = {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1};
+
+static void asm_blend_row_SSE2(BYTE* dst, BYTE* src, DWORD w, DWORD srcpitch)
 {
-	if(dbpp == sbpp)
+	__asm
 	{
-		int bytes = w*dbpp>>3;
-		for(int y = 0; y < h; y++, src += srcpitch, dst += dstpitch)
-			memcpy_accel(dst, src, bytes);
-		return(true);
-	}
-	
-	if(sbpp != 16 && sbpp != 24 && sbpp != 32
-	|| dbpp != 16 && dbpp != 24 && dbpp != 32)
-		return(false);
+		mov edx, srcpitch
+		mov esi, src
+		mov edi, dst
+		sub edi, esi
+		mov ecx, w
+		mov ebx, ecx
+		shr ecx, 4
+		and ebx, 15
 
-	if(dbpp == 16)
-	{
-		for(int y = 0; y < h; y++, src += srcpitch, dst += dstpitch)
-		{
-			if(sbpp == 24)
-			{
-				BYTE* s = (BYTE*)src;
-				WORD* d = (WORD*)dst;
-				for(int x = 0; x < w; x++, s+=3, d++)
-					*d = (WORD)(((*((DWORD*)s)>>8)&0xf800)|((*((DWORD*)s)>>5)&0x07e0)|((*((DWORD*)s)>>3)&0x1f));
-			}
-			else if(sbpp == 32)
-			{
-				DWORD* s = (DWORD*)src;
-				WORD* d = (WORD*)dst;
-				for(int x = 0; x < w; x++, s++, d++)
-					*d = (WORD)(((*s>>8)&0xf800)|((*s>>5)&0x07e0)|((*s>>3)&0x1f));
-			}
-		}
-	}
-	else if(dbpp == 24)
-	{
-		for(int y = 0; y < h; y++, src += srcpitch, dst += dstpitch)
-		{
-			if(sbpp == 16)
-			{
-				WORD* s = (WORD*)src;
-				BYTE* d = (BYTE*)dst;
-				for(int x = 0; x < w; x++, s++, d+=3)
-				{	// not tested, r-g-b might be in reverse
-					d[0] = (*s&0x001f)<<3;
-					d[1] = (*s&0x07e0)<<5;
-					d[2] = (*s&0xf800)<<8;
-				}
-			}
-			else if(sbpp == 32)
-			{
-				BYTE* s = (BYTE*)src;
-				BYTE* d = (BYTE*)dst;
-				for(int x = 0; x < w; x++, s+=4, d+=3)
-					{d[0] = s[0]; d[1] = s[1]; d[2] = s[2];}
-			}
-		}
-	}
-	else if(dbpp == 32)
-	{
-		for(int y = 0; y < h; y++, src += srcpitch, dst += dstpitch)
-		{
-			if(sbpp == 16)
-			{
-				WORD* s = (WORD*)src;
-				DWORD* d = (DWORD*)dst;
-				for(int x = 0; x < w; x++, s++, d++)
-					*d = ((*s&0xf800)<<8)|((*s&0x07e0)<<5)|((*s&0x001f)<<3);
-			}
-			else if(sbpp == 24)
-			{	
-				BYTE* s = (BYTE*)src;
-				DWORD* d = (DWORD*)dst;
-				for(int x = 0; x < w; x++, s+=3, d++)
-					*d = *((DWORD*)s)&0xffffff;
-			}
-		}
-	}
+		movdqa xmm7, [const_1_16_bytes] 
 
-	return(true);
+asm_blend_row_SSE2_loop:
+		movdqa xmm0, [esi]
+		movdqa xmm1, [esi+edx]
+		movdqa xmm2, [esi+edx*2]
+		pavgb xmm0, xmm1
+		pavgb xmm2, xmm1
+		psubusb xmm0, xmm7
+		pavgb xmm0, xmm2
+		movdqa [esi+edi], xmm0
+		add esi, 16
+		loop asm_blend_row_SSE2_loop
+
+		test ebx,15
+		jz asm_blend_row_SSE2_end
+
+		mov ecx, ebx
+		xor ax, ax
+		xor bx, bx
+		xor dx, dx
+asm_blend_row_SSE2_loop2:
+		mov al, [esi]
+		mov bl, [esi+edx]
+		mov dl, [esi+edx*2]
+		add ax, bx
+		inc ax
+		shr ax, 1
+		add dx, bx
+		inc dx
+		shr dx, 1
+		add ax, dx
+		shr ax, 1
+		mov [esi+edi], al
+		inc esi
+		loop asm_blend_row_SSE2_loop2
+
+asm_blend_row_SSE2_end:
+	}
+}
+
+static void asm_blend_row_clipped_SSE2(BYTE* dst, BYTE* src, DWORD w, DWORD srcpitch)
+{
+	__asm
+	{
+		mov edx, srcpitch
+		mov esi, src
+		mov edi, dst
+		sub edi, esi
+		mov ecx, w
+		mov ebx, ecx
+		shr ecx, 4
+		and ebx, 15
+
+		movdqa xmm7, [const_1_16_bytes] 
+
+asm_blend_row_clipped_SSE2_loop:
+		movdqa xmm0, [esi]
+		movdqa xmm1, [esi+edx]
+		pavgb xmm0, xmm1
+		movdqa [esi+edi], xmm0
+		add esi, 16
+		loop asm_blend_row_clipped_SSE2_loop
+
+		test ebx,15
+		jz asm_blend_row_clipped_SSE2_end
+
+		mov ecx, ebx
+		xor ax, ax
+		xor bx, bx
+asm_blend_row_clipped_SSE2_loop2:
+		mov al, [esi]
+		mov bl, [esi+edx]
+		add ax, bx
+		inc ax
+		shr ax, 1
+		mov [esi+edi], al
+		inc esi
+		loop asm_blend_row_clipped_SSE2_loop2
+
+asm_blend_row_clipped_SSE2_end:
+	}
 }
 
 void DeinterlaceBlend(BYTE* dst, BYTE* src, DWORD rowbytes, DWORD h, DWORD pitch)
@@ -718,7 +817,12 @@ void DeinterlaceBlend(BYTE* dst, BYTE* src, DWORD rowbytes, DWORD h, DWORD pitch
 	void (*asm_blend_row_clipped)(BYTE* dst, BYTE* src, DWORD w, DWORD srcpitch) = NULL;
 	void (*asm_blend_row)(BYTE* dst, BYTE* src, DWORD w, DWORD srcpitch) = NULL;
 
-	if(g_cpuid.m_flags & CCpuID::flag_t::mmx)
+	if((g_cpuid.m_flags & CCpuID::flag_t::sse2) && !((DWORD)src&0xf) && !((DWORD)dst&0xf) && !(pitch&0xf))
+	{
+		asm_blend_row_clipped = asm_blend_row_clipped_SSE2;
+		asm_blend_row = asm_blend_row_SSE2;
+	}
+	else if(g_cpuid.m_flags & CCpuID::flag_t::mmx)
 	{
 		asm_blend_row_clipped = asm_blend_row_clipped_MMX;
 		asm_blend_row = asm_blend_row_MMX;
@@ -759,55 +863,92 @@ void AvgLines8(BYTE* dst, DWORD h, DWORD pitch)
 	{
 		BYTE* tmp = s;
 
-		__asm
+		if((g_cpuid.m_flags & CCpuID::flag_t::sse2) && !((DWORD)tmp&0xf) && !((DWORD)pitch&0xf))
 		{
-			mov		esi, tmp
-			mov		ebx, pitch
+			__asm
+			{
+				mov		esi, tmp
+				mov		ebx, pitch
 
-			mov		ecx, ebx
-			shr		ecx, 3
+				mov		ecx, ebx
+				shr		ecx, 4
 
-			pxor	mm7, mm7
-AvgLines8_loop:
-			movq	mm0, [esi]
-			movq	mm1, mm0
+AvgLines8_sse2_loop:
+				movdqa xmm0, [esi]
+				movdqa xmm1, [esi+ebx*2]
+				pavgb xmm0, xmm1
+				movdqa [esi+ebx], xmm0
+				add esi, 16
 
-			punpcklbw	mm0, mm7
-			punpckhbw	mm1, mm7
+				loop AvgLines8_sse2_loop
 
-			movq	mm2, [esi+ebx*2]
-			movq	mm3, mm2
+				mov		tmp, esi
+			}
 
-			punpcklbw	mm2, mm7
-			punpckhbw	mm3, mm7
-
-			paddw	mm0, mm2
-			psrlw	mm0, 1
-
-			paddw	mm1, mm3
-			psrlw	mm1, 1
-
-			packuswb	mm0, mm1
-
-			movq	[esi+ebx], mm0
-
-			lea		esi, [esi+8]
-
-			loop	AvgLines8_loop
-
-			mov		tmp, esi
+			for(int i = pitch&7; i--; tmp++)
+			{
+				tmp[pitch] = (tmp[0] + tmp[pitch<<1] + 1) >> 1;
+			}
 		}
-
-		for(int i = pitch&7; i--; tmp++)
+		else if(g_cpuid.m_flags & CCpuID::flag_t::mmx)
 		{
-			tmp[pitch] = (tmp[0] + tmp[pitch<<1]) >> 1;
+			__asm
+			{
+				mov		esi, tmp
+				mov		ebx, pitch
+
+				mov		ecx, ebx
+				shr		ecx, 3
+
+				pxor	mm7, mm7
+AvgLines8_mmx_loop:
+				movq	mm0, [esi]
+				movq	mm1, mm0
+
+				punpcklbw	mm0, mm7
+				punpckhbw	mm1, mm7
+
+				movq	mm2, [esi+ebx*2]
+				movq	mm3, mm2
+
+				punpcklbw	mm2, mm7
+				punpckhbw	mm3, mm7
+
+				paddw	mm0, mm2
+				psrlw	mm0, 1
+
+				paddw	mm1, mm3
+				psrlw	mm1, 1
+
+				packuswb	mm0, mm1
+
+				movq	[esi+ebx], mm0
+
+				lea		esi, [esi+8]
+
+				loop	AvgLines8_mmx_loop
+
+				mov		tmp, esi
+			}
+
+			for(int i = pitch&7; i--; tmp++)
+			{
+				tmp[pitch] = (tmp[0] + tmp[pitch<<1] + 1) >> 1;
+			}
+		}
+		else
+		{
+			for(int i = pitch; i--; tmp++)
+			{
+				tmp[pitch] = (tmp[0] + tmp[pitch<<1] + 1) >> 1;
+			}
 		}
 	}
 
 	if(!(h&1) && h >= 2)
 	{
 		dst += (h-2)*pitch;
-		memcpy(dst + pitch, dst, pitch);
+		memcpy_accel(dst + pitch, dst, pitch);
 	}
 
 	__asm emms;
@@ -892,7 +1033,7 @@ AvgLines555_loop:
 	if(!(h&1) && h >= 2)
 	{
 		dst += (h-2)*pitch;
-		memcpy(dst + pitch, dst, pitch);
+		memcpy_accel(dst + pitch, dst, pitch);
 	}
 
 	__asm emms;
@@ -977,7 +1118,7 @@ AvgLines565_loop:
 	if(!(h&1) && h >= 2)
 	{
 		dst += (h-2)*pitch;
-		memcpy(dst + pitch, dst, pitch);
+		memcpy_accel(dst + pitch, dst, pitch);
 	}
 
 	__asm emms;

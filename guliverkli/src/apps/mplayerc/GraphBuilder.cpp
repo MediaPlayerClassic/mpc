@@ -715,7 +715,8 @@ HRESULT CGraphBuilder::Render(LPCTSTR lpsz)
 			CList<CString> mms;
 			CString ct = GetContentType(fn, &mms); // TODO: if there are more to check, do GetContentType only once
 			if(ct == _T("video/x-ms-asf") || ct == _T("video/x-ms-wmv")
-			|| ct == _T("video/x-ms-wvx") || ct == _T("video/x-ms-wax"))
+			|| ct == _T("video/x-ms-wvx") || ct == _T("video/x-ms-wax")
+			|| ct == _T("video/x-ms-wmp"))
 			{
 				if(!mms.IsEmpty()) fnw = mms.GetHead();
 				fnw.Replace(L"&MSWMExt=.asf", L"");

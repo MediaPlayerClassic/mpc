@@ -80,6 +80,7 @@ HRESULT CSubtitleInputPin::CompleteConnect(IPin* pReceivePin)
 
 		CString name = ISO6392ToLanguage(psi->IsoLang);
 		if(name.IsEmpty()) name = _T("English");
+		if(wcslen(psi->TrackName) > 0) name += _T(" (") + CString(psi->TrackName) + _T(")");
 
 		if(m_mt.subtype == MEDIASUBTYPE_UTF8 /*|| m_mt.subtype == MEDIASUBTYPE_USF*/
 		|| m_mt.subtype == MEDIASUBTYPE_SSA || m_mt.subtype == MEDIASUBTYPE_ASS)

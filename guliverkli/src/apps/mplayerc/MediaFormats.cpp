@@ -241,8 +241,17 @@ engine_t CMediaFormats::GetEngine(CString path)
 		return m_iRtspHandler;
 
 	CString ext = CPath(path).GetExtension();
+	ext.MakeLower();
 	if(!ext.IsEmpty())
 	{
+		if(path.Find(_T("rtsp://")) == 0)
+		{
+			if(ext == _T(".ram") || ext == _T(".rm") || ext == _T(".ra"))
+				return RealMedia;
+			if(ext == _T(".qt") || ext == _T(".mov"))
+				return QuickTime;
+		}
+
 		for(int i = 0; i < GetCount(); i++)
 		{
 			CMediaFormatCategory& mfc = GetAt(i);

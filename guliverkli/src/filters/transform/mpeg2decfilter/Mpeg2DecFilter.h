@@ -23,6 +23,7 @@
 
 #include <atlcoll.h>
 #include <afxtempl.h>
+#include <Videoacc.h>
 #include "IMpeg2DecFilter.h"
 #include "..\..\..\decss\DeCSSInputPin.h"
 
@@ -249,4 +250,122 @@ public:
 	CMediaType& CurrentMediaType() {return m_mt;}
 };
 
+///////////////////////
 
+class CDXVAInputPin : public CTransformInputPin, public IAMVideoAccelerator
+{
+public:
+	CDXVAInputPin(CTransformFilter* pTransformFilter, HRESULT* phr);
+
+	DECLARE_IUNKNOWN
+    STDMETHODIMP NonDelegatingQueryInterface(REFIID riid, void** ppv);
+
+	// IAMVideoAccelerator
+
+    STDMETHODIMP GetVideoAcceleratorGUIDs(LPDWORD pdwNumGuidsSupported, LPGUID pGuidsSupported);
+    STDMETHODIMP GetUncompFormatsSupported(const GUID *pGuid, LPDWORD pdwNumFormatsSupported, LPDDPIXELFORMAT pFormatsSupported);        
+    STDMETHODIMP GetInternalMemInfo(const GUID *pGuid, const AMVAUncompDataInfo *pamvaUncompDataInfo, LPAMVAInternalMemInfo pamvaInternalMemInfo);
+    STDMETHODIMP GetCompBufferInfo(const GUID *pGuid, const AMVAUncompDataInfo *pamvaUncompDataInfo, LPDWORD pdwNumTypesCompBuffers, LPAMVACompBufferInfo pamvaCompBufferInfo);
+    STDMETHODIMP GetInternalCompBufferInfo(LPDWORD pdwNumTypesCompBuffers, LPAMVACompBufferInfo pamvaCompBufferInfo);
+    STDMETHODIMP BeginFrame(const AMVABeginFrameInfo *amvaBeginFrameInfo);
+    STDMETHODIMP EndFrame(const AMVAEndFrameInfo *pEndFrameInfo);
+	STDMETHODIMP GetBuffer(DWORD dwTypeIndex, DWORD dwBufferIndex, BOOL bReadOnly, LPVOID *ppBuffer, LONG *lpStride);
+    STDMETHODIMP ReleaseBuffer(DWORD dwTypeIndex, DWORD dwBufferIndex);
+    STDMETHODIMP Execute(DWORD dwFunction, LPVOID lpPrivateInputData, DWORD cbPrivateInputData, LPVOID lpPrivateOutputDat, DWORD cbPrivateOutputData, DWORD dwNumBuffers, const AMVABUFFERINFO* pamvaBufferInfo);
+    STDMETHODIMP QueryRenderStatus(DWORD dwTypeIndex, DWORD dwBufferIndex, DWORD dwFlags);
+    STDMETHODIMP DisplayFrame(DWORD dwFlipToIndex, IMediaSample* pMediaSample);
+};
+
+class CDXVAOutputPin : public CTransformOutputPin, public IAMVideoAcceleratorNotify
+{
+public:
+	CDXVAOutputPin(CTransformFilter* pTransformFilter, HRESULT* phr);
+
+	DECLARE_IUNKNOWN
+    STDMETHODIMP NonDelegatingQueryInterface(REFIID riid, void** ppv);
+
+    HRESULT CheckConnect(IPin *pPin)
+	{
+		HRESULT hr = m_pTransformFilter->CheckConnect(PINDIR_OUTPUT,pPin);
+		if (FAILED(hr)) {
+			return hr;
+		}
+		return CBaseOutputPin::CheckConnect(pPin);
+	}
+
+    HRESULT BreakConnect()
+	{
+		//  Can't disconnect unless stopped
+		ASSERT(IsStopped());
+		m_pTransformFilter->BreakConnect(PINDIR_OUTPUT);
+		return CBaseOutputPin::BreakConnect();
+	}
+
+    HRESULT CompleteConnect(IPin *pReceivePin)
+	{
+		HRESULT hr = m_pTransformFilter->CompleteConnect(PINDIR_OUTPUT,pReceivePin);
+		if (FAILED(hr)) {
+			return hr;
+		}
+		return CBaseOutputPin::CompleteConnect(pReceivePin);
+	}
+
+    HRESULT CheckMediaType(const CMediaType* mtOut)
+	{
+		return S_OK;
+	}
+
+    HRESULT SetMediaType(const CMediaType *pmtOut)
+	{
+		// Set the base class media type (should always succeed)
+		HRESULT hr = CBasePin::SetMediaType(pmtOut);
+		if (FAILED(hr)) {
+			return hr;
+		}
+		return m_pTransformFilter->SetMediaType(PINDIR_OUTPUT,pmtOut);
+	}
+
+	HRESULT GetMediaType(int iPosition,CMediaType *pMediaType)
+	{
+        return m_pTransformFilter->GetMediaType(iPosition,pMediaType);
+	}
+
+    // IAMVideoAcceleratorNotify
+
+	STDMETHODIMP GetUncompSurfacesInfo(const GUID *pGuid, LPAMVAUncompBufferInfo pUncompBufferInfo);
+	STDMETHODIMP SetUncompSurfacesInfo(DWORD dwActualUncompSurfacesAllocated);
+	STDMETHODIMP GetCreateVideoAcceleratorData(const GUID *pGuid, LPDWORD pdwSizeMiscData, LPVOID *ppMiscData);
+};
+
+[uuid("9396298F-8676-44F3-8557-C3C23B642DF7")]
+class CDXVAFilter : public CTransformFilter
+{
+	CDXVAInputPin* m_pDXVAInput;
+	CDXVAOutputPin* m_pDXVAOutput;
+
+	CComQIPtr<IAMVideoAcceleratorNotify> m_pIAMVANotify;
+	CComQIPtr<IAMVideoAccelerator> m_pIAMVA;
+
+	friend class CDXVAInputPin;
+	friend class CDXVAOutputPin;
+
+public:
+	CDXVAFilter(LPUNKNOWN lpunk, HRESULT* phr);
+	virtual ~CDXVAFilter();
+
+#ifdef REGISTER_FILTER
+    static CUnknown* WINAPI CreateInstance(LPUNKNOWN lpunk, HRESULT* phr);
+#endif
+
+	DECLARE_IUNKNOWN
+    STDMETHODIMP NonDelegatingQueryInterface(REFIID riid, void** ppv);
+
+    HRESULT CheckConnect(PIN_DIRECTION dir,IPin *pPin);
+    HRESULT BreakConnect(PIN_DIRECTION dir);
+    HRESULT CompleteConnect(PIN_DIRECTION direction,IPin *pReceivePin);
+
+	HRESULT CheckInputType(const CMediaType* mtIn);
+    HRESULT CheckTransform(const CMediaType* mtIn, const CMediaType* mtOut);
+    HRESULT DecideBufferSize(IMemAllocator* pAllocator, ALLOCATOR_PROPERTIES* pProperties);
+    HRESULT GetMediaType(int iPosition, CMediaType* pMediaType);
+};

@@ -60,6 +60,7 @@ DEFINE_GUID(FORMAT_SubtitleInfo,
 typedef struct {
 	DWORD dwOffset;	
 	CHAR IsoLang[4]; // three letter lang code + terminating zero
+	WCHAR TrackName[256]; // 256 bytes ought to be enough for everyone :)
 } SUBTITLEINFO;
 #pragma pack(pop)
 

@@ -242,6 +242,6 @@
 	<Globals>
 		<Global
 			Name="DevPartner_IsInstrumented"
-			Value="1"/>
+			Value="0"/>
 	</Globals>
 </VisualStudioProject>
