@@ -1,5 +1,5 @@
 /* 
- *	Copyright (C) 2003 Gabest
+ *	Copyright (C) 2003-2004 Gabest
  *	http://www.gabest.org
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -179,7 +179,7 @@ CDTSAC3Stream::CDTSAC3Stream(const WCHAR* wfn, CSource* pParent, HRESULT* phr)
 		int deficitsamplecount = (buff[0]>>2)&31; // 5
 		int crcpresent = (buff[0]>>1)&1; // 1
 		int npcmsampleblocks = ((buff[0]&1)<<6)|(buff[1]>>2); // 7
-		int framebytes = ((buff[1]&3)<<12)|(buff[2]<<4)|(buff[3]>>4); // 14
+		int framebytes = (((buff[1]&3)<<12)|(buff[2]<<4)|(buff[3]>>4)) + 1; // 14
 		int audiochannelarrangement = (buff[3]&15)<<2|(buff[4]>>6); // 6
 		int freq = (buff[4]>>2)&15; // 4
 		int transbitrate = ((buff[4]&3)<<3)|(buff[5]>>5); // 5
@@ -205,7 +205,7 @@ CDTSAC3Stream::CDTSAC3Stream(const WCHAR* wfn, CSource* pParent, HRESULT* phr)
 		m_nSamplesPerSec = freqtbl[freq];
 		m_nAvgBytesPerSec = (bitratetbl[transbitrate] + 4) / 8;
 //		m_nBytesPerFrame = m_nAvgBytesPerSec*10.656063618290258449304174950298/1000 + 0.5;
-		m_nBytesPerFrame = 2013; //framebytes;
+		m_nBytesPerFrame = framebytes;
 		m_AvgTimePerFrame = 10000000i64 * m_nBytesPerFrame * 8 / bitratetbl[transbitrate];
 
 		m_subtype = MEDIASUBTYPE_DTS;

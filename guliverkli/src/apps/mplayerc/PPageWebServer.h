@@ -1,5 +1,5 @@
 /* 
- *	Media Player Classic.  Copyright (C) 2003 Gabest
+ *	Copyright (C) 2003-2004 Gabest
  *	http://www.gabest.org
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -20,6 +20,7 @@
  */
 
 #pragma once
+
 #include "PPageBase.h"
 #include "FloatEdit.h"
 #include "StaticLink.h"
@@ -42,15 +43,17 @@ public:
 	int m_nWebServerPort;
 	CIntEdit m_nWebServerPortCtrl;
 	CStaticLink m_launch;
+	BOOL m_fWebServerPrintDebugInfo;
+	BOOL m_fWebServerUseCompression;
 
 protected:
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV support
 	virtual BOOL OnInitDialog();
 	virtual BOOL OnApply();
+	virtual BOOL PreTranslateMessage(MSG* pMsg);
 
 	DECLARE_MESSAGE_MAP()
 
 public:
 	afx_msg void OnEnChangeEdit1();
-	virtual BOOL PreTranslateMessage(MSG* pMsg);
 };

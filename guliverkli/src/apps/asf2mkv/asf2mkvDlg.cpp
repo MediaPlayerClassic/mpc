@@ -1,5 +1,5 @@
 /* 
- *	Copyright (C) 2003 Gabest
+ *	Copyright (C) 2003-2004 Gabest
  *	http://www.gabest.org
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -25,7 +25,6 @@
 #include "stdafx.h"
 #include "asf2mkv.h"
 #include "asf2mkvDlg.h"
-#include ".\asf2mkvdlg.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -302,6 +301,7 @@ void Casf2mkvDlg::OnRecord()
 
 			CComPtr<IBaseFilter> pMux;
 			if(FAILED(hr = pMux.CoCreateInstance(__uuidof(CMatroskaMuxerFilter)))
+				&& !(pMux = new CMatroskaMuxerFilter(NULL, NULL))
 			|| FAILED(hr = pGB->AddFilter(pMux, L"Matroska Muxer")))
 				break;
 
@@ -335,7 +335,7 @@ void Casf2mkvDlg::OnRecord()
 				|| FAILED(pPin->ConnectionMediaType(&mt)))
 					continue;
 
-				// FIXME: the inf pin tee filter makes the video messe up, like when seeking 
+				// FIXME: the inf pin tee filter makes the video messed up, like when seeking 
 				// onto a non-keyframe and starting to decode from that point. (audio seems to be ok)
 
 				CComPtr<IBaseFilter> pInfPinTee;

@@ -5,6 +5,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MpaDecFilter", "MpaDecFilte
 		{1A2DFD1A-3C6C-44D1-909D-294AF646B575} = {1A2DFD1A-3C6C-44D1-909D-294AF646B575}
 		{F41A1760-85B4-4819-BEE5-E120D76C9994} = {F41A1760-85B4-4819-BEE5-E120D76C9994}
 		{FC70988B-1AE5-4381-866D-4F405E28AC42} = {FC70988B-1AE5-4381-866D-4F405E28AC42}
+		{62FE6D94-E17C-4A8E-8D3C-7A589A70D865} = {62FE6D94-E17C-4A8E-8D3C-7A589A70D865}
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "dsutil", "..\..\..\dsutil\dsutil.vcproj", "{FC70988B-1AE5-4381-866D-4F405E28AC42}"
@@ -20,6 +21,10 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libmad", "libmad-0.15.0b\ms
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "decss", "..\..\..\decss\decss.vcproj", "{1A2DFD1A-3C6C-44D1-909D-294AF646B575}"
+	ProjectSection(ProjectDependencies) = postProject
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "liba52", "a52dec-0.7.4\vc++\liba52.vcproj", "{62FE6D94-E17C-4A8E-8D3C-7A589A70D865}"
 	ProjectSection(ProjectDependencies) = postProject
 	EndProjectSection
 EndProject
@@ -115,6 +120,22 @@ Global
 		{1A2DFD1A-3C6C-44D1-909D-294AF646B575}.Release Unicode.Build.0 = Release Unicode|Win32
 		{1A2DFD1A-3C6C-44D1-909D-294AF646B575}.Release Unicode lib.ActiveCfg = Release Unicode|Win32
 		{1A2DFD1A-3C6C-44D1-909D-294AF646B575}.Release Unicode lib.Build.0 = Release Unicode|Win32
+		{62FE6D94-E17C-4A8E-8D3C-7A589A70D865}.Debug.ActiveCfg = Debug|Win32
+		{62FE6D94-E17C-4A8E-8D3C-7A589A70D865}.Debug.Build.0 = Debug|Win32
+		{62FE6D94-E17C-4A8E-8D3C-7A589A70D865}.Debug lib.ActiveCfg = Debug|Win32
+		{62FE6D94-E17C-4A8E-8D3C-7A589A70D865}.Debug lib.Build.0 = Debug|Win32
+		{62FE6D94-E17C-4A8E-8D3C-7A589A70D865}.Debug Unicode.ActiveCfg = Debug|Win32
+		{62FE6D94-E17C-4A8E-8D3C-7A589A70D865}.Debug Unicode.Build.0 = Debug|Win32
+		{62FE6D94-E17C-4A8E-8D3C-7A589A70D865}.Debug Unicode lib.ActiveCfg = Debug|Win32
+		{62FE6D94-E17C-4A8E-8D3C-7A589A70D865}.Debug Unicode lib.Build.0 = Debug|Win32
+		{62FE6D94-E17C-4A8E-8D3C-7A589A70D865}.Release.ActiveCfg = Release|Win32
+		{62FE6D94-E17C-4A8E-8D3C-7A589A70D865}.Release.Build.0 = Release|Win32
+		{62FE6D94-E17C-4A8E-8D3C-7A589A70D865}.Release lib.ActiveCfg = Release|Win32
+		{62FE6D94-E17C-4A8E-8D3C-7A589A70D865}.Release lib.Build.0 = Release|Win32
+		{62FE6D94-E17C-4A8E-8D3C-7A589A70D865}.Release Unicode.ActiveCfg = Release|Win32
+		{62FE6D94-E17C-4A8E-8D3C-7A589A70D865}.Release Unicode.Build.0 = Release|Win32
+		{62FE6D94-E17C-4A8E-8D3C-7A589A70D865}.Release Unicode lib.ActiveCfg = Release|Win32
+		{62FE6D94-E17C-4A8E-8D3C-7A589A70D865}.Release Unicode lib.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 	EndGlobalSection

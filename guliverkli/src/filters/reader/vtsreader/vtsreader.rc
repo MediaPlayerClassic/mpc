@@ -48,7 +48,7 @@ BEGIN
             VALUE "FileDescription", "VTS Reader Filter"
             VALUE "FileVersion", "1, 0, 0, 0"
             VALUE "InternalName", "VTS Reader Filter"
-            VALUE "LegalCopyright", "Copyright (C) 2003"
+            VALUE "LegalCopyright", "Copyright (C) 2003-2004 Gabest"
             VALUE "OriginalFilename", "VTSReader.ax"
             VALUE "ProductName", "VTS Reader Filter"
             VALUE "ProductVersion", "1, 0, 0, 0"

@@ -1,5 +1,5 @@
 /* 
- *	Media Player Classic.  Copyright (C) 2003 Gabest
+ *	Copyright (C) 2003-2004 Gabest
  *	http://www.gabest.org
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -20,9 +20,8 @@
  */
 
 #pragma once
-#include "afxcmn.h"
+
 #include "PPageBase.h"
-#include "afxwin.h"
 
 // CPPagePlayer dialog
 

@@ -1,5 +1,5 @@
 /* 
- *	Media Player Classic.  Copyright (C) 2003 Gabest
+ *	Copyright (C) 2003-2004 Gabest
  *	http://www.gabest.org
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -20,8 +20,8 @@
  */
 
 #pragma once
+
 #include "PPageBase.h"
-#include "afxwin.h"
 
 // CPPageFilters dialog
 
@@ -62,4 +62,7 @@ public:
 	BOOL m_radgt;
 	BOOL m_roq;
 	BOOL m_ogg;
+	BOOL m_lpcm;
+	BOOL m_ac3;
+	BOOL m_dts;
 };

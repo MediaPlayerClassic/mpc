@@ -14,6 +14,11 @@
 //	You should have received a copy of the GNU General Public License
 //	along with this program; if not, write to the Free Software
 //	Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+//
+//  Notes: 
+//  - BitBltFromI420ToRGB is from VirtualDub
+//	- The core assembly function of CCpuID is from DVD2AVI
+//	(- vd.cpp/h should be renamed to something more sensible already :)
 
 #pragma once
 
@@ -29,4 +34,8 @@ extern bool BitBltFromYUY2ToYUY2(int w, int h, BYTE* dst, int dstpitch, BYTE* sr
 extern bool BitBltFromRGBToRGB(int w, int h, BYTE* dst, int dstpitch, int dbpp, BYTE* src, int srcpitch, int sbpp);
 
 extern void DeinterlaceBlend(BYTE* dst, BYTE* src, DWORD rowbytes, DWORD h, DWORD pitch);
+
+extern void AvgLines8(BYTE* dst, DWORD h, DWORD pitch);
+extern void AvgLines555(BYTE* dst, DWORD h, DWORD pitch);
+extern void AvgLines565(BYTE* dst, DWORD h, DWORD pitch);
 

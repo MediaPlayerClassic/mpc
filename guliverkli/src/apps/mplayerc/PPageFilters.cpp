@@ -1,7 +1,7 @@
 
 
 /* 
- *	Media Player Classic.  Copyright (C) 2003 Gabest
+ *	Copyright (C) 2003-2004 Gabest
  *	http://www.gabest.org
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -28,7 +28,6 @@
 #include "mplayerc.h"
 #include "PPageFilters.h"
 
-
 // CPPageFilters dialog
 
 IMPLEMENT_DYNAMIC(CPPageFilters, CPPageBase)
@@ -51,6 +50,9 @@ CPPageFilters::CPPageFilters()
 	, m_mpa(FALSE)
 	, m_radgt(FALSE)
 	, m_ogg(FALSE)
+	, m_ac3(FALSE)
+	, m_dts(FALSE)
+	, m_lpcm(FALSE)
 {
 }
 
@@ -79,8 +81,10 @@ void CPPageFilters::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_CHECK_RADGT, m_radgt);
 	DDX_Check(pDX, IDC_CHECK_ROQ, m_roq);
 	DDX_Check(pDX, IDC_CHECK_OGG, m_ogg);
+	DDX_Check(pDX, IDC_CHECK_LPCM, m_lpcm);
+	DDX_Check(pDX, IDC_CHECK_AC3, m_ac3);
+	DDX_Check(pDX, IDC_CHECK_DTS, m_dts);
 }
-
 
 BEGIN_MESSAGE_MAP(CPPageFilters, CPPageBase)
 END_MESSAGE_MAP()
@@ -112,6 +116,9 @@ BOOL CPPageFilters::OnInitDialog()
 	m_radgt = !!(s.SrcFilters&SRC_RADGT);
 	m_roq = !!(s.SrcFilters&SRC_ROQ);
 	m_ogg = !!(s.SrcFilters&SRC_OGG);
+	m_lpcm = !!(s.TraFilters&TRA_LPCM);
+	m_ac3 = !!(s.TraFilters&TRA_AC3);
+	m_dts = !!(s.TraFilters&TRA_DTS);
 
 	UpdateData(FALSE);
 
@@ -146,6 +153,9 @@ BOOL CPPageFilters::OnApply()
 	if(m_radgt) s.SrcFilters |= SRC_RADGT;
 	if(m_roq) s.SrcFilters |= SRC_ROQ;
 	if(m_ogg) s.SrcFilters |= SRC_OGG;
+	if(m_lpcm) s.TraFilters |= TRA_LPCM;
+	if(m_ac3) s.TraFilters |= TRA_AC3;
+	if(m_dts) s.TraFilters |= TRA_DTS;
 
 	return __super::OnApply();
 }

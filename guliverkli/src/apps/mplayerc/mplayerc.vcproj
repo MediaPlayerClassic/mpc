@@ -652,6 +652,9 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath=".\PPageAudioDecoder.cpp">
+			</File>
+			<File
 				RelativePath="PPageAudioSwitcher.cpp">
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
@@ -1268,6 +1271,9 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath=".\PPageAudioDecoder.h">
+			</File>
+			<File
 				RelativePath="PPageAudioSwitcher.h">
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
@@ -1551,6 +1557,9 @@
 			Name="Resource Files"
 			Filter="ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe">
 			<File
+				RelativePath="res\ani.avi">
+			</File>
+			<File
 				RelativePath=".\res\authhdrpic.bmp">
 			</File>
 			<File
@@ -1564,9 +1573,6 @@
 			</File>
 			<File
 				RelativePath="res\Icon_41.ico">
-			</File>
-			<File
-				RelativePath="res\imovie.ico">
 			</File>
 			<File
 				RelativePath=".\res\logo.0.bmp">
@@ -1608,32 +1614,45 @@
 				RelativePath="res\single.ico">
 			</File>
 			<File
+				RelativePath=".\res\web\sliderbar.gif">
+			</File>
+			<File
+				RelativePath=".\res\web\slidergrip.gif">
+			</File>
+			<File
 				RelativePath="res\stereo.bmp">
 			</File>
 			<File
 				RelativePath="res\toolbar1.bmp">
 			</File>
 			<File
-				RelativePath=".\res\web1.bin">
+				RelativePath=".\res\web\vbg.gif">
 			</File>
 			<File
-				RelativePath=".\res\web2.bin">
+				RelativePath=".\res\web\vbs.GIF">
 			</File>
+			<Filter
+				Name="web"
+				Filter="">
+				<File
+					RelativePath=".\res\web\404.html">
+				</File>
+				<File
+					RelativePath=".\res\web\browser.html">
+				</File>
+				<File
+					RelativePath=".\res\web\default.css">
+				</File>
+				<File
+					RelativePath=".\res\web\index.html">
+				</File>
+			</Filter>
 		</Filter>
 		<File
-			RelativePath=".\res\web\404.html">
+			RelativePath=".\res\web\controls.html">
 		</File>
 		<File
-			RelativePath="res\ani.avi">
-		</File>
-		<File
-			RelativePath=".\res\web\browser.html">
-		</File>
-		<File
-			RelativePath=".\res\web\default.css">
-		</File>
-		<File
-			RelativePath=".\res\web\index.html">
+			RelativePath=".\res\default.css">
 		</File>
 	</Files>
 	<Globals>

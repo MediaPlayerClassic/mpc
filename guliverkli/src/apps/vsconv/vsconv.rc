@@ -123,7 +123,7 @@ BEGIN
             VALUE "FileDescription", "VobSub subtitle format converter"
             VALUE "FileVersion", "1, 0, 0, 6"
             VALUE "InternalName", "vsconv.exe"
-            VALUE "LegalCopyright", "2003 (c) Gabest.  All rights reserved."
+            VALUE "LegalCopyright", "2003-2004 (c) Gabest.  All rights reserved."
             VALUE "OriginalFilename", "vsconv.exe"
             VALUE "ProductName", "VSConv"
             VALUE "ProductVersion", "1, 0, 0, 6"

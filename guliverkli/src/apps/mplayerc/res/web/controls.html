@@ -206,6 +206,14 @@
 		</script>
 	</head>
 	<body onload="init()">
+		<p>
+			<strong>
+				Feel free to redesign this page (nice image buttons, more "player-like" layout, etc.), but if you do 
+				alter the page <a href="http://cvs.sourceforge.net/viewcvs.py/guliverkli/guliverkli/src/apps/mplayerc/res/web/">here</a>
+				and not the one you can save from the browser. Post your comments, remarks, ideas, progress into 
+				<a href="https://sourceforge.net/forum/message.php?msg_id=2357783">this topic</a>.
+			</strong>
+		</p>
 		File Info
 		<noscript>: disabled (component requires javascript)</noscript>
 		<br>
@@ -1673,19 +1681,10 @@
 					</td>
 				</tr>
 			</table>
-			<form id="ef" action="[commandpath]" method="GET"> <!-- FIXME: POSTing does not want to work with mozilla -->
+			<form id="ef" action="[commandpath]" method="POST"> <!-- FIXME: POSTing does not want to work with mozilla -->
 				<input id="fwmc" type="hidden" name="[wmcname]" value="-2">
 				<input id="fextra" type="hidden" name="extra" value="">
 			</form>
-		</p>
-		<p>
-			<div align="center">
-				<strong>
-					Feel free to redesign this page (nice image buttons, more "player-like" layout, etc.), but if you do 
-					alter the page <a href="">here</a> and not the one you can save from the browser. Post you comments, 
-					remarks, ideas, progress into <a href="https://sourceforge.net/forum/message.php?msg_id=2357783">this topic</a>.
-				</strong>
-			</div>
 		</p>
 	</body>
 </html>

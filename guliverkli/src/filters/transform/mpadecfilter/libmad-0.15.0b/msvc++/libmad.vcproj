@@ -28,9 +28,11 @@
 				RuntimeLibrary="3"
 				ForceConformanceInForLoopScope="TRUE"
 				PrecompiledHeaderFile=".\Debug/libmad.pch"
+				AssemblerOutput="0"
 				AssemblerListingLocation=".\Debug/"
 				ObjectFile=".\Debug/"
 				ProgramDataBaseFileName=".\Debug/"
+				WarningLevel="1"
 				SuppressStartupBanner="TRUE"
 				DebugInformationFormat="4"
 				CompileAs="0"/>

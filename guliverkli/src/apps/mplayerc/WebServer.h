@@ -21,10 +21,13 @@ class CWebServer
 
 	typedef bool (CWebServer::*RequestHandler)(CClientSocket* pClient, CStringA& hdr, CStringA& body);
 	CMap<CString,LPCTSTR,CWebServer::RequestHandler,CWebServer::RequestHandler> m_internalpages;
+	CMap<CString,LPCTSTR,UINT,UINT> m_downloads;
+	CMap<CStringA,LPCSTR,CStringA,CStringA> m_mimes;
 
-	bool HandlerStyleSheetDefault(CClientSocket* pClient, CStringA& hdr, CStringA& body);
+	bool HandlerCommand(CClientSocket* pClient, CStringA& hdr, CStringA& body);
 	bool HandlerIndex(CClientSocket* pClient, CStringA& hdr, CStringA& body);
 	bool HandlerBrowser(CClientSocket* pClient, CStringA& hdr, CStringA& body);
+	bool HandlerControls(CClientSocket* pClient, CStringA& hdr, CStringA& body);
 	bool Handler404(CClientSocket* pClient, CStringA& hdr, CStringA& body);
 
 public:

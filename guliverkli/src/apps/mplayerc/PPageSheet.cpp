@@ -1,5 +1,5 @@
 /* 
- *	Media Player Classic.  Copyright (C) 2003 Gabest
+ *	Copyright (C) 2003-2004 Gabest
  *	http://www.gabest.org
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -34,6 +34,7 @@ CPPageSheet::CPPageSheet(LPCTSTR pszCaption, IFilterGraph* pFG, CWnd* pParentWnd
 	: CTreePropSheet(pszCaption, pParentWnd, 0)
 	, m_audioswitcher(pFG)
 	, m_mpegdecoder(pFG)
+	, m_audiodecoder(pFG)
 {
 	AddPage(&m_player);
 	AddPage(&m_formats);
@@ -46,6 +47,7 @@ CPPageSheet::CPPageSheet(LPCTSTR pszCaption, IFilterGraph* pFG, CWnd* pParentWnd
 	AddPage(&m_webserver);
 	AddPage(&m_filters);
 	AddPage(&m_audioswitcher);
+	AddPage(&m_audiodecoder);
 	AddPage(&m_mpegdecoder);
 	AddPage(&m_overrides);
 	AddPage(&m_subtitles);

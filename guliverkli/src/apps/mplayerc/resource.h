@@ -179,10 +179,16 @@
 #define IDB_AUTHHDRPIC                  337
 #define IDD_PPAGEWEBSERVER              338
 #define IDR_HTML_INDEX                  340
-#define IDR_STYLESHEET_DEFAULT          342
 #define IDR_HTML_404                    343
 #define IDR_HTML1                       344
 #define IDR_HTML_BROWSER                344
+#define IDF_SLIDERBAR_GIF               344
+#define IDD_PPAGEAUDIODEC               345
+#define IDR_HTML_CONTROLS               346
+#define IDF_DEFAULT_CSS                 348
+#define IDF_VBR_GIF                     349
+#define IDF_VBS_GIF                     350
+#define IDF_SLIDERGRIP_GIF              359
 #define IDS_R_SETTINGS                  500
 #define IDS_RS_CONTROLSTATE             501
 #define IDS_RS_VOLUME                   502
@@ -292,6 +298,11 @@
 #define IDS_RS_WEBSERVERPORT            602
 #define IDS_RS_LASTWINDOWTYPE           603
 #define IDS_RS_ONTOP                    604
+#define IDS_RS_MPASF                    605
+#define IDS_RS_MPASC                    606
+#define IDS_RS_MPADRC                   607
+#define IDS_RS_WEBSERVERPRINTDEBUGINFO  608
+#define IDS_RS_WEBSERVERUSECOMPRESSION  609
 #define IDC_BROWSEBUTTON                1016
 #define IDC_BROWSEBUTTON2               1017
 #define IDC_COMBO1                      1018
@@ -461,6 +472,9 @@
 #define IDC_CHECK_MATROSKA              1147
 #define IDC_CHECK_ROQ                   1148
 #define IDC_CHECK_OGG                   1149
+#define IDC_CHECK_LPCM                  1150
+#define IDC_CHECK_AC3                   1151
+#define IDC_CHECK_DTS                   1152
 #define IDD_COMPROPERTYPAGE             10002
 #define ID_DUMMYSEPARATOR               32768
 #define ID_VOLUME_MUTE_ON               32769
@@ -546,9 +560,9 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        345
+#define _APS_NEXT_RESOURCE_VALUE        360
 #define _APS_NEXT_COMMAND_VALUE         32830
-#define _APS_NEXT_CONTROL_VALUE         1150
+#define _APS_NEXT_CONTROL_VALUE         1153
 #define _APS_NEXT_SYMED_VALUE           10003
 #endif
 #endif
