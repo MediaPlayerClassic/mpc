@@ -607,7 +607,7 @@ class SubtitlesDB extends DB
 	
 	function getSetting($param)
 	{
-		$this->query("select value from settings where param = 'version'");
+		$this->query("select value from settings where param = '$param'");
 		if(!($row = $this->fetchRow())) return null;
 		return $row[0];
 	}
