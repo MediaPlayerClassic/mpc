@@ -39,6 +39,8 @@ struct aac_state_t
 
 	aac_state_t();
 	~aac_state_t();
+	bool open();
+	void close();
 	bool init(CMediaType& mt);
 };
 

@@ -553,6 +553,7 @@ HRESULT CMpaDecFilter::ProcessAAC()
 	float* src = (float*)NeAACDecDecode(m_aac_state.h, &info, m_buff.GetData(), m_buff.GetSize());
 	m_buff.SetSize(0);
 	//if(!src) return E_FAIL;
+	if(info.error) 	m_aac_state.init(m_pInput->CurrentMediaType());
 	if(!src || info.samples == 0) return S_OK;
 
 	// HACK: bug in faad2 with mono sources?
@@ -645,6 +646,7 @@ HRESULT CMpaDecFilter::ProcessMPA()
 
 			// FIXME: the renderer doesn't like this
 			// m_fDiscontinuity = true;
+			
 			continue;
 		}
 /*
@@ -1153,22 +1155,29 @@ CMpaDecInputPin::CMpaDecInputPin(CTransformFilter* pFilter, HRESULT* phr, LPWSTR
 // aac_state_t
 //
 
-aac_state_t::aac_state_t() : freq(0), channels(0)
+aac_state_t::aac_state_t() : h(NULL), freq(0), channels(0) {open();}
+aac_state_t::~aac_state_t() {close();}
+
+bool aac_state_t::open()
 {
-	h = NeAACDecOpen();
+	close();
+	if(!(h = NeAACDecOpen())) return false;
 	NeAACDecConfigurationPtr c = NeAACDecGetCurrentConfiguration(h);
 	c->outputFormat = FAAD_FMT_FLOAT;
 	NeAACDecSetConfiguration(h, c);
+	return true;
 }
 
-aac_state_t::~aac_state_t()
+void aac_state_t::close()
 {
-	NeAACDecClose(h);
+	if(h) NeAACDecClose(h);
+	h = NULL;
 }
 
 bool aac_state_t::init(CMediaType& mt)
 {
 	if(mt.subtype != MEDIASUBTYPE_AAC && mt.subtype != MEDIASUBTYPE_MP4A) return(true); // nothing to do
+	open();
 	WAVEFORMATEX* wfe = (WAVEFORMATEX*)mt.Format();
 	return !NeAACDecInit2(h, (BYTE*)(wfe+1), wfe->cbSize, &freq, &channels);
 }

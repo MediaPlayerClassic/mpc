@@ -1028,7 +1028,7 @@ bool CMpegSplitterFile::Read(dtshdr& h, int len, CMediaType* pmt)
 	h.nblocks = BitRead(7);
 	h.framebytes = (WORD)BitRead(14)+1;
 	h.amode = BitRead(6);
-	h.sfreq = BitRead(6);
+	h.sfreq = BitRead(4);
 	h.rate = BitRead(5);
 
 	if(!pmt) return(true);
