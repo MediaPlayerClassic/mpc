@@ -51,74 +51,34 @@ void GSState::WriteTransfer(BYTE* pMem, int len)
 	if(m_de.PRIM.TME && (m_rs.BITBLTBUF.DBP == m_ctxt->TEX0.TBP0 || m_rs.BITBLTBUF.DBP == m_ctxt->TEX0.CBP))
 		FlushPrim();
 
-	BYTE* pb = (BYTE*)pMem;
-	WORD* pw = (WORD*)pMem;
-	DWORD* pd = (DWORD*)pMem;
-
-	// if(m_y >= (int)m_rs.TRXREG.RRH) {ASSERT(0); return;}
-
 	int x = m_x, y = m_y;
+/*
+clock_t t1 = clock();
+int tmplen = len;
+BYTE* tmp = pMem;
+for(int i = 0, j = 10000; i < j; i++)
+{
+*/
+	GSLocalMemory::SwizzleTexture st = m_lm.GetSwizzleTexture(m_rs.BITBLTBUF.DPSM);
+	(m_lm.*st)(m_x, m_y, pMem, len, m_rs.BITBLTBUF, m_rs.TRXPOS, m_rs.TRXREG);
+/*
+if(i < j-1)
+{
+m_x = x;
+m_y = y;
+len = tmplen;
+pMem = tmp;
+}
+}
 
-	switch(m_rs.BITBLTBUF.DPSM)
-	{
-	case PSM_PSMCT32:
-		for(len /= 4; len-- > 0; WriteStep(), pd++)
-			m_lm.writePixel32(m_x, m_y, *pd, m_rs.BITBLTBUF.DBP, m_rs.BITBLTBUF.DBW);
-		break;
-	case PSM_PSMCT24:
-		for(len /= 3; len-- > 0; WriteStep(), pb+=3)
-			m_lm.writePixel24(m_x, m_y, *(DWORD*)pb, m_rs.BITBLTBUF.DBP, m_rs.BITBLTBUF.DBW);
-		break;
-	case PSM_PSMCT16:
-		for(len /= 2; len-- > 0; WriteStep(), pw++)
-			m_lm.writePixel16(m_x, m_y, *pw, m_rs.BITBLTBUF.DBP, m_rs.BITBLTBUF.DBW);
-		break;
-	case PSM_PSMCT16S:
-		for(len /= 2; len-- > 0; WriteStep(), pw++)
-			m_lm.writePixel16S(m_x, m_y, *pw, m_rs.BITBLTBUF.DBP, m_rs.BITBLTBUF.DBW);
-		break;
-	case PSM_PSMT8:
-		for(; len-- > 0; WriteStep(), pb++)
-			m_lm.writePixel8(m_x, m_y, *pb, m_rs.BITBLTBUF.DBP, m_rs.BITBLTBUF.DBW);
-		break;
-	case PSM_PSMT4:
-		for(; len-- > 0; WriteStep(), WriteStep(), pb++)
-			m_lm.writePixel4(m_x, m_y, *pb&0xf, m_rs.BITBLTBUF.DBP, m_rs.BITBLTBUF.DBW),
-			m_lm.writePixel4(m_x+1, m_y, *pb>>4, m_rs.BITBLTBUF.DBP, m_rs.BITBLTBUF.DBW);
-		break;
-	case PSM_PSMT8H:
-		for(; len-- > 0; WriteStep(), pb++)
-			m_lm.writePixel8H(m_x, m_y, *pb, m_rs.BITBLTBUF.DBP, m_rs.BITBLTBUF.DBW);
-		break;
-	case PSM_PSMT4HL:
-		for(; len-- > 0; WriteStep(), WriteStep(), pb++)
-			m_lm.writePixel4HL(m_x, m_y, *pb&0xf, m_rs.BITBLTBUF.DBP, m_rs.BITBLTBUF.DBW),
-			m_lm.writePixel4HL(m_x+1, m_y, *pb>>4, m_rs.BITBLTBUF.DBP, m_rs.BITBLTBUF.DBW);
-		break;
-	case PSM_PSMT4HH:
-		for(; len-- > 0; WriteStep(), WriteStep(), pb++)
-			m_lm.writePixel4HH(m_x, m_y, *pb&0xf, m_rs.BITBLTBUF.DBP, m_rs.BITBLTBUF.DBW),
-			m_lm.writePixel4HH(m_x+1, m_y, *pb>>4, m_rs.BITBLTBUF.DBP, m_rs.BITBLTBUF.DBW);
-		break;
-	case PSM_PSMZ32:
-		for(len /= 4; len-- > 0; WriteStep(), pd++)
-			m_lm.writePixel32Z(m_x, m_y, *pd, m_rs.BITBLTBUF.DBP, m_rs.BITBLTBUF.DBW);
-		break;
-	case PSM_PSMZ24:
-		for(len /= 3; len-- > 0; WriteStep(), pb+=3)
-			m_lm.writePixel24Z(m_x, m_y, *(DWORD*)pb, m_rs.BITBLTBUF.DBP, m_rs.BITBLTBUF.DBW);
-		break;
-	case PSM_PSMZ16:
-		for(len /= 2; len-- > 0; WriteStep(), pw++)
-			m_lm.writePixel16Z(m_x, m_y, *pw, m_rs.BITBLTBUF.DBP, m_rs.BITBLTBUF.DBW);
-		break;
-	case PSM_PSMZ16S:
-		for(len /= 2; len-- > 0; WriteStep(), pw++)
-			m_lm.writePixel16SZ(m_x, m_y, *pw, m_rs.BITBLTBUF.DBP, m_rs.BITBLTBUF.DBW);
-		break;
-	}
-
+clock_t t2 = clock();
+CString str;
+str.Format(_T("dt=%d, psm=%d, len=%d"), t2-t1, (int)m_rs.BITBLTBUF.DPSM, tmplen);
+AfxMessageBox(str, MB_OK);
+*/
 	InvalidateTexture(m_rs.BITBLTBUF.DBP, x, y);
+
+	TRACE(_T("%d (%d,%d) - (%d,%d)\n"), m_rs.BITBLTBUF.DPSM, x, y, m_x, m_y);
 }
 
 void GSState::ReadTransfer(BYTE* pMem, int len)

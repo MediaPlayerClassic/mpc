@@ -165,12 +165,6 @@
 			</File>
 			<File
 				RelativePath=".\GSRendererSoft.cpp">
-				<FileConfiguration
-					Name="Release|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						AssemblerOutput="4"/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath=".\GSSettingsDlg.cpp">
@@ -271,59 +265,62 @@
 			Name="Shaders"
 			Filter="">
 			<File
-				RelativePath=".\res\en00.psh">
+				RelativePath=".\res\ps11_en00.psh">
 			</File>
 			<File
-				RelativePath=".\res\en01.psh">
+				RelativePath=".\res\ps11_en01.psh">
 			</File>
 			<File
-				RelativePath=".\res\en10.psh">
+				RelativePath=".\res\ps11_en10.psh">
 			</File>
 			<File
-				RelativePath=".\res\en11.psh">
+				RelativePath=".\res\ps11_en11.psh">
 			</File>
 			<File
-				RelativePath=".\res\tfx000.psh">
+				RelativePath=".\res\ps11_tfx000.psh">
 			</File>
 			<File
-				RelativePath=".\res\tfx010.psh">
+				RelativePath=".\res\ps11_tfx010.psh">
 			</File>
 			<File
-				RelativePath=".\res\tfx011.psh">
+				RelativePath=".\res\ps11_tfx011.psh">
 			</File>
 			<File
-				RelativePath=".\res\tfx1x0.psh">
+				RelativePath=".\res\ps11_tfx1x0.psh">
 			</File>
 			<File
-				RelativePath=".\res\tfx1x1.psh">
+				RelativePath=".\res\ps11_tfx1x1.psh">
 			</File>
 			<File
-				RelativePath=".\res\tfx200.psh">
+				RelativePath=".\res\ps11_tfx200.psh">
 			</File>
 			<File
-				RelativePath=".\res\tfx210.psh">
+				RelativePath=".\res\ps11_tfx210.psh">
 			</File>
 			<File
-				RelativePath=".\res\tfx211.psh">
+				RelativePath=".\res\ps11_tfx211.psh">
 			</File>
 			<File
-				RelativePath=".\res\tfx300.psh">
+				RelativePath=".\res\ps11_tfx300.psh">
 			</File>
 			<File
-				RelativePath=".\res\tfx310.psh">
+				RelativePath=".\res\ps11_tfx310.psh">
 			</File>
 			<File
-				RelativePath=".\res\tfx311.psh">
+				RelativePath=".\res\ps11_tfx311.psh">
+			</File>
+			<File
+				RelativePath=".\res\ps11_tfx4xx.psh">
+			</File>
+			<File
+				RelativePath=".\res\ps20_merge.fx">
+			</File>
+			<File
+				RelativePath=".\res\ps20_tfx.fx">
 			</File>
 		</Filter>
 		<File
 			RelativePath=".\VTune\GSdx9.vpj">
-		</File>
-		<File
-			RelativePath=".\res\merge.fx">
-		</File>
-		<File
-			RelativePath=".\res\tfxxxx.psh">
 		</File>
 	</Files>
 	<Globals>

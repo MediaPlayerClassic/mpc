@@ -73,6 +73,7 @@ public:
 	typedef DWORD (GSLocalMemory::*readPixelAddr)(int x, int y, DWORD addr);
 	typedef DWORD (GSLocalMemory::*readTexelAddr)(int x, int y, DWORD addr, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
 	typedef void (GSLocalMemory::*unSwizzleTexture)(int tw, int th, BYTE* dst, int dstpitch, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);	
+	typedef void (GSLocalMemory::*SwizzleTexture)(int& tx, int& ty, BYTE* src, int len, GIFRegBITBLTBUF& BITBLTBUF, GIFRegTRXPOS& TRXPOS, GIFRegTRXREG& TRXREG);
 
 	DWORD pageAddress32(int x, int y, DWORD bp, DWORD bw);
 	DWORD pageAddress16(int x, int y, DWORD bp, DWORD bw);
@@ -238,4 +239,26 @@ public:
 	void unSwizzleTextureX(int tw, int th, BYTE* dst, int dstpitch, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
 
 	unSwizzleTexture GetUnSwizzleTexture(DWORD psm);
+
+	void SwizzleBlock32(BYTE* dst, BYTE* src, int srcpitch);
+//	void SwizzleBlock16(BYTE* dst, BYTE* src, int srcpitch);
+	void SwizzleBlock8(BYTE* dst, BYTE* src, int srcpitch);
+//	void SwizzleBlock4(BYTE* dst, BYTE* src, int srcpitch);
+
+	void SwizzleTexture32(int& tx, int& ty, BYTE* src, int len, GIFRegBITBLTBUF& BITBLTBUF, GIFRegTRXPOS& TRXPOS, GIFRegTRXREG& TRXREG);
+	void SwizzleTexture8(int& tx, int& ty, BYTE* src, int len, GIFRegBITBLTBUF& BITBLTBUF, GIFRegTRXPOS& TRXPOS, GIFRegTRXREG& TRXREG);
+	void SwizzleTextureX(int& tx, int& ty, BYTE* src, int len, GIFRegBITBLTBUF& BITBLTBUF, GIFRegTRXPOS& TRXPOS, GIFRegTRXREG& TRXREG);
+
+	SwizzleTexture GetSwizzleTexture(DWORD psm);
+
+//	void SwizzleTexture32(int ty, int tw, int th, BYTE* src, int srcpitch, DWORD bp, DWORD bw);
+//	void SwizzleTexture24(int ty, int tw, int th, BYTE* src, int srcpitch, DWORD bp, DWORD bw);
+//	void SwizzleTexture16(int ty, int tw, int th, BYTE* src, int srcpitch, DWORD bp, DWORD bw);
+//	void SwizzleTexture16S(int ty, int tw, int th, BYTE* src, int srcpitch, DWORD bp, DWORD bw);
+//	void SwizzleTexture8(int ty, int tw, int th, BYTE* src, int srcpitch, DWORD bp, DWORD bw);
+//	void SwizzleTexture8H(int ty, int tw, int th, BYTE* src, int srcpitch, DWORD bp, DWORD bw);
+//	void SwizzleTexture4(int ty, int tw, int th, BYTE* src, int srcpitch, DWORD bp, DWORD bw);
+//	void SwizzleTexture4HL(int ty, int tw, int th, BYTE* src, int srcpitch, DWORD bp, DWORD bw);
+//	void SwizzleTexture4HH(int ty, int tw, int th, BYTE* src, int srcpitch, DWORD bp, DWORD bw);
+//	void SwizzleTextureX(int ty, int tw, int th, BYTE* src, int srcpitch, DWORD bp, DWORD bw);
 };

@@ -34,7 +34,7 @@ void GSState::GIFPackedRegHandlerPRIM(GIFPackedReg* r)
 	LOG((_T("Packed ")));
 	GIFReg r2;
 	r2.PRIM.i64 = r->PRIM.PRIM;
-	(this->*m_fpGIFRegHandlers[GIF_A_D_REG_PRIM])(&r2);
+	GIFRegHandlerPRIM(&r2);
 }
 
 void GSState::GIFPackedRegHandlerRGBAQ(GIFPackedReg* r)
@@ -46,7 +46,7 @@ void GSState::GIFPackedRegHandlerRGBAQ(GIFPackedReg* r)
 	r2.RGBAQ.B = r->RGBA.B;
 	r2.RGBAQ.A = r->RGBA.A;
 	r2.RGBAQ.Q = m_v.RGBAQ.Q;
-	(this->*m_fpGIFRegHandlers[GIF_A_D_REG_RGBAQ])(&r2);
+	GIFRegHandlerRGBAQ(&r2);
 }
 
 void GSState::GIFPackedRegHandlerST(GIFPackedReg* r)
@@ -55,7 +55,7 @@ void GSState::GIFPackedRegHandlerST(GIFPackedReg* r)
 	GIFReg r2;
 	r2.ST.S = r->STQ.S;
 	r2.ST.T = r->STQ.T;
-	(this->*m_fpGIFRegHandlers[GIF_A_D_REG_ST])(&r2);
+	GIFRegHandlerST(&r2);
 	// for some reason only ST would have to be saved here (eeuser_e.pdf p154), but not in reality...
 	LOG((_T("Packed ")));
 	r2.RGBAQ.R = m_v.RGBAQ.R;
@@ -63,7 +63,7 @@ void GSState::GIFPackedRegHandlerST(GIFPackedReg* r)
 	r2.RGBAQ.B = m_v.RGBAQ.B;
 	r2.RGBAQ.A = m_v.RGBAQ.A;
 	r2.RGBAQ.Q = r->STQ.Q;
-	(this->*m_fpGIFRegHandlers[GIF_A_D_REG_RGBAQ])(&r2);
+	GIFRegHandlerRGBAQ(&r2);
 }
 
 void GSState::GIFPackedRegHandlerUV(GIFPackedReg* r)
@@ -72,7 +72,7 @@ void GSState::GIFPackedRegHandlerUV(GIFPackedReg* r)
 	GIFReg r2;
 	r2.UV.U = r->UV.U;
 	r2.UV.V = r->UV.V;
-	(this->*m_fpGIFRegHandlers[GIF_A_D_REG_UV])(&r2);
+	GIFRegHandlerUV(&r2);
 }
 
 void GSState::GIFPackedRegHandlerXYZF2(GIFPackedReg* r)
@@ -83,7 +83,7 @@ void GSState::GIFPackedRegHandlerXYZF2(GIFPackedReg* r)
 	r2.XYZF.Y = r->XYZF2.Y;
 	r2.XYZF.Z = r->XYZF2.Z;
 	r2.XYZF.F = r->XYZF2.F;
-	(this->*m_fpGIFRegHandlers[r->XYZF2.ADC ? GIF_A_D_REG_XYZF3 : GIF_A_D_REG_XYZF2])(&r2);
+	r->XYZF2.ADC ? GIFRegHandlerXYZF3(&r2) : GIFRegHandlerXYZF2(&r2);
 }
 
 void GSState::GIFPackedRegHandlerXYZ2(GIFPackedReg* r)
@@ -93,31 +93,31 @@ void GSState::GIFPackedRegHandlerXYZ2(GIFPackedReg* r)
 	r2.XYZ.X = r->XYZ2.X;
 	r2.XYZ.Y = r->XYZ2.Y;
 	r2.XYZ.Z = r->XYZ2.Z;
-	(this->*m_fpGIFRegHandlers[r->XYZ2.ADC ? GIF_A_D_REG_XYZ3 : GIF_A_D_REG_XYZ2])(&r2);
+	r->XYZF2.ADC ? GIFRegHandlerXYZ3(&r2) : GIFRegHandlerXYZ2(&r2);
 }
 
 void GSState::GIFPackedRegHandlerTEX0_1(GIFPackedReg* r)
 {
 	LOG((_T("Packed ")));
-	(this->*m_fpGIFRegHandlers[GIF_A_D_REG_TEX0_1])((GIFReg*)&r->ai64[0]);
+	GIFRegHandlerTEX0_1((GIFReg*)&r->ai64[0]);
 }
 
 void GSState::GIFPackedRegHandlerTEX0_2(GIFPackedReg* r)
 {
 	LOG((_T("Packed ")));
-	(this->*m_fpGIFRegHandlers[GIF_A_D_REG_TEX0_2])((GIFReg*)&r->ai64[0]);
+	GIFRegHandlerTEX0_2((GIFReg*)&r->ai64[0]);
 }
 
 void GSState::GIFPackedRegHandlerCLAMP_1(GIFPackedReg* r)
 {
 	LOG((_T("Packed ")));
-	(this->*m_fpGIFRegHandlers[GIF_A_D_REG_CLAMP_1])((GIFReg*)&r->ai64[0]);
+	GIFRegHandlerCLAMP_1((GIFReg*)&r->ai64[0]);
 }
 
 void GSState::GIFPackedRegHandlerCLAMP_2(GIFPackedReg* r)
 {
 	LOG((_T("Packed ")));
-	(this->*m_fpGIFRegHandlers[GIF_A_D_REG_CLAMP_2])((GIFReg*)&r->ai64[0]);
+	GIFRegHandlerCLAMP_2((GIFReg*)&r->ai64[0]);
 }
 
 void GSState::GIFPackedRegHandlerFOG(GIFPackedReg* r)
@@ -125,19 +125,19 @@ void GSState::GIFPackedRegHandlerFOG(GIFPackedReg* r)
 	LOG((_T("Packed ")));
 	GIFReg r2;
 	r2.FOG.F = r->FOG.F;
-	(this->*m_fpGIFRegHandlers[GIF_A_D_REG_FOG])(&r2);
+	GIFRegHandlerFOG(&r2);
 }
 
 void GSState::GIFPackedRegHandlerXYZF3(GIFPackedReg* r)
 {
 	LOG((_T("Packed ")));
-	(this->*m_fpGIFRegHandlers[GIF_A_D_REG_XYZF3])((GIFReg*)&r->ai64[0]);
+	GIFRegHandlerXYZF3((GIFReg*)&r->ai64[0]);
 }
 
 void GSState::GIFPackedRegHandlerXYZ3(GIFPackedReg* r)
 {
 	LOG((_T("Packed ")));
-	(this->*m_fpGIFRegHandlers[GIF_A_D_REG_XYZ3])((GIFReg*)&r->ai64[0]);
+	GIFRegHandlerXYZ3((GIFReg*)&r->ai64[0]);
 }
 
 void GSState::GIFPackedRegHandlerA_D(GIFPackedReg* r)

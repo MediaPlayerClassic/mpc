@@ -1,7 +1,6 @@
 
 sampler RAO1 : register(s0);
 sampler RAO2 : register(s1);
-sampler RAO3 : register(s2);
 
 float4 Params1 : register(c0);
 
@@ -29,6 +28,7 @@ float4 Merge(float4 Color1 : COLOR, float4 Color2 : COLOR) : COLOR
 	float4 Output;
 	Output = lerp(Color2, Color1, Alpha);
 	// Output.a = AMOD ? Color2.a : Color1.a; // not used
+	// Output.rgba = Output.bgra;
 	return Output;
 }
 
