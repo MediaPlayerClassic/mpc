@@ -1885,20 +1885,20 @@ CSubtitle* CRenderedTextSubtitle::GetSubtitle(int entry)
 
 	ParseEffect(ret, GetAt(entry).effect);
 
-	bool fStyle = false;
-	for(int i = 0, j = 0, k = 1; i < str.GetLength(); i = ++j, fStyle = !fStyle)
+	int nStyle = 0;
+	for(int i = 0; !str.IsEmpty();)
 	{
-		if((j = str.Find(!fStyle?'{':'}', i)) < 0)
-			j = str.GetLength();
+		if(nStyle == 0) i = str.FindOneOf(L"{");
+//		if(nStyle == 0) i = str.FindOneOf(L"{<");
+		else if(nStyle == 1) i = str.Find(L'}');
+		else if(nStyle == 2) i = str.Find(L'>');
 
-		CStringW str2 = str.Mid(i, j-i).Trim(L"{}");
-		if(!str2.GetLength()) continue;
+		if(i < 0) i = str.GetLength();
 
-		if(fStyle)
-		{
-			ParseStyle(ret, str2, s, org);
-		}
-		else
+		CStringW str2 = str.Left(i).Trim(L"{}");
+//		CStringW str2 = str.Left(i).Trim(L"{}<>");
+
+		if(nStyle == 0)
 		{
 			STSStyle tmp = s;
 
@@ -1916,6 +1916,19 @@ CSubtitle* CRenderedTextSubtitle::GetSubtitle(int entry)
 				ParseString(ret, str2, tmp);
 			}
 		}
+		else if(nStyle == 1)
+		{
+			ParseStyle(ret, str2, s, org);
+		}
+		else if(nStyle == 2)
+		{
+			// TODO: parse html tag
+		}
+
+		if(nStyle == 0) nStyle = str[i] == '{' ? 1 : str[i] == '<' ? 2 : 0;
+		else nStyle = 0;
+
+		str = str.Mid(i);
 	}
 
 	// just a "work-around" solution... in most cases nobody will want to use \org together with moving but without rotating the subs
