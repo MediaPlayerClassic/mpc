@@ -22,7 +22,7 @@
 #include "stdafx.h"
 #include "MatroskaFile.h"
 
-using namespace Matroska;
+using namespace MatroskaReader;
 
 #define BeginChunk	\
 	CheckPointer(pMN0, E_POINTER); \

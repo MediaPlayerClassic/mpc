@@ -122,7 +122,7 @@ HRESULT CTextPassThruFilter::Transform(IMediaSample* pIn, IMediaSample* pOut)
 				CAutoLock cAutoLock(m_pSubLock);
 
 				SetName();
-
+TRACE(_T("TEXT: %d-%d, %s\n"), tstart, tstop, CString(str));
 				m_pSTS->Add(AToW(str), false, tstart, tstop);
 				m_pMainFrame->InvalidateSubtitle(rtStart + m_rtOffset, (DWORD_PTR)m_pSTS);
 			}

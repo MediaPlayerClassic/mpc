@@ -25,7 +25,7 @@
 #include <atlcoll.h>
 #include <afxtempl.h>
 
-namespace Matroska
+namespace MatroskaReader
 {
 	class CMatroskaNode;
 

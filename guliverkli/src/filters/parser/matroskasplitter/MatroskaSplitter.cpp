@@ -29,7 +29,7 @@
 #include "..\..\..\..\include\ogg\OggDS.h"
 #include "..\..\..\..\include\moreuuids.h"
 
-using namespace Matroska;
+using namespace MatroskaReader;
 
 #ifdef REGISTER_FILTER
 
@@ -250,6 +250,36 @@ HRESULT CMatroskaSourceFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 				else if(CodecID == "V_UNCOMPRESSED")
 				{
 				}
+				else if(CodecID.Find("V_MPEG4/") == 0) // TODO: find out which V_MPEG4/*/* ids can be mapped to 'mp4v'
+				{
+					mt.majortype = MEDIATYPE_Video;
+					mt.subtype = FOURCCMap('v4pm');
+					mt.formattype = FORMAT_VideoInfo;
+					VIDEOINFOHEADER* pvih = (VIDEOINFOHEADER*)mt.AllocFormatBuffer(sizeof(VIDEOINFOHEADER));
+					memset(pvih, 0, mt.FormatLength());
+					pvih->bmiHeader.biSize = sizeof(pvih->bmiHeader);
+					pvih->bmiHeader.biWidth = (LONG)pTE->v.PixelWidth;
+					pvih->bmiHeader.biHeight = (LONG)pTE->v.PixelHeight;
+					pvih->bmiHeader.biCompression = 'v4pm';
+					if(pTE->v.FramePerSec > 0) 
+						pvih->AvgTimePerFrame = (REFERENCE_TIME)(10000000i64 / pTE->v.FramePerSec);
+					else if(pTE->DefaultDuration > 0)
+						pvih->AvgTimePerFrame = (REFERENCE_TIME)pTE->DefaultDuration / 100;
+					mt.SetSampleSize(pvih->bmiHeader.biWidth*pvih->bmiHeader.biHeight*4);
+					mts.Add(mt);
+
+					if(pTE->v.DisplayWidth != 0 && pTE->v.DisplayHeight != 0)
+					{
+						BITMAPINFOHEADER tmp = pvih->bmiHeader;
+						mt.formattype = FORMAT_VideoInfo2;
+						VIDEOINFOHEADER2* pvih2 = (VIDEOINFOHEADER2*)mt.ReallocFormatBuffer(sizeof(VIDEOINFOHEADER2) + pTE->CodecPrivate.GetCount() - sizeof(BITMAPINFOHEADER));
+						memset(pvih2, 0, mt.FormatLength());
+						pvih2->bmiHeader = tmp;
+						pvih2->dwPictAspectRatioX = (DWORD)pTE->v.DisplayWidth;
+						pvih2->dwPictAspectRatioY = (DWORD)pTE->v.DisplayHeight;
+						mts.InsertAt(0, mt);
+					}
+				}
 			}
 			else if(pTE->TrackType == TrackEntry::TypeAudio)
 			{
@@ -258,7 +288,7 @@ HRESULT CMatroskaSourceFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 				mt.majortype = MEDIATYPE_Audio;
 				mt.formattype = FORMAT_WaveFormatEx;
 				WAVEFORMATEX* pwfe = (WAVEFORMATEX*)mt.AllocFormatBuffer(sizeof(WAVEFORMATEX));
-				memset(pwfe, 0, sizeof(WAVEFORMATEX));
+				memset(pwfe, 0, mt.FormatLength());
 				pwfe->nChannels = (WORD)pTE->a.Channels;
 				pwfe->nSamplesPerSec = (DWORD)pTE->a.SamplingFrequency;
 				pwfe->wBitsPerSample = (WORD)pTE->a.BitDepth;
@@ -276,18 +306,20 @@ HRESULT CMatroskaSourceFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 						do {size += *p;} while(*p++ == 0xff);
 						sizes.Add(size);
 					}
-					sizes.Add(pTE->CodecPrivate.GetSize() - (p - (BYTE*)pTE->CodecPrivate));
-					
+
 					long totalsize = 0;
 					for(int i = 0; i < sizes.GetCount(); i++)
 						totalsize += sizes[i];
+
+					sizes.Add(pTE->CodecPrivate.GetSize() - (p - (BYTE*)pTE->CodecPrivate) - totalsize);
+					totalsize += sizes[sizes.GetCount()-1];
 
 					if(sizes.GetCount() == 3)
 					{
 						mt.subtype = MEDIASUBTYPE_Vorbis2;
 						mt.formattype = FORMAT_VorbisFormat2;
 						VORBISFORMAT2* pvf2 = (VORBISFORMAT2*)mt.AllocFormatBuffer(sizeof(VORBISFORMAT2) + totalsize);
-						memset(pvf2, 0, sizeof(VORBISFORMAT2));
+						memset(pvf2, 0, mt.FormatLength());
 						pvf2->Channels = (WORD)pTE->a.Channels;
 						pvf2->SamplesPerSec = (DWORD)pTE->a.SamplingFrequency;
 						pvf2->BitsPerSample = (DWORD)pTE->a.BitDepth;
@@ -303,7 +335,7 @@ HRESULT CMatroskaSourceFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 					mt.subtype = MEDIASUBTYPE_Vorbis;
 					mt.formattype = FORMAT_VorbisFormat;
 					VORBISFORMAT* pvf = (VORBISFORMAT*)mt.AllocFormatBuffer(sizeof(VORBISFORMAT));
-					memset(pvf, 0, sizeof(VORBISFORMAT));
+					memset(pvf, 0, mt.FormatLength());
 					pvf->nChannels = (WORD)pTE->a.Channels;
 					pvf->nSamplesPerSec = (DWORD)pTE->a.SamplingFrequency;
 					pvf->nMinBitsPerSec = pvf->nMaxBitsPerSec = pvf->nAvgBitsPerSec = -1;
@@ -391,6 +423,53 @@ HRESULT CMatroskaSourceFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 					mt.SetSampleSize(0x10000);
 					mts.Add(mt);
 				}
+				else if(CodecID == "S_TEXT/UTF8")
+				{
+					mt.majortype = MEDIATYPE_Subtitle;
+					mt.subtype = MEDIASUBTYPE_UTF8;
+					mt.formattype = FORMAT_SubtitleInfo;
+					SUBTITLEINFO* psi = (SUBTITLEINFO*)mt.AllocFormatBuffer(sizeof(SUBTITLEINFO));
+					memset(psi, 0, mt.FormatLength());
+					// TODO: set psi->IsoLang when the language code is available
+					mt.SetSampleSize(0x10000);
+					mts.Add(mt);
+				}
+				else if(CodecID == "S_SSA")
+				{
+					mt.majortype = MEDIATYPE_Subtitle;
+					mt.subtype = MEDIASUBTYPE_SSA;
+					mt.formattype = FORMAT_SubtitleInfo;
+					SUBTITLEINFO* psi = (SUBTITLEINFO*)mt.AllocFormatBuffer(sizeof(SUBTITLEINFO) + pTE->CodecPrivate.GetSize());
+					memset(psi, 0, mt.FormatLength());
+					// TODO: set psi->IsoLang when the language code is available
+					memcpy(mt.pbFormat + (psi->dwOffset = sizeof(SUBTITLEINFO)), pTE->CodecPrivate.GetData(), pTE->CodecPrivate.GetSize());
+					mt.SetSampleSize(0x10000);
+					mts.Add(mt);
+				}
+				else if(CodecID == "S_ASS")
+				{
+					mt.majortype = MEDIATYPE_Subtitle;
+					mt.subtype = MEDIASUBTYPE_ASS;
+					mt.formattype = FORMAT_SubtitleInfo;
+					SUBTITLEINFO* psi = (SUBTITLEINFO*)mt.AllocFormatBuffer(sizeof(SUBTITLEINFO) + pTE->CodecPrivate.GetSize());
+					memset(psi, 0, mt.FormatLength());
+					// TODO: set psi->IsoLang when the language code is available
+					memcpy(mt.pbFormat + (psi->dwOffset = sizeof(SUBTITLEINFO)), pTE->CodecPrivate.GetData(), pTE->CodecPrivate.GetSize());
+					mt.SetSampleSize(0x10000);
+					mts.Add(mt);
+				}
+				else if(CodecID == "S_USF")
+				{
+					mt.majortype = MEDIATYPE_Subtitle;
+					mt.subtype = MEDIASUBTYPE_USF;
+					mt.formattype = FORMAT_SubtitleInfo;
+					SUBTITLEINFO* psi = (SUBTITLEINFO*)mt.AllocFormatBuffer(sizeof(SUBTITLEINFO) + pTE->CodecPrivate.GetSize());
+					memset(psi, 0, mt.FormatLength());
+					// TODO: set psi->IsoLang when the language code is available
+					memcpy(mt.pbFormat + (psi->dwOffset = sizeof(SUBTITLEINFO)), pTE->CodecPrivate.GetData(), pTE->CodecPrivate.GetSize());
+					mt.SetSampleSize(0x10000);
+					mts.Add(mt);
+				}
 			}
 
 			if(mts.IsEmpty())
@@ -412,7 +491,7 @@ HRESULT CMatroskaSourceFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 
 	Info& info = m_pFile->m_segment.SegmentInfo;
 	m_rtNewStart = m_rtCurrent = 0;
-	m_rtNewStop = (REFERENCE_TIME)(info.Duration*info.TimeCodeScale/100);
+	m_rtNewStop = m_rtStop = (REFERENCE_TIME)(info.Duration*info.TimeCodeScale/100);
 
 	return S_OK;
 }
@@ -808,6 +887,7 @@ HRESULT CMatroskaSourceFilter::DeliverBlock(CAutoPtr<Block> b)
 
 	BOOL bDiscontinuity = !m_bDiscontinuitySent.Find(b->TrackNumber);
 	UINT64 TrackNumber = b->TrackNumber;
+TRACE(_T("pPin->DeliverBlock: TrackNumber (%d) %I64d, %I64d\n"), (int)TrackNumber, rtStart, rtStop);
 
 	hr = pPin->DeliverBlock(b, rtStart, rtStop, bDiscontinuity);
 

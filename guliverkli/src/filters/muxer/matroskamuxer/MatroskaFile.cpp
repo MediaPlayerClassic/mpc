@@ -617,7 +617,7 @@ QWORD CBlock::Size(bool fWithHeader)
 		while(pos)
 		{
 			CBinary* b = BlockData.GetNext(pos);
-			if(pos) len += (b->GetCount()>>8) + 1;
+			if(pos) len += b->GetCount()/255 + 1;
 		}
 	}
 	POSITION pos = BlockData.GetHeadPosition();
@@ -653,9 +653,9 @@ HRESULT CBlock::Write(IStream* pStream)
 				int len = b->GetCount();
 				while(len >= 0)
 				{
-					n = len%255;
+					n = min(len, 255);
 					pStream->Write(&n, 1, NULL);
-					len -= 256;
+					len -= 255;
 				}
 			}
 		}
