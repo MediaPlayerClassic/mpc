@@ -282,7 +282,7 @@ void CDSMMuxerFilter::MuxFooter(IBitStream* pBS)
 	while(pos)
 	{
 		IndexedSyncPoint& isp = m_isps.GetNext(pos);
-		TRACE(_T("sp[%d]: %I64x %I64d\n"), isp.id, isp.rt, isp.fp);
+		TRACE(_T("sp[%d]: %I64d %I64x\n"), isp.id, isp.rt, isp.fp);
 
 		rt = isp.rt - rtPrev; rtPrev = isp.rt;
 		fp = isp.fp - fpPrev; fpPrev = isp.fp;
