@@ -26,6 +26,8 @@
 #include "GSLocalMemory.h"
 #include "GSTextureCache.h"
 
+// FIXME: sfex3
+
 
 //#define DEBUG_SAVETEXTURES
 //#define DEBUG_LOG
@@ -178,6 +180,8 @@ protected:
 	int m_nMaxVertices, m_nVertices, m_nPrims;
 	void QueuePrim(CUSTOMVERTEX* pVertices, D3DPRIMITIVETYPE pt);
 	void FlushPrim();
+
+	void ConvertRT(CComPtr<IDirect3DTexture9>& pTexture);
 
 	class Stats
 	{
@@ -357,7 +361,7 @@ public:
 	{
 		va_list args;
 		va_start(args, fmt);
-		/**/
+		/**///
 		if(_tcsstr(fmt, _T("VSync")) 
 		 || _tcsstr(fmt, _T("*** WARNING ***"))
 		 || _tcsstr(fmt, _T("Flush"))
@@ -370,7 +374,8 @@ public:
 		 || _tcsstr(fmt, _T("BITBLTBUF"))
 		 || _tcsstr(fmt, _T("TRX"))
 		// || _tcsstr(fmt, _T("PRIM"))
-		// || _tcsstr(fmt, _T("XYZ"))
+		 || _tcsstr(fmt, _T("RGB"))
+		 || _tcsstr(fmt, _T("XYZ"))
 		// || _tcsstr(fmt, _T("XYOFFSET"))
 		 || _tcsstr(fmt, _T("TEX"))
 		// || _tcsstr(fmt, _T("UV"))

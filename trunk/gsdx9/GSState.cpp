@@ -157,7 +157,7 @@ GSState::GSState(HWND hWnd, HRESULT& hr)
 	::DeleteFile(_T("c:\\gs.txt"));
 	m_fp = _tfopen(_T("c:\\gs.txt"), _T("at"));
 
-	m_rs.CSRr.REV = 0x20;
+//	m_rs.CSRr.REV = 0x20;
 }
 
 GSState::~GSState()
@@ -565,7 +565,7 @@ void GSState::VSync()
 
 	m_rs.CSRr.NFIELD = 1; // ?
 	if(m_rs.SMODE2.INT /*&& !m_rs.SMODE2.FFMD*/)
-		m_rs.CSRr.FIELD = 1;// - m_rs.CSRr.FIELD;
+		m_rs.CSRr.FIELD = 1 - m_rs.CSRr.FIELD;
 
 	//////
 
@@ -752,6 +752,9 @@ void GSState::Flip()
 		}
 	}
 
+	bool fShiftField = m_rs.SMODE2.INT && !!(ctxt->XYOFFSET.OFY&0xf);
+		// m_rs.CSRr.FIELD && m_rs.SMODE2.INT /*&& !m_rs.SMODE2.FFMD*/;
+
 	if(m_rs.PMODE.EN1 && m_rs.PMODE.EN2 && pRT[0] && pRT[1]) // RAO1 + RAO2
 	{
 		struct
@@ -781,7 +784,7 @@ void GSState::Flip()
 			pVertices[i].x -= 0.5;
 			pVertices[i].y -= 0.5;
 
-			if(m_rs.CSRr.FIELD && m_rs.SMODE2.INT/* && !m_rs.SMODE2.FFMD*/)
+			if(fShiftField)
 			{
 				pVertices[i].tv1 += yscale[0]*0.5f / rd[0].Height;
 				pVertices[i].tv2 += yscale[1]*0.5f / rd[1].Height;
@@ -791,9 +794,11 @@ void GSState::Flip()
 		hr = m_pD3DDev->SetTexture(0, pRT[0]);
 		hr = m_pD3DDev->SetTexture(1, pRT[1]);
 
+		hr = m_pD3DDev->SetTextureStageState(0, D3DTSS_TEXCOORDINDEX, 1);
 		hr = m_pD3DDev->SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_SELECTARG1);
 		hr = m_pD3DDev->SetTextureStageState(0, D3DTSS_COLORARG1, D3DTA_TEXTURE);
 
+		hr = m_pD3DDev->SetTextureStageState(1, D3DTSS_TEXCOORDINDEX, 1);
 		hr = m_pD3DDev->SetTextureStageState(1, D3DTSS_COLOROP, D3DTOP_LERP);
 		hr = m_pD3DDev->SetTextureStageState(1, D3DTSS_COLORARG1, D3DTA_CURRENT);
 		hr = m_pD3DDev->SetTextureStageState(1, D3DTSS_COLORARG2, m_rs.PMODE.SLBG ? D3DTA_CONSTANT : D3DTA_TEXTURE);
@@ -830,7 +835,7 @@ void GSState::Flip()
 			pVertices[i].x -= 0.5;
 			pVertices[i].y -= 0.5;
 
-			if(m_rs.CSRr.FIELD && m_rs.SMODE2.INT/* && !m_rs.SMODE2.FFMD*/)
+			if(fShiftField)
 			{
 				pVertices[i].tv += yscale[0]*0.5f / rd[0].Height;
 			}
@@ -877,7 +882,7 @@ void GSState::Flip()
 			pVertices[i].x -= 0.5;
 			pVertices[i].y -= 0.5;
 
-			if(m_rs.CSRr.FIELD && m_rs.SMODE2.INT /*&& !m_rs.SMODE2.FFMD*/)
+			if(fShiftField)
 			{
 				pVertices[i].tv += yscale[1]*0.5f / rd[1].Height;
 			}
@@ -930,7 +935,7 @@ void GSState::Flip()
 			pVertices[i].x -= 0.5;
 			pVertices[i].y -= 0.5;
 
-			if(m_rs.CSRr.FIELD && m_rs.SMODE2.INT /*&& !m_rs.SMODE2.FFMD*/)
+			if(fShiftField)
 			{
 				pVertices[i].tv += yscale[2]*0.5f / rd[2].Height;
 			}
