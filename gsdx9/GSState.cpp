@@ -154,7 +154,7 @@ GSState::GSState(HWND hWnd, HRESULT& hr)
 	hr = m_pD3DDev->Clear(0, NULL, D3DCLEAR_TARGET/*|D3DCLEAR_ZBUFFER*/, 0, 1.0f, 0);
 
     hr = m_pD3DDev->GetRenderTarget(0, &m_pOrgRenderTarget);
-	hr = m_pD3DDev->GetDepthStencilSurface(&m_pOrgDepthStencil);
+	// hr = m_pD3DDev->GetDepthStencilSurface(&m_pOrgDepthStencil);
 
     hr = m_pD3DDev->SetRenderState(D3DRS_CULLMODE, D3DCULL_NONE);
     hr = m_pD3DDev->SetRenderState(D3DRS_LIGHTING, FALSE);
