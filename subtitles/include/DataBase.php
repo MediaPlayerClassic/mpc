@@ -455,6 +455,7 @@ class DB
 	
 }    //end class
 
+define('ISDB_VERSION', 1);
 define('ONEYEAR', 60*60*24*365);
 
 class SubtitlesDB extends DB 
@@ -598,11 +599,21 @@ class SubtitlesDB extends DB
 		return $this->authorizehash($username, $this->pwdhash($password), $rememberme);
 	}
 	
+	function getSetting($param)
+	{
+		$this->query("select value from settings where param = 'version'");
+		if(!($row = $this->fetchRow())) return null;
+		return $row[0];
+	}
+	
 // public:	
 	function SubtitlesDB()
 	{
 		$this->DB("gabest", GABESTS_PASSWORD_TO_SUBTITLES, "subtitles");
-		$this->connect() or die('Cannot connect to database');
+		$this->connect() or die('Cannot connect to database!');
+		
+		$version = intval($this->getSetting('version'));
+		if($version != ISDB_VERSION) die('Wrong database client version, please upgrade this web interface!');
 		
 		// mirrors
 		
