@@ -157,9 +157,6 @@
 				RelativePath=".\GSSettingsDlg.cpp">
 			</File>
 			<File
-				RelativePath=".\GSSettingsDlg.h">
-			</File>
-			<File
 				RelativePath=".\GSSoftVertex.cpp">
 			</File>
 			<File
@@ -211,6 +208,9 @@
 			</File>
 			<File
 				RelativePath=".\GSLocalMemory.h">
+			</File>
+			<File
+				RelativePath=".\GSSettingsDlg.h">
 			</File>
 			<File
 				RelativePath=".\GSSoftVertex.h">

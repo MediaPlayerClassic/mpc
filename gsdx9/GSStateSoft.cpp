@@ -59,7 +59,7 @@ void GSStateSoft::VertexKick(bool fSkip)
 	v.x = ((float)m_v.XYZ.X - ctxt->XYOFFSET.OFX) / 16;
 	v.y = ((float)m_v.XYZ.Y - ctxt->XYOFFSET.OFY) / 16;
 	v.z = (float)m_v.XYZ.Z / UINT_MAX;
-	v.w = m_v.RGBAQ.Q == 0 ? 1.0f : m_v.RGBAQ.Q;
+	v.q = m_v.RGBAQ.Q == 0 ? 1.0f : m_v.RGBAQ.Q;
 
 	v.r = (float)m_v.RGBAQ.R;
 	v.g = (float)m_v.RGBAQ.G;
@@ -74,7 +74,7 @@ void GSStateSoft::VertexKick(bool fSkip)
 		{
 			v.u = (float)m_v.UV.U / (16<<ctxt->TEX0.TW);
 			v.v = (float)m_v.UV.V / (16<<ctxt->TEX0.TH);
-			v.w = 1.0f;
+			v.q = 1.0f;
 		}
 		else
 		{
@@ -637,8 +637,8 @@ void GSStateSoft::DrawVertex(int x, int y, GSSoftVertex& v)
 		int tw = 1<<ctxt->TEX0.TW;
 		int th = 1<<ctxt->TEX0.TH;
 
-		float tu = v.u / v.w * tw;
-		float tv = v.v / v.w * th;
+		float tu = v.u / v.q * tw;
+		float tv = v.v / v.q * th;
 
 		float ftu = modf(tu /*- 0.5f*/, &tu), iftu = 1.0f - ftu;
 		float ftv = modf(tv /*- 0.5f*/, &tv), iftv = 1.0f - ftv;

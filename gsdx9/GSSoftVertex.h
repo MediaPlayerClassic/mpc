@@ -27,7 +27,7 @@ __declspec(align(16)) union GSSoftVertex
 {
 	struct
 	{
-		float x, y, z, w;
+		float x, y, z, q;
 		float r, g, b, a;
 		float u, v, fog, reserved;
 	};
