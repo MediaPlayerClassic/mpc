@@ -3050,7 +3050,7 @@ bool CMainFrame::GetDIB(BYTE** ppData, long& size, bool fSilent)
 		else
 		{
 			hr = pBV->GetCurrentImage(&size, NULL);
-			if(FAILED(hr)) {errmsg.Format(_T("GetCurrentImage failed, hr = %08x"), hr); break;}
+			if(FAILED(hr) || size == 0) {errmsg.Format(_T("GetCurrentImage failed, hr = %08x"), hr); break;}
 
 			if(!(*ppData = new BYTE[size])) return false;
 
@@ -3073,7 +3073,7 @@ bool CMainFrame::GetDIB(BYTE** ppData, long& size, bool fSilent)
 		pMC->Run();
 	}
 
-	return true;
+	return !!*ppData;
 }
 
 #include "jpeg.h"
