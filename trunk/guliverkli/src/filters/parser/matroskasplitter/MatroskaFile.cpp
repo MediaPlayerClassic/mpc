@@ -254,8 +254,8 @@ HRESULT TrackEntry::Parse(CMatroskaNode* pMN0)
 	case 0x26B240: CodecDownloadURL.Parse(pMN); break;
 	case 0xAA: CodecDecodeAll.Parse(pMN); break;
 	case 0x6FAB: TrackOverlay.Parse(pMN); break;
-	case 0xE0: if(S_OK == v.Parse(pMN)) DescType |= VideoDesc; break;
-	case 0xE1: if(S_OK == a.Parse(pMN)) DescType |= AudioDesc; break;
+	case 0xE0: if(S_OK == v.Parse(pMN)) DescType |= DescVideo; break;
+	case 0xE1: if(S_OK == a.Parse(pMN)) DescType |= DescAudio; break;
 	EndChunk
 }
 

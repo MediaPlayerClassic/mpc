@@ -35,7 +35,7 @@
 DEFINE_GUID(MEDIASUBTYPE_AAC,
 WAVE_FORMAT_AAC, 0x000, 0x0010, 0x80, 0x00, 0x00, 0xaa, 0x00, 0x38, 0x9b, 0x71);
 
-#define NBUFFERS 30
+#define NBUFFERS 2
 
 using namespace Matroska;
 
@@ -227,13 +227,14 @@ HRESULT CMatroskaSourceFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 
 				if(CodecID == "V_MS/VFW/FOURCC")
 				{
+					BITMAPINFOHEADER* pbmi = (BITMAPINFOHEADER*)(BYTE*)pTE->CodecPrivate;
+
 					mt.majortype = MEDIATYPE_Video;
 					mt.subtype = FOURCCMap(pbmi->biCompression);
 					mt.formattype = FORMAT_VideoInfo;
 					VIDEOINFOHEADER* pvih = (VIDEOINFOHEADER*)mt.AllocFormatBuffer(sizeof(VIDEOINFOHEADER) + pTE->CodecPrivate.GetCount() - sizeof(BITMAPINFOHEADER));
 					memset(pvih, 0, sizeof(VIDEOINFOHEADER));
 
-					BITMAPINFOHEADER* pbmi = (BITMAPINFOHEADER*)(BYTE*)pTE->CodecPrivate;
 					memcpy(&pvih->bmiHeader, pbmi, pTE->CodecPrivate.GetCount());
 
 					switch(pbmi->biCompression)
@@ -418,11 +419,22 @@ void CMatroskaSourceFilter::SendVorbisHeaderSample()
 
 			hr = S_OK;
 
+CAutoPtr<Block> b(new Block());
+b->TrackNumber.Set(pTE->TrackNumber);
+b->BlockDuration.Set(1);
+
 			POSITION pos = sizes.GetHeadPosition();
 			while(pos)
 			{
 				long len = sizes.GetNext(pos);
 
+				CAutoPtr<CBinary> data(new CBinary());
+				data->SetSize(len);
+				memcpy(data->GetData(), p, len);
+				p += len;
+				b->BlockData.AddTail(data);
+				
+/*
 				CComPtr<IMediaSample> pSample;
 				BYTE* pData;
 				if(FAILED(hr = pPin->GetDeliveryBuffer(&pSample, NULL, NULL, 0))
@@ -435,7 +447,10 @@ void CMatroskaSourceFilter::SendVorbisHeaderSample()
 				if(FAILED(hr = pSample->SetActualDataLength(len))
 				|| FAILED(hr = pPin->Deliver(pSample)))
 					break;
+*/
 			}
+
+DeliverBlock(b);
 
 			if(FAILED(hr))
 				TRACE(_T("ERROR: Vorbis initialization failed for stream %I64d\n"), TrackNumber);
@@ -464,6 +479,16 @@ void CMatroskaSourceFilter::SendFakeTextSample()
 		{
 			hr = S_OK;
 
+CAutoPtr<Block> b(new Block());
+b->TrackNumber.Set(pTE->TrackNumber);
+b->TimeCode.Set(0);
+b->BlockDuration.Set(1);
+CAutoPtr<CBinary> data(new CBinary());
+data->SetSize(2);
+strcpy((char*)data->GetData(), " ");
+b->BlockData.AddTail(data);
+DeliverBlock(b);
+/*
 			do
 			{
 				CComPtr<IMediaSample> pSample;
@@ -482,6 +507,7 @@ void CMatroskaSourceFilter::SendFakeTextSample()
 					break;
 			}
 			while(0);
+*/
 		}
 	}
 }
@@ -502,8 +528,6 @@ DWORD CMatroskaSourceFilter::ThreadProc()
 			if(cmd == CMD_EXIT) return 0;
 		}
 	}
-
-	SendVorbisHeaderSample(); // HACK: init vorbis decoder with the headers
 
 	int LastBlockNumber = 0;
 
@@ -627,6 +651,8 @@ DWORD CMatroskaSourceFilter::ThreadProc()
 				}
 			}
 
+			SendVorbisHeaderSample(); // HACK: init vorbis decoder with the headers
+
 			SendFakeTextSample(); // HACK: the internal script command renderer tends to freeze without one sample sent at the beginning
 
 			HRESULT hr = S_OK;
@@ -643,20 +669,18 @@ DWORD CMatroskaSourceFilter::ThreadProc()
 
 				do
 				{
-					POSITION last = Blocks.GetTailPosition();
-
 					bool fNext = true;
 					while(LastBlockNumber > 0 && (fNext = pBlocks->Next(true))) LastBlockNumber--;
 					if(!fNext) break;
 					if(LastBlockNumber > 0) continue;
 
-					Blocks.Parse(pBlocks, true);
-
-					POSITION last2 = Blocks.GetTailPosition();
-					while(last2 != last)
+					CBlockNode tmp;
+					tmp.Parse(pBlocks, true);
+					while(tmp.GetCount())
 					{
-						Block* b = Blocks.GetPrev(last2);
+						CAutoPtr<Block> b = tmp.RemoveHead();
 						b->TimeCode.Set(c.TimeCode + b->TimeCode);
+						Blocks.AddTail(b);
 					}
 
 					POSITION pos = Blocks.GetHeadPosition();
@@ -682,8 +706,10 @@ DWORD CMatroskaSourceFilter::ThreadProc()
 						}
 						else
 						{
-							hr = DeliverBlock(b);
+							CAutoPtr<Block> pBlock;
+							pBlock.Attach(Blocks.GetAt(pos).Detach());
 							Blocks.RemoveAt(pos);
+							hr = DeliverBlock(pBlock);
 						}
 
 						pos = next;
@@ -693,10 +719,9 @@ DWORD CMatroskaSourceFilter::ThreadProc()
 			}
 			while(pCluster->Next(true) && !m_fSeeking && SUCCEEDED(hr) && !CheckRequest(&cmd));
 
-			pos = Blocks.GetHeadPosition();
-			while(pos && !m_fSeeking && SUCCEEDED(hr) && !CheckRequest(&cmd))
+			while(Blocks.GetCount() && !m_fSeeking && SUCCEEDED(hr) && !CheckRequest(&cmd))
 			{
-				Block* b = Blocks.GetNext(pos);
+				CAutoPtr<Block> b = Blocks.RemoveHead();
 				b->BlockDuration.Set((INT64)m_pFile->m_segment.SegmentInfo.Duration - b->TimeCode);
 				if(b->BlockDuration == 0) b->BlockDuration.Set(1);
 				hr = DeliverBlock(b);
@@ -741,7 +766,7 @@ LRESULT CMatroskaSourceFilter::ThreadMessageProc(UINT uMsg, DWORD dwFlags, LPVOI
 }
 #endif
 
-HRESULT CMatroskaSourceFilter::DeliverBlock(Block* b)
+HRESULT CMatroskaSourceFilter::DeliverBlock(CAutoPtr<Block> b)
 {
 	HRESULT hr = S_FALSE;
 
@@ -761,17 +786,34 @@ HRESULT CMatroskaSourceFilter::DeliverBlock(Block* b)
 
 	REFERENCE_TIME 
 		rtStart = (b->TimeCode)*m_pFile->m_segment.SegmentInfo.TimeCodeScale/100 - m_rtStart, 
-		rtStop = (b->TimeCode + b->BlockDuration)*m_pFile->m_segment.SegmentInfo.TimeCodeScale/100 - m_rtStart,
-		rtDelta = (rtStop - rtStart) / b->BlockData.GetCount();
+		rtStop = (b->TimeCode + b->BlockDuration)*m_pFile->m_segment.SegmentInfo.TimeCodeScale/100 - m_rtStart;
+//		rtDelta = (rtStop - rtStart) / b->BlockData.GetCount();
 
 	ASSERT(rtStart < rtStop);
 
 	m_rtCurrent = m_rtStart + rtStart;
 
 	BOOL bDiscontinuity = !m_bDiscontinuitySent.Find(b->TrackNumber);
+	UINT64 TrackNumber = b->TrackNumber;
+
+	hr = pPin->DeliverBlock(b, rtStart, rtStop, bDiscontinuity);
+
+	if(S_OK != hr)
+	{
+		if(POSITION pos = m_pActivePins.Find(pPin))
+			m_pActivePins.RemoveAt(pos);
+
+		if(!m_pActivePins.IsEmpty()) // only die when all pins are down
+			hr = S_OK;
+
+		return hr;
+	}
+
+	if(bDiscontinuity)
+		m_bDiscontinuitySent.AddTail(TrackNumber);
 
 //ASSERT(bDiscontinuity || b->TrackNumber != 1 || rtStart >= 0 || b->ReferenceBlock != 0);
-
+/*
 	POSITION pos = b->BlockData.GetHeadPosition();
 	while(pos && !m_fSeeking)
 	{
@@ -807,7 +849,7 @@ HRESULT CMatroskaSourceFilter::DeliverBlock(Block* b)
 		if(bDiscontinuity)
 			m_bDiscontinuitySent.AddTail(b->TrackNumber);
 	}
-    
+*/  
 	return hr;
 }
 
@@ -887,12 +929,17 @@ CBasePin* CMatroskaSourceFilter::GetPin(int n)
 
 STDMETHODIMP CMatroskaSourceFilter::Stop()
 {
+TRACE(_T("CMatroskaSourceFilter::Stop()\n"));
 	CAutoLock cAutoLock(this);
 
+TRACE(_T("m_pOutputs.GetNext(pos)->DeliverBeginFlush()\n"));
 	POSITION pos = m_pOutputs.GetHeadPosition();
 	while(pos) m_pOutputs.GetNext(pos)->DeliverBeginFlush();
+TRACE(_T("m_pOutputs.GetNext(pos)->DeliverBeginFlush() ended\n"));
 
+TRACE(_T("CallWorker(CMD_EXIT) calling...\n"));
 	CallWorker(CMD_EXIT);
+TRACE(_T("CallWorker(CMD_EXIT) returned\n"));
 
 #ifdef NONBLOCKINGSEEK
 	CAMEvent e;
@@ -900,8 +947,10 @@ STDMETHODIMP CMatroskaSourceFilter::Stop()
 	e.Wait();
 #endif
 
+TRACE(_T("m_pOutputs.GetNext(pos)->DeliverEndFlush()\n"));
 	pos = m_pOutputs.GetHeadPosition();
 	while(pos) m_pOutputs.GetNext(pos)->DeliverEndFlush();
+TRACE(_T("m_pOutputs.GetNext(pos)->DeliverEndFlush() ended\n"));
 
 	HRESULT hr;
 	
@@ -913,6 +962,7 @@ STDMETHODIMP CMatroskaSourceFilter::Stop()
 
 STDMETHODIMP CMatroskaSourceFilter::Pause()
 {
+TRACE(_T("CMatroskaSourceFilter::Pause()\n"));
 	CAutoLock cAutoLock(this);
 
 	FILTER_STATE fs = m_State;
@@ -947,6 +997,7 @@ STDMETHODIMP CMatroskaSourceFilter::Pause()
 
 STDMETHODIMP CMatroskaSourceFilter::Run(REFERENCE_TIME tStart)
 {
+TRACE(_T("CMatroskaSourceFilter::Run(...)\n"));
 	CAutoLock cAutoLock(this);
 
 	HRESULT hr;
@@ -1035,41 +1086,66 @@ STDMETHODIMP CMatroskaSourceFilter::SetPositions(LONGLONG* pCurrent, DWORD dwCur
 		&& (dwStopFlags&AM_SEEKING_PositioningBitsMask) == AM_SEEKING_NoPositioning)
 		return S_OK;
 
-	m_fSeeking = true;
-
-#ifndef NONBLOCKINGSEEK
-	POSITION pos = m_pOutputs.GetHeadPosition();
-	while(pos) 
-	{
-		CBaseOutputPin* pPin = m_pOutputs.GetNext(pos);
-		pPin->DeliverBeginFlush();
-//		pPin->DeliverEndFlush();
-	}
-#endif
+	REFERENCE_TIME 
+		rtCurrent = m_rtCurrent,
+		rtStop = m_rtStop;
 
 	if(pCurrent)
 	switch(dwCurrentFlags&AM_SEEKING_PositioningBitsMask)
 	{
 	case AM_SEEKING_NoPositioning: break;
-	case AM_SEEKING_AbsolutePositioning: m_rtStart = *pCurrent; break;
-	case AM_SEEKING_RelativePositioning: m_rtStart = m_rtCurrent + *pCurrent; break;
-	case AM_SEEKING_IncrementalPositioning: m_rtStart = m_rtCurrent + *pCurrent; break;
+	case AM_SEEKING_AbsolutePositioning: rtCurrent = *pCurrent; break;
+	case AM_SEEKING_RelativePositioning: rtCurrent = rtCurrent + *pCurrent; break;
+	case AM_SEEKING_IncrementalPositioning: rtCurrent = rtCurrent + *pCurrent; break;
 	}
 
 	if(pStop)
 	switch(dwStopFlags&AM_SEEKING_PositioningBitsMask)
 	{
 	case AM_SEEKING_NoPositioning: break;
-	case AM_SEEKING_AbsolutePositioning: m_rtStop = *pStop; break;
-	case AM_SEEKING_RelativePositioning: m_rtStop += *pStop; break;
-	case AM_SEEKING_IncrementalPositioning: m_rtStop = m_rtCurrent + *pStop; break;
+	case AM_SEEKING_AbsolutePositioning: rtStop = *pStop; break;
+	case AM_SEEKING_RelativePositioning: rtStop += *pStop; break;
+	case AM_SEEKING_IncrementalPositioning: rtStop = rtCurrent + *pStop; break;
 	}
 
-#ifdef NONBLOCKINGSEEK
-	PutThreadMsg(TM_SEEK, 0, 0);
-#else
-	CallWorker(CMD_SEEK);
+	if(m_rtCurrent == rtCurrent && m_rtStop == rtStop)
+		return S_OK;
+
+TRACE(_T("SetPositions(%I64d, %d, %I64d, %d)\n"), 
+	  rtCurrent, dwCurrentFlags, rtStop, dwStopFlags);
+
+	if(ThreadExists())
+	{
+TRACE(_T("m_fSeeking = true\n"));
+		m_fSeeking = true;
+	}
+
+#ifndef NONBLOCKINGSEEK
+	if(ThreadExists())
+	{
+		POSITION pos = m_pOutputs.GetHeadPosition();
+		while(pos) 
+		{
+			CBaseOutputPin* pPin = m_pOutputs.GetNext(pos);
+			pPin->DeliverBeginFlush();
+//			pPin->DeliverEndFlush();
+		}
+	}
 #endif
+
+	m_rtStart = m_rtCurrent = rtCurrent;
+	m_rtStop = rtStop;
+
+	if(ThreadExists())
+	{
+#ifdef NONBLOCKINGSEEK
+		PutThreadMsg(TM_SEEK, 0, 0);
+#else
+TRACE(_T("CallWorker(CMD_SEEK) calling...\n"));
+		CallWorker(CMD_SEEK);
+TRACE(_T("CallWorker(CMD_SEEK) returned\n"));
+#endif
+	}
 
 	return S_OK;
 }
@@ -1269,8 +1345,9 @@ STDMETHODIMP CMatroskaSplitterOutputPin::Notify(IBaseFilter* pSender, Quality q)
 
 HRESULT CMatroskaSplitterOutputPin::Active()
 {
+//TRACE(_T("CMatroskaSplitterOutputPin::Active()\n"));
     CAutoLock cAutoLock(m_pLock);
-
+/*
 	if(m_Connected && !m_pOutputQueue)
 	{
 		HRESULT hr = NOERROR;
@@ -1284,19 +1361,34 @@ HRESULT CMatroskaSplitterOutputPin::Active()
 			return hr;
 		}
 	}
+*/
+	if(m_Connected)
+	{
+//TRACE(_T("CMatroskaSplitterOutputPin::Create() calling...\n"));
+		BOOL bRet = Create();
+//TRACE(_T("CMatroskaSplitterOutputPin::Create() returned(%d)\n"), (int)bRet);
+	}
 
 	return __super::Active();
 }
 
 HRESULT CMatroskaSplitterOutputPin::Inactive()
 {
+//TRACE(_T("CMatroskaSplitterOutputPin::Inactive()\n"));
     CAutoLock cAutoLock(m_pLock);
 
-	m_pOutputQueue.Free();
+//	m_pOutputQueue.Free();
+
+	if(ThreadExists())
+	{
+//TRACE(_T("CMatroskaSplitterOutputPin::CallWorker(CMD_EXIT) calling...\n"));
+		CallWorker(CMD_EXIT);
+//TRACE(_T("CMatroskaSplitterOutputPin::CallWorker(CMD_EXIT) returned\n"));
+	}
 
 	return __super::Inactive();
 }
-
+/*
 HRESULT CMatroskaSplitterOutputPin::Deliver(IMediaSample* pSample)
 {
 	if(!m_pOutputQueue) return NOERROR;
@@ -1316,6 +1408,201 @@ MapDeliverCall(EndOfStream(), EOS())
 MapDeliverCall(BeginFlush(), BeginFlush())
 MapDeliverCall(EndFlush(), EndFlush())
 MapDeliverCall(NewSegment(REFERENCE_TIME tStart, REFERENCE_TIME tStop, double dRate), NewSegment(tStart, tStop, dRate))
+*/
+
+void CMatroskaSplitterOutputPin::DontGoWild()
+{
+	int cnt = 0;
+	do
+	{
+		Sleep(1);
+		CAutoLock cAutoLock(&m_csQueueLock);
+		cnt = m_packets.GetCount();
+	}
+	while(S_OK == m_hrDeliver && cnt > 50);
+}
+
+
+HRESULT CMatroskaSplitterOutputPin::DeliverEndOfStream()
+{
+//TRACE(_T("DeliverEndOfStream()\n"));
+
+	if(!ThreadExists()) 
+		return S_FALSE;
+
+	DontGoWild();
+	if(S_OK != m_hrDeliver) return m_hrDeliver;
+
+	CAutoLock cAutoLock(&m_csQueueLock);
+	CAutoPtr<packet> p(new packet());
+	p->type = EOS;
+	m_packets.AddHead(p);
+	return m_hrDeliver;
+}
+
+HRESULT CMatroskaSplitterOutputPin::DeliverBeginFlush()
+{
+//TRACE(_T("GetConnected()->BeginFlush() calling...\n"));
+	CAutoLock cAutoLock(&m_csQueueLock);
+	m_packets.RemoveAll();
+	m_hrDeliver = S_FALSE;
+	HRESULT hr = IsConnected() ? GetConnected()->BeginFlush() : S_OK;
+//TRACE(_T("GetConnected()->BeginFlush() returned(%08x)\n"), hr);
+	return hr;
+}
+
+HRESULT CMatroskaSplitterOutputPin::DeliverEndFlush()
+{
+	if(!ThreadExists()) 
+		return S_FALSE;
+
+//TRACE(_T("GetConnected()->EndFlush() calling...\n"));
+	HRESULT hr = IsConnected() ? GetConnected()->EndFlush() : S_OK;
+//TRACE(_T("GetConnected()->EndFlush() returned(%08x)\n"), hr);
+	m_hrDeliver = S_OK;
+	return hr;
+}
+
+HRESULT CMatroskaSplitterOutputPin::DeliverNewSegment(REFERENCE_TIME tStart, REFERENCE_TIME tStop, double dRate)
+{
+	if(!ThreadExists()) 
+		return S_FALSE;
+
+//TRACE(_T("DeliverNewSegment\n"));
+	return __super::DeliverNewSegment(tStart, tStop, dRate);
+/*
+	CAutoLock cAutoLock(&m_csQueueLock);
+	CAutoPtr<packet> p(new packet());
+	p->type = NEWSEGM;
+	p->rtStart = tStart;
+	p->rtStop = tStop;
+	p->dRate = dRate;
+	m_packets.AddHead(p);
+	return m_hrDeliver;
+*/
+}
+
+HRESULT CMatroskaSplitterOutputPin::DeliverBlock(CAutoPtr<Block> b, REFERENCE_TIME rtStart, REFERENCE_TIME rtStop, BOOL bDiscontinuity)
+{
+	if(!ThreadExists()) 
+		return S_FALSE;
+
+TRACE(_T("DeliverBlock(%d: %I64d, %I64d, %d) cnt=%d\n"), 
+	  (int)b->TrackNumber, rtStart, rtStop, (int)!!bDiscontinuity, m_packets.GetCount());
+
+	DontGoWild();
+	if(S_OK != m_hrDeliver) return m_hrDeliver;
+
+	CAutoLock cAutoLock(&m_csQueueLock);
+	CAutoPtr<packet> p(new packet());
+	p->type = BLOCK;
+	p->b = b;
+	p->rtStart = rtStart;
+	p->rtStop = rtStop;
+	p->bDiscontinuity = bDiscontinuity;
+	m_packets.AddHead(p);
+	return m_hrDeliver;
+}
+
+DWORD CMatroskaSplitterOutputPin::ThreadProc()
+{
+	m_hrDeliver = S_OK;
+
+	::SetThreadPriority(m_hThread, THREAD_PRIORITY_ABOVE_NORMAL);
+
+	while(1)
+	{
+		Sleep(1);
+
+		DWORD cmd;
+		if(CheckRequest(&cmd))
+		{
+			m_hThread = NULL;
+			cmd = GetRequest();
+			Reply(S_OK);
+			ASSERT(cmd == CMD_EXIT);
+			return 0;
+		}
+
+		int cnt = 0;
+		do
+		{
+			CAutoPtr<packet> p;
+
+			{
+				CAutoLock cAutoLock(&m_csQueueLock);
+				cnt = m_packets.GetCount();
+				if(cnt > 0) {p = m_packets.RemoveTail(); cnt--;}
+			}
+
+			if(S_OK != m_hrDeliver) 
+			{
+//if(p) TRACE(_T("This pin won't deliver, already run it problems... (%d)\n"), (int)p->b->TrackNumber);
+				continue;
+			}
+
+			if(p && p->type == EOS)
+			{
+//TRACE(_T("GetConnected()->EndOfStream() calling...\n"));
+				HRESULT hr = GetConnected()->EndOfStream();
+//TRACE(_T("GetConnected()->EndOfStream() returned(%08x)\n"), hr);
+				if(hr != S_OK)
+				{
+					CAutoLock cAutoLock(&m_csQueueLock);
+					m_hrDeliver = hr;
+				}
+			}
+			else if(p && p->type == BLOCK)
+			{
+				HRESULT hr = S_FALSE;
+				
+				REFERENCE_TIME 
+					rtStart = p->rtStart,
+					rtDelta = (p->rtStop - p->rtStart) / p->b->BlockData.GetCount(),
+					rtStop = p->rtStart + rtDelta;
+
+				ASSERT(p->rtStart < p->rtStop);
+
+				POSITION pos = p->b->BlockData.GetHeadPosition();
+				while(pos)
+				{
+					CBinary* pBlockData = p->b->BlockData.GetNext(pos);
+
+TRACE(_T("Delivering... (%d: %I64d, %I64d, d%d s%d p%d), cnt=%d\n"), 
+	  (int)p->b->TrackNumber, rtStart, rtStop, (int)!!p->bDiscontinuity, (int)!!(p->b->ReferenceBlock == 0), (int)!!(rtStart < 0), cnt);
+					CComPtr<IMediaSample> pSample;
+					BYTE* pData;
+					if(S_OK != (hr = GetDeliveryBuffer(&pSample, NULL, NULL, 0))
+					|| S_OK != (hr = pSample->GetPointer(&pData))
+					|| (hr = memcpy(pData, pBlockData->GetData(), pBlockData->GetSize()) ? S_OK : E_FAIL)
+					|| S_OK != (hr = pSample->SetActualDataLength((long)pBlockData->GetSize()))
+					|| S_OK != (hr = pSample->SetTime(&rtStart, &rtStop))
+					|| S_OK != (hr = pSample->SetMediaTime(NULL, NULL))
+					|| S_OK != (hr = pSample->SetDiscontinuity(p->bDiscontinuity))
+					|| S_OK != (hr = pSample->SetSyncPoint(p->b->ReferenceBlock == 0))
+					|| S_OK != (hr = pSample->SetPreroll(rtStart < 0))
+					|| S_OK != (hr = Deliver(pSample)))
+					{
+TRACE(_T("Delivery != S_OK (%08x)\n"), hr);
+						break;
+					}
+
+					rtStart += rtDelta;
+					rtStop += rtDelta;
+
+					if(p->bDiscontinuity) p->bDiscontinuity = false;
+				}
+
+				if(hr != S_OK)
+				{
+					CAutoLock cAutoLock(&m_csQueueLock);
+					m_hrDeliver = hr;
+				}
+			}
+		}
+		while(cnt > 0);
+	}
+}
 
 //
 // CFileReader
