@@ -34,9 +34,6 @@ GSLocalMemory::GSLocalMemory()
 	m_vm8 = new BYTE[len];
 	memset(m_vm8, 0, len);
 
-	m_sm8 = new BYTE[len];
-	memset(m_sm8, ~0, len);
-
 	memset(m_clut, 0, sizeof(m_clut));
 
 	for(int bp = 0; bp < 32; bp++)
@@ -65,12 +62,15 @@ GSLocalMemory::GSLocalMemory()
 			pageOffset4[bp][y][x] = (WORD)pixelAddressOrg4(x, y, bp, 0);
 		}
 	}
+
+	m_bbt[0] = 0;
+	for(int i = 1; i < 256; i++)
+		m_bbt[i] = 0xff;
 }
 
 GSLocalMemory::~GSLocalMemory()
 {
 	delete [] m_vm8;
-	delete [] m_sm8;
 }
 
 ////////////////////
@@ -525,6 +525,36 @@ GSLocalMemory::writePixel GSLocalMemory::GetWritePixel(DWORD psm)
 
 ////////////////////
 
+void GSLocalMemory::writeFrame16(int x, int y, DWORD c, DWORD bp, DWORD bw)
+{
+	c = ((c>>16)&0x8000)|((c>>9)&0x7c00)|((c>>6)&0x03e0)|((c>>3)&0x001f);
+	writePixel16(x, y, c, bp, bw);
+}
+
+void GSLocalMemory::writeFrame16S(int x, int y, DWORD c, DWORD bp, DWORD bw)
+{
+	c = ((c>>16)&0x8000)|((c>>9)&0x7c00)|((c>>6)&0x03e0)|((c>>3)&0x001f);
+	writePixel16S(x, y, c, bp, bw);
+}
+
+GSLocalMemory::writeFrame GSLocalMemory::GetWriteFrame(DWORD psm)
+{
+	writeFrame wf = NULL;
+
+	switch(psm)
+	{
+	default: ASSERT(0);
+	case PSM_PSMCT32: wf = &GSLocalMemory::writePixel32; break;
+	case PSM_PSMCT24: wf = &GSLocalMemory::writePixel24; break;
+	case PSM_PSMCT16: wf = &GSLocalMemory::writeFrame16; break;
+	case PSM_PSMCT16S: wf = &GSLocalMemory::writeFrame16S; break;
+	}
+	
+	return wf;
+}
+
+////////////////////
+
 DWORD GSLocalMemory::readPixel32(int x, int y, DWORD bp, DWORD bw)
 {
 	return m_vm32[pixelAddress32(x, y, bp, bw)];
@@ -618,192 +648,6 @@ GSLocalMemory::readPixel GSLocalMemory::GetReadPixel(DWORD psm)
 
 ////////////////////
 
-DWORD GSLocalMemory::testPixel32(int x, int y, DWORD bp, DWORD bw)
-{
-	DWORD addr = pixelAddress32(x, y, bp, bw);
-	DWORD v = m_vm32[addr];
-	DWORD s = m_sm32[addr];
-	m_sm32[addr] = v;
-	return v^s;
-}
-
-DWORD GSLocalMemory::testPixel24(int x, int y, DWORD bp, DWORD bw)
-{
-	DWORD addr = pixelAddress32(x, y, bp, bw);
-	DWORD v = m_vm32[addr] & 0x00ffffff;
-	DWORD s = m_sm32[addr] & 0x00ffffff;
-	m_sm32[addr] = (m_sm32[addr] & 0xff000000) | v;
-	return v^s;
-}
-
-DWORD GSLocalMemory::testPixel16(int x, int y, DWORD bp, DWORD bw)
-{
-	DWORD addr = pixelAddress16(x, y, bp, bw);
-	WORD v = m_vm16[addr];
-	WORD s = m_sm16[addr];
-	m_sm16[addr] = v;
-	return v^s;
-}
-
-DWORD GSLocalMemory::testPixel16S(int x, int y, DWORD bp, DWORD bw)
-{
-	DWORD addr = pixelAddress16S(x, y, bp, bw);
-	WORD v = m_vm16[addr];
-	WORD s = m_sm16[addr];
-	m_sm16[addr] = v;
-	return v^s;
-}
-
-DWORD GSLocalMemory::testPixel8(int x, int y, DWORD bp, DWORD bw)
-{
-	DWORD addr = pixelAddress8(x, y, bp, bw);
-	BYTE v = m_vm8[addr];
-	BYTE s = m_sm8[addr];
-	m_sm8[addr] = v;
-	return v^s;
-}
-
-DWORD GSLocalMemory::testPixel8H(int x, int y, DWORD bp, DWORD bw)
-{
-	DWORD addr = pixelAddress32(x, y, bp, bw);
-	DWORD v = m_vm32[addr] & 0xff000000;
-	DWORD s = m_sm32[addr] & 0xff000000;
-	m_sm32[addr] = (m_sm32[addr] & 0x00ffffff) | v;
-	return (v^s) >> 24;
-}
-
-DWORD GSLocalMemory::testPixel4(int x, int y, DWORD bp, DWORD bw)
-{
-	DWORD addr = pixelAddress4(x, y, bp, bw);
-	int shift = (addr&1) << 2; addr >>= 1;
-	BYTE v = m_vm8[addr] & (0xf0 >> shift);
-	BYTE s = m_sm8[addr] & (0xf0 >> shift);
-	m_sm8[addr] = (m_sm8[addr] & (0x0f << shift)) | v;
-	return (v^s) >> shift;
-}
-
-DWORD GSLocalMemory::testPixel4HL(int x, int y, DWORD bp, DWORD bw)
-{
-	DWORD addr = pixelAddress32(x, y, bp, bw);
-	DWORD v = m_vm32[addr] & 0x0f000000;
-	DWORD s = m_sm32[addr] & 0x0f000000;
-	m_sm32[addr] = (m_sm32[addr] & 0xf0ffffff) | v;
-	return (v^s) >> 24;
-}
-
-DWORD GSLocalMemory::testPixel4HH(int x, int y, DWORD bp, DWORD bw)
-{
-	DWORD addr = pixelAddress32(x, y, bp, bw);
-	DWORD v = m_vm32[addr] & 0xf0000000;
-	DWORD s = m_sm32[addr] & 0xf0000000;
-	m_sm32[addr] = (m_sm32[addr] & 0x0fffffff) | v;
-	return (v^s) >> 28;
-}
-
-DWORD GSLocalMemory::testPixel32Z(int x, int y, DWORD bp, DWORD bw)
-{
-	DWORD addr = pixelAddress32Z(x, y, bp, bw);
-	DWORD v = m_vm32[addr];
-	DWORD s = m_sm32[addr];
-	m_sm32[addr] = v;
-	return v^s;
-}
-
-DWORD GSLocalMemory::testPixel24Z(int x, int y, DWORD bp, DWORD bw)
-{
-	DWORD addr = pixelAddress32Z(x, y, bp, bw);
-	DWORD v = m_vm32[addr] & 0x00ffffff;
-	DWORD s = m_sm32[addr] & 0x00ffffff;
-	m_sm32[addr] = (m_sm32[addr] & 0xff000000) | v;
-	return v^s;
-}
-
-DWORD GSLocalMemory::testPixel16Z(int x, int y, DWORD bp, DWORD bw)
-{
-	DWORD addr = pixelAddress16Z(x, y, bp, bw);
-	WORD v = m_vm16[addr];
-	WORD s = m_sm16[addr];
-	m_sm16[addr] = v;
-	return v^s;
-}
-
-DWORD GSLocalMemory::testPixel16SZ(int x, int y, DWORD bp, DWORD bw)
-{
-	DWORD addr = pixelAddress16SZ(x, y, bp, bw);
-	WORD v = m_vm16[addr];
-	WORD s = m_sm16[addr];
-	m_sm16[addr] = v;
-	return v^s;
-}
-
-GSLocalMemory::testPixel GSLocalMemory::GetTestPixel(DWORD psm)
-{
-	testPixel tp = NULL;
-
-	switch(psm)
-	{
-	default: ASSERT(0);
-	case PSM_PSMCT32: tp = &GSLocalMemory::testPixel32; break;
-	case PSM_PSMCT24: tp = &GSLocalMemory::testPixel24; break;
-	case PSM_PSMCT16: tp = &GSLocalMemory::testPixel16; break;
-	case PSM_PSMCT16S: tp = &GSLocalMemory::testPixel16S; break;
-	case PSM_PSMT8: tp = &GSLocalMemory::testPixel8; break;
-	case PSM_PSMT4: tp = &GSLocalMemory::testPixel4; break;
-	case PSM_PSMT8H: tp = &GSLocalMemory::testPixel8H; break;
-	case PSM_PSMT4HL: tp = &GSLocalMemory::testPixel4HL; break;
-	case PSM_PSMT4HH: tp = &GSLocalMemory::testPixel4HH; break;
-	case PSM_PSMZ32: tp = &GSLocalMemory::testPixel32Z; break;
-	case PSM_PSMZ24: tp = &GSLocalMemory::testPixel24Z; break;
-	case PSM_PSMZ16: tp = &GSLocalMemory::testPixel16Z; break;
-	case PSM_PSMZ16S: tp = &GSLocalMemory::testPixel16SZ; break;
-	}
-	
-	return tp;
-}
-
-bool GSLocalMemory::IsDirty(GIFRegTEX0& TEX0)
-{
-	DWORD dirty = 0;
-	testPixel tp = GetTestPixel(TEX0.PSM);
-
-	int tw = 1<<TEX0.TW;
-	int th = 1<<TEX0.TH;
-
-	for(int y = 0; y < th; y++)
-		for(int x = 0; x < tw; x++)
-			dirty |= (this->*tp)(x, y, TEX0.TBP0, TEX0.TBW);
-
-	return !!dirty;
-}
-
-bool GSLocalMemory::IsPalDirty(GIFRegTEX0& TEX0)
-{
-	DWORD dirty = 0;
-	testPixel tp = GetTestPixel(TEX0.PSM);
-
-	int tw = 0;
-	int th = 0;
-
-	if(TEX0.PSM == PSM_PSMT8 || TEX0.PSM == PSM_PSMT8H)
-	{
-		if(TEX0.CSM == 0) {tw = 16; th = 16;}
-		else {tw = 256; th = 1;}
-	}
-	else if(TEX0.PSM == PSM_PSMT4HH || TEX0.PSM == PSM_PSMT4HL || TEX0.PSM == PSM_PSMT4)
-	{
-		if(TEX0.CSM == 0) {tw = 8; th = 2;}
-		else {tw = 16; th = 1;}
-	}
-
-	for(int y = 0; y < th; y++)
-		for(int x = 0; x < tw; x++)
-			dirty |= (this->*tp)(x, y, TEX0.CBP, 1);
-
-	return !!dirty;
-}
-
-////////////////////
-
 DWORD GSLocalMemory::readTexel32(int x, int y, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA)
 {
 	DWORD c = readPixel32(x, y, TEX0.TBP0, TEX0.TBW);
@@ -815,7 +659,11 @@ DWORD GSLocalMemory::readTexel24(int x, int y, GIFRegTEX0& TEX0, GIFRegTEXA& TEX
 {
 	DWORD c = readPixel24(x, y, TEX0.TBP0, TEX0.TBW);
 	BYTE* sb = (BYTE*)&c;
-	BYTE A = TEX0.TCC == 0 ? 0x80 : (!TEXA.AEM|sb[0]|sb[1]|sb[2]) ? TEXA.TA0 : 0;
+//	BYTE A = TEX0.TCC == 0 ? 0x80 : (!TEXA.AEM|sb[0]|sb[1]|sb[2]) ? TEXA.TA0 : 0;
+	BYTE MASK1 = m_bbt[(TEX0.ai32[1]&4)];
+	BYTE MASK2 = m_bbt[!TEXA.AEM|sb[0]|sb[1]|sb[2]];
+	BYTE A = (~MASK1 & 0x80) | (MASK1 & (MASK2 & TEXA.TA0));
+
 	return (A << 24) | (sb[0] << 16) | (sb[1] << 8) | (sb[2] << 0);
 }
 
@@ -823,7 +671,10 @@ DWORD GSLocalMemory::readTexel16(int x, int y, GIFRegTEX0& TEX0, GIFRegTEXA& TEX
 {
 	WORD c = (WORD)readPixel16(x, y, TEX0.TBP0, TEX0.TBW);
 	BYTE* sb = (BYTE*)&c;
-	BYTE A = (sb[1]&0x80) ? TEXA.TA1 : (!TEXA.AEM|sb[0]|sb[1]) ? TEXA.TA0 : 0;
+//	BYTE A = (sb[1]&0x80) ? TEXA.TA1 : (!TEXA.AEM|sb[0]|sb[1]) ? TEXA.TA0 : 0;
+	BYTE MASK1 = m_bbt[sb[1]&0x80];
+	BYTE MASK2 = m_bbt[!TEXA.AEM|sb[0]|sb[1]];
+	BYTE A = (MASK1 & TEXA.TA1) | (~MASK1 & (MASK2 & TEXA.TA0));
 	return (A << 24) | (((sb[0]&0x1f)<<3) << 16) | ((((sb[1]&0x03)<<6)|((sb[0]&0xe0)>>2)) << 8) | ((sb[1]&0x7c) << 1);
 }
 
@@ -831,7 +682,10 @@ DWORD GSLocalMemory::readTexel16S(int x, int y, GIFRegTEX0& TEX0, GIFRegTEXA& TE
 {
 	WORD c = (WORD)readPixel16S(x, y, TEX0.TBP0, TEX0.TBW);
 	BYTE* sb = (BYTE*)&c;
-	BYTE A = (sb[1]&0x80) ? TEXA.TA1 : (!TEXA.AEM|sb[0]|sb[1]) ? TEXA.TA0 : 0;
+//	BYTE A = (sb[1]&0x80) ? TEXA.TA1 : (!TEXA.AEM|sb[0]|sb[1]) ? TEXA.TA0 : 0;
+	BYTE MASK1 = m_bbt[sb[1]&0x80];
+	BYTE MASK2 = m_bbt[!TEXA.AEM|sb[0]|sb[1]];
+	BYTE A = (MASK1 & TEXA.TA1) | (~MASK1 & (MASK2 & TEXA.TA0));
 	return (A << 24) | (((sb[0]&0x1f)<<3) << 16) | ((((sb[1]&0x03)<<6)|((sb[0]&0xe0)>>2)) << 8) | ((sb[1]&0x7c) << 1);
 }
 
@@ -883,21 +737,114 @@ GSLocalMemory::readTexel GSLocalMemory::GetReadTexel(DWORD psm)
 
 ////////////////////
 
-void GSLocalMemory::writeFrame16(int x, int y, DWORD c, DWORD bp, DWORD bw)
+void GSLocalMemory::writePixel32(int x, int y, DWORD c, DWORD addr)
 {
-	c = ((c>>16)&0x8000)|((c>>9)&0x7c00)|((c>>6)&0x03e0)|((c>>3)&0x001f);
-	writePixel16(x, y, c, bp, bw);
+	m_vm32[addr] = c;
 }
 
-void GSLocalMemory::writeFrame16S(int x, int y, DWORD c, DWORD bp, DWORD bw)
+void GSLocalMemory::writePixel24(int x, int y, DWORD c, DWORD addr)
 {
-	c = ((c>>16)&0x8000)|((c>>9)&0x7c00)|((c>>6)&0x03e0)|((c>>3)&0x001f);
-	writePixel16S(x, y, c, bp, bw);
+	m_vm32[addr] = (m_vm32[addr] & 0xff000000) | (c & 0x00ffffff);
 }
 
-GSLocalMemory::writeFrame GSLocalMemory::GetWriteFrame(DWORD psm)
+void GSLocalMemory::writePixel16(int x, int y, DWORD c, DWORD addr)
 {
-	writeFrame wf = NULL;
+	m_vm16[addr] = (WORD)c;
+}
+
+void GSLocalMemory::writePixel16S(int x, int y, DWORD c, DWORD addr)
+{
+	m_vm16[addr] = (WORD)c;
+}
+
+void GSLocalMemory::writePixel8(int x, int y, DWORD c, DWORD addr)
+{
+	m_vm8[addr] = (BYTE)c;
+}
+
+void GSLocalMemory::writePixel8H(int x, int y, DWORD c, DWORD addr)
+{
+	m_vm32[addr] = (m_vm32[addr] & 0x00ffffff) | (c << 24);
+}
+
+void GSLocalMemory::writePixel4(int x, int y, DWORD c, DWORD addr)
+{
+	int shift = (addr&1) << 2; addr >>= 1;
+	m_vm8[addr] = (BYTE)((m_vm8[addr] & (0xf0 >> shift)) | ((c & 0x0f) << shift));
+}
+
+void GSLocalMemory::writePixel4HL(int x, int y, DWORD c, DWORD addr)
+{
+	m_vm32[addr] = (m_vm32[addr] & 0xf0ffffff) | ((c & 0x0f) << 24);
+}
+
+void GSLocalMemory::writePixel4HH(int x, int y, DWORD c, DWORD addr)
+{
+	m_vm32[addr] = (m_vm32[addr] & 0x0fffffff) | ((c & 0x0f) << 28);
+}
+
+void GSLocalMemory::writePixel32Z(int x, int y, DWORD c, DWORD addr)
+{
+	m_vm32[addr] = c;
+}
+
+void GSLocalMemory::writePixel24Z(int x, int y, DWORD c, DWORD addr)
+{
+	m_vm32[addr] = (m_vm32[addr] & 0xff000000) | (c & 0x00ffffff);
+}
+
+void GSLocalMemory::writePixel16Z(int x, int y, DWORD c, DWORD addr)
+{
+	m_vm16[addr] = (WORD)c;
+}
+
+void GSLocalMemory::writePixel16SZ(int x, int y, DWORD c, DWORD addr)
+{
+	m_vm16[addr] = (WORD)c;
+}
+
+GSLocalMemory::writePixelAddr GSLocalMemory::GetWritePixelAddr(DWORD psm)
+{
+	writePixelAddr wp = NULL;
+
+	switch(psm)
+	{
+	default: ASSERT(0);
+	case PSM_PSMCT32: wp = &GSLocalMemory::writePixel32; break;
+	case PSM_PSMCT24: wp = &GSLocalMemory::writePixel24; break;
+	case PSM_PSMCT16: wp = &GSLocalMemory::writePixel16; break;
+	case PSM_PSMCT16S: wp = &GSLocalMemory::writePixel16S; break;
+	case PSM_PSMT8: wp = &GSLocalMemory::writePixel8; break;
+	case PSM_PSMT4: wp = &GSLocalMemory::writePixel4; break;
+	case PSM_PSMT8H: wp = &GSLocalMemory::writePixel8H; break;
+	case PSM_PSMT4HL: wp = &GSLocalMemory::writePixel4HL; break;
+	case PSM_PSMT4HH: wp = &GSLocalMemory::writePixel4HH; break;
+	case PSM_PSMZ32: wp = &GSLocalMemory::writePixel32Z; break;
+	case PSM_PSMZ24: wp = &GSLocalMemory::writePixel24Z; break;
+	case PSM_PSMZ16: wp = &GSLocalMemory::writePixel16Z; break;
+	case PSM_PSMZ16S: wp = &GSLocalMemory::writePixel16SZ; break;
+	}
+	
+	return wp;
+}
+
+////////////////////
+
+void GSLocalMemory::writeFrame16(int x, int y, DWORD c, DWORD addr)
+{
+	c = ((c>>16)&0x8000)|((c>>9)&0x7c00)|((c>>6)&0x03e0)|((c>>3)&0x001f);
+	writePixel16(x, y, c, addr);
+}
+
+void GSLocalMemory::writeFrame16S(int x, int y, DWORD c, DWORD addr)
+{
+	c = ((c>>16)&0x8000)|((c>>9)&0x7c00)|((c>>6)&0x03e0)|((c>>3)&0x001f);
+	writePixel16S(x, y, c, addr);
+}
+
+GSLocalMemory::writeFrameAddr GSLocalMemory::GetWriteFrameAddr(DWORD psm)
+{
+	writeFrameAddr wf = NULL;
 
 	switch(psm)
 	{
@@ -909,6 +856,187 @@ GSLocalMemory::writeFrame GSLocalMemory::GetWriteFrame(DWORD psm)
 	}
 	
 	return wf;
+}
+
+////////////////////
+
+DWORD GSLocalMemory::readPixel32(int x, int y, DWORD addr)
+{
+	return m_vm32[addr];
+}
+
+DWORD GSLocalMemory::readPixel24(int x, int y, DWORD addr)
+{
+	return m_vm32[addr] & 0x00ffffff;
+}
+
+DWORD GSLocalMemory::readPixel16(int x, int y, DWORD addr)
+{
+	return (DWORD)m_vm16[addr];
+}
+
+DWORD GSLocalMemory::readPixel16S(int x, int y, DWORD addr)
+{
+	return (DWORD)m_vm16[addr];
+}
+
+DWORD GSLocalMemory::readPixel8(int x, int y, DWORD addr)
+{
+	return (DWORD)m_vm8[addr];
+}
+
+DWORD GSLocalMemory::readPixel8H(int x, int y, DWORD addr)
+{
+	return m_vm32[addr] >> 24;
+}
+
+DWORD GSLocalMemory::readPixel4(int x, int y, DWORD addr)
+{
+	return (m_vm8[addr>>1] >> ((addr&1) << 2)) & 0x0f;
+}
+
+DWORD GSLocalMemory::readPixel4HL(int x, int y, DWORD addr)
+{
+	return (m_vm32[addr] >> 24) & 0x0f;
+}
+
+DWORD GSLocalMemory::readPixel4HH(int x, int y, DWORD addr)
+{
+	return (m_vm32[addr] >> 28) & 0x0f;
+}
+
+DWORD GSLocalMemory::readPixel32Z(int x, int y, DWORD addr)
+{
+	return m_vm32[addr];
+}
+
+DWORD GSLocalMemory::readPixel24Z(int x, int y, DWORD addr)
+{
+	return m_vm32[addr] & 0x00ffffff;
+}
+
+DWORD GSLocalMemory::readPixel16Z(int x, int y, DWORD addr)
+{
+	return (DWORD)m_vm16[addr];
+}
+
+DWORD GSLocalMemory::readPixel16SZ(int x, int y, DWORD addr)
+{
+	return (DWORD)m_vm16[addr];
+}
+
+GSLocalMemory::readPixelAddr GSLocalMemory::GetReadPixelAddr(DWORD psm)
+{
+	readPixelAddr rp = NULL;
+
+	switch(psm)
+	{
+	default: ASSERT(0);
+	case PSM_PSMCT32: rp = &GSLocalMemory::readPixel32; break;
+	case PSM_PSMCT24: rp = &GSLocalMemory::readPixel24; break;
+	case PSM_PSMCT16: rp = &GSLocalMemory::readPixel16; break;
+	case PSM_PSMCT16S: rp = &GSLocalMemory::readPixel16S; break;
+	case PSM_PSMT8: rp = &GSLocalMemory::readPixel8; break;
+	case PSM_PSMT4: rp = &GSLocalMemory::readPixel4; break;
+	case PSM_PSMT8H: rp = &GSLocalMemory::readPixel8H; break;
+	case PSM_PSMT4HL: rp = &GSLocalMemory::readPixel4HL; break;
+	case PSM_PSMT4HH: rp = &GSLocalMemory::readPixel4HH; break;
+	case PSM_PSMZ32: rp = &GSLocalMemory::readPixel32Z; break;
+	case PSM_PSMZ24: rp = &GSLocalMemory::readPixel24Z; break;
+	case PSM_PSMZ16: rp = &GSLocalMemory::readPixel16Z; break;
+	case PSM_PSMZ16S: rp = &GSLocalMemory::readPixel16SZ; break;
+	}
+	
+	return rp;
+}
+
+////////////////////
+
+DWORD GSLocalMemory::readTexel32(int x, int y, DWORD addr, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA)
+{
+	DWORD c = readPixel32(x, y, addr);
+	BYTE* sb = (BYTE*)&c;
+	return (sb[3] << 24) | (sb[0] << 16) | (sb[1] << 8) | (sb[2] << 0);
+}
+
+DWORD GSLocalMemory::readTexel24(int x, int y, DWORD addr, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA)
+{
+	DWORD c = readPixel24(x, y, addr);
+	BYTE* sb = (BYTE*)&c;
+//	BYTE A = TEX0.TCC == 0 ? 0x80 : (!TEXA.AEM|sb[0]|sb[1]|sb[2]) ? TEXA.TA0 : 0;
+	BYTE MASK1 = m_bbt[(TEX0.ai32[1]&4)];
+	BYTE MASK2 = m_bbt[!TEXA.AEM|sb[0]|sb[1]|sb[2]];
+	BYTE A = (~MASK1 & 0x80) | (MASK1 & (MASK2 & TEXA.TA0));
+
+	return (A << 24) | (sb[0] << 16) | (sb[1] << 8) | (sb[2] << 0);
+}
+
+DWORD GSLocalMemory::readTexel16(int x, int y, DWORD addr, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA)
+{
+	WORD c = (WORD)readPixel16(x, y, addr);
+	BYTE* sb = (BYTE*)&c;
+//	BYTE A = (sb[1]&0x80) ? TEXA.TA1 : (!TEXA.AEM|sb[0]|sb[1]) ? TEXA.TA0 : 0;
+	BYTE MASK1 = m_bbt[sb[1]&0x80];
+	BYTE MASK2 = m_bbt[!TEXA.AEM|sb[0]|sb[1]];
+	BYTE A = (MASK1 & TEXA.TA1) | (~MASK1 & (MASK2 & TEXA.TA0));
+	return (A << 24) | (((sb[0]&0x1f)<<3) << 16) | ((((sb[1]&0x03)<<6)|((sb[0]&0xe0)>>2)) << 8) | ((sb[1]&0x7c) << 1);
+}
+
+DWORD GSLocalMemory::readTexel16S(int x, int y, DWORD addr, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA)
+{
+	WORD c = (WORD)readPixel16S(x, y, addr);
+	BYTE* sb = (BYTE*)&c;
+//	BYTE A = (sb[1]&0x80) ? TEXA.TA1 : (!TEXA.AEM|sb[0]|sb[1]) ? TEXA.TA0 : 0;
+	BYTE MASK1 = m_bbt[sb[1]&0x80];
+	BYTE MASK2 = m_bbt[!TEXA.AEM|sb[0]|sb[1]];
+	BYTE A = (MASK1 & TEXA.TA1) | (~MASK1 & (MASK2 & TEXA.TA0));
+	return (A << 24) | (((sb[0]&0x1f)<<3) << 16) | ((((sb[1]&0x03)<<6)|((sb[0]&0xe0)>>2)) << 8) | ((sb[1]&0x7c) << 1);
+}
+
+DWORD GSLocalMemory::readTexel8(int x, int y, DWORD addr, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA)
+{
+	return m_clut[readPixel8(x, y, addr)];
+}
+
+DWORD GSLocalMemory::readTexel8H(int x, int y, DWORD addr, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA)
+{
+	return m_clut[readPixel8H(x, y, addr)];
+}
+
+DWORD GSLocalMemory::readTexel4(int x, int y, DWORD addr, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA)
+{
+	return m_clut[readPixel4(x, y, addr)];
+}
+
+DWORD GSLocalMemory::readTexel4HL(int x, int y, DWORD addr, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA)
+{
+	return m_clut[readPixel4HL(x, y, addr)];
+}
+
+DWORD GSLocalMemory::readTexel4HH(int x, int y, DWORD addr, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA)
+{
+	return m_clut[readPixel4HH(x, y, addr)];
+}
+
+GSLocalMemory::readTexelAddr GSLocalMemory::GetReadTexelAddr(DWORD psm)
+{
+	readTexelAddr rt = NULL;
+
+	switch(psm)
+	{
+	default: ASSERT(0);
+	case PSM_PSMCT32: rt = &GSLocalMemory::readTexel32; break;
+	case PSM_PSMCT24: rt = &GSLocalMemory::readTexel24; break;
+	case PSM_PSMCT16: rt = &GSLocalMemory::readTexel16; break;
+	case PSM_PSMCT16S: rt = &GSLocalMemory::readTexel16S; break;
+	case PSM_PSMT8: rt = &GSLocalMemory::readTexel8; break;
+	case PSM_PSMT4: rt = &GSLocalMemory::readTexel4; break;
+	case PSM_PSMT8H: rt = &GSLocalMemory::readTexel8H; break;
+	case PSM_PSMT4HL: rt = &GSLocalMemory::readTexel4HL; break;
+	case PSM_PSMT4HH: rt = &GSLocalMemory::readTexel4HH; break;
+	}
+	
+	return rt;
 }
 
 ////////////////////

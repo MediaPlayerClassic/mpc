@@ -61,11 +61,28 @@ struct GSDrawingContext
 	GIFRegFRAME		FRAME;
 	GIFRegZBUF		ZBUF;
 
-	GSLocalMemory::readTexel rp;
+	// f
+	GSLocalMemory::readPixel rp;
+	GSLocalMemory::readTexel rf;
 	GSLocalMemory::writeFrame wf;
+
+	// z
 	GSLocalMemory::readPixel rz;
 	GSLocalMemory::writePixel wz;
+
+	// t
 	GSLocalMemory::readTexel rt;
+
+	// fa
+	GSLocalMemory::pixelAddress pa;
+	GSLocalMemory::readPixelAddr rpa;
+	GSLocalMemory::readTexelAddr rfa;
+	GSLocalMemory::writeFrameAddr wfa;
+
+	// za
+	GSLocalMemory::pixelAddress paz;
+	GSLocalMemory::readPixelAddr rza;
+	GSLocalMemory::writePixelAddr wza;
 };
 
 struct GSDrawingEnvironment

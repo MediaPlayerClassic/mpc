@@ -819,8 +819,13 @@ void GSState::GIFRegHandlerFRAME_1(GIFReg* r)
 
 	m_de.CTXT[0].FRAME = r->FRAME;
 
-	m_de.CTXT[0].rp = m_lm.GetReadTexel(r->FRAME.PSM);
+	m_de.CTXT[0].pa = m_lm.GetPixelAddress(r->FRAME.PSM);
+	m_de.CTXT[0].rp = m_lm.GetReadPixel(r->FRAME.PSM);
+	m_de.CTXT[0].rf = m_lm.GetReadTexel(r->FRAME.PSM);
 	m_de.CTXT[0].wf = m_lm.GetWriteFrame(r->FRAME.PSM);
+	m_de.CTXT[0].rpa = m_lm.GetReadPixelAddr(r->FRAME.PSM);
+	m_de.CTXT[0].rfa = m_lm.GetReadTexelAddr(r->FRAME.PSM);
+	m_de.CTXT[0].wfa = m_lm.GetWriteFrameAddr(r->FRAME.PSM);
 }
 
 void GSState::GIFRegHandlerFRAME_2(GIFReg* r)
@@ -836,8 +841,13 @@ void GSState::GIFRegHandlerFRAME_2(GIFReg* r)
 
 	m_de.CTXT[1].FRAME = r->FRAME;
 
-	m_de.CTXT[1].rp = m_lm.GetReadTexel(r->FRAME.PSM);
+	m_de.CTXT[1].pa = m_lm.GetPixelAddress(r->FRAME.PSM);
+	m_de.CTXT[1].rp = m_lm.GetReadPixel(r->FRAME.PSM);
+	m_de.CTXT[1].rf = m_lm.GetReadTexel(r->FRAME.PSM);
 	m_de.CTXT[1].wf = m_lm.GetWriteFrame(r->FRAME.PSM);
+	m_de.CTXT[1].rpa = m_lm.GetReadPixelAddr(r->FRAME.PSM);
+	m_de.CTXT[1].rfa = m_lm.GetReadTexelAddr(r->FRAME.PSM);
+	m_de.CTXT[1].wfa = m_lm.GetWriteFrameAddr(r->FRAME.PSM);
 }
 
 void GSState::GIFRegHandlerZBUF_1(GIFReg* r)
@@ -854,6 +864,9 @@ void GSState::GIFRegHandlerZBUF_1(GIFReg* r)
 
 	m_de.CTXT[0].rz = m_lm.GetReadPixel(r->ZBUF.PSM);
 	m_de.CTXT[0].wz = m_lm.GetWritePixel(r->ZBUF.PSM);
+	m_de.CTXT[0].rza = m_lm.GetReadPixelAddr(r->ZBUF.PSM);
+	m_de.CTXT[0].wza = m_lm.GetWritePixelAddr(r->ZBUF.PSM);
+	m_de.CTXT[0].paz = m_lm.GetPixelAddress(r->ZBUF.PSM);
 }
 
 void GSState::GIFRegHandlerZBUF_2(GIFReg* r)
@@ -870,6 +883,9 @@ void GSState::GIFRegHandlerZBUF_2(GIFReg* r)
 
 	m_de.CTXT[1].rz = m_lm.GetReadPixel(r->ZBUF.PSM);
 	m_de.CTXT[1].wz = m_lm.GetWritePixel(r->ZBUF.PSM);
+	m_de.CTXT[1].rza = m_lm.GetReadPixelAddr(r->ZBUF.PSM);
+	m_de.CTXT[1].wza = m_lm.GetWritePixelAddr(r->ZBUF.PSM);
+	m_de.CTXT[1].paz = m_lm.GetPixelAddress(r->ZBUF.PSM);
 }
 
 void GSState::GIFRegHandlerBITBLTBUF(GIFReg* r)

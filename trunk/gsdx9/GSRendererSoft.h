@@ -63,8 +63,8 @@ protected:
 	CRect m_scissor;
 	virtual void SetScissor() = 0;
 
-	BYTE m_clip[512+256+512];
-	BYTE m_mask[512+256+512];
+	BYTE m_clip[65536];
+	BYTE m_mask[65536];
 	BYTE* m_clamp;
 
 public:
@@ -103,7 +103,7 @@ protected:
 	void DrawLine(GSSoftVertex* v);
 	void DrawTriangle(GSSoftVertex* v);
 	void DrawSprite(GSSoftVertex* v);
-	// void DrawVertex(int x, int y, GSSoftVertex& v);
+	void DrawVertex(int x, int y, GSSoftVertex& v);
 
 public:
 	GSRendererSoftFX(HWND hWnd, HRESULT& hr);

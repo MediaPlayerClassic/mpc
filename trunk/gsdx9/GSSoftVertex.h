@@ -54,7 +54,10 @@ __declspec(align(16)) union GSSoftVertexFP
 	friend GSSoftVertexFP operator * (GSSoftVertexFP& v1, float f);
 	friend GSSoftVertexFP operator / (GSSoftVertexFP& v1, float f);
 
+	int GetX() {return (int)x;}
+	int GetY() {return (int)y;}
 	DWORD GetZ() {return (DWORD)(z * UINT_MAX);}
+	BYTE GetFog() {return (BYTE)z;}
 	void GetColor(void* pRGBA)
 	{
 #ifdef USE_SIMD
@@ -122,8 +125,6 @@ inline GSSoftVertexFP operator / (GSSoftVertexFP& v1, float f)
 
 __declspec(align(16)) union GSSoftVertexFX
 {
-	typedef signed short s16;
-	typedef unsigned short u16;
 	typedef signed int s32;
 	typedef unsigned int u32;
 	typedef signed __int64 s64;
@@ -159,7 +160,10 @@ __declspec(align(16)) union GSSoftVertexFX
 	friend GSSoftVertexFX operator * (GSSoftVertexFX& v1, s32 f);
 	friend GSSoftVertexFX operator / (GSSoftVertexFX& v1, s32 f);
 
+	int GetX() {return (int)((x+0x8000) >> 16);}
+	int GetY() {return (int)((y+0x8000) >> 16);}
 	DWORD GetZ() {return (DWORD)(z >> 32);}
+	BYTE GetFog() {return (BYTE)(fog >> 16);}
 	void GetColor(void* pRGBA)
 	{
 #ifdef USE_SIMD
@@ -204,15 +208,17 @@ inline GSSoftVertexFX operator - (GSSoftVertexFX& v1, GSSoftVertexFX& v2)
 inline GSSoftVertexFX operator * (GSSoftVertexFX& v1, GSSoftVertexFX::s32 f)
 {
 	GSSoftVertexFX v0;
-	for(int i = 0; i < 8; i++) v0.dw[i] = (GSSoftVertexFX::s32)((float)v1.dw[i] * (float)f / 65536);
-	for(int i = 4; i < 8; i++) v0.qw[i] = (GSSoftVertexFX::s64)((float)v1.qw[i] * (float)f / 65536);
+	float f2 = (float)f / 65536.0f;
+	for(int i = 0; i < 8; i++) v0.dw[i] = (GSSoftVertexFX::s32)((float)v1.dw[i] * f2);
+	for(int i = 4; i < 8; i++) v0.qw[i] = (GSSoftVertexFX::s64)((float)v1.qw[i] * f2);
 	return v0;
 }
 
 inline GSSoftVertexFX operator / (GSSoftVertexFX& v1, GSSoftVertexFX::s32 f)
 {
 	GSSoftVertexFX v0;
-	for(int i = 0; i < 8; i++) v0.dw[i] = (GSSoftVertexFX::s32)((float)v1.dw[i] / (float)f * 65536);
-	for(int i = 4; i < 8; i++) v0.qw[i] = (GSSoftVertexFX::s64)((float)v1.qw[i] / (float)f * 65536);
+	float f2 = 65536.0f / f;
+	for(int i = 0; i < 8; i++) v0.dw[i] = (GSSoftVertexFX::s32)((float)v1.dw[i] * f2);
+	for(int i = 4; i < 8; i++) v0.qw[i] = (GSSoftVertexFX::s64)((float)v1.qw[i] * f2);
 	return v0;
 }
