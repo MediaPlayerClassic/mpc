@@ -128,7 +128,11 @@ class DB
       */
 	function DB($dblogin, $dbpass, $dbname)
     {
-        $this->set_dblogin($dblogin);
+    	// REMOVEME
+		if(isset($_ENV['COMPUTERNAME']) && $_ENV['COMPUTERNAME'] == 'I2400P4')
+    		$this->dbhost = 'localhost';
+
+    	$this->set_dblogin($dblogin);
 		$this->set_dbpass($dbpass);
 		$this->set_dbname($dbname);
     } //end function
@@ -143,10 +147,6 @@ class DB
       */
 	function connect()
     {
-    	// REMOVEME
-		if(isset($_ENV['COMPUTERNAME']) && $_ENV['COMPUTERNAME'] == 'I2400P4')
-    		$this->dbhost = 'localhost';
-    	
         $this->dblink = @mysql_pconnect($this->dbhost, $this->dblogin, $this->dbpass, MYSQL_CLIENT_COMPRESS);
 		if(!$this->dblink)
 		{
@@ -158,7 +158,8 @@ class DB
 			$this->return_error("Unable to change databases.");
 		}
 		
-		mysql_query("SET NAMES 'utf8'", $this->dblink);
+		if($this->dblink)
+			mysql_query("SET NAMES 'utf8'", $this->dblink);
 		
 		return $this->dblink;
 		
@@ -460,112 +461,181 @@ define('ONEYEAR', 60*60*24*365);
 
 class SubtitlesDB extends DB 
 {
-	/*
-	
-	CREATE TABLE `comments` (
-	  `id` bigint(20) NOT NULL auto_increment,
-	  `subtitle_id` bigint(20) NOT NULL default '0',
-	  `nick` varchar(32) NOT NULL default '',
-	  `at` datetime NOT NULL default '0000-00-00 00:00:00',
-	  `content` mediumtext NOT NULL,
-	  `rating` tinyint(4) NOT NULL default '5',
-	  PRIMARY KEY  (`id`),
-	  KEY `subtitle_id` (`subtitle_id`),
-	  KEY `nick` (`nick`)
-	) ENGINE=InnoDB DEFAULT CHARSET=utf8
-	
-	CREATE TABLE `file` (
-	  `id` bigint(20) NOT NULL auto_increment,
-	  `hash` varchar(16) NOT NULL default '',
-	  `size` varchar(16) NOT NULL default '',
-	  PRIMARY KEY  (`id`),
-	  KEY `hash` (`hash`),
-	  KEY `size` (`size`)
-	) ENGINE=InnoDB DEFAULT CHARSET=utf8	
-	
-	CREATE TABLE `file_subtitle` (
-	  `id` bigint(20) NOT NULL auto_increment,
-	  `file_id` bigint(20) NOT NULL default '0',
-	  `subtitle_id` bigint(20) NOT NULL default '0',
-	  PRIMARY KEY  (`id`),
-	  KEY `file_id` (`file_id`),
-	  KEY `subtitle_id` (`subtitle_id`)
-	) ENGINE=InnoDB DEFAULT CHARSET=utf8
-	
-	CREATE TABLE `mirror` (
-	  `id` bigint(20) NOT NULL auto_increment,
-	  `scheme` varchar(16) NOT NULL default '',
-	  `host` varchar(64) NOT NULL default '',
-	  `port` bigint(20) NOT NULL default '0',
-	  `path` varchar(64) NOT NULL default '',
-	  `name` varchar(64) NOT NULL default '',
-	  `lastseen` datetime NOT NULL default '0000-00-00 00:00:00',
-	  PRIMARY KEY  (`id`),
-	  KEY `lastseen` (`lastseen`)
-	) ENGINE=InnoDB DEFAULT CHARSET=utf8
-	
-	CREATE TABLE `movie` (
-	  `id` bigint(20) NOT NULL auto_increment,
-	  `imdb` bigint(20) NOT NULL default '0',
-	  PRIMARY KEY  (`id`),
-	  UNIQUE KEY `imdb_2` (`imdb`),
-	  KEY `imdb` (`imdb`)
-	) ENGINE=InnoDB DEFAULT CHARSET=utf8
-	
-	CREATE TABLE `movie_subtitle` (
-	  `id` bigint(20) NOT NULL auto_increment,
-	  `movie_id` bigint(20) NOT NULL default '0',
-	  `subtitle_id` bigint(20) NOT NULL default '0',
-	  `name` varchar(192) NOT NULL default '',
-	  `userid` bigint(20) NOT NULL default '0',
-	  `date` datetime NOT NULL default '0000-00-00 00:00:00',
-	  `notes` text NOT NULL,
-	  `format` enum('srt','sub','smi','ssa','ass','xss','other') NOT NULL default 'other',
-	  `iso639_2` varchar(3) NOT NULL default '',
-	  PRIMARY KEY  (`id`),
-	  KEY `movie_id` (`movie_id`),
-	  KEY `subtitle_id` (`subtitle_id`)
-	  KEY `format` (`format`),
-	  KEY `iso639_2` (`iso639_2`),	) ENGINE=InnoDB DEFAULT CHARSET=utf8	
-	
-	CREATE TABLE `subtitle` (
-	  `id` bigint(20) NOT NULL auto_increment,
-	  `discs` tinyint(4) NOT NULL default '0',
-	  `disc_no` tinyint(4) NOT NULL default '0',
-	  `sub` blob NOT NULL,
-	  `hash` varchar(32) NOT NULL default '',
-	  `mime` varchar(64) NOT NULL default '',
-	  `downloads` bigint(20) NOT NULL default '0',
-	  PRIMARY KEY  (`id`),
-	  UNIQUE KEY `hash_2` (`hash`),
-	  KEY `hash` (`hash`),
-	  KEY `discs` (`discs`)
-	) ENGINE=InnoDB DEFAULT CHARSET=utf8
-	
-	CREATE TABLE `title` (
-	  `id` bigint(20) NOT NULL auto_increment,
-	  `movie_id` bigint(20) NOT NULL default '0',
-	  `title` varchar(255) NOT NULL default '',
-	  PRIMARY KEY  (`id`),
-	  KEY `movie_id` (`movie_id`),
-	  KEY `title` (`title`)
-	) ENGINE=InnoDB DEFAULT CHARSET=utf8
-	
-	CREATE TABLE `user` (
-	  `userid` bigint(20) NOT NULL auto_increment,
-	  `nick` varchar(16) NOT NULL default '',
-	  `passwordhash` varchar(32) NOT NULL default '',
-	  `email` varchar(64) NOT NULL default '',
-	  PRIMARY KEY  (`userid`)
-	) ENGINE=InnoDB DEFAULT CHARSET=utf8
-	
-	CREATE TABLE `settings` (
-	  `param` varchar(16) NOT NULL default '',
-	  `value` varchar(255) NOT NULL default '',
-	  PRIMARY KEY  (`param`)
-	) ENGINE=InnoDB DEFAULT CHARSET=utf8
-	
-	*/
+	function Create()
+	{
+		if(!ereg('localhost', $this->dbhost))
+			return;
+		
+        ($dblink = @mysql_connect($this->dbhost, $this->dblogin."_init", $this->dbpass, MYSQL_CLIENT_COMPRESS)) or die(mysql_error());
+
+        @mysql_query(
+			"CREATE DATABASE IF NOT EXISTS `subtitles`",
+			$dblink)
+		or die(mysql_error());
+
+		@mysql_query(
+			"USE `subtitles`",
+			$dblink)
+		or die(mysql_error());
+
+		@mysql_query(
+			"CREATE TABLE IF NOT EXISTS `comments` ( ".
+			"  `id` bigint(20) NOT NULL auto_increment, ".
+			"  `subtitle_id` bigint(20) NOT NULL default '0', ".
+			"  `nick` varchar(32) NOT NULL default '', ".
+			"  `at` datetime NOT NULL default '0000-00-00 00:00:00', ".
+			"  `content` mediumtext NOT NULL, ".
+			"  `rating` tinyint(4) NOT NULL default '5', ".
+			"  PRIMARY KEY  (`id`), ".
+			"  KEY `subtitle_id` (`subtitle_id`), ".
+			"  KEY `nick` (`nick`) ".
+			") ENGINE=InnoDB DEFAULT CHARSET=utf8 ".
+			"",
+			$dblink)
+		or die(mysql_error());
+
+		@mysql_query(
+			"CREATE TABLE IF NOT EXISTS `file` ( ".
+			"  `id` bigint(20) NOT NULL auto_increment, ".
+			"  `hash` varchar(16) NOT NULL default '', ".
+			"  `size` varchar(16) NOT NULL default '', ".
+			"  PRIMARY KEY  (`id`), ".
+			"  KEY `hash` (`hash`), ".
+			"  KEY `size` (`size`) ".
+			") ENGINE=InnoDB DEFAULT CHARSET=utf8	 ".
+			"",
+			$dblink)
+		or die(mysql_error());
+
+		@mysql_query(
+			"CREATE TABLE IF NOT EXISTS `file_subtitle` ( ".
+			"  `id` bigint(20) NOT NULL auto_increment, ".
+			"  `file_id` bigint(20) NOT NULL default '0', ".
+			"  `subtitle_id` bigint(20) NOT NULL default '0', ".
+			"  PRIMARY KEY  (`id`), ".
+			"  KEY `file_id` (`file_id`), ".
+			"  KEY `subtitle_id` (`subtitle_id`) ".
+			") ENGINE=InnoDB DEFAULT CHARSET=utf8 ".
+			"",
+			$dblink)
+		or die(mysql_error());
+
+		@mysql_query(
+			"CREATE TABLE IF NOT EXISTS `mirror` ( ".
+			"  `id` bigint(20) NOT NULL auto_increment, ".
+			"  `scheme` varchar(16) NOT NULL default '', ".
+			"  `host` varchar(64) NOT NULL default '', ".
+			"  `port` bigint(20) NOT NULL default '0', ".
+			"  `path` varchar(64) NOT NULL default '', ".
+			"  `name` varchar(64) NOT NULL default '', ".
+			"  `lastseen` datetime NOT NULL default '0000-00-00 00:00:00', ".
+			"  PRIMARY KEY  (`id`), ".
+			"  KEY `lastseen` (`lastseen`) ".
+			") ENGINE=InnoDB DEFAULT CHARSET=utf8 ".
+			"",
+			$dblink)
+		or die(mysql_error());
+
+		@mysql_query(
+			"CREATE TABLE IF NOT EXISTS `movie` ( ".
+			"  `id` bigint(20) NOT NULL auto_increment, ".
+			"  `imdb` bigint(20) NOT NULL default '0', ".
+			"  PRIMARY KEY  (`id`), ".
+			"  UNIQUE KEY `imdb_2` (`imdb`), ".
+			"  KEY `imdb` (`imdb`) ".
+			") ENGINE=InnoDB DEFAULT CHARSET=utf8 ".
+			"",
+			$dblink)
+		or die(mysql_error());
+
+		@mysql_query(
+			"CREATE TABLE IF NOT EXISTS `movie_subtitle` ( ".
+			"  `id` bigint(20) NOT NULL auto_increment, ".
+			"  `movie_id` bigint(20) NOT NULL default '0', ".
+			"  `subtitle_id` bigint(20) NOT NULL default '0', ".
+			"  `name` varchar(192) NOT NULL default '', ".
+			"  `userid` bigint(20) NOT NULL default '0', ".
+			"  `date` datetime NOT NULL default '0000-00-00 00:00:00', ".
+			"  `notes` text NOT NULL, ".
+			"  `format` enum('srt','sub','smi','ssa','ass','xss','other') NOT NULL default 'other', ".
+			"  `iso639_2` varchar(3) NOT NULL default '', ".
+			"  PRIMARY KEY  (`id`), ".
+			"  KEY `movie_id` (`movie_id`), ".
+			"  KEY `subtitle_id` (`subtitle_id`), ".
+			"  KEY `format` (`format`), ".
+			"  KEY `iso639_2` (`iso639_2`) ".
+			" ) ENGINE=InnoDB DEFAULT CHARSET=utf8	 ".
+			"",
+			$dblink)
+		or die(mysql_error());
+
+		@mysql_query(
+			"CREATE TABLE IF NOT EXISTS `subtitle` ( ".
+			"  `id` bigint(20) NOT NULL auto_increment, ".
+			"  `discs` tinyint(4) NOT NULL default '0', ".
+			"  `disc_no` tinyint(4) NOT NULL default '0', ".
+			"  `sub` blob NOT NULL, ".
+			"  `hash` varchar(32) NOT NULL default '', ".
+			"  `mime` varchar(64) NOT NULL default '', ".
+			"  `downloads` bigint(20) NOT NULL default '0', ".
+			"  PRIMARY KEY  (`id`), ".
+			"  UNIQUE KEY `hash_2` (`hash`), ".
+			"  KEY `hash` (`hash`), ".
+			"  KEY `discs` (`discs`) ".
+			") ENGINE=InnoDB DEFAULT CHARSET=utf8 ".
+			"",
+			$dblink)
+		or die(mysql_error());
+
+		@mysql_query(
+			"CREATE TABLE IF NOT EXISTS `title` ( ".
+			"  `id` bigint(20) NOT NULL auto_increment, ".
+			"  `movie_id` bigint(20) NOT NULL default '0', ".
+			"  `title` varchar(255) NOT NULL default '', ".
+			"  PRIMARY KEY  (`id`), ".
+			"  KEY `movie_id` (`movie_id`), ".
+			"  KEY `title` (`title`) ".
+			") ENGINE=InnoDB DEFAULT CHARSET=utf8 ".
+			"",
+			$dblink)
+		or die(mysql_error());
+
+		@mysql_query(
+			"CREATE TABLE IF NOT EXISTS `user` ( ".
+			"  `userid` bigint(20) NOT NULL auto_increment, ".
+			"  `nick` varchar(16) NOT NULL default '', ".
+			"  `passwordhash` varchar(32) NOT NULL default '', ".
+			"  `email` varchar(64) NOT NULL default '', ".
+			"  PRIMARY KEY  (`userid`) ".
+			") ENGINE=InnoDB DEFAULT CHARSET=utf8 ".
+			"",
+			$dblink)
+		or die(mysql_error());
+
+		@mysql_query(
+			"CREATE TABLE IF NOT EXISTS `settings` ( ".
+			"  `param` varchar(16) NOT NULL default '', ".
+			"  `value` varchar(255) NOT NULL default '', ".
+			"  PRIMARY KEY  (`param`) ".
+			") ENGINE=InnoDB DEFAULT CHARSET=utf8 ".
+			"",
+			$dblink)
+		or die(mysql_error());
+
+		@mysql_query(
+			"CREATE TABLE IF NOT EXISTS `accesslog` ( ".
+			"  `http_user_agent` varchar(128) NOT NULL default '', ".
+			"  `remote_addr` varchar(16) NOT NULL default '', ".
+			"  `at` datetime NOT NULL default '0000-00-00 00:00:00', ".
+			"  `php_self` varchar(255) NOT NULL default '', ".
+			"  `userid` bigint(20) NOT NULL default '0' ".
+			") ENGINE=InnoDB DEFAULT CHARSET=utf8 ".
+			"",
+			$dblink)
+		or die(mysql_error());
+
+		@mysql_close($dblink);
+	}
 
 	var $userid = 0;
 	var $nick = '';
@@ -615,6 +685,9 @@ class SubtitlesDB extends DB
 	function SubtitlesDB()
 	{
 		$this->DB("gabest", GABESTS_PASSWORD_TO_SUBTITLES, "subtitles");
+		
+		$this->Create();
+			
 		$this->connect() or die('Cannot connect to database!');
 		
 		$version = intval($this->getSetting('version'));
