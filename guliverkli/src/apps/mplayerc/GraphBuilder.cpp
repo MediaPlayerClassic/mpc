@@ -15,8 +15,6 @@
 #include <initguid.h>
 #include <dmodshow.h>
 
-// test
-
 //
 // CGraphBuilder
 //
