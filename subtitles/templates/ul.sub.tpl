@@ -47,7 +47,7 @@
 		<select name="file_sel[{$n}]">
 		<option value=""{if $file_sel[$n] == 0} selected="selected"{/if}>Please select a file...</option>
 		{foreach from=$file key=i item=f}
-		<option value="{$i}"{if $i == $file_sel[$n]} selected="selected"{/if}>{$f.name|truncate:40:"...":true|escape:"html"} ({$f.intsize/1024|string_format:"%d"} KB)</option>
+		<option value="{$i}"{if $i == $file_sel[$n]} selected="selected"{/if}>{$i}. {$f.name|truncate:40:"...":true|escape:"html"} ({$f.intsize/1024|string_format:"%d"} KB)</option>
 		{/foreach}
 		</select>
 		</td>

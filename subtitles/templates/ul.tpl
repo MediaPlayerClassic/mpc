@@ -16,22 +16,22 @@
 	
 	<table>
 	
-	<tr class="optional{if isset($err.imdb)} invalid{/if}">
+	<tr class="optional{if isset($err.imdb_url)} invalid{/if}">
 		<th><a href="http://imdb.com/" target="_blank">IMDb</a> (given this url, Title #1 can be left blank)</th>
 		<td>
-		{if !empty($titles_imdb)}
-			<input class="hidden" type="text" name="imdb" value="{$imdb|escape:"quotes"}" />
-			<a href="{$imdb|escape:"quotes"}" target="_blank">{$imdb|escape:"html"}</a>
-			[<a href="{$smarty.server.PHP_SELF}?clearimdb={$imdb_id}">edit</a>]<br>
-			{include file="title.tpl" titles=$titles_imdb}<br>
+		{if !empty($imdb_titles)}
+			<input type="hidden" name="imdb_url" value="{$imdb_url|escape:"quotes"}" />
+			<a href="{$imdb_url|escape:"quotes"}" target="_blank">{$imdb_url|escape:"html"}</a>
+			[<a href="{$smarty.server.PHP_SELF}?clearimdb=">edit</a>]<br>
+			{include file="title.tpl" titles=$imdb_titles}<br>
 		{else}
-			<input class="text" type="text" name="imdb" value="{$imdb|escape:"quotes"}" />
+			<input class="text" type="text" name="imdb_url" value="{$imdb_url|escape:"quotes"}" />
 		{/if}
 		</td>
 	</tr>
 	
 	{foreach from=$title key=i item=t}
-	<tr class="{if $i == 0 && empty($titles_imdb)}required{else}optional{/if}{if isset($err.title[$i])} invalid{/if}">
+	<tr class="{if $i == 0 && empty($imdb_titles)}required{else}optional{/if}{if isset($err.title[$i])} invalid{/if}">
 		<th>Title #{$i+1}</th>
 		<td><input class="text" type="text" name="title[{$i}]" value="{$t|escape:"quotes"}" /></td>
 	</tr>
@@ -39,7 +39,7 @@
 	
 	</table>
 
-	{if empty($titles_imdb)}
+	{if empty($imdb_titles)}
 	<div style="padding-top: 10px;" align="center">
 		<input type="submit" name="update" value="Update" />
 	</div>

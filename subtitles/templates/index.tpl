@@ -54,6 +54,7 @@
 	
 		<table cellpadding="0" cellspacing="0">
 		<tr>
+			<th>&nbsp</th>
 			<th width="40%">File</th>
 			<th>Disc</th>
 			<th>Date</th>
@@ -63,10 +64,15 @@
 		</tr>
 		{foreach from=$m.subs item=s}
 		<tr>
+			<td class="hasvideo">{if !empty($s.has_file)}<img src="img/video.gif" />{else}&nbsp;{/if}</td>
 			<td>
-				{if !empty($s.files)}<span class="dlme">&rarr;{/if}
+			{strip}
+				<nobr>
+				{if !empty($s.files)}<span class="dlme">&rarr;&nbsp;{/if}
 				<a href="dl.php?id={$s.id}&ticket={$ticket}">{$s.name|escape:"html"}</a>
-				{if !empty($s.files)}&larr;</span>{/if}
+				{if !empty($s.files)}&nbsp;&larr;</span>{/if}
+				</nobr>
+			{/strip}
 			</td>
 			<td>{$s.disc_no}/{$s.discs}</td>
 			<td><nobr>{$s.date|date_format:"%Y %b %e"}</nobr></td>
@@ -82,7 +88,7 @@
 		</tr>
 		{if !empty($s.notes)}
 		<tr>
-		<td colspan="6" class="notes"><strong>Notes:</strong> {$s.notes|escape:"html"}</td>
+		<td colspan="7" class="notes"><strong>Notes:</strong> {$s.notes|escape:"html"}</td>
 		</tr>
 		{/if}		
 		{/foreach}

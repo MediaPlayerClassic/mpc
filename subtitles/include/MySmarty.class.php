@@ -38,9 +38,9 @@ function RedirAndExit($path)
 	
 	$url = parse_url($path);
 	$dir = str_replace("\\", '/', dirname($url['path']));
-	if(empty($dir) || $dir[0] == '.' || $dir[0] != '/') $dir = dirname($_SERVER['PHP_SELF']);
+	if(empty($dir) || $dir[0] == '.' || $dir[0] != '/') $dir = str_replace("\\", '/', dirname($_SERVER['PHP_SELF']));
 	if($dir == '/') $dir = '';
-	
+
 	header('Location: '.$http.$_SERVER['HTTP_HOST'].$dir.'/'.basename($path));
 	exit;
 }
