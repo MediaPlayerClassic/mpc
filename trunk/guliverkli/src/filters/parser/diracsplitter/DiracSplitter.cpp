@@ -163,15 +163,15 @@ void CDiracSplitterFilter::SeekDeliverLoop(REFERENCE_TIME rt)
 		__int64 len = m_pFile->GetLength();
 		__int64 seekpos = (__int64)(1.0*rt/m_rtDuration*len);
 
+		m_pFile->Seek(seekpos);
+		seekpos = 8;
+
 		REFERENCE_TIME rtmax = rt - rtPreroll;
 		REFERENCE_TIME rtmin = rtmax - 5000000;
 
-		m_pFile->Seek(seekpos);
-
 		REFERENCE_TIME pdt = _I64_MIN;
 
-		int j = 0;
-		for(; j < 10; j++)
+		for(int j = 0; j < 10; j++)
 		{
 			BYTE code = NOT_START_CODE;
 			while(m_pFile->Next(code) && code != IFRAME_START_CODE);
@@ -180,18 +180,12 @@ void CDiracSplitterFilter::SeekDeliverLoop(REFERENCE_TIME rt)
 			__int64 pos = m_pFile->GetPos() - 5;
 
 			REFERENCE_TIME rt = ((DIRACINFOHEADER*)m_pFile->GetMediaType().Format())->hdr.AvgTimePerFrame * m_pFile->UnsignedGolombDecode();
-			// TRACE(_T("[%d/%04x]: rt=%I64d, fp=%I64d\n"), i, TrackNum, rt, m_pFile->GetPos());
-
 			REFERENCE_TIME dt = rt - rtmax;
 			if(dt > 0 && dt == pdt) dt = 10000000i64;
 
-			// TRACE(_T("dt=%I64d\n"), dt);
-
 			if(rtmin <= rt && rt <= rtmax || pdt > 0 && dt < 0)
 			{
-				// TRACE(_T("minseekpos: %I64d -> "), minseekpos);
 				seekpos = pos;
-				// TRACE(_T("%I64d\n"), minseekpos);
 				break;
 			}
 
@@ -199,8 +193,6 @@ void CDiracSplitterFilter::SeekDeliverLoop(REFERENCE_TIME rt)
 
 			pdt = dt;
 		}
-
-		if(j == 10) seekpos = 8;
 
 		m_pFile->Seek(seekpos);
 	}
