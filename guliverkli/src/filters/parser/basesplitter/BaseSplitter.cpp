@@ -3,7 +3,7 @@
 #include "BaseSplitter.h"
 
 #define MAXBUFFERS 2
-#define MAXPACKETS 1000
+#define MAXPACKETS 500
 
 //
 // CAsyncFileReader
@@ -88,10 +88,7 @@ HRESULT CBaseSplitterInputPin::CheckConnect(IPin* pPin)
 
 	if(CComQIPtr<IAsyncReader> pAsyncReader = pPin)
 	{
-		DWORD dw;
-		hr = S_OK == pAsyncReader->SyncRead(0, 4, (BYTE*)&dw) && dw == 'FMR.'
-			? S_OK 
-			: E_FAIL;
+		hr = S_OK;
 	}
 	else
 	{

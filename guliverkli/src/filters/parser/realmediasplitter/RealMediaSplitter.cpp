@@ -294,6 +294,12 @@ HRESULT CRealMediaSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 
 	if(m_pOutputs.GetCount() > 0) return VFW_E_ALREADY_CONNECTED;
 
+	{
+		DWORD dw;
+		if(FAILED(pAsyncReader->SyncRead(0, 4, (BYTE*)&dw)) || dw != 'FMR.')
+			return E_FAIL;
+	}
+
 	HRESULT hr = E_FAIL;
 
 	m_pFile.Free();
@@ -907,12 +913,13 @@ HRESULT CRMFile::Read(ChunkHdr& hdr)
 HRESULT CRMFile::Read(MediaPacketHeader& mph, bool fFull)
 {
 	memset(&mph, 0, FIELD_OFFSET(MediaPacketHeader, pData));
+	mph.stream = -1;
 
 	HRESULT hr;
 
 	UINT16 object_version;
 	if(S_OK != (hr = Read(object_version))) return hr;
-	if(object_version != 0) return S_OK;
+	if(object_version != 0 && object_version != 1) return S_OK;
 
 	UINT8 flags;
 	if(S_OK != (hr = Read(mph.len))
@@ -948,6 +955,8 @@ HRESULT CRMFile::Read(MediaPacketHeader& mph, bool fFull)
 HRESULT CRMFile::Init()
 {
 	if(!m_pReader) return E_UNEXPECTED;
+
+	Seek(0);
 
 	bool fFirstChunk = true;
 
