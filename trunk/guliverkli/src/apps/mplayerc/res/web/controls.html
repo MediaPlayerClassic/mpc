@@ -1,0 +1,1691 @@
+<html>
+	<head>
+		<title>MPC WebServer</title>
+		<meta HTTP-EQUIV="content-type" CONTENT="text/html; charset=[charset]">
+		<link rel="stylesheet" type="text/css" href="/default.css">
+		<script language="JavaScript" type="text/JavaScript">
+
+		// var name = "[namestring]";
+		// var filepath = "[filepath]";
+		var curpos = [position];
+		var length = [duration];
+		var state = [state];
+		var pbr = [pbr];
+		var eta = [eta];
+		var volume = [volumelevel]*2;
+		var muted = [muted];
+
+		var starttime = (new Date()).getTime();
+		var slidersize = 500;
+		var sliderbuttonwidth = 13;
+		var vsb=10;
+		var vss=100;
+		var sc=0
+		var rdirt
+		var AP
+		var RL
+		var rpt
+		
+		function init()
+		{
+			if (eta>0) RL=setTimeout('window.location=window.location',1000*eta);
+			Live=(length<1);
+			starttime=starttime-curpos;
+			rdirt=length*pbr/slidersize;
+			rdirt=Math.floor(rdirt>1000?1000:(rdirt<300?300:rdirt))
+			cpf=document.getElementById("pos")
+			cp=document.getElementById("time")
+			sas=document.getElementById("SliderAutoScroll")
+			re=document.getElementById("reloadenabled")
+			s=document.getElementById("slider")
+			sb1=document.getElementById("c1")
+			sb2=document.getElementById("c2")
+			sb3=document.getElementById("c3")
+			vs=document.getElementById("v")
+			vs1=document.getElementById("v1")
+			vs2=document.getElementById("v2")
+			vs3=document.getElementById("v3")
+			document.getElementById("muted").innerHTML= muted ? "M" : "_";
+
+			s.height=sb1.height=sb2.height=sb3.height=vs.height=vs1.height=vs2.height=vs3.height=20
+			s.width=slidersize+(sb2.width=sliderbuttonwidth);
+			vs.width=vss+(vs2.width=vsb);
+
+			sb1.onclick=sb2.onclick=sb3.onclick=sliderclick
+			vs1.onclick=vs2.onclick=vs3.onclick=vsliderclick
+
+			sas.checked=true;
+			// g=" "+secondsToTS(curpos,0,true)+" "+x<0?("Buffering %"+(-x-1).toString()):"";
+			cp.innerHTML = cpf.value=secondsToTS(curpos,5,false);
+			rpt=curpos;
+			if (state==2 && pbr!=0)
+				autoplay();
+			vupdate(volume,true);
+			return update(curpos,true);
+		}
+		function autoplay(a)
+		{
+			AP=setTimeout('autoplay()',rdirt);
+			var ct = (new Date()).getTime();
+			var cap=(pbr*(ct-starttime)/1000)
+			if (cap>length && !Live) if (re.checked==true) RL=setTimeout('window.location=window.location',5000);
+			cap=((cap>length && !Live)?length:(cap<0?0:cap))
+			if (sas.checked==true || a==true)
+			{
+				update(cap,true)
+				cpf.value=secondsToTS(cap,5,false);
+			}
+			var gg = " "+secondsToTS(cap,0,true)+" ";
+			cp.innerHTML = gg;
+			rpt=cap;
+			return true;
+		}
+		function pad(number, length)
+		{
+			var str = '' + number;
+			while(str.length < length) str = '0' + str;
+			return str;
+		}
+		function secondsToTS(a,b,c)
+		{
+			var a1 = Math.floor(a/3600000);
+			var a2 = Math.floor(a/60000)%60;
+			var a3 = Math.floor(a/1000)%60;
+			var a4 = Math.floor(a)%1000;
+			var a1s = pad(a1.toString(),2);
+			var a2s = pad(a2.toString(),2);
+			var a3s = pad(a3.toString(),2);
+			var a4s = pad(a4.toString(),3);
+			switch(b){
+			case 1:	return a1s;
+			case 2:	return a2s;
+			case 3: return a3s;
+			case 4: return a4s;
+			case 5:	return a1s+":"+a2s+":"+a3s+"."+a4s;
+			case 6:	return ((a1>0?(a1s+":"):"")+a2s+":"+a3s+"."+a4s);
+			default: return ((a1>0?(a1s+":"):"")+a2s+":"+a3s);
+			}
+			return "bahh";
+		}
+		function parsetime(y)
+		{
+			ts=timesyntax(y)
+			t = 0
+			p1=ts.indexOf(".")
+			p2=ts.indexOf(":")
+			p3=ts.indexOf(":",p2+1)
+			p4=ts.indexOf(":",p3+1)
+			if (p4!=-1 || (p1!=-1 && p2!=-1 && p2>p1) || (p1!=-1 && p3!=-1 && p3>p1)) return -2000;
+			p1=(p1 == -1?ts.length+1:p1)
+			if (p2 == -1)		t=parseFloat((ts+"      ").substring(0,p1+4));
+			if (p2 != -1 && p3 == -1)	t=parseInt(ts.substring(0,p2))*60 + 
+							parseFloat("0"+(ts+"      ").substring(p2+1,p1+4));
+			if (p2 != -1 && p3 != -1)	t=parseInt(ts.substring(0,p2))*3600 + 
+							parseInt(ts.substring(p2+1,p3))*60 + 
+							parseFloat("0"+(ts+"      ").substring(p3+1,p1+4));
+			return t;
+		}
+		function update(a,b)
+		{
+			if (a==-2000) return false;
+			if (b){	m=(curpos=((a>length && !Live)?length:(a<0?0:a)))*slidersize/length;	}
+			else{	curpos=(m=(a>slidersize?slidersize:(a<0?0:a)))*length/slidersize;	}
+			sb1.width=m;
+			sb3.width=slidersize-sb1.width;
+			return true;
+		}
+		function sliderclick(e)
+		{
+			update(	(window.event?window.event.clientX-3:e.clientX) + document.body.scrollLeft -
+				getoffsetx(s) - Math.floor(sliderbuttonwidth/2) + sc,	false);
+			cpf.value=secondsToTS(curpos,5,false);
+			sas.checked=false;
+			return true;
+		}
+		function getoffsetx(m)
+		{
+			var x = m.offsetLeft;
+			while (m.offsetParent)	{x += (m = m.offsetParent).offsetLeft; }
+			return x;
+		}
+		function posupdate()
+		{
+			if (event.keyCode < 46 || event.keyCode > 58 || event.keyCode==47)
+				return false;
+			self.setTimeout('update(parseFloat(parsetime(cpf.value)),true)',1);
+			return true;
+		}
+
+		function timesyntax(ts)
+		{
+			var b=""
+			for(a=0;a<ts.length;a++)
+			{
+				switch(ts.charAt(a)){
+				case "0": b+="0";break;
+				case "1":	b+="1";break;
+				case "2": b+="2";break;
+				case "3": b+="3";break;
+				case "4":	b+="4";break;
+				case "5":	b+="5";break;
+				case "6":	b+="6";break;
+				case "7":	b+="7";break;
+				case "8":	b+="8";break;
+				case "9": b+="9";break;
+				case ".": b+=".";break;
+				case ":":	b+=":";break;
+				default:	break;}
+			}
+			return b;
+		}
+
+		function vupdate(a,b)
+		{
+			if (b){	m=((volume=((a>200)?200:(a<0?0:a))))*vss/200;	}
+			else{	volume=(m=(a>vss?vss:(a<0?0:a)))*200/vss;	}
+			volume=Math.ceil(volume/2)
+			vs1.width=m;
+			vs3.width=vss-vs1.width;
+			return true;
+		}
+		function vsliderclick(e)
+		{
+			return vupdate(	(window.event?window.event.clientX-3:e.clientX) + document.body.scrollLeft -
+				getoffsetx(vs) - Math.floor(vsb/2) + sc,	false);
+		}
+		function postform(wmc,ext,extv)
+		{
+			document.getElementById("fwmc").value=wmc;
+			document.getElementById("fextra").value=extv;
+			document.getElementById("fextra").name=ext;
+			document.getElementById("ef").submit();
+			return true;
+		}
+
+		</script>
+	</head>
+	<body onload="init()">
+		File Info
+		<noscript>: disabled (component requires javascript)</noscript>
+		<br>
+		<table border="2" cellspacing="1" cellpadding="4">
+			<tr>
+				<td colspan="3">
+					<nobr>
+						Loaded file: <a href="[browserpath]?path=[filepatharg]&redir=[path]">[filepath]</a>
+						<a href="[browserpath]?path=[filedirarg]">Browse...</a>
+					</nobr>
+				</td>
+			</tr>
+			<tr>
+				<td>
+					Status: [statestring]
+				</td>
+				<td align="center">
+					<table>
+						<tr>
+							<td id="time">[positionstring]</td>
+							<td>/</td>
+							<td>[durationstring]</td>
+						</tr>
+					</table>
+				</td>
+				<td>
+					<input type="checkbox" id="reloadenabled" checked>
+				</td>
+			</tr>
+		</table>
+		<p>
+			<form action="[commandpath]" method="POST" onsubmit="">
+				<input type="hidden" name="[wmcname]" value="-1"> Goto control
+				<noscript>: (position slider disabled)</noscript>
+				<br>
+				<table border="2" cellspacing="1" cellpadding="4">
+					<tr>
+						<td>
+							<table id="slider" border="0" cellspacing="0" cellpadding="0" width="1" height="1">
+								<tr>
+									<td><img id="c1" width="0" height="1" src="/sliderbar.gif"></td>
+									<td><img id="c2" src="/slidergrip.gif"></td>
+									<td><img id="c3" width="1" height="1" src="/sliderbar.gif"></td>
+								</tr>
+							</table>
+						</td>
+						<td>
+							<input type="checkbox" id="SliderAutoScroll" onclick="if (sas.checked==true) {update(rpt,true); cpf.value=secondsToTS(rpt,5,false)}; return true;">
+						</td>
+						<td>
+							<noscript>Goto...</noscript>
+							<input id="pos" name="position" size="12" onfocus="sas.checked=false;" onkeypress="return posupdate()"
+								value="[positionstring]">
+						</td>
+						<td>
+							<input type="submit" value="Go!" name="submit" onclick="postform([setposcommand],'position',timesyntax(cpf.value)); return false;">
+						</td>
+					</tr>
+				</table>
+			</form>
+		</p>
+		<p>
+			<table border="0" cellspacing="0" cellpadding="0">
+				<tr>
+					<td>
+						Playback control<br>
+						<table border="2" cellspacing="1" cellpadding="4">
+							<tr>
+								<td>
+									<noscript>
+										<form action="[commandpath]" method="POST">
+											<input type="hidden" name="[wmcname]" value="155">
+									</noscript>
+									<input type="submit" value="  &gt; " name="submit" onclick="postform(155,'null',0); return false;">
+									<noscript></form></noscript>
+								</td>
+								<td>
+									<noscript>
+										<form action="[commandpath]" method="POST">
+											<input type="hidden" name="[wmcname]" value="156">
+									</noscript>
+									<input type="submit" value=" I I " name="submit" onclick="postform(156,'null',0); return false;">
+									<noscript></form></noscript>
+								</td>
+								<td>
+									<noscript>
+										<form action="[commandpath]" method="POST">
+											<input type="hidden" name="[wmcname]" value="158">
+									</noscript>
+									<input type="submit" value=" # " name="submit" onclick="postform(158,'null',0); return false;">
+									<noscript></form></noscript>
+								</td>
+								<td>
+								&nbsp;
+								</td>
+								<td>
+									<noscript>
+										<form action="[commandpath]" method="POST">
+											<input type="hidden" name="[wmcname]" value="164">
+									</noscript>
+									<input type="submit" value="I&lt;&lt;" name="submit" onclick="postform(164,'null',0); return false;">
+									<noscript></form></noscript>
+								</td>
+								<td>
+									<noscript>
+										<form action="[commandpath]" method="POST">
+											<input type="hidden" name="[wmcname]" value="159">
+									</noscript>
+									<input type="submit" value="&lt;&lt;" name="submit" onclick="postform(159,'null',0); return false;">
+									<noscript></form></noscript>
+								</td>
+								<td>
+									<noscript>
+										<form action="[commandpath]" method="POST">
+											<input type="hidden" name="[wmcname]" value="160">
+									</noscript>
+									<input type="submit" value="&gt;&gt;" name="submit" onclick="postform(160,'null',0); return false;">
+									<noscript></form></noscript>
+								</td>
+								<td>
+									<noscript>
+										<form action="[commandpath]" method="POST">
+											<input type="hidden" name="[wmcname]" value="165">
+									</noscript>
+									<input type="submit" value="&gt;&gt;I" name="submit" onclick="postform(165,'null',0); return false;">
+									<noscript></form></noscript>
+								</td>
+								<td>
+									&nbsp;
+								</td>
+								<td>
+									<noscript>
+										<form action="[commandpath]" method="POST">
+											<input type="hidden" name="[wmcname]" value="32774">
+									</noscript>
+									<input type="submit" value=" &lt;I " name="submit" onclick="postform(32774,'null',0); return false;">
+									<noscript></form></noscript>
+								</td>
+								<td>
+									<noscript>
+										<form action="[commandpath]" method="POST">
+											<input type="hidden" name="[wmcname]" value="32773">
+									</noscript>
+									<input type="submit" value=" I&gt; " name="submit" onclick="postform(32773,'null',0); return false;">
+									<noscript></form></noscript>
+								</td>
+							</tr>
+						</table>
+					<td width="20">
+						&nbsp;
+					</td>
+					<td>
+						Seek<br>
+						<table border="2" cellspacing="1" cellpadding="4">
+							<tr>
+								<td>
+									<noscript>
+										<form action="[commandpath]" method="POST">
+											<input type="hidden" name="[wmcname]" value="32777">
+									</noscript>
+									<input type="submit" value="&lt; k" name="submit" onclick="postform(32777,'null',0); return false;">
+									<noscript></form></noscript>
+								</td>
+								<td>
+									<noscript>
+										<form action="[commandpath]" method="POST">
+											<input type="hidden" name="[wmcname]" value="32793">
+									</noscript>
+									<input type="submit" value="&lt;&lt;&lt;" name="submit" onclick="postform(32793,'null',0); return false;">
+									<noscript></form></noscript>
+								</td>
+								<td>
+									<noscript>
+										<form action="[commandpath]" method="POST">
+											<input type="hidden" name="[wmcname]" value="32791">
+									</noscript>
+									<input type="submit" value=" &lt;&lt; " name="submit" onclick="postform(32791,'null',0); return false;">
+									<noscript></form></noscript>
+								</td>
+								<td>
+									<noscript>
+										<form action="[commandpath]" method="POST">
+											<input type="hidden" name="[wmcname]" value="32789">
+									</noscript>
+									<input type="submit" value="  &lt;  " name="submit" onclick="postform(32789,'null',0); return false;">
+									<noscript></form></noscript>
+								</td>
+								<td>
+									<noscript>
+										<form action="[commandpath]" method="POST">
+											<input type="hidden" name="[wmcname]" value="32790">
+									</noscript>
+									<input type="submit" value="  &gt;  " name="submit" onclick="postform(32790,'null',0); return false;">
+									<noscript></form></noscript>
+								</td>
+								<td>
+									<noscript>
+										<form action="[commandpath]" method="POST">
+											<input type="hidden" name="[wmcname]" value="32792">
+									</noscript>
+									<input type="submit" value=" &gt;&gt; " name="submit" onclick="postform(32792,'null',0); return false;">
+									<noscript></form></noscript>
+								</td>
+								<td>
+									<noscript>
+										<form action="[commandpath]" method="POST">
+											<input type="hidden" name="[wmcname]" value="32794">
+									</noscript>
+									<input type="submit" value="&gt;&gt;&gt;" name="submit" onclick="postform(32794,'null',0); return false;">
+									<noscript></form></noscript>
+								</td>
+								<td>
+									<noscript>
+										<form action="[commandpath]" method="POST">
+											<input type="hidden" name="[wmcname]" value="32778">
+									</noscript>
+									<input type="submit" value="k &gt;" name="submit" onclick="postform(32778,'null',0); return false;">
+									<noscript></form></noscript>
+								</td>
+							</tr>
+						</table>
+					</td>
+				</tr>
+			</table>
+		</p>
+		<p>
+			<table border="0" cellspacing="0" cellpadding="0">
+				<tr>
+					<td>
+						Volume control
+						<noscript>: (integer between 0 & 200)</noscript>
+						<table border="2" cellspacing="1" cellpadding="4">
+							<tr>
+								<td id="muted" align="center" valign="center">
+									U
+								</td>
+								<td>
+									<noscript>
+										<form action="[commandpath]" method="POST">
+											<input type="hidden" name="[wmcname]" value="163">
+									</noscript>
+									<input type="submit" value="Mute" name="submit" onclick="postform(163,'null',0); return false;">
+									<noscript></form></noscript>
+								</td>
+								<td>
+									<table border="0" cellspacing="0" cellpadding="0">
+										<tr>
+											<td>
+												<table id="v" width="1" height="1" border="0" cellspacing="0" cellpadding="0">
+													<tr>
+														<td><img id="v1" src="/vbg.gif" width="1" height="1"></td>
+														<td><img id="v2" src="/vbs.gif" width="1" height="1"></td>
+														<td><img id="v3" src="/vbg.gif" width="1" height="1"></td>
+													</tr>
+												</table>
+											</td>
+											<td>
+												<noscript>
+													<form action="[commandpath]" method="POST">
+														<input type="hidden" name="[wmcname]" value="-2">
+														<input name="Volume" value="" size="5">
+													<!-- FIXME /form -->
+												</noscript>
+											</td>
+										</tr>
+									</table>
+								</td>
+								<td>
+									<input type="submit" value="Go!" name="submit" onclick="postform([setvolumecommand],'volume',volume); return true;">
+									<noscript></form><!-- FIXME --></noscript>
+								</td>
+								<td>
+									<noscript>
+										<form action="[commandpath]" method="POST">
+											<input type="hidden" name="[wmcname]" value="162">
+									</noscript>
+									<input type="submit" value="Down" name="submit" onclick="postform(162,'null',0); return true;">
+									<noscript></form></noscript>
+								</td>
+								<td>
+									<noscript>
+										<form action="[commandpath]" method="POST">
+											<input type="hidden" name="[wmcname]" value="161">
+									</noscript>
+									<input type="submit" value="  Up  " name="submit" onclick="postform(161,'null',0); return true;">
+									<noscript></form></noscript>
+								</td>
+							</tr>
+						</table>
+					</td>
+					<td width="20">
+						&nbsp;
+					</td>
+					<td>
+						Playlist
+						<table border="2" cellspacing="1" cellpadding="4">
+							<tr>
+								<td>
+									<noscript>
+										<form action="[commandpath]" method="POST">
+											<input type="hidden" name="[wmcname]" value="331">
+									</noscript>
+									<input type="submit" value="&lt;&lt;" name="submit" onclick="postform(331,'null',0); return false;">
+									<noscript></form></noscript>
+								</td>
+								<td>
+									<noscript>
+										<form action="[commandpath]" method="POST">
+											<input type="hidden" name="[wmcname]" value="332">
+									</noscript>
+									<input type="submit" value="&gt;&gt;" name="submit" onclick="postform(332,'null',0); return false;">
+									<noscript></form></noscript>
+								</td>
+							</tr>
+						</table>
+					<td width="20">
+						&nbsp;
+					</td>
+					<td>
+						Panic Button<br>
+						<table border="2" cellspacing="1" cellpadding="4">
+							<tr>
+								<td>
+									<noscript>
+										<form action="[commandpath]" method="POST">
+											<input type="hidden" name="[wmcname]" value="32795">
+									</noscript>
+									<input type="submit" value="Boss Key" name="submit" onclick="postform(32795,'null',0); return false;">
+									<noscript></form></noscript>
+								</td>
+							</tr>
+						</table>
+					</td>
+					<td width="20">
+						&nbsp;
+					</td>
+					<td>
+						Audio Delay<br>
+						<table border="2" cellspacing="1" cellpadding="4">
+							<tr>
+								<td>
+									<noscript>
+										<form action="[commandpath]" method="POST">
+											<input type="hidden" name="[wmcname]" value="32822">
+									</noscript>
+									<input type="submit" value="-10ms" name="submit" onclick="postform(32822,'null',0); return false;">
+									<noscript></form></noscript>
+								</td>
+								<td>
+									<noscript>
+										<form action="[commandpath]" method="POST">
+											<input type="hidden" name="[wmcname]" value="32821">
+									</noscript>
+									<input type="submit" value="+10ms" name="submit" onclick="postform(32821,'null',0); return false;">
+									<noscript></form></noscript>
+								</td>
+							</tr>
+						</table>
+					</td>
+				</tr>
+			</table>
+		</p>
+		<p>
+			<table border="0" cellspacing="0" cellpadding="0">
+				<tr>
+					<td>
+						Pan&amp;Scan Move<br>
+						<table border="0" cellspacing="0" cellpadding="0">
+							<tr>
+								<td>
+									<table border="2" cellspacing="1" cellpadding="4" width="100%">
+										<tr>
+											<td align="center">
+												<noscript>
+													<form action="[commandpath]" method="POST">
+														<input type="hidden" name="[wmcname]" value="251">
+												</noscript>
+												<input type="submit" value="Up/Left" name="submit" onclick="postform(251,'null',0); return false;">
+												<noscript></form></noscript>
+											</td>
+										</tr>
+									</table>
+								</td>
+								<td>
+									<table border="2" cellspacing="1" cellpadding="4" width="100%">
+										<tr>
+											<td align="center">
+												<noscript>
+													<form action="[commandpath]" method="POST">
+														<input type="hidden" name="[wmcname]" value="249">
+												</noscript>
+												<input type="submit" value="Up" name="submit" onclick="postform(249,'null',0); return false;">
+												<noscript></form></noscript>
+											</td>
+										</tr>
+									</table>
+								</td>
+								<td>
+									<table border="2" cellspacing="1" cellpadding="4" width="100%">
+										<tr>
+											<td align="center">
+												<noscript>
+													<form action="[commandpath]" method="POST">
+														<input type="hidden" name="[wmcname]" value="252">
+												</noscript>
+												<input type="submit" value="Up/Right" name="submit" onclick="postform(252,'null',0); return false;">
+												<noscript></form></noscript>
+											</td>
+										</tr>
+									</table>
+								</td>
+							</tr>
+							<tr>
+								<td>
+									<table border="2" cellspacing="1" cellpadding="4" width="100%">
+										<tr>
+											<td align="center">
+												<noscript>
+													<form action="[commandpath]" method="POST">
+														<input type="hidden" name="[wmcname]" value="247">
+												</noscript>
+												<input type="submit" value="Left" name="submit" onclick="postform(247,'null',0); return false;">
+												<noscript></form></noscript>
+											</td>
+										</tr>
+									</table>
+								</td>
+								<td>
+									<table border="2" cellspacing="1" cellpadding="4">
+										<tr>
+											<td>
+												<noscript>
+													<form action="[commandpath]" method="POST">
+														<input type="hidden" name="[wmcname]" value="255">
+												</noscript>
+												<input type="submit" value="Center" name="submit" onclick="postform(255,'null',0); return false;">
+												<noscript></form></noscript>
+											</td>
+										</tr>
+									</table>
+								</td>
+								<td>
+									<table border="2" cellspacing="1" cellpadding="4" width="100%">
+										<tr>
+											<td align="center">
+												<noscript>
+													<form action="[commandpath]" method="POST">
+														<input type="hidden" name="[wmcname]" value="248">
+												</noscript>
+												<input type="submit" value="Right" name="submit" onclick="postform(248,'null',0); return false;">
+												<noscript></form></noscript>
+											</td>
+										</tr>
+									</table>
+								</td>
+							</tr>
+							<tr>
+								<td>
+									<table border="2" cellspacing="1" cellpadding="4">
+										<tr>
+											<td>
+												<noscript>
+													<form action="[commandpath]" method="POST">
+														<input type="hidden" name="[wmcname]" value="253">
+												</noscript>
+												<input type="submit" value="Down/Left" name="submit" onclick="postform(253,'null',0); return false;">
+												<noscript></form></noscript>
+											</td>
+										</tr>
+									</table>
+								</td>
+								<td>
+									<table border="2" cellspacing="1" cellpadding="4" width="100%">
+										<tr>
+											<td align="center">
+												<noscript>
+													<form action="[commandpath]" method="POST">
+														<input type="hidden" name="[wmcname]" value="250">
+												</noscript>
+												<input type="submit" value="Down" name="submit" onclick="postform(250,'null',0); return false;">
+												<noscript></form></noscript>
+											</td>
+										</tr>
+									</table>
+								</td>
+								<td>
+									<table border="2" cellspacing="1" cellpadding="4">
+										<tr>
+											<td>
+												<noscript>
+													<form action="[commandpath]" method="POST">
+														<input type="hidden" name="[wmcname]" value="254">
+												</noscript>
+												<input type="submit" value="Down/Right" name="submit" onclick="postform(254,'null',0); return false;">
+												<noscript></form></noscript>
+											</td>
+										</tr>
+									</table>
+								</td>
+							</tr>
+						</table>
+					<td width="30">
+						&nbsp;
+					</td>
+					<td>
+						Pan&amp;Scan Size<br>
+						<table border="0" cellspacing="0" cellpadding="0">
+							<tr>
+								<td>
+									&nbsp;
+								</td>
+								<td>
+									<table border="2" cellspacing="1" cellpadding="4" width="100%">
+										<tr>
+											<td align="center">
+												<noscript>
+													<form action="[commandpath]" method="POST">
+														<input type="hidden" name="[wmcname]" value="249">
+												</noscript>
+												<input type="submit" value="Inc Height" name="submit" onclick="postform(249,'null',0); return false;">
+												<noscript></form></noscript>
+											</td>
+										</tr>
+									</table>
+								</td>
+								<td>
+									<table border="2" cellspacing="1" cellpadding="4" width="100%">
+										<tr>
+											<td align="center">
+												<noscript>
+													<form action="[commandpath]" method="POST">
+														<input type="hidden" name="[wmcname]" value="146">
+												</noscript>
+												<input type="submit" value="Inc Size" name="submit" onclick="postform(146,'null',0); return false;">
+												<noscript></form></noscript>
+											</td>
+										</tr>
+									</table>
+								</td>
+							</tr>
+							<tr>
+								<td>
+									<table border="2" cellspacing="1" cellpadding="4">
+										<tr>
+											<td>
+												<noscript>
+													<form action="[commandpath]" method="POST">
+														<input type="hidden" name="[wmcname]" value="247">
+												</noscript>
+												<input type="submit" value="Dec Width" name="submit" onclick="postform(247,'null',0); return false;">
+												<noscript></form></noscript>
+											</td>
+										</tr>
+									</table>
+								</td>
+								<td>
+									<table border="2" cellspacing="1" cellpadding="4" width="100%">
+										<tr>
+											<td align="center">
+												<noscript>
+													<form action="[commandpath]" method="POST">
+														<input type="hidden" name="[wmcname]" value="152">
+												</noscript>
+												<input type="submit" value="Reset" name="submit" onclick="postform(152,'null',0); return false;">
+												<noscript></form></noscript>
+											</td>
+										</tr>
+									</table>
+								</td>
+								<td>
+									<table border="2" cellspacing="1" cellpadding="4">
+										<tr>
+											<td>
+												<noscript>
+													<form action="[commandpath]" method="POST">
+														<input type="hidden" name="[wmcname]" value="248">
+												</noscript>
+												<input type="submit" value="Inc Width" name="submit" onclick="postform(248,'null',0); return false;">
+												<noscript></form></noscript>
+											</td>
+										</tr>
+									</table>
+							<tr>
+					</td>
+					<td>
+						<table border="2" cellspacing="1" cellpadding="4" width="100%">
+							<tr>
+								<td align="center">
+									<noscript>
+										<form action="[commandpath]" method="POST">
+											<input type="hidden" name="[wmcname]" value="147">
+									</noscript>
+									<input type="submit" value="Dec Size" name="submit" onclick="postform(147,'null',0); return false;">
+									<noscript></form></noscript>
+								</td>
+							</tr>
+						</table>
+					</td>
+					<td>
+						<table border="2" cellspacing="1" cellpadding="4" width="100%">
+							<tr>
+								<td align="center">
+									<noscript>
+										<form action="[commandpath]" method="POST">
+											<input type="hidden" name="[wmcname]" value="250">
+									</noscript>
+									<input type="submit" value="Dec Height" name="submit" onclick="postform(250,'null',0); return false;">
+									<noscript></form></noscript>
+								</td>
+							</tr>
+						</table>
+					</td>
+				</tr>
+			</table>
+			</td> </tr> </table>
+		</p>
+		<p>
+			<table border="0" cellspacing="0" cellpadding="0">
+				<tr>
+					<td>
+						Video Frame<br>
+						<table border="0" cellspacing="0" cellpadding="0">
+							<tr>
+								<td>
+									<table border="2" cellspacing="1" cellpadding="4" width="100%">
+										<tr>
+											<td align="center">
+												<noscript>
+													<form action="[commandpath]" method="POST">
+														<input type="hidden" name="[wmcname]" value="271">
+												</noscript>
+												<input type="submit" value="Half" name="submit" onclick="postform(271,'null',0); return false;">
+												<noscript></form></noscript>
+											</td>
+										</tr>
+									</table>
+								</td>
+								<td>
+									<table border="2" cellspacing="1" cellpadding="4" width="100%">
+										<tr>
+											<td align="center">
+												<noscript>
+													<form action="[commandpath]" method="POST">
+														<input type="hidden" name="[wmcname]" value="273">
+												</noscript>
+												<input type="submit" value="Double" name="submit" onclick="postform(273,'null',0); return false;">
+												<noscript></form></noscript>
+											</td>
+										</tr>
+									</table>
+								</td>
+							</tr>
+							<tr>
+								<td>
+									<table border="2" cellspacing="1" cellpadding="4" width="100%">
+										<tr>
+											<td align="center">
+												<noscript>
+													<form action="[commandpath]" method="POST">
+														<input type="hidden" name="[wmcname]" value="272">
+												</noscript>
+												<input type="submit" value="Normal" name="submit" onclick="postform(272,'null',0); return false;">
+												<noscript></form></noscript>
+											</td>
+										</tr>
+									</table>
+								</td>
+								<td>
+									<table border="2" cellspacing="1" cellpadding="4" width="100%">
+										<tr>
+											<td align="center">
+												<noscript>
+													<form action="[commandpath]" method="POST">
+														<input type="hidden" name="[wmcname]" value="274">
+												</noscript>
+												<input type="submit" value="Stretch" name="submit" onclick="postform(274,'null',0); return false;">
+												<noscript></form></noscript>
+											</td>
+										</tr>
+									</table>
+								</td>
+							</tr>
+							<tr>
+								<td>
+									<table border="2" cellspacing="1" cellpadding="4" width="100%">
+										<tr>
+											<td align="center">
+												<noscript>
+													<form action="[commandpath]" method="POST">
+														<input type="hidden" name="[wmcname]" value="275">
+												</noscript>
+												<input type="submit" value="Inside" name="submit" onclick="postform(275,'null',0); return false;">
+												<noscript></form></noscript>
+											</td>
+										</tr>
+									</table>
+								</td>
+								<td>
+									<table border="2" cellspacing="1" cellpadding="4" width="100%">
+										<tr>
+											<td align="center">
+												<noscript>
+													<form action="[commandpath]" method="POST">
+														<input type="hidden" name="[wmcname]" value="276">
+												</noscript>
+												<input type="submit" value="Outside" name="submit" onclick="postform(276,'null',0); return false;">
+												<noscript></form></noscript>
+											</td>
+										</tr>
+									</table>
+								</td>
+							</tr>
+						</table>
+					<td width="30">
+					</td>
+					<td>
+						DVD Menu Controler<br>
+						<table border="0" cellspacing="0" cellpadding="0">
+							<tr>
+								<td>
+									&nbsp;
+								</td>
+								<td>
+									<table border="2" cellspacing="1" cellpadding="4" width="100%">
+										<tr>
+											<td align="center">
+												<noscript>
+													<form action="[commandpath]" method="POST">
+														<input type="hidden" name="[wmcname]" value="32783">
+												</noscript>
+												<input type="submit" value="Up" name="submit" onclick="postform(32783,'null',0); return false;">
+												<noscript></form></noscript>
+											</td>
+										</tr>
+									</table>
+								</td>
+								<td>
+									&nbsp;
+								</td>
+							</tr>
+							<tr>
+								<td>
+									<table border="2" cellspacing="1" cellpadding="4" width="100%">
+										<tr>
+											<td align="center">
+												<noscript>
+													<form action="[commandpath]" method="POST">
+														<input type="hidden" name="[wmcname]" value="32781">
+												</noscript>
+												<input type="submit" value="Left" name="submit" onclick="postform(32781,'null',0); return false;">
+												<noscript></form></noscript>
+											</td>
+										</tr>
+									</table>
+								</td>
+								<td>
+									<table border="2" cellspacing="1" cellpadding="4">
+										<tr>
+											<td>
+												<noscript>
+													<form action="[commandpath]" method="POST">
+														<input type="hidden" name="[wmcname]" value="32785">
+												</noscript>
+												<input type="submit" value="Activate" name="submit" onclick="postform(32785,'null',0); return false;">
+												<noscript></form></noscript>
+											</td>
+										</tr>
+									</table>
+								</td>
+								<td>
+									<table border="2" cellspacing="1" cellpadding="4" width="100%">
+										<tr>
+											<td align="center">
+												<noscript>
+													<form action="[commandpath]" method="POST">
+														<input type="hidden" name="[wmcname]" value="32782">
+												</noscript>
+												<input type="submit" value="Right" name="submit" onclick="postform(32782,'null',0); return false;">
+												<noscript></form></noscript>
+											</td>
+										</tr>
+									</table>
+								</td>
+							</tr>
+							<tr>
+								<td>
+									<table border="2" cellspacing="1" cellpadding="4">
+										<tr>
+											<td>
+												<noscript>
+													<form action="[commandpath]" method="POST">
+														<input type="hidden" name="[wmcname]" value="32786">
+												</noscript>
+												<input type="submit" value="Back" name="submit" onclick="postform(32786,'null',0); return false;">
+												<noscript></form></noscript>
+											</td>
+										</tr>
+									</table>
+								</td>
+								<td>
+									<table border="2" cellspacing="1" cellpadding="4" width="100%">
+										<tr>
+											<td align="center">
+												<noscript>
+													<form action="[commandpath]" method="POST">
+														<input type="hidden" name="[wmcname]" value="32784">
+												</noscript>
+												<input type="submit" value="Down" name="submit" onclick="postform(32784,'null',0); return false;">
+												<noscript></form></noscript>
+											</td>
+										</tr>
+									</table>
+								</td>
+								<td>
+									<table border="2" cellspacing="1" cellpadding="4">
+										<tr>
+											<td>
+												<noscript>
+													<form action="[commandpath]" method="POST">
+														<input type="hidden" name="[wmcname]" value="32787">
+												</noscript>
+												<input type="submit" value="Leave" name="submit" onclick="postform(32787,'null',0); return false;">
+												<noscript></form></noscript>
+											</td>
+										</tr>
+									</table>
+								</td>
+						</table>
+					<td width="30">
+						&nbsp;
+					</td>
+					<td>
+						Misc<br>
+						<table border="0" cellspacing="0" cellpadding="0">
+							<tr>
+								<td>
+									<table border="2" cellspacing="1" cellpadding="4" width="100%">
+										<tr>
+											<td align="center">
+												<noscript>
+													<form action="[commandpath]" method="POST">
+														<input type="hidden" name="[wmcname]" value="131">
+												</noscript>
+												<input type="submit" value="Open File" name="submit" onclick="postform(131,'null',0); return false;">
+												<noscript></form></noscript>
+											</td>
+										</tr>
+									</table>
+								</td>
+								<td>
+									<table border="2" cellspacing="1" cellpadding="4" width="100%">
+										<tr>
+											<td align="center">
+												<noscript>
+													<form action="[commandpath]" method="POST">
+														<input type="hidden" name="[wmcname]" value="132">
+												</noscript>
+												<input type="submit" value="Open DVD" name="submit" onclick="postform(132,'null',0); return false;">
+												<noscript></form></noscript>
+											</td>
+										</tr>
+									</table>
+								</td>
+								<td>
+									<table border="2" cellspacing="1" cellpadding="4" width="100%">
+										<tr>
+											<td align="center">
+												<noscript>
+													<form action="[commandpath]" method="POST">
+														<input type="hidden" name="[wmcname]" value="225">
+												</noscript>
+												<input type="submit" value="Open Device" name="submit" onclick="postform(225,'null',0); return false;">
+												<noscript></form></noscript>
+											</td>
+										</tr>
+									</table>
+								</td>
+							</tr>
+							<tr>
+								<td>
+									<table border="2" cellspacing="1" cellpadding="4" width="100%">
+										<tr>
+											<td align="center">
+												<noscript>
+													<form action="[commandpath]" method="POST">
+														<input type="hidden" name="[wmcname]" value="313">
+												</noscript>
+												<input type="submit" value="Save As" name="submit" onclick="postform(313,'null',0); return false;">
+												<noscript></form></noscript>
+											</td>
+										</tr>
+									</table>
+								</td>
+								<td>
+									<table border="2" cellspacing="1" cellpadding="4" width="100%">
+										<tr>
+											<td align="center">
+												<noscript>
+													<form action="[commandpath]" method="POST">
+														<input type="hidden" name="[wmcname]" value="32823">
+												</noscript>
+												<input type="submit" value="Close" name="submit" onclick="postform(32823,'null',0); return false;">
+												<noscript></form></noscript>
+											</td>
+										</tr>
+									</table>
+								</td>
+								<td>
+									<table border="2" cellspacing="1" cellpadding="4" width="100%">
+										<tr>
+											<td align="center">
+												<noscript>
+													<form action="[commandpath]" method="POST">
+														<input type="hidden" name="[wmcname]" value="135">
+												</noscript>
+												<input type="submit" value="Exit" name="submit" onclick="postform(135,'null',0); return false;">
+												<noscript></form></noscript>
+											</td>
+										</tr>
+									</table>
+								</td>
+							</tr>
+							<tr>
+								<td>
+									<table border="2" cellspacing="1" cellpadding="4" width="100%">
+										<tr>
+											<td align="center">
+												<noscript>
+													<form action="[commandpath]" method="POST">
+														<input type="hidden" name="[wmcname]" value="222">
+												</noscript>
+												<input type="submit" value="Go To" name="submit" onclick="postform(222,'null',0); return false;">
+												<noscript></form></noscript>
+											</td>
+										</tr>
+									</table>
+								</td>
+								<td>
+									<table border="2" cellspacing="1" cellpadding="4" width="100%">
+										<tr>
+											<td align="center">
+												<noscript>
+													<form action="[commandpath]" method="POST">
+														<input type="hidden" name="[wmcname]" value="154">
+												</noscript>
+												<input type="submit" value="Options" name="submit" onclick="postform(154,'null',0); return false;">
+												<noscript></form></noscript>
+											</td>
+										</tr>
+									</table>
+								</td>
+								<td>
+									<table border="2" cellspacing="1" cellpadding="4" width="100%">
+										<tr>
+											<td align="center">
+												<noscript>
+													<form action="[commandpath]" method="POST">
+														<input type="hidden" name="[wmcname]" value="283">
+												</noscript>
+												<input type="submit" value="Properties" name="submit" onclick="postform(283,'null',0); return false;">
+												<noscript></form></noscript>
+											</td>
+										</tr>
+									</table>
+								</td>
+						</table>
+					</td>
+				</tr>
+			</table>
+		</p>
+		<p>
+			<table border="0" cellspacing="0" cellpadding="0">
+				<tr>
+					<td>
+						Zoom control<br>
+						<table border="2" cellspacing="1" cellpadding="4">
+							<tr>
+								<td>
+									<noscript>
+										<form action="[commandpath]" method="POST">
+											<input type="hidden" name="[wmcname]" value="142">
+									</noscript>
+									<input type="submit" value="Zoom 50%" name="submit" onclick="postform(142,'null',0); return false;">
+									<noscript></form></noscript>
+								</td>
+								<td>
+									<noscript>
+										<form action="[commandpath]" method="POST">
+											<input type="hidden" name="[wmcname]" value="143">
+									</noscript>
+									<input type="submit" value="Zoom 100%" name="submit" onclick="postform(143,'null',0); return false;">
+									<noscript></form></noscript>
+								</td>
+								<td>
+									<noscript>
+										<form action="[commandpath]" method="POST">
+											<input type="hidden" name="[wmcname]" value="144">
+									</noscript>
+									<input type="submit" value="Zoom 200%" name="submit" onclick="postform(144,'null',0); return false;">
+									<noscript></form></noscript>
+								</td>
+							</tr>
+						</table>
+					</td>
+					<td width="20">
+						&nbsp;
+					</td>
+					<td>
+						Fullscreen control<br>
+						<table border="2" cellspacing="1" cellpadding="4">
+							<tr>
+								<td>
+									<noscript>
+										<form action="[commandpath]" method="POST">
+											<input type="hidden" name="[wmcname]" value="141">
+									</noscript>
+									<input type="submit" value="Normal" name="submit" onclick="postform(141,'null',0); return false;">
+									<noscript></form></noscript>
+								</td>
+								<td>
+									<noscript>
+										<form action="[commandpath]" method="POST">
+											<input type="hidden" name="[wmcname]" value="32788">
+									</noscript>
+									<input type="submit" value="w/o res.change" name="submit" onclick="postform(32788,'null',0); return false;">
+									<noscript></form></noscript>
+								</td>
+							</tr>
+						</table>
+					</td>
+				</tr>
+			</table>
+		</p>
+		<p>
+			<table border="0" cellspacing="0" cellpadding="0">
+				<tr>
+					<td>
+						Player views<br>
+						<table border="2" cellspacing="1" cellpadding="4">
+							<tr>
+								<td>
+									<noscript>
+										<form action="[commandpath]" method="POST">
+											<input type="hidden" name="[wmcname]" value="308">
+									</noscript>
+									<input type="submit" value="Minimal" name="submit" onclick="postform(308,'null',0); return false;">
+									<noscript></form></noscript>
+								</td>
+								<td>
+									<noscript>
+										<form action="[commandpath]" method="POST">
+											<input type="hidden" name="[wmcname]" value="309">
+									</noscript>
+									<input type="submit" value="Compact" name="submit" onclick="postform(309,'null',0); return false;">
+									<noscript></form></noscript>
+								</td>
+								<td>
+									<noscript>
+										<form action="[commandpath]" method="POST">
+											<input type="hidden" name="[wmcname]" value="310">
+									</noscript>
+									<input type="submit" value="Normal" name="submit" onclick="postform(310,'null',0); return false;">
+									<noscript></form></noscript>
+								</td>
+							</tr>
+						</table>
+					</td>
+					<td width="20">
+					</td>
+					<td>
+						Detachable Controlls<br>
+						<table border="2" cellspacing="1" cellpadding="4">
+							<tr>
+								<td>
+									<noscript>
+										<form action="[commandpath]" method="POST">
+											<input type="hidden" name="[wmcname]" value="242">
+									</noscript>
+									<input type="submit" value="Playlist" name="submit" onclick="postform(242,'null',0); return false;">
+									<noscript></form></noscript>
+								</td>
+								<td>
+									<noscript>
+										<form action="[commandpath]" method="POST">
+											<input type="hidden" name="[wmcname]" value="236">
+									</noscript>
+									<input type="submit" value="Subresync" name="submit" onclick="postform(236,'null',0); return false;">
+									<noscript></form></noscript>
+								</td>
+								<td>
+									<noscript>
+										<form action="[commandpath]" method="POST">
+											<input type="hidden" name="[wmcname]" value="244">
+									</noscript>
+									<input type="submit" value="Capture" name="submit" onclick="postform(244,'null',0); return false;">
+									<noscript></form></noscript>
+								</td>
+							</tr>
+						</table>
+					</td>
+				</tr>
+			</table>
+			<table border="2" cellspacing="1" cellpadding="4">
+				<tr>
+					<td>
+						<noscript>
+							<form action="[commandpath]" method="POST">
+								<input type="hidden" name="[wmcname]" value="267">
+						</noscript>
+						<input type="submit" value="Caption&Menu" name="submit" onclick="postform(267,'null',0); return false;">
+						<noscript></form></noscript>
+					</td>
+					<td>
+						<noscript>
+							<form action="[commandpath]" method="POST">
+								<input type="hidden" name="[wmcname]" value="136">
+						</noscript>
+						<input type="submit" value="Seeker" name="submit" onclick="postform(136,'null',0); return false;">
+						<noscript></form></noscript>
+					</td>
+					<td>
+						<noscript>
+							<form action="[commandpath]" method="POST">
+								<input type="hidden" name="[wmcname]" value="137">
+						</noscript>
+						<input type="submit" value="Controls" name="submit" onclick="postform(137,'null',0); return false;">
+						<noscript></form></noscript>
+					</td>
+					<td>
+						<noscript>
+							<form action="[commandpath]" method="POST">
+								<input type="hidden" name="[wmcname]" value="138">
+						</noscript>
+						<input type="submit" value="Information" name="submit" onclick="postform(138,'null',0); return false;">
+						<noscript></form></noscript>
+					</td>
+					<td>
+						<noscript>
+							<form action="[commandpath]" method="POST">
+								<input type="hidden" name="[wmcname]" value="139">
+						</noscript>
+						<input type="submit" value="Statistics" name="submit" onclick="postform(139,'null',0); return false;">
+						<noscript></form></noscript>
+					</td>
+					<td>
+						<noscript>
+							<form action="[commandpath]" method="POST">
+								<input type="hidden" name="[wmcname]" value="140">
+						</noscript>
+						<input type="submit" value="Status" name="submit" onclick="postform(140,'null',0); return false;">
+						<noscript></form></noscript>
+					</td>
+				</tr>
+			</table>
+		</p>
+		<p>
+			<table border="0" cellspacing="0" cellpadding="0">
+				<tr>
+					<td>
+						Generic Audio/Subtitles<br>
+						<table border="2" cellspacing="1" cellpadding="4">
+							<tr>
+								<td>
+									<noscript>
+										<form action="[commandpath]" method="POST">
+											<input type="hidden" name="[wmcname]" value="32800">
+									</noscript>
+									<input type="submit" value="&lt; Audio" name="submit" onclick="postform(32800,'null',0); return false;">
+									<noscript></form></noscript>
+								</td>
+								<td>
+									<noscript>
+										<form action="[commandpath]" method="POST">
+											<input type="hidden" name="[wmcname]" value="32799">
+									</noscript>
+									<input type="submit" value="Audio &gt;" name="submit" onclick="postform(32799,'null',0); return false;">
+									<noscript></form></noscript>
+								</td>
+								<td>
+									&nbsp;
+								</td>
+								<td>
+									<noscript>
+										<form action="[commandpath]" method="POST">
+											<input type="hidden" name="[wmcname]" value="32802">
+									</noscript>
+									<input type="submit" value="&lt; Subtitle" name="submit" onclick="postform(32802,'null',0); return false;">
+									<noscript></form></noscript>
+								</td>
+								<td>
+									<noscript>
+										<form action="[commandpath]" method="POST">
+											<input type="hidden" name="[wmcname]" value="32801">
+									</noscript>
+									<input type="submit" value="Subtitle &gt;" name="submit" onclick="postform(32801,'null',0); return false;">
+									<noscript></form></noscript>
+								</td>
+							</tr>
+						</table>
+					</td>
+					<td width="20">
+						&nbsp;
+					</td>
+					<td>
+						<!-- p TODO -->
+						OGM Audio/Subtitles<br>
+						<table border="2" cellspacing="1" cellpadding="4">
+							<tr>
+								<td>
+									<noscript>
+										<form action="[commandpath]" method="POST">
+											<input type="hidden" name="[wmcname]" value="32803">
+									</noscript>
+									<input type="submit" value="&lt; Audio" name="submit" onclick="postform(32803,'null',0); return false;">
+									<noscript></form></noscript>
+								</td>
+								<td>
+									<noscript>
+										<form action="[commandpath]" method="POST">
+											<input type="hidden" name="[wmcname]" value="32804">
+									</noscript>
+									<input type="submit" value="Audio &gt;" name="submit" onclick="postform(32804,'null',0); return false;">
+									<noscript></form></noscript>
+								</td>
+								<td>
+									&nbsp;
+								</td>
+								<td>
+									<noscript>
+										<form action="[commandpath]" method="POST">
+											<input type="hidden" name="[wmcname]" value="32806">
+									</noscript>
+									<input type="submit" value="&lt; Subtitle" name="submit" onclick="postform(32806,'null',0); return false;">
+									<noscript></form></noscript>
+								</td>
+								<td>
+									<noscript>
+										<form action="[commandpath]" method="POST">
+											<input type="hidden" name="[wmcname]" value="32805">
+									</noscript>
+									<input type="submit" value="Subtitle &gt;" name="submit" onclick="postform(32805,'null',0); return false;">
+									<noscript></form></noscript>
+								</td>
+							</tr>
+						</table>
+					</td>
+				</tr>
+			</table>
+		</p>
+		<p>
+			<table border="0" cellspacing="0" cellpadding="0">
+				<tr>
+					<td>
+						Subtitles<br>
+						<table border="2" cellspacing="1" cellpadding="4">
+							<tr>
+								<td>
+									<noscript>
+										<form action="[commandpath]" method="POST">
+											<input type="hidden" name="[wmcname]" value="134">
+									</noscript>
+									<input type="submit" value="Load" name="submit" onclick="postform(134,'null',0); return false;">
+									<noscript></form></noscript>
+								</td>
+								<td>
+									<noscript>
+										<form action="[commandpath]" method="POST">
+											<input type="hidden" name="[wmcname]" value="239">
+									</noscript>
+									<input type="submit" value="Save" name="submit" onclick="postform(239,'null',0); return false;">
+									<noscript></form></noscript>
+								</td>
+							</tr>
+						</table>
+					</td>
+					<td width="20">
+						&nbsp;
+					</td>
+					<td>
+						DVD Angles/Audio/Subtitles<br>
+						<table border="2" cellspacing="1" cellpadding="4">
+							<tr>
+								<td>
+									<noscript>
+										<form action="[commandpath]" method="POST">
+											<input type="hidden" name="[wmcname]" value="32808">
+									</noscript>
+									<input type="submit" value="&lt; Angle" name="submit" onclick="postform(32808,'null',0); return false;">
+									<noscript></form></noscript>
+								</td>
+								<td>
+									<noscript>
+										<form action="[commandpath]" method="POST">
+											<input type="hidden" name="[wmcname]" value="32807">
+									</noscript>
+									<input type="submit" value="Angle &gt;" name="submit" onclick="postform(32807,'null',0); return false;">
+									<noscript></form></noscript>
+								</td>
+								<td>
+									&nbsp;
+								</td>
+								<td>
+									<noscript>
+										<form action="[commandpath]" method="POST">
+											<input type="hidden" name="[wmcname]" value="32810">
+									</noscript>
+									<input type="submit" value="&lt; Audio" name="submit" onclick="postform(32810,'null',0); return false;">
+									<noscript></form></noscript>
+								</td>
+								<td>
+									<noscript>
+										<form action="[commandpath]" method="POST">
+											<input type="hidden" name="[wmcname]" value="32809">
+									</noscript>
+									<input type="submit" value="Audio &gt;" name="submit" onclick="postform(32809,'null',0); return false;">
+									<noscript></form></noscript>
+								</td>
+								<td>
+									&nbsp;
+								</td>
+								<td>
+									<noscript>
+										<form action="[commandpath]" method="POST">
+											<input type="hidden" name="[wmcname]" value="32812">
+									</noscript>
+									<input type="submit" value="&lt; Subtitle" name="submit" onclick="postform(32812,'null',0); return false;">
+									<noscript></form></noscript>
+								</td>
+								<td>
+									<noscript>
+										<form action="[commandpath]" method="POST">
+											<input type="hidden" name="[wmcname]" value="32811">
+									</noscript>
+									<input type="submit" value="Subtitle &gt;" name="submit" onclick="postform(32811,'null',0); return false;">
+									<noscript></form></noscript>
+								</td>
+							</tr>
+						</table>
+					</td>
+				</tr>
+			</table>
+		</p>
+		<p>
+			<table border="0" cellspacing="0" cellpadding="0">
+				<tr>
+					<td>
+						DVD Menus<br>
+						<table border="2" cellspacing="1" cellpadding="4">
+							<tr>
+								<td>
+									<noscript>
+										<form action="[commandpath]" method="POST">
+											<input type="hidden" name="[wmcname]" value="166">
+									</noscript>
+									<input type="submit" value="Title" name="submit" onclick="postform(166,'null',0); return false;">
+									<noscript></form></noscript>
+								</td>
+								<td>
+									<noscript>
+										<form action="[commandpath]" method="POST">
+											<input type="hidden" name="[wmcname]" value="167">
+									</noscript>
+									<input type="submit" value="Root" name="submit" onclick="postform(167,'null',0); return false;">
+									<noscript></form></noscript>
+								</td>
+								<td>
+									<noscript>
+										<form action="[commandpath]" method="POST">
+											<input type="hidden" name="[wmcname]" value="168">
+									</noscript>
+									<input type="submit" value="Subtitle" name="submit" onclick="postform(168,'null',0); return false;">
+									<noscript></form></noscript>
+								</td>
+								<td>
+									<noscript>
+										<form action="[commandpath]" method="POST">
+											<input type="hidden" name="[wmcname]" value="169">
+									</noscript>
+									<input type="submit" value="Audio" name="submit" onclick="postform(169,'null',0); return false;">
+									<noscript></form></noscript>
+								</td>
+								<td>
+									<noscript>
+										<form action="[commandpath]" method="POST">
+											<input type="hidden" name="[wmcname]" value="170">
+									</noscript>
+									<input type="submit" value="Angle" name="submit" onclick="postform(170,'null',0); return false;">
+									<noscript></form></noscript>
+								</td>
+								<td>
+									<noscript>
+										<form action="[commandpath]" method="POST">
+											<input type="hidden" name="[wmcname]" value="171">
+									</noscript>
+									<input type="submit" value="Chapter" name="submit" onclick="postform(171,'null',0); return false;">
+									<noscript></form></noscript>
+								</td>
+							</tr>
+						</table>
+					</td>
+					<td width="20">
+						&nbsp;
+					</td>
+					<td>
+						Media Player Classic Menu's
+						<table border="2" cellspacing="1" cellpadding="4">
+							<tr>
+								<td>
+									<noscript>
+										<form action="[commandpath]" method="POST">
+											<input type="hidden" name="[wmcname]" value="32798">
+									</noscript>
+									<input type="submit" value="Filters" name="submit" onclick="postform(32798,'null',0); return false;">
+									<noscript></form></noscript>
+								</td>
+								<td>
+									<noscript>
+										<form action="[commandpath]" method="POST">
+											<input type="hidden" name="[wmcname]" value="32796">
+									</noscript>
+									<input type="submit" value="Player (short)" name="submit" onclick="postform(32796,'null',0); return false;">
+									<noscript></form></noscript>
+								</td>
+								<td>
+									<noscript>
+										<form action="[commandpath]" method="POST">
+											<input type="hidden" name="[wmcname]" value="32797">
+									</noscript>
+									<input type="submit" value="Player (long)" name="submit" onclick="postform(32797,'null',0); return false;">
+									<noscript></form></noscript>
+								</td>
+							</tr>
+						</table>
+					</td>
+				</tr>
+			</table>
+		</p>
+		<p>
+			Always On Top<br>
+			<table border="2" cellspacing="1" cellpadding="4">
+				<tr>
+					<td>
+						<noscript>
+							<form action="[commandpath]" method="POST">
+								<input type="hidden" name="[wmcname]" value="32827">
+						</noscript>
+						<input type="submit" value="Always" name="submit" onclick="postform(32827,'null',0); return false;">
+						<noscript></form></noscript>
+					</td>
+					<td>
+						<noscript>
+							<form action="[commandpath]" method="POST">
+								<input type="hidden" name="[wmcname]" value="32828">
+						</noscript>
+						<input type="submit" value="While Playing" name="submit" onclick="postform(32828,'null',0); return false;">
+						<noscript></form></noscript>
+					</td>
+					<td>
+						<noscript>
+							<form action="[commandpath]" method="POST">
+								<input type="hidden" name="[wmcname]" value="32826">
+						</noscript>
+						<input type="submit" value="Never" name="submit" onclick="postform(32826,'null',0); return false;">
+						<noscript></form></noscript>
+					</td>
+				</tr>
+			</table>
+			<form id="ef" action="[commandpath]" method="GET"> <!-- FIXME: POSTing does not want to work with mozilla -->
+				<input id="fwmc" type="hidden" name="[wmcname]" value="-2">
+				<input id="fextra" type="hidden" name="extra" value="">
+			</form>
+		</p>
+		<p>
+			<div align="center">
+				<strong>
+					Feel free to redesign this page (nice image buttons, more "player-like" layout, etc.), 
+					but if you do alter the page <a href="">here</a> and not the one you save from the browser. 
+					Post you comments, remarks, ideas, progress into this topic: .
+				</strong>
+			</div>
+		</p>
+	</body>
+</html>
+[debug]
