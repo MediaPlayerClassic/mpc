@@ -450,16 +450,6 @@ HRESULT CMatroskaSourceFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 					// TODO: set psi->IsoLang when the language code is available
 					mts.InsertAt(0, mt);
 				}
-				else if(CodecID == "S_RAWASS")
-				{
-					mt.majortype = MEDIATYPE_Subtitle;
-					mt.subtype = MEDIASUBTYPE_RAWASS;
-					mt.formattype = FORMAT_SubtitleInfo;
-					SUBTITLEINFO* psi = (SUBTITLEINFO*)mt.AllocFormatBuffer(sizeof(SUBTITLEINFO));
-					memset(psi, 0, mt.FormatLength());
-					// TODO: set psi->IsoLang when the language code is available
-					mts.InsertAt(0, mt);
-				}
 				else if(CodecID == "S_SSA")
 				{
 					mt.majortype = MEDIATYPE_Subtitle;

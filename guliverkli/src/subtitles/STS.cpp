@@ -1816,7 +1816,7 @@ void CSimpleTextSubtitle::Empty()
 	RemoveAll();
 }
 
-void CSimpleTextSubtitle::Add(CStringW str, bool fUnicode, int start, int end, CString style, CString actor, CString effect, CRect marginRect, int layer)
+void CSimpleTextSubtitle::Add(CStringW str, bool fUnicode, int start, int end, CString style, CString actor, CString effect, CRect marginRect, int layer, int readorder)
 {
 	if(str.Trim().IsEmpty() || start > end) return;
 
@@ -1834,7 +1834,7 @@ void CSimpleTextSubtitle::Add(CStringW str, bool fUnicode, int start, int end, C
 	sub.layer = layer;
 	sub.start = start;
 	sub.end = end;
-	sub.readorder = GetSize();
+	sub.readorder = readorder < 0 ? GetSize() : readorder;
 	int n = CSTSArray::Add(sub);
 
 	int len = m_segments.GetSize();
@@ -1888,14 +1888,24 @@ void CSimpleTextSubtitle::Add(CStringW str, bool fUnicode, int start, int end, C
 
 			if(start <= s.start && s.end <= end)
 			{
-				s.subs.Add(n);
+				for(int j = 0, k = s.subs.GetCount(); j <= k; j++)
+				{
+					if(j == k || sub.readorder < GetAt(s.subs[j]).readorder)
+						s.subs.InsertAt(j, n);
+				}
+//				s.subs.Add(n);
 			}
 			
 			if(s.start < end && end < s.end)
 			{
 				STSSegment stss(s.start, end);
 				stss.subs.Copy(s.subs);
-				stss.subs.Add(n);
+				for(int j = 0, k = s.subs.GetCount(); j <= k; j++)
+				{
+					if(j == k || sub.readorder < GetAt(stss.subs[j]).readorder)
+						stss.subs.InsertAt(j, n);
+				}
+//				stss.subs.Add(n);
 				s.start = end;
 				m_segments.InsertAt(i, stss);
 			}

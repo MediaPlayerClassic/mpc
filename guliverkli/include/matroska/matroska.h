@@ -12,10 +12,6 @@ DEFINE_GUID(MEDIATYPE_Subtitle,
 DEFINE_GUID(MEDIASUBTYPE_UTF8, 
 0x87c0b230, 0x3a8, 0x4fdf, 0x80, 0x10, 0xb2, 0x7a, 0x58, 0x48, 0x20, 0xd);
 
-// {EA4C8F94-D0AB-4606-A9D3-256711D5FD06}
-DEFINE_GUID(MEDIASUBTYPE_RAWASS, 
-0xea4c8f94, 0xd0ab, 0x4606, 0xa9, 0xd3, 0x25, 0x67, 0x11, 0xd5, 0xfd, 0x6);
-
 // {3020560F-255A-4ddc-806E-6C5CC6DCD70A}
 DEFINE_GUID(MEDIASUBTYPE_SSA, 
 0x3020560f, 0x255a, 0x4ddc, 0x80, 0x6e, 0x6c, 0x5c, 0xc6, 0xdc, 0xd7, 0xa);
@@ -73,12 +69,14 @@ typedef struct {
 //
 // MEDIASUBTYPE_SSA/ASS:
 //
-// The whole "Dialogue: ..." line. For the timing applications 
-// should prefer the timestamps set on the media samples.
+// Comma separated values similar to the "Dialogue: ..." line with these fields:
+// ReadOrder, Layer, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 //
-// MEDIASUBTYPE_RAWASS
+// With the exception of ReadOrder every field can be found in ASS files. The
+// ReadOrder field is needed for the decoder to be able to reorder the streamed 
+// samples as they were placed originally in the file.
 //
-// Only the text from the end of the "Dialogue: ..." line.
+// If the source is only SSA, the Layer field can be left empty.
 //
 
 // Matroka CodecID mappings

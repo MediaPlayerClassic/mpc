@@ -287,13 +287,14 @@ CShoutcastStream::CShoutcastStream(const WCHAR* wfn, CShoutcastSource* pParent, 
 	if(fn.Find(_T("://")) < 0) fn = _T("http://") + fn;
 
 #ifdef REGISTER_FILTER
-fn = _T("http://66.250.32.195:8012/");
+//fn = _T("http://66.250.32.195:8012/");
 //fn = _T("http://localhost:8000/");
 //fn = _T("http://210.120.247.49:9570"); // 48khz/320kbps/stereo, choppy
 //fn = _T("http://205.188.234.38:8002"); // no output, freezes stop
 //fn = _T("http://64.236.34.141/stream/1005");
 //fn = _T("http://218.145.30.106:11000"); // 128kbps korean
 //fn = _T("http://65.206.46.110:8020"); // 96kbps
+fn = _T("http://218.145.30.106:11000");
 //fn = _T("http://radio.sluchaj.com:8000/radio.ogg"); // ogg
 // http://www.oddsock.org/icecast2yp/ // more ogg via icecast2
 #endif
@@ -580,7 +581,7 @@ bool CShoutcastStream::CShoutcastSocket::Connect(CUrl& url)
 	str.Format(
 		"GET %s HTTP/1.0\r\n"
 		"Icy-MetaData:1\r\n"
-		"User-Agent: ShoutcastSource\r\n"
+//		"User-Agent: shoutcastsource\r\n"
 		"Host: %s\r\n"
 		"Accept: */*\r\n"
 		"Connection: Keep-Alive\r\n"
