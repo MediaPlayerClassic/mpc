@@ -105,7 +105,10 @@ HRESULT CMpegSplitterFile::Init()
 	int indicated_rate = m_rate;
 	int detected_rate = 10000000i64 * (m_posMax - m_posMin) / (m_rtMax - m_rtMin);
 	// normally "detected" should always be less than "indicated", but sometimes it can be a few percent higher (+10% is allowed here)
-	if(indicated_rate == 0 || ((float)detected_rate / indicated_rate) < 1.1) m_rate = detected_rate;
+	// (update: also allowing +/-50k/s)
+	if(indicated_rate == 0 || ((float)detected_rate / indicated_rate) < 1.1
+	|| abs(detected_rate - indicated_rate) < 50*1024)
+		m_rate = detected_rate;
 	else ; // TODO: in this case disable seeking, or try doing something less drastical...
 
 #ifndef DEBUG
