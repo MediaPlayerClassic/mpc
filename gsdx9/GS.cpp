@@ -100,7 +100,7 @@ EXPORT_C_(UINT32) PS2EgetLibVersion2(UINT32 type)
 EXPORT_C_(UINT32) PS2EgetCpuPlatform()
 {
 #if _M_AMD64
-	return PS2E_X86_64
+	return PS2E_X86_64;
 #else
 	return PS2E_X86;
 #endif
