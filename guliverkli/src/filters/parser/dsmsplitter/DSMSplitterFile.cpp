@@ -3,17 +3,17 @@
 #include "..\..\..\DSUtil\DSUtil.h"
 #include "..\..\..\..\include\matroska\matroska.h"
 
-CDSMSplitterFile::CDSMSplitterFile(IAsyncReader* pReader, HRESULT& hr) 
+CDSMSplitterFile::CDSMSplitterFile(IAsyncReader* pReader, HRESULT& hr, CArray<CDSMResource>& resources) 
 	: CBaseSplitterFile(pReader, hr)
 	, m_rtFirst(0)
 	, m_rtDuration(0)
 {
 	if(FAILED(hr)) return;
 
-	hr = Init();
+	hr = Init(resources);
 }
 
-HRESULT CDSMSplitterFile::Init()
+HRESULT CDSMSplitterFile::Init(CArray<CDSMResource>& resources)
 {
 	Seek(0);
 
@@ -34,7 +34,7 @@ HRESULT CDSMSplitterFile::Init()
 
 	// examine the beginning of the file ...
 
-	while(Sync(type, len, 0) && GetPos() < limit)
+	while(Sync(type, len, 0))
 	{
 		__int64 pos = GetPos();
 
@@ -57,6 +57,7 @@ HRESULT CDSMSplitterFile::Init()
 		else if(type == DSMP_STREAMINFO) {Read(len-1, m_sim[(BYTE)BitRead(8)]);}
 		else if(type == DSMP_SYNCPOINTS) {Read(len, m_sps);}
 		else if(type == DSMP_CHAPTERS) {Read(len, m_cs);}
+		else if(type == DSMP_RESOURCE) {Read(len, resources);}
 
 		Seek(pos + len);
 	}
@@ -88,6 +89,7 @@ HRESULT CDSMSplitterFile::Init()
 			else if(type == DSMP_STREAMINFO) {Read(len-1, m_sim[(BYTE)BitRead(8)]);}
 			else if(type == DSMP_SYNCPOINTS) {Read(len, m_sps);}
 			else if(type == DSMP_CHAPTERS) {Read(len, m_cs);}
+			else if(type == DSMP_RESOURCE) {Read(len, resources);}
 
 			Seek(pos + len);
 		}
@@ -215,17 +217,13 @@ bool CDSMSplitterFile::Read(UINT64 len, CArray<Chapter>& cs)
 		bool fSign = !!BitRead(1);
 		int iTimeStamp = (int)BitRead(3);
 		BitRead(4); // reserved
+		len--;
 
 		c.rt += (REFERENCE_TIME)BitRead(iTimeStamp<<3) * (fSign ? -1 : 1);
-
-		char ch;
-		CStringA name;
-		for(int i = 1 + iTimeStamp; i < len && (ch = (char)BitRead(8)) != 0; i++) name += ch;
-		c.name = UTF8To16(name);
+		len -= iTimeStamp;
+		len -= Read(len, c.name);
 
 		cs.Add(c);
-
-		len -= 1 + iTimeStamp + name.GetLength()+1;
 	}
 
 	if(len != 0)
@@ -245,17 +243,42 @@ bool CDSMSplitterFile::Read(UINT64 len, CStreamInfoMap& im)
 	{
 		CStringA key;
 		ByteRead((BYTE*)key.GetBufferSetLength(4), 4);
-
-		char ch;
-		CStringA value;
-		for(int i = 4; i < len && (ch = (char)BitRead(8)) != 0; i++) value += ch;
-		
-		im[key] = UTF8To16(value);
-
-		len -= 4 + value.GetLength()+1;
+		len -= 4;
+		len -= Read(len, im[key]);
 	}
 
-	return !len;
+	return len == 0;
+}
+
+bool CDSMSplitterFile::Read(UINT64 len, CArray<CDSMResource>& resources)
+{
+	BYTE compression = (BYTE)BitRead(2);
+	BYTE reserved = (BYTE)BitRead(6);
+	len--;
+
+	CDSMResource r;
+	len -= Read(len, r.name);
+	len -= Read(len, r.desc);
+	len -= Read(len, r.mime);
+
+	if(compression != 0) return false; // TODO
+
+	r.data.SetSize(len);
+	ByteRead(r.data.GetData(), r.data.GetSize());
+
+	resources.Add(r);
+
+	return true;
+}
+
+UINT64 CDSMSplitterFile::Read(UINT64 len, CStringW& str)
+{
+	char c;
+	CStringA s;
+	UINT64 i = 0;
+	while(i++ < len && (c = (char)BitRead(8)) != 0) s += c;
+	str = UTF8To16(s);
+	return i;
 }
 
 __int64 CDSMSplitterFile::FindSyncPoint(REFERENCE_TIME rt)

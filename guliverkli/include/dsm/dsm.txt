@@ -15,10 +15,8 @@ The .dsm file structure
 FileInfo + Header Packets + Samples + Footer Packets
 
 Header & Footer Packets:
-- MediaType: required
-- StreamInfo: optional
-- Chapters: optional
-- SyncPoints: optional
+- Required: MediaType
+- Optional: StreamInfo, Chapters, SyncPoints, Resource
 
 Notes: 
 - SyncPoints is optional because seeking can be performed simply by searching for packet syncpoints and their timestamps.
@@ -41,6 +39,7 @@ DSMP_MEDIATYPE = 2
 DSMP_CHAPTERS = 3
 DSMP_SAMPLE = 4
 DSMP_SYNCPOINTS = 5
+DSMP_RESOURCE = 6
 
 Packet
 ------
@@ -159,7 +158,7 @@ SyncPoints : extends Packet (DSMP_SYNCPOINTS)
 timestamp delta sign (1 bit, <0?)
 timestamp delta length (3 bits -> 0-7 bytes)
 file position delta length (3 bits -> 0-7 bytes)
-reserved (1 bits)
+reserved (1 bit)
 
 timestamp delta (0-7 bytes)
 file position delta (0-7 bytes)
@@ -233,3 +232,14 @@ by a lot. It might be wise and worth limiting the duration of samples to a coupl
 possibly sacrificing a bit of correctness by it. Splitters can also choose to ignore the 
 suggested seek position when it falls too far from the required and go on searching the 
 stream for syncpoints by themselves.
+
+Resource : extends Packet (DSMP_RESOURCE)
+-----------------------------------------
+
+compression type (2 bits, 0: none, 1: gzip, 2-3: reserved)
+reserved (6 bits)
+name string
+desc string
+mime string
+
+[... data ...]

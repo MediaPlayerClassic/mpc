@@ -30,6 +30,7 @@
 #include "BaseSplitterFileEx.h"
 #include "AsyncReader.h"
 #include "..\..\..\DSUtil\DSMPropertyBag.h"
+#include "..\..\..\DSUtil\FontInstaller.h"
 
 class Packet
 {
@@ -185,6 +186,7 @@ class CBaseSplitterFilter
 	: public CBaseFilter
 	, public CCritSec
 	, public CDSMPropertyBag
+	, public CDSMResourceBag
 	, protected CAMThread
 	, public IFileSourceFilter
 	, public IMediaSeeking
@@ -234,6 +236,8 @@ protected:
 	HRESULT DeliverPacket(CAutoPtr<Packet> p);
 
 	DWORD m_priority;
+
+	CFontInstaller m_fontinst;
 
 protected:
 	enum {CMD_EXIT, CMD_SEEK};

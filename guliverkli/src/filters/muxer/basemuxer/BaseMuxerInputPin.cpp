@@ -133,23 +133,23 @@ HRESULT CBaseMuxerInputPin::CompleteConnect(IPin* pReceivePin)
 		if(CComQIPtr<IDSMPropertyBag> pPB = pPin)
 		{
 			ULONG cProperties = 0;
-			if(FAILED(pPB->CountProperties(&cProperties)) || cProperties == 0)
-				continue;
-
-			for(ULONG iProperty = 0; iProperty < cProperties; iProperty++)
+			if(SUCCEEDED(pPB->CountProperties(&cProperties)) || cProperties == 0)
 			{
-				PROPBAG2 PropBag;
-				memset(&PropBag, 0, sizeof(PropBag));
-				ULONG cPropertiesReturned = 0;
-				if(FAILED(pPB->GetPropertyInfo(iProperty, 1, &PropBag, &cPropertiesReturned)))
-					continue;
+				for(ULONG iProperty = 0; iProperty < cProperties; iProperty++)
+				{
+					PROPBAG2 PropBag;
+					memset(&PropBag, 0, sizeof(PropBag));
+					ULONG cPropertiesReturned = 0;
+					if(FAILED(pPB->GetPropertyInfo(iProperty, 1, &PropBag, &cPropertiesReturned)))
+						continue;
 
-				HRESULT hr;
-				CComVariant var;
-				if(SUCCEEDED(pPB->Read(1, &PropBag, NULL, &var, &hr)) && SUCCEEDED(hr))
-					SetProperty(PropBag.pstrName, &var);
+					HRESULT hr;
+					CComVariant var;
+					if(SUCCEEDED(pPB->Read(1, &PropBag, NULL, &var, &hr)) && SUCCEEDED(hr))
+						SetProperty(PropBag.pstrName, &var);
 
-				CoTaskMemFree(PropBag.pstrName);
+					CoTaskMemFree(PropBag.pstrName);
+				}
 			}
 		}
 	}

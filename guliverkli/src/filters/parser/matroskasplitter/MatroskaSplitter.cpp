@@ -86,12 +86,6 @@ BOOL APIENTRY DllMain(HANDLE hModule, DWORD dwReason, LPVOID lpReserved)
 
 #endif
 
-BOOL (WINAPI *CMatroskaSplitterFilter::pRemoveFontMemResourceEx)(HANDLE) = NULL;
-HANDLE (WINAPI *CMatroskaSplitterFilter::pAddFontMemResourceEx)(PVOID,DWORD,PVOID,DWORD*) = NULL;
-int (WINAPI *CMatroskaSplitterFilter::pAddFontResourceEx)(LPCTSTR,DWORD,PVOID) = NULL;
-BOOL (WINAPI *CMatroskaSplitterFilter::pRemoveFontResourceEx)(LPCTSTR,DWORD,PVOID) = NULL;
-BOOL (WINAPI *CMatroskaSplitterFilter::pMoveFileEx)(LPCTSTR, LPCTSTR,DWORD) = NULL;
-
 //
 // CMatroskaSplitterFilter
 //
@@ -103,7 +97,6 @@ CMatroskaSplitterFilter::CMatroskaSplitterFilter(LPUNKNOWN pUnk, HRESULT* phr)
 
 CMatroskaSplitterFilter::~CMatroskaSplitterFilter()
 {
-	UninstallFonts();
 }
 
 STDMETHODIMP CMatroskaSplitterFilter::NonDelegatingQueryInterface(REFIID riid, void** ppv)
@@ -573,59 +566,33 @@ HRESULT CMatroskaSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 	SetMediaContentStr(, Description);
 */
 
-	return m_pOutputs.GetCount() > 0 ? S_OK : E_FAIL;
-}
-
-BOOL CMatroskaSplitterFilter::InstallFontMemory(const void* data, UINT len)
-{
-	DWORD nfonts;
-	HANDLE hF = NULL;
-	if(pAddFontMemResourceEx((PVOID)data, len, NULL, &nfonts))
-		m_Fonts.Add(hF);
-	return (hF != NULL);
-}
-
-BOOL CMatroskaSplitterFilter::InstallFontFile(const void* data, UINT len)
-{
-	// write the font to a temporary file
-	CFile f;
-	TCHAR path[MAX_PATH], fn[MAX_PATH];
-	if(!GetTempPath(MAX_PATH, path) || !GetTempFileName(path, _T("mpc_msf"), 0, fn))
-		return FALSE;
-
-	if(f.Open(fn, CFile::modeWrite))
 	{
-		f.Write(data, len);
-		f.Close();
-		// install the font for the application
-		if(pAddFontResourceEx(fn, FR_PRIVATE, 0) > 0)
+		ResRemoveAll();
+
+		POSITION pos = m_pFile->m_segment.Attachments.GetHeadPosition();
+		while(pos)
 		{
-			m_FontsList.Add(fn);
-			return TRUE;
+			Attachment* pA = m_pFile->m_segment.Attachments.GetNext(pos);
+
+			POSITION pos = pA->AttachedFiles.GetHeadPosition();
+			while(pos)
+			{
+				AttachedFile* pF = pA->AttachedFiles.GetNext(pos);
+
+				CArray<BYTE> pData;
+				pData.SetSize(pF->FileDataLen);
+				m_pFile->Seek(pF->FileDataPos);
+				if(SUCCEEDED(m_pFile->Read(pData.GetData(), pData.GetSize())))
+					ResAppend(pF->FileName, pF->FileDescription, CStringW(pF->FileMimeType), pData.GetData(), pData.GetSize());
+			}
 		}
 	}
-	DeleteFile(fn);
-	return FALSE;
+
+	return m_pOutputs.GetCount() > 0 ? S_OK : E_FAIL;
 }
 
 void CMatroskaSplitterFilter::InstallFonts()
 {
-	if(!pAddFontMemResourceEx || !pAddFontResourceEx)
-	{
-		if(HMODULE hGdi = GetModuleHandle(_T("gdi32.dll")))
-		{
-			pAddFontMemResourceEx = (HANDLE (WINAPI *)(PVOID,DWORD,PVOID,DWORD*))GetProcAddress(hGdi, "AddFontMemResourceEx");
-			pAddFontResourceEx = (int (WINAPI *)(LPCTSTR,DWORD,PVOID))GetProcAddress(hGdi, "AddFontResourceExA");
-			pRemoveFontMemResourceEx = (BOOL (WINAPI *)(HANDLE))GetProcAddress(hGdi, "RemoveFontMemResourceEx");
-			pRemoveFontResourceEx = (BOOL (WINAPI *)(LPCTSTR,DWORD,PVOID))GetProcAddress(hGdi, "RemoveFontResourceExA");
-		}
-	}
-
-	if(!pAddFontMemResourceEx || !pAddFontResourceEx)
-		return;
-
-	UninstallFonts();
-
 	POSITION pos = m_pFile->m_segment.Attachments.GetHeadPosition();
 	while(pos)
 	{
@@ -640,47 +607,17 @@ void CMatroskaSplitterFilter::InstallFonts()
 			{
 				// assume this is a font resource
 
-				if(BYTE* data = new BYTE[(UINT)pF->FileDataLen])
+				if(BYTE* pData = new BYTE[(UINT)pF->FileDataLen])
 				{
 					m_pFile->Seek(pF->FileDataPos);
 
-					if(SUCCEEDED(m_pFile->Read(data,pF->FileDataLen)))
-					{
-						if(!InstallFontFile(data,(UINT)pF->FileDataLen))
-							InstallFontMemory(data,(UINT)pF->FileDataLen);
-					}
+					if(SUCCEEDED(m_pFile->Read(pData, pF->FileDataLen)))
+						m_fontinst.InstallFont(pData, (UINT)pF->FileDataLen);
 
-					delete[] data;
+					delete [] pData;
 				}
 			}
 		}
-	}
-}
-
-void CMatroskaSplitterFilter::UninstallFonts()
-{
-	if(pRemoveFontMemResourceEx)
-	{
-		for(int i = 0; i < m_Fonts.GetSize(); ++i)
-			pRemoveFontMemResourceEx(m_Fonts[i]);
-		m_Fonts.RemoveAll();
-	}
-
-	if(pRemoveFontResourceEx)
-	{
-		for(int i = 0; i < m_FontsList.GetSize(); ++i)
-		{
-			pRemoveFontResourceEx(m_FontsList[i],FR_PRIVATE,0);
-			if(!DeleteFile(m_FontsList[i]))
-			{
-				if(!pMoveFileEx)
-					if(HMODULE hGdi = GetModuleHandle(_T("kernel32.dll")))
-						pMoveFileEx = (BOOL (WINAPI *)(LPCTSTR, LPCTSTR,DWORD))GetProcAddress(hGdi, "MoveFileExA");
-				if(pMoveFileEx)
-					pMoveFileEx(m_FontsList[i], NULL, MOVEFILE_DELAY_UNTIL_REBOOT);
-			}
-		}
-		m_FontsList.RemoveAll();
 	}
 }
 

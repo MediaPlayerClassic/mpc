@@ -34,4 +34,5 @@ enum dsmp_t
 	DSMP_CHAPTERS = 3,
 	DSMP_SAMPLE = 4,
 	DSMP_SYNCPOINTS = 5,
+	DSMP_RESOURCE = 6
 };

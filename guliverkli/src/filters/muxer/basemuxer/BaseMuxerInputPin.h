@@ -43,6 +43,8 @@ struct MuxerPacket
 class CBaseMuxerInputPin : public CBaseInputPin, public CDSMPropertyBag
 {
 private:
+	int m_iID;
+
 	CCritSec m_csReceive;
 	REFERENCE_TIME m_rtMaxStart, m_rtDuration;
 	bool m_fEOS;
@@ -56,7 +58,6 @@ private:
 	friend class CBaseMuxerFilter;
 
 public:
-int m_iID;
 	CBaseMuxerInputPin(LPCWSTR pName, CBaseFilter* pFilter, CCritSec* pLock, HRESULT* phr);
 	virtual ~CBaseMuxerInputPin();
 

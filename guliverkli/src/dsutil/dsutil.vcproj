@@ -306,6 +306,9 @@
 				RelativePath="DSUtil.cpp">
 			</File>
 			<File
+				RelativePath=".\FontInstaller.cpp">
+			</File>
+			<File
 				RelativePath="MediaTypes.cpp">
 			</File>
 			<File
@@ -353,6 +356,9 @@
 			</File>
 			<File
 				RelativePath="DSUtil.h">
+			</File>
+			<File
+				RelativePath=".\FontInstaller.h">
 			</File>
 			<File
 				RelativePath="MediaTypes.h">

@@ -73,7 +73,7 @@ public:
 class CMatroskaSplitterFilter : public CBaseSplitterFilter, public ITrackInfo
 {
 	void SendVorbisHeaderSample();
-
+/*
 	static HANDLE (WINAPI *pAddFontMemResourceEx)(PVOID,DWORD,PVOID,DWORD*);
 	static BOOL (WINAPI *pRemoveFontMemResourceEx)(HANDLE);
 	static int (WINAPI *pAddFontResourceEx)(LPCTSTR,DWORD,PVOID);
@@ -82,10 +82,11 @@ class CMatroskaSplitterFilter : public CBaseSplitterFilter, public ITrackInfo
 
 	CArray<HANDLE> m_Fonts;
 	CArray<CString> m_FontsList;
-	void InstallFonts();
 	BOOL InstallFontMemory(const void* data, UINT len);
 	BOOL InstallFontFile(const void* data, UINT len);
 	void UninstallFonts();
+*/
+	void InstallFonts();
 
 	CAutoPtr<MatroskaReader::CMatroskaNode> m_pSegment, m_pCluster, m_pBlock;
 
