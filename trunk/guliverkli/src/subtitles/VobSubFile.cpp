@@ -1295,6 +1295,8 @@ STDMETHODIMP CVobSubFile::SetStream(int iStream)
 
 STDMETHODIMP CVobSubFile::Reload()
 {
+	CFileStatus s;
+	if(!CFile::GetStatus(m_title + _T(".idx"), s)) return E_FAIL;
 	return !m_title.IsEmpty() && Open(m_title) ? S_OK : E_FAIL;
 }
 
