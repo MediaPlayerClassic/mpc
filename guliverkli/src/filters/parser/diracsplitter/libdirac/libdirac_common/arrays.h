@@ -344,10 +344,10 @@ public:
     //! Returns the index of the first element of a column
     const int LastY() const { return m_last_y; }
 
+private:
     //! Initialise the array
     void Init(const int height,const int width);
 
-private:
     //! Free all the allocated data
     void FreeData();    
 
