@@ -476,7 +476,11 @@ bool CQuicktimeWindow::OpenMovie(CString fn)
 	Rect rect;
 	GetMovieBox(theMovie, &rect);
 	MacOffsetRect(&rect, -rect.left, -rect.top);
+	SetMovieBox(theMovie, &rect);
 	m_size.SetSize(rect.right - rect.left, rect.bottom - rect.top);
+
+	Rect nrect;
+	GetMovieNaturalBoundsRect(theMovie, &nrect);
 
 	if(m_pGraph->m_iRenderer == CQuicktimeGraph::MC)
 	{

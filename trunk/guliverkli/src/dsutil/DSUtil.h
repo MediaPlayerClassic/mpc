@@ -23,6 +23,7 @@
 
 #include <afx.h>
 #include <afxwin.h>
+#include "NullRenderers.h"
 //#include "MediaTypes.h"
 #include "vd.h"
 

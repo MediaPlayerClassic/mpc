@@ -84,6 +84,9 @@ private:
     HRESULT GetDeliveryBuffer(IMediaSample** ppSample, REFERENCE_TIME* pStartTime, REFERENCE_TIME* pEndTime, DWORD dwFlags);
     HRESULT Deliver(IMediaSample* pSample);
 
+	void QueueAdd(CAutoPtr<Packet> p);
+	CAutoPtr<Packet> QueueRemove();
+
 protected:
 	REFERENCE_TIME m_rtStart;
 
@@ -115,6 +118,7 @@ public:
 	HRESULT DeliverEndFlush();
     HRESULT DeliverNewSegment(REFERENCE_TIME tStart, REFERENCE_TIME tStop, double dRate);
 
+	int QueueCount();
     HRESULT QueueEndOfStream();
 	HRESULT QueuePacket(CAutoPtr<Packet> p);
 };
@@ -177,6 +181,8 @@ public:
 
 	DECLARE_IUNKNOWN;
     STDMETHODIMP NonDelegatingQueryInterface(REFIID riid, void** ppv);
+
+	bool IsAnyPinDrying();
 
 	HRESULT BreakConnect(PIN_DIRECTION dir, CBasePin* pPin);
 	HRESULT CompleteConnect(PIN_DIRECTION dir, CBasePin* pPin);

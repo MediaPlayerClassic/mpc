@@ -95,7 +95,7 @@ public:
 	void NotifyMediaType(const CMediaType& mt);
 };
 
-class CStreamSwitcherInputPin : public CBaseInputPin
+class CStreamSwitcherInputPin : public CBaseInputPin, public IPinConnection
 {
 	friend class CStreamSwitcherAllocator;
 
@@ -116,8 +116,13 @@ class CStreamSwitcherInputPin : public CBaseInputPin
 
 	HRESULT InitializeOutputSample(IMediaSample* pInSample, IMediaSample** ppOutSample);
 
+	HANDLE m_hNotifyEvent;
+
 public:
     CStreamSwitcherInputPin(CStreamSwitcherFilter* pFilter, HRESULT* phr, LPCWSTR pName);
+
+	DECLARE_IUNKNOWN
+    STDMETHODIMP NonDelegatingQueryInterface(REFIID riid, void** ppv);
 
     CMediaType& CurrentMediaType() {return m_mt;}
 	IMemAllocator* CurrentAllocator() {return m_pAllocator;}
@@ -147,6 +152,13 @@ public:
 	// IMemInputPin
     STDMETHODIMP Receive(IMediaSample* pSample);
 	STDMETHODIMP NewSegment(REFERENCE_TIME tStart, REFERENCE_TIME tStop, double dRate);
+
+	//
+	
+	STDMETHODIMP DynamicQueryAccept(const AM_MEDIA_TYPE* pmt);
+	STDMETHODIMP NotifyEndOfStream(HANDLE hNotifyEvent);
+	STDMETHODIMP IsEndPin();
+	STDMETHODIMP DynamicDisconnect();
 };
 
 class CStreamSwitcherOutputPin : public CBaseOutputPin, public IStreamBuilder

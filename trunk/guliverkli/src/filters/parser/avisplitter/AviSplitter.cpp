@@ -140,7 +140,7 @@ STDAPI DllRegisterServer()
 
 STDAPI DllUnregisterServer()
 {
-	UnRegisterSourceFilter(MEDIASUBTYPE_Avi);
+//	UnRegisterSourceFilter(MEDIASUBTYPE_Avi);
 
 	return AMovieDllRegisterServer2(FALSE);
 }
@@ -538,7 +538,8 @@ void CAviSplitterFilter::DoDeliverLoop()
 
 	m_pFile->Seek(pos);
 
-	DoDeliverLoop(m_pFile->GetLength());
+	do {hr = DoDeliverLoop(m_pFile->GetLength());}
+	while(FAILED(hr) && Resync());
 }
 
 HRESULT CAviSplitterFilter::DoDeliverLoop(UINT64 end)
@@ -551,7 +552,10 @@ HRESULT CAviSplitterFilter::DoDeliverLoop(UINT64 end)
 
 		DWORD id = 0, size;
 		if(S_OK != m_pFile->Read(id) || id == 0)
+		{
+			m_pFile->Seek(pos); // restore file pos for Resync()
 			return E_FAIL;
+		}
 
 		if(id == FCC('RIFF') || id == FCC('LIST'))
 		{
@@ -596,6 +600,7 @@ HRESULT CAviSplitterFilter::DoDeliverLoop(UINT64 end)
 									DbgLog((LOG_TRACE, 0, _T("WARNING: Missing %d frames (track=%d)"), i - m_tFrame[TrackNumber], TrackNumber));
 									m_tFrame[TrackNumber] = i;
 									m_tSize[TrackNumber] = s->cs[i].size;
+									p->bDiscontinuity = true;
 									break;
 								}
 							}
@@ -614,13 +619,13 @@ HRESULT CAviSplitterFilter::DoDeliverLoop(UINT64 end)
 						{
 							p->pData.SetSize(size);
 							if(S_OK != (hr = m_pFile->Read(p->pData.GetData(), p->pData.GetSize()))) break;
-
+/*
 							DbgLog((LOG_TRACE, 0, _T("%d (%d): %I64d - %I64d, %I64d - %I64d (size = %d)"), 
 								p->TrackNumber, (int)p->bSyncPoint,
 								(p->rtStart)/10000, (p->rtStop)/10000, 
 								(p->rtStart-m_rtStart)/10000, (p->rtStop-m_rtStart)/10000,
 								size));
-
+*/
 							hr = DeliverPacket(p);
 						}
 					}
@@ -634,6 +639,57 @@ HRESULT CAviSplitterFilter::DoDeliverLoop(UINT64 end)
 	}
 
 	return hr;
+}
+
+static int chunkfileposcomp(const void* c1, const void* c2)
+{
+	__int64 fp1 = ((CAviFile::strm_t::chunk*)c1)->filepos;
+	__int64 fp2 = ((CAviFile::strm_t::chunk*)c2)->filepos;
+	if(fp1 < fp2) return -1;
+	if(fp1 > fp2) return +1;
+	return 0;
+}
+
+bool CAviSplitterFilter::Resync()
+{
+	UINT64 pos = m_pFile->GetPos();
+
+	for(int i = 0; i < (int)m_pFile->m_strms.GetCount(); i++)
+	{
+		CArray<CAviFile::strm_t::chunk>& cs = m_pFile->m_strms[i]->cs;
+
+		CAviFile::strm_t::chunk c;
+		c.filepos = pos;
+
+		CAviFile::strm_t::chunk* pc = (CAviFile::strm_t::chunk*)bsearch(&c, cs.GetData(), cs.GetCount(), sizeof(c), chunkfileposcomp);
+		if(pc)
+		{
+			m_nOpenProgress = 0;
+
+			for(int j = (pc - cs.GetData()) + 1, k = j; j < cs.GetCount() && !CheckRequest(NULL); j++)
+			{
+				pos = cs[j].filepos;
+
+				m_pFile->Seek(pos);
+
+				DWORD id = 0;
+				if(S_OK == m_pFile->Read(id) && id != 0)
+				{
+	                m_pFile->Seek(pos);
+					m_nOpenProgress = 100;
+					return(true);
+				}
+
+				m_nOpenProgress = 100*(j-k)/(cs.GetCount()-k);
+			}
+
+			m_nOpenProgress = 100;
+
+			break;
+		}
+	}
+
+	return(false);
 }
 
 // IMediaSeeking
@@ -1306,14 +1362,127 @@ void CAviFile::EmptyIndex()
 	}
 }
 
+static void ReportError()
+{
+	MessageBeep(-1);
+
+	bool fShowInterleaveErrorDlg = true;
+
+	GetPrivateProfileStruct(
+		_T("AviSplitter"), _T("ShowInterleaveErrorDlg"), 
+		&fShowInterleaveErrorDlg, sizeof(fShowInterleaveErrorDlg), NULL);
+
+	if(fShowInterleaveErrorDlg)
+	{
+		CString msg;
+		msg.Format(_T("This AVI file was not prepared for sequential reading, the alternative \n")
+					_T("'Avi Splitter' will not load now and will let the old one handle it. \n")
+					_T("The complete reinterleaving of this file is strongly suggested before \n")
+					_T("burning it onto a slow media like cd-rom.\n\n")
+					_T("Would you like to turn off this warning for the future?"));
+		if(MessageBox(NULL, msg, _T("Error"), MB_YESNO) == IDYES)
+		{
+			fShowInterleaveErrorDlg = false;
+
+			WritePrivateProfileStruct(
+				_T("AviSplitter"), _T("ShowInterleaveErrorDlg"), 
+				&fShowInterleaveErrorDlg, sizeof(fShowInterleaveErrorDlg), NULL);
+		}
+	}
+}
+
+struct tfp_t {DWORD t; DWORD n;};
+static int tfpcomp(const void* tfp1, const void* tfp2) {return ((tfp_t*)tfp1)->t - ((tfp_t*)tfp2)->t;}
+
 bool CAviFile::IsInterleaved()
 {
 	if(m_strms.GetCount() < 2)
 		return(true);
+/*
+	if(m_avih.dwFlags&AVIF_ISINTERLEAVED) // not reliable, nandub can write f*cked up files and still sets it
+		return(true);
+*/
 
-	if(m_avih.dwFlags&AVIF_ISINTERLEAVED)
+	// TODO: make this run faster (P4 2.4GHz/~700MB avi/~3-400000 chunks --> 200ms)
+
+	int len = 0;
+	for(int i = 0; i < m_avih.dwStreams; i++)
+		len += m_strms[i]->cs.GetCount();
+
+	if(len <= 0)
 		return(true);
 
+	CArray<tfp_t> chunks;
+	chunks.SetSize(len);
+
+	CArray<DWORD> curchunks;
+	CArray<UINT64> cursizes;
+	curchunks.SetSize(m_avih.dwStreams);
+	memset(curchunks.GetData(), 0, sizeof(DWORD)*m_avih.dwStreams);
+	cursizes.SetSize(m_avih.dwStreams);
+	memset(cursizes.GetData(), 0, sizeof(UINT64)*m_avih.dwStreams);
+
+	tfp_t* chunkptr = chunks.GetData();
+
+	len = 0;
+
+	while(1)
+	{
+		UINT64 fpmin = _I64_MAX;
+		DWORD n = -1;
+
+		for(int i = 0; i < m_avih.dwStreams; i++)
+		{
+			int curchunk = curchunks[i];
+			CArray<strm_t::chunk>& cs = m_strms[i]->cs;
+			if(curchunk >= cs.GetSize()) continue;
+            UINT64 fp = cs[curchunk].filepos;
+			if(fp < fpmin) {fpmin = fp; n = i;}
+		}
+
+		if(n == -1) break;
+
+		if(!m_strms[n]->IsRawSubtitleStream())
+		{
+			REFERENCE_TIME rt = m_strms[n]->GetRefTime(curchunks[n], cursizes[n]);
+			chunkptr->t = (DWORD)(rt>>13/*/10000*/); // for comparing later it is just as good as /10000 to get a near [ms] accuracy
+			chunkptr->n = len++;
+			chunkptr++;
+		}
+
+		cursizes[n] = m_strms[n]->cs[curchunks[n]].size;
+		curchunks[n]++;
+	}
+
+	qsort(chunks.GetData(), len, sizeof(tfp_t), tfpcomp);
+
+	int maxdiff = INT_MIN, mindiff = INT_MAX;
+
+	for(int i = 1; i < len; i++)
+	{
+		int diff = chunks[i].n - chunks[i-1].n;
+#ifdef DEBUG
+		if(diff > maxdiff) maxdiff = diff;
+		if(diff < mindiff) mindiff = diff;
+#else
+		if(abs(diff) > 500)
+		{
+			ReportError();
+			return(false);
+		}
+#endif
+	}
+
+#ifdef DEBUG
+	if(max(abs(maxdiff), abs(mindiff)) > 500)
+	{
+		ReportError();
+		return(false);
+	}
+#endif
+
+	//
+/*
 	for(int i = 0; i < m_avih.dwStreams; i++)
 	{
 		if(m_strms[i]->cs.GetCount() < 500) continue; // we can buffer up to 500 samples...
@@ -1322,7 +1491,7 @@ bool CAviFile::IsInterleaved()
 		{
 			if(i == j) continue;
 
-			if(m_strms[j]->strh.fccType == FCC('txts') && m_strms[j]->cs.GetCount() == 1) continue;
+			if(m_strms[j]->IsRawSubtitleStream()) continue;
 
 			CArray<strm_t::chunk>& cs1 = m_strms[i]->cs;
 			CArray<strm_t::chunk>& cs2 = m_strms[j]->cs;
@@ -1333,6 +1502,7 @@ bool CAviFile::IsInterleaved()
 				return(false);
 		}
 	}
+*/
 /*
 	if(AVIOLDINDEX* idx = m_idx1)
 	{

@@ -4,6 +4,7 @@
 #include "BaseSplitter.h"
 
 #define MAXBUFFERS 2
+#define MINPACKETS 5
 #define MAXPACKETS 500
 
 //
@@ -274,6 +275,24 @@ HRESULT CBaseSplitterOutputPin::DeliverNewSegment(REFERENCE_TIME tStart, REFEREN
 	return hr;
 }
 
+int CBaseSplitterOutputPin::QueueCount()
+{
+	CAutoLock cAutoLock(&m_csQueueLock);
+	return m_packets.GetCount();
+}
+
+void CBaseSplitterOutputPin::QueueAdd(CAutoPtr<Packet> p)
+{
+	CAutoLock cAutoLock(&m_csQueueLock);
+	m_packets.AddHead(p);
+}
+
+CAutoPtr<Packet> CBaseSplitterOutputPin::QueueRemove()
+{
+	CAutoLock cAutoLock(&m_csQueueLock);
+	return m_packets.RemoveTail();
+}
+
 HRESULT CBaseSplitterOutputPin::QueueEndOfStream()
 {
 	return QueuePacket(CAutoPtr<Packet>()); // NULL means EndOfStream
@@ -283,19 +302,22 @@ HRESULT CBaseSplitterOutputPin::QueuePacket(CAutoPtr<Packet> p)
 {
 	if(!ThreadExists()) return S_FALSE;
 
-	int cnt = 0;
 	do
 	{
-		if(cnt > MAXPACKETS) Sleep(1);
-		CAutoLock cAutoLock(&m_csQueueLock);
-		cnt = m_packets.GetCount();
+		if(/*QueueCount() < MAXPACKETS/2
+		||*/ (((CBaseSplitterFilter*)m_pFilter)->IsAnyPinDrying()
+			&& QueueCount() < MAXPACKETS)) break;
+		else Sleep(1);
+/*
+		if(QueueCount() >= MAXPACKETS) Sleep(1);
+		else break;
+*/
 	}
-	while(S_OK == m_hrDeliver && cnt > MAXPACKETS);
+	while(S_OK == m_hrDeliver);
 
 	if(S_OK != m_hrDeliver) return m_hrDeliver;
 
-	CAutoLock cAutoLock(&m_csQueueLock);
-	m_packets.AddHead(p);
+	QueueAdd(p);
 
 	return m_hrDeliver;
 }
@@ -327,8 +349,8 @@ DWORD CBaseSplitterOutputPin::ThreadProc()
 
 			{
 				CAutoLock cAutoLock(&m_csQueueLock);
-				if((cnt = m_packets.GetCount()) > 0)
-					p = m_packets.RemoveTail();
+				if((cnt = QueueCount()) > 0)
+					p = QueueRemove();
 			}
 
 			if(S_OK == m_hrDeliver && cnt > 0)
@@ -511,6 +533,8 @@ DWORD CBaseSplitterFilter::ThreadProc()
 		}
 	}
 
+	SetThreadPriority(m_hThread, THREAD_PRIORITY_ABOVE_NORMAL);
+
 	m_eEndFlush.Set();
 	m_fFlushing = false;
 
@@ -602,6 +626,19 @@ HRESULT CBaseSplitterFilter::DeliverPacket(CAutoPtr<Packet> p)
 		m_bDiscontinuitySent.AddTail(TrackNumber);
 
 	return hr;
+}
+
+
+bool CBaseSplitterFilter::IsAnyPinDrying()
+{
+	POSITION pos = m_pActivePins.GetHeadPosition();
+	while(pos)
+	{
+		if(m_pActivePins.GetNext(pos)->QueueCount() < MINPACKETS)
+			return(true);
+	}
+
+	return(false);
 }
 
 HRESULT CBaseSplitterFilter::BreakConnect(PIN_DIRECTION dir, CBasePin* pPin)

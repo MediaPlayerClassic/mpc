@@ -66,7 +66,9 @@ class CMpeg2DecFilter : public CTransformFilter, public IMpeg2DecFilter
 
 	void Copy(BYTE* pOut, BYTE** ppIn, DWORD w, DWORD h, DWORD pitchIn);
 	void ResetMpeg2Decoder();
-	HRESULT ReconnectOutput(int w, int h, CMediaType& mt);
+	HRESULT ReconnectOutput(int w, int h);
+
+	DWORD m_win, m_hin, m_arxin, m_aryin;
 
 	AM_SimpleRateChange m_rate;
 
@@ -98,6 +100,8 @@ public:
     HRESULT CheckTransform(const CMediaType* mtIn, const CMediaType* mtOut);
     HRESULT DecideBufferSize(IMemAllocator* pAllocator, ALLOCATOR_PROPERTIES* pProperties);
     HRESULT GetMediaType(int iPosition, CMediaType* pMediaType);
+
+	HRESULT SetMediaType(PIN_DIRECTION dir, const CMediaType* pmt);
 
 	HRESULT StartStreaming();
 	HRESULT StopStreaming();

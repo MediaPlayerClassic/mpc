@@ -307,6 +307,17 @@ HRESULT CMpaDecFilter::Receive(IMediaSample* pIn)
 	}
 	else
 	{
+		WAVEFORMATEX* wfe = (WAVEFORMATEX*)m_pOutput->CurrentMediaType().Format();
+
+		if(SUCCEEDED(hr))
+		{
+			if(abs(m_rtStart - rtStart) > 1000000)
+			{
+				m_buff.RemoveAll();
+				m_rtStart = rtStart;
+			}
+		}
+
 		int tmp = m_buff.GetSize();
 		m_buff.SetSize(m_buff.GetSize() + len);
 		memcpy(m_buff.GetData() + tmp, pDataIn, len);
@@ -325,8 +336,12 @@ HRESULT CMpaDecFilter::Receive(IMediaSample* pIn)
 					break;
 				}
 
+				TRACE(_T("*m_stream.error == %d\n"), m_stream.error);
+
 				if(MAD_RECOVERABLE(m_stream.error))
+				{
 					continue;
+				}
 
 				return E_FAIL;
 			}
@@ -339,18 +354,20 @@ HRESULT CMpaDecFilter::Receive(IMediaSample* pIn)
 			const mad_fixed_t* left_ch   = m_synth.pcm.samples[0];
 			const mad_fixed_t* right_ch  = m_synth.pcm.samples[1];
 
-			WAVEFORMATEX* wfe = (WAVEFORMATEX*)m_pOutput->CurrentMediaType().Format();
-#ifdef DEBUG
-			ASSERT(wfe->nChannels == nChannels);
-			ASSERT(wfe->nSamplesPerSec == nSamplesPerSec);
-#endif
-			if(!(wfe->nChannels == nChannels && wfe->nSamplesPerSec == nSamplesPerSec))
+			// ASSERT(wfe->nChannels == nChannels);
+			// ASSERT(wfe->nSamplesPerSec == nSamplesPerSec);
+
+			if(wfe->nChannels != nChannels || wfe->nSamplesPerSec != nSamplesPerSec)
+			{
+				TRACE(_T("wfe->nChannels (%d) != nChannels (%d) || wfe->nSamplesPerSec (%d) != nSamplesPerSec (%d)\n"), 
+					wfe->nChannels, nChannels, wfe->nSamplesPerSec, nSamplesPerSec);
 				continue;
+			}
 
 			CComPtr<IMediaSample> pOut;
 			BYTE* pDataOut = NULL;
-			if(FAILED(hr = m_pOutput->GetDeliveryBuffer(&pOut, NULL, NULL, 0))
-			|| FAILED(hr = pOut->GetPointer(&pDataOut)))
+			if(S_OK != (hr = m_pOutput->GetDeliveryBuffer(&pOut, NULL, NULL, 0))
+			|| S_OK != (hr = pOut->GetPointer(&pDataOut)))
 				return hr;
 
 			if(SUCCEEDED(pOut->GetMediaType(&pmt)) && pmt)
@@ -365,9 +382,33 @@ HRESULT CMpaDecFilter::Receive(IMediaSample* pIn)
 						+ 10000000i64*m_frame.header.duration.fraction/MAD_TIMER_RESOLUTION;
 			REFERENCE_TIME rtStart = m_rtStart;
 			REFERENCE_TIME rtStop = m_rtStart + rtDur;
+
+			m_rtStart += rtDur;
+
+//			TRACE(_T("mpadec: %I64d - %I64d\n"), rtStart/10000, rtStop/10000);
+
+			// The reason of this 200ms limit is that the the splitters (both avi splitters for example)
+			// seek (1+nPins) times simply because that's the amount they receive the SetPosition call usually.
+			// If the filter let the samples through for the first couple of 100ms then it would do that 
+			// (1+nPins) times in a row and would make horrible noises.
+
+			if(rtStart < 2000000)
+				continue;
+/*
+			if(rtStop < 0)
+				continue;
+
+			if(rtStart < 0)
+			{
+				int nSamplesToSkip = -rtStart*nSamplesPerSec/10000000;
+				nSamples -= nSamplesToSkip;
+				left_ch += nSamplesToSkip;
+				right_ch += nSamplesToSkip;
+				rtStart = 0;
+			}
+*/
 			pOut->SetTime(&rtStart, &rtStop);
 			pOut->SetMediaTime(NULL, NULL);
-			m_rtStart += rtDur;
 
 			pOut->SetDiscontinuity(FALSE);
 			pOut->SetSyncPoint(TRUE);
@@ -386,7 +427,7 @@ HRESULT CMpaDecFilter::Receive(IMediaSample* pIn)
 				}
 			}
 
-			if(FAILED(hr = m_pOutput->Deliver(pOut)))
+			if(S_OK != (hr = m_pOutput->Deliver(pOut)))
 				return hr;
 		}
 	}
@@ -491,6 +532,8 @@ HRESULT CMpaDecFilter::StartStreaming()
 	mad_synth_init(&m_synth);
 
 	mad_stream_options(&m_stream, 0/*options*/);
+
+	m_fSyncLost = false;
 
 	return S_OK;
 }

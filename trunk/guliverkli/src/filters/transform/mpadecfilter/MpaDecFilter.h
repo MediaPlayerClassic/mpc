@@ -37,6 +37,7 @@ class CMpaDecFilter : public CTransformFilter
 
 	CArray<BYTE> m_buff;
 	REFERENCE_TIME m_rtStart;
+	bool m_fSyncLost;
 
 public:
 	CMpaDecFilter(LPUNKNOWN lpunk, HRESULT* phr);
