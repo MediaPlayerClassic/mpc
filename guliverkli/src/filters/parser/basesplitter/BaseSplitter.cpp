@@ -140,7 +140,7 @@ CBaseSplitterFile::CBaseSplitterFile(IAsyncReader* pAsyncReader, HRESULT& hr, in
 	LONGLONG total = 0, available;
 	hr = m_pAsyncReader->Length(&total, &available);
 
-	m_fStreaming = hr == VFW_S_ESTIMATED;
+	m_fStreaming = total == 0 && available > 0;
 
 	if(FAILED(hr) || !m_fStreaming && total != available || total < 0)
 	{
