@@ -1,5 +1,5 @@
 /* 
- *	Copyright (C) 2003-2004 Gabest
+ *	Copyright (C) 2003-2005 Gabest
  *	http://www.gabest.org
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -144,7 +144,7 @@ HRESULT CDSMSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 		{
 			CStringA key; CStringW value;
 			m_pFile->m_sim[id].GetNextAssoc(pos, key, value);
-			pPinOut->SetProperty(CString(key), value);
+			pPinOut->SetProperty(CStringW(key), value);
 		}
 
 		EXECUTE_ASSERT(SUCCEEDED(AddOutputPin(id, pPinOut)));
@@ -188,8 +188,12 @@ bool CDSMSplitterFilter::DemuxLoop()
 			CAutoPtr<Packet> p(new Packet());
 			if(m_pFile->Read(len, p))
 			{
-				p->rtStart -= m_pFile->m_rtFirst;
-				p->rtStop -= m_pFile->m_rtFirst;
+				if(p->rtStart != Packet::INVALID_TIME)
+				{
+					p->rtStart -= m_pFile->m_rtFirst;
+					p->rtStop -= m_pFile->m_rtFirst;
+				}
+
 				hr = DeliverPacket(p);
 			}
 		}

@@ -53,7 +53,7 @@ HRESULT CDSMSplitterFile::Init()
 				break;
 			}
 		}
-		else if(type == DSMP_FILEINFO) {Read(len, m_fim);}
+		else if(type == DSMP_FILEINFO) {if((BYTE)BitRead(8) > DSMF_VERSION) return E_FAIL; Read(len-1, m_fim);}
 		else if(type == DSMP_STREAMINFO) {Read(len-1, m_sim[(BYTE)BitRead(8)]);}
 		else if(type == DSMP_SYNCPOINTS) {Read(len, m_sps);}
 		else if(type == DSMP_CHAPTERS) {Read(len, m_cs);}
@@ -84,7 +84,7 @@ HRESULT CDSMSplitterFile::Init()
 					i = j;
 				}	
 			}
-			else if(type == DSMP_FILEINFO) {Read(len, m_fim);}
+			else if(type == DSMP_FILEINFO) {if((BYTE)BitRead(8) > DSMF_VERSION) return E_FAIL; Read(len-1, m_fim);}
 			else if(type == DSMP_STREAMINFO) {Read(len-1, m_sim[(BYTE)BitRead(8)]);}
 			else if(type == DSMP_SYNCPOINTS) {Read(len, m_sps);}
 			else if(type == DSMP_CHAPTERS) {Read(len, m_cs);}

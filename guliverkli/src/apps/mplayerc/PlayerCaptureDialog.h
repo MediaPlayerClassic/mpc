@@ -1,5 +1,5 @@
 /* 
- *	Copyright (C) 2003-2004 Gabest
+ *	Copyright (C) 2003-2005 Gabest
  *	http://www.gabest.org
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -345,6 +345,8 @@ class CPlayerCaptureDialog : public CDialog
 	CMap<HWND, HWND&, BOOL, BOOL&> m_wndenabledmap;
 	void EnableControls(CWnd* pWnd, bool fEnable);
 
+	bool m_fEnableOgm;
+
 public:
 	CPlayerCaptureDialog();   // standard constructor
 	virtual ~CPlayerCaptureDialog();
@@ -382,9 +384,10 @@ public:
 	int m_nVidBuffers;
 	int m_nAudBuffers;
 	CString m_file;
-	int m_muxtype;
 	CButton m_recordbtn;
 	BOOL m_fSepAudio;
+	int m_muxtype;
+	CComboBox m_muxctrl;
 
 	CMediaType m_mtv, m_mta, m_mtcv, m_mtca;
 	CComPtr<IBaseFilter> m_pVidEnc, m_pAudEnc, m_pMux, m_pDst, m_pAudMux, m_pAudDst;
@@ -433,11 +436,11 @@ public:
 	afx_msg void OnAudioCodecType();
 	afx_msg void OnAudioCodecDimension();
 	afx_msg void OnOpenFile();
-	afx_msg void OnMuxerType();
 	afx_msg void OnRecord();
 	afx_msg void OnEnChangeEdit9();
 	afx_msg void OnEnChangeEdit12();
 	afx_msg void OnTimer(UINT nIDEvent);
 	afx_msg void OnBnClickedVidAudPreview();
 	afx_msg void OnBnClickedCheck7();
+	afx_msg void OnCbnSelchangeCombo14();
 };

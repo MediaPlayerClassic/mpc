@@ -48,7 +48,7 @@ BEGIN
             VALUE "FileDescription", "SubtitleSource Filter"
             VALUE "FileVersion", "1, 0, 0, 1"
             VALUE "InternalName", "SubtitleSource Filter"
-            VALUE "LegalCopyright", "Copyright (C) 2003-2004 Gabest"
+            VALUE "LegalCopyright", "Copyright (C) 2003-2005 Gabest"
             VALUE "OriginalFilename", "SubtitleSource.ax"
             VALUE "ProductName", "SubtitleSource Filter"
             VALUE "ProductVersion", "1, 0, 0, 1"

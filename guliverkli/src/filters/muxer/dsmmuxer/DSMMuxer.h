@@ -1,5 +1,5 @@
 /* 
- *	Copyright (C) 2003-2004 Gabest
+ *	Copyright (C) 2003-2005 Gabest
  *	http://www.gabest.org
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -29,10 +29,11 @@ class CDSMMuxerFilter : public CBaseMuxerFilter
 {
 	struct SyncPoint {BYTE id; REFERENCE_TIME rtStart, rtStop; __int64 fp;};
 	CList<SyncPoint> m_sps, m_isps;
+	REFERENCE_TIME m_rtPrevSyncPoint;
 	void IndexSyncPoint(Packet* p, __int64 fp);
 
 	void MuxPacketHeader(IBitStream* pBS, dsmp_t type, UINT64 len);
-	void MuxFileInfo(IBitStream* pBS, CBaseMuxerInputPin* pPin);
+	void MuxFileInfo(IBitStream* pBS);
 	void MuxStreamInfo(IBitStream* pBS, CBaseMuxerInputPin* pPin);
 
 protected:

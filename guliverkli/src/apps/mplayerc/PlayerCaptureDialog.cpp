@@ -1,5 +1,5 @@
 /* 
- *	Copyright (C) 2003-2004 Gabest
+ *	Copyright (C) 2003-2005 Gabest
  *	http://www.gabest.org
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -30,6 +30,8 @@
 #include "..\..\..\include\Ogg\OggDS.h"
 #include "..\..\filters\muxer\wavdest\wavdest.h"
 #include "..\..\filters\muxer\MatroskaMuxer\MatroskaMuxer.h"
+#include "..\..\filters\muxer\DSMMuxer\DSMMuxer.h"
+#include ".\playercapturedialog.h"
 
 static bool LoadMediaType(CStringW DisplayName, AM_MEDIA_TYPE** ppmt)
 {
@@ -398,7 +400,6 @@ IMPLEMENT_DYNAMIC(CPlayerCaptureDialog, CDialog)
 CPlayerCaptureDialog::CPlayerCaptureDialog()
 	: CDialog(CPlayerCaptureDialog::IDD, NULL)
 	, m_vidfps(0)
-	, m_muxtype(0)
 	, m_file(_T(""))
 	, m_fVidOutput(TRUE)
 	, m_fAudOutput(TRUE)
@@ -409,6 +410,7 @@ CPlayerCaptureDialog::CPlayerCaptureDialog()
 	, m_pVidBuffer(NULL)
 	, m_pAudBuffer(NULL)
 	, m_fSepAudio(FALSE)
+	, m_muxtype(0)
 {
 }
 
@@ -457,11 +459,12 @@ void CPlayerCaptureDialog::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_CHECK5, m_fAudPreview);
 	DDX_Control(pDX, IDC_CHECK5, m_audpreview);
 	DDX_Text(pDX, IDC_EDIT4, m_file);
-	DDX_Radio(pDX, IDC_RADIO1, m_muxtype);
 	DDX_Control(pDX, IDC_BUTTON2, m_recordbtn);
 	DDX_Text(pDX, IDC_EDIT9, m_nVidBuffers);
 	DDX_Text(pDX, IDC_EDIT12, m_nAudBuffers);
 	DDX_Check(pDX, IDC_CHECK7, m_fSepAudio);
+	DDX_CBIndex(pDX, IDC_COMBO14, m_muxtype);
+	DDX_Control(pDX, IDC_COMBO14, m_muxctrl);
 }
 
 BOOL CPlayerCaptureDialog::PreTranslateMessage(MSG* pMsg)
@@ -725,41 +728,15 @@ void CPlayerCaptureDialog::UpdateMuxer()
 
 	UpdateData();
 
-	if(m_muxtype == 0)
-	{
-		m_pMux.CoCreateInstance(CLSID_AviDest);
-	}
-	else if(m_muxtype == 1)
-	{
-		m_pMux.CoCreateInstance(CLSID_OggMux);
-	}
-	else if(m_muxtype == 2)
-	{
-//		m_pMux.CoCreateInstance(__uuidof(CMatrsokaMuxerFilter));
-		HRESULT hr;
-		m_pMux = new CMatroskaMuxerFilter(NULL, &hr);
-	}
-	else
-	{
-		return;
-	}
+	HRESULT hr;
 
-	if(m_fSepAudio)
-	{
-/*		if(m_muxtype == 0)
-		{
-*/			HRESULT hr;
-			m_pAudMux = new CWavDestFilter(NULL, &hr);
-/*		}
-		else if(m_muxtype == 1)
-		{
-			m_pAudMux.CoCreateInstance(CLSID_OggMux);
-		}
-		else
-		{
-			return;
-		}
-*/	}
+	if(m_muxtype == 0) m_pMux.CoCreateInstance(CLSID_AviDest);
+	else if(m_muxtype == 1) m_pMux.CoCreateInstance(CLSID_OggMux);
+	else if(m_muxtype == 2) m_pMux = new CMatroskaMuxerFilter(NULL, &hr);
+	else if(m_muxtype == 3) m_pMux = new CDSMMuxerFilter(NULL, &hr);
+	else return;
+
+	if(m_fSepAudio) m_pAudMux = new CWavDestFilter(NULL, &hr);
 }
 
 void CPlayerCaptureDialog::UpdateOutputControls()
@@ -1150,9 +1127,6 @@ BEGIN_MESSAGE_MAP(CPlayerCaptureDialog, CDialog)
 	ON_CBN_SELCHANGE(IDC_COMBO12, OnAudioCodecType)
 	ON_CBN_SELCHANGE(IDC_COMBO11, OnAudioCodecDimension)
 	ON_BN_CLICKED(IDC_BUTTON3, OnOpenFile)
-	ON_BN_CLICKED(IDC_RADIO1, OnMuxerType)
-	ON_BN_CLICKED(IDC_RADIO2, OnMuxerType)
-	ON_BN_CLICKED(IDC_RADIO3, OnMuxerType)
 	ON_BN_CLICKED(IDC_BUTTON2, OnRecord)
 	ON_EN_CHANGE(IDC_EDIT9, OnEnChangeEdit9)
 	ON_EN_CHANGE(IDC_EDIT12, OnEnChangeEdit12)
@@ -1160,6 +1134,7 @@ BEGIN_MESSAGE_MAP(CPlayerCaptureDialog, CDialog)
 	ON_BN_CLICKED(IDC_CHECK4, OnBnClickedVidAudPreview)
 	ON_BN_CLICKED(IDC_CHECK5, OnBnClickedVidAudPreview)
 	ON_BN_CLICKED(IDC_CHECK7, OnBnClickedCheck7)
+	ON_CBN_SELCHANGE(IDC_COMBO14, OnCbnSelchangeCombo14)
 END_MESSAGE_MAP()
 
 
@@ -1175,8 +1150,7 @@ BOOL CPlayerCaptureDialog::OnInitDialog()
 	InitCodecList(m_pAudEncArray, m_audcodec, CLSID_AudioCompressorCategory);
 	UpdateAudioCodec();
 
-	bool fEnableOgm = IsCLSIDRegistered(_T("{8cae96b7-85b1-4605-b23c-17ff5262b296}"));
-	GetDlgItem(IDC_RADIO2)->EnableWindow(fEnableOgm);
+	m_fEnableOgm = IsCLSIDRegistered(_T("{8cae96b7-85b1-4605-b23c-17ff5262b296}"));
 
 	m_nVidBuffers = AfxGetApp()->GetProfileInt(_T("Capture"), _T("VidBuffers"), 50);
 	m_nAudBuffers = AfxGetApp()->GetProfileInt(_T("Capture"), _T("AudBuffers"), 50);
@@ -1188,11 +1162,16 @@ BOOL CPlayerCaptureDialog::OnInitDialog()
 	m_file = AfxGetApp()->GetProfileString(_T("Capture"), _T("FileName"), _T(""));
 	m_fSepAudio = AfxGetApp()->GetProfileInt(_T("Capture"), _T("SepAudio"), TRUE);
 
+	m_muxctrl.AddString(_T("AVI"));
+	m_muxctrl.AddString(_T("Ogg Media"));
+	m_muxctrl.AddString(_T("Matroska"));
+	m_muxctrl.AddString(_T("DirectShow Media"));
+
 //	UpdateMuxer();
 
 	UpdateData(FALSE);
 
-	OnMuxerType();
+	OnCbnSelchangeCombo14();
 
 	return TRUE;  // return TRUE unless you set the focus to a control
 	// EXCEPTION: OCX Property Pages should return FALSE
@@ -1395,7 +1374,7 @@ void CPlayerCaptureDialog::OnOpenFile()
 {
 	CFileDialog fd(FALSE, NULL, NULL, 
 		OFN_EXPLORER|OFN_ENABLESIZING|OFN_HIDEREADONLY|OFN_OVERWRITEPROMPT, 
-		_T("Media files (*.avi,*.ogm,*.mkv)|*.avi;*.ogm;*.mkv|"), this, 0);
+		_T("Media files (*.avi,*.ogm,*.mkv,*.dsm)|*.avi;*.ogm;*.mkv;*.dsm|"), this, 0);
 
 	if(fd.DoModal() == IDOK)
 	{
@@ -1405,11 +1384,13 @@ void CPlayerCaptureDialog::OnOpenFile()
 		if(ext == _T("avi")) m_muxtype = 0;
 		else if(ext == _T("ogm")) m_muxtype = 1;
 		else if(ext == _T("mkv")) m_muxtype = 2;
+		else if(ext == _T("dsm")) m_muxtype = 3;
 		else
 		{
 			if(m_muxtype == 0) str += _T(".avi");
 			else if(m_muxtype == 1) str += _T(".ogm");
 			else if(m_muxtype == 2) str += _T(".mkv");
+			else if(m_muxtype == 3) str += _T(".dsm");
 		}
 
 		m_file = str;
@@ -1418,33 +1399,6 @@ void CPlayerCaptureDialog::OnOpenFile()
 	}
 
 	UpdateOutputControls();
-}
-
-void CPlayerCaptureDialog::OnMuxerType()
-{
-//	UpdateMuxer();
-
-	UpdateData();
-
-	CString ext = m_file.Mid(m_file.ReverseFind('.')+1).MakeLower();
-
-	if(m_muxtype == 0 && (ext == _T("ogm") || ext == _T("mkv")))
-	{
-		m_file = m_file.Left(m_file.GetLength()-4) + _T(".avi");
-	}
-	else if(m_muxtype == 1 && (ext == _T("avi") || ext == _T("mkv")))
-	{
-		m_file = m_file.Left(m_file.GetLength()-4) + _T(".ogm");
-	}
-	else if(m_muxtype == 2 && (ext == _T("avi") || ext == _T("ogm")))
-	{
-		m_file = m_file.Left(m_file.GetLength()-4) + _T(".mkv");
-	}
-
-	GetDlgItem(IDC_EDIT9)->EnableWindow(m_muxtype != 2);
-	GetDlgItem(IDC_EDIT12)->EnableWindow(m_muxtype != 2);
-
-	UpdateData(FALSE);
 }
 
 void CPlayerCaptureDialog::OnRecord()
@@ -1481,9 +1435,6 @@ void CPlayerCaptureDialog::OnRecord()
 		CString audfn = m_file.Left(m_file.ReverseFind('.')+1);
 		if(m_fSepAudio && m_fAudOutput && m_pAudMux && !audfn.IsEmpty())
 		{
-//			if(m_muxtype == 0) audfn += _T("wav");
-//			else if(m_muxtype == 1) audfn += _T("ogg");
-//			else if(m_muxtype == 2) audfn += _T("mkv");
 			audfn += _T("wav");
 
 			CComQIPtr<IFileSinkFilter2> pFSF = m_pAudMux;
@@ -1507,11 +1458,11 @@ void CPlayerCaptureDialog::OnRecord()
 			}
 		}
 
-		m_pVidBuffer = m_fVidOutput && m_nVidBuffers > 0 && m_muxtype != 2 ? new CBufferFilter(NULL, NULL) : NULL;
+		m_pVidBuffer = m_fVidOutput && m_nVidBuffers > 0 && m_muxtype != 2 && m_muxtype != 3 ? new CBufferFilter(NULL, NULL) : NULL;
 		if(CComQIPtr<IBufferFilter> pVB = m_pVidBuffer)
 			{pVB->SetBuffers(m_nVidBuffers); pVB->SetPriority(THREAD_PRIORITY_NORMAL);}
 
-		m_pAudBuffer = m_fAudOutput && m_nAudBuffers > 0 && m_muxtype != 2 ? new CBufferFilter(NULL, NULL) : NULL;
+		m_pAudBuffer = m_fAudOutput && m_nAudBuffers > 0 && m_muxtype != 2 && m_muxtype != 3 ? new CBufferFilter(NULL, NULL) : NULL;
 		if(CComQIPtr<IBufferFilter> pAB = m_pAudBuffer)
 			{pAB->SetBuffers(m_nAudBuffers); pAB->SetPriority(THREAD_PRIORITY_ABOVE_NORMAL);}
 
@@ -1583,4 +1534,27 @@ void CPlayerCaptureDialog::OnBnClickedVidAudPreview()
 void CPlayerCaptureDialog::OnBnClickedCheck7()
 {
 //	UpdateMuxer();
+}
+
+void CPlayerCaptureDialog::OnCbnSelchangeCombo14()
+{
+	UpdateData();
+
+	CString ext = m_file.Mid(m_file.ReverseFind('.')+1).MakeLower();
+
+	if(m_muxtype == 0 && ext != _T("avi"))
+		m_file = m_file.Left(m_file.GetLength()-4) + _T(".avi");
+	else if(m_muxtype == 1 && ext != _T("ogm"))
+		m_file = m_file.Left(m_file.GetLength()-4) + _T(".ogm");
+	else if(m_muxtype == 2 && ext != _T("mkv"))
+		m_file = m_file.Left(m_file.GetLength()-4) + _T(".mkv");
+	else if(m_muxtype == 3 && ext != _T("dsm"))
+		m_file = m_file.Left(m_file.GetLength()-4) + _T(".dsm");
+
+	UpdateData(FALSE);
+
+	GetDlgItem(IDC_EDIT9)->EnableWindow(m_muxtype != 2 && m_muxtype != 3);
+	GetDlgItem(IDC_EDIT12)->EnableWindow(m_muxtype != 2 && m_muxtype != 3);
+
+	m_recordbtn.EnableWindow(m_muxtype != 1 || m_fEnableOgm);
 }

@@ -139,7 +139,7 @@ BEGIN
             VALUE "FileDescription", "Records streaming windows media into the matroska container format."
             VALUE "FileVersion", "1, 0, 0, 1"
             VALUE "InternalName", "asf2mkv.exe"
-            VALUE "LegalCopyright", "Copyright (C) 2003-2004 Gabest. All rights reserved."
+            VALUE "LegalCopyright", "Copyright (C) 2003-2005 Gabest. All rights reserved."
             VALUE "OriginalFilename", "asf2mkv.exe"
             VALUE "ProductName", "asf2mkv recorder"
             VALUE "ProductVersion", "1, 0, 0, 1"

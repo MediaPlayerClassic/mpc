@@ -1,17 +1,24 @@
 #pragma once
 #include <atlsimpcoll.h>
 
-class CPropertyBag2 : public ATL::CSimpleMap<CStringW, CStringW>, public IPropertyBag2
+[uuid("232FD5D2-4954-41E7-BF9B-09E1257B1A95")]
+interface IDSMPropertyBag : public IPropertyBag2
+{
+	STDMETHOD(SetProperty) (LPCWSTR key, LPCWSTR value) = 0;
+	STDMETHOD(SetProperty) (LPCWSTR key, VARIANT* var) = 0;
+};
+
+class CDSMPropertyBag : public ATL::CSimpleMap<CStringW, CStringW>, public IDSMPropertyBag
 {
 	BOOL Add(const CStringW& key, const CStringW& val) {return __super::Add(key, val);}
 	BOOL SetAt(const CStringW& key, const CStringW& val) {return __super::SetAt(key, val);}
 
 public:
-	CPropertyBag2();
-	virtual ~CPropertyBag2();
+	CDSMPropertyBag();
+	virtual ~CDSMPropertyBag();
 
-	void SetProperty(const CStringW& key, const CStringW& value);
-	void SetProperty(const CStringW& key, const VARIANT& var);
+	STDMETHODIMP SetProperty(LPCWSTR key, LPCWSTR value);
+	STDMETHODIMP SetProperty(LPCWSTR key, VARIANT* var);
 
 	// IPropertyBag2
 

@@ -1,5 +1,5 @@
 /* 
- *	Copyright (C) 2003-2004 Gabest
+ *	Copyright (C) 2003-2005 Gabest
  *	http://www.gabest.org
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -29,7 +29,7 @@
 #include "..\..\..\..\include\IKeyFrameInfo.h"
 #include "BaseSplitterFileEx.h"
 #include "AsyncReader.h"
-#include "..\..\..\DSUtil\PropertyBag2.h"
+#include "..\..\..\DSUtil\DSMPropertyBag.h"
 
 class Packet
 {
@@ -82,7 +82,7 @@ public:
 	STDMETHODIMP EndFlush();
 };
 
-class CBaseSplitterOutputPin : public CBaseOutputPin, public CPropertyBag2, protected CAMThread, public IMediaSeeking
+class CBaseSplitterOutputPin : public CBaseOutputPin, public CDSMPropertyBag, protected CAMThread, public IMediaSeeking
 {
 protected:
 	CArray<CMediaType> m_mts;

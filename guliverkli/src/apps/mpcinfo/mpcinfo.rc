@@ -96,7 +96,7 @@ BEGIN
             VALUE "FileDescription", "plugin dll for mirc"
             VALUE "FileVersion", "1.0.0.0"
             VALUE "InternalName", "mpcinfo.dll"
-            VALUE "LegalCopyright", "Copyright (c) Gabest.  All rights reserved."
+            VALUE "LegalCopyright", "Copyright (C) 2003-2005 Gabest.  All rights reserved."
             VALUE "OriginalFilename", "mpcinfo.dll"
             VALUE "ProductName", "mpcinfo"
             VALUE "ProductVersion", "1.0.0.0"
