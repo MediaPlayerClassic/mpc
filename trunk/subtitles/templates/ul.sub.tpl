@@ -41,7 +41,7 @@
 
 	{if !empty($file)}
 	<tr class="required{if isset($err.file_sel[$n])} invalid{/if}">
-		<th>File</th>
+		<th>Video</th>
 		{strip}
 		<td>
 		<select name="file_sel[{$n}]">

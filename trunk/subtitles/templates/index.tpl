@@ -63,7 +63,11 @@
 		</tr>
 		{foreach from=$m.subs item=s}
 		<tr>
-			<td><a href="dl.php?id={$s.id}&ticket={$ticket}">{$s.name|escape:"html"}</a></td>
+			<td>
+				{if !empty($s.files)}<span class="dlme">&rarr;{/if}
+				<a href="dl.php?id={$s.id}&ticket={$ticket}">{$s.name|escape:"html"}</a>
+				{if !empty($s.files)}&larr;</span>{/if}
+			</td>
 			<td>{$s.disc_no}/{$s.discs}</td>
 			<td><nobr>{$s.date|date_format:"%Y %b %e"}</nobr></td>
 			<td>{$s.format|escape:"html"}</td>
@@ -89,9 +93,21 @@
 	{/foreach}
 	</ol>
 	
+{elseif !empty($files)}
+
+<p align="center">
+	Your search did not match any subtitles, would you like to 
+	{strip}<a href="ul.php?
+	{foreach from=$files key=i item=file}
+		{foreach from=$file key=param item=value}
+			{$param}[{$i}]={$value|escape:"url"}&
+		{/foreach}
+	{/foreach}{/strip}">upload</a> instead?
+</p>
+
 {elseif !empty($message)}
 
-<p align="center">{$message|escape:"html"}</div>
+<p align="center">{$message|escape:"html"}</p>
 
 {/if}
 

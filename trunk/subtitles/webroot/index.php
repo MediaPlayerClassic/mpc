@@ -13,21 +13,60 @@ $text = getParam('text');
 $discs = max(0, intval(getParam('discs')));
 $isolang_sel = addslashes(getParam('isolang'));
 
-$db_text = trim(ereg_replace('[^a-zA-Z0-9]', '.', addslashes($text)));
+$files = array();
 
-if(!empty($db_text) && strlen($db_text) >= 3)
+for($i = 0; !empty($_GET['name'][$i]) 
+	&& !empty($_GET['hash'][$i]) && ereg('[0-9a-fA-F]{16}', $_GET['hash'][$i]) 
+	&& !empty($_GET['size'][$i]) && ereg('[0-9a-fA-F]{16}', $_GET['size'][$i]);
+	$i++)
 {
-	$db->fetchAll(
-		"select * from movie where id in ".
-		"(select distinct movie_id from title ".
-		" where title regexp '.*$db_text.*') ".
-		"limit 100 ",
-		$movies);
-
-	chkerr();
+	$name = $_GET['name'][$i];
+	$hash = $_GET['hash'][$i];
+	$size = $_GET['size'][$i];
+	
+	$files[] = array('name' => $name, 'hash' => $hash, 'size' => $size);
 }
 
-// TODO: search on name || size || hash -> movies
+$smarty->assign('files', $files);
+
+if(!empty($files))
+{
+	foreach($files as $file)
+	{
+		$db->query( // close your eyes now...
+			"select * from movie where id in ".
+			" (select distinct movie_id from movie_subtitle where subtitle_id in ".
+			"  (select id from subtitle where id in ".
+			"   (select distinct subtitle_id from file_subtitle where file_id in ".
+			"    (select id from file where hash = '{$file['hash']}' && size = '{$file['size']}')))) ".
+			"limit 100 ");
+
+		chkerr();
+			
+		while($row = $db->fetchRow())
+			$movies[$row['id']] =  $row;
+	}
+}
+else if(!empty($text))
+{
+	if(strlen($text) >= 3)
+	{
+		$db_text = addslashes(ereg_replace('[^a-zA-Z0-9]+', '.+', $text));
+	
+		$db->fetchAll(
+			"select * from movie ".
+			"where id in (select distinct movie_id from title where title regexp '.*$db_text.*') ".
+			"and id in (select distinct movie_id from movie_subtitle where subtitle_id in (select distinct id from subtitle)) ".
+			"limit 100 ",
+			$movies);
+
+		chkerr();
+	}
+	else
+	{
+		$smarty->assign('message', 'Text too short (min 3 chars)');
+	}
+}
 
 if(!empty($movies))
 {
@@ -48,7 +87,7 @@ if(!empty($movies))
 			"where t1.movie_id = {$movie['id']} ".
 			(!empty($isolang_sel)?" && iso639_2 = '$isolang_sel' ":"").
 			(!empty($discs)?" && discs = '$discs' ":"").
-			"order by t2.date desc, t2.disc_no asc", 
+			"order by t2.date desc, t2.disc_no asc ", 
 			$movies[$i]['subs']);
 
 		chkerr();
@@ -57,6 +96,19 @@ if(!empty($movies))
 		{
 			$movies[$i]['updated'] = max(strtotime($sub['date']), isset($movies[$i]['updated']) ? $movies[$i]['updated'] : 0);
 			$movies[$i]['subs'][$j]['language'] = empty($isolang[$sub['iso639_2']]) ? 'Unknown' : $isolang[$sub['iso639_2']];
+			$movies[$i]['subs'][$j]['files'] = array();
+
+			foreach($files as $file)
+			{
+				$cnt = $db->count(
+					"file_subtitle where subtitle_id = {$movies[$i]['subs'][$j]['id']} && file_id in ".
+					" (select id from file where hash = '{$file['hash']}' && size = '{$file['size']}') ");
+				if($cnt > 0)
+				{
+					$movies[$i]['subs'][$j]['files'][] = $file;
+					break;
+				}
+			}
 		}
 		
 		if(empty($movies[$i]['titles']) || empty($movies[$i]['subs']))
@@ -66,15 +118,21 @@ if(!empty($movies))
 	}
 	
 	// TODO: maybe we should prefer movies having imdb link a bit more?
-	function cmp($a, $b) {return $b['updated'] - $a['updated'];}
+	
+	function cmp($a, $b)
+	{
+		if(isset($a['has_files']) && !isset($b['has_files'])) return -1;
+		if(!isset($a['has_files']) && isset($b['has_files'])) return +1;
+		return $b['updated'] - $a['updated'];
+	}
+	
 	usort($movies, 'cmp');
-
-	if(empty($movies)) $smarty->assign('message', 'No matches were found');
-	else $smarty->assign('movies', $movies);
 }
-else if(!empty($text))
+
+if(isset($movies))
 {
-	$smarty->assign('message', 'Text too short (min 3 chars)');
+	if(empty($movies)) $smarty->assign('message', 'No matches were found');
+	$smarty->assign('movies', $movies);
 }
 
 $smarty->assign('text', $text);
