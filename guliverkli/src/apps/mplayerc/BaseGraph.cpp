@@ -232,7 +232,7 @@ STDMETHODIMP CBaseGraph::IsUsingTimeFormat(const GUID* pFormat)
 }
 STDMETHODIMP CBaseGraph::SetTimeFormat(const GUID* pFormat)
 {
-	return IsFormatSupported(pFormat);
+	return S_OK == IsFormatSupported(pFormat) ? S_OK : E_INVALIDARG;
 }
 STDMETHODIMP CBaseGraph::GetDuration(LONGLONG* pDuration) {return E_NOTIMPL;}
 STDMETHODIMP CBaseGraph::GetStopPosition(LONGLONG* pStop) {return E_NOTIMPL;}

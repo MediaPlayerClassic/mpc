@@ -47,6 +47,8 @@ CGraphBuilder::CGraphBuilder(IGraphBuilder* pGB, HWND hWnd)
 	, m_VRMerit(LMERIT(MERIT_PREFERRED+1)+0x100)
 	, m_ARMerit(LMERIT(MERIT_PREFERRED+1)+0x100)
 {
+	AppSettings& s = AfxGetAppSettings();
+
 	m_pFM.CoCreateInstance(CLSID_FilterMapper2);
 	if(!m_pFM) return;
 
@@ -116,14 +118,15 @@ CGraphBuilder::CGraphBuilder(IGraphBuilder* pGB, HWND hWnd)
 	AddFilter(new CGraphCustomFilter(__uuidof(CAVI2AC3Filter), guids, L"AVI<->AC3/DTS", LMERIT(0x00680000)+1));
 	guids.RemoveAll();
 
-	guids.AddTail(MEDIATYPE_Stream);
-	guids.AddTail(MEDIASUBTYPE_Matroska);
-	AddFilter(new CGraphCustomFilter(__uuidof(CMatroskaSplitterFilter), guids, L"Matroska Splitter", LMERIT_PREFERRED));
-	guids.RemoveAll();
+	if(s.SrcFilters&SRC_MATROSKA)
+	{
+		guids.AddTail(MEDIATYPE_Stream);
+		guids.AddTail(MEDIASUBTYPE_Matroska);
+		AddFilter(new CGraphCustomFilter(__uuidof(CMatroskaSplitterFilter), guids, L"Matroska Splitter", LMERIT_PREFERRED));
+		guids.RemoveAll();
+	}
 
 	// renderer filters
-
-	AppSettings& s = AfxGetAppSettings();
 
 	switch(s.iVideoRendererType)
 	{
