@@ -23,7 +23,7 @@
 #include "GSState.h"
 #include "resource.h"
 
-GSState::GSState(HWND hWnd, HRESULT& hr) 
+GSState::GSState(int w, int h, HWND hWnd, HRESULT& hr) 
 	: m_hWnd(hWnd)
 	, m_fp(NULL)
 	, m_PRIM(7)
@@ -139,8 +139,8 @@ GSState::GSState(HWND hWnd, HRESULT& hr)
 	d3dpp.SwapEffect = D3DSWAPEFFECT_COPY/*D3DSWAPEFFECT_DISCARD*//*D3DSWAPEFFECT_FLIP*/;
 	d3dpp.BackBufferFormat = D3DFMT_X8R8G8B8;
 	//d3dpp.BackBufferCount = 2;
-	d3dpp.BackBufferWidth = 1024;
-	d3dpp.BackBufferHeight = 1024;
+	d3dpp.BackBufferWidth = w;
+	d3dpp.BackBufferHeight = h;
 //	d3dpp.Flags = D3DPRESENTFLAG_LOCKABLE_BACKBUFFER;
 /*
 	d3dpp.EnableAutoDepthStencil = TRUE;

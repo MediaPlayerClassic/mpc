@@ -42,10 +42,10 @@ class GSStateSoft : public GSState
 	GSSoftVertex* m_pVertices;
 	int m_nMaxVertices, m_nVertices, m_nPrims;
 
-	void DrawPoint(GSSoftVertex* v);
-	void DrawLine(GSSoftVertex* v);
-	void DrawTriangle(GSSoftVertex* v);
-	void DrawSprite(GSSoftVertex* v);
+	void DrawPoint(GSSoftVertex* v, CRect& scissor);
+	void DrawLine(GSSoftVertex* v, CRect& scissor);
+	void DrawTriangle(GSSoftVertex* v, CRect& scissor);
+	void DrawSprite(GSSoftVertex* v, CRect& scissor);
 	void DrawVertex(int x, int y, GSSoftVertex& v);
 
 	class CTexture
@@ -54,8 +54,8 @@ class GSStateSoft : public GSState
 		GIFRegTEX0 m_TEX0;
 		GIFRegTEXA m_TEXA;
 		GIFRegTEXCLUT m_TEXCLUT;
-		DWORD* m_pTexture;
-		CTexture() {m_pTexture = NULL;}
+		DWORD* m_pTexture, m_age;
+		CTexture() {m_pTexture = NULL; m_age = 0;}
 		~CTexture() {delete [] m_pTexture;}
 	};
 
@@ -66,6 +66,8 @@ class GSStateSoft : public GSState
 	CTexture* LookupTexture();
 
 	BYTE m_clip[512+256+512];
+	BYTE m_mask[512+256+512];
+	BYTE* m_clamp;
 
 public:
 	GSStateSoft(HWND hWnd, HRESULT& hr);
