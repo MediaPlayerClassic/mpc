@@ -103,7 +103,7 @@ private:
 			CString str = lines.RemoveHead();
 
 			CList<CString> sl;
-			Explode(str, sl, ' ', 3);
+			ExplodeMin(str, sl, ' ', 3);
 			m_cmd = sl.RemoveHead().MakeUpper();
 			m_path = sl.RemoveHead();
 			m_ver = sl.RemoveHead().MakeUpper();

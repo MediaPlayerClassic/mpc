@@ -279,7 +279,8 @@ HRESULT CDirectVobSubFilter::CompleteConnect(PIN_DIRECTION dir, IPin* pReceivePi
 		CComPtr<IBaseFilter> pFilter;
 
 		// needed when we have a decoder with a version number of 3.x
-		if(SUCCEEDED(m_pGraph->FindFilterByName(L"DivX MPEG-4 DVD Video Decompressor ", &pFilter)) 
+		if((SUCCEEDED(m_pGraph->FindFilterByName(L"DivX MPEG-4 DVD Video Decompressor ", &pFilter))
+			&& (GetFileVersion(_T("divx_c32.ax")) >> 48) <= 4))
 		|| SUCCEEDED(m_pGraph->FindFilterByName(L"Microcrap MPEG-4 Video Decompressor", &pFilter))
 		|| (SUCCEEDED(m_pGraph->FindFilterByName(L"Microsoft MPEG-4 Video Decompressor", &pFilter)) 
 			&& (GetFileVersion(_T("mpg4ds32.ax")) >> 48) <= 3))

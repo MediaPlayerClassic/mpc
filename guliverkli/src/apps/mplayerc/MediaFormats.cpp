@@ -49,13 +49,9 @@ CMediaFormatCategory::CMediaFormatCategory(
 	CString specreqnote, engine_t engine)
 {
 	m_label = label;
-	Explode(exts, m_exts, ' ');
+	ExplodeMin(exts, m_exts, ' ');
 	POSITION pos = m_exts.GetHeadPosition();
 	while(pos) m_exts.GetNext(pos).TrimLeft('.');
-
-//	int i = 0;
-//	for(CString token = exts.Tokenize(_T(" "), i); !token.IsEmpty(); token = exts.Tokenize(_T(" "), i))
-//		m_exts.AddTail(token.TrimLeft('.'));
 
 	m_backupexts.AddTail(&m_exts);
 	m_specreqnote = specreqnote;
@@ -113,13 +109,14 @@ void CMediaFormatCategory::SetExts(CList<CString>& exts)
 void CMediaFormatCategory::SetExts(CString exts)
 {
 	m_exts.RemoveAll();
-	int i = 0;
-	for(CString token = exts.Tokenize(_T(" "), i); !token.IsEmpty(); token = exts.Tokenize(_T(" "), i))
+	ExplodeMin(exts, m_exts, ' ');
+	POSITION pos = m_exts.GetHeadPosition();
+	while(pos)
 	{
-		if(token[0] == '\\')
-			m_engine = (engine_t)_tcstol(token.TrimLeft('\\'), NULL, 10); // note: default engine type and _tcstol's default return type are both 0, we are ok here
-		else
-			m_exts.AddTail(token.TrimLeft('.'));
+		POSITION cur = pos;
+		CString& ext = m_exts.GetNext(pos);
+		if(ext[0] == '\\') {m_engine = (engine_t)_tcstol(ext.TrimLeft('\\'), NULL, 10); m_exts.RemoveAt(cur);}
+		else ext.TrimLeft('.');
 	}
 }
 
@@ -207,7 +204,7 @@ void CMediaFormats::UpdateData(bool fSave)
 		ADDFMT((_T("Quicktime file"), _T("mov qt"), false, _T("QuickTime Player or codec pack"), QuickTime));
 		ADDFMT((_T("Image file"), _T("jpeg jpg bmp gif pic png dib tiff tif")));
 		ADDFMT((_T("Playlist file"), _T("asx m3u pls wvx wax wmx")));
-		ADDFMT((_T("Other"), _T("divx")));
+		ADDFMT((_T("Other "), _T("divx vp6")));
 #undef ADDFMT
 
 		m_iRtspHandler = (engine_t)AfxGetApp()->GetProfileInt(_T("FileFormats"), _T("RtspHandler"), (int)RealMedia);

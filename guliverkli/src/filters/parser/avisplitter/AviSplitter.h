@@ -54,8 +54,8 @@ protected:
 	void SeekDeliverLoop(REFERENCE_TIME rt);
 	void DoDeliverLoop();
 
-	HRESULT ReIndex(UINT64 end);
-	HRESULT DoDeliverLoop(UINT64 end);
+	HRESULT ReIndex(__int64 end);
+	HRESULT DoDeliverLoop(__int64 end);
 
 public:
 	CAviSplitterFilter(LPUNKNOWN pUnk, HRESULT* phr);

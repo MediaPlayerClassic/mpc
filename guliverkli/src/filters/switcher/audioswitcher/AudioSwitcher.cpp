@@ -911,7 +911,14 @@ HRESULT CStreamSwitcherOutputPin::DecideBufferSize(IMemAllocator* pAllocator, AL
 
 HRESULT CStreamSwitcherOutputPin::CheckConnect(IPin* pPin)
 {
-	return IsAudioWaveRenderer(GetFilterFromPin(pPin)) ? CBaseOutputPin::CheckConnect(pPin) : E_FAIL;
+	CComPtr<IBaseFilter> pBF = GetFilterFromPin(pPin);
+	CLSID matrixmixer = GUIDFromCString(_T("{AEFA5024-215A-4FC7-97A4-1043C86FD0B8}"));
+
+	return 
+		IsAudioWaveRenderer(pBF) || GetCLSID(pBF) == matrixmixer
+		? CBaseOutputPin::CheckConnect(pPin) 
+		: E_FAIL;
+	;
 //	return CComQIPtr<IPinConnection>(pPin) ? CBaseOutputPin::CheckConnect(pPin) : E_NOINTERFACE;
 //	return CBaseOutputPin::CheckConnect(pPin);
 }
