@@ -979,7 +979,7 @@ LRESULT CMainFrame::OnAppCommand(WPARAM wParam, LPARAM lParam)
 
 void CMainFrame::OnTimer(UINT nIDEvent)
 {
-	if(nIDEvent == TIMER_STREAMPOSPOLLER)
+	if(nIDEvent == TIMER_STREAMPOSPOLLER && m_iMediaLoadState == MLS_LOADED)
 	{
 		REFERENCE_TIME rtNow = 0, rtDur = 0;
 
@@ -1011,7 +1011,7 @@ void CMainFrame::OnTimer(UINT nIDEvent)
 
 		if(m_pCAP) m_pCAP->SetTime(rtNow/*m_wndSeekBar.GetPos()*/);
 	}
-	else if(nIDEvent == TIMER_STREAMPOSPOLLER2)
+	else if(nIDEvent == TIMER_STREAMPOSPOLLER2 && m_iMediaLoadState == MLS_LOADED)
 	{
 		__int64 start, stop, pos;
 		m_wndSeekBar.GetRange(start, stop);

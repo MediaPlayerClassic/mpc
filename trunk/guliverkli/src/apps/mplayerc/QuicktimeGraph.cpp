@@ -45,7 +45,7 @@ CQuicktimeGraph::CQuicktimeGraph(HWND hWndParent, int iRenderer, HRESULT& hr)
 
 	if(m_iRenderer == DX7)
 	{
-		hr = CreateAP7(CLSID_QTAllocatorPresenter, hWndParent, &m_pQTAP);
+		hr = CreateAP7(CLSID_QT7AllocatorPresenter, hWndParent, &m_pQTAP);
 		if(FAILED(hr))
 		{
 			m_iRenderer = MC;

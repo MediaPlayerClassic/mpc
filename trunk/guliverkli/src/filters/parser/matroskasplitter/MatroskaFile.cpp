@@ -155,6 +155,7 @@ HRESULT Segment::Parse(CMatroskaNode* pMN0)
 	case 0x1F43B675: Clusters.Parse(pMN); break;
 	case 0x1C53BB6B: Cues.Parse(pMN); break;
 	case 0x1941A469: Attachments.Parse(pMN); break;
+	case 0x1043A770: Chapters.Parse(pMN); break;
 //	case 0x1254C367: Tags.Parse(pMN); break;
 	EndChunk
 }
@@ -182,15 +183,57 @@ HRESULT Segment::ParseMinimal(CMatroskaNode* pMN0)
 	}
 	while(n < 3 && pMN->Next());
 
-	if(n == 3 && Cues.IsEmpty())
+	if(n == 3)
 	{
-		if(pMN = pMN0->Child(0x1C53BB6B, false))
+		if(Cues.IsEmpty() && (pMN = pMN0->Child(0x1C53BB6B, false)))
 		{
 			do {Cues.Parse(pMN);} while(pMN->Next(true));
+		}
+
+		if(Chapters.IsEmpty() && (pMN = pMN0->Child(0x1043A770, false)))
+		{
+			do {Chapters.Parse(pMN);} while(pMN->Next(true));
 		}
 	}
 
 	return S_OK;
+}
+
+ChapterAtom* ChapterAtom::FindChapterAtom(UINT64 id)
+{
+	if(ChapterUID == id)
+		return(this);
+
+	POSITION pos = ChapterAtoms.GetHeadPosition();
+	while(pos)
+	{
+		ChapterAtom* ca = ChapterAtoms.GetNext(pos)->FindChapterAtom(id);
+		if(ca) return ca;
+	}
+
+	return(NULL);
+}
+
+ChapterAtom* Segment::FindChapterAtom(UINT64 id, int nEditionEntry)
+{
+	POSITION pos1 = Chapters.GetHeadPosition();
+	while(pos1)
+	{
+		Chapter* c = Chapters.GetNext(pos1);
+
+		POSITION pos2 = c->EditionEntries.GetHeadPosition();
+		while(pos2)
+		{
+			EditionEntry* ee = c->EditionEntries.GetNext(pos2);
+
+			if(nEditionEntry-- == 0)
+			{
+				return ee->FindChapterAtom(id);
+			}
+		}
+	}
+
+	return(NULL);
 }
 
 HRESULT Info::Parse(CMatroskaNode* pMN0)
@@ -412,6 +455,41 @@ HRESULT AttachedFile::Parse(CMatroskaNode* pMN0)
 {
 	BeginChunk
 		// TODO
+	EndChunk
+}
+
+HRESULT Chapter::Parse(CMatroskaNode* pMN0)
+{
+	BeginChunk
+	case 0x45B9: EditionEntries.Parse(pMN); break;
+	EndChunk
+}
+
+HRESULT EditionEntry::Parse(CMatroskaNode* pMN0)
+{
+	BeginChunk
+	case 0xB6: ChapterAtoms.Parse(pMN); break;
+	EndChunk
+}
+
+HRESULT ChapterAtom::Parse(CMatroskaNode* pMN0)
+{
+	BeginChunk
+	case 0x73C4: ChapterUID.Parse(pMN); break;
+	case 0x91: ChapterTimeStart.Parse(pMN); break;
+	case 0x92: ChapterTimeEnd.Parse(pMN); break;
+//	case 0x8F: // TODO 
+	case 0x80: ChapterDisplays.Parse(pMN); break;
+	case 0xB6: ChapterAtoms.Parse(pMN); break;
+	EndChunk
+}
+
+HRESULT ChapterDisplay::Parse(CMatroskaNode* pMN0)
+{
+	BeginChunk
+	case 0x85: ChapString.Parse(pMN); break;
+	case 0x437C: ChapLanguage.Parse(pMN); break;
+	case 0x437E: ChapCountry.Parse(pMN); break;
 	EndChunk
 }
 

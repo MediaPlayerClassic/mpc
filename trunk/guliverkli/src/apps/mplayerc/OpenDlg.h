@@ -21,6 +21,7 @@
 
 #pragma once
 #include "CmdUIDialog.h"
+#include "afxwin.h"
 
 // COpenDlg dialog
 
@@ -43,6 +44,7 @@ public:
 	CString m_path2;
 	CButton m_openbtn2;
 	CStatic m_label2;
+	int m_engine;
 
 protected:
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV support
@@ -55,6 +57,7 @@ public:
 	afx_msg void OnBnClickedBrowsebutton2();
 	afx_msg void OnBnClickedOk();
 	afx_msg void OnUpdateDub(CCmdUI* pCmdUI);
+	afx_msg void OnUpdateEngine(CCmdUI* pCmdUI);
 };
 
 // COpenFileDialog

@@ -1,5 +1,6 @@
 #include "StdAfx.h"
 #include "..\..\..\DSUtil\DSUtil.h"
+#include <initguid.h>
 #include "BaseSplitter.h"
 
 #define MAXBUFFERS 2
@@ -398,6 +399,8 @@ STDMETHODIMP CBaseSplitterFilter::NonDelegatingQueryInterface(REFIID riid, void*
 		QI(IFileSourceFilter)
 		QI(IMediaSeeking)
 		QI(IAMOpenProgress)
+		QI2(IAMMediaContent)
+		QI(IChapterInfo)
 		__super::NonDelegatingQueryInterface(riid, ppv);
 }
 
@@ -782,4 +785,72 @@ STDMETHODIMP CBaseSplitterFilter::AbortOperation()
 	return S_OK;
 }
 
+// IAMMediaContent
 
+STDMETHODIMP CBaseSplitterFilter::get_AuthorName(BSTR* pbstrAuthorName)
+{
+	return GetMediaContentStr(pbstrAuthorName, AuthorName);
+}
+
+STDMETHODIMP CBaseSplitterFilter::get_Title(BSTR* pbstrTitle)
+{
+	return GetMediaContentStr(pbstrTitle, Title);
+}
+
+STDMETHODIMP CBaseSplitterFilter::get_Rating(BSTR* pbstrRating)
+{
+	return GetMediaContentStr(pbstrRating, Rating);
+}
+
+STDMETHODIMP CBaseSplitterFilter::get_Description(BSTR* pbstrDescription)
+{
+	return GetMediaContentStr(pbstrDescription, Description);
+}
+
+STDMETHODIMP CBaseSplitterFilter::get_Copyright(BSTR* pbstrCopyright)
+{
+	return GetMediaContentStr(pbstrCopyright, Copyright);
+}
+
+HRESULT CBaseSplitterFilter::GetMediaContentStr(BSTR* pBSTR, mctype type)
+{
+	CheckPointer(pBSTR, E_POINTER);
+	CAutoLock cAutoLock(this);
+	*pBSTR = m_mcs[(int)type].AllocSysString();
+	return S_OK;
+}
+
+HRESULT CBaseSplitterFilter::SetMediaContentStr(CStringW str, mctype type)
+{
+	CAutoLock cAutoLock(this);
+	m_mcs[(int)type] = str;
+	return S_OK;
+}
+
+// IChapterInfo
+
+STDMETHODIMP_(UINT) CBaseSplitterFilter::GetChapterCount(UINT aChapterID)
+{
+	return 0;
+}
+
+STDMETHODIMP_(UINT) CBaseSplitterFilter::GetChapterId(UINT aParentChapterId, UINT aIndex)
+{
+	return CHAPTER_BAD_ID;
+}
+
+STDMETHODIMP_(UINT) CBaseSplitterFilter::GetChapterCurrentId()
+{
+	return CHAPTER_BAD_ID;
+}
+
+STDMETHODIMP_(BOOL) CBaseSplitterFilter::GetChapterInfo(UINT aChapterID, struct ChapterElement* pStructureToFill)
+{
+	CheckPointer(pStructureToFill, E_POINTER);
+	return FALSE;
+}
+
+STDMETHODIMP_(BSTR) CBaseSplitterFilter::GetChapterStringInfo(UINT aChapterID, CHAR PreferredLanguage[3], CHAR CountryCode[2])
+{
+	return NULL;
+}
