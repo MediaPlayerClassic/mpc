@@ -560,17 +560,12 @@ HRESULT CMatroskaSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 	*/
 #endif
 
+	SetProperty(L"TITL", info.Title);
 	// TODO
 
-	SetMediaContentStr(info.Title, Title);
-/*	SetMediaContentStr(, AuthorName);
-	SetMediaContentStr(, Copyright);
-	SetMediaContentStr(, Description);
-*/
+	// resources
 
 	{
-		ResRemoveAll();
-
 		POSITION pos = m_pFile->m_segment.Attachments.GetHeadPosition();
 		while(pos)
 		{
@@ -587,6 +582,36 @@ HRESULT CMatroskaSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 				if(SUCCEEDED(m_pFile->Read(pData.GetData(), pData.GetSize())))
 					ResAppend(pF->FileName, pF->FileDescription, CStringW(pF->FileMimeType), pData.GetData(), pData.GetSize());
 			}
+		}
+	}
+
+	// chapters
+
+	if(ChapterAtom* caroot = m_pFile->m_segment.FindChapterAtom(0))
+	{
+		CStringA str;
+		str.ReleaseBufferSetLength(GetLocaleInfoA(LOCALE_USER_DEFAULT, LOCALE_SISO639LANGNAME, str.GetBuffer(3), 3));
+		CStringA ChapLanguage = CStringA(ISO6391To6392(str));
+		if(ChapLanguage.GetLength() < 3) ChapLanguage = "eng";
+
+		POSITION pos = caroot->ChapterAtoms.GetHeadPosition();
+		while(pos)
+		{
+			// ca == caroot->ChapterAtoms.GetNext(pos) ?
+			if(ChapterAtom* ca = m_pFile->m_segment.FindChapterAtom(caroot->ChapterAtoms.GetNext(pos)->ChapterUID))
+			{
+				CStringW name, first;
+
+				POSITION pos = ca->ChapterDisplays.GetHeadPosition();
+				while(pos)
+				{
+					ChapterDisplay* cd = ca->ChapterDisplays.GetNext(pos);
+					if(first.IsEmpty()) first = cd->ChapString;
+					if(cd->ChapLanguage == ChapLanguage) name = cd->ChapString;
+				}
+
+				ChapAppend(ca->ChapterTimeStart / 100 - m_pFile->m_rtOffset, !name.IsEmpty() ? name : first);
+			}			
 		}
 	}
 
@@ -916,90 +941,6 @@ STDMETHODIMP CMatroskaSplitterFilter::GetDuration(LONGLONG* pDuration)
 	*pDuration = s.GetRefTime((INT64)s.SegmentInfo.Duration);
 
 	return S_OK;
-}
-
-// IChapterInfo
-
-STDMETHODIMP_(UINT) CMatroskaSplitterFilter::GetChapterCount(UINT aChapterID)
-{
-	CheckPointer(m_pFile, __super::GetChapterCount(aChapterID));
-	ChapterAtom* ca = m_pFile->m_segment.FindChapterAtom(aChapterID);
-	return ca ? ca->ChapterAtoms.GetCount() : 0;
-}
-
-STDMETHODIMP_(UINT) CMatroskaSplitterFilter::GetChapterId(UINT aParentChapterId, UINT aIndex)
-{
-	CheckPointer(m_pFile, __super::GetChapterId(aParentChapterId, aIndex));
-	ChapterAtom* ca = m_pFile->m_segment.FindChapterAtom(aParentChapterId);
-	if(!ca) return CHAPTER_BAD_ID;
-	POSITION pos = ca->ChapterAtoms.FindIndex(aIndex-1);
-	if(!pos) return CHAPTER_BAD_ID;
-	return (UINT)ca->ChapterAtoms.GetAt(pos)->ChapterUID;
-}
-
-STDMETHODIMP_(UINT) CMatroskaSplitterFilter::GetChapterCurrentId()
-{
-	CheckPointer(m_pFile, __super::GetChapterCurrentId());
-	// TODO
-	return __super::GetChapterCurrentId();
-}
-
-STDMETHODIMP_(BOOL) CMatroskaSplitterFilter::GetChapterInfo(UINT aChapterID, struct ChapterElement* pToFill)
-{
-	CheckPointer(pToFill, E_POINTER);
-	CheckPointer(m_pFile, __super::GetChapterCurrentId());
-	ChapterAtom* ca = m_pFile->m_segment.FindChapterAtom(aChapterID);
-	if(!ca) return FALSE;
-	WORD Size = pToFill->Size;
-	if(Size >= sizeof(ChapterElement))
-	{
-		pToFill->Size = sizeof(ChapterElement);
-		pToFill->Type = ca->ChapterAtoms.IsEmpty() ? AtomicChapter : SubChapter; // ?
-		pToFill->ChapterId = (UINT)ca->ChapterUID;
-		pToFill->rtStart = ca->ChapterTimeStart / 100 - m_pFile->m_rtOffset;
-		pToFill->rtStop = ca->ChapterTimeEnd / 100 - m_pFile->m_rtOffset;
-		if(Size >= sizeof(ChapterElement2))
-		{
-			pToFill->Size = sizeof(ChapterElement2);
-			((ChapterElement2*)pToFill)->bDisabled = ca->ChapterFlagEnabled == 0;
-		}
-	}
-	return TRUE;
-}
-
-STDMETHODIMP_(BSTR) CMatroskaSplitterFilter::GetChapterStringInfo(UINT aChapterID, CHAR PreferredLanguage[3], CHAR CountryCode[2])
-{
-	CheckPointer(m_pFile, __super::GetChapterStringInfo(aChapterID, PreferredLanguage, CountryCode));
-	ChapterAtom* ca = m_pFile->m_segment.FindChapterAtom(aChapterID);
-	if(!ca) return NULL;
-
-	if(!PreferredLanguage[0]) strncpy(PreferredLanguage, "eng", 3);
-	tolower(PreferredLanguage[0]); tolower(PreferredLanguage[1]); tolower(PreferredLanguage[2]);
-	tolower(CountryCode[0]); tolower(CountryCode[1]);
-
-	ChapterDisplay* first = NULL;
-	ChapterDisplay* partial = NULL;
-
-	POSITION pos = ca->ChapterDisplays.GetHeadPosition();
-	while(pos)
-	{
-		ChapterDisplay* cd = ca->ChapterDisplays.GetNext(pos);
-
-		if(!first) first = cd;
-
-		if(!strncmp(cd->ChapLanguage, PreferredLanguage, 3))
-		{
-			if(!strncmp(cd->ChapCountry, CountryCode, 2))
-				return cd->ChapString.AllocSysString();
-
-			if(!partial) partial = cd;
-		}
-	}
-
-	return 
-		partial ? partial->ChapString.AllocSysString() : 
-		first ? first->ChapString.AllocSysString() : 
-		NULL;
 }
 
 // IKeyFrameInfo

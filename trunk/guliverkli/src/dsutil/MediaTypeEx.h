@@ -4,6 +4,7 @@ class CMediaTypeEx : public CMediaType
 {
 public:
 	CMediaTypeEx();
+	CMediaTypeEx(const CMediaType& mt) {CMediaType::operator = (mt);}
 
 	CString ToString(IPin* pPin = NULL);
 

@@ -145,7 +145,6 @@ HRESULT COggSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 	HRESULT hr = E_FAIL;
 
 	m_pFile.Free();
-	m_pChapters.RemoveAll();
 
 	m_pFile.Attach(new COggFile(pAsyncReader, hr));
 	if(!m_pFile) return E_OUTOFMEMORY;
@@ -244,41 +243,38 @@ HRESULT COggSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 	// comments
 
 	{
-		CStringW fmt;
-		fmt.Format(L"TITLE=%d,ARTIST=%d,COPYRIGHT=%d,DESCRIPTION=%d",
-			Title, AuthorName, Copyright, Description);
+		CAtlMap<CStringW, CStringW, CStringElementTraits<CStringW> > tagmap;
+		tagmap[L"TITLE"] = L"TITL";
+		tagmap[L"ARTIST"] = L"AUTH"; // not quite
+		tagmap[L"COPYRIGHT"] = L"CPYR";
+		tagmap[L"DESCRIPTION"] = L"DESC";
 
-		CList<CStringW> keys;
-		Explode(fmt, keys, ',');
-
-		POSITION pos2 = keys.GetHeadPosition();
+		POSITION pos2 = tagmap.GetStartPosition();
 		while(pos2)
 		{
-			CList<CStringW> sl;
-			Explode(keys.GetNext(pos2), sl, '=', 2);
-
-			CStringW key = sl.GetHead();
-			mctype mct = (mctype)wcstol(sl.GetTail(), NULL, 10);
+			CStringW oggtag, dsmtag;
+			tagmap.GetNextAssoc(pos2, oggtag, dsmtag);
 
 			POSITION pos = m_pOutputs.GetHeadPosition();
 			while(pos)
 			{
-				CBaseSplitterOutputPin* pPin = m_pOutputs.GetNext(pos);
-				COggSplitterOutputPin* pOggPin = dynamic_cast<COggSplitterOutputPin*>(pPin);
-				CStringW value = pOggPin->GetComment(key);
+				COggSplitterOutputPin* pOggPin = dynamic_cast<COggSplitterOutputPin*>((CBaseOutputPin*)m_pOutputs.GetNext(pos));
+				if(!pOggPin) continue;
+
+				CStringW value = pOggPin->GetComment(oggtag);
 				if(!value.IsEmpty())
 				{
-					SetMediaContentStr(value, mct);
+					SetProperty(dsmtag, value);
 					break;
 				}
 			}
 		}
 
 		POSITION pos = m_pOutputs.GetHeadPosition();
-		while(pos && m_pChapters.GetCount() == 0)
+		while(pos && !ChapGetCount())
 		{
-			CBaseSplitterOutputPin* pPin = m_pOutputs.GetNext(pos);
-			COggSplitterOutputPin* pOggPin = dynamic_cast<COggSplitterOutputPin*>(pPin);
+			COggSplitterOutputPin* pOggPin = dynamic_cast<COggSplitterOutputPin*>((CBaseOutputPin*)m_pOutputs.GetNext(pos));
+			if(!pOggPin) continue;
 
 			for(int i = 1; pOggPin; i++)
 			{
@@ -293,8 +289,7 @@ HRESULT COggSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 				WCHAR c;
 				if(7 != swscanf(time, L"%d%c%d%c%d%c%d", &h, &c, &m, &c, &s, &c, &ms)) break;
 				REFERENCE_TIME rt = ((((REFERENCE_TIME)h*60+m)*60+s)*1000+ms)*10000;
-				CAutoPtr<CChapter> p(new CChapter(rt, name));
-				m_pChapters.AddTail(p);
+				ChapAppend(rt, name);
 			}
 		}
 	}
@@ -520,46 +515,6 @@ bool COggSplitterFilter::DemuxLoop()
 	}
 
 	return(true);
-}
-
-// IChapterInfo
-
-STDMETHODIMP_(UINT) COggSplitterFilter::GetChapterCount(UINT aChapterID)
-{
-	return aChapterID == CHAPTER_ROOT_ID ? m_pChapters.GetCount() : 0;
-}
-
-STDMETHODIMP_(UINT) COggSplitterFilter::GetChapterId(UINT aParentChapterId, UINT aIndex)
-{
-	POSITION pos = m_pChapters.FindIndex(aIndex-1);
-	if(aParentChapterId != CHAPTER_ROOT_ID || !pos)
-		return CHAPTER_BAD_ID;
-	return aIndex;
-}
-
-STDMETHODIMP_(BOOL) COggSplitterFilter::GetChapterInfo(UINT aChapterID, struct ChapterElement* pToFill)
-{
-	CheckPointer(pToFill, E_POINTER);
-	POSITION pos = m_pChapters.FindIndex(aChapterID-1);
-	if(!pos) return FALSE;
-	CChapter* p = m_pChapters.GetNext(pos);
-	WORD Size = pToFill->Size;
-	if(Size >= sizeof(ChapterElement))
-	{
-		pToFill->Size = sizeof(ChapterElement);
-		pToFill->Type = AtomicChapter;
-		pToFill->ChapterId = aChapterID;
-		pToFill->rtStart = p->m_rt;
-		pToFill->rtStop = pos ? m_pChapters.GetNext(pos)->m_rt : m_rtDuration;
-	}
-	return TRUE;
-}
-
-STDMETHODIMP_(BSTR) COggSplitterFilter::GetChapterStringInfo(UINT aChapterID, CHAR PreferredLanguage[3], CHAR CountryCode[2])
-{
-	POSITION pos = m_pChapters.FindIndex(aChapterID-1);
-	if(!pos) return NULL;
-	return m_pChapters.GetAt(pos)->m_name.AllocSysString();
 }
 
 //

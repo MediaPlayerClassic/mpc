@@ -4,22 +4,6 @@
 #include "..\..\..\..\include\dsm\dsm.h"
 #include "..\..\..\DSUtil\DSMPropertyBag.h"
 
-template<class T>
-int range_bsearch(const CArray<T>& array, REFERENCE_TIME rt)
-{
-	int i = 0, j = array.GetCount() - 1, ret = -1;
-	if(j >= 0 && rt >= array[j].rt) return j;
-	while(i < j)
-	{
-		int mid = (i + j) >> 1;
-		REFERENCE_TIME midrt = array[mid].rt;
-		if(rt == midrt) {ret = mid; break;}
-		else if(rt < midrt) {ret = -1; if(j == mid) mid--; j = mid;}
-		else if(rt > midrt) {ret = mid; if(i == mid) mid++; i = mid;}
-	}
-	return ret;
-}
-
 class CDSMSplitterFile : public CBaseSplitterFile
 {
 	HRESULT Init(CArray<CDSMResource>& resources);

@@ -25,7 +25,6 @@
 #include <atlcoll.h>
 #include <afxtempl.h>
 #include <qnetwork.h>
-#include "..\..\..\..\include\IChapterInfo.h"
 #include "..\..\..\..\include\IKeyFrameInfo.h"
 #include "BaseSplitterFileEx.h"
 #include "AsyncReader.h"
@@ -46,7 +45,9 @@ public:
 	virtual int GetSize() {return pData.GetSize();}
 };
 
-class CPacketQueue : public CCritSec, protected CAutoPtrList<Packet>
+class CPacketQueue 
+	: public CCritSec
+	, protected CAutoPtrList<Packet>
 {
 	int m_size;
 public:
@@ -59,7 +60,8 @@ public:
 
 class CBaseSplitterFilter;
 
-class CBaseSplitterInputPin : public CBasePin
+class CBaseSplitterInputPin 
+	: public CBasePin
 {
 protected:
 	CComQIPtr<IAsyncReader> m_pAsyncReader;
@@ -83,7 +85,11 @@ public:
 	STDMETHODIMP EndFlush();
 };
 
-class CBaseSplitterOutputPin : public CBaseOutputPin, public CDSMPropertyBag, protected CAMThread, public IMediaSeeking
+class CBaseSplitterOutputPin 
+	: public CBaseOutputPin
+	, public CDSMPropertyBag
+	, protected CAMThread
+	, public IMediaSeeking
 {
 protected:
 	CArray<CMediaType> m_mts;
@@ -187,13 +193,13 @@ class CBaseSplitterFilter
 	, public CCritSec
 	, public CDSMPropertyBag
 	, public CDSMResourceBag
+	, public CDSMChapterBag
 	, protected CAMThread
 	, public IFileSourceFilter
 	, public IMediaSeeking
 	, public IAMOpenProgress
 	, public IAMMediaContent
 	, public IAMExtendedSeeking
-	, public IChapterInfo
 	, public IKeyFrameInfo
 	, public IBufferInfo
 {
@@ -249,12 +255,6 @@ protected:
 	virtual bool DemuxInit() = 0;
 	virtual void DemuxSeek(REFERENCE_TIME rt) = 0;
 	virtual bool DemuxLoop() = 0;
-
-protected:
-	enum mctype {AuthorName, Title, Rating, Description, Copyright, MCLast};
-	CStringW m_mcs[MCLast];
-	HRESULT GetMediaContentStr(BSTR* pBSTR, mctype type);
-	HRESULT SetMediaContentStr(CStringW str, mctype type);
 
 public:
 	CBaseSplitterFilter(LPCTSTR pName, LPUNKNOWN pUnk, HRESULT* phr, const CLSID& clsid);
@@ -346,14 +346,6 @@ public:
 	STDMETHODIMP GetMarkerName(long MarkerNum, BSTR* pbstrMarkerName);
 	STDMETHODIMP put_PlaybackSpeed(double Speed) {return E_NOTIMPL;}
 	STDMETHODIMP get_PlaybackSpeed(double* pSpeed) {return E_NOTIMPL;}
-
-	// IChapterInfo
-
-	STDMETHODIMP_(UINT) GetChapterCount(UINT aChapterID);
-	STDMETHODIMP_(UINT) GetChapterId(UINT aParentChapterId, UINT aIndex);
-	STDMETHODIMP_(UINT) GetChapterCurrentId();
-	STDMETHODIMP_(BOOL) GetChapterInfo(UINT aChapterID, struct ChapterElement* pStructureToFill);
-	STDMETHODIMP_(BSTR) GetChapterStringInfo(UINT aChapterID, CHAR PreferredLanguage[3], CHAR CountryCode[2]);
 
 	// IKeyFrameInfo
 

@@ -310,15 +310,11 @@ HRESULT CAviSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 
         switch(fcc)
 		{
-		case FCC('INAM'): SetMediaContentStr(CStringW(value), Title); fcc = FCC('TITL'); break;
-		case FCC('IART'): SetMediaContentStr(CStringW(value), AuthorName); fcc = FCC('AUTH'); break;
-		case FCC('ICOP'): SetMediaContentStr(CStringW(value), Copyright); fcc = FCC('CPYR'); break;
-		case FCC('ISBJ'): SetMediaContentStr(CStringW(value), Description); fcc = FCC('DESC'); break;
+		case FCC('INAM'): SetProperty(L"TITL", CStringW(value)); break;
+		case FCC('IART'): SetProperty(L"AUTH", CStringW(value)); break;
+		case FCC('ICOP'): SetProperty(L"CPYR", CStringW(value)); break;
+		case FCC('ISBJ'): SetProperty(L"DESC", CStringW(value)); break;
 		}
-
-		CStringA key;
-		key.Format("%.4s", (char*)&fcc);
-		SetProperty(CStringW(key), CStringW(value));
 	}
 
 	m_tFrame.Attach(new DWORD[m_pFile->m_avih.dwStreams]);

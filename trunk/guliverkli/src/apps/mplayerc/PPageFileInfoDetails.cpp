@@ -237,7 +237,7 @@ void CPPageFileInfoDetails::InitEncoding()
 			|| FAILED(pPin->ConnectionMediaType(&mt)))
 				continue;
 
-			CString str = mt.ToString(pPin);
+			CString str = mt.ToString();
 			if(!str.IsEmpty()) sl.AddTail(str);
 		}
 		EndEnumPins

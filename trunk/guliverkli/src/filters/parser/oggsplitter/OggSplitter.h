@@ -42,6 +42,7 @@ class COggSplitterOutputPin : public CBaseSplitterOutputPin
 		CStringW m_key, m_value; 
 		CComment(CStringW key, CStringW value) : m_key(key), m_value(value) {m_key.MakeUpper();}
 	};
+
 	CAutoPtrList<CComment> m_pComments;
 
 protected:
@@ -132,15 +133,6 @@ public:
 [uuid("9FF48807-E133-40AA-826F-9B2959E5232D")]
 class COggSplitterFilter : public CBaseSplitterFilter
 {
-	class CChapter
-	{
-	public:
-		REFERENCE_TIME m_rt;
-		CStringW m_name;
-		CChapter(REFERENCE_TIME rt, CStringW name) : m_rt(rt), m_name(name) {}
-	};
-	CAutoPtrList<CChapter> m_pChapters;
-
 protected:
 	CAutoPtr<COggFile> m_pFile;
 	HRESULT CreateOutputs(IAsyncReader* pAsyncReader);
@@ -152,13 +144,6 @@ protected:
 public:
 	COggSplitterFilter(LPUNKNOWN pUnk, HRESULT* phr);
 	virtual ~COggSplitterFilter();
-
-	// IChapterInfo
-
-	STDMETHODIMP_(UINT) GetChapterCount(UINT aChapterID);
-	STDMETHODIMP_(UINT) GetChapterId(UINT aParentChapterId, UINT aIndex);
-	STDMETHODIMP_(BOOL) GetChapterInfo(UINT aChapterID, struct ChapterElement* pStructureToFill);
-	STDMETHODIMP_(BSTR) GetChapterStringInfo(UINT aChapterID, CHAR PreferredLanguage[3], CHAR CountryCode[2]);
 };
 
 [uuid("6D3688CE-3E9D-42F4-92CA-8A11119D25CD")]

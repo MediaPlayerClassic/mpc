@@ -7,8 +7,8 @@
 #include "..\..\..\include\matroska\matroska.h"
 #include "GraphBuilder.h"
 #include "ConvertPropsDlg.h"
+#include "ConvertResDlg.h"
 #include "ConvertDlg.h"
-#include ".\convertdlg.h"
 
 // CConvertDlg dialog
 
@@ -38,18 +38,12 @@ void CConvertDlg::AddFile(CString fn)
 	while(S_OK == m_pCGB->RenderStream(NULL, NULL, pBF, NULL, m_pMux)) cnt++;
 	if(!cnt) {MessageBeep(-1); DeleteFilter(pBF); return;}
 	
-	HTREEITEM hTI = m_tree.InsertItem(path);
+	CTreeItemFile* t = new CTreeItemFile(fn, pBF, m_tree, NULL);
 
-	CTreeItem* t = new CTreeItem();
-	t->pUnk = pBF;
-	t->fn = fn;
-	m_tree.SetItemData(hTI, (DWORD_PTR)t);
-	m_pTIs.AddTail(t);
+	AddFilter(*t, pBF);
 
-	AddFilter(hTI, pBF);
-
-	m_tree.Expand(hTI, TVE_EXPAND);
-	m_tree.EnsureVisible(hTI);
+	m_tree.Expand(*t, TVE_EXPAND);
+	m_tree.EnsureVisible(*t);
 }
 
 void CConvertDlg::AddFilter(HTREEITEM hTIParent, IBaseFilter* pBFParent)
@@ -64,61 +58,55 @@ void CConvertDlg::AddFilter(HTREEITEM hTIParent, IBaseFilter* pBFParent)
 		|| !(pBF = GetFilterFromPin(pPinTo)))
 			continue;
 
-		HTREEITEM hTI = m_tree.InsertItem(_T(""), hTIParent);
+		CTreeItem* t = NULL;
 
-		bool fTheEnd = pBF == m_pMux;
-
-		CTreeItem* t = new CTreeItem();
-		t->pUnk = fTheEnd ? (IUnknown*)pPin : (IUnknown*)pBF;
-		m_tree.SetItemData(hTI, (DWORD_PTR)t);
-		m_pTIs.AddTail(t);
-
-		UpdateTreeNode(hTI);
-
-		if(!fTheEnd) AddFilter(hTI, pBF);
+		if(pBF == m_pMux)
+		{
+			t = new CTreeItemPin(pPin, m_tree, hTIParent);
+		}
+		else
+		{
+			t = new CTreeItemFilter(pBF, m_tree, hTIParent);
+			AddFilter(*t, pBF);
+		}
 	}
 	EndEnumPins
 
+	CTreeItem* t2 = new CTreeItemResourceFolder(m_tree, hTIParent);
 	if(CComQIPtr<IDSMResourceBag> pRB = pBFParent)
 	{
-		if(DWORD cnt = pRB->ResGetCount())
+		for(DWORD i = 0, cnt = pRB->ResGetCount(); i < cnt; i++)
 		{
-			HTREEITEM hTIRes = m_tree.InsertItem(_T("Resources"), hTIParent);
-			CTreeItem* t = new CTreeItem();
-			m_tree.SetItemData(hTIRes, (DWORD_PTR)t);
-			m_pTIs.AddTail(t);
+			CComBSTR name, mime, desc;
+			BYTE* pData = NULL;
+			DWORD len = 0;
+			if(FAILED(pRB->ResGet(i, &name, &desc, &mime, &pData, &len, NULL)))
+				continue;
 
-			for(DWORD i = 0; i < cnt; i++)
+			if(len > 0)
 			{
-				CComBSTR name, mime, desc;
-				BYTE* pData = NULL;
-				DWORD len = 0;
-				if(FAILED(pRB->ResGet(i, &name, &desc, &mime, &pData, &len, NULL)))
-					continue;
-
-				if(len > 0)
-				{
-					HTREEITEM hTI = m_tree.InsertItem(name, hTIRes);
-
-					t = new CTreeItem();
-					t->res.name = name; t->res.name.Trim();
-					t->res.desc = desc; t->res.desc.Trim();
-					t->res.mime = mime; t->res.mime.Trim(); t->res.mime.MakeLower();
-					t->res.data.SetSize(len);
-					memcpy(t->res.data.GetData(), pData, t->res.data.GetSize());
-					m_tree.SetItemData(hTI, (DWORD_PTR)t);
-					m_pTIs.AddTail(t);
-
-					UpdateTreeNode(hTI);
-				}
-
-				CoTaskMemFree(pData);
+				m_pTIs.AddTail(new CTreeItemResource(CDSMResource(name, desc, mime, pData, len), m_tree, *t2));
 			}
 
-			if(m_tree.ItemHasChildren(hTIRes)) m_tree.Expand(hTIRes, TVE_EXPAND);
-			else DeleteTreeNode(hTIRes);
+			CoTaskMemFree(pData);
 		}
 	}
+	m_tree.Expand(*t2, TVE_EXPAND);
+
+	CTreeItem* t3 = new CTreeItemChapterFolder(m_tree, hTIParent);
+	if(CComQIPtr<IDSMChapterBag> pCB = pBFParent)
+	{
+		for(DWORD i = 0, cnt = pCB->ChapGetCount(); i < cnt; i++)
+		{
+			REFERENCE_TIME rt;
+			CComBSTR name;
+			if(FAILED(pCB->ChapGet(i, &rt, &name)))
+				continue;
+
+			m_pTIs.AddTail(new CTreeItemChapter(CDSMChapter(rt, name), m_tree, *t3));
+		}
+	}
+	m_tree.Expand(*t3, TVE_EXPAND);
 
 	m_tree.Expand(hTIParent, TVE_EXPAND);
 }
@@ -142,7 +130,19 @@ void CConvertDlg::DeleteFilter(IBaseFilter* pBF)
 	m_pGB->RemoveFilter(pBF);
 }
 
-void CConvertDlg::DeleteTreeNode(HTREEITEM hTI)
+void CConvertDlg::DeleteItem(HTREEITEM hTI)
+{
+	if(!hTI) return;
+
+	DeleteChildren(hTI);
+
+	CTreeItem* t = (CTreeItem*)m_tree.GetItemData(hTI);
+	if(POSITION pos = m_pTIs.Find(t)) m_pTIs.RemoveAt(pos);
+	delete t;
+	m_tree.DeleteItem(hTI);
+}
+
+void CConvertDlg::DeleteChildren(HTREEITEM hTI)
 {
 	if(!hTI) return;
 
@@ -153,60 +153,10 @@ void CConvertDlg::DeleteTreeNode(HTREEITEM hTI)
 		while(hChildItem != NULL)
 		{
 			HTREEITEM hNextItem = m_tree.GetNextItem(hChildItem, TVGN_NEXT);
-			DeleteTreeNode(hChildItem);
+			DeleteItem(hChildItem);
 			hChildItem = hNextItem;
 		}
 	}
-
-	CTreeItem* pTI = (CTreeItem*)m_tree.GetItemData(hTI);
-	if(POSITION pos = m_pTIs.Find(pTI)) m_pTIs.RemoveAt(pos);
-	delete (CTreeItem*)m_tree.GetItemData(hTI);
-	m_tree.DeleteItem(hTI);
-}
-
-void CConvertDlg::UpdateTreeNode(HTREEITEM hTI)
-{
-	CTreeItem* pTI = (CTreeItem*)m_tree.GetItemData(hTI);
-
-	CString label;
-
-	if(CComQIPtr<IPin> pPin = pTI->pUnk)
-	{
-		CComPtr<IPin> pPinTo;
-		pPin->ConnectedTo(&pPinTo);
-		label = GetPinName(pPin);
-		if(!pPinTo) label = _T("[D] ") + label;
-
-		CMediaType mt;
-		if(S_OK == pPin->ConnectionMediaType(&mt))
-		{
-			if(mt.majortype == MEDIATYPE_Video) m_tree.SetItemImage(hTI, 1, 1);
-			else if(mt.majortype == MEDIATYPE_Audio) m_tree.SetItemImage(hTI, 2, 2);
-			else if(mt.majortype == MEDIATYPE_Text || mt.majortype == MEDIATYPE_Subtitle) m_tree.SetItemImage(hTI, 3, 3);
-		}
-	}
-	else if(!pTI->fn.IsEmpty())
-	{
-		CPath path = pTI->fn;
-		path.StripPath();
-		label = (LPCTSTR)path;
-	}
-	else if(CComQIPtr<IBaseFilter> pBF = pTI->pUnk)
-	{
-		label = CString(GetFilterName(pBF));
-	}
-	else if(pTI->res.data.GetSize())
-	{
-		label = CString(pTI->res.name);
-		if(!pTI->fResEnabled) label = _T("[D] ") + label;
-
-		CStringW mime = pTI->res.mime;
-		if(mime == L"application/x-truetype-font") m_tree.SetItemImage(hTI, 4, 4);
-		else if(mime.Find(L"text/") == 0) m_tree.SetItemImage(hTI, 5, 5);
-		else m_tree.SetItemImage(hTI, 6, 6);
-	}
-
-	m_tree.SetItemText(hTI, label);
 }
 
 HTREEITEM CConvertDlg::HitTest(CPoint& sp, CPoint& cp)
@@ -225,10 +175,9 @@ void CConvertDlg::ShowPopup(CPoint p)
 	m.CreatePopupMenu();
 
 	int i = 1;
-	m.AppendMenu(MF_STRING, i++, _T("Browse..."));
+	m.AppendMenu(MF_STRING, i++, _T("Add File..."));
 	m.AppendMenu(MF_SEPARATOR);
-	m.AppendMenu(MF_STRING, i++, _T("File Properties..."));
-	m.AppendMenu(MF_STRING, i++, _T("Chapters..."));
+	m.AppendMenu(MF_STRING, i++, _T("Properties..."));
 
 	switch((int)m.TrackPopupMenu(TPM_LEFTBUTTON|TPM_RETURNCMD, p.x, p.y, this))
 	{
@@ -248,7 +197,8 @@ void CConvertDlg::ShowPopup(CPoint p)
 
 void CConvertDlg::ShowFilePopup(HTREEITEM hTI, CPoint p)
 {
-	CTreeItem* pTI = (CTreeItem*)m_tree.GetItemData(hTI);
+	CTreeItemFile* t = dynamic_cast<CTreeItemFile*>((CTreeItem*)m_tree.GetItemData(hTI));
+	ASSERT(t);
 
 	CMenu m;
 	m.CreatePopupMenu();
@@ -259,52 +209,145 @@ void CConvertDlg::ShowFilePopup(HTREEITEM hTI, CPoint p)
 	switch((int)m.TrackPopupMenu(TPM_LEFTBUTTON|TPM_RETURNCMD, p.x, p.y, this))
 	{
 	case 1:
-		DeleteFilter(CComQIPtr<IBaseFilter>(pTI->pUnk));
-		DeleteTreeNode(hTI);
+		DeleteFilter(t->m_pBF);
+		DeleteItem(hTI);
 		break;
 	}
 }
 
 void CConvertDlg::ShowPinPopup(HTREEITEM hTI, CPoint p)
 {
-	CTreeItem* pTI = (CTreeItem*)m_tree.GetItemData(hTI);
+	CTreeItemPin* t = dynamic_cast<CTreeItemPin*>((CTreeItem*)m_tree.GetItemData(hTI));
+	ASSERT(t);
 
-	CComQIPtr<IPin> pPin = pTI->pUnk;
-	if(!pPin) return;
+	if(!t->m_pPin) return;
 
 	CComPtr<IPin> pPinTo;
-	pPin->ConnectedTo(&pPinTo);
+	t->m_pPin->ConnectedTo(&pPinTo);
+
+	CMediaType mtconn;
+	if(pPinTo) t->m_pPin->ConnectionMediaType(&mtconn);
+
+	CArray<CMediaType> mts;
+	BeginEnumMediaTypes(t->m_pPin, pEMT, pmt)
+		mts.Add(*pmt);
+	EndEnumMediaTypes(pmt)	
+
+	CMenu m;
+	m.CreatePopupMenu();
+
+	int i = 1, mtbase = 1000, mti = mtbase;
+
+	m.AppendMenu(MF_STRING, i++, !pPinTo ? _T("Enable Stream") : _T("Disable Stream"));
+
+	if(mts.GetCount() > 1)
+	{
+		m.AppendMenu(MF_SEPARATOR);
+		for(int i = 0; i < mts.GetCount(); i++)
+			m.AppendMenu(MF_STRING | (mts[i] == mtconn ? MF_CHECKED : 0), mti++, CMediaTypeEx(mts[i]).ToString());
+	}
+
+	m.AppendMenu(MF_SEPARATOR);
+	m.AppendMenu(MF_STRING | (!pPinTo ? MF_GRAYED : 0), i++, _T("Pin Properties..."));
+
+	switch(i = (int)m.TrackPopupMenu(TPM_LEFTBUTTON|TPM_RETURNCMD, p.x, p.y, this))
+	{
+	case 1:
+		if(pPinTo) {m_pGB->Disconnect(pPinTo); m_pGB->Disconnect(t->m_pPin);}
+		else if(pPinTo = GetFirstDisconnectedPin(m_pMux, PINDIR_INPUT)) m_pGB->ConnectDirect(t->m_pPin, pPinTo, NULL);
+		t->Update();
+		break;
+	case 2:
+		EditProperties(CComQIPtr<IDSMPropertyBag>(pPinTo));
+		break;
+	default:
+		i -= mtbase;
+		if(i >= 0 && i < mts.GetCount())
+		{
+			if(pPinTo) {m_pGB->Disconnect(pPinTo); m_pGB->Disconnect(t->m_pPin);}
+			else {pPinTo = GetFirstDisconnectedPin(m_pMux, PINDIR_INPUT);}
+			HRESULT hr = m_pGB->ConnectDirect(t->m_pPin, pPinTo, &mts[i]);
+			if(FAILED(hr))
+			{
+				AfxMessageBox(_T("Reconnection attempt failed!"));
+				if(mtconn.majortype != GUID_NULL) 
+					hr = m_pGB->ConnectDirect(t->m_pPin, pPinTo, &mtconn);
+			}
+			t->Update();
+		}
+		break;
+	}
+}
+
+void CConvertDlg::ShowResourceFolderPopup(HTREEITEM hTI, CPoint p)
+{
+	CTreeItemResourceFolder* t = dynamic_cast<CTreeItemResourceFolder*>((CTreeItem*)m_tree.GetItemData(hTI));
+	ASSERT(t);
 
 	CMenu m;
 	m.CreatePopupMenu();
 
 	int i = 1;
-	m.AppendMenu(MF_STRING, i++, !pPinTo ? _T("Enable") : _T("Disable"));
-	m.AppendMenu(MF_SEPARATOR);
-	m.AppendMenu(MF_STRING | (!pPinTo ? MF_GRAYED : 0), i++, _T("Pin Properties..."));
+	m.AppendMenu(MF_STRING, i++, _T("Add Resource..."));
+	if(m_tree.ItemHasChildren(*t))
+	{
+		m.AppendMenu(MF_SEPARATOR);
+		m.AppendMenu(MF_STRING, i++, _T("Remove All"));
+	}
 
 	switch((int)m.TrackPopupMenu(TPM_LEFTBUTTON|TPM_RETURNCMD, p.x, p.y, this))
 	{
 	case 1:
-		if(pPinTo) {m_pGB->Disconnect(pPinTo); m_pGB->Disconnect(pPin);}
-		else if(pPinTo = GetFirstDisconnectedPin(m_pMux, PINDIR_INPUT)) m_pGB->ConnectDirect(pPin, pPinTo, NULL);
-		UpdateTreeNode(hTI);
+		{
+			CFileDialog fd(TRUE, NULL, NULL, 
+				OFN_EXPLORER|OFN_ENABLESIZING|OFN_HIDEREADONLY, 
+				_T("All files|*.*||"), this, 0);
+			if(fd.DoModal() == IDOK) 
+			{
+				if(FILE* f = _tfopen(fd.GetPathName(), _T("rb")))
+				{
+					CDSMResource res;
+					CTreeItemResource* t = new CTreeItemResource(res, m_tree, hTI);
+					m_pTIs.AddTail(t);
+
+					if(EditResource(t))
+					{
+						fseek(f, 0, 2);
+						long size = ftell(f);
+						t->m_res.data.SetSize(size);
+						for(BYTE* ptr = t->m_res.data.GetData(),* end = ptr + size; 
+							size > 0 && end - ptr >= size && fread(ptr, min(size, 1024), 1, f) > 0; 
+							ptr += 1024, size -= 1024);
+						fclose(f);
+					}
+					else
+					{
+						DeleteItem(*t);
+					}
+				}
+				else
+				{
+					AfxMessageBox(_T("Cannot open file!"));
+				}
+			}
+		}
 		break;
 	case 2:
-		EditProperties(CComQIPtr<IDSMPropertyBag>(pPinTo));
+		DeleteChildren(hTI);
 		break;
 	}
 }
 
 void CConvertDlg::ShowResourcePopup(HTREEITEM hTI, CPoint p)
 {
-	CTreeItem* pTI = (CTreeItem*)m_tree.GetItemData(hTI);
+	CTreeItemResource* t = dynamic_cast<CTreeItemResource*>((CTreeItem*)m_tree.GetItemData(hTI));
+	ASSERT(t);
 
 	CMenu m;
 	m.CreatePopupMenu();
 
 	int i = 1;
-	m.AppendMenu(MF_STRING, i++, pTI->fResEnabled ? _T("Disable") : _T("Enable"));
+	m.AppendMenu(MF_STRING, i++, t->m_fEnabled ? _T("Disable") : _T("Enable"));
 	m.AppendMenu(MF_STRING, i++, _T("Save As..."));
 	m.AppendMenu(MF_SEPARATOR);
 	m.AppendMenu(MF_STRING, i++, _T("Resource Properties..."));
@@ -312,31 +355,31 @@ void CConvertDlg::ShowResourcePopup(HTREEITEM hTI, CPoint p)
 	switch((int)m.TrackPopupMenu(TPM_LEFTBUTTON|TPM_RETURNCMD, p.x, p.y, this))
 	{
 	case 1:
-		pTI->fResEnabled = !pTI->fResEnabled;
-		UpdateTreeNode(hTI);
+		t->m_fEnabled = !t->m_fEnabled;
+		t->Update();
 		break;
 	case 2:
 		{
-			CFileDialog fd(FALSE, NULL, CString(pTI->res.name), 
+			CFileDialog fd(FALSE, NULL, CString(t->m_res.name), 
 				OFN_EXPLORER|OFN_ENABLESIZING|OFN_HIDEREADONLY|OFN_OVERWRITEPROMPT,
 				_T("All files|*.*||"), this, 0);
 			if(fd.DoModal() == IDOK)
 			{
 				if(FILE* f = _tfopen(fd.GetPathName(), _T("wb")))
 				{
-					fwrite(pTI->res.data.GetData(), 1, pTI->res.data.GetSize(), f);
+					fwrite(t->m_res.data.GetData(), 1, t->m_res.data.GetSize(), f);
 					fclose(f);
 				}
 			}
 		}
 		break;
 	case 3:
-		// TODO
+		EditResource(t);
 		break;
 	}
 }
 
-void CConvertDlg::EditProperties(IDSMPropertyBag* pPB)
+bool CConvertDlg::EditProperties(IDSMPropertyBag* pPB)
 {
 	CConvertPropsDlg dlg(!!CComQIPtr<IPin>(pPB), this);
 
@@ -361,7 +404,7 @@ void CConvertDlg::EditProperties(IDSMPropertyBag* pPB)
 	}
 
 	if(IDOK != dlg.DoModal())
-		return;
+		return false;
 
 	pPB->DelAllProperties();
 
@@ -371,6 +414,79 @@ void CConvertDlg::EditProperties(IDSMPropertyBag* pPB)
 		CString key, value;
 		dlg.m_props.GetNextAssoc(pos, key, value);
 		pPB->SetProperty(CStringW(key), CStringW(value));
+	}
+
+	return true;
+}
+
+bool CConvertDlg::EditResource(CTreeItemResource* t)
+{
+	CConvertResDlg dlg(this);
+
+	dlg.m_name = t->m_res.name;
+	dlg.m_mime = t->m_res.mime;
+	dlg.m_desc = t->m_res.desc;
+
+	if(IDOK != dlg.DoModal())
+		return false;
+
+	t->m_res.name = dlg.m_name;
+	t->m_res.mime = dlg.m_mime;
+	t->m_res.desc = dlg.m_desc;
+
+	t->Update();
+
+	return true;
+}
+
+void CConvertDlg::ShowChapterFolderPopup(HTREEITEM hTI, CPoint p)
+{
+	CTreeItemChapterFolder* t = dynamic_cast<CTreeItemChapterFolder*>((CTreeItem*)m_tree.GetItemData(hTI));
+	ASSERT(t);
+
+	CMenu m;
+	m.CreatePopupMenu();
+
+	int i = 1;
+	m.AppendMenu(MF_STRING, i++, _T("Add Chapter..."));
+	if(m_tree.ItemHasChildren(*t))
+	{
+		m.AppendMenu(MF_SEPARATOR);
+		m.AppendMenu(MF_STRING, i++, _T("Remove All"));
+	}
+
+	switch((int)m.TrackPopupMenu(TPM_LEFTBUTTON|TPM_RETURNCMD, p.x, p.y, this))
+	{
+	case 1:
+		// TODO
+		break;
+	case 2:
+		DeleteChildren(hTI);
+		break;
+	}
+}
+
+void CConvertDlg::ShowChapterPopup(HTREEITEM hTI, CPoint p)
+{
+	CTreeItemChapter* t = dynamic_cast<CTreeItemChapter*>((CTreeItem*)m_tree.GetItemData(hTI));
+	ASSERT(t);
+
+	CMenu m;
+	m.CreatePopupMenu();
+
+	int i = 1;
+	m.AppendMenu(MF_STRING, i++, _T("Remove"));
+	m.AppendMenu(MF_SEPARATOR);
+	m.AppendMenu(MF_STRING, i++, _T("Chapter Properties..."));
+
+	switch((int)m.TrackPopupMenu(TPM_LEFTBUTTON|TPM_RETURNCMD, p.x, p.y, this))
+	{
+	case 1:
+		DeleteItem(hTI);
+		break;
+	case 2:
+		// TODO
+		break;
 	}
 }
 
@@ -448,7 +564,7 @@ BEGIN_MESSAGE_MAP(CConvertDlg, CResizableDialog)
 	ON_NOTIFY(NM_RCLICK, IDC_TREE1, OnNMRclickTree1)
 	ON_NOTIFY(NM_DBLCLK, IDC_TREE1, OnNMDblclkTree1)
 	ON_BN_CLICKED(IDC_BUTTON1, OnBnClickedButton1)
-	ON_UPDATE_COMMAND_UI(IDC_BUTTON2, OnUpdateButton1)
+	ON_UPDATE_COMMAND_UI(IDC_BUTTON1, OnUpdateButton1)
 	ON_WM_TIMER()
 	ON_BN_CLICKED(IDC_BUTTON2, OnBnClickedButton2)
 	ON_UPDATE_COMMAND_UI(IDC_BUTTON2, OnUpdateButton2)
@@ -519,7 +635,13 @@ void CConvertDlg::OnDropFiles(HDROP hDropInfo)
 
 void CConvertDlg::OnClose()
 {
-	DeleteTreeNode(m_tree.GetRootItem());
+	HTREEITEM hTI = m_tree.GetRootItem();
+	while(hTI)
+	{
+		HTREEITEM hTINext = m_tree.GetNextSiblingItem(hTI);
+		DeleteItem(hTI);
+		hTI = hTINext;
+	}
 
 	if(m_dwRegister) RemoveFromRot(m_dwRegister);
 
@@ -545,20 +667,20 @@ void CConvertDlg::OnNMRclickTree1(NMHDR* pNMHDR, LRESULT* pResult)
 	{
 		m_tree.SelectItem(hTI);
 
-		CTreeItem* pTI = (CTreeItem*)m_tree.GetItemData(hTI);
+		CTreeItem* t = (CTreeItem*)m_tree.GetItemData(hTI);
 
-		if(CComQIPtr<IPin> pPin = pTI->pUnk)
-		{
+		if(dynamic_cast<CTreeItemPin*>(t))
 			ShowPinPopup(hTI, sp);
-		}
-		else if(!m_tree.GetParentItem(hTI))
-		{
+		else if(dynamic_cast<CTreeItemFile*>(t))
 			ShowFilePopup(hTI, sp);
-		}
-		else if(pTI->res.data.GetSize())
-		{
+		else if(dynamic_cast<CTreeItemResourceFolder*>(t))
+			ShowResourceFolderPopup(hTI, sp);
+		else if(dynamic_cast<CTreeItemResource*>(t))
 			ShowResourcePopup(hTI, sp);
-		}
+		else if(dynamic_cast<CTreeItemChapterFolder*>(t))
+			ShowChapterFolderPopup(hTI, sp);
+		else if(dynamic_cast<CTreeItemChapter*>(t))
+			ShowChapterPopup(hTI, sp);
 	}
 	else
 	{
@@ -575,15 +697,19 @@ void CConvertDlg::OnNMDblclkTree1(NMHDR *pNMHDR, LRESULT *pResult)
 
 	if(hTI)
 	{
-		CTreeItem* pTI = (CTreeItem*)m_tree.GetItemData(hTI);
+		CTreeItem* t = (CTreeItem*)m_tree.GetItemData(hTI);
 
-		if(CComQIPtr<IPin> pPin = pTI->pUnk)
+		if(CTreeItemPin* t2 = dynamic_cast<CTreeItemPin*>(t))
 		{
 			CComPtr<IPin> pPinTo;
-			pPin->ConnectedTo(&pPinTo);
+			t2->m_pPin->ConnectedTo(&pPinTo);
 
 			if(CComQIPtr<IDSMPropertyBag> pPB = pPinTo)
 				EditProperties(pPB);
+		}
+		else if(CTreeItemResource* t2 = dynamic_cast<CTreeItemResource*>(t))
+		{
+			EditResource(t2);
 		}
 	}
 	
@@ -679,9 +805,12 @@ void CConvertDlg::OnBnClickedButton2()
 		POSITION pos = m_pTIs.GetHeadPosition();
 		while(pos)
 		{
-			CTreeItem* pTI = m_pTIs.GetNext(pos);
-			if(!pTI->res.data.GetSize()) continue;
-			pRB->ResAppend(pTI->res.name, pTI->res.desc, pTI->res.mime, pTI->res.data.GetData(), pTI->res.data.GetSize(), NULL);
+			CTreeItem* t = m_pTIs.GetNext(pos);
+			if(CTreeItemResource* t2 = dynamic_cast<CTreeItemResource*>(t))
+				pRB->ResAppend(
+					t2->m_res.name, t2->m_res.desc, t2->m_res.mime, 
+					t2->m_res.data.GetData(), t2->m_res.data.GetSize(), 
+					NULL);
 		}		
 	}
 
@@ -777,35 +906,16 @@ BOOL CFilterTreeCtrl::OnToolTipText(UINT id, NMHDR* pNMHDR, LRESULT* pResult)
 	|| pNMHDR->code == TTN_NEEDTEXTW && (pTTTW->uFlags & TTF_IDISHWND)))
 		return FALSE;
 
-	HTREEITEM hTI = (HTREEITEM)nID;
+	::SendMessage(pNMHDR->hwndFrom, TTM_SETMAXTIPWIDTH, 0, (LPARAM)(INT)1000);
 
-	CConvertDlg::CTreeItem* pTI = (CConvertDlg::CTreeItem*)GetItemData(hTI);
-	if(!pTI) return FALSE;
+	HTREEITEM hTI = (HTREEITEM)nID;
 
 	CString str;
 	static CStringA m_strTipTextA;
 	static CStringW m_strTipTextW;
 
-	CComQIPtr<IPin> pPin = pTI->pUnk;
-	if(pPin)
-	{
-		CMediaTypeEx mt;
-		pPin->ConnectionMediaType(&mt);
-		str = mt.ToString(pPin);
-	}
-	else if(!pTI->fn.IsEmpty())
-	{
-		str = pTI->fn;
-	}
-	else if(pTI->res.data.GetSize())
-	{
-		str = _T("Mime: ") + CString(pTI->res.mime);
-		if(!pTI->res.desc.IsEmpty()) str += _T("\r\nDesc: ") + CString(pTI->res.desc);
-	}
-	else
-	{
-		return FALSE;
-	}
+	CConvertDlg::CTreeItem* t = (CConvertDlg::CTreeItem*)GetItemData(hTI);
+	if(!t || !t->ToolTip(str)) return FALSE;
 
 	m_strTipTextA = str;
 	m_strTipTextW = str;
@@ -816,4 +926,214 @@ BOOL CFilterTreeCtrl::OnToolTipText(UINT id, NMHDR* pNMHDR, LRESULT* pResult)
 	*pResult = 0;
 
 	return TRUE;    // message was handled
+}
+
+//
+// CConvertDlg::CTreeItem*
+//
+
+CConvertDlg::CTreeItem::CTreeItem(CTreeCtrl& tree, HTREEITEM hTIParent) 
+	: m_tree(tree)
+{
+	m_hTI = m_tree.InsertItem(_T(""), hTIParent);
+	m_tree.SetItemData(m_hTI, (DWORD_PTR)this);
+	Update();
+}
+
+CConvertDlg::CTreeItem::~CTreeItem()
+{
+}
+
+void CConvertDlg::CTreeItem::SetLabel(LPCTSTR label)
+{
+	m_tree.SetItemText(m_hTI, label);
+}
+
+void CConvertDlg::CTreeItem::SetImage(int nImage, int nSelectedImage)
+{
+	m_tree.SetItemImage(m_hTI, nImage, nSelectedImage);
+}
+
+// 
+
+CConvertDlg::CTreeItemFilter::CTreeItemFilter(IBaseFilter* pBF, CTreeCtrl& tree, HTREEITEM hTIParent) 
+	: CTreeItem(tree, hTIParent)
+	, m_pBF(pBF)
+{
+	Update();
+}
+
+void CConvertDlg::CTreeItemFilter::Update()
+{
+	SetLabel(CString(GetFilterName(m_pBF)));
+}
+
+//
+
+CConvertDlg::CTreeItemFile::CTreeItemFile(CString fn, IBaseFilter* pBF, CTreeCtrl& tree, HTREEITEM hTIParent)
+	: CTreeItemFilter(pBF, tree, hTIParent)
+	, m_fn(fn)
+{
+	Update();
+}
+
+void CConvertDlg::CTreeItemFile::Update()
+{
+	CPath path = m_fn;
+	path.StripPath();
+	SetLabel(path);
+}
+
+bool CConvertDlg::CTreeItemFile::ToolTip(CString& str)
+{
+	str = m_fn;
+	return true;
+}
+
+//
+
+CConvertDlg::CTreeItemPin::CTreeItemPin(IPin* pPin, CTreeCtrl& tree, HTREEITEM hTIParent)
+	: CTreeItem(tree, hTIParent)
+	, m_pPin(pPin)
+{
+	Update();
+}
+
+void CConvertDlg::CTreeItemPin::Update()
+{
+	if(!m_pPin) {ASSERT(0); return;}
+
+	CString label = GetPinName(m_pPin);
+	if(!IsConnected()) label = _T("[D] ") + label;
+	SetLabel(label);
+
+	CMediaType mt;
+	if(S_OK == m_pPin->ConnectionMediaType(&mt))
+	{
+		if(mt.majortype == MEDIATYPE_Video) SetImage(1, 1);
+		else if(mt.majortype == MEDIATYPE_Audio) SetImage(2, 2);
+		else if(mt.majortype == MEDIATYPE_Text || mt.majortype == MEDIATYPE_Subtitle) SetImage(3, 3);
+	}
+}
+
+bool CConvertDlg::CTreeItemPin::ToolTip(CString& str)
+{
+	CMediaTypeEx mt;
+	if(FAILED(m_pPin->ConnectionMediaType(&mt))) return false;
+	str = mt.ToString(m_pPin);
+	return true;
+}
+
+bool CConvertDlg::CTreeItemPin::IsConnected()
+{
+	CComPtr<IPin> pPinTo;
+	return m_pPin && SUCCEEDED(m_pPin->ConnectedTo(&pPinTo)) && pPinTo;
+}
+
+//
+
+CConvertDlg::CTreeItemResourceFolder::CTreeItemResourceFolder(CTreeCtrl& tree, HTREEITEM hTIParent)
+	: CTreeItem(tree, hTIParent)
+{
+	Update();
+}
+
+void CConvertDlg::CTreeItemResourceFolder::Update()
+{
+	SetLabel(_T("Resources"));
+}
+
+bool CConvertDlg::CTreeItemResourceFolder::ToolTip(CString& str)
+{
+	if(!m_tree.ItemHasChildren(m_hTI))
+		return false;
+
+	int files = 0;
+	float size = 0;
+
+	HTREEITEM hChildItem = m_tree.GetChildItem(m_hTI);
+
+	while(hChildItem != NULL)
+	{
+		HTREEITEM hNextItem = m_tree.GetNextItem(hChildItem, TVGN_NEXT);
+		if(CTreeItemResource* t = dynamic_cast<CTreeItemResource*>((CTreeItem*)m_tree.GetItemData(hChildItem)))
+			size += t->m_res.data.GetSize(), files++;
+		hChildItem = hNextItem;
+	}
+
+	size /= 1024;
+	if(size < 1024) str.Format(_T("%d file(s), %.2f KB"), files, size);
+	else str.Format(_T("%d file(s), %.2f MB"), files, size/1024);
+
+	return true;
+}
+
+//
+
+CConvertDlg::CTreeItemResource::CTreeItemResource(const CDSMResource& res, CTreeCtrl& tree, HTREEITEM hTIParent)
+	: CTreeItem(tree, hTIParent)
+	, m_fEnabled(true)
+{
+	m_res = res;
+	Update();
+}
+
+void CConvertDlg::CTreeItemResource::Update()
+{
+	CString label = CString(m_res.name);
+	if(!m_fEnabled) label = _T("[D] ") + label;
+	SetLabel(label);
+
+	CStringW mime = m_res.mime;
+	mime.Trim();
+	mime.MakeLower();
+	if(mime == L"application/x-truetype-font") SetImage(4, 4);
+	else if(mime.Find(L"text/") == 0) SetImage(5, 5);
+	else SetImage(6, 6);
+}
+
+bool CConvertDlg::CTreeItemResource::ToolTip(CString& str)
+{
+	if(!m_res.mime.IsEmpty()) str = CString(m_res.mime) + _T("\r\n\r\n");
+	if(!m_res.desc.IsEmpty()) str += CString(m_res.desc);
+	str.Trim();
+	return true;
+}
+
+//
+
+CConvertDlg::CTreeItemChapterFolder::CTreeItemChapterFolder(CTreeCtrl& tree, HTREEITEM hTIParent)
+	: CTreeItem(tree, hTIParent)
+{
+	Update();
+}
+
+void CConvertDlg::CTreeItemChapterFolder::Update()
+{
+	SetLabel(_T("Chapters"));
+}
+
+//
+
+CConvertDlg::CTreeItemChapter::CTreeItemChapter(const CDSMChapter& chap, CTreeCtrl& tree, HTREEITEM hTIParent)
+	: CTreeItem(tree, hTIParent)
+{
+	m_chap = chap;
+	Update();
+}
+
+void CConvertDlg::CTreeItemChapter::Update()
+{
+	m_chap.rt /= 10000000;
+	int s = (int)(m_chap.rt%60);
+	m_chap.rt /= 10000;
+	int m = (int)(m_chap.rt%60);
+	m_chap.rt /= 10000;
+	int h = (int)(m_chap.rt);
+
+	CString label;
+	label.Format(_T("%02d:%02d:%02d - %s"), h, m, s, CString(m_chap.name));
+	SetLabel(label);
+
+	SetImage(7, 7);
 }

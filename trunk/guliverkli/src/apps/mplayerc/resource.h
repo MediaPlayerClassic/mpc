@@ -233,10 +233,11 @@
 #define IDF_CONTROLVOLUMEOFF_PNG        399
 #define IDF_CONTROLVOLUMEBAR_PNG        400
 #define IDF_CONTROLVOLUMEGRIP_PNG       401
-#define IDD_CONVERT_DIALOG              402
+#define IDD_CONVERTDIALOG               402
 #define IDD_CONVERTPROPSDIALOG          403
-#define IDB_STREAMTYPE                  404
 #define IDB_STREAMTYPES                 404
+#define IDD_DIALOG4                     405
+#define IDD_CONVERTRESDIALOG            405
 #define IDS_R_SETTINGS                  500
 #define IDS_RS_CONTROLSTATE             501
 #define IDS_RS_VOLUME                   502
@@ -691,7 +692,7 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        405
+#define _APS_NEXT_RESOURCE_VALUE        406
 #define _APS_NEXT_COMMAND_VALUE         32855
 #define _APS_NEXT_CONTROL_VALUE         1165
 #define _APS_NEXT_SYMED_VALUE           10003

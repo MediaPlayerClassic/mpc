@@ -73,19 +73,6 @@ public:
 class CMatroskaSplitterFilter : public CBaseSplitterFilter, public ITrackInfo
 {
 	void SendVorbisHeaderSample();
-/*
-	static HANDLE (WINAPI *pAddFontMemResourceEx)(PVOID,DWORD,PVOID,DWORD*);
-	static BOOL (WINAPI *pRemoveFontMemResourceEx)(HANDLE);
-	static int (WINAPI *pAddFontResourceEx)(LPCTSTR,DWORD,PVOID);
-	static BOOL (WINAPI *pRemoveFontResourceEx)(LPCTSTR,DWORD,PVOID);
-	static BOOL (WINAPI *pMoveFileEx)(LPCTSTR, LPCTSTR,DWORD);
-
-	CArray<HANDLE> m_Fonts;
-	CArray<CString> m_FontsList;
-	BOOL InstallFontMemory(const void* data, UINT len);
-	BOOL InstallFontFile(const void* data, UINT len);
-	void UninstallFonts();
-*/
 	void InstallFonts();
 
 	CAutoPtr<MatroskaReader::CMatroskaNode> m_pSegment, m_pCluster, m_pBlock;
@@ -112,14 +99,6 @@ public:
 	// IMediaSeeking
 
 	STDMETHODIMP GetDuration(LONGLONG* pDuration);
-
-	// IChapterInfo
-
-	STDMETHODIMP_(UINT) GetChapterCount(UINT aChapterID);
-	STDMETHODIMP_(UINT) GetChapterId(UINT aParentChapterId, UINT aIndex);
-	STDMETHODIMP_(UINT) GetChapterCurrentId();
-	STDMETHODIMP_(BOOL) GetChapterInfo(UINT aChapterID, struct ChapterElement* pStructureToFill);
-	STDMETHODIMP_(BSTR) GetChapterStringInfo(UINT aChapterID, CHAR PreferredLanguage[3], CHAR CountryCode[2]);
 
 	// IKeyFrameInfo
 

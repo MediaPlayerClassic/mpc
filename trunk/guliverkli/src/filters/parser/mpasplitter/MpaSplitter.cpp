@@ -124,11 +124,9 @@ HRESULT CMpaSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 	if(m_pFile->m_tags.Lookup('TIT2', str)) title = str;
 	if(m_pFile->m_tags.Lookup('TPE1', str)) title = title.IsEmpty() ? str : str + _T(" - ") + title;
 	if(m_pFile->m_tags.Lookup('TYER', str) && !title.IsEmpty() && !str.IsEmpty()) title += _T(" (") + str + _T(")");
-	if(!title.IsEmpty()) SetMediaContentStr(CStringW(title), Title);
-	// if(m_pFile->m_tags.Lookup('', str)) SetMediaContentStr(CStringW(str), AuthorName);
-	if(m_pFile->m_tags.Lookup('TCOP', str)) SetMediaContentStr(CStringW(str), Copyright);
-	if(m_pFile->m_tags.Lookup('COMM', str)) SetMediaContentStr(CStringW(str), Description);
-	// if(m_pFile->m_tags.Lookup('', str)) SetMediaContentStr(CStringW(str), Rating);
+	if(!title.IsEmpty()) SetProperty(L"TITL", CStringW(title));
+	if(m_pFile->m_tags.Lookup('TCOP', str)) SetProperty(L"CPYR", CStringW(str));
+	if(m_pFile->m_tags.Lookup('COMM', str)) SetProperty(L"DESC", CStringW(str));
 
 	return m_pOutputs.GetCount() > 0 ? S_OK : E_FAIL;
 }

@@ -23,12 +23,78 @@ class CConvertDlg : public CResizableDialog
 public:
 	class CTreeItem
 	{
+	protected:
+		CTreeCtrl& m_tree;
+		HTREEITEM m_hTI;
+
+	public: 
+		CTreeItem(CTreeCtrl& tree, HTREEITEM hTIParent);
+		virtual ~CTreeItem();
+		virtual void Update() {}
+		virtual bool ToolTip(CString& str) {return false;}
+		void SetLabel(LPCTSTR label);
+		void SetImage(int nImage, int nSelectedImage);
+		operator HTREEITEM() {return m_hTI;}
+	};
+	
+	class CTreeItemFilter : public CTreeItem 
+	{
 	public:
-		CComPtr<IUnknown> pUnk;	
-		CString fn;
-		CDSMResource res;
-		bool fResEnabled;
-		virtual ~CTreeItem() {fResEnabled = true;}
+		CComPtr<IBaseFilter> m_pBF;
+		CTreeItemFilter(IBaseFilter* pBF, CTreeCtrl& tree, HTREEITEM hTIParent);
+		void Update();
+	};
+
+	class CTreeItemFile : public CTreeItemFilter
+	{
+	public:
+		CString m_fn;
+		CTreeItemFile(CString fn, IBaseFilter* pBF, CTreeCtrl& tree, HTREEITEM hTIParent);
+		void Update();
+		bool ToolTip(CString& str);
+	};
+
+	class CTreeItemPin : public CTreeItem
+	{
+	public:
+		CComPtr<IPin> m_pPin;
+		CTreeItemPin(IPin* pPin, CTreeCtrl& tree, HTREEITEM hTIParent);
+		void Update();
+		bool ToolTip(CString& str);
+		bool IsConnected();
+	};
+
+	class CTreeItemResourceFolder : public CTreeItem
+	{
+	public: 
+		CTreeItemResourceFolder(CTreeCtrl& tree, HTREEITEM hTIParent);
+		void Update();
+		bool ToolTip(CString& str);
+	};
+
+	class CTreeItemResource : public CTreeItem
+	{
+	public: 
+		CDSMResource m_res;
+		bool m_fEnabled; 
+		CTreeItemResource(const CDSMResource& res, CTreeCtrl& tree, HTREEITEM hTIParent);
+		void Update();
+		bool ToolTip(CString& str);
+	};
+
+	class CTreeItemChapterFolder : public CTreeItem
+	{
+	public: 
+		CTreeItemChapterFolder(CTreeCtrl& tree, HTREEITEM hTIParent);
+		void Update();
+	};
+
+	class CTreeItemChapter : public CTreeItem
+	{
+	public: 
+		CDSMChapter m_chap;
+		CTreeItemChapter(const CDSMChapter& chap, CTreeCtrl& tree, HTREEITEM hTIParent);
+		void Update();
 	};
 
 private:
@@ -51,24 +117,28 @@ private:
 	void AddFile(CString fn);
 	void AddFilter(HTREEITEM hTI, IBaseFilter* pBF);
 	void DeleteFilter(IBaseFilter* pBF);
-	void DeleteTreeNode(HTREEITEM hTI);
-	void UpdateTreeNode(HTREEITEM hTI);
+	void DeleteItem(HTREEITEM hTI);
+	void DeleteChildren(HTREEITEM hTI);
 
 	HTREEITEM HitTest(CPoint& sp, CPoint& cp);
 
 	void ShowPopup(CPoint p);
 	void ShowFilePopup(HTREEITEM hTI, CPoint p);
 	void ShowPinPopup(HTREEITEM hTI, CPoint p);
+	void ShowResourceFolderPopup(HTREEITEM hTI, CPoint p);
 	void ShowResourcePopup(HTREEITEM hTI, CPoint p);
+	void ShowChapterFolderPopup(HTREEITEM hTI, CPoint p);
+	void ShowChapterPopup(HTREEITEM hTI, CPoint p);
 
-	void EditProperties(IDSMPropertyBag* pPB);
+	bool EditProperties(IDSMPropertyBag* pPB);
+	bool EditResource(CTreeItemResource* t);
 
 public:
 	CConvertDlg(CWnd* pParent = NULL);   // standard constructor
 	virtual ~CConvertDlg();
 
 // Dialog Data
-	enum { IDD = IDD_CONVERT_DIALOG };
+	enum { IDD = IDD_CONVERTDIALOG };
 	CFilterTreeCtrl m_tree;
 	CString m_fn;
 
