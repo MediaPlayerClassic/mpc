@@ -339,7 +339,7 @@ STDMETHODIMP CStreamDriveThruFilter::IsUsingTimeFormat(const GUID* pFormat)
 }
 STDMETHODIMP CStreamDriveThruFilter::SetTimeFormat(const GUID* pFormat)
 {
-	return IsFormatSupported(pFormat);
+	return S_OK == IsFormatSupported(pFormat) ? S_OK : E_INVALIDARG;
 }
 STDMETHODIMP CStreamDriveThruFilter::GetDuration(LONGLONG* pDuration)
 {

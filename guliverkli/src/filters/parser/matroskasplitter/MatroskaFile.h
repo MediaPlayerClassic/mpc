@@ -163,7 +163,7 @@ namespace Matroska
 					CUInt AspectRatioType;
 					CUInt ColourSpace;
 					CFloat GammaValue;
-					CFloat DefaultDuration;
+					CFloat FramePerSec;
 
 					HRESULT Parse(CMatroskaNode* pMN);
 				};
@@ -196,6 +196,7 @@ namespace Matroska
 				CANSI CodecDownloadURL;
 				CUInt CodecDecodeAll;
 				CUInt TrackOverlay;
+				CUInt DefaultDuration;
 				enum {NoDesc = 0, DescVideo = 1, DescAudio = 2};
 				int DescType;
 				Video v;
