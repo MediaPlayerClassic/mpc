@@ -6,6 +6,13 @@ require '../include/MySmarty.class.php';
 require '../include/DataBase.php';
 require '../include/isolang.inc';
 
+//
+
+$maxtitles = 4;
+$maxsubs = 8;
+
+//
+
 if(isset($_GET['clearimdb']))
 {
 	unset($_SESSION['imdb_id']);
@@ -35,13 +42,13 @@ if(!empty($_GET))
 	
 		// TODO: search imdb on name || size || hash -> imdb
 	}
+		
+	global $maxsubs;
+	for($i = 0; $i < $maxsubs; $i++)
+		$_SESSION['POST']['file_sel'][$i] = $i < count($_SESSION['file']) ? $i+1 : 0;
+	
 	RedirAndExit($_SERVER['PHP_SELF']);
 }
-
-//
-
-$maxtitles = 4;
-$maxsubs = 8;
 
 //
 
