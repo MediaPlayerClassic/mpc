@@ -354,6 +354,7 @@ bool CMpegSplitterFilter::DoDeliverLoop()
 	REFERENCE_TIME rtStartOffset = m_rtStartOffset ? m_rtStartOffset : m_pFile->m_rtMin;
 	bool fStreaming = m_pFile->IsStreaming();
 
+	// TODO: do something against buffer underrun when fStreaming (stop if not enough data is available and display Buffering...)
 	while(SUCCEEDED(hr) && !CheckRequest(NULL) && (fStreaming || m_pFile->GetPos() < m_pFile->GetLength()))
 	{
 		int ret = DemuxNextPacket(rtStartOffset);
