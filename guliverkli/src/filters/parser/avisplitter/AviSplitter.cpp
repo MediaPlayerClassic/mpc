@@ -141,7 +141,7 @@ HRESULT CAviSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 	bool fShiftDown = !!(::GetKeyState(VK_SHIFT)&0x8000);
 	bool fShowWarningText = !m_pFile->IsInterleaved(fShiftDown);
 
-	if(fShowWarningText || fShiftDown)
+	if(SUCCEEDED(hr) && (fShowWarningText || fShiftDown))
 	{
 #ifdef REGISTER_FILTER
 		AFX_MANAGE_STATE(AfxGetStaticModuleState());

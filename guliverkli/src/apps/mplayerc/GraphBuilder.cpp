@@ -29,6 +29,7 @@
 #include "..\..\..\include\matroska\matroska.h"
 #include "DX7AllocatorPresenter.h"
 #include "DX9AllocatorPresenter.h"
+#include "DeinterlacerFilter.h"
 
 #include "C:\WMSDK\WMFSDK9\include\wmsdk.h"
 
@@ -1579,6 +1580,16 @@ HRESULT CGraphBuilderDVD::Render(CString fn, CString& path)
 CGraphBuilderCapture::CGraphBuilderCapture(IGraphBuilder* pGB, HWND hWnd)
 	: CGraphBuilderFile(pGB, hWnd)
 {
+	CList<GUID> guids;
+
+	// if(AfxGetAppSettings().fEnableDeinterlacer)
+	{
+		guids.AddTail(MEDIATYPE_Video);
+		guids.AddTail(MEDIASUBTYPE_NULL);
+		AddFilter(new CGraphCustomFilter(__uuidof(CDeinterlacerFilter), guids, L"Deinterlacer", m_VRMerit + 0x100));
+		guids.RemoveAll();
+	}
+
 	CLSID CLSID_MorganStreamSwitcher = GUIDFromCString(_T("{D3CD7858-971A-4838-ACEC-40CA5D529DC8}"));
 	AddFilter(new CGraphRegFilter(CLSID_MorganStreamSwitcher, LMERIT_DO_NOT_USE));
 }
@@ -1973,6 +1984,7 @@ HRESULT CGraphCustomFilter::Create(IBaseFilter** ppBF, IUnknown** ppUnk)
 		m_clsid == __uuidof(CNullUVideoRenderer) ? (IBaseFilter*)new CNullUVideoRenderer() :
 		m_clsid == __uuidof(CNullUAudioRenderer) ? (IBaseFilter*)new CNullUAudioRenderer() :
 		m_clsid == __uuidof(CNullTextRenderer) ? (IBaseFilter*)new CNullTextRenderer(NULL, &hr) :
+		m_clsid == __uuidof(CDeinterlacerFilter) ? (IBaseFilter*)new CDeinterlacerFilter(NULL, &hr) :	
 		NULL;
 
 	__if_exists(CRadGtSplitterFilter)

@@ -432,9 +432,9 @@ ASSERT(!(m_fb.flags&PIC_FLAG_SKIP));
 					}
 					else if(di == DIBlend)
 					{
-						DeinterlaceBlend(m_fb.buf[0], fbuf->buf[0], w, h, pitch);
-						DeinterlaceBlend(m_fb.buf[1], fbuf->buf[1], w/2, h/2, pitch/2);
-						DeinterlaceBlend(m_fb.buf[2], fbuf->buf[2], w/2, h/2, pitch/2);
+						DeinterlaceBlend(m_fb.buf[0], fbuf->buf[0], w, h, pitch, pitch);
+						DeinterlaceBlend(m_fb.buf[1], fbuf->buf[1], w/2, h/2, pitch/2, pitch/2);
+						DeinterlaceBlend(m_fb.buf[2], fbuf->buf[2], w/2, h/2, pitch/2, pitch/2);
 					}
 					else if(di == DIBob)
 					{

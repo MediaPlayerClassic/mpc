@@ -21,6 +21,7 @@
 
 #include "stdafx.h"
 #include <afxdlgs.h>
+#include <atlpath.h>
 #include "resource.h"
 #include "..\..\..\subtitles\VobSubFile.h"
 #include "..\..\..\subtitles\RTS.h"
@@ -33,10 +34,12 @@
 namespace Plugin
 {
 
-class CFilter
+class CFilter : public CAMThread, public CCritSec
 {
-protected:
+private:
 	CString m_fn;
+
+protected:
 	float m_fps;
 	CCritSec m_csSubLock;
 	CComPtr<ISubPicQueue> m_pSubPicQueue;
@@ -44,10 +47,11 @@ protected:
 	DWORD_PTR m_SubPicProviderId;
 
 public:
-	CFilter() : m_fps(-1), m_SubPicProviderId(0) {}
-	virtual ~CFilter() {}
+	CFilter() : m_fps(-1), m_SubPicProviderId(0) {CAMThread::Create();}
+	virtual ~CFilter() {CAMThread::CallWorker(0);}
 
-	CString GetFileName() {return(m_fn);}
+	CString GetFileName() {CAutoLock cAutoLock(this); return m_fn;}
+	void SetFileName(CString fn) {CAutoLock cAutoLock(this); m_fn = fn;}
 
 	bool Render(SubPicDesc& dst, REFERENCE_TIME rt, float fps)
 	{
@@ -88,6 +92,76 @@ public:
 
 		return(true);
 	}
+
+	DWORD ThreadProc()
+	{
+		SetThreadPriority(m_hThread, THREAD_PRIORITY_LOWEST);
+
+		CArray<HANDLE> handles;
+		handles.Add(GetRequestHandle());
+
+		CString fn = GetFileName();
+		CFileStatus fs;
+		fs.m_mtime = 0;
+		CFileGetStatus(fn, fs);
+
+		while(1)
+		{
+			DWORD i = WaitForMultipleObjects(handles.GetSize(), handles.GetData(), FALSE, 1000);
+
+			if(WAIT_OBJECT_0 == i)
+			{
+				Reply(S_OK);
+				break;
+			}
+			else if(WAIT_ABANDONED_0 == i)
+			{
+				break;
+			}
+			else if(WAIT_OBJECT_0 + 1 >= i && i <= WAIT_OBJECT_0 + handles.GetCount())
+			{
+				if(FindNextChangeNotification(handles[i - WAIT_OBJECT_0]))
+				{
+					CFileStatus fs2;
+					fs2.m_mtime = 0;
+					CFileGetStatus(fn, fs2);
+
+					if(fs.m_mtime < fs2.m_mtime)
+					{
+						fs.m_mtime = fs2.m_mtime;
+
+						if(CComQIPtr<ISubStream> pSubStream = m_pSubPicProvider)
+						{
+							CAutoLock cAutoLock(&m_csSubLock);
+							pSubStream->Reload();
+						}
+					}
+				}
+			}
+			else if(WAIT_TIMEOUT == i)
+			{
+				CString fn2 = GetFileName();
+
+				if(fn != fn2)
+				{
+					CPath p(fn2);
+					p.RemoveFileSpec();
+					HANDLE h = FindFirstChangeNotification(p, FALSE, FILE_NOTIFY_CHANGE_LAST_WRITE); 
+					if(h != INVALID_HANDLE_VALUE)
+					{
+						fn = fn2;
+						handles.SetSize(1);
+						handles.Add(h);
+					}
+				}
+			}
+		}
+
+		for(int i = 1; i < handles.GetCount(); i++)
+			FindCloseChangeNotification(handles[i]);
+
+		return 0;
+	}
 };
 
 class CVobSubFilter : virtual public CFilter
@@ -100,13 +174,13 @@ public:
 
 	bool Open(CString fn)
 	{
-		m_fn.Empty();
+		SetFileName(_T(""));
 		m_pSubPicProvider = NULL;
 
 		if(CVobSubFile* vsf = new CVobSubFile(&m_csSubLock))
 		{
 			m_pSubPicProvider = (ISubPicProvider*)vsf;
-			if(vsf->Open(CString(fn))) m_fn = fn;
+			if(vsf->Open(CString(fn))) SetFileName(fn);
 			else m_pSubPicProvider = NULL;
 		}
 
@@ -130,13 +204,13 @@ public:
 
 	bool Open(CString fn, int CharSet = DEFAULT_CHARSET)
 	{
-		m_fn.Empty();
+		SetFileName(_T(""));
 		m_pSubPicProvider = NULL;
 
 		if(CRenderedTextSubtitle* rts = new CRenderedTextSubtitle(&m_csSubLock))
 		{
 			m_pSubPicProvider = (ISubPicProvider*)rts;
-			if(rts->Open(CString(fn), CharSet)) m_fn = fn;
+			if(rts->Open(CString(fn), CharSet)) SetFileName(fn);
 			else m_pSubPicProvider = NULL;
 		}
 
