@@ -3,7 +3,7 @@
 #include "..\..\..\DSUtil\DSUtil.h"
 #include "..\..\..\..\include\matroska\matroska.h"
 
-CDSMSplitterFile::CDSMSplitterFile(IAsyncReader* pReader, HRESULT& hr, CDSMResourceBag& res, CDSMChapterBag& chap) 
+CDSMSplitterFile::CDSMSplitterFile(IAsyncReader* pReader, HRESULT& hr, IDSMResourceBagImpl& res, IDSMChapterBagImpl& chap) 
 	: CBaseSplitterFile(pReader, hr)
 	, m_rtFirst(0)
 	, m_rtDuration(0)
@@ -13,7 +13,7 @@ CDSMSplitterFile::CDSMSplitterFile(IAsyncReader* pReader, HRESULT& hr, CDSMResou
 	hr = Init(res, chap);
 }
 
-HRESULT CDSMSplitterFile::Init(CDSMResourceBag& res, CDSMChapterBag& chap)
+HRESULT CDSMSplitterFile::Init(IDSMResourceBagImpl& res, IDSMChapterBagImpl& chap)
 {
 	Seek(0);
 
@@ -218,7 +218,7 @@ bool CDSMSplitterFile::Read(__int64 len, CStreamInfoMap& im)
 	return len == 0;
 }
 
-bool CDSMSplitterFile::Read(__int64 len, CDSMResourceBag& res)
+bool CDSMSplitterFile::Read(__int64 len, IDSMResourceBagImpl& res)
 {
 	BYTE compression = (BYTE)BitRead(2);
 	BYTE reserved = (BYTE)BitRead(6);
@@ -239,7 +239,7 @@ bool CDSMSplitterFile::Read(__int64 len, CDSMResourceBag& res)
 	return true;
 }
 
-bool CDSMSplitterFile::Read(__int64 len, CDSMChapterBag& chap)
+bool CDSMSplitterFile::Read(__int64 len, IDSMChapterBagImpl& chap)
 {
 	CDSMChapter c(0, L"");
 

@@ -1295,7 +1295,7 @@ STDMETHODIMP CBaseSplitterFilter::get_CurrentMarker(long* pCurrentMarker)
 	REFERENCE_TIME rt = m_rtCurrent;
 	long i = ChapLookup(&rt);
 	if(i < 0) return E_FAIL;
-	*pCurrentMarker = i;
+	*pCurrentMarker = i+1;
 	return S_OK;
 }
 
@@ -1303,14 +1303,14 @@ STDMETHODIMP CBaseSplitterFilter::GetMarkerTime(long MarkerNum, double* pMarkerT
 {
 	CheckPointer(pMarkerTime, E_POINTER);
 	REFERENCE_TIME rt;
-	if(FAILED(ChapGet((int)MarkerNum, &rt))) return E_FAIL;
+	if(FAILED(ChapGet((int)MarkerNum-1, &rt))) return E_FAIL;
 	*pMarkerTime = (double)rt / 10000000;
 	return S_OK;
 }
 
 STDMETHODIMP CBaseSplitterFilter::GetMarkerName(long MarkerNum, BSTR* pbstrMarkerName)
 {
-	return ChapGet((int)MarkerNum, NULL, pbstrMarkerName);
+	return ChapGet((int)MarkerNum-1, NULL, pbstrMarkerName);
 }
 
 // IKeyFrameInfo

@@ -230,10 +230,11 @@ class CMainFrame : public CFrameWnd, public CDropTarget
 	CInterfaceArray<IAMStreamSelect> m_ssarray;
 
 	// chapters (file mode)
-
+	CComPtr<IDSMChapterBag> m_pCB;
+/*
 	typedef struct {REFERENCE_TIME rtStart, rtStop; CString name;} chapter_t;
 	CArray<chapter_t> m_chapters;
-
+*/
 	//
 
 	void SetupIViAudReg();

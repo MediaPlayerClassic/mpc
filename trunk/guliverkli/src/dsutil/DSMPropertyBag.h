@@ -13,14 +13,14 @@ interface IDSMPropertyBag : public IPropertyBag2
 	STDMETHOD(DelProperty) (LPCWSTR key) = 0;
 };
 
-class CDSMPropertyBag : public ATL::CSimpleMap<CStringW, CStringW>, public IDSMPropertyBag, public IPropertyBag
+class IDSMPropertyBagImpl : public ATL::CSimpleMap<CStringW, CStringW>, public IDSMPropertyBag, public IPropertyBag
 {
 	BOOL Add(const CStringW& key, const CStringW& val) {return __super::Add(key, val);}
 	BOOL SetAt(const CStringW& key, const CStringW& val) {return __super::SetAt(key, val);}
 
 public:
-	CDSMPropertyBag();
-	virtual ~CDSMPropertyBag();
+	IDSMPropertyBagImpl();
+	virtual ~IDSMPropertyBagImpl();
 
 	// IPropertyBag
 
@@ -73,13 +73,13 @@ public:
 	static CAtlMap<DWORD, CDSMResource*> m_resources;
 };
 
-class CDSMResourceBag : public IDSMResourceBag
+class IDSMResourceBagImpl : public IDSMResourceBag
 {
 protected:
 	CArray<CDSMResource> m_resources;
 
 public:
-	CDSMResourceBag();
+	IDSMResourceBagImpl();
 
 	void operator += (const CDSMResource& r) {m_resources.Add(r);}
 
@@ -118,14 +118,14 @@ public:
 	void operator = (const CDSMChapter& c);
 };
 
-class CDSMChapterBag : public IDSMChapterBag
+class IDSMChapterBagImpl : public IDSMChapterBag
 {
 protected:
 	CArray<CDSMChapter> m_chapters;
 	bool m_fSorted;
 
 public:
-	CDSMChapterBag();
+	IDSMChapterBagImpl();
 
 	void operator += (const CDSMChapter& c) {m_chapters.Add(c); m_fSorted = false;}
 
@@ -139,6 +139,15 @@ public:
 	STDMETHODIMP ChapRemoveAll();
 	STDMETHODIMP_(long) ChapLookup(REFERENCE_TIME* prt, BSTR* ppName = NULL);
 	STDMETHODIMP ChapSort();
+};
+
+class CDSMChapterBag : public CUnknown, public IDSMChapterBagImpl
+{
+public:
+	CDSMChapterBag(LPUNKNOWN pUnk, HRESULT* phr);
+
+	DECLARE_IUNKNOWN;
+	STDMETHODIMP NonDelegatingQueryInterface(REFIID riid, void** ppv);
 };
 
 template<class T>

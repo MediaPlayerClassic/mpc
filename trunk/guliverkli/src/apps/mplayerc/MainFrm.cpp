@@ -4625,36 +4625,32 @@ void CMainFrame::OnNavigateSkip(UINT nID)
 {
 	if(m_iPlaybackMode == PM_FILE || m_iPlaybackMode == PM_CAPTURE)
 	{
-		if(m_chapters.GetCount())
+		if(DWORD nChapters = m_pCB->ChapGetCount())
 		{
-			REFERENCE_TIME rtNow, rtDur;
-			pMS->GetCurrentPosition(&rtNow);
-			pMS->GetDuration(&rtDur);
+			REFERENCE_TIME rtCur;
+			pMS->GetCurrentPosition(&rtCur);
+
+			REFERENCE_TIME rt = rtCur;
+			CComBSTR name;
+			long i;
 
 			if(nID == ID_NAVIGATE_SKIPBACK)
 			{
-				for(int i = m_chapters.GetCount()-1; i >= 0; i--)
-				{
-					if(rtNow >= m_chapters[i].rtStart)
-					{
-						if(rtNow < m_chapters[i].rtStart + 10000000 && i > 0) i--;
-						SeekTo(m_chapters[i].rtStart);
-						SendStatusMessage(_T("Chapter: ") + m_chapters[i].name, 3000);
-						return;
-					}
-				}
+				rt -= 30000000;
+				i = m_pCB->ChapLookup(&rt, &name);
 			}
 			else if(nID == ID_NAVIGATE_SKIPFORWARD)
 			{
-				for(int i = 0; i < m_chapters.GetCount(); i++)
-				{
-					if(rtNow < m_chapters[i].rtStart)
-					{
-						SeekTo(m_chapters[i].rtStart);
-						SendStatusMessage(_T("Chapter: ") + m_chapters[i].name, 3000);
-						return;
-					}
-				}
+				i = m_pCB->ChapLookup(&rt, &name) + 1;
+				name.Empty();
+				if(i < nChapters) m_pCB->ChapGet(i, &rt, &name);
+			}
+
+			if(i >= 0 && i < nChapters)
+			{
+				SeekTo(rt);
+				SendStatusMessage(_T("Chapter: ") + CString(name), 3000);
+				return;
 			}
 		}
 
@@ -4723,7 +4719,7 @@ void CMainFrame::OnUpdateNavigateSkip(CCmdUI* pCmdUI)
 		&& ((m_iPlaybackMode == PM_DVD 
 				&& m_iDVDDomain != DVD_DOMAIN_VideoManagerMenu 
 				&& m_iDVDDomain != DVD_DOMAIN_VideoTitleSetMenu)
-			|| (m_iPlaybackMode == PM_FILE && (m_wndPlaylistBar.GetCount() > 1/*0*/ || m_chapters.GetCount() > 1))
+			|| (m_iPlaybackMode == PM_FILE && (m_wndPlaylistBar.GetCount() > 1/*0*/ || m_pCB->ChapGetCount() > 1))
 			|| (m_iPlaybackMode == PM_CAPTURE && !m_fCapturing))); // TODO
 }
 
@@ -4847,13 +4843,19 @@ void CMainFrame::OnNavigateChapters(UINT nID)
 
 	if(m_iPlaybackMode == PM_FILE)
 	{
-		if((int)nID >= 0 && (int)nID < m_chapters.GetCount())
+		if((int)nID >= 0 && nID < m_pCB->ChapGetCount())
 		{
-			SeekTo(m_chapters[nID].rtStart);
-			SendStatusMessage(_T("Chapter: ") + m_chapters[nID].name, 3000);
+			REFERENCE_TIME rt;
+			CComBSTR name;
+			if(SUCCEEDED(m_pCB->ChapGet(nID, &rt, &name)))
+			{
+				SeekTo(rt);
+				SendStatusMessage(_T("Chapter: ") + CString(name), 3000);
+			}
 			return;
 		}
-		nID -= m_chapters.GetCount();
+
+		nID -= m_pCB->ChapGetCount();
 
 		if((int)nID >= 0 && (int)nID < m_wndPlaylistBar.GetCount()
 		&& m_wndPlaylistBar.GetSelIdx() != (int)nID)
@@ -5833,6 +5835,8 @@ void CMainFrame::OpenCreateGraphObject(OpenMediaData* pOMD)
 	
 	if(CComQIPtr<IObjectWithSite> pObjectWithSite = pGB)
 		pObjectWithSite->SetSite(m_pProv);
+
+	m_pCB = new CDSMChapterBag(NULL, NULL);
 }
 
 void CMainFrame::OpenFile(OpenFileData* pOFD)
@@ -5921,12 +5925,28 @@ void CMainFrame::OpenFile(OpenFileData* pOFD)
 		EndEnumFilters
 	}
 
-	REFERENCE_TIME rtDur = 0;
-	pMS->GetDuration(&rtDur);
+	ASSERT(m_pCB);
 
 	BeginEnumFilters(pGB, pEF, pBF) 
 	{
-		if(!m_chapters.IsEmpty()) break;
+		if(m_pCB->ChapGetCount()) break;
+
+		CComQIPtr<IDSMChapterBag> pCB = pBF;
+		if(!pCB) continue;
+
+		for(DWORD i = 0, cnt = pCB->ChapGetCount(); i < cnt; i++)
+		{
+			REFERENCE_TIME rt;
+			CComBSTR name;
+			if(SUCCEEDED(pCB->ChapGet(i, &rt, &name)))
+				m_pCB->ChapAppend(rt, name);
+		}
+	}
+	EndEnumFilters
+
+	BeginEnumFilters(pGB, pEF, pBF) 
+	{
+		if(m_pCB->ChapGetCount()) break;
 
 		CComQIPtr<IChapterInfo> pCI = pBF;
 		if(!pCI) continue;
@@ -5940,23 +5960,15 @@ void CMainFrame::OpenFile(OpenFileData* pOFD)
 		for(UINT i = 1; i <= cnt; i++)
 		{
 			UINT cid = pCI->GetChapterId(CHAPTER_ROOT_ID, i);
+
 			ChapterElement ce;
-			CComBSTR bstr;
-			CHAR pl[3] = {iso6392[0], iso6392[1], iso6392[2]};
-			CHAR cc[] = "  ";
 			if(pCI->GetChapterInfo(cid, &ce))
 			{
-				chapter_t c;
-				c.rtStart = ce.rtStart;
-				c.rtStop = max(rtDur, ce.rtStop); // TODO
-
-				bstr.Attach(pCI->GetChapterStringInfo(cid, pl, cc));
-				c.name = CString(bstr);
-
-				if(m_chapters.GetCount() > 0)
-					m_chapters[m_chapters.GetCount()-1].rtStop = c.rtStart;
-
-				m_chapters.Add(c);
+				char pl[3] = {iso6392[0], iso6392[1], iso6392[2]};
+				char cc[] = "  ";
+				CComBSTR name;
+				name.Attach(pCI->GetChapterStringInfo(cid, pl, cc));
+				m_pCB->ChapAppend(ce.rtStart, name);
 			}
 		}
 	}
@@ -5964,7 +5976,7 @@ void CMainFrame::OpenFile(OpenFileData* pOFD)
 
 	BeginEnumFilters(pGB, pEF, pBF) 
 	{
-		if(!m_chapters.IsEmpty()) break;
+		if(m_pCB->ChapGetCount()) break;
 
 		CComQIPtr<IAMExtendedSeeking, &IID_IAMExtendedSeeking> pES = pBF;
 		if(!pES) continue;
@@ -5977,22 +5989,14 @@ void CMainFrame::OpenFile(OpenFileData* pOFD)
 				double MarkerTime = 0;
 				if(SUCCEEDED(pES->GetMarkerTime(i, &MarkerTime)))
 				{
-					CString name;
-					name.Format(_T("Chapter %d"), i);
+					CStringW name;
+					name.Format(L"Chapter %d", i);
 
 					CComBSTR bstr;
 					if(S_OK == pES->GetMarkerName(i, &bstr))
-						name = CString(bstr);
+						name = bstr;
 
-					chapter_t c;
-					c.rtStart = REFERENCE_TIME(MarkerTime*10000000);
-					c.rtStop = max(rtDur, c.rtStart);
-					c.name = name;
-
-					if(m_chapters.GetCount() > 0)
-						m_chapters[m_chapters.GetCount()-1].rtStop = c.rtStart;
-
-					m_chapters.Add(c);
+					m_pCB->ChapAppend(REFERENCE_TIME(MarkerTime*10000000), name);
 				}
 			}
 		}
@@ -6001,13 +6005,15 @@ void CMainFrame::OpenFile(OpenFileData* pOFD)
 
 	BeginEnumFilters(pGB, pEF, pBF)
 	{
-		if(!m_chapters.IsEmpty()) break;
+		if(m_pCB->ChapGetCount()) break;
 
 		if(GetCLSID(pBF) != CLSID_OggSplitter)
 			continue;
 
 		BeginEnumPins(pBF, pEP, pPin)
 		{
+			if(m_pCB->ChapGetCount()) break;
+
 			if(CComQIPtr<IPropertyBag> pPB = pPin)
 			{
             	for(int i = 1; ; i++)
@@ -6025,29 +6031,26 @@ void CMainFrame::OpenFile(OpenFileData* pOFD)
 					if(7 != swscanf(CStringW(var), L"%d%c%d%c%d%c%d", &h, &wc, &m, &wc, &s, &wc, &ms)) 
 						break;
 
-					chapter_t c;
-					c.rtStart = 10000i64*(((h*60 + m)*60 + s)*1000 + ms);
-					c.rtStop = rtDur ? rtDur : c.rtStart;
-
+					CStringW name;
+					name.Format(L"Chapter %d", i);
 					var.Clear();
                     str += L"NAME";
 					if(S_OK == pPB->Read(str, &var, NULL))
-						c.name = var;
+						name = var;
 
-					if(m_chapters.GetCount() > 0)
-						m_chapters[m_chapters.GetCount()-1].rtStop = c.rtStart;
-
-					m_chapters.Add(c);
+					m_pCB->ChapAppend(10000i64*(((h*60 + m)*60 + s)*1000 + ms), name);
 				}
 			}
-
-			if(!m_chapters.IsEmpty())
-				break;
 		}
 		EndEnumPins
 	}
 	EndEnumFilters
 
+	m_pCB->ChapSort();
+/*
+	REFERENCE_TIME rtDur = 0;
+	pMS->GetDuration(&rtDur);
+*/
 	CComQIPtr<IKeyFrameInfo> pKFI;
 	BeginEnumFilters(pGB, pEF, pBF)
 		if(pKFI = pBF) break;
@@ -6876,6 +6879,8 @@ void CMainFrame::CloseMediaPrivate()
 
 	m_kfs.RemoveAll();
 
+	m_pCB = NULL;
+
 RemoveFromRot(m_dwRegister);
 
 //	if(pVW) pVW->put_Visible(OAFALSE);
@@ -6906,8 +6911,6 @@ RemoveFromRot(m_dwRegister);
 		CAutoLock cAutoLock(&m_csSubLock);
 		m_pSubStreams.RemoveAll();
 	}
-
-	m_chapters.RemoveAll();
 
 	m_VidDispName.Empty();
 	m_AudDispName.Empty();
@@ -7433,29 +7436,30 @@ void CMainFrame::SetupNavChaptersSubMenu()
 
 	if(m_iPlaybackMode == PM_FILE)
 	{
-		if(m_chapters.GetCount())
+		REFERENCE_TIME rt = GetPos();
+		DWORD j = m_pCB->ChapLookup(&rt, NULL);
+
+		for(DWORD i = 0; i < m_pCB->ChapGetCount(); i++, id++)
 		{
-			REFERENCE_TIME rt = GetPos();
+			rt = 0;
+			CComBSTR bstr;
+			if(FAILED(m_pCB->ChapGet(i, &rt, &bstr)))
+				continue;
 
-			for(int i = 0; i < m_chapters.GetCount(); i++)
-			{
-				chapter_t& c = m_chapters[i];
+			int s = (int)((rt/10000000)%60);
+			int m = (int)((rt/10000000/60)%60);
+			int h = (int)((rt/10000000/60/60));
 
-				int s = (int)((c.rtStart/10000000)%60);
-				int m = (int)((c.rtStart/10000000/60)%60);
-				int h = (int)((c.rtStart/10000000/60/60));
+			CString time;
+			time.Format(_T("[%02d:%02d:%02d] "), h, m, s);
 
-				CString t;
-				t.Format(_T("[%02d:%02d:%02d] "), h, m, s);
+			CString name = CString(bstr);
+			name.Replace(_T("&"), _T("&&"));
 
-				CString name = c.name;
-				name.Replace(_T("&"), _T("&&"));
-
-				UINT flags = MF_BYCOMMAND|MF_STRING|MF_ENABLED;
-				if(c.rtStart <= rt && rt < c.rtStop) flags |= MF_CHECKED;
-				if(id != ID_NAVIGATE_CHAP_SUBITEM_START && i == 0) pSub->AppendMenu(MF_SEPARATOR);
-				pSub->AppendMenu(flags, id++, t + name);
-			}
+			UINT flags = MF_BYCOMMAND|MF_STRING|MF_ENABLED;
+			if(i == j) flags |= MF_CHECKED;
+			if(id != ID_NAVIGATE_CHAP_SUBITEM_START && i == 0) pSub->AppendMenu(MF_SEPARATOR);
+			pSub->AppendMenu(flags, id, time + name);
 		}
 
 		if(m_wndPlaylistBar.GetCount() > 1)
