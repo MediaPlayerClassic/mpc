@@ -10,7 +10,7 @@ $db_host = addslashes($http_host[0]);
 
 $db->query(
 	"select scheme, host, port, path, name, UNIX_TIMESTAMP(lastseen) ".
-	"from mirrors where host <> '$db_host' order by lastseen desc");
+	"from mirror where host <> '$db_host' order by lastseen desc");
 
 $mirrors = array();
 

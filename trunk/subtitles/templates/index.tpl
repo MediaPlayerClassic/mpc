@@ -2,7 +2,7 @@
 
 <div class="search" align="center">
 
-	<form action="{$smarty.server.PHP_SELF}" method="GET">
+	<form action="{$smarty.server.PHP_SELF}" method="GET" accept-charset="utf-8">
 	
 	<h1>Search</h1>
 	
