@@ -185,7 +185,7 @@ namespace Matroska
 				CUInt TrackNumber, TrackUID, TrackType;
 				CUInt FlagEnabled, FlagDefault, FlagLacing;
 				CUInt MinCache, MaxCache;
-				CUInt DefaultDuration; // ? should be level 4 but no level 4 node includes it here
+				CUInt DefaultDuration;
 				CUTF8 Name;
 				CANSI Language;
 				CBinary CodecID;
@@ -196,7 +196,7 @@ namespace Matroska
 				CANSI CodecDownloadURL;
 				CUInt CodecDecodeAll;
 				CUInt TrackOverlay;
-				enum {NoDesc = 0, VideoDesc = 1, AudioDesc = 2};
+				enum {NoDesc = 0, DescVideo = 1, DescAudio = 2};
 				int DescType;
 				Video v;
 				Audio a;

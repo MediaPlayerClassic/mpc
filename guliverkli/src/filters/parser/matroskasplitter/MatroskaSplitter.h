@@ -51,10 +51,24 @@ public:
 	STDMETHODIMP EndFlush();
 };
 
-class CMatroskaSplitterOutputPin : public CBaseOutputPin
+class CMatroskaSplitterOutputPin : public CBaseOutputPin, protected CAMThread
 {
 	CMediaType m_mt;
-	CAutoPtr<COutputQueue> m_pOutputQueue;
+//	CAutoPtr<COutputQueue> m_pOutputQueue;
+
+	void DontGoWild();
+
+public:
+	enum {EMPTY, EOS, BLOCK};
+	typedef struct {int type; REFERENCE_TIME rtStart, rtStop; CAutoPtr<Matroska::Block> b; BOOL bDiscontinuity;} packet;
+	HRESULT DeliverBlock(CAutoPtr<Matroska::Block> b, REFERENCE_TIME rtStart, REFERENCE_TIME rtStop, BOOL bDiscontinuity);
+
+private:
+	CCritSec m_csQueueLock;
+	CAutoPtrList<packet> m_packets;
+	HRESULT m_hrDeliver;
+	enum {CMD_EXIT};
+    DWORD ThreadProc();
 
 public:
 	CMatroskaSplitterOutputPin(CMediaType& mt, LPCWSTR pName, CBaseFilter* pFilter, CCritSec* pLock, HRESULT* phr);
@@ -75,7 +89,7 @@ public:
 	HRESULT Active();
     HRESULT Inactive();
 
-	HRESULT Deliver(IMediaSample* pMediaSample);
+//	HRESULT Deliver(IMediaSample* pMediaSample);
     HRESULT DeliverEndOfStream();
     HRESULT DeliverBeginFlush();
 	HRESULT DeliverEndFlush();
@@ -139,7 +153,7 @@ protected:
 	CList<UINT64> m_bDiscontinuitySent;
 	CList<CBaseOutputPin*> m_pActivePins;
 
-	HRESULT DeliverBlock(Matroska::Block* pBlock);
+	HRESULT DeliverBlock(CAutoPtr<Matroska::Block> b);
 
 protected:
 	enum {CMD_EXIT, CMD_RUN, CMD_SEEK};
