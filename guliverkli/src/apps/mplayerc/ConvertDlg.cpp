@@ -459,6 +459,7 @@ void CConvertDlg::ShowChapterFolderPopup(HTREEITEM hTI, CPoint p)
 	{
 	case 1:
 		// TODO
+		AfxMessageBox(_T("To be implemented, sorry for the inconvinience ;)"), MB_OK);
 		break;
 	case 2:
 		DeleteChildren(hTI);
@@ -805,12 +806,22 @@ void CConvertDlg::OnBnClickedButton2()
 		POSITION pos = m_pTIs.GetHeadPosition();
 		while(pos)
 		{
-			CTreeItem* t = m_pTIs.GetNext(pos);
-			if(CTreeItemResource* t2 = dynamic_cast<CTreeItemResource*>(t))
+			if(CTreeItemResource* t2 = dynamic_cast<CTreeItemResource*>((CTreeItem*)m_pTIs.GetNext(pos)))
 				pRB->ResAppend(
 					t2->m_res.name, t2->m_res.desc, t2->m_res.mime, 
 					t2->m_res.data.GetData(), t2->m_res.data.GetSize(), 
 					NULL);
+		}		
+	}
+
+	if(CComQIPtr<IDSMChapterBag> pCB = m_pMux)
+	{
+		pCB->ChapRemoveAll();
+		POSITION pos = m_pTIs.GetHeadPosition();
+		while(pos)
+		{
+			if(CTreeItemChapter* t2 = dynamic_cast<CTreeItemChapter*>((CTreeItem*)m_pTIs.GetNext(pos)))
+				pCB->ChapAppend(t2->m_chap.rt, t2->m_chap.name);
 		}		
 	}
 
