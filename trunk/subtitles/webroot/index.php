@@ -91,8 +91,6 @@ else
 
 if(!empty($movies))
 {
-	$users = array();
-	
 	// init & test_movie_id
 	
 	$test_movie_id = array();
@@ -116,17 +114,24 @@ if(!empty($movies))
 	// subs
 
 	$db->query(
-		"select t1.movie_id, t1.id as ms_id, t1.name, t1.userid, t1.date, t1.notes, t1.format, t1.iso639_2, ".
-		" t2.id, t2.discs, t2.disc_no, t2.downloads ".
+		"select ".
+		" t1.movie_id, t1.id as ms_id, t1.name, t1.userid, t1.date, t1.notes, t1.format, t1.iso639_2, ".
+		" t2.id, t2.discs, t2.disc_no, t2.downloads, ".
+		" t3.nick, t3.email ".
 		"from movie_subtitle t1 ".
 		"join subtitle t2 on t1.subtitle_id = t2.id ".
+		"left outer join user t3 on t1.userid = t3.userid ".
 		"where $test_movie_id ".
 		(!empty($discs)?" && discs = '$discs' ":"").
 		(!empty($isolang_sel)?" && iso639_2 = '$isolang_sel' ":"").
 		(!empty($format_sel)?" && format = '$format_sel' ":"").
 		"order by t1.date asc, t2.disc_no asc ");
 	while($row = $db->fetchRow()) $movies[$row['movie_id']]['subs'][] = $row;
-	
+
+if(isset($_ENV['COMPUTERNAME']) && $_ENV['COMPUTERNAME'] == 'I2400P4')
+{
+}
+
 	chkerr();
 
 	foreach($movies as $id => $movie)
@@ -137,20 +142,7 @@ if(!empty($movies))
 			$movies[$id]['subs'][$j]['language'] = empty($isolang[$sub['iso639_2']]) ? 'Unknown' : $isolang[$sub['iso639_2']];
 			$movies[$id]['subs'][$j]['files'] = array();
 			
-			$userid = intval($sub['userid']);
-			
-			if(!isset($users[$userid]))
-			{
-				$db->query("select nick, email from user where userid = $userid");
-				if($row = $db->fetchRow()) $users[$userid] = $row;
-			}
-			
-			if(isset($users[$userid]))
-			{
-				$movies[$id]['subs'][$j]['nick'] = $users[$userid]['nick'];
-				$movies[$id]['subs'][$j]['email'] = $users[$userid]['email'];
-			}
-			else
+			if($movies[$id]['subs'][$j]['nick'] == null)
 			{
 				$movies[$id]['subs'][$j]['nick'] = 'Anonymous';
 				$movies[$id]['subs'][$j]['email'] = '';
