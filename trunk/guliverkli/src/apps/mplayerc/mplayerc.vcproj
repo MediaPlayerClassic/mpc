@@ -451,6 +451,9 @@
 				RelativePath="PPageSheet.cpp">
 			</File>
 			<File
+				RelativePath=".\PPageSource.cpp">
+			</File>
+			<File
 				RelativePath="PPageSubStyle.cpp">
 			</File>
 			<File
@@ -669,6 +672,9 @@
 			</File>
 			<File
 				RelativePath="PPageSheet.h">
+			</File>
+			<File
+				RelativePath=".\PPageSource.h">
 			</File>
 			<File
 				RelativePath="PPageSubStyle.h">

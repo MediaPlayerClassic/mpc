@@ -864,6 +864,29 @@ BEGIN
                     BS_AUTOCHECKBOX | WS_TABSTOP,195,140,76,10
 END
 
+IDD_PPAGESOURCE DIALOGEX 0, 0, 296, 200
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    GROUPBOX        "Enabled built-in source filters",IDC_STATIC,6,5,143,144
+    CONTROL         "Audio CD Reader",IDC_CHECK1,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,19,23,71,10
+    CONTROL         "VCD/SVCD/XCD Reader",IDC_CHECK2,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,19,38,91,10
+    CONTROL         "DVD Video Title Set Reader",IDC_CHECK3,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,19,53,102,10
+    CONTROL         "FLI/FLC Decoder",IDC_CHECK4,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,19,68,69,10
+    CONTROL         "DVD2AVI Project File Decoder",IDC_CHECK5,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,19,83,111,10
+    CONTROL         "DTS/AC3 Parser",IDC_CHECK6,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,19,98,67,10
+    CONTROL         "Matroska Splitter",IDC_CHECK7,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,19,113,70,10
+    CONTROL         "SHOUTcast Receiver",IDC_CHECK8,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,19,128,82,10
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -1084,6 +1107,15 @@ BEGIN
         TOPMARGIN, 5
         BOTTOMMARGIN, 249
         HORZGUIDE, 231
+    END
+
+    IDD_PPAGESOURCE, DIALOG
+    BEGIN
+        VERTGUIDE, 6
+        VERTGUIDE, 19
+        VERTGUIDE, 289
+        HORZGUIDE, 5
+        HORZGUIDE, 198
     END
 END
 #endif    // APSTUDIO_INVOKED
@@ -1729,11 +1761,13 @@ BEGIN
     IDS_RS_JUMPDISTM        "JumpDistM"
     IDS_RS_JUMPDISTL        "JumpDistL"
     IDS_RS_REPORTFAILEDPINS "ReportFailedPins"
+    IDS_RS_SRCFILTERS       "SrcFilters"
 END
 
 STRINGTABLE 
 BEGIN
     IDD_PPAGESUBSTYLE       "Subtitles::Default Style"
+    IDD_PPAGESOURCE         "Filters::Source"
 END
 
 #endif    // English (U.S.) resources
