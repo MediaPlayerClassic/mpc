@@ -21,43 +21,31 @@
 
 #pragma once
 
-#include "PPageBase.h"
-#include "afxwin.h"
+#include "..\BaseSplitter\BaseSplitter.h"
 
-class CPPageFiltersListBox : public CCheckListBox
+class CMpaSplitterFile : public CBaseSplitterFileEx
 {
-	DECLARE_DYNAMIC(CPPageFiltersListBox)
+	CMediaType m_mt;
+	REFERENCE_TIME m_rtDuration;
+
+	mpahdr m_firsthdr;
+	__int64 m_startpos, m_endpos;
+
+	__int64 m_totalbps;
+	CRBMap<__int64, int> m_pos2bps;
+
+	HRESULT Init();
 
 public:
-	CPPageFiltersListBox();
+	CMpaSplitterFile(IAsyncReader* pAsyncReader, HRESULT& hr);
 
-protected:
-	virtual void PreSubclassWindow();
-	virtual INT_PTR OnToolHitTest(CPoint point, TOOLINFO* pTI) const;
+	CMap<DWORD, DWORD, CString, CString&> m_tags;
 
-	DECLARE_MESSAGE_MAP()
-	afx_msg BOOL OnToolTipNotify(UINT id, NMHDR* pNMHDR, LRESULT* pResult);
-};
+	const CMediaType& GetMediaType() {return m_mt;}
+	REFERENCE_TIME GetDuration() {return m_rtDuration;}
 
-// CPPageFilters dialog
+	__int64 GetStartPos() {return m_startpos;}
+	__int64 GetEndPos() {return m_endpos;}
 
-class CPPageFilters : public CPPageBase
-{
-	DECLARE_DYNAMIC(CPPageFilters)
-
-public:
-	CPPageFilters();
-	virtual ~CPPageFilters();
-
-// Dialog Data
-	enum { IDD = IDD_PPAGEFILTERS };
-	CPPageFiltersListBox m_listSrc;
-	CPPageFiltersListBox m_listTra;
-
-protected:
-	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV support
-	virtual BOOL OnInitDialog();
-	virtual BOOL OnApply();
-
-	DECLARE_MESSAGE_MAP()
+	bool Sync(mpahdr& h, int limit = 0x2000);
 };

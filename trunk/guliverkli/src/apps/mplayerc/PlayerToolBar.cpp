@@ -46,9 +46,13 @@ CPlayerToolBar::~CPlayerToolBar()
 
 BOOL CPlayerToolBar::Create(CWnd* pParentWnd)
 {
-	if(!CToolBar::CreateEx(pParentWnd, TBSTYLE_FLAT|TBSTYLE_TRANSPARENT, WS_CHILD|WS_VISIBLE|CBRS_ALIGN_BOTTOM, CRect(2,2,0,3)) 
+	if(!__super::CreateEx(pParentWnd,
+		TBSTYLE_FLAT|TBSTYLE_TRANSPARENT|TBSTYLE_AUTOSIZE,
+		WS_CHILD|WS_VISIBLE|CBRS_ALIGN_BOTTOM|CBRS_TOOLTIPS, CRect(2,2,0,3)) 
 	|| !LoadToolBar(ID_PLAYERTOOLBAR))
 		return FALSE;
+
+	GetToolBarCtrl().SetExtendedStyle(TBSTYLE_EX_DRAWDDARROWS);
 
 	CToolBarCtrl& tb = GetToolBarCtrl();
 	tb.DeleteButton(tb.GetButtonCount()-1);
@@ -62,7 +66,7 @@ BOOL CPlayerToolBar::Create(CWnd* pParentWnd)
 		TBBS_SEPARATOR,
 		TBBS_BUTTON, TBBS_BUTTON, TBBS_BUTTON, TBBS_BUTTON, 
 		TBBS_SEPARATOR,
-		TBBS_BUTTON, 
+		TBBS_BUTTON/*|TBSTYLE_DROPDOWN*/, 
 		TBBS_SEPARATOR,
 		TBBS_SEPARATOR,
 		TBBS_CHECKBOX, 
@@ -89,7 +93,7 @@ BOOL CPlayerToolBar::Create(CWnd* pParentWnd)
 
 BOOL CPlayerToolBar::PreCreateWindow(CREATESTRUCT& cs)
 {
-	if(!CToolBar::PreCreateWindow(cs))
+	if(!__super::PreCreateWindow(cs))
 		return FALSE;
 
 	m_dwStyle &= ~CBRS_BORDER_TOP;
@@ -198,7 +202,7 @@ void CPlayerToolBar::OnPaint()
 
 void CPlayerToolBar::OnSize(UINT nType, int cx, int cy)
 {
-	CToolBar::OnSize(nType, cx, cy);
+	__super::OnSize(nType, cx, cy);
 
 	ArrangeControls();
 }

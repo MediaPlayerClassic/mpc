@@ -99,7 +99,6 @@ STDMETHODIMP CMpegSplitterFilter::NonDelegatingQueryInterface(REFIID riid, void*
 
     return 
 		QI(IAMStreamSelect)
-		QI(IAMOpenProgress)
 		__super::NonDelegatingQueryInterface(riid, ppv);
 }
 
@@ -112,7 +111,7 @@ HRESULT CMpegSplitterFilter::DemuxNextPacket(REFERENCE_TIME rtStartOffset)
 
 	if(m_pFile->m_type == CMpegSplitterFile::ps || m_pFile->m_type == CMpegSplitterFile::es)
 	{
-		if(!m_pFile->Next(b))
+		if(!m_pFile->NextMpegStartCode(b))
 			return S_FALSE;
 
 		if(b == 0xba) // program stream header
@@ -167,7 +166,7 @@ HRESULT CMpegSplitterFilter::DemuxNextPacket(REFERENCE_TIME rtStartOffset)
 			DWORD TrackNumber = h.pid;
 
 			CMpegSplitterFile::peshdr h2;
-			if(h.payloadstart && m_pFile->Next(b, 4) && m_pFile->Read(h2, b)) // pes packet
+			if(h.payloadstart && m_pFile->NextMpegStartCode(b, 4) && m_pFile->Read(h2, b)) // pes packet
 			{
 				if(h2.type == CMpegSplitterFile::mpeg2 && h2.scrambling) {ASSERT(0); return E_FAIL;}
 				TrackNumber = m_pFile->AddStream(h.pid, b, h.bytes - (m_pFile->GetPos() - pos));

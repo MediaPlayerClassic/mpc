@@ -46,6 +46,7 @@ public:
     STDMETHODIMP NonDelegatingQueryInterface(REFIID riid, void** ppv);
 
 	// IAMStreamSelect
+
 	STDMETHODIMP Count(DWORD* pcStreams); 
 	STDMETHODIMP Enable(long lIndex, DWORD dwFlags); 
 	STDMETHODIMP Info(long lIndex, AM_MEDIA_TYPE** ppmt, DWORD* pdwFlags, LCID* plcid, DWORD* pdwGroup, WCHAR** ppszName, IUnknown** ppObject, IUnknown** ppUnk);  

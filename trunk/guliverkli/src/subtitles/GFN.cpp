@@ -75,6 +75,7 @@ void GetSubFileNames(CString fn, CStringArray& paths, SubFiles& ret)
 
 	CString orgpath = fn.Left(l);
 	CString title = fn.Mid(l, l2-l);
+	CString filename = fn.Mid(l);
 
 	if(!fWeb)
 	{
@@ -93,6 +94,29 @@ void GetSubFileNames(CString fn, CStringArray& paths, SubFiles& ret)
 
 			path.Replace(_T("/./"), _T("/"));
 			path.Replace('/', '\\');
+
+			{
+				CList<CString> sl;
+
+				bool fEmpty = true;
+
+				if((hFile = _tfindfirst((LPTSTR)(LPCTSTR)(path + title + "*"), &file)) != -1L)
+				{
+					do
+					{
+						if(filename.CompareNoCase(file.name)) 
+						{
+							fEmpty = false;
+							// sl.AddTail(path + file.name);
+						}
+					}
+					while(_tfindnext(hFile, &file) != -1);
+					_findclose(hFile);
+				}
+
+				// TODO: use 'sl' in the next step to find files (already a nice speedup as it is now...)
+				if(fEmpty) continue;
+			}
 
 			for(int j = 0; j < extlistnum; j++)
 			{

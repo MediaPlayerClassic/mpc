@@ -194,7 +194,16 @@
 			Name="Source Files"
 			Filter="cpp;c;cxx;def;odl;idl;hpj;bat;asm">
 			<File
+				RelativePath=".\AsyncReader.cpp">
+			</File>
+			<File
 				RelativePath="BaseSplitter.cpp">
+			</File>
+			<File
+				RelativePath=".\BaseSplitterFile.cpp">
+			</File>
+			<File
+				RelativePath=".\BaseSplitterFileEx.cpp">
 			</File>
 			<File
 				RelativePath="stdafx.cpp">
@@ -228,7 +237,16 @@
 			Name="Header Files"
 			Filter="h;hpp;hxx;hm;inl;inc">
 			<File
+				RelativePath=".\AsyncReader.h">
+			</File>
+			<File
 				RelativePath="BaseSplitter.h">
+			</File>
+			<File
+				RelativePath=".\BaseSplitterFile.h">
+			</File>
+			<File
+				RelativePath=".\BaseSplitterFileEx.h">
 			</File>
 			<File
 				RelativePath="stdafx.h">

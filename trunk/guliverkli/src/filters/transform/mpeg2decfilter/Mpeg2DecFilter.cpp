@@ -508,7 +508,7 @@ HRESULT CMpeg2DecFilter::Deliver(bool fRepeatLast)
 
 	TCHAR frametype[] = {'?','I', 'P', 'B', 'D'};
 //	TRACE(_T("%010I64d - %010I64d [%c] [prsq %d prfr %d tff %d rff %d nb_fields %d ref %d] (%dx%d/%dx%d)\n"), 
-/*
+
 	TRACE(_T("%010I64d - %010I64d [%c] [prsq %d prfr %d tff %d rff %d] (%dx%d %d) (preroll %d)\n"), 
 		m_fb.rtStart, m_fb.rtStop,
 		frametype[m_fb.flags&PIC_MASK_CODING_TYPE],
@@ -520,7 +520,7 @@ HRESULT CMpeg2DecFilter::Deliver(bool fRepeatLast)
 //		m_dec->m_info.m_display_picture->temporal_reference,
 		m_fb.w, m_fb.h, m_fb.pitch,
 		!!(m_fb.rtStart < 0 || m_fWaitForKeyFrame));
-*/
+/**/
 	if(m_fb.rtStart < 0 || m_fWaitForKeyFrame)
 		return S_OK;
 

@@ -1,3 +1,24 @@
+/* 
+ *	Copyright (C) 2003-2004 Gabest
+ *	http://www.gabest.org
+ *
+ *  This Program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2, or (at your option)
+ *  any later version.
+ *   
+ *  This Program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ *  GNU General Public License for more details.
+ *   
+ *  You should have received a copy of the GNU General Public License
+ *  along with GNU Make; see the file COPYING.  If not, write to
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  http://www.gnu.org/copyleft/gpl.html
+ *
+ */
+
 #pragma once
 
 #include <atlbase.h>
@@ -6,6 +27,8 @@
 #include <qnetwork.h>
 #include "..\..\..\..\include\IChapterInfo.h"
 #include "..\..\..\..\include\IKeyFrameInfo.h"
+#include "BaseSplitterFileEx.h"
+#include "AsyncReader.h"
 
 class Packet
 {
@@ -30,88 +53,6 @@ public:
 	CAutoPtr<Packet> Remove();
 	void RemoveAll();
 	int GetCount(), GetSize();
-};
-
-[uuid("7D55F67A-826E-40B9-8A7D-3DF0CBBD272D")]
-interface IFileHandle : public IUnknown
-{
-	STDMETHOD_(HANDLE, GetFileHandle)() = 0;
-};
-
-class CAsyncFileReader : public CUnknown, public IAsyncReader, public CFile, public IFileHandle
-{
-public:
-	CAsyncFileReader(CString fn, HRESULT& hr);
-
-	DECLARE_IUNKNOWN;
-	STDMETHODIMP NonDelegatingQueryInterface(REFIID riid, void** ppv);
-
-	// IAsyncReader
-
-	STDMETHODIMP RequestAllocator(IMemAllocator* pPreferred, ALLOCATOR_PROPERTIES* pProps, IMemAllocator** ppActual) {return E_NOTIMPL;}
-    STDMETHODIMP Request(IMediaSample* pSample, DWORD_PTR dwUser) {return E_NOTIMPL;}
-    STDMETHODIMP WaitForNext(DWORD dwTimeout, IMediaSample** ppSample, DWORD_PTR* pdwUser) {return E_NOTIMPL;}
-	STDMETHODIMP SyncReadAligned(IMediaSample* pSample) {return E_NOTIMPL;}
-	STDMETHODIMP SyncRead(LONGLONG llPosition, LONG lLength, BYTE* pBuffer);
-	STDMETHODIMP Length(LONGLONG* pTotal, LONGLONG* pAvailable);
-	STDMETHODIMP BeginFlush() {return E_NOTIMPL;}
-	STDMETHODIMP EndFlush() {return E_NOTIMPL;}
-
-	// IFileHandle
-
-	STDMETHODIMP_(HANDLE) GetFileHandle();
-};
-
-class CAsyncUrlReader : public CAsyncFileReader, protected CAMThread
-{
-	CString m_url, m_fn;
-
-protected:
-	enum {CMD_EXIT, CMD_INIT};
-    DWORD ThreadProc();
-
-public:
-	CAsyncUrlReader(CString url, HRESULT& hr);
-	virtual ~CAsyncUrlReader();
-
-	// IAsyncReader
-
-	STDMETHODIMP Length(LONGLONG* pTotal, LONGLONG* pAvailable);
-};
-
-class CBaseSplitterFile
-{
-	CComPtr<IAsyncReader> m_pAsyncReader;
-	CAutoVectorPtr<BYTE> m_pCache;
-	__int64 m_cachepos, m_cachelen, m_cachetotal;
-
-	bool m_fStreaming;
-	__int64 m_pos, m_len;
-
-protected:
-	UINT64 m_bitbuff;
-	int m_bitlen;
-
-public:
-	CBaseSplitterFile(IAsyncReader* pReader, HRESULT& hr, int cachelen = 2048);
-	virtual ~CBaseSplitterFile() {}
-
-	__int64 GetPos() {return m_pos - (m_bitlen>>3);}
-	__int64 GetLength()
-	{
-		LONGLONG total, available = 0;
-		if(SUCCEEDED(m_pAsyncReader->Length(&total, &available))) m_len = available;
-		return m_len;
-	}
-	virtual void Seek(__int64 pos) {__int64 len = GetLength(); m_pos = min(max(pos, 0), len); BitFlush();}
-	virtual HRESULT Read(BYTE* pData, __int64 len);
-
-	UINT64 BitRead(int nBits, bool fPeek = false);
-	void BitByteAlign(), BitFlush();
-	HRESULT ByteRead(BYTE* pData, __int64 len);
-
-	bool IsStreaming() {return m_fStreaming;}
-	HRESULT HasMoreData(__int64 len = 1, DWORD ms = 1);
 };
 
 class CBaseSplitterFilter;

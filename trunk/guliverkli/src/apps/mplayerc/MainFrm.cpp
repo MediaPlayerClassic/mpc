@@ -435,6 +435,10 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 
 	m_fileDropTarget.Register(this);
 
+	if(SUCCEEDED(m_pTaskbarList.CoCreateInstance(CLSID_TaskbarList)) && m_pTaskbarList)
+		if(FAILED(m_pTaskbarList->HrInit()))
+			m_pTaskbarList = NULL;
+
 	AppSettings& s = AfxGetAppSettings();
 
 	ShowControls(s.nCS);
@@ -473,7 +477,7 @@ void CMainFrame::OnDestroy()
 		}
 	}
 
-	CFrameWnd::OnDestroy();
+	__super::OnDestroy();
 }
 
 void CMainFrame::OnClose()
@@ -549,7 +553,6 @@ DROPEFFECT CMainFrame::OnDragScroll(DWORD dwKeyState, CPoint point)
 	return DROPEFFECT_NONE;
 }
 
-
 void CMainFrame::LoadControlBar(CControlBar* pBar, CString section, UINT defDockBarID)
 {
 	if(!pBar || section.IsEmpty()) return;
@@ -564,6 +567,7 @@ void CMainFrame::LoadControlBar(CControlBar* pBar, CString section, UINT defDock
 	}
 	else
 	{
+		// FIXME
 		CRect r;
 		GetWindowRect(r);
 		CPoint p;
@@ -598,7 +602,7 @@ void CMainFrame::SaveControlBar(CControlBar* pBar, CString section)
 
 	if(nID == AFX_IDW_DOCKBAR_FLOAT)
 	{
-return;
+return;//
 		// FIXME
 		CRect r1, r2;
 		GetWindowRect(r1);
@@ -946,6 +950,11 @@ void CMainFrame::OnActivateApp(BOOL bActive, DWORD dwThreadID)
 	if(m_iMediaLoadState == MLS_LOADED && m_fFullScreen && !bActive && (mi.dwFlags&MONITORINFOF_PRIMARY))
 	{
 		OnViewFullscreen();
+	}
+
+	if(bActive && m_pTaskbarList && (GetWindowLong(m_hWnd, GWL_EXSTYLE)&WS_EX_APPWINDOW))
+	{
+		m_pTaskbarList->ActivateTab(GetSafeHwnd());
 	}
 }
 
@@ -2947,13 +2956,13 @@ void CMainFrame::OnDropFiles(HDROP hDropInfo)
 
 void CMainFrame::OnFileSaveas()
 {
-	CString in = m_wndPlaylistBar.GetCur(), out = in;
+	CString ext, in = m_wndPlaylistBar.GetCur(), out = in;
 
 	if(out.Find(_T("://")) < 0)
 	{
-		CString ext = out.Mid(out.ReverseFind('.')+1).MakeLower();
-		if(ext == _T("cda")) out = out.Left(out.GetLength()-3) + _T("wav");
-		else if(ext == _T("ifo")) out = out.Left(out.GetLength()-3) + _T("vob");
+		ext = CString(CPath(out).GetExtension()).MakeLower();
+		if(ext == _T(".cda")) out = out.Left(out.GetLength()-4) + _T(".wav");
+		else if(ext == _T(".ifo")) out = out.Left(out.GetLength()-4) + _T(".vob");
 	}
 	else
 	{
@@ -2965,11 +2974,14 @@ void CMainFrame::OnFileSaveas()
 		_T("All files (*.*)|*.*||"), this, 0); 
 	if(fd.DoModal() != IDOK || !in.CompareNoCase(fd.GetPathName())) return;
 
+	CPath p(fd.GetPathName());
+	if(!ext.IsEmpty()) p.AddExtension(ext);
+
 	OAFilterState fs = State_Stopped;
 	pMC->GetState(0, &fs);
 	if(fs == State_Running) pMC->Pause();
 
-	CSaveDlg dlg(in, fd.GetPathName());
+	CSaveDlg dlg(in, p);
 	dlg.DoModal();
 
 	if(fs == State_Running) pMC->Run();
@@ -3114,7 +3126,10 @@ void CMainFrame::OnFileSaveImage()
 {
 	AppSettings& s = AfxGetAppSettings();
 
-	CFileDialog fd(FALSE, 0, s.SnapShotPath + '\\' + MakeSnapshotFileName(), 
+	CPath psrc(s.SnapShotPath);
+	psrc.Combine(s.SnapShotPath, MakeSnapshotFileName());
+
+	CFileDialog fd(FALSE, 0, (LPCTSTR)psrc, 
 		OFN_EXPLORER|OFN_ENABLESIZING|OFN_HIDEREADONLY|OFN_OVERWRITEPROMPT|OFN_PATHMUSTEXIST, 
 		_T("Bitmaps (*.bmp)|*.bmp|Jpeg (*.jpg)|*.jpg||"), this, 0);
 
@@ -3126,13 +3141,11 @@ void CMainFrame::OnFileSaveImage()
 	if(fd.m_pOFN->nFilterIndex == 1) s.SnapShotExt = _T(".bmp");
 	else if(fd.m_pOFN->nFilterIndex = 2) s.SnapShotExt = _T(".jpg");
 
-	CString path = fd.GetPathName();
-
-	CPath p(fd.GetPathName());
-	p.AddExtension(s.SnapShotExt);
-	path = (LPCTSTR)p;
-	p.RemoveFileSpec();
-	s.SnapShotPath = (LPCTSTR)p;
+	CPath pdst(fd.GetPathName());
+	pdst.AddExtension(s.SnapShotExt);
+	CString path = (LPCTSTR)pdst;
+	pdst.RemoveFileSpec();
+	s.SnapShotPath = (LPCTSTR)pdst;
 
 	SaveImage(path);
 }
@@ -7518,11 +7531,11 @@ void CMainFrame::SetAlwaysOnTop(int i)
 		else // if(i == 2)
 			pInsertAfter = GetMediaState() == State_Running ? &wndTopMost : &wndNoTopMost;
 
-		SetWindowPos(pInsertAfter, 0, 0, 0, 0, SWP_NOMOVE|SWP_NOSIZE);
+		SetWindowPos(pInsertAfter, 0, 0, 0, 0, SWP_NOMOVE|SWP_NOSIZE|SWP_NOACTIVATE);
 	}
 	else if(!(GetWindowLong(m_hWnd, GWL_EXSTYLE)&WS_EX_TOPMOST))
 	{
-		SetWindowPos(&wndTopMost, 0, 0, 0, 0, SWP_NOMOVE|SWP_NOSIZE);
+		SetWindowPos(&wndTopMost, 0, 0, 0, 0, SWP_NOMOVE|SWP_NOSIZE|SWP_NOACTIVATE);
 	}
 }
 

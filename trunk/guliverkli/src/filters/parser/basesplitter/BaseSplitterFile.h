@@ -21,43 +21,38 @@
 
 #pragma once
 
-#include "PPageBase.h"
-#include "afxwin.h"
+#include <atlcoll.h>
 
-class CPPageFiltersListBox : public CCheckListBox
+class CBaseSplitterFile
 {
-	DECLARE_DYNAMIC(CPPageFiltersListBox)
+	CComPtr<IAsyncReader> m_pAsyncReader;
+	CAutoVectorPtr<BYTE> m_pCache;
+	__int64 m_cachepos, m_cachelen, m_cachetotal;
 
-public:
-	CPPageFiltersListBox();
+	bool m_fStreaming;
+	__int64 m_pos, m_len;
 
 protected:
-	virtual void PreSubclassWindow();
-	virtual INT_PTR OnToolHitTest(CPoint point, TOOLINFO* pTI) const;
+	UINT64 m_bitbuff;
+	int m_bitlen;
 
-	DECLARE_MESSAGE_MAP()
-	afx_msg BOOL OnToolTipNotify(UINT id, NMHDR* pNMHDR, LRESULT* pResult);
-};
-
-// CPPageFilters dialog
-
-class CPPageFilters : public CPPageBase
-{
-	DECLARE_DYNAMIC(CPPageFilters)
+	enum {DEFAULT_CACHELEN = 2048};
 
 public:
-	CPPageFilters();
-	virtual ~CPPageFilters();
+	CBaseSplitterFile(IAsyncReader* pReader, HRESULT& hr, int cachelen = DEFAULT_CACHELEN);
+	virtual ~CBaseSplitterFile() {}
 
-// Dialog Data
-	enum { IDD = IDD_PPAGEFILTERS };
-	CPPageFiltersListBox m_listSrc;
-	CPPageFiltersListBox m_listTra;
+	bool SetCacheSize(int cachelen = DEFAULT_CACHELEN);
 
-protected:
-	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV support
-	virtual BOOL OnInitDialog();
-	virtual BOOL OnApply();
+	__int64 GetPos();
+	__int64 GetLength();
+	virtual void Seek(__int64 pos);
+	virtual HRESULT Read(BYTE* pData, __int64 len);
 
-	DECLARE_MESSAGE_MAP()
+	UINT64 BitRead(int nBits, bool fPeek = false);
+	void BitByteAlign(), BitFlush();
+	HRESULT ByteRead(BYTE* pData, __int64 len);
+
+	bool IsStreaming() {return m_fStreaming;}
+	HRESULT HasMoreData(__int64 len = 1, DWORD ms = 1);
 };
