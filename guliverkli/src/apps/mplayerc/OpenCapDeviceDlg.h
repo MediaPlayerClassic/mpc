@@ -22,7 +22,6 @@
 #pragma once
 
 #include "afxwin.h"
-#include <afxtempl.h>
 #include <atlcoll.h>
 
 // COpenCapDeviceDlg dialog

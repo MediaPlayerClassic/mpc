@@ -69,7 +69,7 @@
 #include "..\..\..\include\matroska\matroska.h"
 
 #define DEFCLIENTW 292
-#define DEFCLIENTH 262
+#define DEFCLIENTH 200
 
 static UINT s_uTaskbarRestart = RegisterWindowMessage(TEXT("TaskbarCreated"));
 static UINT WM_NOTIFYICON = RegisterWindowMessage(TEXT("MYWM_NOTIFYICON"));
@@ -344,7 +344,8 @@ CMainFrame::CMainFrame() :
 	m_fLiveWM(false),
 	m_fOpeningAborted(false),
 	m_fBuffering(false),
-	m_fileDropTarget(this)
+	m_fileDropTarget(this),
+	m_webserver(this)
 {
 }
 
@@ -4600,6 +4601,14 @@ void CMainFrame::OnHelpDonate()
 void CMainFrame::SetDefaultWindowRect()
 {
 	{
+		CRect r1, r2;
+		GetClientRect(&r1);
+		m_wndView.GetClientRect(&r2);
+
+		CSize logosize = m_wndView.GetLogoSize();
+		int _DEFCLIENTW = max(logosize.cx, DEFCLIENTW);
+		int _DEFCLIENTH = max(logosize.cy, DEFCLIENTH);
+
 		DWORD style = GetStyle();
 
 		MENUBARINFO mbi;
@@ -4607,9 +4616,11 @@ void CMainFrame::SetDefaultWindowRect()
 		mbi.cbSize = sizeof(mbi);
 		::GetMenuBarInfo(m_hWnd, OBJID_MENU, 0, &mbi);
 
-		int w = DEFCLIENTW + GetSystemMetrics((style&WS_CAPTION)?SM_CXSIZEFRAME:SM_CXFIXEDFRAME)*2;
-		int h = DEFCLIENTH + GetSystemMetrics((style&WS_CAPTION)?SM_CYSIZEFRAME:SM_CYFIXEDFRAME)*2
+		int w = _DEFCLIENTW + GetSystemMetrics((style&WS_CAPTION)?SM_CXSIZEFRAME:SM_CXFIXEDFRAME)*2
+			+ r1.Width() - r2.Width();
+		int h = _DEFCLIENTH + GetSystemMetrics((style&WS_CAPTION)?SM_CYSIZEFRAME:SM_CYFIXEDFRAME)*2
 			+ (mbi.rcBar.bottom - mbi.rcBar.top)
+			+ r1.Height() - r2.Height()
 			+ 2; // ???
 		if(style&WS_CAPTION) h += GetSystemMetrics(SM_CYCAPTION);
 
@@ -4654,6 +4665,14 @@ void CMainFrame::RestoreDefaultWindowRect()
 	&& (GetExStyle()&WS_EX_APPWINDOW)
 	&& !AfxGetAppSettings().fRememberWindowSize)
 	{
+		CRect r1, r2;
+		GetClientRect(&r1);
+		m_wndView.GetClientRect(&r2);
+
+		CSize logosize = m_wndView.GetLogoSize();
+		int _DEFCLIENTW = max(logosize.cx, DEFCLIENTW);
+		int _DEFCLIENTH = max(logosize.cy, DEFCLIENTH);
+
 		DWORD style = GetStyle();
 
 		MENUBARINFO mbi;
@@ -4661,9 +4680,11 @@ void CMainFrame::RestoreDefaultWindowRect()
 		mbi.cbSize = sizeof(mbi);
 		::GetMenuBarInfo(m_hWnd, OBJID_MENU, 0, &mbi);
 
-		int w = DEFCLIENTW + GetSystemMetrics((style&WS_CAPTION)?SM_CXSIZEFRAME:SM_CXFIXEDFRAME)*2;
-		int h = DEFCLIENTH + GetSystemMetrics((style&WS_CAPTION)?SM_CYSIZEFRAME:SM_CYFIXEDFRAME)*2
+		int w = _DEFCLIENTW + GetSystemMetrics((style&WS_CAPTION)?SM_CXSIZEFRAME:SM_CXFIXEDFRAME)*2
+			+ r1.Width() - r2.Width();
+		int h = _DEFCLIENTH + GetSystemMetrics((style&WS_CAPTION)?SM_CYSIZEFRAME:SM_CYFIXEDFRAME)*2
 			+ (mbi.rcBar.bottom - mbi.rcBar.top)
+			+ r1.Height() - r2.Height()
 			+ 2; // ???
 		if(style&WS_CAPTION) h += GetSystemMetrics(SM_CYCAPTION);
 
@@ -5108,7 +5129,7 @@ void CMainFrame::OpenCreateGraphObject(OpenMediaData* pOMD)
 
 		if(engine == RealMedia)
 		{
-			if(!(pUnk = (IUnknown*)(INonDelegatingUnknown*)new CRealMediaGraph(m_wndView.m_hWnd, s.fRealMediaRenderless, hr)))
+			if(!(pUnk = (IUnknown*)(INonDelegatingUnknown*)new CRealMediaGraph(m_wndView.m_hWnd, hr)))
 				throw _T("Out of memory");
 
 			m_pCAP = CComQIPtr<ISubPicAllocatorPresenter>(pUnk);
@@ -5130,7 +5151,7 @@ void CMainFrame::OpenCreateGraphObject(OpenMediaData* pOMD)
 		}
 		else if(engine == QuickTime)
 		{
-			if(!(pUnk = (IUnknown*)(INonDelegatingUnknown*)new CQuicktimeGraph(m_wndView.m_hWnd, s.iQuickTimeRenderer, hr)))
+			if(!(pUnk = (IUnknown*)(INonDelegatingUnknown*)new CQuicktimeGraph(m_wndView.m_hWnd, hr)))
 				throw _T("Out of memory");
 
 			m_pCAP = CComQIPtr<ISubPicAllocatorPresenter>(pUnk);

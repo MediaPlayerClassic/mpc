@@ -20,45 +20,41 @@
  */
 
 #pragma once
-#include "afxcmn.h"
+
 #include "PPageBase.h"
 #include "afxwin.h"
 
-// CPPagePlayer dialog
+// CPPageOutput dialog
 
-class CPPagePlayer : public CPPageBase
+class CPPageOutput : public CPPageBase
 {
-	DECLARE_DYNAMIC(CPPagePlayer)
+	DECLARE_DYNAMIC(CPPageOutput)
+
+private:
+	CToolTipCtrl m_wndToolTip;
+	CStringArray m_AudioRendererDisplayNames;
 
 public:
-	CPPagePlayer();
-	virtual ~CPPagePlayer();
-
-	int m_iAllowMultipleInst;
-	int m_iTitleBarTextStyle;
-	BOOL m_iAlwaysOnTop;
-	BOOL m_iShowBarsWhenFullScreen;
-	int m_nShowBarsWhenFullScreenTimeOut;
-	BOOL m_fExitFullScreenAtTheEnd;
-	BOOL m_fRememberWindowPos;
-	BOOL m_fRememberWindowSize;
-	BOOL m_fUseIni;
-	CSpinButtonCtrl m_nTimeOutCtrl;
-	BOOL m_fTrayIcon;
-	BOOL m_fKeepHistory;
-	BOOL m_fHideCDROMsSubMenu;
+	CPPageOutput();
+	virtual ~CPPageOutput();
 
 // Dialog Data
-	enum { IDD = IDD_PPAGEPLAYER };
+	enum { IDD = IDD_PPAGEOUTPUT };
+	int m_iDSVideoRendererType;
+	int m_iRMVideoRendererType;
+	int m_iQTVideoRendererType;
+	int m_iAPSurfaceUsage;
+	int m_iAudioRendererType;
+	CComboBox m_iAudioRendererTypeCtrl;
 
 protected:
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV support
+	virtual BOOL PreTranslateMessage(MSG* pMsg);
 	virtual BOOL OnInitDialog();
 	virtual BOOL OnApply();
 
 	DECLARE_MESSAGE_MAP()
 
 public:
-	afx_msg void OnBnClickedCheck8();
-	afx_msg void OnUpdateTimeout(CCmdUI* pCmdUI);
+	afx_msg void OnDestroy();
 };

@@ -21,7 +21,6 @@
 
 #include "stdafx.h"
 #include "mplayerc.h"
-#include <afxtempl.h>
 #include "GraphBuilder.h"
 #include "..\..\DSUtil\DSUtil.h"
 #include "..\..\filters\filters.h"
@@ -305,36 +304,36 @@ CGraphBuilder::CGraphBuilder(IGraphBuilder* pGB, HWND hWnd)
 
 	// renderer filters
 
-	switch(s.iVideoRendererType)
+	switch(s.iDSVideoRendererType)
 	{
 		default: 
-		case VIDRNDT_DEFAULT: 
+		case VIDRNDT_DS_DEFAULT: 
 			break;
-		case VIDRNDT_OLDRENDERER: 
+		case VIDRNDT_DS_OLDRENDERER: 
 			AddFilter(new CGraphRegFilter(CLSID_VideoRenderer, m_VRMerit));
 			break;
-		case VIDRNDT_OVERLAYMIXER:
+		case VIDRNDT_DS_OVERLAYMIXER:
 			AddFilter(new CGraphRendererFilter(CLSID_OverlayMixer, m_hWnd, L"Overlay Mixer", m_VRMerit));
 			break;
-		case VIDRNDT_VMR7WINDOWED:
+		case VIDRNDT_DS_VMR7WINDOWED:
 			AddFilter(new CGraphRendererFilter(CLSID_VideoMixingRenderer, m_hWnd, L"Video Mixing Render 7 (Windowed)", m_VRMerit));
 			break;
-		case VIDRNDT_VMR9WINDOWED:
+		case VIDRNDT_DS_VMR9WINDOWED:
 			AddFilter(new CGraphRendererFilter(CLSID_VideoMixingRenderer9, m_hWnd, L"Video Mixing Render 9 (Windowed)", m_VRMerit));
 			break;
-		case VIDRNDT_VMR7RENDERLESS:
+		case VIDRNDT_DS_VMR7RENDERLESS:
 			AddFilter(new CGraphRendererFilter(CLSID_VMR7AllocatorPresenter, m_hWnd, L"Video Mixing Render 7 (Renderless)", m_VRMerit));
 			break;
-		case VIDRNDT_VMR9RENDERLESS:
+		case VIDRNDT_DS_VMR9RENDERLESS:
 			AddFilter(new CGraphRendererFilter(CLSID_VMR9AllocatorPresenter, m_hWnd, L"Video Mixing Render 9 (Renderless)", m_VRMerit));
 			break;
-		case VIDRNDT_NULL_COMP:
+		case VIDRNDT_DS_NULL_COMP:
 			guids.AddTail(MEDIATYPE_Video);
 			guids.AddTail(MEDIASUBTYPE_NULL);
 			AddFilter(new CGraphCustomFilter(__uuidof(CNullVideoRenderer), guids, L"Null Video Renderer (Any)", LMERIT_ABOVE_DSHOW+1));
 			guids.RemoveAll();
 			break;
-		case VIDRNDT_NULL_UNCOMP:
+		case VIDRNDT_DS_NULL_UNCOMP:
 			guids.AddTail(MEDIATYPE_Video);
 			guids.AddTail(MEDIASUBTYPE_NULL);
 			AddFilter(new CGraphCustomFilter(__uuidof(CNullUVideoRenderer), guids, L"Null Video Renderer (Uncompressed)", LMERIT_ABOVE_DSHOW+1));
@@ -1189,8 +1188,9 @@ CGraphBuilderDVD::CGraphBuilderDVD(IGraphBuilder* pGB, HWND hWnd)
 	DWORD ver = ::GetVersion();
 	bool m_fXp = (int)ver >= 0 && (((ver<<8)&0xff00)|((ver>>8)&0xff)) >= 0x0501;
 
-	if(!m_fXp && AfxGetAppSettings().iVideoRendererType != VIDRNDT_OVERLAYMIXER 
-	|| AfxGetAppSettings().iVideoRendererType == VIDRNDT_OLDRENDERER)
+	AppSettings& s = AfxGetAppSettings();
+	if(!m_fXp && s.iDSVideoRendererType != VIDRNDT_DS_OVERLAYMIXER 
+	|| s.iDSVideoRendererType == VIDRNDT_DS_OLDRENDERER)
         AddFilter(new CGraphRendererFilter(CLSID_OverlayMixer, m_hWnd, L"Overlay Mixer", m_VRMerit-1));
 
 	// this filter just simply sucks for dvd playback (atm)

@@ -93,15 +93,36 @@ enum
 
 enum
 {
-	VIDRNDT_DEFAULT,
-	VIDRNDT_OLDRENDERER,
-	VIDRNDT_OVERLAYMIXER,
-	VIDRNDT_VMR7RENDERLESS,
-	VIDRNDT_VMR9RENDERLESS,
-	VIDRNDT_VMR7WINDOWED,
-	VIDRNDT_VMR9WINDOWED,
-	VIDRNDT_NULL_COMP,
-	VIDRNDT_NULL_UNCOMP
+	VIDRNDT_DS_DEFAULT,
+	VIDRNDT_DS_OLDRENDERER,
+	VIDRNDT_DS_OVERLAYMIXER,
+	VIDRNDT_DS_VMR7WINDOWED,
+	VIDRNDT_DS_VMR9WINDOWED,
+	VIDRNDT_DS_VMR7RENDERLESS,
+	VIDRNDT_DS_VMR9RENDERLESS,
+	VIDRNDT_DS_NULL_COMP,
+	VIDRNDT_DS_NULL_UNCOMP,
+};
+
+enum
+{
+	VIDRNDT_RM_DEFAULT,
+	VIDRNDT_RM_DX7,
+	VIDRNDT_RM_DX9,
+};
+
+enum
+{
+	VIDRNDT_QT_DEFAULT,
+	VIDRNDT_QT_DX7,
+	VIDRNDT_QT_DX9,
+};
+
+enum
+{
+	VIDRNDT_AP_SURFACE,
+	VIDRNDT_AP_TEXTURE2D,
+	VIDRNDT_AP_TEXTURE3D,
 };
 
 #define AUDRNDT_NULL_COMP _T("Null Audio Renderer (Any)")
@@ -291,6 +312,7 @@ public:
 		void ParseCommandLine(CStringList& cmdln);
 
 		bool fXpOrBetter;
+		int iDXVer;
 
 		int nCS;
 		bool fHideCaptionMenu;
@@ -301,10 +323,12 @@ public:
 		CRecentFileAndURLList MRU;
 		CRecentFileAndURLList MRUDub;
 
-		int iVideoRendererAvailable;
-		int iAudioRendererAvailable;
-
 		CAutoPtrList<Filter> filters;
+
+		int iDSVideoRendererType;
+		int iRMVideoRendererType;
+		int iQTVideoRendererType;
+		int iAPSurfaceUsage;
 
 		int nVolume;
 		int nBalance;
@@ -313,7 +337,7 @@ public:
 		bool fLoopForever;
 		bool fRewind;
 		int iZoomLevel;
-		int iVideoRendererType; 
+		// int iVideoRendererType; 
 		CStringW AudioRendererDisplayName;
 		bool fAutoloadAudio;
 		bool fAutoloadSubtitles;
@@ -359,7 +383,7 @@ public:
 		DWORD pSpeakerToChannelMap[18][18];
 
 		bool fIntRealMedia;
-		bool fRealMediaRenderless;
+		// bool fRealMediaRenderless;
 		int iQuickTimeRenderer;
 		float RealMediaQuickTimeFPS;
 
@@ -389,7 +413,6 @@ public:
 		DWORD mpegpreffmt;
 
 		bool fHideCDROMsSubMenu;
-		bool fVMRTexture, fVMR3D;
 
 	public:
 		Settings();

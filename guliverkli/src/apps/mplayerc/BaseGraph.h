@@ -21,8 +21,6 @@
 
 #pragma once
 
-#include <afxtempl.h>
-
 class CPlayerWindow : public CWnd
 {
 public:

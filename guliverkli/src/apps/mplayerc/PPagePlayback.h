@@ -29,7 +29,8 @@ class CPPagePlayback : public CPPageBase
 {
 	DECLARE_DYNAMIC(CPPagePlayback)
 
-	CStringArray m_AudioRendererDisplayNames;
+private:
+	CArray<dispmode> m_dms;
 
 public:
 	CPPagePlayback();
@@ -45,10 +46,8 @@ public:
 	BOOL m_fRewind;
 	int m_iZoomLevel;
 	BOOL m_iRememberZoomLevel;
-	int m_iVideoRendererType;
-	CComboBox m_iVideoRendererTypeCtrl;
-	int m_iAudioRendererType;
-	CComboBox m_iAudioRendererTypeCtrl;
+	BOOL m_fSetFullscreenRes;
+	CComboBox m_dispmodecombo;
 	BOOL m_fAutoloadAudio;
 	BOOL m_fAutoloadSubtitles;
 	BOOL m_fEnableWorkerThreadForOpening;
@@ -69,4 +68,6 @@ public:
 	afx_msg void OnHScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrollBar);
 	afx_msg void OnBnClickedRadio12(UINT nID);
 	afx_msg void OnUpdateLoopNum(CCmdUI* pCmdUI);
+	afx_msg void OnUpdateAutoZoomCombo(CCmdUI* pCmdUI);
+	afx_msg void OnUpdateDispModeCombo(CCmdUI* pCmdUI);
 };

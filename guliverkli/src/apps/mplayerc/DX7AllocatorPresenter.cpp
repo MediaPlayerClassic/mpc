@@ -395,6 +395,8 @@ HRESULT CDX7AllocatorPresenter::AllocSurfaces()
 {
     CAutoLock cAutoLock(this);
 
+	AppSettings& s = AfxGetAppSettings();
+
 	m_pVideoTexture = NULL;
 	m_pVideoSurface = NULL;
 
@@ -411,7 +413,7 @@ HRESULT CDX7AllocatorPresenter::AllocSurfaces()
 	ddsd.ddpfPixelFormat.dwGBitMask		= 0x0000FF00;
 	ddsd.ddpfPixelFormat.dwBBitMask		= 0x000000FF;
 
-	if(AfxGetAppSettings().fVMRTexture)
+	if(s.iAPSurfaceUsage == VIDRNDT_AP_TEXTURE2D || s.iAPSurfaceUsage == VIDRNDT_AP_TEXTURE3D)
 	{
 		ddsd.ddsCaps.dwCaps |= DDSCAPS_TEXTURE;
 //		ddsd.ddpfPixelFormat.dwFlags |= DDPF_ALPHAPIXELS;
@@ -424,7 +426,7 @@ HRESULT CDX7AllocatorPresenter::AllocSurfaces()
 		// FIXME: eh, dx9 has no problem creating a 32bpp surface under a 16bpp desktop, but dx7 fails here (textures are ok)
 		DDSURFACEDESC2 ddsd2;
 		INITDDSTRUCT(ddsd2);
-		if(!AfxGetAppSettings().fVMRTexture
+		if(!(s.iAPSurfaceUsage == VIDRNDT_AP_TEXTURE2D || s.iAPSurfaceUsage == VIDRNDT_AP_TEXTURE3D)
 		&& SUCCEEDED(m_pDD->GetDisplayMode(&ddsd2))
 		&& ddsd2.ddpfPixelFormat.dwRGBBitCount == 16)
 		{
@@ -439,7 +441,7 @@ HRESULT CDX7AllocatorPresenter::AllocSurfaces()
 			return hr;
 	}
 
-	if(AfxGetAppSettings().fVMRTexture && AfxGetAppSettings().fVMR3D)
+	if(s.iAPSurfaceUsage == VIDRNDT_AP_TEXTURE3D)
 		m_pVideoTexture = m_pVideoSurface;
 
 	DDBLTFX fx;
@@ -960,26 +962,20 @@ STDMETHODIMP CRM7AllocatorPresenter::Blt(UCHAR* pImageData, RMABitmapInfoHeader*
 
 	if(pBitmapInfo->biCompression == '024I')
 	{
-		DWORD w = pBitmapInfo->biWidth;
-		DWORD h = abs(pBitmapInfo->biHeight);
-		DWORD p = pBitmapInfo->biWidth;
-		DWORD size = p*h;
+		DWORD pitch = pBitmapInfo->biWidth;
+		DWORD size = pitch*abs(pBitmapInfo->biHeight);
 
-		BYTE* y = pImageData					+ src.top*p + src.left;
-		BYTE* u = pImageData + size				+ src.top*(p/2) + src.left/2;
-		BYTE* v = pImageData + size + size/4	+ src.top*(p/2) + src.left/2;
+		BYTE* y = pImageData					+ src.top*pitch + src.left;
+		BYTE* u = pImageData + size				+ src.top*(pitch/2) + src.left/2;
+		BYTE* v = pImageData + size + size/4	+ src.top*(pitch/2) + src.left/2;
 
 		if(m_pVideoSurfaceYUY2)
 		{
 			INITDDSTRUCT(ddsd);
 			if(SUCCEEDED(m_pVideoSurfaceYUY2->Lock(src2, &ddsd, DDLOCK_WAIT|DDLOCK_SURFACEMEMORYPTR|DDLOCK_WRITEONLY, NULL)))
 			{
-				BitBltFromI420ToYUY2(
-					(BYTE*)ddsd.lpSurface, ddsd.lPitch, 
-					y, u, v, src.Width(), src.Height(), p);
-
+				BitBltFromI420ToYUY2(src.Width(), src.Height(), (BYTE*)ddsd.lpSurface, ddsd.lPitch, y, u, v, pitch);
 				m_pVideoSurfaceYUY2->Unlock(src2);
-
 				fYUY2 = true;
 			}
 		}
@@ -988,12 +984,8 @@ STDMETHODIMP CRM7AllocatorPresenter::Blt(UCHAR* pImageData, RMABitmapInfoHeader*
 			INITDDSTRUCT(ddsd);
 			if(SUCCEEDED(m_pVideoSurfaceOff->Lock(src2, &ddsd, DDLOCK_WAIT|DDLOCK_SURFACEMEMORYPTR|DDLOCK_WRITEONLY, NULL)))
 			{
-				BitBltFromI420ToRGB(
-					(BYTE*)ddsd.lpSurface, ddsd.lPitch, 
-					y, u, v, src.Width(), src.Height(), 32, p);
-
+				BitBltFromI420ToRGB(src.Width(), src.Height(), (BYTE*)ddsd.lpSurface, ddsd.lPitch, ddsd.ddpfPixelFormat.dwRGBBitCount, y, u, v, pitch);
 				m_pVideoSurfaceOff->Unlock(src2);
-
 				fRGB = true;
 			}
 		}
@@ -1002,22 +994,17 @@ STDMETHODIMP CRM7AllocatorPresenter::Blt(UCHAR* pImageData, RMABitmapInfoHeader*
 	{
 		DWORD w = pBitmapInfo->biWidth;
 		DWORD h = abs(pBitmapInfo->biHeight);
-		DWORD p = pBitmapInfo->biWidth*2;
+		DWORD pitch = pBitmapInfo->biWidth*2;
 
-		BYTE* yvyu = pImageData + src.top*p + src.left*2;
+		BYTE* yvyu = pImageData + src.top*pitch + src.left*2;
 
 		if(m_pVideoSurfaceYUY2)
 		{
 			INITDDSTRUCT(ddsd);
 			if(SUCCEEDED(m_pVideoSurfaceYUY2->Lock(src2, &ddsd, DDLOCK_WAIT|DDLOCK_SURFACEMEMORYPTR|DDLOCK_WRITEONLY, NULL)))
 			{
-				BYTE* yvyu2 = (BYTE*)ddsd.lpSurface;
-
-				for(int y = 0; y < src.Height(); y++, yvyu += p, yvyu2 += ddsd.lPitch)
-					memcpy(yvyu2, yvyu, src.Width());
-
+				BitBltFromYUY2ToYUY2(src.Width(), src.Height(), (BYTE*)ddsd.lpSurface, ddsd.lPitch, yvyu, pitch);
 				m_pVideoSurfaceYUY2->Unlock(src2);
-
 				fRGB = true;
 			}
 		}
@@ -1031,55 +1018,17 @@ STDMETHODIMP CRM7AllocatorPresenter::Blt(UCHAR* pImageData, RMABitmapInfoHeader*
 	{
 		DWORD w = pBitmapInfo->biWidth;
 		DWORD h = abs(pBitmapInfo->biHeight);
-		DWORD p = pBitmapInfo->biWidth*pBitmapInfo->biBitCount>>3;
+		DWORD pitch = pBitmapInfo->biWidth*pBitmapInfo->biBitCount>>3;
 
-		BYTE* rgb = pImageData + src.top*p + src.left*(pBitmapInfo->biBitCount>>3);
+		BYTE* rgb = pImageData + src.top*pitch + src.left*(pBitmapInfo->biBitCount>>3);
 
 		INITDDSTRUCT(ddsd);
 		if(SUCCEEDED(m_pVideoSurfaceOff->Lock(src2, &ddsd, DDLOCK_WAIT|DDLOCK_SURFACEMEMORYPTR|DDLOCK_WRITEONLY, NULL)))
 		{
-			BYTE* rgb2 = (BYTE*)ddsd.lpSurface;
-
-			if(pBitmapInfo->biHeight > 0)
-			{
-				rgb2 = rgb2 + ddsd.lPitch*(src.Height()-1);
-				ddsd.lPitch = -ddsd.lPitch;
-			}
-
-			if(pBitmapInfo->biBitCount == 16)
-			{
-				for(int y = 0; y < src.Height(); y++, rgb += p, rgb2 += ddsd.lPitch)
-				{
-					WORD* rgb3 = (WORD*)rgb;
-					DWORD* rgb4 = (DWORD*)rgb2;
-					for(int x = 0; x < w; x++, rgb3++, rgb4++)
-						*rgb4 = ((*rgb3&0xf800)<<8)|((*rgb3&0x07e0)<<5)|((*rgb3&0x001f)<<3);
-				}
-
-				fRGB = true;
-			}
-			else if(pBitmapInfo->biBitCount == 24)
-			{	
-				for(int y = 0; y < src.Height(); y++, rgb += p, rgb2 += ddsd.lPitch)
-				{
-					BYTE* rgb3 = rgb;
-					DWORD* rgb4 = (DWORD*)rgb2;
-					for(int x = 0; x < src.Width(); x++, rgb3+=3, rgb4++)
-						*rgb4 = *((DWORD*)rgb3)&0xffffff;
-				}
-
-				fRGB = true;
-			}
-			else if(pBitmapInfo->biBitCount == 32)
-			{
-				for(int y = 0; y < src.Height(); y++, rgb += p, rgb2 += ddsd.lPitch)
-				{
-					memcpy(rgb2, rgb, src.Width()*4);
-				}
-
-				fRGB = true;
-			}
-
+			BYTE* lpSurface = (BYTE*)ddsd.lpSurface;
+			if(pBitmapInfo->biHeight > 0) {lpSurface += ddsd.lPitch*(src.Height()-1); ddsd.lPitch = -ddsd.lPitch;}
+			BitBltFromRGBToRGB(src.Width(), src.Height(), lpSurface, ddsd.lPitch, ddsd.ddpfPixelFormat.dwRGBBitCount, rgb, pitch, pBitmapInfo->biBitCount);
+			fRGB = true;
 			m_pVideoSurfaceOff->Unlock(src2);
 		}
 	}
@@ -1123,13 +1072,9 @@ STDMETHODIMP CRM7AllocatorPresenter::Blt(UCHAR* pImageData, RMABitmapInfoHeader*
 STDMETHODIMP CRM7AllocatorPresenter::BeginOptimizedBlt(RMABitmapInfoHeader* pBitmapInfo)
 {
     CAutoLock cAutoLock(this);
-
 	DeleteSurfaces();
-
 	m_NativeVideoSize = m_AspectRatio = CSize(pBitmapInfo->biWidth, abs(pBitmapInfo->biHeight));
-
-	AllocSurfaces();
-
+	if(FAILED(AllocSurfaces())) return E_FAIL;
 	return PNR_NOTIMPL;
 }
 
@@ -1241,58 +1186,20 @@ STDMETHODIMP CQT7AllocatorPresenter::DoBlt(const BITMAP& bm)
 	if(FAILED(m_pVideoSurfaceOff->GetSurfaceDesc(&ddsd)))
 		return E_FAIL;
 
-	int bpp = bm.bmBitsPixel;
 	int w = bm.bmWidth;
 	int h = abs(bm.bmHeight);
+	int bpp = bm.bmBitsPixel;
 
 	if((bpp == 16 || bpp == 24 || bpp == 32) && w == ddsd.dwWidth && h == ddsd.dwHeight)
 	{
 		INITDDSTRUCT(ddsd);
 		if(SUCCEEDED(m_pVideoSurfaceOff->Lock(NULL, &ddsd, DDLOCK_WAIT|DDLOCK_SURFACEMEMORYPTR|DDLOCK_WRITEONLY, NULL)))
 		{
-			int pitchIn = bm.bmWidthBytes;
-			int pitchOut = ddsd.lPitch;
-			int pitchMin = min(pitchIn, pitchOut);
-
-			BYTE* pDataIn = (BYTE*)bm.bmBits;
-			BYTE* pDataOut = (BYTE*)ddsd.lpSurface;
-
-			if(bm.bmHeight < 0)
-			{
-				pDataIn += (h-1)*pitchIn;
-				pitchIn = -pitchIn;
-			}
-
-			for(int y = 0; y < h; y++, pDataIn += pitchIn, pDataOut += pitchOut)
-			{
-				if(bpp == 32)
-				{
-					memcpy(pDataOut, pDataIn, pitchMin);
-				}
-				else if(bpp == 16)
-				{
-					WORD* pIn = (WORD*)pDataIn;
-					DWORD* pOut = (DWORD*)pDataOut;
-					for(int x = 0; x < w; x++)
-					{
-						*pOut++ = ((*pIn&0xf800)<<8)|((*pIn&0x07e0)<<5)|(*pIn&0x001f);
-						pIn++;
-					}
-				}
-				else if(bpp == 24)
-				{
-					BYTE* pIn = pDataIn;
-					DWORD* pOut = (DWORD*)pDataOut;
-					for(int x = 0; x < w; x++)
-					{
-						*pOut++ = *((DWORD*)pIn)&0xffffff;
-						pIn += 3;
-					}
-				}
-			}
-
+			BitBltFromRGBToRGB(
+				w, h, 
+				(BYTE*)ddsd.lpSurface, ddsd.lPitch, ddsd.ddpfPixelFormat.dwRGBBitCount,
+				(BYTE*)bm.bmBits, bm.bmWidthBytes, bm.bmBitsPixel);
 			m_pVideoSurfaceOff->Unlock(NULL);
-
 			fOk = true;
 		}
 	}
@@ -1320,7 +1227,7 @@ STDMETHODIMP CQT7AllocatorPresenter::DoBlt(const BITMAP& bm)
 	}
 
 	m_pVideoSurface->Blt(NULL, m_pVideoSurfaceOff, NULL, DDBLT_WAIT, NULL);
-    
+
 	Paint(true);
 
 	return S_OK;

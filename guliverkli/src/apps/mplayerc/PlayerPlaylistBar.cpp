@@ -266,7 +266,7 @@ void CPlayerPlaylistBar::ParsePlayList(CStringList& fns, CStringList* subs)
 
 	if(CString(fn).MakeLower().Find(_T("http://")) >= 0)
 	{
-		if(!(ext == _T("pls") || ext == _T("m3u") || ext == _T("asx") || ext == _T("asf")))
+		if(!(ext == _T("pls") || ext == _T("m3u") || ext == _T("asx") /*|| ext == _T("asf")*/))
 		{
 			CUrl url;
 			url.CrackUrl(fn);
@@ -376,6 +376,10 @@ void CPlayerPlaylistBar::ParsePlayList(CStringList& fns, CStringList* subs)
 		// <Ref href = "..."/>
 		re.Attach(new CAtlRegExp<>());
 		if(re && REPARSE_ERROR_OK == re->Parse(_T("<[ \\t\n]*Ref[ \\t\n]+href[ \\t\n]*=[ \\t\n\"]*{[^\">]*}"), FALSE))
+			res.AddTail(re);
+		// Ref#n= ...\n
+		re.Attach(new CAtlRegExp<>());
+		if(re && REPARSE_ERROR_OK == re->Parse(_T("Ref\\z\\b*=\\b*[\"]*{[^\n\"]+}"), FALSE))
 			res.AddTail(re);
 	}
 	else

@@ -385,7 +385,7 @@ HRESULT CMpaDecFilter::Receive(IMediaSample* pIn)
 
 			m_rtStart += rtDur;
 
-//			TRACE(_T("mpadec: %I64d - %I64d\n"), rtStart/10000, rtStop/10000);
+			TRACE(_T("mpadec: %I64d - %I64d\n"), rtStart/10000, rtStop/10000);
 
 			// The reason of this 200ms limit is that the the splitters (both avi splitters for example)
 			// seek (1+nPins) times simply because that's the amount they receive the SetPosition call usually.

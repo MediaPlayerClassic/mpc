@@ -32,6 +32,10 @@
 #include <d3d9.h>
 #include <Vmr9.h>
 #include "..\..\SubPic\DX9SubPic.h"
+#include "..\..\..\include\RealMedia\pntypes.h"
+#include "..\..\..\include\RealMedia\pnwintyp.h"
+#include "..\..\..\include\RealMedia\pncom.h"
+#include "..\..\..\include\RealMedia\rmavsurf.h"
 #include "IQTVideoSurface.h"
 
 //#include <d3dx9.h>
@@ -49,6 +53,7 @@ protected:
     CComPtr<IDirect3DDevice9> m_pD3DDev;
 	CComPtr<IDirect3DTexture9> m_pVideoTexture;
 	CComPtr<IDirect3DSurface9> m_pVideoSurface;
+	D3DTEXTUREFILTERTYPE m_Filter;
 
     virtual HRESULT CreateDevice();
 	virtual HRESULT AllocSurfaces();
@@ -111,6 +116,35 @@ public:
 	STDMETHODIMP GetBorderColor(COLORREF* lpClr);
 };
 
+class CRM9AllocatorPresenter
+	: public CDX9AllocatorPresenter
+	, public IRMAVideoSurface
+{
+	CComPtr<IDirect3DSurface9> m_pVideoSurfaceOff;
+	CComPtr<IDirect3DSurface9> m_pVideoSurfaceYUY2;
+
+    RMABitmapInfoHeader m_bitmapInfo;
+    RMABitmapInfoHeader m_lastBitmapInfo;
+
+protected:
+	HRESULT AllocSurfaces();
+	void DeleteSurfaces();
+
+public:
+	CRM9AllocatorPresenter(HWND hWnd, HRESULT& hr);
+
+	DECLARE_IUNKNOWN
+    STDMETHODIMP NonDelegatingQueryInterface(REFIID riid, void** ppv);
+
+	// IRMAVideoSurface
+    STDMETHODIMP Blt(UCHAR*	pImageData, RMABitmapInfoHeader* pBitmapInfo, REF(PNxRect) inDestRect, REF(PNxRect) inSrcRect);
+	STDMETHODIMP BeginOptimizedBlt(RMABitmapInfoHeader* pBitmapInfo);
+	STDMETHODIMP OptimizedBlt(UCHAR* pImageBits, REF(PNxRect) rDestRect, REF(PNxRect) rSrcRect);
+	STDMETHODIMP EndOptimizedBlt();
+	STDMETHODIMP GetOptimizedFormat(REF(RMA_COMPRESSION_TYPE) ulType);
+    STDMETHODIMP GetPreferredFormat(REF(RMA_COMPRESSION_TYPE) ulType);
+};
+
 class CQT9AllocatorPresenter
 	: public CDX9AllocatorPresenter
 	, public IQTVideoSurface
@@ -145,7 +179,7 @@ HRESULT CreateAP9(const CLSID& clsid, HWND hWnd, ISubPicAllocatorPresenter** ppA
 
 	HRESULT hr;
 	if(clsid == CLSID_VMR9AllocatorPresenter && !(*ppAP = new CVMR9AllocatorPresenter(hWnd, hr))
-//	|| clsid == CLSID_RM9AllocatorPresenter && !(*ppAP = new CRM9AllocatorPresenter(hWnd, hr))
+	|| clsid == CLSID_RM9AllocatorPresenter && !(*ppAP = new CRM9AllocatorPresenter(hWnd, hr))
 	|| clsid == CLSID_QT9AllocatorPresenter && !(*ppAP = new CQT9AllocatorPresenter(hWnd, hr)))
 		return E_OUTOFMEMORY;
 
@@ -294,6 +328,17 @@ HRESULT CDX9AllocatorPresenter::CreateDevice()
 
 	//
 
+	m_Filter = D3DTEXF_NONE;
+
+	D3DCAPS9 caps;
+    ZeroMemory(&caps, sizeof(caps));
+	m_pD3DDev->GetDeviceCaps(&caps);
+	if((caps.StretchRectFilterCaps&D3DPTFILTERCAPS_MINFLINEAR)
+	&& (caps.StretchRectFilterCaps&D3DPTFILTERCAPS_MAGFLINEAR))
+		m_Filter = D3DTEXF_LINEAR;
+
+	//
+
 	CComPtr<ISubPicProvider> pSubPicProvider;
 	if(m_pSubPicQueue) m_pSubPicQueue->GetSubPicProvider(&pSubPicProvider);
 
@@ -335,12 +380,14 @@ HRESULT CDX9AllocatorPresenter::AllocSurfaces()
 {
     CAutoLock cAutoLock(this);
 
+	AppSettings& s = AfxGetAppSettings();
+
 	m_pVideoTexture = NULL;
 	m_pVideoSurface = NULL;
 
 	HRESULT hr;
 
-	if(AfxGetAppSettings().fVMRTexture)
+	if(s.iAPSurfaceUsage == VIDRNDT_AP_TEXTURE2D || s.iAPSurfaceUsage == VIDRNDT_AP_TEXTURE3D)
 	{
 		if(FAILED(hr = m_pD3DDev->CreateTexture(
 			m_NativeVideoSize.cx, m_NativeVideoSize.cy, 1, D3DUSAGE_RENDERTARGET, D3DFMT_X8R8G8B8/*D3DFMT_A8R8G8B8*/, 
@@ -350,12 +397,13 @@ HRESULT CDX9AllocatorPresenter::AllocSurfaces()
 		if(FAILED(hr = m_pVideoTexture->GetSurfaceLevel(0, &m_pVideoSurface)))
 			return hr;
 
-		if(!AfxGetAppSettings().fVMR3D) m_pVideoTexture = NULL;
+		if(s.iAPSurfaceUsage == VIDRNDT_AP_TEXTURE2D) 
+			m_pVideoTexture = NULL;
 	}
 	else
 	{
 		if(FAILED(hr = m_pD3DDev->CreateOffscreenPlainSurface(
-			m_NativeVideoSize.cx, m_NativeVideoSize.cy, D3DFMT_A8R8G8B8, 
+			m_NativeVideoSize.cx, m_NativeVideoSize.cy, D3DFMT_X8R8G8B8/*D3DFMT_A8R8G8B8*/, 
 			D3DPOOL_DEFAULT, &m_pVideoSurface, NULL)))
 			return hr;
 	}
@@ -415,7 +463,7 @@ STDMETHODIMP_(bool) CDX9AllocatorPresenter::Paint(bool fAll)
 			{
 				CComPtr<IDirect3DSurface9> pBackBuffer;
 				if(SUCCEEDED(hr = m_pD3DDev->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &pBackBuffer)))
-					hr = m_pD3DDev->StretchRect(m_pVideoSurface, rSrcVid, pBackBuffer, rDstVid, D3DTEXF_LINEAR);
+					hr = m_pD3DDev->StretchRect(m_pVideoSurface, rSrcVid, pBackBuffer, rDstVid, m_Filter);
 			}
 		}
 
@@ -885,8 +933,6 @@ STDMETHODIMP CVMR9AllocatorPresenter::PresentImage(DWORD_PTR dwUserID, VMR9Prese
 		}
 	}
 
-
-
 /*
     // if we are in the middle of the display change
     if(NeedToHandleDisplayChange())
@@ -966,6 +1012,219 @@ STDMETHODIMP CVMR9AllocatorPresenter::GetBorderColor(COLORREF* lpClr)
 }
 
 //
+// CRM9AllocatorPresenter
+//
+
+CRM9AllocatorPresenter::CRM9AllocatorPresenter(HWND hWnd, HRESULT& hr) 
+	: CDX9AllocatorPresenter(hWnd, hr)
+{
+}
+
+STDMETHODIMP CRM9AllocatorPresenter::NonDelegatingQueryInterface(REFIID riid, void** ppv)
+{
+    CheckPointer(ppv, E_POINTER);
+
+	return 
+		QI2(IRMAVideoSurface)
+		__super::NonDelegatingQueryInterface(riid, ppv);
+}
+
+HRESULT CRM9AllocatorPresenter::AllocSurfaces()
+{
+    CAutoLock cAutoLock(this);
+
+	m_pVideoSurfaceOff = NULL;
+	m_pVideoSurfaceYUY2 = NULL;
+
+	HRESULT hr;
+
+	if(FAILED(hr = m_pD3DDev->CreateOffscreenPlainSurface(
+		m_NativeVideoSize.cx, m_NativeVideoSize.cy, D3DFMT_X8R8G8B8, 
+		D3DPOOL_DEFAULT, &m_pVideoSurfaceOff, NULL)))
+		return hr;
+
+	m_pD3DDev->ColorFill(m_pVideoSurfaceOff, NULL, 0);
+
+	if(FAILED(hr = m_pD3DDev->CreateOffscreenPlainSurface(
+		m_NativeVideoSize.cx, m_NativeVideoSize.cy, D3DFMT_YUY2, 
+		D3DPOOL_DEFAULT, &m_pVideoSurfaceYUY2, NULL)))
+		m_pVideoSurfaceYUY2 = NULL;
+
+	if(m_pVideoSurfaceYUY2)
+	{
+		m_pD3DDev->ColorFill(m_pVideoSurfaceOff, NULL, 0x80108010);
+	}
+
+	return __super::AllocSurfaces();
+}
+
+void CRM9AllocatorPresenter::DeleteSurfaces()
+{
+    CAutoLock cAutoLock(this);
+	m_pVideoSurfaceOff = NULL;
+	m_pVideoSurfaceYUY2 = NULL;
+	__super::DeleteSurfaces();
+}
+
+// IRMAVideoSurface
+
+STDMETHODIMP CRM9AllocatorPresenter::Blt(UCHAR* pImageData, RMABitmapInfoHeader* pBitmapInfo, REF(PNxRect) inDestRect, REF(PNxRect) inSrcRect)
+{
+	if(!m_pVideoSurface || !m_pVideoSurfaceOff)
+		return E_FAIL;
+
+	bool fRGB = false;
+	bool fYUY2 = false;
+
+	CRect src((RECT*)&inSrcRect), dst((RECT*)&inDestRect), src2(CPoint(0,0), src.Size());
+	if(src.Width() > dst.Width() || src.Height() > dst.Height())
+		return E_FAIL;
+
+	D3DSURFACE_DESC d3dsd;
+	ZeroMemory(&d3dsd, sizeof(d3dsd));
+	if(FAILED(m_pVideoSurfaceOff->GetDesc(&d3dsd)))
+		return E_FAIL;
+
+	int dbpp = 
+		d3dsd.Format == D3DFMT_R8G8B8 || d3dsd.Format == D3DFMT_X8R8G8B8 || d3dsd.Format == D3DFMT_A8R8G8B8 ? 32 : 
+		d3dsd.Format == D3DFMT_R5G6B5 ? 16 : 0;
+
+	if(pBitmapInfo->biCompression == '024I')
+	{
+		DWORD pitch = pBitmapInfo->biWidth;
+		DWORD size = pitch*abs(pBitmapInfo->biHeight);
+
+		BYTE* y = pImageData					+ src.top*pitch + src.left;
+		BYTE* u = pImageData + size				+ src.top*(pitch/2) + src.left/2;
+		BYTE* v = pImageData + size + size/4	+ src.top*(pitch/2) + src.left/2;
+
+		if(m_pVideoSurfaceYUY2)
+		{
+			D3DLOCKED_RECT r;
+			if(SUCCEEDED(m_pVideoSurfaceYUY2->LockRect(&r, src2, 0)))
+			{
+				BitBltFromI420ToYUY2(src.Width(), src.Height(), (BYTE*)r.pBits, r.Pitch, y, u, v, pitch);
+				m_pVideoSurfaceYUY2->UnlockRect();
+				fYUY2 = true;
+			}
+		}
+		else
+		{
+			D3DLOCKED_RECT r;
+			if(SUCCEEDED(m_pVideoSurfaceOff->LockRect(&r, src2, 0)))
+			{
+				BitBltFromI420ToRGB(src.Width(), src.Height(), (BYTE*)r.pBits, r.Pitch, dbpp, y, u, v, pitch);
+				m_pVideoSurfaceOff->UnlockRect();
+				fRGB = true;
+			}
+		}
+	}
+	else if(pBitmapInfo->biCompression == '2YUY')
+	{
+		DWORD w = pBitmapInfo->biWidth;
+		DWORD h = abs(pBitmapInfo->biHeight);
+		DWORD pitch = pBitmapInfo->biWidth*2;
+
+		BYTE* yvyu = pImageData + src.top*pitch + src.left*2;
+
+		if(m_pVideoSurfaceYUY2)
+		{
+			D3DLOCKED_RECT r;
+			if(SUCCEEDED(m_pVideoSurfaceYUY2->LockRect(&r, src2, 0)))
+			{
+				BitBltFromYUY2ToYUY2(src.Width(), src.Height(), (BYTE*)r.pBits, r.Pitch, yvyu, pitch);
+				m_pVideoSurfaceYUY2->UnlockRect();
+				fRGB = true;
+			}
+		}
+		else
+		{
+			// TODO: BitBltFromYUY2ToRGB
+		}
+	}
+	else if(pBitmapInfo->biCompression == 0 || pBitmapInfo->biCompression == 3
+		 || pBitmapInfo->biCompression == 'BGRA')
+	{
+		DWORD w = pBitmapInfo->biWidth;
+		DWORD h = abs(pBitmapInfo->biHeight);
+		DWORD pitch = pBitmapInfo->biWidth*pBitmapInfo->biBitCount>>3;
+
+		BYTE* rgb = pImageData + src.top*pitch + src.left*(pBitmapInfo->biBitCount>>3);
+
+		D3DLOCKED_RECT r;
+		if(SUCCEEDED(m_pVideoSurfaceOff->LockRect(&r, src2, 0)))
+		{
+			BYTE* pBits = (BYTE*)r.pBits;
+			if(pBitmapInfo->biHeight > 0) {pBits += r.Pitch*(src.Height()-1); r.Pitch = -r.Pitch;}
+			BitBltFromRGBToRGB(src.Width(), src.Height(), pBits, r.Pitch, dbpp, rgb, pitch, pBitmapInfo->biBitCount);
+			m_pVideoSurfaceOff->UnlockRect();
+			fRGB = true;
+		}
+	}
+
+	if(!fRGB && !fYUY2)
+	{
+		m_pD3DDev->ColorFill(m_pVideoSurfaceOff, NULL, 0);
+
+		HDC hDC;
+		if(SUCCEEDED(m_pVideoSurfaceOff->GetDC(&hDC)))
+		{
+			CString str;
+			str.Format(_T("Sorry, this format is not supported"));
+
+			SetBkColor(hDC, 0);
+			SetTextColor(hDC, 0x404040);
+			TextOut(hDC, 10, 10, str, str.GetLength());
+
+			m_pVideoSurfaceOff->ReleaseDC(hDC);
+
+			fRGB = true;
+		}
+	}
+
+	HRESULT hr;
+	
+	if(fRGB)
+		hr = m_pD3DDev->StretchRect(m_pVideoSurfaceOff, src2, m_pVideoSurface, dst, D3DTEXF_NONE);
+	if(fYUY2)
+		hr = m_pD3DDev->StretchRect(m_pVideoSurfaceYUY2, src2, m_pVideoSurface, dst, D3DTEXF_NONE);
+
+	Paint(true);
+
+	return PNR_OK;
+}
+
+STDMETHODIMP CRM9AllocatorPresenter::BeginOptimizedBlt(RMABitmapInfoHeader* pBitmapInfo)
+{
+    CAutoLock cAutoLock(this);
+	DeleteSurfaces();
+	m_NativeVideoSize = m_AspectRatio = CSize(pBitmapInfo->biWidth, abs(pBitmapInfo->biHeight));
+	if(FAILED(AllocSurfaces())) return E_FAIL;
+	return PNR_NOTIMPL;
+}
+
+STDMETHODIMP CRM9AllocatorPresenter::OptimizedBlt(UCHAR* pImageBits, REF(PNxRect) rDestRect, REF(PNxRect) rSrcRect)
+{
+	return PNR_NOTIMPL;
+}
+
+STDMETHODIMP CRM9AllocatorPresenter::EndOptimizedBlt()
+{
+	return PNR_NOTIMPL;
+}
+
+STDMETHODIMP CRM9AllocatorPresenter::GetOptimizedFormat(REF(RMA_COMPRESSION_TYPE) ulType)
+{
+	return PNR_NOTIMPL;
+}
+
+STDMETHODIMP CRM9AllocatorPresenter::GetPreferredFormat(REF(RMA_COMPRESSION_TYPE) ulType)
+{
+	ulType = RMA_I420;
+	return PNR_OK;
+}
+
+//
 // CQT9AllocatorPresenter
 //
 
@@ -1009,15 +1268,9 @@ void CQT9AllocatorPresenter::DeleteSurfaces()
 STDMETHODIMP CQT9AllocatorPresenter::BeginBlt(const BITMAP& bm)
 {
     CAutoLock cAutoLock(this);
-
 	DeleteSurfaces();
-
 	m_NativeVideoSize = m_AspectRatio = CSize(bm.bmWidth, abs(bm.bmHeight));
-
-	HRESULT hr;
-	if(FAILED(hr = AllocSurfaces()))
-		return hr;
-
+	if(FAILED(AllocSurfaces())) return E_FAIL;
 	return S_OK;
 }
 
@@ -1033,59 +1286,23 @@ STDMETHODIMP CQT9AllocatorPresenter::DoBlt(const BITMAP& bm)
 	if(FAILED(m_pVideoSurfaceOff->GetDesc(&d3dsd)))
 		return E_FAIL;
 
-	int bppin = bm.bmBitsPixel;
-
 	int w = bm.bmWidth;
 	int h = abs(bm.bmHeight);
+	int bpp = bm.bmBitsPixel;
+	int dbpp = 
+		d3dsd.Format == D3DFMT_R8G8B8 || d3dsd.Format == D3DFMT_X8R8G8B8 || d3dsd.Format == D3DFMT_A8R8G8B8 ? 32 : 
+		d3dsd.Format == D3DFMT_R5G6B5 ? 16 : 0;
 
-	if((bppin == 16 || bppin == 24 || bppin == 32) && w == d3dsd.Width && h == d3dsd.Height)
+	if((bpp == 16 || bpp == 24 || bpp == 32) && w == d3dsd.Width && h == d3dsd.Height)
 	{
 		D3DLOCKED_RECT r;
 		if(SUCCEEDED(m_pVideoSurfaceOff->LockRect(&r, NULL, 0)))
 		{
-			int pitchIn = bm.bmWidthBytes;
-			int pitchOut = r.Pitch;
-			int pitchMin = min(pitchIn, pitchOut);
-
-			BYTE* pDataIn = (BYTE*)bm.bmBits;
-			BYTE* pDataOut = (BYTE*)r.pBits;
-
-			if(bm.bmHeight < 0)
-			{
-				pDataIn += (h-1)*pitchIn;
-				pitchIn = -pitchIn;
-			}
-
-			for(int y = 0; y < h; y++, pDataIn += pitchIn, pDataOut += pitchOut)
-			{
-				if(bppin == 32)
-				{
-					memcpy(pDataOut, pDataIn, pitchMin);
-				}
-				else if(bppin == 24)
-				{
-					BYTE* pIn = pDataIn;
-					DWORD* pOut = (DWORD*)pDataOut;
-					for(int x = 0; x < w; x++)
-					{
-						*pOut++ = *((DWORD*)pIn)&0xffffff;
-						pIn += 3;
-					}
-				}
-				else if(bppin == 16)
-				{
-					WORD* pIn = (WORD*)pDataIn;
-					DWORD* pOut = (DWORD*)pDataOut;
-					for(int x = 0; x < w; x++)
-					{
-						*pOut++ = ((*pIn&0xf800)<<8)|((*pIn&0x07e0)<<5)|((*pIn&0x001f)<<3);
-						pIn++;
-					}
-				}
-			}
-
+			BitBltFromRGBToRGB(
+				w, h,
+				(BYTE*)r.pBits, r.Pitch, dbpp,
+				(BYTE*)bm.bmBits, bm.bmWidthBytes, bm.bmBitsPixel);
 			m_pVideoSurfaceOff->UnlockRect();
-
 			fOk = true;
 		}
 	}

@@ -39,8 +39,6 @@ public:
 	CButton m_fDisabeXPToolbarsCtrl;
 	BOOL m_fUseWMASFReader;
 	CButton m_fUseWMASFReaderCtrl;
-	BOOL m_fVMRTexture;
-	BOOL m_fVMR3D;
 
 // Dialog Data
 	enum { IDD = IDD_PPAGETWEAKS };

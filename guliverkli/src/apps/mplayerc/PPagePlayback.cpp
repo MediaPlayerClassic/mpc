@@ -38,10 +38,9 @@ CPPagePlayback::CPPagePlayback()
 	, m_fRewind(FALSE)
 	, m_iZoomLevel(0)
 	, m_iRememberZoomLevel(FALSE)
+	, m_fSetFullscreenRes(FALSE)
 	, m_nVolume(0)
 	, m_nBalance(0)
-	, m_iVideoRendererType(0)
-	, m_iAudioRendererType(0)
 	, m_fAutoloadAudio(FALSE)
 	, m_fAutoloadSubtitles(FALSE)
 	, m_fEnableWorkerThreadForOpening(FALSE)
@@ -66,10 +65,8 @@ void CPPagePlayback::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_CHECK1, m_fRewind);
 	DDX_CBIndex(pDX, IDC_COMBO1, m_iZoomLevel);
 	DDX_Check(pDX, IDC_CHECK5, m_iRememberZoomLevel);
-	DDX_CBIndex(pDX, IDC_COMBO2, m_iVideoRendererType);
-	DDX_Control(pDX, IDC_COMBO2, m_iVideoRendererTypeCtrl);
-	DDX_CBIndex(pDX, IDC_COMBO13, m_iAudioRendererType);
-	DDX_Control(pDX, IDC_COMBO13, m_iAudioRendererTypeCtrl);
+	DDX_Check(pDX, IDC_CHECK4, m_fSetFullscreenRes);
+	DDX_Control(pDX, IDC_COMBO2, m_dispmodecombo);
 	DDX_Check(pDX, IDC_CHECK2, m_fAutoloadAudio);
 	DDX_Check(pDX, IDC_CHECK3, m_fAutoloadSubtitles);
 	DDX_Check(pDX, IDC_CHECK9, m_fEnableWorkerThreadForOpening);
@@ -83,6 +80,8 @@ BEGIN_MESSAGE_MAP(CPPagePlayback, CPPageBase)
 	ON_CONTROL_RANGE(BN_CLICKED, IDC_RADIO1, IDC_RADIO2, OnBnClickedRadio12)
 	ON_UPDATE_COMMAND_UI(IDC_EDIT1, OnUpdateLoopNum)
 	ON_UPDATE_COMMAND_UI(IDC_STATIC1, OnUpdateLoopNum)
+	ON_UPDATE_COMMAND_UI(IDC_COMBO1, OnUpdateAutoZoomCombo)
+	ON_UPDATE_COMMAND_UI(IDC_COMBO2, OnUpdateDispModeCombo)
 END_MESSAGE_MAP()
 
 
@@ -106,93 +105,27 @@ BOOL CPPagePlayback::OnInitDialog()
 	m_iZoomLevel = s.iZoomLevel;
 	m_iRememberZoomLevel = s.fRememberZoomLevel;
 
-	m_iVideoRendererTypeCtrl.SetItemData(m_iVideoRendererTypeCtrl.AddString(_T("System Default")), VIDRNDT_DEFAULT);
-
-	if(s.iVideoRendererAvailable&VIDRNDT_OLDRENDERER)
-		m_iVideoRendererTypeCtrl.SetItemData(m_iVideoRendererTypeCtrl.AddString(_T("Old Video Renderer")), VIDRNDT_OLDRENDERER);
-	if(s.iVideoRendererAvailable&VIDRNDT_OVERLAYMIXER)
-		m_iVideoRendererTypeCtrl.SetItemData(m_iVideoRendererTypeCtrl.AddString(_T("Overlay Mixer")), VIDRNDT_OVERLAYMIXER);
-	if(s.iVideoRendererAvailable&VIDRNDT_VMR7RENDERLESS)
-		m_iVideoRendererTypeCtrl.SetItemData(m_iVideoRendererTypeCtrl.AddString(_T("Video Mixing Renderer 7 (Windowed)")), VIDRNDT_VMR7WINDOWED);
-	if(s.iVideoRendererAvailable&VIDRNDT_VMR9RENDERLESS)
-		m_iVideoRendererTypeCtrl.SetItemData(m_iVideoRendererTypeCtrl.AddString(_T("Video Mixing Renderer 9 (Windowed)")), VIDRNDT_VMR9WINDOWED);
-	if(s.iVideoRendererAvailable&VIDRNDT_VMR7WINDOWED)
-		m_iVideoRendererTypeCtrl.SetItemData(m_iVideoRendererTypeCtrl.AddString(_T("Video Mixing Renderer 7 (Renderless)")), VIDRNDT_VMR7RENDERLESS);
-	if(s.iVideoRendererAvailable&VIDRNDT_VMR9WINDOWED)
-		m_iVideoRendererTypeCtrl.SetItemData(m_iVideoRendererTypeCtrl.AddString(_T("Video Mixing Renderer 9 (Renderless)")), VIDRNDT_VMR9RENDERLESS);
-	if(s.iVideoRendererAvailable&VIDRNDT_NULL_COMP)
-		m_iVideoRendererTypeCtrl.SetItemData(m_iVideoRendererTypeCtrl.AddString(_T("Null Video Renderer (Any)")), VIDRNDT_NULL_COMP);
-	if(s.iVideoRendererAvailable&VIDRNDT_NULL_UNCOMP)
-		m_iVideoRendererTypeCtrl.SetItemData(m_iVideoRendererTypeCtrl.AddString(_T("Null Video Renderer (Uncompressed)")), VIDRNDT_NULL_UNCOMP);
-
-	m_iVideoRendererType = 0;
-	for(int i = 0; i < m_iVideoRendererTypeCtrl.GetCount(); i++)
+	m_fSetFullscreenRes = s.dmFullscreenRes.fValid;
+	int iSel = -1;
+	dispmode dm, dmtoset = s.dmFullscreenRes;
+	if(!dmtoset.fValid) GetCurDispMode(dmtoset);
+	for(int i = 0, j = 0; GetDispMode(i, dm); i++)
 	{
-		if(m_iVideoRendererTypeCtrl.GetItemData(i) == s.iVideoRendererType)
-		{
-			m_iVideoRendererType = i;
-			break;
-		}
+		if(dm.bpp <= 8) continue;
+
+		m_dms.Add(dm);
+
+		CString str;
+		str.Format(_T("%dx%d %dbpp %dHz"), dm.size.cx, dm.size.cy, dm.bpp, dm.freq);
+		m_dispmodecombo.AddString(str);
+
+		if(iSel < 0 && dmtoset.fValid && dm.size == dmtoset.size
+		&& dm.bpp == dmtoset.bpp && dm.freq == dmtoset.freq)
+			iSel = j;
+
+		j++;
 	}
-
-	m_AudioRendererDisplayNames.Add(_T(""));
-	m_iAudioRendererTypeCtrl.AddString(_T("System Default"));
-	m_iAudioRendererType = 0;
-
-	BeginEnumSysDev(CLSID_AudioRendererCategory, pMoniker)
-	{
-		LPOLESTR olestr = NULL;
-		if(FAILED(pMoniker->GetDisplayName(0, 0, &olestr)))
-			continue;
-		CStringW str(olestr);
-		CoTaskMemFree(olestr);
-		m_AudioRendererDisplayNames.Add(CString(str));
-
-		CComPtr<IPropertyBag> pPB;
-		if(SUCCEEDED(pMoniker->BindToStorage(0, 0, IID_IPropertyBag, (void**)&pPB)))
-		{
-			CComVariant var;
-			pPB->Read(CComBSTR(_T("FriendlyName")), &var, NULL);
-
-			CString fstr(var.bstrVal);
-
-			var.Clear();
-			if(SUCCEEDED(pPB->Read(CComBSTR(_T("FilterData")), &var, NULL)))
-			{			
-				BSTR* pbstr;
-				if(SUCCEEDED(SafeArrayAccessData(var.parray, (void**)&pbstr)))
-				{
-					fstr.Format(_T("%s (%08x)"), CString(fstr), *((DWORD*)pbstr + 1));
-					SafeArrayUnaccessData(var.parray);
-				}
-			}
-
-			m_iAudioRendererTypeCtrl.AddString(fstr);
-		}
-		else
-		{
-			m_iAudioRendererTypeCtrl.AddString(CString(str));
-		}
-
-		if(s.AudioRendererDisplayName == str && m_iAudioRendererType == 0)
-		{
-			m_iAudioRendererType = m_iAudioRendererTypeCtrl.GetCount()-1;
-		}
-	}
-	EndEnumSysDev
-
-	m_AudioRendererDisplayNames.Add(AUDRNDT_NULL_COMP);
-	m_iAudioRendererTypeCtrl.AddString(AUDRNDT_NULL_COMP);
-	if(s.AudioRendererDisplayName == AUDRNDT_NULL_COMP && m_iAudioRendererType == 0)
-		m_iAudioRendererType = m_iAudioRendererTypeCtrl.GetCount()-1;
-
-	m_AudioRendererDisplayNames.Add(AUDRNDT_NULL_UNCOMP);
-	m_iAudioRendererTypeCtrl.AddString(AUDRNDT_NULL_UNCOMP);
-	if(s.AudioRendererDisplayName == AUDRNDT_NULL_UNCOMP && m_iAudioRendererType == 0)
-		m_iAudioRendererType = m_iAudioRendererTypeCtrl.GetCount()-1;
-
-	CorrectComboListWidth(m_iVideoRendererTypeCtrl, GetFont());
-	CorrectComboListWidth(m_iAudioRendererTypeCtrl, GetFont());
+	m_dispmodecombo.SetCurSel(iSel);
 
 	m_fAutoloadAudio = s.fAutoloadAudio;
 	m_fAutoloadSubtitles = s.fAutoloadSubtitles;
@@ -218,8 +151,9 @@ BOOL CPPagePlayback::OnApply()
 	s.fRewind = !!m_fRewind;
 	s.iZoomLevel = m_iZoomLevel;
 	s.fRememberZoomLevel = !!m_iRememberZoomLevel;
-	s.iVideoRendererType = m_iVideoRendererType >= 0 ? m_iVideoRendererTypeCtrl.GetItemData(m_iVideoRendererType) : 0;
-	s.AudioRendererDisplayName = m_AudioRendererDisplayNames[m_iAudioRendererType];
+	int iSel = m_dispmodecombo.GetCurSel();
+	if((s.dmFullscreenRes.fValid = !!m_fSetFullscreenRes) && iSel >= 0 && iSel < m_dms.GetCount())
+		s.dmFullscreenRes = m_dms[m_dispmodecombo.GetCurSel()];
 	s.fAutoloadAudio = !!m_fAutoloadAudio;
 	s.fAutoloadSubtitles = !!m_fAutoloadSubtitles;
 	s.fEnableWorkerThreadForOpening = !!m_fEnableWorkerThreadForOpening;
@@ -265,4 +199,16 @@ void CPPagePlayback::OnUpdateLoopNum(CCmdUI* pCmdUI)
 {
 	UpdateData();
 	pCmdUI->Enable(m_iLoopForever == 0);
+}
+
+void CPPagePlayback::OnUpdateAutoZoomCombo(CCmdUI* pCmdUI)
+{
+	UpdateData();
+	pCmdUI->Enable(m_iRememberZoomLevel);
+}
+
+void CPPagePlayback::OnUpdateDispModeCombo(CCmdUI* pCmdUI)
+{
+	UpdateData();
+	pCmdUI->Enable(m_fSetFullscreenRes);
 }

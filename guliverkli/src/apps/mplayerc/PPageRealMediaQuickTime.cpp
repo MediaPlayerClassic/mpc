@@ -35,8 +35,6 @@ CPPageRealMediaQuickTime::CPPageRealMediaQuickTime()
 	, m_fIntRealMedia(FALSE)
 	, m_fRealMediaRenderless(FALSE)
 	, m_iQuickTimeRenderer(0)
-	, m_iRtspHandler(0)
-	, m_fRtspFileExtFirst(FALSE)
 {
 }
 
@@ -51,8 +49,6 @@ void CPPageRealMediaQuickTime::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_CHECK1, m_fRealMediaRenderless);
 	DDX_Radio(pDX, IDC_RADIO1, m_iQuickTimeRenderer);
 	DDX_Control(pDX, IDC_EDIT2, m_RealMediaQuickTimeFPS);
-	DDX_Radio(pDX, IDC_RADIO4, m_iRtspHandler);
-	DDX_Check(pDX, IDC_CHECK3, m_fRtspFileExtFirst);
 }
 
 
@@ -70,13 +66,9 @@ BOOL CPPageRealMediaQuickTime::OnInitDialog()
 	AppSettings& s = AfxGetAppSettings();
 
 	m_fIntRealMedia = s.fIntRealMedia;
-	m_fRealMediaRenderless = s.fRealMediaRenderless;
-	m_iQuickTimeRenderer = s.iQuickTimeRenderer;
+//	m_fRealMediaRenderless = s.fRealMediaRenderless;
+//	m_iQuickTimeRenderer = s.iQuickTimeRenderer;
 	m_RealMediaQuickTimeFPS = s.RealMediaQuickTimeFPS;
-	bool fRtspFileExtFirst;
-	engine_t e = s.Formats.GetRtspHandler(fRtspFileExtFirst);
-	m_iRtspHandler = (e==RealMedia?0:e==QuickTime?1:2);
-	m_fRtspFileExtFirst = fRtspFileExtFirst;
 
 	UpdateData(FALSE);
 
@@ -91,12 +83,11 @@ BOOL CPPageRealMediaQuickTime::OnApply()
 	AppSettings& s = AfxGetAppSettings();
 
 	s.fIntRealMedia = !!m_fIntRealMedia;
-	s.fRealMediaRenderless = !!m_fRealMediaRenderless;
-	s.iQuickTimeRenderer = m_iQuickTimeRenderer;
+//	s.fRealMediaRenderless = !!m_fRealMediaRenderless;
+//	s.iQuickTimeRenderer = m_iQuickTimeRenderer;
 	float f;
 	if(m_RealMediaQuickTimeFPS.GetFloat(f)) s.RealMediaQuickTimeFPS = f;
 	m_RealMediaQuickTimeFPS = s.RealMediaQuickTimeFPS;
-	s.Formats.SetRtspHandler(m_iRtspHandler==0?RealMedia:m_iRtspHandler==1?QuickTime:DirectShow, !!m_fRtspFileExtFirst);
 
 	UpdateData(FALSE);
 

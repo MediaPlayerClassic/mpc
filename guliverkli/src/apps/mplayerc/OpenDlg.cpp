@@ -95,6 +95,8 @@ BOOL COpenDlg::OnInitDialog()
 
 void COpenDlg::OnBnClickedBrowsebutton()
 {
+	UpdateData();
+
 	CMediaFormats& mf = AfxGetAppSettings().Formats;
 
 	CString filter;
@@ -119,7 +121,7 @@ void COpenDlg::OnBnClickedBrowsebutton()
 
 	filter += _T("|");
 
-	COpenFileDialog fd(mask, true, NULL, NULL, 
+	COpenFileDialog fd(mask, true, NULL, m_path, 
 		OFN_EXPLORER|OFN_ENABLESIZING|OFN_HIDEREADONLY|OFN_ALLOWMULTISELECT|OFN_ENABLEINCLUDENOTIFY, 
 		filter, this);
 
@@ -148,6 +150,8 @@ void COpenDlg::OnBnClickedBrowsebutton()
 
 void COpenDlg::OnBnClickedBrowsebutton2()
 {
+	UpdateData();
+
 	CMediaFormats& mf = AfxGetAppSettings().Formats;
 
 	CString filter;
@@ -177,7 +181,7 @@ void COpenDlg::OnBnClickedBrowsebutton2()
 
 	filter += _T("|");
 
-	COpenFileDialog fd(mask, false, NULL, NULL, 
+	COpenFileDialog fd(mask, false, NULL, m_path2, 
 		OFN_EXPLORER|OFN_ENABLESIZING|OFN_HIDEREADONLY|OFN_ENABLEINCLUDENOTIFY, 
 		filter, this);
 
@@ -228,6 +232,7 @@ COpenFileDialog::COpenFileDialog(CStringArray& mask, bool fAllowDirSelection, LP
 	, m_mask(mask)
 {
 	m_fAllowDirSelection = fAllowDirSelection;
+	m_pOFN->lpstrInitialDir = lpszFileName;
 }
 
 COpenFileDialog::~COpenFileDialog()

@@ -21,7 +21,6 @@
 
 #pragma once
 
-#include <afxtempl.h>
 #include <atlbase.h>
 
 class Filter

@@ -26,6 +26,7 @@
 #include <afxtempl.h>
 #include "MatroskaFile.h"
 #include "..\BaseSplitter\BaseSplitter.h"
+#include "..\..\..\..\include\ITrackInfo.h"
 
 class MatroskaPacket : public Packet
 {

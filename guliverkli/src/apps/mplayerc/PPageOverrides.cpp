@@ -24,7 +24,6 @@
 
 #include "stdafx.h"
 #include "mplayerc.h"
-#include <afxtempl.h>
 #include "PPageOverrides.h"
 #include "ComPropertySheet.h"
 #include "RegFilterChooserDlg.h"

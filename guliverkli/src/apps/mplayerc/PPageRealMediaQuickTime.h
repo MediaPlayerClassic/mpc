@@ -39,8 +39,6 @@ public:
 	BOOL m_fRealMediaRenderless;
 	int m_iQuickTimeRenderer;
 	CFloatEdit m_RealMediaQuickTimeFPS;
-	int m_iRtspHandler;
-	BOOL m_fRtspFileExtFirst;
 
 protected:
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV support

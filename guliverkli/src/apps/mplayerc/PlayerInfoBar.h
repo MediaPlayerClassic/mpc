@@ -22,7 +22,6 @@
 #pragma once
 
 #include <atlcoll.h>
-#include <afxtempl.h>
 #include "StatusLabel.h"
 
 // CPlayerInfoBar

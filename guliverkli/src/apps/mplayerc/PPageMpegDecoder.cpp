@@ -29,7 +29,6 @@
 #include "PPageMpegDecoder.h"
 #include "..\..\DSUtil\DSUtil.h"
 #include "..\..\filters\transform\Mpeg2DecFilter\Mpeg2DecFilter.h"
-#include ".\ppagempegdecoder.h"
 
 // CPPageMpegDecoder dialog
 

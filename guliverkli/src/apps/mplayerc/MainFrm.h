@@ -50,6 +50,8 @@
 #include "..\..\..\include\IChapterInfo.h"
 #include "..\..\..\include\IKeyFrameInfo.h"
 
+#include "WebServer.h"
+
 enum {PM_NONE, PM_FILE, PM_DVD, PM_CAPTURE};
 
 class OpenMediaData
@@ -264,6 +266,10 @@ class CMainFrame : public CFrameWnd, public CDropTarget
 
 	void ShowOptions(int idPage = 0);
 
+	//
+
+	CWebServer m_webserver;
+
 public:
 	CMainFrame();
 
@@ -402,6 +408,7 @@ protected:  // control bar embedded members
 
 	DECLARE_MESSAGE_MAP()
 
+public:
 	afx_msg int OnCreate(LPCREATESTRUCT lpCreateStruct);
 	afx_msg void OnDestroy();
 

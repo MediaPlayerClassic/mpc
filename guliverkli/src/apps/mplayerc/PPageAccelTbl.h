@@ -22,7 +22,6 @@
 #pragma once
 
 #include <afxcmn.h>
-#include <afxtempl.h>
 #include "PPageBase.h"
 #include "PlayerListCtrl.h"
 #include "StaticLink.h"

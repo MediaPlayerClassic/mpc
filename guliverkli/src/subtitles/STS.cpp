@@ -688,7 +688,9 @@ static STSStyle* GetMicroDVDStyle(CString str, int CharSet)
 		}
 		else if(!_tcsnicmp(code, _T("{s:"), 3))
 		{
-			_stscanf(code, _T("{s:%f"), &ret->fontSize);
+			float f;
+			if(1 == _stscanf(code, _T("{s:%f"), &f))
+				ret->fontSize = f;
 		}
 		else if(!_tcsnicmp(code, _T("{h:"), 3))
 		{

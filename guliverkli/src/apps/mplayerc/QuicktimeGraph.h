@@ -65,15 +65,10 @@ public:
 	afx_msg void OnDestroy();
 	afx_msg BOOL OnEraseBkgnd(CDC* pDC);
 	afx_msg void OnTimer(UINT nIDEvent);
-	afx_msg void OnPaint();
 };
 
 class CQuicktimeGraph : public CBaseGraph, public IVideoFrameStep
 {
-public:
-	enum {MC, GDI, DX7, DX9};
-	int m_iRenderer;
-
 protected:
 	bool m_fQtInitialized;
 
@@ -83,7 +78,7 @@ protected:
 	CComPtr<ISubPicAllocatorPresenter> m_pQTAP;
 
 public:
-	CQuicktimeGraph(HWND hParent, int iRenderer, HRESULT& hr);
+	CQuicktimeGraph(HWND hParent, HRESULT& hr);
 	virtual ~CQuicktimeGraph();
 
     DECLARE_IUNKNOWN;

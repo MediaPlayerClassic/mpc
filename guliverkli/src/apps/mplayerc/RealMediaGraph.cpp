@@ -31,6 +31,7 @@
 #include "..\..\..\include\RealMedia\rmaevent.h"
 #include "..\..\..\include\RealMedia\rmaprefs.h"
 #include "..\..\DSUtil\DSUtil.h"
+#include "AuthDlg.h"
 
 // CRealMediaPlayer
 
@@ -291,7 +292,19 @@ STDMETHODIMP CRealMediaPlayer::OnBuffering(UINT32 ulFlags, UINT16 unPercentCompl
 STDMETHODIMP CRealMediaPlayer::OnContacting(const char* pHostName) {return PNR_OK;}
 
 // IRMAAuthenticationManager
-STDMETHODIMP CRealMediaPlayer::HandleAuthenticationRequest(IRMAAuthenticationManagerResponse* pResponse) {return E_NOTIMPL;}
+STDMETHODIMP CRealMediaPlayer::HandleAuthenticationRequest(IRMAAuthenticationManagerResponse* pResponse)
+{
+	CAuthDlg dlg;
+
+	if(dlg.DoModal() == IDOK)
+	{
+		pResponse->AuthenticationRequestDone(
+			PNR_OK, CStringA(dlg.m_username), CStringA(dlg.m_password));
+		return PNR_OK;
+	}
+
+	return pResponse->AuthenticationRequestDone(PNR_NOT_AUTHORIZED, NULL, NULL);
+}
 
 // IRMASiteSupplier
 STDMETHODIMP CRealMediaPlayer::SitesNeeded(UINT32 uRequestID, IRMAValues* pProps)
@@ -466,8 +479,20 @@ void CRealMediaPlayerWindowed::DestroySite(IRMASite* pSite)
 CRealMediaPlayerWindowless::CRealMediaPlayerWindowless(HWND hWndParent, CRealMediaGraph* pRMG) 
 	: CRealMediaPlayer(hWndParent, pRMG) 
 {
-	if(FAILED(CreateAP7(CLSID_RM7AllocatorPresenter, hWndParent, &m_pRMAP)))
-		return;
+	AppSettings& s = AfxGetAppSettings();
+
+	switch(s.iRMVideoRendererType)
+	{
+	default:
+	case VIDRNDT_RM_DX7:
+		if(FAILED(CreateAP7(CLSID_RM7AllocatorPresenter, hWndParent, &m_pRMAP)))
+			return;
+		break;
+	case VIDRNDT_RM_DX9:
+		if(FAILED(CreateAP9(CLSID_RM9AllocatorPresenter, hWndParent, &m_pRMAP)))
+			return;
+		break;
+	}
 }
 
 CRealMediaPlayerWindowless::~CRealMediaPlayerWindowless()
@@ -523,15 +548,14 @@ STDMETHODIMP CRealMediaPlayerWindowless::SizeChanged(PNxSize* size)
 
 ////////////////
 
-CRealMediaGraph::CRealMediaGraph(HWND hWndParent, bool fWindowless, HRESULT& hr)
+CRealMediaGraph::CRealMediaGraph(HWND hWndParent, HRESULT& hr)
 	: CBaseGraph()
-	, m_fWindowless(false)
 {
 	hr = S_OK;
 
-	m_pRMP = fWindowless 
-		? (CRealMediaPlayer*)new CRealMediaPlayerWindowless(hWndParent, this)
-		: (CRealMediaPlayer*)new CRealMediaPlayerWindowed(hWndParent, this);
+	m_pRMP = AfxGetAppSettings().iRMVideoRendererType == VIDRNDT_RM_DEFAULT
+		? (CRealMediaPlayer*)new CRealMediaPlayerWindowed(hWndParent, this)
+		: (CRealMediaPlayer*)new CRealMediaPlayerWindowless(hWndParent, this);
 
 	if(!m_pRMP)
 	{
