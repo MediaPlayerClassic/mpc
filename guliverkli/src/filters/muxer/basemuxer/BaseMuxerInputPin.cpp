@@ -28,7 +28,7 @@
 #include <initguid.h>
 #include "..\..\..\..\include\ogg\OggDS.h"
 
-#define MAXQUEUESIZE 10
+#define MAXQUEUESIZE 100
 
 //
 // CBaseMuxerInputPin
@@ -58,14 +58,9 @@ STDMETHODIMP CBaseMuxerInputPin::NonDelegatingQueryInterface(REFIID riid, void**
 		__super::NonDelegatingQueryInterface(riid, ppv);
 }
 
-bool CBaseMuxerInputPin::IsSubtitleStream()
-{
-	return m_mt.majortype == MEDIATYPE_Text || m_mt.majortype == MEDIATYPE_Subtitle; // TODO
-}
-
 void CBaseMuxerInputPin::PushPacket(CAutoPtr<MuxerPacket> pPacket)
 {
-	for(int i = 0; m_pFilter->IsActive() && !IsFlushing()
+	for(int i = 0; m_pFilter->IsActive() && !m_bFlushing
 		&& !m_evAcceptPacket.Wait(1) 
 		&& i < 1000; 
 		i++);

@@ -201,8 +201,9 @@ void CDSMMuxerFilter::MuxPacket(IBitStream* pBS, MuxerPacket* pPacket)
 	if(pPacket->IsEOS())
 		return;
 
-	if(pPacket->pPin->IsSubtitleStream())
+	if(pPacket->pPin->CurrentMediaType().majortype == MEDIATYPE_Text)
 	{
+		//
 		CStringA str((char*)pPacket->pData.GetData(), pPacket->pData.GetCount());
 		str.Replace("\xff", " ");
 		str.Replace("&nbsp;", " ");

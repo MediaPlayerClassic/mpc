@@ -42,7 +42,6 @@ struct MuxerPacket
 
 class CBaseMuxerInputPin : public CBaseInputPin, public CDSMPropertyBag
 {
-public:
 private:
 	CCritSec m_csReceive;
 	REFERENCE_TIME m_rtMaxStart, m_rtDuration;
@@ -65,10 +64,8 @@ public:
     STDMETHODIMP NonDelegatingQueryInterface(REFIID riid, void** ppv);
 
 	REFERENCE_TIME GetDuration() {return m_rtDuration;}
-	bool IsSubtitleStream();
 	int GetID() {return m_iID;}
 	CMediaType& CurrentMediaType() {return m_mt;}
-	bool IsFlushing() {return !!m_bFlushing;}
 
     HRESULT CheckMediaType(const CMediaType* pmt);
     HRESULT BreakConnect();
