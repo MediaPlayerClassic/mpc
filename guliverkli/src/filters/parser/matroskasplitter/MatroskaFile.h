@@ -136,9 +136,6 @@ namespace MatroskaReader
 				CBinary CodecState;
 				CNode<TimeSlice> TimeSlices;
 
-				enum {INVALIDDURATION = -1};
-
-				Block() {BlockDuration.Set(INVALIDDURATION);}
 				HRESULT Parse(CMatroskaNode* pMN, bool fFull);
 			};
 
@@ -288,6 +285,8 @@ namespace MatroskaReader
 
 		HRESULT Parse(CMatroskaNode* pMN);
 		HRESULT ParseMinimal(CMatroskaNode* pMN);
+
+		REFERENCE_TIME GetRefTime(INT64 t) {return (REFERENCE_TIME)(t*SegmentInfo.TimeCodeScale/100);}
 	};
 
 	class CMatroskaFile
@@ -337,5 +336,7 @@ namespace MatroskaReader
 		QWORD GetPos(), GetLength();
 		template <class T> HRESULT Read(T& var);
 		HRESULT Read(BYTE* pData, QWORD len);
+
+		CAutoPtr<CMatroskaNode> Copy();
 	};
 }

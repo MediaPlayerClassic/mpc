@@ -671,3 +671,14 @@ QWORD CMatroskaNode::FindId(DWORD id, QWORD start)
 
 	return 0;
 }
+
+CAutoPtr<CMatroskaNode> CMatroskaNode::Copy()
+{
+	CAutoPtr<CMatroskaNode> pNewNode(new CMatroskaNode(m_pMF));
+	pNewNode->m_pParent = m_pParent;
+	pNewNode->m_id.Set(m_id);
+	pNewNode->m_len.Set(m_len);
+	pNewNode->m_filepos = m_filepos;
+	pNewNode->m_start = m_start;
+	return(pNewNode);
+}
