@@ -218,7 +218,7 @@ HRESULT CMatroskaSourceFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 					mt.subtype = FOURCCMap(pbmi->biCompression);
 					mt.formattype = FORMAT_VideoInfo;
 					VIDEOINFOHEADER* pvih = (VIDEOINFOHEADER*)mt.AllocFormatBuffer(sizeof(VIDEOINFOHEADER) + pTE->CodecPrivate.GetCount() - sizeof(BITMAPINFOHEADER));
-					memset(pvih, 0, mt.FormatLength());
+					memset(mt.Format(), 0, mt.FormatLength());
 					memcpy(&pvih->bmiHeader, pbmi, pTE->CodecPrivate.GetCount());
 					if(pTE->v.FramePerSec > 0) 
 						pvih->AvgTimePerFrame = (REFERENCE_TIME)(10000000i64 / pTE->v.FramePerSec);
@@ -240,11 +240,10 @@ HRESULT CMatroskaSourceFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 
 					if(pTE->v.DisplayWidth != 0 && pTE->v.DisplayHeight != 0)
 					{
-						BITMAPINFOHEADER tmp = pvih->bmiHeader;
 						mt.formattype = FORMAT_VideoInfo2;
 						VIDEOINFOHEADER2* pvih2 = (VIDEOINFOHEADER2*)mt.ReallocFormatBuffer(sizeof(VIDEOINFOHEADER2) + pTE->CodecPrivate.GetCount() - sizeof(BITMAPINFOHEADER));
-						memset(pvih2, 0, mt.FormatLength());
-						pvih2->bmiHeader = tmp;
+						memset(mt.Format() + FIELD_OFFSET(VIDEOINFOHEADER2, dwInterlaceFlags), 0, mt.FormatLength() - FIELD_OFFSET(VIDEOINFOHEADER2, dwInterlaceFlags));
+						memcpy(&pvih2->bmiHeader, pbmi, pTE->CodecPrivate.GetCount());
 						pvih2->dwPictAspectRatioX = (DWORD)pTE->v.DisplayWidth;
 						pvih2->dwPictAspectRatioY = (DWORD)pTE->v.DisplayHeight;
 						mts.InsertAt(0, mt);
