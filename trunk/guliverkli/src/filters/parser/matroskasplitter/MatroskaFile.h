@@ -360,6 +360,8 @@ namespace MatroskaReader
 		CMatroskaNode* m_pParent;
 		CMatroskaFile* m_pMF;
 
+		bool Resync();
+
 	public:
 		CID m_id;
 		CLength m_len;

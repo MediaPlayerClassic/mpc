@@ -141,6 +141,8 @@ class CMainFrame : public CFrameWnd, public CDropTarget
 		TIMER_STATUSERASER
 	};
 
+	friend class CPPageFileInfoSheet;
+
 	// TODO: wrap these graph objects into a class to make it look cleaner
 
 	DWORD m_dwRegister;
@@ -537,6 +539,8 @@ protected:  // control bar embedded members
 	afx_msg void OnUpdateGoto(CCmdUI* pCmdUI);
 	afx_msg void OnPlayChangeRate(UINT nID);
 	afx_msg void OnUpdatePlayChangeRate(CCmdUI* pCmdUI);
+	afx_msg void OnPlayChangeAudDelay(UINT nID);
+	afx_msg void OnUpdatePlayChangeAudDelay(CCmdUI* pCmdUI);
 	afx_msg void OnPlayFilters(UINT nID);
 	afx_msg void OnUpdatePlayFilters(CCmdUI* pCmdUI);
 	afx_msg void OnPlayAudio(UINT nID);

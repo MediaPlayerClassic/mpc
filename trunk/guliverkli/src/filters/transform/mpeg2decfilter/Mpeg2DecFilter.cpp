@@ -27,8 +27,6 @@
 #include "libmpeg2.h"
 #include "Mpeg2DecFilter.h"
 
-#include "..\..\..\decss\CSSauth.h"
-#include "..\..\..\decss\CSSscramble.h"
 #include "..\..\..\DSUtil\DSUtil.h"
 #include "..\..\..\DSUtil\MediaTypes.h"
 
@@ -346,7 +344,8 @@ HRESULT CMpeg2DecFilter::Receive(IMediaSample* pIn)
 			break;
 		case STATE_INVALID:
 			TRACE(_T("STATE_INVALID\n"));
-//			ResetMpeg2Decoder();
+//			if(m_fWaitForKeyFrame)
+//				ResetMpeg2Decoder();
 			break;
 		case STATE_GOP:
 			TRACE(_T("STATE_GOP\n"));
@@ -369,11 +368,11 @@ HRESULT CMpeg2DecFilter::Receive(IMediaSample* pIn)
 			if(m_AvgTimePerFrame == 0) m_AvgTimePerFrame = ((VIDEOINFOHEADER*)m_pInput->CurrentMediaType().Format())->AvgTimePerFrame;
 			break;
 		case STATE_PICTURE:
-			{
+/*			{
 			TCHAR frametype[] = {'?','I', 'P', 'B', 'D'};
 			TRACE(_T("STATE_PICTURE %010I64d [%c]\n"), rtStart, frametype[m_dec->m_picture->flags&PIC_MASK_CODING_TYPE]);
 			}
-			m_dec->m_picture->rtStart = rtStart;
+*/			m_dec->m_picture->rtStart = rtStart;
 			rtStart = _I64_MIN;
 			m_dec->m_picture->fDelivered = false;
 			break;
@@ -445,6 +444,7 @@ ASSERT(!(m_fb.flags&PIC_FLAG_SKIP));
 							// uses the repeat field flag (signaled with m_fFilm), if it's not set 
 							// or we have pal then we might end up blending the fields unnecessarily...
 							di = DIBlend;
+							// TODO: find out if the pic is really interlaced by analysing it
 					}
 
 					if(di == DIWeave)
@@ -534,7 +534,7 @@ HRESULT CMpeg2DecFilter::Deliver(bool fRepeatLast)
 
 	if((m_fb.flags&PIC_MASK_CODING_TYPE) == PIC_FLAG_CODING_TYPE_I)
 		m_fWaitForKeyFrame = false;
-
+/*
 	TCHAR frametype[] = {'?','I', 'P', 'B', 'D'};
 //	TRACE(_T("%010I64d - %010I64d [%c] [prsq %d prfr %d tff %d rff %d nb_fields %d ref %d] (%dx%d/%dx%d)\n"), 
 	TRACE(_T("%010I64d - %010I64d [%c] [prsq %d prfr %d tff %d rff %d] (%dx%d %d) (preroll %d)\n"), 
@@ -548,7 +548,7 @@ HRESULT CMpeg2DecFilter::Deliver(bool fRepeatLast)
 //		m_dec->m_info.m_display_picture->temporal_reference,
 		m_fb.w, m_fb.h, m_fb.pitch,
 		!!(m_fb.rtStart < 0 || m_fWaitForKeyFrame));
-
+*/
 	if(m_fb.rtStart < 0 || m_fWaitForKeyFrame)
 		return S_OK;
 
@@ -725,6 +725,7 @@ HRESULT CMpeg2DecFilter::ReconnectOutput(int w, int h, CMediaType& mt)
 
 	if(w != win || h != hin)
 	{
+		TRACE(_T("CMpeg2DecFilter (ERROR): input and real video dimensions do not match (%dx%d %dx%d)"), w, h, win, hin);
 		ASSERT(0);
 		return E_FAIL;
 	}
@@ -826,10 +827,11 @@ HRESULT CMpeg2DecFilter::CheckTransform(const CMediaType* mtIn, const CMediaType
 
 HRESULT CMpeg2DecFilter::CheckOutputMediaType(const CMediaType& mtOut)
 {
-	BITMAPINFOHEADER bihIn, bihOut;
-	return ExtractBIH(&m_pInput->CurrentMediaType(), &bihIn) 
-		&& ExtractBIH(&mtOut, &bihOut) 
-		&& bihIn.biHeight == abs(bihOut.biHeight)
+	DWORD win = 0, hin = 0, arxin = 0, aryin = 0;
+	DWORD wout = 0, hout = 0, arxout = 0, aryout = 0;
+	return ExtractDim(&m_pInput->CurrentMediaType(), win, hin, arxin, aryin)
+		&& ExtractDim(&mtOut, wout, hout, arxout, aryout)
+		&& hin == abs((int)hout)
 		? S_OK
 		: VFW_E_TYPE_NOT_ACCEPTED;
 }
@@ -1126,156 +1128,19 @@ STDMETHODIMP_(bool) CMpeg2DecFilter::IsPlanarYUVEnabled()
 //
 
 CMpeg2DecInputPin::CMpeg2DecInputPin(CTransformFilter* pFilter, HRESULT* phr, LPWSTR pName)
-	: CTransformInputPin(NAME("CMpeg2DecInputPin"), pFilter, phr, pName)
+	: CDeCSSInputPin(NAME("CMpeg2DecInputPin"), pFilter, phr, pName)
 {
-	m_varient = -1;
-	memset(m_Challenge, 0, sizeof(m_Challenge));
-	memset(m_KeyCheck, 0, sizeof(m_KeyCheck));
-	memset(m_DiscKey, 0, sizeof(m_DiscKey));
-	memset(m_TitleKey, 0, sizeof(m_TitleKey));
-
 	m_CorrectTS = 0;
 	m_ratechange.Rate = 10000;
 	m_ratechange.StartTime = _I64_MAX;
-}
-
-STDMETHODIMP CMpeg2DecInputPin::NonDelegatingQueryInterface(REFIID riid, void** ppv)
-{
-	return
-		QI(IKsPropertySet)
-		 __super::NonDelegatingQueryInterface(riid, ppv);
-}
-
-// IMemInputPin
-
-STDMETHODIMP CMpeg2DecInputPin::Receive(IMediaSample* pSample)
-{
-	if(m_mt.majortype == MEDIATYPE_DVD_ENCRYPTED_PACK && pSample->GetActualDataLength() == 2048)
-	{
-		BYTE* pBuffer = NULL;
-		if(SUCCEEDED(pSample->GetPointer(&pBuffer)) && (pBuffer[0x14]&0x30))
-		{
-			CSSdescramble(pBuffer, m_TitleKey);
-			pBuffer[0x14] &= ~0x30;
-
-			if(CComQIPtr<IMediaSample2> pMS2 = pSample)
-			{
-				AM_SAMPLE2_PROPERTIES props;
-				memset(&props, 0, sizeof(props));
-				if(SUCCEEDED(pMS2->GetProperties(sizeof(props), (BYTE*)&props))
-				&& (props.dwTypeSpecificFlags & AM_UseNewCSSKey))
-				{
-					props.dwTypeSpecificFlags &= ~AM_UseNewCSSKey;
-					pMS2->SetProperties(sizeof(props), (BYTE*)&props);
-				}
-			}
-		}
-	}
-
-	HRESULT hr = Transform(pSample);
-
-	return 
-		hr == S_OK ? __super::Receive(pSample) :
-		hr == S_FALSE ? S_OK : hr;
 }
 
 // IKsPropertySet
 
 STDMETHODIMP CMpeg2DecInputPin::Set(REFGUID PropSet, ULONG Id, LPVOID pInstanceData, ULONG InstanceLength, LPVOID pPropertyData, ULONG DataLength)
 {
-	if(PropSet != AM_KSPROPSETID_CopyProt
-	&& PropSet != AM_KSPROPSETID_TSRateChange
-//	&& PropSet != AM_KSPROPSETID_DVD_RateChange
-	)
-		return E_NOTIMPL;
-
-	if(PropSet == AM_KSPROPSETID_CopyProt)
-	switch(Id)
-	{
-	case AM_PROPERTY_COPY_MACROVISION:
-		break;
-	case AM_PROPERTY_DVDCOPY_CHLG_KEY: // 3. auth: receive drive nonce word, also store and encrypt the buskey made up of the two nonce words
-		{
-			AM_DVDCOPY_CHLGKEY* pChlgKey = (AM_DVDCOPY_CHLGKEY*)pPropertyData;
-			for(int i = 0; i < 10; i++)
-				m_Challenge[i] = pChlgKey->ChlgKey[9-i];
-
-			CSSkey2(m_varient, m_Challenge, &m_Key[5]);
-
-			CSSbuskey(m_varient, m_Key, m_KeyCheck);
-		}
-		break;
-	case AM_PROPERTY_DVDCOPY_DISC_KEY: // 5. receive the disckey
-		{
-			AM_DVDCOPY_DISCKEY* pDiscKey = (AM_DVDCOPY_DISCKEY*)pPropertyData; // pDiscKey->DiscKey holds the disckey encrypted with itself and the 408 disckeys encrypted with the playerkeys
-
-			bool fSuccess = false;
-
-			for(int j = 0; j < g_nPlayerKeys; j++)
-			{
-				for(int k = 1; k < 409; k++)
-				{
-					BYTE DiscKey[6];
-					for(int i = 0; i < 5; i++)
-						DiscKey[i] = pDiscKey->DiscKey[k*5+i] ^ m_KeyCheck[4-i];
-					DiscKey[5] = 0;
-
-					CSSdisckey(DiscKey, g_PlayerKeys[j]);
-
-					BYTE Hash[6];
-					for(int i = 0; i < 5; i++)
-						Hash[i] = pDiscKey->DiscKey[i] ^ m_KeyCheck[4-i];
-					Hash[5] = 0;
-
-					CSSdisckey(Hash, DiscKey);
-
-					if(!memcmp(Hash, DiscKey, 6))
-					{
-						memcpy(m_DiscKey, DiscKey, 6);
-						j = g_nPlayerKeys;
-						fSuccess = true;
-						break;
-					}
-				}
-			}
-
-			if(!fSuccess)
-				return E_FAIL;
-		}
-		break;
-	case AM_PROPERTY_DVDCOPY_DVD_KEY1: // 2. auth: receive our drive-encrypted nonce word and decrypt it for verification
-		{
-			AM_DVDCOPY_BUSKEY* pKey1 = (AM_DVDCOPY_BUSKEY*)pPropertyData;
-			for(int i = 0; i < 5; i++)
-				m_Key[i] =  pKey1->BusKey[4-i];
-
-			m_varient = -1;
-
-			for(int i = 31; i >= 0; i--)
-			{
-				CSSkey1(i, m_Challenge, m_KeyCheck);
-
-				if(memcmp(m_KeyCheck, &m_Key[0], 5) == 0)
-					m_varient = i;
-			}
-		}
-		break;
-	case AM_PROPERTY_DVDCOPY_REGION:
-		break;
-	case AM_PROPERTY_DVDCOPY_SET_COPY_STATE:
-		break;
-	case AM_PROPERTY_DVDCOPY_TITLE_KEY: // 6. receive the title key and decrypt it with the disc key
-		{
-			AM_DVDCOPY_TITLEKEY* pTitleKey = (AM_DVDCOPY_TITLEKEY*)pPropertyData;
-			for(int i = 0; i < 5; i++)
-				m_TitleKey[i] = pTitleKey->TitleKey[i] ^ m_KeyCheck[4-i];
-			m_TitleKey[5] = 0;
-			CSStitlekey(m_TitleKey, m_DiscKey);
-		}
-		break;
-	default:
-		return E_PROP_ID_UNSUPPORTED;
-	}
+	if(PropSet != AM_KSPROPSETID_TSRateChange /*&& PropSet != AM_KSPROPSETID_DVD_RateChange*/)
+		return __super::Set(PropSet, Id, pInstanceData, InstanceLength, pPropertyData, DataLength);
 
 	if(PropSet == AM_KSPROPSETID_TSRateChange)
 	switch(Id)
@@ -1283,8 +1148,7 @@ STDMETHODIMP CMpeg2DecInputPin::Set(REFGUID PropSet, ULONG Id, LPVOID pInstanceD
 	case AM_RATE_SimpleRateChange:
 		{
 			AM_SimpleRateChange* p = (AM_SimpleRateChange*)pPropertyData;
-if(!m_CorrectTS)
-return E_PROP_ID_UNSUPPORTED;
+			if(!m_CorrectTS) return E_PROP_ID_UNSUPPORTED;
 			CAutoLock cAutoLock(&m_csRateLock);
 			m_ratechange = *p;
 			DbgLog((LOG_TRACE, 0, _T("StartTime=%I64d, Rate=%d"), p->StartTime, p->Rate));
@@ -1323,49 +1187,8 @@ return E_PROP_ID_UNSUPPORTED;
 
 STDMETHODIMP CMpeg2DecInputPin::Get(REFGUID PropSet, ULONG Id, LPVOID pInstanceData, ULONG InstanceLength, LPVOID pPropertyData, ULONG DataLength, ULONG* pBytesReturned)
 {
-	if(PropSet != AM_KSPROPSETID_CopyProt
-	&& PropSet != AM_KSPROPSETID_TSRateChange
-//	&& PropSet != AM_KSPROPSETID_DVD_RateChange
-	)
-		return E_NOTIMPL;
-
-	if(PropSet == AM_KSPROPSETID_CopyProt)
-	switch(Id)
-	{
-	case AM_PROPERTY_DVDCOPY_CHLG_KEY: // 1. auth: send our nonce word
-		{
-			AM_DVDCOPY_CHLGKEY* pChlgKey = (AM_DVDCOPY_CHLGKEY*)pPropertyData;
-			for(int i = 0; i < 10; i++)
-				pChlgKey->ChlgKey[i] = 9 - (m_Challenge[i] = i);
-			*pBytesReturned = sizeof(AM_DVDCOPY_CHLGKEY);
-		}
-		break;
-	case AM_PROPERTY_DVDCOPY_DEC_KEY2: // 4. auth: send back the encrypted drive nonce word to finish the authentication
-		{
-			AM_DVDCOPY_BUSKEY* pKey2 = (AM_DVDCOPY_BUSKEY*)pPropertyData;
-			for(int i = 0; i < 5; i++)
-				pKey2->BusKey[4-i] = m_Key[5+i];
-			*pBytesReturned = sizeof(AM_DVDCOPY_BUSKEY);
-		}
-		break;
-	case AM_PROPERTY_DVDCOPY_REGION:
-		{
-			DVD_REGION* pRegion = (DVD_REGION*)pPropertyData;
-			pRegion->RegionData = 0;
-			pRegion->SystemRegion = 0;
-			*pBytesReturned = sizeof(DVD_REGION);
-		}
-		break;
-	case AM_PROPERTY_DVDCOPY_SET_COPY_STATE:
-		{
-			AM_DVDCOPY_SET_COPY_STATE* pState = (AM_DVDCOPY_SET_COPY_STATE*)pPropertyData;
-			pState->DVDCopyState = AM_DVDCOPYSTATE_AUTHENTICATION_REQUIRED;
-			*pBytesReturned = sizeof(AM_DVDCOPY_SET_COPY_STATE);
-		}
-		break;
-	default:
-		return E_PROP_ID_UNSUPPORTED;
-	}
+	if(PropSet != AM_KSPROPSETID_TSRateChange /*&& PropSet != AM_KSPROPSETID_DVD_RateChange*/)
+		return __super::Get(PropSet, Id, pInstanceData, InstanceLength, pPropertyData, DataLength, pBytesReturned);
 
 	if(PropSet == AM_KSPROPSETID_TSRateChange)
 	switch(Id)
@@ -1373,7 +1196,7 @@ STDMETHODIMP CMpeg2DecInputPin::Get(REFGUID PropSet, ULONG Id, LPVOID pInstanceD
 	case AM_RATE_SimpleRateChange:
 		{
 			AM_SimpleRateChange* p = (AM_SimpleRateChange*)pPropertyData;
-return E_PROP_ID_UNSUPPORTED;
+			return E_PROP_ID_UNSUPPORTED;
 		}
 		break;
 	case AM_RATE_MaxFullDataRate:
@@ -1394,7 +1217,7 @@ return E_PROP_ID_UNSUPPORTED;
 	case AM_RATE_QueryLastRateSegPTS:
 		{
 			REFERENCE_TIME* p = (REFERENCE_TIME*)pPropertyData;
-return E_PROP_ID_UNSUPPORTED;
+			return E_PROP_ID_UNSUPPORTED;
 		}
 		break;
 	default:
@@ -1433,42 +1256,8 @@ return E_PROP_ID_UNSUPPORTED;
 
 STDMETHODIMP CMpeg2DecInputPin::QuerySupported(REFGUID PropSet, ULONG Id, ULONG* pTypeSupport)
 {
-	if(PropSet != AM_KSPROPSETID_CopyProt
-	&& PropSet != AM_KSPROPSETID_TSRateChange
-//	&& PropSet != AM_KSPROPSETID_DVD_RateChange
-	)
-		return E_NOTIMPL;
-
-	if(PropSet == AM_KSPROPSETID_CopyProt)
-	switch(Id)
-	{
-	case AM_PROPERTY_COPY_MACROVISION:
-		*pTypeSupport = KSPROPERTY_SUPPORT_SET;
-		break;
-	case AM_PROPERTY_DVDCOPY_CHLG_KEY:
-		*pTypeSupport = KSPROPERTY_SUPPORT_GET | KSPROPERTY_SUPPORT_SET;
-		break;
-	case AM_PROPERTY_DVDCOPY_DEC_KEY2:
-		*pTypeSupport = KSPROPERTY_SUPPORT_GET;
-		break;
-	case AM_PROPERTY_DVDCOPY_DISC_KEY:
-		*pTypeSupport = KSPROPERTY_SUPPORT_SET;
-		break;
-	case AM_PROPERTY_DVDCOPY_DVD_KEY1:
-		*pTypeSupport = KSPROPERTY_SUPPORT_SET;
-		break;
-	case AM_PROPERTY_DVDCOPY_REGION:
-		*pTypeSupport = KSPROPERTY_SUPPORT_GET | KSPROPERTY_SUPPORT_SET;
-		break;
-	case AM_PROPERTY_DVDCOPY_SET_COPY_STATE:
-		*pTypeSupport = KSPROPERTY_SUPPORT_GET | KSPROPERTY_SUPPORT_SET;
-		break;
-	case AM_PROPERTY_DVDCOPY_TITLE_KEY:
-		*pTypeSupport = KSPROPERTY_SUPPORT_SET;
-		break;
-	default:
-		return E_PROP_ID_UNSUPPORTED;
-	}
+	if(PropSet != AM_KSPROPSETID_TSRateChange /*&& PropSet != AM_KSPROPSETID_DVD_RateChange*/)
+		return __super::QuerySupported(PropSet, Id, pTypeSupport);
 
 	if(PropSet == AM_KSPROPSETID_TSRateChange)
 	switch(Id)
@@ -1654,26 +1443,57 @@ static __inline BYTE GetNibble(BYTE* p, DWORD* offset, int& nField, int& fAligne
     return ret;
 }
 
-static __inline void DrawPixels(BYTE** yuv, CPoint pt, CRect& rc, int pitch, int len, BYTE color, 
-								AM_PROPERTY_SPHLI& sphli, AM_DVD_YUV* sppal,
-								AM_COLCON* colcon_hli = NULL)
+static __inline void DrawPixel(BYTE** yuv, CPoint pt, int pitch, BYTE color, BYTE contrast, AM_DVD_YUV* sppal)
 {
-	if(pt.y < rc.top || pt.y >= rc.bottom) return;
+	if(contrast == 0) return;
+
+	BYTE* p = &yuv[0][pt.y*pitch + pt.x];
+//	*p = (*p*(15-contrast) + sppal[color].Y*contrast)>>4;
+	*p -= (*p - sppal[color].Y) * contrast >> 4;
+
+	if(pt.y&1) return; // since U/V is half res there is no need to overwrite the same line again
+
+	pt.x = (pt.x + 1) / 2;
+	pt.y = (pt.y /*+ 1*/) / 2; // only paint the upper field always, don't round it
+	pitch /= 2;
+
+	// U/V is exchanged? wierd but looks true when comparing the outputted colors from other decoders
+
+	p = &yuv[1][pt.y*pitch + pt.x];
+//	*p = (BYTE)(((((int)*p-0x80)*(15-contrast) + ((int)sppal[color].V-0x80)*contrast) >> 4) + 0x80);
+	*p -= (*p - sppal[color].V) * contrast >> 4;
+
+	p = &yuv[2][pt.y*pitch + pt.x];
+//	*p = (BYTE)(((((int)*p-0x80)*(15-contrast) + ((int)sppal[color].U-0x80)*contrast) >> 4) + 0x80);
+	*p -= (*p - sppal[color].U) * contrast >> 4;
+
+	// Neighter of the blending formulas are accurate (">>4" should be "/15").
+	// Even though the second one is a bit worse, since we are scaling the difference only,
+	// the error is still not noticable.
+}
+
+static __inline void DrawPixels(BYTE** yuv, CPoint pt, int pitch, int len, BYTE color, 
+								AM_PROPERTY_SPHLI& sphli, CRect& rc,
+								AM_PROPERTY_SPHLI* sphli_hli, CRect& rchli,
+								AM_DVD_YUV* sppal)
+{
+    if(pt.y < rc.top || pt.y >= rc.bottom) return;
 	if(pt.x < rc.left) {len -= rc.left - pt.x; pt.x = rc.left;}
 	if(pt.x + len > rc.right) len = rc.right - pt.x;
 	if(len <= 0 || pt.x >= rc.right) return;
 
-	BYTE contrast;
+	BYTE contrast = 0, color_hli, contrast_hli = 0;
 
-	if(colcon_hli) switch(color)
+	if(sphli_hli) switch(color)
 	{
-	case 0: color = colcon_hli->backcol; contrast = colcon_hli->backcon; break;
-	case 1: color = colcon_hli->patcol; contrast = colcon_hli->patcon; break;
-	case 2: color = colcon_hli->emph1col; contrast = colcon_hli->emph1con; break;
-	case 3: color = colcon_hli->emph2col; contrast = colcon_hli->emph2con; break;
+	case 0: color_hli = sphli_hli->ColCon.backcol; contrast_hli = sphli_hli->ColCon.backcon; break;
+	case 1: color_hli = sphli_hli->ColCon.patcol; contrast_hli = sphli_hli->ColCon.patcon; break;
+	case 2: color_hli = sphli_hli->ColCon.emph1col; contrast_hli = sphli_hli->ColCon.emph1con; break;
+	case 3: color_hli = sphli_hli->ColCon.emph2col; contrast_hli = sphli_hli->ColCon.emph2con; break;
 	default: ASSERT(0); return;
 	}
-	else switch(color)
+	
+	switch(color)
 	{
 	case 0: color = sphli.ColCon.backcol; contrast = sphli.ColCon.backcon; break;
 	case 1: color = sphli.ColCon.patcol; contrast = sphli.ColCon.patcon; break;
@@ -1682,38 +1502,25 @@ static __inline void DrawPixels(BYTE** yuv, CPoint pt, CRect& rc, int pitch, int
 	default: ASSERT(0); return;
 	}
 
-	if(contrast == 0) return;
+	if(contrast == 0)
+	{
+		if(contrast_hli == 0)
+			return;
 
-	BYTE* p = &yuv[0][pt.y*pitch + pt.x];
-	BYTE c = sppal[color].Y;
-	for(int i = 0; i < len; i++) 
-//		*p++ = (*p*(15-contrast) + c*contrast)>>4;
-		*p++ -= (*p - c) * contrast >> 4;
+		if(rchli.IsRectEmpty())
+			return;
 
-	if(pt.y&1) return; // since U/V is half res there is no need to overwrite the same line again
+		if(pt.y < rchli.top || pt.y >= rchli.bottom 
+		|| pt.x+len < rchli.left || pt.x >= rchli.right)
+			return;
+	}
 
-	len = (len + 1) / 2;
-	pt.x = (pt.x + 1) / 2;
-	pt.y = (pt.y /*+ 1*/) / 2; // only paint the upper field always, don't round it
-	pitch /= 2;
-
-	// U/V is exchanged? wierd but looks true when comparing the outputted colors from other decoders
-
-	p = &yuv[1][pt.y*pitch + pt.x];
-	c = sppal[color].V;
-	for(int i = 0; i < len; i++) 
-//		*p++ = (BYTE)(((((int)*p-0x80)*(15-contrast) + ((int)c-0x80)*contrast) >> 4) + 0x80);
-		*p++ -= (*p - c) * contrast >> 4;
-
-	p = &yuv[2][pt.y*pitch + pt.x];
-	c = sppal[color].U;
-	for(int i = 0; i < len; i++) 
-		*p++ = (BYTE)(((((int)*p-0x80)*(15-contrast) + ((int)c-0x80)*contrast) >> 4) + 0x80);
-//		*p++ -= (*p - c) * contrast >> 4;
-
-	// Neighter of the blending formulas are accurate (">>4" should be "/15").
-	// Even though the second one is a bit worse, since we are scaling the difference only,
-	// the error is still not noticable.
+	while(len-- > 0)
+	{
+		bool hli = sphli_hli && rchli.PtInRect(pt);
+		DrawPixel(yuv, pt, pitch, hli ? color_hli : color, hli ? contrast_hli : contrast, sppal);
+		pt.x++;
+	}
 }
 
 void CSubpicInputPin::RenderSubpic(sp_t* sp, BYTE** p, int w, int h, AM_PROPERTY_SPHLI* sphli_hli)
@@ -1726,12 +1533,11 @@ void CSubpicInputPin::RenderSubpic(sp_t* sp, BYTE** p, int w, int h, AM_PROPERTY
 	BYTE* pData = sp->pData.GetData();
 	CPoint pt(sphli.StartX, sphli.StartY);
 	CRect rc(pt, CPoint(sphli.StopX, sphli.StopY));
-	CRect rcclip(rc);
+	CRect rchli(0,0,0,0);
 
 	if(sphli_hli)
 	{
-		rcclip &= CRect(CPoint(sphli_hli->StartX, sphli_hli->StartY), CPoint(sphli_hli->StopX, sphli_hli->StopY));
-		if(rcclip.IsRectEmpty()) return;
+		rchli = rc & CRect(CPoint(sphli_hli->StartX, sphli_hli->StartY), CPoint(sphli_hli->StopX, sphli_hli->StopY));
 	}
 
 	int nField = 0;
@@ -1748,11 +1554,11 @@ void CSubpicInputPin::RenderSubpic(sp_t* sp, BYTE** p, int w, int h, AM_PROPERTY
 		|| (code = (code << 4) | GetNibble(pData, offset, nField, fAligned)) >= 0x40
 		|| (code = (code << 4) | GetNibble(pData, offset, nField, fAligned)) >= 0x100)
 		{
-			DrawPixels(p, pt, rcclip, w, code >> 2, (BYTE)(code & 3), sphli, m_sppal, sphli_hli ? &sphli_hli->ColCon : NULL);
+			DrawPixels(p, pt, w, code >> 2, (BYTE)(code & 3), sphli, rc, sphli_hli, rchli, m_sppal);
 			if((pt.x += code >> 2) < rc.right) continue;
 		}
 
-		DrawPixels(p, pt, rcclip, w, rc.right - pt.x, (BYTE)(code & 3), sphli, m_sppal, sphli_hli ? &sphli_hli->ColCon : NULL);
+		DrawPixels(p, pt, w, rc.right - pt.x, (BYTE)(code & 3), sphli, rc, sphli_hli, rchli, m_sppal);
 
 		if(!fAligned) GetNibble(pData, offset, nField, fAligned); // align to byte
 
@@ -1841,7 +1647,7 @@ HRESULT CSubpicInputPin::Transform(IMediaSample* pSample)
 
 	REFERENCE_TIME rtStart = 0, rtStop = 0;
 	hr = pSample->GetTime(&rtStart, &rtStop);
-
+	
 	bool fRefresh = false;
 
 	if(FAILED(hr))
@@ -1855,13 +1661,16 @@ HRESULT CSubpicInputPin::Transform(IMediaSample* pSample)
 	}
 	else
 	{
-		// remove subpics with undefined end time
-		POSITION pos = m_sps.GetHeadPosition();
+		POSITION pos = m_sps.GetTailPosition();
 		while(pos)
 		{
 			POSITION cur = pos;
-			sp_t* sp = m_sps.GetNext(pos);
-			if(sp->rtStop == _I64_MAX) m_sps.RemoveAt(cur);
+			sp_t* sp = m_sps.GetPrev(pos);
+			if(sp->rtStop == _I64_MAX)
+			{
+				sp->rtStop = rtStart;
+				break;
+			}
 		}
 
 		CAutoPtr<sp_t> p(new sp_t());
@@ -1982,26 +1791,6 @@ STDMETHODIMP CSubpicInputPin::Set(REFGUID PropSet, ULONG Id, LPVOID pInstanceDat
 	if(fRefresh)
 	{
 		((CMpeg2DecFilter*)m_pFilter)->Deliver(true);
-	}
-
-	return S_OK;
-}
-
-STDMETHODIMP CSubpicInputPin::Get(REFGUID PropSet, ULONG Id, LPVOID pInstanceData, ULONG InstanceLength, LPVOID pPropertyData, ULONG DataLength, ULONG* pBytesReturned)
-{
-	if(PropSet != AM_KSPROPSETID_DvdSubPic)
-		return __super::Get(PropSet, Id, pInstanceData, InstanceLength, pPropertyData, DataLength, pBytesReturned);
-
-	switch(Id)
-	{
-	case AM_PROPERTY_DVDSUBPIC_PALETTE:
-		break;
-	case AM_PROPERTY_DVDSUBPIC_HLI:
-		break;
-	case AM_PROPERTY_DVDSUBPIC_COMPOSIT_ON:
-		break;
-	default:
-		return E_PROP_ID_UNSUPPORTED;
 	}
 
 	return S_OK;

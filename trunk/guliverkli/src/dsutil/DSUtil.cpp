@@ -841,6 +841,10 @@ cdrom_t GetCDROMType(TCHAR drive, CStringList& files)
 		FindFiles(path + _T("\\mpeg2\\music??.mpg"), files);
 		if(files.GetCount() > 0) return CDROM_VideoCD;
 
+		// CDROM_DVDVideo
+		FindFiles(path + _T("\\VIDEO_TS\\video_ts.ifo"), files);
+		if(files.GetCount() > 0) return CDROM_DVDVideo;
+
 		// CDROM_Audio
 		if(!(GetVersion()&0x80000000))
 		{

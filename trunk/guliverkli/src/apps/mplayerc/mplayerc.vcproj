@@ -1578,6 +1578,9 @@
 				RelativePath=".\res\logo.5.bmp">
 			</File>
 			<File
+				RelativePath=".\res\logo.6.bmp">
+			</File>
+			<File
 				RelativePath="res\mono.bmp">
 			</File>
 			<File

@@ -233,6 +233,13 @@ CGraphBuilder::CGraphBuilder(IGraphBuilder* pGB, HWND hWnd)
 		guids.AddTail(MEDIASUBTYPE_MPEG1Payload);
 		guids.AddTail(MEDIATYPE_Audio);
 		guids.AddTail(MEDIASUBTYPE_MPEG1Packet);
+		AddFilter(new CGraphCustomFilter(__uuidof(CMpaDecFilter), guids, 
+			(s.TraFilters&TRA_MPEGAUD) ? L"MPEG-1 Audio Decoder" : L"MPEG-1 Audio Decoder (low merit)",
+			(s.TraFilters&TRA_MPEGAUD) ? LMERIT_ABOVE_DSHOW : LMERIT_DO_USE));
+		guids.RemoveAll();
+	}
+
+	{
 		guids.AddTail(MEDIATYPE_DVD_ENCRYPTED_PACK);
 		guids.AddTail(MEDIASUBTYPE_MPEG2_AUDIO);
 		guids.AddTail(MEDIATYPE_MPEG2_PACK);
@@ -242,7 +249,7 @@ CGraphBuilder::CGraphBuilder(IGraphBuilder* pGB, HWND hWnd)
 		guids.AddTail(MEDIATYPE_Audio);
 		guids.AddTail(MEDIASUBTYPE_MPEG2_AUDIO);
 		AddFilter(new CGraphCustomFilter(__uuidof(CMpaDecFilter), guids, 
-			(s.TraFilters&TRA_MPEGAUD) ? L"MPEG Audio Decoder (MAD)" : L"MPEG Audio Decoder (MAD) (low merit)",
+			(s.TraFilters&TRA_MPEGAUD) ? L"MPEG-2 Audio Decoder" : L"MPEG-2 Audio Decoder (low merit)",
 			(s.TraFilters&TRA_MPEGAUD) ? LMERIT_ABOVE_DSHOW : LMERIT_DO_USE));
 		guids.RemoveAll();
 	}

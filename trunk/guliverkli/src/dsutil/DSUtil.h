@@ -58,7 +58,7 @@ extern bool IsCLSIDRegistered(LPCTSTR clsid);
 extern bool IsCLSIDRegistered(const CLSID& clsid);
 extern void StringToBin(CString s, CByteArray& data);
 extern CString BinToString(BYTE* ptr, int len);
-typedef enum {CDROM_NotFound, CDROM_Audio, CDROM_VideoCD, CDROM_Unknown} cdrom_t;
+typedef enum {CDROM_NotFound, CDROM_Audio, CDROM_VideoCD, CDROM_DVDVideo, CDROM_Unknown} cdrom_t;
 extern cdrom_t GetCDROMType(TCHAR drive, CStringList& files);
 extern CString GetDriveLabel(TCHAR drive);
 extern bool GetKeyFrames(CString fn, CUIntArray& kfs);

@@ -21,12 +21,8 @@
 
 #include "stdafx.h"
 #include <atlbase.h>
-#include <ks.h>
-#include <ksmedia.h>
 #include "DeCSSFilter.h"
-
-#include "..\..\..\decss\CSSauth.h"
-#include "..\..\..\decss\CSSscramble.h"
+#include "..\..\..\decss\DeCSSInputPin.h"
 #include "..\..\..\DSUtil\DSUtil.h"
 
 #ifdef REGISTER_FILTER
@@ -38,6 +34,7 @@ const AMOVIESETUP_MEDIATYPE sudPinTypesIn[] =
 
 const AMOVIESETUP_MEDIATYPE sudPinTypesOut[] =
 {
+	{&MEDIATYPE_MPEG2_PACK, &MEDIASUBTYPE_NULL},
 	{&MEDIATYPE_MPEG2_PES, &MEDIASUBTYPE_NULL},
 };
 
@@ -65,22 +62,14 @@ const AMOVIESETUP_PIN sudpPins[] =
     }
 };
 
-const AMOVIESETUP_FILTER sudFilter =
+const AMOVIESETUP_FILTER sudFilter[] =
 {
-    &__uuidof(CDeCSSFilter),		// Filter CLSID
-    L"DeCSSFilter",			// String name
-    MERIT_DO_NOT_USE,       // Filter merit // MERIT_PREFERRED+1
-    sizeof(sudpPins)/sizeof(sudpPins[0]),                      // Number of pins
-    sudpPins                // Pin information
+	{&__uuidof(CDeCSSFilter), L"DeCSSFilter", MERIT_DO_NOT_USE, sizeof(sudpPins)/sizeof(sudpPins[0]), sudpPins},
 };
 
 CFactoryTemplate g_Templates[] =
 {
-    { L"DeCSSFilter"
-    , &__uuidof(CDeCSSFilter)
-    , CDeCSSFilter::CreateInstance
-    , NULL
-    , &sudFilter }
+    {L"DeCSSFilter", &__uuidof(CDeCSSFilter), CDeCSSFilter::CreateInstance, NULL, &sudFilter[0]},
 };
 
 int g_cTemplates = sizeof(g_Templates) / sizeof(g_Templates[0]);
@@ -115,15 +104,44 @@ CUnknown* WINAPI CDeCSSFilter::CreateInstance(LPUNKNOWN lpunk, HRESULT* phr)
 
 #endif
 
+class CKsPSInputPin : public CDeCSSInputPin
+{
+public:
+    CKsPSInputPin(TCHAR* pObjectName, CTransformFilter* pFilter, HRESULT* phr, LPWSTR pName)
+		: CDeCSSInputPin(pObjectName, pFilter, phr, pName)
+	{
+	}
+
+	// IKsPropertySet
+    STDMETHODIMP Set(REFGUID PropSet, ULONG Id, LPVOID InstanceData, ULONG InstanceLength, LPVOID PropertyData, ULONG DataLength)
+	{
+		if(CComQIPtr<IKsPropertySet> pKsPS = ((CDeCSSFilter*)m_pFilter)->m_pOutput->GetConnected())
+			return pKsPS->Set(PropSet, Id, InstanceData, InstanceLength, PropertyData, DataLength);
+		return E_NOTIMPL;
+	}
+    STDMETHODIMP Get(REFGUID PropSet, ULONG Id, LPVOID InstanceData, ULONG InstanceLength, LPVOID PropertyData, ULONG DataLength, ULONG* pBytesReturned)
+	{
+		if(CComQIPtr<IKsPropertySet> pKsPS = ((CDeCSSFilter*)m_pFilter)->m_pOutput->GetConnected())
+			return pKsPS->Get(PropSet, Id, InstanceData, InstanceLength, PropertyData, DataLength, pBytesReturned);
+		return E_NOTIMPL;
+	}
+    STDMETHODIMP QuerySupported(REFGUID PropSet, ULONG Id, ULONG* pTypeSupport)
+	{
+		if(CComQIPtr<IKsPropertySet> pKsPS = ((CDeCSSFilter*)m_pFilter)->m_pOutput->GetConnected())
+			return pKsPS->QuerySupported(PropSet, Id, pTypeSupport);
+		return E_NOTIMPL;
+	}
+};
+
 CDeCSSFilter::CDeCSSFilter(LPUNKNOWN lpunk, HRESULT* phr) 
 	: CTransformFilter(NAME("CDeCSSFilter"), lpunk, __uuidof(this))
 {
 	if(phr) *phr = S_OK;
 
-	if(!(m_pInput = new CDeCSSInputPin(this, phr))) *phr = E_OUTOFMEMORY;
+	if(!(m_pInput = new CKsPSInputPin(NAME("CKsPSInputPin"), this, phr, L"In"))) *phr = E_OUTOFMEMORY;
 	if(FAILED(*phr)) return;
 
-	if(!(m_pOutput = new CTransformOutputPin(NAME("Transform output pin"), this, phr, L"Out"))) *phr = E_OUTOFMEMORY;
+	if(!(m_pOutput = new CTransformOutputPin(NAME("CTransformOutputPin"), this, phr, L"Out"))) *phr = E_OUTOFMEMORY;
 	if(FAILED(*phr))  {delete m_pInput, m_pInput = NULL; return;}
 }
 
@@ -133,6 +151,17 @@ CDeCSSFilter::~CDeCSSFilter()
 
 HRESULT CDeCSSFilter::Transform(IMediaSample* pIn, IMediaSample* pOut)
 {
+	AM_MEDIA_TYPE* pmt;
+	if(SUCCEEDED(pIn->GetMediaType(&pmt)) && pmt)
+	{
+		CMediaType mt = *pmt;
+		m_pInput->SetMediaType(&mt);
+		mt.majortype = m_pOutput->CurrentMediaType().majortype;
+		m_pOutput->SetMediaType(&mt);
+		pOut->SetMediaType(&mt);
+		DeleteMediaType(pmt);
+	}
+
 	BYTE* pDataIn = NULL;
 	BYTE* pDataOut = NULL;
 
@@ -142,7 +171,30 @@ HRESULT CDeCSSFilter::Transform(IMediaSample* pIn, IMediaSample* pOut)
 	long len = pIn->GetActualDataLength();
 	long size = pOut->GetSize();
 
-	if(!pDataIn || !pDataOut || len > size || len <= 0) return S_FALSE;
+	if(len == 0 || pDataIn == NULL) // format changes do not carry any data
+	{
+		pOut->SetActualDataLength(0);
+		return S_OK;
+	}
+
+	if(m_pOutput->CurrentMediaType().majortype == MEDIATYPE_MPEG2_PES)
+	{
+		if(*(DWORD*)pDataIn == 0xBA010000)
+		{
+			len -= 14; pDataIn += 14;
+			if(int stuffing = (pDataIn[-1]&7)) {len -= stuffing; pDataIn += stuffing;}
+		}
+		if(len <= 0) return S_FALSE;
+		if(*(DWORD*)pDataIn == 0xBB010000)
+		{
+			len -= 4; pDataIn += 4;
+			int hdrlen = ((pDataIn[0]<<8)|pDataIn[1]) + 2;
+			len -= hdrlen; pDataIn += hdrlen;
+		}
+		if(len <= 0) return S_FALSE;
+	}
+
+	if(!pDataIn || !pDataOut || len > size || len < 0) return S_FALSE;
 
 	memcpy(pDataOut, pDataIn, min(len, size));
 	pOut->SetActualDataLength(min(len, size));
@@ -152,12 +204,17 @@ HRESULT CDeCSSFilter::Transform(IMediaSample* pIn, IMediaSample* pOut)
 
 HRESULT CDeCSSFilter::CheckInputType(const CMediaType* mtIn)
 {
-	return (mtIn->majortype == MEDIATYPE_DVD_ENCRYPTED_PACK) ? S_OK : VFW_E_TYPE_NOT_ACCEPTED;
+	return mtIn->majortype == MEDIATYPE_DVD_ENCRYPTED_PACK
+		? S_OK 
+		: VFW_E_TYPE_NOT_ACCEPTED;
 }
 
 HRESULT CDeCSSFilter::CheckTransform(const CMediaType* mtIn, const CMediaType* mtOut)
 {
-	return (mtIn->majortype == MEDIATYPE_DVD_ENCRYPTED_PACK && mtOut->majortype == MEDIATYPE_MPEG2_PES) ? S_OK : VFW_E_TYPE_NOT_ACCEPTED;
+	return SUCCEEDED(CheckInputType(mtIn))
+		&& mtOut->majortype == MEDIATYPE_MPEG2_PACK || mtOut->majortype == MEDIATYPE_MPEG2_PES
+		? S_OK 
+		: VFW_E_TYPE_NOT_ACCEPTED;
 }
 
 HRESULT CDeCSSFilter::DecideBufferSize(IMemAllocator* pAllocator, ALLOCATOR_PROPERTIES* pProperties)
@@ -179,246 +236,16 @@ HRESULT CDeCSSFilter::DecideBufferSize(IMemAllocator* pAllocator, ALLOCATOR_PROP
 		: NOERROR);
 }
 
-HRESULT CDeCSSFilter::GetMediaType(int iPosition, CMediaType* pMediaType)
+HRESULT CDeCSSFilter::GetMediaType(int iPosition, CMediaType* pmt)
 {
     if(m_pInput->IsConnected() == FALSE) return E_UNEXPECTED;
 
 	if(iPosition < 0) return E_INVALIDARG;
-    if(iPosition > 0) return VFW_S_NO_MORE_ITEMS;
+    if(iPosition > 1) return VFW_S_NO_MORE_ITEMS;
 
-	CopyMediaType(pMediaType, &m_pInput->CurrentMediaType());
-	pMediaType->majortype = MEDIATYPE_MPEG2_PES;
+	CopyMediaType(pmt, &m_pInput->CurrentMediaType());
+	if(iPosition == 0) pmt->majortype = MEDIATYPE_MPEG2_PACK;
+	if(iPosition == 1) pmt->majortype = MEDIATYPE_MPEG2_PES;
 
-	return S_OK;
-}
-
-//
-// CDeCSSInputPin
-//
-
-CDeCSSInputPin::CDeCSSInputPin(CTransformFilter* pFilter, HRESULT* phr)
-	: CTransformInputPin(NAME("CDeCSSInputPin"), pFilter, phr, L"In")
-{
-	m_varient = -1;
-	memset(m_Challenge, 0, sizeof(m_Challenge));
-	memset(m_KeyCheck, 0, sizeof(m_KeyCheck));
-	memset(m_DiscKey, 0, sizeof(m_DiscKey));
-	memset(m_TitleKey, 0, sizeof(m_TitleKey));
-}
-
-STDMETHODIMP CDeCSSInputPin::NonDelegatingQueryInterface(REFIID riid, void** ppv)
-{
-	return
-		QI(IKsPropertySet)
-		 __super::NonDelegatingQueryInterface(riid, ppv);
-}
-
-// IMemInputPin
-
-STDMETHODIMP CDeCSSInputPin::Receive(IMediaSample* pSample)
-{
-	if(m_mt.majortype == MEDIATYPE_DVD_ENCRYPTED_PACK
-	&& pSample->GetActualDataLength() == 2048)
-	{
-		BYTE* pBuffer = NULL;
-		if(SUCCEEDED(pSample->GetPointer(&pBuffer)) && (pBuffer[0x14]&0x30))
-		{
-			CSSdescramble(pBuffer, m_TitleKey);
-			pBuffer[0x14] &= ~0x30;
-
-			if(CComQIPtr<IMediaSample2> pMS2 = pSample)
-			{
-				AM_SAMPLE2_PROPERTIES props;
-				memset(&props, 0, sizeof(props));
-				if(SUCCEEDED(pMS2->GetProperties(sizeof(props), (BYTE*)&props))
-				&& (props.dwTypeSpecificFlags & AM_UseNewCSSKey))
-				{
-					props.dwTypeSpecificFlags &= ~AM_UseNewCSSKey;
-					pMS2->SetProperties(sizeof(props), (BYTE*)&props);
-				}
-			}
-		}
-	}
-
-	return(CTransformInputPin::Receive(pSample));
-}
-
-// IKsPropertySet
-
-STDMETHODIMP CDeCSSInputPin::Set(REFGUID PropSet, ULONG Id, LPVOID pInstanceData, ULONG InstanceLength, LPVOID pPropertyData, ULONG DataLength)
-{
-	if(PropSet != AM_KSPROPSETID_CopyProt)
-		return E_NOTIMPL;
-
-	switch(Id)
-	{
-	case AM_PROPERTY_COPY_MACROVISION:
-		break;
-	case AM_PROPERTY_DVDCOPY_CHLG_KEY: // 3. auth: receive drive nonce word, also store and encrypt the buskey made up of the two nonce words
-		{
-			AM_DVDCOPY_CHLGKEY* pChlgKey = (AM_DVDCOPY_CHLGKEY*)pPropertyData;
-			for(int i = 0; i < 10; i++)
-				m_Challenge[i] = pChlgKey->ChlgKey[9-i];
-
-			CSSkey2(m_varient, m_Challenge, &m_Key[5]);
-
-			CSSbuskey(m_varient, m_Key, m_KeyCheck);
-		}
-		break;
-	case AM_PROPERTY_DVDCOPY_DISC_KEY: // 5. receive the disckey
-		{
-			AM_DVDCOPY_DISCKEY* pDiscKey = (AM_DVDCOPY_DISCKEY*)pPropertyData; // pDiscKey->DiscKey holds the disckey encrypted with itself and the 408 disckeys encrypted with the playerkeys
-
-			bool fSuccess = false;
-
-			for(int j = 0; j < g_nPlayerKeys; j++)
-			{
-				for(int k = 1; k < 409; k++)
-				{
-					BYTE DiscKey[6];
-					for(int i = 0; i < 5; i++)
-						DiscKey[i] = pDiscKey->DiscKey[k*5+i] ^ m_KeyCheck[4-i];
-					DiscKey[5] = 0;
-
-					CSSdisckey(DiscKey, g_PlayerKeys[j]);
-
-					BYTE Hash[6];
-					for(int i = 0; i < 5; i++)
-						Hash[i] = pDiscKey->DiscKey[i] ^ m_KeyCheck[4-i];
-					Hash[5] = 0;
-
-					CSSdisckey(Hash, DiscKey);
-
-					if(!memcmp(Hash, DiscKey, 6))
-					{
-						memcpy(m_DiscKey, DiscKey, 6);
-						j = g_nPlayerKeys;
-						fSuccess = true;
-						break;
-					}
-				}
-			}
-
-			if(!fSuccess)
-				return E_FAIL;
-		}
-		break;
-	case AM_PROPERTY_DVDCOPY_DVD_KEY1: // 2. auth: receive our drive-encrypted nonce word and decrypt it for verification
-		{
-			AM_DVDCOPY_BUSKEY* pKey1 = (AM_DVDCOPY_BUSKEY*)pPropertyData;
-			for(int i = 0; i < 5; i++)
-				m_Key[i] =  pKey1->BusKey[4-i];
-
-			m_varient = -1;
-
-			for(int i = 31; i >= 0; i--)
-			{
-				CSSkey1(i, m_Challenge, m_KeyCheck);
-
-				if(memcmp(m_KeyCheck, &m_Key[0], 5) == 0)
-					m_varient = i;
-			}
-		}
-		break;
-	case AM_PROPERTY_DVDCOPY_REGION:
-		break;
-	case AM_PROPERTY_DVDCOPY_SET_COPY_STATE:
-		break;
-	case AM_PROPERTY_DVDCOPY_TITLE_KEY: // 6. receive the title key and decrypt it with the disc key
-		{
-			AM_DVDCOPY_TITLEKEY* pTitleKey = (AM_DVDCOPY_TITLEKEY*)pPropertyData;
-			for(int i = 0; i < 5; i++)
-				m_TitleKey[i] = pTitleKey->TitleKey[i] ^ m_KeyCheck[4-i];
-			m_TitleKey[5] = 0;
-			CSStitlekey(m_TitleKey, m_DiscKey);
-		}
-		break;
-	default:
-		return E_PROP_ID_UNSUPPORTED;
-	}
-
-	return S_OK;
-}
-
-STDMETHODIMP CDeCSSInputPin::Get(REFGUID PropSet, ULONG Id, LPVOID pInstanceData, ULONG InstanceLength, LPVOID pPropertyData, ULONG DataLength, ULONG* pBytesReturned)
-{
-	if(PropSet != AM_KSPROPSETID_CopyProt)
-		return E_NOTIMPL;
-
-	switch(Id)
-	{
-	case AM_PROPERTY_DVDCOPY_CHLG_KEY: // 1. auth: send our nonce word
-		{
-			AM_DVDCOPY_CHLGKEY* pChlgKey = (AM_DVDCOPY_CHLGKEY*)pPropertyData;
-			for(int i = 0; i < 10; i++)
-				pChlgKey->ChlgKey[i] = 9 - (m_Challenge[i] = i);
-			*pBytesReturned = sizeof(AM_DVDCOPY_CHLGKEY);
-		}
-		break;
-	case AM_PROPERTY_DVDCOPY_DEC_KEY2: // 4. auth: send back the encrypted drive nonce word to finish the authentication
-		{
-			AM_DVDCOPY_BUSKEY* pKey2 = (AM_DVDCOPY_BUSKEY*)pPropertyData;
-			for(int i = 0; i < 5; i++)
-				pKey2->BusKey[4-i] = m_Key[5+i];
-			*pBytesReturned = sizeof(AM_DVDCOPY_BUSKEY);
-		}
-		break;
-	case AM_PROPERTY_DVDCOPY_REGION:
-		{
-			DVD_REGION* pRegion = (DVD_REGION*)pPropertyData;
-			pRegion->RegionData = 0;
-			pRegion->SystemRegion = 0;
-			*pBytesReturned = sizeof(DVD_REGION);
-		}
-		break;
-	case AM_PROPERTY_DVDCOPY_SET_COPY_STATE:
-		{
-			AM_DVDCOPY_SET_COPY_STATE* pState = (AM_DVDCOPY_SET_COPY_STATE*)pPropertyData;
-			pState->DVDCopyState = AM_DVDCOPYSTATE_AUTHENTICATION_REQUIRED;
-			*pBytesReturned = sizeof(AM_DVDCOPY_SET_COPY_STATE);
-		}
-		break;
-	default:
-		return E_PROP_ID_UNSUPPORTED;
-	}
-
-	return S_OK;
-}
-
-STDMETHODIMP CDeCSSInputPin::QuerySupported(REFGUID PropSet, ULONG Id, ULONG* pTypeSupport)
-{
-	if(PropSet != AM_KSPROPSETID_CopyProt)
-		return E_NOTIMPL;
-
-	switch(Id)
-	{
-	case AM_PROPERTY_COPY_MACROVISION:
-		*pTypeSupport = KSPROPERTY_SUPPORT_SET;
-		break;
-	case AM_PROPERTY_DVDCOPY_CHLG_KEY:
-		*pTypeSupport = KSPROPERTY_SUPPORT_GET | KSPROPERTY_SUPPORT_SET;
-		break;
-	case AM_PROPERTY_DVDCOPY_DEC_KEY2:
-		*pTypeSupport = KSPROPERTY_SUPPORT_GET;
-		break;
-	case AM_PROPERTY_DVDCOPY_DISC_KEY:
-		*pTypeSupport = KSPROPERTY_SUPPORT_SET;
-		break;
-	case AM_PROPERTY_DVDCOPY_DVD_KEY1:
-		*pTypeSupport = KSPROPERTY_SUPPORT_SET;
-		break;
-	case AM_PROPERTY_DVDCOPY_REGION:
-		*pTypeSupport = KSPROPERTY_SUPPORT_GET | KSPROPERTY_SUPPORT_SET;
-		break;
-	case AM_PROPERTY_DVDCOPY_SET_COPY_STATE:
-		*pTypeSupport = KSPROPERTY_SUPPORT_GET | KSPROPERTY_SUPPORT_SET;
-		break;
-	case AM_PROPERTY_DVDCOPY_TITLE_KEY:
-		*pTypeSupport = KSPROPERTY_SUPPORT_SET;
-		break;
-	default:
-		return E_PROP_ID_UNSUPPORTED;
-	}
-	
 	return S_OK;
 }
