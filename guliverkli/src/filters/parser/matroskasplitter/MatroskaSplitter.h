@@ -88,7 +88,6 @@ class CMatroskaSourceFilter
 	, public IFileSourceFilter
 	, public IMediaSeeking
 {
-
 	class CFileReader : public CUnknown, public IAsyncReader
 	{
 		CFile m_file;
