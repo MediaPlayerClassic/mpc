@@ -33,9 +33,12 @@ public:
 	CAtlStringMap m_get, m_post, m_cookie;
 	CAtlStringMap m_request;
 
-	bool OnCommand(CStringA& hdr, CStringA& body);
-	bool OnIndex(CStringA& hdr, CStringA& body);
-	bool OnBrowser(CStringA& hdr, CStringA& body);
-	bool OnControls(CStringA& hdr, CStringA& body);
-    bool OnError404(CStringA& hdr, CStringA& body);
+	bool OnCommand(CStringA& hdr, CStringA& body, CStringA& mime);
+	bool OnIndex(CStringA& hdr, CStringA& body, CStringA& mime);
+	bool OnBrowser(CStringA& hdr, CStringA& body, CStringA& mime);
+	bool OnControls(CStringA& hdr, CStringA& body, CStringA& mime);
+	bool OnStatus(CStringA& hdr, CStringA& body, CStringA& mime);
+    bool OnError404(CStringA& hdr, CStringA& body, CStringA& mime);
+    bool OnPlayer(CStringA& hdr, CStringA& body, CStringA& mime);
+    bool OnSnapShotJpeg(CStringA& hdr, CStringA& body, CStringA& mime);
 };

@@ -26,15 +26,17 @@ class CWebServer
 
 	CAutoPtrList<CWebClientSocket> m_clients;
 
-	typedef bool (CWebClientSocket::*RequestHandler)(CStringA& hdr, CStringA& body);
-	CAtlMap<CString, RequestHandler, CStringElementTraits<CString> > m_internalpages;
-	CAtlMap<CString, UINT, CStringElementTraits<CString> > m_downloads;
-	CAtlMap<CStringA, CStringA, CStringElementTraits<CStringA> > m_mimes;
+	typedef bool (CWebClientSocket::*RequestHandler)(CStringA& hdr, CStringA& body, CStringA& mime);
+	static CAtlMap<CString, RequestHandler, CStringElementTraits<CString> > m_internalpages;
+	static CAtlMap<CString, UINT, CStringElementTraits<CString> > m_downloads;
+	static CAtlMap<CStringA, CStringA, CStringElementTraits<CStringA> > m_mimes;
 	CPath m_webroot;
 
 public:
 	CWebServer(CMainFrame* pMainFrame, int nPort = 13579);
 	virtual ~CWebServer();
+
+	static void Deploy(CString dir);
 
 	bool LoadPage(UINT resid, CStringA& str, CString path = _T(""));
 

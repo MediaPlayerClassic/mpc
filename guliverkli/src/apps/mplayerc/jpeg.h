@@ -4,12 +4,10 @@ class CJpegEncoder
 {
 	static const int ColorComponents = 3;
 
-	FILE* m_f;
 	int m_w, m_h;
 	BYTE* m_p;
 
 	unsigned int m_bbuff, m_bwidth;
-	bool PutByte(BYTE b);
 	bool PutBit(int b, int n);
 	void Flush();
 	int GetBitWidth(short q);
@@ -21,6 +19,41 @@ class CJpegEncoder
 	void WriteSOS();
 	void WriteEOI();
 
+protected:
+	virtual bool PutByte(BYTE b) = 0;
+	virtual bool PutBytes(const void* pData, int len) = 0;
+	virtual bool Encode(const BYTE* dib);
+
 public:
-	CJpegEncoder(LPCTSTR fn, const BYTE* dib);
+	CJpegEncoder();
 };
+
+class CJpegEncoderFile : public CJpegEncoder
+{
+	CString m_fn;
+	FILE* m_file;
+
+protected:
+	bool PutByte(BYTE b);
+	bool PutBytes(const void* pData, int len);
+
+public:
+	CJpegEncoderFile(LPCTSTR fn);
+
+	bool Encode(const BYTE* dib);
+};
+
+class CJpegEncoderMem : public CJpegEncoder
+{
+	CArray<BYTE>* m_pdata;
+
+protected:
+	bool PutByte(BYTE b);
+	bool PutBytes(const void* pData, int len);
+
+public:
+	CJpegEncoderMem();
+
+	bool Encode(const BYTE* dib, CArray<BYTE>& data);
+};
+

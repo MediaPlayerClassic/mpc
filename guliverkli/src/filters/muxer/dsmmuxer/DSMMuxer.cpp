@@ -322,33 +322,7 @@ void CDSMMuxerFilter::MuxPacket(IBitStream* pBS, MuxerPacket* pPacket)
 
 		iDuration = GetByteLength(rtDuration);
 		ASSERT(iDuration <= 7);
-/*
-static int i = 0;
-SyncPoint sp[] = 
-{
-	{1, 1, 2, 1},
-	{4, 1, 10, 2},
-	{1, 2, 3, 3},
-	{4, 2, 9, 4},
-	{1, 3, 4, 5},
-	{1, 4, 9, 6},
-	{1, 9, 10, 7},
-	{1, 10, 11, 8},
-	{1, 11, 12, 9},
-};
 
-if(i < countof(sp))
-{
-BYTE id = pPacket->pPin->m_iID;
-pPacket->pPin->m_iID = sp[i].id;
-pPacket->rtStart = sp[i].rtStart;
-pPacket->rtStop = sp[i].rtStop;
-pPacket->flags |= pPacket->timevalid|pPacket->syncpoint;
-IndexSyncPoint(pPacket, sp[i].fp);
-pPacket->pPin->m_iID = id;
-i++;
-}
-*/
 		// TODO
 		IndexSyncPoint(pPacket, pBS->GetPos());
 	}
@@ -428,7 +402,7 @@ void CDSMMuxerFilter::IndexSyncPoint(MuxerPacket* p, __int64 fp)
 	SyncPoint sp;
 	sp.id = p->pPin->GetID();
 	sp.rtStart = p->rtStart;
-	sp.rtStop = /*sp.id == 4 ||*/ p->pPin->IsSubtitleStream() ? p->rtStop : _I64_MAX;
+	sp.rtStop = p->pPin->IsSubtitleStream() ? p->rtStop : _I64_MAX;
 	sp.fp = fp;
 
 	{

@@ -185,6 +185,7 @@
 #define IDF_SLIDERBAR_GIF               344
 #define IDD_PPAGEAUDIODEC               345
 #define IDR_HTML_CONTROLS               346
+#define IDR_HTML_PLAYER					347
 #define IDF_DEFAULT_CSS                 348
 #define IDF_VBR_GIF                     349
 #define IDF_VBS_GIF                     350
@@ -206,6 +207,18 @@
 #define IDD_SHADEREDITOR                374
 #define IDD_SHADEREDITORDIALOG          374
 #define IDD_SHADERAUTOCOMPLETEDLG       375
+#define IDF_HEADERICON_PNG				376
+#define IDF_HEADERBACK_PNG				377
+#define IDF_HEADERCLOSE_PNG				378
+#define IDF_LEFTSIDE_PNG				379
+#define IDF_RIGHTSIDE_PNG				380
+#define IDF_BOTTOMSIDE_PNG				381
+#define IDF_LEFTBOTTOMSIDE_PNG			382
+#define IDF_RIGHTBOTTOMSIDE_PNG			383
+#define IDF_SEEKBARLEFT_PNG				384
+#define IDF_SEEKBARMID_PNG				385
+#define IDF_SEEKBARRIGHT_PNG			386
+#define IDF_SEEKBARGRIP_PNG				387
 #define IDS_R_SETTINGS                  500
 #define IDS_RS_CONTROLSTATE             501
 #define IDS_RS_VOLUME                   502
@@ -656,7 +669,7 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        376
+#define _APS_NEXT_RESOURCE_VALUE        388
 #define _APS_NEXT_COMMAND_VALUE         32853
 #define _APS_NEXT_CONTROL_VALUE         1163
 #define _APS_NEXT_SYMED_VALUE           10003

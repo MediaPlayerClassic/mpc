@@ -1,0 +1,254 @@
+<html>
+<head>
+
+<title>Media Player Classic</title>
+
+<script language="JavaScript" type="text/JavaScript">
+
+function getXMLHTTP()
+{
+	try {return new ActiveXObject("Msxml2.XMLHTTP");}
+	catch(e) {try {return new ActiveXObject("Microsoft.XMLHTTP");}
+	catch(e) {}}
+	if(typeof XMLHttpRequest != "undefined") {return new XMLHttpRequest();}
+	return null;
+}
+
+function MakeRequest(req)
+{
+		var httpRequest = getXMLHTTP();
+		
+		try
+		{
+			httpRequest.open("GET", req, true);
+			httpRequest.send(null);
+		}
+		catch(e)
+		{
+		}
+}
+
+function urlencode(s)
+{
+	if(encodeURIComponent) return encodeURIComponent(s);
+	if(escape) return escape(s);
+	return s; // whatever
+}
+
+function getOffsetX(m)
+{
+	var x = m.offsetLeft;
+	while (m.offsetParent)	{x += (m = m.offsetParent).offsetLeft; }
+	return x;
+}
+
+OnStatus = function(title, status, pos, posstr, dur, durstr)
+{
+	var maxtitle = 70;
+	if(title.length > maxtitle) title = title.substr(0, maxtitle-3) + '...';
+	var timestr = dur > 0 && posstr && durstr ? posstr + '&nbsp;/&nbsp;' + durstr : '&nbsp;';
+	if(!dur || dur == 0) dur = 1;	
+	var percent = Math.floor(100*pos/dur);
+	if(e = document.getElementById('title')) e.innerHTML = title;
+	if(e = document.getElementById('seekbarchleft')) e.width = percent > 0 ? percent + '%' : '1px';
+	if(e = document.getElementById('seekbarchright')) e.width = percent < 100 ? (100 - percent) + '%' : '1px';
+	if((e = document.getElementById('status')) && e.innerHTML != status) e.innerHTML = status;
+	if((e = document.getElementById('timer')) && e.innerHTML != timestr) e.innerHTML = timestr;
+}
+
+var httpRequestStatus;
+
+function OnReadyStateChange()
+{
+	if(httpRequestStatus && httpRequestStatus.readyState == 4 && httpRequestStatus.responseText)
+	{
+		if(httpRequestStatus.responseText.charAt(0) != "<") eval(httpRequestStatus.responseText);
+		else {alert(httpRequestStatus.responseText);}
+		httpRequestStatus = null;
+  }
+}
+
+function StatusLoop()
+{
+	if(!httpRequestStatus || httpRequestStatus.readyState == 0)
+	{
+		httpRequestStatus = getXMLHTTP();
+
+		try
+		{
+			httpRequestStatus.open("GET", 'status.html', true);
+			httpRequestStatus.onreadystatechange = OnReadyStateChange;
+			httpRequestStatus.send(null);
+		}
+		catch(e)
+		{
+		}
+	}
+		
+	setTimeout("StatusLoop()", 500);
+}
+
+var snapshotcounter = 0;
+
+function LoadSnapShot()
+{
+	if(e = document.getElementById('snapshot'))
+	{
+		e.src = 'snapshot.jpg' + '?' + snapshotcounter++;
+	}
+}
+
+function OnLoadSnapShot()
+{
+	setTimeout("LoadSnapShot()", 1000);
+}
+
+function OnAbortErrorSnapShot(e)
+{
+	setTimeout("LoadSnapShot()", 5000);
+}
+
+function OnSeek(e)
+{
+	left = right = 0;
+	if(sb = document.getElementById('seekbarchleft')) left = getOffsetX(sb);
+	if(sb = document.getElementById('seekbarchright')) {right = getOffsetX(sb) + sb.offsetWidth;}
+	if(sb = document.getElementById('seekbargrip')) {left += sb.offsetWidth / 2; right -= sb.offsetWidth / 2;}
+	if(left > 0 && left < right)
+	{
+		percent = 100 * ((window.event ? window.event.clientX : e.clientX) - left) / (right - left);
+		if(percent < 0) percent = 0;
+		else if(percent > 100) percent = 100;
+		
+		MakeRequest('command.html?wm_command=[setposcommand]&percent='+percent);
+	}
+}
+
+function OnPlayPause()
+{
+		MakeRequest('command.html?wm_command=157');
+}
+
+function Init()
+{
+	StatusLoop();
+	LoadSnapShot();
+
+	if(e = document.getElementById('seekbar'))
+		e.onclick = OnSeek;
+}
+
+</script>
+
+<style>
+#player {margin-left: auto; margin-right: auto;}
+#player td {font-family: Sans-Serif; font-size: 0.8em;}
+
+#header {width: 100%;}
+#header td {height: 30px;}
+#headericon {background-image: url(headericon.png); background-repeat: no-repeat; width: 22px;}
+#headerback {background-image: url(headerback.png); background-repeat: repeat-x; color: white; font-weight: bold; padding-top: 5px}
+#headerclose {background-image: url(headerclose.png);  background-repeat: no-repeat; width: 28px;}
+#title, #status, #posstr, #durstr {display: inline;}
+#menu, #controlbar {background-color: #ece9d8;}
+#video, #statusbar {background-color: black; color: white;}
+#video {padding: 1px; cursor: pointer;}
+#seekbar {background-image: url(seekbarmid.png); background-repeat: repeat-x;}
+#seekbar img {padding: 0; margin: 0; border: 0;}
+#seekbar td {height: 15px;}
+#rightside {background-image: url(rightside.png); background-repeat: repeat-y; width: 4px;}
+#leftside {background-image: url(leftside.png); background-repeat: repeat-y; width: 4px;}
+#leftbottomside {background-image: url(leftbottomside.png); background-repeat: repeat-x; width: 4px; height: 4px;}
+#bottomside {background-image: url(bottomside.png); background-repeat: repeat-x; height: 4px;}
+#rightbottomside {background-image: url(rightbottomside.png); background-repeat: repeat-x; width: 4px; height: 4px;}
+</style>
+
+</head>
+
+<body onload="Init()">
+
+	<div align="center">
+	<table id="player" cellpadding="0" cellspacing="0">
+	<tr>
+		<td colspan="3">
+			<table id="header" cellpadding="0" cellspacing="0">
+				<tr>
+					<td id="headericon"></td>
+					<td id="headerback"><nobr>&nbsp;<div id="title"></div>&nbsp;</nobr></td>
+					<td id="headerclose"></td>
+				</tr>
+			</table>
+		</td>
+	</tr>
+	<tr>
+		<td id="leftside"></td>
+		<td>
+			<table cellpadding="0" cellspacing="0">
+				<tr>
+					<td>
+						<table id="menu" width="100%">
+							<tr>
+								<td>File</td>
+								<td>View</td>
+								<td>Play</td>
+								<td>Navigate</td>
+								<td>Favorites</td>
+								<td width="100%" align="right">Help</td>
+							</tr>
+						</table>
+					</td>
+				</tr>
+				<tr>
+					<td id="video" align="center" onclick="OnPlayPause()">
+						<img src="snapshot.jpg" alt="snapshot" id="snapshot" 
+						onload="OnLoadSnapShot()" onabort="OnAbortErrorSnapShot()" onerror="OnAbortErrorSnapShot()" />
+					</td>
+				</tr>
+				<tr>
+					<td>
+						<table width="100%" id="seekbar" cellpadding="0" cellspacing="0">
+							<tr>
+								<td id="seekbarleft"><img src="seekbarleft.png"></td>
+								<td id="seekbarchleft" width="0%"></td>
+								<td id="seekbargrip"><img src="seekbargrip.png"></td>
+								<td id="seekbarchright" width="100%"></td>
+								<td id="seekbarright"><img src="seekbarright.png"></td>
+							</tr>
+						</table>
+					</td>
+				</tr>
+				<tr>
+					<td>
+						<table width="100%" id="controlbar">
+							<tr>
+								<td width="100%">play pause stop | &lt;&lt; &lt; &gt; &gt;&gt; | step</td>
+								<td>mute</td>
+								<td>volume</td>
+							</tr>
+						</table>
+					</td>
+				</tr>
+				<tr>
+					<td>
+						<table width="100%" id="statusbar">
+							<tr>
+								<td><div id="status"></div></td>
+								<td align="right"><div id="timer">&nbsp;</div></td>
+							</tr>
+						</table>
+					</td>
+				</tr>
+			</table>
+		</td>
+		<td id="rightside"></td>
+	</tr>
+	<tr>
+		<td id="leftbottomside"></td>
+		<td id="bottomside"></td>
+		<td id="rightbottomside"></td>
+	</tr>
+	</table>
+	</div>
+</body>
+
+</html>

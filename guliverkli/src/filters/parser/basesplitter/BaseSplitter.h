@@ -205,6 +205,8 @@ class CBaseSplitterFilter
 
 	CAutoPtrList<CBaseSplitterOutputPin> m_pRetiredOutputs;
 
+	CComQIPtr<ISyncReader> m_pSyncReader;
+
 protected:
 	CStringW m_fn;
 

@@ -29,11 +29,6 @@
 #include "jpeg.h"
 #include "jpeg_tables.h"
 
-bool CJpegEncoder::PutByte(BYTE b)
-{
-	return fputc(b, m_f) != EOF;
-}
-
 bool CJpegEncoder::PutBit(int b, int n)
 {
 	if(n > 24 || n <= 0) return(false);
@@ -97,7 +92,7 @@ void CJpegEncoder::WriteDQT()
 	for(int c = 0; c < 2; c++)
 	{
 		PutByte(c);
-		fwrite(quanttbl[c], 1, 64, m_f);
+		PutBytes(quanttbl[c], 64);
 	}
 }
 
@@ -142,20 +137,20 @@ void CJpegEncoder::WriteDHT()
 	PutByte(size&0xff);
 
 	PutByte(0x00); // tbl class (DC) | tbl id
-	fwrite(DCVLC_NumByLength[0], 1, 16, m_f);
+	PutBytes(DCVLC_NumByLength[0], 16);
 	for(int i = 0; i < 12; i++) PutByte(i);
 	
 	PutByte(0x01); // tbl class (DC) | tbl id
-	fwrite(DCVLC_NumByLength[1], 1, 16, m_f);
+	PutBytes(DCVLC_NumByLength[1], 16);
 	for(int i = 0; i < 12; i++) PutByte(i);
 
 	PutByte(0x10); // tbl class (AC) | tbl id
-	fwrite(ACVLC_NumByLength[0], 1, 16, m_f);
-	fwrite(ACVLC_Data[0], sizeof(ACVLC_Data[0]), 1, m_f);
+	PutBytes(ACVLC_NumByLength[0], 16);
+	PutBytes(ACVLC_Data[0], sizeof(ACVLC_Data[0]));
 	
 	PutByte(0x11); // tbl class (AC) | tbl id
-	fwrite(ACVLC_NumByLength[1], 1, 16, m_f);
-	fwrite(ACVLC_Data[1], sizeof(ACVLC_Data[1]), 1, m_f);
+	PutBytes(ACVLC_NumByLength[1], 16);
+	PutBytes(ACVLC_Data[1], sizeof(ACVLC_Data[1]));
 }
 
 // float(1.0 / sqrt(2.0))
@@ -288,18 +283,22 @@ void CJpegEncoder::WriteEOI()
 	PutByte(0xd9);
 }
 
-CJpegEncoder::CJpegEncoder(LPCTSTR fn, const BYTE* dib)
-	: m_bbuff(0), m_bwidth(0)
+//
+
+CJpegEncoder::CJpegEncoder()
 {
-	m_f = _tfopen(fn, _T("wb"));
-	if(!m_f) return;
+}
+
+bool CJpegEncoder::Encode(const BYTE* dib)
+{
+	m_bbuff = m_bwidth = 0;
 
 	BITMAPINFO* bi = (BITMAPINFO*)dib;
 
 	int bpp = bi->bmiHeader.biBitCount;
 
 	if(bpp != 16 && bpp != 24 && bpp != 32) // 16 & 24 not tested!!! there may be some alignment problems when the row size is not 4*something in bytes
-		return;
+		return false;
 
 	m_w = bi->bmiHeader.biWidth;
 	m_h = abs(bi->bmiHeader.biHeight);
@@ -346,5 +345,60 @@ CJpegEncoder::CJpegEncoder(LPCTSTR fn, const BYTE* dib)
 
 	delete [] m_p;
 
-	fclose(m_f);
+	return true;
 }
+
+//////////
+
+CJpegEncoderFile::CJpegEncoderFile(LPCTSTR fn)
+{
+	m_fn = fn;
+	m_file = NULL;
+}
+
+bool CJpegEncoderFile::PutByte(BYTE b)
+{
+	return fputc(b, m_file) != EOF;
+}
+
+bool CJpegEncoderFile::PutBytes(const void* pData, int len)
+{
+	return fwrite(pData, 1, len, m_file) == len;
+}
+
+bool CJpegEncoderFile::Encode(const BYTE* dib)
+{
+	if(!(m_file = _tfopen(m_fn, _T("wb")))) return false;
+	bool ret = __super::Encode(dib);
+	fclose(m_file);
+	m_file = NULL;
+	return ret;
+}
+
+//////////
+
+CJpegEncoderMem::CJpegEncoderMem()
+{
+}
+
+bool CJpegEncoderMem::PutByte(BYTE b)
+{
+	m_pdata->Add(b); // yeah... a bit unbuffered, for now
+	return true;
+}
+
+bool CJpegEncoderMem::PutBytes(const void* pData, int len)
+{
+	CArray<BYTE> moredata;
+	moredata.SetSize(len);
+	memcpy(moredata.GetData(), pData, len);
+	m_pdata->Append(moredata);
+	return true;
+}
+
+bool CJpegEncoderMem::Encode(const BYTE* dib, CArray<BYTE>& data)
+{
+	m_pdata = &data;
+	return __super::Encode(dib);
+}
+

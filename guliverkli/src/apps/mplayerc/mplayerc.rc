@@ -2064,6 +2064,7 @@ IDR_HTML_INDEX          HTML                    "res\\web\\index.html"
 IDR_HTML_404            HTML                    "res\\web\\404.html"
 IDR_HTML_BROWSER        HTML                    "res\\web\\browser.html"
 IDR_HTML_CONTROLS       HTML                    "res\\web\\controls.html"
+IDR_HTML_PLAYER         HTML                    "res\\web\\player.html"
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -2077,6 +2078,18 @@ IDF_SLIDERBAR_GIF       FILE                    "res\\web\\sliderbar.gif"
 IDF_SLIDERGRIP_GIF      FILE                    "res\\web\\slidergrip.gif"
 IDF_1PIX_GIF            FILE                    "res\\web\\1pix.gif"
 IDF_SLIDERBACK_GIF      FILE                    "res\\web\\sliderback.gif"
+IDF_HEADERICON_PNG		FILE					"res\\web\\headericon.png"
+IDF_HEADERBACK_PNG		FILE					"res\\web\\headerback.png"
+IDF_HEADERCLOSE_PNG		FILE					"res\\web\\headerclose.png"
+IDF_LEFTSIDE_PNG		FILE					"res\\web\\leftside.png"
+IDF_RIGHTSIDE_PNG		FILE					"res\\web\\rightside.png"
+IDF_BOTTOMSIDE_PNG		FILE					"res\\web\\bottomside.png"
+IDF_LEFTBOTTOMSIDE_PNG	FILE					"res\\web\\leftbottomside.png"
+IDF_RIGHTBOTTOMSIDE_PNG	FILE					"res\\web\\rightbottomside.png"
+IDF_SEEKBARLEFT_PNG		FILE					"res\\web\\seekbarleft.png"
+IDF_SEEKBARMID_PNG		FILE					"res\\web\\seekbarmid.png"
+IDF_SEEKBARRIGHT_PNG	FILE					"res\\web\\seekbarright.png"
+IDF_SEEKBARGRIP_PNG		FILE					"res\\web\\seekbargrip.png"
 
 /////////////////////////////////////////////////////////////////////////////
 //

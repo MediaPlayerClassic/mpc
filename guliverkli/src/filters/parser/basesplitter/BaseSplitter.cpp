@@ -776,6 +776,8 @@ HRESULT CBaseSplitterFilter::DeleteOutputs()
 
 	m_fontinst.UninstallFonts();
 
+	m_pSyncReader.Release();
+
 	return S_OK;
 }
 
@@ -796,6 +798,9 @@ void CBaseSplitterFilter::DeliverEndFlush()
 
 DWORD CBaseSplitterFilter::ThreadProc()
 {
+	if(m_pSyncReader) 
+		m_pSyncReader->SetBreakEvent(GetRequestHandle());
+
 	if(!DemuxInit())
 	{
 		while(1)
@@ -994,6 +999,8 @@ HRESULT CBaseSplitterFilter::CompleteConnect(PIN_DIRECTION dir, CBasePin* pPin)
 		|| FAILED(hr = DeleteOutputs())
 		|| FAILED(hr = CreateOutputs(pAsyncReader)))
 			return hr;
+
+		m_pSyncReader = pAsyncReader;
 	}
 	else if(dir == PINDIR_OUTPUT)
 	{
@@ -1088,6 +1095,7 @@ STDMETHODIMP CBaseSplitterFilter::Load(LPCOLESTR pszFileName, const AM_MEDIA_TYP
 		return hr;
 
 	m_fn = pszFileName;
+	m_pSyncReader = pAsyncReader;
 
 	return S_OK;
 }
