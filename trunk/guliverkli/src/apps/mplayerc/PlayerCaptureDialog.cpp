@@ -29,6 +29,7 @@
 #include "..\..\DSUtil\DSUtil.h"
 #include "..\..\..\include\Ogg\OggDS.h"
 #include "..\..\filters\muxer\wavdest\wavdest.h"
+#include "..\..\filters\muxer\MatroskaMuxer\MatroskaMuxer.h"
 
 static bool LoadMediaType(CStringW DisplayName, AM_MEDIA_TYPE** ppmt)
 {
@@ -419,7 +420,7 @@ CPlayerCaptureDialog::~CPlayerCaptureDialog()
 
 BOOL CPlayerCaptureDialog::Create(CWnd* pParent)
 {
-	if(!CDialog::Create(IDD, pParent))
+	if(!__super::Create(IDD, pParent))
 		return FALSE;
 
 	EmptyVideo();
@@ -430,7 +431,7 @@ BOOL CPlayerCaptureDialog::Create(CWnd* pParent)
 
 void CPlayerCaptureDialog::DoDataExchange(CDataExchange* pDX)
 {
-	CDialog::DoDataExchange(pDX);
+	__super::DoDataExchange(pDX);
 	DDX_Control(pDX, IDC_COMBO4, m_vidinput);
 	DDX_Control(pDX, IDC_COMBO1, m_vidtype);
 	DDX_Control(pDX, IDC_COMBO5, m_viddimension);
@@ -477,7 +478,7 @@ BOOL CPlayerCaptureDialog::PreTranslateMessage(MSG* pMsg)
 		}
 	}
 
-	return CDialog::PreTranslateMessage(pMsg);
+	return __super::PreTranslateMessage(pMsg);
 }
 
 
@@ -732,6 +733,12 @@ void CPlayerCaptureDialog::UpdateMuxer()
 	{
 		m_pMux.CoCreateInstance(CLSID_OggMux);
 	}
+	else if(m_muxtype == 2)
+	{
+//		m_pMux.CoCreateInstance(__uuidof(CMatrsokaMuxerFilter));
+		HRESULT hr;
+		m_pMux = new CMatroskaMuxerFilter(NULL, &hr);
+	}
 	else
 	{
 		return;
@@ -768,7 +775,7 @@ void CPlayerCaptureDialog::UpdateGraph()
 {
 	UpdateMediaTypes();
 
-	UpdateMuxer();
+//	UpdateMuxer();
 
 	((CMainFrame*)AfxGetMainWnd())->BuildGraphVideoAudio(!!m_fVidPreview, false, !!m_fAudPreview, false);
 
@@ -1096,6 +1103,7 @@ BEGIN_MESSAGE_MAP(CPlayerCaptureDialog, CDialog)
 	ON_BN_CLICKED(IDC_BUTTON3, OnOpenFile)
 	ON_BN_CLICKED(IDC_RADIO1, OnMuxerType)
 	ON_BN_CLICKED(IDC_RADIO2, OnMuxerType)
+	ON_BN_CLICKED(IDC_RADIO3, OnMuxerType)
 	ON_BN_CLICKED(IDC_BUTTON2, OnRecord)
 	ON_EN_CHANGE(IDC_EDIT9, OnEnChangeEdit9)
 	ON_EN_CHANGE(IDC_EDIT12, OnEnChangeEdit12)
@@ -1110,7 +1118,7 @@ END_MESSAGE_MAP()
 
 BOOL CPlayerCaptureDialog::OnInitDialog()
 {
-	CDialog::OnInitDialog();
+	__super::OnInitDialog();
 
 	InitCodecList(m_pVidEncArray, m_vidcodec, CLSID_VideoCompressorCategory);
 	UpdateVideoCodec();
@@ -1120,8 +1128,6 @@ BOOL CPlayerCaptureDialog::OnInitDialog()
 
 	bool fEnableOgm = IsCLSIDRegistered(_T("{8cae96b7-85b1-4605-b23c-17ff5262b296}"));
 	GetDlgItem(IDC_RADIO2)->EnableWindow(fEnableOgm);
-
-	UpdateMuxer();
 
 	m_nVidBuffers = AfxGetApp()->GetProfileInt(_T("Capture"), _T("VidBuffers"), 50);
 	m_nAudBuffers = AfxGetApp()->GetProfileInt(_T("Capture"), _T("AudBuffers"), 50);
@@ -1133,7 +1139,11 @@ BOOL CPlayerCaptureDialog::OnInitDialog()
 	m_file = AfxGetApp()->GetProfileString(_T("Capture"), _T("FileName"), _T(""));
 	m_fSepAudio = AfxGetApp()->GetProfileInt(_T("Capture"), _T("SepAudio"), TRUE);
 
+//	UpdateMuxer();
+
 	UpdateData(FALSE);
+
+	OnMuxerType();
 
 	return TRUE;  // return TRUE unless you set the focus to a control
 	// EXCEPTION: OCX Property Pages should return FALSE
@@ -1151,7 +1161,7 @@ void CPlayerCaptureDialog::OnDestroy()
 	AfxGetApp()->WriteProfileString(_T("Capture"), _T("FileName"), m_file);
 	AfxGetApp()->WriteProfileInt(_T("Capture"), _T("SepAudio"), m_fSepAudio);
 
-	CDialog::OnDestroy();
+	__super::OnDestroy();
 }
 
 void CPlayerCaptureDialog::OnVideoInput()
@@ -1345,10 +1355,12 @@ void CPlayerCaptureDialog::OnOpenFile()
 		CString ext = str.Mid(str.ReverseFind('.')+1).MakeLower();
 		if(ext == _T("avi")) m_muxtype = 0;
 		else if(ext == _T("ogm")) m_muxtype = 1;
+		else if(ext == _T("mkv")) m_muxtype = 2;
 		else
 		{
 			if(m_muxtype == 0) str += _T(".avi");
 			else if(m_muxtype == 1) str += _T(".ogm");
+			else if(m_muxtype == 2) str += _T(".mkv");
 		}
 
 		m_file = str;
@@ -1361,20 +1373,27 @@ void CPlayerCaptureDialog::OnOpenFile()
 
 void CPlayerCaptureDialog::OnMuxerType()
 {
-	UpdateMuxer();
+//	UpdateMuxer();
 
 	UpdateData();
 
 	CString ext = m_file.Mid(m_file.ReverseFind('.')+1).MakeLower();
 
-	if(m_muxtype == 0 && ext == _T("ogm"))
+	if(m_muxtype == 0 && (ext == _T("ogm") || ext == _T("mkv")))
 	{
 		m_file = m_file.Left(m_file.GetLength()-4) + _T(".avi");
 	}
-	else if(m_muxtype == 1 && ext == _T("avi"))
+	else if(m_muxtype == 1 && (ext == _T("avi") || ext == _T("mkv")))
 	{
 		m_file = m_file.Left(m_file.GetLength()-4) + _T(".ogm");
 	}
+	else if(m_muxtype == 2 && (ext == _T("avi") || ext == _T("ogm")))
+	{
+		m_file = m_file.Left(m_file.GetLength()-4) + _T(".mkv");
+	}
+
+	GetDlgItem(IDC_EDIT9)->EnableWindow(m_muxtype != 2);
+	GetDlgItem(IDC_EDIT12)->EnableWindow(m_muxtype != 2);
 
 	UpdateData(FALSE);
 }
@@ -1388,6 +1407,8 @@ void CPlayerCaptureDialog::OnRecord()
 
 	if(!pFrame->m_fCapturing)
 	{
+		UpdateMuxer();
+
 		CComQIPtr<IFileSinkFilter2> pFSF = m_pMux;
 		if(pFSF)
 		{
@@ -1413,6 +1434,7 @@ void CPlayerCaptureDialog::OnRecord()
 		{
 //			if(m_muxtype == 0) audfn += _T("wav");
 //			else if(m_muxtype == 1) audfn += _T("ogg");
+//			else if(m_muxtype == 2) audfn += _T("mkv");
 			audfn += _T("wav");
 
 			CComQIPtr<IFileSinkFilter2> pFSF = m_pAudMux;
@@ -1436,11 +1458,11 @@ void CPlayerCaptureDialog::OnRecord()
 			}
 		}
 
-		m_pVidBuffer = m_fVidOutput && m_nVidBuffers > 0 ? new CBufferFilter(NULL, NULL) : NULL;
+		m_pVidBuffer = m_fVidOutput && m_nVidBuffers > 0 && m_muxtype != 2 ? new CBufferFilter(NULL, NULL) : NULL;
 		if(CComQIPtr<IBufferFilter> pVB = m_pVidBuffer)
 			{pVB->SetBuffers(m_nVidBuffers); pVB->SetPriority(THREAD_PRIORITY_NORMAL);}
 
-		m_pAudBuffer = m_fAudOutput && m_nAudBuffers > 0 ? new CBufferFilter(NULL, NULL) : NULL;
+		m_pAudBuffer = m_fAudOutput && m_nAudBuffers > 0 && m_muxtype != 2 ? new CBufferFilter(NULL, NULL) : NULL;
 		if(CComQIPtr<IBufferFilter> pAB = m_pAudBuffer)
 			{pAB->SetBuffers(m_nAudBuffers); pAB->SetPriority(THREAD_PRIORITY_ABOVE_NORMAL);}
 
@@ -1500,7 +1522,7 @@ void CPlayerCaptureDialog::OnTimer(UINT nIDEvent)
 		}
 	}
 
-	CDialog::OnTimer(nIDEvent);
+	__super::OnTimer(nIDEvent);
 }
 
 void CPlayerCaptureDialog::OnBnClickedVidAudPreview()
@@ -1511,5 +1533,5 @@ void CPlayerCaptureDialog::OnBnClickedVidAudPreview()
 
 void CPlayerCaptureDialog::OnBnClickedCheck7()
 {
-	UpdateMuxer();
+//	UpdateMuxer();
 }
