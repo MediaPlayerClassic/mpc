@@ -20,6 +20,8 @@
  */
 
 #include "StdAfx.h"
+#include <Shlwapi.h>
+#include <atlpath.h>
 #include <mmreg.h>
 #include "..\..\..\DSUtil\DSUtil.h"
 #include "RealMediaSplitter.h"
@@ -30,12 +32,78 @@
 DEFINE_GUID(MEDIASUBTYPE_RealMedia, 
 0x57428ec6, 0xc2b2, 0x44a2, 0xaa, 0x9c, 0x28, 0xf0, 0xb6, 0xa5, 0xc4, 0x8e);
 
+// 385f3832-0000-0010-8000-00AA00389B71
+DEFINE_GUID(MEDIASUBTYPE_28_8,
+0x385f3832, 0x0000, 0x0010, 0x80, 0x00, 0x00, 0xAA, 0x00, 0x38, 0x9B, 0x71);
+
+// 43525441-0000-0010-8000-00AA00389B71
+DEFINE_GUID(MEDIASUBTYPE_ATRC,
+0x43525441, 0x0000, 0x0010, 0x80, 0x00, 0x00, 0xAA, 0x00, 0x38, 0x9B, 0x71);
+
+// 4b4f4f43-0000-0010-8000-00AA00389B71
+DEFINE_GUID(MEDIASUBTYPE_COOK,
+0x4b4f4f43, 0x0000, 0x0010, 0x80, 0x00, 0x00, 0xAA, 0x00, 0x38, 0x9B, 0x71);
+
+// 54454e44-0000-0010-8000-00AA00389B71
+DEFINE_GUID(MEDIASUBTYPE_DNET,
+0x54454e44, 0x0000, 0x0010, 0x80, 0x00, 0x00, 0xAA, 0x00, 0x38, 0x9B, 0x71);
+
+// 52504953-0000-0010-8000-00AA00389B71
+DEFINE_GUID(MEDIASUBTYPE_SIPR,
+0x52504953, 0x0000, 0x0010, 0x80, 0x00, 0x00, 0xAA, 0x00, 0x38, 0x9B, 0x71);
+
+enum 
+{
+	WAVE_FORMAT_AC3 = 0x2000,
+	WAVE_FORMAT_28_8 = 0x2002,
+	WAVE_FORMAT_ATRC = WAVE_FORMAT_SONY_SCX,
+	WAVE_FORMAT_COOK = 0x2003,
+	WAVE_FORMAT_DNET = 0x2004,
+	WAVE_FORMAT_SIPR = WAVE_FORMAT_SIPROLAB_ACEPLNET,
+};
+
 template<typename T>
 static void bswap(T& var)
 {
 	BYTE* s = (BYTE*)&var;
 	for(BYTE* d = s + sizeof(var)-1; s < d; s++, d--)
 		*s ^= *d, *d ^= *s, *s ^= *d;
+}
+
+void rvinfo::bswap()
+{
+	::bswap(dwSize);
+	::bswap(w); ::bswap(h); ::bswap(bpp);
+	::bswap(unk1); ::bswap(fps); 
+	::bswap(type1); ::bswap(type2);
+}
+
+void rainfo::bswap()
+{
+	::bswap(version1);
+	::bswap(version2);
+	::bswap(header_size);
+	::bswap(flavor);
+	::bswap(coded_frame_size);
+	::bswap(sub_packet_h);
+	::bswap(frame_size);
+	::bswap(sub_packet_size);
+}
+
+void rainfo4::bswap()
+{
+	__super::bswap();
+	::bswap(sample_rate);
+	::bswap(sample_size);
+	::bswap(channels);
+}
+
+void rainfo5::bswap()
+{
+	__super::bswap();
+	::bswap(sample_rate);
+	::bswap(sample_size);
+	::bswap(channels);
 }
 
 using namespace RealMedia;
@@ -111,9 +179,48 @@ const AMOVIESETUP_PIN sudpPins2[] =
     }
 };
 
+const AMOVIESETUP_MEDIATYPE sudPinTypesIn3[] =
+{
+	{&MEDIATYPE_Audio, &MEDIASUBTYPE_NULL},
+};
+
+const AMOVIESETUP_MEDIATYPE sudPinTypesOut3[] =
+{
+	{&MEDIATYPE_Audio, &MEDIASUBTYPE_28_8},
+	{&MEDIATYPE_Audio, &MEDIASUBTYPE_ATRC},
+	{&MEDIATYPE_Audio, &MEDIASUBTYPE_COOK},
+	{&MEDIATYPE_Audio, &MEDIASUBTYPE_DNET},
+	{&MEDIATYPE_Audio, &MEDIASUBTYPE_SIPR},
+};
+
+const AMOVIESETUP_PIN sudpPins3[] =
+{
+    { L"Input",             // Pins string name
+      FALSE,                // Is it rendered
+      FALSE,                // Is it an output
+      FALSE,                // Are we allowed none
+      FALSE,                // And allowed many
+      &CLSID_NULL,          // Connects to filter
+      NULL,                 // Connects to pin
+      sizeof(sudPinTypesIn3)/sizeof(sudPinTypesIn3[0]),	// Number of types
+      sudPinTypesIn3			// Pin information
+    },
+    { L"Output",            // Pins string name
+      FALSE,                // Is it rendered
+      TRUE,                 // Is it an output
+      FALSE,                // Are we allowed none
+      FALSE,                // And allowed many
+      &CLSID_NULL,          // Connects to filter
+      NULL,                 // Connects to pin
+      sizeof(sudPinTypesOut3)/sizeof(sudPinTypesOut3[0]),	// Number of types
+      sudPinTypesOut3		// Pin information
+    }
+};
+
 const AMOVIESETUP_FILTER sudFilter2[] =
 {
-	{&__uuidof(CRealVideoDecoder), L"RealVideo Decoder", MERIT_UNLIKELY, sizeof(sudpPins2)/sizeof(sudpPins2[0]), sudpPins2}
+	{&__uuidof(CRealVideoDecoder), L"RealVideo Decoder", MERIT_UNLIKELY, sizeof(sudpPins2)/sizeof(sudpPins2[0]), sudpPins2},
+	{&__uuidof(CRealAudioDecoder), L"RealAudio Decoder", MERIT_UNLIKELY, sizeof(sudpPins3)/sizeof(sudpPins3[0]), sudpPins3},
 };
 
 ////////////////////
@@ -124,6 +231,7 @@ CFactoryTemplate g_Templates[] =
 	{L"RealMedia Splitter", &__uuidof(CRealMediaSplitterFilter), CRealMediaSplitterFilter::CreateInstance, NULL, &sudFilter[1]},
 ////////////////////
     {L"RealVideo Decoder", &__uuidof(CRealVideoDecoder), CRealVideoDecoder::CreateInstance, NULL, &sudFilter2[0]},
+    {L"RealAudio Decoder", &__uuidof(CRealAudioDecoder), CRealAudioDecoder::CreateInstance, NULL, &sudFilter2[1]},
 };
 
 int g_cTemplates = sizeof(g_Templates) / sizeof(g_Templates[0]);
@@ -249,6 +357,8 @@ HRESULT CRealMediaSourceFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 	m_rtNewStart = m_rtCurrent = 0;
 	m_rtNewStop = m_rtStop = 0;
 
+	m_rtStop = 10000i64*m_pFile->m_p.tDuration;
+
 	POSITION pos = m_pFile->m_mps.GetHeadPosition();
 	while(pos)
 	{
@@ -261,42 +371,123 @@ HRESULT CRealMediaSourceFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 		CArray<CMediaType> mts;
 
 		CMediaType mt;
-		mt.SetSampleSize(max(pmp->maxPacketSize*2, 1));
+		mt.SetSampleSize(max(pmp->maxPacketSize*256, 1));
 
 		if(pmp->mime == "video/x-pn-realvideo")
 		{
+			mt.majortype = MEDIATYPE_Video;
+			mt.formattype = FORMAT_VideoInfo;
+
 			VIDEOINFOHEADER* pvih = (VIDEOINFOHEADER*)mt.AllocFormatBuffer(sizeof(VIDEOINFOHEADER) + pmp->typeSpecData.GetCount());
 			memset(mt.Format(), 0, mt.FormatLength());
+			memcpy(pvih + 1, pmp->typeSpecData.GetData(), pmp->typeSpecData.GetCount());
 
-			struct rvinfo* rvi = (struct rvinfo*)(mt.Format() + sizeof(VIDEOINFOHEADER));
-			memcpy(rvi, pmp->typeSpecData.GetData(), pmp->typeSpecData.GetCount());
-			bswap(rvi->dwSize);
-			bswap(rvi->w); bswap(rvi->h); bswap(rvi->bpp);
-			bswap(rvi->unk1); bswap(rvi->fps); 
-			bswap(rvi->type1); bswap(rvi->type2);
+			rvinfo rvi = *(rvinfo*)pmp->typeSpecData.GetData();
+			rvi.bswap();
 
-			ASSERT(rvi->dwSize >= FIELD_OFFSET(struct rvinfo, w2));
-			ASSERT(rvi->fcc1 == 'ODIV');
+			ASSERT(rvi.dwSize >= FIELD_OFFSET(rvinfo, w2));
+			ASSERT(rvi.fcc1 == 'ODIV');
 
-			mt.majortype = MEDIATYPE_Video;
-			mt.subtype = FOURCCMap(rvi->fcc2);
-			mt.formattype = FORMAT_VideoInfo;
-			if(rvi->fps > 0x10000) pvih->AvgTimePerFrame = REFERENCE_TIME(10000000i64 / ((float)rvi->fps/0x10000)); 
+			mt.subtype = FOURCCMap(rvi.fcc2);
+			if(rvi.fps > 0x10000) pvih->AvgTimePerFrame = REFERENCE_TIME(10000000i64 / ((float)rvi.fps/0x10000)); 
 			pvih->dwBitRate = pmp->avgBitRate; 
 			pvih->bmiHeader.biSize = sizeof(pvih->bmiHeader);
-			pvih->bmiHeader.biWidth = rvi->w;
-			pvih->bmiHeader.biHeight = rvi->h;
+			pvih->bmiHeader.biWidth = rvi.w;
+			pvih->bmiHeader.biHeight = rvi.h;
 			pvih->bmiHeader.biPlanes = 3;
-			pvih->bmiHeader.biBitCount = rvi->bpp;
-			pvih->bmiHeader.biCompression = rvi->fcc2;
-			pvih->bmiHeader.biSizeImage = rvi->w*rvi->h*3/2;
+			pvih->bmiHeader.biBitCount = rvi.bpp;
+			pvih->bmiHeader.biCompression = rvi.fcc2;
+			pvih->bmiHeader.biSizeImage = rvi.w*rvi.h*3/2;
 
 			mts.Add(mt);
 		}
-/*		else if(pmp->mime == "video/x-pn-realaudio")
+		else if(pmp->mime == "audio/x-pn-realaudio")
 		{
-		}
+			mt.majortype = MEDIATYPE_Audio;
+			mt.formattype = FORMAT_WaveFormatEx;
+
+			WAVEFORMATEX* pwfe = (WAVEFORMATEX*)mt.AllocFormatBuffer(sizeof(WAVEFORMATEX) + pmp->typeSpecData.GetCount());
+			memset(mt.Format(), 0, mt.FormatLength());
+			memcpy(pwfe + 1, pmp->typeSpecData.GetData(), pmp->typeSpecData.GetCount());
+
+			union {
+			DWORD fcc;
+			char fccstr[5];
+			};
+
+			fcc = 0;
+			fccstr[4] = 0;
+
+			rainfo rai = *(rainfo*)pmp->typeSpecData.GetData();
+			rai.bswap();
+
+			if(rai.version2 == 4)
+			{
+				rainfo4 rai4 = *(rainfo4*)pmp->typeSpecData.GetData();
+				rai4.bswap();
+				pwfe->nChannels = rai4.channels;
+				pwfe->wBitsPerSample = rai4.sample_size;
+				pwfe->nSamplesPerSec = rai4.sample_rate;
+				pwfe->nBlockAlign = rai4.frame_size;
+				BYTE* p = (BYTE*)((rainfo4*)pmp->typeSpecData.GetData()+1);
+				int len = *p++; p += len; len = *p++; ASSERT(len == 4);
+				if(len == 4)
+				fcc = MAKEFOURCC(p[0],p[1],p[2],p[3]);
+			}
+			else if(rai.version2 == 5)
+			{
+				rainfo5 rai5 = *(rainfo5*)pmp->typeSpecData.GetData();
+				rai5.bswap();
+				pwfe->nChannels = rai5.channels;
+				pwfe->wBitsPerSample = rai5.sample_size;
+				pwfe->nSamplesPerSec = rai5.sample_rate;
+				pwfe->nBlockAlign = rai5.frame_size;
+				fcc = rai5.fourcc3;
+			}
+
+			_strupr(fccstr);
+
+			mt.subtype = FOURCCMap(fcc);
+
+			bswap(fcc);
+
+			switch(fcc)
+			{
+			case '28_8': pwfe->wFormatTag = WAVE_FORMAT_28_8; break;
+			case 'ATRC': pwfe->wFormatTag = WAVE_FORMAT_ATRC; break;
+			case 'COOK': pwfe->wFormatTag = WAVE_FORMAT_COOK; break;
+			case 'DNET': pwfe->wFormatTag = WAVE_FORMAT_DNET; break;
+			case 'SIPR': pwfe->wFormatTag = WAVE_FORMAT_SIPR; break;
+			}
+
+			if(pwfe->wFormatTag)
+			{
+				mts.Add(mt);
+
+				if(fcc == 'DNET')
+				{
+					mt.subtype = FOURCCMap(WAVE_FORMAT_AC3); 
+					pwfe->wFormatTag = WAVE_FORMAT_AC3;
+					mts.InsertAt(0, mt);
+				}
+
+/*
+				if(fcc == 'SIPR')
+				{
+					pwfe = (WAVEFORMATEX*)mt.ReallocFormatBuffer(sizeof(WAVEFORMATEX)+4);
+					pwfe->cbSize = 4;
+					//pwfe->wBitsPerSample = 0;
+					//pwfe->nAvgBytesPerSec = 1055;
+					//pwfe->nBlockAlign = 19;
+					memset(pwfe+1, 0, 4);
+					WORD* p = (WORD*)(pwfe+1);
+					*p = 1;
+					mts.Add(mt);
+				}
 */
+			}
+		}
+
 		if(mts.IsEmpty())
 		{
 			TRACE(_T("Unsupported RealMedia stream (%d): %s\n"), pmp->stream, CString(pmp->mime));
@@ -321,6 +512,7 @@ HRESULT CRealMediaSourceFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 
 void CRealMediaSourceFilter::DeliverBeginFlush()
 {
+	m_fFlushing = true;
 	POSITION pos = m_pOutputs.GetHeadPosition();
 	while(pos) m_pOutputs.GetNext(pos)->DeliverBeginFlush();
 }
@@ -329,6 +521,7 @@ void CRealMediaSourceFilter::DeliverEndFlush()
 {
 	POSITION pos = m_pOutputs.GetHeadPosition();
 	while(pos) m_pOutputs.GetNext(pos)->DeliverEndFlush();
+	m_fFlushing = false;
 	m_eEndFlush.Set();
 }
 
@@ -352,23 +545,12 @@ DWORD CRealMediaSourceFilter::ThreadProc()
 		m_nOpenProgress = 0;
 		m_pFile->m_p.tDuration = 0;
 
-		UINT64 TrackNumber = -1, AltTrackNumber = -1;
-
-		POSITION pos = m_pFile->m_mps.GetHeadPosition();
-		while(pos)
-		{
-			MediaProperies* pmp = m_pFile->m_mps.GetNext(pos);
-			if(pmp->mime == "video/x-pn-realvideo") {TrackNumber = pmp->stream; break;}
-			else if(pmp->mime == "video/x-pn-realaudio" && AltTrackNumber == -1) AltTrackNumber = pmp->stream;
-		}
-
-		if(TrackNumber == -1)
-			TrackNumber = AltTrackNumber;
+		int stream = m_pFile->GetMasterStream();
 
 		UINT32 tLastStart = -1;
 		UINT32 nPacket = 0;
 
-		pos = m_pFile->m_dcs.GetHeadPosition(); 
+		POSITION pos = m_pFile->m_dcs.GetHeadPosition(); 
 		while(pos && !m_fAbort)
 		{
 			DataChunk* pdc = m_pFile->m_dcs.GetNext(pos);
@@ -385,7 +567,7 @@ DWORD CRealMediaSourceFilter::ThreadProc()
 				if(S_OK != (hr = m_pFile->Read(mph, false)))
 					break;
 
-				if(mph.stream == TrackNumber && (mph.flags&MediaPacketHeader::PN_KEYFRAME_FLAG) && tLastStart != mph.tStart)
+				if(mph.stream == stream && (mph.flags&MediaPacketHeader::PN_KEYFRAME_FLAG) && tLastStart != mph.tStart)
 				{
 					m_pFile->m_p.tDuration = max(mph.tStart, m_pFile->m_p.tDuration);
 
@@ -419,11 +601,13 @@ DWORD CRealMediaSourceFilter::ThreadProc()
 	//
 
 	m_eEndFlush.Set();
+	m_fFlushing = false;
 
 	bool fFirstRun = true;
 
 	POSITION seekpos = NULL;
-	UINT32 seekpacket = 0, seekfilepos = 0;
+	UINT32 seekpacket = 0;
+	UINT64 seekfilepos = 0;
 
 	while(1)
 	{
@@ -478,6 +662,41 @@ DWORD CRealMediaSourceFilter::ThreadProc()
 							}
 						}
 					}
+
+					// search the closest keyframe to the seek time (commented out 'cause rm seems to index all of its keyframes...)
+/*
+					if(seekpos)
+					{
+						DataChunk* pdc = m_pFile->m_dcs.GetAt(seekpos);
+
+						m_pFile->Seek(seekfilepos);
+
+						REFERENCE_TIME seektime = -1;
+						UINT32 seekstream = -1;
+
+						for(UINT32 i = seekpacket; i < pdc->nPackets; i++)
+						{
+							UINT64 filepos = m_pFile->GetPos();
+
+							MediaPacketHeader mph;
+							if(S_OK != m_pFile->Read(mph, false))
+								break;
+
+							if(seekstream == -1) seekstream = mph.stream;
+							if(seekstream != mph.stream) continue;
+
+							if(seektime == 10000i64*mph.tStart) continue;
+							if(m_rtStart < 10000i64*mph.tStart) break;
+
+							if((mph.flags&MediaPacketHeader::PN_KEYFRAME_FLAG))
+							{
+								seekpacket = i;
+								seekfilepos = filepos;
+								seektime = 10000i64*mph.tStart;
+							}
+						}
+					}
+*/
 				}
 			}
 
@@ -498,7 +717,7 @@ DWORD CRealMediaSourceFilter::ThreadProc()
 		m_pActivePins.RemoveAll();
 
 		POSITION pos = m_pOutputs.GetHeadPosition();
-		while(pos)
+		while(pos && !m_fFlushing)
 		{
 			CBaseOutputPin* pPin = m_pOutputs.GetNext(pos);
 			if(pPin->IsConnected())
@@ -510,15 +729,13 @@ DWORD CRealMediaSourceFilter::ThreadProc()
 
 		HRESULT hr = S_OK;
 
-		// TODO: after having implemented the seeking, set "pos" in 
-		// the seeking code above and start from the right packet
-
-		pos = seekpos/*m_pFile->m_dcs.GetHeadPosition()*/; 
+		pos = seekpos; 
 		while(pos && SUCCEEDED(hr) && !CheckRequest(&cmd))
 		{
 			DataChunk* pdc = m_pFile->m_dcs.GetNext(pos);
 
 			m_pFile->Seek(seekfilepos > 0 ? seekfilepos : pdc->pos);
+//TRACE(_T("m_pFile->Seek(%I64d)\n"), m_pFile->GetPos());
 
 			for(UINT32 i = seekpacket; i < pdc->nPackets && SUCCEEDED(hr) && !CheckRequest(&cmd); i++)
 			{
@@ -538,6 +755,7 @@ DWORD CRealMediaSourceFilter::ThreadProc()
 
 			seekpacket = 0;
 			seekfilepos = 0;
+//TRACE(_T("Exited deliver loop\n"));
 		}
 
 		pos = m_pActivePins.GetHeadPosition();
@@ -554,7 +772,10 @@ DWORD CRealMediaSourceFilter::ThreadProc()
 HRESULT CRealMediaSourceFilter::DeliverBlock(CAutoPtr<RMBlock> b)
 {
 	HRESULT hr = S_FALSE;
-
+/*
+	if(m_fFlushing)
+		return S_FALSE;
+*/
 	CRealMediaSplitterOutputPin* pPin = NULL;
 	if(!m_mapTrackToPin.Lookup(b->TrackNumber, pPin) || !pPin 
 	|| !pPin->IsConnected() || !m_pActivePins.Find(pPin))
@@ -573,7 +794,7 @@ HRESULT CRealMediaSourceFilter::DeliverBlock(CAutoPtr<RMBlock> b)
 	DWORD TrackNumber = b->TrackNumber;
 	BOOL bDiscontinuity = !m_bDiscontinuitySent.Find(TrackNumber);
 
-//TRACE(_T("pPin->DeliverBlock: TrackNumber (%d) %I64d, %I64d\n"), (int)TrackNumber, b->rtStart, b->rtStop);
+//TRACE(_T("pPin->DeliverBlock: TrackNumber (%d) %I64d, %I64d (disc=%d)\n"), (int)TrackNumber, b->rtStart, b->rtStop, bDiscontinuity);
 
 	hr = pPin->DeliverBlock(b, bDiscontinuity);
 
@@ -821,9 +1042,14 @@ STDMETHODIMP CRealMediaSourceFilter::SetPositions(LONGLONG* pCurrent, DWORD dwCu
 
 	if(ThreadExists())
 	{
+DbgLog((LOG_TRACE, 0, _T("m_rtNewStart=%I64d"), m_rtNewStart));
+DbgLog((LOG_TRACE, 0, _T("DeliverBeginFlush()")));
 		DeliverBeginFlush();
+DbgLog((LOG_TRACE, 0, _T("CallWorker(CMD_SEEK)")));
 		CallWorker(CMD_SEEK);
-		DeliverEndFlush();		
+DbgLog((LOG_TRACE, 0, _T("DeliverEndFlush()")));
+		DeliverEndFlush();
+DbgLog((LOG_TRACE, 0, _T("Seeking ended")));
 	}
 
 	return S_OK;
@@ -1110,12 +1336,14 @@ HRESULT CRealMediaSplitterOutputPin::DeliverEndFlush()
 {
 	if(!ThreadExists()) return S_FALSE;
 	HRESULT hr = IsConnected() ? GetConnected()->EndFlush() : S_OK;
+	m_segments.Clear();
 	m_hrDeliver = S_OK;
 	return hr;
 }
 
 HRESULT CRealMediaSplitterOutputPin::DeliverNewSegment(REFERENCE_TIME tStart, REFERENCE_TIME tStop, double dRate)
 {
+	m_rtStart = tStart;
 	if(!ThreadExists()) return S_FALSE;
 	return __super::DeliverNewSegment(tStart, tStop, dRate);
 }
@@ -1137,11 +1365,83 @@ HRESULT CRealMediaSplitterOutputPin::DeliverBlock(CAutoPtr<RMBlock> b, BOOL bDis
 	return m_hrDeliver;
 }
 
+HRESULT CRealMediaSplitterOutputPin::DeliverSegments(CSegments& segments)
+{
+	HRESULT hr;
+
+	if(segments.GetCount() == 0)
+	{
+		segments.Clear();
+		return S_OK;
+	}
+
+	CComPtr<IMediaSample> pSample;
+	BYTE* pData;
+	BYTE* pDataOrg;
+	if(S_OK != (hr = GetDeliveryBuffer(&pSample, NULL, NULL, 0))
+	|| S_OK != (hr = pSample->GetPointer(&pData)) || !(pDataOrg = pData))
+	{
+		segments.Clear();
+		return hr;
+	}
+
+	*pData++ = segments.fMerged ? 0 : segments.GetCount()-1;
+
+	if(segments.fMerged)
+	{
+		*((DWORD*)pData) = 1; pData += 4;
+		*((DWORD*)pData) = 0; pData += 4;
+	}
+	else
+	{
+		POSITION pos = segments.GetHeadPosition();
+		while(pos)
+		{
+			segment* s = segments.GetNext(pos);
+			*((DWORD*)pData) = 1; pData += 4;
+			*((DWORD*)pData) = s->offset; pData += 4;
+		}
+	}
+
+	DWORD len = 0, total = 0;
+	POSITION pos = segments.GetHeadPosition();
+	while(pos)
+	{
+		segment* s = segments.GetNext(pos);
+		ASSERT(pSample->GetSize() >= (pData-pDataOrg) + s->offset + s->data.GetCount());
+		memcpy(pData + s->offset, s->data.GetData(), s->data.GetCount());
+		total = max(total, s->offset + s->data.GetCount());
+		len += s->data.GetCount();
+	}
+
+	ASSERT(total == len);
+
+	total += pData - pDataOrg;
+
+	REFERENCE_TIME rtStart = segments.rtStart;
+	REFERENCE_TIME rtStop = rtStart+1;
+
+	if(S_OK != (hr = pSample->SetActualDataLength(total))
+	|| S_OK != (hr = pSample->SetTime(&rtStart, &rtStop))
+	|| S_OK != (hr = pSample->SetMediaTime(NULL, NULL))
+	|| S_OK != (hr = pSample->SetDiscontinuity(segments.fDiscontinuity))
+	|| S_OK != (hr = pSample->SetSyncPoint(segments.fSyncPoint))
+	|| S_OK != (hr = pSample->SetPreroll(segments.rtStart < 0))
+	|| S_OK != (hr = Deliver(pSample)))
+		int empty = 0;
+
+	segments.Clear();
+
+	return S_OK;
+}
+
 DWORD CRealMediaSplitterOutputPin::ThreadProc()
 {
 	m_hrDeliver = S_OK;
 
 	::SetThreadPriority(m_hThread, THREAD_PRIORITY_ABOVE_NORMAL);
+
+	m_segments.Clear();
 
 	while(1)
 	{
@@ -1183,24 +1483,138 @@ DWORD CRealMediaSplitterOutputPin::ThreadProc()
 			else if(p && p->type == BLOCK)
 			{
 				HRESULT hr = S_FALSE;
-				
+//TRACE(_T("CRMSplitterOutputPin::ThreadProc: %I64d (disc=%d)\n"), p->b->rtStart, p->bDiscontinuity);
+
 				ASSERT(p->b->rtStart < p->b->rtStop);
 
-				CComPtr<IMediaSample> pSample;
-				BYTE* pData;
-				if(S_OK != (hr = GetDeliveryBuffer(&pSample, NULL, NULL, 0))
-				|| S_OK != (hr = pSample->GetPointer(&pData))
-				|| (hr = (memcpy(pData, p->b->pData.GetData(), p->b->pData.GetCount()) ? S_OK : E_FAIL))
-				|| S_OK != (hr = pSample->SetActualDataLength(p->b->pData.GetCount()))
-				|| S_OK != (hr = pSample->SetTime(&p->b->rtStart, &p->b->rtStop))
-				|| S_OK != (hr = pSample->SetMediaTime(NULL, NULL))
-				|| S_OK != (hr = pSample->SetDiscontinuity(p->bDiscontinuity))
-				|| S_OK != (hr = pSample->SetSyncPoint(p->b->bSyncPoint))
-				|| S_OK != (hr = pSample->SetPreroll(p->b->rtStart < 0))
-				|| S_OK != (hr = Deliver(pSample)))
+				if(m_mt.subtype == FOURCCMap(WAVE_FORMAT_AC3))
 				{
-					CAutoLock cAutoLock(&m_csQueueLock);
-					m_hrDeliver = hr;
+					WORD* s = (WORD*)p->b->pData.GetData();
+					WORD* e = s + p->b->pData.GetSize()/2;
+					while(s < e) bswap(*s++);
+				}
+				
+				if(m_mt.subtype == FOURCCMap('01VR') || m_mt.subtype == FOURCCMap('02VR')
+				|| m_mt.subtype == FOURCCMap('03VR') || m_mt.subtype == FOURCCMap('04VR'))
+				{
+					int len = p->b->pData.GetCount();
+					BYTE* pIn = p->b->pData.GetData(), * pInOrg = pIn;
+
+					if(m_hrDeliver == S_OK && m_segments.rtStart != p->b->rtStart)
+					{
+//						ASSERT(m_segments.rtStart < p->b->rtStart);
+
+//						TRACE(_T("WARNING: CRealMediaSplitterOutputPin::ThreadProc() sending incomplete segments\n"));
+
+//TRACE(_T("sending not terminated segments\n"));
+						if(S_OK != (hr = DeliverSegments(m_segments)))
+						{
+//TRACE(_T("S_OK != (hr = DeliverSegments(m_segments))\n"));
+							CAutoLock cAutoLock(&m_csQueueLock);
+							m_hrDeliver = hr;
+							continue;
+						}
+					}
+
+					if(!m_segments.fDiscontinuity && p->bDiscontinuity)
+						m_segments.fDiscontinuity = true;
+					m_segments.fSyncPoint = !!p->b->bSyncPoint;
+					m_segments.rtStart = p->b->rtStart;
+
+					while(m_hrDeliver == S_OK && pIn - pInOrg < len)
+					{
+						BYTE hdr = *pIn++, subseq = 0, seqnum = 0;
+						DWORD packetlen = 0, packetoffset = 0;
+
+						if((hdr&0xc0) == 0x40)
+						{
+							pIn++;
+							packetlen = len - (pIn - pInOrg);
+						}
+						else
+						{
+							if((hdr&0x40) == 0)
+								subseq = (*pIn++)&0x7f;
+
+							#define GetWORD(var) \
+								var = (var<<8)|(*pIn++); \
+								var = (var<<8)|(*pIn++); \
+
+							GetWORD(packetlen);
+							if(packetlen&0x8000) m_segments.fMerged = true;
+							if((packetlen&0x4000) == 0) {GetWORD(packetlen); packetlen &= 0x3fffffff;}
+							else packetlen &= 0x3fff;
+
+							GetWORD(packetoffset);
+							if((packetoffset&0x4000) == 0) {GetWORD(packetoffset); packetoffset &= 0x3fffffff;}
+							else packetoffset &= 0x3fff;
+
+							#undef GetWORD
+
+							if((hdr&0xc0) == 0xc0)
+								m_segments.rtStart = 10000i64*packetoffset - m_rtStart, packetoffset = 0;
+							else if((hdr&0xc0) == 0x80)
+								packetoffset = packetlen - packetoffset;
+
+							seqnum = *pIn++;
+						}
+
+                        int len2 = min(len - (pIn - pInOrg), packetlen - packetoffset);
+
+						CAutoPtr<segment> s(new segment);
+						s->offset = packetoffset;
+						s->data.SetSize(len2);
+#ifdef DEBUG
+						s->rtStart = m_segments.rtStart;
+#endif
+						memcpy(s->data.GetData(), pIn, len2);
+						m_segments.AddTail(s);
+
+#ifdef DEBUG
+						{
+							POSITION pos = m_segments.GetHeadPosition();
+							while(pos)
+							{
+								segment* s = m_segments.GetNext(pos);
+								ASSERT(s->rtStart == m_segments.rtStart);
+							}
+						}
+#endif
+
+
+						pIn += len2;
+
+						if((hdr&0x80) /*|| packetoffset+len2 >= packetlen*/)
+						{
+//TRACE(_T("sending terminated segments\n"));
+							if(S_OK != (hr = DeliverSegments(m_segments)))
+							{
+//TRACE(_T("S_OK != (hr = DeliverSegments(m_segments))\n"));
+								CAutoLock cAutoLock(&m_csQueueLock);
+								m_hrDeliver = hr;
+							}
+						}
+
+					}
+				}
+				else
+				{
+					CComPtr<IMediaSample> pSample;
+					BYTE* pData;
+					if(S_OK != (hr = GetDeliveryBuffer(&pSample, NULL, NULL, 0))
+					|| S_OK != (hr = pSample->GetPointer(&pData))
+					|| (hr = (memcpy(pData, p->b->pData.GetData(), p->b->pData.GetCount()) ? S_OK : E_FAIL))
+					|| S_OK != (hr = pSample->SetActualDataLength(p->b->pData.GetCount()))
+					|| S_OK != (hr = pSample->SetTime(&p->b->rtStart, &p->b->rtStop))
+					|| S_OK != (hr = pSample->SetMediaTime(NULL, NULL))
+					|| S_OK != (hr = pSample->SetDiscontinuity(p->bDiscontinuity))
+					|| S_OK != (hr = pSample->SetSyncPoint(p->b->bSyncPoint))
+					|| S_OK != (hr = pSample->SetPreroll(p->b->rtStart < 0))
+					|| S_OK != (hr = Deliver(pSample)))
+					{
+						CAutoLock cAutoLock(&m_csQueueLock);
+						m_hrDeliver = hr;
+					}
 				}
 			}
 		}
@@ -1338,6 +1752,9 @@ HRESULT CRMFile::Init()
 		if(pos + hdr.size > m_len && hdr.object_id != 'DATA') // truncated?
 			break;
 
+		if(hdr.object_id == 0x2E7261FD) // '.ra+0xFD'
+			return E_FAIL;
+
 		if(hdr.object_version == 0)
 		{
 			switch(hdr.object_id)
@@ -1410,6 +1827,7 @@ HRESULT CRMFile::Init()
 				if(S_OK != (hr = Read(ich.nIndices))) return hr;
 				if(S_OK != (hr = Read(ich.stream))) return hr;
 				if(S_OK != (hr = Read(ich.ptrNext))) return hr;
+				int stream = GetMasterStream();
 				while(ich.nIndices-- > 0)
 				{
 					UINT16 object_version;
@@ -1420,7 +1838,7 @@ HRESULT CRMFile::Init()
 						if(S_OK != (hr = Read(ir->tStart))) return hr;
 						if(S_OK != (hr = Read(ir->ptrFilePos))) return hr;
 						if(S_OK != (hr = Read(ir->packet))) return hr;
-						m_irs.AddTail(ir);
+						if(ich.stream == stream) m_irs.AddTail(ir);
 					}
 				}
 				break;
@@ -1440,6 +1858,25 @@ HRESULT CRMFile::Init()
 	return S_OK;
 }
 
+int CRMFile::GetMasterStream()
+{
+	int s1 = -1, s2 = -1;
+
+	POSITION pos = m_mps.GetHeadPosition();
+	while(pos)
+	{
+		MediaProperies* pmp = m_mps.GetNext(pos);
+		if(pmp->mime == "video/x-pn-realvideo") {s1 = pmp->stream; break;}
+		else if(pmp->mime == "audio/x-pn-realaudio" && s2 == -1) s2 = pmp->stream;
+	}
+
+	if(s1 == -1)
+		s1 = s2;
+
+	return s1;
+}
+
+
 ////////////////////////////
 
 //
@@ -1448,6 +1885,7 @@ HRESULT CRMFile::Init()
 
 CRealVideoDecoder::CRealVideoDecoder(LPUNKNOWN lpunk, HRESULT* phr)
 	: CTransformFilter(NAME("CRealVideoDecoder"), lpunk, __uuidof(this))
+	, m_hDrvDll(NULL)
 	, m_dwCookie(0)
 {
 	if(phr) *phr = S_OK;
@@ -1467,180 +1905,29 @@ CUnknown* WINAPI CRealVideoDecoder::CreateInstance(LPUNKNOWN lpunk, HRESULT* phr
 }
 #endif
 
-HRESULT CRealVideoDecoder::Receive(IMediaSample* pIn)
-{
-    HRESULT hr;
-
-    AM_SAMPLE2_PROPERTIES* const pProps = m_pInput->SampleProps();
-    if(pProps->dwStreamId != AM_STREAM_MEDIA)
-		return m_pOutput->Deliver(pIn);
-
-	//
-
-	BYTE* pDataIn = NULL;
-	if(FAILED(hr = pIn->GetPointer(&pDataIn))) return hr;
-	BYTE* pDataInOrg = pDataIn;
-
-	long len = pIn->GetActualDataLength();
-	if(len <= 0) return S_OK; // nothing to do
-
-	REFERENCE_TIME rtStart, rtStop;
-	pIn->GetTime(&rtStart, &rtStop);
-
-	rtStart += m_tStart;
-
-	TRACE(_T("in=%04x, start=%I64d, stop=%I64d\n"), len, rtStart, rtStop);
-
-	if(m_rtLast < rtStart)
-	{
-		if(S_OK != (hr = Decode(false)))
-			return hr;
-	}
-
-	m_rtLast = rtStart;
-
-	BYTE hdr = *pDataIn++, subseq = 0, seqnum = 0;
-	DWORD packetoffset = 0;
-
-	m_packetlen = 0;
-
-	if((hdr&0xc0) == 0x40)
-	{
-		pDataIn++;
-	}
-	else
-	{
-		if((hdr&0x40) == 0)
-			subseq = (*pDataIn++)&0x7f;
-
-		#define GetWORD(var) \
-			var = (var<<8)|(*pDataIn++); \
-			var = (var<<8)|(*pDataIn++); \
-
-		GetWORD(m_packetlen);
-		if((m_packetlen&0xc000) == 0) {GetWORD(m_packetlen);}
-		else m_packetlen &= 0x3fff;
-
-		GetWORD(packetoffset);
-		if((packetoffset&0xc000) == 0) {GetWORD(packetoffset);}
-		else packetoffset &= 0x3fff;
-
-		if((hdr&0xc0) == 0x80)
-			packetoffset = m_packetlen - packetoffset;
-
-		seqnum = *pDataIn++;
-	}
-
-	if(subseq == 0 && (hdr&0xc0) == 0xc0)
-	{
-		TRACE(_T("!@#$%^&*: packetoffset=%04x for a starting packet!!!\n"), packetoffset);
-		packetoffset = 0;
-	}
-
-	TRACE(_T("hdr=%02x, subseq=%d, seqnum=%d, packetlen=%04x, packetoffset=%04x\n"), hdr, subseq, seqnum, m_packetlen, packetoffset);
-
-	len = min(len - (pDataIn - pDataInOrg), m_packetlen);
-
-	CAutoPtr<chunk> c(new chunk);
-	c->offset = packetoffset;
-	c->data.SetSize(len);
-	memcpy(c->data.GetData(), pDataIn, len);
-	m_data.AddTail(c);
-
-	if((hdr&0x80) /*|| packetoffset+len >= packetlen*/)
-	{
-		if(S_OK != (hr = Decode(pIn->IsPreroll() == S_OK)))
-			return hr;
-	}
-
-	return S_OK;
-}
-
-HRESULT CRealVideoDecoder::Decode(bool fPreroll)
-{
-	if(m_data.IsEmpty() || m_packetlen == 0)
-		return S_OK;
-
-	HRESULT hr;
-
-    CComPtr<IMediaSample> pOut;
-	if(FAILED(hr = m_pOutput->GetDeliveryBuffer(&pOut, NULL, NULL, 0)))
-		return hr;
-
-	BYTE* pDataOut = NULL;
-	if(FAILED(hr = pOut->GetPointer(&pDataOut)))
-		return hr;
-
-	AM_MEDIA_TYPE* pmt;
-	if(SUCCEEDED(pOut->GetMediaType(&pmt)) && pmt)
-	{
-		CMediaType mt(*pmt);
-		m_pOutput->SetMediaType(&mt);
-		DeleteMediaType(pmt);
-	}
-
-	CAutoVectorPtr<BYTE> p;
-	p.Allocate(m_packetlen);
-
-	CArray<DWORD> extra;
-
-	POSITION pos = m_data.GetHeadPosition();
-	while(pos)
-	{
-		chunk* c = m_data.GetNext(pos);
-		memcpy((BYTE*)p + c->offset, c->data.GetData(), min(m_packetlen - c->offset, c->data.GetSize()));
-		extra.Add(1);
-		extra.Add(c->offset);
-	}
-
-	#pragma pack(push, 1)
-	struct {DWORD len, unk1, chunks; DWORD* extra; DWORD unk2, timestamp;} transform_in = 
-		{m_packetlen, 0, extra.GetCount()/2-1, extra.GetData(), 0, (DWORD)(m_rtLast/10000)};
-	struct {DWORD unk1, unk2, timestamp, w, h;} transform_out = 
-		{0,0,0,0,0};
-	#pragma pack(pop)
-
-	hr = RVTransform(p, (BYTE*)m_pI420FrameBuff, &transform_in, &transform_out, m_dwCookie);
-
-	m_data.RemoveAll();
-
-	if(FAILED(hr))
-	{
-		TRACE(_T("RV returned an error code!!!\n"));
-//		return hr;
-	}
-
-	REFERENCE_TIME rtStart = 10000i64*transform_out.timestamp - m_tStart;
-	REFERENCE_TIME rtStop = rtStart + 1;
-	pOut->SetTime(&rtStart, /*NULL*/&rtStop);
-
-	Copy(m_pI420FrameBuff, pDataOut, transform_out.w, transform_out.h);
-
-	return fPreroll ? S_OK : m_pOutput->Deliver(pOut);
-}
-
 HRESULT CRealVideoDecoder::InitRV(const CMediaType* pmt)
 {
 	FreeRV();
 
 	HRESULT hr = VFW_E_TYPE_NOT_ACCEPTED;
 
-	struct rvinfo* rvi = (struct rvinfo*)(pmt->Format() + sizeof(VIDEOINFOHEADER));
+	rvinfo rvi = *(rvinfo*)(pmt->Format() + sizeof(VIDEOINFOHEADER));
+	rvi.bswap();
 
 	#pragma pack(push, 1)
 	struct {WORD unk1, w, h, unk3; DWORD unk2, subformat, unk5, format;} i =
-		{11, rvi->w, rvi->h, 0, 0, rvi->type1, 1, rvi->type2};
+		{11, rvi.w, rvi.h, 0, 0, rvi.type1, 1, rvi.type2};
 	#pragma pack(pop)
 
 	if(FAILED(hr = RVInit(&i, &m_dwCookie)))
 		return hr;
 
-	if(rvi->fcc2 <= '03VR' && rvi->type2 >= 0x20200002)
+	if(rvi.fcc2 <= '03VR' && rvi.type2 >= 0x20200002)
 	{
 		#pragma pack(push, 1)
-		UINT32 cmsg24[6] = {rvi->w, rvi->h, rvi->w2*4, rvi->h2*4, rvi->w3*4, rvi->h3*4};
+		UINT32 cmsg24[6] = {rvi.w, rvi.h, rvi.w2*4, rvi.h2*4, rvi.w3*4, rvi.h3*4};
 		struct {UINT32 data1; UINT32 data2; UINT32* dimensions;} cmsg_data = 
-			{0x24, 1+((rvi->type1>>16)&7), cmsg24};;
+			{0x24, 1+((rvi.type1>>16)&7), cmsg24};;
 		#pragma pack(pop)
 
 		hr = RVCustomMessage(&cmsg_data, m_dwCookie);
@@ -1656,6 +1943,84 @@ void CRealVideoDecoder::FreeRV()
 		RVFree(m_dwCookie);
 		m_dwCookie = 0;
 	}
+}
+
+HRESULT CRealVideoDecoder::Receive(IMediaSample* pIn)
+{
+	CAutoLock cAutoLock(&m_csReceive);
+DbgLog((LOG_TRACE, 0, _T("CRealVideoDecoder::Receive()")));
+
+	HRESULT hr;
+
+    AM_SAMPLE2_PROPERTIES* const pProps = m_pInput->SampleProps();
+    if(pProps->dwStreamId != AM_STREAM_MEDIA)
+		return m_pOutput->Deliver(pIn);
+
+	BYTE* pDataIn = NULL;
+	if(FAILED(hr = pIn->GetPointer(&pDataIn))) return hr;
+
+	long len = pIn->GetActualDataLength();
+	if(len <= 0) return S_OK; // nothing to do
+
+	REFERENCE_TIME rtStart, rtStop;
+	pIn->GetTime(&rtStart, &rtStop);
+
+	rtStart += m_tStart;
+
+//	TRACE(_T("in=%04x, start=%I64d, stop=%I64d\n"), len, rtStart, rtStop);
+
+	#pragma pack(push, 1)
+	struct {DWORD len, unk1, chunks; DWORD* extra; DWORD unk2, timestamp;} transform_in = 
+		{len - (1+((*pDataIn)+1)*8), 0, *pDataIn, (DWORD*)(pDataIn+1), 0, (DWORD)(rtStart/10000)};
+	struct {DWORD unk1, unk2, timestamp, w, h;} transform_out = 
+		{0,0,0,0,0};
+	#pragma pack(pop)
+
+	if(m_fDropFrames && m_timestamp+1 == transform_in.timestamp)
+	{
+		m_timestamp = transform_in.timestamp;
+		return S_OK;
+	}
+
+	hr = RVTransform(pDataIn + (1+((*pDataIn)+1)*8), (BYTE*)m_pI420FrameBuff, &transform_in, &transform_out, m_dwCookie);
+
+	m_timestamp = transform_in.timestamp;
+
+	if(FAILED(hr))
+	{
+		TRACE(_T("RV returned an error code!!!\n"));
+//		return hr;
+	}
+
+	if(pIn->IsPreroll() == S_OK || rtStart < 0 || !(transform_out.unk1&1))
+		return S_OK;
+
+    CComPtr<IMediaSample> pOut;
+	BYTE* pDataOut = NULL;
+	if(FAILED(hr = m_pOutput->GetDeliveryBuffer(&pOut, NULL, NULL, 0))
+	|| FAILED(hr = pOut->GetPointer(&pDataOut)))
+		return hr;
+
+	AM_MEDIA_TYPE* pmt;
+	if(SUCCEEDED(pOut->GetMediaType(&pmt)) && pmt)
+	{
+		CMediaType mt(*pmt);
+		m_pOutput->SetMediaType(&mt);
+		DeleteMediaType(pmt);
+	}
+
+	rtStart = 10000i64*transform_out.timestamp - m_tStart;
+	rtStop = rtStart + 1;
+	pOut->SetTime(&rtStart, /*NULL*/&rtStop);
+	pOut->SetMediaTime(NULL, NULL);
+
+	pOut->SetDiscontinuity(pIn->IsDiscontinuity() == S_OK);
+	pOut->SetSyncPoint(pIn->IsSyncPoint() == S_OK);
+
+	Copy(m_pI420FrameBuff, pDataOut, transform_out.w, transform_out.h);
+DbgLog((LOG_TRACE, 0, _T("***** rtStart=%I64d, disc=%d, sync=%d\n"), 
+	   rtStart, pIn->IsDiscontinuity() == S_OK, pIn->IsSyncPoint() == S_OK));
+	return m_pOutput->Deliver(pOut);
 }
 
 void CRealVideoDecoder::Copy(BYTE* pIn, BYTE* pOut, int w, int h)
@@ -1822,8 +2187,11 @@ HRESULT CRealVideoDecoder::CheckInputType(const CMediaType* mtIn)
 
 HRESULT CRealVideoDecoder::CheckTransform(const CMediaType* mtIn, const CMediaType* mtOut)
 {
-	return mtIn->majortype == MEDIATYPE_Video && (mtIn->subtype == FOURCCMap('02VR') || mtIn->subtype == FOURCCMap('03VR') || mtIn->subtype == FOURCCMap('04VR'))
-		&& mtOut->majortype == MEDIATYPE_Video && (mtOut->subtype == FOURCCMap('21VY') || mtOut->subtype == FOURCCMap('2YUY'))
+	return mtIn->majortype == MEDIATYPE_Video && (mtIn->subtype == FOURCCMap('02VR')
+												|| mtIn->subtype == FOURCCMap('03VR')
+												|| mtIn->subtype == FOURCCMap('04VR'))
+		&& mtOut->majortype == MEDIATYPE_Video && (mtOut->subtype == FOURCCMap('21VY')
+												|| mtOut->subtype == FOURCCMap('2YUY'))
 		? S_OK
 		: VFW_E_TYPE_NOT_ACCEPTED;
 }
@@ -1859,7 +2227,7 @@ HRESULT CRealVideoDecoder::GetMediaType(int iPosition, CMediaType* pmt)
 
 	if(iPosition < 0) return E_INVALIDARG;
 	if(iPosition > 1) return VFW_S_NO_MORE_ITEMS;
-
+iPosition = 1-iPosition;
 	BITMAPINFOHEADER& bih = ((VIDEOINFOHEADER*)m_pInput->CurrentMediaType().Format())->bmiHeader;
 
 	pmt->majortype = MEDIATYPE_Video;
@@ -1883,12 +2251,11 @@ HRESULT CRealVideoDecoder::StartStreaming()
 	if(FAILED(InitRV(&m_pInput->CurrentMediaType())))
 		return E_FAIL;
 
-	m_packetlen = 0;
-	m_rtLast = 0;
-	m_data.RemoveAll();
-
 	BITMAPINFOHEADER& bih = ((VIDEOINFOHEADER*)m_pInput->CurrentMediaType().Format())->bmiHeader;
-	m_pI420FrameBuff.Allocate(bih.biWidth*bih.biHeight*3/2);
+	int size = bih.biWidth*bih.biHeight;
+	m_pI420FrameBuff.Allocate(size*3/2);
+	memset(m_pI420FrameBuff, 0, size);
+	memset(m_pI420FrameBuff + size, 0x80, size/2);
 
 	return __super::StartStreaming();
 }
@@ -1904,30 +2271,438 @@ HRESULT CRealVideoDecoder::StopStreaming()
 
 HRESULT CRealVideoDecoder::EndOfStream()
 {
+DbgLog((LOG_TRACE, 0, _T("CRealVideoDecoder::EndOfStream()")));
 	return __super::EndOfStream();
 }
 
 HRESULT CRealVideoDecoder::BeginFlush()
 {
+DbgLog((LOG_TRACE, 0, _T("CRealVideoDecoder::BeginFlush()")));
 	return __super::BeginFlush();
 }
 
 HRESULT CRealVideoDecoder::EndFlush()
 {
-	m_packetlen = 0;
-	m_rtLast = 0;
-	m_data.RemoveAll();
-
+DbgLog((LOG_TRACE, 0, _T("CRealVideoDecoder::EndFlush()")));
 	return __super::EndFlush();
 }
 
 HRESULT CRealVideoDecoder::NewSegment(REFERENCE_TIME tStart, REFERENCE_TIME tStop, double dRate)
 {
-	m_packetlen = 0;
-	m_rtLast = 0;
-	m_data.RemoveAll();
+	CAutoLock cAutoLock(&m_csReceive);
 
+	m_timestamp = ~0;
+	m_fDropFrames = false;
+
+	DWORD tmp[2] = {20, 0};
+	RVHiveMessage(tmp, m_dwCookie);
+
+DbgLog((LOG_TRACE, 0, _T("CRealVideoDecoder::NewSegment()")));
 	m_tStart = tStart;
 	return __super::NewSegment(tStart, tStop, dRate);
 }
 
+HRESULT CRealVideoDecoder::AlterQuality(Quality q)
+{
+//	if(q.Late > 500*10000i64) m_fDropFrames = true;
+	if(q.Late <= 0) m_fDropFrames = false;
+//	TRACE(_T("CRealVideoDecoder::AlterQuality: Type=%d, Proportion=%d, Late=%I64d, TimeStamp=%I64d\n"), q.Type, q.Proportion, q.Late, q.TimeStamp);
+	return E_NOTIMPL;
+}
+
+/////////////////////////
+
+//
+// CRealAudioDecoder
+//
+
+CRealAudioDecoder::CRealAudioDecoder(LPUNKNOWN lpunk, HRESULT* phr)
+	: CTransformFilter(NAME("CRealAudioDecoder"), lpunk, __uuidof(this))
+	, m_hDrvDll(NULL)
+	, m_dwCookie(0)
+{
+	if(phr) *phr = S_OK;
+}
+
+CRealAudioDecoder::~CRealAudioDecoder()
+{
+	if(m_hDrvDll) FreeLibrary(m_hDrvDll);
+}
+
+#ifdef REGISTER_FILTER
+CUnknown* WINAPI CRealAudioDecoder::CreateInstance(LPUNKNOWN lpunk, HRESULT* phr)
+{
+    CUnknown* punk = new CRealAudioDecoder(lpunk, phr);
+    if(punk == NULL) *phr = E_OUTOFMEMORY;
+	return punk;
+}
+#endif
+
+HRESULT CRealAudioDecoder::InitRA(const CMediaType* pmt)
+{
+	FreeRA();
+
+	HRESULT hr = VFW_E_TYPE_NOT_ACCEPTED;
+
+	if(RAOpenCodec2 && FAILED(hr = RAOpenCodec2(&m_dwCookie, m_dllpath))
+	|| RAOpenCodec && FAILED(hr = RAOpenCodec(&m_dwCookie)))
+		return hr;
+
+	WAVEFORMATEX* pwfe = (WAVEFORMATEX*)pmt->Format();
+
+	// someone might be doing cbSize = sizeof(WAVEFORMATEX), chances of 
+	// cbSize being really sizeof(WAVEFORMATEX) is less than this, 
+	// especially with our rm splitter ;)
+	DWORD cbSize = pwfe->cbSize;
+	if(cbSize == sizeof(WAVEFORMATEX)) {ASSERT(0); cbSize = 0;}
+
+	if(pmt->FormatLength() <= sizeof(WAVEFORMATEX) + cbSize) // must have type_specific_data appended
+		return hr;
+
+	BYTE* tsd = pmt->Format() + sizeof(WAVEFORMATEX) + cbSize;
+	BYTE* p = NULL;
+
+	rainfo rai = *(rainfo*)tsd;
+	rai.bswap();
+
+	if(rai.version2 == 4)
+	{
+		rainfo4 rai4 = *(rainfo4*)tsd;
+		rai4.bswap();
+		p = (BYTE*)((rainfo4*)tsd+1);
+		int len = *p++; p += len; len = *p++; ASSERT(len == 4);
+	}
+	else if(rai.version2 == 5)
+	{
+		rainfo5 rai5 = *(rainfo5*)tsd;
+		rai5.bswap();
+		p = (BYTE*)((rainfo5*)tsd+1);
+	}
+	else
+	{
+		return hr;
+	}
+
+	p += 3;
+	if(rai.version2 == 5) p++;
+
+	#pragma pack(push, 1)
+	struct {DWORD freq; WORD bpsample, channels, quality; DWORD bpframe, packetsize, extralen; void* extra;} i =
+		{pwfe->nSamplesPerSec, pwfe->wBitsPerSample, pwfe->nChannels, 100, 
+		rai.sub_packet_size, rai.coded_frame_size, *(DWORD*)p, p + 4};
+	#pragma pack(pop)
+
+	if(FAILED(hr = RAInitDecoder(m_dwCookie, &i)))
+		return hr;
+
+	if(RASetPwd)
+		RASetPwd(m_dwCookie, "Ardubancel Quazanga");
+
+	if(FAILED(hr = RASetFlavor(m_dwCookie, &rai.flavor)))
+		return hr;
+
+/*
+	rvinfo rvi = *(rvinfo*)(pmt->Format() + sizeof(VIDEOINFOHEADER));
+	rvi.bswap();
+
+	#pragma pack(push, 1)
+	struct {WORD unk1, w, h, unk3; DWORD unk2, subformat, unk5, format;} i =
+		{11, rvi.w, rvi.h, 0, 0, rvi.type1, 1, rvi.type2};
+	#pragma pack(pop)
+
+	if(FAILED(hr = RVInit(&i, &m_dwCookie)))
+		return hr;
+
+	if(rvi.fcc2 <= '03VR' && rvi.type2 >= 0x20200002)
+	{
+		#pragma pack(push, 1)
+		UINT32 cmsg24[6] = {rvi.w, rvi.h, rvi.w2*4, rvi.h2*4, rvi.w3*4, rvi.h3*4};
+		struct {UINT32 data1; UINT32 data2; UINT32* dimensions;} cmsg_data = 
+			{0x24, 1+((rvi.type1>>16)&7), cmsg24};;
+		#pragma pack(pop)
+
+		hr = RVCustomMessage(&cmsg_data, m_dwCookie);
+	}
+*/
+	return hr;
+}
+
+void CRealAudioDecoder::FreeRA()
+{
+	if(m_dwCookie)
+	{
+		RAFreeDecoder(m_dwCookie);
+		RACloseCodec(m_dwCookie);
+		m_dwCookie = 0;
+	}
+}
+
+HRESULT CRealAudioDecoder::Receive(IMediaSample* pIn)
+{
+	CAutoLock cAutoLock(&m_csReceive);
+
+	HRESULT hr;
+
+    AM_SAMPLE2_PROPERTIES* const pProps = m_pInput->SampleProps();
+    if(pProps->dwStreamId != AM_STREAM_MEDIA)
+		return m_pOutput->Deliver(pIn);
+
+	BYTE* pDataIn = NULL;
+	if(FAILED(hr = pIn->GetPointer(&pDataIn))) return hr;
+	BYTE* pDataInOrg = pDataIn;
+
+	long len = pIn->GetActualDataLength();
+	if(len <= 0) return S_OK;
+
+	REFERENCE_TIME rtStart, rtStop;
+	pIn->GetTime(&rtStart, &rtStop);
+
+	if(pIn->IsPreroll() == S_OK || rtStart < 0)
+		return S_OK;
+
+    CComPtr<IMediaSample> pOut;
+	BYTE* pDataOut = NULL;
+	if(FAILED(hr = m_pOutput->GetDeliveryBuffer(&pOut, NULL, NULL, 0))
+	|| FAILED(hr = pOut->GetPointer(&pDataOut)))
+		return hr;
+
+	AM_MEDIA_TYPE* pmt;
+	if(SUCCEEDED(pOut->GetMediaType(&pmt)) && pmt)
+	{
+		CMediaType mt(*pmt);
+		m_pOutput->SetMediaType(&mt);
+		DeleteMediaType(pmt);
+	}
+
+	{
+		BYTE* ptr = pDataIn;
+		int sps = 280;
+		int w = 1400;
+		int h = 16;
+		w/=sps;
+		BYTE* buff = new BYTE[w*h*sps];
+		for(int y=0;y<h;y++)
+		{
+			pDataIn = pDataInOrg;
+			for(int x=0;x<w;x++)
+			{
+				TRACE(_T("--- %d, %d\n"), (h*x+((h+1)/2)*(y&1)+(y>>1)), sps*(h*x+((h+1)/2)*(y&1)+(y>>1)));
+				memcpy(buff+sps*(h*x+((h+1)/2)*(y&1)+(y>>1)), pDataIn, sps);
+				pDataIn += sps;
+			}
+		}
+		len = w*h*sps;
+	
+		hr = RADecode(m_dwCookie, buff, len, pDataOut, &len, -1);
+
+		delete [] buff;
+	}
+
+//	hr = RADecode(m_dwCookie, pDataIn, len, pDataOut, &len, -1);
+
+	if(FAILED(hr))
+	{
+		TRACE(_T("RA returned an error code!!!\n"));
+//		return hr;
+	}
+
+	WAVEFORMATEX* pwfe = (WAVEFORMATEX*)m_pOutput->CurrentMediaType().Format();
+
+	rtStop = rtStart + 1000i64*len/pwfe->nAvgBytesPerSec*10000;
+	pOut->SetTime(&rtStart, &rtStop);
+	pOut->SetMediaTime(NULL, NULL);
+
+	pOut->SetDiscontinuity(pIn->IsDiscontinuity() == S_OK);
+	pOut->SetSyncPoint(TRUE);
+
+	pOut->SetActualDataLength(len);
+
+	return m_pOutput->Deliver(pOut);
+}
+
+HRESULT CRealAudioDecoder::CheckInputType(const CMediaType* mtIn)
+{
+	if(mtIn->majortype != MEDIATYPE_Audio 
+	|| /*mtIn->subtype != MEDIASUBTYPE_28_8
+	&&*/ mtIn->subtype != MEDIASUBTYPE_ATRC
+	&& mtIn->subtype != MEDIASUBTYPE_COOK
+	&& mtIn->subtype != MEDIASUBTYPE_DNET
+	&& mtIn->subtype != MEDIASUBTYPE_SIPR)
+		return VFW_E_TYPE_NOT_ACCEPTED;
+
+	if(!m_pInput->IsConnected())
+	{
+		if(m_hDrvDll) {FreeLibrary(m_hDrvDll); m_hDrvDll = NULL;}
+
+		CStringList paths;
+		CString dll, oldpath, newpath;
+
+		dll.Format(_T("%c%c%c%c3260.dll"), 
+			(TCHAR)((mtIn->subtype.Data1>>0)&0xff),
+			(TCHAR)((mtIn->subtype.Data1>>8)&0xff),
+			(TCHAR)((mtIn->subtype.Data1>>16)&0xff),
+			(TCHAR)((mtIn->subtype.Data1>>24)&0xff));
+
+		CRegKey key;
+		TCHAR buff[MAX_PATH];
+		ULONG len = sizeof(buff);
+		if(ERROR_SUCCESS == key.Open(HKEY_CLASSES_ROOT, _T("Software\\RealNetworks\\Preferences\\DT_Codecs"), KEY_READ)
+		&& ERROR_SUCCESS == key.QueryStringValue(NULL, buff, &len) && _tcslen(buff) > 0)
+		{
+			oldpath = buff;
+			TCHAR c = oldpath[oldpath.GetLength()-1];
+			if(c != '\\' && c != '/') oldpath += '\\';
+			key.Close();
+		}
+		len = sizeof(buff);
+		if(ERROR_SUCCESS == key.Open(HKEY_CLASSES_ROOT, _T("Helix\\HelixSDK\\10.0\\Preferences\\DT_Codecs"), KEY_READ)
+		&& ERROR_SUCCESS == key.QueryStringValue(NULL, buff, &len) && _tcslen(buff) > 0)
+		{
+			newpath = buff;
+			TCHAR c = newpath[newpath.GetLength()-1];
+			if(c != '\\' && c != '/') newpath += '\\';
+			key.Close();
+		}
+		if(ERROR_SUCCESS == key.Open(HKEY_CURRENT_USER, _T("Helix\\HelixSDK\\10.0\\Preferences\\DT_Codecs"), KEY_READ)
+		&& ERROR_SUCCESS == key.QueryStringValue(NULL, buff, &len) && _tcslen(buff) > 0)
+		{
+			newpath = buff;
+			TCHAR c = newpath[newpath.GetLength()-1];
+			if(c != '\\' && c != '/') newpath += '\\';
+			key.Close();
+		}
+
+		if(!newpath.IsEmpty()) paths.AddTail(newpath + dll);
+		if(!oldpath.IsEmpty()) paths.AddTail(oldpath + dll);
+		paths.AddTail(dll); // default dll paths
+
+		POSITION pos = paths.GetHeadPosition();
+		while(pos && !(m_hDrvDll = LoadLibrary(paths.GetNext(pos))));
+
+		if(m_hDrvDll)
+		{
+			RACloseCodec = (PCloseCodec)GetProcAddress(m_hDrvDll, "RACloseCodec");
+			RADecode = (PDecode)GetProcAddress(m_hDrvDll, "RADecode");
+			RAFlush = (PFlush)GetProcAddress(m_hDrvDll, "RAFlush");
+			RAFreeDecoder = (PFreeDecoder)GetProcAddress(m_hDrvDll, "RAFreeDecoder");
+			RAGetFlavorProperty = (PGetFlavorProperty)GetProcAddress(m_hDrvDll, "RAGetFlavorProperty");
+			RAInitDecoder = (PInitDecoder)GetProcAddress(m_hDrvDll, "RAInitDecoder");
+			RAOpenCodec = (POpenCodec)GetProcAddress(m_hDrvDll, "RAOpenCodec");
+			RAOpenCodec2 = (POpenCodec2)GetProcAddress(m_hDrvDll, "RAOpenCodec2");
+			RASetFlavor = (PSetFlavor)GetProcAddress(m_hDrvDll, "RASetFlavor");
+			RASetDLLAccessPath = (PSetDLLAccessPath)GetProcAddress(m_hDrvDll, "RASetDLLAccessPath");
+			RASetPwd = (PSetPwd)GetProcAddress(m_hDrvDll, "RASetPwd");
+		}
+
+		if(!m_hDrvDll || !RACloseCodec || !RADecode || !RAFlush
+		|| !RAFreeDecoder || !RAGetFlavorProperty || !RAInitDecoder 
+		|| !(RAOpenCodec || RAOpenCodec2) || !RASetFlavor)
+			return VFW_E_TYPE_NOT_ACCEPTED;
+
+		if(m_hDrvDll)
+		{
+			char buff[MAX_PATH];
+			GetModuleFileNameA(m_hDrvDll, buff, MAX_PATH);
+			CPathA p(buff);
+			p.RemoveFileSpec();
+			p.AddBackslash();
+			m_dllpath = p.m_strPath;
+			if(RASetDLLAccessPath)
+				RASetDLLAccessPath("DT_Codecs=" + m_dllpath);
+		}
+
+		if(FAILED(InitRA(mtIn)))
+			return VFW_E_TYPE_NOT_ACCEPTED;
+	}
+
+	return S_OK;
+}
+
+HRESULT CRealAudioDecoder::CheckTransform(const CMediaType* mtIn, const CMediaType* mtOut)
+{
+	return mtIn->majortype == MEDIATYPE_Audio && (/*mtIn->subtype == MEDIASUBTYPE_28_8
+												||*/ mtIn->subtype == MEDIASUBTYPE_ATRC
+												|| mtIn->subtype == MEDIASUBTYPE_COOK
+												|| mtIn->subtype == MEDIASUBTYPE_DNET
+												|| mtIn->subtype == MEDIASUBTYPE_SIPR)
+		&& mtOut->majortype == MEDIATYPE_Audio && (mtOut->subtype == MEDIASUBTYPE_PCM
+												/*|| mtOut->subtype == FOURCCMap(WAVE_FORMAT_EXTENSIBLE)*/)
+		? S_OK
+		: VFW_E_TYPE_NOT_ACCEPTED;
+	// TODO
+}
+
+HRESULT CRealAudioDecoder::DecideBufferSize(IMemAllocator* pAllocator, ALLOCATOR_PROPERTIES* pProperties)
+{
+	if(m_pInput->IsConnected() == FALSE) return E_UNEXPECTED;
+
+	CComPtr<IMemAllocator> pAllocatorIn;
+	m_pInput->GetAllocator(&pAllocatorIn);
+	if(!pAllocatorIn) return E_UNEXPECTED;
+
+	WAVEFORMATEX* pwfe = (WAVEFORMATEX*)m_pOutput->CurrentMediaType().Format();
+
+	pProperties->cBuffers = 8;
+	pProperties->cbBuffer = pwfe->nChannels*pwfe->nSamplesPerSec*pwfe->wBitsPerSample>>3; // nAvgBytesPerSec;
+	pProperties->cbAlign = 1;
+	pProperties->cbPrefix = 0;
+
+	HRESULT hr;
+	ALLOCATOR_PROPERTIES Actual;
+    if(FAILED(hr = pAllocator->SetProperties(pProperties, &Actual))) 
+		return hr;
+
+    return(pProperties->cBuffers > Actual.cBuffers || pProperties->cbBuffer > Actual.cbBuffer
+		? E_FAIL
+		: NOERROR);
+}
+
+HRESULT CRealAudioDecoder::GetMediaType(int iPosition, CMediaType* pmt)
+{
+    if(m_pInput->IsConnected() == FALSE) return E_UNEXPECTED;
+
+	if(iPosition < 0) return E_INVALIDARG;
+	if(iPosition > 0) return VFW_S_NO_MORE_ITEMS;
+
+	*pmt = m_pInput->CurrentMediaType();
+	pmt->subtype = MEDIASUBTYPE_PCM;
+	WAVEFORMATEX* pwfe = (WAVEFORMATEX*)pmt->ReallocFormatBuffer(sizeof(WAVEFORMATEX));
+	pwfe->cbSize = 0;
+	pwfe->wFormatTag = WAVE_FORMAT_PCM;
+	pwfe->nBlockAlign = pwfe->nChannels*pwfe->wBitsPerSample>>3;
+	pwfe->nAvgBytesPerSec = pwfe->nSamplesPerSec*pwfe->nBlockAlign;
+
+	return S_OK;
+}
+
+HRESULT CRealAudioDecoder::StartStreaming()
+{
+	return __super::StartStreaming();
+}
+
+HRESULT CRealAudioDecoder::StopStreaming()
+{
+	return __super::StopStreaming();
+}
+
+HRESULT CRealAudioDecoder::EndOfStream()
+{
+	return __super::EndOfStream();
+}
+
+HRESULT CRealAudioDecoder::BeginFlush()
+{
+	return __super::BeginFlush();
+}
+
+HRESULT CRealAudioDecoder::EndFlush()
+{
+	return __super::EndFlush();
+}
+
+HRESULT CRealAudioDecoder::NewSegment(REFERENCE_TIME tStart, REFERENCE_TIME tStop, double dRate)
+{
+	CAutoLock cAutoLock(&m_csReceive);
+	m_tStart = tStart;
+	return __super::NewSegment(tStart, tStop, dRate);
+}

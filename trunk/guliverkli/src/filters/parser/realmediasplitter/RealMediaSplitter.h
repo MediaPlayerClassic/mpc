@@ -64,15 +64,59 @@ namespace RealMedia
 }
 
 #pragma pack(push, 1)
-struct rvinfo 
+struct rvinfo
 {
 	DWORD dwSize, fcc1, fcc2; 
 	WORD w, h, bpp; 
 	DWORD unk1, fps, type1, type2;
 	BYTE w2, h2, w3, h3;
+	void bswap();
 };
+
+struct rainfo
+{
+	DWORD fourcc1;             // '.', 'r', 'a', 0xfd
+	WORD version1;            // 4 or 5
+	WORD unknown1;            // 00 000
+	DWORD fourcc2;             // .ra4 or .ra5
+	DWORD unknown2;            // ???
+	WORD version2;            // 4 or 5
+	DWORD header_size;         // == 0x4e
+	WORD flavor;              // codec flavor id
+	DWORD coded_frame_size;    // coded frame size
+	DWORD unknown3;            // big number
+	DWORD unknown4;            // bigger number
+	DWORD unknown5;            // yet another number
+	WORD sub_packet_h;
+	WORD frame_size;
+	WORD sub_packet_size;
+	WORD unknown6;            // 00 00
+	void bswap();
+};
+
+struct rainfo4 : rainfo
+{
+	WORD sample_rate;
+	WORD unknown8;            // 0
+	WORD sample_size;
+	WORD channels;
+	void bswap();
+};
+
+struct rainfo5 : rainfo
+{
+	BYTE unknown7[6];          // 0, srate, 0
+	WORD sample_rate;
+	WORD unknown8;            // 0
+	WORD sample_size;
+	WORD channels;
+	DWORD genr;                // "genr"
+	DWORD fourcc3;             // fourcc
+	void bswap();
+};
+
 /*
-struct RealMedia_AudioHeader {
+struct rainfo {
 	UINT32 unknown1; // No clue
 	UINT16 unknown2; // just need to skip 6 bytes
 	UINT16 header_version;
@@ -151,6 +195,8 @@ public:
 	CAutoPtrList<RealMedia::MediaProperies> m_mps;
 	CAutoPtrList<RealMedia::DataChunk> m_dcs;
 	CAutoPtrList<RealMedia::IndexRecord> m_irs;
+
+	int GetMasterStream();
 };
 
 class CRealMediaSplitterInputPin : public CBasePin
@@ -192,6 +238,29 @@ private:
 	HRESULT m_hrDeliver;
 	enum {CMD_EXIT};
     DWORD ThreadProc();
+
+	REFERENCE_TIME m_rtStart;
+
+	typedef struct 
+	{
+		CArray<BYTE> data; DWORD offset; 
+#ifdef DEBUG
+		REFERENCE_TIME rtStart;
+#endif
+	} segment;
+	class CSegments : public CAutoPtrList<segment>
+	{
+	public:
+		REFERENCE_TIME rtStart; 
+		bool fDiscontinuity, fSyncPoint, fMerged;
+		void Clear()
+		{
+			rtStart = 0;
+			fDiscontinuity = fSyncPoint = fMerged = false;
+			RemoveAll();
+		}
+	} m_segments;
+	HRESULT DeliverSegments(CSegments& segments);
 
 public:
 	CRealMediaSplitterOutputPin(CArray<CMediaType>& mts, LPCWSTR pName, CBaseFilter* pFilter, CCritSec* pLock, HRESULT* phr);
@@ -252,6 +321,7 @@ class CRealMediaSourceFilter
 
 	CStringW m_fn;
 	CAMEvent m_eEndFlush;
+	bool m_fFlushing;
 
 	LONGLONG m_nOpenProgress;
 	bool m_fAbort;
@@ -351,7 +421,7 @@ class CRealVideoDecoder : public CTransformFilter
 {
 	typedef HRESULT (WINAPI *PRVCustomMessage)(void*, DWORD);
 	typedef HRESULT (WINAPI *PRVFree)(DWORD);
-	typedef HRESULT (WINAPI *PRVHiveMessage)(DWORD, DWORD);
+	typedef HRESULT (WINAPI *PRVHiveMessage)(void*, DWORD);
 	typedef HRESULT (WINAPI *PRVInit)(void*, DWORD* dwCookie);
 	typedef HRESULT (WINAPI *PRVTransform)(BYTE*, BYTE*, void*, void*, DWORD);
 
@@ -367,13 +437,15 @@ class CRealVideoDecoder : public CTransformFilter
 	HRESULT InitRV(const CMediaType* pmt);
 	void FreeRV();
 
+	REFERENCE_TIME m_tStart;
+/*
 	REFERENCE_TIME m_rtLast, m_tStart;
 	DWORD m_packetlen;
-	typedef struct {CByteArray data; DWORD offset;} chunk;
+	typedef struct {CByteArray data; DWORD offset; bool fMerge;} chunk;
 	CAutoPtrList<chunk> m_data;
 
 	HRESULT Decode(bool fPreroll);
-	void Copy(BYTE* pIn, BYTE* pOut, int w, int h);
+*/	void Copy(BYTE* pIn, BYTE* pOut, int w, int h);
 
 	CAutoVectorPtr<BYTE> m_pI420FrameBuff;
 
@@ -397,7 +469,67 @@ public:
     HRESULT BeginFlush();
     HRESULT EndFlush();
     HRESULT NewSegment(REFERENCE_TIME tStart, REFERENCE_TIME tStop, double dRate);
+
+	DWORD m_timestamp;
+	bool m_fDropFrames;
+	HRESULT AlterQuality(Quality q);
 };
 
+[uuid("941A4793-A705-4312-8DFC-C11CA05F397E")]
+class CRealAudioDecoder : public CTransformFilter
+{
+	typedef HRESULT (WINAPI *PCloseCodec)(DWORD);
+	typedef HRESULT (WINAPI *PDecode)(DWORD,BYTE*,long,BYTE*,long*,long);
+	typedef HRESULT (WINAPI *PFlush)(DWORD,DWORD,DWORD);
+	typedef HRESULT (WINAPI *PFreeDecoder)(DWORD);
+	typedef void* (WINAPI *PGetFlavorProperty)(void*,DWORD,DWORD,int*);
+	typedef HRESULT (WINAPI *PInitDecoder)(DWORD, void*);
+	typedef HRESULT (WINAPI *POpenCodec)(void*);
+	typedef HRESULT (WINAPI *POpenCodec2)(void*, const char*);
+	typedef HRESULT (WINAPI *PSetFlavor)(DWORD,WORD*);
+	typedef void (WINAPI *PSetDLLAccessPath)(const char*);
+	typedef void (WINAPI *PSetPwd)(DWORD, const char*);
+
+	PCloseCodec RACloseCodec;
+	PDecode RADecode;
+	PFlush RAFlush;
+	PFreeDecoder RAFreeDecoder;
+	PGetFlavorProperty RAGetFlavorProperty;
+	PInitDecoder RAInitDecoder;
+	POpenCodec RAOpenCodec;
+	POpenCodec2 RAOpenCodec2;
+	PSetFlavor RASetFlavor;
+	PSetDLLAccessPath RASetDLLAccessPath;
+	PSetPwd RASetPwd;
+
+	CStringA m_dllpath;
+	HMODULE m_hDrvDll;
+	DWORD m_dwCookie;
+
+	HRESULT InitRA(const CMediaType* pmt);
+	void FreeRA();
+
+	REFERENCE_TIME m_tStart;
+public:
+	CRealAudioDecoder(LPUNKNOWN lpunk, HRESULT* phr);
+	virtual ~CRealAudioDecoder();
+
+#ifdef REGISTER_FILTER
+    static CUnknown* WINAPI CreateInstance(LPUNKNOWN lpunk, HRESULT* phr);
+#endif
+	HRESULT Receive(IMediaSample* pIn);
+	HRESULT CheckInputType(const CMediaType* mtIn);
+	HRESULT CheckTransform(const CMediaType* mtIn, const CMediaType* mtOut);
+	HRESULT DecideBufferSize(IMemAllocator* pAllocator, ALLOCATOR_PROPERTIES* pProperties);
+	HRESULT GetMediaType(int iPosition, CMediaType* pMediaType);
+
+	HRESULT StartStreaming();
+	HRESULT StopStreaming();
+
+    HRESULT EndOfStream();
+    HRESULT BeginFlush();
+    HRESULT EndFlush();
+    HRESULT NewSegment(REFERENCE_TIME tStart, REFERENCE_TIME tStop, double dRate);
+};
 
 
