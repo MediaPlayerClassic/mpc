@@ -7550,7 +7550,6 @@ void CKeyFrameFinderThread::OnIndex(WPARAM wParam, LPARAM lParam)
 
 	delete [] buff;
 }
-
 void CKeyFrameFinderThread::OnBreak(WPARAM wParam, LPARAM lParam)
 {
 	CAutoLock cAutoLock(this);

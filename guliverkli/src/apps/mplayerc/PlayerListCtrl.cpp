@@ -25,6 +25,7 @@
 #include "stdafx.h"
 #include "mplayerc.h"
 #include "PlayerListCtrl.h"
+#include ".\playerlistctrl.h"
 
 // CInPlaceEdit
 
@@ -805,7 +806,7 @@ void CPlayerListCtrl::OnLbnSelChangeList1()
 BOOL CPlayerListCtrl::OnHdnItemchanging(UINT id, NMHDR* pNMHDR, LRESULT* pResult)
 {
 	LPNMHEADER phdr = reinterpret_cast<LPNMHEADER>(pNMHDR);
-	SetFocus();
+//	SetFocus();
 	*pResult = 0;
 	return FALSE;
 }
@@ -867,3 +868,4 @@ BOOL CPlayerListCtrl::OnToolTipNotify(UINT id, NMHDR* pNMHDR, LRESULT* pResult)
 
 	return GetParent()->SendMessage(WM_NOTIFY, id, (LPARAM)pNMHDR);
 }
+
