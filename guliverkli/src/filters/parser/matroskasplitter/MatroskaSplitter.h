@@ -26,6 +26,8 @@
 #include <afxtempl.h>
 #include "MatroskaFile.h"
 
+//#define NONBLOCKINGSEEK
+
 class CMatroskaSplitterInputPin : public CBasePin
 {
 	CComQIPtr<IAsyncReader> m_pAsyncReader;
@@ -85,6 +87,9 @@ class CMatroskaSourceFilter
 	: public CBaseFilter
 	, public CCritSec
 	, protected CAMThread
+#ifdef NONBLOCKINGSEEK
+	, protected CMsgThread
+#endif
 	, public IFileSourceFilter
 	, public IMediaSeeking
 {
@@ -139,6 +144,11 @@ protected:
 protected:
 	enum {CMD_EXIT, CMD_RUN, CMD_SEEK};
     DWORD ThreadProc();
+
+#ifdef NONBLOCKINGSEEK
+	enum {TM_EXIT=WM_APP, TM_SEEK};
+    LRESULT ThreadMessageProc(UINT uMsg, DWORD dwFlags, LPVOID lpParam, CAMEvent* pEvent);
+#endif
 
 public:
 	CMatroskaSourceFilter(LPUNKNOWN pUnk, HRESULT* phr);

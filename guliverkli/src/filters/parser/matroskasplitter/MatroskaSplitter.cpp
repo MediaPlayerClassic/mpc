@@ -28,7 +28,14 @@
 #include "..\..\..\..\include\matroska\matroska.h"
 #include "..\..\..\..\include\ogg\OggDS.h"
 
-#define NBUFFERS 100
+// Be compatible with 3ivx
+#define WAVE_FORMAT_AAC 0x00FF
+
+// {000000FF-0000-0010-8000-00AA00389B71}
+DEFINE_GUID(MEDIASUBTYPE_AAC,
+WAVE_FORMAT_AAC, 0x000, 0x0010, 0x80, 0x00, 0x00, 0xaa, 0x00, 0x38, 0x9b, 0x71);
+
+#define NBUFFERS 30
 
 using namespace Matroska;
 
@@ -218,16 +225,15 @@ HRESULT CMatroskaSourceFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 			{
 				Name.Format(L"Video %I64d", (UINT64)pTE->TrackNumber);
 
-				mt.majortype = MEDIATYPE_Video;
-				mt.formattype = FORMAT_VideoInfo;
-				VIDEOINFOHEADER* pvih = (VIDEOINFOHEADER*)mt.AllocFormatBuffer(sizeof(VIDEOINFOHEADER) + pTE->CodecPrivate.GetCount() - sizeof(BITMAPINFOHEADER));
-				memset(pvih, 0, sizeof(VIDEOINFOHEADER));
-
 				if(CodecID == "V_MS/VFW/FOURCC")
 				{
-					BITMAPINFOHEADER* pbmi = (BITMAPINFOHEADER*)(BYTE*)pTE->CodecPrivate;
-
+					mt.majortype = MEDIATYPE_Video;
 					mt.subtype = FOURCCMap(pbmi->biCompression);
+					mt.formattype = FORMAT_VideoInfo;
+					VIDEOINFOHEADER* pvih = (VIDEOINFOHEADER*)mt.AllocFormatBuffer(sizeof(VIDEOINFOHEADER) + pTE->CodecPrivate.GetCount() - sizeof(BITMAPINFOHEADER));
+					memset(pvih, 0, sizeof(VIDEOINFOHEADER));
+
+					BITMAPINFOHEADER* pbmi = (BITMAPINFOHEADER*)(BYTE*)pTE->CodecPrivate;
 					memcpy(&pvih->bmiHeader, pbmi, pTE->CodecPrivate.GetCount());
 
 					switch(pbmi->biCompression)
@@ -308,7 +314,35 @@ HRESULT CMatroskaSourceFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 				}
 				else if(CodecID.Find("A_AAC/") == 0)
 				{
-					mt.subtype = FOURCCMap(pwfe->wFormatTag = 0xff);
+					mt.subtype = FOURCCMap(pwfe->wFormatTag = WAVE_FORMAT_AAC);
+					BYTE* pExtra = mt.ReallocFormatBuffer(sizeof(WAVEFORMATEX)+2) + sizeof(WAVEFORMATEX);
+					((WAVEFORMATEX*)mt.pbFormat)->cbSize = 2;
+
+					char profile, srate_idx;
+
+					// Recreate the 'private data' which faad2 uses in its initialization.
+					// A_AAC/MPEG2/MAIN
+					// 0123456789012345
+					if(CodecID.Find("/MAIN") > 0) profile = 0;
+					else if(CodecID.Find("/LC") > 0) profile = 1;
+					else if(CodecID.Find("/SSR") > 0) profile = 2;
+					else profile = 3;
+
+					if(92017 <= pTE->a.SamplingFrequency) srate_idx = 0;
+					else if(75132 <= pTE->a.SamplingFrequency) srate_idx = 1;
+					else if(55426 <= pTE->a.SamplingFrequency) srate_idx = 2;
+					else if(46009 <= pTE->a.SamplingFrequency) srate_idx = 3;
+					else if(37566 <= pTE->a.SamplingFrequency) srate_idx = 4;
+					else if(27713 <= pTE->a.SamplingFrequency) srate_idx = 5;
+					else if(23004 <= pTE->a.SamplingFrequency) srate_idx = 6;
+					else if(18783 <= pTE->a.SamplingFrequency) srate_idx = 7;
+					else if(13856 <= pTE->a.SamplingFrequency) srate_idx = 8;
+					else if(11502 <= pTE->a.SamplingFrequency) srate_idx = 9;
+					else if(9391 <= pTE->a.SamplingFrequency) srate_idx = 10;
+					else srate_idx = 11;
+   
+					pExtra[0] = ((profile + 1) << 3) | ((srate_idx & 0xe) >> 1);
+					pExtra[1] = ((srate_idx & 0x1) << 7) | ((BYTE)pTE->a.Channels << 3);
 				}
 				else
 				{
@@ -463,7 +497,7 @@ DWORD CMatroskaSourceFilter::ThreadProc()
 		while(1)
 		{
 			DWORD cmd = GetRequest();
-			if(cmd == CMD_EXIT) m_hThread = NULL;
+			if(cmd == CMD_EXIT) CAMThread::m_hThread = NULL;
 			Reply(S_OK);
 			if(cmd == CMD_EXIT) return 0;
 		}
@@ -481,7 +515,7 @@ DWORD CMatroskaSourceFilter::ThreadProc()
 		{
 		default:
 		case CMD_EXIT: 
-			m_hThread = NULL;
+			CAMThread::m_hThread = NULL;
 			Reply(S_OK);
 			return 0;
 
@@ -588,7 +622,7 @@ DWORD CMatroskaSourceFilter::ThreadProc()
 				CBaseOutputPin* pPin = m_pOutputs.GetNext(pos);
 				if(pPin->IsConnected())
 				{
-					pPin->DeliverNewSegment(rtSegmentStart, rtSegmentStop, 1.0f);
+					pPin->DeliverNewSegment(rtSegmentStart, rtSegmentStop, m_dRate);
 					m_pActivePins.AddTail(pPin);
 				}
 			}
@@ -664,6 +698,7 @@ DWORD CMatroskaSourceFilter::ThreadProc()
 			{
 				Block* b = Blocks.GetNext(pos);
 				b->BlockDuration.Set((INT64)m_pFile->m_segment.SegmentInfo.Duration - b->TimeCode);
+				if(b->BlockDuration == 0) b->BlockDuration.Set(1);
 				hr = DeliverBlock(b);
 			}
 
@@ -675,9 +710,36 @@ DWORD CMatroskaSourceFilter::ThreadProc()
 
 	ASSERT(0); // we should only exit via CMD_EXIT
 
-	m_hThread = NULL;
+	CAMThread::m_hThread = NULL;
 	return 0;
 }
+
+#ifdef NONBLOCKINGSEEK
+LRESULT CMatroskaSourceFilter::ThreadMessageProc(UINT uMsg, DWORD dwFlags, LPVOID lpParam, CAMEvent* pEvent)
+{
+	switch(uMsg)
+	{
+	case TM_EXIT: 
+		pEvent->Set(); 
+		return 1;
+	case TM_SEEK: 
+		{
+			POSITION pos = m_pOutputs.GetHeadPosition();
+			while(pos) 
+			{
+				CBaseOutputPin* pPin = m_pOutputs.GetNext(pos);
+				pPin->DeliverBeginFlush();
+//				pPin->DeliverEndFlush();
+			}
+
+			CallWorker(CMD_SEEK); 
+		}
+		break;
+	}
+
+	return 0;
+}
+#endif
 
 HRESULT CMatroskaSourceFilter::DeliverBlock(Block* b)
 {
@@ -832,6 +894,12 @@ STDMETHODIMP CMatroskaSourceFilter::Stop()
 
 	CallWorker(CMD_EXIT);
 
+#ifdef NONBLOCKINGSEEK
+	CAMEvent e;
+	PutThreadMsg(TM_EXIT, 0, 0, &e);
+	e.Wait();
+#endif
+
 	pos = m_pOutputs.GetHeadPosition();
 	while(pos) m_pOutputs.GetNext(pos)->DeliverEndFlush();
 
@@ -865,6 +933,10 @@ STDMETHODIMP CMatroskaSourceFilter::Pause()
 			Info& info = m_pFile->m_segment.SegmentInfo;
 			m_rtStop = (REFERENCE_TIME)(info.Duration*info.TimeCodeScale/100);
 		}
+
+#ifdef NONBLOCKINGSEEK
+		CreateThread();
+#endif
 
 		Create();
 		CallWorker(CMD_RUN);
@@ -965,6 +1037,7 @@ STDMETHODIMP CMatroskaSourceFilter::SetPositions(LONGLONG* pCurrent, DWORD dwCur
 
 	m_fSeeking = true;
 
+#ifndef NONBLOCKINGSEEK
 	POSITION pos = m_pOutputs.GetHeadPosition();
 	while(pos) 
 	{
@@ -972,6 +1045,7 @@ STDMETHODIMP CMatroskaSourceFilter::SetPositions(LONGLONG* pCurrent, DWORD dwCur
 		pPin->DeliverBeginFlush();
 //		pPin->DeliverEndFlush();
 	}
+#endif
 
 	if(pCurrent)
 	switch(dwCurrentFlags&AM_SEEKING_PositioningBitsMask)
@@ -991,7 +1065,11 @@ STDMETHODIMP CMatroskaSourceFilter::SetPositions(LONGLONG* pCurrent, DWORD dwCur
 	case AM_SEEKING_IncrementalPositioning: m_rtStop = m_rtCurrent + *pStop; break;
 	}
 
+#ifdef NONBLOCKINGSEEK
+	PutThreadMsg(TM_SEEK, 0, 0);
+#else
 	CallWorker(CMD_SEEK);
+#endif
 
 	return S_OK;
 }
@@ -1006,7 +1084,7 @@ STDMETHODIMP CMatroskaSourceFilter::GetAvailable(LONGLONG* pEarliest, LONGLONG* 
 	if(pEarliest) *pEarliest = 0;
 	return GetDuration(pLatest);
 }
-STDMETHODIMP CMatroskaSourceFilter::SetRate(double dRate) {return dRate == 1.0 ? S_OK : E_NOTIMPL;}
+STDMETHODIMP CMatroskaSourceFilter::SetRate(double dRate) {return dRate == 1.0 ? S_OK : E_INVALIDARG;}
 STDMETHODIMP CMatroskaSourceFilter::GetRate(double* pdRate) {return pdRate ? *pdRate = m_dRate, S_OK : E_POINTER;}
 STDMETHODIMP CMatroskaSourceFilter::GetPreroll(LONGLONG* pllPreroll) {return pllPreroll ? *pllPreroll = 0, S_OK : E_POINTER;}
 
