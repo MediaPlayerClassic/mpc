@@ -348,7 +348,7 @@ CMainFrame::~CMainFrame()
 	{
 		CAMEvent e;
 		m_pGraphThread->PostThreadMessage(CGraphThread::TM_EXIT, 0, (LPARAM)&e);
-		if(!e.Wait(10000))
+		if(!e.Wait(5000))
 		{
 			TRACE(_T("ERROR: Must call TerminateThread() on CMainFrame::m_pGraphThread->m_hThread\n")); 
 			TerminateThread(m_pGraphThread->m_hThread, -1);
@@ -359,7 +359,7 @@ CMainFrame::~CMainFrame()
 	{
 		CAMEvent e;
 		m_pKFFThread->PostThreadMessage(CKeyFrameFinderThread::TM_EXIT, 0, (LPARAM)&e);
-		if(!e.Wait(10000))
+		if(!e.Wait(5000))
 		{
 			TRACE(_T("ERROR: Must call TerminateThread() on CMainFrame::m_pKFFThread->m_hThread\n")); 
 			TerminateThread(m_pKFFThread->m_hThread, -1);
