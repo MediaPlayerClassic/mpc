@@ -608,10 +608,10 @@ DWORD CBaseSplitterOutputPin::ThreadProc()
 HRESULT CBaseSplitterOutputPin::DeliverPacket(CAutoPtr<Packet> p)
 {
 	HRESULT hr;
-/*
+
 	if(p->pData.GetCount() == 0)
 		return S_OK;
-*/
+
 	if(p->rtStart != Packet::INVALID_TIME)
 	{
 		double dRate = 1.0;

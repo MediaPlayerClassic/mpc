@@ -67,7 +67,7 @@
 			<Tool
 				Name="VCPostBuildEventTool"
 				CommandLine="..\..\..\bin\upx.exe --best &quot;$(TargetPath)&quot;"
-				ExcludedFromBuild="TRUE"/>
+				ExcludedFromBuild="FALSE"/>
 			<Tool
 				Name="VCPreBuildEventTool"/>
 			<Tool
@@ -1613,9 +1613,6 @@
 			</File>
 			<File
 				RelativePath="res\mono.bmp">
-			</File>
-			<File
-				RelativePath=".\res\MPC_NoReflection_2.ico">
 			</File>
 			<File
 				RelativePath="res\mplayerc.manifest">

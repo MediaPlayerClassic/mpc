@@ -1641,7 +1641,7 @@ void SetDispMode(dispmode& dm)
 	dmScreenSettings.dmBitsPerPel = dm.bpp;
 	dmScreenSettings.dmDisplayFrequency = dm.freq;
 	dmScreenSettings.dmFields = DM_PELSWIDTH | DM_PELSHEIGHT | DM_BITSPERPEL | DM_DISPLAYFREQUENCY;
-	ChangeDisplaySettings(&dmScreenSettings, 0);
+	ChangeDisplaySettings(&dmScreenSettings, CDS_FULLSCREEN);
 }
 
 #include <afxsock.h>
