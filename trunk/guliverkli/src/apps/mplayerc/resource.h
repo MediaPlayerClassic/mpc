@@ -285,6 +285,9 @@
 #define IDS_R_LOGINS                    600
 #define IDS_RS_ENABLEWEBSERVER          601
 #define IDS_RS_WEBSERVERPORT            602
+#define IDS_RS_LASTWINDOWTYPE           603
+#define ID_RS_VOLUMELEVEL               604
+#define IDS_RS_VOLUMELEVEL              604
 #define IDC_BROWSEBUTTON                1016
 #define IDC_BROWSEBUTTON2               1017
 #define IDC_COMBO1                      1018

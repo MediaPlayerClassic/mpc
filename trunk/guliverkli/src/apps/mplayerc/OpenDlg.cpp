@@ -153,7 +153,10 @@ void COpenDlg::OnBnClickedBrowsebutton()
 	POSITION pos = fd.GetStartPosition();
 	while(pos) m_fns.AddTail(fd.GetNextPathName(pos));
 
-	if(m_fns.GetCount() > 1 || m_fns.GetCount() == 1 && m_fns.GetHead()[m_fns.GetHead().GetLength()-1] == '\\')
+	if(m_fns.GetCount() > 1 
+	|| m_fns.GetCount() == 1 
+		&& (m_fns.GetHead()[m_fns.GetHead().GetLength()-1] == '\\'
+		|| m_fns.GetHead()[m_fns.GetHead().GetLength()-1] == '*'))
 	{
 		m_fMultipleFiles = true;
 		EndDialog(IDOK);
@@ -233,7 +236,7 @@ void COpenDlg::OnUpdateDub(CCmdUI* pCmdUI)
 
 #include <dlgs.h>
 
-#define __DUMMY__ _T("__DUMMY__")
+#define __DUMMY__ _T("*.*")
 
 bool COpenFileDialog::m_fAllowDirSelection = false;
 WNDPROC COpenFileDialog::m_wndProc = NULL;

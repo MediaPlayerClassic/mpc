@@ -279,11 +279,11 @@ HRESULT CDirectVobSubFilter::CompleteConnect(PIN_DIRECTION dir, IPin* pReceivePi
 		CComPtr<IBaseFilter> pFilter;
 
 		// needed when we have a decoder with a version number of 3.x
-		if((SUCCEEDED(m_pGraph->FindFilterByName(L"DivX MPEG-4 DVD Video Decompressor ", &pFilter))
-			&& (GetFileVersion(_T("divx_c32.ax")) >> 48) <= 4))
+		if(SUCCEEDED(m_pGraph->FindFilterByName(L"DivX MPEG-4 DVD Video Decompressor ", &pFilter))
+			&& (GetFileVersion(_T("divx_c32.ax")) >> 48) <= 4
 		|| SUCCEEDED(m_pGraph->FindFilterByName(L"Microcrap MPEG-4 Video Decompressor", &pFilter))
-		|| (SUCCEEDED(m_pGraph->FindFilterByName(L"Microsoft MPEG-4 Video Decompressor", &pFilter)) 
-			&& (GetFileVersion(_T("mpg4ds32.ax")) >> 48) <= 3))
+		|| SUCCEEDED(m_pGraph->FindFilterByName(L"Microsoft MPEG-4 Video Decompressor", &pFilter)) 
+			&& (GetFileVersion(_T("mpg4ds32.ax")) >> 48) <= 3)
 		{
 			m_fMSMpeg4Fix = true;
 		}
@@ -1696,7 +1696,9 @@ bool CDirectVobSubFilter2::ShouldWeAutoload(IFilterGraph* pGraph)
 		if((pBF = FindFilter(CLSID_OggSplitter, pGraph)) || (pBF = FindFilter(CLSID_AviSplitter, pGraph))
 		|| (pBF = FindFilter(GUIDFromCString("{34293064-02F2-41D5-9D75-CC5967ACA1AB}"), pGraph)) // matroska demux
 		|| (pBF = FindFilter(GUIDFromCString("{0A68C3B5-9164-4a54-AFAF-995B2FF0E0D4}"), pGraph)) // matroska source
-		|| (pBF = FindFilter(GUIDFromCString("{149D2E01-C32E-4939-80F6-C07B81015A7A}"), pGraph))) // matroska splitter
+		|| (pBF = FindFilter(GUIDFromCString("{149D2E01-C32E-4939-80F6-C07B81015A7A}"), pGraph)) // matroska splitter
+		|| (pBF = FindFilter(GUIDFromCString("{6D3688CE-3E9D-42F4-92CA-8A11119D25CD}"), pGraph)) // our ogg source
+		|| (pBF = FindFilter(GUIDFromCString("{9FF48807-E133-40AA-826F-9B2959E5232D}"), pGraph))) // our ogg splitter
 		{
 			BeginEnumPins(pBF, pEP, pPin)
 			{

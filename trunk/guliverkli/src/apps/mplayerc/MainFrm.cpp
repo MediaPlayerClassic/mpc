@@ -882,8 +882,13 @@ void CMainFrame::OnSize(UINT nType, int cx, int cy)
 		ShowWindow(SW_SHOW);
 	}
 
-	if(!m_fFullScreen && nType != SIZE_MAXIMIZED && nType != SIZE_MINIMIZED)
-		GetWindowRect(AfxGetAppSettings().rcLastWindowPos);
+	if(!m_fFullScreen)
+	{
+		AppSettings& s = AfxGetAppSettings();
+		if(nType != SIZE_MAXIMIZED && nType != SIZE_MINIMIZED)
+			GetWindowRect(s.rcLastWindowPos);
+		s.lastWindowType = nType;
+	}
 }
 
 void CMainFrame::OnDisplayChange() // untested, not sure if it's working...
@@ -1641,8 +1646,17 @@ void CMainFrame::OnLButtonDown(UINT nFlags, CPoint point)
 
 	if(!fClicked)
 	{
-		if(IsCaptionMenuHidden())
+		bool fLeftMouseBtnUnassigned = true;
+		AppSettings& s = AfxGetAppSettings();
+		POSITION pos = s.wmcmds.GetHeadPosition();
+		while(pos && fLeftMouseBtnUnassigned)
+			if(s.wmcmds.GetNext(pos).mouse == wmcmd::LDOWN)
+				fLeftMouseBtnUnassigned = false;
+
+		if(IsCaptionMenuHidden() || fLeftMouseBtnUnassigned)
+		{
 			PostMessage(WM_NCLBUTTONDOWN, HTCAPTION, MAKELPARAM(point.x, point.y));
+		}
 		else
 {
 s_fLDown = true;
@@ -2727,7 +2741,10 @@ BOOL CMainFrame::OnCopyData(CWnd* pWnd, COPYDATASTRUCT* pCDS)
 			SendMessage(WM_COMMAND, ID_FILE_CLOSEMEDIA);
 
 			m_wndPlaylistBar.Open(sl, fMulti, &s.slSubs);
-			OpenCurPlaylistItem();
+			OpenCurPlaylistItem((s.nCLSwitches&CLSW_STARTVALID) ? s.rtStart : 0);
+
+			s.nCLSwitches &= ~CLSW_STARTVALID;
+			s.rtStart = 0;
 		}
 	}
 	else
@@ -4610,6 +4627,8 @@ void CMainFrame::OnHelpDonate()
 
 void CMainFrame::SetDefaultWindowRect()
 {
+	AppSettings& s = AfxGetAppSettings();
+
 	{
 		CRect r1, r2;
 		GetClientRect(&r1);
@@ -4634,10 +4653,10 @@ void CMainFrame::SetDefaultWindowRect()
 			+ 2; // ???
 		if(style&WS_CAPTION) h += GetSystemMetrics(SM_CYCAPTION);
 
-		if(AfxGetAppSettings().fRememberWindowSize)
+		if(s.fRememberWindowSize)
 		{
-			w = AfxGetAppSettings().rcLastWindowPos.Width();
-			h = AfxGetAppSettings().rcLastWindowPos.Height();
+			w = s.rcLastWindowPos.Width();
+			h = s.rcLastWindowPos.Height();
 		}
 
 		MONITORINFO mi;
@@ -4647,19 +4666,29 @@ void CMainFrame::SetDefaultWindowRect()
 		int x = (mi.rcWork.left+mi.rcWork.right-w)/2;
 		int y = (mi.rcWork.top+mi.rcWork.bottom-h)/2;
 
-		if(AfxGetAppSettings().fRememberWindowPos)
+		if(s.fRememberWindowPos)
 		{
-			CRect r = AfxGetAppSettings().rcLastWindowPos;
+			CRect r = s.rcLastWindowPos;
 //			x = r.CenterPoint().x - w/2;
 //			y = r.CenterPoint().y - h/2;
 			x = r.TopLeft().x;
 			y = r.TopLeft().y;
 		}
 
+		UINT lastWindowType = s.lastWindowType;
+
 		MoveWindow(x, y, w, h);
+
+		WINDOWPLACEMENT wp;
+		memset(&wp, 0, sizeof(wp));
+		wp.length = sizeof(WINDOWPLACEMENT);
+		if(lastWindowType == SIZE_MAXIMIZED)
+			ShowWindow(SW_MAXIMIZE);
+		else if(lastWindowType == SIZE_MINIMIZED)
+			ShowWindow(SW_MAXIMIZE);
 	}
 
-	if(AfxGetAppSettings().fHideCaptionMenu)
+	if(s.fHideCaptionMenu)
 	{
 		ModifyStyle(WS_CAPTION, 0, SWP_NOZORDER);
 		::SetMenu(m_hWnd, NULL);
@@ -5026,7 +5055,7 @@ void CMainFrame::ZoomVideoWindow(double scale)
 	{
 		GetWindowRect(r);
 
-		w = mmi.ptMinTrackSize.x;
+		w = r.Width(); // mmi.ptMinTrackSize.x;
 		h = mmi.ptMinTrackSize.y;
 	}
 

@@ -199,6 +199,8 @@ void CPPageAudioSwitcher::OnEnChangeEdit1()
 	}
 }
 
+#include <math.h>
+
 void CPPageAudioSwitcher::OnDrawItem(int nIDCtl, LPDRAWITEMSTRUCT lpDrawItemStruct)
 {
 	if(nIDCtl != IDC_LIST1) return;

@@ -25,6 +25,7 @@
 #include "cdxareader.h"
 #include "..\..\..\..\include\matroska\matroska.h"
 #include "..\..\..\..\include\ogg\OggDS.h"
+#include "..\..\..\..\include\moreuuids.h"
 #include "..\..\..\DSUtil\DSUtil.h"
 
 /////////
@@ -450,6 +451,16 @@ bool CCDXAStream::LookForMediaSubType()
 			m_nFirstSector = iSectorsRead;
 
 			m_subtype = MEDIASUBTYPE_Matroska;
+
+			return(true);
+		}
+		else if(*((DWORD*)&buff[0]) == 'FMR.') 
+		{
+			m_llPosition = 0;
+			m_llLength -= iSectorsRead*RAW_DATA_SIZE;
+			m_nFirstSector = iSectorsRead;
+
+			m_subtype = MEDIASUBTYPE_RealMedia;
 
 			return(true);
 		}
