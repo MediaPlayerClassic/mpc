@@ -45,6 +45,8 @@ GSRendererHW::GSRendererHW(HWND hWnd, HRESULT& hr)
 		hr = m_pD3DDev->SetRenderState(D3DRS_SRCBLENDALPHA, D3DBLEND_ONE);
 		hr = m_pD3DDev->SetRenderState(D3DRS_DESTBLENDALPHA, D3DBLEND_ZERO);
 	}
+
+	m_fHalfVRes = AfxGetApp()->GetProfileInt(_T("Settings"), _T("HalfVRes"), FALSE);
 }
 
 GSRendererHW::~GSRendererHW()
@@ -274,9 +276,14 @@ void GSRendererHW::FlushPrim()
 		hr = m_pD3DDev->BeginScene();
 
 		scale_t scale((float)INTERNALRES / (m_ctxt->FRAME.FBW*64), (float)INTERNALRES / m_rs.GetSize(m_rs.IsEnabled(1)?1:0).cy);
-scale.y /= 2;
-//scale.x = scale.y = 1;
 
+// FIXME!!!!!!!!!!!!!!! damnit
+if(m_fHalfVRes) 
+	scale.y /= 2;
+/*
+//scale.x = 1;
+scale.y = 1;
+*/
 		//////////////////////
 
 		CComPtr<IDirect3DTexture9> pRT;
@@ -291,6 +298,7 @@ scale.y /= 2;
 			if(S_OK != hr) {ASSERT(0); return;}
 			m_pRenderTargets[m_ctxt->FRAME.Block()] = pRT;
 #ifdef DEBUG_RENDERTARGETS
+	AFX_MANAGE_STATE(AfxGetStaticModuleState());
 			CGSWnd* pWnd = new CGSWnd();
 			CString str; str.Format(_T("%05x"), m_ctxt->FRAME.Block());
 			pWnd->Create(str);
@@ -344,7 +352,19 @@ scale.y /= 2;
 
 		//////////////////////
 
-		SetupTexture(t);
+		float tsx = 1.0f, tsy = 1.0f;
+
+		if(m_de.PRIM.TME)
+		{
+			tsx = 1.0f * (1<<m_ctxt->TEX0.TW) / td.Width * t.m_scale.x;
+			tsy = 1.0f * (1<<m_ctxt->TEX0.TH) / td.Height * t.m_scale.y;
+		}
+
+		SetupTexture(t, tsx, tsy);
+
+#ifdef DEBUG_WIREFRAME
+hr = m_pD3DDev->SetRenderState(D3DRS_FILLMODE, m_de.PRIM.TME ? m_dwFillMode : D3DFILL_SOLID);
+#endif
 
 		//////////////////////
 
@@ -412,6 +432,14 @@ scale.y /= 2;
 
 		//////////////////////
 
+if(m_de.PRIM.TME && (m_ctxt->FRAME.Block()) == 0x01e00 && m_ctxt->TEX0.TBP0 == 0x00000)
+{
+	if(m_stats.GetFrame() > 1200)
+	{
+		//hr = D3DXSaveTextureToFile(_T("c:\\rtbefore.bmp"), D3DXIFF_BMP, pRT, NULL);
+	}
+}
+
 		{
 			// hr = m_pD3DDev->SetTextureStageState(1, D3DTSS_TEXCOORDINDEX, 1);
 			// hr = m_pD3DDev->SetTexture(1, pRT);
@@ -429,29 +457,27 @@ scale.y /= 2;
 				{
 					float base, fract;
 					fract = modf(pVertices->tu, &base);
-					fract = fract * (1<<m_ctxt->TEX0.TW) / td.Width * t.m_scale.x;
+					fract *= tsx;
 					ASSERT(-1 <= fract && fract <= 1.01);
 					pVertices->tu = base + fract;
 					fract = modf(pVertices->tv, &base);
-					fract = fract * (1<<m_ctxt->TEX0.TH) / td.Height * t.m_scale.y;
+					fract *= tsy;
 					//ASSERT(-1 <= fract && fract <= 1.01);
 					pVertices->tv = base + fract;
 				}
-
+/*
+				if(m_de.PRIM.TME)
+				{
+					pVertices->tu *= tsx;
+					pVertices->tv *= tsy;
+				}
+*/
 				if(m_de.PRIM.FGE)
 				{
 					pVertices->fog = D3DCOLOR_ARGB(pVertices->fog>>24, m_de.FOGCOL.FCR, m_de.FOGCOL.FCG, m_de.FOGCOL.FCB);
 				}
 			}
 		}
-
-if(m_de.PRIM.TME && /*(m_ctxt->FRAME.Block()) == 0x00000 &&*/ m_ctxt->TEX0.TBP0 == 0x02320)
-{
-	if(m_stats.GetFrame() > 1200)
-	{
-		//hr = D3DXSaveTextureToFile(_T("c:\\rtbefore.bmp"), D3DXIFF_BMP, pRT, NULL);
-	}
-}
 
 		hr = m_pD3DDev->SetFVF(D3DFVF_HWVERTEX);
 
@@ -587,6 +613,8 @@ void GSRendererHW::Flip()
 #ifdef DEBUG_RENDERTARGETS
 	CRect dst(0, 0, m_bd.Width, m_bd.Height);
 
+	AFX_MANAGE_STATE(AfxGetStaticModuleState());
+
 	if(!m_pRenderWnds.IsEmpty())
 	{
 		POSITION pos = m_pRenderWnds.GetStartPosition();
@@ -650,7 +678,7 @@ void GSRendererHW::Flip()
 				hr = m_pD3DDev->Clear(0, NULL, D3DCLEAR_TARGET, 0, 1.0f, 0);
 
 				CString str;
-				str.Format(_T("PCSX2 - %05x"), fbp);
+				str.Format(_T("PCSX2 - %05x - %05x"), fbp, m_ctxt->TEX0.TBP0);
 				if(fbp == (m_ctxt->FRAME.Block()))
 				{
 					// pWnd->SetFocus();
@@ -687,7 +715,7 @@ void GSRendererHW::Flip()
 			}
 
 			CString str;
-			str.Format(_T("PCSX2 - %05x"), m_ctxt->FRAME.Block());
+			str.Format(_T("PCSX2 - %05x - %05x"), m_ctxt->FRAME.Block(), m_ctxt->TEX0.TBP0);
 			SetWindowText(m_hWnd, str);
 		}
 	}
@@ -1089,20 +1117,15 @@ bool GSRendererHW::CreateTexture(GSTexture& t)
 	return(true);
 }
 
-void GSRendererHW::SetupTexture(const GSTexture& t)
+void GSRendererHW::SetupTexture(const GSTexture& t, float tsx, float tsy)
 {
 	HRESULT hr;
 
 	CComPtr<IDirect3DPixelShader9> pPixelShader;
-
-	float fConstData[] = 
-	{
-		m_ctxt->TEX0.TFX, !!m_ctxt->TEX0.TCC, t.m_fRT, !!(m_de.PRIM.TME && t.m_pTexture),
-		m_ctxt->TEX0.PSM, m_de.TEXA.AEM, (float)m_de.TEXA.TA0 / 255, (float)m_de.TEXA.TA1 / 255,
-	};
-
-	hr = m_pD3DDev->SetPixelShaderConstantF(0, fConstData, countof(fConstData)/4);
-
+/*
+	float repeatmin_x = 0, repeatmin_y = 0; 
+	float repeatmax_x = tsx, repeatmax_y = tsy;
+*/
 	if(m_de.PRIM.TME && t.m_pTexture)
 	{
 		hr = m_pD3DDev->SetTexture(0, t.m_pTexture);
@@ -1260,6 +1283,16 @@ void GSRendererHW::SetupTexture(const GSTexture& t)
 	}
 
 	hr = m_pD3DDev->SetTexture(1, NULL);
+
+	float fConstData[] = 
+	{
+		m_ctxt->TEX0.TFX, !!m_ctxt->TEX0.TCC, t.m_fRT, !!(m_de.PRIM.TME && t.m_pTexture),
+		m_ctxt->TEX0.PSM, m_de.TEXA.AEM, (float)m_de.TEXA.TA0 / 255, (float)m_de.TEXA.TA1 / 255,
+/*		repeatmin_x, repeatmin_y, 0, 0, 
+		repeatmax_x, repeatmax_y, 0, 0, 
+*/	};
+
+	hr = m_pD3DDev->SetPixelShaderConstantF(0, fConstData, countof(fConstData)/4);
 
 	hr = m_pD3DDev->SetPixelShader(pPixelShader);
 }

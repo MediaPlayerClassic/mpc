@@ -30,18 +30,12 @@
 #include "GSCapture.h"
 #include "GSPerfMon.h"
 
-//
+
 //#define DEBUG_SAVETEXTURES
 //#define DEBUG_LOG
 //#define DEBUG_LOG2
 //#define DEBUG_LOGVERTICES
 //#define DEBUG_RENDERTARGETS
-
-// You don't want to enable this, short stips can actually slow rendering down 
-// by adding too many drawprim calls. The ps2 bios is a good example where many rects are 
-// drawn as a pair of triangle strips, it's simply a lot faster without it.
-
-// #define ENABLE_STRIPFAN
 
 struct GSDrawingContext
 {
@@ -298,10 +292,10 @@ public:
 
 	UINT32 Freeze(freezeData* fd, bool fSizeOnly);
 	UINT32 Defrost(const freezeData* fd);
-	void Write64(GS_REG mem, GSReg* r);
-	UINT32 Read32(GS_REG mem);
-	UINT64 Read64(GS_REG mem);
+	void Write(GS_REG mem, GSReg* r, UINT64 mask);
+	UINT64 Read(GS_REG mem);
 	void ReadFIFO(BYTE* pMem);
+	void Transfer1(BYTE* pMem, UINT32 addr);
 	void Transfer(BYTE* pMem);
 	void Transfer(BYTE* pMem, UINT32 size);
 	void VSync();
@@ -310,6 +304,11 @@ public:
 
 	UINT32 MakeSnapshot(char* path);
 	void Capture();
+
+#ifdef DEBUG_WIREFRAME
+	DWORD m_dwFillMode;
+	void ToggleFillmode() {m_dwFillMode = m_dwFillMode != D3DFILL_WIREFRAME ? D3DFILL_WIREFRAME : D3DFILL_SOLID;}
+#endif
 
 	FILE* m_fp;
 

@@ -4,27 +4,31 @@ LIBRARY      "GSdx9"
 
 EXPORTS
     ; Explicit exports can go here
-	PS2EgetLibType		@1
-	PS2EgetLibName		@2
-	PS2EgetLibVersion2	@3
-	PS2EgetCpuPlatform	@4
-	GSinit				@5
-	GSshutdown			@6
-	GSopen				@7
-	GSclose				@8
-	GSwrite32			@9
-	GSwrite64			@10
-	GSread32			@11
-	GSread64			@12
-	GSgifTransfer1		@13
-	GSgifTransfer2		@14
-	GSgifTransfer3		@15
-	GSvsync				@16
-	GSmakeSnapshot		@17
-	GSkeyEvent			@18
-	GSfreeze            @19
-	GSconfigure			@20
-	GStest				@21
-	GSabout				@22
-	GSreadFIFO          @23
-	GSirqCallback		@24
+	PS2EgetLibType		
+	PS2EgetLibName		
+	PS2EgetLibVersion2	
+	PS2EgetCpuPlatform	
+	GSinit				
+	GSshutdown			
+	GSopen				
+	GSclose				
+	GSwrite8			
+	GSwrite16			
+	GSwrite32			
+	GSwrite64			
+	GSread8			
+	GSread16			
+	GSread32			
+	GSread64			
+	GSgifTransfer1		
+	GSgifTransfer2		
+	GSgifTransfer3		
+	GSvsync				
+	GSmakeSnapshot		
+	GSkeyEvent			
+	GSfreeze            
+	GSconfigure			
+	GStest				
+	GSabout				
+	GSreadFIFO          
+	GSirqCallback		
