@@ -41,157 +41,11 @@
 ////////////////////////////////////////////////////////////////
 
 #include <libdirac_common/motion.h>
+using namespace dirac;
+
 #include <cmath>
 
 using namespace std;
-
-//motion compensation stuff//
-/////////////////////////////
-
-//arithmetic functions
-void ArithAddObj::DoArith(ValueType &lhs, const CalcValueType rhs, const CalcValueType &Weight) const 
-{
-    CalcValueType t = ((rhs*Weight)+512)>>10;
-    lhs+=short(t);
-}
-
-void ArithSubtractObj::DoArith(ValueType &lhs, const CalcValueType rhs, const CalcValueType &Weight) const 
-{
-    CalcValueType t = ((rhs*Weight)+512)>>10;
-    lhs-=short(t);
-}
-
-void ArithHalfAddObj::DoArith(ValueType &lhs, const CalcValueType rhs, const CalcValueType &Weight) const 
-{
-    CalcValueType t = ((rhs*Weight)+1024)>>11;
-    lhs+=short(t);
-}
-
-void ArithHalfSubtractObj::DoArith(ValueType &lhs, const CalcValueType rhs, const CalcValueType &Weight) const 
-{
-    CalcValueType t = ((rhs*Weight)+1024)>>11;
-    lhs-=short(t);
-}
-
-
-//Overlapping blocks are acheived by applying a 2D raised cosine shape
-//to them. This function facilitates the calculations
-float RaisedCosine(float t, float B)
-{
-    if(std::abs(t)>(B+1.0)/2.0) 
-        return 0.0f;
-    else if(std::abs(t)<(1.0-B)/2.0) 
-        return 1.0f;
-    else 
-        return( 0.5 * ( 1.0 + std::cos( 3.141592654 * ( std::abs(t)-(1.0-B)/2.0 )/B ) ) );
-}
-
-//Calculates a weighting block.
-//bparams defines the block parameters so the relevant weighting arrays can be created.
-//FullX and FullY refer to whether the weight should be adjusted for the edge of an image.
-//eg. 1D Weighting shapes in x direction
-
-//  FullX true        FullX false
-//     ***           ********
-//   *     *                  *
-//  *       *                  *
-//*           *                  *
-void CreateBlock(const OLBParams &bparams, bool FullX, bool FullY, TwoDArray<CalcValueType>& WeightArray)
-{
-
-    //Create temporary array.
-    TwoDArray<float> CalcArray( WeightArray.LengthY() , WeightArray.LengthX() );
-
-    //Calculation variables
-    float rolloffX = (float(bparams.Xblen()+1)/float(bparams.Xbsep())) - 1;
-    float rolloffY = (float(bparams.Yblen()+1)/float(bparams.Ybsep())) - 1;
-    float val;
-
-    //Initialise the temporary array to one
-    for(int y = 0; y < bparams.Yblen(); ++y)
-        {
-        for(int x = 0; x < bparams.Xblen(); ++x)
-        {
-            CalcArray[y][x] = 1;
-        }// x
-    }// y 
-
-    //Window temporary array in the x direction
-    for(int y = 0; y < bparams.Yblen(); ++y)
-    {
-        for(int x = 0; x < bparams.Xblen(); ++x)
-        {
-            //Apply the window
-            if(!FullX){
-                if(x >= (bparams.Xblen())>>1){
-                    val = (float(x) - (float(bparams.Xblen()-1)/2.0))/float(bparams.Xbsep());
-                    CalcArray[y][x] *= RaisedCosine(val,rolloffX);
-                }
-            }
-            else{
-                val = (float(x) - (float(bparams.Xblen()-1)/2.0))/float(bparams.Xbsep());
-                CalcArray[y][x] *= RaisedCosine(val,rolloffX);
-            }
-        }// x
-    }// y
-
-    //Window the temporary array in the y direction
-    for(int x = 0; x < bparams.Xblen(); ++x)
-    {
-        for(int y = 0; y < bparams.Yblen(); ++y)
-        {
-            //Apply the window            
-            if(!FullY){
-                if(y >= (bparams.Yblen())>>1){
-                    val = (float(y) - (float(bparams.Yblen()-1)/2.0))/float(bparams.Ybsep());
-                    CalcArray[y][x] *= RaisedCosine(val,rolloffY);
-                }
-            }
-            else{
-                val = (float(y) - (float(bparams.Yblen()-1)/2.0))/float(bparams.Ybsep());
-                CalcArray[y][x] *= RaisedCosine(val,rolloffY);
-            }
-        }// y
-    }// x
-
-    //Convert the temporary float array into our
-    //weight array by multiplying the floating
-    //point values by 1024. This can be removed
-    //later using a right shift of ten.
-    float g;
-    for(int y = 0; y < bparams.Yblen(); ++y)
-    {
-        for(int x = 0; x < bparams.Xblen(); ++x)
-            {
-            g = floor((CalcArray[y][x]*1024)+0.5);
-            WeightArray[y][x] = ValueType(g);
-        }// x
-    }// y
-}
-
-//Flips the values in an array in the x direction.
-void FlipX(const TwoDArray<CalcValueType>& Original, const OLBParams &bparams, TwoDArray<CalcValueType>& Flipped)
-{
-    for(int x = 0; x < bparams.Xblen(); ++x)
-    {
-        for(int y = 0; y < bparams.Yblen(); ++y)
-        {
-            Flipped[y][x] = Original[y][(bparams.Xblen()-1) - x];
-        }// y
-    }// x
-}
-
-//Flips the values in an array in the y direction.
-void FlipY(const TwoDArray<CalcValueType>& Original, const OLBParams &bparams, TwoDArray<CalcValueType>& Flipped)
-{
-    for(int x = 0; x < bparams.Xblen(); ++x)
-    {
-        for(int y = 0; y < bparams.Yblen(); ++y)
-        {
-            Flipped[y][x] = Original[(bparams.Yblen()-1) - y][x];
-        }// y
-    }// x
-}
 
 //Motion vector and Motion Estimation structures//
 //////////////////////////////////////////////////
@@ -199,10 +53,12 @@ void FlipY(const TwoDArray<CalcValueType>& Original, const OLBParams &bparams, T
 MvData::MvData( const int xnumMB, const int ynumMB , 
                 const int xnumblocks, const int ynumblocks , const int num_refs ):
     m_vectors( Range(1 , num_refs) ),
+    m_gm_vectors( Range(1 , num_refs) ),
     m_modes( ynumblocks , xnumblocks ),
     m_dc( 3 ),
     m_mb_split( ynumMB , xnumMB ),
-    m_mb_common( ynumMB , xnumMB )
+    m_mb_common( ynumMB , xnumMB ),
+    m_gm_params( Range(1 , num_refs) )
 {
 
     InitMvData();
@@ -210,10 +66,12 @@ MvData::MvData( const int xnumMB, const int ynumMB ,
 
 MvData::MvData( const int xnumMB , const int ynumMB , const int num_refs ):
     m_vectors( Range(1 , num_refs) ),
+    m_gm_vectors( Range(1 , num_refs) ),
     m_modes( 4*ynumMB , 4*xnumMB ),
     m_dc( 3 ),
     m_mb_split( ynumMB , xnumMB ),
-    m_mb_common( ynumMB , xnumMB )
+    m_mb_common( ynumMB , xnumMB ),
+    m_gm_params( Range(1 , num_refs) )
 {
     InitMvData();
 }
@@ -223,7 +81,13 @@ void MvData::InitMvData()
     // Create the arrays of vectors
      for ( int i=m_vectors.First() ; i<=m_vectors.Last() ; ++i ){
          m_vectors[i] = new MvArray( Mode().LengthY() , Mode().LengthX() );
+         m_gm_vectors[i] = new MvArray( Mode().LengthY() , Mode().LengthX() );
      }
+
+    // create global motion parameter arrays
+    for ( int i=m_gm_params.First() ; i<=m_gm_params.Last() ; ++i ){
+         m_gm_params[i] = new OneDArray<float> ( 8 );
+    }
 
      // Create the arrays of dc values
      for ( int i=0 ; i<3 ; ++i )
@@ -235,7 +99,13 @@ MvData::~MvData()
    // Delete the arrays of vectors
     for ( int i=m_vectors.First() ; i<=m_vectors.Last() ; ++i ){
         delete m_vectors[i];
+        delete m_gm_vectors[i];
     }
+
+     // delete array of global motion parameters
+     for ( int i=m_gm_params.First() ; i<=m_gm_params.Last() ; ++i ){
+         delete m_gm_params[i];
+     }
 
      // Delete the arrays of dc values
      for ( int i=0 ; i<3 ; ++i )
@@ -251,7 +121,8 @@ MEData::MEData(const int xnumMB , const int ynumMB ,
      m_intra_costs( ynumblocks , xnumblocks ),
      m_bipred_costs( ynumblocks , xnumblocks ),
      m_MB_costs( ynumMB , xnumMB ),
-     m_lambda_map( ynumblocks , xnumblocks )
+     m_lambda_map( ynumblocks , xnumblocks ),
+     m_inliers( Range( 1 , num_refs ) )
 {
     InitMEData();
 }
@@ -262,7 +133,8 @@ MEData::MEData( const int xnumMB , const int ynumMB ,  const int num_refs ):
      m_intra_costs( 4*ynumMB , 4*xnumMB ),
      m_bipred_costs( 4*ynumMB , 4*xnumMB ),
      m_MB_costs( ynumMB , xnumMB ),
-     m_lambda_map( 4*ynumMB , 4*xnumMB )
+     m_lambda_map( 4*ynumMB , 4*xnumMB ),
+     m_inliers( Range( 1 , num_refs ) )
 {
     InitMEData();
 
@@ -273,6 +145,10 @@ void MEData::InitMEData()
    // Create the arrays of prediction costs
     for ( int i=m_pred_costs.First() ; i<=m_pred_costs.Last() ; ++i )
         m_pred_costs[i] = new TwoDArray<MvCostData>( Mode().LengthY() , Mode().LengthX() );
+
+    // Create the arrays of vectors
+     for ( int i=m_inliers.First() ; i<=m_inliers.Last() ; ++i )
+         m_inliers[i] = new TwoDArray<int>( Mode().LengthY() , Mode().LengthX() );
 }
 
 void MEData::SetLambdaMap( const int num_refs , const float lambda )
@@ -404,7 +280,7 @@ void MEData::FindTransitions( TwoDArray<bool>& trans_map , const int ref_num )
     for ( int j=1 ; j<mv_array.LengthY()-1 ; ++j )
     {
         val_array[j][0] = 0.0;
-        val_array[j][val_array.LastY()] = 0.0;
+        val_array[j][val_array.LastX()] = 0.0;
         for ( int i=1 ; i<mv_array.LengthX()-1 ; ++i )
         {
             val_array[j][i] =0.0;
@@ -481,8 +357,13 @@ MEData::~MEData()
     // Delete the arrays of prediction costs
      for ( int i=m_pred_costs.First() ; i<=m_pred_costs.Last() ; ++i )
          delete m_pred_costs[i];
+
+     for ( int i=m_inliers.First() ; i<=m_inliers.Last() ; ++i )
+        delete m_inliers[i];
 }
 
+namespace dirac
+{
 //! Overloaded operator<< for MvCostData
 /*!
     Only writes SAD value to stream
@@ -550,6 +431,9 @@ istream &operator>> (istream & stream, MEData & me_data)
     {
         stream >> me_data.Vectors(i);
         stream >> me_data.PredCosts(i);
+        //stream >> me_data.GlobalMotionParameters(i);
+        //stream >> me_data.GlobalMotionVectors(i);
+        //stream >> me_data.GlobalMotionInliers(i);
     }
 
     return stream;
@@ -585,7 +469,12 @@ ostream &operator<< (ostream & stream, MEData & me_data)
     {
         stream << endl << me_data.Vectors(i);
         stream << endl << me_data.PredCosts(i) << endl;
+        //stream << endl << me_data.GlobalMotionParameters(i) << endl;
+        //stream << endl << me_data.GlobalMotionVectors(i) << endl;
+        //stream << endl << me_data.GlobalMotionInliers(i) << endl;
     }
     
     return stream;
 }
+
+} // namespace dirac

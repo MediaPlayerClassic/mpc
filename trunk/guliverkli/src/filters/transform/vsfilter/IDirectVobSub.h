@@ -161,7 +161,7 @@ extern "C" {
 					double fps
                  ) PURE;
 
-		//
+		// no longer supported
 
         STDMETHOD(get_ColorFormat) (THIS_
 					int* iPosition

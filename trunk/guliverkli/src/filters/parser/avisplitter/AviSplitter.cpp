@@ -550,13 +550,13 @@ bool CAviSplitterFilter::DoDeliverLoop()
 			p->pData.SetSize(size);
 			if(S_OK != (hr = m_pFile->Read(p->pData.GetData(), p->pData.GetSize()))) 
 				return(true); // break;
-
+/*
 			DbgLog((LOG_TRACE, 0, _T("%d (%d): %I64d - %I64d, %I64d - %I64d (size = %d)"), 
 				minTrack, (int)p->bSyncPoint,
 				(p->rtStart)/10000, (p->rtStop)/10000, 
 				(p->rtStart-m_rtStart)/10000, (p->rtStop-m_rtStart)/10000,
 				size));
-
+*/
 			hr = DeliverPacket(p);
 
 			fDiscontinuity[minTrack] = false;

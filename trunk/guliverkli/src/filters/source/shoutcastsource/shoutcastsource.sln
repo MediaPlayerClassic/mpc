@@ -4,7 +4,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "shoutcastsource", "shoutcas
 		{F41A1760-85B4-4819-BEE5-E120D76C9994} = {F41A1760-85B4-4819-BEE5-E120D76C9994}
 	EndProjectSection
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "BaseClasses", "C:\DXSDK\Samples\C++\DirectShow\BaseClasses\baseclasses.vcproj", "{F41A1760-85B4-4819-BEE5-E120D76C9994}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "BaseClasses", "C:\Program Files\Microsoft DirectX 9.0 SDK (October 2004)\Samples\C++\DirectShow\BaseClasses\baseclasses.vcproj", "{F41A1760-85B4-4819-BEE5-E120D76C9994}"
 	ProjectSection(ProjectDependencies) = postProject
 	EndProjectSection
 EndProject

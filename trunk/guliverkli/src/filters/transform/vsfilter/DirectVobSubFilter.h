@@ -24,7 +24,6 @@
 #include <atlsync.h>
 #include "DirectVobSub.h"
 #include "..\BaseVideoFilter\BaseVideoFilter.h"
-//#include "DirectVobSubAllocator.h"
 #include "..\..\..\subtitles\VobSubFile.h"
 #include "..\..\..\subtitles\RTS.h"
 
@@ -100,8 +99,6 @@ public:
     STDMETHODIMP put_MediaFPS(bool fEnabled, double fps);
     STDMETHODIMP get_ZoomRect(NORMALIZEDRECT* rect);
     STDMETHODIMP put_ZoomRect(NORMALIZEDRECT* rect);
-    STDMETHODIMP get_ColorFormat(int* iPosition);
-    STDMETHODIMP put_ColorFormat(int iPosition);
 	STDMETHODIMP HasConfigDialog(int iSelected);
 	STDMETHODIMP ShowConfigDialog(int iSelected, HWND hWndParent);
 

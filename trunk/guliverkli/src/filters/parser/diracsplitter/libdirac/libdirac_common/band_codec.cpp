@@ -36,6 +36,7 @@
 * ***** END LICENSE BLOCK ***** */
 
 #include <libdirac_common/band_codec.h>
+using namespace dirac;
 
 //! Constructor for encoding.
 BandCodec::BandCodec(BasicOutputManager* bits_out,
@@ -50,7 +51,7 @@ BandCodec::BandCodec(BasicOutputManager* bits_out,
     m_xl(m_node.Xl()),
     m_yl(m_node.Yl()),
     m_vol(m_node.Xl()*m_node.Yl()),
-	m_reset_coeff_num( std::max( 25 , std::min(m_vol/32,800) ) ),
+    m_reset_coeff_num( std::max( 25 , std::min(m_vol/32,800) ) ),
     m_cut_off_point(m_node.Scale()>>1)
 {
     if (m_node.Parent()!=0) 
@@ -70,7 +71,7 @@ BandCodec::BandCodec(BitInputManager* bits_in,
     m_xl(m_node.Xl()),
     m_yl(m_node.Yl()),
     m_vol(m_node.Xl()*m_node.Yl()),
-	m_reset_coeff_num( std::max( 25 , std::min(m_vol/32,800) ) ),
+    m_reset_coeff_num( std::max( 25 , std::min(m_vol/32,800) ) ),
     m_cut_off_point(m_node.Scale()>>1)
 {
     if (m_node.Parent()!=0) m_pnode=band_list(m_node.Parent());
@@ -294,25 +295,6 @@ void BandCodec::DecodeVal(PicArray& out_data)
 
 int BandCodec::ChooseContext(const PicArray& data, const int BinNumber) const
 {
-	static const int ctxa[4][4] = 
-	{
-		{Z_BIN2_CTX, Z_BIN3_CTX, Z_BIN4_CTX, Z_BIN5plus_CTX},
-		{NZ_BIN2_CTX, NZ_BIN3_CTX, NZ_BIN4_CTX, NZ_BIN5plus_CTX},
-		{Z_BIN1z_CTX, Z_BIN1nz_CTX, Z_BIN1nz_CTX, 0},
-		{NZ_BIN1z_CTX, NZ_BIN1b_CTX, NZ_BIN1a_CTX, 0}
-	};
-
-	int nz = m_parent_notzero || m_pxp == 0 && m_pyp == 0;
-
-	if(BinNumber > 1)
-	{
-		return ctxa[nz][std::min(BinNumber, 5)-2];
-	}
-	else
-	{
-		return ctxa[nz+2][m_nhood_sum == 0 ? 0 : m_nhood_sum > m_cut_off_point ? 1 : 2];
-	}
-/*
     //condition on neighbouring values and parent values
     if (!m_parent_notzero && (m_pxp != 0 || m_pyp != 0))
     {
@@ -352,7 +334,6 @@ int BandCodec::ChooseContext(const PicArray& data, const int BinNumber) const
         else
             return NZ_BIN5plus_CTX;
     }
-*/
 }
 
 int BandCodec::ChooseSignContext(const PicArray& data) const

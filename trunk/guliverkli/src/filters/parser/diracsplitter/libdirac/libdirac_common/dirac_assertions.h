@@ -36,6 +36,8 @@
 * ***** END LICENSE BLOCK ***** */
 #ifndef DIRAC_ASSERTIONS_H
 #define DIRAC_ASSERTIONS_H
+namespace dirac
+{
 
 #undef cmpCOND
 #define cmpCOND( exp, trueRes, falseRes )    ( (exp) ? (trueRes) : (falseRes) )
@@ -43,11 +45,11 @@
 #undef ERREXP
 #define    ERREXP(exp,errfn,text)    cmpCOND((exp), ((void)0), errfn(__FILE__,__LINE__,text))
 
-#undef ASSERT
-#define ASSERT(exp)              ERREXP(exp,dirac_assert,NULL)
+#undef dirac_ASSERT
+#define dirac_ASSERT(exp)              ERREXP(exp,dirac_assert,NULL)
 
-#undef ASSERTM
-#define ASSERTM(exp,text)        ERREXP(exp,dirac_assert,text)
+#undef dirac_ASSERTM
+#define dirac_ASSERTM(exp,text)        ERREXP(exp,dirac_assert,text)
 
 #undef TEST
 #undef TESTM
@@ -55,10 +57,10 @@
 #undef REPORTM
 
 #ifdef DIRAC_DEBUG
-#define TEST(exp)               ASSERT(exp)
-#define TESTM(exp,text)         ASSERTM(exp,text)
-#define REPORT(exp)             ASSERT(exp)
-#define REPORTM(exp,text)       ASSERTM(exp,text)
+#define TEST(exp)               dirac_ASSERT(exp)
+#define TESTM(exp,text)         dirac_ASSERTM(exp,text)
+#define REPORT(exp)             dirac_ASSERT(exp)
+#define REPORTM(exp,text)       dirac_ASSERTM(exp,text)
 #else
 #define TEST(exp)
 #define TESTM(exp,text)
@@ -72,5 +74,7 @@ void dirac_assert( const char *p_fname, int line_number, const char *p_mess);
 
 /*! Print a message to standard error */
 void dirac_report( const char *p_fname, int line_number, const char *p_mess);
+
+} // namespace dirac
 
 #endif

@@ -132,6 +132,9 @@
 				RelativePath=".\libdirac_decoder\dirac_cppparser.cpp">
 			</File>
 			<File
+				RelativePath=".\libdirac_encoder\dirac_encoder.cpp">
+			</File>
+			<File
 				RelativePath=".\libdirac_decoder\dirac_parser.cpp">
 			</File>
 			<File
@@ -245,7 +248,13 @@
 				RelativePath=".\libdirac_decoder\dirac_cppparser.h">
 			</File>
 			<File
+				RelativePath=".\libdirac_encoder\dirac_encoder.h">
+			</File>
+			<File
 				RelativePath=".\libdirac_decoder\dirac_parser.h">
+			</File>
+			<File
+				RelativePath=".\libdirac_common\dirac_types.h">
 			</File>
 			<File
 				RelativePath=".\libdirac_motionest\downconvert.h">
