@@ -282,6 +282,25 @@ HRESULT CMatroskaSourceFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 						mts.InsertAt(0, mt);
 					}
 				}
+				else if(CodecID.Find("V_REAL/RV40") == 0) // TODO: handle rv*0
+				{
+					mt.majortype = MEDIATYPE_Video;
+					mt.subtype = FOURCCMap('04VR');
+					mt.formattype = FORMAT_VideoInfo;
+					VIDEOINFOHEADER* pvih = (VIDEOINFOHEADER*)mt.AllocFormatBuffer(sizeof(VIDEOINFOHEADER) + pTE->CodecPrivate.GetCount());
+					memset(mt.Format(), 0, mt.FormatLength());
+					memcpy(mt.Format() + sizeof(VIDEOINFOHEADER), pTE->CodecPrivate.GetData(), pTE->CodecPrivate.GetCount());
+					pvih->bmiHeader.biSize = sizeof(pvih->bmiHeader);
+					pvih->bmiHeader.biWidth = (LONG)pTE->v.PixelWidth;
+					pvih->bmiHeader.biHeight = (LONG)pTE->v.PixelHeight;
+					pvih->bmiHeader.biCompression = '04VR';
+					if(pTE->v.FramePerSec > 0) 
+						pvih->AvgTimePerFrame = (REFERENCE_TIME)(10000000i64 / pTE->v.FramePerSec);
+					else if(pTE->DefaultDuration > 0)
+						pvih->AvgTimePerFrame = (REFERENCE_TIME)pTE->DefaultDuration / 100;
+					mt.SetSampleSize(pvih->bmiHeader.biWidth*pvih->bmiHeader.biHeight*4);
+					mts.Add(mt);
+				}
 /*
 				else if(CodecID == "V_DSHOW/MPEG1VIDEO") // V_MPEG1
 				{
@@ -644,7 +663,7 @@ DWORD CMatroskaSourceFilter::ThreadProc()
 		}
 	}
 
-	//
+	// reindex if needed
 
 	if(m_pFile->m_segment.Cues.GetCount() == 0 /*&& m_pFile->m_segment.SegmentInfo.Duration > 0*/)
 	{
@@ -740,7 +759,7 @@ DWORD CMatroskaSourceFilter::ThreadProc()
 
 		LastBlockNumber = 0;
 
-		if(m_rtStart == 0)
+		if(m_rtStart <= 0)
 		{
 			pCluster = pSegment->Child(0x1F43B675);
 		}
@@ -804,7 +823,7 @@ DWORD CMatroskaSourceFilter::ThreadProc()
 										{
 											fPassedCueTime = true;
 										}
-										else if(b->TrackNumber == pCueTrackPositions->CueTrack && b->ReferenceBlock == 0)
+										else if(b->TrackNumber == pCueTrackPositions->CueTrack && !b->ReferenceBlock.IsValid()/*b->ReferenceBlock == 0*/)
 										{
 											fFoundKeyFrame = true;
 											LastBlockNumber = BlockNumber;
@@ -974,16 +993,16 @@ HRESULT CMatroskaSourceFilter::DeliverBlock(CAutoPtr<Block> b)
 	if(b->BlockDuration == Block::INVALIDDURATION)
 		b->BlockDuration.Set(pTE->DefaultDuration);
 
-	ASSERT(b->BlockData.GetCount() > 0 && (INT64)b->BlockDuration > 0);
+	ASSERT(b->BlockData.GetCount() > 0 /*&& (INT64)b->BlockDuration > 0*/);
 
-	if(b->BlockData.GetCount() == 0 || (INT64)b->BlockDuration <= 0)
+	if(b->BlockData.GetCount() == 0 /*|| (INT64)b->BlockDuration <= 0*/)
 		return S_FALSE;
 
 	REFERENCE_TIME 
 		rtStart = (b->TimeCode)*(INT64)m_pFile->m_segment.SegmentInfo.TimeCodeScale/100 - m_rtStart, 
 		rtStop = (b->TimeCode + b->BlockDuration)*(INT64)m_pFile->m_segment.SegmentInfo.TimeCodeScale/100 - m_rtStart;
 
-	ASSERT(rtStart < rtStop);
+	ASSERT(rtStart <= rtStop);
 
 	m_rtCurrent = m_rtStart + rtStart;
 
@@ -1623,7 +1642,7 @@ DWORD CMatroskaSplitterOutputPin::ThreadProc()
 					rtDelta = (p->rtStop - p->rtStart) / p->b->BlockData.GetCount(),
 					rtStop = p->rtStart + rtDelta;
 
-				ASSERT(p->rtStart < p->rtStop);
+//				ASSERT(p->rtStart < p->rtStop);
 
 				POSITION pos = p->b->BlockData.GetHeadPosition();
 				while(pos)
@@ -1639,7 +1658,7 @@ DWORD CMatroskaSplitterOutputPin::ThreadProc()
 					|| S_OK != (hr = pSample->SetTime(&rtStart, /*NULL*/&rtStop))
 					|| S_OK != (hr = pSample->SetMediaTime(NULL, NULL))
 					|| S_OK != (hr = pSample->SetDiscontinuity(p->bDiscontinuity))
-					|| S_OK != (hr = pSample->SetSyncPoint(p->b->ReferenceBlock == 0))
+					|| S_OK != (hr = pSample->SetSyncPoint(!p->b->ReferenceBlock.IsValid() /*p->b->ReferenceBlock == 0*/))
 					|| S_OK != (hr = pSample->SetPreroll(rtStart < 0))
 					|| S_OK != (hr = Deliver(pSample)))
 					{
