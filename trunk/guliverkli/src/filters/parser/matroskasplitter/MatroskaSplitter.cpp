@@ -141,7 +141,6 @@ CUnknown* WINAPI CMatroskaSplitterFilter::CreateInstance(LPUNKNOWN lpunk, HRESUL
 CMatroskaSourceFilter::CMatroskaSourceFilter(LPUNKNOWN pUnk, HRESULT* phr)
 	: CBaseFilter(NAME("CMatroskaSourceFilter"), pUnk, this, __uuidof(this))
 	, m_rtStart(0), m_rtStop(0), m_rtCurrent(0)
-	, m_fSeeking(false)
 	, m_dRate(1.0)
 {
 	if(phr) *phr = S_OK;
@@ -196,7 +195,7 @@ HRESULT CMatroskaSourceFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 		{
 			TrackEntry* pTE = pT->TrackEntries.GetNext(pos2);
 
-			UINT64 maxlen = 0;
+//			UINT64 maxlen = 0;
 
 			CStringA CodecID(pTE->CodecID);
 
@@ -204,6 +203,7 @@ HRESULT CMatroskaSourceFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 			Name.Format(L"Output %I64d", (UINT64)pTE->TrackNumber);
 
 			CMediaType mt;
+			CArray<CMediaType> mts;
 
 			if(pTE->TrackType == TrackEntry::TypeVideo)
 			{
@@ -218,9 +218,7 @@ HRESULT CMatroskaSourceFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 					mt.formattype = FORMAT_VideoInfo;
 					VIDEOINFOHEADER* pvih = (VIDEOINFOHEADER*)mt.AllocFormatBuffer(sizeof(VIDEOINFOHEADER) + pTE->CodecPrivate.GetCount() - sizeof(BITMAPINFOHEADER));
 					memset(pvih, 0, sizeof(VIDEOINFOHEADER));
-
 					memcpy(&pvih->bmiHeader, pbmi, pTE->CodecPrivate.GetCount());
-
 					switch(pbmi->biCompression)
 					{
 					case BI_RGB: case BI_BITFIELDS: mt.subtype = 
@@ -232,8 +230,8 @@ HRESULT CMatroskaSourceFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 					case BI_RLE8: mt.subtype = MEDIASUBTYPE_RGB8; break;
 					case BI_RLE4: mt.subtype = MEDIASUBTYPE_RGB4; break;
 					}
-
-					maxlen = pvih->bmiHeader.biWidth*pvih->bmiHeader.biHeight*4;
+					mt.SetSampleSize(pvih->bmiHeader.biWidth*pvih->bmiHeader.biHeight*4);
+					mts.Add(mt);
 				}
 				else if(CodecID == "V_UNCOMPRESSED")
 				{
@@ -245,7 +243,6 @@ HRESULT CMatroskaSourceFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 
 				mt.majortype = MEDIATYPE_Audio;
 				mt.formattype = FORMAT_WaveFormatEx;
-
 				WAVEFORMATEX* pwfe = (WAVEFORMATEX*)mt.AllocFormatBuffer(sizeof(WAVEFORMATEX));
 				memset(pwfe, 0, sizeof(WAVEFORMATEX));
 				pwfe->nChannels = (WORD)pTE->a.Channels;
@@ -253,11 +250,42 @@ HRESULT CMatroskaSourceFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 				pwfe->wBitsPerSample = (WORD)pTE->a.BitDepth;
 				pwfe->nBlockAlign = (WORD)((pwfe->nChannels * pwfe->wBitsPerSample) / 8);
 				pwfe->nAvgBytesPerSec = pwfe->nSamplesPerSec * pwfe->nBlockAlign;
-
-				maxlen = pwfe->nChannels*pwfe->nSamplesPerSec*32>>3;
+				mt.SetSampleSize(pwfe->nChannels*pwfe->nSamplesPerSec*32>>3);
 
 				if(CodecID == "A_VORBIS")
 				{
+					BYTE* p = (BYTE*)pTE->CodecPrivate;
+					CArray<long> sizes;
+					for(BYTE n = *p++; n > 0; n--)
+					{
+						long size = 0;
+						do {size += *p;} while(*p++ == 0xff);
+						sizes.Add(size);
+					}
+					sizes.Add(pTE->CodecPrivate.GetSize() - (p - (BYTE*)pTE->CodecPrivate));
+					
+					long totalsize = 0;
+					for(int i = 0; i < sizes.GetCount(); i++)
+						totalsize += sizes[i];
+
+					if(sizes.GetCount() == 3)
+					{
+						mt.subtype = MEDIASUBTYPE_Vorbis2;
+						mt.formattype = FORMAT_VorbisFormat2;
+						VORBISFORMAT2* pvf2 = (VORBISFORMAT2*)mt.AllocFormatBuffer(sizeof(VORBISFORMAT2) + totalsize);
+						memset(pvf2, 0, sizeof(VORBISFORMAT2));
+						pvf2->Channels = (WORD)pTE->a.Channels;
+						pvf2->SamplesPerSec = (DWORD)pTE->a.SamplingFrequency;
+						pvf2->BitsPerSample = (DWORD)pTE->a.BitDepth;
+						BYTE* p2 = mt.Format() + sizeof(VORBISFORMAT2);
+						for(int i = 0; i < sizes.GetCount(); p += sizes[i], p2 += sizes[i], i++)
+							memcpy(p2, p, pvf2->HeaderSize[i] = sizes[i]);
+
+						mt.SetSampleSize(pvf2->Channels*pvf2->SamplesPerSec*32>>3);
+						mt.SetSampleSize(max(mt.GetSampleSize(), (UINT_PTR)pTE->CodecPrivate.GetSize()));
+						mts.Add(mt);
+					}
+
 					mt.subtype = MEDIASUBTYPE_Vorbis;
 					mt.formattype = FORMAT_VorbisFormat;
 					VORBISFORMAT* pvf = (VORBISFORMAT*)mt.AllocFormatBuffer(sizeof(VORBISFORMAT));
@@ -265,37 +293,42 @@ HRESULT CMatroskaSourceFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 					pvf->nChannels = (WORD)pTE->a.Channels;
 					pvf->nSamplesPerSec = (DWORD)pTE->a.SamplingFrequency;
 					pvf->nMinBitsPerSec = pvf->nMaxBitsPerSec = pvf->nAvgBitsPerSec = -1;
-
-					maxlen = pvf->nChannels*pvf->nSamplesPerSec*32>>3;
-					maxlen = max(maxlen, pTE->CodecPrivate.GetSize());
+					mt.SetSampleSize(pvf->nChannels*pvf->nSamplesPerSec*32>>3);
+					mt.SetSampleSize(max(mt.GetSampleSize(), (UINT_PTR)pTE->CodecPrivate.GetSize()));
+					mts.Add(mt);
 				}
 				else if(CodecID == "A_MPEG/L3")
 				{
 					mt.subtype = FOURCCMap(pwfe->wFormatTag = 0x55);
+					mts.Add(mt);
 				}
 				else if(CodecID == "A_AC3")
 				{
 					mt.subtype = FOURCCMap(pwfe->wFormatTag = 0x2000);
+					mts.Add(mt);
 				}
 				else if(CodecID == "A_DTS")
 				{
 					mt.subtype = FOURCCMap(pwfe->wFormatTag = 0x2001);
+					mts.Add(mt);
 				}
 				else if(CodecID == "A_MS/ACM")
 				{
 					pwfe = (WAVEFORMATEX*)mt.AllocFormatBuffer(pTE->CodecPrivate.GetCount());
 					memcpy(pwfe, (WAVEFORMATEX*)(BYTE*)pTE->CodecPrivate, pTE->CodecPrivate.GetCount());
 					mt.subtype = FOURCCMap(pwfe->wFormatTag);
-
-					maxlen = pwfe->nChannels*pwfe->nSamplesPerSec*32>>3;
+					mt.SetSampleSize(pwfe->nChannels*pwfe->nSamplesPerSec*32>>3);
+					mts.Add(mt);
 				}
 				else if(CodecID == "A_PCM/INT/LIT")
 				{
 					mt.subtype = FOURCCMap(pwfe->wFormatTag = WAVE_FORMAT_PCM);
+					mts.Add(mt);
 				}
 				else if(CodecID == "A_PCM/FLOAT/IEEE")
 				{
 					mt.subtype = FOURCCMap(pwfe->wFormatTag = WAVE_FORMAT_IEEE_FLOAT);
+					mts.Add(mt);
 				}
 				else if(CodecID.Find("A_AAC/") == 0)
 				{
@@ -328,10 +361,8 @@ HRESULT CMatroskaSourceFilter::CreateOutputs(IAsyncReader* pAsyncReader)
    
 					pExtra[0] = ((profile + 1) << 3) | ((srate_idx & 0xe) >> 1);
 					pExtra[1] = ((srate_idx & 0x1) << 7) | ((BYTE)pTE->a.Channels << 3);
-				}
-				else
-				{
-					mt.majortype = MEDIATYPE_NULL;
+
+					mts.Add(mt);
 				}
 			}
 			else if(pTE->TrackType == TrackEntry::TypeSubtitle)
@@ -343,11 +374,17 @@ HRESULT CMatroskaSourceFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 					mt.majortype = MEDIATYPE_Text;
 					mt.subtype = MEDIASUBTYPE_NULL;
 					mt.formattype = FORMAT_None;
-
-					maxlen = 0x10000;
+					mt.SetSampleSize(0x10000);
+					mts.Add(mt);
 				}
 			}
 
+			if(mts.IsEmpty())
+			{
+				TRACE(_T("CMatroskaSourceFilter: Unsupported TrackType %s (%I64d)\n"), CString(CodecID), (UINT64)pTE->TrackType);
+				continue;
+			}
+/*
 			if(mt.majortype == MEDIATYPE_NULL)
 			{
 				TRACE(_T("CMatroskaSourceFilter: Unsupported TrackType %s (%I64d)\n"), CString(CodecID), (UINT64)pTE->TrackType);
@@ -356,9 +393,9 @@ HRESULT CMatroskaSourceFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 
 			ASSERT(maxlen > 0);
 			mt.SetSampleSize((ULONG)maxlen);
-
+*/
 			HRESULT hr;
-			CAutoPtr<CMatroskaSplitterOutputPin> pPinOut(new CMatroskaSplitterOutputPin(mt, Name, this, this, &hr));
+			CAutoPtr<CMatroskaSplitterOutputPin> pPinOut(new CMatroskaSplitterOutputPin(mts, Name, this, this, &hr));
 			if(!pPinOut) continue;
 
 			m_mapTrackToPin[(UINT64)pTE->TrackNumber] = pPinOut;
@@ -381,6 +418,7 @@ void CMatroskaSourceFilter::DeliverEndFlush()
 {
 	POSITION pos = m_pOutputs.GetHeadPosition();
 	while(pos) m_pOutputs.GetNext(pos)->DeliverEndFlush();
+	m_eEndFlush.Set();
 }
 
 void CMatroskaSourceFilter::SendVorbisHeaderSample()
@@ -400,7 +438,7 @@ void CMatroskaSourceFilter::SendVorbisHeaderSample()
 		if(!(pTE && pPin && pPin->IsConnected()))
 			continue;
 
-		if(CStringA(pTE->CodecID) == "A_VORBIS")
+		if(CStringA(pTE->CodecID) == "A_VORBIS" && pPin->CurrentMediaType().subtype == MEDIASUBTYPE_Vorbis)
 		{
 			BYTE* p = (BYTE*)pTE->CodecPrivate;
 
@@ -490,6 +528,8 @@ DWORD CMatroskaSourceFilter::ThreadProc()
 		}
 	}
 
+	m_eEndFlush.Set();
+
 	int LastBlockNumber = 0;
 
 	while(1)
@@ -504,95 +544,88 @@ DWORD CMatroskaSourceFilter::ThreadProc()
 			Reply(S_OK);
 			return 0;
 
-		case CMD_SEEK:
+		case CMD_RUN:
+
+			m_rtStart = m_rtNewStart;
+			m_rtStop = m_rtNewStop;
+
+			if(m_rtStart == 0)
 			{
-				m_fSeeking = false;
+				pCluster = pSegment->Child(0x1F43B675);
+			}
+			else
+			{
+				QWORD lastCueClusterPosition = -1;
 
-				DeliverEndFlush();
-
-				if(m_rtStart == 0)
+				POSITION pos1 = m_pFile->m_segment.Cues.GetHeadPosition();
+				while(pos1)
 				{
-					pCluster = pSegment->Child(0x1F43B675);
-				}
-				else
-				{
-					QWORD lastCueClusterPosition = -1;
-
-					POSITION pos1 = m_pFile->m_segment.Cues.GetHeadPosition();
-					while(pos1)
+					Cue* pCue = m_pFile->m_segment.Cues.GetNext(pos1);
+					POSITION pos2 = pCue->CuePoints.GetTailPosition();
+					while(pos2)
 					{
-						Cue* pCue = m_pFile->m_segment.Cues.GetNext(pos1);
-						POSITION pos2 = pCue->CuePoints.GetTailPosition();
-						while(pos2)
+						CuePoint* pCuePoint = pCue->CuePoints.GetPrev(pos2);
+
+						if(m_rtStart < (REFERENCE_TIME)(pCuePoint->CueTime*m_pFile->m_segment.SegmentInfo.TimeCodeScale/100)) continue;
+
+						POSITION pos3 = pCuePoint->CueTrackPositions.GetHeadPosition();
+						while(pos3)
 						{
-							CuePoint* pCuePoint = pCue->CuePoints.GetPrev(pos2);
+							CueTrackPosition* pCueTrackPositions = pCuePoint->CueTrackPositions.GetNext(pos3);
 
-							if(m_rtStart < (REFERENCE_TIME)(pCuePoint->CueTime*m_pFile->m_segment.SegmentInfo.TimeCodeScale/100)) continue;
+							if(lastCueClusterPosition == pCueTrackPositions->CueClusterPosition)
+								continue;
 
-							POSITION pos3 = pCuePoint->CueTrackPositions.GetHeadPosition();
-							while(pos3)
+							lastCueClusterPosition = pCueTrackPositions->CueClusterPosition;
+
+							pCluster->SeekTo(pSegment->m_start + pCueTrackPositions->CueClusterPosition);
+							pCluster->Parse();
+
+							int BlockNumber = LastBlockNumber = 0;
+
+							bool fFoundKeyFrame = false, fPassedCueTime = false;
+
+							Cluster c;
+							c.ParseTimeCode(pCluster);
+
+							if(CAutoPtr<CMatroskaNode> pBlocks = pCluster->Child(0xA0))
 							{
-								CueTrackPosition* pCueTrackPositions = pCuePoint->CueTrackPositions.GetNext(pos3);
-
-								if(lastCueClusterPosition == pCueTrackPositions->CueClusterPosition)
-									continue;
-
-								lastCueClusterPosition = pCueTrackPositions->CueClusterPosition;
-
-								pCluster->SeekTo(pSegment->m_start + pCueTrackPositions->CueClusterPosition);
-								pCluster->Parse();
-
-								int BlockNumber = LastBlockNumber = 0;
-
-								bool fFoundKeyFrame = false, fPassedCueTime = false;
-
-								Cluster c;
-								c.ParseTimeCode(pCluster);
-
-								if(CAutoPtr<CMatroskaNode> pBlocks = pCluster->Child(0xA0))
+								do
 								{
-									do
+									CBlockNode blocks;
+									blocks.Parse(pBlocks, false);
+									POSITION pos4 = blocks.GetHeadPosition();
+									while(!fPassedCueTime && pos4)
 									{
-										CBlockNode blocks;
-										blocks.Parse(pBlocks, false);
-										POSITION pos4 = blocks.GetHeadPosition();
-										while(!fPassedCueTime && pos4)
+										Block* b = blocks.GetNext(pos4);
+										if((REFERENCE_TIME)((c.TimeCode+b->TimeCode)*m_pFile->m_segment.SegmentInfo.TimeCodeScale/100) > m_rtStart) 
 										{
-											Block* b = blocks.GetNext(pos4);
-											if((REFERENCE_TIME)((c.TimeCode+b->TimeCode)*m_pFile->m_segment.SegmentInfo.TimeCodeScale/100) > m_rtStart) 
-											{
-												fPassedCueTime = true;
-											}
-                                            else if(b->TrackNumber == pCueTrackPositions->CueTrack && b->ReferenceBlock == 0)
-											{
-												fFoundKeyFrame = true;
-												LastBlockNumber = BlockNumber;
-											}
+											fPassedCueTime = true;
 										}
-
-										BlockNumber++;
+                                        else if(b->TrackNumber == pCueTrackPositions->CueTrack && b->ReferenceBlock == 0)
+										{
+											fFoundKeyFrame = true;
+											LastBlockNumber = BlockNumber;
+										}
 									}
-									while(!fPassedCueTime && pBlocks->Next(true));
-								}
 
-								if(fFoundKeyFrame)
-									pos1 = pos2 = pos3 = NULL;
+									BlockNumber++;
+								}
+								while(!fPassedCueTime && pBlocks->Next(true));
 							}
+
+							if(fFoundKeyFrame)
+								pos1 = pos2 = pos3 = NULL;
 						}
 					}
 				}
-
-				m_bDiscontinuitySent.RemoveAll();
-
-				// fall through
 			}
-		case CMD_RUN:
-
-			REFERENCE_TIME rtSegmentStart = m_rtStart;
-			REFERENCE_TIME rtSegmentStop = m_rtStop;
 
 			Reply(S_OK);
 
+			m_eEndFlush.Wait();
+
+			m_bDiscontinuitySent.RemoveAll();
 			m_pActivePins.RemoveAll();
 
 			POSITION pos = m_pOutputs.GetHeadPosition();
@@ -601,7 +634,7 @@ DWORD CMatroskaSourceFilter::ThreadProc()
 				CBaseOutputPin* pPin = m_pOutputs.GetNext(pos);
 				if(pPin->IsConnected())
 				{
-					pPin->DeliverNewSegment(rtSegmentStart, rtSegmentStop, m_dRate);
+					pPin->DeliverNewSegment(m_rtStart, m_rtStop, m_dRate);
 					m_pActivePins.AddTail(pPin);
 				}
 			}
@@ -631,35 +664,37 @@ DWORD CMatroskaSourceFilter::ThreadProc()
 
 					CBlockNode tmp;
 					tmp.Parse(pBlocks, true);
+
 					while(tmp.GetCount())
 					{
 						CAutoPtr<Block> b = tmp.RemoveHead();
+
 						b->TimeCode.Set(c.TimeCode + b->TimeCode);
+
+						POSITION pos = Blocks.GetHeadPosition();
+						while(pos && SUCCEEDED(hr) && !CheckRequest(&cmd))
+						{
+							Block* b2 = Blocks.GetNext(pos);
+
+							if(b2->BlockDuration == Block::INVALIDDURATION
+							&& b2->TrackNumber == b->TrackNumber)
+							{
+								b2->BlockDuration.Set(b->TimeCode <= b2->TimeCode ? 1 : b->TimeCode - b2->TimeCode);
+								break;
+							}
+						}
+
 						Blocks.AddTail(b);
 					}
 
-					POSITION pos = Blocks.GetHeadPosition();
-					while(pos && !m_fSeeking && SUCCEEDED(hr) && !CheckRequest(&cmd))
+					pos = Blocks.GetHeadPosition();
+					while(pos && SUCCEEDED(hr) && !CheckRequest(&cmd))
 					{
 						POSITION next = pos;
 
 						Block* b = Blocks.GetNext(next);
 
-						if(b->BlockDuration == Block::INVALIDDURATION)
-						{
-							pos = next;
-							while(pos && !m_fSeeking)
-							{
-								Block* b2 = Blocks.GetNext(pos);
-
-								if(b2->TrackNumber == b->TrackNumber)
-								{
-									b->BlockDuration.Set(b2->TimeCode - b->TimeCode);
-									break;
-								}
-							}
-						}
-						else
+						if(b->BlockDuration != Block::INVALIDDURATION)
 						{
 							CAutoPtr<Block> pBlock;
 							pBlock.Attach(Blocks.GetAt(pos).Detach());
@@ -670,11 +705,11 @@ DWORD CMatroskaSourceFilter::ThreadProc()
 						pos = next;
 					}
 				}
-				while(pBlocks->Next(true) && !m_fSeeking && SUCCEEDED(hr) && !CheckRequest(&cmd));
+				while(pBlocks->Next(true) && SUCCEEDED(hr) && !CheckRequest(&cmd));
 			}
-			while(pCluster->Next(true) && !m_fSeeking && SUCCEEDED(hr) && !CheckRequest(&cmd));
+			while(pCluster->Next(true) && SUCCEEDED(hr) && !CheckRequest(&cmd));
 
-			while(Blocks.GetCount() && !m_fSeeking && SUCCEEDED(hr) && !CheckRequest(&cmd))
+			while(Blocks.GetCount() && SUCCEEDED(hr) && !CheckRequest(&cmd))
 			{
 				CAutoPtr<Block> b = Blocks.RemoveHead();
 				b->BlockDuration.Set((INT64)m_pFile->m_segment.SegmentInfo.Duration - b->TimeCode);
@@ -683,7 +718,7 @@ DWORD CMatroskaSourceFilter::ThreadProc()
 			}
 
 			pos = m_pActivePins.GetHeadPosition();
-			while(pos && !m_fSeeking && !CheckRequest(&cmd))
+			while(pos && !CheckRequest(&cmd))
 				m_pActivePins.GetNext(pos)->DeliverEndOfStream();
 		}
 	}
@@ -703,8 +738,15 @@ LRESULT CMatroskaSourceFilter::ThreadMessageProc(UINT uMsg, DWORD dwFlags, LPVOI
 		pEvent->Set(); 
 		return 1;
 	case TM_SEEK:
+TRACE(_T("-DeliverBeginFlush()\n"));
 		DeliverBeginFlush();
-		CallWorker(CMD_SEEK); 
+TRACE(_T("+DeliverBeginFlush()\n"));
+TRACE(_T("-CallWorker(CMD_RUN)\n"));
+		CallWorker(CMD_RUN);
+TRACE(_T("+CallWorker(CMD_RUN)\n"));
+TRACE(_T("-DeliverEndFlush()\n"));
+		DeliverEndFlush();		
+TRACE(_T("+DeliverEndFlush()\n"));
 		break;
 	}
 
@@ -801,6 +843,10 @@ HRESULT CMatroskaSourceFilter::CompleteConnect(PIN_DIRECTION dir, CBasePin* pPin
 		if(FAILED(hr = pIn->GetAsyncReader(&pAsyncReader))
 		|| FAILED(hr = CreateOutputs(pAsyncReader)))
 			return hr;
+
+		Info& info = m_pFile->m_segment.SegmentInfo;
+		m_rtNewStart = m_rtCurrent = 0;
+		m_rtNewStop = (REFERENCE_TIME)(info.Duration*info.TimeCodeScale/100);
 	}
 	else if(dir == PINDIR_OUTPUT)
 	{
@@ -871,16 +917,6 @@ STDMETHODIMP CMatroskaSourceFilter::Pause()
 
 	if(fs == State_Stopped)
 	{
-		m_rtStart = m_rtStop = m_rtCurrent = 0;
-		m_fSeeking = false;
-
-		// TODO: don't do this, instead seek to start-stop right before or after starting
-		if(m_pFile)
-		{
-			Info& info = m_pFile->m_segment.SegmentInfo;
-			m_rtStop = (REFERENCE_TIME)(info.Duration*info.TimeCodeScale/100);
-		}
-
 #ifdef NONBLOCKINGSEEK
 		CreateThread();
 #endif
@@ -1005,27 +1041,17 @@ STDMETHODIMP CMatroskaSourceFilter::SetPositions(LONGLONG* pCurrent, DWORD dwCur
 	if(m_rtCurrent == rtCurrent && m_rtStop == rtStop)
 		return S_OK;
 
-	if(ThreadExists())
-	{
-		m_fSeeking = true;
-	}
-
-#ifndef NONBLOCKINGSEEK
-	if(ThreadExists())
-	{
-		DeliverBeginFlush();
-	}
-#endif
-
-	m_rtStart = m_rtCurrent = rtCurrent;
-	m_rtStop = rtStop;
+	m_rtNewStart = m_rtCurrent = rtCurrent;
+	m_rtNewStop = rtStop;
 
 	if(ThreadExists())
 	{
 #ifdef NONBLOCKINGSEEK
 		PutThreadMsg(TM_SEEK, 0, 0);
 #else
-		CallWorker(CMD_SEEK);
+		DeliverBeginFlush();
+		CallWorker(CMD_RUN);
+		DeliverEndFlush();		
 #endif
 	}
 
@@ -1161,10 +1187,10 @@ STDMETHODIMP CMatroskaSplitterInputPin::EndFlush()
 // CMatroskaSplitterOutputPin
 //
 
-CMatroskaSplitterOutputPin::CMatroskaSplitterOutputPin(CMediaType& mt, LPCWSTR pName, CBaseFilter* pFilter, CCritSec* pLock, HRESULT* phr)
+CMatroskaSplitterOutputPin::CMatroskaSplitterOutputPin(CArray<CMediaType>& mts, LPCWSTR pName, CBaseFilter* pFilter, CCritSec* pLock, HRESULT* phr)
 	: CBaseOutputPin(NAME("CMatroskaSplitterOutputPin"), pFilter, pLock, phr, pName)
-	, m_mt(mt)
 {
+	m_mts.Copy(mts);
 }
 
 CMatroskaSplitterOutputPin::~CMatroskaSplitterOutputPin()
@@ -1201,9 +1227,15 @@ HRESULT CMatroskaSplitterOutputPin::DecideBufferSize(IMemAllocator* pAlloc, ALLO
 
 HRESULT CMatroskaSplitterOutputPin::CheckMediaType(const CMediaType* pmt)
 {
-	return pmt->majortype == m_mt.majortype && pmt->subtype == m_mt.subtype
-		? S_OK
-		: E_INVALIDARG;
+	for(int i = 0; i < m_mts.GetCount(); i++)
+	{
+		if(pmt->majortype == m_mts[i].majortype && pmt->subtype == m_mts[i].subtype)
+		{
+			return S_OK;
+		}
+	}
+
+	return E_INVALIDARG;
 }
 
 HRESULT CMatroskaSplitterOutputPin::GetMediaType(int iPosition, CMediaType* pmt)
@@ -1211,9 +1243,9 @@ HRESULT CMatroskaSplitterOutputPin::GetMediaType(int iPosition, CMediaType* pmt)
     CAutoLock cAutoLock(m_pLock);
 
 	if(iPosition < 0) return E_INVALIDARG;
-	if(iPosition > 0) return VFW_S_NO_MORE_ITEMS;
+	if(iPosition >= m_mts.GetCount()) return VFW_S_NO_MORE_ITEMS;
 
-	*pmt = m_mt;
+	*pmt = m_mts[iPosition];
 
 	return S_OK;
 }
@@ -1372,12 +1404,12 @@ DWORD CMatroskaSplitterOutputPin::ThreadProc()
 				while(pos)
 				{
 					CBinary* pBlockData = p->b->BlockData.GetNext(pos);
-
+TRACE(_T("-Deliver\n"));
 					CComPtr<IMediaSample> pSample;
 					BYTE* pData;
 					if(S_OK != (hr = GetDeliveryBuffer(&pSample, NULL, NULL, 0))
 					|| S_OK != (hr = pSample->GetPointer(&pData))
-					|| (hr = memcpy(pData, pBlockData->GetData(), pBlockData->GetSize()) ? S_OK : E_FAIL)
+					|| (hr = (memcpy(pData, pBlockData->GetData(), pBlockData->GetSize()) ? S_OK : E_FAIL))
 					|| S_OK != (hr = pSample->SetActualDataLength((long)pBlockData->GetSize()))
 					|| S_OK != (hr = pSample->SetTime(&rtStart, &rtStop))
 					|| S_OK != (hr = pSample->SetMediaTime(NULL, NULL))
@@ -1385,7 +1417,11 @@ DWORD CMatroskaSplitterOutputPin::ThreadProc()
 					|| S_OK != (hr = pSample->SetSyncPoint(p->b->ReferenceBlock == 0))
 					|| S_OK != (hr = pSample->SetPreroll(rtStart < 0))
 					|| S_OK != (hr = Deliver(pSample)))
+					{
+TRACE(_T("*Deliver\n"));
 						break;
+					}
+TRACE(_T("+Deliver\n"));
 
 					rtStart += rtDelta;
 					rtStop += rtDelta;

@@ -44,3 +44,20 @@ typedef struct tagVORBISFORMAT
 	DWORD nMaxBitsPerSec;
 	float fQuality;
 } VORBISFORMAT, *PVORBISFORMAT, FAR *LPVORBISFORMAT;
+
+// {8D2FD10B-5841-4a6b-8905-588FEC1ADED9}
+DEFINE_GUID(MEDIASUBTYPE_Vorbis2, 
+0x8d2fd10b, 0x5841, 0x4a6b, 0x89, 0x5, 0x58, 0x8f, 0xec, 0x1a, 0xde, 0xd9);
+
+// {B36E107F-A938-4387-93C7-55E966757473}
+DEFINE_GUID(FORMAT_VorbisFormat2, 
+0xb36e107f, 0xa938, 0x4387, 0x93, 0xc7, 0x55, 0xe9, 0x66, 0x75, 0x74, 0x73);
+
+typedef struct tagVORBISFORMAT2
+{
+	DWORD Channels;
+	DWORD SamplesPerSec;
+	DWORD BitsPerSample;	
+	DWORD HeaderSize[3]; // 0: Identification, 1: Comment, 2: Setup
+} VORBISFORMAT2, *PVORBISFORMAT2, FAR *LPVORBISFORMAT2;
+

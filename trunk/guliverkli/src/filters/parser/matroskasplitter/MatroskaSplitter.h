@@ -26,7 +26,7 @@
 #include <afxtempl.h>
 #include "MatroskaFile.h"
 
-#define NONBLOCKINGSEEK
+//#define NONBLOCKINGSEEK
 #define MAXBUFFERS 2
 #define MAXPACKETS 50
 
@@ -55,7 +55,7 @@ public:
 
 class CMatroskaSplitterOutputPin : public CBaseOutputPin, protected CAMThread
 {
-	CMediaType m_mt;
+	CArray<CMediaType> m_mts;
 	void DontGoWild();
 
 public:
@@ -71,7 +71,7 @@ private:
     DWORD ThreadProc();
 
 public:
-	CMatroskaSplitterOutputPin(CMediaType& mt, LPCWSTR pName, CBaseFilter* pFilter, CCritSec* pLock, HRESULT* phr);
+	CMatroskaSplitterOutputPin(CArray<CMediaType>& mts, LPCWSTR pName, CBaseFilter* pFilter, CCritSec* pLock, HRESULT* phr);
 	virtual ~CMatroskaSplitterOutputPin();
 
 	DECLARE_IUNKNOWN;
@@ -81,6 +81,7 @@ public:
 
     HRESULT CheckMediaType(const CMediaType* pmt);
     HRESULT GetMediaType(int iPosition, CMediaType* pmt);
+	CMediaType& CurrentMediaType() {return m_mt;}
 
 	STDMETHODIMP Notify(IBaseFilter* pSender, Quality q);
 
@@ -129,6 +130,7 @@ class CMatroskaSourceFilter
 	};
 
 	CStringW m_fn;
+	CAMEvent m_eEndFlush;
 
 protected:
 	CAutoPtr<CMatroskaSplitterInputPin> m_pInput;
@@ -142,8 +144,7 @@ protected:
 
 	CCritSec m_csSend;
 
-	bool m_fSeeking;
-	REFERENCE_TIME m_rtStart, m_rtStop, m_rtCurrent;
+	REFERENCE_TIME m_rtStart, m_rtStop, m_rtCurrent, m_rtNewStart, m_rtNewStop;
 	double m_dRate;
 
 	void SendVorbisHeaderSample();
@@ -157,7 +158,7 @@ protected:
 	HRESULT DeliverBlock(CAutoPtr<Matroska::Block> b);
 
 protected:
-	enum {CMD_EXIT, CMD_RUN, CMD_SEEK};
+	enum {CMD_EXIT, CMD_RUN};
     DWORD ThreadProc();
 
 #ifdef NONBLOCKINGSEEK
