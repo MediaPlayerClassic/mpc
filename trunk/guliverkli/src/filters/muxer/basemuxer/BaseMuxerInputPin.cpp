@@ -133,7 +133,7 @@ HRESULT CBaseMuxerInputPin::CompleteConnect(IPin* pReceivePin)
 		if(CComQIPtr<IDSMPropertyBag> pPB = pPin)
 		{
 			ULONG cProperties = 0;
-			if(SUCCEEDED(pPB->CountProperties(&cProperties)) || cProperties == 0)
+			if(SUCCEEDED(pPB->CountProperties(&cProperties)) && cProperties > 0)
 			{
 				for(ULONG iProperty = 0; iProperty < cProperties; iProperty++)
 				{

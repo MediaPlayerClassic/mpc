@@ -1993,6 +1993,7 @@ CSubtitle* CRenderedTextSubtitle::GetSubtitle(int entry)
 	sub->m_scrAlignment = -stss.scrAlignment;
 	sub->m_wrapStyle = m_defaultWrapStyle;
 	sub->m_fAnimated = false;
+	sub->m_relativeTo = stss.relativeTo;
 
 	sub->m_scalex = m_dstScreenSize.cx > 0 ? 1.0 * (stss.relativeTo == 1 ? m_vidrect.Width() : m_size.cx) / (m_dstScreenSize.cx*8) : 1.0;
 	sub->m_scaley = m_dstScreenSize.cy > 0 ? 1.0 * (stss.relativeTo == 1 ? m_vidrect.Height() : m_size.cy) / (m_dstScreenSize.cy*8) : 1.0;
@@ -2256,6 +2257,9 @@ STDMETHODIMP CRenderedTextSubtitle::Render(SubPicDesc& spd, REFERENCE_TIME rt, d
 									s->m_scrAlignment <= 3 ? p.y - spaceNeeded.cy : s->m_scrAlignment <= 6 ? p.y - (spaceNeeded.cy+1)/2 : p.y),
 							spaceNeeded);
 
+					if(s->m_relativeTo == 1)
+						r.OffsetRect(m_vidrect.TopLeft());
+
 					fPosOverride = true;
 				}
 				break;
@@ -2292,11 +2296,16 @@ STDMETHODIMP CRenderedTextSubtitle::Render(SubPicDesc& spd, REFERENCE_TIME rt, d
 				break;
 			case EF_BANNER: // Banner;delay=param[0][;leftoright=param[1];fadeawaywidth=param[2]]
 				{
+					int left = s->m_relativeTo == 1 ? m_vidrect.left : 0, 
+						right = s->m_relativeTo == 1 ? m_vidrect.right : m_size.cx;
+
 					r.left = !!s->m_effects[k]->param[1] 
-						? (0/*marginRect.left*/ - spaceNeeded.cx) + (int)(m_time*8.0/s->m_effects[k]->param[0])
-						: (m_size.cx /*- marginRect.right*/) - (int)(m_time*8.0/s->m_effects[k]->param[0]);
+						? (left/*marginRect.left*/ - spaceNeeded.cx) + (int)(m_time*8.0/s->m_effects[k]->param[0])
+						: (right /*- marginRect.right*/) - (int)(m_time*8.0/s->m_effects[k]->param[0]);
 
 					r.right = r.left + spaceNeeded.cx;
+
+					clipRect &= CRect(left>>3, clipRect.top, right>>3, clipRect.bottom);
 
 					fPosOverride = true;
 				}
@@ -2309,7 +2318,15 @@ STDMETHODIMP CRenderedTextSubtitle::Render(SubPicDesc& spd, REFERENCE_TIME rt, d
 
 					r.bottom = r.top + spaceNeeded.cy;
 
-					clipRect &= CRect(0, (s->m_effects[k]->param[0] + 4) >> 3, spd.w, (s->m_effects[k]->param[1] + 4) >> 3);
+					CRect cr(0, (s->m_effects[k]->param[0] + 4) >> 3, spd.w, (s->m_effects[k]->param[1] + 4) >> 3);
+
+					if(s->m_relativeTo == 1)
+						r.top += m_vidrect.top, 
+						r.bottom += m_vidrect.top, 
+						cr.top += m_vidrect.top>>3, 
+						cr.bottom += m_vidrect.top>>3;
+
+					clipRect &= cr;
 
 					fPosOverride = true;
 				}
