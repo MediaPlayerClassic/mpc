@@ -29,6 +29,7 @@
 #include "playerplaylistbar.h"
 #include "..\..\DSUtil\DSUtil.h"
 #include "SaveTextFileDialog.h"
+#include ".\playerplaylistbar.h"
 
 IMPLEMENT_DYNAMIC(CPlayerPlaylistBar, CSizingControlBarG)
 CPlayerPlaylistBar::CPlayerPlaylistBar()
@@ -1213,3 +1214,4 @@ void CPlayerPlaylistBar::OnContextMenu(CWnd* /*pWnd*/, CPoint p)
 		break;
 	}
 }
+
