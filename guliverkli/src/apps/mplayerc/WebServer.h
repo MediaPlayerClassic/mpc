@@ -32,12 +32,16 @@ class CWebServer
 	static CAtlMap<CStringA, CStringA, CStringElementTraits<CStringA> > m_mimes;
 	CPath m_webroot;
 
+	CAtlMap<CString, CString, CStringElementTraits<CString> > m_cgi;
+	bool CallCGI(CWebClientSocket* pClient, CStringA& hdr, CStringA& body, CStringA& mime);
+
 public:
 	CWebServer(CMainFrame* pMainFrame, int nPort = 13579);
 	virtual ~CWebServer();
 
 	static void Deploy(CString dir);
 
+	bool ToLocalPath(CString& path);
 	bool LoadPage(UINT resid, CStringA& str, CString path = _T(""));
 
 	void OnAccept(CWebServerSocket* pServer);

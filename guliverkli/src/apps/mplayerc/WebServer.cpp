@@ -111,6 +111,17 @@ CWebServer::CWebServer(CMainFrame* pMainFrame, int nPort)
 	m_webroot.MakePretty();
 	if(!m_webroot.IsDirectory()) m_webroot = CPath();
 
+	CList<CString> sl;
+	Explode(AfxGetAppSettings().WebServerCGI, sl, ';');
+	POSITION pos = sl.GetHeadPosition();
+	while(pos)
+	{
+		CList<CString> sl2;
+		CString ext = Explode(sl.GetNext(pos), sl2, '=', 2);
+		if(sl2.GetCount() < 2) continue;
+		m_cgi[ext] = sl2.GetTail();
+	}
+
 	m_ThreadId = 0;
     m_hThread = ::CreateThread(NULL, 0, StaticThreadProc, (LPVOID)this, 0, &m_ThreadId);
 }
@@ -176,28 +187,53 @@ void CWebServer::Deploy(CString dir)
 	}
 }
 
-bool CWebServer::LoadPage(UINT resid, CStringA& str, CString path)
+bool CWebServer::ToLocalPath(CString& path)
 {
-	if(!path.IsEmpty())
+	if(!path.IsEmpty() && m_webroot.IsDirectory())
 	{
-		path.Replace('/', '\\');
-		if(path == _T("\\")) path = _T("index.html");
-		path.TrimLeft('\\');
+		CString str = path;
+		str.Replace('/', '\\');
+		str.TrimLeft('\\');
 
 		CPath p;
-		p.Combine(m_webroot, path);
+		p.Combine(m_webroot, str);
 		p.Canonicalize();
-		if(p.m_strPath.GetLength() > m_webroot.m_strPath.GetLength() && p.FileExists())
+
+		if(p.IsDirectory())
 		{
-			if(FILE* f = _tfopen(p, _T("rb")))
+			CList<CString> sl;
+			Explode(AfxGetAppSettings().WebDefIndex, sl, ';');
+			POSITION pos = sl.GetHeadPosition();
+			while(pos)
 			{
-				fseek(f, 0, 2);
-				char* buff = str.GetBufferSetLength(ftell(f));
-				fseek(f, 0, 0);
-				int len = fread(buff, 1, str.GetLength(), f);
-				fclose(f);
-				return len == str.GetLength();
+				CPath p2 = p;
+				p2.Append(sl.GetNext(pos));
+				if(p2.FileExists()) {p = p2; break;}
 			}
+		}
+
+		if(_tcslen(p) > _tcslen(m_webroot) && p.FileExists())
+		{
+			path = (LPCTSTR)p;
+			return true;
+		}
+	}
+
+	return false;
+}
+
+bool CWebServer::LoadPage(UINT resid, CStringA& str, CString path)
+{
+	if(ToLocalPath(path))
+	{
+		if(FILE* f = _tfopen(path, _T("rb")))
+		{
+			fseek(f, 0, 2);
+			char* buff = str.GetBufferSetLength(ftell(f));
+			fseek(f, 0, 0);
+			int len = fread(buff, 1, str.GetLength(), f);
+			fclose(f);
+			return len == str.GetLength();
 		}
 	}
 
@@ -242,9 +278,36 @@ void CWebServer::OnRequest(CWebClientSocket* pClient, CStringA& hdr, CStringA& b
 	CStringA mime;
 	m_mimes.Lookup(ext, mime);
 
-	bool fHandled = false;
-
 	hdr = "HTTP/1.0 200 OK\r\n";
+
+	bool fHandled = false, fCGI = false;
+	
+	if(!fHandled && m_webroot.IsDirectory())
+	{
+		CStringA tmphdr;
+		fHandled = fCGI = CallCGI(pClient, tmphdr, body, mime);
+
+		if(fHandled)
+		{
+			tmphdr.Replace("\r\n", "\n");
+			CList<CStringA> hdrlines;
+			ExplodeMin(tmphdr, hdrlines, '\n');
+			POSITION pos = hdrlines.GetHeadPosition();
+			while(pos)
+			{
+				POSITION cur = pos;
+				CList<CStringA> sl;
+				CStringA key = Explode(hdrlines.GetNext(pos), sl, ':', 2);
+				if(sl.GetCount() < 2) continue;
+				key.Trim().MakeLower();
+				if(key == "content-type") {mime = sl.GetTail().Trim(); hdrlines.RemoveAt(cur);}
+				else if(key == "content-length") {hdrlines.RemoveAt(cur);}
+			}
+			tmphdr = Implode(hdrlines, '\n');
+			tmphdr.Replace("\n", "\r\n");
+			hdr += tmphdr + "\r\n";
+		}
+	}
 
 	RequestHandler rh = NULL;
 	if(!fHandled && m_internalpages.Lookup(pClient->m_path, rh) && (pClient->*rh)(hdr, body, mime))
@@ -288,7 +351,7 @@ void CWebServer::OnRequest(CWebClientSocket* pClient, CStringA& hdr, CStringA& b
 		return;
 	}
 
-	if(mime == "text/html")
+	if(mime == "text/html" && !fCGI)
 	{
 		hdr += 
 			"Expires: Thu, 19 Nov 1981 08:52:00 GMT\r\n"
@@ -329,7 +392,7 @@ void CWebServer::OnRequest(CWebClientSocket* pClient, CStringA& hdr, CStringA& b
 	}
 
 	// gzip
-	if(AfxGetAppSettings().fWebServerUseCompression)
+	if(AfxGetAppSettings().fWebServerUseCompression && hdr.Find("Content-Encoding:") < 0)
 	do
 	{
 		CString accept_encoding;
@@ -372,4 +435,173 @@ void CWebServer::OnRequest(CWebClientSocket* pClient, CStringA& hdr, CStringA& b
 		"Content-Length: %d\r\n", 
 		mime, body.GetLength());
 	hdr += content;
+}
+
+static DWORD WINAPI KillCGI(LPVOID lParam)
+{
+	HANDLE hProcess = (HANDLE)lParam;
+	if(WaitForSingleObject(hProcess, 30000) == WAIT_TIMEOUT)
+		TerminateProcess(hProcess, 0);
+	return 0;
+}
+
+bool CWebServer::CallCGI(CWebClientSocket* pClient, CStringA& hdr, CStringA& body, CStringA& mime)
+{
+	CString path = pClient->m_path;
+	if(!ToLocalPath(path)) return false;
+	CString ext = CPath(path).GetExtension().MakeLower();
+	CPath dir(path);
+	dir.RemoveFileSpec();
+
+	CString cgi;
+	if(!m_cgi.Lookup(ext, cgi) || !CPath(cgi).FileExists())
+		return false;
+
+	HANDLE hProcess = GetCurrentProcess();
+	HANDLE hChildStdinRd, hChildStdinWr, hChildStdinWrDup = NULL;
+	HANDLE hChildStdoutRd, hChildStdoutWr, hChildStdoutRdDup = NULL;
+
+	SECURITY_ATTRIBUTES saAttr;
+	ZeroMemory(&saAttr, sizeof(saAttr));
+	saAttr.nLength = sizeof(saAttr);
+	saAttr.bInheritHandle = TRUE;
+
+	if(CreatePipe(&hChildStdoutRd, &hChildStdoutWr, &saAttr, 0)) 
+	{
+		BOOL fSuccess = DuplicateHandle(hProcess, hChildStdoutRd, hProcess, &hChildStdoutRdDup, 0, FALSE, DUPLICATE_SAME_ACCESS);
+		CloseHandle(hChildStdoutRd);
+	}
+
+	if(CreatePipe(&hChildStdinRd, &hChildStdinWr, &saAttr, 0))
+	{
+		BOOL fSuccess = DuplicateHandle(hProcess, hChildStdinWr, hProcess, &hChildStdinWrDup, 0, FALSE, DUPLICATE_SAME_ACCESS);
+		CloseHandle(hChildStdinWr);
+	}
+
+	STARTUPINFO siStartInfo;
+	ZeroMemory(&siStartInfo, sizeof(siStartInfo));
+	siStartInfo.cb = sizeof(siStartInfo);
+	siStartInfo.hStdError = hChildStdoutWr;
+	siStartInfo.hStdOutput = hChildStdoutWr;
+	siStartInfo.hStdInput = hChildStdinRd;
+	siStartInfo.dwFlags |= STARTF_USESTDHANDLES|STARTF_USESHOWWINDOW;
+	siStartInfo.wShowWindow = SW_HIDE;
+
+	PROCESS_INFORMATION piProcInfo;
+	ZeroMemory(&piProcInfo, sizeof(piProcInfo));
+
+	CStringA envstr;
+
+	if(LPVOID lpvEnv = GetEnvironmentStrings())
+	{
+		CString str; 
+
+		CList<CString> env;
+		for(LPTSTR lpszVariable = (LPTSTR)lpvEnv; *lpszVariable; lpszVariable += _tcslen(lpszVariable)+1)
+			if(lpszVariable != (LPTSTR)lpvEnv)
+				env.AddTail(lpszVariable);
+
+		env.AddTail(_T("GATEWAY_INTERFACE=CGI/1.1"));
+		env.AddTail(_T("SERVER_SOFTWARE=Media Player Classic/6.4.x.y"));
+		env.AddTail(_T("SERVER_PROTOCOL=") + pClient->m_ver);
+		env.AddTail(_T("REQUEST_METHOD=") + pClient->m_cmd);
+		env.AddTail(_T("PATH_INFO=") + pClient->m_path);
+		env.AddTail(_T("PATH_TRANSLATED=") + path);
+		env.AddTail(_T("SCRIPT_NAME=") + pClient->m_path);
+		env.AddTail(_T("QUERY_STRING=") + pClient->m_query);
+
+		if(pClient->m_hdrlines.Lookup(_T("content-type"), str))
+			env.AddTail(_T("CONTENT_TYPE=") + str);
+		if(pClient->m_hdrlines.Lookup(_T("content-length"), str))
+			env.AddTail(_T("CONTENT_LENGTH=") + str);
+
+		POSITION pos = pClient->m_hdrlines.GetStartPosition();
+		while(pos)
+		{
+			CString key = pClient->m_hdrlines.GetKeyAt(pos);
+			CString value = pClient->m_hdrlines.GetNextValue(pos);
+			key.Replace(_T("-"), _T("_"));
+			key.MakeUpper();
+			env.AddTail(_T("HTTP_") + key + _T("=") + value);
+		}
+		
+		CString name;
+		UINT port;
+
+		if(pClient->GetPeerName(name, port))
+		{
+			str.Format(_T("%d"), port);
+			env.AddTail(_T("REMOTE_ADDR=")+name);
+			env.AddTail(_T("REMOTE_HOST=")+name);
+			env.AddTail(_T("REMOTE_PORT=")+str);
+		}
+
+		if(pClient->GetSockName(name, port))
+		{
+			str.Format(_T("%d"), port);
+			env.AddTail(_T("SERVER_NAME=")+name);
+			env.AddTail(_T("SERVER_PORT=")+str);
+		}
+
+		env.AddTail(_T("\0"));
+
+		str = Implode(env, '\0');
+		envstr = CStringA(str, str.GetLength());
+
+		FreeEnvironmentStrings((LPTSTR)lpvEnv);
+	}
+
+	TCHAR* cmdln = new TCHAR[32768];
+	_sntprintf(cmdln, 32768, _T("\"%s\" \"%s\""), cgi, path);
+
+	if(hChildStdinRd && hChildStdoutWr)
+	if(CreateProcess(
+		NULL, cmdln, NULL, NULL, TRUE, 0, 
+		envstr.GetLength() ? (LPVOID)(LPCSTR)envstr : NULL, 
+		dir, &siStartInfo, &piProcInfo))
+	{
+		DWORD ThreadId;
+		CreateThread(NULL, 0, KillCGI, (LPVOID)piProcInfo.hProcess, 0, &ThreadId);
+
+		static const int BUFFSIZE = 1024;
+		DWORD dwRead, dwWritten = 0;
+
+		int i = 0, len = pClient->m_data.GetLength();
+		for(; i < len; i += dwWritten)
+			if(!WriteFile(hChildStdinWrDup, (LPCSTR)pClient->m_data + i, min(len - i, BUFFSIZE), &dwWritten, NULL)) 
+				break;
+
+		CloseHandle(hChildStdinWrDup);
+		CloseHandle(hChildStdoutWr);
+
+		body.Empty();
+
+		CStringA buff;
+		while(i == len && ReadFile(hChildStdoutRdDup, buff.GetBuffer(BUFFSIZE), BUFFSIZE, &dwRead, NULL) && dwRead)
+		{
+			buff.ReleaseBufferSetLength(dwRead);
+			body += buff;
+		}
+
+		int hdrend = body.Find("\r\n\r\n");
+		if(hdrend >= 0)
+		{
+			hdr = body.Left(hdrend+2);
+			body = body.Mid(hdrend+4);
+		}
+
+		CloseHandle(hChildStdinRd);
+		CloseHandle(hChildStdoutRdDup);
+
+		CloseHandle(piProcInfo.hProcess);
+		CloseHandle(piProcInfo.hThread);
+	}
+	else
+	{
+		body = _T("CGI Error");
+	}
+
+	delete [] cmdln;
+
+	return true;
 }
