@@ -79,6 +79,14 @@ HRESULT CMpegSplitterFile::Init()
 		return E_FAIL;
 	}
 
+	//
+
+	if(IsStreaming())
+	{
+		for(int i = 0; i < 50 && GetLength() < 1024*100 || i < 20; i++)
+			Sleep(100);
+	}
+
 	// min/max pts & bitrate
 
 	m_rtMin = m_posMin = _I64_MAX;

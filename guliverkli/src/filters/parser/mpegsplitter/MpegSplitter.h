@@ -37,8 +37,10 @@ protected:
 	void SeekDeliverLoop(REFERENCE_TIME rt);
 	bool DoDeliverLoop();
 
+	HRESULT DemuxNextPacket(REFERENCE_TIME rtStartOffset);
+
 public:
-	CMpegSplitterFilter(LPUNKNOWN pUnk, HRESULT* phr);
+	CMpegSplitterFilter(LPUNKNOWN pUnk, HRESULT* phr, const CLSID& clsid = __uuidof(CMpegSplitterFilter));
 
 	DECLARE_IUNKNOWN
     STDMETHODIMP NonDelegatingQueryInterface(REFIID riid, void** ppv);
@@ -53,7 +55,7 @@ public:
 class CMpegSourceFilter : public CMpegSplitterFilter
 {
 public:
-	CMpegSourceFilter(LPUNKNOWN pUnk, HRESULT* phr);
+	CMpegSourceFilter(LPUNKNOWN pUnk, HRESULT* phr, const CLSID& clsid = __uuidof(CMpegSourceFilter));
 };
 
 class CMpegSplitterOutputPin : public CBaseSplitterOutputPin, protected CCritSec

@@ -1089,7 +1089,7 @@ HRESULT CRMFile::Read(MediaPacketHeader& mph, bool fFull)
 	}
 	else
 	{
-		Seek(m_pos + len);
+		Seek(GetPos() + len);
 	}
 
 	return S_OK;
@@ -1105,16 +1105,16 @@ HRESULT CRMFile::Init()
 	HRESULT hr;
 
 	ChunkHdr hdr;
-	while(m_pos < m_len && S_OK == (hr = Read(hdr)))
+	while(GetPos() < GetLength() && S_OK == (hr = Read(hdr)))
 	{
-		__int64 pos = m_pos - sizeof(hdr);
+		__int64 pos = GetPos() - sizeof(hdr);
 
 		if(fFirstChunk && hdr.object_id != '.RMF')
 			return E_FAIL;
 
 		fFirstChunk = false;
 
-		if(pos + hdr.size > m_len && hdr.object_id != 'DATA') // truncated?
+		if(pos + hdr.size > GetLength() && hdr.object_id != 'DATA') // truncated?
 			break;
 
 		if(hdr.object_id == 0x2E7261FD) // '.ra+0xFD'
@@ -1184,7 +1184,7 @@ HRESULT CRMFile::Init()
 				CAutoPtr<DataChunk> dc(new DataChunk);
 				if(S_OK != (hr = Read(dc->nPackets))) return hr;
 				if(S_OK != (hr = Read(dc->ptrNext))) return hr;
-				dc->pos = m_pos;
+				dc->pos = GetPos();
 				m_dcs.AddTail(dc);
                 GetDimensions();
 				break;
@@ -1233,11 +1233,11 @@ HRESULT CRMFile::Init()
 		}
 
 		ASSERT(hdr.object_id == 'DATA' 
-			|| m_pos == pos + hdr.size 
-			|| m_pos == pos + sizeof(hdr));
+			|| GetPos() == pos + hdr.size 
+			|| GetPos() == pos + sizeof(hdr));
 
 		pos += hdr.size;
-		if(pos > m_pos) 
+		if(pos > GetPos()) 
 			Seek(pos);
 	}
 

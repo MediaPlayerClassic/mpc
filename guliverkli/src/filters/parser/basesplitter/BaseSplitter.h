@@ -68,19 +68,27 @@ class CBaseSplitterFile
 	CAutoVectorPtr<BYTE> m_pCache;
 	__int64 m_cachepos, m_cachelen, m_cachetotal;
 
+	bool m_fStreaming;
+	__int64 m_pos, m_len;
+
 protected:
 	UINT64 m_bitbuff;
 	int m_bitlen;
-
-	__int64 m_pos, m_len;
 
 public:
 	CBaseSplitterFile(IAsyncReader* pReader, HRESULT& hr, int cachelen = 2048);
 	virtual ~CBaseSplitterFile() {}
 
+	bool IsStreaming() {return m_fStreaming;}
+
 	__int64 GetPos() {return m_pos - (m_bitlen>>3);}
-	__int64 GetLength() {return m_len;}
-	virtual void Seek(__int64 pos) {m_pos = min(max(pos, 0), m_len); BitFlush();}
+	__int64 GetLength()
+	{
+		LONGLONG total, available = 0;
+		if(SUCCEEDED(m_pAsyncReader->Length(&total, &available))) m_len = available;
+		return m_len;
+	}
+	virtual void Seek(__int64 pos) {__int64 len = GetLength(); m_pos = min(max(pos, 0), len); BitFlush();}
 	virtual HRESULT Read(BYTE* pData, __int64 len);
 
 	UINT64 BitRead(int nBits, bool fPeek = false);
@@ -324,13 +332,15 @@ public:
 	STDMETHODIMP GetRate(double* pdRate);
 	STDMETHODIMP GetPreroll(LONGLONG* pllPreroll);
 
+protected:
+	friend class CBaseSplitterOutputPin;
+	virtual HRESULT SetPositionsInternal(void* id, LONGLONG* pCurrent, DWORD dwCurrentFlags, LONGLONG* pStop, DWORD dwStopFlags);
+
 private:
 	REFERENCE_TIME m_rtLastStart, m_rtLastStop;
 	CList<void*> m_LastSeekers;
 
 public:
-	virtual HRESULT SetPositionsInternal(void* id, LONGLONG* pCurrent, DWORD dwCurrentFlags, LONGLONG* pStop, DWORD dwStopFlags);
-
 	// IAMOpenProgress
 
 	STDMETHODIMP QueryProgress(LONGLONG* pllTotal, LONGLONG* pllCurrent);
