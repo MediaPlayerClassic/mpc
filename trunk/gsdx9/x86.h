@@ -1,6 +1,6 @@
 #pragma once
 
-extern "C" void memsetd(void* dst, unsigned int c, size_t len);
+extern "C" void __fastcall memsetd(void* dst, unsigned int c, size_t len);
 extern "C" UINT64 ticks();
 
 #ifdef _M_AMD64
@@ -28,17 +28,17 @@ extern "C" void SwizzleBlock4_amd64(BYTE* dst, BYTE* src, __int64 srcpitch);
 
 #elif _M_IX86_FP >= 2
 
-extern "C" void SaturateColor_sse2(int* c);
+extern "C" void __fastcall SaturateColor_sse2(int* c);
 #define SaturateColor SaturateColor_sse2
 
-extern "C" void unSwizzleBlock32_sse2(BYTE* src, BYTE* dst, int dstpitch);
-extern "C" void unSwizzleBlock16_sse2(BYTE* src, BYTE* dst, int dstpitch);
-extern "C" void unSwizzleBlock8_sse2(BYTE* src, BYTE* dst, int dstpitch);
-extern "C" void unSwizzleBlock4_sse2(BYTE* src, BYTE* dst, int dstpitch);
-extern "C" void SwizzleBlock32_sse2(BYTE* dst, BYTE* src, int srcpitch, DWORD WriteMask = 0xffffffff);
-extern "C" void SwizzleBlock16_sse2(BYTE* dst, BYTE* src, int srcpitch);
-extern "C" void SwizzleBlock8_sse2(BYTE* dst, BYTE* src, int srcpitch);
-extern "C" void SwizzleBlock4_sse2(BYTE* dst, BYTE* src, int srcpitch);
+extern "C" void __fastcall unSwizzleBlock32_sse2(BYTE* src, BYTE* dst, int dstpitch);
+extern "C" void __fastcall unSwizzleBlock16_sse2(BYTE* src, BYTE* dst, int dstpitch);
+extern "C" void __fastcall unSwizzleBlock8_sse2(BYTE* src, BYTE* dst, int dstpitch);
+extern "C" void __fastcall unSwizzleBlock4_sse2(BYTE* src, BYTE* dst, int dstpitch);
+extern "C" void __fastcall SwizzleBlock32_sse2(BYTE* dst, BYTE* src, int srcpitch, DWORD WriteMask = 0xffffffff);
+extern "C" void __fastcall SwizzleBlock16_sse2(BYTE* dst, BYTE* src, int srcpitch);
+extern "C" void __fastcall SwizzleBlock8_sse2(BYTE* dst, BYTE* src, int srcpitch);
+extern "C" void __fastcall SwizzleBlock4_sse2(BYTE* dst, BYTE* src, int srcpitch);
 
 #define unSwizzleBlock32 unSwizzleBlock32_sse2
 #define unSwizzleBlock16 unSwizzleBlock16_sse2
@@ -51,17 +51,17 @@ extern "C" void SwizzleBlock4_sse2(BYTE* dst, BYTE* src, int srcpitch);
 
 #else
 
-extern "C" void SaturateColor_asm(int* c);
+extern "C" void __fastcall SaturateColor_asm(int* c);
 #define SaturateColor SaturateColor_asm
 
-extern void unSwizzleBlock32_c(BYTE* src, BYTE* dst, int dstpitch);
-extern void unSwizzleBlock16_c(BYTE* src, BYTE* dst, int dstpitch);
-extern void unSwizzleBlock8_c(BYTE* src, BYTE* dst, int dstpitch);
-extern void unSwizzleBlock4_c(BYTE* src, BYTE* dst, int dstpitch);
-extern void SwizzleBlock32_c(BYTE* dst, BYTE* src, int srcpitch, DWORD WriteMask = 0xffffffff);
-extern void SwizzleBlock16_c(BYTE* dst, BYTE* src, int srcpitch);
-extern void SwizzleBlock8_c(BYTE* dst, BYTE* src, int srcpitch);
-extern void SwizzleBlock4_c(BYTE* dst, BYTE* src, int srcpitch);
+extern void __fastcall unSwizzleBlock32_c(BYTE* src, BYTE* dst, int dstpitch);
+extern void __fastcall unSwizzleBlock16_c(BYTE* src, BYTE* dst, int dstpitch);
+extern void __fastcall unSwizzleBlock8_c(BYTE* src, BYTE* dst, int dstpitch);
+extern void __fastcall unSwizzleBlock4_c(BYTE* src, BYTE* dst, int dstpitch);
+extern void __fastcall SwizzleBlock32_c(BYTE* dst, BYTE* src, int srcpitch, DWORD WriteMask = 0xffffffff);
+extern void __fastcall SwizzleBlock16_c(BYTE* dst, BYTE* src, int srcpitch);
+extern void __fastcall SwizzleBlock8_c(BYTE* dst, BYTE* src, int srcpitch);
+extern void __fastcall SwizzleBlock4_c(BYTE* dst, BYTE* src, int srcpitch);
 
 #define unSwizzleBlock32 unSwizzleBlock32_c
 #define unSwizzleBlock16 unSwizzleBlock16_c
