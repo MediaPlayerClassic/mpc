@@ -1,0 +1,1090 @@
+/* 
+ *	Copyright (C) 2003 Gabest
+ *	http://www.gabest.org
+ *
+ *  This Program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2, or (at your option)
+ *  any later version.
+ *   
+ *  This Program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ *  GNU General Public License for more details.
+ *   
+ *  You should have received a copy of the GNU General Public License
+ *  along with GNU Make; see the file COPYING.  If not, write to
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  http://www.gnu.org/copyleft/gpl.html
+ *
+ */
+
+#include "StdAfx.h"
+#include "RoQSplitter.h"
+
+#include <initguid.h>
+#include "..\..\..\..\include\moreuuids.h"
+
+// {48B93619-A959-45d9-B5FD-E12A67A96CF1}
+DEFINE_GUID(MEDIASUBTYPE_RoQ, 
+0x48b93619, 0xa959, 0x45d9, 0xb5, 0xfd, 0xe1, 0x2a, 0x67, 0xa9, 0x6c, 0xf1);
+
+// 56516F52-0000-0010-8000-00AA00389B71  'RoQV' == MEDIASUBTYPE_RoQV
+DEFINE_GUID(MEDIASUBTYPE_RoQV,
+0x56516F52, 0x0000, 0x0010, 0x80, 0x00, 0x00, 0xaa, 0x00, 0x38, 0x9b, 0x71);
+
+#define WAVE_FORMAT_RoQA 0x41516F52
+
+// 41516F52-0000-0010-8000-00AA00389B71  'RoQA' == MEDIASUBTYPE_RoQA
+DEFINE_GUID(MEDIASUBTYPE_RoQA,
+WAVE_FORMAT_RoQA, 0x0000, 0x0010, 0x80, 0x00, 0x00, 0xaa, 0x00, 0x38, 0x9b, 0x71);
+
+#ifdef REGISTER_FILTER
+
+const AMOVIESETUP_MEDIATYPE sudPinTypesIn[] =
+{
+	{&MEDIATYPE_Stream, &MEDIASUBTYPE_RoQ},
+	{&MEDIATYPE_Stream, &MEDIASUBTYPE_NULL},
+};
+
+const AMOVIESETUP_PIN sudpPins[] =
+{
+    { L"Input",             // Pins string name
+      FALSE,                // Is it rendered
+      FALSE,                // Is it an output
+      FALSE,                // Are we allowed none
+      FALSE,                // And allowed many
+      &CLSID_NULL,          // Connects to filter
+      NULL,                 // Connects to pin
+      sizeof(sudPinTypesIn)/sizeof(sudPinTypesIn[0]), // Number of types
+      sudPinTypesIn         // Pin information
+    },
+    { L"Output",            // Pins string name
+      FALSE,                // Is it rendered
+      TRUE,                 // Is it an output
+      FALSE,                // Are we allowed none
+      FALSE,                // And allowed many
+      &CLSID_NULL,          // Connects to filter
+      NULL,                 // Connects to pin
+      0,					// Number of types
+      NULL					// Pin information
+    },
+};
+
+const AMOVIESETUP_FILTER sudFilter[] =
+{
+	{&__uuidof(CRoQSplitterFilter), L"RoQ Splitter", MERIT_NORMAL+1, sizeof(sudpPins)/sizeof(sudpPins[0]), sudpPins},
+	{&__uuidof(CRoQSourceFilter), L"RoQ Source", MERIT_NORMAL+1, 0, NULL},
+};
+
+/////////////////
+
+const AMOVIESETUP_MEDIATYPE sudPinTypesIn2[] =
+{
+	{&MEDIATYPE_Video, &MEDIASUBTYPE_NULL},
+};
+
+const AMOVIESETUP_MEDIATYPE sudPinTypesOut2[] =
+{
+	{&MEDIATYPE_Video, &MEDIASUBTYPE_RoQV},
+};
+
+const AMOVIESETUP_PIN sudpPins2[] =
+{
+    { L"Input",             // Pins string name
+      FALSE,                // Is it rendered
+      FALSE,                // Is it an output
+      FALSE,                // Are we allowed none
+      FALSE,                // And allowed many
+      &CLSID_NULL,          // Connects to filter
+      NULL,                 // Connects to pin
+      sizeof(sudPinTypesIn2)/sizeof(sudPinTypesIn2[0]),	// Number of types
+      sudPinTypesIn2			// Pin information
+    },
+    { L"Output",            // Pins string name
+      FALSE,                // Is it rendered
+      TRUE,                 // Is it an output
+      FALSE,                // Are we allowed none
+      FALSE,                // And allowed many
+      &CLSID_NULL,          // Connects to filter
+      NULL,                 // Connects to pin
+      sizeof(sudPinTypesOut2)/sizeof(sudPinTypesOut2[0]),	// Number of types
+      sudPinTypesOut2		// Pin information
+    }
+};
+
+const AMOVIESETUP_MEDIATYPE sudPinTypesIn3[] =
+{
+	{&MEDIATYPE_Audio, &MEDIASUBTYPE_NULL},
+};
+
+const AMOVIESETUP_MEDIATYPE sudPinTypesOut3[] =
+{
+	{&MEDIATYPE_Audio, &MEDIASUBTYPE_RoQA},
+};
+
+const AMOVIESETUP_PIN sudpPins3[] =
+{
+    { L"Input",             // Pins string name
+      FALSE,                // Is it rendered
+      FALSE,                // Is it an output
+      FALSE,                // Are we allowed none
+      FALSE,                // And allowed many
+      &CLSID_NULL,          // Connects to filter
+      NULL,                 // Connects to pin
+      sizeof(sudPinTypesIn3)/sizeof(sudPinTypesIn3[0]),	// Number of types
+      sudPinTypesIn3			// Pin information
+    },
+    { L"Output",            // Pins string name
+      FALSE,                // Is it rendered
+      TRUE,                 // Is it an output
+      FALSE,                // Are we allowed none
+      FALSE,                // And allowed many
+      &CLSID_NULL,          // Connects to filter
+      NULL,                 // Connects to pin
+      sizeof(sudPinTypesOut3)/sizeof(sudPinTypesOut3[0]),	// Number of types
+      sudPinTypesOut3		// Pin information
+    }
+};
+
+const AMOVIESETUP_FILTER sudFilter2[] =
+{
+	{&__uuidof(CRoQVideoDecoder), L"RoQ Video Decoder", MERIT_UNLIKELY, sizeof(sudpPins2)/sizeof(sudpPins2[0]), sudpPins2},
+	{&__uuidof(CRoQAudioDecoder), L"RoQ Audio Decoder", MERIT_UNLIKELY, sizeof(sudpPins3)/sizeof(sudpPins3[0]), sudpPins3},
+};
+
+////////////////////
+
+CFactoryTemplate g_Templates[] =
+{
+	{L"RoQ Splitter", &__uuidof(CRoQSplitterFilter), CRoQSplitterFilter::CreateInstance, NULL, &sudFilter[0]},
+	{L"RoQ Source", &__uuidof(CRoQSourceFilter), CRoQSourceFilter::CreateInstance, NULL, &sudFilter[1]},
+    {L"RoQ Video Decoder", &__uuidof(CRoQVideoDecoder), CRoQVideoDecoder::CreateInstance, NULL, &sudFilter2[0]},
+    {L"RoQ Audio Decoder", &__uuidof(CRoQAudioDecoder), CRoQAudioDecoder::CreateInstance, NULL, &sudFilter2[1]},
+};
+
+int g_cTemplates = sizeof(g_Templates) / sizeof(g_Templates[0]);
+
+#include "..\..\registry.cpp"
+
+STDAPI DllRegisterServer()
+{
+	RegisterSourceFilter(CLSID_AsyncReader, MEDIASUBTYPE_RoQ, _T("0,8,,8410FFFFFFFF1E00"), _T(".roq"), NULL);
+
+	return AMovieDllRegisterServer2(TRUE);
+}
+
+STDAPI DllUnregisterServer()
+{
+	UnRegisterSourceFilter(MEDIASUBTYPE_RoQ);
+
+	return AMovieDllRegisterServer2(FALSE);
+}
+
+extern "C" BOOL WINAPI DllEntryPoint(HINSTANCE, ULONG, LPVOID);
+
+BOOL APIENTRY DllMain(HANDLE hModule, DWORD ul_reason_for_call, LPVOID lpReserved)
+{
+    return DllEntryPoint((HINSTANCE)hModule, ul_reason_for_call, 0); // "DllMain" of the dshow baseclasses;
+}
+
+CUnknown* WINAPI CRoQSplitterFilter::CreateInstance(LPUNKNOWN lpunk, HRESULT* phr)
+{
+    CUnknown* punk = new CRoQSplitterFilter(lpunk, phr);
+    if(punk == NULL) *phr = E_OUTOFMEMORY;
+	return punk;
+}
+
+CUnknown* WINAPI CRoQSourceFilter::CreateInstance(LPUNKNOWN lpunk, HRESULT* phr)
+{
+    CUnknown* punk = new CRoQSourceFilter(lpunk, phr);
+    if(punk == NULL) *phr = E_OUTOFMEMORY;
+	return punk;
+}
+
+#endif
+
+//
+// CRoQSplitterFilter
+//
+
+CRoQSplitterFilter::CRoQSplitterFilter(LPUNKNOWN pUnk, HRESULT* phr)
+	: CBaseSplitterFilter(NAME("CRoQSplitterFilter"), pUnk, phr, __uuidof(this))
+	, m_rtDuration(0)
+{
+}
+
+HRESULT CRoQSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
+{
+	CheckPointer(pAsyncReader, E_POINTER);
+
+	if(m_pOutputs.GetCount() > 0) return VFW_E_ALREADY_CONNECTED;
+
+	HRESULT hr = E_FAIL;
+
+	m_pAsyncReader = pAsyncReader;
+
+	UINT64 hdr = 0, hdrchk = 0x001effffffff1084;
+	m_pAsyncReader->SyncRead(0, 8, (BYTE*)&hdr);
+	if(hdr != hdrchk) return E_FAIL;
+
+	//
+
+	m_rtNewStart = m_rtCurrent = 0;
+	m_rtNewStop = m_rtStop = m_rtDuration = 0;
+
+	// pins
+
+	CMediaType mt;
+	CArray<CMediaType> mts;
+
+	int iHasVideo = 0;
+	int iHasAudio = 0;
+
+	roq_info ri;
+	memset(&ri, 0, sizeof(ri));
+
+	roq_chunk rc;
+
+	UINT64 pos = 8;
+
+	while(S_OK == m_pAsyncReader->SyncRead(pos, sizeof(rc), (BYTE*)&rc))
+	{
+		pos += sizeof(rc);
+
+		if(rc.id == 0x1001)
+		{
+			if(S_OK != m_pAsyncReader->SyncRead(pos, sizeof(ri), (BYTE*)&ri) || ri.w == 0 || ri.h == 0)
+				break;
+		}
+		else if(rc.id == 0x1010 || rc.id == 0x1011)
+		{
+			if(!iHasVideo && ri.w > 0 && ri.h > 0)
+			{
+				mts.RemoveAll();
+
+				mt.InitMediaType();
+				mt.majortype = MEDIATYPE_Video;
+				mt.subtype = MEDIASUBTYPE_RoQV;
+				mt.formattype = FORMAT_VideoInfo;
+				VIDEOINFOHEADER vih;
+				memset(&vih, 0, sizeof(vih));
+				vih.AvgTimePerFrame = 10000000i64/30;
+				vih.bmiHeader.biSize = sizeof(vih.bmiHeader.biSize);
+				vih.bmiHeader.biWidth = ri.w;
+				vih.bmiHeader.biHeight = ri.h;
+				vih.bmiHeader.biCompression = MEDIASUBTYPE_RoQV.Data1;
+				mt.SetFormat((BYTE*)&vih, sizeof(vih));
+				mt.lSampleSize = 1;
+
+				mts.Add(mt);
+
+				CAutoPtr<CBaseSplitterOutputPin> pPinOut(new CBaseSplitterOutputPin(mts, L"Video", this, this, &hr));
+
+				if(pPinOut)
+				{
+					m_pPinMap[0] = pPinOut;
+					m_pOutputs.AddTail(pPinOut);
+				}
+			}
+
+			iHasVideo++;
+		}
+		else if(rc.id == 0x1020 || rc.id == 0x1021)
+		{
+			if(!iHasAudio)
+			{
+				mts.RemoveAll();
+
+				mt.InitMediaType();
+				mt.majortype = MEDIATYPE_Audio;
+				mt.subtype = MEDIASUBTYPE_RoQA;
+				mt.formattype = FORMAT_WaveFormatEx;
+				WAVEFORMATEX wfe;
+				memset(&wfe, 0, sizeof(wfe));
+				wfe.wFormatTag = (WORD)WAVE_FORMAT_RoQA; // cut into half, hehe, like anyone would care
+				wfe.nChannels = (rc.id&1)+1;
+				wfe.nSamplesPerSec = 22050;
+				wfe.wBitsPerSample = 16;
+				mt.SetFormat((BYTE*)&wfe, sizeof(wfe));
+				mt.lSampleSize = 1;
+				mts.Add(mt);
+
+				CAutoPtr<CBaseSplitterOutputPin> pPinOut(new CBaseSplitterOutputPin(mts, L"Audio", this, this, &hr));
+				if(pPinOut)
+				{
+					m_pPinMap[1] = pPinOut;
+					m_pOutputs.AddTail(pPinOut);
+				}
+			}
+
+			iHasAudio++;
+		}
+
+		pos += rc.size;
+	}
+
+	//
+
+	m_rtNewStop = m_rtStop = m_rtDuration = 10000000i64*iHasVideo/30;
+
+	return m_pOutputs.GetCount() > 0 ? S_OK : E_FAIL;
+}
+
+bool CRoQSplitterFilter::InitDeliverLoop()
+{
+	// TODO
+
+	return(true);
+}
+
+void CRoQSplitterFilter::SeekDeliverLoop(REFERENCE_TIME rt)
+{
+	// TODO
+}
+
+void CRoQSplitterFilter::DoDeliverLoop()
+{
+	REFERENCE_TIME rtVideo = 0, rtAudio = 0;
+
+	HRESULT hr = S_OK;
+
+	UINT64 pos = 8;
+	roq_chunk rc;
+	while(S_OK == (hr = m_pAsyncReader->SyncRead(pos, sizeof(rc), (BYTE*)&rc))
+		&& !CheckRequest(NULL))
+	{
+		pos += sizeof(rc);
+
+		CAutoPtr<Packet> p(new Packet());
+
+		if(rc.id == 0x1002 || rc.id == 0x1011 || rc.id == 0x1020 || rc.id == 0x1021)
+		{
+			p->pData.SetSize(sizeof(rc) + rc.size);
+			memcpy(p->pData.GetData(), &rc, sizeof(rc));
+			if(S_OK != (hr = m_pAsyncReader->SyncRead(pos, rc.size, p->pData.GetData() + sizeof(rc))))
+				break;
+		}
+
+		if(rc.id == 0x1002 || rc.id == 0x1011)
+		{
+			p->TrackNumber = 0;
+			p->bSyncPoint = rtVideo == 0;
+			p->rtStart = rtVideo;
+			p->rtStop = rtVideo += (rc.id == 0x1011 ? 10000000i64/30 : 0);
+			TRACE(_T("v: %I64d - %I64d (%d)\n"), p->rtStart/10000, p->rtStop/10000, p->pData.GetSize());
+		}
+		else if(rc.id == 0x1020 || rc.id == 0x1021)
+		{
+			int nChannels = (rc.id&1)+1;
+
+			p->TrackNumber = 1;
+			p->bSyncPoint = TRUE;
+			p->rtStart = rtAudio;
+			p->rtStop = rtAudio += 10000000i64*rc.size/(nChannels*22050);
+			TRACE(_T("a: %I64d - %I64d (%d)\n"), p->rtStart/10000, p->rtStop/10000, p->pData.GetSize());
+		}
+
+		if(rc.id == 0x1002 || rc.id == 0x1011 || rc.id == 0x1020 || rc.id == 0x1021)
+		{
+			hr = DeliverPacket(p);
+		}
+
+		pos += rc.size;
+	}
+}
+
+// IMediaSeeking
+
+STDMETHODIMP CRoQSplitterFilter::GetDuration(LONGLONG* pDuration)
+{
+	CheckPointer(pDuration,	E_POINTER);
+	*pDuration = m_rtDuration;
+	return S_OK;
+}
+
+//
+// CRoQSourceFilter
+//
+
+CRoQSourceFilter::CRoQSourceFilter(LPUNKNOWN pUnk, HRESULT* phr)
+	: CRoQSplitterFilter(pUnk, phr)
+{
+	m_clsid = __uuidof(this);
+	m_pInput.Free();
+}
+
+//
+// CRoQVideoDecoder
+//
+
+CRoQVideoDecoder::CRoQVideoDecoder(LPUNKNOWN lpunk, HRESULT* phr)
+	: CTransformFilter(NAME("CRoQVideoDecoder"), lpunk, __uuidof(this))
+{
+	if(phr) *phr = S_OK;
+}
+
+CRoQVideoDecoder::~CRoQVideoDecoder()
+{
+}
+
+#ifdef REGISTER_FILTER
+CUnknown* WINAPI CRoQVideoDecoder::CreateInstance(LPUNKNOWN lpunk, HRESULT* phr)
+{
+    CUnknown* punk = new CRoQVideoDecoder(lpunk, phr);
+    if(punk == NULL) *phr = E_OUTOFMEMORY;
+	return punk;
+}
+#endif
+
+void CRoQVideoDecoder::apply_vector_2x2(int x, int y, roq_cell* cell)
+{
+	unsigned char* yptr;
+	yptr = m_y[0] + (y * m_pitch) + x;
+	*yptr++ = cell->y0;
+	*yptr++ = cell->y1;
+	yptr += (m_pitch - 2);
+	*yptr++ = cell->y2;
+	*yptr++ = cell->y3;
+	m_u[0][(y/2) * (m_pitch/2) + x/2] = cell->u;
+	m_v[0][(y/2) * (m_pitch/2) + x/2] = cell->v;
+}
+
+void CRoQVideoDecoder::apply_vector_4x4(int x, int y, roq_cell* cell)
+{
+	unsigned long row_inc, c_row_inc;
+	register unsigned char y0, y1, u, v;
+	unsigned char *yptr, *uptr, *vptr;
+
+	yptr = m_y[0] + (y * m_pitch) + x;
+	uptr = m_u[0] + (y/2) * (m_pitch/2) + x/2;
+	vptr = m_v[0] + (y/2) * (m_pitch/2) + x/2;
+
+	row_inc = m_pitch - 4;
+	c_row_inc = (m_pitch/2) - 2;
+	*yptr++ = y0 = cell->y0; *uptr++ = u = cell->u; *vptr++ = v = cell->v;
+	*yptr++ = y0;
+	*yptr++ = y1 = cell->y1; *uptr++ = u; *vptr++ = v;
+	*yptr++ = y1;
+
+	yptr += row_inc;
+
+	*yptr++ = y0;
+	*yptr++ = y0;
+	*yptr++ = y1;
+	*yptr++ = y1;
+
+	yptr += row_inc; uptr += c_row_inc; vptr += c_row_inc;
+
+	*yptr++ = y0 = cell->y2; *uptr++ = u; *vptr++ = v;
+	*yptr++ = y0;
+	*yptr++ = y1 = cell->y3; *uptr++ = u; *vptr++ = v;
+	*yptr++ = y1;
+
+	yptr += row_inc;
+
+	*yptr++ = y0;
+	*yptr++ = y0;
+	*yptr++ = y1;
+	*yptr++ = y1;
+}
+
+void CRoQVideoDecoder::apply_motion_4x4(int x, int y, unsigned char mv, char mean_x, char mean_y)
+{
+	int i, mx, my;
+	unsigned char *pa, *pb;
+
+	mx = x + 8 - (mv >> 4) - mean_x;
+	my = y + 8 - (mv & 0xf) - mean_y;
+
+	pa = m_y[0] + (y * m_pitch) + x;
+	pb = m_y[1] + (my * m_pitch) + mx;
+	for(i = 0; i < 4; i++)
+	{
+		pa[0] = pb[0];
+		pa[1] = pb[1];
+		pa[2] = pb[2];
+		pa[3] = pb[3];
+		pa += m_pitch;
+		pb += m_pitch;
+	}
+
+	pa = m_u[0] + (y/2) * (m_pitch/2) + x/2;
+	pb = m_u[1] + (my/2) * (m_pitch/2) + (mx + 1)/2;
+	for(i = 0; i < 2; i++)
+	{
+		pa[0] = pb[0];
+		pa[1] = pb[1];
+		pa += m_pitch/2;
+		pb += m_pitch/2;
+	}
+
+	pa = m_v[0] + (y/2) * (m_pitch/2) + x/2;
+	pb = m_v[1] + (my/2) * (m_pitch/2) + (mx + 1)/2;
+	for(i = 0; i < 2; i++)
+	{
+		pa[0] = pb[0];
+		pa[1] = pb[1];
+		pa += m_pitch/2;
+		pb += m_pitch/2;
+	}
+}
+
+void CRoQVideoDecoder::apply_motion_8x8(int x, int y, unsigned char mv, char mean_x, char mean_y)
+{
+	int mx, my, i;
+	unsigned char *pa, *pb;
+
+	mx = x + 8 - (mv >> 4) - mean_x;
+	my = y + 8 - (mv & 0xf) - mean_y;
+
+	pa = m_y[0] + (y * m_pitch) + x;
+	pb = m_y[1] + (my * m_pitch) + mx;
+	for(i = 0; i < 8; i++)
+	{
+		pa[0] = pb[0];
+		pa[1] = pb[1];
+		pa[2] = pb[2];
+		pa[3] = pb[3];
+		pa[4] = pb[4];
+		pa[5] = pb[5];
+		pa[6] = pb[6];
+		pa[7] = pb[7];
+		pa += m_pitch;
+		pb += m_pitch;
+	}
+
+	pa = m_u[0] + (y/2) * (m_pitch/2) + x/2;
+	pb = m_u[1] + (my/2) * (m_pitch/2) + (mx + 1)/2;
+	for(i = 0; i < 4; i++)
+	{
+		pa[0] = pb[0];
+		pa[1] = pb[1];
+		pa[2] = pb[2];
+		pa[3] = pb[3];
+		pa += m_pitch/2;
+		pb += m_pitch/2;
+	}
+
+	pa = m_v[0] + (y/2) * (m_pitch/2) + x/2;
+	pb = m_v[1] + (my/2) * (m_pitch/2) + (mx + 1)/2;
+	for(i = 0; i < 4; i++)
+	{
+		pa[0] = pb[0];
+		pa[1] = pb[1];
+		pa[2] = pb[2];
+		pa[3] = pb[3];
+		pa += m_pitch/2;
+		pb += m_pitch/2;
+	}
+}
+
+HRESULT CRoQVideoDecoder::Transform(IMediaSample* pIn, IMediaSample* pOut)
+{
+	HRESULT hr;
+
+	AM_MEDIA_TYPE* pmt;
+	if(SUCCEEDED(pOut->GetMediaType(&pmt)) && pmt)
+	{
+		CMediaType mt(*pmt);
+		m_pOutput->SetMediaType(&mt);
+		DeleteMediaType(pmt);
+	}
+
+	BYTE* pDataIn = NULL;
+	if(FAILED(hr = pIn->GetPointer(&pDataIn))) return hr;
+
+	long len = pIn->GetActualDataLength();
+	if(len <= 0) return S_OK; // nothing to do
+
+	REFERENCE_TIME rtStart, rtStop;
+	pIn->GetTime(&rtStart, &rtStop);
+
+	if(pIn->IsPreroll() == S_OK || rtStart < 0)
+		return S_OK;
+
+	BYTE* pDataOut = NULL;
+	if(FAILED(hr = pOut->GetPointer(&pDataOut)))
+		return hr;
+
+	BITMAPINFOHEADER bih;
+	ExtractBIH(&m_pInput->CurrentMediaType(), &bih);
+
+	int w = bih.biWidth, h = bih.biHeight;
+
+	// TODO: decode picture into m_pI420
+
+	roq_chunk* rc = (roq_chunk*)pDataIn;
+
+	pDataIn += sizeof(roq_chunk);
+
+	if(rc->id == 0x1002)
+	{
+		DWORD nv1 = rc->arg>>8;
+		if(nv1 == 0) nv1 = 256;
+
+		DWORD nv2 = rc->arg&0xff;
+		if(nv2 == 0 && nv1 * 6 < rc->size) nv2 = 256;
+
+		memcpy(m_cells, pDataIn, sizeof(m_cells[0])*nv1);
+		pDataIn += sizeof(m_cells[0])*nv1;
+
+		for(int i = 0; i < (int)nv2; i++)
+			for(int j = 0; j < 4; j++)
+				m_qcells[i].idx[j] = &m_cells[*pDataIn++];
+	}
+	else if(rc->id == 0x1011)
+	{
+		int bpos = 0, xpos = 0, ypos = 0;
+		int vqflg = 0, vqflg_pos = -1, vqid;
+		roq_qcell* qcell = NULL;
+
+		BYTE* buf = pDataIn;
+
+		while(bpos < (int)rc->size && ypos < h)
+		{
+			for(int yp = ypos; yp < ypos + 16; yp += 8)
+			{
+				for(int xp = xpos; xp < xpos + 16; xp += 8)
+				{
+					if(vqflg_pos < 0)
+					{
+						vqflg = buf[bpos++];
+						vqflg |= buf[bpos++]<<8;
+						vqflg_pos = 7;
+					}
+
+					vqid = (vqflg >> (vqflg_pos * 2)) & 3;
+					vqflg_pos--;
+
+					switch(vqid)
+					{
+					case 0:
+						break;
+					case 1:
+						apply_motion_8x8(xp, yp, buf[bpos++], rc->arg >> 8, rc->arg & 0xff);
+						break;
+					case 2:
+						qcell = m_qcells + buf[bpos++];
+						apply_vector_4x4(xp, yp, qcell->idx[0]);
+						apply_vector_4x4(xp+4, yp, qcell->idx[1]);
+						apply_vector_4x4(xp, yp+4, qcell->idx[2]);
+						apply_vector_4x4(xp+4, yp+4, qcell->idx[3]);
+						break;
+					case 3:
+						for(int k = 0; k < 4; k++)
+						{
+							int x = xp, y = yp;
+							if(k&1) x += 4;
+							if(k&2) y += 4;
+
+							if(vqflg_pos < 0)
+							{
+								vqflg = buf[bpos++];
+								vqflg |= buf[bpos++]<<8;
+								vqflg_pos = 7;
+							}
+
+							vqid = (vqflg >> (vqflg_pos * 2)) & 3;
+							vqflg_pos--;
+
+							switch(vqid)
+							{
+							case 0:
+								break;
+							case 1:
+								apply_motion_4x4(x, y, buf[bpos++], rc->arg >> 8, rc->arg & 0xff);
+								break;
+							case 2:
+								qcell = m_qcells + buf[bpos++];
+								apply_vector_2x2(x, y, qcell->idx[0]);
+								apply_vector_2x2(x+2, y, qcell->idx[1]);
+								apply_vector_2x2(x, y+2, qcell->idx[2]);
+								apply_vector_2x2(x+2, y+2, qcell->idx[3]);
+								break;
+							case 3:
+								apply_vector_2x2(x, y, &m_cells[buf[bpos++]]);
+								apply_vector_2x2(x+2, y, &m_cells[buf[bpos++]]);
+								apply_vector_2x2(x, y+2, &m_cells[buf[bpos++]]);
+								apply_vector_2x2(x+2, y+2, &m_cells[buf[bpos++]]);
+								break;
+							}
+						}
+						break;
+					}
+				}
+			}
+
+			xpos += 16;
+			if(xpos >= w) {xpos -= w; ypos += 16;}
+		}
+
+		if(rtStart == 0)
+		{
+			memcpy(m_y[1], m_y[0], w*h*3/2);
+		}
+		else
+		{
+			BYTE* tmp;
+			tmp = m_y[0]; m_y[0] = m_y[1]; m_y[1] = tmp;
+			tmp = m_u[0]; m_u[0] = m_u[1]; m_u[1] = tmp;
+			tmp = m_v[0]; m_v[0] = m_v[1]; m_v[1] = tmp;
+		}
+	}
+	else
+	{
+		return E_UNEXPECTED;
+	}
+
+	Copy(pDataOut, m_y[1], w, h);
+
+	pOut->SetTime(&rtStart, &rtStop);
+
+	return S_OK;
+}
+
+void CRoQVideoDecoder::Copy(BYTE* pOut, BYTE* pIn, DWORD w, DWORD h)
+{
+	BITMAPINFOHEADER bihOut;
+	ExtractBIH(&m_pOutput->CurrentMediaType(), &bihOut);
+
+	int pitchIn = w;
+	int pitchInUV = pitchIn>>1;
+	BYTE* pInU = pIn + pitchIn*h;
+	BYTE* pInV = pInU + pitchInUV*h/2;
+
+	if(bihOut.biCompression == '2YUY')
+	{
+		BitBltFromI420ToYUY2(w, h, pOut, bihOut.biWidth*2, pIn, pInU, pInV, pitchIn);
+	}
+	else if(bihOut.biCompression == 'I420' || bihOut.biCompression == 'VUYI')
+	{
+		BitBltFromI420ToI420(w, h, pOut, pOut + bihOut.biWidth*h, pOut + bihOut.biWidth*h*5/4, bihOut.biWidth, pIn, pInU, pInV, pitchIn);
+	}
+	else if(bihOut.biCompression == '21VY')
+	{
+		BitBltFromI420ToI420(w, h, pOut, pOut + bihOut.biWidth*h*5/4, pOut + bihOut.biWidth*h, bihOut.biWidth, pIn, pInU, pInV, pitchIn);
+	}
+	else if(bihOut.biCompression == BI_RGB || bihOut.biCompression == BI_BITFIELDS)
+	{
+		int pitchOut = bihOut.biWidth*bihOut.biBitCount>>3;
+
+		if(bihOut.biHeight > 0)
+		{
+			pOut += pitchOut*(h-1);
+			pitchOut = -pitchOut;
+		}
+
+		if(!BitBltFromI420ToRGB(w, h, pOut, pitchOut, bihOut.biBitCount, pIn, pInU, pInV, pitchIn))
+		{
+			for(DWORD y = 0; y < h; y++, pIn += pitchIn, pOut += pitchOut)
+				memset(pOut, 0, pitchOut);
+		}
+	}
+}
+
+HRESULT CRoQVideoDecoder::CheckInputType(const CMediaType* mtIn)
+{
+	return mtIn->majortype == MEDIATYPE_Video && mtIn->subtype == MEDIASUBTYPE_RoQV
+		? S_OK
+		: VFW_E_TYPE_NOT_ACCEPTED;
+}
+
+HRESULT CRoQVideoDecoder::CheckTransform(const CMediaType* mtIn, const CMediaType* mtOut)
+{
+	if(m_pOutput && m_pOutput->IsConnected())
+	{
+		BITMAPINFOHEADER bih1, bih2;
+		if(ExtractBIH(mtOut, &bih1) && ExtractBIH(&m_pOutput->CurrentMediaType(), &bih2)
+		&& abs(bih1.biHeight) != abs(bih2.biHeight))
+			return VFW_E_TYPE_NOT_ACCEPTED;
+	}
+
+	return SUCCEEDED(CheckInputType(mtIn))
+		&& mtOut->majortype == MEDIATYPE_Video && (mtOut->subtype == MEDIASUBTYPE_YUY2
+												|| mtOut->subtype == MEDIASUBTYPE_YV12
+												|| mtOut->subtype == MEDIASUBTYPE_I420
+												|| mtOut->subtype == MEDIASUBTYPE_IYUV
+												|| mtOut->subtype == MEDIASUBTYPE_ARGB32
+												|| mtOut->subtype == MEDIASUBTYPE_RGB32
+												|| mtOut->subtype == MEDIASUBTYPE_RGB24
+												|| mtOut->subtype == MEDIASUBTYPE_RGB565
+												|| mtOut->subtype == MEDIASUBTYPE_RGB555)
+		? S_OK
+		: VFW_E_TYPE_NOT_ACCEPTED;
+}
+
+HRESULT CRoQVideoDecoder::DecideBufferSize(IMemAllocator* pAllocator, ALLOCATOR_PROPERTIES* pProperties)
+{
+	if(m_pInput->IsConnected() == FALSE) return E_UNEXPECTED;
+
+	BITMAPINFOHEADER bih;
+	ExtractBIH(&m_pOutput->CurrentMediaType(), &bih);
+
+	pProperties->cBuffers = 1;
+	pProperties->cbBuffer = bih.biSizeImage;
+	pProperties->cbAlign = 1;
+	pProperties->cbPrefix = 0;
+
+	HRESULT hr;
+	ALLOCATOR_PROPERTIES Actual;
+    if(FAILED(hr = pAllocator->SetProperties(pProperties, &Actual))) 
+		return hr;
+
+    return(pProperties->cBuffers > Actual.cBuffers || pProperties->cbBuffer > Actual.cbBuffer
+		? E_FAIL
+		: NOERROR);
+}
+
+HRESULT CRoQVideoDecoder::GetMediaType(int iPosition, CMediaType* pmt)
+{
+    if(m_pInput->IsConnected() == FALSE) return E_UNEXPECTED;
+
+	struct {const GUID* subtype; WORD biPlanes, biBitCount; DWORD biCompression;} fmts[] =
+	{
+		{&MEDIASUBTYPE_YV12, 3, 12, '21VY'},
+		{&MEDIASUBTYPE_I420, 3, 12, '024I'},
+		{&MEDIASUBTYPE_IYUV, 3, 12, 'VUYI'},
+		{&MEDIASUBTYPE_YUY2, 1, 16, '2YUY'},
+		{&MEDIASUBTYPE_ARGB32, 1, 32, BI_RGB},
+		{&MEDIASUBTYPE_RGB32, 1, 32, BI_RGB},
+		{&MEDIASUBTYPE_RGB24, 1, 24, BI_RGB},
+		{&MEDIASUBTYPE_RGB565, 1, 16, BI_RGB},
+		{&MEDIASUBTYPE_RGB555, 1, 16, BI_RGB},
+		{&MEDIASUBTYPE_ARGB32, 1, 32, BI_BITFIELDS},
+		{&MEDIASUBTYPE_RGB32, 1, 32, BI_BITFIELDS},
+		{&MEDIASUBTYPE_RGB24, 1, 24, BI_BITFIELDS},
+		{&MEDIASUBTYPE_RGB565, 1, 16, BI_BITFIELDS},
+		{&MEDIASUBTYPE_RGB555, 1, 16, BI_BITFIELDS},
+	};
+
+	if(iPosition < 0) return E_INVALIDARG;
+	if(iPosition >= sizeof(fmts)/sizeof(fmts[0])) return VFW_S_NO_MORE_ITEMS;
+
+	BITMAPINFOHEADER bih;
+	ExtractBIH(&m_pInput->CurrentMediaType(), &bih);
+
+	pmt->majortype = MEDIATYPE_Video;
+	pmt->subtype = *fmts[iPosition].subtype;
+	pmt->formattype = FORMAT_VideoInfo;
+
+	BITMAPINFOHEADER bihOut;
+	memset(&bihOut, 0, sizeof(bihOut));
+	bihOut.biSize = sizeof(bihOut);
+	bihOut.biWidth = bih.biWidth;
+	bihOut.biHeight = bih.biHeight;
+	bihOut.biPlanes = fmts[iPosition].biPlanes;
+	bihOut.biBitCount = fmts[iPosition].biBitCount;
+	bihOut.biCompression = fmts[iPosition].biCompression;
+	bihOut.biSizeImage = bih.biWidth*bih.biHeight*bihOut.biBitCount>>3;
+
+	VIDEOINFOHEADER* vih = (VIDEOINFOHEADER*)pmt->AllocFormatBuffer(sizeof(VIDEOINFOHEADER));
+	memset(vih, 0, sizeof(VIDEOINFOHEADER));
+	vih->bmiHeader = bihOut;
+
+	CorrectMediaType(pmt);
+
+	return S_OK;
+}
+
+HRESULT CRoQVideoDecoder::StartStreaming()
+{
+	BITMAPINFOHEADER bih;
+	ExtractBIH(&m_pInput->CurrentMediaType(), &bih);
+
+	int size = bih.biWidth*bih.biHeight;
+
+	m_y[0] = new BYTE[size*3/2];
+	m_u[0] = m_y[0] + size;
+	m_v[0] = m_y[0] + size*5/4;
+	m_y[1] = new BYTE[size*3/2];
+	m_u[1] = m_y[1] + size;
+	m_v[1] = m_y[1] + size*5/4;
+
+	memset(m_y[0], 0, size);
+	memset(m_u[0], 0x80, size/2);
+	memset(m_y[1], 0, size);
+	memset(m_u[1], 0x80, size/2);
+
+	m_pitch = bih.biWidth;
+
+	return __super::StartStreaming();
+}
+
+HRESULT CRoQVideoDecoder::StopStreaming()
+{
+	delete [] m_y[0]; m_y[0] = NULL;
+	delete [] m_y[1]; m_y[1] = NULL;
+
+	return __super::StopStreaming();
+}
+
+//
+// CRealAudioDecoder
+//
+
+CRoQAudioDecoder::CRoQAudioDecoder(LPUNKNOWN lpunk, HRESULT* phr)
+	: CTransformFilter(NAME("CRoQAudioDecoder"), lpunk, __uuidof(this))
+{
+	if(phr) *phr = S_OK;
+}
+
+CRoQAudioDecoder::~CRoQAudioDecoder()
+{
+}
+
+#ifdef REGISTER_FILTER
+CUnknown* WINAPI CRoQAudioDecoder::CreateInstance(LPUNKNOWN lpunk, HRESULT* phr)
+{
+    CUnknown* punk = new CRoQAudioDecoder(lpunk, phr);
+    if(punk == NULL) *phr = E_OUTOFMEMORY;
+	return punk;
+}
+#endif
+
+HRESULT CRoQAudioDecoder::Transform(IMediaSample* pIn, IMediaSample* pOut)
+{
+	HRESULT hr;
+
+	AM_MEDIA_TYPE* pmt;
+	if(SUCCEEDED(pOut->GetMediaType(&pmt)) && pmt)
+	{
+		CMediaType mt(*pmt);
+		m_pOutput->SetMediaType(&mt);
+		DeleteMediaType(pmt);
+	}
+
+	WAVEFORMATEX* pwfe = (WAVEFORMATEX*)m_pOutput->CurrentMediaType().Format();
+
+	BYTE* pDataIn = NULL;
+	if(FAILED(hr = pIn->GetPointer(&pDataIn)))
+		return hr;
+
+	long len = pIn->GetActualDataLength();
+	if(len <= 0) return S_OK;
+
+	REFERENCE_TIME rtStart, rtStop;
+	pIn->GetTime(&rtStart, &rtStop);
+
+	if(pIn->IsPreroll() == S_OK || rtStart < 0)
+		return S_OK;
+
+	BYTE* pDataOut = NULL;
+	if(FAILED(hr = pOut->GetPointer(&pDataOut)))
+		return hr;
+
+	long size = pOut->GetSize();
+	if(size <= 0)
+		return E_FAIL;
+
+	roq_chunk* rc = (roq_chunk*)pDataIn;
+
+	WAVEFORMATEX* wfe = (WAVEFORMATEX*)m_pOutput->CurrentMediaType().Format();
+
+	if(wfe->nChannels == 1)
+	{
+		int mono = (short)rc->arg;
+		unsigned char* src = pDataIn + sizeof(roq_chunk);
+		short* dst = (short*)pDataOut;
+		for(int i = sizeof(roq_chunk); i < len; i++, src++, dst++)
+		{
+			short diff = (*src&0x7f)*(*src&0x7f);
+			if(*src&0x80) diff = -diff;
+			mono += diff;
+			*dst = (short)mono;
+		}
+	}
+	else if(wfe->nChannels == 2)
+	{
+		int left = (char)(rc->arg>>8)<<8;
+		int right = (char)(rc->arg)<<8;
+		unsigned char* src = pDataIn + sizeof(roq_chunk);
+		short* dst = (short*)pDataOut;
+		for(int i = sizeof(roq_chunk); i < len; i+=2, src++, dst++)
+		{
+			short diff = (*src&0x7f)*(*src&0x7f);
+			if(*src&0x80) diff = -diff;
+			ASSERT((int)left + diff <= SHRT_MAX && (int)left + diff >= SHRT_MIN);
+			left += diff;
+			*dst = (short)left;
+
+			src++; dst++;
+
+			diff = (*src&0x7f)*(*src&0x7f);
+			if(*src&0x80) diff = -diff;
+			ASSERT((int)right + diff <= SHRT_MAX && (int)right + diff >= SHRT_MIN);
+			right += diff;
+			*dst = (short)right;
+		}
+	}
+	else
+	{
+		return E_UNEXPECTED;
+	}
+
+	pOut->SetTime(&rtStart, &rtStop);
+
+	pOut->SetActualDataLength(2*(len-sizeof(roq_chunk)));
+
+	return S_OK;
+}
+
+HRESULT CRoQAudioDecoder::CheckInputType(const CMediaType* mtIn)
+{
+	return mtIn->majortype == MEDIATYPE_Audio && mtIn->subtype == MEDIASUBTYPE_RoQA
+		? S_OK
+		: VFW_E_TYPE_NOT_ACCEPTED;
+}
+
+HRESULT CRoQAudioDecoder::CheckTransform(const CMediaType* mtIn, const CMediaType* mtOut)
+{
+	return SUCCEEDED(CheckInputType(mtIn))
+		&& mtOut->majortype == MEDIATYPE_Audio && mtOut->subtype == MEDIASUBTYPE_PCM
+		? S_OK
+		: VFW_E_TYPE_NOT_ACCEPTED;
+}
+
+HRESULT CRoQAudioDecoder::DecideBufferSize(IMemAllocator* pAllocator, ALLOCATOR_PROPERTIES* pProperties)
+{
+	if(m_pInput->IsConnected() == FALSE) return E_UNEXPECTED;
+
+	CComPtr<IMemAllocator> pAllocatorIn;
+	m_pInput->GetAllocator(&pAllocatorIn);
+	if(!pAllocatorIn) return E_UNEXPECTED;
+
+	WAVEFORMATEX* wfe = (WAVEFORMATEX*)m_pOutput->CurrentMediaType().Format();
+
+	// ok, maybe this is too much...
+	pProperties->cBuffers = 8;
+	pProperties->cbBuffer = wfe->nChannels*wfe->nSamplesPerSec*wfe->wBitsPerSample>>3; // nAvgBytesPerSec;
+	pProperties->cbAlign = 1;
+	pProperties->cbPrefix = 0;
+
+	HRESULT hr;
+	ALLOCATOR_PROPERTIES Actual;
+    if(FAILED(hr = pAllocator->SetProperties(pProperties, &Actual))) 
+		return hr;
+
+    return pProperties->cBuffers > Actual.cBuffers || pProperties->cbBuffer > Actual.cbBuffer
+		? E_FAIL
+		: NOERROR;
+}
+
+HRESULT CRoQAudioDecoder::GetMediaType(int iPosition, CMediaType* pmt)
+{
+    if(m_pInput->IsConnected() == FALSE) return E_UNEXPECTED;
+
+	if(iPosition < 0) return E_INVALIDARG;
+	if(iPosition > 0) return VFW_S_NO_MORE_ITEMS;
+
+	*pmt = m_pInput->CurrentMediaType();
+	pmt->subtype = MEDIASUBTYPE_PCM;
+
+	WAVEFORMATEX* wfe = (WAVEFORMATEX*)pmt->ReallocFormatBuffer(sizeof(WAVEFORMATEX));
+	wfe->cbSize = 0;
+	wfe->wFormatTag = WAVE_FORMAT_PCM;
+	wfe->nBlockAlign = wfe->nChannels*wfe->wBitsPerSample>>3;
+	wfe->nAvgBytesPerSec = wfe->nSamplesPerSec*wfe->nBlockAlign;
+
+	return S_OK;
+}
