@@ -199,7 +199,7 @@ void GSState::DrawingKick(bool fSkip)
 		return;
 	}
 
-	if(!(m_rs.PMODE.EN1|m_rs.PMODE.EN2) || fSkip)
+	if(fSkip || !m_rs.IsEnabled(0) && !m_rs.IsEnabled(1))
 	{
 #ifdef ENABLE_STRIPFAN
 		FlushPrim();
@@ -262,7 +262,7 @@ void GSState::FlushPrim()
 
 	scale_t scale(
 		(float)bd.Width / (ctxt->FRAME.FBW*64),
-		(float)bd.Height / m_rs.GetSize(m_rs.PMODE.EN1?0:1).cy);
+		(float)bd.Height / m_rs.GetSize(m_rs.IsEnabled(1)?1:0).cy);
 	if(m_fHalfVRes) scale.y /= 2;
 
 	//////////////////////
@@ -446,7 +446,7 @@ void GSState::FlushPrim()
 				if(ctxt->TEX0.TCC)
 				{
 					hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_ALPHAOP, D3DTOP_SELECTARG1);
-					hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_ALPHAARG2, D3DTA_TEXTURE);
+					hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_ALPHAARG1, D3DTA_TEXTURE);
 					ASSERT(!fRT); // FIXME
 				}
 				stage++;
@@ -645,8 +645,8 @@ void GSState::FlushPrim()
 
 	//////////////////////
 ////////
-	ASSERT(!m_de.PABE.PABE); // bios
-	ASSERT(!ctxt->FBA.FBA); // bios
+	// ASSERT(!m_de.PABE.PABE); // bios
+	// ASSERT(!ctxt->FBA.FBA); // bios
 	// ASSERT(!ctxt->TEST.DATE); // sfex3 (after the capcom logo), vf4 (first menu fading in)
 
 	//////////////////////
@@ -835,13 +835,12 @@ if(m_de.PRIM.TME && m_nVertices == 6 && (ctxt->FRAME.Block()) == 0x00000 && ctxt
 
 	//////////////////////
 
-	GIFRegTEX0 TEX0;
-	TEX0.TBP0 = ctxt->FRAME.Block();
-	TEX0.PSM = PSM_PSMCT32;
-	TEX0.CBP = -1;
-	GIFRegCLAMP CLAMP;
-	CLAMP.WMS = CLAMP.WMT = 0;
-	m_tc.Update(TEX0, CLAMP, m_de.TEXA, scale, pRT);
+	tex_t tex;
+	tex.TEX0.TBP0 = ctxt->FRAME.Block();
+	tex.TEX0.PSM = PSM_PSMCT32;
+	tex.TEX0.CBP = -1;
+	tex.CLAMP.WMS = tex.CLAMP.WMT = 0;
+	m_tc.Update(tex, scale, pRT);
 
 	//////////////////////
 
@@ -1105,7 +1104,7 @@ void GSState::Flip()
 				DWORD ssize = sizeof(scale);
 				pRT->GetPrivateData(GUID_NULL, &scale, &ssize);
 
-				CSize size = m_rs.GetSize(m_rs.PMODE.EN1 ? 0 : 1);
+				CSize size = m_rs.GetSize(m_rs.IsEnabled(1)?1:0);
 				CRect src = CRect(0, 0, scale.x*size.cx, scale.y*size.cy);
 
 				struct
@@ -1196,7 +1195,7 @@ void GSState::Flip()
 
 	for(int i = 0; i < countof(rt); i++)
 	{
-		if(m_rs.PMODE.EN1 && i == 0 || m_rs.PMODE.EN2 && i == 1 || i == 2)
+		if(m_rs.IsEnabled(0) && i == 0 || m_rs.IsEnabled(1) && i == 1 || i == 2)
 		{
 			UINT32 FBP = i == 2 || (::GetAsyncKeyState(VK_SPACE)&0x80000000) ? ctxt->FRAME.Block() : (m_rs.DISPFB[i].FBP<<5);
 
@@ -1210,7 +1209,7 @@ void GSState::Flip()
 				DWORD ssize = sizeof(rt[i].scale);
 				rt[i].pRT->GetPrivateData(GUID_NULL, &rt[i].scale, &ssize);
 
-				CSize size = m_rs.GetSize(i < 2 ? i : m_rs.PMODE.EN1 ? 0 : 1);
+				CSize size = m_rs.GetSize(i < 2 ? i : m_rs.IsEnabled(1)?1:0);
 				rt[i].src = CRect(0, 0, rt[i].scale.x*size.cx, rt[i].scale.y*size.cy);
 			}
 		}
@@ -1271,19 +1270,19 @@ void GSState::Flip()
 
 	CComPtr<IDirect3DPixelShader9> pPixelShader;
 
-	if(m_rs.PMODE.EN1 && m_rs.PMODE.EN2 && rt[0].pRT && rt[1].pRT) // RAO1 + RAO2
+	if(m_rs.IsEnabled(0) && m_rs.IsEnabled(1) && rt[0].pRT && rt[1].pRT) // RAO1 + RAO2
 	{
 		pPixelShader = m_pPixelShaders[11];
 	}
-	else if(m_rs.PMODE.EN1 && rt[0].pRT) // RAO1
+	else if(m_rs.IsEnabled(0) && rt[0].pRT) // RAO1
 	{
 		pPixelShader = m_pPixelShaders[12];
 	}
-	else if(m_rs.PMODE.EN2 && rt[1].pRT) // RAO2
+	else if(m_rs.IsEnabled(1) && rt[1].pRT) // RAO2
 	{
 		pPixelShader = m_pPixelShaders[13];
 	}
-	else if((m_rs.PMODE.EN1 || m_rs.PMODE.EN2) && rt[2].pRT)
+	else if((m_rs.IsEnabled(0) || m_rs.IsEnabled(1)) && rt[2].pRT)
 	{
 		pPixelShader = m_pPixelShaders[14];
 	}
@@ -1302,7 +1301,7 @@ void GSState::Flip()
 		hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_ALPHAOP, D3DTOP_DISABLE);
 		stage++;
 
-		if(m_rs.PMODE.EN1 && m_rs.PMODE.EN2 && rt[0].pRT && rt[1].pRT) // RAO1 + RAO2
+		if(m_rs.IsEnabled(0) && m_rs.IsEnabled(1) && rt[0].pRT && rt[1].pRT) // RAO1 + RAO2
 		{
 			if(m_rs.PMODE.ALP < 0xff)
 			{
@@ -1315,7 +1314,7 @@ void GSState::Flip()
 				stage++;
 			}
 		}
-		else if(m_rs.PMODE.EN1 && rt[0].pRT) // RAO1
+		else if(m_rs.IsEnabled(0) && rt[0].pRT) // RAO1
 		{
 			if(m_rs.PMODE.ALP < 0xff)
 			{
@@ -1327,12 +1326,12 @@ void GSState::Flip()
 				stage++;
 			}
 		}
-		else if(m_rs.PMODE.EN2 && rt[1].pRT) // RAO2
+		else if(m_rs.IsEnabled(1) && rt[1].pRT) // RAO2
 		{
 			hr = m_pD3DDev->SetTexture(0, rt[1].pRT);
 			hr = m_pD3DDev->SetTextureStageState(0, D3DTSS_TEXCOORDINDEX, 1);
 		}
-		else if((m_rs.PMODE.EN1 || m_rs.PMODE.EN2) && rt[2].pRT)
+		else if((m_rs.IsEnabled(0) || m_rs.IsEnabled(1)) && rt[2].pRT)
 		{
 			hr = m_pD3DDev->SetTexture(0, rt[2].pRT);
 			hr = m_pD3DDev->SetTextureStageState(0, D3DTSS_TEXCOORDINDEX, 2);

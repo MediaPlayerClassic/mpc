@@ -32,6 +32,14 @@ inline bool IsRenderTarget(IDirect3DTexture9* pTexture)
 	return pTexture && S_OK == pTexture->GetLevelDesc(0, &desc) && (desc.Usage&D3DUSAGE_RENDERTARGET);
 }
 
+struct tex_t
+{
+	GIFRegTEX0 TEX0;
+	GIFRegCLAMP CLAMP;
+	GIFRegTEXA TEXA;
+	GIFRegTEXCLUT TEXCLUT;
+};
+
 struct scale_t
 {
 	float x, y;
@@ -43,25 +51,23 @@ struct scale_t
 class GSTexture
 {
 public:
-	GIFRegTEX0 m_TEX0;
-	GIFRegCLAMP m_CLAMP;
-	GIFRegTEXA m_TEXA;
+	tex_t m_tex;
 	scale_t m_scale;
 	CComPtr<IDirect3DTexture9> m_pTexture;
 	int m_age;
 
 	class GSTexture();
-	class GSTexture(GIFRegTEX0& TEX0, GIFRegCLAMP& CLAMP, GIFRegTEXA& TEXA, scale_t& m_scale, CComPtr<IDirect3DTexture9> pTexture);
+	class GSTexture(tex_t& tex, scale_t& m_scale, CComPtr<IDirect3DTexture9> pTexture);
 };
 
 class GSTextureCache : public CList<GSTexture>
 {
 public:
 	GSTextureCache();
-	void Add(GIFRegTEX0& TEX0, GIFRegCLAMP& CLAMP, GIFRegTEXA& TEXA, scale_t& m_scale, CComPtr<IDirect3DTexture9> pTexture);
-	void Update(GIFRegTEX0& TEX0, GIFRegCLAMP& CLAMP, GIFRegTEXA& TEXA, scale_t& m_scale, CComPtr<IDirect3DTexture9> pTexture);
-	POSITION Lookup(GIFRegTEX0& TEX0, GIFRegCLAMP& CLAMP, GIFRegTEXA& TEXA, scale_t& m_scale, GSTexture& ret);
-	POSITION Lookup(GIFRegTEX0& TEX0, GIFRegCLAMP& CLAMP, GIFRegTEXA& TEXA, GSTexture& ret);
+	void Add(tex_t& tex, scale_t& m_scale, CComPtr<IDirect3DTexture9> pTexture);
+	void Update(tex_t& tex, scale_t& m_scale, CComPtr<IDirect3DTexture9> pTexture);
+	POSITION Lookup(tex_t& tex, scale_t& m_scale, GSTexture& ret);
+	POSITION Lookup(tex_t& tex, GSTexture& ret);
 	POSITION LookupByTBP(UINT32 TBP0, GSTexture& ret);
 	POSITION LookupByCBP(UINT32 CBP, GSTexture& ret);
 	void InvalidateByTBP(UINT32 TBP0);

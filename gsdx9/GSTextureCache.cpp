@@ -24,16 +24,15 @@
 
 GSTexture::GSTexture() : m_scale(1, 1)
 {
-	m_TEX0.TBP0 = m_TEX0.CBP = m_TEX0.PSM = -1;
-	m_CLAMP.WMS = m_CLAMP.WMT = 0; m_CLAMP.MINU = m_CLAMP.MINV = m_CLAMP.MAXU = m_CLAMP.MAXV = 0;
-	m_TEXA.TA0 = m_TEXA.TA1 = m_TEXA.AEM = -1;
+	m_tex.TEX0.i64 = -1;
+	m_tex.CLAMP.i64 = 0;
+	m_tex.TEXA.i64 = -1;
+	m_tex.TEXCLUT.i64 = -1;
 	m_age = 0;
 }
 
-GSTexture::GSTexture(GIFRegTEX0& TEX0, GIFRegCLAMP& CLAMP, GIFRegTEXA& TEXA, scale_t& scale, CComPtr<IDirect3DTexture9> pTexture)
-	: m_TEX0(TEX0), m_CLAMP(CLAMP), m_TEXA(TEXA)
-	, m_scale(scale), m_pTexture(pTexture)
-	, m_age(0)
+GSTexture::GSTexture(tex_t& tex, scale_t& scale, CComPtr<IDirect3DTexture9> pTexture)
+	: m_tex(tex) , m_scale(scale), m_pTexture(pTexture), m_age(0)
 {
 	ASSERT(pTexture);
 }
@@ -44,30 +43,38 @@ GSTextureCache::GSTextureCache()
 {
 }
 
-void GSTextureCache::Add(GIFRegTEX0& TEX0, GIFRegCLAMP& CLAMP, GIFRegTEXA& TEXA, scale_t& scale, CComPtr<IDirect3DTexture9> pTexture)
+void GSTextureCache::Add(tex_t& tex, scale_t& scale, CComPtr<IDirect3DTexture9> pTexture)
 {
-	InvalidateByTBP(TEX0.TBP0);
-	InvalidateByCBP(TEX0.TBP0);
-	AddHead(GSTexture(TEX0, CLAMP, TEXA, scale, pTexture));
+	InvalidateByTBP(tex.TEX0.TBP0);
+	InvalidateByCBP(tex.TEX0.TBP0);
+	AddHead(GSTexture(tex, scale, pTexture));
 }
 
-void GSTextureCache::Update(GIFRegTEX0& TEX0, GIFRegCLAMP& CLAMP, GIFRegTEXA& TEXA, scale_t& scale, CComPtr<IDirect3DTexture9> pTexture)
+void GSTextureCache::Update(tex_t& tex, scale_t& scale, CComPtr<IDirect3DTexture9> pTexture)
 {
 	GSTexture t;
-	if(Lookup(TEX0, CLAMP, TEXA, scale, t)) return;
-	Add(TEX0, CLAMP, TEXA, scale, pTexture);
+	if(Lookup(tex, scale, t)) return;
+	Add(tex, scale, pTexture);
 }
 
-POSITION GSTextureCache::Lookup(GIFRegTEX0& TEX0, GIFRegCLAMP& CLAMP, GIFRegTEXA& TEXA, scale_t& scale, GSTexture& ret)
+POSITION GSTextureCache::Lookup(tex_t& tex, scale_t& scale, GSTexture& ret)
 {
 	for(POSITION pos = GetHeadPosition(); pos; GetNext(pos))
 	{
 		GSTexture& t = GetAt(pos);
-		bool fRT = IsRenderTarget(t.m_pTexture);
-		if(t.m_TEX0.TBP0 == TEX0.TBP0 && (TEX0.PSM <= PSM_PSMCT16S || t.m_TEX0.CBP == TEX0.CBP)
-		&& (t.m_TEX0.PSM == TEX0.PSM || fRT && TEX0.PSM <= PSM_PSMCT16S)
-		&& (t.m_TEX0.PSM == PSM_PSMCT32 || t.m_TEXA.TA0 == TEXA.TA0 && t.m_TEXA.TA1 == TEXA.TA1 && t.m_TEXA.AEM == TEXA.AEM)
-		&& (fRT || !(t.m_CLAMP.WMS&2) && !(CLAMP.WMS&2) && !(t.m_CLAMP.WMT&2) && !(CLAMP.WMT&2) || t.m_CLAMP.i64 == CLAMP.i64)
+
+		if(t.m_tex.TEX0.TBP0 == tex.TEX0.TBP0 && IsRenderTarget(t.m_pTexture)
+		&& t.m_scale == scale)
+		{
+			t.m_age = 0;
+			ret = t;
+			return pos;
+		}
+
+		if(t.m_tex.TEX0.TBP0 == tex.TEX0.TBP0&& t.m_tex.TEX0.PSM == tex.TEX0.PSM && (tex.TEX0.PSM <= PSM_PSMCT16S || t.m_tex.TEX0.CBP == tex.TEX0.CBP)
+		&& (!(t.m_tex.CLAMP.WMS&2) && !(tex.CLAMP.WMS&2) && !(t.m_tex.CLAMP.WMT&2) && !(tex.CLAMP.WMT&2) || t.m_tex.CLAMP.i64 == tex.CLAMP.i64)
+		&& t.m_tex.TEXA.TA0 == tex.TEXA.TA0 && t.m_tex.TEXA.TA1 == tex.TEXA.TA1 && t.m_tex.TEXA.AEM == tex.TEXA.AEM
+		&& (t.m_tex.TEX0.PSM <= PSM_PSMCT16S || t.m_tex.TEXCLUT.COU == tex.TEXCLUT.COU && t.m_tex.TEXCLUT.COV == tex.TEXCLUT.COV && t.m_tex.TEXCLUT.CBW == tex.TEXCLUT.CBW)
 		&& t.m_scale == scale)
 		{
 			t.m_age = 0;
@@ -75,25 +82,35 @@ POSITION GSTextureCache::Lookup(GIFRegTEX0& TEX0, GIFRegCLAMP& CLAMP, GIFRegTEXA
 			return pos;
 		}
 	}
+
 	return NULL;
 }
 
-POSITION GSTextureCache::Lookup(GIFRegTEX0& TEX0, GIFRegCLAMP& CLAMP, GIFRegTEXA& TEXA, GSTexture& ret)
+POSITION GSTextureCache::Lookup(tex_t& tex, GSTexture& ret)
 {
 	for(POSITION pos = GetHeadPosition(); pos; GetNext(pos))
 	{
 		GSTexture& t = GetAt(pos);
 		bool fRT = IsRenderTarget(t.m_pTexture);
-		if(t.m_TEX0.TBP0 == TEX0.TBP0 && (TEX0.PSM <= PSM_PSMCT16S || t.m_TEX0.CBP == TEX0.CBP)
-		&& (t.m_TEX0.PSM == TEX0.PSM || fRT && TEX0.PSM <= PSM_PSMCT16S)
-		&& (fRT || !(t.m_CLAMP.WMS&2) && !(CLAMP.WMS&2) && !(t.m_CLAMP.WMT&2) && !(CLAMP.WMT&2) || t.m_CLAMP.i64 == CLAMP.i64)
-		&& (t.m_TEXA.TA0 == TEXA.TA0 || t.m_TEXA.TA1 == TEXA.TA1 || t.m_TEXA.AEM == TEXA.AEM))
+
+		if(t.m_tex.TEX0.TBP0 == tex.TEX0.TBP0 && IsRenderTarget(t.m_pTexture))
+		{
+			t.m_age = 0;
+			ret = t;
+			return pos;
+		}
+
+		if(t.m_tex.TEX0.TBP0 == tex.TEX0.TBP0&& t.m_tex.TEX0.PSM == tex.TEX0.PSM && (tex.TEX0.PSM <= PSM_PSMCT16S || t.m_tex.TEX0.CBP == tex.TEX0.CBP)
+		&& (!(t.m_tex.CLAMP.WMS&2) && !(tex.CLAMP.WMS&2) && !(t.m_tex.CLAMP.WMT&2) && !(tex.CLAMP.WMT&2) || t.m_tex.CLAMP.i64 == tex.CLAMP.i64)
+		&& t.m_tex.TEXA.TA0 == tex.TEXA.TA0 && t.m_tex.TEXA.TA1 == tex.TEXA.TA1 && t.m_tex.TEXA.AEM == tex.TEXA.AEM
+		&& (t.m_tex.TEX0.PSM <= PSM_PSMCT16S || t.m_tex.TEXCLUT.COU == tex.TEXCLUT.COU && t.m_tex.TEXCLUT.COV == tex.TEXCLUT.COV && t.m_tex.TEXCLUT.CBW == tex.TEXCLUT.CBW))
 		{
 			t.m_age = 0;
 			ret = t;
 			return pos;
 		}
 	}
+
 	return NULL;
 }
 
@@ -102,12 +119,13 @@ POSITION GSTextureCache::LookupByTBP(UINT32 TBP0, GSTexture& ret)
 	for(POSITION pos = GetHeadPosition(); pos; GetNext(pos))
 	{
 		GSTexture& t = GetAt(pos);
-		if(t.m_TEX0.TBP0 == TBP0)
+		if(t.m_tex.TEX0.TBP0 == TBP0)
 		{
 			ret = t;
 			return pos;
 		}
 	}
+
 	return NULL;
 }
 
@@ -116,7 +134,7 @@ POSITION GSTextureCache::LookupByCBP(UINT32 CBP, GSTexture& ret)
 	for(POSITION pos = GetHeadPosition(); pos; GetNext(pos))
 	{
 		GSTexture& t = GetAt(pos);
-		if(t.m_TEX0.CBP == CBP)
+		if(t.m_tex.TEX0.CBP == CBP)
 		{
 			ret = t;
 			return pos;
@@ -148,10 +166,10 @@ void GSTextureCache::IncAge(CSurfMap<IDirect3DTexture9>& pRTs)
 	{
 		POSITION cur = pos;
 		GSTexture& t = GetNext(pos);
-		if(++t.m_age > 2)
+		if(++t.m_age > 3)
 		{
-			TRACE(_T("Removing texture: %05x\n"), t.m_TEX0.TBP0);
-			pRTs.RemoveKey(t.m_TEX0.TBP0);
+			TRACE(_T("Removing texture: %05x\n"), t.m_tex.TEX0.TBP0);
+			pRTs.RemoveKey(t.m_tex.TEX0.TBP0);
 			RemoveAt(cur);
 		}
 	}
@@ -163,6 +181,6 @@ void GSTextureCache::ResetAge(UINT32 TBP0)
 	while(pos)
 	{
 		GSTexture& t = GetNext(pos);
-		if(t.m_TEX0.TBP0 == TBP0) t.m_age = 0;
+		if(t.m_tex.TEX0.TBP0 == TBP0) t.m_age = 0;
 	}
 }
