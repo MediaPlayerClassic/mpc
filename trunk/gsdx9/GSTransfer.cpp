@@ -232,7 +232,13 @@ bool GSState::CreateTexture(GSTexture& t)
 		}
 	}
 */
-	if(m_tc.Lookup(ctxt->TEX0, ctxt->CLAMP, m_de.TEXA, t))
+	tex_t tex;
+	tex.TEX0 = ctxt->TEX0;
+	tex.CLAMP = ctxt->CLAMP;
+	tex.TEXA = m_de.TEXA;
+	tex.TEXCLUT = m_de.TEXCLUT;
+
+	if(m_tc.Lookup(tex, t))
 		return(true);
 
 //	LOG((_T("TBP0/CBP: %08x/%08x\n"), ctxt->TEX0.TBP0, ctxt->TEX0.CBP));
@@ -286,17 +292,14 @@ bool GSState::CreateTexture(GSTexture& t)
 
 	pTexture->UnlockRect(0);
 
-	//scale_t scale = {1, 1};
-	m_tc.Add(ctxt->TEX0, ctxt->CLAMP, m_de.TEXA, scale_t(1,1), pTexture);
-	if(!m_tc.Lookup(ctxt->TEX0, ctxt->CLAMP, m_de.TEXA, t)) // ehe
+	m_tc.Add(tex, scale_t(1, 1), pTexture);
+	if(!m_tc.Lookup(tex, t)) // ehe
 		ASSERT(0);
-/*	
-	t.m_pTexture = pTexture;
-	t.m_TEX0 = ctxt->TEX0;
-	t.m_CLAMP = ctxt->CLAMP;
-	t.m_TEXA = m_de.TEXA;
-	t.m_xscale = t.m_yscale = 1;
-*/
+	
+//	t.m_pTexture = pTexture;
+//	t.m_tex = tex;
+//	t.m_scale = scale_t(1, 1);
+
 #ifdef DEBUG_SAVETEXTURES
 	CString fn;
 	fn.Format(_T("c:\\%08I64x_%I64d_%I64d_%I64d_%I64d_%I64d_%I64d_%I64d-%I64d_%I64d-%I64d.bmp"), 

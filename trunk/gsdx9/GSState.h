@@ -86,14 +86,22 @@ protected:
 	{
 		struct GSRegSet() {memset(this, 0, sizeof(*this));}
 
-		CSize GetSize(int ctxt)
+		CSize GetSize(int en)
 		{
-			ASSERT(ctxt >= 0 && ctxt < 2);
+			ASSERT(en >= 0 && en < 2);
 			CSize size;
-			size.cx = DISPLAY[ctxt].DW / (DISPLAY[ctxt].MAGH+1) + 1;
-			size.cy = DISPLAY[ctxt].DH / (DISPLAY[ctxt].MAGV+1) + 1;
+			size.cx = DISPLAY[en].DW / (DISPLAY[en].MAGH+1) + 1;
+			size.cy = DISPLAY[en].DH / (DISPLAY[en].MAGV+1) + 1;
 			if(SMODE2.INT && SMODE2.FFMD && size.cy > 1) size.cy >>= 1;
 			return size;
+		}
+
+		bool IsEnabled(int en)
+		{
+			ASSERT(en >= 0 && en < 2);
+			if(en == 0 && PMODE.EN1) {return(DISPLAY[0].DW || DISPLAY[0].DH);}
+			else if(en == 1 && PMODE.EN2) {return(DISPLAY[1].DW || DISPLAY[1].DH);}
+			return(false);
 		}
 
 		GSRegBGCOLOR	BGCOLOR;

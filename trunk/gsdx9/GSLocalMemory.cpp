@@ -659,7 +659,7 @@ void GSLocalMemory::setupCLUT(GIFRegTEX0& TEX0, GIFRegTEXCLUT& TEXCLUT, GIFRegTE
 		{
 			ASSERT(0); // TESTME
 			for(int i = 0; i < 256; i++)
-				m_clut[i] = (this->*rt)(TEXCLUT.COU + i, TEXCLUT.COV, TEX0.CBP, TEXCLUT.CBW, TEX0.TCC, TEXA);
+				m_clut[i] = (this->*rt)((TEXCLUT.COU<<4) + i, TEXCLUT.COV, TEX0.CBP, TEXCLUT.CBW, TEX0.TCC, TEXA);
 		}
 	}
 	else if(TEX0.PSM == PSM_PSMT4HH || TEX0.PSM == PSM_PSMT4HL || TEX0.PSM == PSM_PSMT4)
@@ -672,9 +672,8 @@ void GSLocalMemory::setupCLUT(GIFRegTEX0& TEX0, GIFRegTEXCLUT& TEXCLUT, GIFRegTE
 		}
 		else
 		{
-			ASSERT(0); // TESTME
 			for(int i = 0; i < 16; i++)
-				m_clut[i] = (this->*rt)(TEXCLUT.COU + i, TEXCLUT.COV, TEX0.CBP, TEXCLUT.CBW, TEX0.TCC, TEXA);
+				m_clut[i] = (this->*rt)((TEXCLUT.COU<<4) + i, TEXCLUT.COV, TEX0.CBP, TEXCLUT.CBW, TEX0.TCC, TEXA);
 		}
 	}
 }

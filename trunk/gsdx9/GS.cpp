@@ -26,7 +26,7 @@
 #include "GSSettingsDlg.h"
 
 #define PS2E_LT_GS 0x01
-#define PS2E_GS_VERSION 0x0003
+#define PS2E_GS_VERSION 0x0004
 
 EXPORT_C_(UINT32) PS2EgetLibType()
 {
