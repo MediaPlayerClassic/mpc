@@ -10,7 +10,7 @@ memsetd proc public
 	push	rdi
 
 	mov		rdi, rcx
-	mov		rax, rdx
+	mov		eax, edx
 	mov		rcx, r8
 	cld
 	rep		stosd
