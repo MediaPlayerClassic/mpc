@@ -514,7 +514,14 @@ HRESULT CRealMediaSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 					CAutoPtr<CChapter> p(new CChapter(
 						((((REFERENCE_TIME)h*60+m)*60+s)*1000+ms)*10000, 
 						CStringW(CString(value))));
-					m_pChapters.AddTail(p);
+
+					POSITION insertpos = m_pChapters.GetTailPosition();
+					for(; insertpos; m_pChapters.GetPrev(insertpos))
+					{
+						CChapter* p2 = m_pChapters.GetAt(insertpos);
+						if(p->m_rt >= p2->m_rt) break;
+					}
+					m_pChapters.InsertAfter(insertpos, p);
 				}
 			}
 		}
