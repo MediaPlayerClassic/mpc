@@ -2349,7 +2349,7 @@ BEGIN
     IDS_SRC_NUT             "6.4.0.0\nBased on ""NUT Open Container Format DRAFT 20030906""\nStill very incomplete, if you have or can make test files, please contact me."
     IDS_TRA_AAC             "6.4.0.0\nBased on libfaad 2.0, http://www.audiocoding.com/"
     IDS_SRC_DIRAC           "6.4.0.0\nBased on libdirac 0.4.3"
-    IDS_TRA_DIRAC           "6.4.0.0\nBased on libdirac 0.4.3"
+    IDS_TRA_DIRAC           "6.4.0.1\nBased on libdirac 0.5.0"
     IDS_TRA_PS2AUD          "Decodes audio streams of PSS files"
 END
 
