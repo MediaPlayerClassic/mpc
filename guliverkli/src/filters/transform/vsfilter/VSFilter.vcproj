@@ -205,7 +205,8 @@
 				TypeLibraryName=".\$(OutDir)/$(ProjectName).tlb"/>
 			<Tool
 				Name="VCPostBuildEventTool"
-				CommandLine="..\..\..\..\bin\upx.exe --best --compress-icons=0 &quot;$(TargetPath)&quot;"/>
+				CommandLine="..\..\..\..\bin\upx.exe --best --compress-icons=0 &quot;$(TargetPath)&quot;"
+				ExcludedFromBuild="TRUE"/>
 			<Tool
 				Name="VCPreBuildEventTool"/>
 			<Tool
@@ -280,7 +281,8 @@
 				TypeLibraryName=".\$(OutDir)/$(ProjectName).tlb"/>
 			<Tool
 				Name="VCPostBuildEventTool"
-				CommandLine="..\..\..\..\bin\upx.exe --best --compress-icons=0 &quot;$(TargetPath)&quot;"/>
+				CommandLine="..\..\..\..\bin\upx.exe --best --compress-icons=0 &quot;$(TargetPath)&quot;"
+				ExcludedFromBuild="TRUE"/>
 			<Tool
 				Name="VCPreBuildEventTool"/>
 			<Tool

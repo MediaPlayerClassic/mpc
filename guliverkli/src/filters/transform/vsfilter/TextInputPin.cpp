@@ -116,8 +116,6 @@ STDMETHODIMP CTextInputPin::Receive(IMediaSample* pSample)
 	tStart += m_tStart; 
 	tStop += m_tStart;
 
-TRACE(_T("CTextInputPin: tStart = %I64d, tStop = %I64d\n"), tStart, tStop);
-
 	BYTE* pData = NULL;
     hr = pSample->GetPointer(&pData);
     if(FAILED(hr) || pData == NULL) return hr;
