@@ -66,6 +66,7 @@ BEGIN_MESSAGE_MAP(CPPageMpegDecoder, CPPageBase)
 	ON_BN_CLICKED(IDC_CHECK1, OnBnClickedCheck1)
 	ON_BN_CLICKED(IDC_BUTTON1, OnBnClickedButton1)
 	ON_BN_CLICKED(IDC_CHECK2, OnBnClickedCheck2)
+	ON_BN_CLICKED(IDC_BUTTON2, OnBnClickedButton2)
 END_MESSAGE_MAP()
 
 
@@ -198,4 +199,18 @@ void CPPageMpegDecoder::OnBnClickedCheck2()
 
 	if(m_pMpeg2DecFilter)
 		m_pMpeg2DecFilter->EnablePlanarYUV(!!m_fPlanarYUV);
+}
+
+void CPPageMpegDecoder::OnBnClickedButton2()
+{
+	SetModified();
+
+	m_brightctrl.SetPos(128-16);
+	m_contctrl.SetPos(100*255/(235-16));
+
+	if(m_pMpeg2DecFilter)
+	{
+		m_pMpeg2DecFilter->SetBrightness((double)m_brightctrl.GetPos()-128);
+		m_pMpeg2DecFilter->SetContrast((double)m_contctrl.GetPos() / 100);
+	}
 }

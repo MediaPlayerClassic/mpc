@@ -58,4 +58,5 @@ public:
 	BOOL m_realaudio;
 	BOOL m_mpeg1;
 	BOOL m_mpeg2;
+	BOOL m_mpa;
 };

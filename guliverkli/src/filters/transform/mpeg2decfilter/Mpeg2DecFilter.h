@@ -41,25 +41,24 @@ class CMpeg2DecFilter : public CTransformFilter, public IMpeg2DecFilter
 	bool m_fFilm;
 	struct framebuf 
 	{
-		int w, h, pw, ph;
+		int w, h, pitch;
 		BYTE* buf[6];
 		REFERENCE_TIME rtStart, rtStop;
 		DWORD flags;
         framebuf()
 		{
-			w = h = pw = ph = 0;
+			w = h = pitch = 0;
 			memset(&buf, 0, sizeof(buf));
 			rtStart = rtStop = 0;
 			flags = 0;
 		}
         ~framebuf() {free();}
-		void alloc(int w, int h, int pw, int ph)
+		void alloc(int w, int h, int pitch)
 		{
-			this->w = w; this->h = h;
-			this->pw = pw; this->ph = ph;
-			buf[0] = (BYTE*)_aligned_malloc(w*h, 16); buf[3] = (BYTE*)_aligned_malloc(w*h, 16);
-			buf[1] = (BYTE*)_aligned_malloc(w*h/4, 16); buf[4] = (BYTE*)_aligned_malloc(w*h/4, 16);
-			buf[2] = (BYTE*)_aligned_malloc(w*h/4, 16); buf[5] = (BYTE*)_aligned_malloc(w*h/4, 16);
+			this->w = w; this->h = h; this->pitch = pitch;
+			buf[0] = (BYTE*)_aligned_malloc(pitch*h, 16); buf[3] = (BYTE*)_aligned_malloc(pitch*h, 16);
+			buf[1] = (BYTE*)_aligned_malloc(pitch*h/4, 16); buf[4] = (BYTE*)_aligned_malloc(pitch*h/4, 16);
+			buf[2] = (BYTE*)_aligned_malloc(pitch*h/4, 16); buf[5] = (BYTE*)_aligned_malloc(pitch*h/4, 16);
 		}
 		void free() {for(int i = 0; i < 6; i++) {_aligned_free(buf[i]); buf[i] = NULL;}}
 	} m_fb;
@@ -67,6 +66,8 @@ class CMpeg2DecFilter : public CTransformFilter, public IMpeg2DecFilter
 	void Copy(BYTE* pOut, BYTE** ppIn, DWORD w, DWORD h, DWORD pitchIn);
 	void ResetMpeg2Decoder();
 	HRESULT ReconnectOutput(int w, int h, CMediaType& mt);
+
+	AM_SimpleRateChange m_rate;
 
 public:
 	CMpeg2DecFilter(LPUNKNOWN lpunk, HRESULT* phr);
@@ -142,6 +143,8 @@ class CMpeg2DecInputPin : public CTransformInputPin, public IKsPropertySet
 	BYTE m_Challenge[10], m_KeyCheck[5], m_Key[10];
 	BYTE m_DiscKey[6], m_TitleKey[6];
 
+	LONG m_CorrectTS;
+
 protected:
 	virtual HRESULT Transform(IMediaSample* pSample) {return S_OK;}
 
@@ -150,6 +153,9 @@ public:
 
 	DECLARE_IUNKNOWN
     STDMETHODIMP NonDelegatingQueryInterface(REFIID riid, void** ppv);
+
+	CCritSec m_csRateLock;
+	AM_SimpleRateChange m_ratechange;
 
 	// IMemInputPin
     STDMETHODIMP Receive(IMediaSample* pSample);
@@ -222,4 +228,5 @@ public:
 
 	CMediaType& CurrentMediaType() {return m_mt;}
 };
+
 

@@ -102,6 +102,7 @@ void memcpy_accel(void* dst, const void* src, size_t len)
 			dec		ecx
 			jne		memcpy_accel_sse_loop2
 	memcpy_accel_sse_end:
+			emms
 			sfence
 		}
 	}

@@ -287,9 +287,9 @@ public:
 				return GetInterface((IBasicVideo*)this, ppv);
 			if(riid == __uuidof(IBasicVideo2))
 				return GetInterface((IBasicVideo2*)this, ppv);
-//			if(riid == __uuidof(IVMRWindowlessControl))
-//				return GetInterface((IVMRWindowlessControl*)this, ppv);
-		}
+/*			if(riid == __uuidof(IVMRWindowlessControl))
+				return GetInterface((IVMRWindowlessControl*)this, ppv);
+*/		}
 
 		return SUCCEEDED(hr) ? hr : __super::NonDelegatingQueryInterface(riid, ppv);
 	}
@@ -429,6 +429,12 @@ public:
     STDMETHODIMP SetSourcePosition(long Left, long Top, long Width, long Height) {return E_NOTIMPL;}
     STDMETHODIMP GetSourcePosition(long* pLeft, long* pTop, long* pWidth, long* pHeight)
 	{
+		// DVD Nav. bug workaround fix
+		{
+			*pLeft = *pTop = 0;
+			return GetVideoSize(pWidth, pHeight);
+		}
+/*
 		if(CComQIPtr<IVMRWindowlessControl9> pWC9 = m_pVMR)
 		{
 			CRect s, d;
@@ -439,7 +445,7 @@ public:
 			*pHeight = s.Height();
 			return hr;
 		}
-
+*/
 		return E_NOTIMPL;
 	}
     STDMETHODIMP SetDefaultSourcePosition() {return E_NOTIMPL;}
@@ -465,7 +471,11 @@ public:
 		if(CComQIPtr<IVMRWindowlessControl9> pWC9 = m_pVMR)
 		{
 			LONG aw, ah;
-			return pWC9->GetNativeVideoSize(pWidth, pHeight, &aw, &ah);
+//			return pWC9->GetNativeVideoSize(pWidth, pHeight, &aw, &ah);
+			// DVD Nav. bug workaround fix
+			HRESULT hr = pWC9->GetNativeVideoSize(pWidth, pHeight, &aw, &ah);
+			*pWidth = *pHeight * aw / ah;
+			return hr;
 		}
 
 		return E_NOTIMPL;
@@ -475,15 +485,12 @@ public:
     STDMETHODIMP IsUsingDefaultSource() {return E_NOTIMPL;}
     STDMETHODIMP IsUsingDefaultDestination() {return E_NOTIMPL;}
 
-	STDMETHODIMP GetPreferredAspectRatio(long *plAspectX, long *plAspectY)
+	STDMETHODIMP GetPreferredAspectRatio(long* plAspectX, long* plAspectY)
 	{
 		if(CComQIPtr<IVMRWindowlessControl9> pWC9 = m_pVMR)
 		{
-			CRect s, d;
-			HRESULT hr = pWC9->GetVideoPosition(&s, &d);
-			*plAspectX = d.Width();
-			*plAspectY = d.Height();
-			return hr;
+			LONG w, h;
+			return pWC9->GetNativeVideoSize(&w, &h, plAspectX, plAspectY);
 		}
 
 		return E_NOTIMPL;

@@ -664,10 +664,13 @@ STDMETHODIMP CVMR7AllocatorPresenter::PresentImage(DWORD_PTR dwUserID, VMRPRESEN
 
 STDMETHODIMP CVMR7AllocatorPresenter::GetNativeVideoSize(LONG* lpWidth, LONG* lpHeight, LONG* lpARWidth, LONG* lpARHeight)
 {
-	if(lpWidth) *lpWidth = m_NativeVideoSize.cx;
-	if(lpHeight) *lpHeight = m_NativeVideoSize.cy;
-	if(lpARWidth) *lpARWidth = m_AspectRatio.cx;
-	if(lpARHeight) *lpARHeight = m_AspectRatio.cy;
+	CSize vs = m_NativeVideoSize, ar = m_AspectRatio;
+	// DVD Nav. bug workaround fix
+	vs.cx = vs.cy * ar.cx / ar.cy;
+	if(lpWidth) *lpWidth = vs.cx;
+	if(lpHeight) *lpHeight = vs.cy;
+	if(lpARWidth) *lpARWidth = ar.cx;
+	if(lpARHeight) *lpARHeight = ar.cy;
 	return S_OK;
 }
 
@@ -679,13 +682,14 @@ STDMETHODIMP CVMR7AllocatorPresenter::GetVideoPosition(LPRECT lpSRCRect, LPRECT 
 {
 	CopyRect(lpSRCRect, CRect(CPoint(0, 0), m_NativeVideoSize));
 	CopyRect(lpDSTRect, &m_VideoRect);
+	// DVD Nav. bug workaround fix
+	GetNativeVideoSize(&lpSRCRect->right, &lpSRCRect->bottom, NULL, NULL);
 	return S_OK;
 }
 
 STDMETHODIMP CVMR7AllocatorPresenter::GetAspectRatioMode(DWORD* lpAspectRatioMode)
 {
-	if(lpAspectRatioMode) *lpAspectRatioMode = 
-		(AfxGetAppSettings().iDefaultVideoSize == DVS_STRETCH) ? AM_ARMODE_STRETCHED : AM_ARMODE_LETTER_BOX;
+	if(lpAspectRatioMode) *lpAspectRatioMode = AM_ARMODE_STRETCHED;
 
 	return S_OK;
 }
