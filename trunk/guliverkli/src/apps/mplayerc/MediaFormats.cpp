@@ -209,6 +209,7 @@ void CMediaFormats::UpdateData(bool fSave)
 		ADDFMT((_T("Real Audio file "), _T("ra"), true, _T("RealOne or codec pack")));
 		ADDFMT((_T("Real Script file"), _T("rt rp smi smil"), false, _T("RealOne or codec pack"), RealMedia));
 		ADDFMT((_T("Dirac Video file"), _T("drc"), false));
+		ADDFMT((_T("DirectShow Media file"), _T("dsm dsv dsa dss")));
 		ADDFMT((_T("Shockwave Flash file"), _T("swf"), false, _T("ShockWave ActiveX control"), ShockWave));
 		ADDFMT((_T("Quicktime file"), _T("mov qt amr 3gp 3gp2 3g2 3gpp"), false, _T("QuickTime Player or codec pack"), QuickTime));
 		ADDFMT((_T("Image file"), _T("jpeg jpg bmp gif pic png dib tiff tif")));

@@ -174,6 +174,15 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "DSMSplitter", "parser\dsmsp
 	ProjectSection(ProjectDependencies) = postProject
 	EndProjectSection
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "BaseMuxer", "muxer\basemuxer\BaseMuxer.vcproj", "{DB5F93B2-54D0-4474-A588-D259BE36C832}"
+	ProjectSection(ProjectDependencies) = postProject
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "DSMMuxer", "muxer\dsmmuxer\DSMMuxer.vcproj", "{65361C7C-83D6-42E4-870C-4DC85AE641FE}"
+	ProjectSection(ProjectDependencies) = postProject
+		{DB5F93B2-54D0-4474-A588-D259BE36C832} = {DB5F93B2-54D0-4474-A588-D259BE36C832}
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfiguration) = preSolution
 		Debug = Debug
@@ -794,6 +803,38 @@ Global
 		{1E91F58C-0BAE-4021-8087-D1864D8EC066}.Release Unicode.Build.0 = Release Unicode|Win32
 		{1E91F58C-0BAE-4021-8087-D1864D8EC066}.Release Unicode lib.ActiveCfg = Release Unicode lib|Win32
 		{1E91F58C-0BAE-4021-8087-D1864D8EC066}.Release Unicode lib.Build.0 = Release Unicode lib|Win32
+		{DB5F93B2-54D0-4474-A588-D259BE36C832}.Debug.ActiveCfg = Debug lib|Win32
+		{DB5F93B2-54D0-4474-A588-D259BE36C832}.Debug.Build.0 = Debug lib|Win32
+		{DB5F93B2-54D0-4474-A588-D259BE36C832}.Debug lib.ActiveCfg = Debug lib|Win32
+		{DB5F93B2-54D0-4474-A588-D259BE36C832}.Debug lib.Build.0 = Debug lib|Win32
+		{DB5F93B2-54D0-4474-A588-D259BE36C832}.Debug Unicode.ActiveCfg = Debug Unicode lib|Win32
+		{DB5F93B2-54D0-4474-A588-D259BE36C832}.Debug Unicode.Build.0 = Debug Unicode lib|Win32
+		{DB5F93B2-54D0-4474-A588-D259BE36C832}.Debug Unicode lib.ActiveCfg = Debug Unicode lib|Win32
+		{DB5F93B2-54D0-4474-A588-D259BE36C832}.Debug Unicode lib.Build.0 = Debug Unicode lib|Win32
+		{DB5F93B2-54D0-4474-A588-D259BE36C832}.Release.ActiveCfg = Release lib|Win32
+		{DB5F93B2-54D0-4474-A588-D259BE36C832}.Release.Build.0 = Release lib|Win32
+		{DB5F93B2-54D0-4474-A588-D259BE36C832}.Release lib.ActiveCfg = Release lib|Win32
+		{DB5F93B2-54D0-4474-A588-D259BE36C832}.Release lib.Build.0 = Release lib|Win32
+		{DB5F93B2-54D0-4474-A588-D259BE36C832}.Release Unicode.ActiveCfg = Release Unicode lib|Win32
+		{DB5F93B2-54D0-4474-A588-D259BE36C832}.Release Unicode.Build.0 = Release Unicode lib|Win32
+		{DB5F93B2-54D0-4474-A588-D259BE36C832}.Release Unicode lib.ActiveCfg = Release Unicode lib|Win32
+		{DB5F93B2-54D0-4474-A588-D259BE36C832}.Release Unicode lib.Build.0 = Release Unicode lib|Win32
+		{65361C7C-83D6-42E4-870C-4DC85AE641FE}.Debug.ActiveCfg = Debug|Win32
+		{65361C7C-83D6-42E4-870C-4DC85AE641FE}.Debug.Build.0 = Debug|Win32
+		{65361C7C-83D6-42E4-870C-4DC85AE641FE}.Debug lib.ActiveCfg = Debug lib|Win32
+		{65361C7C-83D6-42E4-870C-4DC85AE641FE}.Debug lib.Build.0 = Debug lib|Win32
+		{65361C7C-83D6-42E4-870C-4DC85AE641FE}.Debug Unicode.ActiveCfg = Debug Unicode|Win32
+		{65361C7C-83D6-42E4-870C-4DC85AE641FE}.Debug Unicode.Build.0 = Debug Unicode|Win32
+		{65361C7C-83D6-42E4-870C-4DC85AE641FE}.Debug Unicode lib.ActiveCfg = Debug Unicode lib|Win32
+		{65361C7C-83D6-42E4-870C-4DC85AE641FE}.Debug Unicode lib.Build.0 = Debug Unicode lib|Win32
+		{65361C7C-83D6-42E4-870C-4DC85AE641FE}.Release.ActiveCfg = Release|Win32
+		{65361C7C-83D6-42E4-870C-4DC85AE641FE}.Release.Build.0 = Release|Win32
+		{65361C7C-83D6-42E4-870C-4DC85AE641FE}.Release lib.ActiveCfg = Release lib|Win32
+		{65361C7C-83D6-42E4-870C-4DC85AE641FE}.Release lib.Build.0 = Release lib|Win32
+		{65361C7C-83D6-42E4-870C-4DC85AE641FE}.Release Unicode.ActiveCfg = Release Unicode|Win32
+		{65361C7C-83D6-42E4-870C-4DC85AE641FE}.Release Unicode.Build.0 = Release Unicode|Win32
+		{65361C7C-83D6-42E4-870C-4DC85AE641FE}.Release Unicode lib.ActiveCfg = Release Unicode lib|Win32
+		{65361C7C-83D6-42E4-870C-4DC85AE641FE}.Release Unicode lib.Build.0 = Release Unicode lib|Win32
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 	EndGlobalSection

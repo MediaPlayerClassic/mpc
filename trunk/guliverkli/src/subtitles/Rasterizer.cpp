@@ -846,8 +846,6 @@ bool Rasterizer::Rasterize(int xsub, int ysub, bool fBorder, bool fBlur)
 			| ((((dst[wt]&0x0000ff00)*ia + (color&0x0000ff00)*a)&0x00ff0000)>>8) \
 			| ((((dst[wt]>>8)&0x00ff0000)*ia)&0xff000000);
 
-static const __int64 _0100010001000100 = 0x0100010001000100i64;
-
 CRect Rasterizer::Draw(SubPicDesc& spd, CRect& clipRect, byte* pAlphaMask, int xsub, int ysub, const long* switchpts, bool fBody, bool fBorder)
 {
 	CRect bbox(0, 0, 0, 0);
@@ -896,112 +894,23 @@ CRect Rasterizer::Draw(SubPicDesc& spd, CRect& clipRect, byte* pAlphaMask, int x
 				if(fBody)
 				{
 					const byte* s = fBorder?(src+1):src;
-/*
+
 					for(int wt=0; wt<w; ++wt)
 					{
 						pixmix(s[wt*2]);
 					}
-*/
-					__asm
-					{
-						pxor		mm0, mm0
-
-						mov			eax, color
-						mov			ebx, eax
-						and			eax, 0x00ffffff
-						movd		mm3, eax
-						punpcklbw	mm3, mm0 // mm3 = color&0xffffff
-						shr			ebx, 24 // bl = color>>24
-
-						mov			ecx, w
-						mov			esi, s
-						mov			edi, dst
-
-				pixmixloop:
-
-						xor			eax, eax
-						mov			al, [esi] // s[wt*2]
-						imul		eax, ebx
-						shr			eax, 6
-						and			eax, 0xff
-						imul		eax, 0x01010101
-
-						movd		mm1, eax
-						movq		mm2, _0100010001000100
-						punpcklbw	mm1, mm0 // a
-						psubsw		mm2, mm1 // ia
-						pmullw		mm1, mm3 // a *= color
-						movd		mm4, [edi]
-						punpcklbw	mm4, mm0 // dst[wt]
-						pmullw		mm2, mm4 // ia *= dst[wt]
-						paddsw		mm1, mm2 // a*color += ia*dst[wt]
-						psrlw		mm1, 8
-						packuswb	mm1, mm1
-						movd		[edi], mm1
-
-						add			esi, 2
-						add			edi, 4
-						dec			ecx
-						jnz			pixmixloop
-					}
 				}
 				else if(!fBody && fBorder)
 				{
-/*					for(int wt=0; wt<w; ++wt)
+					for(int wt=0; wt<w; ++wt)
 					{
 						pixmix(src[wt*2+1]-src[wt*2]);
-					}
-*/
-					__asm
-					{
-						pxor		mm0, mm0
-
-						mov			eax, color
-						mov			ebx, eax
-						and			eax, 0x00ffffff
-						movd		mm3, eax
-						punpcklbw	mm3, mm0 // mm3 = color&0xffffff
-						shr			ebx, 24 // bl = color>>24
-
-						mov			ecx, w
-						mov			esi, src
-						mov			edi, dst
-
-					pixmixloop2:
-
-						xor			eax, eax
-						mov			al, [esi+1] // src[wt*2+1]-src[wt*2]
-						sub			al, [esi]
-						imul		eax, ebx
-						shr			eax, 6
-						and			eax, 0xff
-						imul		eax, 0x01010101
-
-						movd		mm1, eax
-						movq		mm2, _0100010001000100
-						punpcklbw	mm1, mm0 // a
-						psubsw		mm2, mm1 // ia
-						pmullw		mm1, mm3 // a *= color
-						movd		mm4, [edi]
-						punpcklbw	mm4, mm0 // dst[wt]
-						pmullw		mm2, mm4 // ia *= dst[wt]
-						paddsw		mm1, mm2 // a*color += ia*dst[wt]
-						psrlw		mm1, 8
-						packuswb	mm1, mm1
-						movd		[edi], mm1
-
-						add			esi, 2
-						add			edi, 4
-						dec			ecx
-						jnz			pixmixloop2
 					}
 				}
 
 				src += 2*mOverlayWidth;
 				dst = (unsigned long *)((char *)dst + spd.pitch);
 			}
-
-			__asm emms;
 		}
 		else
 		{

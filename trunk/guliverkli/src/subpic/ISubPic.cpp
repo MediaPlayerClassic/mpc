@@ -71,8 +71,7 @@ STDMETHODIMP ISubPicImpl::CopyTo(ISubPic* pSubPic)
 	pSubPic->SetStart(m_rtStart);
 	pSubPic->SetStop(m_rtStop);
 	pSubPic->SetDirtyRect(m_rcDirty);
-	pSubPic->SetSize(m_size);
-	pSubPic->SetVidRect(m_vidrect);
+	pSubPic->SetSize(m_size, m_vidrect);
 
 	return S_OK;
 }
@@ -92,27 +91,30 @@ STDMETHODIMP ISubPicImpl::GetMaxSize(SIZE* pMaxSize)
 	return pMaxSize ? *pMaxSize = m_maxsize, S_OK : E_POINTER;
 }
 
-STDMETHODIMP ISubPicImpl::SetSize(SIZE size)
+STDMETHODIMP ISubPicImpl::SetSize(SIZE size, RECT vidrect)
 {
 	m_size = size;
+	m_vidrect = vidrect;
 
 	if(m_size.cx > m_maxsize.cx)
 	{
 		m_size.cy = MulDiv(m_size.cy, m_maxsize.cx, m_size.cx);
 		m_size.cx = m_maxsize.cx;
 	}
+
 	if(m_size.cy > m_maxsize.cy)
 	{
 		m_size.cx = MulDiv(m_size.cx, m_maxsize.cy, m_size.cy);
 		m_size.cy = m_maxsize.cy;
 	}
 
-	return S_OK;
-}
-
-STDMETHODIMP ISubPicImpl::SetVidRect(RECT vidrect)
-{
-	m_vidrect = vidrect;
+	if(m_size.cx != size.cx || m_size.cy != size.cy)
+	{
+		m_vidrect.top = MulDiv(m_vidrect.top, m_size.cx, size.cx);
+		m_vidrect.bottom = MulDiv(m_vidrect.bottom, m_size.cx, size.cx);
+		m_vidrect.left = MulDiv(m_vidrect.left, m_size.cy, size.cy);
+		m_vidrect.right = MulDiv(m_vidrect.right, m_size.cy, size.cy);
+	}
 
 	return S_OK;
 }
@@ -161,8 +163,7 @@ STDMETHODIMP ISubPicAllocatorImpl::GetStatic(ISubPic** ppSubPic)
 			return E_OUTOFMEMORY;
 	}
 
-	m_pStatic->SetSize(m_cursize);
-	m_pStatic->SetVidRect(m_curvidrect);
+	m_pStatic->SetSize(m_cursize, m_curvidrect);
 
 	(*ppSubPic = m_pStatic)->AddRef();
 
@@ -177,8 +178,7 @@ STDMETHODIMP ISubPicAllocatorImpl::AllocDynamic(ISubPic** ppSubPic)
 	if(!Alloc(false, ppSubPic) || !*ppSubPic)
 		return E_OUTOFMEMORY;
 
-	(*ppSubPic)->SetSize(m_cursize);
-	(*ppSubPic)->SetVidRect(m_curvidrect);
+	(*ppSubPic)->SetSize(m_cursize, m_curvidrect);
 
 	return S_OK;
 }

@@ -550,7 +550,7 @@ bool CBaseSplitterFileEx::Read(aachdr& h, int len, CMediaType* pmt)
 
 	if(h.fcrc == 0) h.crc = BitRead(16);
 
-	if(h.layer != 0 || h.freq >= 12)
+	if(h.layer != 0 || h.freq >= 12 || h.aac_frame_length <= (h.fcrc == 0 ? 9 : 7))
 		return(false);
 
 	h.FrameSize = h.aac_frame_length - (h.fcrc == 0 ? 9 : 7);

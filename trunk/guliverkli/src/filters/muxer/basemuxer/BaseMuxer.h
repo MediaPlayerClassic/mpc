@@ -23,6 +23,7 @@
 
 #include "BaseMuxerInputPin.h"
 #include "BaseMuxerOutputPin.h"
+#include "BitStream.h"
 
 class CBaseMuxerFilter
 	: public CBaseFilter
@@ -45,40 +46,6 @@ protected:
 		bool IsEOS() {return !!(flags & eos);}
 	};
 
-	struct Index
-	{
-		bool fSyncPoint;
-		UINT64 fp;
-		REFERENCE_TIME rt;
-		struct Index(bool fSyncPoint = false, UINT64 fp = 0, REFERENCE_TIME rt = _I64_MIN)
-		{
-			this->fSyncPoint = fSyncPoint;
-			this->fp = fp;
-			this->rt = rt;
-		}
-	};
-
-	class CIndexList : public CList<Index> {public: void operator = (CIndexList& l) {RemoveAll(); AddTail(&l);}};
-	typedef CMap<CBaseMuxerInputPin*, CBaseMuxerInputPin*, CIndexList, CIndexList&> CIndexMap;
-
-	class CStream
-	{
-		CComPtr<IStream> m_pStream;
-		UINT64 m_bitbuff;
-		int m_bitlen;
-
-	public:
-		CStream(IStream* pStream);
-		virtual ~CStream();
-
-		UINT64 GetPos();
-		UINT64 Seek(UINT64 pos); // it's a _stream_, please don't seek if you don't have to 
-
-		void ByteWrite(const void* pData, int len);
-		void BitWrite(UINT64 data, int len);
-		void BitFlush();
-	};
-
 private:
 	CAutoPtrList<CBaseMuxerInputPin> m_pInputs;
 	CAutoPtr<CBaseMuxerOutputPin> m_pOutput;
@@ -93,14 +60,15 @@ private:
 	enum {CMD_EXIT, CMD_RUN};
 	DWORD ThreadProc();
 
+	CInterfaceList<IBitStream> m_pBitStreams;
+
 protected:
 	CList<CBaseMuxerInputPin*> m_pPins;
-	CAutoPtr<CStream> m_pStream;
-	CIndexMap m_pIndexMap, m_pIndexMapSyncPoint;
 
-	virtual void WriteHeader() = 0;
-	virtual void WritePacket(Packet* pPacket) = 0;
-	virtual void WriteFooter() = 0;
+	virtual void MuxInit() = 0;
+	virtual void MuxHeader(IBitStream* pBS) = 0;
+	virtual void MuxPacket(IBitStream* pBS, Packet* pPacket) = 0;
+	virtual void MuxFooter(IBitStream* pBS) = 0;
 
 public:
 	CBaseMuxerFilter(LPUNKNOWN pUnk, HRESULT* phr, const CLSID& clsid);

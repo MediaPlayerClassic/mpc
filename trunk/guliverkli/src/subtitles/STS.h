@@ -49,7 +49,7 @@ public:
 	bool	fStrikeOut;
 	bool	fBlur;
 	double	fontAngleZ, fontAngleX, fontAngleY;
-	int		relativeTo; // 0: window, 1: video
+	int		relativeTo; // 0: window, 1: video, 2: undefined (~window)
 
 	STSStyle();
 
@@ -167,6 +167,7 @@ public:
 	const STSSegment* GetSegment(int iSegment) {return(iSegment >= 0 && iSegment < m_segments.GetSize() ? &m_segments[iSegment] : NULL);}
 
 	STSStyle* GetStyle(int i);
+	bool GetStyle(int i, STSStyle& stss);
 	int GetCharSet(int i);
 	bool IsEntryUnicode(int i);
 	void ConvertUnicode(int i, bool fUnicode);

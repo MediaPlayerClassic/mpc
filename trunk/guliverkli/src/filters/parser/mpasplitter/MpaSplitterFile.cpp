@@ -255,10 +255,13 @@ bool CMpaSplitterFile::Sync(int& FrameSize, REFERENCE_TIME& rtDuration, int limi
 
 void CMpaSplitterFile::AdjustDuration(int nBytesPerSec)
 {
+	ASSERT(nBytesPerSec);
+
 	int rValue;
 	if(!m_pos2bps.Lookup(GetPos(), rValue))
 	{
 		m_totalbps += nBytesPerSec;
+		if(!m_totalbps) return;
 		m_pos2bps.SetAt(GetPos(), nBytesPerSec);
 		__int64 avgbps = m_totalbps / m_pos2bps.GetCount();
 		m_rtDuration = 10000000i64 * (m_endpos - m_startpos) / avgbps;

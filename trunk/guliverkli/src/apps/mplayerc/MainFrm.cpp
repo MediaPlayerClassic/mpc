@@ -7007,6 +7007,7 @@ void CMainFrame::SetupFiltersSubMenu()
 			BeginEnumPins(pBF, pEP, pPin)
 			{
 				CString name = GetPinName(pPin);
+				name.Replace(_T("&"), _T("&&"));
 
 				if(pSPP = pPin)
 				{
@@ -7065,7 +7066,10 @@ void CMainFrame::SetupFiltersSubMenu()
 						swprintf(wname, L"%s %d", stream, min(i+1,999));
 					}
 
-					pSubSub->AppendMenu(MF_BYCOMMAND|MF_STRING|MF_ENABLED, idl++, CString(wname));
+					CString name(wname);
+					name.Replace(_T("&"), _T("&&"));
+
+					pSubSub->AppendMenu(MF_BYCOMMAND|MF_STRING|MF_ENABLED, idl++, name);
 
 					CoTaskMemFree(wname);
 				}
@@ -7131,8 +7135,11 @@ void CMainFrame::SetupAudioSwitcherSubMenu()
 						break;
 
 					CString name(pName);
-					CoTaskMemFree(pName);
+					name.Replace(_T("&"), _T("&&"));
+
 					pSub->AppendMenu(MF_BYCOMMAND|MF_STRING|MF_ENABLED, id++, name);
+
+					CoTaskMemFree(pName);
 				}
 			}
 		}
@@ -7174,7 +7181,10 @@ void CMainFrame::SetupSubtitlesSubMenu()
 			WCHAR* pName = NULL;
 			if(SUCCEEDED(pSubStream->GetStreamInfo(i, &pName, NULL)))
 			{
-				pSub->AppendMenu(MF_BYCOMMAND|MF_STRING|MF_ENABLED, id++, CString(pName));
+				CString name(pName);
+				name.Replace(_T("&"), _T("&&"));
+
+				pSub->AppendMenu(MF_BYCOMMAND|MF_STRING|MF_ENABLED, id++, name);
 				CoTaskMemFree(pName);
 			}
 			else
@@ -7253,6 +7263,8 @@ void CMainFrame::SetupNavAudioSubMenu()
 				}
 			}
 
+			str.Replace(_T("&"), _T("&&"));
+
 			pSub->AppendMenu(flags, id++, str);
 		}
 	}
@@ -7326,6 +7338,8 @@ void CMainFrame::SetupNavSubtitleSubMenu()
 				}
 			}
 
+			str.Replace(_T("&"), _T("&&"));
+
 			pSub->AppendMenu(flags, id++, str);
 		}
 	}
@@ -7396,10 +7410,13 @@ void CMainFrame::SetupNavChaptersSubMenu()
 				CString t;
 				t.Format(_T("[%02d:%02d:%02d] "), h, m, s);
 
+				CString name = c.name;
+				name.Replace(_T("&"), _T("&&"));
+
 				UINT flags = MF_BYCOMMAND|MF_STRING|MF_ENABLED;
 				if(c.rtStart <= rt && rt < c.rtStop) flags |= MF_CHECKED;
 				if(id != ID_NAVIGATE_CHAP_SUBITEM_START && i == 0) pSub->AppendMenu(MF_SEPARATOR);
-				pSub->AppendMenu(flags, id++, t + c.name);
+				pSub->AppendMenu(flags, id++, t + name);
 			}
 		}
 
@@ -7413,7 +7430,9 @@ void CMainFrame::SetupNavChaptersSubMenu()
 				if(id != ID_NAVIGATE_CHAP_SUBITEM_START && pos == m_wndPlaylistBar.m_pl.GetHeadPosition())
 					pSub->AppendMenu(MF_SEPARATOR);
 				CPlaylistItem& pli = m_wndPlaylistBar.m_pl.GetNext(pos);
-				pSub->AppendMenu(flags, id++, pli.GetLabel());
+				CString name = pli.GetLabel();
+				name.Replace(_T("&"), _T("&&"));
+				pSub->AppendMenu(flags, id++, name);
 			}
 		}
 	}
@@ -7512,6 +7531,8 @@ void CMainFrame::SetupNavOgmSubMenu(CMenu* pSub, UINT id, CString type)
 
 			UINT flags = MF_BYCOMMAND|MF_STRING|MF_ENABLED;
 			if(dwFlags) flags |= MF_CHECKED;
+			
+			str.Replace(_T("&"), _T("&&"));
 			pSub->AppendMenu(flags, id++, str);
 		}
 	}
@@ -7579,6 +7600,7 @@ void CMainFrame::SetupFavoritesSubMenu()
 		UINT flags = MF_BYCOMMAND|MF_STRING|MF_ENABLED;
 
 		CString str = sl.GetNext(pos);
+		str.Replace(_T("&"), _T("&&"));
 
 		int i = str.Find(';');
 		if(i >= 0)
@@ -7602,6 +7624,7 @@ void CMainFrame::SetupFavoritesSubMenu()
 		UINT flags = MF_BYCOMMAND|MF_STRING|MF_ENABLED;
 
 		CString str = sl.GetNext(pos);
+		str.Replace(_T("&"), _T("&&"));
 
 		int i = str.Find(';');
 		if(i >= 0)
@@ -7625,6 +7648,7 @@ void CMainFrame::SetupFavoritesSubMenu()
 		UINT flags = MF_BYCOMMAND|MF_STRING|MF_ENABLED;
 
 		CString str = sl.GetNext(pos);
+		str.Replace(_T("&"), _T("&&"));
 
 		int i = str.Find(';');
 		if(i >= 0)
@@ -7665,6 +7689,7 @@ void CMainFrame::SetupShadersSubMenu()
 			pSub->AppendMenu(flags, id++, _T("Off"));
 		}
 
+		label.Replace(_T("&"), _T("&&"));
 		pSub->AppendMenu(flags, id++, label);
 	}
 }

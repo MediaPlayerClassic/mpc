@@ -46,3 +46,4 @@
 #include <streams.h>
 #include <dvdmedia.h>
 
+#include "..\..\..\DSUtil\DSUtil.h"

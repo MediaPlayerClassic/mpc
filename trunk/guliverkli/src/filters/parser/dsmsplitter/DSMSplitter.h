@@ -41,19 +41,18 @@ protected:
 public:
 	CDSMSplitterFilter(LPUNKNOWN pUnk, HRESULT* phr);
 	virtual ~CDSMSplitterFilter();
-/*
+
+	// IAMExtendedSeeking
+
+	STDMETHODIMP get_MarkerCount(long* pMarkerCount);
+	STDMETHODIMP get_CurrentMarker(long* pCurrentMarker);
+	STDMETHODIMP GetMarkerTime(long MarkerNum, double* pMarkerTime);
+	STDMETHODIMP GetMarkerName(long MarkerNum, BSTR* pbstrMarkerName);
+
 	// IKeyFrameInfo
 
 	STDMETHODIMP_(HRESULT) GetKeyFrameCount(UINT& nKFs);
 	STDMETHODIMP_(HRESULT) GetKeyFrames(const GUID* pFormat, REFERENCE_TIME* pKFs, UINT& nKFs);
-
-	// IChapterInfo
-
-	STDMETHODIMP_(UINT) GetChapterCount(UINT aChapterID);
-	STDMETHODIMP_(UINT) GetChapterId(UINT aParentChapterId, UINT aIndex);
-	STDMETHODIMP_(BOOL) GetChapterInfo(UINT aChapterID, struct ChapterElement* pStructureToFill);
-	STDMETHODIMP_(BSTR) GetChapterStringInfo(UINT aChapterID, CHAR PreferredLanguage[3], CHAR CountryCode[2]);
-*/
 };
 
 [uuid("803E8280-F3CE-4201-982C-8CD8FB512004")]

@@ -408,11 +408,13 @@ void CPlayerSubresyncBar::UpdateStrings()
 	{
 		for(int i = 0, j = m_sts.GetSize(); i < j; i++)
 		{
+			STSStyle stss;
+			m_sts.GetStyle(i, stss);
+
 			m_list.SetItemText(i, COL_TEXT, m_sts.GetStr(i, true));
 			m_list.SetItemText(i, COL_STYLE, m_sts[i].style);
-			STSStyle* s = m_sts.GetStyle(i);
-			m_list.SetItemText(i, COL_FONT, s->fontName);
-			str.Format(_T("%d"), s->charSet);
+			m_list.SetItemText(i, COL_FONT, stss.fontName);
+			str.Format(_T("%d"), stss.charSet);
 			m_list.SetItemText(i, COL_CHARSET, str);
 			m_list.SetItemText(i, COL_UNICODE, m_sts.IsEntryUnicode(i) ? _T("yes") : _T("no"));
 			str.Format(_T("%d"), m_sts[i].layer);

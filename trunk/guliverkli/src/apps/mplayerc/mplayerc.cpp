@@ -1171,10 +1171,30 @@ void CMPlayerCApp::Settings::UpdateData(bool fSave)
 		pApp->WriteProfileString(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_SNAPSHOTEXT), SnapShotExt);
 
 		pApp->WriteProfileString(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_ISDB), ISDb);
+
+		pApp->WriteProfileString(_T(""), _T(""), _T(""));
 	}
 	else
 	{
 		if(fInitialized) return;
+
+		if(pApp->m_pszRegistryKey)
+		{
+			CRegKey appkey, settingskey;
+			appkey.Attach(pApp->GetAppRegistryKey());
+			settingskey.Attach(pApp->GetSectionKey(ResStr(IDS_R_SETTINGS)));
+			if(appkey && settingskey)
+			{
+				ULONGLONG ftapp = 0, ftsettings = 0;
+				RegQueryInfoKey(appkey, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, (FILETIME*)&ftapp);
+				RegQueryInfoKey(settingskey, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, (FILETIME*)&ftsettings);
+				if(ftapp < ftsettings)
+				{
+					pApp->WriteProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_SRCFILTERS), ~0);
+					pApp->WriteProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_TRAFILTERS), ~0^TRA_MPEG1);
+				}
+			}
+		}
 
 		OSVERSIONINFO vi;
 		vi.dwOSVersionInfoSize = sizeof(vi);
@@ -1593,7 +1613,7 @@ void CMPlayerCApp::Settings::UpdateData(bool fSave)
 				_T("\\t\\ttex = acos(-n)/PI; \\n")
 				_T("\\t\\t\\n")
 				_T("\\t\\t// rotate it\\n")
-				_T("\\t\\ttex.x = frac(tex.x + frac(clock/5));\\n")
+				_T("\\t\\ttex.x = frac(tex.x + frac(clock/10));\\n")
 				_T("\\t\\t\\n")
 				_T("\\t\\t// diffuse + specular\\n")
 				_T("\\t\\tc0 = tex2D(s0, tex) * dot(n, l) + cl * pow(max(dot(l, reflect(pd, n)), 0), 50);\\n")
@@ -1601,7 +1621,7 @@ void CMPlayerCApp::Settings::UpdateData(bool fSave)
 
 			pApp->WriteProfileString(_T("Shaders"), _T("6"), _T("spotlight") + hdr + 
 				_T("\\tfloat4 c0 = tex2D(s0, tex);\\n")
-				_T("\\tfloat3 lightsrc = float3(sin(clock*3.1415/1.5)/2+0.5,cos(clock*3.1415)/2+0.5,1);\\n")
+				_T("\\tfloat3 lightsrc = float3(sin(clock*PI/1.5)/2+0.5,cos(clock*PI)/2+0.5,1);\\n")
 				_T("\\tfloat3 light = normalize(lightsrc - float3(tex.x,tex.y,0));\\n")
 				_T("\\tc0 *= pow(dot(light, float3(0,0,1)), 50);\\n") + ftr);
 

@@ -475,6 +475,15 @@ CGraphBuilder::CGraphBuilder(IGraphBuilder* pGB, HWND hWnd)
 		guids.RemoveAll();
 	}
 
+	{
+		guids.AddTail(MEDIATYPE_Stream);
+		guids.AddTail(MEDIASUBTYPE_DirectShowMedia);
+		AddFilter(new CGraphCustomFilter(__uuidof(CDSMSplitterFilter), guids, 
+			(s.SrcFilters&SRC_DSM) ? L"DSM Splitter" : L"DSM Splitter (low merit)",
+			(s.SrcFilters&SRC_DSM) ? LMERIT_ABOVE_DSHOW : LMERIT_DO_USE));
+		guids.RemoveAll();
+	}
+
 	// renderer filters
 
 	switch(s.iDSVideoRendererType)
@@ -899,6 +908,14 @@ HRESULT CGraphBuilder::Render(LPCTSTR lpsz)
 				pBF = pReader;
 		}
 
+		if((s.SrcFilters&SRC_DIRAC) && !pBF)
+		{
+			hr = S_OK;
+			CComPtr<IFileSourceFilter> pReader = new CDiracSourceFilter(NULL, &hr);
+			if(SUCCEEDED(hr) && SUCCEEDED(pReader->Load(fnw, NULL)))
+				pBF = pReader;
+		}
+
 		if((s.SrcFilters&SRC_MPA) && !pBF)
 		{
 			hr = S_OK;
@@ -907,10 +924,10 @@ HRESULT CGraphBuilder::Render(LPCTSTR lpsz)
 				pBF = pReader;
 		}
 
-		if((s.SrcFilters&SRC_DIRAC) && !pBF)
+		if((s.SrcFilters&SRC_DSM) && !pBF)
 		{
 			hr = S_OK;
-			CComPtr<IFileSourceFilter> pReader = new CDiracSourceFilter(NULL, &hr);
+			CComPtr<IFileSourceFilter> pReader = new CDSMSourceFilter(NULL, &hr);
 			if(SUCCEEDED(hr) && SUCCEEDED(pReader->Load(fnw, NULL)))
 				pBF = pReader;
 		}
@@ -1922,10 +1939,11 @@ HRESULT CGraphCustomFilter::Create(IBaseFilter** ppBF, IUnknown** ppUnk)
 		m_clsid == __uuidof(CNutSplitterFilter) ? (IBaseFilter*)new CNutSplitterFilter(NULL, &hr) :
 		m_clsid == __uuidof(CMpegSplitterFilter) ? (IBaseFilter*)new CMpegSplitterFilter(NULL, &hr) :
 		m_clsid == __uuidof(CMpeg2DecFilter) ? (IBaseFilter*)new CMpeg2DecFilter(NULL, &hr) :
-		m_clsid == __uuidof(CMpaSplitterFilter) ? (IBaseFilter*)new CMpaSplitterFilter(NULL, &hr) :
-		m_clsid == __uuidof(CMpaDecFilter) ? (IBaseFilter*)new CMpaDecFilter(NULL, &hr) :
 		m_clsid == __uuidof(CDiracSplitterFilter) ? (IBaseFilter*)new CDiracSplitterFilter(NULL, &hr) :
 		m_clsid == __uuidof(CDiracVideoDecoder) ? (IBaseFilter*)new CDiracVideoDecoder(NULL, &hr) :
+		m_clsid == __uuidof(CMpaSplitterFilter) ? (IBaseFilter*)new CMpaSplitterFilter(NULL, &hr) :
+		m_clsid == __uuidof(CMpaDecFilter) ? (IBaseFilter*)new CMpaDecFilter(NULL, &hr) :
+		m_clsid == __uuidof(CDSMSplitterFilter) ? (IBaseFilter*)new CDSMSplitterFilter(NULL, &hr) :
 		m_clsid == __uuidof(CNullVideoRenderer) ? (IBaseFilter*)new CNullVideoRenderer() :
 		m_clsid == __uuidof(CNullAudioRenderer) ? (IBaseFilter*)new CNullAudioRenderer() :
 		m_clsid == __uuidof(CNullUVideoRenderer) ? (IBaseFilter*)new CNullUVideoRenderer() :

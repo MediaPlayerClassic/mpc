@@ -205,7 +205,6 @@
 #define ID_PANSCAN_ROTATEZM             373
 #define IDD_SHADEREDITOR                374
 #define IDD_SHADEREDITORDIALOG          374
-#define IDD_SHADERAUTOCOMPLETEDIALOG    375
 #define IDD_SHADERAUTOCOMPLETEDLG       375
 #define IDS_R_SETTINGS                  500
 #define IDS_RS_CONTROLSTATE             501
@@ -539,6 +538,7 @@
 #define IDS_TRA_DIRAC                   1157
 #define IDC_CHECK_DIRAC_DECODER         1158
 #define IDS_TRA_PS2AUD                  1158
+#define IDC_CHECK_RELATIVETO            1160
 #define IDD_COMPROPERTYPAGE             10002
 #define ID_DUMMYSEPARATOR               32768
 #define ID_VOLUME_MUTE_ON               32769
@@ -653,7 +653,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        376
 #define _APS_NEXT_COMMAND_VALUE         32853
-#define _APS_NEXT_CONTROL_VALUE         1160
+#define _APS_NEXT_CONTROL_VALUE         1161
 #define _APS_NEXT_SYMED_VALUE           10003
 #endif
 #endif

@@ -1,5 +1,7 @@
 #include "StdAfx.h"
 #include "DSMSplitterFile.h"
+#include "..\..\..\DSUtil\DSUtil.h"
+#include "..\..\..\..\include\matroska\matroska.h"
 
 CDSMSplitterFile::CDSMSplitterFile(IAsyncReader* pReader, HRESULT& hr) 
 	: CBaseSplitterFile(pReader, hr)
@@ -52,6 +54,10 @@ HRESULT CDSMSplitterFile::Init()
 		{
 			Read(len, m_sps);
 		}
+		else if(type == DSMP_CHAPTERS)
+		{
+			Read(len, m_cs);
+		}
 
 		Seek(pos + len);
 	}
@@ -74,6 +80,10 @@ HRESULT CDSMSplitterFile::Init()
 			{
 				Read(len, m_sps);
 			}
+			else if(type == DSMP_CHAPTERS)
+			{
+				Read(len, m_cs);
+			}
 			else if(type == DSMP_SAMPLE)
 			{
 				Packet p;
@@ -93,6 +103,12 @@ HRESULT CDSMSplitterFile::Init()
 
 bool CDSMSplitterFile::Sync(dsmp_t& type, UINT64& len, UINT64 limit)
 {
+	UINT64 pos;
+	return Sync(pos, type, len, limit);
+}
+
+bool CDSMSplitterFile::Sync(UINT64& syncpos, dsmp_t& type, UINT64& len, UINT64 limit)
+{
 	BitByteAlign();
 
 	limit += 5;
@@ -103,6 +119,7 @@ bool CDSMSplitterFile::Sync(dsmp_t& type, UINT64& len, UINT64 limit)
 			return(false);
 	}
 
+	syncpos = GetPos() - (DSMSW_SIZE<<3);
 	type = (dsmp_t)BitRead(5);
 	len = BitRead(((int)BitRead(3)+1)<<3);
 
@@ -179,40 +196,166 @@ bool CDSMSplitterFile::Read(UINT64 len, CArray<SyncPoint>& sps)
 		return false;
 	}
 
+	// TODO: sort sps
+
 	return true;
 }
 
-static int range_bsearch(const CArray<CDSMSplitterFile::SyncPoint>& sps, REFERENCE_TIME rt)
+bool CDSMSplitterFile::Read(UINT64 len, CArray<Chapter>& cs)
 {
-	int i = 0, j = sps.GetCount() - 1, ret = -1;
+	// TESTME
 
-	if(j >= 0 && rt >= sps[j].rt) return(j);
+	Chapter c;
+	c.rt = 0;
+	cs.RemoveAll();
 
-	while(i < j)
+	while(len > 0)
 	{
-		int mid = (i + j) >> 1;
-		REFERENCE_TIME midrt = sps[mid].rt;
-		if(rt == midrt) {ret = mid; break;}
-		else if(rt < midrt) {ret = -1; if(j == mid) mid--; j = mid;}
-		else if(rt > midrt) {ret = mid; if(i == mid) mid++; i = mid;}
+		bool fSign = !!BitRead(1);
+		int iTimeStamp = (int)BitRead(3);
+		BitRead(4); // reserved
+
+		c.rt += (REFERENCE_TIME)BitRead(iTimeStamp<<3) * (fSign ? -1 : 1);
+
+		char ch;
+		CStringA name;
+		for(int i = 1 + iTimeStamp; i < len && (ch = (char)BitRead(8)) != 0; i++) name += ch;
+		c.name = UTF8To16(name);
+
+		cs.Add(c);
+
+		len -= 1 + iTimeStamp + name.GetLength()+1;
 	}
 
-	return ret;
+	if(len != 0)
+	{
+		cs.RemoveAll();
+		return false;
+	}
+
+	// TODO: sort cs
+
+	return true;
 }
 
 __int64 CDSMSplitterFile::FindSyncPoint(REFERENCE_TIME rt)
 {
-	rt += m_rtFirst;
-
 	if(!m_sps.IsEmpty())
 	{
-		int i = range_bsearch(m_sps, rt);
-		if(i >= 0) return m_sps[i].fp;
-	}
-	else
-	{
-		// TODO
+		int i = range_bsearch(m_sps, m_rtFirst + rt);
+		return i >= 0 ? m_sps[i].fp : 0;
 	}
 
-	return 0;
+	if(m_rtDuration <= 0 || rt <= m_rtFirst)
+		return 0;
+
+	// ok, do the hard way then
+
+	dsmp_t type;
+	UINT64 syncpos, len;
+
+	// 1. find some boundaries close to rt's position (minpos, maxpos)
+
+	__int64 minpos = 0, maxpos = GetLength();
+
+	for(int i = 0; i < 10 && (maxpos - minpos) >= 1024*1024; i++)
+	{
+		Seek((minpos + maxpos) / 2);
+
+		while(GetPos() < maxpos)
+		{
+			if(!Sync(syncpos, type, len))
+				continue;
+
+			__int64 pos = GetPos();
+
+			if(type == DSMP_SAMPLE)
+			{
+				Packet p;
+				if(Read(len, &p, false) && p.rtStart != Packet::INVALID_TIME)
+				{
+					REFERENCE_TIME dt = (p.rtStart -= m_rtFirst) - rt;
+					if(dt >= 0) maxpos = max((__int64)syncpos - 65536, minpos);
+					else minpos = syncpos;
+					break;
+				}
+			}
+
+			Seek(pos + len);
+		}
+	}
+
+	// 2. find the first packet just after rt (maxpos)
+
+	Seek(minpos);
+
+	while(GetPos() < GetLength())
+	{
+		if(!Sync(syncpos, type, len))
+			continue;
+
+		__int64 pos = GetPos();
+
+		if(type == DSMP_SAMPLE)
+		{
+			Packet p;
+			if(Read(len, &p, false) && p.rtStart != Packet::INVALID_TIME)
+			{
+				REFERENCE_TIME dt = (p.rtStart -= m_rtFirst) - rt;
+				if(dt >= 0) {maxpos = (__int64)syncpos; break;}
+			}
+		}
+
+		Seek(pos + len);
+	}
+
+	// 3. iterate backwards from maxpos and find at least one syncpoint for every stream, except for subtitle streams
+
+	CMap<BYTE,BYTE,BYTE,BYTE&> ids;
+
+	{
+		POSITION pos = m_mts.GetStartPosition();
+		while(pos)
+		{
+			BYTE id;
+			CMediaType mt;
+			m_mts.GetNextAssoc(pos, id, mt);
+			if(mt.majortype != MEDIATYPE_Text && mt.majortype != MEDIATYPE_Subtitle)
+				ids[id] = 0;
+		}
+	}
+
+	__int64 ret = maxpos;
+
+	while(maxpos > 0 && !ids.IsEmpty())
+	{
+		minpos = max(0, maxpos - 65536);
+
+		Seek(minpos);
+
+		while(Sync(syncpos, type, len) && GetPos() < maxpos)
+		{
+			UINT64 pos = GetPos();
+
+			if(type == DSMP_SAMPLE)
+			{
+				Packet p;
+				if(Read(len, &p, false) && p.rtStart != Packet::INVALID_TIME && p.bSyncPoint)
+				{
+					BYTE id = (BYTE)p.TrackNumber, tmp;
+					if(ids.Lookup(id, tmp))
+					{
+						ids.RemoveKey((BYTE)p.TrackNumber);
+						ret = min(ret, (__int64)syncpos);
+					}
+				}	
+			}
+
+			Seek(pos + len);
+		}
+
+		maxpos = minpos;
+	}
+
+	return ret;
 }

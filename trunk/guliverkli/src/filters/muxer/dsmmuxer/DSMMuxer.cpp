@@ -72,6 +72,13 @@ BOOL APIENTRY DllMain(HANDLE hModule, DWORD dwReason, LPVOID lpReserved)
 
 template<typename T> static T myabs(T n) {return n >= 0 ? n : -n;}
 
+static int GetByteLength(UINT64 data, int min = 0)
+{
+	int i = 7;
+	while(i >= min && ((BYTE*)&data)[i] == 0) i--;
+	return ++i;
+}
+
 //
 // CDSMMuxerFilter
 //
@@ -86,28 +93,27 @@ CDSMMuxerFilter::~CDSMMuxerFilter()
 {
 }
 
-int CDSMMuxerFilter::GetByteLength(UINT64 data, int min)
-{
-	int i = 7;
-	while(i >= min && ((BYTE*)&data)[i] == 0) i--;
-	return ++i;
-}
-
-void CDSMMuxerFilter::WritePacketHeader(dsmp_t type, UINT64 len)
+void CDSMMuxerFilter::MuxPacketHeader(IBitStream* pBS, dsmp_t type, UINT64 len)
 {
 	ASSERT(type < 32);
 
-	int i = GetByteLength(len);
+	int i = GetByteLength(len, 1);
 
-	m_pStream->BitWrite(DSMSW, DSMSW_SIZE<<3);
-	m_pStream->BitWrite(type, 5);
-	m_pStream->BitWrite(i-1, 3);
-	m_pStream->BitWrite(len, i<<3);
+	pBS->BitWrite(DSMSW, DSMSW_SIZE<<3);
+	pBS->BitWrite(type, 5);
+	pBS->BitWrite(i-1, 3);
+	pBS->BitWrite(len, i<<3);
 }
 
-void CDSMMuxerFilter::WriteHeader()
+void CDSMMuxerFilter::MuxInit()
 {
-	WritePacketHeader(DSMP_FILE, 0);
+	m_sps.RemoveAll();
+	m_isps.RemoveAll();
+}
+
+void CDSMMuxerFilter::MuxHeader(IBitStream* pBS)
+{
+	MuxPacketHeader(pBS, DSMP_FILE, 0);
 
 	POSITION pos = m_pPins.GetHeadPosition();
 	while(pos)
@@ -117,25 +123,35 @@ void CDSMMuxerFilter::WriteHeader()
 
 		ASSERT((mt.lSampleSize >> 30) == 0); // you don't need >1GB samples, do you?
 
-		WritePacketHeader(DSMP_MEDIATYPE, 5 + sizeof(GUID)*3 + mt.FormatLength());
-		m_pStream->BitWrite(pPin->GetID(), 8);
-		m_pStream->ByteWrite(&mt.majortype, sizeof(mt.majortype));
-		m_pStream->ByteWrite(&mt.subtype, sizeof(mt.subtype));
-		m_pStream->BitWrite(mt.bFixedSizeSamples, 1);
-		m_pStream->BitWrite(mt.bTemporalCompression, 1);
-		m_pStream->BitWrite(mt.lSampleSize, 30);
-		m_pStream->ByteWrite(&mt.formattype, sizeof(mt.formattype));
-		m_pStream->ByteWrite(mt.Format(), mt.FormatLength());
+		MuxPacketHeader(pBS, DSMP_MEDIATYPE, 5 + sizeof(GUID)*3 + mt.FormatLength());
+		pBS->BitWrite(pPin->GetID(), 8);
+		pBS->ByteWrite(&mt.majortype, sizeof(mt.majortype));
+		pBS->ByteWrite(&mt.subtype, sizeof(mt.subtype));
+		pBS->BitWrite(mt.bFixedSizeSamples, 1);
+		pBS->BitWrite(mt.bTemporalCompression, 1);
+		pBS->BitWrite(mt.lSampleSize, 30);
+		pBS->ByteWrite(&mt.formattype, sizeof(mt.formattype));
+		pBS->ByteWrite(mt.Format(), mt.FormatLength());
 	}
 
-	m_sps.RemoveAll();
-	m_isps.RemoveAll();
+	// TODO: write chapters
 }
 
-void CDSMMuxerFilter::WritePacket(Packet* pPacket)
+void CDSMMuxerFilter::MuxPacket(IBitStream* pBS, Packet* pPacket)
 {
 	if(pPacket->IsEOS())
 		return;
+
+	if(pPacket->pPin->IsSubtitleStream())
+	{
+		CStringA str((char*)pPacket->pData.GetData(), pPacket->pData.GetCount());
+		str.Replace("\xff", " ");
+		str.Replace("&nbsp;", " ");
+		str.Replace("&nbsp", " ");
+		str.Trim();
+		if(str.IsEmpty())
+			return;
+	}
 
 	ASSERT(!pPacket->IsSyncPoint() || pPacket->IsTimeValid());
 
@@ -147,29 +163,30 @@ void CDSMMuxerFilter::WritePacket(Packet* pPacket)
 		rtTimeStamp = pPacket->rtStart;
 		rtDuration = max(pPacket->rtStop - pPacket->rtStart, 0);
 
-		iTimeStamp = GetByteLength(myabs(rtTimeStamp), 0);
+		iTimeStamp = GetByteLength(myabs(rtTimeStamp));
 		ASSERT(iTimeStamp <= 7);
 
-		iDuration = GetByteLength(rtDuration, 0);
+		iDuration = GetByteLength(rtDuration);
 		ASSERT(iDuration <= 7);
 
-		IndexSyncPoint(pPacket);
+		// TODO
+		IndexSyncPoint(pPacket, pBS->GetPos());
 	}
 
 	int len = 2 + iTimeStamp + iDuration + pPacket->pData.GetCount(); // id + flags + data 
 
-	WritePacketHeader(DSMP_SAMPLE, len);
-	m_pStream->BitWrite(pPacket->pPin->GetID(), 8);
-	m_pStream->BitWrite(pPacket->IsSyncPoint(), 1);
-	m_pStream->BitWrite(rtTimeStamp < 0, 1);
-	m_pStream->BitWrite(iTimeStamp, 3);
-	m_pStream->BitWrite(iDuration, 3);
-	m_pStream->BitWrite(myabs(rtTimeStamp), iTimeStamp<<3);
-	m_pStream->BitWrite(rtDuration, iDuration<<3);
-	m_pStream->ByteWrite(pPacket->pData.GetData(), pPacket->pData.GetCount());
+	MuxPacketHeader(pBS, DSMP_SAMPLE, len);
+	pBS->BitWrite(pPacket->pPin->GetID(), 8);
+	pBS->BitWrite(pPacket->IsSyncPoint(), 1);
+	pBS->BitWrite(rtTimeStamp < 0, 1);
+	pBS->BitWrite(iTimeStamp, 3);
+	pBS->BitWrite(iDuration, 3);
+	pBS->BitWrite(myabs(rtTimeStamp), iTimeStamp<<3);
+	pBS->BitWrite(rtDuration, iDuration<<3);
+	pBS->ByteWrite(pPacket->pData.GetData(), pPacket->pData.GetCount());
 }
 
-void CDSMMuxerFilter::WriteFooter()
+void CDSMMuxerFilter::MuxFooter(IBitStream* pBS)
 {
 	int len = 0;
 	CList<SyncPoint> isps;
@@ -189,37 +206,37 @@ void CDSMMuxerFilter::WriteFooter()
 		sp2.rtStart = rt;
 		isps.AddTail(sp2);
 
-		len += 1 + GetByteLength(myabs(rt), 0) + GetByteLength(fp, 0); // flags + rt + fp
+		len += 1 + GetByteLength(myabs(rt)) + GetByteLength(fp); // flags + rt + fp
 	}
 
-	WritePacketHeader(DSMP_SYNCPOINTS, len);
+	MuxPacketHeader(pBS, DSMP_SYNCPOINTS, len);
 
 	pos = isps.GetHeadPosition();
 	while(pos)
 	{
 		SyncPoint& sp = isps.GetNext(pos);
 
-		int irt = GetByteLength(myabs(sp.rtStart), 0);
-		int ifp = GetByteLength(sp.fp, 0);
+		int irt = GetByteLength(myabs(sp.rtStart));
+		int ifp = GetByteLength(sp.fp);
 
-		m_pStream->BitWrite(sp.rtStart < 0, 1);
-		m_pStream->BitWrite(irt, 3);
-		m_pStream->BitWrite(ifp, 3);
-		m_pStream->BitWrite(0, 1); // reserved
-		m_pStream->BitWrite(myabs(sp.rtStart), irt<<3);
-		m_pStream->BitWrite(sp.fp, ifp<<3);
+		pBS->BitWrite(sp.rtStart < 0, 1);
+		pBS->BitWrite(irt, 3);
+		pBS->BitWrite(ifp, 3);
+		pBS->BitWrite(0, 1); // reserved
+		pBS->BitWrite(myabs(sp.rtStart), irt<<3);
+		pBS->BitWrite(sp.fp, ifp<<3);
 	}
 }
 
-void CDSMMuxerFilter::IndexSyncPoint(Packet* p)
+void CDSMMuxerFilter::IndexSyncPoint(Packet* p, __int64 fp)
 {
 	// TODO: the very last syncpoints won't get moved to m_isps because there are no more syncpoints to trigger it!
 
-	if(!p->IsTimeValid() || !p->IsSyncPoint()) 
+	if(fp < 0 || !p || !p->IsTimeValid() || !p->IsSyncPoint()) 
 		return;
 
 	SyncPoint sp;
-	sp.fp = m_pStream->GetPos();
+	sp.fp = fp;
 	sp.id = p->pPin->GetID();
 	sp.rtStart = p->rtStart;
 	sp.rtStop = p->pPin->IsSubtitleStream() ? p->rtStop : _I64_MAX;
@@ -233,7 +250,7 @@ void CDSMMuxerFilter::IndexSyncPoint(Packet* p)
 		SyncPoint& head = m_sps.GetHead();
 		SyncPoint& tail = m_sps.GetTail();
 
-		if(head.rtStart - m_isps.GetTail().rtStart > 10000000)
+		if(head.rtStart - m_isps.GetTail().rtStart > 1000000)
 		{
 			SyncPoint sp;
 			sp.fp = head.fp;
