@@ -40,13 +40,13 @@ CString CMediaTypeEx::ToString(IPin* pPin)
 		{
 			VIDEOINFOHEADER* vih = (VIDEOINFOHEADER*)pbFormat;
 			if(vih->AvgTimePerFrame) rate.Format(_T("%0.2ffps "), 10000000.0f / vih->AvgTimePerFrame);
-			if(vih->dwBitRate) rate.Format(_T("%s%dKbps"), rate, vih->dwBitRate/1000);
+			if(vih->dwBitRate) rate.Format(_T("%s%dKbps"), CString(rate), vih->dwBitRate/1000);
 		}
 		else if(formattype == FORMAT_VideoInfo2 || formattype == FORMAT_MPEG2_VIDEO || formattype == FORMAT_DiracVideoInfo)
 		{
 			VIDEOINFOHEADER2* vih = (VIDEOINFOHEADER2*)pbFormat;
 			if(vih->AvgTimePerFrame) rate.Format(_T("%0.2ffps "), 10000000.0f / vih->AvgTimePerFrame);
-			if(vih->dwBitRate) rate.Format(_T("%s%dKbps"), rate, vih->dwBitRate/1000);
+			if(vih->dwBitRate) rate.Format(_T("%s%dKbps"), CString(rate), vih->dwBitRate/1000);
 		}
 
 		rate.Trim();
@@ -135,7 +135,7 @@ CString CMediaTypeEx::ToString(IPin* pPin)
 	if(!codec.IsEmpty()) str += codec + _T(", ");
 	if(!dim.IsEmpty()) str += dim + _T(" ");
 	if(!rate.IsEmpty()) str += rate + _T(" ");
-	if(!dur.IsEmpty()) str += _T(", ") + dur + _T(" ");
+	if(!dur.IsEmpty()) str += dur + _T(" ");
 	str.Trim(_T(" ,"));
 	
 	if(!str.IsEmpty()) str = type + _T(": ") + str;

@@ -171,15 +171,15 @@ STDMETHODIMP CDSMResourceBag::ResRemoveAt(DWORD iIndex)
 
 STDMETHODIMP CDSMResourceBag::ResRemoveAll(DWORD_PTR tag)
 {
-	if(!tag)
-	{
-		m_resources.RemoveAll();
-	}
-	else
+	if(tag)
 	{
 		for(int i = m_resources.GetCount() - 1; i >= 0; i--)
 			if(m_resources[i].tag == tag)
 				m_resources.RemoveAt(i);
+	}
+	else
+	{
+		m_resources.RemoveAll();
 	}
 
 	return S_OK;

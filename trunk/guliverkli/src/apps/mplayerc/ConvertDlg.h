@@ -20,6 +20,17 @@ public:
 
 class CConvertDlg : public CResizableDialog
 {
+public:
+	class CTreeItem
+	{
+	public:
+		CComPtr<IUnknown> pUnk;	
+		CString fn;
+		CDSMResource res;
+		bool fResEnabled;
+		virtual ~CTreeItem() {fResEnabled = true;}
+	};
+
 private:
 	DWORD m_dwRegister;
 	CComPtr<ICaptureGraphBuilder2> m_pCGB;
@@ -35,6 +46,8 @@ private:
 	CBitmap m_streamtypesbm;
 	CImageList m_streamtypes;
 
+	CList<CTreeItem*> m_pTIs;
+
 	void AddFile(CString fn);
 	void AddFilter(HTREEITEM hTI, IBaseFilter* pBF);
 	void DeleteFilter(IBaseFilter* pBF);
@@ -46,6 +59,7 @@ private:
 	void ShowPopup(CPoint p);
 	void ShowFilePopup(HTREEITEM hTI, CPoint p);
 	void ShowPinPopup(HTREEITEM hTI, CPoint p);
+	void ShowResourcePopup(HTREEITEM hTI, CPoint p);
 
 	void EditProperties(IDSMPropertyBag* pPB);
 
