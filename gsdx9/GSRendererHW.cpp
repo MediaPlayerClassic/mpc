@@ -136,6 +136,8 @@ int GSRendererHW::DrawingKick(bool fSkip)
 	HWVERTEX* pVertices = &m_pVertices[m_nVertices];
 	int nVertices = 0;
 
+	CSize size(m_ctxt->FRAME.FBW*64, m_rs.GetSize(m_rs.IsEnabled(1)?1:0).cy*2);
+
 	switch(m_PRIM)
 	{
 	case 3: // triangle list
@@ -143,6 +145,11 @@ int GSRendererHW::DrawingKick(bool fSkip)
 		m_vl.RemoveAt(0, pVertices[nVertices++]);
 		m_vl.RemoveAt(0, pVertices[nVertices++]);
 		m_vl.RemoveAt(0, pVertices[nVertices++]);
+		if(pVertices[nVertices-1].x < 0 && pVertices[nVertices-2].x < 0 && pVertices[nVertices-3].x < 0
+		|| pVertices[nVertices-1].x < 0 && pVertices[nVertices-2].x < 0 && pVertices[nVertices-3].x < 0
+		|| pVertices[nVertices-1].x >= size.cx && pVertices[nVertices-2].x >= size.cx && pVertices[nVertices-3].x >= size.cx
+		|| pVertices[nVertices-1].y >= size.cy && pVertices[nVertices-2].y >= size.cy && pVertices[nVertices-3].y >= size.cy)
+			{nVertices -= 3; break;}
 		LOGV((pVertices[0], _T("TriList")));
 		LOGV((pVertices[1], _T("TriList")));
 		LOGV((pVertices[2], _T("TriList")));
@@ -152,6 +159,11 @@ int GSRendererHW::DrawingKick(bool fSkip)
 		m_vl.RemoveAt(0, pVertices[nVertices++]);
 		m_vl.GetAt(0, pVertices[nVertices++]);
 		m_vl.GetAt(1, pVertices[nVertices++]);
+		if(pVertices[nVertices-1].x < 0 && pVertices[nVertices-2].x < 0 && pVertices[nVertices-3].x < 0
+		|| pVertices[nVertices-1].y < 0 && pVertices[nVertices-2].y < 0 && pVertices[nVertices-3].y < 0
+		|| pVertices[nVertices-1].x >= size.cx && pVertices[nVertices-2].x >= size.cx && pVertices[nVertices-3].x >= size.cx
+		|| pVertices[nVertices-1].y >= size.cy && pVertices[nVertices-2].y >= size.cy && pVertices[nVertices-3].y >= size.cy)
+			{nVertices -= 3; break;}
 		LOGV((pVertices[0], _T("TriStrip")));
 		LOGV((pVertices[1], _T("TriStrip")));
 		LOGV((pVertices[2], _T("TriStrip")));
@@ -161,6 +173,11 @@ int GSRendererHW::DrawingKick(bool fSkip)
 		m_vl.GetAt(0, pVertices[nVertices++]);
 		m_vl.RemoveAt(1, pVertices[nVertices++]);
 		m_vl.GetAt(1, pVertices[nVertices++]);
+		if(pVertices[nVertices-1].x < 0 && pVertices[nVertices-2].x < 0 && pVertices[nVertices-3].x < 0
+		|| pVertices[nVertices-1].y < 0 && pVertices[nVertices-2].y < 0 && pVertices[nVertices-3].y < 0
+		|| pVertices[nVertices-1].x >= size.cx && pVertices[nVertices-2].x >= size.cx && pVertices[nVertices-3].x >= size.cx
+		|| pVertices[nVertices-1].y >= size.cy && pVertices[nVertices-2].y >= size.cy && pVertices[nVertices-3].y >= size.cy)
+			{nVertices -= 3; break;}
 		LOGV((pVertices[0], _T("TriFan")));
 		LOGV((pVertices[1], _T("TriFan")));
 		LOGV((pVertices[2], _T("TriFan")));
@@ -169,6 +186,11 @@ int GSRendererHW::DrawingKick(bool fSkip)
 		m_primtype = D3DPT_TRIANGLELIST;
 		m_vl.RemoveAt(0, pVertices[nVertices++]);
 		m_vl.RemoveAt(0, pVertices[nVertices++]);
+		if(pVertices[nVertices-1].x < 0 && pVertices[nVertices-2].x < 0
+		|| pVertices[nVertices-1].y < 0 && pVertices[nVertices-2].y < 0
+		|| pVertices[nVertices-1].x >= size.cx && pVertices[nVertices-2].x >= size.cx
+		|| pVertices[nVertices-1].y >= size.cy && pVertices[nVertices-2].y >= size.cy)
+			{nVertices -= 2; break;}
 		nVertices += 2;
 /*
 		float lod;
@@ -208,6 +230,11 @@ int GSRendererHW::DrawingKick(bool fSkip)
 		m_primtype = D3DPT_LINELIST;
 		m_vl.RemoveAt(0, pVertices[nVertices++]);
 		m_vl.RemoveAt(0, pVertices[nVertices++]);
+		if(pVertices[nVertices-1].x < 0 && pVertices[nVertices-2].x < 0
+		|| pVertices[nVertices-1].y < 0 && pVertices[nVertices-2].y < 0
+		|| pVertices[nVertices-1].x >= size.cx && pVertices[nVertices-2].x >= size.cx
+		|| pVertices[nVertices-1].y >= size.cy && pVertices[nVertices-2].y >= size.cy)
+			{nVertices -= 2; break;}
 		LOGV((pVertices[0], _T("LineList")));
 		LOGV((pVertices[1], _T("LineList")));
 		break;
@@ -215,12 +242,22 @@ int GSRendererHW::DrawingKick(bool fSkip)
 		m_primtype = D3DPT_LINELIST;
 		m_vl.RemoveAt(0, pVertices[nVertices++]);
 		m_vl.GetAt(0, pVertices[nVertices++]);
+		if(pVertices[nVertices-1].x < 0 && pVertices[nVertices-2].x < 0
+		|| pVertices[nVertices-1].y < 0 && pVertices[nVertices-2].y < 0
+		|| pVertices[nVertices-1].x >= size.cx && pVertices[nVertices-2].x >= size.cx
+		|| pVertices[nVertices-1].y >= size.cy && pVertices[nVertices-2].y >= size.cy)
+			{nVertices -= 2; break;}
 		LOGV((pVertices[0], _T("LineStrip")));
 		LOGV((pVertices[1], _T("LineStrip")));
 		break;
 	case 0: // point
 		m_primtype = D3DPT_POINTLIST;
 		m_vl.RemoveAt(0, pVertices[nVertices++]);
+		if(pVertices[nVertices-1].x < 0
+		|| pVertices[nVertices-1].y < 0
+		|| pVertices[nVertices-1].x >= size.cx
+		|| pVertices[nVertices-1].y >= size.cy)
+			{nVertices--; break;}
 		LOGV((pVertices[0], _T("PointList")));
 		break;
 	default:
@@ -374,10 +411,10 @@ hr = m_pD3DDev->SetRenderState(D3DRS_FILLMODE, m_de.PRIM.TME ? m_dwFillMode : D3
 
 		// close approx., to be tested...
 		int mask = D3DCOLORWRITEENABLE_ALPHA|D3DCOLORWRITEENABLE_BLUE|D3DCOLORWRITEENABLE_GREEN|D3DCOLORWRITEENABLE_RED;
-		if(m_ctxt->FRAME.FBMSK&0xff000000) mask &= ~D3DCOLORWRITEENABLE_ALPHA;
-		if(m_ctxt->FRAME.FBMSK&0x00ff0000) mask &= ~D3DCOLORWRITEENABLE_BLUE;
-		if(m_ctxt->FRAME.FBMSK&0x0000ff00) mask &= ~D3DCOLORWRITEENABLE_GREEN;
-		if(m_ctxt->FRAME.FBMSK&0x000000ff) mask &= ~D3DCOLORWRITEENABLE_RED;
+		if((m_ctxt->FRAME.FBMSK&0xff000000) == 0xff000000) mask &= ~D3DCOLORWRITEENABLE_ALPHA;
+		if((m_ctxt->FRAME.FBMSK&0x00ff0000) == 0x00ff0000) mask &= ~D3DCOLORWRITEENABLE_BLUE;
+		if((m_ctxt->FRAME.FBMSK&0x0000ff00) == 0x0000ff00) mask &= ~D3DCOLORWRITEENABLE_GREEN;
+		if((m_ctxt->FRAME.FBMSK&0x000000ff) == 0x000000ff) mask &= ~D3DCOLORWRITEENABLE_RED;
 		//if(m_ctxt->FRAME.PSM == PSM_PSMCT24) mask &= ~D3DCOLORWRITEENABLE_ALPHA;
 		hr = m_pD3DDev->SetRenderState(D3DRS_COLORWRITEENABLE, mask);
 
@@ -1103,6 +1140,8 @@ bool GSRendererHW::CreateTexture(GSTexture& t)
 	m_tc.Add(tex, scale_t(1, 1), pTexture, CSize(tw, th));
 	if(!m_tc.Lookup(tex, t)) ASSERT(0); // ehe
 
+/*	t = GSTexture(tex, scale_t(1, 1), pTexture, CSize(tw, th));
+*/
 	m_stats.IncReads(tw*th);
 
 #ifdef DEBUG_SAVETEXTURES
