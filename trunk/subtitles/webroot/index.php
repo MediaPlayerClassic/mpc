@@ -91,22 +91,12 @@ else
 
 if(!empty($movies))
 {
-	// init & test_movie_id
-	
-	$test_movie_id = array();
-	
-	foreach($movies as $id => $movie)
-	{
-		$movies[$id]['titles'] = array();
-		$movies[$id]['subs'] = array();
-		$test_movie_id[] = "t1.movie_id = $id";
-	}
-	
-	$test_movie_id = "(".implode(' || ', $test_movie_id).")";
-	
+	$test_movie_id = "t1.movie_id in (".implode(',', array_keys($movies)).")";	
+
 	// titles
 
 	$db->query("select movie_id, title from title t1 where $test_movie_id");
+	foreach($movies as $id => $movie) $movies[$id]['titles'] = array();
 	while($row = $db->fetchRow()) $movies[$row['movie_id']]['titles'][] = $row['title'];
 	
 	chkerr();
@@ -117,7 +107,8 @@ if(!empty($movies))
 		"select ".
 		" t1.movie_id, t1.id as ms_id, t1.name, t1.userid, t1.date, t1.notes, t1.format, t1.iso639_2, ".
 		" t2.id, t2.discs, t2.disc_no, t2.downloads, ".
-		" t3.nick, t3.email ".
+		" t3.nick, t3.email, ".
+		" (select count(*) from file_subtitle where subtitle_id = t2.id && file_id in (select id from file)) as has_file ".
 		"from movie_subtitle t1 ".
 		"join subtitle t2 on t1.subtitle_id = t2.id ".
 		"left outer join user t3 on t1.userid = t3.userid ".
@@ -126,11 +117,8 @@ if(!empty($movies))
 		(!empty($isolang_sel)?" && iso639_2 = '$isolang_sel' ":"").
 		(!empty($format_sel)?" && format = '$format_sel' ":"").
 		"order by t1.date asc, t2.disc_no asc ");
+	foreach($movies as $id => $movie) $movies[$id]['subs'] = array();
 	while($row = $db->fetchRow()) $movies[$row['movie_id']]['subs'][] = $row;
-
-if(isset($_ENV['COMPUTERNAME']) && $_ENV['COMPUTERNAME'] == 'I2400P4')
-{
-}
 
 	chkerr();
 
@@ -148,10 +136,8 @@ if(isset($_ENV['COMPUTERNAME']) && $_ENV['COMPUTERNAME'] == 'I2400P4')
 				$movies[$id]['subs'][$j]['email'] = '';
 			}
 
-			if($db->count("file_subtitle where subtitle_id = {$movies[$id]['subs'][$j]['id']} && file_id in (select id from file)") > 0)
-			{
-				$movies[$id]['subs'][$j]['has_file'] = true;
-			
+			if(!empty($movies[$id]['subs'][$j]['has_file']))
+			{			
 				foreach($files as $file)
 				{
 					$cnt = $db->count(
