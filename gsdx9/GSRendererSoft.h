@@ -21,32 +21,26 @@
 
 #pragma once
 
-#include "GSState.h"
+#include "GSRenderer.h"
 
-class GSStateSoft : public GSState
+template <class VERTEX>
+class GSRendererSoft : public GSRenderer<VERTEX>
 {
-	GSVertexList<GSSoftVertex> m_vl;
-
-	enum {D3DPT_SPRITE = 0};
-
+protected:
 	void Reset();
-	void VertexKick(bool fSkip);
 	void DrawingKick(bool fSkip);
-	void NewPrim();
 	void FlushPrim();
 	void Flip();
 	void EndFrame();
 	void InvalidateTexture(DWORD TBP0);
 
 	enum {PRIM_NONE, PRIM_SPRITE, PRIM_TRIANGLE, PRIM_LINE, PRIM_POINT} m_primtype;
-	GSSoftVertex* m_pVertices;
-	int m_nMaxVertices, m_nVertices, m_nPrims;
 
-	void DrawPoint(GSSoftVertex* v, CRect& scissor);
-	void DrawLine(GSSoftVertex* v, CRect& scissor);
-	void DrawTriangle(GSSoftVertex* v, CRect& scissor);
-	void DrawSprite(GSSoftVertex* v, CRect& scissor);
-	void DrawVertex(int x, int y, GSSoftVertex& v);
+	virtual void DrawPoint(VERTEX* v) = 0;
+	virtual void DrawLine(VERTEX* v) = 0;
+	virtual void DrawTriangle(VERTEX* v) = 0;
+	virtual void DrawSprite(VERTEX* v) = 0;
+	void DrawVertex(int x, int y, VERTEX& v);
 
 	class CTexture
 	{
@@ -63,25 +57,52 @@ class GSStateSoft : public GSState
 
 	DWORD* m_pTexture;
 	void SetTexture();
-	CTexture* LookupTexture();
+	bool LookupTexture(CTexture*& t);
+
+	CRect m_scissor;
+	virtual void SetScissor() = 0;
 
 	BYTE m_clip[512+256+512];
 	BYTE m_mask[512+256+512];
 	BYTE* m_clamp;
 
 public:
-	GSStateSoft(HWND hWnd, HRESULT& hr);
-	~GSStateSoft();
+	GSRendererSoft(HWND hWnd, HRESULT& hr);
+	~GSRendererSoft();
+};
 
-	void LOGVERTEX(GSSoftVertex& v, LPCTSTR type)
-	{
-		GSDrawingContext* ctxt = &m_de.CTXT[m_de.PRIM.CTXT];
-		int tw = 1, th = 1;
-		if(m_de.PRIM.TME) {tw = 1<<ctxt->TEX0.TW; th = 1<<ctxt->TEX0.TH;}
-		LOG2((_T("\t %s (%.2f, %.2f, %.2f, %.2f) (%08x) (%f, %f) (%f, %f)\n"), 
-			type,
-			v.x, v.y, v.z, 1.0 / v.w, 
-			(((BYTE)v.a)<<24)|(((BYTE)v.r)<<16)|(((BYTE)v.g)<<8)|(((BYTE)v.b)<<0), 
-			v.u, v.v, v.u*tw, v.v*th));
-	}
+class GSRendererSoftFP : GSRendererSoft<GSSoftVertexFP>
+{
+	typedef GSSoftVertexFP GSSoftVertex;
+
+protected:
+	void VertexKick(bool fSkip);
+
+	void SetScissor();
+
+	void DrawPoint(GSSoftVertex* v);
+	void DrawLine(GSSoftVertex* v);
+	void DrawTriangle(GSSoftVertex* v);
+	void DrawSprite(GSSoftVertex* v);
+
+public:
+	GSRendererSoftFP(HWND hWnd, HRESULT& hr);
+};
+
+class GSRendererSoftFX : GSRendererSoft<GSSoftVertexFX>
+{
+	typedef GSSoftVertexFX GSSoftVertex;
+
+protected:
+	void VertexKick(bool fSkip);
+
+	void SetScissor();
+
+	void DrawPoint(GSSoftVertex* v);
+	void DrawLine(GSSoftVertex* v);
+	void DrawTriangle(GSSoftVertex* v);
+	void DrawSprite(GSSoftVertex* v);
+
+public:
+	GSRendererSoftFX(HWND hWnd, HRESULT& hr);
 };

@@ -192,6 +192,8 @@ void GSState::GIFRegHandlerPRIM(GIFReg* r)
 		m_de.PRIM.FST = r->PRIM.FST;
 		m_de.PRIM.CTXT = r->PRIM.CTXT;
 		m_de.PRIM.FIX = r->PRIM.FIX;
+
+		m_ctxt = &m_de.CTXT[m_de.PRIM.CTXT];
 	}
 
 	NewPrim();
@@ -503,6 +505,8 @@ void GSState::GIFRegHandlerPRMODE(GIFReg* r)
 		m_de.PRIM.FST = r->PRMODE.FST;
 		m_de.PRIM.CTXT = r->PRMODE.CTXT;
 		m_de.PRIM.FIX = r->PRMODE.FIX;
+
+		m_ctxt = &m_de.CTXT[m_de.PRIM.CTXT];
 	}
 }
 

@@ -21,9 +21,21 @@
 
 #pragma once
 
-#include "GSState.h"
+#include "GSRenderer.h"
 
-class GSStateHW : public GSState
+#define D3DFVF_HWVERTEX (D3DFVF_XYZRHW|D3DFVF_DIFFUSE|D3DFVF_TEX1)
+
+#pragma pack(push, 1)
+struct HWVERTEX
+{
+	float x, y, z, rhw;
+	D3DCOLOR color;
+	float tu, tv;
+//	float tu2, tv2;
+};
+#pragma pack(pop)
+
+class GSRendererHW : public GSRenderer<HWVERTEX>
 {
 protected:
 	CSurfMap<IDirect3DTexture9> m_pRenderTargets;
@@ -33,40 +45,24 @@ protected:
 	GSTextureCache m_tc;
 	bool CreateTexture(GSTexture& t);
 
-	#define D3DFVF_CUSTOMVERTEX (D3DFVF_XYZRHW|D3DFVF_DIFFUSE|D3DFVF_TEX1)
-
-	struct CUSTOMVERTEX
-	{
-		float x, y, z, rhw;
-		D3DCOLOR color;
-		float tu, tv;
-//		float tu2, tv2;
-	};
-
-	GSVertexList<CUSTOMVERTEX> m_vl;
-
 	void Reset();
 	void VertexKick(bool fSkip);
 	void DrawingKick(bool fSkip);
-	void NewPrim();
 	void FlushPrim();
 	void Flip();
 	void EndFrame();
 	void InvalidateTexture(DWORD TBP0);
 
 	D3DPRIMITIVETYPE m_primtype;
-	CUSTOMVERTEX* m_pVertices;
-	int m_nMaxVertices, m_nVertices, m_nPrims;
 
 public:
-	GSStateHW(HWND hWnd, HRESULT& hr);
-	~GSStateHW();
+	GSRendererHW(HWND hWnd, HRESULT& hr);
+	~GSRendererHW();
 
-	void LOGVERTEX(CUSTOMVERTEX& v, LPCTSTR type)
+	void LOGVERTEX(HWVERTEX& v, LPCTSTR type)
 	{
-		GSDrawingContext* ctxt = &m_de.CTXT[m_de.PRIM.CTXT];
 		int tw = 1, th = 1;
-		if(m_de.PRIM.TME) {tw = 1<<ctxt->TEX0.TW; th = 1<<ctxt->TEX0.TH;}
+		if(m_de.PRIM.TME) {tw = 1<<m_ctxt->TEX0.TW; th = 1<<m_ctxt->TEX0.TH;}
 		LOG2((_T("\t %s (%.2f, %.2f, %.2f, %.2f) (%08x) (%f, %f) (%f, %f)\n"), 
 			type,
 			v.x, v.y, v.z, v.rhw, 
