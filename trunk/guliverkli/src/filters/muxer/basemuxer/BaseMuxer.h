@@ -31,6 +31,7 @@ class CBaseMuxerFilter
 	, public CAMThread
 	, public IMediaSeeking
 	, public CDSMPropertyBag
+	, public CDSMResourceBag
 {
 private:
 	CAutoPtrList<CBaseMuxerInputPin> m_pInputs;

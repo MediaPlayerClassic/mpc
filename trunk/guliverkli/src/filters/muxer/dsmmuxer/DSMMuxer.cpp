@@ -193,7 +193,59 @@ void CDSMMuxerFilter::MuxHeader(IBitStream* pBS)
 		MuxStreamInfo(pBS, pPin);
 	}
 
+	// resources
+
+	CInterfaceList<IDSMResourceBag> pRBs;
+	pRBs.AddTail(this);
+
+	pos = m_pPins.GetHeadPosition();
+	while(pos)
+	{
+		for(CComPtr<IPin> pPin = m_pPins.GetNext(pos)->GetConnected(); pPin; pPin = GetUpStreamPin(GetFilterFromPin(pPin)))
+		{
+			CComQIPtr<IDSMResourceBag> pPB = GetFilterFromPin(pPin);
+			if(pPB && !pRBs.Find(pPB))
+				pRBs.AddTail(pPB);
+		}
+	}
+
+	pos = pRBs.GetHeadPosition();
+	while(pos)
+	{
+		IDSMResourceBag* pRB = pRBs.GetNext(pos);
+
+		for(DWORD i = 0, j = pRB->ResGetCount(); i < j; i++)
+		{
+			CComBSTR name, desc, mime;
+			BYTE* pData = NULL;
+			DWORD len = 0;
+			if(SUCCEEDED(pRB->ResGet(i, &name, &desc, &mime, &pData, &len, NULL)))
+			{
+				CStringA utf8_name = UTF16To8(name);
+				CStringA utf8_desc = UTF16To8(desc);
+				CStringA utf8_mime = UTF16To8(mime);
+
+				MuxPacketHeader(pBS, DSMP_RESOURCE, 
+					1 + 
+					utf8_name.GetLength()+1 + 
+					utf8_desc.GetLength()+1 + 
+					utf8_mime.GetLength()+1 + 
+					len);
+
+				pBS->BitWrite(0, 2);
+				pBS->BitWrite(0, 6); // reserved
+				pBS->ByteWrite(utf8_name, utf8_name.GetLength()+1);
+				pBS->ByteWrite(utf8_desc, utf8_desc.GetLength()+1);
+				pBS->ByteWrite(utf8_mime, utf8_mime.GetLength()+1);
+				pBS->ByteWrite(pData, len);
+
+				CoTaskMemFree(pData);
+			}
+		}
+	}
+
 	// TODO: write chapters
+
 }
 
 void CDSMMuxerFilter::MuxPacket(IBitStream* pBS, MuxerPacket* pPacket)
@@ -273,6 +325,8 @@ i++;
 
 void CDSMMuxerFilter::MuxFooter(IBitStream* pBS)
 {
+	// syncpoints
+
 	int len = 0;
 	CList<IndexedSyncPoint> isps;
 	REFERENCE_TIME rtPrev = 0, rt;

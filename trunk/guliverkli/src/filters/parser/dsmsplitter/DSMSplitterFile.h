@@ -2,6 +2,7 @@
 
 #include "..\BaseSplitter\BaseSplitter.h"
 #include "..\..\..\..\include\dsm\dsm.h"
+#include "..\..\..\DSUtil\DSMPropertyBag.h"
 
 template<class T>
 int range_bsearch(const CArray<T>& array, REFERENCE_TIME rt)
@@ -21,10 +22,10 @@ int range_bsearch(const CArray<T>& array, REFERENCE_TIME rt)
 
 class CDSMSplitterFile : public CBaseSplitterFile
 {
-	HRESULT Init();
+	HRESULT Init(CArray<CDSMResource>& resources);
 
 public:
-	CDSMSplitterFile(IAsyncReader* pReader, HRESULT& hr);
+	CDSMSplitterFile(IAsyncReader* pReader, HRESULT& hr, CArray<CDSMResource>& resources);
 
 	CAtlMap<BYTE, CMediaType> m_mts;
 	REFERENCE_TIME m_rtFirst, m_rtDuration;
@@ -46,6 +47,8 @@ public:
 	bool Read(UINT64 len, CArray<SyncPoint>& sps);
 	bool Read(UINT64 len, CArray<Chapter>& cs);
 	bool Read(UINT64 len, CStreamInfoMap& im);
+	bool Read(UINT64 len, CArray<CDSMResource>& resources);
+	UINT64 Read(UINT64 len, CStringW& str);
 	
 	__int64 FindSyncPoint(REFERENCE_TIME rt);
 };

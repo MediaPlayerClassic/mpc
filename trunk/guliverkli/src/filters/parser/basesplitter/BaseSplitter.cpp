@@ -681,6 +681,7 @@ STDMETHODIMP CBaseSplitterFilter::NonDelegatingQueryInterface(REFIID riid, void*
 		QI(IPropertyBag)
 		QI(IPropertyBag2)
 		QI(IDSMPropertyBag)
+		QI(IDSMResourceBag)
 		__super::NonDelegatingQueryInterface(riid, ppv);
 }
 
@@ -772,6 +773,8 @@ HRESULT CBaseSplitterFilter::DeleteOutputs()
 	m_mtnew.RemoveAll();
 
 	RemoveAll();
+
+	m_fontinst.UninstallFonts();
 
 	return S_OK;
 }

@@ -105,8 +105,10 @@ HRESULT CDSMSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 
 	HRESULT hr = E_FAIL;
 
+	m_resources.RemoveAll();
+
 	m_pFile.Free();
-	m_pFile.Attach(new CDSMSplitterFile(pAsyncReader, hr));
+	m_pFile.Attach(new CDSMSplitterFile(pAsyncReader, hr, m_resources));
 	if(!m_pFile) return E_OUTOFMEMORY;
 	if(FAILED(hr)) {m_pFile.Free(); return hr;}
 
@@ -163,6 +165,13 @@ HRESULT CDSMSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 	SetMediaContentStr(m_pFile->m_fim["RTNG"], Rating);
 	SetMediaContentStr(m_pFile->m_fim["CPYR"], Copyright);
 	SetMediaContentStr(m_pFile->m_fim["DESC"], Description);
+
+	for(int i = 0; i < m_resources.GetCount(); i++)
+	{
+		const CDSMResource& r = m_resources[i];
+		if(r.mime == "application/x-truetype-font")
+			m_fontinst.InstallFont(r.data);
+	}
 
 	return m_pOutputs.GetCount() > 0 ? S_OK : E_FAIL;
 }
