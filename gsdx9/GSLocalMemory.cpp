@@ -1529,7 +1529,7 @@ unSwizzleBlock4_loop:
 
 void GSLocalMemory::unSwizzleTexture32(int tw, int th, BYTE* dst, int dstpitch, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA)
 {
-	if(tw < 8 || th < 8)
+	if(tw < 8 || th < 8 || (tw & 7) || (th & 7)) // FIXME
 	{
 		unSwizzleTextureX(tw, th, dst, dstpitch, TEX0, TEXA);
 		return;

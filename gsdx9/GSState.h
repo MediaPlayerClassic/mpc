@@ -27,6 +27,7 @@
 #include "GSTextureCache.h"
 #include "GSSoftVertex.h"
 #include "GSVertexList.h"
+#include "GSCapture.h"
 
 //
 //#define DEBUG_SAVETEXTURES
@@ -120,6 +121,11 @@ struct GSRegSet
 		if(en == 0 && PMODE.EN1) {return(DISPLAY[0].DW || DISPLAY[0].DH);}
 		else if(en == 1 && PMODE.EN2) {return(DISPLAY[1].DW || DISPLAY[1].DH);}
 		return(false);
+	}
+
+	int GetFPS()
+	{
+		return ((SMODE1.CMOD&1) ? 50 : 60) / (SMODE2.INT ? 1 : 2);
 	}
 
 	GSRegBGCOLOR	BGCOLOR;
@@ -229,6 +235,7 @@ protected:
 	GSRegSet m_rs;
 	GSVertex m_v;
 	GSStats m_stats;
+	GSCapture m_capture;
 
 	int m_x, m_y;
 	void WriteStep();
@@ -367,6 +374,7 @@ public:
 	void GSirq(void (*fpGSirq)()) {m_fpGSirq = fpGSirq;}
 
 	UINT32 MakeSnapshot(char* path);
+	void Capture();
 
 	FILE* m_fp;
 

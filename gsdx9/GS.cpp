@@ -30,7 +30,7 @@
 
 #define PS2E_LT_GS 0x01
 #define PS2E_GS_VERSION 0x0004
-#define PS2E_DLL_VERSION 0x04
+#define PS2E_DLL_VERSION 0x05
 
 EXPORT_C_(UINT32) PS2EgetLibType()
 {
@@ -91,13 +91,18 @@ EXPORT_C_(__declspec(naked) UINT32) PS2EgetLibVersion2(UINT32 type)
 static CAutoPtr<GSState> s_gs;
 static void (*s_fpGSirq)();
 
+static HRESULT s_hrCoInit = E_FAIL;
+
 EXPORT_C_(INT32) GSinit()
 {
+	s_hrCoInit = ::CoInitialize(0);
+
 	return 0;
 }
 
 EXPORT_C GSshutdown()
 {
+	if(SUCCEEDED(s_hrCoInit)) ::CoUninitialize();
 }
 
 static CGSWnd s_hWnd;
@@ -217,13 +222,15 @@ EXPORT_C_(UINT32) GSmakeSnapshot(char* path)
 EXPORT_C GSkeyEvent(keyEvent* ev)
 {
 	if(ev->event != KEYPRESS) return;
-/*
+
 	switch(ev->key)
 	{
+		case VK_INSERT:
+			s_gs->Capture();
+			break;
 		default:
 			break;
 	}
-*/
 }
 
 EXPORT_C_(INT32) GSfreeze(int mode, freezeData* data)

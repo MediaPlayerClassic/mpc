@@ -93,6 +93,21 @@ BEGIN
                     WS_TABSTOP
 END
 
+IDD_CAPTURE DIALOGEX 0, 0, 279, 67
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | 
+    WS_SYSMENU
+CAPTION "Capture settings"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,140,46,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,88,46,50,14
+    COMBOBOX        IDC_COMBO1,7,27,207,122,CBS_DROPDOWNLIST | WS_VSCROLL | 
+                    WS_TABSTOP
+    EDITTEXT        IDC_EDIT1,7,7,207,14,ES_AUTOHSCROLL
+    PUSHBUTTON      "Browse...",IDC_BUTTON1,222,7,50,14
+    PUSHBUTTON      "Config...",IDC_BUTTON2,222,26,50,14
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -123,8 +138,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 1,0,0,4
- PRODUCTVERSION 1,0,0,4
+ FILEVERSION 1,0,0,5
+ PRODUCTVERSION 1,0,0,5
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -142,12 +157,12 @@ BEGIN
             VALUE "Comments", "http://gabest.org/"
             VALUE "CompanyName", "Gabest"
             VALUE "FileDescription", "GS plugin for ps2 emulators"
-            VALUE "FileVersion", "1.0.0.4"
+            VALUE "FileVersion", "1.0.0.5"
             VALUE "InternalName", "GSdx9.dll"
             VALUE "LegalCopyright", "Copyright (c) 2004 Gabest.  All rights reserved."
             VALUE "OriginalFilename", "GSdx9.dll"
             VALUE "ProductName", "GSdx9"
-            VALUE "ProductVersion", "1.0.0.4"
+            VALUE "ProductVersion", "1.0.0.5"
         END
     END
     BLOCK "VarFileInfo"

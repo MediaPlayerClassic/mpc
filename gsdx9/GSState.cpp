@@ -133,7 +133,8 @@ GSState::GSState(int w, int h, HWND hWnd, HRESULT& hr)
 
 	// D3D
 
-	if(!(m_pD3D = Direct3DCreate9(D3D_SDK_VERSION)))
+	if(!(m_pD3D = Direct3DCreate9(D3D_SDK_VERSION))
+	&& !(m_pD3D = Direct3DCreate9(D3D9b_SDK_VERSION)))
 		return;
 
 	ZeroMemory(&m_caps, sizeof(m_caps));
@@ -166,7 +167,7 @@ GSState::GSState(int w, int h, HWND hWnd, HRESULT& hr)
 		d3dpp.FullScreen_RefreshRateInHz = ModeRefreshRate;
 	}
 
-	if(FAILED(m_pD3D->CreateDevice(D3DADAPTER_DEFAULT, /*D3DDEVTYPE_REF*/D3DDEVTYPE_HAL, hWnd,
+	if(FAILED(hr = m_pD3D->CreateDevice(D3DADAPTER_DEFAULT, /*D3DDEVTYPE_REF*/D3DDEVTYPE_HAL, hWnd,
 		m_caps.VertexProcessingCaps ? D3DCREATE_HARDWARE_VERTEXPROCESSING : D3DCREATE_SOFTWARE_VERTEXPROCESSING, 
 		&d3dpp, &m_pD3DDev)))
 		return;
@@ -705,12 +706,18 @@ UINT32 GSState::MakeSnapshot(char* path)
 	return D3DXSaveSurfaceToFile(fn, D3DXIFF_BMP, m_pOrgRenderTarget, NULL, NULL);
 }
 
+void GSState::Capture()
+{
+	if(!m_capture.IsCapturing()) m_capture.BeginCapture(m_pD3DDev, m_rs.GetFPS());
+	else m_capture.EndCapture();
+}
+
 void GSState::VSync()
 {
 	FlushPrim();
 
 	m_stats.VSync();
-	CString str = m_stats.ToString(((m_rs.SMODE1.CMOD&1) ? 50 : 60) / (m_rs.SMODE2.INT ? 1 : 2));
+	CString str = m_stats.ToString(m_rs.GetFPS());
 	LOG((_T("VSync(%s)\n"), str));
 	if(!(m_stats.GetFrame()&7)) SetWindowText(m_hWnd, str);
 
@@ -803,6 +810,11 @@ void GSState::FinishFlip(FlipSrc rt[2], bool fShiftField)
 	hr = m_pD3DDev->SetTextureStageState(0, D3DTSS_TEXCOORDINDEX, 0);
 	hr = m_pD3DDev->SetTextureStageState(1, D3DTSS_TEXCOORDINDEX, 1);
 
+	hr = m_pD3DDev->SetSamplerState(0, D3DSAMP_ADDRESSU, D3DTADDRESS_CLAMP);
+	hr = m_pD3DDev->SetSamplerState(0, D3DSAMP_ADDRESSV, D3DTADDRESS_CLAMP);
+	hr = m_pD3DDev->SetSamplerState(1, D3DSAMP_ADDRESSU, D3DTADDRESS_CLAMP);
+	hr = m_pD3DDev->SetSamplerState(1, D3DSAMP_ADDRESSV, D3DTADDRESS_CLAMP);
+
 	CComPtr<IDirect3DPixelShader9> pPixelShader;
 
 	if(!pPixelShader && m_caps.PixelShaderVersion >= D3DVS_VERSION(2, 0))
@@ -891,9 +903,25 @@ void GSState::FinishFlip(FlipSrc rt[2], bool fShiftField)
 	}
 
 	hr = m_pD3DDev->BeginScene();
+
 	hr = m_pD3DDev->SetPixelShader(pPixelShader);
 	hr = m_pD3DDev->SetFVF(D3DFVF_XYZRHW|D3DFVF_TEX2);
 	hr = m_pD3DDev->DrawPrimitiveUP(D3DPT_TRIANGLESTRIP, 2, pVertices, sizeof(pVertices[0]));
+
+	int w, h;
+	CComPtr<IDirect3DSurface9> pRTSurf;
+
+	if(m_capture.BeginFrame(w, h, &pRTSurf))
+	{
+		pVertices[0].x = pVertices[0].y = pVertices[2].x = pVertices[1].y = 0;
+		pVertices[1].x = pVertices[3].x = (float)w;
+		pVertices[2].y = pVertices[3].y = (float)h;
+		for(int i = 0; i < countof(pVertices); i++) {pVertices[i].x -= 0.5; pVertices[i].y -= 0.5;}
+		hr = m_pD3DDev->SetRenderTarget(0, pRTSurf);
+		hr = m_pD3DDev->DrawPrimitiveUP(D3DPT_TRIANGLESTRIP, 2, pVertices, sizeof(pVertices[0]));
+		m_capture.EndFrame();
+	}
+
 	hr = m_pD3DDev->EndScene();
 
 	hr = m_pD3DDev->Present(NULL, NULL, NULL, NULL);

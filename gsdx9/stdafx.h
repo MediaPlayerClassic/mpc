@@ -55,6 +55,7 @@
 #include <atlcoll.h>
 #include <d3d9.h>
 #include <d3dx9.h>
+#include <dshow.h>
 #include <xmmintrin.h>
 #include <emmintrin.h>
 
@@ -62,3 +63,17 @@
 
 #define EXPORT_C extern "C" __declspec(dllexport) void __stdcall
 #define EXPORT_C_(type) extern "C" __declspec(dllexport) type __stdcall
+
+#define QI(i) (riid == __uuidof(i)) ? GetInterface((i*)this, ppv) :
+
+#define BeginEnumSysDev(clsid, pMoniker) \
+	{CComPtr<ICreateDevEnum> pDevEnum4$##clsid; \
+	pDevEnum4$##clsid.CoCreateInstance(CLSID_SystemDeviceEnum); \
+	CComPtr<IEnumMoniker> pClassEnum4$##clsid; \
+	if(SUCCEEDED(pDevEnum4$##clsid->CreateClassEnumerator(clsid, &pClassEnum4$##clsid, 0)) \
+	&& pClassEnum4$##clsid) \
+	{ \
+		for(CComPtr<IMoniker> pMoniker; pClassEnum4$##clsid->Next(1, &pMoniker, 0) == S_OK; pMoniker = NULL) \
+		{ \
+
+#define EndEnumSysDev }}}
