@@ -29,11 +29,10 @@
 #include "systray.h"
 #include "..\..\..\DSUtil\MediaTypes.h"
 #include "..\..\..\SubPic\MemSubPic.h"
-#include "..\..\..\..\include\Ogg\OggDS.h"
-#include "..\..\..\..\include\matroska\matroska.h"
 
 #include <initguid.h>
 #include "..\..\..\..\include\moreuuids.h"
+#include "..\..\..\..\include\Ogg\OggDS.h"
 
 ///////////////////////////////////////////////////////////////////////////
 
@@ -120,8 +119,8 @@ STDMETHODIMP CDirectVobSubFilter::NonDelegatingQueryInterface(REFIID riid, void*
     return 
 		QI(IDirectVobSub)
 		QI(IDirectVobSub2)
+		QI(IFilterVersion)
 		QI(ISpecifyPropertyPages)
-		QI(IPersistStream)
 		QI(IAMStreamSelect)
 		__super::NonDelegatingQueryInterface(riid, ppv);
 }
@@ -255,7 +254,7 @@ HRESULT CDirectVobSubFilter::Transform(IMediaSample* pIn)
 
 	CopyBuffer(pDataOut, (BYTE*)spd.bits, spd.w, abs(spd.h)*(fFlip?-1:1), spd.pitch, mt.subtype);
 
-	PrintMessages(pDataOut); // TODO: print onto spd, before CopyBuffer
+	PrintMessages(pDataOut);
 
 	return m_pOutput->Deliver(pOut);
 }
@@ -445,7 +444,7 @@ HRESULT CDirectVobSubFilter::StartStreaming()
 {
 	m_fLoading = false;
 
-	InvalidateSubtitle();
+	InitSubPicQueue();
 
 	m_tbid.fRunOnce = true;
 
@@ -1028,81 +1027,6 @@ STDMETHODIMP CDirectVobSubFilter::put_TextSettings(STSStyle* pDefStyle)
 
 // IDirectVobSubFilterColor
 
-STDMETHODIMP CDirectVobSubFilter::get_ColorFormat(int* iPosition)
-{
-/*
-	if(!m_pOutput || !m_pOutput->IsConnected() || !iPosition) return E_FAIL;
-	
-	BITMAPINFOHEADER bih, bih2;
-	ExtractBIH(&m_pOutput->CurrentMediaType(), &bih);
-	const GUID& subtype = m_pOutput->CurrentMediaType().subtype;
-
-	*iPosition = 0;
-	CMediaType mt;
-	while(SUCCEEDED(GetMediaType((*iPosition)<<1, &mt)))
-	{
-		ExtractBIH(&mt, &bih2);
-		if(mt.subtype == subtype 
-		&& bih2.biBitCount == bih.biBitCount 
-		&& bih2.biCompression == bih.biCompression)
-		{
-			return S_OK;
-		}
-		
-		(*iPosition)++;
-	}
-*/
-	return E_FAIL;
-}
-
-HRESULT CDirectVobSubFilter::ChangeMediaType(int iPosition)
-{
-/*
-	if(!m_pOutput || !m_pOutput->IsConnected() || m_State == State_Paused) return E_FAIL;
-
-	CAutoLock cAutoLock(&m_csReceive);
-
-	CComPtr<IPin> pPin = m_pOutput->GetConnected();
-	if(!pPin) return E_FAIL;
-
-	CComQIPtr<IPinConnection> pPinConnection = pPin;
-	CComQIPtr<IMemInputPin> pMemImputPin = pPin;
-	if(!pPinConnection || !pMemImputPin) return E_FAIL;
-
-	CComPtr<IMemAllocator> pAllocator;
-	if(FAILED(pMemImputPin->GetAllocator(&pAllocator))) return E_FAIL;
-
-	CMediaType orgmt;
-	orgmt = m_pOutput->CurrentMediaType();
-
-	HRESULT hr;
-
-	CMediaType mt;
-	GetMediaType(iPosition<<1, &mt);
-
-	if(SUCCEEDED(hr = pPinConnection->DynamicQueryAccept(&mt)))
-	{
-		if(SUCCEEDED(hr = pPin->ReceiveConnection(m_pOutput, &mt)))
-		{
-			// this shouldn't be needed, but the old renderer won't attach 
-			// the new media type to the next sample, despite the fact that 
-			// it has just accepted it...
-			m_pOutput->SetMediaType(&mt); 
-
-			return(NOERROR);
-		}
-	}
-*/
-	return E_FAIL;
-}
-
-STDMETHODIMP CDirectVobSubFilter::put_ColorFormat(int iPosition)
-{
-	if(!m_pOutput || !m_pOutput->IsConnected() /*|| !m_fVMRFilter*/) return E_FAIL;
-
-	return ChangeMediaType(iPosition);
-}
-
 STDMETHODIMP CDirectVobSubFilter::HasConfigDialog(int iSelected)
 {
 	int nLangs;
@@ -1301,7 +1225,9 @@ bool CDirectVobSubFilter2::ShouldWeAutoload(IFilterGraph* pGraph)
 		|| (pBF = FindFilter(GUIDFromCString("{9AB95E90-1F37-427e-9B3D-257FB0CB25F7}"), pGraph)) // Haali's matroska splitter		
 		|| (pBF = FindFilter(GUIDFromCString("{52B63861-DC93-11CE-A099-00AA00479A58}"), pGraph)) // 3ivx splitter
 		|| (pBF = FindFilter(GUIDFromCString("{6D3688CE-3E9D-42F4-92CA-8A11119D25CD}"), pGraph)) // our ogg source
-		|| (pBF = FindFilter(GUIDFromCString("{9FF48807-E133-40AA-826F-9B2959E5232D}"), pGraph))) // our ogg splitter
+		|| (pBF = FindFilter(GUIDFromCString("{9FF48807-E133-40AA-826F-9B2959E5232D}"), pGraph)) // our ogg splitter
+		|| (pBF = FindFilter(GUIDFromCString("{803E8280-F3CE-4201-982C-8CD8FB512004}"), pGraph)) // dsm source
+		|| (pBF = FindFilter(GUIDFromCString("{0912B4DD-A30A-4568-B590-7179EBB420EC}"), pGraph))) // dsm splitter
 		{
 			BeginEnumPins(pBF, pEP, pPin)
 			{

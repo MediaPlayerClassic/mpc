@@ -42,6 +42,8 @@
 #include <libdirac_decoder/dirac_cppparser.h>
 #include <libdirac_decoder/seq_decompress.h>
 #include <libdirac_common/frame.h> 
+using namespace dirac;
+
 
 InputStreamBuffer::InputStreamBuffer()
 {
@@ -336,7 +338,7 @@ void DiracParser::SetSkip(bool skip)
                 break;
 
             default:
-                ASSERTM(false, "Frame type must be I or L1 or L2");
+                dirac_ASSERTM(false, "Frame type must be I or L1 or L2");
                 break;
             }
         }
@@ -374,7 +376,7 @@ DecoderState DiracParser::SeekChunk()
                     m_next_state = STATE_SEQUENCE_END;
                     break;
                 default:
-                    ASSERTM (false, "Should never have reached here!!!");
+                    dirac_ASSERTM (false, "Should never have reached here!!!");
                     break;
                 }
                 m_found_start = true;
@@ -418,7 +420,7 @@ DecoderState DiracParser::SeekChunk()
                     break;
 
                 default:
-                    ASSERTM (false, "Should never have reached here!!!");
+                    dirac_ASSERTM (false, "Should never have reached here!!!");
                     break;
                 }
                 m_found_end = true;

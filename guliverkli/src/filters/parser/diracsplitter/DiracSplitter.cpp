@@ -336,7 +336,7 @@ HRESULT CDiracVideoDecoder::Receive(IMediaSample* pIn)
 				m_pYUV[2] = m_pYUV[1] + wc*hc;
 				m_pYUV[3] = m_pYUV[2] + wc*hc;
 				memset(m_pYUV[3], 0x80, w/2*h/2);
-				m_rtAvgTimePerFrame = 10000000i64 / decoder->seq_params.frame_rate;
+				m_rtAvgTimePerFrame = 10000000i64 * decoder->seq_params.frame_rate.denominator / decoder->seq_params.frame_rate.numerator;
 				dirac_set_buf(decoder, m_pYUV, NULL);
 			}
 

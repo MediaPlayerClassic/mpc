@@ -496,14 +496,14 @@ HRESULT CBaseSplitterOutputPin::DeliverPacket(CAutoPtr<Packet> p)
 		}
 
 		bool fTimeValid = p->rtStart != Packet::INVALID_TIME;
-
+/*
 //if(p->TrackNumber == 1)
 //if(p->rtStart != Packet::INVALID_TIME)
 TRACE(_T("[%d]: d%d s%d p%d, b=%d, %I64d-%I64d \n"), 
 	  p->TrackNumber,
 	  p->bDiscontinuity, p->bSyncPoint, fTimeValid && p->rtStart < 0,
 	  nBytes, p->rtStart, p->rtStop);
-
+*/
 		ASSERT(!p->bSyncPoint || fTimeValid);
 
 		BYTE* pData = NULL;
@@ -685,6 +685,22 @@ CBaseSplitterOutputPin* CBaseSplitterFilter::GetOutputPin(DWORD TrackNum)
 	return pPin;
 }
 
+DWORD CBaseSplitterFilter::GetOutputTrackNum(CBaseSplitterOutputPin* pPin)
+{
+	CAutoLock cAutoLock(&m_csPinMap);
+
+	POSITION pos = m_pPinMap.GetStartPosition();
+	while(pos)
+	{
+		DWORD TrackNum;
+		CBaseSplitterOutputPin* pPinTmp;
+		m_pPinMap.GetNextAssoc(pos, TrackNum, pPinTmp);
+		if(pPinTmp == pPin) return TrackNum;
+	}
+
+	return (DWORD)-1;
+}
+
 HRESULT CBaseSplitterFilter::RenameOutputPin(DWORD TrackNumSrc, DWORD TrackNumDst, const AM_MEDIA_TYPE* pmt)
 {
 	CAutoLock cAutoLock(&m_csPinMap);
@@ -726,8 +742,6 @@ HRESULT CBaseSplitterFilter::AddOutputPin(DWORD TrackNum, CAutoPtr<CBaseSplitter
 HRESULT CBaseSplitterFilter::DeleteOutputs()
 {
 	m_rtDuration = 0;
-
-//	return m_pOutputs.IsEmpty() ? S_OK : E_FAIL; // FIXME
 
 	m_pRetiredOutputs.RemoveAll();
 
@@ -865,6 +879,14 @@ HRESULT CBaseSplitterFilter::DeliverPacket(CAutoPtr<Packet> p)
 
 	DWORD TrackNumber = p->TrackNumber;
 	BOOL bDiscontinuity = p->bDiscontinuity;
+
+//if(p->TrackNumber == 1)
+//if(p->rtStart != Packet::INVALID_TIME)
+TRACE(_T("[%d]: d%d s%d p%d, b=%d, %I64d-%I64d \n"), 
+	  p->TrackNumber,
+	  p->bDiscontinuity, p->bSyncPoint, p->rtStart != Packet::INVALID_TIME && p->rtStart < 0,
+	  p->pData.GetCount(), p->rtStart, p->rtStop);
+
 
 	hr = pPin->QueuePacket(p);
 

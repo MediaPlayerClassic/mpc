@@ -53,7 +53,8 @@ HRESULT CDiracSplitterFile::Init()
 			dirac_buffer(decoder, (BYTE*)&dvih->dwSequenceHeader[0], (BYTE*)&dvih->dwSequenceHeader[0] + len);
 			if(dirac_parse(decoder) != STATE_SEQUENCE) {ASSERT(0); break;}
 
-			dvih->hdr.AvgTimePerFrame = 10000000i64 / decoder->seq_params.frame_rate;
+			if(decoder->seq_params.frame_rate.denominator)
+			dvih->hdr.AvgTimePerFrame = 10000000i64 * decoder->seq_params.frame_rate.denominator / decoder->seq_params.frame_rate.numerator;
 			dvih->hdr.bmiHeader.biSize = sizeof(dvih->hdr.bmiHeader);
 			dvih->hdr.bmiHeader.biWidth = decoder->seq_params.width;
 			dvih->hdr.bmiHeader.biHeight = decoder->seq_params.height;
@@ -64,7 +65,7 @@ HRESULT CDiracSplitterFile::Init()
 			dvih->hdr.dwPictAspectRatioX = dvih->hdr.bmiHeader.biWidth;
 			dvih->hdr.dwPictAspectRatioY = dvih->hdr.bmiHeader.biHeight;
 
-			m_rtDuration = 10000000i64 * decoder->seq_params.num_frames / decoder->seq_params.frame_rate;
+			m_rtDuration = 0;// dvih->hdr.AvgTimePerFrame * decoder->seq_params.num_frames; // WTF
 
 			hr = S_OK;
 

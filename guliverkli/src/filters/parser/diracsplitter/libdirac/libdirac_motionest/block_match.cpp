@@ -37,9 +37,13 @@
 
 #include <libdirac_motionest/block_match.h>
 #include <libdirac_motionest/me_utils.h>
-#include <cmath>
+using namespace dirac;
 
+#include <cmath>
 using std::vector;
+
+namespace dirac
+{
 
 ValueType GetVar( const MVector& predmv , const MVector& mv )
 {
@@ -281,7 +285,7 @@ void BlockMatcher::FindBestMatch(int xpos , int ypos ,
 
         }
 
-        list_costs[lnum] = best_costs.total;
+        list_costs[lnum] = cand_costs.total;
 
     }// lnum
 
@@ -465,3 +469,4 @@ void BlockMatcher::FindBestMatchSubp(int xpos, int ypos,
      m_cost_array[ypos][xpos] = best_costs;   
 
 }
+} // namespace dirac

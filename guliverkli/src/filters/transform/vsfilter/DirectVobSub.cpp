@@ -23,7 +23,7 @@
 #include "DirectVobSub.h"
 #include "VSFilter.h"
 
-CDirectVobSub::CDirectVobSub() : CPersistStream(NULL, NULL)
+CDirectVobSub::CDirectVobSub()
 {
 	AFX_MANAGE_STATE(AfxGetStaticModuleState());
 
@@ -101,8 +101,6 @@ STDMETHODIMP CDirectVobSub::put_FileName(WCHAR* fn)
 	m_FileName.ReleaseBuffer(len+1);
 #endif
 
-	SetDirty(TRUE);
-
 	return S_OK;
 }
 
@@ -139,8 +137,6 @@ STDMETHODIMP CDirectVobSub::put_SelectedLanguage(int iSelected)
 
 	m_iSelectedLanguage = iSelected;
 
-	SetDirty(TRUE);
-
 	return S_OK;
 }
 
@@ -159,8 +155,6 @@ STDMETHODIMP CDirectVobSub::put_HideSubtitles(bool fHideSubtitles)
 
 	m_fHideSubtitles = fHideSubtitles;
 
-	SetDirty(TRUE);
-
 	return S_OK;
 }
 
@@ -178,8 +172,6 @@ STDMETHODIMP CDirectVobSub::put_PreBuffering(bool fDoPreBuffering)
 	if(m_fDoPreBuffering == fDoPreBuffering) return S_FALSE;
 
 	m_fDoPreBuffering = fDoPreBuffering;
-
-	SetDirty(TRUE);
 
 	return S_OK;
 }
@@ -205,8 +197,6 @@ STDMETHODIMP CDirectVobSub::put_Placement(bool fOverridePlacement, int xperc, in
 	m_PlacementXperc = xperc;
 	m_PlacementYperc = yperc;
 
-	SetDirty(TRUE);
-
 	return S_OK;
 }
 
@@ -230,8 +220,6 @@ STDMETHODIMP CDirectVobSub::put_VobSubSettings(bool fBuffer, bool fOnlyShowForce
 	m_fBufferVobSub = fBuffer;
 	m_fOnlyShowForcedVobSubs = fOnlyShowForcedSubs;
 	m_fPolygonize = fPolygonize;
-
-	SetDirty(TRUE);
 
 	return S_OK;
 }
@@ -298,8 +286,6 @@ STDMETHODIMP CDirectVobSub::put_TextSettings(void* lf, int lflen, COLORREF color
 	m_defStyle.shadowDepth = fShadow?2:0;
 	m_defStyle.outlineWidth = fOutline?2:0;
 
-	SetDirty(TRUE);
-
 	return S_OK;
 
 }
@@ -323,8 +309,6 @@ STDMETHODIMP CDirectVobSub::put_Flip(bool fPicture, bool fSubtitles)
 	m_fFlipPicture = fPicture;
 	m_fFlipSubtitles = fSubtitles;
 
-	SetDirty(TRUE);
-
 	return S_OK;
 }
 
@@ -342,8 +326,6 @@ STDMETHODIMP CDirectVobSub::put_OSD(bool fOSD)
 	if(m_fOSD == fOSD) return S_FALSE;
 
 	m_fOSD = fOSD;
-
-	SetDirty(TRUE);
 
 	return S_OK;
 }
@@ -386,8 +368,6 @@ STDMETHODIMP CDirectVobSub::put_SubtitleTiming(int delay, int speedmul, int spee
 	m_SubtitleDelay = delay;
 	m_SubtitleSpeedMul = speedmul;
 	if(speeddiv > 0) m_SubtitleSpeedDiv = speeddiv;
-
-	SetDirty(TRUE);
 
 	return S_OK;
 }
@@ -434,8 +414,6 @@ STDMETHODIMP CDirectVobSub::put_ZoomRect(NORMALIZEDRECT* rect)
 	if(!memcmp(&m_ZoomRect, rect, sizeof(m_ZoomRect))) return S_FALSE;
 
 	m_ZoomRect = *rect;
-
-	SetDirty(TRUE);
 
 	return S_OK;
 }
@@ -643,125 +621,9 @@ STDMETHODIMP CDirectVobSub::put_TextSettings(STSStyle* pDefStyle)
 	return S_OK;
 }
 
-// CPersistStream
+// IFilterVersion
 
-DWORD CDirectVobSub::GetSoftwareVersion()
+STDMETHODIMP_(DWORD) CDirectVobSub::GetFilterVersion()
 {
-	return(0x0224);
-}
-
-#define WRITEVAR(v) if(FAILED(hr = pStream->Write(&(v), sizeof(v), NULL))) break;
-#define WRITEBUFF(v, size) if(FAILED(hr = pStream->Write(v, size, NULL))) break;
-#define READVAR(v) if(FAILED(hr = pStream->Read(&(v), sizeof(v), NULL))) break;
-#define READBUFF(v, size) if(FAILED(hr = pStream->Read(v, size, NULL))) break;
-
-HRESULT CDirectVobSub::WriteToStream(IStream* pStream)
-{
-    CAutoLock cAutolock(&m_propsLock);
-
-	AfxMessageBox(_T("DirectVobSub: IPersistStream is no longer supported"));
-
-	return E_NOTIMPL;
-
-	// TODO
-/*
-	HRESULT hr = E_FAIL;
-
-	CString fn = m_FileName;
-
-	if(!m_fSaveFullPath)
-	{
-		fn.Replace('\\', '/');
-		fn = fn.Mid(fn.ReverseFind('/')+1);
-	}
-
-	int len = fn.GetLength();
-
-	WCHAR tempfn[MAX_PATH];
-#ifdef UNICODE
-	wcscpy(tempfn, fn);
-#else
-	mbstowcs(tempfn, fn, len+1);
-#endif
-
-	do
-	{
-		WRITEVAR(len);
-		WRITEBUFF(tempfn, (len+1)*2);
-
-		WRITEVAR(m_fFlipPicture);
-		WRITEVAR(m_fHideSubtitles);
-		WRITEVAR(m_fBufferVobSub);
-		WRITEVAR(m_lf); // TODO
-		WRITEVAR(m_fShadow);
-		WRITEVAR(m_fOutline);
-		WRITEVAR(m_TextColor);
-		WRITEVAR(m_fDoPreBuffering);
-		WRITEVAR(m_fOSD);
-		WRITEVAR(m_fOverridePlacement);
-		WRITEVAR(m_PlacementXperc);
-		WRITEVAR(m_PlacementYperc);
-		WRITEVAR(m_SubtitleDelay);
-		WRITEVAR(m_SubtitleSpeedMul);
-//		WRITEVAR(m_fResX2);
-		WRITEVAR(m_fOnlyShowForcedVobSubs);
-		WRITEVAR(m_SubtitleSpeedDiv);
-		WRITEVAR(m_ZoomRect);
-
-		return(NOERROR);
-	} 
-	while(false);
-
-	return(hr);
-*/
-}
-
-HRESULT CDirectVobSub::ReadFromStream(IStream* pStream)
-{
-    CAutoLock cAutolock(&m_propsLock);
-
-	AfxMessageBox(_T("DirectVobSub: IPersistStream is no longer supported"));
-
-	return E_NOTIMPL;
-/*
-	HRESULT hr = E_FAIL;
-
-	int len;
-	char tempfn[MAX_PATH];
-	WCHAR tempfnw[MAX_PATH];
-
-	do
-	{
-		READVAR(len);
-		if(mPS_dwFileVersion >= 0x0207) {READBUFF(tempfnw, (len+1)*2);}
-		else {READBUFF(tempfn, len+1); mbstowcs(tempfnw, tempfn, len+1);}
-
-		READVAR(m_fFlipPicture);
-		READVAR(m_fHideSubtitles);
-		if(mPS_dwFileVersion < 0x0215) {bool m_fDummy; READVAR(m_fDummy);}
-		READVAR(m_fBufferVobSub);
-		READVAR(m_lf);
-		READVAR(m_fShadow);
-
-		// Started version numbering from 1.18. It should 
-		// be compatible with older grf's in the future releases.
-
-		if(mPS_dwFileVersion >= 0x0118) READVAR(m_fOutline);
-		if(mPS_dwFileVersion >= 0x0120) READVAR(m_TextColor);
-		if(mPS_dwFileVersion >= 0x0128) READVAR(m_fDoPreBuffering);
-		if(mPS_dwFileVersion >= 0x0201) READVAR(m_fOSD);
-		if(mPS_dwFileVersion >= 0x0203) {READVAR(m_fOverridePlacement); READVAR(m_PlacementXperc); READVAR(m_PlacementYperc);}
-		if(mPS_dwFileVersion >= 0x0207) {READVAR(m_SubtitleDelay); READVAR(m_SubtitleSpeedMul); if(mPS_dwFileVersion < 0x0215) {bool m_fDummy; READVAR(m_fDummy);}}
-		if(mPS_dwFileVersion >= 0x0209) READVAR(m_fOnlyShowForcedVobSubs);
-		if(mPS_dwFileVersion >= 0x0214) READVAR(m_SubtitleSpeedDiv);
-		if(mPS_dwFileVersion >= 0x0215) READVAR(m_ZoomRect);
-
-		put_FileName(tempfnw);
-
-	    return(NOERROR);
-	}
-	while(false);
-
-	return(hr);
-*/
+	return 0x0234;
 }

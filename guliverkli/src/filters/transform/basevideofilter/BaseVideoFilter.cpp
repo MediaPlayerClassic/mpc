@@ -445,7 +445,8 @@ HRESULT CBaseVideoFilter::GetMediaType(int iPosition, CMediaType* pmt)
 
 	// this will make sure we won't connect to the old renderer in dvd mode
 	// that renderer can't switch the format dynamically
-	if(GetCLSID(m_pInput->GetConnected()) == CLSID_DVDNavigator)
+	if(FindFilter(CLSID_DVDNavigator, m_pGraph)
+	|| m_pInput->CurrentMediaType().formattype == FORMAT_VideoInfo2)
 		iPosition = iPosition*2;
 
 	if(iPosition < 0) return E_INVALIDARG;

@@ -49,12 +49,13 @@
 #include <libdirac_common/golomb.h>
 #include <libdirac_common/frame_buffer.h>
 #include <libdirac_decoder/frame_decompress.h>
+using namespace dirac;
 
 SequenceDecompressor::SequenceDecompressor(std::istream* ip,bool verbosity)
 : 
 m_all_done(false),
 m_infile(ip),
-m_current_code_fnum(-1),
+m_current_code_fnum(0),
 m_delay(1),
 m_last_frame_read(-1),
 m_show_fnum(-1)
@@ -172,34 +173,22 @@ Frame& SequenceDecompressor::DecompressNextFrame(bool skip /* = false */)
 
     TEST (m_fdecoder != NULL);
 
-	// fixes random access
-	if (m_current_code_fnum < 0 && m_fdecoder->GetFrameParams().FSort() == I_frame) 
-		m_current_code_fnum = m_fdecoder->GetFrameParams().FrameNum();
-
     if (m_current_code_fnum!=0){
         //if we're not at the beginning, clean the buffer of frames that can be discarded
         m_fbuffer->Clean(m_show_fnum);
     }
 
-    if (m_current_code_fnum < m_sparams.Zl())
-    {
-        bool new_frame_to_display=false;
-        
-        if (!skip)
-           new_frame_to_display = m_fdecoder->Decompress(*m_fbuffer);
+    bool new_frame_to_display=false;
+       
+    if (!skip)
+       new_frame_to_display = m_fdecoder->Decompress(*m_fbuffer);
 
-        //if we've exited with success, there's a new frame to display, so increment
-        //the counters. Otherwise, freeze on the last frame shown
-        m_show_fnum=std::min( std::max(m_current_code_fnum-m_delay,0) , m_sparams.Zl()-1 );
-        if (new_frame_to_display || skip)
-        {
-            m_current_code_fnum++;
-        }
-
-    }
-    else
+    //if we've exited with success, there's a new frame to display, so increment
+    //the counters. Otherwise, freeze on the last frame shown
+    m_show_fnum=std::max(m_current_code_fnum-m_delay,0);
+    if (new_frame_to_display || skip)
     {
-        m_show_fnum = m_current_code_fnum -1;
+        m_current_code_fnum++;
     }
 
     return m_fbuffer->GetFrame(m_show_fnum);
@@ -240,7 +229,6 @@ void SequenceDecompressor::ReadStreamHeader()
     //picture dimensions
     m_sparams.SetXl( int(UnsignedGolombDecode( m_decparams.BitsIn() )) );
     m_sparams.SetYl( int(UnsignedGolombDecode( m_decparams.BitsIn() )) );    
-    m_sparams.SetZl( int(UnsignedGolombDecode( m_decparams.BitsIn() )) );    
 
     //picture rate
     m_sparams.SetFrameRate( int(UnsignedGolombDecode( m_decparams.BitsIn() )) );

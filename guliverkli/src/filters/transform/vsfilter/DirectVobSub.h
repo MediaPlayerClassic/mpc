@@ -22,10 +22,9 @@
 #pragma once
 
 #include "IDirectVobSub.h"
+#include "..\..\..\..\include\IFilterVersion.h"
 
-class CDirectVobSub : 
-	public IDirectVobSub2,
-	public CPersistStream
+class CDirectVobSub : public IDirectVobSub2, public IFilterVersion
 {
 protected:
 	CDirectVobSub();
@@ -41,11 +40,7 @@ protected:
 	bool m_fOverridePlacement;
 	int	m_PlacementXperc, m_PlacementYperc;
 	bool m_fBufferVobSub, m_fOnlyShowForcedVobSubs, m_fPolygonize;
-/*
-	LOGFONT m_lf;
-	COLORREF m_TextColor;
-	bool m_fShadow, m_fOutline;
-*/
+
 	STSStyle m_defStyle;
 
 	bool m_fAdvancedRenderer;
@@ -93,8 +88,8 @@ public:
     STDMETHODIMP put_MediaFPS(bool fEnabled, double fps);
 	STDMETHODIMP get_ZoomRect(NORMALIZEDRECT* rect);
     STDMETHODIMP put_ZoomRect(NORMALIZEDRECT* rect);
-	STDMETHODIMP get_ColorFormat(int* iPosition) = 0;
-    STDMETHODIMP put_ColorFormat(int iPosition) = 0;
+	STDMETHODIMP get_ColorFormat(int* iPosition) {return E_NOTIMPL;}
+    STDMETHODIMP put_ColorFormat(int iPosition) {return E_NOTIMPL;}
 
 	STDMETHODIMP UpdateRegistry();
 
@@ -123,10 +118,7 @@ public:
     STDMETHODIMP get_TextSettings(STSStyle* pDefStyle);
     STDMETHODIMP put_TextSettings(STSStyle* pDefStyle);
 
-	// CPersistStream
-
-	DWORD GetSoftwareVersion();
-	STDMETHODIMP GetClassID(CLSID* pClsid) = 0;
-    HRESULT WriteToStream(IStream* pStream);
-	HRESULT ReadFromStream(IStream* pStream);
+	// IFilterVersion
+	
+	STDMETHODIMP_(DWORD) GetFilterVersion();
 };

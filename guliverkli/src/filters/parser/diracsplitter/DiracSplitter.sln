@@ -15,7 +15,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "dsutil", "..\..\..\dsutil\d
 	ProjectSection(ProjectDependencies) = postProject
 	EndProjectSection
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "BaseClasses", "C:\Program Files\Microsoft DirectX 9.0 SDK (Summer 2004)\Samples\C++\DirectShow\BaseClasses\baseclasses.vcproj", "{6BA829DC-20C1-4B6B-BF63-7601FEB64601}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "BaseClasses", "C:\Program Files\Microsoft DirectX 9.0 SDK (October 2004)\Samples\C++\DirectShow\BaseClasses\baseclasses.vcproj", "{6BA829DC-20C1-4B6B-BF63-7601FEB64601}"
 	ProjectSection(ProjectDependencies) = postProject
 	EndProjectSection
 EndProject

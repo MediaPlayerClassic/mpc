@@ -55,6 +55,8 @@
 #include <libdirac_common/dirac_assertions.h>
 #include <libdirac_decoder/dirac_parser.h>
 
+using namespace dirac;
+
 #define isFrameStartCode(code) ((code) == IFRAME_START_CODE || (code) == L1FRAME_START_CODE || (code) == L2FRAME_START_CODE)
 
 

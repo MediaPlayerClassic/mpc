@@ -208,6 +208,7 @@ protected:
 	CAutoPtrList<CBaseSplitterOutputPin> m_pOutputs;
 
 	CBaseSplitterOutputPin* GetOutputPin(DWORD TrackNum);
+	DWORD GetOutputTrackNum(CBaseSplitterOutputPin* pPin);
 	HRESULT AddOutputPin(DWORD TrackNum, CAutoPtr<CBaseSplitterOutputPin> pPin);
 	HRESULT RenameOutputPin(DWORD TrackNumSrc, DWORD TrackNumDst, const AM_MEDIA_TYPE* pmt);
 	virtual HRESULT DeleteOutputs();

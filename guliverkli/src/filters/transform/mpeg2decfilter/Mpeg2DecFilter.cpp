@@ -592,12 +592,14 @@ HRESULT CMpeg2DecFilter::Deliver(bool fRepeatLast)
 	return S_OK;
 }
 
+#include "..\..\..\..\include\IFilterVersion.h"
+
 [uuid("04FE9017-F873-410E-871E-AB91661A4EF7")]
 enum ffdshow {};
 [uuid("93A22E7A-5091-45ef-BA61-6DA26156A5D0")]
-enum dvobsub {};
+enum dvs {};
 [uuid("9852A670-F845-491b-9BE6-EBD841B8A613")]
-enum dvobsubauto {};
+enum dvsauto {};
 [uuid("fd501043-8ebe-11ce-8183-00aa00577da1")]
 enum dladapter {};
 
@@ -610,13 +612,18 @@ HRESULT CMpeg2DecFilter::CheckConnect(PIN_DIRECTION dir, IPin* pPin)
 			// one of these needed for dynamic format changes
 
 			CLSID clsid = GetCLSID(pPin);
+
+			DWORD ver = 0;
+			if(CComQIPtr<IFilterVersion> pFV = GetFilterFromPin(pPin))
+				ver = pFV->GetFilterVersion();
+
 			if(clsid != CLSID_OverlayMixer
 			/*&& clsid != CLSID_OverlayMixer2*/
 			&& clsid != CLSID_VideoMixingRenderer 
 			&& clsid != CLSID_VideoMixingRenderer9
 			&& clsid != __uuidof(ffdshow)
-			&& clsid != __uuidof(dvobsub)
-			&& clsid != __uuidof(dvobsubauto)
+			&& (clsid != __uuidof(dvs) || ver < 0x0234)
+			&& (clsid != __uuidof(dvsauto) || ver < 0x0234)
 			&& clsid != __uuidof(dladapter))
 				return E_FAIL;
 		}

@@ -41,6 +41,7 @@
 #include <libdirac_motionest/pixel_match.h>
 #include <libdirac_motionest/me_subpel.h>
 #include <libdirac_motionest/me_mode_decn.h>
+using namespace dirac;
 
 #include <cmath>
 #include <vector>
@@ -115,7 +116,7 @@ void MotionEstimator::SetChromaDC( const PicArray& pic_data , MvData& mv_data , 
 
     TwoDArray<ValueType>& dcarray = mv_data.DC( csort );
 
-    ValueType dc;
+    ValueType dc = 0;
 
     // Coords of the prediction units (at appropriate level)
     int xunit, yunit;
