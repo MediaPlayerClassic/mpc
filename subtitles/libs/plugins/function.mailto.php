@@ -117,7 +117,7 @@ function smarty_function_mailto($params, &$smarty)
         $address_encode = '';
         for ($x=0; $x < strlen($address); $x++) {
             if(preg_match('!\w!',$address[$x])) {
-                $address_encode .= '%' . bin2hex($address[$x]);
+            	$address_encode .= '%' . bin2hex($address[$x]);
             } else {
                 $address_encode .= $address[$x];
             }
@@ -133,7 +133,6 @@ function smarty_function_mailto($params, &$smarty)
     } else {
         // no encoding
         return '<a href="mailto:'.$address.'" '.$extra.'>'.$text.'</a>';
-
     }
 
 }
