@@ -56,7 +56,7 @@ CTextInputPin::CTextInputPin(CDirectVobSubFilter* pFilter, CCritSec* pLock, CCri
 
 HRESULT CTextInputPin::CheckMediaType(const CMediaType* pmt)
 {
-	return pmt->majortype == MEDIATYPE_Text && pmt->subtype == MEDIASUBTYPE_NULL
+	return pmt->majortype == MEDIATYPE_Text && (pmt->subtype == MEDIASUBTYPE_NULL || pmt->subtype == FOURCCMap((DWORD)0))
 		|| pmt->majortype == MEDIATYPE_Subtitle && pmt->subtype == MEDIASUBTYPE_UTF8
 		|| pmt->majortype == MEDIATYPE_Subtitle && (pmt->subtype == MEDIASUBTYPE_SSA || pmt->subtype == MEDIASUBTYPE_ASS)
 		? S_OK 
@@ -76,6 +76,7 @@ HRESULT CTextInputPin::CompleteConnect(IPin* pReceivePin)
 	else if(m_mt.majortype == MEDIATYPE_Subtitle)
 	{
 		SUBTITLEINFO* psi = (SUBTITLEINFO*)m_mt.pbFormat;
+		DWORD dwOffset = psi->dwOffset;
 
 		CStringA name(psi->IsoLang, 3);
 		name.Trim();
@@ -83,9 +84,19 @@ HRESULT CTextInputPin::CompleteConnect(IPin* pReceivePin)
 		if(name != "") pRTS->m_name += name + ' ';
 		pRTS->m_name += _T("(embeded)");
 
-		if((m_mt.subtype == MEDIASUBTYPE_SSA || m_mt.subtype == MEDIASUBTYPE_ASS) && psi->dwOffset > 0)
+		if((m_mt.subtype == MEDIASUBTYPE_SSA || m_mt.subtype == MEDIASUBTYPE_ASS) && dwOffset > 0)
 		{
-			pRTS->Open(m_mt.pbFormat + psi->dwOffset, m_mt.cbFormat - psi->dwOffset, DEFAULT_CHARSET, pRTS->m_name);
+			CMediaType mt = m_mt;
+			if(mt.pbFormat[dwOffset+0] != 0xef
+			&& mt.pbFormat[dwOffset+1] != 0xbb
+			&& mt.pbFormat[dwOffset+2] != 0xfb)
+			{
+				dwOffset -= 3;
+				mt.pbFormat[dwOffset+0] = 0xef;
+				mt.pbFormat[dwOffset+1] = 0xbb;
+				mt.pbFormat[dwOffset+2] = 0xbf;
+			}
+			pRTS->Open(mt.pbFormat + dwOffset, mt.cbFormat - dwOffset, DEFAULT_CHARSET, pRTS->m_name);
 		}
 	}
 

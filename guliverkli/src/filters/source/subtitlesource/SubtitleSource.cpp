@@ -54,9 +54,9 @@ const AMOVIESETUP_FILTER sudFilter[] =
 {
 	{&__uuidof(CSubtitleSourceASCII), L"SubtitleSource (S_TEXT/ASCII)", MERIT_UNLIKELY, sizeof(sudOpPin)/sizeof(sudOpPin[0]), sudOpPin},
 	{&__uuidof(CSubtitleSourceUTF8), L"SubtitleSource (S_TEXT/UTF8)", MERIT_UNLIKELY, sizeof(sudOpPin)/sizeof(sudOpPin[0]), sudOpPin},
-	{&__uuidof(CSubtitleSourceSSA), L"SubtitleSource (S_SSA)", MERIT_UNLIKELY, sizeof(sudOpPin)/sizeof(sudOpPin[0]), sudOpPin},
-	{&__uuidof(CSubtitleSourceASS), L"SubtitleSource (S_ASS)", MERIT_UNLIKELY, sizeof(sudOpPin)/sizeof(sudOpPin[0]), sudOpPin},
-	{&__uuidof(CSubtitleSourceUSF), L"SubtitleSource (S_USF)", MERIT_UNLIKELY, sizeof(sudOpPin)/sizeof(sudOpPin[0]), sudOpPin},
+	{&__uuidof(CSubtitleSourceSSA), L"SubtitleSource (S_TEXT/SSA)", MERIT_UNLIKELY, sizeof(sudOpPin)/sizeof(sudOpPin[0]), sudOpPin},
+	{&__uuidof(CSubtitleSourceASS), L"SubtitleSource (S_TEXT/ASS)", MERIT_UNLIKELY, sizeof(sudOpPin)/sizeof(sudOpPin[0]), sudOpPin},
+	{&__uuidof(CSubtitleSourceUSF), L"SubtitleSource (S_TEXT/USF)", MERIT_UNLIKELY, sizeof(sudOpPin)/sizeof(sudOpPin[0]), sudOpPin},
 	{&__uuidof(CSubtitleSourceiApRGB), L"SubtitleSource (Preview)", MERIT_UNLIKELY, sizeof(sudOpPin)/sizeof(sudOpPin[0]), sudOpPin},
 };
 
@@ -64,9 +64,9 @@ CFactoryTemplate g_Templates[] =
 {
 	{L"SubtitleSource (S_TEXT/ASCII)", &__uuidof(CSubtitleSourceASCII), CSubtitleSourceASCII::CreateInstance, NULL, &sudFilter[0]},
 	{L"SubtitleSource (S_TEXT/UTF8)", &__uuidof(CSubtitleSourceUTF8), CSubtitleSourceUTF8::CreateInstance, NULL, &sudFilter[1]},
-	{L"SubtitleSource (S_SSA)", &__uuidof(CSubtitleSourceSSA), CSubtitleSourceSSA::CreateInstance, NULL, &sudFilter[2]},
-	{L"SubtitleSource (S_ASS)", &__uuidof(CSubtitleSourceASS), CSubtitleSourceASS::CreateInstance, NULL, &sudFilter[3]},
-//	{L"SubtitleSource (S_USF)", &__uuidof(CSubtitleSourceUSF), CSubtitleSourceUSF::CreateInstance, NULL, &sudFilter[4]},
+	{L"SubtitleSource (S_TEXT/SSA)", &__uuidof(CSubtitleSourceSSA), CSubtitleSourceSSA::CreateInstance, NULL, &sudFilter[2]},
+	{L"SubtitleSource (S_TEXT/ASS)", &__uuidof(CSubtitleSourceASS), CSubtitleSourceASS::CreateInstance, NULL, &sudFilter[3]},
+//	{L"SubtitleSource (S_TEXT/USF)", &__uuidof(CSubtitleSourceUSF), CSubtitleSourceUSF::CreateInstance, NULL, &sudFilter[4]},
 	{L"SubtitleSource (Preview)", &__uuidof(CSubtitleSourceiApRGB), CSubtitleSourceiApRGB::CreateInstance, NULL, &sudFilter[5]},
 };
 
@@ -481,7 +481,7 @@ HRESULT CSubtitleStream::FillBuffer(IMediaSample* pSample)
 			if(m_mt.majortype == MEDIATYPE_Subtitle && m_mt.subtype == MEDIASUBTYPE_UTF8)
 			{
 				CStringA str = UTF16To8(m_rts.GetStrW(m_nPosition, false));
-				memcpy((char*)pData, str, len = str.GetLength()+1);
+				memcpy((char*)pData, str, len = str.GetLength());
 			}
 			else if(m_mt.majortype == MEDIATYPE_Subtitle && (m_mt.subtype == MEDIASUBTYPE_SSA || m_mt.subtype == MEDIASUBTYPE_ASS))
 			{
@@ -492,12 +492,12 @@ HRESULT CSubtitleStream::FillBuffer(IMediaSample* pSample)
 					CStringW(stse.effect), m_rts.GetStrW(m_nPosition, true));
 
 				CStringA str = UTF16To8(line);
-				memcpy((char*)pData, str, len = str.GetLength()+1);
+				memcpy((char*)pData, str, len = str.GetLength());
 			}
 			else if(m_mt.majortype == MEDIATYPE_Text && m_mt.subtype == MEDIASUBTYPE_NULL)
 			{
 				CStringA str = m_rts.GetStrA(m_nPosition, false);
-				memcpy((char*)pData, str, len = str.GetLength()+1);
+				memcpy((char*)pData, str, len = str.GetLength());
 			}
 			else
 			{
@@ -628,7 +628,8 @@ HRESULT CSubtitleSourceSSA::GetMediaType(CMediaType* pmt)
 	if(!sts.SaveAs(fn, EXTSSA, -1, CTextFile::UTF8) || !f.Open(fn, CFile::modeRead))
 		return E_FAIL;
 
-	int len = (int)f.GetLength();
+	int len = (int)f.GetLength()-3;
+	f.Seek(3, CFile::begin);
 
 	SUBTITLEINFO* psi = (SUBTITLEINFO*)pmt->AllocFormatBuffer(sizeof(SUBTITLEINFO) + len);
 	memset(psi, 0, sizeof(pmt->FormatLength()));

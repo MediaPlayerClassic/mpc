@@ -944,17 +944,17 @@ HRESULT CMatroskaMuxerInputPin::CompleteConnect(IPin* pPin)
 		}
 		else if(m_mt.subtype == MEDIASUBTYPE_SSA && m_mt.formattype == FORMAT_SubtitleInfo)
 		{
-			m_pTE->CodecID.Set("S_SSA");
+			m_pTE->CodecID.Set("S_TEXT/SSA");
 			hr = S_OK;
 		}
 		else if(m_mt.subtype == MEDIASUBTYPE_ASS && m_mt.formattype == FORMAT_SubtitleInfo)
 		{
-			m_pTE->CodecID.Set("S_ASS");
+			m_pTE->CodecID.Set("S_TEXT/ASS");
 			hr = S_OK;
 		}
 		else if(m_mt.subtype == MEDIASUBTYPE_USF && m_mt.formattype == FORMAT_SubtitleInfo)
 		{
-			m_pTE->CodecID.Set("S_USF");
+			m_pTE->CodecID.Set("S_TEXT/USF");
 			hr = S_OK;
 		}
 

@@ -450,7 +450,7 @@ HRESULT CMatroskaSourceFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 					// TODO: set psi->IsoLang when the language code is available
 					mts.InsertAt(0, mt);
 				}
-				else if(CodecID == "S_SSA")
+				else if(CodecID == "S_SSA" || CodecID == "S_TEXT/SSA")
 				{
 					mt.majortype = MEDIATYPE_Subtitle;
 					mt.subtype = MEDIASUBTYPE_SSA;
@@ -461,7 +461,7 @@ HRESULT CMatroskaSourceFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 					memcpy(mt.pbFormat + (psi->dwOffset = sizeof(SUBTITLEINFO)), pTE->CodecPrivate.GetData(), pTE->CodecPrivate.GetSize());
 					mts.InsertAt(0, mt);
 				}
-				else if(CodecID == "S_ASS")
+				else if(CodecID == "S_ASS" || CodecID == "S_TEXT/ASS")
 				{
 					mt.majortype = MEDIATYPE_Subtitle;
 					mt.subtype = MEDIASUBTYPE_ASS;
@@ -472,7 +472,7 @@ HRESULT CMatroskaSourceFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 					memcpy(mt.pbFormat + (psi->dwOffset = sizeof(SUBTITLEINFO)), pTE->CodecPrivate.GetData(), pTE->CodecPrivate.GetSize());
 					mts.InsertAt(0, mt);
 				}
-				else if(CodecID == "S_USF")
+				else if(CodecID == "S_USF" || CodecID == "S_TEXT/USF")
 				{
 					mt.majortype = MEDIATYPE_Subtitle;
 					mt.subtype = MEDIASUBTYPE_USF;
