@@ -102,6 +102,18 @@ GSLocalMemory::GSLocalMemory()
 	m_bbt[0] = 0;
 	for(int i = 1; i < 256; i++)
 		m_bbt[i] = 0xff;
+/*
+	WORD tmp[16*32];
+	for(int j = 0, k = 0; j < 16; j++)
+		for(int i = 0; i < 32; i++)
+			tmp[columnTable4[j][i]] = k++;
+	for(int j = 0; j < 16; j++)
+	{
+		for(int i = 0; i < 32; i++)
+			TRACE(_T("%3d "), tmp[j*32+i]);
+		TRACE(_T("\n"));
+	}
+*/	
 }
 
 GSLocalMemory::~GSLocalMemory()
