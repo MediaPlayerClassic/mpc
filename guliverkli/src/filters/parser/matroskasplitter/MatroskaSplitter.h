@@ -41,7 +41,7 @@ class CMatroskaSplitterOutputPin : public CBaseSplitterOutputPin
 
 	CCritSec m_csQueue;
 	CAutoPtrList<MatroskaPacket> m_packets;
-	CList<POSITION> m_rob;
+	CList<MatroskaPacket*> m_rob;
 
 protected:
 	HRESULT DeliverPacket(CAutoPtr<Packet> p);
