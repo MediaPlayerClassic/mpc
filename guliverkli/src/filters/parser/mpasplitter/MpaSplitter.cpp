@@ -176,10 +176,10 @@ bool CMpaSplitterFilter::DoDeliverLoop()
 
 	CMpaSplitterFile::mpahdr h;
 
-	while(SUCCEEDED(hr) && !CheckRequest(NULL)
-	&& m_pFile->GetPos() < m_pFile->GetEndPos()
-	&& m_pFile->Sync(h))
+	while(SUCCEEDED(hr) && !CheckRequest(NULL) && m_pFile->GetPos() < m_pFile->GetEndPos())
 	{
+		if(!m_pFile->Sync(h)) {Sleep(1); continue;}
+
 		CAutoPtr<Packet> p(new Packet());
 		p->pData.SetSize(h.FrameSize);
 		m_pFile->Read(p->pData.GetData(), h.FrameSize);
