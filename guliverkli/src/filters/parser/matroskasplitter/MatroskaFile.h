@@ -337,6 +337,8 @@ namespace MatroskaReader
 	protected:
 		CComPtr<IAsyncReader> m_pAsyncReader;
 		QWORD m_pos, m_length;
+		BYTE m_cache[2048];
+		QWORD m_cachepos, m_cachelen;
 
 	public:
 		CMatroskaFile(IAsyncReader* pAsyncReader, HRESULT& hr);

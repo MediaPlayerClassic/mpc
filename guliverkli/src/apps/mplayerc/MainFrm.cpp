@@ -4714,7 +4714,7 @@ void CMainFrame::MoveVideoWindow(bool fShowStats)
 		{
 			bool fKeepAspectRatio = AfxGetAppSettings().fKeepAspectRatio;
 
-			CSize wh(0, 0), arxy;
+			CSize wh(0, 0), arxy(0, 0);
 
 			if(m_pCAP)
 			{
@@ -4724,8 +4724,11 @@ void CMainFrame::MoveVideoWindow(bool fShowStats)
 			else
 			{
 				pBV->GetVideoSize(&wh.cx, &wh.cy);
-				if(CComQIPtr<IBasicVideo2> pBV2 = pGB)
-					pBV2->GetPreferredAspectRatio(&arxy.cx, &arxy.cy);
+
+				long arx = 0, ary = 0;
+				CComQIPtr<IBasicVideo2> pBV2 = pBV;
+				if(pBV2 && SUCCEEDED(pBV2->GetPreferredAspectRatio(&arx, &ary)) && arx > 0 && ary > 0)
+					arxy.SetSize(arx, ary);
 			}
 
 			if(wh.cx <= 0 || wh.cy <= 0)
