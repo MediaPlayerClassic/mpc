@@ -2,7 +2,6 @@
 
 class GSCapture
 {
-	CComPtr<IDirect3DTexture9> m_pRT;
 	CComPtr<IDirect3DSurface9> m_pRTSurf, m_pSysMemSurf;
 
 	CComPtr<IGraphBuilder> m_pGB;
@@ -16,5 +15,5 @@ public:
 	bool EndFrame();
 	bool EndCapture();
 
-	bool IsCapturing() {return !!m_pRT;}
+	bool IsCapturing() {return !!m_pRTSurf;}
 };

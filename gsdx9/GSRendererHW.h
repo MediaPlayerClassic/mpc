@@ -68,10 +68,10 @@ public:
 	{
 		int tw = 1, th = 1;
 		if(m_de.PRIM.TME) {tw = 1<<m_ctxt->TEX0.TW; th = 1<<m_ctxt->TEX0.TH;}
-		LOG2((_T("\t %s (%.2f, %.2f, %.2f, %.2f) (%08x) (%f, %f) (%f, %f)\n"), 
+		LOG2(_T("\t %s (%.2f, %.2f, %.2f, %.2f) (%08x) (%f, %f) (%f, %f)\n"), 
 			type,
 			v.x, v.y, v.z, v.rhw, 
 			v.color, v.tu, v.tv,
-			v.tu*tw, v.tv*th));
+			v.tu*tw, v.tv*th);
 	}
 };

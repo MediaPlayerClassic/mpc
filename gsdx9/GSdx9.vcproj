@@ -92,7 +92,8 @@
 				ForceConformanceInForLoopScope="TRUE"
 				UsePrecompiledHeader="3"
 				WarningLevel="3"
-				Detect64BitPortabilityProblems="TRUE"/>
+				Detect64BitPortabilityProblems="TRUE"
+				DebugInformationFormat="3"/>
 			<Tool
 				Name="VCCustomBuildTool"/>
 			<Tool
@@ -101,6 +102,7 @@
 				OutputFile="E:\pcsx2_0.6win\plugins\GSdx9.dll"
 				LinkIncremental="1"
 				ModuleDefinitionFile=".\GSdx9.def"
+				GenerateDebugInformation="TRUE"
 				SubSystem="2"
 				OptimizeReferences="2"
 				EnableCOMDATFolding="2"
@@ -291,6 +293,9 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath=".\GSPerfMon.cpp">
+			</File>
+			<File
 				RelativePath=".\GSRegs.cpp">
 			</File>
 			<File
@@ -378,6 +383,9 @@
 			</File>
 			<File
 				RelativePath=".\GSLocalMemory.h">
+			</File>
+			<File
+				RelativePath=".\GSPerfMon.h">
 			</File>
 			<File
 				RelativePath=".\GSRenderer.h">

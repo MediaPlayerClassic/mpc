@@ -269,7 +269,7 @@ GSState::GSState(int w, int h, HWND hWnd, HRESULT& hr)
 
 	Reset();
 
-#ifdef DEBUG_LOGFILE
+#ifdef DEBUG_LOG
 	::DeleteFile(_T("c:\\gs.txt"));
 	m_fp = _tfopen(_T("c:\\gs.txt"), _T("at"));
 #endif
@@ -351,95 +351,97 @@ void GSState::Write64(GS_REG mem, GSReg* r)
 {
 	ASSERT(r);
 
+	GSPerfMonAutoTimer at(m_perfmon);
+
 	switch(mem)
 	{
 		case GS_PMODE:
 			m_rs.PMODE.i64 = r->i64;
-			LOG((_T("Write64(GS_PMODE, EN1=%x EN2=%x CRTMD=%x MMOD=%x AMOD=%x SLBG=%x ALP=%x)\n"), 
+			LOG(_T("Write64(GS_PMODE, EN1=%x EN2=%x CRTMD=%x MMOD=%x AMOD=%x SLBG=%x ALP=%x)\n"), 
 				r->PMODE.EN1,
 				r->PMODE.EN2,
 				r->PMODE.CRTMD,
 				r->PMODE.MMOD,
 				r->PMODE.AMOD,
 				r->PMODE.SLBG,
-				r->PMODE.ALP));
+				r->PMODE.ALP);
 			break;
 
 		case GS_SMODE1:
 			m_rs.SMODE1.i64 = r->i64;
-			LOG((_T("Write64(GS_SMODE1, CMOD=%x)\n"), 
-				r->SMODE1.CMOD));
+			LOG(_T("Write64(GS_SMODE1, CMOD=%x)\n"), 
+				r->SMODE1.CMOD);
 			break;
 
 		case GS_SMODE2:
 			m_rs.SMODE2.i64 = r->i64;
-			LOG((_T("Write64(GS_SMODE2, INT=%x FFMD=%x DPMS=%x)\n"), 
+			LOG(_T("Write64(GS_SMODE2, INT=%x FFMD=%x DPMS=%x)\n"), 
 				r->SMODE2.INT,
 				r->SMODE2.FFMD,
-				r->SMODE2.DPMS));
+				r->SMODE2.DPMS);
 			break;
 
 		case GS_SRFSH:
-			LOG((_T("Write64(GS_SRFSH, %016I64x)\n"), r->i64));
+			LOG(_T("Write64(GS_SRFSH, %016I64x)\n"), r->i64);
 			break;
 
 		case GS_SYNCH1:
-			LOG((_T("Write64(GS_SYNCH1, %016I64x)\n"), r->i64));
+			LOG(_T("Write64(GS_SYNCH1, %016I64x)\n"), r->i64);
 			break;
 
 		case GS_SYNCH2:
-			LOG((_T("Write64(GS_SYNCH2, %016I64x)\n"), r->i64));
+			LOG(_T("Write64(GS_SYNCH2, %016I64x)\n"), r->i64);
 			break;
 
 		case GS_SYNCV:
-			LOG((_T("Write64(GS_SYNCV, %016I64x)\n"), r->i64));
+			LOG(_T("Write64(GS_SYNCV, %016I64x)\n"), r->i64);
 			break;
 
 		case GS_DISPFB1:
 			m_rs.DISPFB[0].i64 = r->i64;
-			LOG((_T("Write64(GS_DISPFB1, FBP=%x FBW=%d PSM=%x DBX=%x DBY=%x)\n"), 
+			LOG(_T("Write64(GS_DISPFB1, FBP=%x FBW=%d PSM=%x DBX=%x DBY=%x)\n"), 
 				r->DISPFB.FBP<<5,
 				r->DISPFB.FBW*64,
 				r->DISPFB.PSM,
 				r->DISPFB.DBX,
-				r->DISPFB.DBY));
+				r->DISPFB.DBY);
 			break;
 
 		case GS_DISPLAY1:
 			m_rs.DISPLAY[0].i64 = r->i64;
-			LOG((_T("Write64(GS_DISPLAY1, DX=%x DY=%x MAGH=%x MAGV=%x DW=%x DH=%x)\n"),
+			LOG(_T("Write64(GS_DISPLAY1, DX=%x DY=%x MAGH=%x MAGV=%x DW=%x DH=%x)\n"),
 				r->DISPLAY.DX,
 				r->DISPLAY.DY,
 				r->DISPLAY.MAGH,
 				r->DISPLAY.MAGV,
 				r->DISPLAY.DW,
-				r->DISPLAY.DH));
+				r->DISPLAY.DH);
 			break;
 
 		case GS_DISPFB2:
 			m_rs.DISPFB[1].i64 = r->i64;
-			LOG((_T("Write64(GS_DISPFB2, FBP=%x FBW=%d PSM=%x DBX=%x DBY=%x)\n"), 
+			LOG(_T("Write64(GS_DISPFB2, FBP=%x FBW=%d PSM=%x DBX=%x DBY=%x)\n"), 
 				r->DISPFB.FBP<<5,
 				r->DISPFB.FBW*64,
 				r->DISPFB.PSM,
 				r->DISPFB.DBX,
-				r->DISPFB.DBY));
+				r->DISPFB.DBY);
 			break;
 
 		case GS_DISPLAY2:
 			m_rs.DISPLAY[1].i64 = r->i64;
-			LOG((_T("Write64(GS_DISPLAY2, DX=%x DY=%x MAGH=%x MAGV=%x DW=%x DH=%x)\n"),
+			LOG(_T("Write64(GS_DISPLAY2, DX=%x DY=%x MAGH=%x MAGV=%x DW=%x DH=%x)\n"),
 				r->DISPLAY.DX,
 				r->DISPLAY.DY,
 				r->DISPLAY.MAGH,
 				r->DISPLAY.MAGV,
 				r->DISPLAY.DW,
-				r->DISPLAY.DH));
+				r->DISPLAY.DH);
 			break;
 
 		case GS_EXTBUF:
 			m_rs.EXTBUF.i64 = r->i64;
-			LOG((_T("Write64(GS_EXTBUF, EXBP=%x EXBW=%x FBIN=%x WFFMD=%x EMODA=%x EMODC=%x WDX=%x WDY=%x)\n"),
+			LOG(_T("Write64(GS_EXTBUF, EXBP=%x EXBW=%x FBIN=%x WFFMD=%x EMODA=%x EMODC=%x WDX=%x WDY=%x)\n"),
 				r->EXTBUF.EXBP,
 				r->EXTBUF.EXBW,
 				r->EXTBUF.FBIN,
@@ -447,37 +449,37 @@ void GSState::Write64(GS_REG mem, GSReg* r)
 				r->EXTBUF.EMODA,
 				r->EXTBUF.EMODC,
 				r->EXTBUF.WDX,
-				r->EXTBUF.WDY));
+				r->EXTBUF.WDY);
 			break;
 
 		case GS_EXTDATA:
 			m_rs.EXTDATA.i64 = r->i64;
-			LOG((_T("Write64(GS_EXTDATA, SX=%x SY=%x SMPH=%x SMPV=%x WW=%x WH=%x)\n"), 
+			LOG(_T("Write64(GS_EXTDATA, SX=%x SY=%x SMPH=%x SMPV=%x WW=%x WH=%x)\n"), 
 				r->EXTDATA.SX,
 				r->EXTDATA.SY,
 				r->EXTDATA.SMPH,
 				r->EXTDATA.SMPV,
 				r->EXTDATA.WW,
-				r->EXTDATA.WH));
+				r->EXTDATA.WH);
 			break;
 
 		case GS_EXTWRITE:
 			m_rs.EXTWRITE.i64 = r->i64;
-			LOG((_T("Write64(GS_EXTWRITE, WRITE=%x)\n"),
-				r->EXTWRITE.WRITE));
+			LOG(_T("Write64(GS_EXTWRITE, WRITE=%x)\n"),
+				r->EXTWRITE.WRITE);
 			break;
 
 		case GS_BGCOLOR:
 			m_rs.BGCOLOR.i64 = r->i64;
-			LOG((_T("Write64(GS_BGCOLOR, R=%x G=%x B=%x)\n"),
+			LOG(_T("Write64(GS_BGCOLOR, R=%x G=%x B=%x)\n"),
 				r->BGCOLOR.R,
 				r->BGCOLOR.G,
-				r->BGCOLOR.B));
+				r->BGCOLOR.B);
 			break;
 
 		case GS_CSR:
 			m_rs.CSRw.i64 = r->i64;
-			LOG((_T("Write64(GS_CSR, SIGNAL=%x FINISH=%x HSINT=%x VSINT=%x EDWINT=%x ZERO1=%x ZERO2=%x FLUSH=%x RESET=%x NFIELD=%x FIELD=%x FIFO=%x REV=%x ID=%x)\n"),
+			LOG(_T("Write64(GS_CSR, SIGNAL=%x FINISH=%x HSINT=%x VSINT=%x EDWINT=%x ZERO1=%x ZERO2=%x FLUSH=%x RESET=%x NFIELD=%x FIELD=%x FIFO=%x REV=%x ID=%x)\n"),
 				r->CSR.SIGNAL,
 				r->CSR.FINISH,
 				r->CSR.HSINT,
@@ -491,7 +493,7 @@ void GSState::Write64(GS_REG mem, GSReg* r)
 				r->CSR.FIELD,
 				r->CSR.FIFO,
 				r->CSR.REV,
-				r->CSR.ID));
+				r->CSR.ID);
 			if(m_rs.CSRw.SIGNAL) m_rs.CSRr.SIGNAL = 0;
 			if(m_rs.CSRw.FINISH) m_rs.CSRr.FINISH = 0;
 			if(m_rs.CSRw.RESET) Reset();
@@ -499,30 +501,30 @@ void GSState::Write64(GS_REG mem, GSReg* r)
 
 		case GS_IMR:
 			m_rs.IMR.i64 = r->i64;
-			LOG((_T("Write64(GS_IMR, _PAD1=%x SIGMSK=%x FINISHMSK=%x HSMSK=%x VSMSK=%x EDWMSK=%x)\n"),
+			LOG(_T("Write64(GS_IMR, _PAD1=%x SIGMSK=%x FINISHMSK=%x HSMSK=%x VSMSK=%x EDWMSK=%x)\n"),
 				r->IMR._PAD1,
 				r->IMR.SIGMSK,
 				r->IMR.FINISHMSK,
 				r->IMR.HSMSK,
 				r->IMR.VSMSK,
-				r->IMR.EDWMSK));
+				r->IMR.EDWMSK);
 			break;
 
 		case GS_BUSDIR:
 			m_rs.BUSDIR.i64 = r->i64;
-			LOG((_T("Write64(GS_BUSDIR, DIR=%x)\n"),
-				r->BUSDIR.DIR));
+			LOG(_T("Write64(GS_BUSDIR, DIR=%x)\n"),
+				r->BUSDIR.DIR);
 			break;
 
 		case GS_SIGLBLID:
 			m_rs.SIGLBLID.i64 = r->i64;
-			LOG((_T("Write64(GS_SIGLBLID, SIGID=%x LBLID=%x)\n"),
+			LOG(_T("Write64(GS_SIGLBLID, SIGID=%x LBLID=%x)\n"),
 				r->SIGLBLID.SIGID,
-				r->SIGLBLID.LBLID));
+				r->SIGLBLID.LBLID);
 			break;
 
 		default:
-			LOG((_T("*** WARNING *** Write64(?????????, %016I64x)\n"), r->i64));
+			LOG(_T("*** WARNING *** Write64(?????????, %016I64x)\n"), r->i64);
 			ASSERT(0);
 			break;
 	}
@@ -539,13 +541,15 @@ UINT64 GSState::Read64(GS_REG mem)
 {
 	if(mem == GS_CSR) return m_rs.CSRr.i64;
 
+	GSPerfMonAutoTimer at(m_perfmon);
+
 	GSReg* r = NULL;
 
 	switch(mem)
 	{
 		case GS_CSR:
 			r = reinterpret_cast<GSReg*>(&m_rs.CSRr);
-			LOG((_T("Read64(GS_CSR, SIGNAL=%x FINISH=%x HSINT=%x VSINT=%x EDWINT=%x ZERO1=%x ZERO2=%x FLUSH=%x RESET=%x NFIELD=%x FIELD=%x FIFO=%x REV=%x ID=%x)\n"),
+			LOG(_T("Read64(GS_CSR, SIGNAL=%x FINISH=%x HSINT=%x VSINT=%x EDWINT=%x ZERO1=%x ZERO2=%x FLUSH=%x RESET=%x NFIELD=%x FIELD=%x FIFO=%x REV=%x ID=%x)\n"),
 				r->CSR.SIGNAL,
 				r->CSR.FINISH,
 				r->CSR.HSINT,
@@ -559,23 +563,23 @@ UINT64 GSState::Read64(GS_REG mem)
 				r->CSR.FIELD,
 				r->CSR.FIFO,
 				r->CSR.REV,
-				r->CSR.ID));
+				r->CSR.ID);
 			break;
 
 		case GS_SIGLBLID:
 			r = reinterpret_cast<GSReg*>(&m_rs.SIGLBLID);
-			LOG((_T("Read64(GS_SIGLBLID, SIGID=%x LBLID=%x)\n"),
+			LOG(_T("Read64(GS_SIGLBLID, SIGID=%x LBLID=%x)\n"),
 				r->SIGLBLID.SIGID,
-				r->SIGLBLID.LBLID));
+				r->SIGLBLID.LBLID);
 			break;
 
 		case GS_UNKNOWN:
-			LOG((_T("*** WARNING *** Read64(%08x)\n"), mem));
+			LOG(_T("*** WARNING *** Read64(%08x)\n"), mem);
 			return m_rs.CSRr.FIELD << 13;
 			break;
 
 		default:
-			LOG((_T("*** WARNING *** Read64(%08x)\n"), mem));
+			LOG(_T("*** WARNING *** Read64(%08x)\n"), mem);
 			ASSERT(0);
 			break;
 	}
@@ -585,7 +589,9 @@ UINT64 GSState::Read64(GS_REG mem)
 
 void GSState::ReadFIFO(BYTE* pMem)
 {
-	LOG((_T("*** WARNING *** ReadFIFO(%08x)\n"), pMem));
+	GSPerfMonAutoTimer at(m_perfmon);
+
+	LOG(_T("*** WARNING *** ReadFIFO(%08x)\n"), pMem);
 	ReadTransfer(pMem, 16);
 }
 
@@ -596,9 +602,11 @@ void GSState::Transfer(BYTE* pMem)
 
 void GSState::Transfer(BYTE* pMem, UINT32 size)
 {
+	GSPerfMonAutoTimer at(m_perfmon);
+
 	while(size > 0)
 	{
-		LOG((_T("Transfer(%08x, %d) START\n"), pMem, size));
+		LOG(_T("Transfer(%08x, %d) START\n"), pMem, size);
 
 		bool fEOP = false;
 
@@ -607,21 +615,21 @@ void GSState::Transfer(BYTE* pMem, UINT32 size)
 			m_tag = *(GIFTag*)pMem;
 			m_nreg = 0;
 
-			LOG((_T("GIFTag NLOOP=%x EOP=%x PRE=%x PRIM=%x FLG=%x NREG=%x REGS=%x\n"), 
+			LOG(_T("GIFTag NLOOP=%x EOP=%x PRE=%x PRIM=%x FLG=%x NREG=%x REGS=%x\n"), 
 				m_tag.NLOOP,
 				m_tag.EOP,
 				m_tag.PRE,
 				m_tag.PRIM,
 				m_tag.FLG,
 				m_tag.NREG,
-				m_tag.REGS));
+				m_tag.REGS);
 
 			pMem += sizeof(GIFTag);
 			size--;
 
 			if(m_tag.PRE)
 			{
-				LOG((_T("PRE ")));
+				LOG(_T("PRE "));
 				GIFReg r;
 				r.i64 = m_tag.PRIM;
 				(this->*m_fpGIFRegHandlers[GIF_A_D_REG_PRIM])(&r);
@@ -629,12 +637,12 @@ void GSState::Transfer(BYTE* pMem, UINT32 size)
 
 			if(m_tag.EOP)
 			{
-				LOG((_T("EOP\n")));
+				LOG(_T("EOP\n"));
 				fEOP = true;
 			}
 			else if(m_tag.NLOOP == 0)
 			{
-				LOG((_T("*** WARNING *** m_tag.NLOOP == 0 && EOP == 0\n")));
+				LOG(_T("*** WARNING *** m_tag.NLOOP == 0 && EOP == 0\n"));
 				fEOP = true;
 				// ASSERT(0);
 			}
@@ -662,7 +670,7 @@ void GSState::Transfer(BYTE* pMem, UINT32 size)
 			size /= 2;
 			break;
 		case GIF_FLG_IMAGE2:
-			LOG((_T("*** WARNING **** Unexpected GIFTag flag\n")));
+			LOG(_T("*** WARNING **** Unexpected GIFTag flag\n"));
 			ASSERT(0);
 		case GIF_FLG_IMAGE:
 			{
@@ -690,7 +698,7 @@ void GSState::Transfer(BYTE* pMem, UINT32 size)
 			break;
 		}
 
-		LOG((_T("Transfer(%08x, %d) END\n"), pMem, size));
+		LOG(_T("Transfer(%08x, %d) END\n"), pMem, size);
 
 		if(fEOP && (INT32)size <= 0)
 		{
@@ -701,6 +709,8 @@ void GSState::Transfer(BYTE* pMem, UINT32 size)
 
 UINT32 GSState::MakeSnapshot(char* path)
 {
+	GSPerfMonAutoTimer at(m_perfmon);
+
 	CString fn;
 	fn.Format(_T("%sgsdx9_%s.bmp"), CString(path), CTime::GetCurrentTime().Format(_T("%Y%m%d%H%M%S")));
 	return D3DXSaveSurfaceToFile(fn, D3DXIFF_BMP, m_pOrgRenderTarget, NULL, NULL);
@@ -708,18 +718,17 @@ UINT32 GSState::MakeSnapshot(char* path)
 
 void GSState::Capture()
 {
+	GSPerfMonAutoTimer at(m_perfmon);
+
 	if(!m_capture.IsCapturing()) m_capture.BeginCapture(m_pD3DDev, m_rs.GetFPS());
 	else m_capture.EndCapture();
 }
 
 void GSState::VSync()
 {
-	FlushPrim();
+	GSPerfMonAutoTimer at(m_perfmon);
 
-	m_stats.VSync();
-	CString str = m_stats.ToString(m_rs.GetFPS());
-	LOG((_T("VSync(%s)\n"), str));
-	if(!(m_stats.GetFrame()&7)) SetWindowText(m_hWnd, str);
+	FlushPrim();
 
 	m_rs.CSRr.NFIELD = 1; // ?
 	if(m_rs.SMODE2.INT /*&& !m_rs.SMODE2.FFMD*/);
@@ -728,10 +737,17 @@ void GSState::VSync()
 	Flip();
 
 	EndFrame();
+
+	m_stats.VSync(m_perfmon.CpuUsage());
+	CString str = m_stats.ToString(m_rs.GetFPS());
+	LOG(_T("VSync(%s)\n"), str);
+	if(!(m_stats.GetFrame()&7)) SetWindowText(m_hWnd, str);
 }
 
 void GSState::Reset()
 {
+	GSPerfMonAutoTimer at(m_perfmon);
+
 	memset(&m_de, 0, sizeof(m_de));
 	memset(&m_rs, 0, sizeof(m_rs));
 	memset(&m_tag, 0, sizeof(m_tag));
@@ -794,6 +810,7 @@ void GSState::FinishFlip(FlipSrc rt[2], bool fShiftField)
 			pVertices[i].tv1 += rt[0].scale.y*0.5f / rt[0].rd.Height;
 			pVertices[i].tv2 += rt[1].scale.y*0.5f / rt[1].rd.Height;
 		}
+/**/
 	}
 
 	hr = m_pD3DDev->SetRenderTarget(0, m_pOrgRenderTarget);

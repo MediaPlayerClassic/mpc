@@ -31,6 +31,8 @@
 #define PS2E_LT_GS 0x01
 #define PS2E_GS_VERSION 0x0004
 #define PS2E_DLL_VERSION 0x05
+#define PS2E_X86 0x01   // 32 bit
+#define PS2E_X86_64 0x02   // 64 bit
 
 EXPORT_C_(UINT32) PS2EgetLibType()
 {
@@ -86,6 +88,11 @@ EXPORT_C_(__declspec(naked) UINT32) PS2EgetLibVersion2(UINT32 type)
 		pop ebx
 		ret 4
 	}
+}
+
+EXPORT_C_(UINT32) PS2EgetCpuPlatform()
+{
+	return PS2E_X86;
 }
 
 static CAutoPtr<GSState> s_gs;
@@ -158,7 +165,9 @@ EXPORT_C GSwrite32(GS_REG mem, UINT32 value)
 
 EXPORT_C GSwrite64(GS_REG mem, UINT64 value)
 {
+	UINT64 start = rdtsc();
 	s_gs->Write64(mem, (GSReg*)&value);
+	UINT64 diff = rdtsc() - start;
 }
 
 EXPORT_C_(UINT32) GSread32(GS_REG mem)

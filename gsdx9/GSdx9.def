@@ -4,9 +4,10 @@ LIBRARY      "GSdx9"
 
 EXPORTS
     ; Explicit exports can go here
-	PS2EgetLibType		@2
-	PS2EgetLibName		@3
-	PS2EgetLibVersion2	@4
+	PS2EgetLibType		@1
+	PS2EgetLibName		@2
+	PS2EgetLibVersion2	@3
+	PS2EgetCpuPlatform	@4
 	GSinit				@5
 	GSshutdown			@6
 	GSopen				@7

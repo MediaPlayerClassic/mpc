@@ -191,14 +191,11 @@ bool GSCapture::BeginCapture(IDirect3DDevice9* pD3Dev, int fps)
 	int w, h;
 	w = 640, h = 480; // TODO
 
-	CComPtr<IDirect3DTexture9> pRT;
-	if(FAILED(hr = pD3Dev->CreateTexture(w, h, 1, D3DUSAGE_RENDERTARGET, D3DFMT_A8R8G8B8, D3DPOOL_DEFAULT, &pRT, NULL)))
+	CComPtr<IDirect3DSurface9> pRTSurf;
+	if(FAILED(hr = pD3Dev->CreateRenderTarget(w, h, D3DFMT_A8R8G8B8, D3DMULTISAMPLE_NONE, 0, TRUE, &pRTSurf, NULL)))
 		return false;
 
 	if(FAILED(hr = pD3Dev->CreateOffscreenPlainSurface(w, h, D3DFMT_A8R8G8B8, D3DPOOL_SYSTEMMEM, &m_pSysMemSurf, NULL)))
-		return false;
-
-	if(FAILED(hr = pRT->GetSurfaceLevel(0, &m_pRTSurf)))
 		return false;
 
 	//
@@ -230,14 +227,14 @@ bool GSCapture::BeginCapture(IDirect3DDevice9* pD3Dev, int fps)
 
 	CComQIPtr<IGSSource>(m_pSrc)->DeliverNewSegment();
 
-	m_pRT = pRT;
+	m_pRTSurf = pRTSurf;
 
 	return true;
 }
 
 bool GSCapture::BeginFrame(int& w, int& h, IDirect3DSurface9** pRTSurf)
 {
-	if(!m_pRT || !pRTSurf) return false;
+	if(!m_pRTSurf || !pRTSurf) return false;
 
 	// FIXME: remember w, h from BeginCapture
 	D3DSURFACE_DESC desc;
@@ -257,9 +254,9 @@ bool GSCapture::EndFrame()
 	CComPtr<IDirect3DDevice9> pD3DDev;
 	D3DLOCKED_RECT r;
 
-	if(FAILED(m_pRT->GetDevice(&pD3DDev))
+	if(FAILED(m_pRTSurf->GetDevice(&pD3DDev))
 	|| FAILED(pD3DDev->GetRenderTargetData(m_pRTSurf, m_pSysMemSurf))
-	|| FAILED(m_pSysMemSurf->LockRect(&r, NULL, 0)))
+	|| FAILED(m_pSysMemSurf->LockRect(&r, NULL, D3DLOCK_READONLY)))
 		return false;
 
 	CComQIPtr<IGSSource>(m_pSrc)->DeliverFrame(r);
@@ -271,7 +268,6 @@ bool GSCapture::EndFrame()
 
 bool GSCapture::EndCapture()
 {
-	m_pRT = NULL;
 	m_pRTSurf = NULL;
 	m_pSysMemSurf = NULL;
 
