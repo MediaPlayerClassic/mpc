@@ -60,31 +60,29 @@ else if(!empty($files))
 			$movies[$row['id']] =  $row;
 	}
 }
-else if(!empty($text))
+else
 {
-	if(strlen($text) >= 3)
-	{
-		$db_text = ereg_replace('([_%])', '\\1', $text);
-		$db_text = str_replace('*', '%', $db_text);
-		$db_text = str_replace('?', '_', $db_text);
-		$db_text = addslashes($db_text);
+	if(empty($text)) $text = '*';
+	
+	$db_text = ereg_replace('([_%])', '\\1', $text);
+	$db_text = str_replace('*', '%', $db_text);
+	$db_text = str_replace('?', '_', $db_text);
+	$db_text = addslashes($db_text);
+	if(!getParam('bw')) $db_text = '%'.$db_text;
 
-		$db->fetchAll(
-			"select * from movie ".
-			"where id in ".
-			"	(select distinct movie_id from title where title like _utf8 '%$db_text%' ".
-				"union ".
-				"select distinct movie_id from movie_subtitle where name like _utf8 '%$db_text%') ".
-			"and id in (select distinct movie_id from movie_subtitle where subtitle_id in (select distinct id from subtitle)) ".
-			"limit 100 ",
-			$movies);
+	$db->fetchAll(
+		"select * from movie ".
+		"where id in ".
+		"	( ".
+			"select distinct movie_id from title where title like _utf8 '$db_text%' ".
+			"union ".
+			"select distinct movie_id from movie_subtitle where name like _utf8 '$db_text%' ".
+			") ".
+		"and id in (select distinct movie_id from movie_subtitle where subtitle_id in (select distinct id from subtitle)) ".
+		"limit 100 ",
+		$movies);
 
-		chkerr();
-	}
-	else
-	{
-		$smarty->assign('message', 'Text too short (min 3 chars)');
-	}
+	chkerr();
 }
 
 if(!empty($movies))
@@ -201,6 +199,12 @@ if(!empty($_REQUEST['player']))
 	$smarty->display('index.player.tpl');
 	exit;
 }
+
+$index = array();
+$index[] = array('mask' => "*", 'label' => 'All');
+for($i = ord('A'); $i <= ord('Z'); $i++)
+	$index[] = array('mask' => chr($i)."*", 'label' => chr($i));
+$smarty->assign('index', $index);
 
 $smarty->display('main.tpl');
 
