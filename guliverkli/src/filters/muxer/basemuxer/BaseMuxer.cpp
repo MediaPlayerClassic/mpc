@@ -217,25 +217,11 @@ DWORD CBaseMuxerFilter::ThreadProc()
 				if(pPacket->IsTimeValid() || pPacket->IsEOS())
 					EXECUTE_ASSERT(m_pActivePins[pPacket->pPin]-- > 0);
 
-				if(pPacket->IsEOS())
-				{
-					pos = m_pActivePins.GetStartPosition();
-					while(pos)
-					{
-						CBaseMuxerInputPin* pPin = NULL;
-						int nPackets = 0;
-						m_pActivePins.GetNextAssoc(pos, pPin, nPackets);
-
-						if(pPacket->pPin == pPin)
-						{
-							m_pActivePins.RemoveKey(pPin);
-							break;
-						}
-					}
-				}
-
 				if(pPacket->IsTimeValid())
 					m_rtCurrent = pPacket->rtStart;
+
+				if(pPacket->IsEOS())
+					m_pActivePins.RemoveKey(pPacket->pPin);
 
 				TRACE(_T("WritePacket pPin=%x, size=%d, syncpoint=%d, eos=%d, rt=(%I64d-%I64d)\r\n"), 
 					pPacket->pPin->GetID(),
