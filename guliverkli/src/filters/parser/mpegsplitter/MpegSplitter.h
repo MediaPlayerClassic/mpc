@@ -38,10 +38,6 @@ protected:
 public:
 	CMpegSplitterFilter(LPUNKNOWN pUnk, HRESULT* phr);
 
-#ifdef REGISTER_FILTER
-    static CUnknown* WINAPI CreateInstance(LPUNKNOWN lpunk, HRESULT* phr);
-#endif
-
 	DECLARE_IUNKNOWN
     STDMETHODIMP NonDelegatingQueryInterface(REFIID riid, void** ppv);
 
@@ -56,10 +52,6 @@ class CMpegSourceFilter : public CMpegSplitterFilter
 {
 public:
 	CMpegSourceFilter(LPUNKNOWN pUnk, HRESULT* phr);
-
-#ifdef REGISTER_FILTER
-    static CUnknown* WINAPI CreateInstance(LPUNKNOWN lpunk, HRESULT* phr);
-#endif
 };
 
 class CMpegSplitterOutputPin : public CBaseSplitterOutputPin, protected CCritSec

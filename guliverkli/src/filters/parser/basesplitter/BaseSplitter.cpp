@@ -877,8 +877,6 @@ HRESULT CBaseSplitterFilter::AddOutputPin(DWORD TrackNum, CAutoPtr<CBaseSplitter
 	return S_OK;
 }
 
-CAutoPtrList<CBaseSplitterOutputPin> s_pOutputs;
-
 HRESULT CBaseSplitterFilter::DeleteOutputs()
 {
 	m_rtDuration = 0;
