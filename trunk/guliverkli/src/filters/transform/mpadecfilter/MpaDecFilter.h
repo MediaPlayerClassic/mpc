@@ -44,6 +44,14 @@ struct aac_state_t
 	bool init(CMediaType& mt);
 };
 
+struct ps2_state_t
+{
+	bool sync;
+	double a[2], b[2];
+	struct ps2_state_t() {reset();}
+	void reset() {sync = false; a[0] = a[1] = b[0] = b[1] = 0;}
+};
+
 [uuid("3D446B6F-71DE-4437-BE15-8CE47174340F")]
 class CMpaDecFilter : public CTransformFilter, public IMpaDecFilter
 {
@@ -56,7 +64,7 @@ protected:
 	mad_stream m_stream;
 	mad_frame m_frame;
 	mad_synth m_synth;
-	bool m_ps2pcm_sync;
+	ps2_state_t m_ps2_state;
 
 	CArray<BYTE> m_buff;
 	REFERENCE_TIME m_rtStart;
@@ -68,7 +76,8 @@ protected:
 	HRESULT ProcessAC3();
 	HRESULT ProcessDTS();
 	HRESULT ProcessAAC();
-	HRESULT ProcessPS2();
+	HRESULT ProcessPS2PCM();
+	HRESULT ProcessPS2ADPCM();
 	HRESULT ProcessMPA();
 
 	HRESULT GetDeliveryBuffer(IMediaSample** pSample, BYTE** pData);

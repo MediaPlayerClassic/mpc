@@ -2438,7 +2438,7 @@ void CMainFrame::OnStreamAudio(UINT nID)
 	if(m_iMediaLoadState != MLS_LOADED) return;
 
 	CComQIPtr<IAMStreamSelect> pSS = FindFilter(__uuidof(CAudioSwitcherFilter), pGB);
-	if(!pSS) pSS = FindFilter(L"{D3CD7858-971A-4838-ACEC-40CA5D529DC8}", pGB);
+	if(!pSS) pSS = FindFilter(L"{D3CD7858-971A-4838-ACEC-40CA5D529DC8}", pGB); // morgan's switcher
 
 	DWORD cStreams = 0;
 	if(pSS && SUCCEEDED(pSS->Count(&cStreams)) && cStreams > 1)

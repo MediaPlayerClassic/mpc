@@ -108,6 +108,13 @@ BOOL COpenDlg::OnInitDialog()
 	// EXCEPTION: OCX Property Pages should return FALSE
 }
 
+static CString GetFileName(CString str)
+{
+	CPath p = str;
+	p.StripPath();
+	return (LPCTSTR)p;
+}
+
 void COpenDlg::OnBnClickedBrowsebutton()
 {
 	UpdateData();
@@ -151,7 +158,18 @@ void COpenDlg::OnBnClickedBrowsebutton()
 	m_fns.RemoveAll();
 
 	POSITION pos = fd.GetStartPosition();
-	while(pos) m_fns.AddTail(fd.GetNextPathName(pos));
+	while(pos)
+	{
+/*
+		CString str = fd.GetNextPathName(pos);
+		POSITION insertpos = m_fns.GetTailPosition();
+		while(insertpos && GetFileName(str).CompareNoCase(GetFileName(m_fns.GetAt(insertpos))) <= 0)
+			m_fns.GetPrev(insertpos);
+		if(!insertpos) m_fns.AddHead(str);
+		else m_fns.InsertAfter(insertpos, str);
+*/
+		m_fns.AddTail(fd.GetNextPathName(pos));
+	}
 
 	if(m_fns.GetCount() > 1 
 	|| m_fns.GetCount() == 1 

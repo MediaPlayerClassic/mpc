@@ -432,7 +432,7 @@ DWORD CMpegSplitterFile::AddStream(WORD pid, BYTE pesid, DWORD len)
 				if(!m_streams[subpic].Find(s) && Read(h, &s.mt))
 					type = subpic;
 			}
-			else if(w == 0xffa0) // ps2-mpg audio
+			else if(w == 0xffa0 || w == 0xffa1) // ps2-mpg audio
 			{
 				s.ps1id = (BYTE)BitRead(8);
 				s.pid = (WORD)((BitRead(8) << 8) | BitRead(16)); // pid = 0xa000 | track id
@@ -1204,6 +1204,10 @@ bool CMpegSplitterFile::Read(ps2audhdr& h, CMediaType* pmt)
 	if(!pmt) return(true);
 
 	WAVEFORMATEXPS2 wfe;
+	wfe.wFormatTag = 
+		h.unk1 == 0x01 ? WAVE_FORMAT_PS2_PCM : 
+		h.unk1 == 0x10 ? WAVE_FORMAT_PS2_ADPCM :
+		WAVE_FORMAT_UNKNOWN;
 	wfe.nChannels = (WORD)h.channels;
 	wfe.nSamplesPerSec = h.freq;
 	wfe.wBitsPerSample = 16; // always?
@@ -1212,7 +1216,7 @@ bool CMpegSplitterFile::Read(ps2audhdr& h, CMediaType* pmt)
 	wfe.dwInterleave = h.interleave;
 
 	pmt->majortype = MEDIATYPE_Audio;
-	pmt->subtype = MEDIASUBTYPE_PS2_PCM;
+	pmt->subtype = FOURCCMap(wfe.wFormatTag);
 	pmt->formattype = FORMAT_WaveFormatEx;
 	pmt->SetFormat((BYTE*)&wfe, sizeof(wfe));
 

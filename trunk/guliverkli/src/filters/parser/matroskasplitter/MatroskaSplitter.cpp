@@ -580,7 +580,7 @@ BOOL CMatroskaSplitterFilter::InstallFontFile(const void* data, UINT len)
 		f.Write(data, len);
 		f.Close();
 		// install the font for the application
-		if(AddFontResourceEx(fn, FR_PRIVATE, 0) > 0)
+		if(pAddFontResourceEx(fn, FR_PRIVATE, 0) > 0)
 		{
 			m_FontsList.Add(fn);
 			return TRUE;

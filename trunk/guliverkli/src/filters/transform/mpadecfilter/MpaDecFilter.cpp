@@ -68,6 +68,10 @@ const AMOVIESETUP_MEDIATYPE sudPinTypesIn[] =
 	{&MEDIATYPE_MPEG2_PACK, &MEDIASUBTYPE_PS2_PCM},
 	{&MEDIATYPE_MPEG2_PES, &MEDIASUBTYPE_PS2_PCM},
 	{&MEDIATYPE_Audio, &MEDIASUBTYPE_PS2_PCM},
+	{&MEDIATYPE_DVD_ENCRYPTED_PACK, &MEDIASUBTYPE_PS2_ADPCM},
+	{&MEDIATYPE_MPEG2_PACK, &MEDIASUBTYPE_PS2_ADPCM},
+	{&MEDIATYPE_MPEG2_PES, &MEDIASUBTYPE_PS2_ADPCM},
+	{&MEDIATYPE_Audio, &MEDIASUBTYPE_PS2_ADPCM},
 };
 
 #ifdef REGISTER_FILTER
@@ -236,7 +240,7 @@ HRESULT CMpaDecFilter::NewSegment(REFERENCE_TIME tStart, REFERENCE_TIME tStop, d
 	CAutoLock cAutoLock(&m_csReceive);
 	m_buff.RemoveAll();
 	m_sample_max = 0.1f;
-	m_ps2pcm_sync = false;
+	m_ps2_state.sync = false;
 	return __super::NewSegment(tStart, tStop, dRate);
 }
 
@@ -303,7 +307,9 @@ HRESULT CMpaDecFilter::Receive(IMediaSample* pIn)
 	else if(subtype == MEDIASUBTYPE_AAC || subtype == MEDIASUBTYPE_MP4A)
 		hr = ProcessAAC();
 	else if(subtype == MEDIASUBTYPE_PS2_PCM)
-		hr = ProcessPS2();
+		hr = ProcessPS2PCM();
+	else if(subtype == MEDIASUBTYPE_PS2_ADPCM)
+		hr = ProcessPS2ADPCM();
 	else // if(.. the rest ..)
 		hr = ProcessMPA();
 
@@ -593,7 +599,7 @@ HRESULT CMpaDecFilter::ProcessAAC()
 	return S_OK;
 }
 
-HRESULT CMpaDecFilter::ProcessPS2()
+HRESULT CMpaDecFilter::ProcessPS2PCM()
 {
 	BYTE* p = m_buff.GetData();
 	BYTE* base = p;
@@ -619,11 +625,11 @@ HRESULT CMpaDecFilter::ProcessPS2()
 		else if(dw[0] == 'dbSS')
 		{
 			p += 8;
-			m_ps2pcm_sync = true;
+			m_ps2_state.sync = true;
 		}
 		else
 		{
-			if(m_ps2pcm_sync)
+			if(m_ps2_state.sync)
 			{
 				short* s = (short*)p;
 
@@ -648,6 +654,104 @@ HRESULT CMpaDecFilter::ProcessPS2()
 			p = base;
 		}
 	}
+
+	m_buff.SetSize(end - p);
+
+	return S_OK;
+}
+
+static void decodeps2adpcm(ps2_state_t& s, int channel, BYTE* pin, double* pout)
+{
+	int tbl_index = pin[0]>>4;
+	int shift = pin[0]&0xf;
+    int unk = pin[1]; // ?
+
+	if(tbl_index >= 10) {ASSERT(0); return;}
+	// if(unk == 7) {ASSERT(0); return;} // ???
+
+	static double s_tbl[] = 
+	{
+		0.0, 0.0, 0.9375, 0.0, 1.796875, -0.8125, 1.53125, -0.859375, 1.90625, -0.9375, 
+		0.0, 0.0, -0.9375, 0.0, -1.796875, 0.8125, -1.53125, 0.859375 -1.90625, 0.9375
+	};
+
+	double* tbl = &s_tbl[tbl_index*2];
+	double& a = s.a[channel];
+	double& b = s.b[channel];
+
+	for(int i = 0; i < 28; i++)
+	{
+		short input = (short)(((pin[2+i/2] >> ((i&1) << 2)) & 0xf) << 12) >> shift;
+		double output = a * tbl[1] + b * tbl[0] + input;
+
+		a = b;
+		b = output;
+
+		*pout++ = output / SHRT_MAX;
+	}
+}
+
+HRESULT CMpaDecFilter::ProcessPS2ADPCM()
+{
+	BYTE* p = m_buff.GetData();
+	BYTE* base = p;
+	BYTE* end = p + m_buff.GetSize();
+
+	WAVEFORMATEXPS2* wfe = (WAVEFORMATEXPS2*)m_pInput->CurrentMediaType().Format();
+	int size = wfe->dwInterleave*wfe->nChannels;
+	int samples = wfe->dwInterleave * 14 / 16 * 2;
+	int channels = wfe->nChannels;
+
+	CArray<float> pBuff;
+	pBuff.SetSize(samples*channels);
+	float* f = pBuff.GetData();
+
+	while(end - p >= size)
+	{
+		DWORD* dw = (DWORD*)p;
+
+		if(dw[0] == 'dhSS')
+		{
+			p += dw[1] + 8;
+		}
+		else if(dw[0] == 'dbSS')
+		{
+			p += 8;
+			m_ps2_state.sync = true;
+		}
+		else
+		{
+			if(m_ps2_state.sync)
+			{
+				double* tmp = new double[samples*channels];
+
+				for(int channel = 0, j = 0, k = 0; channel < channels; channel++, j += wfe->dwInterleave)
+					for(int i = 0; i < wfe->dwInterleave; i += 16, k += 28)
+						decodeps2adpcm(m_ps2_state, channel, p + i + j, tmp + k);
+
+				for(int i = 0, k = 0; i < samples; i++)
+					for(int j = 0; j < channels; j++, k++)
+						f[k] = (float)tmp[j*samples+i];
+
+				delete [] tmp;
+			}
+			else
+			{
+				for(int i = 0, j = samples*channels; i < j; i++)
+					f[i] = 0;
+			}
+
+			HRESULT hr;
+			if(S_OK != (hr = Deliver(pBuff, wfe->nSamplesPerSec, wfe->nChannels)))
+				return hr;
+
+			p += size;
+		}
+	}
+
+	memmove(base, p, end - p);
+	end = base + (end - p);
+	p = base;
 
 	m_buff.SetSize(end - p);
 
@@ -809,6 +913,7 @@ ASSERT(wfeout->nSamplesPerSec == wfe->nSamplesPerSec);
 	}
 
 	bool fBoost = m_boost > 1;
+	double boost = 1+log10(m_boost);
 
 	for(int i = 0, len = pBuff.GetSize(); i < len; i++)
 	{
@@ -820,26 +925,28 @@ ASSERT(wfeout->nSamplesPerSec == wfe->nSamplesPerSec);
 			f *= sample_mul;
 
 		if(fBoost)
-			f *= 1+log10(m_boost);
+			f *= boost;
 
 		if(f < -1) f = -1;
 		else if(f > 1) f = 1;
+
+		#define round(x) ((x) > 0 ? (x) + 0.5 : (x) - 0.5)
 
 		switch(sf)
 		{
 		default:
 		case SF_PCM16:
-			*(short*)pDataOut = (short)(f * SHRT_MAX);
+			*(short*)pDataOut = (short)round(f * SHRT_MAX);
 			pDataOut += sizeof(short);
 			break;
 		case SF_PCM24:
-			{DWORD i24 = (DWORD)(int)(f * ((1<<23)-1));
+			{DWORD i24 = (DWORD)(int)round(f * ((1<<23)-1));
 			*pDataOut++ = (BYTE)(i24);
 			*pDataOut++ = (BYTE)(i24>>8);
 			*pDataOut++ = (BYTE)(i24>>16);}
 			break;
 		case SF_PCM32:
-			*(int*)pDataOut = (int)(f * INT_MAX);
+			*(int*)pDataOut = (int)round(f * INT_MAX);
 			pDataOut += sizeof(int);
 			break;
 		case SF_FLOAT32:
@@ -1000,11 +1107,16 @@ CMediaType CMpaDecFilter::CreateMediaTypeSPDIF()
 
 HRESULT CMpaDecFilter::CheckInputType(const CMediaType* mtIn)
 {
-	// TODO: remove this limitation
 	if(mtIn->subtype == MEDIASUBTYPE_DVD_LPCM_AUDIO)
 	{
 		WAVEFORMATEX* wfe = (WAVEFORMATEX*)mtIn->Format();
-		if(wfe->nChannels != 2 || wfe->wBitsPerSample != 16)
+		if(wfe->nChannels != 2 || wfe->wBitsPerSample != 16) // TODO: remove this limitation
+			return VFW_E_TYPE_NOT_ACCEPTED;
+	}
+	else if(mtIn->subtype == MEDIASUBTYPE_PS2_ADPCM)
+	{
+		WAVEFORMATEXPS2* wfe = (WAVEFORMATEXPS2*)mtIn->Format();
+		if(wfe->dwInterleave & 0xf) // has to be a multiple of the block size (16 bytes)
 			return VFW_E_TYPE_NOT_ACCEPTED;
 	}
 
@@ -1089,6 +1201,8 @@ HRESULT CMpaDecFilter::StartStreaming()
 	mad_frame_init(&m_frame);
 	mad_synth_init(&m_synth);
 	mad_stream_options(&m_stream, 0/*options*/);
+
+	m_ps2_state.reset();
 
 	m_fDiscontinuity = false;
 
