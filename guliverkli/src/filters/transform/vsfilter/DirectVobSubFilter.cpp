@@ -1948,14 +1948,14 @@ void CDirectVobSubFilter::SetSubtitle(ISubStream* pSubStream, bool fApplyDefStyl
 		m_pSubPicQueue->SetSubPicProvider(CComQIPtr<ISubPicProvider>(pSubStream));
 }
 
-void CDirectVobSubFilter::InvalidateSubtitle(DWORD_PTR nSubtitleId)
+void CDirectVobSubFilter::InvalidateSubtitle(REFERENCE_TIME rtInvalidate, DWORD_PTR nSubtitleId)
 {
     CAutoLock cAutolock(&m_csQueueLock);
 
 	if(m_pSubPicQueue)
 	{
 		if(nSubtitleId == -1 || nSubtitleId == m_nSubtitleId)
-			m_pSubPicQueue->Invalidate();
+			m_pSubPicQueue->Invalidate(rtInvalidate);
 	}
 }
 

@@ -222,12 +222,12 @@ STDMETHODIMP CTextInputPin::Receive(IMediaSample* pSample)
 			}
 		}
 	}
-/*
+
 	if(fInvalidate)
 	{
 		// IMPORTANT: m_pSubLock must not be locked when calling this
-		m_pFilter->InvalidateSubtitle((DWORD_PTR)(ISubStream*)m_pSubStream);
+		m_pFilter->InvalidateSubtitle(tStart, (DWORD_PTR)(ISubStream*)m_pSubStream);
 	}
-*/
+
     return S_OK;
 }

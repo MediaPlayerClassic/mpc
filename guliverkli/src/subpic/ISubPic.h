@@ -210,7 +210,7 @@ interface ISubPicQueue : public IUnknown
 	STDMETHOD (SetFPS) (double fps /*[in]*/) PURE;
 	STDMETHOD (SetTime) (REFERENCE_TIME rtNow /*[in]*/) PURE;
 
-	STDMETHOD (Invalidate) () PURE;
+	STDMETHOD (Invalidate) (REFERENCE_TIME rtInvalidate = -1) PURE;
 	STDMETHOD_(bool, LookupSubPic) (REFERENCE_TIME rtNow /*[in]*/, ISubPic** ppSubPic /*[out]*/) PURE;
 
 	STDMETHOD (GetStats) (int& nSubPics, REFERENCE_TIME& rtNow, REFERENCE_TIME& rtStart, REFERENCE_TIME& rtStop /*[out]*/) PURE;
@@ -245,7 +245,7 @@ public:
 	STDMETHODIMP SetFPS(double fps);
 	STDMETHODIMP SetTime(REFERENCE_TIME rtNow);
 /*
-	STDMETHODIMP Invalidate() = 0;
+	STDMETHODIMP Invalidate(REFERENCE_TIME rtInvalidate = -1) = 0;
 	STDMETHODIMP_(bool) LookupSubPic(REFERENCE_TIME rtNow, ISubPic** ppSubPic) = 0;
 
 	STDMETHODIMP GetStats(int& nSubPics, REFERENCE_TIME& rtNow, REFERENCE_TIME& rtStart, REFERENCE_TIME& rtStop) = 0;
@@ -261,7 +261,7 @@ class CSubPicQueue : public ISubPicQueueImpl, private CInterfaceList<ISubPic>, p
 	REFERENCE_TIME UpdateQueue();
 	void AppendQueue(ISubPic* pSubPic);
 
-	REFERENCE_TIME m_rtQueueStart;
+	REFERENCE_TIME m_rtQueueStart, m_rtInvalidate;
 
 	// CAMThread
 
@@ -279,7 +279,7 @@ public:
 	STDMETHODIMP SetFPS(double fps);
 	STDMETHODIMP SetTime(REFERENCE_TIME rtNow);
 
-	STDMETHODIMP Invalidate();
+	STDMETHODIMP Invalidate(REFERENCE_TIME rtInvalidate = -1);
 	STDMETHODIMP_(bool) LookupSubPic(REFERENCE_TIME rtNow, ISubPic** ppSubPic);
 
 	STDMETHODIMP GetStats(int& nSubPics, REFERENCE_TIME& rtNow, REFERENCE_TIME& rtStart, REFERENCE_TIME& rtStop);
@@ -297,7 +297,7 @@ public:
 
 	// ISubPicQueue
 
-	STDMETHODIMP Invalidate();
+	STDMETHODIMP Invalidate(REFERENCE_TIME rtInvalidate = -1);
 	STDMETHODIMP_(bool) LookupSubPic(REFERENCE_TIME rtNow, ISubPic** ppSubPic);
 
 	STDMETHODIMP GetStats(int& nSubPics, REFERENCE_TIME& rtNow, REFERENCE_TIME& rtStart, REFERENCE_TIME& rtStop);

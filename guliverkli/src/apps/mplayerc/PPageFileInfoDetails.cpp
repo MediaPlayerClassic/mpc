@@ -199,6 +199,8 @@ BOOL CPPageFileInfoDetails::OnInitDialog()
 
 	UpdateData(FALSE);
 
+	m_pFG = NULL;
+
 	return TRUE;  // return TRUE unless you set the focus to a control
 	// EXCEPTION: OCX Property Pages should return FALSE
 }

@@ -177,6 +177,7 @@ namespace MatroskaReader
 					CBinary ChannelPositions;
 					CUInt BitDepth;
 
+					Audio() {SamplingFrequency.Set(8000.0); Channels.Set(1);}
 					HRESULT Parse(CMatroskaNode* pMN);
 				};
 
@@ -198,6 +199,7 @@ namespace MatroskaReader
 				CUInt CodecDecodeAll;
 				CUInt TrackOverlay;
 				CUInt DefaultDuration;
+				CFloat TrackTimecodeScale;
 				enum {NoDesc = 0, DescVideo = 1, DescAudio = 2};
 				int DescType;
 				Video v;
@@ -317,7 +319,7 @@ namespace MatroskaReader
 	public:
 		CID m_id;
 		CLength m_len;
-		QWORD m_start;
+		QWORD m_filepos, m_start;
 
 		HRESULT Parse();
 
@@ -325,9 +327,9 @@ namespace MatroskaReader
 		CMatroskaNode(CMatroskaFile* pMF); // creates the root
 		CMatroskaNode(CMatroskaNode* pParent);
 
-		CAutoPtr<CMatroskaNode> Child(DWORD id = 0);
+		CAutoPtr<CMatroskaNode> Child(DWORD id = 0, bool fSearch = true);
 		bool Next(bool fSame = false);
-		bool Find(DWORD id);
+		bool Find(DWORD id, bool fSearch = true);
 
 		HRESULT SeekTo(QWORD pos);
 		QWORD GetPos(), GetLength();

@@ -68,3 +68,4 @@
 + auto-hide control bars in minimal mode
 + load winamp dsp plugins with the audio switcher
 + hook CreateFile and prebuffer files opened through (wireless) network using a worker thread for each.
++ "menu/play/goto last" AND/OR bookmarks to position only

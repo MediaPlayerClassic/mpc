@@ -1746,9 +1746,10 @@ void CSimpleTextSubtitle::Empty()
 
 void CSimpleTextSubtitle::Add(CStringW str, bool fUnicode, int start, int end, CString style, CString actor, CString effect, CRect marginRect, int layer)
 {
-	str.Trim();
-	if(str.IsEmpty()) return;
+	if(str.Trim().IsEmpty() || start > end) return;
 
+	str.Replace(L"\r\n", L"\n");
+	str.Replace(L"\n", L"\\N");
 	if(style.IsEmpty()) style = _T("Default");
 
 	int j = m_segments.GetSize();
@@ -1779,8 +1780,6 @@ void CSimpleTextSubtitle::Add(CStringW str, bool fUnicode, int start, int end, C
 	stss.subs.Add(len);
 	m_segments.Add(stss);
 
-	str.Replace(L"\n", L"\\N");
-
 	STSEntry sub;
 	sub.str = str;
 	sub.fUnicode = fUnicode;
@@ -1793,6 +1792,64 @@ void CSimpleTextSubtitle::Add(CStringW str, bool fUnicode, int start, int end, C
 	sub.end = end;
 	sub.readorder = GetSize();
 	CSTSArray::Add(sub);
+
+/*
+	if(str.Trim().IsEmpty() || start > end) return;
+
+	str.Replace(L"\n", L"\\N");
+	if(style.IsEmpty()) style = _T("Default");
+
+	STSEntry sub;
+	sub.str = str;
+	sub.fUnicode = fUnicode;
+	sub.style = style;
+	sub.actor = actor;
+	sub.effect = effect;
+	sub.marginRect = marginRect;
+	sub.layer = layer;
+	sub.start = start;
+	sub.end = end;
+	sub.readorder = GetSize();
+	int n = CSTSArray::Add(sub);
+
+	for(int i = m_segments.GetCount()-1; i >= 0 && m_segments[i].start > start; i--)
+	{
+		STSSegment& s = m_segments[i];
+
+		bool fKeepIt = false;
+
+		for(int j = 0; j < s.subs.GetCount(); j++)
+		{
+			if(GetAt(s.subs[j]).start <= start)
+			{
+				fKeepIt = true;
+				break;
+			}
+		}
+
+		if(!fKeepIt)
+		{
+			m_segments.RemoveAt(i);
+			continue;
+		}
+	}
+/*
+	if(m_segments.GetSize() == 0)
+	{
+		STSSegment stss(start, end);
+		stss.subs.Add(n);
+		m_segments.Add(stss);
+	}
+	else
+	{
+	}
+*/
+
+/*
+	if(m_segments.GetSize() == 0) 
+		CSTSArray::RemoveAll();
+*/
+
 }
 
 void CSimpleTextSubtitle::CreateDefaultStyle(int CharSet)
@@ -2245,7 +2302,6 @@ void CSimpleTextSubtitle::CreateSegments()
 
 	OnChanged();
 
-/*
 	for(i = 0, j = m_segments.GetSize(); i < j; i++)
 	{
 		STSSegment& stss = m_segments[i];
@@ -2259,7 +2315,6 @@ void CSimpleTextSubtitle::CreateSegments()
 
 		TRACE(_T("\n"));
 	}
-*/
 }
 
 bool CSimpleTextSubtitle::Open(CString fn, int CharSet, CString name)
