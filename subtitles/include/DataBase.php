@@ -456,6 +456,7 @@ define('ONEYEAR', 60*60*24*365);
 class SubtitlesDB extends DB 
 {
 	/*
+	
 	CREATE TABLE `comments` (
 	  `id` bigint(20) NOT NULL auto_increment,
 	  `subtitle_id` bigint(20) NOT NULL default '0',
@@ -486,6 +487,18 @@ class SubtitlesDB extends DB
 	  KEY `subtitle_id` (`subtitle_id`)
 	) ENGINE=MyISAM DEFAULT CHARSET=utf8
 	
+	CREATE TABLE `mirrors` (
+	  `id` bigint(20) NOT NULL auto_increment,
+	  `scheme` varchar(16) NOT NULL default '',
+	  `host` varchar(64) NOT NULL default '',
+	  `port` bigint(20) NOT NULL default '0',
+	  `path` varchar(64) NOT NULL default '',
+	  `name` varchar(64) NOT NULL default '',
+	  `lastseen` datetime NOT NULL default '0000-00-00 00:00:00',
+	  PRIMARY KEY  (`id`),
+	  KEY `lastseen` (`lastseen`)
+	) ENGINE=MyISAM DEFAULT CHARSET=utf8
+	
 	CREATE TABLE `movie` (
 	  `id` bigint(20) NOT NULL auto_increment,
 	  `imdb` bigint(20) NOT NULL default '0',
@@ -498,6 +511,10 @@ class SubtitlesDB extends DB
 	  `id` bigint(20) NOT NULL auto_increment,
 	  `movie_id` bigint(20) NOT NULL default '0',
 	  `subtitle_id` bigint(20) NOT NULL default '0',
+	  `name` varchar(192) NOT NULL default '',
+	  `userid` bigint(20) NOT NULL default '0',
+	  `date` datetime NOT NULL default '0000-00-00 00:00:00',
+	  `notes` text NOT NULL,
 	  PRIMARY KEY  (`id`),
 	  KEY `movie_id` (`movie_id`),
 	  KEY `subtitle_id` (`subtitle_id`)
@@ -508,25 +525,17 @@ class SubtitlesDB extends DB
 	  `discs` tinyint(4) NOT NULL default '0',
 	  `disc_no` tinyint(4) NOT NULL default '0',
 	  `sub` blob NOT NULL,
-	  `name` varchar(192) NOT NULL default '',
 	  `hash` varchar(32) NOT NULL default '',
 	  `mime` varchar(64) NOT NULL default '',
 	  `format` enum('srt','sub','smi','ssa','ass','xss','other') NOT NULL default 'other',
 	  `iso639_2` varchar(3) NOT NULL default '',
-	  `nick` varchar(64) NOT NULL default '',
-	  `email` varchar(64) NOT NULL default '',
-	  `date` datetime NOT NULL default '0000-00-00 00:00:00',
-	  `notes` text NOT NULL,
 	  `downloads` bigint(20) NOT NULL default '0',
 	  PRIMARY KEY  (`id`),
 	  UNIQUE KEY `hash_2` (`hash`),
 	  KEY `format` (`format`),
 	  KEY `iso639_2` (`iso639_2`),
-	  KEY `upload_nick` (`nick`),
 	  KEY `hash` (`hash`),
-	  KEY `discs` (`discs`),
-	  KEY `email` (`email`),
-	  KEY `date` (`date`)
+	  KEY `discs` (`discs`)
 	) ENGINE=MyISAM DEFAULT CHARSET=utf8
 	
 	CREATE TABLE `title` (
@@ -536,7 +545,16 @@ class SubtitlesDB extends DB
 	  PRIMARY KEY  (`id`),
 	  KEY `movie_id` (`movie_id`),
 	  KEY `title` (`title`)
+	) ENGINE=MyISAM DEFAULT CHARSET=utf8
+	
+	CREATE TABLE `user` (
+	  `userid` bigint(20) NOT NULL auto_increment,
+	  `nick` varchar(16) NOT NULL default '',
+	  `passwordhash` varchar(32) NOT NULL default '',
+	  `email` varchar(64) NOT NULL default '',
+	  PRIMARY KEY  (`userid`)
 	) ENGINE=MyISAM DEFAULT CHARSET=utf8	
+	
 	*/
 
 	var $userid = 0;
