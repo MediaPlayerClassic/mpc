@@ -385,6 +385,7 @@ interface ISubStream : public IPersist
 	STDMETHOD (GetStreamInfo) (int i, WCHAR** ppName, LCID* pLCID) PURE;
 	STDMETHOD_(int, GetStream) () PURE;
 	STDMETHOD (SetStream) (int iStream) PURE;
+	STDMETHOD (Reload) () PURE;
 
 	// TODO: get rid of IPersist to identify type and use only 
 	// interface functions to modify the settings of the substream

@@ -616,9 +616,7 @@ HRESULT CDiracVideoDecoder::NewSegment(REFERENCE_TIME tStart, REFERENCE_TIME tSt
 
 HRESULT CDiracVideoDecoder::AlterQuality(Quality q)
 {
-/*
 	if(q.Late > 500*10000i64) m_fDropFrames = true;
 	if(q.Late <= 0) m_fDropFrames = false;
-*/
 	return E_NOTIMPL;
 }

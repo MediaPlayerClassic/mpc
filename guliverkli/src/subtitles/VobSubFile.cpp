@@ -1293,6 +1293,11 @@ STDMETHODIMP CVobSubFile::SetStream(int iStream)
 	return iStream < 0 ? S_OK : E_FAIL;
 }
 
+STDMETHODIMP CVobSubFile::Reload()
+{
+	return !m_title.IsEmpty() && Open(m_title) ? S_OK : E_FAIL;
+}
+
 // StretchBlt
 
 static void PixelAtBiLinear(RGBQUAD& c, int x, int y, CVobSubImage& src)

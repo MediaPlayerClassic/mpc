@@ -116,6 +116,7 @@ public:
 	CString m_name;
 	tmode m_mode;
 	CTextFile::enc m_encoding;
+	CString m_path;
 
 	CSize m_dstScreenSize;
 	int m_defaultWrapStyle;

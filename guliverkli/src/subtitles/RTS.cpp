@@ -2436,3 +2436,8 @@ STDMETHODIMP CRenderedTextSubtitle::SetStream(int iStream)
 {
 	return iStream == 0 ? S_OK : E_FAIL;
 }
+
+STDMETHODIMP CRenderedTextSubtitle::Reload()
+{
+	return !m_path.IsEmpty() && Open(m_path, DEFAULT_CHARSET) ? S_OK : E_FAIL;
+}
