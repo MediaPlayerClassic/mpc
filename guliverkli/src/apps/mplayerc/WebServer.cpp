@@ -187,7 +187,7 @@ void CWebServer::Deploy(CString dir)
 	}
 }
 
-bool CWebServer::ToLocalPath(CString& path)
+bool CWebServer::ToLocalPath(CString& path, CString& redir)
 {
 	if(!path.IsEmpty() && m_webroot.IsDirectory())
 	{
@@ -206,9 +206,17 @@ bool CWebServer::ToLocalPath(CString& path)
 			POSITION pos = sl.GetHeadPosition();
 			while(pos)
 			{
+				str = sl.GetNext(pos);
 				CPath p2 = p;
-				p2.Append(sl.GetNext(pos));
-				if(p2.FileExists()) {p = p2; break;}
+				p2.Append(str);
+				if(p2.FileExists())
+				{
+					p = p2;
+					redir = path;
+					if(redir.GetAt(redir.GetLength()-1) != '/') redir += '/';
+					redir += str;
+					break;
+				}
 			}
 		}
 
@@ -224,7 +232,8 @@ bool CWebServer::ToLocalPath(CString& path)
 
 bool CWebServer::LoadPage(UINT resid, CStringA& str, CString path)
 {
-	if(ToLocalPath(path))
+	CString redir;
+	if(ToLocalPath(path, redir))
 	{
 		if(FILE* f = _tfopen(path, _T("rb")))
 		{
@@ -447,8 +456,8 @@ static DWORD WINAPI KillCGI(LPVOID lParam)
 
 bool CWebServer::CallCGI(CWebClientSocket* pClient, CStringA& hdr, CStringA& body, CStringA& mime)
 {
-	CString path = pClient->m_path;
-	if(!ToLocalPath(path)) return false;
+	CString path = pClient->m_path, redir = path;
+	if(!ToLocalPath(path, redir)) return false;
 	CString ext = CPath(path).GetExtension().MakeLower();
 	CPath dir(path);
 	dir.RemoveFileSpec();
@@ -505,9 +514,9 @@ bool CWebServer::CallCGI(CWebClientSocket* pClient, CStringA& hdr, CStringA& bod
 		env.AddTail(_T("SERVER_SOFTWARE=Media Player Classic/6.4.x.y"));
 		env.AddTail(_T("SERVER_PROTOCOL=") + pClient->m_ver);
 		env.AddTail(_T("REQUEST_METHOD=") + pClient->m_cmd);
-		env.AddTail(_T("PATH_INFO=") + pClient->m_path);
+		env.AddTail(_T("PATH_INFO=") + redir);
 		env.AddTail(_T("PATH_TRANSLATED=") + path);
-		env.AddTail(_T("SCRIPT_NAME=") + pClient->m_path);
+		env.AddTail(_T("SCRIPT_NAME=") + redir);
 		env.AddTail(_T("QUERY_STRING=") + pClient->m_query);
 
 		if(pClient->m_hdrlines.Lookup(_T("content-type"), str))
