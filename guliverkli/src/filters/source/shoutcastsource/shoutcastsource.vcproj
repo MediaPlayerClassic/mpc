@@ -35,7 +35,7 @@
 				RegisterOutput="TRUE"
 				AdditionalDependencies="strmbaseD.lib"
 				OutputFile="$(OutDir)/$(ProjectName).ax"
-				ModuleDefinitionFile="FLICSource.def"
+				ModuleDefinitionFile="ShoutcastSource.def"
 				GenerateDebugInformation="TRUE"
 				SubSystem="2"
 				TargetMachine="1"/>
@@ -69,7 +69,7 @@
 			CharacterSet="2">
 			<Tool
 				Name="VCCLCompilerTool"
-				Optimization="2"
+				Optimization="0"
 				InlineFunctionExpansion="1"
 				OmitFramePointers="TRUE"
 				PreprocessorDefinitions="REGISTER_FILTER;WIN32;NDEBUG"
@@ -88,7 +88,7 @@
 				AdditionalDependencies="strmbaseR.lib"
 				OutputFile="$(OutDir)/$(ProjectName).ax"
 				ModuleDefinitionFile="ShoutcastSource.def"
-				GenerateDebugInformation="FALSE"
+				GenerateDebugInformation="TRUE"
 				SubSystem="2"
 				OptimizeReferences="2"
 				EnableCOMDATFolding="2"

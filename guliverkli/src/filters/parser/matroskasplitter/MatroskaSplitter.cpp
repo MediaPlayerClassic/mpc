@@ -78,35 +78,33 @@ int g_cTemplates = sizeof(g_Templates) / sizeof(g_Templates[0]);
 
 STDAPI DllRegisterServer()
 {
-	SetRegKeyValue(
-		_T("Media Type\\{e436eb83-524f-11ce-9f53-0020af0ba770}"), CStringFromGUID(MEDIASUBTYPE_Matroska), 
-		_T("0"), _T("0,4,,1A45DFA3"));
+	CString null = CStringFromGUID(GUID_NULL);
+	CString majortype = CStringFromGUID(MEDIATYPE_Stream);
+	CString subtype = CStringFromGUID(MEDIASUBTYPE_Matroska);
+	CString asyncfilter = CStringFromGUID(CLSID_AsyncReader);
+	CString srcfilter = CStringFromGUID(__uuidof(CMatroskaSourceFilter));
 
-	SetRegKeyValue(
-		_T("Media Type\\{e436eb83-524f-11ce-9f53-0020af0ba770}"), CStringFromGUID(MEDIASUBTYPE_Matroska), 
-		_T("Source Filter"), CStringFromGUID(CLSID_AsyncReader));
+	SetRegKeyValue(_T("Media Type\\") + null, subtype, _T("0"), _T("0,4,,1A45DFA3"));
+	SetRegKeyValue(_T("Media Type\\") + null, subtype, _T("Source Filter"), srcfilter);
 
-	SetRegKeyValue(
-		_T("Media Type\\Extensions"), _T(".mkv"), 
-		_T("Source Filter"), CStringFromGUID(__uuidof(CMatroskaSourceFilter)));
+	SetRegKeyValue(_T("Media Type\\") + majortype, subtype, _T("0"), _T("0,4,,1A45DFA3"));
+	SetRegKeyValue(_T("Media Type\\") + majortype, subtype, _T("Source Filter"), asyncfilter);
 
-	SetRegKeyValue(
-		_T("Media Type\\Extensions"), _T(".mka"), 
-		_T("Source Filter"), CStringFromGUID(__uuidof(CMatroskaSourceFilter)));
-
-	SetRegKeyValue(
-		_T("Media Type\\Extensions"), _T(".mks"), 
-		_T("Source Filter"), CStringFromGUID(__uuidof(CMatroskaSourceFilter)));
+	DeleteRegKey(_T("Media Type\\Extensions"), _T(".mkv"));
+	DeleteRegKey(_T("Media Type\\Extensions"), _T(".mka"));
+	DeleteRegKey(_T("Media Type\\Extensions"), _T(".mks"));
 
 	return AMovieDllRegisterServer2(TRUE);
 }
 
 STDAPI DllUnregisterServer()
 {
-	DeleteRegKey(_T("Media Type\\{e436eb83-524f-11ce-9f53-0020af0ba770}"), CStringFromGUID(MEDIASUBTYPE_Matroska));
-	DeleteRegKey(_T("Media Type\\Extensions"), _T(".mkv"));
-	DeleteRegKey(_T("Media Type\\Extensions"), _T(".mka"));
-	DeleteRegKey(_T("Media Type\\Extensions"), _T(".mks"));
+	CString null = CStringFromGUID(GUID_NULL);
+	CString majortype = CStringFromGUID(MEDIATYPE_Stream);
+	CString subtype = CStringFromGUID(MEDIASUBTYPE_Matroska);
+
+	DeleteRegKey(_T("Media Type\\") + null, subtype);
+	DeleteRegKey(_T("Media Type\\") + majortype, subtype);
 
 	return AMovieDllRegisterServer2(FALSE);
 }

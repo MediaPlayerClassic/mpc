@@ -205,6 +205,11 @@ public:
 	// IMediaSeeking
 
 	STDMETHODIMP GetDuration(LONGLONG* pDuration);
+
+	// IKeyFrameInfo
+
+	STDMETHODIMP_(HRESULT) GetKeyFrameCount(UINT& nKFs);
+	STDMETHODIMP_(HRESULT) GetKeyFrames(const GUID* pFormat, REFERENCE_TIME* pKFs, UINT& nKFs);
 };
 
 [uuid("765035B3-5944-4A94-806B-20EE3415F26F")]
