@@ -32,6 +32,8 @@
 
 #include "faad2\include\neaacdec.h"
 
+#include "..\..\registry.cpp"
+
 const AMOVIESETUP_MEDIATYPE sudPinTypesIn[] =
 {
 	{&MEDIATYPE_Audio, &MEDIASUBTYPE_MP3},
@@ -64,6 +66,10 @@ const AMOVIESETUP_MEDIATYPE sudPinTypesIn[] =
 	{&MEDIATYPE_MPEG2_PACK, &MEDIASUBTYPE_MP4A},
 	{&MEDIATYPE_MPEG2_PES, &MEDIASUBTYPE_MP4A},
 	{&MEDIATYPE_Audio, &MEDIASUBTYPE_MP4A},
+	{&MEDIATYPE_DVD_ENCRYPTED_PACK, &MEDIASUBTYPE_PS2_PCM},
+	{&MEDIATYPE_MPEG2_PACK, &MEDIASUBTYPE_PS2_PCM},
+	{&MEDIATYPE_MPEG2_PES, &MEDIASUBTYPE_PS2_PCM},
+	{&MEDIATYPE_Audio, &MEDIASUBTYPE_PS2_PCM},
 };
 
 #ifdef REGISTER_FILTER
@@ -75,26 +81,8 @@ const AMOVIESETUP_MEDIATYPE sudPinTypesOut[] =
 
 const AMOVIESETUP_PIN sudpPins[] =
 {
-    { L"Input",             // Pins string name
-      FALSE,                // Is it rendered
-      FALSE,                // Is it an output
-      FALSE,                // Are we allowed none
-      FALSE,                // And allowed many
-      &CLSID_NULL,          // Connects to filter
-      NULL,                 // Connects to pin
-      countof(sudPinTypesIn), // Number of types
-      sudPinTypesIn		// Pin information
-    },
-    { L"Output",            // Pins string name
-      FALSE,                // Is it rendered
-      TRUE,                 // Is it an output
-      FALSE,                // Are we allowed none
-      FALSE,                // And allowed many
-      &CLSID_NULL,          // Connects to filter
-      NULL,                 // Connects to pin
-      countof(sudPinTypesOut), // Number of types
-      sudPinTypesOut		// Pin information
-    }
+    {L"Input", FALSE, FALSE, FALSE, FALSE, &CLSID_NULL, NULL, countof(sudPinTypesIn), sudPinTypesIn},
+    {L"Output", FALSE, TRUE, FALSE, FALSE, &CLSID_NULL, NULL, countof(sudPinTypesOut), sudPinTypesOut}
 };
 
 const AMOVIESETUP_FILTER sudFilter[] =
@@ -104,7 +92,7 @@ const AMOVIESETUP_FILTER sudFilter[] =
 
 CFactoryTemplate g_Templates[] =
 {
-    {L"MPEG/AC3/DTS/LPCM Audio Decoder", &__uuidof(CMpaDecFilter), CMpaDecFilter::CreateInstance, NULL, &sudFilter[0]},
+    {L"MPEG/AC3/DTS/LPCM Audio Decoder", &__uuidof(CMpaDecFilter), CreateInstance<CMpaDecFilter>, NULL, &sudFilter[0]},
 };
 
 int g_cTemplates = countof(g_Templates);
@@ -126,17 +114,6 @@ extern "C" BOOL WINAPI DllEntryPoint(HINSTANCE, ULONG, LPVOID);
 BOOL APIENTRY DllMain(HANDLE hModule, DWORD ul_reason_for_call, LPVOID lpReserved)
 {
 	return DllEntryPoint((HINSTANCE)hModule, ul_reason_for_call, 0); // "DllMain" of the dshow baseclasses;
-}
-
-//
-// CMpaDecFilter
-//
-
-CUnknown* WINAPI CMpaDecFilter::CreateInstance(LPUNKNOWN lpunk, HRESULT* phr)
-{
-    CUnknown* punk = new CMpaDecFilter(lpunk, phr);
-    if(punk == NULL) *phr = E_OUTOFMEMORY;
-	return punk;
 }
 
 #endif
@@ -326,6 +303,8 @@ HRESULT CMpaDecFilter::Receive(IMediaSample* pIn)
 		hr = ProcessDTS();
 	else if(subtype == MEDIASUBTYPE_AAC || subtype == MEDIASUBTYPE_MP4A)
 		hr = ProcessAAC();
+	else if(subtype == MEDIASUBTYPE_PS2_PCM)
+		hr = ProcessPS2();
 	else // if(.. the rest ..)
 		hr = ProcessMPA();
 
@@ -611,6 +590,71 @@ HRESULT CMpaDecFilter::ProcessAAC()
 	HRESULT hr;
 	if(S_OK != (hr = Deliver(pBuff, info.samplerate, info.channels, dwChannelMask)))
 		return hr;
+
+	return S_OK;
+}
+
+HRESULT CMpaDecFilter::ProcessPS2()
+{
+	BYTE* p = m_buff.GetData();
+	BYTE* base = p;
+	BYTE* end = p + m_buff.GetSize();
+
+	WAVEFORMATEXPS2* wfe = (WAVEFORMATEXPS2*)m_pInput->CurrentMediaType().Format();
+	int size = wfe->dwInterleave*wfe->nChannels;
+	int samples = wfe->dwInterleave/(wfe->wBitsPerSample>>3);
+	int channels = wfe->nChannels;
+
+	CArray<float> pBuff;
+	pBuff.SetSize(samples*channels);
+	float* f = pBuff.GetData();
+
+	while(end - p >= size)
+	{
+		DWORD* dw = (DWORD*)p;
+
+		if(dw[0] == 'dhSS')
+		{
+			p += dw[1] + 8;
+		}
+		else if(dw[0] == 'dbSS')
+		{
+			p += 8;
+			m_ps2_sync = true;
+		}
+		else if(m_ps2_sync)
+		{
+			short* s = (short*)p;
+
+            for(int i = 0; i < samples; i++)
+			{
+				for(int j = 0; j < channels; j++)
+				{
+					f[i*channels+j] = (float)s[j*samples+i] / 32768;
+				}
+			}
+
+			HRESULT hr;
+			if(S_OK != (hr = Deliver(pBuff, wfe->nSamplesPerSec, wfe->nChannels)))
+				return hr;
+
+			p += size;
+		}
+		else
+		{
+			p++;
+		}
+
+		memmove(base, p, end - p);
+		end = base + (end - p);
+		p = base;
+	}
+
+	memmove(base, p, end - p);
+	end = base + (end - p);
+	p = base;
+
+	m_buff.SetSize(end - p);
 
 	return S_OK;
 }
@@ -1050,6 +1094,8 @@ HRESULT CMpaDecFilter::StartStreaming()
 	mad_frame_init(&m_frame);
 	mad_synth_init(&m_synth);
 	mad_stream_options(&m_stream, 0/*options*/);
+
+	m_ps2_sync = false;
 
 	m_fDiscontinuity = false;
 

@@ -56,6 +56,7 @@ protected:
 	mad_stream m_stream;
 	mad_frame m_frame;
 	mad_synth m_synth;
+	bool m_ps2_sync;
 
 	CArray<BYTE> m_buff;
 	REFERENCE_TIME m_rtStart;
@@ -67,6 +68,7 @@ protected:
 	HRESULT ProcessAC3();
 	HRESULT ProcessDTS();
 	HRESULT ProcessAAC();
+	HRESULT ProcessPS2();
 	HRESULT ProcessMPA();
 
 	HRESULT GetDeliveryBuffer(IMediaSample** pSample, BYTE** pData);
@@ -87,10 +89,6 @@ protected:
 public:
 	CMpaDecFilter(LPUNKNOWN lpunk, HRESULT* phr);
 	virtual ~CMpaDecFilter();
-
-#ifdef REGISTER_FILTER
-    static CUnknown* WINAPI CreateInstance(LPUNKNOWN lpunk, HRESULT* phr);
-#endif
 
 	DECLARE_IUNKNOWN
     STDMETHODIMP NonDelegatingQueryInterface(REFIID riid, void** ppv);

@@ -96,3 +96,11 @@ void UnRegisterSourceFilter(const GUID& subtype)
 {
 	DeleteRegKey(_T("Media Type\\") + CStringFromGUID(MEDIATYPE_Stream), CStringFromGUID(subtype));
 }
+
+template <class T>
+CUnknown* WINAPI CreateInstance(LPUNKNOWN lpunk, HRESULT* phr)
+{
+    CUnknown* punk = new T(lpunk, phr);
+    if(punk == NULL) *phr = E_OUTOFMEMORY;
+	return punk;
+}
