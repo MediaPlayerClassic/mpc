@@ -1,4 +1,4 @@
-html, body, th, td {font-family: Verdana, Arial, Helvetica, sans-serif; font-size: 0.9em;}
+html, body, th, td {font-family: Verdana, Arial, Helvetica, sans-serif; font-size: 12px;}
 img {border-width: 0px;}
 
 #navlist {margin: 0 0 20px 0; padding: 0 0 20px 10px; border-bottom: 1px solid #2155AD;}
@@ -11,6 +11,11 @@ img {border-width: 0px;}
 
 a:link, a:active, a:visited  {text-decoration: none; color: blue;}
 a:hover {text-decoration: underline; color: red;}
+th a:link, th a:active, th a:visited  {color: white;}
+th a:hover {text-decoration: underline; color: red;}
+/* for mozilla */
+td a:link, td a:active, td a:visited  {text-decoration: none; color: blue;}
+td a:hover {text-decoration: underline; color: red;}
 
 h1 {text-align: center; font-size: 1.5em; padding: 2px; margin: 10px 5px 2px 5px;}
 h1 a {text-decoration: none; color: black;}
@@ -23,8 +28,6 @@ div.warning a:link {text-decoration: underline; color: red;}
 strong {font-weight: bold; color: #005}
 
 th {color: white; background-color: #88BBDD; background-image: url(../img/bluehdrmid.gif); background-repeat: repeat-x;}
-th a:link, th a:active, th a:visited  {color: white;}
-th a:hover {text-decoration: underline; color: red;}
 th {padding: 1px 5px;}
 td {padding: 1px;}
 tr.required th {font-weight: bold;}
@@ -41,6 +44,8 @@ tr.invalid th {background-color: #DD88BB; background-image: url(../img/redhdrmid
 
 .results ol {margin-right: 2em;}
 .results table {width: 100%; border-collapse: collapse; border: 1px solid #abd;}
+.results th {font-size: 12px;}
+.results td {font-size: 11px;}
 .results th {border: 1px solid #abd; background-image: url(../img/bluehdrsmall.gif);}
 .results td {border: 1px solid #abd; border-bottom: 1px solid #abd; text-align: center; padding: 1px 5px}
 .results td.notes {text-align: justify; padding: 2px 5px}

@@ -35,6 +35,18 @@ class MySmarty extends Smarty
 
 $smarty = new MySmarty();
 
+function smarty_modifier_truncate_mid($string, $length = 80)
+{
+    if($length < 3) return '...';
+    if(strlen($string) <= $length) return $string;
+    
+    $n = ($length-1)/2;
+    $string = substr($string, 0, $n)."..".substr($string, strlen($string) - $n);
+    return $string;        
+}
+
+$smarty->register_modifier('truncate_mid', 'smarty_modifier_truncate_mid');
+
 function RedirAndExit($path)
 {
 	if(empty($path)) exit;
