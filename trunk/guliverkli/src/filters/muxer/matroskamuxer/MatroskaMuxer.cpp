@@ -113,6 +113,7 @@ CUnknown* WINAPI CMatroskaMuxerFilter::CreateInstance(LPUNKNOWN lpunk, HRESULT* 
 
 CMatroskaMuxerFilter::CMatroskaMuxerFilter(LPUNKNOWN pUnk, HRESULT* phr)
 	: CBaseFilter(NAME("CMatroskaMuxerFilter"), pUnk, this, __uuidof(this))
+	, m_rtCurrent(0)
 {
 	if(phr) *phr = S_OK;
 
@@ -136,6 +137,7 @@ STDMETHODIMP CMatroskaMuxerFilter::NonDelegatingQueryInterface(REFIID riid, void
 
 	return 
 		QI(IAMFilterMiscFlags)
+		QI(IMediaSeeking)
 		__super::NonDelegatingQueryInterface(riid, ppv);
 }
 
@@ -247,6 +249,53 @@ STDMETHODIMP_(ULONG) CMatroskaMuxerFilter::GetMiscFlags()
 	return AM_FILTER_MISC_FLAGS_IS_RENDERER;
 }
 
+// IMediaSeeking
+
+STDMETHODIMP CMatroskaMuxerFilter::GetCapabilities(DWORD* pCapabilities)
+{
+	return pCapabilities ? *pCapabilities = 
+		AM_SEEKING_CanGetDuration|
+		AM_SEEKING_CanGetCurrentPos, S_OK : E_POINTER;
+}
+STDMETHODIMP CMatroskaMuxerFilter::CheckCapabilities(DWORD* pCapabilities)
+{
+	CheckPointer(pCapabilities, E_POINTER);
+	if(*pCapabilities == 0) return S_OK;
+	DWORD caps;
+	GetCapabilities(&caps);
+	caps &= *pCapabilities;
+	return caps == 0 ? E_FAIL : caps == *pCapabilities ? S_OK : S_FALSE;
+}
+STDMETHODIMP CMatroskaMuxerFilter::IsFormatSupported(const GUID* pFormat) {return !pFormat ? E_POINTER : *pFormat == TIME_FORMAT_MEDIA_TIME ? S_OK : S_FALSE;}
+STDMETHODIMP CMatroskaMuxerFilter::QueryPreferredFormat(GUID* pFormat) {return GetTimeFormat(pFormat);}
+STDMETHODIMP CMatroskaMuxerFilter::GetTimeFormat(GUID* pFormat) {return pFormat ? *pFormat = TIME_FORMAT_MEDIA_TIME, S_OK : E_POINTER;}
+STDMETHODIMP CMatroskaMuxerFilter::IsUsingTimeFormat(const GUID* pFormat) {return IsFormatSupported(pFormat);}
+STDMETHODIMP CMatroskaMuxerFilter::SetTimeFormat(const GUID* pFormat) {return S_OK == IsFormatSupported(pFormat) ? S_OK : E_INVALIDARG;}
+STDMETHODIMP CMatroskaMuxerFilter::GetDuration(LONGLONG* pDuration)
+{
+	CheckPointer(pDuration, E_POINTER);
+	*pDuration = 0;
+	POSITION pos = m_pInputs.GetHeadPosition();
+	while(pos) {REFERENCE_TIME rt = m_pInputs.GetNext(pos)->m_rtDur; if(rt > *pDuration) *pDuration = rt;}
+	return S_OK;
+}
+STDMETHODIMP CMatroskaMuxerFilter::GetStopPosition(LONGLONG* pStop) {return E_NOTIMPL;}
+STDMETHODIMP CMatroskaMuxerFilter::GetCurrentPosition(LONGLONG* pCurrent)
+{
+	CheckPointer(pCurrent, E_POINTER);
+	*pCurrent = m_rtCurrent;
+	return S_OK;
+}
+STDMETHODIMP CMatroskaMuxerFilter::ConvertTimeFormat(LONGLONG* pTarget, const GUID* pTargetFormat, LONGLONG Source, const GUID* pSourceFormat) {return E_NOTIMPL;}
+STDMETHODIMP CMatroskaMuxerFilter::SetPositions(LONGLONG* pCurrent, DWORD dwCurrentFlags, LONGLONG* pStop, DWORD dwStopFlags) {return E_NOTIMPL;}
+STDMETHODIMP CMatroskaMuxerFilter::GetPositions(LONGLONG* pCurrent, LONGLONG* pStop) {return E_NOTIMPL;}
+STDMETHODIMP CMatroskaMuxerFilter::GetAvailable(LONGLONG* pEarliest, LONGLONG* pLatest) {return E_NOTIMPL;}
+STDMETHODIMP CMatroskaMuxerFilter::SetRate(double dRate) {return E_NOTIMPL;}
+STDMETHODIMP CMatroskaMuxerFilter::GetRate(double* pdRate) {return E_NOTIMPL;}
+STDMETHODIMP CMatroskaMuxerFilter::GetPreroll(LONGLONG* pllPreroll) {return E_NOTIMPL;}
+
+//
+
 ULONGLONG GetStreamPosition(IStream* pStream)
 {
 	ULARGE_INTEGER pos = {0, 0};
@@ -280,10 +329,7 @@ DWORD CMatroskaMuxerFilter::ThreadProc()
 	}
 
 	REFERENCE_TIME rtDur = 0;
-	{
-		POSITION pos = m_pInputs.GetHeadPosition();
-		while(pos) {REFERENCE_TIME rt = m_pInputs.GetNext(pos)->m_rtDur; if(rt > rtDur) rtDur = rt;}
-	}
+	GetDuration(&rtDur);
 
 	SetStreamPosition(pStream, 0);
 
@@ -301,7 +347,7 @@ DWORD CMatroskaMuxerFilter::ThreadProc()
 
 	// TODO
 	QWORD voidlen = 100;
-	if(rtDur > 0) voidlen += int(1.0 * rtDur / 50000000 + 0.5) * 20;
+	if(rtDur > 0) voidlen += int(1.0 * rtDur / MAXCLUSTERTIME / 10000 + 0.5) * 20;
 	ULONGLONG voidpos = GetStreamPosition(pStream);
 	{
 		Void v(voidlen);
@@ -325,7 +371,7 @@ DWORD CMatroskaMuxerFilter::ThreadProc()
 	Info info;
 	info.MuxingApp.Set("DirectShow Matroska Muxer");
 	info.TimeCodeScale.Set(1000000);
-	info.Duration.Set((float)rtDur/10000);
+	info.Duration.Set((float)rtDur / 10000);
 	info.Write(pStream);
 
 	// Tracks
@@ -444,7 +490,7 @@ TRACE(_T("%d: %I64d-%I64d (c=%d, co=%dms), cnt=%d, ref=%d\n"),
 */
 					if(b->Block.TimeCode < 0) {ASSERT(0); continue;}
 
-					if(c.TimeCode + 5000 < b->Block.TimeCode)
+					if(c.TimeCode + MAXCLUSTERTIME < b->Block.TimeCode)
 					{
 						if(!c.BlockGroups.IsEmpty())
 						{
@@ -456,7 +502,7 @@ TRACE(_T("%d: %I64d-%I64d (c=%d, co=%dms), cnt=%d, ref=%d\n"),
 							c.Write(pStream);
 						}
 
-						c.TimeCode.Set(c.TimeCode + 5000);
+						c.TimeCode.Set(c.TimeCode + MAXCLUSTERTIME);
 						c.BlockGroups.RemoveAll();
 						nBlocksInCueTrack = 0;
 					}
@@ -485,6 +531,8 @@ TRACE(_T("%d: %I64d-%I64d (c=%d, co=%dms), cnt=%d, ref=%d\n"),
 					}
 
 					info.Duration.Set(max(info.Duration, (float)b->Block.TimeCode));
+
+					m_rtCurrent = b->Block.TimeCode*10000;
 
 					b->Block.TimeCode -= c.TimeCode;
 					c.BlockGroups.AddTail(b);
@@ -544,6 +592,11 @@ TRACE(_T("%d: %I64d-%I64d (c=%d, co=%dms), cnt=%d, ref=%d\n"),
 						break;
 					}
 				}
+			}
+
+			if(abs(m_rtCurrent - (REFERENCE_TIME)info.Duration*10000) > 10000000i64)
+			{
+				info.Duration.Set(m_rtCurrent / 10000 + 1);
 			}
 
 			SetStreamPosition(pStream, infopos);
@@ -764,10 +817,10 @@ STDMETHODIMP CMatroskaMuxerInputPin::Receive(IMediaSample* pSample)
 
 	rtStart += m_tStart;
 	rtStop += m_tStart;
-
+/*
 	int nCluster = (int)((rtStart/10000)/MAXCLUSTERTIME);
 	int nClusterOffset = (int)((rtStart/10000)%MAXCLUSTERTIME);
-
+*/
 	long len = pSample->GetActualDataLength();
 /*
 	TRACE(_T("%d: %I64d-%I64d (c=%d, co=%dms), len=%d, d%d p%d s%d\n"), 
