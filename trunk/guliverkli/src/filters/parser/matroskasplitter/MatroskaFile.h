@@ -48,12 +48,14 @@ namespace MatroskaReader
 	{
 	protected:
 		T m_val;
+		bool m_fValid;
 	public:
-		CSimpleVar(T val = 0) : m_val(val) {}
-		BASE& operator = (const BASE& v) {m_val = v.m_val; return(*this);}
-		BASE& operator = (T val) {m_val = val; return(*this);}
+		CSimpleVar(T val = 0) : m_val(val), m_fValid(false) {}
+		BASE& operator = (const BASE& v) {m_val = v.m_val; m_fValid = true; return(*this);}
+		BASE& operator = (T val) {m_val = val; m_fValid = true; return(*this);}
 		operator T() {return m_val;}
-		BASE& Set(T val) {m_val = val; return(*(BASE*)this);}
+		BASE& Set(T val) {m_val = val; m_fValid = true; return(*(BASE*)this);}
+		bool IsValid() {return m_fValid;}
 		virtual HRESULT Parse(CMatroskaNode* pMN);
 	};
 

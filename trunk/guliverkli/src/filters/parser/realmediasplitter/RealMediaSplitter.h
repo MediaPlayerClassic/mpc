@@ -64,29 +64,6 @@ namespace RealMedia
 }
 
 #pragma pack(push, 1)
-typedef struct
-{
-	UINT32 data1;
-	UINT32 data2;
-	UINT32* dimensions;
-} cmsg_data_t;
-
-typedef struct
-{
-	UINT32 len;
-	UINT32 unknown1;
-	UINT32 chunks;
-	UINT32* extra;
-	UINT32 unknown2;
-	UINT32 timestamp;
-} transform_in_t;
-
-struct rv_init_t 
-{
-	WORD unk1, w, h, unk3;
-	DWORD unk2, subformat, unk5, format;
-};
-
 struct rvinfo 
 {
 	DWORD dwSize, fcc1, fcc2; 
@@ -160,11 +137,13 @@ class CRMFile
 
 public:
 	CRMFile(IAsyncReader* pReader, HRESULT& hr);
+	UINT64 GetPos() {return m_pos;}
+	UINT64 GetLength() {return m_len;}
 	void Seek(UINT64 pos) {m_pos = pos;}
 	HRESULT Read(BYTE* pData, LONG len);
 	template<typename T> HRESULT Read(T& var);
 	HRESULT Read(RealMedia::ChunkHdr& hdr);
-	HRESULT Read(RealMedia::MediaPacketHeader& mph);
+	HRESULT Read(RealMedia::MediaPacketHeader& mph, bool fFull = true);
 
 	RealMedia::FileHdr m_fh;
 	RealMedia::ContentDesc m_cd;
@@ -247,7 +226,7 @@ class CRealMediaSourceFilter
 	, protected CAMThread
 	, public IFileSourceFilter
 	, public IMediaSeeking
-//  , public IAMOpenProgress
+	, public IAMOpenProgress
 {
 	class CFileReader : public CUnknown, public IAsyncReader
 	{
@@ -347,12 +326,11 @@ public:
 	STDMETHODIMP SetRate(double dRate);
 	STDMETHODIMP GetRate(double* pdRate);
 	STDMETHODIMP GetPreroll(LONGLONG* pllPreroll);
-/*
+
 	// IAMOpenProgress
 
 	STDMETHODIMP QueryProgress(LONGLONG* pllTotal, LONGLONG* pllCurrent);
 	STDMETHODIMP AbortOperation();
-*/
 };
 
 [uuid("E21BE468-5C18-43EB-B0CC-DB93A847D769")]
@@ -371,28 +349,31 @@ public:
 [uuid("238D0F23-5DC9-45A6-9BE2-666160C324DD")]
 class CRealVideoDecoder : public CTransformFilter
 {
-	typedef HRESULT (WINAPI *PRV20toYUV420CustomMessage)(cmsg_data_t*, DWORD);
-	typedef HRESULT (WINAPI *PRV20toYUV420Free)(DWORD);
-	typedef HRESULT (WINAPI *PRV20toYUV420HiveMessage)(DWORD, DWORD);
-	typedef HRESULT (WINAPI *PRV20toYUV420Init)(struct rv_init_t*, DWORD* dwCookie);
-	typedef HRESULT (WINAPI *PRV20toYUV420Transform)(BYTE*, BYTE*, void*, void*, DWORD);
+	typedef HRESULT (WINAPI *PRVCustomMessage)(void*, DWORD);
+	typedef HRESULT (WINAPI *PRVFree)(DWORD);
+	typedef HRESULT (WINAPI *PRVHiveMessage)(DWORD, DWORD);
+	typedef HRESULT (WINAPI *PRVInit)(void*, DWORD* dwCookie);
+	typedef HRESULT (WINAPI *PRVTransform)(BYTE*, BYTE*, void*, void*, DWORD);
 
-	PRV20toYUV420CustomMessage RV20toYUV420CustomMessage;
-	PRV20toYUV420Free RV20toYUV420Free;
-	PRV20toYUV420HiveMessage RV20toYUV420HiveMessage;
-	PRV20toYUV420Init RV20toYUV420Init;
-	PRV20toYUV420Transform RV20toYUV420Transform;
+	PRVCustomMessage RVCustomMessage;
+	PRVFree RVFree;
+	PRVHiveMessage RVHiveMessage;
+	PRVInit RVInit;
+	PRVTransform RVTransform;
 
 	HMODULE m_hDrvDll;
 	DWORD m_dwCookie;
+
+	HRESULT InitRV(const CMediaType* pmt);
+	void FreeRV();
 
 	REFERENCE_TIME m_rtLast, m_tStart;
 	DWORD m_packetlen;
 	typedef struct {CByteArray data; DWORD offset;} chunk;
 	CAutoPtrList<chunk> m_data;
 
-	HRESULT Decode(bool fPreLoad);
-	void Copy(BYTE* pIn, BYTE* pOut, DWORD w, DWORD h);
+	HRESULT Decode(bool fPreroll);
+	void Copy(BYTE* pIn, BYTE* pOut, int w, int h);
 
 	CAutoVectorPtr<BYTE> m_pI420FrameBuff;
 

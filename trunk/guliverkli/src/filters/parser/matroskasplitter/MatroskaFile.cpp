@@ -456,6 +456,7 @@ HRESULT CUInt::Parse(CMatroskaNode* pMN)
 		HRESULT hr = pMN->Read(*(BYTE*)&m_val);
 		if(FAILED(hr)) return hr;
 	}
+	m_fValid = true;
 	return S_OK;
 }
 
@@ -468,6 +469,7 @@ HRESULT CInt::Parse(CMatroskaNode* pMN)
 		if(FAILED(hr)) return hr;
 	}
 	m_val >>= (8-pMN->m_len)*8;
+	m_fValid = true;
 	return S_OK;
 }
 
@@ -476,6 +478,7 @@ template<class T, class BASE>
 HRESULT CSimpleVar<T, BASE>::Parse(CMatroskaNode* pMN)
 {
 	m_val = 0;
+	m_fValid = true;
 	return pMN->Read(m_val);
 }
 
@@ -501,6 +504,8 @@ HRESULT CID::Parse(CMatroskaNode* pMN)
 		hr = pMN->Read(*(BYTE*)&m_val);
 		if(FAILED(hr)) return hr;
 	}
+
+	m_fValid = true;
 
 	return S_OK;
 }
@@ -539,6 +544,8 @@ HRESULT CLength::Parse(CMatroskaNode* pMN)
 		m_val = pMN->GetLength() - pMN->GetPos();
 		TRACE(_T("CLength: Unspecified chunk size at %I64d\n"), pMN->GetPos());
 	}
+
+	m_fValid = true;
 
 	return S_OK;
 }
