@@ -1681,7 +1681,15 @@ bool FindRedir(CUrl& src, CString ct, CString& body, CList<CString>& urls, CAuto
 			if(_tcsicmp(src.GetSchemeName(), dst.GetSchemeName())
 			|| _tcsicmp(src.GetHostName(), dst.GetHostName())
 			|| _tcsicmp(src.GetUrlPath(), dst.GetUrlPath()))
+			{
 				urls.AddTail(url);
+			}
+			else
+			{
+				// recursive
+				urls.RemoveAll();
+				break;
+			}
 		}
 	}
 
@@ -1908,7 +1916,7 @@ CString GetContentType(CString fn, CList<CString>* redir)
 		{
 			// ...://..."/>
 			re.Attach(new CAtlRegExpT());
-			if(re && REPARSE_ERROR_OK == re->Parse(_T("{[a-zA-Z]+://[^\">]*}"), FALSE))
+			if(re && REPARSE_ERROR_OK == re->Parse(_T("{[a-zA-Z]+://[^\n\">]*}"), FALSE))
 				res.AddTail(re);
 			// Ref#n= ...://...\n
 			re.Attach(new CAtlRegExpT());

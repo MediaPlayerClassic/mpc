@@ -1308,6 +1308,7 @@ HRESULT CBaseSplitterFilter::SetPositionsInternal(void* id, LONGLONG* pCurrent, 
 		m_LastSeekers.AddTail(id);
 		return S_OK;
 	}
+
 	m_rtLastStart = rtCurrent;
 	m_rtLastStop = rtStop;
 	m_LastSeekers.RemoveAll();

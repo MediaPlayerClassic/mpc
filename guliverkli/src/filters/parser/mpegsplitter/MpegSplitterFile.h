@@ -239,7 +239,7 @@ public:
 		DWORD interleave; // bytes per channel
 		// padding: FF .. FF
 		// 'SSbd' + len
-		// raw pcm (adpcm?)
+		// pcm or adpcm data
 	};
 
 	class ps2subhdr
