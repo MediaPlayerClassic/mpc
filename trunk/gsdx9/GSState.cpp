@@ -26,6 +26,7 @@
 GSState::GSState(HWND hWnd, HRESULT& hr) 
 	: m_hWnd(hWnd)
 	, m_fp(NULL)
+	, m_PRIM(7)
 	, m_primtype(D3DPT_FORCE_DWORD)
 {
 	hr = E_FAIL;
@@ -224,6 +225,7 @@ void GSState::Reset()
 	memset(&m_v, 0, sizeof(m_v));
 	m_nreg = 0;
 
+	m_PRIM = 7;
 	m_primtype = D3DPT_FORCE_DWORD;
 	m_nVertices = m_nPrims = 0;
 
