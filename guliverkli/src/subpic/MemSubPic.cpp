@@ -544,7 +544,7 @@ STDMETHODIMP CMemSubPic::AlphaBlt(RECT* pSrc, RECT* pDst, SubPicDesc* pTarget)
 //
 
 CMemSubPicAllocator::CMemSubPicAllocator(int type, SIZE maxsize) 
-	: ISubPicAllocatorImpl(maxsize, false)
+	: ISubPicAllocatorImpl(maxsize, false, false)
 	, m_type(type)
 	, m_maxsize(maxsize)
 {

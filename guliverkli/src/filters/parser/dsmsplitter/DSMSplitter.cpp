@@ -237,7 +237,7 @@ STDMETHODIMP CDSMSplitterFilter::get_CurrentMarker(long* pCurrentMarker)
 	CheckPointer(m_pFile, E_UNEXPECTED);
 	int i = range_bsearch(m_pFile->m_cs, m_rtCurrent);
 	if(i < 0) return E_FAIL;
-	*pCurrentMarker = (long)i;
+	*pCurrentMarker = (long)i+1;
 	return S_OK;
 }
 
@@ -245,6 +245,7 @@ STDMETHODIMP CDSMSplitterFilter::GetMarkerTime(long MarkerNum, double* pMarkerTi
 {
 	CheckPointer(pMarkerTime, E_POINTER);
 	CheckPointer(m_pFile, E_UNEXPECTED);
+	MarkerNum--;
 	if(MarkerNum < 0 || MarkerNum >= m_pFile->m_cs.GetCount()) return E_INVALIDARG;
 	*pMarkerTime = 1.0 * m_pFile->m_cs[MarkerNum].rt / 10000000;
 	return S_OK;
@@ -254,6 +255,7 @@ STDMETHODIMP CDSMSplitterFilter::GetMarkerName(long MarkerNum, BSTR* pbstrMarker
 {
 	CheckPointer(pbstrMarkerName, E_POINTER);
 	CheckPointer(m_pFile, E_UNEXPECTED);
+	MarkerNum--;
 	if(MarkerNum < 0 || MarkerNum >= m_pFile->m_cs.GetCount()) return E_INVALIDARG;
 	*pbstrMarkerName = m_pFile->m_cs[MarkerNum].name.AllocSysString();
 	return *pbstrMarkerName ? S_OK : E_FAIL;

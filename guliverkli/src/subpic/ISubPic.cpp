@@ -123,10 +123,11 @@ STDMETHODIMP ISubPicImpl::SetSize(SIZE size, RECT vidrect)
 // ISubPicAllocatorImpl
 //
 
-ISubPicAllocatorImpl::ISubPicAllocatorImpl(SIZE cursize, bool fDynamicWriteOnly)
+ISubPicAllocatorImpl::ISubPicAllocatorImpl(SIZE cursize, bool fDynamicWriteOnly, bool fPow2Textures)
 	: CUnknown(NAME("ISubPicAllocatorImpl"), NULL)
 	, m_cursize(cursize)
 	, m_fDynamicWriteOnly(fDynamicWriteOnly)
+	, m_fPow2Textures(fPow2Textures)
 {
 	m_curvidrect = CRect(CPoint(0,0), m_cursize);
 }

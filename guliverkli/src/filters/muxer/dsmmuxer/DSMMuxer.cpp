@@ -24,6 +24,7 @@
 #include "..\..\..\DSUtil\DSUtil.h"
 
 #include <initguid.h>
+#include <qnetwork.h>
 #include "..\..\..\..\include\moreuuids.h"
 
 #ifdef REGISTER_FILTER
@@ -193,10 +194,12 @@ void CDSMMuxerFilter::MuxHeader(IBitStream* pBS)
 		MuxStreamInfo(pBS, pPin);
 	}
 
-	// resources
+	// resources & chapters
 
 	CInterfaceList<IDSMResourceBag> pRBs;
 	pRBs.AddTail(this);
+
+	CComQIPtr<IAMExtendedSeeking, &IID_IAMExtendedSeeking> pAMES;
 
 	pos = m_pPins.GetHeadPosition();
 	while(pos)
@@ -204,10 +207,13 @@ void CDSMMuxerFilter::MuxHeader(IBitStream* pBS)
 		for(CComPtr<IPin> pPin = m_pPins.GetNext(pos)->GetConnected(); pPin; pPin = GetUpStreamPin(GetFilterFromPin(pPin)))
 		{
 			CComQIPtr<IDSMResourceBag> pPB = GetFilterFromPin(pPin);
-			if(pPB && !pRBs.Find(pPB))
-				pRBs.AddTail(pPB);
+			if(pPB && !pRBs.Find(pPB)) pRBs.AddTail(pPB);
+
+			if(!pAMES) pAMES = GetFilterFromPin(pPin);
 		}
 	}
+
+	// resources
 
 	pos = pRBs.GetHeadPosition();
 	while(pos)
@@ -244,8 +250,45 @@ void CDSMMuxerFilter::MuxHeader(IBitStream* pBS)
 		}
 	}
 
-	// TODO: write chapters
+	// chapters
 
+	if(pAMES)
+	{
+		long MarkerCount = 0;
+		if(SUCCEEDED(pAMES->get_MarkerCount(&MarkerCount)) && MarkerCount > 0)
+		{
+			CSimpleMap<REFERENCE_TIME, CStringA> m_chapters;
+			REFERENCE_TIME rtPrev = 0;
+			int len = 0;
+
+			for(int i = 1; i <= MarkerCount; i++)
+			{
+				double MarkerTime;
+				CComBSTR MarkerName;
+				if(SUCCEEDED(pAMES->GetMarkerTime(i, &MarkerTime)) && SUCCEEDED(pAMES->GetMarkerName(i, &MarkerName)))
+				{
+					REFERENCE_TIME rt = (REFERENCE_TIME)(MarkerTime*10000000), rtDiff = rt - rtPrev; rtPrev = rt;
+					CStringA name = UTF16To8(MarkerName);
+					m_chapters.Add(rtDiff, name);
+					len += 1 + GetByteLength(myabs(rtDiff)) + name.GetLength()+1;
+				}
+			}
+
+			MuxPacketHeader(pBS, DSMP_CHAPTERS, len);
+
+			for(int i = 0; i < m_chapters.GetSize(); i++)
+			{
+				REFERENCE_TIME rt = m_chapters.GetKeyAt(i);
+				CStringA name = m_chapters.GetValueAt(i);
+				int irt = GetByteLength(myabs(rt));
+				pBS->BitWrite(rt < 0, 1);
+				pBS->BitWrite(irt, 3);
+				pBS->BitWrite(0, 4);
+				pBS->BitWrite(myabs(rt), irt<<3);
+				pBS->ByteWrite((LPCSTR)name, name.GetLength()+1);
+			}
+		}
+	}
 }
 
 void CDSMMuxerFilter::MuxPacket(IBitStream* pBS, MuxerPacket* pPacket)

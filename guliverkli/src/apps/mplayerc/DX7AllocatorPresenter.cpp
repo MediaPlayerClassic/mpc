@@ -383,7 +383,7 @@ HRESULT CDX7AllocatorPresenter::CreateDevice()
 	}
 	else
 	{
-		m_pAllocator = new CDX7SubPicAllocator(m_pD3DDev, size);
+		m_pAllocator = new CDX7SubPicAllocator(m_pD3DDev, size, AfxGetAppSettings().fSPCPow2Tex);
 		if(!m_pAllocator || FAILED(hr))
 			return E_FAIL;
 	}

@@ -136,8 +136,11 @@ private:
 
 	virtual bool Alloc(bool fStatic, ISubPic** ppSubPic) = 0;
 
+protected:
+	bool m_fPow2Textures;
+
 public:
-	ISubPicAllocatorImpl(SIZE cursize, bool fDynamicWriteOnly);
+	ISubPicAllocatorImpl(SIZE cursize, bool fDynamicWriteOnly, bool fPow2Textures);
 
 	DECLARE_IUNKNOWN;
 	STDMETHODIMP NonDelegatingQueryInterface(REFIID riid, void** ppv);

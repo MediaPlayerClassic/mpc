@@ -394,6 +394,7 @@ public:
 		int nHorPos, nVerPos;
 		int nSPCSize;
 		int nSPCMaxRes;
+		bool fSPCPow2Tex;
 
 		bool fDisabeXPToolbars;
 		bool fUseWMASFReader;
