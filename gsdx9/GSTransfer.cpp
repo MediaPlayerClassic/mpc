@@ -55,7 +55,7 @@ void GSState::WriteTransfer(BYTE* pMem, int len)
 
 	if((m_rs.BITBLTBUF.DBP == m_de.CTXT[m_de.PRIM.CTXT].TEX0.TBP0
 	|| m_rs.BITBLTBUF.DBP == m_de.CTXT[m_de.PRIM.CTXT].TEX0.CBP)
-	 && m_de.PRIM.TME)
+	&& m_de.PRIM.TME)
 	{
 		FlushPrim();
 	}
