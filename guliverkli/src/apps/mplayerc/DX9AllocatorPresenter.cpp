@@ -30,6 +30,7 @@
 #include <initguid.h>
 #include "DX9AllocatorPresenter.h"
 #include <d3d9.h>
+#include <d3dx9.h>
 #include <Vmr9.h>
 #include "..\..\SubPic\DX9SubPic.h"
 #include "..\..\..\include\RealMedia\pntypes.h"
@@ -37,8 +38,6 @@
 #include "..\..\..\include\RealMedia\pncom.h"
 #include "..\..\..\include\RealMedia\rmavsurf.h"
 #include "IQTVideoSurface.h"
-
-//#include <d3dx9.h>
 
 bool IsVMR9InGraph(IFilterGraph* pFG)
 {
@@ -62,6 +61,7 @@ protected:
     CComPtr<IDirect3DDevice9> m_pD3DDev;
 	CComPtr<IDirect3DTexture9> m_pVideoTexture;
 	CComPtr<IDirect3DSurface9> m_pVideoSurface;
+	CComPtr<IDirect3DPixelShader9> m_pPixelShader;
 	D3DTEXTUREFILTERTYPE m_Filter;
 
 	virtual HRESULT CreateDevice();
@@ -75,6 +75,7 @@ public:
 	STDMETHODIMP CreateRenderer(IUnknown** ppRenderer);
 	STDMETHODIMP_(bool) Paint(bool fAll);
 	STDMETHODIMP GetDIB(BYTE* lpDib, DWORD* size);
+	STDMETHODIMP SetPixelShader(LPCSTR pSrcData, LPCSTR pTarget, LPSTR err, int errlen);
 };
 
 class CVMR9AllocatorPresenter
@@ -209,7 +210,7 @@ HRESULT CreateAP9(const CLSID& clsid, HWND hWnd, ISubPicAllocatorPresenter** ppA
 
 //
 
-static HRESULT TextureBlt(CComPtr<IDirect3DTexture9> pTexture, CRect dst, CRect src)
+static HRESULT TextureBlt(CComPtr<IDirect3DTexture9> pTexture, Vector dst[4], CRect src)
 {
 	if(!pTexture)
 		return E_POINTER;
@@ -237,10 +238,10 @@ static HRESULT TextureBlt(CComPtr<IDirect3DTexture9> pTexture, CRect dst, CRect 
 		}
 		pVertices[] =
 		{
-			{(float)dst.left, (float)dst.top, 0.5f, 2.0f, (float)src.left / w, (float)src.top / h},
-			{(float)dst.right, (float)dst.top, 0.5f, 2.0f, (float)src.right / w, (float)src.top / h},
-			{(float)dst.left, (float)dst.bottom, 0.5f, 2.0f, (float)src.left / w, (float)src.bottom / h},
-			{(float)dst.right, (float)dst.bottom, 0.5f, 2.0f, (float)src.right / w, (float)src.bottom / h},
+			{(float)dst[0].x, (float)dst[0].y, (float)dst[0].z, 1.0f/(float)dst[0].z, (float)src.left / w, (float)src.top / h},
+			{(float)dst[1].x, (float)dst[1].y, (float)dst[1].z, 1.0f/(float)dst[1].z, (float)src.right / w, (float)src.top / h},
+			{(float)dst[2].x, (float)dst[2].y, (float)dst[2].z, 1.0f/(float)dst[2].z, (float)src.left / w, (float)src.bottom / h},
+			{(float)dst[3].x, (float)dst[3].y, (float)dst[3].z, 1.0f/(float)dst[3].z, (float)src.right / w, (float)src.bottom / h},
 		};
 
 		for(int i = 0; i < countof(pVertices); i++)
@@ -502,7 +503,16 @@ STDMETHODIMP_(bool) CDX9AllocatorPresenter::Paint(bool fAll)
 		{
 			if(m_pVideoTexture)
 			{
-				hr = TextureBlt(m_pVideoTexture, rDstVid, rSrcVid);
+				if(m_pPixelShader)
+				{
+					static __int64 i = 0, j = clock();
+					float fConstData[] = {(float)m_NativeVideoSize.cx, (float)m_NativeVideoSize.cy, (float)(i++), (float)(clock()-j)};
+					hr = m_pD3DDev->SetPixelShaderConstantF(0, fConstData, countof(fConstData)/4);
+				}
+
+				Vector v[4];
+				Transform(rDstVid, v);
+				hr = TextureBlt(m_pVideoTexture, v, rSrcVid);
 			}
 			else
 			{
@@ -587,6 +597,50 @@ STDMETHODIMP CDX9AllocatorPresenter::GetDIB(BYTE* lpDib, DWORD* size)
 		(BYTE*)r.pBits + r.Pitch*(desc.Height-1), -(int)r.Pitch, 32);
 
 	pSurface->UnlockRect();
+
+	return S_OK;
+}
+
+STDMETHODIMP CDX9AllocatorPresenter::SetPixelShader(LPCSTR pSrcData, LPCSTR pTarget, LPSTR err, int errlen)
+{
+	CAutoLock cAutoLock(this);
+
+	if(err && errlen > 0) *err = 0;
+
+	m_pPixelShader = NULL;
+	m_pD3DDev->SetPixelShader(NULL);
+
+	if(!pSrcData || !pTarget) 
+		return E_INVALIDARG;
+
+	CComPtr<ID3DXBuffer> pShader, pErrorMsgs;
+	HRESULT hr = D3DXCompileShader(pSrcData, strlen(pSrcData), NULL, NULL, "main", pTarget, 0, &pShader, &pErrorMsgs, NULL);
+	if(FAILED(hr))
+	{
+		if(err && errlen > 0)
+		{
+			if(pErrorMsgs)
+			{
+				int len = pErrorMsgs->GetBufferSize();
+				memcpy(err, pErrorMsgs->GetBufferPointer(), min(errlen, len));
+			}
+			else
+			{
+				char* msg = "Unknown compiler error";
+				strncpy(err, msg, min(strlen(msg), errlen));
+			}
+		}
+
+		return hr;
+	}
+
+	hr = m_pD3DDev->CreatePixelShader((DWORD*)pShader->GetBufferPointer(), &m_pPixelShader);
+	if(FAILED(hr)) return hr;
+
+	hr = m_pD3DDev->SetPixelShader(m_pPixelShader);
+	if(FAILED(hr)) return hr;
+
+	Paint(true);
 
 	return S_OK;
 }

@@ -316,34 +316,7 @@
 				RelativePath="DirectVobSub.cpp">
 			</File>
 			<File
-				RelativePath="DirectVobSubAllocator.cpp">
-				<FileConfiguration
-					Name="Debug Unicode|Win32"
-					ExcludedFromBuild="TRUE">
-					<Tool
-						Name="VCCLCompilerTool"/>
-				</FileConfiguration>
-			</File>
-			<File
 				RelativePath=".\DirectVobSubFilter.cpp">
-			</File>
-			<File
-				RelativePath="DirectVobSubInputPin.cpp">
-				<FileConfiguration
-					Name="Debug Unicode|Win32"
-					ExcludedFromBuild="TRUE">
-					<Tool
-						Name="VCCLCompilerTool"/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath="DirectVobSubOutputPin.cpp">
-				<FileConfiguration
-					Name="Debug Unicode|Win32"
-					ExcludedFromBuild="TRUE">
-					<Tool
-						Name="VCCLCompilerTool"/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath=".\DirectVobSubPropPage.cpp">

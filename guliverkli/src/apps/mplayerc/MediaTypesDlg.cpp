@@ -152,7 +152,7 @@ void CMediaTypesDlg::AddMediaType(AM_MEDIA_TYPE* pmt)
 		AddLine(str);
 		str.Format(_T("biBitCount: %d\n"), bih->biBitCount);
 		AddLine(str);
-		if(bih->biCompression < 256) str.Format(_T("biCompression: %d\n"), &bih->biCompression);
+		if(bih->biCompression < 256) str.Format(_T("biCompression: %d\n"), bih->biCompression);
 		else str.Format(_T("biCompression: %4.4hs\n"), &bih->biCompression);
 		AddLine(str);
 		str.Format(_T("biSizeImage: %d\n"), bih->biSizeImage);
@@ -271,7 +271,7 @@ void CMediaTypesDlg::OnCbnSelchangeCombo1()
 
 	POSITION pos;
 
-	CStringList& path = m_DeadEnds[i]->path;
+	CList<CString>& path = m_DeadEnds[i]->path;
 	pos = path.GetHeadPosition();
 	while(pos)
 	{

@@ -125,7 +125,7 @@ CRect CPlayerSeekBar::GetThumbRect()
 
 	CRect r = GetChannelRect();
 
-	int x = r.left + (int)((m_start < m_stop /*&& fEnabled*/) ? r.Width() * (m_pos - m_start) / (m_stop - m_start) : 0);
+	int x = r.left + (int)((m_start < m_stop /*&& fEnabled*/) ? (__int64)r.Width() * (m_pos - m_start) / (m_stop - m_start) : 0);
 	int y = r.CenterPoint().y;
 
 	r.SetRect(x, y, x, y);

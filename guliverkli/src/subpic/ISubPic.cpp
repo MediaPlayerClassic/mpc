@@ -712,6 +712,7 @@ ISubPicAllocatorPresenterImpl::ISubPicAllocatorPresenterImpl(HWND hWnd)
 	, m_VideoRect(0, 0, 0, 0), m_WindowRect(0, 0, 0, 0)
 	, m_fps(25.0)
 {
+	SetVideoAngle(Vector(), false);
 }
 
 ISubPicAllocatorPresenterImpl::~ISubPicAllocatorPresenterImpl()
@@ -818,4 +819,33 @@ STDMETHODIMP_(void) ISubPicAllocatorPresenterImpl::Invalidate(REFERENCE_TIME rtI
 {
 	if(m_pSubPicQueue)
 		m_pSubPicQueue->Invalidate(rtInvalidate);
+}
+
+#include <math.h>
+
+void ISubPicAllocatorPresenterImpl::Transform(CRect r, Vector v[4])
+{
+	v[0] = Vector(r.left, r.top, 0);
+	v[1] = Vector(r.right, r.top, 0);
+	v[2] = Vector(r.left, r.bottom, 0);
+	v[3] = Vector(r.right, r.bottom, 0);
+
+	Vector center(r.CenterPoint().x, r.CenterPoint().y, 0);
+	int l = Vector(r.Size().cx, r.Size().cy, 0).Length()*1.5f+1;
+
+	for(int i = 0; i < 4; i++)
+	{
+		v[i] = m_xform << (v[i] - center);
+		v[i].z = v[i].z / l + 0.5f;
+		v[i].x /= v[i].z*2;
+		v[i].y /= v[i].z*2;
+		v[i] += center;
+	}
+}
+
+STDMETHODIMP ISubPicAllocatorPresenterImpl::SetVideoAngle(Vector v, bool fRepaint)
+{
+	m_xform = XForm(Ray(Vector(0, 0, 0), v), Vector(1, 1, 1), false);
+	if(fRepaint) Paint(true);
+	return S_OK;
 }

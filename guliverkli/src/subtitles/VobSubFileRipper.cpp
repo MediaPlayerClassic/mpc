@@ -368,7 +368,7 @@ bool CVobSubFileRipper::LoadVob(CString fn)
 {
 	Log(LOG_INFO, _T("Searching vobs..."));
 /*
-	CStringList m_vobs;
+	CList<CString> m_vobs;
 
 	fn = fn.Left(fn.ReverseFind('.')+1);
 	fn.TrimRight(_T(".0123456789"));
@@ -411,7 +411,7 @@ bool CVobSubFileRipper::LoadVob(CString fn)
 		return(false);
 	}
 */
-	CStringList vobs;
+	CList<CString> vobs;
 	if(!m_vob.Open(fn, vobs/*m_vobs*/))
 	{
 		Log(LOG_ERROR, _T("Cannot open vob sequence"));

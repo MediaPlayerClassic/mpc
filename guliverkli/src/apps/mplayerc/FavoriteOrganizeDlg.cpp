@@ -45,7 +45,7 @@ void CFavoriteOrganizeDlg::SetupList(bool fSave)
 
 	if(fSave)
 	{
-		CStringList sl;
+		CList<CString> sl;
 
 		for(int j = 0; j < m_list.GetItemCount(); j++)
 		{

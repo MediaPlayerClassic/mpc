@@ -68,7 +68,7 @@ HRESULT CMpegSplitterFile::Init()
 	if(m_type == us)
 	{
 		BYTE b;
-		for(int i = 0; i < 4 && m_type == us && NextMpegStartCode(b); i++)
+		for(int i = 0; (i < 4 || GetPos() < 65536) && m_type == us && NextMpegStartCode(b); i++)
 		{
 			if(b == 0xba)
 			{
@@ -77,6 +77,7 @@ HRESULT CMpegSplitterFile::Init()
 				{
 					m_type = ps;
 					m_rate = h.bitrate/8;
+					break;
 				}
 			}
 			else if((b&0xe0) == 0xc0 // audio, 110xxxxx, mpeg1/2/3

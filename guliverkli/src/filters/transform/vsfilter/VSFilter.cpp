@@ -21,19 +21,12 @@
 
 #include "stdafx.h"
 #include "DirectVobSubFilter.h"
-#include "DirectVobSubInputPin.h"
-#include "DirectVobSubOutputPin.h"
-#include "TextInputPin.h"
 #include "DirectVobSubPropPage.h"
 #include "VSFilter.h"
 #include "..\..\..\DSUtil\MediaTypes.h"
 
 #include <initguid.h>
-#include <uuids.h>
 #include "..\..\..\..\include\moreuuids.h"
-#include "DirectVobSubUIDs.h"
-#include "..\..\..\..\include\Ogg\OggDS.h"
-
 
 /////////////////////////////////////////////////////////////////////////////
 // CVSFilterApp 

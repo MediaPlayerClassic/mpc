@@ -485,13 +485,6 @@ HRESULT CBaseSplitterOutputPin::DeliverPacket(CAutoPtr<Packet> p)
 			if(S_OK != (hr = GetDeliveryBuffer(&pSample, NULL, NULL, 0))) break;
 		}
 
-//if(p->TrackNumber == 1)
-//if(p->rtStart != Packet::INVALID_TIME)
-TRACE(_T("[%d]: d%d s%d p%d, b=%d, %I64d-%I64d \n"), 
-	  p->TrackNumber,
-	  p->bDiscontinuity, p->bSyncPoint, p->rtStart < 0,
-	  nBytes, p->rtStart, p->rtStop);
-
 		if(p->pmt)
 		{
 			pSample->SetMediaType(p->pmt);
@@ -502,17 +495,26 @@ TRACE(_T("[%d]: d%d s%d p%d, b=%d, %I64d-%I64d \n"),
 			m_mts.Add(*p->pmt);
 		}
 
-		ASSERT(!p->bSyncPoint || p->rtStart != Packet::INVALID_TIME);
+		bool fTimeValid = p->rtStart != Packet::INVALID_TIME;
+
+//if(p->TrackNumber == 1)
+//if(p->rtStart != Packet::INVALID_TIME)
+TRACE(_T("[%d]: d%d s%d p%d, b=%d, %I64d-%I64d \n"), 
+	  p->TrackNumber,
+	  p->bDiscontinuity, p->bSyncPoint, fTimeValid && p->rtStart < 0,
+	  nBytes, p->rtStart, p->rtStop);
+
+		ASSERT(!p->bSyncPoint || fTimeValid);
 
 		BYTE* pData = NULL;
 		if(S_OK != (hr = pSample->GetPointer(&pData)) || !pData) break;
 		memcpy(pData, p->pData.GetData(), nBytes);
 		if(S_OK != (hr = pSample->SetActualDataLength(nBytes))) break;
-		if(S_OK != (hr = pSample->SetTime(p->rtStart != Packet::INVALID_TIME ? &p->rtStart : NULL, p->rtStart != Packet::INVALID_TIME ? &p->rtStop : NULL))) break;
+		if(S_OK != (hr = pSample->SetTime(fTimeValid ? &p->rtStart : NULL, fTimeValid ? &p->rtStop : NULL))) break;
 		if(S_OK != (hr = pSample->SetMediaTime(NULL, NULL))) break;
 		if(S_OK != (hr = pSample->SetDiscontinuity(p->bDiscontinuity))) break;
 		if(S_OK != (hr = pSample->SetSyncPoint(p->bSyncPoint))) break;
-		if(S_OK != (hr = pSample->SetPreroll(p->rtStart < 0))) break;
+		if(S_OK != (hr = pSample->SetPreroll(fTimeValid && p->rtStart < 0))) break;
 		if(S_OK != (hr = Deliver(pSample))) break;
 	}
 	while(false);

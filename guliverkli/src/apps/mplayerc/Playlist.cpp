@@ -30,8 +30,12 @@
 UINT CPlaylistItem::m_globalid  = 0;
 
 CPlaylistItem::CPlaylistItem()
-	: m_duration(0)
+	: m_type(file)
 	, m_fInvalid(false)
+	, m_duration(0)
+	, m_vinput(-1)
+	, m_vchannel(-1)
+	, m_ainput(-1)
 {
 	m_id = m_globalid++;
 }
@@ -48,12 +52,17 @@ CPlaylistItem::CPlaylistItem(const CPlaylistItem& pli)
 CPlaylistItem& CPlaylistItem::operator = (const CPlaylistItem& pli)
 {
 	m_id = pli.m_id;
+	m_label = pli.m_label;
 	m_fns.RemoveAll();
-	m_fns.AddTail((CStringList*)&pli.m_fns);
+	m_fns.AddTail((CList<CString>*)&pli.m_fns);
 	m_subs.RemoveAll();
-	m_subs.AddTail((CStringList*)&pli.m_subs);
-	m_duration = pli.m_duration;
+	m_subs.AddTail((CList<CString>*)&pli.m_subs);
+	m_type = pli.m_type;
 	m_fInvalid = pli.m_fInvalid;
+	m_duration = pli.m_duration;
+	m_vinput = pli.m_vinput;
+	m_vchannel = pli.m_vchannel;
+	m_ainput = pli.m_ainput;
 	return(*this);
 }
 
@@ -62,6 +71,53 @@ POSITION CPlaylistItem::FindFile(CString path)
 	POSITION pos = m_fns.GetHeadPosition();
 	while(pos && !m_fns.GetAt(pos).CompareNoCase(path)) m_fns.GetNext(pos);
 	return(NULL);
+}
+
+static CString StripPath(CString path)
+{
+	CString p = path;
+	p.Replace('\\', '/');
+	p = p.Mid(p.ReverseFind('/')+1);
+	return(p.IsEmpty() ? path : p);
+}
+
+CString CPlaylistItem::GetLabel(int i)
+{
+	CString str;
+
+	if(i == 0)
+	{
+		if(!m_label.IsEmpty()) str = m_label;
+		else if(!m_fns.IsEmpty()) str = StripPath(m_fns.GetHead());
+	}
+	else if(i == 1)
+	{
+		if(m_fInvalid) return _T("Invalid");
+
+		if(m_type == file)
+		{
+			REFERENCE_TIME rt = m_duration;
+
+			if(rt > 0)
+			{
+				rt /= 10000000;
+				int ss = int(rt%60);
+				rt /= 60;
+				int mm = int(rt%60);
+				rt /= 60;
+				int hh = int(rt);
+
+				str.Format(_T("%02d:%02d:%02d"), hh, mm, ss);
+			}
+		}
+		else if(m_type == device)
+		{
+			// TODO
+		}
+
+	}
+
+	return str;
 }
 
 //

@@ -2,7 +2,7 @@
 #include <afxtempl.h>
 
 /*
-CString Explode(CString str, CStringList& sl, TCHAR sep, int limit)
+CString Explode(CString str, CList<CString>& sl, TCHAR sep, int limit)
 {
 	sl.RemoveAll();
 
@@ -40,7 +40,7 @@ CString Explode(CString str, CStringList& sl, TCHAR sep, int limit)
 	return sl.GetHead();
 }
 
-CString ExplodeMin(CString str, CStringList& sl, TCHAR sep, int limit)
+CString ExplodeMin(CString str, CList<CString>& sl, TCHAR sep, int limit)
 {
 	Explode(str, sl, sep, limit);
 	POSITION pos = sl.GetHeadPosition();
@@ -55,7 +55,7 @@ CString ExplodeMin(CString str, CStringList& sl, TCHAR sep, int limit)
 	return sl.GetHead();
 }
 
-CString Implode(CStringList& sl, TCHAR sep)
+CString Implode(CList<CString>& sl, TCHAR sep)
 {
 	CString ret;
 	POSITION pos = sl.GetHeadPosition();
@@ -192,21 +192,21 @@ CString ExtractTag(CString tag, CMapStringToString& attribs, bool& fClosing)
 	return(type);
 }
 
-CStringList& MakeLower(CStringList& sl)
+CList<CString>& MakeLower(CList<CString>& sl)
 {
 	POSITION pos = sl.GetHeadPosition();
 	while(pos) sl.GetNext(pos).MakeLower();
 	return sl;
 }
 
-CStringList& MakeUpper(CStringList& sl)
+CList<CString>& MakeUpper(CList<CString>& sl)
 {
 	POSITION pos = sl.GetHeadPosition();
 	while(pos) sl.GetNext(pos).MakeUpper();
 	return sl;
 }
 
-CStringList& RemoveStrings(CStringList& sl, int minlen, int maxlen)
+CList<CString>& RemoveStrings(CList<CString>& sl, int minlen, int maxlen)
 {
 	POSITION pos = sl.GetHeadPosition();
 	while(pos)

@@ -206,7 +206,7 @@ HRESULT CreateAP7(const CLSID& clsid, HWND hWnd, ISubPicAllocatorPresenter** ppA
 
 //
 
-static HRESULT TextureBlt(CComPtr<IDirect3DDevice7> pD3DDev, CComPtr<IDirectDrawSurface7> pTexture, CRect dst, CRect src)
+static HRESULT TextureBlt(CComPtr<IDirect3DDevice7> pD3DDev, CComPtr<IDirectDrawSurface7> pTexture, Vector dst[4], CRect src)
 {
 	if(!pTexture)
 		return E_POINTER;
@@ -230,10 +230,10 @@ static HRESULT TextureBlt(CComPtr<IDirect3DDevice7> pD3DDev, CComPtr<IDirectDraw
 		}
 		pVertices[] =
 		{
-			{(float)dst.left, (float)dst.top, 0.5f, 2.0f, (float)src.left / w, (float)src.top / h},
-			{(float)dst.right, (float)dst.top, 0.5f, 2.0f, (float)src.right / w, (float)src.top / h},
-			{(float)dst.left, (float)dst.bottom, 0.5f, 2.0f, (float)src.left / w, (float)src.bottom / h},
-			{(float)dst.right, (float)dst.bottom, 0.5f, 2.0f, (float)src.right / w, (float)src.bottom / h},
+			{(float)dst[0].x, (float)dst[0].y, (float)dst[0].z, 1.0f/(float)dst[0].z, (float)src.left / w, (float)src.top / h},
+			{(float)dst[1].x, (float)dst[1].y, (float)dst[1].z, 1.0f/(float)dst[1].z, (float)src.right / w, (float)src.top / h},
+			{(float)dst[2].x, (float)dst[2].y, (float)dst[2].z, 1.0f/(float)dst[2].z, (float)src.left / w, (float)src.bottom / h},
+			{(float)dst[3].x, (float)dst[3].y, (float)dst[3].z, 1.0f/(float)dst[3].z, (float)src.right / w, (float)src.bottom / h},
 		};
 
 		for(int i = 0; i < countof(pVertices); i++)
@@ -506,10 +506,7 @@ STDMETHODIMP_(bool) CDX7AllocatorPresenter::Paint(bool fAll)
 		DDBLTFX fx;
 		INITDDSTRUCT(fx);
 		fx.dwFillColor = 0;
-		if(!rl.IsRectEmpty()) hr = m_pBackBuffer->Blt(&rl, NULL, NULL, DDBLT_WAIT|DDBLT_COLORFILL, &fx);
-		if(!rr.IsRectEmpty()) hr = m_pBackBuffer->Blt(&rr, NULL, NULL, DDBLT_WAIT|DDBLT_COLORFILL, &fx);
-		if(!rt.IsRectEmpty()) hr = m_pBackBuffer->Blt(&rt, NULL, NULL, DDBLT_WAIT|DDBLT_COLORFILL, &fx);
-		if(!rb.IsRectEmpty()) hr = m_pBackBuffer->Blt(&rb, NULL, NULL, DDBLT_WAIT|DDBLT_COLORFILL, &fx);
+		hr = m_pBackBuffer->Blt(NULL, NULL, NULL, DDBLT_WAIT|DDBLT_COLORFILL, &fx);
 
 		// paint the video on the backbuffer
 
@@ -517,7 +514,9 @@ STDMETHODIMP_(bool) CDX7AllocatorPresenter::Paint(bool fAll)
 		{
 			if(m_pVideoTexture)
 			{
-				hr = TextureBlt(m_pD3DDev, m_pVideoTexture, rDstVid, rSrcVid);
+				Vector v[4];
+				Transform(rDstVid, v);
+				hr = TextureBlt(m_pD3DDev, m_pVideoTexture, v, rSrcVid);
 			}
 			else
 			{

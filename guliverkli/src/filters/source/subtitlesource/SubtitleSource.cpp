@@ -67,13 +67,13 @@ const AMOVIESETUP_FILTER sudFilter[] =
 
 CFactoryTemplate g_Templates[] =
 {
-	{L"SubtitleSource (S_TEXT/ASCII)", &__uuidof(CSubtitleSourceASCII), CSubtitleSourceASCII::CreateInstance, NULL, &sudFilter[0]},
-	{L"SubtitleSource (S_TEXT/UTF8)", &__uuidof(CSubtitleSourceUTF8), CSubtitleSourceUTF8::CreateInstance, NULL, &sudFilter[1]},
-	{L"SubtitleSource (S_TEXT/SSA)", &__uuidof(CSubtitleSourceSSA), CSubtitleSourceSSA::CreateInstance, NULL, &sudFilter[2]},
-	{L"SubtitleSource (S_TEXT/ASS)", &__uuidof(CSubtitleSourceASS), CSubtitleSourceASS::CreateInstance, NULL, &sudFilter[3]},
-//	{L"SubtitleSource (S_TEXT/USF)", &__uuidof(CSubtitleSourceUSF), CSubtitleSourceUSF::CreateInstance, NULL, &sudFilter[4]},
-	{L"SubtitleSource (Preview)", &__uuidof(CSubtitleSourcePreview), CSubtitleSourcePreview::CreateInstance, NULL, &sudFilter[5]},
-	{L"SubtitleSource (ARGB)", &__uuidof(CSubtitleSourceARGB), CSubtitleSourceARGB::CreateInstance, NULL, &sudFilter[6]},
+	{L"SubtitleSource (S_TEXT/ASCII)", &__uuidof(CSubtitleSourceASCII), CreateInstance<CSubtitleSourceASCII>, NULL, &sudFilter[0]},
+	{L"SubtitleSource (S_TEXT/UTF8)", &__uuidof(CSubtitleSourceUTF8), CreateInstance<CSubtitleSourceUTF8>, NULL, &sudFilter[1]},
+	{L"SubtitleSource (S_TEXT/SSA)", &__uuidof(CSubtitleSourceSSA), CreateInstance<CSubtitleSourceSSA>, NULL, &sudFilter[2]},
+	{L"SubtitleSource (S_TEXT/ASS)", &__uuidof(CSubtitleSourceASS), CreateInstance<CSubtitleSourceASS>, NULL, &sudFilter[3]},
+//	{L"SubtitleSource (S_TEXT/USF)", &__uuidof(CSubtitleSourceUSF), CreateInstance<CSubtitleSourceUSF>, NULL, &sudFilter[4]},
+	{L"SubtitleSource (Preview)", &__uuidof(CSubtitleSourcePreview), CreateInstance<CSubtitleSourcePreview>, NULL, &sudFilter[5]},
+	{L"SubtitleSource (ARGB)", &__uuidof(CSubtitleSourceARGB), CreateInstance<CSubtitleSourceARGB>, NULL, &sudFilter[6]},
 };
 
 int g_cTemplates = countof(g_Templates);
@@ -151,60 +151,11 @@ BOOL APIENTRY DllMain(HANDLE hModule, DWORD dwReason, LPVOID lpReserved)
     return DllEntryPoint((HINSTANCE)hModule, dwReason, 0); // "DllMain" of the dshow baseclasses;
 }
 
+#endif
+
 //
 // CSubtitleSource
 //
-
-CUnknown* WINAPI CSubtitleSourceASCII::CreateInstance(LPUNKNOWN lpunk, HRESULT* phr)
-{
-    CUnknown* punk = new CSubtitleSourceASCII(lpunk, phr);
-    if(punk == NULL) *phr = E_OUTOFMEMORY;
-	return punk;
-}
-
-CUnknown* WINAPI CSubtitleSourceUTF8::CreateInstance(LPUNKNOWN lpunk, HRESULT* phr)
-{
-    CUnknown* punk = new CSubtitleSourceUTF8(lpunk, phr);
-    if(punk == NULL) *phr = E_OUTOFMEMORY;
-	return punk;
-}
-
-CUnknown* WINAPI CSubtitleSourceSSA::CreateInstance(LPUNKNOWN lpunk, HRESULT* phr)
-{
-    CUnknown* punk = new CSubtitleSourceSSA(lpunk, phr);
-    if(punk == NULL) *phr = E_OUTOFMEMORY;
-	return punk;
-}
-
-CUnknown* WINAPI CSubtitleSourceASS::CreateInstance(LPUNKNOWN lpunk, HRESULT* phr)
-{
-    CUnknown* punk = new CSubtitleSourceASS(lpunk, phr);
-    if(punk == NULL) *phr = E_OUTOFMEMORY;
-	return punk;
-}
-
-CUnknown* WINAPI CSubtitleSourceUSF::CreateInstance(LPUNKNOWN lpunk, HRESULT* phr)
-{
-    CUnknown* punk = new CSubtitleSourceUSF(lpunk, phr);
-    if(punk == NULL) *phr = E_OUTOFMEMORY;
-	return punk;
-}
-
-CUnknown* WINAPI CSubtitleSourcePreview::CreateInstance(LPUNKNOWN lpunk, HRESULT* phr)
-{
-    CUnknown* punk = new CSubtitleSourcePreview(lpunk, phr);
-    if(punk == NULL) *phr = E_OUTOFMEMORY;
-	return punk;
-}
-
-CUnknown* WINAPI CSubtitleSourceARGB::CreateInstance(LPUNKNOWN lpunk, HRESULT* phr)
-{
-    CUnknown* punk = new CSubtitleSourceARGB(lpunk, phr);
-    if(punk == NULL) *phr = E_OUTOFMEMORY;
-	return punk;
-}
-
-#endif
 
 CSubtitleSource::CSubtitleSource(LPUNKNOWN lpunk, HRESULT* phr, const CLSID& clsid)
 	: CSource(NAME("CSubtitleSource"), lpunk, clsid)

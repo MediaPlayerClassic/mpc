@@ -109,7 +109,7 @@ public:
 class CGraphBuilder
 {
 public:
-	typedef struct {int nStream; CString clsid, filter, pin; CList<CMediaType> mts; CStringList path;} DeadEnd;
+	typedef struct {int nStream; CString clsid, filter, pin; CList<CMediaType> mts; CList<CString> path;} DeadEnd;
 
 protected:
 	HWND m_hWnd;
@@ -132,7 +132,7 @@ protected:
 
 	CAutoPtrArray<DeadEnd> m_DeadEnds;
 /*
-	CStringList m_log;
+	CList<CString> m_log;
 	void LOG(LPCTSTR fmt, ...);
 */
 	HRESULT ConnectDirect(IPin* pPin, IBaseFilter* pBF, const AM_MEDIA_TYPE* pmt = NULL);

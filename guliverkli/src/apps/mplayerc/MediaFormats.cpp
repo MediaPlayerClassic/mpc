@@ -131,10 +131,7 @@ CString CMediaFormatCategory::GetFilter()
 
 CString CMediaFormatCategory::GetExts(bool fAppendEngine)
 {
-	CString exts;
-	POSITION pos = m_exts.GetHeadPosition();
-	while(pos) exts += m_exts.GetNext(pos) + _T(" ");
-	exts.TrimRight(_T(" ")); // cheap...
+	CString exts = Implode(m_exts, ' ');
 	if(fAppendEngine) exts += CString(_T(" \\")) + (TCHAR)(0x30 + (int)m_engine);
 	return(exts);
 }
@@ -144,6 +141,16 @@ CString CMediaFormatCategory::GetExtsWithPeriod(bool fAppendEngine)
 	CString exts;
 	POSITION pos = m_exts.GetHeadPosition();
 	while(pos) exts += _T(".") + m_exts.GetNext(pos) + _T(" ");
+	exts.TrimRight(_T(" ")); // cheap...
+	if(fAppendEngine) exts += CString(_T(" \\")) + (TCHAR)(0x30 + (int)m_engine);
+	return(exts);
+}
+
+CString CMediaFormatCategory::GetBackupExtsWithPeriod(bool fAppendEngine)
+{
+	CString exts;
+	POSITION pos = m_backupexts.GetHeadPosition();
+	while(pos) exts += _T(".") + m_backupexts.GetNext(pos) + _T(" ");
 	exts.TrimRight(_T(" ")); // cheap...
 	if(fAppendEngine) exts += CString(_T(" \\")) + (TCHAR)(0x30 + (int)m_engine);
 	return(exts);
@@ -203,9 +210,9 @@ void CMediaFormats::UpdateData(bool fSave)
 		ADDFMT((_T("Real Script file"), _T("rt rp smi smil"), false, _T("RealOne or codec pack"), RealMedia));
 		ADDFMT((_T("Dirac Video file"), _T("drc"), false));
 		ADDFMT((_T("Shockwave Flash file"), _T("swf"), false, _T("ShockWave ActiveX control"), ShockWave));
-		ADDFMT((_T("Quicktime file"), _T("mov qt"), false, _T("QuickTime Player or codec pack"), QuickTime));
+		ADDFMT((_T("Quicktime file"), _T("mov qt amr 3gp 3gp2 3g2 3gpp"), false, _T("QuickTime Player or codec pack"), QuickTime));
 		ADDFMT((_T("Image file"), _T("jpeg jpg bmp gif pic png dib tiff tif")));
-		ADDFMT((_T("Playlist file"), _T("asx m3u pls wvx wax wmx")));
+		ADDFMT((_T("Playlist file"), _T("asx m3u pls wvx wax wmx mpcpl")));
 		ADDFMT((_T("Other "), _T("divx vp6")));
 #undef ADDFMT
 

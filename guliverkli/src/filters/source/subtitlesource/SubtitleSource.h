@@ -37,10 +37,6 @@ public:
 	CSubtitleSource(LPUNKNOWN lpunk, HRESULT* phr, const CLSID& clsid);
 	virtual ~CSubtitleSource();
 
-#ifdef REGISTER_FILTER
-    static CUnknown* WINAPI CreateInstance(LPUNKNOWN lpunk, HRESULT* phr);
-#endif
-
 	DECLARE_IUNKNOWN;
     STDMETHODIMP NonDelegatingQueryInterface(REFIID riid, void** ppv);
 
@@ -96,9 +92,7 @@ class CSubtitleSourceASCII : public CSubtitleSource
 {
 public:
 	CSubtitleSourceASCII(LPUNKNOWN lpunk, HRESULT* phr);
-#ifdef REGISTER_FILTER
-    static CUnknown* WINAPI CreateInstance(LPUNKNOWN lpunk, HRESULT* phr);
-#endif
+
 	HRESULT GetMediaType(CMediaType* pmt);
 };
 
@@ -107,9 +101,7 @@ class CSubtitleSourceUTF8 : public CSubtitleSource
 {
 public:
 	CSubtitleSourceUTF8(LPUNKNOWN lpunk, HRESULT* phr);
-#ifdef REGISTER_FILTER
-    static CUnknown* WINAPI CreateInstance(LPUNKNOWN lpunk, HRESULT* phr);
-#endif
+
 	HRESULT GetMediaType(CMediaType* pmt);
 };
 
@@ -118,9 +110,7 @@ class CSubtitleSourceSSA : public CSubtitleSource
 {
 public:
 	CSubtitleSourceSSA(LPUNKNOWN lpunk, HRESULT* phr);
-#ifdef REGISTER_FILTER
-    static CUnknown* WINAPI CreateInstance(LPUNKNOWN lpunk, HRESULT* phr);
-#endif
+
 	HRESULT GetMediaType(CMediaType* pmt);
 };
 
@@ -129,9 +119,7 @@ class CSubtitleSourceASS : public CSubtitleSource
 {
 public:
 	CSubtitleSourceASS(LPUNKNOWN lpunk, HRESULT* phr);
-#ifdef REGISTER_FILTER
-    static CUnknown* WINAPI CreateInstance(LPUNKNOWN lpunk, HRESULT* phr);
-#endif
+
 	HRESULT GetMediaType(CMediaType* pmt);
 };
 
@@ -140,9 +128,7 @@ class CSubtitleSourceUSF : public CSubtitleSource
 {
 public:
 	CSubtitleSourceUSF(LPUNKNOWN lpunk, HRESULT* phr);
-#ifdef REGISTER_FILTER
-    static CUnknown* WINAPI CreateInstance(LPUNKNOWN lpunk, HRESULT* phr);
-#endif
+
 	HRESULT GetMediaType(CMediaType* pmt);
 };
 
@@ -151,9 +137,7 @@ class CSubtitleSourcePreview : public CSubtitleSource
 {
 public:
 	CSubtitleSourcePreview(LPUNKNOWN lpunk, HRESULT* phr);
-#ifdef REGISTER_FILTER
-    static CUnknown* WINAPI CreateInstance(LPUNKNOWN lpunk, HRESULT* phr);
-#endif
+
 	HRESULT GetMediaType(CMediaType* pmt);
 };
 
@@ -162,9 +146,7 @@ class CSubtitleSourceARGB : public CSubtitleSource
 {
 public:
 	CSubtitleSourceARGB(LPUNKNOWN lpunk, HRESULT* phr);
-#ifdef REGISTER_FILTER
-    static CUnknown* WINAPI CreateInstance(LPUNKNOWN lpunk, HRESULT* phr);
-#endif
+
 	HRESULT GetMediaType(CMediaType* pmt);
 };
 

@@ -23,6 +23,7 @@
 
 #include <atlbase.h>
 #include <atlcoll.h>
+#include "CoordGeom.h"
 
 #pragma pack(push, 1)
 struct SubPicDesc
@@ -327,6 +328,9 @@ interface ISubPicAllocatorPresenter : public IUnknown
 	STDMETHOD_(void, Invalidate) (REFERENCE_TIME rtInvalidate = -1) PURE;
 
 	STDMETHOD (GetDIB) (BYTE* lpDib, DWORD* size) PURE;
+
+	STDMETHOD (SetVideoAngle) (Vector v, bool fRepaint = true) PURE;
+	STDMETHOD (SetPixelShader) (LPCSTR pSrcData, LPCSTR pTarget, LPSTR err, int errlen) PURE;
 };
 
 class ISubPicAllocatorPresenterImpl 
@@ -350,6 +354,9 @@ protected:
 
 	void AlphaBltSubPic(CSize size, SubPicDesc* pTarget = NULL);
 
+    XForm m_xform;
+	void Transform(CRect r, Vector v[4]);
+
 public:
 	ISubPicAllocatorPresenterImpl(HWND hWnd);
 	virtual ~ISubPicAllocatorPresenterImpl();
@@ -372,6 +379,9 @@ public:
 	STDMETHODIMP_(void) Invalidate(REFERENCE_TIME rtInvalidate = -1);
 
 	STDMETHODIMP GetDIB(BYTE* lpDib, DWORD* size) {return E_NOTIMPL;}
+
+	STDMETHODIMP SetVideoAngle(Vector v, bool fRepaint = true);
+	STDMETHODIMP SetPixelShader(LPCSTR pSrcData, LPCSTR pTarget, LPSTR err, int errlen) {return E_NOTIMPL;}
 };
 
 //

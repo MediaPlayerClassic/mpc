@@ -24,6 +24,8 @@
 #include "PlayerListCtrl.h"
 #include "Playlist.h"
 
+class OpenMediaData;
+
 class CPlayerPlaylistBar : public CSizingControlBarG
 {
 	DECLARE_DYNAMIC(CPlayerPlaylistBar)
@@ -37,10 +39,13 @@ private:
 	int m_nTimeColWidth;
 	void ResizeListColumn();
 
-	void AddItem(CString fn, CStringList* subs);
-	void AddItem(CStringList& fns, CStringList* subs);
-	void ParsePlayList(CString fn, CStringList* subs);
-	void ParsePlayList(CStringList& fns, CStringList* subs);
+	void AddItem(CString fn, CList<CString>* subs);
+	void AddItem(CList<CString>& fns, CList<CString>* subs);
+	void ParsePlayList(CString fn, CList<CString>* subs);
+	void ParsePlayList(CList<CString>& fns, CList<CString>* subs);
+
+	bool ParseMPCPlayList(CString fn);
+	bool SaveMPCPlayList(CString fn, CTextFile::enc e);
 
 	void SetupList();
 	void EnsureVisible(POSITION pos);
@@ -53,11 +58,6 @@ private:
 	CPoint m_ptDropPoint;
 
 	void DropItemOnList();
-
-	CStringA m_strTipTextA;
-	CStringW m_strTipTextW;
-
-	CString StripPath(CString path);
 
 public:
 	CPlayerPlaylistBar();
@@ -75,13 +75,21 @@ public:
 	CString GetCur();
 	void SetNext(), SetPrev(), SetFirst(), SetLast();
 	void SetCurValid(bool fValid);
-
-	void Empty();
-	void Open(CStringList& fns, bool fMulti, CStringList* subs = NULL);
-	void Append(CStringList& fns, bool fMulti, CStringList* subs = NULL);
-
-	void SetTime(int nItem, REFERENCE_TIME rt);
 	void SetCurTime(REFERENCE_TIME rt);
+
+	void Refresh();
+	void Empty();
+
+	void Open(CList<CString>& fns, bool fMulti, CList<CString>* subs = NULL);
+	void Append(CList<CString>& fns, bool fMulti, CList<CString>* subs = NULL);
+
+	void Open(CStringW vdn, CStringW adn, int vinput, int vchannel, int ainput);
+	void Append(CStringW vdn, CStringW adn, int vinput, int vchannel, int ainput);
+
+	OpenMediaData* GetCurOMD(REFERENCE_TIME rtStart = 0);
+
+	void LoadPlaylist();
+	void SavePlaylist();
 
 protected:
 	virtual BOOL PreCreateWindow(CREATESTRUCT& cs);
@@ -92,9 +100,6 @@ protected:
 public:
 	afx_msg void OnSize(UINT nType, int cx, int cy);
 	afx_msg void OnLvnKeyDown(NMHDR* pNMHDR, LRESULT* pResult);
-	afx_msg void OnBeginlabeleditList(NMHDR* pNMHDR, LRESULT* pResult);
-	afx_msg void OnDolabeleditList(NMHDR* pNMHDR, LRESULT* pResult);
-	afx_msg void OnEndlabeleditList(NMHDR* pNMHDR, LRESULT* pResult);
 	afx_msg void OnNMDblclkList(NMHDR* pNMHDR, LRESULT* pResult);
 	afx_msg void OnLvnKeydownList(NMHDR* pNMHDR, LRESULT* pResult);
 //	afx_msg void OnCustomdrawList(NMHDR* pNMHDR, LRESULT* pResult);
@@ -108,4 +113,5 @@ public:
 	afx_msg BOOL OnToolTipNotify(UINT id, NMHDR* pNMHDR, LRESULT* pResult);
 	afx_msg void OnTimer(UINT nIDEvent);
 	afx_msg void OnContextMenu(CWnd* /*pWnd*/, CPoint /*point*/);
+	afx_msg void OnLvnEndlabeleditList(NMHDR* pNMHDR, LRESULT* pResult);
 };

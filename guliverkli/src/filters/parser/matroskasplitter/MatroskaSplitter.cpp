@@ -310,7 +310,7 @@ HRESULT CMatroskaSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 						|| mts[i].formattype == FORMAT_VideoInfo2
 						|| mts[i].formattype == FORMAT_MPEG2Video)
 						{
-							((VIDEOINFOHEADER*)mt.Format())->AvgTimePerFrame = AvgTimePerFrame;
+							((VIDEOINFOHEADER*)mts[i].Format())->AvgTimePerFrame = AvgTimePerFrame;
 						}
 					}
 				}

@@ -281,7 +281,7 @@ class CMPlayerCApp : public CWinApp
 {
 	ATL::CMutex m_mutexOneInstance;
 
-	CStringList m_cmdln;
+	CList<CString> m_cmdln;
 	void PreProcessCommandLine();
 	void SendCommandLine(HWND hWnd);
 
@@ -294,6 +294,8 @@ public:
 	bool StoreSettingsToRegistry();
 	CString GetIniPath();
 	bool IsIniValid();
+
+	bool GetAppDataPath(CString& path);
 
 // Overrides
 	// ClassWizard generated virtual function overrides
@@ -324,13 +326,13 @@ public:
 	public:
 		// cmdline params
 		int nCLSwitches;
-		CStringList slFiles, slDubs, slSubs, slFilters;
+		CList<CString> slFiles, slDubs, slSubs, slFilters;
 		__int64 rtStart;
 		CSize fixedWindowSize;
 		bool HasFixedWindowSize() {return fixedWindowSize.cx > 0 || fixedWindowSize.cy > 0;}
 		// int iFixedWidth, iFixedHeight;
 
-		void ParseCommandLine(CStringList& cmdln);
+		void ParseCommandLine(CList<CString>& cmdln);
 
 		bool fXpOrBetter;
 		int iDXVer;
@@ -460,8 +462,8 @@ public:
 		virtual ~Settings();
 		void UpdateData(bool fSave);
 
-		void GetFav(favtype ft, CStringList& sl);
-		void SetFav(favtype ft, CStringList& sl);
+		void GetFav(favtype ft, CList<CString>& sl);
+		void SetFav(favtype ft, CList<CString>& sl);
 		void AddFav(favtype ft, CString s);
 	} m_s;
 

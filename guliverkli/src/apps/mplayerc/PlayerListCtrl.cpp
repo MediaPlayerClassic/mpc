@@ -129,7 +129,7 @@ int CInPlaceEdit::OnCreate(LPCREATESTRUCT lpCreateStruct)
 
 // CInPlaceComboBox
 
-CInPlaceComboBox::CInPlaceComboBox(int iItem, int iSubItem, CStringList& lstItems, int nSel)
+CInPlaceComboBox::CInPlaceComboBox(int iItem, int iSubItem, CList<CString>& lstItems, int nSel)
 {
 	m_iItem = iItem;
 	m_iSubItem = iSubItem;
@@ -237,7 +237,7 @@ void CInPlaceComboBox::OnCloseup()
 
 // CInPlaceListBox
 
-CInPlaceListBox::CInPlaceListBox(int iItem, int iSubItem, CStringList& lstItems, int nSel)
+CInPlaceListBox::CInPlaceListBox(int iItem, int iSubItem, CList<CString>& lstItems, int nSel)
 {
 	m_iItem = iItem;
 	m_iSubItem = iSubItem;
@@ -574,7 +574,7 @@ CEdit* CPlayerListCtrl::ShowInPlaceEdit(int nItem, int nCol)
 	return pEdit;
 }
 
-CComboBox* CPlayerListCtrl::ShowInPlaceComboBox(int nItem, int nCol, CStringList& lstItems, int nSel)
+CComboBox* CPlayerListCtrl::ShowInPlaceComboBox(int nItem, int nCol, CList<CString>& lstItems, int nSel)
 {
 	CRect rect;
 	if(!PrepareInPlaceControl(nItem, nCol, rect))
@@ -596,7 +596,7 @@ CComboBox* CPlayerListCtrl::ShowInPlaceComboBox(int nItem, int nCol, CStringList
 	return pComboBox;
 }
 
-CListBox* CPlayerListCtrl::ShowInPlaceListBox(int nItem, int nCol, CStringList& lstItems, int nSel)
+CListBox* CPlayerListCtrl::ShowInPlaceListBox(int nItem, int nCol, CList<CString>& lstItems, int nSel)
 {
 	CRect rect;
 	if(!PrepareInPlaceControl(nItem, nCol, rect))

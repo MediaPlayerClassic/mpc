@@ -893,13 +893,6 @@ void CPlayerCaptureDialog::SetupVideoControls(
 
 	if(m_pAMTuner = pAMTuner)
 	{
-		if(!DisplayName.IsEmpty()) // load saved channel
-		{
-			long lChannel = AfxGetApp()->GetProfileInt(_T("Capture\\") + CString(DisplayName), _T("Channel"), -1);
-			if(lChannel >= 0)
-				m_pAMTuner->put_Channel(lChannel, AMTUNER_SUBCHAN_DEFAULT, AMTUNER_SUBCHAN_DEFAULT);
-		}
-
 		// TODO:...
 	}
 
@@ -1014,12 +1007,7 @@ void CPlayerCaptureDialog::SetupAudioControls(
 		for(int i = 0; i < (int)m_pAMAIM.GetCount(); i++)
 		{
 			CComQIPtr<IPin> pPin = m_pAMAIM[i];
-			CPinInfo pi;
-			if(!pPin || FAILED(pPin->QueryPinInfo(&pi)))
-				break;
-
-			int j = m_audinput.AddString(CString(pi.achName));
-			m_audinput.SetItemData(j, (DWORD_PTR)i);
+			m_audinput.SetItemData(m_audinput.AddString(CString(GetPinName(pPin))), (DWORD_PTR)i);
 
 			BOOL fEnable;
 			if(SUCCEEDED(m_pAMAIM[i]->get_Enable(&fEnable)) && fEnable)
@@ -1081,6 +1069,67 @@ bool CPlayerCaptureDialog::IsTunerActive()
 	return(m_pAMXB
 		&& SUCCEEDED(m_pAMXB->get_CrossbarPinInfo(TRUE, iSel, &PinIndexRelated, &PhysicalType))
 		&& PhysicalType == PhysConn_Video_Tuner);
+}
+
+bool CPlayerCaptureDialog::SetVideoInput(int input)
+{
+	if(!m_pAMXB || input < 0) return false;
+
+	for(int i = 0; i < m_vidinput.GetCount(); i++)
+	{
+		if(m_vidinput.GetItemData(i) == input)
+		{
+			m_vidinput.SetCurSel(i);
+			OnVideoInput();
+			return true;
+		}
+	}
+
+	return false;
+}
+
+bool CPlayerCaptureDialog::SetVideoChannel(int channel)
+{
+	if(!m_pAMTuner || channel < 0) return false;
+
+	return SUCCEEDED(m_pAMTuner->put_Channel(channel, AMTUNER_SUBCHAN_DEFAULT, AMTUNER_SUBCHAN_DEFAULT));
+}
+
+bool CPlayerCaptureDialog::SetAudioInput(int input)
+{
+	if(input < 0) return false;
+
+	for(int i = 0; i < m_audinput.GetCount(); i++)
+	{
+		if(m_audinput.GetItemData(i) == input)
+		{
+			m_audinput.SetCurSel(i);
+			OnAudioInput();
+			return true;
+		}
+	}
+
+	return false;
+}
+
+int CPlayerCaptureDialog::GetVideoInput()
+{
+	int i = m_vidinput.GetCurSel();
+	if(i < 0) return -1;
+	return m_vidinput.GetItemData(i);
+}
+
+int CPlayerCaptureDialog::GetVideoChannel()
+{
+	long lChannel, lVivSub, lAudSub;
+	return m_pAMTuner && SUCCEEDED(m_pAMTuner->get_Channel(&lChannel, &lVivSub, &lAudSub)) ? lChannel : -1;
+}
+
+int CPlayerCaptureDialog::GetAudioInput()
+{
+	int i = m_audinput.GetCurSel();
+	if(i < 0) return -1;
+	return m_audinput.GetItemData(i);
 }
 
 BEGIN_MESSAGE_MAP(CPlayerCaptureDialog, CDialog)

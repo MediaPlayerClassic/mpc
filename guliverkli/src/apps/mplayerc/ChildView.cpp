@@ -201,7 +201,7 @@ BOOL CChildView::OnEraseBkgnd(CDC* pDC)
 	{
 		pDC->ExcludeClipRect(m_vrect);
 	}
-	else if(!m_logo.IsNull() && ((CMainFrame*)GetParentFrame())->IsPlaylistEmpty())
+	else if(!m_logo.IsNull() /*&& ((CMainFrame*)GetParentFrame())->IsPlaylistEmpty()*/)
 	{
 		BITMAP bm;
 		GetObject(m_logo, sizeof(bm), &bm);

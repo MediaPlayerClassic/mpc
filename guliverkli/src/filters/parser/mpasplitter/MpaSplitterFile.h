@@ -28,13 +28,17 @@ class CMpaSplitterFile : public CBaseSplitterFileEx
 	CMediaType m_mt;
 	REFERENCE_TIME m_rtDuration;
 
-	mpahdr m_firsthdr;
+	enum {none, mpa, mp4a} m_mode;
+
+	mpahdr m_mpahdr;
+	aachdr m_aachdr;
 	__int64 m_startpos, m_endpos;
 
 	__int64 m_totalbps;
 	CRBMap<__int64, int> m_pos2bps;
 
 	HRESULT Init();
+	void AdjustDuration(int nBytesPerSec);
 
 public:
 	CMpaSplitterFile(IAsyncReader* pAsyncReader, HRESULT& hr);
@@ -47,5 +51,6 @@ public:
 	__int64 GetStartPos() {return m_startpos;}
 	__int64 GetEndPos() {return m_endpos;}
 
-	bool Sync(mpahdr& h, int limit = 0x2000);
+	bool Sync(int limit = 0x2000);
+	bool Sync(int& FrameSize, REFERENCE_TIME& rtDuration, int limit = 0x2000);
 };

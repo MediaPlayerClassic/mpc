@@ -76,8 +76,8 @@ public:
 	bool HasDiscKey(BYTE* key);
 	bool HasTitleKey(BYTE* key);
 
-	bool Open(CString fn, CStringList& files /* out */); // vts ifo
-	bool Open(CStringList& files, int offset = -1); // vts vobs, video vob offset in lba
+	bool Open(CString fn, CList<CString>& files /* out */); // vts ifo
+	bool Open(CList<CString>& files, int offset = -1); // vts vobs, video vob offset in lba
 	void Close();
 
 	int GetLength();

@@ -55,7 +55,10 @@ public:
 	bool FindExt(CString ext) {return m_exts.Find(ext.TrimLeft(_T(".")).MakeLower()) != NULL;}
 
 	CString GetLabel() {return m_label;}
-	CString GetFilter(), GetExts(bool fAppendEngine = false), GetExtsWithPeriod(bool fAppendEngine = false);
+	CString GetFilter();
+	CString GetExts(bool fAppendEngine = false);
+	CString GetExtsWithPeriod(bool fAppendEngine = false);
+	CString GetBackupExtsWithPeriod(bool fAppendEngine = false);
 	CString GetSpecReqNote() {return m_specreqnote;}
 	bool IsAudioOnly() {return m_fAudioOnly;}
 	engine_t GetEngineType() {return m_engine;}
