@@ -139,7 +139,7 @@ HRESULT CDSMSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 
 		CAutoPtr<CBaseSplitterOutputPin> pPinOut(new CBaseSplitterOutputPin(mts, name, this, this, &hr));
 	
-		POSITION pos = m_pFile->m_sim[id].GetStartPosition();
+		pos = m_pFile->m_sim[id].GetStartPosition();
 		while(pos)
 		{
 			CStringA key; CStringW value;
@@ -150,11 +150,19 @@ HRESULT CDSMSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 		EXECUTE_ASSERT(SUCCEEDED(AddOutputPin(id, pPinOut)));
 	}
 
-	SetMediaContentStr(CStringW(m_pFile->m_fim["TITL"]), Title);
-	SetMediaContentStr(CStringW(m_pFile->m_fim["AUTH"]), AuthorName);
-	SetMediaContentStr(CStringW(m_pFile->m_fim["RTNG"]), Rating);
-	SetMediaContentStr(CStringW(m_pFile->m_fim["CPYR"]), Copyright);
-	SetMediaContentStr(CStringW(m_pFile->m_fim["DESC"]), Description);
+	pos = m_pFile->m_fim.GetStartPosition();
+	while(pos)
+	{
+		CStringA key; CStringW value;
+		m_pFile->m_fim.GetNextAssoc(pos, key, value);
+		SetProperty(CStringW(key), value);
+	}
+
+	SetMediaContentStr(m_pFile->m_fim["TITL"], Title);
+	SetMediaContentStr(m_pFile->m_fim["AUTH"], AuthorName);
+	SetMediaContentStr(m_pFile->m_fim["RTNG"], Rating);
+	SetMediaContentStr(m_pFile->m_fim["CPYR"], Copyright);
+	SetMediaContentStr(m_pFile->m_fim["DESC"], Description);
 
 	return m_pOutputs.GetCount() > 0 ? S_OK : E_FAIL;
 }

@@ -93,6 +93,12 @@ HRESULT CDSMSplitterFile::Init()
 		}
 	}
 
+	if(m_rtFirst < 0)
+	{
+		m_rtDuration += m_rtFirst;
+		m_rtFirst = 0;
+	}
+
 	return m_mts.GetCount() > 0 ? S_OK : E_FAIL;
 }
 
