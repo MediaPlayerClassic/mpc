@@ -459,7 +459,7 @@ void CConvertDlg::ShowChapterFolderPopup(HTREEITEM hTI, CPoint p)
 	{
 	case 1:
 		// TODO
-		AfxMessageBox(_T("To be implemented, sorry for the inconvinience ;)"), MB_OK);
+		AfxMessageBox(_T("To be implemented, sorry for the inconvenience ;)"), MB_OK);
 		break;
 	case 2:
 		DeleteChildren(hTI);
@@ -487,6 +487,7 @@ void CConvertDlg::ShowChapterPopup(HTREEITEM hTI, CPoint p)
 		break;
 	case 2:
 		// TODO
+		AfxMessageBox(_T("To be implemented, sorry for the inconvenience ;)"), MB_OK);
 		break;
 	}
 }
@@ -533,7 +534,7 @@ BOOL CConvertDlg::OnInitDialog()
 	m_nIDEventStatus = SetTimer(1, 1000, NULL);
 
 	HRESULT hr;
-	m_pMux = new CDSMMuxerFilter(NULL, &hr, true /* FIXME */, false);
+	m_pMux = new CDSMMuxerFilter(NULL, &hr, false, false);
 
 	if(FAILED(m_pCGB.CoCreateInstance(CLSID_CaptureGraphBuilder2))
 	|| FAILED(m_pGB.CoCreateInstance(CLSID_FilterGraph))
