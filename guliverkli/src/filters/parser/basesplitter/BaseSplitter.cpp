@@ -1002,6 +1002,8 @@ HRESULT CBaseSplitterFilter::CompleteConnect(PIN_DIRECTION dir, CBasePin* pPin)
 		|| FAILED(hr = CreateOutputs(pAsyncReader)))
 			return hr;
 
+		ChapSort();
+
 		m_pSyncReader = pAsyncReader;
 	}
 	else if(dir == PINDIR_OUTPUT)
@@ -1095,6 +1097,8 @@ STDMETHODIMP CBaseSplitterFilter::Load(LPCOLESTR pszFileName, const AM_MEDIA_TYP
 	|| FAILED(hr = DeleteOutputs())
 	|| FAILED(hr = CreateOutputs(pAsyncReader)))
 		return hr;
+
+	ChapSort();
 
 	m_fn = pszFileName;
 	m_pSyncReader = pAsyncReader;

@@ -105,10 +105,8 @@ HRESULT CDSMSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 
 	HRESULT hr = E_FAIL;
 
-	m_resources.RemoveAll();
-
 	m_pFile.Free();
-	m_pFile.Attach(new CDSMSplitterFile(pAsyncReader, hr, m_resources));
+	m_pFile.Attach(new CDSMSplitterFile(pAsyncReader, hr, *this, *this));
 	if(!m_pFile) return E_OUTOFMEMORY;
 	if(FAILED(hr)) {m_pFile.Free(); return hr;}
 
@@ -225,46 +223,6 @@ bool CDSMSplitterFilter::DemuxLoop()
 	}
 
 	return(true);
-}
-
-// IAMExtendedSeeking
-
-STDMETHODIMP CDSMSplitterFilter::get_MarkerCount(long* pMarkerCount)
-{
-	CheckPointer(pMarkerCount, E_POINTER);
-	CheckPointer(m_pFile, E_UNEXPECTED);
-	*pMarkerCount = m_pFile->m_cs.GetCount();
-	return S_OK;
-}
-
-STDMETHODIMP CDSMSplitterFilter::get_CurrentMarker(long* pCurrentMarker)
-{
-	CheckPointer(pCurrentMarker, E_POINTER);
-	CheckPointer(m_pFile, E_UNEXPECTED);
-	int i = range_bsearch(m_pFile->m_cs, m_rtCurrent);
-	if(i < 0) return E_FAIL;
-	*pCurrentMarker = (long)i+1;
-	return S_OK;
-}
-
-STDMETHODIMP CDSMSplitterFilter::GetMarkerTime(long MarkerNum, double* pMarkerTime)
-{
-	CheckPointer(pMarkerTime, E_POINTER);
-	CheckPointer(m_pFile, E_UNEXPECTED);
-	MarkerNum--;
-	if(MarkerNum < 0 || MarkerNum >= m_pFile->m_cs.GetCount()) return E_INVALIDARG;
-	*pMarkerTime = 1.0 * m_pFile->m_cs[MarkerNum].rt / 10000000;
-	return S_OK;
-}
-
-STDMETHODIMP CDSMSplitterFilter::GetMarkerName(long MarkerNum, BSTR* pbstrMarkerName)
-{
-	CheckPointer(pbstrMarkerName, E_POINTER);
-	CheckPointer(m_pFile, E_UNEXPECTED);
-	MarkerNum--;
-	if(MarkerNum < 0 || MarkerNum >= m_pFile->m_cs.GetCount()) return E_INVALIDARG;
-	*pbstrMarkerName = m_pFile->m_cs[MarkerNum].name.AllocSysString();
-	return *pbstrMarkerName ? S_OK : E_FAIL;
 }
 
 // IKeyFrameInfo

@@ -42,13 +42,6 @@ public:
 	CDSMSplitterFilter(LPUNKNOWN pUnk, HRESULT* phr);
 	virtual ~CDSMSplitterFilter();
 
-	// IAMExtendedSeeking
-
-	STDMETHODIMP get_MarkerCount(long* pMarkerCount);
-	STDMETHODIMP get_CurrentMarker(long* pCurrentMarker);
-	STDMETHODIMP GetMarkerTime(long MarkerNum, double* pMarkerTime);
-	STDMETHODIMP GetMarkerName(long MarkerNum, BSTR* pbstrMarkerName);
-
 	// IKeyFrameInfo
 
 	STDMETHODIMP_(HRESULT) GetKeyFrameCount(UINT& nKFs);
