@@ -972,7 +972,13 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath=".\WebClientSocket.cpp">
+			</File>
+			<File
 				RelativePath=".\WebServer.cpp">
+			</File>
+			<File
+				RelativePath=".\WebServerSocket.cpp">
 			</File>
 		</Filter>
 		<Filter
@@ -1600,7 +1606,13 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath=".\WebClientSocket.h">
+			</File>
+			<File
 				RelativePath=".\WebServer.h">
+			</File>
+			<File
+				RelativePath=".\WebServerSocket.h">
 			</File>
 		</Filter>
 		<Filter

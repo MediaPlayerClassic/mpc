@@ -273,6 +273,7 @@ class CMainFrame : public CFrameWnd, public CDropTarget
 
 	//
 
+	friend class CWebClientSocket;
 	friend class CWebServer;
 	CAutoPtr<CWebServer> m_pWebServer;
 

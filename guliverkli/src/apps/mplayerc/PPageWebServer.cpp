@@ -26,6 +26,7 @@
 #include "mplayerc.h"
 #include "MainFrm.h"
 #include "PPageWebServer.h"
+#include ".\ppagewebserver.h"
 
 // CPPageWebServer dialog
 
@@ -37,6 +38,8 @@ CPPageWebServer::CPPageWebServer()
 	, m_launch(_T("http://localhost:13579/"))
 	, m_fWebServerPrintDebugInfo(FALSE)
 	, m_fWebServerUseCompression(FALSE)
+	, m_fWebRoot(FALSE)
+	, m_WebRoot(_T(""))
 {
 }
 
@@ -53,6 +56,8 @@ void CPPageWebServer::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_STATIC1, m_launch);
 	DDX_Check(pDX, IDC_CHECK2, m_fWebServerPrintDebugInfo);
 	DDX_Check(pDX, IDC_CHECK3, m_fWebServerUseCompression);
+	DDX_Check(pDX, IDC_CHECK4, m_fWebRoot);
+	DDX_Text(pDX, IDC_EDIT2, m_WebRoot);
 }
 
 BOOL CPPageWebServer::PreTranslateMessage(MSG* pMsg)
@@ -89,6 +94,9 @@ BOOL CPPageWebServer::OnInitDialog()
 	m_nWebServerPort = s.nWebServerPort;
 	m_fWebServerPrintDebugInfo = s.fWebServerPrintDebugInfo;
 	m_fWebServerUseCompression = s.fWebServerUseCompression;
+	m_fWebRoot = s.WebRoot.Find('*') < 0;
+	m_WebRoot = s.WebRoot;
+	m_WebRoot.TrimLeft(_T("*"));
 
 	UpdateData(FALSE);
 
@@ -104,11 +112,22 @@ BOOL CPPageWebServer::OnApply()
 
 	AppSettings& s = AfxGetAppSettings();
 
+	CString NewWebRoot = m_WebRoot;
+	if(!m_fWebRoot) NewWebRoot = _T("*") + NewWebRoot;
+
+	bool fRestart = s.nWebServerPort != m_nWebServerPort || s.WebRoot != NewWebRoot;
+
+	s.fEnableWebServer = !!m_fEnableWebServer;
+	s.nWebServerPort = m_nWebServerPort;
+	s.fWebServerPrintDebugInfo = !!m_fWebServerPrintDebugInfo;
+	s.fWebServerUseCompression = !!m_fWebServerUseCompression;
+	s.WebRoot = NewWebRoot;
+
 	if(CMainFrame* pWnd = (CMainFrame*)AfxGetMainWnd())
 	{
 		if(m_fEnableWebServer)
 		{
-			if(s.nWebServerPort != m_nWebServerPort) pWnd->StopWebServer(); // force restart, even if it already running
+			if(fRestart) pWnd->StopWebServer();
 			pWnd->StartWebServer(m_nWebServerPort);
 		}
 		else
@@ -117,16 +136,67 @@ BOOL CPPageWebServer::OnApply()
 		}
 	}
 
-	s.fEnableWebServer = !!m_fEnableWebServer;
-	s.nWebServerPort = m_nWebServerPort;
-	s.fWebServerPrintDebugInfo = !!m_fWebServerPrintDebugInfo;
-	s.fWebServerUseCompression = !!m_fWebServerUseCompression;
-
 	return __super::OnApply();
+}
+
+CString CPPageWebServer::GetMPCDir()
+{
+	CString dir;
+	GetModuleFileName(AfxGetInstanceHandle(), dir.GetBuffer(MAX_PATH), MAX_PATH);
+	dir.ReleaseBuffer();
+	CPath path(dir);
+	path.RemoveFileSpec();
+	return (LPCTSTR)path;
+}
+
+CString CPPageWebServer::GetCurWebRoot()
+{
+	CString WebRoot;
+	GetDlgItem(IDC_EDIT2)->GetWindowText(WebRoot);
+	WebRoot.Replace('/', '\\');
+
+	CPath path;
+	path.Combine(GetMPCDir(), WebRoot);
+	return path.IsDirectory() ? (LPCTSTR)path : _T("");
+}
+
+static int __stdcall BrowseCtrlCallback(HWND hwnd, UINT uMsg, LPARAM lParam, LPARAM lpData)
+{
+  if(uMsg == BFFM_INITIALIZED && lpData)
+	  ::SendMessage(hwnd, BFFM_SETSELECTION, TRUE, lpData);
+  return 0;
+}
+
+bool CPPageWebServer::PickDir(CString& dir)
+{
+	TCHAR buff[MAX_PATH];
+
+	BROWSEINFO bi;
+	bi.hwndOwner = m_hWnd;
+	bi.pidlRoot = NULL;
+	bi.pszDisplayName = buff;
+	bi.lpszTitle = _T("Select the directory");
+	bi.ulFlags = BIF_RETURNONLYFSDIRS | BIF_VALIDATE | BIF_USENEWUI;
+	bi.lpfn = BrowseCtrlCallback;
+	bi.lParam = (LPARAM)(LPCTSTR)dir;
+	bi.iImage = 0; 
+
+	LPITEMIDLIST iil;
+	if(iil = SHBrowseForFolder(&bi))
+	{
+		SHGetPathFromIDList(iil, buff);
+		dir = buff;
+		return true;
+	}
+
+	return false;
 }
 
 BEGIN_MESSAGE_MAP(CPPageWebServer, CPPageBase)
 	ON_EN_CHANGE(IDC_EDIT1, OnEnChangeEdit1)
+	ON_BN_CLICKED(IDC_BUTTON1, OnBnClickedButton1)
+	ON_BN_CLICKED(IDC_BUTTON2, OnBnClickedButton2)
+	ON_UPDATE_COMMAND_UI(IDC_BUTTON1, OnUpdateButton2)
 END_MESSAGE_MAP()
 
 
@@ -142,4 +212,52 @@ void CPPageWebServer::OnEnChangeEdit1()
 	m_launch.m_link = link;
 
 	SetModified();
+}
+
+void CPPageWebServer::OnBnClickedButton1()
+{
+	CString dir = GetCurWebRoot();
+	if(PickDir(dir))
+	{
+		CPath path;
+		if(path.RelativePathTo(GetMPCDir(), FILE_ATTRIBUTE_DIRECTORY, dir, FILE_ATTRIBUTE_DIRECTORY))
+			dir = (LPCTSTR)path;
+		m_WebRoot = dir;
+		UpdateData(FALSE);
+	}
+}
+
+static void PutFileContents(LPCTSTR fn, const CStringA& data)
+{
+	if(FILE* f = _tfopen(fn, _T("wb")))
+	{
+		fwrite((LPCSTR)data, 1, data.GetLength(), f);
+		fclose(f);
+	}
+}
+
+void CPPageWebServer::OnBnClickedButton2()
+{
+	CString dir;
+	if(PickDir(dir))
+	{
+		dir += _T("\\");
+		CStringA data;
+		if(LoadResource(IDR_HTML_INDEX, data, RT_HTML)) PutFileContents(dir + _T("index.html"), data);
+		if(LoadResource(IDR_HTML_BROWSER, data, RT_HTML)) PutFileContents(dir + _T("browser.html"), data);
+		if(LoadResource(IDR_HTML_CONTROLS, data, RT_HTML)) PutFileContents(dir + _T("controls.html"), data);
+		if(LoadResource(IDR_HTML_404, data, RT_HTML)) PutFileContents(dir + _T("404.html"), data);
+		if(LoadResource(IDF_DEFAULT_CSS, data, _T("FILE"))) PutFileContents(dir + _T("default.css"), data);
+		if(LoadResource(IDF_VBR_GIF, data, _T("FILE"))) PutFileContents(dir + _T("vbg.gif"), data);
+		if(LoadResource(IDF_VBS_GIF, data, _T("FILE"))) PutFileContents(dir + _T("vbs.gif"), data);
+		if(LoadResource(IDF_SLIDERBAR_GIF, data, _T("FILE"))) PutFileContents(dir + _T("sliderbar.gif"), data);
+		if(LoadResource(IDF_SLIDERGRIP_GIF, data, _T("FILE"))) PutFileContents(dir + _T("slidergrip.gif"), data);
+		if(LoadResource(IDF_SLIDERBACK_GIF, data, _T("FILE"))) PutFileContents(dir + _T("sliderback.gif"), data);
+		if(LoadResource(IDF_1PIX_GIF, data, _T("FILE"))) PutFileContents(dir + _T("1pix.gif"), data);
+	}
+}
+
+void CPPageWebServer::OnUpdateButton2(CCmdUI* pCmdUI)
+{
+	pCmdUI->Enable(GetDlgItem(IDC_EDIT2)->GetWindowTextLength() > 0);
 }
