@@ -1979,7 +1979,7 @@ HRESULT CRealVideoDecoder::Receive(IMediaSample* pIn)
 		m_pOutput->SetMediaType(&mt);
 		DeleteMediaType(pmt);
 	}
-
+/*
 CMediaType mt = m_pOutput->CurrentMediaType();
 VIDEOINFOHEADER* vih = (VIDEOINFOHEADER*)mt.Format();
 if(vih->rcSource.right != transform_out.w || vih->rcSource.bottom != transform_out.h)
@@ -1990,7 +1990,7 @@ vih->rcTarget.right = ((VIDEOINFOHEADER*)m_pInput->CurrentMediaType().Format())-
 vih->rcTarget.bottom = ((VIDEOINFOHEADER*)m_pInput->CurrentMediaType().Format())->bmiHeader.biHeight;
 pOut->SetMediaType(&mt);
 }
-
+*/
 	rtStart = 10000i64*transform_out.timestamp - m_tStart;
 	rtStop = rtStart + 1;
 	pOut->SetTime(&rtStart, /*NULL*/&rtStop);
