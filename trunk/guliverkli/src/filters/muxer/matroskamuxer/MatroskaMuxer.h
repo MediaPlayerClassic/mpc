@@ -84,7 +84,7 @@ public:
 };
 
 [uuid("1E1299A2-9D42-4F12-8791-D79E376F4143")]
-class CMatroskaMuxerFilter 
+class CMatroskaMuxerFilter
 	: public CBaseFilter
 	, public CCritSec
 	, public CAMThread
