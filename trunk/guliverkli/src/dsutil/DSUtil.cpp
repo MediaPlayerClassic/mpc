@@ -835,6 +835,10 @@ cdrom_t GetCDROMType(TCHAR drive, CStringList& files)
 		FindFiles(path + _T("\\mpegav\\avseq??.mpg"), files);
 		FindFiles(path + _T("\\mpeg2\\avseq??.dat"), files);
 		FindFiles(path + _T("\\mpeg2\\avseq??.mpg"), files);
+		FindFiles(path + _T("\\mpegav\\music??.dat"), files);
+		FindFiles(path + _T("\\mpegav\\music??.mpg"), files);
+		FindFiles(path + _T("\\mpeg2\\music??.dat"), files);
+		FindFiles(path + _T("\\mpeg2\\music??.mpg"), files);
 		if(files.GetCount() > 0) return CDROM_VideoCD;
 
 		// CDROM_Audio
