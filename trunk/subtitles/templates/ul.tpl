@@ -4,9 +4,15 @@
 
 {if empty($file)}
 <div class="warning">
-	Warning: You are trying to upload subtitles without binding them to their appropriate movie files,
+	Warning:<br>You are trying to upload subtitles without binding them to their appropriate movie files,
 	please use <a href="http://sf.net/projects/guliverkli/" target="_blank">Media Player Classic</a> (v6483+)
 	to launch this page!
+</div>
+{/if}
+
+{if $user.userid <= 0}
+<div class="warning">
+	Warning:<br>You are not signed in, anonymous uploads can't be managed later!
 </div>
 {/if}
 
@@ -45,22 +51,6 @@
 	</div>
 	{/if}
 	
-	<h1>Uploader</h1>
-
-	<table>
-
-	<tr class="required{if isset($err.nick)} invalid{/if}">
-		<th>Nick name</th>
-		<td><input class="text" type="text" name="nick" value="{$nick|escape:"quotes"}" /></td>
-	</tr>
-
-	<tr class="optional{if isset($err.email)} invalid{/if}">
-		<th>Email address</th>
-		<td><input class="text" type="text" name="email" value="{$email|escape:"quotes"}" /></td>
-	</tr>
-
-	</table>
-
 	{foreach from=$subs item=n}
 	<h1><a href="javascript:void(0)" onclick="flip('sub{$n}')">Subtitle #{$n+1}</a></h1>
 	<div class="{if $n == 0 || $isolang_sel[$n] != "" || $format_sel[$n] != "" || !empty($discs[$n]) || !empty($disc_no[$n]) || !empty($file_sel[$n]) || $notes[$n] != ""}shown{else}hidden{/if}" id="sub{$n}">

@@ -1,9 +1,9 @@
 <?php
 
+session_start();
+
 require '../include/MySmarty.class.php';
 require '../include/DataBase.php';
-
-$db = new SubtitlesDB();
 
 $http_host = split(':', $_SERVER['HTTP_HOST']);
 $db_host = addslashes($http_host[0]);

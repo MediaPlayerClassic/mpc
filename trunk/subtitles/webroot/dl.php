@@ -1,9 +1,9 @@
 <?php
 
+session_start();
+
 require '../include/MySmarty.class.php';
 require '../include/DataBase.php';
-
-session_start();
 
 if(empty($_GET['id']) 
 || empty($_GET['ticket']) || empty($_SESSION['ticket'])
@@ -13,9 +13,13 @@ if(empty($_GET['id'])
 $db = new SubtitlesDB();
 
 $id = intval($_GET['id']);
-$db->query("select hash, name, mime from subtitle where id = $id");
+$db->query(
+	"select t1.name, t2.id, t2.hash, t2.mime from movie_subtitle t1 ".
+	"join subtitle t2 on t1.subtitle_id = t2.id ".
+	"where t1.id = $id ");
 if(!($row = $db->fetchRow())) error404();
 
+$id = $row['id'];
 $hash = $row['hash'];
 $name = $row['name'];
 $mime = $row['mime'];

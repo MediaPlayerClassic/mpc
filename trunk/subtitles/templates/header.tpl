@@ -21,8 +21,12 @@
 	<li><a href="index.php" title="Search">Search</a></li>
 	<li><a href="ul.php" title="Upload">Upload</a></li>
 	<li><a href="mirrors.php" title="Mirrors">Mirrors</a></li>
+	{if $user.userid > 0}<li><a href="signout.php" title="Sign out">Sign out ({$user.nick})</a></li>
+	{else}<li><a href="signin.php" title="Sign in">Sign in</a></li>{/if}
 </ul>
 
 </div>
+
+{*<form><input type="text" /></form>*}
 
 <div id="content">

@@ -274,7 +274,7 @@ void GSRendererHW::FlushPrim()
 		hr = m_pD3DDev->BeginScene();
 
 		scale_t scale((float)INTERNALRES / (m_ctxt->FRAME.FBW*64), (float)INTERNALRES / m_rs.GetSize(m_rs.IsEnabled(1)?1:0).cy);
-//scale.y /= 2;
+scale.y /= 2;
 //scale.x = scale.y = 1;
 
 		//////////////////////

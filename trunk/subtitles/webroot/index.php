@@ -1,13 +1,12 @@
 <?php
 
+session_start();
+
 require '../include/MySmarty.class.php';
 require '../include/DataBase.php';
 require '../include/isolang.inc';
 
-session_start();
-session_unset();
-
-$db = new SubtitlesDB();
+unset($_SESSION['ticket']);
 
 $text = getParam('text');
 $discs = max(0, intval(getParam('discs')));
@@ -30,7 +29,20 @@ for($i = 0; !empty($_GET['name'][$i])
 
 $smarty->assign('files', $files);
 
-if(!empty($files))
+if(isset($_GET['del']))
+{
+	$ms_id = intval($_GET['del']);
+	$succeeded = false;
+	
+	if($db->count("movie_subtitle where id = $ms_id && userid = {$db->userid} && userid") > 0)
+	{
+		$db->query("delete from movie_subtitle where id = $ms_id");
+		$succeeded = true;
+	}
+	
+	$smarty->assign('message', $succeeded ? 'Subtitle was removed successfully.' : 'Could not remove this subtitle!');
+}
+else if(!empty($files))
 {
 	foreach($files as $file)
 	{
@@ -59,7 +71,7 @@ else if(!empty($text))
 
 		$db->fetchAll(
 			"select * from movie ".
-			"where id in (select distinct movie_id from title where title like _utf8 '%$db_text%') ".
+			"where id in (select distinct movie_id from title where title like _utf8 '%$db_text%') ". // TODO: or id in (select distinct movie_id from movie_subtitle where name like _utf8 '%$db_text%')
 			"and id in (select distinct movie_id from movie_subtitle where subtitle_id in (select distinct id from subtitle)) ".
 			"limit 100 ",
 			$movies);
@@ -74,6 +86,8 @@ else if(!empty($text))
 
 if(!empty($movies))
 {
+	$users = array();
+
 	foreach($movies as $i => $movie)
 	{
 		$movies[$i]['titles'] = array();
@@ -86,24 +100,43 @@ if(!empty($movies))
 		$movies[$i]['subs'] = array();
 
 		$db->fetchAll(
-			"select t2.id, t2.discs, t2.disc_no, t2.name, t2.format, ".
-			" t2.iso639_2, t2.nick, t2.email, t2.date, t2.notes, t2.downloads ".
+			"select t1.id as ms_id, t1.name, t1.userid, t1.date, t1.notes, ".
+			" t2.id, t2.discs, t2.disc_no, t2.format, t2.iso639_2, t2.downloads ".
 			"from movie_subtitle t1 ".
 			"join subtitle t2 on t1.subtitle_id = t2.id ".
 			"where t1.movie_id = {$movie['id']} ".
 			(!empty($discs)?" && discs = '$discs' ":"").
 			(!empty($isolang_sel)?" && iso639_2 = '$isolang_sel' ":"").
 			(!empty($format_sel)?" && format = '$format_sel' ":"").
-			"order by t2.date desc, t2.disc_no asc ", 
+			"order by t1.date desc, t2.disc_no asc ", 
 			$movies[$i]['subs']);
 			
 		chkerr();
-
+		
 		foreach($movies[$i]['subs'] as $j => $sub)
 		{
 			$movies[$i]['updated'] = max(strtotime($sub['date']), isset($movies[$i]['updated']) ? $movies[$i]['updated'] : 0);
 			$movies[$i]['subs'][$j]['language'] = empty($isolang[$sub['iso639_2']]) ? 'Unknown' : $isolang[$sub['iso639_2']];
 			$movies[$i]['subs'][$j]['files'] = array();
+			
+			$userid = intval($sub['userid']);
+			
+			if(!isset($users[$userid]))
+			{
+				$db->query("select nick, email from user where userid = $userid");
+				if($row = $db->fetchRow()) $users[$userid] = $row;
+			}
+			
+			if(isset($users[$userid]))
+			{
+				$movies[$i]['subs'][$j]['nick'] = $users[$userid]['nick'];
+				$movies[$i]['subs'][$j]['email'] = $users[$userid]['email'];
+			}
+			else
+			{
+				$movies[$i]['subs'][$j]['nick'] = 'Anonymous';
+				$movies[$i]['subs'][$j]['email'] = '';
+			}
 
 			if($db->count("file_subtitle where subtitle_id = {$movies[$i]['subs'][$j]['id']} && file_id in (select id from file)") > 0)
 			{

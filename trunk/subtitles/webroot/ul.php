@@ -1,10 +1,10 @@
 <?php
 
+session_start();
+
 require '../include/MySmarty.class.php';
 require '../include/DataBase.php';
 require '../include/isolang.inc';
-
-session_start();
 
 if(isset($_GET['clearimdb']))
 {
@@ -34,7 +34,7 @@ if(!empty($_GET))
 	RedirAndExit($_SERVER['PHP_SELF']);
 }
 
-$db = new SubtitlesDB();
+//
 
 $maxtitles = 4;
 $maxsubs = 8;
@@ -178,15 +178,13 @@ if(isset($_POST['update']) || isset($_POST['submit']))
 	}
 	
 	if(empty($titles)) $_SESSION['err']['title'][0] = true;
-	if(empty($nick)) $_SESSION['err']['nick'] = true;
-	if(!empty($email) && !ereg('^[_a-z0-9-]+(\.[_a-z0-9-]+)*@[a-z0-9-]+(\.[a-z0-9-]{1,})*\.([a-z]{2,}){1}$', $email)) $_SESSION['err']['email'] = true;
 
 	$_SESSION['err']['nosub'] = true;
 
 	for($i = 0; $i < $maxsubs; $i++)
 	{
 		if(empty($_FILES['sub']['tmp_name'][$i])) continue;
-		
+
 		$format_sel = getParam('format_sel', $i);
 		$isolang_sel = getParam('isolang_sel', $i);
 		$discs = intval(getParam('discs', $i));
@@ -206,16 +204,13 @@ if(isset($_POST['update']) || isset($_POST['submit']))
 			unset($_SESSION['err']['nosub']);
 		}	
 	}
-	
+
 	if(!empty($_SESSION['err']) || isset($_POST['update']))
 	{
 		RedirAndExit($_SERVER['PHP_SELF']);
 	}
-	
-	//
 
-	$db_nick = addslashes($nick);
-	$db_email = addslashes($email);
+	//
 
 	$movie_id = storeMovie($imdb_id, $titles);
 	$files = array();
@@ -245,16 +240,18 @@ if(isset($_POST['update']) || isset($_POST['submit']))
 		else
 		{
 			$db->query(
-				"insert into subtitle (discs, disc_no, sub, name, hash, mime, format, iso639_2, nick, email, date, notes) ".
-				"values ($discs, $disc_no, '$db_sub', '$db_name', '$db_hash', '$db_mime', '$format_sel', '$isolang_sel', '$db_nick', '$db_email', NOW(), '$db_notes')");
-
+				"insert into subtitle (discs, disc_no, sub, hash, mime, format, iso639_2, notes) ".
+				"values ($discs, $disc_no, '$db_sub', '$db_hash', '$db_mime', '$format_sel', '$isolang_sel')");
+				
 			$subtitle_id = $db->fetchLastInsertId();
 		}
 
 		chkerr();
-		
+
 		if($db->count("movie_subtitle where movie_id = $movie_id && subtitle_id = $subtitle_id") == 0)
-			$db->query("insert into movie_subtitle (movie_id, subtitle_id) values($movie_id, $subtitle_id)");
+			$db->query(
+				"insert into movie_subtitle (movie_id, subtitle_id, name, userid, date, notes) ".
+				"values($movie_id, $subtitle_id, '$db_name', {$db->userid}, NOW(), '$db_notes') ");
 
 		chkerr();
 		
@@ -292,9 +289,15 @@ if(isset($_POST['update']) || isset($_POST['submit']))
 		$args = array();
 		foreach($files as $i => $file)
 			foreach($file as $param => $value)
-				$args[] .= "{$param}[$i]=$value";
+				$args[] .= "{$param}[$i]=".urlencode($value);
 		$redir = 'index.php?'.implode('&', $args);
 	}
+
+	// TODO: move all these under one struct
+	unset($_SESSION['POST']);
+	unset($_SESSION['file']);
+	unset($_SESSION['imdb_id']);
+	unset($_SESSION['imdb_titles']);	
 	
 	RedirAndExit($redir);
 }

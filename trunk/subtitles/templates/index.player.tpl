@@ -5,7 +5,7 @@ movie={foreach from=$m.titles item=t}{$t}|{/foreach}
 
 {foreach from=$m.subs item=s}
 {if !empty($s.files)}
-subtitle={$s.id}
+subtitle={$s.ms_id}
 name={$s.name}
 discs={$s.discs}
 disc_no={$s.disc_no}

@@ -269,7 +269,7 @@ class DB
       * @scope      public
       */
 	function query($sql)
-    {
+    {	
 		if(empty($this->dblink))
 		{	//check to see if there is an open connection. If not, create one.
 			$this->connect();
@@ -451,6 +451,8 @@ class DB
 
 require "pwd.inc";
 
+define('ONEYEAR', 60*60*24*365);
+
 class SubtitlesDB extends DB 
 {
 	/*
@@ -536,11 +538,51 @@ class SubtitlesDB extends DB
 	  KEY `title` (`title`)
 	) ENGINE=MyISAM DEFAULT CHARSET=utf8	
 	*/
+
+	var $userid = 0;
+	var $nick = '';
+	var $passwordhash = '';
+	var $email = '';
 	
+	function pwdhash($password)
+	{
+		return md5($password.'qwerty');
+	}
+
+	function authorizehash($nick, $passwordhash, $rememberme)
+	{
+		$this->query("select * from user where nick = '".addslashes($nick)."' && passwordhash = '$passwordhash'");
+		if(!($row = $this->fetchRow())) return false;
+
+		$this->userid = $row['userid'];
+		$this->nick = $nick;
+		$this->passwordhash = $passwordhash;
+		$this->email = $row['email'];
+
+		$_SESSION['user_nick'] = $nick;
+		$_SESSION['user_passwordhash'] = $passwordhash;
+
+		if($rememberme)
+		{
+			setcookie('user_nick', $nick, time() + ONEYEAR, '/');
+			setcookie('user_passwordhash', $passwordhash, time() + ONEYEAR, '/');
+		}
+		
+		return true;
+	}
+
+	function authorize($username, $password, $rememberme)
+	{
+		return $this->authorizehash($username, $this->pwdhash($password), $rememberme);
+	}
+	
+// public:	
 	function SubtitlesDB()
 	{
 		$this->DB("gabest", GABESTS_PASSWORD_TO_SUBTITLES, "subtitles");
 		$this->connect() or die('Cannot connect to database');
+		
+		// mirrors
 		
 		$http_host = split(':', $_SERVER['HTTP_HOST']);
 		if(!isset($http_host[1])) $http_host[1] = 80;
@@ -576,9 +618,73 @@ class SubtitlesDB extends DB
 					"values ('$db_scheme', '$db_host', $db_port, '$db_path', '$db_name', NOW()) ");
 			}
 		}
+		
+		// user
+
+		if(isset($_SESSION['user_nick']) && isset($_SESSION['user_passwordhash'])
+		&& $this->authorizehash($_SESSION['user_nick'], $_SESSION['user_passwordhash'], false))
+		{
+			$_SESSION['user_nick'] = $this->nick;
+			$_SESSION['user_passwordhash'] = $this->passwordhash;
+		}
+		else if(isset($_COOKIE['user_nick']) && isset($_COOKIE['user_passwordhash'])
+		&& $this->authorizehash($_COOKIE['user_nick'], $_COOKIE['user_passwordhash'], true))
+		{
+			$_SESSION['user_nick'] = $this->nick;
+			$_SESSION['user_passwordhash'] = $this->passwordhash;
+		}
+	}
+	
+	function Login($username, $password, $rememberme)
+	{
+		$this->Logout();
+
+		if(!$this->authorize($username, $password, $rememberme))
+			return false;
+		
+		return true;
+	}
+	
+	function Logout()
+	{
+		$this->userid = 0;
+		$this->nick = '';
+		$this->passwordhash = '';
+
+		unset($_SESSION['user_nick']);
+		unset($_SESSION['user_passwordhash']);
+
+		setcookie('user_nick', '', time() - ONEYEAR, '/');
+		setcookie('user_passwordhash', '', time() - ONEYEAR, '/');
+	}
+	
+	function Register($nick, $password, $email)
+	{
+		$passwordhash = $this->pwdhash($password);
+		$email = addslashes($email);
+
+		return !!$this->query("insert into user (nick, passwordhash, email) values ('$nick', '$passwordhash', '$email')");
+	}
+	
+	function IsLoggedIn()
+	{
+		return $this->userid > 0;
 	}
 }
 
 function chkerr() {global $db; if($db->hasErrors()) {$db->showErrors(); exit;}}
+
+$db = new SubtitlesDB();
+
+global $smarty;
+if(isset($smarty))
+{
+	unset($user);
+	$user['userid'] = $db->userid;
+	$user['nick'] = $db->nick;
+	$smarty->assign('user', $user);
+	unset($user);
+}
+
 
 ?>
