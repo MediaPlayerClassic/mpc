@@ -111,7 +111,7 @@ if(!empty($movies))
 			(!empty($discs)?" && discs = '$discs' ":"").
 			(!empty($isolang_sel)?" && iso639_2 = '$isolang_sel' ":"").
 			(!empty($format_sel)?" && format = '$format_sel' ":"").
-			"order by t1.date desc, t2.disc_no asc ", 
+			"order by t1.date asc, t2.disc_no asc ", 
 			$movies[$i]['subs']);
 			
 		chkerr();

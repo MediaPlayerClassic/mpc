@@ -1,5 +1,7 @@
 <?php
 
+require "pwd.inc";
+
 /*****************************************************************************
  * Generic mySQL database access management class.  This can be used for	 *
  * implementing database access in other classes requiring it.  Features	 *
@@ -58,7 +60,7 @@ class DB
 	/**
 	  * global variables
 	  */
-	var $dbhost = "gabest.dyndns.org";	//default database host
+	var $dbhost = ISDB_HOST;			//default database host
 	var $dblogin;						//database login name
 	var $dbpass;						//database login password
 	var $dbname;						//database name
@@ -447,9 +449,11 @@ class DB
 			$rows[] = $row;
 	}
 	
+	function begin() {return $this->query("BEGIN");}
+	function commit() {return $this->query("COMMIT");}
+	function rollback() {return $this->query("ROLLBACK");}
+	
 }    //end class
-
-require "pwd.inc";
 
 define('ONEYEAR', 60*60*24*365);
 
@@ -467,7 +471,7 @@ class SubtitlesDB extends DB
 	  PRIMARY KEY  (`id`),
 	  KEY `subtitle_id` (`subtitle_id`),
 	  KEY `nick` (`nick`)
-	) ENGINE=MyISAM DEFAULT CHARSET=utf8
+	) ENGINE=InnoDB DEFAULT CHARSET=utf8
 	
 	CREATE TABLE `file` (
 	  `id` bigint(20) NOT NULL auto_increment,
@@ -476,7 +480,7 @@ class SubtitlesDB extends DB
 	  PRIMARY KEY  (`id`),
 	  KEY `hash` (`hash`),
 	  KEY `size` (`size`)
-	) ENGINE=MyISAM DEFAULT CHARSET=utf8	
+	) ENGINE=InnoDB DEFAULT CHARSET=utf8	
 	
 	CREATE TABLE `file_subtitle` (
 	  `id` bigint(20) NOT NULL auto_increment,
@@ -485,7 +489,7 @@ class SubtitlesDB extends DB
 	  PRIMARY KEY  (`id`),
 	  KEY `file_id` (`file_id`),
 	  KEY `subtitle_id` (`subtitle_id`)
-	) ENGINE=MyISAM DEFAULT CHARSET=utf8
+	) ENGINE=InnoDB DEFAULT CHARSET=utf8
 	
 	CREATE TABLE `mirror` (
 	  `id` bigint(20) NOT NULL auto_increment,
@@ -497,7 +501,7 @@ class SubtitlesDB extends DB
 	  `lastseen` datetime NOT NULL default '0000-00-00 00:00:00',
 	  PRIMARY KEY  (`id`),
 	  KEY `lastseen` (`lastseen`)
-	) ENGINE=MyISAM DEFAULT CHARSET=utf8
+	) ENGINE=InnoDB DEFAULT CHARSET=utf8
 	
 	CREATE TABLE `movie` (
 	  `id` bigint(20) NOT NULL auto_increment,
@@ -505,7 +509,7 @@ class SubtitlesDB extends DB
 	  PRIMARY KEY  (`id`),
 	  UNIQUE KEY `imdb_2` (`imdb`),
 	  KEY `imdb` (`imdb`)
-	) ENGINE=MyISAM DEFAULT CHARSET=utf8
+	) ENGINE=InnoDB DEFAULT CHARSET=utf8
 	
 	CREATE TABLE `movie_subtitle` (
 	  `id` bigint(20) NOT NULL auto_increment,
@@ -518,7 +522,7 @@ class SubtitlesDB extends DB
 	  PRIMARY KEY  (`id`),
 	  KEY `movie_id` (`movie_id`),
 	  KEY `subtitle_id` (`subtitle_id`)
-	) ENGINE=MyISAM DEFAULT CHARSET=utf8	
+	) ENGINE=InnoDB DEFAULT CHARSET=utf8	
 	
 	CREATE TABLE `subtitle` (
 	  `id` bigint(20) NOT NULL auto_increment,
@@ -536,7 +540,7 @@ class SubtitlesDB extends DB
 	  KEY `iso639_2` (`iso639_2`),
 	  KEY `hash` (`hash`),
 	  KEY `discs` (`discs`)
-	) ENGINE=MyISAM DEFAULT CHARSET=utf8
+	) ENGINE=InnoDB DEFAULT CHARSET=utf8
 	
 	CREATE TABLE `title` (
 	  `id` bigint(20) NOT NULL auto_increment,
@@ -545,7 +549,7 @@ class SubtitlesDB extends DB
 	  PRIMARY KEY  (`id`),
 	  KEY `movie_id` (`movie_id`),
 	  KEY `title` (`title`)
-	) ENGINE=MyISAM DEFAULT CHARSET=utf8
+	) ENGINE=InnoDB DEFAULT CHARSET=utf8
 	
 	CREATE TABLE `user` (
 	  `userid` bigint(20) NOT NULL auto_increment,
@@ -553,7 +557,7 @@ class SubtitlesDB extends DB
 	  `passwordhash` varchar(32) NOT NULL default '',
 	  `email` varchar(64) NOT NULL default '',
 	  PRIMARY KEY  (`userid`)
-	) ENGINE=MyISAM DEFAULT CHARSET=utf8	
+	) ENGINE=InnoDB DEFAULT CHARSET=utf8	
 	
 	*/
 
