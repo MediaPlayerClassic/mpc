@@ -716,7 +716,7 @@ class SubtitlesDB extends DB
 			$db_host_other = ereg('^www\.(.+)$', $db_host, $matches) ? $matches[1] : 'www.'.$db_host;
 			
 			$this->query("select id from mirror where host = '$db_host' || host = '$db_host_other'");
-						if($row = $this->fetchRow())
+			if($row = $this->fetchRow())
 			{
 				$this->query(
 					"update mirror set ".

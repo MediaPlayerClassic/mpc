@@ -254,6 +254,6 @@ for($i = ord('A'); $i <= ord('Z'); $i++)
 	$index[] = array('mask' => chr($i)."*", 'label' => chr($i));
 $smarty->assign('index', $index);
 
-$smarty->display('main.tpl');
+$smarty->display_gzip('main.tpl');
 
 ?>
