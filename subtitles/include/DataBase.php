@@ -520,10 +520,13 @@ class SubtitlesDB extends DB
 	  `userid` bigint(20) NOT NULL default '0',
 	  `date` datetime NOT NULL default '0000-00-00 00:00:00',
 	  `notes` text NOT NULL,
+	  `format` enum('srt','sub','smi','ssa','ass','xss','other') NOT NULL default 'other',
+	  `iso639_2` varchar(3) NOT NULL default '',
 	  PRIMARY KEY  (`id`),
 	  KEY `movie_id` (`movie_id`),
 	  KEY `subtitle_id` (`subtitle_id`)
-	) ENGINE=InnoDB DEFAULT CHARSET=utf8	
+	  KEY `format` (`format`),
+	  KEY `iso639_2` (`iso639_2`),	) ENGINE=InnoDB DEFAULT CHARSET=utf8	
 	
 	CREATE TABLE `subtitle` (
 	  `id` bigint(20) NOT NULL auto_increment,
@@ -532,13 +535,9 @@ class SubtitlesDB extends DB
 	  `sub` blob NOT NULL,
 	  `hash` varchar(32) NOT NULL default '',
 	  `mime` varchar(64) NOT NULL default '',
-	  `format` enum('srt','sub','smi','ssa','ass','xss','other') NOT NULL default 'other',
-	  `iso639_2` varchar(3) NOT NULL default '',
 	  `downloads` bigint(20) NOT NULL default '0',
 	  PRIMARY KEY  (`id`),
 	  UNIQUE KEY `hash_2` (`hash`),
-	  KEY `format` (`format`),
-	  KEY `iso639_2` (`iso639_2`),
 	  KEY `hash` (`hash`),
 	  KEY `discs` (`discs`)
 	) ENGINE=InnoDB DEFAULT CHARSET=utf8
