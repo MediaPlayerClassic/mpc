@@ -1096,12 +1096,14 @@ BEGIN
     CONTROL         "Enable compression",IDC_CHECK3,"Button",BS_AUTOCHECKBOX | 
                     WS_TABSTOP,7,61,79,10
     CONTROL         "Print debug info",IDC_CHECK2,"Button",BS_AUTOCHECKBOX | 
-                    WS_TABSTOP,7,74,67,10
+                    WS_TABSTOP,7,87,67,10
     CONTROL         "Serve pages from:",IDC_CHECK4,"Button",BS_AUTOCHECKBOX | 
                     WS_TABSTOP,7,26,75,10
     EDITTEXT        IDC_EDIT2,7,40,183,14,ES_AUTOHSCROLL
     PUSHBUTTON      "Browse...",IDC_BUTTON1,194,40,45,14
     PUSHBUTTON      "Deploy...",IDC_BUTTON2,243,40,46,14
+    CONTROL         "Allow access from localhost only",IDC_CHECK5,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,7,74,118,10
 END
 
 IDD_PPAGEAUDIODEC DIALOGEX 0, 0, 296, 203
@@ -2353,7 +2355,7 @@ STRINGTABLE
 BEGIN
     IDC_DSNULL_UNCOMP       "Same as the normal Null renderer, but this will only connect to uncompressed types."
     IDC_DSNULL_COMP         "Connects to any video-like media type and will send the incoming samples to nowhere. Use it when you don't need the video display and want to save the cpu from working unnecessarily."
-    IDS_SRC_AVI             "6.4.0.3\nNon-interleaved files are not welcome"
+    IDS_SRC_AVI             "6.4.0.4\nNon-interleaved files are not welcome"
     IDS_SRC_CDDA            "6.4.0.0\n2K/XP only"
     IDS_SRC_CDXA            "6.4.0.0"
     IDS_SRC_VTS             "6.4.0.0\nOpen VTS_xx_0.ifo to load VTS_xx_x.vob files in one piece"
@@ -2361,7 +2363,7 @@ BEGIN
     IDS_SRC_D2V             "6.4.0.0"
     IDS_SRC_DTSAC3          "6.4.0.0"
     IDS_SRC_SHOUTCAST       "6.4.0.1"
-    IDS_SRC_REALMEDIA       "6.4.0.9\nRealMedia format categories must be set to 'DirectShow' to make it load\nDoesn't support streaming"
+    IDS_SRC_REALMEDIA       "6.4.1.0\nRealMedia format categories must be set to 'DirectShow' to make it load\nDoesn't support streaming"
     IDS_SRC_MATROSKA        "6.4.2.5"
     IDS_SRC_ROQ             "6.4.0.0"
     IDS_SRC_OGG             "6.4.0.0"
@@ -2377,8 +2379,8 @@ END
 
 STRINGTABLE 
 BEGIN
-    IDS_TRA_RV              "6.4.0.9\nRequires RealVideo decoder dlls, RV10 also works with ffdshow"
-    IDS_TRA_RA              "6.4.0.9\nRequires RealAudio decoder dlls, DNET also works with ac3filter"
+    IDS_TRA_RV              "6.4.1.0\nRequires RealVideo decoder dlls, RV10 also works with ffdshow"
+    IDS_TRA_RA              "6.4.1.0\nRequires RealAudio decoder dlls, DNET also works with ac3filter"
     IDS_TRA_MPEG1           "6.4.0.0\nBased on libmpeg2 (mpeg1 video decoding is bogus)"
     IDS_TRA_MPEG2           "6.4.0.0\nBased on libmpeg2"
     IDS_TRA_MPA             "6.4.0.0\nBased on libmad, decodes all MPEG audio version and layer"
@@ -2415,6 +2417,8 @@ BEGIN
     IDS_TRA_PS2AUD          "Decodes audio streams of PSS files"
     IDC_CHECK_RELATIVETO    "Default state gets inherited to other styles where it is still undefined"
     IDC_CHECK_SPCPOW2TEX    "Unchecking this frees up a little video memory and saves bandwidth on local to video memory transfers, but it may not work with older video cards."
+    IDS_SRC_DSM             "6.4.0.3"
+    IDS_SRC_MPA             "6.4.0.1\nSource filter for mp3 and aac"
 END
 
 STRINGTABLE 
@@ -2443,6 +2447,11 @@ END
 STRINGTABLE 
 BEGIN
     IDD_FILEPROPRES         "Resources"
+END
+
+STRINGTABLE 
+BEGIN
+    IDS_RS_WEBSERVERLOCALHOSTONLY "WebServerLocalhostOnly"
 END
 
 #endif    // English (U.S.) resources

@@ -363,7 +363,7 @@ namespace MatroskaReader
 	class Segment
 	{
 	public:
-		QWORD pos;
+		QWORD pos, len;
 		Info SegmentInfo;
 		CNode<Seek> MetaSeekInfo;
 		CNode<Cluster> Clusters;

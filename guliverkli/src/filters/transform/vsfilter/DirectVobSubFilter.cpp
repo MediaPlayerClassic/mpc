@@ -129,10 +129,22 @@ STDMETHODIMP CDirectVobSubFilter::NonDelegatingQueryInterface(REFIID riid, void*
 
 void CDirectVobSubFilter::GetOutputSize(int& w, int& h, int& arx, int& ary)
 {
-	CSize s(w, h);
+	CSize s(w, h), os = s;
 	AdjustFrameSize(s);
 	w = s.cx;
 	h = s.cy;
+
+	if(w != os.cx)
+	{
+		while(arx < 100) arx *= 10, ary *= 10;
+		arx = arx * w / os.cx;
+	}
+	
+	if(h != os.cy)
+	{
+		while(ary < 100) arx *= 10, ary *= 10;
+		ary = ary * h / os.cy;
+	}
 }
 
 HRESULT CDirectVobSubFilter::Transform(IMediaSample* pIn)
@@ -252,7 +264,7 @@ HRESULT CDirectVobSubFilter::Transform(IMediaSample* pIn)
 		}
 	}
 
-	CopyBuffer(pDataOut, (BYTE*)spd.bits, spd.w, abs(spd.h)*(fFlip?-1:1), spd.pitch, mt.subtype);
+	CopyBuffer(pDataOut, (BYTE*)spd.bits, spd.w, spd.h, spd.pitch, mt.subtype);
 
 	PrintMessages(pDataOut);
 
@@ -1219,15 +1231,16 @@ bool CDirectVobSubFilter2::ShouldWeAutoload(IFilterGraph* pGraph)
 	{
 		CComPtr<IBaseFilter> pBF;
 		if((pBF = FindFilter(CLSID_OggSplitter, pGraph)) || (pBF = FindFilter(CLSID_AviSplitter, pGraph))
-		|| (pBF = FindFilter(GUIDFromCString("{34293064-02F2-41D5-9D75-CC5967ACA1AB}"), pGraph)) // matroska demux
-		|| (pBF = FindFilter(GUIDFromCString("{0A68C3B5-9164-4a54-AFAF-995B2FF0E0D4}"), pGraph)) // matroska source
-		|| (pBF = FindFilter(GUIDFromCString("{149D2E01-C32E-4939-80F6-C07B81015A7A}"), pGraph)) // matroska splitter
-		|| (pBF = FindFilter(GUIDFromCString("{9AB95E90-1F37-427e-9B3D-257FB0CB25F7}"), pGraph)) // Haali's matroska splitter		
-		|| (pBF = FindFilter(GUIDFromCString("{52B63861-DC93-11CE-A099-00AA00479A58}"), pGraph)) // 3ivx splitter
-		|| (pBF = FindFilter(GUIDFromCString("{6D3688CE-3E9D-42F4-92CA-8A11119D25CD}"), pGraph)) // our ogg source
-		|| (pBF = FindFilter(GUIDFromCString("{9FF48807-E133-40AA-826F-9B2959E5232D}"), pGraph)) // our ogg splitter
-		|| (pBF = FindFilter(GUIDFromCString("{803E8280-F3CE-4201-982C-8CD8FB512004}"), pGraph)) // dsm source
-		|| (pBF = FindFilter(GUIDFromCString("{0912B4DD-A30A-4568-B590-7179EBB420EC}"), pGraph))) // dsm splitter
+		|| (pBF = FindFilter(L"{34293064-02F2-41D5-9D75-CC5967ACA1AB}", pGraph)) // matroska demux
+		|| (pBF = FindFilter(L"{0A68C3B5-9164-4a54-AFAF-995B2FF0E0D4}", pGraph)) // matroska source
+		|| (pBF = FindFilter(L"{149D2E01-C32E-4939-80F6-C07B81015A7A}", pGraph)) // matroska splitter
+		|| (pBF = FindFilter(L"{9AB95E90-1F37-427e-9B3D-257FB0CB25F7}", pGraph)) // Haali's matroska splitter (?)
+		|| (pBF = FindFilter(L"{55DA30FC-F16B-49fc-BAA5-AE59FC65F82D}", pGraph)) // Haali's matroska splitter			
+		|| (pBF = FindFilter(L"{52B63861-DC93-11CE-A099-00AA00479A58}", pGraph)) // 3ivx splitter
+		|| (pBF = FindFilter(L"{6D3688CE-3E9D-42F4-92CA-8A11119D25CD}", pGraph)) // our ogg source
+		|| (pBF = FindFilter(L"{9FF48807-E133-40AA-826F-9B2959E5232D}", pGraph)) // our ogg splitter
+		|| (pBF = FindFilter(L"{803E8280-F3CE-4201-982C-8CD8FB512004}", pGraph)) // dsm source
+		|| (pBF = FindFilter(L"{0912B4DD-A30A-4568-B590-7179EBB420EC}", pGraph))) // dsm splitter
 		{
 			BeginEnumPins(pBF, pEP, pPin)
 			{

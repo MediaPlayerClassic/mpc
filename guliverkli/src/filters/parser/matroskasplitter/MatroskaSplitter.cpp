@@ -924,7 +924,8 @@ bool CMatroskaSplitterFilter::DemuxLoop()
 
 		m_pBlock.Free();
 	}
-	while(m_pCluster->Next(true) && SUCCEEDED(hr) && !CheckRequest(NULL));
+	while(m_pFile->GetPos() < m_pFile->m_segment.pos + m_pFile->m_segment.len 
+		&& m_pCluster->Next(true) && SUCCEEDED(hr) && !CheckRequest(NULL));
 
 	m_pCluster.Free();
 

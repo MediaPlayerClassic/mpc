@@ -45,6 +45,7 @@ public:
 	HRESULT CheckMediaType(const CMediaType* pmt);
 	HRESULT CompleteConnect(IPin* pReceivePin);
 	HRESULT BreakConnect();
+	STDMETHODIMP ReceiveConnection(IPin* pConnector, const AM_MEDIA_TYPE* pmt);
 	STDMETHODIMP NewSegment(REFERENCE_TIME tStart, REFERENCE_TIME tStop, double dRate);
 	STDMETHODIMP Receive(IMediaSample* pSample);
 

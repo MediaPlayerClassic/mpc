@@ -265,7 +265,7 @@ HRESULT CBaseVideoFilter::CopyBuffer(BYTE* pOut, BYTE** ppIn, int w, int h, int 
 
 		if(bihOut.biCompression == '21VY') {BYTE* tmp = pOutU; pOutU = pOutV; pOutV = tmp;}
 
-		ASSERT(w <= pitchIn);
+		ASSERT(w <= abs(pitchIn));
 
 		if(bihOut.biCompression == '2YUY')
 		{

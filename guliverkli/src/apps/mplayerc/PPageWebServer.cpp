@@ -39,6 +39,7 @@ CPPageWebServer::CPPageWebServer()
 	, m_fWebServerUseCompression(FALSE)
 	, m_fWebRoot(FALSE)
 	, m_WebRoot(_T(""))
+	, m_fWebServerLocalhostOnly(FALSE)
 {
 }
 
@@ -57,6 +58,7 @@ void CPPageWebServer::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_CHECK3, m_fWebServerUseCompression);
 	DDX_Check(pDX, IDC_CHECK4, m_fWebRoot);
 	DDX_Text(pDX, IDC_EDIT2, m_WebRoot);
+	DDX_Check(pDX, IDC_CHECK5, m_fWebServerLocalhostOnly);
 }
 
 BOOL CPPageWebServer::PreTranslateMessage(MSG* pMsg)
@@ -92,6 +94,7 @@ BOOL CPPageWebServer::OnInitDialog()
 	m_fEnableWebServer = s.fEnableWebServer;
 	m_nWebServerPort = s.nWebServerPort;
 	m_fWebServerPrintDebugInfo = s.fWebServerPrintDebugInfo;
+	m_fWebServerLocalhostOnly = s.fWebServerLocalhostOnly;
 	m_fWebServerUseCompression = s.fWebServerUseCompression;
 	m_fWebRoot = s.WebRoot.Find('*') < 0;
 	m_WebRoot = s.WebRoot;
@@ -119,6 +122,7 @@ BOOL CPPageWebServer::OnApply()
 	s.fEnableWebServer = !!m_fEnableWebServer;
 	s.nWebServerPort = m_nWebServerPort;
 	s.fWebServerPrintDebugInfo = !!m_fWebServerPrintDebugInfo;
+	s.fWebServerLocalhostOnly = !!m_fWebServerLocalhostOnly;
 	s.fWebServerUseCompression = !!m_fWebServerUseCompression;
 	s.WebRoot = NewWebRoot;
 

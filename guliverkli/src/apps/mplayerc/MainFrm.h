@@ -213,8 +213,8 @@ class CMainFrame : public CFrameWnd, public CDropTarget
 	void SetupFavoritesSubMenu();
 	void SetupShadersSubMenu();
 
-	void SetupNavOgmSubMenu(CMenu* pSub, UINT id, CString type);
-	void OnNavOgmSubMenu(UINT id, CString type);
+	void SetupNavStreamSelectSubMenu(CMenu* pSub, UINT id, DWORD dwSelGroup);
+	void OnNavStreamSelectSubMenu(UINT id, DWORD dwSelGroup);
 
 	CMenu m_popupmain, m_popup;
 	CMenu m_opencds;
@@ -231,10 +231,8 @@ class CMainFrame : public CFrameWnd, public CDropTarget
 
 	// chapters (file mode)
 	CComPtr<IDSMChapterBag> m_pCB;
-/*
-	typedef struct {REFERENCE_TIME rtStart, rtStop; CString name;} chapter_t;
-	CArray<chapter_t> m_chapters;
-*/
+	void SetupChapters();
+
 	//
 
 	void SetupIViAudReg();
@@ -368,6 +366,7 @@ public:
 	bool LoadSubtitle(CString fn);
 	void UpdateSubtitle(bool fApplyDefStyle = false);
 	void SetSubtitle(ISubStream* pSubStream, bool fApplyDefStyle = false);
+	void ReplaceSubtitle(ISubStream* pSubStreamOld, ISubStream* pSubStreamNew);
 	void InvalidateSubtitle(DWORD_PTR nSubtitleId = -1, REFERENCE_TIME rtInvalidate = -1);
 	void ReloadSubtitle();
 

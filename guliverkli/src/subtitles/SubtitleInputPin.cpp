@@ -51,6 +51,7 @@ CSubtitleInputPin::CSubtitleInputPin(CBaseFilter* pFilter, CCritSec* pLock, CCri
 	: CBaseInputPin(NAME("CSubtitleInputPin"), pFilter, pLock, phr, L"Input")
 	, m_pSubLock(pSubLock)
 {
+	m_bCanReconnectWhenActive = TRUE;
 }
 
 HRESULT CSubtitleInputPin::CheckMediaType(const CMediaType* pmt)
@@ -118,7 +119,7 @@ HRESULT CSubtitleInputPin::CompleteConnect(IPin* pReceivePin)
 
 	AddSubStream(m_pSubStream);
 
-    return CBaseInputPin::CompleteConnect(pReceivePin);
+    return __super::CompleteConnect(pReceivePin);
 }
 
 HRESULT CSubtitleInputPin::BreakConnect()
@@ -128,7 +129,21 @@ HRESULT CSubtitleInputPin::BreakConnect()
 
 	ASSERT(IsStopped());
 
-    return CBaseInputPin::BreakConnect();
+    return __super::BreakConnect();
+}
+
+STDMETHODIMP CSubtitleInputPin::ReceiveConnection(IPin* pConnector, const AM_MEDIA_TYPE* pmt)
+{
+	if(m_Connected)
+	{
+		RemoveSubStream(m_pSubStream);
+		m_pSubStream = NULL;
+
+        m_Connected->Release();
+        m_Connected = NULL;
+	}
+
+	return __super::ReceiveConnection(pConnector, pmt);
 }
 
 STDMETHODIMP CSubtitleInputPin::NewSegment(REFERENCE_TIME tStart, REFERENCE_TIME tStop, double dRate)
@@ -160,7 +175,7 @@ STDMETHODIMP CSubtitleInputPin::Receive(IMediaSample* pSample)
 {
 	HRESULT hr;
 
-	hr = CBaseInputPin::Receive(pSample);
+	hr = __super::Receive(pSample);
     if(FAILED(hr)) return hr;
 
 	CAutoLock cAutoLock(&m_csReceive);
