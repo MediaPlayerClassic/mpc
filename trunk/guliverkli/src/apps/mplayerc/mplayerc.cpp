@@ -1485,6 +1485,7 @@ void CMPlayerCApp::Settings::ParseCommandLine(CStringList& cmdln)
 			else if(sw == _T("unregvid")) nCLSwitches |= CLSW_UNREGEXTVID;
 			else if(sw == _T("unregaud")) nCLSwitches |= CLSW_UNREGEXTAUD;
 			else if(sw == _T("start") && pos) {rtStart = 10000i64*_tcstol(cmdln.GetNext(pos), NULL, 10); nCLSwitches |= CLSW_STARTVALID;}
+			else if(sw == _T("startpos") && pos) {/* TODO: mm:ss. */;}
 			else if(sw == _T("nofocus")) nCLSwitches |= CLSW_NOFOCUS;
 			else nCLSwitches |= CLSW_HELP|CLSW_UNRECOGNIZEDSWITCH;
 		}

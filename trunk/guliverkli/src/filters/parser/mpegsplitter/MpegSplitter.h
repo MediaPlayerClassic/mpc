@@ -27,6 +27,8 @@
 [uuid("DC257063-045F-4BE2-BD5B-E12279C464F0")]
 class CMpegSplitterFilter : public CBaseSplitterFilter, public IAMStreamSelect
 {
+	REFERENCE_TIME m_rtStartOffset;
+
 protected:
 	CAutoPtr<CMpegSplitterFile> m_pFile;
 	HRESULT CreateOutputs(IAsyncReader* pAsyncReader);
