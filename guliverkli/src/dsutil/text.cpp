@@ -159,33 +159,27 @@ CString UrlDecode(CString str, bool fRaw)
 
 CString ExtractTag(CString tag, CMapStringToString& attribs, bool& fClosing)
 {
+	tag.Trim();
 	attribs.RemoveAll();
-
-	tag.TrimLeft(); tag.TrimRight();
 
 	fClosing = !tag.IsEmpty() ? tag[0] == '/' : false;
 	tag.TrimLeft('/');
 
 	int i = tag.Find(' ');
 	if(i < 0) i = tag.GetLength();
-	CString type = tag.Left(i);
-	type.MakeLower();
-	tag = tag.Mid(i);
-	tag.TrimLeft(); tag.TrimRight();
+	CString type = tag.Left(i).MakeLower();
+	tag = tag.Mid(i).Trim();
 
 	while((i = tag.Find('=')) > 0)
 	{
-		CString attrib = tag.Left(i);
-		attrib.TrimLeft(); attrib.TrimRight();
-		attrib.MakeLower();
+		CString attrib = tag.Left(i).Trim().MakeLower();
 		tag = tag.Mid(i+1);
 		for(i = 0; i < tag.GetLength() && _istspace(tag[i]); i++);
 		tag = i < tag.GetLength() ? tag.Mid(i) : _T("");
 		if(!tag.IsEmpty() && tag[0] == '\"') {tag = tag.Mid(1); i = tag.Find('\"');}
 		else i = tag.Find(' ');
 		if(i < 0) i = tag.GetLength();
-		CString param = tag.Left(i);
-		param.TrimLeft(); param.TrimRight();
+		CString param = tag.Left(i).Trim();
 		if(!param.IsEmpty())
 			attribs[attrib] = param;
 		tag = i+1 < tag.GetLength() ? tag.Mid(i+1) : _T("");

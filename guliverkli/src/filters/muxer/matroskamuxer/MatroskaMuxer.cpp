@@ -965,6 +965,19 @@ HRESULT CMatroskaMuxerInputPin::CompleteConnect(IPin* pPin)
 
 			hr = S_OK;
 		}
+		else if(m_mt.formattype == FORMAT_WaveFormatEx
+		&& ((WAVEFORMATEX*)m_mt.pbFormat)->wFormatTag == WAVE_FORMAT_FLAC)
+		{
+			m_pTE->CodecID.Set("A_FLAC");
+
+			WAVEFORMATEX* wfe = (WAVEFORMATEX*)m_mt.pbFormat;
+			m_pTE->DescType = TrackEntry::DescAudio;
+			m_pTE->a.SamplingFrequency.Set((float)wfe->nSamplesPerSec);
+			m_pTE->a.Channels.Set(wfe->nChannels);
+			m_pTE->a.BitDepth.Set(wfe->wBitsPerSample);
+
+			hr = S_OK;
+		}
 		else if(m_mt.formattype == FORMAT_WaveFormatEx 
 		&& (m_mt.subtype == MEDIASUBTYPE_14_4
 		|| m_mt.subtype == MEDIASUBTYPE_28_8

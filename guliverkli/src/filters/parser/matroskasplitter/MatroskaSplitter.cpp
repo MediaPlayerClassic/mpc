@@ -358,22 +358,27 @@ HRESULT CMatroskaSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 				}
 				else if(CodecID == "A_MPEG/L3")
 				{
-					mt.subtype = FOURCCMap(pwfe->wFormatTag = 0x55);
+					mt.subtype = FOURCCMap(pwfe->wFormatTag = WAVE_FORMAT_MP3);
 					mts.Add(mt);
 				}
 				else if(CodecID == "A_MPEG/L2")
 				{
-					mt.subtype = FOURCCMap(pwfe->wFormatTag = 0x50);
+					mt.subtype = FOURCCMap(pwfe->wFormatTag = WAVE_FORMAT_MPEG);
 					mts.Add(mt);
 				}
 				else if(CodecID == "A_AC3")
 				{
-					mt.subtype = FOURCCMap(pwfe->wFormatTag = 0x2000);
+					mt.subtype = FOURCCMap(pwfe->wFormatTag = WAVE_FORMAT_DOLBY_AC3);
 					mts.Add(mt);
 				}
 				else if(CodecID == "A_DTS")
 				{
-					mt.subtype = FOURCCMap(pwfe->wFormatTag = 0x2001);
+					mt.subtype = FOURCCMap(pwfe->wFormatTag = WAVE_FORMAT_DVD_DTS);
+					mts.Add(mt);
+				}
+				else if(CodecID == "A_FLAC")
+				{
+					mt.subtype = FOURCCMap(pwfe->wFormatTag = WAVE_FORMAT_FLAC);
 					mts.Add(mt);
 				}
 				else if(CodecID == "A_MS/ACM")
