@@ -24,6 +24,7 @@
 #include <atlbase.h>
 #include <atlcoll.h>
 #include <afxtempl.h>
+#include "..\BaseSplitter\BaseSplitter.h"
 
 namespace MatroskaReader
 {
@@ -335,12 +336,12 @@ namespace MatroskaReader
 				{
 				public:
 					CUInt ChapterUID;
-					CUInt ChapterTimeStart, ChapterTimeEnd;
+					CUInt ChapterTimeStart, ChapterTimeEnd, ChapterFlagHidden, ChapterFlagEnabled;
 //					CNode<CUInt> ChapterTracks; // TODO
 					CNode<ChapterDisplay> ChapterDisplays;
 					CNode<ChapterAtom> ChapterAtoms;
 					
-					ChapterAtom() {ChapterUID.Set(rand());}
+					ChapterAtom() {ChapterUID.Set(rand());ChapterFlagHidden.Set(0);ChapterFlagEnabled.Set(1);}
 					HRESULT Parse(CMatroskaNode* pMN);
 					ChapterAtom* FindChapterAtom(UINT64 id);
 				};
@@ -382,22 +383,16 @@ namespace MatroskaReader
 		ChapterAtom* FindChapterAtom(UINT64 id, int nEditionEntry = 0);
 	};
 
-	class CMatroskaFile
+	class CMatroskaFile : public CBaseSplitterFile
 	{
-	protected:
-		CComPtr<IAsyncReader> m_pAsyncReader;
-		QWORD m_pos, m_length;
-		BYTE m_cache[2048];
-		QWORD m_cachepos, m_cachelen;
-
 	public:
 		CMatroskaFile(IAsyncReader* pAsyncReader, HRESULT& hr);
 		virtual ~CMatroskaFile() {}
 
-		HRESULT SeekTo(QWORD pos);
-		QWORD GetPos(), GetLength();
+		HRESULT Init();
+
+		using CBaseSplitterFile::Read;
 		template <class T> HRESULT Read(T& var);
-		HRESULT Read(BYTE* pData, QWORD len);
 
 		EBML m_ebml;
 		Segment m_segment;
@@ -430,7 +425,7 @@ namespace MatroskaReader
 
 		QWORD FindPos(DWORD id, QWORD start = 0);
 
-		HRESULT SeekTo(QWORD pos);
+		void SeekTo(QWORD pos);
 		QWORD GetPos(), GetLength();
 		template <class T> HRESULT Read(T& var);
 		HRESULT Read(BYTE* pData, QWORD len);

@@ -68,53 +68,22 @@ static void bswap(BYTE* s, int len)
 //
 
 CMatroskaFile::CMatroskaFile(IAsyncReader* pAsyncReader, HRESULT& hr) 
-	: m_pAsyncReader(pAsyncReader)
-	, m_pos(0), m_length(0)
-	, m_cachepos(0), m_cachelen(0)
+	: CBaseSplitterFile(pAsyncReader, hr)
 {
-	if(!pAsyncReader)
-	{
-		hr = E_POINTER; 
-		return;
-	}
+	if(FAILED(hr)) return;
+	hr = Init();
+}
 
-	LONGLONG total, available;
-	if(FAILED(m_pAsyncReader->Length(&total, &available)) || total != available || total < 0)
-	{
-		hr = E_FAIL;
-		return;
-	}
-
-	m_pos = 0;
-	m_length = (QWORD)total;
-
+HRESULT CMatroskaFile::Init()
+{
 	DWORD dw;
 	if(FAILED(Read(dw)) || dw != 0x1A45DFA3)
-	{
-		hr = E_FAIL;
-		return;
-	}
+		return E_FAIL;
 
 	CMatroskaNode Root(this);
-	if(FAILED(hr = Parse(&Root)))
-		return;
-}
+	if(FAILED(Parse(&Root)))
+		return E_FAIL;
 
-QWORD CMatroskaFile::GetPos()
-{
-	return m_pos;
-}
-
-QWORD CMatroskaFile::GetLength()
-{
-	return m_length;
-}
-
-HRESULT CMatroskaFile::SeekTo(QWORD pos)
-{
-	CheckPointer(m_pAsyncReader, E_NOINTERFACE);
-//	if(m_pos != pos) LOG(_T("SeekTo [%I64d] -> [%I64d]\n"), m_pos, pos);
-	m_pos = pos;
 	return S_OK;
 }
 
@@ -123,58 +92,6 @@ HRESULT CMatroskaFile::Read(T& var)
 {
 	HRESULT hr = Read((BYTE*)&var, sizeof(var));
 	if(S_OK == hr) bswap((BYTE*)&var, sizeof(var));
-	return hr;
-}
-
-HRESULT CMatroskaFile::Read(BYTE* pData, QWORD len)
-{
-	CheckPointer(m_pAsyncReader, E_NOINTERFACE);
-	ASSERT(len <= LONG_MAX);
-
-	HRESULT hr = S_OK;
-
-	if(m_cachepos <= m_pos && m_pos < m_cachepos+m_cachelen)
-	{
-		QWORD minlen = min(len, m_cachelen - (m_pos-m_cachepos));
-		memcpy(pData, &m_cache[m_pos - m_cachepos], (size_t)minlen);
-
-		len -= minlen;
-		m_pos += minlen;
-		pData += minlen;
-	}
-
-	while(len > sizeof(m_cache))
-	{
-//LOG(_T("Read [%I64d] <-> [%I64d]\n"), m_pos, m_pos+sizeof(m_cache));
-		hr = m_pAsyncReader->SyncRead(m_pos, sizeof(m_cache), pData);
-		if(S_OK != hr) return hr;
-
-		len -= sizeof(m_cache);
-		m_pos += sizeof(m_cache);
-		pData += sizeof(m_cache);
-	}
-
-	while(len > 0)
-	{
-		QWORD maxlen = min(m_length - m_pos, sizeof(m_cache));
-		QWORD minlen = min(len, maxlen);
-		if(minlen <= 0) return S_FALSE;
-//LOG(_T("Read [%I64d] <-> [%I64d]\n"), m_pos, m_pos+maxlen);
-		hr = m_pAsyncReader->SyncRead(m_pos, (LONG)maxlen, m_cache);
-		if(S_OK != hr) return hr;
-
-		m_cachepos = m_pos;
-		m_cachelen = maxlen;
-
-		memcpy(pData, m_cache, (size_t)minlen);
-		len -= minlen;
-		m_pos += minlen;
-		pData += minlen;
-	}
-
-//	HRESULT hr = m_pAsyncReader->SyncRead(m_pos, (LONG)len, pData);
-//LOG(_T("Read [%I64d] <-> [%I64d]\n"), m_pos, m_pos+len);
-//	if(S_OK == hr) m_pos += len;
 	return hr;
 }
 
@@ -696,6 +613,8 @@ HRESULT ChapterAtom::Parse(CMatroskaNode* pMN0)
 //	case 0x8F: // TODO 
 	case 0x80: ChapterDisplays.Parse(pMN); break;
 	case 0xB6: ChapterAtoms.Parse(pMN); break;
+	case 0x98: ChapterFlagHidden.Parse(pMN); break;
+	case 0x4598: ChapterFlagEnabled.Parse(pMN); break;
 	EndChunk
 }
 
@@ -1047,8 +966,10 @@ bool CMatroskaNode::Next(bool fSame)
 
 	CID id = m_id;
 
-	while(SUCCEEDED(SeekTo(m_start+m_len)) && GetPos() < m_pParent->m_start+m_pParent->m_len)
+	while(m_start+m_len < m_pParent->m_start+m_pParent->m_len)
 	{
+		SeekTo(m_start+m_len);
+
 		if(FAILED(Parse()))
 		{
 			if(!Resync())
@@ -1068,8 +989,9 @@ bool CMatroskaNode::Find(DWORD id, bool fSearch)
 		? FindPos(id) 
 		: 0;
 
-	if(pos && SUCCEEDED(SeekTo(pos)))
+	if(pos)
 	{
+		SeekTo(pos);
 		Parse();
 	}
 	else if(fSearch)
@@ -1080,7 +1002,7 @@ bool CMatroskaNode::Find(DWORD id, bool fSearch)
 	return(m_id == id);
 }
 
-HRESULT CMatroskaNode::SeekTo(QWORD pos) {return m_pMF->SeekTo(pos);}
+void CMatroskaNode::SeekTo(QWORD pos) {m_pMF->Seek(pos);}
 QWORD CMatroskaNode::GetPos() {return m_pMF->GetPos();}
 QWORD CMatroskaNode::GetLength() {return m_pMF->GetLength();}
 template <class T> 

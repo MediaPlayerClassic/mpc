@@ -70,10 +70,15 @@ CBaseSplitterFile::CBaseSplitterFile(IAsyncReader* pAsyncReader, HRESULT& hr, in
 	if(!m_pAsyncReader) {hr = E_UNEXPECTED; return;}
 
 	LONGLONG total = 0, available;
-	m_pAsyncReader->Length(&total, &available);
+	if(FAILED(m_pAsyncReader->Length(&total, &available)) || total != available || total < 0)
+	{
+		hr = E_FAIL;
+		return;
+	}
+
 	m_len = total;
+
 	m_pCache.Allocate((size_t)(m_cachetotal = cachetotal));
-	
 	if(!m_pCache) {hr = E_OUTOFMEMORY; return;}
 
 	hr = S_OK;
