@@ -553,7 +553,7 @@ void COggSplitterOutputPin::AddComment(BYTE* p, int len)
 		if(sl.GetCount() == 2)
 		{
 			CAutoPtr<CComment> p(new CComment(UTF8To16(sl.GetHead()), UTF8To16(sl.GetTail())));
-			if(p->m_key == L"LANGUAGE") SetName(p->m_value /*+ L" (" + m_pName + L")"*/);
+			if(p->m_key == L"LANGUAGE") {SetName(p->m_value); SetProperty(L"NAME", p->m_value);}
 			m_pComments.AddTail(p);
 		}
 	}
