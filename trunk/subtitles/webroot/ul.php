@@ -240,7 +240,7 @@ if(isset($_POST['update']) || isset($_POST['submit']))
 		else
 		{
 			$db->query(
-				"insert into subtitle (discs, disc_no, sub, hash, mime, format, iso639_2, notes) ".
+				"insert into subtitle (discs, disc_no, sub, hash, mime, format, iso639_2) ".
 				"values ($discs, $disc_no, '$db_sub', '$db_hash', '$db_mime', '$format_sel', '$isolang_sel')");
 				
 			$subtitle_id = $db->fetchLastInsertId();
