@@ -394,6 +394,7 @@ void CConvertDlg::ShowResourcePopup(HTREEITEM hTI, CPoint p)
 	int i = 1;
 	m.AppendMenu(MF_STRING, i++, _T("Remove"));
 	m.AppendMenu(MF_STRING, i++, _T("Save As..."));
+	if(AfxGetAppSettings().fEnableWebServer) m.AppendMenu(MF_STRING, 1000, _T("Launch in Browser..."));
 	m.AppendMenu(MF_SEPARATOR);
 	m.AppendMenu(MF_STRING, i++, _T("Resource Properties..."));
 
@@ -419,6 +420,13 @@ void CConvertDlg::ShowResourcePopup(HTREEITEM hTI, CPoint p)
 		break;
 	case 3:
 		EditResource(t);
+		break;
+	case 1000:
+		{
+			CString url;
+			url.Format(_T("http://localhost:%d/convres.html?id=%x"), AfxGetAppSettings().nWebServerPort, (DWORD)&t->m_res);
+			ShellExecute(NULL, _T("open"), url, NULL, NULL, SW_SHOWDEFAULT);
+		}
 		break;
 	}
 }
@@ -803,7 +811,7 @@ void CConvertDlg::OnBnClickedButton1()
 
 	CFileDialog fd(FALSE, _T(".dsm"), m_fn, 
 		OFN_EXPLORER|OFN_ENABLESIZING|OFN_HIDEREADONLY|OFN_OVERWRITEPROMPT, 
-		_T("DirectShow Media file|*.dsm||"), this, 0);
+		_T("DirectShow Media file|*.dsm|All files|*.*|"), this, 0);
 
 	if(fd.DoModal() != IDOK) return;
 
@@ -1166,11 +1174,23 @@ bool CConvertDlg::CTreeItemResourceFolder::ToolTip(CString& str)
 
 //
 
+CCritSec CConvertDlg::CTreeItemResource::m_csGlobalRes;
+CAtlMap<DWORD, CDSMResource*> CConvertDlg::CTreeItemResource::m_GlobalRes;
+
 CConvertDlg::CTreeItemResource::CTreeItemResource(const CDSMResource& res, CTreeCtrl& tree, HTREEITEM hTIParent)
 	: CTreeItem(tree, hTIParent)
 {
 	m_res = res;
 	Update();
+
+	CAutoLock cAutoLock(&m_csGlobalRes);
+	m_GlobalRes.SetAt((DWORD)&m_res, &m_res);
+}
+
+CConvertDlg::CTreeItemResource::~CTreeItemResource()
+{
+	CAutoLock cAutoLock(&m_csGlobalRes);
+	m_GlobalRes.RemoveKey((DWORD)&m_res);
 }
 
 void CConvertDlg::CTreeItemResource::Update()

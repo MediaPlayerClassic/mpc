@@ -128,6 +128,8 @@ DWORD CBaseMuxerFilter::ThreadProc()
 			if(CComQIPtr<IStream> pStream = m_pOutput->GetConnected())
 				pBitStream = new CBitStream(pStream, true);
 
+			m_rtCurrent = 0;
+
 			Reply(S_OK);
 
 			MuxInit();

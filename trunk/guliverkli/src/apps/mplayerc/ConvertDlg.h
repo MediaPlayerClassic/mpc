@@ -77,8 +77,12 @@ public:
 	public: 
 		CDSMResource m_res;
 		CTreeItemResource(const CDSMResource& res, CTreeCtrl& tree, HTREEITEM hTIParent);
+		~CTreeItemResource();
 		void Update();
 		bool ToolTip(CString& str);
+
+		static CCritSec m_csGlobalRes;
+		static CAtlMap<DWORD, CDSMResource*> m_GlobalRes;
 	};
 
 	class CTreeItemChapterFolder : public CTreeItem
