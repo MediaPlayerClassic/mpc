@@ -18,15 +18,25 @@
 	<tr>
 		<th>Language</th>
 		<td>
-		<select class="blueborder" name="isolang">
-		<option value=""{if $isolang_sel == ""} selected="selected"{/if}>Please select a language...</option>
+		<select class="blueborder" name="isolang_sel">
+		<option value=""{if $isolang_sel == ""} selected="selected"{/if}>Any language</option>
 		{foreach from=$isolang key=code item=name}
 		<option value="{$code}"{if $code == $isolang_sel} selected="selected"{/if}>{$name|truncate:40:"...":true|escape:"html"}</option>
 		{/foreach}
 		</select>
 		</td>
 	</tr>
-	{* TODO: Format *}
+	<tr>
+		<th>File format</th>
+		<td>
+		<select name="format_sel">
+		<option value=""{if $format_sel == ""} selected="selected"{/if}>Any file format</option>
+		{foreach from=$format item=code}
+		<option value="{$code}"{if $code == $format_sel} selected="selected"{/if}>{$code|truncate:40:"...":true|escape:"html"}</option>
+		{/foreach}
+		</select>
+		</td>
+	</tr>
 	</table>
 	
 	<div style="padding-top: 10px;" align="center">

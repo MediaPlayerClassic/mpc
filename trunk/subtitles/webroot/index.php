@@ -11,7 +11,8 @@ $db = new SubtitlesDB();
 
 $text = getParam('text');
 $discs = max(0, intval(getParam('discs')));
-$isolang_sel = addslashes(getParam('isolang'));
+$isolang_sel = addslashes(getParam('isolang_sel'));
+$format_sel = addslashes(getParam('format_sel'));
 
 $files = array();
 
@@ -51,11 +52,14 @@ else if(!empty($text))
 {
 	if(strlen($text) >= 3)
 	{
-		$db_text = addslashes(ereg_replace('[^a-zA-Z0-9]+', '.+', $text));
-	
+		$db_text = ereg_replace('([_%])', '\\1', $text);
+		$db_text = str_replace('*', '%', $db_text);
+		$db_text = str_replace('?', '_', $db_text);
+		$db_text = addslashes($db_text);
+
 		$db->fetchAll(
 			"select * from movie ".
-			"where id in (select distinct movie_id from title where title regexp '.*$db_text.*') ".
+			"where id in (select distinct movie_id from title where title like _utf8 '%$db_text%') ".
 			"and id in (select distinct movie_id from movie_subtitle where subtitle_id in (select distinct id from subtitle)) ".
 			"limit 100 ",
 			$movies);
@@ -85,8 +89,9 @@ if(!empty($movies))
 			"select t2.* from movie_subtitle t1 ".
 			"join subtitle t2 on t1.subtitle_id = t2.id ".
 			"where t1.movie_id = {$movie['id']} ".
-			(!empty($isolang_sel)?" && iso639_2 = '$isolang_sel' ":"").
 			(!empty($discs)?" && discs = '$discs' ":"").
+			(!empty($isolang_sel)?" && iso639_2 = '$isolang_sel' ":"").
+			(!empty($format_sel)?" && format = '$format_sel' ":"").
 			"order by t2.date desc, t2.disc_no asc ", 
 			$movies[$i]['subs']);
 			
@@ -146,6 +151,9 @@ $smarty->assign('discs', $discs);
 
 $smarty->assign('isolang', $isolang);
 $smarty->assign('isolang_sel', $isolang_sel);
+
+$smarty->assign('format', $db->enumsetValues('subtitle', 'format'));
+$smarty->assign('format_sel', $format_sel);
 
 $smarty->assign('ticket', $_SESSION['ticket'] = rand(1, 10000000)); // ;)
 
