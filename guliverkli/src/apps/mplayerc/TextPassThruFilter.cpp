@@ -154,7 +154,7 @@ HRESULT CTextPassThruFilter::Transform(IMediaSample* pIn, IMediaSample* pOut)
 				}
 			}
 		}
-		else if(mt.majortype == MEDIATYPE_Subtitle && mt.subtype == MEDIASUBTYPE_UTF8)
+		else if(mt.majortype == MEDIATYPE_Subtitle && (mt.subtype == MEDIASUBTYPE_UTF8 || mt.subtype == MEDIASUBTYPE_RAWASS))
 		{
 			CAutoLock cAutoLock(&m_pMainFrame->m_csSubLock);
 			CStringW str = UTF8To16(CStringA((LPCSTR)pDataIn, len)).Trim();
@@ -165,6 +165,44 @@ HRESULT CTextPassThruFilter::Transform(IMediaSample* pIn, IMediaSample* pOut)
 				m_pMainFrame->InvalidateSubtitle((DWORD_PTR)(ISubStream*)m_pRTS, rtStart);
 			}
 		}
+		else if(mt.subtype == MEDIASUBTYPE_ASS)
+		{
+			CAutoLock cAutoLock(&m_pMainFrame->m_csSubLock);
+			CStringW str = UTF8To16(CStringA((LPCSTR)pDataIn, len)).Trim();
+
+			if(!str.IsEmpty())
+			{
+				STSEntry stse;
+
+				str.Replace(L",", L" ,");
+				int i = 0, j = 0;
+				for(CString token = str.Tokenize(_T(","), i); j < 8 && !token.IsEmpty(); token = ++j < 7 ? str.Tokenize(_T(","), i) : str.Mid(i))
+				{
+					token.Trim();
+
+					switch(j)
+					{
+					case 0: stse.layer = wcstol(token, NULL, 10); break;
+					case 1: stse.style = token; break;
+					case 2: stse.actor = token; break;
+					case 3: stse.marginRect.left = wcstol(token, NULL, 10); break;
+					case 4: stse.marginRect.right = wcstol(token, NULL, 10); break;
+					case 5: stse.marginRect.top = stse.marginRect.bottom = wcstol(token, NULL, 10); break;
+					case 6: stse.effect = token; break;
+					case 7: token.Replace(L" ,", L","); stse.str = token; break;
+					default: break;
+					}
+				}
+
+				if(j == 8 && !stse.str.IsEmpty())
+				{
+					pRTS->Add(stse.str, true, tstart, tstop, 
+						stse.style, stse.actor, stse.effect, stse.marginRect, stse.layer);
+					m_pMainFrame->InvalidateSubtitle((DWORD_PTR)(ISubStream*)m_pRTS, rtStart);
+				}
+			}
+		}
+
 		// TODO: handle SSA, ASS, USF subtypes
 	}
 
@@ -177,6 +215,8 @@ HRESULT CTextPassThruFilter::CheckInputType(const CMediaType* mtIn)
 {
 	return mtIn->majortype == MEDIATYPE_Text 
 		|| mtIn->majortype == MEDIATYPE_Subtitle && mtIn->subtype == MEDIASUBTYPE_UTF8
+		|| mtIn->majortype == MEDIATYPE_Subtitle && mtIn->subtype == MEDIASUBTYPE_RAWASS
+		|| mtIn->majortype == MEDIATYPE_Subtitle && mtIn->subtype == MEDIASUBTYPE_ASS
 		? S_OK 
 		: VFW_E_TYPE_NOT_ACCEPTED;
 }
@@ -258,11 +298,18 @@ HRESULT CTextPassThruFilter::CompleteConnect(PIN_DIRECTION dir, IPin* pReceivePi
 
 		if(mt.majortype == MEDIATYPE_Subtitle)
 		{
-			CStringA name(((SUBTITLEINFO*)mt.pbFormat)->IsoLang, 3);
+			SUBTITLEINFO* psi = (SUBTITLEINFO*)mt.pbFormat;
+
+			CStringA name(psi->IsoLang, 3);
 			if(name != "")
 			{
 				CAutoLock cAutoLock(&m_pMainFrame->m_csSubLock);
 				pRTS->m_name = name + _T(" (embeded)");
+			}
+
+			if(mt.subtype == MEDIASUBTYPE_ASS && psi->dwOffset > 0)
+			{
+				pRTS->Open(mt.pbFormat + psi->dwOffset, mt.cbFormat - psi->dwOffset, DEFAULT_CHARSET, pRTS->m_name);
 			}
 		}
 	}

@@ -491,7 +491,7 @@ DWORD CMatroskaMuxerFilter::ThreadProc()
 					break;
 				}
 
-				if(!pPin || nPinsNeeded > nPinsGotSomething || nPinsGotSomething == 0)
+				if(!pPin || nPinsNeeded > nPinsGotSomething || !pPin && nPinsGotSomething == 0)
 				{
 					Sleep(1);
 					continue;
@@ -930,7 +930,6 @@ HRESULT CMatroskaMuxerInputPin::CompleteConnect(IPin* pPin)
 		if(m_mt.formattype == FORMAT_None)
 		{
 			m_pTE->CodecID.Set("S_TEXT/ASCII");
-
 			hr = S_OK;
 		}
 	}
@@ -941,42 +940,37 @@ HRESULT CMatroskaMuxerInputPin::CompleteConnect(IPin* pPin)
 		if(m_mt.subtype == MEDIASUBTYPE_UTF8 && m_mt.formattype == FORMAT_SubtitleInfo)
 		{
 			m_pTE->CodecID.Set("S_TEXT/UTF8");
-
-			SUBTITLEINFO* psi = (SUBTITLEINFO*)m_mt.pbFormat;
-			m_pTE->CodecPrivate.SetSize(m_mt.cbFormat);
-			memcpy(m_pTE->CodecPrivate, psi, m_pTE->CodecPrivate.GetSize());
-
+			hr = S_OK;
+		}
+		else if(m_mt.subtype == MEDIASUBTYPE_RAWASS && m_mt.formattype == FORMAT_SubtitleInfo)
+		{
+			m_pTE->CodecID.Set("S_RAWASS");
 			hr = S_OK;
 		}
 		else if(m_mt.subtype == MEDIASUBTYPE_SSA && m_mt.formattype == FORMAT_SubtitleInfo)
 		{
 			m_pTE->CodecID.Set("S_SSA");
-
-			SUBTITLEINFO* psi = (SUBTITLEINFO*)m_mt.pbFormat;
-			m_pTE->CodecPrivate.SetSize(m_mt.cbFormat);
-			memcpy(m_pTE->CodecPrivate, psi, m_pTE->CodecPrivate.GetSize());
-
 			hr = S_OK;
 		}
 		else if(m_mt.subtype == MEDIASUBTYPE_ASS && m_mt.formattype == FORMAT_SubtitleInfo)
 		{
 			m_pTE->CodecID.Set("S_ASS");
-
-			SUBTITLEINFO* psi = (SUBTITLEINFO*)m_mt.pbFormat;
-			m_pTE->CodecPrivate.SetSize(m_mt.cbFormat);
-			memcpy(m_pTE->CodecPrivate, psi, m_pTE->CodecPrivate.GetSize());
-
 			hr = S_OK;
 		}
 		else if(m_mt.subtype == MEDIASUBTYPE_USF && m_mt.formattype == FORMAT_SubtitleInfo)
 		{
 			m_pTE->CodecID.Set("S_USF");
-
-			SUBTITLEINFO* psi = (SUBTITLEINFO*)m_mt.pbFormat;
-			m_pTE->CodecPrivate.SetSize(m_mt.cbFormat);
-			memcpy(m_pTE->CodecPrivate, psi, m_pTE->CodecPrivate.GetSize());
-
 			hr = S_OK;
+		}
+
+		if(S_OK == hr)
+		{
+			SUBTITLEINFO* psi = (SUBTITLEINFO*)m_mt.pbFormat;
+			if(psi->dwOffset)
+			{
+				m_pTE->CodecPrivate.SetSize(m_mt.cbFormat - psi->dwOffset);
+				memcpy(m_pTE->CodecPrivate, m_mt.pbFormat + psi->dwOffset, m_pTE->CodecPrivate.GetSize());
+			}
 		}
 	}
 

@@ -12,6 +12,10 @@ DEFINE_GUID(MEDIATYPE_Subtitle,
 DEFINE_GUID(MEDIASUBTYPE_UTF8, 
 0x87c0b230, 0x3a8, 0x4fdf, 0x80, 0x10, 0xb2, 0x7a, 0x58, 0x48, 0x20, 0xd);
 
+// {EA4C8F94-D0AB-4606-A9D3-256711D5FD06}
+DEFINE_GUID(MEDIASUBTYPE_RAWASS, 
+0xea4c8f94, 0xd0ab, 0x4606, 0xa9, 0xd3, 0x25, 0x67, 0x11, 0xd5, 0xfd, 0x6);
+
 // {3020560F-255A-4ddc-806E-6C5CC6DCD70A}
 DEFINE_GUID(MEDIASUBTYPE_SSA, 
 0x3020560f, 0x255a, 0x4ddc, 0x80, 0x6e, 0x6c, 0x5c, 0xc6, 0xdc, 0xd7, 0xa);
@@ -31,7 +35,7 @@ DEFINE_GUID(FORMAT_SubtitleInfo,
 #pragma pack(push, 1)
 typedef struct {
 	DWORD dwOffset;	
-	CHAR IsoLang[3];
+	CHAR IsoLang[4];
 } SUBTITLEINFO;
 #pragma pack(pop)
 
@@ -51,10 +55,14 @@ typedef struct {
 // MEDIASUBTYPE_SSA/ASS:
 //
 // The file header and all sub-sections except [Events]
+//
+// MEDIASUBTYPE_RAWASS
+//
+// Nothing.
 
 
-// Data description of the media samples
-// -------------------------------------
+// Data description of the media samples (everything is UTF-8 encoded here)
+// ------------------------------------------------------------------------
 //
 // MEDIASUBTYPE_USF:
 //
@@ -67,3 +75,17 @@ typedef struct {
 //
 // The whole "Dialogue: ..." line. For the timing applications 
 // should prefer the timestamps set on the media samples.
+//
+// MEDIASUBTYPE_RAWASS
+//
+// Only the text from the end of the "Dialogue: ..." line.
+//
+
+// Matroka CodecID mappings
+// ------------------------
+//
+// MEDIASUBTYPE_UTF8	<-> S_TEXT/UTF8
+// MEDIASUBTYPE_RAWASS	<-> S_RAWASS
+// MEDIASUBTYPE_SSA		<-> S_SSA
+// MEDIASUBTYPE_ASS		<-> S_ASS
+// MEDIASUBTYPE_USF		<-> S_USF
