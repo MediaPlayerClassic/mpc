@@ -166,10 +166,6 @@ void GSRendererHW::DrawingKick(bool fSkip)
 		pVertices[1].tv = pVertices[0].tv;
 		pVertices[2].x = pVertices[0].x;
 		pVertices[2].tu = pVertices[0].tu;
-		LOGV((pVertices[0], _T("Sprite")));
-		LOGV((pVertices[1], _T("Sprite")));
-		LOGV((pVertices[2], _T("Sprite")));
-		LOGV((pVertices[3], _T("Sprite")));
 		nVertices += 2;
 		pVertices[5] = pVertices[3];
 		pVertices[3] = pVertices[1];

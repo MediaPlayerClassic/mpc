@@ -50,7 +50,7 @@ __declspec(align(16)) union GSSoftVertexFP
 	friend GSSoftVertexFP operator / (GSSoftVertexFP& v1, float f);
 
 	DWORD GetZ() {return (DWORD)(z * UINT_MAX);}
-	void GetColor(int* pRGBA) {*(__m128i*)pRGBA = _mm_cvttps_epi32(xmm[0]);}
+	void GetColor(void* pRGBA) {*(__m128i*)pRGBA = _mm_cvttps_epi32(xmm[0]);}
 };
 
 inline GSSoftVertexFP operator + (GSSoftVertexFP& v1, GSSoftVertexFP& v2)
@@ -130,8 +130,7 @@ __declspec(align(16)) union GSSoftVertexFX
 	friend GSSoftVertexFX operator / (GSSoftVertexFX& v1, s32 f);
 
 	DWORD GetZ() {return (DWORD)(z >> 32);}
-	void GetColor(int* pRGBA) {*(__m128i*)pRGBA = _mm_srai_epi32(xmm[0], 16);}
-
+	void GetColor(void* pRGBA) {*(__m128i*)pRGBA = _mm_srai_epi32(xmm[0], 16);}
 };
 
 inline GSSoftVertexFX operator + (GSSoftVertexFX& v1, GSSoftVertexFX& v2)

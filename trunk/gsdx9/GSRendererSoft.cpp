@@ -489,6 +489,8 @@ void GSRendererSoft<VERTEX>::InvalidateTexture(DWORD TBP0)
 template <class VERTEX>
 void GSRendererSoft<VERTEX>::DrawVertex(int x, int y, VERTEX& v)
 {
+	// 360
+
 	DWORD FBP = m_ctxt->FRAME.FBP<<5, FBW = m_ctxt->FRAME.FBW;
 
 	DWORD vz = v.GetZ();
@@ -516,6 +518,8 @@ void GSRendererSoft<VERTEX>::DrawVertex(int x, int y, VERTEX& v)
 	__declspec(align(16)) union {struct {int Rf, Gf, Bf, Af;}; int Cf[4];};
 	v.GetColor(Cf);
 
+	// 352
+
 	if(m_de.PRIM.TME)
 	{
 		int tw = 1 << m_ctxt->TEX0.TW;
@@ -523,7 +527,7 @@ void GSRendererSoft<VERTEX>::DrawVertex(int x, int y, VERTEX& v)
 
 		float tu = (float)v.u / v.q * tw;
 		float tv = (float)v.v / v.q * th;
-		
+
 		// TODO
 		// float lod = m_ctxt->TEX1.K;
 		// if(!m_ctxt->TEX1.LCM) lod += log2(1/v.q) << m_ctxt->TEX1.L;
@@ -647,6 +651,8 @@ void GSRendererSoft<VERTEX>::DrawVertex(int x, int y, VERTEX& v)
 		Af = m_clip[Af+512];
 	}
 
+	// 312
+
 	if(m_de.PRIM.FGE)
 	{
 		BYTE F = (BYTE)v.fog;
@@ -726,7 +732,11 @@ void GSRendererSoft<VERTEX>::DrawVertex(int x, int y, VERTEX& v)
 
 	DWORD color = ((Af << 24) | (Bf << 16) | (Gf << 8) | (Rf << 0)) & ~FBMSK;
 
+	// 280
+
 	(m_lm.*m_ctxt->wf)(x, y, color, FBP, FBW);
+
+	// 256
 }
 
 template <class VERTEX>
@@ -735,7 +745,7 @@ void GSRendererSoft<VERTEX>::SetTexture()
 	if(!m_de.PRIM.TME || !m_ctxt->rt)
 		return;
 
-//// hell, it looks to be faster without caching!
+// hell, it looks to be faster without caching!
 m_lm.setupCLUT(m_ctxt->TEX0, m_de.TEXCLUT, m_de.TEXA);
 return;
 
@@ -860,21 +870,23 @@ void GSRendererSoftFP::DrawLine(GSSoftVertex* v)
 
 	int f = dx > dy ? 0 : 1;
 
-	if(v[0].f[f] > v[1].f[f]) {GSSoftVertex tmp = v[0]; v[0] = v[1]; v[1] = tmp;}
+//	if(v[0].f[f] > v[1].f[f]) {GSSoftVertex tmp = v[0]; v[0] = v[1]; v[1] = tmp;}
 
 	GSSoftVertex edge = v[0];
-	GSSoftVertex dedge = (v[1] - v[0]) / (v[1].f[f] - v[0].f[f]);
-
+	GSSoftVertex dedge = (v[1] - v[0]) / abs(v[1].f[f] - v[0].f[f]);
+/*
 	if(v[0].x < m_scissor.left) v[0] += dedge * ((float)m_scissor.left - v[0].x);
 	if(v[1].x > m_scissor.right) v[1].x = (float)m_scissor.right;
 	if(v[0].y < m_scissor.top) v[0] += dedge * ((float)m_scissor.top - v[0].y);
 	if(v[1].y > m_scissor.bottom) v[1].y = (float)m_scissor.bottom;
-
+*/
 	int start = int(v[0].f[f]), end = int(v[1].f[f]);
 
-	for(; start < end; start++, edge += dedge)
+	for(int steps = abs(start - end); steps > 0; steps--, edge += dedge)
 	{
-		DrawVertex(edge.x, edge.y, edge);
+		CPoint p(edge.x, edge.y);
+		if(m_scissor.PtInRect(p))
+			DrawVertex(p.x>>16, p.y>>16, edge);
 	}
 }
 
@@ -1033,6 +1045,8 @@ void GSRendererSoftFX::VertexKick(bool fSkip)
 
 	v.x = ((int)m_v.XYZ.X - m_ctxt->XYOFFSET.OFX) << 12;
 	v.y = ((int)m_v.XYZ.Y - m_ctxt->XYOFFSET.OFY) << 12;
+	//v.x = (m_v.XYZ.X>>4) - (m_ctxt->XYOFFSET.OFX>>4) << 16;
+	//v.y = (m_v.XYZ.Y>>4) - (m_ctxt->XYOFFSET.OFY>>4) << 16;
 	v.z = (unsigned __int64)m_v.XYZ.Z << 32;
 	v.q = m_v.RGBAQ.Q == 0 ? INT_MAX : (__int64)(m_v.RGBAQ.Q * INT_MAX);
 
@@ -1074,9 +1088,9 @@ void GSRendererSoftFX::SetScissor()
 
 void GSRendererSoftFX::DrawPoint(GSSoftVertex* v)
 {
-	CPoint p(v->x>>16, v->y>>16);
+	CPoint p(v->x, v->y);
 	if(m_scissor.PtInRect(p))
-		DrawVertex(p.x, p.y, *v);
+		DrawVertex(p.x>>16, p.y>>16, *v);
 }
 
 void GSRendererSoftFX::DrawLine(GSSoftVertex* v)
@@ -1086,23 +1100,25 @@ void GSRendererSoftFX::DrawLine(GSSoftVertex* v)
 
 	if(dx == 0 && dy == 0) return;
 
-	int i = dx > dy ? 0 : 1;
+	int i = dx > dy ? 4 : 5;
 
-	if(v[0].dw[i] > v[1].dw[i]) {GSSoftVertex tmp = v[0]; v[0] = v[1]; v[1] = tmp;}
+	// if(v[0].dw[i] > v[1].dw[i]) {GSSoftVertex tmp = v[0]; v[0] = v[1]; v[1] = tmp;}
 
 	GSSoftVertex edge = v[0];
-	GSSoftVertex dedge = (v[1] - v[0]) / (v[1].dw[i] - v[0].dw[i]);
-
+	GSSoftVertex dedge = (v[1] - v[0]) / abs(v[1].dw[i] - v[0].dw[i]);
+/*
 	if(v[0].x < m_scissor.left) v[0] += dedge * (m_scissor.left - v[0].x);
 	if(v[1].x > m_scissor.right) v[1].x = m_scissor.right;
 	if(v[0].y < m_scissor.top) v[0] += dedge * (m_scissor.top - v[0].y);
 	if(v[1].y > m_scissor.bottom) v[1].y = m_scissor.bottom;
-
+*/
 	int start = v[0].dw[i]>>16, end = v[1].dw[i]>>16;
 
-	for(; start < end; start++, edge += dedge)
+	for(int steps = abs(start - end); steps > 0; steps--, edge += dedge)
 	{
-		DrawVertex(edge.x, edge.y, edge);
+		CPoint p(edge.x, edge.y);
+		if(m_scissor.PtInRect(p))
+			DrawVertex(p.x>>16, p.y>>16, edge);
 	}
 }
 
