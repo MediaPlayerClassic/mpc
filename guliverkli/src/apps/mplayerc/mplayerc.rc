@@ -451,6 +451,18 @@ BEGIN
                     IDC_STATIC,14,178,267,16
 END
 
+IDD_PPAGESUBDB DIALOGEX 0, 0, 296, 203
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD
+FONT 8, "MS Shell Dlg", 400, 0, 0xEE
+BEGIN
+    LTEXT           "Base URL of the online subtitle database:",IDC_STATIC,5,
+                    8,133,8
+    COMBOBOX        IDC_COMBO1,29,22,205,30,CBS_DROPDOWN | CBS_SORT | 
+                    WS_VSCROLL | WS_TABSTOP
+    PUSHBUTTON      "Test",IDC_BUTTON1,239,21,50,14
+    LTEXT           "http://",IDC_STATIC,5,24,22,8
+END
+
 IDD_PPAGEFORMATS DIALOGEX 0, 0, 296, 198
 STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
@@ -1239,6 +1251,13 @@ BEGIN
         VERTGUIDE, 5
         VERTGUIDE, 14
         VERTGUIDE, 281
+        VERTGUIDE, 289
+        BOTTOMMARGIN, 200
+    END
+
+    IDD_PPAGESUBDB, DIALOG
+    BEGIN
+        VERTGUIDE, 5
         VERTGUIDE, 289
         BOTTOMMARGIN, 200
     END
@@ -2142,6 +2161,12 @@ END
 
 STRINGTABLE 
 BEGIN
+    IDB_LOGO7               "Steven W. Smith, smith78@sbcglobal.net"
+    IDD_PPAGESUBDB          "Subtitles::Database"
+END
+
+STRINGTABLE 
+BEGIN
     IDD_PPAGEOVERRIDES      "Filters::Overrides"
     IDD_FILEPROPDETAILS     "Details"
     IDD_FILEPROPCLIP        "Clip"
@@ -2309,11 +2334,6 @@ BEGIN
     IDC_CHECK_DTS           "6.4.0.1\nlibdts 0.0.2, http://www.videolan.org/dtsdec.html"
     IDC_CHECK_NUT           "6.4.0.0\nBased on ""NUT Open Container Format DRAFT 20030906""\nStill very incomplete, if you have or can make test files, please contact me."
     IDC_CHECK_AAC           "6.4.0.0\nlibfaad 2.0, http://www.audiocoding.com/"
-END
-
-STRINGTABLE 
-BEGIN
-    IDB_LOGO7               "Steven W. Smith, smith78@sbcglobal.net"
 END
 
 #endif    // English (U.S.) resources

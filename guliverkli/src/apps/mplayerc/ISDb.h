@@ -3,6 +3,8 @@
 #include <afxinet.h>
 #include "Playlist.h"
 
+#define ISDb_PROTOCOL_VERSION 1
+
 struct isdb_subtitle
 {
 	int id, discs, disc_no;

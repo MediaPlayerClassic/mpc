@@ -786,6 +786,9 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath=".\PPageSubDB.cpp">
+			</File>
+			<File
 				RelativePath="PPageSubStyle.cpp">
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
@@ -1415,6 +1418,9 @@
 					<Tool
 						Name="VCCustomBuildTool"/>
 				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\PPageSubDB.h">
 			</File>
 			<File
 				RelativePath="PPageSubStyle.h">
