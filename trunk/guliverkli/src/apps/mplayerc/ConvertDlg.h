@@ -2,6 +2,20 @@
 #include "afxcmn.h"
 #include "..\..\DSUtil\DSMPropertyBag.h"
 
+class CFilterTreeCtrl : public CTreeCtrl
+{
+public:
+	CFilterTreeCtrl();
+
+protected:
+	virtual INT_PTR OnToolHitTest(CPoint point, TOOLINFO* pTI) const;
+	virtual void PreSubclassWindow();
+
+public:
+	DECLARE_MESSAGE_MAP()
+	afx_msg BOOL OnToolTipText(UINT nID, NMHDR* pNMHDR, LRESULT* pResult);
+};
+
 // CConvertDlg dialog
 
 class CConvertDlg : public CResizableDialog
@@ -41,7 +55,7 @@ public:
 
 // Dialog Data
 	enum { IDD = IDD_CONVERT_DIALOG };
-	CTreeCtrl m_tree;
+	CFilterTreeCtrl m_tree;
 	CString m_fn;
 
 protected:
@@ -51,6 +65,7 @@ protected:
 	virtual void OnOK();
 
 	DECLARE_MESSAGE_MAP()
+
 public:
 	afx_msg LRESULT OnGraphNotify(WPARAM wParam, LPARAM lParam);
 	afx_msg void OnDropFiles(HDROP hDropInfo);
