@@ -55,7 +55,7 @@ protected:
 	CComPtr<IDirect3DSurface9> m_pVideoSurface;
 	D3DTEXTUREFILTERTYPE m_Filter;
 
-    virtual HRESULT CreateDevice();
+	virtual HRESULT CreateDevice();
 	virtual HRESULT AllocSurfaces();
 	virtual void DeleteSurfaces();
 

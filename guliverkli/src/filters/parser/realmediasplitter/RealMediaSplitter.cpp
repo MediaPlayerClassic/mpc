@@ -167,6 +167,7 @@ const AMOVIESETUP_MEDIATYPE sudPinTypesOut3[] =
 	{&MEDIATYPE_Audio, &MEDIASUBTYPE_COOK},
 	{&MEDIATYPE_Audio, &MEDIASUBTYPE_DNET},
 	{&MEDIATYPE_Audio, &MEDIASUBTYPE_SIPR},
+	{&MEDIATYPE_Audio, &MEDIASUBTYPE_AAC},
 	{&MEDIATYPE_Audio, &MEDIASUBTYPE_RAAC},
 	{&MEDIATYPE_Audio, &MEDIASUBTYPE_RACP},
 };
@@ -443,10 +444,18 @@ HRESULT CRealMediaSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 					int extralen = *(DWORD*)extra; extra += 4;
 					::bswap(extralen);
 					ASSERT(*extra == 2); // always 2? why? what does it mean?
-					extra++; extralen--;
-					WAVEFORMATEX* pwfe = (WAVEFORMATEX*)mt.ReallocFormatBuffer(sizeof(WAVEFORMATEX) + extralen);
-					pwfe->cbSize = extralen;
-					memcpy(pwfe + 1, extra, extralen);
+					if(*extra == 2)
+					{
+						extra++; extralen--;
+						WAVEFORMATEX* pwfe = (WAVEFORMATEX*)mt.ReallocFormatBuffer(sizeof(WAVEFORMATEX) + extralen);
+						pwfe->cbSize = extralen;
+						memcpy(pwfe + 1, extra, extralen);
+					}
+					else
+					{
+						WAVEFORMATEX* pwfe = (WAVEFORMATEX*)mt.ReallocFormatBuffer(sizeof(WAVEFORMATEX) + 5);
+						pwfe->cbSize = MakeAACInitData((BYTE*)(pwfe+1), 0, pwfe->nSamplesPerSec, pwfe->nChannels);
+					}
 					mts.InsertAt(0, mt);
 				}
 			}
@@ -548,7 +557,7 @@ HRESULT CRealMediaSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 		AddOutputPin((DWORD)~stream, pPinOut);
 	}
 
-	m_rtNewStop = m_rtStop;
+	m_rtDuration = m_rtNewStop = m_rtStop = 10000i64*m_pFile->m_p.tDuration;
 
 	SetMediaContentStr(CStringW(m_pFile->m_cd.title), Title);
 	SetMediaContentStr(CStringW(m_pFile->m_cd.author), AuthorName);
@@ -567,7 +576,7 @@ bool CRealMediaSplitterFilter::InitDeliverLoop()
 	if(m_pFile->m_irs.GetCount() == 0)
 	{
 		m_nOpenProgress = 0;
-		m_pFile->m_p.tDuration = 0;
+		m_rtDuration = 0;
 
 		int stream = m_pFile->GetMasterStream();
 
@@ -593,7 +602,7 @@ bool CRealMediaSplitterFilter::InitDeliverLoop()
 
 				if(mph.stream == stream && (mph.flags&MediaPacketHeader::PN_KEYFRAME_FLAG) && tLastStart != mph.tStart)
 				{
-					m_pFile->m_p.tDuration = max(mph.tStart, m_pFile->m_p.tDuration);
+					m_rtDuration = max((__int64)(10000i64*mph.tStart), m_rtDuration);
 
 					CAutoPtr<IndexRecord> pir(new IndexRecord());
 					pir->tStart = mph.tStart;
@@ -773,18 +782,6 @@ void CRealMediaSplitterFilter::DoDeliverLoop()
 		m_seekpacket = 0;
 		m_seekfilepos = 0;
 	}
-}
-
-// IMediaSeeking
-
-STDMETHODIMP CRealMediaSplitterFilter::GetDuration(LONGLONG* pDuration)
-{
-	CheckPointer(pDuration, E_POINTER);
-	CheckPointer(m_pFile, VFW_E_NOT_CONNECTED);
-
-	*pDuration = 10000i64*m_pFile->m_p.tDuration;
-
-	return S_OK;
 }
 
 // IKeyFrameInfo
@@ -1055,7 +1052,7 @@ HRESULT CRealMediaSplitterOutputPin::DeliverPacket(CAutoPtr<Packet> p)
 		ASSERT(expected == 0);
 
 		WAVEFORMATEX* wfe = (WAVEFORMATEX*)m_mt.pbFormat;
-		REFERENCE_TIME rtDur = 20480000000i64/(wfe->nChannels*wfe->nSamplesPerSec); // 2048 samples per sec (but always?)
+		REFERENCE_TIME rtDur = 10240000000i64/wfe->nSamplesPerSec * (wfe->cbSize>2?2:1);
 		REFERENCE_TIME rtStart = p->rtStart;
 		BOOL bDiscontinuity = p->bDiscontinuity;
 
@@ -2103,44 +2100,66 @@ HRESULT CRealAudioDecoder::InitRA(const CMediaType* pmt)
 	DWORD cbSize = pwfe->cbSize;
 	if(cbSize == sizeof(WAVEFORMATEX)) {ASSERT(0); cbSize = 0;}
 
-	if(pmt->FormatLength() <= sizeof(WAVEFORMATEX) + cbSize) // must have type_specific_data appended
-		return hr;
-
-	BYTE* fmt = pmt->Format() + sizeof(WAVEFORMATEX) + cbSize;
-	BYTE* p = NULL;
-
-	for(int i = 0, len = pmt->FormatLength() - (sizeof(WAVEFORMATEX) + cbSize); i < len-4; i++, fmt++)
-	{
-		if(fmt[0] == '.' || fmt[1] == 'r' || fmt[2] == 'a')
-			break;
-	}
-
-	m_rai = *(rainfo*)fmt;
-	m_rai.bswap();
-
-	if(m_rai.version2 == 4)
-	{
-		p = (BYTE*)((rainfo4*)fmt+1);
-		int len = *p++; p += len; len = *p++; p += len; 
-		ASSERT(len == 4);		
-	}
-	else if(m_rai.version2 == 5)
-	{
-		p = (BYTE*)((rainfo5*)fmt+1);
-	}
-	else
-	{
-		return hr;
-	}
-
-	p += 3;
-	if(m_rai.version2 == 5) p++;
+	WORD wBitsPerSample = pwfe->wBitsPerSample;
+	if(!wBitsPerSample) wBitsPerSample = 16;
 
 	#pragma pack(push, 1)
 	struct {DWORD freq; WORD bpsample, channels, quality; DWORD bpframe, packetsize, extralen; void* extra;} initdata =
-		{pwfe->nSamplesPerSec, pwfe->wBitsPerSample, pwfe->nChannels, 100, 
-		m_rai.sub_packet_size, m_rai.coded_frame_size, *(DWORD*)p, p + 4};
+		{pwfe->nSamplesPerSec, wBitsPerSample, pwfe->nChannels, 100, 
+		0, 0, 0, NULL};
 	#pragma pack(pop)
+
+	CAutoVectorPtr<BYTE> pBuff;
+
+	if(pmt->subtype == MEDIASUBTYPE_AAC)
+	{
+		pBuff.Allocate(cbSize+1);
+		pBuff[0] = 0x02;
+		memcpy(pBuff+1, pwfe+1, cbSize);
+		initdata.extralen = cbSize+1;
+		initdata.extra = pBuff;
+	}
+	else
+	{
+		if(pmt->FormatLength() <= sizeof(WAVEFORMATEX) + cbSize) // must have type_specific_data appended
+			return hr;
+
+		BYTE* fmt = pmt->Format() + sizeof(WAVEFORMATEX) + cbSize;
+
+		for(int i = 0, len = pmt->FormatLength() - (sizeof(WAVEFORMATEX) + cbSize); i < len-4; i++, fmt++)
+		{
+			if(fmt[0] == '.' || fmt[1] == 'r' || fmt[2] == 'a')
+				break;
+		}
+
+		m_rai = *(rainfo*)fmt;
+		m_rai.bswap();
+
+		BYTE* p;
+
+		if(m_rai.version2 == 4)
+		{
+			p = (BYTE*)((rainfo4*)fmt+1);
+			int len = *p++; p += len; len = *p++; p += len; 
+			ASSERT(len == 4);		
+		}
+		else if(m_rai.version2 == 5)
+		{
+			p = (BYTE*)((rainfo5*)fmt+1);
+		}
+		else
+		{
+			return hr;
+		}
+
+		p += 3;
+		if(m_rai.version2 == 5) p++;
+
+		initdata.bpframe = m_rai.sub_packet_size;
+		initdata.packetsize = m_rai.coded_frame_size;
+		initdata.extralen = *(DWORD*)p;
+		initdata.extra = p + 4;
+	}
 
 	if(FAILED(hr = RAInitDecoder(m_dwCookie, &initdata)))
 		return hr;
@@ -2204,7 +2223,8 @@ HRESULT CRealAudioDecoder::Receive(IMediaSample* pIn)
 	int sps = m_rai.sub_packet_size;
 
 	if(m_pInput->CurrentMediaType().subtype == MEDIASUBTYPE_RAAC
-	|| m_pInput->CurrentMediaType().subtype == MEDIASUBTYPE_RACP)
+	|| m_pInput->CurrentMediaType().subtype == MEDIASUBTYPE_RACP
+	|| m_pInput->CurrentMediaType().subtype == MEDIASUBTYPE_AAC)
 	{
 		src = pDataIn;
 		dst = pDataIn + len;
@@ -2335,7 +2355,8 @@ HRESULT CRealAudioDecoder::CheckInputType(const CMediaType* mtIn)
 	&& mtIn->subtype != MEDIASUBTYPE_DNET
 	&& mtIn->subtype != MEDIASUBTYPE_SIPR
 	&& mtIn->subtype != MEDIASUBTYPE_RAAC
-	&& mtIn->subtype != MEDIASUBTYPE_RACP)
+	&& mtIn->subtype != MEDIASUBTYPE_RACP
+	&& mtIn->subtype != MEDIASUBTYPE_AAC)
 		return VFW_E_TYPE_NOT_ACCEPTED;
 
 	if(!m_pInput->IsConnected())
@@ -2354,7 +2375,7 @@ HRESULT CRealAudioDecoder::CheckInputType(const CMediaType* mtIn)
 			0
 		};
 
-		if(!_tcscmp(_T("RACP"), fourcc))
+		if(!_tcscmp(_T("RACP"), fourcc) || !_tcscmp(_T("\xff"), fourcc))
 			_tcscpy(fourcc, _T("RAAC"));
 
 		olddll.Format(_T("%s3260.dll"), fourcc);
@@ -2439,7 +2460,8 @@ HRESULT CRealAudioDecoder::CheckTransform(const CMediaType* mtIn, const CMediaTy
 												|| mtIn->subtype == MEDIASUBTYPE_DNET
 												|| mtIn->subtype == MEDIASUBTYPE_SIPR
 												|| mtIn->subtype == MEDIASUBTYPE_RAAC
-												|| mtIn->subtype == MEDIASUBTYPE_RACP)
+												|| mtIn->subtype == MEDIASUBTYPE_RACP
+												|| mtIn->subtype == MEDIASUBTYPE_AAC)
 		&& mtOut->majortype == MEDIATYPE_Audio && mtOut->subtype == MEDIASUBTYPE_PCM												
 		? S_OK
 		: VFW_E_TYPE_NOT_ACCEPTED;
@@ -2455,9 +2477,12 @@ HRESULT CRealAudioDecoder::DecideBufferSize(IMemAllocator* pAllocator, ALLOCATOR
 
 	WAVEFORMATEX* pwfe = (WAVEFORMATEX*)m_pOutput->CurrentMediaType().Format();
 
+	WORD wBitsPerSample = pwfe->wBitsPerSample;
+	if(!wBitsPerSample) wBitsPerSample = 16;
+
 	// ok, maybe this is too much...
 	pProperties->cBuffers = 8;
-	pProperties->cbBuffer = pwfe->nChannels*pwfe->nSamplesPerSec*pwfe->wBitsPerSample>>3; // nAvgBytesPerSec;
+	pProperties->cbBuffer = pwfe->nChannels*pwfe->nSamplesPerSec*wBitsPerSample>>3; // nAvgBytesPerSec;
 	pProperties->cbAlign = 1;
 	pProperties->cbPrefix = 0;
 
@@ -2481,6 +2506,8 @@ HRESULT CRealAudioDecoder::GetMediaType(int iPosition, CMediaType* pmt)
 
 	if(iPosition < 0) return E_INVALIDARG;
 	if(iPosition > (pwfe->nChannels > 2 && pwfe->nChannels <= 6 ? 1 : 0)) return VFW_S_NO_MORE_ITEMS;
+
+	if(!pwfe->wBitsPerSample) pwfe->wBitsPerSample = 16;
 
 	pwfe->cbSize = 0;
 	pwfe->wFormatTag = WAVE_FORMAT_PCM;

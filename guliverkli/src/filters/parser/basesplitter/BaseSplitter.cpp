@@ -65,7 +65,9 @@ STDMETHODIMP_(HANDLE) CAsyncFileReader::GetFileHandle()
 
 CBaseSplitterFile::CBaseSplitterFile(IAsyncReader* pAsyncReader, HRESULT& hr, int cachetotal)
 	: m_pAsyncReader(pAsyncReader)
-	, m_pos(0), m_len(0), m_cachepos(0), m_cachelen(0)
+	, m_pos(0), m_len(0)
+	, m_bitbuff(0), m_bitlen(0)
+	, m_cachepos(0), m_cachelen(0)
 {
 	if(!m_pAsyncReader) {hr = E_UNEXPECTED; return;}
 
@@ -140,6 +142,40 @@ HRESULT CBaseSplitterFile::Read(BYTE* pData, __int64 len)
 	}
 
 	return hr;
+}
+
+UINT64 CBaseSplitterFile::BitRead(int nBits, bool fPeek)
+{
+	ASSERT(nBits >= 0 && nBits <= 64);
+
+	while(m_bitlen < nBits)
+	{
+		m_bitbuff <<= 8;
+		Read((BYTE*)&m_bitbuff, 1);
+		m_bitlen += 8;
+	}
+
+	int bitlen = m_bitlen - nBits;
+
+	UINT64 ret = (m_bitbuff >> bitlen) & ((1ui64 << nBits) - 1);
+
+	if(!fPeek)
+	{
+		m_bitbuff &= ((1ui64 << bitlen) - 1);
+		m_bitlen = bitlen;
+	}
+
+	return ret;
+}
+
+void CBaseSplitterFile::BitByteAlign()
+{
+	m_bitlen &= ~7;
+}
+
+void CBaseSplitterFile::BitFlush()
+{
+	m_bitlen = 0;
 }
 
 //
@@ -648,7 +684,7 @@ STDMETHODIMP CBaseSplitterOutputPin::GetPreroll(LONGLONG* pllPreroll)
 
 CBaseSplitterFilter::CBaseSplitterFilter(LPCTSTR pName, LPUNKNOWN pUnk, HRESULT* phr, const CLSID& clsid)
 	: CBaseFilter(pName, pUnk, this, clsid)
-	, m_rtStart(0), m_rtStop(0), m_rtCurrent(0)
+	, m_rtDuration(0), m_rtStart(0), m_rtStop(0), m_rtCurrent(0)
 	, m_dRate(1.0)
 	, m_nOpenProgress(100)
 	, m_fAbort(false)
@@ -705,6 +741,7 @@ HRESULT CBaseSplitterFilter::AddOutputPin(DWORD TrackNum, CAutoPtr<CBaseSplitter
 
 HRESULT CBaseSplitterFilter::DeleteOutputs()
 {
+	m_rtDuration = 0;
 	return m_pOutputs.IsEmpty() ? S_OK : E_FAIL; // FIXME
 /*
 	CAutoLock cAutoLock(this);
@@ -1013,7 +1050,7 @@ STDMETHODIMP CBaseSplitterFilter::QueryPreferredFormat(GUID* pFormat) {return Ge
 STDMETHODIMP CBaseSplitterFilter::GetTimeFormat(GUID* pFormat) {return pFormat ? *pFormat = TIME_FORMAT_MEDIA_TIME, S_OK : E_POINTER;}
 STDMETHODIMP CBaseSplitterFilter::IsUsingTimeFormat(const GUID* pFormat) {return IsFormatSupported(pFormat);}
 STDMETHODIMP CBaseSplitterFilter::SetTimeFormat(const GUID* pFormat) {return S_OK == IsFormatSupported(pFormat) ? S_OK : E_INVALIDARG;}
-// STDMETHODIMP CBaseSplitterFilter::GetDuration(LONGLONG* pDuration); // derived class implements this
+STDMETHODIMP CBaseSplitterFilter::GetDuration(LONGLONG* pDuration) {CheckPointer(pDuration, E_POINTER); *pDuration = m_rtDuration; return S_OK;}
 STDMETHODIMP CBaseSplitterFilter::GetStopPosition(LONGLONG* pStop) {return GetDuration(pStop);}
 STDMETHODIMP CBaseSplitterFilter::GetCurrentPosition(LONGLONG* pCurrent) {return E_NOTIMPL;}
 STDMETHODIMP CBaseSplitterFilter::ConvertTimeFormat(LONGLONG* pTarget, const GUID* pTargetFormat, LONGLONG Source, const GUID* pSourceFormat) {return E_NOTIMPL;}

@@ -588,8 +588,6 @@ STDMETHODIMP CAviSplitterFilter::GetDuration(LONGLONG* pDuration)
 	CheckPointer(pDuration, E_POINTER);
 	CheckPointer(m_pFile, VFW_E_NOT_CONNECTED);
 
-	*pDuration = m_rtDuration;
-
 	if(m_timeformat == TIME_FORMAT_FRAME)
 	{
 		for(int i = 0; i < (int)m_pFile->m_strms.GetCount(); i++)
@@ -601,9 +599,11 @@ STDMETHODIMP CAviSplitterFilter::GetDuration(LONGLONG* pDuration)
 				return S_OK;
 			}
 		}
+
+		return E_UNEXPECTED;
 	}
 
-	return S_OK;
+	return __super::GetDuration(pDuration);
 }
 
 //

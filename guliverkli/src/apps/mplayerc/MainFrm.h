@@ -58,7 +58,7 @@ public:
 //	OpenMediaData() {}
 	virtual ~OpenMediaData() {} // one virtual funct is needed to enable rtti
 	CString title;
-	CStringList subs; 
+	CStringList subs;
 };
 
 class OpenFileData : public OpenMediaData 
@@ -314,11 +314,12 @@ protected:
 	void OpenDVD(OpenDVDData* pODD);
 	void OpenCapture(OpenDeviceData* pODD);
 	void OpenCustomizeGraph();
-	void OpenSetupVideoWindow();
+	void OpenSetupVideo();
+	void OpenSetupAudio();
 	void OpenSetupInfoBar();
 	void OpenSetupStatsBar();
 	void OpenSetupStatusBar();
-	void OpenSetupToolBar();
+	// void OpenSetupToolBar();
 	void OpenSetupCaptureBar();
 	void OpenSetupWindowTitle(CString fn = _T(""));
 
@@ -473,11 +474,13 @@ public:
 
 	afx_msg void OnStreamAudio(UINT nID);
 	afx_msg void OnStreamSub(UINT nID);
+	afx_msg void OnStreamSubOnOff();
 	afx_msg void OnOgmAudio(UINT nID);
 	afx_msg void OnOgmSub(UINT nID);
 	afx_msg void OnDvdAngle(UINT nID);
 	afx_msg void OnDvdAudio(UINT nID);
 	afx_msg void OnDvdSub(UINT nID);
+	afx_msg void OnDvdSubOnOff();
 
 
 	// menu item handlers

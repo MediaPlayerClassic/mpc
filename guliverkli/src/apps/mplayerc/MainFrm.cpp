@@ -198,11 +198,13 @@ BEGIN_MESSAGE_MAP(CMainFrame, CFrameWnd)
 
 	ON_COMMAND_RANGE(ID_STREAM_AUDIO_NEXT, ID_STREAM_AUDIO_PREV, OnStreamAudio)
 	ON_COMMAND_RANGE(ID_STREAM_SUB_NEXT, ID_STREAM_SUB_PREV, OnStreamSub)
+	ON_COMMAND(ID_STREAM_SUB_ONOFF, OnStreamSubOnOff)
 	ON_COMMAND_RANGE(ID_OGM_AUDIO_NEXT, ID_OGM_AUDIO_PREV, OnOgmAudio)
 	ON_COMMAND_RANGE(ID_OGM_SUB_NEXT, ID_OGM_SUB_PREV, OnOgmSub)
 	ON_COMMAND_RANGE(ID_DVD_ANGLE_NEXT, ID_DVD_ANGLE_PREV, OnDvdAngle)
 	ON_COMMAND_RANGE(ID_DVD_AUDIO_NEXT, ID_DVD_AUDIO_PREV, OnDvdAudio)
 	ON_COMMAND_RANGE(ID_DVD_SUB_NEXT, ID_DVD_SUB_PREV, OnDvdSub)
+	ON_COMMAND(ID_DVD_SUB_ONOFF, OnDvdSubOnOff)
 
 	ON_COMMAND(ID_FILE_OPENMEDIA, OnFileOpenmedia)
 	ON_UPDATE_COMMAND_UI(ID_FILE_OPENMEDIA, OnUpdateFileOpen)
@@ -1316,7 +1318,7 @@ static bool Shutdown()
 //
 // our WM_GRAPHNOTIFY handler
 //
-
+#include <comdef.h>
 LRESULT CMainFrame::OnGraphNotify(WPARAM wParam, LPARAM lParam)
 {
     HRESULT hr = S_OK;
@@ -1431,6 +1433,8 @@ LRESULT CMainFrame::OnGraphNotify(WPARAM wParam, LPARAM lParam)
 		else if(EC_ERRORABORT == evCode)
 		{
 			TRACE(_T("EC_ERRORABORT, hr = %08x\n"), (HRESULT)evParam1);
+//			SendMessage(WM_COMMAND, ID_FILE_CLOSEMEDIA);
+//			m_closingmsg = _com_error((HRESULT)evParam1).ErrorMessage();
 		}
 		else if(EC_REPAINT == evCode)
 		{
@@ -1662,24 +1666,25 @@ void CMainFrame::OnLButtonDown(UINT nFlags, CPoint point)
 			if(s.wmcmds.GetNext(pos).mouse == wmcmd::LDOWN)
 				fLeftMouseBtnUnassigned = false;
 
-		if(IsCaptionMenuHidden() || fLeftMouseBtnUnassigned)
+		if(!m_fFullScreen && (IsCaptionMenuHidden() || fLeftMouseBtnUnassigned))
 		{
 			PostMessage(WM_NCLBUTTONDOWN, HTCAPTION, MAKELPARAM(point.x, point.y));
 		}
 		else
 {
 s_fLDown = true;
-			OnButton(wmcmd::LDOWN, nFlags, point);
+			if(OnButton(wmcmd::LDOWN, nFlags, point))
+				return;
 }
 	}
 
-	CFrameWnd::OnLButtonDown(nFlags, point);
+	__super::OnLButtonDown(nFlags, point);
 }
 
 void CMainFrame::OnLButtonUp(UINT nFlags, CPoint point)
 {
-	OnButton(wmcmd::LUP, nFlags, point);
-	CFrameWnd::OnLButtonUp(nFlags, point);
+	if(!OnButton(wmcmd::LUP, nFlags, point))
+		__super::OnLButtonUp(nFlags, point);
 }
 
 void CMainFrame::OnLButtonDblClk(UINT nFlags, CPoint point)
@@ -1689,47 +1694,47 @@ if(s_fLDown)
 	SendMessage(WM_LBUTTONDOWN, nFlags, MAKELPARAM(point.x, point.y));
 s_fLDown = false;
 }
-	OnButton(wmcmd::LDBLCLK, nFlags, point);
-	CFrameWnd::OnLButtonDblClk(nFlags, point);
+	if(!OnButton(wmcmd::LDBLCLK, nFlags, point))
+		__super::OnLButtonDblClk(nFlags, point);
 }
 
 void CMainFrame::OnMButtonDown(UINT nFlags, CPoint point)
 {
 	SendMessage(WM_CANCELMODE);
-	OnButton(wmcmd::MDOWN, nFlags, point);
-	CFrameWnd::OnMButtonDown(nFlags, point);
+	if(!OnButton(wmcmd::MDOWN, nFlags, point))
+		__super::OnMButtonDown(nFlags, point);
 }
 
 void CMainFrame::OnMButtonUp(UINT nFlags, CPoint point)
 {
-	OnButton(wmcmd::MUP, nFlags, point);
-	CFrameWnd::OnMButtonUp(nFlags, point);
+	if(!OnButton(wmcmd::MUP, nFlags, point))
+		__super::OnMButtonUp(nFlags, point);
 }
 
 void CMainFrame::OnMButtonDblClk(UINT nFlags, CPoint point)
 {
 	SendMessage(WM_MBUTTONDOWN, nFlags, MAKELPARAM(point.x, point.y));
-	OnButton(wmcmd::MDBLCLK, nFlags, point);
-	CFrameWnd::OnMButtonDblClk(nFlags, point);
+	if(!OnButton(wmcmd::MDBLCLK, nFlags, point))
+		__super::OnMButtonDblClk(nFlags, point);
 }
 
 void CMainFrame::OnRButtonDown(UINT nFlags, CPoint point)
 {
-	OnButton(wmcmd::RDOWN, nFlags, point);
-	CFrameWnd::OnRButtonDown(nFlags, point);
+	if(!OnButton(wmcmd::RDOWN, nFlags, point))
+		__super::OnRButtonDown(nFlags, point);
 }
 
 void CMainFrame::OnRButtonUp(UINT nFlags, CPoint point)
 {
-	OnButton(wmcmd::RUP, nFlags, point);
-	CFrameWnd::OnRButtonUp(nFlags, point);
+	if(!OnButton(wmcmd::RUP, nFlags, point))
+		__super::OnRButtonUp(nFlags, point);
 }
 
 void CMainFrame::OnRButtonDblClk(UINT nFlags, CPoint point)
 {
 	SendMessage(WM_RBUTTONDOWN, nFlags, MAKELPARAM(point.x, point.y));
-	OnButton(wmcmd::RDBLCLK, nFlags, point);
-	CFrameWnd::OnRButtonDblClk(nFlags, point);
+	if(!OnButton(wmcmd::RDBLCLK, nFlags, point))
+		__super::OnRButtonDblClk(nFlags, point);
 }
 
 LRESULT CMainFrame::OnXButtonDown(WPARAM wParam, LPARAM lParam)
@@ -2288,7 +2293,7 @@ void CMainFrame::OnFilePostOpenmedia()
 
 	OpenSetupStatusBar();
 
-	OpenSetupToolBar();
+	// OpenSetupToolBar();
 
 	OpenSetupCaptureBar();
 
@@ -2436,13 +2441,28 @@ void CMainFrame::OnStreamSub(UINT nID)
 	{
 		int i = ((m_iSubtitleSel&0x7fffffff)+(nID==0?1:cnt-1))%cnt;
 		m_iSubtitleSel = i | (m_iSubtitleSel&0x80000000);
-
 		UpdateSubtitle();
-
 		SetFocus();
 	}
 	else if(m_iPlaybackMode == PM_FILE) SendMessage(WM_COMMAND, ID_OGM_SUB_NEXT+nID);
 	else if(m_iPlaybackMode == PM_DVD) SendMessage(WM_COMMAND, ID_DVD_SUB_NEXT+nID);
+}
+
+void CMainFrame::OnStreamSubOnOff()
+{
+	if(m_iMediaLoadState != MLS_LOADED) return;
+
+	int cnt = 0;
+	POSITION pos = m_pSubStreams.GetHeadPosition();
+	while(pos) cnt += m_pSubStreams.GetNext(pos)->GetStreamCount();
+
+	if(cnt > 0)
+	{
+		m_iSubtitleSel ^= 0x80000000;
+		UpdateSubtitle();
+		SetFocus();
+	}
+	else if(m_iPlaybackMode == PM_DVD) SendMessage(WM_COMMAND, ID_DVD_SUB_ONOFF);
 }
 
 void CMainFrame::OnOgmAudio(UINT nID)
@@ -2589,6 +2609,21 @@ void CMainFrame::OnDvdSub(UINT nID)
 			pDVDC->SelectSubpictureStream(
 				(ulCurrentStream+(nID==0?1:ulStreamsAvailable-1))%ulStreamsAvailable, 
 				DVD_CMD_FLAG_Block, NULL);
+		}
+	}
+}
+
+void CMainFrame::OnDvdSubOnOff()
+{
+	if(m_iMediaLoadState != MLS_LOADED) return;
+
+	if(pDVDI && pDVDC)
+	{
+		ULONG ulStreamsAvailable, ulCurrentStream;
+		BOOL bIsDisabled;
+		if(SUCCEEDED(pDVDI->GetCurrentSubpicture(&ulStreamsAvailable, &ulCurrentStream, &bIsDisabled)))
+		{
+			pDVDC->SetSubpictureState(bIsDisabled, DVD_CMD_FLAG_Block, NULL);
 		}
 	}
 }
@@ -5188,10 +5223,34 @@ void CMainFrame::OpenCreateGraphObject(OpenMediaData* pOMD)
 	{
 		AppSettings& s = AfxGetAppSettings();
 
+		engine_t engine = s.Formats.GetEngine(p->fns.GetHead());
+
+		CStringA ct = GetContentType(p->fns.GetHead());
+
+		if(ct == "video/x-ms-asf")
+		{
+			// TODO: put something here to make the windows media source filter load later
+		}
+		else if(ct == "audio/x-pn-realaudio"
+		|| ct == "audio/x-pn-realaudio-plugin"
+		|| ct == "audio/x-realaudio-secure"
+		|| ct == "video/vnd.rn-realvideo-secure"
+		|| ct.Find("realaudio") >= 0
+		|| ct.Find("realvideo") >= 0)
+		{
+			engine = RealMedia;
+		}
+		else if(ct == "application/x-shockwave-flash")
+		{
+			engine = ShockWave;
+		}
+		else if(ct == "video/quicktime")
+		{
+			engine = QuickTime;
+		}
+
 		HRESULT hr;
 		CComPtr<IUnknown> pUnk;
-
-		engine_t engine = s.Formats.GetEngine(p->fns.GetHead());
 
 		if(engine == RealMedia)
 		{
@@ -5348,38 +5407,73 @@ void CMainFrame::OpenFile(OpenFileData* pOFD)
 		EndEnumFilters
 	}
 
-	if(m_chapters.IsEmpty())
+	REFERENCE_TIME rtDur = 0;
+	pMS->GetDuration(&rtDur);
+
+	BeginEnumFilters(pGB, pEF, pBF) 
 	{
-		REFERENCE_TIME rtDur = 0;
-		pMS->GetDuration(&rtDur);
+		if(!m_chapters.IsEmpty()) break;
 
-		CComQIPtr<IChapterInfo> pCI;
-		CComQIPtr<IAMExtendedSeeking, &IID_IAMExtendedSeeking> pES;
-		BeginEnumFilters(pGB, pEF, pBF) if(pCI = pBF) break; EndEnumFilters
-		BeginEnumFilters(pGB, pEF, pBF) if(pES = pBF) break; EndEnumFilters
-		if(pCI)
+		CComQIPtr<IChapterInfo> pCI = pBF;
+		if(!pCI) continue;
+
+		CHAR iso6391[3];
+		::GetLocaleInfoA(LOCALE_USER_DEFAULT, LOCALE_SISO639LANGNAME, iso6391, 3);
+		CStringA iso6392 = ISO6391To6392(iso6391);
+		if(iso6392.GetLength() < 3) iso6392 = "eng";
+
+		UINT cnt = pCI->GetChapterCount(CHAPTER_ROOT_ID);
+		for(UINT i = 1; i <= cnt; i++)
 		{
-			CHAR iso6391[3];
-			::GetLocaleInfoA(LOCALE_USER_DEFAULT, LOCALE_SISO639LANGNAME, iso6391, 3);
-			CStringA iso6392 = ISO6391To6392(iso6391);
-			if(iso6392.GetLength() < 3) iso6392 = "eng";
-
-			UINT cnt = pCI->GetChapterCount(CHAPTER_ROOT_ID);
-			for(UINT i = 1; i <= cnt; i++)
+			UINT cid = pCI->GetChapterId(CHAPTER_ROOT_ID, i);
+			ChapterElement ce;
+			CComBSTR bstr;
+			CHAR pl[3] = {iso6392[0], iso6392[1], iso6392[2]};
+			CHAR cc[] = "  ";
+			if(pCI->GetChapterInfo(cid, &ce))
 			{
-				UINT cid = pCI->GetChapterId(CHAPTER_ROOT_ID, i);
-				ChapterElement ce;
-				CComBSTR bstr;
-				CHAR pl[3] = {iso6392[0], iso6392[1], iso6392[2]};
-				CHAR cc[] = "  ";
-				if(pCI->GetChapterInfo(cid, &ce))
-				{
-					chapter_t c;
-					c.rtStart = ce.rtStart;
-					c.rtStop = max(rtDur, ce.rtStop); // TODO
+				chapter_t c;
+				c.rtStart = ce.rtStart;
+				c.rtStop = max(rtDur, ce.rtStop); // TODO
 
-					bstr.Attach(pCI->GetChapterStringInfo(cid, pl, cc));
-					c.name = CString(bstr);
+				bstr.Attach(pCI->GetChapterStringInfo(cid, pl, cc));
+				c.name = CString(bstr);
+
+				if(m_chapters.GetCount() > 0)
+					m_chapters[m_chapters.GetCount()-1].rtStop = c.rtStart;
+
+				m_chapters.Add(c);
+			}
+		}
+	}
+	EndEnumFilters
+
+	BeginEnumFilters(pGB, pEF, pBF) 
+	{
+		if(!m_chapters.IsEmpty()) break;
+
+		CComQIPtr<IAMExtendedSeeking, &IID_IAMExtendedSeeking> pES = pBF;
+		if(!pES) continue;
+
+		long MarkerCount = 0;
+		if(SUCCEEDED(pES->get_MarkerCount(&MarkerCount)))
+		{
+			for(long i = 1; i <= MarkerCount; i++)
+			{
+				double MarkerTime = 0;
+				if(SUCCEEDED(pES->GetMarkerTime(i, &MarkerTime)))
+				{
+					CString name;
+					name.Format(_T("Chapter %d"), i);
+
+					CComBSTR bstr;
+					if(S_OK == pES->GetMarkerName(i, &bstr))
+						name = CString(bstr);
+
+					chapter_t c;
+					c.rtStart = REFERENCE_TIME(MarkerTime*10000000);
+					c.rtStop = max(rtDur, c.rtStart);
+					c.name = name;
 
 					if(m_chapters.GetCount() > 0)
 						m_chapters[m_chapters.GetCount()-1].rtStop = c.rtStart;
@@ -5388,92 +5482,57 @@ void CMainFrame::OpenFile(OpenFileData* pOFD)
 				}
 			}
 		}
-		else if(pES)
-		{
-			long MarkerCount = 0;
-			if(SUCCEEDED(pES->get_MarkerCount(&MarkerCount)))
-			{
-				for(long i = 1; i <= MarkerCount; i++)
-				{
-					double MarkerTime = 0;
-					if(SUCCEEDED(pES->GetMarkerTime(i, &MarkerTime)))
-					{
-						CString name;
-						name.Format(_T("Chapter %d"), i);
-
-						CComBSTR bstr;
-						if(S_OK == pES->GetMarkerName(i, &bstr))
-							name = CString(bstr);
-
-						chapter_t c;
-						c.rtStart = REFERENCE_TIME(MarkerTime*10000000);
-						c.rtStop = max(rtDur, c.rtStart);
-						c.name = name;
-	
-						if(m_chapters.GetCount() > 0)
-							m_chapters[m_chapters.GetCount()-1].rtStop = c.rtStart;
-
-						m_chapters.Add(c);
-					}
-				}
-			}
-		}
 	}
+	EndEnumFilters
 
-	if(m_chapters.IsEmpty())
+	BeginEnumFilters(pGB, pEF, pBF)
 	{
-		BeginEnumFilters(pGB, pEF, pBF)
+		if(!m_chapters.IsEmpty()) break;
+
+		if(GetCLSID(pBF) != CLSID_OggSplitter)
+			continue;
+
+		BeginEnumPins(pBF, pEP, pPin)
 		{
-			if(GetCLSID(pBF) != CLSID_OggSplitter)
-				continue;
-
-			REFERENCE_TIME rtDur = 0;
-			pMS->GetDuration(&rtDur);
-
-			BeginEnumPins(pBF, pEP, pPin)
+			if(CComQIPtr<IPropertyBag> pPB = pPin)
 			{
-				if(CComQIPtr<IPropertyBag> pPB = pPin)
+            	for(int i = 1; ; i++)
 				{
-            		for(int i = 1; ; i++)
-					{
-						CStringW str;
-						CComVariant var;
+					CStringW str;
+					CComVariant var;
 
-						var.Clear();
-						str.Format(L"CHAPTER%02d", i);
-						if(S_OK != pPB->Read(str, &var, NULL)) 
-							break;
+					var.Clear();
+					str.Format(L"CHAPTER%02d", i);
+					if(S_OK != pPB->Read(str, &var, NULL)) 
+						break;
 
-						int h, m, s, ms;
-						WCHAR wc;
-						if(7 != swscanf(CStringW(var), L"%d%c%d%c%d%c%d", &h, &wc, &m, &wc, &s, &wc, &ms)) 
-							break;
+					int h, m, s, ms;
+					WCHAR wc;
+					if(7 != swscanf(CStringW(var), L"%d%c%d%c%d%c%d", &h, &wc, &m, &wc, &s, &wc, &ms)) 
+						break;
 
-						chapter_t c;
-						c.rtStart = 10000i64*(((h*60 + m)*60 + s)*1000 + ms);
-						c.rtStop = rtDur ? rtDur : c.rtStart;
+					chapter_t c;
+					c.rtStart = 10000i64*(((h*60 + m)*60 + s)*1000 + ms);
+					c.rtStop = rtDur ? rtDur : c.rtStart;
 
-						var.Clear();
-                        str += L"NAME";
-						if(S_OK == pPB->Read(str, &var, NULL))
-							c.name = var;
+					var.Clear();
+                    str += L"NAME";
+					if(S_OK == pPB->Read(str, &var, NULL))
+						c.name = var;
 
-						if(m_chapters.GetCount() > 0)
-							m_chapters[m_chapters.GetCount()-1].rtStop = c.rtStart;
+					if(m_chapters.GetCount() > 0)
+						m_chapters[m_chapters.GetCount()-1].rtStop = c.rtStart;
 
-						m_chapters.Add(c);
-					}
+					m_chapters.Add(c);
 				}
-
-				if(!m_chapters.IsEmpty())
-					break;
 			}
-			EndEnumPins
 
-			break;
+			if(!m_chapters.IsEmpty())
+				break;
 		}
-		EndEnumFilters
+		EndEnumPins
 	}
+	EndEnumFilters
 
 	CComQIPtr<IKeyFrameInfo> pKFI;
 	BeginEnumFilters(pGB, pEF, pBF)
@@ -5765,6 +5824,7 @@ void CMainFrame::OpenCustomizeGraph()
 		{
 			AppSettings& s = AfxGetAppSettings();
 			m_pMpaDecFilter->SetSampleFormat((SampleFormat)s.mpasf);
+			m_pMpaDecFilter->SetNormalize(s.mpanormalize);
 			m_pMpaDecFilter->SetSpeakerConfig(s.mpasc);
 			m_pMpaDecFilter->SetDynamicRangeControl(s.mpadrc);
 		}
@@ -5774,7 +5834,7 @@ void CMainFrame::OpenCustomizeGraph()
 	CleanGraph();
 }
 
-void CMainFrame::OpenSetupVideoWindow()
+void CMainFrame::OpenSetupVideo()
 {
 	m_fAudioOnly = true;
 
@@ -5841,12 +5901,25 @@ void CMainFrame::OpenSetupVideoWindow()
 	}
 }
 
+void CMainFrame::OpenSetupAudio()
+{
+	pBA->put_Volume(m_wndToolBar.Volume);
+
+	// FIXME
+	int balance = AfxGetAppSettings().nBalance;
+	int sign = balance>0?-1:1;
+	balance = max(100-abs(balance), 1);
+	balance = (int)((log10(1.0*balance)-2)*5000*sign);
+	balance = max(min(balance, 10000), -10000);
+	pBA->put_Balance(balance);
+}
+/*
 void CMainFrame::OpenSetupToolBar()
 {
-	m_wndToolBar.Volume = AfxGetAppSettings().nVolume;
-	SetBalance(AfxGetAppSettings().nBalance);
+//	m_wndToolBar.Volume = AfxGetAppSettings().nVolume;
+//	SetBalance(AfxGetAppSettings().nBalance);
 }
-
+*/
 void CMainFrame::OpenSetupCaptureBar()
 {
 	if(m_iPlaybackMode == PM_CAPTURE)
@@ -6152,7 +6225,11 @@ AddToRot(pGB, &m_dwRegister);
 
 		if(m_fOpeningAborted) throw aborted;
 
-		OpenSetupVideoWindow();
+		OpenSetupVideo();
+
+		if(m_fOpeningAborted) throw aborted;
+
+		OpenSetupAudio();
 
 		if(m_fOpeningAborted) throw aborted;
 
@@ -7703,7 +7780,7 @@ bool CMainFrame::BuildGraphVideoAudio(bool fVPreview, bool fVCapture, bool fAPre
 
 	CleanGraph();
 
-	OpenSetupVideoWindow();
+	OpenSetupVideo();
 	OpenSetupStatsBar();
 	OpenSetupStatusBar();
 

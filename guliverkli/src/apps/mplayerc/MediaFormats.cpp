@@ -198,8 +198,9 @@ void CMediaFormats::UpdateData(bool fSave)
 		ADDFMT((_T("Matroska Audio file"), _T("mka"), true));
 		ADDFMT((_T("Smacker/Bink Media file"), _T("smk bik"), false, _T("smackw32/binkw32.dll in dll path")));
 		ADDFMT((_T("RoQ Media file"), _T("roq"), false));
-		ADDFMT((_T("Real Media file"), _T("rm ram rmvb rpm rt rp smi smil"), false, _T("RealOne or codec pack"), RealMedia));
-		ADDFMT((_T("Real Audio file"), _T("ra"), true, _T("RealOne or codec pack"), RealMedia));
+		ADDFMT((_T("Real Media file (dshow compatible)"), _T("rm ram rmvb rpm"), false, _T("RealOne or codec pack")));
+		ADDFMT((_T("Real Audio file (old format)"), _T("ra"), true, _T("RealOne or codec pack"), RealMedia));
+		ADDFMT((_T("Real Script file"), _T("rt rp smi smil"), false, _T("RealOne or codec pack"), RealMedia));
 		ADDFMT((_T("Shockwave Flash file"), _T("swf"), false, _T("ShockWave ActiveX control"), ShockWave));
 		ADDFMT((_T("Quicktime file"), _T("mov qt"), false, _T("QuickTime Player or codec pack"), QuickTime));
 		ADDFMT((_T("Image file"), _T("jpeg jpg bmp gif pic png dib tiff tif")));
@@ -242,10 +243,6 @@ engine_t CMediaFormats::GetEngine(CString path)
 	CString ext = CPath(path).GetExtension();
 	if(!ext.IsEmpty())
 	{
-		// HACK
-		if(path.Find(_T("://")) >= 0 && ext == _T(".ram"))
-			return RealMedia;
-
 		for(int i = 0; i < GetCount(); i++)
 		{
 			CMediaFormatCategory& mfc = GetAt(i);

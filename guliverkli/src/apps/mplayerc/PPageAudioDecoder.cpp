@@ -36,6 +36,7 @@ CPPageAudioDecoder::CPPageAudioDecoder(IFilterGraph* pFG)
 	, m_iSpeakerConfig(0)
 	, m_fSpeakerConfigLFE(FALSE)
 	, m_fDynamicRangeControl(FALSE)
+	, m_fNormalize(FALSE)
 {
 	BeginEnumFilters(pFG, pEF, pBF)
 		if(CComQIPtr<IMpaDecFilter> pMpaDecFilter = pBF)
@@ -56,6 +57,7 @@ void CPPageAudioDecoder::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_CHECK1, m_fSpeakerConfigLFE);
 	DDX_Check(pDX, IDC_CHECK2, m_fDynamicRangeControl);
 	DDX_Control(pDX, IDC_COMBO1, m_sclist);
+	DDX_Check(pDX, IDC_CHECK3, m_fNormalize);
 }
 
 
@@ -76,6 +78,7 @@ BOOL CPPageAudioDecoder::OnInitDialog()
 	m_iSpeakerConfig = A52_STEREO;
 	m_fSpeakerConfigLFE = !!(abs(s.mpasc)&A52_LFE);
 	m_fDynamicRangeControl = s.mpadrc;
+	m_fNormalize = s.mpanormalize;
 
 	m_sclist.SetItemData(m_sclist.AddString(_T("Mono")), A52_MONO);
 	m_sclist.SetItemData(m_sclist.AddString(_T("Dual Mono")), A52_CHANNEL);
@@ -115,12 +118,14 @@ BOOL CPPageAudioDecoder::OnApply()
 	s.mpasc |= m_fSpeakerConfigLFE?A52_LFE:0;
 	s.mpasc *= m_fSpeakerConfig?-1:1;
 	s.mpadrc = !!m_fDynamicRangeControl;
+	s.mpanormalize = !!m_fNormalize;
 
 	POSITION pos = m_pMDFs.GetHeadPosition();
 	while(pos)
 	{
 		CComPtr<IMpaDecFilter> pMpaDecFilter = m_pMDFs.GetNext(pos);
 		pMpaDecFilter->SetSampleFormat((SampleFormat)s.mpasf);
+		pMpaDecFilter->SetNormalize(s.mpanormalize);
 		pMpaDecFilter->SetSpeakerConfig(s.mpasc);
 		pMpaDecFilter->SetDynamicRangeControl(s.mpadrc);
 	}

@@ -550,18 +550,6 @@ void COggSplitterFilter::DoDeliverLoop()
 	}
 }
 
-// IMediaSeeking
-
-STDMETHODIMP COggSplitterFilter::GetDuration(LONGLONG* pDuration)
-{
-	CheckPointer(pDuration, E_POINTER);
-	CheckPointer(m_pFile, VFW_E_NOT_CONNECTED);
-
-	*pDuration = m_rtDuration;
-
-	return S_OK;
-}
-
 // IChapterInfo
 
 STDMETHODIMP_(UINT) COggSplitterFilter::GetChapterCount(UINT aChapterID)
@@ -579,9 +567,6 @@ STDMETHODIMP_(UINT) COggSplitterFilter::GetChapterId(UINT aParentChapterId, UINT
 
 STDMETHODIMP_(BOOL) COggSplitterFilter::GetChapterInfo(UINT aChapterID, struct ChapterElement* pToFill)
 {
-	REFERENCE_TIME rtDur = 0;
-	GetDuration(&rtDur);
-
 	CheckPointer(pToFill, E_POINTER);
 	POSITION pos = m_pChapters.FindIndex(aChapterID-1);
 	if(!pos) return FALSE;
@@ -593,7 +578,7 @@ STDMETHODIMP_(BOOL) COggSplitterFilter::GetChapterInfo(UINT aChapterID, struct C
 		pToFill->Type = AtomicChapter;
 		pToFill->ChapterId = aChapterID;
 		pToFill->rtStart = p->m_rt;
-		pToFill->rtStop = pos ? m_pChapters.GetNext(pos)->m_rt : rtDur;
+		pToFill->rtStop = pos ? m_pChapters.GetNext(pos)->m_rt : m_rtDuration;
 	}
 	return TRUE;
 }

@@ -46,7 +46,6 @@ struct roq_info {WORD w, h, unk1, unk2;};
 class CRoQSplitterFilter : public CBaseSplitterFilter
 {
 	CComPtr<IAsyncReader> m_pAsyncReader;
-	REFERENCE_TIME m_rtDuration;
 
 	struct index {REFERENCE_TIME rtv, rta; __int64 fp;};
 	CList<index> m_index;
@@ -65,10 +64,6 @@ public:
 #ifdef REGISTER_FILTER
     static CUnknown* WINAPI CreateInstance(LPUNKNOWN lpunk, HRESULT* phr);
 #endif
-
-	// IMediaSeeking
-
-	STDMETHODIMP GetDuration(LONGLONG* pDuration);
 };
 
 [uuid("02B8E5C2-4E1F-45D3-9A8E-B8F1EDE6DE09")]

@@ -253,7 +253,7 @@ namespace MatroskaReader
 				Audio a;
 				ContentEncodings ces;
 
-				TrackEntry() {DescType = NoDesc;}
+				TrackEntry() {DescType = NoDesc; FlagEnabled.Set(1); FlagDefault.Set(1); FlagLacing.Set(1);}
 				HRESULT Parse(CMatroskaNode* pMN);
 
 				bool Expand(CBinary& data, UINT64 Scope);
@@ -396,6 +396,7 @@ namespace MatroskaReader
 
 		EBML m_ebml;
 		Segment m_segment;
+		REFERENCE_TIME m_rtOffset;
 
 		HRESULT Parse(CMatroskaNode* pMN);
 	};

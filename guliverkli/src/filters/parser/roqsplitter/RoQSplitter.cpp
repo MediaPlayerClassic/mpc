@@ -195,7 +195,6 @@ CUnknown* WINAPI CRoQSourceFilter::CreateInstance(LPUNKNOWN lpunk, HRESULT* phr)
 
 CRoQSplitterFilter::CRoQSplitterFilter(LPUNKNOWN pUnk, HRESULT* phr)
 	: CBaseSplitterFilter(NAME("CRoQSplitterFilter"), pUnk, phr, __uuidof(this))
-	, m_rtDuration(0)
 {
 }
 
@@ -393,15 +392,6 @@ void CRoQSplitterFilter::DoDeliverLoop()
 
 		pos += rc.size;
 	}
-}
-
-// IMediaSeeking
-
-STDMETHODIMP CRoQSplitterFilter::GetDuration(LONGLONG* pDuration)
-{
-	CheckPointer(pDuration,	E_POINTER);
-	*pDuration = m_rtDuration;
-	return S_OK;
 }
 
 //

@@ -132,8 +132,6 @@ public:
 [uuid("9FF48807-E133-40AA-826F-9B2959E5232D")]
 class COggSplitterFilter : public CBaseSplitterFilter
 {
-	REFERENCE_TIME m_rtDuration;
-
 	class CChapter
 	{
 	public:
@@ -158,10 +156,6 @@ public:
 #ifdef REGISTER_FILTER
     static CUnknown* WINAPI CreateInstance(LPUNKNOWN lpunk, HRESULT* phr);
 #endif
-
-	// IMediaSeeking
-
-	STDMETHODIMP GetDuration(LONGLONG* pDuration);
 
 	// IChapterInfo
 

@@ -2416,7 +2416,7 @@ void CSimpleTextSubtitle::CreateSegments()
 	}
 
 	OnChanged();
-
+/*
 	for(i = 0, j = m_segments.GetSize(); i < j; i++)
 	{
 		STSSegment& stss = m_segments[i];
@@ -2430,7 +2430,7 @@ void CSimpleTextSubtitle::CreateSegments()
 
 		TRACE(_T("\n"));
 	}
-
+*/
 }
 
 bool CSimpleTextSubtitle::Open(CString fn, int CharSet, CString name)

@@ -888,6 +888,7 @@ CMPlayerCApp::Settings::Settings()
 	ADDCMD((ID_STREAM_AUDIO_PREV, 'A', FVIRTKEY|FSHIFT|FNOINVERT, _T("Prev Audio")));
 	ADDCMD((ID_STREAM_SUB_NEXT, 'S', FVIRTKEY|FNOINVERT, _T("Next Subtitle")));
 	ADDCMD((ID_STREAM_SUB_PREV, 'S', FVIRTKEY|FSHIFT|FNOINVERT, _T("Prev Subtitle")));
+	ADDCMD((ID_STREAM_SUB_ONOFF, 'W', FVIRTKEY|FNOINVERT, _T("On/Off Subtitle")));
 	ADDCMD((ID_OGM_AUDIO_NEXT, 0, FVIRTKEY|FNOINVERT, _T("Next Audio (OGM)")));
 	ADDCMD((ID_OGM_AUDIO_PREV, 0, FVIRTKEY|FNOINVERT, _T("Prev Audio (OGM)")));
 	ADDCMD((ID_OGM_SUB_NEXT, 0, FVIRTKEY|FNOINVERT, _T("Next Subtitle (OGM)")));
@@ -898,6 +899,7 @@ CMPlayerCApp::Settings::Settings()
 	ADDCMD((ID_DVD_AUDIO_PREV, 0, FVIRTKEY|FNOINVERT, _T("Prev Audio (DVD)")));
 	ADDCMD((ID_DVD_SUB_NEXT, 0, FVIRTKEY|FNOINVERT, _T("Next Subtitle (DVD)")));
 	ADDCMD((ID_DVD_SUB_PREV, 0, FVIRTKEY|FNOINVERT, _T("Prev Subtitle (DVD)")));
+	ADDCMD((ID_DVD_SUB_ONOFF, 0, FVIRTKEY|FNOINVERT, _T("On/Off Subtitle (DVD)")));
 #undef ADDCMD
 }
 
@@ -1091,6 +1093,7 @@ void CMPlayerCApp::Settings::UpdateData(bool fSave)
 		pApp->WriteProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_MPASF), mpasf);
 		pApp->WriteProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_MPASC), mpasc);
 		pApp->WriteProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_MPADRC), mpadrc);
+		pApp->WriteProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_MPANORMALIZE), mpanormalize);
 
 		pApp->WriteProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_HIDECDROMSSUBMENU), fHideCDROMsSubMenu);
 
@@ -1373,6 +1376,7 @@ void CMPlayerCApp::Settings::UpdateData(bool fSave)
 		mpasf = pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_MPASF), 0);
 		mpasc = (int)pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_MPASC), 2);
 		mpadrc = !!pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_MPADRC), FALSE);
+		mpanormalize = !!pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_MPANORMALIZE), TRUE);
 
 		fHideCDROMsSubMenu = !!pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_HIDECDROMSSUBMENU), 0);		
 
@@ -1588,5 +1592,61 @@ void SetDispMode(dispmode& dm)
 	ChangeDisplaySettings(&dmScreenSettings, 0);
 }
 
+#include <afxsock.h>
+#include <atlsync.h>
+#include <atlutil.h> // put this before the first detours macro above to see an ICE with vc71 :)
 
+CStringA GetContentType(CString fn)
+{
+	if(fn.Find(_T("://")) < 0)
+		return "";
 
+	CUrl url;
+	url.CrackUrl(fn);
+
+	if(_tcsicmp(url.GetSchemeName(), _T("pnm")) == 0)
+		return "audio/x-pn-realaudio";
+
+	if(_tcsicmp(url.GetSchemeName(), _T("mms")) == 0)
+		return "video/x-ms-asf";
+
+	if(_tcsicmp(url.GetSchemeName(), _T("http")) != 0)
+		return "";
+
+	CSocket s;
+	s.Create();
+	if(s.Connect(url.GetHostName(), url.GetPortNumber()))
+	{
+		CStringA hdr = 
+			"GET " + CStringA(url.GetUrlPath()) + CStringA(url.GetExtraInfo()) + " HTTP/1.0\r\n"
+			"User-Agent: Media Player Classic\r\n"
+			"Host: %s\r\n"
+			"Accept: */*\r\n"
+			"\r\n";
+		if(s.Send((LPCSTR)hdr, hdr.GetLength()) < hdr.GetLength()) return "";
+		hdr.Empty();
+		while(1)
+		{
+			CStringA str;
+			str.ReleaseBuffer(s.Receive(str.GetBuffer(256), 256)); // SOCKET_ERROR == -1, also suitable for ReleaseBuffer
+			if(str.IsEmpty()) break;
+			hdr += str;
+			int hdrend = hdr.Find("\r\n\r\n");
+			if(hdrend >= 0) {hdr = hdr.Left(hdrend); break;}
+		}
+		CList<CStringA> sl;
+		Explode(hdr, sl, '\n');
+		POSITION pos = sl.GetHeadPosition();
+		while(pos)
+		{
+			CStringA& hdrline = sl.GetNext(pos);
+			CList<CStringA> sl2;
+			Explode(hdrline, sl2, ':', 2);
+			if(sl2.RemoveHead().MakeLower() != "content-type" || sl2.IsEmpty())
+				continue;
+			return sl2.GetHead();
+		}
+	}
+
+	return "";
+}

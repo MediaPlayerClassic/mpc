@@ -69,6 +69,7 @@ class CMpeg2DecFilter : public CTransformFilter, public IMpeg2DecFilter
 	HRESULT ReconnectOutput(int w, int h);
 
 	DWORD m_win, m_hin, m_arxin, m_aryin;
+	DWORD m_wout, m_hout, m_arxout, m_aryout;
 
 	AM_SimpleRateChange m_rate;
 

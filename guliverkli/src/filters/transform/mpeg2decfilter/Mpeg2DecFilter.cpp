@@ -584,6 +584,8 @@ HRESULT CMpeg2DecFilter::Deliver(bool fRepeatLast)
 	|| FAILED(hr = pOut->GetPointer(&pDataOut)))
 		return hr;
 
+	long size = pOut->GetSize();
+
 	AM_MEDIA_TYPE* pmt;
 	if(SUCCEEDED(pOut->GetMediaType(&pmt)) && pmt)
 	{
@@ -615,7 +617,7 @@ HRESULT CMpeg2DecFilter::Deliver(bool fRepeatLast)
 
 	// FIXME: hell knows why but without this the overlay mixer starts very skippy
 	// (don't enable this for other renderers, the old for example will go crazy if you do)
-	if(GetCLSID(GetFilterFromPin(m_pOutput->GetConnected())) == CLSID_OverlayMixer)
+	if(GetCLSID(m_pOutput->GetConnected()) == CLSID_OverlayMixer)
 		pOut->SetDiscontinuity(TRUE);
 
 	BYTE** buf = &m_fb.buf[0];
@@ -723,15 +725,6 @@ TRACE(_T("ResetMpeg2Decoder()\n"));
 HRESULT CMpeg2DecFilter::ReconnectOutput(int w, int h)
 {
 	CMediaType& mt = m_pOutput->CurrentMediaType();
-	DWORD wout = 0, hout = 0, arxout = 0, aryout = 0;
-	ExtractDim(&mt, wout, hout, arxout, aryout);
-
-	if(w > m_win || h != m_hin)
-	{
-		TRACE(_T("CMpeg2DecFilter (ERROR): input and real video dimensions do not match (%dx%d %dx%d)"), w, h, m_win, m_hin);
-		ASSERT(0);
-		return E_FAIL;
-	}
 
 	bool fForceReconnection = false;
 	if(w != m_win || h != m_hin)
@@ -743,7 +736,7 @@ HRESULT CMpeg2DecFilter::ReconnectOutput(int w, int h)
 
 	HRESULT hr = S_OK;
 
-	if(fForceReconnection || m_win > wout || m_hin != hout || m_arxin != arxout && arxout || m_aryin != aryout && aryout)
+	if(fForceReconnection || m_win != m_wout || m_hin != m_hout || m_arxin != m_arxout || m_aryin != m_aryout)
 	{
 		BITMAPINFOHEADER* bmi = NULL;
 
@@ -766,28 +759,51 @@ HRESULT CMpeg2DecFilter::ReconnectOutput(int w, int h)
 			vih->dwPictAspectRatioY = m_aryin;
 		}
 
-		if(fForceReconnection || m_win > wout || m_hin != hout)
+		bmi->biWidth = m_win;
+		bmi->biHeight = m_hin;
+		bmi->biSizeImage = m_win*m_hin*bmi->biBitCount>>3;
+
+		hr = m_pOutput->GetConnected()->QueryAccept(&mt);
+
+		if(FAILED(hr = m_pOutput->GetConnected()->ReceiveConnection(m_pOutput, &mt)))
+			return hr;
+
+		CComPtr<IMediaSample> pOut;
+		if(SUCCEEDED(m_pOutput->GetDeliveryBuffer(&pOut, NULL, NULL, 0)))
 		{
-			bmi->biWidth = m_win;
-			bmi->biHeight = m_hin;
-			bmi->biSizeImage = m_win*m_hin*bmi->biBitCount>>3;
-
-			if(FAILED(hr = m_pOutput->GetConnected()->ReceiveConnection(m_pOutput, &mt)))
-				return hr;
-
-			// some renderers don't send this
-			NotifyEvent(EC_VIDEO_SIZE_CHANGED, MAKELPARAM(m_win, m_hin), 0);
+			AM_MEDIA_TYPE* pmt;
+			if(SUCCEEDED(pOut->GetMediaType(&pmt)) && pmt)
+			{
+				CMediaType mt = *pmt;
+				m_pOutput->SetMediaType(&mt);
+				DeleteMediaType(pmt);
+			}
+			else // stupid overlay mixer won't let us know the new pitch...
+			{
+				long size = pOut->GetSize();
+				bmi->biWidth = size / bmi->biHeight * 8 / bmi->biBitCount;
+			}
 		}
+
+		m_wout = m_win;
+		m_hout = m_hin;
+		m_arxout = m_arxin;
+		m_aryout = m_aryin;
+
+		// some renderers don't send this
+		NotifyEvent(EC_VIDEO_SIZE_CHANGED, MAKELPARAM(m_win, m_hin), 0);
+
+		return S_OK;
 	}
 
-	return hr;
+	return S_FALSE;
 }
 
 HRESULT CMpeg2DecFilter::CheckConnect(PIN_DIRECTION dir, IPin* pPin)
 {
 	if(dir == PINDIR_OUTPUT)
 	{
-		if(GetCLSID(m_pInput) == CLSID_DVDNavigator)
+		if(GetCLSID(m_pInput->GetConnected()) == CLSID_DVDNavigator)
 		{
 			// one of these needed for dynamic format changes
 
@@ -886,7 +902,7 @@ HRESULT CMpeg2DecFilter::GetMediaType(int iPosition, CMediaType* pmt)
 
 	// this will make sure we won't connect to the old renderer in dvd mode
 	// that renderer can't switch the format dynamically
-	if(GetCLSID(GetFilterFromPin(m_pInput->GetConnected())) == CLSID_DVDNavigator)
+	if(GetCLSID(m_pInput->GetConnected()) == CLSID_DVDNavigator)
 		iPosition = iPosition*2;
 
 	if(iPosition < 0) return E_INVALIDARG;
@@ -942,6 +958,18 @@ HRESULT CMpeg2DecFilter::SetMediaType(PIN_DIRECTION dir, const CMediaType* pmt)
 	{
 		m_win = m_hin = m_arxin = m_aryin = 0;
 		ExtractDim(pmt, m_win, m_hin, m_arxin, m_aryin);
+	}
+	else if(dir == PINDIR_OUTPUT)
+	{
+		DWORD wout = 0, hout = 0, arxout = 0, aryout = 0;
+		ExtractDim(pmt, wout, hout, arxout, aryout);
+		if(m_win == wout && m_hin == hout && m_arxin == arxout && m_aryin == aryout)
+		{
+			m_wout = wout;
+			m_hout = hout;
+			m_arxout = arxout;
+			m_aryout = aryout;
+		}
 	}
 
 	return __super::SetMediaType(dir, pmt);

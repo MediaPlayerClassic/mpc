@@ -166,7 +166,8 @@ s_scmap[2*11] =
 CMpaDecFilter::CMpaDecFilter(LPUNKNOWN lpunk, HRESULT* phr) 
 	: CTransformFilter(NAME("CMpaDecFilter"), lpunk, __uuidof(this))
 	, m_iSampleFormat(SF_PCM16)
-	, m_iSpeakerConfig(-A52_STEREO)
+	, m_fNormalize(false)
+	, m_iSpeakerConfig(A52_STEREO)
 	, m_fDynamicRangeControl(false)
 {
 	if(phr) *phr = S_OK;
@@ -204,6 +205,7 @@ HRESULT CMpaDecFilter::EndFlush()
 {
 	CAutoLock cAutoLock(&m_csReceive);
 	m_buff.RemoveAll();
+	m_sample_max = 0.1;
 	return __super::EndFlush();
 }
 
@@ -211,6 +213,7 @@ HRESULT CMpaDecFilter::NewSegment(REFERENCE_TIME tStart, REFERENCE_TIME tStop, d
 {
 	CAutoLock cAutoLock(&m_csReceive);
 	m_buff.RemoveAll();
+	m_sample_max = 0.1;
 	return __super::NewSegment(tStart, tStop, dRate);
 }
 
@@ -231,6 +234,7 @@ HRESULT CMpaDecFilter::Receive(IMediaSample* pIn)
 		m_pInput->SetMediaType(&mt);
 		DeleteMediaType(pmt);
 		pmt = NULL;
+		m_sample_max = 0.1;
 	}
 
 	const GUID& subtype = m_pInput->CurrentMediaType().subtype;
@@ -290,12 +294,11 @@ HRESULT CMpaDecFilter::Receive(IMediaSample* pIn)
 	REFERENCE_TIME rtStart = _I64_MIN, rtStop = _I64_MIN;
 	hr = pIn->GetTime(&rtStart, &rtStop);
 
-	bool fPreroll = pIn->IsPreroll() == S_OK;
-	bool fDiscontinuity = pIn->IsDiscontinuity() == S_OK;
-
-	if(fDiscontinuity)
+	if(pIn->IsDiscontinuity() == S_OK)
 	{
+		m_fDiscontinuity = true;
 		m_buff.RemoveAll();
+		m_sample_max = 0.1;
 		ASSERT(SUCCEEDED(hr)); // what to do if not?
 		if(FAILED(hr)) return S_OK; // lets wait then...
 		m_rtStart = rtStart;
@@ -313,18 +316,18 @@ HRESULT CMpaDecFilter::Receive(IMediaSample* pIn)
 	len += tmp;
 
 	if(subtype == MEDIASUBTYPE_DVD_LPCM_AUDIO)
-		hr = ProcessLPCM(fPreroll, fDiscontinuity);
+		hr = ProcessLPCM();
 	else if(subtype == MEDIASUBTYPE_DOLBY_AC3 || subtype == MEDIASUBTYPE_WAVE_DOLBY_AC3)
-		hr = ProcessAC3(fPreroll, fDiscontinuity);
+		hr = ProcessAC3();
 	else if(subtype == MEDIASUBTYPE_DTS || subtype == MEDIASUBTYPE_WAVE_DTS)
-		hr = ProcessDTS(fPreroll, fDiscontinuity);
+		hr = ProcessDTS();
 	else // if(.. the rest ..)
-		hr = ProcessMPA(fPreroll, fDiscontinuity);
+		hr = ProcessMPA();
 
 	return hr;
 }
 
-HRESULT CMpaDecFilter::ProcessLPCM(bool fPreroll, bool fDiscontinuity)
+HRESULT CMpaDecFilter::ProcessLPCM()
 {
 	WAVEFORMATEX* wfein = (WAVEFORMATEX*)m_pInput->CurrentMediaType().Format();
 
@@ -344,10 +347,10 @@ HRESULT CMpaDecFilter::ProcessLPCM(bool fPreroll, bool fDiscontinuity)
 	memmove(m_buff.GetData(), pDataIn, m_buff.GetSize() - len);
 	m_buff.SetSize(m_buff.GetSize() - len);
 
-	return Deliver(pBuff, fPreroll, fDiscontinuity, wfein->nSamplesPerSec, wfein->nChannels);
+	return Deliver(pBuff, wfein->nSamplesPerSec, wfein->nChannels);
 }
 
-HRESULT CMpaDecFilter::ProcessAC3(bool fPreroll, bool fDiscontinuity)
+HRESULT CMpaDecFilter::ProcessAC3()
 {
 	BYTE* p = m_buff.GetData();
 	BYTE* base = p;
@@ -382,7 +385,7 @@ HRESULT CMpaDecFilter::ProcessAC3(bool fPreroll, bool fDiscontinuity)
 					REFERENCE_TIME rtDur = 10000000i64 * size*8 / bit_rate; // should be 320000 * 100ns
 
 					HRESULT hr;
-					if(S_OK != (hr = Deliver(pBuff, fPreroll, false, sample_rate, rtDur)))
+					if(S_OK != (hr = Deliver(pBuff, sample_rate, rtDur)))
 						return hr;
 				}
 				else
@@ -424,7 +427,7 @@ HRESULT CMpaDecFilter::ProcessAC3(bool fPreroll, bool fDiscontinuity)
 						if(i == 6)
 						{
 							HRESULT hr;
-							if(S_OK != (hr = Deliver(pBuff, fPreroll, false, sample_rate, scmap.nChannels, scmap.dwChannelMask)))
+							if(S_OK != (hr = Deliver(pBuff, sample_rate, scmap.nChannels, scmap.dwChannelMask)))
 								return hr;
 						}
 					}
@@ -491,7 +494,7 @@ static int dts_syncinfo(BYTE* p, int* sample_rate, int* bit_rate)
 	return framebytes;
 }
 
-HRESULT CMpaDecFilter::ProcessDTS(bool fPreroll, bool fDiscontinuity)
+HRESULT CMpaDecFilter::ProcessDTS()
 {
 	BYTE* p = m_buff.GetData();
 	BYTE* base = p;
@@ -522,7 +525,7 @@ HRESULT CMpaDecFilter::ProcessDTS(bool fPreroll, bool fDiscontinuity)
 				REFERENCE_TIME rtDur = 10000000i64 * size*8 / bit_rate; // should be 106667 * 100 ns
 
 				HRESULT hr;
-				if(S_OK != (hr = Deliver(pBuff, fPreroll, false, sample_rate, rtDur)))
+				if(S_OK != (hr = Deliver(pBuff, sample_rate, rtDur)))
 					return hr;
 
 				p += size;
@@ -554,7 +557,7 @@ static inline float fscale(mad_fixed_t sample)
 	return (float)sample / (1 << MAD_F_FRACBITS);
 }
 
-HRESULT CMpaDecFilter::ProcessMPA(bool fPreroll, bool fDiscontinuity)
+HRESULT CMpaDecFilter::ProcessMPA()
 {
 	mad_stream_buffer(&m_stream, m_buff.GetData(), m_buff.GetSize());
 
@@ -573,6 +576,9 @@ HRESULT CMpaDecFilter::ProcessMPA(bool fPreroll, bool fDiscontinuity)
 
 			if(!MAD_RECOVERABLE(m_stream.error))
 				return E_FAIL;
+
+			m_fDiscontinuity = true;
+			continue;
 		}
 
 		mad_synth_frame(&m_synth, &m_frame);
@@ -595,7 +601,7 @@ HRESULT CMpaDecFilter::ProcessMPA(bool fPreroll, bool fDiscontinuity)
 		}
 
 		HRESULT hr;
-		if(S_OK != (hr = Deliver(pBuff, fPreroll, false, m_synth.pcm.samplerate, m_synth.pcm.channels)))
+		if(S_OK != (hr = Deliver(pBuff, m_synth.pcm.samplerate, m_synth.pcm.channels)))
 			return hr;
 	}
 
@@ -623,8 +629,7 @@ HRESULT CMpaDecFilter::GetDeliveryBuffer(IMediaSample** pSample, BYTE** pData)
 	return S_OK;
 }
 
-HRESULT CMpaDecFilter::Deliver(CArray<float>& pBuff, bool fPreroll, bool fDiscontinuity, 
-							   DWORD nSamplesPerSec, WORD nChannels, DWORD dwChannelMask)
+HRESULT CMpaDecFilter::Deliver(CArray<float>& pBuff, DWORD nSamplesPerSec, WORD nChannels, DWORD dwChannelMask)
 {
 	HRESULT hr;
 
@@ -681,7 +686,7 @@ HRESULT CMpaDecFilter::Deliver(CArray<float>& pBuff, bool fPreroll, bool fDiscon
 	REFERENCE_TIME rtStart = m_rtStart, rtStop = m_rtStart + rtDur;
 	m_rtStart += rtDur;
 TRACE(_T("CMpaDecFilter: %I64d - %I64d\n"), rtStart/10000, rtStop/10000);
-	if(rtStart < 200000 /* < 0, FIXME: 0 makes strange noises */ || fPreroll)
+	if(rtStart < 200000 /* < 0, FIXME: 0 makes strange noises */)
 		return S_OK;
 
 	if(hr == S_OK)
@@ -694,7 +699,7 @@ TRACE(_T("CMpaDecFilter: %I64d - %I64d\n"), rtStart/10000, rtStop/10000);
 	pOut->SetMediaTime(NULL, NULL);
 
 	pOut->SetPreroll(FALSE);
-	pOut->SetDiscontinuity(fDiscontinuity);
+	pOut->SetDiscontinuity(m_fDiscontinuity); m_fDiscontinuity = false;
 	pOut->SetSyncPoint(TRUE);
 
 	pOut->SetActualDataLength(pBuff.GetSize()*wfe->wBitsPerSample/8);
@@ -705,11 +710,32 @@ ASSERT(wfeout->nSamplesPerSec == wfe->nSamplesPerSec);
 
 	float* pDataIn = pBuff.GetData();
 
+	// TODO: move this into the audio switcher
+	float sample_mul = 1;
+	if(m_fNormalize)
+	{
+		for(int i = 0, len = pBuff.GetSize(); i < len; i++)
+		{
+			float f = *pDataIn++;
+			if(f < 0) f = -f;
+			if(m_sample_max < f) m_sample_max = f;
+		}
+		sample_mul = 1.0 / m_sample_max;
+		pDataIn = pBuff.GetData();
+	}
+
 	for(int i = 0, len = pBuff.GetSize(); i < len; i++)
 	{
 		float f = *pDataIn++;
 
 		ASSERT(f >= -1 && f <= 1);
+
+		// TODO: move this into the audio switcher
+		if(m_fNormalize) 
+			f *= sample_mul;
+
+		if(f < -1) f = -1;
+		else if(f > 1) f = 1;
 
 		switch(iSampleFormat)
 		{
@@ -735,11 +761,11 @@ ASSERT(wfeout->nSamplesPerSec == wfe->nSamplesPerSec);
 		}
 	}
 
-	return m_pOutput->Deliver(pOut);
+	hr = m_pOutput->Deliver(pOut);
+	return hr;
 }
 
-HRESULT CMpaDecFilter::Deliver(CArray<BYTE>& pBuff, bool fPreroll, bool fDiscontinuity, 
-								DWORD nSamplesPerSec, REFERENCE_TIME rtDur)
+HRESULT CMpaDecFilter::Deliver(CArray<BYTE>& pBuff, DWORD nSamplesPerSec, REFERENCE_TIME rtDur)
 {
 	HRESULT hr;
 
@@ -771,8 +797,8 @@ HRESULT CMpaDecFilter::Deliver(CArray<BYTE>& pBuff, bool fPreroll, bool fDiscont
 
 	REFERENCE_TIME rtStart = m_rtStart, rtStop = m_rtStart + rtDur;
 	m_rtStart += rtDur;
-TRACE(_T("CMpaDecFilter: %I64d - %I64d\n"), rtStart/10000, rtStop/10000);
-	if(rtStart < 0 || fPreroll)
+//TRACE(_T("CMpaDecFilter: %I64d - %I64d\n"), rtStart/10000, rtStop/10000);
+	if(rtStart < 0)
 		return S_OK;
 
 	if(hr == S_OK)
@@ -785,7 +811,7 @@ TRACE(_T("CMpaDecFilter: %I64d - %I64d\n"), rtStart/10000, rtStop/10000);
 	pOut->SetMediaTime(NULL, NULL);
 
 	pOut->SetPreroll(FALSE);
-	pOut->SetDiscontinuity(fDiscontinuity);
+	pOut->SetDiscontinuity(m_fDiscontinuity); m_fDiscontinuity = false;
 	pOut->SetSyncPoint(TRUE);
 
 	pOut->SetActualDataLength(pBuff.GetSize());
@@ -814,8 +840,10 @@ HRESULT CMpaDecFilter::ReconnectOutput(int nSamples, CMediaType& mt)
 
 	if(mt != m_pOutput->CurrentMediaType() || cbBuffer > props.cbBuffer)
 	{
+		if(cbBuffer > props.cbBuffer)
+		{
 		props.cBuffers = 4;
-		props.cbBuffer = cbBuffer;
+		props.cbBuffer = cbBuffer*3/2;
 
 		if(FAILED(hr = m_pOutput->DeliverBeginFlush())
 		|| FAILED(hr = m_pOutput->DeliverEndFlush())
@@ -823,6 +851,7 @@ HRESULT CMpaDecFilter::ReconnectOutput(int nSamples, CMediaType& mt)
 		|| FAILED(hr = pAllocator->SetProperties(&props, &actual))
 		|| FAILED(hr = pAllocator->Commit()))
 			return hr;
+		}
 
 		return S_OK;
 	}
@@ -934,6 +963,10 @@ HRESULT CMpaDecFilter::StartStreaming()
 	mad_synth_init(&m_synth);
 	mad_stream_options(&m_stream, 0/*options*/);
 
+	m_fDiscontinuity = false;
+
+	m_sample_max = 0.1;
+
 	return S_OK;
 }
 
@@ -961,6 +994,20 @@ STDMETHODIMP_(SampleFormat) CMpaDecFilter::GetSampleFormat()
 {
 	CAutoLock cAutoLock(&m_csProps);
 	return m_iSampleFormat;
+}
+
+STDMETHODIMP CMpaDecFilter::SetNormalize(bool fNormalize)
+{
+	CAutoLock cAutoLock(&m_csProps);
+	if(m_fNormalize != fNormalize) m_sample_max = 0.1;
+	m_fNormalize = fNormalize;
+	return S_OK;
+}
+
+STDMETHODIMP_(bool) CMpaDecFilter::GetNormalize()
+{
+	CAutoLock cAutoLock(&m_csProps);
+	return m_fNormalize;
 }
 
 STDMETHODIMP CMpaDecFilter::SetSpeakerConfig(int sc)

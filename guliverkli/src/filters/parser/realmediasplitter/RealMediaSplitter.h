@@ -210,10 +210,6 @@ public:
     static CUnknown* WINAPI CreateInstance(LPUNKNOWN lpunk, HRESULT* phr);
 #endif
 
-	// IMediaSeeking
-
-	STDMETHODIMP GetDuration(LONGLONG* pDuration);
-
 	// IKeyFrameInfo
 
 	STDMETHODIMP_(HRESULT) GetKeyFrameCount(UINT& nKFs);

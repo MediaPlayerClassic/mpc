@@ -1269,7 +1269,8 @@ STDMETHODIMP CMatroskaMuxerInputPin::Receive(IMediaSample* pSample)
 	if((S_OK != pSample->IsSyncPoint() || m_rtLastStart == rtStart) && m_rtLastStart >= 0 /*&& m_rtLastStart < rtStart*/)
 	{
 		ASSERT(m_rtLastStart - rtStart <= 0);
-		b->ReferenceBlock.Set((m_rtLastStart - rtStart + 5000) / 10000);
+		REFERENCE_TIME rtDiff = m_rtLastStart - rtStart;
+		b->ReferenceBlock.Set((rtDiff + (rtDiff >= 0 ? 5000 : - 5000)) / 10000);
 	}
 
 	b->Block.TrackNumber = ((CMatroskaMuxerFilter*)m_pFilter)->GetTrackNumber(this);
