@@ -1663,6 +1663,14 @@ BEGIN
             MENUITEM SEPARATOR
             MENUITEM "&Keep Aspect Ratio",          ID_VIEW_VF_KEEPASPECTRATIO
 
+            POPUP "Override Aspect Ratio"
+            BEGIN
+                MENUITEM "Default",                     ID_ASPECTRATIO_SOURCE
+
+                MENUITEM "4:3",                         ID_ASPECTRATIO_4
+                MENUITEM "5:4",                         ID_ASPECTRATIO_5
+                MENUITEM "16:9",                        ID_ASPECTRATIO_16
+            END
             MENUITEM "Correct Monitor/Desktop AR Diff", 
                                                     ID_VIEW_VF_COMPMONDESKARDIFF
 
@@ -1683,13 +1691,6 @@ BEGIN
             MENUITEM "Center\tCtrl+Numpad 5",       ID_PANSCAN_CENTER
             MENUITEM SEPARATOR
             MENUITEM "Reset\tNumpad 5",             ID_VIEW_RESET
-        END
-        POPUP "Aspect Ratio"
-        BEGIN
-            MENUITEM "Default",                     ID_ASPECTRATIO_SOURCE
-            MENUITEM "4:3",                         ID_ASPECTRATIO_4
-            MENUITEM "5:4",                         ID_ASPECTRATIO_5
-            MENUITEM "16:9",                        ID_ASPECTRATIO_16
         END
         MENUITEM SEPARATOR
         POPUP "On Top"
@@ -1785,6 +1786,14 @@ BEGIN
             MENUITEM SEPARATOR
             MENUITEM "&Keep Aspect Ratio",          ID_VIEW_VF_KEEPASPECTRATIO
 
+            POPUP "Override Aspect Ratio"
+            BEGIN
+                MENUITEM "Default",                     ID_ASPECTRATIO_SOURCE
+
+                MENUITEM "4:3",                         ID_ASPECTRATIO_4
+                MENUITEM "5:4",                         ID_ASPECTRATIO_5
+                MENUITEM "16:9",                        ID_ASPECTRATIO_16
+            END
             MENUITEM "Correct Monitor/Desktop AR Diff", 
                                                     ID_VIEW_VF_COMPMONDESKARDIFF
 
@@ -1805,13 +1814,6 @@ BEGIN
             MENUITEM "Center\tCtrl+Numpad 5",       ID_PANSCAN_CENTER
             MENUITEM SEPARATOR
             MENUITEM "Reset\tNumpad 5",             ID_VIEW_RESET
-        END
-        POPUP "Aspect Ratio"
-        BEGIN
-            MENUITEM "Default",                     ID_ASPECTRATIO_SOURCE
-            MENUITEM "4:3",                         ID_ASPECTRATIO_4
-            MENUITEM "5:4",                         ID_ASPECTRATIO_5
-            MENUITEM "16:9",                        ID_ASPECTRATIO_16
         END
         MENUITEM SEPARATOR
         POPUP "&Navigate"
@@ -1957,6 +1959,15 @@ BEGIN
                 MENUITEM SEPARATOR
                 MENUITEM "&Keep Aspect Ratio",          ID_VIEW_VF_KEEPASPECTRATIO
 
+                POPUP "Override Aspect Ratio"
+                BEGIN
+                    MENUITEM "Default",                     ID_ASPECTRATIO_SOURCE
+
+                    MENUITEM "4:3",                         ID_ASPECTRATIO_4
+                    MENUITEM "5:4",                         ID_ASPECTRATIO_5
+                    MENUITEM "16:9",                        ID_ASPECTRATIO_16
+
+                END
                 MENUITEM "Correct Monitor/Desktop AR Diff", 
                                                         ID_VIEW_VF_COMPMONDESKARDIFF
 
@@ -1977,14 +1988,6 @@ BEGIN
                 MENUITEM "Center\tCtrl+Numpad 5",       ID_PANSCAN_CENTER
                 MENUITEM SEPARATOR
                 MENUITEM "Reset\tNumpad 5",             ID_VIEW_RESET
-            END
-            POPUP "Aspect Ratio"
-            BEGIN
-                MENUITEM "Default",                     ID_ASPECTRATIO_SOURCE
-
-                MENUITEM "4:3",                         ID_ASPECTRATIO_4
-                MENUITEM "5:4",                         ID_ASPECTRATIO_5
-                MENUITEM "16:9",                        ID_ASPECTRATIO_16
             END
             MENUITEM SEPARATOR
             POPUP "On Top"

@@ -638,9 +638,16 @@ void CPlayerPlaylistBar::LoadPlaylist()
 	{
 		CPath p;
 		p.Combine(base, _T("default.mpcpl"));
-		ParseMPCPlayList(p);
 
-		Refresh();
+		if(!AfxGetApp()->GetProfileInt(ResStr(IDS_R_SETTINGS), _T("RememberPlaylistItems"), TRUE))
+		{
+			DeleteFile(p);
+		}
+		else
+		{
+			ParseMPCPlayList(p);
+			Refresh();
+		}
 	}
 }
 
@@ -651,7 +658,15 @@ void CPlayerPlaylistBar::SavePlaylist()
 	{
 		CPath p;
 		p.Combine(base, _T("default.mpcpl"));
-		SaveMPCPlayList(p, CTextFile::UTF8);
+
+		if(!AfxGetApp()->GetProfileInt(ResStr(IDS_R_SETTINGS), _T("RememberPlaylistItems"), TRUE))
+		{
+			DeleteFile(p);
+		}
+		else
+		{
+			SaveMPCPlayList(p, CTextFile::UTF8);
+		}
 	}
 }
 
@@ -1125,7 +1140,8 @@ void CPlayerPlaylistBar::OnContextMenu(CWnd* /*pWnd*/, CPoint p)
 	enum 
 	{
 		M_OPEN=1, M_ADD, M_REMOVE, M_CLIPBOARD, M_SAVEAS, 
-		M_SORTBYNAME, M_SORTBYPATH, M_RANDOMIZE, M_SORTBYID		
+		M_SORTBYNAME, M_SORTBYPATH, M_RANDOMIZE, M_SORTBYID,
+		M_REMEMBERPLAYLIST
 	};
 
 	m.AppendMenu(MF_STRING|(!fOnItem?(MF_DISABLED|MF_GRAYED):MF_ENABLED), M_OPEN, _T("&Open"));
@@ -1139,6 +1155,8 @@ void CPlayerPlaylistBar::OnContextMenu(CWnd* /*pWnd*/, CPoint p)
 	m.AppendMenu(MF_STRING|(!m_pl.GetCount()?(MF_DISABLED|MF_GRAYED):MF_ENABLED), M_SORTBYPATH, _T("Sort by &path"));
 	m.AppendMenu(MF_STRING|(!m_pl.GetCount()?(MF_DISABLED|MF_GRAYED):MF_ENABLED), M_RANDOMIZE, _T("R&andomize"));
 	m.AppendMenu(MF_STRING|(!m_pl.GetCount()?(MF_DISABLED|MF_GRAYED):MF_ENABLED), M_SORTBYID, _T("R&estore"));
+	m.AppendMenu(MF_SEPARATOR);
+	m.AppendMenu(MF_STRING|MF_ENABLED|(AfxGetApp()->GetProfileInt(ResStr(IDS_R_SETTINGS), _T("RememberPlaylistItems"), TRUE)?MF_CHECKED:0), M_REMEMBERPLAYLIST, _T("Remember items"));
 
 	CMainFrame* pMainFrm = (CMainFrame*)AfxGetMainWnd();
 
@@ -1269,6 +1287,10 @@ void CPlayerPlaylistBar::OnContextMenu(CWnd* /*pWnd*/, CPoint p)
 				f.WriteString(_T("</ASX>\n"));
 			}
 		}
+		break;
+	case M_REMEMBERPLAYLIST:
+		AfxGetApp()->WriteProfileInt(ResStr(IDS_R_SETTINGS), _T("RememberPlaylistItems"), 
+			!AfxGetApp()->GetProfileInt(ResStr(IDS_R_SETTINGS), _T("RememberPlaylistItems"), TRUE));
 		break;
 	default:
 		break;
