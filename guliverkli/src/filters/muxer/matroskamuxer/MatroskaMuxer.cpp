@@ -1204,7 +1204,7 @@ STDMETHODIMP CMatroskaMuxerInputPin::Receive(IMediaSample* pSample)
 //	rtStart += m_tStart;
 //	rtStop += m_tStart;
 
-/*
+/**/
 	TRACE(_T("Received (%d): %I64d-%I64d (c=%d, co=%dms), len=%d, d%d p%d s%d\n"), 
 		((CMatroskaMuxerFilter*)m_pFilter)->GetTrackNumber(this), 
 		rtStart, rtStop, (int)((rtStart/10000)/MAXCLUSTERTIME), (int)((rtStart/10000)%MAXCLUSTERTIME),
@@ -1212,7 +1212,7 @@ STDMETHODIMP CMatroskaMuxerInputPin::Receive(IMediaSample* pSample)
 		pSample->IsDiscontinuity() == S_OK ? 1 : 0,
 		pSample->IsPreroll() == S_OK ? 1 : 0,
 		pSample->IsSyncPoint() == S_OK ? 1 : 0);
-*/
+
 	if(m_mt.subtype == MEDIASUBTYPE_Vorbis && m_pVorbisHdrs.GetCount() < 3)
 	{
 		CAutoPtr<CBinary> data(new CBinary(0));

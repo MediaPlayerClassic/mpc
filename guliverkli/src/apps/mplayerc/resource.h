@@ -167,6 +167,7 @@
 #define IDD_SELECTMEDIATYPE             327
 #define IDD_PPAGESUBSTYLE               328
 #define IDD_PPAGEMOUSE                  329
+#define IDD_PPAGEMPEG                   329
 #define IDD_PPAGEFILTERS                330
 #define ID_NAVIGATE_SKIPBACKPLITEM      331
 #define ID_NAVIGATE_SKIPFORWARDPLITEM   332
@@ -260,6 +261,13 @@
 #define IDS_RS_LOGOID                   582
 #define IDS_RS_LOGOEXT                  583
 #define IDS_RS_TRAFILTERS               584
+#define IDS_RS_MPEGDI                   585
+#define IDS_RS_MPEGBRIGHT               586
+#define IDS_RS_MPEGCONT                 587
+#define IDS_RS_MPEGHUE                  588
+#define IDS_RS_MPEGSAT                  589
+#define IDS_RS_MPEGFORCEDSUBS           590
+#define IDS_RS_MPEGPLANARYUV            591
 #define IDC_BROWSEBUTTON                1016
 #define IDC_BROWSEBUTTON2               1017
 #define IDC_COMBO1                      1018
@@ -385,6 +393,7 @@
 #define IDC_CHECK12                     1113
 #define IDC_CHECK13                     1114
 #define IDC_CHECK14                     1115
+#define IDC_SLIDER1                     1116
 #define IDD_COMPROPERTYPAGE             10002
 #define ID_DUMMYSEPARATOR               32768
 #define ID_VOLUME_MUTE_ON               32769
@@ -466,7 +475,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        334
 #define _APS_NEXT_COMMAND_VALUE         32818
-#define _APS_NEXT_CONTROL_VALUE         1116
+#define _APS_NEXT_CONTROL_VALUE         1117
 #define _APS_NEXT_SYMED_VALUE           10003
 #endif
 #endif

@@ -373,6 +373,11 @@ public:
 		UINT logoid;
 		bool logoext;
 
+		int mpegdi;
+		double mpegbright, mpegcont, mpeghue, mpegsat;
+		bool mpegforcedsubs, mpegplanaryuv;
+		DWORD mpegpreffmt;
+
 	public:
 		Settings();
 		virtual ~Settings();

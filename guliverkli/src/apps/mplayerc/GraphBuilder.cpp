@@ -168,19 +168,21 @@ CGraphBuilder::CGraphBuilder(IGraphBuilder* pGB, HWND hWnd)
 	AddFilter(new CGraphCustomFilter(__uuidof(CAVI2AC3Filter), guids, L"AVI<->AC3/DTS", LMERIT(0x00680000)+1));
 	guids.RemoveAll();
 
-	if(s.SrcFilters&SRC_MATROSKA)
 	{
 		guids.AddTail(MEDIATYPE_Stream);
 		guids.AddTail(MEDIASUBTYPE_Matroska);
-		AddFilter(new CGraphCustomFilter(__uuidof(CMatroskaSplitterFilter), guids, L"Matroska Splitter", LMERIT_PREFERRED));
+		AddFilter(new CGraphCustomFilter(__uuidof(CMatroskaSplitterFilter), guids, 
+			(s.SrcFilters&SRC_MATROSKA) ? L"Matroska Splitter" : L"Matroska Splitter (low merit)", 
+			(s.SrcFilters&SRC_MATROSKA) ? LMERIT_ABOVE_DSHOW : LMERIT_DO_USE));
 		guids.RemoveAll();
 	}
 
-	if(s.SrcFilters&SRC_REALMEDIA)
 	{
 		guids.AddTail(MEDIATYPE_Stream);
 		guids.AddTail(MEDIASUBTYPE_RealMedia);
-		AddFilter(new CGraphCustomFilter(__uuidof(CRealMediaSplitterFilter), guids, L"RealMedia Splitter", LMERIT_PREFERRED));
+		AddFilter(new CGraphCustomFilter(__uuidof(CRealMediaSplitterFilter), guids, 
+			(s.SrcFilters&SRC_REALMEDIA) ? L"RealMedia Splitter" : L"RealMedia Splitter (low merit)", 
+			(s.SrcFilters&SRC_REALMEDIA) ? LMERIT_ABOVE_DSHOW : LMERIT_DO_USE));
 		guids.RemoveAll();
 	}
 
@@ -188,8 +190,8 @@ CGraphBuilder::CGraphBuilder(IGraphBuilder* pGB, HWND hWnd)
 		guids.AddTail(MEDIATYPE_Stream);
 		guids.AddTail(MEDIASUBTYPE_Avi);
 		AddFilter(new CGraphCustomFilter(__uuidof(CAviSplitterFilter), guids, 
-			(s.SrcFilters&SRC_AVI) ? L"Avi Splitter" : L"Avi Splitter (for broken files)",
-			(s.SrcFilters&SRC_AVI) ? LMERIT_PREFERRED : LMERIT_DO_USE));
+			(s.SrcFilters&SRC_AVI) ? L"Avi Splitter" : L"Avi Splitter (low merit)",
+			(s.SrcFilters&SRC_AVI) ? LMERIT_ABOVE_DSHOW : LMERIT_DO_USE));
 		guids.RemoveAll();
 	}
 
@@ -198,8 +200,9 @@ CGraphBuilder::CGraphBuilder(IGraphBuilder* pGB, HWND hWnd)
 		guids.AddTail(MEDIASUBTYPE_MPEG1Packet);
 		guids.AddTail(MEDIATYPE_Video);
 		guids.AddTail(MEDIASUBTYPE_MPEG1Payload);
-		AddFilter(new CGraphCustomFilter(__uuidof(CMpeg2DecFilter), guids, L"Mpeg1 Decoder", 
-			(s.TraFilters&TRA_MPEG1) ? LMERIT(0x40000002) : LMERIT_DO_USE));
+		AddFilter(new CGraphCustomFilter(__uuidof(CMpeg2DecFilter), guids, 
+			(s.TraFilters&TRA_MPEG1) ? L"MPEG-1 Video Decoder" : L"MPEG-1 Video Decoder (low merit)", 
+			(s.TraFilters&TRA_MPEG1) ? LMERIT_ABOVE_DSHOW : LMERIT_DO_USE));
 		guids.RemoveAll();
 	}
 
@@ -212,8 +215,9 @@ CGraphBuilder::CGraphBuilder(IGraphBuilder* pGB, HWND hWnd)
 		guids.AddTail(MEDIASUBTYPE_MPEG2_VIDEO);
 		guids.AddTail(MEDIATYPE_Video);
 		guids.AddTail(MEDIASUBTYPE_MPEG2_VIDEO);
-		AddFilter(new CGraphCustomFilter(__uuidof(CMpeg2DecFilter), guids, L"Mpeg2 Decoder", 
-			(s.TraFilters&TRA_MPEG2) ? LMERIT_PREFERRED : LMERIT_DO_USE));
+		AddFilter(new CGraphCustomFilter(__uuidof(CMpeg2DecFilter), guids,
+			(s.TraFilters&TRA_MPEG2) ? L"MPEG-2 Video Decoder" : L"MPEG-2 Video Decoder (low merit)", 
+			(s.TraFilters&TRA_MPEG2) ? LMERIT_ABOVE_DSHOW : LMERIT_DO_USE));
 		guids.RemoveAll();
 	}
 
@@ -226,9 +230,9 @@ CGraphBuilder::CGraphBuilder(IGraphBuilder* pGB, HWND hWnd)
 		guids.AddTail(MEDIASUBTYPE_RV30);
 		guids.AddTail(MEDIATYPE_Video);
 		guids.AddTail(MEDIASUBTYPE_RV40);
-		AddFilter(new CGraphCustomFilter(__uuidof(CRealVideoDecoder), guids, L"RealVideo Decoder", 
-			(s.TraFilters&TRA_REALVID)
-			/*(s.SrcFilters&SRC_REALMEDIA)*/ ? LMERIT_PREFERRED : LMERIT_DO_USE));
+		AddFilter(new CGraphCustomFilter(__uuidof(CRealVideoDecoder), guids,
+			(s.TraFilters&TRA_REALVID) ? L"RealVideo Decoder" : L"RealVideo Decoder (low merit)",
+			(s.TraFilters&TRA_REALVID) ? LMERIT_ABOVE_DSHOW : LMERIT_DO_USE));
 		guids.RemoveAll();
 	}
 
@@ -245,9 +249,9 @@ CGraphBuilder::CGraphBuilder(IGraphBuilder* pGB, HWND hWnd)
 		guids.AddTail(MEDIASUBTYPE_DNET);
 		guids.AddTail(MEDIATYPE_Audio);
 		guids.AddTail(MEDIASUBTYPE_SIPR);
-		AddFilter(new CGraphCustomFilter(__uuidof(CRealAudioDecoder), guids, L"RealAudio Decoder", 
-			(s.TraFilters&TRA_REALAUD)
-			/*(s.SrcFilters&SRC_REALMEDIA)*/ ? LMERIT_PREFERRED : LMERIT_DO_USE));
+		AddFilter(new CGraphCustomFilter(__uuidof(CRealAudioDecoder), guids, 
+			(s.TraFilters&TRA_REALAUD) ? L"RealAudio Decoder" : L"RealAudio Decoder (low merit)",
+			(s.TraFilters&TRA_REALAUD) ? LMERIT_ABOVE_DSHOW : LMERIT_DO_USE));
 		guids.RemoveAll();
 	}
 
@@ -294,9 +298,9 @@ CGraphBuilder::CGraphBuilder(IGraphBuilder* pGB, HWND hWnd)
 			continue;
 
 		ULONGLONG merit = 
-			f->iLoadType == Filter::PREFERRED ? (LMERIT(1)<<32) : 
+			f->iLoadType == Filter::PREFERRED ? LMERIT_ABOVE_DSHOW : 
 			f->iLoadType == Filter::MERIT ? LMERIT(f->dwMerit) : 
-			LMERIT(MERIT_DO_NOT_USE); // f->iLoadType == Filter::BLOCKED
+			LMERIT_DO_NOT_USE; // f->iLoadType == Filter::BLOCKED
 
 		merit += lowmerit++;
 
@@ -328,10 +332,10 @@ CGraphBuilder::CGraphBuilder(IGraphBuilder* pGB, HWND hWnd)
 	// FIXME: "Subtitle Mixer" makes an access violation around 
 	// the 11-12th media type when enumerating them on its output.
 	CLSID CLSID_SubtitlerMixer = GUIDFromCString(_T("{00A95963-3BE5-48C0-AD9F-3356D67EA09D}"));
-	AddFilter(new CGraphRegFilter(CLSID_SubtitlerMixer, LMERIT(MERIT_DO_NOT_USE)));
+	AddFilter(new CGraphRegFilter(CLSID_SubtitlerMixer, LMERIT_DO_NOT_USE));
 
 	// ISCR suxx
-	AddFilter(new CGraphRegFilter(GUIDFromCString(_T("{48025243-2D39-11CE-875D-00608CB78066}")), LMERIT(MERIT_DO_NOT_USE)));
+	AddFilter(new CGraphRegFilter(GUIDFromCString(_T("{48025243-2D39-11CE-875D-00608CB78066}")), LMERIT_DO_NOT_USE));
 }
 
 CGraphBuilder::~CGraphBuilder()
@@ -936,6 +940,11 @@ HRESULT CGraphBuilder::Render(IPin* pPin)
 			}
 		}
 
+		if(CComQIPtr<IMpeg2DecFilter> pMpeg2DecFilter = pBF)
+		{
+			pMpeg2DecFilter->EnablePlanarYUV(AfxGetAppSettings().mpegplanaryuv);
+		}
+
 		HRESULT hr = E_FAIL;
 
 		if(guids.GetCount() == 2 && guids[0] == MEDIATYPE_Stream && guids[1] != MEDIATYPE_NULL)
@@ -1059,7 +1068,7 @@ CGraphBuilderFile::CGraphBuilderFile(IGraphBuilder* pGB, HWND hWnd)
 		guids.RemoveAll();
 
 		CLSID CLSID_MorganStreamSwitcher = GUIDFromCString(_T("{D3CD7858-971A-4838-ACEC-40CA5D529DC8}"));
-		AddFilter(new CGraphRegFilter(CLSID_MorganStreamSwitcher, LMERIT(MERIT_DO_NOT_USE)));
+		AddFilter(new CGraphRegFilter(CLSID_MorganStreamSwitcher, LMERIT_DO_NOT_USE));
 	}
 }
 
@@ -1071,12 +1080,16 @@ CGraphBuilderDVD::CGraphBuilderDVD(IGraphBuilder* pGB, HWND hWnd)
 	: CGraphBuilderFile(pGB, hWnd)
 {
 	CList<GUID> guids;
+/*
+	// there wasn't much use of this and the users were just 
+	// confused by "decss" being in the report after a failed 
+	// dvd nav pin rendering
 
 	guids.AddTail(MEDIATYPE_DVD_ENCRYPTED_PACK);
 	guids.AddTail(MEDIASUBTYPE_NULL);
 	AddFilter(new CGraphCustomFilter(__uuidof(CDeCSSFilter), guids, L"DeCSS", LMERIT_UNLIKELY));
 	guids.RemoveAll();
-
+*/
 	DWORD ver = ::GetVersion();
 	bool m_fXp = (int)ver >= 0 && (((ver<<8)&0xff00)|((ver>>8)&0xff)) >= 0x0501;
 
@@ -1086,7 +1099,7 @@ CGraphBuilderDVD::CGraphBuilderDVD(IGraphBuilder* pGB, HWND hWnd)
 
 	// this filter just simply sucks for dvd playback (atm)
 	CLSID CLSID_ElecardMpeg2 = GUIDFromCString(_T("{F50B3F13-19C4-11CF-AA9A-02608C9BABA2}"));
-	AddFilter(new CGraphRegFilter(CLSID_ElecardMpeg2, LMERIT(MERIT_DO_NOT_USE)));
+	AddFilter(new CGraphRegFilter(CLSID_ElecardMpeg2, LMERIT_DO_NOT_USE));
 }
 
 #include "..\..\decss\VobFile.h"
@@ -1159,7 +1172,7 @@ CGraphBuilderCapture::CGraphBuilderCapture(IGraphBuilder* pGB, HWND hWnd)
 	: CGraphBuilderFile(pGB, hWnd)
 {
 	CLSID CLSID_MorganStreamSwitcher = GUIDFromCString(_T("{D3CD7858-971A-4838-ACEC-40CA5D529DC8}"));
-	AddFilter(new CGraphRegFilter(CLSID_MorganStreamSwitcher, LMERIT(MERIT_DO_NOT_USE)));
+	AddFilter(new CGraphRegFilter(CLSID_MorganStreamSwitcher, LMERIT_DO_NOT_USE));
 }
 
 //
@@ -1475,7 +1488,7 @@ ChkLen(8)
 
 	if(CLSID_MMSPLITTER == m_clsid && m_merit.val == LMERIT(MERIT_NORMAL-1))
 	{
-		m_merit.val = LMERIT(MERIT_NORMAL+1); // take this mpeg2 demux...
+		m_merit.val = LMERIT(MERIT_NORMAL)+1; // take this mpeg2 demux...
 	}
 }
 

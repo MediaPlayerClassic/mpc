@@ -41,6 +41,7 @@ CRealMediaPlayer::CRealMediaPlayer(HWND hWndParent, CRealMediaGraph* pRMG)
 	, m_fpCreateEngine(NULL), m_fpCloseEngine(NULL), m_hRealMediaCore(NULL)
 	, m_State(State_Stopped), m_UserState(State_Stopped), m_nCurrent(0), m_nDuration(0)
 	, m_VideoSize(0, 0)
+	, m_fVideoSizeChanged(true)
 {
 }
 
@@ -366,7 +367,12 @@ STDMETHODIMP CRealMediaPlayer::SitesNotNeeded(UINT32 uRequestID)
 STDMETHODIMP CRealMediaPlayer::BeginChangeLayout() {return E_NOTIMPL;}
 STDMETHODIMP CRealMediaPlayer::DoneChangeLayout()
 {
-	m_pRMG->NotifyEvent(EC_VIDEO_SIZE_CHANGED, MAKELPARAM(m_VideoSize.cx, m_VideoSize.cy), 0);
+	if(m_fVideoSizeChanged)
+	{
+        m_pRMG->NotifyEvent(EC_VIDEO_SIZE_CHANGED, MAKELPARAM(m_VideoSize.cx, m_VideoSize.cy), 0);
+		m_fVideoSizeChanged = false;
+	}
+
 	return PNR_OK;
 }
 
@@ -374,8 +380,9 @@ STDMETHODIMP CRealMediaPlayer::DoneChangeLayout()
 STDMETHODIMP CRealMediaPlayer::PositionChanged(PNxPoint* pos) {return E_NOTIMPL;}
 STDMETHODIMP CRealMediaPlayer::SizeChanged(PNxSize* size)
 {
-	if(m_VideoSize.cx == 0 || m_VideoSize.cy == 0)
+	if(m_VideoSize.cx != size->cx || m_VideoSize.cy != size->cy)
 	{
+		m_fVideoSizeChanged = true;
 		m_VideoSize.cx = size->cx;
 		m_VideoSize.cy = size->cy;
 	}

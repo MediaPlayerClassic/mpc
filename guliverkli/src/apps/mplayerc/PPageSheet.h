@@ -32,8 +32,9 @@ using namespace TreePropSheet;
 #include "PPageDVD.h"
 #include "PPageRealMediaQuickTime.h"
 #include "PPageFilters.h"
-#include "PPageOverrides.h"
 #include "PPageAudioSwitcher.h"
+#include "PPageMpegDecoder.h"
+#include "PPageOverrides.h"
 #include "PPageSubtitles.h"
 #include "PPageSubStyle.h"
 #include "PPageTweaks.h"
@@ -71,6 +72,7 @@ private:
 	CPPageSubStyle m_substyle;
 	CPPageFilters m_filters;
 	CPPageAudioSwitcher m_audioswitcher;
+	CPPageMpegDecoder m_mpegdecoder;
 	CPPageOverrides m_overrides;
 	CPPageTweaks m_tweaks;
 
@@ -78,7 +80,7 @@ private:
 	CTreeCtrl* CreatePageTreeObject();
 
 public:
-	CPPageSheet(LPCTSTR pszCaption, IUnknown* pAudioSwitcher, CWnd* pParentWnd, UINT idPage = 0);
+	CPPageSheet(LPCTSTR pszCaption, IFilterGraph* pFG, CWnd* pParentWnd, UINT idPage = 0);
 	virtual ~CPPageSheet();
 
 protected:

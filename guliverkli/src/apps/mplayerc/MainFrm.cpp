@@ -1516,10 +1516,9 @@ LRESULT CMainFrame::OnGraphNotify(WPARAM wParam, LPARAM lParam)
 			GetWindowPlacement(&wp);
 
 			CSize size(evParam1);
-			bool fWasAudioOnly = m_fAudioOnly;
 			m_fAudioOnly = (size.cx <= 0 || size.cy <= 0);
 
-			if(fWasAudioOnly && AfxGetAppSettings().fRememberZoomLevel
+			if(AfxGetAppSettings().fRememberZoomLevel
 			&& !(m_fFullScreen || wp.showCmd == SW_SHOWMAXIMIZED || wp.showCmd == SW_SHOWMINIMIZED))
 			{
 				ZoomVideoWindow();
@@ -4715,46 +4714,38 @@ void CMainFrame::MoveVideoWindow(bool fShowStats)
 		{
 			bool fKeepAspectRatio = AfxGetAppSettings().fKeepAspectRatio;
 
-			long arx, ary;
+			CSize wh(0, 0), arxy;
 
-			DVD_VideoAttributes VATR;
-			if(m_iPlaybackMode == PM_DVD && SUCCEEDED(pDVDI->GetCurrentVideoAttributes(&VATR)))
+			if(m_pCAP)
 			{
-				arx = VATR.ulAspectX;
-				ary = VATR.ulAspectY;
-			}
-			else if(m_pCAP)
-			{
-				CSize vs = m_pCAP->GetVideoSize(fKeepAspectRatio);
-				if(vs.cx <= 0 || vs.cy <= 0)
-					return;
-
-				arx = vs.cx;
-				ary = vs.cy;
+				wh = m_pCAP->GetVideoSize(false);
+				arxy = m_pCAP->GetVideoSize(fKeepAspectRatio);
 			}
 			else
 			{
-				if(FAILED(pBV->GetVideoSize(&arx, &ary)))
-					return;
-
-				if(fKeepAspectRatio)
-				{
-					long arx2 = 0, ary2 = 0;
-					CComQIPtr<IBasicVideo2> pBV2 = pBV;
-					if(pBV2 && SUCCEEDED(pBV2->GetPreferredAspectRatio(&arx2, &ary2)) && arx2 > 0 && ary2 > 0)
-					{
-						arx = arx2;
-						ary = ary2;
-					}
-				}
+				pBV->GetVideoSize(&wh.cx, &wh.cy);
+				if(CComQIPtr<IBasicVideo2> pBV2 = pGB)
+					pBV2->GetPreferredAspectRatio(&arxy.cx, &arxy.cy);
 			}
+
+			if(wh.cx <= 0 || wh.cy <= 0)
+				return;
+
+			// with the overlay mixer this interface won't report the AR when changed dynamically
+			DVD_VideoAttributes VATR;
+			if(m_iPlaybackMode == PM_DVD && SUCCEEDED(pDVDI->GetCurrentVideoAttributes(&VATR)))
+				arxy.SetSize(VATR.ulAspectX, VATR.ulAspectY);
+
+			arxy = (!fKeepAspectRatio || arxy.cx <= 0 || arxy.cy <= 0)
+				? wh
+				: CSize(MulDiv(wh.cy, arxy.cx, arxy.cy), wh.cy);
 
 			int iDefaultVideoSize = AfxGetAppSettings().iDefaultVideoSize;
 
 			CSize ws = 
-				iDefaultVideoSize == DVS_HALF ? CSize(arx/2, ary/2) :
-				iDefaultVideoSize == DVS_NORMAL ? CSize(arx, ary) :
-				iDefaultVideoSize == DVS_DOUBLE ? CSize(arx*2, ary*2) :
+				iDefaultVideoSize == DVS_HALF ? CSize(arxy.cx/2, arxy.cy/2) :
+				iDefaultVideoSize == DVS_NORMAL ? arxy :
+				iDefaultVideoSize == DVS_DOUBLE ? CSize(arxy.cx*2, arxy.cy*2) :
 				wr.Size();
 
 			int w = ws.cx;
@@ -4765,13 +4756,13 @@ void CMainFrame::MoveVideoWindow(bool fShowStats)
 				if(iDefaultVideoSize == DVS_FROMINSIDE || iDefaultVideoSize == DVS_FROMOUTSIDE)
 				{
 					h = ws.cy;
-					w = MulDiv(h, arx, ary);
+					w = MulDiv(h, arxy.cx, arxy.cy);
 
 					if(iDefaultVideoSize == DVS_FROMINSIDE && w > ws.cx
 					|| iDefaultVideoSize == DVS_FROMOUTSIDE && w < ws.cx)
 					{
 						w = ws.cx;
-						h = MulDiv(w, ary, arx);
+						h = MulDiv(w, arxy.cy, arxy.cx);
 					}
 				}
 			}
@@ -5547,6 +5538,21 @@ void CMainFrame::OpenCustomizeGraph()
 	}
 	EndEnumFilters
 
+	BeginEnumFilters(pGB, pEF, pBF)
+	{
+		if(CComQIPtr<IMpeg2DecFilter> m_pMpeg2DecFilter = pBF)
+		{
+			AppSettings& s = AfxGetAppSettings();
+			m_pMpeg2DecFilter->SetDeinterlaceMethod((ditype)s.mpegdi);
+			m_pMpeg2DecFilter->SetBrightness(s.mpegbright);
+			m_pMpeg2DecFilter->SetContrast(s.mpegcont);
+			m_pMpeg2DecFilter->SetHue(s.mpeghue);
+			m_pMpeg2DecFilter->SetSaturation(s.mpegsat);
+			m_pMpeg2DecFilter->EnableForcedSubtitles(s.mpegforcedsubs);
+			m_pMpeg2DecFilter->EnablePlanarYUV(s.mpegplanaryuv);
+		}
+	}
+	EndEnumFilters
 
 	CleanGraph();
 }
@@ -7493,7 +7499,7 @@ bool CMainFrame::StopCapture()
 
 void CMainFrame::ShowOptions(int idPage)
 {
-	CPPageSheet options(_T("Options"), FindFilter(__uuidof(CAudioSwitcherFilter), pGB), this, idPage);
+	CPPageSheet options(_T("Options"), pGB, this, idPage);
 
 	if(options.DoModal() == IDOK)
 	{

@@ -68,6 +68,7 @@ extern void RemoveFromRot(DWORD& dwRegister);
 extern void memsetd(void* dst, unsigned int c, int nbytes);
 extern bool ExtractBIH(const AM_MEDIA_TYPE* pmt, BITMAPINFOHEADER* bih);
 extern bool ExtractBIH(IMediaSample* pMS, BITMAPINFOHEADER* bih);
+extern bool ExtractDim(const AM_MEDIA_TYPE* pmt, DWORD& w, DWORD& h, DWORD& arx, DWORD& ary);
 extern unsigned __int64 GetFileVersion(LPCTSTR fn);
 extern bool CreateFilter(CStringW DisplayName, IBaseFilter** ppBF, CStringW& FriendlyName);
 extern IBaseFilter* AppendFilter(IPin* pPin, IMoniker* pMoniker, IGraphBuilder* pGB);

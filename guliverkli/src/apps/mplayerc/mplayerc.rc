@@ -255,7 +255,7 @@ BEGIN
     LTEXT           "Media Player Classic",IDC_STATIC1,40,10,126,8,
                     SS_NOPREFIX
     LTEXT           "Copyright (C) 2002-2003 Gabest",IDC_STATIC,40,21,113,8
-    LTEXT           "Version:\t6.4.6.0",IDC_STATIC,40,33,92,8
+    LTEXT           "Version:\t6.4.6.1",IDC_STATIC,40,33,92,8
     PUSHBUTTON      "OK",IDOK,160,8,50,14,WS_GROUP
     LTEXT           "This program is freeware and released under the GNU General Public License.\nDistribution in Codec Packs is allowed, but the author (Gabest) is not liable for the additional content.",
                     IDC_STATIC,11,47,199,34
@@ -928,6 +928,33 @@ BEGIN
     PUSHBUTTON      "Browse...",IDC_BUTTON2,239,179,50,14
 END
 
+IDD_PPAGEMPEG DIALOGEX 0, 0, 296, 203
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD
+FONT 8, "MS Shell Dlg", 400, 0, 0xEE
+BEGIN
+    CONTROL         "",IDC_SLIDER1,"msctls_trackbar32",WS_TABSTOP,52,72,237,
+                    18
+    CONTROL         "",IDC_SLIDER2,"msctls_trackbar32",WS_TABSTOP,52,92,237,
+                    18
+    CONTROL         "",IDC_SLIDER3,"msctls_trackbar32",WS_TABSTOP,52,112,237,
+                    18
+    CONTROL         "",IDC_SLIDER4,"msctls_trackbar32",WS_TABSTOP,52,132,237,
+                    18
+    LTEXT           "Brightness:",IDC_STATIC,7,77,37,8
+    LTEXT           "Contrast:",IDC_STATIC,7,97,32,8
+    LTEXT           "Hue:",IDC_STATIC,7,117,16,8
+    LTEXT           "Saturation:",IDC_STATIC,7,136,37,8
+    COMBOBOX        IDC_COMBO2,83,49,48,48,CBS_DROPDOWNLIST | WS_VSCROLL | 
+                    WS_TABSTOP
+    LTEXT           "Deinterlacing method:",IDC_STATIC,7,51,71,8
+    CONTROL         "Always display forced subtitles",IDC_CHECK1,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,7,30,114,10
+    PUSHBUTTON      "Reset",IDC_BUTTON1,147,157,50,14
+    CONTROL         "Enable planar YUV media types (VY12, I420, IYUY)",
+                    IDC_CHECK2,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,12,
+                    177,10
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -1186,6 +1213,14 @@ BEGIN
         HORZGUIDE, 155
         HORZGUIDE, 163
     END
+
+    IDD_PPAGEMPEG, DIALOG
+    BEGIN
+        VERTGUIDE, 7
+        VERTGUIDE, 52
+        VERTGUIDE, 289
+        BOTTOMMARGIN, 200
+    END
 END
 #endif    // APSTUDIO_INVOKED
 
@@ -1269,8 +1304,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 6,4,6,0
- PRODUCTVERSION 6,4,6,0
+ FILEVERSION 6,4,6,1
+ PRODUCTVERSION 6,4,6,1
  FILEFLAGSMASK 0x1fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -1288,12 +1323,12 @@ BEGIN
             VALUE "Comments", "http://gabest.org/"
             VALUE "CompanyName", "Gabest"
             VALUE "FileDescription", "Media Player Classic"
-            VALUE "FileVersion", "6, 4, 6, 0"
+            VALUE "FileVersion", "6, 4, 6, 1"
             VALUE "InternalName", "Media Player Classic"
             VALUE "LegalCopyright", "Copyright (C) 2002 Gabest"
             VALUE "OriginalFilename", "mplayerc.EXE"
             VALUE "ProductName", "Media Player Classic"
-            VALUE "ProductVersion", "6, 4, 6, 0"
+            VALUE "ProductVersion", "6, 4, 6, 1"
         END
     END
     BLOCK "VarFileInfo"
@@ -1787,7 +1822,15 @@ END
 
 STRINGTABLE 
 BEGIN
+    IDD_PPAGESUBSTYLE       "Subtitles::Default Style"
+    IDD_PPAGEMPEG           "Filters::Mpeg Decoder"
     IDD_PPAGEFILTERS        "Filters"
+    IDD_PPAGELOGO           "Player::Logo"
+END
+
+STRINGTABLE 
+BEGIN
+    IDD_PPAGEOVERRIDES      "Filters::Overrides"
     IDD_FILEPROPDETAILS     "Details"
     IDD_FILEPROPCLIP        "Clip"
 END
@@ -1842,13 +1885,13 @@ BEGIN
     IDS_RS_LOGOID           "LogoID"
     IDS_RS_LOGOEXT          "LogoExt"
     IDS_RS_TRAFILTERS       "TraFilters"
-END
-
-STRINGTABLE 
-BEGIN
-    IDD_PPAGESUBSTYLE       "Subtitles::Default Style"
-    IDD_PPAGEOVERRIDES      "Filters::Overrides"
-    IDD_PPAGELOGO           "Player::Logo"
+    IDS_RS_MPEGDI           "MPEGDI"
+    IDS_RS_MPEGBRIGHT       "MPEGBright"
+    IDS_RS_MPEGCONT         "MPEGCont"
+    IDS_RS_MPEGHUE          "MPEGHue"
+    IDS_RS_MPEGSAT          "MPEGSat"
+    IDS_RS_MPEGFORCEDSUBS   "MPEGForcedSubs"
+    IDS_RS_MPEGPLANARYUV    "MPEGPlanarYUV"
 END
 
 #endif    // English (U.S.) resources

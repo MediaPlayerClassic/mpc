@@ -23,13 +23,14 @@
 
 #include <atlcoll.h>
 #include <afxtempl.h>
+#include "IMpeg2DecFilter.h"
 
 class CSubpicInputPin;
 class CClosedCaptionOutputPin;
 class CMpeg2Dec;
 
 [uuid("39F498AF-1A09-4275-B193-673B0BA3D478")]
-class CMpeg2DecFilter : public CTransformFilter
+class CMpeg2DecFilter : public CTransformFilter, public IMpeg2DecFilter
 {
 	CSubpicInputPin* m_pSubpicInput;
 	CClosedCaptionOutputPin* m_pClosedCaptionOutput;
@@ -37,17 +38,18 @@ class CMpeg2DecFilter : public CTransformFilter
 	REFERENCE_TIME m_AvgTimePerFrame;
 	CCritSec m_csReceive;
 	bool m_fWaitForKeyFrame;
+	bool m_fFilm;
 	struct framebuf 
 	{
 		int w, h, pw, ph;
 		BYTE* buf[6];
-		REFERENCE_TIME rtFrame, rtOffset, rtStart, rtStop;
+		REFERENCE_TIME rtStart, rtStop;
 		DWORD flags;
         framebuf()
 		{
 			w = h = pw = ph = 0;
 			memset(&buf, 0, sizeof(buf));
-			rtFrame = rtOffset = rtStart = rtStop = 0;
+			rtStart = rtStop = 0;
 			flags = 0;
 		}
         ~framebuf() {free();}
@@ -64,7 +66,7 @@ class CMpeg2DecFilter : public CTransformFilter
 
 	void Copy(BYTE* pOut, BYTE** ppIn, DWORD w, DWORD h, DWORD pitchIn);
 	void ResetMpeg2Decoder();
-	HRESULT ReconnectOutput(int w, int h);
+	HRESULT ReconnectOutput(int w, int h, CMediaType& mt);
 
 public:
 	CMpeg2DecFilter(LPUNKNOWN lpunk, HRESULT* phr);
@@ -73,6 +75,9 @@ public:
 #ifdef REGISTER_FILTER
     static CUnknown* WINAPI CreateInstance(LPUNKNOWN lpunk, HRESULT* phr);
 #endif
+
+	DECLARE_IUNKNOWN
+    STDMETHODIMP NonDelegatingQueryInterface(REFIID riid, void** ppv);
 
 	HRESULT Deliver(bool fRepeatLast);
 	HRESULT CheckOutputMediaType(const CMediaType& mtOut);
@@ -95,6 +100,39 @@ public:
 	HRESULT StopStreaming();
 
 	HRESULT AlterQuality(Quality q);
+
+protected:
+	CCritSec m_csProps;
+	ditype m_di;
+	double m_bright, m_cont, m_hue, m_sat;
+	BYTE m_YTbl[256], m_UTbl[256*256], m_VTbl[256*256];
+	bool m_fForcedSubs;
+	bool m_fPlanarYUV;
+
+	static void CalcBrCont(BYTE* YTbl, double bright, double cont);
+	static void CalcHueSat(BYTE* UTbl, BYTE* VTbl, double hue, double sat);
+	void ApplyBrContHueSat(BYTE* srcy, BYTE* srcu, BYTE* srcv, int w, int h, int pitch);
+	
+public:
+	// IMpeg2DecFilter
+
+	STDMETHODIMP SetDeinterlaceMethod(ditype di);
+	STDMETHODIMP_(ditype) GetDeinterlaceMethod();
+
+	STDMETHODIMP SetBrightness(double bright);
+	STDMETHODIMP SetContrast(double cont);
+	STDMETHODIMP SetHue(double hue);
+	STDMETHODIMP SetSaturation(double sat);
+	STDMETHODIMP_(double) GetBrightness();
+	STDMETHODIMP_(double) GetContrast();
+	STDMETHODIMP_(double) GetHue();
+	STDMETHODIMP_(double) GetSaturation();
+
+	STDMETHODIMP EnableForcedSubtitles(bool fEnable);
+	STDMETHODIMP_(bool) IsForcedSubtitlesEnabled();
+
+	STDMETHODIMP EnablePlanarYUV(bool fEnable);
+	STDMETHODIMP_(bool) IsPlanarYUVEnabled();
 };
 
 class CMpeg2DecInputPin : public CTransformInputPin, public IKsPropertySet

@@ -40,3 +40,4 @@
 
 #include <streams.h>
 #include <dvdmedia.h>
+#include <amvideo.h>

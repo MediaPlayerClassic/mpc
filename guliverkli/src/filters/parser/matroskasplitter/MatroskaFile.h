@@ -358,8 +358,6 @@ namespace MatroskaReader
 		CMatroskaNode* m_pParent;
 		CMatroskaFile* m_pMF;
 
-		QWORD FindId(DWORD id, QWORD start = 0);
-
 	public:
 		CID m_id;
 		CLength m_len;
@@ -374,6 +372,8 @@ namespace MatroskaReader
 		CAutoPtr<CMatroskaNode> Child(DWORD id = 0, bool fSearch = true);
 		bool Next(bool fSame = false);
 		bool Find(DWORD id, bool fSearch = true);
+
+		QWORD FindPos(DWORD id, QWORD start = 0);
 
 		HRESULT SeekTo(QWORD pos);
 		QWORD GetPos(), GetLength();

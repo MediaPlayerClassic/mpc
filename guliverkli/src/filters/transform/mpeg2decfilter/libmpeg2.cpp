@@ -1404,6 +1404,9 @@ int CMpeg2Dec::picture_coding_ext()
     m_decoder.m_intra_vlc_format = (buffer[3] >> 3) & 1;
     m_decoder.m_scan = (buffer[3] & 4) ? mpeg2_scan_alt_2 : mpeg2_scan_norm_2;
 
+	if(buffer[3] & 2)
+		picture->flags |= PIC_FLAG_REPEAT_FIRST_FIELD;
+
     picture->flags |= (buffer[4] & 0x80) ? PIC_FLAG_PROGRESSIVE_FRAME : 0;
     if(buffer[4] & 0x40)
 		picture->flags |= (((buffer[4]<<26) | (buffer[5]<<18) | (buffer[6]<<10)) & PIC_MASK_COMPOSITE_DISPLAY) | PIC_FLAG_COMPOSITE_DISPLAY;

@@ -467,6 +467,9 @@
 			Name="Header Files"
 			Filter="h;hpp;hxx;hm;inl;inc">
 			<File
+				RelativePath=".\IMpeg2DecFilter.h">
+			</File>
+			<File
 				RelativePath=".\libmpeg2.h">
 			</File>
 			<File
