@@ -796,7 +796,8 @@ void GSRendererHW::InvalidateTexture(DWORD TBP0, int x, int y)
 		&& !(t.m_tex.CLAMP.WMS&2) && !(t.m_tex.CLAMP.WMT&2)
 		&& t.m_scale.x == 1.0f && t.m_scale.y == 1.0f
 		&& S_OK == t.m_pTexture->GetLevelDesc(0, &desc)
-		&& S_OK == t.m_pTexture->LockRect(0, &lr, r, 0))
+		&& S_OK == t.m_pTexture->LockRect(0, &lr, r, 0)
+		&& desc.Width >= w && desc.Height >= h)
 		{
 			BYTE* dst = (BYTE*)lr.pBits;
 			GSLocalMemory::readTexel rt = m_lm.GetReadTexel(t.m_tex.TEX0.PSM);
