@@ -1174,7 +1174,11 @@ void CMPlayerCApp::Settings::UpdateData(bool fSave)
 
 		pApp->WriteProfileString(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_ISDB), ISDb);
 
-		pApp->WriteProfileString(_T(""), _T(""), _T(""));
+		if(pApp->m_pszRegistryKey)
+		{
+			// WINBUG: on win2k this would crash WritePrivateProfileString
+			pApp->WriteProfileInt(_T(""), _T(""), pApp->GetProfileInt(_T(""), _T(""), 0)?0:1);
+		}
 	}
 	else
 	{
