@@ -52,32 +52,12 @@ void GSState::WriteTransfer(BYTE* pMem, int len)
 		FlushPrim();
 
 	int x = m_x, y = m_y;
-/*
-clock_t t1 = clock();
-int tmplen = len;
-BYTE* tmp = pMem;
-for(int i = 0, j = 10000; i < j; i++)
-{
-*/
+
 	m_stats.IncWrites(len);
 
 	GSLocalMemory::SwizzleTexture st = m_lm.GetSwizzleTexture(m_rs.BITBLTBUF.DPSM);
 	(m_lm.*st)(m_x, m_y, pMem, len, m_rs.BITBLTBUF, m_rs.TRXPOS, m_rs.TRXREG);
-/*
-if(i < j-1)
-{
-m_x = x;
-m_y = y;
-len = tmplen;
-pMem = tmp;
-}
-}
 
-clock_t t2 = clock();
-CString str;
-str.Format(_T("dt=%d, psm=%d, len=%d"), t2-t1, (int)m_rs.BITBLTBUF.DPSM, tmplen);
-AfxMessageBox(str, MB_OK);
-*/
 	InvalidateTexture(m_rs.BITBLTBUF.DBP, x, y);
 }
 

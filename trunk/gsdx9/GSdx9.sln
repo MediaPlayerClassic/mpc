@@ -1,24 +1,47 @@
 Microsoft Visual Studio Solution File, Format Version 8.00
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "GSdx9", "GSdx9.vcproj", "{345C9F24-0B9A-4289-B375-ADD3B63461B7}"
 	ProjectSection(ProjectDependencies) = postProject
+		{6BA829DC-20C1-4B6B-BF63-7601FEB64601} = {6BA829DC-20C1-4B6B-BF63-7601FEB64601}
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "BaseClasses", "C:\Program Files\Microsoft DirectX 9.0 SDK (Summer 2004)\Samples\C++\DirectShow\BaseClasses\baseclasses.vcproj", "{6BA829DC-20C1-4B6B-BF63-7601FEB64601}"
+	ProjectSection(ProjectDependencies) = postProject
 	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfiguration) = preSolution
 		Debug = Debug
+		Debug Unicode = Debug Unicode
 		DebugSSE2 = DebugSSE2
 		Release = Release
+		Release Unicode = Release Unicode
 		ReleaseSSE2 = ReleaseSSE2
 	EndGlobalSection
 	GlobalSection(ProjectConfiguration) = postSolution
 		{345C9F24-0B9A-4289-B375-ADD3B63461B7}.Debug.ActiveCfg = Debug|Win32
 		{345C9F24-0B9A-4289-B375-ADD3B63461B7}.Debug.Build.0 = Debug|Win32
+		{345C9F24-0B9A-4289-B375-ADD3B63461B7}.Debug Unicode.ActiveCfg = Debug|Win32
+		{345C9F24-0B9A-4289-B375-ADD3B63461B7}.Debug Unicode.Build.0 = Debug|Win32
 		{345C9F24-0B9A-4289-B375-ADD3B63461B7}.DebugSSE2.ActiveCfg = DebugSSE2|Win32
 		{345C9F24-0B9A-4289-B375-ADD3B63461B7}.DebugSSE2.Build.0 = DebugSSE2|Win32
 		{345C9F24-0B9A-4289-B375-ADD3B63461B7}.Release.ActiveCfg = Release|Win32
 		{345C9F24-0B9A-4289-B375-ADD3B63461B7}.Release.Build.0 = Release|Win32
+		{345C9F24-0B9A-4289-B375-ADD3B63461B7}.Release Unicode.ActiveCfg = Release|Win32
+		{345C9F24-0B9A-4289-B375-ADD3B63461B7}.Release Unicode.Build.0 = Release|Win32
 		{345C9F24-0B9A-4289-B375-ADD3B63461B7}.ReleaseSSE2.ActiveCfg = ReleaseSSE2|Win32
 		{345C9F24-0B9A-4289-B375-ADD3B63461B7}.ReleaseSSE2.Build.0 = ReleaseSSE2|Win32
+		{6BA829DC-20C1-4B6B-BF63-7601FEB64601}.Debug.ActiveCfg = Debug|Win32
+		{6BA829DC-20C1-4B6B-BF63-7601FEB64601}.Debug.Build.0 = Debug|Win32
+		{6BA829DC-20C1-4B6B-BF63-7601FEB64601}.Debug Unicode.ActiveCfg = Debug Unicode|Win32
+		{6BA829DC-20C1-4B6B-BF63-7601FEB64601}.Debug Unicode.Build.0 = Debug Unicode|Win32
+		{6BA829DC-20C1-4B6B-BF63-7601FEB64601}.DebugSSE2.ActiveCfg = Debug|Win32
+		{6BA829DC-20C1-4B6B-BF63-7601FEB64601}.DebugSSE2.Build.0 = Debug|Win32
+		{6BA829DC-20C1-4B6B-BF63-7601FEB64601}.Release.ActiveCfg = Release|Win32
+		{6BA829DC-20C1-4B6B-BF63-7601FEB64601}.Release.Build.0 = Release|Win32
+		{6BA829DC-20C1-4B6B-BF63-7601FEB64601}.Release Unicode.ActiveCfg = Release Unicode|Win32
+		{6BA829DC-20C1-4B6B-BF63-7601FEB64601}.Release Unicode.Build.0 = Release Unicode|Win32
+		{6BA829DC-20C1-4B6B-BF63-7601FEB64601}.ReleaseSSE2.ActiveCfg = Release|Win32
+		{6BA829DC-20C1-4B6B-BF63-7601FEB64601}.ReleaseSSE2.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 	EndGlobalSection
