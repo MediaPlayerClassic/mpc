@@ -36,6 +36,56 @@
 #include <initguid.h>
 #include <dmodshow.h>
 
+static void CheckStupidSharedFilesourceFilter()
+{
+	CRegKey key;
+	CString str(_T("CLSID\\{E436EBB5-524F-11CE-9F53-0020AF0BA770}\\InprocServer32"));
+
+	if(ERROR_SUCCESS == key.Open(HKEY_CLASSES_ROOT, str, KEY_READ))
+	{
+		ULONG nChars = 0;
+		if(ERROR_SUCCESS == key.QueryStringValue(NULL, NULL, &nChars))
+		{
+			CString dll;
+			if(ERROR_SUCCESS == key.QueryStringValue(NULL, dll.GetBuffer(nChars), &nChars))
+			{
+				dll.ReleaseBuffer(nChars);
+				dll.MakeLower();
+				if(dll.Find(_T("shared_filesource.ax")) >= 0
+				|| dll.Find(_T("shared~1.ax")) >= 0)
+				{
+					if(IDYES == AfxMessageBox(
+						_T("Warning: MPC has detected that DirectShow's \"File Source (async)\" filter\n")
+						_T("was replaced by shared_filesource.ax. Please run \"regsvr32.exe quartz.dll\"\n")
+						_T("in your system folder to restore it. If you are a user with administrator\n")
+						_T("rights, MPC can also do this for you. Do you want to re-register quartz.dll now?"), 
+						MB_YESNO|MB_ICONEXCLAMATION))
+					{
+						TCHAR buff[MAX_PATH+1];
+						GetSystemDirectory(buff, sizeof(buff));
+					
+						CString path = CString(buff) + _T("\\quartz.dll");
+
+						HRESULT hr = E_FAIL;
+
+						if(HMODULE hModule = LoadLibrary(path))
+						{
+							typedef HRESULT (__stdcall * PDllRegisterServer)();
+							if(PDllRegisterServer p = (PDllRegisterServer)GetProcAddress(hModule, "DllRegisterServer"))
+								hr = p();
+						}
+
+						if(SUCCEEDED(hr))
+							AfxMessageBox(_T("Successfully re-registered quartz.dll, you may need to restart the player now."), MB_OK);
+						else
+							AfxMessageBox(_T("Failed to re-register quartz.dll!"), MB_OK|MB_ICONEXCLAMATION);
+					}
+				}
+			}
+		}
+	}
+}
+
 //
 // CGraphBuilder
 //
@@ -291,6 +341,12 @@ HRESULT CGraphBuilder::SafeAddFilter(IBaseFilter* pBF, LPCWSTR pName)
 	if(!m_pGB || !pBF)
 		return E_FAIL;
 
+	bool fFound = false;
+	BeginEnumFilters(m_pGB, pEF, pBF2)
+		if(pBF == pBF2) fFound = true;
+	EndEnumFilters
+	if(fFound) return S_OK;
+
 	CFilterInfo fi;
 	if(SUCCEEDED(pBF->QueryFilterInfo(&fi)))
 	{
@@ -471,6 +527,8 @@ HRESULT CGraphBuilder::Render(LPCTSTR lpsz)
 
 	if(!pBF)
 	{
+		CheckStupidSharedFilesourceFilter();
+
 		if(FAILED(hr = m_pGB->AddSourceFilter(fnw, fnw, &pBF)))
 			return hr;
 

@@ -528,7 +528,7 @@ static bool OpenSubRipper(CTextFile* file, CSimpleTextSubtitle& ret, int CharSet
 		}
 	}
 
-	return(true);
+	return(ret.GetCount() > 0);
 }
 
 static bool OpenOldSubRipper(CTextFile* file, CSimpleTextSubtitle& ret, int CharSet)
@@ -562,7 +562,7 @@ static bool OpenOldSubRipper(CTextFile* file, CSimpleTextSubtitle& ret, int Char
 		}
 	}
 
-	return(true);
+	return(ret.GetCount() > 0);
 }
 
 static bool OpenSubViewer(CTextFile* file, CSimpleTextSubtitle& ret, int CharSet)
@@ -656,7 +656,7 @@ static bool OpenSubViewer(CTextFile* file, CSimpleTextSubtitle& ret, int CharSet
 		}
 	}
 
-	return(true);
+	return(ret.GetCount() > 0);
 }
 
 static STSStyle* GetMicroDVDStyle(CString str, int CharSet)
@@ -898,7 +898,7 @@ static bool OpenMicroDVD(CTextFile* file, CSimpleTextSubtitle& ret, int CharSet)
 		}
 	}
 
-	return(true);
+	return(ret.GetCount() > 0);
 }
 
 static void ReplaceNoCase(CStringW& str, CStringW from, CStringW to)
@@ -1154,7 +1154,7 @@ static bool OpenVPlayer(CTextFile* file, CSimpleTextSubtitle& ret, int CharSet)
 		}
 	}
 
-	return(true);
+	return(ret.GetCount() > 0);
 }
 
 CStringW GetStr(CStringW& buff, char sep = ',') //throw(...)
@@ -1302,6 +1302,8 @@ static bool LoadUUEFont(CTextFile* file)
 
 static bool OpenSubStationAlpha(CTextFile* file, CSimpleTextSubtitle& ret, int CharSet)
 {
+	bool fRet = false;
+
 	int version = 3, sver = 3;
 
 	CStringW buff;
@@ -1319,7 +1321,11 @@ static bool OpenSubStationAlpha(CTextFile* file, CSimpleTextSubtitle& ret, int C
 		
 		entry.MakeLower();
 
-		if(entry == L"playresx")
+		if(entry == L"[script info]")
+		{
+			fRet = true;
+		}
+		else if(entry == L"playresx")
 		{
 			try {ret.m_dstScreenSize.cx = GetInt(buff);}
 			catch(...) {ret.m_dstScreenSize = CSize(0, 0); return(false);}
@@ -1367,10 +1373,12 @@ static bool OpenSubStationAlpha(CTextFile* file, CSimpleTextSubtitle& ret, int C
 		}
 		else if(entry == L"[v4 styles]")
 		{
+			fRet = true;
             sver = 4;
 		}
 		else if(entry == L"[v4+ styles]")
 		{
+			fRet = true;
             sver = 5;
 		}
 		else if(entry == L"style")
@@ -1430,6 +1438,10 @@ if(sver <= 4)	style->scrAlignment = (style->scrAlignment&4) ? ((style->scrAlignm
 				return(false);
 			}
 		}
+		else if(entry == L"[events]")
+		{
+			fRet = true;
+		}
 		else if(entry == _T("dialogue"))
 		{
 			try
@@ -1480,7 +1492,7 @@ if(version >= 5)layer = GetInt(buff);
 		}
 	}
 
-	return(true);
+	return(fRet);
 }
 
 static bool OpenXombieSub(CTextFile* file, CSimpleTextSubtitle& ret, int CharSet)
@@ -1629,7 +1641,7 @@ static bool OpenXombieSub(CTextFile* file, CSimpleTextSubtitle& ret, int CharSet
 		}
 	}
 
-	return(true);
+	return(ret.GetCount() > 0);
 }
 
 #include "USFSubtitles.h"
@@ -1891,7 +1903,7 @@ void CSimpleTextSubtitle::Add(CStringW str, bool fUnicode, int start, int end, C
 
 		if(end > m_segments[m_segments.GetCount()-1].end)
 		{
-			STSSegment stss(m_segments[0].end, end);
+			STSSegment stss(m_segments[m_segments.GetCount()-1].end, end);
 			stss.subs.Add(n);
 			m_segments.Add(stss);
 		}
@@ -2127,6 +2139,7 @@ int CSimpleTextSubtitle::SearchSub(int t, double fps)
 
 		if(t == midt)
 		{
+			while(mid > 0 && t == TranslateStart(mid-1, fps)) mid--;
 			ret = mid;
 			break;
 		}
@@ -2359,11 +2372,11 @@ void CSimpleTextSubtitle::CreateSegments()
 
 	int i, j;
 
-	CArray <int, int> breakpoints;
+	CArray<int> breakpoints;
 
 	for(i = 0; i < GetSize(); i++)
 	{
-		STSEntry stse = GetAt(i);
+		STSEntry& stse = GetAt(i);
 		breakpoints.Add(stse.start);
 		breakpoints.Add(stse.end);
 	}
@@ -2376,18 +2389,14 @@ void CSimpleTextSubtitle::CreateSegments()
 	{
 		if(*ptr != prev) 
 		{
-			STSSegment stss;
-			stss.start = prev;
-			stss.end = *ptr;
-			m_segments.Add(stss);
-
+			m_segments.Add(STSSegment(prev, *ptr));
 			prev = *ptr;
 		}
 	}
 
 	for(i = 0; i < GetSize(); i++)
 	{
-		STSEntry stse = GetAt(i);
+		STSEntry& stse = GetAt(i);
 		for(j = 0; j < m_segments.GetSize() && m_segments[j].start < stse.start; j++);
 		for(; j < m_segments.GetSize() && m_segments[j].end <= stse.end; j++) 
 			m_segments[j].subs.Add(i);
@@ -2408,6 +2417,7 @@ void CSimpleTextSubtitle::CreateSegments()
 
 		TRACE(_T("\n"));
 	}
+
 }
 
 bool CSimpleTextSubtitle::Open(CString fn, int CharSet, CString name)
@@ -2445,7 +2455,7 @@ bool CSimpleTextSubtitle::Open(CTextFile* f, int CharSet, CString name)
 
 	for(int i = 0; i < nOpenFuncts; i++)
 	{
-		if(!OpenFuncts[i].open(f, *this, CharSet) || !GetSize()) 
+		if(!OpenFuncts[i].open(f, *this, CharSet) /*|| !GetSize()*/) 
 		{
 			if(GetSize() > 0)
 			{
@@ -2928,3 +2938,4 @@ STSStyle& operator <<= (STSStyle& s, CString& style)
 
 	return(s);
 }
+

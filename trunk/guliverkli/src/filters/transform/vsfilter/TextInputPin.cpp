@@ -58,6 +58,8 @@ HRESULT CTextInputPin::CheckMediaType(const CMediaType* pmt)
 {
 	return pmt->majortype == MEDIATYPE_Text && pmt->subtype == MEDIASUBTYPE_NULL
 		|| pmt->majortype == MEDIATYPE_Subtitle && pmt->subtype == MEDIASUBTYPE_UTF8
+		|| pmt->majortype == MEDIATYPE_Subtitle && pmt->subtype == MEDIASUBTYPE_RAWASS
+		|| pmt->majortype == MEDIATYPE_Subtitle && pmt->subtype == MEDIASUBTYPE_ASS
 		? S_OK 
 		: E_FAIL;
 }
@@ -74,11 +76,18 @@ HRESULT CTextInputPin::CompleteConnect(IPin* pReceivePin)
 	}
 	else if(m_mt.majortype == MEDIATYPE_Subtitle)
 	{
-		CStringA name(((SUBTITLEINFO*)m_mt.pbFormat)->IsoLang, 3);
+		SUBTITLEINFO* psi = (SUBTITLEINFO*)m_mt.pbFormat;
+
+		CStringA name(psi->IsoLang, 3);
 
 		pRTS->m_name.Empty();
 		if(!name.IsEmpty()) pRTS->m_name += name + ' ';
 		pRTS->m_name += _T("(embeded)");
+
+		if(m_mt.subtype == MEDIASUBTYPE_ASS && psi->dwOffset > 0)
+		{
+			pRTS->Open(m_mt.pbFormat + psi->dwOffset, m_mt.cbFormat - psi->dwOffset, DEFAULT_CHARSET, pRTS->m_name);
+		}
 	}
 
 	pRTS->CreateDefaultStyle(DEFAULT_CHARSET);
@@ -228,13 +237,48 @@ STDMETHODIMP CTextInputPin::Receive(IMediaSample* pSample)
 		CAutoLock cAutoLock(m_pSubLock);
 		CRenderedTextSubtitle* pRTS = (CRenderedTextSubtitle*)(ISubStream*)m_pSubStream;
 
-		if(m_mt.subtype == MEDIASUBTYPE_UTF8)
+		if(m_mt.subtype == MEDIASUBTYPE_UTF8 || m_mt.subtype == MEDIASUBTYPE_RAWASS)
 		{
 			CStringW str = UTF8To16(CStringA((LPCSTR)pData, len)).Trim();
 			if(!str.IsEmpty())
 			{
 				pRTS->Add(str, true, (int)(tStart / 10000), (int)(tStop / 10000));
 				fInvalidate = true;
+			}
+		}
+		else if(m_mt.subtype == MEDIASUBTYPE_ASS)
+		{
+			CStringW str = UTF8To16(CStringA((LPCSTR)pData, len)).Trim();
+			if(!str.IsEmpty())
+			{
+				STSEntry stse;
+
+				str.Replace(L",", L" ,");
+				int i = 0, j = 0;
+				for(CString token = str.Tokenize(_T(","), i); j < 8 && !token.IsEmpty(); token = ++j < 7 ? str.Tokenize(_T(","), i) : str.Mid(i))
+				{
+					token.Trim();
+
+					switch(j)
+					{
+					case 0: stse.layer = wcstol(token, NULL, 10); break;
+					case 1: stse.style = token; break;
+					case 2: stse.actor = token; break;
+					case 3: stse.marginRect.left = wcstol(token, NULL, 10); break;
+					case 4: stse.marginRect.right = wcstol(token, NULL, 10); break;
+					case 5: stse.marginRect.top = stse.marginRect.bottom = wcstol(token, NULL, 10); break;
+					case 6: stse.effect = token; break;
+					case 7: token.Replace(L" ,", L","); stse.str = token; break;
+					default: break;
+					}
+				}
+
+				if(j == 8 && !stse.str.IsEmpty())
+				{
+					pRTS->Add(stse.str, true, (int)(tStart / 10000), (int)(tStop / 10000), 
+						stse.style, stse.actor, stse.effect, stse.marginRect, stse.layer);
+					fInvalidate = true;
+				}
 			}
 		}
 	}

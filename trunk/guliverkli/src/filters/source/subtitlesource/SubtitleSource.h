@@ -25,16 +25,16 @@
 #include <afxtempl.h>
 #include "..\..\..\subtitles\RTS.h"
 
-[uuid("E288E4DF-C762-4809-A8D8-1D7C1E3CCD97")]
 class CSubtitleSource
 	: public CSource
 	, public IFileSourceFilter
 	, public IAMFilterMiscFlags
 {
+protected:
 	CStringW m_fn;
 
 public:
-	CSubtitleSource(LPUNKNOWN lpunk, HRESULT* phr);
+	CSubtitleSource(LPUNKNOWN lpunk, HRESULT* phr, const CLSID& clsid);
 	virtual ~CSubtitleSource();
 
 #ifdef REGISTER_FILTER
@@ -50,6 +50,8 @@ public:
 
 	// IAMFilterMiscFlags
 	STDMETHODIMP_(ULONG) GetMiscFlags();
+
+    virtual HRESULT GetMediaType(CMediaType* pmt) = 0;
 };
 
 class CSubtitleStream 
@@ -83,9 +85,86 @@ public:
 
     HRESULT DecideBufferSize(IMemAllocator* pIMemAlloc, ALLOCATOR_PROPERTIES* pProperties);
     HRESULT FillBuffer(IMediaSample* pSample);
-    HRESULT CheckMediaType(const CMediaType* pMediaType);
-    HRESULT GetMediaType(int iPosition, CMediaType* pmt);
-	
+    HRESULT GetMediaType(CMediaType* pmt);
+	HRESULT CheckMediaType(const CMediaType* pmt);
+
 	STDMETHODIMP Notify(IBaseFilter* pSender, Quality q);
+};
+
+[uuid("E44CA3B5-A0FF-41A0-AF16-42429B1095EA")]
+class CSubtitleSourceASCII : public CSubtitleSource
+{
+public:
+	CSubtitleSourceASCII(LPUNKNOWN lpunk, HRESULT* phr);
+#ifdef REGISTER_FILTER
+    static CUnknown* WINAPI CreateInstance(LPUNKNOWN lpunk, HRESULT* phr);
+#endif
+	HRESULT GetMediaType(CMediaType* pmt);
+};
+
+[uuid("87864E0F-7073-4E39-B802-143DE0ED4964")]
+class CSubtitleSourceUTF8 : public CSubtitleSource
+{
+public:
+	CSubtitleSourceUTF8(LPUNKNOWN lpunk, HRESULT* phr);
+#ifdef REGISTER_FILTER
+    static CUnknown* WINAPI CreateInstance(LPUNKNOWN lpunk, HRESULT* phr);
+#endif
+	HRESULT GetMediaType(CMediaType* pmt);
+};
+
+[uuid("41AB00CC-2C3B-4CC1-B160-74F45B893DAB")]
+class CSubtitleSourceRAWASS : public CSubtitleSource
+{
+public:
+	CSubtitleSourceRAWASS(LPUNKNOWN lpunk, HRESULT* phr);
+#ifdef REGISTER_FILTER
+    static CUnknown* WINAPI CreateInstance(LPUNKNOWN lpunk, HRESULT* phr);
+#endif
+	HRESULT GetMediaType(CMediaType* pmt);
+};
+
+[uuid("18316B1A-5877-4CC4-85FD-EDE65CD489EC")]
+class CSubtitleSourceSSA : public CSubtitleSource
+{
+public:
+	CSubtitleSourceSSA(LPUNKNOWN lpunk, HRESULT* phr);
+#ifdef REGISTER_FILTER
+    static CUnknown* WINAPI CreateInstance(LPUNKNOWN lpunk, HRESULT* phr);
+#endif
+	HRESULT GetMediaType(CMediaType* pmt);
+};
+
+[uuid("416782BC-1D87-48C0-8F65-F113A5CB8E15")]
+class CSubtitleSourceASS : public CSubtitleSource
+{
+public:
+	CSubtitleSourceASS(LPUNKNOWN lpunk, HRESULT* phr);
+#ifdef REGISTER_FILTER
+    static CUnknown* WINAPI CreateInstance(LPUNKNOWN lpunk, HRESULT* phr);
+#endif
+	HRESULT GetMediaType(CMediaType* pmt);
+};
+
+[uuid("D7215AFC-DFE6-483B-9AF3-6BBECFF14CF4")]
+class CSubtitleSourceUSF : public CSubtitleSource
+{
+public:
+	CSubtitleSourceUSF(LPUNKNOWN lpunk, HRESULT* phr);
+#ifdef REGISTER_FILTER
+    static CUnknown* WINAPI CreateInstance(LPUNKNOWN lpunk, HRESULT* phr);
+#endif
+	HRESULT GetMediaType(CMediaType* pmt);
+};
+
+[uuid("932E75D4-BBD4-4A0F-9071-6728FBDC4C98")]
+class CSubtitleSourceiApRGB : public CSubtitleSource
+{
+public:
+	CSubtitleSourceiApRGB(LPUNKNOWN lpunk, HRESULT* phr);
+#ifdef REGISTER_FILTER
+    static CUnknown* WINAPI CreateInstance(LPUNKNOWN lpunk, HRESULT* phr);
+#endif
+	HRESULT GetMediaType(CMediaType* pmt);
 };
 

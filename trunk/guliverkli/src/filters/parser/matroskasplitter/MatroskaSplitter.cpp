@@ -438,11 +438,22 @@ HRESULT CMatroskaSourceFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 
 				if(CodecID == "S_TEXT/ASCII")
 				{
+					// nothing to do, MEDIATYPE_Text was already added
 				}
 				else if(CodecID == "S_TEXT/UTF8")
 				{
 					mt.majortype = MEDIATYPE_Subtitle;
 					mt.subtype = MEDIASUBTYPE_UTF8;
+					mt.formattype = FORMAT_SubtitleInfo;
+					SUBTITLEINFO* psi = (SUBTITLEINFO*)mt.AllocFormatBuffer(sizeof(SUBTITLEINFO));
+					memset(psi, 0, mt.FormatLength());
+					// TODO: set psi->IsoLang when the language code is available
+					mts.InsertAt(0, mt);
+				}
+				else if(CodecID == "S_RAWASS")
+				{
+					mt.majortype = MEDIATYPE_Subtitle;
+					mt.subtype = MEDIASUBTYPE_RAWASS;
 					mt.formattype = FORMAT_SubtitleInfo;
 					SUBTITLEINFO* psi = (SUBTITLEINFO*)mt.AllocFormatBuffer(sizeof(SUBTITLEINFO));
 					memset(psi, 0, mt.FormatLength());
