@@ -1,0 +1,65 @@
+#pragma once
+#include "PPageBase.h"
+#include "afxwin.h"
+#include "floatedit.h"
+#include "afxcmn.h"
+#include "mplayerc.h"
+
+// CPPageFilters dialog
+
+class CPPageFilters : public CPPageBase
+{
+	DECLARE_DYNAMIC(CPPageFilters)
+
+private:
+	void StepUp(CCheckListBox& list);
+	void StepDown(CCheckListBox& list);
+
+	CAutoPtrList<Filter> m_pFilters;
+	Filter* m_pLastSelFilter;
+	Filter* GetCurFilter();
+
+	void SetupMajorTypes(CArray<GUID>& guids);
+	void SetupSubTypes(CArray<GUID>& guids);
+
+public:
+	CPPageFilters();
+	virtual ~CPPageFilters();
+
+// Dialog Data
+	enum { IDD = IDD_PPAGEFILTERS };
+
+	CCheckListBox m_filters;
+	int m_iLoadType;
+	CHexEdit m_dwMerit;
+	CTreeCtrl m_tree;
+
+protected:
+	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV support
+	virtual BOOL OnInitDialog();
+	virtual BOOL OnApply();
+
+	DECLARE_MESSAGE_MAP()
+
+public:
+	afx_msg void OnUpdateFilter(CCmdUI* pCmdUI);
+	afx_msg void OnUpdateFilterUp(CCmdUI* pCmdUI);
+	afx_msg void OnUpdateFilterDown(CCmdUI* pCmdUI);
+	afx_msg void OnUpdateFilterMerit(CCmdUI* pCmdUI);
+	afx_msg void OnUpdateSubType(CCmdUI* pCmdUI);
+	afx_msg void OnUpdateDeleteType(CCmdUI* pCmdUI);
+	afx_msg void OnAddRegistered();
+	afx_msg void OnRemoveFilter();
+	afx_msg void OnMoveFilterUp();
+	afx_msg void OnMoveFilterDown();
+	afx_msg void OnLbnDblclkFilter();
+	afx_msg void OnAddMajorType();
+	afx_msg void OnAddSubType();
+	afx_msg void OnDeleteType();
+	afx_msg void OnResetTypes();
+	afx_msg void OnLbnSelchangeList1();
+	afx_msg void OnBnClickedRadio();
+	afx_msg void OnEnChangeEdit1();
+	afx_msg void OnNMDblclkTree2(NMHDR *pNMHDR, LRESULT *pResult);
+	afx_msg void OnDropFiles(HDROP hDropInfo);
+};

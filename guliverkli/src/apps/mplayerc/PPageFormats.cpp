@@ -1,0 +1,608 @@
+// PPageFormats.cpp : implementation file
+//
+
+#include "stdafx.h"
+#include "mplayerc.h"
+#include "PPageFormats.h"
+#include "atlbase.h"
+
+
+// CPPageFormats dialog
+
+IMPLEMENT_DYNAMIC(CPPageFormats, CPPageBase)
+CPPageFormats::CPPageFormats()
+	: CPPageBase(CPPageFormats::IDD, CPPageFormats::IDD)
+	, m_exts(_T(""))
+{
+}
+
+CPPageFormats::~CPPageFormats()
+{
+}
+
+void CPPageFormats::DoDataExchange(CDataExchange* pDX)
+{
+	__super::DoDataExchange(pDX);
+	DDX_Control(pDX, IDC_LIST1, m_list);
+	DDX_Text(pDX, IDC_EDIT1, m_exts);
+	DDX_Control(pDX, IDC_STATIC1, m_autoplay);
+	DDX_Control(pDX, IDC_CHECK1, m_apvideo);
+	DDX_Control(pDX, IDC_CHECK2, m_apmusic);
+	DDX_Control(pDX, IDC_CHECK3, m_apaudiocd);
+	DDX_Control(pDX, IDC_CHECK4, m_apdvd);
+}
+
+int CPPageFormats::GetChecked(int iItem)
+{
+	LVITEM lvi;
+	lvi.iItem = iItem;
+	lvi.iSubItem = 0;
+	lvi.mask = LVIF_IMAGE;
+	m_list.GetItem(&lvi);
+	return(lvi.iImage);
+}
+
+void CPPageFormats::SetChecked(int iItem, int iChecked)
+{
+	LVITEM lvi;
+	lvi.iItem = iItem;
+	lvi.iSubItem = 0;
+	lvi.mask = LVIF_IMAGE;
+	lvi.iImage = iChecked;
+	m_list.SetItem(&lvi);
+}
+
+static bool MakeRegParams(CString ext, CString& path, CString& fn, CString& extfile, CString& cmd)
+{
+	if(ext.GetLength() == 0)
+		return(false);
+
+	TCHAR buff[MAX_PATH];
+	if(::GetModuleFileName(AfxGetInstanceHandle(), buff, MAX_PATH) == 0)
+		return(false);
+
+	path = buff;
+
+	fn = path.Mid(path.ReverseFind('\\')+1).MakeLower();
+	if(fn.IsEmpty())
+		return(false);
+
+	extfile = ext.TrimLeft('.')+_T("file");
+
+	cmd = _T("\"") + path + _T("\" \"%L\"");
+
+	return(true);
+}
+
+bool CPPageFormats::IsRegistered(CString ext)
+{
+	CString path, fn, extfile, cmd;
+	if(!MakeRegParams(ext, path, fn, extfile, cmd))
+		return(false);
+
+	TCHAR buff[256];
+	ULONG len = sizeof(buff);
+	memset(buff, 0, len);
+
+	CRegKey key;
+
+	CString ExplExt = _T("Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\FileExts\\") + ext;
+	if(ERROR_SUCCESS == key.Open(HKEY_CURRENT_USER, ExplExt, KEY_READ))
+	{
+		len = sizeof(buff);
+		memset(buff, 0, len);
+		if(ERROR_SUCCESS == key.QueryStringValue(_T("Application"), buff, &len))
+			return(CString(buff).Trim() == cmd);
+	}
+
+	if(ERROR_SUCCESS != key.Open(HKEY_CLASSES_ROOT, ext, KEY_READ))
+		return(false);
+
+	len = sizeof(buff);
+	memset(buff, 0, len);
+	if(ERROR_SUCCESS != key.QueryStringValue(NULL, buff, &len) || (extfile = buff).Trim().IsEmpty())
+		return(false);
+
+	if(ERROR_SUCCESS != key.Open(HKEY_CLASSES_ROOT, extfile + _T("\\shell\\open\\command"), KEY_READ))
+		return(false);
+
+	len = sizeof(buff);
+	memset(buff, 0, len);
+
+	CRegKey key2;
+	if(ERROR_SUCCESS == key2.Open(HKEY_CLASSES_ROOT, extfile + _T("\\shell\\open"), KEY_READ)
+	&& ERROR_SUCCESS == key2.QueryStringValue(_T("LegacyDisable"), buff, &len))
+		return(false);
+
+	len = sizeof(buff);
+	memset(buff, 0, len);
+
+	return(ERROR_SUCCESS == key.QueryStringValue(NULL, buff, &len) 
+		&& !CString(buff).CompareNoCase(cmd));
+}
+
+bool CPPageFormats::RegisterExt(CString ext, bool fRegister)
+{
+	if(fRegister == IsRegistered(ext))
+		return(true);
+
+	CString path, fn, extfile, cmd;
+	if(!MakeRegParams(ext, path, fn, extfile, cmd))
+		return(false);
+
+	TCHAR buff[256];
+	ULONG len = sizeof(buff);
+	memset(buff, 0, len);
+
+	CRegKey key;
+
+	if(ERROR_SUCCESS != key.Create(HKEY_CLASSES_ROOT, ext))
+		return(false);
+
+	len = sizeof(buff);
+	memset(buff, 0, len);
+
+	if(ERROR_SUCCESS == key.QueryStringValue(NULL, buff, &len) && !CString(buff).Trim().IsEmpty())
+	{
+		extfile = buff;
+	}
+	else
+	{
+		if(!fRegister) return(true);
+		else if(ERROR_SUCCESS != key.SetStringValue(NULL, extfile)) return(false);
+	}
+
+	if(fRegister)
+	{
+		if(ERROR_SUCCESS != key.Create(HKEY_CLASSES_ROOT, extfile + _T("\\shell")))
+			return(false);
+
+		len = sizeof(buff);
+		memset(buff, 0, len);
+
+		key.QueryStringValue(NULL, buff, &len);
+
+		if(ERROR_SUCCESS != key.SetStringValue(fn + _T(".bak"), buff))
+			return(false);
+
+		if(ERROR_SUCCESS != key.SetStringValue(NULL, _T("open")))
+		{
+			key.SetStringValue(NULL, buff);
+			key.DeleteValue(fn + _T(".bak"));
+			return(false);
+		}
+
+		if(ERROR_SUCCESS != key.Create(HKEY_CLASSES_ROOT, extfile + _T("\\shell\\open")))
+			return(false);
+
+		len = sizeof(buff);
+		memset(buff, 0, len);
+
+		if(ERROR_SUCCESS != key.SetStringValue(NULL, _T("&Open")))
+			return(false);
+
+		if(ERROR_SUCCESS != key.Create(HKEY_CLASSES_ROOT, extfile + _T("\\shell\\open\\command")))
+			return(false);
+
+		len = sizeof(buff);
+		memset(buff, 0, len);
+
+		key.QueryStringValue(NULL, buff, &len);
+
+		if(CString(buff).MakeLower() == cmd)
+			return(true);
+
+		if(ERROR_SUCCESS != key.SetStringValue(fn + _T(".bak"), buff))
+			return(false);
+
+		if(ERROR_SUCCESS != key.SetStringValue(NULL, cmd))
+		{
+			key.SetStringValue(NULL, buff);
+			key.DeleteValue(fn + _T(".bak"));
+			return(false);
+		}
+
+		len = sizeof(buff);
+		memset(buff, 0, len);
+
+		if(ERROR_SUCCESS == key.Open(HKEY_CLASSES_ROOT, extfile + _T("\\shell\\open")))
+		{
+			if(ERROR_SUCCESS == key.QueryStringValue(_T("LegacyDisable"), buff, &len))
+			{
+				key.DeleteValue(_T("LegacyDisable"));
+				key.SetStringValue(_T("LegacyDisable.bak"), _T(""));
+			}
+
+			key.RecurseDeleteKey(_T("ddeexec"));
+		}
+
+		if(ERROR_SUCCESS == key.Open(HKEY_CURRENT_USER, _T("Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\FileExts\\") + ext))
+		{
+			key.DeleteValue(_T("Application"));
+		}
+	}
+	else
+	{
+		if(ERROR_SUCCESS != key.Open(HKEY_CLASSES_ROOT, extfile + _T("\\shell\\open\\command")))
+			return(true);
+
+		len = sizeof(buff);
+		memset(buff, 0, len);
+
+		if(ERROR_SUCCESS != key.QueryStringValue(fn + _T(".bak"), buff, &len))
+			buff[0] = 0; //return(true);
+
+		if(CString(buff).Trim().IsEmpty())
+		{
+			if(ERROR_SUCCESS != key.Open(HKEY_CLASSES_ROOT, extfile + _T("\\shell\\open"))
+			|| ERROR_SUCCESS != key.RecurseDeleteKey(_T("command")))
+				return(false);
+		}
+		else
+		{
+			if(ERROR_SUCCESS != key.SetStringValue(NULL, buff)
+			|| ERROR_SUCCESS != key.DeleteValue(fn + _T(".bak")))
+				return(false);
+
+			len = sizeof(buff);
+			memset(buff, 0, len);
+
+			if(ERROR_SUCCESS == key.Open(HKEY_CLASSES_ROOT, extfile + _T("\\shell\\open"))
+			&& ERROR_SUCCESS == key.QueryStringValue(_T("LegacyDisable.bak"), buff, &len))
+			{
+				key.DeleteValue(_T("LegacyDisable.bak"));
+				key.SetStringValue(_T("LegacyDisable"), _T(""));
+			}
+		}
+
+		if(ERROR_SUCCESS != key.Open(HKEY_CLASSES_ROOT, extfile + _T("\\shell")))
+			return(true);
+
+		len = sizeof(buff);
+		memset(buff, 0, len);
+
+		if(ERROR_SUCCESS != key.QueryStringValue(fn + _T(".bak"), buff, &len))
+			return(true);
+
+		if(CString(buff).Trim().IsEmpty())
+		{
+			if(ERROR_SUCCESS != key.Open(HKEY_CLASSES_ROOT, extfile)
+			|| ERROR_SUCCESS != key.RecurseDeleteKey(_T("shell")))
+				return(false);
+		}
+		else
+		{
+			if(ERROR_SUCCESS != key.SetStringValue(NULL, buff)
+			|| ERROR_SUCCESS != key.DeleteValue(fn + _T(".bak")))
+				return(false);
+		}
+	}
+
+	return(true);
+}
+
+static struct {TCHAR verb[20], cmd[20], action[100];} handlers[] =
+{
+	{_T("VideoFiles"), _T(" %L"), _T("Play Video")},
+	{_T("MusicFiles"), _T(" %L"), _T("Play Music")},
+	{_T("CDAudio"), _T(" %L /cd"), _T("Play Audio CD")},
+	{_T("DVDMovie"), _T(" %L /dvd"), _T("Play DVD Movie")},
+};
+
+void CPPageFormats::AddAutoPlayToRegistry(autoplay_t ap, bool fRegister)
+{
+	if(!m_fXpOrBetter) return;
+
+	TCHAR buff[MAX_PATH];
+	if(::GetModuleFileName(AfxGetInstanceHandle(), buff, MAX_PATH) == 0) return;
+	CString exe = buff;
+
+	int i = (int)ap;
+	if(i < 0 || i >= sizeof(handlers)/sizeof(handlers[0])) return;
+
+	CRegKey key;
+
+	if(fRegister)
+	{
+		if(ERROR_SUCCESS != key.Create(HKEY_CLASSES_ROOT, _T("MediaPlayerClassic.Autorun"))) return;
+		key.Close();
+
+		if(ERROR_SUCCESS != key.Create(HKEY_CLASSES_ROOT, 
+			CString(_T("MediaPlayerClassic.Autorun\\Shell\\Play")) + handlers[i].verb + _T("\\Command"))) return;
+		key.SetStringValue(NULL, exe + handlers[i].cmd);
+		key.Close();
+
+		if(ERROR_SUCCESS != key.Create(HKEY_LOCAL_MACHINE, 
+			CString(_T("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\AutoplayHandlers\\Handlers\\MPCPlay")) + handlers[i].verb + _T("OnArrival"))) return;
+		key.SetStringValue(_T("Action"), handlers[i].action);
+		key.SetStringValue(_T("Provider"), _T("Media Player Classic"));
+		key.SetStringValue(_T("InvokeProgID"), _T("MediaPlayerClassic.Autorun"));
+		key.SetStringValue(_T("InvokeVerb"), CString(_T("Play")) + handlers[i].verb);
+		key.SetStringValue(_T("DefaultIcon"), exe + _T(",0"));
+		key.Close();
+
+		if(ERROR_SUCCESS != key.Create(HKEY_LOCAL_MACHINE, 
+			CString(_T("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\AutoplayHandlers\\EventHandlers\\Play")) + handlers[i].verb + _T("OnArrival"))) return;
+		key.SetStringValue(CString(_T("MPCPlay")) + handlers[i].verb + _T("OnArrival"), _T(""));
+		key.Close();
+	}
+	else
+	{
+		if(ERROR_SUCCESS != key.Create(HKEY_LOCAL_MACHINE, 
+			CString(_T("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\AutoplayHandlers\\EventHandlers\\Play")) + handlers[i].verb + _T("OnArrival"))) return;
+		key.DeleteValue(CString(_T("MPCPlay")) + handlers[i].verb + _T("OnArrival"));
+		key.Close();
+	}
+}
+
+bool CPPageFormats::IsAutoPlayRegistered(autoplay_t ap)
+{
+	ULONG len;
+	TCHAR buff[MAX_PATH];
+	if(::GetModuleFileName(AfxGetInstanceHandle(), buff, MAX_PATH) == 0) return(false);
+	CString exe = buff;
+
+	int i = (int)ap;
+	if(i < 0 || i >= sizeof(handlers)/sizeof(handlers[0])) return(false);
+
+	CRegKey key;
+
+	if(ERROR_SUCCESS != key.Open(HKEY_LOCAL_MACHINE, 
+		CString(_T("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\AutoplayHandlers\\EventHandlers\\Play")) + handlers[i].verb + _T("OnArrival"),
+		KEY_READ)) return(false);
+	len = sizeof(buff)/sizeof(buff[0]);
+	if(ERROR_SUCCESS != key.QueryStringValue(
+		CString(_T("MPCPlay")) + handlers[i].verb + _T("OnArrival"), 
+		buff, &len)) return(false);
+	key.Close();
+
+	if(ERROR_SUCCESS != key.Open(HKEY_CLASSES_ROOT, 
+		CString(_T("MediaPlayerClassic.Autorun\\Shell\\Play")) + handlers[i].verb + _T("\\Command"),
+		KEY_READ)) return(false);
+	len = sizeof(buff)/sizeof(buff[0]);
+	if(ERROR_SUCCESS != key.QueryStringValue(NULL, buff, &len))
+		return(false);
+	if(_tcsnicmp(exe, buff, exe.GetLength()))
+		return(false);
+	key.Close();
+
+	return(true);
+}
+
+void CPPageFormats::SetListItemState(int nItem)
+{
+	if(nItem < 0) return;
+
+	CString str = AfxGetAppSettings().Formats[(int)m_list.GetItemData(nItem)].GetExtsWithPeriod();
+
+	int i = 0, j = 0, k = 0;
+	for(CString ext = str.Tokenize(_T(" "), i); !ext.IsEmpty(); ext = str.Tokenize(_T(" "), i), j++)
+	{
+		if(IsRegistered(ext)) k++;
+	}
+
+	SetChecked(nItem, k == 0 ? 0 : k == j ? 1 : 2);
+}
+
+BEGIN_MESSAGE_MAP(CPPageFormats, CPPageBase)
+	ON_NOTIFY(NM_CLICK, IDC_LIST1, OnNMClickList1)
+	ON_NOTIFY(LVN_ITEMCHANGED, IDC_LIST1, OnLvnItemchangedList1)
+	ON_BN_CLICKED(IDC_BUTTON1, OnBnClickedButton1)
+	ON_BN_CLICKED(IDC_BUTTON12, OnBnClickedButton12)
+	ON_BN_CLICKED(IDC_BUTTON11, OnBnClickedButton11)
+	ON_BN_CLICKED(IDC_BUTTON14, OnBnClickedButton14)
+	ON_BN_CLICKED(IDC_BUTTON13, OnBnClickedButton13)
+END_MESSAGE_MAP()
+
+// CPPageFormats message handlers
+
+BOOL CPPageFormats::OnInitDialog()
+{
+	__super::OnInitDialog();
+
+	m_list.InsertColumn(0, _T("Format"), LVCFMT_LEFT, 100);
+
+	m_onoff.Create(IDB_ONOFF, 12, 3, 0xffffff);
+	m_list.SetImageList(&m_onoff, LVSIL_SMALL);
+
+	CMediaFormats& mf = AfxGetAppSettings().Formats;
+	for(int i = 0; i < mf.GetCount(); i++)
+	{
+		CString label = mf[i].GetLabel();
+		// HACK:
+		if(!label.CompareNoCase(_T("Image file"))) continue;
+		CString specreqnote = mf[i].GetSpecReqNote();
+		if(!specreqnote.IsEmpty()) label += _T(" (") + specreqnote + _T(")");
+		m_list.SetItemData(m_list.InsertItem(i, label), i);
+	}
+
+	m_list.SetColumnWidth(0, LVSCW_AUTOSIZE);
+
+	m_list.SetSelectionMark(0);
+	m_list.SetItemState(0, LVIS_SELECTED, LVIS_SELECTED);
+	m_exts = mf[(int)m_list.GetItemData(0)].GetExtsWithPeriod();
+
+	UpdateData(FALSE);
+
+	for(int i = 0; i < m_list.GetItemCount(); i++)
+	{
+		SetListItemState(i);
+	}
+
+	DWORD ver = ::GetVersion();
+	m_fXpOrBetter = (int)ver >= 0 && (((ver<<8)&0xff00)|((ver>>8)&0xff)) >= 0x0501;
+
+	if(m_fXpOrBetter)
+	{
+		m_apvideo.SetCheck(IsAutoPlayRegistered(AP_VIDEO));
+		m_apmusic.SetCheck(IsAutoPlayRegistered(AP_MUSIC));
+		m_apaudiocd.SetCheck(IsAutoPlayRegistered(AP_AUDIOCD));
+		m_apdvd.SetCheck(IsAutoPlayRegistered(AP_DVDMOVIE));
+	}
+	else
+	{
+		m_autoplay.ShowWindow(SW_HIDE);
+		m_apvideo.ShowWindow(SW_HIDE);
+		m_apmusic.ShowWindow(SW_HIDE);
+		m_apaudiocd.ShowWindow(SW_HIDE);
+		m_apdvd.ShowWindow(SW_HIDE);
+	}
+
+	return TRUE;  // return TRUE unless you set the focus to a control
+	// EXCEPTION: OCX Property Pages should return FALSE
+}
+
+BOOL CPPageFormats::OnApply()
+{
+	UpdateData();
+
+	{
+		int i = m_list.GetSelectionMark();
+		if(i >= 0) i = (int)m_list.GetItemData(i);
+		if(i >= 0)
+		{
+			CMediaFormats& mf = AfxGetAppSettings().Formats;
+			mf[i].SetExts(m_exts);
+			m_exts = mf[i].GetExtsWithPeriod();
+			UpdateData(FALSE);
+		}
+	}
+
+	CMediaFormats& mf = AfxGetAppSettings().Formats;
+
+	for(int i = 0; i < m_list.GetItemCount(); i++)
+	{
+		int iChecked = GetChecked(i);
+		if(iChecked == 2) continue;
+
+		CString str = mf[(int)m_list.GetItemData(i)].GetExtsWithPeriod();
+
+		int k = 0;
+		for(CString ext = str.Tokenize(_T(" "), k); !ext.IsEmpty(); ext = str.Tokenize(_T(" "), k))
+		{
+			RegisterExt(ext, !!iChecked);
+		}
+	}
+
+	{
+		SetListItemState(m_list.GetSelectionMark());
+	}
+
+	AddAutoPlayToRegistry(AP_VIDEO, !!m_apvideo.GetCheck());
+	AddAutoPlayToRegistry(AP_MUSIC, !!m_apmusic.GetCheck());
+	AddAutoPlayToRegistry(AP_AUDIOCD, !!m_apaudiocd.GetCheck());
+	AddAutoPlayToRegistry(AP_DVDMOVIE, !!m_apdvd.GetCheck());
+
+//	SHChangeNotify(SHCNE_ASSOCCHANGED, SHCNF_IDLIST, NULL, NULL);
+
+	return __super::OnApply();
+}
+
+void CPPageFormats::OnNMClickList1(NMHDR* pNMHDR, LRESULT* pResult)
+{
+	LPNMLISTVIEW lpnmlv = (LPNMLISTVIEW)pNMHDR;
+
+	if(lpnmlv->iItem >= 0 && lpnmlv->iSubItem == 0)
+	{
+		CRect r;
+		m_list.GetItemRect(lpnmlv->iItem, r, LVIR_ICON);
+		if(r.PtInRect(lpnmlv->ptAction))
+		{
+			SetChecked(lpnmlv->iItem, (GetChecked(lpnmlv->iItem)&1) == 0 ? 1 : 0);
+			SetModified();
+		}
+	}
+
+	*pResult = 0;
+}
+
+void CPPageFormats::OnLvnItemchangedList1(NMHDR *pNMHDR, LRESULT *pResult)
+{
+	LPNMLISTVIEW pNMLV = reinterpret_cast<LPNMLISTVIEW>(pNMHDR);
+
+	if(pNMLV->iItem >= 0 && (pNMLV->uChanged&LVIF_STATE) && (pNMLV->uNewState&LVIS_SELECTED))
+	{
+		m_exts = AfxGetAppSettings().Formats[(int)m_list.GetItemData(pNMLV->iItem)].GetExtsWithPeriod();
+		UpdateData(FALSE);
+	}
+
+	*pResult = 0;
+}
+
+void CPPageFormats::OnBnClickedButton1()
+{
+	for(int i = 0, j = m_list.GetItemCount(); i < j; i++)
+	{
+		SetChecked(i, 1);
+	}
+
+	m_apvideo.SetCheck(1);
+	m_apmusic.SetCheck(1);
+	m_apaudiocd.SetCheck(1);
+	m_apdvd.SetCheck(1);
+    
+	SetModified();
+}
+
+void CPPageFormats::OnBnClickedButton14()
+{
+	CMediaFormats& mf = AfxGetAppSettings().Formats;
+
+	for(int i = 0, j = m_list.GetItemCount(); i < j; i++)
+	{
+		SetChecked(i, mf[(int)m_list.GetItemData(i)].IsAudioOnly()?0:1);
+	}
+
+	m_apvideo.SetCheck(1);
+	m_apmusic.SetCheck(0);
+	m_apaudiocd.SetCheck(0);
+	m_apdvd.SetCheck(1);
+    
+	SetModified();
+}
+
+void CPPageFormats::OnBnClickedButton13()
+{
+	CMediaFormats& mf = AfxGetAppSettings().Formats;
+
+	for(int i = 0, j = m_list.GetItemCount(); i < j; i++)
+	{
+		SetChecked(i, mf[(int)m_list.GetItemData(i)].IsAudioOnly()?1:0);
+	}
+
+	m_apvideo.SetCheck(0);
+	m_apmusic.SetCheck(1);
+	m_apaudiocd.SetCheck(1);
+	m_apdvd.SetCheck(0);
+    
+	SetModified();
+}
+
+void CPPageFormats::OnBnClickedButton12()
+{
+	int i = m_list.GetSelectionMark();
+	if(i < 0) return;
+	i = (int)m_list.GetItemData(i);
+	CMediaFormats& mf = AfxGetAppSettings().Formats;
+	mf[i].RestoreDefaultExts();
+	m_exts = mf[i].GetExtsWithPeriod();
+	SetListItemState(m_list.GetSelectionMark());
+	UpdateData(FALSE);
+    
+	SetModified();
+}
+
+void CPPageFormats::OnBnClickedButton11()
+{
+	UpdateData();
+	int i = m_list.GetSelectionMark();
+	if(i < 0) return;
+	i = (int)m_list.GetItemData(i);
+	CMediaFormats& mf = AfxGetAppSettings().Formats;
+	mf[i].SetExts(m_exts);
+	m_exts = mf[i].GetExtsWithPeriod();
+	SetListItemState(m_list.GetSelectionMark());
+	UpdateData(FALSE);
+    
+	SetModified();
+}
