@@ -32,7 +32,7 @@ STDMETHODIMP CAsyncFileReader::SyncRead(LONGLONG llPosition, LONG lLength, BYTE*
 {
 	try
 	{
-		if(llPosition+lLength > GetLength()) return E_FAIL; // strangly the Seek below can return llPosition even if the file is not that big (?)
+		if(llPosition+lLength > GetLength()) return E_FAIL; // strange, but the Seek below can return llPosition even if the file is not that big (?)
 		if(llPosition != Seek(llPosition, begin)) return E_FAIL;
 		if((UINT)lLength < Read(pBuffer, lLength)) return E_FAIL;
 	}
@@ -57,6 +57,86 @@ STDMETHODIMP CAsyncFileReader::Length(LONGLONG* pTotal, LONGLONG* pAvailable)
 STDMETHODIMP_(HANDLE) CAsyncFileReader::GetFileHandle()
 {
 	return m_hFile;
+}
+
+//
+// CBaseSplitterFile
+//
+
+CBaseSplitterFile::CBaseSplitterFile(IAsyncReader* pAsyncReader, HRESULT& hr, UINT64 cachetotal)
+	: m_pAsyncReader(pAsyncReader)
+	, m_pos(0), m_len(0), m_cachepos(0), m_cachelen(0)
+{
+	if(!m_pAsyncReader) {hr = E_UNEXPECTED; return;}
+
+	LONGLONG total = 0, available;
+	m_pAsyncReader->Length(&total, &available);
+	m_len = total;
+	m_pCache.Allocate((size_t)(m_cachetotal = cachetotal));
+	
+	if(!m_pCache) {hr = E_OUTOFMEMORY; return;}
+
+	hr = S_OK;
+}
+
+HRESULT CBaseSplitterFile::Read(BYTE* pData, UINT64 len)
+{
+	CheckPointer(m_pAsyncReader, E_NOINTERFACE);
+
+	HRESULT hr = S_OK;
+
+	if(m_cachetotal == 0 || !m_pCache)
+	{
+		hr = m_pAsyncReader->SyncRead(m_pos, (long)len, pData);
+//LOG(_T("Read [%I64d] <-> [%I64d]\n"), m_pos, m_pos+len);
+		m_pos += len;
+		return hr;
+	}
+
+	BYTE* pCache = m_pCache;
+
+	if(m_cachepos <= m_pos && m_pos < m_cachepos + m_cachelen)
+	{
+		UINT64 minlen = min(len, m_cachelen - (m_pos - m_cachepos));
+
+		memcpy(pData, &pCache[m_pos - m_cachepos], (size_t)minlen);
+
+		len -= minlen;
+		m_pos += minlen;
+		pData += minlen;
+	}
+
+	while(len > m_cachetotal)
+	{
+//LOG(_T("Read [%I64d] <-> [%I64d]\n"), m_pos, m_pos+sizeof(m_cache));
+		hr = m_pAsyncReader->SyncRead(m_pos, (long)m_cachetotal, pData);
+		if(S_OK != hr) return hr;
+
+		len -= m_cachetotal;
+		m_pos += m_cachetotal;
+		pData += m_cachetotal;
+	}
+
+	while(len > 0)
+	{
+		UINT64 maxlen = min(m_len - m_pos, m_cachetotal);
+		UINT64 minlen = min(len, maxlen);
+		if(minlen <= 0) return S_FALSE;
+//LOG(_T("Read [%I64d] <-> [%I64d]\n"), m_pos, m_pos+maxlen);
+		hr = m_pAsyncReader->SyncRead(m_pos, (long)maxlen, pCache);
+		if(S_OK != hr) return hr;
+
+		m_cachepos = m_pos;
+		m_cachelen = maxlen;
+
+		memcpy(pData, pCache, (size_t)minlen);
+
+		len -= minlen;
+		m_pos += minlen;
+		pData += minlen;
+	}
+
+	return hr;
 }
 
 //

@@ -42,6 +42,7 @@ protected:
 	CAutoPtrList<Packet> m_packets;
 	CAutoPtr<Packet> m_lastpacket;
 	REFERENCE_TIME m_rt;
+	bool m_fDiscontinuity;
 	int m_prev_page_sequence_number;
 
 public:
