@@ -540,6 +540,14 @@ void* output_to_PCM(NeAACDecHandle hDecoder,
                 int_sample_buffer[(i*channels)+ch] = (int32_t)tmp;
             }
             break;
+        case FAAD_FMT_FIXED:
+            for(i = 0; i < frame_len; i++)
+            {
+                real_t tmp = get_sample(input, ch, i, hDecoder->downMatrix, hDecoder->upMatrix,
+                    hDecoder->internal_channel);
+                int_sample_buffer[(i*channels)+ch] = (int32_t)tmp;
+            }
+            break;
         }
     }
 

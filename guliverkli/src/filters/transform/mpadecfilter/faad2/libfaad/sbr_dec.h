@@ -46,22 +46,21 @@ extern "C" {
 
 typedef struct {
     real_t *x;
+	int16_t x_index;
     uint8_t channels;
 } qmfa_info;
 
 typedef struct {
-    real_t *v[2];
-    uint8_t v_index;
+    real_t *v;
+    int16_t v_index;
     uint8_t channels;
     complex_t *pre_twiddle;
-#ifdef USE_SSE
-    void (*qmf_func)(void *a, void *b, void *c, void *d);
-#endif
 } qmfs_info;
 
 typedef struct
 {
     uint32_t sample_rate;
+    uint32_t maxAACLine;
 
     uint8_t rate;
     uint8_t just_seeked;
@@ -144,6 +143,10 @@ typedef struct
     int8_t prevEnvIsShort[2];
 
     int8_t kx_prev;
+    uint8_t bsco;
+    uint8_t bsco_prev;
+    uint8_t M_prev;
+    uint16_t frame_len;
 
     uint8_t Reset;
     uint32_t frame;

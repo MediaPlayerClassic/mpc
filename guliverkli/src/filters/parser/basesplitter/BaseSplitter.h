@@ -184,6 +184,7 @@ public:
 	// Queueing
 
 	HANDLE GetThreadHandle() {ASSERT(m_hThread != NULL); return m_hThread;}
+	void SetThreadPriority(int nPriority) {if(m_hThread) ::SetThreadPriority(m_hThread, nPriority);}
 
 	HRESULT Active();
     HRESULT Inactive();

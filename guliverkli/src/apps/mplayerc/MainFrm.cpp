@@ -5444,7 +5444,8 @@ void CMainFrame::OpenCreateGraphObject(OpenMediaData* pOMD)
 		{
 			engine = ShockWave;
 		}
-		else if(ct == "video/quicktime")
+		else if(ct == "video/quicktime"
+			|| ct == "application/x-quicktimeplayer")
 		{
 			engine = QuickTime;
 		}

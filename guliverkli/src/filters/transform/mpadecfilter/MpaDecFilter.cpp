@@ -555,6 +555,13 @@ HRESULT CMpaDecFilter::ProcessAAC()
 	//if(!src) return E_FAIL;
 	if(!src || info.samples == 0) return S_OK;
 
+	// HACK: bug in faad2 with mono sources?
+	if(info.channels == 2 && info.channel_position[1] == UNKNOWN_CHANNEL)
+	{
+		info.channel_position[0] = FRONT_CHANNEL_LEFT;
+		info.channel_position[1] = FRONT_CHANNEL_RIGHT;
+	}
+
 	CArray<float> pBuff;
 	pBuff.SetSize(info.samples);
 	float* dst = pBuff.GetData();
@@ -565,9 +572,9 @@ HRESULT CMpaDecFilter::ProcessAAC()
 	chmask[FRONT_CHANNEL_RIGHT] = SPEAKER_FRONT_RIGHT;
 	chmask[SIDE_CHANNEL_LEFT] = SPEAKER_SIDE_LEFT;
 	chmask[SIDE_CHANNEL_RIGHT] = SPEAKER_SIDE_RIGHT;
-	chmask[BACK_CHANNEL_LEFT] = SPEAKER_TOP_BACK_LEFT;
-	chmask[BACK_CHANNEL_RIGHT] = SPEAKER_TOP_BACK_RIGHT;
-	chmask[BACK_CHANNEL_CENTER] = SPEAKER_TOP_BACK_CENTER;
+	chmask[BACK_CHANNEL_LEFT] = SPEAKER_BACK_LEFT;
+	chmask[BACK_CHANNEL_RIGHT] = SPEAKER_BACK_RIGHT;
+	chmask[BACK_CHANNEL_CENTER] = SPEAKER_BACK_CENTER;
 	chmask[LFE_CHANNEL] = SPEAKER_LOW_FREQUENCY;
 
 	DWORD dwChannelMask = 0;

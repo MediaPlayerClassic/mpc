@@ -386,6 +386,22 @@ extern void mpeg2_idct_add_sse2(const int last, int16_t* block, uint8_t* dest, c
 
 extern mpeg2_mc_t mpeg2_mc_sse2;
 
+// idct (null)
+
+static void mpeg2_idct_init_null() {}
+static void mpeg2_idct_copy_null(int16_t* block, uint8_t* dest, const int stride) {}
+static void mpeg2_idct_add_null(const int last, int16_t* block, uint8_t* dest, const int stride) {}
+
+// mc (null)
+
+static void MC_null(uint8_t* dest, const uint8_t* ref, const int stride, int height) {}
+
+mpeg2_mc_t mpeg2_mc_null = 
+{
+	{MC_null, MC_null, MC_null, MC_null, MC_null, MC_null, MC_null, MC_null},
+	{MC_null, MC_null, MC_null, MC_null, MC_null, MC_null, MC_null, MC_null}
+};
+
 //
 
 CMpeg2Dec::CMpeg2Dec()
@@ -457,6 +473,8 @@ int CMpeg2Dec::skip_chunk(int bytes)
 	if(!bytes)
 		return 0;
 
+	int len = 0;
+
 	uint8_t* current = m_buf_start;
 	uint8_t* limit = current + bytes;
 
@@ -465,9 +483,8 @@ int CMpeg2Dec::skip_chunk(int bytes)
 		if(m_shift == 0x00000100)
 		{
 			m_shift = 0xffffff00;
-			int len = ++current - m_buf_start;
-			m_buf_start = current;
-			return len;
+			len = ++current - m_buf_start;
+			break;
 		}
 
 		m_shift = (m_shift | *current++) << 8;
@@ -475,7 +492,7 @@ int CMpeg2Dec::skip_chunk(int bytes)
 
 	m_buf_start = current;
 
-	return 0;
+	return len;
 }
 
 int CMpeg2Dec::copy_chunk(int bytes)
@@ -483,6 +500,52 @@ int CMpeg2Dec::copy_chunk(int bytes)
 	if(!bytes)
 		return 0;
 
+	int len = 0;
+
+	// this assembly gives us a nice speed up
+	// 36 sec down to 32 sec decoding the ts.stream.tpr test file
+	// (idtc, mc was set to null)
+
+	__asm
+	{
+		mov ebx, this
+		mov esi, [ebx].m_buf_start
+		mov edi, [ebx].m_chunk_ptr
+		mov ecx, bytes
+		mov edx, [ebx].m_shift
+
+	copy_chunk_loop:
+
+		cmp edx, 0x00000100
+		jne copy_chunk_continue
+		mov edx, 0xffffff00
+
+		inc edi
+		mov [ebx].m_chunk_ptr, edi
+
+		inc esi
+		mov eax, esi
+		sub eax, [ebx].m_buf_start
+		mov len, eax
+
+		jmp copy_chunk_end
+
+	copy_chunk_continue:
+
+		movzx eax, byte ptr [esi]
+		or edx, eax
+		shl edx, 8
+		mov byte ptr [edi], al
+		inc esi
+		inc edi
+		loop copy_chunk_loop
+
+	copy_chunk_end:
+
+		mov [ebx].m_buf_start, esi
+		mov [ebx].m_shift, edx
+	}
+/*
 	uint8_t* chunk_ptr = m_chunk_ptr;
 	uint8_t* current = m_buf_start;
 	uint8_t* limit = current + bytes;
@@ -492,19 +555,17 @@ int CMpeg2Dec::copy_chunk(int bytes)
 		if(m_shift == 0x00000100)
 		{
 			m_shift = 0xffffff00;
-			int len = ++current - m_buf_start;
+			len = ++current - m_buf_start;
 			m_chunk_ptr = ++chunk_ptr;
-			m_buf_start = current;
-			return len;
+			break;
 		}
 
 		m_shift = (m_shift | (*chunk_ptr++ = *current++)) << 8;
 	}
 
 	m_buf_start = current;
-
-	return 0;
-
+*/
+	return len;
 }
 
 mpeg2_state_t CMpeg2Dec::seek_chunk()
@@ -1059,16 +1120,10 @@ int CMpeg2Dec::mpeg2_header_user_data()
 void CMpeg2Dec::mpeg2_header_matrix_finalize()
 {
     if(m_copy_matrix & 1)
-	{
-		for(int i = 0; i < 64; i++)
-			m_decoder.m_intra_quantizer_matrix[i] = m_intra_quantizer_matrix[i];
-	}
+		memcpy(m_decoder.m_intra_quantizer_matrix, m_intra_quantizer_matrix, 64);
 
     if(m_copy_matrix & 2)
-	{
-		for(int i = 0; i < 64; i++)
-			m_decoder.m_non_intra_quantizer_matrix[i] = m_non_intra_quantizer_matrix[i];
-	}
+		memcpy(m_decoder.m_non_intra_quantizer_matrix, m_non_intra_quantizer_matrix, 64);
 }
 
 void mpeg2_sequence_t::finalize()
@@ -1929,7 +1984,12 @@ CMpeg2Decoder::CMpeg2Decoder()
 		m_idct_add = mpeg2_idct_add_c;
 		m_mc = &mpeg2_mc_c;
 	}
-
+/*
+m_idct_init = mpeg2_idct_init_null;
+m_idct_copy = mpeg2_idct_copy_null;
+m_idct_add = mpeg2_idct_add_null;
+m_mc = &mpeg2_mc_null;
+*/
 	if(!m_idct_initialized)
 	{
 		m_idct_init();
@@ -1953,19 +2013,6 @@ int CMpeg2Decoder::get_macroblock_modes()
 
     switch(m_coding_type)
 	{
-    case I_TYPE:
-		tab = MB_I + UBITS(bit_buf, 1);
-		DUMPBITS(tab->len);
-		macroblock_modes = tab->modes;
-
-		if(!m_frame_pred_frame_dct && m_picture_structure == FRAME_PICTURE)
-		{
-			macroblock_modes |= UBITS(bit_buf, 1) * DCT_TYPE_INTERLACED;
-			DUMPBITS(1);
-		}
-
-		return macroblock_modes;
-
 	case P_TYPE:
 		tab = MB_P + UBITS(bit_buf, 5);
 		DUMPBITS(tab->len);
@@ -2046,6 +2093,19 @@ intra:
 		}
 
 		if(macroblock_modes & (MACROBLOCK_INTRA|MACROBLOCK_PATTERN))
+		{
+			macroblock_modes |= UBITS(bit_buf, 1) * DCT_TYPE_INTERLACED;
+			DUMPBITS(1);
+		}
+
+		return macroblock_modes;
+
+    case I_TYPE:
+		tab = MB_I + UBITS(bit_buf, 1);
+		DUMPBITS(tab->len);
+		macroblock_modes = tab->modes;
+
+		if(!m_frame_pred_frame_dct && m_picture_structure == FRAME_PICTURE)
 		{
 			macroblock_modes |= UBITS(bit_buf, 1) * DCT_TYPE_INTERLACED;
 			DUMPBITS(1);

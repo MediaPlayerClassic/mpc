@@ -26,6 +26,11 @@
 
 #pragma warning(disable : 4799) // no emms... blahblahblah
 
+#define ReadTSC( x ) __asm cpuid \
+	__asm rdtsc \
+	__asm mov dword ptr x,eax \
+	__asm mov dword ptr x+4,edx
+
 CCpuID::CCpuID()
 {
 	DWORD flags = 0;
@@ -66,7 +71,53 @@ CCpuID g_cpuid;
 
 void memcpy_accel(void* dst, const void* src, size_t len)
 {
-	if((g_cpuid.m_flags & CCpuID::flag_t::ssefpu) && len >= 128 
+	if((g_cpuid.m_flags & CCpuID::flag_t::sse2) && len >= 128 
+		&& !((DWORD)src&15) && !((DWORD)dst&15))
+	{
+		__asm
+		{
+			mov     esi, dword ptr [src]
+			mov     edi, dword ptr [dst]
+			mov     ecx, len
+			shr     ecx, 7
+	memcpy_accel_sse2_loop:
+			prefetchnta	[esi+16*8]
+			movdqa		xmm0, [esi]
+			movdqa		xmm1, [esi+16*1]
+			movdqa		xmm2, [esi+16*2]
+			movdqa		xmm3, [esi+16*3]
+			movdqa		xmm4, [esi+16*4]
+			movdqa		xmm5, [esi+16*5]
+			movdqa		xmm6, [esi+16*6]
+			movdqa		xmm7, [esi+16*7]
+			movntps		[edi], xmm0
+			movntps		[edi+16*1], xmm1
+			movntps		[edi+16*2], xmm2
+			movntps		[edi+16*3], xmm3
+			movntps		[edi+16*4], xmm4
+			movntps		[edi+16*5], xmm5
+			movntps		[edi+16*6], xmm6
+			movntps		[edi+16*7], xmm7
+			add			esi, 128
+			add			edi, 128
+			loop	memcpy_accel_sse2_loop
+			mov     ecx, len
+			and     ecx, 127
+			cmp     ecx, 0
+			je		memcpy_accel_sse2_end
+	memcpy_accel_sse2_loop2:
+			mov		dl, byte ptr[esi] 
+			mov		byte ptr[edi], dl
+			inc		esi
+			inc		edi
+			dec		ecx
+			jne		memcpy_accel_sse2_loop2
+	memcpy_accel_sse2_end:
+			emms
+			sfence
+		}
+	}
+	else if((g_cpuid.m_flags & CCpuID::flag_t::ssefpu) && len >= 128 
 		&& !((DWORD)src&15) && !((DWORD)dst&15))
 	{
 		__asm

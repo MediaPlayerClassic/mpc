@@ -20,7 +20,7 @@ public:
 	bool Next(BYTE& b, __int64 len = 65536);
 	REFERENCE_TIME NextPTS(DWORD TrackNum);
 
-	enum {us, ps, ts, es} m_type;
+	enum {us, ps, ts, es, pva} m_type;
 
 	REFERENCE_TIME m_rtMin, m_rtMax;
 	__int64 m_posMin, m_posMax;
@@ -256,6 +256,22 @@ public:
 		__int64 next;
 	};
 
+	// http://www.technotrend.de/download/av_format_v1.pdf
+
+	struct pvahdr
+	{
+		WORD sync; // 'VA'
+		BYTE streamid; // 1 - video, 2 - audio
+		BYTE counter;
+		BYTE res1; // 0x55
+		BYTE res2:3;
+		BYTE fpts:1;
+		BYTE postbytes:2;
+		BYTE prebytes:2;
+		WORD length;
+		REFERENCE_TIME pts;
+	};
+
 #pragma pack(pop)
 
 	bool Read(pshdr& h);
@@ -271,4 +287,5 @@ public:
 	bool Read(svcdspuhdr& h, CMediaType* pmt = NULL);
 	bool Read(cvdspuhdr& h, CMediaType* pmt = NULL);
 	bool Read(trhdr& h, bool fSync = true);
+	bool Read(pvahdr& h, bool fSync = true);
 };
