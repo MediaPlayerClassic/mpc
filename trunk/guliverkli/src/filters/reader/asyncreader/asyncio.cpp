@@ -642,4 +642,3 @@ CAsyncIo::Alignment(LONG *pl)
     *pl = Alignment();
     return S_OK;
 }
-

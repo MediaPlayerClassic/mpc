@@ -26,9 +26,10 @@
 // CBitStream
 //
 
-CBitStream::CBitStream(IStream* pStream)
+CBitStream::CBitStream(IStream* pStream, bool fThrowError)
 	: CUnknown(_T("CBitStream"), NULL)
 	, m_pStream(pStream)
+	, m_fThrowError(fThrowError)
 	, m_bitlen(0)
 {
 	ASSERT(m_pStream);
@@ -90,7 +91,9 @@ STDMETHODIMP CBitStream::ByteWrite(const void* pData, int len)
 	{
 		ULONG cbWritten = 0;
 		hr = m_pStream->Write(pData, len, &cbWritten);
-		ASSERT(len == cbWritten);
+
+		ASSERT(SUCCEEDED(hr));
+		if(m_fThrowError && FAILED(hr)) throw hr;
 	}
 
 	return hr;
@@ -113,6 +116,9 @@ STDMETHODIMP CBitStream::BitWrite(UINT64 data, int len)
 		BYTE b = (BYTE)(m_bitbuff >> (m_bitlen - 8));
 		hr = m_pStream->Write(&b, 1, NULL);
 		m_bitlen -= 8;
+
+		ASSERT(SUCCEEDED(hr));
+		if(m_fThrowError && FAILED(hr)) throw E_FAIL;
 	}
 
 	return hr;
@@ -128,6 +134,9 @@ STDMETHODIMP CBitStream::BitFlush()
 		BYTE b = (BYTE)(m_bitbuff << (8 - m_bitlen));
 		hr = m_pStream->Write(&b, 1, NULL);
 		m_bitlen = 0;
+
+		ASSERT(SUCCEEDED(hr));
+		if(m_fThrowError && FAILED(hr)) throw E_FAIL;
 	}
 
 	return hr;

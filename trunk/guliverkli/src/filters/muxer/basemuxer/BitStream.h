@@ -34,11 +34,12 @@ interface IBitStream : public IUnknown
 class CBitStream : public CUnknown, public IBitStream
 {
 	CComPtr<IStream> m_pStream;
+	bool m_fThrowError;
 	UINT64 m_bitbuff;
 	int m_bitlen;
 
 public:
-	CBitStream(IStream* pStream);
+	CBitStream(IStream* pStream, bool m_fThrowError = false);
 	virtual ~CBitStream();
 
 	DECLARE_IUNKNOWN;

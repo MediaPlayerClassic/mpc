@@ -1612,7 +1612,7 @@ BEGIN
         MENUITEM "&Close",                      ID_FILE_CLOSEPLAYLIST
         MENUITEM SEPARATOR
         MENUITEM "&Save As...",                 ID_FILE_SAVEAS
-        MENUITEM "Save Image...",               ID_FILE_SAVE_IMAGE
+        MENUITEM "Save &Image...",              ID_FILE_SAVE_IMAGE
         MENUITEM SEPARATOR
         MENUITEM "&Load Subtitle...\tCtrl+L",   ID_FILE_LOADSUBTITLE
         MENUITEM "Save Subtitle...\tCtrl+S",    ID_FILE_SAVESUBTITLES
@@ -1627,6 +1627,11 @@ BEGIN
         END
         MENUITEM SEPARATOR
         MENUITEM "P&roperties",                 ID_FILE_PROPERTIES
+        MENUITEM SEPARATOR
+        POPUP "Utils"
+        BEGIN
+            MENUITEM "DSM Co&nverter...",           ID_FILE_CONVERT
+        END
         MENUITEM SEPARATOR
         MENUITEM "E&xit\tAlt+X",                ID_FILE_EXIT
     END
@@ -2091,19 +2096,19 @@ IDF_SEEKBARMID_PNG      FILE                    "res\\web\\seekbarmid.png"
 IDF_SEEKBARRIGHT_PNG    FILE                    "res\\web\\seekbarright.png"
 IDF_SEEKBARGRIP_PNG     FILE                    "res\\web\\seekbargrip.png"
 IDF_LOGO_PNG            FILE                    "res\\web\\logo.png"
-IDF_CONTROLBACK_PNG		FILE					"res\\web\\controlback.png"
-IDF_CONTROLBUTTONPLAY_PNG	FILE				"res\\web\\controlbuttonplay.png"
-IDF_CONTROLBUTTONPAUSE_PNG	FILE				"res\\web\\controlbuttonpause.png"
-IDF_CONTROLBUTTONSTOP_PNG	FILE				"res\\web\\controlbuttonstop.png"
-IDF_CONTROLBUTTONSKIPBACK_PNG	FILE			"res\\web\\controlbuttonskipback.png"
-IDF_CONTROLBUTTONDECRATE_PNG	FILE			"res\\web\\controlbuttondecrate.png"
-IDF_CONTROLBUTTONINCRATE_PNG	FILE			"res\\web\\controlbuttonincrate.png"
-IDF_CONTROLBUTTONSKIPFORWARD_PNG	FILE		"res\\web\\controlbuttonskipforward.png"
-IDF_CONTROLBUTTONSTEP_PNG	FILE				"res\\web\\controlbuttonstep.png"
-IDF_CONTROLVOLUMEON_PNG		FILE				"res\\web\\controlvolumeon.png"
-IDF_CONTROLVOLUMEOFF_PNG	FILE				"res\\web\\controlvolumeoff.png"
-IDF_CONTROLVOLUMEBAR_PNG	FILE				"res\\web\\controlvolumebar.png"
-IDF_CONTROLVOLUMEGRIP_PNG	FILE				"res\\web\\controlvolumegrip.png"
+IDF_CONTROLBACK_PNG     FILE                    "res\\web\\controlback.png"
+IDF_CONTROLBUTTONPLAY_PNG FILE                    "res\\web\\controlbuttonplay.png"
+IDF_CONTROLBUTTONPAUSE_PNG FILE                    "res\\web\\controlbuttonpause.png"
+IDF_CONTROLBUTTONSTOP_PNG FILE                    "res\\web\\controlbuttonstop.png"
+IDF_CONTROLBUTTONSKIPBACK_PNG FILE                    "res\\web\\controlbuttonskipback.png"
+IDF_CONTROLBUTTONDECRATE_PNG FILE                    "res\\web\\controlbuttondecrate.png"
+IDF_CONTROLBUTTONINCRATE_PNG FILE                    "res\\web\\controlbuttonincrate.png"
+IDF_CONTROLBUTTONSKIPFORWARD_PNG FILE                    "res\\web\\controlbuttonskipforward.png"
+IDF_CONTROLBUTTONSTEP_PNG FILE                    "res\\web\\controlbuttonstep.png"
+IDF_CONTROLVOLUMEON_PNG FILE                    "res\\web\\controlvolumeon.png"
+IDF_CONTROLVOLUMEOFF_PNG FILE                    "res\\web\\controlvolumeoff.png"
+IDF_CONTROLVOLUMEBAR_PNG FILE                    "res\\web\\controlvolumebar.png"
+IDF_CONTROLVOLUMEGRIP_PNG FILE                    "res\\web\\controlvolumegrip.png"
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -2415,6 +2420,94 @@ BEGIN
 END
 
 #endif    // English (U.S.) resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+/////////////////////////////////////////////////////////////////////////////
+// Neutral (Sys. Default) resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_NEUSD)
+#ifdef _WIN32
+LANGUAGE LANG_NEUTRAL, SUBLANG_SYS_DEFAULT
+#pragma code_page(1252)
+#endif //_WIN32
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog
+//
+
+IDD_CONVERT_DIALOG DIALOGEX 0, 0, 376, 190
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_POPUP | 
+    WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
+EXSTYLE WS_EX_ACCEPTFILES
+CAPTION "DSM Converter - Right click the empty area to add media files"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    CONTROL         "",IDC_TREE1,"SysTreeView32",TVS_HASBUTTONS | 
+                    TVS_LINESATROOT | TVS_SHOWSELALWAYS | WS_BORDER | 
+                    WS_TABSTOP,5,5,366,138
+    PUSHBUTTON      "Save &As...",IDC_BUTTON1,321,146,50,14
+    EDITTEXT        IDC_EDIT1,5,146,312,14,ES_AUTOHSCROLL | ES_READONLY
+    PUSHBUTTON      "Start",IDC_BUTTON2,109,169,50,14
+    PUSHBUTTON      "Pause",IDC_BUTTON3,162,169,50,14
+    PUSHBUTTON      "Stop",IDC_BUTTON4,215,169,50,14
+    CONTROL         "",IDC_HLINE,"Static",SS_ETCHEDHORZ,5,164,366,1
+END
+
+IDD_CONVERTPROPSDIALOG DIALOGEX 0, 0, 266, 145
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | 
+    WS_SYSMENU
+CAPTION "Properties"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    PUSHBUTTON      "OK",IDOK,81,125,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,133,125,50,14
+    COMBOBOX        IDC_COMBO1,7,7,48,82,CBS_DROPDOWN | CBS_SORT | 
+                    WS_VSCROLL | WS_TABSTOP
+    EDITTEXT        IDC_EDIT1,56,7,167,13,ES_AUTOHSCROLL
+    DEFPUSHBUTTON   "Set",IDC_BUTTON1,225,7,34,13
+    CONTROL         "",IDC_LIST1,"SysListView32",LVS_REPORT | LVS_SINGLESEL | 
+                    LVS_SHOWSELALWAYS | LVS_ALIGNLEFT | WS_BORDER | 
+                    WS_TABSTOP,7,22,252,98
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// DESIGNINFO
+//
+
+#ifdef APSTUDIO_INVOKED
+GUIDELINES DESIGNINFO 
+BEGIN
+    IDD_CONVERT_DIALOG, DIALOG
+    BEGIN
+        LEFTMARGIN, 5
+        RIGHTMARGIN, 371
+        VERTGUIDE, 12
+        TOPMARGIN, 5
+        BOTTOMMARGIN, 183
+    END
+
+    IDD_CONVERTPROPSDIALOG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 259
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 139
+    END
+END
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Bitmap
+//
+
+IDB_STREAMTYPES         BITMAP                  "res\\streamtypes.bmp"
+#endif    // Neutral (Sys. Default) resources
 /////////////////////////////////////////////////////////////////////////////
 
 

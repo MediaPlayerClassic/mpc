@@ -84,8 +84,10 @@ static int GetByteLength(UINT64 data, int min = 0)
 // CDSMMuxerFilter
 //
 
-CDSMMuxerFilter::CDSMMuxerFilter(LPUNKNOWN pUnk, HRESULT* phr)
+CDSMMuxerFilter::CDSMMuxerFilter(LPUNKNOWN pUnk, HRESULT* phr, bool fAutoChap, bool fAutoRes)
 	: CBaseMuxerFilter(pUnk, phr, __uuidof(this))
+	, m_fAutoChap(fAutoChap)
+	, m_fAutoRes(fAutoRes)
 {
 	if(phr) *phr = S_OK;
 }
@@ -216,7 +218,7 @@ void CDSMMuxerFilter::MuxHeader(IBitStream* pBS)
 	// resources
 
 	pos = pRBs.GetHeadPosition();
-	while(pos)
+	while(m_fAutoRes && pos)
 	{
 		IDSMResourceBag* pRB = pRBs.GetNext(pos);
 
@@ -252,7 +254,7 @@ void CDSMMuxerFilter::MuxHeader(IBitStream* pBS)
 
 	// chapters
 
-	if(pAMES)
+	if(m_fAutoChap && pAMES)
 	{
 		long MarkerCount = 0;
 		if(SUCCEEDED(pAMES->get_MarkerCount(&MarkerCount)) && MarkerCount > 0)
@@ -291,7 +293,7 @@ void CDSMMuxerFilter::MuxHeader(IBitStream* pBS)
 	}
 }
 
-void CDSMMuxerFilter::MuxPacket(IBitStream* pBS, MuxerPacket* pPacket)
+void CDSMMuxerFilter::MuxPacket(IBitStream* pBS, const MuxerPacket* pPacket)
 {
 	if(pPacket->IsEOS())
 		return;
@@ -323,7 +325,6 @@ void CDSMMuxerFilter::MuxPacket(IBitStream* pBS, MuxerPacket* pPacket)
 		iDuration = GetByteLength(rtDuration);
 		ASSERT(iDuration <= 7);
 
-		// TODO
 		IndexSyncPoint(pPacket, pBS->GetPos());
 	}
 
@@ -385,7 +386,7 @@ void CDSMMuxerFilter::MuxFooter(IBitStream* pBS)
 	}
 }
 
-void CDSMMuxerFilter::IndexSyncPoint(MuxerPacket* p, __int64 fp)
+void CDSMMuxerFilter::IndexSyncPoint(const MuxerPacket* p, __int64 fp)
 {
 	// Yes, this is as complicated as it looks.
 	// Rule #1: don't write this packet if you can't do it reliably. 

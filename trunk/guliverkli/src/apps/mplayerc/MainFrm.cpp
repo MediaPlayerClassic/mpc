@@ -44,6 +44,7 @@
 #include "FavoriteAddDlg.h"
 #include "FavoriteOrganizeDlg.h"
 #include "ShaderEditorDlg.h"
+#include "ConvertDlg.h"
 
 #include <mtype.h>
 #include <Mpconfig.h>
@@ -222,6 +223,8 @@ BEGIN_MESSAGE_MAP(CMainFrame, CFrameWnd)
 	ON_COMMAND(ID_FILE_SAVE_IMAGE_AUTO, OnFileSaveImageAuto)
 	ON_UPDATE_COMMAND_UI(ID_FILE_SAVE_IMAGE, OnUpdateFileSaveImage)
 	ON_UPDATE_COMMAND_UI(ID_FILE_SAVE_IMAGE_AUTO, OnUpdateFileSaveImage)
+	ON_COMMAND(ID_FILE_CONVERT, OnFileConvert)
+	ON_UPDATE_COMMAND_UI(ID_FILE_CONVERT, OnUpdateFileConvert)
 	ON_COMMAND(ID_FILE_LOADSUBTITLE, OnFileLoadsubtitles)
 	ON_UPDATE_COMMAND_UI(ID_FILE_LOADSUBTITLE, OnUpdateFileLoadsubtitles)
 	ON_COMMAND(ID_FILE_SAVESUBTITLES, OnFileSavesubtitles)
@@ -3187,6 +3190,16 @@ void CMainFrame::OnUpdateFileSaveImage(CCmdUI* pCmdUI)
 	OAFilterState fs = GetMediaState();
 	pCmdUI->Enable(m_iMediaLoadState == MLS_LOADED && !m_fAudioOnly 
 		&& (fs == State_Paused || fs == State_Running));
+}
+
+void CMainFrame::OnFileConvert()
+{
+	CConvertDlg().DoModal();
+}
+
+void CMainFrame::OnUpdateFileConvert(CCmdUI* pCmdUI)
+{
+	// TODO: Add your command update UI handler code here
 }
 
 void CMainFrame::OnFileLoadsubtitles()
@@ -8679,3 +8692,4 @@ void CGraphThread::OnClose(WPARAM wParam, LPARAM lParam)
 	if(m_pMainFrame) m_pMainFrame->CloseMediaPrivate();
 	if(CAMEvent* e = (CAMEvent*)lParam) e->Set();
 }
+

@@ -97,6 +97,17 @@ HRESULT CDSMPropertyBag::SetProperty(LPCWSTR key, VARIANT* var)
 	return SetProperty(key, var->bstrVal);
 }
 
+HRESULT CDSMPropertyBag::DelAllProperties()
+{
+	RemoveAll();
+	return S_OK;
+}
+
+HRESULT CDSMPropertyBag::DelProperty(LPCWSTR key)
+{
+	return Remove(key) ? S_OK : S_FALSE;
+}
+
 //
 // CDSMResourceBag
 //

@@ -146,6 +146,8 @@ public:
 	void AddFilter(CGraphFilter* pFilter) {if(pFilter) {CAutoPtr<CGraphFilter> f(pFilter); m_pMoreFilters.AddTail(f);}}
 	void RemoveFilters() {m_pMoreFilters.RemoveAll();}
 
+	HRESULT AddSourceFilter(LPCTSTR fn, IBaseFilter** ppBF, bool fAllFilters = false);
+
 	HRESULT Render(LPCTSTR fn);
 	HRESULT Render(IBaseFilter* pBF);
 	HRESULT Render(IPin* pPin);

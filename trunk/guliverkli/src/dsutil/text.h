@@ -11,24 +11,20 @@ T Explode(T str, CList<T>& sl, SEP sep, int limit = 0)
 {
 	sl.RemoveAll();
 
-	if(limit == 1) {sl.AddTail(str); return T();}
-
-	if(!str.IsEmpty() && str[str.GetLength()-1] != sep)
-		str += sep;
-
-	for(int i = 0, j = 0; (j = str.Find(sep, i)) >= 0; i = j+1)
+	for(int i = 0, j = 0; ; i = j+1)
 	{
-		sl.AddTail(str.Mid(i, j-i).Trim(sep).Trim());
-		if(limit > 0 && sl.GetCount() == limit-1)
+		j = str.Find(sep, i);
+
+		if(j < 0 || sl.GetCount() == limit-1)
 		{
-			if(j+1 < str.GetLength()) 
-				sl.AddTail(str.Mid(j+1).Trim(sep).Trim());
+			sl.AddTail(str.Mid(i).Trim());
 			break;
 		}
+		else
+		{
+			sl.AddTail(str.Mid(i, j-i).Trim());
+		}		
 	}
-
-	if(sl.IsEmpty())
-		sl.AddTail(str.Trim(sep).Trim());
 
 	return sl.GetHead();
 }

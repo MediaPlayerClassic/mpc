@@ -310,10 +310,10 @@ HRESULT CAviSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 
         switch(fcc)
 		{
-		case FCC('INAM'): SetMediaContentStr(CStringW(value), Title); break;
-		case FCC('IART'): SetMediaContentStr(CStringW(value), AuthorName); break;
-		case FCC('ICOP'): SetMediaContentStr(CStringW(value), Copyright); break;
-		case FCC('ISBJ'): SetMediaContentStr(CStringW(value), Description); break;
+		case FCC('INAM'): SetMediaContentStr(CStringW(value), Title); fcc = FCC('TITL'); break;
+		case FCC('IART'): SetMediaContentStr(CStringW(value), AuthorName); fcc = FCC('AUTH'); break;
+		case FCC('ICOP'): SetMediaContentStr(CStringW(value), Copyright); fcc = FCC('CPYR'); break;
+		case FCC('ISBJ'): SetMediaContentStr(CStringW(value), Description); fcc = FCC('DESC'); break;
 		}
 
 		CStringA key;

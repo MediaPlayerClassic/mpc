@@ -92,12 +92,17 @@ STDMETHODIMP CDeCSSInputPin::Receive(IMediaSample* pSample)
 
 void CDeCSSInputPin::StripPacket(BYTE*& p, long& len)
 {
+	GUID majortype = m_mt.majortype;
+
+	if(majortype == MEDIATYPE_MPEG2_PACK || majortype == MEDIATYPE_DVD_ENCRYPTED_PACK)
 	if(len > 0 && *(DWORD*)p == 0xba010000) // MEDIATYPE_*_PACK
 	{
 		len -= 14; p += 14;
 		if(int stuffing = (p[-1]&7)) {len -= stuffing; p += stuffing;}
+		majortype = MEDIATYPE_MPEG2_PES;
 	}
 
+	if(majortype == MEDIATYPE_MPEG2_PES)
 	if(len > 0 && *(DWORD*)p == 0xbb010000)
 	{
 		len -= 4; p += 4;
@@ -105,6 +110,7 @@ void CDeCSSInputPin::StripPacket(BYTE*& p, long& len)
 		len -= hdrlen; p += hdrlen;
 	}
 
+	if(majortype == MEDIATYPE_MPEG2_PES)
 	if(len > 0 
 	&& ((*(DWORD*)p&0xf0ffffff) == 0xe0010000 
 	|| (*(DWORD*)p&0xe0ffffff) == 0xc0010000
