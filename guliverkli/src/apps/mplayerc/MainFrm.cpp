@@ -72,7 +72,7 @@
 static UINT s_uTaskbarRestart = RegisterWindowMessage(TEXT("TaskbarCreated"));
 static UINT WM_NOTIFYICON = RegisterWindowMessage(TEXT("MYWM_NOTIFYICON"));
 
-#include "..\..\..\..\vs\src\DirectVobSub\IDirectVobSub.h"
+#include "..\..\filters\transform\vsfilter\IDirectVobSub.h"
 
 class CSubClock : public CUnknown, public ISubClock
 {
