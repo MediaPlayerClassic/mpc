@@ -39,18 +39,53 @@ EXPORT_C_(UINT32) PS2EgetLibType()
 
 EXPORT_C_(char*) PS2EgetLibName()
 {
+	return "GSdx9"
 #if _M_IX86_FP >= 2
-	return "GSdx9 (SSE2)";
+	" (SSE2)";
 #elif _M_IX86_FP >= 1
-	return "GSdx9 (SSE)";
-#else
-	return "GSdx9";
+	" (SSE)";
 #endif
+	;
 }
 
-EXPORT_C_(UINT32) PS2EgetLibVersion2(UINT32 type)
+static BYTE and_eax_ffff0000h_cmp_eax_30000h[] = {0x25, 0x00, 0x00, 0xFF, 0xFF, 0x3D, 0x00, 0x00, 0x03, 0x00};
+static BYTE mov_ecx_eax_shr_ecx_10h_cmp_ecx_3[] = {0x8B, 0xC8, 0xC1, 0xE9, 0x10, 0x83, 0xF9, 0x03};
+static void* test_gs_lib_ver = NULL;
+
+EXPORT_C_(__declspec(naked) UINT32) PS2EgetLibVersion2(UINT32 type)
 {
-	return (PS2E_GS_VERSION<<16)|(0x00<<8)|PS2E_DLL_VERSION;
+//	return (PS2E_GS_VERSION<<16)|(0x00<<8)|PS2E_DLL_VERSION;
+
+	__asm
+	{
+		mov eax, [esp]
+		mov test_gs_lib_ver, eax
+		push ebx
+		push ecx 
+		push edx 
+		push esi 
+		push edi
+	}
+
+	if(!memcmp(test_gs_lib_ver, and_eax_ffff0000h_cmp_eax_30000h, sizeof(and_eax_ffff0000h_cmp_eax_30000h))
+	|| !memcmp(test_gs_lib_ver, mov_ecx_eax_shr_ecx_10h_cmp_ecx_3, sizeof(mov_ecx_eax_shr_ecx_10h_cmp_ecx_3)))
+	{
+		__asm mov eax, (0x0003<<16)|(0x00<<8)|PS2E_DLL_VERSION
+	}
+	else
+	{
+		__asm mov eax, (PS2E_GS_VERSION<<16)|(0x00<<8)|PS2E_DLL_VERSION
+	}
+
+	__asm
+	{
+		pop edi 
+		pop esi 
+		pop edx 
+		pop ecx 
+		pop ebx
+		ret 4
+	}
 }
 
 static CAutoPtr<GSState> s_gs;

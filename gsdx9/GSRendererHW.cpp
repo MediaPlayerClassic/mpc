@@ -34,8 +34,7 @@ static const double log_2pow32 = log(2.0)*32;
 //
 
 GSRendererHW::GSRendererHW(HWND hWnd, HRESULT& hr)
-	: GSRenderer<HWVERTEX>(1024, 1024, hWnd, hr)
-//	: GSRenderer<HWVERTEX>(512, 224, hWnd, hr)
+	: GSRenderer<HWVERTEX>(INTERNALRES, INTERNALRES, hWnd, hr)
 {
 	Reset();
 
@@ -731,8 +730,14 @@ void GSRendererHW::CalcRegionToUpdate(int& tw, int& th)
 	if(m_ctxt->CLAMP.WMS < 3 && m_ctxt->CLAMP.WMT < 3)
 	{
 		float tumin, tvmin, tumax, tvmax;
-
-		tumin = tvmin = +1e10;
+/*
+clock_t diff = 0;
+for(int i = 0; i < 10; i++)
+{
+	clock_t start = clock();
+	for(int j = 0; j < 100; j++)
+	{
+*/		tumin = tvmin = +1e10;
 		tumax = tvmax = -1e10;
 
 		HWVERTEX* pVertices = m_pVertices;
@@ -751,6 +756,8 @@ void GSRendererHW::CalcRegionToUpdate(int& tw, int& th)
 			pshufd      xmm7, xmm7, 0
 
 			add			esi, 16
+
+			align 16
 CalcRegionToUpdate_loop:
 
 			movaps		xmm0, [esi]
@@ -758,7 +765,8 @@ CalcRegionToUpdate_loop:
 			maxps		xmm7, xmm0
 			lea			esi, [esi+32]
 
-			loop		CalcRegionToUpdate_loop
+			dec			ecx
+			jnz			CalcRegionToUpdate_loop
 
 			movhlps		xmm6, xmm6
 			movss		tumin, xmm6
@@ -781,7 +789,14 @@ CalcRegionToUpdate_loop:
 			if(tvmin > tv) tvmin = tv;
 		}
 #endif
-
+/*
+	}
+	diff += clock() - start;
+}
+CString str;
+str.Format(_T("%d"), diff / 10);
+AfxMessageBox(str, MB_OK);
+*/
 		if(m_ctxt->CLAMP.WMS == 0)
 		{
 			float fmin = floor(tumin);
