@@ -99,6 +99,7 @@ const AMOVIESETUP_MEDIATYPE sudPinTypesIn2[] =
 	{&MEDIATYPE_Video, &MEDIASUBTYPE_RV20},
 	{&MEDIATYPE_Video, &MEDIASUBTYPE_RV30},
 	{&MEDIATYPE_Video, &MEDIASUBTYPE_RV40},
+	{&MEDIATYPE_Video, &MEDIASUBTYPE_RV41},
 };
 
 const AMOVIESETUP_MEDIATYPE sudPinTypesOut2[] =
@@ -840,7 +841,8 @@ HRESULT CRealMediaSplitterOutputPin::DeliverPacket(CAutoPtr<Packet> p)
 	}
 
 	if(m_mt.subtype == MEDIASUBTYPE_RV10 || m_mt.subtype == MEDIASUBTYPE_RV20
-	|| m_mt.subtype == MEDIASUBTYPE_RV30 || m_mt.subtype == MEDIASUBTYPE_RV40)
+	|| m_mt.subtype == MEDIASUBTYPE_RV30 || m_mt.subtype == MEDIASUBTYPE_RV40
+	|| m_mt.subtype == MEDIASUBTYPE_RV41)
 	{
 		CAutoLock cAutoLock(&m_csQueue);
 
@@ -1270,6 +1272,79 @@ void GetDimensions(unsigned char* p, unsigned int* wi, unsigned int* hi)
 	*hi = h;    
 }
 
+void GetDimensions_X10(unsigned char* p, unsigned int* wi, unsigned int* hi, 
+					   bool *interlaced, bool *top_field_first, bool *repeat_field)
+{
+	unsigned int w, h, c;
+
+	const unsigned int cw[8] = {160, 176, 240, 320, 352, 640, 704, 0};
+	const unsigned int ch1[8] = {120, 132, 144, 240, 288, 480, 0, 0};
+	const unsigned int ch2[4] = {180, 360, 576, 0};
+
+	unsigned int bit_offset = 0;
+	unsigned int bit_buffer = *(unsigned int*)p;
+	bswap(bit_buffer);
+
+   	GetBits(9);
+
+	*interlaced = false;
+	*top_field_first = false;
+	*repeat_field = false;
+	c = GetBits(1);
+	if (c)
+	{
+		c = GetBits(1);
+		if (c)
+			*interlaced = true;
+		c = GetBits(1);
+		if (c)
+			*top_field_first = true;
+		c = GetBits(1); 
+		if (c)
+			*repeat_field = true; 
+
+		c = GetBits(1);
+		c = GetBits(1);
+		if (c)
+			GetBits(2);
+	}
+
+	GetBits(16);
+
+	w = cw[GetBits(3)];
+	if(w == 0)
+	{
+		do
+		{
+			c = GetBits(8);
+			w += (c << 2);
+		}
+		while(c == 255);
+	}
+
+	c = GetBits(3);
+
+	h = ch1[c];
+	if(h == 0)
+	{
+		c = ((c << 1) | GetBits(1)) & 3;
+
+		h = ch2[c];
+		if(h == 0)
+		{
+			do
+			{
+				c = GetBits(8);
+				h += (c << 2);
+			}
+			while(c == 255);
+		}
+	}
+
+	*wi = w;
+	*hi = h;    
+}
+
 void CRMFile::GetDimensions()
 {
 	POSITION pos = m_mps.GetHeadPosition();
@@ -1285,7 +1360,7 @@ void CRMFile::GetDimensions()
 			rvinfo rvi = *(rvinfo*)pmp->typeSpecData.GetData();
 			rvi.bswap();
 
-			if(rvi.fcc2 != '04VR')
+			if(rvi.fcc2 != '04VR' && rvi.fcc2 != '14VR')
 				continue;
 
 			MediaPacketHeader mph;
@@ -1334,7 +1409,14 @@ void CRMFile::GetDimensions()
 
 				if(len > 0)
 				{
-					::GetDimensions(p, &pmp->width, &pmp->height);
+					bool interlaced, top_field_first, repeat_field;
+					/* todo: implement handling of interlaced */
+
+					if (rvi.fcc2 == '14VR')
+						::GetDimensions_X10(p, &pmp->width, &pmp->height, 
+							&interlaced, &top_field_first, &repeat_field);						
+					else
+						::GetDimensions(p, &pmp->width, &pmp->height);
 					if(rvi.w == pmp->width && rvi.h == pmp->height)
 						pmp->width = pmp->height = 0;
 					break;
@@ -1589,7 +1671,8 @@ HRESULT CRealVideoDecoder::CheckInputType(const CMediaType* mtIn)
 	if(mtIn->majortype != MEDIATYPE_Video 
 	|| mtIn->subtype != MEDIASUBTYPE_RV20
 	&& mtIn->subtype != MEDIASUBTYPE_RV30 
-	&& mtIn->subtype != MEDIASUBTYPE_RV40)
+	&& mtIn->subtype != MEDIASUBTYPE_RV40
+	&& mtIn->subtype != MEDIASUBTYPE_RV41)
 		return VFW_E_TYPE_NOT_ACCEPTED;
 
 	if(mtIn->formattype == FORMAT_VideoInfo2)
@@ -1608,7 +1691,10 @@ HRESULT CRealVideoDecoder::CheckInputType(const CMediaType* mtIn)
 		CString olddll, newdll, oldpath, newpath;
 
 		olddll.Format(_T("drv%c3260.dll"), (TCHAR)((mtIn->subtype.Data1>>16)&0xff));
-		newdll = mtIn->subtype == FOURCCMap('02VR') ? _T("drv2.dll") : _T("drvc.dll");
+		newdll = 
+			mtIn->subtype == FOURCCMap('14VR') ? _T("drvi.dll") :
+			mtIn->subtype == FOURCCMap('02VR') ? _T("drv2.dll") :
+			_T("drvc.dll");
 
 		CRegKey key;
 		TCHAR buff[MAX_PATH];

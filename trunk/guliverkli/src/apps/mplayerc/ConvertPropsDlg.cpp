@@ -4,6 +4,7 @@
 #include "stdafx.h"
 #include "mplayerc.h"
 #include "ConvertPropsDlg.h"
+#include ".\convertpropsdlg.h"
 
 
 // CConvertPropsDlg dialog
@@ -30,10 +31,10 @@ void CConvertPropsDlg::DoDataExchange(CDataExchange* pDX)
 BEGIN_MESSAGE_MAP(CConvertPropsDlg, CResizableDialog)
 	ON_NOTIFY(NM_CLICK, IDC_LIST1, OnNMClickList1)
 	ON_BN_CLICKED(IDC_BUTTON1, OnBnClickedButton1)
-//	ON_CBN_EDITCHANGE(IDC_COMBO1, it)
-ON_CBN_EDITCHANGE(IDC_COMBO1, OnCbnEditchangeCombo1)
-//ON_CBN_EDITUPDATE(IDC_COMBO1, OnCbnEditupdateCombo1)
-ON_CBN_SELCHANGE(IDC_COMBO1, OnCbnSelchangeCombo1)
+	ON_UPDATE_COMMAND_UI(IDC_BUTTON1, OnUpdateButton1)
+	ON_CBN_EDITCHANGE(IDC_COMBO1, OnCbnEditchangeCombo1)
+	ON_CBN_SELCHANGE(IDC_COMBO1, OnCbnSelchangeCombo1)
+	ON_NOTIFY(LVN_KEYDOWN, IDC_LIST1, OnLvnKeydownList1)
 END_MESSAGE_MAP()
 
 
@@ -103,6 +104,7 @@ void CConvertPropsDlg::SetItem(CString key, CString value)
 
 	if(key == _T("LANG") && value.GetLength() != 3)
 	{
+		m_list.DeleteItem(i);
 		AfxMessageBox(_T("LANG has to be a three letter ISO 639-2 language code."), MB_OK);
 		return;
 	}
@@ -116,9 +118,7 @@ void CConvertPropsDlg::OnOK()
 	m_props.RemoveAll();
 
 	for(int i = 0; i < m_list.GetItemCount(); i++)
-	{
 		m_props[m_list.GetItemText(i, 0)] = m_list.GetItemText(i, 1);
-	}
 
 	__super::OnOK();
 }
@@ -145,6 +145,11 @@ void CConvertPropsDlg::OnBnClickedButton1()
 	SetItem(key, value);
 }
 
+void CConvertPropsDlg::OnUpdateButton1(CCmdUI* pCmdUI)
+{
+	pCmdUI->Enable(GetDlgItem(IDC_EDIT1)->GetWindowTextLength() > 0);
+}
+
 void CConvertPropsDlg::OnCbnEditchangeCombo1()
 {
 	int i = m_fcc.GetCurSel();
@@ -164,4 +169,14 @@ void CConvertPropsDlg::OnCbnEditchangeCombo1()
 void CConvertPropsDlg::OnCbnSelchangeCombo1()
 {
 	OnCbnEditchangeCombo1();
+}
+
+void CConvertPropsDlg::OnLvnKeydownList1(NMHDR *pNMHDR, LRESULT *pResult)
+{
+	LPNMLVKEYDOWN pLVKeyDow = reinterpret_cast<LPNMLVKEYDOWN>(pNMHDR);
+
+	int i = m_fcc.GetCurSel();
+	if(i >= 0) m_list.DeleteItem(i);
+
+	*pResult = 0;
 }

@@ -32,6 +32,8 @@ protected:
 public:
 	afx_msg void OnNMClickList1(NMHDR *pNMHDR, LRESULT *pResult);
 	afx_msg void OnBnClickedButton1();
+	afx_msg void OnUpdateButton1(CCmdUI* pCmdUI);
 	afx_msg void OnCbnEditchangeCombo1();
 	afx_msg void OnCbnSelchangeCombo1();
+	afx_msg void OnLvnKeydownList1(NMHDR *pNMHDR, LRESULT *pResult);
 };

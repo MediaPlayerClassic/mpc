@@ -383,6 +383,9 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath=".\ConvertChapDlg.cpp">
+			</File>
+			<File
 				RelativePath=".\ConvertDlg.cpp">
 			</File>
 			<File
@@ -1030,6 +1033,9 @@
 					<Tool
 						Name="VCCustomBuildTool"/>
 				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\ConvertChapDlg.h">
 			</File>
 			<File
 				RelativePath=".\ConvertDlg.h">

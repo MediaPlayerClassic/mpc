@@ -4,7 +4,6 @@
 #include "stdafx.h"
 #include "mplayerc.h"
 #include "ConvertResDlg.h"
-#include ".\convertresdlg.h"
 
 // CConvertResDlg dialog
 
@@ -60,8 +59,17 @@ BOOL CConvertResDlg::OnInitDialog()
 			}
 		}
 
-		if(!mimes.Lookup(_T("application/x-truetype-font")))
-			m_mimectrl.AddString(_T("application/x-truetype-font"));
+		static TCHAR* moremimes[] = 
+		{
+			_T("application/octet-stream"),
+			_T("application/zip"),
+			_T("application/rar"),
+			_T("application/x-truetype-font"),
+		};
+
+		for(int i = 0; i < countof(moremimes); i++)
+            if(!mimes.Lookup(moremimes[i]))
+				m_mimectrl.AddString(moremimes[i]);
 	}
 
 	m_desc.Replace(_T("\n"), _T("\r\n"));
@@ -85,6 +93,12 @@ void CConvertResDlg::OnOK()
 }
 
 BEGIN_MESSAGE_MAP(CConvertResDlg, CResizableDialog)
+	ON_UPDATE_COMMAND_UI(IDOK, OnUpdateOK)
 END_MESSAGE_MAP()
 
 // CConvertResDlg message handlers
+
+void CConvertResDlg::OnUpdateOK(CCmdUI* pCmdUI)
+{
+	pCmdUI->Enable(GetDlgItem(IDC_EDIT3)->GetWindowTextLength() > 0 && GetDlgItem(IDC_COMBO1)->GetWindowTextLength() > 0);
+}
