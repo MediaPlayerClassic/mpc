@@ -4,3 +4,4 @@
 - paged results
 - display "number of downloads" somewhere
 - clean file name for the imdb search url on the upload page
+- try to find the title after the file's hash or name
