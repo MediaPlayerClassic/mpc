@@ -70,7 +70,7 @@ else
 	$db_text = addslashes($db_text);
 	if(!getParam('bw')) $db_text = '%'.$db_text;
 
-	$db->fetchAll(
+	$db->query(
 		"select distinct t1.* from movie t1 ".
 		"join movie_subtitle t2 on t1.id = t2.movie_id ".
 		"where t1.id in ".
@@ -81,8 +81,10 @@ else
 			") ".
 		"and t1.id in (select distinct movie_id from movie_subtitle where subtitle_id in (select distinct id from subtitle)) ".
 		"order by t2.date desc " .
-		"limit 20 ",
-		$movies);
+		"limit 20 ");
+		
+	while($row = $db->fetchRow())
+		$movies[$row['id']] = $row;
 
 	chkerr();
 }
@@ -90,37 +92,50 @@ else
 if(!empty($movies))
 {
 	$users = array();
-
-	foreach($movies as $i => $movie)
+	
+	// init & test_movie_id
+	
+	$test_movie_id = array();
+	
+	foreach($movies as $id => $movie)
 	{
-		$movies[$i]['titles'] = array();
+		$movies[$id]['titles'] = array();
+		$movies[$id]['subs'] = array();
+		$test_movie_id[] = "t1.movie_id = $id";
+	}
+	
+	$test_movie_id = "(".implode(' || ', $test_movie_id).")";
+	
+	// titles
 
-		$db->query("select * from title where movie_id = {$movie['id']}");
-		while($row = $db->fetchRow()) $movies[$i]['titles'][] = $row['title'];
+	$db->query("select movie_id, title from title t1 where $test_movie_id");
+	while($row = $db->fetchRow()) $movies[$row['movie_id']]['titles'][] = $row['title'];
+	
+	chkerr();
+	
+	// subs
 
-		chkerr();
+	$db->query(
+		"select t1.movie_id, t1.id as ms_id, t1.name, t1.userid, t1.date, t1.notes, t1.format, t1.iso639_2, ".
+		" t2.id, t2.discs, t2.disc_no, t2.downloads ".
+		"from movie_subtitle t1 ".
+		"join subtitle t2 on t1.subtitle_id = t2.id ".
+		"where $test_movie_id ".
+		(!empty($discs)?" && discs = '$discs' ":"").
+		(!empty($isolang_sel)?" && iso639_2 = '$isolang_sel' ":"").
+		(!empty($format_sel)?" && format = '$format_sel' ":"").
+		"order by t1.date asc, t2.disc_no asc ");
+	while($row = $db->fetchRow()) $movies[$row['movie_id']]['subs'][] = $row;
+	
+	chkerr();
 
-		$movies[$i]['subs'] = array();
-
-		$db->fetchAll(
-			"select t1.id as ms_id, t1.name, t1.userid, t1.date, t1.notes, t1.format, t1.iso639_2, ".
-			" t2.id, t2.discs, t2.disc_no, t2.downloads ".
-			"from movie_subtitle t1 ".
-			"join subtitle t2 on t1.subtitle_id = t2.id ".
-			"where t1.movie_id = {$movie['id']} ".
-			(!empty($discs)?" && discs = '$discs' ":"").
-			(!empty($isolang_sel)?" && iso639_2 = '$isolang_sel' ":"").
-			(!empty($format_sel)?" && format = '$format_sel' ":"").
-			"order by t1.date asc, t2.disc_no asc ", 
-			$movies[$i]['subs']);
-			
-		chkerr();
-		
-		foreach($movies[$i]['subs'] as $j => $sub)
+	foreach($movies as $id => $movie)
+	{
+		foreach($movies[$id]['subs'] as $j => $sub)
 		{
-			$movies[$i]['updated'] = max(strtotime($sub['date']), isset($movies[$i]['updated']) ? $movies[$i]['updated'] : 0);
-			$movies[$i]['subs'][$j]['language'] = empty($isolang[$sub['iso639_2']]) ? 'Unknown' : $isolang[$sub['iso639_2']];
-			$movies[$i]['subs'][$j]['files'] = array();
+			$movies[$id]['updated'] = max(strtotime($sub['date']), isset($movies[$id]['updated']) ? $movies[$id]['updated'] : 0);
+			$movies[$id]['subs'][$j]['language'] = empty($isolang[$sub['iso639_2']]) ? 'Unknown' : $isolang[$sub['iso639_2']];
+			$movies[$id]['subs'][$j]['files'] = array();
 			
 			$userid = intval($sub['userid']);
 			
@@ -132,37 +147,37 @@ if(!empty($movies))
 			
 			if(isset($users[$userid]))
 			{
-				$movies[$i]['subs'][$j]['nick'] = $users[$userid]['nick'];
-				$movies[$i]['subs'][$j]['email'] = $users[$userid]['email'];
+				$movies[$id]['subs'][$j]['nick'] = $users[$userid]['nick'];
+				$movies[$id]['subs'][$j]['email'] = $users[$userid]['email'];
 			}
 			else
 			{
-				$movies[$i]['subs'][$j]['nick'] = 'Anonymous';
-				$movies[$i]['subs'][$j]['email'] = '';
+				$movies[$id]['subs'][$j]['nick'] = 'Anonymous';
+				$movies[$id]['subs'][$j]['email'] = '';
 			}
 
-			if($db->count("file_subtitle where subtitle_id = {$movies[$i]['subs'][$j]['id']} && file_id in (select id from file)") > 0)
+			if($db->count("file_subtitle where subtitle_id = {$movies[$id]['subs'][$j]['id']} && file_id in (select id from file)") > 0)
 			{
-				$movies[$i]['subs'][$j]['has_file'] = true;
+				$movies[$id]['subs'][$j]['has_file'] = true;
 			
 				foreach($files as $file)
 				{
 					$cnt = $db->count(
-						"file_subtitle where subtitle_id = {$movies[$i]['subs'][$j]['id']} && file_id in ".
+						"file_subtitle where subtitle_id = {$movies[$id]['subs'][$j]['id']} && file_id in ".
 						" (select id from file where hash = '{$file['hash']}' && size = '{$file['size']}') ");
 					if($cnt > 0)
 					{
-						$movies[$i]['subs'][$j]['files'][] = $file;
-						$movies[$i]['found_file'] = true;
+						$movies[$id]['subs'][$j]['files'][] = $file;
+						$movies[$id]['found_file'] = true;
 						break;
 					}
 				}
 			}
 		}
 		
-		if(empty($movies[$i]['titles']) || empty($movies[$i]['subs']))
+		if(empty($movies[$id]['titles']) || empty($movies[$id]['subs']))
 		{
-			unset($movies[$i]);
+			unset($movies[$id]);
 		}
 	}
 	
