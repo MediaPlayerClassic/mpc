@@ -1510,6 +1510,8 @@ void CRealVideoDecoder::ResizeRow(BYTE* pIn, DWORD wi, DWORD dpi, BYTE* pOut, DW
 	}
 }
 
+#include "vd/vbitmap.h"
+
 void CRealVideoDecoder::Copy(BYTE* pIn, BYTE* pOut, DWORD wi, DWORD hi)
 {
 	BITMAPINFOHEADER bihIn, bihOut;
@@ -1591,12 +1593,16 @@ void CRealVideoDecoder::Copy(BYTE* pIn, BYTE* pOut, DWORD wi, DWORD hi)
 	{
 		int pitchOut = bihOut.biWidth*bihOut.biBitCount>>3;
 
-		// TODO: color convert
-		// now we just paint it to black...
-
-		for(DWORD y = 0; y < hi; y++, pOut += pitchOut)
+		if(bihOut.biHeight > 0)
 		{
-			memset(pOut, 0, pitchOut);
+			pOut += pitchOut*(hi-1);
+			pitchOut = -pitchOut;
+		}
+
+		if(!BitBltFromI420(pOut, pitchOut, pIn, pInU, pInV, wi, hi, bihOut.biBitCount))
+		{
+			for(DWORD y = 0; y < hi; y++, pIn += pitchIn, pOut += pitchOut)
+				memset(pOut, 0, pitchOut);
 		}
 	}
 }
@@ -1695,6 +1701,14 @@ HRESULT CRealVideoDecoder::CheckInputType(const CMediaType* mtIn)
 
 HRESULT CRealVideoDecoder::CheckTransform(const CMediaType* mtIn, const CMediaType* mtOut)
 {
+	if(m_pOutput && m_pOutput->IsConnected())
+	{
+		BITMAPINFOHEADER bih1, bih2;
+		if(ExtractBIH(mtOut, &bih1) && ExtractBIH(&m_pOutput->CurrentMediaType(), &bih2)
+		&& abs(bih1.biHeight) != abs(bih2.biHeight))
+			return VFW_E_TYPE_NOT_ACCEPTED;
+	}
+
 	return mtIn->majortype == MEDIATYPE_Video && (mtIn->subtype == MEDIASUBTYPE_RV20
 												|| mtIn->subtype == MEDIASUBTYPE_RV30
 												|| mtIn->subtype == MEDIASUBTYPE_RV40)

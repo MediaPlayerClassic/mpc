@@ -4,6 +4,7 @@
 	Version="7.10"
 	Name="RealMediaSplitter"
 	ProjectGUID="{53CF9195-19DB-457D-8F55-8DB1706DFA84}"
+	RootNamespace="RealMediaSplitter"
 	Keyword="Win32Proj">
 	<Platforms>
 		<Platform
@@ -535,6 +536,131 @@
 					<Tool
 						Name="VCResourceCompilerTool"/>
 				</FileConfiguration>
+			</File>
+		</Filter>
+		<Filter
+			Name="vd"
+			Filter="">
+			<File
+				RelativePath=".\vd\a_yuv2rgb.asm">
+				<FileConfiguration
+					Name="Debug lib|Win32">
+					<Tool
+						Name="VCCustomBuildTool"
+						CommandLine="ml /c /Zi /coff /nologo /Fo&quot;$(IntDir)\$(InputName).obj&quot; $(InputPath)"
+						Outputs="&quot;$(IntDir)\$(InputName).obj&quot;"/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release lib|Win32">
+					<Tool
+						Name="VCCustomBuildTool"
+						CommandLine="ml /c /Zi /coff /nologo /Fo&quot;$(IntDir)\$(InputName).obj&quot; $(InputPath)"
+						Outputs="&quot;$(IntDir)\$(InputName).obj&quot;"/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Debug Unicode lib|Win32">
+					<Tool
+						Name="VCCustomBuildTool"
+						CommandLine="ml /c /Zi /coff /nologo /Fo&quot;$(IntDir)\$(InputName).obj&quot; $(InputPath)"
+						Outputs="&quot;$(IntDir)\$(InputName).obj&quot;"/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release Unicode lib|Win32">
+					<Tool
+						Name="VCCustomBuildTool"
+						CommandLine="ml /c /Zi /coff /nologo /Fo&quot;$(IntDir)\$(InputName).obj&quot; $(InputPath)"
+						Outputs="&quot;$(IntDir)\$(InputName).obj&quot;"/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Debug|Win32">
+					<Tool
+						Name="VCCustomBuildTool"
+						CommandLine="ml /c /Zi /coff /nologo /Fo&quot;$(IntDir)\$(InputName).obj&quot; $(InputPath)"
+						Outputs="&quot;$(IntDir)\$(InputName).obj&quot;"/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32">
+					<Tool
+						Name="VCCustomBuildTool"
+						CommandLine="ml /c /Zi /coff /nologo /Fo&quot;$(IntDir)\$(InputName).obj&quot; $(InputPath)"
+						Outputs="&quot;$(IntDir)\$(InputName).obj&quot;"/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Debug Unicode|Win32">
+					<Tool
+						Name="VCCustomBuildTool"
+						CommandLine="ml /c /Zi /coff /nologo /Fo&quot;$(IntDir)\$(InputName).obj&quot; $(InputPath)"
+						Outputs="&quot;$(IntDir)\$(InputName).obj&quot;"/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release Unicode|Win32">
+					<Tool
+						Name="VCCustomBuildTool"
+						CommandLine="ml /c /Zi /coff /nologo /Fo&quot;$(IntDir)\$(InputName).obj&quot; $(InputPath)"
+						Outputs="&quot;$(IntDir)\$(InputName).obj&quot;"/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\vd\a_yuvtable.asm">
+				<FileConfiguration
+					Name="Debug lib|Win32">
+					<Tool
+						Name="VCCustomBuildTool"
+						CommandLine="ml /c /Zi /coff /nologo /Fo&quot;$(IntDir)\$(InputName).obj&quot; $(InputPath)"
+						Outputs="&quot;$(IntDir)\$(InputName).obj&quot;"/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release lib|Win32">
+					<Tool
+						Name="VCCustomBuildTool"
+						CommandLine="ml /c /Zi /coff /nologo /Fo&quot;$(IntDir)\$(InputName).obj&quot; $(InputPath)"
+						Outputs="&quot;$(IntDir)\$(InputName).obj&quot;"/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Debug Unicode lib|Win32">
+					<Tool
+						Name="VCCustomBuildTool"
+						CommandLine="ml /c /Zi /coff /nologo /Fo&quot;$(IntDir)\$(InputName).obj&quot; $(InputPath)"
+						Outputs="&quot;$(IntDir)\$(InputName).obj&quot;"/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release Unicode lib|Win32">
+					<Tool
+						Name="VCCustomBuildTool"
+						CommandLine="ml /c /Zi /coff /nologo /Fo&quot;$(IntDir)\$(InputName).obj&quot; $(InputPath)"
+						Outputs="&quot;$(IntDir)\$(InputName).obj&quot;"/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Debug|Win32">
+					<Tool
+						Name="VCCustomBuildTool"
+						CommandLine="ml /c /Zi /coff /nologo /Fo&quot;$(IntDir)\$(InputName).obj&quot; $(InputPath)"
+						Outputs="&quot;$(IntDir)\$(InputName).obj&quot;"/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32">
+					<Tool
+						Name="VCCustomBuildTool"
+						CommandLine="ml /c /Zi /coff /nologo /Fo&quot;$(IntDir)\$(InputName).obj&quot; $(InputPath)"
+						Outputs="&quot;$(IntDir)\$(InputName).obj&quot;"/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Debug Unicode|Win32">
+					<Tool
+						Name="VCCustomBuildTool"
+						CommandLine="ml /c /Zi /coff /nologo /Fo&quot;$(IntDir)\$(InputName).obj&quot; $(InputPath)"
+						Outputs="&quot;$(IntDir)\$(InputName).obj&quot;"/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release Unicode|Win32">
+					<Tool
+						Name="VCCustomBuildTool"
+						CommandLine="ml /c /Zi /coff /nologo /Fo&quot;$(IntDir)\$(InputName).obj&quot; $(InputPath)"
+						Outputs="&quot;$(IntDir)\$(InputName).obj&quot;"/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\vd\VBitmap.cpp">
 			</File>
 		</Filter>
 	</Files>
