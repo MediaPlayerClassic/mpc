@@ -154,6 +154,15 @@
 				RelativePath=".\GSRegs.cpp">
 			</File>
 			<File
+				RelativePath=".\GSRenderer.cpp">
+			</File>
+			<File
+				RelativePath=".\GSRendererHW.cpp">
+			</File>
+			<File
+				RelativePath=".\GSRendererSoft.cpp">
+			</File>
+			<File
 				RelativePath=".\GSSettingsDlg.cpp">
 			</File>
 			<File
@@ -161,12 +170,6 @@
 			</File>
 			<File
 				RelativePath=".\GSState.cpp">
-			</File>
-			<File
-				RelativePath=".\GSStateHW.cpp">
-			</File>
-			<File
-				RelativePath=".\GSStateSoft.cpp">
 			</File>
 			<File
 				RelativePath=".\GSTextureCache.cpp">
@@ -210,6 +213,15 @@
 				RelativePath=".\GSLocalMemory.h">
 			</File>
 			<File
+				RelativePath=".\GSRenderer.h">
+			</File>
+			<File
+				RelativePath=".\GSRendererHW.h">
+			</File>
+			<File
+				RelativePath=".\GSRendererSoft.h">
+			</File>
+			<File
 				RelativePath=".\GSSettingsDlg.h">
 			</File>
 			<File
@@ -217,12 +229,6 @@
 			</File>
 			<File
 				RelativePath=".\GSState.h">
-			</File>
-			<File
-				RelativePath=".\GSStateHW.h">
-			</File>
-			<File
-				RelativePath=".\GSStateSoft.h">
 			</File>
 			<File
 				RelativePath=".\GSTextureCache.h">

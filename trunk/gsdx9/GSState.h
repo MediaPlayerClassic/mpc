@@ -192,6 +192,7 @@ protected:
 
 	GSLocalMemory m_lm;
 	GSDrawingEnvironment m_de;
+	GSDrawingContext* m_ctxt;
 	GSRegSet m_rs;
 	GSVertex m_v;
 	GSStats m_stats;

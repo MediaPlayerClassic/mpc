@@ -27,6 +27,7 @@ GSState::GSState(int w, int h, HWND hWnd, HRESULT& hr)
 	: m_hWnd(hWnd)
 	, m_fp(NULL)
 	, m_PRIM(7)
+	, m_ctxt(NULL)
 {
 	hr = E_FAIL;
 
@@ -38,6 +39,8 @@ GSState::GSState(int w, int h, HWND hWnd, HRESULT& hr)
 	m_nreg = 0;
 
 	m_fpGSirq = NULL;
+
+	m_ctxt = &m_de.CTXT[0];
 
 	for(int i = 0; i < countof(m_fpGIFPackedRegHandlers); i++)
 		m_fpGIFPackedRegHandlers[i] = &GSState::GIFPackedRegHandlerNull;
