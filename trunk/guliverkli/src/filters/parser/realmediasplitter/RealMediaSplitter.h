@@ -51,6 +51,7 @@ namespace RMFF
 		CStringA name, mime;
 		CArray<BYTE> typeSpecData;
 		UINT32 width, height;
+		bool interlaced, top_field_first;
 	} MediaProperies;
 	typedef struct {CStringA title, author, copyright, comment;} ContentDesc;
 	typedef struct {UINT64 pos; UINT32 nPackets, ptrNext;} DataChunk;

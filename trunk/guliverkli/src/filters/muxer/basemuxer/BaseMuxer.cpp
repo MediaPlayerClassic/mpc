@@ -54,6 +54,7 @@ STDMETHODIMP CBaseMuxerFilter::NonDelegatingQueryInterface(REFIID riid, void** p
 		QI(IPropertyBag2)
 		QI(IDSMPropertyBag)
 		QI(IDSMResourceBag)
+		QI(IDSMChapterBag)
 		__super::NonDelegatingQueryInterface(riid, ppv);
 }
 

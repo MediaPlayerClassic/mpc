@@ -839,43 +839,48 @@ void CConvertDlg::OnTimer(UINT nIDEvent)
 
 void CConvertDlg::OnBnClickedButton2()
 {
-	if(m_pMS)
-	{
-		LONGLONG pos = 0;
-		m_pMS->SetPositions(&pos, AM_SEEKING_AbsolutePositioning, NULL, AM_SEEKING_NoPositioning);
-	}
+	OAFilterState fs;
+	if(FAILED(m_pMC->GetState(0, &fs)))
+		return;
 
-	if(CComQIPtr<IDSMPropertyBag> pPB = m_pMux)
+	if(fs == State_Stopped)
 	{
-		pPB->SetProperty(L"APPL", L"Media Player Classic");
-	}
-
-	if(CComQIPtr<IDSMResourceBag> pRB = m_pMux)
-	{
-		pRB->ResRemoveAll(0);
-		POSITION pos = m_pTIs.GetHeadPosition();
-		while(pos)
+		if(m_pMS)
 		{
-			if(CTreeItemResource* t2 = dynamic_cast<CTreeItemResource*>((CTreeItem*)m_pTIs.GetNext(pos)))
-				pRB->ResAppend(
-					t2->m_res.name, t2->m_res.desc, t2->m_res.mime, 
-					t2->m_res.data.GetData(), t2->m_res.data.GetSize(), 
-					NULL);
-		}		
-	}
+			LONGLONG pos = 0;
+			m_pMS->SetPositions(&pos, AM_SEEKING_AbsolutePositioning, NULL, AM_SEEKING_NoPositioning);
+		}
 
-	if(CComQIPtr<IDSMChapterBag> pCB = m_pMux)
-	{
-		pCB->ChapRemoveAll();
-		POSITION pos = m_pTIs.GetHeadPosition();
-		while(pos)
+		if(CComQIPtr<IDSMPropertyBag> pPB = m_pMux)
 		{
-			if(CTreeItemChapter* t2 = dynamic_cast<CTreeItemChapter*>((CTreeItem*)m_pTIs.GetNext(pos)))
-				pCB->ChapAppend(t2->m_chap.rt, t2->m_chap.name);
-		}		
-	}
+			pPB->SetProperty(L"APPL", L"Media Player Classic");
+		}
 
-	// TODO: chapters
+		if(CComQIPtr<IDSMResourceBag> pRB = m_pMux)
+		{
+			pRB->ResRemoveAll(0);
+			POSITION pos = m_pTIs.GetHeadPosition();
+			while(pos)
+			{
+				if(CTreeItemResource* t2 = dynamic_cast<CTreeItemResource*>((CTreeItem*)m_pTIs.GetNext(pos)))
+					pRB->ResAppend(
+						t2->m_res.name, t2->m_res.desc, t2->m_res.mime, 
+						t2->m_res.data.GetData(), t2->m_res.data.GetSize(), 
+						NULL);
+			}		
+		}
+
+		if(CComQIPtr<IDSMChapterBag> pCB = m_pMux)
+		{
+			pCB->ChapRemoveAll();
+			POSITION pos = m_pTIs.GetHeadPosition();
+			while(pos)
+			{
+				if(CTreeItemChapter* t2 = dynamic_cast<CTreeItemChapter*>((CTreeItem*)m_pTIs.GetNext(pos)))
+					pCB->ChapAppend(t2->m_chap.rt, t2->m_chap.name);
+			}		
+		}
+	}
 
 	if(m_pMC) 
 	{
