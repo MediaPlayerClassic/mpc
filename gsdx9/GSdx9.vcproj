@@ -295,6 +295,9 @@
 				RelativePath=".\GSRendererHW.cpp">
 			</File>
 			<File
+				RelativePath=".\GSRendererNull.cpp">
+			</File>
+			<File
 				RelativePath=".\GSRendererSoft.cpp">
 			</File>
 			<File
@@ -364,6 +367,9 @@
 			</File>
 			<File
 				RelativePath=".\GSRendererHW.h">
+			</File>
+			<File
+				RelativePath=".\GSRendererNull.h">
 			</File>
 			<File
 				RelativePath=".\GSRendererSoft.h">

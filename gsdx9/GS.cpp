@@ -20,9 +20,11 @@
  */
 
 #include "stdafx.h"
+#include "GSdx9.h"
 #include "GS.h"
 #include "GSRendererHW.h"
 #include "GSRendererSoft.h"
+#include "GSRendererNull.h"
 #include "GSWnd.h"
 #include "GSSettingsDlg.h"
 
@@ -75,9 +77,16 @@ EXPORT_C_(INT32) GSopen(void* pDsp, char* Title)
 		return -1;
 
 	HRESULT hr;
-	s_gs.Attach(!!AfxGetApp()->GetProfileInt(_T("Settings"), _T("SoftRenderer"), FALSE)
-		? (GSState*)new GSRendererSoftFX(s_hWnd, hr)
-		: (GSState*)new GSRendererHW(s_hWnd, hr));
+
+	switch(AfxGetApp()->GetProfileInt(_T("Settings"), _T("Renderer"), RENDERER_D3D_HW))
+	{
+	default:
+	case RENDERER_D3D_HW: s_gs.Attach(new GSRendererHW(s_hWnd, hr)); break;
+	case RENDERER_D3D_SW_FX: s_gs.Attach(new GSRendererSoftFX(s_hWnd, hr)); break;
+	case RENDERER_D3D_SW_FP: s_gs.Attach(new GSRendererSoftFP(s_hWnd, hr)); break;
+	case RENDERER_D3D_NULL: s_gs.Attach(new GSRendererNull(s_hWnd, hr)); break;
+	}
+
 	if(!s_gs || FAILED(hr))
 	{
 		s_gs.Free();

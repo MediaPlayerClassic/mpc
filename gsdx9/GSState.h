@@ -250,7 +250,7 @@ protected:
 
 	virtual void Reset();
 	virtual void VertexKick(bool fSkip) = 0;
-	virtual void DrawingKick(bool fSkip) = 0;
+	virtual int DrawingKick(bool fSkip) = 0;
 	virtual void NewPrim() = 0;
 	virtual void FlushPrim() = 0;
 	virtual void Flip() = 0;
@@ -353,9 +353,6 @@ protected:
 public:
 	GSState(int w, int h, HWND hWnd, HRESULT& hr);
 	virtual ~GSState();
-
-	BOOL m_fDisableShaders;
-	BOOL m_fHalfVRes;
 
 	UINT32 Freeze(freezeData* fd);
 	UINT32 Defrost(const freezeData* fd);

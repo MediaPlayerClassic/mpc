@@ -50,21 +50,10 @@ void GSRendererSoft<VERTEX>::Reset()
 }
 
 template <class VERTEX>
-void GSRendererSoft<VERTEX>::DrawingKick(bool fSkip)
+int GSRendererSoft<VERTEX>::DrawingKick(bool fSkip)
 {
-	LOG((_T("DrawingKick %d\n"), m_de.PRIM.PRIM));
-
-	if(m_PRIM != m_de.PRIM.PRIM && m_nVertices > 0) FlushPrim();
-	m_PRIM = m_de.PRIM.PRIM;
-
 	VERTEX* pVertices = &m_pVertices[m_nVertices];
 	int nVertices = 0;
-
-	LOG2((_T("Prim %05x %05x %04x\n"), 
-		m_ctxt->FRAME.Block(), m_de.PRIM.TME ? (UINT32)m_ctxt->TEX0.TBP0 : 0xfffff,
-		(m_de.PRIM.ABE || (m_PRIM == 1 || m_PRIM == 2) && m_de.PRIM.AA1)
-			? ((m_ctxt->ALPHA.A<<12)|(m_ctxt->ALPHA.B<<8)|(m_ctxt->ALPHA.C<<4)|m_ctxt->ALPHA.D) 
-			: 0xffff));
 
 	switch(m_PRIM)
 	{
@@ -141,7 +130,7 @@ void GSRendererSoft<VERTEX>::DrawingKick(bool fSkip)
 		break;
 	default:
 		ASSERT(0);
-		return;
+		return 0;
 	}
 
 	if(fSkip || !m_rs.IsEnabled(0) && !m_rs.IsEnabled(1))
@@ -149,13 +138,13 @@ void GSRendererSoft<VERTEX>::DrawingKick(bool fSkip)
 #ifdef ENABLE_STRIPFAN
 		FlushPrim();
 #endif
-		return;
+		return 0;
 	}
-
-	m_nVertices += nVertices;
 
 	if(!m_de.PRIM.IIP)
 		memcpy(&pVertices[0], &pVertices[nVertices-1], sizeof(DWORD)*4); // copy RGBA-only
+
+	return nVertices;
 }
 
 template <class VERTEX>
@@ -749,7 +738,7 @@ void GSRendererSoftFP::DrawLine(GSSoftVertex* v)
 
 	for(int steps = abs(start - end); steps > 0; steps--, edge += dedge)
 	{
-		CPoint p(edge.x, edge.y);
+		CPoint p((int)edge.x, (int)edge.y);
 		if(m_scissor.PtInRect(p))
 			DrawVertex(p.x, p.y, edge);
 	}

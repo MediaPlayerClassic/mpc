@@ -45,8 +45,6 @@ GSState::GSState(int w, int h, HWND hWnd, HRESULT& hr)
 	AFX_MANAGE_STATE(AfxGetStaticModuleState());
 
     CWinApp* pApp = AfxGetApp();
-	m_fDisableShaders = !!pApp->GetProfileInt(_T("Settings"), _T("DisableShaders"), FALSE);
-	m_fHalfVRes = !!pApp->GetProfileInt(_T("Settings"), _T("HalfVRes"), FALSE);
 
 	memset(&m_tag, 0, sizeof(m_tag));
 	m_nreg = 0;
@@ -155,11 +153,19 @@ GSState::GSState(int w, int h, HWND hWnd, HRESULT& hr)
 	d3dpp.BackBufferWidth = w;
 	d3dpp.BackBufferHeight = h;
 //	d3dpp.Flags = D3DPRESENTFLAG_LOCKABLE_BACKBUFFER;
-/*
-d3dpp.Windowed = FALSE;
-d3dpp.BackBufferWidth = 1024;
-d3dpp.BackBufferHeight = 768;
-*/
+
+	int ModeWidth = pApp->GetProfileInt(_T("Settings"), _T("ModeWidth"), 0);
+	int ModeHeight = pApp->GetProfileInt(_T("Settings"), _T("ModeHeight"), 0);
+	int ModeRefreshRate = pApp->GetProfileInt(_T("Settings"), _T("ModeRefreshRate"), 0);
+
+	if(ModeWidth > 0 && ModeHeight > 0 && ModeRefreshRate >= 0)
+	{
+		d3dpp.Windowed = FALSE;
+		d3dpp.BackBufferWidth = ModeWidth;
+		d3dpp.BackBufferHeight = ModeHeight;
+		d3dpp.FullScreen_RefreshRateInHz = ModeRefreshRate;
+	}
+
 	if(FAILED(m_pD3D->CreateDevice(D3DADAPTER_DEFAULT, /*D3DDEVTYPE_REF*/D3DDEVTYPE_HAL, hWnd,
 		m_caps.VertexProcessingCaps ? D3DCREATE_HARDWARE_VERTEXPROCESSING : D3DCREATE_SOFTWARE_VERTEXPROCESSING, 
 		&d3dpp, &m_pD3DDev)))
@@ -189,9 +195,12 @@ d3dpp.BackBufferHeight = 768;
 
 	HMODULE hModule = AfxGetResourceHandle();
 
+	DWORD PixelShaderVersion = pApp->GetProfileInt(_T("Settings"), _T("PixelShaderVersion"), D3DVS_VERSION(2, 0));
+	m_caps.PixelShaderVersion = min(PixelShaderVersion, m_caps.PixelShaderVersion);
+
 	// ps_2_0
 
-	if(!m_fDisableShaders && m_caps.PixelShaderVersion >= D3DVS_VERSION(2, 0))
+	if(m_caps.PixelShaderVersion >= D3DVS_VERSION(2, 0))
 	{
 		for(int i = 0; i < 5; i++)
 		{
@@ -228,7 +237,7 @@ d3dpp.BackBufferHeight = 768;
 
 	// ps_1_1
 
-	if(!m_fDisableShaders && m_caps.PixelShaderVersion >= D3DVS_VERSION(1, 1))
+	if(m_caps.PixelShaderVersion >= D3DVS_VERSION(1, 1))
 	{
 		static const UINT nShaderIDs[] = 
 		{
@@ -253,9 +262,6 @@ d3dpp.BackBufferHeight = 768;
 			}
 		}
 	}
-
-//m_caps.PixelShaderVersion = D3DVS_VERSION(1, 1);
-//m_caps.PixelShaderVersion = D3DVS_VERSION(0, 0);
 
 	hr = S_OK;
 
@@ -796,12 +802,12 @@ void GSState::FinishFlip(FlipSrc rt[2], bool fShiftField)
 
 	CComPtr<IDirect3DPixelShader9> pPixelShader;
 
-	if(!pPixelShader && !m_fDisableShaders && m_caps.PixelShaderVersion >= D3DVS_VERSION(2, 0))
+	if(!pPixelShader && m_caps.PixelShaderVersion >= D3DVS_VERSION(2, 0))
 	{
 		pPixelShader = m_pPixelShaderMerge[PS_M32];
 	}
 
-	if(!pPixelShader && !m_fDisableShaders && m_caps.PixelShaderVersion >= D3DVS_VERSION(1, 1))
+	if(!pPixelShader && m_caps.PixelShaderVersion >= D3DVS_VERSION(1, 1))
 	{
 		if(fEN[0] && fEN[1]) // RAO1 + RAO2
 		{

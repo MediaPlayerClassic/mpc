@@ -127,21 +127,10 @@ void GSRendererHW::VertexKick(bool fSkip)
 	__super::VertexKick(fSkip);
 }
 
-void GSRendererHW::DrawingKick(bool fSkip)
+int GSRendererHW::DrawingKick(bool fSkip)
 {
-	LOG((_T("DrawingKick %d\n"), m_de.PRIM.PRIM));
-
-	if(m_PRIM != m_de.PRIM.PRIM && m_nVertices > 0) FlushPrim();
-	m_PRIM = m_de.PRIM.PRIM;
-
 	HWVERTEX* pVertices = &m_pVertices[m_nVertices];
 	int nVertices = 0;
-
-	LOG2((_T("Prim %05x %05x %04x\n"), 
-		m_ctxt->FRAME.Block(), m_de.PRIM.TME ? (UINT32)m_ctxt->TEX0.TBP0 : 0xfffff,
-		(m_de.PRIM.ABE || (m_PRIM == 1 || m_PRIM == 2) && m_de.PRIM.AA1)
-			? ((m_ctxt->ALPHA.A<<12)|(m_ctxt->ALPHA.B<<8)|(m_ctxt->ALPHA.C<<4)|m_ctxt->ALPHA.D) 
-			: 0xffff));
 
 	switch(m_PRIM)
 	{
@@ -216,7 +205,7 @@ void GSRendererHW::DrawingKick(bool fSkip)
 	default:
 		ASSERT(0);
 		m_vl.RemoveAll();
-		return;
+		return 0;
 	}
 
 	if(fSkip || !m_rs.IsEnabled(0) && !m_rs.IsEnabled(1))
@@ -224,10 +213,8 @@ void GSRendererHW::DrawingKick(bool fSkip)
 #ifdef ENABLE_STRIPFAN
 		FlushPrim();
 #endif
-		return;
+		return 0;
 	}
-
-	m_nVertices += nVertices;
 
 	if(!m_de.PRIM.IIP)
 	{
@@ -236,13 +223,8 @@ void GSRendererHW::DrawingKick(bool fSkip)
 		/*for(int i = nVertices-1; i > 0; i--)
 			pVertices[i-1].color = pVertices[i].color;*/
 	}
-/*
-	if(::GetAsyncKeyState(VK_SPACE)&0x80000000)
-	{
-		FlushPrim();
-		Flip();
-	}
-*/
+
+	return nVertices;
 }
 
 void GSRendererHW::FlushPrim()
@@ -273,7 +255,7 @@ void GSRendererHW::FlushPrim()
 		hr = m_pD3DDev->BeginScene();
 
 		scale_t scale((float)INTERNALRES / (m_ctxt->FRAME.FBW*64), (float)INTERNALRES / m_rs.GetSize(m_rs.IsEnabled(1)?1:0).cy);
-		if(m_fHalfVRes) scale.y /= 2;
+		// if(m_fHalfVRes) scale.y /= 2;
 
 		//////////////////////
 
@@ -749,11 +731,47 @@ void GSRendererHW::CalcRegionToUpdate(int& tw, int& th)
 	if(m_ctxt->CLAMP.WMS < 3 && m_ctxt->CLAMP.WMT < 3)
 	{
 		float tumin, tvmin, tumax, tvmax;
+
 		tumin = tvmin = +1e10;
 		tumax = tvmax = -1e10;
 
 		HWVERTEX* pVertices = m_pVertices;
-		for(int i = m_nVertices; i-- > 0; pVertices++)
+		int nVertices = m_nVertices;
+
+#if _M_IX86_FP >= 2
+		__asm
+		{
+			mov			esi, pVertices
+			mov			ecx, nVertices
+
+			movss		xmm6, tumin
+			pshufd      xmm6, xmm6, 0
+
+			movss		xmm7, tumax
+			pshufd      xmm7, xmm7, 0
+
+			add			esi, 16
+CalcRegionToUpdate_loop:
+
+			movaps		xmm0, [esi]
+			minps		xmm6, xmm0
+			maxps		xmm7, xmm0
+			lea			esi, [esi+32]
+
+			loop		CalcRegionToUpdate_loop
+
+			movhlps		xmm6, xmm6
+			movss		tumin, xmm6
+			pshufd		xmm6, xmm6, 0x55
+			movss		tvmin, xmm6
+
+			movhlps		xmm7, xmm7
+			movss		tumax, xmm7
+			pshufd		xmm7, xmm7, 0x55
+			movss		tvmax, xmm7
+		}
+#else
+		for(; nVertices-- > 0; pVertices++)
 		{
 			float tu = pVertices->tu;
 			if(tumax < tu) tumax = tu;
@@ -762,6 +780,7 @@ void GSRendererHW::CalcRegionToUpdate(int& tw, int& th)
 			if(tvmax < tv) tvmax = tv;
 			if(tvmin > tv) tvmin = tv;
 		}
+#endif
 
 		if(m_ctxt->CLAMP.WMS == 0)
 		{
@@ -959,12 +978,12 @@ void GSRendererHW::SetupTexture(const GSTexture& t)
 		hr = m_pD3DDev->SetSamplerState(0, D3DSAMP_ADDRESSU, u);
 		hr = m_pD3DDev->SetSamplerState(0, D3DSAMP_ADDRESSV, v);
 
-		if(!pPixelShader && !m_fDisableShaders && m_caps.PixelShaderVersion >= D3DVS_VERSION(2, 0))
+		if(!pPixelShader && m_caps.PixelShaderVersion >= D3DVS_VERSION(2, 0))
 		{
 			pPixelShader = m_pPixelShaderTFX[m_ctxt->TEX0.TFX];
 		}
 
-		if(!pPixelShader && !m_fDisableShaders && m_caps.PixelShaderVersion >= D3DVS_VERSION(1, 1))
+		if(!pPixelShader && m_caps.PixelShaderVersion >= D3DVS_VERSION(1, 1))
 		{
 			switch(m_ctxt->TEX0.TFX)
 			{
@@ -1077,12 +1096,12 @@ void GSRendererHW::SetupTexture(const GSTexture& t)
 	{
 		hr = m_pD3DDev->SetTexture(0, NULL);
 
-		if(!pPixelShader && !m_fDisableShaders && m_caps.PixelShaderVersion >= D3DVS_VERSION(2, 0))
+		if(!pPixelShader && m_caps.PixelShaderVersion >= D3DVS_VERSION(2, 0))
 		{
 			pPixelShader = m_pPixelShaderTFX[4];
 		}
 
-		if(!pPixelShader && !m_fDisableShaders && m_caps.PixelShaderVersion >= D3DVS_VERSION(1, 1))
+		if(!pPixelShader && m_caps.PixelShaderVersion >= D3DVS_VERSION(1, 1))
 		{
 			pPixelShader = m_pPixelShaders[11];
 		}

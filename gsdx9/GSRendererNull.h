@@ -21,34 +21,21 @@
 
 #pragma once
 
-#ifndef __AFXWIN_H__
-	#error include 'stdafx.h' before including this file for PCH
-#endif
+#include "GSRenderer.h"
 
-#include "resource.h"		// main symbols
+#pragma pack(push, 1)
+struct NULLVERTEX {/*DWORD dummy;*/};
+#pragma pack(pop)
 
-
-// CGSdx9App
-// See GSdx9.cpp for the implementation of this class
-//
-
-class CGSdx9App : public CWinApp
+class GSRendererNull : public GSRenderer<NULLVERTEX>
 {
+protected:
+	void VertexKick(bool fSkip);
+	int DrawingKick(bool fSkip);
+	void Flip();
+	void EndFrame();
+
 public:
-	CGSdx9App();
-
-// Overrides
-public:
-	virtual BOOL InitInstance();
-
-	DECLARE_MESSAGE_MAP()
+	GSRendererNull(HWND hWnd, HRESULT& hr);
+	~GSRendererNull();
 };
-
-enum
-{
-	RENDERER_D3D_NULL, 
-	RENDERER_D3D_SW_FX, 
-	RENDERER_D3D_SW_FP, 
-	RENDERER_D3D_HW
-};
-
