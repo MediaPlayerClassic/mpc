@@ -9,16 +9,16 @@
 	<table>
 	<tr>
 		<th>Title</th>
-		<td><input class="text" type="text" name="text" value="{$text|escape:"quote"}" /></td>
+		<td><input class="text blueborder" type="text" name="text" value="{$text|escape:"quote"}" /></td>
 	</tr>
 	<tr>
 		<th>Disc(s)</th>
-		<td><input type="text" name="discs" {if !empty($discs)}value="{$discs|escape:"quote"}"{/if} size="1" /></td>
+		<td><input class="blueborder" type="text" name="discs" {if !empty($discs)}value="{$discs|escape:"quote"}"{/if} size="1" /></td>
 	</tr>
 	<tr>
 		<th>Language</th>
 		<td>
-		<select name="isolang">
+		<select class="blueborder" name="isolang">
 		<option value=""{if $isolang_sel == ""} selected="selected"{/if}>Please select a language...</option>
 		{foreach from=$isolang key=code item=name}
 		<option value="{$code}"{if $code == $isolang_sel} selected="selected"{/if}>{$name|truncate:40:"...":true|escape:"html"}</option>
