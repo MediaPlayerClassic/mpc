@@ -52,6 +52,36 @@ BEGIN_MESSAGE_MAP(CSubtitleDlDlg, CResizableDialog)
 END_MESSAGE_MAP()
 
 
+static CString htmldecode(CStringA str)
+{
+	CString ret;
+
+	LPCSTR s = str, e = s + str.GetLength();
+
+	while(s < e)
+	{
+		if(*s == '&' && *(s+1) == '#')
+		{
+			char* tmp = NULL;
+			long n = strtol(s+2, &tmp, 10);
+			if(*tmp == ';')
+			{
+#ifdef UNICODE
+                ret += (WCHAR)n;
+#else
+				ret += n < 256 ? (CHAR)n : '?';
+#endif
+				s = tmp+1;
+				continue;
+			}
+		}
+
+		ret += *s++;
+	}
+
+	return ret;
+}
+
 // CSubtitleDlDlg message handlers
 
 BOOL CSubtitleDlDlg::OnInitDialog()
@@ -69,10 +99,11 @@ BOOL CSubtitleDlDlg::OnInitDialog()
 
 	m_list.SetExtendedStyle(m_list.GetExtendedStyle()|LVS_EX_FULLROWSELECT);
 
-	m_list.InsertColumn(COL_FILENAME, _T("File"), LVCFMT_LEFT, 300);
-	m_list.InsertColumn(COL_LANGUAGE, _T("Language"), LVCFMT_CENTER, 120);
+	m_list.InsertColumn(COL_FILENAME, _T("File"), LVCFMT_LEFT, 160);
+	m_list.InsertColumn(COL_LANGUAGE, _T("Language"), LVCFMT_CENTER, 80);
 	m_list.InsertColumn(COL_FORMAT, _T("Format"), LVCFMT_CENTER, 50);
 	m_list.InsertColumn(COL_DISC, _T("Disc"), LVCFMT_CENTER, 50);
+	m_list.InsertColumn(COL_TITLES, _T("Title(s)"), LVCFMT_LEFT, 300);	
 
 	m_onoff.Create(IDB_ONOFF, 12, 3, 0xffffff);
 	m_list.SetImageList(&m_onoff, LVSIL_SMALL);
@@ -85,15 +116,19 @@ BOOL CSubtitleDlDlg::OnInitDialog()
 	{
 		isdb_movie& m = m_movies.GetNext(pos);
 
+		CStringA titlesA = Implode(m.titles, '|');
+		titlesA.Replace("|", ", ");
+		CString titles = UTF8To16(titlesA);
+
 		POSITION pos2 = m.subs.GetHeadPosition();
 		while(pos2)
 		{
 			isdb_subtitle& s = m.subs.GetNext(pos2);
-			CString name = s.name; // TODO: convert html escaped text to normal text
+			CString name = UTF8To16(s.name);
 			CString language = s.language;
 			CString format = s.format;
 			CString disc;
-			disc.Format(_T("%d / %d"), s.disc_no, s.discs);
+			disc.Format(_T("%d/%d"), s.disc_no, s.discs);
 
 			int iItem = m_list.InsertItem(i++, _T(""));
 			m_list.SetItemData(iItem, (DWORD_PTR)&s);
@@ -101,6 +136,7 @@ BOOL CSubtitleDlDlg::OnInitDialog()
 			m_list.SetItemText(iItem, COL_LANGUAGE, language);
 			m_list.SetItemText(iItem, COL_FORMAT, format);
 			m_list.SetItemText(iItem, COL_DISC, disc);
+			m_list.SetItemText(iItem, COL_TITLES, titles);
 		}
 	}
 

@@ -12,7 +12,7 @@ class CSubtitleDlDlg : public CResizableDialog
 private:
 	CList<isdb_movie> m_movies;
 
-	enum {COL_FILENAME, COL_LANGUAGE, COL_FORMAT, COL_DISC};
+	enum {COL_FILENAME, COL_LANGUAGE, COL_FORMAT, COL_DISC, COL_TITLES};
 
 	CImageList m_onoff;
 	int GetChecked(int iItem);

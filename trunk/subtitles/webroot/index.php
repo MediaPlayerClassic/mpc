@@ -89,7 +89,7 @@ if(!empty($movies))
 			(!empty($discs)?" && discs = '$discs' ":"").
 			"order by t2.date desc, t2.disc_no asc ", 
 			$movies[$i]['subs']);
-
+			
 		chkerr();
 
 		foreach($movies[$i]['subs'] as $j => $sub)
@@ -152,7 +152,7 @@ $smarty->assign('ticket', $_SESSION['ticket'] = rand(1, 10000000)); // ;)
 if(!empty($_REQUEST['player']))
 {
 	$smarty->assign('player', $_REQUEST['player']);
-	$smarty->display('index.tpl');
+	$smarty->display('index.player.tpl');
 	exit;
 }
 
