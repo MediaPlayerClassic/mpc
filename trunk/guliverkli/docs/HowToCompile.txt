@@ -4,7 +4,7 @@ Because Visual Studio becomes a turtle when there are many little projects, I di
 3. ui (run \lib\ui.bat to merge them)
 4. subpic
 5. subtitles
-6. filters (run \lib\filters.bat to merge them)
+6. filters
 
 Required SDKs:
 - DirectX 9 SDK (you may need to add "Debug Unicode" and "Release Unicode" configs to the project file of the directshow baseclasses)
