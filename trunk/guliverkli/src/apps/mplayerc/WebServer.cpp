@@ -207,7 +207,17 @@ void CWebServer::OnAccept(CWebServerSocket* pServer)
 {
 	CAutoPtr<CWebClientSocket> p(new CWebClientSocket(this, m_pMainFrame));
 	if(pServer->Accept(*p))
+	{
+		CString name;
+		UINT port;
+		if(AfxGetAppSettings().fWebServerLocalhostOnly && p->GetPeerName(name, port) && name != _T("127.0.0.1"))
+		{
+			p->Close();
+			return;
+		}
+
 		m_clients.AddTail(p);
+	}
 }
 
 void CWebServer::OnClose(CWebClientSocket* pClient)

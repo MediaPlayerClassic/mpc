@@ -574,7 +574,7 @@ void CConvertDlg::ShowChapterFolderPopup(HTREEITEM hTI, CPoint p)
 	case 1:
 		{
 			CDSMChapter chap;
-			CTreeItemChapter* t = new CTreeItemChapter(CDSMChapter(0, _T("")), m_tree, hTI);
+			CTreeItemChapter* t = new CTreeItemChapter(CDSMChapter(0, L""), m_tree, hTI);
 			m_pTIs.AddTail(t);
 			if(!EditChapter(t)) 
 				DeleteItem(*t);

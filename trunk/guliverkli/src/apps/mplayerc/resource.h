@@ -368,6 +368,7 @@
 #define IDS_RS_POW2TEX                  621
 #define IDS_R_INTERNAL_FILTERS          622
 #define IDS_RS_WEBROOT                  623
+#define IDS_RS_WEBSERVERLOCALHOSTONLY	624
 #define IDC_BROWSEBUTTON                1016
 #define IDC_BROWSEBUTTON2               1017
 #define IDC_COMBO1                      1018
@@ -578,6 +579,8 @@
 #define IDC_CHECK_SPCPOW2TEX            1162
 #define IDC_TREE1                       1163
 #define IDC_HLINE                       1164
+#define IDS_SRC_DSM                     1165
+#define IDS_SRC_MPA                     1166
 #define IDD_COMPROPERTYPAGE             10002
 #define IDD_FILEPROPCLIP1               10003
 #define IDD_FILEPROPRES                 10003
@@ -696,7 +699,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        407
 #define _APS_NEXT_COMMAND_VALUE         32855
-#define _APS_NEXT_CONTROL_VALUE         1166
+#define _APS_NEXT_CONTROL_VALUE         1167
 #define _APS_NEXT_SYMED_VALUE           10003
 #endif
 #endif

@@ -109,7 +109,7 @@ HRESULT CMatroskaFile::Parse(CMatroskaNode* pMN0)
 {
 	BeginChunk
 	case 0x1A45DFA3: m_ebml.Parse(pMN); break;
-	case 0x18538067: m_segment.ParseMinimal(pMN); break;
+	case 0x18538067: if(m_segment.SegmentInfo.SegmentUID.IsEmpty()) m_segment.ParseMinimal(pMN); break;
 	EndChunk
 }
 
@@ -149,6 +149,7 @@ HRESULT Segment::ParseMinimal(CMatroskaNode* pMN0)
 	CheckPointer(pMN0, E_POINTER);
 
 	pos = pMN0->GetPos();
+	len = pMN0->m_len;
 
 	CAutoPtr<CMatroskaNode> pMN = pMN0->Child();
 	if(!pMN) return S_FALSE;

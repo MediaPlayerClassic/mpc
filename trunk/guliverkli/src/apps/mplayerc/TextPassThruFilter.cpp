@@ -37,10 +37,23 @@
 class CTextPassThruInputPin : public CSubtitleInputPin
 {
 	CTextPassThruFilter* m_pTPTFilter;
+	CComPtr<ISubStream> m_pSubStreamOld;
 
 protected:
-	void AddSubStream(ISubStream* pSubStream) {}
-	void RemoveSubStream(ISubStream* pSubStream) {}
+	void AddSubStream(ISubStream* pSubStream)
+	{
+		if(m_pSubStreamOld)
+		{
+			if(pSubStream) m_pTPTFilter->m_pMainFrame->ReplaceSubtitle(m_pSubStreamOld, pSubStream);
+			m_pSubStreamOld = NULL;
+		}
+	}
+
+	void RemoveSubStream(ISubStream* pSubStream)
+	{
+		m_pSubStreamOld = pSubStream;
+	}
+
 	void InvalidateSubtitle(REFERENCE_TIME rtStart, ISubStream* pSubStream)
 	{
 		m_pTPTFilter->m_pMainFrame->InvalidateSubtitle((DWORD_PTR)pSubStream, rtStart);

@@ -20,49 +20,41 @@
  */
 
 #pragma once
-
+#include "afxwin.h"
+#include "afxcmn.h"
+#include "..\..\DSUtil\DSMPropertyBag.h"
 #include "PPageBase.h"
-#include "FloatEdit.h"
-#include "StaticLink.h"
 
-// CPPageWebServer dialog
+// CPPageFileInfoRes dialog
 
-class CPPageWebServer : public CPPageBase
+class CPPageFileInfoRes : public CPPageBase
 {
-	DECLARE_DYNAMIC(CPPageWebServer)
+	DECLARE_DYNAMIC(CPPageFileInfoRes)
 
 private:
-	CString GetMPCDir();
-	CString GetCurWebRoot();
-	bool PickDir(CString& dir);
+	CComPtr<IFilterGraph> m_pFG;
+	HICON m_hIcon;
+	CList<CDSMResource> m_res;
 
 public:
-	CPPageWebServer();
-	virtual ~CPPageWebServer();
+	CPPageFileInfoRes(CString fn, IFilterGraph* pFG);   // standard constructor
+	virtual ~CPPageFileInfoRes();
 
 // Dialog Data
-	enum { IDD = IDD_PPAGEWEBSERVER };
-	BOOL m_fEnableWebServer;
-	int m_nWebServerPort;
-	CIntEdit m_nWebServerPortCtrl;
-	CStaticLink m_launch;
-	BOOL m_fWebServerPrintDebugInfo;
-	BOOL m_fWebServerUseCompression;
-	BOOL m_fWebServerLocalhostOnly;
-	BOOL m_fWebRoot;
-	CString m_WebRoot;
+	enum { IDD = IDD_FILEPROPRES };
+
+	CStatic m_icon;
+	CString m_fn;
+	CListCtrl m_list;
 
 protected:
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV support
 	virtual BOOL OnInitDialog();
-	virtual BOOL OnApply();
-	virtual BOOL PreTranslateMessage(MSG* pMsg);
 
 	DECLARE_MESSAGE_MAP()
 
 public:
-	afx_msg void OnEnChangeEdit1();
-	afx_msg void OnBnClickedButton1();
-	afx_msg void OnBnClickedButton2();
-	afx_msg void OnUpdateButton2(CCmdUI* pCmdUI);
+	afx_msg void OnSaveAs();
+	afx_msg void OnUpdateSaveAs(CCmdUI* pCmdUI);
+	afx_msg void OnNMDblclkList1(NMHDR *pNMHDR, LRESULT *pResult);
 };
