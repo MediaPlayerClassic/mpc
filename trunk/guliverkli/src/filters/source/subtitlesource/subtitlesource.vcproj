@@ -3,7 +3,7 @@
 	ProjectType="Visual C++"
 	Version="7.10"
 	Name="subtitlesource"
-	ProjectGUID="{8F998497-9C51-4faa-83E4-1D85B22CBA13}"
+	ProjectGUID="{8F998497-9C51-4FAA-83E4-1D85B22CBA13}"
 	Keyword="Win32Proj">
 	<Platforms>
 		<Platform

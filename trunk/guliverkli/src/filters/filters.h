@@ -23,6 +23,7 @@
 #include ".\source\DTSAC3Source\DTSAC3Source.h"
 #include ".\source\FLICSource\FLICSource.h"
 #include ".\source\ShoutcastSource\ShoutcastSource.h"
+#include ".\source\SubtitleSource\SubtitleSource.h"
 #include ".\switcher\AudioSwitcher\AudioSwitcher.h"
 #include ".\transform\avi2ac3filter\AVI2AC3Filter.h"
 #include ".\transform\BufferFilter\BufferFilter.h"
