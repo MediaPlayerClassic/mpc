@@ -42,6 +42,8 @@ void CMacrovisionKicker::SetInner(CComPtr<IUnknown> pUnk)
 
 STDMETHODIMP CMacrovisionKicker::NonDelegatingQueryInterface(REFIID riid, void** ppv)
 {
+	if(riid == __uuidof(IUnknown))
+		return __super::NonDelegatingQueryInterface(riid, ppv);
 	if(riid == __uuidof(IKsPropertySet) && CComQIPtr<IKsPropertySet>(m_pInner))
 		return GetInterface((IKsPropertySet*)this, ppv);
 	if(riid == __uuidof(IAMVideoAccelerator) && CComQIPtr<IAMVideoAccelerator>(m_pInner))

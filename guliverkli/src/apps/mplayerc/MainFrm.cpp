@@ -6815,12 +6815,12 @@ void CMainFrame::SetSubtitle(ISubStream* pSubStream, bool fApplyDefStyle)
 	}
 }
 
-void CMainFrame::InvalidateSubtitle(__int64 start, DWORD_PTR nSubtitleId)
+void CMainFrame::InvalidateSubtitle(DWORD_PTR nSubtitleId, REFERENCE_TIME rtInvalidate)
 {
 	if(m_pCAP)
 	{
 		if(nSubtitleId == -1 || nSubtitleId == m_nSubtitleId)
-			m_pCAP->Invalidate();
+			m_pCAP->Invalidate(rtInvalidate);
 	}
 }
 

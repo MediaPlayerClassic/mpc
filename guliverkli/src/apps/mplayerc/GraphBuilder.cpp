@@ -194,7 +194,7 @@ CGraphBuilder::CGraphBuilder(IGraphBuilder* pGB, HWND hWnd)
 	}
 
 	// FIXME: "Subtitle Mixer" makes an access violation around 
-	// the 11-12th media type when enumerating them on it's output.
+	// the 11-12th media type when enumerating them on its output.
 	CLSID CLSID_SubtitlerMixer = GUIDFromCString(_T("{00A95963-3BE5-48C0-AD9F-3356D67EA09D}"));
 	AddFilter(new CGraphRegFilter(CLSID_SubtitlerMixer, LMERIT(MERIT_DO_NOT_USE)));
 }
@@ -659,7 +659,7 @@ HRESULT CGraphBuilder::Render(IPin* pPin)
 			{
 				if(*(DWORD*)buff == 'SggO') guids[1] = MEDIASUBTYPE_Ogg;
 				// TODO: add more recognized types for defective parser filters which 
-				// are unable to use MEDIATYPE_Stream/MEDIASUBTYPE_NULL and detect 
+				// are unable to use MEDIATYPE_Stream/MEDIASUBTYPE_NULL and to detect 
 				// (doing like this) if they can connect.
 			}
 		}
@@ -1295,17 +1295,18 @@ HRESULT CGraphRegFilter::Create(IBaseFilter** ppBF, IUnknown** ppUnk)
 
 	HRESULT hr = E_FAIL;
 
-	if(m_clsid != GUID_NULL)
+	
+	if(m_pMoniker)
+	{
+		if(SUCCEEDED(hr = m_pMoniker->BindToObject(0, 0, IID_IBaseFilter, (void**)ppBF)))
+			m_clsid = ::GetCLSID(*ppBF);
+	}
+	else if(m_clsid != GUID_NULL)
 	{
 		CComPtr<IBaseFilter> pBF;
 		if(FAILED(pBF.CoCreateInstance(m_clsid))) return E_FAIL;
 		*ppBF = pBF.Detach();
 		hr = S_OK;
-	}
-	else if(m_pMoniker)
-	{
-		if(SUCCEEDED(hr = m_pMoniker->BindToObject(0, 0, IID_IBaseFilter, (void**)ppBF)))
-			m_clsid = ::GetCLSID(*ppBF);
 	}
 
 	return hr;
