@@ -115,6 +115,7 @@ CUnknown* WINAPI CMatroskaMuxerFilter::CreateInstance(LPUNKNOWN lpunk, HRESULT* 
 CMatroskaMuxerFilter::CMatroskaMuxerFilter(LPUNKNOWN pUnk, HRESULT* phr)
 	: CBaseFilter(NAME("CMatroskaMuxerFilter"), pUnk, this, __uuidof(this))
 	, m_rtCurrent(0)
+	, m_fNegative(true), m_fPositive(false)
 {
 	if(phr) *phr = S_OK;
 
@@ -139,6 +140,7 @@ STDMETHODIMP CMatroskaMuxerFilter::NonDelegatingQueryInterface(REFIID riid, void
 	return 
 //		QI(IAMFilterMiscFlags)
 		QI(IMediaSeeking)
+		QI(IMatroskaMuxer)
 		__super::NonDelegatingQueryInterface(riid, ppv);
 }
 
@@ -294,6 +296,15 @@ STDMETHODIMP CMatroskaMuxerFilter::GetAvailable(LONGLONG* pEarliest, LONGLONG* p
 STDMETHODIMP CMatroskaMuxerFilter::SetRate(double dRate) {return E_NOTIMPL;}
 STDMETHODIMP CMatroskaMuxerFilter::GetRate(double* pdRate) {return E_NOTIMPL;}
 STDMETHODIMP CMatroskaMuxerFilter::GetPreroll(LONGLONG* pllPreroll) {return E_NOTIMPL;}
+
+// IMatroskaMuxer 
+
+STDMETHODIMP CMatroskaMuxerFilter::CorrectTimeOffset(bool fNegative, bool fPositive)
+{
+	m_fNegative = fNegative;
+	m_fPositive = fPositive;
+	return S_OK;
+}
 
 //
 
@@ -533,7 +544,7 @@ DWORD CMatroskaMuxerFilter::ThreadProc()
 				{
 					if(fFirstBlock)
 					{
-						if(b->Block.TimeCode < 0)
+						if(b->Block.TimeCode < 0 && m_fNegative || b->Block.TimeCode > 0 && m_fPositive)
 							firstTimeCode = b->Block.TimeCode;
 						fFirstBlock = false;
 					}
@@ -881,19 +892,45 @@ HRESULT CMatroskaMuxerInputPin::CompleteConnect(IPin* pPin)
 		&& ((WAVEFORMATEX*)m_mt.pbFormat)->wFormatTag == WAVE_FORMAT_AAC
 		&& m_mt.cbFormat >= sizeof(WAVEFORMATEX)+2)
 		{
-			switch((*(m_mt.pbFormat + sizeof(WAVEFORMATEX)) >> 3) - 1)
+			WAVEFORMATEX* wfe = (WAVEFORMATEX*)m_mt.pbFormat;
+			BYTE* p = (BYTE*)(wfe+1);
+
+			DWORD nSamplesPerSec = wfe->nSamplesPerSec;
+
+			int profile = (p[0]>>3)-1;
+			int	rate1 = ((p[0]&7)<<1)|(p[1]>>7);
+			int channels = ((p[1]>>3)&15);
+			int exttype = 0;
+			int rate2 = rate1;
+
+			if(wfe->cbSize >= 5)
+			{
+				profile = 4;
+
+				exttype = (p[2]<<3)|(p[3]>>5);
+				ASSERT(exttype == 0x2B7);
+				ASSERT((p[3]&31) == 5);
+				ASSERT((p[4]>>7) == 1);
+				rate2 = ((p[4]>>3)&15);
+
+				if(rate2 < rate1)
+					nSamplesPerSec /= 2;
+			}
+
+			switch(profile)
 			{
 			default:
 			case 0: m_pTE->CodecID.Set("A_AAC/MPEG2/MAIN"); break;
 			case 1: m_pTE->CodecID.Set("A_AAC/MPEG2/LC"); break;
 			case 2: m_pTE->CodecID.Set("A_AAC/MPEG2/SSR"); break;
 			case 3: m_pTE->CodecID.Set("A_AAC/MPEG4/LTP"); break;
-			case 4: m_pTE->CodecID.Set("A_AAC/MPEG4/SBR"); break;
+			case 4: m_pTE->CodecID.Set("A_AAC/MPEG4/LC/SBR"); break;
 			}
 
-			WAVEFORMATEX* wfe = (WAVEFORMATEX*)m_mt.pbFormat;
+			ASSERT(channels == wfe->nChannels);
+
 			m_pTE->DescType = TrackEntry::DescAudio;
-			m_pTE->a.SamplingFrequency.Set((float)wfe->nSamplesPerSec);
+			m_pTE->a.SamplingFrequency.Set((float)nSamplesPerSec);
 			m_pTE->a.Channels.Set(wfe->nChannels);
 			m_pTE->a.BitDepth.Set(wfe->wBitsPerSample);
 
@@ -1156,8 +1193,7 @@ STDMETHODIMP CMatroskaMuxerInputPin::Receive(IMediaSample* pSample)
 
 	if(FAILED(hr) || rtStart == -1 || rtStop == -1)
 	{
-		CString err(_T("No timestamp was set on the sample!!!"));
-		TRACE(err);
+		TRACE(_T("No timestamp was set on the sample!!!"));
 		m_pFilter->NotifyEvent(EC_ERRORABORT, VFW_E_SAMPLE_TIME_NOT_SET, 0);
 		return VFW_E_SAMPLE_TIME_NOT_SET;
 	}
@@ -1206,10 +1242,18 @@ STDMETHODIMP CMatroskaMuxerInputPin::Receive(IMediaSample* pSample)
 	}
 
 	if(m_mt.formattype == FORMAT_WaveFormatEx 
-	&& ((WAVEFORMATEX*)m_mt.pbFormat)->wFormatTag == WAVE_FORMAT_PCM)
+	&& (((WAVEFORMATEX*)m_mt.pbFormat)->wFormatTag == WAVE_FORMAT_PCM
+	|| ((WAVEFORMATEX*)m_mt.pbFormat)->wFormatTag == WAVE_FORMAT_MPEGLAYER3))
 		pSample->SetSyncPoint(TRUE); // HACK: some capture filters don't set this
 
 	CAutoPtr<BlockGroup> b(new BlockGroup());
+
+	// TODO: test this with a longer capture (pcm, mp3)
+	if(S_OK == pSample->IsSyncPoint() && rtStart < m_rtLastStart)
+	{
+		TRACE(_T("!!! timestamp went backwards, dropping this frame !!! rtStart (%I64) < m_rtLastStart (%I64)"), rtStart, m_rtLastStart);
+		return S_OK;
+	}
 
 	if((S_OK != pSample->IsSyncPoint() || m_rtLastStart == rtStart) && m_rtLastStart >= 0 /*&& m_rtLastStart < rtStart*/)
 	{

@@ -1874,7 +1874,9 @@ bool CRenderedTextSubtitle::ParseHtmlTag(CSubtitle* sub, CStringW str, STSStyle&
 		str = str.Mid(i+1);
 	}
 
-	if(tag == L"b" || tag == L"strong")
+	if(tag == L"text")
+		;
+	else if(tag == L"b" || tag == L"strong")
 		style.fontWeight = !fClosing ? FW_BOLD : org.fontWeight;
 	else if(tag == L"i" || tag == L"em")
 		style.fItalic = !fClosing ? true : org.fItalic;
@@ -1889,6 +1891,8 @@ bool CRenderedTextSubtitle::ParseHtmlTag(CSubtitle* sub, CStringW str, STSStyle&
 			for(i = 0; i < attribs.GetCount(); i++)
 			{
 				if(params[i].IsEmpty()) continue;
+
+				int nColor = -1;
 
 				if(attribs[i] == L"face")
 				{
@@ -1905,13 +1909,34 @@ bool CRenderedTextSubtitle::ParseHtmlTag(CSubtitle* sub, CStringW str, STSStyle&
 				}
 				else if(attribs[i] == L"color")
 				{
+					nColor = 0;
+				}
+				else if(attribs[i] == L"outline-color")
+				{
+					nColor = 2;
+				}
+				else if(attribs[i] == L"outline-level")
+				{
+					style.outlineWidth = wcstol(params[i], NULL, 10);
+				}
+				else if(attribs[i] == L"shadow-color")
+				{
+					nColor = 3;
+				}
+				else if(attribs[i] == L"shadow-level")
+				{
+					style.shadowDepth = wcstol(params[i], NULL, 10);
+				}
+
+				if(nColor >= 0 && nColor < 4)
+				{
 					CString key = WToT(params[i]).TrimLeft('#');
 					void* val;
 					if(g_colors.Lookup(key, val))
-						style.colors[0] = (DWORD)val;
-					else if ((style.colors[0] = _tcstol(key, NULL, 16)) == 0)
-						style.colors[0] = 0x00ffffff;  // default is white
-					else style.colors[0] = ((style.colors[0]>>16)&0xff)|((style.colors[0]&0xff)<<16)|(style.colors[0]&0x00ff00);
+						style.colors[nColor] = (DWORD)val;
+					else if ((style.colors[nColor] = _tcstol(key, NULL, 16)) == 0)
+						style.colors[nColor] = 0x00ffffff;  // default is white
+					style.colors[nColor] = ((style.colors[nColor]>>16)&0xff)|((style.colors[nColor]&0xff)<<16)|(style.colors[nColor]&0x00ff00);
 				}
 			}
 		}
@@ -1919,8 +1944,14 @@ bool CRenderedTextSubtitle::ParseHtmlTag(CSubtitle* sub, CStringW str, STSStyle&
 		{
 			style.fontName = org.fontName;
 			style.fontSize = org.fontSize;
-			style.colors[0] = org.colors[0];
+			memcpy(style.colors, org.colors, sizeof(style.colors));
 		}
+	}
+	else if(tag == L"k" && attribs.GetCount() == 1 && attribs[0] == L"t")
+	{
+		m_ktype = 1;
+		m_kstart = m_kend;
+		m_kend += wcstol(params[0], NULL, 10);
 	}
 	else 
 		return(false);

@@ -192,7 +192,7 @@ HRESULT Segment::ParseMinimal(CMatroskaNode* pMN0)
 
 		if(Chapters.IsEmpty() && (pMN = pMN0->Child(0x1043A770, false)))
 		{
-			do {Chapters.Parse(pMN);} while(pMN->Next(true));
+			do {Chapters.Parse(pMN); /*BIG UGLY HACK:*/ break;} while(pMN->Next(true));
 		}
 	}
 

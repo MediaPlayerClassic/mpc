@@ -491,6 +491,54 @@ BOOL CMPlayerCApp::InitInstance()
 	}
 /*
 {
+	CComPtr<IGraphBuilder> pGB;
+	hr = pGB.CoCreateInstance(CLSID_FilterGraph);
+
+	CComPtr<ICaptureGraphBuilder2> pCGB;
+	hr = pCGB.CoCreateInstance(CLSID_CaptureGraphBuilder2);
+
+	CComPtr<IBaseFilter> pBF, pBF2, pBF3;
+	hr = pGB->AddSourceFilter(L"c:\\cap2.mkv", NULL, &pBF);
+	CComQIPtr<IMediaSeeking> pMS = pBF;
+	hr = pBF2.CoCreateInstance(__uuidof(CMatroskaMuxerFilter));
+	hr = pGB->AddFilter(pBF2, L"Muxer");
+	CComQIPtr<IMatroskaMuxer> pMM = pBF2;
+	pMM->CorrectTimeOffset(true, true);
+	while(CComPtr<IPin> pPin = GetFirstDisconnectedPin(pBF, PINDIR_OUTPUT))
+		if(FAILED(hr = pGB->Connect(pPin, GetFirstDisconnectedPin(pBF2, PINDIR_INPUT))))
+			break;
+
+	pBF3.CoCreateInstance(CLSID_FileWriter);
+	hr = pGB->AddFilter(pBF3, L"Writer");/
+	CComQIPtr<IFileSinkFilter2> pFSF = pBF3;
+	pFSF->SetFileName(L"g:\\cap.mkv", NULL);
+	pFSF->SetMode(AM_FILE_OVERWRITE);
+	while(CComPtr<IPin> pPin = GetFirstDisconnectedPin(pBF2, PINDIR_OUTPUT))
+		if(FAILED(hr = pGB->Connect(pPin, GetFirstDisconnectedPin(pBF3, PINDIR_INPUT))))
+			break;
+
+	REFERENCE_TIME rt = 2540000i64;
+	pMS->SetPositions(&rt, AM_SEEKING_AbsolutePositioning, NULL, AM_SEEKING_NoPositioning);
+
+	CComQIPtr<IMediaControl> pMC = pGB;
+	hr = pMC->Pause();
+
+	OAFilterState fs;
+	hr = pMC->GetState(INFINITE, &fs);
+
+	hr = pMC->Run();
+
+	while(1)
+	{
+		Sleep(1000);
+		OAFilterState fs;
+		hr = pMC->GetState(INFINITE, &fs);
+		if(fs == State_Stopped) {MessageBeep(-1); break;}
+	}
+}
+*/
+/*
+{
 	CComQIPtr<IGraphBuilder> pGB;
 	hr = pGB.CoCreateInstance(CLSID_FilterGraph);
 
