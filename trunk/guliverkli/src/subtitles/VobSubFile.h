@@ -137,6 +137,7 @@ public:
 	STDMETHODIMP GetStreamInfo(int i, WCHAR** ppName, LCID* pLCID);
 	STDMETHODIMP_(int) GetStream();
 	STDMETHODIMP SetStream(int iStream);
+	STDMETHODIMP Reload();
 };
 
 [uuid("D7FBFB45-2D13-494F-9B3D-FFC9557D5C45")]
@@ -176,4 +177,5 @@ public:
 	STDMETHODIMP GetStreamInfo(int i, WCHAR** ppName, LCID* pLCID);
 	STDMETHODIMP_(int) GetStream();
 	STDMETHODIMP SetStream(int iStream);
+	STDMETHODIMP Reload() {return E_NOTIMPL;}
 };

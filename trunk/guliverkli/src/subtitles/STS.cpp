@@ -2531,6 +2531,7 @@ bool CSimpleTextSubtitle::Open(CTextFile* f, int CharSet, CString name)
 		m_name = name;
 		m_mode = OpenFuncts[i].mode;
 		m_encoding = f->GetEncoding();
+		m_path = f->GetFilePath();
 
 //		Sort();
 		CreateSegments();

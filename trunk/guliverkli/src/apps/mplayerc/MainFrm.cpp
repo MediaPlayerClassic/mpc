@@ -4143,13 +4143,13 @@ void CMainFrame::OnUpdatePlayAudio(CCmdUI* pCmdUI)
 
 void CMainFrame::OnPlaySubtitles(UINT nID)
 {
-	int i = (int)nID - (3 + ID_SUBTITLES_SUBITEM_START);
+	int i = (int)nID - (4 + ID_SUBTITLES_SUBITEM_START);
 
-	if(i == -3)
+	if(i == -4)
 	{
 		ShowOptions(CPPageSubtitles::IDD);
 	}
-	else if(i == -2)
+	else if(i == -3)
 	{
 		int i = m_iSubtitleSel;
 
@@ -4202,6 +4202,10 @@ void CMainFrame::OnPlaySubtitles(UINT nID)
 			i -= pSubStream->GetStreamCount();
 		}
 	}
+	else if(i == -2)
+	{
+		ReloadSubtitle();
+	}
 	else if(i == -1)
 	{
 		m_iSubtitleSel ^= (1<<31);
@@ -4217,11 +4221,11 @@ void CMainFrame::OnPlaySubtitles(UINT nID)
 void CMainFrame::OnUpdatePlaySubtitles(CCmdUI* pCmdUI)
 {
 	UINT nID = pCmdUI->m_nID;
-	int i = (int)nID - (3 + ID_SUBTITLES_SUBITEM_START);
+	int i = (int)nID - (4 + ID_SUBTITLES_SUBITEM_START);
 
 	pCmdUI->Enable(m_pCAP && !m_fAudioOnly);
 
-	if(i == -2)
+	if(i == -3)
 	{
 		pCmdUI->Enable(FALSE);
 
@@ -6862,6 +6866,7 @@ void CMainFrame::SetupSubtitlesSubMenu()
 	{
 		pSub->AppendMenu(MF_BYCOMMAND|MF_STRING|MF_ENABLED, id++, _T("&Options..."));
 		pSub->AppendMenu(MF_BYCOMMAND|MF_STRING|MF_ENABLED, id++, _T("&Styles..."));
+		pSub->AppendMenu(MF_BYCOMMAND|MF_STRING|MF_ENABLED, id++, _T("&Reload"));
 		pSub->AppendMenu(MF_SEPARATOR);
 
 		pSub->AppendMenu(MF_BYCOMMAND|MF_STRING|MF_ENABLED, id++, _T("&Enable"));
@@ -7591,6 +7596,13 @@ void CMainFrame::InvalidateSubtitle(DWORD_PTR nSubtitleId, REFERENCE_TIME rtInva
 		if(nSubtitleId == -1 || nSubtitleId == m_nSubtitleId)
 			m_pCAP->Invalidate(rtInvalidate);
 	}
+}
+
+void CMainFrame::ReloadSubtitle()
+{
+	POSITION pos = m_pSubStreams.GetHeadPosition();
+	while(pos) m_pSubStreams.GetNext(pos)->Reload();
+	UpdateSubtitle();
 }
 
 REFERENCE_TIME CMainFrame::GetPos()

@@ -356,6 +356,7 @@ public:
 	void UpdateSubtitle(bool fApplyDefStyle = false);
 	void SetSubtitle(ISubStream* pSubStream, bool fApplyDefStyle = false);
 	void InvalidateSubtitle(DWORD_PTR nSubtitleId = -1, REFERENCE_TIME rtInvalidate = -1);
+	void ReloadSubtitle();
 
 	// capturing
 	bool m_fCapturing;

@@ -261,4 +261,5 @@ public:
 	STDMETHODIMP GetStreamInfo(int i, WCHAR** ppName, LCID* pLCID);
 	STDMETHODIMP_(int) GetStream();
 	STDMETHODIMP SetStream(int iStream);
+	STDMETHODIMP Reload();
 };
