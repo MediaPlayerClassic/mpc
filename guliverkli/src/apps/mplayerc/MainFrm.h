@@ -570,6 +570,10 @@ public:
 	afx_msg void OnPlayLanguage(UINT nID);
 	afx_msg void OnUpdatePlayLanguage(CCmdUI* pCmdUI);
 	afx_msg void OnPlayVolume(UINT nID);
+	afx_msg void OnAfterplaybackClose();
+	afx_msg void OnUpdateAfterplaybackClose(CCmdUI *pCmdUI);
+	afx_msg void OnAfterplaybackShutdown();
+	afx_msg void OnUpdateAfterplaybackShutdown(CCmdUI *pCmdUI);
 
 	afx_msg void OnNavigateSkip(UINT nID);
 	afx_msg void OnUpdateNavigateSkip(CCmdUI* pCmdUI);

@@ -100,7 +100,8 @@ void memcpy_accel(void* dst, const void* src, size_t len)
 			movntps		[edi+16*7], xmm7
 			add			esi, 128
 			add			edi, 128
-			loop	memcpy_accel_sse2_loop
+			dec			ecx
+			jnz			memcpy_accel_sse2_loop
 			mov     ecx, len
 			and     ecx, 127
 			cmp     ecx, 0
@@ -146,7 +147,8 @@ void memcpy_accel(void* dst, const void* src, size_t len)
 			movntps		[edi+16*7], xmm7
 			add			esi, 128
 			add			edi, 128
-			loop	memcpy_accel_sse_loop
+			dec			ecx
+			jnz			memcpy_accel_sse_loop
 			mov     ecx, len
 			and     ecx, 127
 			cmp     ecx, 0
@@ -191,7 +193,8 @@ void memcpy_accel(void* dst, const void* src, size_t len)
 			movq    qword ptr [edi+8*7], mm7
 			add     esi, 64
 			add     edi, 64
-			loop	memcpy_accel_mmx_loop
+			dec		ecx
+			jnz		memcpy_accel_mmx_loop
 			mov     ecx, len
 			and     ecx, 63
 			cmp     ecx, 0
@@ -358,7 +361,8 @@ yuvtoyuy2row_loop:
 		add		esi, 4
         add		edi, 16
 
-		loop	yuvtoyuy2row_loop
+		dec		ecx
+		jnz		yuvtoyuy2row_loop
 
 		pop		ebx
 		pop		esi
@@ -430,7 +434,8 @@ yuvtoyuy2row_avg_loop:
 		add		esi, 4
         add		edi, 16
 
-		loop	yuvtoyuy2row_avg_loop
+		dec		ecx
+		jnz		yuvtoyuy2row_avg_loop
 
 		pop		ebx
 		pop		esi
@@ -791,7 +796,8 @@ asm_blend_row_SSE2_loop:
 		pavgb xmm0, xmm2
 		movdqa [esi+edi], xmm0
 		add esi, 16
-		loop asm_blend_row_SSE2_loop
+		dec	ecx
+		jnz asm_blend_row_SSE2_loop
 
 		test ebx,15
 		jz asm_blend_row_SSE2_end
@@ -814,7 +820,8 @@ asm_blend_row_SSE2_loop2:
 		shr ax, 1
 		mov [esi+edi], al
 		inc esi
-		loop asm_blend_row_SSE2_loop2
+		dec	ecx
+		jnz asm_blend_row_SSE2_loop2
 
 asm_blend_row_SSE2_end:
 	}
@@ -841,7 +848,8 @@ asm_blend_row_clipped_SSE2_loop:
 		pavgb xmm0, xmm1
 		movdqa [esi+edi], xmm0
 		add esi, 16
-		loop asm_blend_row_clipped_SSE2_loop
+		dec	ecx
+		jnz asm_blend_row_clipped_SSE2_loop
 
 		test ebx,15
 		jz asm_blend_row_clipped_SSE2_end
@@ -857,7 +865,8 @@ asm_blend_row_clipped_SSE2_loop2:
 		shr ax, 1
 		mov [esi+edi], al
 		inc esi
-		loop asm_blend_row_clipped_SSE2_loop2
+		dec	ecx
+		jnz asm_blend_row_clipped_SSE2_loop2
 
 asm_blend_row_clipped_SSE2_end:
 	}
@@ -925,13 +934,13 @@ void AvgLines8(BYTE* dst, DWORD h, DWORD pitch)
 				shr		ecx, 4
 
 AvgLines8_sse2_loop:
-				movdqa xmm0, [esi]
-				movdqa xmm1, [esi+ebx*2]
-				pavgb xmm0, xmm1
-				movdqa [esi+ebx], xmm0
-				add esi, 16
+				movdqa	xmm0, [esi]
+				pavgb	xmm0, [esi+ebx*2]
+				movdqa	[esi+ebx], xmm0
+				add		esi, 16
 
-				loop AvgLines8_sse2_loop
+				dec		ecx
+				jnz		AvgLines8_sse2_loop
 
 				mov		tmp, esi
 			}
@@ -977,7 +986,8 @@ AvgLines8_mmx_loop:
 
 				lea		esi, [esi+8]
 
-				loop	AvgLines8_mmx_loop
+				dec		ecx
+				jnz		AvgLines8_mmx_loop
 
 				mov		tmp, esi
 			}
@@ -1067,7 +1077,8 @@ AvgLines555_loop:
 
 			lea		esi, [esi+8]
 
-			loop	AvgLines555_loop
+			dec		ecx
+			jnz		AvgLines555_loop
 
 			mov		tmp, esi
 		}
@@ -1152,7 +1163,8 @@ AvgLines565_loop:
 
 			lea		esi, [esi+8]
 
-			loop	AvgLines565_loop
+			dec		ecx
+			jnz		AvgLines565_loop
 
 			mov		tmp, esi
 		}

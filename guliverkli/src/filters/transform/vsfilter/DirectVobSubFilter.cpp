@@ -1697,6 +1697,7 @@ bool CDirectVobSubFilter2::ShouldWeAutoload(IFilterGraph* pGraph)
 		|| (pBF = FindFilter(GUIDFromCString("{34293064-02F2-41D5-9D75-CC5967ACA1AB}"), pGraph)) // matroska demux
 		|| (pBF = FindFilter(GUIDFromCString("{0A68C3B5-9164-4a54-AFAF-995B2FF0E0D4}"), pGraph)) // matroska source
 		|| (pBF = FindFilter(GUIDFromCString("{149D2E01-C32E-4939-80F6-C07B81015A7A}"), pGraph)) // matroska splitter
+		|| (pBF = FindFilter(GUIDFromCString("{9AB95E90-1F37-427e-9B3D-257FB0CB25F7}"), pGraph)) // Haali's matroska splitter		
 		|| (pBF = FindFilter(GUIDFromCString("{52B63861-DC93-11CE-A099-00AA00479A58}"), pGraph)) // 3ivx splitter
 		|| (pBF = FindFilter(GUIDFromCString("{6D3688CE-3E9D-42F4-92CA-8A11119D25CD}"), pGraph)) // our ogg source
 		|| (pBF = FindFilter(GUIDFromCString("{9FF48807-E133-40AA-826F-9B2959E5232D}"), pGraph))) // our ogg splitter

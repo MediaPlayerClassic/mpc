@@ -209,7 +209,8 @@ row_loop1:
 				lea		esi, [esi+4]
 				lea		edi, [edi+8]
 
-				loop	row_loop1
+				dec		ecx
+				jnz		row_loop1
 
 				mov		s1, esi
 				mov		d1, edi
@@ -368,7 +369,8 @@ row_loop3:
 				lea		esi, [esi+4]
 				lea		edi, [edi+8]
 
-				loop	row_loop3
+				dec		ecx
+				jnz		row_loop3
 
 				mov		s1, esi
 				mov		d1, edi

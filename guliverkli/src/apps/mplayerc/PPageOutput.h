@@ -53,4 +53,5 @@ protected:
 	DECLARE_MESSAGE_MAP()
 
 public:
+	BOOL m_fVMRSyncFix;
 };

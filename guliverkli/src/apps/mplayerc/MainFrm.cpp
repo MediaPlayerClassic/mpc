@@ -298,6 +298,10 @@ BEGIN_MESSAGE_MAP(CMainFrame, CFrameWnd)
 	ON_COMMAND_RANGE(ID_FILTERSTREAMS_SUBITEM_START, ID_FILTERSTREAMS_SUBITEM_END, OnPlayLanguage)
 	ON_UPDATE_COMMAND_UI_RANGE(ID_FILTERSTREAMS_SUBITEM_START, ID_FILTERSTREAMS_SUBITEM_END, OnUpdatePlayLanguage)
 	ON_COMMAND_RANGE(ID_VOLUME_UP, ID_VOLUME_MUTE, OnPlayVolume)
+	ON_COMMAND(ID_AFTERPLAYBACK_CLOSE, OnAfterplaybackClose)
+	ON_UPDATE_COMMAND_UI(ID_AFTERPLAYBACK_CLOSE, OnUpdateAfterplaybackClose)
+	ON_COMMAND(ID_AFTERPLAYBACK_SHUTDOWN, OnAfterplaybackShutdown)
+	ON_UPDATE_COMMAND_UI(ID_AFTERPLAYBACK_SHUTDOWN, OnUpdateAfterplaybackShutdown)
 
 	ON_COMMAND_RANGE(ID_NAVIGATE_SKIPBACK, ID_NAVIGATE_SKIPFORWARD, OnNavigateSkip)
 	ON_UPDATE_COMMAND_UI_RANGE(ID_NAVIGATE_SKIPBACK, ID_NAVIGATE_SKIPFORWARD, OnUpdateNavigateSkip)
@@ -4284,6 +4288,30 @@ void CMainFrame::OnPlayVolume(UINT nID)
 {
 	if(m_iMediaLoadState == MLS_LOADED) 
 		pBA->put_Volume(m_wndToolBar.Volume);
+}
+
+void CMainFrame::OnAfterplaybackClose()
+{
+	AppSettings& s = AfxGetAppSettings();
+	s.nCLSwitches ^= CLSW_CLOSE;
+}
+
+void CMainFrame::OnUpdateAfterplaybackClose(CCmdUI* pCmdUI)
+{
+	AppSettings& s = AfxGetAppSettings();
+	pCmdUI->SetCheck(!!(s.nCLSwitches & CLSW_CLOSE));
+}
+
+void CMainFrame::OnAfterplaybackShutdown()
+{
+	AppSettings& s = AfxGetAppSettings();
+	s.nCLSwitches ^= CLSW_SHUTDOWN;
+}
+
+void CMainFrame::OnUpdateAfterplaybackShutdown(CCmdUI* pCmdUI)
+{
+	AppSettings& s = AfxGetAppSettings();
+	pCmdUI->SetCheck(!!(s.nCLSwitches & CLSW_SHUTDOWN));
 }
 
 // navigate
