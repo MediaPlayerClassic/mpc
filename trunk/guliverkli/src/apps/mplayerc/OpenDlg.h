@@ -68,7 +68,7 @@ private:
 	CStringArray& m_mask;
 
 public:
-	COpenFileDialog(CStringArray& mask,
+	COpenFileDialog(CStringArray& mask, bool fAllowDirSelection,
 		LPCTSTR lpszDefExt = NULL,
 		LPCTSTR lpszFileName = NULL,
 		DWORD dwFlags = OFN_HIDEREADONLY | OFN_OVERWRITEPROMPT,
@@ -76,10 +76,18 @@ public:
 		CWnd* pParentWnd = NULL);
 	virtual ~COpenFileDialog();
 
+	static bool m_fAllowDirSelection;
+	static WNDPROC m_wndProc;
+	static LRESULT CALLBACK WindowProcNew(HWND hwnd,UINT message, WPARAM wParam, LPARAM lParam);
+
+	void OnInitDone();
+
 protected:
 	DECLARE_MESSAGE_MAP()
 	virtual BOOL OnNotify(WPARAM wParam, LPARAM lParam, LRESULT* pResult);
 	virtual BOOL OnIncludeItem(OFNOTIFYEX* pOFNEx, LRESULT* pResult);
+public:
+	afx_msg void OnDestroy();
 };
 
 

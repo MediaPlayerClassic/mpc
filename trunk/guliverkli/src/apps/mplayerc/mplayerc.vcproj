@@ -730,6 +730,9 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath=".\PPageLogo.cpp">
+			</File>
+			<File
 				RelativePath="PPagePlayback.cpp">
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
@@ -1343,6 +1346,9 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath=".\PPageLogo.h">
+			</File>
+			<File
 				RelativePath="PPagePlayback.h">
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
@@ -1560,7 +1566,22 @@
 				RelativePath="res\imovie.ico">
 			</File>
 			<File
-				RelativePath=".\res\logo.bmp">
+				RelativePath=".\res\logo.0.bmp">
+			</File>
+			<File
+				RelativePath=".\res\logo.1.bmp">
+			</File>
+			<File
+				RelativePath=".\res\logo.2.bmp">
+			</File>
+			<File
+				RelativePath=".\res\logo.3.bmp">
+			</File>
+			<File
+				RelativePath=".\res\logo.4.bmp">
+			</File>
+			<File
+				RelativePath=".\res\logo.5.bmp">
 			</File>
 			<File
 				RelativePath="res\mono.bmp">

@@ -515,6 +515,7 @@ HRESULT Video::Write(IStream* pStream)
 Audio::Audio(DWORD id)
 	: CID(id)
 	, SamplingFrequency(0xB5)
+	, OutputSamplingFrequency(0x78B5)
 	, Channels(0x9F)
 	, ChannelPositions(0x7D7B)
 	, BitDepth(0x6264)
@@ -525,6 +526,7 @@ QWORD Audio::Size(bool fWithHeader)
 {
 	QWORD len = 0;
 	len += SamplingFrequency.Size();
+	len += OutputSamplingFrequency.Size();
 	len += Channels.Size();
 	len += ChannelPositions.Size();
 	len += BitDepth.Size();
@@ -536,6 +538,7 @@ HRESULT Audio::Write(IStream* pStream)
 {
 	HeaderWrite(pStream);
 	SamplingFrequency.Write(pStream);
+	OutputSamplingFrequency.Write(pStream);
 	Channels.Write(pStream);
 	ChannelPositions.Write(pStream);
 	BitDepth.Write(pStream);

@@ -32,12 +32,13 @@ CCDecoder::CCDecoder(CString fn, CString rawfn) : m_fn(fn), m_rawfn(rawfn)
 	memset(m_disp, 0, sizeof(m_disp));
 	m_cursor = CPoint(0, 0);
 
-	_tremove(m_rawfn);
+	if(!m_rawfn.IsEmpty()) 
+		_tremove(m_rawfn);
 }
 
 CCDecoder::~CCDecoder()
 {
-	if(m_sts.GetSize() > 0) 
+	if(m_sts.GetSize() > 0 && !m_fn.IsEmpty()) 
 	{
 		m_sts.Sort();
 		m_sts.SaveAs(m_fn, EXTSRT, -1, CTextFile::ASCII);
@@ -97,23 +98,25 @@ void CCDecoder::SaveDisp(__int64 time)
 
 void CCDecoder::DecodeCC(BYTE* buff, int len, __int64 time)
 {
-	FILE* f = _tfopen(m_rawfn, _T("at"));
-	if(f)
+	if(!m_rawfn.IsEmpty())
 	{
-		_ftprintf(f, _T("%02d:%02d:%02d.%03d\n"), 
-			(int)(time/1000/60/60), 
-			(int)((time/1000/60)%60), 
-			(int)((time/1000)%60), 
-			(int)(time%1000));
-
-		for(int i = 0; i < len; i++)
+		if(FILE* f = _tfopen(m_rawfn, _T("at")))
 		{
-			_ftprintf(f, _T("%02x"), buff[i]);
-			if(i < len-1) _ftprintf(f, _T(" "));
-			if(i > 0 && (i&15)==15) _ftprintf(f, _T("\n"));
+			_ftprintf(f, _T("%02d:%02d:%02d.%03d\n"), 
+				(int)(time/1000/60/60), 
+				(int)((time/1000/60)%60), 
+				(int)((time/1000)%60), 
+				(int)(time%1000));
+
+			for(int i = 0; i < len; i++)
+			{
+				_ftprintf(f, _T("%02x"), buff[i]);
+				if(i < len-1) _ftprintf(f, _T(" "));
+				if(i > 0 && (i&15)==15) _ftprintf(f, _T("\n"));
+			}
+			if(len > 0) _ftprintf(f, _T("\n\n"));
+			fclose(f);
 		}
-		if(len > 0) _ftprintf(f, _T("\n\n"));
-		fclose(f);
 	}
 
 	for(int i = 0; i < len; i++)
@@ -308,9 +311,9 @@ void CCDecoder::DecodeCC(BYTE* buff, int len, __int64 time)
 	}
 }
 
-void CCDecoder::ExtractCC(BYTE* buff, __int64 time)
+void CCDecoder::ExtractCC(BYTE* buff, int len, __int64 time)
 {
-	for(int i = 0x10; i < 0x800-9; i++)
+	for(int i = 0; i < len-9; i++)
 	{
 		if(*(DWORD*)&buff[i] == 0xb2010000 && *(DWORD*)&buff[i+4] == 0xf8014343)
 		{

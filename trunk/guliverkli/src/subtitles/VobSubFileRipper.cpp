@@ -779,7 +779,7 @@ bool CVobSubFileRipper::Create()
 				}
 
 				if(m_rd.fClosedCaption)
-					ccdec.ExtractCC(buff, tOffset + ((PTS - PTSframeoffset) / 90) - tStart);
+					ccdec.ExtractCC(buff, 2048, tOffset + ((PTS - PTSframeoffset) / 90) - tStart);
 			}
 			else if(*(DWORD*)&buff[0x0e] == 0xbd010000)
 			{

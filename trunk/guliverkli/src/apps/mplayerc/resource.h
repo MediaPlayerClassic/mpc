@@ -117,13 +117,15 @@
 #define ID_VIEW_VF_FROMOUTSIDE          276
 #define ID_NAVIGATE_SUBTITLELANGUAGE    279
 #define IDD_PPAGEFILTERS                280
-#define IDD_FILEPROPDETAILS             282
-#define IDD_FILEPROPCLIP                283
-#define ID_FILE_PROPERTIES              285
-#define IDB_BITMAP2                     287
-#define IDB_LOGO                        288
-#define ID_NAVIGATE_JUMPTO289           289
-#define IDD_PPAGEREALMEDIA              290
+#define IDD_FILEPROPDETAILS             281
+#define IDD_FILEPROPCLIP                282
+#define ID_FILE_PROPERTIES              283
+#define IDB_LOGO0                       284
+#define IDB_LOGO1                       285
+#define IDB_LOGO2                       286
+#define IDB_LOGO3                       287
+#define IDB_LOGO4                       288
+#define IDB_LOGO5                       289
 #define IDD_PPAGERMQT                   290
 #define ID_FAVORITES_ORGANIZE           291
 #define ID_FAVORITES_ADD                292
@@ -168,6 +170,7 @@
 #define IDD_PPAGESOURCE                 330
 #define ID_NAVIGATE_SKIPBACKPLITEM      331
 #define ID_NAVIGATE_SKIPFORWARDPLITEM   332
+#define IDD_PPAGELOGO                   333
 #define IDS_R_SETTINGS                  500
 #define IDS_RS_CONTROLSTATE             501
 #define IDS_RS_VOLUME                   502
@@ -254,6 +257,9 @@
 #define IDS_RS_REPORTFAILEDPINS         579
 #define IDS_RS_SRCFILTERS               580
 #define IDS_RS_KEEPHISTORY              581
+#define IDS_RS_LOGOID                   582
+#define IDS_RS_LOGOEXT                  583
+#define IDS_RS_TRAFILTERS               584
 #define IDC_BROWSEBUTTON                1016
 #define IDC_BROWSEBUTTON2               1017
 #define IDC_COMBO1                      1018
@@ -372,6 +378,9 @@
 #define IDC_FROMTO                      1105
 #define IDC_TYPE                        1106
 #define IDC_TREE2                       1108
+#define IDC_LOGOPREVIEW                 1109
+#define IDC_LOGONAME                    1110
+#define IDC_LOGOFILENAME                1111
 #define IDD_COMPROPERTYPAGE             10002
 #define ID_DUMMYSEPARATOR               32768
 #define ID_VOLUME_MUTE_ON               32769
@@ -451,9 +460,9 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        333
+#define _APS_NEXT_RESOURCE_VALUE        334
 #define _APS_NEXT_COMMAND_VALUE         32818
-#define _APS_NEXT_CONTROL_VALUE         1109
+#define _APS_NEXT_CONTROL_VALUE         1112
 #define _APS_NEXT_SYMED_VALUE           10003
 #endif
 #endif

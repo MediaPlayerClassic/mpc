@@ -78,33 +78,18 @@ int g_cTemplates = sizeof(g_Templates) / sizeof(g_Templates[0]);
 
 STDAPI DllRegisterServer()
 {
-	CString null = CStringFromGUID(GUID_NULL);
-	CString majortype = CStringFromGUID(MEDIATYPE_Stream);
-	CString subtype = CStringFromGUID(MEDIASUBTYPE_Matroska);
-	CString asyncfilter = CStringFromGUID(CLSID_AsyncReader);
-	CString srcfilter = CStringFromGUID(__uuidof(CMatroskaSourceFilter));
-
-	SetRegKeyValue(_T("Media Type\\") + null, subtype, _T("0"), _T("0,4,,1A45DFA3"));
-	SetRegKeyValue(_T("Media Type\\") + null, subtype, _T("Source Filter"), srcfilter);
-
-	SetRegKeyValue(_T("Media Type\\") + majortype, subtype, _T("0"), _T("0,4,,1A45DFA3"));
-	SetRegKeyValue(_T("Media Type\\") + majortype, subtype, _T("Source Filter"), asyncfilter);
-
-	DeleteRegKey(_T("Media Type\\Extensions"), _T(".mkv"));
-	DeleteRegKey(_T("Media Type\\Extensions"), _T(".mka"));
-	DeleteRegKey(_T("Media Type\\Extensions"), _T(".mks"));
+	RegisterSourceFilter(
+		__uuidof(CMatroskaSourceFilter), 
+		MEDIASUBTYPE_Matroska, 
+		_T("0,4,,1A45DFA3"), 
+		_T(".mkv"), _T(".mka"), _T(".mks"), NULL);
 
 	return AMovieDllRegisterServer2(TRUE);
 }
 
 STDAPI DllUnregisterServer()
 {
-	CString null = CStringFromGUID(GUID_NULL);
-	CString majortype = CStringFromGUID(MEDIATYPE_Stream);
-	CString subtype = CStringFromGUID(MEDIASUBTYPE_Matroska);
-
-	DeleteRegKey(_T("Media Type\\") + null, subtype);
-	DeleteRegKey(_T("Media Type\\") + majortype, subtype);
+	UnRegisterSourceFilter(MEDIASUBTYPE_Matroska);
 
 	return AMovieDllRegisterServer2(FALSE);
 }
@@ -588,13 +573,15 @@ void CMatroskaSplitterFilter::SendVorbisHeaderSample()
 			BYTE* ptr = (BYTE*)pTE->CodecPrivate;
 
 			CList<long> sizes;
+			long last = 0;
 			for(BYTE n = *ptr++; n > 0; n--)
 			{
 				long size = 0;
 				do {size += *ptr;} while(*ptr++ == 0xff);
 				sizes.AddTail(size);
+				last += size;
 			}
-			sizes.AddTail(pTE->CodecPrivate.GetSize() - (ptr - (BYTE*)pTE->CodecPrivate));
+			sizes.AddTail(pTE->CodecPrivate.GetSize() - (ptr - (BYTE*)pTE->CodecPrivate) - last);
 
 			hr = S_OK;
 
@@ -628,6 +615,10 @@ bool CMatroskaSplitterFilter::InitDeliverLoop()
 	|| !(m_pCluster = m_pSegment->Child(0x1F43B675)))
 		return(false);
 
+	Cluster c0;
+	c0.ParseTimeCode(m_pCluster);
+	m_rtOffset = m_pFile->m_segment.GetRefTime(c0.TimeCode);
+
 	// reindex if needed
 
 	if(m_pFile->m_segment.Cues.GetCount() == 0)
@@ -635,36 +626,7 @@ bool CMatroskaSplitterFilter::InitDeliverLoop()
 		m_nOpenProgress = 0;
 		m_pFile->m_segment.SegmentInfo.Duration.Set(0);
 
-		// TODO: wrap this into a call like m_pFile->m_segment.GetMasterTrack()
-
-		UINT64 TrackNumber = 0, AltTrackNumber = 0;
-
-		POSITION pos = m_pFile->m_segment.Tracks.GetHeadPosition();
-		while(pos && TrackNumber == 0)
-		{
-			Track* pT = m_pFile->m_segment.Tracks.GetNext(pos);
-			
-			POSITION pos2 = pT->TrackEntries.GetHeadPosition();
-			while(pos2 && TrackNumber == 0)
-			{
-				TrackEntry* pTE = pT->TrackEntries.GetNext(pos2);
-
-				if(pTE->TrackType == TrackEntry::TypeVideo)
-				{
-					TrackNumber = pTE->TrackNumber;
-					break;
-				}
-				else if(pTE->TrackType == TrackEntry::TypeAudio && AltTrackNumber == 0)
-				{
-					AltTrackNumber = pTE->TrackNumber;
-				}
-			}				
-		}
-
-		if(TrackNumber == 0) TrackNumber = AltTrackNumber;
-		if(TrackNumber == 0) TrackNumber = 1;
-
-		//
+		UINT64 TrackNumber = m_pFile->m_segment.GetMasterTrack();
 
 		CAutoPtr<Cue> pCue(new Cue());
 
@@ -673,7 +635,7 @@ bool CMatroskaSplitterFilter::InitDeliverLoop()
 			Cluster c;
 			c.ParseTimeCode(m_pCluster);
 
-			m_pFile->m_segment.SegmentInfo.Duration.Set((float)c.TimeCode);
+			m_pFile->m_segment.SegmentInfo.Duration.Set((float)c.TimeCode - m_rtOffset/10000);
 
 			CAutoPtr<CuePoint> pCuePoint(new CuePoint());
 			CAutoPtr<CueTrackPosition> pCueTrackPosition(new CueTrackPosition());
@@ -712,7 +674,9 @@ void CMatroskaSplitterFilter::SeekDeliverLoop(REFERENCE_TIME rt)
 	m_pCluster = m_pSegment->Child(0x1F43B675);
 	m_pBlock.Free();
 
-	if(rt <= 0)
+	rt += m_rtOffset;
+
+	if(rt <= m_rtOffset)
 	{
 		m_pBlock = m_pCluster->Child(0xA0);
 	}
@@ -721,6 +685,8 @@ void CMatroskaSplitterFilter::SeekDeliverLoop(REFERENCE_TIME rt)
 		QWORD lastCueClusterPosition = -1;
 
 		Segment& s = m_pFile->m_segment;
+
+		UINT64 TrackNumber = s.GetMasterTrack();
 
 		POSITION pos1 = s.Cues.GetHeadPosition();
 		while(pos1)
@@ -739,6 +705,9 @@ void CMatroskaSplitterFilter::SeekDeliverLoop(REFERENCE_TIME rt)
 				while(pos3)
 				{
 					CueTrackPosition* pCueTrackPositions = pCuePoint->CueTrackPositions.GetNext(pos3);
+
+					if(TrackNumber != pCueTrackPositions->CueTrack)
+						continue;
 
 					if(lastCueClusterPosition == pCueTrackPositions->CueClusterPosition)
 						continue;
@@ -833,7 +802,10 @@ void CMatroskaSplitterFilter::DoDeliverLoop()
 				p->TrackNumber = (DWORD)p->b->TrackNumber;
 				p->rtStart = m_pFile->m_segment.GetRefTime((REFERENCE_TIME)c.TimeCode + p->b->TimeCode);
 				p->rtStop = p->rtStart + (p->b->BlockDuration.IsValid() ? m_pFile->m_segment.GetRefTime(p->b->BlockDuration) : 1);
-				
+
+				p->rtStart -= m_rtOffset;
+				p->rtStop -= m_rtOffset;
+
 				hr = DeliverPacket(p);
 			}
 		}

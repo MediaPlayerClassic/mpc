@@ -20,7 +20,6 @@
 #pragma once
 #include <atlbase.h>
 #include "..\BaseSource\BaseSource.h"
-#include "mpeg2dec.h"
 
 class CD2VStream;
 
@@ -35,6 +34,8 @@ public:
     static CUnknown* WINAPI CreateInstance(LPUNKNOWN lpunk, HRESULT* phr);
 #endif
 };
+
+class CMPEG2Dec;
 
 class CD2VStream : public CBaseStream
 {

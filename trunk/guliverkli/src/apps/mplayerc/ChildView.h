@@ -30,6 +30,7 @@ class CChildView : public CWnd
 	DWORD m_lastlmdowntime;
 	CPoint m_lastlmdownpoint;
 
+	CCritSec m_csLogo;
 	CImage m_logo;
 
 public:
@@ -41,6 +42,8 @@ public:
 public:
 	void SetVideoRect(CRect r = CRect(0,0,0,0));
 	CRect GetVideoRect() {return(m_vrect);}
+
+	void LoadLogo();
 
 protected:
 	virtual BOOL PreCreateWindow(CREATESTRUCT& cs);

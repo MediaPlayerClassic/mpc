@@ -179,7 +179,7 @@ BOOL CPPageSubStyle::OnInitDialog()
 	for(int i = 0; i < 4; i++)
 	{
 		m_color[i].SetColorPtr(&m_stss.colors[i]);
-		m_alpha[i] = m_stss.alpha[i];
+		m_alpha[i] = 255-m_stss.alpha[i];
 		m_alphasliders[i].SetRange(0, 255);
 	}
 		
@@ -208,7 +208,7 @@ BOOL CPPageSubStyle::OnApply()
 	m_stss.scrAlignment = m_screenalignment+1;
 	m_stss.marginRect = m_margin;
 
-	for(int i = 0; i < 4; i++) m_stss.alpha[i] = m_alpha[i];
+	for(int i = 0; i < 4; i++) m_stss.alpha[i] = 255-m_alpha[i];
 
 	if(m_fUseDefaultStyle)
 	{

@@ -29,7 +29,7 @@ class CPPageTweaks : public CPPageBase
 	DECLARE_DYNAMIC(CPPageTweaks)
 
 private:
-	bool m_fXPOrBetter, m_fWMASFReader;
+	bool m_fWMASFReader;
 
 public:
 	CPPageTweaks();

@@ -25,7 +25,6 @@
 #include <afxcmn.h>
 #include "resource.h"
 #include "..\..\subtitles\STS.h"
-#include "afxwin.h"
 
 // CPPageSubtitles dialog
 

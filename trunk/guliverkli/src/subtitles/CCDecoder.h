@@ -38,10 +38,11 @@ class CCDecoder
 	void PutChar(WCHAR c);
 
 public:
-	CCDecoder(CString fn, CString rawfn);
+	CCDecoder(CString fn = _T(""), CString rawfn = _T(""));
 	virtual ~CCDecoder();
 	void DecodeCC(BYTE* buff, int len, __int64 time);
-	void ExtractCC(BYTE* buff /*2048bytes*/, __int64 time);
+	void ExtractCC(BYTE* buff, int len, __int64 time);
+	CSimpleTextSubtitle& GetSTS() {return m_sts;}
 };
 
 

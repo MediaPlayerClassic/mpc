@@ -26,7 +26,6 @@
 #include "mplayerc.h"
 #include "MainFrm.h"
 #include "PPageSubtitles.h"
-//#include "StyleEditorDialog.h"
 
 // CPPageSubtitles dialog
 

@@ -41,10 +41,7 @@ public:
 
 	UINT64 GetPos() {return m_pos;}
 	UINT64 GetLength() {return m_len;}
-	void Seek(UINT64 pos)
-	{
-		m_pos = pos;
-	}
+	void Seek(UINT64 pos) {m_pos = pos;}
 	HRESULT Read(void* pData, LONG len);
 	template<typename T> HRESULT Read(T& var, int offset = 0);
 
@@ -132,31 +129,18 @@ int g_cTemplates = sizeof(g_Templates) / sizeof(g_Templates[0]);
 
 STDAPI DllRegisterServer()
 {
-	CString null = CStringFromGUID(GUID_NULL);
-	CString majortype = CStringFromGUID(MEDIATYPE_Stream);
-	CString subtype = CStringFromGUID(MEDIASUBTYPE_Avi);
-	CString asyncfilter = CStringFromGUID(CLSID_AsyncReader);
-	CString srcfilter = CStringFromGUID(__uuidof(CAviSourceFilter));
-
-	SetRegKeyValue(_T("Media Type\\") + null, subtype, _T("0"), _T("0,4,,52494646,8,4,41564920")); // RIFFxxxxAVI_
-	SetRegKeyValue(_T("Media Type\\") + null, subtype, _T("Source Filter"), srcfilter);
-
-	SetRegKeyValue(_T("Media Type\\") + majortype, subtype, _T("0"), _T("0,4,,52494646,8,4,41564920")); // RIFFxxxxAVI_
-	SetRegKeyValue(_T("Media Type\\") + majortype, subtype, _T("Source Filter"), asyncfilter);
-
-	DeleteRegKey(_T("Media Type\\Extensions"), _T(".avi"));
+	RegisterSourceFilter(
+		__uuidof(CAviSourceFilter), 
+		MEDIASUBTYPE_Avi, 
+		_T("0,4,,52494646,8,4,41564920"), 
+		_T(".avi"), _T(".divx"), NULL);
 
 	return AMovieDllRegisterServer2(TRUE);
 }
 
 STDAPI DllUnregisterServer()
 {
-	CString null = CStringFromGUID(GUID_NULL);
-	CString majortype = CStringFromGUID(MEDIATYPE_Stream);
-	CString subtype = CStringFromGUID(MEDIASUBTYPE_Avi);
-
-	DeleteRegKey(_T("Media Type\\") + null, subtype);
-	DeleteRegKey(_T("Media Type\\") + majortype, subtype);
+	UnRegisterSourceFilter(MEDIASUBTYPE_Avi);
 
 	return AMovieDllRegisterServer2(FALSE);
 }
@@ -354,7 +338,6 @@ HRESULT CAviSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 
 	{
 		CStringA str;
-		DWORD id;
 
 		if(m_pFile->m_info.Lookup(FCC('INAM'), str)) SetMediaContentStr(CStringW(CString(str)), Title);
 		if(m_pFile->m_info.Lookup(FCC('IART'), str)) SetMediaContentStr(CStringW(CString(str)), AuthorName);
@@ -439,7 +422,8 @@ HRESULT CAviSplitterFilter::ReIndex(UINT64 end)
 
 				WORD type = TRACKTYPE(id);
 
-				if(type == 'db' || type == 'dc' || /*type == 'pc' ||*/ type == 'wb' || type == '__')
+				if(type == 'db' || type == 'dc' || /*type == 'pc' ||*/ type == 'wb'
+				|| type == 'iv' || type == '__')
 				{
 					CAviFile::strm_t::chunk c;
 					c.filepos = pos;
@@ -594,7 +578,8 @@ HRESULT CAviSplitterFilter::DoDeliverLoop(UINT64 end)
 				{
 					WORD type = TRACKTYPE(id);
 
-					if(type == 'db' || type == 'dc' /*|| type == 'pc'*/ || type == 'wb' || type == '__') // TODO: check these agains the fcc in the index
+					if(type == 'db' || type == 'dc' /*|| type == 'pc'*/ || type == 'wb'
+					|| type == 'iv' || type == '__') // TODO: check these agains the fcc in the index
 					{
 						CAutoPtr<Packet> p(new Packet());
 
@@ -659,6 +644,19 @@ STDMETHODIMP CAviSplitterFilter::GetDuration(LONGLONG* pDuration)
 	CheckPointer(m_pFile, VFW_E_NOT_CONNECTED);
 
 	*pDuration = m_rtDuration;
+
+	if(m_timeformat == TIME_FORMAT_FRAME)
+	{
+		for(int i = 0; i < (int)m_pFile->m_strms.GetCount(); i++)
+		{
+			CAviFile::strm_t* s = m_pFile->m_strms[i];
+			if(s->strh.fccType == FCC('vids'))
+			{
+				*pDuration = s->cs.GetCount();
+				return S_OK;
+			}
+		}
+	}
 
 	return S_OK;
 }

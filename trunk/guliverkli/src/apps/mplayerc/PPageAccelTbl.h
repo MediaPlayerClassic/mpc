@@ -34,7 +34,7 @@ class CPPageAccelTbl : public CPPageBase
 	DECLARE_DYNAMIC(CPPageAccelTbl)
 
 private:
-	enum {COL_CMD, COL_MOD, COL_KEY, COL_TYPE, COL_ID, COL_MOUSE, COL_RMCMD, COL_RMREPCNT};
+	enum {COL_CMD, COL_MOD, COL_KEY, COL_TYPE, COL_ID, COL_MOUSE, COL_APPCMD, COL_RMCMD, COL_RMREPCNT};
 	CList<wmcmd> m_wmcmds;
 
 	void SetupList();
@@ -50,6 +50,9 @@ public:
 	static CString MakeAccelShortcutLabel(UINT id);
 	static CString MakeAccelShortcutLabel(ACCEL& a);
 	static CString MakeMouseButtonLabel(UINT mouse);
+	static CString MakeAppCommandLabel(UINT id);
+
+	enum {APPCOMMAND_LAST=APPCOMMAND_MEDIA_CHANNEL_DOWN};
 
 // Dialog Data
 	enum { IDD = IDD_PPAGEACCELTBL };

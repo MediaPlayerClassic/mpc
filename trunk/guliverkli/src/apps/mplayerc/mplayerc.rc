@@ -847,29 +847,31 @@ BEGIN
     CONTROL         "",IDC_SPIN9,"msctls_updown32",UDS_SETBUDDYINT | 
                     UDS_ALIGNRIGHT | UDS_AUTOBUDDY | UDS_ARROWKEYS | 
                     UDS_NOTHOUSANDS,280,32,11,14
-    GROUPBOX        "Colors && Transparency",IDC_STATIC,116,56,174,102
-    LTEXT           "Primary",IDC_STATIC,123,74,25,8
-    CONTROL         "",IDC_COLORPRI,"Static",SS_OWNERDRAW | SS_NOTIFY,165,71,
+    GROUPBOX        "Colors && Transparency",IDC_STATIC,116,56,174,108
+    LTEXT           "Primary",IDC_STATIC,123,81,25,8
+    CONTROL         "",IDC_COLORPRI,"Static",SS_OWNERDRAW | SS_NOTIFY,165,78,
                     16,14,WS_EX_DLGMODALFRAME
     CONTROL         "",IDC_SLIDER2,"msctls_trackbar32",TBS_BOTH | 
-                    TBS_NOTICKS | WS_TABSTOP,187,72,92,13
-    LTEXT           "Secondary",IDC_STATIC,123,91,34,8
-    CONTROL         "",IDC_COLORSEC,"Static",SS_OWNERDRAW | SS_NOTIFY,165,88,
+                    TBS_NOTICKS | WS_TABSTOP,187,79,92,13
+    LTEXT           "Secondary",IDC_STATIC,123,98,34,8
+    CONTROL         "",IDC_COLORSEC,"Static",SS_OWNERDRAW | SS_NOTIFY,165,95,
                     16,14,WS_EX_DLGMODALFRAME
     CONTROL         "",IDC_SLIDER3,"msctls_trackbar32",TBS_BOTH | 
-                    TBS_NOTICKS | WS_TABSTOP,187,89,92,13
-    LTEXT           "Outline",IDC_STATIC,123,108,24,8
+                    TBS_NOTICKS | WS_TABSTOP,187,96,92,13
+    LTEXT           "Outline",IDC_STATIC,123,115,24,8
     CONTROL         "",IDC_COLOROUTL,"Static",SS_OWNERDRAW | SS_NOTIFY,165,
-                    105,16,14,WS_EX_DLGMODALFRAME
+                    112,16,14,WS_EX_DLGMODALFRAME
     CONTROL         "",IDC_SLIDER5,"msctls_trackbar32",TBS_BOTH | 
-                    TBS_NOTICKS | WS_TABSTOP,187,106,92,13
-    LTEXT           "Shadow",IDC_STATIC,123,125,26,8
+                    TBS_NOTICKS | WS_TABSTOP,187,113,92,13
+    LTEXT           "Shadow",IDC_STATIC,123,132,26,8
     CONTROL         "",IDC_COLORSHAD,"Static",SS_OWNERDRAW | SS_NOTIFY,165,
-                    122,16,14,WS_EX_DLGMODALFRAME
+                    129,16,14,WS_EX_DLGMODALFRAME
     CONTROL         "",IDC_SLIDER6,"msctls_trackbar32",TBS_BOTH | 
-                    TBS_NOTICKS | WS_TABSTOP,187,123,92,13
+                    TBS_NOTICKS | WS_TABSTOP,187,130,92,13
     CONTROL         "Link alpha channels",IDC_CHECK1,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,195,140,76,10
+                    BS_AUTOCHECKBOX | WS_TABSTOP,195,147,76,10
+    LTEXT           "100%",IDC_STATIC,265,69,20,8
+    LTEXT           "0%",IDC_STATIC,190,69,12,8
 END
 
 IDD_PPAGESOURCE DIALOGEX 0, 0, 296, 200
@@ -899,6 +901,23 @@ BEGIN
                     WS_TABSTOP,141,65,82,10
     LTEXT           "If you would like to use the stand-alone version from these filters or a some other replacement, disable them here.",
                     IDC_STATIC,18,111,212,19
+END
+
+IDD_PPAGELOGO DIALOGEX 0, 0, 296, 203
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD
+FONT 8, "MS Shell Dlg", 400, 0, 0xEE
+BEGIN
+    CONTROL         "",IDC_LOGOPREVIEW,"Static",SS_BITMAP | SS_CENTERIMAGE,5,
+                    5,284,150
+    CONTROL         "Internal:",IDC_RADIO1,"Button",BS_AUTORADIOBUTTON | 
+                    WS_GROUP,5,164,44,10
+    CONTROL         "External:",IDC_RADIO2,"Button",BS_AUTORADIOBUTTON,5,181,
+                    45,10
+    EDITTEXT        IDC_LOGOFILENAME,51,179,182,14,ES_AUTOHSCROLL | 
+                    ES_READONLY
+    CONTROL         "",IDC_SPIN1,"msctls_updown32",UDS_ARROWKEYS | UDS_HORZ,
+                    51,163,36,12
+    PUSHBUTTON      "Browse...",IDC_BUTTON2,239,179,50,14
 END
 
 
@@ -1147,6 +1166,16 @@ BEGIN
         HORZGUIDE, 103
         HORZGUIDE, 198
     END
+
+    IDD_PPAGELOGO, DIALOG
+    BEGIN
+        VERTGUIDE, 5
+        VERTGUIDE, 289
+        BOTTOMMARGIN, 200
+        HORZGUIDE, 5
+        HORZGUIDE, 155
+        HORZGUIDE, 163
+    END
 END
 #endif    // APSTUDIO_INVOKED
 
@@ -1175,7 +1204,12 @@ ID_PLAYERTOOLBAR        BITMAP                  "res\\toolbar1.bmp"
 IDB_MONO                BITMAP                  "res\\mono.bmp"
 IDB_STEREO              BITMAP                  "res\\stereo.bmp"
 IDB_NOAUDIO             BITMAP                  "res\\noaudio.bmp"
-IDB_LOGO                BITMAP                  "res\\logo.bmp"
+IDB_LOGO0               BITMAP                  "res\\logo.0.bmp"
+IDB_LOGO1               BITMAP                  "res\\logo.1.bmp"
+IDB_LOGO2               BITMAP                  "res\\logo.2.bmp"
+IDB_LOGO3               BITMAP                  "res\\logo.3.bmp"
+IDB_LOGO4               BITMAP                  "res\\logo.4.bmp"
+IDB_LOGO5               BITMAP                  "res\\logo.5.bmp"
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -1442,7 +1476,7 @@ BEGIN
         BEGIN
             MENUITEM "&Previous\tPage Up",          ID_NAVIGATE_SKIPBACK
             MENUITEM "&Next\tPage Down",            ID_NAVIGATE_SKIPFORWARD
-            MENUITEM "&Jump To...",                 ID_NAVIGATE_JUMPTO289
+            MENUITEM "&Jump To...",                 65535
             MENUITEM SEPARATOR
             MENUITEM "A&udio Language",             65535
             MENUITEM "Su&btitle Language",          ID_NAVIGATE_SUBTITLELANGUAGE32817
@@ -1795,12 +1829,16 @@ BEGIN
     IDS_RS_REPORTFAILEDPINS "ReportFailedPins"
     IDS_RS_SRCFILTERS       "SrcFilters"
     IDS_RS_KEEPHISTORY      "KeepHistory"
+    IDS_RS_LOGOID           "LogoID"
+    IDS_RS_LOGOEXT          "LogoExt"
+    IDS_RS_TRAFILTERS       "TraFilters"
 END
 
 STRINGTABLE 
 BEGIN
     IDD_PPAGESUBSTYLE       "Subtitles::Default Style"
     IDD_PPAGESOURCE         "Filters::Source"
+    IDD_PPAGELOGO           "Player::Logo"
 END
 
 #endif    // English (U.S.) resources

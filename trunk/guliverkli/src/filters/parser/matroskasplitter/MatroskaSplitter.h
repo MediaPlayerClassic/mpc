@@ -73,6 +73,8 @@ protected:
 
 	CMap<DWORD, DWORD, MatroskaReader::TrackEntry*, MatroskaReader::TrackEntry*> m_pTrackEntryMap;
 
+	REFERENCE_TIME m_rtOffset;
+
 	bool InitDeliverLoop();
 	void SeekDeliverLoop(REFERENCE_TIME rt);
 	void DoDeliverLoop();

@@ -118,6 +118,14 @@ enum
 
 enum
 {
+	TRA_MPEG1=1, 
+	TRA_MPEG2=TRA_MPEG1<<1,
+	TRA_REALVID=TRA_MPEG2<<1,
+	TRA_REALAUD=TRA_REALVID<<1,
+};
+
+enum
+{
 	DVS_HALF, 
 	DVS_NORMAL, 
 	DVS_DOUBLE, 
@@ -144,19 +152,22 @@ typedef struct
 class wmcmd : public ACCEL
 {
 	ACCEL backup;
+	UINT appcmdorg;
 	UINT mouseorg;
 public:
 	CString name;
+	UINT appcmd;
 	enum {NONE,LDOWN,LUP,LDBLCLK,MDOWN,MUP,MDBLCLK,RDOWN,RUP,RDBLCLK,X1DOWN,X1UP,X1DBLCLK,X2DOWN,X2UP,X2DBLCLK,WUP,WDOWN,LAST};
 	UINT mouse;
 	CStringA rmcmd;
 	int rmrepcnt;
 	wmcmd(WORD cmd = 0) {this->cmd = cmd;}
-	wmcmd(WORD cmd, WORD key, BYTE fVirt, LPCTSTR name, UINT mouse = NONE, LPCSTR rmcmd = "", int rmrepcnt = 5)
+	wmcmd(WORD cmd, WORD key, BYTE fVirt, LPCTSTR name, UINT appcmd = 0, UINT mouse = NONE, LPCSTR rmcmd = "", int rmrepcnt = 5)
 	{
 		this->cmd = cmd;
 		this->key = key;
 		this->fVirt = fVirt;
+		this->appcmd = appcmdorg = appcmd;
 		this->name = name;
 		this->mouse = mouseorg = mouse;
 		this->rmcmd = rmcmd;
@@ -167,8 +178,8 @@ public:
 	{
 		return(cmd > 0 && cmd == wc.cmd);
 	}
-	void Restore() {*(ACCEL*)this = backup; mouse = mouseorg; rmcmd.Empty(); rmrepcnt = 5;}
-	bool IsModified() {return(memcmp((const ACCEL*)this, &backup, sizeof(ACCEL)) || mouse != mouseorg || !rmcmd.IsEmpty() || rmrepcnt != 5);}
+	void Restore() {*(ACCEL*)this = backup; appcmd = appcmdorg; mouse = mouseorg; rmcmd.Empty(); rmrepcnt = 5;}
+	bool IsModified() {return(memcmp((const ACCEL*)this, &backup, sizeof(ACCEL)) || appcmd != appcmdorg || mouse != mouseorg || !rmcmd.IsEmpty() || rmrepcnt != 5);}
 };
 #pragma pack(pop)
 
@@ -270,6 +281,8 @@ public:
 
 		void ParseCommandLine(CStringList& cmdln);
 
+		bool fXpOrBetter;
+
 		int nCS;
 		bool fHideCaptionMenu;
 		int iDefaultVideoSize;
@@ -354,7 +367,11 @@ public:
 
 		CMediaFormats Formats;
 
-		UINT SrcFilters;
+		UINT SrcFilters, TraFilters;
+
+		CString logofn;
+		UINT logoid;
+		bool logoext;
 
 	public:
 		Settings();

@@ -313,7 +313,7 @@ static struct {TCHAR verb[20], cmd[20], action[100];} handlers[] =
 
 void CPPageFormats::AddAutoPlayToRegistry(autoplay_t ap, bool fRegister)
 {
-	if(!m_fXpOrBetter) return;
+	if(!AfxGetAppSettings().fXpOrBetter) return;
 
 	TCHAR buff[MAX_PATH];
 	if(::GetModuleFileName(AfxGetInstanceHandle(), buff, MAX_PATH) == 0) return;
@@ -463,10 +463,7 @@ BOOL CPPageFormats::OnInitDialog()
 		SetListItemState(i);
 	}
 
-	DWORD ver = ::GetVersion();
-	m_fXpOrBetter = (int)ver >= 0 && (((ver<<8)&0xff00)|((ver>>8)&0xff)) >= 0x0501;
-
-	if(m_fXpOrBetter)
+	if(AfxGetAppSettings().fXpOrBetter)
 	{
 		m_apvideo.SetCheck(IsAutoPlayRegistered(AP_VIDEO));
 		m_apmusic.SetCheck(IsAutoPlayRegistered(AP_MUSIC));
