@@ -84,9 +84,11 @@ if(!empty($movies))
 		chkerr();
 
 		$movies[$i]['subs'] = array();
-		
+
 		$db->fetchAll(
-			"select t2.* from movie_subtitle t1 ".
+			"select t2.id, t2.discs, t2.disc_no, t2.name, t2.format, ".
+			" t2.iso639_2, t2.nick, t2.email, t2.date, t2.notes, t2.downloads ".
+			"from movie_subtitle t1 ".
 			"join subtitle t2 on t1.subtitle_id = t2.id ".
 			"where t1.movie_id = {$movie['id']} ".
 			(!empty($discs)?" && discs = '$discs' ":"").

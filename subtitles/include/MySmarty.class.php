@@ -93,7 +93,7 @@ function code2utf8($num)
 
 function html2utf8($str)
 {
-	return preg_replace( '/&#(\\d+);/e', 'code2utf2($1)', utf8_encode($str));
+	return preg_replace( '/&#(\\d+);/e', 'code2utf8($1)', utf8_encode($str));
 }
 
 $browser = isset($_SERVER['HTTP_USER_AGENT']) ? $_SERVER['HTTP_USER_AGENT'] : 'MSIE';

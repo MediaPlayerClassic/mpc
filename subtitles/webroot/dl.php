@@ -13,15 +13,32 @@ if(empty($_GET['id'])
 $db = new SubtitlesDB();
 
 $id = intval($_GET['id']);
-$db->query("select sub, name, mime from subtitle where id = $id");
+$db->query("select hash, name, mime from subtitle where id = $id");
 if(!($row = $db->fetchRow())) error404();
+
+$hash = $row['hash'];
+$name = $row['name'];
+$mime = $row['mime'];
+
+$fn = "../subcache/$hash";
+
+@mkdir("../subcache");
+
+if(!($sub = @file_get_contents($fn)) || empty($sub))
+{
+	$db->query("select sub from subtitle where id = $id");
+	if(!($row = $db->fetchRow())) error404();
+
+	$sub = $row['sub'];
+	if($fp = fopen($fn, "wb")) {fwrite($fp, $sub); fclose($fp);}
+}
 
 $db->query("update subtitle set downloads = downloads+1 where id = $id");
 
-header("Content-Type: {$row['mime']}");
-header("Content-Disposition: attachment; filename=\"{$row['name']}\"");
+header("Content-Type: $mime}");
+header("Content-Disposition: attachment; filename=\"$name\"");
 header("Pragma: no-cache");
-echo gzuncompress($row['sub']);
+echo gzuncompress($sub);
 exit;
 
 ?>
