@@ -59,17 +59,45 @@ public:
     HRESULT DeliverNewSegment(REFERENCE_TIME tStart, REFERENCE_TIME tStop, double dRate);
 };
 
-[uuid("62BEFB74-07A4-4434-AA41-8F926F5A961B")]
-class CMatroskaSplitterFilter 
+[uuid("0A68C3B5-9164-4a54-AFAF-995B2FF0E0D4")]
+class CMatroskaSourceFilter 
 	: public CBaseFilter
 	, public CCritSec
 	, protected CAMThread
+	, public IFileSourceFilter
 	, public IMediaSeeking
 {
+
+	class CFileReader : public CUnknown, public IAsyncReader
+	{
+		CFile m_file;
+
+	public:
+		CFileReader(CString fn, HRESULT& hr);
+
+		DECLARE_IUNKNOWN;
+		STDMETHODIMP NonDelegatingQueryInterface(REFIID riid, void** ppv);
+
+		// IAsyncReader
+
+		STDMETHODIMP RequestAllocator(IMemAllocator* pPreferred, ALLOCATOR_PROPERTIES* pProps, IMemAllocator** ppActual) {return E_NOTIMPL;}
+        STDMETHODIMP Request(IMediaSample* pSample, DWORD_PTR dwUser) {return E_NOTIMPL;}
+        STDMETHODIMP WaitForNext(DWORD dwTimeout, IMediaSample** ppSample, DWORD_PTR* pdwUser) {return E_NOTIMPL;}
+		STDMETHODIMP SyncReadAligned(IMediaSample* pSample) {return E_NOTIMPL;}
+		STDMETHODIMP SyncRead(LONGLONG llPosition, LONG lLength, BYTE* pBuffer);
+		STDMETHODIMP Length(LONGLONG* pTotal, LONGLONG* pAvailable);
+		STDMETHODIMP BeginFlush() {return E_NOTIMPL;}
+		STDMETHODIMP EndFlush() {return E_NOTIMPL;}
+	};
+
+	CStringW m_fn;
+
+protected:
 	CAutoPtr<CMatroskaSplitterInputPin> m_pInput;
 	CAutoPtrList<CMatroskaSplitterOutputPin> m_pOutputs;
 
 	CAutoPtr<Matroska::CMatroskaFile> m_pFile;
+	HRESULT CreateOutputs(IAsyncReader* pAsyncReader);
 
 	CMap<UINT64, UINT64, CMatroskaSplitterOutputPin*, CMatroskaSplitterOutputPin*> m_mapTrackToPin;
 	CMap<UINT64, UINT64, Matroska::TrackEntry*, Matroska::TrackEntry*> m_mapTrackToTrackEntry;
@@ -93,8 +121,8 @@ protected:
     DWORD ThreadProc();
 
 public:
-	CMatroskaSplitterFilter(LPUNKNOWN pUnk, HRESULT* phr);
-	virtual ~CMatroskaSplitterFilter();
+	CMatroskaSourceFilter(LPUNKNOWN pUnk, HRESULT* phr);
+	virtual ~CMatroskaSourceFilter();
 
 #ifdef REGISTER_FILTER
     static CUnknown* WINAPI CreateInstance(LPUNKNOWN lpunk, HRESULT* phr);
@@ -112,6 +140,11 @@ public:
 	STDMETHODIMP Stop();
 	STDMETHODIMP Pause();
 	STDMETHODIMP Run(REFERENCE_TIME tStart);
+
+	// IFileSourceFilter
+
+	STDMETHODIMP Load(LPCOLESTR pszFileName, const AM_MEDIA_TYPE* pmt);
+	STDMETHODIMP GetCurFile(LPOLESTR* ppszFileName, AM_MEDIA_TYPE* pmt);
 
 	// IMediaSeeking
 
@@ -134,3 +167,13 @@ public:
 	STDMETHODIMP GetPreroll(LONGLONG* pllPreroll);
 };
 
+[uuid("149D2E01-C32E-4939-80F6-C07B81015A7A")]
+class CMatroskaSplitterFilter : public CMatroskaSourceFilter
+{
+public:
+	CMatroskaSplitterFilter(LPUNKNOWN pUnk, HRESULT* phr);
+
+#ifdef REGISTER_FILTER
+    static CUnknown* WINAPI CreateInstance(LPUNKNOWN lpunk, HRESULT* phr);
+#endif
+};

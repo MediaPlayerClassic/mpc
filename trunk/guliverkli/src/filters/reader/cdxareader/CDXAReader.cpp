@@ -2,6 +2,7 @@
 #include <initguid.h>
 #include <uuids.h>
 #include "cdxareader.h"
+#include "..\..\..\..\include\matroska\matroska.h"
 #include "..\..\..\..\include\ogg\OggDS.h"
 #include "..\..\..\DSUtil\DSUtil.h"
 
@@ -87,17 +88,6 @@ static DWORD build_edc(const void* in, unsigned from, unsigned upto)
 }
 
 /////////
-
-
-#define RIFFCDXA_HEADER_SIZE 44 // usually...
-
-#define RAW_SYNC_SIZE 12 // 00 FF .. FF 00
-#define RAW_HEADER_SIZE 4
-#define RAW_SUBHEADER_SIZE 8
-#define RAW_DATA_SIZE 2324
-#define RAW_EDC_SIZE 4
-
-#define RAW_SECTOR_SIZE 2352
 
 #ifdef REGISTER_FILTER
 
@@ -238,6 +228,7 @@ CCDXAStream::CCDXAStream()
 
 	m_llPosition = m_llLength = 0;
 	m_nFirstSector = 0;
+	m_nBufferedSector = -1;
 }
 
 CCDXAStream::~CCDXAStream()
@@ -290,6 +281,8 @@ bool CCDXAStream::Load(const WCHAR* fnw)
 
 	m_llPosition = 0;
 
+	m_nBufferedSector = -1;
+
 	return(true);
 }
 
@@ -310,34 +303,38 @@ HRESULT CCDXAStream::Read(PBYTE pbBuffer, DWORD dwBytesToRead, BOOL bAlign, LPDW
 		UINT sector = m_nFirstSector + int(pos/RAW_DATA_SIZE);
 		__int64 offset = pos%RAW_DATA_SIZE;
 
-		LARGE_INTEGER FilePointer;
-		FilePointer.QuadPart = RIFFCDXA_HEADER_SIZE + sector*RAW_SECTOR_SIZE;
-		SetFilePointer(m_hFile, (LONG)FilePointer.LowPart, (PLONG)&FilePointer.HighPart, FILE_BEGIN);
-
-		BYTE buff[RAW_SECTOR_SIZE];
-		memset(buff, 0, sizeof(buff));
-
-		DWORD NumberOfBytesRead = 0;
-
-		int nRetries = 3;
-		while(nRetries--)
+		if(m_nBufferedSector != sector)
 		{
-			NumberOfBytesRead = 0;
-			if(!ReadFile(m_hFile, buff, RAW_SECTOR_SIZE, &NumberOfBytesRead, NULL)
-			|| NumberOfBytesRead != RAW_SECTOR_SIZE) 
-				break;
+			LARGE_INTEGER FilePointer;
+			FilePointer.QuadPart = RIFFCDXA_HEADER_SIZE + sector*RAW_SECTOR_SIZE;
+			SetFilePointer(m_hFile, (LONG)FilePointer.LowPart, (PLONG)&FilePointer.HighPart, FILE_BEGIN);
 
-			if(*(DWORD*)&buff[RAW_SECTOR_SIZE-4] == 0) // no CRC? it happens...
-				break;
+			memset(m_sector, 0, sizeof(m_sector));
 
-			if(build_edc(buff, RAW_SYNC_SIZE + RAW_HEADER_SIZE, RAW_SECTOR_SIZE) == 0) 
-				break;
+			DWORD NumberOfBytesRead = 0;
 
-			TRACE(_T("CCDXAStream: CRC error at sector %d (fp=0x%I64x, retriesleft=%d)\n"), sector, FilePointer.QuadPart, nRetries);
+			int nRetries = 3;
+			while(nRetries--)
+			{
+				NumberOfBytesRead = 0;
+				if(!ReadFile(m_hFile, m_sector, RAW_SECTOR_SIZE, &NumberOfBytesRead, NULL)
+				|| NumberOfBytesRead != RAW_SECTOR_SIZE) 
+					break;
+
+				if(*(DWORD*)&m_sector[RAW_SECTOR_SIZE-4] == 0) // no CRC? it happens...
+					break;
+
+				if(build_edc(m_sector, RAW_SYNC_SIZE + RAW_HEADER_SIZE, RAW_SECTOR_SIZE) == 0) 
+					break;
+
+				TRACE(_T("CCDXAStream: CRC error at sector %d (fp=0x%I64x, retriesleft=%d)\n"), sector, FilePointer.QuadPart, nRetries);
+			}
+
+			m_nBufferedSector = sector;
 		}
 
 		DWORD l = min(min(dwBytesToRead, RAW_DATA_SIZE - offset), m_llLength - pos);
-		memcpy(pbBuffer, &buff[RAW_SYNC_SIZE + RAW_HEADER_SIZE + RAW_SUBHEADER_SIZE + offset], l);
+		memcpy(pbBuffer, &m_sector[RAW_SYNC_SIZE + RAW_HEADER_SIZE + RAW_SUBHEADER_SIZE + offset], l);
 
 		pbBuffer += l;
 		pos += l;
@@ -422,6 +419,16 @@ bool CCDXAStream::LookForMediaSubType()
 			m_nFirstSector = iSectorsRead;
 
 			m_subtype = MEDIASUBTYPE_Ogg;
+
+			return(true);
+		}
+		else if(*((DWORD*)&buff[0]) == 0xA3DF451A) 
+		{
+			m_llPosition = 0;
+			m_llLength -= iSectorsRead*RAW_DATA_SIZE;
+			m_nFirstSector = iSectorsRead;
+
+			m_subtype = MEDIASUBTYPE_Matroska;
 
 			return(true);
 		}

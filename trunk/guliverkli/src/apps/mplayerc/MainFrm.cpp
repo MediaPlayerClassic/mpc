@@ -5026,7 +5026,7 @@ void CMainFrame::OpenFile(OpenFileData* pOFD)
 				case E_INVALIDARG: err = _T("Invalid file name"); break;
 				case E_OUTOFMEMORY: err = _T("Out of memory"); break;
 				case VFW_E_CANNOT_CONNECT: err = _T("Cannot connect the filters"); break;
-				case VFW_E_CANNOT_LOAD_SOURCE_FILTER: err = _T("Cannot load source filter"); break;
+				case VFW_E_CANNOT_LOAD_SOURCE_FILTER: err = _T("Cannot load any source filter"); break;
 				case VFW_E_CANNOT_RENDER: err = _T("Cannot render the file"); break;
 				case VFW_E_INVALID_FILE_FORMAT: err = _T("Invalid file format"); break;
 				case VFW_E_NOT_FOUND: err = _T("File not found"); break;
