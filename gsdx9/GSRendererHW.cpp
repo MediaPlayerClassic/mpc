@@ -33,6 +33,7 @@ static const double log_2pow32 = log(2.0)*32;
 
 GSRendererHW::GSRendererHW(HWND hWnd, HRESULT& hr)
 	: GSRenderer<HWVERTEX>(1024, 1024, hWnd, hr)
+//	: GSRenderer<HWVERTEX>(640, 224, hWnd, hr)
 {
 	Reset();
 }
@@ -56,7 +57,7 @@ void GSRendererHW::Reset()
 		CGSWnd* pWnd = NULL;
 		m_pRenderWnds.GetNextAssoc(pos, FBP, pWnd);
 		pWnd->DestroyWindow();
-		delete [] pWnd;
+		delete pWnd;
 	}
 	m_pRenderWnds.RemoveAll();
 
@@ -96,7 +97,7 @@ void GSRendererHW::VertexKick(bool fSkip)
 		{
 			v.tu = (float)m_v.UV.U / (16<<m_ctxt->TEX0.TW);
 			v.tv = (float)m_v.UV.V / (16<<m_ctxt->TEX0.TH);
-			v.rhw = 2.0f;
+			v.rhw = 1.0f;
 		}
 		else if(m_v.RGBAQ.Q != 0)
 		{
