@@ -18,13 +18,14 @@ public:
 
 class CShaderEdit : public CLineNumberEdit
 {
-	CShaderAutoCompleteDlg m_acdlg;
 	int m_nEndChar;
 	UINT m_nIDEvent;
 
 public:
 	CShaderEdit();
 	~CShaderEdit();
+
+	CShaderAutoCompleteDlg m_acdlg;
 
 	DECLARE_MESSAGE_MAP()
 	afx_msg void OnUpdate();
