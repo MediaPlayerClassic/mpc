@@ -1,0 +1,5 @@
+- admin users
+- allow admins to delete obsolite mirrors
+- allow admins to add or modify imdb links (-> movie entries in the db should be groupped after two or more gets the same imdb id)
+- paged results
+- display "number of downloads" somewhere
