@@ -302,14 +302,14 @@ HRESULT COggSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 	return m_pOutputs.GetCount() > 0 ? S_OK : E_FAIL;
 }
 
-bool COggSplitterFilter::InitDeliverLoop()
+bool COggSplitterFilter::DemuxInit()
 {
 	if(!m_pFile) return(false);
 
 	return(true);
 }
 
-void COggSplitterFilter::SeekDeliverLoop(REFERENCE_TIME rt)
+void COggSplitterFilter::DemuxSeek(REFERENCE_TIME rt)
 {
 	if(rt <= 0)
 	{
@@ -500,7 +500,7 @@ t1 = clock();
 	}
 }
 
-bool COggSplitterFilter::DoDeliverLoop()
+bool COggSplitterFilter::DemuxLoop()
 {
 	HRESULT hr = S_OK;
 

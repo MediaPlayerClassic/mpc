@@ -27,6 +27,8 @@
 #include "..\..\switcher\AudioSwitcher\AudioSwitcher.h"
 #include "BaseSplitter.h"
 
+#pragma warning(disable: 4355)
+
 #define MAXBUFFERS 2
 #define MINPACKETS 10
 #define MINPACKETSIZE 100*1024
@@ -217,6 +219,7 @@ STDMETHODIMP CBaseSplitterOutputPin::NonDelegatingQueryInterface(REFIID riid, vo
 
 	return 
 //		riid == __uuidof(IMediaSeeking) ? m_pFilter->QueryInterface(riid, ppv) : 
+		QI(IPropertyBag2)
 		QI(IMediaSeeking)
 		__super::NonDelegatingQueryInterface(riid, ppv);
 }
@@ -783,7 +786,7 @@ void CBaseSplitterFilter::DeliverEndFlush()
 
 DWORD CBaseSplitterFilter::ThreadProc()
 {
-	if(!InitDeliverLoop())
+	if(!DemuxInit())
 	{
 		while(1)
 		{
@@ -811,7 +814,7 @@ DWORD CBaseSplitterFilter::ThreadProc()
 		m_rtStart = m_rtNewStart;
 		m_rtStop = m_rtNewStop;
 
-		SeekDeliverLoop(m_rtStart);
+		DemuxSeek(m_rtStart);
 
 		if(cmd != -1)
 			Reply(S_OK);
@@ -832,7 +835,7 @@ DWORD CBaseSplitterFilter::ThreadProc()
 		}
 
 		do {m_bDiscontinuitySent.RemoveAll();}
-		while(!DoDeliverLoop());
+		while(!DemuxLoop());
 
 		pos = m_pActivePins.GetHeadPosition();
 		while(pos && !CheckRequest(&cmd))

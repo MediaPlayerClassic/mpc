@@ -166,14 +166,14 @@ HRESULT CNutSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 	return m_pOutputs.GetCount() > 0 ? S_OK : E_FAIL;
 }
 
-bool CNutSplitterFilter::InitDeliverLoop()
+bool CNutSplitterFilter::DemuxInit()
 {
 	if(!m_pFile) return(false);
 	m_pFile->Seek(0);
 	return(true);
 }
 
-void CNutSplitterFilter::SeekDeliverLoop(REFERENCE_TIME rt)
+void CNutSplitterFilter::DemuxSeek(REFERENCE_TIME rt)
 {
 	POSITION pos = m_pFile->m_streams.GetHeadPosition();
 	while(pos) m_pFile->m_streams.GetNext(pos)->msb_timestamp = 0;
@@ -189,7 +189,7 @@ void CNutSplitterFilter::SeekDeliverLoop(REFERENCE_TIME rt)
 	}
 }
 
-bool CNutSplitterFilter::DoDeliverLoop()
+bool CNutSplitterFilter::DemuxLoop()
 {
 	bool fKeyFrame = false;
 

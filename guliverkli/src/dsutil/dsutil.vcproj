@@ -309,6 +309,9 @@
 				RelativePath=".\NullRenderers.cpp">
 			</File>
 			<File
+				RelativePath=".\PropertyBag2.cpp">
+			</File>
+			<File
 				RelativePath="stdafx.cpp">
 				<FileConfiguration
 					Name="Debug|Win32">
@@ -353,6 +356,9 @@
 			</File>
 			<File
 				RelativePath=".\NullRenderers.h">
+			</File>
+			<File
+				RelativePath=".\PropertyBag2.h">
 			</File>
 			<File
 				RelativePath="stdafx.h">

@@ -34,9 +34,9 @@ protected:
 	CAutoPtr<CDSMSplitterFile> m_pFile;
 	HRESULT CreateOutputs(IAsyncReader* pAsyncReader);
 
-	bool InitDeliverLoop();
-	void SeekDeliverLoop(REFERENCE_TIME rt);
-	bool DoDeliverLoop();
+	bool DemuxInit();
+	void DemuxSeek(REFERENCE_TIME rt);
+	bool DemuxLoop();
 
 public:
 	CDSMSplitterFilter(LPUNKNOWN pUnk, HRESULT* phr);

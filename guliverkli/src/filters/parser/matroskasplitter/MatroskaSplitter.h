@@ -97,9 +97,9 @@ protected:
 	CArray<MatroskaReader::TrackEntry* > m_pOrderedTrackArray;
 	MatroskaReader::TrackEntry* GetTrackEntryAt(UINT aTrackIdx);	
 
-	bool InitDeliverLoop();
-	void SeekDeliverLoop(REFERENCE_TIME rt);
-	bool DoDeliverLoop();
+	bool DemuxInit();
+	void DemuxSeek(REFERENCE_TIME rt);
+	bool DemuxLoop();
 
 public:
 	CMatroskaSplitterFilter(LPUNKNOWN pUnk, HRESULT* phr);

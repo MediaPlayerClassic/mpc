@@ -21,7 +21,9 @@
 
 #pragma once
 
-class CBaseMuxerInputPin : public CBaseInputPin
+#include "..\..\..\DSUtil\PropertyBag2.h"
+
+class CBaseMuxerInputPin : public CBaseInputPin, public CPropertyBag2
 {
 	CCritSec m_csReceive;
 	REFERENCE_TIME m_rtMaxStart, m_rtDuration;
@@ -32,6 +34,9 @@ public:
 	CBaseMuxerInputPin(LPCWSTR pName, CBaseFilter* pFilter, CCritSec* pLock, HRESULT* phr);
 	virtual ~CBaseMuxerInputPin();
 
+	DECLARE_IUNKNOWN;
+    STDMETHODIMP NonDelegatingQueryInterface(REFIID riid, void** ppv);
+
 	REFERENCE_TIME GetDuration() {return m_rtDuration;}
 	bool IsSubtitleStream();
 	int GetID() {return m_iID;}
@@ -40,7 +45,7 @@ public:
 
     HRESULT CheckMediaType(const CMediaType* pmt);
     HRESULT BreakConnect();
-    HRESULT CompleteConnect(IPin* pPin);
+    HRESULT CompleteConnect(IPin* pReceivePin);
 
 	HRESULT Active();
 

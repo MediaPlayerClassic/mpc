@@ -54,7 +54,7 @@ private:
 
 	CCritSec m_csQueue;
 	CAutoPtrList<Packet> m_queue;
-	CMap<CBaseMuxerInputPin*, CBaseMuxerInputPin*, int, int&> m_pActivePins;
+	CAtlMap<CBaseMuxerInputPin*, int> m_pActivePins;
 	bool PeekQueue();
 
 	enum {CMD_EXIT, CMD_RUN};
@@ -69,6 +69,8 @@ protected:
 	virtual void MuxHeader(IBitStream* pBS) = 0;
 	virtual void MuxPacket(IBitStream* pBS, Packet* pPacket) = 0;
 	virtual void MuxFooter(IBitStream* pBS) = 0;
+
+	virtual HRESULT CreateInput(CStringW name, CBaseMuxerInputPin** ppPin);
 
 public:
 	CBaseMuxerFilter(LPUNKNOWN pUnk, HRESULT* phr, const CLSID& clsid);

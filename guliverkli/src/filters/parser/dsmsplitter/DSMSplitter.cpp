@@ -138,29 +138,38 @@ HRESULT CDSMSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 		mts.Add(mt);
 
 		CAutoPtr<CBaseSplitterOutputPin> pPinOut(new CBaseSplitterOutputPin(mts, name, this, this, &hr));
+	
+		POSITION pos = m_pFile->m_sim[id].GetStartPosition();
+		while(pos)
+		{
+			CStringA key; CStringW value;
+			m_pFile->m_sim[id].GetNextAssoc(pos, key, value);
+			pPinOut->SetProperty(CString(key), value);
+		}
+
 		EXECUTE_ASSERT(SUCCEEDED(AddOutputPin(id, pPinOut)));
 	}
-/*
-	SetMediaContentStr(CStringW(m_pFile->), Title);
-	SetMediaContentStr(CStringW(m_pFile->), AuthorName);
-	SetMediaContentStr(CStringW(m_pFile->), Rating);
-	SetMediaContentStr(CStringW(m_pFile->), Copyright);
-	SetMediaContentStr(CStringW(m_pFile->), Description);
-*/
+
+	SetMediaContentStr(CStringW(m_pFile->m_fim["TITL"]), Title);
+	SetMediaContentStr(CStringW(m_pFile->m_fim["AUTH"]), AuthorName);
+	SetMediaContentStr(CStringW(m_pFile->m_fim["RTNG"]), Rating);
+	SetMediaContentStr(CStringW(m_pFile->m_fim["CPYR"]), Copyright);
+	SetMediaContentStr(CStringW(m_pFile->m_fim["DESC"]), Description);
+
 	return m_pOutputs.GetCount() > 0 ? S_OK : E_FAIL;
 }
 
-bool CDSMSplitterFilter::InitDeliverLoop()
+bool CDSMSplitterFilter::DemuxInit()
 {
 	return(true);
 }
 
-void CDSMSplitterFilter::SeekDeliverLoop(REFERENCE_TIME rt)
+void CDSMSplitterFilter::DemuxSeek(REFERENCE_TIME rt)
 {
 	m_pFile->Seek(m_pFile->FindSyncPoint(rt));
 }
 
-bool CDSMSplitterFilter::DoDeliverLoop()
+bool CDSMSplitterFilter::DemuxLoop()
 {
 	HRESULT hr = S_OK;
 

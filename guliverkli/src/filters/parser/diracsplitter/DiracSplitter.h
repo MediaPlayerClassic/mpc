@@ -31,9 +31,9 @@ protected:
 	CAutoPtr<CDiracSplitterFile> m_pFile;
 	HRESULT CreateOutputs(IAsyncReader* pAsyncReader);
 
-	bool InitDeliverLoop();
-	void SeekDeliverLoop(REFERENCE_TIME rt);
-	bool DoDeliverLoop();
+	bool DemuxInit();
+	void DemuxSeek(REFERENCE_TIME rt);
+	bool DemuxLoop();
 
 public:
 	CDiracSplitterFilter(LPUNKNOWN pUnk, HRESULT* phr);

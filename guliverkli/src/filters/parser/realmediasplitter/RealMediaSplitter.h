@@ -195,9 +195,9 @@ protected:
 	CAutoPtr<CRMFile> m_pFile;
 	HRESULT CreateOutputs(IAsyncReader* pAsyncReader);
 
-	bool InitDeliverLoop();
-	void SeekDeliverLoop(REFERENCE_TIME rt);
-	bool DoDeliverLoop();
+	bool DemuxInit();
+	void DemuxSeek(REFERENCE_TIME rt);
+	bool DemuxLoop();
 
 	POSITION m_seekpos;
 	UINT32 m_seekpacket;

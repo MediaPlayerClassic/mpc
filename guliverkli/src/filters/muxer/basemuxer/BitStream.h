@@ -21,34 +21,34 @@
 
 #pragma once
 
-#include "..\BaseSplitter\BaseSplitter.h"
-#include "MpaSplitterFile.h"
-
-[uuid("0E9D4BF7-CBCB-46C7-BD80-4EF223A3DC2B")]
-class CMpaSplitterFilter : public CBaseSplitterFilter
+[uuid("30AB78C7-5259-4594-AEFE-9C0FC2F08A5E")]
+interface IBitStream : public IUnknown
 {
-	REFERENCE_TIME m_rtStart;
-
-protected:
-	CAutoPtr<CMpaSplitterFile> m_pFile;
-	HRESULT CreateOutputs(IAsyncReader* pAsyncReader);
-
-	STDMETHODIMP GetDuration(LONGLONG* pDuration);
-
-	bool DemuxInit();
-	void DemuxSeek(REFERENCE_TIME rt);
-	bool DemuxLoop();
-
-public:
-	CMpaSplitterFilter(LPUNKNOWN pUnk, HRESULT* phr);
-
-	DECLARE_IUNKNOWN
-    STDMETHODIMP NonDelegatingQueryInterface(REFIID riid, void** ppv);
+	STDMETHOD_(UINT64, GetPos) () = 0;
+	STDMETHOD_(UINT64, Seek) (UINT64 pos) = 0; // it's a _stream_, please don't seek if you don't have to 
+	STDMETHOD(ByteWrite) (const void* pData, int len) = 0;
+	STDMETHOD(BitWrite) (UINT64 data, int len) = 0;
+	STDMETHOD(BitFlush) () = 0;
 };
 
-[uuid("59A0DB73-0287-4C9A-9D3C-8CFF39F8E5DB")]
-class CMpaSourceFilter : public CMpaSplitterFilter
+class CBitStream : public CUnknown, public IBitStream
 {
+	CComPtr<IStream> m_pStream;
+	UINT64 m_bitbuff;
+	int m_bitlen;
+
 public:
-	CMpaSourceFilter(LPUNKNOWN pUnk, HRESULT* phr);
+	CBitStream(IStream* pStream);
+	virtual ~CBitStream();
+
+	DECLARE_IUNKNOWN;
+    STDMETHODIMP NonDelegatingQueryInterface(REFIID riid, void** ppv);
+
+	// IBitStream
+
+	STDMETHODIMP_(UINT64) GetPos();
+	STDMETHODIMP_(UINT64) Seek(UINT64 pos);
+	STDMETHODIMP ByteWrite(const void* pData, int len);
+	STDMETHODIMP BitWrite(UINT64 data, int len);
+	STDMETHODIMP BitFlush();
 };

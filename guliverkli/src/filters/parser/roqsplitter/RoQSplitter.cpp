@@ -240,14 +240,14 @@ HRESULT CRoQSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 	return m_pOutputs.GetCount() > 0 ? S_OK : E_FAIL;
 }
 
-bool CRoQSplitterFilter::InitDeliverLoop()
+bool CRoQSplitterFilter::DemuxInit()
 {
 	m_indexpos = m_index.GetHeadPosition();
 
 	return(true);
 }
 
-void CRoQSplitterFilter::SeekDeliverLoop(REFERENCE_TIME rt)
+void CRoQSplitterFilter::DemuxSeek(REFERENCE_TIME rt)
 {
 	if(rt <= 0)
 	{
@@ -260,7 +260,7 @@ void CRoQSplitterFilter::SeekDeliverLoop(REFERENCE_TIME rt)
 	}
 }
 
-bool CRoQSplitterFilter::DoDeliverLoop()
+bool CRoQSplitterFilter::DemuxLoop()
 {
 	if(!m_indexpos) return(true);
 

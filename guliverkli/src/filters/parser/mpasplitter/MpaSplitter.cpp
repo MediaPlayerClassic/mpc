@@ -143,7 +143,7 @@ STDMETHODIMP CMpaSplitterFilter::GetDuration(LONGLONG* pDuration)
 	return S_OK;
 }
 
-bool CMpaSplitterFilter::InitDeliverLoop()
+bool CMpaSplitterFilter::DemuxInit()
 {
 	if(!m_pFile) return(false);
 
@@ -152,7 +152,7 @@ bool CMpaSplitterFilter::InitDeliverLoop()
 	return(true);
 }
 
-void CMpaSplitterFilter::SeekDeliverLoop(REFERENCE_TIME rt)
+void CMpaSplitterFilter::DemuxSeek(REFERENCE_TIME rt)
 {
 	__int64 startpos = m_pFile->GetStartPos();
 	__int64 endpos = m_pFile->GetEndPos();
@@ -170,7 +170,7 @@ void CMpaSplitterFilter::SeekDeliverLoop(REFERENCE_TIME rt)
 
 }
 
-bool CMpaSplitterFilter::DoDeliverLoop()
+bool CMpaSplitterFilter::DemuxLoop()
 {
 	HRESULT hr = S_OK;
 
