@@ -1720,7 +1720,46 @@
 					RelativePath=".\res\web\browser.html">
 				</File>
 				<File
+					RelativePath=".\res\web\controlback.png">
+				</File>
+				<File
+					RelativePath=".\res\web\controlbuttondecrate.png">
+				</File>
+				<File
+					RelativePath=".\res\web\controlbuttonincrate.png">
+				</File>
+				<File
+					RelativePath=".\res\web\controlbuttonpause.png">
+				</File>
+				<File
+					RelativePath=".\res\web\controlbuttonplay.png">
+				</File>
+				<File
+					RelativePath=".\res\web\controlbuttonskipback.png">
+				</File>
+				<File
+					RelativePath=".\res\web\controlbuttonskipforward.png">
+				</File>
+				<File
+					RelativePath=".\res\web\controlbuttonstep.png">
+				</File>
+				<File
+					RelativePath=".\res\web\controlbuttonstop.png">
+				</File>
+				<File
 					RelativePath=".\res\web\controls.html">
+				</File>
+				<File
+					RelativePath=".\res\web\controlvolumebar.png">
+				</File>
+				<File
+					RelativePath=".\res\web\controlvolumegrip.png">
+				</File>
+				<File
+					RelativePath=".\res\web\controlvolumeoff.png">
+				</File>
+				<File
+					RelativePath=".\res\web\controlvolumeon.png">
 				</File>
 				<File
 					RelativePath=".\res\web\default.css">
@@ -1742,6 +1781,9 @@
 				</File>
 				<File
 					RelativePath=".\res\web\leftside.png">
+				</File>
+				<File
+					RelativePath=".\res\web\logo.png">
 				</File>
 				<File
 					RelativePath=".\res\web\player.html">

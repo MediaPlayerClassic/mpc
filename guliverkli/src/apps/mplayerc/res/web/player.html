@@ -1,5 +1,8 @@
 <html>
+
 <head>
+
+<meta HTTP-EQUIV="content-type" CONTENT="text/html; charset=UTF-8">
 
 <title>Media Player Classic</title>
 
@@ -16,16 +19,16 @@ function getXMLHTTP()
 
 function MakeRequest(req)
 {
-		var httpRequest = getXMLHTTP();
-		
-		try
-		{
-			httpRequest.open("GET", req, true);
-			httpRequest.send(null);
-		}
-		catch(e)
-		{
-		}
+	var httpRequest = getXMLHTTP();
+	
+	try
+	{
+		httpRequest.open("GET", req, true);
+		httpRequest.send(null);
+	}
+	catch(e)
+	{
+	}
 }
 
 function urlencode(s)
@@ -42,18 +45,27 @@ function getOffsetX(m)
 	return x;
 }
 
-OnStatus = function(title, status, pos, posstr, dur, durstr)
+OnStatus = function(title, status, pos, posstr, dur, durstr, muted, volume)
 {
 	var maxtitle = 70;
 	if(title.length > maxtitle) title = title.substr(0, maxtitle-3) + '...';
 	var timestr = dur > 0 && posstr && durstr ? posstr + '&nbsp;/&nbsp;' + durstr : '&nbsp;';
 	if(!dur || dur == 0) dur = 1;	
-	var percent = Math.floor(100*pos/dur);
+	var sbpercent = Math.floor(100*pos/dur);
+
 	if(e = document.getElementById('title')) e.innerHTML = title;
-	if(e = document.getElementById('seekbarchleft')) e.width = percent > 0 ? percent + '%' : '1px';
-	if(e = document.getElementById('seekbarchright')) e.width = percent < 100 ? (100 - percent) + '%' : '1px';
+	if(e = document.getElementById('seekbarchleft')) e.width = sbpercent > 0 ? sbpercent + '%' : '1px';
+	if(e = document.getElementById('seekbarchright')) e.width = sbpercent < 100 ? (100 - sbpercent) + '%' : '1px';
 	if((e = document.getElementById('status')) && e.innerHTML != status) e.innerHTML = status;
 	if((e = document.getElementById('timer')) && e.innerHTML != timestr) e.innerHTML = timestr;
+	if(e = document.getElementById('controlvolumemute')) {url = 'url(controlvolume' + (muted?'off':'on') + '.png)'; if(e.style.backgroundImage != url) e.style.backgroundImage = url;}
+	if(e = document.getElementById('controlvolumegrip')) 
+	{
+		volume = (document.getElementById('controlvolumebar').offsetWidth - e.offsetWidth) * volume / 100;
+		e.style.position = 'relative';
+		e.style.top = '2px';
+		e.style.left = Math.floor(volume) + 'px';
+	}
 }
 
 var httpRequestStatus;
@@ -92,15 +104,15 @@ var snapshotcounter = 0;
 
 function LoadSnapShot()
 {
-	if(e = document.getElementById('snapshot'))
+	if(img = document.getElementById('snapshot'))
 	{
-		e.src = 'snapshot.jpg' + '?' + snapshotcounter++;
+		img.src = 'snapshot.jpg' + '?' + snapshotcounter++;
 	}
 }
 
 function OnLoadSnapShot()
 {
-	setTimeout("LoadSnapShot()", 1000);
+	setTimeout("LoadSnapShot()", 2000);
 }
 
 function OnAbortErrorSnapShot(e)
@@ -124,9 +136,23 @@ function OnSeek(e)
 	}
 }
 
-function OnPlayPause()
+function OnVolume(e)
 {
-		MakeRequest('command.html?wm_command=157');
+	left = right = 0;
+	if(cv = document.getElementById('controlvolumebar')) {left = getOffsetX(cv)+3; right = getOffsetX(cv) + cv.offsetWidth-3;}
+	if(left > 0 && left < right)
+	{
+		percent = 100 * ((window.event ? window.event.clientX : e.clientX) - left) / (right - left);
+		if(percent < 0) percent = 0;
+		else if(percent > 100) percent = 100;
+
+		MakeRequest('command.html?wm_command=[setvolumecommand]&volume='+percent);
+	}
+}
+
+function OnCommand(id)
+{
+		MakeRequest('command.html?wm_command='+id);
 }
 
 function Init()
@@ -136,28 +162,44 @@ function Init()
 
 	if(e = document.getElementById('seekbar'))
 		e.onclick = OnSeek;
+
+	if(e = document.getElementById('controlvolumebar'))
+		e.onclick = OnVolume;
 }
 
 </script>
 
 <style>
+img {padding: 0; margin: 0; border: 0;}
 #player {margin-left: auto; margin-right: auto;}
-#player td {font-family: Sans-Serif; font-size: 0.8em;}
-
+#player td {font-family: Sans-Serif; font-size: 13px;}
 #header {width: 100%;}
 #header td {height: 30px;}
 #headericon {background-image: url(headericon.png); background-repeat: no-repeat; width: 22px;}
 #headerback {background-image: url(headerback.png); background-repeat: repeat-x; color: white; font-weight: bold; padding-top: 5px}
 #headerclose {background-image: url(headerclose.png);  background-repeat: no-repeat; width: 28px;}
 #title, #status, #posstr, #durstr {display: inline;}
-#menu, #controlbar {background-color: #ece9d8;}
+#menu td {font-family: Sans-Serif; font-size: 12px; padding: 1px 5px;}
+#menu, #controlbar {background-color: #ece6d4;}
+#statusbar td {font-family: Sans-Serif; font-size: 12px;}
 #video, #statusbar {background-color: black; color: white;}
 #video {padding: 1px; cursor: pointer;}
+#controlbar {background-image: url(controlback.png); background-repeat: repeat-x; height: 28px;}
+#controlbuttonplay {background-image: url(controlbuttonplay.png); background-repeat: no-repeat; width: 25px; height: 28px;}
+#controlbuttonpause {background-image: url(controlbuttonpause.png); background-repeat: no-repeat; width: 23px; height: 28px;}
+#controlbuttonstop {background-image: url(controlbuttonstop.png); background-repeat: no-repeat; width: 25px; height: 28px;}
+#controlbuttonskipback {background-image: url(controlbuttonskipback.png); background-repeat: no-repeat; width: 24px; height: 28px;}
+#controlbuttondecrate {background-image: url(controlbuttondecrate.png); background-repeat: no-repeat; width: 22px; height: 28px;}
+#controlbuttonincrate {background-image: url(controlbuttonincrate.png); background-repeat: no-repeat; width: 23px; height: 28px;}
+#controlbuttonskipforward {background-image: url(controlbuttonskipforward.png); background-repeat: no-repeat; width: 28px; height: 28px;}
+#controlbuttonstep {background-image: url(controlbuttonstep.png); background-repeat: no-repeat; width: 31px; height: 28px;}
+#controlvolumemute {background-image: url(controlvolumeon.png); background-repeat: no-repeat; width: 28px; height: 28px;}
+#controlvolumebar {background-image: url(controlvolumebar.png); background-repeat: no-repeat; width: 55px; height: 28px;}
 #seekbar {background-image: url(seekbarmid.png); background-repeat: repeat-x;}
-#seekbar img {padding: 0; margin: 0; border: 0;}
 #seekbar td {height: 15px;}
-#rightside {background-image: url(rightside.png); background-repeat: repeat-y; width: 4px;}
+#center {width: 100%;}
 #leftside {background-image: url(leftside.png); background-repeat: repeat-y; width: 4px;}
+#rightside {background-image: url(rightside.png); background-repeat: repeat-y; width: 4px;}
 #leftbottomside {background-image: url(leftbottomside.png); background-repeat: repeat-x; width: 4px; height: 4px;}
 #bottomside {background-image: url(bottomside.png); background-repeat: repeat-x; height: 4px;}
 #rightbottomside {background-image: url(rightbottomside.png); background-repeat: repeat-x; width: 4px; height: 4px;}
@@ -175,7 +217,7 @@ function Init()
 				<tr>
 					<td id="headericon"></td>
 					<td id="headerback"><nobr>&nbsp;<div id="title"></div>&nbsp;</nobr></td>
-					<td id="headerclose"></td>
+					<td id="headerclose" onclick="OnCommand(135)"></td>
 				</tr>
 			</table>
 		</td>
@@ -183,7 +225,7 @@ function Init()
 	<tr>
 		<td id="leftside"></td>
 		<td>
-			<table cellpadding="0" cellspacing="0">
+			<table cellpadding="0" cellspacing="0" id="center">
 				<tr>
 					<td>
 						<table id="menu" width="100%">
@@ -199,9 +241,8 @@ function Init()
 					</td>
 				</tr>
 				<tr>
-					<td id="video" align="center" onclick="OnPlayPause()">
-						<img src="snapshot.jpg" alt="snapshot" id="snapshot" 
-						onload="OnLoadSnapShot()" onabort="OnAbortErrorSnapShot()" onerror="OnAbortErrorSnapShot()" />
+					<td id="video" align="center" onclick="OnCommand(157)">
+						<img src="snapshot.png" alt="snapshot" id="snapshot" onload="OnLoadSnapShot()" onabort="OnAbortErrorSnapShot()" onerror="OnAbortErrorSnapShot()" />
 					</td>
 				</tr>
 				<tr>
@@ -219,11 +260,19 @@ function Init()
 				</tr>
 				<tr>
 					<td>
-						<table width="100%" id="controlbar">
+						<table width="100%" cellpadding="0" cellspacing="0" id="controlbar">
 							<tr>
-								<td width="100%">play pause stop | &lt;&lt; &lt; &gt; &gt;&gt; | step</td>
-								<td>mute</td>
-								<td>volume</td>
+								<td id="controlbuttonplay" onclick="OnCommand(155)"></td>
+								<td id="controlbuttonpause" onclick="OnCommand(156)"></td>
+								<td id="controlbuttonstop" onclick="OnCommand(158)"></td>
+								<td id="controlbuttonskipback" onclick="OnCommand(164)"></td>
+								<td id="controlbuttondecrate" onclick="OnCommand(159)"></td>
+								<td id="controlbuttonincrate" onclick="OnCommand(160)"></td>
+								<td id="controlbuttonskipforward" onclick="OnCommand(165)"></td>
+								<td id="controlbuttonstep" onclick="OnCommand(32773)"></td>
+								<td>&nbsp;</td>
+								<td id="controlvolumemute" onclick="OnCommand(163)"></td>
+								<td id="controlvolumebar" valign="top"><img src="controlvolumegrip.png" id="controlvolumegrip"></td>
 							</tr>
 						</table>
 					</td>

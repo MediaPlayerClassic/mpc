@@ -51,6 +51,20 @@ CWebServer::CWebServer(CMainFrame* pMainFrame, int nPort)
 		m_downloads[_T("/seekbarmid.png")] = IDF_SEEKBARMID_PNG;
 		m_downloads[_T("/seekbarright.png")] = IDF_SEEKBARRIGHT_PNG;
 		m_downloads[_T("/seekbargrip.png")] = IDF_SEEKBARGRIP_PNG;
+		m_downloads[_T("/logo.png")] = IDF_LOGO_PNG;
+		m_downloads[_T("/controlback.png")] = IDF_CONTROLBACK_PNG;
+		m_downloads[_T("/controlbuttonplay.png")] = IDF_CONTROLBUTTONPLAY_PNG;
+		m_downloads[_T("/controlbuttonpause.png")] = IDF_CONTROLBUTTONPAUSE_PNG;
+		m_downloads[_T("/controlbuttonstop.png")] = IDF_CONTROLBUTTONSTOP_PNG;
+		m_downloads[_T("/controlbuttonskipback.png")] = IDF_CONTROLBUTTONSKIPBACK_PNG;
+		m_downloads[_T("/controlbuttondecrate.png")] = IDF_CONTROLBUTTONDECRATE_PNG;
+		m_downloads[_T("/controlbuttonincrate.png")] = IDF_CONTROLBUTTONINCRATE_PNG;
+		m_downloads[_T("/controlbuttonskipforward.png")] = IDF_CONTROLBUTTONSKIPFORWARD_PNG;
+		m_downloads[_T("/controlbuttonstep.png")] = IDF_CONTROLBUTTONSTEP_PNG;
+		m_downloads[_T("/controlvolumeon.png")] = IDF_CONTROLVOLUMEON_PNG;
+		m_downloads[_T("/controlvolumeoff.png")] = IDF_CONTROLVOLUMEOFF_PNG;
+		m_downloads[_T("/controlvolumebar.png")] = IDF_CONTROLVOLUMEBAR_PNG;
+		m_downloads[_T("/controlvolumegrip.png")] = IDF_CONTROLVOLUMEGRIP_PNG;
 	}
 
 	if(m_mimes.IsEmpty())
@@ -262,13 +276,12 @@ void CWebServer::OnRequest(CWebClientSocket* pClient, CStringA& hdr, CStringA& b
 		return;
 	}
 
-	hdr += 
-		"Expires: Thu, 19 Nov 1981 08:52:00 GMT\r\n"
-		"Cache-Control: no-store, no-cache, must-revalidate, post-check=0, pre-check=0\r\n"
-		"Pragma: no-cache\r\n";
-
 	if(mime == "text/html")
 	{
+		hdr += 
+			"Expires: Thu, 19 Nov 1981 08:52:00 GMT\r\n"
+			"Cache-Control: no-store, no-cache, must-revalidate, post-check=0, pre-check=0\r\n"
+			"Pragma: no-cache\r\n";
 
 		CStringA debug;
 		if(AfxGetAppSettings().fWebServerPrintDebugInfo)
