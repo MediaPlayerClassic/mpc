@@ -231,7 +231,16 @@ CMPlayerCApp::CMPlayerCApp()
 
 void CMPlayerCApp::ShowCmdlnSwitches()
 {
-	CString s = 
+	CString s;
+
+	if(m_s.nCLSwitches&CLSW_UNRECOGNIZEDSWITCH)
+	{
+		CList<CString> sl;
+		for(int i = 0; i < __argc; i++) sl.AddTail(__targv[i]);
+		s += "Unrecognized switch(es) found in command line string: \n\n" + Implode(sl, ' ') + "\n\n";
+	}
+
+	s +=
 		_T("Usage: mplayerc.exe \"pathname\" [switches]\n\n")
 		_T("\"pathname\"\tThe main file or directory to be loaded. (wildcards allowed)\n")
 		_T("/dub \"dubname\"\tLoad an additional audio file.\n")
@@ -489,7 +498,7 @@ BOOL CMPlayerCApp::InitInstance()
 
 	m_s.ParseCommandLine(m_cmdln);
 
-	if(m_s.nCLSwitches&CLSW_HELP)
+	if(m_s.nCLSwitches&(CLSW_HELP|CLSW_UNRECOGNIZEDSWITCH))
 	{
 		ShowCmdlnSwitches();
 		return FALSE;
@@ -821,7 +830,7 @@ CMPlayerCApp::Settings::Settings()
 	ADDCMD((ID_VIEW_VF_STRETCH, 0, FVIRTKEY|FNOINVERT, _T("VidFrm Stretch")));
 	ADDCMD((ID_VIEW_VF_FROMINSIDE, 0, FVIRTKEY|FNOINVERT, _T("VidFrm Inside")));
 	ADDCMD((ID_VIEW_VF_FROMOUTSIDE, 0, FVIRTKEY|FNOINVERT, _T("VidFrm Outside")));
-	ADDCMD((ID_VIEW_ALWAYSONTOP, 'T', FVIRTKEY|FCONTROL|FNOINVERT, _T("Always On Top")));
+	ADDCMD((ID_ONTOP_ALWAYS, 'T', FVIRTKEY|FCONTROL|FNOINVERT, _T("Always On Top")));
 	ADDCMD((ID_VIEW_RESET, VK_NUMPAD5, FVIRTKEY|FNOINVERT, _T("PnS Reset")));
 	ADDCMD((ID_VIEW_INCSIZE, VK_NUMPAD9, FVIRTKEY|FNOINVERT, _T("PnS Inc Size")));
 	ADDCMD((ID_VIEW_INCWIDTH, VK_NUMPAD6, FVIRTKEY|FNOINVERT, _T("PnS Inc Width")));
@@ -908,7 +917,7 @@ void CMPlayerCApp::Settings::UpdateData(bool fSave)
 		pApp->WriteProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_ZOOM), iZoomLevel);
 		pApp->WriteProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_MULTIINST), fAllowMultipleInst);
 		pApp->WriteProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_TITLEBARTEXTSTYLE), iTitleBarTextStyle);
-		pApp->WriteProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_ALWAYSONTOP), fAlwaysOnTop);
+		pApp->WriteProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_ONTOP), iOnTop);
 		pApp->WriteProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_TRAYICON), fTrayIcon);
 		pApp->WriteProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_AUTOZOOM), fRememberZoomLevel);
 		pApp->WriteProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_FULLSCREENCTRLS), fShowBarsWhenFullScreen);
@@ -1115,7 +1124,7 @@ void CMPlayerCApp::Settings::UpdateData(bool fSave)
 		fReportFailedPins = !!pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_REPORTFAILEDPINS), TRUE);
 		fAllowMultipleInst = !!pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_MULTIINST), 0);
 		iTitleBarTextStyle = pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_TITLEBARTEXTSTYLE), 1);
-		fAlwaysOnTop = !!pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_ALWAYSONTOP), 0);
+		iOnTop = pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_ONTOP), 0);
 		fTrayIcon = !!pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_TRAYICON), 0);
 		fRememberZoomLevel = !!pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_AUTOZOOM), 1);
 		fShowBarsWhenFullScreen = !!pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_FULLSCREENCTRLS), 1);
@@ -1387,7 +1396,7 @@ void CMPlayerCApp::Settings::ParseCommandLine(CStringList& cmdln)
 			else if(sw == _T("unregvid")) nCLSwitches |= CLSW_UNREGEXTVID;
 			else if(sw == _T("unregaud")) nCLSwitches |= CLSW_UNREGEXTAUD;
 			else if(sw == _T("start") && pos) {rtStart = 10000i64*_tcstol(cmdln.GetNext(pos), NULL, 10); nCLSwitches |= CLSW_STARTVALID;}
-			else nCLSwitches |= CLSW_HELP;
+			else nCLSwitches |= CLSW_HELP|CLSW_UNRECOGNIZEDSWITCH;
 		}
 		else
 		{

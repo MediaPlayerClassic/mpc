@@ -55,7 +55,6 @@ protected:
 
 public:
 	CAviSplitterFilter(LPUNKNOWN pUnk, HRESULT* phr);
-	virtual ~CAviSplitterFilter();
 
 #ifdef REGISTER_FILTER
     static CUnknown* WINAPI CreateInstance(LPUNKNOWN lpunk, HRESULT* phr);
@@ -76,8 +75,9 @@ public:
 	STDMETHODIMP SetTimeFormat(const GUID* pFormat);
 	STDMETHODIMP GetStopPosition(LONGLONG* pStop);
 	STDMETHODIMP ConvertTimeFormat(LONGLONG* pTarget, const GUID* pTargetFormat, LONGLONG Source, const GUID* pSourceFormat);
-	STDMETHODIMP SetPositions(LONGLONG* pCurrent, DWORD dwCurrentFlags, LONGLONG* pStop, DWORD dwStopFlags);
 	STDMETHODIMP GetPositions(LONGLONG* pCurrent, LONGLONG* pStop);
+
+	HRESULT SetPositionsInternal(void* id, LONGLONG* pCurrent, DWORD dwCurrentFlags, LONGLONG* pStop, DWORD dwStopFlags);
 
 	// IPropertyBag
 

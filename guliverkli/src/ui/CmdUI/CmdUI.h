@@ -23,6 +23,8 @@
 
 // CCmdUIDialog dialog
 
+#include <afxdlgs.h>
+
 class CCmdUIDialog : public CDialog
 {
 	DECLARE_DYNAMIC(CCmdUIDialog)

@@ -4,7 +4,7 @@
 #include "BaseSplitter.h"
 
 #define MAXBUFFERS 2
-#define MINPACKETS 5
+#define MINPACKETS 10
 #define MAXPACKETS 500
 
 //
@@ -180,20 +180,10 @@ HRESULT CBaseSplitterInputPin::CheckMediaType(const CMediaType* pmt)
 HRESULT CBaseSplitterInputPin::CheckConnect(IPin* pPin)
 {
 	HRESULT hr;
-
 	if(FAILED(hr = __super::CheckConnect(pPin)))
 		return hr;
 
-	if(CComQIPtr<IAsyncReader> pAsyncReader = pPin)
-	{
-		hr = S_OK;
-	}
-	else
-	{
-		hr = E_NOINTERFACE;
-	}
-
-	return hr;
+	return CComQIPtr<IAsyncReader>(pPin) ? S_OK : E_NOINTERFACE;
 }
 
 HRESULT CBaseSplitterInputPin::BreakConnect()
@@ -270,7 +260,8 @@ STDMETHODIMP CBaseSplitterOutputPin::NonDelegatingQueryInterface(REFIID riid, vo
 	CheckPointer(ppv, E_POINTER);
 
 	return 
-		riid == __uuidof(IMediaSeeking) ? m_pFilter->QueryInterface(riid, ppv) : 
+//		riid == __uuidof(IMediaSeeking) ? m_pFilter->QueryInterface(riid, ppv) : 
+		QI(IMediaSeeking)
 		__super::NonDelegatingQueryInterface(riid, ppv);
 }
 
@@ -308,7 +299,6 @@ HRESULT CBaseSplitterOutputPin::CheckMediaType(const CMediaType* pmt)
 	for(int i = 0; i < m_mts.GetCount(); i++)
 	{
 		if(*pmt == m_mts[i])
-		// if(pmt->majortype == m_mts[i].majortype && pmt->subtype == m_mts[i].subtype)
 			return S_OK;
 	}
 
@@ -576,6 +566,77 @@ HRESULT CBaseSplitterOutputPin::Deliver(IMediaSample* pSample)
 	return __super::Deliver(pSample);
 }
 
+// IMediaSeeking
+
+STDMETHODIMP CBaseSplitterOutputPin::GetCapabilities(DWORD* pCapabilities)
+{
+	return ((CBaseSplitterFilter*)m_pFilter)->GetCapabilities(pCapabilities);
+}
+STDMETHODIMP CBaseSplitterOutputPin::CheckCapabilities(DWORD* pCapabilities)
+{
+	return ((CBaseSplitterFilter*)m_pFilter)->CheckCapabilities(pCapabilities);
+}
+STDMETHODIMP CBaseSplitterOutputPin::IsFormatSupported(const GUID* pFormat)
+{
+	return ((CBaseSplitterFilter*)m_pFilter)->IsFormatSupported(pFormat);
+}
+STDMETHODIMP CBaseSplitterOutputPin::QueryPreferredFormat(GUID* pFormat)
+{
+	return ((CBaseSplitterFilter*)m_pFilter)->QueryPreferredFormat(pFormat);
+}
+STDMETHODIMP CBaseSplitterOutputPin::GetTimeFormat(GUID* pFormat)
+{
+	return ((CBaseSplitterFilter*)m_pFilter)->GetTimeFormat(pFormat);
+}
+STDMETHODIMP CBaseSplitterOutputPin::IsUsingTimeFormat(const GUID* pFormat)
+{
+	return ((CBaseSplitterFilter*)m_pFilter)->IsUsingTimeFormat(pFormat);
+}
+STDMETHODIMP CBaseSplitterOutputPin::SetTimeFormat(const GUID* pFormat)
+{
+	return ((CBaseSplitterFilter*)m_pFilter)->SetTimeFormat(pFormat);
+}
+STDMETHODIMP CBaseSplitterOutputPin::GetDuration(LONGLONG* pDuration)
+{
+	return ((CBaseSplitterFilter*)m_pFilter)->GetDuration(pDuration);
+}
+STDMETHODIMP CBaseSplitterOutputPin::GetStopPosition(LONGLONG* pStop)
+{
+	return ((CBaseSplitterFilter*)m_pFilter)->GetStopPosition(pStop);
+}
+STDMETHODIMP CBaseSplitterOutputPin::GetCurrentPosition(LONGLONG* pCurrent)
+{
+	return ((CBaseSplitterFilter*)m_pFilter)->GetCurrentPosition(pCurrent);
+}
+STDMETHODIMP CBaseSplitterOutputPin::ConvertTimeFormat(LONGLONG* pTarget, const GUID* pTargetFormat, LONGLONG Source, const GUID* pSourceFormat)
+{
+	return ((CBaseSplitterFilter*)m_pFilter)->ConvertTimeFormat(pTarget, pTargetFormat, Source, pSourceFormat);
+}
+STDMETHODIMP CBaseSplitterOutputPin::SetPositions(LONGLONG* pCurrent, DWORD dwCurrentFlags, LONGLONG* pStop, DWORD dwStopFlags)
+{
+	return ((CBaseSplitterFilter*)m_pFilter)->SetPositionsInternal(this, pCurrent, dwCurrentFlags, pStop, dwStopFlags);
+}
+STDMETHODIMP CBaseSplitterOutputPin::GetPositions(LONGLONG* pCurrent, LONGLONG* pStop)
+{
+	return ((CBaseSplitterFilter*)m_pFilter)->GetPositions(pCurrent, pStop);
+}
+STDMETHODIMP CBaseSplitterOutputPin::GetAvailable(LONGLONG* pEarliest, LONGLONG* pLatest)
+{
+	return ((CBaseSplitterFilter*)m_pFilter)->GetAvailable(pEarliest, pLatest);
+}
+STDMETHODIMP CBaseSplitterOutputPin::SetRate(double dRate)
+{
+	return ((CBaseSplitterFilter*)m_pFilter)->SetRate(dRate);
+}
+STDMETHODIMP CBaseSplitterOutputPin::GetRate(double* pdRate)
+{
+	return ((CBaseSplitterFilter*)m_pFilter)->GetRate(pdRate);
+}
+STDMETHODIMP CBaseSplitterOutputPin::GetPreroll(LONGLONG* pllPreroll)
+{
+	return ((CBaseSplitterFilter*)m_pFilter)->GetPreroll(pllPreroll);
+}
+
 //
 // CBaseSplitterFilter
 //
@@ -586,6 +647,8 @@ CBaseSplitterFilter::CBaseSplitterFilter(LPCTSTR pName, LPUNKNOWN pUnk, HRESULT*
 	, m_dRate(1.0)
 	, m_nOpenProgress(100)
 	, m_fAbort(false)
+	, m_rtLastStart(_I64_MIN)
+	, m_rtLastStop(_I64_MIN)
 {
 	if(phr) *phr = S_OK;
 
@@ -614,6 +677,7 @@ STDMETHODIMP CBaseSplitterFilter::NonDelegatingQueryInterface(REFIID riid, void*
 		QI(IMediaSeeking)
 		QI(IAMOpenProgress)
 		QI2(IAMMediaContent)
+		QI2(IAMExtendedSeeking)
 		QI(IChapterInfo)
 		QI(IKeyFrameInfo)
 		__super::NonDelegatingQueryInterface(riid, ppv);
@@ -679,14 +743,8 @@ DWORD CBaseSplitterFilter::ThreadProc()
 	m_eEndFlush.Set();
 	m_fFlushing = false;
 
-	bool fFirstRun = true;
-
-	while(1)
+	for(DWORD cmd = -1; ; cmd = GetRequest())
 	{
-		DWORD cmd = fFirstRun ? -1 : GetRequest();
-
-		fFirstRun = false;
-
 		if(cmd == CMD_EXIT)
 		{
 			CAMThread::m_hThread = NULL;
@@ -956,6 +1014,25 @@ STDMETHODIMP CBaseSplitterFilter::GetCurrentPosition(LONGLONG* pCurrent) {return
 STDMETHODIMP CBaseSplitterFilter::ConvertTimeFormat(LONGLONG* pTarget, const GUID* pTargetFormat, LONGLONG Source, const GUID* pSourceFormat) {return E_NOTIMPL;}
 STDMETHODIMP CBaseSplitterFilter::SetPositions(LONGLONG* pCurrent, DWORD dwCurrentFlags, LONGLONG* pStop, DWORD dwStopFlags)
 {
+	return SetPositionsInternal(this, pCurrent, dwCurrentFlags, pStop, dwStopFlags);
+}
+STDMETHODIMP CBaseSplitterFilter::GetPositions(LONGLONG* pCurrent, LONGLONG* pStop)
+{
+	if(pCurrent) *pCurrent = m_rtCurrent;
+	if(pStop) *pStop = m_rtStop;
+	return S_OK;
+}
+STDMETHODIMP CBaseSplitterFilter::GetAvailable(LONGLONG* pEarliest, LONGLONG* pLatest)
+{
+	if(pEarliest) *pEarliest = 0;
+	return GetDuration(pLatest);
+}
+STDMETHODIMP CBaseSplitterFilter::SetRate(double dRate) {return dRate > 0 ? m_dRate = dRate, S_OK : E_INVALIDARG;}
+STDMETHODIMP CBaseSplitterFilter::GetRate(double* pdRate) {return pdRate ? *pdRate = m_dRate, S_OK : E_POINTER;}
+STDMETHODIMP CBaseSplitterFilter::GetPreroll(LONGLONG* pllPreroll) {return pllPreroll ? *pllPreroll = 0, S_OK : E_POINTER;}
+
+HRESULT CBaseSplitterFilter::SetPositionsInternal(void* id, LONGLONG* pCurrent, DWORD dwCurrentFlags, LONGLONG* pStop, DWORD dwStopFlags)
+{
 	CAutoLock cAutoLock(this);
 
 	if(!pCurrent && !pStop
@@ -988,6 +1065,16 @@ STDMETHODIMP CBaseSplitterFilter::SetPositions(LONGLONG* pCurrent, DWORD dwCurre
 	if(m_rtCurrent == rtCurrent && m_rtStop == rtStop)
 		return S_OK;
 
+	if(m_rtLastStart == rtCurrent && m_rtLastStop == rtStop && !m_LastSeekers.Find(id))
+	{
+		m_LastSeekers.AddTail(id);
+		return S_OK;
+	}
+	m_rtLastStart = rtCurrent;
+	m_rtLastStop = rtStop;
+	m_LastSeekers.RemoveAll();
+	m_LastSeekers.AddTail(id);
+
 DbgLog((LOG_TRACE, 0, _T("Seek Started %I64d"), rtCurrent));
 
 	m_rtNewStart = m_rtCurrent = rtCurrent;
@@ -1004,20 +1091,6 @@ DbgLog((LOG_TRACE, 0, _T("Seek Ended")));
 
 	return S_OK;
 }
-STDMETHODIMP CBaseSplitterFilter::GetPositions(LONGLONG* pCurrent, LONGLONG* pStop)
-{
-	if(pCurrent) *pCurrent = m_rtCurrent;
-	if(pStop) *pStop = m_rtStop;
-	return S_OK;
-}
-STDMETHODIMP CBaseSplitterFilter::GetAvailable(LONGLONG* pEarliest, LONGLONG* pLatest)
-{
-	if(pEarliest) *pEarliest = 0;
-	return GetDuration(pLatest);
-}
-STDMETHODIMP CBaseSplitterFilter::SetRate(double dRate) {return dRate > 0 ? m_dRate = dRate, S_OK : E_INVALIDARG;}
-STDMETHODIMP CBaseSplitterFilter::GetRate(double* pdRate) {return pdRate ? *pdRate = m_dRate, S_OK : E_POINTER;}
-STDMETHODIMP CBaseSplitterFilter::GetPreroll(LONGLONG* pllPreroll) {return pllPreroll ? *pllPreroll = 0, S_OK : E_POINTER;}
 
 // IAMOpenProgress
 
@@ -1080,6 +1153,57 @@ HRESULT CBaseSplitterFilter::SetMediaContentStr(CStringW str, mctype type)
 	return S_OK;
 }
 
+// IAMExtendedSeeking
+
+STDMETHODIMP CBaseSplitterFilter::get_ExSeekCapabilities(long* pExCapabilities)
+{
+	CheckPointer(pExCapabilities, E_POINTER);
+	*pExCapabilities = AM_EXSEEK_CANSEEK;
+	if(GetChapterCount(CHAPTER_ROOT_ID) > 0) *pExCapabilities |= AM_EXSEEK_MARKERSEEK;
+	return S_OK;
+}
+
+STDMETHODIMP CBaseSplitterFilter::get_MarkerCount(long* pMarkerCount)
+{
+	CheckPointer(pMarkerCount, E_POINTER);
+	*pMarkerCount = GetChapterCount(CHAPTER_ROOT_ID);
+	return S_OK;
+}
+
+STDMETHODIMP CBaseSplitterFilter::get_CurrentMarker(long* pCurrentMarker)
+{
+	CheckPointer(pCurrentMarker, E_POINTER);
+	UINT id = GetChapterCurrentId();
+	if(id != CHAPTER_BAD_ID)
+		for(UINT i = 1, cnt = GetChapterCount(CHAPTER_ROOT_ID); i <= cnt; i++) 
+	{
+		if(id == GetChapterId(CHAPTER_ROOT_ID, i))
+		{
+			*pCurrentMarker = i;
+			return S_OK;
+		}
+	}
+	return E_FAIL;
+}
+
+STDMETHODIMP CBaseSplitterFilter::GetMarkerTime(long MarkerNum, double* pMarkerTime)
+{
+	CheckPointer(pMarkerTime, E_POINTER);
+	struct ChapterElement ce;
+	if(!GetChapterInfo(GetChapterId(CHAPTER_ROOT_ID, MarkerNum), &ce))
+		return E_INVALIDARG;
+	*pMarkerTime = (double)ce.rtStart / 10000000;
+	return S_OK;
+}
+
+STDMETHODIMP CBaseSplitterFilter::GetMarkerName(long MarkerNum, BSTR* pbstrMarkerName)
+{
+	CheckPointer(pbstrMarkerName, E_POINTER);
+	CHAR pl[3] = {0}, cc[2] = {0};
+	*pbstrMarkerName = GetChapterStringInfo(GetChapterId(CHAPTER_ROOT_ID, MarkerNum), pl, cc);
+	return *pbstrMarkerName ? S_OK : E_INVALIDARG;
+}
+
 // IChapterInfo
 
 STDMETHODIMP_(UINT) CBaseSplitterFilter::GetChapterCount(UINT aChapterID)
@@ -1094,6 +1218,20 @@ STDMETHODIMP_(UINT) CBaseSplitterFilter::GetChapterId(UINT aParentChapterId, UIN
 
 STDMETHODIMP_(UINT) CBaseSplitterFilter::GetChapterCurrentId()
 {
+	int i = (int)GetChapterCount(CHAPTER_ROOT_ID);
+
+	while(i-- > 0)
+	{
+		UINT id = GetChapterId(CHAPTER_ROOT_ID, i);
+
+		struct ChapterElement ce;
+		if(!GetChapterInfo(id, &ce))
+			break;
+
+		if(m_rtCurrent >= ce.rtStart)
+            return id;
+	}
+
 	return CHAPTER_BAD_ID;
 }
 

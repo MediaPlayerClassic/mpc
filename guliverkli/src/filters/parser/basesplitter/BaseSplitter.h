@@ -93,7 +93,7 @@ public:
 	STDMETHODIMP EndFlush();
 };
 
-class CBaseSplitterOutputPin : public CBaseOutputPin, protected CAMThread
+class CBaseSplitterOutputPin : public CBaseOutputPin, protected CAMThread, public IMediaSeeking
 {
 protected:
 	CArray<CMediaType> m_mts;
@@ -125,6 +125,26 @@ protected:
 	// override this if you need some second level stream specific demuxing (optional)
 	// the default implementation will send the sample as is
 	virtual HRESULT DeliverPacket(CAutoPtr<Packet> p);
+
+	// IMediaSeeking
+
+	STDMETHODIMP GetCapabilities(DWORD* pCapabilities);
+	STDMETHODIMP CheckCapabilities(DWORD* pCapabilities);
+	STDMETHODIMP IsFormatSupported(const GUID* pFormat);
+	STDMETHODIMP QueryPreferredFormat(GUID* pFormat);
+	STDMETHODIMP GetTimeFormat(GUID* pFormat);
+	STDMETHODIMP IsUsingTimeFormat(const GUID* pFormat);
+	STDMETHODIMP SetTimeFormat(const GUID* pFormat);
+	STDMETHODIMP GetDuration(LONGLONG* pDuration);
+	STDMETHODIMP GetStopPosition(LONGLONG* pStop);
+	STDMETHODIMP GetCurrentPosition(LONGLONG* pCurrent);
+	STDMETHODIMP ConvertTimeFormat(LONGLONG* pTarget, const GUID* pTargetFormat, LONGLONG Source, const GUID* pSourceFormat);
+	STDMETHODIMP SetPositions(LONGLONG* pCurrent, DWORD dwCurrentFlags, LONGLONG* pStop, DWORD dwStopFlags);
+	STDMETHODIMP GetPositions(LONGLONG* pCurrent, LONGLONG* pStop);
+	STDMETHODIMP GetAvailable(LONGLONG* pEarliest, LONGLONG* pLatest);
+	STDMETHODIMP SetRate(double dRate);
+	STDMETHODIMP GetRate(double* pdRate);
+	STDMETHODIMP GetPreroll(LONGLONG* pllPreroll);
 
 public:
 	CBaseSplitterOutputPin(CArray<CMediaType>& mts, LPCWSTR pName, CBaseFilter* pFilter, CCritSec* pLock, HRESULT* phr, int nBuffers = 0);
@@ -166,6 +186,7 @@ class CBaseSplitterFilter
 	, public IMediaSeeking
 	, public IAMOpenProgress
 	, public IAMMediaContent
+	, public IAMExtendedSeeking
 	, public IChapterInfo
 	, public IKeyFrameInfo
 {
@@ -257,6 +278,13 @@ public:
 	STDMETHODIMP GetRate(double* pdRate);
 	STDMETHODIMP GetPreroll(LONGLONG* pllPreroll);
 
+private:
+	REFERENCE_TIME m_rtLastStart, m_rtLastStop;
+	CList<void*> m_LastSeekers;
+
+public:
+	virtual HRESULT SetPositionsInternal(void* id, LONGLONG* pCurrent, DWORD dwCurrentFlags, LONGLONG* pStop, DWORD dwStopFlags);
+
 	// IAMOpenProgress
 
 	STDMETHODIMP QueryProgress(LONGLONG* pllTotal, LONGLONG* pllCurrent);
@@ -284,6 +312,16 @@ public:
 	STDMETHODIMP get_MoreInfoBannerImage(BSTR* pbstrMoreInfoBannerImage) {return E_NOTIMPL;}
 	STDMETHODIMP get_MoreInfoBannerURL(BSTR* pbstrMoreInfoBannerURL) {return E_NOTIMPL;}
 	STDMETHODIMP get_MoreInfoText(BSTR* pbstrMoreInfoText) {return E_NOTIMPL;}
+
+	// IAMExtendedSeeking
+
+	STDMETHODIMP get_ExSeekCapabilities(long* pExCapabilities);
+	STDMETHODIMP get_MarkerCount(long* pMarkerCount);
+	STDMETHODIMP get_CurrentMarker(long* pCurrentMarker);
+	STDMETHODIMP GetMarkerTime(long MarkerNum, double* pMarkerTime);
+	STDMETHODIMP GetMarkerName(long MarkerNum, BSTR* pbstrMarkerName);
+	STDMETHODIMP put_PlaybackSpeed(double Speed) {return E_NOTIMPL;}
+	STDMETHODIMP get_PlaybackSpeed(double* pSpeed) {return E_NOTIMPL;}
 
 	// IChapterInfo
 

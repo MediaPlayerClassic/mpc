@@ -864,7 +864,7 @@ STDMETHODIMP_(UINT) CMatroskaSplitterFilter::GetChapterCurrentId()
 {
 	CheckPointer(m_pFile, __super::GetChapterCurrentId());
 	// TODO
-	return CHAPTER_BAD_ID;
+	return __super::GetChapterCurrentId();
 }
 
 STDMETHODIMP_(BOOL) CMatroskaSplitterFilter::GetChapterInfo(UINT aChapterID, struct ChapterElement* pStructureToFill)

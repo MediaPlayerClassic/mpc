@@ -348,7 +348,7 @@ void COggSplitterFilter::SeekDeliverLoop(REFERENCE_TIME rt)
 	else if(m_rtDuration > 0)
 	{
 		// oh, the horror...
-
+clock_t t1 = clock();
 		__int64 len = m_pFile->GetLength();
 		__int64 startpos = len * rt/m_rtDuration;
 		__int64 diff = 0;
@@ -419,6 +419,8 @@ void COggSplitterFilter::SeekDeliverLoop(REFERENCE_TIME rt)
 			startpos = max(min(newpos, len), 0);
 		}
 
+TRACE(_T("****** t1: %d\n"), clock() - t1);
+t1 = clock();
 		m_pFile->Seek(startpos);
 
 		POSITION pos = m_pOutputs.GetHeadPosition();
@@ -478,10 +480,12 @@ void COggSplitterFilter::SeekDeliverLoop(REFERENCE_TIME rt)
 					}
 				}
 
-				if(!(fKeyFrameFound && !fSkipKeyFrame)) {endpos = startpos; startpos = max(startpos - 65536, 0);}
+				if(!(fKeyFrameFound && !fSkipKeyFrame)) {endpos = startpos; startpos = max(startpos - 10*65536, 0);}
 
 				m_pFile->Seek(startpos);
 			}
+TRACE(_T("****** t2: %d\n"), clock() - t1);
+t1 = clock();
 
 #ifdef DEBUG
 			// verify kf
@@ -518,6 +522,8 @@ void COggSplitterFilter::SeekDeliverLoop(REFERENCE_TIME rt)
 
 				m_pFile->Seek(startpos);
 			}
+TRACE(_T("****** t3: %d\n"), clock() - t1);
+t1 = clock();
 #endif
 			break;
 		}
@@ -569,11 +575,6 @@ STDMETHODIMP_(UINT) COggSplitterFilter::GetChapterId(UINT aParentChapterId, UINT
 	if(aParentChapterId != CHAPTER_ROOT_ID || !pos)
 		return CHAPTER_BAD_ID;
 	return aIndex;
-}
-
-STDMETHODIMP_(UINT) COggSplitterFilter::GetChapterCurrentId()
-{
-	return CHAPTER_BAD_ID;
 }
 
 STDMETHODIMP_(BOOL) COggSplitterFilter::GetChapterInfo(UINT aChapterID, struct ChapterElement* pStructureToFill)
@@ -1030,7 +1031,8 @@ HRESULT COggStreamOutputPin::UnpackPacket(CAutoPtr<OggPacket>& p, BYTE* pData, i
 COggVideoOutputPin::COggVideoOutputPin(OggStreamHeader* h, LPCWSTR pName, CBaseFilter* pFilter, CCritSec* pLock, HRESULT* phr)
 	: COggStreamOutputPin(h, pName, pFilter, pLock, phr)
 {
-	int extra = max(h->size - sizeof(OggStreamHeader), 0);	
+	int extra = (int)h->size - sizeof(OggStreamHeader);
+	extra = max(extra, 0);	
 
 	CMediaType mt;
 	mt.majortype = MEDIATYPE_Video;
@@ -1038,7 +1040,7 @@ COggVideoOutputPin::COggVideoOutputPin(OggStreamHeader* h, LPCWSTR pName, CBaseF
 	mt.formattype = FORMAT_VideoInfo;
 	VIDEOINFOHEADER* pvih = (VIDEOINFOHEADER*)mt.AllocFormatBuffer(sizeof(VIDEOINFOHEADER) + extra);
 	memset(mt.Format(), 0, mt.FormatLength());
-	memcpy(mt.Format() + sizeof(WAVEFORMATEX), h+1, extra);
+	memcpy(mt.Format() + sizeof(VIDEOINFOHEADER), h+1, extra);
 	pvih->AvgTimePerFrame = h->time_unit / h->samples_per_unit;
 	pvih->bmiHeader.biWidth = h->v.w;
 	pvih->bmiHeader.biHeight = h->v.h;
@@ -1066,7 +1068,8 @@ COggVideoOutputPin::COggVideoOutputPin(OggStreamHeader* h, LPCWSTR pName, CBaseF
 COggAudioOutputPin::COggAudioOutputPin(OggStreamHeader* h, LPCWSTR pName, CBaseFilter* pFilter, CCritSec* pLock, HRESULT* phr)
 	: COggStreamOutputPin(h, pName, pFilter, pLock, phr)
 {
-	int extra = max(h->size - sizeof(OggStreamHeader), 0);	
+	int extra = (int)h->size - sizeof(OggStreamHeader);
+	extra = max(extra, 0);	
 
 	CMediaType mt;
 	mt.majortype = MEDIATYPE_Audio;

@@ -167,7 +167,6 @@ public:
 
 	STDMETHODIMP_(UINT) GetChapterCount(UINT aChapterID);
 	STDMETHODIMP_(UINT) GetChapterId(UINT aParentChapterId, UINT aIndex);
-	STDMETHODIMP_(UINT) GetChapterCurrentId();
 	STDMETHODIMP_(BOOL) GetChapterInfo(UINT aChapterID, struct ChapterElement* pStructureToFill);
 	STDMETHODIMP_(BSTR) GetChapterStringInfo(UINT aChapterID, CHAR PreferredLanguage[3], CHAR CountryCode[2]);
 };

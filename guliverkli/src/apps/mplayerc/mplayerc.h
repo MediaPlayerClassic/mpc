@@ -90,6 +90,7 @@ enum
 	CLSW_UNREGEXTVID=CLSW_REGEXTAUD<<1,
 	CLSW_UNREGEXTAUD=CLSW_UNREGEXTVID<<1,
 	CLSW_STARTVALID=CLSW_UNREGEXTAUD<<1,
+	CLSW_UNRECOGNIZEDSWITCH=CLSW_STARTVALID<<1,
 };
 
 enum
@@ -350,7 +351,7 @@ public:
 
 		bool fAllowMultipleInst;
 		int iTitleBarTextStyle;
-		bool fAlwaysOnTop;
+		int iOnTop;
 		bool fTrayIcon;
 		bool fRememberZoomLevel;
 		bool fShowBarsWhenFullScreen;
