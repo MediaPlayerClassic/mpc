@@ -177,12 +177,11 @@ HRESULT CBaseVideoFilter::ReconnectOutput(int w, int h)
 		bmi->biSizeImage = m_w*m_h*bmi->biBitCount>>3;
 
 		hr = m_pOutput->GetConnected()->QueryAccept(&mt);
-
-		if(FAILED(hr = m_pOutput->GetConnected()->ReceiveConnection(m_pOutput, &mt)))
-			return hr;
+		ASSERT(SUCCEEDED(hr)); // should better not fail, after all "mt" is the current media type, just with a different resolution
 
 		CComPtr<IMediaSample> pOut;
-		if(SUCCEEDED(m_pOutput->GetDeliveryBuffer(&pOut, NULL, NULL, 0)))
+		if(SUCCEEDED(m_pOutput->GetConnected()->ReceiveConnection(m_pOutput, &mt))
+		&& SUCCEEDED(m_pOutput->GetDeliveryBuffer(&pOut, NULL, NULL, 0)))
 		{
 			AM_MEDIA_TYPE* pmt;
 			if(SUCCEEDED(pOut->GetMediaType(&pmt)) && pmt)
@@ -191,7 +190,7 @@ HRESULT CBaseVideoFilter::ReconnectOutput(int w, int h)
 				m_pOutput->SetMediaType(&mt);
 				DeleteMediaType(pmt);
 			}
-			else // stupid overlay mixer won't let us know the new pitch... (note: CBaseVideoInputPin won't either, yet ;)
+			else // stupid overlay mixer won't let us know the new pitch...
 			{
 				long size = pOut->GetSize();
 				bmi->biWidth = size / bmi->biHeight * 8 / bmi->biBitCount;
