@@ -25,6 +25,13 @@
 
 template <class T> class CSurfMap : public CMap<DWORD, DWORD, CComPtr<T>, CComPtr<T>& > {};
 
+inline bool IsRenderTarget(IDirect3DTexture9* pTexture)
+{
+	D3DSURFACE_DESC desc;
+	memset(&desc, 0, sizeof(desc));
+	return pTexture && S_OK == pTexture->GetLevelDesc(0, &desc) && (desc.Usage&D3DUSAGE_RENDERTARGET);
+}
+
 class GSTexture
 {
 public:

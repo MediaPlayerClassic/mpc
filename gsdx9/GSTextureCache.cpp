@@ -22,13 +22,6 @@
 #include "StdAfx.h"
 #include "GSTextureCache.h"
 
-static bool IsRenderTarget(IDirect3DTexture9* pTexture)
-{
-	D3DSURFACE_DESC desc;
-	memset(&desc, 0, sizeof(desc));
-	return pTexture && S_OK == pTexture->GetLevelDesc(0, &desc) && (desc.Usage&D3DUSAGE_RENDERTARGET);
-}
-
 GSTexture::GSTexture()
 {
 	m_TEX0.TBP0 = m_TEX0.CBP = m_TEX0.PSM = -1;
@@ -72,7 +65,7 @@ POSITION GSTextureCache::Lookup(GIFRegTEX0& TEX0, GIFRegCLAMP& CLAMP, GIFRegTEXA
 	{
 		GSTexture& t = GetAt(pos);
 		if(t.m_TEX0.TBP0 == TEX0.TBP0 && (TEX0.PSM <= PSM_PSMCT16S || t.m_TEX0.CBP == TEX0.CBP)
-		&& (t.m_TEX0.PSM == TEX0.PSM || t.m_TEX0.PSM <= 1 && TEX0.PSM <= 1 || IsRenderTarget(t.m_pTexture) && TEX0.PSM <= PSM_PSMCT16S)
+		&& (t.m_TEX0.PSM == TEX0.PSM || IsRenderTarget(t.m_pTexture) && TEX0.PSM <= PSM_PSMCT16S)
 		&& (t.m_TEX0.PSM == PSM_PSMCT32 || t.m_TEXA.TA0 == TEXA.TA0 && t.m_TEXA.TA1 == TEXA.TA1 && t.m_TEXA.AEM == TEXA.AEM)
 		&& (!(t.m_CLAMP.WMS&2) && !(CLAMP.WMS&2) && !(t.m_CLAMP.WMT&2) && !(CLAMP.WMT&2) || t.m_CLAMP.i64 == CLAMP.i64)
 		&& fabs(t.m_xscale - xscale) < 0.001 && fabs(t.m_yscale - yscale) < 0.001)
@@ -91,7 +84,7 @@ POSITION GSTextureCache::Lookup(GIFRegTEX0& TEX0, GIFRegCLAMP& CLAMP, GIFRegTEXA
 	{
 		GSTexture& t = GetAt(pos);
 		if(t.m_TEX0.TBP0 == TEX0.TBP0 && (TEX0.PSM <= PSM_PSMCT16S || t.m_TEX0.CBP == TEX0.CBP)
-		&& (t.m_TEX0.PSM == TEX0.PSM || t.m_TEX0.PSM <= 1 && TEX0.PSM <= 1 || IsRenderTarget(t.m_pTexture) && TEX0.PSM <= PSM_PSMCT16S)
+		&& (t.m_TEX0.PSM == TEX0.PSM || IsRenderTarget(t.m_pTexture) && TEX0.PSM <= PSM_PSMCT16S)
 		&& (!(t.m_CLAMP.WMS&2) && !(CLAMP.WMS&2) && !(t.m_CLAMP.WMT&2) && !(CLAMP.WMT&2) || t.m_CLAMP.i64 == CLAMP.i64)
 		&& (t.m_TEXA.TA0 == TEXA.TA0 || t.m_TEXA.TA1 == TEXA.TA1 || t.m_TEXA.AEM == TEXA.AEM))
 		{

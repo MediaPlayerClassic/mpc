@@ -53,7 +53,7 @@ DWORD GSLocalMemory::pixelAddress32(int x, int y, DWORD bp, DWORD bw)
 //	DWORD page = (bp >> 5) + (y >> 5) * bw + (x >> 6); 
 //	DWORD block = (bp & 0x1f) + blockTable32[(y >> 3) & 3][(x >> 3) & 7];
 //	DWORD word = (((page << 5) + block) << 6) + columnTable32[y & 7][x & 7];
-	DWORD page = bp + (y & ~0x1f) * bw + ((x >> 1) & ~0x1f); 
+	DWORD page = bp + (y & ~0x1f) * bw + ((x >> 1) & ~0x1f);
 	DWORD block = blockTable32[(y >> 3) & 3][(x >> 3) & 7];
 	DWORD word = ((page + block) << 6) + columnTable32[y & 7][x & 7];
 	ASSERT(word < 1024*1024);

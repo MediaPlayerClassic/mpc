@@ -91,8 +91,7 @@
 				ForceConformanceInForLoopScope="TRUE"
 				UsePrecompiledHeader="3"
 				WarningLevel="3"
-				Detect64BitPortabilityProblems="TRUE"
-				DebugInformationFormat="0"/>
+				Detect64BitPortabilityProblems="TRUE"/>
 			<Tool
 				Name="VCCustomBuildTool"/>
 			<Tool
@@ -101,7 +100,6 @@
 				OutputFile="E:\pcsx2_0.6win\plugins\GSdx9.dll"
 				LinkIncremental="1"
 				ModuleDefinitionFile=".\GSdx9.def"
-				GenerateDebugInformation="FALSE"
 				SubSystem="2"
 				OptimizeReferences="2"
 				EnableCOMDATFolding="2"
@@ -240,6 +238,9 @@
 				RelativePath=".\res\GSdx9.rc2">
 			</File>
 		</Filter>
+		<File
+			RelativePath=".\VTune\GSdx9.vpj">
+		</File>
 	</Files>
 	<Globals>
 	</Globals>
