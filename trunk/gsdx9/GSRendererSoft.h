@@ -28,7 +28,7 @@ class GSRendererSoft : public GSRenderer<VERTEX>
 {
 protected:
 	void Reset();
-	void DrawingKick(bool fSkip);
+	int DrawingKick(bool fSkip);
 	void FlushPrim();
 	void Flip();
 	void EndFrame();
@@ -96,7 +96,7 @@ public:
 	}
 };
 
-class GSRendererSoftFP : GSRendererSoft<GSSoftVertexFP>
+class GSRendererSoftFP : public GSRendererSoft<GSSoftVertexFP>
 {
 	typedef GSSoftVertexFP GSSoftVertex;
 
@@ -114,7 +114,7 @@ public:
 	GSRendererSoftFP(HWND hWnd, HRESULT& hr);
 };
 
-class GSRendererSoftFX : GSRendererSoft<GSSoftVertexFX>
+class GSRendererSoftFX : public GSRendererSoft<GSSoftVertexFX>
 {
 	typedef GSSoftVertexFX GSSoftVertex;
 

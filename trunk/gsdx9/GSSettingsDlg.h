@@ -22,10 +22,14 @@
 #pragma once
 
 #include "resource.h"
+#include "afxwin.h"
 
 class CGSSettingsDlg : public CDialog
 {
 	DECLARE_DYNAMIC(CGSSettingsDlg)
+
+private:
+	CList<D3DDISPLAYMODE> m_modes;
 
 public:
 	CGSSettingsDlg(CWnd* pParent = NULL);   // standard constructor
@@ -33,9 +37,9 @@ public:
 
 // Dialog Data
 	enum { IDD = IDD_CONFIG };
-	BOOL m_fDisableShaders;
-	BOOL m_fHalfVRes;
-	BOOL m_fSoftRenderer;
+	CComboBox m_resolution;
+	CComboBox m_renderer;
+	CComboBox m_psversion;
 
 protected:
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV support

@@ -44,6 +44,7 @@ protected:
 		LOG((_T("VertexKick(%d)\n"), fSkip));
 
 		static const int vmin[8] = {1, 2, 2, 3, 3, 3, 2, 1};
+
 		while(m_vl.GetCount() >= vmin[m_de.PRIM.PRIM])
 		{
 			if(m_nVertices+6 > m_nMaxVertices)
@@ -54,20 +55,25 @@ protected:
 				m_pVertices = pVertices;
 			}
 
-			DrawingKick(fSkip);
+			LOG((_T("DrawingKick %d\n"), m_de.PRIM.PRIM));
+            
+			if(m_PRIM != m_de.PRIM.PRIM && m_nVertices > 0) FlushPrim();
+			m_PRIM = m_de.PRIM.PRIM;
+
+			LOG2((_T("Prim %05x %05x %04x\n"), 
+				m_ctxt->FRAME.Block(), m_de.PRIM.TME ? (UINT32)m_ctxt->TEX0.TBP0 : 0xfffff,
+				(m_de.PRIM.ABE || (m_PRIM == 1 || m_PRIM == 2) && m_de.PRIM.AA1)
+					? ((m_ctxt->ALPHA.A<<12)|(m_ctxt->ALPHA.B<<8)|(m_ctxt->ALPHA.C<<4)|m_ctxt->ALPHA.D) 
+					: 0xffff));
+
+			m_nVertices += DrawingKick(fSkip);
+
+			// if(::GetAsyncKeyState(VK_SPACE)&0x80000000) {FlushPrim(); Flip();}
 		}
 	}
 
-	void NewPrim()
-	{
-		m_vl.RemoveAll();
-	}
-
-	void FlushPrim()
-	{
-		m_PRIM = 7;
-		m_nVertices = 0;
-	}
+	void NewPrim() {m_vl.RemoveAll();}
+	void FlushPrim() {m_PRIM = 7; m_nVertices = 0;}
 
 public:
 	GSRenderer(int w, int h, HWND hWnd, HRESULT& hr)

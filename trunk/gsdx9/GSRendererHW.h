@@ -51,7 +51,7 @@ protected:
 
 	void Reset();
 	void VertexKick(bool fSkip);
-	void DrawingKick(bool fSkip);
+	int DrawingKick(bool fSkip);
 	void FlushPrim();
 	void Flip();
 	void EndFrame();

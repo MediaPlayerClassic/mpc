@@ -1191,64 +1191,66 @@ bool GSLocalMemory::FillRect(CRect& r, DWORD c, DWORD psm, DWORD fbp, DWORD fbw)
 	__asm punpckh##op	xmm##d3, xmm##s3		\
 
 // unpacks nibble to byte (0, 1, 2, 3 -> 0, 2, 4, 6), xmm7 is expected to be 0x0f..0f
-#define punpcknb							\
-		__asm movaps	xmm4, xmm0			\
-		__asm pshufd	xmm5, xmm1, 0xe4	\
-											\
-		__asm psllq		xmm1, 4				\
-		__asm psrlq		xmm4, 4				\
-											\
-		__asm movaps	xmm6, xmm7			\
-		__asm pand		xmm0, xmm7			\
-		__asm pandn		xmm6, xmm1			\
-		__asm por		xmm0, xmm6			\
-											\
-		__asm movaps	xmm6, xmm7			\
-		__asm pand		xmm4, xmm7			\
-		__asm pandn		xmm6, xmm5			\
-		__asm por		xmm4, xmm6			\
-											\
-		__asm movaps	xmm1, xmm4			\
-											\
-		__asm movaps	xmm4, xmm2			\
-		__asm pshufd	xmm5, xmm3, 0xe4	\
-											\
-		__asm psllq		xmm3, 4				\
-		__asm psrlq		xmm4, 4				\
-											\
-		__asm movaps	xmm6, xmm7			\
-		__asm pand		xmm2, xmm7			\
-		__asm pandn		xmm6, xmm3			\
-		__asm por		xmm2, xmm6			\
-											\
-		__asm movaps	xmm6, xmm7			\
-		__asm pand		xmm4, xmm7			\
-		__asm pandn		xmm6, xmm5			\
-		__asm por		xmm4, xmm6			\
-											\
-		__asm movaps	xmm3, xmm4			\
-											\
-		punpck(bw, 0, 2, 1, 3, 4, 6)		\
+#define punpcknb						\
+	__asm movaps	xmm4, xmm0			\
+	__asm pshufd	xmm5, xmm1, 0xe4	\
+										\
+	__asm psllq		xmm1, 4				\
+	__asm psrlq		xmm4, 4				\
+										\
+	__asm movaps	xmm6, xmm7			\
+	__asm pand		xmm0, xmm7			\
+	__asm pandn		xmm6, xmm1			\
+	__asm por		xmm0, xmm6			\
+										\
+	__asm movaps	xmm6, xmm7			\
+	__asm pand		xmm4, xmm7			\
+	__asm pandn		xmm6, xmm5			\
+	__asm por		xmm4, xmm6			\
+										\
+	__asm movaps	xmm1, xmm4			\
+										\
+	__asm movaps	xmm4, xmm2			\
+	__asm pshufd	xmm5, xmm3, 0xe4	\
+										\
+	__asm psllq		xmm3, 4				\
+	__asm psrlq		xmm4, 4				\
+										\
+	__asm movaps	xmm6, xmm7			\
+	__asm pand		xmm2, xmm7			\
+	__asm pandn		xmm6, xmm3			\
+	__asm por		xmm2, xmm6			\
+										\
+	__asm movaps	xmm6, xmm7			\
+	__asm pand		xmm4, xmm7			\
+	__asm pandn		xmm6, xmm5			\
+	__asm por		xmm4, xmm6			\
+										\
+	__asm movaps	xmm3, xmm4			\
+										\
+	punpck(bw, 0, 2, 1, 3, 4, 6)		\
 
 void GSLocalMemory::unSwizzleBlock32(BYTE* src, BYTE* dst, int dstpitch)
 {
 #if _M_IX86_FP >= 2
 /*
 clock_t start = clock();
-for(int i = 0; i < 50000000; i++)
+for(int i = 0; i < 100000000; i++)
 {
 }
 clock_t diff = clock() - start;
 CString str;
 str.Format(_T("%d"), diff);
 AfxMessageBox(str, MB_OK);
-*/	__asm
+*/
+	__asm
 	{
 		mov			esi, src
 		mov			edi, dst
 		mov			edx, dstpitch
 		mov			ecx, 4
 
+		align 16
 unSwizzleBlock32_loop:
 		movaps		xmm0, [esi+16*0]
 		movaps		xmm1, [esi+16*1]
@@ -1262,11 +1264,11 @@ unSwizzleBlock32_loop:
 		movaps		[edi+edx], xmm4
 		movaps		[edi+edx+16], xmm6
 
+		add			esi, 64
 		lea			edi, [edi+edx*2]
 
-		add			esi, 64
-
-		loop		unSwizzleBlock32_loop
+		dec			ecx
+		jnz			unSwizzleBlock32_loop
 	}
 #else
 	WORD* s = &columnTable32[0][0];
@@ -1290,6 +1292,7 @@ void GSLocalMemory::unSwizzleBlock16(BYTE* src, BYTE* dst, int dstpitch)
 		mov			edx, dstpitch
 		mov			ecx, 4
 
+		align 16
 unSwizzleBlock16_loop:
 		movaps		xmm0, [esi+16*0]
 		movaps		xmm1, [esi+16*1]
@@ -1335,6 +1338,7 @@ void GSLocalMemory::unSwizzleBlock8(BYTE* src, BYTE* dst, int dstpitch)
 		mov			edx, dstpitch
 		mov			ecx, 2
 
+		align 16
 unSwizzleBlock8_loop:
 
 		// col 0, 2
@@ -1431,6 +1435,7 @@ void GSLocalMemory::unSwizzleBlock4(BYTE* src, BYTE* dst, int dstpitch)
 		movd        xmm7, eax 
 		pshufd      xmm7, xmm7, 0
 
+		align 16
 unSwizzleBlock4_loop:
 
 		// col 0, 2
@@ -1517,7 +1522,6 @@ unSwizzleBlock4_loop:
 			dst[i >> 1] = (dst[i >> 1] & (0xf0 >> shift)) | (c << shift);
 		}
 	}
-	// TODO: assembly version, if possible
 #endif
 }
 
@@ -1554,6 +1558,7 @@ void GSLocalMemory::unSwizzleTexture32(int tw, int th, BYTE* dst, int dstpitch, 
 					*d++ = SwapRB(*s++);
 		}
 	}
+
 }
 
 void GSLocalMemory::unSwizzleTexture24(int tw, int th, BYTE* dst, int dstpitch, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA)
@@ -1847,6 +1852,7 @@ void GSLocalMemory::SwizzleBlock32(BYTE* dst, BYTE* src, int srcpitch, DWORD Wri
 		mov			edx, srcpitch
 		mov			ecx, 4
 
+		align 16
 SwizzleBlock32_loop:
 		movaps		xmm0, [esi]
 		movaps		xmm4, [esi+16]
@@ -1863,7 +1869,8 @@ SwizzleBlock32_loop:
 		lea			esi, [esi+edx*2]
 		add			edi, 64
 
-		loop		SwizzleBlock32_loop
+		dec			ecx
+		jnz			SwizzleBlock32_loop
 	}
 	else __asm
 	{
@@ -1872,10 +1879,10 @@ SwizzleBlock32_loop:
 		mov			edx, srcpitch
 		mov			ecx, 4
 
-		mov			eax, WriteMask
-		movd		xmm7, eax
+		movd		xmm7, WriteMask
 		pshufd		xmm7, xmm7, 0
 
+		align 16
 SwizzleBlock32WM_loop:
 		movaps		xmm0, [esi]
 		movaps		xmm4, [esi+16]
@@ -1887,30 +1894,26 @@ SwizzleBlock32WM_loop:
 		movaps		xmm3, xmm7
 		pshufd		xmm5, xmm7, 0xe4
 
-		movaps		xmm1, [edi+16*0]
+		pandn		xmm3, [edi+16*0]
 		pand		xmm0, xmm7
-		pandn		xmm3, xmm1
 		por			xmm0, xmm3
 		movaps		[edi+16*0], xmm0
 
-		movaps		xmm1, [edi+16*1]
+		pandn		xmm5, [edi+16*1]
 		pand		xmm2, xmm7
-		pandn		xmm5, xmm1
 		por			xmm2, xmm5
 		movaps		[edi+16*1], xmm2
 
 		movaps		xmm3, xmm7
 		pshufd		xmm5, xmm7, 0xe4
 
-		movaps		xmm1, [edi+16*2]
+		pandn		xmm3, [edi+16*2]
 		pand		xmm4, xmm7
-		pandn		xmm3, xmm1
 		por			xmm4, xmm3
 		movaps		[edi+16*2], xmm4
 
-		movaps		xmm1, [edi+16*3]
+		pandn		xmm5, [edi+16*3]
 		pand		xmm6, xmm7
-		pandn		xmm5, xmm1
 		por			xmm6, xmm5
 		movaps		[edi+16*3], xmm6
 
@@ -1920,7 +1923,6 @@ SwizzleBlock32WM_loop:
 		dec			ecx
 		jnz			SwizzleBlock32WM_loop
 	}
-
 #else
 	WORD* d = &columnTable32[0][0];
 
@@ -1956,6 +1958,7 @@ void GSLocalMemory::SwizzleBlock16(BYTE* dst, BYTE* src, int srcpitch)
 		mov			edx, srcpitch
 		mov			ecx, 4
 
+		align 16
 SwizzleBlock16_loop:
 		movaps		xmm0, [esi]
 		movaps		xmm1, [esi+16]
@@ -1973,7 +1976,8 @@ SwizzleBlock16_loop:
 		lea			esi, [esi+edx*2]
 		add			edi, 64
 
-		loop		SwizzleBlock16_loop
+		dec			ecx
+		jnz			SwizzleBlock16_loop
 	}
 #else
 	WORD* d = &columnTable16[0][0];
@@ -1999,6 +2003,7 @@ void GSLocalMemory::SwizzleBlock8(BYTE* dst, BYTE* src, int srcpitch)
 		mov			edx, srcpitch
 		mov			ecx, 2
 
+		align 16
 SwizzleBlock8_loop:
 
 		// col 0, 2
@@ -2066,6 +2071,7 @@ void GSLocalMemory::SwizzleBlock4(BYTE* dst, BYTE* src, int srcpitch)
 		movd        xmm7, eax 
 		pshufd      xmm7, xmm7, 0
 
+		align 16
 SwizzleBlock4_loop:
 
 		// col 0, 2

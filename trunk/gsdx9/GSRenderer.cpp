@@ -21,4 +21,3 @@
 
 #include "StdAfx.h"
 #include "GSRenderer.h"
-
