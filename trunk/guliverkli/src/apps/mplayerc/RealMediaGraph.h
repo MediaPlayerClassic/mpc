@@ -24,6 +24,7 @@
 #include "BaseGraph.h"
 
 #include "DX7AllocatorPresenter.h"
+#include "DX9AllocatorPresenter.h"
 
 #include "..\..\..\include\RealMedia\pntypes.h"
 #include "..\..\..\include\RealMedia\pnwintyp.h"
@@ -181,10 +182,9 @@ public:
 class CRealMediaGraph : public CBaseGraph
 {
 	CRealMediaPlayer* m_pRMP; // TODO: access m_pRMP through a private interface
-	bool m_fWindowless;
 
 public:
-	CRealMediaGraph(HWND hWndParent, bool fWindowless, HRESULT& hr); // in windowless mode IVideoWindow::* will return E_NOTIMPL, use ISubPicAllocatorPresenter instead
+	CRealMediaGraph(HWND hWndParent, HRESULT& hr); // in windowless mode IVideoWindow::* will return E_NOTIMPL, use ISubPicAllocatorPresenter instead
 	virtual ~CRealMediaGraph();
 
     DECLARE_IUNKNOWN;

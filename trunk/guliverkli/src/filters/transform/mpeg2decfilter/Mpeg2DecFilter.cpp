@@ -452,9 +452,9 @@ ASSERT(!(m_fb.flags&PIC_FLAG_SKIP));
 
 					if(di == DIWeave)
 					{
-						memcpy_accel(m_fb.buf[0], fbuf->buf[0], pitch*h);
-						memcpy_accel(m_fb.buf[1], fbuf->buf[1], pitch*h/4);
-						memcpy_accel(m_fb.buf[2], fbuf->buf[2], pitch*h/4);
+						BitBltFromI420ToI420(w, h, 
+							m_fb.buf[0], m_fb.buf[1], m_fb.buf[2], pitch, 
+							fbuf->buf[0], fbuf->buf[1], fbuf->buf[2], pitch);
 					}
 					else if(di == DIBlend)
 					{
@@ -604,9 +604,9 @@ HRESULT CMpeg2DecFilter::Deliver(bool fRepeatLast)
 
 	if(m_pSubpicInput->HasAnythingToRender(m_fb.rtStart))
 	{
-		memcpy_accel(m_fb.buf[3], m_fb.buf[0], m_fb.pitch*m_fb.h);
-		memcpy_accel(m_fb.buf[4], m_fb.buf[1], m_fb.pitch*m_fb.h/4);
-		memcpy_accel(m_fb.buf[5], m_fb.buf[2], m_fb.pitch*m_fb.h/4);
+		BitBltFromI420ToI420(m_fb.w, m_fb.h, 
+			m_fb.buf[3], m_fb.buf[4], m_fb.buf[5], m_fb.pitch, 
+			m_fb.buf[0], m_fb.buf[1], m_fb.buf[2], m_fb.pitch);
 
 		buf = &m_fb.buf[3];
 
@@ -635,27 +635,15 @@ void CMpeg2DecFilter::Copy(BYTE* pOut, BYTE** ppIn, DWORD w, DWORD h, DWORD pitc
 
 	if(bihOut.biCompression == '2YUY')
 	{
-		BitBltFromI420ToYUY2(pOut, bihOut.biWidth*2, pIn, pInU, pInV, w, h, pitchIn);
+		BitBltFromI420ToYUY2(w, h, pOut, bihOut.biWidth*2, pIn, pInU, pInV, pitchIn);
 	}
-	else if(bihOut.biCompression == '21VY' || bihOut.biCompression == 'I420' || bihOut.biCompression == 'VUYI')
+	else if(bihOut.biCompression == 'I420' || bihOut.biCompression == 'VUYI')
 	{
-		DWORD pitchOut = bihOut.biWidth;
-
-		for(DWORD y = 0; y < h; y++, pIn += pitchIn, pOut += pitchOut)
-			memcpy_accel(pOut, pIn, min(pitchIn, pitchOut));
-
-		pitchIn >>= 1;
-		pitchOut >>= 1;
-
-		pIn = bihOut.biCompression == '21VY' ? pInV : pInU;
-
-		for(DWORD y = 0; y < h; y+=2, pIn += pitchIn, pOut += pitchOut)
-			memcpy_accel(pOut, pIn, min(pitchIn, pitchOut));
-
-		pIn = bihOut.biCompression == '21VY' ? pInU : pInV;
-
-		for(DWORD y = 0; y < h; y+=2, pIn += pitchIn, pOut += pitchOut)
-			memcpy_accel(pOut, pIn, min(pitchIn, pitchOut));
+		BitBltFromI420ToI420(w, h, pOut, pOut + bihOut.biWidth*h, pOut + bihOut.biWidth*h*5/4, bihOut.biWidth, pIn, pInU, pInV, pitchIn);
+	}
+	else if(bihOut.biCompression == '21VY')
+	{
+		BitBltFromI420ToI420(w, h, pOut, pOut + bihOut.biWidth*h*5/4, pOut + bihOut.biWidth*h, bihOut.biWidth, pIn, pInU, pInV, pitchIn);
 	}
 	else if(bihOut.biCompression == BI_RGB || bihOut.biCompression == BI_BITFIELDS)
 	{
@@ -667,7 +655,7 @@ void CMpeg2DecFilter::Copy(BYTE* pOut, BYTE** ppIn, DWORD w, DWORD h, DWORD pitc
 			pitchOut = -pitchOut;
 		}
 
-		if(!BitBltFromI420ToRGB(pOut, pitchOut, pIn, pInU, pInV, w, h, bihOut.biBitCount, pitchIn))
+		if(!BitBltFromI420ToRGB(w, h, pOut, pitchOut, bihOut.biBitCount, pIn, pInU, pInV, pitchIn))
 		{
 			for(DWORD y = 0; y < h; y++, pIn += pitchIn, pOut += pitchOut)
 				memset(pOut, 0, pitchOut);

@@ -21,8 +21,6 @@
 
 #pragma once
 
-#include <afxtempl.h>
-
 #include "..\..\..\include\RealMedia\pntypes.h"
 #include "..\..\..\include\RealMedia\pnwintyp.h"
 #include "..\..\..\include\RealMedia\pncom.h"

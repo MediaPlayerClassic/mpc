@@ -23,6 +23,7 @@
 #include <math.h>
 #include "QuicktimeGraph.h"
 #include "IQTVideoSurface.h"
+#include "mplayerc.h"
 #include "..\..\DSUtil\DSUtil.h"
 
 //
@@ -33,9 +34,8 @@
 
 using namespace QT;
 
-CQuicktimeGraph::CQuicktimeGraph(HWND hWndParent, int iRenderer, HRESULT& hr)
+CQuicktimeGraph::CQuicktimeGraph(HWND hWndParent, HRESULT& hr)
 	: CBaseGraph()
-	, m_iRenderer(iRenderer)
 	, m_wndDestFrame(this)
 	, m_fQtInitialized(false)
 {
@@ -43,26 +43,16 @@ CQuicktimeGraph::CQuicktimeGraph(HWND hWndParent, int iRenderer, HRESULT& hr)
 
 	DWORD dwStyle = WS_CHILD|WS_VISIBLE|WS_CLIPSIBLINGS|WS_CLIPCHILDREN;
 
-	if(m_iRenderer == DX7)
+	AppSettings& s = AfxGetAppSettings();
+
+	if(s.iQTVideoRendererType == VIDRNDT_QT_DX7)
 	{
-		hr = CreateAP7(CLSID_QT7AllocatorPresenter, hWndParent, &m_pQTAP);
-		if(FAILED(hr))
-		{
-			m_iRenderer = MC;
-			hr = S_OK;
-		}
-		else
-            dwStyle &= ~WS_VISIBLE;
+		if(SUCCEEDED(CreateAP7(CLSID_QT7AllocatorPresenter, hWndParent, &m_pQTAP))) 
+			dwStyle &= ~WS_VISIBLE;
 	}
-	else if(m_iRenderer == DX9)
+	else if(s.iQTVideoRendererType == VIDRNDT_QT_DX9)
 	{
-		hr = CreateAP9(CLSID_QT9AllocatorPresenter, hWndParent, &m_pQTAP);
-		if(FAILED(hr)) 
-		{
-			m_iRenderer = MC;
-			hr = S_OK;
-		}
-		else
+		if(SUCCEEDED(CreateAP9(CLSID_QT9AllocatorPresenter, hWndParent, &m_pQTAP))) 
             dwStyle &= ~WS_VISIBLE;
 	}
 
@@ -236,7 +226,7 @@ STDMETHODIMP CQuicktimeGraph::SetWindowPosition(long Left, long Top, long Width,
 // IBasicVideo
 STDMETHODIMP CQuicktimeGraph::SetDestinationPosition(long Left, long Top, long Width, long Height)// {return E_NOTIMPL;}
 {
-	if((m_iRenderer == MC || m_iRenderer == GDI) && IsWindow(m_wndDestFrame.m_hWnd))
+	if(!m_pQTAP && IsWindow(m_wndDestFrame.m_hWnd))
 	{
 		m_wndDestFrame.MoveWindow(Left, Top, Width, Height);
 
@@ -411,10 +401,11 @@ OSErr CQuicktimeWindow::MyMovieDrawingCompleteProc(Movie theMovie, long refCon)
 		pQW->m_bm.GetObject(sizeof(bm), &bm);
 		pQTVS->DoBlt(bm);
 	}
+	/*
 	else
 	{
 		pQW->Invalidate();
-	}
+	}*/
 
 	return(noErr);
 }
@@ -423,7 +414,9 @@ bool CQuicktimeWindow::OpenMovie(CString fn)
 {
 	CloseMovie();
 
-	if(m_pGraph->m_iRenderer == CQuicktimeGraph::MC)
+	CComQIPtr<IQTVideoSurface> pQTVS = (IUnknown*)(INonDelegatingUnknown*)m_pGraph;
+
+	if(!pQTVS)
 	{
 		// Set the port	
 		SetGWorld((CGrafPtr)GetHWNDPort(m_hWnd), NULL);
@@ -482,7 +475,7 @@ bool CQuicktimeWindow::OpenMovie(CString fn)
 	Rect nrect;
 	GetMovieNaturalBoundsRect(theMovie, &nrect);
 
-	if(m_pGraph->m_iRenderer == CQuicktimeGraph::MC)
+	if(!pQTVS)
 	{
 		theMC = NewMovieController(theMovie, &rect, mcTopLeftMovie|mcNotVisible);
 	}
@@ -514,9 +507,9 @@ bool CQuicktimeWindow::OpenMovie(CString fn)
 			bmi.bmiHeader.biPlanes		= 1;
 			bmi.bmiHeader.biBitCount	= bpp;
 
-			bmi.bmiColors[0] = bpp == 16 ? 0xf800 : 0xff0000;
-			bmi.bmiColors[1] = bpp == 16 ? 0x07e0 : 0x00ff00;
-			bmi.bmiColors[2] = bpp == 16 ? 0x001f : 0x0000ff;
+			bmi.bmiColors[0] = /*bpp == 16 ? 0xf800 :*/ 0xff0000;
+			bmi.bmiColors[1] = /*bpp == 16 ? 0x07e0 :*/ 0x00ff00;
+			bmi.bmiColors[2] = /*bpp == 16 ? 0x001f :*/ 0x0000ff;
 
 			void* bits;
 			m_bm.Attach(CreateDIBSection(m_dc, (BITMAPINFO*)&bmi, DIB_RGB_COLORS, &bits, NULL, 0));
@@ -525,15 +518,9 @@ bool CQuicktimeWindow::OpenMovie(CString fn)
 
 			SetMovieGWorld(theMovie, m_offscreenGWorld, GetGWorldDevice(m_offscreenGWorld));
 
-			if(m_pGraph->m_iRenderer == CQuicktimeGraph::DX7 || m_pGraph->m_iRenderer == CQuicktimeGraph::DX9)
-			{
-				if(CComQIPtr<IQTVideoSurface> pQTVS = (IUnknown*)(INonDelegatingUnknown*)m_pGraph)
-				{
-					BITMAP bm;
-					m_bm.GetObject(sizeof(bm), &bm);
-					pQTVS->BeginBlt(bm);
-				}
-			}
+			BITMAP bm;
+			m_bm.GetObject(sizeof(bm), &bm);
+			pQTVS->BeginBlt(bm);
 		}
 	}
 
@@ -596,7 +583,6 @@ BEGIN_MESSAGE_MAP(CQuicktimeWindow, CPlayerWindow)
 	ON_WM_DESTROY()
 	ON_WM_ERASEBKGND()
 	ON_WM_TIMER()
-	ON_WM_PAINT()
 END_MESSAGE_MAP()
 
 int CQuicktimeWindow::OnCreate(LPCREATESTRUCT lpCreateStruct)
@@ -604,7 +590,9 @@ int CQuicktimeWindow::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	if(__super::OnCreate(lpCreateStruct) == -1)
 		return -1;
 
-	if(m_pGraph->m_iRenderer == CQuicktimeGraph::MC)
+	CComQIPtr<IQTVideoSurface> pQTVS = (IUnknown*)(INonDelegatingUnknown*)m_pGraph;
+
+	if(!pQTVS)
 	{
 		// Create GrafPort <-> HWND association
 		CreatePortAssociation(m_hWnd, NULL, 0);
@@ -620,7 +608,9 @@ void CQuicktimeWindow::OnDestroy()
 	// close any movies	before destroying PortAssocation
 	CloseMovie();
 
-	if(m_pGraph->m_iRenderer == CQuicktimeGraph::MC)
+	CComQIPtr<IQTVideoSurface> pQTVS = (IUnknown*)(INonDelegatingUnknown*)m_pGraph;
+
+	if(!pQTVS)
 	{
 		// Destroy the view's GrafPort <-> HWND association
 		if(m_hWnd)
@@ -643,7 +633,7 @@ void CQuicktimeWindow::OnTimer(UINT nIDEvent)
 			Pause();
 			m_pGraph->NotifyEvent(EC_COMPLETE);
 		}
-		else if(m_pGraph->m_iRenderer != CQuicktimeGraph::MC)
+		else if(CComQIPtr<IQTVideoSurface> pQTVS = (IUnknown*)(INonDelegatingUnknown*)m_pGraph)
 		{
             MoviesTask(theMovie, 0);
 /*
@@ -659,20 +649,4 @@ void CQuicktimeWindow::OnTimer(UINT nIDEvent)
 	}
 
 	__super::OnTimer(nIDEvent);
-}
-
-void CQuicktimeWindow::OnPaint()
-{
-	CPaintDC dc(this); // device context for painting
-
-	if(m_fs != State_Stopped && theMovie && m_pGraph && m_pGraph->m_iRenderer == CQuicktimeGraph::GDI)
-	{
-		CRect r;
-		GetClientRect(r);
-		CBitmap* pOld = m_dc.SelectObject(&m_bm);
-		BITMAP bm;
-		m_bm.GetObject(sizeof(bm), &bm);
-		dc.StretchBlt(0,0,r.Width(),r.Height(),&m_dc,0,0,bm.bmWidth,abs(bm.bmHeight),SRCCOPY);
-		m_dc.SelectObject(pOld);
-	}
 }

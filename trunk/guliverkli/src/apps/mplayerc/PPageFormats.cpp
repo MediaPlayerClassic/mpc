@@ -35,6 +35,8 @@ CPPageFormats::CPPageFormats()
 	: CPPageBase(CPPageFormats::IDD, CPPageFormats::IDD)
 	, m_list(0)
 	, m_exts(_T(""))
+	, m_iRtspHandler(0)
+	, m_fRtspFileExtFirst(FALSE)
 {
 }
 
@@ -52,6 +54,8 @@ void CPPageFormats::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_CHECK2, m_apmusic);
 	DDX_Control(pDX, IDC_CHECK3, m_apaudiocd);
 	DDX_Control(pDX, IDC_CHECK4, m_apdvd);
+	DDX_Radio(pDX, IDC_RADIO4, m_iRtspHandler);
+	DDX_Check(pDX, IDC_CHECK5, m_fRtspFileExtFirst);
 }
 
 int CPPageFormats::GetChecked(int iItem)
@@ -456,6 +460,12 @@ BOOL CPPageFormats::OnInitDialog()
 	m_list.SetItemState(0, LVIS_SELECTED, LVIS_SELECTED);
 	m_exts = mf[(int)m_list.GetItemData(0)].GetExtsWithPeriod();
 
+	AppSettings& s = AfxGetAppSettings();
+	bool fRtspFileExtFirst;
+	engine_t e = s.Formats.GetRtspHandler(fRtspFileExtFirst);
+	m_iRtspHandler = (e==RealMedia?0:e==QuickTime?1:2);
+	m_fRtspFileExtFirst = fRtspFileExtFirst;
+
 	UpdateData(FALSE);
 
 	for(int i = 0; i < m_list.GetItemCount(); i++)
@@ -525,6 +535,9 @@ BOOL CPPageFormats::OnApply()
 	AddAutoPlayToRegistry(AP_DVDMOVIE, !!m_apdvd.GetCheck());
 
 //	SHChangeNotify(SHCNE_ASSOCCHANGED, SHCNF_IDLIST, NULL, NULL);
+
+	AppSettings& s = AfxGetAppSettings();
+	s.Formats.SetRtspHandler(m_iRtspHandler==0?RealMedia:m_iRtspHandler==1?QuickTime:DirectShow, !!m_fRtspFileExtFirst);
 
 	return __super::OnApply();
 }

@@ -85,11 +85,11 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "AviSplitter", "parser\avisp
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Mpeg2DecFilter", "transform\mpeg2decfilter\Mpeg2DecFilter.vcproj", "{305BAB2D-0D75-4FBC-8BCD-A2917392B48C}"
 	ProjectSection(ProjectDependencies) = postProject
-		{D8365C15-2166-4DB6-8A2D-1C8F0239EB18} = {D8365C15-2166-4DB6-8A2D-1C8F0239EB18}
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MpaDecFilter", "transform\mpadecfilter\MpaDecFilter.vcproj", "{4421516D-10A6-41C1-ADF3-099573BBB0C6}"
 	ProjectSection(ProjectDependencies) = postProject
+		{D8365C15-2166-4DB6-8A2D-1C8F0239EB18} = {D8365C15-2166-4DB6-8A2D-1C8F0239EB18}
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libmad", "transform\mpadecfilter\libmad-0.15.0b\msvc++\libmad.vcproj", "{D8365C15-2166-4DB6-8A2D-1C8F0239EB18}"

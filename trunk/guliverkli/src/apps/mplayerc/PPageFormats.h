@@ -57,6 +57,8 @@ public:
 	CButton m_apmusic;
 	CButton m_apaudiocd;
 	CButton m_apdvd;
+	int m_iRtspHandler;
+	BOOL m_fRtspFileExtFirst;
 
 // Dialog Data
 	enum { IDD = IDD_PPAGEFORMATS };

@@ -34,8 +34,6 @@ CPPageTweaks::CPPageTweaks()
 	: CPPageBase(CPPageTweaks::IDD, CPPageTweaks::IDD)
 	, m_fDisabeXPToolbars(FALSE)
 	, m_fUseWMASFReader(FALSE)
-	, m_fVMRTexture(FALSE)
-	, m_fVMR3D(FALSE)
 	, m_nJumpDistS(0)
 	, m_nJumpDistM(0)
 	, m_nJumpDistL(0)
@@ -55,8 +53,6 @@ void CPPageTweaks::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_CHECK3, m_fDisabeXPToolbarsCtrl);
 	DDX_Check(pDX, IDC_CHECK2, m_fUseWMASFReader);
 	DDX_Control(pDX, IDC_CHECK2, m_fUseWMASFReaderCtrl);
-	DDX_Check(pDX, IDC_CHECK1, m_fVMRTexture);
-	DDX_Check(pDX, IDC_CHECK4, m_fVMR3D);
 	DDX_Text(pDX, IDC_EDIT1, m_nJumpDistS);
 	DDX_Text(pDX, IDC_EDIT2, m_nJumpDistM);
 	DDX_Text(pDX, IDC_EDIT3, m_nJumpDistL);
@@ -70,8 +66,6 @@ BOOL CPPageTweaks::OnInitDialog()
 
 	m_fDisabeXPToolbars = s.fDisabeXPToolbars;
 	m_fUseWMASFReader = s.fUseWMASFReader;
-	m_fVMRTexture = s.fVMRTexture;
-	m_fVMR3D = s.fVMR3D;
 	m_nJumpDistS = s.nJumpDistS;
 	m_nJumpDistM = s.nJumpDistM;
 	m_nJumpDistL = s.nJumpDistL;
@@ -90,8 +84,6 @@ BOOL CPPageTweaks::OnApply()
 
 	s.fDisabeXPToolbars = !!m_fDisabeXPToolbars;
 	s.fUseWMASFReader = !!m_fUseWMASFReader;
-	s.fVMRTexture = !!m_fVMRTexture;
-	s.fVMR3D = !!m_fVMR3D;
 	s.nJumpDistS = m_nJumpDistS;
 	s.nJumpDistM = m_nJumpDistM;
 	s.nJumpDistL = m_nJumpDistL;

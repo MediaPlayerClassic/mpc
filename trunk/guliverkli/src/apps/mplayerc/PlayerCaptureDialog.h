@@ -22,7 +22,6 @@
 #pragma once
 #include "afxwin.h"
 #include "afxcmn.h"
-#include <afxtempl.h>
 #include "..\..\filters\transform\bufferfilter\bufferfilter.h"
 #include "FloatEdit.h"
 

@@ -43,7 +43,6 @@ CPPagePlayer::CPPagePlayer()
 	, m_fRememberWindowPos(FALSE)
 	, m_fRememberWindowSize(FALSE)
 	, m_fUseIni(FALSE)
-	, m_fSetFullscreenRes(FALSE)
 	, m_fKeepHistory(FALSE)
 	, m_fHideCDROMsSubMenu(FALSE)
 {
@@ -67,8 +66,6 @@ void CPPagePlayer::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_CHECK7, m_fRememberWindowSize);
 	DDX_Check(pDX, IDC_CHECK8, m_fUseIni);
 	DDX_Control(pDX, IDC_SPIN1, m_nTimeOutCtrl);
-	DDX_Check(pDX, IDC_CHECK9, m_fSetFullscreenRes);
-	DDX_Control(pDX, IDC_COMBO1, m_dispmodecombo);
 	DDX_Check(pDX, IDC_CHECK1, m_fKeepHistory);
 	DDX_Check(pDX, IDC_CHECK10, m_fHideCDROMsSubMenu);
 }
@@ -80,7 +77,6 @@ BEGIN_MESSAGE_MAP(CPPagePlayer, CPPageBase)
 	ON_UPDATE_COMMAND_UI(IDC_EDIT1, OnUpdateTimeout)
 	ON_UPDATE_COMMAND_UI(IDC_STATIC1, OnUpdateTimeout)
 	ON_UPDATE_COMMAND_UI(IDC_STATIC2, OnUpdateTimeout)
-	ON_UPDATE_COMMAND_UI(IDC_COMBO1, OnUpdateDispModeCombo)
 END_MESSAGE_MAP()
 
 
@@ -99,28 +95,6 @@ BOOL CPPagePlayer::OnInitDialog()
 	m_iShowBarsWhenFullScreen = s.fShowBarsWhenFullScreen;
 	m_nShowBarsWhenFullScreenTimeOut = s.nShowBarsWhenFullScreenTimeOut;
 	m_nTimeOutCtrl.SetRange(-1, 10);
-	m_fSetFullscreenRes = s.dmFullscreenRes.fValid;
-	int iSel = -1;
-	dispmode dm, dmtoset = s.dmFullscreenRes;
-	if(!dmtoset.fValid) GetCurDispMode(dmtoset);
-	for(int i = 0, j = 0; GetDispMode(i, dm); i++)
-	{
-		if(dm.bpp <= 8) continue;
-
-		m_dms.Add(dm);
-
-		CString str;
-		str.Format(_T("%dx%d %dbpp %dHz"), dm.size.cx, dm.size.cy, dm.bpp, dm.freq);
-		m_dispmodecombo.AddString(str);
-
-		if(iSel < 0 && dmtoset.fValid && dm.size == dmtoset.size
-		&& dm.bpp == dmtoset.bpp && dm.freq == dmtoset.freq)
-			iSel = j;
-
-		j++;
-	}
-	m_dispmodecombo.SetCurSel(iSel);
-
 	m_fExitFullScreenAtTheEnd = s.fExitFullScreenAtTheEnd;
 	m_fRememberWindowPos = s.fRememberWindowPos;
 	m_fRememberWindowSize = s.fRememberWindowSize;
@@ -146,9 +120,6 @@ BOOL CPPagePlayer::OnApply()
 	s.fTrayIcon = !!m_fTrayIcon;
 	s.fShowBarsWhenFullScreen = !!m_iShowBarsWhenFullScreen;
 	s.nShowBarsWhenFullScreenTimeOut = m_nShowBarsWhenFullScreenTimeOut;
-	int iSel = m_dispmodecombo.GetCurSel();
-	if((s.dmFullscreenRes.fValid = !!m_fSetFullscreenRes) && iSel >= 0 && iSel < m_dms.GetCount())
-		s.dmFullscreenRes = m_dms[m_dispmodecombo.GetCurSel()];
 	s.fExitFullScreenAtTheEnd = !!m_fExitFullScreenAtTheEnd;
 	s.fRememberWindowPos = !!m_fRememberWindowPos;
 	s.fRememberWindowSize = !!m_fRememberWindowSize;
@@ -182,8 +153,3 @@ void CPPagePlayer::OnUpdateTimeout(CCmdUI* pCmdUI)
 	pCmdUI->Enable(m_iShowBarsWhenFullScreen);
 }
 
-void CPPagePlayer::OnUpdateDispModeCombo(CCmdUI* pCmdUI)
-{
-	UpdateData();
-	pCmdUI->Enable(m_fSetFullscreenRes);
-}

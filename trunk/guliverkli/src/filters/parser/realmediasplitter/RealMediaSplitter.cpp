@@ -1526,39 +1526,27 @@ void CRealVideoDecoder::ResizeRow(BYTE* pIn, DWORD wi, DWORD dpi, BYTE* pOut, DW
 	}
 }
 
-void CRealVideoDecoder::Copy(BYTE* pOut, BYTE* pIn, DWORD wi, DWORD hi)
+void CRealVideoDecoder::Copy(BYTE* pOut, BYTE* pIn, DWORD w, DWORD h)
 {
 	BITMAPINFOHEADER bihOut;
 	ExtractBIH(&m_pOutput->CurrentMediaType(), &bihOut);
 
-	int pitchIn = wi;
+	int pitchIn = w;
 	int pitchInUV = pitchIn>>1;
-	BYTE* pInU = pIn + pitchIn*hi;
-	BYTE* pInV = pInU + pitchInUV*hi/2;
+	BYTE* pInU = pIn + pitchIn*h;
+	BYTE* pInV = pInU + pitchInUV*h/2;
 
 	if(bihOut.biCompression == '2YUY')
 	{
-		BitBltFromI420ToYUY2(pOut, bihOut.biWidth*2, pIn, pInU, pInV, wi, hi, pitchIn);
+		BitBltFromI420ToYUY2(w, h, pOut, bihOut.biWidth*2, pIn, pInU, pInV, pitchIn);
 	}
-	else if(bihOut.biCompression == '21VY' || bihOut.biCompression == 'I420' || bihOut.biCompression == 'VUYI')
+	else if(bihOut.biCompression == 'I420' || bihOut.biCompression == 'VUYI')
 	{
-		int pitchOut = bihOut.biWidth;
-
-		for(DWORD y = 0; y < hi; y++, pIn += pitchIn, pOut += pitchOut)
-			memcpy_accel(pOut, pIn, min(pitchIn, pitchOut));
-
-		pitchIn >>= 1;
-		pitchOut >>= 1;
-
-		pIn = bihOut.biCompression == '21VY' ? pInV : pInU;
-
-		for(DWORD y = 0; y < hi; y+=2, pIn += pitchIn, pOut += pitchOut)
-			memcpy_accel(pOut, pIn, min(pitchIn, pitchOut));
-
-		pIn = bihOut.biCompression == '21VY' ? pInU : pInV;
-
-		for(DWORD y = 0; y < hi; y+=2, pIn += pitchIn, pOut += pitchOut)
-			memcpy_accel(pOut, pIn, min(pitchIn, pitchOut));
+		BitBltFromI420ToI420(w, h, pOut, pOut + bihOut.biWidth*h, pOut + bihOut.biWidth*h*5/4, bihOut.biWidth, pIn, pInU, pInV, pitchIn);
+	}
+	else if(bihOut.biCompression == '21VY')
+	{
+		BitBltFromI420ToI420(w, h, pOut, pOut + bihOut.biWidth*h*5/4, pOut + bihOut.biWidth*h, bihOut.biWidth, pIn, pInU, pInV, pitchIn);
 	}
 	else if(bihOut.biCompression == BI_RGB || bihOut.biCompression == BI_BITFIELDS)
 	{
@@ -1566,13 +1554,13 @@ void CRealVideoDecoder::Copy(BYTE* pOut, BYTE* pIn, DWORD wi, DWORD hi)
 
 		if(bihOut.biHeight > 0)
 		{
-			pOut += pitchOut*(hi-1);
+			pOut += pitchOut*(h-1);
 			pitchOut = -pitchOut;
 		}
 
-		if(!BitBltFromI420ToRGB(pOut, pitchOut, pIn, pInU, pInV, wi, hi, bihOut.biBitCount))
+		if(!BitBltFromI420ToRGB(w, h, pOut, pitchOut, bihOut.biBitCount, pIn, pInU, pInV, pitchIn))
 		{
-			for(DWORD y = 0; y < hi; y++, pIn += pitchIn, pOut += pitchOut)
+			for(DWORD y = 0; y < h; y++, pIn += pitchIn, pOut += pitchOut)
 				memset(pOut, 0, pitchOut);
 		}
 	}

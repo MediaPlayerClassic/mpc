@@ -9,6 +9,7 @@
 #define ID_PLAYERTIME                   130
 #define IDS_RS_USEWMASFREADER           130
 #define ID_FILE_OPENMEDIA               131
+#define IDS_VIDRENDDESC                 131
 #define ID_FILE_OPENDVD                 132
 #define ID_FILE_CLOSEMEDIA              133
 #define ID_FILE_LOADSUBTITLE            134
@@ -172,6 +173,10 @@
 #define ID_NAVIGATE_SKIPFORWARDPLITEM   332
 #define IDD_PPAGELOGO                   333
 #define IDB_LOGO6                       334
+#define IDD_PPAGEVIDREND                335
+#define IDD_PPAGEOUTPUT                 335
+#define IDD_AUTHDLG                     336
+#define IDB_AUTHHDRPIC                  337
 #define IDS_R_SETTINGS                  500
 #define IDS_RS_CONTROLSTATE             501
 #define IDS_RS_VOLUME                   502
@@ -272,6 +277,11 @@
 #define IDS_RS_HIDECDROMSSUBMENU        593
 #define IDS_RS_VMRTEXTURE               594
 #define IDS_RS_VMR3D                    595
+#define IDS_RS_DSVIDEORENDERERTYPE      596
+#define IDS_RS_RMVIDEORENDERERTYPE      597
+#define IDS_RS_QTVIDEORENDERERTYPE      598
+#define IDS_RS_APSURACEFUSAGE           599
+#define IDS_R_LOGINS                    600
 #define IDC_BROWSEBUTTON                1016
 #define IDC_BROWSEBUTTON2               1017
 #define IDC_COMBO1                      1018
@@ -333,6 +343,7 @@
 #define IDC_RADIO12                     1048
 #define IDC_SLIDER6                     1049
 #define IDC_RADIO13                     1049
+#define IDC_DSNULLUNC                   1049
 #define IDC_EDIT11                      1050
 #define IDC_STATIC_DUB                  1051
 #define IDC_SPIN10                      1051
@@ -345,6 +356,8 @@
 #define IDC_RADIO9                      1058
 #define IDC_RADIO10                     1059
 #define IDC_RADIO11                     1060
+#define IDC_RADIO14                     1061
+#define IDC_QTDX9                       1061
 #define IDC_COLORPRI                    1063
 #define IDC_COLORSEC                    1064
 #define IDC_COLOROUTL                   1065
@@ -400,6 +413,26 @@
 #define IDC_SLIDER1                     1116
 #define IDC_CHECK15                     1117
 #define IDC_CHECK16                     1118
+#define IDC_DESC                        1119
+#define IDC_DSSYSDEF                    1120
+#define IDC_DSOLD                       1121
+#define IDC_DSVMR7WIN                   1122
+#define IDC_DSVMR9WIN                   1123
+#define IDC_DSVMR7REN                   1124
+#define IDC_DSVMR9REN                   1125
+#define IDC_DSNULLANY                   1126
+#define IDC_RMSYSDEF                    1127
+#define IDC_RMDX7                       1128
+#define IDC_RMDX9                       1129
+#define IDC_QTSYSDEF                    1130
+#define IDC_QTDX7                       1131
+#define IDC_DSOVERLAYMIXER              1132
+#define IDC_REULARSURF                  1133
+#define IDC_REGULARSURF                 1133
+#define IDC_TEXTURESURF2D               1134
+#define IDC_TEXTURESURF3D               1135
+#define IDC_DSNULL_UNCOMP               1136
+#define IDC_DSNULL_COMP                 1137
 #define IDD_COMPROPERTYPAGE             10002
 #define ID_DUMMYSEPARATOR               32768
 #define ID_VOLUME_MUTE_ON               32769
@@ -481,9 +514,9 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        335
+#define _APS_NEXT_RESOURCE_VALUE        338
 #define _APS_NEXT_COMMAND_VALUE         32823
-#define _APS_NEXT_CONTROL_VALUE         1119
+#define _APS_NEXT_CONTROL_VALUE         1137
 #define _APS_NEXT_SYMED_VALUE           10003
 #endif
 #endif

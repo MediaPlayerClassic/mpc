@@ -304,32 +304,28 @@ BEGIN
     CONTROL         "Always on top",IDC_CHECK2,"Button",BS_AUTOCHECKBOX | 
                     WS_TABSTOP,140,19,61,10
     CONTROL         "Tray icon",IDC_CHECK3,"Button",BS_AUTOCHECKBOX | 
-                    WS_TABSTOP,140,32,45,10
+                    WS_TABSTOP,140,34,45,10
     CONTROL         "Show controls in fullscreen for",IDC_CHECK4,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,140,45,112,10
-    EDITTEXT        IDC_EDIT1,152,60,32,13,ES_CENTER | ES_AUTOHSCROLL | 
+                    BS_AUTOCHECKBOX | WS_TABSTOP,140,49,112,10
+    EDITTEXT        IDC_EDIT1,152,64,32,13,ES_CENTER | ES_AUTOHSCROLL | 
                     ES_READONLY | ES_NUMBER
     CONTROL         "",IDC_SPIN1,"msctls_updown32",UDS_SETBUDDYINT | 
                     UDS_ALIGNRIGHT | UDS_AUTOBUDDY | UDS_ARROWKEYS | 
-                    UDS_NOTHOUSANDS | UDS_HOTTRACK,175,61,11,14
-    LTEXT           "sec(s)",IDC_STATIC1,188,62,20,8
-    LTEXT           "0: auto-hide\n-1: don't hide",IDC_STATIC2,218,58,48,17
-    CONTROL         "Set fullscreen resolution:",IDC_CHECK9,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,140,77,95,10
-    COMBOBOX        IDC_COMBO1,152,90,103,64,CBS_DROPDOWNLIST | WS_VSCROLL | 
-                    WS_TABSTOP
+                    UDS_NOTHOUSANDS | UDS_HOTTRACK,175,65,11,14
+    LTEXT           "sec(s)",IDC_STATIC1,188,66,20,8
+    LTEXT           "0: auto-hide\n-1: don't hide",IDC_STATIC2,218,62,48,17
     CONTROL         "Exit fullscreen at the end of playback",IDC_CHECK5,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,140,107,135,10
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,140,83,135,10
     CONTROL         "Remember last window position",IDC_CHECK6,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,140,120,127,10
+                    BS_AUTOCHECKBOX | WS_TABSTOP,140,99,127,10
     CONTROL         "Remember last window size",IDC_CHECK7,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,140,133,127,10
+                    BS_AUTOCHECKBOX | WS_TABSTOP,140,115,127,10
     CONTROL         "Store settings to .ini file",IDC_CHECK8,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,140,146,92,10
+                    BS_AUTOCHECKBOX | WS_TABSTOP,140,131,92,10
     CONTROL         "Keep history of recently opened files",IDC_CHECK1,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,140,159,133,10
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,140,147,133,10
     CONTROL         "Hide CD-ROMs menu",IDC_CHECK10,"Button",BS_AUTOCHECKBOX | 
-                    WS_TABSTOP,140,172,82,10
+                    WS_TABSTOP,140,163,82,10
 END
 
 IDD_PPAGEDVD DIALOGEX 0, 0, 296, 193
@@ -369,7 +365,7 @@ BEGIN
     LTEXT           "Min",IDC_STATIC,27,38,12,8
     CONTROL         "",IDC_SLIDER2,"msctls_trackbar32",TBS_AUTOTICKS | 
                     TBS_BOTH | WS_TABSTOP,41,31,75,24
-    LTEXT           "Max",IDC_STATIC,120,38,14,8
+    LTEXT           "Max",IDC_STATIC,123,38,14,8
     LTEXT           "Balance",IDC_STATIC,196,19,26,8
     LTEXT           "L",IDC_STATIC,160,39,8,8
     CONTROL         "",IDC_SLIDER3,"msctls_trackbar32",TBS_AUTOTICKS | 
@@ -385,16 +381,13 @@ BEGIN
     EDITTEXT        IDC_EDIT1,52,85,20,13,ES_AUTOHSCROLL | ES_NUMBER
     LTEXT           "time(s)",IDC_STATIC1,81,87,23,8
     GROUPBOX        "Output",IDC_STATIC,126,67,163,71
-    LTEXT           "Zoom:",IDC_STATIC,136,82,21,8
-    COMBOBOX        IDC_COMBO1,164,80,49,47,CBS_DROPDOWNLIST | WS_VSCROLL | 
+    CONTROL         "Auto-zoom:",IDC_CHECK5,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,137,85,48,10
+    COMBOBOX        IDC_COMBO1,193,83,49,47,CBS_DROPDOWNLIST | WS_VSCROLL | 
                     WS_TABSTOP
-    CONTROL         "Auto-zoom",IDC_CHECK5,"Button",BS_AUTOCHECKBOX | 
-                    WS_TABSTOP,227,81,48,10
-    LTEXT           "Video:",IDC_STATIC,136,100,21,8
-    COMBOBOX        IDC_COMBO2,164,98,115,81,CBS_DROPDOWNLIST | WS_VSCROLL | 
-                    WS_TABSTOP
-    LTEXT           "Audio:",IDC_STATIC,136,118,22,8
-    COMBOBOX        IDC_COMBO13,164,116,115,87,CBS_DROPDOWNLIST | WS_VSCROLL | 
+    CONTROL         "Change fullscreen resolution:",IDC_CHECK4,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,137,102,109,10
+    COMBOBOX        IDC_COMBO2,156,116,112,64,CBS_DROPDOWNLIST | WS_VSCROLL | 
                     WS_TABSTOP
     GROUPBOX        "Open settings",IDC_STATIC,5,140,284,43
     CONTROL         "Use worker thread to construct the filter graph",
@@ -459,23 +452,33 @@ FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
     CONTROL         "",IDC_LIST1,"SysListView32",LVS_REPORT | LVS_SINGLESEL | 
                     LVS_SORTASCENDING | LVS_ALIGNLEFT | LVS_NOCOLUMNHEADER | 
-                    WS_BORDER | WS_TABSTOP,6,5,283,131
-    GROUPBOX        "File extensions",IDC_STATIC,6,137,283,34
-    EDITTEXT        IDC_EDIT1,13,149,192,14,ES_AUTOHSCROLL
-    PUSHBUTTON      "Default",IDC_BUTTON12,210,149,34,14
-    PUSHBUTTON      "Set",IDC_BUTTON11,247,149,34,14
-    LTEXT           "Autoplay:",IDC_STATIC1,6,174,32,8
+                    WS_BORDER | WS_TABSTOP,13,15,268,97
+    GROUPBOX        "File extensions",IDC_STATIC,6,4,283,135
+    EDITTEXT        IDC_EDIT1,13,118,192,14,ES_AUTOHSCROLL
+    PUSHBUTTON      "Default",IDC_BUTTON12,210,118,34,14
+    PUSHBUTTON      "Set",IDC_BUTTON11,247,118,34,14
+    GROUPBOX        "Real-Time Streaming Protocol handler (for rtsp://... URLs)",
+                    IDC_STATIC,6,141,283,27
+    CONTROL         "RealMedia",IDC_RADIO4,"Button",BS_AUTORADIOBUTTON | 
+                    WS_GROUP,14,153,49,10
+    CONTROL         "QuickTime",IDC_RADIO5,"Button",BS_AUTORADIOBUTTON,66,
+                    153,48,10
+    CONTROL         "DirectShow",IDC_RADIO6,"Button",BS_AUTORADIOBUTTON,117,
+                    153,52,10
+    CONTROL         "Look file extension first",IDC_CHECK5,"Button",
+                    BS_AUTOCHECKBOX | WS_GROUP | WS_TABSTOP,191,153,90,10
     CONTROL         "Video",IDC_CHECK1,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,
-                    6,186,31,10
+                    13,183,31,10
     CONTROL         "Music",IDC_CHECK2,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,
-                    38,186,31,10
+                    45,183,31,10
     CONTROL         "DVD",IDC_CHECK4,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,
-                    71,186,29,10
+                    78,183,29,10
     CONTROL         "Audio CD",IDC_CHECK3,"Button",BS_AUTOCHECKBOX | 
-                    WS_TABSTOP,101,186,43,10
-    PUSHBUTTON      "&Video",IDC_BUTTON14,184,180,33,14
-    PUSHBUTTON      "A&udio",IDC_BUTTON13,220,180,33,14
-    PUSHBUTTON      "&All",IDC_BUTTON1,256,180,33,14
+                    WS_TABSTOP,108,183,43,10
+    PUSHBUTTON      "&Video",IDC_BUTTON14,176,180,33,14
+    PUSHBUTTON      "A&udio",IDC_BUTTON13,212,180,33,14
+    PUSHBUTTON      "&All",IDC_BUTTON1,248,180,33,14
+    GROUPBOX        "Autoplay (XP only)",IDC_STATIC1,6,170,151,28
 END
 
 IDD_PPAGETWEAKS DIALOGEX 0, 0, 296, 178
@@ -497,12 +500,6 @@ BEGIN
     EDITTEXT        IDC_EDIT3,110,62,40,14,ES_RIGHT | ES_AUTOHSCROLL | 
                     ES_NUMBER
     PUSHBUTTON      "Default",IDC_BUTTON1,158,62,44,14
-    GROUPBOX        """VMR7/9 (renderless)"" + alternative RM/QT renderer tweaks",
-                    IDC_STATIC,7,92,210,43
-    CONTROL         "Allocate texture surface for video",IDC_CHECK1,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,15,104,124,10
-    CONTROL         "Render video texture in 3d",IDC_CHECK4,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,15,118,102,10
 END
 
 IDD_PPAGEOVERRIDES DIALOGEX 0, 0, 296, 200
@@ -616,16 +613,6 @@ BEGIN
     EDITTEXT        IDC_EDIT2,14,137,33,13,ES_CENTER | ES_AUTOHSCROLL
     LTEXT           "Note: MPC is unable to determine the framerate of RealMedia and QuickTime sources, yet.",
                     IDC_STATIC,60,135,220,17
-    GROUPBOX        "Real-Time Streaming Protocol handler (for rtsp://... URLs)",
-                    IDC_STATIC,6,162,282,28
-    CONTROL         "RealMedia",IDC_RADIO4,"Button",BS_AUTORADIOBUTTON | 
-                    WS_GROUP,14,175,49,10
-    CONTROL         "QuickTime",IDC_RADIO5,"Button",BS_AUTORADIOBUTTON,64,
-                    175,48,10
-    CONTROL         "DirectShow",IDC_RADIO6,"Button",BS_AUTORADIOBUTTON,113,
-                    175,52,10
-    CONTROL         "Look file extension first",IDC_CHECK3,"Button",
-                    BS_AUTOCHECKBOX | WS_GROUP | WS_TABSTOP,173,175,90,10
 END
 
 IDD_FAVADD DIALOGEX 0, 0, 252, 70
@@ -940,6 +927,58 @@ BEGIN
     PUSHBUTTON      "Browse...",IDC_BUTTON2,239,179,50,14
 END
 
+IDD_PPAGEOUTPUT DIALOGEX 0, 0, 296, 203
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD
+FONT 8, "MS Shell Dlg", 400, 0, 0xEE
+BEGIN
+    GROUPBOX        "DirectShow Video",IDC_STATIC,5,2,95,107
+    CONTROL         "System Default",IDC_DSSYSDEF,"Button",
+                    BS_AUTORADIOBUTTON | WS_GROUP,13,15,65,10
+    CONTROL         "Old Renderer",IDC_DSOLD,"Button",BS_AUTORADIOBUTTON,13,
+                    26,59,10
+    CONTROL         "Overlay Mixer",IDC_DSOVERLAYMIXER,"Button",
+                    BS_AUTORADIOBUTTON,13,37,61,10
+    CONTROL         "VMR7 (windowed)",IDC_DSVMR7WIN,"Button",
+                    BS_AUTORADIOBUTTON,13,48,73,10
+    CONTROL         "VMR9 (windowed)",IDC_DSVMR9WIN,"Button",
+                    BS_AUTORADIOBUTTON,13,59,73,10
+    CONTROL         "VMR7 (renderless)",IDC_DSVMR7REN,"Button",
+                    BS_AUTORADIOBUTTON,13,70,75,10
+    CONTROL         "VMR9 (renderless)",IDC_DSVMR9REN,"Button",
+                    BS_AUTORADIOBUTTON,13,81,75,10
+    CONTROL         "Null",IDC_DSNULL_COMP,"Button",BS_AUTORADIOBUTTON,13,92,
+                    27,10
+    CONTROL         "Null (unc.)",IDC_DSNULL_UNCOMP,"Button",
+                    BS_AUTORADIOBUTTON,42,92,49,10
+    GROUPBOX        "RealMedia Video",IDC_STATIC,105,2,89,51
+    CONTROL         "System Default",IDC_RMSYSDEF,"Button",
+                    BS_AUTORADIOBUTTON | WS_GROUP,113,15,65,10
+    CONTROL         "DirectX 7",IDC_RMDX7,"Button",BS_AUTORADIOBUTTON,113,26,
+                    45,10
+    CONTROL         "DirectX 9",IDC_RMDX9,"Button",BS_AUTORADIOBUTTON,113,37,
+                    45,10
+    GROUPBOX        "QuickTime Video",IDC_STATIC,199,2,89,51
+    CONTROL         "System Default",IDC_QTSYSDEF,"Button",
+                    BS_AUTORADIOBUTTON | WS_GROUP,207,15,65,10
+    CONTROL         "DirectX 7",IDC_QTDX7,"Button",BS_AUTORADIOBUTTON,207,26,
+                    45,10
+    CONTROL         "DirectX 9",IDC_QTDX9,"Button",BS_AUTORADIOBUTTON,207,37,
+                    45,10
+    GROUPBOX        """VMR7/9 (renderless)"" && ""DirectX 7/9"" settings",
+                    IDC_STATIC,105,56,183,53
+    CONTROL         "Use regular offscreen plain surfaces",IDC_REGULARSURF,
+                    "Button",BS_AUTORADIOBUTTON | WS_GROUP,113,70,131,10
+    CONTROL         "Use texture surfaces and render video in 2d",
+                    IDC_TEXTURESURF2D,"Button",BS_AUTORADIOBUTTON,113,81,157,
+                    10
+    CONTROL         "Use texture surfaces and render video in 3d",
+                    IDC_TEXTURESURF3D,"Button",BS_AUTORADIOBUTTON,113,92,157,
+                    10
+    GROUPBOX        "DirectShow Audio",IDC_STATIC,5,112,283,34
+    COMBOBOX        IDC_COMBO1,14,125,266,30,CBS_DROPDOWNLIST | WS_VSCROLL | 
+                    WS_TABSTOP
+END
+
 IDD_PPAGEMPEG DIALOGEX 0, 0, 296, 203
 STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD
 FONT 8, "MS Shell Dlg", 400, 0, 0xEE
@@ -966,6 +1005,25 @@ BEGIN
                     18
     PUSHBUTTON      "Y: 16-235 -> 0-255",IDC_BUTTON2,99,157,74,14
     PUSHBUTTON      "Reset",IDC_BUTTON1,175,157,50,14
+END
+
+IDD_AUTHDLG DIALOGEX 0, 0, 213, 146
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | 
+    WS_SYSMENU
+CAPTION "Authentication needed"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,100,125,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,154,125,50,14
+    CONTROL         337,IDC_STATIC,"Static",SS_BITMAP,0,0,213,37
+    LTEXT           "Restricted area",IDC_STATIC,13,48,50,8
+    LTEXT           "Username:",IDC_STATIC,13,66,36,8
+    LTEXT           "Password:",IDC_STATIC,13,83,34,8
+    COMBOBOX        IDC_COMBO1,75,64,129,56,CBS_DROPDOWN | CBS_SORT | 
+                    WS_VSCROLL | WS_TABSTOP
+    EDITTEXT        IDC_EDIT3,75,81,129,13,ES_PASSWORD | ES_AUTOHSCROLL
+    CONTROL         "Remember my password",IDC_CHECK1,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,75,99,94,10
 END
 
 
@@ -1062,7 +1120,7 @@ BEGIN
     BEGIN
         VERTGUIDE, 5
         VERTGUIDE, 13
-        VERTGUIDE, 164
+        VERTGUIDE, 137
         VERTGUIDE, 193
         VERTGUIDE, 289
     END
@@ -1079,8 +1137,9 @@ BEGIN
     IDD_PPAGEFORMATS, DIALOG
     BEGIN
         VERTGUIDE, 6
+        VERTGUIDE, 13
+        VERTGUIDE, 281
         VERTGUIDE, 289
-        HORZGUIDE, 191
     END
 
     IDD_PPAGETWEAKS, DIALOG
@@ -1229,6 +1288,13 @@ BEGIN
         HORZGUIDE, 163
     END
 
+    IDD_PPAGEOUTPUT, DIALOG
+    BEGIN
+        VERTGUIDE, 5
+        VERTGUIDE, 288
+        BOTTOMMARGIN, 200
+    END
+
     IDD_PPAGEMPEG, DIALOG
     BEGIN
         VERTGUIDE, 7
@@ -1236,6 +1302,14 @@ BEGIN
         VERTGUIDE, 289
         BOTTOMMARGIN, 200
         HORZGUIDE, 164
+    END
+
+    IDD_AUTHDLG, DIALOG
+    BEGIN
+        VERTGUIDE, 13
+        VERTGUIDE, 75
+        VERTGUIDE, 204
+        BOTTOMMARGIN, 139
     END
 END
 #endif    // APSTUDIO_INVOKED
@@ -1272,6 +1346,7 @@ IDB_LOGO3               BITMAP                  "res\\logo.3.bmp"
 IDB_LOGO4               BITMAP                  "res\\logo.4.bmp"
 IDB_LOGO5               BITMAP                  "res\\logo.5.bmp"
 IDB_LOGO6               BITMAP                  "res\\logo.6.bmp"
+IDB_AUTHHDRPIC          BITMAP                  "res\\authhdrpic.bmp"
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -1766,6 +1841,7 @@ BEGIN
     IDR_MAINFRAME           "Media Player Classic"
     IDS_RS_TITLEBARTEXTSTYLE "TitleBarTextStyle"
     IDS_RS_USEWMASFREADER   "UseWMASFReader"
+    IDS_VIDRENDDESC         "Move the mouse pointer over the choices to see their description."
 END
 
 STRINGTABLE 
@@ -1788,7 +1864,6 @@ BEGIN
     IDS_RS_AUTOZOOM         "AutoZoom"
     IDS_RS_FULLSCREENCTRLS  "FullScreenCtrls"
     IDS_RS_FULLSCREENCTRLSTIMEOUT "FullScreenCtrlsTimeOut"
-    IDS_RS_VIDEORENDERERTYPE "VideoRendererType"
     IDS_RS_VMRFLIP          "VMRFlip"
     IDS_RS_DVDPATH          "DVDPath"
     IDS_RS_USEDVDPATH       "UseDVDPath"
@@ -1853,6 +1928,7 @@ BEGIN
     IDD_PPAGEMPEG           "Filters::Mpeg Decoder"
     IDD_PPAGEFILTERS        "Filters"
     IDD_PPAGELOGO           "Player::Logo"
+    IDD_PPAGEVIDREND        "Playback::Output"
 END
 
 STRINGTABLE 
@@ -1927,6 +2003,41 @@ BEGIN
     IDS_RS_HIDECDROMSSUBMENU "HideCDROMsSubMenu"
     IDS_RS_VMRTEXTURE       "VMRTexture"
     IDS_RS_VMR3D            "VMR3D"
+    IDS_RS_DSVIDEORENDERERTYPE "DSVidRen"
+    IDS_RS_RMVIDEORENDERERTYPE "RMVidRen"
+    IDS_RS_QTVIDEORENDERERTYPE "QTVidRen"
+    IDS_RS_APSURACEFUSAGE   "APSurfaceUsage"
+    IDS_R_LOGINS            "Logins"
+END
+
+STRINGTABLE 
+BEGIN
+    IDC_DSSYSDEF            "Default video renderer filter for DirectShow. Others will fall back to this one when they can't be loaded for some reason. On Windown XP this is the same as VMR7 (windowed)."
+    IDC_DSOLD               "This is the default renderer of Windows 9x/me/2k. Depending on the visiblity of the video window and your video card's abilies, it will switch between GDI, DirectDraw, Overlay rendering modes dynamically. A true nightmare for developers."
+    IDC_DSVMR7WIN           "The default renderer of Windows XP. Very stable (perhaps with least bugs of all renderers) and just a little slower than the Overlay mixer. Uses DirectDraw and runs in Overlay when it can."
+    IDC_DSVMR9WIN           "Only available if you have DirectX 9 installed. Has the same abilies as VMR7 (windowed), but it will never use Overlay rendering and because of this it may be a little slower than VMR7 (windowed)."
+    IDC_DSVMR7REN           "Same as the VMR7 (windowed), but with the Allocator-Presenter plugin of MPC for subtitling. Overlay video mirroring WILL NOT work. 'True Color' desktop color space recommended."
+    IDC_DSVMR9REN           "Same as the VMR9 (windowed), but with the Allocator-Presenter plugin of MPC for subtitling. Overlay video mirroring MIGHT work. 'True Color' desktop color space recommended."
+    IDC_RMSYSDEF            "Real's own renderer. SMIL scripts will work, but interaction not likely. Uses DirectDraw and runs in Overlay when it can."
+    IDC_RMDX7               "The output of Real's engine gets rendered by the DX7-based Allocator-Presenter of VMR7 (renderless)."
+    IDC_RMDX9               "The output of Real's engine gets rendered by the DX9-based Allocator-Presenter of VMR9 (renderless)."
+    IDC_QTSYSDEF            "QuickTime's own renderer. Gets a little slow when its video area is resized or partially covered by another window. When Overlay is not available it likes to fall back to GDI."
+    IDC_QTDX7               "The output of QuickTime's engine gets rendered by the DX7-based Allocator-Presenter of VMR7 (renderless)."
+    IDC_DSOVERLAYMIXER      "Always renders in overlay. Generally only YUV formats are allowed, but they are presented directly without any color conversion to RGB. This is the fastest rendering method of all and the only where you can be sure about full screen video mirroring to tv-out activating."
+    IDC_REGULARSURF         "Video surface will be allocated as a regular offscreen surface."
+    IDC_TEXTURESURF2D       "Video surface will be allocated as a texture but still the 2d functions will be used to copy and stretch it onto the backbuffer. Requires a video card which can allocate 32bit, RGBA, non-power-of-two sized textures and at least in the resolution of the video."
+    IDC_TEXTURESURF3D       "Video surface will be allocated as a texture and drawn as two triangles in 3d. Antialiasing turned on at the display settings may have a bad effect on the rendering speed."
+END
+
+STRINGTABLE 
+BEGIN
+    IDC_QTDX9               "The output of QuickTime's engine gets rendered by the DX9-based Allocator-Presenter of VMR9 (renderless)."
+END
+
+STRINGTABLE 
+BEGIN
+    IDC_DSNULL_UNCOMP       "Same as the normal Null renderer, but this will only connect to uncompressed types."
+    IDC_DSNULL_COMP         "Connects to any video-like media type and will send the incoming samples to nowhere. Use it when you don't need the video display and want to save the cpu from working unnecessarily."
 END
 
 #endif    // English (U.S.) resources

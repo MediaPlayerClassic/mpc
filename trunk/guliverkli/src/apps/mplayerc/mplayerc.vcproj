@@ -340,6 +340,9 @@
 			Name="Source Files"
 			Filter="cpp;c;cxx;rc;def;r;odl;idl;hpj;bat">
 			<File
+				RelativePath=".\AuthDlg.cpp">
+			</File>
+			<File
 				RelativePath="BaseGraph.cpp">
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
@@ -736,6 +739,9 @@
 				RelativePath=".\PPageMpegDecoder.cpp">
 			</File>
 			<File
+				RelativePath=".\PPageOutput.cpp">
+			</File>
+			<File
 				RelativePath=".\PPageOverrides.cpp">
 			</File>
 			<File
@@ -942,10 +948,16 @@
 						Name="VCCLCompilerTool"/>
 				</FileConfiguration>
 			</File>
+			<File
+				RelativePath=".\WebServer.cpp">
+			</File>
 		</Filter>
 		<Filter
 			Name="Header Files"
 			Filter="h;hpp;hxx;hm;inl">
+			<File
+				RelativePath=".\AuthDlg.h">
+			</File>
 			<File
 				RelativePath="BaseGraph.h">
 				<FileConfiguration
@@ -1349,6 +1361,9 @@
 				RelativePath=".\PPageMpegDecoder.h">
 			</File>
 			<File
+				RelativePath=".\PPageOutput.h">
+			</File>
+			<File
 				RelativePath=".\PPageOverrides.h">
 			</File>
 			<File
@@ -1540,10 +1555,16 @@
 						Name="VCCustomBuildTool"/>
 				</FileConfiguration>
 			</File>
+			<File
+				RelativePath=".\WebServer.h">
+			</File>
 		</Filter>
 		<Filter
 			Name="Resource Files"
 			Filter="ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe">
+			<File
+				RelativePath=".\res\authhdrpic.bmp">
+			</File>
 			<File
 				RelativePath="res\icon.ico">
 			</File>

@@ -152,6 +152,14 @@ void CChildView::LoadLogo()
 	if(m_hWnd) Invalidate();
 }
 
+CSize CChildView::GetLogoSize()
+{
+	CSize ret(0,0);
+	if(!m_logo.IsNull())
+		ret.SetSize(m_logo.GetWidth(), m_logo.GetHeight());
+	return ret;
+}
+
 IMPLEMENT_DYNAMIC(CChildView, CWnd)
 
 BEGIN_MESSAGE_MAP(CChildView, CWnd)
