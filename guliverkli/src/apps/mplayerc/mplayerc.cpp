@@ -1192,7 +1192,6 @@ void CMPlayerCApp::Settings::UpdateData(bool fSave)
 				RegQueryInfoKey(settingskey, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, (FILETIME*)&ftsettings);
 				if(ftapp < ftsettings)
 				{
-					AfxMessageBox(_T("dsfsf"), MB_OK);
 					pApp->WriteProfileInt(ResStr(IDS_R_INTERNAL_FILTERS), ResStr(IDS_RS_SRCFILTERS), ~0);
 					pApp->WriteProfileInt(ResStr(IDS_R_INTERNAL_FILTERS), ResStr(IDS_RS_TRAFILTERS), ~0^TRA_MPEG1);
 				}
