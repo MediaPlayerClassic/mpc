@@ -77,8 +77,11 @@ else
 	$db_text = addslashes($db_text);
 	if(!$beginswith) $db_text = '%'.$db_text;
 
+	// the commented out lines should be ok, but mysql seems unable to do 
+	// "order by t2.date" when the end result does not contain this field
 	$db->query(
-		"select SQL_CALC_FOUND_ROWS distinct t1.* from movie t1 ".
+		// "select SQL_CALC_FOUND_ROWS distinct t1.* from movie t1 ".
+		"select SQL_CALC_FOUND_ROWS distinct t1.id, t1.imdb, (select max(date) from movie_subtitle where movie_id = t1.id) as date from movie t1 " .
 		"join movie_subtitle t2 on t1.id = t2.movie_id ".
 		"join subtitle t3 on t2.subtitle_id = t3.id ".
 		"where t1.id in ".
@@ -91,7 +94,8 @@ else
 		(!empty($discs)?" && t3.discs = '$discs' ":"").
 		(!empty($isolang_sel)?" && t2.iso639_2 = '$isolang_sel' ":"").
 		(!empty($format_sel)?" && t2.format = '$format_sel' ":"").
-		"order by t2.date desc " .
+		// "order by t2.date desc " .
+		"order by 3 desc ".
 		"limit {$page['start']}, {$page['limit']} ");
 		
 	while($row = $db->fetchRow())
