@@ -202,4 +202,5 @@ In the end it represents the following: (timestamp ranges mapped to file positio
 Example usage: 
 
 Seeking to 7 would mean we need to start decoding at the file position of 4, which 
-makes sure we hit at least one syncpoint from every stream (4,5,6) until we reach 7.
+makes sure we hit at least one syncpoint from every stream (4,5,7 and 6 too, but 6
+can be skipped) until we reach 7.
