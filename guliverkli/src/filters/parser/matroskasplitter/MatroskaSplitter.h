@@ -26,7 +26,9 @@
 #include <afxtempl.h>
 #include "MatroskaFile.h"
 
-//#define NONBLOCKINGSEEK
+#define NONBLOCKINGSEEK
+#define MAXBUFFERS 2
+#define MAXPACKETS 50
 
 class CMatroskaSplitterInputPin : public CBasePin
 {
@@ -54,8 +56,6 @@ public:
 class CMatroskaSplitterOutputPin : public CBaseOutputPin, protected CAMThread
 {
 	CMediaType m_mt;
-//	CAutoPtr<COutputQueue> m_pOutputQueue;
-
 	void DontGoWild();
 
 public:
@@ -89,7 +89,6 @@ public:
 	HRESULT Active();
     HRESULT Inactive();
 
-//	HRESULT Deliver(IMediaSample* pMediaSample);
     HRESULT DeliverEndOfStream();
     HRESULT DeliverBeginFlush();
 	HRESULT DeliverEndFlush();
@@ -153,6 +152,8 @@ protected:
 	CList<UINT64> m_bDiscontinuitySent;
 	CList<CBaseOutputPin*> m_pActivePins;
 
+	void DeliverBeginFlush();
+	void DeliverEndFlush();
 	HRESULT DeliverBlock(CAutoPtr<Matroska::Block> b);
 
 protected:

@@ -27,15 +27,7 @@
 #include <initguid.h>
 #include "..\..\..\..\include\matroska\matroska.h"
 #include "..\..\..\..\include\ogg\OggDS.h"
-
-// Be compatible with 3ivx
-#define WAVE_FORMAT_AAC 0x00FF
-
-// {000000FF-0000-0010-8000-00AA00389B71}
-DEFINE_GUID(MEDIASUBTYPE_AAC,
-WAVE_FORMAT_AAC, 0x000, 0x0010, 0x80, 0x00, 0x00, 0xaa, 0x00, 0x38, 0x9b, 0x71);
-
-#define NBUFFERS 2
+#include "..\..\..\..\include\moreuuids.h"
 
 using namespace Matroska;
 
@@ -76,16 +68,8 @@ const AMOVIESETUP_FILTER sudFilter[] =
 
 CFactoryTemplate g_Templates[] =
 {
-	{ L"Matroska Source"
-	, &__uuidof(CMatroskaSourceFilter)
-	, CMatroskaSourceFilter::CreateInstance
-	, NULL
-	, &sudFilter[0]},
-	{ L"Matroska Splitter"
-	, &__uuidof(CMatroskaSplitterFilter)
-	, CMatroskaSplitterFilter::CreateInstance
-	, NULL
-	, &sudFilter[1]}
+	{L"Matroska Source", &__uuidof(CMatroskaSourceFilter), CMatroskaSourceFilter::CreateInstance, NULL, &sudFilter[0]},
+	{L"Matroska Splitter", &__uuidof(CMatroskaSplitterFilter), CMatroskaSplitterFilter::CreateInstance, NULL, &sudFilter[1]}
 };
 
 int g_cTemplates = sizeof(g_Templates) / sizeof(g_Templates[0]);
@@ -387,6 +371,18 @@ HRESULT CMatroskaSourceFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 	return S_OK;
 }
 
+void CMatroskaSourceFilter::DeliverBeginFlush()
+{
+	POSITION pos = m_pOutputs.GetHeadPosition();
+	while(pos) m_pOutputs.GetNext(pos)->DeliverBeginFlush();
+}
+
+void CMatroskaSourceFilter::DeliverEndFlush()
+{
+	POSITION pos = m_pOutputs.GetHeadPosition();
+	while(pos) m_pOutputs.GetNext(pos)->DeliverEndFlush();
+}
+
 void CMatroskaSourceFilter::SendVorbisHeaderSample()
 {
 	HRESULT hr;
@@ -419,9 +415,9 @@ void CMatroskaSourceFilter::SendVorbisHeaderSample()
 
 			hr = S_OK;
 
-CAutoPtr<Block> b(new Block());
-b->TrackNumber.Set(pTE->TrackNumber);
-b->BlockDuration.Set(1);
+			CAutoPtr<Block> b(new Block());
+			b->TrackNumber.Set(pTE->TrackNumber);
+			b->BlockDuration.Set(1);
 
 			POSITION pos = sizes.GetHeadPosition();
 			while(pos)
@@ -433,24 +429,9 @@ b->BlockDuration.Set(1);
 				memcpy(data->GetData(), p, len);
 				p += len;
 				b->BlockData.AddTail(data);
-				
-/*
-				CComPtr<IMediaSample> pSample;
-				BYTE* pData;
-				if(FAILED(hr = pPin->GetDeliveryBuffer(&pSample, NULL, NULL, 0))
-				|| FAILED(hr = pSample->GetPointer(&pData)))
-					break;
-
-				memcpy(pData, p, len);
-				p += len;
-
-				if(FAILED(hr = pSample->SetActualDataLength(len))
-				|| FAILED(hr = pPin->Deliver(pSample)))
-					break;
-*/
 			}
 
-DeliverBlock(b);
+			DeliverBlock(b);
 
 			if(FAILED(hr))
 				TRACE(_T("ERROR: Vorbis initialization failed for stream %I64d\n"), TrackNumber);
@@ -479,35 +460,15 @@ void CMatroskaSourceFilter::SendFakeTextSample()
 		{
 			hr = S_OK;
 
-CAutoPtr<Block> b(new Block());
-b->TrackNumber.Set(pTE->TrackNumber);
-b->TimeCode.Set(0);
-b->BlockDuration.Set(1);
-CAutoPtr<CBinary> data(new CBinary());
-data->SetSize(2);
-strcpy((char*)data->GetData(), " ");
-b->BlockData.AddTail(data);
-DeliverBlock(b);
-/*
-			do
-			{
-				CComPtr<IMediaSample> pSample;
-				BYTE* pData;
-				if(FAILED(hr = pPin->GetDeliveryBuffer(&pSample, NULL, NULL, 0))
-				|| FAILED(hr = pSample->GetPointer(&pData)))
-					break;
-
-				strcpy((char*)pData, " ");
-
-				REFERENCE_TIME rt = 0;
-
-				if(FAILED(hr = pSample->SetActualDataLength(strlen((const char*)pData)))
-				|| FAILED(hr = pSample->SetMediaTime(&rt, &rt))
-				|| FAILED(hr = pPin->Deliver(pSample)))
-					break;
-			}
-			while(0);
-*/
+			CAutoPtr<Block> b(new Block());
+			b->TrackNumber.Set(pTE->TrackNumber);
+			b->TimeCode.Set(0);
+			b->BlockDuration.Set(1);
+			CAutoPtr<CBinary> data(new CBinary());
+			data->SetSize(2);
+			strcpy((char*)data->GetData(), " ");
+			b->BlockData.AddTail(data);
+			DeliverBlock(b);
 		}
 	}
 }
@@ -547,13 +508,7 @@ DWORD CMatroskaSourceFilter::ThreadProc()
 			{
 				m_fSeeking = false;
 
-				POSITION pos = m_pOutputs.GetHeadPosition();
-				while(pos) 
-				{
-					CBaseOutputPin* pPin = m_pOutputs.GetNext(pos);
-//					pPin->DeliverBeginFlush();
-					pPin->DeliverEndFlush();
-				}
+				DeliverEndFlush();
 
 				if(m_rtStart == 0)
 				{
@@ -747,18 +702,9 @@ LRESULT CMatroskaSourceFilter::ThreadMessageProc(UINT uMsg, DWORD dwFlags, LPVOI
 	case TM_EXIT: 
 		pEvent->Set(); 
 		return 1;
-	case TM_SEEK: 
-		{
-			POSITION pos = m_pOutputs.GetHeadPosition();
-			while(pos) 
-			{
-				CBaseOutputPin* pPin = m_pOutputs.GetNext(pos);
-				pPin->DeliverBeginFlush();
-//				pPin->DeliverEndFlush();
-			}
-
-			CallWorker(CMD_SEEK); 
-		}
+	case TM_SEEK:
+		DeliverBeginFlush();
+		CallWorker(CMD_SEEK); 
 		break;
 	}
 
@@ -787,7 +733,6 @@ HRESULT CMatroskaSourceFilter::DeliverBlock(CAutoPtr<Block> b)
 	REFERENCE_TIME 
 		rtStart = (b->TimeCode)*m_pFile->m_segment.SegmentInfo.TimeCodeScale/100 - m_rtStart, 
 		rtStop = (b->TimeCode + b->BlockDuration)*m_pFile->m_segment.SegmentInfo.TimeCodeScale/100 - m_rtStart;
-//		rtDelta = (rtStop - rtStart) / b->BlockData.GetCount();
 
 	ASSERT(rtStart < rtStop);
 
@@ -812,44 +757,6 @@ HRESULT CMatroskaSourceFilter::DeliverBlock(CAutoPtr<Block> b)
 	if(bDiscontinuity)
 		m_bDiscontinuitySent.AddTail(TrackNumber);
 
-//ASSERT(bDiscontinuity || b->TrackNumber != 1 || rtStart >= 0 || b->ReferenceBlock != 0);
-/*
-	POSITION pos = b->BlockData.GetHeadPosition();
-	while(pos && !m_fSeeking)
-	{
-		CBinary* pBlockData = b->BlockData.GetNext(pos);
-
-		CComPtr<IMediaSample> pSample;
-		BYTE* pData;
-		if(S_OK != (hr = pPin->GetDeliveryBuffer(&pSample, NULL, NULL, 0))
-		|| S_OK != (hr = pSample->GetPointer(&pData))
-		|| (hr = memcpy(pData, pBlockData->GetData(), pBlockData->GetSize()) ? S_OK : E_FAIL)
-		|| S_OK != (hr = pSample->SetActualDataLength((long)pBlockData->GetSize()))
-		|| S_OK != (hr = pSample->SetTime(&rtStart, &rtStop))
-		|| S_OK != (hr = pSample->SetMediaTime(NULL, NULL))
-		|| S_OK != (hr = pSample->SetDiscontinuity(bDiscontinuity))
-		|| S_OK != (hr = pSample->SetSyncPoint(b->ReferenceBlock == 0))
-		|| S_OK != (hr = pSample->SetPreroll(rtStart < 0))
-		|| S_OK != (hr = pPin->Deliver(pSample)))
-		{
-			if(POSITION pos = m_pActivePins.Find(pPin))
-				m_pActivePins.RemoveAt(pos);
-
-			if(!m_pActivePins.IsEmpty()) // only die when all pins are down
-				hr = S_OK;
-
-			return hr;
-		}
-
-		rtStart += rtDelta;
-		rtStop += rtDelta;
-
-		m_rtCurrent += rtDelta;
-
-		if(bDiscontinuity)
-			m_bDiscontinuitySent.AddTail(b->TrackNumber);
-	}
-*/  
 	return hr;
 }
 
@@ -860,6 +767,8 @@ HRESULT CMatroskaSourceFilter::BreakConnect(PIN_DIRECTION dir, CBasePin* pPin)
 	if(dir == PINDIR_INPUT)
 	{
 		CMatroskaSplitterInputPin* pIn = (CMatroskaSplitterInputPin*)pPin;
+
+		// TODO: do something here!!!
 /*
 		POSITION pos = m_pOutputs.GetHeadPosition();
 		while(pos) m_pOutputs.GetNext(pos)->Disconnect();
@@ -929,17 +838,11 @@ CBasePin* CMatroskaSourceFilter::GetPin(int n)
 
 STDMETHODIMP CMatroskaSourceFilter::Stop()
 {
-TRACE(_T("CMatroskaSourceFilter::Stop()\n"));
 	CAutoLock cAutoLock(this);
 
-TRACE(_T("m_pOutputs.GetNext(pos)->DeliverBeginFlush()\n"));
-	POSITION pos = m_pOutputs.GetHeadPosition();
-	while(pos) m_pOutputs.GetNext(pos)->DeliverBeginFlush();
-TRACE(_T("m_pOutputs.GetNext(pos)->DeliverBeginFlush() ended\n"));
+	DeliverBeginFlush();
 
-TRACE(_T("CallWorker(CMD_EXIT) calling...\n"));
 	CallWorker(CMD_EXIT);
-TRACE(_T("CallWorker(CMD_EXIT) returned\n"));
 
 #ifdef NONBLOCKINGSEEK
 	CAMEvent e;
@@ -947,13 +850,9 @@ TRACE(_T("CallWorker(CMD_EXIT) returned\n"));
 	e.Wait();
 #endif
 
-TRACE(_T("m_pOutputs.GetNext(pos)->DeliverEndFlush()\n"));
-	pos = m_pOutputs.GetHeadPosition();
-	while(pos) m_pOutputs.GetNext(pos)->DeliverEndFlush();
-TRACE(_T("m_pOutputs.GetNext(pos)->DeliverEndFlush() ended\n"));
+	DeliverEndFlush();
 
 	HRESULT hr;
-	
 	if(FAILED(hr = __super::Stop()))
 		return hr;
 
@@ -962,13 +861,11 @@ TRACE(_T("m_pOutputs.GetNext(pos)->DeliverEndFlush() ended\n"));
 
 STDMETHODIMP CMatroskaSourceFilter::Pause()
 {
-TRACE(_T("CMatroskaSourceFilter::Pause()\n"));
 	CAutoLock cAutoLock(this);
 
 	FILTER_STATE fs = m_State;
 
 	HRESULT hr;
-
 	if(FAILED(hr = __super::Pause()))
 		return hr;
 
@@ -987,7 +884,6 @@ TRACE(_T("CMatroskaSourceFilter::Pause()\n"));
 #ifdef NONBLOCKINGSEEK
 		CreateThread();
 #endif
-
 		Create();
 		CallWorker(CMD_RUN);
 	}
@@ -997,11 +893,9 @@ TRACE(_T("CMatroskaSourceFilter::Pause()\n"));
 
 STDMETHODIMP CMatroskaSourceFilter::Run(REFERENCE_TIME tStart)
 {
-TRACE(_T("CMatroskaSourceFilter::Run(...)\n"));
 	CAutoLock cAutoLock(this);
 
 	HRESULT hr;
-
 	if(FAILED(hr = __super::Run(tStart)))
 		return hr;
 
@@ -1111,25 +1005,15 @@ STDMETHODIMP CMatroskaSourceFilter::SetPositions(LONGLONG* pCurrent, DWORD dwCur
 	if(m_rtCurrent == rtCurrent && m_rtStop == rtStop)
 		return S_OK;
 
-TRACE(_T("SetPositions(%I64d, %d, %I64d, %d)\n"), 
-	  rtCurrent, dwCurrentFlags, rtStop, dwStopFlags);
-
 	if(ThreadExists())
 	{
-TRACE(_T("m_fSeeking = true\n"));
 		m_fSeeking = true;
 	}
 
 #ifndef NONBLOCKINGSEEK
 	if(ThreadExists())
 	{
-		POSITION pos = m_pOutputs.GetHeadPosition();
-		while(pos) 
-		{
-			CBaseOutputPin* pPin = m_pOutputs.GetNext(pos);
-			pPin->DeliverBeginFlush();
-//			pPin->DeliverEndFlush();
-		}
+		DeliverBeginFlush();
 	}
 #endif
 
@@ -1141,9 +1025,7 @@ TRACE(_T("m_fSeeking = true\n"));
 #ifdef NONBLOCKINGSEEK
 		PutThreadMsg(TM_SEEK, 0, 0);
 #else
-TRACE(_T("CallWorker(CMD_SEEK) calling...\n"));
 		CallWorker(CMD_SEEK);
-TRACE(_T("CallWorker(CMD_SEEK) returned\n"));
 #endif
 	}
 
@@ -1305,7 +1187,7 @@ HRESULT CMatroskaSplitterOutputPin::DecideBufferSize(IMemAllocator* pAlloc, ALLO
 
     HRESULT hr = NOERROR;
 
-	pProperties->cBuffers = NBUFFERS;
+	pProperties->cBuffers = MAXBUFFERS;
 	pProperties->cbBuffer = m_mt.GetSampleSize();
 
     ALLOCATOR_PROPERTIES Actual;
@@ -1345,90 +1227,39 @@ STDMETHODIMP CMatroskaSplitterOutputPin::Notify(IBaseFilter* pSender, Quality q)
 
 HRESULT CMatroskaSplitterOutputPin::Active()
 {
-//TRACE(_T("CMatroskaSplitterOutputPin::Active()\n"));
     CAutoLock cAutoLock(m_pLock);
-/*
-	if(m_Connected && !m_pOutputQueue)
-	{
-		HRESULT hr = NOERROR;
 
-		m_pOutputQueue.Attach(new COutputQueue(m_Connected, &hr, FALSE, TRUE, 1, FALSE, NBUFFERS));
-		if(!m_pOutputQueue) hr = E_OUTOFMEMORY;
-
-		if(FAILED(hr))
-		{
-			m_pOutputQueue.Free();
-			return hr;
-		}
-	}
-*/
-	if(m_Connected)
-	{
-//TRACE(_T("CMatroskaSplitterOutputPin::Create() calling...\n"));
-		BOOL bRet = Create();
-//TRACE(_T("CMatroskaSplitterOutputPin::Create() returned(%d)\n"), (int)bRet);
-	}
+	if(m_Connected) 
+		Create();
 
 	return __super::Active();
 }
 
 HRESULT CMatroskaSplitterOutputPin::Inactive()
 {
-//TRACE(_T("CMatroskaSplitterOutputPin::Inactive()\n"));
     CAutoLock cAutoLock(m_pLock);
 
-//	m_pOutputQueue.Free();
-
 	if(ThreadExists())
-	{
-//TRACE(_T("CMatroskaSplitterOutputPin::CallWorker(CMD_EXIT) calling...\n"));
 		CallWorker(CMD_EXIT);
-//TRACE(_T("CMatroskaSplitterOutputPin::CallWorker(CMD_EXIT) returned\n"));
-	}
 
 	return __super::Inactive();
 }
-/*
-HRESULT CMatroskaSplitterOutputPin::Deliver(IMediaSample* pSample)
-{
-	if(!m_pOutputQueue) return NOERROR;
-	pSample->AddRef();
-	return m_pOutputQueue->Receive(pSample);
-}
-
-#define MapDeliverCall(pin, queue)					\
-HRESULT CMatroskaSplitterOutputPin::Deliver##pin	\
-{													\
-		if(!m_pOutputQueue) return NOERROR;			\
-		m_pOutputQueue->##queue;					\
-		return NOERROR;								\
-}													\
-
-MapDeliverCall(EndOfStream(), EOS())
-MapDeliverCall(BeginFlush(), BeginFlush())
-MapDeliverCall(EndFlush(), EndFlush())
-MapDeliverCall(NewSegment(REFERENCE_TIME tStart, REFERENCE_TIME tStop, double dRate), NewSegment(tStart, tStop, dRate))
-*/
 
 void CMatroskaSplitterOutputPin::DontGoWild()
 {
 	int cnt = 0;
 	do
 	{
-		Sleep(1);
+		if(cnt > MAXPACKETS) Sleep(1);
 		CAutoLock cAutoLock(&m_csQueueLock);
 		cnt = m_packets.GetCount();
 	}
-	while(S_OK == m_hrDeliver && cnt > 50);
+	while(S_OK == m_hrDeliver && cnt > MAXPACKETS);
 }
-
 
 HRESULT CMatroskaSplitterOutputPin::DeliverEndOfStream()
 {
-//TRACE(_T("DeliverEndOfStream()\n"));
-
-	if(!ThreadExists()) 
-		return S_FALSE;
+	if(!ThreadExists()) return S_FALSE;
 
 	DontGoWild();
 	if(S_OK != m_hrDeliver) return m_hrDeliver;
@@ -1437,58 +1268,36 @@ HRESULT CMatroskaSplitterOutputPin::DeliverEndOfStream()
 	CAutoPtr<packet> p(new packet());
 	p->type = EOS;
 	m_packets.AddHead(p);
+
 	return m_hrDeliver;
 }
 
 HRESULT CMatroskaSplitterOutputPin::DeliverBeginFlush()
 {
-//TRACE(_T("GetConnected()->BeginFlush() calling...\n"));
 	CAutoLock cAutoLock(&m_csQueueLock);
 	m_packets.RemoveAll();
 	m_hrDeliver = S_FALSE;
 	HRESULT hr = IsConnected() ? GetConnected()->BeginFlush() : S_OK;
-//TRACE(_T("GetConnected()->BeginFlush() returned(%08x)\n"), hr);
 	return hr;
 }
 
 HRESULT CMatroskaSplitterOutputPin::DeliverEndFlush()
 {
-	if(!ThreadExists()) 
-		return S_FALSE;
-
-//TRACE(_T("GetConnected()->EndFlush() calling...\n"));
+	if(!ThreadExists()) return S_FALSE;
 	HRESULT hr = IsConnected() ? GetConnected()->EndFlush() : S_OK;
-//TRACE(_T("GetConnected()->EndFlush() returned(%08x)\n"), hr);
 	m_hrDeliver = S_OK;
 	return hr;
 }
 
 HRESULT CMatroskaSplitterOutputPin::DeliverNewSegment(REFERENCE_TIME tStart, REFERENCE_TIME tStop, double dRate)
 {
-	if(!ThreadExists()) 
-		return S_FALSE;
-
-//TRACE(_T("DeliverNewSegment\n"));
+	if(!ThreadExists()) return S_FALSE;
 	return __super::DeliverNewSegment(tStart, tStop, dRate);
-/*
-	CAutoLock cAutoLock(&m_csQueueLock);
-	CAutoPtr<packet> p(new packet());
-	p->type = NEWSEGM;
-	p->rtStart = tStart;
-	p->rtStop = tStop;
-	p->dRate = dRate;
-	m_packets.AddHead(p);
-	return m_hrDeliver;
-*/
 }
 
 HRESULT CMatroskaSplitterOutputPin::DeliverBlock(CAutoPtr<Block> b, REFERENCE_TIME rtStart, REFERENCE_TIME rtStop, BOOL bDiscontinuity)
 {
-	if(!ThreadExists()) 
-		return S_FALSE;
-
-TRACE(_T("DeliverBlock(%d: %I64d, %I64d, %d) cnt=%d\n"), 
-	  (int)b->TrackNumber, rtStart, rtStop, (int)!!bDiscontinuity, m_packets.GetCount());
+	if(!ThreadExists()) return S_FALSE;
 
 	DontGoWild();
 	if(S_OK != m_hrDeliver) return m_hrDeliver;
@@ -1501,6 +1310,7 @@ TRACE(_T("DeliverBlock(%d: %I64d, %I64d, %d) cnt=%d\n"),
 	p->rtStop = rtStop;
 	p->bDiscontinuity = bDiscontinuity;
 	m_packets.AddHead(p);
+
 	return m_hrDeliver;
 }
 
@@ -1536,16 +1346,11 @@ DWORD CMatroskaSplitterOutputPin::ThreadProc()
 			}
 
 			if(S_OK != m_hrDeliver) 
-			{
-//if(p) TRACE(_T("This pin won't deliver, already run it problems... (%d)\n"), (int)p->b->TrackNumber);
 				continue;
-			}
 
 			if(p && p->type == EOS)
 			{
-//TRACE(_T("GetConnected()->EndOfStream() calling...\n"));
 				HRESULT hr = GetConnected()->EndOfStream();
-//TRACE(_T("GetConnected()->EndOfStream() returned(%08x)\n"), hr);
 				if(hr != S_OK)
 				{
 					CAutoLock cAutoLock(&m_csQueueLock);
@@ -1568,8 +1373,6 @@ DWORD CMatroskaSplitterOutputPin::ThreadProc()
 				{
 					CBinary* pBlockData = p->b->BlockData.GetNext(pos);
 
-TRACE(_T("Delivering... (%d: %I64d, %I64d, d%d s%d p%d), cnt=%d\n"), 
-	  (int)p->b->TrackNumber, rtStart, rtStop, (int)!!p->bDiscontinuity, (int)!!(p->b->ReferenceBlock == 0), (int)!!(rtStart < 0), cnt);
 					CComPtr<IMediaSample> pSample;
 					BYTE* pData;
 					if(S_OK != (hr = GetDeliveryBuffer(&pSample, NULL, NULL, 0))
@@ -1582,10 +1385,7 @@ TRACE(_T("Delivering... (%d: %I64d, %I64d, d%d s%d p%d), cnt=%d\n"),
 					|| S_OK != (hr = pSample->SetSyncPoint(p->b->ReferenceBlock == 0))
 					|| S_OK != (hr = pSample->SetPreroll(rtStart < 0))
 					|| S_OK != (hr = Deliver(pSample)))
-					{
-TRACE(_T("Delivery != S_OK (%08x)\n"), hr);
 						break;
-					}
 
 					rtStart += rtDelta;
 					rtStop += rtDelta;
