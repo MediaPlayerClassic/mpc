@@ -272,7 +272,20 @@ bool CMpegSplitterFilter::InitDeliverLoop()
 
 void CMpegSplitterFilter::SeekDeliverLoop(REFERENCE_TIME rt)
 {
-	if(m_pFile->IsStreaming()) return;
+	CList<CMpegSplitterFile::stream>* pMasterStream = 
+		!m_pFile->m_streams[CMpegSplitterFile::video].IsEmpty() ? &m_pFile->m_streams[CMpegSplitterFile::video] :
+		!m_pFile->m_streams[CMpegSplitterFile::audio].IsEmpty() ? &m_pFile->m_streams[CMpegSplitterFile::audio] :
+		!m_pFile->m_streams[CMpegSplitterFile::subpic].IsEmpty() ? &m_pFile->m_streams[CMpegSplitterFile::subpic] :
+		NULL;
+
+	if(!pMasterStream) {ASSERT(0); return;}
+
+	if(m_pFile->IsStreaming())
+	{
+		m_pFile->Seek(max(0, m_pFile->GetLength() - 100*1024));
+		m_rtStartOffset = m_pFile->m_rtMin + m_pFile->NextPTS(pMasterStream->GetHead());
+		return;
+	}
 
 	REFERENCE_TIME rtPreroll = 10000000;
 	
@@ -343,7 +356,7 @@ void CMpegSplitterFilter::SeekDeliverLoop(REFERENCE_TIME rt)
 			rt -= rtPreroll;
 			seekpos = (__int64)(1.0*rt/m_rtDuration*len);
 			m_pFile->Seek(seekpos);
-			m_rtStartOffset = m_pFile->m_rtMin + m_pFile->NextPTS(m_pFile->m_streams[0].GetHead()) - rt;
+			m_rtStartOffset = m_pFile->m_rtMin + m_pFile->NextPTS(pMasterStream->GetHead()) - rt;
 		}
 
 		m_pFile->Seek(seekpos);
