@@ -77,22 +77,48 @@ void GSState::GIFPackedRegHandlerUV(GIFPackedReg* r)
 void GSState::GIFPackedRegHandlerXYZF2(GIFPackedReg* r)
 {
 	LOG((_T("Packed ")));
-	GIFReg r2;
+/*	GIFReg r2;
 	r2.XYZF.X = r->XYZF2.X;
 	r2.XYZF.Y = r->XYZF2.Y;
 	r2.XYZF.Z = r->XYZF2.Z;
 	r2.XYZF.F = r->XYZF2.F;
 	r->XYZF2.ADC ? GIFRegHandlerXYZF3(&r2) : GIFRegHandlerXYZF2(&r2);
+*/
+	LOG((_T("XYZF%d(X=%.2f Y=%.2f Z=%d F=%d)\n"), 
+		2 + r->XYZF2.ADC,
+		(float)r->XYZF2.X/16,
+		(float)r->XYZF2.Y/16,
+		r->XYZF2.Z,
+		r->XYZF2.F));
+
+	m_v.XYZ.X = r->XYZF2.X;
+	m_v.XYZ.Y = r->XYZF2.Y;
+	m_v.XYZ.Z = r->XYZF2.Z;
+	m_v.FOG.F = r->XYZF2.F;
+
+	VertexKick(r->XYZF2.ADC);
 }
 
 void GSState::GIFPackedRegHandlerXYZ2(GIFPackedReg* r)
 {
 	LOG((_T("Packed ")));
-	GIFReg r2;
+/*	GIFReg r2;
 	r2.XYZ.X = r->XYZ2.X;
 	r2.XYZ.Y = r->XYZ2.Y;
 	r2.XYZ.Z = r->XYZ2.Z;
-	r->XYZF2.ADC ? GIFRegHandlerXYZ3(&r2) : GIFRegHandlerXYZ2(&r2);
+	r->XYZ2.ADC ? GIFRegHandlerXYZ3(&r2) : GIFRegHandlerXYZ2(&r2);
+*/
+	LOG((_T("XYZ%d(X=%.2f Y=%.2f Z=%d)\n"), 
+		2 + r->XYZ2.ADC,
+		(float)r->XYZ2.X/16,
+		(float)r->XYZ2.Y/16,
+		r->XYZ2.Z));
+
+	m_v.XYZ.X = r->XYZ2.X;
+	m_v.XYZ.Y = r->XYZ2.Y;
+	m_v.XYZ.Z = r->XYZ2.Z;
+
+	VertexKick(r->XYZ2.ADC);
 }
 
 void GSState::GIFPackedRegHandlerTEX0_1(GIFPackedReg* r)

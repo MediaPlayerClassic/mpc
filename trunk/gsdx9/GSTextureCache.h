@@ -76,4 +76,10 @@ public:
 	void InvalidateByCBP(UINT32 CBP);
 	void IncAge(CSurfMap<IDirect3DTexture9>& pRTs);
 	void ResetAge(UINT32 TBP0);
+
+protected:
+	CInterfaceList<IDirect3DTexture9> m_pTexturePool;
+
+public:
+	HRESULT CreateTexture(GIFRegTEX0& TEX0, IDirect3DDevice9* pD3DDev, IDirect3DTexture9** ppTexture);
 };
