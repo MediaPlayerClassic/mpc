@@ -11,6 +11,8 @@
 #include "ConvertChapDlg.h"
 #include "ConvertDlg.h"
 
+// TODO: subtitle source filter
+
 // CConvertDlg dialog
 
 CConvertDlg::CConvertDlg(CWnd* pParent /*=NULL*/)

@@ -76,6 +76,8 @@ protected:
 public:
 	CDSMResourceBag();
 
+	void operator += (const CDSMResource& r) {m_resources.Add(r);}
+
 	// IDSMResourceBag
 
 	STDMETHODIMP_(DWORD) ResGetCount();
@@ -119,6 +121,8 @@ protected:
 
 public:
 	CDSMChapterBag();
+
+	void operator += (const CDSMChapter& c) {m_chapters.Add(c); m_fSorted = false;}
 
 	// IDSMChapterBag
 
