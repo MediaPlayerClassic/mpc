@@ -750,6 +750,9 @@ HRESULT CMpeg2DecFilter::ReconnectOutput(int w, int h)
 	return S_FALSE;
 }
 
+[uuid("04FE9017-F873-410E-871E-AB91661A4EF7")]
+enum ffdshow {};
+
 HRESULT CMpeg2DecFilter::CheckConnect(PIN_DIRECTION dir, IPin* pPin)
 {
 	if(dir == PINDIR_OUTPUT)
@@ -762,7 +765,8 @@ HRESULT CMpeg2DecFilter::CheckConnect(PIN_DIRECTION dir, IPin* pPin)
 			if(clsid != CLSID_OverlayMixer
 			/*&& clsid != CLSID_OverlayMixer2*/
 			&& clsid != CLSID_VideoMixingRenderer 
-			&& clsid != CLSID_VideoMixingRenderer9)
+			&& clsid != CLSID_VideoMixingRenderer9
+			&& clsid != __uuidof(ffdshow))
 				return E_FAIL;
 		}
 	}

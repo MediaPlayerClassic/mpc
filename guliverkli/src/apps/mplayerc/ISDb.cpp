@@ -17,7 +17,7 @@ bool hash(LPCTSTR fn, filehash& fh)
 	
 	fh.hash = fh.size;
 	for(UINT64 tmp = 0, i = 0; i < 65536/sizeof(tmp) && f.Read(&tmp, sizeof(tmp)); fh.hash += tmp, i++);
-	f.Seek(max(0, fh.size - 65536), CFile::begin);
+	f.Seek(max(0, (INT64)fh.size - 65536), CFile::begin);
 	for(UINT64 tmp = 0, i = 0; i < 65536/sizeof(tmp) && f.Read(&tmp, sizeof(tmp)); fh.hash += tmp, i++);
 
 	return true;
