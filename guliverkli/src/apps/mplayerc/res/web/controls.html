@@ -5,14 +5,14 @@
 		<link rel="stylesheet" type="text/css" href="/default.css">
 		<script language="JavaScript" type="text/JavaScript">
 
-		// var name = "[namestring]";
-		// var filepath = "[filepath]";
+		// var filedir = "[filedir]";
+		var filepath = "[filepath]";
 		var curpos = [position];
 		var length = [duration];
 		var state = [state];
 		var pbr = [playbackrate];
 		var eta = [reloadtime];
-		var volume = [volumelevel]*2;
+		var volume = [volumelevel];
 		var muted = [muted]; // -1 no sound
 
 		var starttime = (new Date()).getTime();
@@ -26,9 +26,11 @@
 		var RL
 		var rpt
 		
+		if (eta==0) eta=(state<0 && filepath.length>0)?2:120;
+
 		function init()
 		{
-			if (eta>0) RL=setTimeout('window.location=window.location',1000*eta);
+			if (eta>0) RL=setTimeout("postform(0,'null',0);",1000*eta);
 			Live=(length<1);
 			starttime=starttime-curpos;
 			rdirt=length*pbr/slidersize;
@@ -45,7 +47,7 @@
 			vs1=document.getElementById("v1")
 			vs2=document.getElementById("v2")
 			vs3=document.getElementById("v3")
-			document.getElementById("muted").innerHTML= muted == -1 ? "X" : muted == 1 ? "M" : "&nbsp;";
+			document.getElementById("muted").innerHTML= muted == -1 ? "X" : muted == 1 ? "M" : "&nbsp;&nbsp;";
 
 			s.height=sb1.height=sb2.height=sb3.height=vs.height=vs1.height=vs2.height=vs3.height=20
 			s.width=slidersize+(sb2.width=sliderbuttonwidth);
@@ -99,8 +101,8 @@
 			switch(b){
 			case 1:	return a1s;
 			case 2:	return a2s;
-			case 3: return a3s;
-			case 4: return a4s;
+			case 3:	return a3s;
+			case 4:	return a4s;
 			case 5:	//return a1s+":"+a2s+":"+a3s+"."+a4s;
 			case 6:	//return ((a1>0?(a1s+":"):"")+a2s+":"+a3s+"."+a4s);
 			case 7:	return a1s+":"+a2s+":"+a3s;
@@ -131,8 +133,9 @@
 			if (a==-2000) return false;
 			if (b){	m=(curpos=((a>length && !Live)?length:(a<0?0:a)))*slidersize/length;	}
 			else{	curpos=(m=(a>slidersize?slidersize:(a<0?0:a)))*length/slidersize;	}
-			sb1.width=m;
-			sb3.width=slidersize-sb1.width;
+			if (m>sb1.width)
+				{sb3.width=slidersize-Math.floor(m);	sb1.width=m;}else
+				{sb1.width=m;		sb3.width=slidersize-sb1.width;}
 			return true;
 		}
 		function sliderclick(e)
@@ -163,17 +166,17 @@
 			for(a=0;a<ts.length;a++)
 			{
 				switch(ts.charAt(a)){
-				case "0": b+="0";break;
+				case "0":	b+="0";break;
 				case "1":	b+="1";break;
-				case "2": b+="2";break;
-				case "3": b+="3";break;
+				case "2":	b+="2";break;
+				case "3":	b+="3";break;
 				case "4":	b+="4";break;
 				case "5":	b+="5";break;
 				case "6":	b+="6";break;
 				case "7":	b+="7";break;
 				case "8":	b+="8";break;
-				case "9": b+="9";break;
-				case ".": b+=".";break;
+				case "9":	b+="9";break;
+				case ".":	b+=".";break;
 				case ":":	b+=":";break;
 				default:	break;}
 			}
@@ -182,9 +185,9 @@
 
 		function vupdate(a,b)
 		{
-			if (b){	m=((volume=((a>200)?200:(a<0?0:a))))*vss/200;	}
-			else{	volume=(m=(a>vss?vss:(a<0?0:a)))*200/vss;	}
-			volume=Math.ceil(volume/2)
+			if (b){	m=(volume=((a>100)?100:(a<0?0:a)))*vss/100;	}
+			else{	volume=(m=(a>vss?vss:(a<0?0:a)))*100/vss;	}
+			volume=Math.ceil(volume)
 			vs1.width=m;
 			vs3.width=vss-vs1.width;
 			return true;
@@ -219,7 +222,7 @@
 		<br>
 		<table border="2" cellspacing="1" cellpadding="4">
 			<tr>
-				<td colspan="3">
+				<td colspan="4">
 					<nobr>
 						Loaded file: <a href="[browserpath]?path=[filepatharg]&redir=[path]">[filepath]</a>
 						<a href="[browserpath]?path=[filedirarg]">Browse...</a>
@@ -241,6 +244,13 @@
 				</td>
 				<td>
 					<input type="checkbox" id="reloadenabled" checked>
+				</td>
+				<td align="center">
+					<noscript>
+						<form action="[commandpath]" method="POST">
+					</noscript>
+					<input type="submit" value="Refresh" name="submit" onclick="window.location=window.location; return false;">
+					<noscript></form></noscript>
 				</td>
 			</tr>
 		</table>
@@ -444,7 +454,7 @@
 				<tr>
 					<td>
 						Volume control
-						<noscript>: (integer between 0 & 200)</noscript>
+						<noscript>: (integer between 0 & 100)</noscript><br>
 						<table border="2" cellspacing="1" cellpadding="4">
 							<tr>
 								<td id="muted" align="center" valign="center">
@@ -473,8 +483,8 @@
 											<td>
 												<noscript>
 													<form action="[commandpath]" method="POST">
-														<input type="hidden" name="[wmcname]" value="-2">
-														<input name="Volume" value="" size="5">
+														<input type="hidden" name="[wmcname]" value="[setvolumecommand]">
+														<input name="volume" value="[volumelevel]" size="5">
 													<!-- FIXME /form -->
 												</noscript>
 											</td>
