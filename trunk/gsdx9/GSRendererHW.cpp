@@ -263,7 +263,7 @@ void GSRendererHW::FlushPrim()
 		default: ASSERT(0); return;
 		}
 
-		LOG((_T("FlushPrim(pt=%d, nVertices=%d, nPrims=%d)\n"), m_primtype, m_nVertices, nPrims));
+		LOG(_T("FlushPrim(pt=%d, nVertices=%d, nPrims=%d)\n"), m_primtype, m_nVertices, nPrims);
 
 		m_stats.IncPrims(nPrims);
 
@@ -274,7 +274,8 @@ void GSRendererHW::FlushPrim()
 		hr = m_pD3DDev->BeginScene();
 
 		scale_t scale((float)INTERNALRES / (m_ctxt->FRAME.FBW*64), (float)INTERNALRES / m_rs.GetSize(m_rs.IsEnabled(1)?1:0).cy);
-		// if(m_fHalfVRes) scale.y /= 2;
+//scale.y /= 2;
+//scale.x = scale.y = 1;
 
 		//////////////////////
 
@@ -370,6 +371,7 @@ void GSRendererHW::FlushPrim()
 		{
 			DWORD zfunc[] = {D3DCMP_NEVER, D3DCMP_ALWAYS, D3DCMP_GREATEREQUAL, D3DCMP_GREATER};
 			hr = m_pD3DDev->SetRenderState(D3DRS_ZFUNC, zfunc[m_ctxt->TEST.ZTST]);
+//			hr = m_pD3DDev->SetRenderState(D3DRS_ZFUNC, D3DCMP_ALWAYS);
 
 			// FIXME
 			if(m_ctxt->ZBUF.ZMSK && m_ctxt->TEST.ZTST == 1)
@@ -541,7 +543,11 @@ void GSRendererHW::Flip()
 	{
 		if(!m_rs.IsEnabled(i)) continue;
 
-		DWORD FBP = /*(::GetAsyncKeyState(VK_SPACE)&0x80000000) ? m_ctxt->FRAME.Block() :*/ (m_rs.DISPFB[i].FBP<<5);
+		DWORD FBP = m_rs.DISPFB[i].FBP<<5;
+
+#ifdef DEBUG_RENDERTARGETS
+		if(::GetAsyncKeyState(VK_SPACE)&0x80000000) FBP = m_ctxt->FRAME.Block();
+#endif
 
 		CSurfMap<IDirect3DTexture9>::CPair* pPair = m_pRenderTargets.PLookup(FBP);
 
@@ -661,14 +667,18 @@ void GSRendererHW::Flip()
 						TranslateMessage(&msg);
 						DispatchMessage(&msg);
 					}
+#ifdef DEBUG_RENDERTARGETS
 					else if(!(::GetAsyncKeyState(VK_RCONTROL)&0x80000000))
 					{
 						break;
 					}
+#endif
 				}
 
+#ifdef DEBUG_RENDERTARGETS
 				if(::GetAsyncKeyState(VK_LCONTROL)&0x80000000)
 					Sleep(500);
+#endif
 			}
 			else
 			{
@@ -799,12 +809,14 @@ void GSRendererHW::InvalidateTexture(DWORD TBP0, int x, int y)
 					{(float)r.right, (float)r.bottom, 0.5f, 2.0f, 1.0f, 1.0f},
 				};
 
-				scale_t scale((float)INTERNALRES / (m_rs.BITBLTBUF.DBW*64), (float)INTERNALRES / m_rs.GetSize(m_rs.IsEnabled(1)?1:0).cy);
+				scale_t scale;
+				DWORD size = sizeof(scale);
+				t.m_pTexture->GetPrivateData(GUID_NULL, &scale, &size);
 
 				for(int i = 0; i < countof(pVertices); i++)
 				{
-					pVertices[i].x = pVertices[i].x * scale.x;// - 0.5;
-					pVertices[i].y = pVertices[i].y * scale.y;// - 0.5;
+					pVertices[i].x = pVertices[i].x * scale.x - 0.5;
+					pVertices[i].y = pVertices[i].y * scale.y - 0.5;
 				}
 
 				CComPtr<IDirect3DSurface9> pSurf;
@@ -830,7 +842,7 @@ void GSRendererHW::InvalidateTexture(DWORD TBP0, int x, int y)
 
 				hr = m_pD3DDev->BeginScene();
 				hr = m_pD3DDev->SetPixelShader(NULL);
-				hr = m_pD3DDev->SetFVF(D3DFVF_XYZRHW|D3DFVF_TEX2);
+				hr = m_pD3DDev->SetFVF(D3DFVF_XYZRHW|D3DFVF_TEX1);
 				hr = m_pD3DDev->DrawPrimitiveUP(D3DPT_TRIANGLESTRIP, 2, pVertices, sizeof(pVertices[0]));
 				hr = m_pD3DDev->EndScene();
 			}

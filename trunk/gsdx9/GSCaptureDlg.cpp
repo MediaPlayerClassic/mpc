@@ -4,15 +4,14 @@
 #include "stdafx.h"
 #include <afxpriv.h>
 #include "GSCaptureDlg.h"
-#include ".\gscapturedlg.h"
 
 // GSCaptureDlg dialog
 
 IMPLEMENT_DYNAMIC(GSCaptureDlg, CDialog)
 GSCaptureDlg::GSCaptureDlg(CWnd* pParent /*=NULL*/)
 	: CDialog(GSCaptureDlg::IDD, pParent)
-	, m_filename(_T(""))
 {
+	m_filename = AfxGetApp()->GetProfileString(_T("Capture"), _T("FileName"));
 }
 
 GSCaptureDlg::~GSCaptureDlg()
@@ -59,7 +58,6 @@ BOOL GSCaptureDlg::OnInitDialog()
 	m_codecs.RemoveAll();
 
 	m_codeclist.ResetContent();
-	m_codeclist.EnableWindow(FALSE);
 	m_codeclist.SetItemDataPtr(m_codeclist.AddString(_T("Uncompressed")), NULL);
 
 	BeginEnumSysDev(CLSID_VideoCompressorCategory, pMoniker)
@@ -91,15 +89,29 @@ BOOL GSCaptureDlg::OnInitDialog()
 		else if(str.Find(L"@device:cm:") == 0)
 			c.FriendlyName = _T("(VfW) ") + c.FriendlyName;
 
-		m_codeclist.SetItemDataPtr(
-			m_codeclist.AddString(c.FriendlyName),
-			m_codecs.AddTail(c));
+		m_codeclist.SetItemDataPtr(m_codeclist.AddString(c.FriendlyName), m_codecs.AddTail(c));
 	}
 	EndEnumSysDev
 
-	m_codeclist.EnableWindow(m_codeclist.GetCount() > 1);
+	//
 
-	// LoadDefaultCodec(m_codecs, m_codeclist, CLSID_VideoCompressorCategory);
+	CString DisplayNameToFind = AfxGetApp()->GetProfileString(_T("Capture"), _T("VideoCodecDisplayName"));
+
+	for(int i = 0; i < m_codeclist.GetCount(); i++)
+	{
+		CString DisplayName;
+
+		POSITION pos = (POSITION)m_codeclist.GetItemDataPtr(i);
+		if(pos) DisplayName = m_codecs.GetAt(pos).DisplayName;
+
+		if(DisplayName == DisplayNameToFind)
+		{
+			m_codeclist.SetCurSel(i);
+			break;
+		}
+	}
+
+	//
 
 	UpdateData(FALSE);
 
@@ -181,6 +193,9 @@ void GSCaptureDlg::OnBnClickedOk()
 	if(GetSelCodec(c) == 0) return;
 
 	m_pVidEnc = c.pBF;
+
+	AfxGetApp()->WriteProfileString(_T("Capture"), _T("FileName"), m_filename);
+	AfxGetApp()->WriteProfileString(_T("Capture"), _T("VideoCodecDisplayName"), CString(c.DisplayName));
 
 	OnOK();
 }

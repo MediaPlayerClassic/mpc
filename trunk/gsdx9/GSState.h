@@ -28,6 +28,7 @@
 #include "GSSoftVertex.h"
 #include "GSVertexList.h"
 #include "GSCapture.h"
+#include "GSPerfMon.h"
 
 //
 //#define DEBUG_SAVETEXTURES
@@ -157,73 +158,6 @@ struct GSVertex
 	GIFRegFOG		FOG;
 };
 
-class GSStats
-{
-	int m_frame, m_prim, m_write, m_read;
-	float m_fps, m_pps, m_ppf, m_wps, m_wpf, m_rps, m_rpf;
-	CList<clock_t> m_clk;
-	CList<int> m_prims, m_writes, m_reads;
-
-public:
-	GSStats() {Reset();}
-	void Reset() {m_frame = m_prim = m_write = m_read = 0; m_fps = m_pps = m_ppf = m_wps = m_wpf = m_rps = m_rpf = 0;}
-	void IncPrims(int n) {m_prim += n;}
-	void IncWrites(int bytes) {m_write += bytes;}
-	void IncReads(int pixels) {m_read += pixels;}
-	void VSync()
-	{
-		m_prims.AddTail(m_prim);
-		m_writes.AddTail(m_write);
-		m_reads.AddTail(m_read);
-		if(m_clk.GetCount())
-		{
-			if(int dt = clock() - m_clk.GetHead())
-			{
-				m_fps = 1000.0f * m_clk.GetCount() / dt;
-
-				int prims = 0;
-				POSITION pos = m_prims.GetHeadPosition();
-				while(pos) prims += m_prims.GetNext(pos);
-				m_pps = 1000.0f * prims / dt;
-				m_ppf = 1.0f * prims / m_clk.GetCount();
-
-				int bytes = 0;
-				pos = m_writes.GetHeadPosition();
-				while(pos) bytes += m_writes.GetNext(pos);
-				m_wps = 1000.0f * bytes / dt;
-				m_wpf = 1.0f * bytes / m_clk.GetCount();
-
-				int pixels = 0;
-				pos = m_reads.GetHeadPosition();
-				while(pos) pixels += m_reads.GetNext(pos);
-				m_rps = 1000.0f * pixels / dt;
-				m_rpf = 1.0f * pixels / m_clk.GetCount();
-			}
-			if(m_clk.GetCount() > 10)
-			{
-				m_clk.RemoveHead();
-				m_prims.RemoveHead();
-				m_writes.RemoveHead();
-				m_reads.RemoveHead();
-			}
-		}
-		m_clk.AddTail(clock());
-		m_frame++;
-		m_prim = 0;
-		m_write = 0;
-		m_read = 0;
-	}
-	int GetFrame() {return m_frame;}
-	CString ToString(int fps)
-	{
-		CString str; 
-		str.Format(_T("frame: %d | %.2f fps (%d%%) | %d ppf | %.2f kbpf | %.2f ktpf"), 
-			m_frame, m_fps, (int)(100*m_fps/fps), 
-			(int)m_ppf, m_wpf / 1024, m_rpf / 1024); 
-		return str;
-	}
-};
-
 class GSState
 {
 protected:
@@ -235,6 +169,7 @@ protected:
 	GSRegSet m_rs;
 	GSVertex m_v;
 	GSStats m_stats;
+	GSPerfMon m_perfmon;
 	GSCapture m_capture;
 
 	int m_x, m_y;
@@ -378,27 +313,14 @@ public:
 
 	FILE* m_fp;
 
-#ifdef DEBUG_LOG
-	#define DEBUG_LOGFILE
-    #define LOG(_x_) LOGFILE _x_
-#else
-	#define LOG(_x_)
-#endif
-
-#ifdef DEBUG_LOG2
-	#define DEBUG_LOGFILE
-    #define LOG2(_x_) LOGFILE2 _x_
-#else
-	#define LOG2(_x_)
-#endif
-
 #ifdef DEBUG_LOGVERTICES
     #define LOGV(_x_) LOGVERTEX _x_
 #else
     #define LOGV(_x_)
 #endif
 
-	void LOGFILE(LPCTSTR fmt, ...)
+#ifdef DEBUG_LOG
+	void LOG(LPCTSTR fmt, ...)
 	{
 		va_list args;
 		va_start(args, fmt);
@@ -436,8 +358,12 @@ public:
 		}
 		va_end(args);
 	}
+#else
+#define LOG __noop
+#endif
 
-	void LOGFILE2(LPCTSTR fmt, ...)
+#ifdef DEBUG_LOG2
+	void LOG2(LPCTSTR fmt, ...)
 	{
 		va_list args;
 		va_start(args, fmt);
@@ -450,4 +376,7 @@ public:
 		}
 		va_end(args);
 	}
+#else
+#define LOG2 __noop
+#endif
 };

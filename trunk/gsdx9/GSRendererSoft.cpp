@@ -26,6 +26,10 @@ template <class VERTEX>
 GSRendererSoft<VERTEX>::GSRendererSoft(HWND hWnd, HRESULT& hr)
 	: GSRenderer<VERTEX>(640, 512, hWnd, hr)
 {
+	float f = 0.8;
+	f *= UINT_MAX;
+	DWORD dw = (DWORD)f;
+
 	Reset();
 
 	int i = SHRT_MIN, j = 0;
@@ -166,24 +170,24 @@ void GSRendererSoft<VERTEX>::FlushPrim()
 		case PRIM_SPRITE:
 			ASSERT(!(m_nVertices&3));
 			nPrims = m_nVertices / 4;
-			LOG((_T("FlushPrim(pt=%d, nVertices=%d, nPrims=%d)\n"), m_primtype, m_nVertices, nPrims));
+			LOG(_T("FlushPrim(pt=%d, nVertices=%d, nPrims=%d)\n"), m_primtype, m_nVertices, nPrims);
 			for(int i = 0; i < nPrims; i++, pVertices += 4) DrawSprite(pVertices);
 			break;
 		case PRIM_TRIANGLE:
 			ASSERT(!(m_nVertices%3));
 			nPrims = m_nVertices / 3;
-			LOG((_T("FlushPrim(pt=%d, nVertices=%d, nPrims=%d)\n"), m_primtype, m_nVertices, nPrims));
+			LOG(_T("FlushPrim(pt=%d, nVertices=%d, nPrims=%d)\n"), m_primtype, m_nVertices, nPrims);
 			for(int i = 0; i < nPrims; i++, pVertices += 3) DrawTriangle(pVertices);
 			break;
 		case PRIM_LINE: 
 			ASSERT(!(m_nVertices&1));
 			nPrims = m_nVertices / 2;
-			LOG((_T("FlushPrim(pt=%d, nVertices=%d, nPrims=%d)\n"), m_primtype, m_nVertices, nPrims));
+			LOG(_T("FlushPrim(pt=%d, nVertices=%d, nPrims=%d)\n"), m_primtype, m_nVertices, nPrims);
 			for(int i = 0; i < nPrims; i++, pVertices += 2) DrawLine(pVertices);
 			break;
 		case PRIM_POINT:
 			nPrims = m_nVertices;
-			LOG((_T("FlushPrim(pt=%d, nVertices=%d, nPrims=%d)\n"), m_primtype, m_nVertices, nPrims));
+			LOG(_T("FlushPrim(pt=%d, nVertices=%d, nPrims=%d)\n"), m_primtype, m_nVertices, nPrims);
 			for(int i = 0; i < nPrims; i++, pVertices++) DrawPoint(pVertices);
 			break;
 		default:
