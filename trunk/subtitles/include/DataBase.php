@@ -541,6 +541,41 @@ class SubtitlesDB extends DB
 	{
 		$this->DB("gabest", GABESTS_PASSWORD_TO_SUBTITLES, "subtitles");
 		$this->connect() or die('Cannot connect to database');
+		
+		$http_host = split(':', $_SERVER['HTTP_HOST']);
+		if(!isset($http_host[1])) $http_host[1] = 80;
+
+		$db_scheme = addslashes(isset($_SERVER["HTTPS"]) && $_SERVER["HTTPS"] == 'on' ? 'https' : 'http');
+		$db_host = addslashes($http_host[0]);
+		$db_port = intval($http_host[1]);
+		$db_path = addslashes(str_replace("\\", '/', dirname($_SERVER['PHP_SELF'])));
+		if($db_path != '/') $db_path .= '/';
+		global $ServerName;
+		$db_name = addslashes(isset($ServerName) ? $ServerName : "");
+		
+		if(!empty($db_host)
+		&& $db_host != 'localhost'
+		&& $db_host != '127.0.0.1'
+		&& !ereg('192\.168\.[0-9]+\.[0-9]+', $db_host)
+		&& !ereg('10\.[0-9]+\.[0-9]+\.[0-9]+', $db_host))
+		{
+			$this->query("select id from mirrors where host = '$db_host'");
+			
+			if($row = $this->fetchRow())
+			{
+				$this->query(
+					"update mirrors set ".
+					"scheme = '$db_scheme', host = '$db_host', port = $db_port, ".
+					"path = '$db_path', name = '$db_name', lastseen = NOW() ".
+					"where id = {$row['id']} ");
+			}
+			else
+			{
+				$this->query(
+					"insert into mirrors (scheme, host, port, path, name, lastseen) ".
+					"values ('$db_scheme', '$db_host', $db_port, '$db_path', '$db_name', NOW()) ");
+			}
+		}
 	}
 }
 

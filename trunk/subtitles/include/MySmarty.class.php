@@ -7,6 +7,8 @@ define('CONFIG_DIR', ROOT_DIR.'/configs');
 define('CACHE_DIR', ROOT_DIR.'/cache'); 
 require ROOT_DIR.'/libs/Smarty.class.php';
 
+$ServerName = @file_get_contents('../configs/ServerName.cfg');
+
 class MySmarty extends Smarty
 {
 	function MySmarty()
@@ -25,6 +27,9 @@ class MySmarty extends Smarty
 		}
 		
 		$this->assign('template', preg_replace('/(.+)\.php$/i', '\1.tpl', basename($_SERVER['PHP_SELF'])));
+		
+		global $ServerName;
+		$this->assign('ServerName', $ServerName);
 	}
 }
 
