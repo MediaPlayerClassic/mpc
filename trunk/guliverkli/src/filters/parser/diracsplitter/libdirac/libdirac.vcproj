@@ -71,8 +71,7 @@
 				RuntimeLibrary="0"
 				UsePrecompiledHeader="0"
 				WarningLevel="3"
-				Detect64BitPortabilityProblems="TRUE"
-				DebugInformationFormat="0"/>
+				Detect64BitPortabilityProblems="TRUE"/>
 			<Tool
 				Name="VCCustomBuildTool"/>
 			<Tool
@@ -194,6 +193,12 @@
 			</File>
 			<File
 				RelativePath=".\libdirac_common\wavelet_utils.cpp">
+				<FileConfiguration
+					Name="Release|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						GeneratePreprocessedFile="0"/>
+				</FileConfiguration>
 			</File>
 		</Filter>
 		<Filter

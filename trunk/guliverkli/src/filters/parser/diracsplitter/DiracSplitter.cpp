@@ -105,7 +105,6 @@ BOOL APIENTRY DllMain(HANDLE hModule, DWORD dwReason, LPVOID lpReserved)
 CDiracSplitterFilter::CDiracSplitterFilter(LPUNKNOWN pUnk, HRESULT* phr)
 	: CBaseSplitterFilter(NAME("CDiracSplitterFilter"), pUnk, phr, __uuidof(this))
 {
-//	_CrtSetBreakAlloc(9995);
 }
 
 STDMETHODIMP CDiracSplitterFilter::NonDelegatingQueryInterface(REFIID riid, void** ppv)
@@ -151,14 +150,59 @@ bool CDiracSplitterFilter::InitDeliverLoop()
 
 void CDiracSplitterFilter::SeekDeliverLoop(REFERENCE_TIME rt)
 {
-	if(1 || rt <= 0)
+	REFERENCE_TIME rtPreroll = 0; //10000000;
+
+	if(rt <= rtPreroll || m_rtDuration <= 0)
 	{
 		m_pFile->Seek(8);
-		m_nFrame = 0;
 	}
 	else
 	{
 		// TODO
+
+		__int64 len = m_pFile->GetLength();
+		__int64 seekpos = (__int64)(1.0*rt/m_rtDuration*len);
+
+		REFERENCE_TIME rtmax = rt - rtPreroll;
+		REFERENCE_TIME rtmin = rtmax - 5000000;
+
+		m_pFile->Seek(seekpos);
+
+		REFERENCE_TIME pdt = _I64_MIN;
+
+		int j = 0;
+		for(; j < 10; j++)
+		{
+			BYTE code = NOT_START_CODE;
+			while(m_pFile->Next(code) && code != IFRAME_START_CODE);
+			if(code != IFRAME_START_CODE) {m_pFile->Seek(seekpos >>= 1); continue;}
+
+			__int64 pos = m_pFile->GetPos() - 5;
+
+			REFERENCE_TIME rt = ((DIRACINFOHEADER*)m_pFile->GetMediaType().Format())->hdr.AvgTimePerFrame * m_pFile->UnsignedGolombDecode();
+			// TRACE(_T("[%d/%04x]: rt=%I64d, fp=%I64d\n"), i, TrackNum, rt, m_pFile->GetPos());
+
+			REFERENCE_TIME dt = rt - rtmax;
+			if(dt > 0 && dt == pdt) dt = 10000000i64;
+
+			// TRACE(_T("dt=%I64d\n"), dt);
+
+			if(rtmin <= rt && rt <= rtmax || pdt > 0 && dt < 0)
+			{
+				// TRACE(_T("minseekpos: %I64d -> "), minseekpos);
+				seekpos = pos;
+				// TRACE(_T("%I64d\n"), minseekpos);
+				break;
+			}
+
+			m_pFile->Seek(pos - (__int64)(1.0*dt/m_rtDuration*len));
+
+			pdt = dt;
+		}
+
+		if(j == 10) seekpos = 8;
+
+		m_pFile->Seek(seekpos);
 	}
 }
 
@@ -186,8 +230,6 @@ bool CDiracSplitterFilter::DoDeliverLoop()
 			p->bSyncPoint = code == IFRAME_START_CODE;
 
 			hr = DeliverPacket(p);
-
-			m_nFrame++;
 		}
 
 		if(code == SEQ_END_CODE)
@@ -582,9 +624,9 @@ HRESULT CDiracVideoDecoder::NewSegment(REFERENCE_TIME tStart, REFERENCE_TIME tSt
 
 HRESULT CDiracVideoDecoder::AlterQuality(Quality q)
 {
+/*
 	if(q.Late > 500*10000i64) m_fDropFrames = true;
 	if(q.Late <= 0) m_fDropFrames = false;
-/*
 */
 	return E_NOTIMPL;
 }

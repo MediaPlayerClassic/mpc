@@ -35,8 +35,6 @@ protected:
 	void SeekDeliverLoop(REFERENCE_TIME rt);
 	bool DoDeliverLoop();
 
-	int m_nFrame;
-
 public:
 	CDiracSplitterFilter(LPUNKNOWN pUnk, HRESULT* phr);
 
