@@ -4,8 +4,8 @@
 
 #include <atlbase.h>
 #include <afxtempl.h>
-#include <winioctl.h>
-#include <ntddcdvd.h>
+#include <winioctl.h> // platform sdk
+#include "..\..\include\winddk\ntddcdvd.h"
 
 class CDVDSession
 {
