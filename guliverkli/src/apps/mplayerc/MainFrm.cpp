@@ -181,7 +181,6 @@ BEGIN_MESSAGE_MAP(CMainFrame, CFrameWnd)
 
 	ON_WM_INITMENU()
 	ON_WM_INITMENUPOPUP()
-	ON_WM_CONTEXTMENU()
 
 	ON_COMMAND(ID_MENU_PLAYER_SHORT, OnMenuPlayerShort)
 	ON_COMMAND(ID_MENU_PLAYER_LONG, OnMenuPlayerLong)
@@ -230,6 +229,8 @@ BEGIN_MESSAGE_MAP(CMainFrame, CFrameWnd)
 	ON_UPDATE_COMMAND_UI(ID_SUBTITLEDATABASE_SEARCH, OnUpdateSubtitledatabaseSearch)
 	ON_COMMAND(ID_SUBTITLEDATABASE_UPLOAD, OnSubtitledatabaseUpload)
 	ON_UPDATE_COMMAND_UI(ID_SUBTITLEDATABASE_UPLOAD, OnUpdateSubtitledatabaseUpload)
+	ON_COMMAND(ID_SUBTITLEDATABASE_DOWNLOAD, OnSubtitledatabaseDownload)
+	ON_UPDATE_COMMAND_UI(ID_SUBTITLEDATABASE_DOWNLOAD, OnUpdateSubtitledatabaseDownload)
 	ON_COMMAND(ID_FILE_PROPERTIES, OnFileProperties)
 	ON_UPDATE_COMMAND_UI(ID_FILE_PROPERTIES, OnUpdateFileProperties)
 	ON_COMMAND(ID_FILE_CLOSEPLAYLIST, OnFileClosePlaylist)
@@ -2120,28 +2121,6 @@ void CMainFrame::OnInitMenuPopup(CMenu* pPopupMenu, UINT nIndex, BOOL bSysMenu)
 	}
 }
 
-void CMainFrame::OnContextMenu(CWnd* /*pWnd*/, CPoint point)
-{
-/*
-	KillTimer(TIMER_FULLSCREENMOUSEHIDER);
-	m_fHideCursor = false;
-
-	CRect r;
-	m_wndView.GetWindowRect(r);
-	if(r.PtInRect(point))
-	{
-		if(IsCaptionMenuHidden())
-		{
-			m_popupmain.GetSubMenu(0)->TrackPopupMenu(TPM_RIGHTBUTTON|TPM_NOANIMATION, point.x, point.y, this);
-		}
-		else
-		{
-			m_popup.GetSubMenu(0)->TrackPopupMenu(TPM_RIGHTBUTTON|TPM_NOANIMATION, point.x, point.y, this);
-		}
-	}
-*/
-}
-
 BOOL CMainFrame::OnMenu(CMenu* pMenu)
 {
 	if(!pMenu) return FALSE;
@@ -3267,71 +3246,8 @@ void CMainFrame::OnUpdateFileSavesubtitles(CCmdUI* pCmdUI)
 
 ///////////////
 
-struct filehash {CString name; UINT64 size, hash;};
-
-static bool mpchash(LPCTSTR fn, filehash& fh)
-{
-	CFile f;
-	CFileException fe;
-	if(!f.Open(fn, CFile::modeRead|CFile::osSequentialScan|CFile::shareDenyNone, &fe))
-        return false;
-
-	CPath p(fn);
-	p.StripPath();
-	fh.name = (LPCTSTR)p;
-
-	fh.size = f.GetLength();
-	
-	fh.hash = fh.size;
-	for(UINT64 tmp = 0, i = 0; i < 65536/sizeof(tmp) && f.Read(&tmp, sizeof(tmp)); fh.hash += tmp, i++);
-	f.Seek(max(0, fh.size - 65536), CFile::begin);
-	for(UINT64 tmp = 0, i = 0; i < 65536/sizeof(tmp) && f.Read(&tmp, sizeof(tmp)); fh.hash += tmp, i++);
-
-	return true;
-}
-
-static void mpchash(CPlaylist& pl, CList<filehash>& fhs)
-{
-	fhs.RemoveAll();
-
-	POSITION pos = pl.GetHeadPosition();
-	while(pos)
-	{
-		CString fn = pl.GetNext(pos).m_fns.GetHead();
-		if(AfxGetAppSettings().Formats.FindExt(CPath(fn).GetExtension().MakeLower(), true))
-			continue;
-
-		filehash fh;
-		if(!mpchash(fn, fh))
-			continue;
-
-		fhs.AddTail(fh);
-	}
-}
-
-static CStringA makeargs(CPlaylist& pl)
-{
-	CList<filehash> fhs;
-	mpchash(pl, fhs);
-
-	CList<CStringA> args;
-
-	POSITION pos = fhs.GetHeadPosition();
-	for(int i = 0; pos; i++)
-	{
-		filehash& fh = fhs.GetNext(pos);
-
-		CStringA str;
-		str.Format("name[%d]=%s&size[%d]=%016I64x&hash[%d]=%016I64x",
-			i, UrlEncode(CStringA(fh.name)), 
-			i, fh.size,
-			i, fh.hash);
-
-		args.AddTail(str);
-	}
-
-	return Implode(args, '&');
-}
+#include "SubtitleDlDlg.h"
+#include "ISDb.h"
 
 void CMainFrame::OnSubtitledatabaseSearch()
 {
@@ -3355,6 +3271,112 @@ void CMainFrame::OnSubtitledatabaseUpload()
 void CMainFrame::OnUpdateSubtitledatabaseUpload(CCmdUI *pCmdUI)
 {
 	pCmdUI->Enable(m_wndPlaylistBar.GetCount() > 0);
+}
+
+void CMainFrame::OnSubtitledatabaseDownload()
+{
+	filehash fh;
+	if(!hash(m_wndPlaylistBar.GetCur(), fh))
+	{
+		MessageBeep(-1);
+		return;
+	}
+
+	// TODO: put this on a worker thread
+
+	CStringA url = "http://" + AfxGetAppSettings().ISDb + "/index.php?";
+	CStringA args;
+	args.Format("player=mpc&name[0]=%s&size[0]=%016I64x&hash[0]=%016I64x", 
+		UrlEncode(CStringA(fh.name)), fh.size, fh.hash);
+
+	try
+	{
+		CInternetSession is;
+
+		CStringA str;
+		if(!OpenUrl(is, CString(url+args), str))
+		{
+			MessageBeep(-1);
+			return;
+		}
+
+		CStringA ticket;
+		CList<isdb_movie> movies;
+		isdb_movie m;
+		isdb_subtitle s;
+
+		CList<CStringA> sl;
+		Explode(str, sl, '\n');
+
+		POSITION pos = sl.GetHeadPosition();
+		while(pos)
+		{
+			str = sl.GetNext(pos);
+
+			CStringA param = str.Left(max(0, str.Find('=')));
+			CStringA value = str.Mid(str.Find('=')+1);
+
+			if(param == "ticket") ticket = value;
+			else if(param == "movie") {m.reset(); Explode(value, m.titles, '|');}
+			else if(param == "subtitle") {s.reset(); s.id = atoi(value);}
+			else if(param == "name") s.name = value;
+			else if(param == "discs") s.discs = atoi(value);
+			else if(param == "disc_no") s.disc_no = atoi(value);
+			else if(param == "format") s.format = value;
+			else if(param == "iso639_2") s.iso639_2 = value;
+			else if(param == "language") s.language = value;
+			else if(param == "nick") s.nick = value;
+			else if(param == "email") s.email = value;
+			else if(param == "" && value == "endsubtitle") {m.subs.AddTail(s);}
+			else if(param == "" && value == "endmovie") {movies.AddTail(m);}
+			else if(param == "" && value == "end") break;
+
+			TRACE(_T("%s=>%s\n"), CString(param), CString(value));
+		}
+
+		CSubtitleDlDlg dlg(movies, this);
+		if(IDOK == dlg.DoModal())
+		{
+			if(dlg.m_fReplaceSubs)
+				m_pSubStreams.RemoveAll();
+
+			CComPtr<ISubStream> pSubStreamToSet;
+
+			POSITION pos = dlg.m_selsubs.GetHeadPosition();
+			while(pos)
+			{
+				isdb_subtitle& s = dlg.m_selsubs.GetNext(pos);
+
+				CStringA url = "http://" + AfxGetAppSettings().ISDb + "/dl.php?";
+				CStringA args;
+				args.Format("id=%d&ticket=%s", s.id, UrlEncode(ticket));
+
+				if(OpenUrl(is, CString(url+args), str))
+				{
+					CAutoPtr<CRenderedTextSubtitle> pRTS(new CRenderedTextSubtitle(&m_csSubLock));
+					if(pRTS && pRTS->Open((BYTE*)(LPCSTR)str, str.GetLength(), DEFAULT_CHARSET, CString(s.name)) && pRTS->GetStreamCount() > 0)
+					{
+						CComPtr<ISubStream> pSubStream = pRTS.Detach();
+						m_pSubStreams.AddTail(pSubStream);
+						if(!pSubStreamToSet) pSubStreamToSet = pSubStream;
+					}
+				}
+			}
+
+			if(pSubStreamToSet)
+				SetSubtitle(pSubStreamToSet);
+		}
+	}
+	catch(CInternetException* ie)
+	{
+		ie->Delete();
+		return;
+	}
+}
+
+void CMainFrame::OnUpdateSubtitledatabaseDownload(CCmdUI *pCmdUI)
+{
+	pCmdUI->Enable(m_iMediaLoadState == MLS_LOADED && m_pCAP && !m_fAudioOnly);
 }
 
 void CMainFrame::OnFileProperties()

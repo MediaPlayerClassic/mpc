@@ -460,7 +460,6 @@ public:
 
 	afx_msg void OnInitMenu(CMenu* pMenu);
 	afx_msg void OnInitMenuPopup(CMenu* pPopupMenu, UINT nIndex, BOOL bSysMenu);
-	afx_msg void OnContextMenu(CWnd* /*pWnd*/, CPoint /*point*/);
 
 	BOOL OnMenu(CMenu* pMenu);
 	afx_msg void OnMenuPlayerShort();
@@ -509,6 +508,8 @@ public:
 	afx_msg void OnUpdateSubtitledatabaseSearch(CCmdUI *pCmdUI);
 	afx_msg void OnSubtitledatabaseUpload();
 	afx_msg void OnUpdateSubtitledatabaseUpload(CCmdUI *pCmdUI);
+	afx_msg void OnSubtitledatabaseDownload();
+	afx_msg void OnUpdateSubtitledatabaseDownload(CCmdUI *pCmdUI);
 	afx_msg void OnFileProperties();
 	afx_msg void OnUpdateFileProperties(CCmdUI* pCmdUI);
 	afx_msg void OnFileClosePlaylist();

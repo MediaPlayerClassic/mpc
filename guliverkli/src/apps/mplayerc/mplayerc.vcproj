@@ -474,6 +474,9 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath=".\ISDb.cpp">
+			</File>
+			<File
 				RelativePath=".\jpeg.cpp">
 			</File>
 			<File
@@ -936,6 +939,9 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath=".\SubtitleDlDlg.cpp">
+			</File>
+			<File
 				RelativePath="TextPassThruFilter.cpp">
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
@@ -1097,6 +1103,9 @@
 					<Tool
 						Name="VCCustomBuildTool"/>
 				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\ISDb.h">
 			</File>
 			<File
 				RelativePath=".\jpeg.h">
@@ -1544,6 +1553,9 @@
 					<Tool
 						Name="VCCustomBuildTool"/>
 				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\SubtitleDlDlg.h">
 			</File>
 			<File
 				RelativePath="TextPassThruFilter.h">

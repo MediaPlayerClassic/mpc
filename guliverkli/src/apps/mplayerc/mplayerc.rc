@@ -1122,6 +1122,19 @@ BEGIN
                     WS_TABSTOP,14,182,76,10
 END
 
+IDD_SUBTITLEDLDLG DIALOGEX 0, 0, 377, 158
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | 
+    WS_SYSMENU
+CAPTION "Subtitles available online"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    DEFPUSHBUTTON   "Download && Open",IDOK,272,136,98,14
+    CONTROL         "",IDC_LIST1,"SysListView32",LVS_REPORT | LVS_ALIGNLEFT | 
+                    WS_BORDER | WS_TABSTOP,7,7,363,124
+    CONTROL         "Replace currently loaded subtitles",IDC_CHECK1,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,7,138,124,10
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -1419,6 +1432,14 @@ BEGIN
         HORZGUIDE, 5
         HORZGUIDE, 29
     END
+
+    IDD_SUBTITLEDLDLG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 370
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 151
+    END
 END
 #endif    // APSTUDIO_INVOKED
 
@@ -1564,6 +1585,8 @@ BEGIN
             MENUITEM "Search...",                   ID_SUBTITLEDATABASE_SEARCH
 
             MENUITEM "Upload...",                   ID_SUBTITLEDATABASE_UPLOAD
+
+            MENUITEM "Download...",                 ID_SUBTITLEDATABASE_DOWNLOAD
 
         END
         MENUITEM SEPARATOR
@@ -1832,6 +1855,15 @@ BEGIN
             MENUITEM SEPARATOR
             MENUITEM "&Load Subtitle...\tCtrl+L",   ID_FILE_LOADSUBTITLE
             MENUITEM "Save Subtitle...\tCtrl+S",    ID_FILE_SAVESUBTITLES
+            POPUP "Subtitle Database"
+            BEGIN
+                MENUITEM "Search...",                   ID_SUBTITLEDATABASE_SEARCH
+
+                MENUITEM "Upload...",                   ID_SUBTITLEDATABASE_UPLOAD
+
+                MENUITEM "Download...",                 ID_SUBTITLEDATABASE_DOWNLOAD
+
+            END
             MENUITEM SEPARATOR
             MENUITEM "Prope&rties",                 ID_FILE_PROPERTIES
         END
