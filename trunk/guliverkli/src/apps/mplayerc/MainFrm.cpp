@@ -5884,7 +5884,7 @@ RemoveFromRot(m_dwRegister);
 
 	m_closingmsg = _T("Closed");
 
-	AfxGetAppSettings().nCLSwitches = CLSW_NONE;
+	AfxGetAppSettings().nCLSwitches &= CLSW_OPEN|CLSW_PLAY|CLSW_SHUTDOWN|CLSW_CLOSE;
 
 	m_iMediaLoadState = MLS_CLOSED;
 }
