@@ -21,6 +21,7 @@
 
 #include "StdAfx.h"
 #include "GSRendererSoft.h"
+#include "x86.h"
 
 template <class VERTEX>
 GSRendererSoft<VERTEX>::GSRendererSoft(HWND hWnd, HRESULT& hr)
@@ -433,11 +434,7 @@ void GSRendererSoft<VERTEX>::DrawVertex(int x, int y, VERTEX& v)
 		}
 	}
 
-#if _M_IX86_FP >= 2
-	SaturateColor(RGBAf);
-#else
 	SaturateColor(&Cf[0]);
-#endif
 
 	if(m_de.PRIM.FGE)
 	{
@@ -1154,7 +1151,7 @@ void GSRendererSoftFX::DrawVertex(int x, int y, GSSoftVertex& v)
 		}
 	}
 
-	__declspec(align(16)) union {struct {int Rf, Gf, Bf, Af;}; int Cf[4]; __m128i RGBAf;};
+	__declspec(align(16)) union {struct {int Rf, Gf, Bf, Af;}; int Cf[4];};
 	v.GetColor(Cf);
 
 	if(m_de.PRIM.TME)
@@ -1282,11 +1279,7 @@ void GSRendererSoftFX::DrawVertex(int x, int y, GSSoftVertex& v)
 		}
 	}
 
-#if _M_IX86_FP >= 2
-	SaturateColor(RGBAf);
-#else
 	SaturateColor(&Cf[0]);
-#endif
 
 	if(m_de.PRIM.FGE)
 	{

@@ -42,6 +42,11 @@ EXPORT_C_(UINT32) PS2EgetLibType()
 EXPORT_C_(char*) PS2EgetLibName()
 {
 	return "GSdx9"
+
+#if _M_AMD64
+	" 64-bit"
+#endif
+
 #if _M_IX86_FP >= 2
 	" (SSE2)";
 #elif _M_IX86_FP >= 1
@@ -54,10 +59,11 @@ static BYTE and_eax_ffff0000h_cmp_eax_30000h[] = {0x25, 0x00, 0x00, 0xFF, 0xFF, 
 static BYTE mov_ecx_eax_shr_ecx_10h_cmp_ecx_3[] = {0x8B, 0xC8, 0xC1, 0xE9, 0x10, 0x83, 0xF9, 0x03};
 static void* test_gs_lib_ver = NULL;
 
-EXPORT_C_(__declspec(naked) UINT32) PS2EgetLibVersion2(UINT32 type)
+//EXPORT_C_(__declspec(naked) UINT32) PS2EgetLibVersion2(UINT32 type)
+EXPORT_C_(UINT32) PS2EgetLibVersion2(UINT32 type)
 {
-//	return (PS2E_GS_VERSION<<16)|(0x00<<8)|PS2E_DLL_VERSION;
-
+	return (PS2E_GS_VERSION<<16)|(0x00<<8)|PS2E_DLL_VERSION;
+/*
 	__asm
 	{
 		mov eax, [esp]
@@ -88,6 +94,7 @@ EXPORT_C_(__declspec(naked) UINT32) PS2EgetLibVersion2(UINT32 type)
 		pop ebx
 		ret 4
 	}
+*/
 }
 
 EXPORT_C_(UINT32) PS2EgetCpuPlatform()
@@ -165,9 +172,7 @@ EXPORT_C GSwrite32(GS_REG mem, UINT32 value)
 
 EXPORT_C GSwrite64(GS_REG mem, UINT64 value)
 {
-	UINT64 start = rdtsc();
 	s_gs->Write64(mem, (GSReg*)&value);
-	UINT64 diff = rdtsc() - start;
 }
 
 EXPORT_C_(UINT32) GSread32(GS_REG mem)

@@ -22,6 +22,7 @@
 #pragma once
 
 #include "GS.h"
+#include "GSTables.h"
 
 __forceinline DWORD SwapRB(DWORD c)
 {
@@ -31,18 +32,6 @@ __forceinline DWORD SwapRB(DWORD c)
 class GSLocalMemory
 {
 protected:
-	static WORD blockTable32[4][8];
-	static WORD blockTable32Z[4][8];
-	static WORD blockTable16[8][4];
-	static WORD blockTable16S[8][4];
-	static WORD blockTable16Z[8][4];
-	static WORD blockTable16SZ[8][4];
-	static WORD blockTable8[4][8];
-	static WORD blockTable4[8][4];
-	static WORD columnTable32[8][8];
-	static WORD columnTable16[8][16];
-	static WORD columnTable8[16][16];
-	static WORD columnTable4[16][32];
 	static WORD pageOffset32[32][32][64];
 	static WORD pageOffset32Z[32][32][64];
 	static WORD pageOffset16[32][64][64];
@@ -221,11 +210,6 @@ public:
 
 	bool FillRect(CRect& r, DWORD c, DWORD psm, DWORD fbp, DWORD fbw);
 
-	void unSwizzleBlock32(BYTE* src, BYTE* dst, int dstpitch);
-	void unSwizzleBlock16(BYTE* src, BYTE* dst, int dstpitch);
-	void unSwizzleBlock8(BYTE* src, BYTE* dst, int dstpitch);
-	void unSwizzleBlock4(BYTE* src, BYTE* dst, int dstpitch);
-
 	// ARGB!
 	void unSwizzleTexture32(int tw, int th, BYTE* dst, int dstpitch, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
 	void unSwizzleTexture24(int tw, int th, BYTE* dst, int dstpitch, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
@@ -239,11 +223,6 @@ public:
 	void unSwizzleTextureX(int tw, int th, BYTE* dst, int dstpitch, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
 
 	unSwizzleTexture GetUnSwizzleTexture(DWORD psm);
-
-	void SwizzleBlock32(BYTE* dst, BYTE* src, int srcpitch, DWORD WriteMask = 0xffffffff);
-	void SwizzleBlock16(BYTE* dst, BYTE* src, int srcpitch);
-	void SwizzleBlock8(BYTE* dst, BYTE* src, int srcpitch);
-	void SwizzleBlock4(BYTE* dst, BYTE* src, int srcpitch);
 
 	void SwizzleTexture32(int& tx, int& ty, BYTE* src, int len, GIFRegBITBLTBUF& BITBLTBUF, GIFRegTRXPOS& TRXPOS, GIFRegTRXREG& TRXREG);
 	void SwizzleTexture24(int& tx, int& ty, BYTE* src, int len, GIFRegBITBLTBUF& BITBLTBUF, GIFRegTRXPOS& TRXPOS, GIFRegTRXREG& TRXREG);
