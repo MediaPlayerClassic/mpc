@@ -309,6 +309,9 @@
 				RelativePath=".\FontInstaller.cpp">
 			</File>
 			<File
+				RelativePath=".\MediaTypeEx.cpp">
+			</File>
+			<File
 				RelativePath="MediaTypes.cpp">
 			</File>
 			<File
@@ -359,6 +362,9 @@
 			</File>
 			<File
 				RelativePath=".\FontInstaller.h">
+			</File>
+			<File
+				RelativePath=".\MediaTypeEx.h">
 			</File>
 			<File
 				RelativePath="MediaTypes.h">

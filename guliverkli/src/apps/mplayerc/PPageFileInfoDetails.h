@@ -36,8 +36,6 @@ private:
 	HICON m_hIcon;
     
 	void InitEncoding();
-	CString GetVideoCodecName(const GUID& subtype, DWORD biCompression);
-	CString GetAudioCodecName(const GUID& subtype, WORD wFormatTag);
 
 public:
 	CPPageFileInfoDetails(CString fn, IFilterGraph* pFG, ISubPicAllocatorPresenter* pCAP);

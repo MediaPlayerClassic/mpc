@@ -348,12 +348,17 @@ BOOL CConvertDlg::OnInitDialog()
 	// EXCEPTION: OCX Property Pages should return FALSE
 }
 
+void CConvertDlg::OnOK()
+{
+}
+
 BEGIN_MESSAGE_MAP(CConvertDlg, CResizableDialog)
 	ON_MESSAGE(WM_GRAPHNOTIFY, OnGraphNotify)
 	ON_WM_DROPFILES()
 	ON_WM_CLOSE()
 	ON_NOTIFY(NM_CLICK, IDC_TREE1, OnNMClickTree1)
 	ON_NOTIFY(NM_RCLICK, IDC_TREE1, OnNMRclickTree1)
+	ON_NOTIFY(NM_DBLCLK, IDC_TREE1, OnNMDblclkTree1)
 	ON_BN_CLICKED(IDC_BUTTON1, OnBnClickedButton1)
 	ON_UPDATE_COMMAND_UI(IDC_BUTTON2, OnUpdateButton1)
 	ON_WM_TIMER()
@@ -363,7 +368,6 @@ BEGIN_MESSAGE_MAP(CConvertDlg, CResizableDialog)
 	ON_UPDATE_COMMAND_UI(IDC_BUTTON3, OnUpdateButton3)
 	ON_BN_CLICKED(IDC_BUTTON4, OnBnClickedButton4)
 	ON_UPDATE_COMMAND_UI(IDC_BUTTON4, OnUpdateButton4)
-ON_NOTIFY(NM_DBLCLK, IDC_TREE1, OnNMDblclkTree1)
 END_MESSAGE_MAP()
 
 // CConvertDlg message handlers
@@ -617,6 +621,80 @@ void CConvertDlg::OnUpdateButton4(CCmdUI* pCmdUI)
 	pCmdUI->Enable(m_pMC && SUCCEEDED(m_pMC->GetState(0, &fs)) && fs != State_Stopped);
 }
 
-void CConvertDlg::OnOK()
+//
+// CFilterTreeCtrl
+//
+
+CFilterTreeCtrl::CFilterTreeCtrl()
 {
+}
+
+void CFilterTreeCtrl::PreSubclassWindow()
+{
+	EnableToolTips(TRUE);
+
+	__super::PreSubclassWindow();
+}
+
+INT_PTR CFilterTreeCtrl::OnToolHitTest(CPoint p, TOOLINFO* pTI) const
+{
+	UINT nFlags;
+	HTREEITEM hTI = HitTest(p, &nFlags);
+	if(nFlags & TVHT_ONITEM)
+	{
+		CRect r;
+		GetItemRect(hTI, r, TRUE);
+		pTI->hwnd = m_hWnd;
+		pTI->uId = (UINT)hTI;
+		pTI->lpszText = LPSTR_TEXTCALLBACK;
+		pTI->rect = r;
+		return pTI->uId;
+	}
+	
+	return -1;
+}
+
+BEGIN_MESSAGE_MAP(CFilterTreeCtrl, CTreeCtrl)
+	ON_NOTIFY_EX_RANGE(TTN_NEEDTEXTW, 0, 0xFFFF, OnToolTipText)
+	ON_NOTIFY_EX_RANGE(TTN_NEEDTEXTA, 0, 0xFFFF, OnToolTipText)
+END_MESSAGE_MAP()
+
+BOOL CFilterTreeCtrl::OnToolTipText(UINT id, NMHDR* pNMHDR, LRESULT* pResult)
+{
+	TOOLTIPTEXTA* pTTTA = (TOOLTIPTEXTA*)pNMHDR;
+	TOOLTIPTEXTW* pTTTW = (TOOLTIPTEXTW*)pNMHDR;
+
+	UINT nID = pNMHDR->idFrom;
+
+	CString strTipText;
+	// Do not process the message from built in tooltip 
+	if( nID == (UINT)m_hWnd &&
+		(( pNMHDR->code == TTN_NEEDTEXTA && pTTTA->uFlags & TTF_IDISHWND ) ||
+		( pNMHDR->code == TTN_NEEDTEXTW && pTTTW->uFlags & TTF_IDISHWND ) ) )
+		return FALSE;
+
+	HTREEITEM hTI = (HTREEITEM)nID;
+
+	CTreeItem* pTI = (CTreeItem*)GetItemData(hTI);
+	if(!pTI) return FALSE;
+
+	CComQIPtr<IPin> pPin = pTI->pUnk;
+	if(!pPin) return FALSE;
+
+	CMediaTypeEx mt;
+	pPin->ConnectionMediaType(&mt);
+
+	static CStringA m_strTipTextA;
+	static CStringW m_strTipTextW;
+	
+	CString str = mt.ToString(pPin);
+	m_strTipTextA = str;
+	m_strTipTextW = str;
+
+	if(pNMHDR->code == TTN_NEEDTEXTA) pTTTA->lpszText = (LPSTR)(LPCSTR)m_strTipTextA;
+	else pTTTW->lpszText = (LPWSTR)(LPCWSTR)m_strTipTextW;
+
+	*pResult = 0;
+
+	return TRUE;    // message was handled
 }
