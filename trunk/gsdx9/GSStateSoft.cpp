@@ -23,16 +23,15 @@
 #include "GSStateSoft.h"
 
 GSStateSoft::GSStateSoft(HWND hWnd, HRESULT& hr)
-	: GSState(hWnd, hr)
+	: GSState(640, 512, hWnd, hr)
 {
-	if(FAILED(hr)) return;
 	m_pVertices = (GSSoftVertex*)_aligned_malloc(sizeof(GSSoftVertex) * (m_nMaxVertices = 256), 16);
 	Reset();
 
-	int i = -512;
-	for(; i < 0; i++) m_clip[i+512] = 0;
-	for(; i < 256; i++) m_clip[i+512] = i;
-	for(; i < 768; i++) m_clip[i+512] = 255;
+	int i = -512, j = 0;
+	for(; i < 0; i++, j++) m_clip[j] = 0, m_mask[j] = j&255;
+	for(; i < 256; i++, j++) m_clip[j] = i, m_mask[j] = j&255;
+	for(; i < 768; i++, j++) m_clip[j] = 255, m_mask[j] = j&255;
 }
 
 GSStateSoft::~GSStateSoft()
@@ -62,9 +61,11 @@ void GSStateSoft::VertexKick(bool fSkip)
 	GSDrawingContext* ctxt = &m_de.CTXT[m_de.PRIM.CTXT];
 
 	GSSoftVertex v;
-
+#ifdef FLOAT_SOFTVERTEX
 	v.x = ((float)m_v.XYZ.X - ctxt->XYOFFSET.OFX) / 16;
 	v.y = ((float)m_v.XYZ.Y - ctxt->XYOFFSET.OFY) / 16;
+	// v.x = (float)(m_v.XYZ.X>>4) - (ctxt->XYOFFSET.OFX>>4);
+	// v.y = (float)(m_v.XYZ.Y>>4) - (ctxt->XYOFFSET.OFY>>4);
 	v.z = (float)m_v.XYZ.Z / UINT_MAX;
 	v.q = m_v.RGBAQ.Q == 0 ? 1.0f : m_v.RGBAQ.Q;
 
@@ -89,7 +90,34 @@ void GSStateSoft::VertexKick(bool fSkip)
 			v.v = m_v.ST.T;
 		}
 	}
+#else
+	v.x = ((int)m_v.XYZ.X - ctxt->XYOFFSET.OFX) << 12;
+	v.y = ((int)m_v.XYZ.Y - ctxt->XYOFFSET.OFY) << 12;
+	v.z = (unsigned __int64)m_v.XYZ.Z << 32;
+	v.q = m_v.RGBAQ.Q == 0 ? INT_MAX : (__int64)(m_v.RGBAQ.Q * INT_MAX);
 
+	v.r = m_v.RGBAQ.R << 16;
+	v.g = m_v.RGBAQ.G << 16;
+	v.b = m_v.RGBAQ.B << 16;
+	v.a = m_v.RGBAQ.A << 16;
+
+	v.fog = m_v.FOG.F << 16;
+
+	if(m_de.PRIM.TME)
+	{
+		if(m_de.PRIM.FST)
+		{
+			v.u = (__int64)(((float)m_v.UV.U / (16<<ctxt->TEX0.TW)) * INT_MAX);
+			v.v = (__int64)(((float)m_v.UV.V / (16<<ctxt->TEX0.TH)) * INT_MAX);
+			v.q = INT_MAX;
+		}
+		else
+		{
+			v.u = (__int64)(m_v.ST.S * INT_MAX);
+			v.v = (__int64)(m_v.ST.T * INT_MAX);
+		}
+	}
+#endif
 	m_vl.AddTail(v);
 
 	static const int vmin[8] = {1, 2, 2, 3, 3, 3, 2, 0};
@@ -205,10 +233,15 @@ void GSStateSoft::DrawingKick(bool fSkip)
 	}
 
 	m_nVertices += nVertices;
-
+#ifdef FLOAT_SOFTVERTEX
 	if(!m_de.PRIM.IIP)
 		for(int i = 4; i < 8; i++)
 			pVertices[0].f[i] = pVertices[nVertices-1].f[i];
+#else
+	if(!m_de.PRIM.IIP)
+		for(int i = 4; i < 8; i++)
+			pVertices[0].dw[i] = pVertices[nVertices-1].dw[i];
+#endif
 /*
 	if(::GetAsyncKeyState(VK_SPACE)&0x80000000)
 	{
@@ -220,46 +253,63 @@ void GSStateSoft::DrawingKick(bool fSkip)
 
 void GSStateSoft::FlushPrim()
 {
-	if(m_nVertices == 0) return;
-
-	SetTexture();
-
-	DWORD nPrims = 0;
-	GSSoftVertex* pVertices = m_pVertices;
-
-	switch(m_primtype)
+	if(m_nVertices > 0)
 	{
-	case PRIM_SPRITE:
-		ASSERT(!(m_nVertices&3));
-		nPrims = m_nVertices / 4;
-		LOG((_T("FlushPrim(pt=%d, nVertices=%d, nPrims=%d)\n"), m_primtype, m_nVertices, nPrims));
-		for(int i = 0; i < nPrims; i++, pVertices += 4) DrawSprite(pVertices);
-		break;
-	case PRIM_TRIANGLE:
-		ASSERT(!(m_nVertices%3));
-		nPrims = m_nVertices / 3;
-		LOG((_T("FlushPrim(pt=%d, nVertices=%d, nPrims=%d)\n"), m_primtype, m_nVertices, nPrims));
-		for(int i = 0; i < nPrims; i++, pVertices += 3) DrawTriangle(pVertices);
-		break;
-	case PRIM_LINE: 
-		ASSERT(!(m_nVertices&1));
-		nPrims = m_nVertices / 2;
-		LOG((_T("FlushPrim(pt=%d, nVertices=%d, nPrims=%d)\n"), m_primtype, m_nVertices, nPrims));
-		for(int i = 0; i < nPrims; i++, pVertices += 2) DrawLine(pVertices);
-		break;
-	case PRIM_POINT:
-		nPrims = m_nVertices;
-		LOG((_T("FlushPrim(pt=%d, nVertices=%d, nPrims=%d)\n"), m_primtype, m_nVertices, nPrims));
-		for(int i = 0; i < nPrims; i++, pVertices++) DrawPoint(pVertices);
-		break;
-	default:
-		ASSERT(m_nVertices == 0);
-		return;
+		GSDrawingContext* ctxt = &m_de.CTXT[m_de.PRIM.CTXT];
+
+		SetTexture();
+#ifdef FLOAT_SOFTVERTEX
+		CRect scissor(
+			max(ctxt->SCISSOR.SCAX0, 0),
+			max(ctxt->SCISSOR.SCAY0, 0),
+			min(ctxt->SCISSOR.SCAX1+1, ctxt->FRAME.FBW * 64),
+			min(ctxt->SCISSOR.SCAY1+1, 4096));
+#else
+		CRect scissor(
+			max(ctxt->SCISSOR.SCAX0, 0)<<16,
+			max(ctxt->SCISSOR.SCAY0, 0)<<16,
+			min(ctxt->SCISSOR.SCAX1+1, ctxt->FRAME.FBW * 64)<<16,
+			min(ctxt->SCISSOR.SCAY1+1, 4096)<<16);
+#endif
+		m_clamp = (m_de.COLCLAMP.CLAMP ? m_clip : m_mask) + 512;
+
+		DWORD nPrims = 0;
+		GSSoftVertex* pVertices = m_pVertices;
+
+		switch(m_primtype)
+		{
+		case PRIM_SPRITE:
+			ASSERT(!(m_nVertices&3));
+			nPrims = m_nVertices / 4;
+			LOG((_T("FlushPrim(pt=%d, nVertices=%d, nPrims=%d)\n"), m_primtype, m_nVertices, nPrims));
+			for(int i = 0; i < nPrims; i++, pVertices += 4) DrawSprite(pVertices, scissor);
+			break;
+		case PRIM_TRIANGLE:
+			ASSERT(!(m_nVertices%3));
+			nPrims = m_nVertices / 3;
+			LOG((_T("FlushPrim(pt=%d, nVertices=%d, nPrims=%d)\n"), m_primtype, m_nVertices, nPrims));
+			for(int i = 0; i < nPrims; i++, pVertices += 3) DrawTriangle(pVertices, scissor);
+			break;
+		case PRIM_LINE: 
+			ASSERT(!(m_nVertices&1));
+			nPrims = m_nVertices / 2;
+			LOG((_T("FlushPrim(pt=%d, nVertices=%d, nPrims=%d)\n"), m_primtype, m_nVertices, nPrims));
+			for(int i = 0; i < nPrims; i++, pVertices += 2) DrawLine(pVertices, scissor);
+			break;
+		case PRIM_POINT:
+			nPrims = m_nVertices;
+			LOG((_T("FlushPrim(pt=%d, nVertices=%d, nPrims=%d)\n"), m_primtype, m_nVertices, nPrims));
+			for(int i = 0; i < nPrims; i++, pVertices++) DrawPoint(pVertices, scissor);
+			break;
+		default:
+			ASSERT(m_nVertices == 0);
+			return;
+		}
+
+		InvalidateTexture(ctxt->FRAME.FBP<<5);
+
+		m_stats.IncPrims(nPrims);
 	}
-
-	InvalidateTexture(m_de.CTXT[m_de.PRIM.CTXT].FRAME.FBP<<5);
-
-	m_stats.IncPrims(nPrims);
 
 	m_PRIM = 7;
 	m_primtype = PRIM_NONE;
@@ -324,7 +374,7 @@ void GSStateSoft::Flip()
 			for(int y = 0, diff = r.Pitch - tw*4; y < th; y++, dst += diff)
 				for(int x = 0; x < tw; x++, dst += 4)
 					*(DWORD*)dst = (m_lm.*readTexel)(x, y, TEX0, m_de.TEXA);
-
+/**/
 			rt[i].pRT->UnlockRect(0);
 		}
 	}
@@ -458,6 +508,13 @@ void GSStateSoft::Flip()
 
 void GSStateSoft::EndFrame()
 {
+	POSITION pos = m_tc.GetHeadPosition();
+	while(pos)
+	{
+		POSITION cur = pos;
+		if(++m_tc.GetNext(pos)->m_age > 2)
+			m_tc.RemoveAt(cur);
+	}
 }
 
 void GSStateSoft::InvalidateTexture(DWORD TBP0)
@@ -472,25 +529,45 @@ void GSStateSoft::InvalidateTexture(DWORD TBP0)
 	}
 }
 
-void GSStateSoft::DrawPoint(GSSoftVertex* v)
+void GSStateSoft::DrawPoint(GSSoftVertex* v, CRect& scissor)
 {
 	GSDrawingContext* ctxt = &m_de.CTXT[m_de.PRIM.CTXT];
 
-	int xmin = max(ctxt->SCISSOR.SCAX0, 0);
-	int xmax = min(ctxt->SCISSOR.SCAX1+1, ctxt->FRAME.FBW * 64);
-	int ymin = max(ctxt->SCISSOR.SCAY0, 0);
-	int ymax = min(ctxt->SCISSOR.SCAY1+1, 4096);
-
-	if(v->x >= xmin && v->x < xmax && v->y >= ymin && v->y < ymax)
-		DrawVertex((int)v->x, (int)v->y, *v);
+	CPoint p(v->x, v->y);
+	if(scissor.PtInRect(p))
+		DrawVertex(p.x, p.y, *v);
 }
-
-void GSStateSoft::DrawLine(GSSoftVertex* v)
+#ifdef FLOAT_SOFTVERTEX
+void GSStateSoft::DrawLine(GSSoftVertex* v, CRect& scissor)
 {
-	// TODO
+	GSDrawingContext* ctxt = &m_de.CTXT[m_de.PRIM.CTXT];
+
+	float dx = fabs(v[1].x - v[0].x);
+	float dy = fabs(v[1].y - v[0].y);
+
+	if(dx == 0 && dy == 0) return;
+
+	int f = dx > dy ? 0 : 1;
+
+	if(v[0].f[f] > v[1].f[f]) {GSSoftVertex tmp = v[0]; v[0] = v[1]; v[1] = tmp;}
+
+	GSSoftVertex edge = v[0];
+	GSSoftVertex dedge = (v[1] - v[0]) / (v[1].f[f] - v[0].f[f]);
+
+	if(v[0].x < scissor.left) v[0] += dedge * ((float)scissor.left - v[0].x);
+	if(v[1].x > scissor.right) v[1].x = (float)scissor.right;
+	if(v[0].y < scissor.top) v[0] += dedge * ((float)scissor.top - v[0].y);
+	if(v[1].y > scissor.bottom) v[1].y = (float)scissor.bottom;
+
+	int start = int(v[0].f[f]), end = int(v[1].f[f]);
+
+	for(; start < end; start++, edge += dedge)
+	{
+		DrawVertex(edge.x, edge.y, edge);
+	}
 }
 
-void GSStateSoft::DrawTriangle(GSSoftVertex* v)
+void GSStateSoft::DrawTriangle(GSSoftVertex* v, CRect& scissor)
 {
 	GSDrawingContext* ctxt = &m_de.CTXT[m_de.PRIM.CTXT];
 
@@ -499,11 +576,6 @@ void GSStateSoft::DrawTriangle(GSSoftVertex* v)
 	if(v[2].y < v[1].y)  {GSSoftVertex tmp = v[1]; v[1] = v[2]; v[2] = tmp;}
 
 	if(v[0].y >= v[2].y) return;
-
-	int xmin = max(ctxt->SCISSOR.SCAX0, 0);
-	int xmax = min(ctxt->SCISSOR.SCAX1+1, ctxt->FRAME.FBW * 64);
-	int ymin = max(ctxt->SCISSOR.SCAY0, 0);
-	int ymax = min(ctxt->SCISSOR.SCAY1+1, 4096);
 
 	float temp = (v[1].y - v[0].y) / (v[2].y - v[0].y);
 	float longest = temp * (v[2].x - v[0].x) + (v[0].x - v[1].x);
@@ -526,17 +598,18 @@ void GSStateSoft::DrawTriangle(GSSoftVertex* v)
 
 	for(int i = 0; i < 2; i++, v++)
 	{
-		int top = int(v[0].y), bottom = int(v[1].y);
+ 		int top = int(v[0].y), bottom = int(v[1].y);
+//		float top = v[0].y, bottom = v[1].y;
 
-		if(top < ymin)
+		if(top < scissor.top)
 		{
-			for(int i = 0; i < 2; i++) edge[i] += dedge[i] * (min(ymin, bottom) - top);
-			edge[0].y = edge[1].y = top = ymin;
+			for(int i = 0; i < 2; i++) edge[i] += dedge[i] * (min(scissor.top, bottom) - top);
+			edge[0].y = edge[1].y = top = scissor.top;
 		}
 
-		if(bottom > ymax)
+		if(bottom > scissor.bottom)
 		{
-			bottom = ymax;
+			bottom = scissor.bottom;
 		}
 
 		for(; top < bottom; top++)
@@ -544,16 +617,17 @@ void GSStateSoft::DrawTriangle(GSSoftVertex* v)
 			scan = edge[0];
 
 			int left = int(edge[0].x), right = int(edge[1].x);
+//			float left = edge[0].x, right = edge[1].x;
 
-			if(left < xmin)
+			if(left < scissor.left)
 			{
-				scan += dscan * (xmin - left);
-				scan.x = left = xmin;
+				scan += dscan * (scissor.left - left);
+				scan.x = left = scissor.left;
 			}
 
-			if(right > xmax)
+			if(right > scissor.right)
 			{
-				right = xmax;
+				right = scissor.right;
 			}
 
 			for(; left < right; left++)
@@ -574,7 +648,7 @@ void GSStateSoft::DrawTriangle(GSSoftVertex* v)
 	}
 }
 
-void GSStateSoft::DrawSprite(GSSoftVertex* v)
+void GSStateSoft::DrawSprite(GSSoftVertex* v, CRect& scissor)
 {
 	GSDrawingContext* ctxt = &m_de.CTXT[m_de.PRIM.CTXT];
 
@@ -582,11 +656,6 @@ void GSStateSoft::DrawSprite(GSSoftVertex* v)
 	if(v[1].x < v[0].x) {GSSoftVertex tmp = v[0]; v[0] = v[1]; v[1] = tmp; tmp = v[2]; v[2] = v[3]; v[3] = tmp;}
 
 	if(v[0].x == v[1].x || v[0].y == v[2].y) return;
-
-	int xmin = max(ctxt->SCISSOR.SCAX0, 0);
-	int xmax = min(ctxt->SCISSOR.SCAX1+1, ctxt->FRAME.FBW * 64);
-	int ymin = max(ctxt->SCISSOR.SCAY0, 0);
-	int ymax = min(ctxt->SCISSOR.SCAY1+1, 4096);
 
 	GSSoftVertex edge[2], dedge[2], scan, dscan;
 
@@ -600,16 +669,17 @@ void GSStateSoft::DrawSprite(GSSoftVertex* v)
 	edge[1] = v[1];
 
 	int top = int(v[0].y), bottom = int(v[2].y);
+//	float top = v[0].y, bottom = v[2].y;
 
-	if(top < ymin)
+	if(top < scissor.top)
 	{
-		for(int i = 0; i < 2; i++) edge[i] += dedge[i] * (min(ymin, bottom) - top);
-		edge[0].y = edge[1].y = top = ymin;
+		for(int i = 0; i < 2; i++) edge[i] += dedge[i] * (min(scissor.top, bottom) - top);
+		edge[0].y = edge[1].y = top = scissor.top;
 	}
 
-	if(bottom > ymax)
+	if(bottom > scissor.bottom)
 	{
-		bottom = ymax;
+		bottom = scissor.bottom;
 	}
 
 	for(; top < bottom; top++)
@@ -617,16 +687,17 @@ void GSStateSoft::DrawSprite(GSSoftVertex* v)
 		scan = edge[0];
 
 		int left = int(edge[0].x), right = int(edge[1].x);
+//		float left = edge[0].x, right = edge[1].x;
 
-		if(left < xmin)
+		if(left < scissor.left)
 		{
-			scan += dscan * (xmin - left);
-			scan.x = left = xmin;
+			scan += dscan * (scissor.left - left);
+			scan.x = left = scissor.left;
 		}
 
-		if(right > xmax)
+		if(right > scissor.right)
 		{
-			right = xmax;
+			right = scissor.right;
 		}
 
 		for(; left < right; left++)
@@ -644,16 +715,21 @@ void GSStateSoft::DrawVertex(int x, int y, GSSoftVertex& v)
 {
 	GSDrawingContext* ctxt = &m_de.CTXT[m_de.PRIM.CTXT];
 
+//x = v.x; y = v.y;
+
 	DWORD FBP = ctxt->FRAME.FBP<<5, FBW = ctxt->FRAME.FBW;
 
-	if(ctxt->TEST.ZTE && ctxt->TEST.ZTST != 1 && ctxt->rz)
+	if(ctxt->TEST.ZTE && ctxt->TEST.ZTST != 1)
 	{
 		if(ctxt->TEST.ZTST == 0)
 			return;
 
-		float z = (float)(m_lm.*ctxt->rz)(x, y, ctxt->ZBUF.ZBP<<5, FBW) / UINT_MAX;
-		if(ctxt->TEST.ZTST == 2 && v.z < z || ctxt->TEST.ZTST == 3 && v.z <= z)
-			return;
+		if(ctxt->rz)
+		{
+			float z = (float)(m_lm.*ctxt->rz)(x, y, ctxt->ZBUF.ZBP<<5, FBW) / UINT_MAX;
+			if(ctxt->TEST.ZTST == 2 && v.z < z || ctxt->TEST.ZTST == 3 && v.z <= z)
+				return;
+		}
 	}
 
 	if(ctxt->TEST.DATE && ctxt->FRAME.PSM <= PSM_PSMCT16S)
@@ -676,13 +752,12 @@ void GSStateSoft::DrawVertex(int x, int y, GSSoftVertex& v)
 		float tu = v.u / v.q * tw;
 		float tv = v.v / v.q * th;
 		
-		/* TODO
-		float lod = ctxt->TEX1.K;
-		if(!ctxt->TEX1.LCM) lod += log2(1/v.q) << ctxt->TEX1.L;
-		*/
+		// TODO
+		// float lod = ctxt->TEX1.K;
+		// if(!ctxt->TEX1.LCM) lod += log2(1/v.q) << ctxt->TEX1.L;
 
-		float ftu = modf(tu /*- 0.5f*/, &tu);
-		float ftv = modf(tv /*- 0.5f*/, &tv);
+		float ftu = modf(tu, &tu); // tu - 0.5f
+		float ftv = modf(tv, &tv); // tv - 0.5f
 
 		int itu[2] = {tu, tu+1};
 		int itv[2] = {tv, tv+1};
@@ -716,7 +791,7 @@ void GSStateSoft::DrawVertex(int x, int y, GSSoftVertex& v)
 		DWORD c[4];
 		WORD Bt, Gt, Rt, At;
 
-		/*if(ctxt->TEX1.MMAG&1) // FIXME*/
+		// if(ctxt->TEX1.MMAG&1) // FIXME
 		{
 			if(ftu < 0) ftu += 1;
 			if(ftv < 0) ftv += 1;
@@ -748,8 +823,8 @@ void GSStateSoft::DrawVertex(int x, int y, GSSoftVertex& v)
 			Rt = (WORD)(iuiv*((c[0]>>16)&0xff) + uiv*((c[1]>>16)&0xff) + iuv*((c[2]>>16)&0xff) + uv*((c[3]>>16)&0xff) + 0.5f);
 			At = (WORD)(iuiv*((c[0]>>24)&0xff) + uiv*((c[1]>>24)&0xff) + iuv*((c[2]>>24)&0xff) + uv*((c[3]>>24)&0xff) + 0.5f);
 		}
-		/*
-		else
+//		else 
+		if(0)
 		{
 			if(m_pTexture)
 			{
@@ -765,7 +840,6 @@ void GSStateSoft::DrawVertex(int x, int y, GSSoftVertex& v)
 			Rt = (BYTE)((c[0]>>16)&0xff);
 			At = (BYTE)((c[0]>>24)&0xff);
 		}
-		*/
 
 		switch(ctxt->TEX0.TFX)
 		{
@@ -863,20 +937,18 @@ void GSStateSoft::DrawVertex(int x, int y, GSSoftVertex& v)
 		Bf = ((B[ctxt->ALPHA.A] - B[ctxt->ALPHA.B]) * A[ctxt->ALPHA.C] >> 7) + B[ctxt->ALPHA.D];
 	}
 
-	if(m_de.COLCLAMP.CLAMP)
+	if(m_de.DTHE.DTHE)
 	{
-		Rf = m_clip[Rf+512];
-		Gf = m_clip[Gf+512];
-		Bf = m_clip[Bf+512];
-		Af = m_clip[Af+512];
+		WORD DMxy = (*((WORD*)&m_de.DIMX.i64 + (y&3)) >> ((x&3)<<2)) & 7;
+		Rf += DMxy;
+		Gf += DMxy;
+		Bf += DMxy;
 	}
-	else
-	{
-		Rf &= 0xff;
-		Gf &= 0xff;
-		Bf &= 0xff;
-		Af &= 0xff;
-	}
+
+	Rf = m_clamp[Rf];
+	Gf = m_clamp[Gf];
+	Bf = m_clamp[Bf];
+	Af = m_clamp[Af]; // ?
 
 	Af |= (ctxt->FBA.FBA << 7);
 
@@ -884,7 +956,400 @@ void GSStateSoft::DrawVertex(int x, int y, GSSoftVertex& v)
 
 	(m_lm.*ctxt->wf)(x, y, color, FBP, FBW);
 }
+#else
+void GSStateSoft::DrawLine(GSSoftVertex* v, CRect& scissor)
+{
+	GSDrawingContext* ctxt = &m_de.CTXT[m_de.PRIM.CTXT];
 
+	int dx = abs(v[1].x - v[0].x);
+	int dy = abs(v[1].y - v[0].y); 
+
+	if(dx == 0 && dy == 0) return;
+
+	int i = dx > dy ? 0 : 1;
+
+	if(v[0].dw[i] > v[1].dw[i]) {GSSoftVertex tmp = v[0]; v[0] = v[1]; v[1] = tmp;}
+
+	GSSoftVertex edge = v[0];
+	GSSoftVertex dedge = (v[1] - v[0]) / (v[1].dw[i] - v[0].dw[i]);
+
+	if(v[0].x < scissor.left) v[0] += dedge * (scissor.left - v[0].x);
+	if(v[1].x > scissor.right) v[1].x = scissor.right;
+	if(v[0].y < scissor.top) v[0] += dedge * (scissor.top - v[0].y);
+	if(v[1].y > scissor.bottom) v[1].y = scissor.bottom;
+
+	int start = v[0].dw[i]>>16, end = v[1].dw[i]>>16;
+
+	for(; start < end; start++, edge += dedge)
+	{
+		DrawVertex(edge.x, edge.y, edge);
+	}
+}
+
+void GSStateSoft::DrawTriangle(GSSoftVertex* v, CRect& scissor)
+{
+	GSDrawingContext* ctxt = &m_de.CTXT[m_de.PRIM.CTXT];
+
+	if(v[1].y < v[0].y) {GSSoftVertex tmp = v[0]; v[0] = v[1]; v[1] = tmp;}
+	if(v[2].y < v[0].y) {GSSoftVertex tmp = v[0]; v[0] = v[2]; v[2] = tmp;}
+	if(v[2].y < v[1].y)  {GSSoftVertex tmp = v[1]; v[1] = v[2]; v[2] = tmp;}
+
+	if(v[0].y >= v[2].y) return;
+
+	int temp = ((__int64)(v[1].y - v[0].y) << 16) / (v[2].y - v[0].y);
+	int longest = ((__int64)temp * (v[2].x - v[0].x) >> 16) + (v[0].x - v[1].x);
+
+	GSSoftVertex edge[2], dedge[2], scan, dscan;
+
+	int ledge, redge;
+	if(longest >= 0x10000) {ledge = 0; redge = 1;}
+	else if(longest <= -0x10000) {ledge = 1; redge = 0;}
+	else return;
+
+	memset(dedge, 0, sizeof(dedge));
+	if(v[1].y > v[0].y) dedge[ledge] = (v[1] - v[0]) / (v[1].y - v[0].y);
+	if(v[2].y > v[0].y) dedge[redge] = (v[2] - v[0]) / (v[2].y - v[0].y);
+
+	memset(&dscan, 0, sizeof(dscan));
+	dscan = ((v[2] - v[0]) * temp + (v[0] - v[1])) / longest;
+
+	edge[ledge] = edge[redge] = v[0];
+
+	for(int i = 0; i < 2; i++, v++)
+	{
+ 		int top = v[0].y, bottom = v[1].y;
+//		float top = v[0].y, bottom = v[1].y;
+
+		if(top < scissor.top)
+		{
+			for(int i = 0; i < 2; i++) edge[i] += dedge[i] * (min(scissor.top, bottom) - top);
+			edge[0].y = edge[1].y = top = scissor.top;
+		}
+
+		if(bottom > scissor.bottom)
+		{
+			bottom = scissor.bottom;
+		}
+
+		for(top >>= 16, bottom >>= 16; top < bottom; top++)
+		{
+			scan = edge[0];
+
+			int left = edge[0].x, right = edge[1].x;
+//			float left = edge[0].x, right = edge[1].x;
+
+			if(left < scissor.left)
+			{
+				scan += dscan * (scissor.left - left);
+				scan.x = left = scissor.left;
+			}
+
+			if(right > scissor.right)
+			{
+				right = scissor.right;
+			}
+
+			for(left >>= 16, right >>= 16; left < right; left++)
+			{
+				DrawVertex(left<<16, top<<16, scan);
+				scan += dscan;
+			}
+
+			edge[0] += dedge[0];
+			edge[1].x += dedge[1].x;
+		}
+
+		if(v[2].y > v[1].y)
+		{
+			edge[ledge] = v[1];
+			dedge[ledge] = (v[2] - v[1]) / (v[2].y - v[1].y);
+		}
+	}
+}
+
+void GSStateSoft::DrawSprite(GSSoftVertex* v, CRect& scissor)
+{
+	GSDrawingContext* ctxt = &m_de.CTXT[m_de.PRIM.CTXT];
+
+	if(v[2].y < v[0].y) {GSSoftVertex tmp = v[0]; v[0] = v[2]; v[2] = tmp; tmp = v[1]; v[1] = v[3]; v[3] = tmp;}
+	if(v[1].x < v[0].x) {GSSoftVertex tmp = v[0]; v[0] = v[1]; v[1] = tmp; tmp = v[2]; v[2] = v[3]; v[3] = tmp;}
+
+	if(v[0].x == v[1].x || v[0].y == v[2].y) return;
+
+	GSSoftVertex edge[2], dedge[2], scan, dscan;
+
+	memset(dedge, 0, sizeof(dedge));
+	for(int i = 0; i < 2; i++) dedge[i] = (v[i+2] - v[i]) / (v[i+2].y - v[i].y);
+
+	memset(&dscan, 0, sizeof(dscan));
+	dscan = (v[1] - v[0]) / (v[1].x - v[0].x);
+
+	edge[0] = v[0];
+	edge[1] = v[1];
+
+	int top = v[0].y, bottom = v[2].y;
+//	float top = v[0].y, bottom = v[2].y;
+
+	if(top < scissor.top)
+	{
+		for(int i = 0; i < 2; i++) edge[i] += dedge[i] * (min(scissor.top, bottom) - top);
+		edge[0].y = edge[1].y = top = scissor.top;
+	}
+
+	if(bottom > scissor.bottom)
+	{
+		bottom = scissor.bottom;
+	}
+
+	for(top >>= 16, bottom >>= 16; top < bottom; top++)
+	{
+		scan = edge[0];
+
+		int left = edge[0].x, right = edge[1].x;
+//		float left = edge[0].x, right = edge[1].x;
+
+		if(left < scissor.left)
+		{
+			scan += dscan * (scissor.left - left);
+			scan.x = left = scissor.left;
+		}
+
+		if(right > scissor.right)
+		{
+			right = scissor.right;
+		}
+
+		for(left >>= 16, right >>= 16; left < right; left++)
+		{
+			DrawVertex(left<<16, top<<16, scan);
+			scan += dscan;
+		}
+
+		edge[0] += dedge[0];
+		edge[1].x += dedge[1].x;
+	}
+}
+
+void GSStateSoft::DrawVertex(int x, int y, GSSoftVertex& v)
+{
+	GSDrawingContext* ctxt = &m_de.CTXT[m_de.PRIM.CTXT];
+
+	x >>= 16;
+	y >>= 16;
+
+	DWORD FBP = ctxt->FRAME.FBP<<5, FBW = ctxt->FRAME.FBW;
+
+	if(ctxt->TEST.ZTE && ctxt->TEST.ZTST != 1)
+	{
+		if(ctxt->TEST.ZTST == 0)
+			return;
+
+		if(ctxt->rz)
+		{
+			DWORD z = (m_lm.*ctxt->rz)(x, y, ctxt->ZBUF.ZBP<<5, FBW);
+			DWORD vz = v.z >> 32;
+			if(ctxt->TEST.ZTST == 2 && vz < z || ctxt->TEST.ZTST == 3 && vz <= z)
+				return;
+		}
+	}
+
+	if(ctxt->TEST.DATE && ctxt->FRAME.PSM <= PSM_PSMCT16S)
+	{
+		GSLocalMemory::readPixel rp = m_lm.GetReadPixel(ctxt->FRAME.PSM);
+		BYTE A = (m_lm.*rp)(x, y, FBP, FBW) >> (ctxt->FRAME.PSM == PSM_PSMCT32 ? 31 : 15);
+		if(A ^ ctxt->TEST.DATM) return;
+	}
+
+	int Rf = v.r>>16;
+	int Gf = v.g>>16;
+	int Bf = v.b>>16;
+	int Af = v.a>>16;
+
+	if(m_de.PRIM.TME)
+	{
+		int tw = 1 << ctxt->TEX0.TW;
+		int th = 1 << ctxt->TEX0.TH;
+
+		// TODO: clean up these last remaining floats
+
+		float tu = (float)v.u / v.q * tw;
+		float tv = (float)v.v / v.q * th;
+
+		float ftu = modf(tu, &tu);
+		float ftv = modf(tv, &tv);
+
+		int itu[2] = {tu, tu+1};
+		int itv[2] = {tv, tv+1};
+
+		for(int i = 0; i < countof(itu); i++)
+		{
+			switch(ctxt->CLAMP.WMS)
+			{
+			case 0: itu[i] = itu[i] & (tw-1); break;
+			case 1: itu[i] = itu[i] < 0 ? 0 : itu[i] >= tw ? itu[i] = tw-1 : itu[i]; break;
+			case 2: itu[i] = itu[i] < ctxt->CLAMP.MINU ? ctxt->CLAMP.MINU : itu[i] > ctxt->CLAMP.MAXU ? ctxt->CLAMP.MAXU : itu[i]; break;
+			case 3: itu[i] = (int(itu[i]) & ctxt->CLAMP.MINU) | ctxt->CLAMP.MAXU; break;
+			}
+
+			ASSERT(itu[i] >= 0 && itu[i] < tw);
+		}
+
+		for(int i = 0; i < countof(itv); i++)
+		{
+			switch(ctxt->CLAMP.WMT)
+			{
+			case 0: itv[i] = itv[i] & (th-1); break;
+			case 1: itv[i] = itv[i] < 0 ? 0 : itv[i] >= th ? itv[i] = th-1 : itv[i]; break;
+			case 2: itv[i] = itv[i] < ctxt->CLAMP.MINV ? ctxt->CLAMP.MINV : itv[i] > ctxt->CLAMP.MAXV ? ctxt->CLAMP.MAXV : itv[i]; break;
+			case 3: itv[i] = (int(itv[i]) & ctxt->CLAMP.MINV) | ctxt->CLAMP.MAXV; break;
+			}
+
+			ASSERT(itv[i] >= 0 && itv[i] < th);
+		}
+
+		DWORD c[4];
+		WORD Bt, Gt, Rt, At;
+
+		{
+			if(ftu < 0) ftu += 1;
+			if(ftv < 0) ftv += 1;
+			float iftu = 1.0f - ftu;
+			float iftv = 1.0f - ftv;
+
+			if(m_pTexture)
+			{
+				c[0] = m_pTexture[(itv[0] << ctxt->TEX0.TW) + itu[0]];
+				c[1] = m_pTexture[(itv[0] << ctxt->TEX0.TW) + itu[1]];
+				c[2] = m_pTexture[(itv[1] << ctxt->TEX0.TW) + itu[0]];
+				c[3] = m_pTexture[(itv[1] << ctxt->TEX0.TW) + itu[1]];
+			}
+			else
+			{
+				c[0] = (m_lm.*ctxt->rt)(itu[0], itv[0], ctxt->TEX0, m_de.TEXA);
+				c[1] = (m_lm.*ctxt->rt)(itu[1], itv[0], ctxt->TEX0, m_de.TEXA);
+				c[2] = (m_lm.*ctxt->rt)(itu[0], itv[1], ctxt->TEX0, m_de.TEXA);
+				c[3] = (m_lm.*ctxt->rt)(itu[1], itv[1], ctxt->TEX0, m_de.TEXA);
+			}
+
+			float iuiv = iftu*iftv;
+			float uiv = ftu*iftv;
+			float iuv = iftu*ftv;
+			float uv = ftu*ftv;
+
+			Bt = (WORD)(iuiv*((c[0]>> 0)&0xff) + uiv*((c[1]>> 0)&0xff) + iuv*((c[2]>> 0)&0xff) + uv*((c[3]>> 0)&0xff) + 0.5f);
+			Gt = (WORD)(iuiv*((c[0]>> 8)&0xff) + uiv*((c[1]>> 8)&0xff) + iuv*((c[2]>> 8)&0xff) + uv*((c[3]>> 8)&0xff) + 0.5f);
+			Rt = (WORD)(iuiv*((c[0]>>16)&0xff) + uiv*((c[1]>>16)&0xff) + iuv*((c[2]>>16)&0xff) + uv*((c[3]>>16)&0xff) + 0.5f);
+			At = (WORD)(iuiv*((c[0]>>24)&0xff) + uiv*((c[1]>>24)&0xff) + iuv*((c[2]>>24)&0xff) + uv*((c[3]>>24)&0xff) + 0.5f);
+		}
+
+		switch(ctxt->TEX0.TFX)
+		{
+		case 0:
+			Rf = Rf * Rt >> 7;
+			Gf = Gf * Gt >> 7;
+			Bf = Bf * Bt >> 7;
+			Af = ctxt->TEX0.TCC ? (Af * At >> 7) : Af;
+			break;
+		case 1:
+			Rf = Rt;
+			Gf = Gt;
+			Bf = Bt;
+			Af = At;
+			break;
+		case 2:
+			Rf = (Rf * Rt >> 7) + Af;
+			Gf = (Gf * Gt >> 7) + Af;
+			Bf = (Bf * Bt >> 7) + Af;
+			Af = ctxt->TEX0.TCC ? (Af + At) : Af;
+			break;
+		case 3:
+			Rf = (Rf * Rt >> 7) + Af;
+			Gf = (Gf * Gt >> 7) + Af;
+			Bf = (Bf * Bt >> 7) + Af;
+			Af = ctxt->TEX0.TCC ? At : Af;
+			break;
+		}
+
+		Rf = m_clip[Rf+512];
+		Gf = m_clip[Gf+512];
+		Bf = m_clip[Bf+512];
+		Af = m_clip[Af+512];
+	}
+
+	if(m_de.PRIM.FGE)
+	{
+		BYTE F = (BYTE)v.fog;
+		Rf = (F * Rf + (255 - F) * m_de.FOGCOL.FCR) >> 8;
+		Gf = (F * Gf + (255 - F) * m_de.FOGCOL.FCG) >> 8;
+		Bf = (F * Bf + (255 - F) * m_de.FOGCOL.FCB) >> 8;
+	}
+
+	BOOL ZMSK = ctxt->ZBUF.ZMSK;
+	DWORD FBMSK = ctxt->FRAME.FBMSK;
+
+	if(ctxt->TEST.ATE)
+	{
+		bool fPass = true;
+
+		switch(ctxt->TEST.ATST)
+		{
+		case 0: fPass = false; break;
+		case 1: fPass = true; break;
+		case 2: fPass = Af < ctxt->TEST.AREF; break;
+		case 3: fPass = Af <= ctxt->TEST.AREF; break;
+		case 4: fPass = Af == ctxt->TEST.AREF; break;
+		case 5: fPass = Af >= ctxt->TEST.AREF; break;
+		case 6: fPass = Af > ctxt->TEST.AREF; break;
+		case 7: fPass = Af != ctxt->TEST.AREF; break;
+		}
+
+		if(!fPass)
+		{
+			switch(ctxt->TEST.AFAIL)
+			{
+			case 0: return;
+			case 1: ZMSK = 1; break; // RGBA
+			case 2: FBMSK = 0xffffffff; break; // Z
+			case 3: FBMSK = 0xff000000; ZMSK = 1; break; // RGB
+			}
+		}
+	}
+
+	if(!ZMSK && ctxt->rz)
+	{
+		(m_lm.*ctxt->wz)(x, y, v.z >> 32, ctxt->ZBUF.ZBP<<5, FBW);
+	}
+
+	if((m_de.PRIM.ABE || (m_de.PRIM.PRIM == 1 || m_de.PRIM.PRIM == 2) && m_de.PRIM.AA1) && (!m_de.PABE.PABE || (Af&0x80)))
+	{
+		GIFRegTEX0 TEX0;
+		TEX0.TBP0 = FBP;
+		TEX0.TBW = FBW;
+		TEX0.TCC = ctxt->TEX0.TCC;
+		DWORD Cd = (m_lm.*ctxt->rp)(x, y, TEX0, m_de.TEXA);
+
+		BYTE R[3] = {Rf, (Cd>>16)&0xff, 0};
+		BYTE G[3] = {Gf, (Cd>>8)&0xff, 0};
+		BYTE B[3] = {Bf, (Cd>>0)&0xff, 0};
+		BYTE A[3] = {Af, (Cd>>24)&0xff, ctxt->ALPHA.FIX};
+
+		Rf = ((R[ctxt->ALPHA.A] - R[ctxt->ALPHA.B]) * A[ctxt->ALPHA.C] >> 7) + R[ctxt->ALPHA.D];
+		Gf = ((G[ctxt->ALPHA.A] - G[ctxt->ALPHA.B]) * A[ctxt->ALPHA.C] >> 7) + G[ctxt->ALPHA.D];
+		Bf = ((B[ctxt->ALPHA.A] - B[ctxt->ALPHA.B]) * A[ctxt->ALPHA.C] >> 7) + B[ctxt->ALPHA.D];
+	}
+
+	Rf = m_clamp[Rf];
+	Gf = m_clamp[Gf];
+	Bf = m_clamp[Bf];
+	Af = m_clamp[Af];
+
+	Af |= (ctxt->FBA.FBA << 7);
+
+	DWORD color = ((Af << 24) | (Bf << 16) | (Gf << 8) | (Rf << 0)) & ~FBMSK;
+
+	(m_lm.*ctxt->wf)(x, y, color, FBP, FBW);
+}
+#endif
 void GSStateSoft::SetTexture()
 {
 	GSDrawingContext* ctxt = &m_de.CTXT[m_de.PRIM.CTXT];

@@ -34,9 +34,8 @@ static const double log_2pow32 = log(2.0)*32;
 //
 
 GSStateHW::GSStateHW(HWND hWnd, HRESULT& hr)
-	: GSState(hWnd, hr)
+	: GSState(1024, 1024, hWnd, hr)
 {
-	if(FAILED(hr)) return;
 	m_pVertices = new CUSTOMVERTEX[m_nMaxVertices = 256];
 	Reset();
 }

@@ -309,7 +309,7 @@ protected:
 	void GIFRegHandlerLABEL(GIFReg* r);
 
 public:
-	GSState(HWND hWnd, HRESULT& hr);
+	GSState(int w, int h, HWND hWnd, HRESULT& hr);
 	virtual ~GSState();
 
 	BOOL m_fDisableShaders;
