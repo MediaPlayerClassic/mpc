@@ -1,21 +1,23 @@
-Microsoft Visual Studio Solution File, Format Version 7.00
+Microsoft Visual Studio Solution File, Format Version 8.00
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "vtsreader", "vtsreader.vcproj", "{664E726B-EEEE-403A-AC15-345D9C9E1375}"
+	ProjectSection(ProjectDependencies) = postProject
+		{1A2DFD1A-3C6C-44D1-909D-294AF646B575} = {1A2DFD1A-3C6C-44D1-909D-294AF646B575}
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "decss", "..\..\..\decss\decss.vcproj", "{1A2DFD1A-3C6C-44D1-909D-294AF646B575}"
+	ProjectSection(ProjectDependencies) = postProject
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfiguration) = preSolution
-		ConfigName.0 = Debug
-		ConfigName.1 = Debug lib
-		ConfigName.2 = Debug Unicode
-		ConfigName.3 = Debug Unicode lib
-		ConfigName.4 = Release
-		ConfigName.5 = Release lib
-		ConfigName.6 = Release Unicode
-		ConfigName.7 = Release Unicode lib
-	EndGlobalSection
-	GlobalSection(ProjectDependencies) = postSolution
-		{664E726B-EEEE-403A-AC15-345D9C9E1375}.0 = {1A2DFD1A-3C6C-44D1-909D-294AF646B575}
+		Debug = Debug
+		Debug lib = Debug lib
+		Debug Unicode = Debug Unicode
+		Debug Unicode lib = Debug Unicode lib
+		Release = Release
+		Release lib = Release lib
+		Release Unicode = Release Unicode
+		Release Unicode lib = Release Unicode lib
 	EndGlobalSection
 	GlobalSection(ProjectConfiguration) = postSolution
 		{664E726B-EEEE-403A-AC15-345D9C9E1375}.Debug.ActiveCfg = Debug|Win32

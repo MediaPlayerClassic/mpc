@@ -463,6 +463,9 @@
 			Name="Header Files"
 			Filter="h;hpp;hxx;hm;inl;inc">
 			<File
+				RelativePath=".\resource.h">
+			</File>
+			<File
 				RelativePath="stdafx.h">
 			</File>
 			<File
@@ -472,6 +475,9 @@
 		<Filter
 			Name="Resource Files"
 			Filter="rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe">
+			<File
+				RelativePath=".\vtsreader.rc">
+			</File>
 		</Filter>
 	</Files>
 	<Globals>

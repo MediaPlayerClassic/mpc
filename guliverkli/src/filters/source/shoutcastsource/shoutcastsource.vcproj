@@ -459,6 +459,9 @@
 			Name="Header Files"
 			Filter="h;hpp;hxx;hm;inl;inc">
 			<File
+				RelativePath=".\resource.h">
+			</File>
+			<File
 				RelativePath="ShoutcastSource.h">
 			</File>
 			<File
@@ -468,6 +471,9 @@
 		<Filter
 			Name="Resource Files"
 			Filter="rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe">
+			<File
+				RelativePath=".\shoutcastsource.rc">
+			</File>
 		</Filter>
 	</Files>
 	<Globals>

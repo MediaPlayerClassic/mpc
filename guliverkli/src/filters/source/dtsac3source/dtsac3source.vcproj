@@ -466,12 +466,18 @@
 				RelativePath="DTSAC3Source.h">
 			</File>
 			<File
+				RelativePath=".\resource.h">
+			</File>
+			<File
 				RelativePath="stdafx.h">
 			</File>
 		</Filter>
 		<Filter
 			Name="Resource Files"
 			Filter="rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe">
+			<File
+				RelativePath=".\dtsac3source.rc">
+			</File>
 		</Filter>
 	</Files>
 	<Globals>
