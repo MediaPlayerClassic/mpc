@@ -3,8 +3,8 @@
 
 #include "stdafx.h"
 #include "mplayerc.h"
-#include "ShaderEditorDlg.h"
 #include <d3dx9shader.h>
+#include "ShaderEditorDlg.h"
 #include ".\shadereditordlg.h"
 
 #undef SubclassWindow
@@ -100,7 +100,6 @@ BOOL CShaderEditorDlg::OnInitDialog()
 	AddAnchor(IDC_EDIT2, BOTTOM_LEFT, BOTTOM_RIGHT);
 
 	m_srcdata.SetTabStops(16);
-	m_srcdata.SetMargins(16, 4);
 
 	CRect r;
 	GetWindowRect(r);
