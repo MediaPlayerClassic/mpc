@@ -885,6 +885,9 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath=".\ShaderAutoCompleteDlg.cpp">
+			</File>
+			<File
 				RelativePath=".\ShaderEditorDlg.cpp">
 			</File>
 			<File
@@ -1532,6 +1535,9 @@
 					<Tool
 						Name="VCCustomBuildTool"/>
 				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\ShaderAutoCompleteDlg.h">
 			</File>
 			<File
 				RelativePath=".\ShaderEditorDlg.h">

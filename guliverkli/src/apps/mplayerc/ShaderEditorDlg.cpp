@@ -9,6 +9,7 @@
 
 #undef SubclassWindow
 
+
 // CShaderLabelComboBox
 
 BEGIN_MESSAGE_MAP(CShaderLabelComboBox, CComboBox)
@@ -33,6 +34,161 @@ void CShaderLabelComboBox::OnDestroy()
 		m_edit.UnsubclassWindow();
 
 	__super::OnDestroy();
+}
+
+// CShaderEdit
+
+CShaderEdit::CShaderEdit()
+{
+
+	m_acdlg.Create(CShaderAutoCompleteDlg::IDD, NULL);
+	m_acdlg.SetWindowPos(&wndTopMost, 0, 0, 0, 0, SWP_NOMOVE|SWP_NOSIZE);
+
+	m_nEndChar = -1;
+	m_nIDEvent = -1;
+}
+
+CShaderEdit::~CShaderEdit()
+{
+	m_acdlg.DestroyWindow();
+}
+
+BOOL CShaderEdit::PreTranslateMessage(MSG* pMsg)
+{
+	if(m_acdlg.IsWindowVisible() 
+		&& pMsg->message == WM_KEYDOWN 
+		&& (pMsg->wParam == VK_UP || pMsg->wParam == VK_DOWN
+		|| pMsg->wParam == VK_PRIOR || pMsg->wParam == VK_NEXT
+		|| pMsg->wParam == VK_RETURN || pMsg->wParam == VK_ESCAPE))
+	{
+		int i = m_acdlg.m_list.GetCurSel();
+
+		if(pMsg->wParam == VK_RETURN && i >= 0)
+		{
+			CString str;
+			m_acdlg.m_list.GetText(i, str);
+			i = str.Find('(')+1;
+			if(i > 0) str = str.Left(i);
+			
+			int nStartChar = 0, nEndChar = -1;
+			GetSel(nStartChar, nEndChar);
+
+			CString text;
+			GetWindowText(text);
+			while(nStartChar > 0 && _istalnum(text.GetAt(nStartChar-1)))
+				nStartChar--;
+
+			SetSel(nStartChar, nEndChar);
+			ReplaceSel(str, TRUE);
+		}
+		else if(pMsg->wParam == VK_ESCAPE)
+		{
+			m_acdlg.ShowWindow(SW_HIDE);
+		}
+		else
+		{
+			m_acdlg.m_list.SendMessage(pMsg->message, pMsg->wParam, pMsg->lParam);
+		}
+
+		return TRUE;
+	}
+
+	return __super::PreTranslateMessage(pMsg);
+}
+
+BEGIN_MESSAGE_MAP(CShaderEdit, CLineNumberEdit)
+	ON_CONTROL_REFLECT(EN_UPDATE, OnUpdate)
+	ON_WM_KILLFOCUS()
+	ON_WM_TIMER()
+END_MESSAGE_MAP()
+
+void CShaderEdit::OnUpdate()
+{
+	if(m_nIDEvent == -1)
+	{
+		m_nIDEvent = SetTimer(1, 100, NULL); 
+	}
+
+	CString text;
+	int nStartChar = 0, nEndChar = -1;
+	GetSel(nStartChar, nEndChar);
+
+	if(nStartChar == nEndChar)
+	{
+		GetWindowText(text);
+		while(nStartChar > 0 && _istalnum(text.GetAt(nStartChar-1)))
+			nStartChar--;
+	}
+
+	if(nStartChar < nEndChar)
+	{
+		text = text.Mid(nStartChar, nEndChar - nStartChar);
+		text.TrimRight('(');
+		text.MakeLower();
+
+		m_acdlg.m_list.ResetContent();
+
+		CString key, value;
+		POSITION pos = m_acdlg.m_inst.GetStartPosition();
+		while(pos)
+		{
+			POSITION cur = pos;
+			m_acdlg.m_inst.GetNextAssoc(pos, key, value);
+
+			if(key.Find(text) == 0)
+			{
+				CList<CString> sl;
+				Explode(value, sl, '|', 2);
+				if(sl.GetCount() != 2) continue;
+				CString name = sl.RemoveHead();
+				CString description = sl.RemoveHead();
+				int i = m_acdlg.m_list.AddString(name);
+				m_acdlg.m_list.SetItemDataPtr(i, cur);
+			}
+		}
+
+		if(m_acdlg.m_list.GetCount() > 0)
+		{
+			int lineheight = GetLineHeight();
+
+			CPoint p = PosFromChar(nStartChar);
+			p.y += lineheight;
+			ClientToScreen(&p);
+			CRect r(p, CSize(100, 100));
+
+			m_acdlg.MoveWindow(r);
+			m_acdlg.ShowWindow(SW_SHOWNOACTIVATE);
+
+			m_nEndChar = nEndChar;
+
+			return;
+		}
+	}
+
+	m_acdlg.ShowWindow(SW_HIDE);
+}
+
+void CShaderEdit::OnKillFocus(CWnd* pNewWnd)
+{
+	CString text;
+	GetWindowText(text);
+	__super::OnKillFocus(pNewWnd);
+	GetWindowText(text);
+
+	m_acdlg.ShowWindow(SW_HIDE);
+}
+
+void CShaderEdit::OnTimer(UINT nIDEvent)
+{
+	if(m_nIDEvent == nIDEvent)
+	{
+		int nStartChar = 0, nEndChar = -1;
+		GetSel(nStartChar, nEndChar);
+		if(nStartChar != nEndChar || m_nEndChar != nEndChar)
+			m_acdlg.ShowWindow(SW_HIDE);
+	}
+
+	__super::OnTimer(nIDEvent);
 }
 
 // CShaderEditorDlg dialog
@@ -167,6 +323,42 @@ BOOL CShaderEditorDlg::OnInitDialog()
 	// EXCEPTION: OCX Property Pages should return FALSE
 }
 
+BOOL CShaderEditorDlg::PreTranslateMessage(MSG* pMsg)
+{
+	if(pMsg->message == WM_KEYDOWN && pMsg->wParam == VK_RETURN
+		&& pMsg->hwnd == m_labels.m_edit.GetSafeHwnd())
+	{
+		CString label;
+		m_labels.GetWindowText(label);
+
+		shader_t s;
+		m_labels.SetCurSel(!m_shaders.Lookup(label, s) 
+			? m_labels.AddString(label) 
+			: m_labels.FindStringExact(0, label));
+
+		OnCbnSelchangeCombo1();
+        
+		return TRUE;
+	}
+	else if(pMsg->message == WM_KEYDOWN && pMsg->wParam == VK_TAB
+		&& pMsg->hwnd == m_srcdata.GetSafeHwnd())
+	{
+		int nStartChar, nEndChar;
+		m_srcdata.GetSel(nStartChar, nEndChar);
+
+		if(nStartChar == nEndChar)
+            m_srcdata.ReplaceSel(_T("\t"));
+
+		return TRUE;
+	}
+	else if(pMsg->message == WM_KEYDOWN && pMsg->wParam == VK_ESCAPE)
+	{
+		return TRUE;
+	}
+
+	return __super::PreTranslateMessage(pMsg);
+}
+
 void CShaderEditorDlg::OnCbnSelchangeCombo1()
 {
 	int i = m_labels.GetCurSel();
@@ -203,38 +395,6 @@ void CShaderEditorDlg::OnCbnSelchangeCombo1()
 		m_targets.SetWindowText(s.target);
 		m_srcdata.SetWindowText(s.srcdata);
 	}
-}
-
-BOOL CShaderEditorDlg::PreTranslateMessage(MSG* pMsg)
-{
-	if(pMsg->message == WM_KEYDOWN && pMsg->wParam == VK_RETURN
-	&& pMsg->hwnd == m_labels.m_edit.GetSafeHwnd())
-	{
-		CString label;
-		m_labels.GetWindowText(label);
-
-		shader_t s;
-		m_labels.SetCurSel(!m_shaders.Lookup(label, s) 
-			? m_labels.AddString(label) 
-			: m_labels.FindStringExact(0, label));
-
-		OnCbnSelchangeCombo1();
-        
-		return TRUE;
-	}
-	else if(pMsg->message == WM_KEYDOWN && pMsg->wParam == VK_TAB
-	&& pMsg->hwnd == m_srcdata.GetSafeHwnd())
-	{
-		int nStartChar, nEndChar;
-		m_srcdata.GetSel(nStartChar, nEndChar);
-
-		if(nStartChar == nEndChar)
-            m_srcdata.ReplaceSel(_T("\t"));
-
-		return TRUE;
-	}
-
-	return __super::PreTranslateMessage(pMsg);
 }
 
 void CShaderEditorDlg::OnBnClickedButton1()
@@ -409,3 +569,4 @@ BOOL CShaderEditorDlg::OnSetCursor(CWnd* pWnd, UINT nHitTest, UINT message)
 
 	return __super::OnSetCursor(pWnd, nHitTest, message);
 }
+
