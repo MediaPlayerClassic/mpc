@@ -27,6 +27,4 @@
 
 </div>
 
-{*<form><input type="text" /></form>*}
-
 <div id="content">

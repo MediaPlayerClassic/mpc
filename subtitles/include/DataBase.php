@@ -487,7 +487,7 @@ class SubtitlesDB extends DB
 	  KEY `subtitle_id` (`subtitle_id`)
 	) ENGINE=MyISAM DEFAULT CHARSET=utf8
 	
-	CREATE TABLE `mirrors` (
+	CREATE TABLE `mirror` (
 	  `id` bigint(20) NOT NULL auto_increment,
 	  `scheme` varchar(16) NOT NULL default '',
 	  `host` varchar(64) NOT NULL default '',
@@ -619,12 +619,12 @@ class SubtitlesDB extends DB
 		&& !ereg('192\.168\.[0-9]+\.[0-9]+', $db_host)
 		&& !ereg('10\.[0-9]+\.[0-9]+\.[0-9]+', $db_host))
 		{
-			$this->query("select id from mirrors where host = '$db_host'");
+			$this->query("select id from mirror where host = '$db_host'");
 			
 			if($row = $this->fetchRow())
 			{
 				$this->query(
-					"update mirrors set ".
+					"update mirror set ".
 					"scheme = '$db_scheme', host = '$db_host', port = $db_port, ".
 					"path = '$db_path', name = '$db_name', lastseen = NOW() ".
 					"where id = {$row['id']} ");
@@ -632,7 +632,7 @@ class SubtitlesDB extends DB
 			else
 			{
 				$this->query(
-					"insert into mirrors (scheme, host, port, path, name, lastseen) ".
+					"insert into mirror (scheme, host, port, path, name, lastseen) ".
 					"values ('$db_scheme', '$db_host', $db_port, '$db_path', '$db_name', NOW()) ");
 			}
 		}

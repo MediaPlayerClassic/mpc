@@ -16,7 +16,7 @@
 </div>
 {/if}
 
-<form action="{$smarty.server.PHP_SELF}" method="POST" enctype="multipart/form-data">
+<form action="{$smarty.server.PHP_SELF}" method="POST" accept-charset="utf-8" enctype="multipart/form-data">
 
 	<h1>Movie information</h1>
 	

@@ -41,7 +41,7 @@ function smarty_modifier_truncate_mid($string, $length = 80)
     if(strlen($string) <= $length) return $string;
     
     $n = ($length-1)/2;
-    $string = substr($string, 0, $n)."..".substr($string, strlen($string) - $n);
+    $string = substr($string, 0, $n)."...".substr($string, strlen($string) - $n);
     return $string;        
 }
 
