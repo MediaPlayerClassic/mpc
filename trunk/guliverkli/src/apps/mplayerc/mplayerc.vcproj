@@ -489,6 +489,9 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath=".\LineNumberEdit.cpp">
+			</File>
+			<File
 				RelativePath=".\MacrovisionKicker.cpp">
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
@@ -1129,6 +1132,9 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath=".\LineNumberEdit.h">
+			</File>
+			<File
 				RelativePath=".\MacrovisionKicker.h">
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
@@ -1599,9 +1605,6 @@
 			</File>
 			<File
 				RelativePath=".\res\authhdrpic.bmp">
-			</File>
-			<File
-				RelativePath=".\res\bmp00001.bmp">
 			</File>
 			<File
 				RelativePath="res\icon.ico">

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "..\..\subpic\ISubPic.h"
-#include "afxwin.h"
+#include "LineNumberEdit.h"
 
 
 // Q174667
@@ -40,7 +40,7 @@ public:
 	enum { IDD = IDD_SHADEREDITORDIALOG };
 	CShaderLabelComboBox m_labels;
 	CComboBox m_targets;
-	CEdit m_srcdata;
+	CLineNumberEdit m_srcdata;
 	CEdit m_output;
 
 protected:
