@@ -179,7 +179,7 @@ HRESULT CMatroskaSourceFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 
 	m_pFile.Free();
 	m_mapTrackToPin.RemoveAll();
-	m_mapTrackToTrackEntry.RemoveAll();
+	m_mapTrackToTrackEntry.RemoveAll(); 
 
 	m_pFile.Attach(new CMatroskaFile(pAsyncReader, hr));
 	if(!m_pFile) return E_OUTOFMEMORY;
@@ -194,8 +194,6 @@ HRESULT CMatroskaSourceFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 		while(pos2)
 		{
 			TrackEntry* pTE = pT->TrackEntries.GetNext(pos2);
-
-//			UINT64 maxlen = 0;
 
 			CStringA CodecID(pTE->CodecID);
 
@@ -217,8 +215,10 @@ HRESULT CMatroskaSourceFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 					mt.subtype = FOURCCMap(pbmi->biCompression);
 					mt.formattype = FORMAT_VideoInfo;
 					VIDEOINFOHEADER* pvih = (VIDEOINFOHEADER*)mt.AllocFormatBuffer(sizeof(VIDEOINFOHEADER) + pTE->CodecPrivate.GetCount() - sizeof(BITMAPINFOHEADER));
-					memset(pvih, 0, sizeof(VIDEOINFOHEADER));
+					memset(pvih, 0, mt.FormatLength());
 					memcpy(&pvih->bmiHeader, pbmi, pTE->CodecPrivate.GetCount());
+					if(pTE->v.DefaultDuration > 0) 
+						pvih->AvgTimePerFrame = (REFERENCE_TIME)(10000000i64 / pTE->v.DefaultDuration);
 					switch(pbmi->biCompression)
 					{
 					case BI_RGB: case BI_BITFIELDS: mt.subtype = 
@@ -232,6 +232,18 @@ HRESULT CMatroskaSourceFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 					}
 					mt.SetSampleSize(pvih->bmiHeader.biWidth*pvih->bmiHeader.biHeight*4);
 					mts.Add(mt);
+
+					if(pTE->v.DisplayWidth != 0 && pTE->v.DisplayHeight != 0)
+					{
+						BITMAPINFOHEADER tmp = pvih->bmiHeader;
+						mt.formattype = FORMAT_VideoInfo2;
+						VIDEOINFOHEADER2* pvih2 = (VIDEOINFOHEADER2*)mt.ReallocFormatBuffer(sizeof(VIDEOINFOHEADER2) + pTE->CodecPrivate.GetCount() - sizeof(BITMAPINFOHEADER));
+						memset(pvih2, 0, mt.FormatLength());
+						pvih2->bmiHeader = tmp;
+						pvih2->dwPictAspectRatioX = (DWORD)pTE->v.DisplayWidth;
+						pvih2->dwPictAspectRatioY = (DWORD)pTE->v.DisplayHeight;
+						mts.InsertAt(0, mt);
+					}
 				}
 				else if(CodecID == "V_UNCOMPRESSED")
 				{
@@ -404,6 +416,10 @@ HRESULT CMatroskaSourceFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 			m_pOutputs.AddTail(pPinOut);
 		}
 	}
+
+	Info& info = m_pFile->m_segment.SegmentInfo;
+	m_rtNewStart = m_rtCurrent = 0;
+	m_rtNewStop = (REFERENCE_TIME)(info.Duration*info.TimeCodeScale/100);
 
 	return S_OK;
 }
@@ -843,10 +859,6 @@ HRESULT CMatroskaSourceFilter::CompleteConnect(PIN_DIRECTION dir, CBasePin* pPin
 		if(FAILED(hr = pIn->GetAsyncReader(&pAsyncReader))
 		|| FAILED(hr = CreateOutputs(pAsyncReader)))
 			return hr;
-
-		Info& info = m_pFile->m_segment.SegmentInfo;
-		m_rtNewStart = m_rtCurrent = 0;
-		m_rtNewStop = (REFERENCE_TIME)(info.Duration*info.TimeCodeScale/100);
 	}
 	else if(dir == PINDIR_OUTPUT)
 	{
