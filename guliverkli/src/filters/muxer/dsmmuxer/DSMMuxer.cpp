@@ -201,7 +201,7 @@ void CDSMMuxerFilter::MuxHeader(IBitStream* pBS)
 	CInterfaceList<IDSMResourceBag> pRBs;
 	pRBs.AddTail(this);
 
-	CComQIPtr<IAMExtendedSeeking, &IID_IAMExtendedSeeking> pAMES;
+	CComQIPtr<IDSMChapterBag> pCB = (IUnknown*)(INonDelegatingUnknown*)this;
 
 	pos = m_pPins.GetHeadPosition();
 	while(pos)
@@ -216,7 +216,7 @@ void CDSMMuxerFilter::MuxHeader(IBitStream* pBS)
 
 			if(m_fAutoChap)
 			{
-				if(!pAMES) pAMES = GetFilterFromPin(pPin);
+				if(!pCB || pCB->ChapGetCount() == 0) pCB = GetFilterFromPin(pPin);				
 			}
 		}
 	}
@@ -260,39 +260,41 @@ void CDSMMuxerFilter::MuxHeader(IBitStream* pBS)
 
 	// chapters
 
-	if(pAMES)
+	if(pCB)
 	{
-		long MarkerCount = 0;
-		if(SUCCEEDED(pAMES->get_MarkerCount(&MarkerCount)) && MarkerCount > 0)
+		CList<CDSMChapter> chapters;
+		REFERENCE_TIME rtPrev = 0;
+		int len = 0;
+
+		pCB->ChapSort();
+
+		for(DWORD i = 0; i < pCB->ChapGetCount(); i++)
 		{
-			CSimpleMap<REFERENCE_TIME, CStringA> m_chapters;
-			REFERENCE_TIME rtPrev = 0;
-			int len = 0;
-
-			for(int i = 1; i <= MarkerCount; i++)
+			CDSMChapter c;
+			CComBSTR name;
+			if(SUCCEEDED(pCB->ChapGet(i, &c.rt, &name)))
 			{
-				double MarkerTime;
-				CComBSTR MarkerName;
-				if(SUCCEEDED(pAMES->GetMarkerTime(i, &MarkerTime)) && SUCCEEDED(pAMES->GetMarkerName(i, &MarkerName)))
-				{
-					REFERENCE_TIME rt = (REFERENCE_TIME)(MarkerTime*10000000), rtDiff = rt - rtPrev; rtPrev = rt;
-					CStringA name = UTF16To8(MarkerName);
-					m_chapters.Add(rtDiff, name);
-					len += 1 + GetByteLength(myabs(rtDiff)) + name.GetLength()+1;
-				}
+				REFERENCE_TIME rtDiff = c.rt - rtPrev; rtPrev = c.rt; c.rt = rtDiff;
+				c.name = name;
+				len += 1 + GetByteLength(myabs(c.rt)) + UTF16To8(c.name).GetLength()+1;
+				chapters.AddTail(c);
 			}
+		}
 
+		if(chapters.GetCount())
+		{
 			MuxPacketHeader(pBS, DSMP_CHAPTERS, len);
 
-			for(int i = 0; i < m_chapters.GetSize(); i++)
+			pos = chapters.GetHeadPosition();
+			while(pos)
 			{
-				REFERENCE_TIME rt = m_chapters.GetKeyAt(i);
-				CStringA name = m_chapters.GetValueAt(i);
-				int irt = GetByteLength(myabs(rt));
-				pBS->BitWrite(rt < 0, 1);
+				CDSMChapter& c = chapters.GetNext(pos);
+				CStringA name = UTF16To8(c.name);
+				int irt = GetByteLength(myabs(c.rt));
+				pBS->BitWrite(c.rt < 0, 1);
 				pBS->BitWrite(irt, 3);
 				pBS->BitWrite(0, 4);
-				pBS->BitWrite(myabs(rt), irt<<3);
+				pBS->BitWrite(myabs(c.rt), irt<<3);
 				pBS->ByteWrite((LPCSTR)name, name.GetLength()+1);
 			}
 		}

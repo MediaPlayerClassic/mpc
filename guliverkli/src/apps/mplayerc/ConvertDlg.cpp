@@ -328,6 +328,7 @@ void CConvertDlg::ShowResourceFolderPopup(HTREEITEM hTI, CPoint p)
 					{
 						fseek(f, 0, 2);
 						long size = ftell(f);
+						fseek(f, 0, 0);
 						t->m_res.data.SetSize(size);
 						for(BYTE* ptr = t->m_res.data.GetData(),* end = ptr + size; 
 							size > 0 && end - ptr >= size && fread(ptr, min(size, 1024), 1, f) > 0; 
@@ -361,7 +362,7 @@ void CConvertDlg::ShowResourcePopup(HTREEITEM hTI, CPoint p)
 	m.CreatePopupMenu();
 
 	int i = 1;
-	m.AppendMenu(MF_STRING, i++, t->m_fEnabled ? _T("Disable") : _T("Enable"));
+	m.AppendMenu(MF_STRING, i++, _T("Remove"));
 	m.AppendMenu(MF_STRING, i++, _T("Save As..."));
 	m.AppendMenu(MF_SEPARATOR);
 	m.AppendMenu(MF_STRING, i++, _T("Resource Properties..."));
@@ -369,8 +370,7 @@ void CConvertDlg::ShowResourcePopup(HTREEITEM hTI, CPoint p)
 	switch((int)m.TrackPopupMenu(TPM_LEFTBUTTON|TPM_RETURNCMD, p.x, p.y, this))
 	{
 	case 1:
-		t->m_fEnabled = !t->m_fEnabled;
-		t->Update();
+		DeleteItem(*t);
 		break;
 	case 2:
 		{
@@ -1133,7 +1133,6 @@ bool CConvertDlg::CTreeItemResourceFolder::ToolTip(CString& str)
 
 CConvertDlg::CTreeItemResource::CTreeItemResource(const CDSMResource& res, CTreeCtrl& tree, HTREEITEM hTIParent)
 	: CTreeItem(tree, hTIParent)
-	, m_fEnabled(true)
 {
 	m_res = res;
 	Update();
@@ -1141,9 +1140,7 @@ CConvertDlg::CTreeItemResource::CTreeItemResource(const CDSMResource& res, CTree
 
 void CConvertDlg::CTreeItemResource::Update()
 {
-	CString label = CString(m_res.name);
-	if(!m_fEnabled) label = _T("[D] ") + label;
-	SetLabel(label);
+	SetLabel(CString(m_res.name));
 
 	CStringW mime = m_res.mime;
 	mime.Trim();
