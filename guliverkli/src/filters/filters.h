@@ -37,3 +37,4 @@
 #include ".\parser\AviSplitter\AviSplitter.h"
 #include ".\parser\RadGtSplitter\RadGtSplitter.h"
 #include ".\parser\RoQSplitter\RoQSplitter.h"
+#include ".\parser\OggSplitter\OggSplitter.h"

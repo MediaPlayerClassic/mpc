@@ -271,8 +271,6 @@ HRESULT CRealMediaSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 {
 	CheckPointer(pAsyncReader, E_POINTER);
 
-	if(m_pOutputs.GetCount() > 0) return VFW_E_ALREADY_CONNECTED;
-
 	{
 		DWORD dw;
 		if(FAILED(pAsyncReader->SyncRead(0, 4, (BYTE*)&dw)) || dw != 'FMR.')
@@ -282,7 +280,6 @@ HRESULT CRealMediaSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 	HRESULT hr = E_FAIL;
 
 	m_pFile.Free();
-	m_pPinMap.RemoveAll();
 
 	m_pFile.Attach(new CRMFile(pAsyncReader, hr));
 	if(!m_pFile) return E_OUTOFMEMORY;
@@ -439,13 +436,10 @@ HRESULT CRealMediaSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 		HRESULT hr;
 
 		CAutoPtr<CBaseSplitterOutputPin> pPinOut(new CRealMediaSplitterOutputPin(mts, name, this, this, &hr));
-		if(pPinOut)
+		if(SUCCEEDED(AddOutputPin((DWORD)pmp->stream, pPinOut)))
 		{
 			if(!m_rtStop)
 				m_pFile->m_p.tDuration = max(m_pFile->m_p.tDuration, pmp->tDuration);
-
-			m_pPinMap[(DWORD)pmp->stream] = pPinOut;
-			m_pOutputs.AddTail(pPinOut);
 		}
 	}
 

@@ -205,12 +205,9 @@ HRESULT CAviSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 {
 	CheckPointer(pAsyncReader, E_POINTER);
 
-	if(m_pOutputs.GetCount() > 0) return VFW_E_ALREADY_CONNECTED;
-
 	HRESULT hr = E_FAIL;
 
 	m_pFile.Free();
-	m_pPinMap.RemoveAll();
 
 	m_tFrame.Free();
 	m_tSize.Free();
@@ -345,11 +342,7 @@ HRESULT CAviSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 		HRESULT hr;
 
 		CAutoPtr<CBaseSplitterOutputPin> pPinOut(new CAviSplitterOutputPin(mts, name, this, this, &hr));
-		if(pPinOut)
-		{
-			m_pPinMap[i] = pPinOut;
-			m_pOutputs.AddTail(pPinOut);
-		}
+		AddOutputPin(i, pPinOut);
 	}
 
 	{

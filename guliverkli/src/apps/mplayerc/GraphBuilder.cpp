@@ -218,6 +218,15 @@ CGraphBuilder::CGraphBuilder(IGraphBuilder* pGB, HWND hWnd)
 	}
 
 	{
+		guids.AddTail(MEDIATYPE_Stream);
+		guids.AddTail(MEDIASUBTYPE_Ogg);
+		AddFilter(new CGraphCustomFilter(__uuidof(COggSplitterFilter), guids, 
+			(s.SrcFilters&SRC_OGG) ? L"Ogg Splitter" : L"Ogg Splitter (low merit)",
+			(s.SrcFilters&SRC_OGG) ? LMERIT_ABOVE_DSHOW : LMERIT_DO_USE));
+		guids.RemoveAll();
+	}
+
+	{
 		guids.AddTail(MEDIATYPE_Video);
 		guids.AddTail(MEDIASUBTYPE_MPEG1Packet);
 		guids.AddTail(MEDIATYPE_Video);
@@ -1693,6 +1702,7 @@ HRESULT CGraphCustomFilter::Create(IBaseFilter** ppBF, IUnknown** ppUnk)
 		m_clsid == __uuidof(CAviSplitterFilter) ? (IBaseFilter*)new CAviSplitterFilter(NULL, &hr) :
 		m_clsid == __uuidof(CRadGtSplitterFilter) ? (IBaseFilter*)new CRadGtSplitterFilter(NULL, &hr) :
 		m_clsid == __uuidof(CRoQSplitterFilter) ? (IBaseFilter*)new CRoQSplitterFilter(NULL, &hr) :
+		m_clsid == __uuidof(COggSplitterFilter) ? (IBaseFilter*)new COggSplitterFilter(NULL, &hr) :
 		m_clsid == __uuidof(CMpeg2DecFilter) ? (IBaseFilter*)new CMpeg2DecFilter(NULL, &hr) :
 		m_clsid == __uuidof(CMpaDecFilter) ? (IBaseFilter*)new CMpaDecFilter(NULL, &hr) :
 		m_clsid == __uuidof(CNullVideoRenderer) ? (IBaseFilter*)new CNullVideoRenderer() :

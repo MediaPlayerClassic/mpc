@@ -203,8 +203,6 @@ HRESULT CRoQSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 {
 	CheckPointer(pAsyncReader, E_POINTER);
 
-	if(m_pOutputs.GetCount() > 0) return VFW_E_ALREADY_CONNECTED;
-
 	HRESULT hr = E_FAIL;
 
 	m_pAsyncReader = pAsyncReader;
@@ -268,12 +266,7 @@ HRESULT CRoQSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 				mts.Add(mt);
 
 				CAutoPtr<CBaseSplitterOutputPin> pPinOut(new CBaseSplitterOutputPin(mts, L"Video", this, this, &hr));
-
-				if(pPinOut)
-				{
-					m_pPinMap[0] = pPinOut;
-					m_pOutputs.AddTail(pPinOut);
-				}
+				AddOutputPin(0, pPinOut);
 			}
 
 			if(rc.id == 0x1002)
@@ -308,11 +301,7 @@ HRESULT CRoQSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 				mts.Add(mt);
 
 				CAutoPtr<CBaseSplitterOutputPin> pPinOut(new CBaseSplitterOutputPin(mts, L"Audio", this, this, &hr));
-				if(pPinOut)
-				{
-					m_pPinMap[1] = pPinOut;
-					m_pOutputs.AddTail(pPinOut);
-				}
+				AddOutputPin(1, pPinOut);
 			}
 
 			iHasAudio++;

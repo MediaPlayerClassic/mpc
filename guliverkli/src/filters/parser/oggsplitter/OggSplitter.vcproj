@@ -3,7 +3,7 @@
 	ProjectType="Visual C++"
 	Version="7.10"
 	Name="OggSplitter"
-	ProjectGUID="{7FE0A205-3F39-4ac3-BC3C-C2D9E4D02475}"
+	ProjectGUID="{7FE0A205-3F39-4AC3-BC3C-C2D9E4D02475}"
 	Keyword="Win32Proj">
 	<Platforms>
 		<Platform

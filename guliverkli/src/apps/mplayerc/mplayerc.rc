@@ -876,39 +876,41 @@ FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
     GROUPBOX        "Enabled built-in filters",IDC_STATIC,6,5,252,180
     CONTROL         "Avi Splitter",IDC_CHECK_AVI,"Button",BS_AUTOCHECKBOX | 
-                    WS_TABSTOP,18,23,51,10
+                    WS_TABSTOP,18,22,51,10
     CONTROL         "Matroska Splitter",IDC_CHECK_MATROSKA,"Button",
                     BS_AUTOCHECKBOX | WS_TABSTOP,18,36,70,10
     CONTROL         "RealMedia Splitter",IDC_CHECK_RM,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,18,51,73,10
+                    BS_AUTOCHECKBOX | WS_TABSTOP,18,50,73,10
     CONTROL         "RealVideo Decoder",IDC_CHECK_RV,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,18,65,76,10
+                    BS_AUTOCHECKBOX | WS_TABSTOP,18,64,76,10
     CONTROL         "RealAudio Decoder",IDC_CHECK_RA,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,18,79,77,10
+                    BS_AUTOCHECKBOX | WS_TABSTOP,18,78,77,10
     CONTROL         "MPEG-1 Video Decoder",IDC_CHECK_MPG1,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,18,93,89,10
+                    BS_AUTOCHECKBOX | WS_TABSTOP,18,92,89,10
     CONTROL         "MPEG-2 Video Decoder",IDC_CHECK_MPG2,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,18,107,89,10
+                    BS_AUTOCHECKBOX | WS_TABSTOP,18,106,89,10
     CONTROL         "MPEG Audio Decoder",IDC_CHECK_MPA,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,18,121,83,10
+                    BS_AUTOCHECKBOX | WS_TABSTOP,18,120,83,10
+    CONTROL         "Ogg Splitter",IDC_CHECK_OGG,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,18,134,54,10
     CONTROL         "Audio CD Reader",IDC_CHECK_CDDA,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,122,23,71,10
+                    BS_AUTOCHECKBOX | WS_TABSTOP,122,22,71,10
     CONTROL         "VCD/SVCD/XCD Reader",IDC_CHECK_CDXA,"Button",
                     BS_AUTOCHECKBOX | WS_TABSTOP,122,36,91,10
     CONTROL         "DVD Video Title Set Reader",IDC_CHECK_VTS,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,122,51,102,10
+                    BS_AUTOCHECKBOX | WS_TABSTOP,122,50,102,10
     CONTROL         "FLI/FLC Decoder",IDC_CHECK_FLIC,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,122,65,69,10
+                    BS_AUTOCHECKBOX | WS_TABSTOP,122,64,69,10
     CONTROL         "DVD2AVI Project File Decoder",IDC_CHECK_D2V,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,122,79,111,10
+                    BS_AUTOCHECKBOX | WS_TABSTOP,122,78,111,10
     CONTROL         "DTS/AC3 Parser",IDC_CHECK_DTSAC3,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,122,93,67,10
+                    BS_AUTOCHECKBOX | WS_TABSTOP,122,92,67,10
     CONTROL         "SHOUTcast Receiver",IDC_CHECK_SHOUTCAST,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,122,107,82,10
+                    BS_AUTOCHECKBOX | WS_TABSTOP,122,106,82,10
     CONTROL         "Smacker && Bink Decoder",IDC_CHECK_RADGT,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,122,121,93,10
+                    BS_AUTOCHECKBOX | WS_TABSTOP,122,120,93,10
     CONTROL         "RoQ Decoder (Id Software)",IDC_CHECK_ROQ,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,18,135,104,10
+                    BS_AUTOCHECKBOX | WS_TABSTOP,122,134,104,10
     LTEXT           "If you would like to use the stand-alone version from these filters or a some other replacement, disable them here.",
                     IDC_STATIC,18,154,212,19
 END
@@ -1281,15 +1283,15 @@ BEGIN
         VERTGUIDE, 258
         VERTGUIDE, 289
         HORZGUIDE, 5
-        HORZGUIDE, 33
+        HORZGUIDE, 32
         HORZGUIDE, 46
-        HORZGUIDE, 61
-        HORZGUIDE, 75
-        HORZGUIDE, 89
-        HORZGUIDE, 103
-        HORZGUIDE, 117
-        HORZGUIDE, 131
-        HORZGUIDE, 145
+        HORZGUIDE, 60
+        HORZGUIDE, 74
+        HORZGUIDE, 88
+        HORZGUIDE, 102
+        HORZGUIDE, 116
+        HORZGUIDE, 130
+        HORZGUIDE, 144
         HORZGUIDE, 198
     END
 
@@ -2073,6 +2075,7 @@ BEGIN
     IDC_CHECK_RM            "6.4.0.7\nRealMedia format categories must be set to 'DirectShow' to make it load, doesn't support streaming"
     IDC_CHECK_MATROSKA      "6.4.1.9"
     IDC_CHECK_ROQ           "6.4.0.0"
+    IDC_CHECK_OGG           "6.4.0.0"
 END
 
 STRINGTABLE 

@@ -114,6 +114,8 @@ public:
 	DECLARE_IUNKNOWN;
     STDMETHODIMP NonDelegatingQueryInterface(REFIID riid, void** ppv);
 
+	HRESULT SetName(LPCWSTR pName);
+
     HRESULT DecideBufferSize(IMemAllocator* pAlloc, ALLOCATOR_PROPERTIES* pProperties);
 
     HRESULT CheckMediaType(const CMediaType* pmt);
@@ -147,12 +149,18 @@ class CBaseSplitterFilter
 	, public IChapterInfo
 	, public IKeyFrameInfo
 {
+	CMap<DWORD, DWORD, CBaseSplitterOutputPin*, CBaseSplitterOutputPin*> m_pPinMap;
+
 protected:
 	CStringW m_fn;
 
 	CAutoPtr<CBaseSplitterInputPin> m_pInput;
 	CAutoPtrList<CBaseSplitterOutputPin> m_pOutputs;
-	CMap<DWORD, DWORD, CBaseSplitterOutputPin*, CBaseSplitterOutputPin*> m_pPinMap;
+
+	CBaseSplitterOutputPin* GetOutputPin(DWORD TrackNum);
+	HRESULT AddOutputPin(DWORD TrackNum, CAutoPtr<CBaseSplitterOutputPin> pPin);
+	virtual HRESULT DeleteOutputs();
+	virtual HRESULT CreateOutputs(IAsyncReader* pAsyncReader) = 0; // override this ...
 
 	LONGLONG m_nOpenProgress;
 	bool m_fAbort;
@@ -169,9 +177,6 @@ protected:
 	void DeliverBeginFlush();
 	void DeliverEndFlush();
 	HRESULT DeliverPacket(CAutoPtr<Packet> p);
-
-	// override this ...
-	virtual HRESULT CreateOutputs(IAsyncReader* pAsyncReader) = 0; 
 
 protected:
 	enum {CMD_EXIT, CMD_SEEK};

@@ -144,12 +144,9 @@ HRESULT CMatroskaSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 {
 	CheckPointer(pAsyncReader, E_POINTER);
 
-	if(m_pOutputs.GetCount() > 0) return VFW_E_ALREADY_CONNECTED;
-
 	HRESULT hr = E_FAIL;
 
 	m_pFile.Free();
-	m_pPinMap.RemoveAll();
 	m_pTrackEntryMap.RemoveAll();
 	m_pOrderedTrackArray.RemoveAll();
 
@@ -519,15 +516,11 @@ HRESULT CMatroskaSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 
 			HRESULT hr;
 
-			CAutoPtr<CBaseSplitterOutputPin> pPinOut(new CMatroskaSplitterOutputPin(
-				(int)pTE->MinCache, pTE->DefaultDuration/100, mts, Name, this, this, &hr));
-			if(pPinOut)
-			{
-				m_pPinMap[(DWORD)pTE->TrackNumber] = pPinOut;
-				m_pTrackEntryMap[(DWORD)pTE->TrackNumber] = pTE;				
-				m_pOrderedTrackArray.Add(pTE);
-				m_pOutputs.AddTail(pPinOut);
-			}
+			CAutoPtr<CBaseSplitterOutputPin> pPinOut(new CMatroskaSplitterOutputPin((int)pTE->MinCache, pTE->DefaultDuration/100, mts, Name, this, this, &hr));
+			AddOutputPin((DWORD)pTE->TrackNumber, pPinOut);
+
+			m_pTrackEntryMap[(DWORD)pTE->TrackNumber] = pTE;				
+			m_pOrderedTrackArray.Add(pTE);
 		}
 	}
 
@@ -568,8 +561,7 @@ void CMatroskaSplitterFilter::SendVorbisHeaderSample()
 		TrackEntry* pTE = NULL;
 		m_pTrackEntryMap.GetNextAssoc(pos, TrackNumber, pTE);
 
-		CBaseSplitterOutputPin* pPin = NULL;
-		m_pPinMap.Lookup(TrackNumber, pPin);
+		CBaseSplitterOutputPin* pPin = GetOutputPin(TrackNumber);
 
 		if(!(pTE && pPin && pPin->IsConnected()))
 			continue;
