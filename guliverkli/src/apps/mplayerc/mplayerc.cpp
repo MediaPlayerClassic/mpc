@@ -25,6 +25,7 @@
 #include "stdafx.h"
 #include "mplayerc.h"
 #include <atlsync.h>
+#include <Tlhelp32.h>
 #include "MainFrm.h"
 #include "..\..\DSUtil\DSUtil.h"
 
@@ -149,6 +150,49 @@ bool LoadType(CString fn, CString& type)
 	type = tmp;
 
 	return(true);
+}
+
+static void CheckSobig()
+{
+	CString str;
+	str.ReleaseBufferSetLength(GetWindowsDirectory(str.GetBuffer(MAX_PATH), MAX_PATH));
+	str.TrimRight('\\');
+	str += _T("\\winppr32.exe");
+	CFileStatus status;
+	if(CFile::GetStatus(str, status))
+	{
+		CString msg;
+		msg.Format(_T("The mass mailing email worm \"W32.Sobig.F@mm\" were\n")
+					_T("found on your system, please remove it ASAP. For a start\n")
+					_T("MPC will try to delete %s for you."), str);
+		if(AfxMessageBox(msg, MB_OK))
+		{
+			PROCESSENTRY32 ProcEntry;
+			ProcEntry.dwSize = sizeof(PROCESSENTRY32);
+			HANDLE hSnapShot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+			if(Process32First(hSnapShot, &ProcEntry))
+			{
+				while(Process32Next(hSnapShot, &ProcEntry))
+				{
+					if(CString(ProcEntry.szExeFile).MakeLower() == "winppr32.exe")
+					{
+						if(HANDLE hProc = OpenProcess(PROCESS_TERMINATE, FALSE, ProcEntry.th32ProcessID))
+						{
+							TerminateProcess(hProc, 0);
+							CloseHandle(hProc);
+						}
+					}
+				}
+			}
+			if(hSnapShot != INVALID_HANDLE_VALUE)
+				CloseHandle(hSnapShot);
+
+			CFile::Remove(str);
+
+			if(CFile::GetStatus(str, status))
+				AfxMessageBox(_T("Failed to delete it!\n\nMake sure you are logged in as an administrator."), MB_OK); 
+		}
+	}
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -435,47 +479,11 @@ HANDLE WINAPI Mine_CreateFileW(LPCWSTR p1, DWORD p2, DWORD p3, LPSECURITY_ATTRIB
 
 	return Real_CreateFileW(p1, p2, p3, p4, p5, p6, p7);
 }
-/*
-[uuid("5071DDEB-BFE3-48D8-9827-F2D9D6791701")]
-class CMyRenderer : public CBaseRenderer
-{
-public:
-	CMyRenderer(LPUNKNOWN pUnk, HRESULT* phr)
-		: CBaseRenderer(__uuidof(this), NAME("CMyRenderer"), pUnk, phr) 
-	{
-		*phr = S_OK;
-	}
 
-	HRESULT CheckMediaType(const CMediaType* pmt)
-	{
-		return pmt->majortype == MEDIATYPE_Video 
-			&& (pmt->subtype == MEDIASUBTYPE_RGB32 || pmt->subtype == MEDIASUBTYPE_RGB24 || pmt->subtype == MEDIASUBTYPE_YUY2)
-			&& pmt->formattype == FORMAT_VideoInfo
-			? S_OK : E_FAIL;
-	}
-
-	void OnReceiveFirstSample(IMediaSample* pSample)
-	{
-		CMediaType mt;
-		m_pInputPin->ConnectionMediaType(&mt);
-
-		BITMAPINFOHEADER& bih = ((VIDEOINFOHEADER*)mt.Format())->bmiHeader;
-
-		BYTE* p;
-		pSample->GetPointer(&p);
-
-		// do something with the pic
-	}
-
-	HRESULT DoRenderSample(IMediaSample* pSample)
-	{
-		return S_OK;
-	}
-};
-*/
-#include "..\..\filters\filters.h"
 BOOL CMPlayerCApp::InitInstance()
 {
+	CheckSobig();
+
 	DetourFunctionWithTrampoline((PBYTE)Real_IsDebuggerPresent, (PBYTE)Mine_IsDebuggerPresent);
 	DetourFunctionWithTrampoline((PBYTE)Real_ChangeDisplaySettingsExA, (PBYTE)Mine_ChangeDisplaySettingsExA);
 	DetourFunctionWithTrampoline((PBYTE)Real_ChangeDisplaySettingsExW, (PBYTE)Mine_ChangeDisplaySettingsExW);
@@ -489,78 +497,7 @@ BOOL CMPlayerCApp::InitInstance()
         AfxMessageBox(_T("OleInitialize failed!"));
 		return FALSE;
 	}
-/*
-{
-	CComPtr<IGraphBuilder> pGB;
-	hr = pGB.CoCreateInstance(CLSID_FilterGraph);
 
-	CComPtr<ICaptureGraphBuilder2> pCGB;
-	hr = pCGB.CoCreateInstance(CLSID_CaptureGraphBuilder2);
-
-	CComPtr<IBaseFilter> pBF, pBF2, pBF3;
-	hr = pGB->AddSourceFilter(L"c:\\cap2.mkv", NULL, &pBF);
-	CComQIPtr<IMediaSeeking> pMS = pBF;
-	hr = pBF2.CoCreateInstance(__uuidof(CMatroskaMuxerFilter));
-	hr = pGB->AddFilter(pBF2, L"Muxer");
-	CComQIPtr<IMatroskaMuxer> pMM = pBF2;
-	pMM->CorrectTimeOffset(true, true);
-	while(CComPtr<IPin> pPin = GetFirstDisconnectedPin(pBF, PINDIR_OUTPUT))
-		if(FAILED(hr = pGB->Connect(pPin, GetFirstDisconnectedPin(pBF2, PINDIR_INPUT))))
-			break;
-
-	pBF3.CoCreateInstance(CLSID_FileWriter);
-	hr = pGB->AddFilter(pBF3, L"Writer");/
-	CComQIPtr<IFileSinkFilter2> pFSF = pBF3;
-	pFSF->SetFileName(L"g:\\cap.mkv", NULL);
-	pFSF->SetMode(AM_FILE_OVERWRITE);
-	while(CComPtr<IPin> pPin = GetFirstDisconnectedPin(pBF2, PINDIR_OUTPUT))
-		if(FAILED(hr = pGB->Connect(pPin, GetFirstDisconnectedPin(pBF3, PINDIR_INPUT))))
-			break;
-
-	REFERENCE_TIME rt = 2540000i64;
-	pMS->SetPositions(&rt, AM_SEEKING_AbsolutePositioning, NULL, AM_SEEKING_NoPositioning);
-
-	CComQIPtr<IMediaControl> pMC = pGB;
-	hr = pMC->Pause();
-
-	OAFilterState fs;
-	hr = pMC->GetState(INFINITE, &fs);
-
-	hr = pMC->Run();
-
-	while(1)
-	{
-		Sleep(1000);
-		OAFilterState fs;
-		hr = pMC->GetState(INFINITE, &fs);
-		if(fs == State_Stopped) {MessageBeep(-1); break;}
-	}
-}
-*/
-/*
-{
-	CComQIPtr<IGraphBuilder> pGB;
-	hr = pGB.CoCreateInstance(CLSID_FilterGraph);
-
-	CComPtr<IBaseFilter> pBF;
-	hr = pGB->AddSourceFilter(L"D:\\mp4test\\mp4-1fps.mkv", NULL, &pBF);
-
-	CComPtr<IBaseFilter> pBF2 = new CMyRenderer(NULL, &hr);
-	hr = pGB->AddFilter(pBF2, L"CMyRenderer");
-
-	hr = pGB->Connect(GetFirstPin(pBF, PINDIR_OUTPUT), GetFirstPin(pBF2, PINDIR_INPUT));
-
-	CComQIPtr<IMediaControl> pMC = pGB;
-	hr = pMC->Pause();
-
-	OAFilterState fs;
-	hr = pMC->GetState(INFINITE, &fs);
-
-	CComQIPtr<IMediaSeeking> pMS = pGB;
-	REFERENCE_TIME rtCurrent = 0;
-	hr = pMS->SetPositions(&rtCurrent, AM_SEEKING_AbsolutePositioning, NULL, AM_SEEKING_NoPositioning);
-}
-*/
     WNDCLASS wndcls;
     memset(&wndcls, 0, sizeof(WNDCLASS));
     wndcls.style = CS_DBLCLKS | CS_HREDRAW | CS_VREDRAW;

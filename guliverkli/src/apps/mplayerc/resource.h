@@ -116,7 +116,7 @@
 #define ID_VIEW_VF_FROMINSIDE           275
 #define ID_VIEW_VF_FROMOUTSIDE          276
 #define ID_NAVIGATE_SUBTITLELANGUAGE    279
-#define IDD_PPAGEFILTERS                280
+#define IDD_PPAGEOVERRIDES              280
 #define IDD_FILEPROPDETAILS             281
 #define IDD_FILEPROPCLIP                282
 #define ID_FILE_PROPERTIES              283
@@ -167,7 +167,7 @@
 #define IDD_SELECTMEDIATYPE             327
 #define IDD_PPAGESUBSTYLE               328
 #define IDD_PPAGEMOUSE                  329
-#define IDD_PPAGESOURCE                 330
+#define IDD_PPAGEFILTERS                330
 #define ID_NAVIGATE_SKIPBACKPLITEM      331
 #define ID_NAVIGATE_SKIPFORWARDPLITEM   332
 #define IDD_PPAGELOGO                   333
@@ -381,6 +381,10 @@
 #define IDC_LOGOPREVIEW                 1109
 #define IDC_LOGONAME                    1110
 #define IDC_LOGOFILENAME                1111
+#define IDC_CHECK11                     1112
+#define IDC_CHECK12                     1113
+#define IDC_CHECK13                     1114
+#define IDC_CHECK14                     1115
 #define IDD_COMPROPERTYPAGE             10002
 #define ID_DUMMYSEPARATOR               32768
 #define ID_VOLUME_MUTE_ON               32769
@@ -462,7 +466,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        334
 #define _APS_NEXT_COMMAND_VALUE         32818
-#define _APS_NEXT_CONTROL_VALUE         1112
+#define _APS_NEXT_CONTROL_VALUE         1116
 #define _APS_NEXT_SYMED_VALUE           10003
 #endif
 #endif
