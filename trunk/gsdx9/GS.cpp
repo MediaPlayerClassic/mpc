@@ -325,5 +325,5 @@ EXPORT_C GSirqCallback(void (*fpGSirq)())
 
 EXPORT_C_(INT32) GSsetWindowInfo(winInfo* info)
 {
-	return -1;
+	return TRUE;
 }

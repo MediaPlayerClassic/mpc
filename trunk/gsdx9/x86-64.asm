@@ -495,6 +495,8 @@ unSwizzleBlock4_amd64 proc public
 	pop			rdi
 	pop			rsi
 
+	ret
+
 unSwizzleBlock4_amd64 endp
 
 ;
