@@ -8,6 +8,8 @@ interface IDSMPropertyBag : public IPropertyBag2
 {
 	STDMETHOD(SetProperty) (LPCWSTR key, LPCWSTR value) = 0;
 	STDMETHOD(SetProperty) (LPCWSTR key, VARIANT* var) = 0;
+	STDMETHOD(DelAllProperties) () = 0;
+	STDMETHOD(DelProperty) (LPCWSTR key) = 0;
 };
 
 class CDSMPropertyBag : public ATL::CSimpleMap<CStringW, CStringW>, public IDSMPropertyBag, public IPropertyBag
@@ -36,6 +38,8 @@ public:
 
 	STDMETHODIMP SetProperty(LPCWSTR key, LPCWSTR value);
 	STDMETHODIMP SetProperty(LPCWSTR key, VARIANT* var);
+	STDMETHODIMP DelAllProperties();
+	STDMETHODIMP DelProperty(LPCWSTR key);
 };
 
 // IDSMResourceBag

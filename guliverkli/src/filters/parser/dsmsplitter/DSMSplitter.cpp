@@ -133,7 +133,7 @@ HRESULT CDSMSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 		BYTE id = ids[i];
 		CMediaType& mt = m_pFile->m_mts[id];
 
-		CStringW name;
+		CStringW name, lang;
 		name.Format(L"Output %02d", id);
 
 		CArray<CMediaType> mts;
@@ -141,12 +141,24 @@ HRESULT CDSMSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 
 		CAutoPtr<CBaseSplitterOutputPin> pPinOut(new CBaseSplitterOutputPin(mts, name, this, this, &hr));
 	
+		name.Empty();
+
 		pos = m_pFile->m_sim[id].GetStartPosition();
 		while(pos)
 		{
 			CStringA key; CStringW value;
 			m_pFile->m_sim[id].GetNextAssoc(pos, key, value);
 			pPinOut->SetProperty(CStringW(key), value);
+
+			if(key == "NAME") name = value;
+			if(key == "LANG") if((lang = ISO6392ToLanguage(CStringA(CString(value)))).IsEmpty()) lang = value;
+		}
+
+		if(!name.IsEmpty() || !lang.IsEmpty())
+		{
+			if(!name.IsEmpty()) {if(!lang.IsEmpty()) name += L" (" + lang + L")";}
+			else if(!lang.IsEmpty()) name = lang;
+			pPinOut->SetName(name);
 		}
 
 		EXECUTE_ASSERT(SUCCEEDED(AddOutputPin(id, pPinOut)));

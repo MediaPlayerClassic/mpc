@@ -185,7 +185,7 @@
 #define IDF_SLIDERBAR_GIF               344
 #define IDD_PPAGEAUDIODEC               345
 #define IDR_HTML_CONTROLS               346
-#define IDR_HTML_PLAYER					347
+#define IDR_HTML_PLAYER                 347
 #define IDF_DEFAULT_CSS                 348
 #define IDF_VBR_GIF                     349
 #define IDF_VBS_GIF                     350
@@ -207,32 +207,36 @@
 #define IDD_SHADEREDITOR                374
 #define IDD_SHADEREDITORDIALOG          374
 #define IDD_SHADERAUTOCOMPLETEDLG       375
-#define IDF_HEADERICON_PNG				376
-#define IDF_HEADERBACK_PNG				377
-#define IDF_HEADERCLOSE_PNG				378
-#define IDF_LEFTSIDE_PNG				379
-#define IDF_RIGHTSIDE_PNG				380
-#define IDF_BOTTOMSIDE_PNG				381
-#define IDF_LEFTBOTTOMSIDE_PNG			382
-#define IDF_RIGHTBOTTOMSIDE_PNG			383
-#define IDF_SEEKBARLEFT_PNG				384
-#define IDF_SEEKBARMID_PNG				385
-#define IDF_SEEKBARRIGHT_PNG			386
-#define IDF_SEEKBARGRIP_PNG				387
-#define IDF_LOGO_PNG					388
-#define IDF_CONTROLBACK_PNG				389
-#define IDF_CONTROLBUTTONPLAY_PNG		390
-#define IDF_CONTROLBUTTONPAUSE_PNG		391
-#define IDF_CONTROLBUTTONSTOP_PNG		392
-#define IDF_CONTROLBUTTONSKIPBACK_PNG	393
-#define IDF_CONTROLBUTTONDECRATE_PNG	394
-#define IDF_CONTROLBUTTONINCRATE_PNG	395
+#define IDF_HEADERICON_PNG              376
+#define IDF_HEADERBACK_PNG              377
+#define IDF_HEADERCLOSE_PNG             378
+#define IDF_LEFTSIDE_PNG                379
+#define IDF_RIGHTSIDE_PNG               380
+#define IDF_BOTTOMSIDE_PNG              381
+#define IDF_LEFTBOTTOMSIDE_PNG          382
+#define IDF_RIGHTBOTTOMSIDE_PNG         383
+#define IDF_SEEKBARLEFT_PNG             384
+#define IDF_SEEKBARMID_PNG              385
+#define IDF_SEEKBARRIGHT_PNG            386
+#define IDF_SEEKBARGRIP_PNG             387
+#define IDF_LOGO_PNG                    388
+#define IDF_CONTROLBACK_PNG             389
+#define IDF_CONTROLBUTTONPLAY_PNG       390
+#define IDF_CONTROLBUTTONPAUSE_PNG      391
+#define IDF_CONTROLBUTTONSTOP_PNG       392
+#define IDF_CONTROLBUTTONSKIPBACK_PNG   393
+#define IDF_CONTROLBUTTONDECRATE_PNG    394
+#define IDF_CONTROLBUTTONINCRATE_PNG    395
 #define IDF_CONTROLBUTTONSKIPFORWARD_PNG 396
-#define IDF_CONTROLBUTTONSTEP_PNG		397
-#define IDF_CONTROLVOLUMEON_PNG			398
-#define IDF_CONTROLVOLUMEOFF_PNG		399
-#define IDF_CONTROLVOLUMEBAR_PNG		400
-#define IDF_CONTROLVOLUMEGRIP_PNG		401
+#define IDF_CONTROLBUTTONSTEP_PNG       397
+#define IDF_CONTROLVOLUMEON_PNG         398
+#define IDF_CONTROLVOLUMEOFF_PNG        399
+#define IDF_CONTROLVOLUMEBAR_PNG        400
+#define IDF_CONTROLVOLUMEGRIP_PNG       401
+#define IDD_CONVERT_DIALOG              402
+#define IDD_CONVERTPROPSDIALOG          403
+#define IDB_STREAMTYPE                  404
+#define IDB_STREAMTYPES                 404
 #define IDS_R_SETTINGS                  500
 #define IDS_RS_CONTROLSTATE             501
 #define IDS_RS_VOLUME                   502
@@ -571,6 +575,8 @@
 #define IDC_CHECK_RELATIVETO            1160
 #define IDC_COMBO14                     1161
 #define IDC_CHECK_SPCPOW2TEX            1162
+#define IDC_TREE1                       1163
+#define IDC_HLINE                       1164
 #define IDD_COMPROPERTYPAGE             10002
 #define ID_DUMMYSEPARATOR               32768
 #define ID_VOLUME_MUTE_ON               32769
@@ -650,6 +656,8 @@
 #define ID__AUDIO                       32850
 #define ID__SHADERS                     32851
 #define ID__SHADERS32852                32852
+#define ID_FILE_CONVERT                 32853
+#define ID_FILE_UTILS                   32854
 #define ID_FILTERS_SUBITEM_START        33000
 #define ID_FILTERS_SUBITEM_END          33099
 #define ID_FILTERSTREAMS_SUBITEM_START  33100
@@ -683,9 +691,9 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        402
-#define _APS_NEXT_COMMAND_VALUE         32853
-#define _APS_NEXT_CONTROL_VALUE         1163
+#define _APS_NEXT_RESOURCE_VALUE        405
+#define _APS_NEXT_COMMAND_VALUE         32855
+#define _APS_NEXT_CONTROL_VALUE         1165
 #define _APS_NEXT_SYMED_VALUE           10003
 #endif
 #endif

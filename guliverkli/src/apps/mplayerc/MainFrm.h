@@ -512,6 +512,8 @@ public:
 	afx_msg void OnFileSaveImage();
 	afx_msg void OnFileSaveImageAuto();
 	afx_msg void OnUpdateFileSaveImage(CCmdUI *pCmdUI);
+	afx_msg void OnFileConvert();
+	afx_msg void OnUpdateFileConvert(CCmdUI* pCmdUI);
 	afx_msg void OnFileLoadsubtitles();
 	afx_msg void OnUpdateFileLoadsubtitles(CCmdUI* pCmdUI);
 	afx_msg void OnFileSavesubtitles();

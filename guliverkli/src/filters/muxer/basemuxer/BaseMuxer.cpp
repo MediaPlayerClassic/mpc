@@ -121,58 +121,62 @@ DWORD CBaseMuxerFilter::ThreadProc()
 				}
 			}
 
+			CComPtr<IBitStream> pBitStream;
+
 			if(m_pOutput)
 			if(CComQIPtr<IStream> pStream = m_pOutput->GetConnected())
-			{
-				CComPtr<IBitStream> pBitStream = new CBitStream(pStream);
-				m_pBitStreams.AddTail(pBitStream);
-
-				// TODO: figure out a way to smuggle socket based streams into m_pBitStreams
-			}
+				pBitStream = new CBitStream(pStream, true);
 
 			Reply(S_OK);
 
 			MuxInit();
 
-//			TRACE(_T("WriteHeader\n"));
-			pos = m_pBitStreams.GetHeadPosition();
-			while(pos) MuxHeader(m_pBitStreams.GetNext(pos));
-
-			while(!CheckRequest(NULL) && m_pActivePins.GetCount())
+			try
 			{
-				if(m_State == State_Paused) {Sleep(10); continue;}
+				// TRACE(_T("WriteHeader\n"));
+				if(pBitStream) MuxHeader(pBitStream);
+				MuxHeader();
 
-				CAutoPtr<MuxerPacket> pPacket = GetPacket();
-				if(!pPacket) {Sleep(1); continue;}
+				while(!CheckRequest(NULL) && m_pActivePins.GetCount())
+				{
+					if(m_State == State_Paused) {Sleep(10); continue;}
 
-				if(pPacket->IsTimeValid())
-					m_rtCurrent = pPacket->rtStart;
+					CAutoPtr<MuxerPacket> pPacket = GetPacket();
+					if(!pPacket) {Sleep(1); continue;}
 
-				if(pPacket->IsEOS())
-					m_pActivePins.RemoveAt(m_pActivePins.Find(pPacket->pPin));
-/*
-				TRACE(_T("WritePacket pPin=%x, size=%d, s%d e%d b%d, rt=(%I64d-%I64d)\n"), 
-					pPacket->pPin->GetID(),
-					pPacket->pData.GetSize(),
-					!!(pPacket->flags & MuxerPacket::syncpoint),
-					!!(pPacket->flags & MuxerPacket::eos), 
-					!!(pPacket->flags & MuxerPacket::bogus), 
-					pPacket->rtStart/10000, pPacket->rtStop/10000);
-*/
-				pos = m_pBitStreams.GetHeadPosition();
-				while(pos) MuxPacket(m_pBitStreams.GetNext(pos), pPacket);
+					if(pPacket->IsTimeValid())
+						m_rtCurrent = pPacket->rtStart;
+
+					if(pPacket->IsEOS())
+						m_pActivePins.RemoveAt(m_pActivePins.Find(pPacket->pPin));
+					
+					/*
+					TRACE(_T("WritePacket pPin=%x, size=%d, s%d e%d b%d, rt=(%I64d-%I64d)\n"), 
+						pPacket->pPin->GetID(),
+						pPacket->pData.GetSize(),
+						!!(pPacket->flags & MuxerPacket::syncpoint),
+						!!(pPacket->flags & MuxerPacket::eos), 
+						!!(pPacket->flags & MuxerPacket::bogus), 
+						pPacket->rtStart/10000, pPacket->rtStop/10000);
+					*/
+
+					if(pBitStream) MuxPacket(pBitStream, pPacket);
+					MuxPacket(pPacket);
+				}
+
+				// TRACE(_T("WriteFooter\n"));
+				if(pBitStream) MuxFooter(pBitStream);
+				MuxFooter();
 			}
-
-//			TRACE(_T("WriteFooter\n"));
-			pos = m_pBitStreams.GetHeadPosition();
-			while(pos) MuxFooter(m_pBitStreams.GetNext(pos));
+			catch(HRESULT hr)
+			{
+				CComQIPtr<IMediaEventSink>(m_pGraph)->Notify(EC_ERRORABORT, hr, 0);
+			}
 
 			m_pOutput->DeliverEndOfStream();
 
 			m_pActivePins.RemoveAll();
 			m_pPins.RemoveAll();
-
-			m_pBitStreams.RemoveAll();
 
 			break;
 		}
@@ -332,7 +336,26 @@ STDMETHODIMP CBaseMuxerFilter::GetCurrentPosition(LONGLONG* pCurrent)
 	return S_OK;
 }
 STDMETHODIMP CBaseMuxerFilter::ConvertTimeFormat(LONGLONG* pTarget, const GUID* pTargetFormat, LONGLONG Source, const GUID* pSourceFormat) {return E_NOTIMPL;}
-STDMETHODIMP CBaseMuxerFilter::SetPositions(LONGLONG* pCurrent, DWORD dwCurrentFlags, LONGLONG* pStop, DWORD dwStopFlags) {return E_NOTIMPL;}
+STDMETHODIMP CBaseMuxerFilter::SetPositions(LONGLONG* pCurrent, DWORD dwCurrentFlags, LONGLONG* pStop, DWORD dwStopFlags)
+{
+	FILTER_STATE fs;
+
+	if(SUCCEEDED(GetState(0, &fs)) && fs == State_Stopped)
+	{
+		POSITION pos = m_pInputs.GetHeadPosition();
+		while(pos)
+		{
+			CBasePin* pPin = m_pInputs.GetNext(pos);
+			CComQIPtr<IMediaSeeking> pMS = pPin->GetConnected();
+			if(!pMS) pMS = GetFilterFromPin(pPin->GetConnected());
+			if(pMS) pMS->SetPositions(pCurrent, dwCurrentFlags, pStop, dwStopFlags);
+		}
+
+		return S_OK;
+	}
+
+	return VFW_E_WRONG_STATE;
+}
 STDMETHODIMP CBaseMuxerFilter::GetPositions(LONGLONG* pCurrent, LONGLONG* pStop) {return E_NOTIMPL;}
 STDMETHODIMP CBaseMuxerFilter::GetAvailable(LONGLONG* pEarliest, LONGLONG* pLatest) {return E_NOTIMPL;}
 STDMETHODIMP CBaseMuxerFilter::SetRate(double dRate) {return E_NOTIMPL;}

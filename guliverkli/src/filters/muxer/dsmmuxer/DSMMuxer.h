@@ -27,12 +27,14 @@
 [uuid("C6590B76-587E-4082-9125-680D0693A97B")]
 class CDSMMuxerFilter : public CBaseMuxerFilter
 {
+	bool m_fAutoChap, m_fAutoRes;
+
 	struct SyncPoint {BYTE id; REFERENCE_TIME rtStart, rtStop; __int64 fp;};
 	struct IndexedSyncPoint {BYTE id; REFERENCE_TIME rt, rtfp; __int64 fp;};
 	CList<SyncPoint> m_sps;
 	CList<IndexedSyncPoint> m_isps;
 	REFERENCE_TIME m_rtPrevSyncPoint;
-	void IndexSyncPoint(MuxerPacket* p, __int64 fp);
+	void IndexSyncPoint(const MuxerPacket* p, __int64 fp);
 
 	void MuxPacketHeader(IBitStream* pBS, dsmp_t type, UINT64 len);
 	void MuxFileInfo(IBitStream* pBS);
@@ -41,10 +43,10 @@ class CDSMMuxerFilter : public CBaseMuxerFilter
 protected:
 	void MuxInit();
 	void MuxHeader(IBitStream* pBS);
-	void MuxPacket(IBitStream* pBS, MuxerPacket* pPacket);
+	void MuxPacket(IBitStream* pBS, const MuxerPacket* pPacket);
 	void MuxFooter(IBitStream* pBS);
 
 public:
-	CDSMMuxerFilter(LPUNKNOWN pUnk, HRESULT* phr);
+	CDSMMuxerFilter(LPUNKNOWN pUnk, HRESULT* phr, bool fAutoChap = true, bool fAutoRes = true);
 	virtual ~CDSMMuxerFilter();
 };

@@ -33,11 +33,11 @@ struct MuxerPacket
 	enum flag_t {empty = 0, timevalid = 1, syncpoint = 2, discontinuity = 4, eos = 8, bogus = 16};
 	DWORD flags;
 	struct MuxerPacket(CBaseMuxerInputPin* pPin) {this->pPin = pPin; rtStart = rtStop = _I64_MIN; flags = empty;}
-	bool IsTimeValid() {return !!(flags & timevalid);}
-	bool IsSyncPoint() {return !!(flags & syncpoint);}
-	bool IsDiscontinuity() {return !!(flags & discontinuity);}
-	bool IsEOS() {return !!(flags & eos);}
-	bool IsBogus() {return !!(flags & bogus);}
+	bool IsTimeValid() const {return !!(flags & timevalid);}
+	bool IsSyncPoint() const {return !!(flags & syncpoint);}
+	bool IsDiscontinuity() const {return !!(flags & discontinuity);}
+	bool IsEOS() const {return !!(flags & eos);}
+	bool IsBogus() const {return !!(flags & bogus);}
 };
 
 class CBaseMuxerInputPin : public CBaseInputPin, public CDSMPropertyBag

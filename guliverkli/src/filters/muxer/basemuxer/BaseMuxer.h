@@ -41,7 +41,6 @@ private:
 	DWORD ThreadProc();
 
 	REFERENCE_TIME m_rtCurrent;
-	CInterfaceList<IBitStream> m_pBitStreams;
 	CList<CBaseMuxerInputPin*> m_pActivePins;
 
 	CAutoPtr<MuxerPacket> GetPacket();
@@ -50,9 +49,16 @@ protected:
 	CList<CBaseMuxerInputPin*> m_pPins;
 
 	virtual void MuxInit() = 0;
-	virtual void MuxHeader(IBitStream* pBS) = 0;
-	virtual void MuxPacket(IBitStream* pBS, MuxerPacket* pPacket) = 0;
-	virtual void MuxFooter(IBitStream* pBS) = 0;
+
+	// only called when the output pin is connected
+	virtual void MuxHeader(IBitStream* pBS) {}
+	virtual void MuxPacket(IBitStream* pBS, const MuxerPacket* pPacket) {}
+	virtual void MuxFooter(IBitStream* pBS) {}
+
+	// always called (useful if the derived class wants to write somewhere else than downstream)
+	virtual void MuxHeader() {}
+	virtual void MuxPacket(const MuxerPacket* pPacket) {}
+	virtual void MuxFooter() {}
 
 	virtual HRESULT CreateInput(CStringW name, CBaseMuxerInputPin** ppPin);
 

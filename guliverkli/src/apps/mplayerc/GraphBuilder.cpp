@@ -749,9 +749,12 @@ void CGraphBuilder::Reset()
 //	m_log.RemoveAll();
 }
 
-HRESULT CGraphBuilder::Render(LPCTSTR lpsz)
+HRESULT CGraphBuilder::AddSourceFilter(LPCTSTR lpsz, IBaseFilter** ppBF, bool fAllFilters)
 {
-	if(!m_pGB) return E_FAIL;
+	CheckPointer(lpsz, E_POINTER);
+	CheckPointer(ppBF, E_POINTER);
+
+	if(!m_pGB) return E_UNEXPECTED;
 
 	CString fn = CString(lpsz).Trim();
 	if(fn.IsEmpty()) return E_FAIL;
@@ -759,6 +762,7 @@ HRESULT CGraphBuilder::Render(LPCTSTR lpsz)
 	CString ext = CPath(fn).GetExtension().MakeLower();
 
 	AppSettings& s = AfxGetAppSettings();
+	UINT SrcFilters = fAllFilters ? (UINT)-1 : s.SrcFilters;
 
 	HRESULT hr;
 
@@ -785,7 +789,7 @@ HRESULT CGraphBuilder::Render(LPCTSTR lpsz)
 			}
 		}
 
-		if((s.SrcFilters&SRC_CDDA) && !pBF && ext == _T(".cda"))
+		if((SrcFilters&SRC_CDDA) && !pBF && ext == _T(".cda"))
 		{
 			hr = S_OK;
 			CComPtr<IFileSourceFilter> pReader = new CCDDAReader(NULL, &hr);
@@ -793,7 +797,7 @@ HRESULT CGraphBuilder::Render(LPCTSTR lpsz)
 				pBF = pReader;
 		}
 
-		if((s.SrcFilters&SRC_CDXA) && !pBF)
+		if((SrcFilters&SRC_CDXA) && !pBF)
 		{
 			hr = S_OK;
 			CComPtr<IFileSourceFilter> pReader = new CCDXAReader(NULL, &hr);
@@ -801,7 +805,7 @@ HRESULT CGraphBuilder::Render(LPCTSTR lpsz)
 				pBF = pReader;
 		}
 
-		if((s.SrcFilters&SRC_VTS) && !pBF) //&& ext == _T(".ifo"))
+		if((SrcFilters&SRC_VTS) && !pBF) //&& ext == _T(".ifo"))
 		{
 			hr = S_OK;
 			CComPtr<IFileSourceFilter> pReader = new CVTSReader(NULL, &hr);
@@ -809,7 +813,7 @@ HRESULT CGraphBuilder::Render(LPCTSTR lpsz)
 				pBF = pReader;
 		}
 
-		if((s.SrcFilters&SRC_FLIC) && !pBF) //&& (ext == _T(".fli") || ext == _T(".flc")))
+		if((SrcFilters&SRC_FLIC) && !pBF) //&& (ext == _T(".fli") || ext == _T(".flc")))
 		{
 			hr = S_OK;
 			CComPtr<IFileSourceFilter> pReader = new CFLICSource(NULL, &hr);
@@ -817,7 +821,7 @@ HRESULT CGraphBuilder::Render(LPCTSTR lpsz)
 				pBF = pReader;
 		}
 
-		if((s.SrcFilters&SRC_D2V) && !pBF) //&& ext == _T(".d2v"))
+		if((SrcFilters&SRC_D2V) && !pBF) //&& ext == _T(".d2v"))
 		{
 			hr = S_OK;
 			CComPtr<IFileSourceFilter> pReader = new CD2VSource(NULL, &hr);
@@ -825,7 +829,7 @@ HRESULT CGraphBuilder::Render(LPCTSTR lpsz)
 				pBF = pReader;
 		}
 
-		if((s.SrcFilters&SRC_DTSAC3) && !pBF) //&& (ext == _T(".dts") || ext == _T(".ac3")))
+		if((SrcFilters&SRC_DTSAC3) && !pBF) //&& (ext == _T(".dts") || ext == _T(".ac3")))
 		{
 			hr = S_OK;
 			CComPtr<IFileSourceFilter> pReader = new CDTSAC3Source(NULL, &hr);
@@ -833,7 +837,7 @@ HRESULT CGraphBuilder::Render(LPCTSTR lpsz)
 				pBF = pReader;
 		}
 
-		if((s.SrcFilters&SRC_SHOUTCAST) && !pBF && fn.Find(_T("://")) >= 0)
+		if((SrcFilters&SRC_SHOUTCAST) && !pBF && fn.Find(_T("://")) >= 0)
 		{
 			hr = S_OK;
 			CComPtr<IFileSourceFilter> pReader = new CShoutcastSource(NULL, &hr);
@@ -841,7 +845,7 @@ HRESULT CGraphBuilder::Render(LPCTSTR lpsz)
 				pBF = pReader;
 		}
 
-		if((s.SrcFilters&SRC_MATROSKA) && !pBF) //&& (ext == _T(".mkv") || ext == _T(".mka") || ext == _T(".mks")))
+		if((SrcFilters&SRC_MATROSKA) && !pBF) //&& (ext == _T(".mkv") || ext == _T(".mka") || ext == _T(".mks")))
 		{
 			hr = S_OK;
 			CComPtr<IFileSourceFilter> pReader = new CMatroskaSourceFilter(NULL, &hr);
@@ -849,7 +853,7 @@ HRESULT CGraphBuilder::Render(LPCTSTR lpsz)
 				pBF = pReader;
 		}
 
-		if((s.SrcFilters&SRC_REALMEDIA) && !pBF)
+		if((SrcFilters&SRC_REALMEDIA) && !pBF)
 		{
 			hr = S_OK;
 			CComPtr<IFileSourceFilter> pReader = new CRealMediaSourceFilter(NULL, &hr);
@@ -857,7 +861,7 @@ HRESULT CGraphBuilder::Render(LPCTSTR lpsz)
 				pBF = pReader;
 		}
 
-		if((s.SrcFilters&SRC_AVI) && !pBF)
+		if((SrcFilters&SRC_AVI) && !pBF)
 		{
 			hr = S_OK;
 			CComPtr<IFileSourceFilter> pReader = new CAviSourceFilter(NULL, &hr);
@@ -867,7 +871,7 @@ HRESULT CGraphBuilder::Render(LPCTSTR lpsz)
 
 		__if_exists(CRadGtSplitterFilter)
 		{
-		if((s.SrcFilters&SRC_RADGT) && !pBF)
+		if((SrcFilters&SRC_RADGT) && !pBF)
 		{
 			hr = S_OK;
 			CComPtr<IFileSourceFilter> pReader = new CRadGtSourceFilter(NULL, &hr);
@@ -876,7 +880,7 @@ HRESULT CGraphBuilder::Render(LPCTSTR lpsz)
 		}
 		}
 
-		if((s.SrcFilters&SRC_ROQ) && !pBF)
+		if((SrcFilters&SRC_ROQ) && !pBF)
 		{
 			hr = S_OK;
 			CComPtr<IFileSourceFilter> pReader = new CRoQSourceFilter(NULL, &hr);
@@ -884,7 +888,7 @@ HRESULT CGraphBuilder::Render(LPCTSTR lpsz)
 				pBF = pReader;
 		}
 
-		if((s.SrcFilters&SRC_OGG) && !pBF)
+		if((SrcFilters&SRC_OGG) && !pBF)
 		{
 			hr = S_OK;
 			CComPtr<IFileSourceFilter> pReader = new COggSourceFilter(NULL, &hr);
@@ -892,7 +896,7 @@ HRESULT CGraphBuilder::Render(LPCTSTR lpsz)
 				pBF = pReader;
 		}
 
-		if((s.SrcFilters&SRC_NUT) && !pBF)
+		if((SrcFilters&SRC_NUT) && !pBF)
 		{
 			hr = S_OK;
 			CComPtr<IFileSourceFilter> pReader = new CNutSourceFilter(NULL, &hr);
@@ -900,7 +904,7 @@ HRESULT CGraphBuilder::Render(LPCTSTR lpsz)
 				pBF = pReader;
 		}
 
-		if((s.SrcFilters&SRC_MPEG) && !pBF)
+		if((SrcFilters&SRC_MPEG) && !pBF)
 		{
 			hr = S_OK;
 			CComPtr<IFileSourceFilter> pReader = new CMpegSourceFilter(NULL, &hr);
@@ -908,7 +912,7 @@ HRESULT CGraphBuilder::Render(LPCTSTR lpsz)
 				pBF = pReader;
 		}
 
-		if((s.SrcFilters&SRC_DIRAC) && !pBF)
+		if((SrcFilters&SRC_DIRAC) && !pBF)
 		{
 			hr = S_OK;
 			CComPtr<IFileSourceFilter> pReader = new CDiracSourceFilter(NULL, &hr);
@@ -916,7 +920,7 @@ HRESULT CGraphBuilder::Render(LPCTSTR lpsz)
 				pBF = pReader;
 		}
 
-		if((s.SrcFilters&SRC_MPA) && !pBF)
+		if((SrcFilters&SRC_MPA) && !pBF)
 		{
 			hr = S_OK;
 			CComPtr<IFileSourceFilter> pReader = new CMpaSourceFilter(NULL, &hr);
@@ -924,7 +928,7 @@ HRESULT CGraphBuilder::Render(LPCTSTR lpsz)
 				pBF = pReader;
 		}
 
-		if((s.SrcFilters&SRC_DSM) && !pBF)
+		if((SrcFilters&SRC_DSM) && !pBF)
 		{
 			hr = S_OK;
 			CComPtr<IFileSourceFilter> pReader = new CDSMSourceFilter(NULL, &hr);
@@ -997,7 +1001,22 @@ HRESULT CGraphBuilder::Render(LPCTSTR lpsz)
 
 	ASSERT(pBF);
 
-	return Render(pBF);
+	if(FAILED(SafeAddFilter(pBF, NULL)))
+		return E_FAIL;
+
+	*ppBF = pBF.Detach();
+
+	return S_OK;
+}
+
+HRESULT CGraphBuilder::Render(LPCTSTR lpsz)
+{
+	CComPtr<IBaseFilter> pBF;
+
+	HRESULT hr = AddSourceFilter(lpsz, &pBF);
+	if(FAILED(hr)) return hr;
+
+	return pBF ? Render(pBF) : S_OK;
 }
 
 HRESULT CGraphBuilder::Render(IBaseFilter* pBF)

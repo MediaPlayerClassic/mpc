@@ -109,7 +109,8 @@ string
 
 Notes:
 - Suggested values of "id": 
-	"SGRP": Stream Group (groupped streams can be useful if the splitter is able to group and switch between them, but it's not a strict requirement towards dsm splitters)
+	"NAME": Stream name
+	"SGRP": Stream group (groupped streams can be useful if the splitter is able to group and switch between them, but it's not a strict requirement towards dsm splitters)
 	"LANG": Language code (ISO 639-2)
 	"DESC": Description
 	... more to be defined ...

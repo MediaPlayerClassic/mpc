@@ -534,6 +534,7 @@ HRESULT CMatroskaSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 			HRESULT hr;
 
 			CAutoPtr<CBaseSplitterOutputPin> pPinOut(new CMatroskaSplitterOutputPin((int)pTE->MinCache, pTE->DefaultDuration/100, mts, Name, this, this, &hr));
+			if(!pTE->Name.IsEmpty()) pPinOut->SetProperty(L"NAME", pTE->Name);
 			if(pTE->Language.GetLength() == 3) pPinOut->SetProperty(L"LANG", CStringW(CString(pTE->Language)));
 			AddOutputPin((DWORD)pTE->TrackNumber, pPinOut);
 

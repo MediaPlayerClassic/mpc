@@ -383,6 +383,12 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath=".\ConvertDlg.cpp">
+			</File>
+			<File
+				RelativePath=".\ConvertPropsDlg.cpp">
+			</File>
+			<File
 				RelativePath="CShockwaveFlash.cpp">
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
@@ -1023,6 +1029,12 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath=".\ConvertDlg.h">
+			</File>
+			<File
+				RelativePath=".\ConvertPropsDlg.h">
+			</File>
+			<File
 				RelativePath="CShockwaveFlash.h">
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
@@ -1624,6 +1636,9 @@
 				RelativePath=".\res\authhdrpic.bmp">
 			</File>
 			<File
+				RelativePath=".\res\bitmap2.bmp">
+			</File>
+			<File
 				RelativePath="res\icon.ico">
 			</File>
 			<File
@@ -1685,6 +1700,12 @@
 			</File>
 			<File
 				RelativePath="res\stereo.bmp">
+			</File>
+			<File
+				RelativePath=".\res\streamtype.bmp">
+			</File>
+			<File
+				RelativePath=".\res\streamtypes.bmp">
 			</File>
 			<File
 				RelativePath="res\toolbar1.bmp">
