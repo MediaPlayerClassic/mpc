@@ -48,7 +48,7 @@
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalOptions="/MACHINE:I386"
-				AdditionalDependencies="Delayimp.lib detours.lib qtmlClient.lib wmstub.lib d3dx9.lib dxguid.lib Dsound.lib strmbaseRU.lib dsutilRU.lib subpicRU.lib subtitlesRU.lib asyncreaderRU.lib audioswitcherRU.lib avi2ac3filterRU.lib bufferfilterRU.lib cddareaderRU.lib cdxareaderRU.lib d2vsourceRU.lib decssfilterRU.lib flicsourceRU.lib dtsac3sourceRU.lib basesourceRU.lib wavdestRU.lib shoutcastsourceRU.lib streamdrivethruRU.lib vtsreaderRU.lib basesplitterRU.lib MatroskaSplitterRU.lib MatroskaMuxerRU.lib RealMediaSplitterRU.lib AviSplitterRU.lib Mpeg2DecFilterRU.lib MpaDecFilterRU.lib RadGtSplitterRU.lib RoQSplitterRU.lib OggSplitterRU.lib NutSplitterRU.lib MpegSplitterRU.lib DiracSplitterRU.lib MpaSplitterRU.lib DSMSplitterRU.lib BaseMuxerRU.lib DSMMuxerRU.lib zlibR.lib"
+				AdditionalDependencies="Delayimp.lib detours.lib qtmlClient.lib wmstub.lib d3dx9.lib dxguid.lib Dsound.lib strmbaseRU.lib dsutilRU.lib subpicRU.lib subtitlesRU.lib asyncreaderRU.lib audioswitcherRU.lib avi2ac3filterRU.lib bufferfilterRU.lib cddareaderRU.lib cdxareaderRU.lib d2vsourceRU.lib decssfilterRU.lib flicsourceRU.lib dtsac3sourceRU.lib basesourceRU.lib wavdestRU.lib shoutcastsourceRU.lib streamdrivethruRU.lib vtsreaderRU.lib basesplitterRU.lib MatroskaSplitterRU.lib MatroskaMuxerRU.lib RealMediaSplitterRU.lib AviSplitterRU.lib Mpeg2DecFilterRU.lib MpaDecFilterRU.lib RadGtSplitterRU.lib RoQSplitterRU.lib OggSplitterRU.lib NutSplitterRU.lib MpegSplitterRU.lib DiracSplitterRU.lib MpaSplitterRU.lib DSMSplitterRU.lib BaseMuxerRU.lib DSMMuxerRU.lib zlibR.lib subtitlesourceRU.lib"
 				OutputFile="$(OutDir)\$(ProjectName).exe"
 				LinkIncremental="1"
 				SuppressStartupBanner="TRUE"
@@ -192,12 +192,11 @@
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalOptions="/MACHINE:I386"
-				AdditionalDependencies="Delayimp.lib detours.lib qtmlClient.lib wmstub.lib d3dx9.lib Dsound.lib dxguid.lib strmbaseR.lib dsutilR.lib subpicR.lib subtitlesR.lib asyncreaderR.lib audioswitcherR.lib avi2ac3filterR.lib bufferfilterR.lib cddareaderR.lib cdxareaderR.lib d2vsourceR.lib decssfilterR.lib flicsourceR.lib dtsac3sourceR.lib basesourceR.lib subtitlesourceR.lib wavdestR.lib shoutcastsourceR.lib streamdrivethruR.lib vtsreaderR.lib basesplitterR.lib MatroskaSplitterR.lib MatroskaMuxerR.lib RealMediaSplitterR.lib AviSplitterR.lib Mpeg2DecFilterR.lib MpaDecFilterR.lib RadGtSplitterR.lib RoQSplitterR.lib OggSplitterR.lib NutSplitterR.lib MpegSplitterR.lib DiracSplitterR.lib MpaSplitterR.lib DSMSplitterR.lib BaseMuxerR.lib DSMMuxerR.lib zlibR.lib"
+				AdditionalDependencies="Delayimp.lib detours.lib qtmlClient.lib wmstub.lib d3dx9.lib Dsound.lib dxguid.lib strmbaseR.lib dsutilR.lib subpicR.lib subtitlesR.lib asyncreaderR.lib audioswitcherR.lib avi2ac3filterR.lib bufferfilterR.lib cddareaderR.lib cdxareaderR.lib d2vsourceR.lib decssfilterR.lib flicsourceR.lib dtsac3sourceR.lib basesourceR.lib wavdestR.lib shoutcastsourceR.lib streamdrivethruR.lib vtsreaderR.lib basesplitterR.lib MatroskaSplitterR.lib MatroskaMuxerR.lib RealMediaSplitterR.lib AviSplitterR.lib Mpeg2DecFilterR.lib MpaDecFilterR.lib RadGtSplitterR.lib RoQSplitterR.lib OggSplitterR.lib NutSplitterR.lib MpegSplitterR.lib DiracSplitterR.lib MpaSplitterR.lib DSMSplitterR.lib BaseMuxerR.lib DSMMuxerR.lib zlibR.lib subtitlesourceR.lib"
 				OutputFile="$(OutDir)\$(ProjectName).exe"
 				LinkIncremental="1"
 				SuppressStartupBanner="TRUE"
 				AdditionalLibraryDirectories="../../../lib;../../../lib/wm7;../../../lib/qt6;../../../lib/detours"
-				IgnoreAllDefaultLibraries="FALSE"
 				IgnoreDefaultLibraryNames="MSVCRT"
 				DelayLoadDLLs="d3d9.dll;msimg32.dll;gdiplus.dll"
 				ProgramDatabaseFile="$(OutDir)\$(ProjectName).pdb"

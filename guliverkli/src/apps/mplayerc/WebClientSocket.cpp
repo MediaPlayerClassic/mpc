@@ -696,3 +696,27 @@ bool CWebClientSocket::OnSnapShotJpeg(CStringA& hdr, CStringA& body, CStringA& m
 
 	return fRet;
 }
+
+#include "ConvertDlg.h"
+
+bool CWebClientSocket::OnConvRes(CStringA& hdr, CStringA& body, CStringA& mime)
+{
+	CString id;
+	if(!m_get.Lookup(_T("id"), id))
+		return false;
+
+	DWORD key = 0;
+	if(1 != _stscanf(id, _T("%x"), &key) || key == 0)
+		return false;
+
+	CAutoLock cAutoLock(&CConvertDlg::CTreeItemResource::m_csGlobalRes);
+
+	CDSMResource* res = NULL;
+	if(!CConvertDlg::CTreeItemResource::m_GlobalRes.Lookup(key, res) || !res)
+		return false;
+
+	body = CStringA((const char*)res->data.GetData(), res->data.GetSize());
+	mime = CString(res->mime);
+
+	return true;
+}
