@@ -116,6 +116,14 @@ void GSState::DrawingKick(bool fSkip)
 	CUSTOMVERTEX* pVertices = &m_pVertices[m_nVertices];
 	int nVertices = 0;
 
+	DrawingContext* ctxt = &m_de.CTXT[m_de.PRIM.CTXT];
+
+	LOG2((_T("Prim %05x %05x %04x\n"), 
+		ctxt->FRAME.Block(), m_de.PRIM.TME ? (UINT32)ctxt->TEX0.TBP0 : 0xfffff,
+		(m_de.PRIM.ABE || (m_PRIM == 1 || m_PRIM == 2) && m_de.PRIM.AA1)
+			? ((ctxt->ALPHA.A<<12)|(ctxt->ALPHA.B<<8)|(ctxt->ALPHA.C<<4)|ctxt->ALPHA.D) 
+			: 0xffff));
+
 	switch(m_PRIM)
 	{
 	case 3: // triangle list
@@ -199,14 +207,6 @@ void GSState::DrawingKick(bool fSkip)
 		return;
 	}
 
-	DrawingContext* ctxt = &m_de.CTXT[m_de.PRIM.CTXT];
-
-	LOG2((_T("Prim %05x %05x %04x\n"), 
-		ctxt->FRAME.Block(), m_de.PRIM.TME ? (UINT32)ctxt->TEX0.TBP0 : 0xfffff,
-		(m_de.PRIM.ABE || (m_primtype == D3DPT_LINELIST || m_primtype == D3DPT_LINESTRIP) && m_de.PRIM.AA1)
-			? ((ctxt->ALPHA.A<<12)|(ctxt->ALPHA.B<<8)|(ctxt->ALPHA.C<<4)|ctxt->ALPHA.D) 
-			: 0xffff));
-
 	m_nVertices += nVertices;
 
 	if(!m_de.PRIM.IIP)
@@ -215,13 +215,13 @@ void GSState::DrawingKick(bool fSkip)
 		/*for(int i = nVertices-1; i > 0; i--)
 			pVertices[i-1].color = pVertices[i].color;*/
 	}
-
+/*
 	if(::GetAsyncKeyState(VK_SPACE)&0x80000000)
 	{
 		FlushPrim();
 		Flip();
 	}
-
+*/
 }
 
 void GSState::FlushPrim()
@@ -260,9 +260,10 @@ void GSState::FlushPrim()
 	ZeroMemory(&bd, sizeof(bd));
 	pBackBuff->GetDesc(&bd);
 
-	CSize size = m_rs.GetSize(m_rs.PMODE.EN1?0:1);
-	float xscale = (float)bd.Width / (ctxt->FRAME.FBW*64);
-	float yscale = (float)bd.Height / size.cy;
+	scale_t scale(
+		(float)bd.Width / (ctxt->FRAME.FBW*64),
+		(float)bd.Height / m_rs.GetSize(m_rs.PMODE.EN1?0:1).cy);
+	if(m_fHalfVRes) scale.y /= 2;
 
 	//////////////////////
 
@@ -296,6 +297,8 @@ void GSState::FlushPrim()
 	}
 
 	if(!pRT || !pDS) {ASSERT(0); return;}
+
+	pRT->SetPrivateData(GUID_NULL, &scale, sizeof(scale), 0);
 
 	//////////////////////
 
@@ -381,6 +384,9 @@ void GSState::FlushPrim()
 		if(!pPixelShader)
 		{
 			int stage = 0;
+
+			hr = m_pD3DDev->SetTextureStageState(0, D3DTSS_TEXCOORDINDEX, 0);
+			hr = m_pD3DDev->SetTextureStageState(1, D3DTSS_TEXCOORDINDEX, 0);
 
 			switch(ctxt->TEX0.TFX)
 			{
@@ -633,7 +639,7 @@ void GSState::FlushPrim()
 	//////////////////////
 
 	hr = m_pD3DDev->SetRenderState(D3DRS_SCISSORTESTENABLE, TRUE);
-	CRect scissor(xscale * ctxt->SCISSOR.SCAX0, yscale * ctxt->SCISSOR.SCAY0, xscale * (ctxt->SCISSOR.SCAX1+1), yscale * (ctxt->SCISSOR.SCAY1+1));
+	CRect scissor(scale.x * ctxt->SCISSOR.SCAX0, scale.y * ctxt->SCISSOR.SCAY0, scale.x * (ctxt->SCISSOR.SCAX1+1), scale.y * (ctxt->SCISSOR.SCAY1+1));
 	scissor.IntersectRect(scissor, CRect(0, 0, bd.Width, bd.Height));
 	hr = m_pD3DDev->SetScissorRect(scissor);
 
@@ -641,7 +647,7 @@ void GSState::FlushPrim()
 ////////
 	ASSERT(!m_de.PABE.PABE); // bios
 	ASSERT(!ctxt->FBA.FBA); // bios
-	ASSERT(!ctxt->TEST.DATE); // sfex3, after the capcom logo
+	// ASSERT(!ctxt->TEST.DATE); // sfex3 (after the capcom logo), vf4 (first menu fading in)
 
 	//////////////////////
 
@@ -649,18 +655,18 @@ void GSState::FlushPrim()
 		CUSTOMVERTEX* pVertices = m_pVertices;
 		for(int i = m_nVertices; i-- > 0; pVertices++)
 		{
-			pVertices->x *= xscale;
-			pVertices->y *= yscale;
+			pVertices->x *= scale.x;
+			pVertices->y *= scale.y;
 
 			if(m_de.PRIM.TME)
 			{
 				float base, fract;
 				fract = modf(pVertices->tu, &base);
-				fract = fract * (1<<ctxt->TEX0.TW) / td.Width * t.m_xscale;
+				fract = fract * (1<<ctxt->TEX0.TW) / td.Width * t.m_scale.x;
 				ASSERT(-1 <= fract && fract <= 1.01);
 				pVertices->tu = base + fract;
 				fract = modf(pVertices->tv, &base);
-				fract = fract * (1<<ctxt->TEX0.TH) / td.Height * t.m_yscale;
+				fract = fract * (1<<ctxt->TEX0.TH) / td.Height * t.m_scale.y;
 				//ASSERT(-1 <= fract && fract <= 1.01);
 				pVertices->tv = base + fract;
 			}
@@ -668,9 +674,9 @@ void GSState::FlushPrim()
 	}
 
 
-if(m_de.PRIM.TME && m_nVertices == 6 && (ctxt->FRAME.Block()) == 0x00000 && ctxt->TEX0.TBP0 == 0x00f00)
+if(m_de.PRIM.TME && m_nVertices == 6 && (ctxt->FRAME.Block()) == 0x00000 && ctxt->TEX0.TBP0 == 0x00e00)
 {
-	if(m_stats.GetFrame() > 500)
+	if(m_stats.GetFrame() > 1500)
 	{
 //		hr = D3DXSaveTextureToFile(_T("c:\\rtbefore.bmp"), D3DXIFF_BMP, pRT, NULL);
 	}
@@ -818,9 +824,9 @@ if(m_de.PRIM.TME && m_nVertices == 6 && (ctxt->FRAME.Block()) == 0x00000 && ctxt
 
 	hr = m_pD3DDev->SetRenderState(D3DRS_SEPARATEALPHABLENDENABLE, FALSE);
 
-if(m_de.PRIM.TME && m_nVertices == 6 && (ctxt->FRAME.Block()) == 0x00000 && ctxt->TEX0.TBP0 == 0x00f00)
+if(m_de.PRIM.TME && m_nVertices == 6 && (ctxt->FRAME.Block()) == 0x00000 && ctxt->TEX0.TBP0 == 0x00e00)
 {
-	if(m_stats.GetFrame() > 500)
+	if(m_stats.GetFrame() > 1500)
 	{
 //		hr = D3DXSaveTextureToFile(_T("c:\\rtafter.bmp"), D3DXIFF_BMP, pRT, NULL);
 //		if(t.m_pTexture) hr = D3DXSaveTextureToFile(_T("c:\\tx.bmp"), D3DXIFF_BMP, t.m_pTexture, NULL);
@@ -835,7 +841,7 @@ if(m_de.PRIM.TME && m_nVertices == 6 && (ctxt->FRAME.Block()) == 0x00000 && ctxt
 	TEX0.CBP = -1;
 	GIFRegCLAMP CLAMP;
 	CLAMP.WMS = CLAMP.WMT = 0;
-	m_tc.Update(TEX0, CLAMP, m_de.TEXA, xscale, yscale, pRT);
+	m_tc.Update(TEX0, CLAMP, m_de.TEXA, scale, pRT);
 
 	//////////////////////
 
@@ -1095,11 +1101,12 @@ void GSState::Flip()
 				hr = m_pD3DDev->SetTexture(0, pRT);
 				hr = m_pD3DDev->SetTextureStageState(0, D3DTSS_TEXCOORDINDEX, 0);
 
-				CSize size = m_rs.GetSize(0);
-				float xscale = (float)bd.Width / size.cx;
-				float yscale = (float)bd.Height / size.cy;
+				scale_t scale;
+				DWORD ssize = sizeof(scale);
+				pRT->GetPrivateData(GUID_NULL, &scale, &ssize);
 
-				CRect src(0, 0, xscale*size.cx, yscale*size.cy);
+				CSize size = m_rs.GetSize(m_rs.PMODE.EN1 ? 0 : 1);
+				CRect src = CRect(0, 0, scale.x*size.cx, scale.y*size.cy);
 
 				struct
 				{
@@ -1183,8 +1190,7 @@ void GSState::Flip()
 	{
 		CComPtr<IDirect3DTexture9> pRT;
 		D3DSURFACE_DESC rd;
-		CSize size;
-		float xscale, yscale;
+		scale_t scale;
 		CRect src;
 	} rt[3];
 
@@ -1194,23 +1200,18 @@ void GSState::Flip()
 		{
 			UINT32 FBP = i == 2 || (::GetAsyncKeyState(VK_SPACE)&0x80000000) ? ctxt->FRAME.Block() : (m_rs.DISPFB[i].FBP<<5);
 
-			if(i < 2)
-			{
-				rt[i].size = m_rs.GetSize(i);
-				rt[i].xscale = rt[i].yscale = 1;
-				rt[i].src = CRect(0, 0, rt[i].size.cx, rt[i].size.cy);
-			}
-
 			if(CSurfMap<IDirect3DTexture9>::CPair* pPair = m_pRenderTargets.PLookup(FBP))
 			{
 				rt[i].pRT = pPair->value;
 				m_tc.ResetAge(pPair->key);
 				ZeroMemory(&rt[i].rd, sizeof(rt[i].rd));
 				hr = rt[i].pRT->GetLevelDesc(0, &rt[i].rd);
-				rt[i].size = m_rs.GetSize(i);
-				rt[i].xscale = (float)bd.Width / rt[i].size.cx;
-				rt[i].yscale = (float)bd.Height / rt[i].size.cy;
-				rt[i].src = CRect(0, 0, rt[i].xscale*rt[i].size.cx, rt[i].yscale*rt[i].size.cy);
+
+				DWORD ssize = sizeof(rt[i].scale);
+				rt[i].pRT->GetPrivateData(GUID_NULL, &rt[i].scale, &ssize);
+
+				CSize size = m_rs.GetSize(i < 2 ? i : m_rs.PMODE.EN1 ? 0 : 1);
+				rt[i].src = CRect(0, 0, rt[i].scale.x*size.cx, rt[i].scale.y*size.cy);
 			}
 		}
 	}
@@ -1252,9 +1253,9 @@ void GSState::Flip()
 
 		if(fShiftField)
 		{
-			pVertices[i].tv1 += rt[0].yscale*0.5f / rt[0].rd.Height;
-			pVertices[i].tv2 += rt[1].yscale*0.5f / rt[1].rd.Height;
-			pVertices[i].tv3 += rt[2].yscale*0.5f / rt[2].rd.Height;
+			pVertices[i].tv1 += rt[0].scale.y*0.5f / rt[0].rd.Height;
+			pVertices[i].tv2 += rt[1].scale.y*0.5f / rt[1].rd.Height;
+			pVertices[i].tv3 += rt[2].scale.y*0.5f / rt[2].rd.Height;
 		}
 	}
 

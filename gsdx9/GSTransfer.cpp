@@ -286,7 +286,8 @@ bool GSState::CreateTexture(GSTexture& t)
 
 	pTexture->UnlockRect(0);
 
-	m_tc.Add(ctxt->TEX0, ctxt->CLAMP, m_de.TEXA, 1, 1, pTexture);
+	//scale_t scale = {1, 1};
+	m_tc.Add(ctxt->TEX0, ctxt->CLAMP, m_de.TEXA, scale_t(1,1), pTexture);
 	if(!m_tc.Lookup(ctxt->TEX0, ctxt->CLAMP, m_de.TEXA, t)) // ehe
 		ASSERT(0);
 /*	

@@ -22,18 +22,17 @@
 #include "StdAfx.h"
 #include "GSTextureCache.h"
 
-GSTexture::GSTexture()
+GSTexture::GSTexture() : m_scale(1, 1)
 {
 	m_TEX0.TBP0 = m_TEX0.CBP = m_TEX0.PSM = -1;
 	m_CLAMP.WMS = m_CLAMP.WMT = 0; m_CLAMP.MINU = m_CLAMP.MINV = m_CLAMP.MAXU = m_CLAMP.MAXV = 0;
 	m_TEXA.TA0 = m_TEXA.TA1 = m_TEXA.AEM = -1;
-	m_xscale = m_yscale = 1;
 	m_age = 0;
 }
 
-GSTexture::GSTexture(GIFRegTEX0& TEX0, GIFRegCLAMP& CLAMP, GIFRegTEXA& TEXA, float xscale, float yscale, CComPtr<IDirect3DTexture9> pTexture)
+GSTexture::GSTexture(GIFRegTEX0& TEX0, GIFRegCLAMP& CLAMP, GIFRegTEXA& TEXA, scale_t& scale, CComPtr<IDirect3DTexture9> pTexture)
 	: m_TEX0(TEX0), m_CLAMP(CLAMP), m_TEXA(TEXA)
-	, m_xscale(xscale), m_yscale(yscale), m_pTexture(pTexture)
+	, m_scale(scale), m_pTexture(pTexture)
 	, m_age(0)
 {
 	ASSERT(pTexture);
@@ -45,30 +44,31 @@ GSTextureCache::GSTextureCache()
 {
 }
 
-void GSTextureCache::Add(GIFRegTEX0& TEX0, GIFRegCLAMP& CLAMP, GIFRegTEXA& TEXA, float xscale, float yscale, CComPtr<IDirect3DTexture9> pTexture)
+void GSTextureCache::Add(GIFRegTEX0& TEX0, GIFRegCLAMP& CLAMP, GIFRegTEXA& TEXA, scale_t& scale, CComPtr<IDirect3DTexture9> pTexture)
 {
 	InvalidateByTBP(TEX0.TBP0);
 	InvalidateByCBP(TEX0.TBP0);
-	AddHead(GSTexture(TEX0, CLAMP, TEXA, xscale, yscale, pTexture));
+	AddHead(GSTexture(TEX0, CLAMP, TEXA, scale, pTexture));
 }
 
-void GSTextureCache::Update(GIFRegTEX0& TEX0, GIFRegCLAMP& CLAMP, GIFRegTEXA& TEXA, float xscale, float yscale, CComPtr<IDirect3DTexture9> pTexture)
+void GSTextureCache::Update(GIFRegTEX0& TEX0, GIFRegCLAMP& CLAMP, GIFRegTEXA& TEXA, scale_t& scale, CComPtr<IDirect3DTexture9> pTexture)
 {
 	GSTexture t;
-	if(Lookup(TEX0, CLAMP, TEXA, xscale, yscale, t)) return;
-	Add(TEX0, CLAMP, TEXA, xscale, yscale, pTexture);
+	if(Lookup(TEX0, CLAMP, TEXA, scale, t)) return;
+	Add(TEX0, CLAMP, TEXA, scale, pTexture);
 }
 
-POSITION GSTextureCache::Lookup(GIFRegTEX0& TEX0, GIFRegCLAMP& CLAMP, GIFRegTEXA& TEXA, float xscale, float yscale, GSTexture& ret)
+POSITION GSTextureCache::Lookup(GIFRegTEX0& TEX0, GIFRegCLAMP& CLAMP, GIFRegTEXA& TEXA, scale_t& scale, GSTexture& ret)
 {
 	for(POSITION pos = GetHeadPosition(); pos; GetNext(pos))
 	{
 		GSTexture& t = GetAt(pos);
+		bool fRT = IsRenderTarget(t.m_pTexture);
 		if(t.m_TEX0.TBP0 == TEX0.TBP0 && (TEX0.PSM <= PSM_PSMCT16S || t.m_TEX0.CBP == TEX0.CBP)
-		&& (t.m_TEX0.PSM == TEX0.PSM || IsRenderTarget(t.m_pTexture) && TEX0.PSM <= PSM_PSMCT16S)
+		&& (t.m_TEX0.PSM == TEX0.PSM || fRT && TEX0.PSM <= PSM_PSMCT16S)
 		&& (t.m_TEX0.PSM == PSM_PSMCT32 || t.m_TEXA.TA0 == TEXA.TA0 && t.m_TEXA.TA1 == TEXA.TA1 && t.m_TEXA.AEM == TEXA.AEM)
-		&& (!(t.m_CLAMP.WMS&2) && !(CLAMP.WMS&2) && !(t.m_CLAMP.WMT&2) && !(CLAMP.WMT&2) || t.m_CLAMP.i64 == CLAMP.i64)
-		&& fabs(t.m_xscale - xscale) < 0.001 && fabs(t.m_yscale - yscale) < 0.001)
+		&& (fRT || !(t.m_CLAMP.WMS&2) && !(CLAMP.WMS&2) && !(t.m_CLAMP.WMT&2) && !(CLAMP.WMT&2) || t.m_CLAMP.i64 == CLAMP.i64)
+		&& t.m_scale == scale)
 		{
 			t.m_age = 0;
 			ret = t;
@@ -83,9 +83,10 @@ POSITION GSTextureCache::Lookup(GIFRegTEX0& TEX0, GIFRegCLAMP& CLAMP, GIFRegTEXA
 	for(POSITION pos = GetHeadPosition(); pos; GetNext(pos))
 	{
 		GSTexture& t = GetAt(pos);
+		bool fRT = IsRenderTarget(t.m_pTexture);
 		if(t.m_TEX0.TBP0 == TEX0.TBP0 && (TEX0.PSM <= PSM_PSMCT16S || t.m_TEX0.CBP == TEX0.CBP)
-		&& (t.m_TEX0.PSM == TEX0.PSM || IsRenderTarget(t.m_pTexture) && TEX0.PSM <= PSM_PSMCT16S)
-		&& (!(t.m_CLAMP.WMS&2) && !(CLAMP.WMS&2) && !(t.m_CLAMP.WMT&2) && !(CLAMP.WMT&2) || t.m_CLAMP.i64 == CLAMP.i64)
+		&& (t.m_TEX0.PSM == TEX0.PSM || fRT && TEX0.PSM <= PSM_PSMCT16S)
+		&& (fRT || !(t.m_CLAMP.WMS&2) && !(CLAMP.WMS&2) && !(t.m_CLAMP.WMT&2) && !(CLAMP.WMT&2) || t.m_CLAMP.i64 == CLAMP.i64)
 		&& (t.m_TEXA.TA0 == TEXA.TA0 || t.m_TEXA.TA1 == TEXA.TA1 || t.m_TEXA.AEM == TEXA.AEM))
 		{
 			t.m_age = 0;

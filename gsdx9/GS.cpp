@@ -23,9 +23,10 @@
 #include "GS.h"
 #include "GSState.h"
 #include "GSWnd.h"
+#include "GSSettingsDlg.h"
 
 #define PS2E_LT_GS 0x01
-#define PS2E_GS_VERSION 0x0004
+#define PS2E_GS_VERSION 0x0003
 
 EXPORT_C_(UINT32) PS2EgetLibType()
 {
@@ -39,7 +40,7 @@ EXPORT_C_(char*) PS2EgetLibName()
 
 EXPORT_C_(UINT32) PS2EgetLibVersion2(UINT32 type)
 {
-	return (PS2E_GS_VERSION<<16)|(0x00<<8)|0x02;
+	return (PS2E_GS_VERSION<<16)|(0x00<<8)|0x03;
 }
 
 static CAutoPtr<GSState> s_gs;
@@ -192,6 +193,8 @@ EXPORT_C_(INT32) GSfreeze(int mode, freezeData* data)
 
 EXPORT_C GSconfigure()
 {
+	AFX_MANAGE_STATE(AfxGetStaticModuleState());
+	CGSSettingsDlg().DoModal();
 }
 
 EXPORT_C_(INT32) GStest()

@@ -31,6 +31,10 @@ GSState::GSState(HWND hWnd, HRESULT& hr)
 {
 	hr = E_FAIL;
 
+    CWinApp* pApp = AfxGetApp();
+	m_fDisableShaders = !!pApp->GetProfileInt(_T("Settings"), _T("DisableShaders"), FALSE);
+	m_fHalfVRes = !!pApp->GetProfileInt(_T("Settings"), _T("HalfVRes"), FALSE);
+
 	memset(&m_tag, 0, sizeof(m_tag));
 	m_nreg = 0;
 
@@ -175,6 +179,7 @@ GSState::GSState(HWND hWnd, HRESULT& hr)
 
 	AFX_MANAGE_STATE(AfxGetStaticModuleState());
 
+	if(!m_fDisableShaders)
 	for(int i = 0; i < countof(nShaderIDs); i++)
 	{
 		CStringA str;
@@ -207,6 +212,7 @@ GSState::GSState(HWND hWnd, HRESULT& hr)
 	m_fp = _tfopen(_T("c:\\gs.txt"), _T("at"));
 
 //	m_rs.CSRr.REV = 0x20;
+
 }
 
 GSState::~GSState()
