@@ -487,9 +487,9 @@ HRESULT CSubtitleStream::FillBuffer(IMediaSample* pSample)
 			{
 				CStringW line;
 				line.Format(L"%d,%d,%s,%s,%d,%d,%d,%s,%s", 
-					stse.readorder, stse.layer, stse.style, stse.actor, 
+					stse.readorder, stse.layer, CStringW(stse.style), CStringW(stse.actor), 
 					stse.marginRect.left, stse.marginRect.right, (stse.marginRect.top+stse.marginRect.bottom)/2,
-					stse.effect, m_rts.GetStrW(m_nPosition, true));
+					CStringW(stse.effect), m_rts.GetStrW(m_nPosition, true));
 
 				CStringA str = UTF16To8(line);
 				memcpy((char*)pData, str, len = str.GetLength()+1);
