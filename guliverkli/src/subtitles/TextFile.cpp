@@ -114,6 +114,14 @@ bool CTextFile::IsUnicode()
 	return(m_encoding == UTF8 || m_encoding == LE16 || m_encoding == BE16);
 }
 
+// CFile
+
+CString CTextFile::GetFilePath() const
+{
+	// to avoid a CException coming from CTime
+	return m_strFileName; // __super::GetFilePath();
+}
+
 // CStdioFile
 
 ULONGLONG CTextFile::GetPosition() const

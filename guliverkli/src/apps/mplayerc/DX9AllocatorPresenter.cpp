@@ -65,6 +65,7 @@ public:
 	// ISubPicAllocatorPresenter
 	STDMETHODIMP CreateRenderer(IUnknown** ppRenderer);
 	STDMETHODIMP_(bool) Paint(bool fAll);
+	STDMETHODIMP GetDIB(BYTE* lpDib, DWORD* size);
 };
 
 class CVMR9AllocatorPresenter
@@ -520,6 +521,51 @@ STDMETHODIMP_(bool) CDX9AllocatorPresenter::Paint(bool fAll)
 	}
 
 	return(true);
+}
+
+STDMETHODIMP CDX9AllocatorPresenter::GetDIB(BYTE* lpDib, DWORD* size)
+{
+	CheckPointer(size, E_POINTER);
+
+	HRESULT hr;
+
+	D3DSURFACE_DESC desc;
+	memset(&desc, 0, sizeof(desc));
+	m_pVideoSurface->GetDesc(&desc);
+
+	DWORD required = sizeof(BITMAPINFOHEADER) + (desc.Width * desc.Height * 32 >> 3);
+	if(!lpDib) {*size = required; return S_OK;}
+	if(*size < required) return E_OUTOFMEMORY;
+	*size = required;
+
+	CComPtr<IDirect3DSurface9> pSurface = m_pVideoSurface;
+	D3DLOCKED_RECT r;
+	if(FAILED(hr = pSurface->LockRect(&r, NULL, D3DLOCK_READONLY)))
+	{
+		pSurface = NULL;
+		if(FAILED(hr = m_pD3DDev->CreateOffscreenPlainSurface(desc.Width, desc.Height, desc.Format, D3DPOOL_SYSTEMMEM, &pSurface, NULL))
+		|| FAILED(hr = m_pD3DDev->GetRenderTargetData(m_pVideoSurface, pSurface))
+		|| FAILED(hr = pSurface->LockRect(&r, NULL, D3DLOCK_READONLY)))
+			return hr;
+	}
+
+	BITMAPINFOHEADER* bih = (BITMAPINFOHEADER*)lpDib;
+	memset(bih, 0, sizeof(BITMAPINFOHEADER));
+	bih->biSize = sizeof(BITMAPINFOHEADER);
+	bih->biWidth = desc.Width;
+	bih->biHeight = desc.Height;
+	bih->biBitCount = 32;
+	bih->biPlanes = 1;
+	bih->biSizeImage = bih->biWidth * bih->biHeight * bih->biBitCount >> 3;
+
+	BitBltFromRGBToRGB(
+		bih->biWidth, bih->biHeight, 
+		(BYTE*)(bih + 1), bih->biWidth*bih->biBitCount>>3, bih->biBitCount,
+		(BYTE*)r.pBits + r.Pitch*(desc.Height-1), -(int)r.Pitch, 32);
+
+	pSurface->UnlockRect();
+
+	return S_OK;
 }
 
 //
@@ -1171,12 +1217,18 @@ STDMETHODIMP CRM9AllocatorPresenter::Blt(UCHAR* pImageData, RMABitmapInfoHeader*
 			{
 				BitBltFromYUY2ToYUY2(src.Width(), src.Height(), (BYTE*)r.pBits, r.Pitch, yvyu, pitch);
 				m_pVideoSurfaceYUY2->UnlockRect();
-				fRGB = true;
+				fYUY2 = true;
 			}
 		}
 		else
 		{
-			// TODO: BitBltFromYUY2ToRGB
+			D3DLOCKED_RECT r;
+			if(SUCCEEDED(m_pVideoSurfaceOff->LockRect(&r, src2, 0)))
+			{
+				BitBltFromYUY2ToRGB(src.Width(), src.Height(), (BYTE*)r.pBits, r.Pitch, dbpp, yvyu, pitch);
+				m_pVideoSurfaceOff->UnlockRect();
+				fRGB = true;
+			}
 		}
 	}
 	else if(pBitmapInfo->biCompression == 0 || pBitmapInfo->biCompression == 3

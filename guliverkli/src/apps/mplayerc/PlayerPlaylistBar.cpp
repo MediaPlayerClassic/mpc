@@ -195,7 +195,7 @@ void CPlayerPlaylistBar::AddItem(CStringList& fns, CStringList* subs)
 
 static bool SearchFiles(CString mask, CStringList& sl)
 {
-	if(mask.Find(_T("://")) >= 0) 
+	if(mask.Find(_T("://")) >= 0)
 		return(false);
 
 	mask.Trim();
@@ -255,10 +255,8 @@ void CPlayerPlaylistBar::ParsePlayList(CStringList& fns, CStringList* subs)
 {
 	if(fns.IsEmpty()) return;
 
-	CString fn = fns.GetHead();
-
 	CStringList sl;
-	if(SearchFiles(fn, sl))
+	if(SearchFiles(fns.GetHead(), sl))
 	{
 		if(sl.GetCount() > 1) subs = NULL;
 		POSITION pos = sl.GetHeadPosition();
@@ -266,169 +264,16 @@ void CPlayerPlaylistBar::ParsePlayList(CStringList& fns, CStringList* subs)
 		return;
 	}
 
-	CString ext = fn.Mid(fn.ReverseFind('.')+1).MakeLower();
-	CString dir = fn.Left(max(fn.ReverseFind('/'), fn.ReverseFind('\\'))+1); // "ReverseFindOneOf"
-
-	if(0/*CString(fn).MakeLower().Find(_T("http://")) >= 0*/)
+	CList<CString> redir;
+	CStringA ct = GetContentType(fns.GetHead(), &redir);
+	if(!redir.IsEmpty())
 	{
-		if(!(ext == _T("pls") || ext == _T("m3u") || ext == _T("asx") /*|| ext == _T("asf")*/))
-		{
-			CUrl url;
-			url.CrackUrl(fn);
-			if(url.GetPortNumber() == ATL_URL_SCHEME_UNKNOWN) url.SetPortNumber(ATL_URL_SCHEME_HTTP);
-
-			CStringA str;
-			str.Format(
-				"GET %s HTTP/1.0\r\n"
-				"User-Agent: Media Player Classic\r\n"
-				"Host: %s\r\n"
-				"Accept: */*\r\n"
-				"\r\n", CStringA(url.GetUrlPath())+CStringA(url.GetExtraInfo()), CStringA(url.GetHostName()));
-
-			float ver = 0;
-			CStringA contenttype;
-
-			CSocket s;
-			if(s.Create() && s.Connect(url.GetHostName(), url.GetPortNumber())
-			&& s.Send((BYTE*)(LPCSTR)str, str.GetLength()) > 0)
-			{
-				str.Empty();
-				BYTE cur = 0, prev = 0;
-				while(s.Receive(&cur, 1) == 1 && cur && !(cur == '\n' && prev == '\n'))
-				{
-					if(cur == '\r')
-						continue;
-
-					if(cur == '\n')
-					{
-						str.MakeLower();
-						str.Trim();
-						if(1 == sscanf(str, "http/%f 200 ok", &ver)) ver = ver;
-						else if(str.Find("content-type:") == 0) contenttype = str.Mid(13).Trim();
-						str.Empty();
-					}
-					else
-					{
-						str += cur;
-					}
-
-					prev = cur;
-					cur = 0;
-				}
-			}
-
-			if(ver != 0)
-			{
-				if(contenttype == "video/x-ms-asf")
-					ext = _T("asx");
-				else if(contenttype == "audio/x-mpegurl")
-					ext = _T("m3u");
-			}
-		}
-	}
-/*
-	if(CString(fn).MakeLower().Find(_T("http://")) >= 0 
-	|| (fn.Find(_T("://")) < 0 && (ext == _T("pls") || ext == _T("m3u") || ext == _T("asx") || ext == _T("asf"))))
-	{
-		CComPtr<IGraphBuilder> pGB;
-		pGB.CoCreateInstance(CLSID_FilterGraph);
-		if(!pGB) return;
-
-		CComPtr<IBaseFilter> pBF;
-		if(SUCCEEDED(pGB->AddSourceFilter(CStringW(fn), NULL, &pBF)) && pBF)
-		{
-			IPin* pPin = GetFirstPin(pBF, PINDIR_OUTPUT);
-			BeginEnumMediaTypes(pPin, pEMT, pmt)
-			{
-				CString subtype = CStringFromGUID(pmt->subtype);
-
-				if(!subtype.CompareNoCase(_T("{D51BD5AE-7548-11CF-A520-0080C77EF58A}")))
-				{
-					ext = _T("asx");
-					break;
-				}
-				else if(!subtype.CompareNoCase(_T("{A98C8400-4181-11D1-A520-00A0D10129C0}")))
-				{
-					ext = _T("m3u");
-					break;
-				}
-			}
-			EndEnumMediaTypes(pmt)
-		}
-	}
-*/
-	CAutoPtrList<CAtlRegExp<> > res;
-	CAutoPtr<CAtlRegExp<> > re;
-
-	if(ext == _T("pls"))
-	{
-		// File1=...\n
-		re.Attach(new CAtlRegExp<>());
-		if(re && REPARSE_ERROR_OK == re->Parse(_T("file\\z\\b*=\\b*[\"]*{[^\n\"]+}"), FALSE))
-			res.AddTail(re);
-	}
-	else if(ext == _T("m3u"))
-	{
-		// #comment
-		// ...
-		re.Attach(new CAtlRegExp<>());
-		if(re && REPARSE_ERROR_OK == re->Parse(_T("(^|\n){[^#][^\n]+}"), FALSE))
-			res.AddTail(re);
-	}
-	else if(ext == _T("asx") || ext == _T("asf") || ext == _T("wmx") || ext == _T("wvx") || ext == _T("wax"))
-	{
-		// <Ref href = "..."/>
-		re.Attach(new CAtlRegExp<>());
-		if(re && REPARSE_ERROR_OK == re->Parse(_T("<[ \\t\n]*Ref[ \\t\n]+href[ \\t\n]*=[ \\t\n\"]*{[^\">]*}"), FALSE))
-			res.AddTail(re);
-		// Ref#n= ...\n
-		re.Attach(new CAtlRegExp<>());
-		if(re && REPARSE_ERROR_OK == re->Parse(_T("Ref\\z\\b*=\\b*[\"]*{[^\n\"]+}"), FALSE))
-			res.AddTail(re);
-	}
-	else
-	{
-		AddItem(fns, subs);
+		POSITION pos = redir.GetHeadPosition();
+		while(pos) ParsePlayList(sl.GetNext(pos), subs);
 		return;
 	}
 
-	CString str('\n'); // FIXME: m3u regexp skips the first line for some reason
-
-//	CWebTextFile f;
-	CTextFile f;
-	if(f.Open(fn)) 
-		for(CString tmp; f.ReadString(tmp); str += tmp + '\n');
-
-	bool fFound = false;
-
-	POSITION pos = res.GetHeadPosition();
-	while(pos)
-	{
-		CAtlRegExp<>* re = res.GetNext(pos);
-
-		CAtlREMatchContext<> mc;
-		const CAtlREMatchContext<>::RECHAR* s = str.GetBuffer();
-		const CAtlREMatchContext<>::RECHAR* e = NULL;
-		for(; s && re->Match(s, &mc, &e); s = e)
-		{
-			fFound = true;
-
-			const CAtlREMatchContext<>::RECHAR* szStart = 0;
-			const CAtlREMatchContext<>::RECHAR* szEnd = 0;
-			mc.GetMatch(0, &szStart, &szEnd);
-
-			fn.Format(_T("%.*s"), szEnd - szStart, szStart);
-			fn.Trim();
-			if(fn.CompareNoCase(_T("asf path")) == 0) continue;
-			if(fn.Find(_T(":")) < 0 && fn.Find(_T("\\\\")) != 0 && fn.Find(_T("//")) != 0)
-				fn = dir + fn;
-
-			ParsePlayList(fn, NULL);
-		}
-	}
-
-	if(!fFound)
-		AddItem(fns, subs);
+	AddItem(fns, subs);
 }
 
 void CPlayerPlaylistBar::Empty()
@@ -805,6 +650,10 @@ void CPlayerPlaylistBar::OnDrawItem(int nIDCtl, LPDRAWITEMSTRUCT lpDrawItemStruc
 	{
 		FillRect(pDC->m_hDC, rcItem, CBrush(0xf1dacc));
 		FrameRect(pDC->m_hDC, rcItem, CBrush(0xc56a31));
+	}
+	else
+	{
+		FillRect(pDC->m_hDC, rcItem, CBrush(GetSysColor(COLOR_WINDOW)));
 	}
 
 	COLORREF textcolor = fSelected?0xff:0;

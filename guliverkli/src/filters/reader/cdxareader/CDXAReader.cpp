@@ -132,22 +132,14 @@ const AMOVIESETUP_PIN sudOpPin =
     &sudPinTypesOut			// Pin details
 };
 
-const AMOVIESETUP_FILTER sudCDXAReader =
+const AMOVIESETUP_FILTER sudCDXAReader[] =
 {
-    &__uuidof(CCDXAReader),	// Filter CLSID
-    L"CDXA Reader",			// String name
-    MERIT_UNLIKELY,			// Filter merit
-    1,						// Number of pins
-    &sudOpPin				// Pin information
+	{&__uuidof(CCDXAReader), L"CDXA Reader", MERIT_UNLIKELY, 1, &sudOpPin}
 };
 
 CFactoryTemplate g_Templates[] =
 {
-	{ L"CDXA Reader"
-	, &__uuidof(CCDXAReader)
-	, CCDXAReader::CreateInstance
-	, NULL
-	, &sudCDXAReader}
+	{L"CDXA Reader", &__uuidof(CCDXAReader), CCDXAReader::CreateInstance, NULL, &sudCDXAReader[0]}
 };
 
 int g_cTemplates = countof(g_Templates);
@@ -474,6 +466,17 @@ bool CCDXAStream::LookForMediaSubType()
 			
 			return(true);
 		}
+		else if(*((DWORD*)&buff[4]) == 'voom' || *((DWORD*)&buff[4]) == 'tadm'
+		|| *((DWORD*)&buff[4]) == 'pytf' && *((DWORD*)&buff[8]) == 'mosi' && *((DWORD*)&buff[16]) == '14pm')
+		{
+			m_llPosition = 0;
+			m_llLength -= iSectorsRead*RAW_DATA_SIZE;
+			m_nFirstSector = iSectorsRead;
+
+			m_subtype = MEDIASUBTYPE_QTMovie;
+			
+			return(true);
+		}
 	}
 
 	m_llPosition = 0;
@@ -562,8 +565,8 @@ bool CCDXAStream::LookForMediaSubType()
 
 				if(nMatches > 0 && nMatches*4 == nTries)
 				{
-					CComBSTR st(subtype);
-					return(SUCCEEDED(CLSIDFromString(st, &m_subtype)));
+					m_subtype = GUIDFromCString(subtype);
+					return S_OK;
 				}
 			}
 		}

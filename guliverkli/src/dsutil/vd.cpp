@@ -982,3 +982,30 @@ AvgLines565_loop:
 
 	__asm emms;
 }
+
+extern "C" void mmx_YUY2toRGB24(const BYTE* src, BYTE* dst, const BYTE* src_end, int src_pitch, int row_size, bool rec709);
+extern "C" void mmx_YUY2toRGB32(const BYTE* src, BYTE* dst, const BYTE* src_end, int src_pitch, int row_size, bool rec709);
+
+bool BitBltFromYUY2ToRGB(int w, int h, BYTE* dst, int dstpitch, int dbpp, BYTE* src, int srcpitch)
+{
+	void (* YUY2toRGB)(const BYTE* src, BYTE* dst, const BYTE* src_end, int src_pitch, int row_size, bool rec709) = NULL;
+
+	if(g_cpuid.m_flags & CCpuID::flag_t::mmx)
+	{
+		YUY2toRGB = 
+			dbpp == 32 ? mmx_YUY2toRGB32 :
+			dbpp == 24 ? mmx_YUY2toRGB24 :
+			// dbpp == 16 ? mmx_YUY2toRGB16 : // TODO
+			NULL;
+	}
+	else
+	{
+		// TODO
+	}
+
+	if(!YUY2toRGB) return(false);
+
+	YUY2toRGB(src, dst, src + h*srcpitch, srcpitch, w, false);
+
+	return(true);
+}

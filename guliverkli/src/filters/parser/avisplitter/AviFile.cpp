@@ -324,7 +324,8 @@ HRESULT CAviFile::BuildIndex()
 					s->cs[frame].size = size;
 					s->cs[frame].filepos = offset + idx->aIndex[j].dwOffset;
 					s->cs[frame].fKeyFrame = !!(idx->aIndex[j].dwFlags&AVIIF_KEYFRAME) 
-						|| s->strh.fccType == FCC('auds'); // FIXME: some audio index is without any kf flag
+						|| s->strh.fccType == FCC('auds') // FIXME: some audio index is without any kf flag
+						|| frame == 0; // grrr
 
 					frame++;
 					size += s->GetChunkSize(idx->aIndex[j].dwSize);

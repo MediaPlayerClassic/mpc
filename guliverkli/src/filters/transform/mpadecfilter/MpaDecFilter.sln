@@ -28,6 +28,10 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "liba52", "a52dec-0.7.4\vc++
 	ProjectSection(ProjectDependencies) = postProject
 	EndProjectSection
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libdts", "dtsdec-0.0.1\vc++\libdts.vcproj", "{54F609FD-A8CE-43CF-94AD-23E877B97C13}"
+	ProjectSection(ProjectDependencies) = postProject
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfiguration) = preSolution
 		Debug = Debug
@@ -136,6 +140,22 @@ Global
 		{62FE6D94-E17C-4A8E-8D3C-7A589A70D865}.Release Unicode.Build.0 = Release|Win32
 		{62FE6D94-E17C-4A8E-8D3C-7A589A70D865}.Release Unicode lib.ActiveCfg = Release|Win32
 		{62FE6D94-E17C-4A8E-8D3C-7A589A70D865}.Release Unicode lib.Build.0 = Release|Win32
+		{54F609FD-A8CE-43CF-94AD-23E877B97C13}.Debug.ActiveCfg = Debug|Win32
+		{54F609FD-A8CE-43CF-94AD-23E877B97C13}.Debug.Build.0 = Debug|Win32
+		{54F609FD-A8CE-43CF-94AD-23E877B97C13}.Debug lib.ActiveCfg = Debug|Win32
+		{54F609FD-A8CE-43CF-94AD-23E877B97C13}.Debug lib.Build.0 = Debug|Win32
+		{54F609FD-A8CE-43CF-94AD-23E877B97C13}.Debug Unicode.ActiveCfg = Debug|Win32
+		{54F609FD-A8CE-43CF-94AD-23E877B97C13}.Debug Unicode.Build.0 = Debug|Win32
+		{54F609FD-A8CE-43CF-94AD-23E877B97C13}.Debug Unicode lib.ActiveCfg = Debug|Win32
+		{54F609FD-A8CE-43CF-94AD-23E877B97C13}.Debug Unicode lib.Build.0 = Debug|Win32
+		{54F609FD-A8CE-43CF-94AD-23E877B97C13}.Release.ActiveCfg = Release|Win32
+		{54F609FD-A8CE-43CF-94AD-23E877B97C13}.Release.Build.0 = Release|Win32
+		{54F609FD-A8CE-43CF-94AD-23E877B97C13}.Release lib.ActiveCfg = Release|Win32
+		{54F609FD-A8CE-43CF-94AD-23E877B97C13}.Release lib.Build.0 = Release|Win32
+		{54F609FD-A8CE-43CF-94AD-23E877B97C13}.Release Unicode.ActiveCfg = Release|Win32
+		{54F609FD-A8CE-43CF-94AD-23E877B97C13}.Release Unicode.Build.0 = Release|Win32
+		{54F609FD-A8CE-43CF-94AD-23E877B97C13}.Release Unicode lib.ActiveCfg = Release|Win32
+		{54F609FD-A8CE-43CF-94AD-23E877B97C13}.Release Unicode lib.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 	EndGlobalSection

@@ -89,6 +89,7 @@ extern CString ISO6391ToLanguage(LPCSTR code);
 extern CString ISO6392ToLanguage(LPCSTR code);
 extern CString ISO6391To6392(LPCSTR code);
 extern int MakeAACInitData(BYTE* pData, int profile, int freq, int channels);
+extern BOOL CFileGetStatus(LPCTSTR lpszFileName, CFileStatus& status);
 
 class CPinInfo : public PIN_INFO
 {

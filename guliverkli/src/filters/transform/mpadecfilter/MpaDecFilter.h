@@ -26,6 +26,8 @@
 #include "libmad-0.15.0b\msvc++\mad.h"
 #include "a52dec-0.7.4\vc++\inttypes.h"
 #include "a52dec-0.7.4\include\a52.h"
+//#include "dtsdec-0.0.1\vc++\inttypes.h"
+#include "dtsdec-0.0.1\include\dts.h"
 #include "..\..\..\decss\DeCSSInputPin.h"
 #include "IMpaDecFilter.h"
 
@@ -36,6 +38,8 @@ protected:
 	CCritSec m_csReceive;
 
 	a52_state_t* m_a52_state;
+
+	dts_state_t* m_dts_state;
 
 	struct mad_stream m_stream;
 	struct mad_frame m_frame;
@@ -61,8 +65,8 @@ protected:
 	CCritSec m_csProps;
 	SampleFormat m_iSampleFormat;
 	bool m_fNormalize;
-	int m_iSpeakerConfig;
-	bool m_fDynamicRangeControl;
+	int m_iAc3SpeakerConfig, m_iDtsSpeakerConfig;
+	bool m_fAc3DynamicRangeControl, m_fDtsDynamicRangeControl;
 
 public:
 	CMpaDecFilter(LPUNKNOWN lpunk, HRESULT* phr);
@@ -95,10 +99,10 @@ public:
 	STDMETHODIMP_(SampleFormat) GetSampleFormat();
 	STDMETHODIMP SetNormalize(bool fNormalize);
 	STDMETHODIMP_(bool) GetNormalize();
-	STDMETHODIMP SetSpeakerConfig(int sc);
-	STDMETHODIMP_(int) GetSpeakerConfig();
-	STDMETHODIMP SetDynamicRangeControl(bool fDRC);
-	STDMETHODIMP_(bool) GetDynamicRangeControl();
+	STDMETHODIMP SetSpeakerConfig(enctype et, int sc);
+	STDMETHODIMP_(int) GetSpeakerConfig(enctype et);
+	STDMETHODIMP SetDynamicRangeControl(enctype et, bool fDRC);
+	STDMETHODIMP_(bool) GetDynamicRangeControl(enctype et);
 };
 
 class CMpaDecInputPin : public CDeCSSInputPin

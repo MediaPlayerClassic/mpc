@@ -105,6 +105,8 @@ BOOL CPPageLogo::OnApply()
 	s.logofn = m_logofn;
 	s.logoid = m_logoids.GetAt(m_logoidpos);
 
+	((CMainFrame*)AfxGetMainWnd())->m_wndView.LoadLogo();
+
 	return __super::OnApply();
 }
 
@@ -121,6 +123,8 @@ void CPPageLogo::OnBnClickedRadio1()
 
 	m_intext = 0;
 	UpdateData(FALSE);
+
+	SetModified();
 }
 
 void CPPageLogo::OnBnClickedRadio2()
@@ -137,6 +141,8 @@ void CPPageLogo::OnBnClickedRadio2()
 
 	m_intext = 1;
 	UpdateData(FALSE);
+
+	SetModified();
 }
 
 void CPPageLogo::OnDeltaposSpin1(NMHDR *pNMHDR, LRESULT *pResult)

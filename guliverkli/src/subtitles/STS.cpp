@@ -1267,7 +1267,7 @@ static bool LoadFont(CString& font)
 		fn.Format(_T("%sfont%08x.ttf"), path, chksum);
 
 		CFileStatus	fs;
-		if(!CFile::GetStatus(fn, fs))
+		if(!CFileGetStatus(fn, fs))
 		{
 			CFile f;
 			if(f.Open(fn, CFile::modeCreate|CFile::modeWrite|CFile::typeBinary|CFile::shareDenyWrite))
