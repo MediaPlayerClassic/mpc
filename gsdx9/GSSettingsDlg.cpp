@@ -41,6 +41,7 @@ static struct {DWORD id; const TCHAR* name;} s_psversions[] =
 IMPLEMENT_DYNAMIC(CGSSettingsDlg, CDialog)
 CGSSettingsDlg::CGSSettingsDlg(CWnd* pParent /*=NULL*/)
 	: CDialog(CGSSettingsDlg::IDD, pParent)
+	, m_halfvres(FALSE)
 {
 }
 
@@ -54,6 +55,7 @@ void CGSSettingsDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_COMBO3, m_resolution);
 	DDX_Control(pDX, IDC_COMBO1, m_renderer);
 	DDX_Control(pDX, IDC_COMBO4, m_psversion);
+	DDX_Check(pDX, IDC_CHECK1, m_halfvres);
 }
 
 BEGIN_MESSAGE_MAP(CGSSettingsDlg, CDialog)
@@ -130,6 +132,12 @@ BOOL CGSSettingsDlg::OnInitDialog()
 		if(s_psversions[i].id == psversion_id) m_psversion.SetCurSel(iItem);
 	}
 
+	//
+
+	m_halfvres = pApp->GetProfileInt(_T("Settings"), _T("HalfVRes"), FALSE);
+
+	//
+
 	UpdateData(FALSE);
 
 	return TRUE;  // return TRUE unless you set the focus to a control
@@ -159,6 +167,8 @@ void CGSSettingsDlg::OnOK()
 	{
 		pApp->WriteProfileInt(_T("Settings"), _T("PixelShaderVersion"), m_psversion.GetItemData(m_psversion.GetCurSel()));
 	}
+
+	pApp->WriteProfileInt(_T("Settings"), _T("HalfVRes"), m_halfvres);
 
 	__super::OnOK();
 }

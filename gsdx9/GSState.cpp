@@ -167,7 +167,10 @@ GSState::GSState(int w, int h, HWND hWnd, HRESULT& hr)
 		d3dpp.FullScreen_RefreshRateInHz = ModeRefreshRate;
 	}
 
-	if(FAILED(hr = m_pD3D->CreateDevice(D3DADAPTER_DEFAULT, /*D3DDEVTYPE_REF*/D3DDEVTYPE_HAL, hWnd,
+	if(FAILED(hr = m_pD3D->CreateDevice(
+		// m_pD3D->GetAdapterCount()-1, D3DDEVTYPE_REF,
+		D3DADAPTER_DEFAULT, /*D3DDEVTYPE_REF*/D3DDEVTYPE_HAL, 
+		hWnd,
 		m_caps.VertexProcessingCaps ? D3DCREATE_HARDWARE_VERTEXPROCESSING : D3DCREATE_SOFTWARE_VERTEXPROCESSING, 
 		&d3dpp, &m_pD3DDev)))
 		return;
@@ -194,6 +197,10 @@ GSState::GSState(int w, int h, HWND hWnd, HRESULT& hr)
 		hr = m_pD3DDev->SetSamplerState(i, D3DSAMP_ADDRESSV, D3DTADDRESS_CLAMP);
 	}
 
+#ifdef DEBUG_WIREFRAME
+m_dwFillMode = D3DFILL_SOLID;
+#endif
+
 	HMODULE hModule = AfxGetResourceHandle();
 
 	DWORD PixelShaderVersion = pApp->GetProfileInt(_T("Settings"), _T("PixelShaderVersion"), D3DVS_VERSION(2, 0));
@@ -210,8 +217,9 @@ GSState::GSState(int w, int h, HWND hWnd, HRESULT& hr)
 			// main.Format(_T("main_tfx"));
 
 			CComPtr<ID3DXBuffer> pShader, pErrorMsgs;
-			HRESULT hr = D3DXCompileShaderFromResource(hModule, MAKEINTRESOURCE(IDR_PS20_TFX), NULL, NULL, main, _T("ps_2_0"), 0, &pShader, &pErrorMsgs, NULL);
-			ASSERT(SUCCEEDED(hr));
+			HRESULT hr = D3DXCompileShaderFromResource(
+				hModule, MAKEINTRESOURCE(IDR_PS20_TFX), NULL, NULL, main, _T("ps_2_0"), 
+				0, &pShader, &pErrorMsgs, NULL);
 
 			if(SUCCEEDED(hr))
 			{
@@ -226,7 +234,9 @@ GSState::GSState(int w, int h, HWND hWnd, HRESULT& hr)
 			main.Format(_T("main%d"), i);
 
 			CComPtr<ID3DXBuffer> pShader, pErrorMsgs;
-			HRESULT hr = D3DXCompileShaderFromResource(hModule, MAKEINTRESOURCE(IDR_PS20_MERGE), NULL, NULL, main, _T("ps_2_0"), 0, &pShader, &pErrorMsgs, NULL);
+			HRESULT hr = D3DXCompileShaderFromResource(
+				hModule, MAKEINTRESOURCE(IDR_PS20_MERGE), NULL, NULL, main, _T("ps_2_0"), 
+				0, &pShader, &pErrorMsgs, NULL);
 			ASSERT(SUCCEEDED(hr));
 
 			if(SUCCEEDED(hr))
@@ -354,17 +364,19 @@ UINT32 GSState::Defrost(const freezeData* fd)
 	return 0;
 }
 
-void GSState::Write64(GS_REG mem, GSReg* r)
+void GSState::Write(GS_REG mem, GSReg* r, UINT64 mask)
 {
 	ASSERT(r);
 
 	GSPerfMonAutoTimer at(m_perfmon);
 
+	#define AssignReg(reg) m_rs.##reg##.i64 = (r->i64 & mask) | (m_rs.##reg##.i64 & ~mask);
+
 	switch(mem)
 	{
 		case GS_PMODE:
-			m_rs.PMODE.i64 = r->i64;
-			LOG(_T("Write64(GS_PMODE, EN1=%x EN2=%x CRTMD=%x MMOD=%x AMOD=%x SLBG=%x ALP=%x)\n"), 
+			AssignReg(PMODE);
+			LOG(_T("Write(GS_PMODE, EN1=%x EN2=%x CRTMD=%x MMOD=%x AMOD=%x SLBG=%x ALP=%x)\n"), 
 				r->PMODE.EN1,
 				r->PMODE.EN2,
 				r->PMODE.CRTMD,
@@ -375,38 +387,38 @@ void GSState::Write64(GS_REG mem, GSReg* r)
 			break;
 
 		case GS_SMODE1:
-			m_rs.SMODE1.i64 = r->i64;
-			LOG(_T("Write64(GS_SMODE1, CMOD=%x)\n"), 
+			AssignReg(SMODE1);
+			LOG(_T("Write(GS_SMODE1, CMOD=%x)\n"), 
 				r->SMODE1.CMOD);
 			break;
 
 		case GS_SMODE2:
-			m_rs.SMODE2.i64 = r->i64;
-			LOG(_T("Write64(GS_SMODE2, INT=%x FFMD=%x DPMS=%x)\n"), 
+			AssignReg(SMODE2);
+			LOG(_T("Write(GS_SMODE2, INT=%x FFMD=%x DPMS=%x)\n"), 
 				r->SMODE2.INT,
 				r->SMODE2.FFMD,
 				r->SMODE2.DPMS);
 			break;
 
 		case GS_SRFSH:
-			LOG(_T("Write64(GS_SRFSH, %016I64x)\n"), r->i64);
+			LOG(_T("Write(GS_SRFSH, %016I64x)\n"), r->i64);
 			break;
 
 		case GS_SYNCH1:
-			LOG(_T("Write64(GS_SYNCH1, %016I64x)\n"), r->i64);
+			LOG(_T("Write(GS_SYNCH1, %016I64x)\n"), r->i64);
 			break;
 
 		case GS_SYNCH2:
-			LOG(_T("Write64(GS_SYNCH2, %016I64x)\n"), r->i64);
+			LOG(_T("Write(GS_SYNCH2, %016I64x)\n"), r->i64);
 			break;
 
 		case GS_SYNCV:
-			LOG(_T("Write64(GS_SYNCV, %016I64x)\n"), r->i64);
+			LOG(_T("Write(GS_SYNCV, %016I64x)\n"), r->i64);
 			break;
 
 		case GS_DISPFB1:
-			m_rs.DISPFB[0].i64 = r->i64;
-			LOG(_T("Write64(GS_DISPFB1, FBP=%x FBW=%d PSM=%x DBX=%x DBY=%x)\n"), 
+			AssignReg(DISPFB[0]);
+			LOG(_T("Write(GS_DISPFB1, FBP=%x FBW=%d PSM=%x DBX=%x DBY=%x)\n"), 
 				r->DISPFB.FBP<<5,
 				r->DISPFB.FBW*64,
 				r->DISPFB.PSM,
@@ -415,8 +427,8 @@ void GSState::Write64(GS_REG mem, GSReg* r)
 			break;
 
 		case GS_DISPLAY1:
-			m_rs.DISPLAY[0].i64 = r->i64;
-			LOG(_T("Write64(GS_DISPLAY1, DX=%x DY=%x MAGH=%x MAGV=%x DW=%x DH=%x)\n"),
+			AssignReg(DISPLAY[0]);
+			LOG(_T("Write(GS_DISPLAY1, DX=%x DY=%x MAGH=%x MAGV=%x DW=%x DH=%x)\n"),
 				r->DISPLAY.DX,
 				r->DISPLAY.DY,
 				r->DISPLAY.MAGH,
@@ -426,8 +438,8 @@ void GSState::Write64(GS_REG mem, GSReg* r)
 			break;
 
 		case GS_DISPFB2:
-			m_rs.DISPFB[1].i64 = r->i64;
-			LOG(_T("Write64(GS_DISPFB2, FBP=%x FBW=%d PSM=%x DBX=%x DBY=%x)\n"), 
+			AssignReg(DISPFB[1]);
+			LOG(_T("Write(GS_DISPFB2, FBP=%x FBW=%d PSM=%x DBX=%x DBY=%x)\n"), 
 				r->DISPFB.FBP<<5,
 				r->DISPFB.FBW*64,
 				r->DISPFB.PSM,
@@ -436,8 +448,8 @@ void GSState::Write64(GS_REG mem, GSReg* r)
 			break;
 
 		case GS_DISPLAY2:
-			m_rs.DISPLAY[1].i64 = r->i64;
-			LOG(_T("Write64(GS_DISPLAY2, DX=%x DY=%x MAGH=%x MAGV=%x DW=%x DH=%x)\n"),
+			AssignReg(DISPLAY[1]);
+			LOG(_T("Write(GS_DISPLAY2, DX=%x DY=%x MAGH=%x MAGV=%x DW=%x DH=%x)\n"),
 				r->DISPLAY.DX,
 				r->DISPLAY.DY,
 				r->DISPLAY.MAGH,
@@ -447,8 +459,8 @@ void GSState::Write64(GS_REG mem, GSReg* r)
 			break;
 
 		case GS_EXTBUF:
-			m_rs.EXTBUF.i64 = r->i64;
-			LOG(_T("Write64(GS_EXTBUF, EXBP=%x EXBW=%x FBIN=%x WFFMD=%x EMODA=%x EMODC=%x WDX=%x WDY=%x)\n"),
+			AssignReg(EXTBUF);
+			LOG(_T("Write(GS_EXTBUF, EXBP=%x EXBW=%x FBIN=%x WFFMD=%x EMODA=%x EMODC=%x WDX=%x WDY=%x)\n"),
 				r->EXTBUF.EXBP,
 				r->EXTBUF.EXBW,
 				r->EXTBUF.FBIN,
@@ -460,8 +472,8 @@ void GSState::Write64(GS_REG mem, GSReg* r)
 			break;
 
 		case GS_EXTDATA:
-			m_rs.EXTDATA.i64 = r->i64;
-			LOG(_T("Write64(GS_EXTDATA, SX=%x SY=%x SMPH=%x SMPV=%x WW=%x WH=%x)\n"), 
+			AssignReg(EXTDATA);
+			LOG(_T("Write(GS_EXTDATA, SX=%x SY=%x SMPH=%x SMPV=%x WW=%x WH=%x)\n"), 
 				r->EXTDATA.SX,
 				r->EXTDATA.SY,
 				r->EXTDATA.SMPH,
@@ -471,22 +483,22 @@ void GSState::Write64(GS_REG mem, GSReg* r)
 			break;
 
 		case GS_EXTWRITE:
-			m_rs.EXTWRITE.i64 = r->i64;
-			LOG(_T("Write64(GS_EXTWRITE, WRITE=%x)\n"),
+			AssignReg(EXTWRITE);
+			LOG(_T("Write(GS_EXTWRITE, WRITE=%x)\n"),
 				r->EXTWRITE.WRITE);
 			break;
 
 		case GS_BGCOLOR:
-			m_rs.BGCOLOR.i64 = r->i64;
-			LOG(_T("Write64(GS_BGCOLOR, R=%x G=%x B=%x)\n"),
+			AssignReg(BGCOLOR);
+			LOG(_T("Write(GS_BGCOLOR, R=%x G=%x B=%x)\n"),
 				r->BGCOLOR.R,
 				r->BGCOLOR.G,
 				r->BGCOLOR.B);
 			break;
 
 		case GS_CSR:
-			m_rs.CSRw.i64 = r->i64;
-			LOG(_T("Write64(GS_CSR, SIGNAL=%x FINISH=%x HSINT=%x VSINT=%x EDWINT=%x ZERO1=%x ZERO2=%x FLUSH=%x RESET=%x NFIELD=%x FIELD=%x FIFO=%x REV=%x ID=%x)\n"),
+			AssignReg(CSRw);
+			LOG(_T("Write(GS_CSR, SIGNAL=%x FINISH=%x HSINT=%x VSINT=%x EDWINT=%x ZERO1=%x ZERO2=%x FLUSH=%x RESET=%x NFIELD=%x FIELD=%x FIFO=%x REV=%x ID=%x)\n"),
 				r->CSR.SIGNAL,
 				r->CSR.FINISH,
 				r->CSR.HSINT,
@@ -507,8 +519,8 @@ void GSState::Write64(GS_REG mem, GSReg* r)
 			break;
 
 		case GS_IMR:
-			m_rs.IMR.i64 = r->i64;
-			LOG(_T("Write64(GS_IMR, _PAD1=%x SIGMSK=%x FINISHMSK=%x HSMSK=%x VSMSK=%x EDWMSK=%x)\n"),
+			AssignReg(IMR);
+			LOG(_T("Write(GS_IMR, _PAD1=%x SIGMSK=%x FINISHMSK=%x HSMSK=%x VSMSK=%x EDWMSK=%x)\n"),
 				r->IMR._PAD1,
 				r->IMR.SIGMSK,
 				r->IMR.FINISHMSK,
@@ -518,33 +530,26 @@ void GSState::Write64(GS_REG mem, GSReg* r)
 			break;
 
 		case GS_BUSDIR:
-			m_rs.BUSDIR.i64 = r->i64;
-			LOG(_T("Write64(GS_BUSDIR, DIR=%x)\n"),
+			AssignReg(BUSDIR);
+			LOG(_T("Write(GS_BUSDIR, DIR=%x)\n"),
 				r->BUSDIR.DIR);
 			break;
 
 		case GS_SIGLBLID:
-			m_rs.SIGLBLID.i64 = r->i64;
-			LOG(_T("Write64(GS_SIGLBLID, SIGID=%x LBLID=%x)\n"),
+			AssignReg(SIGLBLID);
+			LOG(_T("Write(GS_SIGLBLID, SIGID=%x LBLID=%x)\n"),
 				r->SIGLBLID.SIGID,
 				r->SIGLBLID.LBLID);
 			break;
 
 		default:
-			LOG(_T("*** WARNING *** Write64(?????????, %016I64x)\n"), r->i64);
+			LOG(_T("*** WARNING *** Write(?????????, %016I64x)\n"), r->i64);
 			ASSERT(0);
 			break;
 	}
 }
 
-UINT32 GSState::Read32(GS_REG mem)
-{
-	if(mem == GS_CSR) return m_rs.CSRr.ai32[0];
-
-	return (UINT32)Read64(mem);
-}
-
-UINT64 GSState::Read64(GS_REG mem)
+UINT64 GSState::Read(GS_REG mem)
 {
 	if(mem == GS_CSR) return m_rs.CSRr.i64;
 
@@ -556,7 +561,7 @@ UINT64 GSState::Read64(GS_REG mem)
 	{
 		case GS_CSR:
 			r = reinterpret_cast<GSReg*>(&m_rs.CSRr);
-			LOG(_T("Read64(GS_CSR, SIGNAL=%x FINISH=%x HSINT=%x VSINT=%x EDWINT=%x ZERO1=%x ZERO2=%x FLUSH=%x RESET=%x NFIELD=%x FIELD=%x FIFO=%x REV=%x ID=%x)\n"),
+			LOG(_T("Read(GS_CSR, SIGNAL=%x FINISH=%x HSINT=%x VSINT=%x EDWINT=%x ZERO1=%x ZERO2=%x FLUSH=%x RESET=%x NFIELD=%x FIELD=%x FIFO=%x REV=%x ID=%x)\n"),
 				r->CSR.SIGNAL,
 				r->CSR.FINISH,
 				r->CSR.HSINT,
@@ -575,18 +580,18 @@ UINT64 GSState::Read64(GS_REG mem)
 
 		case GS_SIGLBLID:
 			r = reinterpret_cast<GSReg*>(&m_rs.SIGLBLID);
-			LOG(_T("Read64(GS_SIGLBLID, SIGID=%x LBLID=%x)\n"),
+			LOG(_T("Read(GS_SIGLBLID, SIGID=%x LBLID=%x)\n"),
 				r->SIGLBLID.SIGID,
 				r->SIGLBLID.LBLID);
 			break;
 
 		case GS_UNKNOWN:
-			LOG(_T("*** WARNING *** Read64(%08x)\n"), mem);
+			LOG(_T("*** WARNING *** Read(%08x)\n"), mem);
 			return m_rs.CSRr.FIELD << 13;
 			break;
 
 		default:
-			LOG(_T("*** WARNING *** Read64(%08x)\n"), mem);
+			LOG(_T("*** WARNING *** Read(%08x)\n"), mem);
 			ASSERT(0);
 			break;
 	}
@@ -600,6 +605,18 @@ void GSState::ReadFIFO(BYTE* pMem)
 
 	LOG(_T("*** WARNING *** ReadFIFO(%08x)\n"), pMem);
 	ReadTransfer(pMem, 16);
+}
+
+void GSState::Transfer1(BYTE* pMem, UINT32 addr)
+{
+	GSPerfMonAutoTimer at(m_perfmon);
+
+	LOG(_T("Transfer1(%08x, %d)\n"), pMem, addr);
+
+	while(1)
+	{
+		// TODO: mk deception
+	}	
 }
 
 void GSState::Transfer(BYTE* pMem)
@@ -678,6 +695,8 @@ void GSState::Transfer(BYTE* pMem, UINT32 size)
 			break;
 		case GIF_FLG_IMAGE2:
 			LOG(_T("*** WARNING **** Unexpected GIFTag flag\n"));
+m_tag.NLOOP = 0;
+break;
 			ASSERT(0);
 		case GIF_FLG_IMAGE:
 			{

@@ -1217,7 +1217,7 @@ void GSLocalMemory::unSwizzleTexture32(int tw, int th, BYTE* dst, int dstpitch, 
 
 void GSLocalMemory::unSwizzleTexture24(int tw, int th, BYTE* dst, int dstpitch, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA)
 {
-	if(tw < 8 || th < 8)
+	if(tw < 8 || th < 8 || (tw & 7) || (th & 7))
 	{
 		unSwizzleTextureX(tw, th, dst, dstpitch, TEX0, TEXA);
 		return;
@@ -1248,7 +1248,7 @@ void GSLocalMemory::unSwizzleTexture24(int tw, int th, BYTE* dst, int dstpitch, 
 
 void GSLocalMemory::unSwizzleTexture16(int tw, int th, BYTE* dst, int dstpitch, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA)
 {
-	if(tw < 16 || th < 8)
+	if(tw < 16 || th < 8 || (tw & 15) || (th & 7))
 	{
 		unSwizzleTextureX(tw, th, dst, dstpitch, TEX0, TEXA);
 		return;
@@ -1277,7 +1277,7 @@ void GSLocalMemory::unSwizzleTexture16(int tw, int th, BYTE* dst, int dstpitch, 
 
 void GSLocalMemory::unSwizzleTexture16S(int tw, int th, BYTE* dst, int dstpitch, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA)
 {
-	if(tw < 16 || th < 8)
+	if(tw < 16 || th < 8 || (tw & 15) || (th & 7))
 	{
 		unSwizzleTextureX(tw, th, dst, dstpitch, TEX0, TEXA);
 		return;
@@ -1306,7 +1306,7 @@ void GSLocalMemory::unSwizzleTexture16S(int tw, int th, BYTE* dst, int dstpitch,
 
 void GSLocalMemory::unSwizzleTexture8(int tw, int th, BYTE* dst, int dstpitch, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA)
 {
-	if(tw < 16 || th < 16)
+	if(tw < 16 || th < 16 || (tw & 15) || (th & 15))
 	{
 		unSwizzleTextureX(tw, th, dst, dstpitch, TEX0, TEXA);
 		return;
@@ -1338,7 +1338,7 @@ void GSLocalMemory::unSwizzleTexture8(int tw, int th, BYTE* dst, int dstpitch, G
 
 void GSLocalMemory::unSwizzleTexture8H(int tw, int th, BYTE* dst, int dstpitch, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA)
 {
-	if(tw < 8 || th < 8)
+	if(tw < 8 || th < 8 || (tw & 7) || (th & 7))
 	{
 		unSwizzleTextureX(tw, th, dst, dstpitch, TEX0, TEXA);
 		return;
@@ -1370,7 +1370,7 @@ void GSLocalMemory::unSwizzleTexture8H(int tw, int th, BYTE* dst, int dstpitch, 
 
 void GSLocalMemory::unSwizzleTexture4(int tw, int th, BYTE* dst, int dstpitch, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA)
 {
-	if(tw < 32 || th < 16)
+	if(tw < 32 || th < 16 || (tw & 31) || (th & 15))
 	{
 		unSwizzleTextureX(tw, th, dst, dstpitch, TEX0, TEXA);
 		return;
@@ -1402,7 +1402,7 @@ void GSLocalMemory::unSwizzleTexture4(int tw, int th, BYTE* dst, int dstpitch, G
 
 void GSLocalMemory::unSwizzleTexture4HL(int tw, int th, BYTE* dst, int dstpitch, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA)
 {
-	if(tw < 8 || th < 8)
+	if(tw < 8 || th < 8 || (tw & 7) || (th & 7))
 	{
 		unSwizzleTextureX(tw, th, dst, dstpitch, TEX0, TEXA);
 		return;
@@ -1434,7 +1434,7 @@ void GSLocalMemory::unSwizzleTexture4HL(int tw, int th, BYTE* dst, int dstpitch,
 
 void GSLocalMemory::unSwizzleTexture4HH(int tw, int th, BYTE* dst, int dstpitch, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA)
 {
-	if(tw < 8 || th < 8)
+	if(tw < 8 || th < 8 || (tw & 7) || (th & 7))
 	{
 		unSwizzleTextureX(tw, th, dst, dstpitch, TEX0, TEXA);
 		return;

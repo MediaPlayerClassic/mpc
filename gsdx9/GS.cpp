@@ -29,8 +29,8 @@
 #include "GSSettingsDlg.h"
 
 #define PS2E_LT_GS 0x01
-#define PS2E_GS_VERSION 0x0004
-#define PS2E_DLL_VERSION 0x05
+#define PS2E_GS_VERSION 0x0006
+#define PS2E_DLL_VERSION 0x06
 #define PS2E_X86 0x01   // 32 bit
 #define PS2E_X86_64 0x02   // 64 bit
 
@@ -169,24 +169,44 @@ EXPORT_C GSclose()
 	s_hWnd.DestroyWindow();
 }
 
+EXPORT_C GSwrite8(GS_REG mem, UINT8 value)
+{
+	s_gs->Write(mem, (GSReg*)&value, 0xff);
+}
+
+EXPORT_C GSwrite16(GS_REG mem, UINT16 value)
+{
+	s_gs->Write(mem, (GSReg*)&value, 0xffff);
+}
+
 EXPORT_C GSwrite32(GS_REG mem, UINT32 value)
 {
-	ASSERT(0); // should not be called! (there are no references from pcsx2, ... this may be obsolite or something)
+	s_gs->Write(mem, (GSReg*)&value, 0xffffffff);
 }
 
 EXPORT_C GSwrite64(GS_REG mem, UINT64 value)
 {
-	s_gs->Write64(mem, (GSReg*)&value);
+	s_gs->Write(mem, (GSReg*)&value, 0xffffffffffffffff);
+}
+
+EXPORT_C_(UINT8) GSread8(GS_REG mem)
+{
+	return (UINT8)s_gs->Read(mem);
+}
+
+EXPORT_C_(UINT16) GSread16(GS_REG mem)
+{
+	return (UINT16)s_gs->Read(mem);
 }
 
 EXPORT_C_(UINT32) GSread32(GS_REG mem)
 {
-	return s_gs->Read32(mem);
+	return (UINT32)s_gs->Read(mem);
 }
 
 EXPORT_C_(UINT64) GSread64(GS_REG mem)
 {
-	return s_gs->Read64(mem);
+	return (UINT64)s_gs->Read(mem);
 }
 
 EXPORT_C GSreadFIFO(BYTE* pMem)
@@ -194,10 +214,18 @@ EXPORT_C GSreadFIFO(BYTE* pMem)
 	s_gs->ReadFIFO(pMem);
 }
 
+#if PS2E_GS_VERSION >= 0x0006
+EXPORT_C GSgifTransfer1(BYTE* pMem, UINT32 addr)
+{
+//	s_gs->Transfer1(pMem, addr);
+	s_gs->Transfer(pMem+(addr&0x3fff));
+}
+#else
 EXPORT_C GSgifTransfer1(BYTE* pMem)
 {
 	s_gs->Transfer(pMem);
 }
+#endif
 
 EXPORT_C GSgifTransfer2(BYTE* pMem, UINT32 size)
 {
@@ -246,6 +274,11 @@ EXPORT_C GSkeyEvent(keyEvent* ev)
 		case VK_INSERT:
 			s_gs->Capture();
 			break;
+#ifdef DEBUG_WIREFRAME
+		case VK_HOME:
+			s_gs->ToggleFillmode();
+			break;
+#endif
 		default:
 			break;
 	}

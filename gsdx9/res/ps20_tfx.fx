@@ -20,7 +20,10 @@ float4 Params2 : register(c1); // PSM (TEX0), AEM, TA0, TA1
 #define AEM		(Params2[1] > 0)
 #define TA0		(Params2[2])
 #define TA1		(Params2[3])
-
+/*
+float4 RepeatMin : register(c2);
+float4 RepeatMax : register(c3);
+*/
 #define PSM_PSMCT32		0
 #define PSM_PSMCT24		1
 #define PSM_PSMCT16		2
@@ -46,6 +49,11 @@ void CorrectTexColor(inout float4 TexColor : COLOR)
 
 float4 SampleTexture(in float2 Tex : TEXCOORD0) : COLOR
 {
+/*
+	float2 TexCorrection = float2(Tex.x < 0 ? 1 : 0, Tex.y < 0 ? 1 : 0);
+	// Tex = fmod(Tex - RepeatMin, RepeatMax - RepeatMin) + RepeatMin;
+	Tex = fmod(Tex, RepeatMax) + TexCorrection;
+*/
 	float4 TexColor = tex2D(Sampler, Tex);
 /*
 	if(fRT) CorrectTexColor(TexColor);

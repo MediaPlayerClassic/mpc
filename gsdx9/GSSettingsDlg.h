@@ -47,4 +47,6 @@ protected:
 	virtual void OnOK();
 
 	DECLARE_MESSAGE_MAP()
+public:
+	BOOL m_halfvres;
 };

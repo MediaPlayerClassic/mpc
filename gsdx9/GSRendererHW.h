@@ -37,6 +37,8 @@ struct HWVERTEX
 
 class GSRendererHW : public GSRenderer<HWVERTEX>
 {
+	bool m_fHalfVRes;
+
 	void CalcRegionToUpdate(int& tw, int& th);
 
 protected:
@@ -46,7 +48,7 @@ protected:
 
 	GSTextureCache m_tc;
 	bool CreateTexture(GSTexture& t);
-	void SetupTexture(const GSTexture& t);
+	void SetupTexture(const GSTexture& t, float tsx, float tsy);
 	void SetupAlphaBlend();
 
 	void Reset();
