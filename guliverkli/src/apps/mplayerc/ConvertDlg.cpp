@@ -8,6 +8,7 @@
 #include "GraphBuilder.h"
 #include "ConvertPropsDlg.h"
 #include "ConvertResDlg.h"
+#include "ConvertChapDlg.h"
 #include "ConvertDlg.h"
 
 // CConvertDlg dialog
@@ -304,9 +305,22 @@ void CConvertDlg::ShowResourceFolderPopup(HTREEITEM hTI, CPoint p)
 				_T("All files|*.*||"), this, 0);
 			if(fd.DoModal() == IDOK) 
 			{
-				if(FILE* f = _tfopen(fd.GetPathName(), _T("rb")))
+				CString fn = fd.GetPathName();
+				if(FILE* f = _tfopen(fn, _T("rb")))
 				{
 					CDSMResource res;
+
+					CPath path(fn);
+					path.StripPath();
+					res.name = (LPCTSTR)path;
+					
+					CRegKey key;
+					TCHAR mime[256];
+					ULONG len = countof(mime);
+					if(ERROR_SUCCESS == key.Open(HKEY_CLASSES_ROOT, path.GetExtension(), KEY_READ)
+					&& ERROR_SUCCESS == key.QueryStringValue(_T("Content Type"), mime, &len))
+						res.mime = mime;
+
 					CTreeItemResource* t = new CTreeItemResource(res, m_tree, hTI);
 					m_pTIs.AddTail(t);
 
@@ -458,8 +472,13 @@ void CConvertDlg::ShowChapterFolderPopup(HTREEITEM hTI, CPoint p)
 	switch((int)m.TrackPopupMenu(TPM_LEFTBUTTON|TPM_RETURNCMD, p.x, p.y, this))
 	{
 	case 1:
-		// TODO
-		AfxMessageBox(_T("To be implemented, sorry for the inconvenience ;)"), MB_OK);
+		{
+			CDSMChapter chap;
+			CTreeItemChapter* t = new CTreeItemChapter(CDSMChapter(0, _T("")), m_tree, hTI);
+			m_pTIs.AddTail(t);
+			if(!EditChapter(t)) 
+				DeleteItem(*t);
+		}
 		break;
 	case 2:
 		DeleteChildren(hTI);
@@ -486,10 +505,36 @@ void CConvertDlg::ShowChapterPopup(HTREEITEM hTI, CPoint p)
 		DeleteItem(hTI);
 		break;
 	case 2:
-		// TODO
-		AfxMessageBox(_T("To be implemented, sorry for the inconvenience ;)"), MB_OK);
+		EditChapter(t);
 		break;
 	}
+}
+
+bool CConvertDlg::EditChapter(CTreeItemChapter* t)
+{
+	CConvertChapDlg dlg(this);
+
+	int h = (int)(t->m_chap.rt/10000000/60/60);
+	int m = (int)(t->m_chap.rt/10000000/60%60);
+	int s = (int)(t->m_chap.rt/10000000%60);
+	int ms = (int)(t->m_chap.rt/10000%1000);
+
+	dlg.m_name = t->m_chap.name;
+	dlg.m_time.Format(_T("%02d:%02d:%02d.%03d"), h, m, s, ms);
+
+	if(IDOK != dlg.DoModal())
+		return false;
+
+	TCHAR c;
+	if(_stscanf(dlg.m_time, _T("%d%c%d%c%d%c%d"), &h, &c, &m, &c, &s, &c, &ms) != 7)
+		return false;
+
+	t->m_chap.name = dlg.m_name;
+	t->m_chap.rt = ((((__int64)h*60+m)*60+s)*1000+ms)*10000;
+
+	t->Update();
+
+	return true;
 }
 
 void CConvertDlg::DoDataExchange(CDataExchange* pDX)
@@ -712,6 +757,10 @@ void CConvertDlg::OnNMDblclkTree1(NMHDR *pNMHDR, LRESULT *pResult)
 		else if(CTreeItemResource* t2 = dynamic_cast<CTreeItemResource*>(t))
 		{
 			EditResource(t2);
+		}
+		else if(CTreeItemChapter* t2 = dynamic_cast<CTreeItemChapter*>(t))
+		{
+			EditChapter(t2);
 		}
 	}
 	
@@ -1136,15 +1185,18 @@ CConvertDlg::CTreeItemChapter::CTreeItemChapter(const CDSMChapter& chap, CTreeCt
 
 void CConvertDlg::CTreeItemChapter::Update()
 {
-	m_chap.rt /= 10000000;
-	int s = (int)(m_chap.rt%60);
-	m_chap.rt /= 10000;
-	int m = (int)(m_chap.rt%60);
-	m_chap.rt /= 10000;
-	int h = (int)(m_chap.rt);
+	REFERENCE_TIME rt = m_chap.rt;
+	rt /= 10000;
+	int ms = (int)(rt%1000);
+	rt /= 1000;
+	int s = (int)(rt%60);
+	rt /= 60;
+	int m = (int)(rt%60);
+	rt /= 60;
+	int h = (int)(rt);
 
 	CString label;
-	label.Format(_T("%02d:%02d:%02d - %s"), h, m, s, CString(m_chap.name));
+	label.Format(_T("%02d:%02d:%02d.%03d - %s"), h, m, s, ms, CString(m_chap.name));
 	SetLabel(label);
 
 	SetImage(7, 7);

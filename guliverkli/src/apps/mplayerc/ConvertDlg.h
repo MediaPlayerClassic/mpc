@@ -132,6 +132,7 @@ private:
 
 	bool EditProperties(IDSMPropertyBag* pPB);
 	bool EditResource(CTreeItemResource* t);
+	bool EditChapter(CTreeItemChapter* t);
 
 public:
 	CConvertDlg(CWnd* pParent = NULL);   // standard constructor

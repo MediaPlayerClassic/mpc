@@ -63,7 +63,7 @@ public:
 	DWORD_PTR tag;
 	CStringW name, desc, mime;
 	CArray<BYTE> data;
-	CDSMResource() {tag = 0;}
+	CDSMResource() : mime(_T("application/octet-stream")), tag(0) {}
 	CDSMResource(LPCWSTR name, LPCWSTR desc, LPCWSTR mime, BYTE* pData, int len, DWORD_PTR tag = 0);
 	void operator = (const CDSMResource& r);
 };

@@ -236,8 +236,9 @@
 #define IDD_CONVERTDIALOG               402
 #define IDD_CONVERTPROPSDIALOG          403
 #define IDB_STREAMTYPES                 404
-#define IDD_DIALOG4                     405
 #define IDD_CONVERTRESDIALOG            405
+#define IDD_DIALOG4                     406
+#define IDD_CONVERTCHAPDIALOG           406
 #define IDS_R_SETTINGS                  500
 #define IDS_RS_CONTROLSTATE             501
 #define IDS_RS_VOLUME                   502
@@ -578,6 +579,7 @@
 #define IDC_CHECK_SPCPOW2TEX            1162
 #define IDC_TREE1                       1163
 #define IDC_HLINE                       1164
+#define IDC_DATETIMEPICKER1             1165
 #define IDD_COMPROPERTYPAGE             10002
 #define ID_DUMMYSEPARATOR               32768
 #define ID_VOLUME_MUTE_ON               32769
@@ -692,9 +694,9 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        406
+#define _APS_NEXT_RESOURCE_VALUE        407
 #define _APS_NEXT_COMMAND_VALUE         32855
-#define _APS_NEXT_CONTROL_VALUE         1165
+#define _APS_NEXT_CONTROL_VALUE         1166
 #define _APS_NEXT_SYMED_VALUE           10003
 #endif
 #endif
