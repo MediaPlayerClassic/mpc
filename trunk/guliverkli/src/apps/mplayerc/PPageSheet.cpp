@@ -42,8 +42,8 @@ CPPageSheet::CPPageSheet(LPCTSTR pszCaption, IUnknown* pAudioSwitcher, CWnd* pPa
 	AddPage(&m_dvd);
 	AddPage(&m_realmediaquicktime);
 	AddPage(&m_filters);
-	AddPage(&m_source);
 	AddPage(&m_audioswitcher);
+	AddPage(&m_overrides);
 	AddPage(&m_subtitles);
 	AddPage(&m_substyle);
 	AddPage(&m_tweaks);

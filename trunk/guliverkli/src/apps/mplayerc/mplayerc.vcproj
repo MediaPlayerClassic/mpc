@@ -733,6 +733,9 @@
 				RelativePath=".\PPageLogo.cpp">
 			</File>
 			<File
+				RelativePath=".\PPageOverrides.cpp">
+			</File>
+			<File
 				RelativePath="PPagePlayback.cpp">
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
@@ -761,15 +764,6 @@
 			</File>
 			<File
 				RelativePath="PPageSheet.cpp">
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE">
-					<Tool
-						Name="VCCLCompilerTool"/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath=".\PPageSource.cpp">
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
 					ExcludedFromBuild="TRUE">
@@ -1349,6 +1343,9 @@
 				RelativePath=".\PPageLogo.h">
 			</File>
 			<File
+				RelativePath=".\PPageOverrides.h">
+			</File>
+			<File
 				RelativePath="PPagePlayback.h">
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
@@ -1377,15 +1374,6 @@
 			</File>
 			<File
 				RelativePath="PPageSheet.h">
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE">
-					<Tool
-						Name="VCCustomBuildTool"/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath=".\PPageSource.h">
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
 					ExcludedFromBuild="TRUE">
