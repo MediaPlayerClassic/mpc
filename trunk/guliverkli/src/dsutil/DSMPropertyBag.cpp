@@ -122,6 +122,17 @@ HRESULT CDSMPropertyBag::DelProperty(LPCWSTR key)
 // CDSMResource
 //
 
+CCritSec CDSMResource::m_csResources;
+CAtlMap<DWORD, CDSMResource*> CDSMResource::m_resources;
+
+CDSMResource::CDSMResource() 
+	: mime(_T("application/octet-stream"))
+	, tag(0)
+{
+	CAutoLock cAutoLock(&m_csResources);
+	m_resources.SetAt((DWORD)this, this);
+}
+
 CDSMResource::CDSMResource(LPCWSTR name, LPCWSTR desc, LPCWSTR mime, BYTE* pData, int len, DWORD_PTR tag)
 {
 	this->name = name;
@@ -130,6 +141,15 @@ CDSMResource::CDSMResource(LPCWSTR name, LPCWSTR desc, LPCWSTR mime, BYTE* pData
 	data.SetSize(len);
 	memcpy(data.GetData(), pData, data.GetSize());
 	this->tag = tag;
+
+	CAutoLock cAutoLock(&m_csResources);
+	m_resources.SetAt((DWORD)this, this);
+}
+
+CDSMResource::~CDSMResource()
+{
+	CAutoLock cAutoLock(&m_csResources);
+	m_resources.RemoveKey((DWORD)this);
 }
 
 void CDSMResource::operator = (const CDSMResource& r)

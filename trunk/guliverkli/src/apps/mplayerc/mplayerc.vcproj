@@ -724,6 +724,9 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath=".\PPageFileInfoRes.cpp">
+			</File>
+			<File
 				RelativePath="PPageFileInfoSheet.cpp">
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
@@ -1383,6 +1386,9 @@
 					<Tool
 						Name="VCCustomBuildTool"/>
 				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\PPageFileInfoRes.h">
 			</File>
 			<File
 				RelativePath="PPageFileInfoSheet.h">

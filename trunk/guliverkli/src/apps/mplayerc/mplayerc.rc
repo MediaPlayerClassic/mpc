@@ -1164,6 +1164,20 @@ BEGIN
                     BS_AUTOCHECKBOX | WS_TABSTOP,7,138,124,10
 END
 
+IDD_FILEPROPRES DIALOGEX 0, 0, 234, 202
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    ICON            "",IDC_DEFAULTICON,8,8,21,20,SS_REALSIZEIMAGE
+    EDITTEXT        IDC_EDIT1,35,16,186,12,ES_AUTOHSCROLL | ES_READONLY | 
+                    NOT WS_BORDER
+    CONTROL         "",-1,"Static",SS_ETCHEDHORZ,8,35,213,1
+    PUSHBUTTON      "Save As...",IDC_BUTTON1,8,182,50,14
+    CONTROL         "",IDC_LIST1,"SysListView32",LVS_REPORT | LVS_SINGLESEL | 
+                    LVS_SHOWSELALWAYS | LVS_SORTASCENDING | LVS_ALIGNLEFT | 
+                    WS_BORDER | WS_TABSTOP,8,43,213,134
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -1475,6 +1489,13 @@ BEGIN
         RIGHTMARGIN, 370
         TOPMARGIN, 7
         BOTTOMMARGIN, 151
+    END
+
+    IDD_FILEPROPRES, DIALOG
+    BEGIN
+        VERTGUIDE, 8
+        VERTGUIDE, 35
+        VERTGUIDE, 221
     END
 END
 #endif    // APSTUDIO_INVOKED
@@ -2417,6 +2438,11 @@ BEGIN
     ID_VOLUME_MUTE_ON       "Mute\nMute"
     ID_VOLUME_MUTE_DISABLED "No audio\nNo audio"
     ID_PLAY_FRAMESTEP       "Step\nStep"
+END
+
+STRINGTABLE 
+BEGIN
+    IDD_FILEPROPRES         "Resources"
 END
 
 #endif    // English (U.S.) resources

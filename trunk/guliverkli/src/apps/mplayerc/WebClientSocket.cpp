@@ -709,10 +709,10 @@ bool CWebClientSocket::OnConvRes(CStringA& hdr, CStringA& body, CStringA& mime)
 	if(1 != _stscanf(id, _T("%x"), &key) || key == 0)
 		return false;
 
-	CAutoLock cAutoLock(&CConvertDlg::CTreeItemResource::m_csGlobalRes);
+	CAutoLock cAutoLock(&CDSMResource::m_csResources);
 
 	CDSMResource* res = NULL;
-	if(!CConvertDlg::CTreeItemResource::m_GlobalRes.Lookup(key, res) || !res)
+	if(!CDSMResource::m_resources.Lookup(key, res) || !res)
 		return false;
 
 	body = CStringA((const char*)res->data.GetData(), res->data.GetSize());

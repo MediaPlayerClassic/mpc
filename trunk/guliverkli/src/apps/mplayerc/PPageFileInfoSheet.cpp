@@ -34,9 +34,21 @@ CPPageFileInfoSheet::CPPageFileInfoSheet(CString fn, CMainFrame* pParentWnd)
 	: CPropertySheet(_T("Properties"), pParentWnd, 0)
 	, m_clip(fn, pParentWnd->pGB)
 	, m_details(fn, pParentWnd->pGB, pParentWnd->m_pCAP)
+	, m_res(fn, pParentWnd->pGB)
 {
 	AddPage(&m_clip);
 	AddPage(&m_details);
+
+	BeginEnumFilters(pParentWnd->pGB, pEF, pBF)
+	{
+		if(CComQIPtr<IDSMResourceBag> pRB = pBF)
+		if(pRB && pRB->ResGetCount() > 0)
+		{
+			AddPage(&m_res);
+			break;
+		}
+	}
+	EndEnumFilters
 }
 
 CPPageFileInfoSheet::~CPPageFileInfoSheet()
