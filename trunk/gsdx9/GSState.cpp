@@ -267,8 +267,10 @@ GSState::GSState(int w, int h, HWND hWnd, HRESULT& hr)
 
 	Reset();
 
+#ifdef DEBUG_LOGFILE
 	::DeleteFile(_T("c:\\gs.txt"));
 	m_fp = _tfopen(_T("c:\\gs.txt"), _T("at"));
+#endif
 
 //	m_rs.CSRr.REV = 0x20;
 }
@@ -363,8 +365,8 @@ void GSState::Write64(GS_REG mem, GSReg* r)
 
 		case GS_SMODE1:
 			m_rs.SMODE1.i64 = r->i64;
-			LOG((_T("Write64(GS_SMODE1, VMODE=%x)\n"), 
-				r->SMODE1.VMODE));
+			LOG((_T("Write64(GS_SMODE1, CMOD=%x)\n"), 
+				r->SMODE1.CMOD));
 			break;
 
 		case GS_SMODE2:
@@ -707,7 +709,7 @@ void GSState::VSync()
 	FlushPrim();
 
 	m_stats.VSync();
-	CString str = m_stats.ToString((m_rs.SMODE1.VMODE == GS_PAL ? 50 : 60) / (m_rs.SMODE2.INT ? 1 : 2));
+	CString str = m_stats.ToString(((m_rs.SMODE1.CMOD&1) ? 50 : 60) / (m_rs.SMODE2.INT ? 1 : 2));
 	LOG((_T("VSync(%s)\n"), str));
 	if(!(m_stats.GetFrame()&7)) SetWindowText(m_hWnd, str);
 

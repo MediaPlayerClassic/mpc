@@ -88,7 +88,6 @@
 				PreprocessorDefinitions="WIN32;_WINDOWS;NDEBUG;_USRDLL"
 				StringPooling="TRUE"
 				RuntimeLibrary="0"
-				EnableEnhancedInstructionSet="1"
 				TreatWChar_tAsBuiltInType="TRUE"
 				ForceConformanceInForLoopScope="TRUE"
 				UsePrecompiledHeader="3"
@@ -293,6 +292,12 @@
 			</File>
 			<File
 				RelativePath=".\GSRendererHW.cpp">
+				<FileConfiguration
+					Name="ReleaseSSE2|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						GeneratePreprocessedFile="0"/>
+				</FileConfiguration>
 			</File>
 			<File
 				RelativePath=".\GSRendererNull.cpp">

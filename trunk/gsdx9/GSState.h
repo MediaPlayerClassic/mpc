@@ -371,12 +371,14 @@ public:
 	FILE* m_fp;
 
 #ifdef DEBUG_LOG
+	#define DEBUG_LOGFILE
     #define LOG(_x_) LOGFILE _x_
 #else
 	#define LOG(_x_)
 #endif
 
 #ifdef DEBUG_LOG2
+	#define DEBUG_LOGFILE
     #define LOG2(_x_) LOGFILE2 _x_
 #else
 	#define LOG2(_x_)
