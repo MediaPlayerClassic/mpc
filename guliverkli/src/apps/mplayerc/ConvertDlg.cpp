@@ -58,6 +58,12 @@ void CConvertDlg::AddFile(CString fn)
 	if(FAILED(gb.AddSourceFilter(fn, &pBF)))
 		return;
 
+	if(m_tree.GetCount() == 0)
+	{
+		if(CComQIPtr<IDSMPropertyBag> pPB = m_pMux)
+			pPB->DelAllProperties();
+	}
+
 	int cnt = 0;
 	while(S_OK == m_pCGB->RenderStream(NULL, NULL, pBF, NULL, m_pMux)) cnt++;
 	if(!cnt) {MessageBeep(-1); DeleteFilter(pBF); return;}

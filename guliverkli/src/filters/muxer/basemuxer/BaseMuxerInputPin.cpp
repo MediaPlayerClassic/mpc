@@ -70,6 +70,9 @@ void CBaseMuxerInputPin::PushPacket(CAutoPtr<MuxerPacket> pPacket)
 		&& i < 1000; 
 		i++);
 
+	if(!m_pFilter->IsActive() || m_bFlushing)
+		return;
+
 	CAutoLock cAutoLock(&m_csQueue);
 
 	m_queue.AddTail(pPacket);
@@ -171,7 +174,6 @@ HRESULT CBaseMuxerInputPin::Inactive()
 {
 	CAutoLock cAutoLock(&m_csQueue);
 	m_queue.RemoveAll();
-
 	return __super::Inactive();
 }
 
