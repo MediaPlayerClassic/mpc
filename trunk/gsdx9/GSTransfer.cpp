@@ -46,20 +46,18 @@ void GSState::ReadStep()
 
 void GSState::WriteTransfer(BYTE* pMem, int len)
 {
-	InvalidateTexture(m_rs.BITBLTBUF.DBP);
+	if(len == 0) return;
 
-	if((m_rs.BITBLTBUF.DBP == m_de.CTXT[m_de.PRIM.CTXT].TEX0.TBP0
-	|| m_rs.BITBLTBUF.DBP == m_de.CTXT[m_de.PRIM.CTXT].TEX0.CBP)
-	&& m_de.PRIM.TME)
-	{
+	if(m_de.PRIM.TME && (m_rs.BITBLTBUF.DBP == m_ctxt->TEX0.TBP0 || m_rs.BITBLTBUF.DBP == m_ctxt->TEX0.CBP))
 		FlushPrim();
-	}
 
 	BYTE* pb = (BYTE*)pMem;
 	WORD* pw = (WORD*)pMem;
 	DWORD* pd = (DWORD*)pMem;
 
 	// if(m_y >= (int)m_rs.TRXREG.RRH) {ASSERT(0); return;}
+
+	int x = m_x, y = m_y;
 
 	switch(m_rs.BITBLTBUF.DPSM)
 	{
@@ -119,6 +117,8 @@ void GSState::WriteTransfer(BYTE* pMem, int len)
 			m_lm.writePixel16SZ(m_x, m_y, *pw, m_rs.BITBLTBUF.DBP, m_rs.BITBLTBUF.DBW);
 		break;
 	}
+
+	InvalidateTexture(m_rs.BITBLTBUF.DBP, x, y);
 }
 
 void GSState::ReadTransfer(BYTE* pMem, int len)

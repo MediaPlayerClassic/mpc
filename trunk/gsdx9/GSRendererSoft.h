@@ -41,6 +41,7 @@ protected:
 	virtual void DrawTriangle(VERTEX* v) = 0;
 	virtual void DrawSprite(VERTEX* v) = 0;
 	virtual void DrawVertex(int x, int y, VERTEX& v);
+	virtual bool DrawFilledRect(int left, int top, int right, int bottom, VERTEX& v);
 
 	class CTexture
 	{

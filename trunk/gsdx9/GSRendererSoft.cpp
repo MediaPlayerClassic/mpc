@@ -446,8 +446,8 @@ void GSRendererSoft<VERTEX>::DrawVertex(int x, int y, VERTEX& v)
 		// float lod = m_ctxt->TEX1.K;
 		// if(!m_ctxt->TEX1.LCM) lod += log2(1/v.q) << m_ctxt->TEX1.L;
 
-		float ftu = modf(tu - 0.5f, &tu); // tu - 0.5f
-		float ftv = modf(tv - 0.5f, &tv); // tv - 0.5f
+		float ftu = modf(tu, &tu); // tu - 0.5f
+		float ftv = modf(tv, &tv); // tv - 0.5f
 
 		int itu[2] = {(int)tu, (int)tu+1};
 		int itv[2] = {(int)tv, (int)tv+1};
@@ -459,7 +459,7 @@ void GSRendererSoft<VERTEX>::DrawVertex(int x, int y, VERTEX& v)
 			case 0: itu[i] = itu[i] & (tw-1); break;
 			case 1: itu[i] = itu[i] < 0 ? 0 : itu[i] >= tw ? itu[i] = tw-1 : itu[i]; break;
 			case 2: itu[i] = itu[i] < m_ctxt->CLAMP.MINU ? m_ctxt->CLAMP.MINU : itu[i] > m_ctxt->CLAMP.MAXU ? m_ctxt->CLAMP.MAXU : itu[i]; break;
-			case 3: itu[i] = (int(itu[i]) & m_ctxt->CLAMP.MINU) | m_ctxt->CLAMP.MAXU; break;
+			case 3: itu[i] = (itu[i] & m_ctxt->CLAMP.MINU) | m_ctxt->CLAMP.MAXU; break;
 			}
 
 			ASSERT(itu[i] >= 0 && itu[i] < tw);
@@ -472,7 +472,7 @@ void GSRendererSoft<VERTEX>::DrawVertex(int x, int y, VERTEX& v)
 			case 0: itv[i] = itv[i] & (th-1); break;
 			case 1: itv[i] = itv[i] < 0 ? 0 : itv[i] >= th ? itv[i] = th-1 : itv[i]; break;
 			case 2: itv[i] = itv[i] < m_ctxt->CLAMP.MINV ? m_ctxt->CLAMP.MINV : itv[i] > m_ctxt->CLAMP.MAXV ? m_ctxt->CLAMP.MAXV : itv[i]; break;
-			case 3: itv[i] = (int(itv[i]) & m_ctxt->CLAMP.MINV) | m_ctxt->CLAMP.MAXV; break;
+			case 3: itv[i] = (itv[i] & m_ctxt->CLAMP.MINV) | m_ctxt->CLAMP.MAXV; break;
 			}
 
 			ASSERT(itv[i] >= 0 && itv[i] < th);
@@ -604,7 +604,7 @@ void GSRendererSoft<VERTEX>::DrawVertex(int x, int y, VERTEX& v)
 		}
 	}
 
-	if(!ZMSK && m_ctxt->rz)
+	if(!ZMSK && m_ctxt->wz)
 	{
 		(m_lm.*m_ctxt->wz)(x, y, vz, m_ctxt->ZBUF.ZBP<<5, FBW);
 	}
@@ -642,9 +642,57 @@ void GSRendererSoft<VERTEX>::DrawVertex(int x, int y, VERTEX& v)
 
 	Af |= (m_ctxt->FBA.FBA << 7);
 
-	DWORD color = ((Af << 24) | (Bf << 16) | (Gf << 8) | (Rf << 0)) & ~FBMSK;
+	DWORD c = ((Af << 24) | (Bf << 16) | (Gf << 8) | (Rf << 0)) & ~FBMSK;
 
-	(m_lm.*m_ctxt->wf)(x, y, color, FBP, FBW);
+	(m_lm.*m_ctxt->wf)(x, y, c, FBP, FBW);
+}
+
+int zaddrcomp(const void* addr1, const void* addr2)
+{
+	return *(int*)addr1 - *(int*)addr2;
+}
+
+template <class VERTEX>
+bool GSRendererSoft<VERTEX>::DrawFilledRect(int left, int top, int right, int bottom, VERTEX& v)
+{
+	if(left >= right || top >= bottom)
+		return(false);
+
+	ASSERT(top >= 0);
+	ASSERT(bottom >= 0);
+
+	if(m_de.PRIM.IIP
+	|| m_ctxt->TEST.ZTE && m_ctxt->TEST.ZTST != 1
+	|| m_ctxt->TEST.ATE && m_ctxt->TEST.ATST != 1
+	|| m_ctxt->TEST.DATE
+	|| m_de.PRIM.TME
+	|| m_de.PRIM.ABE
+	|| m_de.PRIM.FGE
+	|| m_de.DTHE.DTHE)
+		return(false);
+
+	DWORD FBP = m_ctxt->FRAME.FBP<<5, FBW = m_ctxt->FRAME.FBW;
+	DWORD ZBP = m_ctxt->ZBUF.ZBP<<5;
+
+	if(!m_ctxt->ZBUF.ZMSK && m_ctxt->wz)
+		m_lm.FillRect(CRect(left, top, right, bottom), v.GetZ(), m_ctxt->ZBUF.PSM, ZBP, FBW);
+
+	__declspec(align(16)) union {struct {int Rf, Gf, Bf, Af;}; int Cf[4];};
+	v.GetColor(Cf);
+
+	Rf = m_clamp[Rf];
+	Gf = m_clamp[Gf];
+	Bf = m_clamp[Bf];
+	Af = m_clamp[Af]; // ?
+
+	Af |= (m_ctxt->FBA.FBA << 7);
+
+	DWORD c = ((Af << 24) | (Bf << 16) | (Gf << 8) | (Rf << 0)) & ~m_ctxt->FRAME.FBMSK;
+	if(m_ctxt->FRAME.PSM == PSM_PSMCT16 || m_ctxt->FRAME.PSM == PSM_PSMCT16S)
+		c = ((c>>16)&0x8000)|((c>>9)&0x7c00)|((c>>6)&0x03e0)|((c>>3)&0x001f);
+	m_lm.FillRect(CRect(left, top, right, bottom), c, m_ctxt->FRAME.PSM, FBP, FBW);
+
+	return(true);
 }
 
 template <class VERTEX>
@@ -895,7 +943,7 @@ void GSRendererSoftFP::DrawSprite(GSSoftVertex* v)
 	edge[0] = v[0];
 	edge[1] = v[1];
 
-	int top = int(v[0].y), bottom = int(v[2].y);
+	int top = v[0].y, bottom = v[2].y;
 //	float top = v[0].y, bottom = v[2].y;
 
 	if(top < m_scissor.top)
@@ -906,35 +954,36 @@ void GSRendererSoftFP::DrawSprite(GSSoftVertex* v)
 
 	if(bottom > m_scissor.bottom)
 	{
-		bottom = m_scissor.bottom;
+		edge[2].y = edge[3].y = bottom = m_scissor.bottom;
 	}
 
-	for(; top < bottom; top++)
+	if(edge[0].x < m_scissor.left)
+	{
+		edge[0] += dscan * (m_scissor.left - edge[0].x);
+		edge[0].x = m_scissor.left;
+	}
+
+	if(edge[1].x > m_scissor.right)
+	{
+		edge[1].x = m_scissor.right;
+	}
+
+	int left = (int)edge[0].x, right = (int)edge[1].x;
+
+	if(DrawFilledRect(left, top, right, bottom, edge[0]))
+		return;
+
+	for(int y = top, h = bottom - top; h-- > 0; y++)
 	{
 		scan = edge[0];
 
-		int left = int(edge[0].x), right = int(edge[1].x);
-//		float left = edge[0].x, right = edge[1].x;
-
-		if(left < m_scissor.left)
+		for(int x = left, w = right - left; w-- > 0; x++)
 		{
-			scan += dscan * (m_scissor.left - left);
-			scan.x = left = m_scissor.left;
-		}
-
-		if(right > m_scissor.right)
-		{
-			right = m_scissor.right;
-		}
-
-		for(; left < right; left++)
-		{
-			DrawVertex(left, top, scan);
+			DrawVertex(x, y, scan);
 			scan += dscan;
 		}
 
 		edge[0] += dedge[0];
-		edge[1].x += dedge[1].x;
 	}
 }
 
@@ -1138,35 +1187,38 @@ void GSRendererSoftFX::DrawSprite(GSSoftVertex* v)
 
 	if(bottom > m_scissor.bottom)
 	{
-		bottom = m_scissor.bottom;
+		edge[2].y = edge[3].y = bottom = m_scissor.bottom;
 	}
 
-	for(top >>= 16, bottom >>= 16; top < bottom; top++)
+	top >>= 16; bottom >>= 16;
+
+	if(edge[0].x < m_scissor.left)
+	{
+		edge[0] += dscan * (m_scissor.left - edge[0].x);
+		edge[0].x = m_scissor.left;
+	}
+
+	if(edge[1].x > m_scissor.right)
+	{
+		edge[1].x = m_scissor.right;
+	}
+
+	int left = edge[0].x>>16, right = edge[1].x>>16;
+
+	if(DrawFilledRect(left, top, right, bottom, edge[0]))
+		return;
+
+	for(int y = top, h = bottom - top; h-- > 0; y++)
 	{
 		scan = edge[0];
 
-		int left = edge[0].x, right = edge[1].x;
-//		float left = edge[0].x, right = edge[1].x;
-
-		if(left < m_scissor.left)
+		for(int x = left, w = right - left; w-- > 0; x++)
 		{
-			scan += dscan * (m_scissor.left - left);
-			scan.x = left = m_scissor.left;
-		}
-
-		if(right > m_scissor.right)
-		{
-			right = m_scissor.right;
-		}
-
-		for(left >>= 16, right >>= 16; left < right; left++)
-		{
-			DrawVertex(left, top, scan);
+			DrawVertex(x, y, scan);
 			scan += dscan;
 		}
 
 		edge[0] += dedge[0];
-		edge[1].x += dedge[1].x;
 	}
 }
 /*
@@ -1369,7 +1421,7 @@ void GSRendererSoftFX::DrawVertex(int x, int y, GSSoftVertex& v)
 		}
 	}
 
-	if(!ZMSK && m_ctxt->rz)
+	if(!ZMSK && m_ctxt->wz)
 	{
 		(m_lm.*m_ctxt->wz)(x, y, vz, m_ctxt->ZBUF.ZBP<<5, FBW);
 	}

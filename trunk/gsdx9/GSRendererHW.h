@@ -52,6 +52,7 @@ protected:
 	void Flip();
 	void EndFrame();
 	void InvalidateTexture(DWORD TBP0);
+	void InvalidateTexture(DWORD TBP0, int x, int y);
 
 	D3DPRIMITIVETYPE m_primtype;
 

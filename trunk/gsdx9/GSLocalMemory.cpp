@@ -43,26 +43,26 @@ GSLocalMemory::GSLocalMemory()
 	{
 		for(int y = 0; y < 32; y++) for(int x = 0; x < 64; x++)
 		{
-			pageOffset32[bp][y][x] = pixelAddressOrg32(x, y, bp, 0);
-			pageOffset32Z[bp][y][x] = pixelAddressOrg32Z(x, y, bp, 0);
+			pageOffset32[bp][y][x] = (WORD)pixelAddressOrg32(x, y, bp, 0);
+			pageOffset32Z[bp][y][x] = (WORD)pixelAddressOrg32Z(x, y, bp, 0);
 		}
 
 		for(int y = 0; y < 64; y++) for(int x = 0; x < 64; x++) 
 		{
-			pageOffset16[bp][y][x] = pixelAddressOrg16(x, y, bp, 0);
-			pageOffset16S[bp][y][x] = pixelAddressOrg16S(x, y, bp, 0);
-			pageOffset16Z[bp][y][x] = pixelAddressOrg16Z(x, y, bp, 0);
-			pageOffset16SZ[bp][y][x] = pixelAddressOrg16SZ(x, y, bp, 0);
+			pageOffset16[bp][y][x] = (WORD)pixelAddressOrg16(x, y, bp, 0);
+			pageOffset16S[bp][y][x] = (WORD)pixelAddressOrg16S(x, y, bp, 0);
+			pageOffset16Z[bp][y][x] = (WORD)pixelAddressOrg16Z(x, y, bp, 0);
+			pageOffset16SZ[bp][y][x] = (WORD)pixelAddressOrg16SZ(x, y, bp, 0);
 		}
 
 		for(int y = 0; y < 64; y++) for(int x = 0; x < 128; x++)
 		{
-			pageOffset8[bp][y][x] = pixelAddressOrg8(x, y, bp, 0);
+			pageOffset8[bp][y][x] = (WORD)pixelAddressOrg8(x, y, bp, 0);
 		}
 
 		for(int y = 0; y < 128; y++) for(int x = 0; x < 128; x++)
 		{
-			pageOffset4[bp][y][x] = pixelAddressOrg4(x, y, bp, 0);
+			pageOffset4[bp][y][x] = (WORD)pixelAddressOrg4(x, y, bp, 0);
 		}
 	}
 }
@@ -71,6 +71,136 @@ GSLocalMemory::~GSLocalMemory()
 {
 	delete [] m_vm8;
 	delete [] m_sm8;
+}
+
+////////////////////
+
+DWORD GSLocalMemory::pageAddress32(int x, int y, DWORD bp, DWORD bw)
+{
+	return ((bp >> 5) + (y >> 5) * bw + (x >> 6)) << 11; 
+}
+
+DWORD GSLocalMemory::pageAddress16(int x, int y, DWORD bp, DWORD bw)
+{
+	return ((bp >> 5) + (y >> 6) * bw + (x >> 6)) << 12;
+}
+
+DWORD GSLocalMemory::pageAddress8(int x, int y, DWORD bp, DWORD bw)
+{
+	return ((bp >> 5) + (y >> 6) * ((bw+1)>>1) + (x >> 7)) << 13; 
+}
+
+DWORD GSLocalMemory::pageAddress4(int x, int y, DWORD bp, DWORD bw)
+{
+	return ((bp >> 5) + (y >> 7) * ((bw+1)>>1) + (x >> 7)) << 14;
+}
+
+GSLocalMemory::pixelAddress GSLocalMemory::GetPageAddress(DWORD psm)
+{
+	pixelAddress pa = NULL;
+
+	switch(psm)
+	{
+	default: ASSERT(0);
+	case PSM_PSMCT32: pa = &GSLocalMemory::pageAddress32; break;
+	case PSM_PSMCT24: pa = &GSLocalMemory::pageAddress32; break;
+	case PSM_PSMT8H: pa = &GSLocalMemory::pageAddress32; break;
+	case PSM_PSMT4HL: pa = &GSLocalMemory::pageAddress32; break;
+	case PSM_PSMT4HH: pa = &GSLocalMemory::pageAddress32; break;
+	case PSM_PSMZ32: pa = &GSLocalMemory::pageAddress32; break;
+	case PSM_PSMZ24: pa = &GSLocalMemory::pageAddress32; break;
+	case PSM_PSMCT16: pa = &GSLocalMemory::pageAddress16; break;
+	case PSM_PSMCT16S: pa = &GSLocalMemory::pageAddress16; break;
+	case PSM_PSMZ16: pa = &GSLocalMemory::pageAddress16; break;
+	case PSM_PSMZ16S: pa = &GSLocalMemory::pageAddress16; break;	
+	case PSM_PSMT8: pa = &GSLocalMemory::pageAddress8; break;
+	case PSM_PSMT4: pa = &GSLocalMemory::pageAddress4; break;
+	}
+
+	return pa;
+}
+
+////////////////////
+
+DWORD GSLocalMemory::blockAddress32(int x, int y, DWORD bp, DWORD bw)
+{
+	DWORD page = bp + (y & ~0x1f) * bw + ((x >> 1) & ~0x1f);
+	DWORD block = blockTable32[(y >> 3) & 3][(x >> 3) & 7];
+	return (page + block) << 6;
+}
+
+DWORD GSLocalMemory::blockAddress16(int x, int y, DWORD bp, DWORD bw)
+{
+	DWORD page = bp + ((y >> 1) & ~0x1f) * bw + ((x >> 1) & ~0x1f); 
+	DWORD block = blockTable16[(y >> 3) & 7][(x >> 4) & 3];
+	return (page + block) << 7;
+}
+
+DWORD GSLocalMemory::blockAddress16S(int x, int y, DWORD bp, DWORD bw)
+{
+	DWORD page = bp + ((y >> 1) & ~0x1f) * bw + ((x >> 1) & ~0x1f); 
+	DWORD block = blockTable16S[(y >> 3) & 7][(x >> 4) & 3];
+	return (page + block) << 7;
+}
+
+DWORD GSLocalMemory::blockAddress8(int x, int y, DWORD bp, DWORD bw)
+{
+	DWORD page = bp + ((y >> 1) & ~0x1f) * ((bw+1)>>1) + ((x >> 2) & ~0x1f); 
+	DWORD block = blockTable8[(y >> 4) & 3][(x >> 4) & 7];
+	return (page + block) << 8;
+}
+
+DWORD GSLocalMemory::blockAddress4(int x, int y, DWORD bp, DWORD bw)
+{
+	DWORD page = bp + ((y >> 2) & ~0x1f) * ((bw+1)>>1) + ((x >> 2) & ~0x1f); 
+	DWORD block = blockTable4[(y >> 4) & 7][(x >> 5) & 3];
+	return (page + block) << 9;
+}
+
+DWORD GSLocalMemory::blockAddress32Z(int x, int y, DWORD bp, DWORD bw)
+{
+	DWORD page = bp + (y & ~0x1f) * bw + ((x >> 1) & ~0x1f); 
+	DWORD block = blockTable32Z[(y >> 3) & 3][(x >> 3) & 7];
+	return (page + block) << 6;
+}
+
+DWORD GSLocalMemory::blockAddress16Z(int x, int y, DWORD bp, DWORD bw)
+{
+	DWORD page = bp + ((y >> 1) & ~0x1f) * bw + ((x >> 1) & ~0x1f); 
+	DWORD block = blockTable16Z[(y >> 3) & 7][(x >> 4) & 3];
+	return (page + block) << 7;
+}
+
+DWORD GSLocalMemory::blockAddress16SZ(int x, int y, DWORD bp, DWORD bw)
+{
+	DWORD page = bp + ((y >> 1) & ~0x1f) * bw + ((x >> 1) & ~0x1f); 
+	DWORD block = blockTable16SZ[(y >> 3) & 7][(x >> 4) & 3];
+	return (page + block) << 7;
+}
+
+GSLocalMemory::pixelAddress GSLocalMemory::GetBlockAddress(DWORD psm)
+{
+	pixelAddress pa = NULL;
+
+	switch(psm)
+	{
+	default: ASSERT(0);
+	case PSM_PSMCT32: pa = &GSLocalMemory::blockAddress32; break;
+	case PSM_PSMCT24: pa = &GSLocalMemory::blockAddress32; break;
+	case PSM_PSMCT16: pa = &GSLocalMemory::blockAddress16; break;
+	case PSM_PSMCT16S: pa = &GSLocalMemory::blockAddress16S; break;
+	case PSM_PSMT8: pa = &GSLocalMemory::blockAddress8; break;
+	case PSM_PSMT4: pa = &GSLocalMemory::blockAddress4; break;
+	case PSM_PSMT8H: pa = &GSLocalMemory::blockAddress32; break;
+	case PSM_PSMT4HL: pa = &GSLocalMemory::blockAddress32; break;
+	case PSM_PSMT4HH: pa = &GSLocalMemory::blockAddress32; break;
+	case PSM_PSMZ32: pa = &GSLocalMemory::blockAddress32Z; break;
+	case PSM_PSMZ24: pa = &GSLocalMemory::blockAddress32Z; break;
+	case PSM_PSMZ16: pa = &GSLocalMemory::blockAddress16Z; break;
+	case PSM_PSMZ16S: pa = &GSLocalMemory::blockAddress16SZ; break;
+	}
+	
+	return pa;
 }
 
 ////////////////////
@@ -171,9 +301,9 @@ DWORD GSLocalMemory::pixelAddressOrg16SZ(int x, int y, DWORD bp, DWORD bw)
 	return word;
 }
 
-GSLocalMemory::pixelAddressOrg GSLocalMemory::GetPixelAddressOrg(DWORD psm)
+GSLocalMemory::pixelAddress GSLocalMemory::GetPixelAddressOrg(DWORD psm)
 {
-	pixelAddressOrg pa = NULL;
+	pixelAddress pa = NULL;
 
 	switch(psm)
 	{
@@ -261,7 +391,7 @@ DWORD GSLocalMemory::pixelAddress16SZ(int x, int y, DWORD bp, DWORD bw)
 	ASSERT(word < 1024*1024*2);
 	return word;
 }
-/*
+
 GSLocalMemory::pixelAddress GSLocalMemory::GetPixelAddress(DWORD psm)
 {
 	pixelAddress pa = NULL;
@@ -286,7 +416,7 @@ GSLocalMemory::pixelAddress GSLocalMemory::GetPixelAddress(DWORD psm)
 	
 	return pa;
 }
-*/
+
 ////////////////////
 
 void GSLocalMemory::writePixel32(int x, int y, DWORD c, DWORD bp, DWORD bw)
@@ -831,6 +961,100 @@ void GSLocalMemory::setupCLUT(GIFRegTEX0 TEX0, GIFRegTEXCLUT& TEXCLUT, GIFRegTEX
 DWORD GSLocalMemory::readCLUT(BYTE c)
 {
 	return m_clut[c];
+}
+
+////////////////////
+
+bool GSLocalMemory::FillRect(CRect& r, DWORD c, DWORD psm, DWORD fbp, DWORD fbw)
+{
+	int w, h, bpp;
+
+	writePixel wp = GetWritePixel(psm);
+	pixelAddress pa = NULL;
+/*
+	if(!(fbp&0x1f))
+	{
+		switch(psm)
+		{
+		default: ASSERT(0); 
+		case PSM_PSMCT32: w = 64; h = 32; bpp = 32; break;
+		case PSM_PSMCT16: w = 64; h = 64; bpp = 16; break;
+		case PSM_PSMCT16S: w = 64; h = 64; bpp = 16; break;
+		case PSM_PSMZ32: w = 64; h = 32; bpp = 32; break;
+		case PSM_PSMZ16: w = 64; h = 64; bpp = 16; break;
+		case PSM_PSMZ16S: w = 64; h = 64; bpp = 16; break;
+		case PSM_PSMT8: w = 128; h = 64; bpp = 8; break;
+		case PSM_PSMT4: w = 128; h = 128; bpp = 4; break;
+		}
+
+		pa = GetPageAddress(psm);
+	}
+	else
+*/
+	{
+		switch(psm)
+		{
+		default: ASSERT(0); 
+		case PSM_PSMCT32: w = 8; h = 8; bpp = 32; break;
+		case PSM_PSMCT16: w = 16; h = 8; bpp = 16; break;
+		case PSM_PSMCT16S: w = 16; h = 8; bpp = 16; break;
+		case PSM_PSMZ32: w = 8; h = 8; bpp = 32; break;
+		case PSM_PSMZ16: w = 16; h = 8; bpp = 16; break;
+		case PSM_PSMZ16S: w = 16; h = 8; bpp = 16; break;
+		case PSM_PSMT8: w = 16; h = 16; bpp = 8; break;
+		case PSM_PSMT4: w = 32; h = 16; bpp = 4; break;
+		}
+
+		pa = GetBlockAddress(psm);
+	}
+
+	int dwords = w*h*bpp/8/4;
+	int shift = 0;
+
+	switch(bpp)
+	{
+	case 32: shift = 0; break;
+	case 16: shift = 1; c = (c&0xffff)*0x00010001; break;
+	case 8: shift = 2; c = (c&0xff)*0x01010101; break;
+	case 4: shift = 3; c = (c&0xf)*0x11111111; break;
+	}
+
+	CRect clip((r.left+(w-1))&~(w-1), (r.top+(h-1))&~(h-1), r.right&~(w-1), r.bottom&~(h-1));
+
+	for(int y = r.top; y < clip.top; y++)
+		for(int x = r.left; x < r.right; x++)
+			(this->*wp)(x, y, c, fbp, fbw);
+
+	for(int y = clip.top; y < clip.bottom; y += h)
+	{
+		for(int ys = y, ye = y + w; ys < ye; ys++)
+		{
+			for(int x = r.left; x < clip.left; x++)
+				(this->*wp)(x, ys, c, fbp, fbw);
+			for(int x = clip.right; x < r.right; x++)
+				(this->*wp)(x, ys, c, fbp, fbw);
+		}
+
+		for(int x = clip.left; x < clip.right; x += w)
+		{
+			void* p = &m_vm8[(this->*pa)(x, y, fbp, fbw) << 2 >> shift];
+
+			__asm
+			{
+				mov eax, c
+				mov ecx, dwords
+				mov edi, p
+				cld
+				rep stosd
+			}
+		}
+	}
+
+	for(int y = clip.bottom; y < r.bottom; y++)
+		for(int x = r.left; x < r.right; x++)
+			(this->*wp)(x, y, c, fbp, fbw);
+
+	return(true);
 }
 
 ////////////////////

@@ -631,8 +631,8 @@ void GSRendererHW::FlushPrim()
 
 		//////////////////////
 
-		ASSERT(!m_de.PABE.PABE); // bios
-		ASSERT(!m_ctxt->FBA.FBA); // bios
+		// ASSERT(!m_de.PABE.PABE); // bios
+		// ASSERT(!m_ctxt->FBA.FBA); // bios
 		// ASSERT(!m_ctxt->TEST.DATE); // sfex3 (after the capcom logo), vf4 (first menu fading in)
 
 		//////////////////////
@@ -1156,6 +1156,40 @@ void GSRendererHW::InvalidateTexture(DWORD TBP0)
 	}
 }
 
+void GSRendererHW::InvalidateTexture(DWORD TBP0, int x, int y)
+{
+	if(m_rs.TRXREG.RRW <= 16 && m_rs.TRXREG.RRH <= 16) // allowing larger isn't worth, most of the time the size of the texture changes too
+	{
+		GSTexture t;
+		D3DSURFACE_DESC desc;
+		D3DLOCKED_RECT lr;
+		CRect r(m_rs.TRXPOS.DSAX, y, m_rs.TRXREG.RRW, min(m_x == m_rs.TRXPOS.DSAX ? m_y : m_y+1, m_rs.TRXREG.RRH));
+		int w = r.Width(), h = r.Height();
+
+		if(m_tc.LookupByTBP(TBP0, t) && !IsRenderTarget(t.m_pTexture)
+		&& !(t.m_tex.CLAMP.WMS&2) && !(t.m_tex.CLAMP.WMT&2)
+		&& t.m_scale.x == 1.0f && t.m_scale.y == 1.0f
+		&& S_OK == t.m_pTexture->GetLevelDesc(0, &desc)
+		&& S_OK == t.m_pTexture->LockRect(0, &lr, r, 0))
+		{
+			BYTE* dst = (BYTE*)lr.pBits;
+			GSLocalMemory::readTexel rt = m_lm.GetReadTexel(t.m_tex.TEX0.PSM);
+
+			for(int y = 0, diff = lr.Pitch - w*4; y < h; y++, dst += diff)
+				for(int x = 0; x < w; x++, dst += 4)
+					*(DWORD*)dst = (m_lm.*rt)(r.left + x, r.top + y, t.m_tex.TEX0, t.m_tex.TEXA);
+
+			t.m_pTexture->UnlockRect(0);
+		}
+	}
+	else
+	{
+		m_tc.InvalidateByTBP(TBP0);
+	}
+
+	m_tc.InvalidateByCBP(TBP0);
+}
+
 bool GSRendererHW::CreateTexture(GSTexture& t)
 {
 	int tw = 1<<m_ctxt->TEX0.TW;
@@ -1193,7 +1227,8 @@ bool GSRendererHW::CreateTexture(GSTexture& t)
 	GSLocalMemory::readTexel rt = m_lm.GetReadTexel(m_ctxt->TEX0.PSM);
 
 	CComPtr<IDirect3DTexture9> pTexture;
-	HRESULT hr = m_pD3DDev->CreateTexture(tw, th, 0, 0 , D3DFMT_A8R8G8B8, D3DPOOL_MANAGED, &pTexture, NULL);
+//	HRESULT hr = m_pD3DDev->CreateTexture(tw, th, 0, D3DUSAGE_DYNAMIC/*0*/, D3DFMT_A8R8G8B8, D3DPOOL_DEFAULT/*D3DPOOL_MANAGED*/, &pTexture, NULL);
+	HRESULT hr = m_pD3DDev->CreateTexture(tw, th, 0, 0, D3DFMT_A8R8G8B8, D3DPOOL_MANAGED, &pTexture, NULL);
 	if(FAILED(hr) || !pTexture) return(false);
 
 	D3DLOCKED_RECT r;
