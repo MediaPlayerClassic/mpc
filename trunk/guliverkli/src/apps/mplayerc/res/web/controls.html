@@ -10,10 +10,10 @@
 		var curpos = [position];
 		var length = [duration];
 		var state = [state];
-		var pbr = [pbr];
-		var eta = [eta];
+		var pbr = [playbackrate];
+		var eta = [reloadtime];
 		var volume = [volumelevel]*2;
-		var muted = [muted];
+		var muted = [muted]; // -1 no sound
 
 		var starttime = (new Date()).getTime();
 		var slidersize = 500;
@@ -45,7 +45,7 @@
 			vs1=document.getElementById("v1")
 			vs2=document.getElementById("v2")
 			vs3=document.getElementById("v3")
-			document.getElementById("muted").innerHTML= muted ? "M" : "_";
+			document.getElementById("muted").innerHTML= muted == -1 ? "X" : muted == 1 ? "M" : "&nbsp;";
 
 			s.height=sb1.height=sb2.height=sb3.height=vs.height=vs1.height=vs2.height=vs3.height=20
 			s.width=slidersize+(sb2.width=sliderbuttonwidth);
@@ -67,7 +67,7 @@
 		{
 			AP=setTimeout('autoplay()',rdirt);
 			var ct = (new Date()).getTime();
-			var cap=(pbr*(ct-starttime)/1000)
+			var cap=pbr*(ct-starttime);
 			if (cap>length && !Live) if (re.checked==true) RL=setTimeout('window.location=window.location',5000);
 			cap=((cap>length && !Live)?length:(cap<0?0:cap))
 			if (sas.checked==true || a==true)
@@ -75,7 +75,7 @@
 				update(cap,true)
 				cpf.value=secondsToTS(cap,5,false);
 			}
-			var gg = " "+secondsToTS(cap,0,true)+" ";
+			var gg = " "+secondsToTS(cap,5,true)+" ";
 			cp.innerHTML = gg;
 			rpt=cap;
 			return true;
@@ -101,8 +101,9 @@
 			case 2:	return a2s;
 			case 3: return a3s;
 			case 4: return a4s;
-			case 5:	return a1s+":"+a2s+":"+a3s+"."+a4s;
-			case 6:	return ((a1>0?(a1s+":"):"")+a2s+":"+a3s+"."+a4s);
+			case 5:	//return a1s+":"+a2s+":"+a3s+"."+a4s;
+			case 6:	//return ((a1>0?(a1s+":"):"")+a2s+":"+a3s+"."+a4s);
+			case 7:	return a1s+":"+a2s+":"+a3s;
 			default: return ((a1>0?(a1s+":"):"")+a2s+":"+a3s);
 			}
 			return "bahh";
@@ -1680,9 +1681,9 @@
 		<p>
 			<div align="center">
 				<strong>
-					Feel free to redesign this page (nice image buttons, more "player-like" layout, etc.), 
-					but if you do alter the page <a href="">here</a> and not the one you save from the browser. 
-					Post you comments, remarks, ideas, progress into this topic: .
+					Feel free to redesign this page (nice image buttons, more "player-like" layout, etc.), but if you do 
+					alter the page <a href="">here</a> and not the one you save from the browser. Post you comments, remarks, 
+					ideas, progress into <a href="http://sourceforge.net/forum/forum.php?forum_id=">this topic</a>.
 				</strong>
 			</div>
 		</p>
