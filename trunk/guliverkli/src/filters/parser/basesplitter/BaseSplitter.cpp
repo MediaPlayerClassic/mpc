@@ -1,5 +1,5 @@
 /* 
- *	Copyright (C) 2003-2004 Gabest
+ *	Copyright (C) 2003-2005 Gabest
  *	http://www.gabest.org
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -220,6 +220,7 @@ STDMETHODIMP CBaseSplitterOutputPin::NonDelegatingQueryInterface(REFIID riid, vo
 	return 
 //		riid == __uuidof(IMediaSeeking) ? m_pFilter->QueryInterface(riid, ppv) : 
 		QI(IPropertyBag2)
+		QI(IDSMPropertyBag)
 		QI(IMediaSeeking)
 		__super::NonDelegatingQueryInterface(riid, ppv);
 }

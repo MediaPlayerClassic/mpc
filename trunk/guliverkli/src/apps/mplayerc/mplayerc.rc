@@ -216,15 +216,11 @@ BEGIN
     CONTROL         "",IDC_STATIC,"Static",SS_ETCHEDHORZ,10,225,104,1
     EDITTEXT        IDC_EDIT4,10,231,86,13,ES_AUTOHSCROLL | ES_READONLY
     PUSHBUTTON      "...",IDC_BUTTON3,98,231,14,13
-    CONTROL         "Avi",IDC_RADIO1,"Button",BS_AUTORADIOBUTTON | WS_GROUP,
-                    10,247,24,10
-    CONTROL         "Ogm",IDC_RADIO2,"Button",BS_AUTORADIOBUTTON,38,247,27,
-                    10
-    CONTROL         "Matroska",IDC_RADIO3,"Button",BS_AUTORADIOBUTTON,69,247,
-                    42,10
     CONTROL         "Audio to wav",IDC_CHECK7,"Button",BS_AUTOCHECKBOX | 
-                    WS_TABSTOP,10,260,57,10
+                    WS_TABSTOP,10,260,55,10
     PUSHBUTTON      "Record",IDC_BUTTON2,74,259,38,13,WS_DISABLED | WS_GROUP
+    COMBOBOX        IDC_COMBO14,10,245,102,52,CBS_DROPDOWNLIST | WS_VSCROLL | 
+                    WS_TABSTOP
 END
 
 IDD_PPAGEAUDIOSWITCHER DIALOGEX 0, 0, 296, 198
@@ -307,7 +303,7 @@ BEGIN
     ICON            11128,IDC_STATIC,11,17,20,20
     LTEXT           "Media Player Classic",IDC_STATIC1,40,10,126,8,
                     SS_NOPREFIX
-    LTEXT           "Copyright (C) 2002-2004 Gabest",IDC_STATIC,40,21,113,8
+    LTEXT           "Copyright (C) 2002-2005 Gabest",IDC_STATIC,40,21,113,8
     LTEXT           "Version: 6.4.8.3",IDC_STATIC,40,33,92,8
     PUSHBUTTON      "OK",IDOK,160,8,50,14,WS_GROUP
     LTEXT           "This program is freeware and released under the GNU General Public License.\nDistribution in Codec Packs is allowed, but the author (Gabest) is not liable for the additional content.",
@@ -1580,7 +1576,7 @@ BEGIN
             VALUE "FileDescription", "Media Player Classic"
             VALUE "FileVersion", "6, 4, 8, 3"
             VALUE "InternalName", "Media Player Classic"
-            VALUE "LegalCopyright", "Copyright (C) 2002-2004 Gabest"
+            VALUE "LegalCopyright", "Copyright (C) 2002-2005 Gabest"
             VALUE "OriginalFilename", "mplayerc.EXE"
             VALUE "ProductName", "Media Player Classic"
             VALUE "ProductVersion", "6, 4, 8, 3"

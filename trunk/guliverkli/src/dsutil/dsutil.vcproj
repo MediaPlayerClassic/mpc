@@ -300,6 +300,9 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath=".\DSMPropertyBag.cpp">
+			</File>
+			<File
 				RelativePath="DSUtil.cpp">
 			</File>
 			<File
@@ -307,9 +310,6 @@
 			</File>
 			<File
 				RelativePath=".\NullRenderers.cpp">
-			</File>
-			<File
-				RelativePath=".\PropertyBag2.cpp">
 			</File>
 			<File
 				RelativePath="stdafx.cpp">
@@ -349,6 +349,9 @@
 			Name="Header Files"
 			Filter="h;hpp;hxx;hm;inl;inc">
 			<File
+				RelativePath=".\DSMPropertyBag.h">
+			</File>
+			<File
 				RelativePath="DSUtil.h">
 			</File>
 			<File
@@ -356,9 +359,6 @@
 			</File>
 			<File
 				RelativePath=".\NullRenderers.h">
-			</File>
-			<File
-				RelativePath=".\PropertyBag2.h">
 			</File>
 			<File
 				RelativePath="stdafx.h">

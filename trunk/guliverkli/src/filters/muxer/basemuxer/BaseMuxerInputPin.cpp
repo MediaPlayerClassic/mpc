@@ -1,5 +1,5 @@
 /* 
- *	Copyright (C) 2003-2004 Gabest
+ *	Copyright (C) 2003-2005 Gabest
  *	http://www.gabest.org
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -50,6 +50,7 @@ STDMETHODIMP CBaseMuxerInputPin::NonDelegatingQueryInterface(REFIID riid, void**
 
 	return 
 		QI(IPropertyBag2)
+		QI(IDSMPropertyBag)
 		__super::NonDelegatingQueryInterface(riid, ppv);
 }
 
@@ -96,10 +97,10 @@ HRESULT CBaseMuxerInputPin::CompleteConnect(IPin* pReceivePin)
 
 	for(CComPtr<IPin> pPin = pReceivePin; pPin; pPin = GetUpStreamPin(GetFilterFromPin(pPin)))
 	{
-		if(CComQIPtr<IPropertyBag2> pPB2 = pPin)
+		if(CComQIPtr<IDSMPropertyBag> pPB = pPin)
 		{
 			ULONG cProperties = 0;
-			if(FAILED(pPB2->CountProperties(&cProperties)) || cProperties == 0)
+			if(FAILED(pPB->CountProperties(&cProperties)) || cProperties == 0)
 				continue;
 
 			for(ULONG iProperty = 0; iProperty < cProperties; iProperty++)
@@ -107,13 +108,13 @@ HRESULT CBaseMuxerInputPin::CompleteConnect(IPin* pReceivePin)
 				PROPBAG2 PropBag;
 				memset(&PropBag, 0, sizeof(PropBag));
 				ULONG cPropertiesReturned = 0;
-				if(FAILED(pPB2->GetPropertyInfo(iProperty, 1, &PropBag, &cPropertiesReturned)))
+				if(FAILED(pPB->GetPropertyInfo(iProperty, 1, &PropBag, &cPropertiesReturned)))
 					continue;
 
 				HRESULT hr;
 				CComVariant var;
-				if(SUCCEEDED(pPB2->Read(1, &PropBag, NULL, &var, &hr)) && SUCCEEDED(hr))
-					SetProperty(PropBag.pstrName, var);
+				if(SUCCEEDED(pPB->Read(1, &PropBag, NULL, &var, &hr)) && SUCCEEDED(hr))
+					SetProperty(PropBag.pstrName, &var);
 
 				CoTaskMemFree(PropBag.pstrName);
 			}

@@ -1,5 +1,5 @@
 /* 
- *	Copyright (C) 2003-2004 Gabest
+ *	Copyright (C) 2003-2005 Gabest
  *	http://www.gabest.org
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -105,6 +105,30 @@ void CDSMMuxerFilter::MuxPacketHeader(IBitStream* pBS, dsmp_t type, UINT64 len)
 	pBS->BitWrite(len, i<<3);
 }
 
+void CDSMMuxerFilter::MuxFileInfo(IBitStream* pBS)
+{
+	int len = 1;
+	CSimpleMap<CStringA, CStringA> si;
+
+	for(int i = 0; i < GetSize(); i++)
+	{
+		CStringA key = CStringA(CString(GetKeyAt(i))), value = UTF16To8(GetValueAt(i));
+		if(key.GetLength() != 4) continue;
+		si.Add(key, value);
+		len += 4 + value.GetLength() + 1;
+	}
+
+	MuxPacketHeader(pBS, DSMP_FILEINFO, len);
+	pBS->BitWrite(DSMF_VERSION, 8);
+	for(int i = 0; i < si.GetSize(); i++)
+	{
+		CStringA key = si.GetKeyAt(i), value = si.GetValueAt(i);
+		pBS->ByteWrite((LPCSTR)key, 4);
+		pBS->ByteWrite((LPCSTR)value, value.GetLength()+1);
+	}
+
+}
+
 void CDSMMuxerFilter::MuxStreamInfo(IBitStream* pBS, CBaseMuxerInputPin* pPin)
 {
 	int len = 1;
@@ -135,11 +159,18 @@ void CDSMMuxerFilter::MuxInit()
 {
 	m_sps.RemoveAll();
 	m_isps.RemoveAll();
+	m_rtPrevSyncPoint = _I64_MIN;
 }
 
 void CDSMMuxerFilter::MuxHeader(IBitStream* pBS)
 {
-	MuxPacketHeader(pBS, DSMP_FILEINFO, 0);
+	CString muxer;
+	muxer.Format(_T("DSM Muxer (%s)"), CString(__TIMESTAMP__));
+
+	SetProperty(L"MUXR", CStringW(muxer));
+	SetProperty(L"DATE", CStringW(CTime::GetCurrentTime().FormatGmt(_T("%Y-%m-%d %H:%M:%S"))));
+
+	MuxFileInfo(pBS);
 
 	POSITION pos = m_pPins.GetHeadPosition();
 	while(pos)
@@ -263,9 +294,8 @@ void CDSMMuxerFilter::IndexSyncPoint(Packet* p, __int64 fp)
 	if(fp < 0 || !p || !p->IsTimeValid() || !p->IsSyncPoint()) 
 		return;
 
-	static REFERENCE_TIME rtPrev = _I64_MIN;
-	ASSERT(p->rtStart >= rtPrev);
-	rtPrev = p->rtStart;
+	ASSERT(p->rtStart >= m_rtPrevSyncPoint);
+	m_rtPrevSyncPoint = p->rtStart;
 
 	SyncPoint sp;
 	sp.fp = fp;

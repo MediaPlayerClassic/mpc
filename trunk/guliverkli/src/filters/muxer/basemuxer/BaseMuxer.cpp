@@ -1,5 +1,5 @@
 /* 
- *	Copyright (C) 2003-2004 Gabest
+ *	Copyright (C) 2003-2005 Gabest
  *	http://www.gabest.org
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -50,6 +50,8 @@ STDMETHODIMP CBaseMuxerFilter::NonDelegatingQueryInterface(REFIID riid, void** p
 
 	return 
 		QI(IMediaSeeking)
+		QI(IPropertyBag2)
+		QI(IDSMPropertyBag)
 		__super::NonDelegatingQueryInterface(riid, ppv);
 }
 
@@ -84,7 +86,15 @@ HRESULT CBaseMuxerFilter::CreateInput(CStringW name, CBaseMuxerInputPin** ppPin)
 
 void CBaseMuxerFilter::Receive(IMediaSample* pIn, CBaseMuxerInputPin* pPin)
 {
-	while(IsActive() && PeekQueue() && !pPin->IsFlushing())
+	int nPackets = 0;
+
+	{
+		CAutoLock cAutoLock(&m_csQueue);
+		nPackets = m_pActivePins[pPin];
+	}
+
+	// i -= nPackets looks silly at first, but looping once seems to be enough
+	for(int i = nPackets; IsActive() && (PeekQueue() || i > 0) && !pPin->IsFlushing(); i -= nPackets) 
 	{
 		Sleep(1);
 	}
