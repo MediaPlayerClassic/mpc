@@ -130,6 +130,7 @@ STDMETHODIMP_(HANDLE) CAsyncFileReader::GetFileHandle()
 
 CBaseSplitterFile::CBaseSplitterFile(IAsyncReader* pAsyncReader, HRESULT& hr, int cachetotal)
 	: m_pAsyncReader(pAsyncReader)
+	, m_fStreaming(false)
 	, m_pos(0), m_len(0)
 	, m_bitbuff(0), m_bitlen(0)
 	, m_cachepos(0), m_cachelen(0)
@@ -137,13 +138,17 @@ CBaseSplitterFile::CBaseSplitterFile(IAsyncReader* pAsyncReader, HRESULT& hr, in
 	if(!m_pAsyncReader) {hr = E_UNEXPECTED; return;}
 
 	LONGLONG total = 0, available;
-	if(FAILED(m_pAsyncReader->Length(&total, &available)) || total != available || total < 0)
+	hr = m_pAsyncReader->Length(&total, &available);
+
+	m_fStreaming = hr == VFW_S_ESTIMATED;
+
+	if(FAILED(hr) || !m_fStreaming && total != available || total < 0)
 	{
 		hr = E_FAIL;
 		return;
 	}
 
-	m_len = total;
+	m_len = GetLength();
 
 	m_pCache.Allocate((size_t)(m_cachetotal = cachetotal));
 	if(!m_pCache) {hr = E_OUTOFMEMORY; return;}
@@ -189,7 +194,8 @@ HRESULT CBaseSplitterFile::Read(BYTE* pData, __int64 len)
 
 	while(len > 0)
 	{
-		__int64 maxlen = min(m_len - m_pos, m_cachetotal);
+		__int64 tmplen = GetLength();
+		__int64 maxlen = min(tmplen - m_pos, m_cachetotal);
 		__int64 minlen = min(len, maxlen);
 		if(minlen <= 0) return S_FALSE;
 
@@ -216,7 +222,7 @@ UINT64 CBaseSplitterFile::BitRead(int nBits, bool fPeek)
 	while(m_bitlen < nBits)
 	{
 		m_bitbuff <<= 8;
-		if(S_OK != Read((BYTE*)&m_bitbuff, 1)) {ASSERT(0); return 0;} // EOF?
+		if(S_OK != Read((BYTE*)&m_bitbuff, 1)) {/*ASSERT(0);*/ return 0;} // EOF?
 		m_bitlen += 8;
 	}
 

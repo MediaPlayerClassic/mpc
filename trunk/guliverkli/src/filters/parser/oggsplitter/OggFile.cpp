@@ -18,22 +18,22 @@ HRESULT COggFile::Init()
 
 bool COggFile::Sync(HANDLE hBreak)
 {
-	__int64 pos = m_pos;
+	__int64 start = GetPos();
 
 	DWORD dw;
-	for(__int64 i = 0, j = hBreak ? m_len - m_pos : 65536;
+	for(__int64 i = 0, j = hBreak ? GetLength() - start : 65536;
 		i < j && S_OK == Read((BYTE*)&dw, sizeof(dw)) 
 			&& ((i&0xffff) || !hBreak || WaitForSingleObject(hBreak, 0) != WAIT_OBJECT_0); 
-		i++, m_pos = pos + i)
+		i++, Seek(start + i))
 	{
 		if(dw == 'SggO')
 		{
-			m_pos = pos + i;
+			Seek(start + i);
 			return(true);
 		}
 	}
 
-	m_pos = pos;
+	Seek(start);
 
 	return(false);
 }
