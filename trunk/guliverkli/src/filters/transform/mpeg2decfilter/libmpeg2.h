@@ -80,7 +80,7 @@ typedef struct {
 	int x, y;
     } display_offset[3];
 	__int64 rtStart, rtStop;
-	bool fDelivered;
+	bool fDiscontinuity, fDelivered;
 } mpeg2_picture_t;
 
 typedef struct {

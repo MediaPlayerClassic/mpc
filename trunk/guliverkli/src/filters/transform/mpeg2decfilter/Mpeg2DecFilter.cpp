@@ -205,6 +205,9 @@ CMpeg2DecFilter::CMpeg2DecFilter(LPUNKNOWN lpunk, HRESULT* phr)
 	SetSaturation(1.0);
 	EnableForcedSubtitles(true);
 	EnablePlanarYUV(true);
+
+	m_rate.Rate = 10000;
+	m_rate.StartTime = 0;
 }
 
 CMpeg2DecFilter::~CMpeg2DecFilter()
@@ -262,8 +265,6 @@ HRESULT CMpeg2DecFilter::NewSegment(REFERENCE_TIME tStart, REFERENCE_TIME tStop,
 	m_pClosedCaptionOutput->DeliverNewSegment(tStart, tStop, dRate);
 	return __super::NewSegment(tStart, tStop, dRate);
 }
-
-int nframe = 0;
 
 HRESULT CMpeg2DecFilter::Receive(IMediaSample* pIn)
 {
@@ -345,6 +346,7 @@ HRESULT CMpeg2DecFilter::Receive(IMediaSample* pIn)
 			break;
 		case STATE_INVALID:
 			TRACE(_T("STATE_INVALID\n"));
+//			ResetMpeg2Decoder();
 			break;
 		case STATE_GOP:
 			TRACE(_T("STATE_GOP\n"));
@@ -414,17 +416,16 @@ HRESULT CMpeg2DecFilter::Receive(IMediaSample* pIn)
 
 					m_fb.flags = picture->flags;
 
+ASSERT(!(m_fb.flags&PIC_FLAG_SKIP));
+
 					// frame buffer
 
-					int w = m_dec->m_info.m_sequence->width;
-					int h = m_dec->m_info.m_sequence->height;
-					int pw = m_dec->m_info.m_sequence->picture_width;
-					int ph = m_dec->m_info.m_sequence->picture_height;
+					int w = m_dec->m_info.m_sequence->picture_width;
+					int h = m_dec->m_info.m_sequence->picture_height;
+					int pitch = m_dec->m_info.m_sequence->width;
 
-					if(m_fb.w != w || m_fb.h != h)
-						m_fb.alloc(w, h, pw, ph);
-					if(m_fb.pw != pw || m_fb.ph != ph)
-						m_fb.pw = pw, m_fb.ph = ph;
+					if(m_fb.w != w || m_fb.h != h || m_fb.pitch != pitch)
+						m_fb.alloc(w, h, pitch);
 
 					// deinterlace
 
@@ -448,20 +449,20 @@ HRESULT CMpeg2DecFilter::Receive(IMediaSample* pIn)
 
 					if(di == DIWeave)
 					{
-						memcpy_accel(m_fb.buf[0], fbuf->buf[0], m_fb.w*m_fb.h);
-						memcpy_accel(m_fb.buf[1], fbuf->buf[1], m_fb.w*m_fb.h/4);
-						memcpy_accel(m_fb.buf[2], fbuf->buf[2], m_fb.w*m_fb.h/4);
+						memcpy_accel(m_fb.buf[0], fbuf->buf[0], pitch*h);
+						memcpy_accel(m_fb.buf[1], fbuf->buf[1], pitch*h/4);
+						memcpy_accel(m_fb.buf[2], fbuf->buf[2], pitch*h/4);
 					}
 					else if(di == DIBlend)
 					{
-						DeinterlaceBlend(m_fb.buf[0], fbuf->buf[0], m_fb.pw, m_fb.ph, m_fb.w);
-						DeinterlaceBlend(m_fb.buf[1], fbuf->buf[1], m_fb.pw/2, m_fb.ph/2, m_fb.w/2);
-						DeinterlaceBlend(m_fb.buf[2], fbuf->buf[2], m_fb.pw/2, m_fb.ph/2, m_fb.w/2);
+						DeinterlaceBlend(m_fb.buf[0], fbuf->buf[0], w, h, pitch);
+						DeinterlaceBlend(m_fb.buf[1], fbuf->buf[1], w/2, h/2, pitch/2);
+						DeinterlaceBlend(m_fb.buf[2], fbuf->buf[2], w/2, h/2, pitch/2);
 					}
 
 					// postproc
 
-					ApplyBrContHueSat(m_fb.buf[0], m_fb.buf[1], m_fb.buf[2], m_fb.w, m_fb.h, m_fb.pw);
+					ApplyBrContHueSat(m_fb.buf[0], m_fb.buf[1], m_fb.buf[2], w, h, pitch);
 /*
 					// TODO: add all kinds of nice postprocessing here :P
 
@@ -536,7 +537,7 @@ HRESULT CMpeg2DecFilter::Deliver(bool fRepeatLast)
 
 	TCHAR frametype[] = {'?','I', 'P', 'B', 'D'};
 //	TRACE(_T("%010I64d - %010I64d [%c] [prsq %d prfr %d tff %d rff %d nb_fields %d ref %d] (%dx%d/%dx%d)\n"), 
-	TRACE(_T("%010I64d - %010I64d [%c] [prsq %d prfr %d tff %d rff %d] (%dx%d/%dx%d) (preroll %d)\n"), 
+	TRACE(_T("%010I64d - %010I64d [%c] [prsq %d prfr %d tff %d rff %d] (%dx%d %d) (preroll %d)\n"), 
 		m_fb.rtStart, m_fb.rtStop,
 		frametype[m_fb.flags&PIC_MASK_CODING_TYPE],
 		!!(m_dec->m_info.m_sequence->flags&SEQ_FLAG_PROGRESSIVE_SEQUENCE),
@@ -545,7 +546,7 @@ HRESULT CMpeg2DecFilter::Deliver(bool fRepeatLast)
 		!!(m_fb.flags&PIC_FLAG_REPEAT_FIRST_FIELD),
 //		m_dec->m_info.m_display_picture->nb_fields,
 //		m_dec->m_info.m_display_picture->temporal_reference,
-		m_fb.w, m_fb.h, m_fb.pw, m_fb.ph,
+		m_fb.w, m_fb.h, m_fb.pitch,
 		!!(m_fb.rtStart < 0 || m_fWaitForKeyFrame));
 
 	if(m_fb.rtStart < 0 || m_fWaitForKeyFrame)
@@ -554,7 +555,7 @@ HRESULT CMpeg2DecFilter::Deliver(bool fRepeatLast)
 	HRESULT hr;
 
 	CMediaType mt;
-	if(FAILED(hr = ReconnectOutput(m_fb.pw, m_fb.ph, mt)))
+	if(FAILED(hr = ReconnectOutput(m_fb.w, m_fb.h, mt)))
 		return hr;
 
 	CComPtr<IMediaSample> pOut;
@@ -576,26 +577,46 @@ HRESULT CMpeg2DecFilter::Deliver(bool fRepeatLast)
 		// TODO: put m_pOutput->SetMediaType(&mt) here, maybe
 	}
 
-	pOut->SetTime(&m_fb.rtStart, &m_fb.rtStop);
+	{
+		CMpeg2DecInputPin* pPin = (CMpeg2DecInputPin*)m_pInput;
+		CAutoLock cAutoLock(&pPin->m_csRateLock);
+		if(m_rate.Rate != pPin->m_ratechange.Rate)
+		{
+			m_rate.Rate = pPin->m_ratechange.Rate;
+			m_rate.StartTime = m_fb.rtStart;
+		}
+	}
+
+	REFERENCE_TIME rtStart = m_fb.rtStart;
+	REFERENCE_TIME rtStop = m_fb.rtStop;
+	rtStart = m_rate.StartTime + (rtStart - m_rate.StartTime) * m_rate.Rate / 10000;
+	rtStop = m_rate.StartTime + (rtStop - m_rate.StartTime) * m_rate.Rate / 10000;
+
+	pOut->SetTime(&rtStart, &rtStop);
 	pOut->SetMediaTime(NULL, NULL);
 
-//	pOut->SetDiscontinuity();
+	pOut->SetDiscontinuity(FALSE);
 	pOut->SetSyncPoint(TRUE);
+
+	// FIXME: hell knows why but without this the overlay mixer starts very skippy
+	// (don't enable this for other renderers, the old for example will go crazy if you do)
+	if(GetCLSID(GetFilterFromPin(m_pOutput->GetConnected())) == CLSID_OverlayMixer)
+		pOut->SetDiscontinuity(TRUE);
 
 	BYTE** buf = &m_fb.buf[0];
 
 	if(m_pSubpicInput->HasAnythingToRender(m_fb.rtStart))
 	{
-		memcpy_accel(m_fb.buf[3], m_fb.buf[0], m_fb.w*m_fb.h);
-		memcpy_accel(m_fb.buf[4], m_fb.buf[1], m_fb.w*m_fb.h/4);
-		memcpy_accel(m_fb.buf[5], m_fb.buf[2], m_fb.w*m_fb.h/4);
+		memcpy_accel(m_fb.buf[3], m_fb.buf[0], m_fb.pitch*m_fb.h);
+		memcpy_accel(m_fb.buf[4], m_fb.buf[1], m_fb.pitch*m_fb.h/4);
+		memcpy_accel(m_fb.buf[5], m_fb.buf[2], m_fb.pitch*m_fb.h/4);
 
 		buf = &m_fb.buf[3];
 
-		m_pSubpicInput->RenderSubpics(m_fb.rtStart, buf, m_fb.w, m_fb.h);
+		m_pSubpicInput->RenderSubpics(m_fb.rtStart, buf, m_fb.pitch, m_fb.h);
 	}
 
-	Copy(pDataOut, buf, m_fb.pw, m_fb.ph, m_fb.w);
+	Copy(pDataOut, buf, m_fb.w, m_fb.h, m_fb.pitch);
 
 	if(FAILED(hr = m_pOutput->Deliver(pOut)))
 		return hr;
@@ -789,7 +810,7 @@ HRESULT CMpeg2DecFilter::CheckInputType(const CMediaType* mtIn)
 
 HRESULT CMpeg2DecFilter::CheckTransform(const CMediaType* mtIn, const CMediaType* mtOut)
 {
-	return SUCCEEDED(mtIn)
+	return SUCCEEDED(CheckInputType(mtIn))
 		&& mtOut->majortype == MEDIATYPE_Video && (mtOut->subtype == MEDIASUBTYPE_YV12 && IsPlanarYUVEnabled()
 												|| mtOut->subtype == MEDIASUBTYPE_I420 && IsPlanarYUVEnabled()
 												|| mtOut->subtype == MEDIASUBTYPE_IYUV && IsPlanarYUVEnabled()
@@ -963,7 +984,8 @@ void CMpeg2DecFilter::CalcBrCont(BYTE* YTbl, double bright, double cont)
 	for(int i = 0; i < 256; i++)
 	{
 		int y = ((Cont * (i - 16)) >> 9) + Bright + 16;
-		YTbl[i] = min(max(y, 16), 235);
+		YTbl[i] = min(max(y, 0), 255);
+//		YTbl[i] = min(max(y, 16), 235);
 	}
 }
 
@@ -984,8 +1006,8 @@ void CMpeg2DecFilter::CalcHueSat(BYTE* UTbl, BYTE* VTbl, double hue, double sat)
 			v = (v * Cos - u * Sin) >> 12;
 			u = ((ux * Sat) >> 9) + 128;
 			v = ((v * Sat) >> 9) + 128;
-			u = min(max(u,16),235);
-			v = min(max(v,16),235);
+			u = min(max(u, 16), 235);
+			v = min(max(v, 16), 235);
 			UTbl[(y << 8) | x] = u;
 			VTbl[(y << 8) | x] = v;
 		}
@@ -996,10 +1018,11 @@ void CMpeg2DecFilter::ApplyBrContHueSat(BYTE* srcy, BYTE* srcu, BYTE* srcv, int 
 {
 	CAutoLock cAutoLock(&m_csProps);
 
-	if(!(m_bright == 0 && m_cont == 1.0))
-	for(int y = 0; y < h; y++)
+	double EPSILON = 1e-4;
+
+	if(fabs(m_bright-0.0) > EPSILON || fabs(m_cont-1.0) > EPSILON)
 	{
-		for(int x = 0; x < w; x++, srcy += pitch - w)
+		for(int size = pitch*h; size > 0; size--)
 		{
 			*srcy++ = m_YTbl[*srcy];
 		}
@@ -1009,10 +1032,9 @@ void CMpeg2DecFilter::ApplyBrContHueSat(BYTE* srcy, BYTE* srcu, BYTE* srcv, int 
 	w /= 2;
 	h /= 2;
 
-	if(!(m_hue == 0.0 && m_sat == 1.0))
-	for(int y = 0; y < h; y++, srcu += pitch - w, srcv += pitch - w)
+	if(fabs(m_hue-0.0) > EPSILON || fabs(m_sat-1.0) > EPSILON)
 	{
-		for(int x = 0; x < w; x++)
+		for(int size = pitch*h; size > 0; size--)
 		{
 			WORD uv = (*srcv<<8)|*srcu;
 			*srcu++ = m_UTbl[uv];
@@ -1111,6 +1133,10 @@ CMpeg2DecInputPin::CMpeg2DecInputPin(CTransformFilter* pFilter, HRESULT* phr, LP
 	memset(m_KeyCheck, 0, sizeof(m_KeyCheck));
 	memset(m_DiscKey, 0, sizeof(m_DiscKey));
 	memset(m_TitleKey, 0, sizeof(m_TitleKey));
+
+	m_CorrectTS = 0;
+	m_ratechange.Rate = 10000;
+	m_ratechange.StartTime = _I64_MAX;
 }
 
 STDMETHODIMP CMpeg2DecInputPin::NonDelegatingQueryInterface(REFIID riid, void** ppv)
@@ -1157,9 +1183,13 @@ STDMETHODIMP CMpeg2DecInputPin::Receive(IMediaSample* pSample)
 
 STDMETHODIMP CMpeg2DecInputPin::Set(REFGUID PropSet, ULONG Id, LPVOID pInstanceData, ULONG InstanceLength, LPVOID pPropertyData, ULONG DataLength)
 {
-	if(PropSet != AM_KSPROPSETID_CopyProt)
+	if(PropSet != AM_KSPROPSETID_CopyProt
+	&& PropSet != AM_KSPROPSETID_TSRateChange
+//	&& PropSet != AM_KSPROPSETID_DVD_RateChange
+	)
 		return E_NOTIMPL;
 
+	if(PropSet == AM_KSPROPSETID_CopyProt)
 	switch(Id)
 	{
 	case AM_PROPERTY_COPY_MACROVISION:
@@ -1247,14 +1277,59 @@ STDMETHODIMP CMpeg2DecInputPin::Set(REFGUID PropSet, ULONG Id, LPVOID pInstanceD
 		return E_PROP_ID_UNSUPPORTED;
 	}
 
+	if(PropSet == AM_KSPROPSETID_TSRateChange)
+	switch(Id)
+	{
+	case AM_RATE_SimpleRateChange:
+		{
+			AM_SimpleRateChange* p = (AM_SimpleRateChange*)pPropertyData;
+if(!m_CorrectTS)
+return E_PROP_ID_UNSUPPORTED;
+			CAutoLock cAutoLock(&m_csRateLock);
+			m_ratechange = *p;
+			DbgLog((LOG_TRACE, 0, _T("StartTime=%I64d, Rate=%d"), p->StartTime, p->Rate));
+		}
+		break;
+	case AM_RATE_UseRateVersion:
+		{
+			WORD* p = (WORD*)pPropertyData;
+			if(*p > 0x0101) return E_PROP_ID_UNSUPPORTED;
+		}
+		break;
+	case AM_RATE_CorrectTS:
+		{
+			LONG* p = (LONG*)pPropertyData;
+			m_CorrectTS = *p;
+		}
+		break;
+	default:
+		return E_PROP_ID_UNSUPPORTED;
+	}
+/*
+	if(PropSet == AM_KSPROPSETID_DVD_RateChange)
+	switch(Id)
+	{
+	case AM_RATE_ChangeRate:
+		{
+			AM_DVD_ChangeRate* p = (AM_DVD_ChangeRate*)pPropertyData;
+		}
+		break;
+	default:
+		return E_PROP_ID_UNSUPPORTED;
+	}
+*/
 	return S_OK;
 }
 
 STDMETHODIMP CMpeg2DecInputPin::Get(REFGUID PropSet, ULONG Id, LPVOID pInstanceData, ULONG InstanceLength, LPVOID pPropertyData, ULONG DataLength, ULONG* pBytesReturned)
 {
-	if(PropSet != AM_KSPROPSETID_CopyProt)
+	if(PropSet != AM_KSPROPSETID_CopyProt
+	&& PropSet != AM_KSPROPSETID_TSRateChange
+//	&& PropSet != AM_KSPROPSETID_DVD_RateChange
+	)
 		return E_NOTIMPL;
 
+	if(PropSet == AM_KSPROPSETID_CopyProt)
 	switch(Id)
 	{
 	case AM_PROPERTY_DVDCOPY_CHLG_KEY: // 1. auth: send our nonce word
@@ -1292,14 +1367,79 @@ STDMETHODIMP CMpeg2DecInputPin::Get(REFGUID PropSet, ULONG Id, LPVOID pInstanceD
 		return E_PROP_ID_UNSUPPORTED;
 	}
 
+	if(PropSet == AM_KSPROPSETID_TSRateChange)
+	switch(Id)
+	{
+	case AM_RATE_SimpleRateChange:
+		{
+			AM_SimpleRateChange* p = (AM_SimpleRateChange*)pPropertyData;
+return E_PROP_ID_UNSUPPORTED;
+		}
+		break;
+	case AM_RATE_MaxFullDataRate:
+		{
+			AM_MaxFullDataRate* p = (AM_MaxFullDataRate*)pPropertyData;
+			*p = 8*10000;
+			*pBytesReturned = sizeof(AM_MaxFullDataRate);
+		}
+		break;
+	case AM_RATE_QueryFullFrameRate:
+		{
+			AM_QueryRate* p = (AM_QueryRate*)pPropertyData;
+			p->lMaxForwardFullFrame = 8*10000;
+			p->lMaxReverseFullFrame = 8*10000;
+			*pBytesReturned = sizeof(AM_QueryRate);
+		}
+		break;
+	case AM_RATE_QueryLastRateSegPTS:
+		{
+			REFERENCE_TIME* p = (REFERENCE_TIME*)pPropertyData;
+return E_PROP_ID_UNSUPPORTED;
+		}
+		break;
+	default:
+		return E_PROP_ID_UNSUPPORTED;
+	}
+/*
+	if(PropSet == AM_KSPROPSETID_DVD_RateChange)
+	switch(Id)
+	{
+	case AM_RATE_FullDataRateMax:
+		{
+			AM_MaxFullDataRate* p = (AM_MaxFullDataRate*)pPropertyData;
+		}
+		break;
+	case AM_RATE_ReverseDecode:
+		{
+			LONG* p = (LONG*)pPropertyData;
+		}
+		break;
+	case AM_RATE_DecoderPosition:
+		{
+			AM_DVD_DecoderPosition* p = (AM_DVD_DecoderPosition*)pPropertyData;
+		}
+		break;
+	case AM_RATE_DecoderVersion:
+		{
+			LONG* p = (LONG*)pPropertyData;
+		}
+		break;
+	default:
+		return E_PROP_ID_UNSUPPORTED;
+	}
+*/
 	return S_OK;
 }
 
 STDMETHODIMP CMpeg2DecInputPin::QuerySupported(REFGUID PropSet, ULONG Id, ULONG* pTypeSupport)
 {
-	if(PropSet != AM_KSPROPSETID_CopyProt)
+	if(PropSet != AM_KSPROPSETID_CopyProt
+	&& PropSet != AM_KSPROPSETID_TSRateChange
+//	&& PropSet != AM_KSPROPSETID_DVD_RateChange
+	)
 		return E_NOTIMPL;
 
+	if(PropSet == AM_KSPROPSETID_CopyProt)
 	switch(Id)
 	{
 	case AM_PROPERTY_COPY_MACROVISION:
@@ -1329,7 +1469,54 @@ STDMETHODIMP CMpeg2DecInputPin::QuerySupported(REFGUID PropSet, ULONG Id, ULONG*
 	default:
 		return E_PROP_ID_UNSUPPORTED;
 	}
-	
+
+	if(PropSet == AM_KSPROPSETID_TSRateChange)
+	switch(Id)
+	{
+	case AM_RATE_SimpleRateChange:
+		*pTypeSupport = KSPROPERTY_SUPPORT_GET | KSPROPERTY_SUPPORT_SET;
+		break;
+	case AM_RATE_MaxFullDataRate:
+		*pTypeSupport = KSPROPERTY_SUPPORT_GET;
+		break;
+	case AM_RATE_UseRateVersion:
+		*pTypeSupport = KSPROPERTY_SUPPORT_SET;
+		break;
+	case AM_RATE_QueryFullFrameRate:
+		*pTypeSupport = KSPROPERTY_SUPPORT_GET;
+		break;
+	case AM_RATE_QueryLastRateSegPTS:
+		*pTypeSupport = KSPROPERTY_SUPPORT_GET;
+		break;
+	case AM_RATE_CorrectTS:
+		*pTypeSupport = KSPROPERTY_SUPPORT_SET;
+		break;
+	default:
+		return E_PROP_ID_UNSUPPORTED;
+	}
+/*
+	if(PropSet == AM_KSPROPSETID_DVD_RateChange)
+	switch(Id)
+	{
+	case AM_RATE_ChangeRate:
+		*pTypeSupport = KSPROPERTY_SUPPORT_SET;
+		break;
+	case AM_RATE_FullDataRateMax:
+		*pTypeSupport = KSPROPERTY_SUPPORT_GET;
+		break;
+	case AM_RATE_ReverseDecode:
+		*pTypeSupport = KSPROPERTY_SUPPORT_GET;
+		break;
+	case AM_RATE_DecoderPosition:
+		*pTypeSupport = KSPROPERTY_SUPPORT_GET;
+		break;
+	case AM_RATE_DecoderVersion:
+		*pTypeSupport = KSPROPERTY_SUPPORT_GET;
+		break;
+	default:
+		return E_PROP_ID_UNSUPPORTED;
+	}
+*/
 	return S_OK;
 }
 
@@ -1775,6 +1962,7 @@ STDMETHODIMP CSubpicInputPin::Set(REFGUID PropSet, ULONG Id, LPVOID pInstanceDat
 				}
 			}
 
+			if(pSPHLI->HLISS)
 			DbgLog((LOG_TRACE, 0, _T("hli: %I64d - %I64d, (%d,%d) - (%d,%d)"), 
 				PTS2RT(pSPHLI->StartPTM)/10000, PTS2RT(pSPHLI->EndPTM)/10000,
 				pSPHLI->StartX, pSPHLI->StartY, pSPHLI->StopX, pSPHLI->StopY));
@@ -1903,3 +2091,4 @@ HRESULT CClosedCaptionOutputPin::DecideBufferSize(IMemAllocator* pAllocator, ALL
 		? E_FAIL
 		: NOERROR;
 }
+

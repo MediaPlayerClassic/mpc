@@ -28,6 +28,7 @@
 #include ".\transform\BufferFilter\BufferFilter.h"
 #include ".\transform\DeCSSFilter\DeCSSFilter.h"
 #include ".\transform\Mpeg2DecFilter\Mpeg2DecFilter.h"
+#include ".\transform\MpaDecFilter\MpaDecFilter.h"
 #include ".\muxer\wavdest\wavdest.h"
 #include ".\parser\StreamDriveThru\StreamDriveThru.h"
 #include ".\parser\MatroskaSplitter\MatroskaSplitter.h"

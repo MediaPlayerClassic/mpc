@@ -1082,8 +1082,8 @@ void CMPlayerCApp::Settings::UpdateData(bool fSave)
 
 		Formats.UpdateData(true);
 
-		pApp->WriteProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_SRCFILTERS), SrcFilters);
-		pApp->WriteProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_TRAFILTERS), TraFilters);
+		pApp->WriteProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_SRCFILTERS), SrcFilters|~(SRC_LAST-1));
+		pApp->WriteProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_TRAFILTERS), TraFilters|~(TRA_LAST-1));
 
 		pApp->WriteProfileString(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_LOGOFILE), logofn);
 		pApp->WriteProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_LOGOID), logoid);

@@ -23,6 +23,7 @@
 #include <initguid.h>
 #include "shoutcastsource.h"
 #include "..\..\..\DSUtil\DSUtil.h"
+#include "..\..\..\..\include\moreuuids.h"
 
 #define MAXFRAMESIZE ((144 * 320000 / 8000) + 1)
 #define BUFFERS 2
@@ -76,12 +77,6 @@ typedef struct
 	}
 
 } mp3hdr;
-
-#include <initguid.h>
-
-// 00000055-0000-0010-8000-00AA00389B71
-DEFINE_GUID(MEDIASUBTYPE_MP3,
-0x00000055, 0x0000, 0x0010, 0x80, 0x00, 0x00, 0xaa, 0x00, 0x38, 0x9b, 0x71);
 
 #ifdef REGISTER_FILTER
 

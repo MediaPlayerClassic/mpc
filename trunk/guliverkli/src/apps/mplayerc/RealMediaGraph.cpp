@@ -380,7 +380,7 @@ STDMETHODIMP CRealMediaPlayer::DoneChangeLayout()
 STDMETHODIMP CRealMediaPlayer::PositionChanged(PNxPoint* pos) {return E_NOTIMPL;}
 STDMETHODIMP CRealMediaPlayer::SizeChanged(PNxSize* size)
 {
-	if(m_VideoSize.cx != size->cx || m_VideoSize.cy != size->cy)
+	if(m_VideoSize.cx == 0 || m_VideoSize.cy == 0)
 	{
 		m_fVideoSizeChanged = true;
 		m_VideoSize.cx = size->cx;

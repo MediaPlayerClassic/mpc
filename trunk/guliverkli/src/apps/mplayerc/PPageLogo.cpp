@@ -41,6 +41,7 @@ CPPageLogo::CPPageLogo()
 	m_logoids.AddTail(IDB_LOGO3);
 	m_logoids.AddTail(IDB_LOGO4);
 	m_logoids.AddTail(IDB_LOGO5);
+	m_logoids.AddTail(IDB_LOGO6);
 }
 
 CPPageLogo::~CPPageLogo()

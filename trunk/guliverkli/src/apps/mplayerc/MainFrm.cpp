@@ -3311,7 +3311,7 @@ void CMainFrame::OnPlayPlay()
 {
 	if(m_iMediaLoadState == MLS_LOADED)
 	{
-		if(GetMediaState() != State_Running) m_iSpeedLevel = 0;
+		if(GetMediaState() == State_Stopped) m_iSpeedLevel = 0;
 
 		if(m_iPlaybackMode == PM_FILE)
 		{
@@ -3976,8 +3976,6 @@ void CMainFrame::OnPlayVolume(UINT nID)
 
 void CMainFrame::OnNavigateSkip(UINT nID)
 {
-	m_iSpeedLevel = 0;
-
 	if(m_iPlaybackMode == PM_FILE)
 	{
 		if(m_chapters.GetCount())
@@ -4024,6 +4022,8 @@ void CMainFrame::OnNavigateSkip(UINT nID)
 	}
 	else if(m_iPlaybackMode == PM_DVD)
 	{
+		m_iSpeedLevel = 0;
+
 		if(GetMediaState() != State_Running)
 			SendMessage(WM_COMMAND, ID_PLAY_PLAY);
 
@@ -4121,8 +4121,6 @@ void CMainFrame::OnUpdateNavigateSkip(CCmdUI* pCmdUI)
 
 void CMainFrame::OnNavigateSkipPlaylistItem(UINT nID)
 {
-	m_iSpeedLevel = 0;
-
 	if(m_iPlaybackMode == PM_FILE)
 	{
 		if(m_wndPlaylistBar.GetCount() == 1)
@@ -5047,10 +5045,10 @@ void CMainFrame::OpenCreateGraphObject(OpenMediaData* pOMD)
 
 			m_pCAP = CComQIPtr<ISubPicAllocatorPresenter>(pUnk);
 
-			if(FAILED(hr) || !(pGB = CComQIPtr<IGraphBuilder>(pUnk)))
-				throw _T("RealMedia files require RealPlayer/RealOne to be installed");
-
-			m_fRealMediaGraph = true;
+//			if(FAILED(hr) || !(pGB = CComQIPtr<IGraphBuilder>(pUnk)))
+//				throw _T("RealMedia files require RealPlayer/RealOne to be installed");
+			if(SUCCEEDED(hr) && !!(pGB = CComQIPtr<IGraphBuilder>(pUnk)))
+				m_fRealMediaGraph = true;
 		}
 		else if(engine == ShockWave)
 		{
@@ -5069,13 +5067,13 @@ void CMainFrame::OpenCreateGraphObject(OpenMediaData* pOMD)
 
 			m_pCAP = CComQIPtr<ISubPicAllocatorPresenter>(pUnk);
 
-			if(FAILED(hr) || !(pGB = CComQIPtr<IGraphBuilder>(pUnk)))
-				throw _T("Can't initialize QuickTime");
-
-			m_fQuicktimeGraph = true;
+//			if(FAILED(hr) || !(pGB = CComQIPtr<IGraphBuilder>(pUnk)))
+//				throw _T("Can't initialize QuickTime");
+			if(SUCCEEDED(hr) && !!(pGB = CComQIPtr<IGraphBuilder>(pUnk)))
+                m_fQuicktimeGraph = true;
 		}
 
-		m_fCustomGraph = !!pGB;
+		m_fCustomGraph = m_fRealMediaGraph || m_fShockwaveGraph || m_fQuicktimeGraph;
 	}
 
 	if(!m_fCustomGraph)
@@ -5992,7 +5990,7 @@ AddToRot(pGB, &m_dwRegister);
 			Sleep(50);
 		}
 
-		// PostMessage instead of SendMessage becuase the user might call CloseMedia and then we would deadlock
+		// PostMessage instead of SendMessage because the user might call CloseMedia and then we would deadlock
 
 		PostMessage(WM_COMMAND, ID_PLAY_PAUSE);
 

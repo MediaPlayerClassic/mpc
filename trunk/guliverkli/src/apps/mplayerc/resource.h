@@ -171,6 +171,7 @@
 #define ID_NAVIGATE_SKIPBACKPLITEM      331
 #define ID_NAVIGATE_SKIPFORWARDPLITEM   332
 #define IDD_PPAGELOGO                   333
+#define IDB_LOGO6                       334
 #define IDS_R_SETTINGS                  500
 #define IDS_RS_CONTROLSTATE             501
 #define IDS_RS_VOLUME                   502
@@ -394,6 +395,7 @@
 #define IDC_CHECK13                     1114
 #define IDC_CHECK14                     1115
 #define IDC_SLIDER1                     1116
+#define IDC_CHECK15                     1117
 #define IDD_COMPROPERTYPAGE             10002
 #define ID_DUMMYSEPARATOR               32768
 #define ID_VOLUME_MUTE_ON               32769
@@ -474,9 +476,9 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        334
+#define _APS_NEXT_RESOURCE_VALUE        335
 #define _APS_NEXT_COMMAND_VALUE         32821
-#define _APS_NEXT_CONTROL_VALUE         1117
+#define _APS_NEXT_CONTROL_VALUE         1118
 #define _APS_NEXT_SYMED_VALUE           10003
 #endif
 #endif
