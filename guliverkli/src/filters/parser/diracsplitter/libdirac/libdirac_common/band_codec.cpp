@@ -306,7 +306,7 @@ int BandCodec::ChooseContext(const PicArray& data, const int BinNumber) const
 
 	if(BinNumber > 1)
 	{
-		return ctxa[nz][std::min(BinNumber, 5)-2];
+		return ctxa[nz][std::min(BinNumber, 5)-2];b
 	}
 	else
 	{
