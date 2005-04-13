@@ -35,7 +35,7 @@ __declspec(align(16)) union GSSoftVertexFP
 
 	void operator += (GSSoftVertexFP& v)
 	{
-#if _M_IX86_FP >= 1
+#if _M_IX86_FP >= 1 || defined(_M_AMD64)
 		xmm[0] = _mm_add_ps(xmm[0], v.xmm[0]);
 		xmm[1] = _mm_add_ps(xmm[1], v.xmm[1]);
 		xmm[2] = _mm_add_ps(xmm[2], v.xmm[2]);
@@ -55,7 +55,7 @@ __declspec(align(16)) union GSSoftVertexFP
 	BYTE GetFog() {return (BYTE)z;}
 	void GetColor(void* pRGBA)
 	{
-#if _M_IX86_FP >= 2
+#if _M_IX86_FP >= 2 || defined(_M_AMD64)
 		*(__m128i*)pRGBA = _mm_cvttps_epi32(xmm[0]);
 #else
 		int* p = (int*)pRGBA;
@@ -67,7 +67,7 @@ __declspec(align(16)) union GSSoftVertexFP
 inline GSSoftVertexFP operator + (GSSoftVertexFP& v1, GSSoftVertexFP& v2)
 {
 	GSSoftVertexFP v0;
-#if _M_IX86_FP >= 1
+#if _M_IX86_FP >= 1 || defined(_M_AMD64)
 	v0.xmm[0] = _mm_add_ps(v1.xmm[0], v2.xmm[0]);
 	v0.xmm[1] = _mm_add_ps(v1.xmm[1], v2.xmm[1]);
 	v0.xmm[2] = _mm_add_ps(v1.xmm[2], v2.xmm[2]);
@@ -80,7 +80,7 @@ inline GSSoftVertexFP operator + (GSSoftVertexFP& v1, GSSoftVertexFP& v2)
 inline GSSoftVertexFP operator - (GSSoftVertexFP& v1, GSSoftVertexFP& v2)
 {
 	GSSoftVertexFP v0;
-#if _M_IX86_FP >= 1
+#if _M_IX86_FP >= 1 || defined(_M_AMD64)
 	v0.xmm[0] = _mm_sub_ps(v1.xmm[0], v2.xmm[0]);
 	v0.xmm[1] = _mm_sub_ps(v1.xmm[1], v2.xmm[1]);
 	v0.xmm[2] = _mm_sub_ps(v1.xmm[2], v2.xmm[2]);
@@ -93,7 +93,7 @@ inline GSSoftVertexFP operator - (GSSoftVertexFP& v1, GSSoftVertexFP& v2)
 inline GSSoftVertexFP operator * (GSSoftVertexFP& v1, float f)
 {
 	GSSoftVertexFP v0;
-#if _M_IX86_FP >= 1
+#if _M_IX86_FP >= 1 || defined(_M_AMD64)
 	__m128 f128 = _mm_set_ps1(f);
 	v0.xmm[0] = _mm_mul_ps(v1.xmm[0], f128);
 	v0.xmm[1] = _mm_mul_ps(v1.xmm[1], f128);
@@ -107,7 +107,7 @@ inline GSSoftVertexFP operator * (GSSoftVertexFP& v1, float f)
 inline GSSoftVertexFP operator / (GSSoftVertexFP& v1, float f)
 {
 	GSSoftVertexFP v0;
-#if _M_IX86_FP >= 1
+#if _M_IX86_FP >= 1 || defined(_M_AMD64)
 	__m128 f128 = _mm_set_ps1(f);
 	v0.xmm[0] = _mm_div_ps(v1.xmm[0], f128);
 	v0.xmm[1] = _mm_div_ps(v1.xmm[1], f128);
@@ -139,7 +139,7 @@ __declspec(align(16)) union GSSoftVertexFX
 
 	void operator += (GSSoftVertexFX& v)
 	{
-#if _M_IX86_FP >= 2
+#if _M_IX86_FP >= 2 || defined(_M_AMD64)
 		xmm[0] = _mm_add_epi32(xmm[0], v.xmm[0]);
 		xmm[1] = _mm_add_epi32(xmm[1], v.xmm[1]);
 		xmm[2] = _mm_add_epi64(xmm[2], v.xmm[2]);
@@ -161,7 +161,7 @@ __declspec(align(16)) union GSSoftVertexFX
 	BYTE GetFog() {return (BYTE)(fog >> 16);}
 	void GetColor(void* pRGBA)
 	{
-#if _M_IX86_FP >= 2
+#if _M_IX86_FP >= 2 || defined(_M_AMD64)
 		*(__m128i*)pRGBA = _mm_srai_epi32(xmm[0], 16);
 #else
 		int* p = (int*)pRGBA;
@@ -173,7 +173,7 @@ __declspec(align(16)) union GSSoftVertexFX
 inline GSSoftVertexFX operator + (GSSoftVertexFX& v1, GSSoftVertexFX& v2)
 {
 	GSSoftVertexFX v0;
-#if _M_IX86_FP >= 2
+#if _M_IX86_FP >= 2 || defined(_M_AMD64)
 	v0.xmm[0] = _mm_add_epi32(v1.xmm[0], v2.xmm[0]);
 	v0.xmm[1] = _mm_add_epi32(v1.xmm[1], v2.xmm[1]);
 	v0.xmm[2] = _mm_add_epi64(v1.xmm[2], v2.xmm[2]);
@@ -188,7 +188,7 @@ inline GSSoftVertexFX operator + (GSSoftVertexFX& v1, GSSoftVertexFX& v2)
 inline GSSoftVertexFX operator - (GSSoftVertexFX& v1, GSSoftVertexFX& v2)
 {
 	GSSoftVertexFX v0;
-#if _M_IX86_FP >= 2
+#if _M_IX86_FP >= 2 || defined(_M_AMD64)
 	v0.xmm[0] = _mm_sub_epi32(v1.xmm[0], v2.xmm[0]);
 	v0.xmm[1] = _mm_sub_epi32(v1.xmm[1], v2.xmm[1]);
 	v0.xmm[2] = _mm_sub_epi64(v1.xmm[2], v2.xmm[2]);

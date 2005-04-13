@@ -60,8 +60,10 @@ protected:
 			if(m_PRIM != m_de.pPRIM->PRIM && m_nVertices > 0) FlushPrim();
 			m_PRIM = m_de.pPRIM->PRIM;
 
-			LOG2(_T("Prim %05x %05x %04x\n"), 
-				m_ctxt->FRAME.Block(), m_de.pPRIM->TME ? (UINT32)m_ctxt->TEX0.TBP0 : 0xfffff,
+			LOG2(_T("Prim %05x %05x %05x %04x\n"), 
+				m_ctxt->FRAME.Block(), 
+				m_de.pPRIM->TME ? (UINT32)m_ctxt->TEX0.TBP0 : 0xfffff,
+				m_de.pPRIM->TME ? (UINT32)m_ctxt->TEX0.CBP : 0xfffff,
 				(m_de.pPRIM->ABE || (m_PRIM == 1 || m_PRIM == 2) && m_de.pPRIM->AA1)
 					? ((m_ctxt->ALPHA.A<<12)|(m_ctxt->ALPHA.B<<8)|(m_ctxt->ALPHA.C<<4)|m_ctxt->ALPHA.D)
 					: 0xffff);

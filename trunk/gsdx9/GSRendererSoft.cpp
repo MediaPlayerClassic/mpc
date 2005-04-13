@@ -237,7 +237,6 @@ void GSRendererSoft<VERTEX>::Flip()
 
 			BYTE* dst = (BYTE*)r.pBits;
 
-			GSLocalMemory::readTexel readTexel = m_lm.GetReadTexel(m_rs.DISPFB[i].PSM);
 			GIFRegTEX0 TEX0;
 			TEX0.TBP0 = m_rs.DISPFB[i].FBP<<5;
 			TEX0.TBW = m_rs.DISPFB[i].FBW;
@@ -252,7 +251,7 @@ void GSRendererSoft<VERTEX>::Flip()
 
 	bool fShiftField = false;
 		// m_rs.SMODE2.INT && !!(m_ctxt->XYOFFSET.OFY&0xf);
-		// m_rs.CSRr.FIELD && m_rs.SMODE2.INT /*&& !m_rs.SMODE2.FFMD*/;
+		// m_pCSRr->FIELD && m_rs.SMODE2.INT /*&& !m_rs.SMODE2.FFMD*/;
 
 	FinishFlip(rt, fShiftField);
 }

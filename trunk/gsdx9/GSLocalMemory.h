@@ -23,12 +23,7 @@
 
 #include "GS.h"
 #include "GSTables.h"
-/*
-__forceinline DWORD SwapRB(DWORD c)
-{
-	return (c&0xff000000)|((c<<16)&0x00ff0000)|(c&0x0000ff00)|((c>>16)&0x000000ff);
-}
-*/
+
 class GSLocalMemory
 {
 protected:
@@ -214,7 +209,6 @@ public:
 
 	bool FillRect(CRect& r, DWORD c, DWORD psm, DWORD fbp, DWORD fbw);
 
-	// ARGB!
 	void unSwizzleTexture32(int tw, int th, BYTE* dst, int dstpitch, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
 	void unSwizzleTexture24(int tw, int th, BYTE* dst, int dstpitch, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
 	void unSwizzleTexture16(int tw, int th, BYTE* dst, int dstpitch, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
@@ -240,15 +234,4 @@ public:
 	void SwizzleTextureX(int& tx, int& ty, BYTE* src, int len, GIFRegBITBLTBUF& BITBLTBUF, GIFRegTRXPOS& TRXPOS, GIFRegTRXREG& TRXREG);
 
 	SwizzleTexture GetSwizzleTexture(DWORD psm);
-
-//	void SwizzleTexture32(int ty, int tw, int th, BYTE* src, int srcpitch, DWORD bp, DWORD bw);
-//	void SwizzleTexture24(int ty, int tw, int th, BYTE* src, int srcpitch, DWORD bp, DWORD bw);
-//	void SwizzleTexture16(int ty, int tw, int th, BYTE* src, int srcpitch, DWORD bp, DWORD bw);
-//	void SwizzleTexture16S(int ty, int tw, int th, BYTE* src, int srcpitch, DWORD bp, DWORD bw);
-//	void SwizzleTexture8(int ty, int tw, int th, BYTE* src, int srcpitch, DWORD bp, DWORD bw);
-//	void SwizzleTexture8H(int ty, int tw, int th, BYTE* src, int srcpitch, DWORD bp, DWORD bw);
-//	void SwizzleTexture4(int ty, int tw, int th, BYTE* src, int srcpitch, DWORD bp, DWORD bw);
-//	void SwizzleTexture4HL(int ty, int tw, int th, BYTE* src, int srcpitch, DWORD bp, DWORD bw);
-//	void SwizzleTexture4HH(int ty, int tw, int th, BYTE* src, int srcpitch, DWORD bp, DWORD bw);
-//	void SwizzleTextureX(int ty, int tw, int th, BYTE* src, int srcpitch, DWORD bp, DWORD bw);
 };

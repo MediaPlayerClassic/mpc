@@ -886,13 +886,25 @@ void __fastcall GSState::GIFRegHandlerZBUF_1(GIFReg* r)
 	if(m_de.pPRIM->CTXT == 0 && m_de.CTXT[0].ZBUF.i64 != r->ZBUF.i64)
 		FlushPrim();
 
+	if(r->ZBUF.PSM != PSM_PSMZ32
+	&& r->ZBUF.PSM != PSM_PSMZ24
+	&& r->ZBUF.PSM != PSM_PSMZ16
+	&& r->ZBUF.PSM != PSM_PSMZ16S)
+		r->ZBUF.PSM = PSM_PSMZ32;
+
 	m_de.CTXT[0].ZBUF = r->ZBUF;
 
-	m_de.CTXT[0].rz = m_lm.GetReadPixel(r->ZBUF.PSM);
-	m_de.CTXT[0].wz = m_lm.GetWritePixel(r->ZBUF.PSM);
-	m_de.CTXT[0].rza = m_lm.GetReadPixelAddr(r->ZBUF.PSM);
-	m_de.CTXT[0].wza = m_lm.GetWritePixelAddr(r->ZBUF.PSM);
-	m_de.CTXT[0].paz = m_lm.GetPixelAddress(r->ZBUF.PSM);
+	if(m_de.CTXT[0].ZBUF.PSM != PSM_PSMZ32
+	&& m_de.CTXT[0].ZBUF.PSM != PSM_PSMZ24
+	&& m_de.CTXT[0].ZBUF.PSM != PSM_PSMZ16
+	&& m_de.CTXT[0].ZBUF.PSM != PSM_PSMZ16S)
+		m_de.CTXT[0].ZBUF.PSM = PSM_PSMZ32;
+
+	m_de.CTXT[0].rz = m_lm.GetReadPixel(m_de.CTXT[0].ZBUF.PSM);
+	m_de.CTXT[0].wz = m_lm.GetWritePixel(m_de.CTXT[0].ZBUF.PSM);
+	m_de.CTXT[0].rza = m_lm.GetReadPixelAddr(m_de.CTXT[0].ZBUF.PSM);
+	m_de.CTXT[0].wza = m_lm.GetWritePixelAddr(m_de.CTXT[0].ZBUF.PSM);
+	m_de.CTXT[0].paz = m_lm.GetPixelAddress(m_de.CTXT[0].ZBUF.PSM);
 }
 
 void __fastcall GSState::GIFRegHandlerZBUF_2(GIFReg* r)
@@ -907,11 +919,17 @@ void __fastcall GSState::GIFRegHandlerZBUF_2(GIFReg* r)
 
 	m_de.CTXT[1].ZBUF = r->ZBUF;
 
-	m_de.CTXT[1].rz = m_lm.GetReadPixel(r->ZBUF.PSM);
-	m_de.CTXT[1].wz = m_lm.GetWritePixel(r->ZBUF.PSM);
-	m_de.CTXT[1].rza = m_lm.GetReadPixelAddr(r->ZBUF.PSM);
-	m_de.CTXT[1].wza = m_lm.GetWritePixelAddr(r->ZBUF.PSM);
-	m_de.CTXT[1].paz = m_lm.GetPixelAddress(r->ZBUF.PSM);
+	if(m_de.CTXT[1].ZBUF.PSM != PSM_PSMZ32
+	&& m_de.CTXT[1].ZBUF.PSM != PSM_PSMZ24
+	&& m_de.CTXT[1].ZBUF.PSM != PSM_PSMZ16
+	&& m_de.CTXT[1].ZBUF.PSM != PSM_PSMZ16S)
+		m_de.CTXT[1].ZBUF.PSM = PSM_PSMZ32;
+
+	m_de.CTXT[1].rz = m_lm.GetReadPixel(m_de.CTXT[1].ZBUF.PSM);
+	m_de.CTXT[1].wz = m_lm.GetWritePixel(m_de.CTXT[1].ZBUF.PSM);
+	m_de.CTXT[1].rza = m_lm.GetReadPixelAddr(m_de.CTXT[1].ZBUF.PSM);
+	m_de.CTXT[1].wza = m_lm.GetWritePixelAddr(m_de.CTXT[1].ZBUF.PSM);
+	m_de.CTXT[1].paz = m_lm.GetPixelAddress(m_de.CTXT[1].ZBUF.PSM);
 }
 
 void __fastcall GSState::GIFRegHandlerBITBLTBUF(GIFReg* r)
@@ -945,7 +963,7 @@ void __fastcall GSState::GIFRegHandlerTRXREG(GIFReg* r)
 		r->TRXREG.RRW,
 		r->TRXREG.RRH);
 
-	m_rs.TRXREG = r->TRXREG;
+	m_rs.TRXREG = m_rs.TRXREG2 = r->TRXREG;
 }
 
 void __fastcall GSState::GIFRegHandlerTRXDIR(GIFReg* r)
@@ -962,14 +980,14 @@ void __fastcall GSState::GIFRegHandlerTRXDIR(GIFReg* r)
 	case 0: // host -> local
 		m_x = m_rs.TRXPOS.DSAX;
 		m_y = m_rs.TRXPOS.DSAY;
-		m_rs.TRXREG.RRW += m_x;
-		m_rs.TRXREG.RRH += m_y;
+		m_rs.TRXREG.RRW = m_x + m_rs.TRXREG2.RRW;
+		m_rs.TRXREG.RRH = m_y + m_rs.TRXREG2.RRH;
 		break;
 	case 1: // local -> host
 		m_x = m_rs.TRXPOS.SSAX;
 		m_y = m_rs.TRXPOS.SSAY;
-		m_rs.TRXREG.RRW += m_x;
-		m_rs.TRXREG.RRH += m_y;
+		m_rs.TRXREG.RRW = m_x + m_rs.TRXREG2.RRW;
+		m_rs.TRXREG.RRH = m_y + m_rs.TRXREG2.RRH;
 		break;
 	case 2: // local -> local
 		break;
@@ -998,7 +1016,7 @@ void __fastcall GSState::GIFRegHandlerSIGNAL(GIFReg* r)
 
 	m_rs.SIGLBLID.SIGID = (m_rs.SIGLBLID.SIGID&~r->SIGNAL.IDMSK)|(r->SIGNAL.ID&r->SIGNAL.IDMSK);
 
-	if(m_rs.CSRw.SIGNAL) m_rs.CSRr.SIGNAL = 1;
+	if(m_rs.CSRw.SIGNAL) m_pCSRr->SIGNAL = 1;
 	if(!m_rs.IMR.SIGMSK && m_fpGSirq) m_fpGSirq();
 }
 
@@ -1006,7 +1024,7 @@ void __fastcall GSState::GIFRegHandlerFINISH(GIFReg* r)
 {
 	LOG(_T("FINISH()\n"));
 
-	if(m_rs.CSRw.FINISH) m_rs.CSRr.FINISH = 1;
+	if(m_rs.CSRw.FINISH) m_pCSRr->FINISH = 1;
 	if(!m_rs.IMR.FINISHMSK && m_fpGSirq) m_fpGSirq();
 }
 

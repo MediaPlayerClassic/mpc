@@ -147,6 +147,7 @@
 				MinimalRebuild="TRUE"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="3"
+				StructMemberAlignment="5"
 				TreatWChar_tAsBuiltInType="FALSE"
 				UsePrecompiledHeader="3"
 				WarningLevel="3"
@@ -168,7 +169,7 @@
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalDependencies="d3d9.lib d3dx9.lib strmbaseD.lib dxguid.lib"
-				OutputFile="D:\pcsx2_0.6win\plugins\GSdx9.dll"
+				OutputFile="D:\pcsx2_amd64\plugins\GSdx9.dll"
 				LinkIncremental="2"
 				ModuleDefinitionFile=""
 				GenerateDebugInformation="TRUE"
@@ -234,9 +235,11 @@
 				EnableIntrinsicFunctions="TRUE"
 				FavorSizeOrSpeed="1"
 				OmitFramePointers="TRUE"
+				WholeProgramOptimization="TRUE"
 				PreprocessorDefinitions="WIN32;_WINDOWS;NDEBUG;_USRDLL"
 				StringPooling="TRUE"
 				RuntimeLibrary="0"
+				FloatingPointModel="2"
 				TreatWChar_tAsBuiltInType="FALSE"
 				ForceConformanceInForLoopScope="TRUE"
 				UsePrecompiledHeader="3"
@@ -324,15 +327,17 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="2"
-				GlobalOptimizations="FALSE"
-				InlineFunctionExpansion="0"
+				GlobalOptimizations="TRUE"
+				InlineFunctionExpansion="2"
 				EnableIntrinsicFunctions="TRUE"
-				FavorSizeOrSpeed="0"
+				FavorSizeOrSpeed="1"
 				OmitFramePointers="TRUE"
 				AdditionalIncludeDirectories="C:\Program Files\Microsoft DirectX 9.0 SDK (Summer 2004)\Include"
 				PreprocessorDefinitions="_WINDOWS;NDEBUG;_USRDLL"
 				StringPooling="TRUE"
 				RuntimeLibrary="0"
+				StructMemberAlignment="5"
+				FloatingPointModel="2"
 				TreatWChar_tAsBuiltInType="FALSE"
 				ForceConformanceInForLoopScope="TRUE"
 				UsePrecompiledHeader="3"
@@ -354,9 +359,10 @@
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalDependencies="d3d9.lib d3dx9.lib strmbaseR.lib"
-				OutputFile="D:\pcsx2_0.6win\plugins\GSdx9.dll"
+				OutputFile="D:\pcsx2_amd64\plugins\GSdx9.dll"
 				LinkIncremental="1"
 				ModuleDefinitionFile=""
+				GenerateDebugInformation="TRUE"
 				SubSystem="2"
 				OptimizeReferences="2"
 				EnableCOMDATFolding="2"
@@ -442,7 +448,7 @@
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalDependencies="d3d9.lib d3dx9.lib strmbaseD.lib"
-				OutputFile="D:\pcsx2_0.6win\plugins\GSdx9.dll"
+				OutputFile="e:\pcsx2_0.6win\plugins\GSdx9.dll"
 				LinkIncremental="2"
 				ModuleDefinitionFile=".\GSdx9.def"
 				GenerateDebugInformation="TRUE"
@@ -604,7 +610,7 @@
 				StringPooling="TRUE"
 				RuntimeLibrary="0"
 				EnableEnhancedInstructionSet="2"
-				FloatingPointModel="0"
+				FloatingPointModel="2"
 				TreatWChar_tAsBuiltInType="FALSE"
 				ForceConformanceInForLoopScope="TRUE"
 				UsePrecompiledHeader="3"
@@ -627,8 +633,9 @@
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalDependencies="d3d9.lib d3dx9.lib strmbaseR.lib"
-				OutputFile="D:\pcsx2_0.6win\plugins\GSdx9.dll"
+				OutputFile="e:\pcsx2_0.6win\plugins\GSdx9.dll"
 				LinkIncremental="1"
+				GenerateManifest="TRUE"
 				ModuleDefinitionFile=".\GSdx9.def"
 				GenerateDebugInformation="TRUE"
 				SubSystem="2"
@@ -905,6 +912,10 @@
 			</File>
 			<File
 				RelativePath=".\GSTransfer.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\GSUtil.cpp"
 				>
 			</File>
 			<File
@@ -1191,6 +1202,10 @@
 			</File>
 			<File
 				RelativePath=".\GSTextureCache.h"
+				>
+			</File>
+			<File
+				RelativePath=".\GSUtil.h"
 				>
 			</File>
 			<File
