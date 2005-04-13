@@ -31,5 +31,6 @@ EXPORTS
 	GStest				
 	GSabout				
 	GSreadFIFO          
-	GSirqCallback		
+	GSirqCallback
+	GSsetCSR		
 	GSsetWindowInfo

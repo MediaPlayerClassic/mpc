@@ -46,22 +46,6 @@ __forceinline static DWORD From16To32(WORD c, GIFRegTEXA& TEXA, BYTE* bbt)
 	return (A << 24) | ((c&0x7c00) << 9) | ((c&0x03e0) << 6) | ((c&0x001f) << 3);
 }
 
-/*__forceinline static DWORD From24To32ARGB(DWORD c, BYTE TCC, GIFRegTEXA& TEXA, BYTE* bbt)
-{
-	BYTE MASK1 = bbt[TCC]; // TEX0.TCC
-	BYTE MASK2 = bbt[!TEXA.AEM|(c&0xff)|((c>>8)&0xff)|((c>>16)&0xff)];
-	BYTE A = (~MASK1 & 0x80) | (MASK1 & (MASK2 & TEXA.TA0));
-	return (A<<24) | ((c&0x00ff0000)>>16) | (c&0x0000ff00) | ((c&0x000000ff)<<16);
-}
-
-__forceinline static DWORD From16To32ARGB(WORD c, GIFRegTEXA& TEXA, BYTE* bbt)
-{
-	BYTE MASK1 = bbt[c>>15];
-	BYTE MASK2 = bbt[!TEXA.AEM|(c&0xff)|((c>>8)&0x7f)];
-	BYTE A = (MASK1 & TEXA.TA1) | (~MASK1 & (MASK2 & TEXA.TA0));
-	return (A << 24) | ((c&0x7c00) >> 7) | ((c&0x03e0) << 6) | ((c&0x001f) << 19);
-}
-*/
 //
 
 WORD GSLocalMemory::pageOffset32[32][32][64];
@@ -1066,8 +1050,8 @@ void GSLocalMemory::writeCLUT(GIFRegTEX0 TEX0, GIFRegTEXCLUT TEXCLUT)
 	DWORD bp = TEX0.CBP;
 	DWORD bw = TEX0.CSM == 0 ? 1 : TEXCLUT.CBW;
 
-	// WORD* CLUTLW = m_CLUT + (TEX0.CSA<<4);
-	// WORD* CLUTHW = CLUTLW + 256;
+	WORD* CLUTLW = m_CLUT + (TEX0.CSA<<4);
+	WORD* CLUTHW = CLUTLW + 256;
 
 	if(TEX0.PSM == PSM_PSMT8 || TEX0.PSM == PSM_PSMT8H)
 	{
@@ -1075,7 +1059,7 @@ void GSLocalMemory::writeCLUT(GIFRegTEX0 TEX0, GIFRegTEXCLUT TEXCLUT)
 		{
 			ASSERT(TEX0.CSA <= 16);
 
-			WORD* CLUTLW = m_CLUT + (min(TEX0.CSA, 16) << 4);
+//			WORD* CLUTLW = m_CLUT + (min(TEX0.CSA, 16) << 4);
 
 			if(TEX0.CSM == 0)
 			{
@@ -1103,20 +1087,15 @@ void GSLocalMemory::writeCLUT(GIFRegTEX0 TEX0, GIFRegTEXCLUT TEXCLUT)
 		{
 			ASSERT(TEX0.CSA == 0);
 
-			WORD* CLUTLW = m_CLUT;
-			WORD* CLUTHW = CLUTLW + 256;
+//			WORD* CLUTLW = m_CLUT;
+//			WORD* CLUTHW = CLUTLW + 256;
 
 			if(TEX0.CSM == 0)
 			{
 				for(int y = 0, cy = 0; y < 8; y++)
 				{
 					int i = 0;
-					for(int x = 0; x < 8; x++, i++)
-					{
-						DWORD dw = (this->*rp)(i, cy, bp, bw); 
-						CLUTLW[y*32 + x] = (WORD)(dw & 0xffff); 
-						CLUTHW[y*32 + x] = (WORD)(dw >> 16);
-					}
+					for(int x = 0; x < 8; x++, i++) {DWORD dw = (this->*rp)(i, cy, bp, bw); CLUTLW[y*32 + x] = (WORD)(dw & 0xffff); CLUTHW[y*32 + x] = (WORD)(dw >> 16);}
 					for(int x = 16; x < 24; x++, i++) {DWORD dw = (this->*rp)(i, cy, bp, bw); CLUTLW[y*32 + x] = (WORD)(dw & 0xffff); CLUTHW[y*32 + x] = (WORD)(dw >> 16);}
 					cy++;
 					i = 0;
@@ -1142,7 +1121,7 @@ void GSLocalMemory::writeCLUT(GIFRegTEX0 TEX0, GIFRegTEXCLUT TEXCLUT)
 		{
 			ASSERT(TEX0.CSA <= 31);
 
-			WORD* CLUTLW = m_CLUT + (min(TEX0.CSA, 32) << 4);
+//			WORD* CLUTLW = m_CLUT + (min(TEX0.CSA, 32) << 4);
 
 			if(TEX0.CSM == 0)
 			{
@@ -1166,8 +1145,8 @@ void GSLocalMemory::writeCLUT(GIFRegTEX0 TEX0, GIFRegTEXCLUT TEXCLUT)
 		{
 			ASSERT(TEX0.CSA <= 15);
 
-			WORD* CLUTLW = m_CLUT + (min(TEX0.CSA, 15) << 4);
-			WORD* CLUTHW = CLUTLW + 256;
+//			WORD* CLUTLW = m_CLUT + (min(TEX0.CSA, 15) << 4);
+//			WORD* CLUTHW = CLUTLW + 256;
 
 			if(TEX0.CSM == 0)
 			{
@@ -1196,25 +1175,27 @@ void GSLocalMemory::writeCLUT(GIFRegTEX0 TEX0, GIFRegTEXCLUT TEXCLUT)
 
 void GSLocalMemory::readCLUT(GIFRegTEX0 TEX0, GIFRegTEXA TEXA, DWORD* pCLUT)
 {
+	// FIXME: 16-bit palette (what if TEXA is changed after TEX0/2?)
+
 	ASSERT(pCLUT);
 
-	// WORD* CLUTLW = m_CLUT + (TEX0.CSA<<4);
-	// WORD* CLUTHW = CLUTLW + 256;
+	WORD* CLUTLW = m_CLUT + (TEX0.CSA<<4);
+	WORD* CLUTHW = CLUTLW + 256;
 
 	if(TEX0.CPSM == PSM_PSMCT32)
 	{
 		if(TEX0.PSM == PSM_PSMT8 || TEX0.PSM == PSM_PSMT8H)
 		{
-			WORD* CLUTLW = m_CLUT;
-			WORD* CLUTHW = CLUTLW + 256;
+//			WORD* CLUTLW = m_CLUT;
+//			WORD* CLUTHW = CLUTLW + 256;
 
 			for(int i = 0; i < 256; i++) 
 				pCLUT[i] = ((DWORD)CLUTHW[i] << 16) | CLUTLW[i];
 		}
 		else if(TEX0.PSM == PSM_PSMT4HH || TEX0.PSM == PSM_PSMT4HL || TEX0.PSM == PSM_PSMT4)
 		{
-			WORD* CLUTLW = m_CLUT + (min(TEX0.CSA, 15) << 4);
-			WORD* CLUTHW = CLUTLW + 256;
+//			WORD* CLUTLW = m_CLUT + (min(TEX0.CSA, 15) << 4);
+//			WORD* CLUTHW = CLUTLW + 256;
 
 			for(int i = 0; i < 16; i++) 
 				pCLUT[i] = ((DWORD)CLUTHW[i] << 16) | CLUTLW[i];
@@ -1224,14 +1205,14 @@ void GSLocalMemory::readCLUT(GIFRegTEX0 TEX0, GIFRegTEXA TEXA, DWORD* pCLUT)
 	{
 		if(TEX0.PSM == PSM_PSMT8 || TEX0.PSM == PSM_PSMT8H)
 		{
-			WORD* CLUTLW = m_CLUT + (min(TEX0.CSA, 16) << 4);
+//			WORD* CLUTLW = m_CLUT + (min(TEX0.CSA, 16) << 4);
 
 			for(int i = 0; i < 256; i++) 
 				pCLUT[i] = From16To32(CLUTLW[i], TEXA, m_bbt);
 		}
 		else if(TEX0.PSM == PSM_PSMT4HH || TEX0.PSM == PSM_PSMT4HL || TEX0.PSM == PSM_PSMT4)
 		{
-			WORD* CLUTLW = m_CLUT + (min(TEX0.CSA, 32) << 4);
+//			WORD* CLUTLW = m_CLUT + (min(TEX0.CSA, 32) << 4);
 
 			for(int i = 0; i < 16; i++) 
 				pCLUT[i] = From16To32(CLUTLW[i], TEXA, m_bbt);
@@ -1445,8 +1426,6 @@ void GSLocalMemory::unSwizzleTexture8(int tw, int th, BYTE* dst, int dstpitch, G
 
 	__declspec(align(16)) BYTE block[16*16];
 
-	// setupCLUT(TEX0, TEXA);
-
 	for(int y = 0, diff = dstpitch*16 - tw*4; y < th; y += 16, dst += diff)
 	{
 		for(int x = 0; x < tw; x += 16, dst += 16*4)
@@ -1475,8 +1454,6 @@ void GSLocalMemory::unSwizzleTexture8H(int tw, int th, BYTE* dst, int dstpitch, 
 	DWORD bw = TEX0.TBW;
 
 	__declspec(align(16)) DWORD block[8*8];
-
-	// setupCLUT(TEX0, TEXA);
 
 	for(int y = 0, diff = dstpitch*8 - tw*4; y < th; y += 8, dst += diff)
 	{
@@ -1507,8 +1484,6 @@ void GSLocalMemory::unSwizzleTexture4(int tw, int th, BYTE* dst, int dstpitch, G
 
 	__declspec(align(16)) BYTE block[(32/2)*16];
 
-	// setupCLUT(TEX0, TEXA);
-
 	for(int y = 0, diff = dstpitch*16 - tw*4; y < th; y += 16, dst += diff)
 	{
 		for(int x = 0; x < tw; x += 32, dst += 32*4)
@@ -1537,8 +1512,6 @@ void GSLocalMemory::unSwizzleTexture4HL(int tw, int th, BYTE* dst, int dstpitch,
 	DWORD bw = TEX0.TBW;
 
 	__declspec(align(16)) DWORD block[8*8];
-
-	// setupCLUT(TEX0, TEXA);
 
 	for(int y = 0, diff = dstpitch*8 - tw*4; y < th; y += 8, dst += diff)
 	{
@@ -1569,8 +1542,6 @@ void GSLocalMemory::unSwizzleTexture4HH(int tw, int th, BYTE* dst, int dstpitch,
 
 	__declspec(align(16)) DWORD block[8*8];
 
-	// setupCLUT(TEX0, TEXA);
-
 	for(int y = 0, diff = dstpitch*8 - tw*4; y < th; y += 8, dst += diff)
 	{
 		for(int x = 0; x < tw; x += 8, dst += 8*4)
@@ -1590,8 +1561,6 @@ void GSLocalMemory::unSwizzleTexture4HH(int tw, int th, BYTE* dst, int dstpitch,
 void GSLocalMemory::unSwizzleTextureX(int tw, int th, BYTE* dst, int dstpitch, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA)
 {
 	readTexel rt = GetReadTexel(TEX0.PSM);
-
-	// setupCLUT(TEX0, TEXA);
 
 	for(int y = 0, diff = dstpitch - tw*4; y < th; y++, dst += diff)
 		for(int x = 0; x < tw; x++, dst += 4)

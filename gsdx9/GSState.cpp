@@ -21,18 +21,12 @@
 
 #include "StdAfx.h"
 #include "GSState.h"
+#include "GSUtil.h"
 #include "resource.h"
 
-static BOOL IsDepthFormatOk(IDirect3D9* pD3D, D3DFORMAT DepthFormat, D3DFORMAT AdapterFormat, D3DFORMAT BackBufferFormat)
-{
-    // Verify that the depth format exists.
-    HRESULT hr = pD3D->CheckDeviceFormat(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, AdapterFormat, D3DUSAGE_DEPTHSTENCIL, D3DRTYPE_SURFACE, DepthFormat);
-    if(FAILED(hr)) return FALSE;
-
-    // Verify that the depth format is compatible.
-    hr = pD3D->CheckDepthStencilMatch(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, AdapterFormat, BackBufferFormat, DepthFormat);
-    return SUCCEEDED(hr);
-}
+//
+// GSState
+//
 
 GSState::GSState(int w, int h, HWND hWnd, HRESULT& hr) 
 	: m_hWnd(hWnd)
@@ -49,6 +43,7 @@ GSState::GSState(int w, int h, HWND hWnd, HRESULT& hr)
 	memset(&m_tag, 0, sizeof(m_tag));
 	m_nreg = 0;
 
+	m_pCSRr = &m_rs.CSRr;
 	m_fpGSirq = NULL;
 
 	m_ctxt = &m_de.CTXT[0];
@@ -154,6 +149,7 @@ GSState::GSState(int w, int h, HWND hWnd, HRESULT& hr)
 	d3dpp.BackBufferWidth = w;
 	d3dpp.BackBufferHeight = h;
 //	d3dpp.Flags = D3DPRESENTFLAG_LOCKABLE_BACKBUFFER;
+//	d3dpp.Flags = D3DPRESENTFLAG_VIDEO;
 
 	int ModeWidth = pApp->GetProfileInt(_T("Settings"), _T("ModeWidth"), 0);
 	int ModeHeight = pApp->GetProfileInt(_T("Settings"), _T("ModeHeight"), 0);
@@ -201,10 +197,6 @@ GSState::GSState(int w, int h, HWND hWnd, HRESULT& hr)
 		hr = m_pD3DDev->SetSamplerState(i, D3DSAMP_ADDRESSV, D3DTADDRESS_CLAMP);
 	}
 
-#ifdef DEBUG_WIREFRAME
-m_dwFillMode = D3DFILL_SOLID;
-#endif
-
 	HMODULE hModule = AfxGetResourceHandle();
 
 	DWORD PixelShaderVersion = pApp->GetProfileInt(_T("Settings"), _T("PixelShaderVersion"), D3DVS_VERSION(2, 0));
@@ -235,16 +227,7 @@ m_dwFillMode = D3DFILL_SOLID;
 			main.Format(_T("main_tfx%d"), i);
 			// main.Format(_T("main_tfx"));
 
-			CComPtr<ID3DXBuffer> pShader, pErrorMsgs;
-			HRESULT hr = D3DXCompileShaderFromResource(
-				hModule, MAKEINTRESOURCE(IDR_PS20_TFX), NULL, NULL, main, _T("ps_3_0"), 
-				0, &pShader, &pErrorMsgs, NULL);
-
-			if(SUCCEEDED(hr))
-			{
-				hr = m_pD3DDev->CreatePixelShader((DWORD*)pShader->GetBufferPointer(), &m_pPixelShaderTFX[i]);
-				ASSERT(SUCCEEDED(hr));
-			}
+			CompileShaderFromResource(m_pD3DDev, IDR_PS20_TFX, main, _T("ps_3_0"), D3DXSHADER_AVOID_FLOW_CONTROL, &m_pPixelShaderTFX[i]);
 		}
 
 		for(int i = 0; i < 3; i++)
@@ -254,17 +237,7 @@ m_dwFillMode = D3DFILL_SOLID;
 			CString main;
 			main.Format(_T("main%d"), i);
 
-			CComPtr<ID3DXBuffer> pShader, pErrorMsgs;
-			HRESULT hr = D3DXCompileShaderFromResource(
-				hModule, MAKEINTRESOURCE(IDR_PS20_MERGE), NULL, NULL, main, _T("ps_3_0"), 
-				0, &pShader, &pErrorMsgs, NULL);
-			ASSERT(SUCCEEDED(hr));
-
-			if(SUCCEEDED(hr))
-			{
-				hr = m_pD3DDev->CreatePixelShader((DWORD*)pShader->GetBufferPointer(), &m_pPixelShaderMerge[i]);
-				ASSERT(SUCCEEDED(hr));
-			}
+			CompileShaderFromResource(m_pD3DDev, IDR_PS20_MERGE, main, _T("ps_3_0"), D3DXSHADER_AVOID_FLOW_CONTROL, &m_pPixelShaderMerge[i]);
 		}
 	}
 
@@ -280,16 +253,7 @@ m_dwFillMode = D3DFILL_SOLID;
 			main.Format(_T("main_tfx%d"), i);
 			// main.Format(_T("main_tfx"));
 
-			CComPtr<ID3DXBuffer> pShader, pErrorMsgs;
-			HRESULT hr = D3DXCompileShaderFromResource(
-				hModule, MAKEINTRESOURCE(IDR_PS20_TFX), NULL, NULL, main, _T("ps_2_0"), 
-				0, &pShader, &pErrorMsgs, NULL);
-
-			if(SUCCEEDED(hr))
-			{
-				hr = m_pD3DDev->CreatePixelShader((DWORD*)pShader->GetBufferPointer(), &m_pPixelShaderTFX[i]);
-				ASSERT(SUCCEEDED(hr));
-			}
+			CompileShaderFromResource(m_pD3DDev, IDR_PS20_TFX, main, _T("ps_2_0"), 0, &m_pPixelShaderTFX[i]);
 		}
 
 		for(int i = 0; i < 3; i++)
@@ -299,17 +263,7 @@ m_dwFillMode = D3DFILL_SOLID;
 			CString main;
 			main.Format(_T("main%d"), i);
 
-			CComPtr<ID3DXBuffer> pShader, pErrorMsgs;
-			HRESULT hr = D3DXCompileShaderFromResource(
-				hModule, MAKEINTRESOURCE(IDR_PS20_MERGE), NULL, NULL, main, _T("ps_2_0"), 
-				0, &pShader, &pErrorMsgs, NULL);
-			ASSERT(SUCCEEDED(hr));
-
-			if(SUCCEEDED(hr))
-			{
-				hr = m_pD3DDev->CreatePixelShader((DWORD*)pShader->GetBufferPointer(), &m_pPixelShaderMerge[i]);
-				ASSERT(SUCCEEDED(hr));
-			}
+			CompileShaderFromResource(m_pD3DDev, IDR_PS20_MERGE, main, _T("ps_2_0"), 0, &m_pPixelShaderMerge[i]);
 		}
 	}
 
@@ -330,15 +284,7 @@ m_dwFillMode = D3DFILL_SOLID;
 
 		for(int i = 0; i < countof(nShaderIDs); i++)
 		{
-			CComPtr<ID3DXBuffer> pShader, pErrorMsgs;
-			hr = D3DXAssembleShaderFromResource(hModule, MAKEINTRESOURCE(nShaderIDs[i]), NULL, NULL, 0, &pShader, &pErrorMsgs);
-			ASSERT(SUCCEEDED(hr));
-
-			if(SUCCEEDED(hr))
-			{
-				hr = m_pD3DDev->CreatePixelShader((DWORD*)pShader->GetBufferPointer(), &m_pPixelShaders[i]);
-				ASSERT(SUCCEEDED(hr));
-			}
+			AssembleShaderFromResource(m_pD3DDev, nShaderIDs[i], 0, &m_pPixelShaders[i]);
 		}
 	}
 
@@ -346,12 +292,12 @@ m_dwFillMode = D3DFILL_SOLID;
 
 	Reset();
 
-#ifdef DEBUG_LOG
+#if defined(DEBUG_LOG) || defined(DEBUG_LOG2)
 	::DeleteFile(_T("g:\\gs.txt"));
 	m_fp = _tfopen(_T("g:\\gs.txt"), _T("at"));
 #endif
 
-//	m_rs.CSRr.REV = 0x20;
+//	m_pCSRr->REV = 0x20;
 }
 
 GSState::~GSState()
@@ -583,8 +529,8 @@ void GSState::Write(GS_REG mem, GSReg* r, UINT64 mask)
 				r->CSR.FIFO,
 				r->CSR.REV,
 				r->CSR.ID);
-			if(m_rs.CSRw.SIGNAL) m_rs.CSRr.SIGNAL = 0;
-			if(m_rs.CSRw.FINISH) m_rs.CSRr.FINISH = 0;
+			if(m_rs.CSRw.SIGNAL) m_pCSRr->SIGNAL = 0;
+			if(m_rs.CSRw.FINISH) m_pCSRr->FINISH = 0;
 			if(m_rs.CSRw.RESET) Reset();
 			break;
 
@@ -621,7 +567,8 @@ void GSState::Write(GS_REG mem, GSReg* r, UINT64 mask)
 
 UINT64 GSState::Read(GS_REG mem)
 {
-	if(mem == GS_CSR) return m_rs.CSRr.i64;
+	if(mem == GS_CSR)
+		return m_pCSRr->i64;
 
 	GSPerfMonAutoTimer at(m_perfmon);
 
@@ -630,7 +577,7 @@ UINT64 GSState::Read(GS_REG mem)
 	switch(mem)
 	{
 		case GS_CSR:
-			r = reinterpret_cast<GSReg*>(&m_rs.CSRr);
+			r = reinterpret_cast<GSReg*>(m_pCSRr);
 			LOG(_T("Read(GS_CSR, SIGNAL=%x FINISH=%x HSINT=%x VSINT=%x EDWINT=%x ZERO1=%x ZERO2=%x FLUSH=%x RESET=%x NFIELD=%x FIELD=%x FIFO=%x REV=%x ID=%x)\n"),
 				r->CSR.SIGNAL,
 				r->CSR.FINISH,
@@ -657,7 +604,7 @@ UINT64 GSState::Read(GS_REG mem)
 
 		case GS_UNKNOWN:
 			LOG(_T("*** WARNING *** Read(%08x)\n"), mem);
-			return m_rs.CSRr.FIELD << 13;
+			return m_pCSRr->FIELD << 13;
 			break;
 
 		default:
@@ -679,14 +626,16 @@ void GSState::ReadFIFO(BYTE* pMem)
 
 void GSState::Transfer1(BYTE* pMem, UINT32 addr)
 {
-	GSPerfMonAutoTimer at(m_perfmon);
+//	GSPerfMonAutoTimer at(m_perfmon);
 
 	LOG(_T("Transfer1(%08x, %d)\n"), pMem, addr);
 
-	while(1)
-	{
-		// TODO: mk deception
-	}	
+	// TODO: this is too cheap...
+	static BYTE buff[0x4000];
+	addr &= 0x3fff;
+	memcpy(buff, pMem + addr, 0x4000 - addr);
+	memcpy(buff + 0x4000 - addr, pMem, addr);
+	Transfer(buff, -1);
 }
 
 void GSState::Transfer(BYTE* pMem)
@@ -708,7 +657,7 @@ void GSState::Transfer(BYTE* pMem, UINT32 size)
 		{
 			m_tag = *(GIFTag*)pMem;
 			m_nreg = 0;
-
+/*
 			LOG(_T("GIFTag NLOOP=%x EOP=%x PRE=%x PRIM=%x FLG=%x NREG=%x REGS=%x\n"), 
 				m_tag.NLOOP,
 				m_tag.EOP,
@@ -717,7 +666,7 @@ void GSState::Transfer(BYTE* pMem, UINT32 size)
 				m_tag.FLG,
 				m_tag.NREG,
 				m_tag.REGS);
-
+*/
 			pMem += sizeof(GIFTag);
 			size--;
 
@@ -826,9 +775,9 @@ void GSState::VSync()
 
 	FlushPrim();
 
-	m_rs.CSRr.NFIELD = 1; // ?
+	m_pCSRr->NFIELD = 1; // ?
 	if(m_rs.SMODE2.INT /*&& !m_rs.SMODE2.FFMD*/);
-		m_rs.CSRr.FIELD = 1 - m_rs.CSRr.FIELD;
+		m_pCSRr->FIELD = 1 - m_pCSRr->FIELD;
 
 	Flip();
 

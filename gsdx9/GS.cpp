@@ -55,46 +55,9 @@ EXPORT_C_(char*) PS2EgetLibName()
 	;
 }
 
-static BYTE and_eax_ffff0000h_cmp_eax_30000h[] = {0x25, 0x00, 0x00, 0xFF, 0xFF, 0x3D, 0x00, 0x00, 0x03, 0x00};
-static BYTE mov_ecx_eax_shr_ecx_10h_cmp_ecx_3[] = {0x8B, 0xC8, 0xC1, 0xE9, 0x10, 0x83, 0xF9, 0x03};
-static void* test_gs_lib_ver = NULL;
-
-//EXPORT_C_(__declspec(naked) UINT32) PS2EgetLibVersion2(UINT32 type)
 EXPORT_C_(UINT32) PS2EgetLibVersion2(UINT32 type)
 {
 	return (PS2E_GS_VERSION<<16)|(0x00<<8)|PS2E_DLL_VERSION;
-/*
-	__asm
-	{
-		mov eax, [esp]
-		mov test_gs_lib_ver, eax
-		push ebx
-		push ecx 
-		push edx 
-		push esi 
-		push edi
-	}
-
-	if(!memcmp(test_gs_lib_ver, and_eax_ffff0000h_cmp_eax_30000h, sizeof(and_eax_ffff0000h_cmp_eax_30000h))
-	|| !memcmp(test_gs_lib_ver, mov_ecx_eax_shr_ecx_10h_cmp_ecx_3, sizeof(mov_ecx_eax_shr_ecx_10h_cmp_ecx_3)))
-	{
-		__asm mov eax, (0x0003<<16)|(0x00<<8)|PS2E_DLL_VERSION
-	}
-	else
-	{
-		__asm mov eax, (PS2E_GS_VERSION<<16)|(0x00<<8)|PS2E_DLL_VERSION
-	}
-
-	__asm
-	{
-		pop edi 
-		pop esi 
-		pop edx 
-		pop ecx 
-		pop ebx
-		ret 4
-	}
-*/
 }
 
 EXPORT_C_(UINT32) PS2EgetCpuPlatform()
@@ -107,7 +70,8 @@ EXPORT_C_(UINT32) PS2EgetCpuPlatform()
 }
 
 static CAutoPtr<GSState> s_gs;
-static void (*s_fpGSirq)();
+static void (*s_fpGSirq)() = NULL;
+static UINT64* s_pCSRr = NULL;
 
 static HRESULT s_hrCoInit = E_FAIL;
 
@@ -152,10 +116,10 @@ EXPORT_C_(INT32) GSopen(void* pDsp, char* Title)
 		return -1;
 	}
 
-	// FIXME: fullscreen mode
 	s_hWnd.Show();
 
 	s_gs->GSirq(s_fpGSirq);
+	s_gs->GSsetCSR(s_pCSRr);
 
 	return 0;
 }
@@ -214,18 +178,11 @@ EXPORT_C GSreadFIFO(BYTE* pMem)
 	s_gs->ReadFIFO(pMem);
 }
 
-#if PS2E_GS_VERSION >= 0x0006
 EXPORT_C GSgifTransfer1(BYTE* pMem, UINT32 addr)
 {
-//	s_gs->Transfer1(pMem, addr);
-	s_gs->Transfer(pMem+(addr&0x3fff));
+//	s_gs->Transfer(pMem + (addr&0x3fff));
+	s_gs->Transfer1(pMem, addr);
 }
-#else
-EXPORT_C GSgifTransfer1(BYTE* pMem)
-{
-	s_gs->Transfer(pMem);
-}
-#endif
 
 EXPORT_C GSgifTransfer2(BYTE* pMem, UINT32 size)
 {
@@ -243,7 +200,7 @@ EXPORT_C GSvsync()
 	ZeroMemory(&msg, sizeof(msg));
 	while(msg.message != WM_QUIT)
 	{
-		if(PeekMessage(&msg, NULL, 0U, 0U, PM_REMOVE))
+		if(PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
 		{
 			TranslateMessage(&msg);
 			DispatchMessage(&msg);
@@ -274,11 +231,7 @@ EXPORT_C GSkeyEvent(keyEvent* ev)
 		case VK_INSERT:
 			s_gs->Capture();
 			break;
-#ifdef DEBUG_WIREFRAME
-		case VK_HOME:
-			s_gs->ToggleFillmode();
-			break;
-#endif
+
 		default:
 			break;
 	}
@@ -321,6 +274,12 @@ EXPORT_C GSirqCallback(void (*fpGSirq)())
 {
 	s_fpGSirq = fpGSirq;
 	// s_gs->GSirq(fpGSirq);
+}
+
+EXPORT_C GSsetCSR(UINT64* pCSRr)
+{
+	s_pCSRr = pCSRr;
+	// s_gs->GSsetCSR(pCSRr);
 }
 
 EXPORT_C_(INT32) GSsetWindowInfo(winInfo* info)

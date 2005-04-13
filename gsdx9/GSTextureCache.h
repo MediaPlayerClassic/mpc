@@ -40,12 +40,16 @@ struct tex_t
 	GIFRegTEXCLUT TEXCLUT;
 };
 
+[uuid("5D5EFE0E-5407-4BCF-855D-C46CBCD075FA")]
 struct scale_t
 {
 	float x, y;
 	struct scale_t() {x = y = 1;}
 	struct scale_t(float x, float y) {this->x = x; this->y = y;}
+	struct scale_t(IDirect3DResource9* p) {Get(p);}
 	bool operator == (const struct scale_t& s) {return fabs(x - s.x) < 0.001 && fabs(y - s.y) < 0.001;}
+	void Set(IDirect3DResource9* p) {p->SetPrivateData(__uuidof(*this), this, sizeof(*this), 0);}
+	void Get(IDirect3DResource9* p) {DWORD size = sizeof(*this); p->GetPrivateData(__uuidof(*this), this, &size);}
 };
 
 class GSTexture

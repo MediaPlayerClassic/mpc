@@ -356,7 +356,7 @@ scale.y = 1;
 
 		if(!pRT || !pDS) {ASSERT(0); return;}
 
-		pRT->SetPrivateData(GUID_NULL, &scale, sizeof(scale), 0);
+		scale.Set(pRT);
 
 		//////////////////////
 
@@ -399,10 +399,6 @@ scale.y = 1;
 		}
 
 		SetupTexture(t, tsx, tsy);
-
-#ifdef DEBUG_WIREFRAME
-hr = m_pD3DDev->SetRenderState(D3DRS_FILLMODE, m_de.pPRIM->TME ? m_dwFillMode : D3DFILL_SOLID);
-#endif
 
 		//////////////////////
 
@@ -635,8 +631,7 @@ void GSRendererHW::Flip()
 			ZeroMemory(&rt[i].rd, sizeof(rt[i].rd));
 			hr = rt[i].pRT->GetLevelDesc(0, &rt[i].rd);
 
-			DWORD ssize = sizeof(rt[i].scale);
-			rt[i].pRT->GetPrivateData(GUID_NULL, &rt[i].scale, &ssize);
+			rt[i].scale.Get(rt[i].pRT);
 
 			CSize size = m_rs.GetSize(i);
 			rt[i].src = CRect(0, 0, rt[i].scale.x*size.cx, rt[i].scale.y*size.cy);
@@ -644,7 +639,7 @@ void GSRendererHW::Flip()
 	}
 
 	bool fShiftField = m_rs.SMODE2.INT && !!(m_ctxt->XYOFFSET.OFY&0xf);
-		// m_rs.CSRr.FIELD && m_rs.SMODE2.INT /*&& !m_rs.SMODE2.FFMD*/;
+		// m_pCSRr->FIELD && m_rs.SMODE2.INT /*&& !m_rs.SMODE2.FFMD*/;
 
 	FinishFlip(rt, fShiftField);
 
@@ -672,9 +667,7 @@ void GSRendererHW::Flip()
 				hr = m_pD3DDev->SetTexture(0, pRT);
 				hr = m_pD3DDev->SetTextureStageState(0, D3DTSS_TEXCOORDINDEX, 0);
 
-				scale_t scale;
-				DWORD ssize = sizeof(scale);
-				pRT->GetPrivateData(GUID_NULL, &scale, &ssize);
+				scale_t scale(pRT);
 
 				CSize size = m_rs.GetSize(m_rs.IsEnabled(1)?1:0);
 				CRect src = CRect(0, 0, scale.x*size.cx, scale.y*size.cy);
@@ -875,9 +868,7 @@ void GSRendererHW::InvalidateTexture(DWORD TBP0, int x, int y)
 					{(float)r.right, (float)r.bottom, 0.5f, 2.0f, 1.0f, 1.0f},
 				};
 
-				scale_t scale;
-				DWORD size = sizeof(scale);
-				t.m_pTexture->GetPrivateData(GUID_NULL, &scale, &size);
+				scale_t scale(t.m_pTexture);
 
 				for(int i = 0; i < countof(pVertices); i++)
 				{
@@ -940,7 +931,7 @@ for(int i = 0; i < 10; i++)
 		HWVERTEX* pVertices = m_pVertices;
 		int nVertices = m_nVertices;
 
-#if _M_IX86_FP >= 2
+#if _M_IX86_FP >= 2 // TODO: || defined(_M_AMD64)
 		__asm
 		{
 			mov			esi, pVertices
@@ -1076,6 +1067,9 @@ bool GSRendererHW::CreateTexture(GSTexture& t)
 		CalcRegionToUpdate(tw, th);
 		if(t.m_valid.cx >= tw && t.m_valid.cy >= th)
 			return(true);
+
+		tw = max(tw, t.m_valid.cx);
+		th = max(th, t.m_valid.cy);
 
 		pTexture = t.m_pTexture;
 	}

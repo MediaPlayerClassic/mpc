@@ -2,9 +2,6 @@
 #include "GSCapture.h"
 #include "GSCaptureDlg.h"
 
-#include <initguid.h>
-#include <streams.h>
-
 //
 // GSSource
 //

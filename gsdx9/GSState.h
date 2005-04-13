@@ -37,6 +37,7 @@
 #define DEBUG_LOGVERTICES
 #define DEBUG_RENDERTARGETS
 */
+
 struct GSDrawingContext
 {
 	struct GSDrawingContext() {memset(this, 0, sizeof(*this));}
@@ -142,7 +143,7 @@ struct GSRegSet
 	GIFRegBITBLTBUF	BITBLTBUF;
 	GIFRegTRXDIR	TRXDIR;
 	GIFRegTRXPOS	TRXPOS;
-	GIFRegTRXREG	TRXREG;
+	GIFRegTRXREG	TRXREG, TRXREG2;
 };
 
 struct GSVertex
@@ -208,6 +209,7 @@ protected:
 	GIFTag m_tag;
 	int m_nreg;
 
+	GSRegCSR* m_pCSRr;
 	void (*m_fpGSirq)();
 
 	typedef void (__fastcall GSState::*GIFPackedRegHandler)(GIFPackedReg* r);
@@ -305,14 +307,10 @@ public:
 	void VSync();
 
 	void GSirq(void (*fpGSirq)()) {m_fpGSirq = fpGSirq;}
+	void GSsetCSR(UINT64* pCSRr) {m_pCSRr = pCSRr ? (GSRegCSR*)pCSRr : &m_rs.CSRr;}
 
 	UINT32 MakeSnapshot(char* path);
 	void Capture();
-
-#ifdef DEBUG_WIREFRAME
-	DWORD m_dwFillMode;
-	void ToggleFillmode() {m_dwFillMode = m_dwFillMode != D3DFILL_WIREFRAME ? D3DFILL_WIREFRAME : D3DFILL_SOLID;}
-#endif
 
 	FILE* m_fp;
 
@@ -330,21 +328,21 @@ public:
 		/**/ ////////////
 		if(_tcsstr(fmt, _T("VSync")) 
 		 || _tcsstr(fmt, _T("*** WARNING ***"))
-		 || _tcsstr(fmt, _T("Flush"))
+		|| _tcsstr(fmt, _T("Flush"))
 		// || _tcsstr(fmt, _T("CSR"))
-		 || _tcsstr(fmt, _T("DISP"))
-		 || _tcsstr(fmt, _T("FRAME"))
+		|| _tcsstr(fmt, _T("DISP"))
+		|| _tcsstr(fmt, _T("FRAME"))
 		// || _tcsstr(fmt, _T("ZBUF"))
 		// || _tcsstr(fmt, _T("SMODE"))
 		// || _tcsstr(fmt, _T("PMODE"))
-		 || _tcsstr(fmt, _T("BITBLTBUF"))
-		 || _tcsstr(fmt, _T("TRX"))
-		 || _tcsstr(fmt, _T("PRIM"))
+		|| _tcsstr(fmt, _T("BITBLTBUF"))
+		|| _tcsstr(fmt, _T("TRX"))
+		|| _tcsstr(fmt, _T("PRIM"))
 		// || _tcsstr(fmt, _T("RGB"))
-		 || _tcsstr(fmt, _T("XYZ"))
+		|| _tcsstr(fmt, _T("XYZ"))
 		// || _tcsstr(fmt, _T("ST"))
 		// || _tcsstr(fmt, _T("XYOFFSET"))
-		 || _tcsstr(fmt, _T("TEX"))
+		|| _tcsstr(fmt, _T("TEX"))
 		// || _tcsstr(fmt, _T("UV"))
 		// || _tcsstr(fmt, _T("FOG"))
 		// || _tcsstr(fmt, _T("ALPHA"))

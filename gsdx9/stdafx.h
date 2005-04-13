@@ -55,6 +55,7 @@
 #include <d3d9.h>
 #include <d3dx9.h>
 #include <dshow.h>
+#include <streams.h>
 #include <xmmintrin.h>
 #include <emmintrin.h>
 
