@@ -1270,7 +1270,7 @@ void CRenderedTextSubtitle::ParseEffect(CSubtitle* sub, CString str)
 	str.Trim();
 	if(!sub || str.IsEmpty()) return;
 
-	TCHAR* s = _tcschr(str, ';');
+	const TCHAR* s = _tcschr(str, ';');
 	if(!s) {s = (LPTSTR)(LPCTSTR)str; s += str.GetLength()-1;}
 	s++;
 	CString effect = str.Left(s - str);

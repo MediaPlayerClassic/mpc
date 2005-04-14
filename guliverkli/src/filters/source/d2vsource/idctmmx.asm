@@ -43,14 +43,14 @@ _MMX = 1
 
 if @version GE 612
 .mmx
-mmword	TEXTEQU	<QWORD>
+;mmword	TEXTEQU	<QWORD>
 else
 include IAMMX.INC
 endif
 
 if @version GE 614
 .xmm
-mm2word	TEXTEQU	<QWORD>			; needed for Streaming SIMD Extensions macros
+;mm2word	TEXTEQU	<QWORD>			; needed for Streaming SIMD Extensions macros
 else
 include iaxmm.inc				; Streaming SIMD Extensions Emulator Macros
 endif
@@ -547,21 +547,21 @@ movq y7, mm3 ; 3 ; save y7
 ENDM
 
 DCT_8_INV_COL_4 MACRO INP:REQ, OUT:REQ
-	movq	mm0, mmword ptr tg_3_16
+	movq	mm0, qword ptr tg_3_16
 
-	movq	mm3, mmword ptr [INP+16*3]
+	movq	mm3, qword ptr [INP+16*3]
 	movq	mm1, mm0			; tg_3_16
 
-	movq	mm5, mmword ptr [INP+16*5]
+	movq	mm5, qword ptr [INP+16*5]
 	pmulhw	mm0, mm3			; x3*(tg_3_16-1)
 
-	movq	mm4, mmword ptr tg_1_16
+	movq	mm4, qword ptr tg_1_16
 	pmulhw	mm1, mm5			; x5*(tg_3_16-1)
 
-	movq	mm7, mmword ptr [INP+16*7]
+	movq	mm7, qword ptr [INP+16*7]
 	movq	mm2, mm4			; tg_1_16
 
-	movq	mm6, mmword ptr [INP+16*1]
+	movq	mm6, qword ptr [INP+16*1]
 	pmulhw	mm4, mm7			; x7*tg_1_16
 
 	paddsw	mm0, mm3			; x3*tg_3_16
@@ -570,7 +570,7 @@ DCT_8_INV_COL_4 MACRO INP:REQ, OUT:REQ
 	paddsw	mm1, mm3			; x3+x5*(tg_3_16-1)
 	psubsw	mm0, mm5			; x3*tg_3_16-x5 = tm35
 
-	movq	mm3, mmword ptr ocos_4_16
+	movq	mm3, qword ptr ocos_4_16
 	paddsw	mm1, mm5			; x3+x5*tg_3_16 = tp35
 
 	paddsw	mm4, mm6			; x1+tg_1_16*x7 = tp17
@@ -585,34 +585,34 @@ DCT_8_INV_COL_4 MACRO INP:REQ, OUT:REQ
 	psubsw	mm4, mm1			; tp17-tp35 = t1
 	paddsw	mm2, mm0			; tm17+tm35 = t2
 
-	movq	mm7, mmword ptr tg_2_16
+	movq	mm7, qword ptr tg_2_16
 	movq	mm1, mm4			; t1
 
-;	movq	mmword ptr [SCRATCH+0], mm5	; save b0
-	movq	mmword ptr [OUT+3*16], mm5	; save b0
+;	movq	qword ptr [SCRATCH+0], mm5	; save b0
+	movq	qword ptr [OUT+3*16], mm5	; save b0
 	paddsw	mm1, mm2			; t1+t2
 
-;	movq	mmword ptr [SCRATCH+8], mm6	; save b3
-	movq	mmword ptr [OUT+5*16], mm6	; save b3
+;	movq	qword ptr [SCRATCH+8], mm6	; save b3
+	movq	qword ptr [OUT+5*16], mm6	; save b3
 	psubsw	mm4, mm2			; t1-t2
 
-	movq	mm5, mmword ptr [INP+2*16]
+	movq	mm5, qword ptr [INP+2*16]
 	movq	mm0, mm7			; tg_2_16
 
-	movq	mm6, mmword ptr [INP+6*16]
+	movq	mm6, qword ptr [INP+6*16]
 	pmulhw	mm0, mm5			; x2*tg_2_16
 
 	pmulhw	mm7, mm6			; x6*tg_2_16
 ; slot
 	pmulhw	mm1, mm3			; ocos_4_16*(t1+t2) = b1/2
 ; slot
-	movq	mm2, mmword ptr [INP+0*16]
+	movq	mm2, qword ptr [INP+0*16]
 	pmulhw	mm4, mm3			; ocos_4_16*(t1-t2) = b2/2
 
 	psubsw	mm0, mm6			; t2*tg_2_16-x6 = tm26
 	movq	mm3, mm2			; x0
 
-	movq	mm6, mmword ptr [INP+4*16]
+	movq	mm6, qword ptr [INP+4*16]
 	paddsw	mm7, mm5			; x2+x6*tg_2_16 = tp26
 
 	paddsw	mm2, mm6			; x0+x4 = tp04
@@ -642,41 +642,41 @@ DCT_8_INV_COL_4 MACRO INP:REQ, OUT:REQ
 	psraw	mm6, SHIFT_INV_COL		; dst2
 	psubsw	mm0, mm4			; a2-b2
 
-;	movq	mm1, mmword ptr [SCRATCH+0]	; load b0
-	movq	mm1, mmword ptr [OUT+3*16]	; load b0
+;	movq	mm1, qword ptr [SCRATCH+0]	; load b0
+	movq	mm1, qword ptr [OUT+3*16]	; load b0
 	psraw	mm7, SHIFT_INV_COL		; dst6
 
 	movq	mm4, mm5			; a0
 	psraw	mm0, SHIFT_INV_COL		; dst5
 
-	movq	mmword ptr [OUT+1*16], mm3
+	movq	qword ptr [OUT+1*16], mm3
 	paddsw	mm5, mm1			; a0+b0
 
-	movq	mmword ptr [OUT+2*16], mm6
+	movq	qword ptr [OUT+2*16], mm6
 	psubsw	mm4, mm1			; a0-b0
 
-;	movq	mm3, mmword ptr [SCRATCH+8]	; load b3
-	movq	mm3, mmword ptr [OUT+5*16]	; load b3
+;	movq	mm3, qword ptr [SCRATCH+8]	; load b3
+	movq	mm3, qword ptr [OUT+5*16]	; load b3
 	psraw	mm5, SHIFT_INV_COL		; dst0
 
 	movq	mm6, mm2			; a3
 	psraw	mm4, SHIFT_INV_COL		; dst7
 
-	movq	mmword ptr [OUT+5*16], mm0
+	movq	qword ptr [OUT+5*16], mm0
 	paddsw	mm2, mm3			; a3+b3
 
-	movq	mmword ptr [OUT+6*16], mm7
+	movq	qword ptr [OUT+6*16], mm7
 	psubsw	mm6, mm3			; a3-b3
 
-	movq	mmword ptr [OUT+0*16], mm5
+	movq	qword ptr [OUT+0*16], mm5
 	psraw	mm2, SHIFT_INV_COL		; dst3
 
-	movq	mmword ptr [OUT+7*16], mm4
+	movq	qword ptr [OUT+7*16], mm4
 	psraw	mm6, SHIFT_INV_COL		; dst4
 
-	movq	mmword ptr [OUT+3*16], mm2
+	movq	qword ptr [OUT+3*16], mm2
 
-	movq	mmword ptr [OUT+4*16], mm6
+	movq	qword ptr [OUT+4*16], mm6
 ENDM
 
 _TEXT SEGMENT PARA PUBLIC USE32 'CODE'

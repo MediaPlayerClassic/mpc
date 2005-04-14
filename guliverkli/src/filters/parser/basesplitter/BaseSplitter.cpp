@@ -899,14 +899,14 @@ HRESULT CBaseSplitterFilter::DeliverPacket(CAutoPtr<Packet> p)
 
 	DWORD TrackNumber = p->TrackNumber;
 	BOOL bDiscontinuity = p->bDiscontinuity;
-
+/*
 //if(p->TrackNumber == 1)
 //if(p->rtStart != Packet::INVALID_TIME)
 TRACE(_T("[%d]: d%d s%d p%d, b=%d, %I64d-%I64d \n"), 
 	  p->TrackNumber,
 	  p->bDiscontinuity, p->bSyncPoint, p->rtStart != Packet::INVALID_TIME && p->rtStart < 0,
 	  p->pData.GetCount(), p->rtStart, p->rtStop);
-
+*/
 
 	hr = pPin->QueuePacket(p);
 

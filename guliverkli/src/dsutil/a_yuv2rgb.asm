@@ -251,10 +251,10 @@ _asm_YUVtoRGB32_row_MMX:
 	mov	ebx,ARGB2_pointer
 
 col_loop_MMX:
-	movd	mm0,[esi+ebp]		;U (byte)
+	movd	mm0, dword ptr [esi+ebp]		;U (byte)
 	pxor	mm7,mm7
 
-	movd	mm1,[edi+ebp]		;V (byte)
+	movd	mm1, dword ptr [edi+ebp]		;V (byte)
 	punpcklbw mm0,mm7		;U (word)
 
 	psubw	mm0,MMX_80w
@@ -620,16 +620,16 @@ _asm_YUVtoRGB24_row_MMX:
 	mov	ebx,ARGB2_pointer
 
 col_loop_MMX24:
-	movd		mm0,[esi+ebp]	;U (byte)
+	movd		mm0, dword ptr [esi+ebp]	;U (byte)
 	pxor		mm7,mm7
 
-	movd		mm1,[edi+ebp]	;V (byte)
+	movd		mm1, dword ptr [edi+ebp]	;V (byte)
 	punpcklbw mm0,mm7		;U (word)
 
-	movd		mm2,[ecx+ebp*2]	;Y low
+	movd		mm2, dword ptr [ecx+ebp*2]	;Y low
 	punpcklbw mm1,mm7		;V (word)
 
-	movd		mm3,[edx+ebp*2]	;Y high
+	movd		mm3, dword ptr [edx+ebp*2]	;Y high
 	punpcklbw mm2,mm7		;Y1 (word)
 
 	psubw		mm2,MMX_10w
@@ -674,9 +674,9 @@ col_loop_MMX24:
 
 	;group 2
 
-	movd		[eax+0],mm4	;[lazy write]
+	movd		dword ptr [eax+0],mm4	;[lazy write]
 	movq		mm4,mm0
-	movd		[ebx+0],mm5	;[lazy write]
+	movd		dword ptr [ebx+0],mm5	;[lazy write]
 	movq		mm5,mm1
 
 	punpcklwd	mm4,mm4		;mm6 = U1U1U0U0
@@ -705,9 +705,9 @@ col_loop_MMX24:
 
 	;group 3
 
-	movd		[eax+4],mm6	;[lazy write]
+	movd		dword ptr [eax+4],mm6	;[lazy write]
 	movq		mm6,mm0
-	movd		[ebx+4],mm7	;[lazy write]
+	movd		dword ptr [ebx+4],mm7	;[lazy write]
 	movq		mm7,mm1
 
 	movq		mm4,mm2		;mm4 = Y3Y2Y1Y0		[high]
@@ -735,16 +735,16 @@ col_loop_MMX24:
 
 	;next 3 groups
 
-	movd		mm2,[ecx+ebp*2+4]	;Y low
+	movd		mm2, dword ptr [ecx+ebp*2+4]	;Y low
 	packuswb	mm4,mm4		;[lazy]
 
-	movd		mm3,[edx+ebp*2+4]	;Y high
+	movd		mm3, dword ptr [edx+ebp*2+4]	;Y high
 	packuswb	mm5,mm5		;[lazy]
 
-	movd		[eax+8],mm4	;[lazy write]
+	movd		dword ptr [eax+8],mm4	;[lazy write]
 	pxor		mm7,mm7
 
-	movd		[ebx+8],mm5	;[lazy write]
+	movd		dword ptr [ebx+8],mm5	;[lazy write]
 	punpcklbw	mm2,mm7		;U (word)
 
 
@@ -790,9 +790,9 @@ col_loop_MMX24:
 
 	;group 2
 
-	movd		[eax+12],mm4
+	movd		dword ptr [eax+12],mm4
 	movq		mm6,mm0
-	movd		[ebx+12],mm5
+	movd		dword ptr [ebx+12],mm5
 	movq		mm7,mm1
 
 	punpckhwd	mm6,mm6		;mm6 = U3U3U2U2
@@ -827,10 +827,10 @@ col_loop_MMX24:
 	movq		mm7,mm3		;mm3 = Y3Y2Y1Y0		[low]
 	punpckhdq	mm0,mm0		;mm6 = U3U3U3U3
 
-	movd		[eax+16],mm4	;[lazy write]
+	movd		dword ptr [eax+16],mm4	;[lazy write]
 	punpckhwd	mm1,mm1		;mm7 = V3V3V2V2
 
-	movd		[ebx+16],mm5	;[lazy write]
+	movd		dword ptr [ebx+16],mm5	;[lazy write]
 	punpckhdq	mm1,mm1		;mm7 = V3V3V3V3
 
 	pmullw		mm0,MMX_Ucoeff2
@@ -852,9 +852,9 @@ col_loop_MMX24:
 	packuswb	mm6,mm6
 	packuswb	mm7,mm7
 
-	movd		[eax+20],mm6
+	movd		dword ptr [eax+20],mm6
 	add	eax,24
-	movd		[ebx+20],mm7
+	movd		dword ptr [ebx+20],mm7
 	add	ebx,24
 
 	;done
@@ -1091,10 +1091,10 @@ _asm_YUVtoRGB16_row_MMX:
 	mov	ebx,ARGB2_pointer
 
 col_loop_MMX16:
-	movd	mm0,[esi+ebp]		;[0       ] U (byte)
+	movd	mm0, dword ptr [esi+ebp]		;[0       ] U (byte)
 	pxor	mm7,mm7			;[0      7] 
 
-	movd	mm1,[edi+ebp]		;[01     7] V (byte)
+	movd	mm1, dword ptr [edi+ebp]		;[01     7] V (byte)
 	punpcklbw mm0,mm7		;[01     7] U (word)
 
 	psubw	mm0,MMX_80w		;[01     7] 
@@ -1314,10 +1314,10 @@ col_loop_SSE:
 	prefetchnta [ecx+ebp*2+32]
 	prefetchnta [edx+ebp*2+32]
 
-	movd	mm0,[esi+ebp]		;U (byte)
+	movd	mm0, dword ptr [esi+ebp]		;U (byte)
 	pxor	mm7,mm7
 
-	movd	mm1,[edi+ebp]		;V (byte)
+	movd	mm1, dword ptr [edi+ebp]		;V (byte)
 	punpcklbw mm0,mm7		;U (word)
 
 	psubw	mm0,MMX_80w
@@ -1492,7 +1492,7 @@ _asm_YUVtoRGB24_row_ISSE:
 	movd	mm0,esp
 	sub	esp,20
 	and	esp,-8
-	movd	[esp+16],mm0
+	movd	dword ptr [esp+16],mm0
 
 col_loop_ISSE24:
 	prefetchnta	[esi+ebp+32]
@@ -1500,16 +1500,16 @@ col_loop_ISSE24:
 	prefetchnta [ecx+ebp*2+32]
 	prefetchnta [edx+ebp*2+32]
 
-	movd		mm0,[esi+ebp]	;U (byte)
+	movd		mm0, dword ptr [esi+ebp]	;U (byte)
 	pxor		mm7,mm7
 
-	movd		mm1,[edi+ebp]	;V (byte)
+	movd		mm1, dword ptr [edi+ebp]	;V (byte)
 	punpcklbw mm0,mm7		;U (word)
 
-	movd		mm2,[ecx+ebp*2]	;Y low
+	movd		mm2, dword ptr [ecx+ebp*2]	;Y low
 	punpcklbw mm1,mm7		;V (word)
 
-	movd		mm3,[edx+ebp*2]	;Y high
+	movd		mm3, dword ptr [edx+ebp*2]	;Y high
 	punpcklbw mm2,mm7		;Y1 (word)
 
 	psubw		mm2,MMX_10w
@@ -1588,10 +1588,10 @@ col_loop_ISSE24:
 
 	;next 3 groups
 
-	movd		mm2,[ecx+ebp*2+4]	;Y low
+	movd		mm2, dword ptr [ecx+ebp*2+4]	;Y low
 	pxor		mm7,mm7
 
-	movd		mm3,[edx+ebp*2+4]	;Y high
+	movd		mm3, dword ptr [edx+ebp*2+4]	;Y high
 	punpcklbw	mm2,mm7		;U (word)
 
 	psubw		mm2,MMX_10w
@@ -1714,10 +1714,10 @@ col_loop_ISSE16:
 	prefetchnta [esi+ebp+32]
 	prefetchnta [edi+ebp+32]
 
-	movd	mm0,[esi+ebp]		;[0       ] U (byte)
+	movd	mm0, dword ptr [esi+ebp]		;[0       ] U (byte)
 	pxor	mm7,mm7			;[0      7] 
 
-	movd	mm1,[edi+ebp]		;[01     7] V (byte)
+	movd	mm1, dword ptr [edi+ebp]		;[01     7] V (byte)
 	punpcklbw mm0,mm7		;[01     7] U (word)
 
 	psubw	mm0,MMX_80w		;[01     7] 

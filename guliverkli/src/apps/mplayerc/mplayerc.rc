@@ -2371,7 +2371,7 @@ BEGIN
     IDS_SRC_DTSAC3          "6.4.0.0"
     IDS_SRC_SHOUTCAST       "6.4.0.1"
     IDS_SRC_REALMEDIA       "6.4.1.0\nRealMedia format categories must be set to 'DirectShow' to make it load\nDoesn't support streaming"
-    IDS_SRC_MATROSKA        "6.4.2.5"
+    IDS_SRC_MATROSKA        "6.4.2.6"
     IDS_SRC_ROQ             "6.4.0.0"
     IDS_SRC_OGG             "6.4.0.0"
     IDS_TRA_LPCM            "6.4.0.0"

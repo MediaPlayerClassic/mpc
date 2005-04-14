@@ -465,7 +465,7 @@ IDI_ICON1               ICON                    "res\\Icon_147.ico"
 // RT_MANIFEST
 //
 
-2                       RT_MANIFEST             "res\\VSFilter.manifest"
+//2                       RT_MANIFEST             "res\\VSFilter.manifest"
 
 /////////////////////////////////////////////////////////////////////////////
 //
