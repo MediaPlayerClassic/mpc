@@ -31,8 +31,6 @@
 #include "DX9AllocatorPresenter.h"
 #include "DeinterlacerFilter.h"
 
-#include "C:\WMSDK\WMFSDK9\include\wmsdk.h"
-
 #include <initguid.h>
 #include <dmodshow.h>
 

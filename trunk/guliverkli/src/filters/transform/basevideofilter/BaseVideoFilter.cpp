@@ -400,6 +400,7 @@ HRESULT CBaseVideoFilter::CheckOutputType(const CMediaType& mtOut)
 	int wout = 0, hout = 0, arxout = 0, aryout = 0;
 	return ExtractDim(&mtOut, wout, hout, arxout, aryout)
 		&& m_h == abs((int)hout)
+		&& mtOut.subtype != MEDIASUBTYPE_ARGB32
 		? S_OK
 		: VFW_E_TYPE_NOT_ACCEPTED;
 }

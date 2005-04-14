@@ -23,7 +23,11 @@
 
 #include "config.h"
 
-#include <stdlib.h>
+//#include <stdlib.h>
+
+void    __cdecl free(void *);
+void *  __cdecl malloc(size_t);
+
 #include <string.h>
 #include <inttypes.h>
 

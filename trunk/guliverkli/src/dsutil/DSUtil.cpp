@@ -1102,7 +1102,7 @@ bool ExtractDim(const AM_MEDIA_TYPE* pmt, int& w, int& h, int& arx, int& ary)
 		ptr = ((MPEG1VIDEOINFO*)pmt->pbFormat)->bSequenceHeader;
 		len = ((MPEG1VIDEOINFO*)pmt->pbFormat)->cbSequenceHeader;
 
-		if(ptr && len >= 8)
+		if(ptr && len >= 8 && *(DWORD*)ptr == 0xb3010000)
 		{
 			w = (ptr[4]<<4)|(ptr[5]>>4);
 			h = ((ptr[5]&0xf)<<8)|ptr[6];
@@ -1122,7 +1122,7 @@ bool ExtractDim(const AM_MEDIA_TYPE* pmt, int& w, int& h, int& arx, int& ary)
 		ptr = (BYTE*)((MPEG2VIDEOINFO*)pmt->pbFormat)->dwSequenceHeader; 
 		len = ((MPEG2VIDEOINFO*)pmt->pbFormat)->cbSequenceHeader;
 
-		if(ptr && len >= 8)
+		if(ptr && len >= 8 && *(DWORD*)ptr == 0xb3010000)
 		{
 			w = (ptr[4]<<4)|(ptr[5]>>4);
 			h = ((ptr[5]&0xf)<<8)|ptr[6];

@@ -1087,13 +1087,13 @@ int CMpeg2Dec::mpeg2_header_extension()
     static int (CMpeg2Dec::* parser[]) () =
 	{
 		NULL, 
-		sequence_ext, 
-		sequence_display_ext, 
-		quant_matrix_ext,
-		copyright_ext, 
+		&CMpeg2Dec::sequence_ext, 
+		&CMpeg2Dec::sequence_display_ext, 
+		&CMpeg2Dec::quant_matrix_ext,
+		&CMpeg2Dec::copyright_ext, 
 		NULL, NULL, 
-		picture_display_ext, 
-		picture_coding_ext
+		&CMpeg2Dec::picture_display_ext, 
+		&CMpeg2Dec::picture_coding_ext
     };
 
     int ext, ext_bit;
@@ -1964,14 +1964,14 @@ CMpeg2Decoder::CMpeg2Decoder()
 
 	//
 
-	if(g_cpuid.m_flags&CCpuID::flag_t::sse2)
+	if(g_cpuid.m_flags&CCpuID::sse2)
 	{
 		m_idct_init = mpeg2_idct_init_sse2;
 		m_idct_copy = mpeg2_idct_copy_sse2;
 		m_idct_add = mpeg2_idct_add_sse2;
 		m_mc = &mpeg2_mc_sse2;
 	}
-	else if(g_cpuid.m_flags&CCpuID::flag_t::mmx)
+	else if(g_cpuid.m_flags&CCpuID::mmx)
 	{
 		m_idct_init = mpeg2_idct_init_mmx;
 		m_idct_copy = mpeg2_idct_copy_mmx;

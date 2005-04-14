@@ -71,7 +71,7 @@ CCpuID g_cpuid;
 
 void memcpy_accel(void* dst, const void* src, size_t len)
 {
-	if((g_cpuid.m_flags & CCpuID::flag_t::sse2) && len >= 128 
+	if((g_cpuid.m_flags & CCpuID::sse2) && len >= 128 
 		&& !((DWORD)src&15) && !((DWORD)dst&15))
 	{
 		__asm
@@ -118,7 +118,7 @@ void memcpy_accel(void* dst, const void* src, size_t len)
 			sfence
 		}
 	}
-	else if((g_cpuid.m_flags & CCpuID::flag_t::ssefpu) && len >= 128 
+	else if((g_cpuid.m_flags & CCpuID::ssefpu) && len >= 128 
 		&& !((DWORD)src&15) && !((DWORD)dst&15))
 	{
 		__asm
@@ -165,7 +165,7 @@ void memcpy_accel(void* dst, const void* src, size_t len)
 			sfence
 		}
 	}
-	else if((g_cpuid.m_flags & CCpuID::flag_t::mmx) && len >= 64
+	else if((g_cpuid.m_flags & CCpuID::mmx) && len >= 64
 		&& !((DWORD)src&7) && !((DWORD)dst&7))
 	{
 		__asm 
@@ -266,7 +266,7 @@ bool BitBltFromI420ToRGB(int w, int h, BYTE* dst, int dstpitch, int dbpp, BYTE* 
 
 	void (*asm_YUVtoRGB_row)(void* ARGB1, void* ARGB2, BYTE* Y1, BYTE* Y2, BYTE* U, BYTE* V, long width) = NULL;;
 
-	if((g_cpuid.m_flags & CCpuID::flag_t::ssefpu) && !(w&7))
+	if((g_cpuid.m_flags & CCpuID::ssefpu) && !(w&7))
 	{
 		switch(dbpp)
 		{
@@ -275,7 +275,7 @@ bool BitBltFromI420ToRGB(int w, int h, BYTE* dst, int dstpitch, int dbpp, BYTE* 
 		case 32: asm_YUVtoRGB_row = asm_YUVtoRGB32_row_ISSE; break;
 		}
 	}
-	else if((g_cpuid.m_flags & CCpuID::flag_t::mmx) && !(w&7))
+	else if((g_cpuid.m_flags & CCpuID::mmx) && !(w&7))
 	{
 		switch(dbpp)
 		{
@@ -308,10 +308,10 @@ bool BitBltFromI420ToRGB(int w, int h, BYTE* dst, int dstpitch, int dbpp, BYTE* 
 	}
 	while(h -= 2);
 
-	if(g_cpuid.m_flags & CCpuID::flag_t::mmx)
+	if(g_cpuid.m_flags & CCpuID::mmx)
 		__asm emms
 
-	if(g_cpuid.m_flags & CCpuID::flag_t::ssefpu)
+	if(g_cpuid.m_flags & CCpuID::ssefpu)
 		__asm sfence
 
 	return true;
@@ -455,7 +455,7 @@ bool BitBltFromI420ToYUY2(int w, int h, BYTE* dst, int dstpitch, BYTE* srcy, BYT
 	void (*yuvtoyuy2row)(BYTE* dst, BYTE* srcy, BYTE* srcu, BYTE* srcv, DWORD width) = NULL;
 	void (*yuvtoyuy2row_avg)(BYTE* dst, BYTE* srcy, BYTE* srcu, BYTE* srcv, DWORD width, DWORD pitchuv) = NULL;
 
-	if((g_cpuid.m_flags & CCpuID::flag_t::mmx) && !(w&7))
+	if((g_cpuid.m_flags & CCpuID::mmx) && !(w&7))
 	{
 		yuvtoyuy2row = yuvtoyuy2row_MMX;
 		yuvtoyuy2row_avg = yuvtoyuy2row_avg_MMX;
@@ -484,7 +484,7 @@ bool BitBltFromI420ToYUY2(int w, int h, BYTE* dst, int dstpitch, BYTE* srcy, BYT
 	yuvtoyuy2row(dst, srcy, srcu, srcv, w);
 	yuvtoyuy2row(dst + dstpitch, srcy + srcpitch, srcu, srcv, w);
 
-	if(g_cpuid.m_flags & CCpuID::flag_t::mmx)
+	if(g_cpuid.m_flags & CCpuID::mmx)
 		__asm emms
 
 	return(true);
@@ -877,12 +877,12 @@ void DeinterlaceBlend(BYTE* dst, BYTE* src, DWORD rowbytes, DWORD h, DWORD dstpi
 	void (*asm_blend_row_clipped)(BYTE* dst, BYTE* src, DWORD w, DWORD srcpitch) = NULL;
 	void (*asm_blend_row)(BYTE* dst, BYTE* src, DWORD w, DWORD srcpitch) = NULL;
 
-	if((g_cpuid.m_flags & CCpuID::flag_t::sse2) && !((DWORD)src&0xf) && !((DWORD)dst&0xf) && !(srcpitch&0xf))
+	if((g_cpuid.m_flags & CCpuID::sse2) && !((DWORD)src&0xf) && !((DWORD)dst&0xf) && !(srcpitch&0xf))
 	{
 		asm_blend_row_clipped = asm_blend_row_clipped_SSE2;
 		asm_blend_row = asm_blend_row_SSE2;
 	}
-	else if(g_cpuid.m_flags & CCpuID::flag_t::mmx)
+	else if(g_cpuid.m_flags & CCpuID::mmx)
 	{
 		asm_blend_row_clipped = asm_blend_row_clipped_MMX;
 		asm_blend_row = asm_blend_row_MMX;
@@ -908,7 +908,7 @@ void DeinterlaceBlend(BYTE* dst, BYTE* src, DWORD rowbytes, DWORD h, DWORD dstpi
 
 	asm_blend_row_clipped(dst + dstpitch, src, rowbytes, srcpitch);
 
-	if(g_cpuid.m_flags & CCpuID::flag_t::mmx)
+	if(g_cpuid.m_flags & CCpuID::mmx)
 		__asm emms
 }
 
@@ -923,7 +923,7 @@ void AvgLines8(BYTE* dst, DWORD h, DWORD pitch)
 	{
 		BYTE* tmp = s;
 
-		if((g_cpuid.m_flags & CCpuID::flag_t::sse2) && !((DWORD)tmp&0xf) && !((DWORD)pitch&0xf))
+		if((g_cpuid.m_flags & CCpuID::sse2) && !((DWORD)tmp&0xf) && !((DWORD)pitch&0xf))
 		{
 			__asm
 			{
@@ -950,7 +950,7 @@ AvgLines8_sse2_loop:
 				tmp[pitch] = (tmp[0] + tmp[pitch<<1] + 1) >> 1;
 			}
 		}
-		else if(g_cpuid.m_flags & CCpuID::flag_t::mmx)
+		else if(g_cpuid.m_flags & CCpuID::mmx)
 		{
 			__asm
 			{
@@ -1194,7 +1194,7 @@ bool BitBltFromYUY2ToRGB(int w, int h, BYTE* dst, int dstpitch, int dbpp, BYTE* 
 {
 	void (* YUY2toRGB)(const BYTE* src, BYTE* dst, const BYTE* src_end, int src_pitch, int row_size, bool rec709) = NULL;
 
-	if(g_cpuid.m_flags & CCpuID::flag_t::mmx)
+	if(g_cpuid.m_flags & CCpuID::mmx)
 	{
 		YUY2toRGB = 
 			dbpp == 32 ? mmx_YUY2toRGB32 :

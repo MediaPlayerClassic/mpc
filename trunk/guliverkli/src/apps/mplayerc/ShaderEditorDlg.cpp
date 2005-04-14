@@ -269,7 +269,7 @@ BOOL CShaderEditorDlg::OnInitDialog()
 	targetmap[_T("ps_1_3")] = true;
 	targetmap[_T("ps_1_4")] = true;
 	targetmap[_T("ps_2_0")] = true;
-	targetmap[_T("ps_2_x")] = true;
+	targetmap[_T("ps_2_a")] = true;
 	targetmap[_T("ps_2_sw")] = true;
 	targetmap[_T("ps_3_0")] = true;
 	targetmap[_T("ps_3_sw")] = true;
