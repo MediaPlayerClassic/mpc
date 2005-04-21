@@ -32,10 +32,10 @@
 
 /*
 #define DEBUG_SAVETEXTURES
-#define DEBUG_LOG
-#define DEBUG_LOG2
-#define DEBUG_LOGVERTICES
-#define DEBUG_RENDERTARGETS
+//#define DEBUG_LOG
+//#define DEBUG_LOG2
+//#define DEBUG_LOGVERTICES
+//#define DEBUG_RENDERTARGETS
 */
 
 struct GSDrawingContext
@@ -157,6 +157,8 @@ struct GSVertex
 
 class GSState
 {
+	friend class GSTextureCache;
+
 protected:
 	static const int m_version = 1;
 
@@ -181,10 +183,11 @@ protected:
 	CComPtr<IDirect3DDevice9> m_pD3DDev;
 	CComPtr<IDirect3DSurface9> m_pOrgRenderTarget;
 	CComPtr<IDirect3DPixelShader9> m_pPixelShaders[20];
-	CComPtr<IDirect3DPixelShader9> m_pPixelShaderTFX[5], m_pPixelShaderMerge[3];
+	CComPtr<IDirect3DPixelShader9> m_pPixelShaderTFX[4*3+1], m_pPixelShaderMerge[3];
 	enum {PS11_EN11 = 12, PS11_EN01 = 13, PS11_EN10 = 14, PS11_EN00 = 15};
 	enum {PS14_EN11 = 16, PS14_EN01 = 17, PS14_EN10 = 18, PS14_EN00 = 19};
 	enum {PS_M16 = 0, PS_M24 = 1, PS_M32 = 2};
+	DDCAPS m_ddcaps;
 	D3DCAPS9 m_caps;
 	D3DSURFACE_DESC m_bd;
 	D3DFORMAT m_fmtDepthStencil;
@@ -196,8 +199,8 @@ protected:
 	virtual void FlushPrim() = 0;
 	virtual void Flip() = 0;
 	virtual void EndFrame() = 0;
-	virtual void InvalidateTexture(DWORD TBP0) {}
-	virtual void InvalidateTexture(DWORD TBP0, int x, int y) {InvalidateTexture(TBP0);}
+	virtual void InvalidateTexture(DWORD TBP0, DWORD PSM, CRect r) {}
+	virtual void MaxTexUV(int& tw, int& th) {}
 
 	struct FlipSrc {CComPtr<IDirect3DTexture9> pRT; D3DSURFACE_DESC rd; scale_t scale; CRect src;};
 	void FinishFlip(FlipSrc rt[2], bool fShiftField);
@@ -327,27 +330,31 @@ public:
 		va_start(args, fmt);
 		/**/ ////////////
 		if(_tcsstr(fmt, _T("VSync")) 
-		 || _tcsstr(fmt, _T("*** WARNING ***"))
+		|| _tcsstr(fmt, _T("*** WARNING ***"))
 		|| _tcsstr(fmt, _T("Flush"))
 		// || _tcsstr(fmt, _T("CSR"))
-		|| _tcsstr(fmt, _T("DISP"))
-		|| _tcsstr(fmt, _T("FRAME"))
+		/// || _tcsstr(fmt, _T("DISP"))
+		/// || _tcsstr(fmt, _T("FRAME"))
 		// || _tcsstr(fmt, _T("ZBUF"))
 		// || _tcsstr(fmt, _T("SMODE"))
 		// || _tcsstr(fmt, _T("PMODE"))
 		|| _tcsstr(fmt, _T("BITBLTBUF"))
 		|| _tcsstr(fmt, _T("TRX"))
-		|| _tcsstr(fmt, _T("PRIM"))
+		/// || _tcsstr(fmt, _T("PRIM"))
 		// || _tcsstr(fmt, _T("RGB"))
-		|| _tcsstr(fmt, _T("XYZ"))
+		/// || _tcsstr(fmt, _T("XYZ"))
 		// || _tcsstr(fmt, _T("ST"))
 		// || _tcsstr(fmt, _T("XYOFFSET"))
-		|| _tcsstr(fmt, _T("TEX"))
+		/// || _tcsstr(fmt, _T("TEX"))
+		|| _tcsstr(fmt, _T("TEX0"))
+		|| _tcsstr(fmt, _T("TEX2"))
+		|| _tcsstr(fmt, _T("TEXFLUSH"))
 		// || _tcsstr(fmt, _T("UV"))
 		// || _tcsstr(fmt, _T("FOG"))
 		// || _tcsstr(fmt, _T("ALPHA"))
 		// || _tcsstr(fmt, _T("TBP0")) == fmt
 		// || _tcsstr(fmt, _T("CBP")) == fmt
+		|| _tcsstr(fmt, _T("*TC2 ")) == fmt
 		)
 		if(m_fp)
 		{

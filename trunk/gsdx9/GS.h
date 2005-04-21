@@ -173,6 +173,22 @@ enum PSM
 	PSM_PSMZ16S		= 58,
 };
 
+inline int PaletteEntries(DWORD PSM)
+{
+	switch(PSM)
+	{
+	case PSM_PSMT8:
+	case PSM_PSMT8H:
+		return 256;
+	case PSM_PSMT4:
+	case PSM_PSMT4HL:
+	case PSM_PSMT4HH:
+		return 16;
+	}
+
+	return 0;
+}
+
 //
 // sps2regstructs.h
 //

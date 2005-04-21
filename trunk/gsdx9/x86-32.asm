@@ -3,6 +3,12 @@
 	.model flat
 	.mmx
 	.xmm
+
+	.const
+
+	__uvmin DD 0d01502f9r ; -1e+010
+	__uvmax DD 0501502f9r ; +1e+010
+
 	.code
 	
 ;
@@ -396,11 +402,148 @@ punpcknb macro
 @unSwizzleBlock4_sse2@12 endp
 
 ;
+; unSwizzleBlock8HP
+;
+
+@unSwizzleBlock8HP_sse2@12 proc public
+
+	push		ebx
+
+	mov			ebx, [esp+4+4]
+	mov			eax, 4
+
+	align 16
+@@:
+	movaps		xmm0, [ecx+16*0]
+	movaps		xmm1, [ecx+16*1]
+	movaps		xmm2, [ecx+16*2]
+	movaps		xmm3, [ecx+16*3]
+
+	punpck		qdq, 0, 2, 1, 3, 4, 6
+	
+	pslld		xmm0, 24
+	pslld		xmm2, 24
+	pslld		xmm4, 24
+	pslld		xmm6, 24
+	
+	packssdw	xmm0, xmm2
+	packssdw	xmm4, xmm6
+	packuswb	xmm0, xmm4
+
+	movlps		qword ptr [edx], xmm0
+	movhps		qword ptr [edx+ebx], xmm0
+
+	add			ecx, 64
+	lea			edx, [edx+ebx*2]
+
+	dec			eax
+	jnz			@B
+
+	pop			ebx
+
+	ret			4
+
+@unSwizzleBlock8HP_sse2@12 endp
+
+;
+; unSwizzleBlock4HLP
+;
+
+@unSwizzleBlock4HLP_sse2@12 proc public
+
+	push		ebx
+
+	mov			ebx, [esp+4+4]
+	mov			eax, 4
+	
+	align 16
+@@:
+	movaps		xmm0, [ecx+16*0]
+	movaps		xmm1, [ecx+16*1]
+	movaps		xmm2, [ecx+16*2]
+	movaps		xmm3, [ecx+16*3]
+
+	punpck		qdq, 0, 2, 1, 3, 4, 6
+	
+	psrld		xmm0, 4
+	psrld		xmm2, 4
+	psrld		xmm4, 4
+	psrld		xmm6, 4
+	
+	pslld		xmm0, 24
+	pslld		xmm2, 24
+	pslld		xmm4, 24
+	pslld		xmm6, 24
+	
+	packssdw	xmm0, xmm2
+	packssdw	xmm4, xmm6
+	packuswb	xmm0, xmm4
+
+	movlps		qword ptr [edx], xmm0
+	movhps		qword ptr [edx+ebx], xmm0
+
+	add			ecx, 64
+	lea			edx, [edx+ebx*2]
+
+	dec			eax
+	jnz			@B
+
+	pop			ebx
+
+	ret			4
+
+@unSwizzleBlock4HLP_sse2@12 endp
+
+;
+; unSwizzleBlock4HHP
+;
+
+@unSwizzleBlock4HHP_sse2@12 proc public
+
+	push		ebx
+
+	mov			ebx, [esp+4+4]
+	mov			eax, 4
+
+	align 16
+@@:
+	movaps		xmm0, [ecx+16*0]
+	movaps		xmm1, [ecx+16*1]
+	movaps		xmm2, [ecx+16*2]
+	movaps		xmm3, [ecx+16*3]
+
+	punpck		qdq, 0, 2, 1, 3, 4, 6
+	
+	pslld		xmm0, 28
+	pslld		xmm2, 28
+	pslld		xmm4, 28
+	pslld		xmm6, 28
+	
+	packssdw	xmm0, xmm2
+	packssdw	xmm4, xmm6
+	packuswb	xmm0, xmm4
+
+	movlps		qword ptr [edx], xmm0
+	movhps		qword ptr [edx+ebx], xmm0
+
+	add			ecx, 64
+	lea			edx, [edx+ebx*2]
+
+	dec			eax
+	jnz			@B
+
+	pop			ebx
+
+	ret			4
+
+@unSwizzleBlock4HHP_sse2@12 endp
+
+;
 ; swizzling
 ;
 
 ;
-; SwizzleBlock32_sse2
+; SwizzleBlock32
 ;
 
 @SwizzleBlock32_sse2@16 proc public
@@ -672,5 +815,48 @@ SwizzleBlock32_sse2@WM:
 	ret			4
 
 @SwizzleBlock4_sse2@12 endp
+
+;
+; UVMinMax
+;
+
+@UVMinMax_sse2@12 proc public
+
+	push		ebx
+	mov			ebx, [esp+4+4]
+
+	add			edx, 16
+
+	movss		xmm6, __uvmax
+	pshufd      xmm6, xmm6, 0
+
+	movss		xmm7, __uvmin
+	pshufd      xmm7, xmm7, 0
+
+	align 16
+@@:
+	movaps		xmm0, [edx]
+	minps		xmm6, xmm0
+	maxps		xmm7, xmm0
+	lea			edx, [edx+32]
+
+	dec			ecx
+	jnz			@B
+
+	movhlps		xmm6, xmm6
+	movss		[ebx], xmm6
+	pshufd		xmm6, xmm6, 55h
+	movss		[ebx+4], xmm6
+
+	movhlps		xmm7, xmm7
+	movss		[ebx+8], xmm7
+	pshufd		xmm7, xmm7, 55h
+	movss		[ebx+12], xmm7
+	
+	pop			ebx
+	
+	ret			4
+	
+@UVMinMax_sse2@12 endp
 
 	end

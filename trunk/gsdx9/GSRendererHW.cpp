@@ -46,7 +46,7 @@ GSRendererHW::GSRendererHW(HWND hWnd, HRESULT& hr)
 		hr = m_pD3DDev->SetRenderState(D3DRS_DESTBLENDALPHA, D3DBLEND_ZERO);
 	}
 
-	m_fHalfVRes = AfxGetApp()->GetProfileInt(_T("Settings"), _T("HalfVRes"), FALSE);
+	m_fHalfVRes = !!AfxGetApp()->GetProfileInt(_T("Settings"), _T("HalfVRes"), FALSE);
 }
 
 GSRendererHW::~GSRendererHW()
@@ -87,7 +87,7 @@ void GSRendererHW::VertexKick(bool fSkip)
 	//v.z = 1.0f * (m_v.XYZ.Z>>8)/(UINT_MAX>>8);
 	v.z = log(1.0 + m_v.XYZ.Z)/log_2pow32;
 	//v.z = (float)m_v.XYZ.Z / UINT_MAX;
-	v.rhw = v.z ? 1.0f/v.z : m_v.RGBAQ.Q;
+	v.rhw = v.z ? 1.0f/v.z : 1.0f; //m_v.RGBAQ.Q;
 
 	BYTE R = m_v.RGBAQ.R;
 	BYTE G = m_v.RGBAQ.G;
@@ -109,7 +109,7 @@ void GSRendererHW::VertexKick(bool fSkip)
 		{
 			v.tu = (float)m_v.UV.U / (16<<m_ctxt->TEX0.TW);
 			v.tv = (float)m_v.UV.V / (16<<m_ctxt->TEX0.TH);
-			v.rhw = 1.0f;
+			//v.rhw = 1.0f; // ???
 		}
 		else if(m_v.RGBAQ.Q != 0)
 		{
@@ -127,6 +127,11 @@ void GSRendererHW::VertexKick(bool fSkip)
 	v.fog = (m_de.pPRIM->FGE ? m_v.FOG.F : 0xff) << 24;
 
 	m_vl.AddTail(v);
+
+	if(v.x == 496.00 && v.y == 71.50)
+	{
+		int i = 0;
+	}
 
 	__super::VertexKick(fSkip);
 }
@@ -268,12 +273,7 @@ int GSRendererHW::DrawingKick(bool fSkip)
 	}
 
 	if(fSkip || !m_rs.IsEnabled(0) && !m_rs.IsEnabled(1))
-	{
-#ifdef ENABLE_STRIPFAN
-		FlushPrim();
-#endif
 		return 0;
-	}
 
 	if(!m_de.pPRIM->IIP)
 	{
@@ -364,11 +364,22 @@ scale.y = 1;
 		D3DSURFACE_DESC td;
 		ZeroMemory(&td, sizeof(td));
 
-		if(m_de.pPRIM->TME && CreateTexture(t))
+		if(m_de.pPRIM->TME)
 		{
-			// if(IsRenderTarget(t.m_pTexture)) ConvertRT(t.m_pTexture);
-			//t.m_pTexture->PreLoad();
-			hr = t.m_pTexture->GetLevelDesc(0, &td);
+			if(m_caps.PixelShaderVersion >= D3DVS_VERSION(2, 0))
+			{
+				if(m_tc.FetchPal(this, t))
+				{
+					hr = t.m_pTexture->GetLevelDesc(0, &td);
+				}
+			}
+			else
+			{
+				if(m_tc.Fetch(this, t))
+				{
+					hr = t.m_pTexture->GetLevelDesc(0, &td);
+				}
+			}
 		}
 
 		//////////////////////
@@ -578,14 +589,7 @@ if(m_de.pPRIM->TME && /*(m_ctxt->FRAME.Block()) == 0x00000 &&*/ m_ctxt->TEX0.TBP
 
 		//////////////////////
 
-		tex_t tex;
-		tex.TEX0.TBP0 = m_ctxt->FRAME.Block();
-		tex.TEX0.PSM = PSM_PSMCT32;
-		tex.TEX0.CBP = -1;
-		tex.CLAMP.WMS = tex.CLAMP.WMT = 0;
-		m_tc.Update(tex, scale, pRT);
-
-		//////////////////////
+		m_tc.AddRT(m_ctxt->FRAME.Block(), pRT, scale);
 	}
 
 	m_primtype = D3DPT_FORCE_DWORD;
@@ -626,8 +630,10 @@ void GSRendererHW::Flip()
 
 		if(pPair)
 		{
-			rt[i].pRT = pPair->value;
 			m_tc.ResetAge(pPair->key);
+
+			rt[i].pRT = pPair->value;
+
 			ZeroMemory(&rt[i].rd, sizeof(rt[i].rd));
 			hr = rt[i].pRT->GetLevelDesc(0, &rt[i].rd);
 
@@ -666,6 +672,8 @@ void GSRendererHW::Flip()
 
 				hr = m_pD3DDev->SetTexture(0, pRT);
 				hr = m_pD3DDev->SetTextureStageState(0, D3DTSS_TEXCOORDINDEX, 0);
+				hr = m_pD3DDev->SetSamplerState(0, D3DSAMP_MAGFILTER, D3DTEXF_LINEAR);
+				hr = m_pD3DDev->SetSamplerState(0, D3DSAMP_MINFILTER, D3DTEXF_LINEAR);
 
 				scale_t scale(pRT);
 
@@ -762,23 +770,16 @@ void GSRendererHW::EndFrame()
 	m_tc.IncAge(m_pRenderTargets);
 }
 
-void GSRendererHW::InvalidateTexture(DWORD TBP0)
+void GSRendererHW::InvalidateTexture(DWORD TBP0, DWORD PSM, CRect r)
 {
-/*	CComPtr<IDirect3DTexture9> pRT;
-	if(m_pRenderTargets.Lookup(TBP0, pRT))
-*/	{
-		m_tc.InvalidateByTBP(TBP0);
-		m_tc.InvalidateByCBP(TBP0);
-	}
-}
+	m_tc.Invalidate(this, TBP0, PSM, &r);
 
-void GSRendererHW::InvalidateTexture(DWORD TBP0, int x, int y)
-{
+	//CRect r(m_rs.TRXPOS.DSAX, y, m_rs.TRXREG.RRW, min(m_x == m_rs.TRXPOS.DSAX ? m_y : m_y+1, m_rs.TRXREG.RRH));
+
+/*
 	GSTexture t;
 	if(m_tc.LookupByTBP(TBP0, t))
 	{
-		CRect r(m_rs.TRXPOS.DSAX, y, m_rs.TRXREG.RRW, min(m_x == m_rs.TRXPOS.DSAX ? m_y : m_y+1, m_rs.TRXREG.RRH));
-
 		HRESULT hr;
 		D3DLOCKED_RECT lr;
 
@@ -798,19 +799,11 @@ void GSRendererHW::InvalidateTexture(DWORD TBP0, int x, int y)
 			{
 				m_lm.setupCLUT(m_ctxt->TEX0, m_de.TEXA);
 
-				GSLocalMemory::unSwizzleTexture st = m_lm.GetUnSwizzleTexture(m_ctxt->TEX0.PSM);
-				(m_lm.*st)(w, h, (BYTE*)lr.pBits, lr.Pitch, m_ctxt->TEX0, m_de.TEXA);
-/*
-				BYTE* dst = (BYTE*)lr.pBits;
-				GSLocalMemory::readTexel rt = m_lm.GetReadTexel(t.m_tex.TEX0.PSM);
+				m_lm.ReadTexture(w, h, (BYTE*)lr.pBits, lr.Pitch, m_ctxt->TEX0, m_de.TEXA, t.m_tex.CLAMP);
 
-				for(int y = 0, diff = lr.Pitch - w*4; y < h; y++, dst += diff)
-					for(int x = 0; x < w; x++, dst += 4)
-						*(DWORD*)dst = (m_lm.*rt)(r.left + x, r.top + y, t.m_tex.TEX0, t.m_tex.TEXA);
-*/
 				t.m_pTexture->UnlockRect(0);
 
-				m_stats.IncReads(w*h);
+				m_stats.IncReads(w*h*4);
 			}
 			else
 			{
@@ -853,7 +846,7 @@ void GSRendererHW::InvalidateTexture(DWORD TBP0, int x, int y)
 
 				pTexture->UnlockRect(0);
 
-				m_stats.IncReads(r.Width()*r.Height());
+				m_stats.IncReads(r.Width()*r.Height()*4);
 
 				struct
 				{
@@ -896,6 +889,8 @@ void GSRendererHW::InvalidateTexture(DWORD TBP0, int x, int y)
 				hr = m_pD3DDev->SetTextureStageState(1, D3DTSS_ALPHAOP, D3DTOP_DISABLE);
 				hr = m_pD3DDev->SetSamplerState(0, D3DSAMP_ADDRESSU, D3DTADDRESS_CLAMP);
 				hr = m_pD3DDev->SetSamplerState(0, D3DSAMP_ADDRESSV, D3DTADDRESS_CLAMP);
+				hr = m_pD3DDev->SetSamplerState(0, D3DSAMP_MAGFILTER, D3DTEXF_LINEAR);
+				hr = m_pD3DDev->SetSamplerState(0, D3DSAMP_MINFILTER, D3DTEXF_LINEAR);
 
 				hr = m_pD3DDev->BeginScene();
 				hr = m_pD3DDev->SetPixelShader(NULL);
@@ -911,258 +906,97 @@ void GSRendererHW::InvalidateTexture(DWORD TBP0, int x, int y)
 	}
 
 	m_tc.InvalidateByCBP(TBP0);
+*/
 }
 
-void GSRendererHW::CalcRegionToUpdate(int& tw, int& th)
+void GSRendererHW::MaxTexUV(int& tw, int& th)
 {
 	if(m_ctxt->CLAMP.WMS < 3 && m_ctxt->CLAMP.WMT < 3)
 	{
-		float tumin, tvmin, tumax, tvmax;
-/*
-clock_t diff = 0;
-for(int i = 0; i < 10; i++)
-{
-	clock_t start = clock();
-	for(int j = 0; j < 100; j++)
-	{
-*/		tumin = tvmin = +1e10;
-		tumax = tvmax = -1e10;
+		uvmm_t uv;
+		UVMinMax(m_nVertices, (vertex_t*)m_pVertices, &uv);
 
-		HWVERTEX* pVertices = m_pVertices;
-		int nVertices = m_nVertices;
-
-#if _M_IX86_FP >= 2 // TODO: || defined(_M_AMD64)
-		__asm
-		{
-			mov			esi, pVertices
-			mov			ecx, nVertices
-
-			movss		xmm6, tumin
-			pshufd      xmm6, xmm6, 0
-
-			movss		xmm7, tumax
-			pshufd      xmm7, xmm7, 0
-
-			add			esi, 16
-
-			align 16
-CalcRegionToUpdate_loop:
-
-			movaps		xmm0, [esi]
-			minps		xmm6, xmm0
-			maxps		xmm7, xmm0
-			lea			esi, [esi+32]
-
-			dec			ecx
-			jnz			CalcRegionToUpdate_loop
-
-			movhlps		xmm6, xmm6
-			movss		tumin, xmm6
-			pshufd		xmm6, xmm6, 0x55
-			movss		tvmin, xmm6
-
-			movhlps		xmm7, xmm7
-			movss		tumax, xmm7
-			pshufd		xmm7, xmm7, 0x55
-			movss		tvmax, xmm7
-		}
-#else
-		for(; nVertices-- > 0; pVertices++)
-		{
-			float tu = pVertices->tu;
-			if(tumax < tu) tumax = tu;
-			if(tumin > tu) tumin = tu;
-			float tv = pVertices->tv;
-			if(tvmax < tv) tvmax = tv;
-			if(tvmin > tv) tvmin = tv;
-		}
-#endif
-/*
-	}
-	diff += clock() - start;
-}
-CString str;
-str.Format(_T("%d"), diff / 10);
-AfxMessageBox(str, MB_OK);
-*/
 		if(m_ctxt->CLAMP.WMS == 0)
 		{
-			float fmin = floor(tumin);
-			float fmax = floor(tumax);
+			float fmin = floor(uv.umin);
+			float fmax = floor(uv.umax);
 
-			if(fmin != fmax) {tumin = 0; tumax = 1.0f;}
-			else {tumin -= fmin; tumax -= fmax;}
+			if(fmin != fmax) {uv.umin = 0; uv.umax = 1.0f;}
+			else {uv.umin -= fmin; uv.umax -= fmax;}
 
 			// FIXME
-			if(tumin == 0 && tumax != 1.0f) tumax = 1.0f;
+			if(uv.umin == 0 && uv.umax != 1.0f) uv.umax = 1.0f;
 		}
 		else if(m_ctxt->CLAMP.WMS == 1)
 		{
-			if(tumin < 0) tumin = 0;
-			if(tumax > 1.0f) tumax = 1.0f;
+			if(uv.umin < 0) uv.umin = 0;
+			if(uv.umax > 1.0f) uv.umax = 1.0f;
 		}
 		else if(m_ctxt->CLAMP.WMS == 2)
 		{
 			float minu = 1.0f * m_ctxt->CLAMP.MINU / (1<<m_ctxt->TEX0.TW);
 			float maxu = 1.0f * m_ctxt->CLAMP.MAXU / (1<<m_ctxt->TEX0.TW);
-			if(tumin < minu) tumin = minu;
-			if(tumax > maxu) tumax = maxu;
+			if(uv.umin < minu) uv.umin = minu;
+			if(uv.umax > maxu) uv.umax = maxu;
 		}
 
 		if(m_ctxt->CLAMP.WMT == 0)
 		{
-			float fmin = floor(tvmin);
-			float fmax = floor(tvmax);
+			float fmin = floor(uv.vmin);
+			float fmax = floor(uv.vmax);
 
-			if(fmin != fmax) {tvmin = 0; tvmax = 1.0f;}
-			else {tvmin -= fmin; tvmax -= fmax;}
+			if(fmin != fmax) {uv.vmin = 0; uv.vmax = 1.0f;}
+			else {uv.vmin -= fmin; uv.vmax -= fmax;}
 
 			// FIXME
-			if(tvmin == 0 && tvmax != 1.0f) tvmax = 1.0f;
+			if(uv.vmin == 0 && uv.vmax != 1.0f) uv.vmax = 1.0f;
 		}
 		else if(m_ctxt->CLAMP.WMT == 1)
 		{
-			if(tvmin < 0) tvmin = 0;
-			if(tvmax > 1.0f) tvmax = 1.0f;
+			if(uv.vmin < 0) uv.vmin = 0;
+			if(uv.vmax > 1.0f) uv.vmax = 1.0f;
 		}
 		else if(m_ctxt->CLAMP.WMT == 2)
 		{
 			float minv = 1.0f * m_ctxt->CLAMP.MINV / (1<<m_ctxt->TEX0.TH);
 			float maxv = 1.0f * m_ctxt->CLAMP.MAXV / (1<<m_ctxt->TEX0.TH);
-			if(tvmin < minv) tvmin = minv;
-			if(tvmax > maxv) tvmax = maxv;
+			if(uv.vmin < minv) uv.vmin = minv;
+			if(uv.vmax > maxv) uv.vmax = maxv;
 		}
 
-		tumin *= tw;
-		tumax *= tw;
-		tvmin *= th;
-		tvmax *= th;
-
+		uv.umin *= tw;
+		uv.umax *= tw;
+		uv.vmin *= th;
+		uv.vmax *= th;
+/*
 		// TODO
 		// tx = ;
 		// ty = ;
-		tw = min(((int)tumax + 1 + 31) & ~31, tw);
-		th = min(((int)tvmax + 1 + 15) & ~15, th);
+		tw = min(((int)uv.umax + 1 + 31) & ~31, tw);
+		th = min(((int)uv.vmax + 1 + 15) & ~15, th);
+*/
+		CSize size = GSLocalMemory::GetBlockSize(m_ctxt->TEX0.PSM);
+		tw = min(((int)uv.umax + (size.cx-1) + 1) & ~(size.cx-1), tw);
+		th = min(((int)uv.vmax + (size.cy-1) + 1) & ~(size.cy-1), th);
 	}
-}
-
-bool GSRendererHW::CreateTexture(GSTexture& t)
-{
-	int tw = 1 << m_ctxt->TEX0.TW, tw0 = tw;
-	int th = 1 << m_ctxt->TEX0.TH, th0 = th;
-
-	HRESULT hr;
-	CComPtr<IDirect3DTexture9> pTexture;
-
-	tex_t tex;
-	tex.TEX0 = m_ctxt->TEX0;
-	tex.CLAMP = m_ctxt->CLAMP;
-	tex.TEXA = m_de.TEXA;
-	tex.TEXCLUT = m_de.TEXCLUT;
-
-	if(m_tc.Lookup(tex, t))
-	{
-		if(t.m_fRT) return(true);
-
-		CalcRegionToUpdate(tw, th);
-		if(t.m_valid.cx >= tw && t.m_valid.cy >= th)
-			return(true);
-
-		tw = max(tw, t.m_valid.cx);
-		th = max(th, t.m_valid.cy);
-
-		pTexture = t.m_pTexture;
-	}
-	else
-	{
-		hr = m_tc.CreateTexture(m_ctxt->TEX0, m_pD3DDev, &pTexture);
-		//hr = m_pD3DDev->CreateTexture(tw, th, 1, 0, D3DFMT_A8R8G8B8, D3DPOOL_MANAGED, &pTexture, NULL);
-		if(FAILED(hr) || !pTexture) return(false);
-
-		CalcRegionToUpdate(tw, th);
-	}
-
-	m_lm.setupCLUT(m_ctxt->TEX0, m_de.TEXA);
-
-	GSLocalMemory::readTexel rt = m_lm.GetReadTexel(m_ctxt->TEX0.PSM);
-
-	RECT rlock = {0, 0, tw, th};
-
-	D3DLOCKED_RECT r;
-	if(FAILED(hr = pTexture->LockRect(0, &r, tw == tw0 && th == th0 ? NULL : &rlock, 0)))
-		return(false);
-
-	BYTE* dst = (BYTE*)r.pBits;
-
-#ifdef DEBUG
-	memset(dst, 0xff, r.Pitch*(1<<m_ctxt->TEX0.TH));
-#endif
-
-	if((m_ctxt->CLAMP.WMS&2) || (m_ctxt->CLAMP.WMT&2))
-	{
-		int tx, ty;
-
-		for(int y = 0, diff = r.Pitch - tw*4; y < th; y++, dst += diff)
-		{
-			for(int x = 0; x < tw; x++, dst += 4)
-			{
-				switch(m_ctxt->CLAMP.WMS)
-				{
-				default: tx = x; break;
-				case 2: tx = x < m_ctxt->CLAMP.MINU ? m_ctxt->CLAMP.MINU : x > m_ctxt->CLAMP.MAXU ? m_ctxt->CLAMP.MAXU : x; break;
-				case 3: tx = (x & m_ctxt->CLAMP.MINU) | m_ctxt->CLAMP.MAXU; break;
-				}
-
-				switch(m_ctxt->CLAMP.WMT)
-				{
-				default: ty = y; break;
-				case 2: ty = y < m_ctxt->CLAMP.MINV ? m_ctxt->CLAMP.MINV : y > m_ctxt->CLAMP.MAXV ? m_ctxt->CLAMP.MAXV : y; break;
-				case 3: ty = (y & m_ctxt->CLAMP.MINV) | m_ctxt->CLAMP.MAXV; break;
-				}
-
-				*(DWORD*)dst = (m_lm.*rt)(tx, ty, m_ctxt->TEX0, m_de.TEXA);
-			}
-		}
-	}
-	else
-	{
-		GSLocalMemory::unSwizzleTexture st = m_lm.GetUnSwizzleTexture(m_ctxt->TEX0.PSM);
-		(m_lm.*st)(tw, th, dst, r.Pitch, m_ctxt->TEX0, m_de.TEXA);
-	}
-
-	pTexture->UnlockRect(0);
-
-	m_tc.Add(tex, scale_t(1, 1), pTexture, CSize(tw, th));
-	if(!m_tc.Lookup(tex, t)) ASSERT(0); // ehe
-
-//	t = GSTexture(tex, scale_t(1, 1), pTexture, CSize(tw, th));
-
-	m_stats.IncReads(tw*th);
-
-#ifdef DEBUG_SAVETEXTURES
-	CString fn;
-	fn.Format(_T("c:\\%08I64x_%I64d_%I64d_%I64d_%I64d_%I64d_%I64d_%I64d-%I64d_%I64d-%I64d.bmp"), 
-		m_ctxt->TEX0.TBP0, m_ctxt->TEX0.PSM, m_ctxt->TEX0.TBW, 
-		m_ctxt->TEX0.TW, m_ctxt->TEX0.TH,
-		m_ctxt->CLAMP.WMS, m_ctxt->CLAMP.WMT, m_ctxt->CLAMP.MINU, m_ctxt->CLAMP.MAXU, m_ctxt->CLAMP.MINV, m_ctxt->CLAMP.MAXV);
-	D3DXSaveTextureToFile(fn, D3DXIFF_BMP, pTexture, NULL);
-#endif
-
-	return(true);
 }
 
 void GSRendererHW::SetupTexture(const GSTexture& t, float tsx, float tsy)
 {
 	HRESULT hr;
 
+	// FIXME
+	int tw = 1 << t.m_TEX0.TW;
+	int th = 1 << t.m_TEX0.TH;
+	float rw = 1.0f / tw;
+	float rh = 1.0f / th;
+
 	CComPtr<IDirect3DPixelShader9> pPixelShader;
-/*
-	float repeatmin_x = 0, repeatmin_y = 0; 
-	float repeatmax_x = tsx, repeatmax_y = tsy;
-*/
+
 	if(m_de.pPRIM->TME && t.m_pTexture)
 	{
 		hr = m_pD3DDev->SetTexture(0, t.m_pTexture);
+		hr = m_pD3DDev->SetTexture(1, t.m_pPalette);
 
 		D3DTEXTUREADDRESS u, v;
 
@@ -1181,9 +1015,16 @@ void GSRendererHW::SetupTexture(const GSTexture& t, float tsx, float tsy)
 		hr = m_pD3DDev->SetSamplerState(0, D3DSAMP_ADDRESSU, u);
 		hr = m_pD3DDev->SetSamplerState(0, D3DSAMP_ADDRESSV, v);
 
+		hr = m_pD3DDev->SetSamplerState(0, D3DSAMP_MAGFILTER, t.m_pPalette ? D3DTEXF_POINT : D3DTEXF_LINEAR);
+		hr = m_pD3DDev->SetSamplerState(0, D3DSAMP_MINFILTER, t.m_pPalette ? D3DTEXF_POINT : D3DTEXF_LINEAR);
+		hr = m_pD3DDev->SetSamplerState(1, D3DSAMP_MAGFILTER, t.m_pPalette ? D3DTEXF_POINT : D3DTEXF_LINEAR);
+		hr = m_pD3DDev->SetSamplerState(1, D3DSAMP_MINFILTER, t.m_pPalette ? D3DTEXF_POINT : D3DTEXF_LINEAR);
+
 		if(!pPixelShader && m_caps.PixelShaderVersion >= D3DVS_VERSION(2, 0) && m_pPixelShaderTFX[m_ctxt->TEX0.TFX])
 		{
-			pPixelShader = m_pPixelShaderTFX[m_ctxt->TEX0.TFX];
+			int i = m_ctxt->TEX0.TFX;
+			if(t.m_pPalette) i += 4;
+			pPixelShader = m_pPixelShaderTFX[i];
 		}
 
 		if(!pPixelShader && m_caps.PixelShaderVersion >= D3DVS_VERSION(1, 1))
@@ -1298,15 +1139,11 @@ void GSRendererHW::SetupTexture(const GSTexture& t, float tsx, float tsy)
 	else
 	{
 		hr = m_pD3DDev->SetTexture(0, NULL);
+		hr = m_pD3DDev->SetTexture(1, NULL);
 
-		if(!pPixelShader && m_caps.PixelShaderVersion >= D3DVS_VERSION(3, 0) && m_pPixelShaderTFX[4])
+		if(!pPixelShader && m_caps.PixelShaderVersion >= D3DVS_VERSION(2, 0) && m_pPixelShaderTFX[12])
 		{
-			pPixelShader = m_pPixelShaderTFX[4];
-		}
-
-		if(!pPixelShader && m_caps.PixelShaderVersion >= D3DVS_VERSION(2, 0) && m_pPixelShaderTFX[4])
-		{
-			pPixelShader = m_pPixelShaderTFX[4];
+			pPixelShader = m_pPixelShaderTFX[12];
 		}
 
 		if(!pPixelShader && m_caps.PixelShaderVersion >= D3DVS_VERSION(1, 1) && m_pPixelShaders[11])
@@ -1321,17 +1158,17 @@ void GSRendererHW::SetupTexture(const GSTexture& t, float tsx, float tsy)
 		}
 	}
 
-	hr = m_pD3DDev->SetTexture(1, NULL);
-
-	float fConstData[] = 
+	float fConstData[][4] = 
 	{
-		m_ctxt->TEX0.TFX, !!m_ctxt->TEX0.TCC, t.m_fRT, !!(m_de.pPRIM->TME && t.m_pTexture),
-		m_ctxt->TEX0.PSM, m_de.TEXA.AEM, (float)m_de.TEXA.TA0 / 255, (float)m_de.TEXA.TA1 / 255,
-/*		repeatmin_x, repeatmin_y, 0, 0, 
-		repeatmax_x, repeatmax_y, 0, 0, 
-*/	};
+		{(float)m_ctxt->TEX0.TFX, (float)m_ctxt->TEX0.TCC, (float)t.m_fRT, (float)!!(m_de.pPRIM->TME && t.m_pTexture)},
+		{(float)m_ctxt->TEX0.PSM, (float)m_de.TEXA.AEM, (float)m_de.TEXA.TA0 / 255, (float)m_de.TEXA.TA1 / 255},
+		{(float)tw, (float)th, 0, 0},
+		{rw, rh, 0, 0},
+		{rw, 0, 0, 0},
+		{0, rh, 0, 0},
+	};
 
-	hr = m_pD3DDev->SetPixelShaderConstantF(0, fConstData, countof(fConstData)/4);
+	hr = m_pD3DDev->SetPixelShaderConstantF(0, (float*)fConstData, countof(fConstData));
 
 	hr = m_pD3DDev->SetPixelShader(pPixelShader);
 }

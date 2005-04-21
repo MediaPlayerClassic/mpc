@@ -185,14 +185,8 @@ void __fastcall GSState::GIFRegHandlerPRIM(GIFReg* r)
 		r->PRIM.CTXT,
 		r->PRIM.FIX);
 
-	if(m_de.PRIM.i64 != r->PRIM.i64
-#ifdef ENABLE_STRIPFAN
-	|| m_vl.GetCount()
-#endif
-		)
-	{
+	if(m_de.PRIM.i64 != r->PRIM.i64)
 		FlushPrim();
-	}
 
 	ASSERT(r->PRIM.PRIM != 7);
 

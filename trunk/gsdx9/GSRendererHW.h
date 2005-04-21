@@ -39,15 +39,13 @@ class GSRendererHW : public GSRenderer<HWVERTEX>
 {
 	bool m_fHalfVRes;
 
-	void CalcRegionToUpdate(int& tw, int& th);
-
 protected:
 	CSurfMap<IDirect3DTexture9> m_pRenderTargets;
 	CSurfMap<IDirect3DSurface9> m_pDepthStencils;
 	CMap<DWORD, DWORD, CGSWnd*, CGSWnd*> m_pRenderWnds;
 
 	GSTextureCache m_tc;
-	bool CreateTexture(GSTexture& t);
+
 	void SetupTexture(const GSTexture& t, float tsx, float tsy);
 	void SetupAlphaBlend();
 
@@ -57,8 +55,8 @@ protected:
 	void FlushPrim();
 	void Flip();
 	void EndFrame();
-	void InvalidateTexture(DWORD TBP0);
-	void InvalidateTexture(DWORD TBP0, int x, int y);
+	void InvalidateTexture(DWORD TBP0, DWORD PSM, CRect r);
+	void MaxTexUV(int& tw, int& th);
 
 	D3DPRIMITIVETYPE m_primtype;
 

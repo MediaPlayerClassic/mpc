@@ -126,6 +126,18 @@ GSState::GSState(int w, int h, HWND hWnd, HRESULT& hr)
 	m_fpGIFRegHandlers[GIF_A_D_REG_FINISH] = &GSState::GIFRegHandlerFINISH;
 	m_fpGIFRegHandlers[GIF_A_D_REG_LABEL] = &GSState::GIFRegHandlerLABEL;
 
+	// DD
+
+	CComPtr<IDirectDraw7> pDD; 
+	if(FAILED(DirectDrawCreateEx(0, (void**)&pDD, IID_IDirectDraw7, 0)))
+		return;
+
+	m_ddcaps.dwSize = sizeof(DDCAPS); 
+	if(FAILED(pDD->GetCaps(&m_ddcaps, NULL)))
+		return;
+
+	pDD = NULL;
+
 	// D3D
 
 	if(!(m_pD3D = Direct3DCreate9(D3D_SDK_VERSION))
@@ -150,6 +162,7 @@ GSState::GSState(int w, int h, HWND hWnd, HRESULT& hr)
 	d3dpp.BackBufferHeight = h;
 //	d3dpp.Flags = D3DPRESENTFLAG_LOCKABLE_BACKBUFFER;
 //	d3dpp.Flags = D3DPRESENTFLAG_VIDEO;
+	d3dpp.PresentationInterval = D3DPRESENT_DONOTWAIT;
 
 	int ModeWidth = pApp->GetProfileInt(_T("Settings"), _T("ModeWidth"), 0);
 	int ModeHeight = pApp->GetProfileInt(_T("Settings"), _T("ModeHeight"), 0);
@@ -215,19 +228,32 @@ GSState::GSState(int w, int h, HWND hWnd, HRESULT& hr)
 
 	m_caps.PixelShaderVersion = min(PixelShaderVersion, m_caps.PixelShaderVersion);
 
+	const TCHAR* hlsl_tfx[] = 
+	{
+		_T("main_tfx0"),
+		_T("main_tfx1"),
+		_T("main_tfx2"),
+		_T("main_tfx3"),
+		_T("main_tfx0_pal_ln"),
+		_T("main_tfx1_pal_ln"),
+		_T("main_tfx2_pal_ln"),
+		_T("main_tfx3_pal_ln"),
+		_T("main_tfx0_pal_pt"),
+		_T("main_tfx1_pal_pt"),
+		_T("main_tfx2_pal_pt"),
+		_T("main_tfx3_pal_pt"),
+		_T("main_tfx4"),
+	};
+
 	// ps_3_0
 
 	if(m_caps.PixelShaderVersion >= D3DVS_VERSION(3, 0))
 	{
-		for(int i = 0; i < 5; i++)
+		for(int i = 0; i < countof(hlsl_tfx); i++)
 		{
 			if(m_pPixelShaderTFX[i]) continue;
 
-			CString main;
-			main.Format(_T("main_tfx%d"), i);
-			// main.Format(_T("main_tfx"));
-
-			CompileShaderFromResource(m_pD3DDev, IDR_PS20_TFX, main, _T("ps_3_0"), D3DXSHADER_AVOID_FLOW_CONTROL, &m_pPixelShaderTFX[i]);
+			CompileShaderFromResource(m_pD3DDev, IDR_PS20_TFX, hlsl_tfx[i], _T("ps_3_0"), D3DXSHADER_AVOID_FLOW_CONTROL, &m_pPixelShaderTFX[i]);
 		}
 
 		for(int i = 0; i < 3; i++)
@@ -236,7 +262,6 @@ GSState::GSState(int w, int h, HWND hWnd, HRESULT& hr)
 
 			CString main;
 			main.Format(_T("main%d"), i);
-
 			CompileShaderFromResource(m_pD3DDev, IDR_PS20_MERGE, main, _T("ps_3_0"), D3DXSHADER_AVOID_FLOW_CONTROL, &m_pPixelShaderMerge[i]);
 		}
 	}
@@ -245,15 +270,11 @@ GSState::GSState(int w, int h, HWND hWnd, HRESULT& hr)
 
 	if(m_caps.PixelShaderVersion >= D3DVS_VERSION(2, 0))
 	{
-		for(int i = 0; i < 5; i++)
+		for(int i = 0; i < countof(hlsl_tfx); i++)
 		{
 			if(m_pPixelShaderTFX[i]) continue;
 
-			CString main;
-			main.Format(_T("main_tfx%d"), i);
-			// main.Format(_T("main_tfx"));
-
-			CompileShaderFromResource(m_pD3DDev, IDR_PS20_TFX, main, _T("ps_2_0"), 0, &m_pPixelShaderTFX[i]);
+			CompileShaderFromResource(m_pD3DDev, IDR_PS20_TFX, hlsl_tfx[i], _T("ps_2_0"), 0, &m_pPixelShaderTFX[i]);
 		}
 
 		for(int i = 0; i < 3; i++)
@@ -262,7 +283,6 @@ GSState::GSState(int w, int h, HWND hWnd, HRESULT& hr)
 
 			CString main;
 			main.Format(_T("main%d"), i);
-
 			CompileShaderFromResource(m_pD3DDev, IDR_PS20_MERGE, main, _T("ps_2_0"), 0, &m_pPixelShaderMerge[i]);
 		}
 	}
@@ -785,6 +805,9 @@ void GSState::VSync()
 
 	m_stats.VSync(m_perfmon.CpuUsage());
 	CString str = m_stats.ToString(m_rs.GetFPS());
+
+	str.Format(_T("%s - %.2f MB"), CString(str), 1.0f*m_pD3DDev->GetAvailableTextureMem()/1024/1024);
+
 	LOG(_T("VSync(%s)\n"), str);
 	if(!(m_stats.GetFrame()&7)) SetWindowText(m_hWnd, str);
 }
@@ -875,6 +898,11 @@ void GSState::FinishFlip(FlipSrc rt[2], bool fShiftField)
 
 	hr = m_pD3DDev->SetTextureStageState(0, D3DTSS_TEXCOORDINDEX, 0);
 	hr = m_pD3DDev->SetTextureStageState(1, D3DTSS_TEXCOORDINDEX, 1);
+
+	hr = m_pD3DDev->SetSamplerState(0, D3DSAMP_MAGFILTER, D3DTEXF_LINEAR);
+	hr = m_pD3DDev->SetSamplerState(0, D3DSAMP_MINFILTER, D3DTEXF_LINEAR);
+	hr = m_pD3DDev->SetSamplerState(1, D3DSAMP_MAGFILTER, D3DTEXF_LINEAR);
+	hr = m_pD3DDev->SetSamplerState(1, D3DSAMP_MINFILTER, D3DTEXF_LINEAR);
 
 	hr = m_pD3DDev->SetSamplerState(0, D3DSAMP_ADDRESSU, D3DTADDRESS_CLAMP);
 	hr = m_pD3DDev->SetSamplerState(0, D3DSAMP_ADDRESSV, D3DTADDRESS_CLAMP);

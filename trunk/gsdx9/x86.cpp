@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include "GSTables.h"
+#include "x86.h"
 /*
 #define loadunp(r0, r1, r2, r3)				\
 	__m128i xmm##r0 = ((__m128i*)src)[0];	\
@@ -53,40 +54,40 @@ void __fastcall unSwizzleBlock16_c_sse2(BYTE* src, BYTE* dst, int dstpitch)
 */
 void __fastcall unSwizzleBlock32_c(BYTE* src, BYTE* dst, int dstpitch)
 {
-	WORD* s = &columnTable32[0][0];
+	DWORD* s = &columnTable32[0][0];
 
-	for(int j = 0, diff = dstpitch - 8*4; j < 8; j++, dst += diff)
-		for(int i = 0; i < 8; i++, dst += 4)
-			*(DWORD*)dst = ((DWORD*)src)[*s++];
+	for(int j = 0; j < 8; j++, s += 8, dst += dstpitch)
+		for(int i = 0; i < 8; i++)
+			((DWORD*)dst)[i] = ((DWORD*)src)[s[i]];
 }
 
 void __fastcall unSwizzleBlock16_c(BYTE* src, BYTE* dst, int dstpitch)
 {
-	WORD* s = &columnTable16[0][0];
+	DWORD* s = &columnTable16[0][0];
 
-	for(int j = 0, diff = dstpitch - 16*2; j < 8; j++, dst += diff)
-		for(int i = 0; i < 16; i++, dst += 2)
-			*(WORD*)dst = ((WORD*)src)[*s++];
+	for(int j = 0; j < 8; j++, s += 16, dst += dstpitch)
+		for(int i = 0; i < 16; i++)
+			((WORD*)dst)[i] = ((WORD*)src)[s[i]];
 }
 
 void __fastcall unSwizzleBlock8_c(BYTE* src, BYTE* dst, int dstpitch)
 {
-	WORD* s = &columnTable8[0][0];
+	DWORD* s = &columnTable8[0][0];
 
-	for(int j = 0, diff = dstpitch - 16; j < 16; j++, dst += diff)
+	for(int j = 0; j < 16; j++, s += 16, dst += dstpitch)
 		for(int i = 0; i < 16; i++)
-			*dst++ = src[*s++];
+			dst[i] = src[s[i]];
 }
 
 void __fastcall unSwizzleBlock4_c(BYTE* src, BYTE* dst, int dstpitch)
 {
-	WORD* s = &columnTable4[0][0];
+	DWORD* s = &columnTable4[0][0];
 
-	for(int j = 0; j < 16; j++, dst += dstpitch)
+	for(int j = 0; j < 16; j++, s += 32, dst += dstpitch)
 	{
 		for(int i = 0; i < 32; i++)
 		{
-			DWORD addr = *s++;
+			DWORD addr = s[i];
 			BYTE c = (src[addr>>1] >> ((addr&1) << 2)) & 0x0f;
 			int shift = (i&1) << 2;
 			dst[i >> 1] = (dst[i >> 1] & (0xf0 >> shift)) | (c << shift);
@@ -94,54 +95,145 @@ void __fastcall unSwizzleBlock4_c(BYTE* src, BYTE* dst, int dstpitch)
 	}
 }
 
+void __fastcall unSwizzleBlock8HP_c(BYTE* src, BYTE* dst, int dstpitch)
+{
+	DWORD* s = &columnTable32[0][0];
+
+	for(int j = 0; j < 8; j++, s += 8, dst += dstpitch)
+		for(int i = 0; i < 8; i++)
+			dst[i] = (BYTE)(((DWORD*)src)[s[i]]>>24);
+}
+
+void __fastcall unSwizzleBlock4HLP_c(BYTE* src, BYTE* dst, int dstpitch)
+{
+	DWORD* s = &columnTable32[0][0];
+
+	for(int j = 0; j < 8; j++, s += 8, dst += dstpitch)
+		for(int i = 0; i < 8; i++)
+			dst[i] = (BYTE)(((DWORD*)src)[s[i]]>>24)&0xf;
+}
+
+void __fastcall unSwizzleBlock4HHP_c(BYTE* src, BYTE* dst, int dstpitch)
+{
+	DWORD* s = &columnTable32[0][0];
+
+	for(int j = 0; j < 8; j++, s += 8, dst += dstpitch)
+		for(int i = 0; i < 8; i++)
+			dst[i] = (BYTE)(((DWORD*)src)[s[i]]>>28);
+}
+
+void __fastcall unSwizzleBlock4P_c(BYTE* src, BYTE* dst, int dstpitch)
+{
+	DWORD* s = &columnTable4[0][0];
+
+	for(int j = 0; j < 16; j++, s += 32, dst += dstpitch)
+	{
+		for(int i = 0; i < 32; i++)
+		{
+			DWORD addr = s[i];
+			dst[i] = (src[addr>>1] >> ((addr&1) << 2)) & 0x0f;
+		}
+	}
+}
+
+// TODO: assembly version plz...
+
+__declspec(align(16)) static BYTE s_block4[(32/2)*16];
+
+void __fastcall unSwizzleBlock4P_amd64(BYTE* src, BYTE* dst, int dstpitch)
+{
+	unSwizzleBlock4(src, (BYTE*)s_block4, sizeof(s_block4)/16);
+
+	BYTE* s = s_block4;
+	BYTE* d = dst;
+
+	for(int j = 0; j < 16; j++, s += 32/2, d += dstpitch)
+		for(int i = 0; i < 32/2; i++)
+			d[i*2] = s[i]&0x0f,
+			d[i*2+1] = s[i]>>4;
+}
+
+void __fastcall unSwizzleBlock4P_sse2(BYTE* src, BYTE* dst, int dstpitch)
+{
+	unSwizzleBlock4(src, (BYTE*)s_block4, sizeof(s_block4)/16);
+
+	BYTE* s = s_block4;
+	BYTE* d = dst;
+
+	for(int j = 0; j < 16; j++, s += 32/2, d += dstpitch)
+		for(int i = 0; i < 32/2; i++)
+			d[i*2] = s[i]&0x0f,
+			d[i*2+1] = s[i]>>4;
+}
+
+//
+
 void __fastcall SwizzleBlock32_c(BYTE* dst, BYTE* src, int srcpitch, DWORD WriteMask)
 {
-	WORD* d = &columnTable32[0][0];
+	DWORD* d = &columnTable32[0][0];
 
 	if(WriteMask == 0xffffffff)
 	{
-		for(int j = 0, diff = srcpitch - 8*4; j < 8; j++, src += diff)
-			for(int i = 0; i < 8; i++, src += 4)
-				((DWORD*)dst)[*d++] = *(DWORD*)src;
+		for(int j = 0; j < 8; j++, d += 8, src += srcpitch)
+			for(int i = 0; i < 8; i++)
+				((DWORD*)dst)[d[i]] = ((DWORD*)src)[i];
 	}
 	else
 	{
-		for(int j = 0, diff = srcpitch - 8*4; j < 8; j++, src += diff)
-			for(int i = 0; i < 8; i++, src += 4, d++)
-				((DWORD*)dst)[*d] = (((DWORD*)dst)[*d] & ~WriteMask) | (*(DWORD*)src & WriteMask);
+		for(int j = 0; j < 8; j++, d += 8, src += srcpitch)
+			for(int i = 0; i < 8; i++)
+				((DWORD*)dst)[d[i]] = (((DWORD*)dst)[d[i]] & ~WriteMask) | (((DWORD*)src)[i] & WriteMask);
 	}
 }
 
 void __fastcall SwizzleBlock16_c(BYTE* dst, BYTE* src, int srcpitch)
 {
-	WORD* d = &columnTable16[0][0];
+	DWORD* d = &columnTable16[0][0];
 
-	for(int j = 0, diff = srcpitch - 16*2; j < 8; j++, src += diff)
-		for(int i = 0; i < 16; i++, src += 2)
-			((WORD*)dst)[*d++] = *(WORD*)src;
+	for(int j = 0; j < 8; j++, d += 16, src += srcpitch)
+		for(int i = 0; i < 16; i++)
+			((WORD*)dst)[d[i]] = ((WORD*)src)[i];
 }
 
 void __fastcall SwizzleBlock8_c(BYTE* dst, BYTE* src, int srcpitch)
 {
-	WORD* d = &columnTable8[0][0];
+	DWORD* d = &columnTable8[0][0];
 
-	for(int j = 0, diff = srcpitch - 16; j < 16; j++, src += diff)
-		for(int i = 0; i < 16; i++, src++)
-			dst[*d++] = *src;
+	for(int j = 0; j < 16; j++, d += 16, src += srcpitch)
+		for(int i = 0; i < 16; i++)
+			dst[d[i]] = src[i];
 }
 
 void __fastcall SwizzleBlock4_c(BYTE* dst, BYTE* src, int srcpitch)
 {
-	WORD* d = &columnTable4[0][0];
+	DWORD* d = &columnTable4[0][0];
 
-	for(int j = 0; j < 16; j++, src += srcpitch)
+	for(int j = 0; j < 16; j++, d += 32, src += srcpitch)
 	{
 		for(int i = 0; i < 32; i++)
 		{
-			DWORD addr = *d++;
+			DWORD addr = d[i];
 			BYTE c = (src[i>>1] >> ((i&1) << 2)) & 0x0f;
 			int shift = (addr&1) << 2;
 			dst[addr >> 1] = (dst[addr >> 1] & (0xf0 >> shift)) | (c << shift);
 		}
+	}
+}
+
+//
+
+void __fastcall UVMinMax_c(int nVertices, vertex_t* pVertices, uvmm_t* uv)
+{
+	uv->umin = uv->vmin = +1e10;
+	uv->umax = uv->vmax = -1e10;
+
+	for(; nVertices-- > 0; pVertices++)
+	{
+		float u = pVertices->u;
+		if(uv->umax < u) uv->umax = u;
+		if(uv->umin > u) uv->umin = u;
+		float v = pVertices->v;
+		if(uv->vmax < v) uv->vmax = v;
+		if(uv->vmin > v) uv->vmin = v;
 	}
 }

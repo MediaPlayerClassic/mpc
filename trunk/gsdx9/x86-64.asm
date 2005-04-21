@@ -1,4 +1,9 @@
 
+	.const
+
+	__uvmin DD 0d01502f9r ; -1e+010
+	__uvmax DD 0501502f9r ; +1e+010
+
 	.code
 	
 ;
@@ -500,6 +505,152 @@ unSwizzleBlock4_amd64 proc public
 unSwizzleBlock4_amd64 endp
 
 ;
+; unSwizzleBlock8HP
+;
+
+unSwizzleBlock8HP_amd64 proc public
+
+	push		rsi
+	push		rdi
+
+	mov			rsi, rcx
+	mov			rdi, rdx
+	mov			rcx, 4
+
+	align 16
+@@:
+	movaps		xmm0, [rsi+16*0]
+	movaps		xmm1, [rsi+16*1]
+	movaps		xmm2, [rsi+16*2]
+	movaps		xmm3, [rsi+16*3]
+
+	punpck		qdq, 0, 2, 1, 3, 4, 6
+
+	pslld		xmm0, 24
+	pslld		xmm2, 24
+	pslld		xmm4, 24
+	pslld		xmm6, 24
+	
+	packssdw	xmm0, xmm2
+	packssdw	xmm4, xmm6
+	packuswb	xmm0, xmm4
+
+	movlps		qword ptr [rdi], xmm0
+	movhps		qword ptr [rdi+r8], xmm0
+
+	add			rsi, 64
+	lea			rdi, [rdi+r8*2]
+
+	dec			rcx
+	jnz			@B
+
+	pop			rdi
+	pop			rsi
+	
+	ret
+
+unSwizzleBlock8HP_amd64 endp
+
+;
+; unSwizzleBlock4HLP
+;
+
+unSwizzleBlock4HLP_amd64 proc public
+
+	push		rsi
+	push		rdi
+
+	mov			rsi, rcx
+	mov			rdi, rdx
+	mov			rcx, 4
+
+	align 16
+@@:
+	movaps		xmm0, [rsi+16*0]
+	movaps		xmm1, [rsi+16*1]
+	movaps		xmm2, [rsi+16*2]
+	movaps		xmm3, [rsi+16*3]
+
+	punpck		qdq, 0, 2, 1, 3, 4, 6
+
+	psrld		xmm0, 4
+	psrld		xmm2, 4
+	psrld		xmm4, 4
+	psrld		xmm6, 4
+	
+	pslld		xmm0, 24
+	pslld		xmm2, 24
+	pslld		xmm4, 24
+	pslld		xmm6, 24
+	
+	packssdw	xmm0, xmm2
+	packssdw	xmm4, xmm6
+	packuswb	xmm0, xmm4
+
+	movlps		qword ptr [rdi], xmm0
+	movhps		qword ptr [rdi+r8], xmm0
+
+	add			rsi, 64
+	lea			rdi, [rdi+r8*2]
+
+	dec			rcx
+	jnz			@B
+
+	pop			rdi
+	pop			rsi
+	
+	ret
+	
+unSwizzleBlock4HLP_amd64 endp
+
+;
+; unSwizzleBlock4HHP
+;
+
+unSwizzleBlock4HHP_amd64 proc public
+
+	push		rsi
+	push		rdi
+
+	mov			rsi, rcx
+	mov			rdi, rdx
+	mov			rcx, 4
+
+	align 16
+@@:
+	movaps		xmm0, [rsi+16*0]
+	movaps		xmm1, [rsi+16*1]
+	movaps		xmm2, [rsi+16*2]
+	movaps		xmm3, [rsi+16*3]
+
+	punpck		qdq, 0, 2, 1, 3, 4, 6
+
+	pslld		xmm0, 28
+	pslld		xmm2, 28
+	pslld		xmm4, 28
+	pslld		xmm6, 28
+	
+	packssdw	xmm0, xmm2
+	packssdw	xmm4, xmm6
+	packuswb	xmm0, xmm4
+
+	movlps		qword ptr [rdi], xmm0
+	movhps		qword ptr [rdi+r8], xmm0
+
+	add			rsi, 64
+	lea			rdi, [rdi+r8*2]
+
+	dec			rcx
+	jnz			@B
+
+	pop			rdi
+	pop			rsi
+	
+	ret
+	
+unSwizzleBlock4HHP_amd64 endp
+
+;
 ; swizzling
 ;
 
@@ -782,6 +933,45 @@ SwizzleBlock4_amd64 proc public
 	ret
 
 SwizzleBlock4_amd64 endp
+
+
+;
+; UVMinMax
+;
+
+UVMinMax_amd64 proc public
+
+	add			rdx, 16
+
+	movss		xmm6, __uvmax
+	pshufd      xmm6, xmm6, 0
+
+	movss		xmm7, __uvmin
+	pshufd      xmm7, xmm7, 0
+
+	align 16
+@@:
+	movaps		xmm0, [rdx]
+	minps		xmm6, xmm0
+	maxps		xmm7, xmm0
+	lea			rdx, [rdx+32]
+
+	dec			ecx
+	jnz			@B
+
+	movhlps		xmm6, xmm6
+	movss		[r8], xmm6
+	pshufd		xmm6, xmm6, 55h
+	movss		[r8+4], xmm6
+
+	movhlps		xmm7, xmm7
+	movss		[r8+8], xmm7
+	pshufd		xmm7, xmm7, 55h
+	movss		[r8+12], xmm7
+	
+	ret
+		
+UVMinMax_amd64 endp
 
 	end
 	
