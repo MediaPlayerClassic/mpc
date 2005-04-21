@@ -78,3 +78,4 @@
 
 #define EndEnumSysDev }}}
 
+#pragma warning(disable : 4995)

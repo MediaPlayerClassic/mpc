@@ -58,7 +58,14 @@ void GSState::WriteTransfer(BYTE* pMem, int len)
 	GSLocalMemory::SwizzleTexture st = m_lm.GetSwizzleTexture(m_rs.BITBLTBUF.DPSM);
 	(m_lm.*st)(m_x, m_y, pMem, len, m_rs.BITBLTBUF, m_rs.TRXPOS, m_rs.TRXREG);
 
-	InvalidateTexture(m_rs.BITBLTBUF.DBP, x, y);
+	ASSERT(m_rs.TRXREG.RRH >= m_y - y);
+LOG(_T("*TC2 WriteTransfer %dx%d - %dx%d (psm=%d rr=%dx%d len=%d)\n"), x, y, m_x, m_y, m_rs.BITBLTBUF.DPSM, m_rs.TRXREG.RRW, m_rs.TRXREG.RRH, len);
+
+	CRect r(m_rs.TRXPOS.DSAX, y, m_rs.TRXREG.RRW, min(m_x == m_rs.TRXPOS.DSAX ? m_y : m_y+1, m_rs.TRXREG.RRH));
+
+	InvalidateTexture(m_rs.BITBLTBUF.DBP, m_rs.BITBLTBUF.DPSM, r);
+
+	m_lm.invalidateCLUT();
 }
 
 void GSState::ReadTransfer(BYTE* pMem, int len)

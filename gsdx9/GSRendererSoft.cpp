@@ -48,7 +48,6 @@ template <class VERTEX>
 void GSRendererSoft<VERTEX>::Reset()
 {
 	m_primtype = PRIM_NONE;
-	m_tc.RemoveAll();
 	m_pTexture = NULL;
 
 	__super::Reset();
@@ -139,12 +138,7 @@ int GSRendererSoft<VERTEX>::DrawingKick(bool fSkip)
 	}
 
 	if(fSkip || !m_rs.IsEnabled(0) && !m_rs.IsEnabled(1))
-	{
-#ifdef ENABLE_STRIPFAN
-		FlushPrim();
-#endif
 		return 0;
-	}
 
 	if(!m_de.pPRIM->IIP)
 		memcpy(&pVertices[0], &pVertices[nVertices-1], sizeof(DWORD)*4); // copy RGBA-only
@@ -195,8 +189,6 @@ void GSRendererSoft<VERTEX>::FlushPrim()
 			ASSERT(m_nVertices == 0);
 			return;
 		}
-
-		InvalidateTexture(m_ctxt->FRAME.FBP<<5);
 
 		m_stats.IncPrims(nPrims);
 	}
@@ -259,26 +251,6 @@ void GSRendererSoft<VERTEX>::Flip()
 template <class VERTEX>
 void GSRendererSoft<VERTEX>::EndFrame()
 {
-	POSITION pos = m_tc.GetHeadPosition();
-	while(pos)
-	{
-		POSITION cur = pos;
-		if(++m_tc.GetNext(pos)->m_age > 2)
-			m_tc.RemoveAt(cur);
-	}
-}
-
-template <class VERTEX>
-void GSRendererSoft<VERTEX>::InvalidateTexture(DWORD TBP0)
-{
-	POSITION pos = m_tc.GetHeadPosition();
-	while(pos)
-	{
-		POSITION cur = pos;
-		CTexture* p = m_tc.GetNext(pos);
-		if(p->m_TEX0.TBP0 == TBP0 || p->m_TEX0.PSM > PSM_PSMCT16S && p->m_TEX0.CBP == TBP0)
-			m_tc.RemoveAt(cur);
-	}
 }
 
 template <class VERTEX>
@@ -593,63 +565,7 @@ void GSRendererSoft<VERTEX>::SetTexture()
 	if(!m_de.pPRIM->TME || !m_ctxt->rt)
 		return;
 
-// hell, it looks to be faster without caching!
-m_lm.setupCLUT(m_ctxt->TEX0, m_de.TEXA);
-return;
-/**/
-	CTexture* t;
-	if(LookupTexture(t))
-	{
-		m_pTexture = t->m_pTexture;
-		return;
-	}
-
-	InvalidateTexture(m_ctxt->TEX0.TBP0);
-
 	m_lm.setupCLUT(m_ctxt->TEX0, m_de.TEXA);
-
-	CAutoPtr<CTexture> p(new CTexture());
-
-	p->m_TEX0 = m_ctxt->TEX0;
-	p->m_TEXA = m_de.TEXA;
-	p->m_TEXCLUT = m_de.TEXCLUT;
-
-	int tw = 1 << m_ctxt->TEX0.TW;
-	int th = 1 << m_ctxt->TEX0.TH;
-
-	p->m_pTexture = m_pTexture = new DWORD[tw*th];
-
-	DWORD* dst = m_pTexture;
-
-	for(int j = 0; j < th; j++)
-		for(int i = 0; i < tw; i++)
-			*dst++ = (m_lm.*m_ctxt->rt)(i, j, m_ctxt->TEX0, m_de.TEXA);
-/*
-//	TODO: unSwizzleTexture* to ABGR
-	GSLocalMemory::unSwizzleTexture st = m_lm.GetUnSwizzleTexture(m_ctxt->TEX0.PSM);
-	(m_lm.*st)(tw, th, (BYTE*)dst, tw*4, m_ctxt->TEX0, m_de.TEXA);
-*/
-
-	m_tc.AddHead(p);
-}
-
-template <class VERTEX>
-bool GSRendererSoft<VERTEX>::LookupTexture(CTexture*& t)
-{
-	POSITION pos = m_tc.GetHeadPosition();
-	while(pos)
-	{
-		t = m_tc.GetNext(pos);
-		if(t->m_TEX0.i64 == m_ctxt->TEX0.i64
-		&& t->m_TEXA.i64 == m_de.TEXA.i64
-		&& t->m_TEXCLUT.i64 == m_de.TEXCLUT.i64)
-		{
-			t->m_age = 0;
-			return true;
-		}
-	}
-
-	return false;
 }
 
 //

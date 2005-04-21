@@ -32,13 +32,7 @@ inline bool IsRenderTarget(IDirect3DTexture9* pTexture)
 	return pTexture && S_OK == pTexture->GetLevelDesc(0, &desc) && (desc.Usage&D3DUSAGE_RENDERTARGET);
 }
 
-struct tex_t
-{
-	GIFRegTEX0 TEX0;
-	GIFRegCLAMP CLAMP;
-	GIFRegTEXA TEXA;
-	GIFRegTEXCLUT TEXCLUT;
-};
+// TODO: get rid of this *PrivateData
 
 [uuid("5D5EFE0E-5407-4BCF-855D-C46CBCD075FA")]
 struct scale_t
@@ -52,38 +46,71 @@ struct scale_t
 	void Get(IDirect3DResource9* p) {DWORD size = sizeof(*this); p->GetPrivateData(__uuidof(*this), this, &size);}
 };
 
-class GSTexture
+class GSDirtyRect
 {
-public:
-	tex_t m_tex;
-	scale_t m_scale;
-	CSize m_valid;
-	CComPtr<IDirect3DTexture9> m_pTexture;
-	bool m_fRT;
-	int m_age;
+	DWORD m_PSM;
+	CRect m_rcDirty;
+	bool m_fAllDirty;
 
-	class GSTexture();
-	class GSTexture(tex_t& tex, scale_t& m_scale, CComPtr<IDirect3DTexture9> pTexture, CSize valid = CSize(0, 0));
+public:
+	GSDirtyRect() : m_PSM(PSM_PSMCT32), m_rcDirty(0, 0, 0, 0), m_fAllDirty(false) {}
+	GSDirtyRect(DWORD PSM, CRect* r = NULL);
+	CRect GetDirtyRect(const GIFRegTEX0& TEX0);
 };
 
-class GSTextureCache : public CList<GSTexture>
+class GSDirtyRectList : public CAtlList<GSDirtyRect>
 {
 public:
-	GSTextureCache();
-	void Add(tex_t& tex, scale_t& m_scale, CComPtr<IDirect3DTexture9> pTexture, CSize valid = CSize(0, 0));
-	void Update(tex_t& tex, scale_t& m_scale, CComPtr<IDirect3DTexture9> pTexture);
-	POSITION Lookup(tex_t& tex, scale_t& m_scale, GSTexture& ret);
-	POSITION Lookup(tex_t& tex, GSTexture& ret);
-	POSITION LookupByTBP(UINT32 TBP0, GSTexture& ret);
-	POSITION LookupByCBP(UINT32 CBP, GSTexture& ret);
-	void InvalidateByTBP(UINT32 TBP0);
-	void InvalidateByCBP(UINT32 CBP);
-	void IncAge(CSurfMap<IDirect3DTexture9>& pRTs);
-	void ResetAge(UINT32 TBP0);
+	GSDirtyRectList() {}
+	GSDirtyRectList(const GSDirtyRectList& l) {*this = l;}
+	void operator = (const GSDirtyRectList& l);
+	CRect GetDirtyRect(const GIFRegTEX0& TEX0);
+};
 
+struct GSTexture
+{
+	CComPtr<IDirect3DTexture9> m_pTexture, m_pPalette;
+	GIFRegCLAMP m_CLAMP;
+	GIFRegTEX0 m_TEX0;
+	GIFRegTEXA m_TEXA;
+	DWORD m_clut[256];
+	scale_t m_scale;
+	CSize m_valid;
+	GSDirtyRectList m_dirty;
+	bool m_fRT;
+	int m_nAge, m_nVsyncs;
+	CSize m_chksumsize;
+	DWORD m_chksum;
+	DWORD m_size;
+
+	GSTexture();
+};
+
+class GSState;
+
+class GSTextureCache
+{
 protected:
-	CInterfaceList<IDirect3DTexture9> m_pTexturePool;
+	CInterfaceList<IDirect3DTexture9> m_pTexturePool32, m_pTexturePool8;
+
+	typedef CAtlList<GSTexture> GSTextureList;
+	GSTextureList m_TextureCache;
+
+	HRESULT CreateTexture(GSState* s, int w, int h, GSTexture& t);
+	HRESULT CreateTexture(GSState* s, int w, int h, GSTexture& t, int nPaletteEntries);
+	bool IsTextureInCache(IDirect3DTexture9* pTexture);
+	void RemoveOldTextures(GSState* s);
+	bool GetDirtySize(GSState* s, int& tw, int& th, GSTexture* pt);
+	void MoveToHead(GSTexture* pt);
 
 public:
-	HRESULT CreateTexture(GIFRegTEX0& TEX0, IDirect3DDevice9* pD3DDev, IDirect3DTexture9** ppTexture);
+	GSTextureCache();
+
+	bool Fetch(GSState* s, GSTexture& t);
+	bool FetchPal(GSState* s, GSTexture& t);
+	void IncAge(CSurfMap<IDirect3DTexture9>& pRTs);
+	void ResetAge(DWORD TBP0);
+	void RemoveAll();
+	void Invalidate(GSState* s, DWORD TBP0, DWORD PSM, CRect* r = NULL);
+	void AddRT(DWORD TBP0, IDirect3DTexture9* pRT, scale_t scale);
 };

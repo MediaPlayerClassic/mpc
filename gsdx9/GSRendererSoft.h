@@ -32,7 +32,6 @@ protected:
 	void FlushPrim();
 	void Flip();
 	void EndFrame();
-	void InvalidateTexture(DWORD TBP0);
 
 	enum {PRIM_NONE, PRIM_SPRITE, PRIM_TRIANGLE, PRIM_LINE, PRIM_POINT} m_primtype;
 
@@ -43,22 +42,8 @@ protected:
 	virtual void DrawVertex(int x, int y, VERTEX& v);
 	virtual bool DrawFilledRect(int left, int top, int right, int bottom, VERTEX& v);
 
-	class CTexture
-	{
-	public:
-		GIFRegTEX0 m_TEX0;
-		GIFRegTEXA m_TEXA;
-		GIFRegTEXCLUT m_TEXCLUT;
-		DWORD* m_pTexture, m_age;
-		CTexture() {m_pTexture = NULL; m_age = 0;}
-		~CTexture() {delete [] m_pTexture;}
-	};
-
-	CAutoPtrList<CTexture> m_tc;
-
 	DWORD* m_pTexture;
 	void SetTexture();
-	bool LookupTexture(CTexture*& t);
 
 	CRect m_scissor;
 	virtual void SetScissor() = 0;

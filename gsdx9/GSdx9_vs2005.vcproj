@@ -76,8 +76,8 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="d3d9.lib d3dx9.lib strmbaseD.lib"
-				OutputFile="D:\pcsx2_0.6win\plugins\GSdx9.dll"
+				AdditionalDependencies="d3d9.lib d3dx9.lib strmbaseD.lib ddraw.lib dxguid.lib"
+				OutputFile="e:\pcsx2_0.6win\plugins\GSdx9.dll"
 				LinkIncremental="2"
 				ModuleDefinitionFile=".\GSdx9.def"
 				GenerateDebugInformation="TRUE"
@@ -168,8 +168,8 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="d3d9.lib d3dx9.lib strmbaseD.lib dxguid.lib"
-				OutputFile="D:\pcsx2_amd64\plugins\GSdx9.dll"
+				AdditionalDependencies="d3d9.lib d3dx9.lib strmbaseD.lib ddraw.lib dxguid.lib"
+				OutputFile="e:\pcsx2_amd64\plugins\GSdx9.dll"
 				LinkIncremental="2"
 				ModuleDefinitionFile=""
 				GenerateDebugInformation="TRUE"
@@ -235,7 +235,6 @@
 				EnableIntrinsicFunctions="TRUE"
 				FavorSizeOrSpeed="1"
 				OmitFramePointers="TRUE"
-				WholeProgramOptimization="TRUE"
 				PreprocessorDefinitions="WIN32;_WINDOWS;NDEBUG;_USRDLL"
 				StringPooling="TRUE"
 				RuntimeLibrary="0"
@@ -260,8 +259,8 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="d3d9.lib d3dx9.lib strmbaseR.lib"
-				OutputFile="D:\pcsx2_0.6win\plugins\GSdx9.dll"
+				AdditionalDependencies="d3d9.lib d3dx9.lib strmbaseR.lib ddraw.lib dxguid.lib"
+				OutputFile="e:\pcsx2_0.6win\plugins\GSdx9.dll"
 				LinkIncremental="1"
 				ModuleDefinitionFile=".\GSdx9.def"
 				SubSystem="2"
@@ -358,8 +357,8 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="d3d9.lib d3dx9.lib strmbaseR.lib"
-				OutputFile="D:\pcsx2_amd64\plugins\GSdx9.dll"
+				AdditionalDependencies="d3d9.lib d3dx9.lib strmbaseR.lib ddraw.lib dxguid.lib"
+				OutputFile="e:\pcsx2_amd64\plugins\GSdx9.dll"
 				LinkIncremental="1"
 				ModuleDefinitionFile=""
 				GenerateDebugInformation="TRUE"
@@ -427,6 +426,7 @@
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="3"
 				EnableEnhancedInstructionSet="2"
+				FloatingPointModel="2"
 				TreatWChar_tAsBuiltInType="FALSE"
 				UsePrecompiledHeader="3"
 				WarningLevel="3"
@@ -447,7 +447,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="d3d9.lib d3dx9.lib strmbaseD.lib"
+				AdditionalDependencies="d3d9.lib d3dx9.lib strmbaseD.lib ddraw.lib dxguid.lib"
 				OutputFile="e:\pcsx2_0.6win\plugins\GSdx9.dll"
 				LinkIncremental="2"
 				ModuleDefinitionFile=".\GSdx9.def"
@@ -539,7 +539,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="d3d9.lib d3dx9.lib strmbaseD.lib"
+				AdditionalDependencies="d3d9.lib d3dx9.lib strmbaseD.lib ddraw.lib dxguid.lib"
 				OutputFile="D:\pcsx2_0.6win\plugins\GSdx9.dll"
 				LinkIncremental="2"
 				ModuleDefinitionFile=""
@@ -632,7 +632,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="d3d9.lib d3dx9.lib strmbaseR.lib"
+				AdditionalDependencies="d3d9.lib d3dx9.lib strmbaseR.lib ddraw.lib dxguid.lib"
 				OutputFile="e:\pcsx2_0.6win\plugins\GSdx9.dll"
 				LinkIncremental="1"
 				GenerateManifest="TRUE"
@@ -732,7 +732,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="d3d9.lib d3dx9.lib strmbaseR.lib"
+				AdditionalDependencies="d3d9.lib d3dx9.lib strmbaseR.lib ddraw.lib dxguid.lib"
 				OutputFile="D:\pcsx2_0.6win\plugins\GSdx9.dll"
 				LinkIncremental="1"
 				ModuleDefinitionFile=""
@@ -825,6 +825,14 @@
 			<File
 				RelativePath=".\GSLocalMemory.cpp"
 				>
+				<FileConfiguration
+					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						AssemblerOutput="4"
+					/>
+				</FileConfiguration>
 				<FileConfiguration
 					Name="Release|Win64 (AMD64)"
 					>
