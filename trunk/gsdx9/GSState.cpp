@@ -243,6 +243,7 @@ GSState::GSState(int w, int h, HWND hWnd, HRESULT& hr)
 		_T("main_tfx2_pal_pt"),
 		_T("main_tfx3_pal_pt"),
 		_T("main_tfx4"),
+		_T("main_tfx4_pal_pt"),
 	};
 
 	// ps_3_0
@@ -1006,7 +1007,7 @@ void GSState::FinishFlip(FlipSrc rt[2], bool fShiftField)
 		{
 			(float)m_rs.BGCOLOR.B / 255, (float)m_rs.BGCOLOR.G / 255, (float)m_rs.BGCOLOR.R / 255, (float)m_rs.PMODE.ALP / 255,
 			m_rs.PMODE.AMOD, m_rs.IsEnabled(0), m_rs.IsEnabled(1), m_rs.PMODE.MMOD,
-			m_de.TEXA.AEM, (float)m_de.TEXA.TA0 / 255, (float)m_de.TEXA.TA1 / 255, m_rs.PMODE.SLBG,
+			m_de.TEXA.AEM, (float)m_de.TEXA.TA0 / 255, (float)m_de.TEXA.TA1 / 255, m_rs.PMODE.SLBG
 		};
 
 		hr = m_pD3DDev->SetPixelShaderConstantF(0, c, countof(c)/4);

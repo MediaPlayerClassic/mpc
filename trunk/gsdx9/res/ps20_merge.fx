@@ -23,9 +23,8 @@ float4 Params3 : register(c2);
 
 float4 Merge(float4 Color1 : COLOR, float4 Color2 : COLOR) : COLOR
 {
-	float Alpha = EN1 * (MMOD ? ALP : Color1.a);
-	
-	float4 c = lerp(Color2, Color1, Alpha);
+	float a = EN1 * (MMOD ? ALP : Color1.a);
+	float4 c = lerp(Color2, Color1, a);
 	// c.a = AMOD ? Color2.a : Color1.a; // not used
 	c.rgba = c.bgra;
 	return c;

@@ -60,7 +60,8 @@ protected:
 			if(m_PRIM != m_de.pPRIM->PRIM && m_nVertices > 0) FlushPrim();
 			m_PRIM = m_de.pPRIM->PRIM;
 
-			LOG2(_T("Prim %05x %05x %05x %04x\n"), 
+			LOG2(_T("Prim (%d) %05x %05x %05x %04x\n"), 
+				m_PRIM,
 				m_ctxt->FRAME.Block(), 
 				m_de.pPRIM->TME ? (UINT32)m_ctxt->TEX0.TBP0 : 0xfffff,
 				m_de.pPRIM->TME ? (UINT32)m_ctxt->TEX0.CBP : 0xfffff,
