@@ -373,7 +373,7 @@ bool GSTextureCache::Fetch(GSState* s, GSTexture& t)
 		RECT rlock = {0, 0, tw, th};
 
 		D3DLOCKED_RECT r;
-		if(FAILED(pt->m_pTexture->LockRect(0, &r, tw == tw0 && th == th0 ? NULL : &rlock, D3DLOCK_NO_DIRTY_UPDATE)))
+		if(FAILED(pt->m_pTexture->LockRect(0, &r, tw == tw0 && th == th0 ? NULL : &rlock, 0/*D3DLOCK_NO_DIRTY_UPDATE*/)))
 			return(false);
 
 		s->m_lm.ReadTexture(tw, th, (BYTE*)r.pBits, r.Pitch, t.m_TEX0, t.m_TEXA, t.m_CLAMP);
@@ -579,13 +579,27 @@ bool GSTextureCache::FetchPal(GSState* s, GSTexture& t)
 #endif
 
 #ifdef DEBUG_SAVETEXTURES
-		// TODO: save with palette
+if(pt->m_TEX0.TBP0 == 0x02722 && pt->m_TEX0.PSM == 20 && pt->m_TEX0.TW == 8 && pt->m_TEX0.TH == 6)
+{
 		CString fn;
 		fn.Format(_T("c:\\%08I64x_%I64d_%I64d_%I64d_%I64d_%I64d_%I64d_%I64d-%I64d_%I64d-%I64d.bmp"), 
 			pt->m_TEX0.TBP0, pt->m_TEX0.PSM, pt->m_TEX0.TBW, 
 			pt->m_TEX0.TW, pt->m_TEX0.TH,
 			pt->m_CLAMP.WMS, pt->m_CLAMP.WMT, pt->m_CLAMP.MINU, pt->m_CLAMP.MAXU, pt->m_CLAMP.MINV, pt->m_CLAMP.MAXV);
 		D3DXSaveTextureToFile(fn, D3DXIFF_BMP, pt->m_pTexture, NULL);
+		if(pt->m_pPalette)
+		{
+			fn.Format(_T("c:\\%08I64x_%I64d_%I64d_%I64d_%I64d_%I64d_%I64d_%I64d-%I64d_%I64d-%I64d.pal"), 
+				pt->m_TEX0.TBP0, pt->m_TEX0.PSM, pt->m_TEX0.TBW, 
+				pt->m_TEX0.TW, pt->m_TEX0.TH,
+				pt->m_CLAMP.WMS, pt->m_CLAMP.WMT, pt->m_CLAMP.MINU, pt->m_CLAMP.MAXU, pt->m_CLAMP.MINV, pt->m_CLAMP.MAXV);
+			if(FILE* f = _tfopen(fn, "wb"))
+			{
+				fwrite(CLUT, 256, 4, f);
+				fclose(f);
+			}
+		}
+}
 #endif
 
 	}

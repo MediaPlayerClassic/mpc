@@ -65,14 +65,14 @@ float4 SampleTexture_pal_ln(in float2 Tex : TEXCOORD0) : COLOR
 	float4 c11 = tex1D(Palette, tex2D(Texture, Tex + RW_RH).x - s_palerr);
 	float2 dd = frac(Tex * W_H); 
 	float4 TexColor = lerp(lerp(c00, c01, dd.x), lerp(c10, c11, dd.x), dd.y);
-	if(!fRT) TexColor.a *= 2;
+	TexColor.a *= 2;
 	return TexColor;
 }
 
 float4 SampleTexture_pal_pt(in float2 Tex : TEXCOORD0) : COLOR
 {
 	float4 TexColor = tex1D(Palette, tex2D(Texture, Tex).x - s_palerr);
-	if(!fRT) TexColor.a *= 2;
+	TexColor.a *= 2;
 	return TexColor;
 }
 	
@@ -172,6 +172,11 @@ float4 main_tfx2_pal_pt(float4 Diff : COLOR0, float4 Fog : COLOR1, float2 Tex : 
 float4 main_tfx3_pal_pt(float4 Diff : COLOR0, float4 Fog : COLOR1, float2 Tex : TEXCOORD0) : COLOR
 {
 	return ApplyFog(tfx3(Diff, SampleTexture_pal_pt(Tex)), Fog);
+}
+
+float4 main_tfx4_pal_pt(float4 Diff : COLOR0, float2 Tex : TEXCOORD0) : COLOR
+{
+	return tex1D(Palette, tex2D(Texture, Tex).x - s_palerr);
 }
 
 //

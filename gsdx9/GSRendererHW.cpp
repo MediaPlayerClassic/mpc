@@ -311,8 +311,6 @@ void GSRendererHW::FlushPrim()
 
 		HRESULT hr;
 
-		hr = m_pD3DDev->BeginScene();
-
 		scale_t scale((float)INTERNALRES / (m_ctxt->FRAME.FBW*64), (float)INTERNALRES / m_rs.GetSize(m_rs.IsEnabled(1)?1:0).cy);
 
 // FIXME!!!!!!!!!!!!!!! damnit
@@ -371,6 +369,66 @@ scale.y = 1;
 				if(m_tc.FetchPal(this, t))
 				{
 					hr = t.m_pTexture->GetLevelDesc(0, &td);
+
+					if(nPrims > 100 && t.m_pPalette) // TODO: find the optimal value for nPrims > ?
+					{
+						CComPtr<IDirect3DTexture9> pRT;
+						hr = m_pD3DDev->CreateTexture(td.Width, td.Height, 1, D3DUSAGE_RENDERTARGET, D3DFMT_A8R8G8B8, D3DPOOL_DEFAULT, &pRT, NULL);
+
+						CComPtr<IDirect3DSurface9> pRTSurf;
+						hr = pRT->GetSurfaceLevel(0, &pRTSurf);
+						hr = m_pD3DDev->SetRenderTarget(0, pRTSurf);
+						hr = m_pD3DDev->SetDepthStencilSurface(NULL);
+
+						hr = m_pD3DDev->SetTexture(0, t.m_pTexture);
+						hr = m_pD3DDev->SetTexture(1, t.m_pPalette);
+						hr = m_pD3DDev->SetSamplerState(0, D3DSAMP_MAGFILTER, D3DTEXF_POINT);
+						hr = m_pD3DDev->SetSamplerState(0, D3DSAMP_MINFILTER, D3DTEXF_POINT);
+						hr = m_pD3DDev->SetSamplerState(1, D3DSAMP_MAGFILTER, D3DTEXF_POINT);
+						hr = m_pD3DDev->SetSamplerState(1, D3DSAMP_MINFILTER, D3DTEXF_POINT);
+						hr = m_pD3DDev->SetRenderState(D3DRS_ZENABLE, FALSE);
+						hr = m_pD3DDev->SetRenderState(D3DRS_ALPHATESTENABLE, FALSE);
+						hr = m_pD3DDev->SetRenderState(D3DRS_ALPHABLENDENABLE, TRUE);
+						hr = m_pD3DDev->SetRenderState(D3DRS_BLENDOP, D3DBLENDOP_ADD);
+						hr = m_pD3DDev->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_ONE);
+						hr = m_pD3DDev->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_ZERO);
+						hr = m_pD3DDev->SetRenderState(D3DRS_SCISSORTESTENABLE, FALSE);
+						hr = m_pD3DDev->SetRenderState(D3DRS_COLORWRITEENABLE, 15);
+
+						hr = m_pD3DDev->SetPixelShader(m_pPixelShaderTFX[13]);
+
+						struct
+						{
+							float x, y, z, rhw;
+							float tu, tv;
+						}
+						pVertices[] =
+						{
+							{0, 0, 0.5f, 2.0f, 0, 0},
+							{td.Width, 0, 0.5f, 2.0f, 1, 0},
+							{0, td.Height, 0.5f, 2.0f, 0, 1},
+							{td.Width, td.Height, 0.5f, 2.0f, 1, 1},
+						};
+
+						hr = m_pD3DDev->BeginScene();
+						hr = m_pD3DDev->SetFVF(D3DFVF_XYZRHW | D3DFVF_TEX1);
+						hr = m_pD3DDev->DrawPrimitiveUP(D3DPT_TRIANGLESTRIP, 2, pVertices, sizeof(pVertices[0]));
+						hr = m_pD3DDev->EndScene();
+
+						t.m_pTexture = pRT;
+						t.m_pPalette = NULL;
+/*
+if(m_stats.GetFrame() > 1000)
+{
+		CString fn;
+		fn.Format(_T("c:\\%08I64x_%I64d_%I64d_%I64d_%I64d_%I64d_%I64d_%I64d-%I64d_%I64d-%I64d.bmp"), 
+			t.m_TEX0.TBP0, t.m_TEX0.PSM, t.m_TEX0.TBW, 
+			t.m_TEX0.TW, t.m_TEX0.TH,
+			t.m_CLAMP.WMS, t.m_CLAMP.WMT, t.m_CLAMP.MINU, t.m_CLAMP.MAXU, t.m_CLAMP.MINV, t.m_CLAMP.MAXV);
+		D3DXSaveTextureToFile(fn, D3DXIFF_BMP, pRT, NULL);
+}
+*/
+					}
 				}
 			}
 			else
@@ -381,6 +439,10 @@ scale.y = 1;
 				}
 			}
 		}
+
+		//////////////////////
+
+		hr = m_pD3DDev->BeginScene();
 
 		//////////////////////
 
