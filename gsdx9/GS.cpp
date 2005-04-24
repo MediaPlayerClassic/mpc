@@ -69,6 +69,10 @@ EXPORT_C_(UINT32) PS2EgetCpuPlatform()
 #endif
 }
 
+//////////////////
+
+#define REPLAY_TITLE "Replay"
+
 static CAutoPtr<GSState> s_gs;
 static void (*s_fpGSirq)() = NULL;
 static UINT64* s_pCSRr = NULL;
@@ -120,6 +124,16 @@ EXPORT_C_(INT32) GSopen(void* pDsp, char* Title)
 
 	s_gs->GSirq(s_fpGSirq);
 	s_gs->GSsetCSR(s_pCSRr);
+
+	if((!Title || strcmp(Title, REPLAY_TITLE) != 0) 
+	&& AfxGetApp()->GetProfileInt(_T("Settings"), _T("RecordState"), FALSE))
+	{
+		CPath spath = AfxGetApp()->GetProfileString(_T("Settings"), _T("RecordStatePath"), _T(""));
+		CString fn;
+		fn.Format(_T("gsdx9_%s.gs"), CTime::GetCurrentTime().Format(_T("%Y%m%d%H%M%S")));
+		spath.Append(fn);
+		s_gs->CaptureState(spath);
+	}
 
 	return 0;
 }
@@ -285,4 +299,62 @@ EXPORT_C GSsetCSR(UINT64* pCSRr)
 EXPORT_C_(INT32) GSsetWindowInfo(winInfo* info)
 {
 	return TRUE;
+}
+
+/////////////////
+
+EXPORT_C GSReplay(HWND hwnd, HINSTANCE hinst, LPSTR lpszCmdLine, int nCmdShow)
+{
+	if(!GSinit())
+	{
+		HWND hWnd = NULL;
+		if(!GSopen((void*)&hWnd, REPLAY_TITLE))
+		{
+			if(FILE* sfp = _tfopen(lpszCmdLine, _T("rb")))
+			{
+				CArray<BYTE> buff;
+
+				while(!feof(sfp))
+				{
+					switch(fgetc(sfp))
+					{
+					case ST_WRITE:
+						{
+						GS_REG mem;
+						UINT64 value, mask;
+						fread(&mem, 4, 1, sfp);
+						fread(&value, 8, 1, sfp);
+						fread(&mask, 8, 1, sfp);
+						switch(mask)
+						{
+						case 0xff: GSwrite8(mem, value); break;
+						case 0xffff: GSwrite16(mem, value); break;
+						case 0xffffffff: GSwrite32(mem, value); break;
+						case 0xffffffffffffffff: GSwrite64(mem, value); break;
+						}
+						break;
+						}
+					case ST_TRANSFER:
+						{
+						UINT32 size = 0;
+						fread(&size, 4, 1, sfp);
+						UINT32 len = 0;
+						fread(&len, 4, 1, sfp);
+						if(buff.GetSize() < len) buff.SetSize(len);
+						fread(buff.GetData(), len, 1, sfp);
+						GSgifTransfer3(buff.GetData(), size);
+						break;
+						}
+					case ST_VSYNC:
+						GSvsync();
+						break;
+					}
+				}
+			}
+
+			GSclose();
+		}
+		
+		GSshutdown();
+	}
 }

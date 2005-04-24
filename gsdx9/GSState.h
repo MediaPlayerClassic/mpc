@@ -30,8 +30,10 @@
 #include "GSCapture.h"
 #include "GSPerfMon.h"
 
-/*//////
-#define DEBUG_SAVETEXTURES
+#define ENABLE_CAPTURE_STATE
+////
+/*
+//#define DEBUG_SAVETEXTURES
 #define DEBUG_LOG
 #define DEBUG_LOG2
 #define DEBUG_LOGVERTICES
@@ -200,6 +202,7 @@ protected:
 	virtual void Flip() = 0;
 	virtual void EndFrame() = 0;
 	virtual void InvalidateTexture(DWORD TBP0, DWORD PSM, CRect r) {}
+	virtual void InvalidateLocalMem(DWORD TBP0, DWORD BW, DWORD PSM, CRect r) {}
 	virtual void MaxTexUV(int& tw, int& th) {}
 
 	struct FlipSrc {CComPtr<IDirect3DTexture9> pRT; D3DSURFACE_DESC rd; scale_t scale; CRect src;};
@@ -315,6 +318,11 @@ public:
 	UINT32 MakeSnapshot(char* path);
 	void Capture();
 
+	// state
+	void CaptureState(CString fn);
+	FILE* m_sfp;
+
+	// logging
 	FILE* m_fp;
 
 #ifdef DEBUG_LOGVERTICES
@@ -328,24 +336,24 @@ public:
 	{
 		va_list args;
 		va_start(args, fmt);
-		/**/ ////////////
+		/* ////////////
 		if(_tcsstr(fmt, _T("VSync")) 
 		|| _tcsstr(fmt, _T("*** WARNING ***"))
 		|| _tcsstr(fmt, _T("Flush"))
 		// || _tcsstr(fmt, _T("CSR"))
-		/// || _tcsstr(fmt, _T("DISP"))
-		/// || _tcsstr(fmt, _T("FRAME"))
+		|| _tcsstr(fmt, _T("DISP"))
+		|| _tcsstr(fmt, _T("FRAME"))
 		// || _tcsstr(fmt, _T("ZBUF"))
 		// || _tcsstr(fmt, _T("SMODE"))
 		// || _tcsstr(fmt, _T("PMODE"))
 		|| _tcsstr(fmt, _T("BITBLTBUF"))
 		|| _tcsstr(fmt, _T("TRX"))
-		/// || _tcsstr(fmt, _T("PRIM"))
+		|| _tcsstr(fmt, _T("PRIM"))
 		// || _tcsstr(fmt, _T("RGB"))
 		/// || _tcsstr(fmt, _T("XYZ"))
 		// || _tcsstr(fmt, _T("ST"))
 		// || _tcsstr(fmt, _T("XYOFFSET"))
-		/// || _tcsstr(fmt, _T("TEX"))
+		|| _tcsstr(fmt, _T("TEX"))
 		|| _tcsstr(fmt, _T("TEX0"))
 		|| _tcsstr(fmt, _T("TEX2"))
 		|| _tcsstr(fmt, _T("TEXFLUSH"))
@@ -356,6 +364,7 @@ public:
 		// || _tcsstr(fmt, _T("CBP")) == fmt
 		|| _tcsstr(fmt, _T("*TC2 ")) == fmt
 		)
+		*/
 		if(m_fp)
 		{
 			TCHAR buff[2048];

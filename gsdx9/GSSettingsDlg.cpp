@@ -22,6 +22,7 @@
 #include "stdafx.h"
 #include "GSdx9.h"
 #include "GSSettingsDlg.h"
+#include <shlobj.h>
 
 static struct {int id; const TCHAR* name;} s_renderers[] =
 {
@@ -44,6 +45,7 @@ IMPLEMENT_DYNAMIC(CGSSettingsDlg, CDialog)
 CGSSettingsDlg::CGSSettingsDlg(CWnd* pParent /*=NULL*/)
 	: CDialog(CGSSettingsDlg::IDD, pParent)
 	, m_halfvres(FALSE)
+	, m_fRecordState(FALSE)
 {
 }
 
@@ -58,9 +60,12 @@ void CGSSettingsDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_COMBO1, m_renderer);
 	DDX_Control(pDX, IDC_COMBO4, m_psversion);
 	DDX_Check(pDX, IDC_CHECK1, m_halfvres);
+	DDX_Check(pDX, IDC_CHECK2, m_fRecordState);
+	DDX_Text(pDX, IDC_EDIT1, m_strRecordState);
 }
 
 BEGIN_MESSAGE_MAP(CGSSettingsDlg, CDialog)
+	ON_BN_CLICKED(IDC_BUTTON1, OnBnClickedButton1)
 END_MESSAGE_MAP()
 
 // CGSSettingsDlg message handlers
@@ -140,6 +145,11 @@ BOOL CGSSettingsDlg::OnInitDialog()
 
 	//
 
+	m_fRecordState = pApp->GetProfileInt(_T("Settings"), _T("RecordState"), FALSE);
+	m_strRecordState = pApp->GetProfileString(_T("Settings"), _T("RecordStatePath"), _T(""));
+
+	//
+
 	UpdateData(FALSE);
 
 	return TRUE;  // return TRUE unless you set the focus to a control
@@ -172,6 +182,31 @@ void CGSSettingsDlg::OnOK()
 
 	pApp->WriteProfileInt(_T("Settings"), _T("HalfVRes"), m_halfvres);
 
+	pApp->WriteProfileInt(_T("Settings"), _T("RecordState"), m_fRecordState);
+	pApp->WriteProfileString(_T("Settings"), _T("RecordStatePath"), m_strRecordState);
+
 	__super::OnOK();
 }
 
+void CGSSettingsDlg::OnBnClickedButton1()
+{
+	TCHAR path[MAX_PATH];
+
+	BROWSEINFO bi;
+	bi.hwndOwner = m_hWnd;
+	bi.pidlRoot = NULL;
+	bi.pszDisplayName = path;
+	bi.lpszTitle = _T("Select path for the state file");
+	bi.ulFlags = BIF_RETURNONLYFSDIRS | BIF_VALIDATE | BIF_USENEWUI;
+	bi.lpfn = NULL;
+	bi.lParam = 0;
+	bi.iImage = 0; 
+
+	LPITEMIDLIST iil;
+	if(iil = SHBrowseForFolder(&bi))
+	{
+		SHGetPathFromIDList(iil, path);
+		m_strRecordState = path;
+		UpdateData(FALSE);
+	}
+}

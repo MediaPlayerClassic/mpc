@@ -844,14 +844,14 @@ SwizzleBlock32_sse2@WM:
 	jnz			@B
 
 	movhlps		xmm6, xmm6
-	movss		[ebx], xmm6
+	movss		dword ptr [ebx], xmm6
 	pshufd		xmm6, xmm6, 55h
-	movss		[ebx+4], xmm6
+	movss		dword ptr [ebx+4], xmm6
 
 	movhlps		xmm7, xmm7
-	movss		[ebx+8], xmm7
+	movss		dword ptr [ebx+8], xmm7
 	pshufd		xmm7, xmm7, 55h
-	movss		[ebx+12], xmm7
+	movss		dword ptr [ebx+12], xmm7
 	
 	pop			ebx
 	

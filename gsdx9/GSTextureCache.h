@@ -50,11 +50,10 @@ class GSDirtyRect
 {
 	DWORD m_PSM;
 	CRect m_rcDirty;
-	bool m_fAllDirty;
 
 public:
-	GSDirtyRect() : m_PSM(PSM_PSMCT32), m_rcDirty(0, 0, 0, 0), m_fAllDirty(false) {}
-	GSDirtyRect(DWORD PSM, CRect* r = NULL);
+	GSDirtyRect() : m_PSM(PSM_PSMCT32), m_rcDirty(0, 0, 0, 0) {}
+	GSDirtyRect(DWORD PSM, CRect r);
 	CRect GetDirtyRect(const GIFRegTEX0& TEX0);
 };
 
@@ -111,6 +110,7 @@ public:
 	void IncAge(CSurfMap<IDirect3DTexture9>& pRTs);
 	void ResetAge(DWORD TBP0);
 	void RemoveAll();
-	void Invalidate(GSState* s, DWORD TBP0, DWORD PSM, CRect* r = NULL);
+	void InvalidateTexture(GSState* s, DWORD TBP0, DWORD PSM, CRect r);
+	void InvalidateLocalMem(GSState* s, DWORD TBP0, DWORD BW, DWORD PSM, CRect r);
 	void AddRT(DWORD TBP0, IDirect3DTexture9* pRT, scale_t scale);
 };

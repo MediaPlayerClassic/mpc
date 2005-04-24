@@ -26,40 +26,34 @@
 
 //
 
-GSDirtyRect::GSDirtyRect(DWORD PSM, CRect* r)
+GSDirtyRect::GSDirtyRect(DWORD PSM, CRect r)
 {
 	m_PSM = PSM;
-	if(r) m_rcDirty = *r;
-	m_fAllDirty = r == NULL;
+	m_rcDirty = r;
 }
 
 CRect GSDirtyRect::GetDirtyRect(const GIFRegTEX0& TEX0)
 {
-	CRect r(0, 0, 1<<TEX0.TW, 1<<TEX0.TH);
+	CRect rcDirty = m_rcDirty;
 
-	if(!m_fAllDirty)
+	CSize src = GSLocalMemory::GetBlockSize(m_PSM);
+	rcDirty.left = (rcDirty.left) & ~(src.cx-1);
+	rcDirty.right = (rcDirty.right + (src.cx-1) /* + 1 */) & ~(src.cx-1);
+	rcDirty.top = (rcDirty.top) & ~(src.cy-1);
+	rcDirty.bottom = (rcDirty.bottom + (src.cy-1) /* + 1 */) & ~(src.cy-1);
+
+	if(m_PSM != TEX0.PSM)
 	{
-		CRect rcDirty = m_rcDirty;
-
-		CSize src = GSLocalMemory::GetBlockSize(m_PSM);
-		rcDirty.left = (rcDirty.left) & ~(src.cx-1);
-		rcDirty.right = (rcDirty.right + (src.cx-1) /* + 1 */) & ~(src.cx-1);
-		rcDirty.top = (rcDirty.top) & ~(src.cy-1);
-		rcDirty.bottom = (rcDirty.bottom + (src.cy-1) /* + 1 */) & ~(src.cy-1);
-
-		if(m_PSM != TEX0.PSM)
-		{
-			CSize dst = GSLocalMemory::GetBlockSize(TEX0.PSM);
-			rcDirty.left = MulDiv(m_rcDirty.left, dst.cx, src.cx);
-			rcDirty.right = MulDiv(m_rcDirty.right, dst.cx, src.cx);
-			rcDirty.top = MulDiv(m_rcDirty.top, dst.cy, src.cy);
-			rcDirty.bottom = MulDiv(m_rcDirty.bottom, dst.cy, src.cy);
-		}
-
-		r &= rcDirty;
+		CSize dst = GSLocalMemory::GetBlockSize(TEX0.PSM);
+		rcDirty.left = MulDiv(m_rcDirty.left, dst.cx, src.cx);
+		rcDirty.right = MulDiv(m_rcDirty.right, dst.cx, src.cx);
+		rcDirty.top = MulDiv(m_rcDirty.top, dst.cy, src.cy);
+		rcDirty.bottom = MulDiv(m_rcDirty.bottom, dst.cy, src.cy);
 	}
 
-	return r;
+	rcDirty &= CRect(0, 0, 1<<TEX0.TW, 1<<TEX0.TH);
+
+	return rcDirty;
 }
 
 void GSDirtyRectList::operator = (const GSDirtyRectList& l)
@@ -627,7 +621,7 @@ void GSTextureCache::IncAge(CSurfMap<IDirect3DTexture9>& pRTs)
 		GSTexture& t = m_TextureCache.GetNext(pos);
 		t.m_nAge++;
 		t.m_nVsyncs++;
-		if(t.m_nAge > 3)
+		if(t.m_nAge > 10)
 		{
 			pRTs.RemoveKey(t.m_TEX0.TBP0);
 			m_TextureCache.RemoveAt(cur);
@@ -652,11 +646,10 @@ void GSTextureCache::RemoveAll()
 	m_pTexturePool8.RemoveAll();
 }
 
-void GSTextureCache::Invalidate(GSState* s, DWORD TBP0, DWORD PSM, CRect* r)
+void GSTextureCache::InvalidateTexture(GSState* s, DWORD TBP0, DWORD PSM, CRect r)
 {
 #ifdef DEBUG_LOG
-	if(r) s->LOG(_T("*TC2 invalidate %05x (%dx%x - %dx%d)\n"), TBP0, r->left, r->top, r->right, r->bottom);
-	else s->LOG(_T("*TC2 invalidate %05x NULL\n"), TBP0);
+	s->LOG(_T("*TC2 invalidate %05x (%dx%x - %dx%d)\n"), TBP0, r.left, r.top, r.right, r.bottom);
 #endif
 
 	POSITION pos = m_TextureCache.GetHeadPosition();
@@ -674,6 +667,69 @@ void GSTextureCache::Invalidate(GSState* s, DWORD TBP0, DWORD PSM, CRect* r)
 		GSTexture& t = m_TextureCache.GetNext(pos);
 		if(t.m_TEX0.TBP0 == TBP0)
 			t.m_dirty.AddHead(GSDirtyRect(PSM, r));
+	}
+}
+
+void GSTextureCache::InvalidateLocalMem(GSState* s, DWORD TBP0, DWORD BW, DWORD PSM, CRect r)
+{
+	CComPtr<IDirect3DTexture9> pRT;
+
+	POSITION pos = m_TextureCache.GetHeadPosition();
+	while(pos)
+	{
+		POSITION cur = pos;
+		const GSTexture& t = m_TextureCache.GetNext(pos);
+		if(t.m_TEX0.TBP0 == TBP0 && t.m_fRT) 
+		{
+			pRT = t.m_pTexture;
+			break;
+		}
+	}
+
+	if(!pRT) return;
+
+	HRESULT hr;
+
+	D3DSURFACE_DESC desc;
+	hr = pRT->GetLevelDesc(0, &desc);
+	if(FAILED(hr)) return;
+
+	CComPtr<IDirect3DSurface9> pVidMem;
+	hr = pRT->GetSurfaceLevel(0, &pVidMem);
+	if(FAILED(hr)) return;
+
+	CComPtr<IDirect3DSurface9> pSysMem;
+	hr = s->m_pD3DDev->CreateOffscreenPlainSurface(desc.Width, desc.Height, D3DFMT_A8R8G8B8, D3DPOOL_SYSTEMMEM, &pSysMem, NULL);
+	if(FAILED(hr)) return;
+
+	hr = s->m_pD3DDev->GetRenderTargetData(pVidMem, pSysMem);
+	if(FAILED(hr)) return;
+
+	D3DLOCKED_RECT lr;
+	hr = pSysMem->LockRect(&lr, &r, D3DLOCK_READONLY|D3DLOCK_NO_DIRTY_UPDATE);
+	if(SUCCEEDED(hr))
+	{
+		BYTE* p = (BYTE*)lr.pBits;
+
+		/*
+		if(r.left == 0 && r.top == 0 && PSM == PSM_PSMCT32)
+		{
+		}
+		else
+		*/
+		{
+			GSLocalMemory::writeFrame wf = s->m_lm.GetWriteFrame(PSM);
+
+			for(int y = r.top; y < r.bottom; y++, p += lr.Pitch)
+			{
+				for(int x = r.left; x < r.right; x++)
+				{
+					(s->m_lm.*wf)(x, y, ((DWORD*)p)[x], TBP0, BW);
+				}
+			}
+		}
+
+		pSysMem->UnlockRect();
 	}
 }
 

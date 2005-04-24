@@ -960,14 +960,14 @@ UVMinMax_amd64 proc public
 	jnz			@B
 
 	movhlps		xmm6, xmm6
-	movss		[r8], xmm6
+	movss		dword ptr [r8], xmm6
 	pshufd		xmm6, xmm6, 55h
-	movss		[r8+4], xmm6
+	movss		dword ptr [r8+4], xmm6
 
 	movhlps		xmm7, xmm7
-	movss		[r8+8], xmm7
+	movss		dword ptr [r8+8], xmm7
 	pshufd		xmm7, xmm7, 55h
-	movss		[r8+12], xmm7
+	movss		dword ptr [r8+12], xmm7
 	
 	ret
 		
