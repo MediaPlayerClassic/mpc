@@ -10,7 +10,7 @@ extern "C" void unSwizzleBlock4_amd64(BYTE* src, BYTE* dst, __int64 dstpitch);
 extern "C" void unSwizzleBlock8HP_amd64(BYTE* src, BYTE* dst, __int64 dstpitch);
 extern "C" void unSwizzleBlock4HLP_amd64(BYTE* src, BYTE* dst, __int64 dstpitch);
 extern "C" void unSwizzleBlock4HHP_amd64(BYTE* src, BYTE* dst, __int64 dstpitch);
-extern "C" void unSwizzleBlock4P_amd64(BYTE* src, BYTE* dst, __int64 dstpitch);
+extern void unSwizzleBlock4P_amd64(BYTE* src, BYTE* dst, __int64 dstpitch);
 extern "C" void SwizzleBlock32_amd64(BYTE* dst, BYTE* src, __int64 srcpitch, DWORD WriteMask = 0xffffffff);
 extern "C" void SwizzleBlock16_amd64(BYTE* dst, BYTE* src, __int64 srcpitch);
 extern "C" void SwizzleBlock8_amd64(BYTE* dst, BYTE* src, __int64 srcpitch);

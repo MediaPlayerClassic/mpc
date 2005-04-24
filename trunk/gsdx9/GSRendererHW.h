@@ -56,6 +56,7 @@ protected:
 	void Flip();
 	void EndFrame();
 	void InvalidateTexture(DWORD TBP0, DWORD PSM, CRect r);
+	void InvalidateLocalMem(DWORD BP, DWORD TBP0, DWORD PSM, CRect r);
 	void MaxTexUV(int& tw, int& th);
 
 	D3DPRIMITIVETYPE m_primtype;

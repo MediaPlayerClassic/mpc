@@ -87,7 +87,8 @@ void GSRendererHW::VertexKick(bool fSkip)
 	//v.z = 1.0f * (m_v.XYZ.Z>>8)/(UINT_MAX>>8);
 	v.z = log(1.0 + m_v.XYZ.Z)/log_2pow32;
 	//v.z = (float)m_v.XYZ.Z / UINT_MAX;
-	v.rhw = v.z ? 1.0f/v.z : 1.0f; //m_v.RGBAQ.Q;
+	v.rhw = v.z ? 1.0f/v.z : 1.0f;
+	//v.rhw = m_v.RGBAQ.Q;
 
 	BYTE R = m_v.RGBAQ.R;
 	BYTE G = m_v.RGBAQ.G;
@@ -109,7 +110,7 @@ void GSRendererHW::VertexKick(bool fSkip)
 		{
 			v.tu = (float)m_v.UV.U / (16<<m_ctxt->TEX0.TW);
 			v.tv = (float)m_v.UV.V / (16<<m_ctxt->TEX0.TH);
-			//v.rhw = 1.0f; // ???
+			v.rhw = 1.0f; // ???
 		}
 		else if(m_v.RGBAQ.Q != 0)
 		{
@@ -127,11 +128,6 @@ void GSRendererHW::VertexKick(bool fSkip)
 	v.fog = (m_de.pPRIM->FGE ? m_v.FOG.F : 0xff) << 24;
 
 	m_vl.AddTail(v);
-
-	if(v.x == 496.00 && v.y == 71.50)
-	{
-		int i = 0;
-	}
 
 	__super::VertexKick(fSkip);
 }
@@ -151,7 +147,7 @@ int GSRendererHW::DrawingKick(bool fSkip)
 		m_vl.RemoveAt(0, pVertices[nVertices++]);
 		m_vl.RemoveAt(0, pVertices[nVertices++]);
 		if(pVertices[nVertices-1].x < 0 && pVertices[nVertices-2].x < 0 && pVertices[nVertices-3].x < 0
-		|| pVertices[nVertices-1].x < 0 && pVertices[nVertices-2].x < 0 && pVertices[nVertices-3].x < 0
+		|| pVertices[nVertices-1].y < 0 && pVertices[nVertices-2].y < 0 && pVertices[nVertices-3].y < 0
 		|| pVertices[nVertices-1].x >= size.cx && pVertices[nVertices-2].x >= size.cx && pVertices[nVertices-3].x >= size.cx
 		|| pVertices[nVertices-1].y >= size.cy && pVertices[nVertices-2].y >= size.cy && pVertices[nVertices-3].y >= size.cy)
 			{nVertices -= 3; break;}
@@ -834,7 +830,7 @@ void GSRendererHW::EndFrame()
 
 void GSRendererHW::InvalidateTexture(DWORD TBP0, DWORD PSM, CRect r)
 {
-	m_tc.Invalidate(this, TBP0, PSM, &r);
+	m_tc.InvalidateTexture(this, TBP0, PSM, &r);
 
 	//CRect r(m_rs.TRXPOS.DSAX, y, m_rs.TRXREG.RRW, min(m_x == m_rs.TRXPOS.DSAX ? m_y : m_y+1, m_rs.TRXREG.RRH));
 
@@ -969,6 +965,11 @@ void GSRendererHW::InvalidateTexture(DWORD TBP0, DWORD PSM, CRect r)
 
 	m_tc.InvalidateByCBP(TBP0);
 */
+}
+
+void GSRendererHW::InvalidateLocalMem(DWORD TBP0, DWORD BW, DWORD PSM, CRect r)
+{
+	m_tc.InvalidateLocalMem(this, TBP0, BW, PSM, &r);
 }
 
 void GSRendererHW::MaxTexUV(int& tw, int& th)

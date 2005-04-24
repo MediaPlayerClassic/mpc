@@ -30,9 +30,10 @@
 
 GSState::GSState(int w, int h, HWND hWnd, HRESULT& hr) 
 	: m_hWnd(hWnd)
-	, m_fp(NULL)
 	, m_PRIM(8)
 	, m_ctxt(NULL)
+	, m_sfp(NULL)
+	, m_fp(NULL)
 {
 	hr = E_FAIL;
 
@@ -324,7 +325,7 @@ GSState::GSState(int w, int h, HWND hWnd, HRESULT& hr)
 GSState::~GSState()
 {
 	Reset();
-
+	if(m_sfp) fclose(m_sfp);
 	if(m_fp) fclose(m_fp);
 }
 
@@ -406,6 +407,16 @@ void GSState::Write(GS_REG mem, GSReg* r, UINT64 mask)
 	ASSERT(r);
 
 	GSPerfMonAutoTimer at(m_perfmon);
+
+#ifdef ENABLE_CAPTURE_STATE
+	if(m_sfp)
+	{
+		fputc(ST_WRITE, m_sfp);
+		fwrite(&mem, 4, 1, m_sfp);
+		fwrite(r, 8, 1, m_sfp);
+		fwrite(&mask, 8, 1, m_sfp);
+	}
+#endif
 
 	#define AssignReg(reg) m_rs.##reg##.i64 = (r->i64 & mask) | (m_rs.##reg##.i64 & ~mask);
 
@@ -668,6 +679,9 @@ void GSState::Transfer(BYTE* pMem, UINT32 size)
 {
 	GSPerfMonAutoTimer at(m_perfmon);
 
+	BYTE* pMemOrg = pMem;
+	UINT32 sizeOrg = size;
+
 	while(size > 0)
 	{
 		LOG(_T("Transfer(%08x, %d) START\n"), pMem, size);
@@ -771,6 +785,17 @@ break;
 			break;
 		}
 	}
+
+#ifdef ENABLE_CAPTURE_STATE
+	if(m_sfp)
+	{
+		fputc(ST_TRANSFER, m_sfp);
+		fwrite(&sizeOrg, 4, 1, m_sfp);
+		UINT32 len = pMem - pMemOrg;
+		fwrite(&len, 4, 1, m_sfp);
+		fwrite(pMemOrg, len, 1, m_sfp);
+	}
+#endif
 }
 
 UINT32 GSState::MakeSnapshot(char* path)
@@ -790,9 +815,20 @@ void GSState::Capture()
 	else m_capture.EndCapture();
 }
 
+void GSState::CaptureState(CString fn)
+{
+#ifdef ENABLE_CAPTURE_STATE
+	if(!m_sfp) m_sfp = !fn.IsEmpty() ? _tfopen(fn, _T("wb")) : NULL;
+#endif
+}
+
 void GSState::VSync()
 {
 	GSPerfMonAutoTimer at(m_perfmon);
+
+#ifdef ENABLE_CAPTURE_STATE
+	if(m_sfp) fputc(ST_VSYNC, m_sfp);
+#endif
 
 	FlushPrim();
 

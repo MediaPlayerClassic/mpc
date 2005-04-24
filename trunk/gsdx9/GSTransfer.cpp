@@ -62,7 +62,6 @@ void GSState::WriteTransfer(BYTE* pMem, int len)
 LOG(_T("*TC2 WriteTransfer %dx%d - %dx%d (psm=%d rr=%dx%d len=%d)\n"), x, y, m_x, m_y, m_rs.BITBLTBUF.DPSM, m_rs.TRXREG.RRW, m_rs.TRXREG.RRH, len);
 
 	CRect r(m_rs.TRXPOS.DSAX, y, m_rs.TRXREG.RRW, min(m_x == m_rs.TRXPOS.DSAX ? m_y : m_y+1, m_rs.TRXREG.RRH));
-
 	InvalidateTexture(m_rs.BITBLTBUF.DBP, m_rs.BITBLTBUF.DPSM, r);
 
 	m_lm.invalidateCLUT();
@@ -75,6 +74,12 @@ void GSState::ReadTransfer(BYTE* pMem, int len)
 	DWORD* pd = (DWORD*)pMem;
 
 	if(m_y >= (int)m_rs.TRXREG.RRH) {ASSERT(0); return;}
+
+	if(m_x == m_rs.TRXPOS.SSAX && m_y == m_rs.TRXPOS.SSAY)
+	{
+		CRect r(m_rs.TRXPOS.SSAX, m_rs.TRXPOS.SSAY, m_rs.TRXREG.RRW, m_rs.TRXREG.RRH);
+		InvalidateLocalMem(m_rs.BITBLTBUF.SBP, m_rs.BITBLTBUF.SBW, m_rs.BITBLTBUF.SPSM, r);
+	}
 
 	switch(m_rs.BITBLTBUF.SPSM)
 	{

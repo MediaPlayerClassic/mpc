@@ -936,3 +936,5 @@ enum {FREEZE_LOAD=0, FREEZE_SAVE=1, FREEZE_SIZE=2};
 struct freezeData {int size; BYTE* data;};
 
 struct winInfo {HWND hWnd; HMENU hMenu; HWND hStatusWnd;};
+
+enum stateType {ST_WRITE, ST_TRANSFER, ST_VSYNC}; 

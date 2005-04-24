@@ -140,7 +140,7 @@ void __fastcall unSwizzleBlock4P_c(BYTE* src, BYTE* dst, int dstpitch)
 
 __declspec(align(16)) static BYTE s_block4[(32/2)*16];
 
-void __fastcall unSwizzleBlock4P_amd64(BYTE* src, BYTE* dst, int dstpitch)
+void unSwizzleBlock4P_amd64(BYTE* src, BYTE* dst, __int64 dstpitch)
 {
 	unSwizzleBlock4(src, (BYTE*)s_block4, sizeof(s_block4)/16);
 

@@ -49,4 +49,7 @@ protected:
 	DECLARE_MESSAGE_MAP()
 public:
 	BOOL m_halfvres;
+	BOOL m_fRecordState;
+	CString m_strRecordState;
+	afx_msg void OnBnClickedButton1();
 };
