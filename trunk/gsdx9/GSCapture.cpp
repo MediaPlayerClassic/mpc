@@ -180,8 +180,9 @@ bool GSCapture::BeginCapture(IDirect3DDevice9* pD3Dev, int fps)
 	AFX_MANAGE_STATE(AfxGetStaticModuleState());
 
 	GSCaptureDlg dlg;
-	if(IDOK != dlg.DoModal())
-		return false;
+	dlg.DoModal();
+	//if(IDOK != dlg.DoModal())
+	//	return false;
 
 	HRESULT hr;
 
@@ -220,9 +221,9 @@ bool GSCapture::BeginCapture(IDirect3DDevice9* pD3Dev, int fps)
 	if(FAILED(hr = pCGB->RenderStream(NULL, NULL, m_pSrc, dlg.m_pVidEnc, pMux)))
 		return false;
 
-	CComQIPtr<IMediaControl>(m_pGB)->Run();
+	hr = CComQIPtr<IMediaControl>(m_pGB)->Run();
 
-	CComQIPtr<IGSSource>(m_pSrc)->DeliverNewSegment();
+	hr = CComQIPtr<IGSSource>(m_pSrc)->DeliverNewSegment();
 
 	m_pRTSurf = pRTSurf;
 
