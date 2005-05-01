@@ -34,6 +34,7 @@ GSState::GSState(int w, int h, HWND hWnd, HRESULT& hr)
 	, m_ctxt(NULL)
 	, m_sfp(NULL)
 	, m_fp(NULL)
+	, m_iOSD(1)
 {
 	hr = E_FAIL;
 
@@ -153,17 +154,15 @@ GSState::GSState(int w, int h, HWND hWnd, HRESULT& hr)
 		IsDepthFormatOk(m_pD3D, D3DFMT_D24X8, D3DFMT_X8R8G8B8, D3DFMT_X8R8G8B8) ? D3DFMT_D24X8 :
 		D3DFMT_D16;
 
-	D3DPRESENT_PARAMETERS d3dpp;
-	ZeroMemory(&d3dpp, sizeof(d3dpp));
-	d3dpp.Windowed = TRUE;
-	d3dpp.hDeviceWindow = hWnd;
-	d3dpp.SwapEffect = D3DSWAPEFFECT_COPY/*D3DSWAPEFFECT_DISCARD*//*D3DSWAPEFFECT_FLIP*/;
-	d3dpp.BackBufferFormat = D3DFMT_A8R8G8B8;
-	d3dpp.BackBufferWidth = w;
-	d3dpp.BackBufferHeight = h;
-//	d3dpp.Flags = D3DPRESENTFLAG_LOCKABLE_BACKBUFFER;
-//	d3dpp.Flags = D3DPRESENTFLAG_VIDEO;
-	d3dpp.PresentationInterval = D3DPRESENT_DONOTWAIT;
+	ZeroMemory(&m_d3dpp, sizeof(m_d3dpp));
+	m_d3dpp.Windowed = TRUE;
+	m_d3dpp.hDeviceWindow = hWnd;
+	m_d3dpp.SwapEffect = /*D3DSWAPEFFECT_COPY*/D3DSWAPEFFECT_DISCARD/*D3DSWAPEFFECT_FLIP*/;
+	m_d3dpp.BackBufferFormat = D3DFMT_X8R8G8B8;
+	m_d3dpp.BackBufferWidth = w;
+	m_d3dpp.BackBufferHeight = h;
+	m_d3dpp.Flags = D3DPRESENTFLAG_LOCKABLE_BACKBUFFER|D3DPRESENTFLAG_VIDEO;
+	m_d3dpp.PresentationInterval = D3DPRESENT_INTERVAL_IMMEDIATE;
 
 	int ModeWidth = pApp->GetProfileInt(_T("Settings"), _T("ModeWidth"), 0);
 	int ModeHeight = pApp->GetProfileInt(_T("Settings"), _T("ModeHeight"), 0);
@@ -171,14 +170,17 @@ GSState::GSState(int w, int h, HWND hWnd, HRESULT& hr)
 
 	if(ModeWidth > 0 && ModeHeight > 0 && ModeRefreshRate >= 0)
 	{
-		d3dpp.Windowed = FALSE;
-		d3dpp.BackBufferWidth = ModeWidth;
-		d3dpp.BackBufferHeight = ModeHeight;
-		d3dpp.FullScreen_RefreshRateInHz = ModeRefreshRate;
+		m_d3dpp.Windowed = FALSE;
+		m_d3dpp.BackBufferWidth = ModeWidth;
+		m_d3dpp.BackBufferHeight = ModeHeight;
+		m_d3dpp.FullScreen_RefreshRateInHz = ModeRefreshRate;
+		m_d3dpp.PresentationInterval = D3DPRESENT_INTERVAL_DEFAULT;
 
 		::SetWindowLong(hWnd, GWL_STYLE, ::GetWindowLong(hWnd, GWL_STYLE) & ~(WS_CAPTION|WS_THICKFRAME));
 		::SetWindowPos(hWnd, NULL, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE);
 		::SetMenu(hWnd, NULL);
+
+		m_iOSD = 0;
 	}
 
 	if(FAILED(hr = m_pD3D->CreateDevice(
@@ -186,7 +188,7 @@ GSState::GSState(int w, int h, HWND hWnd, HRESULT& hr)
 		D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, 
 		hWnd,
 		m_caps.VertexProcessingCaps ? D3DCREATE_HARDWARE_VERTEXPROCESSING : D3DCREATE_SOFTWARE_VERTEXPROCESSING, 
-		&d3dpp, &m_pD3DDev)))
+		&m_d3dpp, &m_pD3DDev)))
 		return;
 
 	CComPtr<IDirect3DSurface9> pBackBuff;
@@ -309,6 +311,8 @@ GSState::GSState(int w, int h, HWND hWnd, HRESULT& hr)
 			AssembleShaderFromResource(m_pD3DDev, nShaderIDs[i], 0, &m_pPixelShaders[i]);
 		}
 	}
+
+	m_strDefaultTitle.ReleaseBufferSetLength(GetWindowText(m_hWnd, m_strDefaultTitle.GetBuffer(256), 256));
 
 	hr = S_OK;
 
@@ -815,6 +819,19 @@ void GSState::Capture()
 	else m_capture.EndCapture();
 }
 
+void GSState::ToggleOSD()
+{
+	if(m_d3dpp.Windowed)
+	{
+		if(m_iOSD == 1) SetWindowText(m_hWnd, m_strDefaultTitle);
+		m_iOSD = ++m_iOSD % 3;
+	}
+	else
+	{
+		m_iOSD = m_iOSD ? 0 : 2;
+	}
+}
+
 void GSState::CaptureState(CString fn)
 {
 #ifdef ENABLE_CAPTURE_STATE
@@ -840,13 +857,17 @@ void GSState::VSync()
 
 	EndFrame();
 
-	m_stats.VSync(m_perfmon.CpuUsage());
-	CString str = m_stats.ToString(m_rs.GetFPS());
+	if(m_iOSD == 1)
+	{
+		m_stats.VSync(m_perfmon.CpuUsage());
+		CString str = m_stats.ToString(m_rs.GetFPS());
 
-	str.Format(_T("%s - %.2f MB"), CString(str), 1.0f*m_pD3DDev->GetAvailableTextureMem()/1024/1024);
+		str.Format(_T("%s - %.2f MB"), CString(str), 1.0f*m_pD3DDev->GetAvailableTextureMem()/1024/1024);
 
-	LOG(_T("VSync(%s)\n"), str);
-	if(!(m_stats.GetFrame()&7)) SetWindowText(m_hWnd, str);
+		LOG(_T("VSync(%s)\n"), str);
+		if(!(m_stats.GetFrame()&7)) 
+			SetWindowText(m_hWnd, str);
+	}
 }
 
 void GSState::Reset()
@@ -1070,6 +1091,25 @@ void GSState::FinishFlip(FlipSrc rt[2], bool fShiftField)
 	}
 
 	hr = m_pD3DDev->EndScene();
+
+	if(m_iOSD == 2)
+	{
+		m_stats.VSync(m_perfmon.CpuUsage());
+		CString str = m_stats.ToString(m_rs.GetFPS());
+		str.Format(_T("%s - %.2f MB"), CString(str), 1.0f*m_pD3DDev->GetAvailableTextureMem()/1024/1024);
+		LOG(_T("VSync(%s)\n"), str);
+
+		HDC hDC;
+		if(SUCCEEDED(m_pOrgRenderTarget->GetDC(&hDC)))
+		{
+			SetBkMode(hDC, TRANSPARENT);
+			SetTextColor(hDC, 0x00c000);
+			CRect r = dst;
+			if(DrawText(hDC, str, -1, &r, DT_CALCRECT|DT_LEFT|DT_WORDBREAK))
+				DrawText(hDC, str, -1, &r, DT_LEFT|DT_WORDBREAK);
+			m_pOrgRenderTarget->ReleaseDC(hDC);
+		}
+	}
 
 	hr = m_pD3DDev->Present(NULL, NULL, NULL, NULL);
 }

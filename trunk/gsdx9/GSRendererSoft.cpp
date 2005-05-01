@@ -1096,7 +1096,7 @@ void GSRendererSoftFX::DrawVertex(int x, int y, GSSoftVertex& v)
 			{
 			case 0: itu[i] = itu[i] & (tw-1); break;
 			case 1: itu[i] = itu[i] < 0 ? 0 : itu[i] >= tw ? itu[i] = tw-1 : itu[i]; break;
-			case 2: itu[i] = itu[i] < m_ctxt->CLAMP.MINU ? m_ctxt->CLAMP.MINU : itu[i] > m_ctxt->CLAMP.MAXU ? m_ctxt->CLAMP.MAXU : itu[i]; break;
+			case 2: itu[i] = itu[i] < m_ctxt->CLAMP.MINU ? m_ctxt->CLAMP.MINU : itu[i] > m_ctxt->CLAMP.MAXU ? m_ctxt->CLAMP.MAXU : itu[i]; if(itu[i] > tw-1) itu[i] = tw-1; break;
 			case 3: itu[i] = (itu[i] & m_ctxt->CLAMP.MINU) | m_ctxt->CLAMP.MAXU; break;
 			}
 
@@ -1109,7 +1109,7 @@ void GSRendererSoftFX::DrawVertex(int x, int y, GSSoftVertex& v)
 			{
 			case 0: itv[i] = itv[i] & (th-1); break;
 			case 1: itv[i] = itv[i] < 0 ? 0 : itv[i] >= th ? itv[i] = th-1 : itv[i]; break;
-			case 2: itv[i] = itv[i] < m_ctxt->CLAMP.MINV ? m_ctxt->CLAMP.MINV : itv[i] > m_ctxt->CLAMP.MAXV ? m_ctxt->CLAMP.MAXV : itv[i]; break;
+			case 2: itv[i] = itv[i] < m_ctxt->CLAMP.MINV ? m_ctxt->CLAMP.MINV : itv[i] > m_ctxt->CLAMP.MAXV ? m_ctxt->CLAMP.MAXV : itv[i]; if(itv[i] > th-1) itv[i] = th-1; break;
 			case 3: itv[i] = (itv[i] & m_ctxt->CLAMP.MINV) | m_ctxt->CLAMP.MAXV; break;
 			}
 

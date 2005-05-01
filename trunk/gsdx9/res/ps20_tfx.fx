@@ -65,14 +65,14 @@ float4 SampleTexture_pal_ln(in float2 Tex : TEXCOORD0) : COLOR
 	float4 c11 = tex1D(Palette, tex2D(Texture, Tex + RW_RH).x - s_palerr);
 	float2 dd = frac(Tex * W_H); 
 	float4 TexColor = lerp(lerp(c00, c01, dd.x), lerp(c10, c11, dd.x), dd.y);
-	TexColor.a *= 2;
+	if(!fRT) TexColor.a *= 2;
 	return TexColor;
 }
 
 float4 SampleTexture_pal_pt(in float2 Tex : TEXCOORD0) : COLOR
 {
 	float4 TexColor = tex1D(Palette, tex2D(Texture, Tex).x - s_palerr);
-	TexColor.a *= 2;
+	if(!fRT) TexColor.a *= 2;
 	return TexColor;
 }
 	
@@ -98,6 +98,7 @@ float4 tfx0(float4 Diff, float4 TexColor) : COLOR
 float4 tfx1(float4 Diff, float4 TexColor) : COLOR
 {
 	Diff = TexColor;
+	if(!fTCC) Diff.a = 1;
 	return Diff;
 }
 

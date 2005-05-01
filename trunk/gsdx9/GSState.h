@@ -189,6 +189,7 @@ protected:
 	enum {PS11_EN11 = 12, PS11_EN01 = 13, PS11_EN10 = 14, PS11_EN00 = 15};
 	enum {PS14_EN11 = 16, PS14_EN01 = 17, PS14_EN10 = 18, PS14_EN00 = 19};
 	enum {PS_M16 = 0, PS_M24 = 1, PS_M32 = 2};
+	D3DPRESENT_PARAMETERS m_d3dpp;
 	DDCAPS m_ddcaps;
 	D3DCAPS9 m_caps;
 	D3DSURFACE_DESC m_bd;
@@ -317,6 +318,10 @@ public:
 
 	UINT32 MakeSnapshot(char* path);
 	void Capture();
+
+	CString m_strDefaultTitle;
+	int m_iOSD;
+	void ToggleOSD();
 
 	// state
 	void CaptureState(CString fn);

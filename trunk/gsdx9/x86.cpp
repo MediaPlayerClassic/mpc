@@ -136,36 +136,29 @@ void __fastcall unSwizzleBlock4P_c(BYTE* src, BYTE* dst, int dstpitch)
 	}
 }
 
-// TODO: assembly version plz...
-
-__declspec(align(16)) static BYTE s_block4[(32/2)*16];
-
-void unSwizzleBlock4P_amd64(BYTE* src, BYTE* dst, __int64 dstpitch)
+/*
+static class wertyu
 {
-	unSwizzleBlock4(src, (BYTE*)s_block4, sizeof(s_block4)/16);
+public:
+	class wertyu()
+	{
+		DWORD* d = &columnTable4[0][0];
+		__declspec(align(16)) static BYTE src[16][16];
+		for(int j = 0, k = 0; j < 16; j++)
+		{
+			for(int i = 0; i < 32; i++, k++)
+			{
+				if(d[k]&1) ((BYTE*)src)[d[k]>>1] = (((BYTE*)src)[d[k]>>1]&0x0f) | ((k&0xf)<<4);
+				else ((BYTE*)src)[d[k]>>1] = (((BYTE*)src)[d[k]>>1]&0xf0) | (k&0xf);
+			}
+		}
+		__declspec(align(16)) static BYTE dst[16][256];
+		int dstpitch = sizeof(dst[16]);
 
-	BYTE* s = s_block4;
-	BYTE* d = dst;
-
-	for(int j = 0; j < 16; j++, s += 32/2, d += dstpitch)
-		for(int i = 0; i < 32/2; i++)
-			d[i*2] = s[i]&0x0f,
-			d[i*2+1] = s[i]>>4;
-}
-
-void __fastcall unSwizzleBlock4P_sse2(BYTE* src, BYTE* dst, int dstpitch)
-{
-	unSwizzleBlock4(src, (BYTE*)s_block4, sizeof(s_block4)/16);
-
-	BYTE* s = s_block4;
-	BYTE* d = dst;
-
-	for(int j = 0; j < 16; j++, s += 32/2, d += dstpitch)
-		for(int i = 0; i < 32/2; i++)
-			d[i*2] = s[i]&0x0f,
-			d[i*2+1] = s[i]>>4;
-}
-
+		unSwizzleBlock4P_sse2((BYTE*)src, (BYTE*)dst, dstpitch);
+	}
+} gertgrtgrt;
+*/
 //
 
 void __fastcall SwizzleBlock32_c(BYTE* dst, BYTE* src, int srcpitch, DWORD WriteMask)
@@ -218,6 +211,69 @@ void __fastcall SwizzleBlock4_c(BYTE* dst, BYTE* src, int srcpitch)
 			dst[addr >> 1] = (dst[addr >> 1] & (0xf0 >> shift)) | (c << shift);
 		}
 	}
+}
+
+//
+
+void __fastcall ExpandBlock24_c(DWORD* src, DWORD* dst, int dstpitch, GIFRegTEXA* pTEXA)
+{
+	DWORD TA0 = (DWORD)pTEXA->TA0 << 24;
+
+	if(!pTEXA->AEM)
+	{
+		for(int j = 0; j < 8; j++, src += 8, dst += dstpitch>>2)
+			for(int i = 0; i < 8; i++)
+				dst[i] = TA0 | (src[i]&0xffffff);
+	}
+	else
+	{
+		for(int j = 0; j < 8; j++, src += 8, dst += dstpitch>>2)
+			for(int i = 0; i < 8; i++)
+				dst[i] = ((src[i]&0xffffff) ? TA0 : 0) | (src[i]&0xffffff);
+	}
+}
+
+void __fastcall ExpandBlock16_c(WORD* src, DWORD* dst, int dstpitch, GIFRegTEXA* pTEXA)
+{
+	DWORD TA0 = (DWORD)pTEXA->TA0 << 24;
+	DWORD TA1 = (DWORD)pTEXA->TA1 << 24;
+
+	if(!pTEXA->AEM)
+	{
+		for(int j = 0; j < 8; j++, src += 16, dst += dstpitch>>2)
+			for(int i = 0; i < 16; i++)
+				dst[i] = ((src[i]&0x8000) ? TA1 : TA0)
+					| ((src[i]&0x7c00) << 9) | ((src[i]&0x03e0) << 6) | ((src[i]&0x001f) << 3);
+	}
+	else
+	{
+		for(int j = 0; j < 8; j++, src += 16, dst += dstpitch>>2)
+			for(int i = 0; i < 16; i++)
+				dst[i] = ((src[i]&0x8000) ? TA1 : (src[i]&0x7fff) ? TA0 : 0)
+					| ((src[i]&0x7c00) << 9) | ((src[i]&0x03e0) << 6) | ((src[i]&0x001f) << 3);
+	}
+}
+
+// TODO: asm version
+
+extern "C" void ExpandBlock24_amd64(DWORD* src, DWORD* dst, int dstpitch, GIFRegTEXA* pTEXA)
+{
+	ExpandBlock24_c(src, dst, dstpitch, pTEXA);
+}
+
+extern "C" void ExpandBlock16_amd64(WORD* src, DWORD* dst, int dstpitch, GIFRegTEXA* pTEXA)
+{
+	ExpandBlock16_c(src, dst, dstpitch, pTEXA);
+}
+/*
+extern "C" void __fastcall ExpandBlock24_sse2(DWORD* src, DWORD* dst, int dstpitch, GIFRegTEXA* pTEXA)
+{
+	ExpandBlock24_c(src, dst, dstpitch, pTEXA);
+}
+*/
+extern "C" void __fastcall ExpandBlock16_sse2(WORD* src, DWORD* dst, int dstpitch, GIFRegTEXA* pTEXA)
+{
+	ExpandBlock16_c(src, dst, dstpitch, pTEXA);
 }
 
 //
