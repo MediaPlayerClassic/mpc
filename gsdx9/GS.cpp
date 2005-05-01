@@ -246,6 +246,10 @@ EXPORT_C GSkeyEvent(keyEvent* ev)
 			s_gs->Capture();
 			break;
 
+		case VK_DELETE:
+			s_gs->ToggleOSD();
+			break;
+
 		default:
 			break;
 	}

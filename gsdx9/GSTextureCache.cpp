@@ -322,6 +322,12 @@ bool GSTextureCache::Fetch(GSState* s, GSTexture& t)
 			if(pt->m_fRT)
 			{
 				lr = found;
+
+				// FIXME: RT + 8h,4hl,4hh
+				if(nPaletteEntries)
+					return false;
+
+				// FIXME: different RT res
 			}
 			else if(t.m_TEX0.PSM == pt->m_TEX0.PSM && t.m_TEX0.TW == pt->m_TEX0.TW && t.m_TEX0.TH == pt->m_TEX0.TH
 			&& (!(t.m_CLAMP.WMS&2) && !(pt->m_CLAMP.WMS&2) && !(t.m_CLAMP.WMT&2) && !(pt->m_CLAMP.WMT&2) || t.m_CLAMP.i64 == pt->m_CLAMP.i64)
@@ -470,6 +476,18 @@ bool GSTextureCache::FetchPal(GSState* s, GSTexture& t)
 			if(pt->m_fRT)
 			{
 				lr = found;
+
+				// FIXME: RT + 8h,4hl,4hh
+				if(nPaletteEntries)
+					return false;
+
+				if(nPaletteEntries && !pt->m_pPalette) // yuck!
+				{
+					if(FAILED(s->m_pD3DDev->CreateTexture(256, 1, 1, 0, D3DFMT_A8R8G8B8, D3DPOOL_MANAGED, &pt->m_pPalette, NULL)))
+						return false;
+				}
+
+				// FIXME: different RT res
 			}
 			else if(t.m_TEX0.PSM == pt->m_TEX0.PSM && t.m_TEX0.TW == pt->m_TEX0.TW && t.m_TEX0.TH == pt->m_TEX0.TH
 			&& (!(t.m_CLAMP.WMS&2) && !(pt->m_CLAMP.WMS&2) && !(t.m_CLAMP.WMT&2) && !(pt->m_CLAMP.WMT&2) || t.m_CLAMP.i64 == pt->m_CLAMP.i64)
@@ -502,7 +520,7 @@ bool GSTextureCache::FetchPal(GSState* s, GSTexture& t)
 	if(nPaletteEntries > 0)
 	{
 		D3DLOCKED_RECT r;
-		if(FAILED(pt->m_pPalette->LockRect(0, &r, NULL, D3DLOCK_DISCARD)))
+		if(FAILED(pt->m_pPalette->LockRect(0, &r, NULL, 0)))
 			return(false);
 		memcpy(r.pBits, CLUT, nPaletteEntries*sizeof(DWORD));
 		pt->m_pPalette->UnlockRect(0);
@@ -556,10 +574,14 @@ bool GSTextureCache::FetchPal(GSState* s, GSTexture& t)
 		}
 		else
 		{
+			//rlock.right = rlock.bottom = 1;
 #ifdef DEBUG_LOG
 			s->LOG(_T("*TC2 updating texture is not necessary!!! skipping AddDirtyRect\n"));
 #endif
 		}
+
+		//pt->m_pTexture->AddDirtyRect(&rlock);
+		//pt->m_pTexture->PreLoad();
 
 		if(pt->m_valid.cx < tw) pt->m_valid.cx = tw;
 		if(pt->m_valid.cy < th) pt->m_valid.cy = th;
@@ -688,6 +710,8 @@ void GSTextureCache::InvalidateLocalMem(GSState* s, DWORD TBP0, DWORD BW, DWORD 
 
 	if(!pRT) return;
 
+	// TODO: add resizing
+/*
 	HRESULT hr;
 
 	D3DSURFACE_DESC desc;
@@ -711,12 +735,10 @@ void GSTextureCache::InvalidateLocalMem(GSState* s, DWORD TBP0, DWORD BW, DWORD 
 	{
 		BYTE* p = (BYTE*)lr.pBits;
 
-		/*
-		if(r.left == 0 && r.top == 0 && PSM == PSM_PSMCT32)
+		if(0 && r.left == 0 && r.top == 0 && PSM == PSM_PSMCT32)
 		{
 		}
 		else
-		*/
 		{
 			GSLocalMemory::writeFrame wf = s->m_lm.GetWriteFrame(PSM);
 
@@ -731,6 +753,7 @@ void GSTextureCache::InvalidateLocalMem(GSState* s, DWORD TBP0, DWORD BW, DWORD 
 
 		pSysMem->UnlockRect();
 	}
+	*/
 }
 
 void GSTextureCache::AddRT(DWORD TBP0, IDirect3DTexture9* pRT, scale_t scale)

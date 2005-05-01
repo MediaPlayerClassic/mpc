@@ -651,6 +651,212 @@ unSwizzleBlock4HHP_amd64 proc public
 unSwizzleBlock4HHP_amd64 endp
 
 ;
+; unSwizzleBlock4P
+;
+
+unSwizzleBlock4P_amd64 proc public
+
+	mov         eax, 0f0f0f0fh
+	movd        xmm8, eax 
+	pshufd      xmm8, xmm8, 0
+
+	; r9 = r8*3
+	lea			r9, [r8*2]
+	add			r9, r8
+
+	; col 0
+	
+	movaps		xmm0, [rcx+16*0]
+	movaps		xmm1, [rcx+16*1]
+	movaps		xmm2, [rcx+16*2]
+	movaps		xmm3, [rcx+16*3]
+
+	punpck		bw, 0, 2, 1, 3, 4, 6
+	punpck		wd, 0, 4, 2, 6, 1, 3
+	punpck		bw, 0, 4, 1, 3, 2, 6
+
+	movaps		xmm1, xmm8
+	pandn		xmm1, xmm0
+	pand		xmm0, xmm8
+	pshufd		xmm1, xmm1, 0b1h
+	psrlq		xmm1, 4
+
+	movaps		xmm3, xmm8
+	pandn		xmm3, xmm2
+	pand		xmm2, xmm8
+	pshufd		xmm3, xmm3, 0b1h
+	psrlq		xmm3, 4
+	
+	movaps		xmm5, xmm8
+	pandn		xmm5, xmm4
+	pand		xmm4, xmm8
+	pshufd		xmm5, xmm5, 0b1h
+	psrlq		xmm5, 4
+
+	movaps		xmm7, xmm8
+	pandn		xmm7, xmm6
+	pand		xmm6, xmm8
+	pshufd		xmm7, xmm7, 0b1h
+	psrlq		xmm7, 4
+
+	movaps		[rdx], xmm0
+	movaps		[rdx+16], xmm2
+	movaps		[rdx+r8], xmm4
+	movaps		[rdx+r8+16], xmm6
+		
+	movaps		[rdx+r8*2], xmm1
+	movaps		[rdx+r8*2+16], xmm3
+	movaps		[rdx+r9], xmm5
+	movaps		[rdx+r9+16], xmm7
+	
+	lea			rdx, [rdx+r8*4]
+
+	; col 1
+	
+	movaps		xmm0, [rcx+16*4]
+	movaps		xmm1, [rcx+16*5]
+	movaps		xmm2, [rcx+16*6]
+	movaps		xmm3, [rcx+16*7]
+
+	punpck		bw, 0, 2, 1, 3, 4, 6
+	punpck		wd, 0, 4, 2, 6, 1, 3
+	punpck		bw, 0, 4, 1, 3, 2, 6
+
+	movaps		xmm1, xmm8
+	pandn		xmm1, xmm0
+	pand		xmm0, xmm8
+	pshufd		xmm0, xmm0, 0b1h
+	psrlq		xmm1, 4
+
+	movaps		xmm3, xmm8
+	pandn		xmm3, xmm2
+	pand		xmm2, xmm8
+	pshufd		xmm2, xmm2, 0b1h
+	psrlq		xmm3, 4
+	
+	movaps		xmm5, xmm8
+	pandn		xmm5, xmm4
+	pand		xmm4, xmm8
+	pshufd		xmm4, xmm4, 0b1h
+	psrlq		xmm5, 4
+
+	movaps		xmm7, xmm8
+	pandn		xmm7, xmm6
+	pand		xmm6, xmm8
+	pshufd		xmm6, xmm6, 0b1h
+	psrlq		xmm7, 4
+
+	movaps		[rdx], xmm0
+	movaps		[rdx+16], xmm2
+	movaps		[rdx+r8], xmm4
+	movaps		[rdx+r8+16], xmm6
+		
+	movaps		[rdx+r8*2], xmm1
+	movaps		[rdx+r8*2+16], xmm3
+	movaps		[rdx+r9], xmm5
+	movaps		[rdx+r9+16], xmm7
+	
+	lea			rdx, [rdx+r8*4]
+
+	; col 2
+	
+	movaps		xmm0, [rcx+16*8]
+	movaps		xmm1, [rcx+16*9]
+	movaps		xmm2, [rcx+16*10]
+	movaps		xmm3, [rcx+16*11]
+
+	punpck		bw, 0, 2, 1, 3, 4, 6
+	punpck		wd, 0, 4, 2, 6, 1, 3
+	punpck		bw, 0, 4, 1, 3, 2, 6
+
+	movaps		xmm1, xmm8
+	pandn		xmm1, xmm0
+	pand		xmm0, xmm8
+	pshufd		xmm1, xmm1, 0b1h
+	psrlq		xmm1, 4
+
+	movaps		xmm3, xmm8
+	pandn		xmm3, xmm2
+	pand		xmm2, xmm8
+	pshufd		xmm3, xmm3, 0b1h
+	psrlq		xmm3, 4
+	
+	movaps		xmm5, xmm8
+	pandn		xmm5, xmm4
+	pand		xmm4, xmm8
+	pshufd		xmm5, xmm5, 0b1h
+	psrlq		xmm5, 4
+
+	movaps		xmm7, xmm8
+	pandn		xmm7, xmm6
+	pand		xmm6, xmm8
+	pshufd		xmm7, xmm7, 0b1h
+	psrlq		xmm7, 4
+
+	movaps		[rdx], xmm0
+	movaps		[rdx+16], xmm2
+	movaps		[rdx+r8], xmm4
+	movaps		[rdx+r8+16], xmm6
+		
+	movaps		[rdx+r8*2], xmm1
+	movaps		[rdx+r8*2+16], xmm3
+	movaps		[rdx+r9], xmm5
+	movaps		[rdx+r9+16], xmm7
+	
+	lea			rdx, [rdx+r8*4]
+
+	; col 3
+	
+	movaps		xmm0, [rcx+16*12]
+	movaps		xmm1, [rcx+16*13]
+	movaps		xmm2, [rcx+16*14]
+	movaps		xmm3, [rcx+16*15]
+
+	punpck		bw, 0, 2, 1, 3, 4, 6
+	punpck		wd, 0, 4, 2, 6, 1, 3
+	punpck		bw, 0, 4, 1, 3, 2, 6
+
+	movaps		xmm1, xmm8
+	pandn		xmm1, xmm0
+	pand		xmm0, xmm8
+	pshufd		xmm0, xmm0, 0b1h
+	psrlq		xmm1, 4
+
+	movaps		xmm3, xmm8
+	pandn		xmm3, xmm2
+	pand		xmm2, xmm8
+	pshufd		xmm2, xmm2, 0b1h
+	psrlq		xmm3, 4
+	
+	movaps		xmm5, xmm8
+	pandn		xmm5, xmm4
+	pand		xmm4, xmm8
+	pshufd		xmm4, xmm4, 0b1h
+	psrlq		xmm5, 4
+
+	movaps		xmm7, xmm8
+	pandn		xmm7, xmm6
+	pand		xmm6, xmm8
+	pshufd		xmm6, xmm6, 0b1h
+	psrlq		xmm7, 4
+
+	movaps		[rdx], xmm0
+	movaps		[rdx+16], xmm2
+	movaps		[rdx+r8], xmm4
+	movaps		[rdx+r8+16], xmm6
+		
+	movaps		[rdx+r8*2], xmm1
+	movaps		[rdx+r8*2+16], xmm3
+	movaps		[rdx+r9], xmm5
+	movaps		[rdx+r9+16], xmm7
+	
+	; lea			rdx, [rdx+r8*4]
+
+	ret
+
+unSwizzleBlock4P_amd64 endp
+
+;
 ; swizzling
 ;
 

@@ -87,21 +87,15 @@ void GSRendererHW::VertexKick(bool fSkip)
 	//v.z = 1.0f * (m_v.XYZ.Z>>8)/(UINT_MAX>>8);
 	v.z = log(1.0 + m_v.XYZ.Z)/log_2pow32;
 	//v.z = (float)m_v.XYZ.Z / UINT_MAX;
-	v.rhw = v.z ? 1.0f/v.z : 1.0f;
+	//v.rhw = v.z ? 1.0f/v.z : 1.0f;
+	v.rhw = m_v.RGBAQ.Q > 0 ? m_v.RGBAQ.Q : 0;
 	//v.rhw = m_v.RGBAQ.Q;
 
 	BYTE R = m_v.RGBAQ.R;
 	BYTE G = m_v.RGBAQ.G;
 	BYTE B = m_v.RGBAQ.B;
 	BYTE A = SCALE_ALPHA(m_v.RGBAQ.A);
-/*
-	if(m_de.PRIM.FGE)
-	{
-		R = (m_v.FOG.F * R + (0xff - m_v.FOG.F) * m_de.FOGCOL.FCR + 127) >> 8;
-		G = (m_v.FOG.F * G + (0xff - m_v.FOG.F) * m_de.FOGCOL.FCG + 127) >> 8;
-		B = (m_v.FOG.F * B + (0xff - m_v.FOG.F) * m_de.FOGCOL.FCB + 127) >> 8;
-	}
-*/
+
 	if(m_de.pPRIM->TME)
 	{
 		A = m_v.RGBAQ.A;
@@ -150,7 +144,7 @@ int GSRendererHW::DrawingKick(bool fSkip)
 		|| pVertices[nVertices-1].y < 0 && pVertices[nVertices-2].y < 0 && pVertices[nVertices-3].y < 0
 		|| pVertices[nVertices-1].x >= size.cx && pVertices[nVertices-2].x >= size.cx && pVertices[nVertices-3].x >= size.cx
 		|| pVertices[nVertices-1].y >= size.cy && pVertices[nVertices-2].y >= size.cy && pVertices[nVertices-3].y >= size.cy)
-			{nVertices -= 3; break;}
+			return 0;
 		LOGV((pVertices[0], _T("TriList")));
 		LOGV((pVertices[1], _T("TriList")));
 		LOGV((pVertices[2], _T("TriList")));
@@ -164,7 +158,7 @@ int GSRendererHW::DrawingKick(bool fSkip)
 		|| pVertices[nVertices-1].y < 0 && pVertices[nVertices-2].y < 0 && pVertices[nVertices-3].y < 0
 		|| pVertices[nVertices-1].x >= size.cx && pVertices[nVertices-2].x >= size.cx && pVertices[nVertices-3].x >= size.cx
 		|| pVertices[nVertices-1].y >= size.cy && pVertices[nVertices-2].y >= size.cy && pVertices[nVertices-3].y >= size.cy)
-			{nVertices -= 3; break;}
+			return 0;
 		LOGV((pVertices[0], _T("TriStrip")));
 		LOGV((pVertices[1], _T("TriStrip")));
 		LOGV((pVertices[2], _T("TriStrip")));
@@ -178,7 +172,7 @@ int GSRendererHW::DrawingKick(bool fSkip)
 		|| pVertices[nVertices-1].y < 0 && pVertices[nVertices-2].y < 0 && pVertices[nVertices-3].y < 0
 		|| pVertices[nVertices-1].x >= size.cx && pVertices[nVertices-2].x >= size.cx && pVertices[nVertices-3].x >= size.cx
 		|| pVertices[nVertices-1].y >= size.cy && pVertices[nVertices-2].y >= size.cy && pVertices[nVertices-3].y >= size.cy)
-			{nVertices -= 3; break;}
+			return 0;
 		LOGV((pVertices[0], _T("TriFan")));
 		LOGV((pVertices[1], _T("TriFan")));
 		LOGV((pVertices[2], _T("TriFan")));
@@ -191,7 +185,7 @@ int GSRendererHW::DrawingKick(bool fSkip)
 		|| pVertices[nVertices-1].y < 0 && pVertices[nVertices-2].y < 0
 		|| pVertices[nVertices-1].x >= size.cx && pVertices[nVertices-2].x >= size.cx
 		|| pVertices[nVertices-1].y >= size.cy && pVertices[nVertices-2].y >= size.cy)
-			{nVertices -= 2; break;}
+			return 0;
 		nVertices += 2;
 
 /*
@@ -236,7 +230,7 @@ int GSRendererHW::DrawingKick(bool fSkip)
 		|| pVertices[nVertices-1].y < 0 && pVertices[nVertices-2].y < 0
 		|| pVertices[nVertices-1].x >= size.cx && pVertices[nVertices-2].x >= size.cx
 		|| pVertices[nVertices-1].y >= size.cy && pVertices[nVertices-2].y >= size.cy)
-			{nVertices -= 2; break;}
+			return 0;
 		LOGV((pVertices[0], _T("LineList")));
 		LOGV((pVertices[1], _T("LineList")));
 		break;
@@ -248,7 +242,7 @@ int GSRendererHW::DrawingKick(bool fSkip)
 		|| pVertices[nVertices-1].y < 0 && pVertices[nVertices-2].y < 0
 		|| pVertices[nVertices-1].x >= size.cx && pVertices[nVertices-2].x >= size.cx
 		|| pVertices[nVertices-1].y >= size.cy && pVertices[nVertices-2].y >= size.cy)
-			{nVertices -= 2; break;}
+			return 0;
 		LOGV((pVertices[0], _T("LineStrip")));
 		LOGV((pVertices[1], _T("LineStrip")));
 		break;
@@ -259,7 +253,7 @@ int GSRendererHW::DrawingKick(bool fSkip)
 		|| pVertices[nVertices-1].y < 0
 		|| pVertices[nVertices-1].x >= size.cx
 		|| pVertices[nVertices-1].y >= size.cy)
-			{nVertices--; break;}
+			return 0;
 		LOGV((pVertices[0], _T("PointList")));
 		break;
 	default:
@@ -267,7 +261,13 @@ int GSRendererHW::DrawingKick(bool fSkip)
 		m_vl.RemoveAll();
 		return 0;
 	}
-
+/*
+	int gt = 0;
+	for(int i = 0; i < nVertices; i++)
+		if(pVertices[i].rhw > 0) gt++;
+	if(gt != nVertices) 
+		return 0;
+*/
 	if(fSkip || !m_rs.IsEnabled(0) && !m_rs.IsEnabled(1))
 		return 0;
 
@@ -285,6 +285,7 @@ int GSRendererHW::DrawingKick(bool fSkip)
 void GSRendererHW::FlushPrim()
 {
 	if(m_nVertices > 0 && (!m_de.pPRIM->TME || m_ctxt->TEX0.TBP0 != m_ctxt->FRAME.Block()))
+	do
 	{
 		int nPrims = 0;
 
@@ -362,77 +363,64 @@ scale.y = 1;
 		{
 			if(m_caps.PixelShaderVersion >= D3DVS_VERSION(2, 0))
 			{
-				if(m_tc.FetchPal(this, t))
-				{
-					hr = t.m_pTexture->GetLevelDesc(0, &td);
-
-					if(nPrims > 100 && t.m_pPalette) // TODO: find the optimal value for nPrims > ?
-					{
-						CComPtr<IDirect3DTexture9> pRT;
-						hr = m_pD3DDev->CreateTexture(td.Width, td.Height, 1, D3DUSAGE_RENDERTARGET, D3DFMT_A8R8G8B8, D3DPOOL_DEFAULT, &pRT, NULL);
-
-						CComPtr<IDirect3DSurface9> pRTSurf;
-						hr = pRT->GetSurfaceLevel(0, &pRTSurf);
-						hr = m_pD3DDev->SetRenderTarget(0, pRTSurf);
-						hr = m_pD3DDev->SetDepthStencilSurface(NULL);
-
-						hr = m_pD3DDev->SetTexture(0, t.m_pTexture);
-						hr = m_pD3DDev->SetTexture(1, t.m_pPalette);
-						hr = m_pD3DDev->SetSamplerState(0, D3DSAMP_MAGFILTER, D3DTEXF_POINT);
-						hr = m_pD3DDev->SetSamplerState(0, D3DSAMP_MINFILTER, D3DTEXF_POINT);
-						hr = m_pD3DDev->SetSamplerState(1, D3DSAMP_MAGFILTER, D3DTEXF_POINT);
-						hr = m_pD3DDev->SetSamplerState(1, D3DSAMP_MINFILTER, D3DTEXF_POINT);
-						hr = m_pD3DDev->SetRenderState(D3DRS_ZENABLE, FALSE);
-						hr = m_pD3DDev->SetRenderState(D3DRS_ALPHATESTENABLE, FALSE);
-						hr = m_pD3DDev->SetRenderState(D3DRS_ALPHABLENDENABLE, TRUE);
-						hr = m_pD3DDev->SetRenderState(D3DRS_BLENDOP, D3DBLENDOP_ADD);
-						hr = m_pD3DDev->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_ONE);
-						hr = m_pD3DDev->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_ZERO);
-						hr = m_pD3DDev->SetRenderState(D3DRS_SCISSORTESTENABLE, FALSE);
-						hr = m_pD3DDev->SetRenderState(D3DRS_COLORWRITEENABLE, 15);
-
-						hr = m_pD3DDev->SetPixelShader(m_pPixelShaderTFX[13]);
-
-						struct
-						{
-							float x, y, z, rhw;
-							float tu, tv;
-						}
-						pVertices[] =
-						{
-							{0, 0, 0.5f, 2.0f, 0, 0},
-							{td.Width, 0, 0.5f, 2.0f, 1, 0},
-							{0, td.Height, 0.5f, 2.0f, 0, 1},
-							{td.Width, td.Height, 0.5f, 2.0f, 1, 1},
-						};
-
-						hr = m_pD3DDev->BeginScene();
-						hr = m_pD3DDev->SetFVF(D3DFVF_XYZRHW | D3DFVF_TEX1);
-						hr = m_pD3DDev->DrawPrimitiveUP(D3DPT_TRIANGLESTRIP, 2, pVertices, sizeof(pVertices[0]));
-						hr = m_pD3DDev->EndScene();
-
-						t.m_pTexture = pRT;
-						t.m_pPalette = NULL;
-/*
-if(m_stats.GetFrame() > 1000)
-{
-		CString fn;
-		fn.Format(_T("c:\\%08I64x_%I64d_%I64d_%I64d_%I64d_%I64d_%I64d_%I64d-%I64d_%I64d-%I64d.bmp"), 
-			t.m_TEX0.TBP0, t.m_TEX0.PSM, t.m_TEX0.TBW, 
-			t.m_TEX0.TW, t.m_TEX0.TH,
-			t.m_CLAMP.WMS, t.m_CLAMP.WMT, t.m_CLAMP.MINU, t.m_CLAMP.MAXU, t.m_CLAMP.MINV, t.m_CLAMP.MAXV);
-		D3DXSaveTextureToFile(fn, D3DXIFF_BMP, pRT, NULL);
-}
-*/
-					}
-				}
+				if(!m_tc.FetchPal(this, t))
+					break;
 			}
 			else
 			{
-				if(m_tc.Fetch(this, t))
+				if(!m_tc.Fetch(this, t))
+					break;
+			}
+
+			hr = t.m_pTexture->GetLevelDesc(0, &td);
+
+			if(nPrims > 100 && t.m_pPalette) // TODO: find the optimal value for nPrims > ?
+			{
+				CComPtr<IDirect3DTexture9> pRT;
+				hr = m_pD3DDev->CreateTexture(td.Width, td.Height, 1, D3DUSAGE_RENDERTARGET, D3DFMT_A8R8G8B8, D3DPOOL_DEFAULT, &pRT, NULL);
+
+				CComPtr<IDirect3DSurface9> pRTSurf;
+				hr = pRT->GetSurfaceLevel(0, &pRTSurf);
+				hr = m_pD3DDev->SetRenderTarget(0, pRTSurf);
+				hr = m_pD3DDev->SetDepthStencilSurface(NULL);
+
+				hr = m_pD3DDev->SetTexture(0, t.m_pTexture);
+				hr = m_pD3DDev->SetTexture(1, t.m_pPalette);
+				hr = m_pD3DDev->SetSamplerState(0, D3DSAMP_MAGFILTER, D3DTEXF_POINT);
+				hr = m_pD3DDev->SetSamplerState(0, D3DSAMP_MINFILTER, D3DTEXF_POINT);
+				hr = m_pD3DDev->SetSamplerState(1, D3DSAMP_MAGFILTER, D3DTEXF_POINT);
+				hr = m_pD3DDev->SetSamplerState(1, D3DSAMP_MINFILTER, D3DTEXF_POINT);
+				hr = m_pD3DDev->SetRenderState(D3DRS_ZENABLE, FALSE);
+				hr = m_pD3DDev->SetRenderState(D3DRS_ALPHATESTENABLE, FALSE);
+				hr = m_pD3DDev->SetRenderState(D3DRS_ALPHABLENDENABLE, TRUE);
+				hr = m_pD3DDev->SetRenderState(D3DRS_BLENDOP, D3DBLENDOP_ADD);
+				hr = m_pD3DDev->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_ONE);
+				hr = m_pD3DDev->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_ZERO);
+				hr = m_pD3DDev->SetRenderState(D3DRS_SCISSORTESTENABLE, FALSE);
+				hr = m_pD3DDev->SetRenderState(D3DRS_COLORWRITEENABLE, 15);
+
+				hr = m_pD3DDev->SetPixelShader(m_pPixelShaderTFX[13]);
+
+				struct
 				{
-					hr = t.m_pTexture->GetLevelDesc(0, &td);
+					float x, y, z, rhw;
+					float tu, tv;
 				}
+				pVertices[] =
+				{
+					{0, 0, 0.5f, 2.0f, 0, 0},
+					{td.Width, 0, 0.5f, 2.0f, 1, 0},
+					{0, td.Height, 0.5f, 2.0f, 0, 1},
+					{td.Width, td.Height, 0.5f, 2.0f, 1, 1},
+				};
+
+				hr = m_pD3DDev->BeginScene();
+				hr = m_pD3DDev->SetFVF(D3DFVF_XYZRHW | D3DFVF_TEX1);
+				hr = m_pD3DDev->DrawPrimitiveUP(D3DPT_TRIANGLESTRIP, 2, pVertices, sizeof(pVertices[0]));
+				hr = m_pD3DDev->EndScene();
+
+				t.m_pTexture = pRT;
+				t.m_pPalette = NULL;
 			}
 		}
 
@@ -535,14 +523,6 @@ if(m_stats.GetFrame() > 1000)
 
 		//////////////////////
 
-if(m_de.pPRIM->TME && (m_ctxt->FRAME.Block()) == 0x01e00 && m_ctxt->TEX0.TBP0 == 0x00000)
-{
-	if(m_stats.GetFrame() > 1200)
-	{
-		//hr = D3DXSaveTextureToFile(_T("c:\\rtbefore.bmp"), D3DXIFF_BMP, pRT, NULL);
-	}
-}
-
 		{
 			// hr = m_pD3DDev->SetTextureStageState(1, D3DTSS_TEXCOORDINDEX, 1);
 			// hr = m_pD3DDev->SetTexture(1, pRT);
@@ -635,20 +615,13 @@ if(m_de.pPRIM->TME && (m_ctxt->FRAME.Block()) == 0x01e00 && m_ctxt->TEX0.TBP0 ==
 				hr = m_pD3DDev->DrawPrimitiveUP(m_primtype, nPrims, m_pVertices, sizeof(HWVERTEX));
 		}
 
-if(m_de.pPRIM->TME && /*(m_ctxt->FRAME.Block()) == 0x00000 &&*/ m_ctxt->TEX0.TBP0 == 0x02320)
-{
-	if(m_stats.GetFrame() > 1200)
-	{
-		//hr = D3DXSaveTextureToFile(_T("c:\\rtafter.bmp"), D3DXIFF_BMP, pRT, NULL);
-		//if(t.m_pTexture) hr = D3DXSaveTextureToFile(_T("c:\\tx.bmp"), D3DXIFF_BMP, t.m_pTexture, NULL);
-	}
-}
 		hr = m_pD3DDev->EndScene();
 
 		//////////////////////
 
 		m_tc.AddRT(m_ctxt->FRAME.Block(), pRT, scale);
 	}
+	while(0);
 
 	m_primtype = D3DPT_FORCE_DWORD;
 
