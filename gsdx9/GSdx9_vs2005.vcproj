@@ -1129,6 +1129,14 @@
 			<File
 				RelativePath=".\x86.cpp"
 				>
+				<FileConfiguration
+					Name="ReleaseSSE2|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						AssemblerOutput="4"
+					/>
+				</FileConfiguration>
 			</File>
 		</Filter>
 		<Filter
@@ -1239,6 +1247,14 @@
 			Name="Shaders"
 			>
 			<File
+				RelativePath=".\res\hlsl_merge.fx"
+				>
+			</File>
+			<File
+				RelativePath=".\res\hlsl_tfx.fx"
+				>
+			</File>
+			<File
 				RelativePath=".\res\ps11_en00.psh"
 				>
 			</File>
@@ -1316,14 +1332,6 @@
 			</File>
 			<File
 				RelativePath=".\res\ps14_en11.psh"
-				>
-			</File>
-			<File
-				RelativePath=".\res\ps20_merge.fx"
-				>
-			</File>
-			<File
-				RelativePath=".\res\ps20_tfx.fx"
 				>
 			</File>
 		</Filter>

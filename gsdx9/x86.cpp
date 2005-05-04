@@ -249,32 +249,145 @@ void __fastcall ExpandBlock16_c(WORD* src, DWORD* dst, int dstpitch, GIFRegTEXA*
 	{
 		for(int j = 0; j < 8; j++, src += 16, dst += dstpitch>>2)
 			for(int i = 0; i < 16; i++)
-				dst[i] = ((src[i]&0x8000) ? TA1 : (src[i]&0x7fff) ? TA0 : 0)
+				dst[i] = ((src[i]&0x8000) ? TA1 : src[i] ? TA0 : 0)
 					| ((src[i]&0x7c00) << 9) | ((src[i]&0x03e0) << 6) | ((src[i]&0x001f) << 3);
 	}
 }
 
-// TODO: asm version
+#if defined(_M_AMD64) || _M_IX86_FP >= 2
 
-extern "C" void ExpandBlock24_amd64(DWORD* src, DWORD* dst, int dstpitch, GIFRegTEXA* pTEXA)
+static __m128i s_zero = _mm_setzero_si128();
+static __m128i s_bgrm = _mm_set1_epi32(0x00ffffff);
+static __m128i s_am = _mm_set1_epi32(0x00008000);
+static __m128i s_bm = _mm_set1_epi32(0x00007c00);
+static __m128i s_gm = _mm_set1_epi32(0x000003e0);
+static __m128i s_rm = _mm_set1_epi32(0x0000001f);
+
+void __fastcall ExpandBlock24_sse2(DWORD* src, DWORD* dst, int dstpitch, GIFRegTEXA* pTEXA)
 {
-	ExpandBlock24_c(src, dst, dstpitch, pTEXA);
+	__m128i TA0 = _mm_set1_epi32((DWORD)pTEXA->TA0 << 24);
+
+	if(!pTEXA->AEM)
+	{
+		for(int j = 0; j < 8; j++, src += 8, dst += dstpitch>>2)
+		{
+			for(int i = 0; i < 8; i += 4)
+			{
+				__m128i c = _mm_load_si128((__m128i*)(&src[i]));
+				c = _mm_and_si128(c, s_bgrm);
+				c = _mm_or_si128(c, TA0);
+				_mm_store_si128((__m128i*)&dst[i], c);
+			}
+		}
+	}
+	else
+	{
+		for(int j = 0; j < 8; j++, src += 8, dst += dstpitch>>2)
+		{
+			for(int i = 0; i < 8; i += 4)
+			{
+				__m128i c = _mm_load_si128((__m128i*)(&src[i]));
+				c = _mm_and_si128(c, s_bgrm);
+				__m128i a = _mm_andnot_si128(_mm_cmpeq_epi16(c, s_zero), TA0);
+				c = _mm_or_si128(c, a);
+				_mm_store_si128((__m128i*)&dst[i], c);
+			}
+		}
+	}
+
 }
 
-extern "C" void ExpandBlock16_amd64(WORD* src, DWORD* dst, int dstpitch, GIFRegTEXA* pTEXA)
+void __fastcall ExpandBlock16_sse2(WORD* src, DWORD* dst, int dstpitch, GIFRegTEXA* pTEXA)
 {
-	ExpandBlock16_c(src, dst, dstpitch, pTEXA);
+	__m128i TA0 = _mm_set1_epi32((DWORD)pTEXA->TA0 << 24);
+	__m128i TA1 = _mm_set1_epi32((DWORD)pTEXA->TA1 << 24);
+	__m128i a, b, g, r;
+
+	if(!pTEXA->AEM)
+	{
+		for(int j = 0; j < 8; j++, src += 16, dst += dstpitch>>2)
+		{
+			for(int i = 0; i < 16; i += 8)
+			{
+				__m128i c = _mm_load_si128((__m128i*)(&src[i]));
+
+				__m128i cl = _mm_unpacklo_epi16(c, s_zero);
+				__m128i ch = _mm_unpackhi_epi16(c, s_zero);
+
+				__m128i alm = _mm_cmplt_epi32(cl, s_am);
+				__m128i ahm = _mm_cmplt_epi32(ch, s_am);
+
+				// lo
+
+				b = _mm_slli_epi32(_mm_and_si128(cl, s_bm), 9);
+				g = _mm_slli_epi32(_mm_and_si128(cl, s_gm), 6);
+				r = _mm_slli_epi32(_mm_and_si128(cl, s_rm), 3);
+				a = _mm_or_si128(_mm_and_si128(alm, TA0), _mm_andnot_si128(alm, TA1));
+
+				cl = _mm_or_si128(_mm_or_si128(a, b), _mm_or_si128(g, r));
+
+				_mm_store_si128((__m128i*)&dst[i], cl);
+
+				// hi
+
+				b = _mm_slli_epi32(_mm_and_si128(ch, s_bm), 9);
+				g = _mm_slli_epi32(_mm_and_si128(ch, s_gm), 6);
+				r = _mm_slli_epi32(_mm_and_si128(ch, s_rm), 3);
+				a = _mm_or_si128(_mm_and_si128(ahm, TA0), _mm_andnot_si128(ahm, TA1));
+
+				ch = _mm_or_si128(_mm_or_si128(a, b), _mm_or_si128(g, r));
+
+				_mm_store_si128((__m128i*)&dst[i+4], ch);
+			}
+		}
+	}
+	else
+	{
+		for(int j = 0; j < 8; j++, src += 16, dst += dstpitch>>2)
+		{
+			for(int i = 0; i < 16; i += 8)
+			{
+				__m128i c = _mm_load_si128((__m128i*)(&src[i]));
+
+				__m128i cl = _mm_unpacklo_epi16(c, s_zero);
+				__m128i ch = _mm_unpackhi_epi16(c, s_zero);
+
+				__m128i alm = _mm_cmplt_epi32(cl, s_am);
+				__m128i ahm = _mm_cmplt_epi32(ch, s_am);
+
+				__m128i trm = _mm_cmpeq_epi16(c, s_zero);
+				__m128i trlm = _mm_unpacklo_epi16(trm, trm);
+				__m128i trhm = _mm_unpackhi_epi16(trm, trm);
+
+				// lo
+
+				b = _mm_slli_epi32(_mm_and_si128(cl, s_bm), 9);
+				g = _mm_slli_epi32(_mm_and_si128(cl, s_gm), 6);
+				r = _mm_slli_epi32(_mm_and_si128(cl, s_rm), 3);
+				a = _mm_or_si128(_mm_and_si128(alm, TA0), _mm_andnot_si128(alm, TA1));
+				a = _mm_andnot_si128(trlm, a);
+
+				cl = _mm_or_si128(_mm_or_si128(a, b), _mm_or_si128(g, r));
+
+				_mm_store_si128((__m128i*)&dst[i], cl);
+
+				// hi
+
+				b = _mm_slli_epi32(_mm_and_si128(ch, s_bm), 9);
+				g = _mm_slli_epi32(_mm_and_si128(ch, s_gm), 6);
+				r = _mm_slli_epi32(_mm_and_si128(ch, s_rm), 3);
+				a = _mm_or_si128(_mm_and_si128(ahm, TA0), _mm_andnot_si128(ahm, TA1));
+				a = _mm_andnot_si128(trhm, a);
+
+				ch = _mm_or_si128(_mm_or_si128(a, b), _mm_or_si128(g, r));
+
+				_mm_store_si128((__m128i*)&dst[i+4], ch);
+			}
+		}
+	}
 }
-/*
-extern "C" void __fastcall ExpandBlock24_sse2(DWORD* src, DWORD* dst, int dstpitch, GIFRegTEXA* pTEXA)
-{
-	ExpandBlock24_c(src, dst, dstpitch, pTEXA);
-}
-*/
-extern "C" void __fastcall ExpandBlock16_sse2(WORD* src, DWORD* dst, int dstpitch, GIFRegTEXA* pTEXA)
-{
-	ExpandBlock16_c(src, dst, dstpitch, pTEXA);
-}
+
+#endif
 
 //
 
@@ -293,3 +406,27 @@ void __fastcall UVMinMax_c(int nVertices, vertex_t* pVertices, uvmm_t* uv)
 		if(uv->vmin > v) uv->vmin = v;
 	}
 }
+
+#if defined(_M_AMD64) || _M_IX86_FP >= 2
+
+static __m128 s_uvmin = _mm_set1_ps(+1e10);
+static __m128 s_uvmax = _mm_set1_ps(-1e10);
+
+void __fastcall UVMinMax_sse2(int nVertices, vertex_t* pVertices, uvmm_t* uv)
+{
+	__m128 uvmin = s_uvmin;
+	__m128 uvmax = s_uvmax;
+
+	__m128* p = (__m128*)pVertices + 1;
+
+	for(int i = 0; i < nVertices; i++)
+	{
+		uvmin = _mm_min_ps(uvmin, p[i*2]);
+		uvmax = _mm_max_ps(uvmax, p[i*2]);
+	}
+
+	_mm_storeh_pi((__m64*)uv, uvmin);
+	_mm_storeh_pi((__m64*)uv + 1, uvmax);
+}
+
+#endif

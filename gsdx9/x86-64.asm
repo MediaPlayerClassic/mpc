@@ -1140,44 +1140,5 @@ SwizzleBlock4_amd64 proc public
 
 SwizzleBlock4_amd64 endp
 
-
-;
-; UVMinMax
-;
-
-UVMinMax_amd64 proc public
-
-	add			rdx, 16
-
-	movss		xmm6, __uvmax
-	pshufd      xmm6, xmm6, 0
-
-	movss		xmm7, __uvmin
-	pshufd      xmm7, xmm7, 0
-
-	align 16
-@@:
-	movaps		xmm0, [rdx]
-	minps		xmm6, xmm0
-	maxps		xmm7, xmm0
-	lea			rdx, [rdx+32]
-
-	dec			ecx
-	jnz			@B
-
-	movhlps		xmm6, xmm6
-	movss		dword ptr [r8], xmm6
-	pshufd		xmm6, xmm6, 55h
-	movss		dword ptr [r8+4], xmm6
-
-	movhlps		xmm7, xmm7
-	movss		dword ptr [r8+8], xmm7
-	pshufd		xmm7, xmm7, 55h
-	movss		dword ptr [r8+12], xmm7
-	
-	ret
-		
-UVMinMax_amd64 endp
-
 	end
 	

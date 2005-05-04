@@ -185,7 +185,7 @@ protected:
 	CComPtr<IDirect3DDevice9> m_pD3DDev;
 	CComPtr<IDirect3DSurface9> m_pOrgRenderTarget;
 	CComPtr<IDirect3DPixelShader9> m_pPixelShaders[20];
-	CComPtr<IDirect3DPixelShader9> m_pPixelShaderTFX[4*3+2], m_pPixelShaderMerge[3];
+	CComPtr<IDirect3DPixelShader9> m_pHLSLTFX[30], m_pHLSLMerge[3];
 	enum {PS11_EN11 = 12, PS11_EN01 = 13, PS11_EN10 = 14, PS11_EN00 = 15};
 	enum {PS14_EN11 = 16, PS14_EN01 = 17, PS14_EN10 = 18, PS14_EN00 = 19};
 	enum {PS_M16 = 0, PS_M24 = 1, PS_M32 = 2};

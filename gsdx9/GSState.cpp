@@ -231,8 +231,9 @@ GSState::GSState(int w, int h, HWND hWnd, HRESULT& hr)
 
 	m_caps.PixelShaderVersion = min(PixelShaderVersion, m_caps.PixelShaderVersion);
 
-	const TCHAR* hlsl_tfx[] = 
+	static const TCHAR* hlsl_tfx[] = 
 	{
+		/*
 		_T("main_tfx0"),
 		_T("main_tfx1"),
 		_T("main_tfx2"),
@@ -247,6 +248,37 @@ GSState::GSState(int w, int h, HWND hWnd, HRESULT& hr)
 		_T("main_tfx3_pal_pt"),
 		_T("main_tfx4"),
 		_T("main_tfx4_pal_pt"),
+		*/
+		_T("main_tfx0_32"),
+		_T("main_tfx1_32"),
+		_T("main_tfx2_32"),
+		_T("main_tfx3_32"),
+		_T("main_tfx0_24"),
+		_T("main_tfx1_24"),
+		_T("main_tfx2_24"),
+		_T("main_tfx3_24"),
+		_T("main_tfx0_24AEM"),
+		_T("main_tfx1_24AEM"),
+		_T("main_tfx2_24AEM"),
+		_T("main_tfx3_24AEM"),
+		_T("main_tfx0_16"),
+		_T("main_tfx1_16"),
+		_T("main_tfx2_16"),
+		_T("main_tfx3_16"),
+		_T("main_tfx0_16AEM"),
+		_T("main_tfx1_16AEM"),
+		_T("main_tfx2_16AEM"),
+		_T("main_tfx3_16AEM"),
+		_T("main_tfx0_8P_pt"),
+		_T("main_tfx1_8P_pt"),
+		_T("main_tfx2_8P_pt"),
+		_T("main_tfx3_8P_pt"),
+		_T("main_tfx0_8P_ln"),
+		_T("main_tfx1_8P_ln"),
+		_T("main_tfx2_8P_ln"),
+		_T("main_tfx3_8P_ln"),
+		_T("main_notfx"),
+		_T("main_8PTo32"),
 	};
 
 	// ps_3_0
@@ -255,18 +287,18 @@ GSState::GSState(int w, int h, HWND hWnd, HRESULT& hr)
 	{
 		for(int i = 0; i < countof(hlsl_tfx); i++)
 		{
-			if(m_pPixelShaderTFX[i]) continue;
+			if(m_pHLSLTFX[i]) continue;
 
-			CompileShaderFromResource(m_pD3DDev, IDR_PS20_TFX, hlsl_tfx[i], _T("ps_3_0"), D3DXSHADER_AVOID_FLOW_CONTROL, &m_pPixelShaderTFX[i]);
+			CompileShaderFromResource(m_pD3DDev, IDR_HLSL_TFX, hlsl_tfx[i], _T("ps_3_0"), D3DXSHADER_AVOID_FLOW_CONTROL, &m_pHLSLTFX[i]);
 		}
 
 		for(int i = 0; i < 3; i++)
 		{
-			if(m_pPixelShaderMerge[i]) continue;
+			if(m_pHLSLMerge[i]) continue;
 
 			CString main;
 			main.Format(_T("main%d"), i);
-			CompileShaderFromResource(m_pD3DDev, IDR_PS20_MERGE, main, _T("ps_3_0"), D3DXSHADER_AVOID_FLOW_CONTROL, &m_pPixelShaderMerge[i]);
+			CompileShaderFromResource(m_pD3DDev, IDR_HLSL_MERGE, main, _T("ps_3_0"), D3DXSHADER_AVOID_FLOW_CONTROL, &m_pHLSLMerge[i]);
 		}
 	}
 
@@ -276,18 +308,18 @@ GSState::GSState(int w, int h, HWND hWnd, HRESULT& hr)
 	{
 		for(int i = 0; i < countof(hlsl_tfx); i++)
 		{
-			if(m_pPixelShaderTFX[i]) continue;
+			if(m_pHLSLTFX[i]) continue;
 
-			CompileShaderFromResource(m_pD3DDev, IDR_PS20_TFX, hlsl_tfx[i], _T("ps_2_0"), 0, &m_pPixelShaderTFX[i]);
+			CompileShaderFromResource(m_pD3DDev, IDR_HLSL_TFX, hlsl_tfx[i], _T("ps_2_0"), 0, &m_pHLSLTFX[i]);
 		}
 
 		for(int i = 0; i < 3; i++)
 		{
-			if(m_pPixelShaderMerge[i]) continue;
+			if(m_pHLSLMerge[i]) continue;
 
 			CString main;
 			main.Format(_T("main%d"), i);
-			CompileShaderFromResource(m_pD3DDev, IDR_PS20_MERGE, main, _T("ps_2_0"), 0, &m_pPixelShaderMerge[i]);
+			CompileShaderFromResource(m_pD3DDev, IDR_HLSL_MERGE, main, _T("ps_2_0"), 0, &m_pHLSLMerge[i]);
 		}
 	}
 
@@ -969,9 +1001,9 @@ void GSState::FinishFlip(FlipSrc rt[2], bool fShiftField)
 
 	CComPtr<IDirect3DPixelShader9> pPixelShader;
 
-	if(!pPixelShader && m_caps.PixelShaderVersion >= D3DVS_VERSION(2, 0) && m_pPixelShaderMerge[PS_M32])
+	if(!pPixelShader && m_caps.PixelShaderVersion >= D3DVS_VERSION(2, 0) && m_pHLSLMerge[PS_M32])
 	{
-		pPixelShader = m_pPixelShaderMerge[PS_M32];
+		pPixelShader = m_pHLSLMerge[PS_M32];
 	}
 
 	if(!pPixelShader && m_caps.PixelShaderVersion >= D3DVS_VERSION(1, 4))
