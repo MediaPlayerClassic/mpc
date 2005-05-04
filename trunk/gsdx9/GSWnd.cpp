@@ -37,11 +37,18 @@ BOOL CGSWnd::Create(LPCSTR pTitle)
 	return CreateEx(0, wndclass, pTitle, WS_OVERLAPPEDWINDOW, r, NULL, 0);
 }
 
-void CGSWnd::Show()
+void CGSWnd::Show(bool bShow)
 {
-	SetWindowPos(&wndTop, 0, 0, 0, 0, SWP_NOMOVE|SWP_NOSIZE);
-	SetForegroundWindow();
-	ShowWindow(SW_SHOWNORMAL);
+	if(bShow)
+	{
+		SetWindowPos(&wndTop, 0, 0, 0, 0, SWP_NOMOVE|SWP_NOSIZE);
+		SetForegroundWindow();
+		ShowWindow(SW_SHOWNORMAL);
+	}
+	else
+	{
+		ShowWindow(SW_HIDE);
+	}
 }
 
 BEGIN_MESSAGE_MAP(CGSWnd, CWnd)

@@ -73,33 +73,22 @@ EXPORT_C_(UINT32) PS2EgetCpuPlatform()
 
 #define REPLAY_TITLE "Replay"
 
+static HRESULT s_hrCoInit = E_FAIL;
+static CGSWnd s_hWnd;
 static CAutoPtr<GSState> s_gs;
 static void (*s_fpGSirq)() = NULL;
 static UINT64* s_pCSRr = NULL;
 
-static HRESULT s_hrCoInit = E_FAIL;
-
 EXPORT_C_(INT32) GSinit()
 {
+	AFX_MANAGE_STATE(AfxGetStaticModuleState());
+
 	s_hrCoInit = ::CoInitialize(0);
 
-	return 0;
-}
-
-EXPORT_C GSshutdown()
-{
-	if(SUCCEEDED(s_hrCoInit)) ::CoUninitialize();
-}
-
-static CGSWnd s_hWnd;
-
-EXPORT_C_(INT32) GSopen(void* pDsp, char* Title)
-{
 	ASSERT(!s_gs);
 	s_gs.Free();
 
-	AFX_MANAGE_STATE(AfxGetStaticModuleState());
-	if(!s_hWnd.Create(Title) || !(*(HWND*)pDsp = s_hWnd))
+	if(!s_hWnd.Create(_T("PCSX2")))
 		return -1;
 
 	HRESULT hr;
@@ -120,7 +109,29 @@ EXPORT_C_(INT32) GSopen(void* pDsp, char* Title)
 		return -1;
 	}
 
-	s_hWnd.Show();
+	return 0;
+}
+
+EXPORT_C GSshutdown()
+{
+	AFX_MANAGE_STATE(AfxGetStaticModuleState());
+
+	ASSERT(s_gs);
+	s_gs.Free();
+
+	s_hWnd.DestroyWindow();
+
+	if(SUCCEEDED(s_hrCoInit)) ::CoUninitialize();
+}
+
+EXPORT_C_(INT32) GSopen(void* pDsp, char* Title)
+{
+	AFX_MANAGE_STATE(AfxGetStaticModuleState());
+
+	if(!IsWindow(s_hWnd))
+		return -1;
+
+	*(HWND*)pDsp = s_hWnd;
 
 	s_gs->GSirq(s_fpGSirq);
 	s_gs->GSsetCSR(s_pCSRr);
@@ -135,16 +146,14 @@ EXPORT_C_(INT32) GSopen(void* pDsp, char* Title)
 		s_gs->CaptureState(spath);
 	}
 
+	s_hWnd.Show();
+
 	return 0;
 }
 
 EXPORT_C GSclose()
 {
-	ASSERT(s_gs);
-	s_gs.Free();
-
-	AFX_MANAGE_STATE(AfxGetStaticModuleState());
-	s_hWnd.DestroyWindow();
+	s_hWnd.Show(false);
 }
 
 EXPORT_C GSwrite8(GS_REG mem, UINT8 value)
@@ -298,11 +307,6 @@ EXPORT_C GSsetCSR(UINT64* pCSRr)
 {
 	s_pCSRr = pCSRr;
 	// s_gs->GSsetCSR(pCSRr);
-}
-
-EXPORT_C_(INT32) GSsetWindowInfo(winInfo* info)
-{
-	return TRUE;
 }
 
 /////////////////

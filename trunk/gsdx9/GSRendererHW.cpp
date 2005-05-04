@@ -356,8 +356,6 @@ scale.y = 1;
 		//////////////////////
 
 		GSTexture t;
-		D3DSURFACE_DESC td;
-		ZeroMemory(&td, sizeof(td));
 
 		if(m_de.pPRIM->TME)
 		{
@@ -372,12 +370,10 @@ scale.y = 1;
 					break;
 			}
 
-			hr = t.m_pTexture->GetLevelDesc(0, &td);
-
 			if(nPrims > 100 && t.m_pPalette) // TODO: find the optimal value for nPrims > ?
 			{
 				CComPtr<IDirect3DTexture9> pRT;
-				hr = m_pD3DDev->CreateTexture(td.Width, td.Height, 1, D3DUSAGE_RENDERTARGET, D3DFMT_A8R8G8B8, D3DPOOL_DEFAULT, &pRT, NULL);
+				hr = m_pD3DDev->CreateTexture(t.m_desc.Width, t.m_desc.Height, 1, D3DUSAGE_RENDERTARGET, D3DFMT_A8R8G8B8, D3DPOOL_DEFAULT, &pRT, NULL);
 
 				CComPtr<IDirect3DSurface9> pRTSurf;
 				hr = pRT->GetSurfaceLevel(0, &pRTSurf);
@@ -399,7 +395,7 @@ scale.y = 1;
 				hr = m_pD3DDev->SetRenderState(D3DRS_SCISSORTESTENABLE, FALSE);
 				hr = m_pD3DDev->SetRenderState(D3DRS_COLORWRITEENABLE, 15);
 
-				hr = m_pD3DDev->SetPixelShader(m_pHLSLTFX[29]);
+				hr = m_pD3DDev->SetPixelShader(m_pHLSLTFX[37]);
 
 				struct
 				{
@@ -409,9 +405,9 @@ scale.y = 1;
 				pVertices[] =
 				{
 					{0, 0, 0.5f, 2.0f, 0, 0},
-					{td.Width, 0, 0.5f, 2.0f, 1, 0},
-					{0, td.Height, 0.5f, 2.0f, 0, 1},
-					{td.Width, td.Height, 0.5f, 2.0f, 1, 1},
+					{t.m_desc.Width, 0, 0.5f, 2.0f, 1, 0},
+					{0, t.m_desc.Height, 0.5f, 2.0f, 0, 1},
+					{t.m_desc.Width, t.m_desc.Height, 0.5f, 2.0f, 1, 1},
 				};
 
 				hr = m_pD3DDev->BeginScene();
@@ -421,6 +417,8 @@ scale.y = 1;
 
 				t.m_pTexture = pRT;
 				t.m_pPalette = NULL;
+
+				t.m_pTexture->GetLevelDesc(0, &t.m_desc);
 			}
 		}
 
@@ -451,8 +449,8 @@ scale.y = 1;
 
 		if(m_de.pPRIM->TME)
 		{
-			tsx = 1.0f * (1<<m_ctxt->TEX0.TW) / td.Width * t.m_scale.x;
-			tsy = 1.0f * (1<<m_ctxt->TEX0.TH) / td.Height * t.m_scale.y;
+			tsx = 1.0f * (1 << m_ctxt->TEX0.TW) / t.m_desc.Width * t.m_scale.x;
+			tsy = 1.0f * (1 << m_ctxt->TEX0.TH) / t.m_desc.Height * t.m_scale.y;
 		}
 
 		SetupTexture(t, tsx, tsy);
@@ -463,57 +461,19 @@ scale.y = 1;
 
 		//////////////////////
 
-		// close approx., to be tested...
-		int mask = D3DCOLORWRITEENABLE_ALPHA|D3DCOLORWRITEENABLE_BLUE|D3DCOLORWRITEENABLE_GREEN|D3DCOLORWRITEENABLE_RED;
-		if((m_ctxt->FRAME.FBMSK&0xff000000) == 0xff000000) mask &= ~D3DCOLORWRITEENABLE_ALPHA;
-		if((m_ctxt->FRAME.FBMSK&0x00ff0000) == 0x00ff0000) mask &= ~D3DCOLORWRITEENABLE_BLUE;
-		if((m_ctxt->FRAME.FBMSK&0x0000ff00) == 0x0000ff00) mask &= ~D3DCOLORWRITEENABLE_GREEN;
-		if((m_ctxt->FRAME.FBMSK&0x000000ff) == 0x000000ff) mask &= ~D3DCOLORWRITEENABLE_RED;
-		//if(m_ctxt->FRAME.PSM == PSM_PSMCT24) mask &= ~D3DCOLORWRITEENABLE_ALPHA;
-		hr = m_pD3DDev->SetRenderState(D3DRS_COLORWRITEENABLE, mask);
-
-		// ASSERT(m_ctxt->FRAME.FBMSK == 0); // wild arms (also 8H+pal on RT...)
+		SetupColorMask();
 
 		//////////////////////
 
-		hr = m_pD3DDev->SetRenderState(D3DRS_ZENABLE, m_ctxt->TEST.ZTE);
-		hr = m_pD3DDev->SetRenderState(D3DRS_ZWRITEENABLE, !m_ctxt->ZBUF.ZMSK);
-		if(m_ctxt->TEST.ZTE)
-		{
-			DWORD zfunc[] = {D3DCMP_NEVER, D3DCMP_ALWAYS, D3DCMP_GREATEREQUAL, D3DCMP_GREATER};
-			hr = m_pD3DDev->SetRenderState(D3DRS_ZFUNC, zfunc[m_ctxt->TEST.ZTST]);
-//			hr = m_pD3DDev->SetRenderState(D3DRS_ZFUNC, D3DCMP_ALWAYS);
-
-			// FIXME
-			if(m_ctxt->ZBUF.ZMSK && m_ctxt->TEST.ZTST == 1)
-			{
-				HWVERTEX* pVertices = m_pVertices;
-				for(int i = m_nVertices; i-- > 0; pVertices++)
-					pVertices->z = 0;
-			}
-		}
+		SetupZBuffer();
 
 		//////////////////////
 
-		hr = m_pD3DDev->SetRenderState(D3DRS_ALPHATESTENABLE, m_ctxt->TEST.ATE); 
-		if(m_ctxt->TEST.ATE)
-		{
-			DWORD afunc[] =
-			{
-				D3DCMP_NEVER, D3DCMP_ALWAYS, D3DCMP_LESS, D3DCMP_LESSEQUAL, 
-				D3DCMP_EQUAL, D3DCMP_GREATEREQUAL, D3DCMP_GREATER, D3DCMP_NOTEQUAL
-			};
-
-			hr = m_pD3DDev->SetRenderState(D3DRS_ALPHAFUNC, afunc[m_ctxt->TEST.ATST]);
-			hr = m_pD3DDev->SetRenderState(D3DRS_ALPHAREF, (DWORD)SCALE_ALPHA(m_ctxt->TEST.AREF));
-		}
+		SetupAlphaTest();
 
 		//////////////////////
 
-		hr = m_pD3DDev->SetRenderState(D3DRS_SCISSORTESTENABLE, TRUE);
-		CRect scissor(scale.x * m_ctxt->SCISSOR.SCAX0, scale.y * m_ctxt->SCISSOR.SCAY0, scale.x * (m_ctxt->SCISSOR.SCAX1+1), scale.y * (m_ctxt->SCISSOR.SCAY1+1));
-		scissor.IntersectRect(scissor, CRect(0, 0, INTERNALRES, INTERNALRES));
-		hr = m_pD3DDev->SetScissorRect(scissor);
+		SetupScissor(scale);
 
 		//////////////////////
 
@@ -557,7 +517,8 @@ scale.y = 1;
 */
 				if(m_de.pPRIM->FGE)
 				{
-					pVertices->fog = D3DCOLOR_ARGB(pVertices->fog>>24, m_de.FOGCOL.FCB, m_de.FOGCOL.FCG, m_de.FOGCOL.FCR);
+					pVertices->fog = (pVertices->fog & 0xff000000) | (m_de.FOGCOL.ai32[0] & 0x00ffffff);
+					// D3DCOLOR_ARGB(pVertices->fog >> 24, m_de.FOGCOL.FCB, m_de.FOGCOL.FCG, m_de.FOGCOL.FCR)
 				}
 			}
 		}
@@ -1059,7 +1020,24 @@ void GSRendererHW::SetupTexture(const GSTexture& t, float tsx, float tsy)
 		if(!pPixelShader && m_caps.PixelShaderVersion >= D3DVS_VERSION(2, 0) && m_pHLSLTFX[m_ctxt->TEX0.TFX])
 		{
 			int i = m_ctxt->TEX0.TFX;
-			if(t.m_pPalette) i += 24;
+
+			switch(t.m_desc.Format)
+			{
+			default: 
+				ASSERT(0);
+				break;
+			case D3DFMT_A8R8G8B8:
+				if(m_ctxt->TEX0.PSM == PSM_PSMCT24) {i += 4; if(m_de.TEXA.AEM) i += 4;}
+				break;
+			case D3DFMT_A1R5G5B5:
+				i += 12; if(m_de.TEXA.AEM) i += 4; 
+				break;
+			case D3DFMT_L8:
+				i += 24;
+				ASSERT(t.m_pPalette);
+				break;
+			}
+
 			pPixelShader = m_pHLSLTFX[i];
 		}
 
@@ -1177,9 +1155,9 @@ void GSRendererHW::SetupTexture(const GSTexture& t, float tsx, float tsy)
 		hr = m_pD3DDev->SetTexture(0, NULL);
 		hr = m_pD3DDev->SetTexture(1, NULL);
 
-		if(!pPixelShader && m_caps.PixelShaderVersion >= D3DVS_VERSION(2, 0) && m_pHLSLTFX[28])
+		if(!pPixelShader && m_caps.PixelShaderVersion >= D3DVS_VERSION(2, 0) && m_pHLSLTFX[36])
 		{
-			pPixelShader = m_pHLSLTFX[28];
+			pPixelShader = m_pHLSLTFX[36];
 		}
 
 		if(!pPixelShader && m_caps.PixelShaderVersion >= D3DVS_VERSION(1, 1) && m_pPixelShaders[11])
@@ -1329,4 +1307,68 @@ void GSRendererHW::SetupAlphaBlend()
 		hr = m_pD3DDev->SetRenderState(D3DRS_SRCBLEND, blendmap[i].src);
 		hr = m_pD3DDev->SetRenderState(D3DRS_DESTBLEND, blendmap[i].dst);
 	}
+}
+
+void GSRendererHW::SetupColorMask()
+{
+	HRESULT hr;
+
+	// close approx., to be tested...
+	int mask = D3DCOLORWRITEENABLE_ALPHA|D3DCOLORWRITEENABLE_BLUE|D3DCOLORWRITEENABLE_GREEN|D3DCOLORWRITEENABLE_RED;
+	if((m_ctxt->FRAME.FBMSK&0xff000000) == 0xff000000) mask &= ~D3DCOLORWRITEENABLE_ALPHA;
+	if((m_ctxt->FRAME.FBMSK&0x00ff0000) == 0x00ff0000) mask &= ~D3DCOLORWRITEENABLE_BLUE;
+	if((m_ctxt->FRAME.FBMSK&0x0000ff00) == 0x0000ff00) mask &= ~D3DCOLORWRITEENABLE_GREEN;
+	if((m_ctxt->FRAME.FBMSK&0x000000ff) == 0x000000ff) mask &= ~D3DCOLORWRITEENABLE_RED;
+	//if(m_ctxt->FRAME.PSM == PSM_PSMCT24) mask &= ~D3DCOLORWRITEENABLE_ALPHA;
+	hr = m_pD3DDev->SetRenderState(D3DRS_COLORWRITEENABLE, mask);
+
+	// ASSERT(m_ctxt->FRAME.FBMSK == 0); // wild arms (also 8H+pal on RT...)
+}
+
+void GSRendererHW::SetupZBuffer()
+{
+	HRESULT hr;
+
+	hr = m_pD3DDev->SetRenderState(D3DRS_ZENABLE, m_ctxt->TEST.ZTE);
+	hr = m_pD3DDev->SetRenderState(D3DRS_ZWRITEENABLE, !m_ctxt->ZBUF.ZMSK);
+	if(m_ctxt->TEST.ZTE)
+	{
+		DWORD zfunc[] = {D3DCMP_NEVER, D3DCMP_ALWAYS, D3DCMP_GREATEREQUAL, D3DCMP_GREATER};
+		hr = m_pD3DDev->SetRenderState(D3DRS_ZFUNC, zfunc[m_ctxt->TEST.ZTST]);
+//		hr = m_pD3DDev->SetRenderState(D3DRS_ZFUNC, D3DCMP_ALWAYS);
+
+		// FIXME
+		if(m_ctxt->ZBUF.ZMSK && m_ctxt->TEST.ZTST == 1)
+		{
+			HWVERTEX* pVertices = m_pVertices;
+			for(int i = m_nVertices; i-- > 0; pVertices++)
+				pVertices->z = 0;
+		}
+	}
+}
+
+void GSRendererHW::SetupAlphaTest()
+{
+	HRESULT hr = m_pD3DDev->SetRenderState(D3DRS_ALPHATESTENABLE, m_ctxt->TEST.ATE);
+
+	if(m_ctxt->TEST.ATE)
+	{
+		DWORD afunc[] =
+		{
+			D3DCMP_NEVER, D3DCMP_ALWAYS, D3DCMP_LESS, D3DCMP_LESSEQUAL, 
+			D3DCMP_EQUAL, D3DCMP_GREATEREQUAL, D3DCMP_GREATER, D3DCMP_NOTEQUAL
+		};
+
+		hr = m_pD3DDev->SetRenderState(D3DRS_ALPHAFUNC, afunc[m_ctxt->TEST.ATST]);
+		hr = m_pD3DDev->SetRenderState(D3DRS_ALPHAREF, (DWORD)SCALE_ALPHA(m_ctxt->TEST.AREF));
+	}
+}
+
+void GSRendererHW::SetupScissor(const scale_t& s)
+{
+	HRESULT hr;
+	hr = m_pD3DDev->SetRenderState(D3DRS_SCISSORTESTENABLE, TRUE);
+	CRect scissor(s.x * m_ctxt->SCISSOR.SCAX0, s.y * m_ctxt->SCISSOR.SCAY0, s.x * (m_ctxt->SCISSOR.SCAX1+1), s.y * (m_ctxt->SCISSOR.SCAY1+1));
+	scissor.IntersectRect(scissor, CRect(0, 0, INTERNALRES, INTERNALRES));
+	hr = m_pD3DDev->SetScissorRect(scissor);
 }
