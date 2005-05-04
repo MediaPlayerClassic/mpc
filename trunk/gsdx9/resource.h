@@ -29,8 +29,8 @@
 #define IDR_PS11_EN01                   2014
 #define IDR_PS11_EN10                   2015
 #define IDR_PS11_EN00                   2016
-#define IDR_PS20_TFX                    2017
-#define IDR_PS20_MERGE                  2018
+#define IDR_HLSL_TFX                    2017
+#define IDR_HLSL_MERGE                  2018
 #define IDD_CAPTURE                     2018
 #define IDR_PS14_EN11                   2019
 #define IDR_PS14_EN01                   2020

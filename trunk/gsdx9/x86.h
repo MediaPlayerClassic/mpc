@@ -42,10 +42,8 @@ extern void __fastcall SwizzleBlock16_c(BYTE* dst, BYTE* src, int srcpitch);
 extern void __fastcall SwizzleBlock8_c(BYTE* dst, BYTE* src, int srcpitch);
 extern void __fastcall SwizzleBlock4_c(BYTE* dst, BYTE* src, int srcpitch);
 
-extern "C" void ExpandBlock24_amd64(DWORD* src, DWORD* dst, int dstpitch, GIFRegTEXA* pTEXA);
-extern "C" void ExpandBlock16_amd64(WORD* src, DWORD* dst, int dstpitch, GIFRegTEXA* pTEXA);
-extern "C" void __fastcall ExpandBlock24_sse2(DWORD* src, DWORD* dst, int dstpitch, GIFRegTEXA* pTEXA);
-extern "C" void __fastcall ExpandBlock16_sse2(WORD* src, DWORD* dst, int dstpitch, GIFRegTEXA* pTEXA);
+extern void __fastcall ExpandBlock24_sse2(DWORD* src, DWORD* dst, int dstpitch, GIFRegTEXA* pTEXA);
+extern void __fastcall ExpandBlock16_sse2(WORD* src, DWORD* dst, int dstpitch, GIFRegTEXA* pTEXA);
 extern void __fastcall ExpandBlock24_c(DWORD* src, DWORD* dst, int dstpitch, GIFRegTEXA* pTEXA);
 extern void __fastcall ExpandBlock16_c(WORD* src, DWORD* dst, int dstpitch, GIFRegTEXA* pTEXA);
 
@@ -55,7 +53,6 @@ extern "C" void __fastcall SaturateColor_asm(int* c);
 
 struct uvmm_t {float umin, vmin, umax, vmax;};
 struct vertex_t {float xyzw[4]; DWORD color[2]; float u, v;};
-extern "C" void UVMinMax_amd64(int nVertices, vertex_t* pVertices, uvmm_t* uv);
 extern "C" void __fastcall UVMinMax_sse2(int nVertices, vertex_t* pVertices, uvmm_t* uv);
 extern "C" void __fastcall UVMinMax_c(int nVertices, vertex_t* pVertices, uvmm_t* uv);
 
@@ -76,10 +73,10 @@ extern "C" void __fastcall UVMinMax_c(int nVertices, vertex_t* pVertices, uvmm_t
 #define SwizzleBlock8 SwizzleBlock8_amd64
 #define SwizzleBlock4 SwizzleBlock4_amd64
 
-#define ExpandBlock24 ExpandBlock24_amd64
-#define ExpandBlock16 ExpandBlock16_amd64
+#define ExpandBlock24 ExpandBlock24_sse2
+#define ExpandBlock16 ExpandBlock16_sse2
 
-#define UVMinMax UVMinMax_amd64
+#define UVMinMax UVMinMax_sse2
 
 #elif _M_IX86_FP >= 2
 

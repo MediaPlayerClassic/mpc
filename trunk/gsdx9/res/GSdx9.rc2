@@ -30,7 +30,7 @@ IDR_PS14_EN11   RCDATA                                 "res\\ps14_en11.psh"
 IDR_PS14_EN01   RCDATA                                 "res\\ps14_en01.psh"
 IDR_PS14_EN10   RCDATA                                 "res\\ps14_en10.psh"
 IDR_PS14_EN00   RCDATA                                 "res\\ps14_en00.psh"
-IDR_PS20_TFX    RCDATA                                 "res\\ps20_tfx.fx"
-IDR_PS20_MERGE  RCDATA                                 "res\\ps20_merge.fx"
+IDR_HLSL_TFX    RCDATA                                 "res\\hlsl_tfx.fx"
+IDR_HLSL_MERGE  RCDATA                                 "res\\hlsl_merge.fx"
 
 /////////////////////////////////////////////////////////////////////////////

@@ -553,6 +553,23 @@ bool GSTextureCache::FetchPal(GSState* s, GSTexture& t)
 		s->m_stats.IncReads(tw*th*Bpp);
 
 		DWORD chksum = 0;
+/*		
+		{
+			__m128i chksum4 = _mm_setzero_si128();
+			BYTE* p = (BYTE*)r.pBits;
+			for(int j = 0; j < th; j++, p += r.Pitch)
+			{
+				for(int i = 0; i < tw*xstep; i += 16)
+					chksum4 = _mm_add_epi32(chksum4, *(__m128i*)&p[i]);
+			}
+			chksum4 = _mm_add_epi32(chksum4, _mm_srli_si128(chksum4, 8));
+			chksum4 = _mm_add_epi32(chksum4, _mm_srli_si128(chksum4, 4));
+			__declspec(align(16)) DWORD tmp[4];
+			_mm_store_si128((__m128i*)tmp, chksum4);
+			chksum = tmp[0];
+		}
+*/
+		chksum = 0;
 
 		BYTE* ptr = (BYTE*)r.pBits;
 		for(int j = 0; j < th; j++, ptr += r.Pitch)

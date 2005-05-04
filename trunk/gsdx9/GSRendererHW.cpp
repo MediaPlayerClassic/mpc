@@ -399,7 +399,7 @@ scale.y = 1;
 				hr = m_pD3DDev->SetRenderState(D3DRS_SCISSORTESTENABLE, FALSE);
 				hr = m_pD3DDev->SetRenderState(D3DRS_COLORWRITEENABLE, 15);
 
-				hr = m_pD3DDev->SetPixelShader(m_pPixelShaderTFX[13]);
+				hr = m_pD3DDev->SetPixelShader(m_pHLSLTFX[29]);
 
 				struct
 				{
@@ -1056,11 +1056,11 @@ void GSRendererHW::SetupTexture(const GSTexture& t, float tsx, float tsy)
 		hr = m_pD3DDev->SetSamplerState(1, D3DSAMP_MAGFILTER, t.m_pPalette ? D3DTEXF_POINT : D3DTEXF_LINEAR);
 		hr = m_pD3DDev->SetSamplerState(1, D3DSAMP_MINFILTER, t.m_pPalette ? D3DTEXF_POINT : D3DTEXF_LINEAR);
 
-		if(!pPixelShader && m_caps.PixelShaderVersion >= D3DVS_VERSION(2, 0) && m_pPixelShaderTFX[m_ctxt->TEX0.TFX])
+		if(!pPixelShader && m_caps.PixelShaderVersion >= D3DVS_VERSION(2, 0) && m_pHLSLTFX[m_ctxt->TEX0.TFX])
 		{
 			int i = m_ctxt->TEX0.TFX;
-			if(t.m_pPalette) i += 4;
-			pPixelShader = m_pPixelShaderTFX[i];
+			if(t.m_pPalette) i += 24;
+			pPixelShader = m_pHLSLTFX[i];
 		}
 
 		if(!pPixelShader && m_caps.PixelShaderVersion >= D3DVS_VERSION(1, 1))
@@ -1177,9 +1177,9 @@ void GSRendererHW::SetupTexture(const GSTexture& t, float tsx, float tsy)
 		hr = m_pD3DDev->SetTexture(0, NULL);
 		hr = m_pD3DDev->SetTexture(1, NULL);
 
-		if(!pPixelShader && m_caps.PixelShaderVersion >= D3DVS_VERSION(2, 0) && m_pPixelShaderTFX[12])
+		if(!pPixelShader && m_caps.PixelShaderVersion >= D3DVS_VERSION(2, 0) && m_pHLSLTFX[28])
 		{
-			pPixelShader = m_pPixelShaderTFX[12];
+			pPixelShader = m_pHLSLTFX[28];
 		}
 
 		if(!pPixelShader && m_caps.PixelShaderVersion >= D3DVS_VERSION(1, 1) && m_pPixelShaders[11])
