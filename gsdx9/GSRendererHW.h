@@ -48,6 +48,10 @@ protected:
 
 	void SetupTexture(const GSTexture& t, float tsx, float tsy);
 	void SetupAlphaBlend();
+	void SetupColorMask();
+	void SetupZBuffer();
+	void SetupAlphaTest();
+	void SetupScissor(const scale_t& s);
 
 	void Reset();
 	void VertexKick(bool fSkip);

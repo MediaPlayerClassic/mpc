@@ -85,6 +85,7 @@ GSTexture::GSTexture()
 	m_chksum = ~0;
 	m_chksumsize.SetSize(0, 0);
 	m_size = 0;
+	memset(&m_desc, 0, sizeof(m_desc));
 }
 
 //
@@ -93,16 +94,46 @@ GSTextureCache::GSTextureCache()
 {
 }
 
-HRESULT GSTextureCache::CreateTexture(GSState* s, int w, int h, GSTexture& t)
+HRESULT GSTextureCache::CreateTexture(GSState* s, int w, int h, GSTexture& t, DWORD PSM)
 {
 	if(t.m_pTexture) {ASSERT(0); return E_FAIL;}
 
-	t.m_size = w*h*4;
+	CInterfaceList<IDirect3DTexture9>* pTexturePool = NULL;
+	int bpp = 0;
+	D3DFORMAT format = D3DFMT_UNKNOWN;
 
-	POSITION pos = m_pTexturePool32.GetHeadPosition();
+	switch(PSM)
+	{
+	default:
+	case PSM_PSMCT32:
+	case PSM_PSMCT24:
+		pTexturePool = &m_pTexturePool32;
+		bpp = 32;
+		format = D3DFMT_A8R8G8B8;
+		break;
+	case PSM_PSMCT16:
+	case PSM_PSMCT16S:
+		pTexturePool = &m_pTexturePool16;
+		bpp = 16;
+		format = D3DFMT_A1R5G5B5;
+		break;
+	case PSM_PSMT8:
+	case PSM_PSMT4:
+	case PSM_PSMT8H:
+	case PSM_PSMT4HL:
+	case PSM_PSMT4HH:
+		pTexturePool = &m_pTexturePool8;
+		bpp = 8;
+		format = D3DFMT_L8;
+		break;
+	}
+
+	t.m_size = w*h*bpp>>3;
+
+	POSITION pos = pTexturePool->GetHeadPosition();
 	while(pos)
 	{
-		CComPtr<IDirect3DTexture9> pTexture = m_pTexturePool32.GetNext(pos);
+		CComPtr<IDirect3DTexture9> pTexture = pTexturePool->GetNext(pos);
 
 		D3DSURFACE_DESC desc;
 		memset(&desc, 0, sizeof(desc));
@@ -111,60 +142,32 @@ HRESULT GSTextureCache::CreateTexture(GSState* s, int w, int h, GSTexture& t)
 		if(w == desc.Width && h == desc.Height && !IsTextureInCache(pTexture))
 		{
 			t.m_pTexture = pTexture;
-			return S_OK;
+			t.m_desc = desc;
+			break;
 		}
 	}
 
-	while(m_pTexturePool32.GetCount() > 10)
-		m_pTexturePool32.RemoveTail();
-
-	if(FAILED(s->m_pD3DDev->CreateTexture(w, h, 1, 0, D3DFMT_A8R8G8B8, D3DPOOL_MANAGED, &t.m_pTexture, NULL)))
-		return E_FAIL;
-
-	m_pTexturePool32.AddHead(t.m_pTexture);
-
-	return S_OK;
-}
-
-HRESULT GSTextureCache::CreateTexture(GSState* s, int w, int h, GSTexture& t, int nPaletteEntries)
-{
-	if(t.m_pTexture) {ASSERT(0); return E_FAIL;}
-	if(t.m_pPalette) {ASSERT(0); return E_FAIL;}
-
-	if(!nPaletteEntries)
-		return CreateTexture(s, w, h, t);
-
-	t.m_size = w*h;
-
-	if(FAILED(s->m_pD3DDev->CreateTexture(256, 1, 1, 0, D3DFMT_A8R8G8B8, D3DPOOL_MANAGED, &t.m_pPalette, NULL)))
-		return E_FAIL;
-
-	POSITION pos = m_pTexturePool8.GetHeadPosition();
-	while(pos)
+	if(!t.m_pTexture)
 	{
-		CComPtr<IDirect3DTexture9> pTexture = m_pTexturePool8.GetNext(pos);
+		while(pTexturePool->GetCount() > 10)
+			pTexturePool->RemoveTail();
 
-		D3DSURFACE_DESC desc;
-		memset(&desc, 0, sizeof(desc));
-		pTexture->GetLevelDesc(0, &desc);
+		if(FAILED(s->m_pD3DDev->CreateTexture(w, h, 1, 0, format, D3DPOOL_MANAGED, &t.m_pTexture, NULL)))
+			return E_FAIL;
 
-		if(w == desc.Width && h == desc.Height && !IsTextureInCache(pTexture))
+		t.m_pTexture->GetLevelDesc(0, &t.m_desc);
+
+		pTexturePool->AddHead(t.m_pTexture);
+	}
+
+	if(bpp == 8)
+	{
+		if(FAILED(s->m_pD3DDev->CreateTexture(256, 1, 1, 0, D3DFMT_A8R8G8B8, D3DPOOL_MANAGED, &t.m_pPalette, NULL)))
 		{
-			t.m_pTexture = pTexture;
-			return S_OK;
+			t.m_pTexture = NULL;
+			return E_FAIL;
 		}
 	}
-
-	while(m_pTexturePool8.GetCount() > 10)
-		m_pTexturePool8.RemoveTail();
-
-	if(FAILED(s->m_pD3DDev->CreateTexture(w, h, 1, 0, D3DFMT_L8, D3DPOOL_MANAGED, &t.m_pTexture, NULL)))
-	{
-		t.m_pPalette = NULL;
-		return E_FAIL;
-	}
-
-	m_pTexturePool8.AddHead(t.m_pTexture);
 
 	return S_OK;
 }
@@ -347,7 +350,7 @@ bool GSTextureCache::Fetch(GSState* s, GSTexture& t)
 
 	if(lr == notfound)
 	{
-		if(!SUCCEEDED(CreateTexture(s, tw0, th0, t)))
+		if(!SUCCEEDED(CreateTexture(s, tw0, th0, t, PSM_PSMCT32)))
 			return false;
 
 		RemoveOldTextures(s);
@@ -416,16 +419,6 @@ bool GSTextureCache::Fetch(GSState* s, GSTexture& t)
 #ifdef DEBUG_LOG
 		s->LOG(_T("*TC2 texture was updated, valid %dx%d\n"), pt->m_valid.cx, pt->m_valid.cy);
 #endif
-
-#ifdef DEBUG_SAVETEXTURES
-		CString fn;
-		fn.Format(_T("c:\\%08I64x_%I64d_%I64d_%I64d_%I64d_%I64d_%I64d_%I64d-%I64d_%I64d-%I64d.bmp"), 
-			pt->m_TEX0.TBP0, pt->m_TEX0.PSM, pt->m_TEX0.TBW, 
-			pt->m_TEX0.TW, pt->m_TEX0.TH,
-			pt->m_CLAMP.WMS, pt->m_CLAMP.WMT, pt->m_CLAMP.MINU, pt->m_CLAMP.MAXU, pt->m_CLAMP.MINV, pt->m_CLAMP.MAXV);
-		D3DXSaveTextureToFile(fn, D3DXIFF_BMP, pt->m_pTexture, NULL);
-#endif
-
 	}
 
 	if(lr == found)
@@ -480,7 +473,7 @@ bool GSTextureCache::FetchPal(GSState* s, GSTexture& t)
 				// FIXME: RT + 8h,4hl,4hh
 				if(nPaletteEntries)
 					return false;
-
+/*
 				if(nPaletteEntries && !pt->m_pPalette) // yuck!
 				{
 					if(FAILED(s->m_pD3DDev->CreateTexture(256, 1, 1, 0, D3DFMT_A8R8G8B8, D3DPOOL_MANAGED, &pt->m_pPalette, NULL)))
@@ -488,11 +481,11 @@ bool GSTextureCache::FetchPal(GSState* s, GSTexture& t)
 				}
 
 				// FIXME: different RT res
+*/
 			}
 			else if(t.m_TEX0.PSM == pt->m_TEX0.PSM && t.m_TEX0.TW == pt->m_TEX0.TW && t.m_TEX0.TH == pt->m_TEX0.TH
-			&& (!(t.m_CLAMP.WMS&2) && !(pt->m_CLAMP.WMS&2) && !(t.m_CLAMP.WMT&2) && !(pt->m_CLAMP.WMT&2) || t.m_CLAMP.i64 == pt->m_CLAMP.i64)
-			&& t.m_TEXA.TA0 == pt->m_TEXA.TA0 && t.m_TEXA.TA1 == pt->m_TEXA.TA1 && t.m_TEXA.AEM == pt->m_TEXA.AEM
-			&& (!nPaletteEntries || t.m_TEX0.CPSM == pt->m_TEX0.CPSM))
+			&& (!(t.m_CLAMP.WMS&2) && !(pt->m_CLAMP.WMS&2) && !(t.m_CLAMP.WMT&2) && !(pt->m_CLAMP.WMT&2) 
+				|| t.m_CLAMP.i64 == pt->m_CLAMP.i64))
 			{
 				lr = needsupdate;
 			}
@@ -507,7 +500,7 @@ bool GSTextureCache::FetchPal(GSState* s, GSTexture& t)
 
 	if(lr == notfound)
 	{
-		if(!SUCCEEDED(CreateTexture(s, tw0, th0, t, nPaletteEntries)))
+		if(!SUCCEEDED(CreateTexture(s, tw0, th0, t, t.m_TEX0.PSM)))
 			return false;
 
 		RemoveOldTextures(s);
@@ -517,7 +510,7 @@ bool GSTextureCache::FetchPal(GSState* s, GSTexture& t)
 		lr = needsupdate;
 	}
 
-	if(nPaletteEntries > 0)
+	if(nPaletteEntries > 0 && pt->m_pPalette)
 	{
 		D3DLOCKED_RECT r;
 		if(FAILED(pt->m_pPalette->LockRect(0, &r, NULL, 0)))
@@ -540,8 +533,28 @@ bool GSTextureCache::FetchPal(GSState* s, GSTexture& t)
 #ifdef DEBUG_LOG
 		s->LOG(_T("*TC2 updating texture %dx%d (%dx%d)\n"), tw, th, tw0, th0);
 #endif
-		int Bpp = (nPaletteEntries?1:4);
-		int xstep = (nPaletteEntries?4:1);
+
+		int bpp;
+
+		switch(pt->m_TEX0.PSM)
+		{
+		default:
+		case PSM_PSMCT32:
+		case PSM_PSMCT24:
+			bpp = 32;
+			break;
+		case PSM_PSMCT16:
+		case PSM_PSMCT16S:
+			bpp = 16;
+			break;
+		case PSM_PSMT8:
+		case PSM_PSMT4:
+		case PSM_PSMT8H:
+		case PSM_PSMT4HL:
+		case PSM_PSMT4HH:
+			bpp = 8;
+			break;
+		}
 
 		RECT rlock = {0, 0, tw, th};
 
@@ -549,45 +562,28 @@ bool GSTextureCache::FetchPal(GSState* s, GSTexture& t)
 		if(FAILED(pt->m_pTexture->LockRect(0, &r, tw == tw0 && th == th0 ? NULL : &rlock, D3DLOCK_NO_DIRTY_UPDATE)))
 			return(false);
 
-		s->m_lm.ReadTextureP(tw, th, (BYTE*)r.pBits, r.Pitch, t.m_TEX0, t.m_TEXA, t.m_CLAMP);
-		s->m_stats.IncReads(tw*th*Bpp);
+		s->m_lm.ReadTextureP(tw, th, (BYTE*)r.pBits, r.Pitch, t.m_TEX0, t.m_CLAMP);
+		s->m_stats.IncReads(tw*th*bpp>>3);
 
 		DWORD chksum = 0;
-/*		
-		{
-			__m128i chksum4 = _mm_setzero_si128();
-			BYTE* p = (BYTE*)r.pBits;
-			for(int j = 0; j < th; j++, p += r.Pitch)
-			{
-				for(int i = 0; i < tw*xstep; i += 16)
-					chksum4 = _mm_add_epi32(chksum4, *(__m128i*)&p[i]);
-			}
-			chksum4 = _mm_add_epi32(chksum4, _mm_srli_si128(chksum4, 8));
-			chksum4 = _mm_add_epi32(chksum4, _mm_srli_si128(chksum4, 4));
-			__declspec(align(16)) DWORD tmp[4];
-			_mm_store_si128((__m128i*)tmp, chksum4);
-			chksum = tmp[0];
-		}
-*/
-		chksum = 0;
 
-		BYTE* ptr = (BYTE*)r.pBits;
-		for(int j = 0; j < th; j++, ptr += r.Pitch)
+		if(tw >= 4)
 		{
-			DWORD* p = (DWORD*)ptr;
-			for(int i = 0; i < tw; i += xstep, p++)
-				chksum += *p;
+			BYTE* ptr = (BYTE*)r.pBits;
+			for(int j = 0, w = (tw>>2) * (bpp>>3); j < th; j++, ptr += r.Pitch)
+				for(int i = 0; i < w; i++)
+					chksum += ((DWORD*)ptr)[i];
 		}
 
 		pt->m_pTexture->UnlockRect(0);
 
-		if(pt->m_chksumsize != CSize(tw, th) || pt->m_chksum != chksum)
+		if(tw < 4 || pt->m_chksumsize != CSize(tw, th) || pt->m_chksum != chksum)
 		{
 			pt->m_chksumsize = CSize(tw, th);
 			pt->m_chksum = chksum;
 			pt->m_pTexture->AddDirtyRect(&rlock);
 			pt->m_pTexture->PreLoad();
-			s->m_stats.IncTexWrite(tw*th*Bpp);
+			s->m_stats.IncTexWrite(tw*th*bpp>>3);
 		}
 		else
 		{
@@ -610,31 +606,6 @@ bool GSTextureCache::FetchPal(GSState* s, GSTexture& t)
 #ifdef DEBUG_LOG
 		s->LOG(_T("*TC2 texture was updated, valid %dx%d\n"), pt->m_valid.cx, pt->m_valid.cy);
 #endif
-
-#ifdef DEBUG_SAVETEXTURES
-if(pt->m_TEX0.TBP0 == 0x02722 && pt->m_TEX0.PSM == 20 && pt->m_TEX0.TW == 8 && pt->m_TEX0.TH == 6)
-{
-		CString fn;
-		fn.Format(_T("c:\\%08I64x_%I64d_%I64d_%I64d_%I64d_%I64d_%I64d_%I64d-%I64d_%I64d-%I64d.bmp"), 
-			pt->m_TEX0.TBP0, pt->m_TEX0.PSM, pt->m_TEX0.TBW, 
-			pt->m_TEX0.TW, pt->m_TEX0.TH,
-			pt->m_CLAMP.WMS, pt->m_CLAMP.WMT, pt->m_CLAMP.MINU, pt->m_CLAMP.MAXU, pt->m_CLAMP.MINV, pt->m_CLAMP.MAXV);
-		D3DXSaveTextureToFile(fn, D3DXIFF_BMP, pt->m_pTexture, NULL);
-		if(pt->m_pPalette)
-		{
-			fn.Format(_T("c:\\%08I64x_%I64d_%I64d_%I64d_%I64d_%I64d_%I64d_%I64d-%I64d_%I64d-%I64d.pal"), 
-				pt->m_TEX0.TBP0, pt->m_TEX0.PSM, pt->m_TEX0.TBW, 
-				pt->m_TEX0.TW, pt->m_TEX0.TH,
-				pt->m_CLAMP.WMS, pt->m_CLAMP.WMT, pt->m_CLAMP.MINU, pt->m_CLAMP.MAXU, pt->m_CLAMP.MINV, pt->m_CLAMP.MAXV);
-			if(FILE* f = _tfopen(fn, "wb"))
-			{
-				fwrite(CLUT, 256, 4, f);
-				fclose(f);
-			}
-		}
-}
-#endif
-
 	}
 
 	if(lr == found)
@@ -786,6 +757,7 @@ void GSTextureCache::AddRT(DWORD TBP0, IDirect3DTexture9* pRT, scale_t scale)
 
 	GSTexture t;
 	t.m_pTexture = pRT;
+	t.m_pTexture->GetLevelDesc(0, &t.m_desc);
 	t.m_TEX0.TBP0 = TBP0;
 	t.m_scale = scale;
 	// t.m_valid.SetSize();

@@ -33,5 +33,4 @@ EXPORTS
 	GSreadFIFO          
 	GSirqCallback
 	GSsetCSR		
-	GSsetWindowInfo
 	GSReplay

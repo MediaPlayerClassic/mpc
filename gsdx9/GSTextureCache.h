@@ -81,6 +81,7 @@ struct GSTexture
 	CSize m_chksumsize;
 	DWORD m_chksum;
 	DWORD m_size;
+	D3DSURFACE_DESC m_desc;
 
 	GSTexture();
 };
@@ -90,13 +91,14 @@ class GSState;
 class GSTextureCache
 {
 protected:
-	CInterfaceList<IDirect3DTexture9> m_pTexturePool32, m_pTexturePool8;
+	CInterfaceList<IDirect3DTexture9> m_pTexturePool8;
+	CInterfaceList<IDirect3DTexture9> m_pTexturePool16;
+	CInterfaceList<IDirect3DTexture9> m_pTexturePool32;
 
 	typedef CAtlList<GSTexture> GSTextureList;
 	GSTextureList m_TextureCache;
 
-	HRESULT CreateTexture(GSState* s, int w, int h, GSTexture& t);
-	HRESULT CreateTexture(GSState* s, int w, int h, GSTexture& t, int nPaletteEntries);
+	HRESULT CreateTexture(GSState* s, int w, int h, GSTexture& t, DWORD PSM);
 	bool IsTextureInCache(IDirect3DTexture9* pTexture);
 	void RemoveOldTextures(GSState* s);
 	bool GetDirtySize(GSState* s, int& tw, int& th, GSTexture* pt);

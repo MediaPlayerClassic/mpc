@@ -56,7 +56,7 @@ float4 SampleTexture_24AEM(in float2 Tex : TEXCOORD0) : COLOR
 float4 SampleTexture_16(in float2 Tex : TEXCOORD0) : COLOR
 {
 	float4 c = tex2D(Texture, Tex);
-	c.a = c.a != 0 ? TA1 : TA0;
+	c.a = c.a == 1 ? TA1 : TA0;
 	if(!fRT) c.a *= 2;
 	return c;	
 }
@@ -64,7 +64,7 @@ float4 SampleTexture_16(in float2 Tex : TEXCOORD0) : COLOR
 float4 SampleTexture_16AEM(in float2 Tex : TEXCOORD0) : COLOR
 {
 	float4 c = tex2D(Texture, Tex);
-	c.a = c.a != 0 ? TA1 : any(c.rgb) ? TA0 : 0;
+	c.a = c.a == 1 ? TA1 : any(c.rgb) ? TA0 : 0;
 	if(!fRT) c.a *= 2;
 	return c;	
 }
@@ -85,6 +85,26 @@ float4 SampleTexture_8P_ln(in float2 Tex : TEXCOORD0) : COLOR
 	float4 c01 = tex1D(Palette, tex2D(Texture, Tex + RW_ZERO).x - s_palerr);
 	float4 c10 = tex1D(Palette, tex2D(Texture, Tex + ZERO_RH).x - s_palerr);
 	float4 c11 = tex1D(Palette, tex2D(Texture, Tex + RW_RH).x - s_palerr);
+	float2 dd = frac(Tex * W_H); 
+	float4 c = lerp(lerp(c00, c01, dd.x), lerp(c10, c11, dd.x), dd.y);
+	if(!fRT) c.a *= 2;
+	return c;
+}
+
+float4 SampleTexture_8HP_pt(in float2 Tex : TEXCOORD0) : COLOR
+{
+	float4 c = tex1D(Palette, tex2D(Texture, Tex).a - s_palerr);
+	if(!fRT) c.a *= 2;
+	return c;
+}
+	
+float4 SampleTexture_8HP_ln(in float2 Tex : TEXCOORD0) : COLOR
+{
+	Tex -= 0.5*RW_RH; // ?
+	float4 c00 = tex1D(Palette, tex2D(Texture, Tex).a - s_palerr);
+	float4 c01 = tex1D(Palette, tex2D(Texture, Tex + RW_ZERO).a - s_palerr);
+	float4 c10 = tex1D(Palette, tex2D(Texture, Tex + ZERO_RH).a - s_palerr);
+	float4 c11 = tex1D(Palette, tex2D(Texture, Tex + RW_RH).a - s_palerr);
 	float2 dd = frac(Tex * W_H); 
 	float4 c = lerp(lerp(c00, c01, dd.x), lerp(c10, c11, dd.x), dd.y);
 	if(!fRT) c.a *= 2;
@@ -303,6 +323,54 @@ float4 main_tfx2_8P_ln(float4 Diff : COLOR0, float4 Fog : COLOR1, float2 Tex : T
 float4 main_tfx3_8P_ln(float4 Diff : COLOR0, float4 Fog : COLOR1, float2 Tex : TEXCOORD0) : COLOR
 {
 	return ApplyFog(tfx3(Diff, SampleTexture_8P_ln(Tex)), Fog);
+}
+
+//
+// main tfx 8HP pt
+//
+
+float4 main_tfx0_8HP_pt(float4 Diff : COLOR0, float4 Fog : COLOR1, float2 Tex : TEXCOORD0) : COLOR
+{
+	return ApplyFog(tfx0(Diff, SampleTexture_8HP_pt(Tex)), Fog);
+}
+
+float4 main_tfx1_8HP_pt(float4 Diff : COLOR0, float4 Fog : COLOR1, float2 Tex : TEXCOORD0) : COLOR
+{
+	return ApplyFog(tfx1(Diff, SampleTexture_8HP_pt(Tex)), Fog);
+}
+
+float4 main_tfx2_8HP_pt(float4 Diff : COLOR0, float4 Fog : COLOR1, float2 Tex : TEXCOORD0) : COLOR
+{
+	return ApplyFog(tfx2(Diff, SampleTexture_8HP_pt(Tex)), Fog);
+}
+
+float4 main_tfx3_8HP_pt(float4 Diff : COLOR0, float4 Fog : COLOR1, float2 Tex : TEXCOORD0) : COLOR
+{
+	return ApplyFog(tfx3(Diff, SampleTexture_8HP_pt(Tex)), Fog);
+}
+
+//
+// main tfx 8HP ln
+//
+
+float4 main_tfx0_8HP_ln(float4 Diff : COLOR0, float4 Fog : COLOR1, float2 Tex : TEXCOORD0) : COLOR
+{
+	return ApplyFog(tfx0(Diff, SampleTexture_8HP_ln(Tex)), Fog);
+}
+
+float4 main_tfx1_8HP_ln(float4 Diff : COLOR0, float4 Fog : COLOR1, float2 Tex : TEXCOORD0) : COLOR
+{
+	return ApplyFog(tfx1(Diff, SampleTexture_8HP_ln(Tex)), Fog);
+}
+
+float4 main_tfx2_8HP_ln(float4 Diff : COLOR0, float4 Fog : COLOR1, float2 Tex : TEXCOORD0) : COLOR
+{
+	return ApplyFog(tfx2(Diff, SampleTexture_8HP_ln(Tex)), Fog);
+}
+
+float4 main_tfx3_8HP_ln(float4 Diff : COLOR0, float4 Fog : COLOR1, float2 Tex : TEXCOORD0) : COLOR
+{
+	return ApplyFog(tfx3(Diff, SampleTexture_8HP_ln(Tex)), Fog);
 }
 
 //
