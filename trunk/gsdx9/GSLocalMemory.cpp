@@ -1232,15 +1232,15 @@ void GSLocalMemory::writeCLUT(GIFRegTEX0 TEX0, GIFRegTEXCLUT TEXCLUT)
 	case 5: if(m_CBP[1] == TEX0.CBP) return; break;
 	}
 
-/*
-	if(!m_fCLUTMayBeDirty && m_prevTEX0.i64 == TEX0.i64 && m_prevTEXCLUT.i64 == TEXCLUT.i64)
-		return;
-*/
-	m_prevTEX0 = TEX0;
-	m_prevTEXCLUT = TEXCLUT;
+	{
+		if(!m_fCLUTMayBeDirty && m_prevTEX0.i64 == TEX0.i64 && m_prevTEXCLUT.i64 == TEXCLUT.i64)
+			return;
 
-	m_fCLUTMayBeDirty = false;
+		m_prevTEX0 = TEX0;
+		m_prevTEXCLUT = TEXCLUT;
 
+		m_fCLUTMayBeDirty = false;
+	}
 
 	readPixel rp = GetReadPixel(TEX0.CPSM);
 
@@ -1293,19 +1293,6 @@ void GSLocalMemory::writeCLUT(GIFRegTEX0 TEX0, GIFRegTEXCLUT TEXCLUT)
 					_mm_store_si128(&dst[i+3], r7);
 				}
 #else
-/*
-				for(int y = 0, cy = 0; y < 8; y++, CLUTLW += 32)
-				{
-					int i = 0;
-					for(int x = 0; x < 8; x++, i++) {CLUTLW[x] = (WORD)(this->*rp)(i, cy, bp, bw);}
-					for(int x = 16; x < 24; x++, i++) {CLUTLW[x] = (WORD)(this->*rp)(i, cy, bp, bw);}
-					cy++;
-					i = 0;
-					for(int x = 8; x < 16; x++, i++) {CLUTLW[x] = (WORD)(this->*rp)(i, cy, bp, bw);}
-					for(int x = 24; x < 32; x++, i++) {CLUTLW[x] = (WORD)(this->*rp)(i, cy, bp, bw);}
-					cy++;
-				}
-*/
 				static DWORD map[] = 
 				{
 					0, 2, 8, 10, 16, 18, 24, 26,
@@ -1319,7 +1306,6 @@ void GSLocalMemory::writeCLUT(GIFRegTEX0 TEX0, GIFRegTEXCLUT TEXCLUT)
 				for(int j = 0; j < 8; j++, CLUTLW += 32, ptr += 32) 
 					for(int i = 0; i < 32; i++) 
 						CLUTLW[i] = ptr[map[i]];
-
 #endif
 			}
 			else
@@ -1386,19 +1372,6 @@ void GSLocalMemory::writeCLUT(GIFRegTEX0 TEX0, GIFRegTEXCLUT TEXCLUT)
 					_mm_store_si128(&((__m128i*)CLUTHW)[i], r4);
 				}
 #else
-/*
-				for(int y = 0, cy = 0; y < 8; y++, CLUTLW += 32, CLUTHW += 32)
-				{
-					int i = 0;
-					for(int x = 0; x < 8; x++, i++) {DWORD dw = (this->*rp)(i, cy, bp, bw); CLUTLW[x] = (WORD)(dw & 0xffff); CLUTHW[x] = (WORD)(dw >> 16);}
-					for(int x = 16; x < 24; x++, i++) {DWORD dw = (this->*rp)(i, cy, bp, bw); CLUTLW[x] = (WORD)(dw & 0xffff); CLUTHW[x] = (WORD)(dw >> 16);}
-					cy++;
-					i = 0;
-					for(int x = 8; x < 16; x++, i++) {DWORD dw = (this->*rp)(i, cy, bp, bw); CLUTLW[x] = (WORD)(dw & 0xffff); CLUTHW[x] = (WORD)(dw >> 16);}
-					for(int x = 24; x < 32; x++, i++) {DWORD dw = (this->*rp)(i, cy, bp, bw); CLUTLW[x] = (WORD)(dw & 0xffff); CLUTHW[x] = (WORD)(dw >> 16);}
-					cy++;
-				}
-*/
 				static DWORD map[] = 
 				{
 					0, 1, 4, 5, 8, 9, 12, 13, 2, 3, 6, 7, 10, 11, 14, 15, 
@@ -1446,15 +1419,7 @@ void GSLocalMemory::writeCLUT(GIFRegTEX0 TEX0, GIFRegTEXCLUT TEXCLUT)
 			if(TEX0.CSM == 0)
 			{
 				// TODO: sse2
-/*
-				for(int y = 0; y < 2; y++, CLUTLW += 8)
-				{
-					for(int x = 0; x < 8; x++)
-					{
-						CLUTLW[x] = (WORD)(this->*rp)(x, y, bp, bw);
-					}
-				}
-*/
+
 				static DWORD map[] = 
 				{
 					0, 2, 8, 10, 16, 18, 24, 26,
@@ -1516,17 +1481,6 @@ void GSLocalMemory::writeCLUT(GIFRegTEX0 TEX0, GIFRegTEXCLUT TEXCLUT)
 					_mm_store_si128(&((__m128i*)CLUTHW)[i], r4);
 				}
 #else
-/*
-				for(int y = 0; y < 2; y++, CLUTLW += 8, CLUTHW += 8)
-				{
-					for(int x = 0; x < 8; x++)
-					{
-						DWORD dw = (this->*rp)(x, y, bp, bw);
-						CLUTLW[x] = (WORD)(dw & 0xffff);
-						CLUTHW[x] = (WORD)(dw >> 16);
-					}
-				}
-*/
 				static DWORD map[] = 
 				{
 					0, 1, 4, 5, 8, 9, 12, 13,
@@ -1589,12 +1543,6 @@ void GSLocalMemory::readCLUT(GIFRegTEX0 TEX0, GIFRegTEXA TEXA, DWORD* pCLUT)
 	else if(TEX0.CPSM == PSM_PSMCT16 || TEX0.CPSM == PSM_PSMCT16S)
 	{
 		Expand16(CLUTLW, pCLUT, nPaletteEntries, &TEXA);
-/*
-		for(int i = 0; i < nPaletteEntries; i++)
-		{
-			pCLUT[i] = From16To32(CLUTLW[i], TEXA);
-		}
-*/
 	}
 }
 
