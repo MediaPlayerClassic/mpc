@@ -161,8 +161,11 @@ GSState::GSState(int w, int h, HWND hWnd, HRESULT& hr)
 	m_d3dpp.BackBufferFormat = D3DFMT_X8R8G8B8;
 	m_d3dpp.BackBufferWidth = w;
 	m_d3dpp.BackBufferHeight = h;
-	m_d3dpp.Flags = D3DPRESENTFLAG_LOCKABLE_BACKBUFFER|D3DPRESENTFLAG_VIDEO;
+	m_d3dpp.Flags = D3DPRESENTFLAG_LOCKABLE_BACKBUFFER;
 	m_d3dpp.PresentationInterval = D3DPRESENT_INTERVAL_IMMEDIATE;
+
+	if(!!pApp->GetProfileInt(_T("Settings"), _T("fEnableTvOut"), FALSE))
+		m_d3dpp.Flags |= D3DPRESENTFLAG_VIDEO;
 
 	int ModeWidth = pApp->GetProfileInt(_T("Settings"), _T("ModeWidth"), 0);
 	int ModeHeight = pApp->GetProfileInt(_T("Settings"), _T("ModeHeight"), 0);

@@ -40,11 +40,9 @@ protected:
 
 	union {BYTE* m_vm8; WORD* m_vm16; DWORD* m_vm32;};
 
-	BYTE m_bbt[256];
-
 	DWORD m_CBP[2];
-	WORD m_CLUT[512*2]; // *2 for safety
-	DWORD m_clut[256];
+	WORD* m_pCLUT;
+	DWORD* m_pCLUT32;
 
 	GIFRegTEX0 m_prevTEX0;
 	GIFRegTEXCLUT m_prevTEXCLUT;

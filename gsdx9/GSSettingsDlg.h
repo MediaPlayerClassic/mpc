@@ -52,4 +52,5 @@ public:
 	BOOL m_fRecordState;
 	CString m_strRecordState;
 	afx_msg void OnBnClickedButton1();
+	BOOL m_fEnableTvOut;
 };

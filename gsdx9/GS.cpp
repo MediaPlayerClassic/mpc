@@ -285,7 +285,12 @@ EXPORT_C_(INT32) GSfreeze(int mode, freezeData* data)
 EXPORT_C GSconfigure()
 {
 	AFX_MANAGE_STATE(AfxGetStaticModuleState());
-	CGSSettingsDlg().DoModal();
+
+	if(IDOK == CGSSettingsDlg().DoModal())
+	{
+		GSshutdown();
+		GSinit();
+	}
 }
 
 EXPORT_C_(INT32) GStest()
