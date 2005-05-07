@@ -44,8 +44,10 @@ extern void __fastcall SwizzleBlock4_c(BYTE* dst, BYTE* src, int srcpitch);
 
 extern void __fastcall ExpandBlock24_sse2(DWORD* src, DWORD* dst, int dstpitch, GIFRegTEXA* pTEXA);
 extern void __fastcall ExpandBlock16_sse2(WORD* src, DWORD* dst, int dstpitch, GIFRegTEXA* pTEXA);
+extern void __fastcall Expand16_sse2(WORD* src, DWORD* dst, int w, GIFRegTEXA* pTEXA);
 extern void __fastcall ExpandBlock24_c(DWORD* src, DWORD* dst, int dstpitch, GIFRegTEXA* pTEXA);
 extern void __fastcall ExpandBlock16_c(WORD* src, DWORD* dst, int dstpitch, GIFRegTEXA* pTEXA);
+extern void __fastcall Expand16_c(WORD* src, DWORD* dst, int w, GIFRegTEXA* pTEXA);
 
 extern "C" void SaturateColor_amd64(int* c);
 extern "C" void __fastcall SaturateColor_sse2(int* c);
@@ -75,6 +77,7 @@ extern "C" void __fastcall UVMinMax_c(int nVertices, vertex_t* pVertices, uvmm_t
 
 #define ExpandBlock24 ExpandBlock24_sse2
 #define ExpandBlock16 ExpandBlock16_sse2
+#define Expand16 Expand16_sse2
 
 #define UVMinMax UVMinMax_sse2
 
@@ -97,6 +100,7 @@ extern "C" void __fastcall UVMinMax_c(int nVertices, vertex_t* pVertices, uvmm_t
 
 #define ExpandBlock24 ExpandBlock24_sse2
 #define ExpandBlock16 ExpandBlock16_sse2
+#define Expand16 Expand16_sse2
 
 #define UVMinMax UVMinMax_sse2
 
@@ -119,6 +123,7 @@ extern "C" void __fastcall UVMinMax_c(int nVertices, vertex_t* pVertices, uvmm_t
 
 #define ExpandBlock24 ExpandBlock24_c
 #define ExpandBlock16 ExpandBlock16_c
+#define Expand16 Expand16_c
 
 #define UVMinMax UVMinMax_c
 

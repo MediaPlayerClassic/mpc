@@ -6,6 +6,7 @@
 	ProjectGUID="{345C9F24-0B9A-4289-B375-ADD3B63461B7}"
 	RootNamespace="GSdx9"
 	Keyword="MFCDLLProj"
+	SignManifests="true"
 	>
 	<Platforms>
 		<Platform
@@ -799,6 +800,14 @@
 				</FileConfiguration>
 				<FileConfiguration
 					Name="Release|x64"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						AssemblerOutput="4"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="DebugSSE2|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"

@@ -46,6 +46,7 @@ CGSSettingsDlg::CGSSettingsDlg(CWnd* pParent /*=NULL*/)
 	: CDialog(CGSSettingsDlg::IDD, pParent)
 	, m_halfvres(FALSE)
 	, m_fRecordState(FALSE)
+	, m_fEnableTvOut(FALSE)
 {
 }
 
@@ -62,6 +63,7 @@ void CGSSettingsDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_CHECK1, m_halfvres);
 	DDX_Check(pDX, IDC_CHECK2, m_fRecordState);
 	DDX_Text(pDX, IDC_EDIT1, m_strRecordState);
+	DDX_Check(pDX, IDC_CHECK3, m_fEnableTvOut);
 }
 
 BEGIN_MESSAGE_MAP(CGSSettingsDlg, CDialog)
@@ -145,6 +147,10 @@ BOOL CGSSettingsDlg::OnInitDialog()
 
 	//
 
+	m_fEnableTvOut = pApp->GetProfileInt(_T("Settings"), _T("fEnableTvOut"), FALSE);
+
+	//
+
 	m_fRecordState = pApp->GetProfileInt(_T("Settings"), _T("RecordState"), FALSE);
 	m_strRecordState = pApp->GetProfileString(_T("Settings"), _T("RecordStatePath"), _T(""));
 
@@ -181,6 +187,8 @@ void CGSSettingsDlg::OnOK()
 	}
 
 	pApp->WriteProfileInt(_T("Settings"), _T("HalfVRes"), m_halfvres);
+
+	pApp->WriteProfileInt(_T("Settings"), _T("fEnableTvOut"), m_fEnableTvOut);
 
 	pApp->WriteProfileInt(_T("Settings"), _T("RecordState"), m_fRecordState);
 	pApp->WriteProfileString(_T("Settings"), _T("RecordStatePath"), m_strRecordState);

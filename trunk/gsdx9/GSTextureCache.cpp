@@ -447,9 +447,7 @@ bool GSTextureCache::FetchPal(GSState* s, GSTexture& t)
 	int tw = 1 << t.m_TEX0.TW, tw0 = tw;
 	int th = 1 << t.m_TEX0.TH, th0 = th;
 
-	static DWORD CLUT[256];
 	int nPaletteEntries = PaletteEntries(t.m_TEX0.PSM);
-	if(nPaletteEntries) s->m_lm.readCLUT(t.m_TEX0, t.m_TEXA, CLUT);
 
 #ifdef DEBUG_LOG
 	s->LOG(_T("*TC2 Fetch %dx%d %05x %d (%d)\n"), tw, th, t.m_TEX0.TBP0, t.m_TEX0.PSM, nPaletteEntries);
@@ -515,7 +513,7 @@ bool GSTextureCache::FetchPal(GSState* s, GSTexture& t)
 		D3DLOCKED_RECT r;
 		if(FAILED(pt->m_pPalette->LockRect(0, &r, NULL, 0)))
 			return(false);
-		memcpy(r.pBits, CLUT, nPaletteEntries*sizeof(DWORD));
+		s->m_lm.readCLUT(t.m_TEX0, t.m_TEXA, (DWORD*)r.pBits);
 		pt->m_pPalette->UnlockRect(0);
 		s->m_stats.IncTexWrite(256*4);
 	}
@@ -606,6 +604,21 @@ bool GSTextureCache::FetchPal(GSState* s, GSTexture& t)
 #ifdef DEBUG_LOG
 		s->LOG(_T("*TC2 texture was updated, valid %dx%d\n"), pt->m_valid.cx, pt->m_valid.cy);
 #endif
+
+
+ #ifdef DEBUG_SAVETEXTURES   
+// if(pt->m_TEX0.TBP0 == 0x02722 && pt->m_TEX0.PSM == 20 && pt->m_TEX0.TW == 8 && pt->m_TEX0.TH == 6)   
+ {   
+    CString fn;   
+    fn.Format(_T("c:\\%08I64x_%I64d_%I64d_%I64d_%I64d_%I64d_%I64d_%I64d-%I64d_%I64d-%I64d.bmp"),   
+            pt->m_TEX0.TBP0, pt->m_TEX0.PSM, pt->m_TEX0.TBW,   
+            pt->m_TEX0.TW, pt->m_TEX0.TH,   
+            pt->m_CLAMP.WMS, pt->m_CLAMP.WMT, pt->m_CLAMP.MINU, pt->m_CLAMP.MAXU, pt->m_CLAMP.MINV, pt->m_CLAMP.MAXV);   
+    D3DXSaveTextureToFile(fn, D3DXIFF_BMP, pt->m_pTexture, NULL);   
+ }   
+ #endif 
+
+
 	}
 
 	if(lr == found)

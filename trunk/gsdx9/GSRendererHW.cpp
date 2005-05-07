@@ -351,8 +351,6 @@ scale.y = 1;
 
 		if(!pRT || !pDS) {ASSERT(0); return;}
 
-		scale.Set(pRT);
-
 		//////////////////////
 
 		GSTexture t;
@@ -474,6 +472,8 @@ scale.y = 1;
 		//////////////////////
 
 		SetupScissor(scale);
+
+		scale.Set(pRT);
 
 		//////////////////////
 
@@ -1364,11 +1364,16 @@ void GSRendererHW::SetupAlphaTest()
 	}
 }
 
-void GSRendererHW::SetupScissor(const scale_t& s)
+void GSRendererHW::SetupScissor(scale_t& s)
 {
 	HRESULT hr;
 	hr = m_pD3DDev->SetRenderState(D3DRS_SCISSORTESTENABLE, TRUE);
 	CRect scissor(s.x * m_ctxt->SCISSOR.SCAX0, s.y * m_ctxt->SCISSOR.SCAY0, s.x * (m_ctxt->SCISSOR.SCAX1+1), s.y * (m_ctxt->SCISSOR.SCAY1+1));
+	if(scissor.bottom > INTERNALRES && scissor.bottom <= INTERNALRES*2)
+	{
+		// TODO: isn't there a better way?
+		s.y = s.y * INTERNALRES / scissor.bottom;
+	}
 	scissor.IntersectRect(scissor, CRect(0, 0, INTERNALRES, INTERNALRES));
 	hr = m_pD3DDev->SetScissorRect(scissor);
 }
