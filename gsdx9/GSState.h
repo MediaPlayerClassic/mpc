@@ -169,6 +169,7 @@ protected:
 	GSDrawingContext* m_ctxt;
 	GSRegSet m_rs;
 	GSVertex m_v;
+	float m_q;
 	GSStats m_stats;
 	GSPerfMon m_perfmon;
 	GSCapture m_capture;
@@ -194,6 +195,7 @@ protected:
 	D3DCAPS9 m_caps;
 	D3DSURFACE_DESC m_bd;
 	D3DFORMAT m_fmtDepthStencil;
+	bool m_fEnablePalettizedTextures;
 
 	virtual void Reset();
 	virtual void VertexKick(bool fSkip) = 0;

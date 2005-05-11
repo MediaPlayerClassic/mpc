@@ -305,13 +305,13 @@ EXPORT_C GSabout()
 EXPORT_C GSirqCallback(void (*fpGSirq)())
 {
 	s_fpGSirq = fpGSirq;
-	// s_gs->GSirq(fpGSirq);
+	// if(s_gs) s_gs->GSirq(fpGSirq);
 }
 
 EXPORT_C GSsetCSR(UINT64* pCSRr)
 {
 	s_pCSRr = pCSRr;
-	// s_gs->GSsetCSR(pCSRr);
+	// if(s_gs) s_gs->GSsetCSR(pCSRr);
 }
 
 /////////////////
@@ -340,9 +340,9 @@ EXPORT_C GSReplay(HWND hwnd, HINSTANCE hinst, LPSTR lpszCmdLine, int nCmdShow)
 						fread(&mask, 8, 1, sfp);
 						switch(mask)
 						{
-						case 0xff: GSwrite8(mem, value); break;
-						case 0xffff: GSwrite16(mem, value); break;
-						case 0xffffffff: GSwrite32(mem, value); break;
+						case 0xff: GSwrite8(mem, (UINT8)value); break;
+						case 0xffff: GSwrite16(mem, (UINT16)value); break;
+						case 0xffffffff: GSwrite32(mem, (UINT32)value); break;
 						case 0xffffffffffffffff: GSwrite64(mem, value); break;
 						}
 						break;

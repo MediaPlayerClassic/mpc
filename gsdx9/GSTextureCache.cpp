@@ -82,8 +82,8 @@ GSTexture::GSTexture()
 	m_valid = CSize(0, 0);
 	m_nAge = 0;
 	m_nVsyncs = 0;
-	m_chksum = ~0;
-	m_chksumsize.SetSize(0, 0);
+	m_hash = ~0;
+	m_hashsize.SetSize(0, 0);
 	m_size = 0;
 	memset(&m_desc, 0, sizeof(m_desc));
 }
@@ -94,77 +94,81 @@ GSTextureCache::GSTextureCache()
 {
 }
 
-HRESULT GSTextureCache::CreateTexture(GSState* s, int w, int h, GSTexture& t, DWORD PSM)
+HRESULT GSTextureCache::CreateTexture(GSState* s, GSTexture* pt, DWORD PSM, DWORD CPSM)
 {
-	if(t.m_pTexture) {ASSERT(0); return E_FAIL;}
+	if(!pt || pt->m_pTexture) {ASSERT(0); return E_FAIL;}
 
-	CInterfaceList<IDirect3DTexture9>* pTexturePool = NULL;
+	int w = 1 << pt->m_TEX0.TW;
+	int h = 1 << pt->m_TEX0.TH;
+
 	int bpp = 0;
-	D3DFORMAT format = D3DFMT_UNKNOWN;
+	D3DFORMAT fmt = D3DFMT_UNKNOWN;
+	D3DFORMAT palfmt = D3DFMT_UNKNOWN;
 
 	switch(PSM)
 	{
 	default:
 	case PSM_PSMCT32:
-	case PSM_PSMCT24:
-		pTexturePool = &m_pTexturePool32;
 		bpp = 32;
-		format = D3DFMT_A8R8G8B8;
+		fmt = D3DFMT_A8R8G8B8;
+		break;
+	case PSM_PSMCT24:
+		bpp = 32;
+		fmt = D3DFMT_X8R8G8B8;
 		break;
 	case PSM_PSMCT16:
 	case PSM_PSMCT16S:
-		pTexturePool = &m_pTexturePool16;
 		bpp = 16;
-		format = D3DFMT_A1R5G5B5;
+		fmt = D3DFMT_A1R5G5B5;
 		break;
 	case PSM_PSMT8:
 	case PSM_PSMT4:
 	case PSM_PSMT8H:
 	case PSM_PSMT4HL:
 	case PSM_PSMT4HH:
-		pTexturePool = &m_pTexturePool8;
 		bpp = 8;
-		format = D3DFMT_L8;
+		fmt = D3DFMT_L8;
+		palfmt = CPSM == PSM_PSMCT32 ? D3DFMT_A8R8G8B8 : D3DFMT_A1R5G5B5;
 		break;
 	}
 
-	t.m_size = w*h*bpp>>3;
+	pt->m_size = w*h*bpp>>3;
 
-	POSITION pos = pTexturePool->GetHeadPosition();
+	POSITION pos = m_pTexturePool.GetHeadPosition();
 	while(pos)
 	{
-		CComPtr<IDirect3DTexture9> pTexture = pTexturePool->GetNext(pos);
+		CComPtr<IDirect3DTexture9> pTexture = m_pTexturePool.GetNext(pos);
 
 		D3DSURFACE_DESC desc;
 		memset(&desc, 0, sizeof(desc));
 		pTexture->GetLevelDesc(0, &desc);
 
-		if(w == desc.Width && h == desc.Height && !IsTextureInCache(pTexture))
+		if(w == desc.Width && h == desc.Height && fmt == desc.Format && !IsTextureInCache(pTexture))
 		{
-			t.m_pTexture = pTexture;
-			t.m_desc = desc;
+			pt->m_pTexture = pTexture;
+			pt->m_desc = desc;
 			break;
 		}
 	}
 
-	if(!t.m_pTexture)
+	if(!pt->m_pTexture)
 	{
-		while(pTexturePool->GetCount() > 10)
-			pTexturePool->RemoveTail();
+		while(m_pTexturePool.GetCount() > 20)
+			m_pTexturePool.RemoveTail();
 
-		if(FAILED(s->m_pD3DDev->CreateTexture(w, h, 1, 0, format, D3DPOOL_MANAGED, &t.m_pTexture, NULL)))
+		if(FAILED(s->m_pD3DDev->CreateTexture(w, h, 1, 0, fmt, D3DPOOL_MANAGED, &pt->m_pTexture, NULL)))
 			return E_FAIL;
 
-		t.m_pTexture->GetLevelDesc(0, &t.m_desc);
+		pt->m_pTexture->GetLevelDesc(0, &pt->m_desc);
 
-		pTexturePool->AddHead(t.m_pTexture);
+		m_pTexturePool.AddHead(pt->m_pTexture);
 	}
 
 	if(bpp == 8)
 	{
-		if(FAILED(s->m_pD3DDev->CreateTexture(256, 1, 1, 0, D3DFMT_A8R8G8B8, D3DPOOL_MANAGED, &t.m_pPalette, NULL)))
+		if(FAILED(s->m_pD3DDev->CreateTexture(256, 1, 1, 0, palfmt, D3DPOOL_MANAGED, &pt->m_pPalette, NULL)))
 		{
-			t.m_pTexture = NULL;
+			pt->m_pTexture = NULL;
 			return E_FAIL;
 		}
 	}
@@ -174,11 +178,10 @@ HRESULT GSTextureCache::CreateTexture(GSState* s, int w, int h, GSTexture& t, DW
 
 bool GSTextureCache::IsTextureInCache(IDirect3DTexture9* pTexture)
 {
-	POSITION pos = m_TextureCache.GetHeadPosition();
+	POSITION pos = GetHeadPosition();
 	while(pos)
 	{
-		const GSTexture& t = m_TextureCache.GetNext(pos);
-		if(t.m_pTexture == pTexture)
+		if(GetNext(pos)->m_pTexture == pTexture)
 			return true;
 	}
 
@@ -189,49 +192,46 @@ void GSTextureCache::RemoveOldTextures(GSState* s)
 {
 	DWORD size = 0;
 
-	POSITION pos = m_TextureCache.GetHeadPosition();
-	while(pos)
-	{
-		const GSTexture& t = m_TextureCache.GetNext(pos);
-		size += t.m_size;
-	}
+	POSITION pos = GetHeadPosition();
+	while(pos) size += GetNext(pos)->m_size;
 
-	pos = m_TextureCache.GetTailPosition();
+	pos = GetTailPosition();
 	while(pos && size > 48*1024*1024/*s->m_ddcaps.dwVidMemTotal*/)
 	{
 #ifdef DEBUG_LOG
-		s->LOG(_T("*TC2 too many textures in cache (%d, %.2f MB)\n"), m_TextureCache.GetCount(), 1.0f*size/1024/1024);
+		s->LOG(_T("*TC2 too many textures in cache (%d, %.2f MB)\n"), GetCount(), 1.0f*size/1024/1024);
 #endif
 		POSITION cur = pos;
 
-		const GSTexture& t = m_TextureCache.GetPrev(pos);
-		if(!t.m_fRT)
+		GSTexture* pt = GetPrev(pos);
+		if(!pt->m_fRT)
 		{
-			size -= t.m_size;
-			m_TextureCache.RemoveAt(cur);
+			size -= pt->m_size;
+			RemoveAt(cur);
+			delete pt;
 		}
 	}
 }
 
-bool GSTextureCache::GetDirtySize(GSState* s, int& tw, int& th, GSTexture* pt)
+bool GSTextureCache::GetDirtySize(GSState* s, GSTexture* pt, int& w, int& h)
 {
-	int tw0 = tw;
-	int th0 = th;
+	int w0 = w;
+	int h0 = h;
 
 //TODO: fix vf4evo
 //return true;
 
-	s->MaxTexUV(tw, th);
+	s->MaxTexUV(w, h);
 
 	CSize dirty = pt->m_dirty.GetDirtyRect(pt->m_TEX0).BottomRight();
 	CSize valid = pt->m_valid;
 
 #ifdef DEBUG_LOG
 	s->LOG(_T("*TC2 used %dx%d (%dx%d), valid %dx%d, dirty %dx%d\n"), 
-		tw, th, tw0, th0, valid.cx, valid.cy, dirty.cx, dirty.cy);
+		w, h, w0, h0, valid.cx, valid.cy, dirty.cx, dirty.cy);
 #endif
 
-	bool fNeededInValid = valid.cx >= tw && valid.cy >= th;
+	bool fNeededInValid = valid.cx >= w && valid.cy >= h;
 
 	if(fNeededInValid)
 	{
@@ -240,12 +240,12 @@ bool GSTextureCache::GetDirtySize(GSState* s, int& tw, int& th, GSTexture* pt)
 		if(!fDirty) 
 			return false;
 
-		bool fDirtyInNeeded = tw >= dirty.cx && th >= dirty.cy;
+		bool fDirtyInNeeded = w >= dirty.cx && h >= dirty.cy;
 
 		if(fDirtyInNeeded)
 		{
-			tw = dirty.cx;
-			th = dirty.cy;
+			w = dirty.cx;
+			h = dirty.cy;
 		}
 		else
 		{
@@ -253,358 +253,104 @@ bool GSTextureCache::GetDirtySize(GSState* s, int& tw, int& th, GSTexture* pt)
 
 			if(fDirtyInValid)
 			{
-				tw = max(tw, dirty.cx);
-				th = max(th, dirty.cy);
+				w = max(w, dirty.cx);
+				h = max(h, dirty.cy);
 			}
 			else
 			{
-				tw = max(valid.cx, dirty.cx);
-				th = max(valid.cy, dirty.cy);
+				w = max(valid.cx, dirty.cx);
+				h = max(valid.cy, dirty.cy);
 			}
 		}
 	}
 	else
 	{
-		tw = max(tw, valid.cx);
-		th = max(th, valid.cy);
+		w = max(w, valid.cx);
+		h = max(h, valid.cy);
 	}
 
 	return true;
 }
 
-void GSTextureCache::MoveToHead(GSTexture* pt)
+DWORD GSTextureCache::HashTexture(int w, int h, int pitch, void* bits)
 {
-	POSITION pos = m_TextureCache.GetHeadPosition();
-	while(pos)
+	// TODO: make this faster with sse2
+
+	DWORD chksum = w + h + pitch + *(BYTE*)bits;
+
+	if(w >= 1)
 	{
-		POSITION cur = pos;
-		if(&m_TextureCache.GetNext(pos) == pt)
-		{
-			m_TextureCache.AddHead(*pt);
-			m_TextureCache.RemoveAt(cur); 
-			break;
-		}
+		BYTE* p = (BYTE*)bits;
+		for(int j = 0; j < h; j++, p += pitch)
+			for(int i = 0; i < w; i++)
+				chksum += ((DWORD*)p)[i];
 	}
+
+	return chksum;
 }
 
-bool GSTextureCache::Fetch(GSState* s, GSTexture& t)
+HRESULT GSTextureCache::UpdateTexture(GSState* s, GSTexture* pt, GSLocalMemory::readTexture rt)
 {
-	t = GSTexture();
+	int w = 1 << pt->m_TEX0.TW;
+	int h = 1 << pt->m_TEX0.TH;
 
-	t.m_TEX0 = s->m_ctxt->TEX0;
-	t.m_CLAMP = s->m_ctxt->CLAMP;
-	t.m_TEXA = s->m_de.TEXA;
-
-	ASSERT(t.m_TEX0.TW <= 10 && t.m_TEX0.TH <= 10);
-	int tw = 1 << t.m_TEX0.TW, tw0 = tw;
-	int th = 1 << t.m_TEX0.TH, th0 = th;
-
-	int nPaletteEntries = PaletteEntries(t.m_TEX0.PSM);
-
-	if(nPaletteEntries)
-	{
-		s->m_lm.setupCLUT(t.m_TEX0, t.m_TEXA);
-		s->m_lm.getCLUT(t.m_clut, nPaletteEntries);
-	}
+	if(!GetDirtySize(s, pt, w, h))
+		return S_OK;
 
 #ifdef DEBUG_LOG
-	s->LOG(_T("*TC2 Fetch %dx%d %05x %d (%d)\n"), tw, th, t.m_TEX0.TBP0, t.m_TEX0.PSM, nPaletteEntries);
+	s->LOG(_T("*TC2 updating texture %dx%d (%dx%d)\n"), tw, th, tw0, th0);
 #endif
 
-	enum lookupresult {notfound, needsupdate, found} lr = notfound;
+	int bpp = 0;
 
-	GSTexture* pt = NULL;
-
-	POSITION pos = m_TextureCache.GetHeadPosition();
-	while(pos && !pt)
+	switch(pt->m_desc.Format)
 	{
-		pt = &m_TextureCache.GetNext(pos);
-
-		if(pt->m_TEX0.TBP0 == t.m_TEX0.TBP0)
-		{
-			if(pt->m_fRT)
-			{
-				lr = found;
-
-				// FIXME: RT + 8h,4hl,4hh
-				if(nPaletteEntries)
-					return false;
-
-				// FIXME: different RT res
-			}
-			else if(t.m_TEX0.PSM == pt->m_TEX0.PSM && t.m_TEX0.TW == pt->m_TEX0.TW && t.m_TEX0.TH == pt->m_TEX0.TH
-			&& (!(t.m_CLAMP.WMS&2) && !(pt->m_CLAMP.WMS&2) && !(t.m_CLAMP.WMT&2) && !(pt->m_CLAMP.WMT&2) || t.m_CLAMP.i64 == pt->m_CLAMP.i64)
-			&& t.m_TEXA.TA0 == pt->m_TEXA.TA0 && t.m_TEXA.TA1 == pt->m_TEXA.TA1 && t.m_TEXA.AEM == pt->m_TEXA.AEM
-			&& (!nPaletteEntries || t.m_TEX0.CPSM == pt->m_TEX0.CPSM && !memcmp(t.m_clut, pt->m_clut, nPaletteEntries*sizeof(t.m_clut[0]))))
-			{
-				lr = needsupdate;
-			}
-		}
-
-		if(lr == notfound) pt = NULL;
+	case D3DFMT_A8R8G8B8: bpp = 32; break;
+	case D3DFMT_X8R8G8B8: bpp = 32; break;
+	case D3DFMT_A1R5G5B5: bpp = 16; break;
+	case D3DFMT_L8: bpp = 8; break;
+	default: ASSERT(0); return E_FAIL;
 	}
 
-#ifdef DEBUG_LOG
-	s->LOG(_T("*TC2 lr = %s\n"), lr == found ? _T("found") : lr == needsupdate ? _T("needsupdate") : _T("notfound"));
-#endif
+	RECT rlock = {0, 0, w, h};
 
-	if(lr == notfound)
+	D3DLOCKED_RECT r;
+	if(FAILED(pt->m_pTexture->LockRect(0, &r, w == pt->m_desc.Width && h == pt->m_desc.Height ? NULL : &rlock, D3DLOCK_NO_DIRTY_UPDATE)))
 	{
-		if(!SUCCEEDED(CreateTexture(s, tw0, th0, t, PSM_PSMCT32)))
-			return false;
-
-		RemoveOldTextures(s);
-
-		pt = &m_TextureCache.GetAt(m_TextureCache.AddHead(t));
-
-		lr = needsupdate;
+		ASSERT(0);
+		return E_FAIL;
 	}
 
-	if(lr == needsupdate)
+	(s->m_lm.*rt)(w, h, (BYTE*)r.pBits, r.Pitch, s->m_ctxt->TEX0, s->m_de.TEXA, s->m_ctxt->CLAMP);
+	s->m_stats.IncReads(w*h*bpp>>3);
+
+	DWORD hash = HashTexture((w>>2)*(bpp>>3), h, r.Pitch, r.pBits);
+
+	pt->m_pTexture->UnlockRect(0);
+
+	if(pt->m_hashsize != CSize(w, h) || pt->m_hash != hash)
 	{
-		if(!GetDirtySize(s, tw, th, pt))
-		{
-			lr = found;
-		}
+		pt->m_hashsize = CSize(w, h);
+		pt->m_hash = hash;
+		pt->m_pTexture->AddDirtyRect(&rlock);
+		pt->m_pTexture->PreLoad();
+		s->m_stats.IncTexWrite(w*h*bpp>>3);
 	}
-
-	if(lr == needsupdate)
+	else
 	{
 #ifdef DEBUG_LOG
-		s->LOG(_T("*TC2 updating texture %dx%d (%dx%d)\n"), tw, th, tw0, th0);
-#endif
-		RECT rlock = {0, 0, tw, th};
-
-		D3DLOCKED_RECT r;
-		if(FAILED(pt->m_pTexture->LockRect(0, &r, tw == tw0 && th == th0 ? NULL : &rlock, 0/*D3DLOCK_NO_DIRTY_UPDATE*/)))
-			return(false);
-
-		s->m_lm.ReadTexture(tw, th, (BYTE*)r.pBits, r.Pitch, t.m_TEX0, t.m_TEXA, t.m_CLAMP);
-		s->m_stats.IncReads(tw*th*4);
-
-		DWORD chksum = 0;
-
-		BYTE* ptr = (BYTE*)r.pBits;
-		for(int j = 0; j < th; j++, ptr += r.Pitch)
-		{
-			DWORD* p = (DWORD*)ptr;
-			for(int i = 0; i < tw; i++, p++)
-				chksum += *p;
-		}
-
-		pt->m_pTexture->UnlockRect(0);
-
-		if(pt->m_chksumsize != CSize(tw, th) || pt->m_chksum != chksum)
-		{
-			pt->m_chksumsize = CSize(tw, th);
-			pt->m_chksum = chksum;
-			pt->m_pTexture->AddDirtyRect(&rlock);
-			pt->m_pTexture->PreLoad();
-			s->m_stats.IncTexWrite(tw*th*4);
-		}
-		else
-		{
-#ifdef DEBUG_LOG
-			s->LOG(_T("*TC2 updating texture is not necessary!!! skipping AddDirtyRect\n"));
-#endif
-		}
-
-		if(pt->m_valid.cx < tw) pt->m_valid.cx = tw;
-		if(pt->m_valid.cy < th) pt->m_valid.cy = th;
-
-		pt->m_dirty.RemoveAll();
-
-		lr = found;
-
-#ifdef DEBUG_LOG
-		s->LOG(_T("*TC2 texture was updated, valid %dx%d\n"), pt->m_valid.cx, pt->m_valid.cy);
+		s->LOG(_T("*TC2 updating texture is not necessary!!! skipping AddDirtyRect\n"));
 #endif
 	}
 
-	if(lr == found)
-	{
-#ifdef DEBUG_LOG
-		s->LOG(_T("*TC2 texture was found, age %d -> 0\n"), pt->m_nAge);
-#endif
-		pt->m_nAge = 0;
-		MoveToHead(pt);
-		t = *pt;
-		return true;
-	}
+	if(pt->m_valid.cx < w) pt->m_valid.cx = w;
+	if(pt->m_valid.cy < h) pt->m_valid.cy = h;
 
-	return false;
-}
-
-bool GSTextureCache::FetchPal(GSState* s, GSTexture& t)
-{
-	t = GSTexture();
-
-	t.m_TEX0 = s->m_ctxt->TEX0;
-	t.m_CLAMP = s->m_ctxt->CLAMP;
-	t.m_TEXA = s->m_de.TEXA;
-
-	ASSERT(t.m_TEX0.TW <= 10 && t.m_TEX0.TH <= 10);
-	int tw = 1 << t.m_TEX0.TW, tw0 = tw;
-	int th = 1 << t.m_TEX0.TH, th0 = th;
-
-	int nPaletteEntries = PaletteEntries(t.m_TEX0.PSM);
+	pt->m_dirty.RemoveAll();
 
 #ifdef DEBUG_LOG
-	s->LOG(_T("*TC2 Fetch %dx%d %05x %d (%d)\n"), tw, th, t.m_TEX0.TBP0, t.m_TEX0.PSM, nPaletteEntries);
+	s->LOG(_T("*TC2 texture was updated, valid %dx%d\n"), pt->m_valid.cx, pt->m_valid.cy);
 #endif
-
-	enum lookupresult {notfound, needsupdate, found} lr = notfound;
-
-	GSTexture* pt = NULL;
-
-	POSITION pos = m_TextureCache.GetHeadPosition();
-	while(pos && !pt)
-	{
-		pt = &m_TextureCache.GetNext(pos);
-
-		if(pt->m_TEX0.TBP0 == t.m_TEX0.TBP0)
-		{
-			if(pt->m_fRT)
-			{
-				lr = found;
-
-				// FIXME: RT + 8h,4hl,4hh
-				if(nPaletteEntries)
-					return false;
-/*
-				if(nPaletteEntries && !pt->m_pPalette) // yuck!
-				{
-					if(FAILED(s->m_pD3DDev->CreateTexture(256, 1, 1, 0, D3DFMT_A8R8G8B8, D3DPOOL_MANAGED, &pt->m_pPalette, NULL)))
-						return false;
-				}
-
-				// FIXME: different RT res
-*/
-			}
-			else if(t.m_TEX0.PSM == pt->m_TEX0.PSM && t.m_TEX0.TW == pt->m_TEX0.TW && t.m_TEX0.TH == pt->m_TEX0.TH
-			&& (!(t.m_CLAMP.WMS&2) && !(pt->m_CLAMP.WMS&2) && !(t.m_CLAMP.WMT&2) && !(pt->m_CLAMP.WMT&2) 
-				|| t.m_CLAMP.i64 == pt->m_CLAMP.i64))
-			{
-				lr = needsupdate;
-			}
-		}
-
-		if(lr == notfound) pt = NULL;
-	}
-
-#ifdef DEBUG_LOG
-	s->LOG(_T("*TC2 lr = %s\n"), lr == found ? _T("found") : lr == needsupdate ? _T("needsupdate") : _T("notfound"));
-#endif
-
-	if(lr == notfound)
-	{
-		if(!SUCCEEDED(CreateTexture(s, tw0, th0, t, t.m_TEX0.PSM)))
-			return false;
-
-		RemoveOldTextures(s);
-
-		pt = &m_TextureCache.GetAt(m_TextureCache.AddHead(t));
-
-		lr = needsupdate;
-	}
-
-	if(nPaletteEntries > 0 && pt->m_pPalette)
-	{
-		D3DLOCKED_RECT r;
-		if(FAILED(pt->m_pPalette->LockRect(0, &r, NULL, 0)))
-			return(false);
-		s->m_lm.readCLUT(t.m_TEX0, t.m_TEXA, (DWORD*)r.pBits);
-		pt->m_pPalette->UnlockRect(0);
-		s->m_stats.IncTexWrite(256*4);
-	}
-
-	if(lr == needsupdate)
-	{
-		if(!GetDirtySize(s, tw, th, pt))
-		{
-			lr = found;
-		}
-	}
-
-	if(lr == needsupdate)
-	{
-#ifdef DEBUG_LOG
-		s->LOG(_T("*TC2 updating texture %dx%d (%dx%d)\n"), tw, th, tw0, th0);
-#endif
-
-		int bpp;
-
-		switch(pt->m_TEX0.PSM)
-		{
-		default:
-		case PSM_PSMCT32:
-		case PSM_PSMCT24:
-			bpp = 32;
-			break;
-		case PSM_PSMCT16:
-		case PSM_PSMCT16S:
-			bpp = 16;
-			break;
-		case PSM_PSMT8:
-		case PSM_PSMT4:
-		case PSM_PSMT8H:
-		case PSM_PSMT4HL:
-		case PSM_PSMT4HH:
-			bpp = 8;
-			break;
-		}
-
-		RECT rlock = {0, 0, tw, th};
-
-		D3DLOCKED_RECT r;
-		if(FAILED(pt->m_pTexture->LockRect(0, &r, tw == tw0 && th == th0 ? NULL : &rlock, D3DLOCK_NO_DIRTY_UPDATE)))
-			return(false);
-
-		s->m_lm.ReadTextureP(tw, th, (BYTE*)r.pBits, r.Pitch, t.m_TEX0, t.m_CLAMP);
-		s->m_stats.IncReads(tw*th*bpp>>3);
-
-		DWORD chksum = 0;
-
-		if(tw >= 4)
-		{
-			BYTE* ptr = (BYTE*)r.pBits;
-			for(int j = 0, w = (tw>>2) * (bpp>>3); j < th; j++, ptr += r.Pitch)
-				for(int i = 0; i < w; i++)
-					chksum += ((DWORD*)ptr)[i];
-		}
-
-		pt->m_pTexture->UnlockRect(0);
-
-		if(tw < 4 || pt->m_chksumsize != CSize(tw, th) || pt->m_chksum != chksum)
-		{
-			pt->m_chksumsize = CSize(tw, th);
-			pt->m_chksum = chksum;
-			pt->m_pTexture->AddDirtyRect(&rlock);
-			pt->m_pTexture->PreLoad();
-			s->m_stats.IncTexWrite(tw*th*bpp>>3);
-		}
-		else
-		{
-			//rlock.right = rlock.bottom = 1;
-#ifdef DEBUG_LOG
-			s->LOG(_T("*TC2 updating texture is not necessary!!! skipping AddDirtyRect\n"));
-#endif
-		}
-
-		//pt->m_pTexture->AddDirtyRect(&rlock);
-		//pt->m_pTexture->PreLoad();
-
-		if(pt->m_valid.cx < tw) pt->m_valid.cx = tw;
-		if(pt->m_valid.cy < th) pt->m_valid.cy = th;
-
-		pt->m_dirty.RemoveAll();
-
-		lr = found;
-
-#ifdef DEBUG_LOG
-		s->LOG(_T("*TC2 texture was updated, valid %dx%d\n"), pt->m_valid.cx, pt->m_valid.cy);
-#endif
-
 
  #ifdef DEBUG_SAVETEXTURES   
 // if(pt->m_TEX0.TBP0 == 0x02722 && pt->m_TEX0.PSM == 20 && pt->m_TEX0.TW == 8 && pt->m_TEX0.TH == 6)   
@@ -618,7 +364,95 @@ bool GSTextureCache::FetchPal(GSState* s, GSTexture& t)
  }   
  #endif 
 
+	return S_OK;
+}
 
+bool GSTextureCache::Fetch(GSState* s, GSTextureBase& t)
+{
+	GSTexture* pt = NULL;
+
+	int nPaletteEntries = PaletteEntries(s->m_ctxt->TEX0.PSM);
+
+	DWORD clut[256];
+
+	if(nPaletteEntries)
+	{
+		s->m_lm.SetupCLUT32(s->m_ctxt->TEX0, s->m_de.TEXA);
+		s->m_lm.CopyCLUT32(clut, nPaletteEntries);
+	}
+
+#ifdef DEBUG_LOG
+	s->LOG(_T("*TC2 Fetch %dx%d %05x %d (%d)\n"), tw, th, s->m_ctxt->TEX0.TBP0, s->m_ctxt->TEX0.PSM, nPaletteEntries);
+#endif
+
+	enum lookupresult {notfound, needsupdate, found} lr = notfound;
+
+	POSITION pos = GetHeadPosition();
+	while(pos && !pt)
+	{
+		pt = GetNext(pos);
+
+		if(pt->m_TEX0.TBP0 == s->m_ctxt->TEX0.TBP0)
+		{
+			if(pt->m_fRT)
+			{
+				lr = found;
+
+				// FIXME: RT + 8h,4hl,4hh
+				if(nPaletteEntries)
+					return false;
+
+				// FIXME: different RT res
+			}
+			else if(s->m_ctxt->TEX0.PSM == pt->m_TEX0.PSM && s->m_ctxt->TEX0.TW == pt->m_TEX0.TW && s->m_ctxt->TEX0.TH == pt->m_TEX0.TH
+			&& (!(s->m_ctxt->CLAMP.WMS&2) && !(pt->m_CLAMP.WMS&2) && !(s->m_ctxt->CLAMP.WMT&2) && !(pt->m_CLAMP.WMT&2) || s->m_ctxt->CLAMP.i64 == pt->m_CLAMP.i64)
+			&& s->m_de.TEXA.TA0 == pt->m_TEXA.TA0 && s->m_de.TEXA.TA1 == pt->m_TEXA.TA1 && s->m_de.TEXA.AEM == pt->m_TEXA.AEM
+			&& (!nPaletteEntries || s->m_ctxt->TEX0.CPSM == pt->m_TEX0.CPSM && !memcmp(pt->m_clut, clut, nPaletteEntries*sizeof(clut[0]))))
+			{
+				lr = needsupdate;
+			}
+		}
+
+		if(lr == notfound) pt = NULL;
+	}
+
+#ifdef DEBUG_LOG
+	s->LOG(_T("*TC2 lr = %s\n"), lr == found ? _T("found") : lr == needsupdate ? _T("needsupdate") : _T("notfound"));
+#endif
+
+	if(lr == notfound)
+	{
+		pt = new GSTexture();
+
+		pt->m_TEX0 = s->m_ctxt->TEX0;
+		pt->m_CLAMP = s->m_ctxt->CLAMP;
+		pt->m_TEXA = s->m_de.TEXA;
+
+		if(!SUCCEEDED(CreateTexture(s, pt, PSM_PSMCT32)))
+		{
+			delete pt;
+			return false;
+		}
+
+		RemoveOldTextures(s);
+
+		AddHead(pt);
+
+		lr = needsupdate;
+	}
+
+	ASSERT(pt);
+
+	if(pt && nPaletteEntries)
+	{
+		memcpy(pt->m_clut, clut, nPaletteEntries*sizeof(clut[0]));
+	}
+
+	if(lr == needsupdate)
+	{
+		UpdateTexture(s, pt, &GSLocalMemory::ReadTexture);
+
+		lr = found;
 	}
 
 	if(lr == found)
@@ -627,8 +461,118 @@ bool GSTextureCache::FetchPal(GSState* s, GSTexture& t)
 		s->LOG(_T("*TC2 texture was found, age %d -> 0\n"), pt->m_nAge);
 #endif
 		pt->m_nAge = 0;
-		MoveToHead(pt);
+		if(POSITION pos = Find(pt))
+			RemoveAt(pos);
+		AddHead(pt);
+
 		t = *pt;
+
+		return true;
+	}
+
+	return false;
+}
+
+bool GSTextureCache::FetchP(GSState* s, GSTextureBase& t)
+{
+	GSTexture* pt = NULL;
+
+#ifdef DEBUG_LOG
+	s->LOG(_T("*TC2 Fetch %dx%d %05x %d (%d)\n"), tw, th, s->m_ctxt->TEX0.TBP0, s->m_ctxt->TEX0.PSM, PaletteEntries(s->m_ctxt->TEX0.PSM));
+#endif
+
+	enum lookupresult {notfound, needsupdate, found} lr = notfound;
+
+	POSITION pos = GetHeadPosition();
+	while(pos && !pt)
+	{
+		pt = GetNext(pos);
+
+		if(pt->m_TEX0.TBP0 == s->m_ctxt->TEX0.TBP0)
+		{
+			if(pt->m_fRT)
+			{
+				lr = found;
+
+				// FIXME: RT + 8h,4hl,4hh
+				if(PaletteEntries(s->m_ctxt->TEX0.PSM))
+					return false;
+/*
+				if(nPaletteEntries && !pt->m_pPalette) // yuck!
+				{
+					if(FAILED(s->m_pD3DDev->CreateTexture(256, 1, 1, 0, D3DFMT_A8R8G8B8, D3DPOOL_MANAGED, &pt->m_pPalette, NULL)))
+						return false;
+				}
+
+				// FIXME: different RT res
+*/
+			}
+			else if(s->m_ctxt->TEX0.PSM == pt->m_TEX0.PSM && s->m_ctxt->TEX0.TW == pt->m_TEX0.TW && s->m_ctxt->TEX0.TH == pt->m_TEX0.TH
+			&& (!(s->m_ctxt->CLAMP.WMS&2) && !(pt->m_CLAMP.WMS&2) && !(s->m_ctxt->CLAMP.WMT&2) && !(pt->m_CLAMP.WMT&2) || s->m_ctxt->CLAMP.i64 == pt->m_CLAMP.i64))
+			{
+				lr = needsupdate;
+			}
+		}
+
+		if(lr == notfound) pt = NULL;
+	}
+
+#ifdef DEBUG_LOG
+	s->LOG(_T("*TC2 lr = %s\n"), lr == found ? _T("found") : lr == needsupdate ? _T("needsupdate") : _T("notfound"));
+#endif
+
+	if(lr == notfound)
+	{
+		pt = new GSTexture();
+
+		pt->m_TEX0 = s->m_ctxt->TEX0;
+		pt->m_CLAMP = s->m_ctxt->CLAMP;
+		// pt->m_TEXA = s->m_de.TEXA;
+
+		if(!SUCCEEDED(CreateTexture(s, pt, s->m_ctxt->TEX0.PSM, PSM_PSMCT32)))
+		{
+			delete pt;
+			return false;
+		}
+
+		RemoveOldTextures(s);
+
+		AddHead(pt);
+
+		lr = needsupdate;
+	}
+
+	ASSERT(pt);
+
+	if(pt && pt->m_pPalette)
+	{
+		D3DLOCKED_RECT r;
+		if(FAILED(pt->m_pPalette->LockRect(0, &r, NULL, 0)))
+			return false;
+		s->m_lm.ReadCLUT32(s->m_ctxt->TEX0, s->m_de.TEXA, (DWORD*)r.pBits);
+		pt->m_pPalette->UnlockRect(0);
+		s->m_stats.IncTexWrite(256*4);
+	}
+
+	if(lr == needsupdate)
+	{
+		UpdateTexture(s, pt, &GSLocalMemory::ReadTextureP);
+
+		lr = found;
+	}
+
+	if(lr == found)
+	{
+#ifdef DEBUG_LOG
+		s->LOG(_T("*TC2 texture was found, age %d -> 0\n"), pt->m_nAge);
+#endif
+		pt->m_nAge = 0;
+		if(POSITION pos = Find(pt))
+			RemoveAt(pos);
+		AddHead(pt);
+
+		t = *pt;
+
 		return true;
 	}
 
@@ -637,36 +581,36 @@ bool GSTextureCache::FetchPal(GSState* s, GSTexture& t)
 
 void GSTextureCache::IncAge(CSurfMap<IDirect3DTexture9>& pRTs)
 {
-	POSITION pos = m_TextureCache.GetHeadPosition();
+	POSITION pos = GetHeadPosition();
 	while(pos)
 	{
 		POSITION cur = pos;
-		GSTexture& t = m_TextureCache.GetNext(pos);
-		t.m_nAge++;
-		t.m_nVsyncs++;
-		if(t.m_nAge > 10)
+		GSTexture* pt = GetNext(pos);
+		pt->m_nAge++;
+		pt->m_nVsyncs++;
+		if(pt->m_nAge > 10)
 		{
-			pRTs.RemoveKey(t.m_TEX0.TBP0);
-			m_TextureCache.RemoveAt(cur);
+			pRTs.RemoveKey(pt->m_TEX0.TBP0);
+			RemoveAt(cur);
+			delete pt;
 		}
 	}
 }
 
 void GSTextureCache::ResetAge(DWORD TBP0)
 {
-	POSITION pos = m_TextureCache.GetHeadPosition();
+	POSITION pos = GetHeadPosition();
 	while(pos)
 	{
-		GSTexture& t = m_TextureCache.GetNext(pos);
-		if(t.m_TEX0.TBP0 == TBP0) t.m_nAge = 0;
+		GSTexture* pt = GetNext(pos);
+		if(pt->m_TEX0.TBP0 == TBP0) pt->m_nAge = 0;
 	}
 }
 
 void GSTextureCache::RemoveAll()
 {
-	m_TextureCache.RemoveAll();
-	m_pTexturePool32.RemoveAll();
-	m_pTexturePool8.RemoveAll();
+	while(GetCount()) delete RemoveHead();
+	m_pTexturePool.RemoveAll();
 }
 
 void GSTextureCache::InvalidateTexture(GSState* s, DWORD TBP0, DWORD PSM, CRect r)
@@ -675,21 +619,24 @@ void GSTextureCache::InvalidateTexture(GSState* s, DWORD TBP0, DWORD PSM, CRect 
 	s->LOG(_T("*TC2 invalidate %05x (%dx%x - %dx%d)\n"), TBP0, r.left, r.top, r.right, r.bottom);
 #endif
 
-	POSITION pos = m_TextureCache.GetHeadPosition();
+	POSITION pos = GetHeadPosition();
 	while(pos)
 	{
 		POSITION cur = pos;
-		const GSTexture& t = m_TextureCache.GetNext(pos);
-		if(t.m_TEX0.TBP0 == TBP0 && t.m_fRT) 
-			m_TextureCache.RemoveAt(cur);
+		GSTexture* pt = GetNext(pos);
+		if(pt->m_TEX0.TBP0 == TBP0 && pt->m_fRT) 
+		{
+			RemoveAt(cur);
+			delete pt;
+		}
 	}
 
-	pos = m_TextureCache.GetHeadPosition();
+	pos = GetHeadPosition();
 	while(pos)
 	{
-		GSTexture& t = m_TextureCache.GetNext(pos);
-		if(t.m_TEX0.TBP0 == TBP0)
-			t.m_dirty.AddHead(GSDirtyRect(PSM, r));
+		GSTexture* pt = GetNext(pos);
+		if(pt->m_TEX0.TBP0 == TBP0)
+			pt->m_dirty.AddHead(GSDirtyRect(PSM, r));
 	}
 }
 
@@ -697,14 +644,14 @@ void GSTextureCache::InvalidateLocalMem(GSState* s, DWORD TBP0, DWORD BW, DWORD 
 {
 	CComPtr<IDirect3DTexture9> pRT;
 
-	POSITION pos = m_TextureCache.GetHeadPosition();
+	POSITION pos = GetHeadPosition();
 	while(pos)
 	{
 		POSITION cur = pos;
-		const GSTexture& t = m_TextureCache.GetNext(pos);
-		if(t.m_TEX0.TBP0 == TBP0 && t.m_fRT) 
+		GSTexture* pt = GetNext(pos);
+		if(pt->m_TEX0.TBP0 == TBP0 && pt->m_fRT) 
 		{
-			pRT = t.m_pTexture;
+			pRT = pt->m_pTexture;
 			break;
 		}
 	}
@@ -759,22 +706,25 @@ void GSTextureCache::InvalidateLocalMem(GSState* s, DWORD TBP0, DWORD BW, DWORD 
 
 void GSTextureCache::AddRT(DWORD TBP0, IDirect3DTexture9* pRT, scale_t scale)
 {
-	POSITION pos = m_TextureCache.GetHeadPosition();
+	POSITION pos = GetHeadPosition();
 	while(pos)
 	{
 		POSITION cur = pos;
-		const GSTexture& t = m_TextureCache.GetNext(pos);
-		if(t.m_TEX0.TBP0 == TBP0) 
-			m_TextureCache.RemoveAt(cur);
+		GSTexture* pt = GetNext(pos);
+		if(pt->m_TEX0.TBP0 == TBP0)
+		{
+			RemoveAt(cur);
+			delete pt;
+		}
 	}
 
-	GSTexture t;
-	t.m_pTexture = pRT;
-	t.m_pTexture->GetLevelDesc(0, &t.m_desc);
-	t.m_TEX0.TBP0 = TBP0;
-	t.m_scale = scale;
-	// t.m_valid.SetSize();
-	t.m_fRT = true;
+	GSTexture* pt = new GSTexture();
+	pt->m_pTexture = pRT;
+	pt->m_pTexture->GetLevelDesc(0, &pt->m_desc);
+	pt->m_TEX0.TBP0 = TBP0;
+	pt->m_scale = scale;
+	// pt->m_valid.SetSize();
+	pt->m_fRT = true;
 
-	m_TextureCache.AddHead(t);
+	AddHead(pt);
 }

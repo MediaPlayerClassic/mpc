@@ -42,6 +42,8 @@ GSState::GSState(int w, int h, HWND hWnd, HRESULT& hr)
 
     CWinApp* pApp = AfxGetApp();
 
+	m_v.RGBAQ.Q = m_q = 1.0f;
+
 	memset(&m_tag, 0, sizeof(m_tag));
 	m_nreg = 0;
 
@@ -236,59 +238,16 @@ GSState::GSState(int w, int h, HWND hWnd, HRESULT& hr)
 
 	static const TCHAR* hlsl_tfx[] = 
 	{
-		/*
-		_T("main_tfx0"),
-		_T("main_tfx1"),
-		_T("main_tfx2"),
-		_T("main_tfx3"),
-		_T("main_tfx0_pal_ln"),
-		_T("main_tfx1_pal_ln"),
-		_T("main_tfx2_pal_ln"),
-		_T("main_tfx3_pal_ln"),
-		_T("main_tfx0_pal_pt"),
-		_T("main_tfx1_pal_pt"),
-		_T("main_tfx2_pal_pt"),
-		_T("main_tfx3_pal_pt"),
-		_T("main_tfx4"),
-		_T("main_tfx4_pal_pt"),
-		*/
-		_T("main_tfx0_32"),
-		_T("main_tfx1_32"),
-		_T("main_tfx2_32"),
-		_T("main_tfx3_32"),
-		_T("main_tfx0_24"),
-		_T("main_tfx1_24"),
-		_T("main_tfx2_24"),
-		_T("main_tfx3_24"),
-		_T("main_tfx0_24AEM"),
-		_T("main_tfx1_24AEM"),
-		_T("main_tfx2_24AEM"),
-		_T("main_tfx3_24AEM"),
-		_T("main_tfx0_16"),
-		_T("main_tfx1_16"),
-		_T("main_tfx2_16"),
-		_T("main_tfx3_16"),
-		_T("main_tfx0_16AEM"),
-		_T("main_tfx1_16AEM"),
-		_T("main_tfx2_16AEM"),
-		_T("main_tfx3_16AEM"),
-		_T("main_tfx0_8P_pt"),
-		_T("main_tfx1_8P_pt"),
-		_T("main_tfx2_8P_pt"),
-		_T("main_tfx3_8P_pt"),
-		_T("main_tfx0_8P_ln"),
-		_T("main_tfx1_8P_ln"),
-		_T("main_tfx2_8P_ln"),
-		_T("main_tfx3_8P_ln"),
-		_T("main_tfx0_8HP_pt"),
-		_T("main_tfx1_8HP_pt"),
-		_T("main_tfx2_8HP_pt"),
-		_T("main_tfx3_8HP_pt"),
-		_T("main_tfx0_8HP_ln"),
-		_T("main_tfx1_8HP_ln"),
-		_T("main_tfx2_8HP_ln"),
-		_T("main_tfx3_8HP_ln"),
-		_T("main_notfx"),
+		_T("main_tfx0_32"), _T("main_tfx1_32"), _T("main_tfx2_32"), _T("main_tfx3_32"),
+		_T("main_tfx0_24"), _T("main_tfx1_24"), _T("main_tfx2_24"), _T("main_tfx3_24"),
+		_T("main_tfx0_24AEM"), _T("main_tfx1_24AEM"), _T("main_tfx2_24AEM"), _T("main_tfx3_24AEM"),
+		_T("main_tfx0_16"), _T("main_tfx1_16"), _T("main_tfx2_16"), _T("main_tfx3_16"), 
+		_T("main_tfx0_16AEM"), _T("main_tfx1_16AEM"), _T("main_tfx2_16AEM"), _T("main_tfx3_16AEM"), 
+		_T("main_tfx0_8P_pt"), _T("main_tfx1_8P_pt"), _T("main_tfx2_8P_pt"), _T("main_tfx3_8P_pt"), 
+		_T("main_tfx0_8P_ln"), _T("main_tfx1_8P_ln"), _T("main_tfx2_8P_ln"), _T("main_tfx3_8P_ln"), 
+		_T("main_tfx0_8HP_pt"), _T("main_tfx1_8HP_pt"), _T("main_tfx2_8HP_pt"), _T("main_tfx3_8HP_pt"), 
+		_T("main_tfx0_8HP_ln"), _T("main_tfx1_8HP_ln"), _T("main_tfx2_8HP_ln"), _T("main_tfx3_8HP_ln"),
+		_T("main_notfx"), 
 		_T("main_8PTo32"),
 	};
 
@@ -356,6 +315,8 @@ GSState::GSState(int w, int h, HWND hWnd, HRESULT& hr)
 	}
 
 	m_strDefaultTitle.ReleaseBufferSetLength(GetWindowText(m_hWnd, m_strDefaultTitle.GetBuffer(256), 256));
+
+	m_fEnablePalettizedTextures = !!pApp->GetProfileInt(_T("Settings"), _T("fEnablePalettizedTextures"), FALSE);
 
 	hr = S_OK;
 
@@ -838,7 +799,7 @@ break;
 	{
 		fputc(ST_TRANSFER, m_sfp);
 		fwrite(&sizeOrg, 4, 1, m_sfp);
-		UINT32 len = pMem - pMemOrg;
+		UINT32 len = (UINT32)(pMem - pMemOrg);
 		fwrite(&len, 4, 1, m_sfp);
 		fwrite(pMemOrg, len, 1, m_sfp);
 	}
@@ -1106,8 +1067,8 @@ void GSState::FinishFlip(FlipSrc rt[2], bool fShiftField)
 		const float c[] = 
 		{
 			(float)m_rs.BGCOLOR.B / 255, (float)m_rs.BGCOLOR.G / 255, (float)m_rs.BGCOLOR.R / 255, (float)m_rs.PMODE.ALP / 255,
-			m_rs.PMODE.AMOD, m_rs.IsEnabled(0), m_rs.IsEnabled(1), m_rs.PMODE.MMOD,
-			m_de.TEXA.AEM, (float)m_de.TEXA.TA0 / 255, (float)m_de.TEXA.TA1 / 255, m_rs.PMODE.SLBG
+			(float)m_rs.PMODE.AMOD, (float)m_rs.IsEnabled(0), (float)m_rs.IsEnabled(1), (float)m_rs.PMODE.MMOD,
+			(float)m_de.TEXA.AEM, (float)m_de.TEXA.TA0 / 255, (float)m_de.TEXA.TA1 / 255, (float)m_rs.PMODE.SLBG
 		};
 
 		hr = m_pD3DDev->SetPixelShaderConstantF(0, c, countof(c)/4);

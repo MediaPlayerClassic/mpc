@@ -17,6 +17,10 @@ extern "C" void SwizzleBlock32_amd64(BYTE* dst, BYTE* src, __int64 srcpitch, DWO
 extern "C" void SwizzleBlock16_amd64(BYTE* dst, BYTE* src, __int64 srcpitch);
 extern "C" void SwizzleBlock8_amd64(BYTE* dst, BYTE* src, __int64 srcpitch);
 extern "C" void SwizzleBlock4_amd64(BYTE* dst, BYTE* src, __int64 srcpitch);
+extern "C" void SwizzleBlock32u_amd64(BYTE* dst, BYTE* src, __int64 srcpitch, DWORD WriteMask = 0xffffffff);
+extern "C" void SwizzleBlock16u_amd64(BYTE* dst, BYTE* src, __int64 srcpitch);
+extern "C" void SwizzleBlock8u_amd64(BYTE* dst, BYTE* src, __int64 srcpitch);
+extern "C" void SwizzleBlock4u_amd64(BYTE* dst, BYTE* src, __int64 srcpitch);
 extern "C" void __fastcall unSwizzleBlock32_sse2(BYTE* src, BYTE* dst, int dstpitch);
 extern "C" void __fastcall unSwizzleBlock16_sse2(BYTE* src, BYTE* dst, int dstpitch);
 extern "C" void __fastcall unSwizzleBlock8_sse2(BYTE* src, BYTE* dst, int dstpitch);
@@ -29,6 +33,10 @@ extern "C" void __fastcall SwizzleBlock32_sse2(BYTE* dst, BYTE* src, int srcpitc
 extern "C" void __fastcall SwizzleBlock16_sse2(BYTE* dst, BYTE* src, int srcpitch);
 extern "C" void __fastcall SwizzleBlock8_sse2(BYTE* dst, BYTE* src, int srcpitch);
 extern "C" void __fastcall SwizzleBlock4_sse2(BYTE* dst, BYTE* src, int srcpitch);
+extern "C" void __fastcall SwizzleBlock32u_sse2(BYTE* dst, BYTE* src, int srcpitch, DWORD WriteMask = 0xffffffff);
+extern "C" void __fastcall SwizzleBlock16u_sse2(BYTE* dst, BYTE* src, int srcpitch);
+extern "C" void __fastcall SwizzleBlock8u_sse2(BYTE* dst, BYTE* src, int srcpitch);
+extern "C" void __fastcall SwizzleBlock4u_sse2(BYTE* dst, BYTE* src, int srcpitch);
 extern void __fastcall unSwizzleBlock32_c(BYTE* src, BYTE* dst, int dstpitch);
 extern void __fastcall unSwizzleBlock16_c(BYTE* src, BYTE* dst, int dstpitch);
 extern void __fastcall unSwizzleBlock8_c(BYTE* src, BYTE* dst, int dstpitch);
@@ -58,6 +66,24 @@ struct vertex_t {float xyzw[4]; DWORD color[2]; float u, v;};
 extern "C" void __fastcall UVMinMax_sse2(int nVertices, vertex_t* pVertices, uvmm_t* uv);
 extern "C" void __fastcall UVMinMax_c(int nVertices, vertex_t* pVertices, uvmm_t* uv);
 
+extern "C" void __fastcall WriteCLUT_T16_I8_CSM1_sse2(WORD* vm, WORD* clut);
+extern "C" void __fastcall WriteCLUT_T32_I8_CSM1_sse2(DWORD* vm, WORD* clut);
+extern "C" void __fastcall WriteCLUT_T16_I4_CSM1_sse2(WORD* vm, WORD* clut);
+extern "C" void __fastcall WriteCLUT_T32_I4_CSM1_sse2(DWORD* vm, WORD* clut);
+extern void __fastcall WriteCLUT_T16_I8_CSM1_c(WORD* vm, WORD* clut);
+extern void __fastcall WriteCLUT_T32_I8_CSM1_c(DWORD* vm, WORD* clut);
+extern void __fastcall WriteCLUT_T16_I4_CSM1_c(WORD* vm, WORD* clut);
+extern void __fastcall WriteCLUT_T32_I4_CSM1_c(DWORD* vm, WORD* clut);
+
+extern "C" void __fastcall ReadCLUT32_T32_I8_sse2(WORD* src, DWORD* dst);
+extern "C" void __fastcall ReadCLUT32_T32_I4_sse2(WORD* src, DWORD* dst);
+extern "C" void __fastcall ReadCLUT32_T16_I8_sse2(WORD* src, DWORD* dst);
+extern "C" void __fastcall ReadCLUT32_T16_I4_sse2(WORD* src, DWORD* dst);
+extern void __fastcall ReadCLUT32_T32_I8_c(WORD* src, DWORD* dst);
+extern void __fastcall ReadCLUT32_T32_I4_c(WORD* src, DWORD* dst);
+extern void __fastcall ReadCLUT32_T16_I8_c(WORD* src, DWORD* dst);
+extern void __fastcall ReadCLUT32_T16_I4_c(WORD* src, DWORD* dst);
+
 #ifdef _M_AMD64
 
 #define SaturateColor SaturateColor_amd64
@@ -74,12 +100,26 @@ extern "C" void __fastcall UVMinMax_c(int nVertices, vertex_t* pVertices, uvmm_t
 #define SwizzleBlock16 SwizzleBlock16_amd64
 #define SwizzleBlock8 SwizzleBlock8_amd64
 #define SwizzleBlock4 SwizzleBlock4_amd64
+#define SwizzleBlock32u SwizzleBlock32u_amd64
+#define SwizzleBlock16u SwizzleBlock16u_amd64
+#define SwizzleBlock8u SwizzleBlock8u_amd64
+#define SwizzleBlock4u SwizzleBlock4u_amd64
 
 #define ExpandBlock24 ExpandBlock24_sse2
 #define ExpandBlock16 ExpandBlock16_sse2
 #define Expand16 Expand16_sse2
 
 #define UVMinMax UVMinMax_sse2
+
+#define WriteCLUT_T16_I8_CSM1 WriteCLUT_T16_I8_CSM1_sse2
+#define WriteCLUT_T32_I8_CSM1 WriteCLUT_T32_I8_CSM1_sse2
+#define WriteCLUT_T16_I4_CSM1 WriteCLUT_T16_I4_CSM1_sse2
+#define WriteCLUT_T32_I4_CSM1 WriteCLUT_T32_I4_CSM1_sse2
+
+#define ReadCLUT32_T32_I8 ReadCLUT32_T32_I8_sse2
+#define ReadCLUT32_T32_I4 ReadCLUT32_T32_I4_sse2
+#define ReadCLUT32_T16_I8 ReadCLUT32_T16_I8_sse2
+#define ReadCLUT32_T16_I4 ReadCLUT32_T16_I4_sse2
 
 #elif _M_IX86_FP >= 2
 
@@ -97,12 +137,26 @@ extern "C" void __fastcall UVMinMax_c(int nVertices, vertex_t* pVertices, uvmm_t
 #define SwizzleBlock16 SwizzleBlock16_sse2
 #define SwizzleBlock8 SwizzleBlock8_sse2
 #define SwizzleBlock4 SwizzleBlock4_sse2
+#define SwizzleBlock32u SwizzleBlock32u_sse2
+#define SwizzleBlock16u SwizzleBlock16u_sse2
+#define SwizzleBlock8u SwizzleBlock8u_sse2
+#define SwizzleBlock4u SwizzleBlock4u_sse2
 
 #define ExpandBlock24 ExpandBlock24_sse2
 #define ExpandBlock16 ExpandBlock16_sse2
 #define Expand16 Expand16_sse2
 
 #define UVMinMax UVMinMax_sse2
+
+#define WriteCLUT_T16_I8_CSM1 WriteCLUT_T16_I8_CSM1_sse2
+#define WriteCLUT_T32_I8_CSM1 WriteCLUT_T32_I8_CSM1_sse2
+#define WriteCLUT_T16_I4_CSM1 WriteCLUT_T16_I4_CSM1_sse2
+#define WriteCLUT_T32_I4_CSM1 WriteCLUT_T32_I4_CSM1_sse2
+
+#define ReadCLUT32_T32_I8 ReadCLUT32_T32_I8_sse2
+#define ReadCLUT32_T32_I4 ReadCLUT32_T32_I4_sse2
+#define ReadCLUT32_T16_I8 ReadCLUT32_T16_I8_sse2
+#define ReadCLUT32_T16_I4 ReadCLUT32_T16_I4_sse2
 
 #else
 
@@ -120,11 +174,25 @@ extern "C" void __fastcall UVMinMax_c(int nVertices, vertex_t* pVertices, uvmm_t
 #define SwizzleBlock16 SwizzleBlock16_c
 #define SwizzleBlock8 SwizzleBlock8_c
 #define SwizzleBlock4 SwizzleBlock4_c
+#define SwizzleBlock32u SwizzleBlock32_c
+#define SwizzleBlock16u SwizzleBlock16_c
+#define SwizzleBlock8u SwizzleBlock8_c
+#define SwizzleBlock4u SwizzleBlock4_c
 
 #define ExpandBlock24 ExpandBlock24_c
 #define ExpandBlock16 ExpandBlock16_c
 #define Expand16 Expand16_c
 
 #define UVMinMax UVMinMax_c
+
+#define WriteCLUT_T16_I8_CSM1 WriteCLUT_T16_I8_CSM1_c
+#define WriteCLUT_T32_I8_CSM1 WriteCLUT_T32_I8_CSM1_c
+#define WriteCLUT_T16_I4_CSM1 WriteCLUT_T16_I4_CSM1_c
+#define WriteCLUT_T32_I4_CSM1 WriteCLUT_T32_I4_CSM1_c
+
+#define ReadCLUT32_T32_I8 ReadCLUT32_T32_I8_c
+#define ReadCLUT32_T32_I4 ReadCLUT32_T32_I4_c
+#define ReadCLUT32_T16_I8 ReadCLUT32_T16_I8_c
+#define ReadCLUT32_T16_I4 ReadCLUT32_T16_I4_c
 
 #endif

@@ -272,7 +272,7 @@ void GSRendererSoft<VERTEX>::DrawVertex(int x, int y, VERTEX& v)
 
 		if(m_ctxt->rz)
 		{
-			DWORD z = (m_lm.*m_ctxt->rza)(x, y, addrz);
+			DWORD z = (m_lm.*m_ctxt->rza)(addrz);
 			if(m_ctxt->TEST.ZTST == 2 && vz < z || m_ctxt->TEST.ZTST == 3 && vz <= z)
 				return;
 		}
@@ -448,7 +448,7 @@ void GSRendererSoft<VERTEX>::DrawVertex(int x, int y, VERTEX& v)
 
 	if(!ZMSK && m_ctxt->wz)
 	{
-		(m_lm.*m_ctxt->wza)(x, y, vz, addrz);
+		(m_lm.*m_ctxt->wza)(addrz, vz);
 	}
 
 	if(FBMSK != ~0)
@@ -457,7 +457,7 @@ void GSRendererSoft<VERTEX>::DrawVertex(int x, int y, VERTEX& v)
 
 		if(m_ctxt->TEST.DATE && m_ctxt->FRAME.PSM <= PSM_PSMCT16S && m_ctxt->FRAME.PSM != PSM_PSMCT24)
 		{
-			BYTE A = (m_lm.*m_ctxt->rpa)(x, y, addr) >> (m_ctxt->FRAME.PSM == PSM_PSMCT32 ? 31 : 15);
+			BYTE A = (BYTE)((m_lm.*m_ctxt->rpa)(addr) >> (m_ctxt->FRAME.PSM == PSM_PSMCT32 ? 31 : 15));
 			if(A ^ m_ctxt->TEST.DATM) return; // FIXME: vf4 missing mem card screen / the blue background of the text
 		}
 
@@ -469,7 +469,7 @@ void GSRendererSoft<VERTEX>::DrawVertex(int x, int y, VERTEX& v)
 
 		if(FBMSK || fABE)
 		{
-			Cd = (m_lm.*m_ctxt->rfa)(x, y, addr, m_ctxt->TEX0, m_de.TEXA);
+			Cd = (m_lm.*m_ctxt->rfa)(addr, m_ctxt->TEX0, m_de.TEXA);
 		}
 
 		if(fABE)
@@ -511,7 +511,7 @@ void GSRendererSoft<VERTEX>::DrawVertex(int x, int y, VERTEX& v)
 
 		Cd = (((Af << 24) | (Bf << 16) | (Gf << 8) | (Rf << 0)) & ~FBMSK) | (Cd & FBMSK);
 
-		(m_lm.*m_ctxt->wfa)(x, y, Cd, addr);
+		(m_lm.*m_ctxt->wfa)(addr, Cd);
 	}
 }
 
@@ -565,7 +565,7 @@ void GSRendererSoft<VERTEX>::SetTexture()
 	if(!m_de.pPRIM->TME || !m_ctxt->rt)
 		return;
 
-	m_lm.setupCLUT(m_ctxt->TEX0, m_de.TEXA);
+	m_lm.SetupCLUT32(m_ctxt->TEX0, m_de.TEXA);
 }
 
 //
@@ -640,16 +640,11 @@ void GSRendererSoftFP::DrawLine(GSSoftVertex* v)
 
 	int f = dx > dy ? 4 : 5;
 
-//	if(v[0].f[f] > v[1].f[f]) {GSSoftVertex tmp = v[0]; v[0] = v[1]; v[1] = tmp;}
-
 	GSSoftVertex edge = v[0];
 	GSSoftVertex dedge = (v[1] - v[0]) / abs(v[1].f[f] - v[0].f[f]);
-/*
-	if(v[0].x < m_scissor.left) v[0] += dedge * ((float)m_scissor.left - v[0].x);
-	if(v[1].x > m_scissor.right) v[1].x = (float)m_scissor.right;
-	if(v[0].y < m_scissor.top) v[0] += dedge * ((float)m_scissor.top - v[0].y);
-	if(v[1].y > m_scissor.bottom) v[1].y = (float)m_scissor.bottom;
-*/
+
+	// TODO: clip with the scissor
+
 	int start = int(v[0].f[f]), end = int(v[1].f[f]);
 
 	for(int steps = abs(start - end); steps > 0; steps--, edge += dedge)
@@ -875,16 +870,11 @@ void GSRendererSoftFX::DrawLine(GSSoftVertex* v)
 
 	int i = dx > dy ? 4 : 5;
 
-	// if(v[0].dw[i] > v[1].dw[i]) {GSSoftVertex tmp = v[0]; v[0] = v[1]; v[1] = tmp;}
-
 	GSSoftVertex edge = v[0];
 	GSSoftVertex dedge = (v[1] - v[0]) / abs(v[1].dw[i] - v[0].dw[i]);
-/*
-	if(v[0].x < m_scissor.left) v[0] += dedge * (m_scissor.left - v[0].x);
-	if(v[1].x > m_scissor.right) v[1].x = m_scissor.right;
-	if(v[0].y < m_scissor.top) v[0] += dedge * (m_scissor.top - v[0].y);
-	if(v[1].y > m_scissor.bottom) v[1].y = m_scissor.bottom;
-*/
+
+	// TODO: clip with the scissor
+
 	int start = v[0].dw[i]>>16, end = v[1].dw[i]>>16;
 
 	for(int steps = abs(start - end); steps > 0; steps--, edge += dedge)
@@ -1060,7 +1050,7 @@ void GSRendererSoftFX::DrawVertex(int x, int y, GSSoftVertex& v)
 
 		if(m_ctxt->rz)
 		{
-			DWORD z = (m_lm.*m_ctxt->rza)(x, y, addrz);
+			DWORD z = (m_lm.*m_ctxt->rza)(addrz);
 			if(m_ctxt->TEST.ZTST == 2 && vz < z || m_ctxt->TEST.ZTST == 3 && vz <= z)
 				return;
 		}
@@ -1237,7 +1227,7 @@ void GSRendererSoftFX::DrawVertex(int x, int y, GSSoftVertex& v)
 
 	if(!ZMSK && m_ctxt->wz)
 	{
-		(m_lm.*m_ctxt->wza)(x, y, vz, addrz);
+		(m_lm.*m_ctxt->wza)(vz, addrz);
 	}
 
 	if(FBMSK != ~0)
@@ -1246,7 +1236,7 @@ void GSRendererSoftFX::DrawVertex(int x, int y, GSSoftVertex& v)
 
 		if(m_ctxt->TEST.DATE && m_ctxt->FRAME.PSM <= PSM_PSMCT16S && m_ctxt->FRAME.PSM != PSM_PSMCT24)
 		{
-			BYTE A = (m_lm.*m_ctxt->rpa)(x, y, addr) >> (m_ctxt->FRAME.PSM == PSM_PSMCT32 ? 31 : 15);
+			BYTE A = (m_lm.*m_ctxt->rpa)(addr) >> (m_ctxt->FRAME.PSM == PSM_PSMCT32 ? 31 : 15);
 			if(A ^ m_ctxt->TEST.DATM) return; // FIXME: vf4 missing mem card screen / the blue background of the text
 		}
 
@@ -1258,7 +1248,7 @@ void GSRendererSoftFX::DrawVertex(int x, int y, GSSoftVertex& v)
 
 		if(FBMSK || fABE)
 		{
-			Cd = (m_lm.*m_ctxt->rfa)(x, y, addr, m_ctxt->TEX0, m_de.TEXA);
+			Cd = (m_lm.*m_ctxt->rfa)(addr, m_ctxt->TEX0, m_de.TEXA);
 		}
 
 		if(fABE)
@@ -1300,6 +1290,6 @@ void GSRendererSoftFX::DrawVertex(int x, int y, GSSoftVertex& v)
 
 		Cd = (((Af << 24) | (Bf << 16) | (Gf << 8) | (Rf << 0)) & ~FBMSK) | (Cd & FBMSK);
 
-		(m_lm.*m_ctxt->wfa)(x, y, Cd, addr);
+		(m_lm.*m_ctxt->wfa)(addr, Cd);
 	}
 }

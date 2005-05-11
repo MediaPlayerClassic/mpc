@@ -22,6 +22,7 @@
 #pragma once
 
 #include "GS.h"
+#include "GSLocalMemory.h"
 
 template <class T> class CSurfMap : public CMap<DWORD, DWORD, CComPtr<T>, CComPtr<T>& > {};
 
@@ -66,49 +67,52 @@ public:
 	CRect GetDirtyRect(const GIFRegTEX0& TEX0);
 };
 
-struct GSTexture
+struct GSTextureBase
 {
 	CComPtr<IDirect3DTexture9> m_pTexture, m_pPalette;
+	scale_t m_scale;
+	bool m_fRT;
+	D3DSURFACE_DESC m_desc;
+};
+
+struct GSTexture : public GSTextureBase
+{
 	GIFRegCLAMP m_CLAMP;
 	GIFRegTEX0 m_TEX0;
-	GIFRegTEXA m_TEXA;
-	DWORD m_clut[256];
-	scale_t m_scale;
+	GIFRegTEXA m_TEXA; // *
+	DWORD m_clut[256]; // *
 	CSize m_valid;
 	GSDirtyRectList m_dirty;
-	bool m_fRT;
 	int m_nAge, m_nVsyncs;
-	CSize m_chksumsize;
-	DWORD m_chksum;
+	CSize m_hashsize;
+	DWORD m_hash;
 	DWORD m_size;
-	D3DSURFACE_DESC m_desc;
 
 	GSTexture();
 };
 
 class GSState;
 
-class GSTextureCache
+class GSTextureCache : private CAtlList<GSTexture*>
 {
 protected:
-	CInterfaceList<IDirect3DTexture9> m_pTexturePool8;
-	CInterfaceList<IDirect3DTexture9> m_pTexturePool16;
-	CInterfaceList<IDirect3DTexture9> m_pTexturePool32;
+	CInterfaceList<IDirect3DTexture9> m_pTexturePool;
 
-	typedef CAtlList<GSTexture> GSTextureList;
-	GSTextureList m_TextureCache;
-
-	HRESULT CreateTexture(GSState* s, int w, int h, GSTexture& t, DWORD PSM);
+	HRESULT CreateTexture(GSState* s, GSTexture* pt, DWORD PSM, DWORD CPSM = PSM_PSMCT32);
 	bool IsTextureInCache(IDirect3DTexture9* pTexture);
 	void RemoveOldTextures(GSState* s);
-	bool GetDirtySize(GSState* s, int& tw, int& th, GSTexture* pt);
-	void MoveToHead(GSTexture* pt);
+	bool GetDirtySize(GSState* s, GSTexture* pt, int& w, int& h);
+
+	DWORD HashTexture(int w, int h, int pitch, void* bits);
+	HRESULT UpdateTexture(GSState* s, GSTexture* pt, GSLocalMemory::readTexture rt);
 
 public:
 	GSTextureCache();
 
-	bool Fetch(GSState* s, GSTexture& t);
-	bool FetchPal(GSState* s, GSTexture& t);
+	bool Fetch(GSState* s, GSTextureBase& t);
+	bool FetchP(GSState* s, GSTextureBase& t);
+	bool FetchNP(GSState* s, GSTextureBase& t);
+
 	void IncAge(CSurfMap<IDirect3DTexture9>& pRTs);
 	void ResetAge(DWORD TBP0);
 	void RemoveAll();
