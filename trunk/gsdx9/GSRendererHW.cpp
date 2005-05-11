@@ -353,13 +353,13 @@ scale.y = 1;
 
 		//////////////////////
 
-		GSTexture t;
+		GSTextureBase t;
 
 		if(m_de.pPRIM->TME)
 		{
-			if(m_caps.PixelShaderVersion >= D3DVS_VERSION(2, 0))
+			if(m_fEnablePalettizedTextures && m_caps.PixelShaderVersion >= D3DVS_VERSION(2, 0))
 			{
-				if(!m_tc.FetchPal(this, t))
+				if(!m_tc.FetchP(this, t))
 					break;
 			}
 			else
@@ -418,6 +418,7 @@ scale.y = 1;
 
 				t.m_pTexture->GetLevelDesc(0, &t.m_desc);
 			}
+
 		}
 
 		//////////////////////
@@ -978,20 +979,22 @@ void GSRendererHW::MaxTexUV(int& tw, int& th)
 	}
 }
 
-void GSRendererHW::SetupTexture(const GSTexture& t, float tsx, float tsy)
+void GSRendererHW::SetupTexture(const GSTextureBase& t, float tsx, float tsy)
 {
 	HRESULT hr;
 
-	// FIXME
-	int tw = 1 << t.m_TEX0.TW;
-	int th = 1 << t.m_TEX0.TH;
-	float rw = 1.0f / tw;
-	float rh = 1.0f / th;
+	int tw = 0, th = 0;
+	float rw = 0, rh = 0;
 
 	CComPtr<IDirect3DPixelShader9> pPixelShader;
 
 	if(m_de.pPRIM->TME && t.m_pTexture)
 	{
+		tw = t.m_desc.Width;
+		th = t.m_desc.Height;
+		rw = 1.0f / tw;
+		rh = 1.0f / th;
+
 		hr = m_pD3DDev->SetTexture(0, t.m_pTexture);
 		hr = m_pD3DDev->SetTexture(1, t.m_pPalette);
 
@@ -1027,7 +1030,11 @@ void GSRendererHW::SetupTexture(const GSTexture& t, float tsx, float tsy)
 				ASSERT(0);
 				break;
 			case D3DFMT_A8R8G8B8:
-				if(m_ctxt->TEX0.PSM == PSM_PSMCT24) {i += 4; if(m_de.TEXA.AEM) i += 4;}
+				ASSERT(m_ctxt->TEX0.PSM != PSM_PSMCT24); // format must be D3DFMT_X8R8G8B8 for PSM_PSMCT24
+				// if(m_ctxt->TEX0.PSM == PSM_PSMCT24) {i += 4; if(m_de.TEXA.AEM) i += 4;}
+				break;
+			case D3DFMT_X8R8G8B8:
+				i += 4; if(m_de.TEXA.AEM) i += 4;
 				break;
 			case D3DFMT_A1R5G5B5:
 				i += 12; if(m_de.TEXA.AEM) i += 4; 

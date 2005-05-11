@@ -64,7 +64,7 @@ LOG(_T("*TC2 WriteTransfer %dx%d - %dx%d (psm=%d rr=%dx%d len=%d)\n"), x, y, m_x
 	CRect r(m_rs.TRXPOS.DSAX, y, m_rs.TRXREG.RRW, min(m_x == m_rs.TRXPOS.DSAX ? m_y : m_y+1, m_rs.TRXREG.RRH));
 	InvalidateTexture(m_rs.BITBLTBUF.DBP, m_rs.BITBLTBUF.DPSM, r);
 
-	m_lm.invalidateCLUT();
+	m_lm.InvalidateCLUT();
 }
 
 void GSState::ReadTransfer(BYTE* pMem, int len)

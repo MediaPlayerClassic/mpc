@@ -40,6 +40,10 @@ public:
 	CComboBox m_resolution;
 	CComboBox m_renderer;
 	CComboBox m_psversion;
+	BOOL m_fEnablePalettizedTextures;
+	BOOL m_fEnableTvOut;
+	BOOL m_fRecordState;
+	CString m_strRecordState;
 
 protected:
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV support
@@ -48,9 +52,5 @@ protected:
 
 	DECLARE_MESSAGE_MAP()
 public:
-	BOOL m_halfvres;
-	BOOL m_fRecordState;
-	CString m_strRecordState;
 	afx_msg void OnBnClickedButton1();
-	BOOL m_fEnableTvOut;
 };

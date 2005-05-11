@@ -1059,4 +1059,286 @@ SwizzleBlock32_sse2@WM:
 
 @SwizzleBlock4_sse2@12 endp
 
+;
+; swizzling with unaligned reads
+;
+
+;
+; SwizzleBlock32u
+;
+
+@SwizzleBlock32u_sse2@16 proc public
+
+	push		esi
+	push		edi
+
+	mov			edi, ecx
+	mov			esi, edx
+	mov			edx, [esp+4+8]
+	mov			ecx, 4
+
+	mov			eax, [esp+8+8]
+	cmp			eax, 0ffffffffh
+	jnz			SwizzleBlock32u_sse2@WM
+
+	align 16
+@@:
+	movups		xmm0, [esi]
+	movups		xmm4, [esi+16]
+	movups		xmm1, [esi+edx]
+	movups		xmm5, [esi+edx+16]
+
+	punpck		qdq, 0, 4, 1, 5, 2, 6
+
+	movaps		[edi+16*0], xmm0
+	movaps		[edi+16*1], xmm2
+	movaps		[edi+16*2], xmm4
+	movaps		[edi+16*3], xmm6
+
+	lea			esi, [esi+edx*2]
+	add			edi, 64
+
+	dec			ecx
+	jnz			@B
+
+	pop			edi
+	pop			esi
+
+	ret			8
+
+SwizzleBlock32u_sse2@WM:
+
+	movd		xmm7, eax
+	pshufd		xmm7, xmm7, 0
+	
+	align 16
+@@:
+	movups		xmm0, [esi]
+	movups		xmm4, [esi+16]
+	movups		xmm1, [esi+edx]
+	movups		xmm5, [esi+edx+16]
+
+	punpck		qdq, 0, 4, 1, 5, 2, 6
+
+	movaps		xmm3, xmm7
+	pshufd		xmm5, xmm7, 0e4h
+
+	pandn		xmm3, [edi+16*0]
+	pand		xmm0, xmm7
+	por			xmm0, xmm3
+	movaps		[edi+16*0], xmm0
+
+	pandn		xmm5, [edi+16*1]
+	pand		xmm2, xmm7
+	por			xmm2, xmm5
+	movaps		[edi+16*1], xmm2
+
+	movaps		xmm3, xmm7
+	pshufd		xmm5, xmm7, 0e4h
+
+	pandn		xmm3, [edi+16*2]
+	pand		xmm4, xmm7
+	por			xmm4, xmm3
+	movaps		[edi+16*2], xmm4
+
+	pandn		xmm5, [edi+16*3]
+	pand		xmm6, xmm7
+	por			xmm6, xmm5
+	movaps		[edi+16*3], xmm6
+
+	lea			esi, [esi+edx*2]
+	add			edi, 64
+
+	dec			ecx
+	jnz			@B
+
+	pop			edi
+	pop			esi
+
+	ret			8
+	
+@SwizzleBlock32u_sse2@16 endp
+
+;
+; SwizzleBlock16u
+;
+
+@SwizzleBlock16u_sse2@12 proc public
+
+	push		ebx
+
+	mov			ebx, [esp+4+4]
+	mov			eax, 4
+
+	align 16
+@@:
+	movups		xmm0, [edx]
+	movups		xmm1, [edx+16]
+	movups		xmm2, [edx+ebx]
+	movups		xmm3, [edx+ebx+16]
+
+	punpck		wd, 0, 2, 1, 3, 4, 6
+	punpck		qdq, 0, 4, 2, 6, 1, 5
+
+	movaps		[ecx+16*0], xmm0
+	movaps		[ecx+16*1], xmm1
+	movaps		[ecx+16*2], xmm4
+	movaps		[ecx+16*3], xmm5
+
+	lea			edx, [edx+ebx*2]
+	add			ecx, 64
+
+	dec			eax
+	jnz			@B
+
+	pop			ebx
+
+	ret			4
+
+@SwizzleBlock16u_sse2@12 endp
+
+;
+; SwizzleBlock8u
+;
+
+@SwizzleBlock8u_sse2@12 proc public
+
+	push		ebx
+
+	mov			ebx, [esp+4+4]
+	mov			eax, 2
+
+	align 16
+@@:
+	; col 0, 2
+
+	movups		xmm0, [edx]
+	movups		xmm2, [edx+ebx]
+	lea			edx, [edx+ebx*2]
+
+	movups		xmm1, [edx]
+	movups		xmm3, [edx+ebx]
+	pshufd		xmm1, xmm1, 0b1h
+	pshufd		xmm3, xmm3, 0b1h
+	lea			edx, [edx+ebx*2]
+
+	punpck		bw, 0, 2, 1, 3, 4, 6
+	punpck		wd, 0, 2, 4, 6, 1, 3
+	punpck		qdq, 0, 1, 2, 3, 4, 5
+
+	movaps		[ecx+16*0], xmm0
+	movaps		[ecx+16*1], xmm4
+	movaps		[ecx+16*2], xmm1
+	movaps		[ecx+16*3], xmm5
+
+	; col 1, 3
+
+	movups		xmm0, [edx]
+	movups		xmm2, [edx+ebx]
+	pshufd		xmm0, xmm0, 0b1h
+	pshufd		xmm2, xmm2, 0b1h
+	lea			edx, [edx+ebx*2]
+
+	movups		xmm1, [edx]
+	movups		xmm3, [edx+ebx]
+	lea			edx, [edx+ebx*2]
+
+	punpck		bw, 0, 2, 1, 3, 4, 6
+	punpck		wd, 0, 2, 4, 6, 1, 3
+	punpck		qdq, 0, 1, 2, 3, 4, 5
+
+	movaps		[ecx+16*4], xmm0
+	movaps		[ecx+16*5], xmm4
+	movaps		[ecx+16*6], xmm1
+	movaps		[ecx+16*7], xmm5
+
+	add			ecx, 128
+
+	dec			eax
+	jnz			@B
+
+	pop			ebx
+
+	ret			4
+	
+@SwizzleBlock8u_sse2@12 endp
+
+;
+; SwizzleBlock4u
+;
+
+@SwizzleBlock4u_sse2@12 proc public
+
+	push		ebx
+	
+	mov         eax, 0f0f0f0fh
+	movd        xmm7, eax 
+	pshufd      xmm7, xmm7, 0
+
+	mov			ebx, [esp+4+4]
+	mov			eax, 2
+
+	align 16
+@@:
+	; col 0, 2
+
+	movups		xmm0, [edx]
+	movups		xmm2, [edx+ebx]
+	lea			edx, [edx+ebx*2]
+
+	movups		xmm1, [edx]
+	movups		xmm3, [edx+ebx]
+	lea			edx, [edx+ebx*2]
+
+	pshuflw		xmm1, xmm1, 0b1h
+	pshuflw		xmm3, xmm3, 0b1h
+	pshufhw		xmm1, xmm1, 0b1h
+	pshufhw		xmm3, xmm3, 0b1h
+
+	punpcknb
+	punpck		bw, 0, 2, 4, 6, 1, 3
+	punpck		bw, 0, 2, 1, 3, 4, 6
+	punpck		qdq, 0, 4, 2, 6, 1, 3
+
+	movaps		[ecx+16*0], xmm0
+	movaps		[ecx+16*1], xmm1
+	movaps		[ecx+16*2], xmm4
+	movaps		[ecx+16*3], xmm3
+
+	; col 1, 3
+
+	movups		xmm0, [edx]
+	movups		xmm2, [edx+ebx]
+	lea			edx, [edx+ebx*2]
+
+	movups		xmm1, [edx]
+	movups		xmm3, [edx+ebx]
+	lea			edx, [edx+ebx*2]
+
+	pshuflw		xmm0, xmm0, 0b1h
+	pshuflw		xmm2, xmm2, 0b1h
+	pshufhw		xmm0, xmm0, 0b1h
+	pshufhw		xmm2, xmm2, 0b1h
+
+	punpcknb
+	punpck		bw, 0, 2, 4, 6, 1, 3
+	punpck		bw, 0, 2, 1, 3, 4, 6
+	punpck		qdq, 0, 4, 2, 6, 1, 3
+
+	movaps		[ecx+16*4], xmm0
+	movaps		[ecx+16*5], xmm1
+	movaps		[ecx+16*6], xmm4
+	movaps		[ecx+16*7], xmm3
+
+	add			ecx, 128
+
+	dec			eax
+	jnz			@B
+
+	pop			ebx
+
+	ret			4
+
+@SwizzleBlock4u_sse2@12 endp
+
 	end

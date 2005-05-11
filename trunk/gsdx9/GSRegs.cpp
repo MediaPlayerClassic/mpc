@@ -49,6 +49,7 @@ void __fastcall GSState::GIFPackedRegHandlerRGBA(GIFPackedReg* r)
 	m_v.RGBAQ.G = r->RGBA.G;
 	m_v.RGBAQ.B = r->RGBA.B;
 	m_v.RGBAQ.A = r->RGBA.A;
+	m_v.RGBAQ.Q = m_q;
 }
 
 void __fastcall GSState::GIFPackedRegHandlerSTQ(GIFPackedReg* r)
@@ -60,8 +61,7 @@ void __fastcall GSState::GIFPackedRegHandlerSTQ(GIFPackedReg* r)
 
 	m_v.ST.S = r->STQ.S;
 	m_v.ST.T = r->STQ.T;
-	// for some reason only ST would have to be saved here (eeuser_e.pdf p154), but not in reality...
-	m_v.RGBAQ.Q = r->STQ.Q;
+	m_q = r->STQ.Q;
 }
 
 void __fastcall GSState::GIFPackedRegHandlerUV(GIFPackedReg* r)
@@ -294,7 +294,7 @@ void __fastcall GSState::GIFRegHandlerTEX0_1(GIFReg* r)
 
 	m_de.CTXT[0].rt = m_lm.GetReadTexel(r->TEX0.PSM);
 
-	m_lm.writeCLUT(r->TEX0, m_de.TEXCLUT);
+	m_lm.WriteCLUT(r->TEX0, m_de.TEXCLUT);
 }
 
 void __fastcall GSState::GIFRegHandlerTEX0_2(GIFReg* r)
@@ -324,7 +324,7 @@ void __fastcall GSState::GIFRegHandlerTEX0_2(GIFReg* r)
 
 	m_de.CTXT[1].rt = m_lm.GetReadTexel(r->TEX0.PSM);
 
-	m_lm.writeCLUT(r->TEX0, m_de.TEXCLUT);
+	m_lm.WriteCLUT(r->TEX0, m_de.TEXCLUT);
 }
 
 void __fastcall GSState::GIFRegHandlerCLAMP_1(GIFReg* r)
@@ -449,7 +449,7 @@ void __fastcall GSState::GIFRegHandlerTEX2_1(GIFReg* r)
 
 	m_de.CTXT[0].TEX2 = r->TEX2;
 
-	m_lm.writeCLUT(*(GIFRegTEX0*)&r->TEX2, m_de.TEXCLUT);
+	m_lm.WriteCLUT(*(GIFRegTEX0*)&r->TEX2, m_de.TEXCLUT);
 }
 
 void __fastcall GSState::GIFRegHandlerTEX2_2(GIFReg* r)
@@ -467,7 +467,7 @@ void __fastcall GSState::GIFRegHandlerTEX2_2(GIFReg* r)
 
 	m_de.CTXT[1].TEX2 = r->TEX2;
 
-	m_lm.writeCLUT(*(GIFRegTEX0*)&r->TEX2, m_de.TEXCLUT);
+	m_lm.WriteCLUT(*(GIFRegTEX0*)&r->TEX2, m_de.TEXCLUT);
 }
 
 void __fastcall GSState::GIFRegHandlerXYOFFSET_1(GIFReg* r)

@@ -142,64 +142,6 @@ void __fastcall SwizzleBlock4_c(BYTE* dst, BYTE* src, int srcpitch)
 
 //
 
-void __fastcall ExpandBlock24_c(DWORD* src, DWORD* dst, int dstpitch, GIFRegTEXA* pTEXA)
-{
-	DWORD TA0 = (DWORD)pTEXA->TA0 << 24;
-
-	if(!pTEXA->AEM)
-	{
-		for(int j = 0; j < 8; j++, src += 8, dst += dstpitch>>2)
-			for(int i = 0; i < 8; i++)
-				dst[i] = TA0 | (src[i]&0xffffff);
-	}
-	else
-	{
-		for(int j = 0; j < 8; j++, src += 8, dst += dstpitch>>2)
-			for(int i = 0; i < 8; i++)
-				dst[i] = ((src[i]&0xffffff) ? TA0 : 0) | (src[i]&0xffffff);
-	}
-}
-
-void __fastcall ExpandBlock16_c(WORD* src, DWORD* dst, int dstpitch, GIFRegTEXA* pTEXA)
-{
-	DWORD TA0 = (DWORD)pTEXA->TA0 << 24;
-	DWORD TA1 = (DWORD)pTEXA->TA1 << 24;
-
-	if(!pTEXA->AEM)
-	{
-		for(int j = 0; j < 8; j++, src += 16, dst += dstpitch>>2)
-			for(int i = 0; i < 16; i++)
-				dst[i] = ((src[i]&0x8000) ? TA1 : TA0)
-					| ((src[i]&0x7c00) << 9) | ((src[i]&0x03e0) << 6) | ((src[i]&0x001f) << 3);
-	}
-	else
-	{
-		for(int j = 0; j < 8; j++, src += 16, dst += dstpitch>>2)
-			for(int i = 0; i < 16; i++)
-				dst[i] = ((src[i]&0x8000) ? TA1 : src[i] ? TA0 : 0)
-					| ((src[i]&0x7c00) << 9) | ((src[i]&0x03e0) << 6) | ((src[i]&0x001f) << 3);
-	}
-}
-
-void __fastcall Expand16_c(WORD* src, DWORD* dst, int w, GIFRegTEXA* pTEXA)
-{
-	DWORD TA0 = (DWORD)pTEXA->TA0 << 24;
-	DWORD TA1 = (DWORD)pTEXA->TA1 << 24;
-
-	if(!pTEXA->AEM)
-	{
-		for(int i = 0; i < w; i++)
-			dst[i] = ((src[i]&0x8000) ? TA1 : TA0)
-				| ((src[i]&0x7c00) << 9) | ((src[i]&0x03e0) << 6) | ((src[i]&0x001f) << 3);
-	}
-	else
-	{
-		for(int i = 0; i < w; i++)
-			dst[i] = ((src[i]&0x8000) ? TA1 : src[i] ? TA0 : 0)
-				| ((src[i]&0x7c00) << 9) | ((src[i]&0x03e0) << 6) | ((src[i]&0x001f) << 3);
-	}
-}
-
 #if defined(_M_AMD64) || _M_IX86_FP >= 2
 
 static __m128i s_zero = _mm_setzero_si128();
@@ -240,7 +182,6 @@ void __fastcall ExpandBlock24_sse2(DWORD* src, DWORD* dst, int dstpitch, GIFRegT
 			}
 		}
 	}
-
 }
 
 void __fastcall ExpandBlock16_sse2(WORD* src, DWORD* dst, int dstpitch, GIFRegTEXA* pTEXA)
@@ -421,23 +362,65 @@ void __fastcall Expand16_sse2(WORD* src, DWORD* dst, int w, GIFRegTEXA* pTEXA)
 
 #endif
 
-//
-
-void __fastcall UVMinMax_c(int nVertices, vertex_t* pVertices, uvmm_t* uv)
+void __fastcall ExpandBlock24_c(DWORD* src, DWORD* dst, int dstpitch, GIFRegTEXA* pTEXA)
 {
-	uv->umin = uv->vmin = +1e10;
-	uv->umax = uv->vmax = -1e10;
+	DWORD TA0 = (DWORD)pTEXA->TA0 << 24;
 
-	for(; nVertices-- > 0; pVertices++)
+	if(!pTEXA->AEM)
 	{
-		float u = pVertices->u;
-		if(uv->umax < u) uv->umax = u;
-		if(uv->umin > u) uv->umin = u;
-		float v = pVertices->v;
-		if(uv->vmax < v) uv->vmax = v;
-		if(uv->vmin > v) uv->vmin = v;
+		for(int j = 0; j < 8; j++, src += 8, dst += dstpitch>>2)
+			for(int i = 0; i < 8; i++)
+				dst[i] = TA0 | (src[i]&0xffffff);
+	}
+	else
+	{
+		for(int j = 0; j < 8; j++, src += 8, dst += dstpitch>>2)
+			for(int i = 0; i < 8; i++)
+				dst[i] = ((src[i]&0xffffff) ? TA0 : 0) | (src[i]&0xffffff);
 	}
 }
+
+void __fastcall ExpandBlock16_c(WORD* src, DWORD* dst, int dstpitch, GIFRegTEXA* pTEXA)
+{
+	DWORD TA0 = (DWORD)pTEXA->TA0 << 24;
+	DWORD TA1 = (DWORD)pTEXA->TA1 << 24;
+
+	if(!pTEXA->AEM)
+	{
+		for(int j = 0; j < 8; j++, src += 16, dst += dstpitch>>2)
+			for(int i = 0; i < 16; i++)
+				dst[i] = ((src[i]&0x8000) ? TA1 : TA0)
+					| ((src[i]&0x7c00) << 9) | ((src[i]&0x03e0) << 6) | ((src[i]&0x001f) << 3);
+	}
+	else
+	{
+		for(int j = 0; j < 8; j++, src += 16, dst += dstpitch>>2)
+			for(int i = 0; i < 16; i++)
+				dst[i] = ((src[i]&0x8000) ? TA1 : src[i] ? TA0 : 0)
+					| ((src[i]&0x7c00) << 9) | ((src[i]&0x03e0) << 6) | ((src[i]&0x001f) << 3);
+	}
+}
+
+void __fastcall Expand16_c(WORD* src, DWORD* dst, int w, GIFRegTEXA* pTEXA)
+{
+	DWORD TA0 = (DWORD)pTEXA->TA0 << 24;
+	DWORD TA1 = (DWORD)pTEXA->TA1 << 24;
+
+	if(!pTEXA->AEM)
+	{
+		for(int i = 0; i < w; i++)
+			dst[i] = ((src[i]&0x8000) ? TA1 : TA0)
+				| ((src[i]&0x7c00) << 9) | ((src[i]&0x03e0) << 6) | ((src[i]&0x001f) << 3);
+	}
+	else
+	{
+		for(int i = 0; i < w; i++)
+			dst[i] = ((src[i]&0x8000) ? TA1 : src[i] ? TA0 : 0)
+				| ((src[i]&0x7c00) << 9) | ((src[i]&0x03e0) << 6) | ((src[i]&0x001f) << 3);
+	}
+}
+
+//
 
 #if defined(_M_AMD64) || _M_IX86_FP >= 2
 
@@ -462,3 +445,297 @@ void __fastcall UVMinMax_sse2(int nVertices, vertex_t* pVertices, uvmm_t* uv)
 }
 
 #endif
+
+void __fastcall UVMinMax_c(int nVertices, vertex_t* pVertices, uvmm_t* uv)
+{
+	uv->umin = uv->vmin = +1e10;
+	uv->umax = uv->vmax = -1e10;
+
+	for(; nVertices-- > 0; pVertices++)
+	{
+		float u = pVertices->u;
+		if(uv->umax < u) uv->umax = u;
+		if(uv->umin > u) uv->umin = u;
+		float v = pVertices->v;
+		if(uv->vmax < v) uv->vmax = v;
+		if(uv->vmin > v) uv->vmin = v;
+	}
+}
+
+#if defined(_M_AMD64) || _M_IX86_FP >= 2
+
+static __m128i s_clut[64];
+
+void __fastcall WriteCLUT_T16_I8_CSM1_sse2(WORD* vm, WORD* clut)
+{
+	__m128i* src = (__m128i*)vm;
+	__m128i* dst = (__m128i*)clut;
+
+	for(int i = 0; i < 32; i += 4)
+	{
+		__m128i r0 = _mm_load_si128(&src[i+0]);
+		__m128i r1 = _mm_load_si128(&src[i+1]);
+		__m128i r2 = _mm_load_si128(&src[i+2]);
+		__m128i r3 = _mm_load_si128(&src[i+3]);
+
+		__m128i r4 = _mm_unpacklo_epi16(r0, r1);
+		__m128i r5 = _mm_unpackhi_epi16(r0, r1);
+		__m128i r6 = _mm_unpacklo_epi16(r2, r3);
+		__m128i r7 = _mm_unpackhi_epi16(r2, r3);
+
+		r0 = _mm_unpacklo_epi32(r4, r6);
+		r1 = _mm_unpackhi_epi32(r4, r6);
+		r2 = _mm_unpacklo_epi32(r5, r7);
+		r3 = _mm_unpackhi_epi32(r5, r7);
+
+		r4 = _mm_unpacklo_epi16(r0, r1);
+		r5 = _mm_unpackhi_epi16(r0, r1);
+		r6 = _mm_unpacklo_epi16(r2, r3);
+		r7 = _mm_unpackhi_epi16(r2, r3);
+
+		_mm_store_si128(&dst[i+0], r4);
+		_mm_store_si128(&dst[i+1], r6);
+		_mm_store_si128(&dst[i+2], r5);
+		_mm_store_si128(&dst[i+3], r7);
+	}
+}
+
+void __fastcall WriteCLUT_T32_I8_CSM1_sse2(DWORD* vm, WORD* clut)
+{
+	__m128i* src = (__m128i*)vm;
+	__m128i* dst = s_clut;
+
+	for(int j = 0; j < 64; j += 32, src += 32, dst += 32)
+	{
+		for(int i = 0; i < 16; i += 4)
+		{
+			__m128i r0 = _mm_load_si128(&src[i+0]);
+			__m128i r1 = _mm_load_si128(&src[i+1]);
+			__m128i r2 = _mm_load_si128(&src[i+2]);
+			__m128i r3 = _mm_load_si128(&src[i+3]);
+
+			_mm_store_si128(&dst[i*2+0], _mm_unpacklo_epi64(r0, r1));
+			_mm_store_si128(&dst[i*2+1], _mm_unpacklo_epi64(r2, r3));
+			_mm_store_si128(&dst[i*2+2], _mm_unpackhi_epi64(r0, r1));
+			_mm_store_si128(&dst[i*2+3], _mm_unpackhi_epi64(r2, r3));
+
+			__m128i r4 = _mm_load_si128(&src[i+0+16]);
+			__m128i r5 = _mm_load_si128(&src[i+1+16]);
+			__m128i r6 = _mm_load_si128(&src[i+2+16]);
+			__m128i r7 = _mm_load_si128(&src[i+3+16]);
+
+			_mm_store_si128(&dst[i*2+4], _mm_unpacklo_epi64(r4, r5));
+			_mm_store_si128(&dst[i*2+5], _mm_unpacklo_epi64(r6, r7));
+			_mm_store_si128(&dst[i*2+6], _mm_unpackhi_epi64(r4, r5));
+			_mm_store_si128(&dst[i*2+7], _mm_unpackhi_epi64(r6, r7));
+		}
+	}
+
+	for(int i = 0; i < 32; i++)
+	{
+		__m128i r1 = s_clut[i*2];
+		__m128i r2 = s_clut[i*2+1];
+		__m128i r3 = _mm_unpacklo_epi16(r1, r2);
+		__m128i r4 = _mm_unpackhi_epi16(r1, r2);
+		r1 = _mm_unpacklo_epi16(r3, r4);
+		r2 = _mm_unpackhi_epi16(r3, r4);
+		r3 = _mm_unpacklo_epi16(r1, r2);
+		r4 = _mm_unpackhi_epi16(r1, r2);
+		_mm_store_si128(&((__m128i*)clut)[i], r3);
+		_mm_store_si128(&((__m128i*)clut)[i+32], r4);
+	}
+}
+
+void __fastcall WriteCLUT_T16_I4_CSM1_sse2(WORD* vm, WORD* clut)
+{
+	// TODO (probably not worth, _c is going to be just as fast)
+	WriteCLUT_T16_I4_CSM1_c(vm, clut);
+}
+
+void __fastcall WriteCLUT_T32_I4_CSM1_sse2(DWORD* vm, WORD* clut)
+{
+	__m128i* src = (__m128i*)vm;
+	__m128i* dst = s_clut;
+
+	__m128i r0 = _mm_load_si128(&src[0]);
+	__m128i r1 = _mm_load_si128(&src[1]);
+	__m128i r2 = _mm_load_si128(&src[2]);
+	__m128i r3 = _mm_load_si128(&src[3]);
+
+	_mm_store_si128(&dst[0], _mm_unpacklo_epi64(r0, r1));
+	_mm_store_si128(&dst[1], _mm_unpacklo_epi64(r2, r3));
+	_mm_store_si128(&dst[2], _mm_unpackhi_epi64(r0, r1));
+	_mm_store_si128(&dst[3], _mm_unpackhi_epi64(r2, r3));
+
+	for(int i = 0; i < 2; i++)
+	{
+		__m128i r0 = s_clut[i*2];
+		__m128i r1 = s_clut[i*2+1];
+		__m128i r2 = _mm_unpacklo_epi16(r0, r1);
+		__m128i r3 = _mm_unpackhi_epi16(r0, r1);
+		r0 = _mm_unpacklo_epi16(r2, r3);
+		r1 = _mm_unpackhi_epi16(r2, r3);
+		r2 = _mm_unpacklo_epi16(r0, r1);
+		r3 = _mm_unpackhi_epi16(r0, r1);
+		_mm_store_si128(&((__m128i*)clut)[i], r2);
+		_mm_store_si128(&((__m128i*)clut)[i+32], r3);
+	}
+}
+
+#endif
+
+void __fastcall WriteCLUT_T16_I8_CSM1_c(WORD* vm, WORD* clut)
+{
+	static DWORD map[] = 
+	{
+		0, 2, 8, 10, 16, 18, 24, 26,
+		4, 6, 12, 14, 20, 22, 28, 30,
+		1, 3, 9, 11, 17, 19, 25, 27, 
+		5, 7, 13, 15, 21, 23, 29, 31
+	};
+
+	for(int j = 0; j < 8; j++, vm += 32, clut += 32) 
+	{
+		for(int i = 0; i < 32; i++)
+		{
+			clut[i] = vm[map[i]];
+		}
+	}
+}
+
+void __fastcall WriteCLUT_T32_I8_CSM1_c(DWORD* vm, WORD* clut)
+{
+	static DWORD map[] = 
+	{
+		0, 1, 4, 5, 8, 9, 12, 13, 2, 3, 6, 7, 10, 11, 14, 15, 
+		64, 65, 68, 69, 72, 73, 76, 77, 66, 67, 70, 71, 74, 75, 78, 79, 
+		16, 17, 20, 21, 24, 25, 28, 29, 18, 19, 22, 23, 26, 27, 30, 31, 
+		80, 81, 84, 85, 88, 89, 92, 93, 82, 83, 86, 87, 90, 91, 94, 95, 
+		32, 33, 36, 37, 40, 41, 44, 45, 34, 35, 38, 39, 42, 43, 46, 47, 
+		96, 97, 100, 101, 104, 105, 108, 109, 98, 99, 102, 103, 106, 107, 110, 111, 
+		48, 49, 52, 53, 56, 57, 60, 61, 50, 51, 54, 55, 58, 59, 62, 63, 
+		112, 113, 116, 117, 120, 121, 124, 125, 114, 115, 118, 119, 122, 123, 126, 127
+	};
+
+	for(int j = 0; j < 2; j++, vm += 128, clut += 128)
+	{
+		for(int i = 0; i < 128; i++) 
+		{
+			DWORD dw = vm[map[i]];
+			clut[i] = (WORD)(dw & 0xffff);
+			clut[i+256] = (WORD)(dw >> 16);
+		}
+	}
+}
+
+void __fastcall WriteCLUT_T16_I4_CSM1_c(WORD* vm, WORD* clut)
+{
+	static DWORD map[] = 
+	{
+		0, 2, 8, 10, 16, 18, 24, 26,
+		4, 6, 12, 14, 20, 22, 28, 30
+	};
+
+	for(int i = 0; i < 16; i++) 
+	{
+		clut[i] = vm[map[i]];
+	}
+}
+
+void __fastcall WriteCLUT_T32_I4_CSM1_c(DWORD* vm, WORD* clut)
+{
+	static DWORD map[] = 
+	{
+		0, 1, 4, 5, 8, 9, 12, 13,
+		2, 3, 6, 7, 10, 11, 14, 15
+	};
+
+	for(int i = 0; i < 16; i++) 
+	{
+		DWORD dw = vm[map[i]];
+		clut[i] = (WORD)(dw & 0xffff);
+		clut[i+256] = (WORD)(dw >> 16);
+	}
+}
+
+//
+
+#if defined(_M_AMD64) || _M_IX86_FP >= 2
+
+extern "C" void __fastcall ReadCLUT32_T32_I8_sse2(WORD* src, DWORD* dst)
+{
+	for(int i = 0; i < 256; i += 16)
+	{
+		ReadCLUT32_T32_I4_sse2(&src[i], &dst[i]); // going to be inlined nicely
+	}
+}
+
+extern "C" void __fastcall ReadCLUT32_T32_I4_sse2(WORD* src, DWORD* dst)
+{
+	__m128i r0 = ((__m128i*)src)[0];
+	__m128i r1 = ((__m128i*)src)[1];
+	__m128i r2 = ((__m128i*)src)[0+32];
+	__m128i r3 = ((__m128i*)src)[1+32];
+	_mm_store_si128(&((__m128i*)dst)[0], _mm_unpacklo_epi16(r0, r2));
+	_mm_store_si128(&((__m128i*)dst)[1], _mm_unpackhi_epi16(r0, r2));
+	_mm_store_si128(&((__m128i*)dst)[2], _mm_unpacklo_epi16(r1, r3));
+	_mm_store_si128(&((__m128i*)dst)[3], _mm_unpackhi_epi16(r1, r3));
+}
+
+extern "C" void __fastcall ReadCLUT32_T16_I8_sse2(WORD* src, DWORD* dst)
+{
+	ASSERT(0);
+	// TESTME
+	for(int i = 0; i < 256; i += 16)
+	{
+		ReadCLUT32_T16_I4_sse2(&src[i], &dst[i]);
+	}
+}
+
+extern "C" void __fastcall ReadCLUT32_T16_I4_sse2(WORD* src, DWORD* dst)
+{
+	ASSERT(0);
+	// TESTME
+	__m128i r0 = ((__m128i*)src)[0];
+	__m128i r1 = ((__m128i*)src)[1];
+	_mm_store_si128(&((__m128i*)dst)[0], _mm_unpacklo_epi16(r0, s_zero));
+	_mm_store_si128(&((__m128i*)dst)[1], _mm_unpackhi_epi16(r0, s_zero));
+	_mm_store_si128(&((__m128i*)dst)[2], _mm_unpacklo_epi16(r1, s_zero));
+	_mm_store_si128(&((__m128i*)dst)[3], _mm_unpackhi_epi16(r1, s_zero));
+}
+
+#endif
+
+void __fastcall ReadCLUT32_T32_I8_c(WORD* src, DWORD* dst)
+{
+	for(int i = 0; i < 256; i++)
+	{
+		dst[i] = ((DWORD)src[i+256] << 16) | src[i];
+	}
+}
+
+void __fastcall ReadCLUT32_T32_I4_c(WORD* src, DWORD* dst)
+{
+	for(int i = 0; i < 16; i++)
+	{
+		dst[i] = ((DWORD)src[i+256] << 16) | src[i];
+	}
+}
+
+void __fastcall ReadCLUT32_T16_I8_c(WORD* src, DWORD* dst)
+{
+	for(int i = 0; i < 256; i++)
+	{
+		dst[i] = (DWORD)src[i];
+	}
+}
+
+void __fastcall ReadCLUT32_T16_I4_c(WORD* src, DWORD* dst)
+{
+	for(int i = 0; i < 16; i++)
+	{
+		dst[i] = (DWORD)src[i];
+	}
+}
+
+//

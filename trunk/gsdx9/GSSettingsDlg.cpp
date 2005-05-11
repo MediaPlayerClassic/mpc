@@ -44,9 +44,9 @@ static struct {DWORD id; const TCHAR* name;} s_psversions[] =
 IMPLEMENT_DYNAMIC(CGSSettingsDlg, CDialog)
 CGSSettingsDlg::CGSSettingsDlg(CWnd* pParent /*=NULL*/)
 	: CDialog(CGSSettingsDlg::IDD, pParent)
-	, m_halfvres(FALSE)
-	, m_fRecordState(FALSE)
+	, m_fEnablePalettizedTextures(FALSE)
 	, m_fEnableTvOut(FALSE)
+	, m_fRecordState(FALSE)
 {
 }
 
@@ -60,10 +60,10 @@ void CGSSettingsDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_COMBO3, m_resolution);
 	DDX_Control(pDX, IDC_COMBO1, m_renderer);
 	DDX_Control(pDX, IDC_COMBO4, m_psversion);
-	DDX_Check(pDX, IDC_CHECK1, m_halfvres);
+	DDX_Check(pDX, IDC_CHECK1, m_fEnablePalettizedTextures);
+	DDX_Check(pDX, IDC_CHECK3, m_fEnableTvOut);
 	DDX_Check(pDX, IDC_CHECK2, m_fRecordState);
 	DDX_Text(pDX, IDC_EDIT1, m_strRecordState);
-	DDX_Check(pDX, IDC_CHECK3, m_fEnableTvOut);
 }
 
 BEGIN_MESSAGE_MAP(CGSSettingsDlg, CDialog)
@@ -77,6 +77,10 @@ BOOL CGSSettingsDlg::OnInitDialog()
 	__super::OnInitDialog();
 
     CWinApp* pApp = AfxGetApp();
+
+	D3DCAPS9 caps;
+	ZeroMemory(&caps, sizeof(caps));
+	caps.PixelShaderVersion = D3DVS_VERSION(0, 0);
 
 	m_modes.RemoveAll();
 
@@ -117,6 +121,8 @@ BOOL CGSSettingsDlg::OnInitDialog()
 					m_resolution.SetCurSel(iItem);
 			}
 		}
+
+		pD3D->GetDeviceCaps(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, &caps);
 	}
 
 	// renderer
@@ -136,6 +142,7 @@ BOOL CGSSettingsDlg::OnInitDialog()
 
 	for(int i = 0; i < countof(s_psversions); i++)
 	{
+		if(s_psversions[i].id > caps.PixelShaderVersion) continue;
 		int iItem = m_psversion.AddString(s_psversions[i].name);
 		m_psversion.SetItemData(iItem, s_psversions[i].id);
 		if(s_psversions[i].id == psversion_id) m_psversion.SetCurSel(iItem);
@@ -143,7 +150,7 @@ BOOL CGSSettingsDlg::OnInitDialog()
 
 	//
 
-	m_halfvres = pApp->GetProfileInt(_T("Settings"), _T("HalfVRes"), FALSE);
+	m_fEnablePalettizedTextures = pApp->GetProfileInt(_T("Settings"), _T("fEnablePalettizedTextures"), FALSE);
 
 	//
 
@@ -186,7 +193,7 @@ void CGSSettingsDlg::OnOK()
 		pApp->WriteProfileInt(_T("Settings"), _T("PixelShaderVersion"), m_psversion.GetItemData(m_psversion.GetCurSel()));
 	}
 
-	pApp->WriteProfileInt(_T("Settings"), _T("HalfVRes"), m_halfvres);
+	pApp->WriteProfileInt(_T("Settings"), _T("fEnablePalettizedTextures"), m_fEnablePalettizedTextures);
 
 	pApp->WriteProfileInt(_T("Settings"), _T("fEnableTvOut"), m_fEnableTvOut);
 

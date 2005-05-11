@@ -61,14 +61,19 @@ public:
 	typedef void (GSLocalMemory::*writeFrame)(int x, int y, DWORD c, DWORD bp, DWORD bw);
 	typedef DWORD (GSLocalMemory::*readPixel)(int x, int y, DWORD bp, DWORD bw);
 	typedef DWORD (GSLocalMemory::*readTexel)(int x, int y, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
-	typedef DWORD (GSLocalMemory::*readTexelP)(int x, int y, GIFRegTEX0& TEX0);
-	typedef void (GSLocalMemory::*writePixelAddr)(int x, int y, DWORD c, DWORD addr);
-	typedef void (GSLocalMemory::*writeFrameAddr)(int x, int y, DWORD c, DWORD addr);
-	typedef DWORD (GSLocalMemory::*readPixelAddr)(int x, int y, DWORD addr);
-	typedef DWORD (GSLocalMemory::*readTexelAddr)(int x, int y, DWORD addr, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
+	typedef DWORD (GSLocalMemory::*readTexelP)(int x, int y, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
+	typedef DWORD (GSLocalMemory::*readTexelNP)(int x, int y, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
+	typedef void (GSLocalMemory::*writePixelAddr)(DWORD addr, DWORD c);
+	typedef void (GSLocalMemory::*writeFrameAddr)(DWORD addr, DWORD c);
+	typedef DWORD (GSLocalMemory::*readPixelAddr)(DWORD addr);
+	typedef DWORD (GSLocalMemory::*readTexelAddr)(DWORD addr, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
 	typedef void (GSLocalMemory::*SwizzleTexture)(int& tx, int& ty, BYTE* src, int len, GIFRegBITBLTBUF& BITBLTBUF, GIFRegTRXPOS& TRXPOS, GIFRegTRXREG& TRXREG);
-	typedef void (GSLocalMemory::*unSwizzleTexture)(int tw, int th, BYTE* dst, int dstpitch, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);	
-	typedef void (GSLocalMemory::*unSwizzleTextureP)(int tw, int th, BYTE* dst, int dstpitch, GIFRegTEX0& TEX0);	
+	typedef void (GSLocalMemory::*unSwizzleTexture)(int tw, int th, BYTE* dst, int dstpitch, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
+	typedef void (GSLocalMemory::*unSwizzleTextureP)(int tw, int th, BYTE* dst, int dstpitch, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
+	typedef void (GSLocalMemory::*unSwizzleTextureNP)(int tw, int th, BYTE* dst, int dstpitch, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
+	typedef void (GSLocalMemory::*readTexture)(int tw, int th, BYTE* dst, int dstpitch, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA, GIFRegCLAMP& CLAMP);
+
+	// address
 
 	DWORD pageAddress32(int x, int y, DWORD bp, DWORD bw);
 	DWORD pageAddress16(int x, int y, DWORD bp, DWORD bw);
@@ -113,6 +118,8 @@ public:
 
 	pixelAddress GetPixelAddress(DWORD psm);
 
+	// raw pixel R/W
+
 	void writePixel32(int x, int y, DWORD c, DWORD bp, DWORD bw);
 	void writePixel24(int x, int y, DWORD c, DWORD bp, DWORD bw);
 	void writePixel16(int x, int y, DWORD c, DWORD bp, DWORD bw);
@@ -150,6 +157,62 @@ public:
 
 	readPixel GetReadPixel(DWORD psm);
 
+	void writePixel32(DWORD addr, DWORD c);
+	void writePixel24(DWORD addr, DWORD c);
+	void writePixel16(DWORD addr, DWORD c);
+	void writePixel16S(DWORD addr, DWORD c);
+	void writePixel8(DWORD addr, DWORD c);
+	void writePixel8H(DWORD addr, DWORD c);
+	void writePixel4(DWORD addr, DWORD c);
+    void writePixel4HL(DWORD addr, DWORD c);
+	void writePixel4HH(DWORD addr, DWORD c);
+	void writePixel32Z(DWORD addr, DWORD c);
+	void writePixel24Z(DWORD addr, DWORD c);
+	void writePixel16Z(DWORD addr, DWORD c);
+	void writePixel16SZ(DWORD addr, DWORD c);
+
+	writePixelAddr GetWritePixelAddr(DWORD psm);
+
+	void writeFrame16(DWORD addr, DWORD c);
+	void writeFrame16S(DWORD addr, DWORD c);
+
+	writeFrameAddr GetWriteFrameAddr(DWORD psm);
+
+	DWORD readPixel32(DWORD addr);
+	DWORD readPixel24(DWORD addr);
+	DWORD readPixel16(DWORD addr);
+	DWORD readPixel16S(DWORD addr);
+	DWORD readPixel8(DWORD addr);
+	DWORD readPixel8H(DWORD addr);
+	DWORD readPixel4(DWORD addr);
+	DWORD readPixel4HL(DWORD addr);
+	DWORD readPixel4HH(DWORD addr);
+	DWORD readPixel32Z(DWORD addr);
+	DWORD readPixel24Z(DWORD addr);
+	DWORD readPixel16Z(DWORD addr);
+	DWORD readPixel16SZ(DWORD addr);
+
+	readPixelAddr GetReadPixelAddr(DWORD psm);
+
+	// FillRect
+
+	bool FillRect(CRect& r, DWORD c, DWORD psm, DWORD fbp, DWORD fbw);
+
+	// CLUT
+
+	void InvalidateCLUT() {m_fCLUTMayBeDirty = true;}
+	void WriteCLUT(GIFRegTEX0 TEX0, GIFRegTEXCLUT TEXCLUT);
+
+	void ReadCLUT(GIFRegTEX0 TEX0, GIFRegTEXA TEXA, DWORD* pCLUT32);
+	void SetupCLUT(GIFRegTEX0 TEX0, GIFRegTEXA TEXA);
+
+	// expands 16->32
+	void ReadCLUT32(GIFRegTEX0 TEX0, GIFRegTEXA TEXA, DWORD* pCLUT32);
+	void SetupCLUT32(GIFRegTEX0 TEX0, GIFRegTEXA TEXA);
+	void CopyCLUT32(DWORD* pCLUT32, int nPaletteEntries);
+
+	// 32-only
+
 	DWORD readTexel32(int x, int y, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
 	DWORD readTexel24(int x, int y, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
 	DWORD readTexel16(int x, int y, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
@@ -162,75 +225,17 @@ public:
 
 	readTexel GetReadTexel(DWORD psm);
 
-	DWORD readTexel32P(int x, int y, GIFRegTEX0& TEX0);
-	DWORD readTexel16P(int x, int y, GIFRegTEX0& TEX0);
-	DWORD readTexel16SP(int x, int y, GIFRegTEX0& TEX0);
-	DWORD readTexel8P(int x, int y, GIFRegTEX0& TEX0);
-	DWORD readTexel8HP(int x, int y, GIFRegTEX0& TEX0);
-	DWORD readTexel4P(int x, int y, GIFRegTEX0& TEX0);
-	DWORD readTexel4HLP(int x, int y, GIFRegTEX0& TEX0);
-	DWORD readTexel4HHP(int x, int y, GIFRegTEX0& TEX0);
-
-	readTexelP GetReadTexelP(DWORD psm);
-
-	void writePixel32(int x, int y, DWORD c, DWORD addr);
-	void writePixel24(int x, int y, DWORD c, DWORD addr);
-	void writePixel16(int x, int y, DWORD c, DWORD addr);
-	void writePixel16S(int x, int y, DWORD c, DWORD addr);
-	void writePixel8(int x, int y, DWORD c, DWORD addr);
-	void writePixel8H(int x, int y, DWORD c, DWORD addr);
-	void writePixel4(int x, int y, DWORD c, DWORD addr);
-    void writePixel4HL(int x, int y, DWORD c, DWORD addr);
-	void writePixel4HH(int x, int y, DWORD c, DWORD addr);
-	void writePixel32Z(int x, int y, DWORD c, DWORD addr);
-	void writePixel24Z(int x, int y, DWORD c, DWORD addr);
-	void writePixel16Z(int x, int y, DWORD c, DWORD addr);
-	void writePixel16SZ(int x, int y, DWORD c, DWORD addr);
-
-	writePixelAddr GetWritePixelAddr(DWORD psm);
-
-	void writeFrame16(int x, int y, DWORD c, DWORD addr);
-	void writeFrame16S(int x, int y, DWORD c, DWORD addr);
-
-	writeFrameAddr GetWriteFrameAddr(DWORD psm);
-
-	DWORD readPixel32(int x, int y, DWORD addr);
-	DWORD readPixel24(int x, int y, DWORD addr);
-	DWORD readPixel16(int x, int y, DWORD addr);
-	DWORD readPixel16S(int x, int y, DWORD addr);
-	DWORD readPixel8(int x, int y, DWORD addr);
-	DWORD readPixel8H(int x, int y, DWORD addr);
-	DWORD readPixel4(int x, int y, DWORD addr);
-	DWORD readPixel4HL(int x, int y, DWORD addr);
-	DWORD readPixel4HH(int x, int y, DWORD addr);
-	DWORD readPixel32Z(int x, int y, DWORD addr);
-	DWORD readPixel24Z(int x, int y, DWORD addr);
-	DWORD readPixel16Z(int x, int y, DWORD addr);
-	DWORD readPixel16SZ(int x, int y, DWORD addr);
-
-	readPixelAddr GetReadPixelAddr(DWORD psm);
-
-	DWORD readTexel32(int x, int y, DWORD addr, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
-	DWORD readTexel24(int x, int y, DWORD addr, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
-	DWORD readTexel16(int x, int y, DWORD addr, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
-	DWORD readTexel16S(int x, int y, DWORD addr, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
-	DWORD readTexel8(int x, int y, DWORD addr, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
-	DWORD readTexel8H(int x, int y, DWORD addr, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
-	DWORD readTexel4(int x, int y, DWORD addr, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
-	DWORD readTexel4HL(int x, int y, DWORD addr, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
-	DWORD readTexel4HH(int x, int y, DWORD addr, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
+	DWORD readTexel32(DWORD addr, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
+	DWORD readTexel24(DWORD addr, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
+	DWORD readTexel16(DWORD addr, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
+	DWORD readTexel16S(DWORD addr, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
+	DWORD readTexel8(DWORD addr, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
+	DWORD readTexel8H(DWORD addr, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
+	DWORD readTexel4(DWORD addr, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
+	DWORD readTexel4HL(DWORD addr, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
+	DWORD readTexel4HH(DWORD addr, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
 
 	readTexelAddr GetReadTexelAddr(DWORD psm);
-
-	void writeCLUT(GIFRegTEX0 TEX0, GIFRegTEXCLUT TEXCLUT);
-	void readCLUT(GIFRegTEX0 TEX0, GIFRegTEXA TEXA, DWORD* pCLUT);
-	void setupCLUT(GIFRegTEX0 TEX0, GIFRegTEXA TEXA);
-	void getCLUT(DWORD* pCLUT, int nPaletteEntries);
-	void invalidateCLUT() {m_fCLUTMayBeDirty = true;}
-
-	bool FillRect(CRect& r, DWORD c, DWORD psm, DWORD fbp, DWORD fbw);
-
-	// 32 only
 
 	void SwizzleTexture32(int& tx, int& ty, BYTE* src, int len, GIFRegBITBLTBUF& BITBLTBUF, GIFRegTRXPOS& TRXPOS, GIFRegTRXREG& TRXREG);
 	void SwizzleTexture24(int& tx, int& ty, BYTE* src, int len, GIFRegBITBLTBUF& BITBLTBUF, GIFRegTRXPOS& TRXPOS, GIFRegTRXREG& TRXREG);
@@ -254,91 +259,89 @@ public:
 	void unSwizzleTexture4(int tw, int th, BYTE* dst, int dstpitch, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
 	void unSwizzleTexture4HL(int tw, int th, BYTE* dst, int dstpitch, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
 	void unSwizzleTexture4HH(int tw, int th, BYTE* dst, int dstpitch, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
-	void unSwizzleTextureX(int tw, int th, BYTE* dst, int dstpitch, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
 
 	unSwizzleTexture GetUnSwizzleTexture(DWORD psm);
 
 	void ReadTexture(int tw, int th, BYTE* dst, int dstpitch, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA, GIFRegCLAMP& CLAMP);
 
-	template<typename DstPtr> 
-	void ReadTextureClamp(BYTE* dst, int dstpitch, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA, const GIFRegCLAMP& CLAMP)
-	{
-		readTexel rt = GetReadTexel(TEX0.PSM);
+	// 32/16/8P
 
-		int tw = 1 << TEX0.TW;
-		int th = 1 << TEX0.TH;
+	DWORD readTexel32P(int x, int y, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
+	DWORD readTexel16P(int x, int y, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
+	DWORD readTexel16SP(int x, int y, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
+	DWORD readTexel8P(int x, int y, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
+	DWORD readTexel8HP(int x, int y, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
+	DWORD readTexel4P(int x, int y, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
+	DWORD readTexel4HLP(int x, int y, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
+	DWORD readTexel4HHP(int x, int y, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
 
-		for(int y = 0; y < th; y++, dst += dstpitch)
-		{
-			for(int x = 0; x < tw; x++)
-			{
-				int tx, ty;
+	readTexelP GetReadTexelP(DWORD psm);
 
-				switch(CLAMP.WMS)
-				{
-				default: tx = x; break;
-				case 2: tx = x < CLAMP.MINU ? CLAMP.MINU : x > CLAMP.MAXU ? CLAMP.MAXU : x; break;
-				case 3: tx = (x & CLAMP.MINU) | CLAMP.MAXU; break;
-				}
-
-				switch(CLAMP.WMT)
-				{
-				default: ty = y; break;
-				case 2: ty = y < CLAMP.MINV ? CLAMP.MINV : y > CLAMP.MAXV ? CLAMP.MAXV : y; break;
-				case 3: ty = (y & CLAMP.MINV) | CLAMP.MAXV; break;
-				}
-
-				((DstPtr*)dst)[x] = (DstPtr)(this->*rt)(tx, ty, TEX0, TEXA);
-			}
-		}
-	}
-
-	// 32, 16, palettized
-
-	void unSwizzleTexture32P(int tw, int th, BYTE* dst, int dstpitch, GIFRegTEX0& TEX0);
-	void unSwizzleTexture16P(int tw, int th, BYTE* dst, int dstpitch, GIFRegTEX0& TEX0);
-	void unSwizzleTexture16SP(int tw, int th, BYTE* dst, int dstpitch, GIFRegTEX0& TEX0);
-	void unSwizzleTexture8P(int tw, int th, BYTE* dst, int dstpitch, GIFRegTEX0& TEX0);
-	void unSwizzleTexture8HP(int tw, int th, BYTE* dst, int dstpitch, GIFRegTEX0& TEX0);
-	void unSwizzleTexture4P(int tw, int th, BYTE* dst, int dstpitch, GIFRegTEX0& TEX0);
-	void unSwizzleTexture4HLP(int tw, int th, BYTE* dst, int dstpitch, GIFRegTEX0& TEX0);
-	void unSwizzleTexture4HHP(int tw, int th, BYTE* dst, int dstpitch, GIFRegTEX0& TEX0);
-	void unSwizzleTextureXP(int tw, int th, BYTE* dst, int dstpitch, GIFRegTEX0& TEX0);
+	void unSwizzleTexture32P(int tw, int th, BYTE* dst, int dstpitch, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
+	void unSwizzleTexture16P(int tw, int th, BYTE* dst, int dstpitch, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
+	void unSwizzleTexture16SP(int tw, int th, BYTE* dst, int dstpitch, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
+	void unSwizzleTexture8P(int tw, int th, BYTE* dst, int dstpitch, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
+	void unSwizzleTexture8HP(int tw, int th, BYTE* dst, int dstpitch, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
+	void unSwizzleTexture4P(int tw, int th, BYTE* dst, int dstpitch, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
+	void unSwizzleTexture4HLP(int tw, int th, BYTE* dst, int dstpitch, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
+	void unSwizzleTexture4HHP(int tw, int th, BYTE* dst, int dstpitch, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
 
 	unSwizzleTextureP GetUnSwizzleTextureP(DWORD psm);
 
-	void ReadTextureP(int tw, int th, BYTE* dst, int dstpitch, GIFRegTEX0& TEX0, GIFRegCLAMP& CLAMP);
+	void ReadTextureP(int tw, int th, BYTE* dst, int dstpitch, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA, GIFRegCLAMP& CLAMP);
 
-	template<typename DstPtr> 
-	void ReadTextureClampP(BYTE* dst, int dstpitch, GIFRegTEX0& TEX0, const GIFRegCLAMP& CLAMP)
+	// 32/16
+/*
+	void unSwizzleTexture32NP(int tw, int th, BYTE* dst, int dstpitch, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
+	void unSwizzleTexture16NP(int tw, int th, BYTE* dst, int dstpitch, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
+	void unSwizzleTexture16SNP(int tw, int th, BYTE* dst, int dstpitch, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
+	void unSwizzleTexture8P(int tw, int th, BYTE* dst, int dstpitch, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
+	void unSwizzleTexture8HP(int tw, int th, BYTE* dst, int dstpitch, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
+	void unSwizzleTexture4P(int tw, int th, BYTE* dst, int dstpitch, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
+	void unSwizzleTexture4HLP(int tw, int th, BYTE* dst, int dstpitch, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
+	void unSwizzleTexture4HHP(int tw, int th, BYTE* dst, int dstpitch, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
+	void unSwizzleTextureXNP(int tw, int th, BYTE* dst, int dstpitch, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
+
+	unSwizzleTextureNP GetUnSwizzleTextureNP(DWORD psm);
+
+	void ReadTextureNP(int tw, int th, BYTE* dst, int dstpitch, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA, GIFRegCLAMP& CLAMP);
+*/
+	//
+
+	template<typename DstT> 
+	void ReadTexture(int tw, int th, BYTE* dst, int dstpitch, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA, GIFRegCLAMP& CLAMP, readTexel rt)
 	{
-		readTexelP rt = GetReadTexelP(TEX0.PSM);
-
-		int tw = 1 << TEX0.TW;
-		int th = 1 << TEX0.TH;
-
-		for(int y = 0; y < th; y++, dst += dstpitch)
+		if((CLAMP.WMS&2) || (CLAMP.WMT&2))
 		{
-			for(int x = 0; x < tw; x++)
+			for(int y = 0; y < th; y++, dst += dstpitch)
 			{
-				int tx, ty;
-
-				switch(CLAMP.WMS)
+				for(int x = 0; x < tw; x++)
 				{
-				default: tx = x; break;
-				case 2: tx = x < CLAMP.MINU ? CLAMP.MINU : x > CLAMP.MAXU ? CLAMP.MAXU : x; break;
-				case 3: tx = (x & CLAMP.MINU) | CLAMP.MAXU; break;
-				}
+					int tx, ty;
 
-				switch(CLAMP.WMT)
-				{
-				default: ty = y; break;
-				case 2: ty = y < CLAMP.MINV ? CLAMP.MINV : y > CLAMP.MAXV ? CLAMP.MAXV : y; break;
-				case 3: ty = (y & CLAMP.MINV) | CLAMP.MAXV; break;
-				}
+					switch(CLAMP.WMS)
+					{
+					default: tx = x; break;
+					case 2: tx = x < CLAMP.MINU ? CLAMP.MINU : x > CLAMP.MAXU ? CLAMP.MAXU : x; break;
+					case 3: tx = (x & CLAMP.MINU) | CLAMP.MAXU; break;
+					}
 
-				((DstPtr*)dst)[x] = (DstPtr)(this->*rt)(tx, ty, TEX0);
+					switch(CLAMP.WMT)
+					{
+					default: ty = y; break;
+					case 2: ty = y < CLAMP.MINV ? CLAMP.MINV : y > CLAMP.MAXV ? CLAMP.MAXV : y; break;
+					case 3: ty = (y & CLAMP.MINV) | CLAMP.MAXV; break;
+					}
+
+					((DstT*)dst)[x] = (DstT)(this->*rt)(tx, ty, TEX0, TEXA);
+				}
 			}
+		}
+		else
+		{
+			for(int y = 0; y < th; y++, dst += dstpitch)
+				for(int x = 0; x < tw; x++)
+					((DstT*)dst)[x] = (DstT)(this->*rt)(x, y, TEX0, TEXA);
 		}
 	}
 };
