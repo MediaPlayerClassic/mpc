@@ -46,20 +46,67 @@ void GSState::ReadStep()
 
 void GSState::WriteTransfer(BYTE* pMem, int len)
 {
+	//
+	LOG(_T("*TC2 WriteTransfer %d,%d (psm=%d rr=%dx%d len=%d)\n"), m_x, m_y, m_rs.BITBLTBUF.DPSM, m_rs.TRXREG.RRW, m_rs.TRXREG.RRH, len);
+
 	if(len == 0) return;
 
+	// TODO: hmmmm
 	if(m_de.pPRIM->TME && (m_rs.BITBLTBUF.DBP == m_ctxt->TEX0.TBP0 || m_rs.BITBLTBUF.DBP == m_ctxt->TEX0.CBP))
 		FlushPrim();
 
+	//
+/*
+	ASSERT(len <= m_nTrMaxBytes); // transferring more than 4mb into a 4mb local mem doesn't make any sense
+
+	len = min(m_nTrMaxBytes, len);
+
+	if(m_nTrBytes + len > m_nTrMaxBytes)
+		FlushWriteTransfer();
+
+	// TODO align lines on 16 byte boundaries
+	memcpy(&m_pTrBuff[m_nTrBytes], pMem, len);
+	m_nTrBytes += len;
+
+	//
+*/
+
 	int x = m_x, y = m_y;
 
-	m_stats.IncWrites(len);
+LOG(_T("*TC2 FlushWriteTransfer %d,%d-%d,%d (psm=%d rr=%dx%d len=%d)\n"), x, y, m_x, m_y, m_rs.BITBLTBUF.DPSM, m_rs.TRXREG.RRW, m_rs.TRXREG.RRH, m_nTrBytes);
 
 	GSLocalMemory::SwizzleTexture st = m_lm.GetSwizzleTexture(m_rs.BITBLTBUF.DPSM);
 	(m_lm.*st)(m_x, m_y, pMem, len, m_rs.BITBLTBUF, m_rs.TRXPOS, m_rs.TRXREG);
 
+	m_stats.IncWrites(len);
+
+	m_nTrBytes = 0;
+
 	//ASSERT(m_rs.TRXREG.RRH >= m_y - y);
-LOG(_T("*TC2 WriteTransfer %dx%d - %dx%d (psm=%d rr=%dx%d len=%d)\n"), x, y, m_x, m_y, m_rs.BITBLTBUF.DPSM, m_rs.TRXREG.RRW, m_rs.TRXREG.RRH, len);
+
+	CRect r(m_rs.TRXPOS.DSAX, y, m_rs.TRXREG.RRW, min(m_x == m_rs.TRXPOS.DSAX ? m_y : m_y+1, m_rs.TRXREG.RRH));
+	InvalidateTexture(m_rs.BITBLTBUF.DBP, m_rs.BITBLTBUF.DPSM, r);
+
+	m_lm.InvalidateCLUT();
+
+}
+
+void GSState::FlushWriteTransfer()
+{
+	if(!m_nTrBytes) return;
+
+	int x = m_x, y = m_y;
+
+	LOG(_T("*TC2 FlushWriteTransfer %d,%d-%d,%d (psm=%d rr=%dx%d len=%d)\n"), x, y, m_x, m_y, m_rs.BITBLTBUF.DPSM, m_rs.TRXREG.RRW, m_rs.TRXREG.RRH, m_nTrBytes);
+
+	GSLocalMemory::SwizzleTexture st = m_lm.GetSwizzleTexture(m_rs.BITBLTBUF.DPSM);
+	(m_lm.*st)(m_x, m_y, m_pTrBuff, m_nTrBytes, m_rs.BITBLTBUF, m_rs.TRXPOS, m_rs.TRXREG);
+
+	m_stats.IncWrites(m_nTrBytes);
+
+	m_nTrBytes = 0;
+
+	//ASSERT(m_rs.TRXREG.RRH >= m_y - y);
 
 	CRect r(m_rs.TRXPOS.DSAX, y, m_rs.TRXREG.RRW, min(m_x == m_rs.TRXPOS.DSAX ? m_y : m_y+1, m_rs.TRXREG.RRH));
 	InvalidateTexture(m_rs.BITBLTBUF.DBP, m_rs.BITBLTBUF.DPSM, r);
@@ -171,3 +218,5 @@ void GSState::MoveTransfer()
 		for(int x = 0; x < w; x++, sx += xinc, dx += xinc)
 			(m_lm.*wp)(dx, dy, (m_lm.*rp)(sx, sy, m_rs.BITBLTBUF.SBP, m_rs.BITBLTBUF.SBW), m_rs.BITBLTBUF.DBP, m_rs.BITBLTBUF.DBW);
 }
+
+

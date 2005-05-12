@@ -209,33 +209,28 @@ void GSRendererSoft<VERTEX>::Flip()
 	{
 		if(m_rs.IsEnabled(i))
 		{
-			CSize size = m_rs.GetSize(i);
+			CRect r(CPoint(0, 0), m_rs.GetSize(i));
 
-			int tw = size.cx;
-			int th = size.cy;
-
-			hr = m_pD3DDev->CreateTexture(tw, th, 1, 0, D3DFMT_A8R8G8B8, D3DPOOL_MANAGED, &rt[i].pRT, NULL);
+			// TODO: do not create this here for each frame...
+			hr = m_pD3DDev->CreateTexture(r.Width(), r.Height(), 1, 0, D3DFMT_A8R8G8B8, D3DPOOL_MANAGED, &rt[i].pRT, NULL);
 			if(S_OK != hr) continue;
 
 			ZeroMemory(&rt[i].rd, sizeof(rt[i].rd));
 			hr = rt[i].pRT->GetLevelDesc(0, &rt[i].rd);
 
 			rt[i].scale = scale_t(1, 1);
-			rt[i].src = CRect(0, 0, size.cx, size.cy);
+			rt[i].src = r;
 
-			D3DLOCKED_RECT r;
-			if(FAILED(hr = rt[i].pRT->LockRect(0, &r, NULL, 0)))
+			D3DLOCKED_RECT lr;
+			if(FAILED(hr = rt[i].pRT->LockRect(0, &lr, NULL, 0)))
 				continue;
-
-			BYTE* dst = (BYTE*)r.pBits;
 
 			GIFRegTEX0 TEX0;
 			TEX0.TBP0 = m_rs.DISPFB[i].FBP<<5;
 			TEX0.TBW = m_rs.DISPFB[i].FBW;
-			TEX0.TCC = m_ctxt->TEX0.TCC;
 
 			GSLocalMemory::unSwizzleTexture st = m_lm.GetUnSwizzleTexture(m_rs.DISPFB[i].PSM);
-			(m_lm.*st)(tw, th, dst, r.Pitch, TEX0, m_de.TEXA);
+			(m_lm.*st)(r, (BYTE*)lr.pBits, lr.Pitch, TEX0, m_de.TEXA);
 
 			rt[i].pRT->UnlockRect(0);
 		}

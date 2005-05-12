@@ -174,10 +174,14 @@ protected:
 	GSPerfMon m_perfmon;
 	GSCapture m_capture;
 
+	static const int m_nTrMaxBytes = 1024*1024*4;
+	int m_nTrBytes;
+	BYTE* m_pTrBuff;
 	int m_x, m_y;
 	void WriteStep();
 	void ReadStep();
 	void WriteTransfer(BYTE* pMem, int len);
+	void FlushWriteTransfer();
 	void ReadTransfer(BYTE* pMem, int len);
 	void MoveTransfer();
 
@@ -206,10 +210,12 @@ protected:
 	virtual void EndFrame() = 0;
 	virtual void InvalidateTexture(DWORD TBP0, DWORD PSM, CRect r) {}
 	virtual void InvalidateLocalMem(DWORD TBP0, DWORD BW, DWORD PSM, CRect r) {}
-	virtual void MaxTexUV(int& tw, int& th) {}
+	virtual void MinMaxUV(int w, int h, CRect& r) {r.SetRect(0, 0, w, h);}
 
 	struct FlipSrc {CComPtr<IDirect3DTexture9> pRT; D3DSURFACE_DESC rd; scale_t scale; CRect src;};
 	void FinishFlip(FlipSrc rt[2], bool fShiftField);
+
+	void FlushPrimInternal();
 
 	UINT32 m_PRIM;
 

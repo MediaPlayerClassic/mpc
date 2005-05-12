@@ -61,7 +61,7 @@ protected:
 	void EndFrame();
 	void InvalidateTexture(DWORD TBP0, DWORD PSM, CRect r);
 	void InvalidateLocalMem(DWORD BP, DWORD TBP0, DWORD PSM, CRect r);
-	void MaxTexUV(int& tw, int& th);
+	void MinMaxUV(int w, int h, CRect& r);
 
 	D3DPRIMITIVETYPE m_primtype;
 

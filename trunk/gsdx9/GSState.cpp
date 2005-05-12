@@ -47,6 +47,9 @@ GSState::GSState(int w, int h, HWND hWnd, HRESULT& hr)
 	memset(&m_tag, 0, sizeof(m_tag));
 	m_nreg = 0;
 
+	m_pTrBuff = (BYTE*)_aligned_malloc(1024*1024*4, 16);
+	m_nTrBytes = 0;
+
 	m_pCSRr = &m_rs.CSRr;
 	m_fpGSirq = NULL;
 
@@ -333,6 +336,7 @@ GSState::GSState(int w, int h, HWND hWnd, HRESULT& hr)
 GSState::~GSState()
 {
 	Reset();
+	_aligned_free(m_pTrBuff);
 	if(m_sfp) fclose(m_sfp);
 	if(m_fp) fclose(m_fp);
 }
@@ -355,7 +359,9 @@ UINT32 GSState::Freeze(freezeData* fd, bool fSizeOnly)
 		return -1;
 	}
 
-	FlushPrim();
+	FlushWriteTransfer();
+
+	FlushPrimInternal();
 
 	BYTE* data = fd->data;
 	memcpy(data, &m_version, sizeof(m_version)); data += sizeof(m_version);
@@ -392,7 +398,7 @@ UINT32 GSState::Defrost(const freezeData* fd)
 	memcpy(&version, data, sizeof(version)); data += sizeof(version);
 	if(m_version != version) return -1;
 
-	FlushPrim();
+	FlushPrimInternal();
 
 	memcpy(&m_de, data, sizeof(m_de)); data += sizeof(m_de);
 	memcpy(&m_rs, data, sizeof(m_rs)); data += sizeof(m_rs);
@@ -660,6 +666,8 @@ void GSState::ReadFIFO(BYTE* pMem)
 {
 	GSPerfMonAutoTimer at(m_perfmon);
 
+	FlushWriteTransfer();
+
 	LOG(_T("*** WARNING *** ReadFIFO(%08x)\n"), pMem);
 	ReadTransfer(pMem, 16);
 }
@@ -851,7 +859,7 @@ void GSState::VSync()
 	if(m_sfp) fputc(ST_VSYNC, m_sfp);
 #endif
 
-	FlushPrim();
+	FlushPrimInternal();
 
 	m_pCSRr->NFIELD = 1; // ?
 	if(m_rs.SMODE2.INT /*&& !m_rs.SMODE2.FFMD*/);
@@ -1116,4 +1124,11 @@ void GSState::FinishFlip(FlipSrc rt[2], bool fShiftField)
 	}
 
 	hr = m_pD3DDev->Present(NULL, NULL, NULL, NULL);
+}
+
+void GSState::FlushPrimInternal()
+{
+	FlushWriteTransfer();
+
+	FlushPrim();
 }

@@ -73,6 +73,8 @@ struct GSTextureBase
 	scale_t m_scale;
 	bool m_fRT;
 	D3DSURFACE_DESC m_desc;
+
+	GSTextureBase();
 };
 
 struct GSTexture : public GSTextureBase
@@ -81,12 +83,12 @@ struct GSTexture : public GSTextureBase
 	GIFRegTEX0 m_TEX0;
 	GIFRegTEXA m_TEXA; // *
 	DWORD m_clut[256]; // *
-	CSize m_valid;
-	GSDirtyRectList m_dirty;
+	GSDirtyRectList m_rcDirty;
+	CRect m_rcValid;
+	CRect m_rcHash;
+	DWORD m_dwHash;
+	DWORD m_nBytes;
 	int m_nAge, m_nVsyncs;
-	CSize m_hashsize;
-	DWORD m_hash;
-	DWORD m_size;
 
 	GSTexture();
 };
@@ -101,9 +103,9 @@ protected:
 	HRESULT CreateTexture(GSState* s, GSTexture* pt, DWORD PSM, DWORD CPSM = PSM_PSMCT32);
 	bool IsTextureInCache(IDirect3DTexture9* pTexture);
 	void RemoveOldTextures(GSState* s);
-	bool GetDirtySize(GSState* s, GSTexture* pt, int& w, int& h);
+	bool GetDirtyRect(GSState* s, GSTexture* pt, CRect& r);
 
-	DWORD HashTexture(int w, int h, int pitch, void* bits);
+	DWORD HashTexture(const CRect& r, int pitch, void* bits);
 	HRESULT UpdateTexture(GSState* s, GSTexture* pt, GSLocalMemory::readTexture rt);
 
 public:
@@ -116,7 +118,7 @@ public:
 	void IncAge(CSurfMap<IDirect3DTexture9>& pRTs);
 	void ResetAge(DWORD TBP0);
 	void RemoveAll();
-	void InvalidateTexture(GSState* s, DWORD TBP0, DWORD PSM, CRect r);
-	void InvalidateLocalMem(GSState* s, DWORD TBP0, DWORD BW, DWORD PSM, CRect r);
+	void InvalidateTexture(GSState* s, DWORD TBP0, DWORD PSM, const CRect& r);
+	void InvalidateLocalMem(GSState* s, DWORD TBP0, DWORD BW, DWORD PSM, const CRect& r);
 	void AddRT(DWORD TBP0, IDirect3DTexture9* pRT, scale_t scale);
 };
