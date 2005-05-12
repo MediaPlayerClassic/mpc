@@ -284,6 +284,8 @@ int GSRendererHW::DrawingKick(bool fSkip)
 
 void GSRendererHW::FlushPrim()
 {
+	ASSERT(m_nTrBytes == 0);
+
 	if(m_nVertices > 0 && (!m_de.pPRIM->TME || m_ctxt->TEX0.TBP0 != m_ctxt->FRAME.Block()))
 	do
 	{
@@ -907,7 +909,7 @@ void GSRendererHW::InvalidateLocalMem(DWORD TBP0, DWORD BW, DWORD PSM, CRect r)
 	m_tc.InvalidateLocalMem(this, TBP0, BW, PSM, &r);
 }
 
-void GSRendererHW::MaxTexUV(int& tw, int& th)
+void GSRendererHW::MinMaxUV(int w, int h, CRect& r)
 {
 	if(m_ctxt->CLAMP.WMS < 3 && m_ctxt->CLAMP.WMT < 3)
 	{
@@ -962,20 +964,16 @@ void GSRendererHW::MaxTexUV(int& tw, int& th)
 			if(uv.vmax > maxv) uv.vmax = maxv;
 		}
 
-		uv.umin *= tw;
-		uv.umax *= tw;
-		uv.vmin *= th;
-		uv.vmax *= th;
-/*
-		// TODO
-		// tx = ;
-		// ty = ;
-		tw = min(((int)uv.umax + 1 + 31) & ~31, tw);
-		th = min(((int)uv.vmax + 1 + 15) & ~15, th);
-*/
-		CSize size = GSLocalMemory::GetBlockSize(m_ctxt->TEX0.PSM);
-		tw = min(((int)uv.umax + (size.cx-1) + 1) & ~(size.cx-1), tw);
-		th = min(((int)uv.vmax + (size.cy-1) + 1) & ~(size.cy-1), th);
+		CSize bs = GSLocalMemory::GetBlockSize(m_ctxt->TEX0.PSM);
+
+		r.left = max((int)(uv.umin * w) & ~(bs.cx-1), 0);
+		r.top = max((int)(uv.vmin * h) & ~(bs.cy-1), 0);
+		r.right = min(((int)(uv.umax * w) + (bs.cx-1) + 1) & ~(bs.cx-1), w);
+		r.bottom = min(((int)(uv.vmax * h) + (bs.cy-1) + 1) & ~(bs.cy-1), h);
+	}
+	else
+	{
+		r.SetRect(0, 0, w, h);
 	}
 }
 

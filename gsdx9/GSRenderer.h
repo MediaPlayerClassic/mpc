@@ -57,7 +57,7 @@ protected:
 
 			LOG(_T("DrawingKick %d\n"), m_de.pPRIM->PRIM);
             
-			if(m_PRIM != m_de.pPRIM->PRIM && m_nVertices > 0) FlushPrim();
+			if(m_PRIM != m_de.pPRIM->PRIM && m_nVertices > 0) FlushPrimInternal();
 			m_PRIM = m_de.pPRIM->PRIM;
 
 			LOG2(_T("Prim (%d) %05x %05x %05x %04x\n"), 
@@ -72,7 +72,7 @@ protected:
 			m_nVertices += DrawingKick(fSkip);
 
 #ifdef DEBUG_RENDERTARGETS
-			if(::GetAsyncKeyState(VK_SPACE)&0x80000000) {FlushPrim(); Flip();}
+			if(::GetAsyncKeyState(VK_SPACE)&0x80000000) {FlushPrimInternal(); Flip();}
 #endif
 		}
 	}
