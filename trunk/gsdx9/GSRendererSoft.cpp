@@ -1222,7 +1222,7 @@ void GSRendererSoftFX::DrawVertex(int x, int y, GSSoftVertex& v)
 
 	if(!ZMSK && m_ctxt->wz)
 	{
-		(m_lm.*m_ctxt->wza)(vz, addrz);
+		(m_lm.*m_ctxt->wza)(addrz, vz);
 	}
 
 	if(FBMSK != ~0)
