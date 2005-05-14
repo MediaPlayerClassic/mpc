@@ -48,9 +48,13 @@ EXPORT_C_(char*) PS2EgetLibName()
 #endif
 
 #if _M_IX86_FP >= 2
-	" (SSE2)";
+	" (SSE2)"
 #elif _M_IX86_FP >= 1
-	" (SSE)";
+	" (SSE)"
+#endif
+
+#ifdef _OPENMP
+	" (OMP)"
 #endif
 	;
 }

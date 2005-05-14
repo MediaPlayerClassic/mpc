@@ -59,6 +59,7 @@
 #include <streams.h>
 #include <xmmintrin.h>
 #include <emmintrin.h>
+#include <omp.h>
 
 #define countof(a) (sizeof(a)/sizeof(a[0]))
 
