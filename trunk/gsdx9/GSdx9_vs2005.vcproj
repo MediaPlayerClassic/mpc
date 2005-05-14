@@ -224,6 +224,7 @@
 				PreprocessorDefinitions="WIN32;_WINDOWS;NDEBUG;_USRDLL"
 				StringPooling="true"
 				RuntimeLibrary="0"
+				BufferSecurityCheck="false"
 				FloatingPointModel="2"
 				ForceConformanceInForLoopScope="true"
 				WarningLevel="3"
@@ -579,6 +580,7 @@
 				PreprocessorDefinitions="WIN32;_WINDOWS;NDEBUG;_USRDLL"
 				StringPooling="true"
 				RuntimeLibrary="0"
+				BufferSecurityCheck="false"
 				EnableEnhancedInstructionSet="2"
 				FloatingPointModel="2"
 				ForceConformanceInForLoopScope="true"
@@ -850,7 +852,7 @@
 					>
 					<Tool
 						Name="VCCLCompilerTool"
-						GeneratePreprocessedFile="0"
+						AssemblerOutput="4"
 					/>
 				</FileConfiguration>
 				<FileConfiguration

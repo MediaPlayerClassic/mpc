@@ -184,10 +184,22 @@ __forceinline static DWORD From16To32(WORD c, GIFRegTEXA& TEXA)
 
 //
 
-#define FOREACH_BLOCK(r, w, h) \
+#define ASSERT_BLOCK(r, w, h) \
 	ASSERT((r).Width() >= w && (r).Height() >= w && !((r).left&(w-1)) && !((r).top&(h-1)) && !((r).right&(w-1)) && !((r).bottom&(h-1))); \
+
+#define FOREACH_BLOCK(r, w, h) \
+	ASSERT_BLOCK(r, w, h); \
 	for(int y = (r).top; y < (r).bottom; y += (h), dst += dstpitch*(h)) \
 		for(int x = (r).left; x < (r).right; x += (w)) \
+
+#define FOREACH_BLOCK_OMP_START(r, w, h) \
+	for(int y = (r).top; y < (r).bottom; y += (h)) \
+	{ 	ASSERT_BLOCK(r, w, h); \
+		BYTE* ompdst = dst + (y-(r).top)*dstpitch; \
+		for(int x = (r).left; x < (r).right; x += (w)) \
+		{ \
+
+#define FOREACH_BLOCK_OMP_END }}
 
 //
 
@@ -211,6 +223,7 @@ GSLocalMemory::GSLocalMemory()
 
 	m_pCLUT = (WORD*)_aligned_malloc(256*2*sizeof(WORD)*2, 16);
 	m_pCLUT32 = (DWORD*)_aligned_malloc(256*sizeof(DWORD), 16);
+	m_pCLUT64 = (UINT64*)_aligned_malloc(256*sizeof(UINT64), 16);
 
 	for(int bp = 0; bp < 32; bp++)
 	{
@@ -240,6 +253,39 @@ GSLocalMemory::GSLocalMemory()
 	}
 
 	m_fCLUTMayBeDirty = true;
+// 
+/*
+//	omp_set_num_threads(4);
+
+	{
+		for(int i = 0; i < 1024*1024; i++)
+			((DWORD*)GetVM())[i] = rand()*0x12345678;
+
+		GIFRegTEX0 TEX0;
+		TEX0.TBP0 = 0;
+		TEX0.TBW = 16;
+		GIFRegTEXA TEXA;
+		TEXA.AEM = 0; // 1
+
+		__declspec(align(32)) static DWORD dst[1024*1024];
+
+		for(int j = 0; j < 10; j++)
+		{
+			clock_t start = clock();
+
+			for(int i = 0; i < 1000; i++)
+			{
+				unSwizzleTexture32(CRect(0,0,1024,1024), (BYTE*)dst, 1024*4, TEX0, TEXA);
+			}
+
+			clock_t diff = clock() - start;
+
+			CString str;
+			str.Format(_T("%d"), diff);
+			AfxMessageBox(str);
+		}
+	}
+*/
 }
 
 GSLocalMemory::~GSLocalMemory()
@@ -247,6 +293,7 @@ GSLocalMemory::~GSLocalMemory()
 	_aligned_free(m_vm8);
 	_aligned_free(m_pCLUT);
 	_aligned_free(m_pCLUT32);
+	_aligned_free(m_pCLUT64);	
 }
 
 ////////////////////
@@ -1327,6 +1374,18 @@ void GSLocalMemory::ReadCLUT32(GIFRegTEX0 TEX0, GIFRegTEXA TEXA, DWORD* pCLUT32)
 void GSLocalMemory::SetupCLUT32(GIFRegTEX0 TEX0, GIFRegTEXA TEXA)
 {
 	ReadCLUT32(TEX0, TEXA, m_pCLUT32);
+
+	// TMP
+	switch(TEX0.PSM)
+	{
+	case PSM_PSMT4:
+	case PSM_PSMT4HL:
+	case PSM_PSMT4HH:
+		for(int j = 0, k = 0; j < 16; j++)
+			for(int i = 0; i < 16; i++, k++)
+				m_pCLUT64[k] = ((UINT64)m_pCLUT32[j] << 32) | m_pCLUT32[i];
+		break;
+	}
 }
 
 void GSLocalMemory::CopyCLUT32(DWORD* pCLUT32, int nPaletteEntries)
@@ -1981,129 +2040,321 @@ GSLocalMemory::SwizzleTexture GSLocalMemory::GetSwizzleTexture(DWORD psm)
 
 void GSLocalMemory::unSwizzleTexture32(const CRect& r, BYTE* dst, int dstpitch, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA)
 {
+#ifdef _OPENMP
+	#pragma omp parallel
+	{
+		#pragma omp for
+		FOREACH_BLOCK_OMP_START(r, 8, 8)
+		{
+			unSwizzleBlock32((BYTE*)&m_vm32[blockAddress32(x, y, TEX0.TBP0, TEX0.TBW)], ompdst + (x-r.left)*4, dstpitch);
+		}
+		FOREACH_BLOCK_OMP_END
+	}
+#else
 	FOREACH_BLOCK(r, 8, 8)
 	{
 		unSwizzleBlock32((BYTE*)&m_vm32[blockAddress32(x, y, TEX0.TBP0, TEX0.TBW)], dst + (x-r.left)*4, dstpitch);
 	}
+#endif
 }
 
 void GSLocalMemory::unSwizzleTexture24(const CRect& r, BYTE* dst, int dstpitch, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA)
 {
-	__declspec(align(16)) DWORD block[8*8];
-
+#ifdef _OPENMP
+	#pragma omp parallel
+	{
+		#pragma omp for
+		FOREACH_BLOCK_OMP_START(r, 8, 8)
+		{
+			__declspec(align(16)) DWORD block[8*8];
+			unSwizzleBlock32((BYTE*)&m_vm32[blockAddress32(x, y, TEX0.TBP0, TEX0.TBW)], (BYTE*)block, sizeof(block)/8);
+			ExpandBlock24(block, (DWORD*)ompdst + (x-r.left), dstpitch, &TEXA);
+		}
+		FOREACH_BLOCK_OMP_END
+	}
+#else
 	FOREACH_BLOCK(r, 8, 8)
 	{
+		__declspec(align(16)) DWORD block[8*8];
 		unSwizzleBlock32((BYTE*)&m_vm32[blockAddress32(x, y, TEX0.TBP0, TEX0.TBW)], (BYTE*)block, sizeof(block)/8);
 		ExpandBlock24(block, (DWORD*)dst + (x-r.left), dstpitch, &TEXA);
 	}
+#endif
 }
 
 void GSLocalMemory::unSwizzleTexture16(const CRect& r, BYTE* dst, int dstpitch, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA)
 {
-	__declspec(align(16)) WORD block[16*8];
-
+#ifdef _OPENMP
+	#pragma omp parallel
+	{
+		#pragma omp for
+		FOREACH_BLOCK_OMP_START(r, 16, 8)
+		{
+			__declspec(align(16)) WORD block[16*8];
+			unSwizzleBlock16((BYTE*)&m_vm16[blockAddress16(x, y, TEX0.TBP0, TEX0.TBW)], (BYTE*)block, sizeof(block)/8);
+			ExpandBlock16(block, (DWORD*)ompdst + (x-r.left), dstpitch, &TEXA);
+		}
+		FOREACH_BLOCK_OMP_END
+	}
+#else
 	FOREACH_BLOCK(r, 16, 8)
 	{
+		__declspec(align(16)) WORD block[16*8];
 		unSwizzleBlock16((BYTE*)&m_vm16[blockAddress16(x, y, TEX0.TBP0, TEX0.TBW)], (BYTE*)block, sizeof(block)/8);
 		ExpandBlock16(block, (DWORD*)dst + (x-r.left), dstpitch, &TEXA);
 	}
+#endif
 }
 
 void GSLocalMemory::unSwizzleTexture16S(const CRect& r, BYTE* dst, int dstpitch, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA)
 {
-	__declspec(align(16)) WORD block[16*8];
-
+#ifdef _OPENMP
+	#pragma omp parallel
+	{
+		#pragma omp for
+		FOREACH_BLOCK_OMP_START(r, 16, 8)
+		{
+			__declspec(align(16)) WORD block[16*8];
+			unSwizzleBlock16((BYTE*)&m_vm16[blockAddress16S(x, y, TEX0.TBP0, TEX0.TBW)], (BYTE*)block, sizeof(block)/8);
+			ExpandBlock16(block, (DWORD*)ompdst + (x-r.left), dstpitch, &TEXA);
+		}
+		FOREACH_BLOCK_OMP_END
+	}
+#else
 	FOREACH_BLOCK(r, 16, 8)
 	{
+		__declspec(align(16)) WORD block[16*8];
 		unSwizzleBlock16((BYTE*)&m_vm16[blockAddress16S(x, y, TEX0.TBP0, TEX0.TBW)], (BYTE*)block, sizeof(block)/8);
 		ExpandBlock16(block, (DWORD*)dst + (x-r.left), dstpitch, &TEXA);
 	}
+#endif
 }
 
 void GSLocalMemory::unSwizzleTexture8(const CRect& r, BYTE* dst, int dstpitch, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA)
 {
-	__declspec(align(16)) BYTE block[16*16];
+#ifdef _OPENMP
+	#pragma omp parallel
+	{
+		#pragma omp for
+		FOREACH_BLOCK_OMP_START(r, 16, 16)
+		{
+			__declspec(align(16)) BYTE block[16*16];
+			unSwizzleBlock8((BYTE*)&m_vm8[blockAddress8(x, y, TEX0.TBP0, TEX0.TBW)], (BYTE*)block, sizeof(block)/16);
 
+			BYTE* s = block;
+			BYTE* d = ompdst + (x-r.left)*4;
+
+			for(int j = 0; j < 16; j++, s += 16, d += dstpitch)
+				for(int i = 0; i < 16; i++)
+					((DWORD*)d)[i] = m_pCLUT32[s[i]];
+		}
+		FOREACH_BLOCK_OMP_END
+	}
+#else
 	FOREACH_BLOCK(r, 16, 16)
 	{
+		__declspec(align(16)) BYTE block[16*16];
 		unSwizzleBlock8((BYTE*)&m_vm8[blockAddress8(x, y, TEX0.TBP0, TEX0.TBW)], (BYTE*)block, sizeof(block)/16);
 
         BYTE* s = block;
-		DWORD* d = (DWORD*)dst + (x-r.left);
+		BYTE* d = dst + (x-r.left)*4;
 
-		for(int j = 0; j < 16; j++, s += 16, d += dstpitch>>2)
+		for(int j = 0; j < 16; j++, s += 16, d += dstpitch)
 			for(int i = 0; i < 16; i++)
-				d[i] = m_pCLUT32[s[i]];
+				((DWORD*)d)[i] = m_pCLUT32[s[i]];
 	}
+#endif
 }
 
 void GSLocalMemory::unSwizzleTexture8H(const CRect& r, BYTE* dst, int dstpitch, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA)
 {
-	__declspec(align(16)) DWORD block[8*8];
+#ifdef _OPENMP
+	#pragma omp parallel
+	{
+		#pragma omp for
+		FOREACH_BLOCK_OMP_START(r, 8, 8)
+		{
+			__declspec(align(16)) DWORD block[8*8];
+			unSwizzleBlock32((BYTE*)&m_vm32[blockAddress32(x, y, TEX0.TBP0, TEX0.TBW)], (BYTE*)block, sizeof(block)/8);
 
+			DWORD* s = block;
+			BYTE* d = ompdst + (x-r.left)*4;
+
+			for(int j = 0; j < 8; j++, s += 8, d += dstpitch)
+				for(int i = 0; i < 8; i++)
+					((DWORD*)d)[i] = m_pCLUT32[s[i] >> 24];
+		}
+		FOREACH_BLOCK_OMP_END
+	}
+#else
 	FOREACH_BLOCK(r, 8, 8)
 	{
+		__declspec(align(16)) DWORD block[8*8];
 		unSwizzleBlock32((BYTE*)&m_vm32[blockAddress32(x, y, TEX0.TBP0, TEX0.TBW)], (BYTE*)block, sizeof(block)/8);
 
         DWORD* s = block;
-		DWORD* d = (DWORD*)dst + (x-r.left);
+		BYTE* d = dst + (x-r.left)*4;
 
-		for(int j = 0; j < 8; j++, s += 8, d += dstpitch>>2)
+		for(int j = 0; j < 8; j++, s += 8, d += dstpitch)
 			for(int i = 0; i < 8; i++)
-				d[i] = m_pCLUT32[s[i] >> 24];
+				((DWORD*)d)[i] = m_pCLUT32[s[i] >> 24];
 	}
+#endif
 }
 
 void GSLocalMemory::unSwizzleTexture4(const CRect& r, BYTE* dst, int dstpitch, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA)
 {
-	__declspec(align(16)) BYTE block[(32/2)*16];
+#ifdef _OPENMP
+	#pragma omp parallel
+	{
+		#pragma omp for
+		FOREACH_BLOCK_OMP_START(r, 32, 16)
+		{
+/*
+			__declspec(align(16)) BYTE block[(32/2)*16];
+			unSwizzleBlock4((BYTE*)&m_vm8[blockAddress4(x, y, TEX0.TBP0, TEX0.TBW)>>1], (BYTE*)block, sizeof(block)/16);
 
+			BYTE* s = block;
+			BYTE* d = ompdst + (x-r.left)*4;
+
+			for(int j = 0; j < 16; j++, s += 32/2, d += dstpitch)
+				for(int i = 0; i < 32/2; i++)
+					((DWORD*)d)[i*2] = m_pCLUT32[s[i]&0x0f],
+					((DWORD*)d)[i*2+1] = m_pCLUT32[s[i]>>4];
+*/
+/*
+			__declspec(align(16)) BYTE block[32*16];
+			unSwizzleBlock4P((BYTE*)&m_vm8[blockAddress4(x, y, TEX0.TBP0, TEX0.TBW)>>1], (BYTE*)block, sizeof(block)/16);
+
+			BYTE* s = block;
+			BYTE* d = ompdst + (x-r.left)*4;
+
+			for(int j = 0; j < 16; j++, s += 32, d += dstpitch)
+				for(int i = 0; i < 32; i++)
+					((DWORD*)d)[i] = m_pCLUT32[s[i]];
+*/
+			__declspec(align(16)) BYTE block[(32/2)*16];
+			unSwizzleBlock4((BYTE*)&m_vm8[blockAddress4(x, y, TEX0.TBP0, TEX0.TBW)>>1], (BYTE*)block, sizeof(block)/16);
+
+			BYTE* s = block;
+			BYTE* d = ompdst + (x-r.left)*4;
+
+			for(int j = 0; j < 16; j++, s += 32/2, d += dstpitch)
+				for(int i = 0; i < 32/2; i++)
+					((UINT64*)d)[i] = m_pCLUT64[s[i]];
+
+		}
+		FOREACH_BLOCK_OMP_END
+	}
+#else
 	FOREACH_BLOCK(r, 32, 16)
 	{
+/*
+		__declspec(align(16)) BYTE block[(32/2)*16];
 		unSwizzleBlock4((BYTE*)&m_vm8[blockAddress4(x, y, TEX0.TBP0, TEX0.TBW)>>1], (BYTE*)block, sizeof(block)/16);
 
         BYTE* s = block;
-		DWORD* d = (DWORD*)dst + (x-r.left);
+		BYTE* d = dst + (x-r.left)*4;
 
-		for(int j = 0; j < 16; j++, s += 32/2, d += dstpitch>>2)
+		for(int j = 0; j < 16; j++, s += 32/2, d += dstpitch)
 			for(int i = 0; i < 32/2; i++)
-				d[i*2] = m_pCLUT32[s[i]&0x0f],
-				d[i*2+1] = m_pCLUT32[s[i]>>4];
+				((DWORD*)d)[i*2] = m_pCLUT32[s[i]&0x0f],
+				((DWORD*)d)[i*2+1] = m_pCLUT32[s[i]>>4];
+*/
+/*
+		__declspec(align(16)) BYTE block[32*16];
+		unSwizzleBlock4P((BYTE*)&m_vm8[blockAddress4(x, y, TEX0.TBP0, TEX0.TBW)>>1], (BYTE*)block, sizeof(block)/16);
+
+        BYTE* s = block;
+		BYTE* d = dst + (x-r.left)*4;
+
+		for(int j = 0; j < 16; j++, s += 32, d += dstpitch)
+			for(int i = 0; i < 32; i++)
+				((DWORD*)d)[i] = m_pCLUT32[s[i]];
+*/
+		__declspec(align(16)) BYTE block[(32/2)*16];
+		unSwizzleBlock4((BYTE*)&m_vm8[blockAddress4(x, y, TEX0.TBP0, TEX0.TBW)>>1], (BYTE*)block, sizeof(block)/16);
+
+        BYTE* s = block;
+		BYTE* d = dst + (x-r.left)*4;
+
+		for(int j = 0; j < 16; j++, s += 32/2, d += dstpitch)
+			for(int i = 0; i < 32/2; i++)
+				((UINT64*)d)[i] = m_pCLUT64[s[i]];
 	}
+#endif
 }
 
 void GSLocalMemory::unSwizzleTexture4HL(const CRect& r, BYTE* dst, int dstpitch, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA)
 {
-	__declspec(align(16)) DWORD block[8*8];
+#ifdef _OPENMP
+	#pragma omp parallel
+	{
+		#pragma omp for
+		FOREACH_BLOCK_OMP_START(r, 8, 8)
+		{
+			__declspec(align(16)) DWORD block[8*8];
+			unSwizzleBlock32((BYTE*)&m_vm32[blockAddress32(x, y, TEX0.TBP0, TEX0.TBW)], (BYTE*)block, sizeof(block)/8);
 
+			DWORD* s = block;
+			BYTE* d = ompdst + (x-r.left)*4;
+
+			for(int j = 0; j < 8; j++, s += 8, d += dstpitch)
+				for(int i = 0; i < 8; i++)
+					((DWORD*)d)[i] = m_pCLUT32[(s[i] >> 24)&0x0f];
+		}
+		FOREACH_BLOCK_OMP_END
+	}
+#else
 	FOREACH_BLOCK(r, 8, 8)
 	{
+		__declspec(align(16)) DWORD block[8*8];
 		unSwizzleBlock32((BYTE*)&m_vm32[blockAddress32(x, y, TEX0.TBP0, TEX0.TBW)], (BYTE*)block, sizeof(block)/8);
 
         DWORD* s = block;
-		DWORD* d = (DWORD*)dst + (x-r.left);
+		BYTE* d = dst + (x-r.left)*4;
 
-		for(int j = 0; j < 8; j++, s += 8, d += dstpitch>>2)
+		for(int j = 0; j < 8; j++, s += 8, d += dstpitch)
 			for(int i = 0; i < 8; i++)
-				d[i] = m_pCLUT32[(s[i] >> 24)&0x0f];
+				((DWORD*)d)[i] = m_pCLUT32[(s[i] >> 24)&0x0f];
 	}
+#endif
 }
 
 void GSLocalMemory::unSwizzleTexture4HH(const CRect& r, BYTE* dst, int dstpitch, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA)
 {
-	__declspec(align(16)) DWORD block[8*8];
+#ifdef _OPENMP
+	#pragma omp parallel
+	{
+		#pragma omp for
+		FOREACH_BLOCK_OMP_START(r, 8, 8)
+		{
+			__declspec(align(16)) DWORD block[8*8];
+			unSwizzleBlock32((BYTE*)&m_vm32[blockAddress32(x, y, TEX0.TBP0, TEX0.TBW)], (BYTE*)block, sizeof(block)/8);
 
+			DWORD* s = block;
+			BYTE* d = ompdst + (x-r.left)*4;
+
+			for(int j = 0; j < 8; j++, s += 8, d += dstpitch)
+				for(int i = 0; i < 8; i++)
+					((DWORD*)d)[i] = m_pCLUT32[s[i] >> 28];
+		}
+		FOREACH_BLOCK_OMP_END
+	}
+#else
 	FOREACH_BLOCK(r, 8, 8)
 	{
+		__declspec(align(16)) DWORD block[8*8];
 		unSwizzleBlock32((BYTE*)&m_vm32[blockAddress32(x, y, TEX0.TBP0, TEX0.TBW)], (BYTE*)block, sizeof(block)/8);
 
         DWORD* s = block;
-		DWORD* d = (DWORD*)dst + (x-r.left);
+		BYTE* d = dst + (x-r.left)*4;
 
-		for(int j = 0; j < 8; j++, s += 8, d += dstpitch>>2)
+		for(int j = 0; j < 8; j++, s += 8, d += dstpitch)
 			for(int i = 0; i < 8; i++)
-				d[i] = m_pCLUT32[s[i] >> 28];
+				((DWORD*)d)[i] = m_pCLUT32[s[i] >> 28];
 	}
+#endif
 }
 
 GSLocalMemory::unSwizzleTexture GSLocalMemory::GetUnSwizzleTexture(DWORD psm)
@@ -2214,66 +2465,162 @@ GSLocalMemory::readTexelP GSLocalMemory::GetReadTexelP(DWORD psm)
 
 void GSLocalMemory::unSwizzleTexture32P(const CRect& r, BYTE* dst, int dstpitch, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA)
 {
+#ifdef _OPENMP
+	#pragma omp parallel
+	{
+		#pragma omp for
+		FOREACH_BLOCK_OMP_START(r, 8, 8)
+		{
+			unSwizzleBlock32((BYTE*)&m_vm32[blockAddress32(x, y, TEX0.TBP0, TEX0.TBW)], ompdst + (x-r.left)*4, dstpitch);
+		}
+		FOREACH_BLOCK_OMP_END
+	}
+#else
 	FOREACH_BLOCK(r, 8, 8)
 	{
 		unSwizzleBlock32((BYTE*)&m_vm32[blockAddress32(x, y, TEX0.TBP0, TEX0.TBW)], dst + (x-r.left)*4, dstpitch);
 	}
+#endif
 }
 
 void GSLocalMemory::unSwizzleTexture16P(const CRect& r, BYTE* dst, int dstpitch, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA)
 {
+#ifdef _OPENMP
+	#pragma omp parallel
+	{
+		#pragma omp for
+		FOREACH_BLOCK_OMP_START(r, 16, 8)
+		{
+			unSwizzleBlock16((BYTE*)&m_vm16[blockAddress16(x, y, TEX0.TBP0, TEX0.TBW)], ompdst + (x-r.left)*2, dstpitch);
+		}
+		FOREACH_BLOCK_OMP_END
+	}
+#else
 	FOREACH_BLOCK(r, 16, 8)
 	{
 		unSwizzleBlock16((BYTE*)&m_vm16[blockAddress16(x, y, TEX0.TBP0, TEX0.TBW)], dst + (x-r.left)*2, dstpitch);
 	}
+#endif
 }
 
 void GSLocalMemory::unSwizzleTexture16SP(const CRect& r, BYTE* dst, int dstpitch, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA)
 {
+#ifdef _OPENMP
+	#pragma omp parallel
+	{
+		#pragma omp for
+		FOREACH_BLOCK_OMP_START(r, 16, 8)
+		{
+			unSwizzleBlock16((BYTE*)&m_vm16[blockAddress16S(x, y, TEX0.TBP0, TEX0.TBW)], dst + (x-r.left)*2, dstpitch);
+		}
+		FOREACH_BLOCK_OMP_END
+	}
+#else
 	FOREACH_BLOCK(r, 16, 8)
 	{
 		unSwizzleBlock16((BYTE*)&m_vm16[blockAddress16S(x, y, TEX0.TBP0, TEX0.TBW)], dst + (x-r.left)*2, dstpitch);
 	}
+#endif
 }
 
 void GSLocalMemory::unSwizzleTexture8P(const CRect& r, BYTE* dst, int dstpitch, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA)
 {
+#ifdef _OPENMP
+	#pragma omp parallel
+	{
+		#pragma omp for
+		FOREACH_BLOCK_OMP_START(r, 16, 16)
+		{
+			unSwizzleBlock8((BYTE*)&m_vm8[blockAddress8(x, y, TEX0.TBP0, TEX0.TBW)], dst + (x-r.left), dstpitch);
+		}
+		FOREACH_BLOCK_OMP_END
+	}
+#else
 	FOREACH_BLOCK(r, 16, 16)
 	{
 		unSwizzleBlock8((BYTE*)&m_vm8[blockAddress8(x, y, TEX0.TBP0, TEX0.TBW)], dst + (x-r.left), dstpitch);
 	}
+#endif
 }
 
 void GSLocalMemory::unSwizzleTexture8HP(const CRect& r, BYTE* dst, int dstpitch, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA)
 {
+#ifdef _OPENMP
+	#pragma omp parallel
+	{
+		#pragma omp for
+		FOREACH_BLOCK_OMP_START(r, 8, 8)
+		{
+			unSwizzleBlock8HP((BYTE*)&m_vm32[blockAddress32(x, y, TEX0.TBP0, TEX0.TBW)], dst + (x-r.left), dstpitch);
+		}
+		FOREACH_BLOCK_OMP_END
+	}
+#else
 	FOREACH_BLOCK(r, 8, 8)
 	{
 		unSwizzleBlock8HP((BYTE*)&m_vm32[blockAddress32(x, y, TEX0.TBP0, TEX0.TBW)], dst + (x-r.left), dstpitch);
 	}
+#endif
 }
 
 void GSLocalMemory::unSwizzleTexture4P(const CRect& r, BYTE* dst, int dstpitch, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA)
 {
+#ifdef _OPENMP
+	#pragma omp parallel
+	{
+		#pragma omp for
+		FOREACH_BLOCK_OMP_START(r, 32, 16)
+		{
+			unSwizzleBlock4P((BYTE*)&m_vm8[blockAddress4(x, y, TEX0.TBP0, TEX0.TBW)>>1], dst + (x-r.left), dstpitch);
+		}
+		FOREACH_BLOCK_OMP_END
+	}
+#else
 	FOREACH_BLOCK(r, 32, 16)
 	{
 		unSwizzleBlock4P((BYTE*)&m_vm8[blockAddress4(x, y, TEX0.TBP0, TEX0.TBW)>>1], dst + (x-r.left), dstpitch);
 	}
+#endif
 }
 
 void GSLocalMemory::unSwizzleTexture4HLP(const CRect& r, BYTE* dst, int dstpitch, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA)
 {
+#ifdef _OPENMP
+	#pragma omp parallel
+	{
+		#pragma omp for
+		FOREACH_BLOCK_OMP_START(r, 8, 8)
+		{
+			unSwizzleBlock4HLP((BYTE*)&m_vm32[blockAddress32(x, y, TEX0.TBP0, TEX0.TBW)], dst + (x-r.left), dstpitch);
+		}
+		FOREACH_BLOCK_OMP_END
+	}
+#else
 	FOREACH_BLOCK(r, 8, 8)
 	{
 		unSwizzleBlock4HLP((BYTE*)&m_vm32[blockAddress32(x, y, TEX0.TBP0, TEX0.TBW)], dst + (x-r.left), dstpitch);
 	}
+#endif
 }
 
 void GSLocalMemory::unSwizzleTexture4HHP(const CRect& r, BYTE* dst, int dstpitch, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA)
 {
+#ifdef _OPENMP
+	#pragma omp parallel
+	{
+		#pragma omp for
+		FOREACH_BLOCK_OMP_START(r, 8, 8)
+		{
+			unSwizzleBlock4HHP((BYTE*)&m_vm32[blockAddress32(x, y, TEX0.TBP0, TEX0.TBW)], dst + (x-r.left), dstpitch);
+		}
+		FOREACH_BLOCK_OMP_END
+	}
+#else
 	FOREACH_BLOCK(r, 8, 8)
 	{
 		unSwizzleBlock4HHP((BYTE*)&m_vm32[blockAddress32(x, y, TEX0.TBP0, TEX0.TBW)], dst + (x-r.left), dstpitch);
 	}
+#endif
 }
 
 GSLocalMemory::unSwizzleTextureP GSLocalMemory::GetUnSwizzleTextureP(DWORD psm)

@@ -200,7 +200,7 @@ void GSTextureCache::RemoveOldTextures(GSState* s)
 	while(pos) nBytes += GetNext(pos)->m_nBytes;
 
 	pos = GetTailPosition();
-	while(pos && nBytes > 48*1024*1024/*s->m_ddcaps.dwVidMemTotal*/)
+	while(pos && nBytes > 96*1024*1024/*s->m_ddcaps.dwVidMemTotal*/)
 	{
 #ifdef DEBUG_LOG
 		s->LOG(_T("*TC2 too many textures in cache (%d, %.2f MB)\n"), GetCount(), 1.0f*nBytes/1024/1024);
@@ -223,6 +223,16 @@ static bool RectInRect(const RECT& inner, const RECT& outer)
 		&& outer.top <= inner.top && inner.bottom <= outer.bottom;
 }
 
+static bool RectInRectH(const RECT& inner, const RECT& outer)
+{
+	return outer.top <= inner.top && inner.bottom <= outer.bottom;
+}
+
+static bool RectInRectV(const RECT& inner, const RECT& outer)
+{
+	return outer.left <= inner.left && inner.right <= outer.right;
+}
+
 bool GSTextureCache::GetDirtyRect(GSState* s, GSTexture* pt, CRect& r)
 {
 	int w = 1 << pt->m_TEX0.TW;
@@ -243,30 +253,31 @@ bool GSTextureCache::GetDirtyRect(GSState* s, GSTexture* pt, CRect& r)
 
 	if(RectInRect(r, rcValid))
 	{
-		if(rcDirty.IsRectEmpty())
-		{
-			return false;
-		}
-
-		if(RectInRect(rcDirty, r))
-		{
-			r = rcDirty;
-		}
-		else
-		{
-			if(RectInRect(rcDirty, rcValid))
-			{
-				r |= rcDirty;
-			}
-			else
-			{
-				r = rcValid | rcDirty;
-			}
-		}
+		if(rcDirty.IsRectEmpty()) return false;
+		else if(RectInRect(rcDirty, r)) r = rcDirty;
+		else if(RectInRect(rcDirty, rcValid)) r |= rcDirty;
+		else r = rcValid | rcDirty;
 	}
 	else
 	{
-		r |= rcValid;
+		if(RectInRectH(r, rcValid) && (r.left >= rcValid.left || r.right <= rcValid.right))
+		{
+			r.top = rcValid.top;
+			r.bottom = rcValid.bottom;
+			if(r.left < rcValid.left) r.right = rcValid.left;
+			else /*if(r.right > rcValid.right)*/ r.left = rcValid.right;
+		}
+		else if(RectInRectV(r, rcValid) && (r.top >= rcValid.top || r.bottom <= rcValid.bottom))
+		{
+			r.left = rcValid.left;
+			r.right = rcValid.right;
+			if(r.top < rcValid.top) r.bottom = rcValid.top;
+			else /*if(r.bottom > rcValid.bottom)*/ r.top = rcValid.bottom;
+		}
+		else
+		{
+			r |= rcValid;
+		}
 	}
 
 	return true;
@@ -274,21 +285,19 @@ bool GSTextureCache::GetDirtyRect(GSState* s, GSTexture* pt, CRect& r)
 
 DWORD GSTextureCache::HashTexture(const CRect& r, int pitch, void* bits)
 {
-	// TODO: make this faster with sse2
+	DWORD hash = r.left + r.right + r.top + r.bottom + pitch + *(BYTE*)bits;
 
-	DWORD chksum = r.left + r.right + r.top + r.bottom + pitch + *(BYTE*)bits;
-
-#if 1 || defined(_M_AMD64) || _M_IX86_FP >= 2
+#if defined(_M_AMD64) || _M_IX86_FP >= 2
 	if(r.Width() >= 4)
 	{
 		BYTE* p = (BYTE*)bits;
-		__m128i chksum128 = _mm_setzero_si128();
+		__m128i hash128 = _mm_setzero_si128();
 		for(int j = r.top; j < r.bottom; j++, p += pitch)
 			for(int i = r.left, x = 0; i < r.right; i += 4, x++)
-				chksum128 = _mm_add_epi32(chksum128, _mm_load_si128(&((__m128i*)p)[x]));
-		chksum128 = _mm_add_epi32(chksum128, _mm_srli_si128(chksum128, 8));
-		chksum128 = _mm_add_epi32(chksum128, _mm_srli_si128(chksum128, 4));
-		chksum += _mm_cvtsi128_si32(chksum128);
+				hash128 = _mm_xor_si128(hash128, _mm_load_si128(&((__m128i*)p)[x]));
+		hash128 = _mm_xor_si128(hash128, _mm_srli_si128(hash128, 8));
+		hash128 = _mm_xor_si128(hash128, _mm_srli_si128(hash128, 4));
+		hash += _mm_cvtsi128_si32(hash128);
 	}
 	else 
 #endif
@@ -297,10 +306,10 @@ DWORD GSTextureCache::HashTexture(const CRect& r, int pitch, void* bits)
 		BYTE* p = (BYTE*)bits;
 		for(int j = r.top; j < r.bottom; j++, p += pitch)
 			for(int i = r.left, x = 0; i < r.right; i++, x++)
-				chksum += ((DWORD*)p)[x];
+				hash ^= ((DWORD*)p)[x];
 	}
 
-	return chksum;
+	return hash;
 }
 
 HRESULT GSTextureCache::UpdateTexture(GSState* s, GSTexture* pt, GSLocalMemory::readTexture rt)
@@ -325,22 +334,18 @@ HRESULT GSTextureCache::UpdateTexture(GSState* s, GSTexture* pt, GSLocalMemory::
 	}
 
 	D3DLOCKED_RECT lr;
-	if(FAILED(pt->m_pTexture->LockRect(0, &lr, &r, D3DLOCK_NO_DIRTY_UPDATE)))
-	{
-		ASSERT(0);
-		return E_FAIL;
-	}
-
+	if(FAILED(pt->m_pTexture->LockRect(0, &lr, &r, D3DLOCK_NO_DIRTY_UPDATE))) {ASSERT(0); return E_FAIL;}
 	(s->m_lm.*rt)(r, (BYTE*)lr.pBits, lr.Pitch, s->m_ctxt->TEX0, s->m_de.TEXA, s->m_ctxt->CLAMP);
 	s->m_stats.IncReads(r.Width()*r.Height()*bpp>>3);
+	pt->m_pTexture->UnlockRect(0);
 
 	pt->m_rcValid |= r;
 	pt->m_rcDirty.RemoveAll();
 
+	if(FAILED(pt->m_pTexture->LockRect(0, &lr, &pt->m_rcValid, D3DLOCK_NO_DIRTY_UPDATE|D3DLOCK_READONLY))) {ASSERT(0); return E_FAIL;}
 	DWORD dwHash = HashTexture(
 		CRect((pt->m_rcValid.left>>2)*(bpp>>3), pt->m_rcValid.top, (pt->m_rcValid.right>>2)*(bpp>>3), pt->m_rcValid.bottom), 
 		lr.Pitch, lr.pBits);
-
 	pt->m_pTexture->UnlockRect(0);
 
 	if(pt->m_rcHash != pt->m_rcValid || pt->m_dwHash != dwHash)

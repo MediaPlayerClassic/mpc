@@ -43,6 +43,7 @@ protected:
 	DWORD m_CBP[2];
 	WORD* m_pCLUT;
 	DWORD* m_pCLUT32;
+	UINT64* m_pCLUT64;
 
 	GIFRegTEX0 m_prevTEX0;
 	GIFRegTEXCLUT m_prevTEXCLUT;

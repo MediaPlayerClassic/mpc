@@ -29,7 +29,7 @@ inline BYTE SCALE_ALPHA(BYTE a)
 	return (((a)&0x80)?0xff:((a)<<1));
 }
 
-static const double log_2pow32 = log(2.0)*32;
+static const float log_2pow32 = log(2.0f)*32;
 
 //
 
@@ -85,7 +85,7 @@ void GSRendererHW::VertexKick(bool fSkip)
 //	v.y = (float)m_v.XYZ.Y/16 - (m_ctxt->XYOFFSET.OFY>>4);
 	//if(m_v.XYZ.Z && m_v.XYZ.Z < 0x100) m_v.XYZ.Z = 0x100;
 	//v.z = 1.0f * (m_v.XYZ.Z>>8)/(UINT_MAX>>8);
-	v.z = log(1.0 + m_v.XYZ.Z)/log_2pow32;
+	v.z = log(1.0f + m_v.XYZ.Z)/log_2pow32;
 	//v.z = (float)m_v.XYZ.Z / UINT_MAX;
 	//v.rhw = v.z ? 1.0f/v.z : 1.0f;
 	v.rhw = m_v.RGBAQ.Q > 0 ? m_v.RGBAQ.Q : 0;
@@ -405,9 +405,9 @@ scale.y = 1;
 				pVertices[] =
 				{
 					{0, 0, 0.5f, 2.0f, 0, 0},
-					{t.m_desc.Width, 0, 0.5f, 2.0f, 1, 0},
-					{0, t.m_desc.Height, 0.5f, 2.0f, 0, 1},
-					{t.m_desc.Width, t.m_desc.Height, 0.5f, 2.0f, 1, 1},
+					{(float)t.m_desc.Width, 0, 0.5f, 2.0f, 1, 0},
+					{0, (float)t.m_desc.Height, 0.5f, 2.0f, 0, 1},
+					{(float)t.m_desc.Width, (float)t.m_desc.Height, 0.5f, 2.0f, 1, 1},
 				};
 
 				hr = m_pD3DDev->BeginScene();
@@ -635,7 +635,7 @@ void GSRendererHW::Flip()
 			rt[i].scale.Get(rt[i].pRT);
 
 			CSize size = m_rs.GetSize(i);
-			rt[i].src = CRect(0, 0, rt[i].scale.x*size.cx, rt[i].scale.y*size.cy);
+			rt[i].src = CRect(0, 0, (int)(rt[i].scale.x*size.cx), (int)(rt[i].scale.y*size.cy));
 		}
 	}
 
@@ -911,11 +911,20 @@ void GSRendererHW::InvalidateLocalMem(DWORD TBP0, DWORD BW, DWORD PSM, CRect r)
 
 void GSRendererHW::MinMaxUV(int w, int h, CRect& r)
 {
-	if(m_ctxt->CLAMP.WMS < 3 && m_ctxt->CLAMP.WMT < 3)
-	{
-		uvmm_t uv;
-		UVMinMax(m_nVertices, (vertex_t*)m_pVertices, &uv);
+	r.SetRect(0, 0, w, h);
 
+	uvmm_t uv;
+	CSize bsm;
+
+	if(m_ctxt->CLAMP.WMS < 3 || m_ctxt->CLAMP.WMT < 3)
+	{
+		UVMinMax(m_nVertices, (vertex_t*)m_pVertices, &uv);
+		CSize bs = GSLocalMemory::GetBlockSize(m_ctxt->TEX0.PSM);
+		bsm.SetSize(bs.cx-1, bs.cy-1);
+	}
+
+	if(m_ctxt->CLAMP.WMS < 3)
+	{
 		if(m_ctxt->CLAMP.WMS == 0)
 		{
 			float fmin = floor(uv.umin);
@@ -934,12 +943,18 @@ void GSRendererHW::MinMaxUV(int w, int h, CRect& r)
 		}
 		else if(m_ctxt->CLAMP.WMS == 2)
 		{
-			float minu = 1.0f * m_ctxt->CLAMP.MINU / (1<<m_ctxt->TEX0.TW);
-			float maxu = 1.0f * m_ctxt->CLAMP.MAXU / (1<<m_ctxt->TEX0.TW);
+			float minu = 1.0f * m_ctxt->CLAMP.MINU / w;
+			float maxu = 1.0f * m_ctxt->CLAMP.MAXU / w;
 			if(uv.umin < minu) uv.umin = minu;
 			if(uv.umax > maxu) uv.umax = maxu;
 		}
 
+		r.left = max((int)(uv.umin * w) & ~bsm.cx, 0);
+		r.right = min(((int)(uv.umax * w) + bsm.cx + 1) & ~bsm.cx, w);
+	}
+
+	if(m_ctxt->CLAMP.WMT < 3)
+	{
 		if(m_ctxt->CLAMP.WMT == 0)
 		{
 			float fmin = floor(uv.vmin);
@@ -958,22 +973,14 @@ void GSRendererHW::MinMaxUV(int w, int h, CRect& r)
 		}
 		else if(m_ctxt->CLAMP.WMT == 2)
 		{
-			float minv = 1.0f * m_ctxt->CLAMP.MINV / (1<<m_ctxt->TEX0.TH);
-			float maxv = 1.0f * m_ctxt->CLAMP.MAXV / (1<<m_ctxt->TEX0.TH);
+			float minv = 1.0f * m_ctxt->CLAMP.MINV / h;
+			float maxv = 1.0f * m_ctxt->CLAMP.MAXV / h;
 			if(uv.vmin < minv) uv.vmin = minv;
 			if(uv.vmax > maxv) uv.vmax = maxv;
 		}
-
-		CSize bs = GSLocalMemory::GetBlockSize(m_ctxt->TEX0.PSM);
-
-		r.left = max((int)(uv.umin * w) & ~(bs.cx-1), 0);
-		r.top = max((int)(uv.vmin * h) & ~(bs.cy-1), 0);
-		r.right = min(((int)(uv.umax * w) + (bs.cx-1) + 1) & ~(bs.cx-1), w);
-		r.bottom = min(((int)(uv.vmax * h) + (bs.cy-1) + 1) & ~(bs.cy-1), h);
-	}
-	else
-	{
-		r.SetRect(0, 0, w, h);
+		
+		r.top = max((int)(uv.vmin * h) & ~bsm.cy, 0);
+		r.bottom = min(((int)(uv.vmax * h) + bsm.cy + 1) & ~bsm.cy, h);
 	}
 }
 
@@ -1028,8 +1035,8 @@ void GSRendererHW::SetupTexture(const GSTextureBase& t, float tsx, float tsy)
 				ASSERT(0);
 				break;
 			case D3DFMT_A8R8G8B8:
-				ASSERT(m_ctxt->TEX0.PSM != PSM_PSMCT24); // format must be D3DFMT_X8R8G8B8 for PSM_PSMCT24
-				// if(m_ctxt->TEX0.PSM == PSM_PSMCT24) {i += 4; if(m_de.TEXA.AEM) i += 4;}
+				//ASSERT(m_ctxt->TEX0.PSM != PSM_PSMCT24); // format must be D3DFMT_X8R8G8B8 for PSM_PSMCT24
+				//if(m_ctxt->TEX0.PSM == PSM_PSMCT24) {i += 4; if(m_de.TEXA.AEM) i += 4;}
 				break;
 			case D3DFMT_X8R8G8B8:
 				i += 4; if(m_de.TEXA.AEM) i += 4;
@@ -1345,9 +1352,8 @@ void GSRendererHW::SetupZBuffer()
 		// FIXME
 		if(m_ctxt->ZBUF.ZMSK && m_ctxt->TEST.ZTST == 1)
 		{
-			HWVERTEX* pVertices = m_pVertices;
-			for(int i = m_nVertices; i-- > 0; pVertices++)
-				pVertices->z = 0;
+			for(int i = 0; i < m_nVertices; i++)
+				m_pVertices[i].z = 0;
 		}
 	}
 }
@@ -1371,14 +1377,21 @@ void GSRendererHW::SetupAlphaTest()
 
 void GSRendererHW::SetupScissor(scale_t& s)
 {
-	HRESULT hr;
-	hr = m_pD3DDev->SetRenderState(D3DRS_SCISSORTESTENABLE, TRUE);
-	CRect scissor(s.x * m_ctxt->SCISSOR.SCAX0, s.y * m_ctxt->SCISSOR.SCAY0, s.x * (m_ctxt->SCISSOR.SCAX1+1), s.y * (m_ctxt->SCISSOR.SCAY1+1));
-	if(scissor.bottom > INTERNALRES && scissor.bottom <= INTERNALRES*2)
+	HRESULT hr = m_pD3DDev->SetRenderState(D3DRS_SCISSORTESTENABLE, TRUE);
+
+	CRect r(
+		(int)(s.x * m_ctxt->SCISSOR.SCAX0),
+		(int)(s.y * m_ctxt->SCISSOR.SCAY0), 
+		(int)(s.x * (m_ctxt->SCISSOR.SCAX1+1)),
+		(int)(s.y * (m_ctxt->SCISSOR.SCAY1+1)));
+
+	if(r.bottom > INTERNALRES && r.bottom <= INTERNALRES*2)
 	{
-		// TODO: isn't there a better way?
-		s.y = s.y * INTERNALRES / scissor.bottom;
+		// TODO: isn't there a better way? what about s.x?
+		s.y = s.y * INTERNALRES / r.bottom;
 	}
-	scissor.IntersectRect(scissor, CRect(0, 0, INTERNALRES, INTERNALRES));
-	hr = m_pD3DDev->SetScissorRect(scissor);
+
+	r &= CRect(0, 0, INTERNALRES, INTERNALRES);
+
+	hr = m_pD3DDev->SetScissorRect(r);
 }

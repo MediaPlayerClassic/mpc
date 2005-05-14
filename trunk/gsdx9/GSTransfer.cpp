@@ -56,7 +56,7 @@ void GSState::WriteTransfer(BYTE* pMem, int len)
 		FlushPrim();
 
 	//
-/*
+
 	ASSERT(len <= m_nTrMaxBytes); // transferring more than 4mb into a 4mb local mem doesn't make any sense
 
 	len = min(m_nTrMaxBytes, len);
@@ -64,12 +64,13 @@ void GSState::WriteTransfer(BYTE* pMem, int len)
 	if(m_nTrBytes + len > m_nTrMaxBytes)
 		FlushWriteTransfer();
 
-	// TODO align lines on 16 byte boundaries
 	memcpy(&m_pTrBuff[m_nTrBytes], pMem, len);
 	m_nTrBytes += len;
 
+	// TODO: write m_pTrBuff parallel with a worker thread?
+
 	//
-*/
+/*
 
 	int x = m_x, y = m_y;
 
@@ -88,7 +89,7 @@ LOG(_T("*TC2 FlushWriteTransfer %d,%d-%d,%d (psm=%d rr=%dx%d len=%d)\n"), x, y, 
 	InvalidateTexture(m_rs.BITBLTBUF.DBP, m_rs.BITBLTBUF.DPSM, r);
 
 	m_lm.InvalidateCLUT();
-
+*/
 }
 
 void GSState::FlushWriteTransfer()
