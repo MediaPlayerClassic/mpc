@@ -684,8 +684,6 @@ extern "C" void __fastcall ReadCLUT32_T32_I4_sse2(WORD* src, DWORD* dst)
 
 extern "C" void __fastcall ReadCLUT32_T16_I8_sse2(WORD* src, DWORD* dst)
 {
-	ASSERT(0);
-	// TESTME
 	for(int i = 0; i < 256; i += 16)
 	{
 		ReadCLUT32_T16_I4_sse2(&src[i], &dst[i]);
@@ -694,8 +692,6 @@ extern "C" void __fastcall ReadCLUT32_T16_I8_sse2(WORD* src, DWORD* dst)
 
 extern "C" void __fastcall ReadCLUT32_T16_I4_sse2(WORD* src, DWORD* dst)
 {
-	ASSERT(0);
-	// TESTME
 	__m128i r0 = ((__m128i*)src)[0];
 	__m128i r1 = ((__m128i*)src)[1];
 	_mm_store_si128(&((__m128i*)dst)[0], _mm_unpacklo_epi16(r0, s_zero));

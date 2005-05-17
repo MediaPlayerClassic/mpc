@@ -44,6 +44,7 @@ public:
 	BOOL m_fEnableTvOut;
 	BOOL m_fRecordState;
 	CString m_strRecordState;
+	BOOL m_fLinearTexFilter;
 
 protected:
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV support

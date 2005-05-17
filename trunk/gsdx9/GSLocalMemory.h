@@ -29,14 +29,14 @@
 class GSLocalMemory
 {
 protected:
-	static WORD pageOffset32[32][32][64];
-	static WORD pageOffset32Z[32][32][64];
-	static WORD pageOffset16[32][64][64];
-	static WORD pageOffset16S[32][64][64];
-	static WORD pageOffset16Z[32][64][64];
-	static WORD pageOffset16SZ[32][64][64];
-	static WORD pageOffset8[32][64][128];
-	static WORD pageOffset4[32][128][128];
+	static DWORD pageOffset32[32][32][64];
+	static DWORD pageOffset32Z[32][32][64];
+	static DWORD pageOffset16[32][64][64];
+	static DWORD pageOffset16S[32][64][64];
+	static DWORD pageOffset16Z[32][64][64];
+	static DWORD pageOffset16SZ[32][64][64];
+	static DWORD pageOffset8[32][64][128];
+	static DWORD pageOffset4[32][128][128];
 
 	union {BYTE* m_vm8; WORD* m_vm16; DWORD* m_vm32;};
 
@@ -57,7 +57,7 @@ public:
 
 	BYTE* GetVM() {return m_vm8;}
 
-	typedef DWORD (GSLocalMemory::*pixelAddress)(int x, int y, DWORD bp, DWORD bw);
+	typedef DWORD (__fastcall *pixelAddress)(int x, int y, DWORD bp, DWORD bw);
 	typedef void (GSLocalMemory::*writePixel)(int x, int y, DWORD c, DWORD bp, DWORD bw);
 	typedef void (GSLocalMemory::*writeFrame)(int x, int y, DWORD c, DWORD bp, DWORD bw);
 	typedef DWORD (GSLocalMemory::*readPixel)(int x, int y, DWORD bp, DWORD bw);
@@ -71,50 +71,52 @@ public:
 	typedef void (GSLocalMemory::*SwizzleTexture)(int& tx, int& ty, BYTE* src, int len, GIFRegBITBLTBUF& BITBLTBUF, GIFRegTRXPOS& TRXPOS, GIFRegTRXREG& TRXREG);
 	typedef void (GSLocalMemory::*unSwizzleTexture)(const CRect& r, BYTE* dst, int dstpitch, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
 	typedef void (GSLocalMemory::*unSwizzleTextureP)(const CRect& r, BYTE* dst, int dstpitch, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
+	typedef void (GSLocalMemory::*unSwizzleTextureNP)(const CRect& r, BYTE* dst, int dstpitch, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
 	typedef void (GSLocalMemory::*readTexture)(const CRect& r, BYTE* dst, int dstpitch, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA, GIFRegCLAMP& CLAMP);
 
 	// address
 
-	DWORD pageAddress32(int x, int y, DWORD bp, DWORD bw);
-	DWORD pageAddress16(int x, int y, DWORD bp, DWORD bw);
-	DWORD pageAddress8(int x, int y, DWORD bp, DWORD bw);
-	DWORD pageAddress4(int x, int y, DWORD bp, DWORD bw);
+	static DWORD __fastcall pageAddress32(int x, int y, DWORD bp, DWORD bw);
+	static DWORD __fastcall pageAddress16(int x, int y, DWORD bp, DWORD bw);
+	static DWORD __fastcall pageAddress8(int x, int y, DWORD bp, DWORD bw);
+	static DWORD __fastcall pageAddress4(int x, int y, DWORD bp, DWORD bw);
 
 	pixelAddress GetPageAddress(DWORD psm);
 
-	DWORD blockAddress32(int x, int y, DWORD bp, DWORD bw);
-	DWORD blockAddress24(int x, int y, DWORD bp, DWORD bw);
-	DWORD blockAddress16(int x, int y, DWORD bp, DWORD bw);
-	DWORD blockAddress16S(int x, int y, DWORD bp, DWORD bw);
-	DWORD blockAddress8(int x, int y, DWORD bp, DWORD bw);
-	DWORD blockAddress4(int x, int y, DWORD bp, DWORD bw);
-	DWORD blockAddress32Z(int x, int y, DWORD bp, DWORD bw);
-	DWORD blockAddress16Z(int x, int y, DWORD bp, DWORD bw);
-	DWORD blockAddress16SZ(int x, int y, DWORD bp, DWORD bw);
+	static DWORD __fastcall blockAddress32(int x, int y, DWORD bp, DWORD bw);
+	static DWORD __fastcall blockAddress24(int x, int y, DWORD bp, DWORD bw);
+	static DWORD __fastcall blockAddress16(int x, int y, DWORD bp, DWORD bw);
+	static DWORD __fastcall blockAddress16S(int x, int y, DWORD bp, DWORD bw);
+	static DWORD __fastcall blockAddress8(int x, int y, DWORD bp, DWORD bw);
+	static DWORD __fastcall blockAddress4(int x, int y, DWORD bp, DWORD bw);
+	static DWORD __fastcall blockAddress32Z(int x, int y, DWORD bp, DWORD bw);
+	static DWORD __fastcall blockAddress16Z(int x, int y, DWORD bp, DWORD bw);
+	static DWORD __fastcall blockAddress16SZ(int x, int y, DWORD bp, DWORD bw);
 
 	pixelAddress GetBlockAddress(DWORD psm);
 
-	DWORD pixelAddressOrg32(int x, int y, DWORD bp, DWORD bw);
-	DWORD pixelAddressOrg24(int x, int y, DWORD bp, DWORD bw);
-	DWORD pixelAddressOrg16(int x, int y, DWORD bp, DWORD bw);
-	DWORD pixelAddressOrg16S(int x, int y, DWORD bp, DWORD bw);
-	DWORD pixelAddressOrg8(int x, int y, DWORD bp, DWORD bw);
-	DWORD pixelAddressOrg4(int x, int y, DWORD bp, DWORD bw);
-	DWORD pixelAddressOrg32Z(int x, int y, DWORD bp, DWORD bw);
-	DWORD pixelAddressOrg16Z(int x, int y, DWORD bp, DWORD bw);
-	DWORD pixelAddressOrg16SZ(int x, int y, DWORD bp, DWORD bw);
+	static DWORD __fastcall pixelAddressOrg32(int x, int y, DWORD bp, DWORD bw);
+	static DWORD __fastcall pixelAddressOrg24(int x, int y, DWORD bp, DWORD bw);
+	static DWORD __fastcall pixelAddressOrg16(int x, int y, DWORD bp, DWORD bw);
+	static DWORD __fastcall pixelAddressOrg16S(int x, int y, DWORD bp, DWORD bw);
+	static DWORD __fastcall pixelAddressOrg8(int x, int y, DWORD bp, DWORD bw);
+	static DWORD __fastcall pixelAddressOrg4(int x, int y, DWORD bp, DWORD bw);
+	static DWORD __fastcall pixelAddressOrg32Z(int x, int y, DWORD bp, DWORD bw);
+	static DWORD __fastcall pixelAddressOrg16Z(int x, int y, DWORD bp, DWORD bw);
+	static DWORD __fastcall pixelAddressOrg16SZ(int x, int y, DWORD bp, DWORD bw);
 
 	pixelAddress GetPixelAddressOrg(DWORD psm);
 
-	DWORD pixelAddress32(int x, int y, DWORD bp, DWORD bw);
-	DWORD pixelAddress24(int x, int y, DWORD bp, DWORD bw);
-	DWORD pixelAddress16(int x, int y, DWORD bp, DWORD bw);
-	DWORD pixelAddress16S(int x, int y, DWORD bp, DWORD bw);
-	DWORD pixelAddress8(int x, int y, DWORD bp, DWORD bw);
-	DWORD pixelAddress4(int x, int y, DWORD bp, DWORD bw);
-	DWORD pixelAddress32Z(int x, int y, DWORD bp, DWORD bw);
-	DWORD pixelAddress16Z(int x, int y, DWORD bp, DWORD bw);
-	DWORD pixelAddress16SZ(int x, int y, DWORD bp, DWORD bw);
+	static DWORD __fastcall pixelAddress32f(int x, int y, DWORD bp, DWORD bw);
+	static DWORD __fastcall pixelAddress32(int x, int y, DWORD bp, DWORD bw);
+	static DWORD __fastcall pixelAddress24(int x, int y, DWORD bp, DWORD bw);
+	static DWORD __fastcall pixelAddress16(int x, int y, DWORD bp, DWORD bw);
+	static DWORD __fastcall pixelAddress16S(int x, int y, DWORD bp, DWORD bw);
+	static DWORD __fastcall pixelAddress8(int x, int y, DWORD bp, DWORD bw);
+	static DWORD __fastcall pixelAddress4(int x, int y, DWORD bp, DWORD bw);
+	static DWORD __fastcall pixelAddress32Z(int x, int y, DWORD bp, DWORD bw);
+	static DWORD __fastcall pixelAddress16Z(int x, int y, DWORD bp, DWORD bw);
+	static DWORD __fastcall pixelAddress16SZ(int x, int y, DWORD bp, DWORD bw);
 
 	pixelAddress GetPixelAddress(DWORD psm);
 
@@ -266,7 +268,6 @@ public:
 
 	// 32/16/8P
 
-	DWORD readTexel32P(int x, int y, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
 	DWORD readTexel16P(int x, int y, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
 	DWORD readTexel16SP(int x, int y, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
 	DWORD readTexel8P(int x, int y, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
@@ -277,7 +278,6 @@ public:
 
 	readTexelP GetReadTexelP(DWORD psm);
 
-	void unSwizzleTexture32P(const CRect& r, BYTE* dst, int dstpitch, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
 	void unSwizzleTexture16P(const CRect& r, BYTE* dst, int dstpitch, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
 	void unSwizzleTexture16SP(const CRect& r, BYTE* dst, int dstpitch, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
 	void unSwizzleTexture8P(const CRect& r, BYTE* dst, int dstpitch, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
@@ -289,6 +289,20 @@ public:
 	unSwizzleTextureP GetUnSwizzleTextureP(DWORD psm);
 
 	void ReadTextureP(const CRect& r, BYTE* dst, int dstpitch, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA, GIFRegCLAMP& CLAMP);
+
+	// 32/16
+
+	readTexelNP GetReadTexelNP(DWORD psm);
+
+	void unSwizzleTexture8NP(const CRect& r, BYTE* dst, int dstpitch, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
+	void unSwizzleTexture8HNP(const CRect& r, BYTE* dst, int dstpitch, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
+	void unSwizzleTexture4NP(const CRect& r, BYTE* dst, int dstpitch, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
+	void unSwizzleTexture4HLNP(const CRect& r, BYTE* dst, int dstpitch, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
+	void unSwizzleTexture4HHNP(const CRect& r, BYTE* dst, int dstpitch, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
+
+	unSwizzleTextureNP GetUnSwizzleTextureNP(DWORD psm);
+
+	void ReadTextureNP(const CRect& r, BYTE* dst, int dstpitch, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA, GIFRegCLAMP& CLAMP);
 
 	//
 

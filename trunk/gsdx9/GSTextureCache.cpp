@@ -86,6 +86,7 @@ GSTexture::GSTexture()
 	m_TEX0.TBP0 = ~0;
 	m_rcValid = CRect(0, 0, 0, 0);
 	m_dwHash = ~0;
+	m_nHashDiff = m_nHashSame = 0;
 	m_rcHash = CRect(0, 0, 0, 0);
 	m_nBytes = 0;
 	m_nAge = 0;
@@ -240,7 +241,8 @@ bool GSTextureCache::GetDirtyRect(GSState* s, GSTexture* pt, CRect& r)
 
 	r.SetRect(0, 0, w, h);
 
-//return true;
+// FIXME: kyo's left hand after being selected for player one (PS2-SNK_Vs_Capcom_SVC_Chaos_PAL_CDFull.iso)
+// return true;
 
 	s->MinMaxUV(w, h, r);
 
@@ -285,28 +287,44 @@ bool GSTextureCache::GetDirtyRect(GSState* s, GSTexture* pt, CRect& r)
 
 DWORD GSTextureCache::HashTexture(const CRect& r, int pitch, void* bits)
 {
+	// TODO: make the hash more unique
+
+	BYTE* p = (BYTE*)bits;
 	DWORD hash = r.left + r.right + r.top + r.bottom + pitch + *(BYTE*)bits;
 
 #if defined(_M_AMD64) || _M_IX86_FP >= 2
-	if(r.Width() >= 4)
+	if(r.Width() >= 4 && !((DWORD_PTR)bits & 0xf))
 	{
-		BYTE* p = (BYTE*)bits;
-		__m128i hash128 = _mm_setzero_si128();
+		__m128i hash128 = _mm_setzero_si128(), prev128 = _mm_setzero_si128();
 		for(int j = r.top; j < r.bottom; j++, p += pitch)
+		{
+			hash128 = _mm_add_epi32(hash128, _mm_set1_epi32(j));
 			for(int i = r.left, x = 0; i < r.right; i += 4, x++)
-				hash128 = _mm_xor_si128(hash128, _mm_load_si128(&((__m128i*)p)[x]));
-		hash128 = _mm_xor_si128(hash128, _mm_srli_si128(hash128, 8));
-		hash128 = _mm_xor_si128(hash128, _mm_srli_si128(hash128, 4));
+			{
+				hash128 = _mm_add_epi32(hash128, prev128);
+				prev128 = _mm_load_si128(&((__m128i*)p)[x]);
+				hash128 = _mm_add_epi32(hash128, prev128);
+			}
+		}
+		hash128 = _mm_add_epi32(hash128, _mm_srli_si128(hash128, 8));
+		hash128 = _mm_add_epi32(hash128, _mm_srli_si128(hash128, 4));
 		hash += _mm_cvtsi128_si32(hash128);
 	}
 	else 
 #endif
 	if(r.Width() > 0)
 	{
-		BYTE* p = (BYTE*)bits;
+		DWORD prev = 0;
 		for(int j = r.top; j < r.bottom; j++, p += pitch)
+		{
+			hash += j;
 			for(int i = r.left, x = 0; i < r.right; i++, x++)
-				hash ^= ((DWORD*)p)[x];
+			{
+				hash += prev;
+				prev = ((DWORD*)p)[x];
+				hash += prev;
+			}
+		}
 	}
 
 	return hash;
@@ -336,32 +354,54 @@ HRESULT GSTextureCache::UpdateTexture(GSState* s, GSTexture* pt, GSLocalMemory::
 	D3DLOCKED_RECT lr;
 	if(FAILED(pt->m_pTexture->LockRect(0, &lr, &r, D3DLOCK_NO_DIRTY_UPDATE))) {ASSERT(0); return E_FAIL;}
 	(s->m_lm.*rt)(r, (BYTE*)lr.pBits, lr.Pitch, s->m_ctxt->TEX0, s->m_de.TEXA, s->m_ctxt->CLAMP);
-	s->m_stats.IncReads(r.Width()*r.Height()*bpp>>3);
+	s->m_perfmon.IncCounter(GSPerfMon::c_unswizzle, r.Width()*r.Height()*bpp>>3);
 	pt->m_pTexture->UnlockRect(0);
 
 	pt->m_rcValid |= r;
 	pt->m_rcDirty.RemoveAll();
 
-	if(FAILED(pt->m_pTexture->LockRect(0, &lr, &pt->m_rcValid, D3DLOCK_NO_DIRTY_UPDATE|D3DLOCK_READONLY))) {ASSERT(0); return E_FAIL;}
-	DWORD dwHash = HashTexture(
-		CRect((pt->m_rcValid.left>>2)*(bpp>>3), pt->m_rcValid.top, (pt->m_rcValid.right>>2)*(bpp>>3), pt->m_rcValid.bottom), 
-		lr.Pitch, lr.pBits);
-	pt->m_pTexture->UnlockRect(0);
+	const static DWORD limit = 7;
 
-	if(pt->m_rcHash != pt->m_rcValid || pt->m_dwHash != dwHash)
+	if((pt->m_nHashDiff & limit) && pt->m_nHashDiff >= limit && pt->m_rcHash == pt->m_rcValid) // predicted to be dirty
 	{
-		pt->m_rcHash = pt->m_rcValid;
-		pt->m_dwHash = dwHash;
-		pt->m_pTexture->AddDirtyRect(&r);
-		pt->m_pTexture->PreLoad();
-		s->m_stats.IncTexWrite(r.Width()*r.Height()*bpp>>3);
+		pt->m_nHashDiff++;
 	}
 	else
 	{
-#ifdef DEBUG_LOG
-		s->LOG(_T("*TC2 updating texture is not necessary!!! skipping AddDirtyRect\n"));
-#endif
+		if(FAILED(pt->m_pTexture->LockRect(0, &lr, &pt->m_rcValid, D3DLOCK_NO_DIRTY_UPDATE|D3DLOCK_READONLY))) {ASSERT(0); return E_FAIL;}
+		DWORD dwHash = HashTexture(
+			CRect((pt->m_rcValid.left>>2)*(bpp>>3), pt->m_rcValid.top, (pt->m_rcValid.right>>2)*(bpp>>3), pt->m_rcValid.bottom), 
+			lr.Pitch, lr.pBits);
+		pt->m_pTexture->UnlockRect(0);
+
+		if(pt->m_rcHash != pt->m_rcValid)
+		{
+			pt->m_nHashDiff = 0;
+			pt->m_nHashSame = 0;
+			pt->m_rcHash = pt->m_rcValid;
+			pt->m_dwHash = dwHash;
+		}
+		else
+		{
+			if(pt->m_dwHash != dwHash)
+			{
+				pt->m_nHashDiff++;
+				pt->m_nHashSame = 0;
+				pt->m_dwHash = dwHash;
+			}
+			else
+			{
+				if(pt->m_nHashDiff < limit) r.SetRect(0, 0, 1, 1);
+				// else pt->m_dwHash is not reliable, must update
+				pt->m_nHashDiff = 0;
+				pt->m_nHashSame++;
+			}
+		}
 	}
+
+	pt->m_pTexture->AddDirtyRect(&r);
+	pt->m_pTexture->PreLoad();
+	s->m_perfmon.IncCounter(GSPerfMon::c_texture, r.Width()*r.Height()*bpp>>3);
 
 #ifdef DEBUG_LOG
 	s->LOG(_T("*TC2 texture was updated, valid %d,%dx%d,%d\n"), pt->m_rcValid);
@@ -571,12 +611,131 @@ bool GSTextureCache::FetchP(GSState* s, GSTextureBase& t)
 			return false;
 		s->m_lm.ReadCLUT32(s->m_ctxt->TEX0, s->m_de.TEXA, (DWORD*)r.pBits);
 		pt->m_pPalette->UnlockRect(0);
-		s->m_stats.IncTexWrite(256*4);
+		s->m_perfmon.IncCounter(GSPerfMon::c_texture, 256*4);
 	}
 
 	if(lr == needsupdate)
 	{
 		UpdateTexture(s, pt, &GSLocalMemory::ReadTextureP);
+
+		lr = found;
+	}
+
+	if(lr == found)
+	{
+#ifdef DEBUG_LOG
+		s->LOG(_T("*TC2 texture was found, age %d -> 0\n"), pt->m_nAge);
+#endif
+		pt->m_nAge = 0;
+		t = *pt;
+		return true;
+	}
+
+	return false;
+}
+
+bool GSTextureCache::FetchNP(GSState* s, GSTextureBase& t)
+{
+	GSTexture* pt = NULL;
+
+	int nPaletteEntries = PaletteEntries(s->m_ctxt->TEX0.PSM);
+
+	DWORD clut[256];
+
+	if(nPaletteEntries)
+	{
+		s->m_lm.SetupCLUT(s->m_ctxt->TEX0, s->m_de.TEXA);
+		s->m_lm.CopyCLUT32(clut, nPaletteEntries);
+	}
+
+#ifdef DEBUG_LOG
+	s->LOG(_T("*TC2 Fetch %dx%d %05x %d (%d)\n"), 
+		1 << s->m_ctxt->TEX0.TW, 1 << s->m_ctxt->TEX0.TH, 
+		s->m_ctxt->TEX0.TBP0, s->m_ctxt->TEX0.PSM, nPaletteEntries);
+#endif
+
+	enum lookupresult {notfound, needsupdate, found} lr = notfound;
+
+	POSITION pos = GetHeadPosition();
+	while(pos && !pt)
+	{
+		POSITION cur = pos;
+		pt = GetNext(pos);
+
+		if(pt->m_TEX0.TBP0 == s->m_ctxt->TEX0.TBP0)
+		{
+			if(pt->m_fRT)
+			{
+				lr = found;
+
+				// FIXME: RT + 8h,4hl,4hh
+				if(nPaletteEntries)
+					return false;
+
+				// FIXME: different RT res
+			}
+			else if(s->m_ctxt->TEX0.PSM == pt->m_TEX0.PSM && s->m_ctxt->TEX0.TW == pt->m_TEX0.TW && s->m_ctxt->TEX0.TH == pt->m_TEX0.TH
+			&& (!(s->m_ctxt->CLAMP.WMS&2) && !(pt->m_CLAMP.WMS&2) && !(s->m_ctxt->CLAMP.WMT&2) && !(pt->m_CLAMP.WMT&2) || s->m_ctxt->CLAMP.i64 == pt->m_CLAMP.i64)
+			// && s->m_de.TEXA.TA0 == pt->m_TEXA.TA0 && s->m_de.TEXA.TA1 == pt->m_TEXA.TA1 && s->m_de.TEXA.AEM == pt->m_TEXA.AEM
+			&& (!nPaletteEntries || s->m_ctxt->TEX0.CPSM == pt->m_TEX0.CPSM && !memcmp(pt->m_clut, clut, nPaletteEntries*sizeof(clut[0]))))
+			{
+				lr = needsupdate;
+			}
+		}
+
+		if(lr != notfound) {MoveToHead(cur); break;}
+
+		pt = NULL;
+	}
+
+#ifdef DEBUG_LOG
+	s->LOG(_T("*TC2 lr = %s\n"), lr == found ? _T("found") : lr == needsupdate ? _T("needsupdate") : _T("notfound"));
+#endif
+
+	if(lr == notfound)
+	{
+		pt = new GSTexture();
+
+		pt->m_TEX0 = s->m_ctxt->TEX0;
+		pt->m_CLAMP = s->m_ctxt->CLAMP;
+		// pt->m_TEXA = s->m_de.TEXA;
+
+		DWORD psm = s->m_ctxt->TEX0.PSM;
+
+		switch(psm)
+		{
+		case PSM_PSMT8:
+		case PSM_PSMT8H:
+		case PSM_PSMT4:
+		case PSM_PSMT4HL:
+		case PSM_PSMT4HH:
+			psm = s->m_ctxt->TEX0.CPSM;
+			break;
+		}
+
+		if(!SUCCEEDED(CreateTexture(s, pt, psm)))
+		{
+			delete pt;
+			return false;
+		}
+
+		RemoveOldTextures(s);
+
+		AddHead(pt);
+
+		lr = needsupdate;
+	}
+
+	ASSERT(pt);
+
+	if(pt && nPaletteEntries)
+	{
+		memcpy(pt->m_clut, clut, nPaletteEntries*sizeof(clut[0]));
+	}
+
+	if(lr == needsupdate)
+	{
+		UpdateTexture(s, pt, &GSLocalMemory::ReadTextureNP);
 
 		lr = found;
 	}

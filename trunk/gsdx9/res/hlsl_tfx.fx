@@ -41,7 +41,7 @@ float4 SampleTexture_24(in float2 Tex : TEXCOORD0) : COLOR
 {
 	float4 c = tex2D(Texture, Tex);
 	c.a = TA0;
-	if(!fRT) c.a *= 2;
+	//if(!fRT) c.a *= 2; // premultiplied
 	return c;	
 }
 
@@ -49,24 +49,24 @@ float4 SampleTexture_24AEM(in float2 Tex : TEXCOORD0) : COLOR
 {
 	float4 c = tex2D(Texture, Tex);
 	c.a = any(c.rgb) ? TA0 : 0;
-	if(!fRT) c.a *= 2;
+	//if(!fRT) c.a *= 2; // premultiplied
 	return c;	
 }
 
 float4 SampleTexture_16(in float2 Tex : TEXCOORD0) : COLOR
 {
 	float4 c = tex2D(Texture, Tex);
-	c.a = c.a == 1 ? TA1 : TA0;
-	if(!fRT) c.a *= 2;
+	c.a = c.a != 0 ? TA1 : TA0;
+	//if(!fRT) c.a *= 2; // premultiplied
 	return c;	
 }
 
 float4 SampleTexture_16AEM(in float2 Tex : TEXCOORD0) : COLOR
 {
 	float4 c = tex2D(Texture, Tex);
-	c.a = c.a == 1 ? TA1 : any(c.rgb) ? TA0 : 0;
-	if(!fRT) c.a *= 2;
-	return c;	
+	c.a = c.a != 0 ? TA1 : any(c.rgb) ? TA0 : 0;
+	//if(!fRT) c.a *= 2; // premultiplied
+	return c;
 }
 
 static const float s_palerr = 0.001/256;

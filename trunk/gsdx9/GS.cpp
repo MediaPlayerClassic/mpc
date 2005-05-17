@@ -30,7 +30,7 @@
 
 #define PS2E_LT_GS 0x01
 #define PS2E_GS_VERSION 0x0006
-#define PS2E_DLL_VERSION 0x06
+#define PS2E_DLL_VERSION 0x08
 #define PS2E_X86 0x01   // 32 bit
 #define PS2E_X86_64 0x02   // 64 bit
 
@@ -136,6 +136,8 @@ EXPORT_C_(INT32) GSopen(void* pDsp, char* Title)
 		return -1;
 
 	*(HWND*)pDsp = s_hWnd;
+
+	s_gs->ResetDevice();
 
 	s_gs->GSirq(s_fpGSirq);
 	s_gs->GSsetCSR(s_pCSRr);
@@ -329,7 +331,7 @@ EXPORT_C GSReplay(HWND hwnd, HINSTANCE hinst, LPSTR lpszCmdLine, int nCmdShow)
 		{
 			if(FILE* sfp = _tfopen(lpszCmdLine, _T("rb")))
 			{
-				CArray<BYTE> buff;
+				BYTE* buff = (BYTE*)_aligned_malloc(4*1024*1024, 16);
 
 				while(!feof(sfp))
 				{
@@ -357,9 +359,9 @@ EXPORT_C GSReplay(HWND hwnd, HINSTANCE hinst, LPSTR lpszCmdLine, int nCmdShow)
 						fread(&size, 4, 1, sfp);
 						UINT32 len = 0;
 						fread(&len, 4, 1, sfp);
-						if(buff.GetSize() < len) buff.SetSize(len);
-						fread(buff.GetData(), len, 1, sfp);
-						GSgifTransfer3(buff.GetData(), size);
+						if(len > 4*1024*1024) {ASSERT(0); break;}
+						fread(buff, len, 1, sfp);
+						GSgifTransfer3(buff, size);
 						break;
 						}
 					case ST_VSYNC:
@@ -367,6 +369,8 @@ EXPORT_C GSReplay(HWND hwnd, HINSTANCE hinst, LPSTR lpszCmdLine, int nCmdShow)
 						break;
 					}
 				}
+
+				_aligned_free(buff);
 			}
 
 			GSclose();
