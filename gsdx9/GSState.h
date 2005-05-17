@@ -29,7 +29,7 @@
 #include "GSVertexList.h"
 #include "GSCapture.h"
 #include "GSPerfMon.h"
-
+//
 #define ENABLE_CAPTURE_STATE
 ////
 /*
@@ -170,7 +170,6 @@ protected:
 	GSRegSet m_rs;
 	GSVertex m_v;
 	float m_q;
-	GSStats m_stats;
 	GSPerfMon m_perfmon;
 	GSCapture m_capture;
 
@@ -186,8 +185,10 @@ protected:
 	void MoveTransfer();
 
 	HWND m_hWnd;
+	int m_width, m_height;
 	CComPtr<IDirect3D9> m_pD3D;
 	CComPtr<IDirect3DDevice9> m_pD3DDev;
+	CComPtr<ID3DXFont> m_pD3DXFont;
 	CComPtr<IDirect3DSurface9> m_pOrgRenderTarget;
 	CComPtr<IDirect3DPixelShader9> m_pPixelShaders[20];
 	CComPtr<IDirect3DPixelShader9> m_pHLSLTFX[38], m_pHLSLMerge[3];
@@ -200,6 +201,7 @@ protected:
 	D3DSURFACE_DESC m_bd;
 	D3DFORMAT m_fmtDepthStencil;
 	bool m_fEnablePalettizedTextures;
+	D3DTEXTUREFILTERTYPE m_texfilter;
 
 	virtual void Reset();
 	virtual void VertexKick(bool fSkip) = 0;
@@ -310,6 +312,8 @@ protected:
 public:
 	GSState(int w, int h, HWND hWnd, HRESULT& hr);
 	virtual ~GSState();
+
+	virtual HRESULT ResetDevice(bool fForceWindowed = false);
 
 	UINT32 Freeze(freezeData* fd, bool fSizeOnly);
 	UINT32 Defrost(const freezeData* fd);

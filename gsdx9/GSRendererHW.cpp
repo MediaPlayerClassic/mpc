@@ -22,7 +22,8 @@
 #include "StdAfx.h"
 #include "GSRendererHW.h"
 
-#define INTERNALRES 1024
+#define INTERNALRESX 1024
+#define INTERNALRESY 1024
 
 inline BYTE SCALE_ALPHA(BYTE a) 
 {
@@ -34,23 +35,22 @@ static const float log_2pow32 = log(2.0f)*32;
 //
 
 GSRendererHW::GSRendererHW(HWND hWnd, HRESULT& hr)
-	: GSRenderer<HWVERTEX>(INTERNALRES, INTERNALRES, hWnd, hr)
+	: GSRenderer<HWVERTEX>(INTERNALRESX, INTERNALRESY, hWnd, hr)
 {
 	Reset();
-
-	if(m_pD3DDev)
-	{
-		hr = m_pD3DDev->SetRenderState(D3DRS_SEPARATEALPHABLENDENABLE, TRUE);
-		hr = m_pD3DDev->SetRenderState(D3DRS_BLENDOPALPHA, D3DBLENDOP_ADD);
-		hr = m_pD3DDev->SetRenderState(D3DRS_SRCBLENDALPHA, D3DBLEND_ONE);
-		hr = m_pD3DDev->SetRenderState(D3DRS_DESTBLENDALPHA, D3DBLEND_ZERO);
-	}
-
-	m_fHalfVRes = !!AfxGetApp()->GetProfileInt(_T("Settings"), _T("HalfVRes"), FALSE);
 }
 
 GSRendererHW::~GSRendererHW()
 {
+}
+
+HRESULT GSRendererHW::ResetDevice(bool fForceWindowed)
+{
+	m_pRenderTargets.RemoveAll();
+	m_pDepthStencils.RemoveAll();
+	m_tc.RemoveAll();
+
+	return __super::ResetDevice(fForceWindowed);
 }
 
 void GSRendererHW::Reset()
@@ -60,6 +60,7 @@ void GSRendererHW::Reset()
 	m_tc.RemoveAll();
 
 	m_pRenderTargets.RemoveAll();
+	m_pDepthStencils.RemoveAll();
 
 	POSITION pos = m_pRenderWnds.GetStartPosition();
 	while(pos)
@@ -304,21 +305,16 @@ void GSRendererHW::FlushPrim()
 
 		LOG(_T("FlushPrim(pt=%d, nVertices=%d, nPrims=%d)\n"), m_primtype, m_nVertices, nPrims);
 
-		m_stats.IncPrims(nPrims);
+		m_perfmon.IncCounter(GSPerfMon::c_prim, nPrims);
 
 		//////////////////////
 
 		HRESULT hr;
 
-		scale_t scale((float)INTERNALRES / (m_ctxt->FRAME.FBW*64), (float)INTERNALRES / m_rs.GetSize(m_rs.IsEnabled(1)?1:0).cy);
+		scale_t scale(
+			(float)m_bd.Width / (m_ctxt->FRAME.FBW*64), 
+			(float)m_bd.Height / m_rs.GetSize(m_rs.IsEnabled(1)?1:0).cy);
 
-// FIXME!!!!!!!!!!!!!!! damnit
-if(m_fHalfVRes) 
-	scale.y /= 2;
-/*
-//scale.x = 1;
-scale.y = 1;
-*/
 		//////////////////////
 
 		CComPtr<IDirect3DTexture9> pRT;
@@ -329,7 +325,7 @@ scale.y = 1;
 
 		if(!m_pRenderTargets.Lookup(m_ctxt->FRAME.Block(), pRT))
 		{
-			hr = m_pD3DDev->CreateTexture(INTERNALRES, INTERNALRES, 1, D3DUSAGE_RENDERTARGET, D3DFMT_A8R8G8B8, D3DPOOL_DEFAULT, &pRT, NULL);
+			hr = m_pD3DDev->CreateTexture(m_bd.Width, m_bd.Height, 1, D3DUSAGE_RENDERTARGET, D3DFMT_A8R8G8B8, D3DPOOL_DEFAULT, &pRT, NULL);
 			if(S_OK != hr) {ASSERT(0); return;}
 			m_pRenderTargets[m_ctxt->FRAME.Block()] = pRT;
 #ifdef DEBUG_RENDERTARGETS
@@ -345,7 +341,7 @@ scale.y = 1;
 
 		if(!m_pDepthStencils.Lookup(m_ctxt->ZBUF.ZBP, pDS))
 		{
-			hr = m_pD3DDev->CreateDepthStencilSurface(INTERNALRES, INTERNALRES, m_fmtDepthStencil, D3DMULTISAMPLE_NONE, 0, FALSE, &pDS, NULL);
+			hr = m_pD3DDev->CreateDepthStencilSurface(m_bd.Width, m_bd.Height, m_fmtDepthStencil, D3DMULTISAMPLE_NONE, 0, FALSE, &pDS, NULL);
 			if(S_OK != hr) {ASSERT(0); return;}
 			m_pDepthStencils[m_ctxt->ZBUF.ZBP] = pDS;
 			fClearDS = true;
@@ -359,16 +355,12 @@ scale.y = 1;
 
 		if(m_de.pPRIM->TME)
 		{
-			if(m_fEnablePalettizedTextures && m_caps.PixelShaderVersion >= D3DVS_VERSION(2, 0))
-			{
-				if(!m_tc.FetchP(this, t))
-					break;
-			}
-			else
-			{
-				if(!m_tc.Fetch(this, t))
-					break;
-			}
+			bool fFetched = 
+				m_fEnablePalettizedTextures && m_caps.PixelShaderVersion >= D3DPS_VERSION(2, 0) ? m_tc.FetchP(this, t) : 
+				m_caps.PixelShaderVersion >= D3DPS_VERSION(2, 0) ? m_tc.FetchNP(this, t) :
+				m_tc.Fetch(this, t);
+
+			if(!fFetched) break;
 
 			if(nPrims > 100 && t.m_pPalette) // TODO: find the optimal value for nPrims > ?
 			{
@@ -991,7 +983,7 @@ void GSRendererHW::SetupTexture(const GSTextureBase& t, float tsx, float tsy)
 	int tw = 0, th = 0;
 	float rw = 0, rh = 0;
 
-	CComPtr<IDirect3DPixelShader9> pPixelShader;
+	IDirect3DPixelShader9* pPixelShader = NULL;
 
 	if(m_de.pPRIM->TME && t.m_pTexture)
 	{
@@ -1020,12 +1012,12 @@ void GSRendererHW::SetupTexture(const GSTextureBase& t, float tsx, float tsy)
 		hr = m_pD3DDev->SetSamplerState(0, D3DSAMP_ADDRESSU, u);
 		hr = m_pD3DDev->SetSamplerState(0, D3DSAMP_ADDRESSV, v);
 
-		hr = m_pD3DDev->SetSamplerState(0, D3DSAMP_MAGFILTER, t.m_pPalette ? D3DTEXF_POINT : D3DTEXF_LINEAR);
-		hr = m_pD3DDev->SetSamplerState(0, D3DSAMP_MINFILTER, t.m_pPalette ? D3DTEXF_POINT : D3DTEXF_LINEAR);
-		hr = m_pD3DDev->SetSamplerState(1, D3DSAMP_MAGFILTER, t.m_pPalette ? D3DTEXF_POINT : D3DTEXF_LINEAR);
-		hr = m_pD3DDev->SetSamplerState(1, D3DSAMP_MINFILTER, t.m_pPalette ? D3DTEXF_POINT : D3DTEXF_LINEAR);
+		hr = m_pD3DDev->SetSamplerState(0, D3DSAMP_MAGFILTER, t.m_pPalette ? D3DTEXF_POINT : m_texfilter);
+		hr = m_pD3DDev->SetSamplerState(0, D3DSAMP_MINFILTER, t.m_pPalette ? D3DTEXF_POINT : m_texfilter);
+		hr = m_pD3DDev->SetSamplerState(1, D3DSAMP_MAGFILTER, t.m_pPalette ? D3DTEXF_POINT : m_texfilter);
+		hr = m_pD3DDev->SetSamplerState(1, D3DSAMP_MINFILTER, t.m_pPalette ? D3DTEXF_POINT : m_texfilter);
 
-		if(!pPixelShader && m_caps.PixelShaderVersion >= D3DVS_VERSION(2, 0) && m_pHLSLTFX[m_ctxt->TEX0.TFX])
+		if(!pPixelShader && m_caps.PixelShaderVersion >= D3DPS_VERSION(2, 0) && m_pHLSLTFX[m_ctxt->TEX0.TFX])
 		{
 			int i = m_ctxt->TEX0.TFX;
 
@@ -1053,7 +1045,7 @@ void GSRendererHW::SetupTexture(const GSTextureBase& t, float tsx, float tsy)
 			pPixelShader = m_pHLSLTFX[i];
 		}
 
-		if(!pPixelShader && m_caps.PixelShaderVersion >= D3DVS_VERSION(1, 1))
+		if(!pPixelShader && m_caps.PixelShaderVersion >= D3DPS_VERSION(1, 1))
 		{
 			switch(m_ctxt->TEX0.TFX)
 			{
@@ -1167,12 +1159,12 @@ void GSRendererHW::SetupTexture(const GSTextureBase& t, float tsx, float tsy)
 		hr = m_pD3DDev->SetTexture(0, NULL);
 		hr = m_pD3DDev->SetTexture(1, NULL);
 
-		if(!pPixelShader && m_caps.PixelShaderVersion >= D3DVS_VERSION(2, 0) && m_pHLSLTFX[36])
+		if(!pPixelShader && m_caps.PixelShaderVersion >= D3DPS_VERSION(2, 0) && m_pHLSLTFX[36])
 		{
 			pPixelShader = m_pHLSLTFX[36];
 		}
 
-		if(!pPixelShader && m_caps.PixelShaderVersion >= D3DVS_VERSION(1, 1) && m_pPixelShaders[11])
+		if(!pPixelShader && m_caps.PixelShaderVersion >= D3DPS_VERSION(1, 1) && m_pPixelShaders[11])
 		{
 			pPixelShader = m_pPixelShaders[11];
 		}
@@ -1186,8 +1178,8 @@ void GSRendererHW::SetupTexture(const GSTextureBase& t, float tsx, float tsy)
 
 	float fConstData[][4] = 
 	{
-		{(float)m_ctxt->TEX0.TFX, (float)m_ctxt->TEX0.TCC, (float)t.m_fRT, (float)!!(m_de.pPRIM->TME && t.m_pTexture)},
-		{(float)m_ctxt->TEX0.PSM, (float)m_de.TEXA.AEM, (float)m_de.TEXA.TA0 / 255, (float)m_de.TEXA.TA1 / 255},
+		{(float)m_ctxt->TEX0.TFX, (float)m_ctxt->TEX0.TCC - 0.5f, (float)t.m_fRT, (float)!!(m_de.pPRIM->TME && t.m_pTexture)},
+		{(float)m_ctxt->TEX0.PSM, (float)m_de.TEXA.AEM, max(2.0f * m_de.TEXA.TA0 / 255, 1), max(2.0f * m_de.TEXA.TA1 / 255, 1)},
 		{(float)tw, (float)th, 0, 0},
 		{rw, rh, 0, 0},
 		{rw, 0, 0, 0},
@@ -1385,13 +1377,13 @@ void GSRendererHW::SetupScissor(scale_t& s)
 		(int)(s.x * (m_ctxt->SCISSOR.SCAX1+1)),
 		(int)(s.y * (m_ctxt->SCISSOR.SCAY1+1)));
 
-	if(r.bottom > INTERNALRES && r.bottom <= INTERNALRES*2)
+	if(r.Width() == m_bd.Width && r.bottom > m_bd.Height && r.bottom <= m_bd.Height*2)
 	{
 		// TODO: isn't there a better way? what about s.x?
-		s.y = s.y * INTERNALRES / r.bottom;
+		s.y = s.y * m_bd.Height / r.bottom;
 	}
 
-	r &= CRect(0, 0, INTERNALRES, INTERNALRES);
+	r &= CRect(0, 0, m_bd.Width, m_bd.Height);
 
 	hr = m_pD3DDev->SetScissorRect(r);
 }

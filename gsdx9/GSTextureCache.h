@@ -86,7 +86,7 @@ struct GSTexture : public GSTextureBase
 	GSDirtyRectList m_rcDirty;
 	CRect m_rcValid;
 	CRect m_rcHash;
-	DWORD m_dwHash;
+	DWORD m_dwHash, m_nHashDiff, m_nHashSame;
 	DWORD m_nBytes;
 	int m_nAge, m_nVsyncs;
 

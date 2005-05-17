@@ -3,7 +3,6 @@
 #include "GS.h"
 
 extern "C" void __fastcall memsetd(void* dst, unsigned int c, size_t len);
-extern "C" UINT64 ticks();
 
 extern "C" void unSwizzleBlock32_amd64(BYTE* src, BYTE* dst, __int64 dstpitch);
 extern "C" void unSwizzleBlock16_amd64(BYTE* src, BYTE* dst, __int64 dstpitch);

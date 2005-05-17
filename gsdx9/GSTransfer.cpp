@@ -46,7 +46,6 @@ void GSState::ReadStep()
 
 void GSState::WriteTransfer(BYTE* pMem, int len)
 {
-	//
 	LOG(_T("*TC2 WriteTransfer %d,%d (psm=%d rr=%dx%d len=%d)\n"), m_x, m_y, m_rs.BITBLTBUF.DPSM, m_rs.TRXREG.RRW, m_rs.TRXREG.RRH, len);
 
 	if(len == 0) return;
@@ -55,41 +54,48 @@ void GSState::WriteTransfer(BYTE* pMem, int len)
 	if(m_de.pPRIM->TME && (m_rs.BITBLTBUF.DBP == m_ctxt->TEX0.TBP0 || m_rs.BITBLTBUF.DBP == m_ctxt->TEX0.CBP))
 		FlushPrim();
 
-	//
+	int bpp;
+	switch(m_rs.BITBLTBUF.DPSM)
+	{
+	case PSM_PSMCT32: case PSM_PSMZ32: bpp = 32; break;
+	case PSM_PSMCT24: case PSM_PSMZ24: bpp = 24; break;
+	case PSM_PSMCT16: case PSM_PSMCT16S: case PSM_PSMZ16: case PSM_PSMZ16S: bpp = 16; break;
+	case PSM_PSMT8: case PSM_PSMT8H: bpp = 8; break;
+	case PSM_PSMT4: case PSM_PSMT4HL: case PSM_PSMT4HH: bpp = 4; break;
+	}
+	int pitch = (m_rs.TRXREG.RRW - m_rs.TRXPOS.DSAX)*bpp>>3;
+	int height = len / pitch;
 
-	ASSERT(len <= m_nTrMaxBytes); // transferring more than 4mb into a 4mb local mem doesn't make any sense
+	if(m_nTrBytes > 0 || height < m_rs.TRXREG.RRH - m_rs.TRXPOS.DSAY)
+	{
+		LOG(_T("*TC2 WriteTransfer delayed\n"));
 
-	len = min(m_nTrMaxBytes, len);
+		ASSERT(len <= m_nTrMaxBytes); // transferring more than 4mb into a 4mb local mem doesn't make any sense
 
-	if(m_nTrBytes + len > m_nTrMaxBytes)
-		FlushWriteTransfer();
+		len = min(m_nTrMaxBytes, len);
 
-	memcpy(&m_pTrBuff[m_nTrBytes], pMem, len);
-	m_nTrBytes += len;
+		if(m_nTrBytes + len > m_nTrMaxBytes)
+			FlushWriteTransfer();
 
-	// TODO: write m_pTrBuff parallel with a worker thread?
+		memcpy(&m_pTrBuff[m_nTrBytes], pMem, len);
+		m_nTrBytes += len;
+	}
+	else
+	{
+		int x = m_x, y = m_y;
 
-	//
-/*
+		GSLocalMemory::SwizzleTexture st = m_lm.GetSwizzleTexture(m_rs.BITBLTBUF.DPSM);
+		(m_lm.*st)(m_x, m_y, pMem, len, m_rs.BITBLTBUF, m_rs.TRXPOS, m_rs.TRXREG);
 
-	int x = m_x, y = m_y;
+		m_perfmon.IncCounter(GSPerfMon::c_swizzle, len);
 
-LOG(_T("*TC2 FlushWriteTransfer %d,%d-%d,%d (psm=%d rr=%dx%d len=%d)\n"), x, y, m_x, m_y, m_rs.BITBLTBUF.DPSM, m_rs.TRXREG.RRW, m_rs.TRXREG.RRH, m_nTrBytes);
+		//ASSERT(m_rs.TRXREG.RRH >= m_y - y);
 
-	GSLocalMemory::SwizzleTexture st = m_lm.GetSwizzleTexture(m_rs.BITBLTBUF.DPSM);
-	(m_lm.*st)(m_x, m_y, pMem, len, m_rs.BITBLTBUF, m_rs.TRXPOS, m_rs.TRXREG);
+		CRect r(m_rs.TRXPOS.DSAX, y, m_rs.TRXREG.RRW, min(m_x == m_rs.TRXPOS.DSAX ? m_y : m_y+1, m_rs.TRXREG.RRH));
+		InvalidateTexture(m_rs.BITBLTBUF.DBP, m_rs.BITBLTBUF.DPSM, r);
 
-	m_stats.IncWrites(len);
-
-	m_nTrBytes = 0;
-
-	//ASSERT(m_rs.TRXREG.RRH >= m_y - y);
-
-	CRect r(m_rs.TRXPOS.DSAX, y, m_rs.TRXREG.RRW, min(m_x == m_rs.TRXPOS.DSAX ? m_y : m_y+1, m_rs.TRXREG.RRH));
-	InvalidateTexture(m_rs.BITBLTBUF.DBP, m_rs.BITBLTBUF.DPSM, r);
-
-	m_lm.InvalidateCLUT();
-*/
+		m_lm.InvalidateCLUT();
+	}
 }
 
 void GSState::FlushWriteTransfer()
@@ -103,7 +109,7 @@ void GSState::FlushWriteTransfer()
 	GSLocalMemory::SwizzleTexture st = m_lm.GetSwizzleTexture(m_rs.BITBLTBUF.DPSM);
 	(m_lm.*st)(m_x, m_y, m_pTrBuff, m_nTrBytes, m_rs.BITBLTBUF, m_rs.TRXPOS, m_rs.TRXREG);
 
-	m_stats.IncWrites(m_nTrBytes);
+	m_perfmon.IncCounter(GSPerfMon::c_swizzle, m_nTrBytes);
 
 	m_nTrBytes = 0;
 

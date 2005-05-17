@@ -37,8 +37,6 @@ struct HWVERTEX
 
 class GSRendererHW : public GSRenderer<HWVERTEX>
 {
-	bool m_fHalfVRes;
-
 protected:
 	CSurfMap<IDirect3DTexture9> m_pRenderTargets;
 	CSurfMap<IDirect3DSurface9> m_pDepthStencils;
@@ -68,6 +66,8 @@ protected:
 public:
 	GSRendererHW(HWND hWnd, HRESULT& hr);
 	~GSRendererHW();
+
+	HRESULT ResetDevice(bool fForceWindowed = false);
 
 	void LOGVERTEX(HWVERTEX& v, LPCTSTR type)
 	{

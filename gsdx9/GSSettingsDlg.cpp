@@ -34,11 +34,11 @@ static struct {int id; const TCHAR* name;} s_renderers[] =
 
 static struct {DWORD id; const TCHAR* name;} s_psversions[] =
 {
-	{D3DVS_VERSION(3, 0), _T("Pixel Shader 3.0")},
-	{D3DVS_VERSION(2, 0), _T("Pixel Shader 2.0")},
-	{D3DVS_VERSION(1, 4), _T("Pixel Shader 1.4")},
-	{D3DVS_VERSION(1, 1), _T("Pixel Shader 1.1 (bogus)")},
-	{D3DVS_VERSION(0, 0), _T("Fixed Pipeline (bogus)")},
+	{D3DPS_VERSION(3, 0), _T("Pixel Shader 3.0")},
+	{D3DPS_VERSION(2, 0), _T("Pixel Shader 2.0")},
+	{D3DPS_VERSION(1, 4), _T("Pixel Shader 1.4")},
+	{D3DPS_VERSION(1, 1), _T("Pixel Shader 1.1 (bogus)")},
+	{D3DPS_VERSION(0, 0), _T("Fixed Pipeline (bogus)")},
 };
 
 IMPLEMENT_DYNAMIC(CGSSettingsDlg, CDialog)
@@ -47,6 +47,7 @@ CGSSettingsDlg::CGSSettingsDlg(CWnd* pParent /*=NULL*/)
 	, m_fEnablePalettizedTextures(FALSE)
 	, m_fEnableTvOut(FALSE)
 	, m_fRecordState(FALSE)
+	, m_fLinearTexFilter(TRUE)
 {
 }
 
@@ -64,6 +65,7 @@ void CGSSettingsDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_CHECK3, m_fEnableTvOut);
 	DDX_Check(pDX, IDC_CHECK2, m_fRecordState);
 	DDX_Text(pDX, IDC_EDIT1, m_strRecordState);
+	DDX_Check(pDX, IDC_CHECK4, m_fLinearTexFilter);
 }
 
 BEGIN_MESSAGE_MAP(CGSSettingsDlg, CDialog)
@@ -80,7 +82,7 @@ BOOL CGSSettingsDlg::OnInitDialog()
 
 	D3DCAPS9 caps;
 	ZeroMemory(&caps, sizeof(caps));
-	caps.PixelShaderVersion = D3DVS_VERSION(0, 0);
+	caps.PixelShaderVersion = D3DPS_VERSION(0, 0);
 
 	m_modes.RemoveAll();
 
@@ -138,7 +140,7 @@ BOOL CGSSettingsDlg::OnInitDialog()
 
 	// shader
 
-	DWORD psversion_id = pApp->GetProfileInt(_T("Settings"), _T("PixelShaderVersion"), D3DVS_VERSION(2, 0));
+	DWORD psversion_id = pApp->GetProfileInt(_T("Settings"), _T("PixelShaderVersion2"), D3DPS_VERSION(2, 0));
 
 	for(int i = 0; i < countof(s_psversions); i++)
 	{
@@ -151,6 +153,10 @@ BOOL CGSSettingsDlg::OnInitDialog()
 	//
 
 	m_fEnablePalettizedTextures = pApp->GetProfileInt(_T("Settings"), _T("fEnablePalettizedTextures"), FALSE);
+
+	//
+
+	m_fLinearTexFilter = (D3DTEXTUREFILTERTYPE)pApp->GetProfileInt(_T("Settings"), _T("TexFilter"), D3DTEXF_LINEAR) == D3DTEXF_LINEAR;
 
 	//
 
@@ -190,10 +196,12 @@ void CGSSettingsDlg::OnOK()
 
 	if(m_psversion.GetCurSel() >= 0)
 	{
-		pApp->WriteProfileInt(_T("Settings"), _T("PixelShaderVersion"), m_psversion.GetItemData(m_psversion.GetCurSel()));
+		pApp->WriteProfileInt(_T("Settings"), _T("PixelShaderVersion2"), m_psversion.GetItemData(m_psversion.GetCurSel()));
 	}
 
 	pApp->WriteProfileInt(_T("Settings"), _T("fEnablePalettizedTextures"), m_fEnablePalettizedTextures);
+
+	pApp->WriteProfileInt(_T("Settings"), _T("TexFilter"), m_fLinearTexFilter ? D3DTEXF_LINEAR : D3DTEXF_POINT);
 
 	pApp->WriteProfileInt(_T("Settings"), _T("fEnableTvOut"), m_fEnableTvOut);
 

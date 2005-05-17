@@ -190,7 +190,7 @@ void GSRendererSoft<VERTEX>::FlushPrim()
 			return;
 		}
 
-		m_stats.IncPrims(nPrims);
+		m_perfmon.IncCounter(GSPerfMon::c_prim, nPrims);
 	}
 
 	m_primtype = PRIM_NONE;
@@ -255,7 +255,7 @@ void GSRendererSoft<VERTEX>::DrawVertex(int x, int y, VERTEX& v)
 
 	if(m_ctxt->rz && (m_ctxt->ZBUF.ZMSK == 0 || m_ctxt->TEST.ZTE && m_ctxt->TEST.ZTST >= 2))
 	{
-		addrz = (m_lm.*m_ctxt->paz)(x, y, m_ctxt->ZBUF.ZBP<<5, m_ctxt->FRAME.FBW);
+		addrz = (m_ctxt->paz)(x, y, m_ctxt->ZBUF.ZBP<<5, m_ctxt->FRAME.FBW);
 	}
 
 	DWORD vz = v.GetZ();
@@ -448,7 +448,7 @@ void GSRendererSoft<VERTEX>::DrawVertex(int x, int y, VERTEX& v)
 
 	if(FBMSK != ~0)
 	{
-		DWORD addr = (m_lm.*m_ctxt->pa)(x, y, m_ctxt->FRAME.FBP<<5, m_ctxt->FRAME.FBW);
+		DWORD addr = (m_ctxt->pa)(x, y, m_ctxt->FRAME.FBP<<5, m_ctxt->FRAME.FBW);
 
 		if(m_ctxt->TEST.DATE && m_ctxt->FRAME.PSM <= PSM_PSMCT16S && m_ctxt->FRAME.PSM != PSM_PSMCT24)
 		{
@@ -1033,7 +1033,7 @@ void GSRendererSoftFX::DrawVertex(int x, int y, GSSoftVertex& v)
 
 	if(m_ctxt->rz && (m_ctxt->ZBUF.ZMSK == 0 || m_ctxt->TEST.ZTE && m_ctxt->TEST.ZTST >= 2))
 	{
-		addrz = (m_lm.*m_ctxt->paz)(x, y, m_ctxt->ZBUF.ZBP<<5, m_ctxt->FRAME.FBW);
+		addrz = (m_ctxt->paz)(x, y, m_ctxt->ZBUF.ZBP<<5, m_ctxt->FRAME.FBW);
 	}
 
 	DWORD vz = v.GetZ();
@@ -1227,7 +1227,7 @@ void GSRendererSoftFX::DrawVertex(int x, int y, GSSoftVertex& v)
 
 	if(FBMSK != ~0)
 	{
-		DWORD addr = (m_lm.*m_ctxt->pa)(x, y, m_ctxt->FRAME.FBP<<5, m_ctxt->FRAME.FBW);
+		DWORD addr = (m_ctxt->pa)(x, y, m_ctxt->FRAME.FBP<<5, m_ctxt->FRAME.FBW);
 
 		if(m_ctxt->TEST.DATE && m_ctxt->FRAME.PSM <= PSM_PSMCT16S && m_ctxt->FRAME.PSM != PSM_PSMCT24)
 		{
