@@ -99,6 +99,11 @@ GSTextureCache::GSTextureCache()
 {
 }
 
+GSTextureCache::~GSTextureCache()
+{
+	RemoveAll();
+}
+
 HRESULT GSTextureCache::CreateTexture(GSState* s, GSTexture* pt, DWORD PSM, DWORD CPSM)
 {
 	if(!pt || pt->m_pTexture) {ASSERT(0); return E_FAIL;}
@@ -437,7 +442,7 @@ bool GSTextureCache::Fetch(GSState* s, GSTextureBase& t)
 	}
 
 #ifdef DEBUG_LOG
-	s->LOG(_T("*TC2 Fetch %dx%d %05x %d (%d)\n"), 
+	s->LOG(_T("*TC2 Fetch %dx%d %05I64x %I64d (%d)\n"), 
 		1 << s->m_ctxt->TEX0.TW, 1 << s->m_ctxt->TEX0.TH, 
 		s->m_ctxt->TEX0.TBP0, s->m_ctxt->TEX0.PSM, nPaletteEntries);
 #endif
@@ -533,7 +538,7 @@ bool GSTextureCache::FetchP(GSState* s, GSTextureBase& t)
 	GSTexture* pt = NULL;
 
 #ifdef DEBUG_LOG
-	s->LOG(_T("*TC2 Fetch %dx%d %05x %d (%d)\n"), 
+	s->LOG(_T("*TC2 Fetch %dx%d %05I64x %I64d (%d)\n"), 
 		1 << s->m_ctxt->TEX0.TW, 1 << s->m_ctxt->TEX0.TH, 
 		s->m_ctxt->TEX0.TBP0, s->m_ctxt->TEX0.PSM, PaletteEntries(s->m_ctxt->TEX0.PSM));
 #endif
@@ -649,7 +654,7 @@ bool GSTextureCache::FetchNP(GSState* s, GSTextureBase& t)
 	}
 
 #ifdef DEBUG_LOG
-	s->LOG(_T("*TC2 Fetch %dx%d %05x %d (%d)\n"), 
+	s->LOG(_T("*TC2 Fetch %dx%d %05I64x %I64d (%d)\n"), 
 		1 << s->m_ctxt->TEX0.TW, 1 << s->m_ctxt->TEX0.TH, 
 		s->m_ctxt->TEX0.TBP0, s->m_ctxt->TEX0.PSM, nPaletteEntries);
 #endif

@@ -309,7 +309,7 @@ HRESULT GSState::ResetDevice(bool fForceWindowed)
 	ZeroMemory(&m_d3dpp, sizeof(m_d3dpp));
 	m_d3dpp.Windowed = TRUE;
 	m_d3dpp.hDeviceWindow = m_hWnd;
-	m_d3dpp.SwapEffect = D3DSWAPEFFECT_COPY/*D3DSWAPEFFECT_DISCARD*//*D3DSWAPEFFECT_FLIP*/;
+	m_d3dpp.SwapEffect = /*D3DSWAPEFFECT_COPY*/D3DSWAPEFFECT_DISCARD/*D3DSWAPEFFECT_FLIP*/;
 	m_d3dpp.BackBufferFormat = D3DFMT_X8R8G8B8;
 	m_d3dpp.BackBufferWidth = m_width;
 	m_d3dpp.BackBufferHeight = m_height;

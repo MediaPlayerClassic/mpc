@@ -1375,6 +1375,8 @@ void GSLocalMemory::ReadCLUT(GIFRegTEX0 TEX0, GIFRegTEXA TEXA, DWORD* pCLUT32)
 
 void GSLocalMemory::SetupCLUT(GIFRegTEX0 TEX0, GIFRegTEXA TEXA)
 {
+	// TODO: cache m_pCLUT*
+
 	ReadCLUT(TEX0, TEXA, m_pCLUT32);
 
 	switch(TEX0.PSM)
@@ -1382,6 +1384,7 @@ void GSLocalMemory::SetupCLUT(GIFRegTEX0 TEX0, GIFRegTEXA TEXA)
 	case PSM_PSMT4:
 	case PSM_PSMT4HL:
 	case PSM_PSMT4HH:
+		// sse2?
 		if(TEX0.CPSM == PSM_PSMCT32)
 		{
 			for(int j = 0, k = 0; j < 16; j++)
@@ -1432,6 +1435,8 @@ void GSLocalMemory::ReadCLUT32(GIFRegTEX0 TEX0, GIFRegTEXA TEXA, DWORD* pCLUT32)
 
 void GSLocalMemory::SetupCLUT32(GIFRegTEX0 TEX0, GIFRegTEXA TEXA)
 {
+	// TODO: cache m_pCLUT*
+
 	ReadCLUT32(TEX0, TEXA, m_pCLUT32);
 
 	switch(TEX0.PSM)
@@ -1439,6 +1444,7 @@ void GSLocalMemory::SetupCLUT32(GIFRegTEX0 TEX0, GIFRegTEXA TEXA)
 	case PSM_PSMT4:
 	case PSM_PSMT4HL:
 	case PSM_PSMT4HH:
+		// sse2?
 		for(int j = 0, k = 0; j < 16; j++)
 			for(int i = 0; i < 16; i++, k++)
 				m_pCLUT64[k] = ((UINT64)m_pCLUT32[j] << 32) | m_pCLUT32[i];
@@ -1991,7 +1997,7 @@ void GSLocalMemory::SwizzleTexture4HH(int& tx, int& ty, BYTE* src, int len, GIFR
 						d[i*2] = (s[i]&0x0f) << 28, 
 						d[i*2+1] = (s[i]&0xf0) << 24;
 
-				SwizzleBlock32((BYTE*)&m_vm32[blockAddress32(x, y, BITBLTBUF.DBP, BITBLTBUF.DBW)], (BYTE*)block, sizeof(block)/8, 0x0f000000);
+				SwizzleBlock32((BYTE*)&m_vm32[blockAddress32(x, y, BITBLTBUF.DBP, BITBLTBUF.DBW)], (BYTE*)block, sizeof(block)/8, 0xf0000000);
 			}
 		}
 
@@ -2212,7 +2218,6 @@ void GSLocalMemory::unSwizzleTexture4(const CRect& r, BYTE* dst, int dstpitch, G
 			for(int j = 0; j < 16; j++, s += 32/2, d += dstpitch)
 				for(int i = 0; i < 32/2; i++)
 					((UINT64*)d)[i] = m_pCLUT64[s[i]];
-
 		}
 		FOREACH_BLOCK_END
 	}
