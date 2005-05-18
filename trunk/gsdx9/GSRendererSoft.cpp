@@ -229,6 +229,28 @@ void GSRendererSoft<VERTEX>::Flip()
 			TEX0.TBP0 = m_rs.DISPFB[i].FBP<<5;
 			TEX0.TBW = m_rs.DISPFB[i].FBW;
 
+#ifdef DEBUG_RENDERTARGETS
+			if(::GetAsyncKeyState(VK_SPACE)&0x80000000) TEX0.TBP0 = m_ctxt->FRAME.Block();
+
+			MSG msg;
+			ZeroMemory(&msg, sizeof(msg));
+			while(msg.message != WM_QUIT)
+			{
+				if(PeekMessage(&msg, NULL, 0U, 0U, PM_REMOVE))
+				{
+					TranslateMessage(&msg);
+					DispatchMessage(&msg);
+				}
+				else if(!(::GetAsyncKeyState(VK_RCONTROL)&0x80000000))
+				{
+					break;
+				}
+			}
+
+			if(::GetAsyncKeyState(VK_LCONTROL)&0x80000000)
+				Sleep(500);
+#endif
+
 			GSLocalMemory::unSwizzleTexture st = m_lm.GetUnSwizzleTexture(m_rs.DISPFB[i].PSM);
 			(m_lm.*st)(r, (BYTE*)lr.pBits, lr.Pitch, TEX0, m_de.TEXA);
 

@@ -30,7 +30,7 @@
 
 #define PS2E_LT_GS 0x01
 #define PS2E_GS_VERSION 0x0006
-#define PS2E_DLL_VERSION 0x08
+#define PS2E_DLL_VERSION 0x09
 #define PS2E_X86 0x01   // 32 bit
 #define PS2E_X86_64 0x02   // 64 bit
 

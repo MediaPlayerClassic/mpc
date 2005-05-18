@@ -1,3 +1,24 @@
+/* 
+ *	Copyright (C) 2003-2004 Gabest
+ *	http://www.gabest.org
+ *
+ *  This Program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2, or (at your option)
+ *  any later version.
+ *   
+ *  This Program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ *  GNU General Public License for more details.
+ *   
+ *  You should have received a copy of the GNU General Public License
+ *  along with GNU Make; see the file COPYING.  If not, write to
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  http://www.gnu.org/copyleft/gpl.html
+ *
+ */
+
 #include "stdafx.h"
 #include "GSTables.h"
 #include "x86.h"
@@ -533,16 +554,16 @@ void __fastcall WriteCLUT_T32_I8_CSM1_sse2(DWORD* vm, WORD* clut)
 
 	for(int i = 0; i < 32; i++)
 	{
-		__m128i r1 = s_clut[i*2];
-		__m128i r2 = s_clut[i*2+1];
-		__m128i r3 = _mm_unpacklo_epi16(r1, r2);
-		__m128i r4 = _mm_unpackhi_epi16(r1, r2);
-		r1 = _mm_unpacklo_epi16(r3, r4);
-		r2 = _mm_unpackhi_epi16(r3, r4);
-		r3 = _mm_unpacklo_epi16(r1, r2);
-		r4 = _mm_unpackhi_epi16(r1, r2);
-		_mm_store_si128(&((__m128i*)clut)[i], r3);
-		_mm_store_si128(&((__m128i*)clut)[i+32], r4);
+		__m128i r0 = s_clut[i*2];
+		__m128i r1 = s_clut[i*2+1];
+		__m128i r2 = _mm_unpacklo_epi16(r0, r1);
+		__m128i r3 = _mm_unpackhi_epi16(r0, r1);
+		r0 = _mm_unpacklo_epi16(r2, r3);
+		r1 = _mm_unpackhi_epi16(r2, r3);
+		r2 = _mm_unpacklo_epi16(r0, r1);
+		r3 = _mm_unpackhi_epi16(r0, r1);
+		_mm_store_si128(&((__m128i*)clut)[i], r2);
+		_mm_store_si128(&((__m128i*)clut)[i+32], r3);
 	}
 }
 

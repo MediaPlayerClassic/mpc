@@ -110,6 +110,7 @@ protected:
 
 public:
 	GSTextureCache();
+	~GSTextureCache();
 
 	bool Fetch(GSState* s, GSTextureBase& t);
 	bool FetchP(GSState* s, GSTextureBase& t);
