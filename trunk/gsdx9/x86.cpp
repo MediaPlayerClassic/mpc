@@ -455,7 +455,29 @@ void __fastcall UVMinMax_sse2(int nVertices, vertex_t* pVertices, uvmm_t* uv)
 
 	__m128* p = (__m128*)pVertices + 1;
 
-	for(int i = 0; i < nVertices; i++)
+	int i = 0;
+
+	nVertices -= 5;
+
+	for(; i < nVertices; i += 6) // 6 regs for loading, 2 regs for min/max
+	{
+		uvmin = _mm_min_ps(uvmin, p[(i+0)*2]);
+		uvmax = _mm_max_ps(uvmax, p[(i+0)*2]);
+		uvmin = _mm_min_ps(uvmin, p[(i+1)*2]);
+		uvmax = _mm_max_ps(uvmax, p[(i+1)*2]);
+		uvmin = _mm_min_ps(uvmin, p[(i+2)*2]);
+		uvmax = _mm_max_ps(uvmax, p[(i+2)*2]);
+		uvmin = _mm_min_ps(uvmin, p[(i+3)*2]);
+		uvmax = _mm_max_ps(uvmax, p[(i+3)*2]);
+		uvmin = _mm_min_ps(uvmin, p[(i+4)*2]);
+		uvmax = _mm_max_ps(uvmax, p[(i+4)*2]);
+		uvmin = _mm_min_ps(uvmin, p[(i+5)*2]);
+		uvmax = _mm_max_ps(uvmax, p[(i+5)*2]);
+	}
+
+	nVertices += 5;
+
+	for(; i < nVertices; i++)
 	{
 		uvmin = _mm_min_ps(uvmin, p[i*2]);
 		uvmax = _mm_max_ps(uvmax, p[i*2]);

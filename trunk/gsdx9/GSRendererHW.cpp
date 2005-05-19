@@ -89,7 +89,7 @@ void GSRendererHW::VertexKick(bool fSkip)
 	v.z = log(1.0f + m_v.XYZ.Z)/log_2pow32;
 	//v.z = (float)m_v.XYZ.Z / UINT_MAX;
 	//v.rhw = v.z ? 1.0f/v.z : 1.0f;
-	v.rhw = m_v.RGBAQ.Q > 0 ? m_v.RGBAQ.Q : 0;
+	v.rhw = m_v.RGBAQ.Q > 0 ? m_v.RGBAQ.Q : 0; // TODO: proclater
 	//v.rhw = m_v.RGBAQ.Q;
 
 	BYTE R = m_v.RGBAQ.R;
@@ -101,6 +101,7 @@ void GSRendererHW::VertexKick(bool fSkip)
 	{
 		A = m_v.RGBAQ.A;
 
+		// TODO: proclater
 		if(m_de.pPRIM->FST)
 		{
 			v.tu = (float)m_v.UV.U / (16<<m_ctxt->TEX0.TW);
@@ -493,6 +494,7 @@ void GSRendererHW::FlushPrim()
 
 				if(m_de.pPRIM->TME)
 				{
+					// FIXME
 					float base, fract;
 					fract = modf(pVertices->tu, &base);
 					fract *= tsx;
@@ -503,6 +505,7 @@ void GSRendererHW::FlushPrim()
 					//ASSERT(-1 <= fract && fract <= 1.01);
 					pVertices->tv = base + fract;
 				}
+
 /*
 				if(m_de.pPRIM->TME)
 				{
@@ -915,6 +918,8 @@ void GSRendererHW::MinMaxUV(int w, int h, CRect& r)
 		bsm.SetSize(bs.cx-1, bs.cy-1);
 	}
 
+	// FIXME: region clamp returns the right rect but we should still update the whole texture later in TC...
+
 	if(m_ctxt->CLAMP.WMS < 3)
 	{
 		if(m_ctxt->CLAMP.WMS == 0)
@@ -932,6 +937,7 @@ void GSRendererHW::MinMaxUV(int w, int h, CRect& r)
 		{
 			if(uv.umin < 0) uv.umin = 0;
 			if(uv.umax > 1.0f) uv.umax = 1.0f;
+			ASSERT(uv.umin <= uv.umax);
 		}
 		else if(m_ctxt->CLAMP.WMS == 2)
 		{
@@ -962,6 +968,7 @@ void GSRendererHW::MinMaxUV(int w, int h, CRect& r)
 		{
 			if(uv.vmin < 0) uv.vmin = 0;
 			if(uv.vmax > 1.0f) uv.vmax = 1.0f;
+			ASSERT(uv.vmin <= uv.vmax);
 		}
 		else if(m_ctxt->CLAMP.WMT == 2)
 		{

@@ -264,6 +264,12 @@ GSState::GSState(int w, int h, HWND hWnd, HRESULT& hr)
 			if(m_pPixelShaders[i]) continue;
 			AssembleShaderFromResource(m_pD3DDev, nShaderIDs[i], 0, &m_pPixelShaders[i]);
 		}
+
+		if(!m_pHLSLRedBlue)
+		{
+			CompileShaderFromResource(m_pD3DDev, IDR_HLSL_RB, _T("main"), _T("ps_1_1"), 
+				D3DXSHADER_PARTIALPRECISION, &m_pHLSLRedBlue);
+		}
 	}
 
 	//
@@ -304,6 +310,7 @@ HRESULT GSState::ResetDevice(bool fForceWindowed)
 		return E_FAIL;
 
 	m_pOrgRenderTarget = NULL;
+	m_pTmpRenderTarget = NULL;
 	m_pD3DXFont = NULL;
 
 	ZeroMemory(&m_d3dpp, sizeof(m_d3dpp));
@@ -374,6 +381,14 @@ HRESULT GSState::ResetDevice(bool fForceWindowed)
 	hr = m_pD3DDev->Clear(0, NULL, D3DCLEAR_TARGET, 0, 1.0f, 0);
 
     hr = m_pD3DDev->GetRenderTarget(0, &m_pOrgRenderTarget);
+
+	if(m_caps.PixelShaderVersion >= D3DPS_VERSION(1, 1) && m_caps.PixelShaderVersion <= D3DPS_VERSION(1, 3)
+		&& m_pHLSLRedBlue)
+	{
+		hr = m_pD3DDev->CreateTexture(
+			m_bd.Width, m_bd.Height, 0, D3DUSAGE_RENDERTARGET, D3DFMT_X8R8G8B8, 
+			D3DPOOL_DEFAULT, &m_pTmpRenderTarget, NULL);
+	}
 
 	D3DXFONT_DESC fd;
 	memset(&fd, 0, sizeof(fd));
@@ -809,7 +824,8 @@ void GSState::Transfer(BYTE* pMem, UINT32 size)
 		case GIF_FLG_PACKED:
 			for(GIFPackedReg* r = (GIFPackedReg*)pMem; m_tag.NLOOP > 0 && size > 0; r++, size--, pMem += sizeof(GIFPackedReg))
 			{
-				BYTE reg = GET_GIF_REG(m_tag, m_nreg);
+				DWORD reg = (m_tag.ai32[2 + (m_nreg >> 3)] >> ((m_nreg & 7) << 2)) & 0xf;
+				// BYTE reg = GET_GIF_REG(m_tag, m_nreg);
 				(this->*m_fpGIFPackedRegHandlers[reg])(r);
 				if((m_nreg=(m_nreg+1)&0xf) == m_tag.NREG) {m_nreg = 0; m_tag.NLOOP--;}
 			}
@@ -818,7 +834,8 @@ void GSState::Transfer(BYTE* pMem, UINT32 size)
 			size *= 2;
 			for(GIFReg* r = (GIFReg*)pMem; m_tag.NLOOP > 0 && size > 0; r++, size--, pMem += sizeof(GIFReg))
 			{
-				BYTE reg = GET_GIF_REG(m_tag, m_nreg);
+				DWORD reg = (m_tag.ai32[2 + (m_nreg >> 3)] >> ((m_nreg & 7) << 2)) & 0xf;
+				// BYTE reg = GET_GIF_REG(m_tag, m_nreg);
 				(this->*m_fpGIFRegHandlers[reg])(r);
 				if((m_nreg=(m_nreg+1)&0xf) == m_tag.NREG) {m_nreg = 0; m_tag.NLOOP--;}
 			}
@@ -1001,9 +1018,6 @@ void GSState::FinishFlip(FlipSrc rt[2], bool fShiftField)
 /**/
 	}
 
-	hr = m_pD3DDev->SetRenderTarget(0, m_pOrgRenderTarget);
-	// hr = m_pD3DDev->Clear(0, NULL, D3DCLEAR_TARGET, 0, 1.0f, 0);
-
 	hr = m_pD3DDev->SetRenderState(D3DRS_ZENABLE, FALSE);
     hr = m_pD3DDev->SetRenderState(D3DRS_ALPHABLENDENABLE, FALSE);
 	hr = m_pD3DDev->SetRenderState(D3DRS_ALPHATESTENABLE, FALSE); 
@@ -1130,6 +1144,17 @@ void GSState::FinishFlip(FlipSrc rt[2], bool fShiftField)
 
 	if(fEN[0] || fEN[1])
 	{
+		if(m_pTmpRenderTarget && m_pHLSLRedBlue)
+		{
+			CComPtr<IDirect3DSurface9> pSurf;
+			hr = m_pTmpRenderTarget->GetSurfaceLevel(0, &pSurf);
+			hr = m_pD3DDev->SetRenderTarget(0, pSurf);
+		}
+		else
+		{
+			hr = m_pD3DDev->SetRenderTarget(0, m_pOrgRenderTarget);
+		}
+
 		hr = m_pD3DDev->BeginScene();
 
 		hr = m_pD3DDev->SetPixelShader(pPixelShader);
@@ -1151,6 +1176,35 @@ void GSState::FinishFlip(FlipSrc rt[2], bool fShiftField)
 		}
 
 		hr = m_pD3DDev->EndScene();
+
+		if(m_pTmpRenderTarget && m_pHLSLRedBlue)
+		{
+			hr = m_pD3DDev->SetRenderTarget(0, m_pOrgRenderTarget);
+			hr = m_pD3DDev->SetTexture(0, m_pTmpRenderTarget);
+
+			hr = m_pD3DDev->SetSamplerState(0, D3DSAMP_MAGFILTER, D3DTEXF_POINT);
+			hr = m_pD3DDev->SetSamplerState(0, D3DSAMP_MINFILTER, D3DTEXF_POINT);
+
+			hr = m_pD3DDev->SetPixelShader(m_pHLSLRedBlue);
+
+			struct
+			{
+				float x, y, z, rhw;
+				float tu, tv;
+			}
+			pVertices[] =
+			{
+				{0, 0, 0.5f, 2.0f, 0, 0},
+				{(float)m_bd.Width, 0, 0.5f, 2.0f, 1, 0},
+				{0, (float)m_bd.Height, 0.5f, 2.0f, 0, 1},
+				{(float)m_bd.Width, (float)m_bd.Height, 0.5f, 2.0f, 1, 1},
+			};
+
+			hr = m_pD3DDev->BeginScene();
+			hr = m_pD3DDev->SetFVF(D3DFVF_XYZRHW | D3DFVF_TEX1);
+			hr = m_pD3DDev->DrawPrimitiveUP(D3DPT_TRIANGLESTRIP, 2, pVertices, sizeof(pVertices[0]));
+			hr = m_pD3DDev->EndScene();
+		}
 	}
 
 	//

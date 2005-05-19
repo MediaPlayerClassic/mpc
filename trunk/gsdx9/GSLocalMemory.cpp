@@ -41,6 +41,7 @@ static class cdscd
 public:
 	cdscd()
 	{
+//
 		return;
 /*
 		union
@@ -84,13 +85,13 @@ public:
 			TRACE(_T("%08x         (%x:%02x :%s                             ), %f\n"), nf.i, nf.fi.sign, nf.fi.exp, toBin(nf.fi.mant, 23), nf.f);
 		}
 */
-
+/*
 		GSLocalMemory lm;
 
 		for(int i = 0; i < 1024*1024; i++)
 			((DWORD*)lm.GetVM())[i] = rand()*0x12345678;
 
-/*
+
 		GIFRegTEX0 TEX0;
 		TEX0.TBP0 = 0;
 		TEX0.TBW = 16;
@@ -105,7 +106,7 @@ public:
 
 			for(int i = 0; i < 1000; i++)
 			{
-				lm.unSwizzleTexture16(1024, 1024, (BYTE*)dst, 1024*4, TEX0, TEXA);
+				lm.unSwizzleTexture16(CRect(0,0,1024,1024), (BYTE*)dst, 1024*4, TEX0, TEXA);
 			}
 
 			clock_t diff = clock() - start;
@@ -165,6 +166,36 @@ public:
 			AfxMessageBox(str);
 		}
 */
+/*
+		GIFRegTEXA TEXA;
+		TEXA.AEM = 0; // 1
+		TEXA.TA0 = 0x7f;
+		TEXA.TA1 = 0x80;
+
+		int w = 1024*1024;
+
+		WORD* src = (WORD*)lm.GetVM();
+		DWORD* dst = (DWORD*)_aligned_malloc(w*4, 16);
+
+		for(int j = 0; j < 10; j++)
+		{
+			clock_t start = clock();
+
+			for(int i = 0; i < 1000; i++)
+			{
+				//Expand16_sse2(src, dst, w, &TEXA);
+				Expand16_c(src, dst, w, &TEXA);
+			}
+
+			clock_t diff = clock() - start;
+
+			CString str;
+			str.Format(_T("%d"), diff);
+			AfxMessageBox(str);
+		}
+
+		_aligned_free(dst);
+*/
 	}
 } sddscsd;
 
@@ -178,7 +209,7 @@ __forceinline static DWORD From24To32(DWORD c, BYTE TCC, GIFRegTEXA& TEXA)
 
 __forceinline static DWORD From16To32(WORD c, GIFRegTEXA& TEXA)
 {
-	BYTE A = (c&0x8000) ? TEXA.TA1 : (!TEXA.AEM|(c&0x7fff)) ? TEXA.TA0 : 0;
+	BYTE A = (c&0x8000) ? TEXA.TA1 : (!TEXA.AEM|c) ? TEXA.TA0 : 0;
 	return (A << 24) | ((c&0x7c00) << 9) | ((c&0x03e0) << 6) | ((c&0x001f) << 3);
 }
 
