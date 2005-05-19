@@ -301,7 +301,58 @@ EXPORT_C GSconfigure()
 
 EXPORT_C_(INT32) GStest()
 {
-	return 0;
+	AFX_MANAGE_STATE(AfxGetStaticModuleState());
+
+	int ret = 0;
+
+	D3DCAPS9 caps;
+	ZeroMemory(&caps, sizeof(caps));
+	caps.PixelShaderVersion = D3DPS_VERSION(0, 0);
+
+	if(CComPtr<IDirect3D9> pD3D = Direct3DCreate9(D3D_SDK_VERSION))
+	{
+		pD3D->GetDeviceCaps(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, &caps);
+
+		LPCTSTR yep = _T("^_^"), nope = _T(":'(");
+
+		CString str, tmp;
+
+		if(caps.PixelShaderVersion < D3DPS_VERSION(1, 4))
+			ret = -1;
+
+		tmp.Format(_T("%s Pixel Shader version %d.%d\n"), 
+			caps.PixelShaderVersion >= D3DPS_VERSION(1, 4) ? yep : nope,
+			D3DSHADER_VERSION_MAJOR(caps.PixelShaderVersion),
+			D3DSHADER_VERSION_MINOR(caps.PixelShaderVersion));
+		str += tmp;
+
+		if(!(caps.PrimitiveMiscCaps & D3DPMISCCAPS_SEPARATEALPHABLEND))
+			ret = -1;
+
+		tmp.Format(_T("%s Separate Alpha Blend\n"), 
+			!!(caps.PrimitiveMiscCaps & D3DPMISCCAPS_SEPARATEALPHABLEND) ? yep : nope);
+		str += tmp;
+
+		if(!(caps.SrcBlendCaps & D3DPBLENDCAPS_BLENDFACTOR)
+		|| !(caps.DestBlendCaps & D3DPBLENDCAPS_BLENDFACTOR))
+			ret = -1;
+
+		tmp.Format(_T("%s Source Blend Factor\n"), 
+			!!(caps.SrcBlendCaps & D3DPBLENDCAPS_BLENDFACTOR) ? yep : nope);
+		str += tmp;
+
+		tmp.Format(_T("%s Destination Blend Factor\n"), 
+			!!(caps.DestBlendCaps & D3DPBLENDCAPS_BLENDFACTOR) ? yep : nope);
+		str += tmp;
+
+		AfxMessageBox(str);
+	}
+	else
+	{
+		ret = -1;
+	}
+
+	return ret;
 }
 
 EXPORT_C GSabout()

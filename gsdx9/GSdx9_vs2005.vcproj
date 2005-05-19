@@ -47,6 +47,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
+				EnableIntrinsicFunctions="true"
 				PreprocessorDefinitions="D3D_DEBUG_INFO;WIN32;_WINDOWS;_DEBUG;_USRDLL"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
@@ -133,6 +134,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
+				EnableIntrinsicFunctions="true"
 				AdditionalIncludeDirectories="C:\Program Files\Microsoft DirectX 9.0 SDK (Summer 2004)\Include"
 				PreprocessorDefinitions="D3D_DEBUG_INFO;_WINDOWS;_DEBUG;_USRDLL"
 				MinimalRebuild="true"
@@ -402,6 +404,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
+				EnableIntrinsicFunctions="true"
 				PreprocessorDefinitions="D3D_DEBUG_INFO;WIN32;_WINDOWS;_DEBUG;_USRDLL"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
@@ -490,6 +493,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
+				EnableIntrinsicFunctions="true"
 				AdditionalIncludeDirectories="C:\Program Files\Microsoft DirectX 9.0 SDK (Summer 2004)\Include"
 				PreprocessorDefinitions="D3D_DEBUG_INFO;_WINDOWS;_DEBUG;_USRDLL"
 				MinimalRebuild="true"
@@ -1269,6 +1273,10 @@
 			>
 			<File
 				RelativePath=".\res\hlsl_merge.fx"
+				>
+			</File>
+			<File
+				RelativePath=".\res\hlsl_rb.fx"
 				>
 			</File>
 			<File

@@ -33,4 +33,3 @@ extern DWORD columnTable32[8][8];
 extern DWORD columnTable16[8][16];
 extern DWORD columnTable8[16][16];
 extern DWORD columnTable4[16][32];
-

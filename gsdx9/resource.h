@@ -37,12 +37,13 @@
 #define IDR_PS14_EN01                   2020
 #define IDR_PS14_EN10                   2021
 #define IDR_PS14_EN00                   2022
+#define IDR_HLSL_RB						2023
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        2023
+#define _APS_NEXT_RESOURCE_VALUE        2024
 #define _APS_NEXT_COMMAND_VALUE         32771
 #define _APS_NEXT_CONTROL_VALUE         2015
 #define _APS_NEXT_SYMED_VALUE           2000

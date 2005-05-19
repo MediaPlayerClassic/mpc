@@ -309,6 +309,7 @@ public:
 	template<typename DstT> 
 	void ReadTexture(const CRect& r, BYTE* dst, int dstpitch, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA, GIFRegCLAMP& CLAMP, readTexel rt)
 	{
+		// if(CLAMP.WMS != 3 && CLAMP.WMT != 3) // TODO
 		if((CLAMP.WMS&2) || (CLAMP.WMT&2))
 		{
 			for(int y = r.top; y < r.bottom; y++, dst += dstpitch)
