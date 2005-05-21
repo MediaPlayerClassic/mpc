@@ -394,18 +394,15 @@ REG_SET_END
 //
 
 #define SET_GIF_REG(gifTag, iRegNo, uiValue) \
-  {((GIFTag*)&gifTag)->ai64[1] |= (((uiValue) & 0xf) << ((iRegNo) << 2));}
-/*
-#if _MSC_VER >= 1400 // __ull_rshift is broken in beta2
-	// this is to avoid _aullshr...
-	extern "C" unsigned __int64 __ull_rshift(unsigned __int64 mask, int nBit);
-	#define GET_GIF_REG(gifTag, iRegNo) \
-	(BYTE)(__ull_rshift(((GIFTag*)&gifTag)->ai64[1], (iRegNo) << 2) & 0xf)
+	{((GIFTag*)&gifTag)->ai64[1] |= (((uiValue) & 0xf) << ((iRegNo) << 2));}
+
+#ifdef _M_AMD64
+#define GET_GIF_REG(tag, reg) \
+	(((tag).ai64[1] >> ((reg) << 2)) & 0xf)
 #else
-*/
-	#define GET_GIF_REG(gifTag, iRegNo) \
-	(BYTE)((((GIFTag*)&gifTag)->ai64[1] >> ((iRegNo) << 2)) & 0xf)
-//#endif
+#define GET_GIF_REG(tag, reg) \
+	(((tag).ai32[2 + ((reg) >> 3)] >> (((reg) & 7) << 2)) & 0xf)
+#endif
 
 //
 // GIFTag

@@ -401,6 +401,18 @@ CSize GSLocalMemory::GetBlockSize(DWORD PSM)
 	return size;
 }
 
+void GSLocalMemory::RoundDown(CSize& s, CSize bs)
+{
+	s.cx &= ~(bs.cx-1);
+	s.cy &= ~(bs.cy-1);
+}
+
+void GSLocalMemory::RoundUp(CSize& s, CSize bs)
+{
+	s.cx = (s.cx + (bs.cx-1)) & ~(bs.cx-1);
+	s.cy = (s.cy + (bs.cy-1)) & ~(bs.cy-1);
+}
+
 ////////////////////
 
 DWORD __fastcall GSLocalMemory::pageAddress32(int x, int y, DWORD bp, DWORD bw)

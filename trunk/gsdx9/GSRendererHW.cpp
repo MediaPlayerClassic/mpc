@@ -133,7 +133,7 @@ int GSRendererHW::DrawingKick(bool fSkip)
 	HWVERTEX* pVertices = &m_pVertices[m_nVertices];
 	int nVertices = 0;
 
-	CSize size(m_ctxt->FRAME.FBW*64, m_rs.GetSize(m_rs.IsEnabled(1)?1:0).cy*2);
+	CRect sc(m_ctxt->SCISSOR.SCAX0, m_ctxt->SCISSOR.SCAY0, m_ctxt->SCISSOR.SCAX1+1, m_ctxt->SCISSOR.SCAY1+1);
 
 	switch(m_PRIM)
 	{
@@ -142,10 +142,10 @@ int GSRendererHW::DrawingKick(bool fSkip)
 		m_vl.RemoveAt(0, pVertices[nVertices++]);
 		m_vl.RemoveAt(0, pVertices[nVertices++]);
 		m_vl.RemoveAt(0, pVertices[nVertices++]);
-		if(pVertices[nVertices-1].x < 0 && pVertices[nVertices-2].x < 0 && pVertices[nVertices-3].x < 0
-		|| pVertices[nVertices-1].y < 0 && pVertices[nVertices-2].y < 0 && pVertices[nVertices-3].y < 0
-		|| pVertices[nVertices-1].x >= size.cx && pVertices[nVertices-2].x >= size.cx && pVertices[nVertices-3].x >= size.cx
-		|| pVertices[nVertices-1].y >= size.cy && pVertices[nVertices-2].y >= size.cy && pVertices[nVertices-3].y >= size.cy)
+		if(pVertices[nVertices-1].x < sc.left && pVertices[nVertices-2].x < sc.left && pVertices[nVertices-3].x < sc.left
+		|| pVertices[nVertices-1].y < sc.top && pVertices[nVertices-2].y < sc.top && pVertices[nVertices-3].y < sc.top
+		|| pVertices[nVertices-1].x >= sc.right && pVertices[nVertices-2].x >= sc.right && pVertices[nVertices-3].x >= sc.right
+		|| pVertices[nVertices-1].y >= sc.bottom && pVertices[nVertices-2].y >= sc.bottom && pVertices[nVertices-3].y >= sc.bottom)
 			return 0;
 		LOGV((pVertices[0], _T("TriList")));
 		LOGV((pVertices[1], _T("TriList")));
@@ -156,10 +156,10 @@ int GSRendererHW::DrawingKick(bool fSkip)
 		m_vl.RemoveAt(0, pVertices[nVertices++]);
 		m_vl.GetAt(0, pVertices[nVertices++]);
 		m_vl.GetAt(1, pVertices[nVertices++]);
-		if(pVertices[nVertices-1].x < 0 && pVertices[nVertices-2].x < 0 && pVertices[nVertices-3].x < 0
-		|| pVertices[nVertices-1].y < 0 && pVertices[nVertices-2].y < 0 && pVertices[nVertices-3].y < 0
-		|| pVertices[nVertices-1].x >= size.cx && pVertices[nVertices-2].x >= size.cx && pVertices[nVertices-3].x >= size.cx
-		|| pVertices[nVertices-1].y >= size.cy && pVertices[nVertices-2].y >= size.cy && pVertices[nVertices-3].y >= size.cy)
+		if(pVertices[nVertices-1].x < sc.left && pVertices[nVertices-2].x < sc.left && pVertices[nVertices-3].x < sc.left
+		|| pVertices[nVertices-1].y < sc.top && pVertices[nVertices-2].y < sc.top && pVertices[nVertices-3].y < sc.top
+		|| pVertices[nVertices-1].x >= sc.right && pVertices[nVertices-2].x >= sc.right && pVertices[nVertices-3].x >= sc.right
+		|| pVertices[nVertices-1].y >= sc.bottom && pVertices[nVertices-2].y >= sc.bottom && pVertices[nVertices-3].y >= sc.bottom)
 			return 0;
 		LOGV((pVertices[0], _T("TriStrip")));
 		LOGV((pVertices[1], _T("TriStrip")));
@@ -170,10 +170,10 @@ int GSRendererHW::DrawingKick(bool fSkip)
 		m_vl.GetAt(0, pVertices[nVertices++]);
 		m_vl.RemoveAt(1, pVertices[nVertices++]);
 		m_vl.GetAt(1, pVertices[nVertices++]);
-		if(pVertices[nVertices-1].x < 0 && pVertices[nVertices-2].x < 0 && pVertices[nVertices-3].x < 0
-		|| pVertices[nVertices-1].y < 0 && pVertices[nVertices-2].y < 0 && pVertices[nVertices-3].y < 0
-		|| pVertices[nVertices-1].x >= size.cx && pVertices[nVertices-2].x >= size.cx && pVertices[nVertices-3].x >= size.cx
-		|| pVertices[nVertices-1].y >= size.cy && pVertices[nVertices-2].y >= size.cy && pVertices[nVertices-3].y >= size.cy)
+		if(pVertices[nVertices-1].x < sc.left && pVertices[nVertices-2].x < sc.left && pVertices[nVertices-3].x < sc.left
+		|| pVertices[nVertices-1].y < sc.top && pVertices[nVertices-2].y < sc.top && pVertices[nVertices-3].y < sc.top
+		|| pVertices[nVertices-1].x >= sc.right && pVertices[nVertices-2].x >= sc.right && pVertices[nVertices-3].x >= sc.right
+		|| pVertices[nVertices-1].y >= sc.bottom && pVertices[nVertices-2].y >= sc.bottom && pVertices[nVertices-3].y >= sc.bottom)
 			return 0;
 		LOGV((pVertices[0], _T("TriFan")));
 		LOGV((pVertices[1], _T("TriFan")));
@@ -183,10 +183,10 @@ int GSRendererHW::DrawingKick(bool fSkip)
 		m_primtype = D3DPT_TRIANGLELIST;
 		m_vl.RemoveAt(0, pVertices[nVertices++]);
 		m_vl.RemoveAt(0, pVertices[nVertices++]);
-		if(pVertices[nVertices-1].x < 0 && pVertices[nVertices-2].x < 0
-		|| pVertices[nVertices-1].y < 0 && pVertices[nVertices-2].y < 0
-		|| pVertices[nVertices-1].x >= size.cx && pVertices[nVertices-2].x >= size.cx
-		|| pVertices[nVertices-1].y >= size.cy && pVertices[nVertices-2].y >= size.cy)
+		if(pVertices[nVertices-1].x < sc.left && pVertices[nVertices-2].x < sc.left
+		|| pVertices[nVertices-1].y < sc.top && pVertices[nVertices-2].y < sc.top
+		|| pVertices[nVertices-1].x >= sc.right && pVertices[nVertices-2].x >= sc.right
+		|| pVertices[nVertices-1].y >= sc.bottom && pVertices[nVertices-2].y >= sc.bottom)
 			return 0;
 		nVertices += 2;
 
@@ -228,10 +228,10 @@ int GSRendererHW::DrawingKick(bool fSkip)
 		m_primtype = D3DPT_LINELIST;
 		m_vl.RemoveAt(0, pVertices[nVertices++]);
 		m_vl.RemoveAt(0, pVertices[nVertices++]);
-		if(pVertices[nVertices-1].x < 0 && pVertices[nVertices-2].x < 0
-		|| pVertices[nVertices-1].y < 0 && pVertices[nVertices-2].y < 0
-		|| pVertices[nVertices-1].x >= size.cx && pVertices[nVertices-2].x >= size.cx
-		|| pVertices[nVertices-1].y >= size.cy && pVertices[nVertices-2].y >= size.cy)
+		if(pVertices[nVertices-1].x < sc.left && pVertices[nVertices-2].x < sc.left
+		|| pVertices[nVertices-1].y < sc.top && pVertices[nVertices-2].y < sc.top
+		|| pVertices[nVertices-1].x >= sc.right && pVertices[nVertices-2].x >= sc.right
+		|| pVertices[nVertices-1].y >= sc.bottom && pVertices[nVertices-2].y >= sc.bottom)
 			return 0;
 		LOGV((pVertices[0], _T("LineList")));
 		LOGV((pVertices[1], _T("LineList")));
@@ -240,10 +240,10 @@ int GSRendererHW::DrawingKick(bool fSkip)
 		m_primtype = D3DPT_LINELIST;
 		m_vl.RemoveAt(0, pVertices[nVertices++]);
 		m_vl.GetAt(0, pVertices[nVertices++]);
-		if(pVertices[nVertices-1].x < 0 && pVertices[nVertices-2].x < 0
-		|| pVertices[nVertices-1].y < 0 && pVertices[nVertices-2].y < 0
-		|| pVertices[nVertices-1].x >= size.cx && pVertices[nVertices-2].x >= size.cx
-		|| pVertices[nVertices-1].y >= size.cy && pVertices[nVertices-2].y >= size.cy)
+		if(pVertices[nVertices-1].x < sc.left && pVertices[nVertices-2].x < sc.left
+		|| pVertices[nVertices-1].y < sc.top && pVertices[nVertices-2].y < sc.top
+		|| pVertices[nVertices-1].x >= sc.right && pVertices[nVertices-2].x >= sc.right
+		|| pVertices[nVertices-1].y >= sc.bottom && pVertices[nVertices-2].y >= sc.bottom)
 			return 0;
 		LOGV((pVertices[0], _T("LineStrip")));
 		LOGV((pVertices[1], _T("LineStrip")));
@@ -251,10 +251,10 @@ int GSRendererHW::DrawingKick(bool fSkip)
 	case 0: // point
 		m_primtype = D3DPT_POINTLIST;
 		m_vl.RemoveAt(0, pVertices[nVertices++]);
-		if(pVertices[nVertices-1].x < 0
-		|| pVertices[nVertices-1].y < 0
-		|| pVertices[nVertices-1].x >= size.cx
-		|| pVertices[nVertices-1].y >= size.cy)
+		if(pVertices[nVertices-1].x < sc.left
+		|| pVertices[nVertices-1].y < sc.top
+		|| pVertices[nVertices-1].x >= sc.right
+		|| pVertices[nVertices-1].y >= sc.bottom)
 			return 0;
 		LOGV((pVertices[0], _T("PointList")));
 		break;
@@ -314,7 +314,7 @@ void GSRendererHW::FlushPrim()
 
 		scale_t scale(
 			(float)m_bd.Width / (m_ctxt->FRAME.FBW*64), 
-			(float)m_bd.Height / m_rs.GetSize(m_rs.IsEnabled(1)?1:0).cy);
+			(float)m_bd.Height / m_rs.GetDispRect(m_rs.IsEnabled(1)?1:0).bottom);
 
 		//////////////////////
 
@@ -591,7 +591,7 @@ void GSRendererHW::Flip()
 {
 	HRESULT hr;
 
-	FlipSrc rt[2];
+	FlipInfo rt[2];
 
 	for(int i = 0; i < countof(rt); i++)
 	{
@@ -628,16 +628,10 @@ void GSRendererHW::Flip()
 			hr = rt[i].pRT->GetLevelDesc(0, &rt[i].rd);
 
 			rt[i].scale.Get(rt[i].pRT);
-
-			CSize size = m_rs.GetSize(i);
-			rt[i].src = CRect(0, 0, (int)(rt[i].scale.x*size.cx), (int)(rt[i].scale.y*size.cy));
 		}
 	}
 
-	bool fShiftField = m_rs.SMODE2.INT && !!(m_ctxt->XYOFFSET.OFY&0xf);
-		// m_pCSRr->FIELD && m_rs.SMODE2.INT /*&& !m_rs.SMODE2.FFMD*/;
-
-	FinishFlip(rt, fShiftField);
+	FinishFlip(rt);
 
 #ifdef DEBUG_RENDERTARGETS
 	CRect dst(0, 0, m_bd.Width, m_bd.Height);

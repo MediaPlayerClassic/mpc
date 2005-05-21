@@ -824,8 +824,8 @@ void GSState::Transfer(BYTE* pMem, UINT32 size)
 		case GIF_FLG_PACKED:
 			for(GIFPackedReg* r = (GIFPackedReg*)pMem; m_tag.NLOOP > 0 && size > 0; r++, size--, pMem += sizeof(GIFPackedReg))
 			{
-				DWORD reg = (m_tag.ai32[2 + (m_nreg >> 3)] >> ((m_nreg & 7) << 2)) & 0xf;
-				// BYTE reg = GET_GIF_REG(m_tag, m_nreg);
+				// DWORD reg = (m_tag.ai32[2 + (m_nreg >> 3)] >> ((m_nreg & 7) << 2)) & 0xf;
+				DWORD reg = GET_GIF_REG(m_tag, m_nreg);
 				(this->*m_fpGIFPackedRegHandlers[reg])(r);
 				if((m_nreg=(m_nreg+1)&0xf) == m_tag.NREG) {m_nreg = 0; m_tag.NLOOP--;}
 			}
@@ -834,8 +834,8 @@ void GSState::Transfer(BYTE* pMem, UINT32 size)
 			size *= 2;
 			for(GIFReg* r = (GIFReg*)pMem; m_tag.NLOOP > 0 && size > 0; r++, size--, pMem += sizeof(GIFReg))
 			{
-				DWORD reg = (m_tag.ai32[2 + (m_nreg >> 3)] >> ((m_nreg & 7) << 2)) & 0xf;
-				// BYTE reg = GET_GIF_REG(m_tag, m_nreg);
+				// DWORD reg = (m_tag.ai32[2 + (m_nreg >> 3)] >> ((m_nreg & 7) << 2)) & 0xf;
+				DWORD reg = GET_GIF_REG(m_tag, m_nreg);
 				(this->*m_fpGIFRegHandlers[reg])(r);
 				if((m_nreg=(m_nreg+1)&0xf) == m_tag.NREG) {m_nreg = 0; m_tag.NLOOP--;}
 			}
@@ -941,11 +941,11 @@ void GSState::VSync()
 #endif
 
 	FlushPrimInternal();
-
+/*
 	m_pCSRr->NFIELD = 1; // ?
-	if(m_rs.SMODE2.INT /*&& !m_rs.SMODE2.FFMD*/);
+	if(m_rs.SMODE2.INT) // && !m_rs.SMODE2.FFMD
 		m_pCSRr->FIELD = 1 - m_pCSRr->FIELD;
-
+*/
 	Flip();
 
 	EndFrame();
@@ -970,15 +970,31 @@ void GSState::Reset()
 	if(m_pD3DDev) m_pD3DDev->Clear(0, NULL, D3DCLEAR_TARGET/*|D3DCLEAR_ZBUFFER|D3DCLEAR_STENCIL*/, 0, 1.0f, 0);
 }
 
-void GSState::FinishFlip(FlipSrc rt[2], bool fShiftField)
+void GSState::FinishFlip(FlipInfo rt[2])
 {
 	HRESULT hr;
 
 	bool fEN[2];
+	CRect src[2];
+
 	for(int i = 0; i < countof(fEN); i++)
 	{
 		fEN[i] = m_rs.IsEnabled(i) && rt[i].pRT;
-		if(!fEN[i]) rt[i].rd.Width = rt[i].rd.Height = 1; // to avoid div by zero below
+
+		if(fEN[i])
+		{
+			CRect r = m_rs.GetDispRect(i);
+
+			src[i] = CRect(
+				(int)(0/*rt[i].scale.x * r.left*/),
+				(int)(0/*rt[i].scale.y * r.top*/),
+				(int)(rt[i].scale.x * r.right),
+				(int)(rt[i].scale.y * r.bottom));
+		}
+		else
+		{
+			rt[i].rd.Width = rt[i].rd.Height = 1; // to avoid div by zero below
+		}
 	}
 
 	CRect dst(0, 0, m_bd.Width, m_bd.Height);
@@ -992,30 +1008,45 @@ void GSState::FinishFlip(FlipSrc rt[2], bool fShiftField)
 	pVertices[] =
 	{
 		{(float)dst.left, (float)dst.top, 0.5f, 2.0f, 
-			(float)rt[0].src.left / rt[0].rd.Width, (float)rt[0].src.top / rt[0].rd.Height, 
-			(float)rt[1].src.left / rt[1].rd.Width, (float)rt[1].src.top / rt[1].rd.Height},
+			(float)src[0].left / rt[0].rd.Width, (float)src[0].top / rt[0].rd.Height, 
+			(float)src[1].left / rt[1].rd.Width, (float)src[1].top / rt[1].rd.Height},
 		{(float)dst.right, (float)dst.top, 0.5f, 2.0f, 
-			(float)rt[0].src.right / rt[0].rd.Width, (float)rt[0].src.top / rt[0].rd.Height, 
-			(float)rt[1].src.right / rt[1].rd.Width, (float)rt[1].src.top / rt[1].rd.Height},
+			(float)src[0].right / rt[0].rd.Width, (float)src[0].top / rt[0].rd.Height, 
+			(float)src[1].right / rt[1].rd.Width, (float)src[1].top / rt[1].rd.Height},
 		{(float)dst.left, (float)dst.bottom, 0.5f, 2.0f, 
-			(float)rt[0].src.left / rt[0].rd.Width, (float)rt[0].src.bottom / rt[0].rd.Height, 
-			(float)rt[1].src.left / rt[1].rd.Width, (float)rt[1].src.bottom / rt[1].rd.Height},
+			(float)src[0].left / rt[0].rd.Width, (float)src[0].bottom / rt[0].rd.Height, 
+			(float)src[1].left / rt[1].rd.Width, (float)src[1].bottom / rt[1].rd.Height},
 		{(float)dst.right, (float)dst.bottom, 0.5f, 2.0f, 
-			(float)rt[0].src.right / rt[0].rd.Width, (float)rt[0].src.bottom / rt[0].rd.Height, 
-			(float)rt[1].src.right / rt[1].rd.Width, (float)rt[1].src.bottom / rt[1].rd.Height},
+			(float)src[0].right / rt[0].rd.Width, (float)src[0].bottom / rt[0].rd.Height, 
+			(float)src[1].right / rt[1].rd.Width, (float)src[1].bottom / rt[1].rd.Height},
 	};
 
-	for(int i = 0; i < countof(pVertices); i++)
-	{
-		pVertices[i].x -= 0.5;
-		pVertices[i].y -= 0.5;
+	TRACE(
+		_T("m_rs.SMODE2.INT=%d | m_rs.SMODE2.FFMD=%d | m_ctxt->XYOFFSET.OFY=%d | m_pCSRr->FIELD=%d\n")
+		_T("[0] DBX=%d, DBY=%d, DW=%d, DH=%d | [1] DBX=%d, DBY=%d, DW=%d, DH=%d\n"),
+		m_rs.SMODE2.INT,
+		m_rs.SMODE2.FFMD,
+		m_ctxt->XYOFFSET.OFY,
+		m_pCSRr->FIELD,
+		m_rs.DISPFB[0].DBX, m_rs.DISPFB[0].DBY, m_rs.DISPLAY[0].DW + 1, m_rs.DISPLAY[0].DH + 1,
+		m_rs.DISPFB[1].DBX, m_rs.DISPFB[1].DBY, m_rs.DISPLAY[1].DW + 1, m_rs.DISPLAY[1].DH + 1);
 
-		if(fShiftField)
+	if(m_rs.SMODE2.INT)
+	{
+		if(!m_rs.SMODE2.FFMD)
 		{
-			pVertices[i].tv1 += rt[0].scale.y*0.5f / rt[0].rd.Height;
-			pVertices[i].tv2 += rt[1].scale.y*0.5f / rt[1].rd.Height;
+			m_pCSRr->FIELD = 1 - m_pCSRr->FIELD; // FIXME: might stop a few games, but this is the only way to stop shaking the bios or sfae
 		}
-/**/
+		else if(m_pCSRr->FIELD)
+		{
+			if(m_pCSRr->FIELD == 0) m_pCSRr->FIELD = 1;
+
+			for(int i = 0; i < countof(pVertices); i++)
+			{
+				pVertices[i].tv1 += rt[0].scale.y*0.5f / rt[0].rd.Height;
+				pVertices[i].tv2 += rt[1].scale.y*0.5f / rt[1].rd.Height;
+			}
+		}
 	}
 
 	hr = m_pD3DDev->SetRenderState(D3DRS_ZENABLE, FALSE);
