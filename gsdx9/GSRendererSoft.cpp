@@ -203,31 +203,28 @@ void GSRendererSoft<VERTEX>::Flip()
 {
 	HRESULT hr;
 
-	FlipSrc rt[2];
+	FlipInfo rt[2];
 
 	for(int i = 0; i < countof(rt); i++)
 	{
 		if(m_rs.IsEnabled(i))
 		{
-			CRect r(CPoint(0, 0), m_rs.GetSize(i));
+			CRect rect = CRect(CPoint(0, 0), m_rs.GetDispRect(i).BottomRight());
+
+			//GSLocalMemory::RoundUp(, GSLocalMemory::GetBlockSize(m_rs.DISPFB[i].PSM));
 
 			// TODO: do not create this here for each frame...
-			hr = m_pD3DDev->CreateTexture(r.Width(), r.Height(), 1, 0, D3DFMT_A8R8G8B8, D3DPOOL_MANAGED, &rt[i].pRT, NULL);
+			hr = m_pD3DDev->CreateTexture(rect.right, rect.bottom, 1, 0, D3DFMT_A8R8G8B8, D3DPOOL_MANAGED, &rt[i].pRT, NULL);
 			if(S_OK != hr) continue;
 
 			ZeroMemory(&rt[i].rd, sizeof(rt[i].rd));
 			hr = rt[i].pRT->GetLevelDesc(0, &rt[i].rd);
 
 			rt[i].scale = scale_t(1, 1);
-			rt[i].src = r;
 
 			D3DLOCKED_RECT lr;
 			if(FAILED(hr = rt[i].pRT->LockRect(0, &lr, NULL, 0)))
 				continue;
-
-			GIFRegTEX0 TEX0;
-			TEX0.TBP0 = m_rs.DISPFB[i].FBP<<5;
-			TEX0.TBW = m_rs.DISPFB[i].FBW;
 
 #ifdef DEBUG_RENDERTARGETS
 			if(::GetAsyncKeyState(VK_SPACE)&0x80000000) TEX0.TBP0 = m_ctxt->FRAME.Block();
@@ -251,18 +248,21 @@ void GSRendererSoft<VERTEX>::Flip()
 				Sleep(500);
 #endif
 
-			GSLocalMemory::unSwizzleTexture st = m_lm.GetUnSwizzleTexture(m_rs.DISPFB[i].PSM);
-			(m_lm.*st)(r, (BYTE*)lr.pBits, lr.Pitch, TEX0, m_de.TEXA);
+			GIFRegTEX0 TEX0;
+			TEX0.TBP0 = m_rs.DISPFB[i].FBP<<5;
+			TEX0.TBW = m_rs.DISPFB[i].FBW;
+			TEX0.PSM = m_rs.DISPFB[i].PSM;
+
+			GIFRegCLAMP CLAMP;
+			CLAMP.WMS = CLAMP.WMT = 1;
+
+			m_lm.ReadTexture(rect, (BYTE*)lr.pBits, lr.Pitch, TEX0, m_de.TEXA, CLAMP);
 
 			rt[i].pRT->UnlockRect(0);
 		}
 	}
 
-	bool fShiftField = false;
-		// m_rs.SMODE2.INT && !!(m_ctxt->XYOFFSET.OFY&0xf);
-		// m_pCSRr->FIELD && m_rs.SMODE2.INT /*&& !m_rs.SMODE2.FFMD*/;
-
-	FinishFlip(rt, fShiftField);
+	FinishFlip(rt);
 }
 
 template <class VERTEX>
@@ -598,8 +598,10 @@ void GSRendererSoftFP::VertexKick(bool fSkip)
 {
 	GSSoftVertex v;
 
-	v.x = ((float)m_v.XYZ.X - (m_ctxt->XYOFFSET.OFX&~15)) / 16;
-	v.y = ((float)m_v.XYZ.Y - (m_ctxt->XYOFFSET.OFY&~15)) / 16;
+	v.x = ((float)m_v.XYZ.X - m_ctxt->XYOFFSET.OFX) / 16;
+	v.y = ((float)m_v.XYZ.Y - m_ctxt->XYOFFSET.OFY) / 16;
+	// v.x = ((float)m_v.XYZ.X - (m_ctxt->XYOFFSET.OFX&~15)) / 16;
+	// v.y = ((float)m_v.XYZ.Y - (m_ctxt->XYOFFSET.OFY&~15)) / 16;
 	// v.x = (float)(m_v.XYZ.X>>4) - (m_ctxt->XYOFFSET.OFX>>4);
 	// v.y = (float)(m_v.XYZ.Y>>4) - (m_ctxt->XYOFFSET.OFY>>4);
 	v.z = (float)m_v.XYZ.Z / UINT_MAX;

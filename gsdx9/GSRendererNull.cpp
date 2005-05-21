@@ -92,8 +92,8 @@ int GSRendererNull::DrawingKick(bool fSkip)
 
 void GSRendererNull::Flip()
 {
-	FlipSrc rt[2];
-	FinishFlip(rt, false);
+	FlipInfo rt[2];
+	FinishFlip(rt);
 }
 
 void GSRendererNull::EndFrame()

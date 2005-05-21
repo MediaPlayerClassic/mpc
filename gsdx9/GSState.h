@@ -105,14 +105,20 @@ struct GSRegSet
 {
 	struct GSRegSet() {memset(this, 0, sizeof(*this));}
 
-	CSize GetSize(int en)
+	CSize GetDispSize(int en)
 	{
 		ASSERT(en >= 0 && en < 2);
 		CSize size;
-		size.cx = DISPLAY[en].DW / (DISPLAY[en].MAGH+1) + 1;
-		size.cy = DISPLAY[en].DH / (DISPLAY[en].MAGV+1) + 1;
+		size.cx = (DISPLAY[en].DW + 1) / (DISPLAY[en].MAGH + 1);
+		size.cy = (DISPLAY[en].DH + 1) / (DISPLAY[en].MAGV + 1);
 		if(SMODE2.INT && SMODE2.FFMD && size.cy > 1) size.cy >>= 1;
 		return size;
+	}
+
+	CRect GetDispRect(int en)
+	{
+		ASSERT(en >= 0 && en < 2);
+		return CRect(CPoint(DISPFB[en].DBX, DISPFB[en].DBY), GetDispSize(en));
 	}
 
 	bool IsEnabled(int en)
@@ -215,8 +221,8 @@ protected:
 	virtual void InvalidateLocalMem(DWORD TBP0, DWORD BW, DWORD PSM, CRect r) {}
 	virtual void MinMaxUV(int w, int h, CRect& r) {r.SetRect(0, 0, w, h);}
 
-	struct FlipSrc {CComPtr<IDirect3DTexture9> pRT; D3DSURFACE_DESC rd; scale_t scale; CRect src;};
-	void FinishFlip(FlipSrc rt[2], bool fShiftField);
+	struct FlipInfo {CComPtr<IDirect3DTexture9> pRT; D3DSURFACE_DESC rd; scale_t scale;};
+	void FinishFlip(FlipInfo rt[2]);
 
 	void FlushPrimInternal();
 
@@ -354,35 +360,35 @@ public:
 	{
 		va_list args;
 		va_start(args, fmt);
-		/* ////////////
+		////////////
 		if(_tcsstr(fmt, _T("VSync")) 
 		|| _tcsstr(fmt, _T("*** WARNING ***"))
-		|| _tcsstr(fmt, _T("Flush"))
-		// || _tcsstr(fmt, _T("CSR"))
+		// || _tcsstr(fmt, _T("Flush"))
+		|| _tcsstr(fmt, _T("CSR"))
 		|| _tcsstr(fmt, _T("DISP"))
 		|| _tcsstr(fmt, _T("FRAME"))
 		// || _tcsstr(fmt, _T("ZBUF"))
-		// || _tcsstr(fmt, _T("SMODE"))
-		// || _tcsstr(fmt, _T("PMODE"))
-		|| _tcsstr(fmt, _T("BITBLTBUF"))
-		|| _tcsstr(fmt, _T("TRX"))
-		|| _tcsstr(fmt, _T("PRIM"))
+		 || _tcsstr(fmt, _T("SMODE"))
+		 || _tcsstr(fmt, _T("PMODE"))
+		// || _tcsstr(fmt, _T("BITBLTBUF"))
+		// || _tcsstr(fmt, _T("TRX"))
+		// || _tcsstr(fmt, _T("PRIM"))
 		// || _tcsstr(fmt, _T("RGB"))
-		/// || _tcsstr(fmt, _T("XYZ"))
+		// || _tcsstr(fmt, _T("XYZ"))
 		// || _tcsstr(fmt, _T("ST"))
-		// || _tcsstr(fmt, _T("XYOFFSET"))
-		|| _tcsstr(fmt, _T("TEX"))
-		|| _tcsstr(fmt, _T("TEX0"))
-		|| _tcsstr(fmt, _T("TEX2"))
-		|| _tcsstr(fmt, _T("TEXFLUSH"))
+		|| _tcsstr(fmt, _T("XYOFFSET"))
+		// || _tcsstr(fmt, _T("TEX"))
+		// || _tcsstr(fmt, _T("TEX0"))
+		// || _tcsstr(fmt, _T("TEX2"))
+		// || _tcsstr(fmt, _T("TEXFLUSH"))
 		// || _tcsstr(fmt, _T("UV"))
 		// || _tcsstr(fmt, _T("FOG"))
 		// || _tcsstr(fmt, _T("ALPHA"))
 		// || _tcsstr(fmt, _T("TBP0")) == fmt
 		// || _tcsstr(fmt, _T("CBP")) == fmt
-		|| _tcsstr(fmt, _T("*TC2 ")) == fmt
+		// || _tcsstr(fmt, _T("*TC2 ")) == fmt
 		)
-		*/
+		/* */
 		if(m_fp)
 		{
 			TCHAR buff[2048];

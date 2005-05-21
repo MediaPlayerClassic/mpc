@@ -54,6 +54,8 @@ public:
 	virtual ~GSLocalMemory();
 
 	static CSize GetBlockSize(DWORD PSM);
+	static void RoundDown(CSize& s, CSize bs);
+	static void RoundUp(CSize& s, CSize bs);
 
 	BYTE* GetVM() {return m_vm8;}
 
