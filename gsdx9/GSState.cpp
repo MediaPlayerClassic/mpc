@@ -1033,23 +1033,18 @@ void GSState::FinishFlip(FlipInfo rt[2])
 
 	if(m_rs.SMODE2.INT)
 	{
-		if(m_pCSRr->FIELD == 0) m_pCSRr->FIELD = 1; // FIXME: might stop a few games, but this is the only way to stop shaking the bios or sfae
-
 		if(!m_rs.SMODE2.FFMD)
 		{
-			// m_pCSRr->FIELD = 1 - m_pCSRr->FIELD;
+			m_pCSRr->FIELD = 1 - m_pCSRr->FIELD;
 		}
-		else
+		else if(m_pCSRr->FIELD)
 		{
-			// m_pCSRr->FIELD = 1 - m_pCSRr->FIELD;
+			if(m_pCSRr->FIELD == 0) m_pCSRr->FIELD = 1; // FIXME: might stop a few games, but this is the only way to stop shaking the bios or sfae
 
-			if(m_pCSRr->FIELD)
+			for(int i = 0; i < countof(pVertices); i++)
 			{
-				for(int i = 0; i < countof(pVertices); i++)
-				{
-					pVertices[i].tv1 += rt[0].scale.y*0.5f / rt[0].rd.Height;
-					pVertices[i].tv2 += rt[1].scale.y*0.5f / rt[1].rd.Height;
-				}
+				pVertices[i].tv1 += rt[0].scale.y*0.5f / rt[0].rd.Height;
+				pVertices[i].tv2 += rt[1].scale.y*0.5f / rt[1].rd.Height;
 			}
 		}
 	}
