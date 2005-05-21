@@ -226,6 +226,14 @@ void GSRendererSoft<VERTEX>::Flip()
 			if(FAILED(hr = rt[i].pRT->LockRect(0, &lr, NULL, 0)))
 				continue;
 
+			GIFRegTEX0 TEX0;
+			TEX0.TBP0 = m_rs.DISPFB[i].FBP<<5;
+			TEX0.TBW = m_rs.DISPFB[i].FBW;
+			TEX0.PSM = m_rs.DISPFB[i].PSM;
+
+			GIFRegCLAMP CLAMP;
+			CLAMP.WMS = CLAMP.WMT = 1;
+
 #ifdef DEBUG_RENDERTARGETS
 			if(::GetAsyncKeyState(VK_SPACE)&0x80000000) TEX0.TBP0 = m_ctxt->FRAME.Block();
 
@@ -247,14 +255,6 @@ void GSRendererSoft<VERTEX>::Flip()
 			if(::GetAsyncKeyState(VK_LCONTROL)&0x80000000)
 				Sleep(500);
 #endif
-
-			GIFRegTEX0 TEX0;
-			TEX0.TBP0 = m_rs.DISPFB[i].FBP<<5;
-			TEX0.TBW = m_rs.DISPFB[i].FBW;
-			TEX0.PSM = m_rs.DISPFB[i].PSM;
-
-			GIFRegCLAMP CLAMP;
-			CLAMP.WMS = CLAMP.WMT = 1;
 
 			m_lm.ReadTexture(rect, (BYTE*)lr.pBits, lr.Pitch, TEX0, m_de.TEXA, CLAMP);
 

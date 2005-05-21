@@ -661,8 +661,9 @@ void GSRendererHW::Flip()
 
 				scale_t scale(pRT);
 
-				CSize size = m_rs.GetSize(m_rs.IsEnabled(1)?1:0);
-				CRect src = CRect(0, 0, scale.x*size.cx, scale.y*size.cy);
+				CRect rect = m_rs.GetDispRect(m_rs.IsEnabled(1)?1:0);
+				//CSize size = m_rs.GetSize(m_rs.IsEnabled(1)?1:0);
+				CRect src = CRect(0, 0, scale.x*rect.right, scale.y*rect.bottom);
 
 				struct
 				{

@@ -1033,13 +1033,11 @@ void GSState::FinishFlip(FlipInfo rt[2])
 
 	if(m_rs.SMODE2.INT)
 	{
-		m_pCSRr->FIELD = 1 - m_pCSRr->FIELD;
-
 		if(!m_rs.SMODE2.FFMD)
 		{
 			// m_pCSRr->FIELD = 1 - m_pCSRr->FIELD;
 		}
-		else if(m_pCSRr->FIELD)
+		else if(!m_pCSRr->FIELD)
 		{
 			// if(m_pCSRr->FIELD == 0) m_pCSRr->FIELD = 1; // FIXME: might stop a few games, but this is the only way to stop shaking the bios or sfae
 
@@ -1049,6 +1047,8 @@ void GSState::FinishFlip(FlipInfo rt[2])
 				pVertices[i].tv2 += rt[1].scale.y*0.5f / rt[1].rd.Height;
 			}
 		}
+/**/
+		m_pCSRr->FIELD = 1 - m_pCSRr->FIELD;
 	}
 
 	hr = m_pD3DDev->SetRenderState(D3DRS_ZENABLE, FALSE);
