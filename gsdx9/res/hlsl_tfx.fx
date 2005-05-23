@@ -6,7 +6,7 @@ float4 Params1 : register(c0); // TFX, fTCC, fRT, fTME
 
 #define TFX		(Params1[0])
 #define fTCC	(Params1[1] != 0)
-#define fRT		(Params1[2] != 0)
+#define fRT		(Params1[2])
 #define fTME	(Params1[3] != 0)
 
 float4 Params2 : register(c1); // PSM (TEX0), AEM, TA0, TA1
@@ -33,7 +33,7 @@ float2 ZERO_RH : register(c5);
 float4 SampleTexture_32(in float2 Tex : TEXCOORD0) : COLOR
 {
 	float4 c = tex2D(Texture, Tex);
-	if(!fRT) c.a *= 2;
+	c.a *= fRT;
 	return c;	
 }
 
@@ -41,7 +41,7 @@ float4 SampleTexture_24(in float2 Tex : TEXCOORD0) : COLOR
 {
 	float4 c = tex2D(Texture, Tex);
 	c.a = TA0;
-	//if(!fRT) c.a *= 2; // premultiplied
+	// c.a *= fRT; // premultiplied
 	return c;	
 }
 
@@ -49,7 +49,7 @@ float4 SampleTexture_24AEM(in float2 Tex : TEXCOORD0) : COLOR
 {
 	float4 c = tex2D(Texture, Tex);
 	c.a = any(c.rgb) ? TA0 : 0;
-	//if(!fRT) c.a *= 2; // premultiplied
+	// c.a *= fRT; // premultiplied
 	return c;	
 }
 
@@ -57,7 +57,7 @@ float4 SampleTexture_16(in float2 Tex : TEXCOORD0) : COLOR
 {
 	float4 c = tex2D(Texture, Tex);
 	c.a = c.a != 0 ? TA1 : TA0;
-	//if(!fRT) c.a *= 2; // premultiplied
+	// c.a *= fRT; // premultiplied
 	return c;	
 }
 
@@ -65,7 +65,7 @@ float4 SampleTexture_16AEM(in float2 Tex : TEXCOORD0) : COLOR
 {
 	float4 c = tex2D(Texture, Tex);
 	c.a = c.a != 0 ? TA1 : any(c.rgb) ? TA0 : 0;
-	//if(!fRT) c.a *= 2; // premultiplied
+	// c.a *= fRT; // premultiplied
 	return c;
 }
 
@@ -74,7 +74,7 @@ static const float s_palerr = 0.001/256;
 float4 SampleTexture_8P_pt(in float2 Tex : TEXCOORD0) : COLOR
 {
 	float4 c = tex1D(Palette, tex2D(Texture, Tex).x - s_palerr);
-	if(!fRT) c.a *= 2;
+	// c.a *= fRT; // premultiplied
 	return c;
 }
 	
@@ -87,14 +87,15 @@ float4 SampleTexture_8P_ln(in float2 Tex : TEXCOORD0) : COLOR
 	float4 c11 = tex1D(Palette, tex2D(Texture, Tex + RW_RH).x - s_palerr);
 	float2 dd = frac(Tex * W_H); 
 	float4 c = lerp(lerp(c00, c01, dd.x), lerp(c10, c11, dd.x), dd.y);
-	if(!fRT) c.a *= 2;
+	c.a *= fRT;
+	//if(fRT) c.a *= 2;
 	return c;
 }
 
 float4 SampleTexture_8HP_pt(in float2 Tex : TEXCOORD0) : COLOR
 {
 	float4 c = tex1D(Palette, tex2D(Texture, Tex).a - s_palerr);
-	if(!fRT) c.a *= 2;
+	c.a *= fRT;
 	return c;
 }
 	
@@ -107,7 +108,7 @@ float4 SampleTexture_8HP_ln(in float2 Tex : TEXCOORD0) : COLOR
 	float4 c11 = tex1D(Palette, tex2D(Texture, Tex + RW_RH).a - s_palerr);
 	float2 dd = frac(Tex * W_H); 
 	float4 c = lerp(lerp(c00, c01, dd.x), lerp(c10, c11, dd.x), dd.y);
-	if(!fRT) c.a *= 2;
+	c.a *= fRT;
 	return c;
 }
 

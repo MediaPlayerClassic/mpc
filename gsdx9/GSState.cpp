@@ -785,6 +785,7 @@ void GSState::Transfer(BYTE* pMem, UINT32 size)
 		{
 			m_tag = *(GIFTag*)pMem;
 			m_nreg = 0;
+			m_q = 1.0f;
 /*
 			LOG(_T("GIFTag NLOOP=%x EOP=%x PRE=%x PRIM=%x FLG=%x NREG=%x REGS=%x\n"), 
 				m_tag.NLOOP,
@@ -824,7 +825,6 @@ void GSState::Transfer(BYTE* pMem, UINT32 size)
 		case GIF_FLG_PACKED:
 			for(GIFPackedReg* r = (GIFPackedReg*)pMem; m_tag.NLOOP > 0 && size > 0; r++, size--, pMem += sizeof(GIFPackedReg))
 			{
-				// DWORD reg = (m_tag.ai32[2 + (m_nreg >> 3)] >> ((m_nreg & 7) << 2)) & 0xf;
 				DWORD reg = GET_GIF_REG(m_tag, m_nreg);
 				(this->*m_fpGIFPackedRegHandlers[reg])(r);
 				if((m_nreg=(m_nreg+1)&0xf) == m_tag.NREG) {m_nreg = 0; m_tag.NLOOP--;}
@@ -834,7 +834,6 @@ void GSState::Transfer(BYTE* pMem, UINT32 size)
 			size *= 2;
 			for(GIFReg* r = (GIFReg*)pMem; m_tag.NLOOP > 0 && size > 0; r++, size--, pMem += sizeof(GIFReg))
 			{
-				// DWORD reg = (m_tag.ai32[2 + (m_nreg >> 3)] >> ((m_nreg & 7) << 2)) & 0xf;
 				DWORD reg = GET_GIF_REG(m_tag, m_nreg);
 				(this->*m_fpGIFRegHandlers[reg])(r);
 				if((m_nreg=(m_nreg+1)&0xf) == m_tag.NREG) {m_nreg = 0; m_tag.NLOOP--;}

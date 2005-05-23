@@ -6,6 +6,7 @@
 	ProjectGUID="{345C9F24-0B9A-4289-B375-ADD3B63461B7}"
 	RootNamespace="GSdx9"
 	Keyword="MFCDLLProj"
+	SignManifests="true"
 	>
 	<Platforms>
 		<Platform
@@ -224,7 +225,6 @@
 				EnableIntrinsicFunctions="true"
 				FavorSizeOrSpeed="1"
 				OmitFramePointers="true"
-				WholeProgramOptimization="true"
 				PreprocessorDefinitions="WIN32;_WINDOWS;NDEBUG;_USRDLL"
 				StringPooling="true"
 				RuntimeLibrary="0"
@@ -254,7 +254,6 @@
 				SubSystem="2"
 				OptimizeReferences="2"
 				EnableCOMDATFolding="2"
-				LinkTimeCodeGeneration="1"
 				ImportLibrary="$(OutDir)/GSdx9.lib"
 				TargetMachine="1"
 			/>
@@ -585,7 +584,6 @@
 				EnableIntrinsicFunctions="true"
 				FavorSizeOrSpeed="1"
 				OmitFramePointers="true"
-				WholeProgramOptimization="true"
 				PreprocessorDefinitions="WIN32;_WINDOWS;NDEBUG;_USRDLL"
 				StringPooling="true"
 				RuntimeLibrary="0"
@@ -618,7 +616,6 @@
 				SubSystem="2"
 				OptimizeReferences="2"
 				EnableCOMDATFolding="2"
-				LinkTimeCodeGeneration="1"
 				ImportLibrary="$(OutDir)/GSdx9.lib"
 				TargetMachine="1"
 			/>
@@ -1157,6 +1154,14 @@
 			<File
 				RelativePath=".\x86.cpp"
 				>
+				<FileConfiguration
+					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						AssemblerOutput="4"
+					/>
+				</FileConfiguration>
 				<FileConfiguration
 					Name="ReleaseSSE2|Win32"
 					>

@@ -288,9 +288,9 @@ void __fastcall GSState::GIFRegHandlerTEX0_1(GIFReg* r)
 
 	m_de.CTXT[0].TEX0 = r->TEX0;
 
-	ASSERT(r->TEX0.TW <= 10 && r->TEX0.TH <= 10);
-	if(r->TEX0.TW > 10) r->TEX0.TW = 10;
-	if(r->TEX0.TH > 10) r->TEX0.TH = 10;
+	ASSERT(m_de.CTXT[0].TEX0.TW <= 10 && m_de.CTXT[0].TEX0.TH <= 10);
+	if(m_de.CTXT[0].TEX0.TW > 10) m_de.CTXT[0].TEX0.TW = 10;
+	if(m_de.CTXT[0].TEX0.TH > 10) m_de.CTXT[0].TEX0.TH = 10;
 
 	m_de.CTXT[0].rt = m_lm.GetReadTexel(r->TEX0.PSM);
 
@@ -320,9 +320,9 @@ void __fastcall GSState::GIFRegHandlerTEX0_2(GIFReg* r)
 
 	m_de.CTXT[1].TEX0 = r->TEX0;
 
-	ASSERT(r->TEX0.TW <= 10 && r->TEX0.TH <= 10);
-	if(r->TEX0.TW > 10) r->TEX0.TW = 10;
-	if(r->TEX0.TH > 10) r->TEX0.TH = 10;
+	ASSERT(m_de.CTXT[1].TEX0.TW <= 10 && m_de.CTXT[1].TEX0.TH <= 10);
+	if(m_de.CTXT[1].TEX0.TW > 10) m_de.CTXT[1].TEX0.TW = 10;
+	if(m_de.CTXT[1].TEX0.TH > 10) m_de.CTXT[1].TEX0.TH = 10;
 
 	m_de.CTXT[1].rt = m_lm.GetReadTexel(r->TEX0.PSM);
 

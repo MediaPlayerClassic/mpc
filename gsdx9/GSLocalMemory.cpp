@@ -41,8 +41,8 @@ static class cdscd
 public:
 	cdscd()
 	{
-//
 		return;
+//
 /*
 		union
 		{
@@ -106,7 +106,7 @@ public:
 
 			for(int i = 0; i < 1000; i++)
 			{
-				lm.unSwizzleTexture16(CRect(0,0,1024,1024), (BYTE*)dst, 1024*4, TEX0, TEXA);
+				lm.unSwizzleTexture32(CRect(0,0,1024,1024), (BYTE*)dst, 1024*4, TEX0, TEXA);
 			}
 
 			clock_t diff = clock() - start;
@@ -1471,7 +1471,6 @@ void GSLocalMemory::ReadCLUT32(GIFRegTEX0 TEX0, GIFRegTEXA TEXA, DWORD* pCLUT32)
 	}
 	else if(TEX0.CPSM == PSM_PSMCT16 || TEX0.CPSM == PSM_PSMCT16S)
 	{
-		// TODO: avoid Expand16 with ps20+
 		Expand16(pCLUT, pCLUT32, PaletteEntries(TEX0.PSM), &TEXA);
 	}
 }
@@ -1665,24 +1664,40 @@ void GSLocalMemory::SwizzleTexture32(int& tx, int& ty, BYTE* src, int len, GIFRe
 	{
 		if(fTopLeftAligned && tw >= 8 && th >= 8)
 		{
-			len -= (th & ~7) * srcpitch;
-
-			th += ty;
-
 			int twa = tw & ~7;
 			int tha = th & ~7;
 
-			for(int y = ty; y < tha; )
+			len -= tha * srcpitch;
+			th -= tha;
+
+			for(int j = 0; j < tha; j += 8)
 			{
 				for(int x = tx; x < twa; x += 8)
-					SwizzleBlock32u((BYTE*)&m_vm32[blockAddress32(x, y, BITBLTBUF.DBP, BITBLTBUF.DBW)], src + (x - tx)*4, srcpitch);
+					SwizzleBlock32u((BYTE*)&m_vm32[blockAddress32(x, ty, BITBLTBUF.DBP, BITBLTBUF.DBW)], src + (x - tx)*4, srcpitch);
 
-				for(int ye = y + 8; y < ye; y++, src += srcpitch)
+				for(int i = 0; i < 8; i++, ty++, src += srcpitch)
 					for(int x = twa; x < tw; x++)
-						writePixel32(x, y, ((DWORD*)src)[x - tx], BITBLTBUF.DBP, BITBLTBUF.DBW);
+						writePixel32(x, ty, ((DWORD*)src)[x - tx], BITBLTBUF.DBP, BITBLTBUF.DBW);
 			}
+		}
 
-			ty = tha;
+		if(len > 0 && tw >= 8 && th >= 2 && IsTopLeftAligned(TRXPOS.DSAX, tx, ty, 8, 2))
+		{
+			int twa = tw & ~7;
+			int tha = th & ~1;
+
+			len -= tha * srcpitch;
+			th -= tha;
+
+			for(int j = 0; j < tha; j += 2)
+			{
+				for(int x = tx; x < twa; x += 8)
+					SwizzleColumn32(ty, (BYTE*)&m_vm32[blockAddress32(x, ty&~7, BITBLTBUF.DBP, BITBLTBUF.DBW)], src + (x - tx)*4, srcpitch);
+
+				for(int i = 0; i < 2; i++, ty++, src += srcpitch)
+					for(int x = twa; x < tw; x++)
+						writePixel32(x, ty, ((DWORD*)src)[x - tx], BITBLTBUF.DBP, BITBLTBUF.DBW);
+			}
 		}
 
 		SwizzleTextureX(tx, ty, src, len, BITBLTBUF, TRXPOS, TRXREG);
@@ -1710,6 +1725,8 @@ void GSLocalMemory::SwizzleTexture24(int& tx, int& ty, BYTE* src, int len, GIFRe
 
 	if(!fTopLeftAligned || (tw & 7) || (th & 7) || (len % srcpitch))
 	{
+		// TODO
+
 		SwizzleTextureX(tx, ty, src, len, BITBLTBUF, TRXPOS, TRXREG);
 	}
 	else
@@ -1750,24 +1767,40 @@ void GSLocalMemory::SwizzleTexture16(int& tx, int& ty, BYTE* src, int len, GIFRe
 	{
 		if(fTopLeftAligned && tw >= 16 && th >= 8)
 		{
-			len -= (th & ~7) * srcpitch;
-
-			th += ty;
-
 			int twa = tw & ~15;
 			int tha = th & ~7;
 
-			for(int y = ty; y < tha; )
+			len -= tha * srcpitch;
+			th -= tha;
+
+			for(int j = 0; j < tha; j += 8)
 			{
 				for(int x = tx; x < twa; x += 16)
-					SwizzleBlock16u((BYTE*)&m_vm16[blockAddress16(x, y, BITBLTBUF.DBP, BITBLTBUF.DBW)], src + (x - tx)*2, srcpitch);
+					SwizzleBlock16u((BYTE*)&m_vm16[blockAddress16(x, ty, BITBLTBUF.DBP, BITBLTBUF.DBW)], src + (x - tx)*2, srcpitch);
 
-				for(int ye = y + 8; y < ye; y++, src += srcpitch)
+				for(int i = 0; i < 8; i++, ty++, src += srcpitch)
 					for(int x = twa; x < tw; x++)
-						writePixel16(x, y, ((WORD*)src)[x - tx], BITBLTBUF.DBP, BITBLTBUF.DBW);
+						writePixel16(x, ty, ((WORD*)src)[x - tx], BITBLTBUF.DBP, BITBLTBUF.DBW);
 			}
+		}
 
-			ty = tha;
+		if(len > 0 && tw >= 16 && th >= 2 && IsTopLeftAligned(TRXPOS.DSAX, tx, ty, 16, 2))
+		{
+			int twa = tw & ~15;
+			int tha = th & ~1;
+
+			len -= tha * srcpitch;
+			th -= tha;
+
+			for(int j = 0; j < tha; j += 2)
+			{
+				for(int x = tx; x < twa; x += 16)
+					SwizzleColumn16(ty, (BYTE*)&m_vm16[blockAddress16(x, ty&~7, BITBLTBUF.DBP, BITBLTBUF.DBW)], src + (x - tx)*2, srcpitch);
+
+				for(int i = 0; i < 2; i++, ty++, src += srcpitch)
+					for(int x = twa; x < tw; x++)
+						writePixel16(x, ty, ((WORD*)src)[x - tx], BITBLTBUF.DBP, BITBLTBUF.DBW);
+			}
 		}
 
 		SwizzleTextureX(tx, ty, src, len, BITBLTBUF, TRXPOS, TRXREG);
@@ -1797,24 +1830,40 @@ void GSLocalMemory::SwizzleTexture16S(int& tx, int& ty, BYTE* src, int len, GIFR
 	{
 		if(fTopLeftAligned && tw >= 16 && th >= 8)
 		{
-			len -= (th & ~7) * srcpitch;
-
-			th += ty;
-
 			int twa = tw & ~15;
 			int tha = th & ~7;
 
-			for(int y = ty; y < tha; )
+			len -= tha * srcpitch;
+			th -= tha;
+
+			for(int j = 0; j < tha; j += 8)
 			{
 				for(int x = tx; x < twa; x += 16)
-					SwizzleBlock16u((BYTE*)&m_vm16[blockAddress16S(x, y, BITBLTBUF.DBP, BITBLTBUF.DBW)], src + (x - tx)*2, srcpitch);
+					SwizzleBlock16u((BYTE*)&m_vm16[blockAddress16S(x, ty, BITBLTBUF.DBP, BITBLTBUF.DBW)], src + (x - tx)*2, srcpitch);
 
-				for(int ye = y + 8; y < ye; y++, src += srcpitch)
+				for(int i = 0; i < 8; i++, ty++, src += srcpitch)
 					for(int x = twa; x < tw; x++)
-						writePixel16S(x, y, ((WORD*)src)[x - tx], BITBLTBUF.DBP, BITBLTBUF.DBW);
+						writePixel16S(x, ty, ((WORD*)src)[x - tx], BITBLTBUF.DBP, BITBLTBUF.DBW);
 			}
+		}
 
-			ty = tha;
+		if(len > 0 && tw >= 16 && th >= 2 && IsTopLeftAligned(TRXPOS.DSAX, tx, ty, 16, 2))
+		{
+			int twa = tw & ~15;
+			int tha = th & ~1;
+
+			len -= tha * srcpitch;
+			th -= tha;
+
+			for(int j = 0; j < tha; j += 2)
+			{
+				for(int x = tx; x < twa; x += 16)
+					SwizzleColumn16(ty, (BYTE*)&m_vm16[blockAddress16S(x, ty&~7, BITBLTBUF.DBP, BITBLTBUF.DBW)], src + (x - tx)*2, srcpitch);
+
+				for(int i = 0; i < 2; i++, ty++, src += srcpitch)
+					for(int x = twa; x < tw; x++)
+						writePixel16S(x, ty, ((WORD*)src)[x - tx], BITBLTBUF.DBP, BITBLTBUF.DBW);
+			}
 		}
 
 		SwizzleTextureX(tx, ty, src, len, BITBLTBUF, TRXPOS, TRXREG);
@@ -1844,24 +1893,40 @@ void GSLocalMemory::SwizzleTexture8(int& tx, int& ty, BYTE* src, int len, GIFReg
 	{
 		if(fTopLeftAligned && tw >= 16 && th >= 16)
 		{
-			len -= (th & ~15) * srcpitch;
-
-			th += ty;
-
 			int twa = tw & ~15;
 			int tha = th & ~15;
 
-			for(int y = ty; y < tha; )
+			len -= tha * srcpitch;
+			th -= tha;
+
+			for(int j = 0; j < tha; j += 16)
 			{
 				for(int x = tx; x < twa; x += 16)
-					SwizzleBlock8u((BYTE*)&m_vm8[blockAddress8(x, y, BITBLTBUF.DBP, BITBLTBUF.DBW)], src + (x - tx), srcpitch);
+					SwizzleBlock8u((BYTE*)&m_vm8[blockAddress8(x, ty, BITBLTBUF.DBP, BITBLTBUF.DBW)], src + (x - tx), srcpitch);
 
-				for(int ye = y + 16; y < ye; y++, src += srcpitch)
+				for(int i = 0; i < 16; i++, ty++, src += srcpitch)
 					for(int x = twa; x < tw; x++)
-						writePixel8(x, y, src[x - tx], BITBLTBUF.DBP, BITBLTBUF.DBW);
+						writePixel8(x, ty, src[x - tx], BITBLTBUF.DBP, BITBLTBUF.DBW);
 			}
+		}
 
-			ty = tha;
+		if(len > 0 && tw >= 16 && th >= 4 && IsTopLeftAligned(TRXPOS.DSAX, tx, ty, 16, 4))
+		{
+			int twa = tw & ~15;
+			int tha = th & ~3;
+
+			len -= tha * srcpitch;
+			th -= tha;
+
+			for(int j = 0; j < tha; j += 4)
+			{
+				for(int x = tx; x < twa; x += 16)
+					SwizzleColumn8(ty, (BYTE*)&m_vm8[blockAddress8(x, ty&~15, BITBLTBUF.DBP, BITBLTBUF.DBW)], src + (x - tx), srcpitch);
+
+				for(int i = 0; i < 4; i++, ty++, src += srcpitch)
+					for(int x = twa; x < tw; x++)
+						writePixel8(x, ty, src[x - tx], BITBLTBUF.DBP, BITBLTBUF.DBW);
+			}
 		}
 
 		SwizzleTextureX(tx, ty, src, len, BITBLTBUF, TRXPOS, TRXREG);
@@ -1889,6 +1954,8 @@ void GSLocalMemory::SwizzleTexture8H(int& tx, int& ty, BYTE* src, int len, GIFRe
 
 	if(!fTopLeftAligned || (tw & 7) || (th & 7) || (len % srcpitch))
 	{
+		// TODO
+
 		SwizzleTextureX(tx, ty, src, len, BITBLTBUF, TRXPOS, TRXREG);
 	}
 	else
@@ -1929,31 +1996,54 @@ void GSLocalMemory::SwizzleTexture4(int& tx, int& ty, BYTE* src, int len, GIFReg
 	{
 		if(fTopLeftAligned && tw >= 32 && th >= 16)
 		{
-			len -= (th & ~15) * srcpitch;
-
-			th += ty;
-
 			int twa = tw & ~31;
 			int tha = th & ~15;
 
-			for(int y = ty; y < tha; )
+			len -= tha * srcpitch;
+			th -= tha;
+
+			for(int j = 0; j < tha; j += 16)
 			{
 				for(int x = tx; x < twa; x += 32)
-					SwizzleBlock4u((BYTE*)&m_vm8[blockAddress4(x, y, BITBLTBUF.DBP, BITBLTBUF.DBW)>>1], src + (x - tx)/2, srcpitch);
+					SwizzleBlock4u((BYTE*)&m_vm8[blockAddress4(x, ty, BITBLTBUF.DBP, BITBLTBUF.DBW)>>1], src + (x - tx)/2, srcpitch);
 
-				for(int ye = y + 16; y < ye; y++, src += srcpitch)
+				for(int i = 0; i < 16; i++, ty++, src += srcpitch)
 				{
 					BYTE* s = src + (twa - tx)/2;
 
 					for(int x = twa; x < tw; x += 2, s++)
 					{
-						writePixel4(x, y, *s&0xf, BITBLTBUF.DBP, BITBLTBUF.DBW),
-						writePixel4(x+1, y, *s>>4, BITBLTBUF.DBP, BITBLTBUF.DBW);
+						writePixel4(x, ty, *s&0xf, BITBLTBUF.DBP, BITBLTBUF.DBW),
+						writePixel4(x+1, ty, *s>>4, BITBLTBUF.DBP, BITBLTBUF.DBW);
 					}
 				}
 			}
+		}
 
-			ty = tha;
+		if(len > 0 && tw >= 32 && th >= 4 && IsTopLeftAligned(TRXPOS.DSAX, tx, ty, 32, 4))
+		{
+			int twa = tw & ~31;
+			int tha = th & ~3;
+
+			len -= tha * srcpitch;
+			th -= tha;
+
+			for(int j = 0; j < tha; j += 4)
+			{
+				for(int x = tx; x < twa; x += 32)
+					SwizzleColumn4(ty, (BYTE*)&m_vm8[blockAddress4(x, ty&~15, BITBLTBUF.DBP, BITBLTBUF.DBW)>>1], src + (x - tx)/2, srcpitch);
+
+				for(int i = 0; i < 4; i++, ty++, src += srcpitch)
+				{
+					BYTE* s = src + (twa - tx)/2;
+
+					for(int x = twa; x < tw; x += 2, s++)
+					{
+						writePixel4(x, ty, *s&0xf, BITBLTBUF.DBP, BITBLTBUF.DBW),
+						writePixel4(x+1, ty, *s>>4, BITBLTBUF.DBP, BITBLTBUF.DBW);
+					}
+				}
+			}
 		}
 
 		SwizzleTextureX(tx, ty, src, len, BITBLTBUF, TRXPOS, TRXREG);
@@ -1981,6 +2071,8 @@ void GSLocalMemory::SwizzleTexture4HL(int& tx, int& ty, BYTE* src, int len, GIFR
 
 	if(!fTopLeftAligned || (tw & 7) || (th & 7) || (len % srcpitch))
 	{
+		// TODO
+
 		SwizzleTextureX(tx, ty, src, len, BITBLTBUF, TRXPOS, TRXREG);
 	}
 	else
@@ -2020,6 +2112,8 @@ void GSLocalMemory::SwizzleTexture4HH(int& tx, int& ty, BYTE* src, int len, GIFR
 
 	if(!fTopLeftAligned || (tw & 7) || (th & 7) || (len % srcpitch))
 	{
+		// TODO
+
 		SwizzleTextureX(tx, ty, src, len, BITBLTBUF, TRXPOS, TRXREG);
 	}
 	else

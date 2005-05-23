@@ -96,19 +96,6 @@
 ; swizzling
 ;
 
-pfblk macro reg
-	
-	;prefetcht0 [reg+16*0]
-	;prefetcht0 [reg+16*2]
-	;prefetcht0 [reg+16*4]
-	;prefetcht0 [reg+16*6]
-	;prefetcht0 [reg+16*8]
-	;prefetcht0 [reg+16*10]
-	;prefetcht0 [reg+16*12]
-	;prefetcht0 [reg+16*14]
-	
-	endm
-
 punpck macro op, sd0, sd2, s1, s3, d1, d3
 
 	movdqa					@CatStr(xmm, %d1),	@CatStr(xmm, %sd0)
@@ -168,8 +155,6 @@ punpcknb macro
 ;
 
 @unSwizzleBlock32_sse2@12 proc public
-
-	pfblk		ecx
 
 	push		ebx
 
@@ -238,8 +223,6 @@ punpcknb macro
 ;
 
 @unSwizzleBlock16_sse2@12 proc public
-
-	pfblk		ecx
 	
 	push		ebx
 
@@ -280,8 +263,6 @@ punpcknb macro
 
 @unSwizzleBlock8_sse2@12 proc public
 
-	pfblk		ecx
-	
 	push		ebx
 
 	mov			ebx, [esp+4+4]
@@ -352,8 +333,6 @@ punpcknb macro
 
 @unSwizzleBlock4_sse2@12 proc public
 
-	pfblk		ecx
-	
 	push		ebx
 
 	mov         eax, 0f0f0f0fh
@@ -448,8 +427,6 @@ punpcknb macro
 
 @unSwizzleBlock8HP_sse2@12 proc public
 
-	pfblk		ecx
-	
 	push		ebx
 
 	mov			ebx, [esp+4+4]
@@ -494,8 +471,6 @@ punpcknb macro
 
 @unSwizzleBlock4HLP_sse2@12 proc public
 
-	pfblk		ecx
-	
 	push		ebx
 
 	mov			ebx, [esp+4+4]
@@ -545,8 +520,6 @@ punpcknb macro
 
 @unSwizzleBlock4HHP_sse2@12 proc public
 
-	pfblk		ecx
-	
 	push		ebx
 
 	mov			ebx, [esp+4+4]
@@ -591,8 +564,6 @@ punpcknb macro
 
 @unSwizzleBlock4P_sse2@12 proc public
 
-	pfblk		ecx
-	
 	push		esi
 	push		edi
 
