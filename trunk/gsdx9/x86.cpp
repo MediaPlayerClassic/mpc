@@ -23,6 +23,8 @@
 #include "GSTables.h"
 #include "x86.h"
 
+// unswizzling
+
 void __fastcall unSwizzleBlock32_c(BYTE* src, BYTE* dst, int dstpitch)
 {
 	DWORD* s = &columnTable32[0][0];
@@ -107,7 +109,7 @@ void __fastcall unSwizzleBlock4P_c(BYTE* src, BYTE* dst, int dstpitch)
 	}
 }
 
-//
+// swizzling
 
 void __fastcall SwizzleBlock32_c(BYTE* dst, BYTE* src, int srcpitch, DWORD WriteMask)
 {
@@ -155,7 +157,61 @@ void __fastcall SwizzleBlock4_c(BYTE* dst, BYTE* src, int srcpitch)
 		{
 			DWORD addr = d[i];
 			BYTE c = (src[i>>1] >> ((i&1) << 2)) & 0x0f;
-			int shift = (addr&1) << 2;
+			DWORD shift = (addr&1) << 2;
+			dst[addr >> 1] = (dst[addr >> 1] & (0xf0 >> shift)) | (c << shift);
+		}
+	}
+}
+
+// column swizzling (TODO: sse2)
+
+void __fastcall SwizzleColumn32_c(int y, BYTE* dst, BYTE* src, int srcpitch, DWORD WriteMask)
+{
+	DWORD* d = &columnTable32[((y/2)&3)*2][0];
+
+	if(WriteMask == 0xffffffff)
+	{
+		for(int j = 0; j < 2; j++, d += 8, src += srcpitch)
+			for(int i = 0; i < 8; i++)
+				((DWORD*)dst)[d[i]] = ((DWORD*)src)[i];
+	}
+	else
+	{
+		for(int j = 0; j < 2; j++, d += 8, src += srcpitch)
+			for(int i = 0; i < 8; i++)
+				((DWORD*)dst)[d[i]] = (((DWORD*)dst)[d[i]] & ~WriteMask) | (((DWORD*)src)[i] & WriteMask);
+	}
+}
+
+void __fastcall SwizzleColumn16_c(int y, BYTE* dst, BYTE* src, int srcpitch)
+{
+	DWORD* d = &columnTable16[((y/2)&3)*2][0];
+
+	for(int j = 0; j < 2; j++, d += 16, src += srcpitch)
+		for(int i = 0; i < 16; i++)
+			((WORD*)dst)[d[i]] = ((WORD*)src)[i];
+}
+
+void __fastcall SwizzleColumn8_c(int y, BYTE* dst, BYTE* src, int srcpitch)
+{
+	DWORD* d = &columnTable8[((y/4)&3)*4][0];
+
+	for(int j = 0; j < 4; j++, d += 16, src += srcpitch)
+		for(int i = 0; i < 16; i++)
+			dst[d[i]] = src[i];
+}
+
+void __fastcall SwizzleColumn4_c(int y, BYTE* dst, BYTE* src, int srcpitch)
+{
+	DWORD* d = &columnTable4[y&(3<<2)][0]; // ((y/4)&3)*4
+
+	for(int j = 0; j < 4; j++, d += 32, src += srcpitch)
+	{
+		for(int i = 0; i < 32; i++)
+		{
+			DWORD addr = d[i];
+			BYTE c = (src[i>>1] >> ((i&1) << 2)) & 0x0f;
+			DWORD shift = (addr&1) << 2;
 			dst[addr >> 1] = (dst[addr >> 1] & (0xf0 >> shift)) | (c << shift);
 		}
 	}

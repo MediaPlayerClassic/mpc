@@ -70,6 +70,11 @@ extern void __fastcall SwizzleBlock16_c(BYTE* dst, BYTE* src, int srcpitch);
 extern void __fastcall SwizzleBlock8_c(BYTE* dst, BYTE* src, int srcpitch);
 extern void __fastcall SwizzleBlock4_c(BYTE* dst, BYTE* src, int srcpitch);
 
+extern void __fastcall SwizzleColumn32_c(int y, BYTE* dst, BYTE* src, int srcpitch, DWORD WriteMask = 0xffffffff);
+extern void __fastcall SwizzleColumn16_c(int y, BYTE* dst, BYTE* src, int srcpitch);
+extern void __fastcall SwizzleColumn8_c(int y, BYTE* dst, BYTE* src, int srcpitch);
+extern void __fastcall SwizzleColumn4_c(int y, BYTE* dst, BYTE* src, int srcpitch);
+
 extern void __fastcall ExpandBlock24_sse2(DWORD* src, DWORD* dst, int dstpitch, GIFRegTEXA* pTEXA);
 extern void __fastcall ExpandBlock16_sse2(WORD* src, DWORD* dst, int dstpitch, GIFRegTEXA* pTEXA);
 extern void __fastcall Expand16_sse2(WORD* src, DWORD* dst, int w, GIFRegTEXA* pTEXA);
@@ -125,6 +130,11 @@ extern void __fastcall ReadCLUT32_T16_I4_c(WORD* src, DWORD* dst);
 #define SwizzleBlock8u SwizzleBlock8u_amd64
 #define SwizzleBlock4u SwizzleBlock4u_amd64
 
+#define SwizzleColumn32 SwizzleColumn32_c
+#define SwizzleColumn16 SwizzleColumn16_c
+#define SwizzleColumn8 SwizzleColumn8_c
+#define SwizzleColumn4 SwizzleColumn4_c
+
 #define ExpandBlock24 ExpandBlock24_sse2
 #define ExpandBlock16 ExpandBlock16_sse2
 #define Expand16 Expand16_sse2
@@ -162,6 +172,11 @@ extern void __fastcall ReadCLUT32_T16_I4_c(WORD* src, DWORD* dst);
 #define SwizzleBlock8u SwizzleBlock8u_sse2
 #define SwizzleBlock4u SwizzleBlock4u_sse2
 
+#define SwizzleColumn32 SwizzleColumn32_c
+#define SwizzleColumn16 SwizzleColumn16_c
+#define SwizzleColumn8 SwizzleColumn8_c
+#define SwizzleColumn4 SwizzleColumn4_c
+
 #define ExpandBlock24 ExpandBlock24_sse2
 #define ExpandBlock16 ExpandBlock16_sse2
 #define Expand16 Expand16_sse2
@@ -198,6 +213,11 @@ extern void __fastcall ReadCLUT32_T16_I4_c(WORD* src, DWORD* dst);
 #define SwizzleBlock16u SwizzleBlock16_c
 #define SwizzleBlock8u SwizzleBlock8_c
 #define SwizzleBlock4u SwizzleBlock4_c
+
+#define SwizzleColumn32 SwizzleColumn32_c
+#define SwizzleColumn16 SwizzleColumn16_c
+#define SwizzleColumn8 SwizzleColumn8_c
+#define SwizzleColumn4 SwizzleColumn4_c
 
 #define ExpandBlock24 ExpandBlock24_c
 #define ExpandBlock16 ExpandBlock16_c
