@@ -6,7 +6,6 @@
 	ProjectGUID="{345C9F24-0B9A-4289-B375-ADD3B63461B7}"
 	RootNamespace="GSdx9"
 	Keyword="MFCDLLProj"
-	SignManifests="true"
 	>
 	<Platforms>
 		<Platform
@@ -796,6 +795,10 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath=".\GSHash.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\GSLocalMemory.cpp"
 				>
 				<FileConfiguration
@@ -1191,6 +1194,10 @@
 			</File>
 			<File
 				RelativePath=".\GSdx9.h"
+				>
+			</File>
+			<File
+				RelativePath=".\GSHash.h"
 				>
 			</File>
 			<File
