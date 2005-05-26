@@ -2,24 +2,17 @@
 sampler Texture : register(s0);
 sampler1D Palette : register(s1);
 
-float4 Params1 : register(c0); // TFX, fTCC, fRT, fTME
+float4 Params0 : register(c0);
 
-#define TFX		(Params1[0])
-#define fTCC	(Params1[1] != 0)
-#define fRT		(Params1[2])
-#define fTME	(Params1[3] != 0)
+#define bTCC	(Params0[0] >= 0)
+#define fRT		(Params0[1])
+#define TA0		(Params0[2])
+#define TA1		(Params0[3])
 
-float4 Params2 : register(c1); // PSM (TEX0), AEM, TA0, TA1
-
-#define PSM		(Params2[0])
-#define AEM		(Params2[1] != 0)
-#define TA0		(Params2[2])
-#define TA1		(Params2[3])
-
-float2 W_H : register(c2);
-float2 RW_RH : register(c3);
-float2 RW_ZERO : register(c4);
-float2 ZERO_RH : register(c5);
+float2 W_H : register(c1);
+float2 RW_RH : register(c2);
+float2 RW_ZERO : register(c3);
+float2 ZERO_RH : register(c4);
 
 #define PSM_PSMCT32		0
 #define PSM_PSMCT24		1
@@ -131,14 +124,14 @@ float4 tfx0(float4 Diff, float4 TexColor) : COLOR
 {
 	Diff *= 2;
 	Diff.rgb *= TexColor.rgb;
-	if(fTCC) Diff.a *= TexColor.a;
+	if(bTCC) Diff.a *= TexColor.a;
 	return Diff;
 }
 
 float4 tfx1(float4 Diff, float4 TexColor) : COLOR
 {
 	Diff = TexColor;
-	if(!fTCC) Diff.a = 1;
+	if(!bTCC) Diff.a = 1;
 	return Diff;
 }
 
@@ -146,7 +139,7 @@ float4 tfx2(float4 Diff, float4 TexColor) : COLOR
 {
 	Diff.rgb *= TexColor.rgb * 2;
 	Diff.rgb += Diff.a;
-	if(fTCC) Diff.a = Diff.a * 2 + TexColor.a;
+	if(bTCC) Diff.a = Diff.a * 2 + TexColor.a;
 	return Diff;
 }
 
@@ -154,7 +147,7 @@ float4 tfx3(float4 Diff, float4 TexColor) : COLOR
 {
 	Diff.rgb *= TexColor.rgb * 2;
 	Diff.rgb += Diff.a;
-	if(fTCC) Diff.a = TexColor.a;
+	if(bTCC) Diff.a = TexColor.a;
 	return Diff;
 }
 

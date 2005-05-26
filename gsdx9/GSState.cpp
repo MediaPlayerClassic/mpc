@@ -1029,7 +1029,7 @@ void GSState::FinishFlip(FlipInfo rt[2])
 		m_pCSRr->FIELD,
 		m_rs.DISPFB[0].DBX, m_rs.DISPFB[0].DBY, m_rs.DISPLAY[0].DW + 1, m_rs.DISPLAY[0].DH + 1,
 		m_rs.DISPFB[1].DBX, m_rs.DISPFB[1].DBY, m_rs.DISPLAY[1].DW + 1, m_rs.DISPLAY[1].DH + 1);
-
+/*
 	if(m_rs.SMODE2.INT)
 	{
 		if(!m_rs.SMODE2.FFMD)
@@ -1046,8 +1046,17 @@ void GSState::FinishFlip(FlipInfo rt[2])
 				pVertices[i].tv2 += rt[1].scale.y*0.5f / rt[1].rd.Height;
 			}
 		}
-/**/
-		m_pCSRr->FIELD = 1 - m_pCSRr->FIELD;
+	}
+*/	
+	m_pCSRr->FIELD = 1 - m_pCSRr->FIELD;
+
+	if(m_pCSRr->FIELD && m_rs.SMODE2.INT)
+	{
+		for(int i = 0; i < countof(pVertices); i++)
+		{
+			pVertices[i].tv1 += rt[0].scale.y*0.5f / rt[0].rd.Height;
+			pVertices[i].tv2 += rt[1].scale.y*0.5f / rt[1].rd.Height;
+		}
 	}
 
 	hr = m_pD3DDev->SetRenderState(D3DRS_ZENABLE, FALSE);

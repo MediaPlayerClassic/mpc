@@ -1347,8 +1347,6 @@ void GSLocalMemory::WriteCLUT(GIFRegTEX0 TEX0, GIFRegTEXCLUT TEXCLUT)
 	}
 	else
 	{
-		ASSERT(TEX0.CPSM == PSM_PSMCT16); // this is the only allowed format for CSM2, but we implement all of them, just in case...
-
 		readPixel rp = GetReadPixel(TEX0.CPSM);
 
 		int nPaletteEntries = 0;
@@ -1361,6 +1359,8 @@ void GSLocalMemory::WriteCLUT(GIFRegTEX0 TEX0, GIFRegTEXCLUT TEXCLUT)
 		{
 			nPaletteEntries = 16;
 		}
+
+		ASSERT(nPaletteEntries == 0 || TEX0.CPSM == PSM_PSMCT16); // this is the only allowed format for CSM2, but we implement all of them, just in case...
 
 		if(TEX0.CPSM == PSM_PSMCT16 || TEX0.CPSM == PSM_PSMCT16S)
 		{
@@ -1453,8 +1453,6 @@ void GSLocalMemory::SetupCLUT(GIFRegTEX0 TEX0, GIFRegTEXA TEXA)
 
 void GSLocalMemory::ReadCLUT32(GIFRegTEX0 TEX0, GIFRegTEXA TEXA, DWORD* pCLUT32)
 {
-	// FIXME: 16-bit palette (what if TEXA is changed after TEX0/2?)
-
 	ASSERT(pCLUT32);
 
 	WORD* pCLUT = m_pCLUT + (TEX0.CSA<<4);
@@ -2907,5 +2905,78 @@ void GSLocalMemory::ReadTextureNP(const CRect& r, BYTE* dst, int dstpitch, GIFRe
 	else
 	{
 		(this->*st)(r, dst, dstpitch, TEX0, TEXA);
+	}
+}
+
+//
+
+template<typename DstT> 
+void GSLocalMemory::ReadTexture(const CRect& r, BYTE* dst, int dstpitch, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA, GIFRegCLAMP& CLAMP, readTexel rt, unSwizzleTexture st)
+{
+	// this function is not thread safe!
+
+	if((CLAMP.WMS&2) || (CLAMP.WMT&2))
+	{
+		DWORD wms = CLAMP.WMS, wmt = CLAMP.WMT;
+		DWORD minu = CLAMP.MINU, maxu = CLAMP.MAXU;
+		DWORD minv = CLAMP.MINV, maxv = CLAMP.MAXV;
+
+		switch(wms)
+		{
+		default: for(int x = r.left; x < r.right; x++) m_xtbl[x] = x; break;
+		case 2: for(int x = r.left; x < r.right; x++) m_xtbl[x] = x < minu ? minu : x > maxu ? maxu : x; break;
+		case 3: for(int x = r.left; x < r.right; x++) m_xtbl[x] = (x & minu) | maxu; break;
+		}
+
+		switch(wmt)
+		{
+		default: for(int y = r.top; y < r.bottom; y++) m_ytbl[y] = y; break;
+		case 2: for(int y = r.top; y < r.bottom; y++) m_ytbl[y] = y < minv ? minv : y > maxv ? maxv : y;  break;
+		case 3: for(int y = r.top; y < r.bottom; y++) m_ytbl[y] = (y & minv) | maxv; break;
+		}
+
+		if(wms <= 2 && wmt <= 2)
+		{
+			CSize bs = GetBlockSize(TEX0.PSM);
+
+			CRect cr(
+				(r.left + (bs.cx-1)) & ~(bs.cx-1), 
+				(r.top + (bs.cy-1)) & ~(bs.cy-1), 
+				r.right & ~(bs.cx-1), 
+				r.bottom & ~(bs.cy-1));
+
+			// TODO: read clamped areas only once
+
+			for(int y = r.top; y < cr.top; y++, dst += dstpitch)
+				for(int x = r.left, i = 0; x < r.right; x++, i++)
+					((DstT*)dst)[i] = (DstT)(this->*rt)(m_xtbl[x], m_ytbl[y], TEX0, TEXA);
+
+			(this->*st)(cr, dst + (cr.left-r.left)*sizeof(DstT), dstpitch, TEX0, TEXA);
+
+			for(int y = cr.top; y < cr.bottom; y++, dst += dstpitch)
+			{
+				for(int x = r.left, i = 0; x < cr.left; x++, i++)
+					((DstT*)dst)[i] = (DstT)(this->*rt)(m_xtbl[x], m_ytbl[y], TEX0, TEXA);
+				for(int x = cr.right, i = x - r.left; x < r.right; x++, i++)
+					((DstT*)dst)[i] = (DstT)(this->*rt)(m_xtbl[x], m_ytbl[y], TEX0, TEXA);
+			}
+
+			for(int y = cr.bottom; y < r.bottom; y++, dst += dstpitch)
+				for(int x = r.left, i = 0; x < r.right; x++, i++)
+					((DstT*)dst)[i] = (DstT)(this->*rt)(m_xtbl[x], m_ytbl[y], TEX0, TEXA);
+		}
+		else
+		{
+			// this one is rarely reached, textures are block aligned in the texture cache
+			for(int y = r.top; y < r.bottom; y++, dst += dstpitch)
+				for(int x = r.left, i = 0; x < r.right; x++, i++)
+					((DstT*)dst)[i] = (DstT)(this->*rt)(m_xtbl[x], m_ytbl[y], TEX0, TEXA);
+		}
+	}
+	else
+	{
+		for(int y = r.top; y < r.bottom; y++, dst += dstpitch)
+			for(int x = r.left, i = 0; x < r.right; x++, i++)
+				((DstT*)dst)[i] = (DstT)(this->*rt)(x, y, TEX0, TEXA);
 	}
 }
