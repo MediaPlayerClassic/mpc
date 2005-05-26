@@ -1181,8 +1181,7 @@ void GSRendererHW::SetupTexture(const GSTextureBase& t, float tsx, float tsy)
 
 	float fConstData[][4] = 
 	{
-		{(float)m_ctxt->TEX0.TFX, (float)m_ctxt->TEX0.TCC, t.m_fRT ? 1.0f : 2.0f, (float)!!(m_de.pPRIM->TME && t.m_pTexture)},
-		{(float)m_ctxt->TEX0.PSM, (float)m_de.TEXA.AEM, min(2.0f * m_de.TEXA.TA0 / 255, 1), min(2.0f * m_de.TEXA.TA1 / 255, 1)},
+		{-(float)m_ctxt->TEX0.TCC, t.m_fRT ? 1.0f : 2.0f, min(2.0f * m_de.TEXA.TA0 / 255, 1), min(2.0f * m_de.TEXA.TA1 / 255, 1)},
 		{(float)tw, (float)th, 0, 0},
 		{rw, rh, 0, 0},
 		{rw, 0, 0, 0},

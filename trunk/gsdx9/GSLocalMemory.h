@@ -309,72 +309,7 @@ public:
 	static DWORD m_xtbl[1024], m_ytbl[1024]; 
 
 	template<typename DstT> 
-	void ReadTexture(const CRect& r, BYTE* dst, int dstpitch, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA, GIFRegCLAMP& CLAMP, readTexel rt, unSwizzleTexture st)
-	{
-		// this function is not thread safe!
-
-		if((CLAMP.WMS&2) || (CLAMP.WMT&2))
-		{
-			DWORD wms = CLAMP.WMS, wmt = CLAMP.WMT;
-			DWORD minu = CLAMP.MINU, maxu = CLAMP.MAXU;
-			DWORD minv = CLAMP.MINV, maxv = CLAMP.MAXV;
-
-			switch(wms)
-			{
-			default: for(int x = r.left; x < r.right; x++) m_xtbl[x] = x; break;
-			case 2: for(int x = r.left; x < r.right; x++) m_xtbl[x] = x < minu ? minu : x > maxu ? maxu : x; break;
-			case 3: for(int x = r.left; x < r.right; x++) m_xtbl[x] = (x & minu) | maxu; break;
-			}
-
-			switch(wmt)
-			{
-			default: for(int y = r.top; y < r.bottom; y++) m_ytbl[y] = y; break;
-			case 2: for(int y = r.top; y < r.bottom; y++) m_ytbl[y] = y < minv ? minv : y > maxv ? maxv : y;  break;
-			case 3: for(int y = r.top; y < r.bottom; y++) m_ytbl[y] = (y & minv) | maxv; break;
-			}
-
-			if(wms <= 2 && wmt <= 2)
-			{
-				CSize bs = GetBlockSize(TEX0.PSM);
-
-				CRect cr(
-					(r.left + (bs.cx-1)) & ~(bs.cx-1), 
-					(r.top + (bs.cy-1)) & ~(bs.cy-1), 
-					r.right & ~(bs.cx-1), 
-					r.bottom & ~(bs.cy-1));
-
-				for(int y = r.top; y < cr.top; y++, dst += dstpitch)
-					for(int x = r.left, i = 0; x < r.right; x++, i++)
-						((DstT*)dst)[i] = (DstT)(this->*rt)(m_xtbl[x], m_ytbl[y], TEX0, TEXA);
-
-				(this->*st)(cr, dst + (cr.left-r.left)*sizeof(DstT), dstpitch, TEX0, TEXA);
-
-				for(int y = cr.top; y < cr.bottom; y++, dst += dstpitch)
-				{
-					for(int x = r.left, i = 0; x < cr.left; x++, i++)
-						((DstT*)dst)[i] = (DstT)(this->*rt)(m_xtbl[x], m_ytbl[y], TEX0, TEXA);
-					for(int x = cr.right, i = x - r.left; x < r.right; x++, i++)
-						((DstT*)dst)[i] = (DstT)(this->*rt)(m_xtbl[x], m_ytbl[y], TEX0, TEXA);
-				}
-
-				for(int y = cr.bottom; y < r.bottom; y++, dst += dstpitch)
-					for(int x = r.left, i = 0; x < r.right; x++, i++)
-						((DstT*)dst)[i] = (DstT)(this->*rt)(m_xtbl[x], m_ytbl[y], TEX0, TEXA);
-			}
-			else
-			{
-				for(int y = r.top; y < r.bottom; y++, dst += dstpitch)
-					for(int x = r.left, i = 0; x < r.right; x++, i++)
-						((DstT*)dst)[i] = (DstT)(this->*rt)(m_xtbl[x], m_ytbl[y], TEX0, TEXA);
-			}
-		}
-		else
-		{
-			for(int y = r.top; y < r.bottom; y++, dst += dstpitch)
-				for(int x = r.left; x < r.right; x++)
-					((DstT*)dst)[(x-r.left)] = (DstT)(this->*rt)(x, y, TEX0, TEXA);
-		}
-	}
+	void ReadTexture(const CRect& r, BYTE* dst, int dstpitch, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA, GIFRegCLAMP& CLAMP, readTexel rt, unSwizzleTexture st);
 };
 
 #pragma warning(default: 4244)
