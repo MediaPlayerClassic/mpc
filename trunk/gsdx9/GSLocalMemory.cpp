@@ -270,7 +270,12 @@ DWORD GSLocalMemory::m_ytbl[1024];
 
 //
 
+GSLocalMemory::psmtbl_t GSLocalMemory::m_psmtbl[64];
+
+//
+
 GSLocalMemory::GSLocalMemory()
+	: m_fCLUTMayBeDirty(true)
 {
 	int len = 1024*1024*4*2; // *2 for safety...
 
@@ -308,7 +313,87 @@ GSLocalMemory::GSLocalMemory()
 		}
 	}
 
-	m_fCLUTMayBeDirty = true;
+	for(int i = 0; i < countof(m_psmtbl); i++)
+	{
+		m_psmtbl[i].rtN = m_psmtbl[i].rtNP = m_psmtbl[i].rtP = &GSLocalMemory::readTexel32;
+		m_psmtbl[i].st = &GSLocalMemory::SwizzleTexture32;
+		m_psmtbl[i].ustN = m_psmtbl[i].ustP = m_psmtbl[i].ustNP = &GSLocalMemory::unSwizzleTexture32;
+		m_psmtbl[i].bpp = 32;
+		m_psmtbl[i].pal = 0;
+		m_psmtbl[i].bs = CSize(8, 8);
+	}
+
+	m_psmtbl[PSM_PSMCT24].rtN = &GSLocalMemory::readTexel24;
+	m_psmtbl[PSM_PSMCT16].rtN = &GSLocalMemory::readTexel16;
+	m_psmtbl[PSM_PSMCT16S].rtN = &GSLocalMemory::readTexel16S;
+	m_psmtbl[PSM_PSMT8].rtN = &GSLocalMemory::readTexel8;
+	m_psmtbl[PSM_PSMT4].rtN = &GSLocalMemory::readTexel4;
+	m_psmtbl[PSM_PSMT8H].rtN = &GSLocalMemory::readTexel8H;
+	m_psmtbl[PSM_PSMT4HL].rtN = &GSLocalMemory::readTexel4HL;
+	m_psmtbl[PSM_PSMT4HH].rtN = &GSLocalMemory::readTexel4HH;
+
+	m_psmtbl[PSM_PSMCT16].rtP = &GSLocalMemory::readTexel16P;
+	m_psmtbl[PSM_PSMCT16S].rtP = &GSLocalMemory::readTexel16SP;
+	m_psmtbl[PSM_PSMT8].rtP = &GSLocalMemory::readTexel8P;
+	m_psmtbl[PSM_PSMT4].rtP = &GSLocalMemory::readTexel4P;
+	m_psmtbl[PSM_PSMT8H].rtP = &GSLocalMemory::readTexel8HP;
+	m_psmtbl[PSM_PSMT4HL].rtP = &GSLocalMemory::readTexel4HLP;
+	m_psmtbl[PSM_PSMT4HH].rtP = &GSLocalMemory::readTexel4HHP;
+
+	m_psmtbl[PSM_PSMCT16].rtNP = &GSLocalMemory::readTexel16P;
+	m_psmtbl[PSM_PSMCT16S].rtNP = &GSLocalMemory::readTexel16SP;
+	m_psmtbl[PSM_PSMT8].rtNP = &GSLocalMemory::readTexel8;
+	m_psmtbl[PSM_PSMT4].rtNP = &GSLocalMemory::readTexel4;
+	m_psmtbl[PSM_PSMT8H].rtNP = &GSLocalMemory::readTexel8H;
+	m_psmtbl[PSM_PSMT4HL].rtNP = &GSLocalMemory::readTexel4HL;
+	m_psmtbl[PSM_PSMT4HH].rtNP = &GSLocalMemory::readTexel4HH;
+
+	m_psmtbl[PSM_PSMCT24].st = &GSLocalMemory::SwizzleTexture24;
+	m_psmtbl[PSM_PSMCT16].st = &GSLocalMemory::SwizzleTexture16;
+	m_psmtbl[PSM_PSMCT16S].st = &GSLocalMemory::SwizzleTexture16S;
+	m_psmtbl[PSM_PSMT8].st = &GSLocalMemory::SwizzleTexture8;
+	m_psmtbl[PSM_PSMT4].st = &GSLocalMemory::SwizzleTexture4;
+	m_psmtbl[PSM_PSMT8H].st = &GSLocalMemory::SwizzleTexture8H;
+	m_psmtbl[PSM_PSMT4HL].st = &GSLocalMemory::SwizzleTexture4HL;
+	m_psmtbl[PSM_PSMT4HH].st = &GSLocalMemory::SwizzleTexture4HH;
+
+	m_psmtbl[PSM_PSMCT24].ustN = &GSLocalMemory::unSwizzleTexture24;
+	m_psmtbl[PSM_PSMCT16].ustN = &GSLocalMemory::unSwizzleTexture16;
+	m_psmtbl[PSM_PSMCT16S].ustN = &GSLocalMemory::unSwizzleTexture16S;
+	m_psmtbl[PSM_PSMT8].ustN = &GSLocalMemory::unSwizzleTexture8;
+	m_psmtbl[PSM_PSMT4].ustN = &GSLocalMemory::unSwizzleTexture4;
+	m_psmtbl[PSM_PSMT8H].ustN = &GSLocalMemory::unSwizzleTexture8H;
+	m_psmtbl[PSM_PSMT4HL].ustN = &GSLocalMemory::unSwizzleTexture4HL;
+	m_psmtbl[PSM_PSMT4HH].ustN = &GSLocalMemory::unSwizzleTexture4HH;
+
+	m_psmtbl[PSM_PSMCT16].ustP = &GSLocalMemory::unSwizzleTexture16P;
+	m_psmtbl[PSM_PSMCT16S].ustP = &GSLocalMemory::unSwizzleTexture16SP;
+	m_psmtbl[PSM_PSMT8].ustP = &GSLocalMemory::unSwizzleTexture8P;
+	m_psmtbl[PSM_PSMT4].ustP = &GSLocalMemory::unSwizzleTexture4P;
+	m_psmtbl[PSM_PSMT8H].ustP = &GSLocalMemory::unSwizzleTexture8HP;
+	m_psmtbl[PSM_PSMT4HL].ustP = &GSLocalMemory::unSwizzleTexture4HLP;
+	m_psmtbl[PSM_PSMT4HH].ustP = &GSLocalMemory::unSwizzleTexture4HHP;
+
+	m_psmtbl[PSM_PSMCT16].ustNP = &GSLocalMemory::unSwizzleTexture16P;
+	m_psmtbl[PSM_PSMCT16S].ustNP = &GSLocalMemory::unSwizzleTexture16SP;
+	m_psmtbl[PSM_PSMT8].ustNP = &GSLocalMemory::unSwizzleTexture8NP;
+	m_psmtbl[PSM_PSMT4].ustNP = &GSLocalMemory::unSwizzleTexture4NP;
+	m_psmtbl[PSM_PSMT8H].ustNP = &GSLocalMemory::unSwizzleTexture8HNP;
+	m_psmtbl[PSM_PSMT4HL].ustNP = &GSLocalMemory::unSwizzleTexture4HLNP;
+	m_psmtbl[PSM_PSMT4HH].ustNP = &GSLocalMemory::unSwizzleTexture4HHNP;
+
+	m_psmtbl[PSM_PSMT8].pal = m_psmtbl[PSM_PSMT8H].pal = 256;
+	m_psmtbl[PSM_PSMT4].pal = m_psmtbl[PSM_PSMT4HL].pal = m_psmtbl[PSM_PSMT4HH].pal = 16;
+
+	m_psmtbl[PSM_PSMCT16].bpp = m_psmtbl[PSM_PSMCT16S].bpp = 16;
+	m_psmtbl[PSM_PSMT8].bpp = 8;
+	m_psmtbl[PSM_PSMT4].bpp = 4;
+	m_psmtbl[PSM_PSMZ16].bpp = m_psmtbl[PSM_PSMZ16S].bpp = 16;
+
+	m_psmtbl[PSM_PSMCT16].bs = m_psmtbl[PSM_PSMCT16S].bs = CSize(16, 8);
+	m_psmtbl[PSM_PSMT8].bs = CSize(16, 16);
+	m_psmtbl[PSM_PSMT4].bs = CSize(32, 32);
+	m_psmtbl[PSM_PSMZ16].bs = m_psmtbl[PSM_PSMZ16S].bs = CSize(16, 8);
 
 #ifdef _OPENMP
 	// need real cpus, with HT it is only going to be slower now
@@ -372,39 +457,6 @@ GSLocalMemory::~GSLocalMemory()
 }
 
 ////////////////////
-
-CSize GSLocalMemory::GetBlockSize(DWORD PSM)
-{
-	CSize size;
-
-	switch(PSM)
-	{
-	default:
-	case PSM_PSMCT32: 
-	case PSM_PSMCT24:
-	case PSM_PSMT8H: 
-	case PSM_PSMT4HL:
-	case PSM_PSMT4HH:
-	case PSM_PSMZ32:
-	case PSM_PSMZ24:
-		size.SetSize(8, 8); 
-		break;
-	case PSM_PSMCT16:
-	case PSM_PSMCT16S:
-	case PSM_PSMZ16:
-	case PSM_PSMZ16S:
-		size.SetSize(16, 8); 
-		break;
-	case PSM_PSMT8: 
-		size.SetSize(16, 16);
-		break;
-	case PSM_PSMT4:
-		size.SetSize(32, 16);
-		break;
-	}
-
-	return size;
-}
 
 void GSLocalMemory::RoundDown(CSize& s, CSize bs)
 {
@@ -972,7 +1024,7 @@ GSLocalMemory::readPixel GSLocalMemory::GetReadPixel(DWORD psm)
 
 	switch(psm)
 	{
-	default: ASSERT(0);
+	default: //ASSERT(0);
 	case PSM_PSMCT32: rp = &GSLocalMemory::readPixel32; break;
 	case PSM_PSMCT24: rp = &GSLocalMemory::readPixel24; break;
 	case PSM_PSMCT16: rp = &GSLocalMemory::readPixel16; break;
@@ -1223,6 +1275,7 @@ bool GSLocalMemory::FillRect(CRect& r, DWORD c, DWORD psm, DWORD fbp, DWORD fbw)
 	case PSM_PSMCT16: w = 16; h = 8; bpp = 16; break;
 	case PSM_PSMCT16S: w = 16; h = 8; bpp = 16; break;
 	case PSM_PSMZ32: w = 8; h = 8; bpp = 32; break;
+	case PSM_PSMZ24: w = 8; h = 8; bpp = 32; break;
 	case PSM_PSMZ16: w = 16; h = 8; bpp = 16; break;
 	case PSM_PSMZ16S: w = 16; h = 8; bpp = 16; break;
 	case PSM_PSMT8: w = 16; h = 16; bpp = 8; break;
@@ -1474,7 +1527,7 @@ void GSLocalMemory::ReadCLUT32(GIFRegTEX0 TEX0, GIFRegTEXA TEXA, DWORD* pCLUT32)
 	}
 	else if(TEX0.CPSM == PSM_PSMCT16 || TEX0.CPSM == PSM_PSMCT16S)
 	{
-		Expand16(pCLUT, pCLUT32, PaletteEntries(TEX0.PSM), &TEXA);
+		Expand16(pCLUT, pCLUT32, m_psmtbl[TEX0.PSM].pal, &TEXA);
 	}
 }
 
@@ -1547,27 +1600,6 @@ DWORD GSLocalMemory::readTexel4HL(int x, int y, GIFRegTEX0& TEX0, GIFRegTEXA& TE
 DWORD GSLocalMemory::readTexel4HH(int x, int y, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA)
 {
 	return m_pCLUT32[readPixel4HH(x, y, TEX0.TBP0, TEX0.TBW)];
-}
-
-GSLocalMemory::readTexel GSLocalMemory::GetReadTexel(DWORD psm)
-{
-	readTexel rt = NULL;
-
-	switch(psm)
-	{
-	default: ;//ASSERT(0);
-	case PSM_PSMCT32: rt = &GSLocalMemory::readTexel32; break;
-	case PSM_PSMCT24: rt = &GSLocalMemory::readTexel24; break;
-	case PSM_PSMCT16: rt = &GSLocalMemory::readTexel16; break;
-	case PSM_PSMCT16S: rt = &GSLocalMemory::readTexel16S; break;
-	case PSM_PSMT8: rt = &GSLocalMemory::readTexel8; break;
-	case PSM_PSMT4: rt = &GSLocalMemory::readTexel4; break;
-	case PSM_PSMT8H: rt = &GSLocalMemory::readTexel8H; break;
-	case PSM_PSMT4HL: rt = &GSLocalMemory::readTexel4HL; break;
-	case PSM_PSMT4HH: rt = &GSLocalMemory::readTexel4HH; break;
-	}
-	
-	return rt;
 }
 
 ////////////////////
@@ -2215,31 +2247,6 @@ void GSLocalMemory::SwizzleTextureX(int& tx, int& ty, BYTE* src, int len, GIFReg
 	}
 }
 
-GSLocalMemory::SwizzleTexture GSLocalMemory::GetSwizzleTexture(DWORD psm)
-{
-	SwizzleTexture st = NULL;
-
-	switch(psm)
-	{
-	default:
-	case PSM_PSMCT32: st = &GSLocalMemory::SwizzleTexture32; break;
-	case PSM_PSMCT24: st = &GSLocalMemory::SwizzleTexture24; break;
-	case PSM_PSMCT16: st = &GSLocalMemory::SwizzleTexture16; break;
-	case PSM_PSMCT16S: st = &GSLocalMemory::SwizzleTexture16S; break;
-	case PSM_PSMT8: st = &GSLocalMemory::SwizzleTexture8; break;
-	case PSM_PSMT8H: st = &GSLocalMemory::SwizzleTexture8H; break;
-	case PSM_PSMT4: st = &GSLocalMemory::SwizzleTexture4; break;
-	case PSM_PSMT4HL: st = &GSLocalMemory::SwizzleTexture4HL; break;
-	case PSM_PSMT4HH: st = &GSLocalMemory::SwizzleTexture4HH; break;
-	//case PSM_PSMZ32: st = &GSLocalMemory::SwizzleTexture32Z; break;
-	//case PSM_PSMZ24: st = &GSLocalMemory::SwizzleTexture24Z; break;
-	//case PSM_PSMZ16: st = &GSLocalMemory::SwizzleTexture16Z; break;
-	//case PSM_PSMZ16S: st = &GSLocalMemory::SwizzleTexture16SZ; break;
-	}
-
-	return st;
-}
-
 ///////////////////
 
 void GSLocalMemory::unSwizzleTexture32(const CRect& r, BYTE* dst, int dstpitch, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA)
@@ -2405,41 +2412,21 @@ void GSLocalMemory::unSwizzleTexture4HH(const CRect& r, BYTE* dst, int dstpitch,
 	}
 }
 
-GSLocalMemory::unSwizzleTexture GSLocalMemory::GetUnSwizzleTexture(DWORD psm)
-{
-	unSwizzleTexture st = NULL;
-
-	switch(psm)
-	{
-	default:
-	case PSM_PSMCT32: st = &GSLocalMemory::unSwizzleTexture32; break;
-	case PSM_PSMCT24: st = &GSLocalMemory::unSwizzleTexture24; break;
-	case PSM_PSMCT16: st = &GSLocalMemory::unSwizzleTexture16; break;
-	case PSM_PSMCT16S: st = &GSLocalMemory::unSwizzleTexture16S; break;
-	case PSM_PSMT8: st = &GSLocalMemory::unSwizzleTexture8; break;
-	case PSM_PSMT8H: st = &GSLocalMemory::unSwizzleTexture8H; break;
-	case PSM_PSMT4: st = &GSLocalMemory::unSwizzleTexture4; break;
-	case PSM_PSMT4HL: st = &GSLocalMemory::unSwizzleTexture4HL; break;
-	case PSM_PSMT4HH: st = &GSLocalMemory::unSwizzleTexture4HH; break;
-	}
-
-	return st;
-}
-
 ///////////////////
 
 void GSLocalMemory::ReadTexture(const CRect& r, BYTE* dst, int dstpitch, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA, GIFRegCLAMP& CLAMP)
 {
-	unSwizzleTexture st = GetUnSwizzleTexture(TEX0.PSM);
+	unSwizzleTexture st = m_psmtbl[TEX0.PSM].ustN;
+	readTexel rt = m_psmtbl[TEX0.PSM].rtN;
 
-	CSize bs = GetBlockSize(TEX0.PSM);
+	CSize bs = m_psmtbl[TEX0.PSM].bs;
 
 	if(r.Width() < bs.cx || r.Height() < bs.cy 
 	|| (r.left & (bs.cx-1)) || (r.top & (bs.cy-1)) 
 	|| (r.right & (bs.cx-1)) || (r.bottom & (bs.cy-1)) 
 	|| (CLAMP.WMS&2) || (CLAMP.WMT&2))
 	{
-		ReadTexture<DWORD>(r, dst, dstpitch, TEX0, TEXA, CLAMP, GetReadTexel(TEX0.PSM), st);
+		ReadTexture<DWORD>(r, dst, dstpitch, TEX0, TEXA, CLAMP, rt, st);
 	}
 	else
 	{
@@ -2482,27 +2469,6 @@ DWORD GSLocalMemory::readTexel4HLP(int x, int y, GIFRegTEX0& TEX0, GIFRegTEXA& T
 DWORD GSLocalMemory::readTexel4HHP(int x, int y, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA)
 {
 	return readPixel4HH(x, y, TEX0.TBP0, TEX0.TBW);
-}
-
-GSLocalMemory::readTexelP GSLocalMemory::GetReadTexelP(DWORD psm)
-{
-	readTexelP rt = NULL;
-
-	switch(psm)
-	{
-	default: ;//ASSERT(0);
-	case PSM_PSMCT32: rt = &GSLocalMemory::readTexel32; break;
-	case PSM_PSMCT24: rt = &GSLocalMemory::readTexel32; break;
-	case PSM_PSMCT16: rt = &GSLocalMemory::readTexel16P; break;
-	case PSM_PSMCT16S: rt = &GSLocalMemory::readTexel16SP; break;
-	case PSM_PSMT8: rt = &GSLocalMemory::readTexel8P; break;
-	case PSM_PSMT4: rt = &GSLocalMemory::readTexel4P; break;
-	case PSM_PSMT8H: rt = &GSLocalMemory::readTexel8HP; break;
-	case PSM_PSMT4HL: rt = &GSLocalMemory::readTexel4HLP; break;
-	case PSM_PSMT4HH: rt = &GSLocalMemory::readTexel4HHP; break;
-	}
-	
-	return rt;
 }
 
 ///////////////////
@@ -2598,34 +2564,14 @@ void GSLocalMemory::unSwizzleTexture4HHP(const CRect& r, BYTE* dst, int dstpitch
 	}
 }
 
-GSLocalMemory::unSwizzleTexture GSLocalMemory::GetUnSwizzleTextureP(DWORD psm)
-{
-	unSwizzleTexture st = NULL;
-
-	switch(psm)
-	{
-	default:
-	case PSM_PSMCT32: st = &GSLocalMemory::unSwizzleTexture32; break;
-	case PSM_PSMCT24: st = &GSLocalMemory::unSwizzleTexture32; break;
-	case PSM_PSMCT16: st = &GSLocalMemory::unSwizzleTexture16P; break;
-	case PSM_PSMCT16S: st = &GSLocalMemory::unSwizzleTexture16SP; break;
-	case PSM_PSMT8: st = &GSLocalMemory::unSwizzleTexture8P; break;
-	case PSM_PSMT8H: st = &GSLocalMemory::unSwizzleTexture8HP; break;
-	case PSM_PSMT4: st = &GSLocalMemory::unSwizzleTexture4P; break;
-	case PSM_PSMT4HL: st = &GSLocalMemory::unSwizzleTexture4HLP; break;
-	case PSM_PSMT4HH: st = &GSLocalMemory::unSwizzleTexture4HHP; break;
-	}
-
-	return st;
-}
-
 ///////////////////
 
 void GSLocalMemory::ReadTextureP(const CRect& r, BYTE* dst, int dstpitch, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA, GIFRegCLAMP& CLAMP)
 {
-	unSwizzleTexture st = GetUnSwizzleTextureP(TEX0.PSM);
+	unSwizzleTexture st = m_psmtbl[TEX0.PSM].ustP;
+	readTexel rt = m_psmtbl[TEX0.PSM].rtP;
 
-	CSize bs = GetBlockSize(TEX0.PSM);
+	CSize bs = m_psmtbl[TEX0.PSM].bs;
 
 	if(r.Width() < bs.cx || r.Height() < bs.cy 
 	|| (r.left & (bs.cx-1)) || (r.top & (bs.cy-1)) 
@@ -2637,18 +2583,18 @@ void GSLocalMemory::ReadTextureP(const CRect& r, BYTE* dst, int dstpitch, GIFReg
 		default:
 		case PSM_PSMCT32:
 		case PSM_PSMCT24:
-			ReadTexture<DWORD>(r, dst, dstpitch, TEX0, TEXA, CLAMP, GetReadTexelP(TEX0.PSM), st);
+			ReadTexture<DWORD>(r, dst, dstpitch, TEX0, TEXA, CLAMP, rt, st);
 			break;
 		case PSM_PSMCT16:
 		case PSM_PSMCT16S:
-			ReadTexture<WORD>(r, dst, dstpitch, TEX0, TEXA, CLAMP, GetReadTexelP(TEX0.PSM), st);
+			ReadTexture<WORD>(r, dst, dstpitch, TEX0, TEXA, CLAMP, rt, st);
 			break;
 		case PSM_PSMT8:
 		case PSM_PSMT8H:
 		case PSM_PSMT4:
 		case PSM_PSMT4HL:
 		case PSM_PSMT4HH:
-			ReadTexture<BYTE>(r, dst, dstpitch, TEX0, TEXA, CLAMP, GetReadTexelP(TEX0.PSM), st);
+			ReadTexture<BYTE>(r, dst, dstpitch, TEX0, TEXA, CLAMP, rt, st);
 			break;
 		}
 	}
@@ -2656,29 +2602,6 @@ void GSLocalMemory::ReadTextureP(const CRect& r, BYTE* dst, int dstpitch, GIFReg
 	{
 		(this->*st)(r, dst, dstpitch, TEX0, TEXA);
 	}
-}
-
-///////////////////
-
-GSLocalMemory::readTexelNP GSLocalMemory::GetReadTexelNP(DWORD psm)
-{
-	readTexelP rt = NULL;
-
-	switch(psm)
-	{
-	default: ;//ASSERT(0);
-	case PSM_PSMCT32: rt = &GSLocalMemory::readTexel32; break;
-	case PSM_PSMCT24: rt = &GSLocalMemory::readTexel32; break;
-	case PSM_PSMCT16: rt = &GSLocalMemory::readTexel16P; break;
-	case PSM_PSMCT16S: rt = &GSLocalMemory::readTexel16SP; break;
-	case PSM_PSMT8: rt = &GSLocalMemory::readTexel8; break;
-	case PSM_PSMT4: rt = &GSLocalMemory::readTexel4; break;
-	case PSM_PSMT8H: rt = &GSLocalMemory::readTexel8H; break;
-	case PSM_PSMT4HL: rt = &GSLocalMemory::readTexel4HL; break;
-	case PSM_PSMT4HH: rt = &GSLocalMemory::readTexel4HH; break;
-	}
-	
-	return rt;
 }
 
 ///////////////////
@@ -2838,34 +2761,14 @@ void GSLocalMemory::unSwizzleTexture4HHNP(const CRect& r, BYTE* dst, int dstpitc
 	}
 }
 
-GSLocalMemory::unSwizzleTexture GSLocalMemory::GetUnSwizzleTextureNP(DWORD psm)
-{
-	unSwizzleTexture st = NULL;
-
-	switch(psm)
-	{
-	default:
-	case PSM_PSMCT32: st = &GSLocalMemory::unSwizzleTexture32; break;
-	case PSM_PSMCT24: st = &GSLocalMemory::unSwizzleTexture32; break;
-	case PSM_PSMCT16: st = &GSLocalMemory::unSwizzleTexture16P; break;
-	case PSM_PSMCT16S: st = &GSLocalMemory::unSwizzleTexture16SP; break;
-	case PSM_PSMT8: st = &GSLocalMemory::unSwizzleTexture8NP; break;
-	case PSM_PSMT8H: st = &GSLocalMemory::unSwizzleTexture8HNP; break;
-	case PSM_PSMT4: st = &GSLocalMemory::unSwizzleTexture4NP; break;
-	case PSM_PSMT4HL: st = &GSLocalMemory::unSwizzleTexture4HLNP; break;
-	case PSM_PSMT4HH: st = &GSLocalMemory::unSwizzleTexture4HHNP; break;
-	}
-
-	return st;
-}
-
 ///////////////////
 
 void GSLocalMemory::ReadTextureNP(const CRect& r, BYTE* dst, int dstpitch, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA, GIFRegCLAMP& CLAMP)
 {
-	unSwizzleTexture st = GetUnSwizzleTextureNP(TEX0.PSM);
+	unSwizzleTexture st = m_psmtbl[TEX0.PSM].ustNP;
+	readTexel rt = m_psmtbl[TEX0.PSM].rtNP;
 
-	CSize bs = GetBlockSize(TEX0.PSM);
+	CSize bs = m_psmtbl[TEX0.PSM].bs;
 
 	if(r.Width() < bs.cx || r.Height() < bs.cy 
 	|| (r.left & (bs.cx-1)) || (r.top & (bs.cy-1)) 
@@ -2877,11 +2780,11 @@ void GSLocalMemory::ReadTextureNP(const CRect& r, BYTE* dst, int dstpitch, GIFRe
 		default:
 		case PSM_PSMCT32:
 		case PSM_PSMCT24:
-			ReadTexture<DWORD>(r, dst, dstpitch, TEX0, TEXA, CLAMP, GetReadTexelNP(TEX0.PSM), st);
+			ReadTexture<DWORD>(r, dst, dstpitch, TEX0, TEXA, CLAMP, rt, st);
 			break;
 		case PSM_PSMCT16:
 		case PSM_PSMCT16S:
-			ReadTexture<WORD>(r, dst, dstpitch, TEX0, TEXA, CLAMP, GetReadTexelNP(TEX0.PSM), st);
+			ReadTexture<WORD>(r, dst, dstpitch, TEX0, TEXA, CLAMP, rt, st);
 			break;
 		case PSM_PSMT8:
 		case PSM_PSMT8H:
@@ -2892,11 +2795,11 @@ void GSLocalMemory::ReadTextureNP(const CRect& r, BYTE* dst, int dstpitch, GIFRe
 			{
 			default:
 			case PSM_PSMCT32:
-				ReadTexture<DWORD>(r, dst, dstpitch, TEX0, TEXA, CLAMP, GetReadTexelNP(TEX0.PSM), st);
+				ReadTexture<DWORD>(r, dst, dstpitch, TEX0, TEXA, CLAMP, rt, st);
 				break;
 			case PSM_PSMCT16:
 			case PSM_PSMCT16S:
-				ReadTexture<WORD>(r, dst, dstpitch, TEX0, TEXA, CLAMP, GetReadTexelNP(TEX0.PSM), st);
+				ReadTexture<WORD>(r, dst, dstpitch, TEX0, TEXA, CLAMP, rt, st);
 				break;
 			}
 			break;
@@ -2937,7 +2840,7 @@ void GSLocalMemory::ReadTexture(const CRect& r, BYTE* dst, int dstpitch, GIFRegT
 
 		if(wms <= 2 && wmt <= 2)
 		{
-			CSize bs = GetBlockSize(TEX0.PSM);
+			CSize bs = m_psmtbl[TEX0.PSM].bs;
 
 			CRect cr(
 				(r.left + (bs.cx-1)) & ~(bs.cx-1), 

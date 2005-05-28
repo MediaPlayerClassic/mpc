@@ -78,7 +78,7 @@ void GSRendererHW::Reset()
 
 void GSRendererHW::VertexKick(bool fSkip)
 {
-	HWVERTEX v;
+	HWVERTEX& v = m_vl.AddTail();
 
 	v.x = ((float)m_v.XYZ.X - m_ctxt->XYOFFSET.OFX)/16;
 	v.y = ((float)m_v.XYZ.Y - m_ctxt->XYOFFSET.OFY)/16;
@@ -122,8 +122,6 @@ void GSRendererHW::VertexKick(bool fSkip)
 
 	v.color = D3DCOLOR_ARGB(A, B, G, R);
 	v.fog = (m_de.pPRIM->FGE ? m_v.FOG.F : 0xff) << 24;
-
-	m_vl.AddTail(v);
 
 	__super::VertexKick(fSkip);
 }
@@ -259,7 +257,7 @@ int GSRendererHW::DrawingKick(bool fSkip)
 		LOGV((pVertices[0], _T("PointList")));
 		break;
 	default:
-		ASSERT(0);
+		//ASSERT(0);
 		m_vl.RemoveAll();
 		return 0;
 	}
@@ -910,7 +908,7 @@ void GSRendererHW::MinMaxUV(int w, int h, CRect& r)
 	if(m_ctxt->CLAMP.WMS < 3 || m_ctxt->CLAMP.WMT < 3)
 	{
 		UVMinMax(m_nVertices, (vertex_t*)m_pVertices, &uv);
-		CSize bs = GSLocalMemory::GetBlockSize(m_ctxt->TEX0.PSM);
+		CSize bs = GSLocalMemory::m_psmtbl[m_ctxt->TEX0.PSM].bs;
 		bsm.SetSize(bs.cx-1, bs.cy-1);
 	}
 

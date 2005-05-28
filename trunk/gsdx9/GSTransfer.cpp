@@ -84,8 +84,7 @@ void GSState::WriteTransfer(BYTE* pMem, int len)
 	{
 		int x = m_x, y = m_y;
 
-		GSLocalMemory::SwizzleTexture st = m_lm.GetSwizzleTexture(m_rs.BITBLTBUF.DPSM);
-		(m_lm.*st)(m_x, m_y, pMem, len, m_rs.BITBLTBUF, m_rs.TRXPOS, m_rs.TRXREG);
+		(m_lm.*GSLocalMemory::m_psmtbl[m_rs.BITBLTBUF.DPSM].st)(m_x, m_y, pMem, len, m_rs.BITBLTBUF, m_rs.TRXPOS, m_rs.TRXREG);
 
 		m_perfmon.IncCounter(GSPerfMon::c_swizzle, len);
 
@@ -106,8 +105,7 @@ void GSState::FlushWriteTransfer()
 
 	LOG(_T("*TC2 FlushWriteTransfer %d,%d-%d,%d (psm=%d rr=%dx%d len=%d)\n"), x, y, m_x, m_y, m_rs.BITBLTBUF.DPSM, m_rs.TRXREG.RRW, m_rs.TRXREG.RRH, m_nTrBytes);
 
-	GSLocalMemory::SwizzleTexture st = m_lm.GetSwizzleTexture(m_rs.BITBLTBUF.DPSM);
-	(m_lm.*st)(m_x, m_y, m_pTrBuff, m_nTrBytes, m_rs.BITBLTBUF, m_rs.TRXPOS, m_rs.TRXREG);
+	(m_lm.*GSLocalMemory::m_psmtbl[m_rs.BITBLTBUF.DPSM].st)(m_x, m_y, m_pTrBuff, m_nTrBytes, m_rs.BITBLTBUF, m_rs.TRXPOS, m_rs.TRXREG);
 
 	m_perfmon.IncCounter(GSPerfMon::c_swizzle, m_nTrBytes);
 

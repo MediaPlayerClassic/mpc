@@ -188,7 +188,7 @@ void __fastcall GSState::GIFRegHandlerPRIM(GIFReg* r)
 	if(m_de.PRIM.i64 != r->PRIM.i64)
 		FlushPrimInternal();
 
-	ASSERT(r->PRIM.PRIM != 7);
+	//ASSERT(r->PRIM.PRIM != 7);
 
 	// if(r->PRIM.PRIM != 7) 
 		m_de.PRIM.PRIM = m_de.PRMODE._PRIM = r->PRIM.PRIM;
@@ -288,11 +288,11 @@ void __fastcall GSState::GIFRegHandlerTEX0_1(GIFReg* r)
 
 	m_de.CTXT[0].TEX0 = r->TEX0;
 
-	ASSERT(m_de.CTXT[0].TEX0.TW <= 10 && m_de.CTXT[0].TEX0.TH <= 10);
+	//ASSERT(m_de.CTXT[0].TEX0.TW <= 10 && m_de.CTXT[0].TEX0.TH <= 10);
 	if(m_de.CTXT[0].TEX0.TW > 10) m_de.CTXT[0].TEX0.TW = 10;
 	if(m_de.CTXT[0].TEX0.TH > 10) m_de.CTXT[0].TEX0.TH = 10;
 
-	m_de.CTXT[0].rt = m_lm.GetReadTexel(r->TEX0.PSM);
+	m_de.CTXT[0].rt = GSLocalMemory::m_psmtbl[r->TEX0.PSM].rtN;
 
 	FlushWriteTransfer();
 
@@ -320,11 +320,11 @@ void __fastcall GSState::GIFRegHandlerTEX0_2(GIFReg* r)
 
 	m_de.CTXT[1].TEX0 = r->TEX0;
 
-	ASSERT(m_de.CTXT[1].TEX0.TW <= 10 && m_de.CTXT[1].TEX0.TH <= 10);
+	//ASSERT(m_de.CTXT[1].TEX0.TW <= 10 && m_de.CTXT[1].TEX0.TH <= 10);
 	if(m_de.CTXT[1].TEX0.TW > 10) m_de.CTXT[1].TEX0.TW = 10;
 	if(m_de.CTXT[1].TEX0.TH > 10) m_de.CTXT[1].TEX0.TH = 10;
 
-	m_de.CTXT[1].rt = m_lm.GetReadTexel(r->TEX0.PSM);
+	m_de.CTXT[1].rt = GSLocalMemory::m_psmtbl[r->TEX0.PSM].rtN;
 
 	FlushWriteTransfer();
 
@@ -847,7 +847,7 @@ void __fastcall GSState::GIFRegHandlerFRAME_1(GIFReg* r)
 
 	m_de.CTXT[0].pa = m_lm.GetPixelAddress(r->FRAME.PSM);
 	m_de.CTXT[0].rp = m_lm.GetReadPixel(r->FRAME.PSM);
-	m_de.CTXT[0].rf = m_lm.GetReadTexel(r->FRAME.PSM);
+	m_de.CTXT[0].rf = GSLocalMemory::m_psmtbl[r->FRAME.PSM].rtN;
 	m_de.CTXT[0].wf = m_lm.GetWriteFrame(r->FRAME.PSM);
 	m_de.CTXT[0].rpa = m_lm.GetReadPixelAddr(r->FRAME.PSM);
 	m_de.CTXT[0].rfa = m_lm.GetReadTexelAddr(r->FRAME.PSM);
@@ -869,7 +869,7 @@ void __fastcall GSState::GIFRegHandlerFRAME_2(GIFReg* r)
 
 	m_de.CTXT[1].pa = m_lm.GetPixelAddress(r->FRAME.PSM);
 	m_de.CTXT[1].rp = m_lm.GetReadPixel(r->FRAME.PSM);
-	m_de.CTXT[1].rf = m_lm.GetReadTexel(r->FRAME.PSM);
+	m_de.CTXT[1].rf = GSLocalMemory::m_psmtbl[r->FRAME.PSM].rtN;
 	m_de.CTXT[1].wf = m_lm.GetWriteFrame(r->FRAME.PSM);
 	m_de.CTXT[1].rpa = m_lm.GetReadPixelAddr(r->FRAME.PSM);
 	m_de.CTXT[1].rfa = m_lm.GetReadTexelAddr(r->FRAME.PSM);
