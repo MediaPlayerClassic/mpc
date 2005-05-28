@@ -14,11 +14,6 @@ float2 RW_RH : register(c2);
 float2 RW_ZERO : register(c3);
 float2 ZERO_RH : register(c4);
 
-#define PSM_PSMCT32		0
-#define PSM_PSMCT24		1
-#define PSM_PSMCT16		2
-#define PSM_PSMCT16S	10
-
 //
 // texture sampling
 //

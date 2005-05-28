@@ -36,7 +36,7 @@ CRect GSDirtyRect::GetDirtyRect(const GIFRegTEX0& TEX0)
 {
 	CRect rcDirty = m_rcDirty;
 
-	CSize src = GSLocalMemory::GetBlockSize(m_PSM);
+	CSize src = GSLocalMemory::m_psmtbl[m_PSM].bs;
 	rcDirty.left = (rcDirty.left) & ~(src.cx-1);
 	rcDirty.right = (rcDirty.right + (src.cx-1) /* + 1 */) & ~(src.cx-1);
 	rcDirty.top = (rcDirty.top) & ~(src.cy-1);
@@ -44,7 +44,7 @@ CRect GSDirtyRect::GetDirtyRect(const GIFRegTEX0& TEX0)
 
 	if(m_PSM != TEX0.PSM)
 	{
-		CSize dst = GSLocalMemory::GetBlockSize(TEX0.PSM);
+		CSize dst = GSLocalMemory::m_psmtbl[TEX0.PSM].bs;
 		rcDirty.left = MulDiv(m_rcDirty.left, dst.cx, src.cx);
 		rcDirty.right = MulDiv(m_rcDirty.right, dst.cx, src.cx);
 		rcDirty.top = MulDiv(m_rcDirty.top, dst.cy, src.cy);
@@ -408,7 +408,7 @@ bool GSTextureCache::Fetch(GSState* s, GSTextureBase& t)
 {
 	GSTexture* pt = NULL;
 
-	int nPaletteEntries = PaletteEntries(s->m_ctxt->TEX0.PSM);
+	int nPaletteEntries = GSLocalMemory::m_psmtbl[s->m_ctxt->TEX0.PSM].pal;
 
 	DWORD clut[256];
 
@@ -514,10 +514,12 @@ bool GSTextureCache::FetchP(GSState* s, GSTextureBase& t)
 {
 	GSTexture* pt = NULL;
 
+	int nPaletteEntries = GSLocalMemory::m_psmtbl[s->m_ctxt->TEX0.PSM].pal;
+
 #ifdef DEBUG_LOG
 	s->LOG(_T("*TC2 Fetch %dx%d %05I64x %I64d (%d)\n"), 
 		1 << s->m_ctxt->TEX0.TW, 1 << s->m_ctxt->TEX0.TH, 
-		s->m_ctxt->TEX0.TBP0, s->m_ctxt->TEX0.PSM, PaletteEntries(s->m_ctxt->TEX0.PSM));
+		s->m_ctxt->TEX0.TBP0, s->m_ctxt->TEX0.PSM, nPaletteEntries);
 #endif
 
 	enum lookupresult {notfound, needsupdate, found} lr = notfound;
@@ -535,7 +537,7 @@ bool GSTextureCache::FetchP(GSState* s, GSTextureBase& t)
 				lr = found;
 
 				// FIXME: RT + 8h,4hl,4hh
-				if(PaletteEntries(s->m_ctxt->TEX0.PSM))
+				if(nPaletteEntries)
 					return false;
 /*
 				if(nPaletteEntries && !pt->m_pPalette) // yuck!
@@ -620,7 +622,7 @@ bool GSTextureCache::FetchNP(GSState* s, GSTextureBase& t)
 {
 	GSTexture* pt = NULL;
 
-	int nPaletteEntries = PaletteEntries(s->m_ctxt->TEX0.PSM);
+	int nPaletteEntries = GSLocalMemory::m_psmtbl[s->m_ctxt->TEX0.PSM].pal;
 
 	DWORD clut[256];
 

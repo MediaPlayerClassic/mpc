@@ -26,12 +26,25 @@
 #define D3DFVF_HWVERTEX (D3DFVF_XYZRHW|D3DFVF_DIFFUSE|D3DFVF_SPECULAR|D3DFVF_TEX1)
 
 #pragma pack(push, 1)
-struct HWVERTEX
+__declspec(align(16)) union HWVERTEX
 {
-	float x, y, z, rhw;
-	D3DCOLOR color, fog;
-	float tu, tv;
-//	float tu2, tv2;
+	struct
+	{
+		float x, y, z, rhw;
+		D3DCOLOR color, fog;
+		float tu, tv;
+	};
+	
+	__m128i xmm[2];
+
+#if _M_IX86_FP >= 1 || defined(_M_AMD64)
+	HWVERTEX& operator = (HWVERTEX& v)
+	{
+		xmm[0] = v.xmm[0];
+		xmm[1] = v.xmm[1];
+		return *this;
+	}
+#endif
 };
 #pragma pack(pop)
 

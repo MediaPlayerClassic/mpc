@@ -596,7 +596,7 @@ GSRendererSoftFP::GSRendererSoftFP(HWND hWnd, HRESULT& hr)
 
 void GSRendererSoftFP::VertexKick(bool fSkip)
 {
-	GSSoftVertex v;
+	GSSoftVertex& v = m_vl.AddTail();
 
 	v.x = ((float)m_v.XYZ.X - m_ctxt->XYOFFSET.OFX) / 16;
 	v.y = ((float)m_v.XYZ.Y - m_ctxt->XYOFFSET.OFY) / 16;
@@ -628,8 +628,6 @@ void GSRendererSoftFP::VertexKick(bool fSkip)
 			v.v = m_v.ST.T;
 		}
 	}
-
-	m_vl.AddTail(v);
 
 	__super::VertexKick(fSkip);
 }
@@ -826,7 +824,7 @@ GSRendererSoftFX::GSRendererSoftFX(HWND hWnd, HRESULT& hr)
 
 void GSRendererSoftFX::VertexKick(bool fSkip)
 {
-	GSSoftVertexFX v;
+	GSSoftVertex& v = m_vl.AddTail();
 
 	v.x = ((int)m_v.XYZ.X - (m_ctxt->XYOFFSET.OFX&~15)) << 12;
 	v.y = ((int)m_v.XYZ.Y - (m_ctxt->XYOFFSET.OFY&~15)) << 12;
@@ -858,8 +856,6 @@ void GSRendererSoftFX::VertexKick(bool fSkip)
 			v.v = (__int64)(m_v.ST.T * INT_MAX);
 		}
 	}
-
-	m_vl.AddTail(v);
 
 	__super::VertexKick(fSkip);
 }

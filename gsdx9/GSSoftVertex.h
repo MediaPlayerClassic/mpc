@@ -33,6 +33,16 @@ __declspec(align(16)) union GSSoftVertexFP
 	struct {float f[12];};
 	struct {__m128 xmm[3];};
 
+#if _M_IX86_FP >= 1 || defined(_M_AMD64)
+	GSSoftVertexFP& operator = (GSSoftVertexFP& v)
+	{
+		xmm[0] = v.xmm[0];
+		xmm[1] = v.xmm[1];
+		xmm[2] = v.xmm[2];
+		return *this;
+	}
+#endif
+
 	void operator += (GSSoftVertexFP& v)
 	{
 #if _M_IX86_FP >= 1 || defined(_M_AMD64)
@@ -136,6 +146,17 @@ __declspec(align(16)) union GSSoftVertexFX
 	struct {s32 dw[16];};
 	struct {s64 qw[8];};
 	struct {__m128i xmm[4];};
+
+#if _M_IX86_FP >= 2 || defined(_M_AMD64)
+	GSSoftVertexFX& operator = (GSSoftVertexFX& v)
+	{
+		xmm[0] = v.xmm[0];
+		xmm[1] = v.xmm[1];
+		xmm[2] = v.xmm[2];
+		xmm[3] = v.xmm[3];
+		return *this;
+	}
+#endif
 
 	void operator += (GSSoftVertexFX& v)
 	{

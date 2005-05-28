@@ -43,6 +43,15 @@ public:
 		m_head = m_tail = m_count = 0;
 	}
 
+	VERTEX& AddTail()
+	{
+		ASSERT(m_count < 4);
+		VERTEX& v = m_v[m_tail];
+		m_tail = (m_tail+1)&3;
+		m_count++;
+		return v;
+	}
+
 	void AddTail(VERTEX& v)
 	{
 		ASSERT(m_count < 4);
