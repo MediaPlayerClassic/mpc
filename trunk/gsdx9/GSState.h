@@ -32,6 +32,7 @@
 //
 #define ENABLE_CAPTURE_STATE
 ////
+
 /*
 //#define DEBUG_SAVETEXTURES
 #define DEBUG_LOG

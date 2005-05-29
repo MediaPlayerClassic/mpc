@@ -444,7 +444,8 @@ bool GSTextureCache::Fetch(GSState* s, GSTextureBase& t)
 
 				// FIXME: different RT res
 			}
-			else if(s->m_ctxt->TEX0.PSM == pt->m_TEX0.PSM && s->m_ctxt->TEX0.TW == pt->m_TEX0.TW && s->m_ctxt->TEX0.TH == pt->m_TEX0.TH
+			else if(s->m_ctxt->TEX0.PSM == pt->m_TEX0.PSM && pt->m_TEX0.TBW == s->m_ctxt->TEX0.TBW
+			&& s->m_ctxt->TEX0.TW == pt->m_TEX0.TW && s->m_ctxt->TEX0.TH == pt->m_TEX0.TH
 			&& (!(s->m_ctxt->CLAMP.WMS&2) && !(pt->m_CLAMP.WMS&2) && !(s->m_ctxt->CLAMP.WMT&2) && !(pt->m_CLAMP.WMT&2) || s->m_ctxt->CLAMP.i64 == pt->m_CLAMP.i64)
 			&& s->m_de.TEXA.TA0 == pt->m_TEXA.TA0 && s->m_de.TEXA.TA1 == pt->m_TEXA.TA1 && s->m_de.TEXA.AEM == pt->m_TEXA.AEM
 			&& (!nPaletteEntries || s->m_ctxt->TEX0.CPSM == pt->m_TEX0.CPSM && !memcmp(pt->m_clut, clut, nPaletteEntries*sizeof(clut[0]))))
@@ -549,7 +550,8 @@ bool GSTextureCache::FetchP(GSState* s, GSTextureBase& t)
 				// FIXME: different RT res
 */
 			}
-			else if(s->m_ctxt->TEX0.PSM == pt->m_TEX0.PSM && s->m_ctxt->TEX0.TW == pt->m_TEX0.TW && s->m_ctxt->TEX0.TH == pt->m_TEX0.TH
+			else if(s->m_ctxt->TEX0.PSM == pt->m_TEX0.PSM && pt->m_TEX0.TBW == s->m_ctxt->TEX0.TBW
+			&& s->m_ctxt->TEX0.TW == pt->m_TEX0.TW && s->m_ctxt->TEX0.TH == pt->m_TEX0.TH
 			&& (!(s->m_ctxt->CLAMP.WMS&2) && !(pt->m_CLAMP.WMS&2) && !(s->m_ctxt->CLAMP.WMT&2) && !(pt->m_CLAMP.WMT&2) || s->m_ctxt->CLAMP.i64 == pt->m_CLAMP.i64))
 			{
 				lr = needsupdate;
@@ -658,7 +660,8 @@ bool GSTextureCache::FetchNP(GSState* s, GSTextureBase& t)
 
 				// FIXME: different RT res
 			}
-			else if(s->m_ctxt->TEX0.PSM == pt->m_TEX0.PSM && s->m_ctxt->TEX0.TW == pt->m_TEX0.TW && s->m_ctxt->TEX0.TH == pt->m_TEX0.TH
+			else if(s->m_ctxt->TEX0.PSM == pt->m_TEX0.PSM && pt->m_TEX0.TBW == s->m_ctxt->TEX0.TBW
+			&& s->m_ctxt->TEX0.TW == pt->m_TEX0.TW && s->m_ctxt->TEX0.TH == pt->m_TEX0.TH
 			&& (!(s->m_ctxt->CLAMP.WMS&2) && !(pt->m_CLAMP.WMS&2) && !(s->m_ctxt->CLAMP.WMT&2) && !(pt->m_CLAMP.WMT&2) || s->m_ctxt->CLAMP.i64 == pt->m_CLAMP.i64)
 			// && s->m_de.TEXA.TA0 == pt->m_TEXA.TA0 && s->m_de.TEXA.TA1 == pt->m_TEXA.TA1 && s->m_de.TEXA.AEM == pt->m_TEXA.AEM
 			&& (!nPaletteEntries || s->m_ctxt->TEX0.CPSM == pt->m_TEX0.CPSM && !memcmp(pt->m_clut, clut, nPaletteEntries*sizeof(clut[0]))))
