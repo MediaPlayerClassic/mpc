@@ -292,8 +292,6 @@ void __fastcall GSState::GIFRegHandlerTEX0_1(GIFReg* r)
 	if(m_de.CTXT[0].TEX0.TW > 10) m_de.CTXT[0].TEX0.TW = 10;
 	if(m_de.CTXT[0].TEX0.TH > 10) m_de.CTXT[0].TEX0.TH = 10;
 
-	m_de.CTXT[0].rt = GSLocalMemory::m_psmtbl[r->TEX0.PSM].rtN;
-
 	FlushWriteTransfer();
 
 	m_lm.WriteCLUT(r->TEX0, m_de.TEXCLUT);
@@ -323,8 +321,6 @@ void __fastcall GSState::GIFRegHandlerTEX0_2(GIFReg* r)
 	//ASSERT(m_de.CTXT[1].TEX0.TW <= 10 && m_de.CTXT[1].TEX0.TH <= 10);
 	if(m_de.CTXT[1].TEX0.TW > 10) m_de.CTXT[1].TEX0.TW = 10;
 	if(m_de.CTXT[1].TEX0.TH > 10) m_de.CTXT[1].TEX0.TH = 10;
-
-	m_de.CTXT[1].rt = GSLocalMemory::m_psmtbl[r->TEX0.PSM].rtN;
 
 	FlushWriteTransfer();
 
@@ -844,14 +840,6 @@ void __fastcall GSState::GIFRegHandlerFRAME_1(GIFReg* r)
 		FlushPrimInternal();
 
 	m_de.CTXT[0].FRAME = r->FRAME;
-
-	m_de.CTXT[0].pa = m_lm.GetPixelAddress(r->FRAME.PSM);
-	m_de.CTXT[0].rp = m_lm.GetReadPixel(r->FRAME.PSM);
-	m_de.CTXT[0].rf = GSLocalMemory::m_psmtbl[r->FRAME.PSM].rtN;
-	m_de.CTXT[0].wf = m_lm.GetWriteFrame(r->FRAME.PSM);
-	m_de.CTXT[0].rpa = m_lm.GetReadPixelAddr(r->FRAME.PSM);
-	m_de.CTXT[0].rfa = m_lm.GetReadTexelAddr(r->FRAME.PSM);
-	m_de.CTXT[0].wfa = m_lm.GetWriteFrameAddr(r->FRAME.PSM);
 }
 
 void __fastcall GSState::GIFRegHandlerFRAME_2(GIFReg* r)
@@ -866,14 +854,6 @@ void __fastcall GSState::GIFRegHandlerFRAME_2(GIFReg* r)
 		FlushPrimInternal();
 
 	m_de.CTXT[1].FRAME = r->FRAME;
-
-	m_de.CTXT[1].pa = m_lm.GetPixelAddress(r->FRAME.PSM);
-	m_de.CTXT[1].rp = m_lm.GetReadPixel(r->FRAME.PSM);
-	m_de.CTXT[1].rf = GSLocalMemory::m_psmtbl[r->FRAME.PSM].rtN;
-	m_de.CTXT[1].wf = m_lm.GetWriteFrame(r->FRAME.PSM);
-	m_de.CTXT[1].rpa = m_lm.GetReadPixelAddr(r->FRAME.PSM);
-	m_de.CTXT[1].rfa = m_lm.GetReadTexelAddr(r->FRAME.PSM);
-	m_de.CTXT[1].wfa = m_lm.GetWriteFrameAddr(r->FRAME.PSM);
 }
 
 void __fastcall GSState::GIFRegHandlerZBUF_1(GIFReg* r)
@@ -883,14 +863,10 @@ void __fastcall GSState::GIFRegHandlerZBUF_1(GIFReg* r)
 		r->ZBUF.PSM,
 		r->ZBUF.ZMSK);
 
+	r->ZBUF.PSM |= 0x30;
+
 	if(m_de.pPRIM->CTXT == 0 && m_de.CTXT[0].ZBUF.i64 != r->ZBUF.i64)
 		FlushPrimInternal();
-
-	if(r->ZBUF.PSM != PSM_PSMZ32
-	&& r->ZBUF.PSM != PSM_PSMZ24
-	&& r->ZBUF.PSM != PSM_PSMZ16
-	&& r->ZBUF.PSM != PSM_PSMZ16S)
-		r->ZBUF.PSM = PSM_PSMZ32;
 
 	m_de.CTXT[0].ZBUF = r->ZBUF;
 
@@ -899,12 +875,6 @@ void __fastcall GSState::GIFRegHandlerZBUF_1(GIFReg* r)
 	&& m_de.CTXT[0].ZBUF.PSM != PSM_PSMZ16
 	&& m_de.CTXT[0].ZBUF.PSM != PSM_PSMZ16S)
 		m_de.CTXT[0].ZBUF.PSM = PSM_PSMZ32;
-
-	m_de.CTXT[0].rz = m_lm.GetReadPixel(m_de.CTXT[0].ZBUF.PSM);
-	m_de.CTXT[0].wz = m_lm.GetWritePixel(m_de.CTXT[0].ZBUF.PSM);
-	m_de.CTXT[0].rza = m_lm.GetReadPixelAddr(m_de.CTXT[0].ZBUF.PSM);
-	m_de.CTXT[0].wza = m_lm.GetWritePixelAddr(m_de.CTXT[0].ZBUF.PSM);
-	m_de.CTXT[0].paz = m_lm.GetPixelAddress(m_de.CTXT[0].ZBUF.PSM);
 }
 
 void __fastcall GSState::GIFRegHandlerZBUF_2(GIFReg* r)
@@ -913,6 +883,8 @@ void __fastcall GSState::GIFRegHandlerZBUF_2(GIFReg* r)
 		r->ZBUF.ZBP,
 		r->ZBUF.PSM,
 		r->ZBUF.ZMSK);
+
+	r->ZBUF.PSM |= 0x30;
 
 	if(m_de.pPRIM->CTXT == 1 && m_de.CTXT[1].ZBUF.i64 != r->ZBUF.i64)
 		FlushPrimInternal();
@@ -924,12 +896,6 @@ void __fastcall GSState::GIFRegHandlerZBUF_2(GIFReg* r)
 	&& m_de.CTXT[1].ZBUF.PSM != PSM_PSMZ16
 	&& m_de.CTXT[1].ZBUF.PSM != PSM_PSMZ16S)
 		m_de.CTXT[1].ZBUF.PSM = PSM_PSMZ32;
-
-	m_de.CTXT[1].rz = m_lm.GetReadPixel(m_de.CTXT[1].ZBUF.PSM);
-	m_de.CTXT[1].wz = m_lm.GetWritePixel(m_de.CTXT[1].ZBUF.PSM);
-	m_de.CTXT[1].rza = m_lm.GetReadPixelAddr(m_de.CTXT[1].ZBUF.PSM);
-	m_de.CTXT[1].wza = m_lm.GetWritePixelAddr(m_de.CTXT[1].ZBUF.PSM);
-	m_de.CTXT[1].paz = m_lm.GetPixelAddress(m_de.CTXT[1].ZBUF.PSM);
 }
 
 void __fastcall GSState::GIFRegHandlerBITBLTBUF(GIFReg* r)

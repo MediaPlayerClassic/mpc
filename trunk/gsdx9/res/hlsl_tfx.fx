@@ -368,7 +368,6 @@ float4 main_tfx3_8HP_ln(float4 Diff : COLOR0, float4 Fog : COLOR1, float2 Tex : 
 
 float4 main_notfx(float4 Diff : COLOR0, float4 Fog : COLOR1, float2 Tex : TEXCOORD0) : COLOR
 {
-	Diff.a *= 2;
 	return ApplyFog(Diff, Fog);
 }
 
