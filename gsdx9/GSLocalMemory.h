@@ -44,10 +44,17 @@ public:
 
 	typedef struct 
 	{
-		readTexel rtN, rtP, rtNP;
+		pixelAddress pa, ba, pga;
+		readPixel rp;
+		readPixelAddr rpa;
+		writePixel wp;
+		writePixelAddr wpa;
+		readTexel rt, rtP, rtNP;
+		readTexelAddr rta;
+		writeFrameAddr wfa;
 		SwizzleTexture st;
-		unSwizzleTexture ustN, ustP, ustNP;
-		DWORD bpp, pal; 
+		unSwizzleTexture ust, ustP, ustNP;
+		DWORD bpp, pal, trbpp; 
 		CSize bs;
 	} psmtbl_t;
 
@@ -90,7 +97,7 @@ public:
 	static DWORD __fastcall pageAddress8(int x, int y, DWORD bp, DWORD bw);
 	static DWORD __fastcall pageAddress4(int x, int y, DWORD bp, DWORD bw);
 
-	pixelAddress GetPageAddress(DWORD psm);
+//	pixelAddress GetPageAddress(DWORD psm);
 
 	static DWORD __fastcall blockAddress32(int x, int y, DWORD bp, DWORD bw);
 	static DWORD __fastcall blockAddress24(int x, int y, DWORD bp, DWORD bw);
@@ -102,7 +109,7 @@ public:
 	static DWORD __fastcall blockAddress16Z(int x, int y, DWORD bp, DWORD bw);
 	static DWORD __fastcall blockAddress16SZ(int x, int y, DWORD bp, DWORD bw);
 
-	pixelAddress GetBlockAddress(DWORD psm);
+//	pixelAddress GetBlockAddress(DWORD psm);
 
 	static DWORD __fastcall pixelAddressOrg32(int x, int y, DWORD bp, DWORD bw);
 	static DWORD __fastcall pixelAddressOrg24(int x, int y, DWORD bp, DWORD bw);
@@ -114,9 +121,8 @@ public:
 	static DWORD __fastcall pixelAddressOrg16Z(int x, int y, DWORD bp, DWORD bw);
 	static DWORD __fastcall pixelAddressOrg16SZ(int x, int y, DWORD bp, DWORD bw);
 
-	pixelAddress GetPixelAddressOrg(DWORD psm);
+//	pixelAddress GetPixelAddressOrg(DWORD psm);
 
-	static DWORD __fastcall pixelAddress32f(int x, int y, DWORD bp, DWORD bw);
 	static DWORD __fastcall pixelAddress32(int x, int y, DWORD bp, DWORD bw);
 	static DWORD __fastcall pixelAddress24(int x, int y, DWORD bp, DWORD bw);
 	static DWORD __fastcall pixelAddress16(int x, int y, DWORD bp, DWORD bw);
@@ -127,7 +133,7 @@ public:
 	static DWORD __fastcall pixelAddress16Z(int x, int y, DWORD bp, DWORD bw);
 	static DWORD __fastcall pixelAddress16SZ(int x, int y, DWORD bp, DWORD bw);
 
-	pixelAddress GetPixelAddress(DWORD psm);
+//	pixelAddress GetPixelAddress(DWORD psm);
 
 	// raw pixel R/W
 
@@ -145,12 +151,12 @@ public:
 	void writePixel16Z(int x, int y, DWORD c, DWORD bp, DWORD bw);
 	void writePixel16SZ(int x, int y, DWORD c, DWORD bp, DWORD bw);
 
-	writePixel GetWritePixel(DWORD psm);
+//	writePixel GetWritePixel(DWORD psm);
 
 	void writeFrame16(int x, int y, DWORD c, DWORD bp, DWORD bw);
 	void writeFrame16S(int x, int y, DWORD c, DWORD bp, DWORD bw);
 
-	writeFrame GetWriteFrame(DWORD psm);
+//	writeFrame GetWriteFrame(DWORD psm);
 
 	DWORD readPixel32(int x, int y, DWORD bp, DWORD bw);
 	DWORD readPixel24(int x, int y, DWORD bp, DWORD bw);
@@ -166,7 +172,7 @@ public:
 	DWORD readPixel16Z(int x, int y, DWORD bp, DWORD bw);
 	DWORD readPixel16SZ(int x, int y, DWORD bp, DWORD bw);
 
-	readPixel GetReadPixel(DWORD psm);
+//	readPixel GetReadPixel(DWORD psm);
 
 	void writePixel32(DWORD addr, DWORD c);
 	void writePixel24(DWORD addr, DWORD c);
@@ -182,12 +188,12 @@ public:
 	void writePixel16Z(DWORD addr, DWORD c);
 	void writePixel16SZ(DWORD addr, DWORD c);
 
-	writePixelAddr GetWritePixelAddr(DWORD psm);
+//	writePixelAddr GetWritePixelAddr(DWORD psm);
 
 	void writeFrame16(DWORD addr, DWORD c);
 	void writeFrame16S(DWORD addr, DWORD c);
 
-	writeFrameAddr GetWriteFrameAddr(DWORD psm);
+//	writeFrameAddr GetWriteFrameAddr(DWORD psm);
 
 	DWORD readPixel32(DWORD addr);
 	DWORD readPixel24(DWORD addr);
@@ -203,7 +209,7 @@ public:
 	DWORD readPixel16Z(DWORD addr);
 	DWORD readPixel16SZ(DWORD addr);
 
-	readPixelAddr GetReadPixelAddr(DWORD psm);
+//	readPixelAddr GetReadPixelAddr(DWORD psm);
 
 	// FillRect
 
@@ -244,7 +250,7 @@ public:
 	DWORD readTexel4HL(DWORD addr, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
 	DWORD readTexel4HH(DWORD addr, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
 
-	readTexelAddr GetReadTexelAddr(DWORD psm);
+//	readTexelAddr GetReadTexelAddr(DWORD psm);
 
 	void SwizzleTexture32(int& tx, int& ty, BYTE* src, int len, GIFRegBITBLTBUF& BITBLTBUF, GIFRegTRXPOS& TRXPOS, GIFRegTRXREG& TRXREG);
 	void SwizzleTexture24(int& tx, int& ty, BYTE* src, int len, GIFRegBITBLTBUF& BITBLTBUF, GIFRegTRXPOS& TRXPOS, GIFRegTRXREG& TRXREG);

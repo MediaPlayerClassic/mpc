@@ -273,11 +273,15 @@ void GSRendererSoft<VERTEX>::EndFrame()
 template <class VERTEX>
 void GSRendererSoft<VERTEX>::DrawVertex(int x, int y, VERTEX& v)
 {
+	GSLocalMemory::psmtbl_t& ttbl = GSLocalMemory::m_psmtbl[m_ctxt->TEX0.PSM];
+	GSLocalMemory::psmtbl_t& ztbl = GSLocalMemory::m_psmtbl[m_ctxt->ZBUF.PSM];
+	GSLocalMemory::psmtbl_t& ftbl = GSLocalMemory::m_psmtbl[m_ctxt->FRAME.PSM];
+
 	DWORD addrz = 0;
 
-	if(m_ctxt->rz && (m_ctxt->ZBUF.ZMSK == 0 || m_ctxt->TEST.ZTE && m_ctxt->TEST.ZTST >= 2))
+	if(m_ctxt->ZBUF.ZMSK == 0 || m_ctxt->TEST.ZTE && m_ctxt->TEST.ZTST >= 2)
 	{
-		addrz = (m_ctxt->paz)(x, y, m_ctxt->ZBUF.ZBP<<5, m_ctxt->FRAME.FBW);
+		addrz = (ztbl.pa)(x, y, m_ctxt->ZBUF.ZBP<<5, m_ctxt->FRAME.FBW);
 	}
 
 	DWORD vz = v.GetZ();
@@ -287,12 +291,9 @@ void GSRendererSoft<VERTEX>::DrawVertex(int x, int y, VERTEX& v)
 		if(m_ctxt->TEST.ZTST == 0)
 			return;
 
-		if(m_ctxt->rz)
-		{
-			DWORD z = (m_lm.*m_ctxt->rza)(addrz);
-			if(m_ctxt->TEST.ZTST == 2 && vz < z || m_ctxt->TEST.ZTST == 3 && vz <= z)
-				return;
-		}
+		DWORD z = (m_lm.*ztbl.rpa)(addrz);
+		if(m_ctxt->TEST.ZTST == 2 && vz < z || m_ctxt->TEST.ZTST == 3 && vz <= z)
+			return;
 	}
 
 	__declspec(align(16)) union {struct {int Rf, Gf, Bf, Af;}; int Cf[4]; __m128i RGBAf;};
@@ -303,8 +304,9 @@ void GSRendererSoft<VERTEX>::DrawVertex(int x, int y, VERTEX& v)
 		int tw = 1 << m_ctxt->TEX0.TW;
 		int th = 1 << m_ctxt->TEX0.TH;
 
-		float tu = (float)v.u / v.q * tw;
-		float tv = (float)v.v / v.q * th;
+		float rq = 1.0f / v.q;
+		float tu = (float)v.u * rq * tw;
+		float tv = (float)v.v * rq * th;
 
 		// TODO
 		// float lod = m_ctxt->TEX1.K;
@@ -360,10 +362,10 @@ void GSRendererSoft<VERTEX>::DrawVertex(int x, int y, VERTEX& v)
 			}
 			else
 			{
-				c[0] = (m_lm.*m_ctxt->rt)(itu[0], itv[0], m_ctxt->TEX0, m_de.TEXA);
-				c[1] = (m_lm.*m_ctxt->rt)(itu[1], itv[0], m_ctxt->TEX0, m_de.TEXA);
-				c[2] = (m_lm.*m_ctxt->rt)(itu[0], itv[1], m_ctxt->TEX0, m_de.TEXA);
-				c[3] = (m_lm.*m_ctxt->rt)(itu[1], itv[1], m_ctxt->TEX0, m_de.TEXA);
+				c[0] = (m_lm.*ttbl.rt)(itu[0], itv[0], m_ctxt->TEX0, m_de.TEXA);
+				c[1] = (m_lm.*ttbl.rt)(itu[1], itv[0], m_ctxt->TEX0, m_de.TEXA);
+				c[2] = (m_lm.*ttbl.rt)(itu[0], itv[1], m_ctxt->TEX0, m_de.TEXA);
+				c[3] = (m_lm.*ttbl.rt)(itu[1], itv[1], m_ctxt->TEX0, m_de.TEXA);
 			}
 
 			float iuiv = iftu*iftv;
@@ -463,18 +465,18 @@ void GSRendererSoft<VERTEX>::DrawVertex(int x, int y, VERTEX& v)
 		}
 	}
 
-	if(!ZMSK && m_ctxt->wz)
+	if(!ZMSK)
 	{
-		(m_lm.*m_ctxt->wza)(addrz, vz);
+		(m_lm.*ztbl.wpa)(addrz, vz);
 	}
 
 	if(FBMSK != ~0)
 	{
-		DWORD addr = (m_ctxt->pa)(x, y, m_ctxt->FRAME.FBP<<5, m_ctxt->FRAME.FBW);
+		DWORD addr = (ftbl.pa)(x, y, m_ctxt->FRAME.FBP<<5, m_ctxt->FRAME.FBW);
 
 		if(m_ctxt->TEST.DATE && m_ctxt->FRAME.PSM <= PSM_PSMCT16S && m_ctxt->FRAME.PSM != PSM_PSMCT24)
 		{
-			BYTE A = (BYTE)((m_lm.*m_ctxt->rpa)(addr) >> (m_ctxt->FRAME.PSM == PSM_PSMCT32 ? 31 : 15));
+			BYTE A = (BYTE)((m_lm.*ftbl.rpa)(addr) >> (m_ctxt->FRAME.PSM == PSM_PSMCT32 ? 31 : 15));
 			if(A ^ m_ctxt->TEST.DATM) return; // FIXME: vf4 missing mem card screen / the blue background of the text
 		}
 
@@ -486,7 +488,7 @@ void GSRendererSoft<VERTEX>::DrawVertex(int x, int y, VERTEX& v)
 
 		if(FBMSK || fABE)
 		{
-			Cd = (m_lm.*m_ctxt->rfa)(addr, m_ctxt->TEX0, m_de.TEXA);
+			Cd = (m_lm.*ftbl.rta)(addr, m_ctxt->TEX0, m_de.TEXA);
 		}
 
 		if(fABE)
@@ -528,7 +530,7 @@ void GSRendererSoft<VERTEX>::DrawVertex(int x, int y, VERTEX& v)
 
 		Cd = (((Af << 24) | (Bf << 16) | (Gf << 8) | (Rf << 0)) & ~FBMSK) | (Cd & FBMSK);
 
-		(m_lm.*m_ctxt->wfa)(addr, Cd);
+		(m_lm.*ftbl.wfa)(addr, Cd);
 	}
 }
 
@@ -536,7 +538,7 @@ template <class VERTEX>
 bool GSRendererSoft<VERTEX>::DrawFilledRect(int left, int top, int right, int bottom, VERTEX& v)
 {
 	if(left >= right || top >= bottom)
-		return(false);
+		return false;
 
 	ASSERT(top >= 0);
 	ASSERT(bottom >= 0);
@@ -550,13 +552,15 @@ bool GSRendererSoft<VERTEX>::DrawFilledRect(int left, int top, int right, int bo
 	|| m_de.pPRIM->FGE
 	|| m_de.DTHE.DTHE
 	|| m_ctxt->FRAME.FBMSK)
-		return(false);
+		return false;
 
 	DWORD FBP = m_ctxt->FRAME.FBP<<5, FBW = m_ctxt->FRAME.FBW;
 	DWORD ZBP = m_ctxt->ZBUF.ZBP<<5;
 
-	if(!m_ctxt->ZBUF.ZMSK && m_ctxt->wz)
+	if(!m_ctxt->ZBUF.ZMSK)
+	{
 		m_lm.FillRect(CRect(left, top, right, bottom), v.GetZ(), m_ctxt->ZBUF.PSM, ZBP, FBW);
+	}
 
 	__declspec(align(16)) union {struct {int Rf, Gf, Bf, Af;}; int Cf[4];};
 	v.GetColor(Cf);
@@ -573,16 +577,16 @@ bool GSRendererSoft<VERTEX>::DrawFilledRect(int left, int top, int right, int bo
 		c = ((c>>16)&0x8000)|((c>>9)&0x7c00)|((c>>6)&0x03e0)|((c>>3)&0x001f);
 	m_lm.FillRect(CRect(left, top, right, bottom), c, m_ctxt->FRAME.PSM, FBP, FBW);
 
-	return(true);
+	return true;
 }
 
 template <class VERTEX>
 void GSRendererSoft<VERTEX>::SetTexture()
 {
-	if(!m_de.pPRIM->TME || !m_ctxt->rt)
-		return;
-
-	m_lm.SetupCLUT32(m_ctxt->TEX0, m_de.TEXA);
+	if(m_de.pPRIM->TME)
+	{
+		m_lm.SetupCLUT32(m_ctxt->TEX0, m_de.TEXA);
+	}
 }
 
 //
@@ -946,7 +950,7 @@ void GSRendererSoftFX::DrawTriangle(GSSoftVertex* v)
 		{
 			scan = edge[0];
 
-			int /*xi = edge[0].x & 0xffff0000,*/ xf = 0x00010000 - (edge[0].x & 0x0000ffff);
+			int xf = 0x00010000 - (edge[0].x & 0x0000ffff); // xi = edge[0].x & 0xffff0000,
 			int left = (edge[0].x + 0x0000ffff) & 0xffff0000, right = edge[1].x;
 			if(xf < 0x00010000) scan += dscan * xf;
 
@@ -1042,18 +1046,17 @@ void GSRendererSoftFX::DrawSprite(GSSoftVertex* v)
 	}
 }
 
-// precalc:
-//
-// m_ctxt->rz && (m_ctxt->ZBUF.ZMSK == 0 || m_ctxt->TEST.ZTE && m_ctxt->TEST.ZTST >= 2)
-//
-
 void GSRendererSoftFX::DrawVertex(int x, int y, GSSoftVertex& v)
 {
+	GSLocalMemory::psmtbl_t& ttbl = GSLocalMemory::m_psmtbl[m_ctxt->TEX0.PSM];
+	GSLocalMemory::psmtbl_t& ztbl = GSLocalMemory::m_psmtbl[m_ctxt->ZBUF.PSM];
+	GSLocalMemory::psmtbl_t& ftbl = GSLocalMemory::m_psmtbl[m_ctxt->FRAME.PSM];
+
 	DWORD addrz = 0;
 
-	if(m_ctxt->rz && (m_ctxt->ZBUF.ZMSK == 0 || m_ctxt->TEST.ZTE && m_ctxt->TEST.ZTST >= 2))
+	if(m_ctxt->ZBUF.ZMSK == 0 || m_ctxt->TEST.ZTE && m_ctxt->TEST.ZTST >= 2)
 	{
-		addrz = (m_ctxt->paz)(x, y, m_ctxt->ZBUF.ZBP<<5, m_ctxt->FRAME.FBW);
+		addrz = (ztbl.pa)(x, y, m_ctxt->ZBUF.ZBP<<5, m_ctxt->FRAME.FBW);
 	}
 
 	DWORD vz = v.GetZ();
@@ -1063,12 +1066,9 @@ void GSRendererSoftFX::DrawVertex(int x, int y, GSSoftVertex& v)
 		if(m_ctxt->TEST.ZTST == 0)
 			return;
 
-		if(m_ctxt->rz)
-		{
-			DWORD z = (m_lm.*m_ctxt->rza)(addrz);
-			if(m_ctxt->TEST.ZTST == 2 && vz < z || m_ctxt->TEST.ZTST == 3 && vz <= z)
-				return;
-		}
+		DWORD z = (m_lm.*ztbl.rpa)(addrz);
+		if(m_ctxt->TEST.ZTST == 2 && vz < z || m_ctxt->TEST.ZTST == 3 && vz <= z)
+			return;
 	}
 
 	__declspec(align(16)) union {struct {int Rf, Gf, Bf, Af;}; int Cf[4];};
@@ -1087,8 +1087,8 @@ void GSRendererSoftFX::DrawVertex(int x, int y, GSSoftVertex& v)
 		//if(!m_ctxt->TEX1.LCM) lod += (int)(-log((float)v.q/INT_MAX)/log_2) << m_ctxt->TEX1.L;
 		if(!m_ctxt->TEX1.LCM) lod += (int)(-log((float)v.q) / log_2 + 31) << m_ctxt->TEX1.L;
 */
-		DWORD ftu = (tu&0xffff) >> 1, iftu = (1<<15) - ftu;
-		DWORD ftv = (tv&0xffff) >> 1, iftv = (1<<15) - ftv;
+		DWORD ftu = (((DWORD)tu)&0xffff) >> 1, iftu = (1<<15) - ftu;
+		DWORD ftv = (((DWORD)tv)&0xffff) >> 1, iftv = (1<<15) - ftv;
 		tu >>= 16;
 		tv >>= 16;
 
@@ -1135,10 +1135,10 @@ void GSRendererSoftFX::DrawVertex(int x, int y, GSSoftVertex& v)
 			}
 			else
 			{
-				c[0] = (m_lm.*m_ctxt->rt)(itu[0], itv[0], m_ctxt->TEX0, m_de.TEXA);
-				c[1] = (m_lm.*m_ctxt->rt)(itu[1], itv[0], m_ctxt->TEX0, m_de.TEXA);
-				c[2] = (m_lm.*m_ctxt->rt)(itu[0], itv[1], m_ctxt->TEX0, m_de.TEXA);
-				c[3] = (m_lm.*m_ctxt->rt)(itu[1], itv[1], m_ctxt->TEX0, m_de.TEXA);
+				c[0] = (m_lm.*ttbl.rt)(itu[0], itv[0], m_ctxt->TEX0, m_de.TEXA);
+				c[1] = (m_lm.*ttbl.rt)(itu[1], itv[0], m_ctxt->TEX0, m_de.TEXA);
+				c[2] = (m_lm.*ttbl.rt)(itu[0], itv[1], m_ctxt->TEX0, m_de.TEXA);
+				c[3] = (m_lm.*ttbl.rt)(itu[1], itv[1], m_ctxt->TEX0, m_de.TEXA);
 			}
 
 			DWORD iuiv = iftu*iftv >> 15;
@@ -1146,10 +1146,10 @@ void GSRendererSoftFX::DrawVertex(int x, int y, GSSoftVertex& v)
 			DWORD iuv = iftu*ftv >> 15;
 			DWORD uv = ftu*ftv >> 15;
 
-			Rt = (WORD)(iuiv*((c[0]>> 0)&0xff) + uiv*((c[1]>> 0)&0xff) + iuv*((c[2]>> 0)&0xff) + uv*((c[3]>> 0)&0xff) >> 15);
-			Gt = (WORD)(iuiv*((c[0]>> 8)&0xff) + uiv*((c[1]>> 8)&0xff) + iuv*((c[2]>> 8)&0xff) + uv*((c[3]>> 8)&0xff) >> 15);
-			Bt = (WORD)(iuiv*((c[0]>>16)&0xff) + uiv*((c[1]>>16)&0xff) + iuv*((c[2]>>16)&0xff) + uv*((c[3]>>16)&0xff) >> 15);
-			At = (WORD)(iuiv*((c[0]>>24)&0xff) + uiv*((c[1]>>24)&0xff) + iuv*((c[2]>>24)&0xff) + uv*((c[3]>>24)&0xff) >> 15);
+			Rt = (WORD)((iuiv*((c[0]>> 0)&0xff) + uiv*((c[1]>> 0)&0xff) + iuv*((c[2]>> 0)&0xff) + uv*((c[3]>> 0)&0xff)) >> 15);
+			Gt = (WORD)((iuiv*((c[0]>> 8)&0xff) + uiv*((c[1]>> 8)&0xff) + iuv*((c[2]>> 8)&0xff) + uv*((c[3]>> 8)&0xff)) >> 15);
+			Bt = (WORD)((iuiv*((c[0]>>16)&0xff) + uiv*((c[1]>>16)&0xff) + iuv*((c[2]>>16)&0xff) + uv*((c[3]>>16)&0xff)) >> 15);
+			At = (WORD)((iuiv*((c[0]>>24)&0xff) + uiv*((c[1]>>24)&0xff) + iuv*((c[2]>>24)&0xff) + uv*((c[3]>>24)&0xff)) >> 15);
 		}
 		/*
 		else
@@ -1240,18 +1240,18 @@ void GSRendererSoftFX::DrawVertex(int x, int y, GSSoftVertex& v)
 		}
 	}
 
-	if(!ZMSK && m_ctxt->wz)
+	if(!ZMSK)
 	{
-		(m_lm.*m_ctxt->wza)(addrz, vz);
+		(m_lm.*ztbl.wpa)(addrz, vz);
 	}
 
 	if(FBMSK != ~0)
 	{
-		DWORD addr = (m_ctxt->pa)(x, y, m_ctxt->FRAME.FBP<<5, m_ctxt->FRAME.FBW);
+		DWORD addr = (ftbl.pa)(x, y, m_ctxt->FRAME.FBP<<5, m_ctxt->FRAME.FBW);
 
 		if(m_ctxt->TEST.DATE && m_ctxt->FRAME.PSM <= PSM_PSMCT16S && m_ctxt->FRAME.PSM != PSM_PSMCT24)
 		{
-			BYTE A = (m_lm.*m_ctxt->rpa)(addr) >> (m_ctxt->FRAME.PSM == PSM_PSMCT32 ? 31 : 15);
+			BYTE A = (m_lm.*ftbl.rpa)(addr) >> (m_ctxt->FRAME.PSM == PSM_PSMCT32 ? 31 : 15);
 			if(A ^ m_ctxt->TEST.DATM) return; // FIXME: vf4 missing mem card screen / the blue background of the text
 		}
 
@@ -1263,7 +1263,7 @@ void GSRendererSoftFX::DrawVertex(int x, int y, GSSoftVertex& v)
 
 		if(FBMSK || fABE)
 		{
-			Cd = (m_lm.*m_ctxt->rfa)(addr, m_ctxt->TEX0, m_de.TEXA);
+			Cd = (m_lm.*ftbl.rta)(addr, m_ctxt->TEX0, m_de.TEXA);
 		}
 
 		if(fABE)
@@ -1305,6 +1305,6 @@ void GSRendererSoftFX::DrawVertex(int x, int y, GSSoftVertex& v)
 
 		Cd = (((Af << 24) | (Bf << 16) | (Gf << 8) | (Rf << 0)) & ~FBMSK) | (Cd & FBMSK);
 
-		(m_lm.*m_ctxt->wfa)(addr, Cd);
+		(m_lm.*ftbl.wfa)(addr, Cd);
 	}
 }

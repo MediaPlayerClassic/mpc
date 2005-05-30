@@ -54,15 +54,7 @@ void GSState::WriteTransfer(BYTE* pMem, int len)
 	if(m_de.pPRIM->TME && (m_rs.BITBLTBUF.DBP == m_ctxt->TEX0.TBP0 || m_rs.BITBLTBUF.DBP == m_ctxt->TEX0.CBP))
 		FlushPrim();
 
-	int bpp;
-	switch(m_rs.BITBLTBUF.DPSM)
-	{
-	case PSM_PSMCT32: case PSM_PSMZ32: bpp = 32; break;
-	case PSM_PSMCT24: case PSM_PSMZ24: bpp = 24; break;
-	case PSM_PSMCT16: case PSM_PSMCT16S: case PSM_PSMZ16: case PSM_PSMZ16S: bpp = 16; break;
-	case PSM_PSMT8: case PSM_PSMT8H: bpp = 8; break;
-	case PSM_PSMT4: case PSM_PSMT4HL: case PSM_PSMT4HH: bpp = 4; break;
-	}
+	int bpp = GSLocalMemory::m_psmtbl[m_rs.BITBLTBUF.DPSM].trbpp;
 	int pitch = (m_rs.TRXREG.RRW - m_rs.TRXPOS.DSAX)*bpp>>3;
 	int height = len / pitch;
 
@@ -204,8 +196,8 @@ void GSState::MoveTransfer()
 	if(m_rs.TRXPOS.SSAX == m_rs.TRXPOS.DSAX && m_rs.TRXPOS.SSAY == m_rs.TRXPOS.DSAY)
 		return;
 
-	GSLocalMemory::readPixel rp = m_lm.GetReadPixel(m_rs.BITBLTBUF.SPSM);
-	GSLocalMemory::writePixel wp = m_lm.GetWritePixel(m_rs.BITBLTBUF.DPSM);
+	GSLocalMemory::readPixel rp = GSLocalMemory::m_psmtbl[m_rs.BITBLTBUF.SPSM].rp;
+	GSLocalMemory::writePixel wp = GSLocalMemory::m_psmtbl[m_rs.BITBLTBUF.DPSM].wp;
 
 	int sx = m_rs.TRXPOS.SSAX;
 	int dx = m_rs.TRXPOS.DSAX;

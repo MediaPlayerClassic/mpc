@@ -655,6 +655,7 @@ void GSState::Write(GS_REG mem, GSReg* r, UINT64 mask)
 			if(m_rs.CSRw.SIGNAL) m_pCSRr->SIGNAL = 0;
 			if(m_rs.CSRw.FINISH) m_pCSRr->FINISH = 0;
 			if(m_rs.CSRw.RESET) Reset();
+TRACE(_T("FIELD=%d\n"), r->CSR.FIELD);
 			break;
 
 		case GS_IMR:
@@ -940,11 +941,7 @@ void GSState::VSync()
 #endif
 
 	FlushPrimInternal();
-/*
-	m_pCSRr->NFIELD = 1; // ?
-	if(m_rs.SMODE2.INT) // && !m_rs.SMODE2.FFMD
-		m_pCSRr->FIELD = 1 - m_pCSRr->FIELD;
-*/
+
 	Flip();
 
 	EndFrame();
@@ -1176,8 +1173,8 @@ void GSState::FinishFlip(FlipInfo rt[2])
 		const float c[] = 
 		{
 			(float)m_rs.BGCOLOR.B / 255, (float)m_rs.BGCOLOR.G / 255, (float)m_rs.BGCOLOR.R / 255, (float)m_rs.PMODE.ALP / 255,
-			(float)m_rs.PMODE.AMOD, (float)m_rs.IsEnabled(0), (float)m_rs.IsEnabled(1), (float)m_rs.PMODE.MMOD,
-			(float)m_de.TEXA.AEM, (float)m_de.TEXA.TA0 / 255, (float)m_de.TEXA.TA1 / 255, (float)m_rs.PMODE.SLBG
+			(float)m_rs.PMODE.AMOD - 0.1f, (float)m_rs.IsEnabled(0), (float)m_rs.IsEnabled(1), (float)m_rs.PMODE.MMOD - 0.1f,
+			(float)m_de.TEXA.AEM, (float)m_de.TEXA.TA0 / 255, (float)m_de.TEXA.TA1 / 255, (float)m_rs.PMODE.SLBG - 0.1f
 		};
 
 		hr = m_pD3DDev->SetPixelShaderConstantF(0, c, countof(c)/4);
@@ -1267,11 +1264,22 @@ void GSState::FinishFlip(FlipInfo rt[2])
 
 	if(m_iOSD == 2)
 	{
+		CString str;
+		str.Format(
+			_T("\n")
+			_T("SMODE2.INT=%d, SMODE2.FFMD=%d, XYOFFSET.OFY=%.2f, CSR.FIELD=%d\n")
+			_T("[%c] DBX=%d, DBY=%d, DW=%d, DH=%d | [%c] DBX=%d, DBY=%d, DW=%d, DH=%d\n"),
+			m_rs.SMODE2.INT, m_rs.SMODE2.FFMD, (float)m_ctxt->XYOFFSET.OFY / 16, m_pCSRr->FIELD,
+			fEN[0] ? 'o' : 'x', m_rs.DISPFB[0].DBX, m_rs.DISPFB[0].DBY, m_rs.DISPLAY[0].DW + 1, m_rs.DISPLAY[0].DH + 1,
+			fEN[1] ? 'o' : 'x', m_rs.DISPFB[1].DBX, m_rs.DISPFB[1].DBY, m_rs.DISPLAY[1].DW + 1, m_rs.DISPLAY[1].DH + 1);
+
+		str = s_stats + str;
+
 		hr = m_pD3DDev->BeginScene();
 		CRect r = dst;
 		D3DCOLOR c = D3DCOLOR_ARGB(255, 0, 255, 0);
-		if(m_pD3DXFont->DrawText(NULL, s_stats, -1, &r, DT_CALCRECT|DT_LEFT|DT_WORDBREAK, c))
-			m_pD3DXFont->DrawText(NULL, s_stats, -1, &r, DT_LEFT|DT_WORDBREAK, c);
+		if(m_pD3DXFont->DrawText(NULL, str, -1, &r, DT_CALCRECT|DT_LEFT|DT_WORDBREAK, c))
+			m_pD3DXFont->DrawText(NULL, str, -1, &r, DT_LEFT|DT_WORDBREAK, c);
 		hr = m_pD3DDev->EndScene();
 	}
 
