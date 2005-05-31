@@ -599,32 +599,7 @@ DWORD __fastcall GSLocalMemory::pageAddress4(int x, int y, DWORD bp, DWORD bw)
 {
 	return ((bp >> 5) + (y >> 7) * ((bw+1)>>1) + (x >> 7)) << 14;
 }
-/*
-GSLocalMemory::pixelAddress GSLocalMemory::GetPageAddress(DWORD psm)
-{
-	pixelAddress pa = NULL;
 
-	switch(psm)
-	{
-	default: ASSERT(0);
-	case PSM_PSMCT32: pa = &GSLocalMemory::pageAddress32; break;
-	case PSM_PSMCT24: pa = &GSLocalMemory::pageAddress32; break;
-	case PSM_PSMT8H: pa = &GSLocalMemory::pageAddress32; break;
-	case PSM_PSMT4HL: pa = &GSLocalMemory::pageAddress32; break;
-	case PSM_PSMT4HH: pa = &GSLocalMemory::pageAddress32; break;
-	case PSM_PSMZ32: pa = &GSLocalMemory::pageAddress32; break;
-	case PSM_PSMZ24: pa = &GSLocalMemory::pageAddress32; break;
-	case PSM_PSMCT16: pa = &GSLocalMemory::pageAddress16; break;
-	case PSM_PSMCT16S: pa = &GSLocalMemory::pageAddress16; break;
-	case PSM_PSMZ16: pa = &GSLocalMemory::pageAddress16; break;
-	case PSM_PSMZ16S: pa = &GSLocalMemory::pageAddress16; break;	
-	case PSM_PSMT8: pa = &GSLocalMemory::pageAddress8; break;
-	case PSM_PSMT4: pa = &GSLocalMemory::pageAddress4; break;
-	}
-
-	return pa;
-}
-*/
 ////////////////////
 
 DWORD __fastcall GSLocalMemory::blockAddress32(int x, int y, DWORD bp, DWORD bw)
@@ -682,32 +657,7 @@ DWORD __fastcall GSLocalMemory::blockAddress16SZ(int x, int y, DWORD bp, DWORD b
 	DWORD block = blockTable16SZ[(y >> 3) & 7][(x >> 4) & 3];
 	return (page + block) << 7;
 }
-/*
-GSLocalMemory::pixelAddress GSLocalMemory::GetBlockAddress(DWORD psm)
-{
-	pixelAddress pa = NULL;
 
-	switch(psm)
-	{
-	default: ASSERT(0);
-	case PSM_PSMCT32: pa = &GSLocalMemory::blockAddress32; break;
-	case PSM_PSMCT24: pa = &GSLocalMemory::blockAddress32; break;
-	case PSM_PSMCT16: pa = &GSLocalMemory::blockAddress16; break;
-	case PSM_PSMCT16S: pa = &GSLocalMemory::blockAddress16S; break;
-	case PSM_PSMT8: pa = &GSLocalMemory::blockAddress8; break;
-	case PSM_PSMT4: pa = &GSLocalMemory::blockAddress4; break;
-	case PSM_PSMT8H: pa = &GSLocalMemory::blockAddress32; break;
-	case PSM_PSMT4HL: pa = &GSLocalMemory::blockAddress32; break;
-	case PSM_PSMT4HH: pa = &GSLocalMemory::blockAddress32; break;
-	case PSM_PSMZ32: pa = &GSLocalMemory::blockAddress32Z; break;
-	case PSM_PSMZ24: pa = &GSLocalMemory::blockAddress32Z; break;
-	case PSM_PSMZ16: pa = &GSLocalMemory::blockAddress16Z; break;
-	case PSM_PSMZ16S: pa = &GSLocalMemory::blockAddress16SZ; break;
-	}
-	
-	return pa;
-}
-*/
 ////////////////////
 
 DWORD __fastcall GSLocalMemory::pixelAddressOrg32(int x, int y, DWORD bp, DWORD bw)
@@ -805,32 +755,7 @@ DWORD __fastcall GSLocalMemory::pixelAddressOrg16SZ(int x, int y, DWORD bp, DWOR
 	ASSERT(word < 1024*1024*2);
 	return word;
 }
-/*
-GSLocalMemory::pixelAddress GSLocalMemory::GetPixelAddressOrg(DWORD psm)
-{
-	pixelAddress pa = NULL;
 
-	switch(psm)
-	{
-	default: ASSERT(0);
-	case PSM_PSMCT32: pa = &GSLocalMemory::pixelAddressOrg32; break;
-	case PSM_PSMCT24: pa = &GSLocalMemory::pixelAddressOrg32; break;
-	case PSM_PSMCT16: pa = &GSLocalMemory::pixelAddressOrg16; break;
-	case PSM_PSMCT16S: pa = &GSLocalMemory::pixelAddressOrg16S; break;
-	case PSM_PSMT8: pa = &GSLocalMemory::pixelAddressOrg8; break;
-	case PSM_PSMT4: pa = &GSLocalMemory::pixelAddressOrg4; break;
-	case PSM_PSMT8H: pa = &GSLocalMemory::pixelAddressOrg32; break;
-	case PSM_PSMT4HL: pa = &GSLocalMemory::pixelAddressOrg32; break;
-	case PSM_PSMT4HH: pa = &GSLocalMemory::pixelAddressOrg32; break;
-	case PSM_PSMZ32: pa = &GSLocalMemory::pixelAddressOrg32Z; break;
-	case PSM_PSMZ24: pa = &GSLocalMemory::pixelAddressOrg32Z; break;
-	case PSM_PSMZ16: pa = &GSLocalMemory::pixelAddressOrg16Z; break;
-	case PSM_PSMZ16S: pa = &GSLocalMemory::pixelAddressOrg16SZ; break;
-	}
-	
-	return pa;
-}
-*/
 ////////////////////
 
 DWORD __fastcall GSLocalMemory::pixelAddress32(int x, int y, DWORD bp, DWORD bw)
@@ -896,32 +821,7 @@ DWORD __fastcall GSLocalMemory::pixelAddress16SZ(int x, int y, DWORD bp, DWORD b
 	ASSERT(word < 1024*1024*2);
 	return word;
 }
-/*
-GSLocalMemory::pixelAddress GSLocalMemory::GetPixelAddress(DWORD psm)
-{
-	pixelAddress pa = NULL;
 
-	switch(psm)
-	{
-	default: ASSERT(0);
-	case PSM_PSMCT32: pa = &GSLocalMemory::pixelAddress32; break;
-	case PSM_PSMCT24: pa = &GSLocalMemory::pixelAddress32; break;
-	case PSM_PSMCT16: pa = &GSLocalMemory::pixelAddress16; break;
-	case PSM_PSMCT16S: pa = &GSLocalMemory::pixelAddress16S; break;
-	case PSM_PSMT8: pa = &GSLocalMemory::pixelAddress8; break;
-	case PSM_PSMT4: pa = &GSLocalMemory::pixelAddress4; break;
-	case PSM_PSMT8H: pa = &GSLocalMemory::pixelAddress32; break;
-	case PSM_PSMT4HL: pa = &GSLocalMemory::pixelAddress32; break;
-	case PSM_PSMT4HH: pa = &GSLocalMemory::pixelAddress32; break;
-	case PSM_PSMZ32: pa = &GSLocalMemory::pixelAddress32Z; break;
-	case PSM_PSMZ24: pa = &GSLocalMemory::pixelAddress32Z; break;
-	case PSM_PSMZ16: pa = &GSLocalMemory::pixelAddress16Z; break;
-	case PSM_PSMZ16S: pa = &GSLocalMemory::pixelAddress16SZ; break;
-	}
-	
-	return pa;
-}
-*/
 ////////////////////
 
 void GSLocalMemory::writePixel32(int x, int y, DWORD c, DWORD bp, DWORD bw)
@@ -1002,32 +902,7 @@ void GSLocalMemory::writePixel16SZ(int x, int y, DWORD c, DWORD bp, DWORD bw)
 	DWORD addr = pixelAddress16SZ(x, y, bp, bw);
 	m_vm16[addr] = (WORD)c;
 }
-/*
-GSLocalMemory::writePixel GSLocalMemory::GetWritePixel(DWORD psm)
-{
-	writePixel wp = NULL;
 
-	switch(psm)
-	{
-	default: ASSERT(0);
-	case PSM_PSMCT32: wp = &GSLocalMemory::writePixel32; break;
-	case PSM_PSMCT24: wp = &GSLocalMemory::writePixel24; break;
-	case PSM_PSMCT16: wp = &GSLocalMemory::writePixel16; break;
-	case PSM_PSMCT16S: wp = &GSLocalMemory::writePixel16S; break;
-	case PSM_PSMT8: wp = &GSLocalMemory::writePixel8; break;
-	case PSM_PSMT4: wp = &GSLocalMemory::writePixel4; break;
-	case PSM_PSMT8H: wp = &GSLocalMemory::writePixel8H; break;
-	case PSM_PSMT4HL: wp = &GSLocalMemory::writePixel4HL; break;
-	case PSM_PSMT4HH: wp = &GSLocalMemory::writePixel4HH; break;
-	case PSM_PSMZ32: wp = &GSLocalMemory::writePixel32Z; break;
-	case PSM_PSMZ24: wp = &GSLocalMemory::writePixel24Z; break;
-	case PSM_PSMZ16: wp = &GSLocalMemory::writePixel16Z; break;
-	case PSM_PSMZ16S: wp = &GSLocalMemory::writePixel16SZ; break;
-	}
-	
-	return wp;
-}
-*/
 ////////////////////
 
 void GSLocalMemory::writeFrame16(int x, int y, DWORD c, DWORD bp, DWORD bw)
@@ -1041,23 +916,7 @@ void GSLocalMemory::writeFrame16S(int x, int y, DWORD c, DWORD bp, DWORD bw)
 	c = ((c>>16)&0x8000)|((c>>9)&0x7c00)|((c>>6)&0x03e0)|((c>>3)&0x001f);
 	writePixel16S(x, y, c, bp, bw);
 }
-/*
-GSLocalMemory::writeFrame GSLocalMemory::GetWriteFrame(DWORD psm)
-{
-	writeFrame wf = NULL;
 
-	switch(psm)
-	{
-	default: //ASSERT(0);
-	case PSM_PSMCT32: wf = &GSLocalMemory::writePixel32; break;
-	case PSM_PSMCT24: wf = &GSLocalMemory::writePixel24; break;
-	case PSM_PSMCT16: wf = &GSLocalMemory::writeFrame16; break;
-	case PSM_PSMCT16S: wf = &GSLocalMemory::writeFrame16S; break;
-	}
-	
-	return wf;
-}
-*/
 ////////////////////
 
 DWORD GSLocalMemory::readPixel32(int x, int y, DWORD bp, DWORD bw)
@@ -1125,32 +984,7 @@ DWORD GSLocalMemory::readPixel16SZ(int x, int y, DWORD bp, DWORD bw)
 {
 	return (DWORD)m_vm16[pixelAddress16SZ(x, y, bp, bw)];
 }
-/*
-GSLocalMemory::readPixel GSLocalMemory::GetReadPixel(DWORD psm)
-{
-	readPixel rp = NULL;
 
-	switch(psm)
-	{
-	default: //ASSERT(0);
-	case PSM_PSMCT32: rp = &GSLocalMemory::readPixel32; break;
-	case PSM_PSMCT24: rp = &GSLocalMemory::readPixel24; break;
-	case PSM_PSMCT16: rp = &GSLocalMemory::readPixel16; break;
-	case PSM_PSMCT16S: rp = &GSLocalMemory::readPixel16S; break;
-	case PSM_PSMT8: rp = &GSLocalMemory::readPixel8; break;
-	case PSM_PSMT4: rp = &GSLocalMemory::readPixel4; break;
-	case PSM_PSMT8H: rp = &GSLocalMemory::readPixel8H; break;
-	case PSM_PSMT4HL: rp = &GSLocalMemory::readPixel4HL; break;
-	case PSM_PSMT4HH: rp = &GSLocalMemory::readPixel4HH; break;
-	case PSM_PSMZ32: rp = &GSLocalMemory::readPixel32Z; break;
-	case PSM_PSMZ24: rp = &GSLocalMemory::readPixel24Z; break;
-	case PSM_PSMZ16: rp = &GSLocalMemory::readPixel16Z; break;
-	case PSM_PSMZ16S: rp = &GSLocalMemory::readPixel16SZ; break;
-	}
-	
-	return rp;
-}
-*/
 ////////////////////
 
 void GSLocalMemory::writePixel32(DWORD addr, DWORD c)
@@ -1218,32 +1052,7 @@ void GSLocalMemory::writePixel16SZ(DWORD addr, DWORD c)
 {
 	m_vm16[addr] = (WORD)c;
 }
-/*
-GSLocalMemory::writePixelAddr GSLocalMemory::GetWritePixelAddr(DWORD psm)
-{
-	writePixelAddr wp = NULL;
 
-	switch(psm)
-	{
-	default: ASSERT(0);
-	case PSM_PSMCT32: wp = &GSLocalMemory::writePixel32; break;
-	case PSM_PSMCT24: wp = &GSLocalMemory::writePixel24; break;
-	case PSM_PSMCT16: wp = &GSLocalMemory::writePixel16; break;
-	case PSM_PSMCT16S: wp = &GSLocalMemory::writePixel16S; break;
-	case PSM_PSMT8: wp = &GSLocalMemory::writePixel8; break;
-	case PSM_PSMT4: wp = &GSLocalMemory::writePixel4; break;
-	case PSM_PSMT8H: wp = &GSLocalMemory::writePixel8H; break;
-	case PSM_PSMT4HL: wp = &GSLocalMemory::writePixel4HL; break;
-	case PSM_PSMT4HH: wp = &GSLocalMemory::writePixel4HH; break;
-	case PSM_PSMZ32: wp = &GSLocalMemory::writePixel32Z; break;
-	case PSM_PSMZ24: wp = &GSLocalMemory::writePixel24Z; break;
-	case PSM_PSMZ16: wp = &GSLocalMemory::writePixel16Z; break;
-	case PSM_PSMZ16S: wp = &GSLocalMemory::writePixel16SZ; break;
-	}
-	
-	return wp;
-}
-*/
 ////////////////////
 
 void GSLocalMemory::writeFrame16(DWORD addr, DWORD c)
@@ -1257,23 +1066,7 @@ void GSLocalMemory::writeFrame16S(DWORD addr, DWORD c)
 	c = ((c>>16)&0x8000)|((c>>9)&0x7c00)|((c>>6)&0x03e0)|((c>>3)&0x001f);
 	writePixel16S(addr, c);
 }
-/*
-GSLocalMemory::writeFrameAddr GSLocalMemory::GetWriteFrameAddr(DWORD psm)
-{
-	writeFrameAddr wf = NULL;
 
-	switch(psm)
-	{
-	default: //ASSERT(0);
-	case PSM_PSMCT32: wf = &GSLocalMemory::writePixel32; break;
-	case PSM_PSMCT24: wf = &GSLocalMemory::writePixel24; break;
-	case PSM_PSMCT16: wf = &GSLocalMemory::writeFrame16; break;
-	case PSM_PSMCT16S: wf = &GSLocalMemory::writeFrame16S; break;
-	}
-	
-	return wf;
-}
-*/
 ////////////////////
 
 DWORD GSLocalMemory::readPixel32(DWORD addr)
@@ -1340,32 +1133,7 @@ DWORD GSLocalMemory::readPixel16SZ(DWORD addr)
 {
 	return (DWORD)m_vm16[addr];
 }
-/*
-GSLocalMemory::readPixelAddr GSLocalMemory::GetReadPixelAddr(DWORD psm)
-{
-	readPixelAddr rp = NULL;
 
-	switch(psm)
-	{
-	default: ASSERT(0);
-	case PSM_PSMCT32: rp = &GSLocalMemory::readPixel32; break;
-	case PSM_PSMCT24: rp = &GSLocalMemory::readPixel24; break;
-	case PSM_PSMCT16: rp = &GSLocalMemory::readPixel16; break;
-	case PSM_PSMCT16S: rp = &GSLocalMemory::readPixel16S; break;
-	case PSM_PSMT8: rp = &GSLocalMemory::readPixel8; break;
-	case PSM_PSMT4: rp = &GSLocalMemory::readPixel4; break;
-	case PSM_PSMT8H: rp = &GSLocalMemory::readPixel8H; break;
-	case PSM_PSMT4HL: rp = &GSLocalMemory::readPixel4HL; break;
-	case PSM_PSMT4HH: rp = &GSLocalMemory::readPixel4HH; break;
-	case PSM_PSMZ32: rp = &GSLocalMemory::readPixel32Z; break;
-	case PSM_PSMZ24: rp = &GSLocalMemory::readPixel24Z; break;
-	case PSM_PSMZ16: rp = &GSLocalMemory::readPixel16Z; break;
-	case PSM_PSMZ16S: rp = &GSLocalMemory::readPixel16SZ; break;
-	}
-	
-	return rp;
-}
-*/
 ////////////////////
 
 bool GSLocalMemory::FillRect(CRect& r, DWORD c, DWORD psm, DWORD fbp, DWORD fbw)
@@ -1377,7 +1145,6 @@ bool GSLocalMemory::FillRect(CRect& r, DWORD c, DWORD psm, DWORD fbp, DWORD fbw)
 	int h = m_psmtbl[psm].bs.cy;
 	int bpp = m_psmtbl[psm].bpp;
 
-	int dwords = w*h*bpp/8/4;
 	int shift = 0;
 
 	switch(bpp)
@@ -1413,8 +1180,8 @@ bool GSLocalMemory::FillRect(CRect& r, DWORD c, DWORD psm, DWORD fbp, DWORD fbw)
 			for(int x = clip.left; x < clip.right; x += w)
 			{
 				DWORD* p = &m_vm32[ba(x, y, fbp, fbw)];
-				for(int size = dwords; size-- > 0; p++)
-					*p = (*p&0xff000000)|c;
+				for(int i = 0; i < 64; i++)
+					p[i] = (p[i]&0xff000000) | c;
 			}
 		}
 	}
@@ -1422,7 +1189,7 @@ bool GSLocalMemory::FillRect(CRect& r, DWORD c, DWORD psm, DWORD fbp, DWORD fbw)
 	{
 		for(int y = clip.top; y < clip.bottom; y += h)
 			for(int x = clip.left; x < clip.right; x += w)
-				memsetd(&m_vm8[ba(x, y, fbp, fbw) << 2 >> shift], c, dwords);
+				memsetd(&m_vm8[ba(x, y, fbp, fbw) << 2 >> shift], c, 64);
 	}
 
 	for(int y = clip.bottom; y < r.bottom; y++)
@@ -1732,28 +1499,7 @@ DWORD GSLocalMemory::readTexel4HH(DWORD addr, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA
 {
 	return m_pCLUT32[readPixel4HH(addr)];
 }
-/*
-GSLocalMemory::readTexelAddr GSLocalMemory::GetReadTexelAddr(DWORD psm)
-{
-	readTexelAddr rt = NULL;
 
-	switch(psm)
-	{
-	default: //ASSERT(0);
-	case PSM_PSMCT32: rt = &GSLocalMemory::readTexel32; break;
-	case PSM_PSMCT24: rt = &GSLocalMemory::readTexel24; break;
-	case PSM_PSMCT16: rt = &GSLocalMemory::readTexel16; break;
-	case PSM_PSMCT16S: rt = &GSLocalMemory::readTexel16S; break;
-	case PSM_PSMT8: rt = &GSLocalMemory::readTexel8; break;
-	case PSM_PSMT4: rt = &GSLocalMemory::readTexel4; break;
-	case PSM_PSMT8H: rt = &GSLocalMemory::readTexel8H; break;
-	case PSM_PSMT4HL: rt = &GSLocalMemory::readTexel4HL; break;
-	case PSM_PSMT4HH: rt = &GSLocalMemory::readTexel4HH; break;
-	}
-	
-	return rt;
-}
-*/
 ////////////////////
 
 static void SwizzleTextureStep(int& tx, int& ty, GIFRegTRXPOS& TRXPOS, GIFRegTRXREG& TRXREG)
@@ -2653,7 +2399,6 @@ void GSLocalMemory::ReadTextureP(const CRect& r, BYTE* dst, int dstpitch, GIFReg
 {
 	unSwizzleTexture st = m_psmtbl[TEX0.PSM].ustP;
 	readTexel rt = m_psmtbl[TEX0.PSM].rtP;
-
 	CSize bs = m_psmtbl[TEX0.PSM].bs;
 
 	if(r.Width() < bs.cx || r.Height() < bs.cy 
