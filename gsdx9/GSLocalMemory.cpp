@@ -1138,12 +1138,14 @@ DWORD GSLocalMemory::readPixel16SZ(DWORD addr)
 
 bool GSLocalMemory::FillRect(CRect& r, DWORD c, DWORD psm, DWORD fbp, DWORD fbw)
 {
-	writePixel wp = m_psmtbl[psm].wp;
-	pixelAddress ba = m_psmtbl[psm].ba;
+	const psmtbl_t& tbl = m_psmtbl[psm];
 
-	int w = m_psmtbl[psm].bs.cx;
-	int h = m_psmtbl[psm].bs.cy;
-	int bpp = m_psmtbl[psm].bpp;
+	writePixel wp = tbl.wp;
+	pixelAddress ba = tbl.ba;
+
+	int w = tbl.bs.cx;
+	int h = tbl.bs.cy;
+	int bpp = tbl.bpp;
 
 	int shift = 0;
 

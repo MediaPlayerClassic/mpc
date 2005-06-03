@@ -61,7 +61,7 @@ END
 
 
 /////////////////////////////////////////////////////////////////////////////
-// English (Neutral) resources
+// English (U.S.) resources
 
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
 #ifdef _WIN32
@@ -74,19 +74,7 @@ LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
 // Bitmap
 //
 
-IDB_LOGO1               BITMAP                  "res\logo1.bmp"
-#endif    // English (Neutral) resources
-/////////////////////////////////////////////////////////////////////////////
-
-
-/////////////////////////////////////////////////////////////////////////////
-// English (U.S.) resources
-
-#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
-#ifdef _WIN32
-LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
-#pragma code_page(1252)
-#endif //_WIN32
+IDB_LOGO1               BITMAP                  "res\\logo1.bmp"
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -147,9 +135,6 @@ BEGIN
         VERTGUIDE, 182
         TOPMARGIN, 7
         BOTTOMMARGIN, 195
-        HORZGUIDE, 61
-        HORZGUIDE, 76
-        HORZGUIDE, 91
         HORZGUIDE, 150
     END
 END

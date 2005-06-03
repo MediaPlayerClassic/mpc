@@ -23,8 +23,8 @@
 
 #include "GSRenderer.h"
 
-template <class VERTEX>
-class GSRendererSoft : public GSRenderer<VERTEX>
+template <class Vertex>
+class GSRendererSoft : public GSRenderer<Vertex>
 {
 protected:
 	void Reset();
@@ -35,19 +35,20 @@ protected:
 
 	enum {PRIM_NONE, PRIM_SPRITE, PRIM_TRIANGLE, PRIM_LINE, PRIM_POINT} m_primtype;
 
-	virtual void DrawPoint(VERTEX* v) = 0;
-	virtual void DrawLine(VERTEX* v) = 0;
-	virtual void DrawTriangle(VERTEX* v) = 0;
-	virtual void DrawSprite(VERTEX* v) = 0;
-	virtual void DrawVertex(int x, int y, VERTEX& v);
-	virtual bool DrawFilledRect(int left, int top, int right, int bottom, VERTEX& v);
+	void DrawPoint(Vertex* v);
+	void DrawLine(Vertex* v);
+	void DrawTriangle(Vertex* v);
+	void DrawSprite(Vertex* v);
+	bool DrawFilledRect(int left, int top, int right, int bottom, Vertex& v);
+
+	virtual void DrawVertex(int x, int y, Vertex& v);
+
+	CComPtr<IDirect3DTexture9> m_pRT[2];
 
 	DWORD* m_pTexture;
 	void SetTexture();
 
 	CRect m_scissor;
-	virtual void SetScissor() = 0;
-
 	BYTE m_clip[65536];
 	BYTE m_mask[65536];
 	BYTE* m_clamp;
@@ -55,6 +56,8 @@ protected:
 public:
 	GSRendererSoft(HWND hWnd, HRESULT& hr);
 	~GSRendererSoft();
+
+	HRESULT ResetDevice(bool fForceWindowed = false);
 
 	void LOGVERTEX(GSSoftVertexFP& v, LPCTSTR type)
 	{
@@ -83,17 +86,8 @@ public:
 
 class GSRendererSoftFP : public GSRendererSoft<GSSoftVertexFP>
 {
-	typedef GSSoftVertexFP GSSoftVertex;
-
 protected:
 	void VertexKick(bool fSkip);
-
-	void SetScissor();
-
-	void DrawPoint(GSSoftVertex* v);
-	void DrawLine(GSSoftVertex* v);
-	void DrawTriangle(GSSoftVertex* v);
-	void DrawSprite(GSSoftVertex* v);
 
 public:
 	GSRendererSoftFP(HWND hWnd, HRESULT& hr);
@@ -101,18 +95,9 @@ public:
 
 class GSRendererSoftFX : public GSRendererSoft<GSSoftVertexFX>
 {
-	typedef GSSoftVertexFX GSSoftVertex;
-
 protected:
 	void VertexKick(bool fSkip);
-
-	void SetScissor();
-
-	void DrawPoint(GSSoftVertex* v);
-	void DrawLine(GSSoftVertex* v);
-	void DrawTriangle(GSSoftVertex* v);
-	void DrawSprite(GSSoftVertex* v);
-	void DrawVertex(int x, int y, GSSoftVertex& v);
+	void DrawVertex(int x, int y, GSSoftVertexFX& v);
 
 public:
 	GSRendererSoftFX(HWND hWnd, HRESULT& hr);
