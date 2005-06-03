@@ -393,7 +393,7 @@ void GSRendererSoft<Vertex>::DrawTriangle(Vertex* v)
 			if(right > m_scissor.right) right = m_scissor.right;
 			if(Vertex::Scalar(left) > edge[0].x) scan += dscan * (Vertex::Scalar(left) - edge[0].x);
 
-			for(int x = 0; left < right; left++, x++)
+			for(; left < right; left++)
 			{
 				//ASSERT(left == Vertex::Int(scan.x) && top == Vertex::Int(scan.y));
 
