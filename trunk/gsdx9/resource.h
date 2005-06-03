@@ -29,6 +29,7 @@
 #define IDR_PS11_EN01                   2014
 #define IDC_CHECK4                      2014
 #define IDR_PS11_EN10                   2015
+#define IDC_COMBO2                      2015
 #define IDR_PS11_EN00                   2016
 #define IDR_HLSL_TFX                    2017
 #define IDR_HLSL_MERGE                  2018
@@ -47,7 +48,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        2025
 #define _APS_NEXT_COMMAND_VALUE         32771
-#define _APS_NEXT_CONTROL_VALUE         2015
+#define _APS_NEXT_CONTROL_VALUE         2016
 #define _APS_NEXT_SYMED_VALUE           2000
 #endif
 #endif

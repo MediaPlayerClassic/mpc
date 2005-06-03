@@ -23,9 +23,9 @@
 #include "GSRendererSoft.h"
 #include "x86.h"
 
-template <class VERTEX>
-GSRendererSoft<VERTEX>::GSRendererSoft(HWND hWnd, HRESULT& hr)
-	: GSRenderer<VERTEX>(640, 512, hWnd, hr)
+template <class Vertex>
+GSRendererSoft<Vertex>::GSRendererSoft(HWND hWnd, HRESULT& hr)
+	: GSRenderer<Vertex>(640, 512, hWnd, hr)
 {
 	float f = 0.8;
 	f *= UINT_MAX;
@@ -39,13 +39,22 @@ GSRendererSoft<VERTEX>::GSRendererSoft(HWND hWnd, HRESULT& hr)
 	for(; i < SHRT_MAX; i++, j++) m_clip[j] = 255, m_mask[j] = j&255;
 }
 
-template <class VERTEX>
-GSRendererSoft<VERTEX>::~GSRendererSoft()
+template <class Vertex>
+GSRendererSoft<Vertex>::~GSRendererSoft()
 {
 }
 
-template <class VERTEX>
-void GSRendererSoft<VERTEX>::Reset()
+template <class Vertex>
+HRESULT GSRendererSoft<Vertex>::ResetDevice(bool fForceWindowed)
+{
+	m_pRT[0] = NULL;
+	m_pRT[1] = NULL;
+
+	return __super::ResetDevice(fForceWindowed);
+}
+
+template <class Vertex>
+void GSRendererSoft<Vertex>::Reset()
 {
 	m_primtype = PRIM_NONE;
 	m_pTexture = NULL;
@@ -53,10 +62,10 @@ void GSRendererSoft<VERTEX>::Reset()
 	__super::Reset();
 }
 
-template <class VERTEX>
-int GSRendererSoft<VERTEX>::DrawingKick(bool fSkip)
+template <class Vertex>
+int GSRendererSoft<Vertex>::DrawingKick(bool fSkip)
 {
-	VERTEX* pVertices = &m_pVertices[m_nVertices];
+	Vertex* pVertices = &m_pVertices[m_nVertices];
 	int nVertices = 0;
 
 	switch(m_PRIM)
@@ -146,19 +155,23 @@ int GSRendererSoft<VERTEX>::DrawingKick(bool fSkip)
 	return nVertices;
 }
 
-template <class VERTEX>
-void GSRendererSoft<VERTEX>::FlushPrim()
+template <class Vertex>
+void GSRendererSoft<Vertex>::FlushPrim()
 {
 	if(m_nVertices > 0)
 	{
 		SetTexture();
 
-		SetScissor();
+		m_scissor.SetRect(
+			max(m_ctxt->SCISSOR.SCAX0, 0),
+			max(m_ctxt->SCISSOR.SCAY0, 0),
+			min(m_ctxt->SCISSOR.SCAX1+1, m_ctxt->FRAME.FBW * 64),
+			min(m_ctxt->SCISSOR.SCAY1+1, 4096));
 
 		m_clamp = (m_de.COLCLAMP.CLAMP ? m_clip : m_mask) + 32768;
 
 		int nPrims = 0;
-		VERTEX* pVertices = m_pVertices;
+		Vertex* pVertices = m_pVertices;
 
 		switch(m_primtype)
 		{
@@ -198,8 +211,8 @@ void GSRendererSoft<VERTEX>::FlushPrim()
 	__super::FlushPrim();
 }
 
-template <class VERTEX>
-void GSRendererSoft<VERTEX>::Flip()
+template <class Vertex>
+void GSRendererSoft<Vertex>::Flip()
 {
 	HRESULT hr;
 
@@ -213,12 +226,35 @@ void GSRendererSoft<VERTEX>::Flip()
 
 			//GSLocalMemory::RoundUp(, GSLocalMemory::GetBlockSize(m_rs.DISPFB[i].PSM));
 
-			// TODO: do not create this here for each frame...
-			hr = m_pD3DDev->CreateTexture(rect.right, rect.bottom, 1, 0, D3DFMT_A8R8G8B8, D3DPOOL_MANAGED, &rt[i].pRT, NULL);
-			if(S_OK != hr) continue;
-
 			ZeroMemory(&rt[i].rd, sizeof(rt[i].rd));
-			hr = rt[i].pRT->GetLevelDesc(0, &rt[i].rd);
+			if(m_pRT[i]) m_pRT[i]->GetLevelDesc(0, &rt[i].rd);
+
+			if(rt[i].rd.Width != rect.right || rt[i].rd.Height != rect.bottom)
+				m_pRT[i] = NULL;
+
+			if(!m_pRT[i])
+			{
+				CComPtr<IDirect3DTexture9> pRT;
+				D3DLOCKED_RECT lr;
+				int nTries = 0, nMaxTries = 10;
+				do
+				{
+					pRT = NULL;
+					hr = m_pD3DDev->CreateTexture(rect.right, rect.bottom, 1, 0, D3DFMT_A8R8G8B8, D3DPOOL_MANAGED, &pRT, NULL);
+					if(FAILED(hr)) break;
+					if(SUCCEEDED(pRT->LockRect(0, &lr, NULL, 0)))
+						pRT->UnlockRect(0);
+					m_pRT[i] = pRT;
+				}
+				while((((DWORD_PTR)lr.pBits & 0xf) || (lr.Pitch & 0xf)) && ++nTries < nMaxTries);
+
+				if(nTries == nMaxTries) continue;
+
+				ZeroMemory(&rt[i].rd, sizeof(rt[i].rd));
+				hr = m_pRT[i]->GetLevelDesc(0, &rt[i].rd);
+			}
+
+			rt[i].pRT = m_pRT[i];
 
 			rt[i].scale = scale_t(1, 1);
 
@@ -265,13 +301,211 @@ void GSRendererSoft<VERTEX>::Flip()
 	FinishFlip(rt);
 }
 
-template <class VERTEX>
-void GSRendererSoft<VERTEX>::EndFrame()
+template <class Vertex>
+void GSRendererSoft<Vertex>::EndFrame()
 {
 }
 
-template <class VERTEX>
-void GSRendererSoft<VERTEX>::DrawVertex(int x, int y, VERTEX& v)
+template <class Vertex>
+void GSRendererSoft<Vertex>::DrawPoint(Vertex* v)
+{
+	CPoint p = *v;
+	if(m_scissor.PtInRect(p)) DrawVertex(p.x, p.y, *v);
+}
+
+template <class Vertex>
+void GSRendererSoft<Vertex>::DrawLine(Vertex* v)
+{
+	Vertex::scalar_t dx = abs(v[1].x - v[0].x);
+	Vertex::scalar_t dy = abs(v[1].y - v[0].y);
+
+	if(dx == 0 && dy == 0) return;
+
+	int i = dx > dy ? 4 : 5;
+
+	Vertex edge = v[0];
+	Vertex dedge = (v[1] - v[0]) / abs(v[1].f[i] - v[0].f[i]);
+
+	// TODO: clip with the scissor
+
+	int steps = abs(Vertex::Int(v[0].f[i]) - Vertex::Int(v[1].f[i]));
+
+	while(steps-- > 0)
+	{
+		CPoint p = edge;
+		if(m_scissor.PtInRect(p)) DrawVertex(p.x, p.y, edge);
+		edge += dedge;
+	}
+}
+
+template <class Vertex>
+void GSRendererSoft<Vertex>::DrawTriangle(Vertex* v)
+{
+	if(v[1].y < v[0].y) {Vertex::Exchange(v[0], v[1]);}
+	if(v[2].y < v[0].y) {Vertex::Exchange(v[0], v[2]);}
+	if(v[2].y < v[1].y) {Vertex::Exchange(v[1], v[2]);}
+
+	if(v[0].y >= v[2].y) return;
+
+	Vertex v01 = v[1] - v[0];
+	Vertex v02 = v[2] - v[0];
+
+	Vertex::scalar_t temp = Vertex::Div(v01.y, v02.y);
+	Vertex::scalar_t longest = Vertex::Mul(temp, v02.x) - v01.x;
+
+	int ledge, redge;
+	if(longest > 0) {ledge = 0; redge = 1;}
+	else if(longest < 0) {ledge = 1; redge = 0;}
+	else return;
+
+	Vertex edge[2];
+	edge[ledge] = edge[redge] = v[0];
+
+	Vertex dedge[2];
+	dedge[0].y = dedge[1].y = Vertex::Scalar(1);
+	if(v01.y) dedge[ledge] = v01 / v01.y;
+	if(v02.y) dedge[redge] = v02 / v02.y;
+
+	Vertex dscan = (v02 * temp - v01) / longest;
+	dscan.y = 0;
+
+	for(int i = 0; i < 2; i++, v++)
+	{ 
+		int top = Vertex::CeilInt(edge[0].y), bottom = Vertex::CeilInt(v[1].y);
+		if(top < m_scissor.top) top = min(m_scissor.top, bottom);
+		if(bottom > m_scissor.bottom) bottom = m_scissor.bottom;
+		if(Vertex::Scalar(top) > edge[0].y) // for(int j = 0; j < 2; j++) edge[j] += dedge[j] * ((float)top - edge[0].y);
+		{
+			Vertex::scalar_t dy = Vertex::Scalar(top) - edge[0].y;
+			edge[0] += dedge[0] * dy;
+			edge[1].x += Vertex::Mul(dedge[1].x, dy);
+			edge[0].y = edge[1].y = Vertex::Scalar(top);
+		}
+
+		ASSERT(top >= bottom || Vertex::Int(abs(edge[1].y - edge[0].y) * 10) == 0);
+
+		for(; top < bottom; top++)
+		{
+			Vertex scan = edge[0];
+
+			int left = Vertex::CeilInt(edge[0].x), right = Vertex::CeilInt(edge[1].x);
+			if(left < m_scissor.left) left = m_scissor.left;
+			if(right > m_scissor.right) right = m_scissor.right;
+			if(Vertex::Scalar(left) > edge[0].x) scan += dscan * (Vertex::Scalar(left) - edge[0].x);
+
+			for(int x = 0; left < right; left++, x++)
+			{
+				//ASSERT(left == Vertex::Int(scan.x) && top == Vertex::Int(scan.y));
+
+				DrawVertex(left, top, scan);
+				scan += dscan;
+			}
+
+			// for(int j = 0; j < 2; j++) edge[j] += dedge[j];
+			edge[0] += dedge[0];
+			edge[1].x += dedge[1].x;
+			edge[1].y += dedge[1].y;
+		}
+
+		if(v[2].y > v[1].y)
+		{
+			edge[ledge] = v[1];
+			dedge[ledge] = (v[2] - v[1]) / (v[2].y - v[1].y);
+			edge[ledge] += dedge[ledge] * (Vertex::Ceil(edge[ledge].y) - edge[ledge].y);
+		}
+	}
+}
+
+template <class Vertex>
+void GSRendererSoft<Vertex>::DrawSprite(Vertex* v)
+{
+	if(v[2].y < v[0].y) {Vertex::Exchange(v[0], v[2]); Vertex::Exchange(v[1], v[3]);}
+	if(v[1].x < v[0].x) {Vertex::Exchange(v[0], v[1]); Vertex::Exchange(v[2], v[3]);}
+
+	if(v[0].x == v[1].x || v[0].y == v[2].y) return;
+
+	Vertex v01 = v[1] - v[0];
+	Vertex v02 = v[2] - v[0];
+
+	Vertex edge = v[0];
+	Vertex dedge = v02 / v02.y;
+	Vertex dscan = v01 / v01.x;
+
+	int top = Vertex::CeilInt(v[0].y), bottom = Vertex::CeilInt(v[2].y);
+	if(top < m_scissor.top) top = min(m_scissor.top, bottom);
+	if(bottom > m_scissor.bottom) bottom = m_scissor.bottom;
+	if(Vertex::Scalar(top) > v[0].y) edge += dedge * (Vertex::Scalar(top) - v[0].y);
+
+	int left = Vertex::CeilInt(v[0].x), right = Vertex::CeilInt(v[1].x);
+	if(left < m_scissor.left) left = m_scissor.left;
+	if(right > m_scissor.right) right = m_scissor.right;
+	if(Vertex::Scalar(left) > v[0].x) edge += dscan * (Vertex::Scalar(left) - v[0].x);
+
+	if(DrawFilledRect(left, top, right, bottom, edge))
+		return;
+
+	for(; top < bottom; top++)
+	{
+		Vertex scan = edge;
+
+		for(int x = left; x < right; x++)
+		{
+			DrawVertex(x, top, scan);
+			scan += dscan;
+		}
+
+		edge += dedge;
+	}
+}
+
+template <class Vertex>
+bool GSRendererSoft<Vertex>::DrawFilledRect(int left, int top, int right, int bottom, Vertex& v)
+{
+	if(left >= right || top >= bottom)
+		return false;
+
+	ASSERT(top >= 0);
+	ASSERT(bottom >= 0);
+
+	if(m_de.pPRIM->IIP
+	|| m_ctxt->TEST.ZTE && m_ctxt->TEST.ZTST != 1
+	|| m_ctxt->TEST.ATE && m_ctxt->TEST.ATST != 1
+	|| m_ctxt->TEST.DATE
+	|| m_de.pPRIM->TME
+	|| m_de.pPRIM->ABE
+	|| m_de.pPRIM->FGE
+	|| m_de.DTHE.DTHE
+	|| m_ctxt->FRAME.FBMSK)
+		return false;
+
+	DWORD FBP = m_ctxt->FRAME.FBP<<5, FBW = m_ctxt->FRAME.FBW;
+	DWORD ZBP = m_ctxt->ZBUF.ZBP<<5;
+
+	if(!m_ctxt->ZBUF.ZMSK)
+	{
+		m_lm.FillRect(CRect(left, top, right, bottom), v.GetZ(), m_ctxt->ZBUF.PSM, ZBP, FBW);
+	}
+
+	__declspec(align(16)) union {struct {int Rf, Gf, Bf, Af;}; int Cf[4];};
+	v.GetColor(Cf);
+
+	Rf = m_clamp[Rf];
+	Gf = m_clamp[Gf];
+	Bf = m_clamp[Bf];
+	Af = m_clamp[Af]; // ?
+
+	Af |= (m_ctxt->FBA.FBA << 7);
+
+	DWORD c = (Af << 24) | (Bf << 16) | (Gf << 8) | (Rf << 0);
+	if(m_ctxt->FRAME.PSM == PSM_PSMCT16 || m_ctxt->FRAME.PSM == PSM_PSMCT16S)
+		c = ((c>>16)&0x8000)|((c>>9)&0x7c00)|((c>>6)&0x03e0)|((c>>3)&0x001f);
+	m_lm.FillRect(CRect(left, top, right, bottom), c, m_ctxt->FRAME.PSM, FBP, FBW);
+
+	return true;
+}
+
+template <class Vertex>
+void GSRendererSoft<Vertex>::DrawVertex(int x, int y, Vertex& v)
 {
 	GSLocalMemory::psmtbl_t& ttbl = GSLocalMemory::m_psmtbl[m_ctxt->TEX0.PSM];
 	GSLocalMemory::psmtbl_t& ztbl = GSLocalMemory::m_psmtbl[m_ctxt->ZBUF.PSM];
@@ -377,6 +611,26 @@ void GSRendererSoft<VERTEX>::DrawVertex(int x, int y, VERTEX& v)
 			Gt = (WORD)(iuiv*((c[0]>> 8)&0xff) + uiv*((c[1]>> 8)&0xff) + iuv*((c[2]>> 8)&0xff) + uv*((c[3]>> 8)&0xff) + 0.5f);
 			Bt = (WORD)(iuiv*((c[0]>>16)&0xff) + uiv*((c[1]>>16)&0xff) + iuv*((c[2]>>16)&0xff) + uv*((c[3]>>16)&0xff) + 0.5f);
 			At = (WORD)(iuiv*((c[0]>>24)&0xff) + uiv*((c[1]>>24)&0xff) + iuv*((c[2]>>24)&0xff) + uv*((c[3]>>24)&0xff) + 0.5f);
+
+			// TESTME
+			/*
+			float c01, c23;
+			c01 = c[0] + (c[0] - c[1])*ftu;
+			c23 = c[2] + (c[2] - c[3])*ftu;
+			Rt = c01 + (c23 - c01)*ftv;
+			for(int i = 0; i < 4; i++) c[i] >>= 8;
+			c01 = c[0] + (c[0] - c[1])*ftu;
+			c23 = c[2] + (c[2] - c[3])*ftu;
+			Gt = c01 + (c23 - c01)*ftv;
+			for(int i = 0; i < 4; i++) c[i] >>= 8;
+			c01 = c[0] + (c[0] - c[1])*ftu;
+			c23 = c[2] + (c[2] - c[3])*ftu;
+			Bt = c01 + (c23 - c01)*ftv;
+			for(int i = 0; i < 4; i++) c[i] >>= 8;
+			c01 = c[0] + (c[0] - c[1])*ftu;
+			c23 = c[2] + (c[2] - c[3])*ftu;
+			At = c01 + (c23 - c01)*ftv;
+			*/
 		}
 /*		else 
 		{
@@ -534,54 +788,8 @@ void GSRendererSoft<VERTEX>::DrawVertex(int x, int y, VERTEX& v)
 	}
 }
 
-template <class VERTEX>
-bool GSRendererSoft<VERTEX>::DrawFilledRect(int left, int top, int right, int bottom, VERTEX& v)
-{
-	if(left >= right || top >= bottom)
-		return false;
-
-	ASSERT(top >= 0);
-	ASSERT(bottom >= 0);
-
-	if(m_de.pPRIM->IIP
-	|| m_ctxt->TEST.ZTE && m_ctxt->TEST.ZTST != 1
-	|| m_ctxt->TEST.ATE && m_ctxt->TEST.ATST != 1
-	|| m_ctxt->TEST.DATE
-	|| m_de.pPRIM->TME
-	|| m_de.pPRIM->ABE
-	|| m_de.pPRIM->FGE
-	|| m_de.DTHE.DTHE
-	|| m_ctxt->FRAME.FBMSK)
-		return false;
-
-	DWORD FBP = m_ctxt->FRAME.FBP<<5, FBW = m_ctxt->FRAME.FBW;
-	DWORD ZBP = m_ctxt->ZBUF.ZBP<<5;
-
-	if(!m_ctxt->ZBUF.ZMSK)
-	{
-		m_lm.FillRect(CRect(left, top, right, bottom), v.GetZ(), m_ctxt->ZBUF.PSM, ZBP, FBW);
-	}
-
-	__declspec(align(16)) union {struct {int Rf, Gf, Bf, Af;}; int Cf[4];};
-	v.GetColor(Cf);
-
-	Rf = m_clamp[Rf];
-	Gf = m_clamp[Gf];
-	Bf = m_clamp[Bf];
-	Af = m_clamp[Af]; // ?
-
-	Af |= (m_ctxt->FBA.FBA << 7);
-
-	DWORD c = (Af << 24) | (Bf << 16) | (Gf << 8) | (Rf << 0);
-	if(m_ctxt->FRAME.PSM == PSM_PSMCT16 || m_ctxt->FRAME.PSM == PSM_PSMCT16S)
-		c = ((c>>16)&0x8000)|((c>>9)&0x7c00)|((c>>6)&0x03e0)|((c>>3)&0x001f);
-	m_lm.FillRect(CRect(left, top, right, bottom), c, m_ctxt->FRAME.PSM, FBP, FBW);
-
-	return true;
-}
-
-template <class VERTEX>
-void GSRendererSoft<VERTEX>::SetTexture()
+template <class Vertex>
+void GSRendererSoft<Vertex>::SetTexture()
 {
 	if(m_de.pPRIM->TME)
 	{
@@ -594,20 +802,16 @@ void GSRendererSoft<VERTEX>::SetTexture()
 //
 
 GSRendererSoftFP::GSRendererSoftFP(HWND hWnd, HRESULT& hr)
-	: GSRendererSoft<GSSoftVertex>(hWnd, hr)
+	: GSRendererSoft<GSSoftVertexFP>(hWnd, hr)
 {
 }
 
 void GSRendererSoftFP::VertexKick(bool fSkip)
 {
-	GSSoftVertex& v = m_vl.AddTail();
+	GSSoftVertexFP& v = m_vl.AddTail();
 
 	v.x = ((float)m_v.XYZ.X - m_ctxt->XYOFFSET.OFX) / 16;
 	v.y = ((float)m_v.XYZ.Y - m_ctxt->XYOFFSET.OFY) / 16;
-	// v.x = ((float)m_v.XYZ.X - (m_ctxt->XYOFFSET.OFX&~15)) / 16;
-	// v.y = ((float)m_v.XYZ.Y - (m_ctxt->XYOFFSET.OFY&~15)) / 16;
-	// v.x = (float)(m_v.XYZ.X>>4) - (m_ctxt->XYOFFSET.OFX>>4);
-	// v.y = (float)(m_v.XYZ.Y>>4) - (m_ctxt->XYOFFSET.OFY>>4);
 	v.z = (float)m_v.XYZ.Z / UINT_MAX;
 	v.q = m_v.RGBAQ.Q == 0 ? 1.0f : m_v.RGBAQ.Q;
 
@@ -636,187 +840,6 @@ void GSRendererSoftFP::VertexKick(bool fSkip)
 	__super::VertexKick(fSkip);
 }
 
-void GSRendererSoftFP::SetScissor()
-{
-	m_scissor.SetRect(
-		max(m_ctxt->SCISSOR.SCAX0, 0),
-		max(m_ctxt->SCISSOR.SCAY0, 0),
-		min(m_ctxt->SCISSOR.SCAX1+1, m_ctxt->FRAME.FBW * 64),
-		min(m_ctxt->SCISSOR.SCAY1+1, 4096));
-}
-
-void GSRendererSoftFP::DrawPoint(GSSoftVertex* v)
-{
-	CPoint p((int)v->x, (int)v->y);
-	if(m_scissor.PtInRect(p))
-		DrawVertex(p.x, p.y, *v);
-}
-
-void GSRendererSoftFP::DrawLine(GSSoftVertex* v)
-{
-	float dx = fabs(v[1].x - v[0].x);
-	float dy = fabs(v[1].y - v[0].y);
-
-	if(dx == 0 && dy == 0) return;
-
-	int f = dx > dy ? 4 : 5;
-
-	GSSoftVertex edge = v[0];
-	GSSoftVertex dedge = (v[1] - v[0]) / abs(v[1].f[f] - v[0].f[f]);
-
-	// TODO: clip with the scissor
-
-	int start = int(v[0].f[f]), end = int(v[1].f[f]);
-
-	for(int steps = abs(start - end); steps > 0; steps--, edge += dedge)
-	{
-		CPoint p((int)edge.x, (int)edge.y);
-		if(m_scissor.PtInRect(p))
-			DrawVertex(p.x, p.y, edge);
-	}
-}
-
-void GSRendererSoftFP::DrawTriangle(GSSoftVertex* v)
-{
-	if(v[1].y < v[0].y) {GSSoftVertex tmp = v[0]; v[0] = v[1]; v[1] = tmp;}
-	if(v[2].y < v[0].y) {GSSoftVertex tmp = v[0]; v[0] = v[2]; v[2] = tmp;}
-	if(v[2].y < v[1].y)  {GSSoftVertex tmp = v[1]; v[1] = v[2]; v[2] = tmp;}
-
-	if(v[0].y >= v[2].y) return;
-
-	float temp = (v[1].y - v[0].y) / (v[2].y - v[0].y);
-	float longest = temp * (v[2].x - v[0].x) + (v[0].x - v[1].x);
-
-	GSSoftVertex edge[2], dedge[2], scan, dscan;
-
-	int ledge, redge;
-	if(longest > 0) {ledge = 0; redge = 1;}
-	else if(longest < 0) {ledge = 1; redge = 0;}
-	else return;
-
-	memset(dedge, 0, sizeof(dedge));
-	if(v[1].y > v[0].y) dedge[ledge] = (v[1] - v[0]) / (v[1].y - v[0].y);
-	if(v[2].y > v[0].y) dedge[redge] = (v[2] - v[0]) / (v[2].y - v[0].y);
-
-	memset(&dscan, 0, sizeof(dscan));
-	dscan = ((v[2] - v[0]) * temp + (v[0] - v[1])) / longest;
-
-	edge[ledge] = edge[redge] = v[0];
-
-	for(int i = 0; i < 2; i++, v++)
-	{
-		int top = int(v[0].y), bottom = int(v[1].y); // FIXME
-
-		if(top < m_scissor.top)
-		{
-			for(int i = 0; i < 2; i++) edge[i] += dedge[i] * (min(m_scissor.top, bottom) - top);
-			edge[0].y = edge[1].y = top = m_scissor.top;
-		}
-
-		if(bottom > m_scissor.bottom)
-		{
-			bottom = m_scissor.bottom;
-		}
-
-		for(; top < bottom; top++)
-		{
-			scan = edge[0];
-
-			float xi, xf = 1.0f - modf(edge[0].x, &xi);
-			float left = ceil(edge[0].x), right = edge[1].x;
-			if(xf < 1.0f) scan += dscan * xf;
-
-			if(left < m_scissor.left)
-			{
-				scan += dscan * (m_scissor.left - left);
-				scan.x = left = m_scissor.left;
-			}
-
-			if(right > m_scissor.right)
-			{
-				right = m_scissor.right;
-			}
-
-			for(; left < right; left++)
-			{
-				DrawVertex(left, top, scan);
-				scan += dscan;
-			}
-
-			edge[0] += dedge[0];
-			edge[1].x += dedge[1].x;
-		}
-
-		if(v[2].y > v[1].y)
-		{
-			edge[ledge] = v[1];
-			dedge[ledge] = (v[2] - v[1]) / (v[2].y - v[1].y);
-		}
-	}
-}
-
-void GSRendererSoftFP::DrawSprite(GSSoftVertex* v)
-{
-	if(v[2].y < v[0].y) {GSSoftVertex tmp = v[0]; v[0] = v[2]; v[2] = tmp; tmp = v[1]; v[1] = v[3]; v[3] = tmp;}
-	if(v[1].x < v[0].x) {GSSoftVertex tmp = v[0]; v[0] = v[1]; v[1] = tmp; tmp = v[2]; v[2] = v[3]; v[3] = tmp;}
-
-	if(v[0].x == v[1].x || v[0].y == v[2].y) return;
-
-	GSSoftVertex edge[2], dedge[2], scan, dscan;
-
-	memset(dedge, 0, sizeof(dedge));
-	for(int i = 0; i < 2; i++) dedge[i] = (v[i+2] - v[i]) / (v[i+2].y - v[i].y);
-
-	memset(&dscan, 0, sizeof(dscan));
-	dscan = (v[1] - v[0]) / (v[1].x - v[0].x);
-
-	edge[0] = v[0];
-	edge[1] = v[1];
-
-	int top = v[0].y, bottom = v[2].y;
-//	float top = v[0].y, bottom = v[2].y;
-
-	if(top < m_scissor.top)
-	{
-		for(int i = 0; i < 2; i++) edge[i] += dedge[i] * (min(m_scissor.top, bottom) - top);
-		edge[0].y = edge[1].y = top = m_scissor.top;
-	}
-
-	if(bottom > m_scissor.bottom)
-	{
-		edge[2].y = edge[3].y = bottom = m_scissor.bottom;
-	}
-
-	if(edge[0].x < m_scissor.left)
-	{
-		edge[0] += dscan * (m_scissor.left - edge[0].x);
-		edge[0].x = m_scissor.left;
-	}
-
-	if(edge[1].x > m_scissor.right)
-	{
-		edge[1].x = m_scissor.right;
-	}
-
-	int left = (int)edge[0].x, right = (int)edge[1].x;
-
-	if(DrawFilledRect(left, top, right, bottom, edge[0]))
-		return;
-
-	for(int y = top, h = bottom - top; h-- > 0; y++)
-	{
-		scan = edge[0];
-
-		for(int x = left, w = right - left; w-- > 0; x++)
-		{
-			DrawVertex(x, y, scan);
-			scan += dscan;
-		}
-
-		edge[0] += dedge[0];
-	}
-}
-
 //
 // GSRendererSoftFX
 //
@@ -828,14 +851,10 @@ GSRendererSoftFX::GSRendererSoftFX(HWND hWnd, HRESULT& hr)
 
 void GSRendererSoftFX::VertexKick(bool fSkip)
 {
-	GSSoftVertex& v = m_vl.AddTail();
+	GSSoftVertexFX& v = m_vl.AddTail();
 
-	v.x = ((int)m_v.XYZ.X - (m_ctxt->XYOFFSET.OFX&~15)) << 12;
-	v.y = ((int)m_v.XYZ.Y - (m_ctxt->XYOFFSET.OFY&~15)) << 12;
-	//v.x = ((int)m_v.XYZ.X - m_ctxt->XYOFFSET.OFX) << 12;
-	//v.y = ((int)m_v.XYZ.Y - m_ctxt->XYOFFSET.OFY) << 12;
-	//v.x = (m_v.XYZ.X>>4) - (m_ctxt->XYOFFSET.OFX>>4) << 16;
-	//v.y = (m_v.XYZ.Y>>4) - (m_ctxt->XYOFFSET.OFY>>4) << 16;
+	v.x = ((int)m_v.XYZ.X - m_ctxt->XYOFFSET.OFX) << 12;
+	v.y = ((int)m_v.XYZ.Y - m_ctxt->XYOFFSET.OFY) << 12;
 	v.z = (unsigned __int64)m_v.XYZ.Z << 32;
 	v.q = m_v.RGBAQ.Q == 0 ? INT_MAX : (__int64)(m_v.RGBAQ.Q * INT_MAX);
 
@@ -864,189 +883,7 @@ void GSRendererSoftFX::VertexKick(bool fSkip)
 	__super::VertexKick(fSkip);
 }
 
-void GSRendererSoftFX::SetScissor()
-{
-	m_scissor.SetRect(
-		max(m_ctxt->SCISSOR.SCAX0, 0)<<16,
-		max(m_ctxt->SCISSOR.SCAY0, 0)<<16,
-		min(m_ctxt->SCISSOR.SCAX1+1, m_ctxt->FRAME.FBW * 64)<<16,
-		min(m_ctxt->SCISSOR.SCAY1+1, 4096)<<16);
-}
-
-void GSRendererSoftFX::DrawPoint(GSSoftVertex* v)
-{
-	CPoint p(v->x, v->y);
-	if(m_scissor.PtInRect(p))
-		DrawVertex(p.x>>16, p.y>>16, *v);
-}
-
-void GSRendererSoftFX::DrawLine(GSSoftVertex* v)
-{
-	int dx = abs(v[1].x - v[0].x);
-	int dy = abs(v[1].y - v[0].y); 
-
-	if(dx == 0 && dy == 0) return;
-
-	int i = dx > dy ? 4 : 5;
-
-	GSSoftVertex edge = v[0];
-	GSSoftVertex dedge = (v[1] - v[0]) / abs(v[1].dw[i] - v[0].dw[i]);
-
-	// TODO: clip with the scissor
-
-	int start = v[0].dw[i]>>16, end = v[1].dw[i]>>16;
-
-	for(int steps = abs(start - end); steps > 0; steps--, edge += dedge)
-	{
-		CPoint p(edge.x, edge.y);
-		if(m_scissor.PtInRect(p))
-			DrawVertex(p.x>>16, p.y>>16, edge);
-	}
-}
-
-void GSRendererSoftFX::DrawTriangle(GSSoftVertex* v)
-{
-	if(v[1].y < v[0].y) {GSSoftVertex tmp = v[0]; v[0] = v[1]; v[1] = tmp;}
-	if(v[2].y < v[0].y) {GSSoftVertex tmp = v[0]; v[0] = v[2]; v[2] = tmp;}
-	if(v[2].y < v[1].y)  {GSSoftVertex tmp = v[1]; v[1] = v[2]; v[2] = tmp;}
-
-	if(v[0].y >= v[2].y) return;
-
-	int temp = ((__int64)(v[1].y - v[0].y) << 16) / (v[2].y - v[0].y);
-	int longest = ((__int64)temp * (v[2].x - v[0].x) >> 16) + (v[0].x - v[1].x);
-
-	GSSoftVertex edge[2], dedge[2], scan, dscan;
-
-	int ledge, redge;
-	if(longest > 0) {ledge = 0; redge = 1;}
-	else if(longest < 0) {ledge = 1; redge = 0;}
-	else return;
-
-	memset(dedge, 0, sizeof(dedge));
-	if(v[1].y > v[0].y) dedge[ledge] = (v[1] - v[0]) / (v[1].y - v[0].y);
-	if(v[2].y > v[0].y) dedge[redge] = (v[2] - v[0]) / (v[2].y - v[0].y);
-
-	memset(&dscan, 0, sizeof(dscan));
-	dscan = ((v[2] - v[0]) * temp + (v[0] - v[1])) / longest;
-
-	edge[ledge] = edge[redge] = v[0];
-
-	for(int i = 0; i < 2; i++, v++)
-	{
- 		int top = v[0].y, bottom = v[1].y; // FIXME
-
-		if(top < m_scissor.top)
-		{
-			for(int i = 0; i < 2; i++) edge[i] += dedge[i] * (min(m_scissor.top, bottom) - top);
-			edge[0].y = edge[1].y = top = m_scissor.top;
-		}
-
-		if(bottom > m_scissor.bottom)
-		{
-			bottom = m_scissor.bottom;
-		}
-
-		for(top >>= 16, bottom >>= 16; top < bottom; top++)
-		{
-			scan = edge[0];
-
-			int xf = 0x00010000 - (edge[0].x & 0x0000ffff); // xi = edge[0].x & 0xffff0000,
-			int left = (edge[0].x + 0x0000ffff) & 0xffff0000, right = edge[1].x;
-			if(xf < 0x00010000) scan += dscan * xf;
-
-			if(left < m_scissor.left)
-			{
-				scan += dscan * (m_scissor.left - left);
-				scan.x = left = m_scissor.left;
-			}
-
-			if(right > m_scissor.right)
-			{
-				right = m_scissor.right;
-			}
-
-			for(; left < right; left += 0x10000)
-			{
-				DrawVertex(left>>16, top, scan);
-				scan += dscan;
-			}
-
-			edge[0] += dedge[0];
-			edge[1].x += dedge[1].x;
-		}
-
-		if(v[2].y > v[1].y)
-		{
-			edge[ledge] = v[1];
-			dedge[ledge] = (v[2] - v[1]) / (v[2].y - v[1].y);
-		}
-	}
-}
-
-void GSRendererSoftFX::DrawSprite(GSSoftVertex* v)
-{
-	if(v[2].y < v[0].y) {GSSoftVertex tmp = v[0]; v[0] = v[2]; v[2] = tmp; tmp = v[1]; v[1] = v[3]; v[3] = tmp;}
-	if(v[1].x < v[0].x) {GSSoftVertex tmp = v[0]; v[0] = v[1]; v[1] = tmp; tmp = v[2]; v[2] = v[3]; v[3] = tmp;}
-
-	if(v[0].x == v[1].x || v[0].y == v[2].y) return;
-
-	GSSoftVertex edge[2], dedge[2], scan, dscan;
-
-	memset(dedge, 0, sizeof(dedge));
-	for(int i = 0; i < 2; i++) dedge[i] = (v[i+2] - v[i]) / (v[i+2].y - v[i].y);
-
-	memset(&dscan, 0, sizeof(dscan));
-	dscan = (v[1] - v[0]) / (v[1].x - v[0].x);
-
-	edge[0] = v[0];
-	edge[1] = v[1];
-
-	int top = v[0].y, bottom = v[2].y;
-
-	if(top < m_scissor.top)
-	{
-		for(int i = 0; i < 2; i++) edge[i] += dedge[i] * (min(m_scissor.top, bottom) - top);
-		edge[0].y = edge[1].y = top = m_scissor.top;
-	}
-
-	if(bottom > m_scissor.bottom)
-	{
-		edge[2].y = edge[3].y = bottom = m_scissor.bottom;
-	}
-
-	top >>= 16; bottom >>= 16;
-
-	if(edge[0].x < m_scissor.left)
-	{
-		edge[0] += dscan * (m_scissor.left - edge[0].x);
-		edge[0].x = m_scissor.left;
-	}
-
-	if(edge[1].x > m_scissor.right)
-	{
-		edge[1].x = m_scissor.right;
-	}
-
-	int left = edge[0].x>>16, right = edge[1].x>>16;
-
-	if(DrawFilledRect(left, top, right, bottom, edge[0]))
-		return;
-
-	for(int y = top, h = bottom - top; h-- > 0; y++)
-	{
-		scan = edge[0];
-
-		for(int x = left, w = right - left; w-- > 0; x++)
-		{
-			DrawVertex(x, y, scan);
-			scan += dscan;
-		}
-
-		edge[0] += dedge[0];
-	}
-}
-
-void GSRendererSoftFX::DrawVertex(int x, int y, GSSoftVertex& v)
+void GSRendererSoftFX::DrawVertex(int x, int y, GSSoftVertexFX& v)
 {
 	GSLocalMemory::psmtbl_t& ttbl = GSLocalMemory::m_psmtbl[m_ctxt->TEX0.PSM];
 	GSLocalMemory::psmtbl_t& ztbl = GSLocalMemory::m_psmtbl[m_ctxt->ZBUF.PSM];

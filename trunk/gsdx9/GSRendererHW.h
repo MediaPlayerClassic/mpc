@@ -37,7 +37,7 @@ __declspec(align(16)) union HWVERTEX
 	
 	__m128i xmm[2];
 
-#if _M_IX86_FP >= 1 || defined(_M_AMD64)
+#if _M_IX86_FP >= 2 || defined(_M_AMD64)
 	HWVERTEX& operator = (HWVERTEX& v)
 	{
 		xmm[0] = v.xmm[0];

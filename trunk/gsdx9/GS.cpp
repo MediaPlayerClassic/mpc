@@ -311,7 +311,7 @@ EXPORT_C_(INT32) GStest()
 
 	if(CComPtr<IDirect3D9> pD3D = Direct3DCreate9(D3D_SDK_VERSION))
 	{
-		pD3D->GetDeviceCaps(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, &caps);
+		pD3D->GetDeviceCaps(D3DADAPTER_DEFAULT, D3DDEVTYPE_X, &caps);
 
 		LPCTSTR yep = _T("^_^"), nope = _T(":'(");
 

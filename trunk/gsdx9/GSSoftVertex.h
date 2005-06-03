@@ -21,6 +21,10 @@
 
 #pragma once
 
+//
+// GSSoftVertexFP
+//
+
 __declspec(align(16)) union GSSoftVertexFP
 {
 	struct
@@ -54,13 +58,34 @@ __declspec(align(16)) union GSSoftVertexFP
 #endif
 	}
 
+	operator CPoint() {CPoint p(Int(x), Int(y)); return p;}
+
 	friend GSSoftVertexFP operator + (GSSoftVertexFP& v1, GSSoftVertexFP& v2);
 	friend GSSoftVertexFP operator - (GSSoftVertexFP& v1, GSSoftVertexFP& v2);
 	friend GSSoftVertexFP operator * (GSSoftVertexFP& v1, float f);
 	friend GSSoftVertexFP operator / (GSSoftVertexFP& v1, float f);
 
-	int GetX() {return (int)x;}
-	int GetY() {return (int)y;}
+	typedef float scalar_t;
+	static scalar_t Scalar(int i) {return (scalar_t)i;}
+	static scalar_t Div(scalar_t f1, scalar_t f2) {return f1 / f2;}
+	static scalar_t Mul(scalar_t f1, scalar_t f2) {return f1 * f2;}
+	static scalar_t Ceil(scalar_t f) {return ceil(f);}
+	static int CeilInt(scalar_t f) {return (int)ceil(f);}
+	static int Int(scalar_t f) {return (int)f;}
+	static void Exchange(GSSoftVertexFP& v1, GSSoftVertexFP& v2)
+	{
+#if _M_IX86_FP >= 1 || defined(_M_AMD64)
+		__m128 r0 = v1.xmm[0], r1 = v2.xmm[0];
+		__m128 r2 = v1.xmm[1], r3 = v2.xmm[1];
+		__m128 r4 = v1.xmm[2], r5 = v2.xmm[2];
+		v1.xmm[0] = r1, v2.xmm[0] = r0;
+		v1.xmm[1] = r3, v2.xmm[1] = r2;
+		v1.xmm[2] = r5, v2.xmm[2] = r4;
+#else
+		GSSoftVertexFP v = v1; v1 = v2; v2 = v;
+#endif
+	}
+	
 	DWORD GetZ() {return (DWORD)(z * UINT_MAX);}
 	BYTE GetFog() {return (BYTE)z;}
 	void GetColor(void* pRGBA)
@@ -128,6 +153,10 @@ inline GSSoftVertexFP operator / (GSSoftVertexFP& v1, float f)
 	return v0;
 }
 
+//
+// GSSoftVertexFX
+//
+
 __declspec(align(16)) union GSSoftVertexFX
 {
 	typedef signed int s32;
@@ -143,6 +172,7 @@ __declspec(align(16)) union GSSoftVertexFX
 		s64 u, v;
 	};
 
+	struct {s32 f[16];};
 	struct {s32 dw[16];};
 	struct {s64 qw[8];};
 	struct {__m128i xmm[4];};
@@ -171,13 +201,36 @@ __declspec(align(16)) union GSSoftVertexFX
 #endif
 	}
 
+	operator CPoint() {CPoint p(Int(x), Int(y)); return p;}
+
 	friend GSSoftVertexFX operator + (GSSoftVertexFX& v1, GSSoftVertexFX& v2);
 	friend GSSoftVertexFX operator - (GSSoftVertexFX& v1, GSSoftVertexFX& v2);
 	friend GSSoftVertexFX operator * (GSSoftVertexFX& v1, s32 f);
 	friend GSSoftVertexFX operator / (GSSoftVertexFX& v1, s32 f);
 
-	int GetX() {return (int)((x+0x8000) >> 16);}
-	int GetY() {return (int)((y+0x8000) >> 16);}
+	typedef int scalar_t;
+	static scalar_t Scalar(int i) {return (scalar_t)(i << 16);}
+	static scalar_t Mul(scalar_t i1, scalar_t i2) {return (int)(((__int64)i1 * i2 + 0x8000) >> 16);}
+	static scalar_t Div(scalar_t i1, scalar_t i2) {return (int)(((__int64)i1 << 16) / i2);}
+	static scalar_t Ceil(scalar_t i) {return (i + 0xffff) & 0xffff0000;}
+	static scalar_t CeilInt(scalar_t i) {return (i + 0xffff) >> 16;}
+	static int Int(scalar_t i) {return i >> 16;}
+	static void Exchange(GSSoftVertexFX& v1, GSSoftVertexFX& v2)
+	{
+#if _M_IX86_FP >= 2 || defined(_M_AMD64)
+		__m128i r0 = v1.xmm[0], r1 = v2.xmm[0];
+		__m128i r2 = v1.xmm[1], r3 = v2.xmm[1];
+		__m128i r4 = v1.xmm[2], r5 = v2.xmm[2];
+		__m128i r6 = v1.xmm[3], r7 = v2.xmm[3];
+		v1.xmm[0] = r1, v2.xmm[0] = r0;
+		v1.xmm[1] = r3, v2.xmm[1] = r2;
+		v1.xmm[2] = r5, v2.xmm[2] = r4;
+		v1.xmm[3] = r7, v2.xmm[3] = r6;
+#else
+		GSSoftVertexFX v = v1; v1 = v2; v2 = v;
+#endif
+	}
+
 	DWORD GetZ() {return (DWORD)(z >> 32);}
 	BYTE GetFog() {return (BYTE)(fog >> 16);}
 	void GetColor(void* pRGBA)
@@ -190,6 +243,10 @@ __declspec(align(16)) union GSSoftVertexFX
 #endif
 	}
 };
+
+//
+// GSSoftVertexFX
+//
 
 inline GSSoftVertexFX operator + (GSSoftVertexFX& v1, GSSoftVertexFX& v2)
 {
@@ -225,7 +282,30 @@ inline GSSoftVertexFX operator * (GSSoftVertexFX& v1, GSSoftVertexFX::s32 f)
 {
 	GSSoftVertexFX v0;
 	float f2 = (float)f / 65536.0f;
+#ifndef _M_AMD64
+	GSSoftVertexFX::s32* src = v1.dw;
+	GSSoftVertexFX::s32* dst = v0.dw;
+	__asm
+	{
+		push	ebx
+		mov		esi, src
+		mov		edi, dst
+		sub		edi, esi
+		mov		ebx, f
+		mov		ecx, 8
+	l1:
+		mov		eax, [esi]
+		imul	ebx
+		shrd	eax, edx, 16
+		mov		[esi+edi], eax
+		lea		esi, [esi+4]
+		dec		ecx
+		jnz		l1
+		pop		ebx
+	}
+#else
 	for(int i = 0; i < 8; i++) v0.dw[i] = (GSSoftVertexFX::s32)((float)v1.dw[i] * f2);
+#endif
 	for(int i = 4; i < 8; i++) v0.qw[i] = (GSSoftVertexFX::s64)((float)v1.qw[i] * f2);
 	return v0;
 }

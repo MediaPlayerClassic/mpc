@@ -21,6 +21,7 @@
 
 #include "StdAfx.h"
 #include "GSState.h"
+#include "GSdx9.h"
 #include "GSUtil.h"
 #include "resource.h"
 
@@ -37,6 +38,7 @@ GSState::GSState(int w, int h, HWND hWnd, HRESULT& hr)
 	, m_sfp(NULL)
 	, m_fp(NULL)
 	, m_iOSD(1)
+	, m_nVSync(0)
 {
 	hr = E_FAIL;
 
@@ -154,7 +156,7 @@ GSState::GSState(int w, int h, HWND hWnd, HRESULT& hr)
 		return;
 
 	ZeroMemory(&m_caps, sizeof(m_caps));
-	m_pD3D->GetDeviceCaps(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, &m_caps);
+	m_pD3D->GetDeviceCaps(D3DADAPTER_DEFAULT, D3DDEVTYPE_X, &m_caps);
 
 	m_fmtDepthStencil = 
 		IsDepthFormatOk(m_pD3D, D3DFMT_D32, D3DFMT_X8R8G8B8, D3DFMT_X8R8G8B8) ? D3DFMT_D32 :
@@ -349,7 +351,7 @@ HRESULT GSState::ResetDevice(bool fForceWindowed)
 	{
 		if(FAILED(hr = m_pD3D->CreateDevice(
 			// m_pD3D->GetAdapterCount()-1, D3DDEVTYPE_REF,
-			D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, 
+			D3DADAPTER_DEFAULT, D3DDEVTYPE_X, 
 			m_hWnd,
 			m_caps.VertexProcessingCaps ? D3DCREATE_HARDWARE_VERTEXPROCESSING : D3DCREATE_SOFTWARE_VERTEXPROCESSING, 
 			&m_d3dpp, &m_pD3DDev)))
@@ -687,6 +689,8 @@ TRACE(_T("FIELD=%d\n"), r->CSR.FIELD);
 			ASSERT(0);
 			break;
 	}
+
+	m_nVSync = 0;
 }
 
 UINT64 GSState::Read(GS_REG mem)
@@ -1045,9 +1049,11 @@ void GSState::FinishFlip(FlipInfo rt[2])
 		}
 	}
 */	
-	m_pCSRr->FIELD = 1 - m_pCSRr->FIELD;
 
-	if(m_pCSRr->FIELD && m_rs.SMODE2.INT)
+	if(m_nVSync > 1 || m_pCSRr->FIELD == 0) {m_pCSRr->FIELD = 1 - m_pCSRr->FIELD; m_nVSync = 0;}
+	m_nVSync++;
+
+	if(m_pCSRr->FIELD && m_rs.SMODE2.INT /*&& m_rs.SMODE2.FFMD*/)
 	{
 		for(int i = 0; i < countof(pVertices); i++)
 		{
