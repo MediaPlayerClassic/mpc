@@ -126,7 +126,6 @@ float4 tfx0(float4 Diff, float4 TexColor) : COLOR
 float4 tfx1(float4 Diff, float4 TexColor) : COLOR
 {
 	Diff = TexColor;
-	if(!bTCC) Diff.a = 1;
 	return Diff;
 }
 
