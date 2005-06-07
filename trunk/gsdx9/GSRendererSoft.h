@@ -1,5 +1,5 @@
 /* 
- *	Copyright (C) 2003-2004 Gabest
+ *	Copyright (C) 2003-2005 Gabest
  *	http://www.gabest.org
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -41,7 +41,8 @@ protected:
 	void DrawSprite(Vertex* v);
 	bool DrawFilledRect(int left, int top, int right, int bottom, Vertex& v);
 
-	virtual void DrawVertex(int x, int y, Vertex& v);
+	virtual void DrawVertex(int x, int y, const Vertex& v);
+	virtual void DrawVertexTFX(typename Vertex::Vector& Cf, const Vertex& v);
 
 	CComPtr<IDirect3DTexture9> m_pRT[2];
 
@@ -65,12 +66,11 @@ public:
 		if(m_de.PRIM.TME) {tw = 1<<m_ctxt->TEX0.TW; th = 1<<m_ctxt->TEX0.TH;}
 		LOG2(_T("- %s (%.2f, %.2f, %.2f, %.2f) (%08x) (%.3f, %.3f) (%.2f, %.2f)\n"), 
 			type,
-			v.x, v.y, v.z, v.q, 
-			((BYTE)v.a << 24) | ((BYTE)v.r << 16) | ((BYTE)v.g << 8) | ((BYTE)v.b << 0),
-			v.u, v.v, 
-			v.u*tw, v.v*th);
+			v.p.x, v.p.y, v.p.z / UINT_MAX, v.t.q, 
+			(DWORD)v.c,
+			v.t.x, v.t.y, v.t.x*tw, v.t.y*th);
 	}
-
+/*
 	void LOGVERTEX(GSSoftVertexFX& v, LPCTSTR type)
 	{
 		int tw = 1, th = 1;
@@ -82,6 +82,7 @@ public:
 			(float)v.u/INT_MAX, (float)v.v/INT_MAX, 
 			(float)v.u/INT_MAX*tw, (float)v.v/INT_MAX*th);
 	}
+*/
 };
 
 class GSRendererSoftFP : public GSRendererSoft<GSSoftVertexFP>
@@ -92,13 +93,14 @@ protected:
 public:
 	GSRendererSoftFP(HWND hWnd, HRESULT& hr);
 };
-
+/*
 class GSRendererSoftFX : public GSRendererSoft<GSSoftVertexFX>
 {
 protected:
 	void VertexKick(bool fSkip);
-	void DrawVertex(int x, int y, GSSoftVertexFX& v);
+	//void DrawVertex(int x, int y, GSSoftVertexFX& v);
 
 public:
 	GSRendererSoftFX(HWND hWnd, HRESULT& hr);
 };
+*/

@@ -1,5 +1,5 @@
 /* 
- *	Copyright (C) 2003-2004 Gabest
+ *	Copyright (C) 2003-2005 Gabest
  *	http://www.gabest.org
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -53,3 +53,4 @@ enum
 };
 
 #define D3DDEVTYPE_X D3DDEVTYPE_HAL
+// #define D3DDEVTYPE_X D3DDEVTYPE_REF

@@ -1,5 +1,5 @@
 /* 
- *	Copyright (C) 2003-2004 Gabest
+ *	Copyright (C) 2003-2005 Gabest
  *	http://www.gabest.org
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -97,12 +97,12 @@ void GSRendererHW::VertexKick(bool fSkip)
 	BYTE B = m_v.RGBAQ.B;
 	BYTE A = SCALE_ALPHA(m_v.RGBAQ.A);
 
-	if(m_de.pPRIM->TME)
+	if(m_pPRIM->TME)
 	{
 		A = m_v.RGBAQ.A;
 
 		// TODO: proclater
-		if(m_de.pPRIM->FST)
+		if(m_pPRIM->FST)
 		{
 			v.tu = (float)m_v.UV.U / (16<<m_ctxt->TEX0.TW);
 			v.tv = (float)m_v.UV.V / (16<<m_ctxt->TEX0.TH);
@@ -121,7 +121,7 @@ void GSRendererHW::VertexKick(bool fSkip)
 	}
 
 	v.color = D3DCOLOR_ARGB(A, B, G, R);
-	v.fog = (m_de.pPRIM->FGE ? m_v.FOG.F : 0xff) << 24;
+	v.fog = (m_pPRIM->FGE ? m_v.FOG.F : 0xff) << 24;
 
 	__super::VertexKick(fSkip);
 }
@@ -271,7 +271,7 @@ int GSRendererHW::DrawingKick(bool fSkip)
 	if(fSkip || !m_rs.IsEnabled(0) && !m_rs.IsEnabled(1))
 		return 0;
 
-	if(!m_de.pPRIM->IIP)
+	if(!m_pPRIM->IIP)
 	{
 		pVertices[0].color = pVertices[nVertices-1].color;
 		if(m_PRIM == 6) pVertices[3].color = pVertices[5].color;
@@ -286,7 +286,7 @@ void GSRendererHW::FlushPrim()
 {
 	ASSERT(m_nTrBytes == 0);
 
-	if(m_nVertices > 0 && (!m_de.pPRIM->TME || m_ctxt->TEX0.TBP0 != m_ctxt->FRAME.Block()))
+	if(m_nVertices > 0 && (!m_pPRIM->TME || m_ctxt->TEX0.TBP0 != m_ctxt->FRAME.Block()))
 	do
 	{
 		int nPrims = 0;
@@ -353,7 +353,7 @@ void GSRendererHW::FlushPrim()
 
 		GSTextureBase t;
 
-		if(m_de.pPRIM->TME)
+		if(m_pPRIM->TME)
 		{
 			bool fFetched = 
 				m_fEnablePalettizedTextures && m_caps.PixelShaderVersion >= D3DPS_VERSION(2, 0) ? m_tc.FetchP(this, t) : 
@@ -434,13 +434,13 @@ void GSRendererHW::FlushPrim()
 
 		//////////////////////
 
-		hr = m_pD3DDev->SetRenderState(D3DRS_SHADEMODE, m_de.pPRIM->IIP ? D3DSHADE_GOURAUD : D3DSHADE_FLAT);
+		hr = m_pD3DDev->SetRenderState(D3DRS_SHADEMODE, m_pPRIM->IIP ? D3DSHADE_GOURAUD : D3DSHADE_FLAT);
 
 		//////////////////////
 
 		float tsx = 1.0f, tsy = 1.0f;
 
-		if(m_de.pPRIM->TME)
+		if(m_pPRIM->TME)
 		{
 			tsx = 1.0f * (1 << m_ctxt->TEX0.TW) / t.m_desc.Width * t.m_scale.x;
 			tsy = 1.0f * (1 << m_ctxt->TEX0.TH) / t.m_desc.Height * t.m_scale.y;
@@ -491,7 +491,7 @@ void GSRendererHW::FlushPrim()
 				// pVertices->tu2 = pVertices->x / rd.Width;
 				// pVertices->tv2 = pVertices->y / rd.Height;
 
-				if(m_de.pPRIM->TME)
+				if(m_pPRIM->TME)
 				{
 					// FIXME
 					float base, fract;
@@ -506,13 +506,13 @@ void GSRendererHW::FlushPrim()
 				}
 
 /*
-				if(m_de.pPRIM->TME)
+				if(m_pPRIM->TME)
 				{
 					pVertices->tu *= tsx;
 					pVertices->tv *= tsy;
 				}
 */
-				if(m_de.pPRIM->FGE)
+				if(m_pPRIM->FGE)
 				{
 					pVertices->fog = (pVertices->fog & 0xff000000) | (m_de.FOGCOL.ai32[0] & 0x00ffffff);
 					// D3DCOLOR_ARGB(pVertices->fog >> 24, m_de.FOGCOL.FCB, m_de.FOGCOL.FCG, m_de.FOGCOL.FCR)
@@ -560,6 +560,7 @@ void GSRendererHW::FlushPrim()
 			case 1: mask = D3DCOLORWRITEENABLE_ALPHA|D3DCOLORWRITEENABLE_BLUE|D3DCOLORWRITEENABLE_GREEN|D3DCOLORWRITEENABLE_RED; break; // fbuf
 			case 2: zwrite = true; break; // zbuf
 			case 3: mask = D3DCOLORWRITEENABLE_BLUE|D3DCOLORWRITEENABLE_GREEN|D3DCOLORWRITEENABLE_RED; break; // fbuf w/o alpha
+			default: __assume(0);
 			}
 
 			hr = m_pD3DDev->SetRenderState(D3DRS_ZWRITEENABLE, zwrite);
@@ -982,7 +983,7 @@ void GSRendererHW::SetupTexture(const GSTextureBase& t, float tsx, float tsy)
 
 	IDirect3DPixelShader9* pPixelShader = NULL;
 
-	if(m_de.pPRIM->TME && t.m_pTexture)
+	if(m_pPRIM->TME && t.m_pTexture)
 	{
 		tw = t.m_desc.Width;
 		th = t.m_desc.Height;
@@ -998,12 +999,14 @@ void GSRendererHW::SetupTexture(const GSTextureBase& t, float tsx, float tsy)
 		{
 		case 0: case 3: u = D3DTADDRESS_WRAP; break; // repeat
 		case 1: case 2: u = D3DTADDRESS_CLAMP; break; // clamp
+		default: __assume(0);
 		}
 
 		switch(m_ctxt->CLAMP.WMT)
 		{
 		case 0: case 3: v = D3DTADDRESS_WRAP; break; // repeat
 		case 1: case 2: v = D3DTADDRESS_CLAMP; break; // clamp
+		default: __assume(0);
 		}
 
 		hr = m_pD3DDev->SetSamplerState(0, D3DSAMP_ADDRESSU, u);
@@ -1065,6 +1068,8 @@ void GSRendererHW::SetupTexture(const GSTextureBase& t, float tsx, float tsy)
 				else if(!t.m_fRT) pPixelShader = m_pPixelShaders[9];
 				else pPixelShader = m_pPixelShaders[10];
 				break;
+			default: 
+				__assume(0);
 			}
 		}
 
@@ -1145,6 +1150,8 @@ void GSRendererHW::SetupTexture(const GSTextureBase& t, float tsx, float tsy)
 				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_ALPHAARG2, D3DTA_CURRENT);
 				stage++;
 				break;
+			default: 
+				__assume(0);
 			}
 
 			hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_COLOROP, D3DTOP_DISABLE);
@@ -1194,7 +1201,7 @@ void GSRendererHW::SetupAlphaBlend()
 	DWORD ABE = FALSE;
 	hr = m_pD3DDev->GetRenderState(D3DRS_ALPHABLENDENABLE, &ABE);
 
-	bool fABE = m_de.pPRIM->ABE || (m_primtype == D3DPT_LINELIST || m_primtype == D3DPT_LINESTRIP) && m_de.pPRIM->AA1; // FIXME
+	bool fABE = m_pPRIM->ABE || (m_primtype == D3DPT_LINELIST || m_primtype == D3DPT_LINESTRIP) && m_pPRIM->AA1; // FIXME
 	if(fABE != !!ABE)
 		hr = m_pD3DDev->SetRenderState(D3DRS_ALPHABLENDENABLE, fABE);
 	if(fABE)

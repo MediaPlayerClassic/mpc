@@ -1,5 +1,5 @@
 /* 
- *	Copyright (C) 2003-2004 Gabest
+ *	Copyright (C) 2003-2005 Gabest
  *	http://www.gabest.org
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -33,8 +33,6 @@ GSState::GSState(int w, int h, HWND hWnd, HRESULT& hr)
 	: m_hWnd(hWnd)
 	, m_width(w)
 	, m_height(h)
-	, m_PRIM(8)
-	, m_ctxt(NULL)
 	, m_sfp(NULL)
 	, m_fp(NULL)
 	, m_iOSD(1)
@@ -51,13 +49,16 @@ GSState::GSState(int w, int h, HWND hWnd, HRESULT& hr)
 	memset(&m_tag, 0, sizeof(m_tag));
 	m_nreg = 0;
 
-	m_pTrBuff = (BYTE*)_aligned_malloc(1024*1024*4, 16);
-	m_nTrBytes = 0;
+	m_pPRIM = &m_de.PRIM;
+	m_PRIM = 8;
 
 	m_pCSRr = &m_rs.CSRr;
 	m_fpGSirq = NULL;
 
 	m_ctxt = &m_de.CTXT[0];
+
+	m_pTrBuff = (BYTE*)_aligned_malloc(1024*1024*4, 16);
+	m_nTrBytes = 0;
 
 	for(int i = 0; i < countof(m_fpGIFPackedRegHandlers); i++)
 		m_fpGIFPackedRegHandlers[i] = &GSState::GIFPackedRegHandlerNull;
@@ -426,6 +427,7 @@ UINT32 GSState::Freeze(freezeData* fd, bool fSizeOnly)
 		+ sizeof(m_de) + sizeof(m_rs) + sizeof(m_v) 
 		+ sizeof(m_x) + sizeof(m_y) + 1024*1024*4
 		+ sizeof(m_tag) + sizeof(m_nreg)
+		+ sizeof(m_q)
 		/*+ sizeof(m_vl)*/;
 
 	if(fSizeOnly)
@@ -452,6 +454,7 @@ UINT32 GSState::Freeze(freezeData* fd, bool fSizeOnly)
 	memcpy(data, m_lm.GetVM(), 1024*1024*4); data += 1024*1024*4;
 	memcpy(data, &m_tag, sizeof(m_tag)); data += sizeof(m_tag);
 	memcpy(data, &m_nreg, sizeof(m_nreg)); data += sizeof(m_nreg);
+	memcpy(data, &m_q, sizeof(m_q)); data += sizeof(m_q);
 	// memcpy(data, &m_vl, sizeof(m_vl)); data += sizeof(m_vl);
 
 	return 0;
@@ -466,6 +469,7 @@ UINT32 GSState::Defrost(const freezeData* fd)
 		+ sizeof(m_de) + sizeof(m_rs) + sizeof(m_v) 
 		+ sizeof(m_x) + sizeof(m_y) + 1024*1024*4
 		+ sizeof(m_tag) + sizeof(m_nreg)
+		+ sizeof(m_q)
 		/*+ sizeof(m_vl)*/;
 
 	if(fd->size != size) 
@@ -487,10 +491,20 @@ UINT32 GSState::Defrost(const freezeData* fd)
 	memcpy(m_lm.GetVM(), data, 1024*1024*4); data += 1024*1024*4;
 	memcpy(&m_tag, data, sizeof(m_tag)); data += sizeof(m_tag);
 	memcpy(&m_nreg, data, sizeof(m_nreg)); data += sizeof(m_nreg);
+	memcpy(&m_q, data, sizeof(m_q)); data += sizeof(m_q);
 	// memcpy(&m_vl, data, sizeof(m_vl)); data += sizeof(m_vl);
 
-	m_de.pPRIM = !m_de.PRMODECONT.AC ? (GIFRegPRIM*)&m_de.PRMODE : &m_de.PRIM;
-	m_ctxt = &m_de.CTXT[m_de.pPRIM->CTXT];
+	m_pPRIM = !m_de.PRMODECONT.AC ? (GIFRegPRIM*)&m_de.PRMODE : &m_de.PRIM;
+
+	m_ctxt = &m_de.CTXT[m_pPRIM->CTXT];
+
+	m_de.CTXT[0].ftbl = &GSLocalMemory::m_psmtbl[m_de.CTXT[0].FRAME.PSM];
+	m_de.CTXT[0].ztbl = &GSLocalMemory::m_psmtbl[m_de.CTXT[0].ZBUF.PSM];
+	m_de.CTXT[0].ttbl = &GSLocalMemory::m_psmtbl[m_de.CTXT[0].TEX0.PSM];
+
+	m_de.CTXT[1].ftbl = &GSLocalMemory::m_psmtbl[m_de.CTXT[1].FRAME.PSM];
+	m_de.CTXT[1].ztbl = &GSLocalMemory::m_psmtbl[m_de.CTXT[1].ZBUF.PSM];
+	m_de.CTXT[1].ttbl = &GSLocalMemory::m_psmtbl[m_de.CTXT[1].TEX0.PSM];
 
 	return 0;
 }
@@ -657,7 +671,6 @@ void GSState::Write(GS_REG mem, GSReg* r, UINT64 mask)
 			if(m_rs.CSRw.SIGNAL) m_pCSRr->SIGNAL = 0;
 			if(m_rs.CSRw.FINISH) m_pCSRr->FINISH = 0;
 			if(m_rs.CSRw.RESET) Reset();
-TRACE(_T("FIELD=%d\n"), r->CSR.FIELD);
 			break;
 
 		case GS_IMR:
@@ -869,12 +882,16 @@ break;
 				case 3: 
 					ASSERT(0);
 					break;
+				default: 
+					__assume(0);
 				}
 				pMem += len*16;
 				m_tag.NLOOP -= len;
 				size -= len;
 			}
 			break;
+		default: 
+			__assume(0);
 		}
 
 		LOG(_T("Transfer(%08x, %d) END\n"), pMem, size);
@@ -962,10 +979,19 @@ void GSState::Reset()
 	m_nreg = 0;
 
 	m_de.PRMODECONT.AC = 1;
-	m_de.pPRIM = &m_de.PRIM;
+
+	m_pPRIM = &m_de.PRIM;
+	m_PRIM = 8;
+
 	m_ctxt = &m_de.CTXT[0];
 
-	m_PRIM = 8;
+	m_de.CTXT[0].ftbl = &GSLocalMemory::m_psmtbl[m_de.CTXT[0].FRAME.PSM];
+	m_de.CTXT[0].ztbl = &GSLocalMemory::m_psmtbl[m_de.CTXT[0].ZBUF.PSM];
+	m_de.CTXT[0].ttbl = &GSLocalMemory::m_psmtbl[m_de.CTXT[0].TEX0.PSM];
+
+	m_de.CTXT[1].ftbl = &GSLocalMemory::m_psmtbl[m_de.CTXT[1].FRAME.PSM];
+	m_de.CTXT[1].ztbl = &GSLocalMemory::m_psmtbl[m_de.CTXT[1].ZBUF.PSM];
+	m_de.CTXT[1].ttbl = &GSLocalMemory::m_psmtbl[m_de.CTXT[1].TEX0.PSM];
 
 	if(m_pD3DDev) m_pD3DDev->Clear(0, NULL, D3DCLEAR_TARGET/*|D3DCLEAR_ZBUFFER|D3DCLEAR_STENCIL*/, 0, 1.0f, 0);
 }
@@ -1050,7 +1076,13 @@ void GSState::FinishFlip(FlipInfo rt[2])
 	}
 */	
 
-	if(m_nVSync > 1 || m_pCSRr->FIELD == 0) {m_pCSRr->FIELD = 1 - m_pCSRr->FIELD; m_nVSync = 0;}
+	//// FIXME: sw mode / poolmaster + funslower
+	if(m_nVSync > 1 || m_pCSRr->FIELD == 0)
+	{
+		m_pCSRr->FIELD = 1 - m_pCSRr->FIELD; 
+		m_nVSync = 0;
+	}
+
 	m_nVSync++;
 
 	if(m_pCSRr->FIELD && m_rs.SMODE2.INT /*&& m_rs.SMODE2.FFMD*/)

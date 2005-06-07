@@ -1,5 +1,5 @@
 /* 
- *	Copyright (C) 2003-2004 Gabest
+ *	Copyright (C) 2003-2005 Gabest
  *	http://www.gabest.org
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -283,7 +283,7 @@ void __fastcall GSState::GIFRegHandlerTEX0_1(GIFReg* r)
 		r->TEX0.CSA,
 		r->TEX0.CLD);
 
-	if(m_de.pPRIM->CTXT == 0 && m_de.CTXT[0].TEX0.i64 != r->TEX0.i64)
+	if(m_pPRIM->CTXT == 0 && m_de.CTXT[0].TEX0.i64 != r->TEX0.i64)
 		FlushPrimInternal();
 
 	m_de.CTXT[0].TEX0 = r->TEX0;
@@ -291,6 +291,8 @@ void __fastcall GSState::GIFRegHandlerTEX0_1(GIFReg* r)
 	//ASSERT(m_de.CTXT[0].TEX0.TW <= 10 && m_de.CTXT[0].TEX0.TH <= 10);
 	if(m_de.CTXT[0].TEX0.TW > 10) m_de.CTXT[0].TEX0.TW = 10;
 	if(m_de.CTXT[0].TEX0.TH > 10) m_de.CTXT[0].TEX0.TH = 10;
+
+	m_de.CTXT[0].ttbl = &GSLocalMemory::m_psmtbl[m_de.CTXT[0].TEX0.PSM];
 
 	FlushWriteTransfer();
 
@@ -313,7 +315,7 @@ void __fastcall GSState::GIFRegHandlerTEX0_2(GIFReg* r)
 		r->TEX0.CSA,
 		r->TEX0.CLD);
 
-	if(m_de.pPRIM->CTXT == 1 && m_de.CTXT[1].TEX0.i64 != r->TEX0.i64)
+	if(m_pPRIM->CTXT == 1 && m_de.CTXT[1].TEX0.i64 != r->TEX0.i64)
 		FlushPrimInternal();
 
 	m_de.CTXT[1].TEX0 = r->TEX0;
@@ -321,6 +323,8 @@ void __fastcall GSState::GIFRegHandlerTEX0_2(GIFReg* r)
 	//ASSERT(m_de.CTXT[1].TEX0.TW <= 10 && m_de.CTXT[1].TEX0.TH <= 10);
 	if(m_de.CTXT[1].TEX0.TW > 10) m_de.CTXT[1].TEX0.TW = 10;
 	if(m_de.CTXT[1].TEX0.TH > 10) m_de.CTXT[1].TEX0.TH = 10;
+
+	m_de.CTXT[1].ttbl = &GSLocalMemory::m_psmtbl[m_de.CTXT[1].TEX0.PSM];
 
 	FlushWriteTransfer();
 
@@ -337,7 +341,7 @@ void __fastcall GSState::GIFRegHandlerCLAMP_1(GIFReg* r)
 		r->CLAMP.MINV,
 		r->CLAMP.MAXV);
 
-	if(m_de.pPRIM->CTXT == 0 && m_de.CTXT[0].CLAMP.i64 != r->CLAMP.i64)
+	if(m_pPRIM->CTXT == 0 && m_de.CTXT[0].CLAMP.i64 != r->CLAMP.i64)
 		FlushPrimInternal();
 
 	m_de.CTXT[0].CLAMP = r->CLAMP;
@@ -353,7 +357,7 @@ void __fastcall GSState::GIFRegHandlerCLAMP_2(GIFReg* r)
 		r->CLAMP.MINV,
 		r->CLAMP.MAXV);
 
-	if(m_de.pPRIM->CTXT == 1 && m_de.CTXT[1].CLAMP.i64 != r->CLAMP.i64)
+	if(m_pPRIM->CTXT == 1 && m_de.CTXT[1].CLAMP.i64 != r->CLAMP.i64)
 		FlushPrimInternal();
 
 	m_de.CTXT[1].CLAMP = r->CLAMP;
@@ -411,7 +415,7 @@ void __fastcall GSState::GIFRegHandlerTEX1_1(GIFReg* r)
 		r->TEX1.L,
 		r->TEX1.K);
 
-	if(m_de.pPRIM->CTXT == 0 && m_de.CTXT[0].TEX1.i64 != r->TEX1.i64)
+	if(m_pPRIM->CTXT == 0 && m_de.CTXT[0].TEX1.i64 != r->TEX1.i64)
 		FlushPrimInternal();
 
 	m_de.CTXT[0].TEX1 = r->TEX1;
@@ -428,7 +432,7 @@ void __fastcall GSState::GIFRegHandlerTEX1_2(GIFReg* r)
 		r->TEX1.L,
 		r->TEX1.K);
 
-	if(m_de.pPRIM->CTXT == 1 && m_de.CTXT[1].TEX1.i64 != r->TEX1.i64)
+	if(m_pPRIM->CTXT == 1 && m_de.CTXT[1].TEX1.i64 != r->TEX1.i64)
 		FlushPrimInternal();
 
 	m_de.CTXT[1].TEX1 = r->TEX1;
@@ -444,7 +448,7 @@ void __fastcall GSState::GIFRegHandlerTEX2_1(GIFReg* r)
 		r->TEX2.CSA,
 		r->TEX2.CLD);
 
-	if(m_de.pPRIM->CTXT == 0 && m_de.CTXT[0].TEX2.i64 != r->TEX2.i64)
+	if(m_pPRIM->CTXT == 0 && m_de.CTXT[0].TEX2.i64 != r->TEX2.i64)
 		FlushPrimInternal();
 
 	m_de.CTXT[0].TEX2 = r->TEX2;
@@ -464,7 +468,7 @@ void __fastcall GSState::GIFRegHandlerTEX2_2(GIFReg* r)
 		r->TEX2.CSA,
 		r->TEX2.CLD);
 
-	if(m_de.pPRIM->CTXT == 1 && m_de.CTXT[1].TEX2.i64 != r->TEX2.i64)
+	if(m_pPRIM->CTXT == 1 && m_de.CTXT[1].TEX2.i64 != r->TEX2.i64)
 		FlushPrimInternal();
 
 	m_de.CTXT[1].TEX2 = r->TEX2;
@@ -501,13 +505,13 @@ void __fastcall GSState::GIFRegHandlerPRMODECONT(GIFReg* r)
 	{
 		FlushPrimInternal();
 
-		m_ctxt = &m_de.CTXT[m_de.pPRIM->CTXT];
+		m_ctxt = &m_de.CTXT[m_pPRIM->CTXT];
 	}
 
 	m_de.PRMODECONT = r->PRMODECONT;
 
-	m_de.pPRIM = !m_de.PRMODECONT.AC ? (GIFRegPRIM*)&m_de.PRMODE : &m_de.PRIM;
-	m_ctxt = &m_de.CTXT[m_de.pPRIM->CTXT];
+	m_pPRIM = !m_de.PRMODECONT.AC ? (GIFRegPRIM*)&m_de.PRMODE : &m_de.PRIM;
+	m_ctxt = &m_de.CTXT[m_pPRIM->CTXT];
 }
 
 void __fastcall GSState::GIFRegHandlerPRMODE(GIFReg* r)
@@ -529,7 +533,7 @@ void __fastcall GSState::GIFRegHandlerPRMODE(GIFReg* r)
 	m_de.PRMODE = r->PRMODE;
 	m_de.PRMODE._PRIM = _PRIM;
 
-	m_ctxt = &m_de.CTXT[m_de.pPRIM->CTXT];
+	m_ctxt = &m_de.CTXT[m_pPRIM->CTXT];
 }
 
 void __fastcall GSState::GIFRegHandlerTEXCLUT(GIFReg* r)
@@ -566,7 +570,7 @@ void __fastcall GSState::GIFRegHandlerMIPTBP1_1(GIFReg* r)
 		r->MIPTBP1.TBP3,
 		r->MIPTBP1.TBW3);
 
-	if(m_de.pPRIM->CTXT == 0 && m_de.CTXT[0].MIPTBP1.i64 != r->MIPTBP1.i64)
+	if(m_pPRIM->CTXT == 0 && m_de.CTXT[0].MIPTBP1.i64 != r->MIPTBP1.i64)
 		FlushPrimInternal();
 
 	m_de.CTXT[0].MIPTBP1 = r->MIPTBP1;
@@ -582,7 +586,7 @@ void __fastcall GSState::GIFRegHandlerMIPTBP1_2(GIFReg* r)
 		r->MIPTBP1.TBP3,
 		r->MIPTBP1.TBW3);
 
-	if(m_de.pPRIM->CTXT == 1 && m_de.CTXT[1].MIPTBP1.i64 != r->MIPTBP1.i64)
+	if(m_pPRIM->CTXT == 1 && m_de.CTXT[1].MIPTBP1.i64 != r->MIPTBP1.i64)
 		FlushPrimInternal();
 
 	m_de.CTXT[1].MIPTBP1 = r->MIPTBP1;
@@ -598,7 +602,7 @@ void __fastcall GSState::GIFRegHandlerMIPTBP2_1(GIFReg* r)
 		r->MIPTBP2.TBP6,
 		r->MIPTBP2.TBW6);
 
-	if(m_de.pPRIM->CTXT == 0 && m_de.CTXT[0].MIPTBP2.i64 != r->MIPTBP2.i64)
+	if(m_pPRIM->CTXT == 0 && m_de.CTXT[0].MIPTBP2.i64 != r->MIPTBP2.i64)
 		FlushPrimInternal();
 
 	m_de.CTXT[0].MIPTBP2 = r->MIPTBP2;
@@ -614,7 +618,7 @@ void __fastcall GSState::GIFRegHandlerMIPTBP2_2(GIFReg* r)
 		r->MIPTBP2.TBP6,
 		r->MIPTBP2.TBW6);
 
-	if(m_de.pPRIM->CTXT == 1 && m_de.CTXT[1].MIPTBP2.i64 != r->MIPTBP2.i64)
+	if(m_pPRIM->CTXT == 1 && m_de.CTXT[1].MIPTBP2.i64 != r->MIPTBP2.i64)
 		FlushPrimInternal();
 
 	m_de.CTXT[1].MIPTBP2 = r->MIPTBP2;
@@ -661,7 +665,7 @@ void __fastcall GSState::GIFRegHandlerSCISSOR_1(GIFReg* r)
 		r->SCISSOR.SCAY0,
 		r->SCISSOR.SCAY1);
 
-	if(m_de.pPRIM->CTXT == 0 && m_de.CTXT[0].SCISSOR.i64 != r->SCISSOR.i64)
+	if(m_pPRIM->CTXT == 0 && m_de.CTXT[0].SCISSOR.i64 != r->SCISSOR.i64)
 		FlushPrimInternal();
 
 	m_de.CTXT[0].SCISSOR = r->SCISSOR;
@@ -675,7 +679,7 @@ void __fastcall GSState::GIFRegHandlerSCISSOR_2(GIFReg* r)
 		r->SCISSOR.SCAY0,
 		r->SCISSOR.SCAY1);
 
-	if(m_de.pPRIM->CTXT == 1 && m_de.CTXT[1].SCISSOR.i64 != r->SCISSOR.i64)
+	if(m_pPRIM->CTXT == 1 && m_de.CTXT[1].SCISSOR.i64 != r->SCISSOR.i64)
 		FlushPrimInternal();
 
 	m_de.CTXT[1].SCISSOR = r->SCISSOR;
@@ -690,7 +694,7 @@ void __fastcall GSState::GIFRegHandlerALPHA_1(GIFReg* r)
 		r->ALPHA.D,
 		r->ALPHA.FIX);
 
-	if(m_de.pPRIM->CTXT == 0 && m_de.CTXT[0].ALPHA.i64 != r->ALPHA.i64)
+	if(m_pPRIM->CTXT == 0 && m_de.CTXT[0].ALPHA.i64 != r->ALPHA.i64)
 		FlushPrimInternal();
 
 	m_de.CTXT[0].ALPHA = r->ALPHA;
@@ -705,7 +709,7 @@ void __fastcall GSState::GIFRegHandlerALPHA_2(GIFReg* r)
 		r->ALPHA.D,
 		r->ALPHA.FIX);
 
-	if(m_de.pPRIM->CTXT == 1 && m_de.CTXT[1].ALPHA.i64 != r->ALPHA.i64)
+	if(m_pPRIM->CTXT == 1 && m_de.CTXT[1].ALPHA.i64 != r->ALPHA.i64)
 		FlushPrimInternal();
 
 	m_de.CTXT[1].ALPHA = r->ALPHA;
@@ -771,7 +775,7 @@ void __fastcall GSState::GIFRegHandlerTEST_1(GIFReg* r)
 		r->TEST.ZTE,
 		r->TEST.ZTST);
 
-	if(m_de.pPRIM->CTXT == 0 && m_de.CTXT[0].TEST.i64 != r->TEST.i64)
+	if(m_pPRIM->CTXT == 0 && m_de.CTXT[0].TEST.i64 != r->TEST.i64)
 		FlushPrimInternal();
 
 	m_de.CTXT[0].TEST = r->TEST;
@@ -789,7 +793,7 @@ void __fastcall GSState::GIFRegHandlerTEST_2(GIFReg* r)
 		r->TEST.ZTE,
 		r->TEST.ZTST);
 
-	if(m_de.pPRIM->CTXT == 1 && m_de.CTXT[1].TEST.i64 != r->TEST.i64)
+	if(m_pPRIM->CTXT == 1 && m_de.CTXT[1].TEST.i64 != r->TEST.i64)
 		FlushPrimInternal();
 
 	m_de.CTXT[1].TEST = r->TEST;
@@ -811,7 +815,7 @@ void __fastcall GSState::GIFRegHandlerFBA_1(GIFReg* r)
 	LOG(_T("FBA_1(FBA=%x)\n"), 
 		r->FBA.FBA);
 
-	if(m_de.pPRIM->CTXT == 0 && m_de.CTXT[0].FBA.i64 != r->FBA.i64)
+	if(m_pPRIM->CTXT == 0 && m_de.CTXT[0].FBA.i64 != r->FBA.i64)
 		FlushPrimInternal();
 
 	m_de.CTXT[0].FBA = r->FBA;
@@ -822,7 +826,7 @@ void __fastcall GSState::GIFRegHandlerFBA_2(GIFReg* r)
 	LOG(_T("FBA_2(FBA=%x)\n"), 
 		r->FBA.FBA);
 
-	if(m_de.pPRIM->CTXT == 1 && m_de.CTXT[1].FBA.i64 != r->FBA.i64)
+	if(m_pPRIM->CTXT == 1 && m_de.CTXT[1].FBA.i64 != r->FBA.i64)
 		FlushPrimInternal();
 
 	m_de.CTXT[1].FBA = r->FBA;
@@ -836,10 +840,12 @@ void __fastcall GSState::GIFRegHandlerFRAME_1(GIFReg* r)
 		r->FRAME.PSM,
 		r->FRAME.FBMSK);
 
-	if(m_de.pPRIM->CTXT == 0 && m_de.CTXT[0].FRAME.i64 != r->FRAME.i64)
+	if(m_pPRIM->CTXT == 0 && m_de.CTXT[0].FRAME.i64 != r->FRAME.i64)
 		FlushPrimInternal();
 
 	m_de.CTXT[0].FRAME = r->FRAME;
+
+	m_de.CTXT[0].ftbl = &GSLocalMemory::m_psmtbl[m_de.CTXT[0].FRAME.PSM];
 }
 
 void __fastcall GSState::GIFRegHandlerFRAME_2(GIFReg* r)
@@ -850,10 +856,12 @@ void __fastcall GSState::GIFRegHandlerFRAME_2(GIFReg* r)
 		r->FRAME.PSM,
 		r->FRAME.FBMSK);
 
-	if(m_de.pPRIM->CTXT == 1 && m_de.CTXT[1].FRAME.i64 != r->FRAME.i64)
+	if(m_pPRIM->CTXT == 1 && m_de.CTXT[1].FRAME.i64 != r->FRAME.i64)
 		FlushPrimInternal();
 
 	m_de.CTXT[1].FRAME = r->FRAME;
+
+	m_de.CTXT[1].ftbl = &GSLocalMemory::m_psmtbl[m_de.CTXT[1].FRAME.PSM];
 }
 
 void __fastcall GSState::GIFRegHandlerZBUF_1(GIFReg* r)
@@ -865,7 +873,7 @@ void __fastcall GSState::GIFRegHandlerZBUF_1(GIFReg* r)
 
 	r->ZBUF.PSM |= 0x30;
 
-	if(m_de.pPRIM->CTXT == 0 && m_de.CTXT[0].ZBUF.i64 != r->ZBUF.i64)
+	if(m_pPRIM->CTXT == 0 && m_de.CTXT[0].ZBUF.i64 != r->ZBUF.i64)
 		FlushPrimInternal();
 
 	m_de.CTXT[0].ZBUF = r->ZBUF;
@@ -875,6 +883,8 @@ void __fastcall GSState::GIFRegHandlerZBUF_1(GIFReg* r)
 	&& m_de.CTXT[0].ZBUF.PSM != PSM_PSMZ16
 	&& m_de.CTXT[0].ZBUF.PSM != PSM_PSMZ16S)
 		m_de.CTXT[0].ZBUF.PSM = PSM_PSMZ32;
+
+	m_de.CTXT[0].ztbl = &GSLocalMemory::m_psmtbl[m_de.CTXT[0].ZBUF.PSM];
 }
 
 void __fastcall GSState::GIFRegHandlerZBUF_2(GIFReg* r)
@@ -886,7 +896,7 @@ void __fastcall GSState::GIFRegHandlerZBUF_2(GIFReg* r)
 
 	r->ZBUF.PSM |= 0x30;
 
-	if(m_de.pPRIM->CTXT == 1 && m_de.CTXT[1].ZBUF.i64 != r->ZBUF.i64)
+	if(m_pPRIM->CTXT == 1 && m_de.CTXT[1].ZBUF.i64 != r->ZBUF.i64)
 		FlushPrimInternal();
 
 	m_de.CTXT[1].ZBUF = r->ZBUF;
@@ -896,6 +906,8 @@ void __fastcall GSState::GIFRegHandlerZBUF_2(GIFReg* r)
 	&& m_de.CTXT[1].ZBUF.PSM != PSM_PSMZ16
 	&& m_de.CTXT[1].ZBUF.PSM != PSM_PSMZ16S)
 		m_de.CTXT[1].ZBUF.PSM = PSM_PSMZ32;
+
+	m_de.CTXT[1].ztbl = &GSLocalMemory::m_psmtbl[m_de.CTXT[1].ZBUF.PSM];
 }
 
 void __fastcall GSState::GIFRegHandlerBITBLTBUF(GIFReg* r)
