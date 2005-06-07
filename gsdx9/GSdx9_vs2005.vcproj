@@ -883,6 +883,14 @@
 				RelativePath=".\GSRendererSoft.cpp"
 				>
 				<FileConfiguration
+					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						AssemblerOutput="4"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
 					Name="ReleaseSSE2|Win32"
 					>
 					<Tool
@@ -1239,6 +1247,14 @@
 			</File>
 			<File
 				RelativePath=".\GSSoftVertex.h"
+				>
+			</File>
+			<File
+				RelativePath=".\GSSoftVertexFP.h"
+				>
+			</File>
+			<File
+				RelativePath=".\GSSoftVertexFX.h"
 				>
 			</File>
 			<File

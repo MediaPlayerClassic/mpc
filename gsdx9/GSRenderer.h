@@ -1,5 +1,5 @@
 /* 
- *	Copyright (C) 2003-2004 Gabest
+ *	Copyright (C) 2003-2005 Gabest
  *	http://www.gabest.org
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -45,7 +45,7 @@ protected:
 
 		static const int vmin[8] = {1, 2, 2, 3, 3, 3, 2, 1};
 
-		while(m_vl.GetCount() >= vmin[m_de.pPRIM->PRIM])
+		while(m_vl.GetCount() >= vmin[m_pPRIM->PRIM])
 		{
 			if(m_nVertices+6 > m_nMaxVertices)
 			{
@@ -55,17 +55,17 @@ protected:
 				m_pVertices = pVertices;
 			}
 
-			LOG(_T("DrawingKick %d\n"), m_de.pPRIM->PRIM);
+			LOG(_T("DrawingKick %d\n"), m_pPRIM->PRIM);
             
-			if(m_PRIM != m_de.pPRIM->PRIM && m_nVertices > 0) FlushPrimInternal();
-			m_PRIM = m_de.pPRIM->PRIM;
+			if(m_PRIM != m_pPRIM->PRIM && m_nVertices > 0) FlushPrimInternal();
+			m_PRIM = m_pPRIM->PRIM;
 
 			LOG2(_T("Prim (%d) %05x %05x %05x %04x\n"), 
 				m_PRIM,
 				m_ctxt->FRAME.Block(), 
-				m_de.pPRIM->TME ? (UINT32)m_ctxt->TEX0.TBP0 : 0xfffff,
-				m_de.pPRIM->TME ? (UINT32)m_ctxt->TEX0.CBP : 0xfffff,
-				(m_de.pPRIM->ABE || (m_PRIM == 1 || m_PRIM == 2) && m_de.pPRIM->AA1)
+				m_pPRIM->TME ? (UINT32)m_ctxt->TEX0.TBP0 : 0xfffff,
+				m_pPRIM->TME ? (UINT32)m_ctxt->TEX0.CBP : 0xfffff,
+				(m_pPRIM->ABE || (m_PRIM == 1 || m_PRIM == 2) && m_pPRIM->AA1)
 					? ((m_ctxt->ALPHA.A<<12)|(m_ctxt->ALPHA.B<<8)|(m_ctxt->ALPHA.C<<4)|m_ctxt->ALPHA.D)
 					: 0xffff);
 

@@ -1,5 +1,5 @@
 /* 
- *	Copyright (C) 2003-2004 Gabest
+ *	Copyright (C) 2003-2005 Gabest
  *	http://www.gabest.org
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -27,10 +27,6 @@ template <class Vertex>
 GSRendererSoft<Vertex>::GSRendererSoft(HWND hWnd, HRESULT& hr)
 	: GSRenderer<Vertex>(640, 512, hWnd, hr)
 {
-	float f = 0.8;
-	f *= UINT_MAX;
-	DWORD dw = (DWORD)f;
-
 	Reset();
 
 	int i = SHRT_MIN, j = 0;
@@ -102,14 +98,14 @@ int GSRendererSoft<Vertex>::DrawingKick(bool fSkip)
 		m_vl.RemoveAt(0, pVertices[nVertices++]);
 		m_vl.RemoveAt(0, pVertices[nVertices++]);
 		nVertices += 2;
-		// ASSERT(pVertices[0].z == pVertices[1].z);
-		pVertices[0].z = pVertices[1].z;
+		pVertices[0].p.z = pVertices[1].p.z;
+		pVertices[0].p.q = pVertices[1].p.q;
 		pVertices[2] = pVertices[1];
 		pVertices[3] = pVertices[1];
-		pVertices[1].y = pVertices[0].y;
-		pVertices[1].v = pVertices[0].v;
-		pVertices[2].x = pVertices[0].x;
-		pVertices[2].u = pVertices[0].u;
+		pVertices[1].p.y = pVertices[0].p.y;
+		pVertices[1].t.y = pVertices[0].t.y;
+		pVertices[2].p.x = pVertices[0].p.x;
+		pVertices[2].t.x = pVertices[0].t.x;
 		LOGV((pVertices[0], _T("Sprite")));
 		LOGV((pVertices[1], _T("Sprite")));
 		LOGV((pVertices[2], _T("Sprite")));
@@ -149,7 +145,7 @@ int GSRendererSoft<Vertex>::DrawingKick(bool fSkip)
 	if(fSkip || !m_rs.IsEnabled(0) && !m_rs.IsEnabled(1))
 		return 0;
 
-	if(!m_de.pPRIM->IIP)
+	if(!m_pPRIM->IIP)
 		memcpy(&pVertices[0], &pVertices[nVertices-1], sizeof(DWORD)*4); // copy RGBA-only
 
 	return nVertices;
@@ -316,19 +312,25 @@ void GSRendererSoft<Vertex>::DrawPoint(Vertex* v)
 template <class Vertex>
 void GSRendererSoft<Vertex>::DrawLine(Vertex* v)
 {
-	Vertex::scalar_t dx = abs(v[1].x - v[0].x);
-	Vertex::scalar_t dy = abs(v[1].y - v[0].y);
+	Vertex dv = v[1] - v[0];
+
+	Vertex::Vector dp = dv.p;
+	dp.x.abs_s();
+	dp.y.abs_s();
+
+	int dx = (int)dp.x;
+	int dy = (int)dp.y;
 
 	if(dx == 0 && dy == 0) return;
 
-	int i = dx > dy ? 4 : 5;
+	int i = dx > dy ? 0 : 1;
 
 	Vertex edge = v[0];
-	Vertex dedge = (v[1] - v[0]) / abs(v[1].f[i] - v[0].f[i]);
+	Vertex dedge = dv / dp.v[i];
 
 	// TODO: clip with the scissor
 
-	int steps = abs(Vertex::Int(v[0].f[i]) - Vertex::Int(v[1].f[i]));
+	int steps = (int)dp.v[i];
 
 	while(steps-- > 0)
 	{
@@ -341,77 +343,79 @@ void GSRendererSoft<Vertex>::DrawLine(Vertex* v)
 template <class Vertex>
 void GSRendererSoft<Vertex>::DrawTriangle(Vertex* v)
 {
-	if(v[1].y < v[0].y) {Vertex::Exchange(v[0], v[1]);}
-	if(v[2].y < v[0].y) {Vertex::Exchange(v[0], v[2]);}
-	if(v[2].y < v[1].y) {Vertex::Exchange(v[1], v[2]);}
+	if(v[1].p.y < v[0].p.y) {Vertex::Exchange(&v[0], &v[1]);}
+	if(v[2].p.y < v[0].p.y) {Vertex::Exchange(&v[0], &v[2]);}
+	if(v[2].p.y < v[1].p.y) {Vertex::Exchange(&v[1], &v[2]);}
 
-	if(v[0].y >= v[2].y) return;
+	if(!(v[0].p.y < v[2].p.y)) return;
 
 	Vertex v01 = v[1] - v[0];
 	Vertex v02 = v[2] - v[0];
 
-	Vertex::scalar_t temp = Vertex::Div(v01.y, v02.y);
-	Vertex::scalar_t longest = Vertex::Mul(temp, v02.x) - v01.x;
+	Vertex::Scalar temp = v01.p.y / v02.p.y;
+	Vertex::Scalar longest = temp * v02.p.x - v01.p.x;
 
 	int ledge, redge;
-	if(longest > 0) {ledge = 0; redge = 1;}
-	else if(longest < 0) {ledge = 1; redge = 0;}
+	if(Vertex::Scalar(0) < longest) {ledge = 0; redge = 1; if(longest < Vertex::Scalar(1)) longest = Vertex::Scalar(1);}
+	else if(longest < Vertex::Scalar(0)) {ledge = 1; redge = 0; if(Vertex::Scalar(-1) < longest) longest = Vertex::Scalar(-1);}
 	else return;
 
-	Vertex edge[2];
-	edge[ledge] = edge[redge] = v[0];
+	Vertex edge[2] = {v[0], v[0]};
 
 	Vertex dedge[2];
-	dedge[0].y = dedge[1].y = Vertex::Scalar(1);
-	if(v01.y) dedge[ledge] = v01 / v01.y;
-	if(v02.y) dedge[redge] = v02 / v02.y;
+	dedge[0].p.y = dedge[1].p.y = Vertex::Scalar(1);
+	if(Vertex::Scalar(0) < v01.p.y) dedge[ledge] = v01 / v01.p.y;
+	if(Vertex::Scalar(0) < v02.p.y) dedge[redge] = v02 / v02.p.y;
+
+	Vertex scan;
 
 	Vertex dscan = (v02 * temp - v01) / longest;
-	dscan.y = 0;
+	dscan.p.y = 0;
 
 	for(int i = 0; i < 2; i++, v++)
 	{ 
-		int top = Vertex::CeilInt(edge[0].y), bottom = Vertex::CeilInt(v[1].y);
+		int top = edge[0].p.y.ceil_i(), bottom = v[1].p.y.ceil_i();
 		if(top < m_scissor.top) top = min(m_scissor.top, bottom);
 		if(bottom > m_scissor.bottom) bottom = m_scissor.bottom;
-		if(Vertex::Scalar(top) > edge[0].y) // for(int j = 0; j < 2; j++) edge[j] += dedge[j] * ((float)top - edge[0].y);
+		if(edge[0].p.y < Vertex::Scalar(top)) // for(int j = 0; j < 2; j++) edge[j] += dedge[j] * ((float)top - edge[0].p.y);
 		{
-			Vertex::scalar_t dy = Vertex::Scalar(top) - edge[0].y;
+			Vertex::Scalar dy = Vertex::Scalar(top) - edge[0].p.y;
 			edge[0] += dedge[0] * dy;
-			edge[1].x += Vertex::Mul(dedge[1].x, dy);
-			edge[0].y = edge[1].y = Vertex::Scalar(top);
+			edge[1].p.x += dedge[1].p.x * dy;
+			edge[0].p.y = edge[1].p.y = Vertex::Scalar(top);
 		}
 
-		ASSERT(top >= bottom || Vertex::Int(abs(edge[1].y - edge[0].y) * 10) == 0);
+		ASSERT(top >= bottom || (int)((edge[1].p.y - edge[0].p.y) * 10) == 0);
 
 		for(; top < bottom; top++)
 		{
-			Vertex scan = edge[0];
+			scan = edge[0];
 
-			int left = Vertex::CeilInt(edge[0].x), right = Vertex::CeilInt(edge[1].x);
+			int left = edge[0].p.x.ceil_i(), right = edge[1].p.x.ceil_i();
 			if(left < m_scissor.left) left = m_scissor.left;
 			if(right > m_scissor.right) right = m_scissor.right;
-			if(Vertex::Scalar(left) > edge[0].x) scan += dscan * (Vertex::Scalar(left) - edge[0].x);
+			if(edge[0].p.x < Vertex::Scalar(left))
+			{
+				scan += dscan * (Vertex::Scalar(left) - edge[0].p.x);
+				scan.p.x = Vertex::Scalar(left);
+			}
 
 			for(; left < right; left++)
 			{
-				//ASSERT(left == Vertex::Int(scan.x) && top == Vertex::Int(scan.y));
-
 				DrawVertex(left, top, scan);
 				scan += dscan;
 			}
 
 			// for(int j = 0; j < 2; j++) edge[j] += dedge[j];
 			edge[0] += dedge[0];
-			edge[1].x += dedge[1].x;
-			edge[1].y += dedge[1].y;
+			edge[1].p += dedge[1].p;
 		}
 
-		if(v[2].y > v[1].y)
+		if(v[1].p.y < v[2].p.y)
 		{
 			edge[ledge] = v[1];
-			dedge[ledge] = (v[2] - v[1]) / (v[2].y - v[1].y);
-			edge[ledge] += dedge[ledge] * (Vertex::Ceil(edge[ledge].y) - edge[ledge].y);
+			dedge[ledge] = (v[2] - v[1]) / (v[2].p.y - v[1].p.y);
+			edge[ledge] += dedge[ledge] * (edge[ledge].p.y.ceil_s() - edge[ledge].p.y);
 		}
 	}
 }
@@ -419,34 +423,35 @@ void GSRendererSoft<Vertex>::DrawTriangle(Vertex* v)
 template <class Vertex>
 void GSRendererSoft<Vertex>::DrawSprite(Vertex* v)
 {
-	if(v[2].y < v[0].y) {Vertex::Exchange(v[0], v[2]); Vertex::Exchange(v[1], v[3]);}
-	if(v[1].x < v[0].x) {Vertex::Exchange(v[0], v[1]); Vertex::Exchange(v[2], v[3]);}
+	if(v[2].p.y < v[0].p.y) {Vertex::Exchange(&v[0], &v[2]); Vertex::Exchange(&v[1], &v[3]);}
+	if(v[1].p.x < v[0].p.x) {Vertex::Exchange(&v[0], &v[1]); Vertex::Exchange(&v[2], &v[3]);}
 
-	if(v[0].x == v[1].x || v[0].y == v[2].y) return;
+	if(v[0].p.x == v[1].p.x || v[0].p.y == v[2].p.y) return;
 
 	Vertex v01 = v[1] - v[0];
 	Vertex v02 = v[2] - v[0];
 
 	Vertex edge = v[0];
-	Vertex dedge = v02 / v02.y;
-	Vertex dscan = v01 / v01.x;
+	Vertex dedge = v02 / v02.p.y;
+	Vertex scan;
+	Vertex dscan = v01 / v01.p.x;
 
-	int top = Vertex::CeilInt(v[0].y), bottom = Vertex::CeilInt(v[2].y);
+	int top = v[0].p.y.ceil_i(), bottom = v[2].p.y.ceil_i();
 	if(top < m_scissor.top) top = min(m_scissor.top, bottom);
 	if(bottom > m_scissor.bottom) bottom = m_scissor.bottom;
-	if(Vertex::Scalar(top) > v[0].y) edge += dedge * (Vertex::Scalar(top) - v[0].y);
+	if(v[0].p.y < Vertex::Scalar(top)) edge += dedge * (Vertex::Scalar(top) - v[0].p.y);
 
-	int left = Vertex::CeilInt(v[0].x), right = Vertex::CeilInt(v[1].x);
+	int left = v[0].p.x.ceil_i(), right = v[1].p.x.ceil_i();
 	if(left < m_scissor.left) left = m_scissor.left;
 	if(right > m_scissor.right) right = m_scissor.right;
-	if(Vertex::Scalar(left) > v[0].x) edge += dscan * (Vertex::Scalar(left) - v[0].x);
+	if(v[0].p.x < Vertex::Scalar(left)) edge += dscan * (Vertex::Scalar(left) - v[0].p.x);
 
 	if(DrawFilledRect(left, top, right, bottom, edge))
 		return;
 
 	for(; top < bottom; top++)
 	{
-		Vertex scan = edge;
+		scan = edge;
 
 		for(int x = left; x < right; x++)
 		{
@@ -467,13 +472,13 @@ bool GSRendererSoft<Vertex>::DrawFilledRect(int left, int top, int right, int bo
 	ASSERT(top >= 0);
 	ASSERT(bottom >= 0);
 
-	if(m_de.pPRIM->IIP
+	if(m_pPRIM->IIP
 	|| m_ctxt->TEST.ZTE && m_ctxt->TEST.ZTST != 1
 	|| m_ctxt->TEST.ATE && m_ctxt->TEST.ATST != 1
 	|| m_ctxt->TEST.DATE
-	|| m_de.pPRIM->TME
-	|| m_de.pPRIM->ABE
-	|| m_de.pPRIM->FGE
+	|| m_pPRIM->TME
+	|| m_pPRIM->ABE
+	|| m_pPRIM->FGE
 	|| m_de.DTHE.DTHE
 	|| m_ctxt->FRAME.FBMSK)
 		return false;
@@ -486,8 +491,8 @@ bool GSRendererSoft<Vertex>::DrawFilledRect(int left, int top, int right, int bo
 		m_lm.FillRect(CRect(left, top, right, bottom), v.GetZ(), m_ctxt->ZBUF.PSM, ZBP, FBW);
 	}
 
-	__declspec(align(16)) union {struct {int Rf, Gf, Bf, Af;}; int Cf[4];};
-	v.GetColor(Cf);
+	union {struct {BYTE Rf, Gf, Bf, Af;}; DWORD Cdw;};
+	Cdw = v.c;
 
 	Rf = m_clamp[Rf];
 	Gf = m_clamp[Gf];
@@ -496,26 +501,23 @@ bool GSRendererSoft<Vertex>::DrawFilledRect(int left, int top, int right, int bo
 
 	Af |= (m_ctxt->FBA.FBA << 7);
 
-	DWORD c = (Af << 24) | (Bf << 16) | (Gf << 8) | (Rf << 0);
 	if(m_ctxt->FRAME.PSM == PSM_PSMCT16 || m_ctxt->FRAME.PSM == PSM_PSMCT16S)
-		c = ((c>>16)&0x8000)|((c>>9)&0x7c00)|((c>>6)&0x03e0)|((c>>3)&0x001f);
-	m_lm.FillRect(CRect(left, top, right, bottom), c, m_ctxt->FRAME.PSM, FBP, FBW);
+		Cdw = ((Cdw>>16)&0x8000)|((Cdw>>9)&0x7c00)|((Cdw>>6)&0x03e0)|((Cdw>>3)&0x001f);
+	m_lm.FillRect(CRect(left, top, right, bottom), Cdw, m_ctxt->FRAME.PSM, FBP, FBW);
 
 	return true;
 }
 
 template <class Vertex>
-void GSRendererSoft<Vertex>::DrawVertex(int x, int y, Vertex& v)
+void GSRendererSoft<Vertex>::DrawVertex(int x, int y, const Vertex& v)
 {
-	GSLocalMemory::psmtbl_t& ttbl = GSLocalMemory::m_psmtbl[m_ctxt->TEX0.PSM];
-	GSLocalMemory::psmtbl_t& ztbl = GSLocalMemory::m_psmtbl[m_ctxt->ZBUF.PSM];
-	GSLocalMemory::psmtbl_t& ftbl = GSLocalMemory::m_psmtbl[m_ctxt->FRAME.PSM];
+	ASSERT(x == (int)v.p.x && y == (int)v.p.y);
 
 	DWORD addrz = 0;
 
 	if(m_ctxt->ZBUF.ZMSK == 0 || m_ctxt->TEST.ZTE && m_ctxt->TEST.ZTST >= 2)
 	{
-		addrz = (ztbl.pa)(x, y, m_ctxt->ZBUF.ZBP<<5, m_ctxt->FRAME.FBW);
+		addrz = (m_ctxt->ztbl->pa)(x, y, m_ctxt->ZBUF.ZBP<<5, m_ctxt->FRAME.FBW);
 	}
 
 	DWORD vz = v.GetZ();
@@ -525,167 +527,24 @@ void GSRendererSoft<Vertex>::DrawVertex(int x, int y, Vertex& v)
 		if(m_ctxt->TEST.ZTST == 0)
 			return;
 
-		DWORD z = (m_lm.*ztbl.rpa)(addrz);
+		DWORD z = (m_lm.*m_ctxt->ztbl->rpa)(addrz);
 		if(m_ctxt->TEST.ZTST == 2 && vz < z || m_ctxt->TEST.ZTST == 3 && vz <= z)
 			return;
 	}
 
-	__declspec(align(16)) union {struct {int Rf, Gf, Bf, Af;}; int Cf[4]; __m128i RGBAf;};
-	v.GetColor(Cf);
+	Vertex::Vector Cf = v.c;
 
-	if(m_de.pPRIM->TME)
+	if(m_pPRIM->TME)
 	{
-		int tw = 1 << m_ctxt->TEX0.TW;
-		int th = 1 << m_ctxt->TEX0.TH;
-
-		float rq = 1.0f / v.q;
-		float tu = (float)v.u * rq * tw;
-		float tv = (float)v.v * rq * th;
-
-		// TODO
-		// float lod = m_ctxt->TEX1.K;
-		// if(!m_ctxt->TEX1.LCM) lod += log2(1/v.q) << m_ctxt->TEX1.L;
-
-		float ftu = modf(tu, &tu); // tu - 0.5f
-		float ftv = modf(tv, &tv); // tv - 0.5f
-		if(ftu < 0) ftu += 1;
-		if(ftv < 0) ftv += 1;
-		float iftu = 1.0f - ftu;
-		float iftv = 1.0f - ftv;
-
-		int itu[2] = {(int)tu, (int)tu+1};
-		int itv[2] = {(int)tv, (int)tv+1};
-
-		for(int i = 0; i < countof(itu); i++)
-		{
-			switch(m_ctxt->CLAMP.WMS)
-			{
-			case 0: itu[i] = itu[i] & (tw-1); break;
-			case 1: itu[i] = itu[i] < 0 ? 0 : itu[i] >= tw ? itu[i] = tw-1 : itu[i]; break;
-			case 2: itu[i] = itu[i] < m_ctxt->CLAMP.MINU ? m_ctxt->CLAMP.MINU : itu[i] > m_ctxt->CLAMP.MAXU ? m_ctxt->CLAMP.MAXU : itu[i]; break;
-			case 3: itu[i] = (itu[i] & m_ctxt->CLAMP.MINU) | m_ctxt->CLAMP.MAXU; break;
-			}
-
-			ASSERT(itu[i] >= 0 && itu[i] < tw);
-		}
-
-		for(int i = 0; i < countof(itv); i++)
-		{
-			switch(m_ctxt->CLAMP.WMT)
-			{
-			case 0: itv[i] = itv[i] & (th-1); break;
-			case 1: itv[i] = itv[i] < 0 ? 0 : itv[i] >= th ? itv[i] = th-1 : itv[i]; break;
-			case 2: itv[i] = itv[i] < m_ctxt->CLAMP.MINV ? m_ctxt->CLAMP.MINV : itv[i] > m_ctxt->CLAMP.MAXV ? m_ctxt->CLAMP.MAXV : itv[i]; break;
-			case 3: itv[i] = (itv[i] & m_ctxt->CLAMP.MINV) | m_ctxt->CLAMP.MAXV; break;
-			}
-
-			ASSERT(itv[i] >= 0 && itv[i] < th);
-		}
-
-		DWORD c[4];
-		WORD Rt, Gt, Bt, At;
-
-		// if(m_ctxt->TEX1.MMAG&1) // FIXME
-		{
-			if(m_pTexture)
-			{
-				c[0] = m_pTexture[(itv[0] << m_ctxt->TEX0.TW) + itu[0]];
-				c[1] = m_pTexture[(itv[0] << m_ctxt->TEX0.TW) + itu[1]];
-				c[2] = m_pTexture[(itv[1] << m_ctxt->TEX0.TW) + itu[0]];
-				c[3] = m_pTexture[(itv[1] << m_ctxt->TEX0.TW) + itu[1]];
-			}
-			else
-			{
-				c[0] = (m_lm.*ttbl.rt)(itu[0], itv[0], m_ctxt->TEX0, m_de.TEXA);
-				c[1] = (m_lm.*ttbl.rt)(itu[1], itv[0], m_ctxt->TEX0, m_de.TEXA);
-				c[2] = (m_lm.*ttbl.rt)(itu[0], itv[1], m_ctxt->TEX0, m_de.TEXA);
-				c[3] = (m_lm.*ttbl.rt)(itu[1], itv[1], m_ctxt->TEX0, m_de.TEXA);
-			}
-
-			float iuiv = iftu*iftv;
-			float uiv = ftu*iftv;
-			float iuv = iftu*ftv;
-			float uv = ftu*ftv;
-
-			Rt = (WORD)(iuiv*((c[0]>> 0)&0xff) + uiv*((c[1]>> 0)&0xff) + iuv*((c[2]>> 0)&0xff) + uv*((c[3]>> 0)&0xff) + 0.5f);
-			Gt = (WORD)(iuiv*((c[0]>> 8)&0xff) + uiv*((c[1]>> 8)&0xff) + iuv*((c[2]>> 8)&0xff) + uv*((c[3]>> 8)&0xff) + 0.5f);
-			Bt = (WORD)(iuiv*((c[0]>>16)&0xff) + uiv*((c[1]>>16)&0xff) + iuv*((c[2]>>16)&0xff) + uv*((c[3]>>16)&0xff) + 0.5f);
-			At = (WORD)(iuiv*((c[0]>>24)&0xff) + uiv*((c[1]>>24)&0xff) + iuv*((c[2]>>24)&0xff) + uv*((c[3]>>24)&0xff) + 0.5f);
-
-			// TESTME
-			/*
-			float c01, c23;
-			c01 = c[0] + (c[0] - c[1])*ftu;
-			c23 = c[2] + (c[2] - c[3])*ftu;
-			Rt = c01 + (c23 - c01)*ftv;
-			for(int i = 0; i < 4; i++) c[i] >>= 8;
-			c01 = c[0] + (c[0] - c[1])*ftu;
-			c23 = c[2] + (c[2] - c[3])*ftu;
-			Gt = c01 + (c23 - c01)*ftv;
-			for(int i = 0; i < 4; i++) c[i] >>= 8;
-			c01 = c[0] + (c[0] - c[1])*ftu;
-			c23 = c[2] + (c[2] - c[3])*ftu;
-			Bt = c01 + (c23 - c01)*ftv;
-			for(int i = 0; i < 4; i++) c[i] >>= 8;
-			c01 = c[0] + (c[0] - c[1])*ftu;
-			c23 = c[2] + (c[2] - c[3])*ftu;
-			At = c01 + (c23 - c01)*ftv;
-			*/
-		}
-/*		else 
-		{
-			if(m_pTexture)
-			{
-				c[0] = m_pTexture[(itv[0] << m_ctxt->TEX0.TW) + itu[0]];
-			}
-			else
-			{
-				c[0] = (m_lm.*m_ctxt->rt)(itu[0], itv[0], m_ctxt->TEX0, m_de.TEXA);
-			}
-
-			Rt = (BYTE)((c[0]>>0)&0xff);
-			Gt = (BYTE)((c[0]>>8)&0xff);
-			Bt = (BYTE)((c[0]>>16)&0xff);
-			At = (BYTE)((c[0]>>24)&0xff);
-		}
-*/
-		switch(m_ctxt->TEX0.TFX)
-		{
-		case 0:
-			Rf = Rf * Rt >> 7;
-			Gf = Gf * Gt >> 7;
-			Bf = Bf * Bt >> 7;
-			Af = m_ctxt->TEX0.TCC ? (Af * At >> 7) : Af;
-			break;
-		case 1:
-			Rf = Rt;
-			Gf = Gt;
-			Bf = Bt;
-			Af = At;
-			break;
-		case 2:
-			Rf = (Rf * Rt >> 7) + Af;
-			Gf = (Gf * Gt >> 7) + Af;
-			Bf = (Bf * Bt >> 7) + Af;
-			Af = m_ctxt->TEX0.TCC ? (Af + At) : Af;
-			break;
-		case 3:
-			Rf = (Rf * Rt >> 7) + Af;
-			Gf = (Gf * Gt >> 7) + Af;
-			Bf = (Bf * Bt >> 7) + Af;
-			Af = m_ctxt->TEX0.TCC ? At : Af;
-			break;
-		}
+		DrawVertexTFX(Cf, v);
 	}
 
-	SaturateColor(&Cf[0]);
-
-	if(m_de.pPRIM->FGE)
+	if(m_pPRIM->FGE)
 	{
-		BYTE F = v.GetFog();
-		Rf = (F * Rf + (255 - F) * m_de.FOGCOL.FCR) >> 8;
-		Gf = (F * Gf + (255 - F) * m_de.FOGCOL.FCG) >> 8;
-		Bf = (F * Bf + (255 - F) * m_de.FOGCOL.FCB) >> 8;
+		Vertex::Scalar a = Cf.a;
+		Vertex::Vector Cfog((DWORD)m_de.FOGCOL.ai32[0]);
+		Cf = Cfog + (Cf - Cfog) * v.t.z;
+		Cf.a = a;
 	}
 
 	BOOL ZMSK = m_ctxt->ZBUF.ZMSK;
@@ -694,6 +553,8 @@ void GSRendererSoft<Vertex>::DrawVertex(int x, int y, Vertex& v)
 	if(m_ctxt->TEST.ATE)
 	{
 		bool fPass = true;
+
+		BYTE Af = (BYTE)(int)Cf.a;
 
 		switch(m_ctxt->TEST.ATST)
 		{
@@ -705,6 +566,7 @@ void GSRendererSoft<Vertex>::DrawVertex(int x, int y, Vertex& v)
 		case 5: fPass = Af >= m_ctxt->TEST.AREF; break;
 		case 6: fPass = Af > m_ctxt->TEST.AREF; break;
 		case 7: fPass = Af != m_ctxt->TEST.AREF; break;
+		default: __assume(0);
 		}
 
 		if(!fPass)
@@ -715,52 +577,48 @@ void GSRendererSoft<Vertex>::DrawVertex(int x, int y, Vertex& v)
 			case 1: ZMSK = 1; break; // RGBA
 			case 2: FBMSK = 0xffffffff; break; // Z
 			case 3: FBMSK = 0xff000000; ZMSK = 1; break; // RGB
+			default: __assume(0);
 			}
 		}
 	}
 
 	if(!ZMSK)
 	{
-		(m_lm.*ztbl.wpa)(addrz, vz);
+		(m_lm.*m_ctxt->ztbl->wpa)(addrz, vz);
 	}
 
 	if(FBMSK != ~0)
 	{
-		DWORD addr = (ftbl.pa)(x, y, m_ctxt->FRAME.FBP<<5, m_ctxt->FRAME.FBW);
+		DWORD addr = (m_ctxt->ftbl->pa)(x, y, m_ctxt->FRAME.FBP<<5, m_ctxt->FRAME.FBW);
 
 		if(m_ctxt->TEST.DATE && m_ctxt->FRAME.PSM <= PSM_PSMCT16S && m_ctxt->FRAME.PSM != PSM_PSMCT24)
 		{
-			BYTE A = (BYTE)((m_lm.*ftbl.rpa)(addr) >> (m_ctxt->FRAME.PSM == PSM_PSMCT32 ? 31 : 15));
-			if(A ^ m_ctxt->TEST.DATM) return; // FIXME: vf4 missing mem card screen / the blue background of the text
+			BYTE A = (BYTE)((m_lm.*m_ctxt->ftbl->rpa)(addr) >> (m_ctxt->FRAME.PSM == PSM_PSMCT32 ? 31 : 15));
+			if(A ^ m_ctxt->TEST.DATM) return;
 		}
 
 		// FIXME: for AA1 the value of Af should be calculated from the pixel coverage...
 
-		bool fABE = (m_de.pPRIM->ABE || (m_de.pPRIM->PRIM == 1 || m_de.pPRIM->PRIM == 2) && m_de.pPRIM->AA1) && (!m_de.PABE.PABE || (Af&0x80));
+		bool fABE = (m_pPRIM->ABE || (m_pPRIM->PRIM == 1 || m_pPRIM->PRIM == 2) && m_pPRIM->AA1) && (!m_de.PABE.PABE || ((int)Cf.a >= 0x80));
 
-		DWORD Cd = 0;
+		Vertex::Vector Cd;
 
 		if(FBMSK || fABE)
 		{
-			Cd = (m_lm.*ftbl.rta)(addr, m_ctxt->TEX0, m_de.TEXA);
+			Cd = (m_lm.*m_ctxt->ftbl->rta)(addr, m_ctxt->TEX0, m_de.TEXA);
 		}
 
 		if(fABE)
 		{
-			BYTE R[3] = {Rf, (Cd>>0)&0xff, 0};
-			BYTE G[3] = {Gf, (Cd>>8)&0xff, 0};
-			BYTE B[3] = {Bf, (Cd>>16)&0xff, 0};
-			BYTE A[3] = {Af, (Cd>>24)&0xff, m_ctxt->ALPHA.FIX};
+			Vertex::Vector CsCdA[3] = {Cf, Cd, Vertex::Vector(Vertex::Scalar(0), Vertex::Scalar(0), Vertex::Scalar(0), Vertex::Scalar((int)m_ctxt->ALPHA.FIX))};
 
-			BYTE ALPHA_A = m_ctxt->ALPHA.A;
-			BYTE ALPHA_B = m_ctxt->ALPHA.B;
-			BYTE ALPHA_C = m_ctxt->ALPHA.C;
-			BYTE ALPHA_D = m_ctxt->ALPHA.D;
-
-			Rf = ((R[ALPHA_A] - R[ALPHA_B]) * A[ALPHA_C] >> 7) + R[ALPHA_D];
-			Gf = ((G[ALPHA_A] - G[ALPHA_B]) * A[ALPHA_C] >> 7) + G[ALPHA_D];
-			Bf = ((B[ALPHA_A] - B[ALPHA_B]) * A[ALPHA_C] >> 7) + B[ALPHA_D];
+			Vertex::Scalar a = Cf.a;
+			Cf = (CsCdA[m_ctxt->ALPHA.A] - CsCdA[m_ctxt->ALPHA.B]) * CsCdA[m_ctxt->ALPHA.C].a * Vertex::Scalar(2.0f/256) + CsCdA[m_ctxt->ALPHA.D];
+			Cf.a = a;
 		}
+
+		union {struct {BYTE Rf, Gf, Bf, Af;}; DWORD Cdw;};
+		Cdw = Cf;
 
 		if(m_de.DTHE.DTHE)
 		{
@@ -770,11 +628,6 @@ void GSRendererSoft<Vertex>::DrawVertex(int x, int y, Vertex& v)
 			Bf += DMxy;
 		}
 
-		ASSERT(Rf >= SHRT_MIN && Rf < SHRT_MAX);
-		ASSERT(Gf >= SHRT_MIN && Gf < SHRT_MAX);
-		ASSERT(Bf >= SHRT_MIN && Bf < SHRT_MAX);
-		ASSERT(Af >= SHRT_MIN && Af < SHRT_MAX);
-
 		Rf = m_clamp[Rf];
 		Gf = m_clamp[Gf];
 		Bf = m_clamp[Bf];
@@ -782,16 +635,131 @@ void GSRendererSoft<Vertex>::DrawVertex(int x, int y, Vertex& v)
 
 		Af |= (m_ctxt->FBA.FBA << 7);
 
-		Cd = (((Af << 24) | (Bf << 16) | (Gf << 8) | (Rf << 0)) & ~FBMSK) | (Cd & FBMSK);
+		Cdw = (Cdw & ~FBMSK) | (Cd & FBMSK);
 
-		(m_lm.*ftbl.wfa)(addr, Cd);
+		(m_lm.*m_ctxt->ftbl->wfa)(addr, Cdw);
 	}
+}
+
+static const float one_over_log2 = 1.0f / log(2.0f);
+
+template <class Vertex>
+void GSRendererSoft<Vertex>::DrawVertexTFX(typename Vertex::Vector& Cf, const Vertex& v)
+{
+	ASSERT(m_pPRIM->TME);
+
+	int tw = 1 << m_ctxt->TEX0.TW;
+	int th = 1 << m_ctxt->TEX0.TH;
+
+	Vertex::Scalar w = Vertex::Scalar(v.t.q);
+	w.rcp();
+
+	Vertex::Scalar tu = v.t.x * w * tw;
+	Vertex::Scalar tv = v.t.y * w * th;
+
+	int itu[2] = {(int)tu, (int)tu+1};
+	int itv[2] = {(int)tv, (int)tv+1};
+
+	for(int i = 0; i < countof(itu); i++)
+	{
+		switch(m_ctxt->CLAMP.WMS)
+		{
+		case 0: itu[i] = itu[i] & (tw-1); break;
+		case 1: itu[i] = itu[i] < 0 ? 0 : itu[i] >= tw ? itu[i] = tw-1 : itu[i]; break;
+		case 2: itu[i] = itu[i] < m_ctxt->CLAMP.MINU ? m_ctxt->CLAMP.MINU : itu[i] > m_ctxt->CLAMP.MAXU ? m_ctxt->CLAMP.MAXU : itu[i]; break;
+		case 3: itu[i] = (itu[i] & m_ctxt->CLAMP.MINU) | m_ctxt->CLAMP.MAXU; break;
+		default: __assume(0);
+		}
+
+		ASSERT(itu[i] >= 0 && itu[i] < tw);
+	}
+
+	for(int i = 0; i < countof(itv); i++)
+	{
+		switch(m_ctxt->CLAMP.WMT)
+		{
+		case 0: itv[i] = itv[i] & (th-1); break;
+		case 1: itv[i] = itv[i] < 0 ? 0 : itv[i] >= th ? itv[i] = th-1 : itv[i]; break;
+		case 2: itv[i] = itv[i] < m_ctxt->CLAMP.MINV ? m_ctxt->CLAMP.MINV : itv[i] > m_ctxt->CLAMP.MAXV ? m_ctxt->CLAMP.MAXV : itv[i]; break;
+		case 3: itv[i] = (itv[i] & m_ctxt->CLAMP.MINV) | m_ctxt->CLAMP.MAXV; break;
+		default: __assume(0);
+		}
+
+		ASSERT(itv[i] >= 0 && itv[i] < th);
+	}
+
+	Vertex::Vector Ct[4];
+
+	float lod = (float)m_ctxt->TEX1.K;
+	if(!m_ctxt->TEX1.LCM) lod += log(fabs(w)) * one_over_log2 * (1 << m_ctxt->TEX1.L);
+
+	if(lod <= 0 && (m_ctxt->TEX1.MMAG & 1) || lod > 0 && (m_ctxt->TEX1.MMIN & 1))
+	{
+		if(m_pTexture)
+		{
+			Ct[0] = m_pTexture[(itv[0] << m_ctxt->TEX0.TW) + itu[0]];
+			Ct[1] = m_pTexture[(itv[0] << m_ctxt->TEX0.TW) + itu[1]];
+			Ct[2] = m_pTexture[(itv[1] << m_ctxt->TEX0.TW) + itu[0]];
+			Ct[3] = m_pTexture[(itv[1] << m_ctxt->TEX0.TW) + itu[1]];
+		}
+		else
+		{
+			Ct[0] = (m_lm.*m_ctxt->ttbl->rt)(itu[0], itv[0], m_ctxt->TEX0, m_de.TEXA);
+			Ct[1] = (m_lm.*m_ctxt->ttbl->rt)(itu[1], itv[0], m_ctxt->TEX0, m_de.TEXA);
+			Ct[2] = (m_lm.*m_ctxt->ttbl->rt)(itu[0], itv[1], m_ctxt->TEX0, m_de.TEXA);
+			Ct[3] = (m_lm.*m_ctxt->ttbl->rt)(itu[1], itv[1], m_ctxt->TEX0, m_de.TEXA);
+		}
+
+		Vertex::Scalar ftu = tu - tu.floor_s();
+		Vertex::Scalar ftv = tv - tv.floor_s();		
+
+		Ct[0] = Ct[0] + (Ct[1] - Ct[0]) * ftu;
+		Ct[2] = Ct[2] + (Ct[3] - Ct[2]) * ftu;
+		Ct[0] = Ct[0] + (Ct[2] - Ct[0]) * ftv;
+	}
+	else 
+	{
+		if(m_pTexture)
+		{
+			Ct[0] = m_pTexture[(itv[0] << m_ctxt->TEX0.TW) + itu[0]];
+		}
+		else
+		{
+			Ct[0] = (m_lm.*m_ctxt->ttbl->rt)(itu[0], itv[0], m_ctxt->TEX0, m_de.TEXA);
+		}
+	}
+
+	Vertex::Scalar a = Cf.a;
+
+	// switch(m_ctxt->TEX0.TFX)
+	switch((m_ctxt->TEX0.ai32[1]>>3)&3)
+	{
+	case 0:
+		Cf = Cf * Ct[0] * Vertex::Scalar(2.0f/256);
+		if(!m_ctxt->TEX0.TCC) Cf.a = a;
+		break;
+	case 1:
+		Cf = Ct[0];
+		break;
+	case 2:
+		Cf = Cf * Ct[0] * Vertex::Scalar(2.0f/256) + Cf.a;
+		Cf.a = !m_ctxt->TEX0.TCC ? a : (Ct[0].a + a);
+		break;
+	case 3:
+		Cf = Cf * Ct[0] * Vertex::Scalar(2.0f/256) + Cf.a;
+		Cf.a = !m_ctxt->TEX0.TCC ? a : Ct[0].a;
+		break;
+	default: 
+		__assume(0);
+	}
+
+	Cf.sat();
 }
 
 template <class Vertex>
 void GSRendererSoft<Vertex>::SetTexture()
 {
-	if(m_de.pPRIM->TME)
+	if(m_pPRIM->TME)
 	{
 		m_lm.SetupCLUT32(m_ctxt->TEX0, m_de.TEXA);
 	}
@@ -810,36 +778,38 @@ void GSRendererSoftFP::VertexKick(bool fSkip)
 {
 	GSSoftVertexFP& v = m_vl.AddTail();
 
-	v.x = ((float)m_v.XYZ.X - m_ctxt->XYOFFSET.OFX) / 16;
-	v.y = ((float)m_v.XYZ.Y - m_ctxt->XYOFFSET.OFY) / 16;
-	v.z = (float)m_v.XYZ.Z / UINT_MAX;
-	v.q = m_v.RGBAQ.Q == 0 ? 1.0f : m_v.RGBAQ.Q;
+	v.c = (DWORD)m_v.RGBAQ.ai32[0];
 
-	v.r = (float)m_v.RGBAQ.R;
-	v.g = (float)m_v.RGBAQ.G;
-	v.b = (float)m_v.RGBAQ.B;
-	v.a = (float)m_v.RGBAQ.A;
+	v.p.x = (int)m_v.XYZ.X - (int)m_ctxt->XYOFFSET.OFX;
+	v.p.y = (int)m_v.XYZ.Y - (int)m_ctxt->XYOFFSET.OFY;
+	v.p *= GSSoftVertexFP::Scalar(1.0f/16);
+	v.p.z = (float)(m_v.XYZ.Z >> 16);
+	v.p.q = (float)(m_v.XYZ.Z & 0xffff);
 
-	v.fog = (float)m_v.FOG.F;
-
-	if(m_de.pPRIM->TME)
+	if(m_pPRIM->TME)
 	{
-		if(m_de.pPRIM->FST)
+		if(m_pPRIM->FST)
 		{
-			v.u = (float)m_v.UV.U / (16<<m_ctxt->TEX0.TW);
-			v.v = (float)m_v.UV.V / (16<<m_ctxt->TEX0.TH);
-			v.q = 1.0f;
+			v.t.x = (float)m_v.UV.U / (16 << m_ctxt->TEX0.TW);
+			v.t.y = (float)m_v.UV.V / (16 << m_ctxt->TEX0.TH);
+			v.t.q = 1.0f;
 		}
 		else
 		{
-			v.u = m_v.ST.S;
-			v.v = m_v.ST.T;
+			v.t.x = m_v.ST.S;
+			v.t.y = m_v.ST.T;
+			v.t.q = m_v.RGBAQ.Q;
 		}
+	}
+
+	if(m_pPRIM->FGE)
+	{
+		v.t.z = (float)m_v.FOG.F * (1.0f/255);
 	}
 
 	__super::VertexKick(fSkip);
 }
-
+/*
 //
 // GSRendererSoftFX
 //
@@ -853,295 +823,35 @@ void GSRendererSoftFX::VertexKick(bool fSkip)
 {
 	GSSoftVertexFX& v = m_vl.AddTail();
 
-	v.x = ((int)m_v.XYZ.X - m_ctxt->XYOFFSET.OFX) << 12;
-	v.y = ((int)m_v.XYZ.Y - m_ctxt->XYOFFSET.OFY) << 12;
-	v.z = (unsigned __int64)m_v.XYZ.Z << 32;
-	v.q = m_v.RGBAQ.Q == 0 ? INT_MAX : (__int64)(m_v.RGBAQ.Q * INT_MAX);
+	v.c = (DWORD)m_v.RGBAQ.ai32[0];
 
-	v.r = m_v.RGBAQ.R << 16;
-	v.g = m_v.RGBAQ.G << 16;
-	v.b = m_v.RGBAQ.B << 16;
-	v.a = m_v.RGBAQ.A << 16;
+	v.p.x = ((int)m_v.XYZ.X - (int)m_ctxt->XYOFFSET.OFX) << 12;
+	v.p.y = ((int)m_v.XYZ.Y - (int)m_ctxt->XYOFFSET.OFY) << 12;
+	v.p.z = (int)((m_v.XYZ.Z & 0xffff0000) >> 1);
+	v.p.q = (int)((m_v.XYZ.Z & 0x0000ffff) << 15);
 
-	v.fog = m_v.FOG.F << 16;
-
-	if(m_de.pPRIM->TME)
+	if(m_pPRIM->TME)
 	{
-		if(m_de.pPRIM->FST)
+		if(m_pPRIM->FST)
 		{
-			v.u = (__int64)(((float)m_v.UV.U / (16<<m_ctxt->TEX0.TW)) * INT_MAX);
-			v.v = (__int64)(((float)m_v.UV.V / (16<<m_ctxt->TEX0.TH)) * INT_MAX);
-			v.q = INT_MAX;
+			v.t.x = ((int)m_v.UV.U << (12 >> m_ctxt->TEX0.TW));
+			v.t.y = ((int)m_v.UV.V << (12 >> m_ctxt->TEX0.TH));
+			v.t.q = 1<<16;
 		}
 		else
 		{
-			v.u = (__int64)(m_v.ST.S * INT_MAX);
-			v.v = (__int64)(m_v.ST.T * INT_MAX);
+			// TODO
+			v.t.x = m_v.ST.S;
+			v.t.y = m_v.ST.T;
+			v.t.q = m_v.RGBAQ.Q;
 		}
+	}
+
+	if(m_pPRIM->FGE)
+	{
+		v.t.z = (int)m_v.FOG.F << 8;
 	}
 
 	__super::VertexKick(fSkip);
 }
-
-void GSRendererSoftFX::DrawVertex(int x, int y, GSSoftVertexFX& v)
-{
-	GSLocalMemory::psmtbl_t& ttbl = GSLocalMemory::m_psmtbl[m_ctxt->TEX0.PSM];
-	GSLocalMemory::psmtbl_t& ztbl = GSLocalMemory::m_psmtbl[m_ctxt->ZBUF.PSM];
-	GSLocalMemory::psmtbl_t& ftbl = GSLocalMemory::m_psmtbl[m_ctxt->FRAME.PSM];
-
-	DWORD addrz = 0;
-
-	if(m_ctxt->ZBUF.ZMSK == 0 || m_ctxt->TEST.ZTE && m_ctxt->TEST.ZTST >= 2)
-	{
-		addrz = (ztbl.pa)(x, y, m_ctxt->ZBUF.ZBP<<5, m_ctxt->FRAME.FBW);
-	}
-
-	DWORD vz = v.GetZ();
-
-	if(m_ctxt->TEST.ZTE && m_ctxt->TEST.ZTST != 1)
-	{
-		if(m_ctxt->TEST.ZTST == 0)
-			return;
-
-		DWORD z = (m_lm.*ztbl.rpa)(addrz);
-		if(m_ctxt->TEST.ZTST == 2 && vz < z || m_ctxt->TEST.ZTST == 3 && vz <= z)
-			return;
-	}
-
-	__declspec(align(16)) union {struct {int Rf, Gf, Bf, Af;}; int Cf[4];};
-	v.GetColor(Cf);
-
-	if(m_de.pPRIM->TME)
-	{
-		int tw = 1 << m_ctxt->TEX0.TW;
-		int th = 1 << m_ctxt->TEX0.TH;
-		__int64 tu = (v.u << 16 << m_ctxt->TEX0.TW) / v.q;
-		__int64 tv = (v.v << 16 << m_ctxt->TEX0.TH) / v.q;
-
-		// TODO
-/*		static const float log_2 = log(2.0f);
-		float lod = m_ctxt->TEX1.K;
-		//if(!m_ctxt->TEX1.LCM) lod += (int)(-log((float)v.q/INT_MAX)/log_2) << m_ctxt->TEX1.L;
-		if(!m_ctxt->TEX1.LCM) lod += (int)(-log((float)v.q) / log_2 + 31) << m_ctxt->TEX1.L;
 */
-		DWORD ftu = (((DWORD)tu)&0xffff) >> 1, iftu = (1<<15) - ftu;
-		DWORD ftv = (((DWORD)tv)&0xffff) >> 1, iftv = (1<<15) - ftv;
-		tu >>= 16;
-		tv >>= 16;
-
-		int itu[2] = {(int)tu, (int)tu+1};
-		int itv[2] = {(int)tv, (int)tv+1};
-
-		for(int i = 0; i < countof(itu); i++)
-		{
-			switch(m_ctxt->CLAMP.WMS)
-			{
-			case 0: itu[i] = itu[i] & (tw-1); break;
-			case 1: itu[i] = itu[i] < 0 ? 0 : itu[i] >= tw ? itu[i] = tw-1 : itu[i]; break;
-			case 2: itu[i] = itu[i] < m_ctxt->CLAMP.MINU ? m_ctxt->CLAMP.MINU : itu[i] > m_ctxt->CLAMP.MAXU ? m_ctxt->CLAMP.MAXU : itu[i]; if(itu[i] > tw-1) itu[i] = tw-1; break;
-			case 3: itu[i] = (itu[i] & m_ctxt->CLAMP.MINU) | m_ctxt->CLAMP.MAXU; break;
-			}
-
-			ASSERT(itu[i] >= 0 && itu[i] < tw);
-		}
-
-		for(int i = 0; i < countof(itv); i++)
-		{
-			switch(m_ctxt->CLAMP.WMT)
-			{
-			case 0: itv[i] = itv[i] & (th-1); break;
-			case 1: itv[i] = itv[i] < 0 ? 0 : itv[i] >= th ? itv[i] = th-1 : itv[i]; break;
-			case 2: itv[i] = itv[i] < m_ctxt->CLAMP.MINV ? m_ctxt->CLAMP.MINV : itv[i] > m_ctxt->CLAMP.MAXV ? m_ctxt->CLAMP.MAXV : itv[i]; if(itv[i] > th-1) itv[i] = th-1; break;
-			case 3: itv[i] = (itv[i] & m_ctxt->CLAMP.MINV) | m_ctxt->CLAMP.MAXV; break;
-			}
-
-			ASSERT(itv[i] >= 0 && itv[i] < th);
-		}
-
-		DWORD c[4];
-		WORD Bt, Gt, Rt, At;
-
-//		if((lod <= 0 ? m_ctxt->TEX1.MMAG : m_ctxt->TEX1.MMIN) & 1)
-		{
-			if(m_pTexture)
-			{
-				c[0] = m_pTexture[(itv[0] << m_ctxt->TEX0.TW) + itu[0]];
-				c[1] = m_pTexture[(itv[0] << m_ctxt->TEX0.TW) + itu[1]];
-				c[2] = m_pTexture[(itv[1] << m_ctxt->TEX0.TW) + itu[0]];
-				c[3] = m_pTexture[(itv[1] << m_ctxt->TEX0.TW) + itu[1]];
-			}
-			else
-			{
-				c[0] = (m_lm.*ttbl.rt)(itu[0], itv[0], m_ctxt->TEX0, m_de.TEXA);
-				c[1] = (m_lm.*ttbl.rt)(itu[1], itv[0], m_ctxt->TEX0, m_de.TEXA);
-				c[2] = (m_lm.*ttbl.rt)(itu[0], itv[1], m_ctxt->TEX0, m_de.TEXA);
-				c[3] = (m_lm.*ttbl.rt)(itu[1], itv[1], m_ctxt->TEX0, m_de.TEXA);
-			}
-
-			DWORD iuiv = iftu*iftv >> 15;
-			DWORD uiv = ftu*iftv >> 15;
-			DWORD iuv = iftu*ftv >> 15;
-			DWORD uv = ftu*ftv >> 15;
-
-			Rt = (WORD)((iuiv*((c[0]>> 0)&0xff) + uiv*((c[1]>> 0)&0xff) + iuv*((c[2]>> 0)&0xff) + uv*((c[3]>> 0)&0xff)) >> 15);
-			Gt = (WORD)((iuiv*((c[0]>> 8)&0xff) + uiv*((c[1]>> 8)&0xff) + iuv*((c[2]>> 8)&0xff) + uv*((c[3]>> 8)&0xff)) >> 15);
-			Bt = (WORD)((iuiv*((c[0]>>16)&0xff) + uiv*((c[1]>>16)&0xff) + iuv*((c[2]>>16)&0xff) + uv*((c[3]>>16)&0xff)) >> 15);
-			At = (WORD)((iuiv*((c[0]>>24)&0xff) + uiv*((c[1]>>24)&0xff) + iuv*((c[2]>>24)&0xff) + uv*((c[3]>>24)&0xff)) >> 15);
-		}
-		/*
-		else
-		{
-			if(m_pTexture)
-			{
-				c[0] = m_pTexture[(itv[0] << m_ctxt->TEX0.TW) + itu[0]];
-			}
-			else
-			{
-				c[0] = (m_lm.*m_ctxt->rt)(itu[0], itv[0], m_ctxt->TEX0, m_de.TEXA);
-			}
-
-			Rt = (BYTE)((c[0]>>0)&0xff);
-			Gt = (BYTE)((c[0]>>8)&0xff);
-			Bt = (BYTE)((c[0]>>16)&0xff);
-			At = (BYTE)((c[0]>>24)&0xff);
-		}
-		*/
-
-		switch(m_ctxt->TEX0.TFX)
-		{
-		case 0:
-			Rf = Rf * Rt >> 7;
-			Gf = Gf * Gt >> 7;
-			Bf = Bf * Bt >> 7;
-			Af = m_ctxt->TEX0.TCC ? (Af * At >> 7) : Af;
-			break;
-		case 1:
-			Rf = Rt;
-			Gf = Gt;
-			Bf = Bt;
-			Af = At;
-			break;
-		case 2:
-			Rf = (Rf * Rt >> 7) + Af;
-			Gf = (Gf * Gt >> 7) + Af;
-			Bf = (Bf * Bt >> 7) + Af;
-			Af = m_ctxt->TEX0.TCC ? (Af + At) : Af;
-			break;
-		case 3:
-			Rf = (Rf * Rt >> 7) + Af;
-			Gf = (Gf * Gt >> 7) + Af;
-			Bf = (Bf * Bt >> 7) + Af;
-			Af = m_ctxt->TEX0.TCC ? At : Af;
-			break;
-		}
-	}
-
-	SaturateColor(&Cf[0]);
-
-	if(m_de.pPRIM->FGE)
-	{
-		BYTE F = v.GetFog();
-		Rf = (F * Rf + (255 - F) * m_de.FOGCOL.FCR) >> 8;
-		Gf = (F * Gf + (255 - F) * m_de.FOGCOL.FCG) >> 8;
-		Bf = (F * Bf + (255 - F) * m_de.FOGCOL.FCB) >> 8;
-	}
-
-	BOOL ZMSK = m_ctxt->ZBUF.ZMSK;
-	DWORD FBMSK = m_ctxt->FRAME.FBMSK;
-
-	if(m_ctxt->TEST.ATE)
-	{
-		bool fPass = true;
-
-		switch(m_ctxt->TEST.ATST)
-		{
-		case 0: fPass = false; break;
-		case 1: fPass = true; break;
-		case 2: fPass = Af < m_ctxt->TEST.AREF; break;
-		case 3: fPass = Af <= m_ctxt->TEST.AREF; break;
-		case 4: fPass = Af == m_ctxt->TEST.AREF; break;
-		case 5: fPass = Af >= m_ctxt->TEST.AREF; break;
-		case 6: fPass = Af > m_ctxt->TEST.AREF; break;
-		case 7: fPass = Af != m_ctxt->TEST.AREF; break;
-		}
-
-		if(!fPass)
-		{
-			switch(m_ctxt->TEST.AFAIL)
-			{
-			case 0: return;
-			case 1: ZMSK = 1; break; // RGBA
-			case 2: FBMSK = 0xffffffff; break; // Z
-			case 3: FBMSK = 0xff000000; ZMSK = 1; break; // RGB
-			}
-		}
-	}
-
-	if(!ZMSK)
-	{
-		(m_lm.*ztbl.wpa)(addrz, vz);
-	}
-
-	if(FBMSK != ~0)
-	{
-		DWORD addr = (ftbl.pa)(x, y, m_ctxt->FRAME.FBP<<5, m_ctxt->FRAME.FBW);
-
-		if(m_ctxt->TEST.DATE && m_ctxt->FRAME.PSM <= PSM_PSMCT16S && m_ctxt->FRAME.PSM != PSM_PSMCT24)
-		{
-			BYTE A = (m_lm.*ftbl.rpa)(addr) >> (m_ctxt->FRAME.PSM == PSM_PSMCT32 ? 31 : 15);
-			if(A ^ m_ctxt->TEST.DATM) return; // FIXME: vf4 missing mem card screen / the blue background of the text
-		}
-
-		// FIXME: for AA1 the value of Af should be calculated from the pixel coverage...
-
-		bool fABE = (m_de.pPRIM->ABE || (m_de.pPRIM->PRIM == 1 || m_de.pPRIM->PRIM == 2) && m_de.pPRIM->AA1) && (!m_de.PABE.PABE || (Af&0x80));
-
-		DWORD Cd = 0;
-
-		if(FBMSK || fABE)
-		{
-			Cd = (m_lm.*ftbl.rta)(addr, m_ctxt->TEX0, m_de.TEXA);
-		}
-
-		if(fABE)
-		{
-			BYTE R[3] = {Rf, (Cd>>0)&0xff, 0};
-			BYTE G[3] = {Gf, (Cd>>8)&0xff, 0};
-			BYTE B[3] = {Bf, (Cd>>16)&0xff, 0};
-			BYTE A[3] = {Af, (Cd>>24)&0xff, m_ctxt->ALPHA.FIX};
-
-			BYTE ALPHA_A = m_ctxt->ALPHA.A;
-			BYTE ALPHA_B = m_ctxt->ALPHA.B;
-			BYTE ALPHA_C = m_ctxt->ALPHA.C;
-			BYTE ALPHA_D = m_ctxt->ALPHA.D;
-
-			Rf = ((R[ALPHA_A] - R[ALPHA_B]) * A[ALPHA_C] >> 7) + R[ALPHA_D];
-			Gf = ((G[ALPHA_A] - G[ALPHA_B]) * A[ALPHA_C] >> 7) + G[ALPHA_D];
-			Bf = ((B[ALPHA_A] - B[ALPHA_B]) * A[ALPHA_C] >> 7) + B[ALPHA_D];
-		}
-
-		if(m_de.DTHE.DTHE)
-		{
-			WORD DMxy = (*((WORD*)&m_de.DIMX.i64 + (y&3)) >> ((x&3)<<2)) & 7;
-			Rf += DMxy;
-			Gf += DMxy;
-			Bf += DMxy;
-		}
-
-		ASSERT(Rf >= SHRT_MIN && Rf < SHRT_MAX);
-		ASSERT(Gf >= SHRT_MIN && Gf < SHRT_MAX);
-		ASSERT(Bf >= SHRT_MIN && Bf < SHRT_MAX);
-		ASSERT(Af >= SHRT_MIN && Af < SHRT_MAX);
-
-		Rf = m_clamp[Rf];
-		Gf = m_clamp[Gf];
-		Bf = m_clamp[Bf];
-		Af = m_clamp[Af]; // ?
-
-		Af |= (m_ctxt->FBA.FBA << 7);
-
-		Cd = (((Af << 24) | (Bf << 16) | (Gf << 8) | (Rf << 0)) & ~FBMSK) | (Cd & FBMSK);
-
-		(m_lm.*ftbl.wfa)(addr, Cd);
-	}
-}

@@ -1,5 +1,5 @@
 /* 
- *	Copyright (C) 2003-2004 Gabest
+ *	Copyright (C) 2003-2005 Gabest
  *	http://www.gabest.org
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -39,10 +39,10 @@ static class cdscd
 		return str;
 	}
 public:
+
 	cdscd()
 	{
 		return;
-//
 /*
 		union
 		{

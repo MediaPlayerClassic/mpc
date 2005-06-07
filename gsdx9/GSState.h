@@ -1,5 +1,5 @@
 /* 
- *	Copyright (C) 2003-2004 Gabest
+ *	Copyright (C) 2003-2005 Gabest
  *	http://www.gabest.org
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -33,9 +33,9 @@
 #define ENABLE_CAPTURE_STATE
 ////
 
-/*
+
 //#define DEBUG_SAVETEXTURES
-#define DEBUG_LOG
+/*#define DEBUG_LOG
 #define DEBUG_LOG2
 #define DEBUG_LOGVERTICES
 #define DEBUG_RENDERTARGETS
@@ -58,11 +58,15 @@ struct GSDrawingContext
 	GIFRegFBA		FBA;
 	GIFRegFRAME		FRAME;
 	GIFRegZBUF		ZBUF;
+
+	GSLocalMemory::psmtbl_t* ftbl;
+	GSLocalMemory::psmtbl_t* ztbl;
+	GSLocalMemory::psmtbl_t* ttbl;
 };
 
 struct GSDrawingEnvironment
 {
-	struct GSDrawingEnvironment() {memset(this, 0, sizeof(*this)); pPRIM = &PRIM;}
+	struct GSDrawingEnvironment() {memset(this, 0, sizeof(*this));}
 
 	GIFRegPRIM			PRIM;
 	GIFRegPRMODE		PRMODE;
@@ -76,7 +80,6 @@ struct GSDrawingEnvironment
 	GIFRegCOLCLAMP		COLCLAMP;
 	GIFRegPABE			PABE;
 	GSDrawingContext	CTXT[2];
-	GIFRegPRIM*			pPRIM;
 };
 
 struct GSRegSet
@@ -146,7 +149,7 @@ class GSState
 	friend class GSTextureCache;
 
 protected:
-	static const int m_version = 1;
+	static const int m_version = 2;
 
 	GSLocalMemory m_lm;
 	GSDrawingEnvironment m_de;
@@ -205,12 +208,14 @@ protected:
 
 	void FlushPrimInternal();
 
-	UINT32 m_PRIM;
-
 	//
 
 	GIFTag m_tag;
 	int m_nreg;
+
+	// FIXME: savestate
+	GIFRegPRIM* m_pPRIM;
+	UINT32 m_PRIM;
 
 	GSRegCSR* m_pCSRr;
 	void (*m_fpGSirq)();

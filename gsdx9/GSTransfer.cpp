@@ -1,5 +1,5 @@
 /* 
- *	Copyright (C) 2003-2004 Gabest
+ *	Copyright (C) 2003-2005 Gabest
  *	http://www.gabest.org
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -51,7 +51,7 @@ void GSState::WriteTransfer(BYTE* pMem, int len)
 	if(len == 0) return;
 
 	// TODO: hmmmm
-	if(m_de.pPRIM->TME && (m_rs.BITBLTBUF.DBP == m_ctxt->TEX0.TBP0 || m_rs.BITBLTBUF.DBP == m_ctxt->TEX0.CBP))
+	if(m_pPRIM->TME && (m_rs.BITBLTBUF.DBP == m_ctxt->TEX0.TBP0 || m_rs.BITBLTBUF.DBP == m_ctxt->TEX0.CBP))
 		FlushPrim();
 
 	int bpp = GSLocalMemory::m_psmtbl[m_rs.BITBLTBUF.DPSM].trbpp;
