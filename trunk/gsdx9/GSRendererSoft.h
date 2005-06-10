@@ -39,7 +39,7 @@ protected:
 	void DrawLine(Vertex* v);
 	void DrawTriangle(Vertex* v);
 	void DrawSprite(Vertex* v);
-	bool DrawFilledRect(int left, int top, int right, int bottom, Vertex& v);
+	bool DrawFilledRect(int left, int top, int right, int bottom, const Vertex& v);
 
 	virtual void DrawVertex(int x, int y, const Vertex& v);
 	virtual void DrawVertexTFX(typename Vertex::Vector& Cf, const Vertex& v);
@@ -47,7 +47,10 @@ protected:
 	CComPtr<IDirect3DTexture9> m_pRT[2];
 
 	DWORD* m_pTexture;
-	void SetTexture();
+	void SetupTexture();
+
+	struct uv_wrap_t {union {struct {short min[8], max[8];}; struct {short and[8], or[8];};}; unsigned short mask[8];}* m_uv;
+	void SetupTextureWrap();
 
 	CRect m_scissor;
 	BYTE m_clip[65536];

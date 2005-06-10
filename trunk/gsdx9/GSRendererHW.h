@@ -23,32 +23,26 @@
 
 #include "GSRenderer.h"
 
-#define D3DFVF_HWVERTEX (D3DFVF_XYZRHW|D3DFVF_DIFFUSE|D3DFVF_SPECULAR|D3DFVF_TEX1)
-
 #pragma pack(push, 1)
-__declspec(align(16)) union HWVERTEX
+__declspec(align(16)) union GSVertexHW
 {
 	struct
 	{
 		float x, y, z, rhw;
-		D3DCOLOR color, fog;
+		union {struct {BYTE r, g, b, a;}; D3DCOLOR color;};
+		D3DCOLOR fog;
 		float tu, tv;
 	};
 	
-	__m128i xmm[2];
+	struct {__m128i xmm[2];};
 
 #if _M_IX86_FP >= 2 || defined(_M_AMD64)
-	HWVERTEX& operator = (HWVERTEX& v)
-	{
-		xmm[0] = v.xmm[0];
-		xmm[1] = v.xmm[1];
-		return *this;
-	}
+	GSVertexHW& operator = (GSVertexHW& v) {xmm[0] = v.xmm[0]; xmm[1] = v.xmm[1]; return *this;}
 #endif
 };
 #pragma pack(pop)
 
-class GSRendererHW : public GSRenderer<HWVERTEX>
+class GSRendererHW : public GSRenderer<GSVertexHW>
 {
 protected:
 	CSurfMap<IDirect3DTexture9> m_pRenderTargets;
@@ -82,7 +76,7 @@ public:
 
 	HRESULT ResetDevice(bool fForceWindowed = false);
 
-	void LOGVERTEX(HWVERTEX& v, LPCTSTR type)
+	void LOGVERTEX(GSVertexHW& v, LPCTSTR type)
 	{
 		int tw = 1, th = 1;
 		if(m_pPRIM->TME) {tw = 1<<m_ctxt->TEX0.TW; th = 1<<m_ctxt->TEX0.TH;}
