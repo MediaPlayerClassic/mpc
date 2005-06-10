@@ -33,11 +33,14 @@ GSRendererSoft<Vertex>::GSRendererSoft(HWND hWnd, HRESULT& hr)
 	for(; i < 0; i++, j++) m_clip[j] = 0, m_mask[j] = j&255;
 	for(; i < 256; i++, j++) m_clip[j] = i, m_mask[j] = j&255;
 	for(; i < SHRT_MAX; i++, j++) m_clip[j] = 255, m_mask[j] = j&255;
+
+	m_uv = (uv_wrap_t*)_aligned_malloc(sizeof(uv_wrap_t), 16);
 }
 
 template <class Vertex>
 GSRendererSoft<Vertex>::~GSRendererSoft()
 {
+	_aligned_free(m_uv);
 }
 
 template <class Vertex>
@@ -156,7 +159,9 @@ void GSRendererSoft<Vertex>::FlushPrim()
 {
 	if(m_nVertices > 0)
 	{
-		SetTexture();
+		SetupTexture();
+		
+		SetupTextureWrap();
 
 		m_scissor.SetRect(
 			max(m_ctxt->SCISSOR.SCAX0, 0),
@@ -315,8 +320,8 @@ void GSRendererSoft<Vertex>::DrawLine(Vertex* v)
 	Vertex dv = v[1] - v[0];
 
 	Vertex::Vector dp = dv.p;
-	dp.x.abs_s();
-	dp.y.abs_s();
+	dp.x.abs();
+	dp.y.abs();
 
 	int dx = (int)dp.x;
 	int dy = (int)dp.y;
@@ -464,7 +469,7 @@ void GSRendererSoft<Vertex>::DrawSprite(Vertex* v)
 }
 
 template <class Vertex>
-bool GSRendererSoft<Vertex>::DrawFilledRect(int left, int top, int right, int bottom, Vertex& v)
+bool GSRendererSoft<Vertex>::DrawFilledRect(int left, int top, int right, int bottom, const Vertex& v)
 {
 	if(left >= right || top >= bottom)
 		return false;
@@ -613,7 +618,7 @@ void GSRendererSoft<Vertex>::DrawVertex(int x, int y, const Vertex& v)
 			Vertex::Vector CsCdA[3] = {Cf, Cd, Vertex::Vector(Vertex::Scalar(0), Vertex::Scalar(0), Vertex::Scalar(0), Vertex::Scalar((int)m_ctxt->ALPHA.FIX))};
 
 			Vertex::Scalar a = Cf.a;
-			Cf = (CsCdA[m_ctxt->ALPHA.A] - CsCdA[m_ctxt->ALPHA.B]) * CsCdA[m_ctxt->ALPHA.C].a * Vertex::Scalar(2.0f/256) + CsCdA[m_ctxt->ALPHA.D];
+			Cf = ((CsCdA[m_ctxt->ALPHA.A] - CsCdA[m_ctxt->ALPHA.B]) * CsCdA[m_ctxt->ALPHA.C].a >> 7) + CsCdA[m_ctxt->ALPHA.D];
 			Cf.a = a;
 		}
 
@@ -651,67 +656,63 @@ void GSRendererSoft<Vertex>::DrawVertexTFX(typename Vertex::Vector& Cf, const Ve
 	int tw = 1 << m_ctxt->TEX0.TW;
 	int th = 1 << m_ctxt->TEX0.TH;
 
-	Vertex::Scalar w = Vertex::Scalar(v.t.q);
+	Vertex::Scalar w = v.t.q;
 	w.rcp();
 
 	Vertex::Scalar tu = v.t.x * w * tw;
 	Vertex::Scalar tv = v.t.y * w * th;
 
-	int itu[2] = {(int)tu, (int)tu+1};
-	int itv[2] = {(int)tv, (int)tv+1};
+	__declspec(align(16)) short ituv[8] = {(int)tu, (int)tu+1, (int)tv, (int)tv+1};
 
-	for(int i = 0; i < countof(itu); i++)
+#if _M_IX86_FP >= 2 || defined(_M_AMD64)
+
+	__m128i uv = _mm_load_si128((__m128i*)ituv);
+	__m128i mask = _mm_load_si128((__m128i*)m_uv->mask);
+	__m128i region = _mm_or_si128(_mm_and_si128(uv, *(__m128i*)m_uv->and), *(__m128i*)m_uv->or);
+	__m128i clamp = _mm_min_epi16(_mm_max_epi16(uv, *(__m128i*)m_uv->min), *(__m128i*)m_uv->max);
+	_mm_store_si128((__m128i*)ituv, _mm_or_si128(_mm_and_si128(region, mask), _mm_andnot_si128(mask, clamp)));
+
+#else
+
+	for(int i = 0; i < 4; i++)
 	{
-		switch(m_ctxt->CLAMP.WMS)
-		{
-		case 0: itu[i] = itu[i] & (tw-1); break;
-		case 1: itu[i] = itu[i] < 0 ? 0 : itu[i] >= tw ? itu[i] = tw-1 : itu[i]; break;
-		case 2: itu[i] = itu[i] < m_ctxt->CLAMP.MINU ? m_ctxt->CLAMP.MINU : itu[i] > m_ctxt->CLAMP.MAXU ? m_ctxt->CLAMP.MAXU : itu[i]; break;
-		case 3: itu[i] = (itu[i] & m_ctxt->CLAMP.MINU) | m_ctxt->CLAMP.MAXU; break;
-		default: __assume(0);
-		}
-
-		ASSERT(itu[i] >= 0 && itu[i] < tw);
+		short region = (ituv[i] & m_uv->and[i]) | m_uv->or[i];
+		short clamp = ituv[i] < m_uv->min[i] ? m_uv->min[i] : ituv[i] > m_uv->max[i] ? m_uv->max[i] : ituv[i];
+		ituv[i] = (region & m_uv->mask[i]) | (clamp & ~m_uv->mask[i]);
 	}
 
-	for(int i = 0; i < countof(itv); i++)
-	{
-		switch(m_ctxt->CLAMP.WMT)
-		{
-		case 0: itv[i] = itv[i] & (th-1); break;
-		case 1: itv[i] = itv[i] < 0 ? 0 : itv[i] >= th ? itv[i] = th-1 : itv[i]; break;
-		case 2: itv[i] = itv[i] < m_ctxt->CLAMP.MINV ? m_ctxt->CLAMP.MINV : itv[i] > m_ctxt->CLAMP.MAXV ? m_ctxt->CLAMP.MAXV : itv[i]; break;
-		case 3: itv[i] = (itv[i] & m_ctxt->CLAMP.MINV) | m_ctxt->CLAMP.MAXV; break;
-		default: __assume(0);
-		}
-
-		ASSERT(itv[i] >= 0 && itv[i] < th);
-	}
+#endif
 
 	Vertex::Vector Ct[4];
 
-	float lod = (float)m_ctxt->TEX1.K;
-	if(!m_ctxt->TEX1.LCM) lod += log(fabs(w)) * one_over_log2 * (1 << m_ctxt->TEX1.L);
+	bool fBiLinear = false; 
 
-	if(lod <= 0 && (m_ctxt->TEX1.MMAG & 1) || lod > 0 && (m_ctxt->TEX1.MMIN & 1))
+	if(m_ctxt->TEX1.ai32[0] & (3 << 5)) // MMAX&1 | MMIN&1
+	{
+		float lod = (float)(int)m_ctxt->TEX1.K;
+		if(!m_ctxt->TEX1.LCM) lod += log(fabs(w)) * one_over_log2 * (1 << m_ctxt->TEX1.L);
+		fBiLinear = lod <= 0 && (m_ctxt->TEX1.MMAG & 1) || lod > 0 && (m_ctxt->TEX1.MMIN & 1);
+	}
+
+	if(fBiLinear)
 	{
 		if(m_pTexture)
 		{
-			Ct[0] = m_pTexture[(itv[0] << m_ctxt->TEX0.TW) + itu[0]];
-			Ct[1] = m_pTexture[(itv[0] << m_ctxt->TEX0.TW) + itu[1]];
-			Ct[2] = m_pTexture[(itv[1] << m_ctxt->TEX0.TW) + itu[0]];
-			Ct[3] = m_pTexture[(itv[1] << m_ctxt->TEX0.TW) + itu[1]];
+			Ct[0] = m_pTexture[(ituv[2] << m_ctxt->TEX0.TW) + ituv[0]];
+			Ct[1] = m_pTexture[(ituv[2] << m_ctxt->TEX0.TW) + ituv[1]];
+			Ct[2] = m_pTexture[(ituv[3] << m_ctxt->TEX0.TW) + ituv[0]];
+			Ct[3] = m_pTexture[(ituv[3] << m_ctxt->TEX0.TW) + ituv[1]];
 		}
 		else
 		{
-			Ct[0] = (m_lm.*m_ctxt->ttbl->rt)(itu[0], itv[0], m_ctxt->TEX0, m_de.TEXA);
-			Ct[1] = (m_lm.*m_ctxt->ttbl->rt)(itu[1], itv[0], m_ctxt->TEX0, m_de.TEXA);
-			Ct[2] = (m_lm.*m_ctxt->ttbl->rt)(itu[0], itv[1], m_ctxt->TEX0, m_de.TEXA);
-			Ct[3] = (m_lm.*m_ctxt->ttbl->rt)(itu[1], itv[1], m_ctxt->TEX0, m_de.TEXA);
+			Ct[0] = (m_lm.*m_ctxt->ttbl->rt)(ituv[0], ituv[2], m_ctxt->TEX0, m_de.TEXA);
+			Ct[1] = (m_lm.*m_ctxt->ttbl->rt)(ituv[1], ituv[2], m_ctxt->TEX0, m_de.TEXA);
+			Ct[2] = (m_lm.*m_ctxt->ttbl->rt)(ituv[0], ituv[3], m_ctxt->TEX0, m_de.TEXA);
+			Ct[3] = (m_lm.*m_ctxt->ttbl->rt)(ituv[1], ituv[3], m_ctxt->TEX0, m_de.TEXA);
 		}
 
 		Vertex::Scalar ftu = tu - tu.floor_s();
-		Vertex::Scalar ftv = tv - tv.floor_s();		
+		Vertex::Scalar ftv = tv - tv.floor_s();
 
 		Ct[0] = Ct[0] + (Ct[1] - Ct[0]) * ftu;
 		Ct[2] = Ct[2] + (Ct[3] - Ct[2]) * ftu;
@@ -721,32 +722,32 @@ void GSRendererSoft<Vertex>::DrawVertexTFX(typename Vertex::Vector& Cf, const Ve
 	{
 		if(m_pTexture)
 		{
-			Ct[0] = m_pTexture[(itv[0] << m_ctxt->TEX0.TW) + itu[0]];
+			Ct[0] = m_pTexture[(ituv[2] << m_ctxt->TEX0.TW) + ituv[0]];
 		}
 		else
 		{
-			Ct[0] = (m_lm.*m_ctxt->ttbl->rt)(itu[0], itv[0], m_ctxt->TEX0, m_de.TEXA);
+			Ct[0] = (m_lm.*m_ctxt->ttbl->rt)(ituv[0], ituv[2], m_ctxt->TEX0, m_de.TEXA);
 		}
 	}
 
 	Vertex::Scalar a = Cf.a;
 
 	// switch(m_ctxt->TEX0.TFX)
-	switch((m_ctxt->TEX0.ai32[1]>>3)&3)
+	switch((m_ctxt->TEX0.ai32[1] >> 3) & 3)
 	{
 	case 0:
-		Cf = Cf * Ct[0] * Vertex::Scalar(2.0f/256);
+		Cf = (Cf * Ct[0] >> 7);
 		if(!m_ctxt->TEX0.TCC) Cf.a = a;
 		break;
 	case 1:
 		Cf = Ct[0];
 		break;
 	case 2:
-		Cf = Cf * Ct[0] * Vertex::Scalar(2.0f/256) + Cf.a;
+		Cf = (Cf * Ct[0] >> 7) + Cf.a;
 		Cf.a = !m_ctxt->TEX0.TCC ? a : (Ct[0].a + a);
 		break;
 	case 3:
-		Cf = Cf * Ct[0] * Vertex::Scalar(2.0f/256) + Cf.a;
+		Cf = (Cf * Ct[0] >> 7) + Cf.a;
 		Cf.a = !m_ctxt->TEX0.TCC ? a : Ct[0].a;
 		break;
 	default: 
@@ -757,12 +758,50 @@ void GSRendererSoft<Vertex>::DrawVertexTFX(typename Vertex::Vector& Cf, const Ve
 }
 
 template <class Vertex>
-void GSRendererSoft<Vertex>::SetTexture()
+void GSRendererSoft<Vertex>::SetupTexture()
 {
-	if(m_pPRIM->TME)
+	if(!m_pPRIM->TME) return;
+	
+	m_lm.SetupCLUT32(m_ctxt->TEX0, m_de.TEXA);
+}
+
+template <class Vertex>
+void GSRendererSoft<Vertex>::SetupTextureWrap()
+{
+	if(!m_pPRIM->TME) return;
+
+	int tw = 1 << m_ctxt->TEX0.TW;
+	int th = 1 << m_ctxt->TEX0.TH;
+
+	switch(m_ctxt->CLAMP.WMS)
 	{
-		m_lm.SetupCLUT32(m_ctxt->TEX0, m_de.TEXA);
+	case 0: m_uv->and[0] = tw-1; m_uv->or[0] = 0; m_uv->mask[0] = 0xffff; break;
+	case 1: m_uv->min[0] = 0; m_uv->max[0] = tw-1; m_uv->mask[0] = 0; break;
+	case 2: m_uv->min[0] = m_ctxt->CLAMP.MINU; m_uv->max[0] = m_ctxt->CLAMP.MAXU; m_uv->mask[0] = 0; break;
+	case 3: m_uv->and[0] = m_ctxt->CLAMP.MINU; m_uv->or[0] = m_ctxt->CLAMP.MAXU; m_uv->mask[0] = 0xffff; break;
+	default: __assume(0);
 	}
+
+	m_uv->and[1] = m_uv->and[0];
+	m_uv->or[1] = m_uv->or[0];
+	m_uv->min[1] = m_uv->min[0];
+	m_uv->max[1] = m_uv->max[0];
+	m_uv->mask[1] = m_uv->mask[0];
+
+	switch(m_ctxt->CLAMP.WMT)
+	{
+	case 0: m_uv->and[2] = th-1; m_uv->or[2] = 0; m_uv->mask[2] = 0xffff; break;
+	case 1: m_uv->min[2] = 0; m_uv->max[2] = th-1; m_uv->mask[2] = 0; break;
+	case 2: m_uv->min[2] = m_ctxt->CLAMP.MINV; m_uv->max[2] = m_ctxt->CLAMP.MAXV; m_uv->mask[2] = 0; break;
+	case 3: m_uv->and[2] = m_ctxt->CLAMP.MINV; m_uv->or[2] = m_ctxt->CLAMP.MAXV; m_uv->mask[2] = 0xffff; break;
+	default: __assume(0);
+	}
+
+	m_uv->and[3] = m_uv->and[2];
+	m_uv->or[3] = m_uv->or[2];
+	m_uv->min[3] = m_uv->min[2];
+	m_uv->max[3] = m_uv->max[2];
+	m_uv->mask[3] = m_uv->mask[2];
 }
 
 //
@@ -790,8 +829,8 @@ void GSRendererSoftFP::VertexKick(bool fSkip)
 	{
 		if(m_pPRIM->FST)
 		{
-			v.t.x = (float)m_v.UV.U / (16 << m_ctxt->TEX0.TW);
-			v.t.y = (float)m_v.UV.V / (16 << m_ctxt->TEX0.TH);
+			v.t.x = (float)(int)m_v.UV.U / (16 << m_ctxt->TEX0.TW);
+			v.t.y = (float)(int)m_v.UV.V / (16 << m_ctxt->TEX0.TH);
 			v.t.q = 1.0f;
 		}
 		else

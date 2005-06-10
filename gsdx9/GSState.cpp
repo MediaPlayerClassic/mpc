@@ -281,6 +281,12 @@ GSState::GSState(int w, int h, HWND hWnd, HRESULT& hr)
 
 	m_fEnablePalettizedTextures = !!pApp->GetProfileInt(_T("Settings"), _T("fEnablePalettizedTextures"), FALSE);
 
+	//
+
+	m_pRefClock = new CBaseReferenceClock(_T("RefClock"), NULL, &hr);
+
+	//
+
 	hr = S_OK;
 
 	Reset();
@@ -767,6 +773,8 @@ void GSState::ReadFIFO(BYTE* pMem)
 	ReadTransfer(pMem, 16);
 }
 
+__declspec(align(16)) static BYTE tr1_buff[0x4000];
+
 void GSState::Transfer1(BYTE* pMem, UINT32 addr)
 {
 //	GSPerfMonAutoTimer at(m_perfmon);
@@ -774,11 +782,10 @@ void GSState::Transfer1(BYTE* pMem, UINT32 addr)
 	LOG(_T("Transfer1(%08x, %d)\n"), pMem, addr);
 
 	// TODO: this is too cheap...
-	static BYTE buff[0x4000];
 	addr &= 0x3fff;
-	memcpy(buff, pMem + addr, 0x4000 - addr);
-	memcpy(buff + 0x4000 - addr, pMem, addr);
-	Transfer(buff, -1);
+	memcpy(tr1_buff, pMem + addr, 0x4000 - addr);
+	memcpy(tr1_buff + 0x4000 - addr, pMem, addr);
+	Transfer(tr1_buff, -1);
 }
 
 void GSState::Transfer(BYTE* pMem)
@@ -1047,15 +1054,6 @@ void GSState::FinishFlip(FlipInfo rt[2])
 			(float)src[1].right / rt[1].rd.Width, (float)src[1].bottom / rt[1].rd.Height},
 	};
 
-	TRACE(
-		_T("m_rs.SMODE2.INT=%d | m_rs.SMODE2.FFMD=%d | m_ctxt->XYOFFSET.OFY=%d | m_pCSRr->FIELD=%d\n")
-		_T("[0] DBX=%d, DBY=%d, DW=%d, DH=%d | [1] DBX=%d, DBY=%d, DW=%d, DH=%d\n"),
-		m_rs.SMODE2.INT,
-		m_rs.SMODE2.FFMD,
-		m_ctxt->XYOFFSET.OFY,
-		m_pCSRr->FIELD,
-		m_rs.DISPFB[0].DBX, m_rs.DISPFB[0].DBY, m_rs.DISPLAY[0].DW + 1, m_rs.DISPLAY[0].DH + 1,
-		m_rs.DISPFB[1].DBX, m_rs.DISPFB[1].DBY, m_rs.DISPLAY[1].DW + 1, m_rs.DISPLAY[1].DH + 1);
 /*
 	if(m_rs.SMODE2.INT)
 	{
@@ -1320,7 +1318,18 @@ void GSState::FinishFlip(FlipInfo rt[2])
 			m_pD3DXFont->DrawText(NULL, str, -1, &r, DT_LEFT|DT_WORDBREAK, c);
 		hr = m_pD3DDev->EndScene();
 	}
+/*
+	// this suxx
 
+	REFERENCE_TIME rtTimePerFrame = 10000000i64 / m_rs.GetFPS();
+
+	REFERENCE_TIME rtNow = 0;
+	hr = m_pRefClock->GetTime(&rtNow);
+
+	DWORD_PTR dwAdviseCookie = 0;
+	hr = m_pRefClock->AdviseTime((rtNow / rtTimePerFrame + 1) * rtTimePerFrame, 0, (HEVENT)(HANDLE)m_evVSync, &dwAdviseCookie);
+	if(!m_evVSync.Wait((DWORD)(rtTimePerFrame / 10000))) hr = m_pRefClock->Unadvise(dwAdviseCookie);
+*/
 	//
 
 	hr = m_pD3DDev->Present(NULL, NULL, NULL, NULL);

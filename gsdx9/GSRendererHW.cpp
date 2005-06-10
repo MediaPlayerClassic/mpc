@@ -35,7 +35,7 @@ static const float log_2pow32 = log(2.0f)*32;
 //
 
 GSRendererHW::GSRendererHW(HWND hWnd, HRESULT& hr)
-	: GSRenderer<HWVERTEX>(INTERNALRESX, INTERNALRESY, hWnd, hr)
+	: GSRenderer<GSVertexHW>(INTERNALRESX, INTERNALRESY, hWnd, hr)
 {
 	Reset();
 }
@@ -78,49 +78,39 @@ void GSRendererHW::Reset()
 
 void GSRendererHW::VertexKick(bool fSkip)
 {
-	HWVERTEX& v = m_vl.AddTail();
+	GSVertexHW& v = m_vl.AddTail();
 
-	v.x = ((float)m_v.XYZ.X - m_ctxt->XYOFFSET.OFX)/16;
-	v.y = ((float)m_v.XYZ.Y - m_ctxt->XYOFFSET.OFY)/16;
-//	v.x = (float)m_v.XYZ.X/16 - (m_ctxt->XYOFFSET.OFX>>4);
-//	v.y = (float)m_v.XYZ.Y/16 - (m_ctxt->XYOFFSET.OFY>>4);
+	v.x = (float)((int)m_v.XYZ.X - (int)m_ctxt->XYOFFSET.OFX) * (1.0f/16);
+	v.y = (float)((int)m_v.XYZ.Y - (int)m_ctxt->XYOFFSET.OFY) * (1.0f/16);
 	//if(m_v.XYZ.Z && m_v.XYZ.Z < 0x100) m_v.XYZ.Z = 0x100;
 	//v.z = 1.0f * (m_v.XYZ.Z>>8)/(UINT_MAX>>8);
 	v.z = log(1.0f + m_v.XYZ.Z)/log_2pow32;
 	//v.z = (float)m_v.XYZ.Z / UINT_MAX;
 	//v.rhw = v.z ? 1.0f/v.z : 1.0f;
-	v.rhw = m_v.RGBAQ.Q > 0 ? m_v.RGBAQ.Q : 0; // TODO: proclater
+	v.rhw = m_v.RGBAQ.Q > 0 ? m_v.RGBAQ.Q : 0; // TODO
 	//v.rhw = m_v.RGBAQ.Q;
 
-	BYTE R = m_v.RGBAQ.R;
-	BYTE G = m_v.RGBAQ.G;
-	BYTE B = m_v.RGBAQ.B;
-	BYTE A = SCALE_ALPHA(m_v.RGBAQ.A);
+	v.color = m_v.RGBAQ.ai32[0];
 
 	if(m_pPRIM->TME)
 	{
-		A = m_v.RGBAQ.A;
-
-		// TODO: proclater
 		if(m_pPRIM->FST)
 		{
-			v.tu = (float)m_v.UV.U / (16<<m_ctxt->TEX0.TW);
-			v.tv = (float)m_v.UV.V / (16<<m_ctxt->TEX0.TH);
-			v.rhw = 1.0f; // ???
+			v.tu = (float)(int)m_v.UV.U / (16 << m_ctxt->TEX0.TW);
+			v.tv = (float)(int)m_v.UV.V / (16 << m_ctxt->TEX0.TH);
+			v.rhw = 1.0f;
 		}
-		else if(m_v.RGBAQ.Q != 0)
+		else
 		{
 			v.tu = m_v.ST.S / m_v.RGBAQ.Q;
 			v.tv = m_v.ST.T / m_v.RGBAQ.Q;
 		}
-		else
-		{
-			v.tu = m_v.ST.S;
-			v.tv = m_v.ST.T;
-		}
+	}
+	else
+	{
+		v.a = SCALE_ALPHA(v.a);
 	}
 
-	v.color = D3DCOLOR_ARGB(A, B, G, R);
 	v.fog = (m_pPRIM->FGE ? m_v.FOG.F : 0xff) << 24;
 
 	__super::VertexKick(fSkip);
@@ -128,7 +118,7 @@ void GSRendererHW::VertexKick(bool fSkip)
 
 int GSRendererHW::DrawingKick(bool fSkip)
 {
-	HWVERTEX* pVertices = &m_pVertices[m_nVertices];
+	GSVertexHW* pVertices = &m_pVertices[m_nVertices];
 	int nVertices = 0;
 
 	CRect sc(m_ctxt->SCISSOR.SCAX0, m_ctxt->SCISSOR.SCAY0, m_ctxt->SCISSOR.SCAX1+1, m_ctxt->SCISSOR.SCAY1+1);
@@ -482,7 +472,7 @@ void GSRendererHW::FlushPrim()
 			// hr = m_pD3DDev->SetTextureStageState(1, D3DTSS_TEXCOORDINDEX, 1);
 			// hr = m_pD3DDev->SetTexture(1, pRT);
 
-			HWVERTEX* pVertices = m_pVertices;
+			GSVertexHW* pVertices = m_pVertices;
 			for(int i = m_nVertices; i-- > 0; pVertices++)
 			{
 				pVertices->x *= scale.x;
@@ -520,11 +510,11 @@ void GSRendererHW::FlushPrim()
 			}
 		}
 
-		hr = m_pD3DDev->SetFVF(D3DFVF_HWVERTEX);
+		hr = m_pD3DDev->SetFVF(D3DFVF_XYZRHW|D3DFVF_DIFFUSE|D3DFVF_SPECULAR|D3DFVF_TEX1);
 
 		if(1)//!m_de.PABE.PABE)
 		{
-			hr = m_pD3DDev->DrawPrimitiveUP(m_primtype, nPrims, m_pVertices, sizeof(HWVERTEX));
+			hr = m_pD3DDev->DrawPrimitiveUP(m_primtype, nPrims, m_pVertices, sizeof(GSVertexHW));
 		}
 /*		else
 		{
@@ -567,7 +557,7 @@ void GSRendererHW::FlushPrim()
 			hr = m_pD3DDev->SetRenderState(D3DRS_COLORWRITEENABLE, mask);
 
 			if(mask || zwrite)
-				hr = m_pD3DDev->DrawPrimitiveUP(m_primtype, nPrims, m_pVertices, sizeof(HWVERTEX));
+				hr = m_pD3DDev->DrawPrimitiveUP(m_primtype, nPrims, m_pVertices, sizeof(GSVertexHW));
 		}
 
 		hr = m_pD3DDev->EndScene();

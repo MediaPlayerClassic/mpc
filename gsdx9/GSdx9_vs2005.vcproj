@@ -6,7 +6,6 @@
 	ProjectGUID="{345C9F24-0B9A-4289-B375-ADD3B63461B7}"
 	RootNamespace="GSdx9"
 	Keyword="MFCDLLProj"
-	SignManifests="true"
 	>
 	<Platforms>
 		<Platform
@@ -850,6 +849,14 @@
 			<File
 				RelativePath=".\GSRegs.cpp"
 				>
+				<FileConfiguration
+					Name="ReleaseSSE2|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						AssemblerOutput="4"
+					/>
+				</FileConfiguration>
 			</File>
 			<File
 				RelativePath=".\GSRenderer.cpp"
@@ -1247,14 +1254,6 @@
 			</File>
 			<File
 				RelativePath=".\GSSoftVertex.h"
-				>
-			</File>
-			<File
-				RelativePath=".\GSSoftVertexFP.h"
-				>
-			</File>
-			<File
-				RelativePath=".\GSSoftVertexFX.h"
 				>
 			</File>
 			<File

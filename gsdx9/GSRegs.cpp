@@ -188,18 +188,8 @@ void __fastcall GSState::GIFRegHandlerPRIM(GIFReg* r)
 	if(m_de.PRIM.i64 != r->PRIM.i64)
 		FlushPrimInternal();
 
-	//ASSERT(r->PRIM.PRIM != 7);
-
-	// if(r->PRIM.PRIM != 7) 
-		m_de.PRIM.PRIM = m_de.PRMODE._PRIM = r->PRIM.PRIM;
-	m_de.PRIM.IIP = r->PRIM.IIP;
-	m_de.PRIM.TME = r->PRIM.TME;
-	m_de.PRIM.FGE = r->PRIM.FGE;
-	m_de.PRIM.ABE = r->PRIM.ABE;
-	m_de.PRIM.AA1 = r->PRIM.AA1;
-	m_de.PRIM.FST = r->PRIM.FST;
-	m_de.PRIM.CTXT = r->PRIM.CTXT;
-	m_de.PRIM.FIX = r->PRIM.FIX;
+	m_de.PRIM = r->PRIM;
+	m_de.PRMODE._PRIM = r->PRIM.PRIM;
 
 	if(m_de.PRMODECONT.AC)
 	{
@@ -246,11 +236,15 @@ void __fastcall GSState::GIFRegHandlerXYZF2(GIFReg* r)
 		(float)r->XYZF.Y/16,
 		r->XYZF.Z,
 		r->XYZF.F);
-
+/*
 	m_v.XYZ.X = r->XYZF.X;
 	m_v.XYZ.Y = r->XYZF.Y;
 	m_v.XYZ.Z = r->XYZF.Z;
 	m_v.FOG.F = r->XYZF.F;
+*/
+	m_v.XYZ.ai32[0] = r->XYZF.ai32[0];
+	m_v.XYZ.ai32[1] = r->XYZF.ai32[1] & 0x00ffffff;
+	m_v.FOG.ai32[1] = r->XYZF.ai32[1] & 0xff000000;
 
 	VertexKick(false);
 }
@@ -378,11 +372,15 @@ void __fastcall GSState::GIFRegHandlerXYZF3(GIFReg* r)
 		(float)r->XYZF.Y/16,
 		r->XYZF.Z,
 		r->XYZF.F);
-
+/*
 	m_v.XYZ.X = r->XYZF.X;
 	m_v.XYZ.Y = r->XYZF.Y;
 	m_v.XYZ.Z = r->XYZF.Z;
 	m_v.FOG.F = r->XYZF.F;
+*/
+	m_v.XYZ.ai32[0] = r->XYZF.ai32[0];
+	m_v.XYZ.ai32[1] = r->XYZF.ai32[1] & 0x00ffffff;
+	m_v.FOG.ai32[1] = r->XYZF.ai32[1] & 0xff000000;
 
 	VertexKick(true);
 }

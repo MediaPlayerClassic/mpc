@@ -45,7 +45,7 @@ __declspec(align(16)) union GSSoftVertexFP
 		void sat() {val = val < 0 ? 0 : val > 255 ? 255 : val;}
 		void rcp() {val = 1.0f / val;}
 #endif
-		void abs_s() {val = abs(val);}
+		void abs() {val = fabs(val);}
 
 		Scalar floor_s() const {return Scalar(floor(val));}
 		int floor_i() const {return (int)floor(val);}
@@ -69,10 +69,10 @@ __declspec(align(16)) union GSSoftVertexFP
 		friend Scalar operator * (const Scalar& s1, const Scalar& s2) {return Scalar(s1.val * s2.val);}
 		friend Scalar operator / (const Scalar& s1, const Scalar& s2) {return Scalar(s1.val / s2.val);}
 
-		friend Scalar operator + (const Scalar& s1, int i) {return Scalar(s1.val + i);}
-		friend Scalar operator - (const Scalar& s1, int i) {return Scalar(s1.val - i);}
-		friend Scalar operator * (const Scalar& s1, int i) {return Scalar(s1.val * i);}
-		friend Scalar operator / (const Scalar& s1, int i) {return Scalar(s1.val / i);}
+		friend Scalar operator + (const Scalar& s, int i) {return Scalar(s.val + i);}
+		friend Scalar operator - (const Scalar& s, int i) {return Scalar(s.val - i);}
+		friend Scalar operator * (const Scalar& s, int i) {return Scalar(s.val * i);}
+		friend Scalar operator / (const Scalar& s, int i) {return Scalar(s.val / i);}
 
 		friend bool operator == (const Scalar& s1, const Scalar& s2) {return s1.val == s2.val;}
 		friend bool operator <= (const Scalar& s1, const Scalar& s2) {return s1.val <= s2.val;}
@@ -126,7 +126,7 @@ __declspec(align(16)) union GSSoftVertexFP
 
 		void operator = (DWORD dw)
 		{
-			x = Scalar((int)(dw&0xff));
+			x = Scalar((int)((dw>>0)&0xff));
 			y = Scalar((int)((dw>>8)&0xff));
 			z = Scalar((int)((dw>>16)&0xff));
 			q = Scalar((int)((dw>>24)&0xff));
@@ -209,6 +209,9 @@ __forceinline GSSoftVertexFP::Vector operator - (const GSSoftVertexFP::Vector& v
 __forceinline GSSoftVertexFP::Vector operator * (const GSSoftVertexFP::Vector& v, GSSoftVertexFP::Scalar s) {return GSSoftVertexFP::Vector(_mm_mul_ps(v, _mm_set1_ps(s)));}
 __forceinline GSSoftVertexFP::Vector operator / (const GSSoftVertexFP::Vector& v, GSSoftVertexFP::Scalar s) {return GSSoftVertexFP::Vector(_mm_div_ps(v, _mm_set1_ps(s)));}
 
+__forceinline GSSoftVertexFP::Vector operator << (const GSSoftVertexFP::Vector& v, int i) {return GSSoftVertexFP::Vector(_mm_mul_ps(v, _mm_set1_ps((float)(1 << i))));}
+__forceinline GSSoftVertexFP::Vector operator >> (const GSSoftVertexFP::Vector& v, int i) {return GSSoftVertexFP::Vector(_mm_mul_ps(v, _mm_set1_ps(1.0f / (1 << i))));}
+
 #else
 
 __forceinline GSSoftVertexFP::Vector operator + (const GSSoftVertexFP::Vector& v1, const GSSoftVertexFP::Vector& v2) {return GSSoftVertexFP::Vector(v1.x + v2.x, v1.y + v2.y, v1.z + v2.z, v1.q + v2.q);}
@@ -220,6 +223,9 @@ __forceinline GSSoftVertexFP::Vector operator + (const GSSoftVertexFP::Vector& v
 __forceinline GSSoftVertexFP::Vector operator - (const GSSoftVertexFP::Vector& v, GSSoftVertexFP::Scalar s) {return GSSoftVertexFP::Vector(v.x - s, v.y - s, v.z - s, v.q - s);}
 __forceinline GSSoftVertexFP::Vector operator * (const GSSoftVertexFP::Vector& v, GSSoftVertexFP::Scalar s) {return GSSoftVertexFP::Vector(v.x * s, v.y * s, v.z * s, v.q * s);}
 __forceinline GSSoftVertexFP::Vector operator / (const GSSoftVertexFP::Vector& v, GSSoftVertexFP::Scalar s) {return GSSoftVertexFP::Vector(v.x / s, v.y / s, v.z / s, v.q / s);}
+
+__forceinline GSSoftVertexFP::Vector operator << (const GSSoftVertexFP::Vector& v, int i) {return GSSoftVertexFP::Vector(v.x << i, v.y << i, v.z << i, v.q << i);}
+__forceinline GSSoftVertexFP::Vector operator >> (const GSSoftVertexFP::Vector& v, int i) {return GSSoftVertexFP::Vector(v.x >> i, v.y >> i, v.z >> i, v.q >> i);}
 
 #endif
 
@@ -260,3 +266,4 @@ __forceinline GSSoftVertexFP operator / (const GSSoftVertexFP& v, GSSoftVertexFP
 	v0.t = v.t / vs;
 	return v0;
 }
+
