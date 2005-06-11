@@ -50,7 +50,6 @@ protected:
 	void SetupTexture();
 
 	struct uv_wrap_t {union {struct {short min[8], max[8];}; struct {short and[8], or[8];};}; unsigned short mask[8];}* m_uv;
-	void SetupTextureWrap();
 
 	CRect m_scissor;
 	BYTE m_clip[65536];
