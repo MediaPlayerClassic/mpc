@@ -898,6 +898,14 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
+					Name="DebugSSE2|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						AssemblerOutput="4"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
 					Name="ReleaseSSE2|Win32"
 					>
 					<Tool
