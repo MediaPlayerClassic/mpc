@@ -41,8 +41,17 @@ protected:
 	void DrawSprite(Vertex* v);
 	bool DrawFilledRect(int left, int top, int right, int bottom, const Vertex& v);
 
-	virtual void DrawVertex(int x, int y, const Vertex& v);
-	virtual void DrawVertexTFX(typename Vertex::Vector& Cf, const Vertex& v);
+	template <int iZTST, int iATST>
+	void DrawVertex(int x, int y, const Vertex& v);
+
+	typedef void (GSRendererSoft<Vertex>::*DrawVertexPtr)(int x, int y, const Vertex& v);
+	DrawVertexPtr m_dv[4][8], m_pDrawVertex;
+
+	template <int iLOD, bool bLCM, int bTCC, int iTFX>
+	void DrawVertexTFX(typename Vertex::Vector& Cf, const Vertex& v);
+
+	typedef void (GSRendererSoft<Vertex>::*DrawVertexTFXPtr)(typename Vertex::Vector& Cf, const Vertex& v);
+	DrawVertexTFXPtr m_dvtfx[3][2][2][4], m_pDrawVertexTFX;
 
 	CComPtr<IDirect3DTexture9> m_pRT[2];
 
@@ -62,29 +71,16 @@ public:
 
 	HRESULT ResetDevice(bool fForceWindowed = false);
 
-	void LOGVERTEX(GSSoftVertexFP& v, LPCTSTR type)
+	void LOGVERTEX(Vertex& v, LPCTSTR type)
 	{
 		int tw = 1, th = 1;
 		if(m_de.PRIM.TME) {tw = 1<<m_ctxt->TEX0.TW; th = 1<<m_ctxt->TEX0.TH;}
 		LOG2(_T("- %s (%.2f, %.2f, %.2f, %.2f) (%08x) (%.3f, %.3f) (%.2f, %.2f)\n"), 
 			type,
-			v.p.x, v.p.y, v.p.z / UINT_MAX, v.t.q, 
+			(float)v.p.x, (float)v.p.y, (float)v.p.z / UINT_MAX, (float)v.t.q, 
 			(DWORD)v.c,
-			v.t.x, v.t.y, v.t.x*tw, v.t.y*th);
+			(float)v.t.x, (float)v.t.y, (float)(v.t.x*tw), (float)(v.t.y*th));
 	}
-/*
-	void LOGVERTEX(GSSoftVertexFX& v, LPCTSTR type)
-	{
-		int tw = 1, th = 1;
-		if(m_de.PRIM.TME) {tw = 1<<m_ctxt->TEX0.TW; th = 1<<m_ctxt->TEX0.TH;}
-		LOG2(_T("- %s (%.2f, %.2f, %.2f, %.2f) (%08x) (%f, %f) (%f, %f)\n"), 
-			type,
-			(float)v.x/65536, (float)v.y/65536, (float)v.z/INT_MAX, (float)v.q/INT_MAX, 
-			((v.a>>16)<<24) | ((v.r>>16)<<16) | ((v.g>>16)<<8) | ((v.b>>16)<<0),
-			(float)v.u/INT_MAX, (float)v.v/INT_MAX, 
-			(float)v.u/INT_MAX*tw, (float)v.v/INT_MAX*th);
-	}
-*/
 };
 
 class GSRendererSoftFP : public GSRendererSoft<GSSoftVertexFP>

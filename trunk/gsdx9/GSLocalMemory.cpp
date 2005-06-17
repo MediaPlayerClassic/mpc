@@ -58,6 +58,15 @@ public:
 			double d;
 		} nd;
 
+		nd.di.mant = 0;
+		nd.di.exp = 1023+128;
+		nd.di.sign = 0;
+
+		nd.d = pow(2.0, 128);
+
+		TRACE(_T("%016I64x (%I64x:%I64x:%I64x), %f\n"), nd.i, nd.di.sign, nd.di.exp, nd.di.mant, nd.d);
+*/
+/*
 		unsigned int control_word = 0;
 		int err;
 		
