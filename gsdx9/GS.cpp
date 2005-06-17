@@ -151,6 +151,8 @@ EXPORT_C_(INT32) GSopen(void* pDsp, char* Title)
 		s_gs->CaptureState(spath);
 	}
 
+	s_hWnd.SetWindowText(CString(Title));
+
 	s_hWnd.Show();
 
 	return 0;

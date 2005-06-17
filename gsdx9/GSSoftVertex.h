@@ -25,6 +25,8 @@
 // GSSoftVertexFP
 //
 
+extern const __m128i _80000000, _4b000000, _3f800000;
+
 __declspec(align(16)) union GSSoftVertexFP
 {
 	class __declspec(novtable) Scalar
@@ -110,9 +112,21 @@ __declspec(align(16)) union GSSoftVertexFP
 
 		void operator = (DWORD dw) {__m128i zero = _mm_setzero_si128(); xyzq = _mm_cvtepi32_ps(_mm_unpacklo_epi16(_mm_unpacklo_epi8(_mm_cvtsi32_si128(dw), zero), zero));}
 		operator DWORD() const {__m128i r0 = _mm_cvttps_epi32(xyzq); r0 = _mm_packs_epi32(r0, r0); r0 = _mm_packus_epi16(r0, r0); return (DWORD)_mm_cvtsi128_si32(r0);}
+		operator UINT64() const {__m128i r0 = _mm_cvttps_epi32(xyzq); r0 = _mm_packs_epi32(r0, r0); return *(UINT64*)&r0;}		
 
 		void sat() {xyzq = _mm_min_ps(_mm_max_ps(xyzq, _mm_setzero_ps()), _mm_set1_ps(255));}
 		void rcp() {xyzq = _mm_rcp_ps(xyzq);}
+
+		Vector floor()
+		{
+			__m128 sign = _mm_and_ps(xyzq, *(__m128*)&_80000000);
+			__m128 r0 = _mm_or_ps(sign, *(__m128*)&_4b000000);
+			__m128 r1 = _mm_sub_ps(_mm_add_ps(xyzq, r0), r0);
+			__m128 r2 = _mm_sub_ps(r1, xyzq);
+			__m128 r3 = _mm_and_ps(_mm_cmpnle_ps(r2, sign), *(__m128*)&_3f800000);
+			__m128 r4 = _mm_sub_ps(r1, r3);
+			return r4;
+		}
 
 		void operator += (const Vector& v) {xyzq = _mm_add_ps(xyzq, v);}
 		void operator -= (const Vector& v) {xyzq = _mm_sub_ps(xyzq, v);}
@@ -141,8 +155,19 @@ __declspec(align(16)) union GSSoftVertexFP
 				(((DWORD)(int)q&0xff)<<24));
 		}
 
+		operator UINT64() const
+		{
+			return (DWORD)(
+				(((UINT64)(int)x&0xffff)<<0) |
+				(((UINT64)(int)y&0xffff)<<16) |
+				(((UINT64)(int)z&0xffff)<<32) |
+				(((UINT64)(int)q&0xffff)<<48));
+		}
+
 		void sat() {x.sat(); y.sat(); z.sat(); q.sat();}
 		void rcp() {x.rcp(); y.rcp(); z.rcp(); q.rcp();}
+		
+		Vector floor() {return Vector(x.floor_s(), y.floor_s(), z.floor_s(), q.floor_s());}
 
 		void operator += (const Vector& v) {*this = *this + v;}
 		void operator -= (const Vector& v) {*this = *this - v;}
@@ -180,12 +205,24 @@ __declspec(align(16)) union GSSoftVertexFP
 
 	operator CPoint() const {return CPoint((int)p.x, (int)p.y);}
 
-	//__forceinline DWORD GetZ() const {return ((DWORD)p.z<<16) + (DWORD)((p.z - floorf(p.z))*65536 + p.q);}
 	__forceinline DWORD GetZ() const 
 	{
-		ASSERT((float)p.z >= 0 && (float)p.q >= 0); 
+		ASSERT((float)p.z >= 0 && (float)p.q >= 0);
+#if _M_IX86_FP >= 2 || defined(_M_AMD64)
+		__m128 z = _mm_shuffle_ps(p, p, _MM_SHUFFLE(2,2,2,2));
+		__m128 q = _mm_shuffle_ps(p, p, _MM_SHUFFLE(3,3,3,3));
+		// TODO: check if our floor is faster than doing ss->si->ss
+		int zh = _mm_cvttss_si32(z);
+		__m128 zhi = _mm_cvtsi32_ss(zhi, zh);
+		__m128 zhf = _mm_mul_ss(_mm_sub_ss(z, zhi), _mm_set_ss(65536));
+		int zl = _mm_cvtss_si32(_mm_add_ss(zhf, q));
+		return ((DWORD)zh << 16) + (DWORD)zl;
+#else
+		// return ((DWORD)(int)p.z << 16) + (DWORD)(int)((p.z - p.z.floor_s())*65536 + p.q);
+
 		int z = (int)p.z;
 		return ((DWORD)z << 16) + (DWORD)(((float)p.z - z)*65536 + (float)p.q);
+#endif
 	}
 
 	static void Exchange(GSSoftVertexFP* __restrict v1, GSSoftVertexFP* __restrict v2)
