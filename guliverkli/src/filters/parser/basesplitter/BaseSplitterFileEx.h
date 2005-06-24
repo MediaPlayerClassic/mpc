@@ -269,6 +269,12 @@ public:
 		REFERENCE_TIME pts;
 	};
 
+	struct avchdr
+	{
+		BYTE profile, level;
+		unsigned int width, height;
+	};
+
 #pragma pack(pop)
 
 	bool Read(pshdr& h);
@@ -287,4 +293,5 @@ public:
 	bool Read(ps2subhdr& h, CMediaType* pmt = NULL);
 	bool Read(trhdr& h, bool fSync = true);
 	bool Read(pvahdr& h, bool fSync = true);
+	bool Read(avchdr& h, int len, CMediaType* pmt = NULL);
 };

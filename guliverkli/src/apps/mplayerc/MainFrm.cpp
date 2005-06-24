@@ -1912,9 +1912,9 @@ void CMainFrame::OnMouseMove(UINT nFlags, CPoint point)
 	__super::OnMouseMove(nFlags, point);
 }
 
-UINT CMainFrame::OnNcHitTest(CPoint point)
+LRESULT CMainFrame::OnNcHitTest(CPoint point)
 {
-	UINT nHitTest = __super::OnNcHitTest(point);
+	LRESULT nHitTest = __super::OnNcHitTest(point);
 	return ((IsCaptionMenuHidden()) && nHitTest == HTCLIENT) ? HTCAPTION : nHitTest;
 }
 
