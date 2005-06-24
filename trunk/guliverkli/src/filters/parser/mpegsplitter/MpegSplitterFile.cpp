@@ -347,9 +347,23 @@ DWORD CMpegSplitterFile::AddStream(WORD pid, BYTE pesid, DWORD len)
 
 	if(pesid >= 0xe0 && pesid < 0xf0) // mpeg video
 	{
-		CMpegSplitterFile::seqhdr h;
-		if(!m_streams[video].Find(s) && Read(h, len, &s.mt))
-			type = video;
+		__int64 pos = GetPos();
+
+		if(type == unknown)
+		{
+			CMpegSplitterFile::seqhdr h;
+			if(!m_streams[video].Find(s) && Read(h, len, &s.mt))
+				type = video;
+		}
+
+		Seek(pos);
+
+		if(type == unknown)
+		{
+			CMpegSplitterFile::avchdr h;
+			if(!m_streams[video].Find(s) && Read(h, len, &s.mt))
+				type = video;
+		}
 	}
 	else if(pesid >= 0xc0 && pesid < 0xe0) // mpeg audio
 	{

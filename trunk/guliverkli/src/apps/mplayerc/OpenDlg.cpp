@@ -26,6 +26,7 @@
 #include "mplayerc.h"
 #include "OpenDlg.h"
 #include <atlbase.h>
+#include <shlobj.h>
 #include "..\..\DSUtil\DSUtil.h"
 
 // COpenDlg dialog
@@ -347,7 +348,7 @@ BOOL COpenFileDialog::OnIncludeItem(OFNOTIFYEX* pOFNEx, LRESULT* pResult)
 		switch(s.uType)
 		{
 		case STRRET_CSTR: _tcscpy(buff, CString(s.cStr)); break;
-		case STRRET_WSTR: _tcscpy(buff, CString(s.pOleStr)); SHFree(s.pOleStr); break;
+		case STRRET_WSTR: _tcscpy(buff, CString(s.pOleStr)); CoTaskMemFree(s.pOleStr); break;
 		default: return FALSE;
 		}
 	}

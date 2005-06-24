@@ -595,13 +595,13 @@ HRESULT CMpeg2DecFilter::Deliver(bool fRepeatLast)
 #include "..\..\..\..\include\IFilterVersion.h"
 
 [uuid("04FE9017-F873-410E-871E-AB91661A4EF7")]
-enum ffdshow {};
+struct ffdshow {};
 [uuid("93A22E7A-5091-45ef-BA61-6DA26156A5D0")]
-enum dvs {};
+struct dvs {};
 [uuid("9852A670-F845-491b-9BE6-EBD841B8A613")]
-enum dvsauto {};
+struct dvsauto {};
 [uuid("fd501043-8ebe-11ce-8183-00aa00577da1")]
-enum dladapter {};
+struct dladapter {};
 
 HRESULT CMpeg2DecFilter::CheckConnect(PIN_DIRECTION dir, IPin* pPin)
 {

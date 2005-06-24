@@ -975,3 +975,103 @@ bool CBaseSplitterFileEx::Read(pvahdr& h, bool fSync)
 
 	return(true);
 }
+
+bool CBaseSplitterFileEx::Read(avchdr& h, int len, CMediaType* pmt)
+{
+	__int64 endpos = GetPos() + len; // - sequence header length
+
+	__int64 spspos = 0, spslen = 0;
+	__int64 ppspos = 0, ppslen = 0;
+
+	while(GetPos() < endpos+4 && BitRead(32, true) == 0x00000001)
+	{
+		__int64 pos = GetPos();
+
+		BitRead(32);
+		BYTE id = BitRead(8);
+
+		if(spspos != 0 && spslen == 0) spslen = pos - spspos;
+		else if(ppspos != 0 && ppslen == 0) ppslen = pos - ppspos;
+		
+		if(id == 0x67)
+		{
+			spspos = pos;
+
+			h.profile = (BYTE)BitRead(8);
+			BitRead(8);
+			h.level = (BYTE)BitRead(8);
+
+			UExpGolombRead(); // seq_parameter_set_id
+			UExpGolombRead(); // log2_max_frame_num_minus4
+
+			UINT64 pic_order_cnt_type = UExpGolombRead();
+
+			if(pic_order_cnt_type == 0)
+			{
+				UExpGolombRead(); // log2_max_pic_order_cnt_lsb_minus4
+			}
+			else if(pic_order_cnt_type == 1)
+			{
+				BitRead(1); // delta_pic_order_always_zero_flag
+				SExpGolombRead(); // offset_for_non_ref_pic
+				SExpGolombRead(); // offset_for_top_to_bottom_field
+				UINT64 num_ref_frames_in_pic_order_cnt_cycle = UExpGolombRead();
+				for(int i = 0; i < num_ref_frames_in_pic_order_cnt_cycle; i++)
+					SExpGolombRead(); // offset_for_ref_frame[i]
+			}
+
+			UExpGolombRead(); // num_ref_frames
+			BitRead(1); // gaps_in_frame_num_value_allowed_flag
+
+			UINT64 pic_width_in_mbs_minus1 = UExpGolombRead();
+			UINT64 pic_height_in_map_units_minus1 = UExpGolombRead();
+			BYTE frame_mbs_only_flag = (BYTE)BitRead(1);
+
+			h.width = (pic_width_in_mbs_minus1 + 1) * 16;
+			h.height = (2 - frame_mbs_only_flag) * (pic_height_in_map_units_minus1 + 1) * 16;
+		}
+		else if(id == 0x68)
+		{
+			ppspos = pos;
+		}
+
+		BitByteAlign();
+
+		while(GetPos() < endpos+4 && BitRead(32, true) != 0x00000001)
+			BitRead(8);
+	}
+
+	if(!spspos || !spslen || !ppspos || !ppslen) 
+		return(false);
+
+	if(!pmt) return(true);
+
+	{
+		pmt->majortype = MEDIATYPE_Video;
+		pmt->subtype = MEDIASUBTYPE_MPEG2_VIDEO;
+		pmt->formattype = FORMAT_MPEG2_VIDEO;
+		int len = FIELD_OFFSET(MPEG2VIDEOINFO, dwSequenceHeader) + spslen + ppslen;
+		MPEG2VIDEOINFO* vi = (MPEG2VIDEOINFO*)new BYTE[len];
+		memset(vi, 0, len);
+		// vi->hdr.dwBitRate = ;
+		// vi->hdr.AvgTimePerFrame = ;
+		vi->hdr.dwPictAspectRatioX = h.width;
+		vi->hdr.dwPictAspectRatioY = h.height;
+		vi->hdr.bmiHeader.biSize = sizeof(vi->hdr.bmiHeader);
+		vi->hdr.bmiHeader.biWidth = h.width;
+		vi->hdr.bmiHeader.biHeight = h.height;
+		vi->hdr.bmiHeader.biCompression = '1cva';
+		vi->dwProfile = h.profile;
+		vi->dwFlags = 4; // ?
+		vi->dwLevel = h.level;
+		vi->cbSequenceHeader = spslen + ppslen;
+		Seek(spspos);
+		Read((BYTE*)&vi->dwSequenceHeader[0], spslen);
+		Seek(ppspos);
+		Read((BYTE*)&vi->dwSequenceHeader[0] + spslen, ppslen);
+		pmt->SetFormat((BYTE*)vi, len);
+		delete [] vi;
+	}
+
+	return(true);
+}

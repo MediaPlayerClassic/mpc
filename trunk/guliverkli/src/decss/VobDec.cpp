@@ -25,14 +25,16 @@ CVobDec::CVobDec()
 {
 	m_fFoundKey = false;
 
-	for(int loop0 = 0; loop0 != 0x100; loop0++)
+	for(DWORD loop0 = 0; loop0 < 0x100; loop0++)
 	{
-		for(int loop1 = 0, value = 0; loop1 != 8; loop1++)
+		BYTE value = 0;
+
+		for(DWORD loop1 = 0; loop1 < 8; loop1++)
 		{
-			value |= ((loop0 >> loop1) & 0x01) << (7 - loop1);
+			value |= ((loop0 >> loop1) & 1) << (7 - loop1);
 		}
 
-		reverse[loop0] = (BYTE)value;
+		reverse[loop0] = value;
 	}
 
 }

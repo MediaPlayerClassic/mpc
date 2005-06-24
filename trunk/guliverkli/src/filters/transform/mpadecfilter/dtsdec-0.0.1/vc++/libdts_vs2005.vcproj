@@ -1,9 +1,11 @@
-<?xml version="1.0" encoding="Windows-1252"?>
+<?xml version="1.0" encoding="windows-1250"?>
 <VisualStudioProject
 	ProjectType="Visual C++"
 	Version="8,00"
 	Name="libdts"
 	ProjectGUID="{54F609FD-A8CE-43CF-94AD-23E877B97C13}"
+	RootNamespace="libdts"
+	SignManifests="true"
 	>
 	<Platforms>
 		<Platform
@@ -19,7 +21,7 @@
 			IntermediateDirectory=".\Debug"
 			ConfigurationType="4"
 			UseOfMFC="0"
-			ATLMinimizesCRunTimeLibraryUsage="FALSE"
+			ATLMinimizesCRunTimeLibraryUsage="false"
 			CharacterSet="2"
 			>
 			<Tool
@@ -43,14 +45,14 @@
 				AdditionalIncludeDirectories=".,../include"
 				PreprocessorDefinitions="WIN32;_DEBUG;_LIB"
 				BasicRuntimeChecks="3"
-				RuntimeLibrary="3"
-				ForceConformanceInForLoopScope="TRUE"
+				RuntimeLibrary="1"
+				ForceConformanceInForLoopScope="true"
 				PrecompiledHeaderFile=".\Debug/libdts.pch"
 				AssemblerListingLocation=".\Debug/"
 				ObjectFile=".\Debug/"
 				ProgramDataBaseFileName=".\Debug/"
 				WarningLevel="3"
-				SuppressStartupBanner="TRUE"
+				SuppressStartupBanner="true"
 				DebugInformationFormat="4"
 				CompileAs="0"
 			/>
@@ -68,7 +70,7 @@
 			<Tool
 				Name="VCLibrarianTool"
 				OutputFile="..\..\..\..\..\..\lib\libdtsD.lib"
-				SuppressStartupBanner="TRUE"
+				SuppressStartupBanner="true"
 			/>
 			<Tool
 				Name="VCALinkTool"
@@ -83,9 +85,6 @@
 				Name="VCFxCopTool"
 			/>
 			<Tool
-				Name="VCAppVerifierTool"
-			/>
-			<Tool
 				Name="VCPostBuildEventTool"
 			/>
 		</Configuration>
@@ -95,7 +94,7 @@
 			IntermediateDirectory=".\Release"
 			ConfigurationType="4"
 			UseOfMFC="0"
-			ATLMinimizesCRunTimeLibraryUsage="FALSE"
+			ATLMinimizesCRunTimeLibraryUsage="false"
 			CharacterSet="2"
 			>
 			<Tool
@@ -119,16 +118,16 @@
 				InlineFunctionExpansion="1"
 				AdditionalIncludeDirectories=".,../include"
 				PreprocessorDefinitions="WIN32;NDEBUG;_LIB"
-				StringPooling="TRUE"
+				StringPooling="true"
 				RuntimeLibrary="0"
-				EnableFunctionLevelLinking="TRUE"
-				ForceConformanceInForLoopScope="TRUE"
+				EnableFunctionLevelLinking="true"
+				ForceConformanceInForLoopScope="true"
 				PrecompiledHeaderFile=".\Release/libdts.pch"
 				AssemblerListingLocation=".\Release/"
 				ObjectFile=".\Release/"
 				ProgramDataBaseFileName=".\Release/"
 				WarningLevel="3"
-				SuppressStartupBanner="TRUE"
+				SuppressStartupBanner="true"
 				CompileAs="0"
 			/>
 			<Tool
@@ -145,7 +144,7 @@
 			<Tool
 				Name="VCLibrarianTool"
 				OutputFile="..\..\..\..\..\..\lib\libdtsR.lib"
-				SuppressStartupBanner="TRUE"
+				SuppressStartupBanner="true"
 			/>
 			<Tool
 				Name="VCALinkTool"
@@ -158,9 +157,6 @@
 			/>
 			<Tool
 				Name="VCFxCopTool"
-			/>
-			<Tool
-				Name="VCAppVerifierTool"
 			/>
 			<Tool
 				Name="VCPostBuildEventTool"

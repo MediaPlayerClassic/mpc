@@ -50,7 +50,7 @@ public:
 		BYTE pesid, ps1id;
 		struct stream() {pid = pesid = ps1id = 0;}
 		operator DWORD() const {return pid ? pid : ((pesid<<8)|ps1id);}
-		operator == (const struct stream& s) const {return (DWORD)*this == (DWORD)s;}
+		bool operator == (const struct stream& s) const {return (DWORD)*this == (DWORD)s;}
 	};
 
 	enum {video, audio, subpic, unknown};

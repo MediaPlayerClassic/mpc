@@ -189,6 +189,19 @@ HRESULT CBaseSplitterFile::ByteRead(BYTE* pData, __int64 len)
 	return Read(pData, len);
 }
 
+UINT64 CBaseSplitterFile::UExpGolombRead()
+{
+	int n = -1;
+	for(BYTE b = 0; !b; n++) b = BitRead(1);
+	return (1ui64 << n) - 1 + BitRead(n);
+}
+
+INT64 CBaseSplitterFile::SExpGolombRead()
+{
+	UINT64 k = UExpGolombRead();
+	return ((k&1) ? 1 : -1) * ((k + 1) >> 1);
+}
+
 HRESULT CBaseSplitterFile::HasMoreData(__int64 len, DWORD ms)
 {
 	__int64 available = GetLength() - GetPos();

@@ -4,6 +4,7 @@
 	Version="8,00"
 	Name="mplayerc"
 	ProjectGUID="{8CE7E5D0-C821-47AC-A247-28EC95B34670}"
+	RootNamespace="mplayerc"
 	Keyword="MFCProj"
 	>
 	<Platforms>
@@ -21,7 +22,7 @@
 			ConfigurationType="1"
 			UseOfMFC="1"
 			UseOfATL="0"
-			ATLMinimizesCRunTimeLibraryUsage="FALSE"
+			ATLMinimizesCRunTimeLibraryUsage="false"
 			CharacterSet="1"
 			>
 			<Tool
@@ -39,8 +40,8 @@
 			<Tool
 				Name="VCMIDLTool"
 				PreprocessorDefinitions="NDEBUG"
-				MkTypLibCompatible="TRUE"
-				SuppressStartupBanner="TRUE"
+				MkTypLibCompatible="true"
+				SuppressStartupBanner="true"
 				TargetEnvironment="1"
 				TypeLibraryName=".\Release_unicode/mplayerc.tlb"
 			/>
@@ -50,20 +51,19 @@
 				InlineFunctionExpansion="2"
 				FavorSizeOrSpeed="1"
 				AdditionalIncludeDirectories=""
-				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS"
-				StringPooling="TRUE"
+				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_CRT_SECURE_NO_DEPRECATE=;_CRT_INSECURE_DEPRECATE=;_ATL_INSECURE_DEPRECATE="
+				StringPooling="true"
 				RuntimeLibrary="0"
-				EnableFunctionLevelLinking="TRUE"
-				ForceConformanceInForLoopScope="TRUE"
-				RuntimeTypeInfo="TRUE"
-				UsePrecompiledHeader="3"
+				EnableFunctionLevelLinking="true"
+				ForceConformanceInForLoopScope="true"
+				RuntimeTypeInfo="true"
 				PrecompiledHeaderThrough="stdafx.h"
 				PrecompiledHeaderFile="$(OutDir)\$(ProjectName).pch"
 				AssemblerListingLocation=".\$(OutDir)/"
 				ObjectFile=".\$(OutDir)/"
 				ProgramDataBaseFileName=".\$(OutDir)/"
 				WarningLevel="3"
-				SuppressStartupBanner="TRUE"
+				SuppressStartupBanner="true"
 				DebugInformationFormat="3"
 			/>
 			<Tool
@@ -84,13 +84,13 @@
 				AdditionalDependencies="Delayimp.lib detours.lib qtmlClient.lib wmstub.lib d3dx9.lib dxguid.lib Dsound.lib strmbaseRU.lib dsutilRU.lib subpicRU.lib subtitlesRU.lib asyncreaderRU.lib audioswitcherRU.lib avi2ac3filterRU.lib bufferfilterRU.lib cddareaderRU.lib cdxareaderRU.lib d2vsourceRU.lib decssfilterRU.lib flicsourceRU.lib dtsac3sourceRU.lib basesourceRU.lib wavdestRU.lib shoutcastsourceRU.lib streamdrivethruRU.lib vtsreaderRU.lib basesplitterRU.lib MatroskaSplitterRU.lib MatroskaMuxerRU.lib RealMediaSplitterRU.lib AviSplitterRU.lib Mpeg2DecFilterRU.lib MpaDecFilterRU.lib RadGtSplitterRU.lib RoQSplitterRU.lib OggSplitterRU.lib NutSplitterRU.lib MpegSplitterRU.lib DiracSplitterRU.lib MpaSplitterRU.lib DSMSplitterRU.lib BaseMuxerRU.lib DSMMuxerRU.lib zlibR.lib subtitlesourceRU.lib"
 				OutputFile="$(OutDir)\$(ProjectName).exe"
 				LinkIncremental="1"
-				SuppressStartupBanner="TRUE"
+				SuppressStartupBanner="true"
 				AdditionalLibraryDirectories="../../../lib;../../../lib/wm7;../../../lib/qt6;../../../lib/detours"
 				IgnoreDefaultLibraryNames="MSVCRT"
 				DelayLoadDLLs="d3d9.dll;msimg32.dll;gdiplus.dll"
 				ProgramDatabaseFile="$(OutDir)\$(ProjectName).pdb"
 				SubSystem="2"
-				SupportUnloadOfDelayLoadedDLL="TRUE"
+				SupportUnloadOfDelayLoadedDLL="true"
 			/>
 			<Tool
 				Name="VCALinkTool"
@@ -116,7 +116,7 @@
 			<Tool
 				Name="VCPostBuildEventTool"
 				CommandLine="..\..\..\bin\upx.exe --best &quot;$(TargetPath)&quot;"
-				ExcludedFromBuild="TRUE"
+				ExcludedFromBuild="true"
 			/>
 		</Configuration>
 		<Configuration
@@ -124,8 +124,8 @@
 			OutputDirectory=".\$(ConfigurationName)"
 			IntermediateDirectory=".\$(OutDir)"
 			ConfigurationType="1"
-			UseOfMFC="2"
-			ATLMinimizesCRunTimeLibraryUsage="FALSE"
+			UseOfMFC="1"
+			ATLMinimizesCRunTimeLibraryUsage="false"
 			CharacterSet="1"
 			>
 			<Tool
@@ -143,8 +143,8 @@
 			<Tool
 				Name="VCMIDLTool"
 				PreprocessorDefinitions="_DEBUG"
-				MkTypLibCompatible="TRUE"
-				SuppressStartupBanner="TRUE"
+				MkTypLibCompatible="true"
+				SuppressStartupBanner="true"
 				TargetEnvironment="1"
 				TypeLibraryName="$(OutDir)\$(ProjectName).tlb"
 			/>
@@ -152,19 +152,18 @@
 				Name="VCCLCompilerTool"
 				Optimization="0"
 				AdditionalIncludeDirectories=""
-				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;pascal="
+				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_CRT_SECURE_NO_DEPRECATE=;_CRT_INSECURE_DEPRECATE=;_ATL_INSECURE_DEPRECATE="
 				BasicRuntimeChecks="3"
-				RuntimeLibrary="3"
-				ForceConformanceInForLoopScope="TRUE"
-				RuntimeTypeInfo="TRUE"
-				UsePrecompiledHeader="3"
+				RuntimeLibrary="1"
+				ForceConformanceInForLoopScope="true"
+				RuntimeTypeInfo="true"
 				PrecompiledHeaderThrough="stdafx.h"
 				PrecompiledHeaderFile="$(OutDir)\$(ProjectName).pch"
 				AssemblerListingLocation=".\$(OutDir)/"
 				ObjectFile=".\$(OutDir)/"
 				ProgramDataBaseFileName=".\$(OutDir)/"
 				WarningLevel="3"
-				SuppressStartupBanner="TRUE"
+				SuppressStartupBanner="true"
 				DebugInformationFormat="4"
 			/>
 			<Tool
@@ -184,11 +183,11 @@
 				AdditionalDependencies="Delayimp.lib detours.lib qtmlClient.lib wmstub.lib d3dx9.lib Dsound.lib dxguid.lib strmbaseDU.lib dsutilDU.lib subpicDU.lib subtitlesDU.lib asyncreaderDU.lib audioswitcherDU.lib avi2ac3filterDU.lib bufferfilterDU.lib cddareaderDU.lib cdxareaderDU.lib d2vsourceDU.lib decssfilterDU.lib flicsourceDU.lib dtsac3sourceDU.lib basesourceDU.lib subtitlesourceDU.lib wavdestDU.lib shoutcastsourceDU.lib streamdrivethruDU.lib vtsreaderDU.lib basesplitterDU.lib MatroskaSplitterDU.lib MatroskaMuxerDU.lib RealMediaSplitterDU.lib AviSplitterDU.lib Mpeg2DecFilterDU.lib MpaDecFilterDU.lib RadGtSplitterDU.lib RoQSplitterDU.lib OggSplitterDU.lib NutSplitterDU.lib MpegSplitterDU.lib DiracSplitterDU.lib MpaSplitterDU.lib DSMSplitterDU.lib BaseMuxerDU.lib DSMMuxerDU.lib zlibD.lib"
 				OutputFile="$(OutDir)\$(ProjectName).exe"
 				LinkIncremental="2"
-				SuppressStartupBanner="TRUE"
+				SuppressStartupBanner="true"
 				AdditionalLibraryDirectories="../../../lib;../../../lib/wm7;../../../lib/qt6;../../../lib/detours"
 				IgnoreDefaultLibraryNames="MSVCRT;LIBCMT"
 				DelayLoadDLLs="d3d9.dll;msimg32.dll;gdiplus.dll"
-				GenerateDebugInformation="TRUE"
+				GenerateDebugInformation="true"
 				ProgramDatabaseFile="$(OutDir)\$(ProjectName).pdb"
 				SubSystem="2"
 			/>
@@ -223,7 +222,7 @@
 			IntermediateDirectory=".\$(OutDir)"
 			ConfigurationType="1"
 			UseOfMFC="1"
-			ATLMinimizesCRunTimeLibraryUsage="FALSE"
+			ATLMinimizesCRunTimeLibraryUsage="false"
 			CharacterSet="2"
 			>
 			<Tool
@@ -241,8 +240,8 @@
 			<Tool
 				Name="VCMIDLTool"
 				PreprocessorDefinitions="NDEBUG"
-				MkTypLibCompatible="TRUE"
-				SuppressStartupBanner="TRUE"
+				MkTypLibCompatible="true"
+				SuppressStartupBanner="true"
 				TargetEnvironment="1"
 				TypeLibraryName=".\Release/mplayerc.tlb"
 			/>
@@ -252,20 +251,19 @@
 				InlineFunctionExpansion="2"
 				FavorSizeOrSpeed="1"
 				AdditionalIncludeDirectories=""
-				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS"
-				StringPooling="TRUE"
+				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_CRT_SECURE_NO_DEPRECATE=;_CRT_INSECURE_DEPRECATE=;_ATL_INSECURE_DEPRECATE="
+				StringPooling="true"
 				RuntimeLibrary="0"
-				EnableFunctionLevelLinking="TRUE"
-				ForceConformanceInForLoopScope="TRUE"
-				RuntimeTypeInfo="TRUE"
-				UsePrecompiledHeader="3"
+				EnableFunctionLevelLinking="true"
+				ForceConformanceInForLoopScope="true"
+				RuntimeTypeInfo="true"
 				PrecompiledHeaderThrough="stdafx.h"
 				PrecompiledHeaderFile="$(OutDir)\$(ProjectName).pch"
 				AssemblerListingLocation=".\$(OutDir)/"
 				ObjectFile=".\$(OutDir)/"
 				ProgramDataBaseFileName=".\$(OutDir)/"
 				WarningLevel="3"
-				SuppressStartupBanner="TRUE"
+				SuppressStartupBanner="true"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -285,13 +283,13 @@
 				AdditionalDependencies="Delayimp.lib detours.lib qtmlClient.lib wmstub.lib d3dx9.lib Dsound.lib dxguid.lib strmbaseR.lib dsutilR.lib subpicR.lib subtitlesR.lib asyncreaderR.lib audioswitcherR.lib avi2ac3filterR.lib bufferfilterR.lib cddareaderR.lib cdxareaderR.lib d2vsourceR.lib decssfilterR.lib flicsourceR.lib dtsac3sourceR.lib basesourceR.lib wavdestR.lib shoutcastsourceR.lib streamdrivethruR.lib vtsreaderR.lib basesplitterR.lib MatroskaSplitterR.lib MatroskaMuxerR.lib RealMediaSplitterR.lib AviSplitterR.lib Mpeg2DecFilterR.lib MpaDecFilterR.lib RadGtSplitterR.lib RoQSplitterR.lib OggSplitterR.lib NutSplitterR.lib MpegSplitterR.lib DiracSplitterR.lib MpaSplitterR.lib DSMSplitterR.lib BaseMuxerR.lib DSMMuxerR.lib zlibR.lib subtitlesourceR.lib"
 				OutputFile="$(OutDir)\$(ProjectName).exe"
 				LinkIncremental="1"
-				SuppressStartupBanner="TRUE"
+				SuppressStartupBanner="true"
 				AdditionalLibraryDirectories="../../../lib;../../../lib/wm7;../../../lib/qt6;../../../lib/detours"
 				IgnoreDefaultLibraryNames="MSVCRT"
 				DelayLoadDLLs="d3d9.dll;msimg32.dll;gdiplus.dll"
 				ProgramDatabaseFile="$(OutDir)\$(ProjectName).pdb"
 				SubSystem="2"
-				SupportUnloadOfDelayLoadedDLL="TRUE"
+				SupportUnloadOfDelayLoadedDLL="true"
 			/>
 			<Tool
 				Name="VCALinkTool"
@@ -317,7 +315,7 @@
 			<Tool
 				Name="VCPostBuildEventTool"
 				CommandLine="..\..\..\bin\upx.exe --best &quot;$(TargetPath)&quot;"
-				ExcludedFromBuild="TRUE"
+				ExcludedFromBuild="true"
 			/>
 		</Configuration>
 		<Configuration
@@ -325,8 +323,8 @@
 			OutputDirectory=".\$(ConfigurationName)"
 			IntermediateDirectory=".\$(OutDir)"
 			ConfigurationType="1"
-			UseOfMFC="2"
-			ATLMinimizesCRunTimeLibraryUsage="FALSE"
+			UseOfMFC="1"
+			ATLMinimizesCRunTimeLibraryUsage="false"
 			CharacterSet="2"
 			>
 			<Tool
@@ -344,8 +342,8 @@
 			<Tool
 				Name="VCMIDLTool"
 				PreprocessorDefinitions="_DEBUG"
-				MkTypLibCompatible="TRUE"
-				SuppressStartupBanner="TRUE"
+				MkTypLibCompatible="true"
+				SuppressStartupBanner="true"
 				TargetEnvironment="1"
 				TypeLibraryName="$(OutDir)\$(ProjectName).tlb"
 			/>
@@ -353,19 +351,18 @@
 				Name="VCCLCompilerTool"
 				Optimization="0"
 				AdditionalIncludeDirectories=""
-				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS"
+				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_CRT_SECURE_NO_DEPRECATE=;_CRT_INSECURE_DEPRECATE=;_ATL_INSECURE_DEPRECATE="
 				BasicRuntimeChecks="3"
-				RuntimeLibrary="3"
-				ForceConformanceInForLoopScope="TRUE"
-				RuntimeTypeInfo="TRUE"
-				UsePrecompiledHeader="3"
+				RuntimeLibrary="1"
+				ForceConformanceInForLoopScope="true"
+				RuntimeTypeInfo="true"
 				PrecompiledHeaderThrough="stdafx.h"
 				PrecompiledHeaderFile="$(OutDir)\$(ProjectName).pch"
 				AssemblerListingLocation=".\$(OutDir)/"
 				ObjectFile=".\$(OutDir)/"
 				ProgramDataBaseFileName=".\$(OutDir)/"
 				WarningLevel="3"
-				SuppressStartupBanner="TRUE"
+				SuppressStartupBanner="true"
 				DebugInformationFormat="4"
 			/>
 			<Tool
@@ -385,11 +382,11 @@
 				AdditionalDependencies="Delayimp.lib detours.lib qtmlClient.lib wmstub.lib d3dx9.lib Dsound.lib dxguid.lib strmbaseD.lib dsutilD.lib subpicD.lib subtitlesD.lib asyncreaderD.lib audioswitcherD.lib avi2ac3filterD.lib bufferfilterD.lib cddareaderD.lib cdxareaderD.lib d2vsourceD.lib decssfilterD.lib flicsourceD.lib dtsac3sourceD.lib basesourceD.lib subtitlesourceD.lib wavdestD.lib shoutcastsourceD.lib streamdrivethruD.lib vtsreaderD.lib basesplitterD.lib MatroskaSplitterD.lib MatroskaMuxerD.lib RealMediaSplitterD.lib AviSplitterD.lib Mpeg2DecFilterD.lib MpaDecFilterD.lib RadGtSplitterD.lib RoQSplitterD.lib OggSplitterD.lib NutSplitterD.lib MpegSplitterD.lib DiracSplitterD.lib MpaSplitterD.lib DSMSplitterD.lib BaseMuxerD.lib DSMMuxerD.lib zlibD.lib"
 				OutputFile="$(OutDir)\$(ProjectName).exe"
 				LinkIncremental="2"
-				SuppressStartupBanner="TRUE"
+				SuppressStartupBanner="true"
 				AdditionalLibraryDirectories="../../../lib;../../../lib/wm7;../../../lib/qt6;../../../lib/detours"
 				IgnoreDefaultLibraryNames="MSVCRT;LIBCMT"
 				DelayLoadDLLs="d3d9.dll;msimg32.dll;gdiplus.dll"
-				GenerateDebugInformation="TRUE"
+				GenerateDebugInformation="true"
 				ProgramDatabaseFile="$(OutDir)\$(ProjectName).pdb"
 				SubSystem="2"
 			/>
@@ -441,6 +438,7 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
+				RuntimeTypeInfo="true"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -453,7 +451,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				ResourceOnlyDLL="TRUE"
+				ResourceOnlyDLL="true"
 			/>
 			<Tool
 				Name="VCALinkTool"
@@ -497,7 +495,7 @@
 				>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -509,7 +507,7 @@
 				>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -521,7 +519,7 @@
 				>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -533,7 +531,7 @@
 				>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -561,7 +559,7 @@
 				>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -577,7 +575,7 @@
 				>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -589,7 +587,7 @@
 				>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -601,7 +599,7 @@
 				>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -613,7 +611,7 @@
 				>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -625,7 +623,7 @@
 				>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -637,7 +635,7 @@
 				>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -649,7 +647,7 @@
 				>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -661,7 +659,7 @@
 				>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -673,7 +671,7 @@
 				>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -693,7 +691,7 @@
 				>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -709,7 +707,7 @@
 				>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -721,7 +719,7 @@
 				>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -733,7 +731,7 @@
 				>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -745,7 +743,7 @@
 				>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -757,7 +755,7 @@
 				>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -773,7 +771,7 @@
 				>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -785,7 +783,7 @@
 				>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -797,7 +795,7 @@
 				>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -809,7 +807,7 @@
 				>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -821,7 +819,7 @@
 				>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -833,7 +831,7 @@
 				>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -845,7 +843,7 @@
 				>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -857,7 +855,7 @@
 				>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -869,7 +867,7 @@
 				>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -881,7 +879,7 @@
 				>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -893,7 +891,7 @@
 				>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -905,7 +903,7 @@
 				>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -917,7 +915,7 @@
 				>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -929,7 +927,7 @@
 				>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -945,7 +943,7 @@
 				>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -957,7 +955,7 @@
 				>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -969,7 +967,7 @@
 				>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -981,7 +979,7 @@
 				>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -993,7 +991,7 @@
 				>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -1009,7 +1007,7 @@
 				>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -1021,7 +1019,7 @@
 				>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -1033,7 +1031,7 @@
 				>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -1061,7 +1059,7 @@
 				>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -1073,7 +1071,7 @@
 				>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -1085,7 +1083,7 @@
 				>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -1097,7 +1095,7 @@
 				>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -1113,7 +1111,7 @@
 				>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -1125,7 +1123,7 @@
 				>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -1137,7 +1135,7 @@
 				>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -1153,7 +1151,7 @@
 				>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -1165,7 +1163,7 @@
 				>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -1177,7 +1175,7 @@
 				>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -1189,7 +1187,7 @@
 				>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -1201,7 +1199,7 @@
 				>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -1213,7 +1211,7 @@
 				>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -1225,7 +1223,7 @@
 				>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -1245,7 +1243,7 @@
 				>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -1257,7 +1255,7 @@
 				>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -1269,7 +1267,7 @@
 				>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -1313,7 +1311,7 @@
 				</FileConfiguration>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -1329,7 +1327,7 @@
 				>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -1341,7 +1339,7 @@
 				>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -1374,7 +1372,7 @@
 				>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCustomBuildTool"
@@ -1386,7 +1384,7 @@
 				>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCustomBuildTool"
@@ -1398,7 +1396,7 @@
 				>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCustomBuildTool"
@@ -1410,7 +1408,7 @@
 				>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCustomBuildTool"
@@ -1438,7 +1436,7 @@
 				>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCustomBuildTool"
@@ -1454,7 +1452,7 @@
 				>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCustomBuildTool"
@@ -1466,7 +1464,7 @@
 				>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCustomBuildTool"
@@ -1478,7 +1476,7 @@
 				>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCustomBuildTool"
@@ -1490,7 +1488,7 @@
 				>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCustomBuildTool"
@@ -1502,7 +1500,7 @@
 				>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCustomBuildTool"
@@ -1514,7 +1512,7 @@
 				>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCustomBuildTool"
@@ -1526,7 +1524,7 @@
 				>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCustomBuildTool"
@@ -1538,7 +1536,7 @@
 				>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCustomBuildTool"
@@ -1550,7 +1548,7 @@
 				>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCustomBuildTool"
@@ -1562,7 +1560,7 @@
 				>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCustomBuildTool"
@@ -1586,7 +1584,7 @@
 				>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCustomBuildTool"
@@ -1602,7 +1600,7 @@
 				>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCustomBuildTool"
@@ -1614,7 +1612,7 @@
 				>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCustomBuildTool"
@@ -1626,7 +1624,7 @@
 				>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCustomBuildTool"
@@ -1638,7 +1636,7 @@
 				>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCustomBuildTool"
@@ -1650,7 +1648,7 @@
 				>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCustomBuildTool"
@@ -1662,7 +1660,7 @@
 				>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCustomBuildTool"
@@ -1674,7 +1672,7 @@
 				>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCustomBuildTool"
@@ -1686,7 +1684,7 @@
 				>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCustomBuildTool"
@@ -1698,7 +1696,7 @@
 				>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCustomBuildTool"
@@ -1710,7 +1708,7 @@
 				>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCustomBuildTool"
@@ -1722,7 +1720,7 @@
 				>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCustomBuildTool"
@@ -1734,7 +1732,7 @@
 				>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCustomBuildTool"
@@ -1746,7 +1744,7 @@
 				>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCustomBuildTool"
@@ -1758,7 +1756,7 @@
 				>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCustomBuildTool"
@@ -1770,7 +1768,7 @@
 				>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCustomBuildTool"
@@ -1782,7 +1780,7 @@
 				>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCustomBuildTool"
@@ -1794,7 +1792,7 @@
 				>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCustomBuildTool"
@@ -1806,7 +1804,7 @@
 				>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCustomBuildTool"
@@ -1818,7 +1816,7 @@
 				>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCustomBuildTool"
@@ -1834,7 +1832,7 @@
 				>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCustomBuildTool"
@@ -1846,7 +1844,7 @@
 				>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCustomBuildTool"
@@ -1858,7 +1856,7 @@
 				>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCustomBuildTool"
@@ -1870,7 +1868,7 @@
 				>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCustomBuildTool"
@@ -1882,7 +1880,7 @@
 				>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCustomBuildTool"
@@ -1898,7 +1896,7 @@
 				>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCustomBuildTool"
@@ -1910,7 +1908,7 @@
 				>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCustomBuildTool"
@@ -1922,7 +1920,7 @@
 				>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCustomBuildTool"
@@ -1950,7 +1948,7 @@
 				>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCustomBuildTool"
@@ -1962,7 +1960,7 @@
 				>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCustomBuildTool"
@@ -1974,7 +1972,7 @@
 				>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCustomBuildTool"
@@ -1986,7 +1984,7 @@
 				>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCustomBuildTool"
@@ -2002,7 +2000,7 @@
 				>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCustomBuildTool"
@@ -2014,7 +2012,7 @@
 				>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCustomBuildTool"
@@ -2026,7 +2024,7 @@
 				>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCustomBuildTool"
@@ -2042,7 +2040,7 @@
 				>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCustomBuildTool"
@@ -2054,7 +2052,7 @@
 				>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCustomBuildTool"
@@ -2066,7 +2064,7 @@
 				>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCustomBuildTool"
@@ -2078,7 +2076,7 @@
 				>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCustomBuildTool"
@@ -2090,7 +2088,7 @@
 				>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCustomBuildTool"
@@ -2102,7 +2100,7 @@
 				>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCustomBuildTool"
@@ -2114,7 +2112,7 @@
 				>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCustomBuildTool"
@@ -2126,7 +2124,7 @@
 				>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCustomBuildTool"
@@ -2146,7 +2144,7 @@
 				>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCustomBuildTool"
@@ -2158,7 +2156,7 @@
 				>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCustomBuildTool"
@@ -2170,7 +2168,7 @@
 				>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCustomBuildTool"
@@ -2182,7 +2180,7 @@
 				>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCustomBuildTool"
@@ -2198,7 +2196,7 @@
 				>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCustomBuildTool"
@@ -2210,7 +2208,7 @@
 				>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="TRUE"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCCustomBuildTool"

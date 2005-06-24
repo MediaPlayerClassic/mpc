@@ -767,6 +767,7 @@ HRESULT CGraphBuilder::AddSourceFilter(LPCTSTR lpsz, IBaseFilter** ppBF, UINT Sr
 	CComQIPtr<IGraphEngine> pGE = m_pGB;
 	if(!pGE || pGE->GetEngine() == DirectShow)
 	{
+/*
 		if(!pBF && fn.Find(_T("://")) > 0)
 		{
 			CList<CString> mms;
@@ -784,7 +785,7 @@ HRESULT CGraphBuilder::AddSourceFilter(LPCTSTR lpsz, IBaseFilter** ppBF, UINT Sr
 					pBF = pReader;
 			}
 		}
-
+*/
 		if((SrcFilters&SRC_SUBS) && !pBF)
 		{
 			hr = S_OK;

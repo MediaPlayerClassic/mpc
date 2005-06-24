@@ -49,6 +49,9 @@ public:
 	virtual void Seek(__int64 pos);
 	virtual HRESULT Read(BYTE* pData, __int64 len);
 
+	UINT64 UExpGolombRead();
+	INT64 SExpGolombRead();
+
 	UINT64 BitRead(int nBits, bool fPeek = false);
 	void BitByteAlign(), BitFlush();
 	HRESULT ByteRead(BYTE* pData, __int64 len);

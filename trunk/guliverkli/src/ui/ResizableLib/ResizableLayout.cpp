@@ -273,7 +273,7 @@ void CResizableLayout::EraseBackground(CDC* pDC)
 	else
 	{
 		// take the background brush from the window's class
-		hBrush = (HBRUSH)::GetClassLong(hWnd, GCL_HBRBACKGROUND);
+		hBrush = (HBRUSH)::GetClassLongPtr(hWnd, GCL_HBRBACKGROUND);
 	}
 
 	// fill the clipped background

@@ -107,7 +107,7 @@ void CWebClientSocket::Header()
 
 	if(!m_cookie.Lookup(_T("MPCSESSIONID"), m_sessid))
 	{
-		srand(time(NULL));
+		srand((unsigned int)time(NULL));
 		m_sessid.Format(_T("%08x"), rand()*0x12345678);
 		SetCookie(_T("MPCSESSIONID"), m_sessid);
 	}

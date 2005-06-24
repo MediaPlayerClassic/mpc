@@ -223,7 +223,7 @@ public:
 		this->rmrepcnt = rmrepcnt;
 		backup = *this;
 	}
-	operator == (const wmcmd& wc) const
+	bool operator == (const wmcmd& wc) const
 	{
 		return(cmd > 0 && cmd == wc.cmd);
 	}
