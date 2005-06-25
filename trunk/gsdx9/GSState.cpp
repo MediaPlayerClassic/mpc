@@ -46,8 +46,7 @@ GSState::GSState(int w, int h, HWND hWnd, HRESULT& hr)
 
 	m_v.RGBAQ.Q = m_q = 1.0f;
 
-	memset(&m_tag, 0, sizeof(m_tag));
-	m_nreg = 0;
+	memset(m_path, 0, sizeof(m_path));
 
 	m_pPRIM = &m_de.PRIM;
 	m_PRIM = 8;
@@ -432,8 +431,7 @@ UINT32 GSState::Freeze(freezeData* fd, bool fSizeOnly)
 	int size = sizeof(m_version)
 		+ sizeof(m_de) + sizeof(m_rs) + sizeof(m_v) 
 		+ sizeof(m_x) + sizeof(m_y) + 1024*1024*4
-		+ sizeof(m_tag) + sizeof(m_nreg)
-		+ sizeof(m_q)
+		+ sizeof(m_path) + sizeof(m_q)
 		/*+ sizeof(m_vl)*/;
 
 	if(fSizeOnly)
@@ -458,8 +456,7 @@ UINT32 GSState::Freeze(freezeData* fd, bool fSizeOnly)
 	memcpy(data, &m_x, sizeof(m_x)); data += sizeof(m_x);
 	memcpy(data, &m_y, sizeof(m_y)); data += sizeof(m_y);
 	memcpy(data, m_lm.GetVM(), 1024*1024*4); data += 1024*1024*4;
-	memcpy(data, &m_tag, sizeof(m_tag)); data += sizeof(m_tag);
-	memcpy(data, &m_nreg, sizeof(m_nreg)); data += sizeof(m_nreg);
+	memcpy(data, m_path, sizeof(m_path)); data += sizeof(m_path);
 	memcpy(data, &m_q, sizeof(m_q)); data += sizeof(m_q);
 	// memcpy(data, &m_vl, sizeof(m_vl)); data += sizeof(m_vl);
 
@@ -474,7 +471,7 @@ UINT32 GSState::Defrost(const freezeData* fd)
 	int size = sizeof(m_version)
 		+ sizeof(m_de) + sizeof(m_rs) + sizeof(m_v) 
 		+ sizeof(m_x) + sizeof(m_y) + 1024*1024*4
-		+ sizeof(m_tag) + sizeof(m_nreg)
+		+ sizeof(m_path)
 		+ sizeof(m_q)
 		/*+ sizeof(m_vl)*/;
 
@@ -495,8 +492,7 @@ UINT32 GSState::Defrost(const freezeData* fd)
 	memcpy(&m_x, data, sizeof(m_x)); data += sizeof(m_x);
 	memcpy(&m_y, data, sizeof(m_y)); data += sizeof(m_y);
 	memcpy(m_lm.GetVM(), data, 1024*1024*4); data += 1024*1024*4;
-	memcpy(&m_tag, data, sizeof(m_tag)); data += sizeof(m_tag);
-	memcpy(&m_nreg, data, sizeof(m_nreg)); data += sizeof(m_nreg);
+	memcpy(&m_path, data, sizeof(m_path)); data += sizeof(m_path);
 	memcpy(&m_q, data, sizeof(m_q)); data += sizeof(m_q);
 	// memcpy(&m_vl, data, sizeof(m_vl)); data += sizeof(m_vl);
 
@@ -785,15 +781,34 @@ void GSState::Transfer1(BYTE* pMem, UINT32 addr)
 	addr &= 0x3fff;
 	memcpy(tr1_buff, pMem + addr, 0x4000 - addr);
 	memcpy(tr1_buff + 0x4000 - addr, pMem, addr);
-	Transfer(tr1_buff, -1);
+/*
+	if((m_tag).NLOOP
+		&& ((GIFTag*)tr1_buff)->NLOOP == 8 && ((GIFTag*)tr1_buff)->PRIM == 0x5b
+		&& ((GIFTag*)tr1_buff)->NREG == 9 && ((GIFTag*)tr1_buff)->REGS == 0x0000000412412412ui64)
+	{
+		ASSERT(0);
+	}
+*/
+	ASSERT(m_path[1].m_tag.NLOOP == 0 && m_path[2].m_tag.NLOOP == 0);
+
+	Transfer(tr1_buff, -1, m_path[0]);
 }
 
-void GSState::Transfer(BYTE* pMem)
+void GSState::Transfer2(BYTE* pMem, UINT32 size)
 {
-	Transfer(pMem, -1);
+	ASSERT(m_path[0].m_tag.NLOOP == 0 && m_path[2].m_tag.NLOOP == 0);
+
+	Transfer(pMem, size, m_path[1]);
 }
 
-void GSState::Transfer(BYTE* pMem, UINT32 size)
+void GSState::Transfer3(BYTE* pMem, UINT32 size)
+{
+	ASSERT(m_path[0].m_tag.NLOOP == 0 && m_path[1].m_tag.NLOOP == 0);
+
+	Transfer(pMem, size, m_path[2]);
+}
+
+void GSState::Transfer(BYTE* pMem, UINT32 size, GIFPath& path)
 {
 	GSPerfMonAutoTimer at(m_perfmon);
 
@@ -806,10 +821,10 @@ void GSState::Transfer(BYTE* pMem, UINT32 size)
 
 		bool fEOP = false;
 
-		if(m_tag.NLOOP == 0)
+		if(path.m_tag.NLOOP == 0)
 		{
-			m_tag = *(GIFTag*)pMem;
-			m_nreg = 0;
+			path.m_tag = *(GIFTag*)pMem;
+			path.m_nreg = 0;
 			m_q = 1.0f;
 /*
 			LOG(_T("GIFTag NLOOP=%x EOP=%x PRE=%x PRIM=%x FLG=%x NREG=%x REGS=%x\n"), 
@@ -824,20 +839,20 @@ void GSState::Transfer(BYTE* pMem, UINT32 size)
 			pMem += sizeof(GIFTag);
 			size--;
 
-			if(m_tag.PRE)
+			if(path.m_tag.PRE)
 			{
 				LOG(_T("PRE "));
 				GIFReg r;
-				r.i64 = m_tag.PRIM;
+				r.i64 = path.m_tag.PRIM;
 				(this->*m_fpGIFRegHandlers[GIF_A_D_REG_PRIM])(&r);
 			}
 
-			if(m_tag.EOP)
+			if(path.m_tag.EOP)
 			{
 				LOG(_T("EOP\n"));
 				fEOP = true;
 			}
-			else if(m_tag.NLOOP == 0)
+			else if(path.m_tag.NLOOP == 0)
 			{
 				LOG(_T("*** WARNING *** m_tag.NLOOP == 0 && EOP == 0\n"));
 				fEOP = true;
@@ -845,35 +860,35 @@ void GSState::Transfer(BYTE* pMem, UINT32 size)
 			}
 		}
 
-		switch(m_tag.FLG)
+		switch(path.m_tag.FLG)
 		{
 		case GIF_FLG_PACKED:
-			for(GIFPackedReg* r = (GIFPackedReg*)pMem; m_tag.NLOOP > 0 && size > 0; r++, size--, pMem += sizeof(GIFPackedReg))
+			for(GIFPackedReg* r = (GIFPackedReg*)pMem; path.m_tag.NLOOP > 0 && size > 0; r++, size--, pMem += sizeof(GIFPackedReg))
 			{
-				DWORD reg = GET_GIF_REG(m_tag, m_nreg);
+				DWORD reg = GET_GIF_REG(path.m_tag, path.m_nreg);
 				(this->*m_fpGIFPackedRegHandlers[reg])(r);
-				if((m_nreg=(m_nreg+1)&0xf) == m_tag.NREG) {m_nreg = 0; m_tag.NLOOP--;}
+				if((path.m_nreg = (path.m_nreg+1)&0xf) == path.m_tag.NREG) {path.m_nreg = 0; path.m_tag.NLOOP--;}
 			}
 			break;
 		case GIF_FLG_REGLIST:
 			size *= 2;
-			for(GIFReg* r = (GIFReg*)pMem; m_tag.NLOOP > 0 && size > 0; r++, size--, pMem += sizeof(GIFReg))
+			for(GIFReg* r = (GIFReg*)pMem; path.m_tag.NLOOP > 0 && size > 0; r++, size--, pMem += sizeof(GIFReg))
 			{
-				DWORD reg = GET_GIF_REG(m_tag, m_nreg);
+				DWORD reg = GET_GIF_REG(path.m_tag, path.m_nreg);
 				(this->*m_fpGIFRegHandlers[reg])(r);
-				if((m_nreg=(m_nreg+1)&0xf) == m_tag.NREG) {m_nreg = 0; m_tag.NLOOP--;}
+				if((path.m_nreg = (path.m_nreg+1)&0xf) == path.m_tag.NREG) {path.m_nreg = 0; path.m_tag.NLOOP--;}
 			}
 			if(size&1) pMem += sizeof(GIFReg);
 			size /= 2;
 			break;
 		case GIF_FLG_IMAGE2:
 			LOG(_T("*** WARNING **** Unexpected GIFTag flag\n"));
-m_tag.NLOOP = 0;
+path.m_tag.NLOOP = 0;
 break;
 			ASSERT(0);
 		case GIF_FLG_IMAGE:
 			{
-				int len = min(size, m_tag.NLOOP);
+				int len = min(size, path.m_tag.NLOOP);
 				//ASSERT(!(len&3));
 				switch(m_rs.TRXDIR.XDIR)
 				{
@@ -893,7 +908,7 @@ break;
 					__assume(0);
 				}
 				pMem += len*16;
-				m_tag.NLOOP -= len;
+				path.m_tag.NLOOP -= len;
 				size -= len;
 			}
 			break;
@@ -908,7 +923,7 @@ break;
 			break;
 		}
 	}
-
+	
 #ifdef ENABLE_CAPTURE_STATE
 	if(m_sfp)
 	{
@@ -981,9 +996,8 @@ void GSState::Reset()
 
 	memset(&m_de, 0, sizeof(m_de));
 	memset(&m_rs, 0, sizeof(m_rs));
-	memset(&m_tag, 0, sizeof(m_tag));
+	memset(m_path, 0, sizeof(m_path));
 	memset(&m_v, 0, sizeof(m_v));
-	m_nreg = 0;
 
 	m_de.PRMODECONT.AC = 1;
 

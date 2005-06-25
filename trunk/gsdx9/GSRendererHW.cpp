@@ -30,7 +30,7 @@ inline BYTE SCALE_ALPHA(BYTE a)
 	return (((a)&0x80)?0xff:((a)<<1));
 }
 
-static const float log_2pow32 = log(2.0f)*32;
+static const float one_over_log_2pow32 = 1.0f / (log(2.0f)*32);
 
 //
 
@@ -84,10 +84,10 @@ void GSRendererHW::VertexKick(bool fSkip)
 	v.y = (float)((int)m_v.XYZ.Y - (int)m_ctxt->XYOFFSET.OFY) * (1.0f/16);
 	//if(m_v.XYZ.Z && m_v.XYZ.Z < 0x100) m_v.XYZ.Z = 0x100;
 	//v.z = 1.0f * (m_v.XYZ.Z>>8)/(UINT_MAX>>8);
-	v.z = log(1.0f + m_v.XYZ.Z)/log_2pow32;
+	v.z = log(1.0f + m_v.XYZ.Z) * one_over_log_2pow32;
 	//v.z = (float)m_v.XYZ.Z / UINT_MAX;
 	//v.rhw = v.z ? 1.0f/v.z : 1.0f;
-	v.rhw = m_v.RGBAQ.Q > 0 ? m_v.RGBAQ.Q : 0; // TODO
+	v.rhw = m_v.RGBAQ.Q > 0 ? m_v.RGBAQ.Q : 1.0f; // TODO
 	//v.rhw = m_v.RGBAQ.Q;
 
 	v.color = m_v.RGBAQ.ai32[0];
@@ -102,8 +102,9 @@ void GSRendererHW::VertexKick(bool fSkip)
 		}
 		else
 		{
-			v.tu = m_v.ST.S / m_v.RGBAQ.Q;
-			v.tv = m_v.ST.T / m_v.RGBAQ.Q;
+			float w = m_v.RGBAQ.Q ? 1.0f / m_v.RGBAQ.Q : 1.0f;
+			v.tu = m_v.ST.S * w;
+			v.tv = m_v.ST.T * w;
 		}
 	}
 	else
@@ -487,7 +488,7 @@ void GSRendererHW::FlushPrim()
 					float base, fract;
 					fract = modf(pVertices->tu, &base);
 					fract *= tsx;
-					ASSERT(-1 <= fract && fract <= 1.01);
+					//ASSERT(-1 <= fract && fract <= 1.01);
 					pVertices->tu = base + fract;
 					fract = modf(pVertices->tv, &base);
 					fract *= tsy;
