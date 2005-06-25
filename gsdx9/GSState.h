@@ -160,6 +160,7 @@ protected:
 	GSPerfMon m_perfmon;
 	GSCapture m_capture;
 
+private:
 	static const int m_nTrMaxBytes = 1024*1024*4;
 	int m_nTrBytes;
 	BYTE* m_pTrBuff;
@@ -171,6 +172,7 @@ protected:
 	void ReadTransfer(BYTE* pMem, int len);
 	void MoveTransfer();
 
+protected:
 	HWND m_hWnd;
 	int m_width, m_height;
 	CComPtr<IDirect3D9> m_pD3D;

@@ -35,6 +35,14 @@ protected:
 
 	enum {PRIM_NONE, PRIM_SPRITE, PRIM_TRIANGLE, PRIM_LINE, PRIM_POINT} m_primtype;
 
+	DWORD m_faddr_x0, m_faddr;
+	DWORD m_zaddr_x0, m_zaddr;
+	int* m_faddr_ro;
+	int* m_zaddr_ro;
+	int m_fx, m_fy;
+	void RowInit(int x, int y);
+	void RowStep();
+
 	void DrawPoint(Vertex* v);
 	void DrawLine(Vertex* v);
 	void DrawTriangle(Vertex* v);
@@ -42,9 +50,9 @@ protected:
 	bool DrawFilledRect(int left, int top, int right, int bottom, const Vertex& v);
 
 	template <int iZTST, int iATST>
-	void DrawVertex(int x, int y, const Vertex& v);
+	void DrawVertex(const Vertex& v);
 
-	typedef void (GSRendererSoft<Vertex>::*DrawVertexPtr)(int x, int y, const Vertex& v);
+	typedef void (GSRendererSoft<Vertex>::*DrawVertexPtr)(const Vertex& v);
 	DrawVertexPtr m_dv[4][8], m_pDrawVertex;
 
 	template <int iLOD, bool bLCM, int bTCC, int iTFX>
