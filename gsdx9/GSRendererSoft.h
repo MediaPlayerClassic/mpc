@@ -79,7 +79,7 @@ public:
 			type,
 			(float)v.p.x, (float)v.p.y, (float)v.p.z / UINT_MAX, (float)v.t.q, 
 			(DWORD)v.c,
-			(float)v.t.x, (float)v.t.y, (float)(v.t.x*tw), (float)(v.t.y*th));
+			(float)v.t.x/tw, (float)v.t.y/th, (float)v.t.x, (float)v.t.y);
 	}
 };
 

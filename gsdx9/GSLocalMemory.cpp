@@ -272,6 +272,15 @@ DWORD GSLocalMemory::pageOffset16SZ[32][64][64];
 DWORD GSLocalMemory::pageOffset8[32][64][128];
 DWORD GSLocalMemory::pageOffset4[32][128][128];
 
+int GSLocalMemory::rowOffset32[2048];
+int GSLocalMemory::rowOffset32Z[2048];
+int GSLocalMemory::rowOffset16[2048];
+int GSLocalMemory::rowOffset16S[2048];
+int GSLocalMemory::rowOffset16Z[2048];
+int GSLocalMemory::rowOffset16SZ[2048];
+int GSLocalMemory::rowOffset8[2][2048];
+int GSLocalMemory::rowOffset4[2][2048];
+
 //
 
 DWORD GSLocalMemory::m_xtbl[1024];
@@ -322,6 +331,34 @@ GSLocalMemory::GSLocalMemory()
 		}
 	}
 
+	{
+		for(int x = 0; x < countof(rowOffset32); x++)
+			rowOffset32[x] = (int)pixelAddress32(x, 0, 0, 32) - (int)pixelAddress32(0, 0, 0, 32);
+
+		for(int x = 0; x < countof(rowOffset32Z); x++)
+			rowOffset32Z[x] = (int)pixelAddress32Z(x, 0, 0, 32) - (int)pixelAddress32Z(0, 0, 0, 32);
+
+		for(int x = 0; x < countof(rowOffset16); x++)
+			rowOffset16[x] = (int)pixelAddress16(x, 0, 0, 32) - (int)pixelAddress16(0, 0, 0, 32);
+
+		for(int x = 0; x < countof(rowOffset16S); x++)
+			rowOffset16S[x] = (int)pixelAddress16S(x, 0, 0, 32) - (int)pixelAddress16S(0, 0, 0, 32);
+
+		for(int x = 0; x < countof(rowOffset16Z); x++)
+			rowOffset16Z[x] = (int)pixelAddress16Z(x, 0, 0, 32) - (int)pixelAddress16Z(0, 0, 0, 32);
+
+		for(int x = 0; x < countof(rowOffset16SZ); x++)
+			rowOffset16SZ[x] = (int)pixelAddress16SZ(x, 0, 0, 32) - (int)pixelAddress16SZ(0, 0, 0, 32);
+
+		for(int x = 0; x < countof(rowOffset8[0]); x++)
+			rowOffset8[0][x] = (int)pixelAddress8(x, 0, 0, 32) - (int)pixelAddress8(0, 0, 0, 32),
+			rowOffset8[1][x] = (int)pixelAddress8(x, 2, 0, 32) - (int)pixelAddress8(0, 2, 0, 32);
+
+		for(int x = 0; x < countof(rowOffset4[0]); x++)
+			rowOffset4[0][x] = (int)pixelAddress4(x, 0, 0, 32) - (int)pixelAddress4(0, 0, 0, 32),
+			rowOffset4[1][x] = (int)pixelAddress4(x, 2, 0, 32) - (int)pixelAddress4(0, 2, 0, 32);
+	}
+
 	for(int i = 0; i < countof(m_psmtbl); i++)
 	{
 		m_psmtbl[i].pa = &GSLocalMemory::pixelAddress32;
@@ -339,6 +376,7 @@ GSLocalMemory::GSLocalMemory()
 		m_psmtbl[i].bpp = m_psmtbl[i].trbpp = 32;
 		m_psmtbl[i].pal = 0;
 		m_psmtbl[i].bs = CSize(8, 8);
+		for(int j = 0; j < 8; j++) m_psmtbl[i].rowOffset[j] = rowOffset32;
 	}
 
 	m_psmtbl[PSM_PSMCT16].pa = &GSLocalMemory::pixelAddress16;
@@ -511,6 +549,16 @@ GSLocalMemory::GSLocalMemory()
 	m_psmtbl[PSM_PSMT8].bs = CSize(16, 16);
 	m_psmtbl[PSM_PSMT4].bs = CSize(32, 32);
 	m_psmtbl[PSM_PSMZ16].bs = m_psmtbl[PSM_PSMZ16S].bs = CSize(16, 8);
+
+	for(int i = 0; i < 8; i++) m_psmtbl[PSM_PSMCT16].rowOffset[i] = rowOffset16;
+	for(int i = 0; i < 8; i++) m_psmtbl[PSM_PSMCT16S].rowOffset[i] = rowOffset16S;
+	for(int i = 0; i < 8; i++) m_psmtbl[PSM_PSMT8].rowOffset[i] = rowOffset8[((i+2)>>2)&1];
+	for(int i = 0; i < 8; i++) m_psmtbl[PSM_PSMT4].rowOffset[i] = rowOffset4[((i+2)>>2)&1];
+	for(int i = 0; i < 8; i++) m_psmtbl[PSM_PSMZ32].rowOffset[i] = rowOffset32Z;
+	for(int i = 0; i < 8; i++) m_psmtbl[PSM_PSMZ24].rowOffset[i] = rowOffset32Z;
+	for(int i = 0; i < 8; i++) m_psmtbl[PSM_PSMZ16].rowOffset[i] = rowOffset16Z;
+	for(int i = 0; i < 8; i++) m_psmtbl[PSM_PSMZ16S].rowOffset[i] = rowOffset16SZ;
+
 
 #ifdef _OPENMP
 	// need real cpus, with HT it is only going to be slower now

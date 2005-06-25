@@ -749,7 +749,7 @@ void GSTextureCache::IncAge(CSurfMap<IDirect3DTexture9>& pRTs)
 		GSTexture* pt = GetNext(pos);
 		pt->m_nAge++;
 		pt->m_nVsyncs++;
-		if(pt->m_nAge > 10)
+		if(pt->m_nAge > 10 && (!pt->m_fRT || pRTs.GetCount() > 3))
 		{
 			pRTs.RemoveKey(pt->m_TEX0.TBP0);
 			RemoveAt(cur);

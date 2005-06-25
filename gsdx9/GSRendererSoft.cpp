@@ -196,7 +196,11 @@ int GSRendererSoft<Vertex>::DrawingKick(bool fSkip)
 		return 0;
 
 	if(!m_pPRIM->IIP)
-		memcpy(&pVertices[0], &pVertices[nVertices-1], sizeof(DWORD)*4); // copy RGBA-only
+	{
+		Vertex::Vector c = pVertices[nVertices-1].c;
+		for(int i = 0; i < nVertices-1; i++) 
+			pVertices[i].c = c;
+	}
 
 	return nVertices;
 }
@@ -364,11 +368,20 @@ void GSRendererSoft<Vertex>::EndFrame()
 {
 }
 
+// TEMP
+static DWORD s_faddr, s_zaddr;
+
 template <class Vertex>
 void GSRendererSoft<Vertex>::DrawPoint(Vertex* v)
 {
 	CPoint p = *v;
-	if(m_scissor.PtInRect(p)) (this->*m_pDrawVertex)(p.x, p.y, *v);
+	if(m_scissor.PtInRect(p))
+	{
+		s_faddr = (m_ctxt->ftbl->pa)(0, p.y, m_ctxt->FRAME.FBP<<5, m_ctxt->FRAME.FBW) + m_ctxt->ftbl->rowOffset[p.y&7][p.x];
+		s_zaddr = (m_ctxt->ztbl->pa)(0, p.y, m_ctxt->ZBUF.ZBP<<5, m_ctxt->FRAME.FBW) + m_ctxt->ztbl->rowOffset[p.y&7][p.x];
+
+		(this->*m_pDrawVertex)(p.x, p.y, *v);
+	}
 }
 
 template <class Vertex>
@@ -397,7 +410,15 @@ void GSRendererSoft<Vertex>::DrawLine(Vertex* v)
 	while(steps-- > 0)
 	{
 		CPoint p = edge;
-		if(m_scissor.PtInRect(p)) (this->*m_pDrawVertex)(p.x, p.y, edge);
+
+		if(m_scissor.PtInRect(p))
+		{
+			s_faddr = (m_ctxt->ftbl->pa)(0, p.y, m_ctxt->FRAME.FBP<<5, m_ctxt->FRAME.FBW) + m_ctxt->ftbl->rowOffset[p.y&7][p.x];
+			s_zaddr = (m_ctxt->ztbl->pa)(0, p.y, m_ctxt->ZBUF.ZBP<<5, m_ctxt->FRAME.FBW) + m_ctxt->ztbl->rowOffset[p.y&7][p.x];
+
+			(this->*m_pDrawVertex)(p.x, p.y, edge);
+		}
+
 		edge += dedge;
 	}
 }
@@ -405,9 +426,9 @@ void GSRendererSoft<Vertex>::DrawLine(Vertex* v)
 template <class Vertex>
 void GSRendererSoft<Vertex>::DrawTriangle(Vertex* v)
 {
-	if(v[1].p.y < v[0].p.y) {Vertex::Exchange(&v[0], &v[1]);}
-	if(v[2].p.y < v[0].p.y) {Vertex::Exchange(&v[0], &v[2]);}
-	if(v[2].p.y < v[1].p.y) {Vertex::Exchange(&v[1], &v[2]);}
+	if(v[1].p.y < v[0].p.y) {Exchange(&v[0], &v[1]);}
+	if(v[2].p.y < v[0].p.y) {Exchange(&v[0], &v[2]);}
+	if(v[2].p.y < v[1].p.y) {Exchange(&v[1], &v[2]);}
 
 	if(!(v[0].p.y < v[2].p.y)) return;
 
@@ -462,9 +483,19 @@ void GSRendererSoft<Vertex>::DrawTriangle(Vertex* v)
 				scan.p.x = Vertex::Scalar(left);
 			}
 
+			DWORD faddr = (m_ctxt->ftbl->pa)(0, top, m_ctxt->FRAME.FBP<<5, m_ctxt->FRAME.FBW);
+			DWORD zaddr = (m_ctxt->ztbl->pa)(0, top, m_ctxt->ZBUF.ZBP<<5, m_ctxt->FRAME.FBW);
+
+			int* fro = &m_ctxt->ftbl->rowOffset[top&7][left];
+			int* zro = &m_ctxt->ztbl->rowOffset[top&7][left];
+
 			for(; left < right; left++)
 			{
+				s_faddr = faddr + *fro++;
+				s_zaddr = zaddr + *zro++;
+
 				(this->*m_pDrawVertex)(left, top, scan);
+
 				scan += dscan;
 			}
 
@@ -485,8 +516,8 @@ void GSRendererSoft<Vertex>::DrawTriangle(Vertex* v)
 template <class Vertex>
 void GSRendererSoft<Vertex>::DrawSprite(Vertex* v)
 {
-	if(v[2].p.y < v[0].p.y) {Vertex::Exchange(&v[0], &v[2]); Vertex::Exchange(&v[1], &v[3]);}
-	if(v[1].p.x < v[0].p.x) {Vertex::Exchange(&v[0], &v[1]); Vertex::Exchange(&v[2], &v[3]);}
+	if(v[2].p.y < v[0].p.y) {Exchange(&v[0], &v[2]); Exchange(&v[1], &v[3]);}
+	if(v[1].p.x < v[0].p.x) {Exchange(&v[0], &v[1]); Exchange(&v[2], &v[3]);}
 
 	if(v[0].p.x == v[1].p.x || v[0].p.y == v[2].p.y) return;
 
@@ -515,9 +546,19 @@ void GSRendererSoft<Vertex>::DrawSprite(Vertex* v)
 	{
 		scan = edge;
 
+		DWORD faddr = (m_ctxt->ftbl->pa)(0, top, m_ctxt->FRAME.FBP<<5, m_ctxt->FRAME.FBW);
+		DWORD zaddr = (m_ctxt->ztbl->pa)(0, top, m_ctxt->ZBUF.ZBP<<5, m_ctxt->FRAME.FBW);
+
+		int* fro = &m_ctxt->ftbl->rowOffset[top&7][left];
+		int* zro = &m_ctxt->ztbl->rowOffset[top&7][left];
+
 		for(int x = left; x < right; x++)
 		{
+			s_faddr = faddr + *fro++;
+			s_zaddr = zaddr + *zro++;
+
 			(this->*m_pDrawVertex)(x, top, scan);
+
 			scan += dscan;
 		}
 
@@ -593,22 +634,24 @@ template <int iZTST, int iATST>
 void GSRendererSoft<Vertex>::DrawVertex(int x, int y, const Vertex& v)
 {
 	ASSERT(x == (int)v.p.x && y == (int)v.p.y);
-
+/*
 	DWORD addrz = 0;
 
 	if(m_ctxt->ZBUF.ZMSK == 0 || iZTST >= 2)
 	{
 		addrz = (m_ctxt->ztbl->pa)(x, y, m_ctxt->ZBUF.ZBP<<5, m_ctxt->FRAME.FBW);
 	}
-
+*/
 	DWORD vz = v.GetZ();
 
 	switch(iZTST)
 	{
 	case 0: return;
 	case 1: break;
-	case 2: if(vz < (m_lm.*m_ctxt->ztbl->rpa)(addrz)) return; break;
-	case 3: if(vz <= (m_lm.*m_ctxt->ztbl->rpa)(addrz)) return; break;
+//	case 2: if(vz < (m_lm.*m_ctxt->ztbl->rpa)(addrz)) return; break;
+//	case 3: if(vz <= (m_lm.*m_ctxt->ztbl->rpa)(addrz)) return; break;
+	case 2: if(vz < (m_lm.*m_ctxt->ztbl->rpa)(s_zaddr)) return; break;
+	case 3: if(vz <= (m_lm.*m_ctxt->ztbl->rpa)(s_zaddr)) return; break;
 	default: __assume(0);
 	}
 
@@ -661,16 +704,18 @@ void GSRendererSoft<Vertex>::DrawVertex(int x, int y, const Vertex& v)
 
 	if(!ZMSK)
 	{
-		(m_lm.*m_ctxt->ztbl->wpa)(addrz, vz);
+//		(m_lm.*m_ctxt->ztbl->wpa)(addrz, vz);
+		(m_lm.*m_ctxt->ztbl->wpa)(s_zaddr, vz);
 	}
 
 	if(FBMSK != ~0)
 	{
-		DWORD addr = (m_ctxt->ftbl->pa)(x, y, m_ctxt->FRAME.FBP<<5, m_ctxt->FRAME.FBW);
+//		DWORD addr = (m_ctxt->ftbl->pa)(x, y, m_ctxt->FRAME.FBP<<5, m_ctxt->FRAME.FBW);
 
 		if(m_ctxt->TEST.DATE && m_ctxt->FRAME.PSM <= PSM_PSMCT16S && m_ctxt->FRAME.PSM != PSM_PSMCT24)
 		{
-			BYTE A = (BYTE)((m_lm.*m_ctxt->ftbl->rpa)(addr) >> (m_ctxt->FRAME.PSM == PSM_PSMCT32 ? 31 : 15));
+//			BYTE A = (BYTE)((m_lm.*m_ctxt->ftbl->rpa)(addr) >> (m_ctxt->FRAME.PSM == PSM_PSMCT32 ? 31 : 15));
+			BYTE A = (BYTE)((m_lm.*m_ctxt->ftbl->rpa)(s_faddr) >> (m_ctxt->FRAME.PSM == PSM_PSMCT32 ? 31 : 15));
 			if(A ^ m_ctxt->TEST.DATM) return;
 		}
 
@@ -682,7 +727,8 @@ void GSRendererSoft<Vertex>::DrawVertex(int x, int y, const Vertex& v)
 
 		if(FBMSK || fABE)
 		{
-			Cd = (m_lm.*m_ctxt->ftbl->rta)(addr, m_ctxt->TEX0, m_de.TEXA);
+//			Cd = (m_lm.*m_ctxt->ftbl->rta)(addr, m_ctxt->TEX0, m_de.TEXA);
+			Cd = (m_lm.*m_ctxt->ftbl->rta)(s_faddr, m_ctxt->TEX0, m_de.TEXA);
 		}
 
 		if(fABE)
@@ -695,40 +741,48 @@ void GSRendererSoft<Vertex>::DrawVertex(int x, int y, const Vertex& v)
 			Cf.a = a;
 		}
 
-		__declspec(align(16)) union {struct {short Rf, Gf, Bf, Af;}; UINT64 Cui64;};
-		Cui64 = Cf;
-
-		if(m_de.DTHE.DTHE)
-		{
-			short DMxy = (signed char)((*((WORD*)&m_de.DIMX.i64 + (y&3)) >> ((x&3)<<2)) << 5) >> 5;
-			Rf += DMxy;
-			Gf += DMxy;
-			Bf += DMxy;
-		}
-
-		Rf = m_clamp[Rf];
-		Gf = m_clamp[Gf];
-		Bf = m_clamp[Bf];
-		Af |= m_ctxt->FBA.FBA << 7;
-
 		DWORD Cdw; 
 
+		if(m_de.COLCLAMP.CLAMP && !m_de.DTHE.DTHE)
+		{
+			Cdw = Cf;
+		}
+		else
+		{
+			__declspec(align(16)) union {struct {short Rf, Gf, Bf, Af;}; UINT64 Cui64;};
+			Cui64 = Cf;
+
+			if(m_de.DTHE.DTHE)
+			{
+				short DMxy = (signed char)((*((WORD*)&m_de.DIMX.i64 + (y&3)) >> ((x&3)<<2)) << 5) >> 5;
+				Rf += DMxy;
+				Gf += DMxy;
+				Bf += DMxy;
+			}
+
+			Rf = m_clamp[Rf];
+			Gf = m_clamp[Gf];
+			Bf = m_clamp[Bf];
+			Af |= m_ctxt->FBA.FBA << 7;
+
 #if _M_IX86_FP >= 2 || defined(_M_AMD64)
-		__m128i r0 = _mm_load_si128((__m128i*)&Cui64);
-		Cdw = (DWORD)_mm_cvtsi128_si32(_mm_packus_epi16(r0, r0));
+			__m128i r0 = _mm_load_si128((__m128i*)&Cui64);
+			Cdw = (DWORD)_mm_cvtsi128_si32(_mm_packus_epi16(r0, r0));
 #else
-		Cdw = ((DWORD)(Rf&0xff) << 0)
-			| ((DWORD)(Gf&0xff) << 8) 
-			| ((DWORD)(Bf&0xff) << 16) 
-			| ((DWORD)(Af&0xff) << 24);
+			Cdw = ((DWORD)(Rf&0xff) << 0)
+				| ((DWORD)(Gf&0xff) << 8) 
+				| ((DWORD)(Bf&0xff) << 16) 
+				| ((DWORD)(Af&0xff) << 24);
 #endif
+		}
 
 		if(FBMSK != 0)
 		{
 			Cdw = (Cdw & ~FBMSK) | ((DWORD)Cd & FBMSK);
 		}
 
-		(m_lm.*m_ctxt->ftbl->wfa)(addr, Cdw);
+//		(m_lm.*m_ctxt->ftbl->wfa)(addr, Cdw);
+		(m_lm.*m_ctxt->ftbl->wfa)(s_faddr, Cdw);
 	}
 }
 

@@ -33,11 +33,11 @@
 #define ENABLE_CAPTURE_STATE
 ////
 
-
+/*
 //#define DEBUG_SAVETEXTURES
-/*#define DEBUG_LOG
-#define DEBUG_LOG2
-#define DEBUG_LOGVERTICES
+#define DEBUG_LOG
+//#define DEBUG_LOG2
+//#define DEBUG_LOGVERTICES
 #define DEBUG_RENDERTARGETS
 */
 
@@ -149,7 +149,7 @@ class GSState
 	friend class GSTextureCache;
 
 protected:
-	static const int m_version = 2;
+	static const int m_version = 3;
 
 	GSLocalMemory m_lm;
 	GSDrawingEnvironment m_de;
@@ -213,8 +213,7 @@ protected:
 
 	//
 
-	GIFTag m_tag;
-	int m_nreg;
+	struct GIFPath {GIFTag m_tag; int m_nreg;} m_path[3];
 
 	// FIXME: savestate
 	GIFRegPRIM* m_pPRIM;
@@ -315,8 +314,9 @@ public:
 	UINT64 Read(GS_REG mem);
 	void ReadFIFO(BYTE* pMem);
 	void Transfer1(BYTE* pMem, UINT32 addr);
-	void Transfer(BYTE* pMem);
-	void Transfer(BYTE* pMem, UINT32 size);
+	void Transfer2(BYTE* pMem, UINT32 size);
+	void Transfer3(BYTE* pMem, UINT32 size);
+	void Transfer(BYTE* pMem, UINT32 size, GIFPath& path);
 	void VSync();
 
 	void GSirq(void (*fpGSirq)()) {m_fpGSirq = fpGSirq;}
@@ -348,25 +348,24 @@ public:
 		va_list args;
 		va_start(args, fmt);
 		////////////
-		/*
 		if(_tcsstr(fmt, _T("VSync")) 
 		|| _tcsstr(fmt, _T("*** WARNING ***"))
 		// || _tcsstr(fmt, _T("Flush"))
 		|| _tcsstr(fmt, _T("CSR"))
 		|| _tcsstr(fmt, _T("DISP"))
 		|| _tcsstr(fmt, _T("FRAME"))
-		// || _tcsstr(fmt, _T("ZBUF"))
-		 || _tcsstr(fmt, _T("SMODE"))
-		 || _tcsstr(fmt, _T("PMODE"))
-		// || _tcsstr(fmt, _T("BITBLTBUF"))
-		// || _tcsstr(fmt, _T("TRX"))
+		|| _tcsstr(fmt, _T("ZBUF"))
+		|| _tcsstr(fmt, _T("SMODE"))
+		|| _tcsstr(fmt, _T("PMODE"))
+		|| _tcsstr(fmt, _T("BITBLTBUF"))
+		|| _tcsstr(fmt, _T("TRX"))
 		// || _tcsstr(fmt, _T("PRIM"))
 		// || _tcsstr(fmt, _T("RGB"))
 		// || _tcsstr(fmt, _T("XYZ"))
 		// || _tcsstr(fmt, _T("ST"))
-		|| _tcsstr(fmt, _T("XYOFFSET"))
+		// || _tcsstr(fmt, _T("XYOFFSET"))
 		// || _tcsstr(fmt, _T("TEX"))
-		// || _tcsstr(fmt, _T("TEX0"))
+		|| _tcsstr(fmt, _T("TEX0"))
 		// || _tcsstr(fmt, _T("TEX2"))
 		// || _tcsstr(fmt, _T("TEXFLUSH"))
 		// || _tcsstr(fmt, _T("UV"))
@@ -376,6 +375,7 @@ public:
 		// || _tcsstr(fmt, _T("CBP")) == fmt
 		// || _tcsstr(fmt, _T("*TC2 ")) == fmt
 		)
+		/*
 		*/
 		if(m_fp)
 		{

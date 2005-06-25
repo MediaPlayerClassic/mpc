@@ -58,6 +58,7 @@ public:
 			unSwizzleTexture ust, ustP, ustNP;
 			DWORD bpp, pal, trbpp; 
 			CSize bs;
+			int* rowOffset[8];
 		};
 		BYTE dummy[128];
 	} psmtbl_t;
@@ -73,6 +74,15 @@ protected:
 	static DWORD pageOffset16SZ[32][64][64];
 	static DWORD pageOffset8[32][64][128];
 	static DWORD pageOffset4[32][128][128];
+
+	static int rowOffset32[2048];
+	static int rowOffset32Z[2048];
+	static int rowOffset16[2048];
+	static int rowOffset16S[2048];
+	static int rowOffset16Z[2048];
+	static int rowOffset16SZ[2048];
+	static int rowOffset8[2][2048];
+	static int rowOffset4[2][2048];
 
 	union {BYTE* m_vm8; WORD* m_vm16; DWORD* m_vm32;};
 
@@ -102,7 +112,6 @@ public:
 	static DWORD __fastcall pageAddress4(int x, int y, DWORD bp, DWORD bw);
 
 	static DWORD __fastcall blockAddress32(int x, int y, DWORD bp, DWORD bw);
-	static DWORD __fastcall blockAddress24(int x, int y, DWORD bp, DWORD bw);
 	static DWORD __fastcall blockAddress16(int x, int y, DWORD bp, DWORD bw);
 	static DWORD __fastcall blockAddress16S(int x, int y, DWORD bp, DWORD bw);
 	static DWORD __fastcall blockAddress8(int x, int y, DWORD bp, DWORD bw);
@@ -112,7 +121,6 @@ public:
 	static DWORD __fastcall blockAddress16SZ(int x, int y, DWORD bp, DWORD bw);
 
 	static DWORD __fastcall pixelAddressOrg32(int x, int y, DWORD bp, DWORD bw);
-	static DWORD __fastcall pixelAddressOrg24(int x, int y, DWORD bp, DWORD bw);
 	static DWORD __fastcall pixelAddressOrg16(int x, int y, DWORD bp, DWORD bw);
 	static DWORD __fastcall pixelAddressOrg16S(int x, int y, DWORD bp, DWORD bw);
 	static DWORD __fastcall pixelAddressOrg8(int x, int y, DWORD bp, DWORD bw);
@@ -122,7 +130,6 @@ public:
 	static DWORD __fastcall pixelAddressOrg16SZ(int x, int y, DWORD bp, DWORD bw);
 
 	static DWORD __fastcall pixelAddress32(int x, int y, DWORD bp, DWORD bw);
-	static DWORD __fastcall pixelAddress24(int x, int y, DWORD bp, DWORD bw);
 	static DWORD __fastcall pixelAddress16(int x, int y, DWORD bp, DWORD bw);
 	static DWORD __fastcall pixelAddress16S(int x, int y, DWORD bp, DWORD bw);
 	static DWORD __fastcall pixelAddress8(int x, int y, DWORD bp, DWORD bw);

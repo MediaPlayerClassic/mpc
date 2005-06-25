@@ -210,18 +210,17 @@ EXPORT_C GSreadFIFO(BYTE* pMem)
 
 EXPORT_C GSgifTransfer1(BYTE* pMem, UINT32 addr)
 {
-//	s_gs->Transfer(pMem + (addr&0x3fff));
 	s_gs->Transfer1(pMem, addr);
 }
 
 EXPORT_C GSgifTransfer2(BYTE* pMem, UINT32 size)
 {
-	s_gs->Transfer(pMem, size);
+	s_gs->Transfer2(pMem, size);
 }
 
 EXPORT_C GSgifTransfer3(BYTE* pMem, UINT32 size)
 {
-	s_gs->Transfer(pMem, size);
+	s_gs->Transfer3(pMem, size);
 }
 
 EXPORT_C GSvsync()
