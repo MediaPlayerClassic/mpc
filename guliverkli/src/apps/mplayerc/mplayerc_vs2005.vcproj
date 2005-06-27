@@ -6,6 +6,7 @@
 	ProjectGUID="{8CE7E5D0-C821-47AC-A247-28EC95B34670}"
 	RootNamespace="mplayerc"
 	Keyword="MFCProj"
+	SignManifests="true"
 	>
 	<Platforms>
 		<Platform
@@ -88,6 +89,7 @@
 				AdditionalLibraryDirectories="../../../lib;../../../lib/wm7;../../../lib/qt6;../../../lib/detours"
 				IgnoreDefaultLibraryNames="MSVCRT"
 				DelayLoadDLLs="d3d9.dll;msimg32.dll;gdiplus.dll"
+				GenerateDebugInformation="true"
 				ProgramDatabaseFile="$(OutDir)\$(ProjectName).pdb"
 				SubSystem="2"
 				SupportUnloadOfDelayLoadedDLL="true"
