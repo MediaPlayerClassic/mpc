@@ -489,18 +489,16 @@ bool Rasterizer::ScanConvert()
 
 		// Detangle scanline into edge heap.
 
-		int i=0;
-
 		for(unsigned ptr = (unsigned)(mpScanBuffer[y]&0xffffffff); ptr; ptr = mpEdgeBuffer[ptr].next)
 		{
-			heap[i++] = mpEdgeBuffer[ptr].posandflag;
+			heap.push_back(mpEdgeBuffer[ptr].posandflag);
 		}
 
 		// Sort edge heap.  Note that we conveniently made the opening edges
 		// one more than closing edges at the same spot, so we won't have any
 		// problems with abutting spans.
 
-		std::sort(heap.begin(), heap.begin()+i);
+		std::sort(heap.begin(), heap.begin() + heap.size());
 
 		// Process edges and add spans.  Since we only check for a non-zero
 		// winding number, it doesn't matter which way the outlines go!
@@ -530,6 +528,8 @@ bool Rasterizer::ScanConvert()
 					mOutline.push_back(std::pair<__int64,__int64>((y<<32)+x1+0x4000000040000000i64, (y<<32)+x2+0x4000000040000000i64)); // G: damn Avery, this is evil! :)
 			}
 		}
+
+		heap.clear();
 	}
 
 	// Dump the edge and scan buffers, since we no longer need them.
