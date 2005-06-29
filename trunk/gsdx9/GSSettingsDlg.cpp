@@ -27,7 +27,7 @@
 static struct {int id; const TCHAR* name;} s_renderers[] =
 {
 	{RENDERER_D3D_HW, "Direct3D"},
-	{RENDERER_D3D_SW_FX, "Software (fixed)"},
+	// {RENDERER_D3D_SW_FX, "Software (fixed)"},
 	{RENDERER_D3D_SW_FP, "Software (float)"},
 	{RENDERER_D3D_NULL, "Do not render"},
 };

@@ -275,8 +275,6 @@ int GSRendererHW::DrawingKick(bool fSkip)
 
 void GSRendererHW::FlushPrim()
 {
-	ASSERT(m_nTrBytes == 0);
-
 	if(m_nVertices > 0 && (!m_pPRIM->TME || m_ctxt->TEX0.TBP0 != m_ctxt->FRAME.Block()))
 	do
 	{
@@ -919,7 +917,6 @@ void GSRendererHW::MinMaxUV(int w, int h, CRect& r)
 		{
 			if(uv.umin < 0) uv.umin = 0;
 			if(uv.umax > 1.0f) uv.umax = 1.0f;
-			ASSERT(uv.umin <= uv.umax);
 		}
 		else if(m_ctxt->CLAMP.WMS == 2)
 		{
@@ -950,7 +947,6 @@ void GSRendererHW::MinMaxUV(int w, int h, CRect& r)
 		{
 			if(uv.vmin < 0) uv.vmin = 0;
 			if(uv.vmax > 1.0f) uv.vmax = 1.0f;
-			ASSERT(uv.vmin <= uv.vmax);
 		}
 		else if(m_ctxt->CLAMP.WMT == 2)
 		{
@@ -963,6 +959,9 @@ void GSRendererHW::MinMaxUV(int w, int h, CRect& r)
 		r.top = max((int)(uv.vmin * h) & ~bsm.cy, 0);
 		r.bottom = min(((int)(uv.vmax * h) + bsm.cy + 1) & ~bsm.cy, h);
 	}
+
+	ASSERT(r.left <= r.right);
+	ASSERT(r.top <= r.bottom);
 }
 
 void GSRendererHW::SetupTexture(const GSTextureBase& t, float tsx, float tsy)

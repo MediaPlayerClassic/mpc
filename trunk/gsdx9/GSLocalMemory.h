@@ -102,6 +102,18 @@ public:
 	static void RoundDown(CSize& s, CSize bs);
 	static void RoundUp(CSize& s, CSize bs);
 
+	static DWORD Expand24To32(DWORD c, BYTE TCC, GIFRegTEXA& TEXA)
+	{
+		BYTE A = (!TEXA.AEM|(c&0xffffff)) ? TEXA.TA0 : 0;
+		return (A<<24) | (c&0xffffff);
+	}
+
+	static DWORD Expand16To32(WORD c, GIFRegTEXA& TEXA)
+	{
+		BYTE A = (c&0x8000) ? TEXA.TA1 : (!TEXA.AEM|c) ? TEXA.TA0 : 0;
+		return (A << 24) | ((c&0x7c00) << 9) | ((c&0x03e0) << 6) | ((c&0x001f) << 3);
+	}
+
 	BYTE* GetVM() {return m_vm8;}
 
 	// address
@@ -171,36 +183,36 @@ public:
 	DWORD readPixel16Z(int x, int y, DWORD bp, DWORD bw);
 	DWORD readPixel16SZ(int x, int y, DWORD bp, DWORD bw);
 
-	void writePixel32(DWORD addr, DWORD c);
-	void writePixel24(DWORD addr, DWORD c);
-	void writePixel16(DWORD addr, DWORD c);
-	void writePixel16S(DWORD addr, DWORD c);
-	void writePixel8(DWORD addr, DWORD c);
-	void writePixel8H(DWORD addr, DWORD c);
-	void writePixel4(DWORD addr, DWORD c);
-    void writePixel4HL(DWORD addr, DWORD c);
-	void writePixel4HH(DWORD addr, DWORD c);
-	void writePixel32Z(DWORD addr, DWORD c);
-	void writePixel24Z(DWORD addr, DWORD c);
-	void writePixel16Z(DWORD addr, DWORD c);
-	void writePixel16SZ(DWORD addr, DWORD c);
+	void writePixel32(DWORD addr, DWORD c) {m_vm32[addr] = c;}
+	void writePixel24(DWORD addr, DWORD c) {m_vm32[addr] = (m_vm32[addr] & 0xff000000) | (c & 0x00ffffff);}
+	void writePixel16(DWORD addr, DWORD c) {m_vm16[addr] = (WORD)c;}
+	void writePixel16S(DWORD addr, DWORD c) {m_vm16[addr] = (WORD)c;}
+	void writePixel8(DWORD addr, DWORD c) {m_vm8[addr] = (BYTE)c;}
+	void writePixel8H(DWORD addr, DWORD c) {m_vm32[addr] = (m_vm32[addr] & 0x00ffffff) | (c << 24);}
+	void writePixel4(DWORD addr, DWORD c) {int shift = (addr&1) << 2; addr >>= 1; m_vm8[addr] = (BYTE)((m_vm8[addr] & (0xf0 >> shift)) | ((c & 0x0f) << shift));}
+	void writePixel4HL(DWORD addr, DWORD c) {m_vm32[addr] = (m_vm32[addr] & 0xf0ffffff) | ((c & 0x0f) << 24);}
+	void writePixel4HH(DWORD addr, DWORD c) {m_vm32[addr] = (m_vm32[addr] & 0x0fffffff) | ((c & 0x0f) << 28);}
+	void writePixel32Z(DWORD addr, DWORD c) {m_vm32[addr] = c;}
+	void writePixel24Z(DWORD addr, DWORD c) {m_vm32[addr] = (m_vm32[addr] & 0xff000000) | (c & 0x00ffffff);}
+	void writePixel16Z(DWORD addr, DWORD c) {m_vm16[addr] = (WORD)c;}
+	void writePixel16SZ(DWORD addr, DWORD c) {m_vm16[addr] = (WORD)c;}
 
-	void writeFrame16(DWORD addr, DWORD c);
-	void writeFrame16S(DWORD addr, DWORD c);
+	void writeFrame16(DWORD addr, DWORD c) {writePixel16(addr, ((c>>16)&0x8000)|((c>>9)&0x7c00)|((c>>6)&0x03e0)|((c>>3)&0x001f));}
+	void writeFrame16S(DWORD addr, DWORD c) {writePixel16S(addr, ((c>>16)&0x8000)|((c>>9)&0x7c00)|((c>>6)&0x03e0)|((c>>3)&0x001f));}
 
-	DWORD readPixel32(DWORD addr);
-	DWORD readPixel24(DWORD addr);
-	DWORD readPixel16(DWORD addr);
-	DWORD readPixel16S(DWORD addr);
-	DWORD readPixel8(DWORD addr);
-	DWORD readPixel8H(DWORD addr);
-	DWORD readPixel4(DWORD addr);
-	DWORD readPixel4HL(DWORD addr);
-	DWORD readPixel4HH(DWORD addr);
-	DWORD readPixel32Z(DWORD addr);
-	DWORD readPixel24Z(DWORD addr);
-	DWORD readPixel16Z(DWORD addr);
-	DWORD readPixel16SZ(DWORD addr);
+	DWORD readPixel32(DWORD addr) {return m_vm32[addr];}
+	DWORD readPixel24(DWORD addr) {return m_vm32[addr] & 0x00ffffff;}
+	DWORD readPixel16(DWORD addr) {return (DWORD)m_vm16[addr];}
+	DWORD readPixel16S(DWORD addr) {return (DWORD)m_vm16[addr];}
+	DWORD readPixel8(DWORD addr) {return (DWORD)m_vm8[addr];}
+	DWORD readPixel8H(DWORD addr) {return m_vm32[addr] >> 24;}
+	DWORD readPixel4(DWORD addr) {return (m_vm8[addr>>1] >> ((addr&1) << 2)) & 0x0f;}
+	DWORD readPixel4HL(DWORD addr) {return (m_vm32[addr] >> 24) & 0x0f;}
+	DWORD readPixel4HH(DWORD addr) {return (m_vm32[addr] >> 28) & 0x0f;}
+	DWORD readPixel32Z(DWORD addr) {return m_vm32[addr];}
+	DWORD readPixel24Z(DWORD addr) {return m_vm32[addr] & 0x00ffffff;}
+	DWORD readPixel16Z(DWORD addr) {return (DWORD)m_vm16[addr];}
+	DWORD readPixel16SZ(DWORD addr) {return (DWORD)m_vm16[addr];}
 
 	// FillRect
 
@@ -231,15 +243,15 @@ public:
 	DWORD readTexel4HL(int x, int y, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
 	DWORD readTexel4HH(int x, int y, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
 
-	DWORD readTexel32(DWORD addr, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
-	DWORD readTexel24(DWORD addr, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
-	DWORD readTexel16(DWORD addr, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
-	DWORD readTexel16S(DWORD addr, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
-	DWORD readTexel8(DWORD addr, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
-	DWORD readTexel8H(DWORD addr, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
-	DWORD readTexel4(DWORD addr, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
-	DWORD readTexel4HL(DWORD addr, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
-	DWORD readTexel4HH(DWORD addr, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
+	DWORD readTexel32(DWORD addr, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA) {return m_vm32[addr];}
+	DWORD readTexel24(DWORD addr, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA) {return Expand24To32(m_vm32[addr], TEX0.ai32[1]&4, TEXA);}
+	DWORD readTexel16(DWORD addr, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA) {return Expand16To32(m_vm16[addr], TEXA);}
+	DWORD readTexel16S(DWORD addr, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA) {return Expand16To32(m_vm16[addr], TEXA);}
+	DWORD readTexel8(DWORD addr, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA) {return m_pCLUT32[readPixel8(addr)];}
+	DWORD readTexel8H(DWORD addr, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA) {return m_pCLUT32[readPixel8H(addr)];}
+	DWORD readTexel4(DWORD addr, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA) {return m_pCLUT32[readPixel4(addr)];}
+	DWORD readTexel4HL(DWORD addr, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA) {return m_pCLUT32[readPixel4HL(addr)];}
+	DWORD readTexel4HH(DWORD addr, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA) {return m_pCLUT32[readPixel4HH(addr)];}
 
 	void SwizzleTexture32(int& tx, int& ty, BYTE* src, int len, GIFRegBITBLTBUF& BITBLTBUF, GIFRegTRXPOS& TRXPOS, GIFRegTRXREG& TRXREG);
 	void SwizzleTexture24(int& tx, int& ty, BYTE* src, int len, GIFRegBITBLTBUF& BITBLTBUF, GIFRegTRXPOS& TRXPOS, GIFRegTRXREG& TRXREG);
