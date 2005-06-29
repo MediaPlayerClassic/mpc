@@ -1089,7 +1089,7 @@ void GSState::FinishFlip(FlipInfo rt[2])
 */	
 
 	//// FIXME: sw mode / poolmaster + funslower
-	if(m_nVSync > 1 || m_pCSRr->FIELD == 0)
+	// if(m_nVSync > 1 || m_pCSRr->FIELD == 0)
 	{
 		m_pCSRr->FIELD = 1 - m_pCSRr->FIELD; 
 		m_nVSync = 0;

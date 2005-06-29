@@ -210,20 +210,6 @@ public:
 
 //
 
-__forceinline static DWORD Expand24To32(DWORD c, BYTE TCC, GIFRegTEXA& TEXA)
-{
-	BYTE A = (!TEXA.AEM|(c&0xffffff)) ? TEXA.TA0 : 0;
-	return (A<<24) | (c&0xffffff);
-}
-
-__forceinline static DWORD Expand16To32(WORD c, GIFRegTEXA& TEXA)
-{
-	BYTE A = (c&0x8000) ? TEXA.TA1 : (!TEXA.AEM|c) ? TEXA.TA0 : 0;
-	return (A << 24) | ((c&0x7c00) << 9) | ((c&0x03e0) << 6) | ((c&0x001f) << 3);
-}
-
-//
-
 #define ASSERT_BLOCK(r, w, h) \
 	ASSERT((r).Width() >= w && (r).Height() >= h && !((r).left&(w-1)) && !((r).top&(h-1)) && !((r).right&(w-1)) && !((r).bottom&(h-1))); \
 
@@ -1043,7 +1029,7 @@ DWORD GSLocalMemory::readPixel16SZ(int x, int y, DWORD bp, DWORD bw)
 }
 
 ////////////////////
-
+/*
 void GSLocalMemory::writePixel32(DWORD addr, DWORD c)
 {
 	m_vm32[addr] = c;
@@ -1114,14 +1100,12 @@ void GSLocalMemory::writePixel16SZ(DWORD addr, DWORD c)
 
 void GSLocalMemory::writeFrame16(DWORD addr, DWORD c)
 {
-	c = ((c>>16)&0x8000)|((c>>9)&0x7c00)|((c>>6)&0x03e0)|((c>>3)&0x001f);
-	writePixel16(addr, c);
+	writePixel16(addr, ((c>>16)&0x8000)|((c>>9)&0x7c00)|((c>>6)&0x03e0)|((c>>3)&0x001f));
 }
 
 void GSLocalMemory::writeFrame16S(DWORD addr, DWORD c)
 {
-	c = ((c>>16)&0x8000)|((c>>9)&0x7c00)|((c>>6)&0x03e0)|((c>>3)&0x001f);
-	writePixel16S(addr, c);
+	writePixel16S(addr, ((c>>16)&0x8000)|((c>>9)&0x7c00)|((c>>6)&0x03e0)|((c>>3)&0x001f));
 }
 
 ////////////////////
@@ -1190,7 +1174,7 @@ DWORD GSLocalMemory::readPixel16SZ(DWORD addr)
 {
 	return (DWORD)m_vm16[addr];
 }
-
+*/
 ////////////////////
 
 bool GSLocalMemory::FillRect(CRect& r, DWORD c, DWORD psm, DWORD fbp, DWORD fbw)
@@ -1513,7 +1497,7 @@ DWORD GSLocalMemory::readTexel4HH(int x, int y, GIFRegTEX0& TEX0, GIFRegTEXA& TE
 }
 
 ////////////////////
-
+/*
 DWORD GSLocalMemory::readTexel32(DWORD addr, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA)
 {
 	return m_vm32[addr];
@@ -1558,7 +1542,7 @@ DWORD GSLocalMemory::readTexel4HH(DWORD addr, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA
 {
 	return m_pCLUT32[readPixel4HH(addr)];
 }
-
+*/
 ////////////////////
 
 static void SwizzleTextureStep(int& tx, int& ty, GIFRegTRXPOS& TRXPOS, GIFRegTRXREG& TRXREG)
@@ -2539,15 +2523,15 @@ void GSLocalMemory::unSwizzleTexture8HNP(const CRect& r, BYTE* dst, int dstpitch
 			if(TEX0.CPSM == PSM_PSMCT32)
 			{
 				BYTE* d = ptr + (x-r.left)*4;
-				for(int j = 0; j < 16; j++, s += 16, d += dstpitch)
-					for(int i = 0; i < 16; i++)
+				for(int j = 0; j < 8; j++, s += 8, d += dstpitch)
+					for(int i = 0; i < 8; i++)
 						((DWORD*)d)[i] = m_pCLUT32[s[i] >> 24];
 			}
 			else
 			{
 				BYTE* d = ptr + (x-r.left)*2;
-				for(int j = 0; j < 16; j++, s += 16, d += dstpitch)
-					for(int i = 0; i < 16; i++)
+				for(int j = 0; j < 8; j++, s += 8, d += dstpitch)
+					for(int i = 0; i < 8; i++)
 						((WORD*)d)[i] = (WORD)m_pCLUT32[s[i] >> 24];
 			}
 		}

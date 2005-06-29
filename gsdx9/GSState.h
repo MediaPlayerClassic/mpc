@@ -36,8 +36,8 @@
 /*
 //#define DEBUG_SAVETEXTURES
 #define DEBUG_LOG
-//#define DEBUG_LOG2
-//#define DEBUG_LOGVERTICES
+#define DEBUG_LOG2
+#define DEBUG_LOGVERTICES
 #define DEBUG_RENDERTARGETS
 */
 
@@ -350,6 +350,7 @@ public:
 		va_list args;
 		va_start(args, fmt);
 		////////////
+/*
 		if(_tcsstr(fmt, _T("VSync")) 
 		|| _tcsstr(fmt, _T("*** WARNING ***"))
 		// || _tcsstr(fmt, _T("Flush"))
@@ -377,8 +378,7 @@ public:
 		// || _tcsstr(fmt, _T("CBP")) == fmt
 		// || _tcsstr(fmt, _T("*TC2 ")) == fmt
 		)
-		/*
-		*/
+*/
 		if(m_fp)
 		{
 			TCHAR buff[2048];

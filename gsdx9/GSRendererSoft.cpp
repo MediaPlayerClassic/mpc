@@ -647,7 +647,13 @@ void GSRendererSoft<Vertex>::DrawVertex(const Vertex& v)
 	default: __assume(0);
 	}
 
-	Vertex::Vector Cf = v.c;
+	union
+	{
+		struct {Vertex::Vector Cf, Cd, Ca;};
+		struct {Vertex::Vector Cfda[3];};
+	};
+
+	Cf = v.c;
 
 	if(m_pPRIM->TME)
 	{
@@ -711,8 +717,6 @@ void GSRendererSoft<Vertex>::DrawVertex(const Vertex& v)
 
 		bool fABE = (m_pPRIM->ABE || m_pPRIM->AA1 && (m_pPRIM->PRIM == 1 || m_pPRIM->PRIM == 2)) && (!m_de.PABE.PABE || (int)Cf.a >= 0x80);
 
-		Vertex::Vector Cd;
-
 		if(FBMSK || fABE)
 		{
 			Cd = (m_lm.*m_ctxt->ftbl->rta)(m_faddr, m_ctxt->TEX0, m_de.TEXA);
@@ -720,11 +724,11 @@ void GSRendererSoft<Vertex>::DrawVertex(const Vertex& v)
 
 		if(fABE)
 		{
-			Vertex::Vector CsCdA[3] = {Cf, Cd, Vertex::Vector(Vertex::Scalar(0))};
-			CsCdA[2].a = Vertex::Scalar((int)m_ctxt->ALPHA.FIX);
+			Ca = Vertex::Vector(Vertex::Scalar(0));
+			Ca.a = Vertex::Scalar((int)m_ctxt->ALPHA.FIX);
 
 			Vertex::Scalar a = Cf.a;
-			Cf = ((CsCdA[m_ctxt->ALPHA.A] - CsCdA[m_ctxt->ALPHA.B]) * CsCdA[m_ctxt->ALPHA.C].a >> 7) + CsCdA[m_ctxt->ALPHA.D];
+			Cf = ((Cfda[m_ctxt->ALPHA.A] - Cfda[m_ctxt->ALPHA.B]) * Cfda[m_ctxt->ALPHA.C].a >> 7) + Cfda[m_ctxt->ALPHA.D];
 			Cf.a = a;
 		}
 
