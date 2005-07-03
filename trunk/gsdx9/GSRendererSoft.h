@@ -55,7 +55,7 @@ protected:
 	typedef void (GSRendererSoft<Vertex>::*DrawVertexPtr)(const Vertex& v);
 	DrawVertexPtr m_dv[4][8], m_pDrawVertex;
 
-	template <int iLOD, bool bLCM, int bTCC, int iTFX>
+	template <int iLOD, bool bLCM, bool bTCC, int iTFX>
 	void DrawVertexTFX(typename Vertex::Vector& Cf, const Vertex& v);
 
 	typedef void (GSRendererSoft<Vertex>::*DrawVertexTFXPtr)(typename Vertex::Vector& Cf, const Vertex& v);
