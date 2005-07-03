@@ -515,10 +515,10 @@ unSwizzleBlock8HP_amd64 proc public
 
 	punpck		qdq, 0, 2, 1, 3, 4, 6
 
-	pslld		xmm0, 24
-	pslld		xmm2, 24
-	pslld		xmm4, 24
-	pslld		xmm6, 24
+	psrld		xmm0, 24
+	psrld		xmm2, 24
+	psrld		xmm4, 24
+	psrld		xmm6, 24
 	
 	packssdw	xmm0, xmm2
 	packssdw	xmm4, xmm6
@@ -553,6 +553,10 @@ unSwizzleBlock4HLP_amd64 proc public
 	mov			rdi, rdx
 	mov			rcx, 4
 
+	mov         eax, 0f0f0f0fh
+	movd        xmm7, eax 
+	pshufd      xmm7, xmm7, 0
+
 	align 16
 @@:
 	movdqa		xmm0, [rsi+16*0]
@@ -562,20 +566,17 @@ unSwizzleBlock4HLP_amd64 proc public
 
 	punpck		qdq, 0, 2, 1, 3, 4, 6
 
-	psrld		xmm0, 4
-	psrld		xmm2, 4
-	psrld		xmm4, 4
-	psrld		xmm6, 4
-	
-	pslld		xmm0, 24
-	pslld		xmm2, 24
-	pslld		xmm4, 24
-	pslld		xmm6, 24
+	psrld		xmm0, 24
+	psrld		xmm2, 24
+	psrld		xmm4, 24
+	psrld		xmm6, 24
 	
 	packssdw	xmm0, xmm2
 	packssdw	xmm4, xmm6
 	packuswb	xmm0, xmm4
 
+	pand		xmm0, xmm7
+	
 	movlps		qword ptr [rdi], xmm0
 	movhps		qword ptr [rdi+r8], xmm0
 
@@ -614,10 +615,10 @@ unSwizzleBlock4HHP_amd64 proc public
 
 	punpck		qdq, 0, 2, 1, 3, 4, 6
 
-	pslld		xmm0, 28
-	pslld		xmm2, 28
-	pslld		xmm4, 28
-	pslld		xmm6, 28
+	psrld		xmm0, 28
+	psrld		xmm2, 28
+	psrld		xmm4, 28
+	psrld		xmm6, 28
 	
 	packssdw	xmm0, xmm2
 	packssdw	xmm4, xmm6

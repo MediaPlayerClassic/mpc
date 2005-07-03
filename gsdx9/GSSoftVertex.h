@@ -76,6 +76,9 @@ __declspec(align(16)) union GSSoftVertexFP
 		friend Scalar operator * (const Scalar& s, int i) {return Scalar(s.val * i);}
 		friend Scalar operator / (const Scalar& s, int i) {return Scalar(s.val / i);}
 
+		friend Scalar operator << (const Scalar& s, int i) {return Scalar(s.val * (1<<i));}
+		friend Scalar operator >> (const Scalar& s, int i) {return Scalar(s.val / (1<<i));}
+
 		friend bool operator == (const Scalar& s1, const Scalar& s2) {return s1.val == s2.val;}
 		friend bool operator <= (const Scalar& s1, const Scalar& s2) {return s1.val <= s2.val;}
 		friend bool operator < (const Scalar& s1, const Scalar& s2) {return s1.val < s2.val;}

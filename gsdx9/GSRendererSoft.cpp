@@ -779,7 +779,7 @@ void GSRendererSoft<Vertex>::DrawVertex(const Vertex& v)
 static const float one_over_log2 = 1.0f / log(2.0f);
 
 template <class Vertex>
-template <int iLOD, bool bLCM, int bTCC, int iTFX>
+template <int iLOD, bool bLCM, bool bTCC, int iTFX>
 void GSRendererSoft<Vertex>::DrawVertexTFX(typename Vertex::Vector& Cf, const Vertex& v)
 {
 	ASSERT(m_pPRIM->TME);

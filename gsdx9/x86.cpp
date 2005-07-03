@@ -685,7 +685,7 @@ void __fastcall WriteCLUT_T32_I4_CSM1_sse2(DWORD* vm, WORD* clut)
 
 void __fastcall WriteCLUT_T16_I8_CSM1_c(WORD* vm, WORD* clut)
 {
-	static DWORD map[] = 
+	const static DWORD map[] = 
 	{
 		0, 2, 8, 10, 16, 18, 24, 26,
 		4, 6, 12, 14, 20, 22, 28, 30,
@@ -704,7 +704,7 @@ void __fastcall WriteCLUT_T16_I8_CSM1_c(WORD* vm, WORD* clut)
 
 void __fastcall WriteCLUT_T32_I8_CSM1_c(DWORD* vm, WORD* clut)
 {
-	static DWORD map[] = 
+	const static DWORD map[] = 
 	{
 		0, 1, 4, 5, 8, 9, 12, 13, 2, 3, 6, 7, 10, 11, 14, 15, 
 		64, 65, 68, 69, 72, 73, 76, 77, 66, 67, 70, 71, 74, 75, 78, 79, 
@@ -729,7 +729,7 @@ void __fastcall WriteCLUT_T32_I8_CSM1_c(DWORD* vm, WORD* clut)
 
 void __fastcall WriteCLUT_T16_I4_CSM1_c(WORD* vm, WORD* clut)
 {
-	static DWORD map[] = 
+	const static DWORD map[] = 
 	{
 		0, 2, 8, 10, 16, 18, 24, 26,
 		4, 6, 12, 14, 20, 22, 28, 30
@@ -743,7 +743,7 @@ void __fastcall WriteCLUT_T16_I4_CSM1_c(WORD* vm, WORD* clut)
 
 void __fastcall WriteCLUT_T32_I4_CSM1_c(DWORD* vm, WORD* clut)
 {
-	static DWORD map[] = 
+	const static DWORD map[] = 
 	{
 		0, 1, 4, 5, 8, 9, 12, 13,
 		2, 3, 6, 7, 10, 11, 14, 15

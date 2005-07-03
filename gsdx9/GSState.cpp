@@ -1088,8 +1088,8 @@ void GSState::FinishFlip(FlipInfo rt[2])
 	}
 */	
 
-	//// FIXME: sw mode / poolmaster + funslower
-	// if(m_nVSync > 1 || m_pCSRr->FIELD == 0)
+	// // FIXME: sw mode / poolmaster + funslower
+	if(m_nVSync > 1 || m_pCSRr->FIELD == 0)
 	{
 		m_pCSRr->FIELD = 1 - m_pCSRr->FIELD; 
 		m_nVSync = 0;
@@ -1110,6 +1110,7 @@ void GSState::FinishFlip(FlipInfo rt[2])
     hr = m_pD3DDev->SetRenderState(D3DRS_ALPHABLENDENABLE, FALSE);
 	hr = m_pD3DDev->SetRenderState(D3DRS_ALPHATESTENABLE, FALSE); 
 	hr = m_pD3DDev->SetRenderState(D3DRS_SCISSORTESTENABLE, FALSE);
+	hr = m_pD3DDev->SetRenderState(D3DRS_COLORWRITEENABLE, D3DCOLORWRITEENABLE_RGBA);
 
 	hr = m_pD3DDev->SetTexture(0, rt[0].pRT);
 	hr = m_pD3DDev->SetTexture(1, rt[1].pRT);

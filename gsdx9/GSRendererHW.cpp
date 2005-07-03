@@ -374,7 +374,7 @@ void GSRendererHW::FlushPrim()
 				hr = m_pD3DDev->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_ONE);
 				hr = m_pD3DDev->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_ZERO);
 				hr = m_pD3DDev->SetRenderState(D3DRS_SCISSORTESTENABLE, FALSE);
-				hr = m_pD3DDev->SetRenderState(D3DRS_COLORWRITEENABLE, 15);
+				hr = m_pD3DDev->SetRenderState(D3DRS_COLORWRITEENABLE, D3DCOLORWRITEENABLE_RGBA);
 
 				hr = m_pD3DDev->SetPixelShader(m_pHLSLTFX[37]);
 
@@ -546,9 +546,9 @@ void GSRendererHW::FlushPrim()
 			switch(m_ctxt->TEST.AFAIL)
 			{
 			case 0: break; // keep
-			case 1: mask = D3DCOLORWRITEENABLE_ALPHA|D3DCOLORWRITEENABLE_BLUE|D3DCOLORWRITEENABLE_GREEN|D3DCOLORWRITEENABLE_RED; break; // fbuf
+			case 1: mask = D3DCOLORWRITEENABLE_RGBA; break; // fbuf
 			case 2: zwrite = true; break; // zbuf
-			case 3: mask = D3DCOLORWRITEENABLE_BLUE|D3DCOLORWRITEENABLE_GREEN|D3DCOLORWRITEENABLE_RED; break; // fbuf w/o alpha
+			case 3: mask = D3DCOLORWRITEENABLE_RGB; break; // fbuf w/o alpha
 			default: __assume(0);
 			}
 
@@ -844,7 +844,7 @@ void GSRendererHW::InvalidateTexture(DWORD TBP0, DWORD PSM, CRect r)
 				hr = m_pD3DDev->SetRenderTarget(0, pSurf);
 
 			    hr = m_pD3DDev->SetRenderState(D3DRS_ALPHABLENDENABLE, FALSE);
-				hr = m_pD3DDev->SetRenderState(D3DRS_COLORWRITEENABLE, D3DCOLORWRITEENABLE_ALPHA|D3DCOLORWRITEENABLE_BLUE|D3DCOLORWRITEENABLE_GREEN|D3DCOLORWRITEENABLE_RED);
+				hr = m_pD3DDev->SetRenderState(D3DRS_COLORWRITEENABLE, D3DCOLORWRITEENABLE_RGBA);
 				hr = m_pD3DDev->SetRenderState(D3DRS_ZENABLE, FALSE);
 				hr = m_pD3DDev->SetRenderState(D3DRS_ZWRITEENABLE, FALSE);
 				hr = m_pD3DDev->SetRenderState(D3DRS_ALPHATESTENABLE, FALSE); 
@@ -1311,7 +1311,7 @@ void GSRendererHW::SetupColorMask()
 	HRESULT hr;
 
 	// close approx., to be tested...
-	int mask = D3DCOLORWRITEENABLE_ALPHA|D3DCOLORWRITEENABLE_BLUE|D3DCOLORWRITEENABLE_GREEN|D3DCOLORWRITEENABLE_RED;
+	int mask = D3DCOLORWRITEENABLE_RGBA;
 	if((m_ctxt->FRAME.FBMSK&0xff000000) == 0xff000000) mask &= ~D3DCOLORWRITEENABLE_ALPHA;
 	if((m_ctxt->FRAME.FBMSK&0x00ff0000) == 0x00ff0000) mask &= ~D3DCOLORWRITEENABLE_BLUE;
 	if((m_ctxt->FRAME.FBMSK&0x0000ff00) == 0x0000ff00) mask &= ~D3DCOLORWRITEENABLE_GREEN;
