@@ -865,7 +865,7 @@ void __fastcall GSState::GIFRegHandlerFRAME_2(GIFReg* r)
 void __fastcall GSState::GIFRegHandlerZBUF_1(GIFReg* r)
 {
 	LOG(_T("ZBUF_1(ZBP=%x PSM=%x ZMSK=%x)\n"),
-		r->ZBUF.ZBP,
+		r->ZBUF.ZBP<<5,
 		r->ZBUF.PSM,
 		r->ZBUF.ZMSK);
 
@@ -888,7 +888,7 @@ void __fastcall GSState::GIFRegHandlerZBUF_1(GIFReg* r)
 void __fastcall GSState::GIFRegHandlerZBUF_2(GIFReg* r)
 {
 	LOG(_T("ZBUF_2(ZBP=%x PSM=%x ZMSK=%x)\n"),
-		r->ZBUF.ZBP,
+		r->ZBUF.ZBP<<5,
 		r->ZBUF.PSM,
 		r->ZBUF.ZMSK);
 
@@ -977,6 +977,7 @@ void __fastcall GSState::GIFRegHandlerTRXDIR(GIFReg* r)
 		m_rs.TRXREG.RRH = m_y + m_rs.TRXREG2.RRH;
 		break;
 	case 2: // local -> local
+		MoveTransfer();
 		break;
 	case 3: 
 		ASSERT(0);

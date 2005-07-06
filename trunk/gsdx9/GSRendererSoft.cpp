@@ -636,14 +636,14 @@ template <class Vertex>
 template <int iZTST, int iATST>
 void GSRendererSoft<Vertex>::DrawVertex(const Vertex& v)
 {
-	DWORD vz = v.GetZ();
+	DWORD vz;
 
 	switch(iZTST)
 	{
 	case 0: return;
 	case 1: break;
-	case 2: if(vz < (m_lm.*m_ctxt->ztbl->rpa)(m_zaddr)) return; break;
-	case 3: if(vz <= (m_lm.*m_ctxt->ztbl->rpa)(m_zaddr)) return; break;
+	case 2: vz = v.GetZ(); if(vz < (m_lm.*m_ctxt->ztbl->rpa)(m_zaddr)) return; break;
+	case 3: vz = v.GetZ(); if(vz <= (m_lm.*m_ctxt->ztbl->rpa)(m_zaddr)) return; break;
 	default: __assume(0);
 	}
 
@@ -702,6 +702,7 @@ void GSRendererSoft<Vertex>::DrawVertex(const Vertex& v)
 
 	if(!ZMSK)
 	{
+		if(iZTST != 2 && iZTST != 3) vz = v.GetZ(); 
 		(m_lm.*m_ctxt->ztbl->wpa)(m_zaddr, vz);
 	}
 
