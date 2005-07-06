@@ -193,9 +193,6 @@ void GSState::ReadTransfer(BYTE* pMem, int len)
 
 void GSState::MoveTransfer()
 {
-	if(m_rs.TRXPOS.SSAX == m_rs.TRXPOS.DSAX && m_rs.TRXPOS.SSAY == m_rs.TRXPOS.DSAY)
-		return;
-
 	GSLocalMemory::readPixel rp = GSLocalMemory::m_psmtbl[m_rs.BITBLTBUF.SPSM].rp;
 	GSLocalMemory::writePixel wp = GSLocalMemory::m_psmtbl[m_rs.BITBLTBUF.DPSM].wp;
 

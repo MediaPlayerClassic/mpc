@@ -26,12 +26,8 @@
 
 template <class T> class CSurfMap : public CMap<DWORD, DWORD, CComPtr<T>, CComPtr<T>& > {};
 
-inline bool IsRenderTarget(IDirect3DTexture9* pTexture)
-{
-	D3DSURFACE_DESC desc;
-	memset(&desc, 0, sizeof(desc));
-	return pTexture && S_OK == pTexture->GetLevelDesc(0, &desc) && (desc.Usage&D3DUSAGE_RENDERTARGET);
-}
+extern bool IsRenderTarget(IDirect3DTexture9* pTexture);
+extern bool HasSharedBits(DWORD sbp, DWORD spsm, DWORD dbp, DWORD dpsm);
 
 // TODO: get rid of this *PrivateData
 
@@ -121,5 +117,5 @@ public:
 	void RemoveAll();
 	void InvalidateTexture(GSState* s, DWORD TBP0, DWORD PSM, const CRect& r);
 	void InvalidateLocalMem(GSState* s, DWORD TBP0, DWORD BW, DWORD PSM, const CRect& r);
-	void AddRT(DWORD TBP0, IDirect3DTexture9* pRT, scale_t scale);
+	void AddRT(DWORD TBP0, DWORD PSM, IDirect3DTexture9* pRT, scale_t scale);
 };

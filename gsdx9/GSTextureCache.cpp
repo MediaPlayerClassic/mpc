@@ -26,6 +26,40 @@
 
 //
 
+bool IsRenderTarget(IDirect3DTexture9* pTexture)
+{
+	D3DSURFACE_DESC desc;
+	memset(&desc, 0, sizeof(desc));
+	return pTexture && S_OK == pTexture->GetLevelDesc(0, &desc) && (desc.Usage&D3DUSAGE_RENDERTARGET);
+}
+
+bool HasSharedBits(DWORD sbp, DWORD spsm, DWORD dbp, DWORD dpsm)
+{
+	if(sbp != dbp) return false;
+
+	switch(spsm)
+	{
+	case PSM_PSMCT32:
+	case PSM_PSMCT16:
+	case PSM_PSMCT16S:
+	case PSM_PSMT8:
+	case PSM_PSMT4:
+		return true;
+	case PSM_PSMCT24:
+		return !(dpsm == PSM_PSMT8H || dpsm == PSM_PSMT4HL || dpsm == PSM_PSMT4HH);
+	case PSM_PSMT8H:
+		return !(dpsm == PSM_PSMCT24);
+	case PSM_PSMT4HL:
+		return !(dpsm == PSM_PSMCT24 || dpsm == PSM_PSMT4HH);
+	case PSM_PSMT4HH:
+		return !(dpsm == PSM_PSMCT24 || dpsm == PSM_PSMT4HL);
+	}
+
+	return true;
+}
+
+//
+
 GSDirtyRect::GSDirtyRect(DWORD PSM, CRect r)
 {
 	m_PSM = PSM;
@@ -432,7 +466,7 @@ bool GSTextureCache::Fetch(GSState* s, GSTextureBase& t)
 		POSITION cur = pos;
 		pt = GetNext(pos);
 
-		if(pt->m_TEX0.TBP0 == s->m_ctxt->TEX0.TBP0)
+		if(HasSharedBits(pt->m_TEX0.TBP0, pt->m_TEX0.PSM, s->m_ctxt->TEX0.TBP0, s->m_ctxt->TEX0.PSM))
 		{
 			if(pt->m_fRT)
 			{
@@ -531,7 +565,7 @@ bool GSTextureCache::FetchP(GSState* s, GSTextureBase& t)
 		POSITION cur = pos;
 		pt = GetNext(pos);
 
-		if(pt->m_TEX0.TBP0 == s->m_ctxt->TEX0.TBP0)
+		if(HasSharedBits(pt->m_TEX0.TBP0, pt->m_TEX0.PSM, s->m_ctxt->TEX0.TBP0, s->m_ctxt->TEX0.PSM))
 		{
 			if(pt->m_fRT)
 			{
@@ -648,7 +682,7 @@ bool GSTextureCache::FetchNP(GSState* s, GSTextureBase& t)
 		POSITION cur = pos;
 		pt = GetNext(pos);
 
-		if(pt->m_TEX0.TBP0 == s->m_ctxt->TEX0.TBP0)
+		if(HasSharedBits(pt->m_TEX0.TBP0, pt->m_TEX0.PSM, s->m_ctxt->TEX0.TBP0, s->m_ctxt->TEX0.PSM))
 		{
 			if(pt->m_fRT)
 			{
@@ -785,19 +819,18 @@ void GSTextureCache::InvalidateTexture(GSState* s, DWORD TBP0, DWORD PSM, const 
 	{
 		POSITION cur = pos;
 		GSTexture* pt = GetNext(pos);
-		if(pt->m_TEX0.TBP0 == TBP0 && pt->m_fRT) 
+		if(HasSharedBits(TBP0, PSM, pt->m_TEX0.TBP0, pt->m_TEX0.PSM)) 
 		{
-			RemoveAt(cur);
-			delete pt;
+			if(pt->m_fRT)
+			{
+				RemoveAt(cur);
+				delete pt;
+			}
+			else
+			{
+				pt->m_rcDirty.AddHead(GSDirtyRect(PSM, r));
+			}
 		}
-	}
-
-	pos = GetHeadPosition();
-	while(pos)
-	{
-		GSTexture* pt = GetNext(pos);
-		if(pt->m_TEX0.TBP0 == TBP0)
-			pt->m_rcDirty.AddHead(GSDirtyRect(PSM, r));
 	}
 }
 
@@ -865,14 +898,14 @@ void GSTextureCache::InvalidateLocalMem(GSState* s, DWORD TBP0, DWORD BW, DWORD 
 	*/
 }
 
-void GSTextureCache::AddRT(DWORD TBP0, IDirect3DTexture9* pRT, scale_t scale)
+void GSTextureCache::AddRT(DWORD TBP0, DWORD PSM, IDirect3DTexture9* pRT, scale_t scale)
 {
 	POSITION pos = GetHeadPosition();
 	while(pos)
 	{
 		POSITION cur = pos;
 		GSTexture* pt = GetNext(pos);
-		if(pt->m_TEX0.TBP0 == TBP0)
+		if(HasSharedBits(TBP0, PSM, pt->m_TEX0.TBP0, pt->m_TEX0.PSM))
 		{
 			RemoveAt(cur);
 			delete pt;
@@ -881,6 +914,7 @@ void GSTextureCache::AddRT(DWORD TBP0, IDirect3DTexture9* pRT, scale_t scale)
 
 	GSTexture* pt = new GSTexture();
 	pt->m_TEX0.TBP0 = TBP0;
+	pt->m_TEX0.PSM = PSM;
 	pt->m_pTexture = pRT;
 	pt->m_pTexture->GetLevelDesc(0, &pt->m_desc);
 	pt->m_scale = scale;

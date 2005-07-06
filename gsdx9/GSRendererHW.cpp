@@ -275,7 +275,7 @@ int GSRendererHW::DrawingKick(bool fSkip)
 
 void GSRendererHW::FlushPrim()
 {
-	if(m_nVertices > 0 && (!m_pPRIM->TME || m_ctxt->TEX0.TBP0 != m_ctxt->FRAME.Block()))
+	if(m_nVertices > 0 && !(m_pPRIM->TME && HasSharedBits(m_ctxt->TEX0.TBP0, m_ctxt->TEX0.PSM, m_ctxt->FRAME.Block(), m_ctxt->FRAME.PSM)))
 	do
 	{
 		int nPrims = 0;
@@ -401,7 +401,6 @@ void GSRendererHW::FlushPrim()
 
 				t.m_pTexture->GetLevelDesc(0, &t.m_desc);
 			}
-
 		}
 
 		//////////////////////
@@ -563,7 +562,7 @@ void GSRendererHW::FlushPrim()
 
 		//////////////////////
 
-		m_tc.AddRT(m_ctxt->FRAME.Block(), pRT, scale);
+		m_tc.AddRT(m_ctxt->FRAME.Block(), m_ctxt->FRAME.PSM, pRT, scale);
 	}
 	while(0);
 

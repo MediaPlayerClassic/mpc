@@ -2749,7 +2749,29 @@ void GSLocalMemory::ReadTexture(const CRect& r, BYTE* dst, int dstpitch, GIFRegT
 	}
 	else
 	{
-		for(int y = r.top; y < r.bottom; y++, dst += dstpitch)
+		CSize bs = m_psmtbl[TEX0.PSM].bs;
+
+		CRect cr(
+			(r.left + (bs.cx-1)) & ~(bs.cx-1), 
+			(r.top + (bs.cy-1)) & ~(bs.cy-1), 
+			r.right & ~(bs.cx-1), 
+			r.bottom & ~(bs.cy-1));
+
+		for(int y = r.top; y < cr.top; y++, dst += dstpitch)
+			for(int x = r.left, i = 0; x < r.right; x++, i++)
+				((DstT*)dst)[i] = (DstT)(this->*rt)(x, y, TEX0, TEXA);
+
+		(this->*st)(cr, dst + (cr.left-r.left)*sizeof(DstT), dstpitch, TEX0, TEXA);
+
+		for(int y = cr.top; y < cr.bottom; y++, dst += dstpitch)
+		{
+			for(int x = r.left, i = 0; x < cr.left; x++, i++)
+				((DstT*)dst)[i] = (DstT)(this->*rt)(x, y, TEX0, TEXA);
+			for(int x = cr.right, i = x - r.left; x < r.right; x++, i++)
+				((DstT*)dst)[i] = (DstT)(this->*rt)(x, y, TEX0, TEXA);
+		}
+
+		for(int y = cr.bottom; y < r.bottom; y++, dst += dstpitch)
 			for(int x = r.left, i = 0; x < r.right; x++, i++)
 				((DstT*)dst)[i] = (DstT)(this->*rt)(x, y, TEX0, TEXA);
 	}
