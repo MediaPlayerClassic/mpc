@@ -48,6 +48,7 @@ GSState::GSState(int w, int h, HWND hWnd, HRESULT& hr)
 
 	memset(m_path, 0, sizeof(m_path));
 
+	m_de.PRMODECONT.AC = 1;
 	m_pPRIM = &m_de.PRIM;
 	m_PRIM = 8;
 
@@ -296,6 +297,27 @@ GSState::GSState(int w, int h, HWND hWnd, HRESULT& hr)
 #endif
 
 //	m_pCSRr->REV = 0x20;
+
+/*
+	GSLocalMemory lm;
+
+	int w = 512, h = 512;
+
+	for(int y = 0; y < h; y++)
+	{
+		for(int x = 0; x < w; x++)
+		{
+			lm.writePixel24(x, y, (x * 255 / w) | ((y * 255 / h) << 8), 0x500, 8);
+		}
+	}
+
+	for(int i = 16; i > 0; i--)
+	{
+		CString fn;
+		fn.Format(_T("g:/%02d.bmp"), i);
+		lm.SaveBMP(m_pD3DDev, fn, 0x500, i, PSM_PSMCT24, i*64, 512);
+	}
+*/
 }
 
 GSState::~GSState()
@@ -999,9 +1021,9 @@ void GSState::Reset()
 	memset(m_path, 0, sizeof(m_path));
 	memset(&m_v, 0, sizeof(m_v));
 
-	m_de.PRMODECONT.AC = 1;
+//	m_de.PRMODECONT.AC = 1;
 
-	m_pPRIM = &m_de.PRIM;
+//	m_pPRIM = &m_de.PRIM;
 	m_PRIM = 8;
 
 	m_ctxt = &m_de.CTXT[0];
@@ -1088,8 +1110,8 @@ void GSState::FinishFlip(FlipInfo rt[2])
 	}
 */	
 
-	// FIXME: sw mode / poolmaster + funslower
-	// if(m_nVSync > 1 || m_pCSRr->FIELD == 0)
+	// // FIXME: sw mode / poolmaster + funslower
+	if(m_nVSync > 1 || m_pCSRr->FIELD == 0)
 	{
 		m_pCSRr->FIELD = 1 - m_pCSRr->FIELD; 
 		m_nVSync = 0;

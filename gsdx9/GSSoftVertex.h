@@ -301,7 +301,7 @@ __forceinline Vertex operator / (const Vertex& v, typename Vertex::Scalar s)
 }
 
 template <class Vertex>
-__forceinline void Exchange(Vertex* __restrict v1, Vertex* __restrict v2)
+__forceinline void Exchange(Vertex* RESTRICT v1, Vertex* RESTRICT v2)
 {
 	typename Vertex::Vector c = v1->c, p = v1->p, t = v1->t;
 	v1->c = v2->c; v1->p = v2->p; v1->t = v2->t;

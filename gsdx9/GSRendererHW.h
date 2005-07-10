@@ -45,9 +45,9 @@ __declspec(align(16)) union GSVertexHW
 class GSRendererHW : public GSRenderer<GSVertexHW>
 {
 protected:
-	CSurfMap<IDirect3DTexture9> m_pRenderTargets;
-	CSurfMap<IDirect3DSurface9> m_pDepthStencils;
-	CMap<DWORD, DWORD, CGSWnd*, CGSWnd*> m_pRenderWnds;
+	CSurfMap<IDirect3DTexture9> m_pRTs;
+	CSurfMap<IDirect3DSurface9> m_pDSs;
+	CAtlMap<DWORD, CGSWnd*> m_pRenderWnds;
 
 	GSTextureCache m_tc;
 

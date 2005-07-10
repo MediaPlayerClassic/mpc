@@ -438,6 +438,103 @@ HRESULT GSTextureCache::UpdateTexture(GSState* s, GSTexture* pt, GSLocalMemory::
 	return S_OK;
 }
 
+bool GSTextureCache::ConvertRT(GSState* s, GSTexture* pt)
+{
+	ASSERT(pt->m_fRT);
+
+	// FIXME: RT + 8h,4hl,4hh
+	if(GSLocalMemory::m_psmtbl[s->m_ctxt->TEX0.PSM].pal)
+		return false;
+/*
+	{
+		bool b1 = pt->m_TEX0.PSM == PSM_PSMCT32 || pt->m_TEX0.PSM == PSM_PSMCT24;
+		bool b2 = s->m_ctxt->TEX0.PSM == PSM_PSMCT32 || s->m_ctxt->TEX0.PSM == PSM_PSMCT24;
+
+		if(b1 ^ b2)
+			return false;
+	}
+*/
+	if(pt->m_TEX0.TBW != s->m_ctxt->TEX0.TBW)
+	{
+		// sfex3 uses this trick (bw: 10 -> 5, wraps the right side below the left)
+
+		ASSERT(pt->m_TEX0.TBW > s->m_ctxt->TEX0.TBW); // otherwise scale.x need to be reduced to make the larger texture fit (TODO)
+
+		int bw = 64;
+		int bh = s->m_ctxt->TEX0.PSM == PSM_PSMCT32 || s->m_ctxt->TEX0.PSM == PSM_PSMCT24 ? 32 : 64;
+
+		int sw = pt->m_TEX0.TBW << 6;
+
+		int dw = s->m_ctxt->TEX0.TBW << 6;
+		int dh = 1 << s->m_ctxt->TEX0.TH;
+
+		// TRACE(_T("ConvertRT: %05x %x %d -> %d\n"), (DWORD)s->m_ctxt->TEX0.TBP0, (DWORD)s->m_ctxt->TEX0.PSM, (DWORD)pt->m_TEX0.TBW, (DWORD)s->m_ctxt->TEX0.TBW);
+
+		HRESULT hr;
+/*
+if(s->m_perfmon.GetFrame() > 400)
+hr = D3DXSaveTextureToFile(_T("g:/1.bmp"), D3DXIFF_BMP, pt->m_pTexture, NULL);
+*/
+		D3DSURFACE_DESC desc;
+		hr = pt->m_pTexture->GetLevelDesc(0, &desc);
+		if(FAILED(hr)) return false;
+
+		CComPtr<IDirect3DTexture9> pRT;
+		hr = s->m_pD3DDev->CreateTexture(desc.Width, desc.Height, 1, D3DUSAGE_RENDERTARGET, D3DFMT_A8R8G8B8, D3DPOOL_DEFAULT, &pRT, NULL);
+		if(FAILED(hr)) return false;
+
+		CComPtr<IDirect3DSurface9> pSrc, pDst;
+		hr = pRT->GetSurfaceLevel(0, &pSrc);
+		if(FAILED(hr)) return false;
+		hr = pt->m_pTexture->GetSurfaceLevel(0, &pDst);
+		if(FAILED(hr)) return false;
+
+		hr = s->m_pD3DDev->StretchRect(pDst, NULL, pSrc, NULL, D3DTEXF_POINT);
+		if(FAILED(hr)) return false;
+
+		scale_t scale(pt->m_pTexture);
+
+		for(int dy = 0; dy < dh; dy += bh)
+		{
+			for(int dx = 0; dx < dw; dx += bw)
+			{
+				int o = dy * dw / bh + dx;
+
+				int sx = o % sw;
+				int sy = o / sw;
+
+				// TRACE(_T("%d,%d - %d,%d  <=  %d,%d - %d,%d\n"), dx, dy, dx + bw, dy + bh, sx, sy, sx + bw, sy + bh);
+
+				CRect src, dst;
+
+				src.left = (LONG)(scale.x * sx + 0.5f);
+				src.top = (LONG)(scale.y * sy + 0.5f);
+				src.right = (LONG)(scale.x * (sx + bw) + 0.5f);
+				src.bottom = (LONG)(scale.y * (sy + bh) + 0.5f);
+
+				dst.left = (LONG)(scale.x * dx + 0.5f);
+				dst.top = (LONG)(scale.y * dy + 0.5f);
+				dst.right = (LONG)(scale.x * (dx + bw) + 0.5f);
+				dst.bottom = (LONG)(scale.y * (dy + bh) + 0.5f);
+
+				hr = s->m_pD3DDev->StretchRect(pSrc, src, pDst, dst, D3DTEXF_POINT);
+
+				// TODO: this is quite a lot of StretchRect call, do it with one DrawPrimUP
+			}
+		}
+
+		pt->m_TEX0.TW = s->m_ctxt->TEX0.TW;
+		pt->m_TEX0.TBW = s->m_ctxt->TEX0.TBW;
+/*		
+if(s->m_perfmon.GetFrame() > 400)
+hr = D3DXSaveTextureToFile(_T("g:/2.bmp"), D3DXIFF_BMP, pt->m_pTexture, NULL);
+*/
+		return true;
+	}
+
+	return true;
+}
+
 bool GSTextureCache::Fetch(GSState* s, GSTextureBase& t)
 {
 	GSTexture* pt = NULL;
@@ -472,11 +569,8 @@ bool GSTextureCache::Fetch(GSState* s, GSTextureBase& t)
 			{
 				lr = found;
 
-				// FIXME: RT + 8h,4hl,4hh
-				if(nPaletteEntries)
+				if(!ConvertRT(s, pt))
 					return false;
-
-				// FIXME: different RT res
 			}
 			else if(s->m_ctxt->TEX0.PSM == pt->m_TEX0.PSM && pt->m_TEX0.TBW == s->m_ctxt->TEX0.TBW
 			&& s->m_ctxt->TEX0.TW == pt->m_TEX0.TW && s->m_ctxt->TEX0.TH == pt->m_TEX0.TH
@@ -571,18 +665,8 @@ bool GSTextureCache::FetchP(GSState* s, GSTextureBase& t)
 			{
 				lr = found;
 
-				// FIXME: RT + 8h,4hl,4hh
-				if(nPaletteEntries)
+				if(!ConvertRT(s, pt))
 					return false;
-/*
-				if(nPaletteEntries && !pt->m_pPalette) // yuck!
-				{
-					if(FAILED(s->m_pD3DDev->CreateTexture(256, 1, 1, 0, D3DFMT_A8R8G8B8, D3DPOOL_MANAGED, &pt->m_pPalette, NULL)))
-						return false;
-				}
-
-				// FIXME: different RT res
-*/
 			}
 			else if(s->m_ctxt->TEX0.PSM == pt->m_TEX0.PSM && pt->m_TEX0.TBW == s->m_ctxt->TEX0.TBW
 			&& s->m_ctxt->TEX0.TW == pt->m_TEX0.TW && s->m_ctxt->TEX0.TH == pt->m_TEX0.TH
@@ -688,11 +772,8 @@ bool GSTextureCache::FetchNP(GSState* s, GSTextureBase& t)
 			{
 				lr = found;
 
-				// FIXME: RT + 8h,4hl,4hh
-				if(nPaletteEntries)
+				if(!ConvertRT(s, pt))
 					return false;
-
-				// FIXME: different RT res
 			}
 			else if(s->m_ctxt->TEX0.PSM == pt->m_TEX0.PSM && pt->m_TEX0.TBW == s->m_ctxt->TEX0.TBW
 			&& s->m_ctxt->TEX0.TW == pt->m_TEX0.TW && s->m_ctxt->TEX0.TH == pt->m_TEX0.TH
@@ -898,14 +979,14 @@ void GSTextureCache::InvalidateLocalMem(GSState* s, DWORD TBP0, DWORD BW, DWORD 
 	*/
 }
 
-void GSTextureCache::AddRT(DWORD TBP0, DWORD PSM, IDirect3DTexture9* pRT, scale_t scale)
+void GSTextureCache::AddRT(GIFRegTEX0& TEX0, IDirect3DTexture9* pRT, scale_t scale)
 {
 	POSITION pos = GetHeadPosition();
 	while(pos)
 	{
 		POSITION cur = pos;
 		GSTexture* pt = GetNext(pos);
-		if(HasSharedBits(TBP0, PSM, pt->m_TEX0.TBP0, pt->m_TEX0.PSM))
+		if(HasSharedBits(TEX0.TBP0, TEX0.PSM, pt->m_TEX0.TBP0, pt->m_TEX0.PSM))
 		{
 			RemoveAt(cur);
 			delete pt;
@@ -913,8 +994,7 @@ void GSTextureCache::AddRT(DWORD TBP0, DWORD PSM, IDirect3DTexture9* pRT, scale_
 	}
 
 	GSTexture* pt = new GSTexture();
-	pt->m_TEX0.TBP0 = TBP0;
-	pt->m_TEX0.PSM = PSM;
+	pt->m_TEX0 = TEX0;
 	pt->m_pTexture = pRT;
 	pt->m_pTexture->GetLevelDesc(0, &pt->m_desc);
 	pt->m_scale = scale;

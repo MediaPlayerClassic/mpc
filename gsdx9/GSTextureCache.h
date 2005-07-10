@@ -31,8 +31,12 @@ extern bool HasSharedBits(DWORD sbp, DWORD spsm, DWORD dbp, DWORD dpsm);
 
 // TODO: get rid of this *PrivateData
 
-[uuid("5D5EFE0E-5407-4BCF-855D-C46CBCD075FA")]
-struct scale_t
+#ifdef __INTEL_COMPILER
+struct __declspec(uuid("5D5EFE0E-5407-4BCF-855D-C46CBCD075FA"))
+#else
+[uuid("5D5EFE0E-5407-4BCF-855D-C46CBCD075FA")] struct 
+#endif
+scale_t
 {
 	float x, y;
 	struct scale_t() {x = y = 1;}
@@ -104,6 +108,8 @@ protected:
 	DWORD HashTexture(const CRect& r, int pitch, void* bits);
 	HRESULT UpdateTexture(GSState* s, GSTexture* pt, GSLocalMemory::readTexture rt);
 
+	bool GSTextureCache::ConvertRT(GSState* s, GSTexture* pt);
+
 public:
 	GSTextureCache();
 	~GSTextureCache();
@@ -117,5 +123,5 @@ public:
 	void RemoveAll();
 	void InvalidateTexture(GSState* s, DWORD TBP0, DWORD PSM, const CRect& r);
 	void InvalidateLocalMem(GSState* s, DWORD TBP0, DWORD BW, DWORD PSM, const CRect& r);
-	void AddRT(DWORD TBP0, DWORD PSM, IDirect3DTexture9* pRT, scale_t scale);
+	void AddRT(GIFRegTEX0& TEX0, IDirect3DTexture9* pRT, scale_t scale);
 };

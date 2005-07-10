@@ -76,7 +76,6 @@ float4 SampleTexture_8P_ln(in float2 Tex : TEXCOORD0) : COLOR
 	float2 dd = frac(Tex * W_H); 
 	float4 c = lerp(lerp(c00, c01, dd.x), lerp(c10, c11, dd.x), dd.y);
 	c.a *= fRT;
-	//if(fRT) c.a *= 2;
 	return c;
 }
 

@@ -59,7 +59,7 @@ protected:
 	void DrawVertexTFX(typename Vertex::Vector& Cf, const Vertex& v);
 
 	typedef void (GSRendererSoft<Vertex>::*DrawVertexTFXPtr)(typename Vertex::Vector& Cf, const Vertex& v);
-	DrawVertexTFXPtr m_dvtfx[3][2][2][4], m_pDrawVertexTFX;
+	DrawVertexTFXPtr m_dvtfx[4][2][2][4], m_pDrawVertexTFX;
 
 	CComPtr<IDirect3DTexture9> m_pRT[2];
 
