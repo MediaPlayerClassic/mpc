@@ -41,22 +41,45 @@ EXPORT_C_(UINT32) PS2EgetLibType()
 
 EXPORT_C_(char*) PS2EgetLibName()
 {
-	return "GSdx9"
+	CString str = _T("GSdx9");
 
 #if _M_AMD64
-	" 64-bit"
+	str += _T(" 64-bit");
+#endif
+
+	CList<CString> sl;
+
+#ifdef __INTEL_COMPILER
+	CString s;
+	s.Format(_T("Intel C++ %d.%02d"), __INTEL_COMPILER/100, __INTEL_COMPILER%100);
+	sl.AddTail(s);
+#elif _MSC_VER
+	CString s;
+	s.Format(_T("MSVC %d.%02d"), _MSC_VER/100, _MSC_VER%100);
+	sl.AddTail(s);
 #endif
 
 #if _M_IX86_FP >= 2
-	" (SSE2)"
+	sl.AddTail(_T("SSE2"));
 #elif _M_IX86_FP >= 1
-	" (SSE)"
+	sl.AddTail(_T("SSE"));
 #endif
 
 #ifdef _OPENMP
-	" (OMP)"
+	sl.AddTail(_T("OpenMP"));
 #endif
-	;
+
+	POSITION pos = sl.GetHeadPosition();
+	while(pos)
+	{
+		if(pos == sl.GetHeadPosition()) str += _T(" (");
+		str += sl.GetNext(pos);
+		str += pos ? _T(", ") : _T(")");
+	}
+
+	static char buff[256];
+	strncpy(buff, CStringA(str), min(countof(buff)-1, str.GetLength()));
+	return buff;
 }
 
 EXPORT_C_(UINT32) PS2EgetLibVersion2(UINT32 type)

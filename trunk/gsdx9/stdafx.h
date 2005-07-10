@@ -83,3 +83,13 @@
 #define EndEnumSysDev }}}
 
 #pragma warning(disable : 4995)
+
+#ifndef RESTRICT
+	#ifdef __INTEL_COMPILER
+		#define RESTRICT restrict
+	#elif _MSC_VER >= 1400
+		#define RESTRICT __restrict
+	#else
+		#define RESTRICT
+	#endif
+#endif

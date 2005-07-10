@@ -80,6 +80,7 @@ GSRendererSoft<Vertex>::GSRendererSoft(HWND hWnd, HRESULT& hr)
 		InitLOD(0) \
 		InitLOD(1) \
 		InitLOD(2) \
+		InitLOD(3) \
 
 	InitDVTFX();
 }
@@ -210,17 +211,43 @@ void GSRendererSoft<Vertex>::FlushPrim()
 {
 	if(m_nVertices > 0)
 	{
+CString fn;
+static int s_savenum = 0;
+s_savenum++;
+
+if(0 && m_perfmon.GetFrame() >= 400)
+{
+fn.Format(_T("g:/tmp/%04I64d_%06d_1f_%05x_%x.bmp"), m_perfmon.GetFrame(), s_savenum, m_ctxt->FRAME.Block(), m_ctxt->FRAME.PSM);
+m_lm.SaveBMP(m_pD3DDev, fn, m_ctxt->FRAME.Block(), m_ctxt->FRAME.FBW, m_ctxt->FRAME.PSM, m_ctxt->FRAME.FBW*64, 224);
+
+if(m_pPRIM->TME)
+{
+	if(m_ctxt->FRAME.Block() == 0x00500 && (DWORD)m_ctxt->TEX0.TBP0 == 0x00500) AfxMessageBox(_T("sdfsd"));
+fn.Format(_T("g:/tmp/%04I64d_%06d_2t_%05x_%x.bmp"), m_perfmon.GetFrame(), s_savenum, (DWORD)m_ctxt->TEX0.TBP0, (DWORD)m_ctxt->TEX0.PSM);
+m_lm.SaveBMP(m_pD3DDev, fn, m_ctxt->TEX0.TBP0, m_ctxt->TEX0.TBW, m_ctxt->TEX0.PSM, 1 << m_ctxt->TEX0.TW, 1 << m_ctxt->TEX0.TH);
+}
+}
+
 		int iZTST = !m_ctxt->TEST.ZTE ? 1 : m_ctxt->TEST.ZTST;
 		int iATST = !m_ctxt->TEST.ATE ? 1 : m_ctxt->TEST.ATST;
 
 		m_pDrawVertex = m_dv[iZTST][iATST];
 
-		int iLOD = (m_ctxt->TEX1.MMAG&1) + (m_ctxt->TEX1.MMIN&1);
-		int bLCM = m_ctxt->TEX1.LCM ? 1 : 0;
-		int bTCC = m_ctxt->TEX0.TCC ? 1 : 0;
-		int iTFX = m_ctxt->TEX0.TFX;
+		if(m_pPRIM->TME)
+		{
+			int iLOD = (m_ctxt->TEX1.MMAG & 1) + (m_ctxt->TEX1.MMIN & 1);
+			int bLCM = m_ctxt->TEX1.LCM ? 1 : 0;
+			int bTCC = m_ctxt->TEX0.TCC ? 1 : 0;
+			int iTFX = m_ctxt->TEX0.TFX;
 
-		m_pDrawVertexTFX = m_dvtfx[iLOD][bLCM][bTCC][iTFX];
+			if(m_pPRIM->FST)
+			{
+				iLOD = 3;
+				bLCM = m_ctxt->TEX1.K <= 0 && (m_ctxt->TEX1.MMAG & 1) || m_ctxt->TEX1.K > 0 && (m_ctxt->TEX1.MMIN & 1);
+			}
+
+			m_pDrawVertexTFX = m_dvtfx[iLOD][bLCM][bTCC][iTFX];
+		}
 
 		SetupTexture();
 		
@@ -266,6 +293,12 @@ void GSRendererSoft<Vertex>::FlushPrim()
 		}
 
 		m_perfmon.IncCounter(GSPerfMon::c_prim, nPrims);
+
+if(0 && m_perfmon.GetFrame() >= 400)
+{
+fn.Format(_T("g:/tmp/%04I64d_%06d_3f_%05x_%x.bmp"), m_perfmon.GetFrame(), s_savenum, m_ctxt->FRAME.Block(), m_ctxt->FRAME.PSM);
+m_lm.SaveBMP(m_pD3DDev, fn, m_ctxt->FRAME.Block(), m_ctxt->FRAME.FBW, m_ctxt->FRAME.PSM, m_ctxt->FRAME.FBW*64, 224);
+}
 	}
 
 	m_primtype = PRIM_NONE;
@@ -333,7 +366,12 @@ void GSRendererSoft<Vertex>::Flip()
 			CLAMP.WMS = CLAMP.WMT = 1;
 
 #ifdef DEBUG_RENDERTARGETS
-			if(::GetAsyncKeyState(VK_SPACE)&0x80000000) TEX0.TBP0 = m_ctxt->FRAME.Block();
+			if(::GetAsyncKeyState(VK_SPACE)&0x80000000)
+			{
+				TEX0.TBP0 = m_ctxt->FRAME.Block();
+				TEX0.TBW = m_ctxt->FRAME.FBW;
+				TEX0.PSM = m_ctxt->FRAME.PSM;
+			}
 
 			MSG msg;
 			ZeroMemory(&msg, sizeof(msg));
@@ -352,6 +390,7 @@ void GSRendererSoft<Vertex>::Flip()
 
 			if(::GetAsyncKeyState(VK_LCONTROL)&0x80000000)
 				Sleep(500);
+
 #endif
 
 			m_lm.ReadTexture(rect, (BYTE*)lr.pBits, lr.Pitch, TEX0, m_de.TEXA, CLAMP);
@@ -720,7 +759,15 @@ void GSRendererSoft<Vertex>::DrawVertex(const Vertex& v)
 
 		if(FBMSK || fABE)
 		{
-			Cd = (m_lm.*m_ctxt->ftbl->rta)(m_faddr, m_ctxt->TEX0, m_de.TEXA);
+			GIFRegTEXA TEXA;
+			/*
+			TEXA.AEM = 0;
+			TEXA.TA0 = 0;
+			TEXA.TA1 = 0x80;
+			*/
+			TEXA.ai32[0] = 0;
+			TEXA.ai32[1] = 0x80;
+			Cd = (m_lm.*m_ctxt->ftbl->rta)(m_faddr, m_ctxt->TEX0, TEXA);
 		}
 
 		if(fABE)
@@ -784,21 +831,26 @@ template <int iLOD, bool bLCM, bool bTCC, int iTFX>
 void GSRendererSoft<Vertex>::DrawVertexTFX(typename Vertex::Vector& Cf, const Vertex& v)
 {
 	ASSERT(m_pPRIM->TME);
-
-	Vertex::Scalar w = v.t.q;
-	w.rcp();
-
-	Vertex::Vector t = v.t * w;
-
-	Vertex::Vector Ct[4];
+	
+	Vertex::Vector t = v.t;
 
 	bool fBiLinear = iLOD == 2; 
 
-	if(iLOD == 1)
+	if(iLOD == 3)
 	{
-		float lod = (float)(int)m_ctxt->TEX1.K;
-		if(!bLCM) lod += log(fabs(w)) * one_over_log2 * (1 << m_ctxt->TEX1.L);
-		fBiLinear = lod <= 0 && (m_ctxt->TEX1.MMAG & 1) || lod > 0 && (m_ctxt->TEX1.MMIN & 1);
+		fBiLinear = bLCM;
+	}
+	else
+	{
+		t.q.rcp();
+		t *= t.q;
+
+		if(iLOD == 1)
+		{
+			float lod = (float)(int)m_ctxt->TEX1.K;
+			if(!bLCM) lod += log(fabs((float)t.q)) * one_over_log2 * (1 << m_ctxt->TEX1.L);
+			fBiLinear = lod <= 0 && (m_ctxt->TEX1.MMAG & 1) || lod > 0 && (m_ctxt->TEX1.MMIN & 1);
+		}
 	}
 
 	if(fBiLinear) t -= Vertex::Scalar(0.5f);
@@ -823,6 +875,8 @@ void GSRendererSoft<Vertex>::DrawVertexTFX(typename Vertex::Vector& Cf, const Ve
 	}
 
 #endif
+
+	Vertex::Vector Ct[4];
 
 	if(fBiLinear)
 	{

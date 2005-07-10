@@ -312,6 +312,10 @@ public:
 
 	template<typename DstT> 
 	void ReadTexture(const CRect& r, BYTE* dst, int dstpitch, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA, GIFRegCLAMP& CLAMP, readTexel rt, unSwizzleTexture st);
+
+	// 
+	
+	HRESULT SaveBMP(IDirect3DDevice9* pDev, LPCTSTR fn, DWORD bp, DWORD bw, DWORD psm, int w, int h);
 };
 
 #pragma warning(default: 4244)

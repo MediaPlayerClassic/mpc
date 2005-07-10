@@ -12,10 +12,10 @@
 	<Configurations>
 		<Configuration
 			Name="Debug|Win32"
-			OutputDirectory="Debug"
-			IntermediateDirectory="Debug"
+			OutputDirectory="$(ConfigurationName)"
+			IntermediateDirectory="$(ConfigurationName)"
 			ConfigurationType="2"
-			UseOfMFC="2"
+			UseOfMFC="1"
 			CharacterSet="2">
 			<Tool
 				Name="VCCLCompilerTool"
@@ -24,7 +24,7 @@
 				PreprocessorDefinitions="D3D_DEBUG_INFO;WIN32;_WINDOWS;_DEBUG;_USRDLL"
 				MinimalRebuild="TRUE"
 				BasicRuntimeChecks="3"
-				RuntimeLibrary="3"
+				RuntimeLibrary="1"
 				TreatWChar_tAsBuiltInType="FALSE"
 				UsePrecompiledHeader="3"
 				WarningLevel="3"
@@ -34,8 +34,8 @@
 				Name="VCCustomBuildTool"/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="d3d9.lib d3dx9.lib strmbaseD.lib"
-				OutputFile="E:\pcsx2_0.6win\plugins\GSdx9.dll"
+				AdditionalDependencies="d3d9.lib d3dx9.lib ddraw.lib strmbaseD.lib"
+				OutputFile="$(OutDir)\GSdx9.dll"
 				LinkIncremental="2"
 				ModuleDefinitionFile=".\GSdx9.def"
 				GenerateDebugInformation="TRUE"
@@ -70,8 +70,8 @@
 		</Configuration>
 		<Configuration
 			Name="Release|Win32"
-			OutputDirectory="Release"
-			IntermediateDirectory="Release"
+			OutputDirectory="$(ConfigurationName)"
+			IntermediateDirectory="$(ConfigurationName)"
 			ConfigurationType="2"
 			UseOfMFC="1"
 			CharacterSet="2">
@@ -98,8 +98,8 @@
 				Name="VCCustomBuildTool"/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="d3d9.lib d3dx9.lib strmbaseR.lib"
-				OutputFile="E:\pcsx2_0.6win\plugins\GSdx9.dll"
+				AdditionalDependencies="d3d9.lib d3dx9.lib ddraw.lib strmbaseR.lib"
+				OutputFile="$(OutDir)\GSdx9.dll"
 				LinkIncremental="1"
 				ModuleDefinitionFile=".\GSdx9.def"
 				GenerateDebugInformation="TRUE"
@@ -139,16 +139,16 @@
 			OutputDirectory="$(ConfigurationName)"
 			IntermediateDirectory="$(ConfigurationName)"
 			ConfigurationType="2"
-			UseOfMFC="2"
+			UseOfMFC="1"
 			CharacterSet="2">
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
 				OptimizeForProcessor="3"
-				PreprocessorDefinitions="D3D_DEBUG_INFO;WIN32;_WINDOWS;_DEBUG;_USRDLL"
+				PreprocessorDefinitions="_M_IX86_FP=2;D3D_DEBUG_INFO;WIN32;_WINDOWS;_DEBUG;_USRDLL"
 				MinimalRebuild="TRUE"
 				BasicRuntimeChecks="3"
-				RuntimeLibrary="3"
+				RuntimeLibrary="1"
 				EnableEnhancedInstructionSet="2"
 				TreatWChar_tAsBuiltInType="FALSE"
 				UsePrecompiledHeader="3"
@@ -159,8 +159,8 @@
 				Name="VCCustomBuildTool"/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="d3d9.lib d3dx9.lib strmbaseD.lib"
-				OutputFile="E:\pcsx2_0.6win\plugins\GSdx9.dll"
+				AdditionalDependencies="d3d9.lib d3dx9.lib ddraw.lib strmbaseD.lib"
+				OutputFile="$(OutDir)\GSdx9.dll"
 				LinkIncremental="2"
 				ModuleDefinitionFile=".\GSdx9.def"
 				GenerateDebugInformation="TRUE"
@@ -210,7 +210,7 @@
 				OmitFramePointers="TRUE"
 				OptimizeForProcessor="3"
 				OptimizeForWindowsApplication="TRUE"
-				PreprocessorDefinitions="WIN32;_WINDOWS;NDEBUG;_USRDLL"
+				PreprocessorDefinitions="_M_IX86_FP=2;WIN32;_WINDOWS;NDEBUG;_USRDLL"
 				StringPooling="TRUE"
 				RuntimeLibrary="0"
 				EnableEnhancedInstructionSet="2"
@@ -224,8 +224,8 @@
 				Name="VCCustomBuildTool"/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="d3d9.lib d3dx9.lib strmbaseR.lib"
-				OutputFile="E:\pcsx2_0.6win\plugins\GSdx9.dll"
+				AdditionalDependencies="d3d9.lib d3dx9.lib ddraw.lib strmbaseR.lib"
+				OutputFile="$(OutDir)\GSdx9.dll"
 				LinkIncremental="1"
 				ModuleDefinitionFile=".\GSdx9.def"
 				GenerateDebugInformation="TRUE"
@@ -284,6 +284,15 @@
 				RelativePath=".\GSdx9.def">
 			</File>
 			<File
+				RelativePath=".\GSHash.cpp">
+				<FileConfiguration
+					Name="ReleaseSSE2|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						AssemblerOutput="4"/>
+				</FileConfiguration>
+			</File>
+			<File
 				RelativePath=".\GSLocalMemory.cpp">
 				<FileConfiguration
 					Name="ReleaseSSE2|Win32">
@@ -315,6 +324,12 @@
 			</File>
 			<File
 				RelativePath=".\GSRendererSoft.cpp">
+				<FileConfiguration
+					Name="ReleaseSSE2|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						AssemblerOutput="4"/>
+				</FileConfiguration>
 			</File>
 			<File
 				RelativePath=".\GSSettingsDlg.cpp">
@@ -324,6 +339,12 @@
 			</File>
 			<File
 				RelativePath=".\GSState.cpp">
+				<FileConfiguration
+					Name="ReleaseSSE2|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						AssemblerOutput="4"/>
+				</FileConfiguration>
 			</File>
 			<File
 				RelativePath=".\GSTables.cpp">
@@ -333,6 +354,9 @@
 			</File>
 			<File
 				RelativePath=".\GSTransfer.cpp">
+			</File>
+			<File
+				RelativePath=".\GSUtil.cpp">
 			</File>
 			<File
 				RelativePath=".\GSVertexList.cpp">
@@ -456,6 +480,9 @@
 				RelativePath=".\GSdx9.h">
 			</File>
 			<File
+				RelativePath=".\GSHash.h">
+			</File>
+			<File
 				RelativePath=".\GSLocalMemory.h">
 			</File>
 			<File
@@ -480,6 +507,12 @@
 				RelativePath=".\GSSoftVertex.h">
 			</File>
 			<File
+				RelativePath=".\GSSoftVertexFP.h">
+			</File>
+			<File
+				RelativePath=".\GSSoftVertexFX.h">
+			</File>
+			<File
 				RelativePath=".\GSState.h">
 			</File>
 			<File
@@ -487,6 +520,9 @@
 			</File>
 			<File
 				RelativePath=".\GSTextureCache.h">
+			</File>
+			<File
+				RelativePath=".\GSUtil.h">
 			</File>
 			<File
 				RelativePath=".\GSVertexList.h">

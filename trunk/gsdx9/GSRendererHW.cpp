@@ -46,8 +46,8 @@ GSRendererHW::~GSRendererHW()
 
 HRESULT GSRendererHW::ResetDevice(bool fForceWindowed)
 {
-	m_pRenderTargets.RemoveAll();
-	m_pDepthStencils.RemoveAll();
+	m_pRTs.RemoveAll();
+	m_pDSs.RemoveAll();
 	m_tc.RemoveAll();
 
 	return __super::ResetDevice(fForceWindowed);
@@ -59,8 +59,8 @@ void GSRendererHW::Reset()
 	
 	m_tc.RemoveAll();
 
-	m_pRenderTargets.RemoveAll();
-	m_pDepthStencils.RemoveAll();
+	m_pRTs.RemoveAll();
+	m_pDSs.RemoveAll();
 
 	POSITION pos = m_pRenderWnds.GetStartPosition();
 	while(pos)
@@ -312,27 +312,31 @@ void GSRendererHW::FlushPrim()
 		bool fClearRT = false;
 		bool fClearDS = false;
 
-		if(!m_pRenderTargets.Lookup(m_ctxt->FRAME.Block(), pRT))
+		if(!m_pRTs.Lookup(m_ctxt->FRAME.Block(), pRT))
 		{
 			hr = m_pD3DDev->CreateTexture(m_bd.Width, m_bd.Height, 1, D3DUSAGE_RENDERTARGET, D3DFMT_A8R8G8B8, D3DPOOL_DEFAULT, &pRT, NULL);
 			if(S_OK != hr) {ASSERT(0); return;}
-			m_pRenderTargets[m_ctxt->FRAME.Block()] = pRT;
+			m_pRTs[m_ctxt->FRAME.Block()] = pRT;
 #ifdef DEBUG_RENDERTARGETS
-	AFX_MANAGE_STATE(AfxGetStaticModuleState());
-			CGSWnd* pWnd = new CGSWnd();
+			CGSWnd* pWnd = NULL;
+			if(!m_pRenderWnds.Lookup(m_ctxt->FRAME.Block(), pWnd))
+			{
+			AFX_MANAGE_STATE(AfxGetStaticModuleState());
+			pWnd = new CGSWnd();
 			CString str; str.Format(_T("%05x"), m_ctxt->FRAME.Block());
 			pWnd->Create(str);
 			m_pRenderWnds[m_ctxt->FRAME.Block()] = pWnd;
 			pWnd->Show();
+			}
 #endif
 			fClearRT = true;
 		}
 
-		if(!m_pDepthStencils.Lookup(m_ctxt->ZBUF.ZBP, pDS))
+		if(!m_pDSs.Lookup(m_ctxt->ZBUF.ZBP, pDS))
 		{
 			hr = m_pD3DDev->CreateDepthStencilSurface(m_bd.Width, m_bd.Height, m_fmtDepthStencil, D3DMULTISAMPLE_NONE, 0, FALSE, &pDS, NULL);
 			if(S_OK != hr) {ASSERT(0); return;}
-			m_pDepthStencils[m_ctxt->ZBUF.ZBP] = pDS;
+			m_pDSs[m_ctxt->ZBUF.ZBP] = pDS;
 			fClearDS = true;
 		}
 
@@ -562,7 +566,11 @@ void GSRendererHW::FlushPrim()
 
 		//////////////////////
 
-		m_tc.AddRT(m_ctxt->FRAME.Block(), m_ctxt->FRAME.PSM, pRT, scale);
+		GIFRegTEX0 TEX0;
+		TEX0.TBP0 = m_ctxt->FRAME.Block();
+		TEX0.TBW = m_ctxt->FRAME.FBW;
+		TEX0.PSM = m_ctxt->FRAME.PSM;
+		m_tc.AddRT(TEX0, pRT, scale);
 	}
 	while(0);
 
@@ -587,13 +595,13 @@ void GSRendererHW::Flip()
 		if(::GetAsyncKeyState(VK_SPACE)&0x80000000) FBP = m_ctxt->FRAME.Block();
 #endif
 
-		CSurfMap<IDirect3DTexture9>::CPair* pPair = m_pRenderTargets.PLookup(FBP);
+		CSurfMap<IDirect3DTexture9>::CPair* pPair = m_pRTs.PLookup(FBP);
 
 		if(!pPair)
 		{
-			for(CSurfMap<IDirect3DTexture9>::CPair* pPair2 = m_pRenderTargets.PGetFirstAssoc(); 
+			for(CSurfMap<IDirect3DTexture9>::CPair* pPair2 = m_pRTs.PGetFirstAssoc(); 
 				pPair2; 
-				pPair2 = m_pRenderTargets.PGetNextAssoc(pPair2))
+				pPair2 = m_pRTs.PGetNextAssoc(pPair2))
 			{
 				if(pPair2->key <= FBP && (!pPair || pPair2->key >= pPair->key))
 				{
@@ -632,7 +640,7 @@ void GSRendererHW::Flip()
 			m_pRenderWnds.GetNextAssoc(pos, fbp, pWnd);
 
 			CComPtr<IDirect3DTexture9> pRT;
-			if(m_pRenderTargets.Lookup(fbp, pRT))
+			if(m_pRTs.Lookup(fbp, pRT))
 			{
 				D3DSURFACE_DESC rd;
 				ZeroMemory(&rd, sizeof(rd));
@@ -736,7 +744,7 @@ void GSRendererHW::Flip()
 
 void GSRendererHW::EndFrame()
 {
-	m_tc.IncAge(m_pRenderTargets);
+	m_tc.IncAge(m_pRTs);
 }
 
 void GSRendererHW::InvalidateTexture(DWORD TBP0, DWORD PSM, CRect r)
@@ -1366,7 +1374,9 @@ void GSRendererHW::SetupScissor(scale_t& s)
 		(int)(s.x * (m_ctxt->SCISSOR.SCAX1+1)),
 		(int)(s.y * (m_ctxt->SCISSOR.SCAY1+1)));
 
-	if(r.Width() == m_bd.Width && r.bottom > m_bd.Height && r.bottom <= m_bd.Height*2)
+	if(/*r.Width() == m_bd.Width &&*/ r.bottom > m_bd.Height && r.bottom <= m_bd.Height*2
+		/*r.bottom == m_bd.Height*2*/
+		)
 	{
 		// TODO: isn't there a better way? what about s.x?
 		s.y = s.y * m_bd.Height / r.bottom;
