@@ -574,13 +574,12 @@ class SubtitlesDB extends DB
 			"  `id` bigint(20) NOT NULL auto_increment, ".
 			"  `discs` tinyint(4) NOT NULL default '0', ".
 			"  `disc_no` tinyint(4) NOT NULL default '0', ".
-			"  `sub` blob NOT NULL, ".
+			"  `sub` mediumblob NOT NULL, ".
 			"  `hash` varchar(32) NOT NULL default '', ".
 			"  `mime` varchar(64) NOT NULL default '', ".
 			"  `downloads` bigint(20) NOT NULL default '0', ".
 			"  PRIMARY KEY  (`id`), ".
-			"  UNIQUE KEY `hash_2` (`hash`), ".
-			"  KEY `hash` (`hash`), ".
+			"  UNIQUE KEY `hash` (`hash`), ".
 			"  KEY `discs` (`discs`) ".
 			") ENGINE=InnoDB DEFAULT CHARSET=utf8 ".
 			"",

@@ -32,12 +32,8 @@ class MySmarty extends Smarty
 		$this->assign('ServerName', $ServerName);
 
 		@header('Content-Type: text/html; charset=UTF-8');
-	}
-	
-	function display_gzip($resource_name, $cache_id = null, $compile_id = null)
-	{
-		$this->load_filter('output','gzcompress');
-		$this->display($resource_name, $cache_id, $compile_id);
+
+		$this->load_filter('output', 'gzcompress');
 	}
 }
 
