@@ -45,7 +45,7 @@ tr.invalid th {background-color: #DD88BB; background-image: url(../img/redhdrmid
 
 .index {text-align: center;}
 
-.results ol {margin-right: 2em;}
+.results ol {padding-left: 0; margin-left: 4em; margin-right: 2em;}
 .results table {width: 100%; border-collapse: collapse; border: 1px solid #abd;}
 .results th {font-size: 12px;}
 .results td {font-size: 11px;}
