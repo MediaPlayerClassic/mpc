@@ -95,7 +95,7 @@ struct GSRegSet
 		CSize size;
 		size.cx = (DISPLAY[en].DW + 1) / (DISPLAY[en].MAGH + 1);
 		size.cy = (DISPLAY[en].DH + 1) / (DISPLAY[en].MAGV + 1);
-		if(SMODE2.INT && SMODE2.FFMD && size.cy > 1) size.cy >>= 1;
+		//if(SMODE2.INT && SMODE2.FFMD && size.cy > 1) size.cy >>= 1;
 		return size;
 	}
 
@@ -203,7 +203,7 @@ protected:
 	virtual void FlushPrim() = 0;
 	virtual void Flip() = 0;
 	virtual void EndFrame() = 0;
-	virtual void InvalidateTexture(DWORD TBP0, DWORD PSM, CRect r) {}
+	virtual void InvalidateTexture(const GIFRegBITBLTBUF& BITBLTBUF, CRect r) {}
 	virtual void InvalidateLocalMem(DWORD TBP0, DWORD BW, DWORD PSM, CRect r) {}
 	virtual void MinMaxUV(int w, int h, CRect& r) {r.SetRect(0, 0, w, h);}
 

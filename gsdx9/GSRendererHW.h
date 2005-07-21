@@ -64,7 +64,7 @@ protected:
 	void FlushPrim();
 	void Flip();
 	void EndFrame();
-	void InvalidateTexture(DWORD TBP0, DWORD PSM, CRect r);
+	void InvalidateTexture(const GIFRegBITBLTBUF& BITBLTBUF, CRect r);
 	void InvalidateLocalMem(DWORD BP, DWORD TBP0, DWORD PSM, CRect r);
 	void MinMaxUV(int w, int h, CRect& r);
 

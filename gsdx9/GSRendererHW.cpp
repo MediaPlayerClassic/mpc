@@ -610,6 +610,54 @@ void GSRendererHW::Flip()
 			}
 		}
 
+		if(!pPair)
+		{
+			CComPtr<IDirect3DTexture9> pRT;
+
+			if(S_OK == m_pD3DDev->CreateTexture(m_bd.Width, m_bd.Height, 1, D3DUSAGE_RENDERTARGET, D3DFMT_A8R8G8B8, D3DPOOL_DEFAULT, &pRT, NULL))
+			{
+				m_pRTs[FBP] = pRT;
+
+				EXECUTE_ASSERT(pPair = m_pRTs.PLookup(FBP));
+
+#ifdef DEBUG_RENDERTARGETS
+				CGSWnd* pWnd = NULL;
+				if(!m_pRenderWnds.Lookup(m_ctxt->FRAME.Block(), pWnd))
+				{
+					AFX_MANAGE_STATE(AfxGetStaticModuleState());
+					pWnd = new CGSWnd();
+					CString str; str.Format(_T("%05x"), FBP);
+					pWnd->Create(str);
+					m_pRenderWnds[FBP] = pWnd;
+					pWnd->Show();
+				}
+#endif
+
+				CRect r = m_rs.GetDispRect(m_rs.IsEnabled(1)?1:0);
+
+				scale_t scale(
+					(float)m_bd.Width / (m_rs.DISPFB[i].FBW*64), 
+			//		(float)m_bd.Width / m_rs.GetDispRect(m_rs.IsEnabled(1)?1:0).right, 
+					(float)m_bd.Height / r.bottom);
+
+				scale.Set(pRT);
+
+				GIFRegTEX0 TEX0;
+				TEX0.TBP0 = m_rs.DISPFB[i].FBP;
+				TEX0.TBW = m_rs.DISPFB[i].FBW;
+				TEX0.PSM = m_rs.DISPFB[i].PSM;
+
+				m_tc.AddRT(TEX0, pRT, scale);
+
+				GIFRegBITBLTBUF BITBLTBUF;
+				BITBLTBUF.DBP = TEX0.TBP0;
+				BITBLTBUF.DBW = TEX0.TBW;
+				BITBLTBUF.DPSM = TEX0.PSM;
+
+				m_tc.InvalidateTexture(this, BITBLTBUF, r);
+			}
+		}
+
 		if(pPair)
 		{
 			m_tc.ResetAge(pPair->key);
@@ -747,9 +795,9 @@ void GSRendererHW::EndFrame()
 	m_tc.IncAge(m_pRTs);
 }
 
-void GSRendererHW::InvalidateTexture(DWORD TBP0, DWORD PSM, CRect r)
+void GSRendererHW::InvalidateTexture(const GIFRegBITBLTBUF& BITBLTBUF, CRect r)
 {
-	m_tc.InvalidateTexture(this, TBP0, PSM, &r);
+	m_tc.InvalidateTexture(this, BITBLTBUF, &r);
 
 	//CRect r(m_rs.TRXPOS.DSAX, y, m_rs.TRXREG.RRW, min(m_x == m_rs.TRXPOS.DSAX ? m_y : m_y+1, m_rs.TRXREG.RRH));
 
@@ -801,9 +849,9 @@ void GSRendererHW::InvalidateTexture(DWORD TBP0, DWORD PSM, CRect r)
 				TEX0.TCC = 0;
 
 				GIFRegTEXA TEXA;
-				TEXA.TA1 = 0x80;
-				TEXA.TA0 = 0;
 				TEXA.AEM = 1;
+				TEXA.TA0 = 0;
+				TEXA.TA1 = 0x80;
 
 				GSLocalMemory::readTexel rt = m_lm.GetReadTexel(m_rs.BITBLTBUF.DBP);
 
@@ -1379,7 +1427,7 @@ void GSRendererHW::SetupScissor(scale_t& s)
 		)
 	{
 		// TODO: isn't there a better way? what about s.x?
-		s.y = s.y * m_bd.Height / r.bottom;
+//		s.y = s.y * m_bd.Height / r.bottom;
 	}
 
 	r &= CRect(0, 0, m_bd.Width, m_bd.Height);

@@ -215,7 +215,7 @@ CString fn;
 static int s_savenum = 0;
 s_savenum++;
 
-if(0 && m_perfmon.GetFrame() >= 400)
+if(0 && m_perfmon.GetFrame() >= 280)
 {
 fn.Format(_T("g:/tmp/%04I64d_%06d_1f_%05x_%x.bmp"), m_perfmon.GetFrame(), s_savenum, m_ctxt->FRAME.Block(), m_ctxt->FRAME.PSM);
 m_lm.SaveBMP(m_pD3DDev, fn, m_ctxt->FRAME.Block(), m_ctxt->FRAME.FBW, m_ctxt->FRAME.PSM, m_ctxt->FRAME.FBW*64, 224);
@@ -294,7 +294,7 @@ m_lm.SaveBMP(m_pD3DDev, fn, m_ctxt->TEX0.TBP0, m_ctxt->TEX0.TBW, m_ctxt->TEX0.PS
 
 		m_perfmon.IncCounter(GSPerfMon::c_prim, nPrims);
 
-if(0 && m_perfmon.GetFrame() >= 400)
+if(0 && m_perfmon.GetFrame() >= 280)
 {
 fn.Format(_T("g:/tmp/%04I64d_%06d_3f_%05x_%x.bmp"), m_perfmon.GetFrame(), s_savenum, m_ctxt->FRAME.Block(), m_ctxt->FRAME.PSM);
 m_lm.SaveBMP(m_pD3DDev, fn, m_ctxt->FRAME.Block(), m_ctxt->FRAME.FBW, m_ctxt->FRAME.PSM, m_ctxt->FRAME.FBW*64, 224);
@@ -653,7 +653,7 @@ bool GSRendererSoft<Vertex>::DrawFilledRect(int left, int top, int right, int bo
 			| ((DWORD)(Bf&0xf8) << 7) 
 			| ((DWORD)(Af&0x80) << 8);
 	}
-	else 
+	else
 	{
 #if _M_IX86_FP >= 2 || defined(_M_AMD64)
 		__m128i r0 = _mm_load_si128((__m128i*)&Cui64);

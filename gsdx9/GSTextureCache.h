@@ -121,7 +121,7 @@ public:
 	void IncAge(CSurfMap<IDirect3DTexture9>& pRTs);
 	void ResetAge(DWORD TBP0);
 	void RemoveAll();
-	void InvalidateTexture(GSState* s, DWORD TBP0, DWORD PSM, const CRect& r);
+	void InvalidateTexture(GSState* s, const GIFRegBITBLTBUF& BITBLTBUF, const CRect& r);
 	void InvalidateLocalMem(GSState* s, DWORD TBP0, DWORD BW, DWORD PSM, const CRect& r);
 	void AddRT(GIFRegTEX0& TEX0, IDirect3DTexture9* pRT, scale_t scale);
 };
