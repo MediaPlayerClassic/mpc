@@ -1215,7 +1215,7 @@ bool GSLocalMemory::FillRect(CRect& r, DWORD c, DWORD psm, DWORD fbp, DWORD fbw)
 		}
 	}
 
-	if(psm == PSM_PSMCT24)
+	if(psm == PSM_PSMCT24 || psm == PSM_PSMZ24)
 	{
 		c &= 0x00ffffff;
 		for(int y = clip.top; y < clip.bottom; y += h)
@@ -2734,6 +2734,16 @@ void GSLocalMemory::ReadTexture(const CRect& r, BYTE* dst, int dstpitch, GIFRegT
 {
 	// this function is not thread safe!
 
+	CSize bs = m_psmtbl[TEX0.PSM].bs;
+
+	CRect cr(
+		(r.left + (bs.cx-1)) & ~(bs.cx-1), 
+		(r.top + (bs.cy-1)) & ~(bs.cy-1), 
+		r.right & ~(bs.cx-1), 
+		r.bottom & ~(bs.cy-1));
+
+	bool fAligned = ((DWORD_PTR)(dst + (cr.left-r.left)*sizeof(DstT)) & 0xf) == 0;
+
 	if((CLAMP.WMS&2) || (CLAMP.WMT&2))
 	{
 		DWORD wms = CLAMP.WMS, wmt = CLAMP.WMT;
@@ -2754,16 +2764,8 @@ void GSLocalMemory::ReadTexture(const CRect& r, BYTE* dst, int dstpitch, GIFRegT
 		case 3: for(int y = r.top; y < r.bottom; y++) m_ytbl[y] = (y & minv) | maxv; break;
 		}
 
-		if(wms <= 2 && wmt <= 2)
+		if(fAligned && wms <= 2 && wmt <= 2)
 		{
-			CSize bs = m_psmtbl[TEX0.PSM].bs;
-
-			CRect cr(
-				(r.left + (bs.cx-1)) & ~(bs.cx-1), 
-				(r.top + (bs.cy-1)) & ~(bs.cy-1), 
-				r.right & ~(bs.cx-1), 
-				r.bottom & ~(bs.cy-1));
-
 			// TODO: read clamped areas only once
 
 			for(int y = r.top; y < cr.top; y++, dst += dstpitch)
@@ -2786,7 +2788,6 @@ void GSLocalMemory::ReadTexture(const CRect& r, BYTE* dst, int dstpitch, GIFRegT
 		}
 		else
 		{
-			// this one is rarely reached, textures are block aligned in the texture cache
 			for(int y = r.top; y < r.bottom; y++, dst += dstpitch)
 				for(int x = r.left, i = 0; x < r.right; x++, i++)
 					((DstT*)dst)[i] = (DstT)(this->*rt)(m_xtbl[x], m_ytbl[y], TEX0, TEXA);
@@ -2794,31 +2795,32 @@ void GSLocalMemory::ReadTexture(const CRect& r, BYTE* dst, int dstpitch, GIFRegT
 	}
 	else
 	{
-		CSize bs = m_psmtbl[TEX0.PSM].bs;
-
-		CRect cr(
-			(r.left + (bs.cx-1)) & ~(bs.cx-1), 
-			(r.top + (bs.cy-1)) & ~(bs.cy-1), 
-			r.right & ~(bs.cx-1), 
-			r.bottom & ~(bs.cy-1));
-
-		for(int y = r.top; y < cr.top; y++, dst += dstpitch)
-			for(int x = r.left, i = 0; x < r.right; x++, i++)
-				((DstT*)dst)[i] = (DstT)(this->*rt)(x, y, TEX0, TEXA);
-
-		(this->*st)(cr, dst + (cr.left-r.left)*sizeof(DstT), dstpitch, TEX0, TEXA);
-
-		for(int y = cr.top; y < cr.bottom; y++, dst += dstpitch)
+		if(fAligned)
 		{
-			for(int x = r.left, i = 0; x < cr.left; x++, i++)
-				((DstT*)dst)[i] = (DstT)(this->*rt)(x, y, TEX0, TEXA);
-			for(int x = cr.right, i = x - r.left; x < r.right; x++, i++)
-				((DstT*)dst)[i] = (DstT)(this->*rt)(x, y, TEX0, TEXA);
-		}
+			for(int y = r.top; y < cr.top; y++, dst += dstpitch)
+				for(int x = r.left, i = 0; x < r.right; x++, i++)
+					((DstT*)dst)[i] = (DstT)(this->*rt)(x, y, TEX0, TEXA);
 
-		for(int y = cr.bottom; y < r.bottom; y++, dst += dstpitch)
-			for(int x = r.left, i = 0; x < r.right; x++, i++)
-				((DstT*)dst)[i] = (DstT)(this->*rt)(x, y, TEX0, TEXA);
+			(this->*st)(cr, dst + (cr.left-r.left)*sizeof(DstT), dstpitch, TEX0, TEXA);
+
+			for(int y = cr.top; y < cr.bottom; y++, dst += dstpitch)
+			{
+				for(int x = r.left, i = 0; x < cr.left; x++, i++)
+					((DstT*)dst)[i] = (DstT)(this->*rt)(x, y, TEX0, TEXA);
+				for(int x = cr.right, i = x - r.left; x < r.right; x++, i++)
+					((DstT*)dst)[i] = (DstT)(this->*rt)(x, y, TEX0, TEXA);
+			}
+
+			for(int y = cr.bottom; y < r.bottom; y++, dst += dstpitch)
+				for(int x = r.left, i = 0; x < r.right; x++, i++)
+					((DstT*)dst)[i] = (DstT)(this->*rt)(x, y, TEX0, TEXA);
+		}
+		else
+		{
+			for(int y = r.top; y < r.bottom; y++, dst += dstpitch)
+				for(int x = r.left, i = 0; x < r.right; x++, i++)
+					((DstT*)dst)[i] = (DstT)(this->*rt)(x, y, TEX0, TEXA);
+		}
 	}
 }
 

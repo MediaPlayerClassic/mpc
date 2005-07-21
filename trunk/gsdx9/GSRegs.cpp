@@ -502,8 +502,6 @@ void __fastcall GSState::GIFRegHandlerPRMODECONT(GIFReg* r)
 	if(m_de.PRMODECONT.i64 != r->PRMODECONT.i64)
 	{
 		FlushPrimInternal();
-
-		m_ctxt = &m_de.CTXT[m_pPRIM->CTXT];
 	}
 
 	m_de.PRMODECONT = r->PRMODECONT;

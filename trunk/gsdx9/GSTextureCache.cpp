@@ -454,7 +454,7 @@ bool GSTextureCache::ConvertRT(GSState* s, GSTexture* pt)
 			return false;
 	}
 */
-	if(pt->m_TEX0.TBW != s->m_ctxt->TEX0.TBW)
+	if(1 && pt->m_TEX0.TBW != s->m_ctxt->TEX0.TBW)
 	{
 		// sfex3 uses this trick (bw: 10 -> 5, wraps the right side below the left)
 
@@ -889,10 +889,16 @@ void GSTextureCache::RemoveAll()
 	m_pTexturePool.RemoveAll();
 }
 
-void GSTextureCache::InvalidateTexture(GSState* s, DWORD TBP0, DWORD PSM, const CRect& r)
+void GSTextureCache::InvalidateTexture(GSState* s, const GIFRegBITBLTBUF& BITBLTBUF, const CRect& r)
 {
+	GIFRegTEX0 TEX0;
+	TEX0.TBP0 = BITBLTBUF.DBP;
+	TEX0.TBW = BITBLTBUF.DBW;
+	TEX0.PSM = BITBLTBUF.DPSM;
+	TEX0.TCC = 0;
+
 #ifdef DEBUG_LOG
-	s->LOG(_T("*TC2 invalidate %05x (%d,%d-%d,%d)\n"), TBP0, r.left, r.top, r.right, r.bottom);
+	s->LOG(_T("*TC2 invalidate %05x %x (%d,%d-%d,%d)\n"), TEX0.TBP0, TEX0.PSM, r.left, r.top, r.right, r.bottom);
 #endif
 
 	POSITION pos = GetHeadPosition();
@@ -900,16 +906,110 @@ void GSTextureCache::InvalidateTexture(GSState* s, DWORD TBP0, DWORD PSM, const 
 	{
 		POSITION cur = pos;
 		GSTexture* pt = GetNext(pos);
-		if(HasSharedBits(TBP0, PSM, pt->m_TEX0.TBP0, pt->m_TEX0.PSM)) 
+		if(HasSharedBits(TEX0.TBP0, TEX0.PSM, pt->m_TEX0.TBP0, pt->m_TEX0.PSM)) 
 		{
-			if(pt->m_fRT)
+			if(TEX0.TBW != pt->m_TEX0.TBW)
 			{
+				// if TEX0.TBW != pt->m_TEX0.TBW then this render target is more likely to 
+				// be discarded by the game (means it doesn't want to transfer an image over 
+				// another pre-rendered image) and can be refetched from local mem safely.
+
 				RemoveAt(cur);
 				delete pt;
 			}
+			else if(pt->m_fRT) 
+			{
+				// TEX0.TBW = pt->m_TEX0.TBW;
+				TEX0.PSM = pt->m_TEX0.PSM;
+
+				if(TEX0.PSM == PSM_PSMCT32 || TEX0.PSM == PSM_PSMCT24 
+				|| TEX0.PSM == PSM_PSMCT16 || TEX0.PSM == PSM_PSMCT16S) 
+				{
+//					pt->m_rcDirty.AddHead(GSDirtyRect(PSM, r));
+
+					HRESULT hr;
+
+					int tw = (r.Width() + 3) & ~3;
+					int th = r.Height();
+
+					CComPtr<IDirect3DTexture9> pSrc;
+					hr = s->m_pD3DDev->CreateTexture(tw, th, 1, 0, D3DFMT_A8R8G8B8, D3DPOOL_MANAGED, &pSrc, NULL);
+
+					D3DLOCKED_RECT lr;
+					if(pSrc && SUCCEEDED(pSrc->LockRect(0, &lr, NULL, 0)))
+					{
+						GIFRegTEXA TEXA;
+						TEXA.AEM = 1;
+						TEXA.TA0 = 0;
+						TEXA.TA1 = 0x80;
+
+						GIFRegCLAMP CLAMP;
+						CLAMP.WMS = 0;
+						CLAMP.WMT = 0;
+
+						s->m_lm.ReadTexture(r, (BYTE*)lr.pBits, lr.Pitch, TEX0, TEXA, CLAMP);
+						s->m_perfmon.IncCounter(GSPerfMon::c_unswizzle, r.Width()*r.Height()*4);
+
+						pSrc->UnlockRect(0);
+
+						scale_t scale(pt->m_pTexture);
+
+						CRect dst;
+						dst.left = (long)(scale.x * r.left + 0.5);
+						dst.top = (long)(scale.y * r.top + 0.5);
+						dst.right = (long)(scale.x * r.right + 0.5);
+						dst.bottom = (long)(scale.y * r.bottom + 0.5);
+
+						//
+
+						CComPtr<IDirect3DSurface9> pRTSurf;
+						hr = pt->m_pTexture->GetSurfaceLevel(0, &pRTSurf);
+						hr = s->m_pD3DDev->SetRenderTarget(0, pRTSurf);
+						hr = s->m_pD3DDev->SetDepthStencilSurface(NULL);
+
+						hr = s->m_pD3DDev->SetTexture(0, pSrc);
+						hr = s->m_pD3DDev->SetSamplerState(0, D3DSAMP_MAGFILTER, D3DTEXF_LINEAR);
+						hr = s->m_pD3DDev->SetSamplerState(0, D3DSAMP_MINFILTER, D3DTEXF_LINEAR);
+						hr = s->m_pD3DDev->SetRenderState(D3DRS_ZENABLE, FALSE);
+						hr = s->m_pD3DDev->SetRenderState(D3DRS_ALPHATESTENABLE, FALSE);
+						hr = s->m_pD3DDev->SetRenderState(D3DRS_ALPHABLENDENABLE, TRUE);
+						hr = s->m_pD3DDev->SetRenderState(D3DRS_BLENDOP, D3DBLENDOP_ADD);
+						hr = s->m_pD3DDev->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_ONE);
+						hr = s->m_pD3DDev->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_ZERO);
+						hr = s->m_pD3DDev->SetRenderState(D3DRS_SCISSORTESTENABLE, FALSE);
+						hr = s->m_pD3DDev->SetRenderState(D3DRS_COLORWRITEENABLE, D3DCOLORWRITEENABLE_RGBA);
+
+						hr = s->m_pD3DDev->SetPixelShader(NULL);
+
+						struct
+						{
+							float x, y, z, rhw;
+							float tu, tv;
+						}
+						pVertices[] =
+						{
+							{(float)dst.left, (float)dst.top, 0.5f, 2.0f, 0, 0},
+							{(float)dst.right, (float)dst.top, 0.5f, 2.0f, 1.0f * r.Width() / tw, 0},
+							{(float)dst.left, (float)dst.bottom, 0.5f, 2.0f, 0, 1},
+							{(float)dst.right, (float)dst.bottom, 0.5f, 2.0f, 1.0f * r.Width() / tw, 1},
+						};
+
+						hr = s->m_pD3DDev->BeginScene();
+						hr = s->m_pD3DDev->SetFVF(D3DFVF_XYZRHW | D3DFVF_TEX1);
+						hr = s->m_pD3DDev->DrawPrimitiveUP(D3DPT_TRIANGLESTRIP, 2, pVertices, sizeof(pVertices[0]));
+						hr = s->m_pD3DDev->EndScene();
+
+					}
+				}
+				else
+				{
+					RemoveAt(cur);
+					delete pt;
+				}
+			}
 			else
 			{
-				pt->m_rcDirty.AddHead(GSDirtyRect(PSM, r));
+				pt->m_rcDirty.AddHead(GSDirtyRect(TEX0.PSM, r));
 			}
 		}
 	}

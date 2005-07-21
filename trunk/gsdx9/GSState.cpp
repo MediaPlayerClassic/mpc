@@ -1055,10 +1055,13 @@ void GSState::FinishFlip(FlipInfo rt[2])
 			CRect r = m_rs.GetDispRect(i);
 
 			src[i] = CRect(
-				(int)(0/*rt[i].scale.x * r.left*/),
-				(int)(0/*rt[i].scale.y * r.top*/),
+				(int)(rt[i].scale.x * r.left),
+				(int)(rt[i].scale.y * r.top),
 				(int)(rt[i].scale.x * r.right),
 				(int)(rt[i].scale.y * r.bottom));
+
+			if(m_rs.SMODE2.INT && m_rs.SMODE2.FFMD)
+				src[i].bottom /= 2;
 		}
 		else
 		{
@@ -1110,8 +1113,8 @@ void GSState::FinishFlip(FlipInfo rt[2])
 	}
 */	
 
-	// // FIXME: sw mode / poolmaster + funslower
-	if(m_nVSync > 1 || m_pCSRr->FIELD == 0)
+	// FIXME: sw mode / poolmaster + funslower
+	// if(m_nVSync > 1 || m_pCSRr->FIELD == 0)
 	{
 		m_pCSRr->FIELD = 1 - m_pCSRr->FIELD; 
 		m_nVSync = 0;

@@ -83,7 +83,7 @@ void GSState::WriteTransfer(BYTE* pMem, int len)
 		//ASSERT(m_rs.TRXREG.RRH >= m_y - y);
 
 		CRect r(m_rs.TRXPOS.DSAX, y, m_rs.TRXREG.RRW, min(m_x == m_rs.TRXPOS.DSAX ? m_y : m_y+1, m_rs.TRXREG.RRH));
-		InvalidateTexture(m_rs.BITBLTBUF.DBP, m_rs.BITBLTBUF.DPSM, r);
+		InvalidateTexture(m_rs.BITBLTBUF, r);
 
 		m_lm.InvalidateCLUT();
 	}
@@ -106,7 +106,7 @@ void GSState::FlushWriteTransfer()
 	//ASSERT(m_rs.TRXREG.RRH >= m_y - y);
 
 	CRect r(m_rs.TRXPOS.DSAX, y, m_rs.TRXREG.RRW, min(m_x == m_rs.TRXPOS.DSAX ? m_y : m_y+1, m_rs.TRXREG.RRH));
-	InvalidateTexture(m_rs.BITBLTBUF.DBP, m_rs.BITBLTBUF.DPSM, r);
+	InvalidateTexture(m_rs.BITBLTBUF, r);
 
 	m_lm.InvalidateCLUT();
 }
