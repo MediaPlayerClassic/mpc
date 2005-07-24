@@ -215,14 +215,16 @@ CString fn;
 static int s_savenum = 0;
 s_savenum++;
 
-if(0 && m_perfmon.GetFrame() >= 280)
+if(0)
+//if(m_ctxt->FRAME.Block() == 0x008c0 && (DWORD)m_ctxt->TEX0.TBP0 == 0x03a98)
+//if(m_ctxt->TEX0.PSM == 0x1b)
+if(m_perfmon.GetFrame() >= 500)
 {
 fn.Format(_T("g:/tmp/%04I64d_%06d_1f_%05x_%x.bmp"), m_perfmon.GetFrame(), s_savenum, m_ctxt->FRAME.Block(), m_ctxt->FRAME.PSM);
 m_lm.SaveBMP(m_pD3DDev, fn, m_ctxt->FRAME.Block(), m_ctxt->FRAME.FBW, m_ctxt->FRAME.PSM, m_ctxt->FRAME.FBW*64, 224);
 
 if(m_pPRIM->TME)
 {
-	if(m_ctxt->FRAME.Block() == 0x00500 && (DWORD)m_ctxt->TEX0.TBP0 == 0x00500) AfxMessageBox(_T("sdfsd"));
 fn.Format(_T("g:/tmp/%04I64d_%06d_2t_%05x_%x.bmp"), m_perfmon.GetFrame(), s_savenum, (DWORD)m_ctxt->TEX0.TBP0, (DWORD)m_ctxt->TEX0.PSM);
 m_lm.SaveBMP(m_pD3DDev, fn, m_ctxt->TEX0.TBP0, m_ctxt->TEX0.TBW, m_ctxt->TEX0.PSM, 1 << m_ctxt->TEX0.TW, 1 << m_ctxt->TEX0.TH);
 }
@@ -294,7 +296,10 @@ m_lm.SaveBMP(m_pD3DDev, fn, m_ctxt->TEX0.TBP0, m_ctxt->TEX0.TBW, m_ctxt->TEX0.PS
 
 		m_perfmon.IncCounter(GSPerfMon::c_prim, nPrims);
 
-if(0 && m_perfmon.GetFrame() >= 280)
+if(0)
+//if(m_ctxt->FRAME.Block() == 0x008c0 && (DWORD)m_ctxt->TEX0.TBP0 == 0x03a98)
+//if(m_ctxt->TEX0.PSM == 0x1b)
+if(m_perfmon.GetFrame() >= 500)
 {
 fn.Format(_T("g:/tmp/%04I64d_%06d_3f_%05x_%x.bmp"), m_perfmon.GetFrame(), s_savenum, m_ctxt->FRAME.Block(), m_ctxt->FRAME.PSM);
 m_lm.SaveBMP(m_pD3DDev, fn, m_ctxt->FRAME.Block(), m_ctxt->FRAME.FBW, m_ctxt->FRAME.PSM, m_ctxt->FRAME.FBW*64, 224);
