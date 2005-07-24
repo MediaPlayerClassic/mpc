@@ -348,6 +348,11 @@ void GSRendererHW::FlushPrim()
 
 		if(m_pPRIM->TME)
 		{
+if(m_ctxt->TEX0.TBP0 == 0x800)
+{
+	int i = 0;
+}
+
 			bool fFetched = 
 				m_fEnablePalettizedTextures && m_caps.PixelShaderVersion >= D3DPS_VERSION(2, 0) ? m_tc.FetchP(this, t) : 
 				m_caps.PixelShaderVersion >= D3DPS_VERSION(2, 0) ? m_tc.FetchNP(this, t) :
@@ -437,6 +442,8 @@ void GSRendererHW::FlushPrim()
 			tsx = 1.0f * (1 << m_ctxt->TEX0.TW) / t.m_desc.Width * t.m_scale.x;
 			tsy = 1.0f * (1 << m_ctxt->TEX0.TH) / t.m_desc.Height * t.m_scale.y;
 		}
+
+		ASSERT(abs(tsx - 1.0f) < 0.001 && abs(tsy - 1.0f) < 0.001);
 
 		SetupTexture(t, tsx, tsy);
 
@@ -798,140 +805,6 @@ void GSRendererHW::EndFrame()
 void GSRendererHW::InvalidateTexture(const GIFRegBITBLTBUF& BITBLTBUF, CRect r)
 {
 	m_tc.InvalidateTexture(this, BITBLTBUF, &r);
-
-	//CRect r(m_rs.TRXPOS.DSAX, y, m_rs.TRXREG.RRW, min(m_x == m_rs.TRXPOS.DSAX ? m_y : m_y+1, m_rs.TRXREG.RRH));
-
-/*
-	GSTexture t;
-	if(m_tc.LookupByTBP(TBP0, t))
-	{
-		HRESULT hr;
-		D3DLOCKED_RECT lr;
-
-		D3DSURFACE_DESC desc;
-		ZeroMemory(&desc, sizeof(desc));
-		t.m_pTexture->GetLevelDesc(0, &desc);
-
-		if(!t.m_fRT)
-		{
-			int w = r.right, h = r.bottom;
-
-			if(m_rs.TRXREG.RRW <= 16 && m_rs.TRXREG.RRH <= 16 // allowing larger isn't worth, most of the time the size of the texture changes too
-			&& !(t.m_tex.CLAMP.WMS&2) && !(t.m_tex.CLAMP.WMT&2)
-			&& t.m_scale.x == 1.0f && t.m_scale.y == 1.0f
-			&& desc.Width >= w && desc.Height >= h
-			&& S_OK == t.m_pTexture->LockRect(0, &lr, r, 0))
-			{
-				m_lm.setupCLUT(m_ctxt->TEX0, m_de.TEXA);
-
-				m_lm.ReadTexture(w, h, (BYTE*)lr.pBits, lr.Pitch, m_ctxt->TEX0, m_de.TEXA, t.m_tex.CLAMP);
-
-				t.m_pTexture->UnlockRect(0);
-
-				m_stats.IncReads(w*h*4);
-			}
-			else
-			{
-				m_tc.InvalidateByTBP(TBP0);
-			}
-		}
-		else if(m_rs.BITBLTBUF.DPSM == PSM_PSMCT32 || m_rs.BITBLTBUF.DPSM == PSM_PSMCT16 || m_rs.BITBLTBUF.DPSM == PSM_PSMCT16S)
-		{
-			CComPtr<IDirect3DTexture9> pTexture;
-			hr = m_pD3DDev->CreateTexture(r.Width(), r.Height(), 1, 0, D3DFMT_A8R8G8B8, D3DPOOL_MANAGED, &pTexture, NULL);
-
-			if(pTexture && S_OK == pTexture->LockRect(0, &lr, NULL, 0))
-			{
-				GIFRegTEX0 TEX0;
-				TEX0.TBP0 = m_rs.BITBLTBUF.DBP;
-				TEX0.TBW = m_rs.BITBLTBUF.DBW;
-				TEX0.PSM = m_rs.BITBLTBUF.DPSM;
-				TEX0.TCC = 0;
-
-				GIFRegTEXA TEXA;
-				TEXA.AEM = 1;
-				TEXA.TA0 = 0;
-				TEXA.TA1 = 0x80;
-
-				GSLocalMemory::readTexel rt = m_lm.GetReadTexel(m_rs.BITBLTBUF.DBP);
-
-				if(r.top == 0 && r.left == 0)
-				{
-					GSLocalMemory::unSwizzleTexture st = m_lm.GetUnSwizzleTexture(m_rs.BITBLTBUF.DPSM);
-					(m_lm.*st)(r.Width(), r.Height(), (BYTE*)lr.pBits, lr.Pitch, TEX0, TEXA);
-				}
-				else // FIXME
-				{
-					BYTE* dst = (BYTE*)lr.pBits;
-
-					for(int y = r.top, diff = lr.Pitch - r.Width()*4; y < r.bottom; y++, dst += diff)
-						for(int x = r.left; x < r.right; x++, dst += 4)
-							*(DWORD*)dst = (m_lm.*rt)(x, y, TEX0, TEXA);
-				}
-
-				pTexture->UnlockRect(0);
-
-				m_stats.IncReads(r.Width()*r.Height()*4);
-
-				struct
-				{
-					float x, y, z, rhw;
-					float tu, tv;
-				}
-				pVertices[] =
-				{
-					{(float)r.left, (float)r.top, 0.5f, 2.0f, 0, 0},
-					{(float)r.right, (float)r.top, 0.5f, 2.0f, 1.0f, 0},
-					{(float)r.left, (float)r.bottom, 0.5f, 2.0f, 0, 1.0f},
-					{(float)r.right, (float)r.bottom, 0.5f, 2.0f, 1.0f, 1.0f},
-				};
-
-				scale_t scale(t.m_pTexture);
-
-				for(int i = 0; i < countof(pVertices); i++)
-				{
-					pVertices[i].x = pVertices[i].x * scale.x - 0.5;
-					pVertices[i].y = pVertices[i].y * scale.y - 0.5;
-				}
-
-				CComPtr<IDirect3DSurface9> pSurf;
-				hr = t.m_pTexture->GetSurfaceLevel(0, &pSurf);
-				hr = m_pD3DDev->SetRenderTarget(0, pSurf);
-
-			    hr = m_pD3DDev->SetRenderState(D3DRS_ALPHABLENDENABLE, FALSE);
-				hr = m_pD3DDev->SetRenderState(D3DRS_COLORWRITEENABLE, D3DCOLORWRITEENABLE_RGBA);
-				hr = m_pD3DDev->SetRenderState(D3DRS_ZENABLE, FALSE);
-				hr = m_pD3DDev->SetRenderState(D3DRS_ZWRITEENABLE, FALSE);
-				hr = m_pD3DDev->SetRenderState(D3DRS_ALPHATESTENABLE, FALSE); 
-				hr = m_pD3DDev->SetRenderState(D3DRS_SCISSORTESTENABLE, FALSE);
-
-				hr = m_pD3DDev->SetTexture(0, pTexture);
-				hr = m_pD3DDev->SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_SELECTARG1);
-				hr = m_pD3DDev->SetTextureStageState(0, D3DTSS_COLORARG1, D3DTA_TEXTURE);
-				hr = m_pD3DDev->SetTextureStageState(0, D3DTSS_ALPHAOP, D3DTOP_SELECTARG1);
-				hr = m_pD3DDev->SetTextureStageState(0, D3DTSS_ALPHAARG1, D3DTA_TEXTURE);
-				hr = m_pD3DDev->SetTextureStageState(1, D3DTSS_COLOROP, D3DTOP_DISABLE);
-				hr = m_pD3DDev->SetTextureStageState(1, D3DTSS_ALPHAOP, D3DTOP_DISABLE);
-				hr = m_pD3DDev->SetSamplerState(0, D3DSAMP_ADDRESSU, D3DTADDRESS_CLAMP);
-				hr = m_pD3DDev->SetSamplerState(0, D3DSAMP_ADDRESSV, D3DTADDRESS_CLAMP);
-				hr = m_pD3DDev->SetSamplerState(0, D3DSAMP_MAGFILTER, D3DTEXF_LINEAR);
-				hr = m_pD3DDev->SetSamplerState(0, D3DSAMP_MINFILTER, D3DTEXF_LINEAR);
-
-				hr = m_pD3DDev->BeginScene();
-				hr = m_pD3DDev->SetPixelShader(NULL);
-				hr = m_pD3DDev->SetFVF(D3DFVF_XYZRHW|D3DFVF_TEX1);
-				hr = m_pD3DDev->DrawPrimitiveUP(D3DPT_TRIANGLESTRIP, 2, pVertices, sizeof(pVertices[0]));
-				hr = m_pD3DDev->EndScene();
-			}
-		}
-		else
-		{
-			m_tc.InvalidateByTBP(TBP0);
-		}
-	}
-
-	m_tc.InvalidateByCBP(TBP0);
-*/
 }
 
 void GSRendererHW::InvalidateLocalMem(DWORD TBP0, DWORD BW, DWORD PSM, CRect r)
@@ -1074,6 +947,7 @@ void GSRendererHW::SetupTexture(const GSTextureBase& t, float tsx, float tsy)
 			case D3DFMT_A8R8G8B8:
 				//ASSERT(m_ctxt->TEX0.PSM != PSM_PSMCT24); // format must be D3DFMT_X8R8G8B8 for PSM_PSMCT24
 				//if(m_ctxt->TEX0.PSM == PSM_PSMCT24) {i += 4; if(m_de.TEXA.AEM) i += 4;}
+				if(m_ctxt->TEX0.PSM == PSM_PSMT8H) i += 32;
 				break;
 			case D3DFMT_X8R8G8B8:
 				i += 4; if(m_de.TEXA.AEM) i += 4;

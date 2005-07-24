@@ -32,6 +32,7 @@ BOOL CGSWnd::Create(LPCSTR pTitle)
 {
 	CRect r;
 	GetDesktopWindow()->GetWindowRect(r);
+	// r.DeflateRect(r.Width()*3/8, r.Height()*3/8);
 	r.DeflateRect(r.Width()/3, r.Height()/3);
 	LPCTSTR wndclass = AfxRegisterWndClass(CS_VREDRAW|CS_HREDRAW|CS_DBLCLKS, AfxGetApp()->LoadStandardCursor(IDC_ARROW), 0/*(HBRUSH)(COLOR_BTNFACE + 1)*/, 0);
 	return CreateEx(0, wndclass, pTitle, WS_OVERLAPPEDWINDOW, r, NULL, 0);

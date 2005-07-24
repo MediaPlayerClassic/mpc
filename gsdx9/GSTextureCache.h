@@ -89,6 +89,8 @@ struct GSTexture : public GSTextureBase
 	DWORD m_dwHash, m_nHashDiff, m_nHashSame;
 	DWORD m_nBytes;
 	int m_nAge, m_nVsyncs;
+	CInterfaceList<IDirect3DTexture9> m_pSubTextures;
+	bool m_fTemp;
 
 	GSTexture();
 };
@@ -99,7 +101,6 @@ class GSTextureCache : private CAtlList<GSTexture*>
 {
 protected:
 	CInterfaceList<IDirect3DTexture9> m_pTexturePool;
-
 	HRESULT CreateTexture(GSState* s, GSTexture* pt, DWORD PSM, DWORD CPSM = PSM_PSMCT32);
 	bool IsTextureInCache(IDirect3DTexture9* pTexture);
 	void RemoveOldTextures(GSState* s);
@@ -108,7 +109,12 @@ protected:
 	DWORD HashTexture(const CRect& r, int pitch, void* bits);
 	HRESULT UpdateTexture(GSState* s, GSTexture* pt, GSLocalMemory::readTexture rt);
 
-	bool GSTextureCache::ConvertRT(GSState* s, GSTexture* pt);
+	GSTexture* ConvertRT(GSState* s, GSTexture* pt);
+	GSTexture* ConvertRTPitch(GSState* s, GSTexture* pt);
+	GSTexture* ConvertRTWidthHeight(GSState* s, GSTexture* pt);
+
+	CInterfaceList<IDirect3DTexture9> m_pRTPool;
+	HRESULT CreateRT(GSState* s, int w, int h, IDirect3DTexture9** ppRT);
 
 public:
 	GSTextureCache();
