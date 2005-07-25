@@ -253,7 +253,7 @@ void __fastcall ExpandBlock24_sse2(DWORD* src, DWORD* dst, int dstpitch, GIFRegT
 			{
 				__m128i c = _mm_load_si128((__m128i*)&src[i]);
 				c = _mm_and_si128(c, s_bgrm);
-				__m128i a = _mm_andnot_si128(_mm_cmpeq_epi16(c, s_zero), TA0);
+				__m128i a = _mm_andnot_si128(_mm_cmpeq_epi32(c, s_zero), TA0);
 				c = _mm_or_si128(c, a);
 				_mm_store_si128((__m128i*)&dst[i], c);
 			}

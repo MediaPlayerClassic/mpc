@@ -218,7 +218,7 @@ s_savenum++;
 if(0)
 //if(m_ctxt->FRAME.Block() == 0x008c0 && (DWORD)m_ctxt->TEX0.TBP0 == 0x03a98)
 //if(m_ctxt->TEX0.PSM == 0x1b)
-if(m_perfmon.GetFrame() >= 500)
+if(m_perfmon.GetFrame() >= 200)
 {
 fn.Format(_T("g:/tmp/%04I64d_%06d_1f_%05x_%x.bmp"), m_perfmon.GetFrame(), s_savenum, m_ctxt->FRAME.Block(), m_ctxt->FRAME.PSM);
 m_lm.SaveBMP(m_pD3DDev, fn, m_ctxt->FRAME.Block(), m_ctxt->FRAME.FBW, m_ctxt->FRAME.PSM, m_ctxt->FRAME.FBW*64, 224);
@@ -299,7 +299,7 @@ m_lm.SaveBMP(m_pD3DDev, fn, m_ctxt->TEX0.TBP0, m_ctxt->TEX0.TBW, m_ctxt->TEX0.PS
 if(0)
 //if(m_ctxt->FRAME.Block() == 0x008c0 && (DWORD)m_ctxt->TEX0.TBP0 == 0x03a98)
 //if(m_ctxt->TEX0.PSM == 0x1b)
-if(m_perfmon.GetFrame() >= 500)
+if(m_perfmon.GetFrame() >= 200)
 {
 fn.Format(_T("g:/tmp/%04I64d_%06d_3f_%05x_%x.bmp"), m_perfmon.GetFrame(), s_savenum, m_ctxt->FRAME.Block(), m_ctxt->FRAME.PSM);
 m_lm.SaveBMP(m_pD3DDev, fn, m_ctxt->FRAME.Block(), m_ctxt->FRAME.FBW, m_ctxt->FRAME.PSM, m_ctxt->FRAME.FBW*64, 224);

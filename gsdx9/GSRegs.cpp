@@ -285,6 +285,7 @@ void __fastcall GSState::GIFRegHandlerTEX0_1(GIFReg* r)
 	//ASSERT(m_de.CTXT[0].TEX0.TW <= 10 && m_de.CTXT[0].TEX0.TH <= 10);
 	if(m_de.CTXT[0].TEX0.TW > 10) m_de.CTXT[0].TEX0.TW = 10;
 	if(m_de.CTXT[0].TEX0.TH > 10) m_de.CTXT[0].TEX0.TH = 10;
+	m_de.CTXT[0].TEX0.CPSM &= 0xa; // 1010b
 
 	m_de.CTXT[0].ttbl = &GSLocalMemory::m_psmtbl[m_de.CTXT[0].TEX0.PSM];
 
@@ -317,6 +318,7 @@ void __fastcall GSState::GIFRegHandlerTEX0_2(GIFReg* r)
 	//ASSERT(m_de.CTXT[1].TEX0.TW <= 10 && m_de.CTXT[1].TEX0.TH <= 10);
 	if(m_de.CTXT[1].TEX0.TW > 10) m_de.CTXT[1].TEX0.TW = 10;
 	if(m_de.CTXT[1].TEX0.TH > 10) m_de.CTXT[1].TEX0.TH = 10;
+	m_de.CTXT[1].TEX0.CPSM &= 0xa; // 1010b
 
 	m_de.CTXT[1].ttbl = &GSLocalMemory::m_psmtbl[m_de.CTXT[1].TEX0.PSM];
 

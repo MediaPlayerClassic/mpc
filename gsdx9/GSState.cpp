@@ -882,6 +882,8 @@ void GSState::Transfer(BYTE* pMem, UINT32 size, GIFPath& path)
 			}
 		}
 
+		UINT32 size_msb = size & (1<<31);
+
 		switch(path.m_tag.FLG)
 		{
 		case GIF_FLG_PACKED:
@@ -902,6 +904,7 @@ void GSState::Transfer(BYTE* pMem, UINT32 size, GIFPath& path)
 			}
 			if(size&1) pMem += sizeof(GIFReg);
 			size /= 2;
+			size |= size_msb; // a bit lame :P
 			break;
 		case GIF_FLG_IMAGE2:
 			LOG(_T("*** WARNING **** Unexpected GIFTag flag\n"));

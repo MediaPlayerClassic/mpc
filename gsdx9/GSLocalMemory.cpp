@@ -1272,6 +1272,8 @@ void GSLocalMemory::WriteCLUT(GIFRegTEX0 TEX0, GIFRegTEXCLUT TEXCLUT)
 
 	WORD* pCLUT = m_pCLUT + (TEX0.CSA<<4);
 
+	// NOTE: TEX0.CPSM == PSM_PSMCT24 is non-standard, KH uses it
+
 	if(TEX0.CSM == 0)
 	{
 		if(TEX0.CPSM == PSM_PSMCT16 || TEX0.CPSM == PSM_PSMCT16S)
@@ -1287,7 +1289,7 @@ void GSLocalMemory::WriteCLUT(GIFRegTEX0 TEX0, GIFRegTEXCLUT TEXCLUT)
 				WriteCLUT_T16_I4_CSM1(vm, pCLUT);
 			}
 		}
-		else if(TEX0.CPSM == PSM_PSMCT32)
+		else if(TEX0.CPSM == PSM_PSMCT32 || TEX0.CPSM == PSM_PSMCT24)
 		{
 			DWORD* vm = &m_vm32[blockAddress32(0, 0, bp, bw)];
 
@@ -1316,7 +1318,7 @@ void GSLocalMemory::WriteCLUT(GIFRegTEX0 TEX0, GIFRegTEXCLUT TEXCLUT)
 				pCLUT[i] = (WORD)(this->*rp)((TEXCLUT.COU<<4) + i, TEXCLUT.COV, bp, bw);
 			}
 		}
-		else if(TEX0.CPSM == PSM_PSMCT32)
+		else if(TEX0.CPSM == PSM_PSMCT32 || TEX0.CPSM == PSM_PSMCT24)
 		{
 			for(int i = 0; i < nPaletteEntries; i++)
 			{
