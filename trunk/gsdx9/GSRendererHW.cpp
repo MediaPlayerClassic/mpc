@@ -577,7 +577,7 @@ if(m_ctxt->TEX0.TBP0 == 0x800)
 		TEX0.TBP0 = m_ctxt->FRAME.Block();
 		TEX0.TBW = m_ctxt->FRAME.FBW;
 		TEX0.PSM = m_ctxt->FRAME.PSM;
-		m_tc.AddRT(TEX0, pRT, scale);
+		m_tc.AddRT(TEX0, pRT, scale); 
 	}
 	while(0);
 

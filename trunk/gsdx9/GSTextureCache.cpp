@@ -182,7 +182,7 @@ HRESULT GSTextureCache::CreateTexture(GSState* s, GSTexture* pt, DWORD PSM, DWOR
 	POSITION pos = m_pTexturePool.GetHeadPosition();
 	while(pos)
 	{
-		CComPtr<IDirect3DTexture9> pTexture = m_pTexturePool.GetNext(pos);
+		IDirect3DTexture9* pTexture = m_pTexturePool.GetNext(pos);
 
 		D3DSURFACE_DESC desc;
 		memset(&desc, 0, sizeof(desc));
@@ -424,17 +424,17 @@ HRESULT GSTextureCache::UpdateTexture(GSState* s, GSTexture* pt, GSLocalMemory::
 	s->LOG(_T("*TC2 texture was updated, valid %d,%dx%d,%d\n"), pt->m_rcValid);
 #endif
 
- #ifdef DEBUG_SAVETEXTURES   
-// if(pt->m_TEX0.TBP0 == 0x02722 && pt->m_TEX0.PSM == 20 && pt->m_TEX0.TW == 8 && pt->m_TEX0.TH == 6)   
- {   
-    CString fn;   
-    fn.Format(_T("c:\\%08I64x_%I64d_%I64d_%I64d_%I64d_%I64d_%I64d_%I64d-%I64d_%I64d-%I64d.bmp"),   
-            pt->m_TEX0.TBP0, pt->m_TEX0.PSM, pt->m_TEX0.TBW,   
-            pt->m_TEX0.TW, pt->m_TEX0.TH,   
-            pt->m_CLAMP.WMS, pt->m_CLAMP.WMT, pt->m_CLAMP.MINU, pt->m_CLAMP.MAXU, pt->m_CLAMP.MINV, pt->m_CLAMP.MAXV);   
-    D3DXSaveTextureToFile(fn, D3DXIFF_BMP, pt->m_pTexture, NULL);   
- }   
- #endif 
+#ifdef DEBUG_SAVETEXTURES   
+if(s->m_ctxt->FRAME.Block() == 0x00000 && pt->m_TEX0.TBP0 == 0x02800)
+{   
+	CString fn;   
+	fn.Format(_T("c:\\%08I64x_%I64d_%I64d_%I64d_%I64d_%I64d_%I64d_%I64d-%I64d_%I64d-%I64d.bmp"),   
+			pt->m_TEX0.TBP0, pt->m_TEX0.PSM, pt->m_TEX0.TBW,   
+			pt->m_TEX0.TW, pt->m_TEX0.TH,   
+			pt->m_CLAMP.WMS, pt->m_CLAMP.WMT, pt->m_CLAMP.MINU, pt->m_CLAMP.MAXU, pt->m_CLAMP.MINV, pt->m_CLAMP.MAXV);   
+	D3DXSaveTextureToFile(fn, D3DXIFF_BMP, pt->m_pTexture, NULL);   
+}   
+#endif 
 
 	return S_OK;
 }
