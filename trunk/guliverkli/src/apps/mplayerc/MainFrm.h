@@ -255,6 +255,8 @@ class CMainFrame : public CFrameWnd, public CDropTarget
 
 	bool m_fLiveWM;
 
+	bool m_fUpdateInfoBar;
+
 	void SendStatusMessage(CString msg, int nTimeOut);
 	CString m_playingmsg, m_closingmsg;
 

@@ -2291,11 +2291,9 @@ void CMainFrame::OnUpdatePlayerStatus(CCmdUI* pCmdUI)
 		{
 			__int64 t = 0, c = 0;
 			if(SUCCEEDED(pAMOP->QueryProgress(&t, &c)) && t > 0 && c < t)
-			{
 				msg.Format(_T("Buffering... (%d%%)"), c*100/t);
-			}
 
-			if(FindFilter(__uuidof(CShoutcastSource), pGB))
+			if(m_fUpdateInfoBar)
 				OpenSetupInfoBar();
 		}
 
@@ -5962,6 +5960,9 @@ void CMainFrame::OpenFile(OpenFileData* pOFD)
 		EndEnumFilters
 	}
 
+	if(FindFilter(__uuidof(CShoutcastSource), pGB))
+		m_fUpdateInfoBar = true;
+
 	SetupChapters();
 
 	CComQIPtr<IKeyFrameInfo> pKFI;
@@ -5985,9 +5986,17 @@ void CMainFrame::SetupChapters()
 
 	m_pCB->ChapRemoveAll();
 
+	CInterfaceList<IBaseFilter> pBFs;
 	BeginEnumFilters(pGB, pEF, pBF) 
+		pBFs.AddTail(pBF);
+	EndEnumFilters
+
+	POSITION pos;
+
+	pos = pBFs.GetHeadPosition();
+	while(pos && !m_pCB->ChapGetCount())
 	{
-		if(m_pCB->ChapGetCount()) break;
+		IBaseFilter* pBF = pBFs.GetNext(pos);
 
 		CComQIPtr<IDSMChapterBag> pCB = pBF;
 		if(!pCB) continue;
@@ -6000,11 +6009,11 @@ void CMainFrame::SetupChapters()
 				m_pCB->ChapAppend(rt, name);
 		}
 	}
-	EndEnumFilters
 
-	BeginEnumFilters(pGB, pEF, pBF) 
+	pos = pBFs.GetHeadPosition();
+	while(pos && !m_pCB->ChapGetCount())
 	{
-		if(m_pCB->ChapGetCount()) break;
+		IBaseFilter* pBF = pBFs.GetNext(pos);
 
 		CComQIPtr<IChapterInfo> pCI = pBF;
 		if(!pCI) continue;
@@ -6030,11 +6039,11 @@ void CMainFrame::SetupChapters()
 			}
 		}
 	}
-	EndEnumFilters
 
-	BeginEnumFilters(pGB, pEF, pBF) 
+	pos = pBFs.GetHeadPosition();
+	while(pos && !m_pCB->ChapGetCount())
 	{
-		if(m_pCB->ChapGetCount()) break;
+		IBaseFilter* pBF = pBFs.GetNext(pos);
 
 		CComQIPtr<IAMExtendedSeeking, &IID_IAMExtendedSeeking> pES = pBF;
 		if(!pES) continue;
@@ -6059,11 +6068,11 @@ void CMainFrame::SetupChapters()
 			}
 		}
 	}
-	EndEnumFilters
 
-	BeginEnumFilters(pGB, pEF, pBF)
+	pos = pBFs.GetHeadPosition();
+	while(pos && !m_pCB->ChapGetCount())
 	{
-		if(m_pCB->ChapGetCount()) break;
+		IBaseFilter* pBF = pBFs.GetNext(pos);
 
 		if(GetCLSID(pBF) != CLSID_OggSplitter)
 			continue;
@@ -6102,7 +6111,6 @@ void CMainFrame::SetupChapters()
 		}
 		EndEnumPins
 	}
-	EndEnumFilters
 
 	m_pCB->ChapSort();
 }
@@ -6780,6 +6788,8 @@ bool CMainFrame::OpenMediaPrivate(CAutoPtr<OpenMediaData> pOMD)
 	PostMessage(WM_KICKIDLE);
 
 	CString err, aborted(_T("Aborted"));
+
+	m_fUpdateInfoBar = false;
 
 	try
 	{

@@ -20,7 +20,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "dsutil", "..\..\..\dsutil\d
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "basevideofilter", "..\basevideofilter\basevideofilter_vs2005.vcproj", "{54DDA60F-E528-4D07-A152-960A1E818680}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "baseclasses", "G:\Program Files\Microsoft DirectX 9.0 SDK\Samples\C++\DirectShow\BaseClasses\baseclasses.vcproj", "{7CDC5863-9F36-468D-A634-6D7799E0A15E}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "baseclasses", "C:\Program Files\Microsoft DirectX 9.0 SDK\Samples\C++\DirectShow\BaseClasses\baseclasses.vcproj", "{7CDC5863-9F36-468D-A634-6D7799E0A15E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
