@@ -1610,7 +1610,7 @@ bool CRenderedTextSubtitle::ParseSSATag(CSubtitle* sub, CStringW str, STSStyle& 
 		else if(cmd == L"fn")
 		{
 			style.fontName = (!p.IsEmpty() && p != '0')
-				? CString(p)
+				? CString(p).Trim()
 				: org.fontName;
 		}
 		else if(cmd == L"frx")

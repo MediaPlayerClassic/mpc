@@ -1735,7 +1735,7 @@ CSimpleTextSubtitle::CSimpleTextSubtitle()
 	m_dstScreenSize = CSize(0, 0);
 	m_defaultWrapStyle = 0;
 	m_collisions = 0;
-	m_fScaledBAS = true;
+	m_fScaledBAS = false;
 	m_encoding = CTextFile::ASCII;
 }
 

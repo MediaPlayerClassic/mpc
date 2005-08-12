@@ -274,6 +274,12 @@ fn = _T("http://64.236.34.72:80/stream/1011");
 	if(m_url.GetPortNumber() == ATL_URL_INVALID_PORT_NUMBER)
 		m_url.SetPortNumber(ATL_URL_DEFAULT_HTTP_PORT);
 
+	if(m_url.GetScheme() != ATL_URL_SCHEME_HTTP)
+	{
+		*phr = E_FAIL;
+		return;
+	}
+
 	if(!m_socket.Create() || !m_socket.Connect(m_url))
 	{
 		*phr = E_FAIL;
