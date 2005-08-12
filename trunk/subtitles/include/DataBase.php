@@ -129,7 +129,7 @@ class DB
 	function DB($dblogin, $dbpass, $dbname)
     {
     	// REMOVEME
-		if(isset($_ENV['COMPUTERNAME']) && $_ENV['COMPUTERNAME'] == 'I2400P4')
+		if(isset($_ENV['COMPUTERNAME']) && $_ENV['COMPUTERNAME'] == 'AMD3500')
     		$this->dbhost = 'localhost';
 
     	$this->set_dblogin($dblogin);
