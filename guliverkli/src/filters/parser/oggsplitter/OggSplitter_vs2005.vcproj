@@ -6,7 +6,6 @@
 	ProjectGUID="{7FE0A205-3F39-4AC3-BC3C-C2D9E4D02475}"
 	RootNamespace="OggSplitter"
 	Keyword="Win32Proj"
-	SignManifests="true"
 	>
 	<Platforms>
 		<Platform
@@ -249,7 +248,7 @@
 				RuntimeTypeInfo="true"
 				WarningLevel="3"
 				Detect64BitPortabilityProblems="false"
-				DebugInformationFormat="0"
+				DebugInformationFormat="3"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"

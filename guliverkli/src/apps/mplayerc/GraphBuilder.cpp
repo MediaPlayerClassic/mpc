@@ -1531,15 +1531,22 @@ public:
 	}
 };
 
+[uuid("482d10b6-376e-4411-8a17-833800A065DB")]
+class ratDVDNavigator {};
+
 HRESULT CGraphBuilderDVD::Render(CString fn, CString& path)
 {
 	if(!m_pGB) return E_INVALIDARG;
 
 	HRESULT hr;
 
+	GUID clsid = CLSID_DVDNavigator;
+	if(fn.MakeLower().Find(_T(".ratdvd")) >= 0)
+		clsid = __uuidof(ratDVDNavigator);
+
 	CComPtr<IBaseFilter> pBF;
-	if(FAILED(hr = pBF.CoCreateInstance(CLSID_DVDNavigator)))
-		return E_FAIL;
+	if(FAILED(hr = pBF.CoCreateInstance(clsid)))
+ 		return E_FAIL;
 
 	if(FAILED(hr = m_pGB->AddFilter(pBF, L"DVD Navigator")))
 		return VFW_E_CANNOT_LOAD_SOURCE_FILTER;
@@ -1567,7 +1574,8 @@ HRESULT CGraphBuilderDVD::Render(CString fn, CString& path)
 	m_pUnks.AddTail(pDVDC);
 	m_pUnks.AddTail(pDVDI);
 
-	CResetDVD tmp(path);
+	if(clsid == CLSID_DVDNavigator)
+		CResetDVD tmp(path);
 
 	return __super::Render(pBF);
 }
@@ -1588,7 +1596,7 @@ CGraphBuilderCapture::CGraphBuilderCapture(IGraphBuilder* pGB, HWND hWnd)
 		AddFilter(new CGraphCustomFilter(__uuidof(CDeinterlacerFilter), guids, L"Deinterlacer", m_VRMerit + 0x100));
 		guids.RemoveAll();
 	}
-
+/**/
 	CLSID CLSID_MorganStreamSwitcher = GUIDFromCString(_T("{D3CD7858-971A-4838-ACEC-40CA5D529DC8}"));
 	AddFilter(new CGraphRegFilter(CLSID_MorganStreamSwitcher, LMERIT_DO_NOT_USE));
 }

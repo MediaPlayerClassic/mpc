@@ -6,6 +6,7 @@
 	ProjectGUID="{3F5EA225-F4B7-4413-AEB3-4E4E5751E438}"
 	RootNamespace="MatroskaSplitter"
 	Keyword="Win32Proj"
+	SignManifests="true"
 	>
 	<Platforms>
 		<Platform

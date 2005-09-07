@@ -139,7 +139,7 @@ bool CDSMSplitterFile::Read(__int64 len, BYTE& id, CMediaType& mt)
 	mt.bTemporalCompression = (BOOL)BitRead(1);
 	mt.lSampleSize = (ULONG)BitRead(30);
 	ByteRead((BYTE*)&mt.formattype, sizeof(mt.formattype));
-	mt.AllocFormatBuffer((ULONG)len - (1+sizeof(GUID)*3));
+	mt.AllocFormatBuffer((ULONG)len - (5+sizeof(GUID)*3));
 	ByteRead(mt.Format(), mt.FormatLength());
 	return true;
 }

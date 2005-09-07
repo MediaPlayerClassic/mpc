@@ -204,6 +204,7 @@ void CMediaFormats::UpdateData(bool fSave)
 		ADDFMT((_T("Matroska Media file"), _T("mkv")));
 		ADDFMT((_T("Matroska Audio file"), _T("mka"), true));
 		ADDFMT((_T("Smacker/Bink Media file"), _T("smk bik"), false, _T("smackw32/binkw32.dll in dll path")));
+		ADDFMT((_T("ratdvd file"), _T("ratdvd"), false, _T("ratdvd media file")));
 		ADDFMT((_T("RoQ Media file"), _T("roq"), false));
 		ADDFMT((_T("Real Media file "), _T("rm ram rmvb rpm"), false, _T("RealOne or codec pack")));
 		ADDFMT((_T("Real Audio file "), _T("ra"), true, _T("RealOne or codec pack")));

@@ -975,8 +975,10 @@ bool CMatroskaSplitterFilter::DemuxLoop()
 
 				TrackEntry *pTE = m_pTrackEntryMap[(DWORD)p->TrackNumber];
 				p->rtStart = m_pFile->m_segment.GetRefTime((REFERENCE_TIME)c.TimeCode + p->b->TimeCode);
-				p->rtStop = p->rtStart + (p->b->BlockDuration.IsValid() ? m_pFile->m_segment.GetRefTime(p->b->BlockDuration) : 1);
-				
+/*static __int64 t = 0;	
+p->rtStart = t;
+t += 420000;
+*/				p->rtStop = p->rtStart + (p->b->BlockDuration.IsValid() ? m_pFile->m_segment.GetRefTime(p->b->BlockDuration) : 1);
 				// Fix subtitle with duration = 0
 				if(pTE && (pTE->TrackType == TrackEntry::TypeSubtitle) && (!p->b->BlockDuration.IsValid()))
 				{
@@ -1202,10 +1204,10 @@ HRESULT CMatroskaSplitterOutputPin::DeliverBlock(MatroskaPacket* p)
 	{
 		timeoverride to = m_tos.RemoveHead();
 //		if(p->TrackNumber == 2)
-/*		TRACE(_T("(track=%d) %I64d, %I64d -> %I64d, %I64d (buffcnt=%d)\n"), 
+		TRACE(_T("(track=%d) %I64d, %I64d -> %I64d, %I64d (buffcnt=%d)\n"), 
 			p->TrackNumber, p->rtStart, p->rtStop, to.rtStart, to.rtStop,
 			QueueCount());
-*/
+/**/
 		p->rtStart = to.rtStart;
 		p->rtStop = to.rtStop;
 	}
