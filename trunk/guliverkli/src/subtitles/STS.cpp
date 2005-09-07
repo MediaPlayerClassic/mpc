@@ -2321,9 +2321,11 @@ STSStyle* CSimpleTextSubtitle::GetStyle(int i)
 
 bool CSimpleTextSubtitle::GetStyle(int i, STSStyle& stss)
 {
+	CString def = _T("Default");
+
 	STSStyle* style = (STSStyle*)m_styles[GetAt(i).style];
-	STSStyle* defstyle = (STSStyle*)m_styles[_T("Default")];
-	if(!style) style = defstyle;
+	STSStyle* defstyle = (STSStyle*)m_styles[def];
+	if(!style) {if(defstyle) {ASSERT(0); CreateDefaultStyle(DEFAULT_CHARSET); defstyle = (STSStyle*)m_styles[def];} style = defstyle;}
 	if(!style) {ASSERT(0); return(false);}
 	stss = *style;
 	if(stss.relativeTo == 2 && defstyle)

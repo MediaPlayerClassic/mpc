@@ -594,7 +594,10 @@ OpenMediaData* CPlayerPlaylistBar::GetCurOMD(REFERENCE_TIME rtStart)
 	CPlaylistItem pli;
 	if(!GetCur(pli)) return NULL;
 
-	if(CString(pli.m_fns.GetHead()).MakeLower().Find(_T("video_ts.ifo")) >= 0)
+	CString fn = CString(pli.m_fns.GetHead()).MakeLower();
+
+	if(fn.Find(_T("video_ts.ifo")) >= 0
+	|| fn.Find(_T(".ratdvd")) >= 0)
 	{
 		if(OpenDVDData* p = new OpenDVDData())
 		{
