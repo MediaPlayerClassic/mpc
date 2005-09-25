@@ -268,9 +268,9 @@ void CConvertDlg::ShowPopup(CPoint p)
 	m.CreatePopupMenu();
 
 	int i = 1;
-	m.AppendMenu(MF_STRING, i++, _T("Add File..."));
+	m.AppendMenu(MF_STRING, i++, ResStr(IDS_CONVERT_ADDFILE));
 	m.AppendMenu(MF_SEPARATOR);
-	m.AppendMenu(MF_STRING, i++, _T("Properties..."));
+	m.AppendMenu(MF_STRING, i++, ResStr(IDS_CONVERT_PROPERTIES));
 
 	switch((int)m.TrackPopupMenu(TPM_LEFTBUTTON|TPM_RETURNCMD, p.x, p.y, this))
 	{
@@ -297,7 +297,7 @@ void CConvertDlg::ShowFilePopup(HTREEITEM hTI, CPoint p)
 	m.CreatePopupMenu();
 
 	int i = 1;
-	m.AppendMenu(MF_STRING, i++, _T("Remove"));
+	m.AppendMenu(MF_STRING, i++, ResStr(IDS_CONVERT_REMOVE));
 
 	switch((int)m.TrackPopupMenu(TPM_LEFTBUTTON|TPM_RETURNCMD, p.x, p.y, this))
 	{
@@ -331,7 +331,7 @@ void CConvertDlg::ShowPinPopup(HTREEITEM hTI, CPoint p)
 
 	int i = 1, mtbase = 1000, mti = mtbase;
 
-	m.AppendMenu(MF_STRING, i++, !pPinTo ? _T("Enable Stream") : _T("Disable Stream"));
+	m.AppendMenu(MF_STRING, i++, !pPinTo ? ResStr(IDS_CONVERT_ENABLESTREAM) : ResStr(IDS_CONVERT_DISABLESTREAM));
 
 	if(mts.GetCount() > 1)
 	{
@@ -341,7 +341,7 @@ void CConvertDlg::ShowPinPopup(HTREEITEM hTI, CPoint p)
 	}
 
 	m.AppendMenu(MF_SEPARATOR);
-	m.AppendMenu(MF_STRING | (!pPinTo ? MF_GRAYED : 0), i++, _T("Pin Properties..."));
+	m.AppendMenu(MF_STRING | (!pPinTo ? MF_GRAYED : 0), i++, ResStr(IDS_CONVERT_PINPROPERTIES));
 
 	switch(i = (int)m.TrackPopupMenu(TPM_LEFTBUTTON|TPM_RETURNCMD, p.x, p.y, this))
 	{
@@ -381,11 +381,11 @@ void CConvertDlg::ShowResourceFolderPopup(HTREEITEM hTI, CPoint p)
 	m.CreatePopupMenu();
 
 	int i = 1;
-	m.AppendMenu(MF_STRING, i++, _T("Add Resource..."));
+	m.AppendMenu(MF_STRING, i++, ResStr(IDS_CONVERT_ADDRESOURCE));
 	if(m_tree.ItemHasChildren(*t))
 	{
 		m.AppendMenu(MF_SEPARATOR);
-		m.AppendMenu(MF_STRING, i++, _T("Remove All"));
+		m.AppendMenu(MF_STRING, i++, ResStr(IDS_CONVERT_ADDRESOURCE));
 	}
 
 	switch((int)m.TrackPopupMenu(TPM_LEFTBUTTON|TPM_RETURNCMD, p.x, p.y, this))
@@ -454,11 +454,11 @@ void CConvertDlg::ShowResourcePopup(HTREEITEM hTI, CPoint p)
 	m.CreatePopupMenu();
 
 	int i = 1;
-	m.AppendMenu(MF_STRING, i++, _T("Remove"));
-	m.AppendMenu(MF_STRING, i++, _T("Save As..."));
-	if(AfxGetAppSettings().fEnableWebServer) m.AppendMenu(MF_STRING, 1000, _T("Launch in Browser..."));
+	m.AppendMenu(MF_STRING, i++, ResStr(IDS_CONVERT_REMOVE));
+	m.AppendMenu(MF_STRING, i++, ResStr(IDS_CONVERT_SAVEAS));
+	if(AfxGetAppSettings().fEnableWebServer) m.AppendMenu(MF_STRING, 1000, ResStr(IDS_CONVERT_LAUNCHINBROWSER));
 	m.AppendMenu(MF_SEPARATOR);
-	m.AppendMenu(MF_STRING, i++, _T("Resource Properties..."));
+	m.AppendMenu(MF_STRING, i++, ResStr(IDS_CONVERT_RESOURCEPROPERTIES));
 
 	switch((int)m.TrackPopupMenu(TPM_LEFTBUTTON|TPM_RETURNCMD, p.x, p.y, this))
 	{
@@ -562,11 +562,11 @@ void CConvertDlg::ShowChapterFolderPopup(HTREEITEM hTI, CPoint p)
 	m.CreatePopupMenu();
 
 	int i = 1;
-	m.AppendMenu(MF_STRING, i++, _T("Add Chapter..."));
+	m.AppendMenu(MF_STRING, i++, ResStr(IDS_CONVERT_ADDCHAPTER));
 	if(m_tree.ItemHasChildren(*t))
 	{
 		m.AppendMenu(MF_SEPARATOR);
-		m.AppendMenu(MF_STRING, i++, _T("Remove All"));
+		m.AppendMenu(MF_STRING, i++, ResStr(IDS_CONVERT_REMOVEALL));
 	}
 
 	switch((int)m.TrackPopupMenu(TPM_LEFTBUTTON|TPM_RETURNCMD, p.x, p.y, this))
@@ -595,9 +595,9 @@ void CConvertDlg::ShowChapterPopup(HTREEITEM hTI, CPoint p)
 	m.CreatePopupMenu();
 
 	int i = 1;
-	m.AppendMenu(MF_STRING, i++, _T("Remove"));
+	m.AppendMenu(MF_STRING, i++, ResStr(IDS_CONVERT_REMOVE));
 	m.AppendMenu(MF_SEPARATOR);
-	m.AppendMenu(MF_STRING, i++, _T("Chapter Properties..."));
+	m.AppendMenu(MF_STRING, i++, ResStr(IDS_CONVERT_CHAPTERPROPERTIES));
 
 	switch((int)m.TrackPopupMenu(TPM_LEFTBUTTON|TPM_RETURNCMD, p.x, p.y, this))
 	{
