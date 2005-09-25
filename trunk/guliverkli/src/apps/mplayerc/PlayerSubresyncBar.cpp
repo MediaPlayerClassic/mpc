@@ -783,25 +783,25 @@ void CPlayerSubresyncBar::OnRclickList(NMHDR* pNMHDR, LRESULT* pResult)
 
 		if(m_mode == VOBSUB || m_mode == TEXTSUB)
 		{
-			m.AppendMenu(MF_STRING|MF_ENABLED, TOGSEP, _T("&Separator"));
+			m.AppendMenu(MF_STRING|MF_ENABLED, TOGSEP, ResStr(IDS_SUBRESYNC_SEPARATOR));
 			m.AppendMenu(MF_SEPARATOR);
-			if(m_mode == TEXTSUB) m.AppendMenu(MF_STRING|MF_ENABLED, DUPITEM, _T("&Duplicate"));
-			m.AppendMenu(MF_STRING|MF_ENABLED, DELITEM, _T("&Delete"));
+			if(m_mode == TEXTSUB) m.AppendMenu(MF_STRING|MF_ENABLED, DUPITEM, ResStr(IDS_SUBRESYNC_DUPLICATE));
+			m.AppendMenu(MF_STRING|MF_ENABLED, DELITEM, ResStr(IDS_SUBRESYNC_DELETE));
 		}
 
 		if(lpnmlv->iSubItem == COL_START && (m_mode == VOBSUB || m_mode == TEXTSUB))
 		{
 			m.AppendMenu(MF_SEPARATOR);
-			m.AppendMenu(MF_STRING|MF_ENABLED, RESETS, _T("&Reset"));
-			m.AppendMenu(MF_STRING|MF_ENABLED, SETOS, _T("&Original"));
-			m.AppendMenu(MF_STRING|MF_ENABLED, SETCS, _T("&Current"));
+			m.AppendMenu(MF_STRING|MF_ENABLED, RESETS, ResStr(IDS_SUBRESYNC_RESET));
+			m.AppendMenu(MF_STRING|MF_ENABLED, SETOS, ResStr(IDS_SUBRESYNC_ORIGINAL));
+			m.AppendMenu(MF_STRING|MF_ENABLED, SETCS, ResStr(IDS_SUBRESYNC_CURRENT));
 		}
 		else if(lpnmlv->iSubItem == COL_END && m_mode == TEXTSUB)
 		{
 			m.AppendMenu(MF_SEPARATOR);
-			m.AppendMenu(MF_STRING|MF_ENABLED, RESETE, _T("&Reset"));
-			m.AppendMenu(MF_STRING|MF_ENABLED, SETOE, _T("&Original"));
-			m.AppendMenu(MF_STRING|MF_ENABLED, SETCE, _T("&Current"));
+			m.AppendMenu(MF_STRING|MF_ENABLED, RESETE, ResStr(IDS_SUBRESYNC_RESET));
+			m.AppendMenu(MF_STRING|MF_ENABLED, SETOE, ResStr(IDS_SUBRESYNC_ORIGINAL));
+			m.AppendMenu(MF_STRING|MF_ENABLED, SETCE, ResStr(IDS_SUBRESYNC_CURRENT));
 		}
 		else if(lpnmlv->iSubItem == COL_STYLE && m_mode == TEXTSUB)
 		{
@@ -824,20 +824,20 @@ void CPlayerSubresyncBar::OnRclickList(NMHDR* pNMHDR, LRESULT* pResult)
 			if(id > STYLEFIRST && m_list.GetSelectedCount() == 1)
 			{
 				m.AppendMenu(MF_SEPARATOR);
-				m.AppendMenu(MF_STRING|MF_ENABLED, STYLEEDIT, _T("&Edit..."));
+				m.AppendMenu(MF_STRING|MF_ENABLED, STYLEEDIT, ResStr(IDS_SUBRESYNC_EDIT));
 			}
 		}
 		else if(lpnmlv->iSubItem == COL_UNICODE && m_mode == TEXTSUB)
 		{
 			m.AppendMenu(MF_SEPARATOR);
-			m.AppendMenu(MF_STRING|MF_ENABLED, UNICODEYES, _T("&Yes"));
-			m.AppendMenu(MF_STRING|MF_ENABLED, UNICODENO, _T("&No"));
+			m.AppendMenu(MF_STRING|MF_ENABLED, UNICODEYES, ResStr(IDS_SUBRESYNC_YES));
+			m.AppendMenu(MF_STRING|MF_ENABLED, UNICODENO, ResStr(IDS_SUBRESYNC_NO));
 		}
  		else if(lpnmlv->iSubItem == COL_LAYER && m_mode == TEXTSUB)
 		{
 			m.AppendMenu(MF_SEPARATOR);
-			m.AppendMenu(MF_STRING|MF_ENABLED, LAYERDEC, _T("&Decrease"));
-			m.AppendMenu(MF_STRING|MF_ENABLED, LAYERINC, _T("&Increase"));
+			m.AppendMenu(MF_STRING|MF_ENABLED, LAYERDEC, ResStr(IDS_SUBRESYNC_DECREASE));
+			m.AppendMenu(MF_STRING|MF_ENABLED, LAYERINC, ResStr(IDS_SUBRESYNC_INCREASE));
 		}
 		else if(lpnmlv->iSubItem == COL_ACTOR && m_mode == TEXTSUB)
 		{

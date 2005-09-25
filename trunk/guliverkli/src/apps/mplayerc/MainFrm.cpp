@@ -8565,7 +8565,7 @@ void CMainFrame::ShowOptions(int idPage)
 {
 	AppSettings& s = AfxGetAppSettings();
 
-	CPPageSheet options(_T("Options"), pGB, this, idPage);
+	CPPageSheet options(ResStr(IDS_OPTIONS_CAPTION), pGB, this, idPage);
 
 	if(options.DoModal() == IDOK)
 	{
