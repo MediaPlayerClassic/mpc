@@ -2288,6 +2288,8 @@ BEGIN
     IDS_SUBRESYNC_DECREASE  "&Decrease"
     IDS_SUBRESYNC_INCREASE  "&Increase"
     IDS_OPTIONS_CAPTION     "Options"
+    IDS_SHADER_EDIT         "&Edit..."
+    IDS_SHADER_OFF          "Off"
 END
 
 STRINGTABLE 
@@ -2310,6 +2312,25 @@ BEGIN
     IDS_RS_DX9_RESIZER      "DX9Resizer"
     IDS_RS_WEBSERVERCGI     "WebServerCGI"
     IDS_RS_WEBDEFINDEX      "WebDefIndex"
+END
+
+STRINGTABLE 
+BEGIN
+    IDS_SHADER_POPUP        "Shaders&xxxxxx"
+    IDS_FAVORITES_POPUP     "Favorites"
+    IDS_JUMPTO_POPUP        "Jump To..."
+    IDS_VIDEOANGLE_POPUP    "Video Angle"
+    IDS_SUBTITLELANGUAGE_POPUP "Subtitle Language"
+    IDS_AUDIOLANGUAGE_POPUP "Audio Language"
+    IDS_SUBTITLES_POPUP     "Subtitles"
+    IDS_AUDIO_POPUP         "Audio"
+    IDS_FILTERS_POPUP       "Filters"
+    IDS_OPENCDROM_POPUP     "Open CD-ROM"
+    IDS_NAVIGATE_POPUP      "Navigate"
+    IDS_VIDEOFRAME_POPUP    "Video Frame"
+    IDS_PANSCAN_POPUP       "PanScan"
+    IDS_ASPECTRATIO_POPUP   "Aspect Ratio"
+    IDS_ZOOM_POPUP          "Zoom"
 END
 
 #endif    // English (U.S.) resources
