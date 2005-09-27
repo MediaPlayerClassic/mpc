@@ -1968,6 +1968,27 @@ void CMainFrame::OnInitMenuPopup(CMenu* pPopupMenu, UINT nIndex, BOOL bSysMenu)
 {
 	__super::OnInitMenuPopup(pPopupMenu, nIndex, bSysMenu);
 
+	static CAtlMap<CString, UINT, CStringElementTraits<CString> > transl;
+
+	if(transl.IsEmpty())
+	{
+		transl[_T("Navigate")] = IDS_NAVIGATE_POPUP;
+		transl[_T("Open CD-ROM")] = IDS_OPENCDROM_POPUP;
+		transl[_T("Filters")] = IDS_FILTERS_POPUP;
+		transl[_T("Audio")] = IDS_AUDIO_POPUP;
+		transl[_T("Subtitles")] = IDS_SUBTITLES_POPUP;
+		transl[_T("Audio Language")] = IDS_AUDIOLANGUAGE_POPUP;
+		transl[_T("Subtitle Language")] = IDS_SUBTITLELANGUAGE_POPUP;
+		transl[_T("Video Angle")] = IDS_VIDEOANGLE_POPUP;
+		transl[_T("Jump To...")] = IDS_JUMPTO_POPUP;
+		transl[_T("Favorites")] = IDS_FAVORITES_POPUP;
+		transl[_T("Shaders")] = IDS_SHADER_POPUP;
+		transl[_T("Video Frame")] = IDS_VIDEOFRAME_POPUP;
+		transl[_T("PanScan")] = IDS_PANSCAN_POPUP;
+		transl[_T("Aspect Ratio")] = IDS_ASPECTRATIO_POPUP;
+		transl[_T("Zoom")] = IDS_ZOOM_POPUP;
+	}
+
 	MENUITEMINFO mii;
 	mii.cbSize = sizeof(mii);
 
@@ -1979,7 +2000,14 @@ void CMainFrame::OnInitMenuPopup(CMenu* pPopupMenu, UINT nIndex, BOOL bSysMenu)
 
 		CMenu* pSubMenu = NULL;
 
-		if(str == _T("Navigate"))
+		UINT id;
+		if(transl.Lookup(str, id))
+		{
+			str = ResStr(id);
+			pPopupMenu->ModifyMenu(i, MF_BYPOSITION|MF_STRING, 0, str);
+		}
+
+		if(str == ResStr(IDS_NAVIGATE_POPUP))
 		{
 			UINT fState = (m_iMediaLoadState == MLS_LOADED 
 				&& (1/*m_iPlaybackMode == PM_DVD *//*|| (m_iPlaybackMode == PM_FILE && m_PlayList.GetCount() > 0)*/)) 
@@ -1988,7 +2016,10 @@ void CMainFrame::OnInitMenuPopup(CMenu* pPopupMenu, UINT nIndex, BOOL bSysMenu)
 
 			pPopupMenu->EnableMenuItem(i, MF_BYPOSITION|fState);
 		}
-		else if(str == _T("Video Frame") || str == _T("PanScan") || str == _T("Aspect Ratio") || str == _T("Zoom"))
+		else if(str == ResStr(IDS_VIDEOFRAME_POPUP)
+			|| str == ResStr(IDS_PANSCAN_POPUP)
+			|| str == ResStr(IDS_ASPECTRATIO_POPUP)
+			|| str == ResStr(IDS_ZOOM_POPUP))
 		{
 			UINT fState = (m_iMediaLoadState == MLS_LOADED && !m_fAudioOnly) 
 				? MF_ENABLED 
@@ -1996,52 +2027,52 @@ void CMainFrame::OnInitMenuPopup(CMenu* pPopupMenu, UINT nIndex, BOOL bSysMenu)
 
 			pPopupMenu->EnableMenuItem(i, MF_BYPOSITION|fState);
 		}
-		else if(str == _T("Open CD-ROM"))
+		else if(str == ResStr(IDS_OPENCDROM_POPUP))
 		{
 			SetupOpenCDSubMenu();
 			pSubMenu = &m_opencds;
 		}
-		else if(str == _T("Filters"))
+		else if(str == ResStr(IDS_FILTERS_POPUP))
 		{
 			SetupFiltersSubMenu();
 			pSubMenu = &m_filters;
 		}
-		else if(str == _T("Audio"))
+		else if(str == ResStr(IDS_AUDIO_POPUP))
 		{
 			SetupAudioSwitcherSubMenu();
 			pSubMenu = &m_audios;
 		}
-		else if(str == _T("Subtitles"))
+		else if(str == ResStr(IDS_SUBTITLES_POPUP))
 		{
 			SetupSubtitlesSubMenu();
 			pSubMenu = &m_subtitles;
 		}
-		else if(str == _T("Audio Language"))
+		else if(str == ResStr(IDS_AUDIOLANGUAGE_POPUP))
 		{
 			SetupNavAudioSubMenu();
 			pSubMenu = &m_navaudio;
 		}
-		else if(str == _T("Subtitle Language"))
+		else if(str == ResStr(IDS_SUBTITLELANGUAGE_POPUP))
 		{
 			SetupNavSubtitleSubMenu();
 			pSubMenu = &m_navsubtitle;
 		}
-		else if(str == _T("Video Angle"))
+		else if(str == ResStr(IDS_VIDEOANGLE_POPUP))
 		{
 			SetupNavAngleSubMenu();
 			pSubMenu = &m_navangle;
 		}
-		else if(str == _T("Jump To..."))
+		else if(str == ResStr(IDS_JUMPTO_POPUP))
 		{
 			SetupNavChaptersSubMenu();
 			pSubMenu = &m_navchapters;
 		}
-		else if(str == _T("Favorites"))
+		else if(str == ResStr(IDS_FAVORITES_POPUP))
 		{
 			SetupFavoritesSubMenu();
 			pSubMenu = &m_favorites;
 		}
-		else if(str == _T("Shaders"))
+		else if(str == ResStr(IDS_SHADER_POPUP))
 		{
 			SetupShadersSubMenu();
 			pSubMenu = &m_shaders;
@@ -7780,7 +7811,7 @@ void CMainFrame::SetupShadersSubMenu()
 
 	CWinApp* pApp = AfxGetApp();
 
-	pSub->AppendMenu(MF_BYCOMMAND|MF_STRING|MF_ENABLED, ID_SHADERS_START, _T("&Edit..."));
+	pSub->AppendMenu(MF_BYCOMMAND|MF_STRING|MF_ENABLED, ID_SHADERS_START, ResStr(IDS_SHADER_EDIT));
 
 	UINT id = ID_SHADERS_START+1;
 
@@ -7799,7 +7830,7 @@ void CMainFrame::SetupShadersSubMenu()
 		if(i == 0)
 		{
 			pSub->AppendMenu(MF_SEPARATOR);
-			pSub->AppendMenu(flags, id++, _T("Off"));
+			pSub->AppendMenu(flags, id++, ResStr(IDS_SHADER_OFF));
 		}
 
 		label.Replace(_T("&"), _T("&&"));
