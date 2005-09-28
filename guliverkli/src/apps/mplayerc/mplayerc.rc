@@ -2316,7 +2316,7 @@ END
 
 STRINGTABLE 
 BEGIN
-    IDS_SHADER_POPUP        "Shaders&xxxxxx"
+    IDS_SHADER_POPUP        "Shaders"
     IDS_FAVORITES_POPUP     "Favorites"
     IDS_JUMPTO_POPUP        "Jump To..."
     IDS_VIDEOANGLE_POPUP    "Video Angle"
