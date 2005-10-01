@@ -76,12 +76,23 @@
 	{if isset($page.next)}<a href="{$smarty.server.PHP_SELF}?start={$page.next}&{$search.q}">&raquo;</a>{/if}
 	</p>
 	{/if}
+	
+	<form action="{$smarty.server.PHP_SELF}" method="POST" accept-charset="utf-8">
+	
+	{if !empty($text)}<input type="hidden" name="text" value="{$text|escape:"quote"}" />{/if}
+	{if !empty($discs)}<input type="hidden" name="discs" value="{$discs|escape:"quote"}" />{/if}
+	{if !empty($isolang_sel)}<input type="hidden" name="isolang_sel" value="{$isolang_sel|escape:"quote"}" />{/if}
+	{if !empty($format_sel)}<input type="hidden" name="format_sel" value="{$format_sel|escape:"quote"}" />{/if}
 
 	<ol start="{$page.start+1}">
 	{foreach from=$movies item=m}
 		{if $browser != 'Opera'}<li>{/if} {* grrrr *}
 		{if !empty($m.imdb)}<a href="http://www.imdb.com/title/tt{$m.imdb|string_format:"%07d"}/" class="imdb" target="_blank">[IMDb]</a>{/if}
 		{if $browser == 'Opera'}<li>{/if}
+		
+		{if $user.userid == 1}
+		<input type="checkbox" name="movie_id[{$m.id}]" />
+		{/if}
 	
 		{include file="title.tpl" titles=$m.titles}<br>
 		{*Last updated: <strong>{$m.updated|date_format:"%Y %b %e"}</strong><br>*}
@@ -136,6 +147,16 @@
 		</li>
 	{/foreach}
 	</ol>
+
+	{if $user.userid == 1}
+	<div align="center">
+		Change IMDb link of the selected titles:<br>
+		<input type="text" name="imdb_url" value="" />
+		<input type="submit" name="submit" value="OK" />
+	</div>
+	{/if}
+	
+	</form>
 
 {elseif !empty($files)}
 

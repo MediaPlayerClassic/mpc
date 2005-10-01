@@ -5,20 +5,73 @@ session_start();
 require '../include/MySmarty.class.php';
 require '../include/DataBase.php';
 require '../include/isolang.inc';
+require '../include/imdb.php';
 
 unset($_SESSION['ticket']);
 
 $page = array(
 	'start' => max(0, intval(getParam('start'))),
-	'limit' => 10,
+	'limit' => min(100, max(10, getParam('limit'))),
 	'total' => 0
 );
 
-$text = getParam('text');
+$text = trim(getParam('text'));
 $discs = max(0, intval(getParam('discs')));
 $isolang_sel = addslashes(getParam('isolang_sel'));
 $format_sel = addslashes(getParam('format_sel'));
 $beginswith = getParam('bw');
+
+if(isset($_POST['imdb_url']))
+{
+	if($db->userid == 1 && !empty($_POST['movie_id']))
+	{
+		$db->begin();
+		
+		$imdb_url = getParam('imdb_url');
+
+		if(eregi('/title/tt([0-9]+)', $imdb_url, $regs))
+		{
+			$imdb_id = intval($regs[1]);
+			$imdb_titles = array();
+			$movie_id = null;
+
+			$db->query(
+				"select t2.movie_id, t2.title from `movie` t1 ".
+				"join `title` t2 on t1.id = t2.movie_id ".
+				"where imdb = '$imdb_id' ");
+			while($row = $db->fetchRow())
+			{
+				$movie_id = $row[0];
+				$imdb_titles[] = $row[1];
+			}
+
+			if(empty($imdb_titles))
+			{
+				$imdb_titles = getIMDbTitles($imdb_url);
+
+				if(!empty($imdb_titles))
+				{
+					$movie_id = storeMovie($imdb_id, $imdb_titles);
+				}
+			}
+
+			if(!empty($movie_id))
+			{
+				foreach($_POST['movie_id'] as $old_movie_id => $tmp)
+				{
+					$db->query("update movie_subtitle set movie_id = $movie_id where movie_id = $old_movie_id ");
+					chkerr();
+					$db->query("delete from movie where id = $old_movie_id ");
+					chkerr();
+				}
+			}
+		}
+		
+		$db->commit();
+	}
+	
+	RedirAndExit($_SERVER['PHP_SELF']."?text=$text&discs=$discs&isolang_sel=$isolang_sel&format_sel=$format_sel");
+}
 
 $files = array();
 
@@ -64,7 +117,7 @@ else if(!empty($files))
 		chkerr();
 			
 		while($row = $db->fetchRow())
-			$movies[$row['id']] =  $row;
+			$movies[$row['id']] = $row;
 	}
 }
 else
