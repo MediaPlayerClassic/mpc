@@ -11,7 +11,7 @@ unset($_SESSION['ticket']);
 
 $page = array(
 	'start' => max(0, intval(getParam('start'))),
-	'limit' => min(100, max(10, getParam('limit'))),
+	'limit' => min(100, max($db->userid == 1 ? 100 : 10, getParam('limit'))),
 	'total' => 0
 );
 

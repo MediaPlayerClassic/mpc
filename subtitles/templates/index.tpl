@@ -150,7 +150,7 @@
 
 	{if $user.userid == 1}
 	<div align="center">
-		Change IMDb link of the selected titles:<br>
+		Change IMDb link of the selected titles to:<br>
 		<input type="text" name="imdb_url" value="" />
 		<input type="submit" name="submit" value="OK" />
 	</div>
