@@ -128,11 +128,11 @@ void CWord::Paint(CPoint p, CPoint org)
 
 		m_fDrawn = true;
 
-		if(!Rasterize(p.x&7, p.y&7, m_style.borderStyle == 0 && m_style.outlineWidth > 0, m_style.fBlur)) return;
+		if(!Rasterize(p.x&7, p.y&7, m_style.fBlur)) return;
 	}
 	else if((m_p.x&7) != (p.x&7) || (m_p.y&7) != (p.y&7))
 	{
-		Rasterize(p.x&7, p.y&7, m_style.borderStyle == 0 && m_style.outlineWidth > 0, m_style.fBlur);
+		Rasterize(p.x&7, p.y&7, m_style.fBlur);
 	}
 
 	m_p = p;
@@ -767,12 +767,14 @@ CRect CLine::PaintBody(SubPicDesc& spd, CRect& clipRect, BYTE* pAlphaMask, CPoin
 			else t = 1.0;
 		}
 
-		sw[3] = t > 0.9999
-			? 0x00FFFFFF
-			: (int)(w->m_style.outlineWidth + t*w->m_width) >> 3;
+		if(t >= 1)
+		{
+			sw[1] = 0xffffffff;
+		}
 
+		sw[3] = (int)(w->m_style.outlineWidth + t*w->m_width) >> 3;
 		sw[4] = sw[2];
-		sw[5] = 0x00FFFFFF;
+		sw[5] = 0x00ffffff;
 
 		w->Paint(CPoint(x, y), org);
 

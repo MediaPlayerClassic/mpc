@@ -55,7 +55,7 @@ private:
 	unsigned mEdgeHeapSize;
 	unsigned mEdgeNext;
 
-	unsigned __int64* mpScanBuffer;
+	unsigned int* mpScanBuffer;
 
 	typedef unsigned char byte;
 
@@ -85,7 +85,7 @@ public:
 	bool ScanConvert();
 	bool CreateWidenedRegion(int border);
 	void DeleteOutlines();
-	bool Rasterize(int xsub, int ysub, bool fBorder, bool fBlur);
+	bool Rasterize(int xsub, int ysub, bool fBlur);
 	CRect Draw(SubPicDesc& spd, CRect& clipRect, byte* pAlphaMask, int xsub, int ysub, const long* switchpts, bool fBody, bool fBorder);
 };
 

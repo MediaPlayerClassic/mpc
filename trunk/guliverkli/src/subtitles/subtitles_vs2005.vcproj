@@ -6,6 +6,7 @@
 	ProjectGUID="{5E56335F-0FB1-4EEA-B240-D8DC5E0608E4}"
 	RootNamespace="subtitles"
 	Keyword="Win32Proj"
+	SignManifests="true"
 	>
 	<Platforms>
 		<Platform
@@ -302,6 +303,14 @@
 			<File
 				RelativePath="Rasterizer.cpp"
 				>
+				<FileConfiguration
+					Name="Release Unicode|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						AssemblerOutput="4"
+					/>
+				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="RTS.cpp"
