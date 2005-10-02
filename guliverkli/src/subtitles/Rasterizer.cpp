@@ -56,10 +56,8 @@ void Rasterizer::_TrashOverlay()
 
 void Rasterizer::_ReallocEdgeBuffer(int edges)
 {
-	Edge* newheap = (Edge*)realloc(mpEdgeBuffer, sizeof(Edge)*edges);
-
 	mEdgeHeapSize = edges;
-	mpEdgeBuffer = newheap;
+	mpEdgeBuffer = (Edge*)realloc(mpEdgeBuffer, sizeof(Edge)*edges);
 }
 
 void Rasterizer::_EvaluateBezier(int ptbase, bool fBSpline)
@@ -173,39 +171,35 @@ void Rasterizer::_EvaluateLine(int x0, int y0, int x1, int y1)
 	if(!fFirstSet) {firstp.x = x0; firstp.y = y0; fFirstSet = true;}
 	lastp.x = x1; lastp.y = y1;
 
-	int prestep;
-
 	if(y1 > y0)	// down
 	{
-		int dy = y1-y0;
-		__int64 xacc = (__int64)x0<<13;
+		__int64 xacc = (__int64)x0 << 13;
 
 		// prestep y0 down
 
-		int y = ((y0+3)&~7) + 4;
+		int dy = y1 - y0;
+		int y = ((y0 + 3)&~7) + 4;
+		int iy = y >> 3;
 
-		y1 = (y1-5)>>3;
-
-		int iy = y>>3;
+		y1 = (y1 - 5) >> 3;
 
 		if(iy <= y1)
 		{
-			__int64 invslope = (__int64(x1-x0)<<16)/dy;
+			__int64 invslope = (__int64(x1 - x0) << 16) / dy;
 
 			while(mEdgeNext + y1 + 1 - iy > mEdgeHeapSize)
 				_ReallocEdgeBuffer(mEdgeHeapSize*2);
 
-			prestep = y - y0;
-			xacc += (invslope * prestep)>>3;
+			xacc += (invslope * (y - y0)) >> 3;
 
 			while(iy <= y1)
 			{
-				int ix = (int)((xacc+32768)>>16);
+				int ix = (int)((xacc + 32768) >> 16);
 
-				mpEdgeBuffer[mEdgeNext].next = (int)(mpScanBuffer[iy]&0xffffffff);
-				mpEdgeBuffer[mEdgeNext].posandflag = ix*2+1;
+				mpEdgeBuffer[mEdgeNext].next = mpScanBuffer[iy];
+				mpEdgeBuffer[mEdgeNext].posandflag = ix*2 + 1;
 
-				mpScanBuffer[iy] = (mpScanBuffer[iy]&0xffffffff00000000i64) + 0x100000000i64 + mEdgeNext++;
+				mpScanBuffer[iy] = mEdgeNext++;
 
 				++iy;
 				xacc += invslope;
@@ -214,35 +208,33 @@ void Rasterizer::_EvaluateLine(int x0, int y0, int x1, int y1)
 	}
 	else if(y1 < y0) // up
 	{
-		int dy = y0-y1;
-		__int64 xacc = (__int64)x1<<13;
+		__int64 xacc = (__int64)x1 << 13;
 
 		// prestep y1 down
 
-		int y = ((y1+3)&~7) + 4;
+		int dy = y0 - y1;
+		int y = ((y1 + 3)&~7) + 4;
+		int iy = y >> 3;
 
-		y0 = (y0-5)>>3;
-
-		int iy = y>>3;
+		y0 = (y0 - 5) >> 3;
 
 		if(iy <= y0)
 		{
-			__int64 invslope = (__int64(x0-x1)<<16)/dy;
+			__int64 invslope = (__int64(x0 - x1) << 16) / dy;
 
 			while(mEdgeNext + y0 + 1 - iy > mEdgeHeapSize)
 				_ReallocEdgeBuffer(mEdgeHeapSize*2);
 
-			prestep = y - y1;
-			xacc += (invslope * prestep)>>3;
+			xacc += (invslope * (y - y1)) >> 3;
 
 			while(iy <= y0)
 			{
-				int ix = (int)((xacc+32768)>>16);
+				int ix = (int)((xacc + 32768) >> 16);
 
-				mpEdgeBuffer[mEdgeNext].next = (int)(mpScanBuffer[iy]&0xffffffff);
+				mpEdgeBuffer[mEdgeNext].next = mpScanBuffer[iy];
 				mpEdgeBuffer[mEdgeNext].posandflag = ix*2;
 
-				mpScanBuffer[iy] = (mpScanBuffer[iy]&0xffffffff00000000i64) + 0x100000000i64 + mEdgeNext++;
+				mpScanBuffer[iy] = mEdgeNext++;
 
 				++iy;
 				xacc += invslope;
@@ -411,11 +403,10 @@ bool Rasterizer::ScanConvert()
 
 	// Initialize scanline list.
 
-	mpScanBuffer = new unsigned __int64[mHeight];
+	mpScanBuffer = new unsigned int[mHeight];
+	memset(mpScanBuffer, 0, mHeight*sizeof(unsigned int));
 
 	// Scan convert the outline.  Yuck, Bezier curves....
-
-	memset(mpScanBuffer, 0, mHeight*sizeof(unsigned __int64));
 
 	// Unfortunately, Windows 95/98 GDI has a bad habit of giving us text
 	// paths with all but the first figure left open, so we can't rely
@@ -480,12 +471,6 @@ bool Rasterizer::ScanConvert()
 	for(y=0; y<mHeight; ++y)
 	{
 		int count = 0;
-		int flipcount = (int)(mpScanBuffer[y]>>32);
-
-		// Keep the edge heap from doing lots of stupid little reallocates.
-
-		if(heap.capacity() < flipcount)
-			heap.reserve((flipcount + 63)&~63);
 
 		// Detangle scanline into edge heap.
 
@@ -498,13 +483,13 @@ bool Rasterizer::ScanConvert()
 		// one more than closing edges at the same spot, so we won't have any
 		// problems with abutting spans.
 
-		std::sort(heap.begin(), heap.begin() + heap.size());
+		std::sort(heap.begin(), heap.end()/*begin() + heap.size()*/);
 
 		// Process edges and add spans.  Since we only check for a non-zero
 		// winding number, it doesn't matter which way the outlines go!
 
 		std::vector<int>::iterator itX1 = heap.begin();
-		std::vector<int>::iterator itX2 = heap.begin() + flipcount;
+		std::vector<int>::iterator itX2 = heap.end(); // begin() + heap.size();
 
 		int x1, x2;
 
@@ -548,7 +533,7 @@ void Rasterizer::_OverlapRegion(tSpanBuffer& dst, tSpanBuffer& src, int dx, int 
 {
 	tSpanBuffer temp;
 
-	temp.reserve(dst.size()+src.size());
+	temp.reserve(dst.size() + src.size());
 
 	dst.swap(temp);
 
@@ -564,12 +549,12 @@ void Rasterizer::_OverlapRegion(tSpanBuffer& dst, tSpanBuffer& src, int dx, int 
 
 	while(itA != itAE && itB != itBE)
 	{
-		if((*itB).first+offset1 < (*itA).first)
+		if((*itB).first + offset1 < (*itA).first)
 		{
 			// B span is earlier.  Use it.
 
-			unsigned __int64 x1 = (*itB).first+offset1;
-			unsigned __int64 x2 = (*itB).second+offset2;
+			unsigned __int64 x1 = (*itB).first + offset1;
+			unsigned __int64 x2 = (*itB).second + offset2;
 
 			++itB;
 
@@ -581,30 +566,26 @@ void Rasterizer::_OverlapRegion(tSpanBuffer& dst, tSpanBuffer& src, int dx, int 
 				// then the next B span can't either (because B spans don't
 				// overlap) and we exit.
 
-				if(itA != itAE && (*itA).first <= x2)
-				{
-					do {x2 = _MAX(x2, (*itA++).second);}
-					while(itA != itAE && (*itA).first <= x2);
-				}
-				else
+				if(itA == itAE || (*itA).first > x2)
 					break;
+
+				do {x2 = _MAX(x2, (*itA++).second);}
+				while(itA != itAE && (*itA).first <= x2);
 
 				// If we run out of B spans or the B span doesn't overlap,
 				// then the next A span can't either (because A spans don't
 				// overlap) and we exit.
 
-				if(itB != itBE && (*itB).first + offset1 <= x2)
-				{
-					do {x2 = _MAX(x2, (*itB++).second + offset2);}
-					while(itB != itBE && (*itB).first + offset1 <= x2);
-				}
-				else
+				if(itB == itBE || (*itB).first + offset1 > x2)
 					break;
+
+				do {x2 = _MAX(x2, (*itB++).second + offset2);}
+				while(itB != itBE && (*itB).first + offset1 <= x2);
 			}
 
 			// Flush span.
 
-			dst.push_back(std::pair<unsigned __int64,unsigned __int64>(x1,x2));	
+			dst.push_back(tSpan(x1, x2));	
 		}
 		else
 		{
@@ -623,30 +604,26 @@ void Rasterizer::_OverlapRegion(tSpanBuffer& dst, tSpanBuffer& src, int dx, int 
 				// then the next A span can't either (because A spans don't
 				// overlap) and we exit.
 
-				if(itB != itBE && (*itB).first + offset1 <= x2)
-				{
-					do {x2 = _MAX(x2, (*itB++).second + offset2);}
-					while(itB != itBE && (*itB).first + offset1 <= x2);
-				}
-				else
+				if(itB == itBE || (*itB).first + offset1 > x2)
 					break;
+
+				do {x2 = _MAX(x2, (*itB++).second + offset2);}
+				while(itB != itBE && (*itB).first + offset1 <= x2);
 
 				// If we run out of A spans or the A span doesn't overlap,
 				// then the next B span can't either (because B spans don't
 				// overlap) and we exit.
 
-				if(itA != itAE && (*itA).first <= x2)
-				{
-					do {x2 = _MAX(x2, (*itA++).second);}
-					while(itA != itAE && (*itA).first <= x2);
-				}
-				else
+				if(itA == itAE || (*itA).first > x2)
 					break;
+
+				do {x2 = _MAX(x2, (*itA++).second);}
+				while(itA != itAE && (*itA).first <= x2);
 			}
 
 			// Flush span.
 
-			dst.push_back(std::pair<unsigned __int64,unsigned __int64>(x1,x2));	
+			dst.push_back(tSpan(x1, x2));	
 		}
 	}
 
@@ -657,7 +634,7 @@ void Rasterizer::_OverlapRegion(tSpanBuffer& dst, tSpanBuffer& src, int dx, int 
 
 	while(itB != itBE)
 	{
-		dst.push_back(std::pair<unsigned __int64,unsigned __int64>((*itB).first+offset1,(*itB).second+offset2));	
+		dst.push_back(tSpan((*itB).first + offset1, (*itB).second + offset2));	
 		++itB;
 	}
 }
@@ -684,7 +661,7 @@ void Rasterizer::DeleteOutlines()
 	mOutline.clear();
 }
 
-bool Rasterizer::Rasterize(int xsub, int ysub, bool fBorder, bool fBlur)
+bool Rasterizer::Rasterize(int xsub, int ysub, bool fBlur)
 {
 	_TrashOverlay();
 
@@ -699,54 +676,50 @@ bool Rasterizer::Rasterize(int xsub, int ysub, bool fBorder, bool fBlur)
 
 	int width = mWidth + xsub;
 	int height = mHeight + ysub;
-	int border = 0;
 
 	mOffsetX = mPathOffsetX - xsub;
 	mOffsetY = mPathOffsetY - ysub;
 
 	mWideBorder = (mWideBorder+7)&~7;
 
-	if(fBorder)
+	if(!mWideOutline.empty())
 	{
 		width += 2*mWideBorder;
 		height += 2*mWideBorder;
-		border = mWideBorder;
+
+		xsub += mWideBorder;
+		ysub += mWideBorder;
 
 		mOffsetX -= mWideBorder;
 		mOffsetY -= mWideBorder;
 	}
 
-	mOverlayWidth = (width+7)>>3;
-	mOverlayHeight = (height+7)>>3;
-
-	mOverlayWidth++;
-	mOverlayHeight++;
+	mOverlayWidth = ((width+7)>>3) + 1;
+	mOverlayHeight = ((height+7)>>3) + 1;
 
 	mpOverlayBuffer = new byte[2 * mOverlayWidth * mOverlayHeight];
-
 	memset(mpOverlayBuffer, 0, 2 * mOverlayWidth * mOverlayHeight);
 
 	// Are we doing a border?
 
-	xsub += border;
-	ysub += border;
+	tSpanBuffer* pOutline[2] = {&mOutline, &mWideOutline};
 
-	if(fBorder)
+	for(int i = countof(pOutline)-1; i >= 0; i--)
 	{
-		tSpanBuffer::iterator it = mWideOutline.begin();
-		tSpanBuffer::iterator itEnd = mWideOutline.end();
+		tSpanBuffer::iterator it = pOutline[i]->begin();
+		tSpanBuffer::iterator itEnd = pOutline[i]->end();
 
 		for(; it!=itEnd; ++it)
 		{
-			int y = (int)(((*it).first >> 32)-0x40000000+ysub);
-			int x1 = (int)(((*it).first & 0xffffffff)-0x40000000+xsub);
-			int x2 = (int)(((*it).second & 0xffffffff)-0x40000000+xsub);
+			int y = (int)(((*it).first >> 32) - 0x40000000 + ysub);
+			int x1 = (int)(((*it).first & 0xffffffff) - 0x40000000 + xsub);
+			int x2 = (int)(((*it).second & 0xffffffff) - 0x40000000 + xsub);
 
 			if(x2 > x1)
 			{
 				int first = x1>>3;
 				int last = (x2-1)>>3;
-				byte* dst = mpOverlayBuffer + 2*(mOverlayWidth*(y>>3) + first) + 1;
+				byte* dst = mpOverlayBuffer + 2*(mOverlayWidth*(y>>3) + first) + i;
 
 				if(first == last)
 					*dst += x2-x1;
@@ -767,39 +740,6 @@ bool Rasterizer::Rasterize(int xsub, int ysub, bool fBorder, bool fBlur)
 		}
 	}
 
-	tSpanBuffer::iterator it = mOutline.begin();
-	tSpanBuffer::iterator itEnd = mOutline.end();
-
-	for(; it!=itEnd; ++it)
-	{
-		int y = (int)(((*it).first >> 32)-0x40000000+ysub);
-		int x1 = (int)(((*it).first & 0xffffffff)-0x40000000+xsub);
-		int x2 = (int)(((*it).second & 0xffffffff)-0x40000000+xsub);
-
-		if(x2 > x1)
-		{
-			int first = x1>>3;
-			int last = (x2-1)>>3;
-			byte* dst = mpOverlayBuffer + 2*(mOverlayWidth*(y>>3) + first);
-
-			if(first == last)
-				*dst += x2-x1;
-			else
-			{
-				*dst += ((first+1)<<3) - x1;
-				dst += 2;
-
-				while(++first < last)
-				{
-					*dst += 0x08;
-					dst += 2;
-				}
-
-				*dst += x2 - (last<<3);
-			}
-		}
-	}
-
 	if(fBlur && mOverlayWidth >= 3 && mOverlayHeight >= 3)
 	{
 		int pitch = mOverlayWidth*2;
@@ -809,10 +749,12 @@ bool Rasterizer::Rasterize(int xsub, int ysub, bool fBorder, bool fBlur)
 
 		memcpy(tmp, mpOverlayBuffer, pitch*mOverlayHeight);
 
+		int border = !mWideOutline.empty() ? 1 : 0;
+
 		for(int j = 1; j < mOverlayHeight-1; j++)
 		{
-			byte* src = tmp + pitch*j + 2 + (fBorder?1:0);
-			byte* dst = mpOverlayBuffer + pitch*j + 2 + (fBorder?1:0);
+			byte* src = tmp + pitch*j + 2 + border;
+			byte* dst = mpOverlayBuffer + pitch*j + 2 + border;
 
 			for(int i = 1; i < mOverlayWidth-1; i++, src+=2, dst+=2)
 			{
@@ -830,29 +772,46 @@ bool Rasterizer::Rasterize(int xsub, int ysub, bool fBorder, bool fBlur)
 
 ///////////////////////////////////////////////////////////////////////////
 
-#define pixmix(s)																 \
+#define pixmix(s) {																 \
 	int a = (((s)*(color>>24))>>6)&0xff;										 \
 	int ia = 256-a;																 \
 																				 \
 	dst[wt] = ((((dst[wt]&0x00ff00ff)*ia + (color&0x00ff00ff)*a)&0xff00ff00)>>8) \
 			| ((((dst[wt]&0x0000ff00)*ia + (color&0x0000ff00)*a)&0x00ff0000)>>8) \
-			| ((((dst[wt]>>8)&0x00ff0000)*ia)&0xff000000);
+			| ((((dst[wt]>>8)&0x00ff0000)*ia)&0xff000000);						 \
+	} \
 
-#define pixmix2(s)																 \
-	int a = ((((s)*(am[wt]))*(color>>24))>>12)&0xff;							 \
-	int ia = 256-a;																 \
-																				 \
-	dst[wt] = ((((dst[wt]&0x00ff00ff)*ia + (color&0x00ff00ff)*a)&0xff00ff00)>>8) \
-			| ((((dst[wt]&0x0000ff00)*ia + (color&0x0000ff00)*a)&0x00ff0000)>>8) \
-			| ((((dst[wt]>>8)&0x00ff0000)*ia)&0xff000000);
+#include <xmmintrin.h>
+#include <emmintrin.h>
+
+__forceinline void pixmix_sse2(DWORD* dst, DWORD color, DWORD alpha)
+{
+	alpha = ((alpha * (color>>24)) >> 6) & 0xff;
+	color &= 0xffffff;
+
+	__m128i zero = _mm_setzero_si128();
+	__m128i a = _mm_set1_epi32((alpha << 16) | (0x100 - alpha));
+	__m128i d = _mm_unpacklo_epi8(_mm_cvtsi32_si128(*dst), zero);
+	__m128i s = _mm_unpacklo_epi8(_mm_cvtsi32_si128(color), zero);
+	__m128i r = _mm_unpacklo_epi16(d, s);
+
+	r = _mm_madd_epi16(r, a);
+	r = _mm_srli_epi32(r, 8);
+	r = _mm_packs_epi32(r, r);
+	r = _mm_packus_epi16(r, r);
+
+	*dst = (DWORD)_mm_cvtsi128_si32(r);
+}
+
+#include "../dsutil/vd.h"
 
 CRect Rasterizer::Draw(SubPicDesc& spd, CRect& clipRect, byte* pAlphaMask, int xsub, int ysub, const long* switchpts, bool fBody, bool fBorder)
 {
 	CRect bbox(0, 0, 0, 0);
 
-	if(!switchpts) return(bbox);
+	if(!switchpts || !fBody && !fBorder) return(bbox);
 
-	// Clip.
+	// clip
 
 	CRect r(0, 0, spd.w, spd.h);
 	r &= clipRect;
@@ -873,16 +832,131 @@ CRect Rasterizer::Draw(SubPicDesc& spd, CRect& clipRect, byte* pAlphaMask, int x
 	bbox.SetRect(x, y, x+w, y+h);
 	bbox &= CRect(0, 0, spd.w, spd.h);
 
-	// Draw.
+	// draw
 
 	const byte* src = mpOverlayBuffer + 2*(mOverlayWidth * yo + xo);
-
+	const byte* s = fBorder ? (src+1) : src;
 	const byte* am = pAlphaMask + spd.w * y + x;
-
 	unsigned long* dst = (unsigned long *)((char *)spd.bits + spd.pitch * y) + x;
 
-	unsigned long color;
+	unsigned long color = switchpts[0];
 
+	bool fSSE2 = !!(g_cpuid.m_flags & CCpuID::sse2);
+
+	while(h--)
+	{
+		if(!pAlphaMask)
+		{
+			if(switchpts[1] == 0xffffffff)
+			{
+				if(fBody)
+				{
+					if(fSSE2) for(int wt=0; wt<w; ++wt) pixmix_sse2(&dst[wt], color, s[wt*2]);
+					else for(int wt=0; wt<w; ++wt) pixmix(s[wt*2]);
+				}
+				else
+				{
+					if(fSSE2) for(int wt=0; wt<w; ++wt) pixmix_sse2(&dst[wt], color, src[wt*2+1] - src[wt*2]);
+					else for(int wt=0; wt<w; ++wt) pixmix(src[wt*2+1] - src[wt*2]);
+				}
+			}
+			else
+			{
+				const long *sw = switchpts;
+
+				if(fBody)
+				{
+					if(fSSE2) 
+					for(int wt=0; wt<w; ++wt)
+					{
+						if(wt+xo >= sw[1]) {while(wt+xo >= sw[1]) sw += 2; color = sw[-2];}
+						pixmix_sse2(&dst[wt], color, s[wt*2]);
+					}
+					else
+					for(int wt=0; wt<w; ++wt)
+					{
+						if(wt+xo >= sw[1]) {while(wt+xo >= sw[1]) sw += 2; color = sw[-2];}
+						pixmix(s[wt*2]);
+					}
+				}
+				else
+				{
+					if(fSSE2) 
+					for(int wt=0; wt<w; ++wt)
+					{
+						if(wt+xo >= sw[1]) {while(wt+xo >= sw[1]) sw += 2; color = sw[-2];} 
+						pixmix_sse2(&dst[wt], color, src[wt*2+1] - src[wt*2]);
+					}
+					else
+					for(int wt=0; wt<w; ++wt)
+					{
+						if(wt+xo >= sw[1]) {while(wt+xo >= sw[1]) sw += 2; color = sw[-2];} 
+						pixmix(src[wt*2+1] - src[wt*2]);
+					}
+				}
+			}
+		}
+		else
+		{
+			if(switchpts[1] == 0xffffffff)
+			{
+				if(fBody)
+				{
+					if(fSSE2) for(int wt=0; wt<w; ++wt) pixmix_sse2(&dst[wt], color, s[wt*2] * am[wt]);
+					else for(int wt=0; wt<w; ++wt) pixmix(s[wt*2] * am[wt]);
+				}
+				else
+				{
+					if(fSSE2) for(int wt=0; wt<w; ++wt) pixmix_sse2(&dst[wt], color, (src[wt*2+1] - src[wt*2]) * am[wt]);
+					else for(int wt=0; wt<w; ++wt) pixmix((src[wt*2+1] - src[wt*2]) * am[wt]);
+				}
+			}
+			else
+			{
+				const long *sw = switchpts;
+
+				if(fBody)
+				{
+					if(fSSE2) 
+					for(int wt=0; wt<w; ++wt)
+					{
+						if(wt+xo >= sw[1]) {while(wt+xo >= sw[1]) sw += 2; color = sw[-2];}
+						pixmix_sse2(&dst[wt], color, s[wt*2] * am[wt]);
+					}
+					else
+					for(int wt=0; wt<w; ++wt)
+					{
+						if(wt+xo >= sw[1]) {while(wt+xo >= sw[1]) sw += 2; color = sw[-2];}
+						pixmix(s[wt*2] * am[wt]);
+					}
+				}
+				else
+				{
+					if(fSSE2) 
+					for(int wt=0; wt<w; ++wt)
+					{
+						if(wt+xo >= sw[1]) {while(wt+xo >= sw[1]) sw += 2; color = sw[-2];} 
+						pixmix_sse2(&dst[wt], color, (src[wt*2+1] - src[wt*2]) * am[wt]);
+					}
+					else
+					for(int wt=0; wt<w; ++wt)
+					{
+						if(wt+xo >= sw[1]) {while(wt+xo >= sw[1]) sw += 2; color = sw[-2];} 
+						pixmix((src[wt*2+1] - src[wt*2]) * am[wt]);
+					}
+				}
+			}
+		}
+
+		src += 2*mOverlayWidth;
+		s += 2*mOverlayWidth;
+		am += spd.w;
+		dst = (unsigned long *)((char *)dst + spd.pitch);
+	}
+
+// pixmix_sse2(&dst[wt], color, s[wt*2]);
+
+/*
 	if(!pAlphaMask)
 	{
 		if(switchpts[1] == 0xffffffff)
@@ -893,19 +967,12 @@ CRect Rasterizer::Draw(SubPicDesc& spd, CRect& clipRect, byte* pAlphaMask, int x
 			{
 				if(fBody)
 				{
-					const byte* s = fBorder?(src+1):src;
-
-					for(int wt=0; wt<w; ++wt)
-					{
-						pixmix(s[wt*2]);
-					}
+					const byte* s = fBorder ? (src+1) : src;
+					for(int wt=0; wt<w; ++wt) pixmix(s[wt*2]);						
 				}
 				else if(!fBody && fBorder)
 				{
-					for(int wt=0; wt<w; ++wt)
-					{
-						pixmix(src[wt*2+1]-src[wt*2]);
-					}
+					for(int wt=0; wt<w; ++wt) pixmix(src[wt*2+1] - src[wt*2]);
 				}
 
 				src += 2*mOverlayWidth;
@@ -962,19 +1029,12 @@ CRect Rasterizer::Draw(SubPicDesc& spd, CRect& clipRect, byte* pAlphaMask, int x
 			{
 				if(fBody)
 				{
-					const byte* s = fBorder?(src+1):src;
-
-					for(int wt=0; wt<w; ++wt)
-					{
-						pixmix2(s[wt*2]);
-					}
+					const byte* s = fBorder ? (src+1) : src;
+					for(int wt=0; wt<w; ++wt) pixmix2(s[wt*2]);
 				}
 				else if(!fBody && fBorder)
 				{
-					for(int wt=0; wt<w; ++wt)
-					{
-						pixmix2(src[wt*2+1]-src[wt*2]);
-					}
+					for(int wt=0; wt<w; ++wt) pixmix2(src[wt*2+1]-src[wt*2]);
 				}
 
 				src += 2*mOverlayWidth;
@@ -1023,6 +1083,6 @@ CRect Rasterizer::Draw(SubPicDesc& spd, CRect& clipRect, byte* pAlphaMask, int x
 			}
 		}
 	}
-
+*/
 	return(bbox);
 }

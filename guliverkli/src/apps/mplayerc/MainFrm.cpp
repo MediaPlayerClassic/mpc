@@ -378,6 +378,8 @@ CMainFrame::CMainFrame() :
 	m_fileDropTarget(this),
 	m_fTrayIcon(false)
 {
+
+
 }
 
 CMainFrame::~CMainFrame()

@@ -82,7 +82,8 @@ HRESULT CMpegSplitterFile::Init()
 			}
 			else if((b&0xe0) == 0xc0 // audio, 110xxxxx, mpeg1/2/3
 				|| (b&0xf0) == 0xe0 // video, 1110xxxx, mpeg1/2
-				|| (b&0xbd) == 0xbd) // private stream 1, 0xbd, ac3/dts/lpcm/subpic
+				// || (b&0xbd) == 0xbd) // private stream 1, 0xbd, ac3/dts/lpcm/subpic
+				|| b == 0xbd) // private stream 1, 0xbd, ac3/dts/lpcm/subpic
 			{
 				peshdr h;
 				if(Read(h, b))
