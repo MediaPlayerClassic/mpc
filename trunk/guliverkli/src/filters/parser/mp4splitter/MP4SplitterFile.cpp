@@ -38,9 +38,9 @@ HRESULT CMP4SplitterFile::Init()
 
 	AP4_ByteStream* stream = new AP4_AsyncReaderStream(this);
 
-    m_pAp4File = new AP4_File(*stream);
+	m_pAp4File = new AP4_File(*stream);
 
-    if(AP4_Movie* movie = ((AP4_File*)m_pAp4File)->GetMovie())
+	if(AP4_Movie* movie = ((AP4_File*)m_pAp4File)->GetMovie())
 	{
 		for(AP4_List<AP4_Track>::Item* item = movie->GetTracks().FirstItem();
 			item;
@@ -48,7 +48,9 @@ HRESULT CMP4SplitterFile::Init()
 		{
 			AP4_Track* track = item->GetData();
 
-			if(track->GetType() != AP4_Track::TYPE_VIDEO && track->GetType() != AP4_Track::TYPE_AUDIO)
+			if(track->GetType() != AP4_Track::TYPE_VIDEO 
+			&& track->GetType() != AP4_Track::TYPE_AUDIO
+			&& track->GetType() != AP4_Track::TYPE_TEXT)
 				continue;
 
 			AP4_Sample sample;
@@ -62,7 +64,7 @@ HRESULT CMP4SplitterFile::Init()
 			VIDEOINFOHEADER* vih = NULL;
 			WAVEFORMATEX* wfe = NULL;
 
-			const AP4_DataBuffer empty;
+			AP4_DataBuffer empty, data;
 
 			if(AP4_SampleDescription* desc = track->GetSampleDescription(sample.GetDescriptionIndex()))
 			{
@@ -85,14 +87,14 @@ HRESULT CMP4SplitterFile::Init()
 					if(!di) di = &empty;
 
 					mt.majortype = MEDIATYPE_Video;
-					mt.formattype = FORMAT_VideoInfo;
 
-					vih = (VIDEOINFOHEADER*)mt.AllocFormatBuffer(sizeof(VIDEOINFOHEADER) + di->GetBufferSize());
+					mt.formattype = FORMAT_VideoInfo;
+					vih = (VIDEOINFOHEADER*)mt.AllocFormatBuffer(sizeof(VIDEOINFOHEADER) + di->GetDataSize());
 					memset(vih, 0, mt.FormatLength());
 					vih->bmiHeader.biSize = sizeof(vih->bmiHeader);
 					vih->bmiHeader.biWidth = (LONG)video_desc->GetWidth();
 					vih->bmiHeader.biHeight = (LONG)video_desc->GetHeight();
-					memcpy(vih + 1, di->GetData(), di->GetBufferSize());
+					memcpy(vih + 1, di->GetData(), di->GetDataSize());
 
 					switch(video_desc->GetObjectTypeId())
 					{
@@ -100,19 +102,24 @@ HRESULT CMP4SplitterFile::Init()
 						mt.subtype = FOURCCMap(vih->bmiHeader.biCompression = 'v4pm');
 						m_mts[track->GetId()] = mt;
 						break;
-					case AP4_MPEG2_VISUAL_SIMPLE_OTI: // ???
-						break;
-					case AP4_MPEG2_VISUAL_MAIN_OTI: // ???
-						break;
-					case AP4_MPEG2_VISUAL_SNR_OTI: // ???
-						break;
-					case AP4_MPEG2_VISUAL_SPATIAL_OTI: // ???
-						break;
-					case AP4_MPEG2_VISUAL_HIGH_OTI: // ???
-						break;
-					case AP4_MPEG2_VISUAL_422_OTI: // ???
+					case AP4_MPEG2_VISUAL_SIMPLE_OTI:
+					case AP4_MPEG2_VISUAL_MAIN_OTI:
+					case AP4_MPEG2_VISUAL_SNR_OTI:
+					case AP4_MPEG2_VISUAL_SPATIAL_OTI:
+					case AP4_MPEG2_VISUAL_HIGH_OTI:
+					case AP4_MPEG2_VISUAL_422_OTI:
+						mt.subtype = MEDIASUBTYPE_MPEG2_VIDEO;
+						if(AP4_SUCCEEDED(track->ReadSample(0, sample, data)))
+						{
+							CMediaType mt2;
+							if(MakeMPEG2MediaType(mt2, (BYTE*)data.GetData(), data.GetDataSize(), video_desc->GetWidth(), video_desc->GetHeight()))
+								mt = mt2;
+						}
+						m_mts[track->GetId()] = mt;
 						break;
 					case AP4_MPEG1_VISUAL_OTI: // ???
+						mt.subtype = MEDIASUBTYPE_MPEG1Payload;
+						m_mts[track->GetId()] = mt;
 						break;
 					}
 
@@ -130,13 +137,13 @@ HRESULT CMP4SplitterFile::Init()
 					mt.majortype = MEDIATYPE_Audio;
 					mt.formattype = FORMAT_WaveFormatEx;
 
-					wfe = (WAVEFORMATEX*)mt.AllocFormatBuffer(sizeof(WAVEFORMATEX) + di->GetBufferSize());
+					wfe = (WAVEFORMATEX*)mt.AllocFormatBuffer(sizeof(WAVEFORMATEX) + di->GetDataSize());
 					memset(wfe, 0, mt.FormatLength());
 					wfe->nSamplesPerSec = audio_desc->GetSampleRate();
 					wfe->nAvgBytesPerSec = audio_desc->GetAvgBitrate()*8; // GetSampleSize()
 					wfe->nChannels = audio_desc->GetChannelCount();
-					wfe->cbSize = (WORD)di->GetBufferSize();
-					memcpy(wfe + 1, di->GetData(), di->GetBufferSize());
+					wfe->cbSize = (WORD)di->GetDataSize();
+					memcpy(wfe + 1, di->GetData(), di->GetDataSize());
 
 					switch(audio_desc->GetObjectTypeId())
 					{
@@ -158,6 +165,25 @@ HRESULT CMP4SplitterFile::Init()
 					if(mt.subtype == GUID_NULL)
 					{
 						TRACE(_T("Unknown audio OBI: %02x\n"), audio_desc->GetObjectTypeId());
+					}
+				}
+				else if(AP4_UnknownSampleDescription* unknown_desc = 
+					dynamic_cast<AP4_UnknownSampleDescription*>(desc)) // TEMP
+				{
+					AP4_SampleEntry* sample_entry = unknown_desc->GetSampleEntry();
+
+					if(dynamic_cast<AP4_TextSampleEntry*>(sample_entry)
+					|| dynamic_cast<AP4_Tx3gSampleEntry*>(sample_entry))
+					{
+						mt.majortype = MEDIATYPE_Subtitle;
+						mt.subtype = MEDIASUBTYPE_UTF8;
+						mt.formattype = FORMAT_SubtitleInfo;
+						SUBTITLEINFO* si = (SUBTITLEINFO*)mt.AllocFormatBuffer(sizeof(SUBTITLEINFO));
+						memset(si, 0, mt.FormatLength());
+						strcpy_s(si->IsoLang, sizeof(si->IsoLang)/sizeof(si->IsoLang[0]), track->GetTrackLanguage().c_str());
+						wcscpy_s(si->TrackName, sizeof(si->TrackName)/sizeof(si->TrackName[0]), CStringW(track->GetTrackName().c_str()));
+						si->dwOffset = sizeof(SUBTITLEINFO);
+						m_mts[track->GetId()] = mt;
 					}
 				}
 			}

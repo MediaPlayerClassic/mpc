@@ -1145,6 +1145,64 @@ bool ExtractDim(const AM_MEDIA_TYPE* pmt, int& w, int& h, int& arx, int& ary)
 	return(true);
 }
 
+bool MakeMPEG2MediaType(CMediaType& mt, BYTE* seqhdr, DWORD len, int w, int h)
+{
+	if(len < 4 || *(DWORD*)seqhdr != 0xb3010000) return false;
+
+	BYTE* seqhdr_ext = NULL;
+
+	BYTE* seqhdr_end = seqhdr + 11;
+	if(seqhdr_end - seqhdr > len) return false;
+	if(*seqhdr_end & 0x02) seqhdr_end += 64;
+	if(seqhdr_end - seqhdr > len) return false;
+	if(*seqhdr_end & 0x01) seqhdr_end += 64;
+	if(seqhdr_end - seqhdr > len) return false;
+	seqhdr_end++;
+	if(seqhdr_end - seqhdr > len) return false;
+	if(len - (seqhdr_end - seqhdr) > 4 && *(DWORD*)seqhdr_end == 0xb5010000) {seqhdr_ext = seqhdr_end; seqhdr_end += 10;}
+	if(seqhdr_end - seqhdr > len) return false;
+
+	len = seqhdr_end - seqhdr;
+	
+	mt = CMediaType();
+
+	mt.majortype = MEDIATYPE_Video;
+	mt.subtype = MEDIASUBTYPE_MPEG2_VIDEO;
+	mt.formattype = FORMAT_MPEG2Video;
+
+	MPEG2VIDEOINFO* vih = (MPEG2VIDEOINFO*)mt.AllocFormatBuffer(FIELD_OFFSET(MPEG2VIDEOINFO, dwSequenceHeader) + len);
+	memset(mt.Format(), 0, mt.FormatLength());
+	vih->hdr.bmiHeader.biSize = sizeof(vih->hdr.bmiHeader);
+	vih->hdr.bmiHeader.biWidth = w;
+	vih->hdr.bmiHeader.biHeight = h;
+
+	BYTE* pSequenceHeader = (BYTE*)vih->dwSequenceHeader;
+	memcpy(pSequenceHeader, seqhdr, len);
+	vih->cbSequenceHeader = len;
+	
+	static char profile[8] = 
+	{
+		0, AM_MPEG2Profile_High, AM_MPEG2Profile_SpatiallyScalable, AM_MPEG2Profile_SNRScalable, 
+		AM_MPEG2Profile_Main, AM_MPEG2Profile_Simple, 0, 0
+	};
+
+	static char level[16] =
+	{
+		0, 0, 0, 0, 
+		AM_MPEG2Level_High, 0, AM_MPEG2Level_High1440, 0, 
+		AM_MPEG2Level_Main, 0, AM_MPEG2Level_Low, 0, 
+		0, 0, 0, 0
+	};
+
+	if(seqhdr_ext && (seqhdr_ext[4] & 0xf0) == 0x10)
+	{
+		vih->dwProfile = profile[seqhdr_ext[4] & 0x07];
+		vih->dwLevel = level[seqhdr_ext[5] >> 4];
+	}
+
+	return true;
+}
+
 unsigned __int64 GetFileVersion(LPCTSTR fn)
 {
 	unsigned __int64 ret = 0;

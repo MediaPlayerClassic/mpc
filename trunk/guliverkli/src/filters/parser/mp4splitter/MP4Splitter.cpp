@@ -158,7 +158,7 @@ bool CMP4SplitterFilter::DemuxInit()
 		
 		AP4_Sample sample;
 		if(AP4_SUCCEEDED(track->GetSample(0, sample)))
-			pPair->m_value.ts = sample.GetCts();
+			pPair->m_value.ts = sample.GetDts();
 	}
 
 	return true;
@@ -182,7 +182,7 @@ void CMP4SplitterFilter::DemuxSeek(REFERENCE_TIME rt)
 
 		AP4_Sample sample;
 		if(AP4_SUCCEEDED(track->GetSample(pPair->m_value.index, sample)))
-			pPair->m_value.ts = sample.GetCts();
+			pPair->m_value.ts = sample.GetDts();
 
 		// FIXME: slow search & stss->m_Entries is private
 
@@ -238,11 +238,35 @@ bool CMP4SplitterFilter::DemuxLoop()
 			CAutoPtr<Packet> p(new Packet());
 
 			p->TrackNumber = (DWORD)track->GetId();
-			p->rtStart = 10000000i64 * sample.GetCts() / track->GetMediaTimeScale();
+			p->rtStart = 10000000i64 * sample.GetDts() / track->GetMediaTimeScale();
 			p->rtStop = p->rtStart + 1;
 			p->bSyncPoint = TRUE;
-			p->pData.SetSize(data.GetDataSize());
-			memcpy(p->pData.GetData(), data.GetData(), data.GetDataSize());
+
+			if(track->GetType() == AP4_Track::TYPE_TEXT)
+			{
+				const AP4_Byte* ptr = data.GetData();
+				AP4_Size avail = data.GetDataSize();
+
+				if(avail > 2)
+				{
+					AP4_UI16 size = (ptr[0] << 8) | ptr[1];
+
+					if(size <= avail-2)
+					{
+						p->pData.SetSize(size);
+						memcpy(p->pData.GetData(), &ptr[2], size);
+
+						AP4_Sample sample;
+						if(AP4_SUCCEEDED(track->GetSample(pPairNext->m_value.index+1, sample)))
+							p->rtStop = 10000000i64 * sample.GetDts() / track->GetMediaTimeScale();
+					}
+				}
+			}
+			else
+			{
+				p->pData.SetSize(data.GetDataSize());
+				memcpy(p->pData.GetData(), data.GetData(), data.GetDataSize());
+			}
 
 			// FIXME: slow search & stss->m_Entries is private
 
@@ -265,7 +289,7 @@ bool CMP4SplitterFilter::DemuxLoop()
 		{
 			AP4_Sample sample;
 			if(AP4_SUCCEEDED(track->GetSample(++pPairNext->m_value.index, sample)))
-				pPairNext->m_value.ts = sample.GetCts();
+				pPairNext->m_value.ts = sample.GetDts();
 		}
 
 	}
@@ -333,7 +357,7 @@ STDMETHODIMP CMP4SplitterFilter::GetKeyFrames(const GUID* pFormat, REFERENCE_TIM
 			{
 				AP4_Sample sample;
 				if(AP4_SUCCEEDED(track->GetSample(stss->m_Entries[i]-1, sample)))
-					pKFs[nKFs++] = 10000000i64 * sample.GetCts() / track->GetMediaTimeScale();
+					pKFs[nKFs++] = 10000000i64 * sample.GetDts() / track->GetMediaTimeScale();
 			}
 
 			return S_OK;
