@@ -138,12 +138,12 @@ HRESULT CMP4SplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 			
 			if(!TrackName.empty())
 			{
-				name.Format(_T("%s"), CString(TrackName.c_str()));
+				name.Format(L"%s", CStringW(TrackName.c_str()));
 			}
 
 			if(!TrackLanguage.empty())
 			{
-				if(TrackLanguage != "und") name += _T(" (") + CString(TrackLanguage.c_str()) + _T(")");
+				if(TrackLanguage != "und") name += L" (" + CStringW(TrackLanguage.c_str()) + L")";
 				SetProperty(L"LANG", CStringW(TrackLanguage.c_str()));
 			}
 		}
@@ -177,7 +177,7 @@ bool CMP4SplitterFilter::DemuxInit()
 		
 		AP4_Sample sample;
 		if(AP4_SUCCEEDED(track->GetSample(0, sample)))
-			pPair->m_value.ts = sample.GetDts();
+			pPair->m_value.ts = sample.GetCts();
 	}
 
 	return true;
@@ -201,7 +201,7 @@ void CMP4SplitterFilter::DemuxSeek(REFERENCE_TIME rt)
 
 		AP4_Sample sample;
 		if(AP4_SUCCEEDED(track->GetSample(pPair->m_value.index, sample)))
-			pPair->m_value.ts = sample.GetDts();
+			pPair->m_value.ts = sample.GetCts();
 
 		// FIXME: slow search & stss->m_Entries is private
 
@@ -257,7 +257,7 @@ bool CMP4SplitterFilter::DemuxLoop()
 			CAutoPtr<Packet> p(new Packet());
 
 			p->TrackNumber = (DWORD)track->GetId();
-			p->rtStart = 10000000i64 * sample.GetDts() / track->GetMediaTimeScale();
+			p->rtStart = 10000000i64 * sample.GetCts() / track->GetMediaTimeScale();
 			p->rtStop = p->rtStart + 1;
 			p->bSyncPoint = TRUE;
 
@@ -277,7 +277,7 @@ bool CMP4SplitterFilter::DemuxLoop()
 
 						AP4_Sample sample;
 						if(AP4_SUCCEEDED(track->GetSample(pPairNext->m_value.index+1, sample)))
-							p->rtStop = 10000000i64 * sample.GetDts() / track->GetMediaTimeScale();
+							p->rtStop = 10000000i64 * sample.GetCts() / track->GetMediaTimeScale();
 					}
 				}
 			}
@@ -308,7 +308,7 @@ bool CMP4SplitterFilter::DemuxLoop()
 		{
 			AP4_Sample sample;
 			if(AP4_SUCCEEDED(track->GetSample(++pPairNext->m_value.index, sample)))
-				pPairNext->m_value.ts = sample.GetDts();
+				pPairNext->m_value.ts = sample.GetCts();
 		}
 
 	}
@@ -376,7 +376,7 @@ STDMETHODIMP CMP4SplitterFilter::GetKeyFrames(const GUID* pFormat, REFERENCE_TIM
 			{
 				AP4_Sample sample;
 				if(AP4_SUCCEEDED(track->GetSample(stss->m_Entries[i]-1, sample)))
-					pKFs[nKFs++] = 10000000i64 * sample.GetDts() / track->GetMediaTimeScale();
+					pKFs[nKFs++] = 10000000i64 * sample.GetCts() / track->GetMediaTimeScale();
 			}
 
 			return S_OK;

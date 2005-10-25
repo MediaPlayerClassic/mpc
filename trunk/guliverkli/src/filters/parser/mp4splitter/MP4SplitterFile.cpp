@@ -64,7 +64,7 @@ HRESULT CMP4SplitterFile::Init()
 			VIDEOINFOHEADER* vih = NULL;
 			WAVEFORMATEX* wfe = NULL;
 
-			AP4_DataBuffer empty, data;
+			AP4_DataBuffer empty;
 
 			if(AP4_SampleDescription* desc = track->GetSampleDescription(sample.GetDescriptionIndex()))
 			{
@@ -99,7 +99,20 @@ HRESULT CMP4SplitterFile::Init()
 					switch(video_desc->GetObjectTypeId())
 					{
 					case AP4_MPEG4_VISUAL_OTI:
-						mt.subtype = FOURCCMap(vih->bmiHeader.biCompression = 'v4pm');
+						mt.subtype = FOURCCMap('v4pm');
+						mt.formattype = FORMAT_MPEG2Video;
+						{
+						MPEG2VIDEOINFO* vih = (MPEG2VIDEOINFO*)mt.AllocFormatBuffer(FIELD_OFFSET(MPEG2VIDEOINFO, dwSequenceHeader) + di->GetDataSize());
+						memset(vih, 0, mt.FormatLength());
+						vih->hdr.bmiHeader.biSize = sizeof(vih->hdr.bmiHeader);
+						vih->hdr.bmiHeader.biWidth = (LONG)video_desc->GetWidth();
+						vih->hdr.bmiHeader.biHeight = (LONG)video_desc->GetHeight();
+						vih->hdr.bmiHeader.biCompression = 'v4pm';
+						vih->hdr.bmiHeader.biPlanes = 1;
+						vih->hdr.bmiHeader.biBitCount = 24;
+						vih->cbSequenceHeader = di->GetDataSize();
+						memcpy(vih->dwSequenceHeader, di->GetData(), di->GetDataSize());
+						}
 						m_mts[track->GetId()] = mt;
 						break;
 					case AP4_MPEG2_VISUAL_SIMPLE_OTI:
@@ -109,11 +122,12 @@ HRESULT CMP4SplitterFile::Init()
 					case AP4_MPEG2_VISUAL_HIGH_OTI:
 					case AP4_MPEG2_VISUAL_422_OTI:
 						mt.subtype = MEDIASUBTYPE_MPEG2_VIDEO;
-						if(AP4_SUCCEEDED(track->ReadSample(0, sample, data)))
 						{
-							CMediaType mt2;
-							if(MakeMPEG2MediaType(mt2, (BYTE*)data.GetData(), data.GetDataSize(), video_desc->GetWidth(), video_desc->GetHeight()))
-								mt = mt2;
+						AP4_DataBuffer data;
+						track->ReadSample(0, sample, data);
+						CMediaType mt2;
+						if(MakeMPEG2MediaType(mt2, (BYTE*)data.GetData(), data.GetDataSize(), video_desc->GetWidth(), video_desc->GetHeight()))
+							mt = mt2;
 						}
 						m_mts[track->GetId()] = mt;
 						break;
@@ -204,22 +218,12 @@ HRESULT CMP4SplitterFile::Init()
 
 					MPEG2VIDEOINFO* vih = (MPEG2VIDEOINFO*)mt.AllocFormatBuffer(FIELD_OFFSET(MPEG2VIDEOINFO, dwSequenceHeader) + size);
 					memset(vih, 0, mt.FormatLength());
-
-					// vih->hdr.dwBitRate = ;
-					// vih->hdr.dwBitErrorRate = ;
-					// vih->hdr.AvgTimePerFrame = ???;
-					// vih->hdr.dwInterlaceFlags = ;
-					// vih->hdr.dwCopyProtectFlags = ;
-					// vih->hdr.dwPictAspectRatioX = avc1->GetHorizResolution();
-					// vih->hdr.dwPictAspectRatioY = avc1->GetVertResolution();
-
 					vih->hdr.bmiHeader.biSize = sizeof(vih->hdr.bmiHeader);
 					vih->hdr.bmiHeader.biWidth = (LONG)avc1->GetWidth();
 					vih->hdr.bmiHeader.biHeight = (LONG)avc1->GetHeight();
 					vih->hdr.bmiHeader.biCompression = '1cva';
 					vih->hdr.bmiHeader.biPlanes = 1;
 					vih->hdr.bmiHeader.biBitCount = 24;
-
 					vih->dwProfile = data[1];
 					vih->dwLevel = data[3];
 					vih->dwFlags = (data[4] & 3) + 1;
