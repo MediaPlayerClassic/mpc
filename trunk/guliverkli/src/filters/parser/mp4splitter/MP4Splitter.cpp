@@ -139,6 +139,7 @@ HRESULT CMP4SplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 			if(!TrackName.empty())
 			{
 				name.Format(L"%s", CStringW(TrackName.c_str()));
+				SetProperty(L"NAME", CStringW(TrackName.c_str()));
 			}
 
 			if(!TrackLanguage.empty())

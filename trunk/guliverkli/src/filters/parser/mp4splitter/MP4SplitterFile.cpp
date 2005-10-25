@@ -110,6 +110,8 @@ HRESULT CMP4SplitterFile::Init()
 						vih->hdr.bmiHeader.biCompression = 'v4pm';
 						vih->hdr.bmiHeader.biPlanes = 1;
 						vih->hdr.bmiHeader.biBitCount = 24;
+						vih->hdr.dwPictAspectRatioX = vih->hdr.bmiHeader.biWidth;
+						vih->hdr.dwPictAspectRatioY = vih->hdr.bmiHeader.biHeight;
 						vih->cbSequenceHeader = di->GetDataSize();
 						memcpy(vih->dwSequenceHeader, di->GetData(), di->GetDataSize());
 						}
@@ -224,6 +226,8 @@ HRESULT CMP4SplitterFile::Init()
 					vih->hdr.bmiHeader.biCompression = '1cva';
 					vih->hdr.bmiHeader.biPlanes = 1;
 					vih->hdr.bmiHeader.biBitCount = 24;
+					vih->hdr.dwPictAspectRatioX = vih->hdr.bmiHeader.biWidth;
+					vih->hdr.dwPictAspectRatioY = vih->hdr.bmiHeader.biHeight;
 					vih->dwProfile = data[1];
 					vih->dwLevel = data[3];
 					vih->dwFlags = (data[4] & 3) + 1;
