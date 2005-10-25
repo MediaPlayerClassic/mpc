@@ -114,6 +114,8 @@ HRESULT CMP4SplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 	if(!m_pFile) return E_OUTOFMEMORY;
 	if(FAILED(hr)) {m_pFile.Free(); return hr;}
 
+	AP4_Movie* movie = (AP4_Movie*)m_pFile->GetMovie();
+
 	m_rtNewStart = m_rtCurrent = 0;
 	m_rtNewStop = m_rtStop = m_rtDuration = m_pFile->m_rtDuration;
 
@@ -127,7 +129,24 @@ HRESULT CMP4SplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 		m_pFile->m_mts.GetNextAssoc(pos, id, mt);
 
 		CStringW name, lang;
-		name.Format(L"Output %02d", id);
+		name.Format(L"Output %d", id);
+
+		if(AP4_Track* track = movie->GetTrack(id))
+		{
+			AP4_String TrackName = track->GetTrackName();
+			AP4_String TrackLanguage = track->GetTrackLanguage();
+			
+			if(!TrackName.empty())
+			{
+				name.Format(_T("%s"), CString(TrackName.c_str()));
+			}
+
+			if(!TrackLanguage.empty())
+			{
+				if(TrackLanguage != "und") name += _T(" (") + CString(TrackLanguage.c_str()) + _T(")");
+				SetProperty(L"LANG", CStringW(TrackLanguage.c_str()));
+			}
+		}
 
 		CArray<CMediaType> mts;
 		mts.Add(mt);
