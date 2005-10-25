@@ -307,52 +307,13 @@ avcsuccess:
 				}
 				else if(CodecID == "V_MPEG2")
 				{
-					mt.subtype = MEDIASUBTYPE_MPEG2_VIDEO;
-					mt.formattype = FORMAT_MPEG2Video;
-					MPEG2VIDEOINFO* pm2vi = (MPEG2VIDEOINFO*)mt.AllocFormatBuffer(FIELD_OFFSET(MPEG2VIDEOINFO, dwSequenceHeader) + pTE->CodecPrivate.GetSize());
-					memset(mt.Format(), 0, mt.FormatLength());
-					pm2vi->hdr.bmiHeader.biSize = sizeof(pm2vi->hdr.bmiHeader);
-					pm2vi->hdr.bmiHeader.biWidth = (LONG)pTE->v.PixelWidth;
-					pm2vi->hdr.bmiHeader.biHeight = (LONG)pTE->v.PixelHeight;
+					BYTE* seqhdr = pTE->CodecPrivate.GetData();
+					DWORD len = pTE->CodecPrivate.GetSize();
+					int w = pTE->v.PixelWidth;
+					int h = pTE->v.PixelHeight;
 
-					BYTE* pSequenceHeader = (BYTE*)pm2vi->dwSequenceHeader;
-					memcpy(pSequenceHeader, pTE->CodecPrivate.GetData(), pTE->CodecPrivate.GetSize());
-					pm2vi->cbSequenceHeader = pTE->CodecPrivate.GetSize();
-					
-					// Fill profile and level
-					// .. 00 00 01 B5 1X Y. ..
-					// X -> BAAA
-					// AAA = Profile                 -> enum AM_MPEG2Profile {
-					// 101 Simple                    ->   AM_MPEG2Profile_Simple = 1,
-					// 100 Main                      ->   AM_MPEG2Profile_Main,
-					// 011 SNR Scalable              ->   AM_MPEG2Profile_SNRScalable,
-					// 010 Spatially Scalable        ->   AM_MPEG2Profile_SpatiallyScalable,    
-					// 001 High                      ->   AM_MPEG2Profile_High }
-					//
-					// Y = Level                     -> enum AM_MPEG2Level {
-					// 1010 Low                      ->   AM_MPEG2Level_Low = 1,
-					// 1001 (reserved)
-					// 1000 Main                     ->   AM_MPEG2Level_Main,
-					// 0111 (reserved)
-					// 0110 High 1440                ->   AM_MPEG2Level_High1440,
-					// 0101 (reserved)
-					// 0100 High                     ->   AM_MPEG2Level_High }
-					
-					char ArrayProfile[8] = { 0, AM_MPEG2Profile_High, AM_MPEG2Profile_SpatiallyScalable,
-						AM_MPEG2Profile_SNRScalable, AM_MPEG2Profile_Main, AM_MPEG2Profile_Simple, 0, 0 };
-					char ArrayLevel[16] = { 0, 0, 0, 0, AM_MPEG2Level_High, 0, AM_MPEG2Level_High1440,
-						0, AM_MPEG2Level_Main, 0, AM_MPEG2Level_Low, 0, 0, 0, 0, 0 };
-					for(int i = 0; i < pm2vi->cbSequenceHeader-6; i++, pSequenceHeader++)
-					{
-						if(*(DWORD*)pSequenceHeader == 0xb5010000 && (pSequenceHeader[4] & 0xf0) == 0x10)
-						{							
-							pm2vi->dwProfile = ArrayProfile[pSequenceHeader[4] & 0x07];
-							pm2vi->dwLevel = ArrayLevel[pSequenceHeader[5] >> 4];
-							break;
-						}
-					}
-
-					mts.Add(mt);
+					if(MakeMPEG2MediaType(mt, seqhdr, len, w, h))
+						mts.Add(mt);
 				}
 /*
 				else if(CodecID == "V_DSHOW/MPEG1VIDEO") // V_MPEG1

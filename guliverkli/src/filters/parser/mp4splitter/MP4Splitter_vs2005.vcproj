@@ -6,7 +6,6 @@
 	ProjectGUID="{9ED4B036-7399-4128-868D-6E71188E0277}"
 	RootNamespace="MP4Splitter"
 	Keyword="Win32Proj"
-	SignManifests="true"
 	>
 	<Platforms>
 		<Platform
@@ -985,6 +984,14 @@
 				</File>
 				<File
 					RelativePath=".\AP4\Source\Core\Ap4FrmaAtom.h"
+					>
+				</File>
+				<File
+					RelativePath=".\AP4\Source\Core\Ap4FtabAtom.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\AP4\Source\Core\Ap4FtabAtom.h"
 					>
 				</File>
 				<File
