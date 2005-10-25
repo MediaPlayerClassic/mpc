@@ -47,16 +47,16 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "shoutcastsource", "source\s
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MatroskaSplitter", "parser\matroskasplitter\MatroskaSplitter_vs2005.vcproj", "{3F5EA225-F4B7-4413-AEB3-4E4E5751E438}"
 	ProjectSection(ProjectDependencies) = postProject
-		{37768B3F-89BC-4C16-B2A8-767C5DA84C3F} = {37768B3F-89BC-4C16-B2A8-767C5DA84C3F}
 		{2FCD4B66-9CF9-4C8F-BC70-37CD20002D49} = {2FCD4B66-9CF9-4C8F-BC70-37CD20002D49}
+		{37768B3F-89BC-4C16-B2A8-767C5DA84C3F} = {37768B3F-89BC-4C16-B2A8-767C5DA84C3F}
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MatroskaMuxer", "muxer\matroskamuxer\MatroskaMuxer_vs2005.vcproj", "{67827491-8162-4039-9132-F934ABC836A0}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "RealMediaSplitter", "parser\realmediasplitter\RealMediaSplitter_vs2005.vcproj", "{53CF9195-19DB-457D-8F55-8DB1706DFA84}"
 	ProjectSection(ProjectDependencies) = postProject
-		{54DDA60F-E528-4D07-A152-960A1E818680} = {54DDA60F-E528-4D07-A152-960A1E818680}
 		{37768B3F-89BC-4C16-B2A8-767C5DA84C3F} = {37768B3F-89BC-4C16-B2A8-767C5DA84C3F}
+		{54DDA60F-E528-4D07-A152-960A1E818680} = {54DDA60F-E528-4D07-A152-960A1E818680}
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "basesplitter", "parser\basesplitter\basesplitter_vs2005.vcproj", "{37768B3F-89BC-4C16-B2A8-767C5DA84C3F}"
@@ -73,10 +73,10 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Mpeg2DecFilter", "transform
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MpaDecFilter", "transform\mpadecfilter\MpaDecFilter_vs2005.vcproj", "{4421516D-10A6-41C1-ADF3-099573BBB0C6}"
 	ProjectSection(ProjectDependencies) = postProject
-		{D8365C15-2166-4DB6-8A2D-1C8F0239EB18} = {D8365C15-2166-4DB6-8A2D-1C8F0239EB18}
-		{62FE6D94-E17C-4A8E-8D3C-7A589A70D865} = {62FE6D94-E17C-4A8E-8D3C-7A589A70D865}
-		{5EFCFACB-1835-422C-ACDA-E3B3A2F51387} = {5EFCFACB-1835-422C-ACDA-E3B3A2F51387}
 		{54F609FD-A8CE-43CF-94AD-23E877B97C13} = {54F609FD-A8CE-43CF-94AD-23E877B97C13}
+		{5EFCFACB-1835-422C-ACDA-E3B3A2F51387} = {5EFCFACB-1835-422C-ACDA-E3B3A2F51387}
+		{62FE6D94-E17C-4A8E-8D3C-7A589A70D865} = {62FE6D94-E17C-4A8E-8D3C-7A589A70D865}
+		{D8365C15-2166-4DB6-8A2D-1C8F0239EB18} = {D8365C15-2166-4DB6-8A2D-1C8F0239EB18}
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libmad", "transform\mpadecfilter\libmad-0.15.0b\msvc++\libmad_vs2005.vcproj", "{D8365C15-2166-4DB6-8A2D-1C8F0239EB18}"
@@ -116,8 +116,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libfaad", "transform\mpadec
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "DiracSplitter", "parser\diracsplitter\DiracSplitter_vs2005.vcproj", "{ECB1B3B7-196D-4809-A5E2-6F65CDBB6CCA}"
 	ProjectSection(ProjectDependencies) = postProject
-		{37768B3F-89BC-4C16-B2A8-767C5DA84C3F} = {37768B3F-89BC-4C16-B2A8-767C5DA84C3F}
 		{12BE3440-A1F3-4C48-A229-30CB619EA276} = {12BE3440-A1F3-4C48-A229-30CB619EA276}
+		{37768B3F-89BC-4C16-B2A8-767C5DA84C3F} = {37768B3F-89BC-4C16-B2A8-767C5DA84C3F}
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libdirac", "parser\diracsplitter\libdirac\libdirac_vs2005.vcproj", "{12BE3440-A1F3-4C48-A229-30CB619EA276}"
@@ -141,6 +141,12 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "subtitlesource", "source\subtitlesource\subtitlesource_vs2005.vcproj", "{8F998497-9C51-4FAA-83E4-1D85B22CBA13}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "baseclasses", "C:\Program Files\Microsoft DirectX 9.0 SDK\Samples\C++\DirectShow\BaseClasses\baseclasses.vcproj", "{7CDC5863-9F36-468D-A634-6D7799E0A15E}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MP4Splitter", "parser\mp4splitter\MP4Splitter_vs2005.vcproj", "{9ED4B036-7399-4128-868D-6E71188E0277}"
+	ProjectSection(ProjectDependencies) = postProject
+		{37768B3F-89BC-4C16-B2A8-767C5DA84C3F} = {37768B3F-89BC-4C16-B2A8-767C5DA84C3F}
+		{7CDC5863-9F36-468D-A634-6D7799E0A15E} = {7CDC5863-9F36-468D-A634-6D7799E0A15E}
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -1154,6 +1160,30 @@ Global
 		{7CDC5863-9F36-468D-A634-6D7799E0A15E}.Release|Win32.Build.0 = Release|Win32
 		{7CDC5863-9F36-468D-A634-6D7799E0A15E}.Release|x64.ActiveCfg = Release|x64
 		{7CDC5863-9F36-468D-A634-6D7799E0A15E}.Release|x64.Build.0 = Release|x64
+		{9ED4B036-7399-4128-868D-6E71188E0277}.Debug lib|Win32.ActiveCfg = Debug lib|Win32
+		{9ED4B036-7399-4128-868D-6E71188E0277}.Debug lib|Win32.Build.0 = Debug lib|Win32
+		{9ED4B036-7399-4128-868D-6E71188E0277}.Debug lib|x64.ActiveCfg = Debug lib|Win32
+		{9ED4B036-7399-4128-868D-6E71188E0277}.Debug Unicode lib|Win32.ActiveCfg = Debug Unicode lib|Win32
+		{9ED4B036-7399-4128-868D-6E71188E0277}.Debug Unicode lib|Win32.Build.0 = Debug Unicode lib|Win32
+		{9ED4B036-7399-4128-868D-6E71188E0277}.Debug Unicode lib|x64.ActiveCfg = Debug Unicode lib|Win32
+		{9ED4B036-7399-4128-868D-6E71188E0277}.Debug Unicode|Win32.ActiveCfg = Debug Unicode|Win32
+		{9ED4B036-7399-4128-868D-6E71188E0277}.Debug Unicode|Win32.Build.0 = Debug Unicode|Win32
+		{9ED4B036-7399-4128-868D-6E71188E0277}.Debug Unicode|x64.ActiveCfg = Debug Unicode|Win32
+		{9ED4B036-7399-4128-868D-6E71188E0277}.Debug|Win32.ActiveCfg = Debug|Win32
+		{9ED4B036-7399-4128-868D-6E71188E0277}.Debug|Win32.Build.0 = Debug|Win32
+		{9ED4B036-7399-4128-868D-6E71188E0277}.Debug|x64.ActiveCfg = Debug|Win32
+		{9ED4B036-7399-4128-868D-6E71188E0277}.Release lib|Win32.ActiveCfg = Release lib|Win32
+		{9ED4B036-7399-4128-868D-6E71188E0277}.Release lib|Win32.Build.0 = Release lib|Win32
+		{9ED4B036-7399-4128-868D-6E71188E0277}.Release lib|x64.ActiveCfg = Release lib|Win32
+		{9ED4B036-7399-4128-868D-6E71188E0277}.Release Unicode lib|Win32.ActiveCfg = Release Unicode lib|Win32
+		{9ED4B036-7399-4128-868D-6E71188E0277}.Release Unicode lib|Win32.Build.0 = Release Unicode lib|Win32
+		{9ED4B036-7399-4128-868D-6E71188E0277}.Release Unicode lib|x64.ActiveCfg = Release Unicode lib|Win32
+		{9ED4B036-7399-4128-868D-6E71188E0277}.Release Unicode|Win32.ActiveCfg = Release Unicode|Win32
+		{9ED4B036-7399-4128-868D-6E71188E0277}.Release Unicode|Win32.Build.0 = Release Unicode|Win32
+		{9ED4B036-7399-4128-868D-6E71188E0277}.Release Unicode|x64.ActiveCfg = Release Unicode|Win32
+		{9ED4B036-7399-4128-868D-6E71188E0277}.Release|Win32.ActiveCfg = Release|Win32
+		{9ED4B036-7399-4128-868D-6E71188E0277}.Release|Win32.Build.0 = Release|Win32
+		{9ED4B036-7399-4128-868D-6E71188E0277}.Release|x64.ActiveCfg = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

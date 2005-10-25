@@ -483,6 +483,15 @@ CGraphBuilder::CGraphBuilder(IGraphBuilder* pGB, HWND hWnd)
 		guids.RemoveAll();
 	}
 
+	{
+		guids.AddTail(MEDIATYPE_Stream);
+		guids.AddTail(MEDIASUBTYPE_MP4);
+		AddFilter(new CGraphCustomFilter(__uuidof(CMP4SplitterFilter), guids, 
+			(s.SrcFilters&SRC_MP4) ? L"MP4 Splitter" : L"MP4 Splitter (low merit)",
+			(s.SrcFilters&SRC_MP4) ? LMERIT_ABOVE_DSHOW : LMERIT_DO_USE));
+		guids.RemoveAll();
+	}
+
 	// renderer filters
 
 	switch(s.iDSVideoRendererType)
@@ -937,6 +946,14 @@ HRESULT CGraphBuilder::AddSourceFilter(LPCTSTR lpsz, IBaseFilter** ppBF, UINT Sr
 		{
 			hr = S_OK;
 			CComPtr<IFileSourceFilter> pReader = new CDSMSourceFilter(NULL, &hr);
+			if(SUCCEEDED(hr) && SUCCEEDED(pReader->Load(fnw, NULL)))
+				pBF = pReader;
+		}
+
+		if((SrcFilters&SRC_MP4) && !pBF)
+		{
+			hr = S_OK;
+			CComPtr<IFileSourceFilter> pReader = new CMP4SourceFilter(NULL, &hr);
 			if(SUCCEEDED(hr) && SUCCEEDED(pReader->Load(fnw, NULL)))
 				pBF = pReader;
 		}
@@ -1986,6 +2003,7 @@ HRESULT CGraphCustomFilter::Create(IBaseFilter** ppBF, IUnknown** ppUnk)
 		m_clsid == __uuidof(CMpaSplitterFilter) ? (IBaseFilter*)new CMpaSplitterFilter(NULL, &hr) :
 		m_clsid == __uuidof(CMpaDecFilter) ? (IBaseFilter*)new CMpaDecFilter(NULL, &hr) :
 		m_clsid == __uuidof(CDSMSplitterFilter) ? (IBaseFilter*)new CDSMSplitterFilter(NULL, &hr) :
+		m_clsid == __uuidof(CMP4SplitterFilter) ? (IBaseFilter*)new CMP4SplitterFilter(NULL, &hr) :
 		m_clsid == __uuidof(CNullVideoRenderer) ? (IBaseFilter*)new CNullVideoRenderer() :
 		m_clsid == __uuidof(CNullAudioRenderer) ? (IBaseFilter*)new CNullAudioRenderer() :
 		m_clsid == __uuidof(CNullUVideoRenderer) ? (IBaseFilter*)new CNullUVideoRenderer() :

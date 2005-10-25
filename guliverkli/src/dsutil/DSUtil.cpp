@@ -2089,7 +2089,7 @@ int MakeAACInitData(BYTE* pData, int profile, int freq, int channels)
 		else srate_idx = 11;
 
 		pData[2] = 0x2B7>>3;
-		pData[3] = (0x2B7<<5) | 5;
+		pData[3] = (BYTE)((0x2B7<<5) | 5);
 		pData[4] = (1<<7) | (srate_idx<<3);
 
 		ret = 5;

@@ -113,6 +113,12 @@ struct DIRACINFOHEADER
     DWORD dwSequenceHeader[1];
 };
 
+// MP4
+
+// {08E22ADA-B715-45ed-9D20-7B87750301D4}
+DEFINE_GUID(MEDIASUBTYPE_MP4, 
+0x8e22ada, 0xb715, 0x45ed, 0x9d, 0x20, 0x7b, 0x87, 0x75, 0x3, 0x1, 0xd4);
+
 //
 // RealMedia
 //
