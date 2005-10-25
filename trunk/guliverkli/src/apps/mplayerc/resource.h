@@ -639,6 +639,7 @@
 #define IDS_SRC_DSM                     1165
 #define IDS_SRC_MPA                     1166
 #define IDC_DX9RESIZER_COMBO            1167
+#define IDS_SRC_MP4                     1168
 #define IDD_COMPROPERTYPAGE             10002
 #define IDD_FILEPROPCLIP1               10003
 #define IDD_FILEPROPRES                 10003
@@ -764,7 +765,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        409
 #define _APS_NEXT_COMMAND_VALUE         32866
-#define _APS_NEXT_CONTROL_VALUE         1168
+#define _APS_NEXT_CONTROL_VALUE         1169
 #define _APS_NEXT_SYMED_VALUE           10003
 #endif
 #endif

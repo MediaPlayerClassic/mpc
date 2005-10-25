@@ -2250,6 +2250,7 @@ BEGIN
     IDS_SRC_DSM             "6.4.0.3"
     IDS_SRC_MPA             "6.4.0.1\nSource filter for mp3 and aac"
     IDC_DX9RESIZER_COMBO    "If there is no Pixel Shader 2.0 support, simple bilinear is used automatically."
+    IDS_SRC_MP4             "6.4.0.0"
 END
 
 STRINGTABLE 
