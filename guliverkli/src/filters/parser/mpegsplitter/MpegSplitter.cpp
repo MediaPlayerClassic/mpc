@@ -157,7 +157,7 @@ HRESULT CMpegSplitterFilter::DemuxNextPacket(REFERENCE_TIME rtStartOffset)
 		if(!m_pFile->Read(h)) 
 			return S_FALSE;
 
-		if(h.scrambling) {ASSERT(0); return E_FAIL;}
+		if(h.scrambling) {ASSERT(0); return S_FALSE;}
 
 		__int64 pos = m_pFile->GetPos();
 
