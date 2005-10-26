@@ -24,6 +24,9 @@
 #include "..\..\..\DSUtil\DSUtil.h"
 #include "..\..\..\zlib\zlib.h"
 
+#define DOCTYPE _T("matroska")
+#define DOCTYPEVERSION 1
+
 static void LOG(LPCTSTR fmt, ...)
 {
 	va_list args;
@@ -108,7 +111,11 @@ HRESULT CMatroskaFile::Read(T& var)
 HRESULT CMatroskaFile::Parse(CMatroskaNode* pMN0)
 {
 	BeginChunk
-	case 0x1A45DFA3: m_ebml.Parse(pMN); break;
+	case 0x1A45DFA3: 
+		m_ebml.Parse(pMN);
+		if(m_ebml.DocType != DOCTYPE || m_ebml.DocTypeReadVersion > DOCTYPEVERSION)
+			return E_FAIL;
+		break;
 	case 0x18538067: if(m_segment.SegmentInfo.SegmentUID.IsEmpty()) m_segment.ParseMinimal(pMN); break;
 	EndChunk
 }

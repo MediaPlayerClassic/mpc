@@ -119,8 +119,6 @@ HRESULT CMP4SplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 	m_rtNewStart = m_rtCurrent = 0;
 	m_rtNewStop = m_rtStop = m_rtDuration = m_pFile->m_rtDuration;
 
-	CArray<DWORD> ids;
-
 	POSITION pos = m_pFile->m_mts.GetStartPosition();
 	while(pos)
 	{

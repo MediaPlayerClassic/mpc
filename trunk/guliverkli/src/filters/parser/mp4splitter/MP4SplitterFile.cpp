@@ -6,7 +6,6 @@
 
 //
 
-
 CMP4SplitterFile::CMP4SplitterFile(IAsyncReader* pReader, HRESULT& hr) 
 	: CBaseSplitterFile(pReader, hr)
 	, m_rtDuration(0)
@@ -196,8 +195,8 @@ HRESULT CMP4SplitterFile::Init()
 						mt.formattype = FORMAT_SubtitleInfo;
 						SUBTITLEINFO* si = (SUBTITLEINFO*)mt.AllocFormatBuffer(sizeof(SUBTITLEINFO));
 						memset(si, 0, mt.FormatLength());
-						strcpy_s(si->IsoLang, sizeof(si->IsoLang)/sizeof(si->IsoLang[0]), track->GetTrackLanguage().c_str());
-						wcscpy_s(si->TrackName, sizeof(si->TrackName)/sizeof(si->TrackName[0]), CStringW(track->GetTrackName().c_str()));
+						strcpy_s(si->IsoLang, countof(si->IsoLang), track->GetTrackLanguage().c_str());
+						wcscpy_s(si->TrackName, countof(si->TrackName), CStringW(track->GetTrackName().c_str()));
 						si->dwOffset = sizeof(SUBTITLEINFO);
 						m_mts[track->GetId()] = mt;
 					}
@@ -255,6 +254,32 @@ HRESULT CMP4SplitterFile::Init()
 
 					m_mts[track->GetId()] = mt;
 				}
+			}
+			else if(AP4_VisualSampleEntry* s263 = dynamic_cast<AP4_VisualSampleEntry*>(
+				track->GetTrakAtom()->FindChild("mdia/minf/stbl/stsd/s263")))
+			{
+				mt.majortype = MEDIATYPE_Video;
+				mt.subtype = FOURCCMap('362s');
+				mt.formattype = FORMAT_VideoInfo;
+				vih = (VIDEOINFOHEADER*)mt.AllocFormatBuffer(sizeof(VIDEOINFOHEADER));
+				memset(vih, 0, mt.FormatLength());
+				vih->bmiHeader.biSize = sizeof(vih->bmiHeader);
+				vih->bmiHeader.biWidth = (LONG)s263->GetWidth();
+				vih->bmiHeader.biHeight = (LONG)s263->GetHeight();
+				vih->bmiHeader.biCompression = '362s';
+				m_mts[track->GetId()] = mt;
+			}
+			else if(AP4_AudioSampleEntry* samr = dynamic_cast<AP4_AudioSampleEntry*>(
+				track->GetTrakAtom()->FindChild("mdia/minf/stbl/stsd/samr")))
+			{
+				mt.majortype = MEDIATYPE_Audio;
+				mt.subtype = FOURCCMap('rmas');
+				mt.formattype = FORMAT_WaveFormatEx;
+				wfe = (WAVEFORMATEX*)mt.AllocFormatBuffer(sizeof(WAVEFORMATEX));
+				memset(wfe, 0, mt.FormatLength());
+				wfe->nSamplesPerSec = samr->GetSampleRate();
+				wfe->nChannels = samr->GetChannelCount();
+				m_mts[track->GetId()] = mt;
 			}
 		}
 
