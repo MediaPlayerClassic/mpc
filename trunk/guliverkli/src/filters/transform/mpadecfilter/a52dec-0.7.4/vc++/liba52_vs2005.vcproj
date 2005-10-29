@@ -41,6 +41,7 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
+DisableSpecificWarnings="4995;4996"
 				Optimization="2"
 				InlineFunctionExpansion="1"
 				AdditionalIncludeDirectories=".,../include"
@@ -115,6 +116,7 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
+DisableSpecificWarnings="4995;4996"
 				Optimization="0"
 				AdditionalIncludeDirectories=".,../include"
 				PreprocessorDefinitions="WIN32;_DEBUG;_LIB"

@@ -43,8 +43,9 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
+DisableSpecificWarnings="4995;4996"
 				Optimization="0"
-				PreprocessorDefinitions="WIN32;_WINDOWS;_DEBUG;_USRDLL;WINVER=0x0500;_WIN32_WINNT=0x501;ISOLATION_AWARE_ENABLED;_CRT_SECURE_NO_DEPRECATE=;_CRT_INSECURE_DEPRECATE=;_ATL_INSECURE_DEPRECATE="
+				PreprocessorDefinitions="WIN32;_WINDOWS;_DEBUG;_USRDLL;WINVER=0x0500;_WIN32_WINNT=0x501;ISOLATION_AWARE_ENABLED;"
 				MinimalRebuild="false"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="1"
@@ -138,8 +139,9 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
+DisableSpecificWarnings="4995;4996"
 				Optimization="0"
-				PreprocessorDefinitions="WIN32;_WINDOWS;_DEBUG;_USRDLL;WINVER=0x0500;_WIN32_WINNT=0x501;ISOLATION_AWARE_ENABLED;_CRT_SECURE_NO_DEPRECATE=;_CRT_INSECURE_DEPRECATE=;_ATL_INSECURE_DEPRECATE="
+				PreprocessorDefinitions="WIN32;_WINDOWS;_DEBUG;_USRDLL;WINVER=0x0500;_WIN32_WINNT=0x501;ISOLATION_AWARE_ENABLED;"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="1"
 				ForceConformanceInForLoopScope="true"
@@ -234,11 +236,12 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
+DisableSpecificWarnings="4995;4996"
 				Optimization="3"
 				InlineFunctionExpansion="2"
 				EnableIntrinsicFunctions="true"
 				FavorSizeOrSpeed="1"
-				PreprocessorDefinitions="WIN32;_WINDOWS;NDEBUG;_USRDLL;WINVER=0x0500;_WIN32_WINNT=0x501;ISOLATION_AWARE_ENABLED;_CRT_SECURE_NO_DEPRECATE=;_CRT_INSECURE_DEPRECATE=;_ATL_INSECURE_DEPRECATE="
+				PreprocessorDefinitions="WIN32;_WINDOWS;NDEBUG;_USRDLL;WINVER=0x0500;_WIN32_WINNT=0x501;ISOLATION_AWARE_ENABLED;"
 				StringPooling="true"
 				RuntimeLibrary="0"
 				EnableFunctionLevelLinking="true"
@@ -338,11 +341,12 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
+DisableSpecificWarnings="4995;4996"
 				Optimization="3"
 				InlineFunctionExpansion="2"
 				EnableIntrinsicFunctions="true"
 				FavorSizeOrSpeed="1"
-				PreprocessorDefinitions="WIN32;_WINDOWS;NDEBUG;_USRDLL;WINVER=0x0500;_WIN32_WINNT=0x501;ISOLATION_AWARE_ENABLED;_CRT_SECURE_NO_DEPRECATE=;_CRT_INSECURE_DEPRECATE=;_ATL_INSECURE_DEPRECATE="
+				PreprocessorDefinitions="WIN32;_WINDOWS;NDEBUG;_USRDLL;WINVER=0x0500;_WIN32_WINNT=0x501;ISOLATION_AWARE_ENABLED;"
 				StringPooling="true"
 				RuntimeLibrary="0"
 				EnableFunctionLevelLinking="true"

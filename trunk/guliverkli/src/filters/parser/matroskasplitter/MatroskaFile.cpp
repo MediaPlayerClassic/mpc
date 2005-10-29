@@ -25,7 +25,7 @@
 #include "..\..\..\zlib\zlib.h"
 
 #define DOCTYPE _T("matroska")
-#define DOCTYPEVERSION 1
+#define DOCTYPEVERSION 2
 
 static void LOG(LPCTSTR fmt, ...)
 {
@@ -368,7 +368,7 @@ bool TrackEntry::Expand(CBinary& data, UINT64 Scope)
 
 		if(ce->ContentEncodingType == ContentEncoding::Compression)
 		{
-			if(!data.Decompress(ce->cc.ContentCompAlgo))
+			if(!data.Decompress(ce->cc))
 				return(false);
 		}
 		else if(ce->ContentEncodingType == ContentEncoding::Encryption)
@@ -453,7 +453,8 @@ HRESULT Cluster::Parse(CMatroskaNode* pMN0)
 	case 0xE7: TimeCode.Parse(pMN); break;
 	case 0xA7: Position.Parse(pMN); break;
 	case 0xAB: PrevSize.Parse(pMN); break;
-	case 0xA0: Blocks.Parse(pMN, true); break;
+	case 0xA0: BlockGroups.Parse(pMN, true); break;
+	case 0xA3: SimpleBlocks.Parse(pMN, true); break;
 	EndChunk
 }
 
@@ -464,84 +465,10 @@ HRESULT Cluster::ParseTimeCode(CMatroskaNode* pMN0)
 	EndChunk
 }
 
-HRESULT Block::Parse(CMatroskaNode* pMN0, bool fFull)
+HRESULT BlockGroup::Parse(CMatroskaNode* pMN0, bool fFull)
 {
 	BeginChunk
-	case 0xA1:
-	{
-		TrackNumber.Parse(pMN); 
-		CShort s; s.Parse(pMN); TimeCode.Set(s); 
-		Lacing.Parse(pMN);
-		
-		if(!fFull) break;
-
-		CList<QWORD> lens;
-		QWORD tlen = 0;
-		QWORD FrameSize;
-		BYTE FramesInLaceLessOne;
-		switch((Lacing & 0x06) >> 1)
-		{
-		case 0:
-			// No lacing
-			lens.AddTail((pMN->m_start+pMN->m_len) - (pMN->GetPos()+tlen));
-			break;
-		case 1:
-			// Xiph lacing
-			BYTE n;
-			pMN->Read(n);
-			while(n-- > 0)
-			{
-				BYTE b;
-				QWORD len = 0;
-				do {pMN->Read(b); len += b;} while(b == 0xff);
-				lens.AddTail(len);
-				tlen += len;
-			}
-			lens.AddTail((pMN->m_start+pMN->m_len) - (pMN->GetPos()+tlen));
-			break;
-		case 2:
-			// Fixed-size lacing
-			pMN->Read(FramesInLaceLessOne);
-			FramesInLaceLessOne++;
-			FrameSize = ((pMN->m_start+pMN->m_len) - (pMN->GetPos()+tlen)) / FramesInLaceLessOne;
-			while(FramesInLaceLessOne-- > 0)
-				lens.AddTail(FrameSize);
-			break;
-		case 3:
-			// EBML lacing
-			pMN->Read(FramesInLaceLessOne);
-
-			CLength FirstFrameSize;
-			FirstFrameSize.Parse(pMN);
-			lens.AddTail(FirstFrameSize);
-			FramesInLaceLessOne--;
-			tlen = FirstFrameSize;
-
-			CSignedLength DiffSize;
-			FrameSize = FirstFrameSize;
-			while(FramesInLaceLessOne--)
-			{
-				DiffSize.Parse(pMN);
-				FrameSize += DiffSize;
-				lens.AddTail(FrameSize);
-				tlen += FrameSize;
-			}
-			lens.AddTail((pMN->m_start+pMN->m_len) - (pMN->GetPos()+tlen));
-			break;
-		}
-
-		POSITION pos = lens.GetHeadPosition();
-		while(pos)
-		{
-			QWORD len = lens.GetNext(pos);
-			CAutoPtr<CBinary> p(new CBinary());
-			p->SetSize((INT_PTR)len);
-			pMN->Read(p->GetData(), len);
-			BlockData.AddTail(p);
-		}
-
-		break;
-	}
+	case 0xA1: Block.Parse(pMN, fFull); break;
 	case 0xA2: /* TODO: multiple virt blocks? */; break;
 	case 0x9B: BlockDuration.Parse(pMN); break;
 	case 0xFA: ReferencePriority.Parse(pMN); break;
@@ -550,6 +477,85 @@ HRESULT Block::Parse(CMatroskaNode* pMN0, bool fFull)
 	case 0xA4: CodecState.Parse(pMN); break;
 	case 0xE8: TimeSlices.Parse(pMN); break;
 	EndChunk
+}
+
+HRESULT SimpleBlock::Parse(CMatroskaNode* pMN, bool fFull)
+{
+	pMN->SeekTo(pMN->m_start);
+
+	TrackNumber.Parse(pMN); 
+	CShort s; s.Parse(pMN); TimeCode.Set(s); 
+	Lacing.Parse(pMN);
+	
+	if(!fFull) return S_OK;
+
+	CList<QWORD> lens;
+	QWORD tlen = 0;
+	QWORD FrameSize;
+	BYTE FramesInLaceLessOne;
+
+	switch((Lacing & 0x06) >> 1)
+	{
+	case 0:
+		// No lacing
+		lens.AddTail((pMN->m_start+pMN->m_len) - (pMN->GetPos()+tlen));
+		break;
+	case 1:
+		// Xiph lacing
+		BYTE n;
+		pMN->Read(n);
+		while(n-- > 0)
+		{
+			BYTE b;
+			QWORD len = 0;
+			do {pMN->Read(b); len += b;} while(b == 0xff);
+			lens.AddTail(len);
+			tlen += len;
+		}
+		lens.AddTail((pMN->m_start+pMN->m_len) - (pMN->GetPos()+tlen));
+		break;
+	case 2:
+		// Fixed-size lacing
+		pMN->Read(FramesInLaceLessOne);
+		FramesInLaceLessOne++;
+		FrameSize = ((pMN->m_start+pMN->m_len) - (pMN->GetPos()+tlen)) / FramesInLaceLessOne;
+		while(FramesInLaceLessOne-- > 0)
+			lens.AddTail(FrameSize);
+		break;
+	case 3:
+		// EBML lacing
+		pMN->Read(FramesInLaceLessOne);
+
+		CLength FirstFrameSize;
+		FirstFrameSize.Parse(pMN);
+		lens.AddTail(FirstFrameSize);
+		FramesInLaceLessOne--;
+		tlen = FirstFrameSize;
+
+		CSignedLength DiffSize;
+		FrameSize = FirstFrameSize;
+		while(FramesInLaceLessOne--)
+		{
+			DiffSize.Parse(pMN);
+			FrameSize += DiffSize;
+			lens.AddTail(FrameSize);
+			tlen += FrameSize;
+		}
+		lens.AddTail((pMN->m_start+pMN->m_len) - (pMN->GetPos()+tlen));
+		break;
+	}
+
+	POSITION pos = lens.GetHeadPosition();
+	while(pos)
+	{
+		QWORD len = lens.GetNext(pos);
+		CAutoPtr<CBinary> p(new CBinary());
+		p->SetSize((INT_PTR)len);
+		pMN->Read(p->GetData(), len);
+		BlockData.AddTail(p);
+	}
+
+	return S_OK;
 }
 
 HRESULT TimeSlice::Parse(CMatroskaNode* pMN0)
@@ -665,9 +671,9 @@ HRESULT CBinary::Parse(CMatroskaNode* pMN)
 	return pMN->Read(GetData(), pMN->m_len);
 }
 
-bool CBinary::Compress(CUInt& ContentCompAlgo)
+bool CBinary::Compress(ContentCompression& cc)
 {
-	if(ContentCompAlgo == ContentCompression::ZLIB)
+	if(cc.ContentCompAlgo == ContentCompression::ZLIB)
 	{
 		int res;
 		z_stream c_stream;
@@ -710,9 +716,9 @@ bool CBinary::Compress(CUInt& ContentCompAlgo)
 	return(false);
 }
 
-bool CBinary::Decompress(CUInt& ContentCompAlgo)
+bool CBinary::Decompress(ContentCompression& cc)
 {
-	if(ContentCompAlgo == ContentCompression::ZLIB)
+	if(cc.ContentCompAlgo == ContentCompression::ZLIB)
 	{
 		int res;
 		z_stream d_stream;
@@ -750,6 +756,10 @@ bool CBinary::Decompress(CUInt& ContentCompAlgo)
 		free(dst);
 
 		return(true);
+	}
+	else if(cc.ContentCompAlgo == ContentCompression::HDRSTRIP)
+	{
+		InsertAt(0, &cc.ContentCompSettings);	
 	}
 
 	return(false);
@@ -961,9 +971,18 @@ HRESULT CNode<T>::Parse(CMatroskaNode* pMN)
 	return S_OK;
 }
 
-HRESULT CBlockNode::Parse(CMatroskaNode* pMN, bool fFull)
+HRESULT CBlockGroupNode::Parse(CMatroskaNode* pMN, bool fFull)
 {
-	CAutoPtr<Block> p(new Block());
+	CAutoPtr<BlockGroup> p(new BlockGroup());
+	HRESULT hr = E_OUTOFMEMORY;
+	if(!p || FAILED(hr = p->Parse(pMN, fFull))) return hr;
+	AddTail(p);
+	return S_OK;
+}
+
+HRESULT CSimpleBlockNode::Parse(CMatroskaNode* pMN, bool fFull)
+{
+	CAutoPtr<SimpleBlock> p(new SimpleBlock());
 	HRESULT hr = E_OUTOFMEMORY;
 	if(!p || FAILED(hr = p->Parse(pMN, fFull))) return hr;
 	AddTail(p);
@@ -1086,6 +1105,38 @@ CAutoPtr<CMatroskaNode> CMatroskaNode::Copy()
 	pNewNode->m_filepos = m_filepos;
 	pNewNode->m_start = m_start;
 	return(pNewNode);
+}
+
+CAutoPtr<CMatroskaNode> CMatroskaNode::GetFirstBlock()
+{
+	CAutoPtr<CMatroskaNode> pNode = Child();
+	do {if(pNode->m_id == 0xA0 || pNode->m_id == 0xA3) return pNode;}
+	while(pNode->Next());
+	return CAutoPtr<CMatroskaNode>();
+}
+
+bool CMatroskaNode::NextBlock()
+{
+	if(!m_pParent)
+		return(false);
+
+	CID id = m_id;
+
+	while(m_start+m_len < m_pParent->m_start+m_pParent->m_len)
+	{
+		SeekTo(m_start+m_len);
+
+		if(FAILED(Parse()))
+		{
+			if(!Resync())
+				return(false);
+		}
+
+		if(m_id == 0xA0 || m_id == 0xA3) 
+			return(true);
+	}
+
+	return(false);
 }
 
 bool CMatroskaNode::Resync()

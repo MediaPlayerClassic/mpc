@@ -425,7 +425,6 @@ bool Rasterizer::ScanConvert()
 		case PT_MOVETO:
 			if(lastmoveto >= 0 && firstp != lastp)
 				_EvaluateLine(lastp.x, lastp.y, firstp.x, firstp.y);
-
 			lastmoveto = i;
 			fFirstSet = false;
 			lastp = mpPathPoints[i];
@@ -433,18 +432,18 @@ bool Rasterizer::ScanConvert()
 		case PT_MOVETONC:
 			break;
 		case PT_LINETO:
-			_EvaluateLine(i-1, i);
+			if(mPathPoints - (i-1) >= 2) _EvaluateLine(i-1, i);
 			break;
 		case PT_BEZIERTO:
-			_EvaluateBezier(i-1, false);
+			if(mPathPoints - (i-1) >= 4) _EvaluateBezier(i-1, false);
 			i += 2;
 			break;
 		case PT_BSPLINETO:
-			_EvaluateBezier(i-1, true);
+			if(mPathPoints - (i-1) >= 4) _EvaluateBezier(i-1, true);
 			i += 2;
 			break;
 		case PT_BSPLINEPATCHTO:
-			_EvaluateBezier(i-3, true);
+			if(mPathPoints - (i-3) >= 4) _EvaluateBezier(i-3, true);
 			break;
 		}
 	}

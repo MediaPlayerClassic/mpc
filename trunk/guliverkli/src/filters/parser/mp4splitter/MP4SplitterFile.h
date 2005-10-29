@@ -3,7 +3,7 @@
 #include "..\BaseSplitter\BaseSplitter.h"
 // #include "Ap4AsyncReaderStream.h" // FIXME
 
-class CMP4SplitterFile : public CBaseSplitterFile
+class CMP4SplitterFile : public CBaseSplitterFileEx
 {
 	void* /* AP4_File* */ m_pAp4File;
 
@@ -14,7 +14,4 @@ public:
 	virtual ~CMP4SplitterFile();
 
 	void* /* AP4_Movie* */ GetMovie();
-
-	CAtlMap<DWORD, CMediaType> m_mts;
-	REFERENCE_TIME m_rtDuration;
 };

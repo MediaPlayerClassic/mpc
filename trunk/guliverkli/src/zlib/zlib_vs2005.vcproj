@@ -42,6 +42,7 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
+DisableSpecificWarnings="4995;4996"
 				Optimization="0"
 				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS"
 				RuntimeLibrary="1"
@@ -111,6 +112,7 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
+DisableSpecificWarnings="4995;4996"
 				Optimization="3"
 				InlineFunctionExpansion="1"
 				EnableIntrinsicFunctions="true"

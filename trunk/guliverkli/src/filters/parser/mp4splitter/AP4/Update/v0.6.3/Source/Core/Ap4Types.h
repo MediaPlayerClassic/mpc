@@ -1,6 +1,6 @@
 /*****************************************************************
 |
-|    AP4 - mdhd Atoms 
+|    AP4 - Shared Types
 |
 |    Copyright 2002 Gilles Boccon-Gibod
 |
@@ -26,54 +26,40 @@
 |
  ****************************************************************/
 
-#ifndef _AP4_MDHD_ATOM_H_
-#define _AP4_MDHD_ATOM_H_
+#ifndef _AP4_TYPES_H_
+#define _AP4_TYPES_H_
 
 /*----------------------------------------------------------------------
 |       includes
 +---------------------------------------------------------------------*/
-#include "Ap4.h"
-#include "Ap4ByteStream.h"
-#include "Ap4List.h"
-#include "Ap4Atom.h"
+#include "Ap4Config.h"
+#if defined(AP4_CONFIG_HAVE_CPP_STRING_H)
+#include <string>
+#endif
 
 /*----------------------------------------------------------------------
-|       constants
+|       types
 +---------------------------------------------------------------------*/
-const AP4_UI32 AP4_MDHD_DEFAULT_GENERIC_TIMESCALE = 1000;
-const AP4_UI32 AP4_MDHD_DEFAULT_VIDEO_TIMESCALE = 90000;
+typedef int            AP4_Result;
+typedef unsigned long  AP4_Flags;
+typedef unsigned long  AP4_Mask;
+typedef unsigned long  AP4_Size;
+typedef unsigned long  AP4_Offset;
+typedef unsigned long  AP4_Range;
+typedef unsigned long  AP4_Cardinal;
+typedef unsigned long  AP4_Ordinal;
+typedef unsigned long  AP4_TimeStamp;
+typedef unsigned long  AP4_Duration;
+typedef int            AP4_Coordinate;
+typedef int            AP4_Distance;
+typedef int            AP4_Integer;
+typedef unsigned int   AP4_UI32;
+typedef unsigned short AP4_UI16;
+typedef unsigned char  AP4_UI08;
+typedef float          AP4_Float;
+typedef std::string    AP4_String;
+typedef unsigned char  AP4_Byte;
 
-/*----------------------------------------------------------------------
-|       AP4_MdhdAtom
-+---------------------------------------------------------------------*/
-class AP4_MdhdAtom : public AP4_Atom
-{
- public:
-    // methods
-    AP4_MdhdAtom(AP4_UI32    creation_time,
-                 AP4_UI32    modification_time,
-                 AP4_UI32    time_scale,
-                 AP4_UI32    duration,
-                 const char* language);
-    AP4_MdhdAtom(AP4_Size size, AP4_ByteStream& stream);
-    virtual AP4_Result InspectFields(AP4_AtomInspector& inspector);
-    virtual AP4_Result WriteFields(AP4_ByteStream& stream);
+typedef unsigned long long AP4_UI64;
 
-    AP4_UI32 GetDurationMs();
-    AP4_UI32 GetDuration()  { return m_Duration;  }
-    AP4_UI32 GetTimeScale() { return m_TimeScale; }
-	AP4_String GetLanguage() { return AP4_String(m_Language, 3); }
-
- private:
-    // members
-    AP4_UI32 m_CreationTime;
-    AP4_UI32 m_ModificationTime;
-    AP4_UI32 m_TimeScale;
-    AP4_UI32 m_Duration;
-    char     m_Language[3];
-    AP4_UI08 m_Reserved1[8];
-    AP4_UI08 m_Reserved2[8];
-    AP4_UI08 m_Reserved3[8];
-};
-
-#endif // _AP4_MDHD_ATOM_H_
+#endif // _AP4_TYPES_H_

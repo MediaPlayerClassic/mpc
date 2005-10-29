@@ -807,11 +807,7 @@ void CMatroskaSplitterFilter::DemuxSeek(REFERENCE_TIME rt)
 	m_pCluster = m_pSegment->Child(0x1F43B675);
 	m_pBlock.Free();
 
-	if(rt <= 0)
-	{
-		m_pBlock = m_pCluster->Child(0xA0);
-	}
-	else
+	if(rt > 0)
 	{
 		rt += m_pFile->m_rtOffset;
 
@@ -864,33 +860,44 @@ void CMatroskaSplitterFilter::DemuxSeek(REFERENCE_TIME rt)
 						Cluster c;
 						c.ParseTimeCode(m_pCluster);
 
-						if(CAutoPtr<CMatroskaNode> pBlock = m_pCluster->Child(0xA0))
+						if(CAutoPtr<CMatroskaNode> pBlock = m_pCluster->GetFirstBlock())
 						{
 							bool fPassedCueTime = false;
 
 							do
 							{
-								CBlockNode blocks;
-								blocks.Parse(pBlock, false);
+								CBlockGroupNode bgn;
 
-								POSITION pos4 = blocks.GetHeadPosition();
+								if(pBlock->m_id == 0xA0)
+								{
+									bgn.Parse(pBlock, true);
+								}
+								else if(pBlock->m_id == 0xA3)
+								{
+									CAutoPtr<BlockGroup> bg(new BlockGroup());
+									bg->Block.Parse(pBlock, true);
+									if(!(bg->Block.Lacing & 0x80)) bg->ReferenceBlock.Set(0); // not a kf
+									bgn.AddTail(bg);
+								}
+
+								POSITION pos4 = bgn.GetHeadPosition();
 								while(!fPassedCueTime && pos4)
 								{
-									Block* b = blocks.GetNext(pos4);
+									BlockGroup* bg = bgn.GetNext(pos4);
 
-									if(b->TrackNumber == pCueTrackPositions->CueTrack && rt < s.GetRefTime(c.TimeCode+b->TimeCode)
-									|| rt + 5000000i64 < s.GetRefTime(c.TimeCode+b->TimeCode)) // allow 500ms difference between tracks, just in case intreleaving wasn't that much precise
+									if(bg->Block.TrackNumber == pCueTrackPositions->CueTrack && rt < s.GetRefTime(c.TimeCode + bg->Block.TimeCode)
+									|| rt + 5000000i64 < s.GetRefTime(c.TimeCode + bg->Block.TimeCode)) // allow 500ms difference between tracks, just in case intreleaving wasn't that much precise
 									{
 										fPassedCueTime = true;
 									}
-									else if(b->TrackNumber == pCueTrackPositions->CueTrack && !b->ReferenceBlock.IsValid())
+									else if(bg->Block.TrackNumber == pCueTrackPositions->CueTrack && !bg->ReferenceBlock.IsValid())
 									{
 										fFoundKeyFrame = true;
 										m_pBlock = pBlock->Copy();
 									}
 								}
 							}
-							while(!fPassedCueTime && pBlock->Next(true));
+							while(!fPassedCueTime && pBlock->NextBlock());
 						}
 					}
 
@@ -903,7 +910,6 @@ void CMatroskaSplitterFilter::DemuxSeek(REFERENCE_TIME rt)
 		if(!m_pBlock)
 		{
 			m_pCluster = m_pSegment->Child(0x1F43B675);
-			m_pBlock = m_pCluster->Child(0xA0);
 		}
 	}
 }
@@ -919,39 +925,49 @@ bool CMatroskaSplitterFilter::DemuxLoop()
 		Cluster c;
 		c.ParseTimeCode(m_pCluster);
 
-		if(!m_pBlock) m_pBlock = m_pCluster->Child(0xA0);
+		if(!m_pBlock) m_pBlock = m_pCluster->GetFirstBlock();
 		if(!m_pBlock) continue;
 
 		do
 		{
-			CBlockNode b;
-			b.Parse(m_pBlock, true);
+			CBlockGroupNode bgn;
 
-			while(b.GetCount())
+			if(m_pBlock->m_id == 0xA0)
+			{
+				bgn.Parse(m_pBlock, true);
+			}
+			else if(m_pBlock->m_id == 0xA3)
+			{
+				CAutoPtr<BlockGroup> bg(new BlockGroup());
+				bg->Block.Parse(m_pBlock, true);
+				if(!(bg->Block.Lacing & 0x80)) bg->ReferenceBlock.Set(0); // not a kf
+				bgn.AddTail(bg);
+			}
+
+			while(bgn.GetCount())
 			{
 				CAutoPtr<MatroskaPacket> p(new MatroskaPacket());
-				p->b = b.RemoveHead();
-				p->bSyncPoint = !p->b->ReferenceBlock.IsValid();
-				p->TrackNumber = (DWORD)p->b->TrackNumber;
+				p->bg = bgn.RemoveHead();
 
-				TrackEntry *pTE = m_pTrackEntryMap[(DWORD)p->TrackNumber];
-				p->rtStart = m_pFile->m_segment.GetRefTime((REFERENCE_TIME)c.TimeCode + p->b->TimeCode);
-/*static __int64 t = 0;	
-p->rtStart = t;
-t += 420000;
-*/				p->rtStop = p->rtStart + (p->b->BlockDuration.IsValid() ? m_pFile->m_segment.GetRefTime(p->b->BlockDuration) : 1);
+				p->bSyncPoint = !p->bg->ReferenceBlock.IsValid();
+				p->TrackNumber = (DWORD)p->bg->Block.TrackNumber;
+
+				TrackEntry *pTE = m_pTrackEntryMap[p->TrackNumber];
+				p->rtStart = m_pFile->m_segment.GetRefTime((REFERENCE_TIME)c.TimeCode + p->bg->Block.TimeCode);
+				p->rtStop = p->rtStart + (p->bg->BlockDuration.IsValid() ? m_pFile->m_segment.GetRefTime(p->bg->BlockDuration) : 1);
+
 				// Fix subtitle with duration = 0
-				if(pTE && (pTE->TrackType == TrackEntry::TypeSubtitle) && (!p->b->BlockDuration.IsValid()))
+				if(pTE && (pTE->TrackType == TrackEntry::TypeSubtitle) && (!p->bg->BlockDuration.IsValid()))
 				{
-					p->b->BlockDuration.Set(1); // just to set it valid
+					p->bg->BlockDuration.Set(1); // just setting it to be valid
 					p->rtStop = p->rtStart;
 				}
 
-				POSITION pos = p->b->BlockData.GetHeadPosition();
+				POSITION pos = p->bg->Block.BlockData.GetHeadPosition();
 				while(pos)
 				{
-					if(!m_pTrackEntryMap[p->TrackNumber]->Expand(*(CBinary*)p->b->BlockData.GetNext(pos), ContentEncoding::AllFrameContents))
-						continue;
+					CBinary* pb = p->bg->Block.BlockData.GetNext(pos);
+					m_pTrackEntryMap[p->TrackNumber]->Expand(*pb, ContentEncoding::AllFrameContents);
 				}
 
 				// HACK
@@ -961,7 +977,7 @@ t += 420000;
 				hr = DeliverPacket(p);
 			}
 		}
-		while(m_pBlock->Next(true) && SUCCEEDED(hr) && !CheckRequest(NULL));
+		while(m_pBlock->NextBlock() && SUCCEEDED(hr) && !CheckRequest(NULL));
 
 		m_pBlock.Free();
 	}
@@ -1048,7 +1064,7 @@ CMatroskaSplitterOutputPin::CMatroskaSplitterOutputPin(
 	: CBaseSplitterOutputPin(mts, pName, pFilter, pLock, phr)
 	, m_nMinCache(nMinCache), m_rtDefaultDuration(rtDefaultDuration)
 {
-	m_nMinCache = max(m_nMinCache, 2);
+	m_nMinCache = max(m_nMinCache, 1);
 }
 
 CMatroskaSplitterOutputPin::~CMatroskaSplitterOutputPin()
@@ -1076,7 +1092,7 @@ HRESULT CMatroskaSplitterOutputPin::DeliverEndOfStream()
 	while(m_rob.GetCount())
 	{
 		MatroskaPacket* mp = m_rob.RemoveHead();
-		if(m_rob.GetCount() && !mp->b->BlockDuration.IsValid()) 
+		if(m_rob.GetCount() && !mp->bg->BlockDuration.IsValid()) 
 			mp->rtStop = m_rob.GetHead()->rtStart;
 		else if(m_rob.GetCount() == 0 && m_rtDefaultDuration > 0)
 			mp->rtStop = mp->rtStart + m_rtDefaultDuration;
@@ -1098,6 +1114,7 @@ HRESULT CMatroskaSplitterOutputPin::DeliverPacket(CAutoPtr<Packet> p)
 {
 	MatroskaPacket* mp = dynamic_cast<MatroskaPacket*>(p.m_p);
 	if(!mp) return __super::DeliverPacket(p);
+
 	// don't try to understand what's happening here, it's magic
 
 	CAutoLock cAutoLock(&m_csQueue);
@@ -1108,7 +1125,7 @@ HRESULT CMatroskaSplitterOutputPin::DeliverPacket(CAutoPtr<Packet> p)
 	m_packets.AddTail(p2);
 
 	POSITION pos = m_rob.GetTailPosition();
-	for(int i = m_nMinCache-1; i > 0 && pos && mp->b->ReferencePriority < m_rob.GetAt(pos)->b->ReferencePriority; i--)
+	for(int i = m_nMinCache-1; i > 0 && pos && mp->bg->ReferencePriority < m_rob.GetAt(pos)->bg->ReferencePriority; i--)
 		m_rob.GetPrev(pos);
 
 	if(!pos) m_rob.AddHead(mp);
@@ -1122,9 +1139,9 @@ HRESULT CMatroskaSplitterOutputPin::DeliverPacket(CAutoPtr<Packet> p)
 		pos = m_rob.GetHeadPosition();
 		MatroskaPacket* mp1 = m_rob.GetNext(pos);
 		MatroskaPacket* mp2 = m_rob.GetNext(pos);
-		if(!mp1->b->BlockDuration.IsValid())
+		if(!mp1->bg->BlockDuration.IsValid())
 		{
-			mp1->b->BlockDuration.Set(1); // just to set it valid
+			mp1->bg->BlockDuration.Set(1); // just to set it valid
 
 			if(mp1->rtStart >= mp2->rtStart)
 			{
@@ -1144,7 +1161,7 @@ HRESULT CMatroskaSplitterOutputPin::DeliverPacket(CAutoPtr<Packet> p)
 	while(m_packets.GetCount())
 	{
 		mp = m_packets.GetHead();
-		if(!mp->b->BlockDuration.IsValid()) break;
+		if(!mp->bg->BlockDuration.IsValid()) break;
         
 		mp = m_rob.RemoveHead();
 		timeoverride to = {mp->rtStart, mp->rtStop};
@@ -1175,10 +1192,10 @@ HRESULT CMatroskaSplitterOutputPin::DeliverBlock(MatroskaPacket* p)
 		
 	REFERENCE_TIME 
 		rtStart = p->rtStart,
-		rtDelta = (p->rtStop - p->rtStart) / p->b->BlockData.GetCount(),
+		rtDelta = (p->rtStop - p->rtStart) / p->bg->Block.BlockData.GetCount(),
 		rtStop = p->rtStart + rtDelta;
 
-	POSITION pos = p->b->BlockData.GetHeadPosition();
+	POSITION pos = p->bg->Block.BlockData.GetHeadPosition();
 	while(pos)
 	{
 		CAutoPtr<Packet> tmp(new Packet());
@@ -1187,7 +1204,7 @@ HRESULT CMatroskaSplitterOutputPin::DeliverBlock(MatroskaPacket* p)
 		tmp->bSyncPoint = p->bSyncPoint;
 		tmp->rtStart = rtStart;
 		tmp->rtStop = rtStop;
-		tmp->pData.Copy(*p->b->BlockData.GetNext(pos));
+		tmp->pData.Copy(*p->bg->Block.BlockData.GetNext(pos));
 		if(S_OK != (hr = DeliverPacket(tmp))) break;
 
 		rtStart += rtDelta;

@@ -634,6 +634,13 @@ HRESULT CMpeg2DecFilter::CheckConnect(PIN_DIRECTION dir, IPin* pPin)
 
 HRESULT CMpeg2DecFilter::CheckInputType(const CMediaType* mtIn)
 {
+	if(mtIn->formattype == FORMAT_MPEG2_VIDEO && mtIn->pbFormat)
+	{
+		MPEG2VIDEOINFO* vih = (MPEG2VIDEOINFO*)mtIn->pbFormat;
+		if(vih->cbSequenceHeader > 0 && (vih->dwSequenceHeader[1] & 0x00ffffff) != 0x00010000)
+			return VFW_E_TYPE_NOT_ACCEPTED;
+	}
+
 	return (mtIn->majortype == MEDIATYPE_DVD_ENCRYPTED_PACK && mtIn->subtype == MEDIASUBTYPE_MPEG2_VIDEO
 			|| mtIn->majortype == MEDIATYPE_MPEG2_PACK && mtIn->subtype == MEDIASUBTYPE_MPEG2_VIDEO
 			|| mtIn->majortype == MEDIATYPE_MPEG2_PES && mtIn->subtype == MEDIASUBTYPE_MPEG2_VIDEO

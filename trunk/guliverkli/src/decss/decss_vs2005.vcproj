@@ -41,8 +41,9 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
+DisableSpecificWarnings="4995;4996"
 				Optimization="0"
-				PreprocessorDefinitions="WIN32;_DEBUG;_LIB;_CRT_SECURE_NO_DEPRECATE=;_CRT_INSECURE_DEPRECATE=;_ATL_INSECURE_DEPRECATE="
+				PreprocessorDefinitions="WIN32;_DEBUG;_LIB;"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="1"
@@ -104,10 +105,11 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
+DisableSpecificWarnings="4995;4996"
 				Optimization="2"
 				InlineFunctionExpansion="1"
 				OmitFramePointers="true"
-				PreprocessorDefinitions="WIN32;NDEBUG;_LIB;_CRT_SECURE_NO_DEPRECATE=;_CRT_INSECURE_DEPRECATE=;_ATL_INSECURE_DEPRECATE="
+				PreprocessorDefinitions="WIN32;NDEBUG;_LIB;"
 				StringPooling="true"
 				RuntimeLibrary="0"
 				EnableFunctionLevelLinking="true"
@@ -169,8 +171,9 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
+DisableSpecificWarnings="4995;4996"
 				Optimization="0"
-				PreprocessorDefinitions="WIN32;_DEBUG;_LIB;_CRT_SECURE_NO_DEPRECATE=;_CRT_INSECURE_DEPRECATE=;_ATL_INSECURE_DEPRECATE="
+				PreprocessorDefinitions="WIN32;_DEBUG;_LIB;"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="1"
@@ -232,10 +235,11 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
+DisableSpecificWarnings="4995;4996"
 				Optimization="2"
 				InlineFunctionExpansion="1"
 				OmitFramePointers="true"
-				PreprocessorDefinitions="WIN32;NDEBUG;_LIB;_CRT_SECURE_NO_DEPRECATE=;_CRT_INSECURE_DEPRECATE=;_ATL_INSECURE_DEPRECATE="
+				PreprocessorDefinitions="WIN32;NDEBUG;_LIB;"
 				StringPooling="true"
 				RuntimeLibrary="0"
 				EnableFunctionLevelLinking="true"
