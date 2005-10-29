@@ -637,7 +637,7 @@ HRESULT CMpeg2DecFilter::CheckInputType(const CMediaType* mtIn)
 	if(mtIn->formattype == FORMAT_MPEG2_VIDEO && mtIn->pbFormat)
 	{
 		MPEG2VIDEOINFO* vih = (MPEG2VIDEOINFO*)mtIn->pbFormat;
-		if(vih->cbSequenceHeader > 0 && (vih->dwSequenceHeader[1] & 0x00ffffff) != 0x00010000)
+		if(vih->cbSequenceHeader > 0 && (vih->dwSequenceHeader[0] & 0x00ffffff) != 0x00010000)
 			return VFW_E_TYPE_NOT_ACCEPTED;
 	}
 
