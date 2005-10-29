@@ -41,6 +41,7 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
+DisableSpecificWarnings="4995;4996"
 				Optimization="0"
 				PreprocessorDefinitions="WIN32;_DEBUG;_LIB"
 				MinimalRebuild="true"
@@ -105,6 +106,7 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
+DisableSpecificWarnings="4995;4996"
 				Optimization="2"
 				InlineFunctionExpansion="1"
 				OmitFramePointers="true"
@@ -170,6 +172,7 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
+DisableSpecificWarnings="4995;4996"
 				Optimization="0"
 				PreprocessorDefinitions="WIN32;_DEBUG;_LIB"
 				MinimalRebuild="true"
@@ -234,6 +237,7 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
+DisableSpecificWarnings="4995;4996"
 				Optimization="2"
 				InlineFunctionExpansion="1"
 				OmitFramePointers="true"
@@ -299,6 +303,7 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
+DisableSpecificWarnings="4995;4996"
 				Optimization="0"
 				PreprocessorDefinitions="REGISTER_FILTER;WIN32;_DEBUG"
 				MinimalRebuild="true"
@@ -379,6 +384,7 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
+DisableSpecificWarnings="4995;4996"
 				Optimization="2"
 				InlineFunctionExpansion="1"
 				OmitFramePointers="true"
@@ -462,6 +468,7 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
+DisableSpecificWarnings="4995;4996"
 				Optimization="0"
 				PreprocessorDefinitions="REGISTER_FILTER;WIN32;_DEBUG"
 				MinimalRebuild="true"
@@ -543,6 +550,7 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
+DisableSpecificWarnings="4995;4996"
 				Optimization="2"
 				InlineFunctionExpansion="1"
 				OmitFramePointers="true"

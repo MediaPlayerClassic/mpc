@@ -34,12 +34,12 @@ protected:
 	int GetSize()
 	{
 		int size = 0;
-		POSITION pos = b->BlockData.GetHeadPosition();
-		while(pos) {size += b->BlockData.GetNext(pos)->GetSize();}
+		POSITION pos = bg->Block.BlockData.GetHeadPosition();
+		while(pos) {size += bg->Block.BlockData.GetNext(pos)->GetSize();}
 		return size;
 	}
 public:
-	CAutoPtr<MatroskaReader::Block> b;
+	CAutoPtr<MatroskaReader::BlockGroup> bg;
 };
 
 class CMatroskaSplitterOutputPin : public CBaseSplitterOutputPin

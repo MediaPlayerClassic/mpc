@@ -993,7 +993,7 @@ bool CBaseSplitterFileEx::Read(avchdr& h, int len, CMediaType* pmt)
 		if(spspos != 0 && spslen == 0) spslen = pos - spspos;
 		else if(ppspos != 0 && ppslen == 0) ppslen = pos - ppspos;
 		
-		if(id == 0x67)
+		if((id&0x9f) == 0x07 && (id&0x60) != 0)
 		{
 			spspos = pos;
 
@@ -1030,7 +1030,7 @@ bool CBaseSplitterFileEx::Read(avchdr& h, int len, CMediaType* pmt)
 			h.width = (pic_width_in_mbs_minus1 + 1) * 16;
 			h.height = (2 - frame_mbs_only_flag) * (pic_height_in_map_units_minus1 + 1) * 16;
 		}
-		else if(id == 0x68)
+		else if((id&0x9f) == 0x08 && (id&0x60) != 0)
 		{
 			ppspos = pos;
 		}

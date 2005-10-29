@@ -44,6 +44,7 @@
 #include "Ap4StsdAtom.h"
 #include "Ap4StscAtom.h"
 #include "Ap4StcoAtom.h"
+#include "Ap4Co64Atom.h"
 #include "Ap4StszAtom.h"
 #include "Ap4EsdsAtom.h"
 #include "Ap4SttsAtom.h"
@@ -141,7 +142,7 @@ AP4_AtomFactory::CreateAtomFromStream(AP4_ByteStream& stream,
     }
 
     // check the size (we don't handle extended size yet)
-    if (size < 8 || size > bytes_available) {
+    if (size != 1 && size < 8 || size > bytes_available) {
         stream.Seek(start);
         return AP4_ERROR_INVALID_FORMAT;
     }
@@ -153,6 +154,23 @@ AP4_AtomFactory::CreateAtomFromStream(AP4_ByteStream& stream,
         stream.Seek(start);
         return result;
     }
+
+	if (size == 1)
+	{
+		AP4_UI32 size_high;
+
+		result = stream.ReadUI32(size_high);
+		if (AP4_FAILED(result) || size_high) {
+			stream.Seek(start);
+			return AP4_ERROR_INVALID_FORMAT;
+		}
+
+		result = stream.ReadUI32(size);
+		if (AP4_FAILED(result)) {
+			stream.Seek(start);
+			return result;
+		}
+	}
 
     // create the atom
     switch (type) {
@@ -198,6 +216,10 @@ AP4_AtomFactory::CreateAtomFromStream(AP4_ByteStream& stream,
 
       case AP4_ATOM_TYPE_STCO:
         atom = new AP4_StcoAtom(size, stream);
+        break;
+
+      case AP4_ATOM_TYPE_CO64:
+        atom = new AP4_Co64Atom(size, stream);
         break;
 
       case AP4_ATOM_TYPE_STSZ:
@@ -338,6 +360,14 @@ AP4_AtomFactory::CreateAtomFromStream(AP4_ByteStream& stream,
 
       case AP4_ATOM_TYPE_FTAB:
         atom = new AP4_FtabAtom(size, stream);
+        break;
+
+      case AP4_ATOM_TYPE_S263:
+        atom = new AP4_VisualSampleEntry(AP4_ATOM_TYPE_S263, size, stream, *this); // TODO
+        break;
+
+	  case AP4_ATOM_TYPE_SAMR:
+        atom = new AP4_AudioSampleEntry(AP4_ATOM_TYPE_SAMR, size, stream, *this); // TODO
         break;
 
       default:

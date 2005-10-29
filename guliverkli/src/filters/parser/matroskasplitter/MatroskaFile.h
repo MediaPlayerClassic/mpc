@@ -60,13 +60,15 @@ namespace MatroskaReader
 	class CLength : public CSimpleVar<UINT64, CLength> {bool m_fSigned; public: CLength(bool fSigned = false) : m_fSigned(fSigned) {} HRESULT Parse(CMatroskaNode* pMN);};
 	class CSignedLength : public CLength {public: CSignedLength() : CLength(true) {}};
 
+	class ContentCompression;
+
 	class CBinary : public CArray<BYTE>
 	{
 	public:
 		CBinary& operator = (const CBinary& b) {Copy(b); return(*this);}
 		operator BYTE*() {return (BYTE*)GetData();}
 		CStringA ToString() {return CStringA((LPCSTR)GetData(), GetCount());}
-		bool Compress(CUInt& ContentCompAlgo), Decompress(CUInt& ContentCompAlgo);
+		bool Compress(ContentCompression& cc), Decompress(ContentCompression& cc);
 		HRESULT Parse(CMatroskaNode* pMN);
 	};
 
@@ -124,13 +126,21 @@ namespace MatroskaReader
 					HRESULT Parse(CMatroskaNode* pMN);
 				};
 
-			class Block
+				class SimpleBlock
+				{
+				public:
+					CLength TrackNumber;
+					CInt TimeCode;
+					CByte Lacing;
+					CAutoPtrList<CBinary> BlockData;
+
+					HRESULT Parse(CMatroskaNode* pMN, bool fFull);
+				};
+
+			class BlockGroup
 			{
 			public:
-				CLength TrackNumber;
-				CInt TimeCode;
-				CByte Lacing;
-				CAutoPtrList<CBinary> BlockData;
+				SimpleBlock Block;
 //				BlockVirtual
 				CUInt BlockDuration;
 				CUInt ReferencePriority;
@@ -142,7 +152,13 @@ namespace MatroskaReader
 				HRESULT Parse(CMatroskaNode* pMN, bool fFull);
 			};
 
-			class CBlockNode : public CNode<Block>
+			class CBlockGroupNode : public CNode<BlockGroup>
+			{
+			public:
+				HRESULT Parse(CMatroskaNode* pMN, bool fFull);
+			};
+
+			class CSimpleBlockNode : public CNode<SimpleBlock>
 			{
 			public:
 				HRESULT Parse(CMatroskaNode* pMN, bool fFull);
@@ -152,7 +168,8 @@ namespace MatroskaReader
 		{
 		public:
 			CUInt TimeCode, Position, PrevSize;
-			CBlockNode Blocks;
+			CBlockGroupNode BlockGroups;
+			CSimpleBlockNode SimpleBlocks;
 
 			HRESULT Parse(CMatroskaNode* pMN);
 			HRESULT ParseTimeCode(CMatroskaNode* pMN);
@@ -187,7 +204,7 @@ namespace MatroskaReader
 						class ContentCompression
 						{
 						public:
-							CUInt ContentCompAlgo; enum {ZLIB, BZLIB, LZO1X};
+							CUInt ContentCompAlgo; enum {ZLIB, BZLIB, LZO1X, HDRSTRIP};
 							CBinary ContentCompSettings;
 
 							ContentCompression() {ContentCompAlgo.Set(ZLIB);}
@@ -432,5 +449,8 @@ namespace MatroskaReader
 		HRESULT Read(BYTE* pData, QWORD len);
 
 		CAutoPtr<CMatroskaNode> Copy();
+			
+		CAutoPtr<CMatroskaNode> GetFirstBlock();
+		bool NextBlock();
 	};
 }

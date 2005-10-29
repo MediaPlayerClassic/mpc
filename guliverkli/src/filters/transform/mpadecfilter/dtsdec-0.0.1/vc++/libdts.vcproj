@@ -124,13 +124,13 @@
 			Name="Source Files"
 			Filter="cpp;c;cxx;rc;def;r;odl;idl;hpj;bat">
 			<File
-				RelativePath="..\libdts\bitstream.c">
+				RelativePath="..\libdts\dts_bitstream.c">
 			</File>
 			<File
-				RelativePath="..\libdts\downmix.c">
+				RelativePath="..\libdts\dts_downmix.c">
 			</File>
 			<File
-				RelativePath="..\libdts\parse.c">
+				RelativePath="..\libdts\dts_parse.c">
 			</File>
 		</Filter>
 		<Filter

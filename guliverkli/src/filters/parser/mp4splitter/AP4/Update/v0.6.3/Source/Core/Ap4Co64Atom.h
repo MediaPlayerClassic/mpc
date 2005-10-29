@@ -1,6 +1,6 @@
 /*****************************************************************
 |
-|    AP4 - mdhd Atoms 
+|    AP4 - co64 Atoms 
 |
 |    Copyright 2002 Gilles Boccon-Gibod
 |
@@ -26,54 +26,37 @@
 |
  ****************************************************************/
 
-#ifndef _AP4_MDHD_ATOM_H_
-#define _AP4_MDHD_ATOM_H_
+#ifndef _AP4_CO64_ATOM_H_
+#define _AP4_CO64_ATOM_H_
 
 /*----------------------------------------------------------------------
 |       includes
 +---------------------------------------------------------------------*/
 #include "Ap4.h"
 #include "Ap4ByteStream.h"
-#include "Ap4List.h"
+#include "Ap4Array.h"
 #include "Ap4Atom.h"
 
 /*----------------------------------------------------------------------
-|       constants
+|       AP4_Co64Atom
 +---------------------------------------------------------------------*/
-const AP4_UI32 AP4_MDHD_DEFAULT_GENERIC_TIMESCALE = 1000;
-const AP4_UI32 AP4_MDHD_DEFAULT_VIDEO_TIMESCALE = 90000;
-
-/*----------------------------------------------------------------------
-|       AP4_MdhdAtom
-+---------------------------------------------------------------------*/
-class AP4_MdhdAtom : public AP4_Atom
+class AP4_Co64Atom : public AP4_Atom
 {
  public:
     // methods
-    AP4_MdhdAtom(AP4_UI32    creation_time,
-                 AP4_UI32    modification_time,
-                 AP4_UI32    time_scale,
-                 AP4_UI32    duration,
-                 const char* language);
-    AP4_MdhdAtom(AP4_Size size, AP4_ByteStream& stream);
+    AP4_Co64Atom(AP4_UI64* offsets, AP4_UI32 offset_count);
+    AP4_Co64Atom(AP4_Size size, AP4_ByteStream& stream);
+    ~AP4_Co64Atom();
     virtual AP4_Result InspectFields(AP4_AtomInspector& inspector);
     virtual AP4_Result WriteFields(AP4_ByteStream& stream);
-
-    AP4_UI32 GetDurationMs();
-    AP4_UI32 GetDuration()  { return m_Duration;  }
-    AP4_UI32 GetTimeScale() { return m_TimeScale; }
-	AP4_String GetLanguage() { return AP4_String(m_Language, 3); }
+    AP4_Cardinal GetChunkCount() { return m_EntryCount;  }
+    AP4_Result GetChunkOffset(AP4_Ordinal chunk, AP4_Offset& chunk_offset);
+    AP4_Result SetChunkOffset(AP4_Ordinal chunk, AP4_Offset chunk_offset);
+    AP4_Result AdjustChunkOffsets(AP4_Offset offset);
 
  private:
-    // members
-    AP4_UI32 m_CreationTime;
-    AP4_UI32 m_ModificationTime;
-    AP4_UI32 m_TimeScale;
-    AP4_UI32 m_Duration;
-    char     m_Language[3];
-    AP4_UI08 m_Reserved1[8];
-    AP4_UI08 m_Reserved2[8];
-    AP4_UI08 m_Reserved3[8];
+    AP4_UI64* m_Entries;
+    AP4_UI32  m_EntryCount;
 };
 
-#endif // _AP4_MDHD_ATOM_H_
+#endif // _AP4_CO64_ATOM_H_

@@ -50,7 +50,7 @@
 				WarningLevel="3"
 				Detect64BitPortabilityProblems="false"
 				DebugInformationFormat="4"
-				DisableSpecificWarnings="4812"
+				DisableSpecificWarnings="4995;4996;4812"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -117,7 +117,7 @@
 				ForceConformanceInForLoopScope="true"
 				WarningLevel="3"
 				Detect64BitPortabilityProblems="false"
-				DisableSpecificWarnings="4812"
+				DisableSpecificWarnings="4995;4996;4812"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -183,7 +183,7 @@
 				WarningLevel="3"
 				Detect64BitPortabilityProblems="false"
 				DebugInformationFormat="4"
-				DisableSpecificWarnings="4812"
+				DisableSpecificWarnings="4995;4996;4812"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -251,7 +251,7 @@
 				WarningLevel="3"
 				Detect64BitPortabilityProblems="false"
 				DebugInformationFormat="0"
-				DisableSpecificWarnings="4812"
+				DisableSpecificWarnings="4995;4996;4812"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -317,7 +317,7 @@
 				WarningLevel="3"
 				Detect64BitPortabilityProblems="false"
 				DebugInformationFormat="4"
-				DisableSpecificWarnings="4812"
+				DisableSpecificWarnings="4995;4996;4812"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -402,7 +402,7 @@
 				WarningLevel="3"
 				Detect64BitPortabilityProblems="false"
 				DebugInformationFormat="0"
-				DisableSpecificWarnings="4812"
+				DisableSpecificWarnings="4995;4996;4812"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -486,7 +486,7 @@
 				WarningLevel="3"
 				Detect64BitPortabilityProblems="false"
 				DebugInformationFormat="4"
-				DisableSpecificWarnings="4812"
+				DisableSpecificWarnings="4995;4996;4812"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -572,7 +572,7 @@
 				WarningLevel="3"
 				Detect64BitPortabilityProblems="false"
 				DebugInformationFormat="0"
-				DisableSpecificWarnings="4812"
+				DisableSpecificWarnings="4995;4996;4812"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -864,6 +864,14 @@
 				</File>
 				<File
 					RelativePath=".\AP4\Source\Core\Ap4ByteStream.h"
+					>
+				</File>
+				<File
+					RelativePath=".\AP4\Source\Core\Ap4Co64Atom.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\AP4\Source\Core\Ap4Co64Atom.h"
 					>
 				</File>
 				<File
