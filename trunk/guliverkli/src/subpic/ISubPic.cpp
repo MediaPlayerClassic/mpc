@@ -797,7 +797,9 @@ STDMETHODIMP_(void) ISubPicAllocatorPresenterImpl::SetTime(REFERENCE_TIME rtNow)
 	m_rtNow = rtNow;
 
 	if(m_pSubPicQueue)
+	{
 		m_pSubPicQueue->SetTime(rtNow);
+	}
 }
 
 STDMETHODIMP_(double) ISubPicAllocatorPresenterImpl::GetFPS()

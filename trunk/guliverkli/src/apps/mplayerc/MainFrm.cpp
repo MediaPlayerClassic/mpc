@@ -313,10 +313,8 @@ BEGIN_MESSAGE_MAP(CMainFrame, CFrameWnd)
 	ON_COMMAND_RANGE(ID_FILTERSTREAMS_SUBITEM_START, ID_FILTERSTREAMS_SUBITEM_END, OnPlayLanguage)
 	ON_UPDATE_COMMAND_UI_RANGE(ID_FILTERSTREAMS_SUBITEM_START, ID_FILTERSTREAMS_SUBITEM_END, OnUpdatePlayLanguage)
 	ON_COMMAND_RANGE(ID_VOLUME_UP, ID_VOLUME_MUTE, OnPlayVolume)
-	ON_COMMAND(ID_AFTERPLAYBACK_CLOSE, OnAfterplaybackClose)
-	ON_UPDATE_COMMAND_UI(ID_AFTERPLAYBACK_CLOSE, OnUpdateAfterplaybackClose)
-	ON_COMMAND(ID_AFTERPLAYBACK_SHUTDOWN, OnAfterplaybackShutdown)
-	ON_UPDATE_COMMAND_UI(ID_AFTERPLAYBACK_SHUTDOWN, OnUpdateAfterplaybackShutdown)
+	ON_COMMAND_RANGE(ID_AFTERPLAYBACK_CLOSE, ID_AFTERPLAYBACK_DONOTHING, OnAfterplayback)
+	ON_UPDATE_COMMAND_UI_RANGE(ID_AFTERPLAYBACK_CLOSE, ID_AFTERPLAYBACK_DONOTHING, OnUpdateAfterplayback)
 
 	ON_COMMAND_RANGE(ID_NAVIGATE_SKIPBACK, ID_NAVIGATE_SKIPFORWARD, OnNavigateSkip)
 	ON_UPDATE_COMMAND_UI_RANGE(ID_NAVIGATE_SKIPBACK, ID_NAVIGATE_SKIPFORWARD, OnUpdateNavigateSkip)
@@ -394,6 +392,8 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 
 	m_popup.LoadMenu(IDR_POPUP);
 	m_popupmain.LoadMenu(IDR_POPUPMAIN);
+
+	GetMenu()->ModifyMenu(ID_FAVORITES, MF_BYCOMMAND|MF_STRING, IDR_MAINFRAME, ResStr(IDS_FAVORITES_POPUP));
 
 	// create a view to occupy the client area of the frame
 	if(!m_wndView.Create(NULL, NULL, AFX_WS_DEFAULT_VIEW,
@@ -1026,7 +1026,7 @@ void CMainFrame::OnTimer(UINT nIDEvent)
 */
 		}
 
-		if(m_pCAP) m_pCAP->SetTime(/*rtNow*/m_wndSeekBar.GetPos());
+		if(m_pCAP && m_iPlaybackMode != PM_FILE) m_pCAP->SetTime(/*rtNow*/m_wndSeekBar.GetPos());
 	}
 	else if(nIDEvent == TIMER_STREAMPOSPOLLER2 && m_iMediaLoadState == MLS_LOADED)
 	{
@@ -1346,7 +1346,7 @@ void CMainFrame::OnTimer(UINT nIDEvent)
 	__super::OnTimer(nIDEvent);
 }
 
-static bool Shutdown()
+static bool SetShutdownPrivilege()
 {
    HANDLE hToken; 
    TOKEN_PRIVILEGES tkp; 
@@ -1368,14 +1368,52 @@ static bool Shutdown()
    AdjustTokenPrivileges(hToken, FALSE, &tkp, 0, (PTOKEN_PRIVILEGES)NULL, 0); 
  
    if(GetLastError() != ERROR_SUCCESS)
-	   return(false); 
- 
-   // Shut down the system and force all applications to close. 
- 
-   if(!ExitWindowsEx(EWX_SHUTDOWN|EWX_POWEROFF|EWX_FORCEIFHUNG, 0))
-	   return(false);
+	   return false;
 
-   return(true);
+   return true;
+}
+
+bool CMainFrame::DoAfterPlaybackEvent()
+{
+	AppSettings& s = AfxGetAppSettings();
+
+	bool fExit = false;
+
+	if(s.nCLSwitches&CLSW_CLOSE)
+	{
+		fExit = true;
+	}
+	
+	if(s.nCLSwitches&CLSW_STANDBY)
+	{
+		SetShutdownPrivilege();
+		SetSystemPowerState(TRUE, TRUE);
+		fExit = true; // TODO: unless the app closes, it will call standby or hibernate once again forever, how to avoid that?
+	}
+	else if(s.nCLSwitches&CLSW_HIBERNATE)
+	{
+		SetShutdownPrivilege();
+		SetSystemPowerState(FALSE, TRUE);
+		fExit = true; // TODO: unless the app closes, it will call standby or hibernate once again forever, how to avoid that?
+	}
+	else if(s.nCLSwitches&CLSW_SHUTDOWN)
+	{
+		SetShutdownPrivilege();
+		ExitWindowsEx(EWX_SHUTDOWN|EWX_POWEROFF|EWX_FORCEIFHUNG, 0);
+		fExit = true;
+	}
+	else if(s.nCLSwitches&CLSW_LOGOFF)
+	{
+		SetShutdownPrivilege();
+		ExitWindowsEx(EWX_LOGOFF|EWX_FORCEIFHUNG, 0);
+		fExit = true;
+	}
+	
+	if(!fExit) return false;
+
+	SendMessage(WM_COMMAND, ID_FILE_EXIT);
+
+	return true;
 }
 
 //
@@ -1409,18 +1447,7 @@ LRESULT CMainFrame::OnGraphNotify(WPARAM wParam, LPARAM lParam)
 			{
 				m_nLoops++;
 
-				if(s.nCLSwitches&CLSW_SHUTDOWN)
-				{
-					SendMessage(WM_COMMAND, ID_FILE_EXIT);
-					Shutdown();
-					return hr;
-				}
-
-				if(s.nCLSwitches&CLSW_CLOSE)
-				{
-					SendMessage(WM_COMMAND, ID_FILE_EXIT);
-					return hr;
-				}
+				if(DoAfterPlaybackEvent()) return hr;
 
 				if(s.fLoopForever || m_nLoops < s.nLoops)
 				{
@@ -1453,18 +1480,7 @@ LRESULT CMainFrame::OnGraphNotify(WPARAM wParam, LPARAM lParam)
 			{
 				if(m_wndPlaylistBar.IsAtEnd())
 				{
-					if(s.nCLSwitches&CLSW_SHUTDOWN)
-					{
-						SendMessage(WM_COMMAND, ID_FILE_EXIT);
-						Shutdown();
-						return hr;
-					}
-
-					if(s.nCLSwitches&CLSW_CLOSE)
-					{
-						SendMessage(WM_COMMAND, ID_FILE_EXIT);
-						return hr;
-					}
+					if(DoAfterPlaybackEvent()) return hr;
 
 					m_nLoops++;
 				}
@@ -1945,11 +1961,10 @@ void CMainFrame::OnInitMenu(CMenu* pMenu)
 	{
 		CString str;
 		pMenu->GetMenuString(i, str, MF_BYPOSITION);
-		str.Remove('&');
 
 		CMenu* pSubMenu = NULL;
 
-		if(str == _T("Favorites"))
+		if(str == ResStr(IDS_FAVORITES_POPUP))
 		{
 			SetupFavoritesSubMenu();
 			pSubMenu = &m_favorites;
@@ -4655,28 +4670,39 @@ void CMainFrame::OnPlayVolume(UINT nID)
 		pBA->put_Volume(m_wndToolBar.Volume);
 }
 
-void CMainFrame::OnAfterplaybackClose()
+void CMainFrame::OnAfterplayback(UINT nID)
 {
 	AppSettings& s = AfxGetAppSettings();
-	s.nCLSwitches ^= CLSW_CLOSE;
+
+	s.nCLSwitches &= ~CLSW_AFTERPLAYBACK_MASK;
+
+	switch(nID)
+	{
+	case ID_AFTERPLAYBACK_CLOSE: s.nCLSwitches |= CLSW_CLOSE; break;
+	case ID_AFTERPLAYBACK_STANDBY: s.nCLSwitches |= CLSW_STANDBY; break;
+	case ID_AFTERPLAYBACK_HIBERNATE: s.nCLSwitches |= CLSW_HIBERNATE; break;
+	case ID_AFTERPLAYBACK_SHUTDOWN: s.nCLSwitches |= CLSW_SHUTDOWN; break;
+	case ID_AFTERPLAYBACK_LOGOFF: s.nCLSwitches |= CLSW_LOGOFF; break;
+	}	
 }
 
-void CMainFrame::OnUpdateAfterplaybackClose(CCmdUI* pCmdUI)
+void CMainFrame::OnUpdateAfterplayback(CCmdUI* pCmdUI)
 {
 	AppSettings& s = AfxGetAppSettings();
-	pCmdUI->SetCheck(!!(s.nCLSwitches & CLSW_CLOSE));
-}
 
-void CMainFrame::OnAfterplaybackShutdown()
-{
-	AppSettings& s = AfxGetAppSettings();
-	s.nCLSwitches ^= CLSW_SHUTDOWN;
-}
+	bool fChecked = false;
 
-void CMainFrame::OnUpdateAfterplaybackShutdown(CCmdUI* pCmdUI)
-{
-	AppSettings& s = AfxGetAppSettings();
-	pCmdUI->SetCheck(!!(s.nCLSwitches & CLSW_SHUTDOWN));
+	switch(pCmdUI->m_nID)
+	{
+	case ID_AFTERPLAYBACK_CLOSE: fChecked = !!(s.nCLSwitches & CLSW_CLOSE); break;
+	case ID_AFTERPLAYBACK_STANDBY: fChecked = !!(s.nCLSwitches & CLSW_STANDBY); break;
+	case ID_AFTERPLAYBACK_HIBERNATE: fChecked = !!(s.nCLSwitches & CLSW_HIBERNATE); break;
+	case ID_AFTERPLAYBACK_SHUTDOWN: fChecked = !!(s.nCLSwitches & CLSW_SHUTDOWN); break;
+	case ID_AFTERPLAYBACK_LOGOFF: fChecked = !!(s.nCLSwitches & CLSW_LOGOFF); break;
+	case ID_AFTERPLAYBACK_DONOTHING: fChecked = !(s.nCLSwitches & CLSW_AFTERPLAYBACK_MASK); break;
+	}
+
+	pCmdUI->SetRadio(fChecked);
 }
 
 // navigate
@@ -7020,7 +7046,7 @@ RemoveFromRot(m_dwRegister);
 
 	m_closingmsg = _T("Closed");
 
-	AfxGetAppSettings().nCLSwitches &= CLSW_OPEN|CLSW_PLAY|CLSW_SHUTDOWN|CLSW_CLOSE||CLSW_NOFOCUS;
+	AfxGetAppSettings().nCLSwitches &= CLSW_OPEN|CLSW_PLAY|CLSW_AFTERPLAYBACK_MASK|CLSW_NOFOCUS;
 
 	m_iMediaLoadState = MLS_CLOSED;
 }
@@ -7748,9 +7774,23 @@ void CMainFrame::SetupFavoritesSubMenu()
 		CString str = sl.GetNext(pos);
 		str.Replace(_T("&"), _T("&&"));
 
-		int i = str.Find(';');
-		if(i >= 0)
-			pSub->AppendMenu(flags, id, str.Left(i));
+		CList<CString> sl;
+		Explode(str, sl, ';', 2);
+
+		str = sl.RemoveHead();
+
+		if(!sl.IsEmpty())
+		{
+			REFERENCE_TIME rt = 0;
+			if(1 == _stscanf(sl.GetHead(), _T("%I64d"), &rt) && rt > 0)
+			{
+				DVD_HMSF_TIMECODE hmsf = RT2HMSF(rt, 0);
+				str.Format(_T("%s (%d:%02d:%02d)"), CString(str), hmsf.bHours, hmsf.bMinutes, hmsf.bSeconds);
+			}
+		}
+
+		if(!str.IsEmpty()) 
+			pSub->AppendMenu(flags, id, str);
 
 		id++;
 	}
@@ -7772,9 +7812,18 @@ void CMainFrame::SetupFavoritesSubMenu()
 		CString str = sl.GetNext(pos);
 		str.Replace(_T("&"), _T("&&"));
 
-		int i = str.Find(';');
-		if(i >= 0)
-			pSub->AppendMenu(flags, id, str.Left(i));
+		CList<CString> sl;
+		Explode(str, sl, ';', 2);
+
+		str = sl.RemoveHead();
+
+		if(!sl.IsEmpty())
+		{
+			// TODO
+		}
+
+		if(!str.IsEmpty()) 
+			pSub->AppendMenu(flags, id, str);
 
 		id++;
 	}
@@ -7796,9 +7845,13 @@ void CMainFrame::SetupFavoritesSubMenu()
 		CString str = sl.GetNext(pos);
 		str.Replace(_T("&"), _T("&&"));
 
-		int i = str.Find(';');
-		if(i >= 0)
-			pSub->AppendMenu(flags, id, str.Left(i));
+		CList<CString> sl;
+		Explode(str, sl, ';', 2);
+
+		str = sl.RemoveHead();
+
+		if(!str.IsEmpty()) 
+			pSub->AppendMenu(flags, id, str);
 
 		id++;
 	}

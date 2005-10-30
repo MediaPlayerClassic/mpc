@@ -36,6 +36,8 @@
 #include "..\..\..\include\RealMedia\rmavsurf.h"
 #include "IQTVideoSurface.h"
 
+#include "IPinHook.h"
+
 bool IsVMR7InGraph(IFilterGraph* pFG)
 {
 	BeginEnumFilters(pFG, pEF, pBF)
@@ -85,6 +87,8 @@ class CVMR7AllocatorPresenter
 	HRESULT CreateDevice();
 	void DeleteSurfaces();
 
+	bool m_fUseInternalTimer;
+
 public:
 	CVMR7AllocatorPresenter(HWND hWnd, HRESULT& hr);
 
@@ -93,6 +97,7 @@ public:
 
 	// ISubPicAllocatorPresenter
 	STDMETHODIMP CreateRenderer(IUnknown** ppRenderer);
+	STDMETHODIMP_(void) SetTime(REFERENCE_TIME rtNow);
 
 	// IVMRSurfaceAllocator
     STDMETHODIMP AllocateSurface(DWORD_PTR dwUserID, VMRALLOCATIONINFO* lpAllocInfo, DWORD* lpdwBuffer, LPDIRECTDRAWSURFACE7* lplpSurface);
@@ -617,6 +622,7 @@ STDMETHODIMP CDX7AllocatorPresenter::GetDIB(BYTE* lpDib, DWORD* size)
 
 CVMR7AllocatorPresenter::CVMR7AllocatorPresenter(HWND hWnd, HRESULT& hr) 
 	: CDX7AllocatorPresenter(hWnd, hr)
+	, m_fUseInternalTimer(true)
 {
     if(FAILED(hr))
 		return;
@@ -695,6 +701,9 @@ STDMETHODIMP CVMR7AllocatorPresenter::CreateRenderer(IUnknown** ppRenderer)
 		|| FAILED(hr = AdviseNotify(pSAN)))
 			break;
 
+		CComPtr<IPin> pPin = GetFirstPin(pBF);
+		HookNewSegment((IPinC*)(IPin*)pPin);
+
 		*ppRenderer = (IUnknown*)pBF.Detach();
 
 		return S_OK;
@@ -702,6 +711,12 @@ STDMETHODIMP CVMR7AllocatorPresenter::CreateRenderer(IUnknown** ppRenderer)
 	while(0);
 
     return E_FAIL;
+}
+
+STDMETHODIMP_(void) CVMR7AllocatorPresenter::SetTime(REFERENCE_TIME rtNow)
+{
+	m_fUseInternalTimer = false;
+	__super::SetTime(rtNow);
 }
 
 // IVMRSurfaceAllocator
@@ -815,9 +830,16 @@ STDMETHODIMP CVMR7AllocatorPresenter::PresentImage(DWORD_PTR dwUserID, VMRPRESEN
 
 		hr = m_pVideoSurface->Blt(NULL, lpPresInfo->lpSurf, NULL, DDBLT_WAIT, NULL);
 
-		m_fps = 10000000.0 / (lpPresInfo->rtEnd - lpPresInfo->rtStart);
-		if(m_pSubPicQueue)
-			m_pSubPicQueue->SetFPS(m_fps);
+		if(lpPresInfo->rtEnd > lpPresInfo->rtStart)
+		{
+			REFERENCE_TIME rtTimePerFrame = lpPresInfo->rtEnd - lpPresInfo->rtStart;
+			m_fps = 10000000.0 / rtTimePerFrame;
+			if(m_pSubPicQueue) 
+			{
+				m_pSubPicQueue->SetFPS(m_fps);
+				if(m_fUseInternalTimer) __super::SetTime(g_tSegmentStart + lpPresInfo->rtStart);
+			}
+		}
 
 		CSize VideoSize = m_NativeVideoSize;
 		int arx = lpPresInfo->szAspectRatio.cx, ary = lpPresInfo->szAspectRatio.cy;

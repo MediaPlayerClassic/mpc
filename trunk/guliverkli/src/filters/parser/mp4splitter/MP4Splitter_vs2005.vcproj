@@ -867,6 +867,14 @@
 					>
 				</File>
 				<File
+					RelativePath=".\AP4\Source\Core\Ap4ChplAtom.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\AP4\Source\Core\Ap4ChplAtom.h"
+					>
+				</File>
+				<File
 					RelativePath=".\AP4\Source\Core\Ap4Co64Atom.cpp"
 					>
 				</File>

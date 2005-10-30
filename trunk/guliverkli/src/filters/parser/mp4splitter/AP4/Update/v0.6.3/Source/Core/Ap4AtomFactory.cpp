@@ -65,6 +65,7 @@
 #include "Ap4TrefTypeAtom.h"
 #include "Ap4AvcCAtom.h"
 #include "Ap4FtabAtom.h"
+#include "Ap4ChplAtom.h"
 
 /*----------------------------------------------------------------------
 |       class variables
@@ -346,6 +347,8 @@ AP4_AtomFactory::CreateAtomFromStream(AP4_ByteStream& stream,
         atom = new AP4_ContainerAtom(type, size, true, stream, *this);
         break;
 
+      // other
+
       case AP4_ATOM_TYPE_AVCC:
         atom = new AP4_AvcCAtom(size, stream);
         break;
@@ -368,6 +371,10 @@ AP4_AtomFactory::CreateAtomFromStream(AP4_ByteStream& stream,
 
 	  case AP4_ATOM_TYPE_SAMR:
         atom = new AP4_AudioSampleEntry(AP4_ATOM_TYPE_SAMR, size, stream, *this); // TODO
+        break;
+
+      case AP4_ATOM_TYPE_CHPL:
+        atom = new AP4_ChplAtom(size, stream);
         break;
 
       default:

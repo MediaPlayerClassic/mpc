@@ -1694,7 +1694,6 @@ void CMPlayerCApp::Settings::ParseCommandLine(CList<CString>& cmdln)
 			CString sw = param.Mid(1).MakeLower();
 			if(sw == _T("open")) nCLSwitches |= CLSW_OPEN;
 			else if(sw == _T("play")) nCLSwitches |= CLSW_PLAY;
-			else if(sw == _T("close")) nCLSwitches |= CLSW_CLOSE;
 			else if(sw == _T("fullscreen")) nCLSwitches |= CLSW_FULLSCREEN;
 			else if(sw == _T("minimized")) nCLSwitches |= CLSW_MINIMIZED;
 			else if(sw == _T("new")) nCLSwitches |= CLSW_NEW;
@@ -1705,7 +1704,6 @@ void CMPlayerCApp::Settings::ParseCommandLine(CList<CString>& cmdln)
 			else if(sw == _T("dvd")) nCLSwitches |= CLSW_DVD;
 			else if(sw == _T("cd")) nCLSwitches |= CLSW_CD;
 			else if(sw == _T("add")) nCLSwitches |= CLSW_ADD;
-			else if(sw == _T("shutdown")) nCLSwitches |= CLSW_SHUTDOWN;
 			else if(sw == _T("regvid")) nCLSwitches |= CLSW_REGEXTVID;
 			else if(sw == _T("regaud")) nCLSwitches |= CLSW_REGEXTAUD;
 			else if(sw == _T("unregvid")) nCLSwitches |= CLSW_UNREGEXTVID;
@@ -1713,6 +1711,11 @@ void CMPlayerCApp::Settings::ParseCommandLine(CList<CString>& cmdln)
 			else if(sw == _T("start") && pos) {rtStart = 10000i64*_tcstol(cmdln.GetNext(pos), NULL, 10); nCLSwitches |= CLSW_STARTVALID;}
 			else if(sw == _T("startpos") && pos) {/* TODO: mm:ss. */;}
 			else if(sw == _T("nofocus")) nCLSwitches |= CLSW_NOFOCUS;
+			else if(sw == _T("close")) nCLSwitches |= CLSW_CLOSE;
+			else if(sw == _T("standby")) nCLSwitches |= CLSW_STANDBY;
+			else if(sw == _T("hibernate")) nCLSwitches |= CLSW_HIBERNATE;
+			else if(sw == _T("shutdown")) nCLSwitches |= CLSW_SHUTDOWN;
+			else if(sw == _T("logoff")) nCLSwitches |= CLSW_LOGOFF;
 			else if(sw == _T("fixedsize") && pos)
 			{
 				CList<CString> sl;

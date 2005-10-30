@@ -29,7 +29,7 @@ CString CMediaTypeEx::ToString(IPin* pPin)
 	{
 		packing = _T("MPEG2 PES");
 	}
-
+	
 	if(majortype == MEDIATYPE_Video)
 	{
 		type = _T("Video");
@@ -43,6 +43,13 @@ CString CMediaTypeEx::ToString(IPin* pPin)
 		if(fBIH && bih.biCompression)
 		{
 			codec = GetVideoCodecName(subtype, bih.biCompression);
+		}
+
+		if(codec.IsEmpty())
+		{
+			if(formattype == FORMAT_MPEGVideo) codec = _T("MPEG1 Video");
+			else if(formattype == FORMAT_MPEG2_VIDEO) codec = _T("MPEG2 Video");
+			else if(formattype == FORMAT_DiracVideoInfo) codec = _T("Dirac Video");
 		}
 
 		if(fDim)
@@ -66,17 +73,10 @@ CString CMediaTypeEx::ToString(IPin* pPin)
 
 		rate.Trim();
 
-		if(formattype == FORMAT_MPEGVideo)
+		if(subtype == MEDIASUBTYPE_DVD_SUBPICTURE)
 		{
-			codec = _T("MPEG1 Video");
-		}
-		else if(formattype == FORMAT_MPEG2_VIDEO)
-		{
-			codec = _T("MPEG2 Video");
-		}
-		else if(formattype == FORMAT_DiracVideoInfo)
-		{
-			codec = _T("Dirac Video");
+			type = _T("Subtitle");
+			codec = _T("DVD Subpicture");
 		}
 	}
 	else if(majortype == MEDIATYPE_Audio)
@@ -167,32 +167,36 @@ CString CMediaTypeEx::GetVideoCodecName(const GUID& subtype, DWORD biCompression
 {
 	CString str;
 
-	static CAtlMap<DWORD, CString> names;
+	static CAtlMap<CString, CString, CStringElementTraits<CString> > names;
 
 	if(names.IsEmpty())
 	{
-		names['WMV1'] = _T("Windows Media Video 7");
-		names['WMV2'] = _T("Windows Media Video 8");
-		names['WMV3'] = _T("Windows Media Video 9");
-		names['DIV3'] = _T("DivX 3");
-		names['DX50'] = _T("DivX 5");
-		names['MP4V'] = _T("MPEG4 Video");
-		names['RV10'] = _T("RealVideo 1");
-		names['RV20'] = _T("RealVideo 2");
-		names['RV30'] = _T("RealVideo 3");
-		names['RV40'] = _T("RealVideo 4");
-		// names[''] = _T("");
+		names[_T("WMV1")] = _T("Windows Media Video 7");
+		names[_T("WMV2")] = _T("Windows Media Video 8");
+		names[_T("WMV3")] = _T("Windows Media Video 9");
+		names[_T("DIV3")] = _T("DivX 3");
+		names[_T("DX50")] = _T("DivX 5");
+		names[_T("MP4V")] = _T("MPEG4 Video");
+		names[_T("AVC1")] = _T("MPEG4 Video (AVC)");
+		names[_T("RV10")] = _T("RealVideo 1");
+		names[_T("RV20")] = _T("RealVideo 2");
+		names[_T("RV30")] = _T("RealVideo 3");
+		names[_T("RV40")] = _T("RealVideo 4");
+		// names[_T("")] = _T("");
 	}
 
 	if(biCompression)
 	{
-		DWORD fcc = ((biCompression&0xff)<<24)|((biCompression&0xff00)<<8)|((biCompression&0xff0000)>>8)|((biCompression&0xff000000)>>24);
+		CString fcc;
+		fcc.Format(_T("%4.4hs"), &biCompression);
+		fcc.MakeUpper();
+
 		if(!names.Lookup(fcc, str))
 		{
 			if(subtype == MEDIASUBTYPE_DiracVideo) str = _T("Dirac Video");
 			// else if(subtype == ) str = _T("");
 			else if(biCompression < 256) str.Format(_T("%d"), biCompression);
-			else str.Format(_T("%4.4hs"), &biCompression);
+			else str = fcc;
 		}
 	}
 

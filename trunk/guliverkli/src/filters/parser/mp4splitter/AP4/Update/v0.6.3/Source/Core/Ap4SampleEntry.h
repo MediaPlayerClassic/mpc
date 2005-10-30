@@ -305,7 +305,7 @@ public:
 		AP4_UI32 TextJustification;
 		AP4_UI32 BackgroundColor;
 		struct {AP4_UI16 Top, Left, Bottom, Right;} TextBox;
-		struct {AP4_UI16 StartChar, EndChar, Ascent; struct {AP4_UI16 Id; AP4_UI08 Face, Size; AP4_UI32 Color;} Font;} DefaultStyle;
+		struct {AP4_UI16 StartChar, EndChar, Ascent; struct {AP4_UI16 Id; AP4_UI08 Face, Size; AP4_UI32 Color;} Font;} Style;
 		AP4_String DefaultFontName;
 	};
 
@@ -340,7 +340,7 @@ public:
 		AP4_UI08 VerticalJustification;
 		AP4_UI32 BackgroundColor;
 		struct {AP4_UI16 Top, Left, Bottom, Right;} TextBox;
-		struct {AP4_UI16 StartChar, EndChar; struct {AP4_UI16 Id; AP4_UI08 Face, Size; AP4_UI32 Color;} Font;} DefaultStyle;
+		struct {AP4_UI16 StartChar, EndChar; struct {AP4_UI16 Id; AP4_UI08 Face, Size; AP4_UI32 Color;} Font;} Style;
 	};
 
 	const AP4_Tx3gDescription& GetDescription() const { return m_Description; };

@@ -469,7 +469,7 @@ REFERENCE_TIME CAviFile::strm_t::GetRefTime(DWORD frame, UINT64 size)
 	else
 	{
 		rt = strh.dwRate
-			? (10000000i64 * frame * strh.dwScale + (strh.dwRate>>1)) / strh.dwRate
+			? 10000i64 * ((1000i64 * frame * strh.dwScale + (strh.dwRate>>1)) / strh.dwRate) // 10000 * (1000 * ... ) because it is less likely to overflow this way
 			: 0;
 	}
 
@@ -480,12 +480,14 @@ int CAviFile::strm_t::GetFrame(REFERENCE_TIME rt)
 {
 	int frame = -1;
 
+	rt /= 10000; // avoiding overflow later
+
 	if(strh.fccType == FCC('auds'))
 	{
 		WAVEFORMATEX* wfe = (WAVEFORMATEX*)strf.GetData();
 
 		INT64 size = strh.dwScale
-			? ((rt * strh.dwRate + strh.dwScale/2) / strh.dwScale * wfe->nBlockAlign + 10000000i64/2) / 10000000i64
+			? ((rt * strh.dwRate + strh.dwScale/2) / strh.dwScale * wfe->nBlockAlign + 1000/2) / 1000
 			: 0;
 
 		for(frame = 0; frame < cs.GetCount(); frame++)
@@ -500,7 +502,7 @@ int CAviFile::strm_t::GetFrame(REFERENCE_TIME rt)
 	else
 	{
 		frame = strh.dwScale
-			? (int)(((rt * strh.dwRate + strh.dwScale/2) / strh.dwScale + 10000000i64/2) / 10000000i64)
+			? (int)(((rt * strh.dwRate + strh.dwScale/2) / strh.dwScale + 1000/2) / 1000)
 			: 0;
 	}
 

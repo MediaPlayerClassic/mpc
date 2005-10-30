@@ -229,6 +229,13 @@ void CPPageFileInfoDetails::InitEncoding()
 				continue;
 		}
 
+		if(IPin* pPin = GetFirstPin(pBF, PINDIR_OUTPUT))
+		{
+			CMediaType mt;
+			if(SUCCEEDED(pPin->ConnectionMediaType(&mt)) && mt.majortype == MEDIATYPE_Stream)
+				continue;
+		}
+
 		BeginEnumPins(pBF, pEP, pPin)
 		{
 			CMediaTypeEx mt;
@@ -238,7 +245,11 @@ void CPPageFileInfoDetails::InitEncoding()
 				continue;
 
 			CString str = mt.ToString();
-			if(!str.IsEmpty()) sl.AddTail(str);
+			
+			if(!str.IsEmpty())
+			{
+				sl.AddTail(mt.ToString() + CString(L" [" + GetPinName(pPin) + L"]"));
+			}
 		}
 		EndEnumPins
 	}
