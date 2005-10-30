@@ -878,19 +878,19 @@ AP4_TextSampleEntry::ReadFields(AP4_ByteStream& stream)
     if (AP4_FAILED(result)) return result;
     result = stream.ReadUI16(m_Description.TextBox.Right);
     if (AP4_FAILED(result)) return result;
-    result = stream.ReadUI16(m_Description.DefaultStyle.StartChar);
+    result = stream.ReadUI16(m_Description.Style.StartChar);
     if (AP4_FAILED(result)) return result;
-    result = stream.ReadUI16(m_Description.DefaultStyle.EndChar);
+    result = stream.ReadUI16(m_Description.Style.EndChar);
     if (AP4_FAILED(result)) return result;
-    result = stream.ReadUI16(m_Description.DefaultStyle.Ascent);
+    result = stream.ReadUI16(m_Description.Style.Ascent);
     if (AP4_FAILED(result)) return result;
-    result = stream.ReadUI16(m_Description.DefaultStyle.Font.Id);
+    result = stream.ReadUI16(m_Description.Style.Font.Id);
     if (AP4_FAILED(result)) return result;
-    result = stream.ReadUI08(m_Description.DefaultStyle.Font.Face);
+    result = stream.ReadUI08(m_Description.Style.Font.Face);
     if (AP4_FAILED(result)) return result;
-    result = stream.ReadUI08(m_Description.DefaultStyle.Font.Size);
+    result = stream.ReadUI08(m_Description.Style.Font.Size);
     if (AP4_FAILED(result)) return result;
-    result = stream.ReadUI32(m_Description.DefaultStyle.Font.Color);
+    result = stream.ReadUI32(m_Description.Style.Font.Color);
     if (AP4_FAILED(result)) return result;
 
     // TODO: stream.ReadString(); -> m_Description.DefaultFontName
@@ -986,17 +986,17 @@ AP4_Tx3gSampleEntry::ReadFields(AP4_ByteStream& stream)
     if (AP4_FAILED(result)) return result;
     result = stream.ReadUI16(m_Description.TextBox.Right);
     if (AP4_FAILED(result)) return result;
-    result = stream.ReadUI16(m_Description.DefaultStyle.StartChar);
+    result = stream.ReadUI16(m_Description.Style.StartChar);
     if (AP4_FAILED(result)) return result;
-    result = stream.ReadUI16(m_Description.DefaultStyle.EndChar);
+    result = stream.ReadUI16(m_Description.Style.EndChar);
     if (AP4_FAILED(result)) return result;
-    result = stream.ReadUI16(m_Description.DefaultStyle.Font.Id);
+    result = stream.ReadUI16(m_Description.Style.Font.Id);
     if (AP4_FAILED(result)) return result;
-    result = stream.ReadUI08(m_Description.DefaultStyle.Font.Face);
+    result = stream.ReadUI08(m_Description.Style.Font.Face);
     if (AP4_FAILED(result)) return result;
-    result = stream.ReadUI08(m_Description.DefaultStyle.Font.Size);
+    result = stream.ReadUI08(m_Description.Style.Font.Size);
     if (AP4_FAILED(result)) return result;
-    result = stream.ReadUI32(m_Description.DefaultStyle.Font.Color);
+    result = stream.ReadUI32(m_Description.Style.Font.Color);
     if (AP4_FAILED(result)) return result;
 
     return AP4_SUCCESS;

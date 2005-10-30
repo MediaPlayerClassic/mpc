@@ -381,6 +381,8 @@ public:
 	bool BuildGraphVideoAudio(bool fVPreview, bool fVCapture, bool fAPreview, bool fACapture);
 	bool DoCapture(), StartCapture(), StopCapture();
 
+	bool DoAfterPlaybackEvent();
+
 	virtual BOOL PreCreateWindow(CREATESTRUCT& cs);
 	virtual BOOL PreTranslateMessage(MSG* pMsg);
 	virtual BOOL OnCmdMsg(UINT nID, int nCode, void* pExtra, AFX_CMDHANDLERINFO* pHandlerInfo);
@@ -598,10 +600,8 @@ public:
 	afx_msg void OnPlayLanguage(UINT nID);
 	afx_msg void OnUpdatePlayLanguage(CCmdUI* pCmdUI);
 	afx_msg void OnPlayVolume(UINT nID);
-	afx_msg void OnAfterplaybackClose();
-	afx_msg void OnUpdateAfterplaybackClose(CCmdUI *pCmdUI);
-	afx_msg void OnAfterplaybackShutdown();
-	afx_msg void OnUpdateAfterplaybackShutdown(CCmdUI *pCmdUI);
+	afx_msg void OnAfterplayback(UINT nID);
+	afx_msg void OnUpdateAfterplayback(CCmdUI* pCmdUI);
 
 	afx_msg void OnNavigateSkip(UINT nID);
 	afx_msg void OnUpdateNavigateSkip(CCmdUI* pCmdUI);

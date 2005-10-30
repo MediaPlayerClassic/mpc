@@ -31,6 +31,7 @@
 #include "Ap4StssAtom.h"
 #include "Ap4IsmaCryp.h"
 #include "Ap4AvcCAtom.h"
+#include "Ap4ChplAtom.h"
 
 #ifdef REGISTER_FILTER
 
@@ -172,6 +173,7 @@ HRESULT CMP4SplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 					mt.formattype = FORMAT_VideoInfo;
 					vih = (VIDEOINFOHEADER*)mt.AllocFormatBuffer(sizeof(VIDEOINFOHEADER) + di->GetDataSize());
 					memset(vih, 0, mt.FormatLength());
+					vih->dwBitRate = video_desc->GetAvgBitrate()/8;
 					vih->bmiHeader.biSize = sizeof(vih->bmiHeader);
 					vih->bmiHeader.biWidth = (LONG)video_desc->GetWidth();
 					vih->bmiHeader.biHeight = (LONG)video_desc->GetHeight();
@@ -237,8 +239,9 @@ HRESULT CMP4SplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 					wfe = (WAVEFORMATEX*)mt.AllocFormatBuffer(sizeof(WAVEFORMATEX) + di->GetDataSize());
 					memset(wfe, 0, mt.FormatLength());
 					wfe->nSamplesPerSec = audio_desc->GetSampleRate();
-					wfe->nAvgBytesPerSec = audio_desc->GetAvgBitrate()*8; // GetSampleSize()
+					wfe->nAvgBytesPerSec = audio_desc->GetAvgBitrate()/8;
 					wfe->nChannels = audio_desc->GetChannelCount();
+					wfe->wBitsPerSample = audio_desc->GetSampleSize();
 					wfe->cbSize = (WORD)di->GetDataSize();
 					memcpy(wfe + 1, di->GetData(), di->GetDataSize());
 
@@ -405,6 +408,19 @@ HRESULT CMP4SplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 			EXECUTE_ASSERT(SUCCEEDED(AddOutputPin(id, pPinOut)));
 
 			m_trackpos[id] = trackpos();
+		}
+
+		if(AP4_ChplAtom* chpl = dynamic_cast<AP4_ChplAtom*>(movie->GetMoovAtom()->FindChild("udta/chpl")))
+		{
+			AP4_Array<AP4_ChplAtom::AP4_Chapter>& chapters = chpl->GetChapters();
+
+			for(AP4_Cardinal i = 0; i < chapters.ItemCount(); i++)
+			{
+				AP4_ChplAtom::AP4_Chapter& chapter = chapters[i];
+				ChapAppend(chapter.Time, UTF8To16(chapter.Name.c_str()));				
+			}
+
+			ChapSort();
 		}
 	}
 

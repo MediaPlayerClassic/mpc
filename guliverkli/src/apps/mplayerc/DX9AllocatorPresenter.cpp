@@ -39,6 +39,9 @@
 #include "..\..\..\include\RealMedia\rmavsurf.h"
 #include "IQTVideoSurface.h"
 
+#include "MacrovisionKicker.h"
+#include "IPinHook.h"
+
 bool IsVMR9InGraph(IFilterGraph* pFG)
 {
 	BeginEnumFilters(pFG, pEF, pBF)
@@ -93,6 +96,8 @@ protected:
 	HRESULT CreateDevice();
 	void DeleteSurfaces();
 
+	bool m_fUseInternalTimer;
+
 public:
 	CVMR9AllocatorPresenter(HWND hWnd, HRESULT& hr);
 
@@ -101,6 +106,7 @@ public:
 
 	// ISubPicAllocatorPresenter
 	STDMETHODIMP CreateRenderer(IUnknown** ppRenderer);
+	STDMETHODIMP_(void) SetTime(REFERENCE_TIME rtNow);
 
     // IVMRSurfaceAllocator9
     STDMETHODIMP InitializeDevice(DWORD_PTR dwUserID, VMR9AllocationInfo* lpAllocInfo, DWORD* lpNumBuffers);
@@ -860,6 +866,7 @@ STDMETHODIMP CDX9AllocatorPresenter::SetPixelShader(LPCSTR pSrcData, LPCSTR pTar
 
 CVMR9AllocatorPresenter::CVMR9AllocatorPresenter(HWND hWnd, HRESULT& hr) 
 	: CDX9AllocatorPresenter(hWnd, hr)
+	, m_fUseInternalTimer(true)
 {
 }
 
@@ -1138,7 +1145,6 @@ public:
 	}
 };
 
-#include "MacrovisionKicker.h"
 STDMETHODIMP CVMR9AllocatorPresenter::CreateRenderer(IUnknown** ppRenderer)
 {
     CheckPointer(ppRenderer, E_POINTER);
@@ -1157,13 +1163,13 @@ STDMETHODIMP CVMR9AllocatorPresenter::CreateRenderer(IUnknown** ppRenderer)
 		CComQIPtr<IBaseFilter> pBF = (IUnknown*)(INonDelegatingUnknown*)new COuterVMR9(NAME("COuterVMR9"), NULL);
 		if(!pBF) pBF.CoCreateInstance(CLSID_VideoMixingRenderer9);
 */
+
 		CComQIPtr<IVMRFilterConfig9> pConfig = pBF;
 		if(!pConfig)
 			break;
 
 		if(FAILED(hr = pConfig->SetRenderingMode(VMR9Mode_Renderless)))
 			break;
-//pConfig->SetNumberOfStreams(1);
 
 		CComQIPtr<IVMRSurfaceAllocatorNotify9> pSAN = pBF;
 		if(!pSAN)
@@ -1173,6 +1179,9 @@ STDMETHODIMP CVMR9AllocatorPresenter::CreateRenderer(IUnknown** ppRenderer)
 		|| FAILED(hr = AdviseNotify(pSAN)))
 			break;
 
+		CComPtr<IPin> pPin = GetFirstPin(pBF);
+		HookNewSegment((IPinC*)(IPin*)pPin);
+
 		*ppRenderer = (IUnknown*)pBF.Detach();
 
 		return S_OK;
@@ -1180,6 +1189,12 @@ STDMETHODIMP CVMR9AllocatorPresenter::CreateRenderer(IUnknown** ppRenderer)
 	while(0);
 
     return E_FAIL;
+}
+
+STDMETHODIMP_(void) CVMR9AllocatorPresenter::SetTime(REFERENCE_TIME rtNow)
+{
+	m_fUseInternalTimer = false;
+	__super::SetTime(rtNow);
 }
 
 // IVMRSurfaceAllocator9
@@ -1317,9 +1332,17 @@ STDMETHODIMP CVMR9AllocatorPresenter::PresentImage(DWORD_PTR dwUserID, VMR9Prese
 
 		hr = m_pD3DDev->StretchRect(lpPresInfo->lpSurf, NULL, m_pVideoSurface[0], NULL, D3DTEXF_NONE);
 
-		m_fps = 10000000.0 / (lpPresInfo->rtEnd - lpPresInfo->rtStart);
-		if(m_pSubPicQueue)
-			m_pSubPicQueue->SetFPS(m_fps);
+		if(lpPresInfo->rtEnd > lpPresInfo->rtStart)
+		{
+			REFERENCE_TIME rtTimePerFrame = lpPresInfo->rtEnd - lpPresInfo->rtStart;
+			m_fps = 10000000.0 / rtTimePerFrame;
+
+			if(m_pSubPicQueue)
+			{
+				m_pSubPicQueue->SetFPS(m_fps);
+				if(m_fUseInternalTimer) __super::SetTime(g_tSegmentStart + lpPresInfo->rtStart);
+			}
+		}
 
 		CSize VideoSize = m_NativeVideoSize;
 		int arx = lpPresInfo->szAspectRatio.cx, ary = lpPresInfo->szAspectRatio.cy;

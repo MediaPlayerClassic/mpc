@@ -194,8 +194,7 @@ HRESULT CAviSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 			VIDEOINFOHEADER* pvih = (VIDEOINFOHEADER*)mt.AllocFormatBuffer(sizeof(VIDEOINFOHEADER) + s->strf.GetSize() - sizeof(BITMAPINFOHEADER));
 			memset(mt.Format(), 0, mt.FormatLength());
 			memcpy(&pvih->bmiHeader, s->strf.GetData(), s->strf.GetSize());
-			if(s->strh.dwRate > 0) 
-				pvih->AvgTimePerFrame = (REFERENCE_TIME)(10000000i64 * s->strh.dwScale / s->strh.dwRate);
+			if(s->strh.dwRate > 0) pvih->AvgTimePerFrame = 10000000i64 * s->strh.dwScale / s->strh.dwRate;
 			switch(pbmi->biCompression)
 			{
 			case BI_RGB: case BI_BITFIELDS: mt.subtype = 
@@ -553,6 +552,7 @@ bool CAviSplitterFilter::DemuxLoop()
 			p->rtStart = s->GetRefTime(f, s->cs[f].size);
 			p->rtStop = s->GetRefTime(f+1, f+1 < (DWORD)s->cs.GetCount() ? s->cs[f+1].size : s->totalsize);
 			p->pData.SetSize(size);
+
 			if(S_OK != (hr = m_pFile->Read(p->pData.GetData(), p->pData.GetSize()))) 
 				return(true); // break;
 /*

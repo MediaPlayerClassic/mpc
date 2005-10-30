@@ -222,7 +222,7 @@ bool CBaseSplitterFileEx::Read(peshdr& h, BYTE code)
 
 	if(h.type == mpeg1)
 	{
-		if(!h.fpts && !h.fdts && BitRead(4) != 0xf) {ASSERT(0); return(false);}
+		if(!h.fpts && !h.fdts && BitRead(4) != 0xf) {/*ASSERT(0);*/ return(false);}
 
 		if(h.len)
 		{
