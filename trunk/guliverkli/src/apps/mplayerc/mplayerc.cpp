@@ -1818,8 +1818,8 @@ void CMPlayerCApp::Settings::CRecentFileAndURLList::Add(LPCTSTR lpszPathName)
 	bool fURL = (CString(lpszPathName).Find(_T("://")) >= 0);
 
 	// fully qualify the path name
-	TCHAR szTemp[_MAX_PATH];
-	if(fURL) _tcscpy(szTemp, lpszPathName);
+	TCHAR szTemp[1024];
+	if(fURL) _tcscpy_s(szTemp, countof(szTemp), lpszPathName);
 	else AfxFullPath(szTemp, lpszPathName);
 
 	// update the MRU list, if an existing MRU string matches file name
