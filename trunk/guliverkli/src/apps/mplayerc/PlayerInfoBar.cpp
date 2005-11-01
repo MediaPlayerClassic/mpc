@@ -70,6 +70,23 @@ void CPlayerInfoBar::SetLine(CString label, CString info)
 	Relayout();
 }
 
+void CPlayerInfoBar::GetLine(CString label, CString& info)
+{
+	info.Empty();
+
+	for(size_t idx = 0; idx < m_label.GetCount(); idx++)
+	{
+		CString tmp;
+		m_label[idx]->GetWindowText(tmp);
+		if(label == tmp)
+		{
+			m_info[idx]->GetWindowText(tmp);
+			info = tmp;
+			return;
+		}
+	}
+}
+
 void CPlayerInfoBar::RemoveLine(CString label)
 {
 	for(size_t i = 0; i < m_label.GetCount(); i++)

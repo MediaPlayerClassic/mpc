@@ -921,6 +921,103 @@ void CMainFrame::OnSize(UINT nType, int cx, int cy)
 	}
 }
 
+void CMainFrame::OnSizing(UINT fwSide, LPRECT pRect)
+{
+	__super::OnSizing(fwSide, pRect);
+	
+	AppSettings& s = AfxGetAppSettings();
+	
+	bool fCtrl = !!(GetAsyncKeyState(VK_CONTROL)&0x80000000);
+
+	if(m_iMediaLoadState != MLS_LOADED || m_fFullScreen
+	|| s.iDefaultVideoSize == DVS_STRETCH
+	|| (fCtrl ^ s.fFreeWindowResizing))
+		return;
+
+	CSize wsize(pRect->right - pRect->left, pRect->bottom - pRect->top);
+	CSize vsize = GetVideoSize();
+	CSize fsize(0, 0);
+
+	if(!vsize.cx || !vsize.cy)
+		return;
+
+	// TODO
+	{
+		DWORD style = GetStyle();
+
+		MENUBARINFO mbi;
+		memset(&mbi, 0, sizeof(mbi));
+		mbi.cbSize = sizeof(mbi);
+		::GetMenuBarInfo(m_hWnd, OBJID_MENU, 0, &mbi);
+
+		fsize.cx += GetSystemMetrics((style&WS_CAPTION)?SM_CXSIZEFRAME:SM_CXFIXEDFRAME)*2;
+
+		if(style&WS_CAPTION) fsize.cy += GetSystemMetrics(SM_CYCAPTION);
+		if(style&WS_THICKFRAME) fsize.cy += GetSystemMetrics((style&WS_CAPTION)?SM_CYSIZEFRAME:SM_CYFIXEDFRAME)*2;
+		fsize.cy += mbi.rcBar.bottom - mbi.rcBar.top;
+		if(!AfxGetAppSettings().fHideCaptionMenu) fsize.cy += 3;
+
+		POSITION pos = m_bars.GetHeadPosition();
+		while(pos) 
+		{
+			CControlBar* pCB = m_bars.GetNext(pos);
+			if(IsWindow(pCB->m_hWnd) && pCB->IsVisible())
+				fsize.cy += pCB->CalcFixedLayout(TRUE, TRUE).cy;
+		}
+
+		if(IsWindow(m_wndSubresyncBar.m_hWnd) && m_wndSubresyncBar.IsWindowVisible())
+		{
+			if(m_wndSubresyncBar.IsHorzDocked())
+				fsize.cy += m_wndSubresyncBar.CalcFixedLayout(TRUE, TRUE).cy-2;
+			else if(m_wndSubresyncBar.IsVertDocked())
+				fsize.cx += m_wndSubresyncBar.CalcFixedLayout(TRUE, FALSE).cx;
+		}
+
+		if(IsWindow(m_wndPlaylistBar.m_hWnd) && m_wndPlaylistBar.IsWindowVisible())
+		{
+			if(m_wndPlaylistBar.IsHorzDocked())
+				fsize.cy += m_wndPlaylistBar.CalcFixedLayout(TRUE, TRUE).cy-2;
+			else if(m_wndPlaylistBar.IsVertDocked())
+				fsize.cx += m_wndPlaylistBar.CalcFixedLayout(TRUE, FALSE).cx;
+		}
+
+		if(IsWindow(m_wndCaptureBar.m_hWnd) && m_wndCaptureBar.IsWindowVisible())
+		{
+			if(m_wndCaptureBar.IsHorzDocked())
+				fsize.cy += m_wndCaptureBar.CalcFixedLayout(TRUE, TRUE).cy-2;
+			else if(m_wndCaptureBar.IsVertDocked())
+				fsize.cx += m_wndCaptureBar.CalcFixedLayout(TRUE, FALSE).cx;
+		}
+	}
+
+	wsize -= fsize;
+
+	bool fWider = wsize.cy < wsize.cx;
+
+	wsize.SetSize(
+		wsize.cy * vsize.cx / vsize.cy,
+		wsize.cx * vsize.cy / vsize.cx);
+
+	wsize += fsize;
+
+	if(fwSide == WMSZ_TOP || fwSide == WMSZ_BOTTOM || !fWider && (fwSide == WMSZ_TOPRIGHT || fwSide == WMSZ_BOTTOMRIGHT))
+	{
+		pRect->right = pRect->left + wsize.cx;
+	}
+	else if(fwSide == WMSZ_LEFT || fwSide == WMSZ_RIGHT || fWider && (fwSide == WMSZ_BOTTOMLEFT || fwSide == WMSZ_BOTTOMRIGHT))
+	{
+		pRect->bottom = pRect->top + wsize.cy;
+	}
+	else if(!fWider && (fwSide == WMSZ_TOPLEFT || fwSide == WMSZ_BOTTOMLEFT))
+	{
+		pRect->left = pRect->right - wsize.cx;
+	}
+	else if(fWider && (fwSide == WMSZ_TOPLEFT || fwSide == WMSZ_TOPRIGHT))
+	{
+		pRect->top = pRect->bottom - wsize.cy;
+	}
+}
+
 void CMainFrame::OnDisplayChange() // untested, not sure if it's working...
 {
 	TRACE(_T("*** CMainFrame::OnDisplayChange()\n"));
@@ -2411,6 +2508,8 @@ void CMainFrame::OnFilePostOpenmedia()
 		SendMessage(WM_COMMAND, ID_VIEW_FULLSCREEN);
 		AfxGetAppSettings().nCLSwitches &= ~CLSW_FULLSCREEN;
 	}
+
+	SendNowPlayingToMSN();
 }
 
 void CMainFrame::OnUpdateFilePostOpenmedia(CCmdUI* pCmdUI)
@@ -2456,6 +2555,8 @@ void CMainFrame::OnFilePostClosemedia()
 	SetupNavAngleSubMenu();
 	SetupNavChaptersSubMenu();
 	SetupFavoritesSubMenu();
+
+	SendNowPlayingToMSN();
 }
 
 void CMainFrame::OnUpdateFilePostClosemedia(CCmdUI* pCmdUI)
@@ -7051,6 +7152,39 @@ RemoveFromRot(m_dwRegister);
 	m_iMediaLoadState = MLS_CLOSED;
 }
 
+// msn
+
+void CMainFrame::SendNowPlayingToMSN()
+{
+	if(!AfxGetAppSettings().fNotifyMSN)
+		return;
+
+	CString title;
+	m_wndInfoBar.GetLine(_T("Title"), title);
+
+	CString author;
+	m_wndInfoBar.GetLine(_T("Author"), author);
+
+	CStringW buff;
+	buff += L"\\0Music\\0";
+	buff += title.IsEmpty() ? L"0" : L"1";
+	buff += L"\\0";
+	buff += author.IsEmpty() ? L"{0}" : L"{0} - {1}";
+	buff += L"\\0";
+	if(!author.IsEmpty()) {buff += CStringW(author) + L"\\0";}
+	buff += CStringW(title) + L"\\0";
+	buff += L"\\0\\0";
+
+	COPYDATASTRUCT data;
+    data.dwData = 0x0547;
+    data.lpData = (PVOID)(LPCWSTR)buff;
+    data.cbData = buff.GetLength() * 2 + 2;
+
+	HWND hWnd = NULL;
+	while(hWnd = ::FindWindowEx(NULL, hWnd, _T("MsnMsgrUIManager"), NULL))
+		::SendMessage(hWnd, WM_COPYDATA, (WPARAM)NULL, (LPARAM)&data);
+}
+
 // dynamic menus
 
 void CMainFrame::SetupOpenCDSubMenu()
@@ -8870,95 +9004,3 @@ void CGraphThread::OnClose(WPARAM wParam, LPARAM lParam)
 }
 
 
-void CMainFrame::OnSizing(UINT fwSide, LPRECT pRect)
-{
-	__super::OnSizing(fwSide, pRect);
-
-	if(m_iMediaLoadState != MLS_LOADED || m_fFullScreen
-	|| AfxGetAppSettings().iDefaultVideoSize == DVS_STRETCH
-	|| !(GetAsyncKeyState(VK_CONTROL)&0x80000000))
-		return;
-
-	CSize wsize(pRect->right - pRect->left, pRect->bottom - pRect->top);
-	CSize vsize = GetVideoSize();
-	CSize fsize(0, 0);
-
-	if(!vsize.cx || !vsize.cy)
-		return;
-
-	// TODO
-	{
-		DWORD style = GetStyle();
-
-		MENUBARINFO mbi;
-		memset(&mbi, 0, sizeof(mbi));
-		mbi.cbSize = sizeof(mbi);
-		::GetMenuBarInfo(m_hWnd, OBJID_MENU, 0, &mbi);
-
-		fsize.cx += GetSystemMetrics((style&WS_CAPTION)?SM_CXSIZEFRAME:SM_CXFIXEDFRAME)*2;
-
-		if(style&WS_CAPTION) fsize.cy += GetSystemMetrics(SM_CYCAPTION);
-		if(style&WS_THICKFRAME) fsize.cy += GetSystemMetrics((style&WS_CAPTION)?SM_CYSIZEFRAME:SM_CYFIXEDFRAME)*2;
-		fsize.cy += mbi.rcBar.bottom - mbi.rcBar.top;
-		if(!AfxGetAppSettings().fHideCaptionMenu) fsize.cy += 3;
-
-		POSITION pos = m_bars.GetHeadPosition();
-		while(pos) 
-		{
-			CControlBar* pCB = m_bars.GetNext(pos);
-			if(IsWindow(pCB->m_hWnd) && pCB->IsVisible())
-				fsize.cy += pCB->CalcFixedLayout(TRUE, TRUE).cy;
-		}
-
-		if(IsWindow(m_wndSubresyncBar.m_hWnd) && m_wndSubresyncBar.IsWindowVisible())
-		{
-			if(m_wndSubresyncBar.IsHorzDocked())
-				fsize.cy += m_wndSubresyncBar.CalcFixedLayout(TRUE, TRUE).cy-2;
-			else if(m_wndSubresyncBar.IsVertDocked())
-				fsize.cx += m_wndSubresyncBar.CalcFixedLayout(TRUE, FALSE).cx;
-		}
-
-		if(IsWindow(m_wndPlaylistBar.m_hWnd) && m_wndPlaylistBar.IsWindowVisible())
-		{
-			if(m_wndPlaylistBar.IsHorzDocked())
-				fsize.cy += m_wndPlaylistBar.CalcFixedLayout(TRUE, TRUE).cy-2;
-			else if(m_wndPlaylistBar.IsVertDocked())
-				fsize.cx += m_wndPlaylistBar.CalcFixedLayout(TRUE, FALSE).cx;
-		}
-
-		if(IsWindow(m_wndCaptureBar.m_hWnd) && m_wndCaptureBar.IsWindowVisible())
-		{
-			if(m_wndCaptureBar.IsHorzDocked())
-				fsize.cy += m_wndCaptureBar.CalcFixedLayout(TRUE, TRUE).cy-2;
-			else if(m_wndCaptureBar.IsVertDocked())
-				fsize.cx += m_wndCaptureBar.CalcFixedLayout(TRUE, FALSE).cx;
-		}
-	}
-
-	wsize -= fsize;
-
-	bool fWider = wsize.cy < wsize.cx;
-
-	wsize.SetSize(
-		wsize.cy * vsize.cx / vsize.cy,
-		wsize.cx * vsize.cy / vsize.cx);
-
-	wsize += fsize;
-
-	if(fwSide == WMSZ_TOP || fwSide == WMSZ_BOTTOM || !fWider && (fwSide == WMSZ_TOPRIGHT || fwSide == WMSZ_BOTTOMRIGHT))
-	{
-		pRect->right = pRect->left + wsize.cx;
-	}
-	else if(fwSide == WMSZ_LEFT || fwSide == WMSZ_RIGHT || fWider && (fwSide == WMSZ_BOTTOMLEFT || fwSide == WMSZ_BOTTOMRIGHT))
-	{
-		pRect->bottom = pRect->top + wsize.cy;
-	}
-	else if(!fWider && (fwSide == WMSZ_TOPLEFT || fwSide == WMSZ_BOTTOMLEFT))
-	{
-		pRect->left = pRect->right - wsize.cx;
-	}
-	else if(fWider && (fwSide == WMSZ_TOPLEFT || fwSide == WMSZ_TOPRIGHT))
-	{
-		pRect->top = pRect->bottom - wsize.cy;
-	}
-}

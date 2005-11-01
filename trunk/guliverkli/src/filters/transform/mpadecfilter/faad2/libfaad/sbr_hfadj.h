@@ -1,6 +1,6 @@
 /*
 ** FAAD2 - Freeware Advanced Audio (AAC) Decoder including SBR decoding
-** Copyright (C) 2003-2004 M. Bakker, Ahead Software AG, http://www.nero.com
+** Copyright (C) 2003-2005 M. Bakker, Ahead Software AG, http://www.nero.com
 **  
 ** This program is free software; you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
@@ -19,6 +19,11 @@
 ** Any non-GPL usage of this software or parts of this software is strictly
 ** forbidden.
 **
+** Software using this code must display the following message visibly in the
+** software:
+** "FAAD2 AAC/HE-AAC/HE-AACv2/DRM decoder (c) Ahead Software, www.nero.com"
+** in, for example, the about-box or help/startup screen.
+**
 ** Commercial non-GPL licensing of this software is possible.
 ** For more info contact Ahead Software through Mpeg4AAClicense@nero.com.
 **
@@ -34,24 +39,17 @@ extern "C" {
 
 typedef struct
 {
-    real_t Q_div_mapped[64][5];
-    real_t Q_div2_mapped[64][5];
-
-    uint8_t S_index_mapped[64][5];
-    uint8_t S_mapped[64][5];
-
-    real_t G_lim_boost[5][64];
-    real_t Q_M_lim_boost[5][64];
-    real_t S_M_boost[5][64];
-
+    real_t G_lim_boost[MAX_L_E][MAX_M];
+    real_t Q_M_lim_boost[MAX_L_E][MAX_M];
+    real_t S_M_boost[MAX_L_E][MAX_M];
 } sbr_hfadj_info;
 
 
-void hf_adjustment(sbr_info *sbr, qmf_t Xsbr[MAX_NTSRHFG][64]
+uint8_t hf_adjustment(sbr_info *sbr, qmf_t Xsbr[MAX_NTSRHFG][64]
 #ifdef SBR_LOW_POWER
-                   ,real_t *deg
+                      ,real_t *deg
 #endif
-                   ,uint8_t ch);
+                      ,uint8_t ch);
 
 
 #ifdef __cplusplus

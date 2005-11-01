@@ -1,6 +1,6 @@
 /*
 ** FAAD2 - Freeware Advanced Audio (AAC) Decoder including SBR decoding
-** Copyright (C) 2003-2004 M. Bakker, Ahead Software AG, http://www.nero.com
+** Copyright (C) 2003-2005 M. Bakker, Ahead Software AG, http://www.nero.com
 **  
 ** This program is free software; you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
@@ -18,6 +18,11 @@
 **
 ** Any non-GPL usage of this software or parts of this software is strictly
 ** forbidden.
+**
+** Software using this code must display the following message visibly in the
+** software:
+** "FAAD2 AAC/HE-AAC/HE-AACv2/DRM decoder (c) Ahead Software, www.nero.com"
+** in, for example, the about-box or help/startup screen.
 **
 ** Commercial non-GPL licensing of this software is possible.
 ** For more info contact Ahead Software through Mpeg4AAClicense@nero.com.
@@ -259,6 +264,12 @@ static void tns_ar_filter(real_t *spectrum, uint16_t size, int8_t inc, real_t *l
 
         *spectrum = y;
         spectrum += inc;
+
+//#define TNS_PRINT
+#ifdef TNS_PRINT
+        //printf("%d\n", y);
+        printf("0x%.8X\n", y);
+#endif
     }
 }
 

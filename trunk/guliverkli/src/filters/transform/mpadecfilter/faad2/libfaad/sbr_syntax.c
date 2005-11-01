@@ -1,6 +1,6 @@
 /*
 ** FAAD2 - Freeware Advanced Audio (AAC) Decoder including SBR decoding
-** Copyright (C) 2003-2004 M. Bakker, Ahead Software AG, http://www.nero.com
+** Copyright (C) 2003-2005 M. Bakker, Ahead Software AG, http://www.nero.com
 **  
 ** This program is free software; you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
@@ -18,6 +18,11 @@
 **
 ** Any non-GPL usage of this software or parts of this software is strictly
 ** forbidden.
+**
+** Software using this code must display the following message visibly in the
+** software:
+** "FAAD2 AAC/HE-AAC/HE-AACv2/DRM decoder (c) Ahead Software, www.nero.com"
+** in, for example, the about-box or help/startup screen.
 **
 ** Commercial non-GPL licensing of this software is possible.
 ** For more info contact Ahead Software through Mpeg4AAClicense@nero.com.
@@ -73,16 +78,6 @@ static void sbr_reset(sbr_info *sbr)
 #endif
 
     /* if these are different from the previous frame: Reset = 1 */
-    if ((sbr->bs_start_freq != sbr->bs_start_freq_prev) ||
-        (sbr->bs_stop_freq != sbr->bs_stop_freq_prev) ||
-        (sbr->bs_freq_scale != sbr->bs_freq_scale_prev) ||
-        (sbr->bs_alter_scale != sbr->bs_alter_scale_prev))
-    {
-        sbr->Reset = 1;
-    } else {
-        sbr->Reset = 0;
-    }
-
     if ((sbr->bs_start_freq != sbr->bs_start_freq_prev) ||
         (sbr->bs_stop_freq != sbr->bs_stop_freq_prev) ||
         (sbr->bs_freq_scale != sbr->bs_freq_scale_prev) ||
@@ -216,21 +211,28 @@ uint8_t sbr_extension_data(bitfile *ld, sbr_info *sbr, uint16_t cnt)
             {
                 calc_sbr_tables(sbr, saved_start_freq, saved_stop_freq,
                     saved_samplerate_mode, saved_freq_scale,
-                    saved_alter_scale, saved_xover_band);
+                    saved_alter_scale, saved_xover_band);          
             }
 
-            /* we should be able to safely set result to 0 now */
-            result = 0;
+            /* we should be able to safely set result to 0 now, */
+            /* but practise indicates this doesn't work well */
         }
     } else {
         result = 1;
+    }     
+           
+     
+    num_sbr_bits = (uint16_t)faad_get_processed_bits(ld) - num_sbr_bits;
+
+    /* check if we read more bits then were available for sbr */
+    if (8*cnt < num_sbr_bits) {
+            return 1;
     }
 
 #ifdef DRM
     if (!sbr->Is_DRM_SBR)
 #endif
-    {
-        num_sbr_bits = (uint16_t)faad_get_processed_bits(ld) - num_sbr_bits;
+    {       
         /* -4 does not apply, bs_extension_type is re-read in this function */
         num_align_bits = 8*cnt /*- 4*/ - num_sbr_bits;
 
@@ -369,17 +371,22 @@ static uint8_t sbr_single_channel_element(bitfile *ld, sbr_info *sbr)
 #ifdef DRM
     /* bs_coupling, from sbr_channel_pair_base_element(bs_amp_res) */
     if (sbr->Is_DRM_SBR)
+    {
         faad_get1bit(ld);
+    }
 #endif
 
     if ((result = sbr_grid(ld, sbr, 0)) > 0)
         return result;
+
     sbr_dtdf(ld, sbr, 0);
     invf_mode(ld, sbr, 0);
     sbr_envelope(ld, sbr, 0);
     sbr_noise(ld, sbr, 0);
 
+#ifndef FIXED_POINT
     envelope_noise_dequantisation(sbr, 0);
+#endif
 
     memset(sbr->bs_add_harmonic[0], 0, 64*sizeof(uint8_t));
 
@@ -390,9 +397,13 @@ static uint8_t sbr_single_channel_element(bitfile *ld, sbr_info *sbr)
 
     sbr->bs_extended_data = faad_get1bit(ld
         DEBUGVAR(1,224,"sbr_single_channel_element(): bs_extended_data[0]"));
+
     if (sbr->bs_extended_data)
     {
         uint16_t nr_bits_left;
+#if (defined(PS_DEC) || defined(DRM_PS))
+        uint8_t ps_ext_read = 0;
+#endif
         uint16_t cnt = (uint16_t)faad_getbits(ld, 4
             DEBUGVAR(1,225,"sbr_single_channel_element(): bs_extension_size"));
         if (cnt == 15)
@@ -404,10 +415,48 @@ static uint8_t sbr_single_channel_element(bitfile *ld, sbr_info *sbr)
         nr_bits_left = 8 * cnt;
         while (nr_bits_left > 7)
         {
+            uint16_t tmp_nr_bits = 0;
+
             sbr->bs_extension_id = (uint8_t)faad_getbits(ld, 2
                 DEBUGVAR(1,227,"sbr_single_channel_element(): bs_extension_id"));
-            nr_bits_left -= 2;
-            nr_bits_left -= sbr_extension(ld, sbr, sbr->bs_extension_id, nr_bits_left);
+            tmp_nr_bits += 2;
+
+            /* allow only 1 PS extension element per extension data */
+#if (defined(PS_DEC) || defined(DRM_PS))
+#if (defined(PS_DEC) && defined(DRM_PS))
+            if (sbr->bs_extension_id == EXTENSION_ID_PS || sbr->bs_extension_id == DRM_PARAMETRIC_STEREO)
+#else
+#ifdef PS_DEC
+            if (sbr->bs_extension_id == EXTENSION_ID_PS)
+#else
+#ifdef DRM_PS
+            if (sbr->bs_extension_id == DRM_PARAMETRIC_STEREO)
+#endif
+#endif
+#endif
+            {
+                if (ps_ext_read == 0)
+                {
+                    ps_ext_read = 1;
+                } else {
+                    /* to be safe make it 3, will switch to "default"
+                     * in sbr_extension() */
+#ifdef DRM
+                    return 1;
+#else
+                    sbr->bs_extension_id = 3;
+#endif
+                }
+            }
+#endif
+
+            tmp_nr_bits += sbr_extension(ld, sbr, sbr->bs_extension_id, nr_bits_left);
+
+            /* check if the data read is bigger than the number of available bits */
+            if (tmp_nr_bits > nr_bits_left)
+                return 1;
+
+            nr_bits_left -= tmp_nr_bits;
         }
 
         /* Corrigendum */
@@ -530,11 +579,13 @@ static uint8_t sbr_channel_pair_element(bitfile *ld, sbr_info *sbr)
         if (sbr->bs_add_harmonic_flag[1])
             sinusoidal_coding(ld, sbr, 1);
     }
+#ifndef FIXED_POINT
     envelope_noise_dequantisation(sbr, 0);
     envelope_noise_dequantisation(sbr, 1);
 
     if (sbr->bs_coupling)
         unmap_envelope_noise(sbr);
+#endif
 
     sbr->bs_extended_data = faad_get1bit(ld
         DEBUGVAR(1,233,"sbr_channel_pair_element(): bs_extended_data[0]"));
@@ -552,10 +603,18 @@ static uint8_t sbr_channel_pair_element(bitfile *ld, sbr_info *sbr)
         nr_bits_left = 8 * cnt;
         while (nr_bits_left > 7)
         {
+            uint16_t tmp_nr_bits = 0;
+
             sbr->bs_extension_id = (uint8_t)faad_getbits(ld, 2
                 DEBUGVAR(1,236,"sbr_channel_pair_element(): bs_extension_id"));
-            nr_bits_left -= 2;
-            nr_bits_left -= sbr_extension(ld, sbr, sbr->bs_extension_id, nr_bits_left);
+            tmp_nr_bits += 2;
+            tmp_nr_bits += sbr_extension(ld, sbr, sbr->bs_extension_id, nr_bits_left);
+
+            /* check if the data read is bigger than the number of available bits */
+            if (tmp_nr_bits > nr_bits_left)
+                return 1;
+
+            nr_bits_left -= tmp_nr_bits;
         }
 
         /* Corrigendum */
@@ -771,16 +830,28 @@ static void invf_mode(bitfile *ld, sbr_info *sbr, uint8_t ch)
 static uint16_t sbr_extension(bitfile *ld, sbr_info *sbr,
                               uint8_t bs_extension_id, uint16_t num_bits_left)
 {
+#ifdef PS_DEC
+    uint8_t header;
+    uint16_t ret;
+#endif
+
     switch (bs_extension_id)
     {
 #ifdef PS_DEC
     case EXTENSION_ID_PS:
-        sbr->ps_used = 1;
         if (!sbr->ps)
         {
             sbr->ps = ps_init(get_sr_index(sbr->sample_rate));
         }
-        return ps_data(sbr->ps, ld);
+        ret = ps_data(sbr->ps, ld, &header);
+
+        /* enable PS if and only if: a header has been decoded */
+        if (sbr->ps_used == 0 && header == 1)
+        {
+            sbr->ps_used = 1;
+        }
+
+        return ret;
 #endif
 #ifdef DRM_PS
     case DRM_PARAMETRIC_STEREO:

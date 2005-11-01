@@ -162,7 +162,7 @@ void CMpaSplitterFilter::DemuxSeek(REFERENCE_TIME rt)
 	}
 	else
 	{
-		m_pFile->Seek(startpos + (endpos - startpos) * rt / m_pFile->GetDuration());
+		m_pFile->Seek(startpos + (__int64)((1.0 * rt / m_pFile->GetDuration()) * (endpos - startpos)));
 		m_rtStart = rt;
 	}
 
