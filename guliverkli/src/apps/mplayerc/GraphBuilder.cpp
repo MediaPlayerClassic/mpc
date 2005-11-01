@@ -1134,7 +1134,7 @@ HRESULT CGraphBuilder::Render(IPin* pPin)
 	|| SUCCEEDED(pPin->ConnectedTo(&pPinTmp)))
 		return E_UNEXPECTED;
 
-	if(GetCLSID(GetFilterFromPin(pPin)) == CLSID_MPEG2Demultiplexer)
+	if(GetCLSID(pPin) == CLSID_MPEG2Demultiplexer)
 	{
 		CComQIPtr<IMediaSeeking> pMS = pPin;
 		if(!pMS) return E_FAIL;
@@ -1373,6 +1373,12 @@ HRESULT CGraphBuilder::Render(IPin* pPin)
 			mt.subtype = guids[1];
 			mt.formattype = FORMAT_None;
 			hr = ConnectDirect(pPin, pBF, &mt);
+
+			if(FAILED(hr))
+			{
+				mt.formattype = GUID_NULL;
+				hr = ConnectDirect(pPin, pBF, &mt);
+			}
 		}
 
 		if(SUCCEEDED(hr) || SUCCEEDED(ConnectDirect(pPin, pBF, NULL)))

@@ -5,7 +5,6 @@
 	Name="libfaad"
 	ProjectGUID="{5EFCFACB-1835-422C-ACDA-E3B3A2F51387}"
 	RootNamespace="libfaad"
-	SignManifests="true"
 	>
 	<Platforms>
 		<Platform
@@ -41,7 +40,6 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-DisableSpecificWarnings="4995;4996"
 				AdditionalOptions=""
 				Optimization="2"
 				InlineFunctionExpansion="1"
@@ -56,6 +54,7 @@ DisableSpecificWarnings="4995;4996"
 				WarningLevel="3"
 				SuppressStartupBanner="true"
 				Detect64BitPortabilityProblems="true"
+				DisableSpecificWarnings="4995;4996"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -116,7 +115,6 @@ DisableSpecificWarnings="4995;4996"
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-DisableSpecificWarnings="4995;4996"
 				AdditionalOptions=""
 				Optimization="0"
 				PreprocessorDefinitions="_DEBUG;WIN32;_LIB"
@@ -129,6 +127,7 @@ DisableSpecificWarnings="4995;4996"
 				WarningLevel="3"
 				SuppressStartupBanner="true"
 				DebugInformationFormat="4"
+				DisableSpecificWarnings="4995;4996"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -295,6 +294,10 @@ DisableSpecificWarnings="4995;4996"
 						BasicRuntimeChecks="3"
 					/>
 				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\drm_dec.c"
+				>
 			</File>
 			<File
 				RelativePath="error.c"
@@ -1088,6 +1091,10 @@ DisableSpecificWarnings="4995;4996"
 				>
 			</File>
 			<File
+				RelativePath=".\drm_dec.h"
+				>
+			</File>
+			<File
 				RelativePath="error.h"
 				>
 			</File>
@@ -1132,6 +1139,10 @@ DisableSpecificWarnings="4995;4996"
 				>
 			</File>
 			<File
+				RelativePath=".\mdct_tab.h"
+				>
+			</File>
+			<File
 				RelativePath="mp4.h"
 				>
 			</File>
@@ -1149,6 +1160,10 @@ DisableSpecificWarnings="4995;4996"
 			</File>
 			<File
 				RelativePath=".\ps_dec.h"
+				>
+			</File>
+			<File
+				RelativePath=".\ps_tables.h"
 				>
 			</File>
 			<File

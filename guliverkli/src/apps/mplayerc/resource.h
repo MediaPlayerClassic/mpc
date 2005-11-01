@@ -426,6 +426,8 @@
 #define IDS_RS_DX9_RESIZER              627
 #define IDS_RS_WEBSERVERCGI             628
 #define IDS_RS_WEBDEFINDEX              629
+#define IDS_RS_FREEWINDOWRESIZING       630
+#define IDS_RS_NOTIFYMSN                631
 #define IDC_BROWSEBUTTON                1016
 #define IDC_BROWSEBUTTON2               1017
 #define IDC_COMBO1                      1018

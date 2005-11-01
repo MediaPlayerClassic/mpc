@@ -1,6 +1,6 @@
 /*
 ** FAAD2 - Freeware Advanced Audio (AAC) Decoder including SBR decoding
-** Copyright (C) 2003-2004 M. Bakker, Ahead Software AG, http://www.nero.com
+** Copyright (C) 2003-2005 M. Bakker, Ahead Software AG, http://www.nero.com
 **  
 ** This program is free software; you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
@@ -19,6 +19,11 @@
 ** Any non-GPL usage of this software or parts of this software is strictly
 ** forbidden.
 **
+** Software using this code must display the following message visibly in the
+** software:
+** "FAAD2 AAC/HE-AAC/HE-AACv2/DRM decoder (c) Ahead Software, www.nero.com"
+** in, for example, the about-box or help/startup screen.
+**
 ** Commercial non-GPL licensing of this software is possible.
 ** For more info contact Ahead Software through Mpeg4AAClicense@nero.com.
 **
@@ -29,7 +34,6 @@
 #include "structs.h"
 
 #include <stdlib.h>
-#include <memory.h>
 
 #include "bits.h"
 #include "mp4.h"
@@ -59,11 +63,7 @@ static uint8_t ObjectTypesTable[32] = {
 #else
     0, /*  5 SBR */
 #endif
-#ifdef SCALABLE_DEC
-    1, /*  6 AAC Scalable */
-#else
     0, /*  6 AAC Scalable */
-#endif
     0, /*  7 TwinVQ */
     0, /*  8 CELP */
     0, /*  9 HVXC */
@@ -84,11 +84,7 @@ static uint8_t ObjectTypesTable[32] = {
 #else
     0, /* 19 ER AAC LTP */
 #endif
-#ifdef SCALABLE_DEC
-    1, /* 20 ER AAC scalable */
-#else
     0, /* 20 ER AAC scalable */
-#endif
     0, /* 21 ER TwinVQ */
     0, /* 22 ER BSAC */
 #ifdef LD_DEC
@@ -176,6 +172,15 @@ int8_t AudioSpecificConfig2(uint8_t *pBuffer,
         faad_endbits(&ld);
         return -3;
     }
+
+#if (defined(PS_DEC) || defined(DRM_PS))
+    /* check if we have a mono file */
+    if (mp4ASC->channelsConfiguration == 1)
+    {
+        /* upMatrix to 2 channels for implicit signalling of PS */
+        mp4ASC->channelsConfiguration = 2;
+    }
+#endif
 
 #ifdef SBR_DEC
     mp4ASC->sbr_present_flag = -1;

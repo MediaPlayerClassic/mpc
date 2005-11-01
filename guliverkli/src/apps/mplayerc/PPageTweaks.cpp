@@ -36,6 +36,8 @@ CPPageTweaks::CPPageTweaks()
 	, m_nJumpDistS(0)
 	, m_nJumpDistM(0)
 	, m_nJumpDistL(0)
+	, m_fFreeWindowResizing(TRUE)
+	, m_fNotifyMSN(TRUE)
 {
 	m_fWMASFReader = SUCCEEDED(CComPtr<IBaseFilter>().CoCreateInstance(
 		GUIDFromCString(_T("{187463A0-5BB7-11D3-ACBE-0080C75E246E}")))); // WM ASF Reader
@@ -55,6 +57,8 @@ void CPPageTweaks::DoDataExchange(CDataExchange* pDX)
 	DDX_Text(pDX, IDC_EDIT1, m_nJumpDistS);
 	DDX_Text(pDX, IDC_EDIT2, m_nJumpDistM);
 	DDX_Text(pDX, IDC_EDIT3, m_nJumpDistL);
+	DDX_Check(pDX, IDC_CHECK1, m_fFreeWindowResizing);
+	DDX_Check(pDX, IDC_CHECK4, m_fNotifyMSN);
 }
 
 BOOL CPPageTweaks::OnInitDialog()
@@ -68,6 +72,8 @@ BOOL CPPageTweaks::OnInitDialog()
 	m_nJumpDistS = s.nJumpDistS;
 	m_nJumpDistM = s.nJumpDistM;
 	m_nJumpDistL = s.nJumpDistL;
+	m_fFreeWindowResizing = s.fFreeWindowResizing;
+	m_fNotifyMSN = s.fNotifyMSN;
 
 	UpdateData(FALSE);
 
@@ -86,6 +92,8 @@ BOOL CPPageTweaks::OnApply()
 	s.nJumpDistS = m_nJumpDistS;
 	s.nJumpDistM = m_nJumpDistM;
 	s.nJumpDistL = m_nJumpDistL;
+	s.fFreeWindowResizing = m_fFreeWindowResizing;
+	s.fNotifyMSN = m_fNotifyMSN;
 
 	return __super::OnApply();
 }

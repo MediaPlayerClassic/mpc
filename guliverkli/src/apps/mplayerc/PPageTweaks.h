@@ -58,4 +58,8 @@ public:
 	afx_msg void OnUpdateCheck2(CCmdUI* pCmdUI);
 	afx_msg void OnBnClickedButton1();
 	afx_msg void OnUpdateCheck4(CCmdUI* pCmdUI);
+public:
+	BOOL m_fFreeWindowResizing;
+public:
+	BOOL m_fNotifyMSN;
 };

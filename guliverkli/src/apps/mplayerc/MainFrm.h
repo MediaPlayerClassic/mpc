@@ -323,6 +323,8 @@ protected:
 // Operations
 	bool OpenMediaPrivate(CAutoPtr<OpenMediaData> pOMD);
 	void CloseMediaPrivate();
+	
+	void SendNowPlayingToMSN();
 
 	void OpenCreateGraphObject(OpenMediaData* pOMD);
 	void OpenFile(OpenFileData* pOFD);
@@ -442,6 +444,7 @@ public:
 	afx_msg void OnGetMinMaxInfo(MINMAXINFO* lpMMI);
 	afx_msg void OnMove(int x, int y);
 	afx_msg void OnSize(UINT nType, int cx, int cy);
+	afx_msg void OnSizing(UINT fwSide, LPRECT pRect);
 	afx_msg void OnDisplayChange();
 
 	afx_msg void OnSysCommand(UINT nID, LPARAM lParam);
@@ -631,5 +634,4 @@ public:
 	afx_msg void OnHelpDonate();
 public:
 	afx_msg void OnClose();
-	afx_msg void OnSizing(UINT fwSide, LPRECT pRect);
 };

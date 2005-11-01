@@ -409,6 +409,8 @@ public:
 		int nJumpDistS;
 		int nJumpDistM;
 		int nJumpDistL;
+		bool fFreeWindowResizing;
+		bool fNotifyMSN;
 
 		bool fEnableAudioSwitcher;
 		bool fDownSampleTo441;

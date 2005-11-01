@@ -1,6 +1,6 @@
 /*
 ** FAAD2 - Freeware Advanced Audio (AAC) Decoder including SBR decoding
-** Copyright (C) 2003-2004 M. Bakker, Ahead Software AG, http://www.nero.com
+** Copyright (C) 2003-2005 M. Bakker, Ahead Software AG, http://www.nero.com
 **  
 ** This program is free software; you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
@@ -18,6 +18,11 @@
 **
 ** Any non-GPL usage of this software or parts of this software is strictly
 ** forbidden.
+**
+** Software using this code must display the following message visibly in the
+** software:
+** "FAAD2 AAC/HE-AAC/HE-AACv2/DRM decoder (c) Ahead Software, www.nero.com"
+** in, for example, the about-box or help/startup screen.
 **
 ** Commercial non-GPL licensing of this software is possible.
 ** For more info contact Ahead Software through Mpeg4AAClicense@nero.com.
@@ -54,6 +59,13 @@ char *err_msg[] = {
     "Error in program_config_element",
     "First SBR frame is not the same as first AAC frame",
     "Unexpected fill element with SBR data",
-    "Not all elements were provided with SBR data"
+    "Not all elements were provided with SBR data",
+    "LTP decoding not available",
+    "Output data buffer too small",
+    "CRC error in DRM data",
+    "PNS not allowed in DRM data stream",
+    "No standard extension payload allowed in DRM",
+    "PCE shall be the first element in a frame",
+    "Bitstream value not allowed by specification"
 };
 

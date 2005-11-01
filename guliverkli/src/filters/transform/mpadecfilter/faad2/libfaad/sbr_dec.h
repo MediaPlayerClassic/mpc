@@ -1,6 +1,6 @@
 /*
 ** FAAD2 - Freeware Advanced Audio (AAC) Decoder including SBR decoding
-** Copyright (C) 2003-2004 M. Bakker, Ahead Software AG, http://www.nero.com
+** Copyright (C) 2003-2005 M. Bakker, Ahead Software AG, http://www.nero.com
 **  
 ** This program is free software; you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
@@ -18,6 +18,11 @@
 **
 ** Any non-GPL usage of this software or parts of this software is strictly
 ** forbidden.
+**
+** Software using this code must display the following message visibly in the
+** software:
+** "FAAD2 AAC/HE-AAC/HE-AACv2/DRM decoder (c) Ahead Software, www.nero.com"
+** in, for example, the about-box or help/startup screen.
 **
 ** Commercial non-GPL licensing of this software is possible.
 ** For more info contact Ahead Software through Mpeg4AAClicense@nero.com.
@@ -43,10 +48,14 @@ extern "C" {
 #define MAX_NTSRHFG 40
 #define MAX_NTSR    32 /* max number_time_slots * rate, ok for DRM and not DRM mode */
 
+/* MAX_M: maximum value for M */
+#define MAX_M       49
+/* MAX_L_E: maximum value for L_E */
+#define MAX_L_E      5
 
 typedef struct {
     real_t *x;
-	int16_t x_index;
+    int16_t x_index;
     uint8_t channels;
 } qmfa_info;
 
@@ -54,7 +63,6 @@ typedef struct {
     real_t *v;
     int16_t v_index;
     uint8_t channels;
-    complex_t *pre_twiddle;
 } qmfs_info;
 
 typedef struct
@@ -98,28 +106,33 @@ typedef struct
     uint8_t L_E_prev[2];
     uint8_t L_Q[2];
 
-    uint8_t t_E[2][6];
+    uint8_t t_E[2][MAX_L_E+1];
     uint8_t t_Q[2][3];
-    uint8_t f[2][6];
+    uint8_t f[2][MAX_L_E+1];
     uint8_t f_prev[2];
 
     real_t *G_temp_prev[2][5];
     real_t *Q_temp_prev[2][5];
+    int8_t GQ_ringbuf_index[2];
 
-    int16_t E[2][64][5];
+    int16_t E[2][64][MAX_L_E];
     int16_t E_prev[2][64];
-    real_t E_orig[2][64][5];
-    real_t E_curr[2][64][5];
+#ifndef FIXED_POINT
+    real_t E_orig[2][64][MAX_L_E];
+#endif
+    real_t E_curr[2][64][MAX_L_E];
     int32_t Q[2][64][2];
+#ifndef FIXED_POINT
     real_t Q_div[2][64][2];
     real_t Q_div2[2][64][2];
+#endif
     int32_t Q_prev[2][64];
 
     int8_t l_A[2];
     int8_t l_A_prev[2];
 
-    uint8_t bs_invf_mode[2][5];
-    uint8_t bs_invf_mode_prev[2][5];
+    uint8_t bs_invf_mode[2][MAX_L_E];
+    uint8_t bs_invf_mode_prev[2][MAX_L_E];
     real_t bwArray[2][64];
     real_t bwArray_prev[2][64];
 
@@ -157,20 +170,18 @@ typedef struct
     qmfs_info *qmfs[2];
 
     qmf_t Xsbr[2][MAX_NTSRHFG][64];
-    qmf_t Xcodec[2][MAX_NTSRHFG][32];
 
 #ifdef DRM
-	uint8_t bs_dataextra;
     uint8_t Is_DRM_SBR;
 #ifdef DRM_PS
     drm_ps_info *drm_ps;
 #endif
 #endif
 
-	uint8_t numTimeSlotsRate;
-	uint8_t numTimeSlots;
-	uint8_t tHFGen;
-	uint8_t tHFAdj;
+    uint8_t numTimeSlotsRate;
+    uint8_t numTimeSlots;
+    uint8_t tHFGen;
+    uint8_t tHFAdj;
 
 #ifdef PS_DEC
     ps_info *ps;
@@ -221,10 +232,11 @@ typedef struct
 sbr_info *sbrDecodeInit(uint16_t framelength, uint8_t id_aac,
                         uint32_t sample_rate, uint8_t downSampledSBR
 #ifdef DRM
-						, uint8_t IsDRM
+                        , uint8_t IsDRM
 #endif
-						);
+                        );
 void sbrDecodeEnd(sbr_info *sbr);
+void sbrReset(sbr_info *sbr);
 
 uint8_t sbrDecodeCoupleFrame(sbr_info *sbr, real_t *left_chan, real_t *right_chan,
                              const uint8_t just_seeked, const uint8_t downSampledSBR);

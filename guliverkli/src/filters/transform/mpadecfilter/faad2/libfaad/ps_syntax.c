@@ -1,23 +1,28 @@
 /*
-** FAAD2 - Freeware Advanced Audio (AAC) Decoder including SBR and PS decoding
-** Copyright (C) 2003-2004 M. Bakker, Ahead Software AG, http://www.nero.com
-**
+** FAAD2 - Freeware Advanced Audio (AAC) Decoder including SBR decoding
+** Copyright (C) 2003-2005 M. Bakker, Ahead Software AG, http://www.nero.com
+**  
 ** This program is free software; you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
 ** the Free Software Foundation; either version 2 of the License, or
 ** (at your option) any later version.
-**
+** 
 ** This program is distributed in the hope that it will be useful,
 ** but WITHOUT ANY WARRANTY; without even the implied warranty of
 ** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ** GNU General Public License for more details.
-**
+** 
 ** You should have received a copy of the GNU General Public License
-** along with this program; if not, write to the Free Software
+** along with this program; if not, write to the Free Software 
 ** Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 **
 ** Any non-GPL usage of this software or parts of this software is strictly
 ** forbidden.
+**
+** Software using this code must display the following message visibly in the
+** software:
+** "FAAD2 AAC/HE-AAC/HE-AACv2/DRM decoder (c) Ahead Software, www.nero.com"
+** in, for example, the about-box or help/startup screen.
 **
 ** Commercial non-GPL licensing of this software is possible.
 ** For more info contact Ahead Software through Mpeg4AAClicense@nero.com.
@@ -94,7 +99,7 @@ static const int8_t t_huff_iid_def[][2] = {
     { /*4*/ -27, 9 },             /* index 8: 9 bits: 11111111x */
     { /*-5*/ -36, 10 },           /* index 9: 10 bits: 111111111x */
     { /*5*/ -26, 11 },            /* index 10: 11 bits: 1111111111x */
-    { /*-6*/ -27, 12 },           /* index 11: 12 bits: 11111111111x */
+    { /*-6*/ -37, 12 },           /* index 11: 12 bits: 11111111111x */
     { /*6*/ -25, 13 },            /* index 12: 13 bits: 111111111111x */
     { /*7*/ -24, 14 },            /* index 13: 14 bits: 1111111111111x */
     { /*-7*/ -38, 15 },           /* index 14: 15 bits: 11111111111111x */
@@ -308,9 +313,9 @@ static const int8_t t_huff_opd[][2] = {
     { 2, 3 },                 /* index 1: 2 bits: 0x */
     { 4, 5 },                 /* index 2: 3 bits: 00x */
     { /*1*/ -30, /*7*/ -24 }, /* index 3: 3 bits: 01x */
-    { /*5*/ -26, 6 },         /* index 4: 4 bits: 000x */
-    { /*2*/ -29, /*6*/ -25 }, /* index 5: 4 bits: 001x */
-    { /*4*/ -27, /*3*/ -28 }  /* index 6: 5 bits: 0001x */
+    { /*5*/ -26, /*2*/ -29 }, /* index 4: 4 bits: 000x */
+    { /*6*/ -25, 6 },         /* index 5: 4 bits: 001x */
+    { /*4*/ -27, /*3*/ -28 }  /* index 6: 5 bits: 0011x */
 };
 
 /* static function declarations */
@@ -322,15 +327,21 @@ static void huff_data(bitfile *ld, const uint8_t dt, const uint8_t nr_par,
 static INLINE int8_t ps_huff_dec(bitfile *ld, ps_huff_tab t_huff);
 
 
-uint16_t ps_data(ps_info *ps, bitfile *ld)
+uint16_t ps_data(ps_info *ps, bitfile *ld, uint8_t *header)
 {
     uint8_t tmp, n;
     uint16_t bits = (uint16_t)faad_get_processed_bits(ld);
+
+    *header = 0;
 
     /* check for new PS header */
     if (faad_get1bit(ld
         DEBUGVAR(1,1000,"ps_data(): enable_ps_header")))
     {
+        *header = 1;
+
+        ps->header_read = 1;
+
         ps->use34hybrid_bands = 0;
 
         /* Inter-channel Intensity Difference (IID) parameters enabled */
@@ -371,6 +382,10 @@ uint16_t ps_data(ps_info *ps, bitfile *ld)
         ps->enable_ext = (uint8_t)faad_get1bit(ld
             DEBUGVAR(1,1005,"ps_data(): enable_ext"));
     }
+
+    /* we are here, but no header has been read yet */
+    if (ps->header_read == 0)
+        return 1;
 
     ps->frame_class = (uint8_t)faad_get1bit(ld
         DEBUGVAR(1,1006,"ps_data(): frame_class"));

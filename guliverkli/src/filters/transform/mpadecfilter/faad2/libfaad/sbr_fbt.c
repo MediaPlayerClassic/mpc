@@ -1,6 +1,6 @@
 /*
 ** FAAD2 - Freeware Advanced Audio (AAC) Decoder including SBR decoding
-** Copyright (C) 2003-2004 M. Bakker, Ahead Software AG, http://www.nero.com
+** Copyright (C) 2003-2005 M. Bakker, Ahead Software AG, http://www.nero.com
 **  
 ** This program is free software; you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
@@ -18,6 +18,11 @@
 **
 ** Any non-GPL usage of this software or parts of this software is strictly
 ** forbidden.
+**
+** Software using this code must display the following message visibly in the
+** software:
+** "FAAD2 AAC/HE-AAC/HE-AACv2/DRM decoder (c) Ahead Software, www.nero.com"
+** in, for example, the about-box or help/startup screen.
 **
 ** Commercial non-GPL licensing of this software is possible.
 ** For more info contact Ahead Software through Mpeg4AAClicense@nero.com.
@@ -197,7 +202,7 @@ uint8_t master_frequency_table_fs0(sbr_info *sbr, uint8_t k0, uint8_t k2,
     if (k2 <= k0)
     {
         sbr->N_master = 0;
-        return 0;
+        return 1;
     }
 
     dk = bs_alter_scale ? 2 : 1;
@@ -355,18 +360,23 @@ uint8_t master_frequency_table(sbr_info *sbr, uint8_t k0, uint8_t k2,
     uint8_t temp1[] = { 6, 5, 4 };
     real_t q, qk;
     int32_t A_1;
+#ifdef FIXED_POINT
+    real_t rk2, rk0;
+#endif
 
     /* mft only defined for k2 > k0 */
     if (k2 <= k0)
     {
         sbr->N_master = 0;
-        return 0;
+        return 1;
     }
 
     bands = temp1[bs_freq_scale-1];
 
 #ifdef FIXED_POINT
-    if (REAL_CONST(k2) > MUL_R(REAL_CONST(k0),REAL_CONST(2.2449)))
+    rk0 = (real_t)k0 << REAL_BITS;
+    rk2 = (real_t)k2 << REAL_BITS;
+    if (rk2 > MUL_C(rk0, COEF_CONST(2.2449)))
 #else
     if ((float)k2/(float)k0 > 2.2449)
 #endif
@@ -384,10 +394,12 @@ uint8_t master_frequency_table(sbr_info *sbr, uint8_t k0, uint8_t k2,
         return 1;
 
     q = find_initial_power(nrBand0, k0, k1);
-    qk = REAL_CONST(k0);
 #ifdef FIXED_POINT
-    A_1 = (int32_t)((qk + REAL_CONST(0.5)) >> REAL_BITS);
+    qk = (real_t)k0 << REAL_BITS;
+    //A_1 = (int32_t)((qk + REAL_CONST(0.5)) >> REAL_BITS);
+    A_1 = k0;
 #else
+    qk = REAL_CONST(k0);
     A_1 = (int32_t)(qk + .5);
 #endif
     for (k = 0; k <= nrBand0; k++)
@@ -428,10 +440,12 @@ uint8_t master_frequency_table(sbr_info *sbr, uint8_t k0, uint8_t k2,
     nrBand1 = min(nrBand1, 63);
 
     q = find_initial_power(nrBand1, k1, k2);
-    qk = REAL_CONST(k1);
 #ifdef FIXED_POINT
-    A_1 = (int32_t)((qk + REAL_CONST(0.5)) >> REAL_BITS);
+    qk = (real_t)k1 << REAL_BITS;
+    //A_1 = (int32_t)((qk + REAL_CONST(0.5)) >> REAL_BITS);
+    A_1 = k1;
 #else
+    qk = REAL_CONST(k1);
     A_1 = (int32_t)(qk + .5);
 #endif
     for (k = 0; k <= nrBand1 - 1; k++)
@@ -594,7 +608,7 @@ uint8_t derived_frequency_table(sbr_info *sbr, uint8_t bs_xover_band,
     printf("f_table_noise[%d]: ", sbr->N_Q);
     for (k = 0; k <= sbr->N_Q; k++)
     {
-        printf("%d ", sbr->f_table_noise[k]);
+        printf("%d ", sbr->f_table_noise[k] - sbr->kx);
     }
     printf("\n");
 #endif
@@ -625,6 +639,15 @@ void limiter_frequency_table(sbr_info *sbr)
     sbr->f_table_lim[0][0] = sbr->f_table_res[LO_RES][0] - sbr->kx;
     sbr->f_table_lim[0][1] = sbr->f_table_res[LO_RES][sbr->N_low] - sbr->kx;
     sbr->N_L[0] = 1;
+
+#if 0
+    printf("f_table_lim[%d][%d]: ", 0, sbr->N_L[0]);
+    for (k = 0; k <= sbr->N_L[0]; k++)
+    {
+        printf("%d ", sbr->f_table_lim[0][k]);
+    }
+    printf("\n");
+#endif
 
     for (s = 1; s < 4; s++)
     {
@@ -668,7 +691,7 @@ restart:
                 nOctaves = REAL_CONST(log((float)limTable[k]/(float)limTable[k-1])/log(2.0));
 #else
 #ifdef FIXED_POINT
-                nOctaves = SBR_DIV(REAL_CONST(limTable[k]),REAL_CONST(limTable[k-1]));
+                nOctaves = DIV_R((limTable[k]<<REAL_BITS),REAL_CONST(limTable[k-1]));
 #else
                 nOctaves = (real_t)limTable[k]/(real_t)limTable[k-1];
 #endif

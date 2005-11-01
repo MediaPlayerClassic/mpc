@@ -1,23 +1,28 @@
 /*
 ** FAAD2 - Freeware Advanced Audio (AAC) Decoder including SBR decoding
-** Copyright (C) 2003-2004 M. Bakker, Ahead Software AG, http://www.nero.com
-**
+** Copyright (C) 2003-2005 M. Bakker, Ahead Software AG, http://www.nero.com
+**  
 ** This program is free software; you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
 ** the Free Software Foundation; either version 2 of the License, or
 ** (at your option) any later version.
-**
+** 
 ** This program is distributed in the hope that it will be useful,
 ** but WITHOUT ANY WARRANTY; without even the implied warranty of
 ** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ** GNU General Public License for more details.
-**
+** 
 ** You should have received a copy of the GNU General Public License
-** along with this program; if not, write to the Free Software
+** along with this program; if not, write to the Free Software 
 ** Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 **
 ** Any non-GPL usage of this software or parts of this software is strictly
 ** forbidden.
+**
+** Software using this code must display the following message visibly in the
+** software:
+** "FAAD2 AAC/HE-AAC/HE-AACv2/DRM decoder (c) Ahead Software, www.nero.com"
+** in, for example, the about-box or help/startup screen.
 **
 ** Commercial non-GPL licensing of this software is possible.
 ** For more info contact Ahead Software through Mpeg4AAClicense@nero.com.
@@ -76,9 +81,6 @@ typedef struct
     mdct_info *mdct2048;
 #ifdef PROFILE
     int64_t cycles;
-#endif
-#ifdef USE_SSE
-    void (*if_func)(void *a, uint8_t b, uint8_t c, uint8_t d, real_t *e, real_t *f, uint8_t g, uint16_t h);
 #endif
 } fb_info;
 
@@ -182,6 +184,7 @@ typedef struct
     program_config pce[16];
 } adif_header;
 
+#ifdef LTP_DEC
 typedef struct
 {
     uint8_t last_band;
@@ -194,7 +197,9 @@ typedef struct
     uint8_t short_lag_present[8];
     uint8_t short_lag[8];
 } ltp_info;
+#endif
 
+#ifdef MAIN_DEC
 typedef struct
 {
     uint8_t limit;
@@ -202,6 +207,7 @@ typedef struct
     uint8_t predictor_reset_group_number;
     uint8_t prediction_used[MAX_SFB];
 } pred_info;
+#endif
 
 typedef struct
 {
@@ -260,6 +266,7 @@ typedef struct
     uint8_t ms_used[MAX_WINDOW_GROUPS][MAX_SFB];
 
     uint8_t noise_used;
+    uint8_t is_used;
 
     uint8_t pulse_data_present;
     uint8_t tns_data_present;
@@ -268,9 +275,13 @@ typedef struct
 
     pulse_info pul;
     tns_info tns;
+#ifdef MAIN_DEC
     pred_info pred;
+#endif
+#ifdef LTP_DEC
     ltp_info ltp;
     ltp_info ltp2;
+#endif
 #ifdef SSR_DEC
     ssr_info ssr;
 #endif
@@ -358,6 +369,9 @@ typedef struct NeAACDecFrameInfo
     /*uint8_t*/ unsigned char num_back_channels;
     /*uint8_t*/ unsigned char num_lfe_channels;
     /*uint8_t*/ unsigned char channel_position[MAX_CHANNELS];
+
+    /* PS: 0: off, 1: on */
+    /*uint8_t*/ unsigned char ps;
 } NeAACDecFrameInfo;
 
 typedef struct
@@ -423,6 +437,7 @@ typedef struct
 #endif
 #if (defined(PS_DEC) || defined(DRM_PS))
     uint8_t ps_used[MAX_SYNTAX_ELEMENTS];
+    uint8_t ps_used_global;
 #endif
 
 #ifdef SSR_DEC
@@ -438,6 +453,10 @@ typedef struct
     int16_t *lt_pred_stat[MAX_CHANNELS];
 #endif
 
+#ifdef DRM
+    uint8_t error_state;
+#endif
+
     /* Program Config Element */
     uint8_t pce_set;
     program_config pce;
@@ -446,10 +465,6 @@ typedef struct
 
     /* Configuration data */
     NeAACDecConfiguration config;
-
-#ifdef USE_SSE
-    void (*apply_sf_func)(void *a, void *b, void *c, uint16_t d);
-#endif
 
 #ifdef PROFILE
     int64_t cycles;
