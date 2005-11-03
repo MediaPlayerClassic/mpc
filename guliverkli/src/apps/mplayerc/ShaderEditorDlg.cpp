@@ -3,9 +3,8 @@
 
 #include "stdafx.h"
 #include "mplayerc.h"
-#include <d3dx9shader.h>
+#include "PixelShaderCompiler.h"
 #include "ShaderEditorDlg.h"
-#include ".\shadereditordlg.h"
 
 #undef SubclassWindow
 
@@ -198,10 +197,12 @@ CShaderEditorDlg::CShaderEditorDlg(CString label, ISubPicAllocatorPresenter* pCA
 	, m_pCAP(pCAP)
 	, m_fSplitterGrabbed(false)
 {
+	m_pPSC = new CPixelShaderCompiler(NULL);
 }
 
 CShaderEditorDlg::~CShaderEditorDlg()
 {
+	delete m_pPSC;
 }
 
 void CShaderEditorDlg::DoDataExchange(CDataExchange* pDX)
@@ -422,46 +423,34 @@ void CShaderEditorDlg::OnTimer(UINT nIDEvent)
 {
 	if(nIDEvent == m_nIDEventShader)
 	{
-		CString srcdata, target;
-		m_srcdata.GetWindowText(srcdata);
-		m_targets.GetWindowText(target);
-
 		static CString s_srcdata, s_target;
 		
-		srcdata.Trim(); target.Trim();
-		if(!srcdata.IsEmpty() && !target.IsEmpty() 
-		&& (s_srcdata != srcdata || s_target != target))
+		CString srcdata;
+		m_srcdata.GetWindowText(srcdata);
+		srcdata.Trim();
+
+		CString target;
+		m_targets.GetWindowText(target);
+		target.Trim();
+
+		if(!srcdata.IsEmpty() && !target.IsEmpty() && (s_srcdata != srcdata || s_target != target))
 		{
-			CStringA err = "Unknown Error";
+			CString disasm, errmsg(_T("Unknown Error"));
 
-			CComPtr<ID3DXBuffer> pShader, pErrorMsgs;
-			HRESULT hr = D3DXCompileShader(
-				CStringA(srcdata), srcdata.GetLength(), NULL, NULL, 
-				"main", CStringA(target), D3DXSHADER_DEBUG, &pShader, &pErrorMsgs, NULL);
-			if(FAILED(hr))
+			HRESULT hr = m_pPSC->CompileShader(CStringA(srcdata), "main", CStringA(target), D3DXSHADER_DEBUG, NULL, &disasm, &errmsg); 
+
+			if(SUCCEEDED(hr))
 			{
-				err = "Compiler Error";
-
-				if(pErrorMsgs)
-				{
-					int len = pErrorMsgs->GetBufferSize();
-					strncpy(err.GetBufferSetLength(len), (const char*)pErrorMsgs->GetBufferPointer(), len);
-				}
-			}
-			else
-			{
-				err = "D3DXCompileShader succeeded\n";
-				if(m_pCAP && FAILED(m_pCAP->SetPixelShader(CStringA(srcdata), CStringA(target), NULL, 0)))
-					err += "SetPixelShader failed\n";
-				err += "\n";
-
-				CComPtr<ID3DXBuffer> pDisAsm;
-				hr = D3DXDisassembleShader((DWORD*)pShader->GetBufferPointer(), FALSE, NULL, &pDisAsm);
-				if(pDisAsm) err += CStringA((const char*)pDisAsm->GetBufferPointer());
+				errmsg = _T("D3DXCompileShader succeeded\n");
+				if(m_pCAP && FAILED(m_pCAP->SetPixelShader(CStringA(srcdata), CStringA(target))))
+					errmsg += _T("SetPixelShader failed\n");
+				errmsg += _T("\n");
+				errmsg += disasm;
 			}
 
-			err.Replace("\n", "\r\n");
-			m_output.SetWindowText(CString(err));
+			errmsg.Replace(_T("\n"), _T("\r\n"));
+
+			m_output.SetWindowText(errmsg);
 		}
 
 		s_srcdata = srcdata;

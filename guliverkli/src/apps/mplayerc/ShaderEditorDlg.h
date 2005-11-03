@@ -36,6 +36,8 @@ public:
 
 // CShaderEditorDlg dialog
 
+class CPixelShaderCompiler;
+
 class CShaderEditorDlg : public CResizableDialog
 {
 private:
@@ -49,6 +51,8 @@ private:
 
 	bool m_fSplitterGrabbed;
 	bool HitTestSplitter(CPoint p);
+
+	CPixelShaderCompiler* m_pPSC;
 
 public:
 	CShaderEditorDlg(CString label, ISubPicAllocatorPresenter* pCAP, CWnd* pParent = NULL);   // standard constructor

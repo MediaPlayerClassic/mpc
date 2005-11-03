@@ -4525,7 +4525,7 @@ void CMainFrame::OnPlayShaders(UINT nID)
 	}
 	else if(nID == ID_SHADERS_START+1)
 	{
-		m_pCAP->SetPixelShader(NULL, NULL, NULL, 0);
+		m_pCAP->SetPixelShader(NULL, NULL);
 		m_shaderlabel.Empty();
 	}
 	else if(nID >= ID_SHADERS_START+2)
@@ -4542,13 +4542,12 @@ void CMainFrame::OnPlayShaders(UINT nID)
 		CString label = sl.RemoveHead();
 		CStringA target = CStringA(sl.RemoveHead());
 		CStringA srcdata = CStringA(sl.RemoveHead());
-		CStringA err;
 
 		srcdata.Replace("\\n", "\n");
 		srcdata.Replace("\\t", "\t");
 
-		HRESULT hr = m_pCAP->SetPixelShader(srcdata, target, err.GetBufferSetLength(1024), 1024-1);
-		if(FAILED(hr)) AfxMessageBox(strlen(err) ? CString(err) : _T("Could not load shader."), MB_OK);
+		HRESULT hr = m_pCAP->SetPixelShader(srcdata, target);
+		if(FAILED(hr)) AfxMessageBox(_T("Could not load shader."), MB_OK);
 		else {SendStatusMessage(_T("Shader: ") + label, 3000); m_shaderlabel = label;}
 	}
 }
@@ -5092,18 +5091,20 @@ void CMainFrame::OnNavigateMenuItem(UINT nID)
 {
 	nID -= ID_NAVIGATE_MENU_LEFT;
 
-	switch(nID)
+	if(m_iPlaybackMode == PM_DVD)
 	{
-	case 0: pDVDC->SelectRelativeButton(DVD_Relative_Left); break;
-	case 1: pDVDC->SelectRelativeButton(DVD_Relative_Right); break;
-	case 2: pDVDC->SelectRelativeButton(DVD_Relative_Upper); break;
-	case 3: pDVDC->SelectRelativeButton(DVD_Relative_Lower); break;
-	case 4: pDVDC->ActivateButton(); break;
-	case 5: pDVDC->ReturnFromSubmenu(DVD_CMD_FLAG_Block|DVD_CMD_FLAG_Flush, NULL); break;
-	case 6: pDVDC->Resume(DVD_CMD_FLAG_Block|DVD_CMD_FLAG_Flush, NULL); break;
-	default: break;
+		switch(nID)
+		{
+		case 0: pDVDC->SelectRelativeButton(DVD_Relative_Left); break;
+		case 1: pDVDC->SelectRelativeButton(DVD_Relative_Right); break;
+		case 2: pDVDC->SelectRelativeButton(DVD_Relative_Upper); break;
+		case 3: pDVDC->SelectRelativeButton(DVD_Relative_Lower); break;
+		case 4: pDVDC->ActivateButton(); break;
+		case 5: pDVDC->ReturnFromSubmenu(DVD_CMD_FLAG_Block|DVD_CMD_FLAG_Flush, NULL); break;
+		case 6: pDVDC->Resume(DVD_CMD_FLAG_Block|DVD_CMD_FLAG_Flush, NULL); break;
+		default: break;
+		}
 	}
-
 }
 
 void CMainFrame::OnUpdateNavigateMenuItem(CCmdUI* pCmdUI)
@@ -6647,7 +6648,7 @@ return;
 			"}\r\n";
 
 		//CComPtr<ID3DXBuffer> pErrorMsgs;
-		HRESULT hr = m_pCAP->SetPixelShader(pSrcData, "ps_2_0", NULL, 0);
+		HRESULT hr = m_pCAP->SetPixelShader(pSrcData, "ps_2_0");
 		if(FAILED(hr))
 		{
 
@@ -7159,11 +7160,46 @@ void CMainFrame::SendNowPlayingToMSN()
 	if(!AfxGetAppSettings().fNotifyMSN)
 		return;
 
-	CString title;
-	m_wndInfoBar.GetLine(_T("Title"), title);
+	CString title, author;
 
-	CString author;
-	m_wndInfoBar.GetLine(_T("Author"), author);
+	if(m_iMediaLoadState == MLS_LOADED)
+	{
+		m_wndInfoBar.GetLine(_T("Title"), title);
+		m_wndInfoBar.GetLine(_T("Author"), author);
+
+		if(title.IsEmpty())
+		{
+			CPlaylistItem pli;
+			m_wndPlaylistBar.GetCur(pli);
+
+			if(!pli.m_fns.IsEmpty())
+			{
+				CString label = !pli.m_label.IsEmpty() ? pli.m_label : pli.m_fns.GetHead();
+
+				if(m_iPlaybackMode == PM_FILE)
+				{
+					CString fn = label;
+					if(fn.Find(_T("://")) >= 0) {int i = fn.Find('?'); if(i >= 0) fn = fn.Left(i);}
+					CPath path(fn);
+					path.StripPath();
+					path.MakePretty();
+					path.RemoveExtension();
+					title = (LPCTSTR)path;
+					author.Empty();
+				}
+				else if(m_iPlaybackMode == PM_CAPTURE)
+				{
+					title = label != pli.m_fns.GetHead() ? label : _T("Live");
+					author.Empty();
+				}
+				else if(m_iPlaybackMode == PM_DVD)
+				{
+					title = _T("DVD");
+					author.Empty();
+				}
+			}
+		}
+	}
 
 	CStringW buff;
 	buff += L"\\0Music\\0";
@@ -8868,6 +8904,7 @@ void CMainFrame::OpenMedia(CAutoPtr<OpenMediaData> pOMD)
 			m_wndCaptureBar.m_capdlg.SetVideoInput(p->vinput);
 			m_wndCaptureBar.m_capdlg.SetVideoChannel(p->vchannel);
 			m_wndCaptureBar.m_capdlg.SetAudioInput(p->ainput);
+			SendNowPlayingToMSN();
 			return;
 		}
 	}

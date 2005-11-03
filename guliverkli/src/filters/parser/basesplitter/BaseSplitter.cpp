@@ -29,7 +29,6 @@
 
 #pragma warning(disable: 4355)
 
-#define MAXBUFFERS 2
 #define MINPACKETS 10
 #define MINPACKETSIZE 100*1024
 #define MAXPACKETS 10000
@@ -197,7 +196,7 @@ CBaseSplitterOutputPin::CBaseSplitterOutputPin(CArray<CMediaType>& mts, LPCWSTR 
 	, m_eEndFlush(TRUE)
 {
 	m_mts.Copy(mts);
-	m_nBuffers = nBuffers > 0 ? nBuffers : MAXBUFFERS;
+	m_nBuffers = max(nBuffers, 1);
 }
 
 CBaseSplitterOutputPin::CBaseSplitterOutputPin(LPCWSTR pName, CBaseFilter* pFilter, CCritSec* pLock, HRESULT* phr, int nBuffers)
@@ -206,7 +205,7 @@ CBaseSplitterOutputPin::CBaseSplitterOutputPin(LPCWSTR pName, CBaseFilter* pFilt
 	, m_fFlushing(false)
 	, m_eEndFlush(TRUE)
 {
-	m_nBuffers = nBuffers > 0 ? nBuffers : MAXBUFFERS;
+	m_nBuffers = max(nBuffers, 1);
 }
 
 CBaseSplitterOutputPin::~CBaseSplitterOutputPin()
@@ -479,12 +478,18 @@ HRESULT CBaseSplitterOutputPin::DeliverPacket(CAutoPtr<Packet> p)
 		if(nBytes > pSample->GetSize())
 		{
 			pSample.Release();
-			if(S_OK != (hr = __super::DeliverBeginFlush())) break;
-			if(S_OK != (hr = __super::DeliverEndFlush())) break;
-			if(S_OK != (hr = m_pAllocator->Decommit())) break;
+
 			ALLOCATOR_PROPERTIES props, actual;
 			if(S_OK != (hr = m_pAllocator->GetProperties(&props))) break;
 			props.cbBuffer = nBytes*3/2;
+
+			if(props.cBuffers > 1)
+			{
+				if(S_OK != (hr = __super::DeliverBeginFlush())) break;
+				if(S_OK != (hr = __super::DeliverEndFlush())) break;
+			}
+
+			if(S_OK != (hr = m_pAllocator->Decommit())) break;
 			if(S_OK != (hr = m_pAllocator->SetProperties(&props, &actual))) break;
 			if(S_OK != (hr = m_pAllocator->Commit())) break;
 			if(S_OK != (hr = GetDeliveryBuffer(&pSample, NULL, NULL, 0))) break;
@@ -501,14 +506,14 @@ HRESULT CBaseSplitterOutputPin::DeliverPacket(CAutoPtr<Packet> p)
 		}
 
 		bool fTimeValid = p->rtStart != Packet::INVALID_TIME;
-
+/*
 //if(p->TrackNumber == 1)
 //if(p->rtStart != Packet::INVALID_TIME)
 TRACE(_T("[%d]: d%d s%d p%d, b=%d, %I64d-%I64d \n"), 
 	  p->TrackNumber,
 	  p->bDiscontinuity, p->bSyncPoint, fTimeValid && p->rtStart < 0,
 	  nBytes, p->rtStart, p->rtStop);
-/**/
+*/
 		ASSERT(!p->bSyncPoint || fTimeValid);
 
 		BYTE* pData = NULL;
