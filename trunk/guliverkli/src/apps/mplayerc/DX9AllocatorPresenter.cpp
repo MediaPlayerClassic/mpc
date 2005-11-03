@@ -42,6 +42,8 @@
 #include "MacrovisionKicker.h"
 #include "IPinHook.h"
 
+#include "PixelShaderCompiler.h"
+
 bool IsVMR9InGraph(IFilterGraph* pFG)
 {
 	BeginEnumFilters(pFG, pEF, pBF)
@@ -67,6 +69,8 @@ protected:
 	CComPtr<IDirect3DPixelShader9> m_pPixelShader, m_pResizerPixelShader[4];
 	D3DTEXTUREFILTERTYPE m_Filter;
 
+	CAutoPtr<CPixelShaderCompiler> m_pPSC;
+
 	virtual HRESULT CreateDevice();
 	virtual HRESULT AllocSurfaces();
 	virtual void DeleteSurfaces();
@@ -80,7 +84,7 @@ public:
 	STDMETHODIMP CreateRenderer(IUnknown** ppRenderer);
 	STDMETHODIMP_(bool) Paint(bool fAll);
 	STDMETHODIMP GetDIB(BYTE* lpDib, DWORD* size);
-	STDMETHODIMP SetPixelShader(LPCSTR pSrcData, LPCSTR pTarget, LPSTR err, int errlen);
+	STDMETHODIMP SetPixelShader(LPCSTR pSrcData, LPCSTR pTarget);
 };
 
 class CVMR9AllocatorPresenter
@@ -402,6 +406,7 @@ CDX9AllocatorPresenter::CDX9AllocatorPresenter(HWND hWnd, HRESULT& hr)
 
 HRESULT CDX9AllocatorPresenter::CreateDevice()
 {
+	m_pPSC.Free();
     m_pD3DDev = NULL;
 
 	D3DDISPLAYMODE d3ddm;
@@ -430,6 +435,8 @@ HRESULT CDX9AllocatorPresenter::CreateDevice()
 	if(FAILED(hr))
 		return hr;
 
+	m_pPSC.Attach(new CPixelShaderCompiler(m_pD3DDev, true));
+
 	//
 
 	m_Filter = D3DTEXF_NONE;
@@ -448,37 +455,25 @@ HRESULT CDX9AllocatorPresenter::CreateDevice()
 		CStringA data;
 		if(LoadResource(IDF_SHADER_RESIZER, data, _T("FILE")))
 		{
-			{
-				CComPtr<ID3DXBuffer> pShader, pErrorMsgs;
-				HRESULT hr = D3DXCompileShader(data, data.GetLength(), NULL, NULL, "main_bilinear", "ps_2_0", 0, &pShader, &pErrorMsgs, NULL);
-				if(SUCCEEDED(hr)) hr = m_pD3DDev->CreatePixelShader((DWORD*)pShader->GetBufferPointer(), &m_pResizerPixelShader[0]);
-			}
+			m_pPSC->CompileShader(data, "main_bilinear", "ps_2_0", 0, &m_pResizerPixelShader[0]);
 
 			{
 				CStringA str = data;
 				str.Replace("_The_Value_Of_A_Is_Set_Here_", "(-0.60)");
-				CComPtr<ID3DXBuffer> pShader, pErrorMsgs;
-				HRESULT hr = D3DXCompileShader(str, str.GetLength(), NULL, NULL, "main_bicubic", "ps_2_0", 0, &pShader, &pErrorMsgs, NULL);
-				if(SUCCEEDED(hr)) hr = m_pD3DDev->CreatePixelShader((DWORD*)pShader->GetBufferPointer(), &m_pResizerPixelShader[1]);
+				m_pPSC->CompileShader(str, "main_bicubic", "ps_2_0", 0, &m_pResizerPixelShader[1]);
 			}
 
 			{
 				CStringA str = data;
 				str.Replace("_The_Value_Of_A_Is_Set_Here_", "(-0.75)");
-				CComPtr<ID3DXBuffer> pShader, pErrorMsgs;
-				HRESULT hr = D3DXCompileShader(str, str.GetLength(), NULL, NULL, "main_bicubic", "ps_2_0", 0, &pShader, &pErrorMsgs, NULL);
-				if(SUCCEEDED(hr)) hr = m_pD3DDev->CreatePixelShader((DWORD*)pShader->GetBufferPointer(), &m_pResizerPixelShader[2]);
+				m_pPSC->CompileShader(str, "main_bicubic", "ps_2_0", 0, &m_pResizerPixelShader[2]);
 			}
 
 			{
 				CStringA str = data;
 				str.Replace("_The_Value_Of_A_Is_Set_Here_", "(-1.00)");
-				CComPtr<ID3DXBuffer> pShader, pErrorMsgs;
-				HRESULT hr = D3DXCompileShader(str, str.GetLength(), NULL, NULL, "main_bicubic", "ps_2_0", 0, &pShader, &pErrorMsgs, NULL);
-				if(SUCCEEDED(hr)) hr = m_pD3DDev->CreatePixelShader((DWORD*)pShader->GetBufferPointer(), &m_pResizerPixelShader[3]);
+				m_pPSC->CompileShader(str, "main_bicubic", "ps_2_0", 0, &m_pResizerPixelShader[3]);
 			}
-
-
 		}
 	}
 
@@ -817,40 +812,17 @@ STDMETHODIMP CDX9AllocatorPresenter::GetDIB(BYTE* lpDib, DWORD* size)
 	return S_OK;
 }
 
-STDMETHODIMP CDX9AllocatorPresenter::SetPixelShader(LPCSTR pSrcData, LPCSTR pTarget, LPSTR err, int errlen)
+STDMETHODIMP CDX9AllocatorPresenter::SetPixelShader(LPCSTR pSrcData, LPCSTR pTarget)
 {
 	CAutoLock cAutoLock(this);
-
-	if(err && errlen > 0) *err = 0;
 
 	m_pPixelShader = NULL;
 	m_pD3DDev->SetPixelShader(NULL);
 
-	if(!pSrcData || !pTarget) 
+	if(!pSrcData || !pTarget)
 		return E_INVALIDARG;
 
-	CComPtr<ID3DXBuffer> pShader, pErrorMsgs;
-	HRESULT hr = D3DXCompileShader(pSrcData, strlen(pSrcData), NULL, NULL, "main", pTarget, 0, &pShader, &pErrorMsgs, NULL);
-	if(FAILED(hr))
-	{
-		if(err && errlen > 0)
-		{
-			if(pErrorMsgs)
-			{
-				int len = pErrorMsgs->GetBufferSize();
-				memcpy(err, pErrorMsgs->GetBufferPointer(), min(errlen, len));
-			}
-			else
-			{
-				char* msg = "Unknown compiler error";
-				strncpy(err, msg, min(strlen(msg), errlen));
-			}
-		}
-
-		return hr;
-	}
-
-	hr = m_pD3DDev->CreatePixelShader((DWORD*)pShader->GetBufferPointer(), &m_pPixelShader);
+	HRESULT hr = m_pPSC->CompileShader(pSrcData, "main", pTarget, 0, &m_pPixelShader);
 	if(FAILED(hr)) return hr;
 
 	Paint(true);

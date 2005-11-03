@@ -331,7 +331,7 @@ interface ISubPicAllocatorPresenter : public IUnknown
 	STDMETHOD (GetDIB) (BYTE* lpDib, DWORD* size) PURE;
 
 	STDMETHOD (SetVideoAngle) (Vector v, bool fRepaint = true) PURE;
-	STDMETHOD (SetPixelShader) (LPCSTR pSrcData, LPCSTR pTarget, LPSTR err, int errlen) PURE;
+	STDMETHOD (SetPixelShader) (LPCSTR pSrcData, LPCSTR pTarget) PURE;
 };
 
 class ISubPicAllocatorPresenterImpl 
@@ -382,7 +382,7 @@ public:
 	STDMETHODIMP GetDIB(BYTE* lpDib, DWORD* size) {return E_NOTIMPL;}
 
 	STDMETHODIMP SetVideoAngle(Vector v, bool fRepaint = true);
-	STDMETHODIMP SetPixelShader(LPCSTR pSrcData, LPCSTR pTarget, LPSTR err, int errlen) {return E_NOTIMPL;}
+	STDMETHODIMP SetPixelShader(LPCSTR pSrcData, LPCSTR pTarget) {return E_NOTIMPL;}
 };
 
 //
