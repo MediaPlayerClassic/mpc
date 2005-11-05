@@ -68,17 +68,6 @@ CWebServer::CWebServer(CMainFrame* pMainFrame, int nPort)
 		m_downloads[_T("/controlvolumegrip.png")] = IDF_CONTROLVOLUMEGRIP_PNG;
 	}
 
-	if(m_mimes.IsEmpty())
-	{
-		m_mimes[".html"] = "text/html";
-		m_mimes[".txt"] = "text/plain";
-		m_mimes[".css"] = "text/css";
-		m_mimes[".gif"] = "image/gif";
-		m_mimes[".jpeg"] = "image/jpeg";
-		m_mimes[".jpg"] = "image/jpeg";
-		m_mimes[".png"] = "image/png";
-	}
-
 	CRegKey key;
 	CString str(_T("MIME\\Database\\Content Type"));
 	if(ERROR_SUCCESS == key.Open(HKEY_CLASSES_ROOT, str, KEY_READ))
@@ -95,6 +84,14 @@ CWebServer::CWebServer(CMainFrame* pMainFrame, int nPort)
 				m_mimes[CStringA(ext).MakeLower()] = CStringA(buff).MakeLower();
 		}
 	}
+
+	m_mimes[".html"] = "text/html";
+	m_mimes[".txt"] = "text/plain";
+	m_mimes[".css"] = "text/css";
+	m_mimes[".gif"] = "image/gif";
+	m_mimes[".jpeg"] = "image/jpeg";
+	m_mimes[".jpg"] = "image/jpeg";
+	m_mimes[".png"] = "image/png";
 
 	GetModuleFileName(AfxGetInstanceHandle(), str.GetBuffer(MAX_PATH), MAX_PATH);
 	str.ReleaseBuffer();
@@ -285,7 +282,8 @@ void CWebServer::OnRequest(CWebClientSocket* pClient, CStringA& hdr, CStringA& b
 	CPath p(pClient->m_path);
 	CStringA ext = p.GetExtension().MakeLower();
 	CStringA mime;
-	m_mimes.Lookup(ext, mime);
+	if(ext.IsEmpty()) mime = "text/html";
+	else m_mimes.Lookup(ext, mime);
 
 	hdr = "HTTP/1.0 200 OK\r\n";
 

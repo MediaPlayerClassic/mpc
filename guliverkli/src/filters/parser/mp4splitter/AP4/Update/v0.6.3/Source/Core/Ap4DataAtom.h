@@ -1,6 +1,6 @@
 /*****************************************************************
 |
-|    AP4 - avcC Atom
+|    AP4 - data Atom
 |
 |    Copyright 2002 Gilles Boccon-Gibod & Julien Boeuf
 |
@@ -26,21 +26,34 @@
 |
  ****************************************************************/
 
+#ifndef _AP4_DATA_ATOM_H_
+#define _AP4_DATA_ATOM_H_
+
 /*----------------------------------------------------------------------
 |       includes
 +---------------------------------------------------------------------*/
-
-#include "Ap4AvcCAtom.h"
+#include "Ap4Atom.h"
+#include "Ap4Types.h"
+#include "Ap4Array.h"
+#include "Ap4DataBuffer.h"
 
 /*----------------------------------------------------------------------
-|       AP4_AvcCAtom::AP4_AvcCAtom
+|       AP4_DataAtom
 +---------------------------------------------------------------------*/
-
-AP4_AvcCAtom::AP4_AvcCAtom(AP4_Size         size,
-                           AP4_ByteStream&  stream)
-	: AP4_Atom(AP4_ATOM_TYPE_AVCC)
+class AP4_DataAtom : public AP4_Atom
 {
-	size -= AP4_ATOM_HEADER_SIZE;
-	m_DecoderInfo.SetDataSize(size);
-	stream.Read(m_DecoderInfo.UseData(), size);    
-}
+public:
+	AP4_DataAtom(AP4_Size         size,
+                 AP4_ByteStream&  stream);
+
+    AP4_Result WriteFields(AP4_ByteStream& stream) { return AP4_FAILURE; }
+
+    const AP4_DataBuffer* GetData() const { return &m_Data; }
+
+private:
+	AP4_UI32 m_Reserved1;
+	AP4_UI32 m_Reserved2;
+	AP4_DataBuffer m_Data;
+};
+
+#endif // _AP4_DATA_ATOM_H_

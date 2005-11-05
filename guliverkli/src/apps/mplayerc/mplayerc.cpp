@@ -859,6 +859,7 @@ CMPlayerCApp::Settings::Settings()
 	ADDCMD((ID_PLAY_GOTO, 'G', FVIRTKEY|FCONTROL|FNOINVERT, _T("Go To")));
 	ADDCMD((ID_PLAY_INCRATE, VK_UP, FVIRTKEY|FCONTROL|FNOINVERT, _T("Increase Rate")));
 	ADDCMD((ID_PLAY_DECRATE, VK_DOWN, FVIRTKEY|FCONTROL|FNOINVERT, _T("Decrease Rate")));
+	ADDCMD((ID_PLAY_RESETRATE, 'R', FVIRTKEY|FCONTROL|FNOINVERT, _T("Reset Rate")));
 	ADDCMD((ID_PLAY_INCAUDDELAY, VK_ADD, FVIRTKEY|FNOINVERT, _T("Audio Delay +10ms")));
 	ADDCMD((ID_PLAY_DECAUDDELAY, VK_SUBTRACT, FVIRTKEY|FNOINVERT, _T("Audio Delay -10ms")));
 	ADDCMD((ID_PLAY_SEEKFORWARDSMALL, 0, FVIRTKEY|FNOINVERT, _T("Jump Forward (small)")));
@@ -1972,8 +1973,8 @@ bool FindRedir(CString& fn, CString ct, CList<CString>& fns, CAutoPtrList<CAtlRe
 			fn2.Format(_T("%.*s"), szEnd - szStart, szStart);
 			fn2.Trim();
 
-			if(!fn2.CompareNoCase(_T("asf path")))
-				continue;
+			if(!fn2.CompareNoCase(_T("asf path"))) continue;
+			if(fn2.Find(_T("EXTM3U")) == 0 || fn2.Find(_T("#EXTINF")) == 0) continue;
 
 			if(fn2.Find(_T(":")) < 0 && fn2.Find(_T("\\\\")) != 0 && fn2.Find(_T("//")) != 0)
 			{

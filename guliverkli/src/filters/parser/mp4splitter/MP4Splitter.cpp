@@ -32,6 +32,7 @@
 #include "Ap4IsmaCryp.h"
 #include "Ap4AvcCAtom.h"
 #include "Ap4ChplAtom.h"
+#include "Ap4DataAtom.h"
 
 #ifdef REGISTER_FILTER
 
@@ -63,6 +64,8 @@ int g_cTemplates = countof(g_Templates);
 
 STDAPI DllRegisterServer()
 {
+	DeleteRegKey(_T("Media Type\\Extensions\\"), _T(".mp4"));
+
 	CList<CString> chkbytes;
 
 	chkbytes.AddTail(_T("4,4,,66747970")); // ftyp
@@ -79,7 +82,7 @@ STDAPI DllUnregisterServer()
 {
 	UnRegisterSourceFilter(MEDIASUBTYPE_MP4);
 
-	return AMovieDllRegisterServer2(TRUE);
+	return AMovieDllRegisterServer2(FALSE);
 }
 
 extern "C" BOOL WINAPI DllEntryPoint(HINSTANCE, ULONG, LPVOID);
@@ -438,6 +441,63 @@ HRESULT CMP4SplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 			}
 
 			ChapSort();
+		}
+
+		if(AP4_ContainerAtom* ilst = dynamic_cast<AP4_ContainerAtom*>(movie->GetMoovAtom()->FindChild("udta/meta/ilst")))
+		{
+			CStringW title, artist, writer, album, year, appl, desc, track;
+
+			for(AP4_List<AP4_Atom>::Item* item = ilst->GetChildren().FirstItem();
+				item;
+				item = item->GetNext())
+			{
+				if(AP4_ContainerAtom* atom = dynamic_cast<AP4_ContainerAtom*>(item->GetData()))
+				{
+					if(AP4_DataAtom* data = dynamic_cast<AP4_DataAtom*>(atom->GetChild(AP4_ATOM_TYPE_DATA)))
+					{
+						const AP4_DataBuffer* db = data->GetData();
+
+						if(atom->GetType() == AP4_ATOM_TYPE_TRKN)
+						{
+							if(db->GetDataSize() >= 4)
+							{
+								unsigned short n = (db->GetData()[2] << 8) | db->GetData()[3];
+								if(n) track.Format(L"%d", n);
+							}
+						}
+						else
+						{
+							CStringW str = UTF8To16(CStringA((LPCSTR)db->GetData(), db->GetDataSize()));
+
+							switch(atom->GetType())
+							{
+							case AP4_ATOM_TYPE_NAM: title = str; break;
+							case AP4_ATOM_TYPE_ART: artist = str; break;
+							case AP4_ATOM_TYPE_WRT: writer = str; break;
+							case AP4_ATOM_TYPE_ALB: album = str; break;
+							case AP4_ATOM_TYPE_DAY: year = str; break;
+							case AP4_ATOM_TYPE_TOO: appl = str; break;
+							case AP4_ATOM_TYPE_CMT: desc = str; break;
+							}
+						}
+					}
+				}
+			}
+
+			if(!title.IsEmpty())
+			{
+				if(!album.IsEmpty()) title = album + L" - " + title;
+				if(!track.IsEmpty()) title += + L" - Track " + track;
+				if(!year.IsEmpty()) title += L" - " +  year;
+				SetProperty(L"TITL", title);
+			}
+
+			if(!artist.IsEmpty()) SetProperty(L"AUTH", artist);
+			else if(!writer.IsEmpty()) SetProperty(L"AUTH", writer);
+
+			if(!appl.IsEmpty()) SetProperty(L"APPL", appl);
+
+			if(!desc.IsEmpty()) SetProperty(L"DESC", desc);
 		}
 	}
 

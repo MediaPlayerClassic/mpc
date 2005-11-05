@@ -45,6 +45,8 @@ public:
 	int m_nJumpDistS;
 	int m_nJumpDistM;
 	int m_nJumpDistL;
+	BOOL m_fFreeWindowResizing;
+	BOOL m_fNotifyMSN;
 
 protected:
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV support
@@ -57,9 +59,4 @@ public:
 	afx_msg void OnUpdateCheck3(CCmdUI* pCmdUI);
 	afx_msg void OnUpdateCheck2(CCmdUI* pCmdUI);
 	afx_msg void OnBnClickedButton1();
-	afx_msg void OnUpdateCheck4(CCmdUI* pCmdUI);
-public:
-	BOOL m_fFreeWindowResizing;
-public:
-	BOOL m_fNotifyMSN;
 };

@@ -903,6 +903,14 @@
 					>
 				</File>
 				<File
+					RelativePath=".\AP4\Source\Core\Ap4DataAtom.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\AP4\Source\Core\Ap4DataAtom.h"
+					>
+				</File>
+				<File
 					RelativePath=".\AP4\Source\Core\Ap4DataBuffer.cpp"
 					>
 				</File>

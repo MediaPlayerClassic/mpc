@@ -35,17 +35,16 @@ CStatusLabel::CStatusLabel(bool fRightAlign, bool fAddEllipses)
 	, m_fAddEllipses(fAddEllipses)
 {
 	HDC hdc = ::GetDC(NULL);
-	double s = 1.0*GetDeviceCaps(hdc, LOGPIXELSY) / 96.0;
-/*	m_font.CreateFont(int(14.0 * GetDeviceCaps(hdc, LOGPIXELSY) / 96.0), 0, 0, 0, FW_NORMAL, 0, 0, 0, 1, 
+	double scale = 1.0*GetDeviceCaps(hdc, LOGPIXELSY) / 96.0;
+	::ReleaseDC(0, hdc);
+
+	m_font.CreateFont(int(14.0 * scale), 0, 0, 0, FW_NORMAL, 0, 0, 0, DEFAULT_CHARSET,
 		OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY, DEFAULT_PITCH|FF_DONTCARE, 
 		_T("Microsoft Sans Serif"));
 	if(!m_font.m_hObject)
-*/
-	m_font.CreateFont(int(14.0 * GetDeviceCaps(hdc, LOGPIXELSY) / 96.0), 0, 0, 0, FW_NORMAL, 0, 0, 0, 1, 
+	m_font.CreateFont(int(14.0 * scale), 0, 0, 0, FW_NORMAL, 0, 0, 0, DEFAULT_CHARSET, 
 		OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY, DEFAULT_PITCH|FF_DONTCARE, 
 		_T("MS Sans Serif"));
-//		_T("Tahoma"));
-	::ReleaseDC(0, hdc);
 }
 
 CStatusLabel::~CStatusLabel()
@@ -56,10 +55,7 @@ BEGIN_MESSAGE_MAP(CStatusLabel, CStatic)
 	ON_WM_ERASEBKGND()
 END_MESSAGE_MAP()
 
-
-
 // CStatusLabel message handlers
-
 
 void CStatusLabel::DrawItem(LPDRAWITEMSTRUCT lpDrawItemStruct)
 {

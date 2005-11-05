@@ -47,7 +47,8 @@ private:
 	bool ParseMPCPlayList(CString fn);
 	bool SaveMPCPlayList(CString fn, CTextFile::enc e);
 
-	void SetupList();
+	void SetupList();	
+	void UpdateList();
 	void EnsureVisible(POSITION pos);
 	int FindItem(POSITION pos);
 	POSITION FindPos(int i);

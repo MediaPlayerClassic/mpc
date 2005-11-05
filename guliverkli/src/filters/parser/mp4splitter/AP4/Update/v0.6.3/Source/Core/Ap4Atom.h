@@ -243,6 +243,22 @@ const AP4_Atom::Type AP4_ATOM_TYPE_FTAB = AP4_ATOM_TYPE('f','t','a','b');
 const AP4_Atom::Type AP4_ATOM_TYPE_S263 = AP4_ATOM_TYPE('s','2','6','3');
 const AP4_Atom::Type AP4_ATOM_TYPE_SAMR = AP4_ATOM_TYPE('s','a','m','r');
 const AP4_Atom::Type AP4_ATOM_TYPE_CHPL = AP4_ATOM_TYPE('c','h','p','l');
+const AP4_Atom::Type AP4_ATOM_TYPE_NAM  = AP4_ATOM_TYPE(169,'n','a','m');
+const AP4_Atom::Type AP4_ATOM_TYPE_ART  = AP4_ATOM_TYPE(169,'A','R','T');
+const AP4_Atom::Type AP4_ATOM_TYPE_WRT  = AP4_ATOM_TYPE(169,'w','r','t');
+const AP4_Atom::Type AP4_ATOM_TYPE_ALB  = AP4_ATOM_TYPE(169,'a','l','b');
+const AP4_Atom::Type AP4_ATOM_TYPE_DAY  = AP4_ATOM_TYPE(169,'d','a','y');
+const AP4_Atom::Type AP4_ATOM_TYPE_TOO  = AP4_ATOM_TYPE(169,'t','o','o');
+const AP4_Atom::Type AP4_ATOM_TYPE_CMT  = AP4_ATOM_TYPE(169,'c','m','t');
+const AP4_Atom::Type AP4_ATOM_TYPE_GEN  = AP4_ATOM_TYPE(169,'g','e','n');
+const AP4_Atom::Type AP4_ATOM_TYPE_TRKN = AP4_ATOM_TYPE('t','r','k','n');
+// const AP4_Atom::Type AP4_ATOM_TYPE_  = AP4_ATOM_TYPE(169,'','','');
+//	{"cpil","compilation"},
+//	{"trkn","track"},
+//	{"disk","disc"},
+//	{"gnre","genre"},
+//	{"covr","cover"},
+const AP4_Atom::Type AP4_ATOM_TYPE_DATA = AP4_ATOM_TYPE('d','a','t','a');
 
 /*----------------------------------------------------------------------
 |       AP4_AtomListInspector
