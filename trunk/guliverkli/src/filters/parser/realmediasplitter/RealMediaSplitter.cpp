@@ -170,7 +170,7 @@ STDAPI DllUnregisterServer()
 {
 	UnRegisterSourceFilter(MEDIASUBTYPE_RealMedia);
 
-	return AMovieDllRegisterServer2(TRUE);
+	return AMovieDllRegisterServer2(FALSE);
 }
 
 extern "C" BOOL WINAPI DllEntryPoint(HINSTANCE, ULONG, LPVOID);

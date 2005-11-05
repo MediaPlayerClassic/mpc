@@ -66,6 +66,7 @@
 #include "Ap4AvcCAtom.h"
 #include "Ap4FtabAtom.h"
 #include "Ap4ChplAtom.h"
+#include "Ap4DataAtom.h"
 
 /*----------------------------------------------------------------------
 |       class variables
@@ -334,7 +335,16 @@ AP4_AtomFactory::CreateAtomFromStream(AP4_ByteStream& stream,
       case AP4_ATOM_TYPE_SINF:
       case AP4_ATOM_TYPE_UDTA:
       case AP4_ATOM_TYPE_ILST:
-      case AP4_ATOM_TYPE_EDTS: {
+	  case AP4_ATOM_TYPE_NAM:
+	  case AP4_ATOM_TYPE_ART:
+      case AP4_ATOM_TYPE_WRT:
+      case AP4_ATOM_TYPE_ALB:
+      case AP4_ATOM_TYPE_DAY:
+      case AP4_ATOM_TYPE_TOO:
+      case AP4_ATOM_TYPE_CMT:
+      case AP4_ATOM_TYPE_GEN:
+	  case AP4_ATOM_TYPE_TRKN:
+	  case AP4_ATOM_TYPE_EDTS: {
           AP4_UI32 context = m_Context;
           m_Context = type; // set the context for the children
           atom = new AP4_ContainerAtom(type, size, false, stream, *this);
@@ -375,6 +385,10 @@ AP4_AtomFactory::CreateAtomFromStream(AP4_ByteStream& stream,
 
       case AP4_ATOM_TYPE_CHPL:
         atom = new AP4_ChplAtom(size, stream);
+        break;
+
+	  case AP4_ATOM_TYPE_DATA:
+        atom = new AP4_DataAtom(size, stream);
         break;
 
       default:

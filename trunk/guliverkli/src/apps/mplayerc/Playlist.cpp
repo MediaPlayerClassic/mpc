@@ -250,7 +250,16 @@ void CPlaylist::SetPos(POSITION pos)
 CPlaylistItem& CPlaylist::GetNextWrap(POSITION& pos)
 {
 	GetNext(pos);
-	if(!pos) pos = GetHeadPosition();
+
+	if(!pos)
+	{
+		// FIXME: add param: , bool fShuffle
+		if(GetCount() > 2 && AfxGetApp()->GetProfileInt(ResStr(IDS_R_SETTINGS), _T("ShufflePlaylistItems"), FALSE))
+			Randomize();
+
+		pos = GetHeadPosition();
+	}
+
 	return(GetAt(pos));
 }
 

@@ -36,7 +36,6 @@ public:
 	virtual ~CStatusLabel();
 
 	CFont& GetFont() {return m_font;}
-	
 
 	void DrawItem(LPDRAWITEMSTRUCT lpDrawItemStruct);
 

@@ -478,6 +478,19 @@ void CPlayerPlaylistBar::SetupList()
 	}
 }
 
+void CPlayerPlaylistBar::UpdateList()
+{
+	POSITION pos = m_pl.GetHeadPosition();
+	for(int i = 0, j = m_list.GetItemCount(); pos && i < j; i++)
+	{
+		CPlaylistItem& pli = m_pl.GetAt(pos);
+		m_list.SetItemData(i, (DWORD_PTR)pos);
+		m_list.SetItemText(i, COL_NAME, pli.GetLabel(0));
+		m_list.SetItemText(i, COL_TIME, pli.GetLabel(1));
+		m_pl.GetNext(pos);
+	}
+}
+
 void CPlayerPlaylistBar::EnsureVisible(POSITION pos)
 {
 	int i = FindItem(m_pl.GetPos());
@@ -539,6 +552,7 @@ void CPlayerPlaylistBar::SetNext()
 {
 	POSITION pos = m_pl.GetPos(), org = pos;
 	while(m_pl.GetNextWrap(pos).m_fInvalid && pos != org);
+UpdateList();
 	m_pl.SetPos(pos);
 	EnsureVisible(pos);
 }
@@ -555,6 +569,7 @@ void CPlayerPlaylistBar::SetFirst()
 {
 	POSITION pos = m_pl.GetTailPosition(), org = pos;
 	while(m_pl.GetNextWrap(pos).m_fInvalid && pos != org);
+UpdateList();
 	m_pl.SetPos(pos);
 	EnsureVisible(pos);
 }
@@ -1144,7 +1159,7 @@ void CPlayerPlaylistBar::OnContextMenu(CWnd* /*pWnd*/, CPoint p)
 	{
 		M_OPEN=1, M_ADD, M_REMOVE, M_CLIPBOARD, M_SAVEAS, 
 		M_SORTBYNAME, M_SORTBYPATH, M_RANDOMIZE, M_SORTBYID,
-		M_REMEMBERPLAYLIST
+		M_REMEMBERPLAYLIST, M_SHUFFLE
 	};
 
 	m.AppendMenu(MF_STRING|(!fOnItem?(MF_DISABLED|MF_GRAYED):MF_ENABLED), M_OPEN, ResStr(IDS_PLAYLIST_OPEN));
@@ -1159,6 +1174,7 @@ void CPlayerPlaylistBar::OnContextMenu(CWnd* /*pWnd*/, CPoint p)
 	m.AppendMenu(MF_STRING|(!m_pl.GetCount()?(MF_DISABLED|MF_GRAYED):MF_ENABLED), M_RANDOMIZE, ResStr(IDS_PLAYLIST_RANDOMIZE));
 	m.AppendMenu(MF_STRING|(!m_pl.GetCount()?(MF_DISABLED|MF_GRAYED):MF_ENABLED), M_SORTBYID, ResStr(IDS_PLAYLIST_RESTORE));
 	m.AppendMenu(MF_SEPARATOR);
+	m.AppendMenu(MF_STRING|MF_ENABLED|(AfxGetApp()->GetProfileInt(ResStr(IDS_R_SETTINGS), _T("ShufflePlaylistItems"), FALSE)?MF_CHECKED:0), M_SHUFFLE, _T("Shuffle"));
 	m.AppendMenu(MF_STRING|MF_ENABLED|(AfxGetApp()->GetProfileInt(ResStr(IDS_R_SETTINGS), _T("RememberPlaylistItems"), TRUE)?MF_CHECKED:0), M_REMEMBERPLAYLIST, _T("Remember items"));
 
 	CMainFrame* pMainFrm = (CMainFrame*)AfxGetMainWnd();
@@ -1294,6 +1310,10 @@ void CPlayerPlaylistBar::OnContextMenu(CWnd* /*pWnd*/, CPoint p)
 	case M_REMEMBERPLAYLIST:
 		AfxGetApp()->WriteProfileInt(ResStr(IDS_R_SETTINGS), _T("RememberPlaylistItems"), 
 			!AfxGetApp()->GetProfileInt(ResStr(IDS_R_SETTINGS), _T("RememberPlaylistItems"), TRUE));
+		break;
+	case M_SHUFFLE:
+		AfxGetApp()->WriteProfileInt(ResStr(IDS_R_SETTINGS), _T("ShufflePlaylistItems"), 
+			!AfxGetApp()->GetProfileInt(ResStr(IDS_R_SETTINGS), _T("ShufflePlaylistItems"), FALSE));
 		break;
 	default:
 		break;

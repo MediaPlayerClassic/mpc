@@ -189,6 +189,7 @@ static void MC_put_y_8_sse2(uint8_t* dest, const uint8_t* ref, const int stride,
 
 static void MC_put_xy_16_sse2(uint8_t* dest, const uint8_t* ref, const int stride, int height)
 {
+/*
 	__asm
 	{
 		mov edx, ref 
@@ -210,8 +211,9 @@ static void MC_put_xy_16_sse2(uint8_t* dest, const uint8_t* ref, const int strid
 		movdqu xmm5, [edx+edi+1] 
 		pavgb xmm2, xmm3 
 		pavgb xmm5, xmm4 
-		movdqa xmm0, xmm2 
 		psubusb xmm2, xmm7 
+		movdqa xmm1, xmm0 
+		movdqa xmm0, xmm2 
 		pavgb xmm1, xmm2 
 		pavgb xmm2, xmm5
 		movdqa [ecx], xmm1
@@ -222,7 +224,41 @@ static void MC_put_xy_16_sse2(uint8_t* dest, const uint8_t* ref, const int strid
 
 		jg MC_put_xy_16_sse2_loop
 	}
+*/
+	__asm
+	{
+		mov edx, ref 
+		mov ecx, dest
+		mov eax, stride 
+		mov esi, height 
+		lea edi, [eax+eax] 
+		
+		movdqa xmm7, [const_1_16_bytes] 
+		movdqu xmm0, [edx] 
+		movdqu xmm1, [edx+1] 
 
+	MC_put_xy_16_sse2_loop:
+
+		movdqu xmm2, [edx+eax] 
+		movdqu xmm3, [edx+eax+1] 
+		movdqu xmm4, [edx+edi] 
+		movdqu xmm5, [edx+edi+1] 
+		pavgb xmm0, xmm1 
+		pavgb xmm2, xmm3 
+		movdqa xmm1, xmm5 
+		pavgb xmm5, xmm4 
+		psubusb xmm2, xmm7 
+		pavgb xmm0, xmm2 
+		pavgb xmm2, xmm5
+		movdqa [ecx], xmm0
+		movdqa xmm0, xmm4
+		movdqa [ecx+eax], xmm2
+		add edx, edi
+		add ecx, edi
+		sub esi, 2
+
+		jg MC_put_xy_16_sse2_loop
+	}
 }
 
 static void MC_put_xy_8_sse2(uint8_t* dest, const uint8_t* ref, const int stride, int height)

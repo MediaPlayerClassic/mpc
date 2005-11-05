@@ -101,7 +101,6 @@ BOOL CPPageTweaks::OnApply()
 BEGIN_MESSAGE_MAP(CPPageTweaks, CPPageBase)
 	ON_UPDATE_COMMAND_UI(IDC_CHECK3, OnUpdateCheck3)
 	ON_UPDATE_COMMAND_UI(IDC_CHECK2, OnUpdateCheck2)
-	ON_UPDATE_COMMAND_UI(IDC_CHECK4, OnUpdateCheck4)
 	ON_BN_CLICKED(IDC_BUTTON1, OnBnClickedButton1)
 END_MESSAGE_MAP()
 
@@ -131,8 +130,4 @@ void CPPageTweaks::OnBnClickedButton1()
 	UpdateData(FALSE);
 }
 
-void CPPageTweaks::OnUpdateCheck4(CCmdUI* pCmdUI)
-{
-	pCmdUI->Enable(IsDlgButtonChecked(IDC_CHECK1));
-}
 

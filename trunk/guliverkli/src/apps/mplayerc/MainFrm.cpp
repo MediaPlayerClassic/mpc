@@ -300,6 +300,8 @@ BEGIN_MESSAGE_MAP(CMainFrame, CFrameWnd)
 	ON_UPDATE_COMMAND_UI(ID_PLAY_GOTO, OnUpdateGoto)
 	ON_COMMAND_RANGE(ID_PLAY_DECRATE, ID_PLAY_INCRATE, OnPlayChangeRate)
 	ON_UPDATE_COMMAND_UI_RANGE(ID_PLAY_DECRATE, ID_PLAY_INCRATE, OnUpdatePlayChangeRate)
+	ON_COMMAND(ID_PLAY_RESETRATE, OnPlayResetRate)	
+	ON_UPDATE_COMMAND_UI(ID_PLAY_RESETRATE, OnUpdatePlayResetRate)	
 	ON_COMMAND_RANGE(ID_PLAY_INCAUDDELAY, ID_PLAY_DECAUDDELAY, OnPlayChangeAudDelay)
 	ON_UPDATE_COMMAND_UI_RANGE(ID_PLAY_INCAUDDELAY, ID_PLAY_DECAUDDELAY, OnUpdatePlayChangeAudDelay)
 	ON_COMMAND_RANGE(ID_FILTERS_SUBITEM_START, ID_FILTERS_SUBITEM_END, OnPlayFilters)
@@ -2824,6 +2826,12 @@ void CMainFrame::OnFileOpenmedia()
 	SetForegroundWindow();
 
 	m_wndPlaylistBar.Open(dlg.m_fns, dlg.m_fMultipleFiles);
+
+	if(m_wndPlaylistBar.GetCount() == 1 && m_wndPlaylistBar.IsWindowVisible() && !m_wndPlaylistBar.IsFloating())
+	{
+		ShowControlBar(&m_wndPlaylistBar, FALSE, TRUE);
+	}
+
 	OpenCurPlaylistItem();
 }
 
@@ -4473,6 +4481,35 @@ void CMainFrame::OnUpdatePlayChangeRate(CCmdUI* pCmdUI)
 
 	pCmdUI->Enable(fEnable);
 }
+
+void CMainFrame::OnPlayResetRate()
+{
+	if(m_iMediaLoadState != MLS_LOADED)
+		return;
+
+	HRESULT hr = E_FAIL;
+
+	if(GetMediaState() != State_Running)
+		SendMessage(WM_COMMAND, ID_PLAY_PLAY);
+
+	if(m_iPlaybackMode == PM_FILE)
+	{
+		hr = pMS->SetRate(1.0);
+	}
+	else if(m_iPlaybackMode == PM_DVD)
+	{
+		hr = pDVDC->PlayForwards(1.0, DVD_CMD_FLAG_Block, NULL);
+	}
+
+	if(SUCCEEDED(hr))
+		m_iSpeedLevel = 0;
+}
+
+void CMainFrame::OnUpdatePlayResetRate(CCmdUI* pCmdUI)
+{
+	pCmdUI->Enable(m_iMediaLoadState == MLS_LOADED);
+}
+
 
 void CMainFrame::OnPlayChangeAudDelay(UINT nID)
 {
