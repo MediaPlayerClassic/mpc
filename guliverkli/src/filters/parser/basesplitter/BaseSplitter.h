@@ -26,6 +26,8 @@
 #include <afxtempl.h>
 #include <qnetwork.h>
 #include "..\..\..\..\include\IKeyFrameInfo.h"
+#include "..\..\..\..\include\IBufferInfo.h"
+#include "..\..\..\..\include\IBitRateInfo.h"
 #include "BaseSplitterFileEx.h"
 #include "AsyncReader.h"
 #include "..\..\..\DSUtil\DSMPropertyBag.h"
@@ -90,6 +92,7 @@ class CBaseSplitterOutputPin
 	, public IDSMPropertyBagImpl
 	, protected CAMThread
 	, public IMediaSeeking
+	, public IBitRateInfo
 {
 protected:
 	CArray<CMediaType> m_mts;
@@ -111,6 +114,18 @@ private:
 	// please only use DeliverPacket from the derived class
     HRESULT GetDeliveryBuffer(IMediaSample** ppSample, REFERENCE_TIME* pStartTime, REFERENCE_TIME* pEndTime, DWORD dwFlags);
     HRESULT Deliver(IMediaSample* pSample);
+
+	// bitrate stats
+
+	struct 
+	{
+		UINT64 nTotalBytesDelivered;
+		REFERENCE_TIME rtTotalTimeDelivered;
+		UINT64 nBytesSinceLastDeliverTime;
+		REFERENCE_TIME rtLastDeliverTime;
+		DWORD nCurrentBitRate;
+		DWORD nAverageBitRate;
+	} m_brs;
 
 protected:
 	REFERENCE_TIME m_rtStart;
@@ -178,14 +193,11 @@ public:
 
 	// returns IStreamsSwitcherInputPin::IsActive(), when it can find one downstream
 	bool IsActive();
-};
 
-[uuid("46070104-1318-4A82-8822-E99AB7CD15C1")]
-interface IBufferInfo : public IUnknown
-{
-	STDMETHOD_(int, GetCount()) = 0;
-	STDMETHOD(GetStatus(int i, int& samples, int& size)) = 0;
-	STDMETHOD_(DWORD, GetPriority()) = 0;
+	// IBitRateInfo
+
+	STDMETHODIMP_(DWORD) GetCurrentBitRate() {return m_brs.nCurrentBitRate;}
+	STDMETHODIMP_(DWORD) GetAverageBitRate() {return m_brs.nAverageBitRate;}
 };
 
 class CBaseSplitterFilter 

@@ -343,6 +343,7 @@ BEGIN_MESSAGE_MAP(CMainFrame, CFrameWnd)
 	ON_UPDATE_COMMAND_UI_RANGE(ID_FAVORITES_DEVICE_START, ID_FAVORITES_DEVICE_END, OnUpdateFavoritesDevice)
 
 	ON_COMMAND(ID_HELP_HOMEPAGE, OnHelpHomepage)
+	ON_COMMAND(ID_HELP_DOCUMENTATION, OnHelpDocumentation)
 	ON_COMMAND(ID_HELP_DONATE, OnHelpDonate)
 
 	ON_WM_SIZING()
@@ -1208,49 +1209,88 @@ void CMainFrame::OnTimer(UINT nIDEvent)
 
 			CString info;
 			int val;
+
 			pQP->get_AvgFrameRate(&val);
 			info.Format(_T("%d.%02d %s"), val/100, val%100, rate);
 			m_wndStatsBar.SetLine(_T("Frame-rate"), info);
-			pQP->get_AvgSyncOffset(&val);
-			info.Format(_T("%d ms"), val);
-			m_wndStatsBar.SetLine(_T("Sync Offset (avg)"), info);
-			pQP->get_DevSyncOffset(&val);
-			info.Format(_T("%d ms"), val);
-			m_wndStatsBar.SetLine(_T("Sync Offset (dev)"), info);
-			pQP->get_FramesDrawn(&val);
-			info.Format(_T("%d"), val);
-			m_wndStatsBar.SetLine(_T("Frames Drawn"), info);
-			pQP->get_FramesDroppedInRenderer(&val);
-			info.Format(_T("%d"), val);
-			m_wndStatsBar.SetLine(_T("Frames Dropped"), info);
+
+			int avg, dev;
+			pQP->get_AvgSyncOffset(&avg);
+			pQP->get_DevSyncOffset(&dev);
+			info.Format(_T("avg: %d ms, dev: %d ms"), avg, dev);
+			m_wndStatsBar.SetLine(_T("Sync Offset"), info);
+
+			int drawn, dropped;
+			pQP->get_FramesDrawn(&drawn);
+			pQP->get_FramesDroppedInRenderer(&dropped);
+			info.Format(_T("drawn: %d, dropped: %d"), drawn, dropped);
+			m_wndStatsBar.SetLine(_T("Frames"), info);
+
 			pQP->get_Jitter(&val);
 			info.Format(_T("%d ms"), val);
 			m_wndStatsBar.SetLine(_T("Jitter"), info);
 		}
 
+		if(pBI)
+		{
+			CList<CString> sl;
+			
+			for(int i = 0, j = pBI->GetCount(); i < j; i++)
+			{
+				int samples, size;
+				if(S_OK == pBI->GetStatus(i, samples, size))
+				{
+					CString str;
+					str.Format(_T("[%d]: %03d/%d KB"), i, samples, size / 1024);
+					sl.AddTail(str);
+				}
+			}
+
+			if(!sl.IsEmpty())
+			{
+				CString str;
+				str.Format(_T("%s (p%d)"), Implode(sl, ' '), pBI->GetPriority());
+				
+				m_wndStatsBar.SetLine(_T("Buffers"), str);
+			}
+		}
+
+		CInterfaceList<IBitRateInfo> pBRIs;
+
 		BeginEnumFilters(pGB, pEF, pBF)
 		{
-			if(CComQIPtr<IBufferInfo> pBI = pBF)
+			BeginEnumPins(pBF, pEP, pPin)
+			{
+				if(CComQIPtr<IBitRateInfo> pBRI = pPin)
+				{
+					pBRIs.AddTail(pBRI);
+				}
+			}
+			EndEnumPins
+
+			if(!pBRIs.IsEmpty())
 			{
 				CList<CString> sl;
-				
-				for(int i = 0, j = pBI->GetCount(); i < j; i++)
+
+				POSITION pos = pBRIs.GetHeadPosition();
+				for(int i = 0; pos; i++)
 				{
-					int samples, size;
-					if(S_OK == pBI->GetStatus(i, samples, size))
-					{
-						CString str;
-						str.Format(_T("[%d]: %03d/%dKB"), i, samples, size / 1024);
-						sl.AddTail(str);
-					}
+					IBitRateInfo* pBRI = pBRIs.GetNext(pos);
+
+					DWORD cur = pBRI->GetCurrentBitRate() / 1000;
+					DWORD avg = pBRI->GetAverageBitRate() / 1000;
+
+					if(avg == 0) continue;
+
+					CString str;
+					if(cur != avg) str.Format(_T("[%d]: %d/%d Kb/s"), i, avg, cur);
+					else str.Format(_T("[%d]: %d Kb/s"), i, avg);
+					sl.AddTail(str);
 				}
 
 				if(!sl.IsEmpty())
 				{
-					CString str;
-					str.Format(_T("%s (p%d)"), Implode(sl, ' '), pBI->GetPriority());
-					
-					m_wndStatsBar.SetLine(_T("Buffers"), str);
+					m_wndStatsBar.SetLine(_T("Bitrate"), Implode(sl, ' ') + _T(" (avg/cur)"));
 				}
 
 				break;
@@ -2112,15 +2152,22 @@ void CMainFrame::OnInitMenuPopup(CMenu* pPopupMenu, UINT nIndex, BOOL bSysMenu)
 	{
 		CString str;
 		pPopupMenu->GetMenuString(i, str, MF_BYPOSITION);
-		str.Remove('&');
+
+		CString lookupstr = str;
+		lookupstr.Remove('&');
 
 		CMenu* pSubMenu = NULL;
 
 		UINT id;
-		if(transl.Lookup(str, id))
+		if(transl.Lookup(lookupstr, id))
 		{
 			str = ResStr(id);
-			pPopupMenu->ModifyMenu(i, MF_BYPOSITION|MF_STRING, 0, str);
+			// pPopupMenu->ModifyMenu(i, MF_BYPOSITION|MF_STRING, 0, str);
+			MENUITEMINFO mii;
+			mii.cbSize = sizeof(mii);
+			mii.fMask = MIIM_STRING;
+			mii.dwTypeData = (LPTSTR)(LPCTSTR)str;
+			pPopupMenu->SetMenuItemInfo(i, &mii, TRUE);
 		}
 
 		if(str == ResStr(IDS_NAVIGATE_POPUP))
@@ -5401,6 +5448,11 @@ void CMainFrame::OnHelpHomepage()
 	ShellExecute(m_hWnd, _T("open"), _T("http://gabest.org/"), NULL, NULL, SW_SHOWDEFAULT);
 }
 
+void CMainFrame::OnHelpDocumentation()
+{
+	ShellExecute(m_hWnd, _T("open"), _T("http://sourceforge.net/project/showfiles.php?group_id=82303&package_id=144472"), NULL, NULL, SW_SHOWDEFAULT);
+}
+
 void CMainFrame::OnHelpDonate()
 {
 	const TCHAR URL[] = _T("http://order.kagi.com/?N4A");
@@ -6460,7 +6512,7 @@ void CMainFrame::OpenCapture(OpenDeviceData* pODD)
 
 		if(pAMTuner) // load saved channel
 		{
-			pAMTuner->put_CountryCode(49);
+			pAMTuner->put_CountryCode(AfxGetApp()->GetProfileInt(_T("Capture"), _T("Country"), 1));
 
 			int vchannel = pODD->vchannel;
 			if(vchannel < 0) vchannel = AfxGetApp()->GetProfileInt(_T("Capture\\") + CString(m_VidDispName), _T("Channel"), -1);
@@ -6800,20 +6852,26 @@ void CMainFrame::OpenSetupInfoBar()
 
 void CMainFrame::OpenSetupStatsBar()
 {
+	CString info('-');
+
 	BeginEnumFilters(pGB, pEF, pBF)
 	{
-		if(pQP = pBF)
+		if(!pQP && (pQP = pBF))
 		{
-			CString info('-');
 			m_wndStatsBar.SetLine(_T("Frame-rate"), info);
-			m_wndStatsBar.SetLine(_T("Sync Offset (avg)"), info);
-			m_wndStatsBar.SetLine(_T("Sync Offset (dev)"), info);
-			m_wndStatsBar.SetLine(_T("Frames Drawn"), info);
-			m_wndStatsBar.SetLine(_T("Frames Dropped"), info);
+			m_wndStatsBar.SetLine(_T("Sync Offset"), info);
+			m_wndStatsBar.SetLine(_T("Frames"), info);
 			m_wndStatsBar.SetLine(_T("Jitter"), info);
 			m_wndStatsBar.SetLine(_T("Buffers"), info);
+			m_wndStatsBar.SetLine(_T("Bitrate"), info);
 			RecalcLayout();
-			break;
+		}
+
+		if(!pBI && (pBI = pBF))
+		{
+			m_wndStatsBar.SetLine(_T("Buffers"), info);
+			m_wndStatsBar.SetLine(_T("Bitrate"), info); // FIXME: shouldn't be here
+			RecalcLayout();
 		}
 	}
 	EndEnumFilters
@@ -7166,7 +7224,7 @@ RemoveFromRot(m_dwRegister);
 	pCGB.Release();
 	pVMR.Release();
 	pDVDC.Release(); pDVDI.Release();
-	pQP.Release(); pAMOP.Release(); pFS.Release();
+	pQP.Release(); pBI.Release(); pAMOP.Release(); pFS.Release();
 	pMC.Release(); pME.Release(); pMS.Release();
 	pVW.Release(); pBV.Release();
 	pBA.Release();

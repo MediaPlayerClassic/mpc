@@ -47,6 +47,7 @@
 
 #include "..\..\..\include\IChapterInfo.h"
 #include "..\..\..\include\IKeyFrameInfo.h"
+#include "..\..\..\include\IBufferInfo.h"
 
 #include "WebServer.h"
 
@@ -158,6 +159,7 @@ class CMainFrame : public CFrameWnd, public CDropTarget
 	CComQIPtr<IMediaSeeking> pMS;
 	CComQIPtr<IVideoFrameStep> pFS;
 	CComQIPtr<IQualProp, &IID_IQualProp> pQP;
+	CComQIPtr<IBufferInfo> pBI;
 	CComQIPtr<IAMOpenProgress> pAMOP;
 
 	CComQIPtr<IDvdControl2> pDVDC;
@@ -633,6 +635,7 @@ public:
 	afx_msg void OnUpdateFavoritesDevice(CCmdUI* pCmdUI);
 
 	afx_msg void OnHelpHomepage();
+	afx_msg void OnHelpDocumentation();
 	afx_msg void OnHelpDonate();
 public:
 	afx_msg void OnClose();
