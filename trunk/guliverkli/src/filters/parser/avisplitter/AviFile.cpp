@@ -507,7 +507,7 @@ int CAviFile::strm_t::GetFrame(REFERENCE_TIME rt)
 	}
 
 	if(frame >= cs.GetCount())
-		frame = -1;
+		frame = cs.GetCount()-1;
 
 	return(frame);
 }

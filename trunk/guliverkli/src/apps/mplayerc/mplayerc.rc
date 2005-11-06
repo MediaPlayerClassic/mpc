@@ -350,7 +350,7 @@ STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSM
 CAPTION "About"
 FONT 8, "MS Shell Dlg", 400, 0, 0xB1
 BEGIN
-    ICON            11128,IDC_STATIC,11,17,20,20
+    ICON            IDR_MAINFRAME,IDC_STATIC,11,17,20,20
     LTEXT           "Media Player Classic",IDC_STATIC1,40,10,126,8,SS_NOPREFIX
     LTEXT           "Copyright (C) 2002-2005 Gabest",IDC_STATIC,40,21,113,8
     LTEXT           "Version: 6.4.8.6",IDC_STATIC,40,33,92,8
@@ -1617,6 +1617,7 @@ BEGIN
     POPUP "&Help"
     BEGIN
         MENUITEM "Home Page",                   ID_HELP_HOMEPAGE
+        MENUITEM "Documentation (sf.net)",      ID_HELP_DOCUMENTATION
         MENUITEM "Command Line Switches",       ID_HELP_SHOWCOMMANDLINESWITCHES
         MENUITEM SEPARATOR
         MENUITEM "Donate!",                     ID_HELP_DONATE
@@ -2355,7 +2356,7 @@ BEGIN
     IDS_OPENCDROM_POPUP     "Open CD-ROM"
     IDS_NAVIGATE_POPUP      "Navigate"
     IDS_VIDEOFRAME_POPUP    "Video Frame"
-    IDS_PANSCAN_POPUP       "PanScan"
+    IDS_PANSCAN_POPUP       "Pan&&Scan"
     IDS_ASPECTRATIO_POPUP   "Aspect Ratio"
     IDS_ZOOM_POPUP          "Zoom"
 END

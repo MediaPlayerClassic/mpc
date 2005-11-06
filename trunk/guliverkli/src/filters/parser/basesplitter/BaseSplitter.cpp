@@ -197,6 +197,8 @@ CBaseSplitterOutputPin::CBaseSplitterOutputPin(CArray<CMediaType>& mts, LPCWSTR 
 {
 	m_mts.Copy(mts);
 	m_nBuffers = max(nBuffers, 1);
+	memset(&m_brs, 0, sizeof(m_brs));
+	m_brs.rtLastDeliverTime = Packet::INVALID_TIME;
 }
 
 CBaseSplitterOutputPin::CBaseSplitterOutputPin(LPCWSTR pName, CBaseFilter* pFilter, CCritSec* pLock, HRESULT* phr, int nBuffers)
@@ -206,6 +208,8 @@ CBaseSplitterOutputPin::CBaseSplitterOutputPin(LPCWSTR pName, CBaseFilter* pFilt
 	, m_eEndFlush(TRUE)
 {
 	m_nBuffers = max(nBuffers, 1);
+	memset(&m_brs, 0, sizeof(m_brs));
+	m_brs.rtLastDeliverTime = Packet::INVALID_TIME;
 }
 
 CBaseSplitterOutputPin::~CBaseSplitterOutputPin()
@@ -218,10 +222,11 @@ STDMETHODIMP CBaseSplitterOutputPin::NonDelegatingQueryInterface(REFIID riid, vo
 
 	return 
 //		riid == __uuidof(IMediaSeeking) ? m_pFilter->QueryInterface(riid, ppv) : 
+		QI(IMediaSeeking)
 		QI(IPropertyBag)
 		QI(IPropertyBag2)
 		QI(IDSMPropertyBag)
-		QI(IMediaSeeking)
+		QI(IBitRateInfo)
 		__super::NonDelegatingQueryInterface(riid, ppv);
 }
 
@@ -329,6 +334,7 @@ HRESULT CBaseSplitterOutputPin::DeliverEndFlush()
 
 HRESULT CBaseSplitterOutputPin::DeliverNewSegment(REFERENCE_TIME tStart, REFERENCE_TIME tStop, double dRate)
 {
+	m_brs.rtLastDeliverTime = Packet::INVALID_TIME;
 	if(m_fFlushing) return S_FALSE;
 	m_rtStart = tStart;
 	if(!ThreadExists()) return S_FALSE;
@@ -457,11 +463,50 @@ HRESULT CBaseSplitterOutputPin::DeliverPacket(CAutoPtr<Packet> p)
 {
 	HRESULT hr;
 
-	if(p->pData.GetCount() == 0)
+	INT_PTR nBytes = p->pData.GetCount();
+
+	if(nBytes == 0)
+	{
 		return S_OK;
+	}
+
+	m_brs.nBytesSinceLastDeliverTime += nBytes;
 
 	if(p->rtStart != Packet::INVALID_TIME)
 	{
+		if(m_brs.rtLastDeliverTime == Packet::INVALID_TIME)
+		{
+			m_brs.rtLastDeliverTime = p->rtStart;
+			m_brs.nBytesSinceLastDeliverTime = 0;
+		}
+
+		if(m_brs.rtLastDeliverTime + 10000000 < p->rtStart)
+		{
+			REFERENCE_TIME rtDiff = p->rtStart - m_brs.rtLastDeliverTime;
+
+			double secs, bits;
+
+			secs = (double)rtDiff / 10000000;
+			bits = 8.0 * m_brs.nBytesSinceLastDeliverTime;
+			m_brs.nCurrentBitRate = (DWORD)(bits / secs);
+
+			m_brs.rtTotalTimeDelivered += rtDiff;
+			m_brs.nTotalBytesDelivered += m_brs.nBytesSinceLastDeliverTime;
+
+			secs = (double)m_brs.rtTotalTimeDelivered / 10000000;
+			bits = 8.0 * m_brs.nTotalBytesDelivered;
+			m_brs.nAverageBitRate = (DWORD)(bits / secs);
+
+			m_brs.rtLastDeliverTime = p->rtStart;
+			m_brs.nBytesSinceLastDeliverTime = 0;
+/*
+			TRACE(_T("[%d] c: %d kbps, a: %d kbps\n"), 
+				p->TrackNumber,
+				(m_brs.nCurrentBitRate+500)/1000, 
+				(m_brs.nAverageBitRate+500)/1000);
+*/
+		}
+
 		double dRate = 1.0;
 		if(SUCCEEDED(((CBaseSplitterFilter*)m_pFilter)->GetRate(&dRate)))
 		{
@@ -474,7 +519,7 @@ HRESULT CBaseSplitterOutputPin::DeliverPacket(CAutoPtr<Packet> p)
 	{
 		CComPtr<IMediaSample> pSample;
 		if(S_OK != (hr = GetDeliveryBuffer(&pSample, NULL, NULL, 0))) break;
-		INT_PTR nBytes = p->pData.GetCount();
+
 		if(nBytes > pSample->GetSize())
 		{
 			pSample.Release();
