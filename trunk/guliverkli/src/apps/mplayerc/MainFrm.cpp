@@ -2209,7 +2209,10 @@ void CMainFrame::OnInitMenuPopup(CMenu* pPopupMenu, UINT nIndex, BOOL bSysMenu)
 	for(UINT i = 0, j = pPopupMenu->GetMenuItemCount(); i < j; i++)
 	{
 		UINT nID = pPopupMenu->GetMenuItemID(i);
-		if(nID == ID_SEPARATOR || nID == -1) continue;
+		if(nID == ID_SEPARATOR || nID == -1
+		|| nID >= ID_FAVORITES_FILE_START && nID <= ID_FAVORITES_FILE_END
+		|| nID >= ID_NAVIGATE_CHAP_SUBITEM_START && nID <= ID_NAVIGATE_CHAP_SUBITEM_END)
+			continue;
 
 		CString str;
 		pPopupMenu->GetMenuString(i, str, MF_BYPOSITION);
@@ -7793,11 +7796,12 @@ void CMainFrame::SetupNavChaptersSubMenu()
 
 			CString name = CString(bstr);
 			name.Replace(_T("&"), _T("&&"));
+			name.Replace(_T("\t"), _T(" "));
 
 			UINT flags = MF_BYCOMMAND|MF_STRING|MF_ENABLED;
 			if(i == j) flags |= MF_CHECKED;
 			if(id != ID_NAVIGATE_CHAP_SUBITEM_START && i == 0) pSub->AppendMenu(MF_SEPARATOR);
-			pSub->AppendMenu(flags, id, time + name);
+			pSub->AppendMenu(flags, id, name + '\t' + time);
 		}
 
 		if(m_wndPlaylistBar.GetCount() > 1)
@@ -7980,6 +7984,7 @@ void CMainFrame::SetupFavoritesSubMenu()
 
 		CString str = sl.GetNext(pos);
 		str.Replace(_T("&"), _T("&&"));
+		str.Replace(_T("\t"), _T(" "));
 
 		CList<CString> sl;
 		Explode(str, sl, ';', 2);
@@ -7992,7 +7997,7 @@ void CMainFrame::SetupFavoritesSubMenu()
 			if(1 == _stscanf(sl.GetHead(), _T("%I64d"), &rt) && rt > 0)
 			{
 				DVD_HMSF_TIMECODE hmsf = RT2HMSF(rt, 0);
-				str.Format(_T("%s (%d:%02d:%02d)"), CString(str), hmsf.bHours, hmsf.bMinutes, hmsf.bSeconds);
+				str.Format(_T("%s\t[%02d:%02d:%02d]"), CString(str), hmsf.bHours, hmsf.bMinutes, hmsf.bSeconds);
 			}
 		}
 
