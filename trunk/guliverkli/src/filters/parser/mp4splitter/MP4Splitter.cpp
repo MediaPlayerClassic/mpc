@@ -462,7 +462,8 @@ HRESULT CMP4SplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 							if(db->GetDataSize() >= 4)
 							{
 								unsigned short n = (db->GetData()[2] << 8) | db->GetData()[3];
-								if(n) track.Format(L"%d", n);
+								if(n > 0 && n < 100) track.Format(L"%02d", n);
+								else if(n >= 100) track.Format(L"%d", n);
 							}
 						}
 						else
@@ -486,8 +487,8 @@ HRESULT CMP4SplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 
 			if(!title.IsEmpty())
 			{
+				if(!track.IsEmpty()) title = track + L" - " + title;
 				if(!album.IsEmpty()) title = album + L" - " + title;
-				if(!track.IsEmpty()) title += + L" - Track " + track;
 				if(!year.IsEmpty()) title += L" - " +  year;
 				SetProperty(L"TITL", title);
 			}

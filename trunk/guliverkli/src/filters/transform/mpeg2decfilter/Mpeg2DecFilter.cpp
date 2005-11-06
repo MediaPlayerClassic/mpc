@@ -571,6 +571,13 @@ HRESULT CMpeg2DecFilter::Deliver(bool fRepeatLast)
 	pOut->SetTime(&rtStart, &rtStop);
 	pOut->SetMediaTime(NULL, NULL);
 
+	if(m_fb.h == 1088)
+	{
+		memset(m_fb.buf[0] + m_fb.w*(m_fb.h-8), 0xff, m_fb.w*8);
+		memset(m_fb.buf[1] + m_fb.w*(m_fb.h-8)/4, 0x80, m_fb.w*8/4);
+		memset(m_fb.buf[2] + m_fb.w*(m_fb.h-8)/4, 0x80, m_fb.w*8/4);
+	}
+
 	BYTE** buf = &m_fb.buf[0];
 
 	if(m_pSubpicInput->HasAnythingToRender(m_fb.rtStart))
