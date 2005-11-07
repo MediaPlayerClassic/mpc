@@ -9,7 +9,7 @@
 		<select name="isolang_sel[{$n}]">
 		<option value=""{if $isolang_sel[$n] == ""} selected="selected"{/if}>Please select a language...</option>
 		{foreach from=$isolang key=code item=name}
-		<option value="{$code}"{if $code == $isolang_sel[$n]} selected="selected"{/if}>{$name|truncate:40:"...":true|escape:"html"}</option>
+		<option value="{$code}"{if $code == $isolang_sel[$n]} selected="selected"{/if}>{$name|truncate:40:"...":true}</option>
 		{/foreach}
 		</select>
 		</td>

@@ -38,7 +38,7 @@ if(isset($_POST['imdb_url']))
 			$db->query(
 				"select t2.movie_id, t2.title from `movie` t1 ".
 				"join `title` t2 on t1.id = t2.movie_id ".
-				"where imdb = '$imdb_id' ");
+				"where imdb = $imdb_id ");
 			while($row = $db->fetchRow())
 			{
 				$movie_id = $row[0];

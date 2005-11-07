@@ -23,7 +23,7 @@
 		<select class="blueborder" name="isolang_sel">
 		<option value=""{if $isolang_sel == ""} selected="selected"{/if}>Any language</option>
 		{foreach from=$isolang key=code item=name}
-		<option value="{$code}"{if $code == $isolang_sel} selected="selected"{/if}>{$name|truncate:40:"...":true|escape:"html"}</option>
+		<option value="{$code}"{if $code == $isolang_sel} selected="selected"{/if}>{$name|truncate:40:"...":true}</option>
 		{/foreach}
 		</select>
 		</td>

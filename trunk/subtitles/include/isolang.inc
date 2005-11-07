@@ -88,8 +88,8 @@ $isolangraw = array(
 	array("Chuang; Zhuang", "zha", "za"),
 	array("Church Slavic; Old Church Slavonic", "chu", "cu"),
 	array("Old Church Slavonic; Old Slavonic; ", "chu", "cu"),
-	array("Church Slavonic; Old Bulgarian; Church Slavic;", "chu", "cu"),
-	array("Old Slavonic; Church Slavonic; Old Bulgarian;", "chu", "cu"),
+	array("Church Slavonic; Old Bulgarian; Church Slavic; ", "chu", "cu"),
+	array("Old Slavonic; Church Slavonic; Old Bulgarian; ", "chu", "cu"),
 	array("Church Slavic; Old Church Slavonic", "chu", "cu"),
 	array("Chuukese", "chk", ""),
 	array("Chuvash", "chv", "cv"),
@@ -249,7 +249,7 @@ $isolangraw = array(
 	array("Letzeburgesch; Luxembourgish", "ltz", "lb"),
 	array("Lezghian", "lez", ""),
 	array("Limburgan; Limburger; Limburgish", "lim", "li"),
-	array("Limburger; Limburgan; Limburgish;", "lim", "li"),
+	array("Limburger; Limburgan; Limburgish", "lim", "li"),
 	array("Limburgish; Limburger; Limburgan", "lim", "li"),
 	array("Lingala", "lin", "ln"),
 	array("Lithuanian", "lit", "lt"),
@@ -322,9 +322,9 @@ $isolangraw = array(
 	array("Nyankole", "nyn", ""),
 	array("Nyoro", "nyo", ""),
 	array("Nzima", "nzi", ""),
-	array("Occitan (post 1500); Provençal", "oci", "oc"),
+	array("Occitan (post 1500); Proven&ccedil;al", "oci", "oc"),
 	array("Ojibwa", "oji", "oj"),
-	array("Old Bulgarian; Old Slavonic; Church Slavonic;", "chu", "cu"),
+	array("Old Bulgarian; Old Slavonic; Church Slavonic", "chu", "cu"),
 	array("Oriya", "ori", "or"),
 	array("Oromo", "orm", "om"),
 	array("Osage", "osa", ""),
@@ -347,8 +347,8 @@ $isolangraw = array(
 	array("Polish", "pol", "pl"),
 	array("Portuguese", "por", "pt"),
 	array("Prakrit languages", "pra", ""),
-	array("Provençal; Occitan (post 1500)", "oci", "oc"),
-	array("Provençal, Old (to 1500)", "pro", ""),
+	array("Proven&ccedil;al; Occitan (post 1500)", "oci", "oc"),
+	array("Proven&ccedil;al, Old (to 1500)", "pro", ""),
 	array("Pushto", "pus", "ps"),
 	array("Quechua", "que", "qu"),
 	array("Raeto-Romance", "roh", "rm"),
@@ -451,7 +451,7 @@ $isolangraw = array(
 	array("Vai", "vai", ""),
 	array("Venda", "ven", "ve"),
 	array("Vietnamese", "vie", "vi"),
-	array("Volapük", "vol", "vo"),
+	array("Volap&uuml;k", "vol", "vo"),
 	array("Votic", "vot", ""),
 	array("Wakashan languages", "wak", ""),
 	array("Walamo", "wal", ""),
@@ -498,7 +498,7 @@ $isolangtmp = array();
 foreach($isolangraw as $il)
 {
 	if(empty($il[2])) continue;
-	$names = explode(';', $il[0]);
+	$names = explode('; ', $il[0]);
 	foreach($names as $name)
 		$isolangtmp[trim($name)] = $il[1];
 }
