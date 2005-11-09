@@ -45,7 +45,7 @@ private:
 	void ParsePlayList(CList<CString>& fns, CList<CString>* subs);
 
 	bool ParseMPCPlayList(CString fn);
-	bool SaveMPCPlayList(CString fn, CTextFile::enc e);
+	bool SaveMPCPlayList(CString fn, CTextFile::enc e, bool fRemovePath);
 
 	void SetupList();	
 	void UpdateList();

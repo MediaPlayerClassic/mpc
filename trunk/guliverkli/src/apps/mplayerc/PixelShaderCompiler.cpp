@@ -22,15 +22,16 @@
 #include "stdafx.h"
 #include "PixelShaderCompiler.h"
 
-#define D3DX9_DLL _T("d3dx9_27.dll")
-
 CPixelShaderCompiler::CPixelShaderCompiler(IDirect3DDevice9* pD3DDev, bool fStaySilent)
 	: m_pD3DDev(pD3DDev)
 	, m_hDll(NULL)
 	, m_pD3DXCompileShader(NULL)
 	, m_pD3DXDisassembleShader(NULL)
 {
-	m_hDll = LoadLibrary(D3DX9_DLL);
+	CString d3dx9_dll;
+	d3dx9_dll.Format(_T("d3dx9_%d.dll"), D3DX_SDK_VERSION);
+
+	m_hDll = LoadLibrary(d3dx9_dll);
 
 	if(m_hDll)
 	{
@@ -39,7 +40,7 @@ CPixelShaderCompiler::CPixelShaderCompiler(IDirect3DDevice9* pD3DDev, bool fStay
 	}
 	else if(!fStaySilent)
 	{
-		AfxMessageBox(_T("Cannot load ") D3DX9_DLL _T(", pixel shaders will not work."), MB_OK);
+		AfxMessageBox(_T("Cannot load ") + d3dx9_dll + _T(", pixel shaders will not work."), MB_OK);
 	}
 }
 

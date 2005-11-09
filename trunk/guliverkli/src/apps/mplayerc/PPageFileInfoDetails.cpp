@@ -29,6 +29,7 @@
 #include "..\..\DSUtil\DSUtil.h"
 #include "d3d9.h"
 #include "Vmr9.h"
+#include "..\..\..\include\moreuuids.h"
 
 // CPPageFileInfoDetails dialog
 
@@ -222,18 +223,27 @@ void CPPageFileInfoDetails::InitEncoding()
 
 	BeginEnumFilters(m_pFG, pEF, pBF)
 	{
-		if(IPin* pPin = GetFirstPin(pBF, PINDIR_INPUT))
-		{
-			CMediaType mt;
-			if(FAILED(pPin->ConnectionMediaType(&mt)) || mt.majortype != MEDIATYPE_Stream)
-				continue;
-		}
+		CComPtr<IBaseFilter> pUSBF = GetUpStreamFilter(pBF);
 
-		if(IPin* pPin = GetFirstPin(pBF, PINDIR_OUTPUT))
+		if(GetCLSID(pBF) == CLSID_NetShowSource)
 		{
-			CMediaType mt;
-			if(SUCCEEDED(pPin->ConnectionMediaType(&mt)) && mt.majortype == MEDIATYPE_Stream)
-				continue;
+			continue;
+		}
+		else if(GetCLSID(pUSBF) != CLSID_NetShowSource)
+		{
+			if(IPin* pPin = GetFirstPin(pBF, PINDIR_INPUT))
+			{
+				CMediaType mt;
+				if(FAILED(pPin->ConnectionMediaType(&mt)) || mt.majortype != MEDIATYPE_Stream)
+					continue;
+			}
+
+			if(IPin* pPin = GetFirstPin(pBF, PINDIR_OUTPUT))
+			{
+				CMediaType mt;
+				if(SUCCEEDED(pPin->ConnectionMediaType(&mt)) && mt.majortype == MEDIATYPE_Stream)
+					continue;
+			}
 		}
 
 		BeginEnumPins(pBF, pEP, pPin)

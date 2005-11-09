@@ -26,7 +26,6 @@
 #include <atlutil.h>
 #include "mplayerc.h"
 #include "mainfrm.h"
-#include "playerplaylistbar.h"
 #include "..\..\DSUtil\DSUtil.h"
 #include "SaveTextFileDialog.h"
 #include ".\playerplaylistbar.h"
@@ -310,6 +309,13 @@ static int s_int_comp(const void* i1, const void* i2)
 	return (int)i1 - (int)i2;
 }
 
+static CString CombinePath(CPath p, CString fn)
+{
+	if(fn.Find(':') >= 0 || fn.Find(_T("\\")) == 0) return fn;
+	p.Append(CPath(fn));
+	return (LPCTSTR)p;
+}
+
 bool CPlayerPlaylistBar::ParseMPCPlayList(CString fn)
 {
 	CString str;
@@ -319,6 +325,9 @@ bool CPlayerPlaylistBar::ParseMPCPlayList(CString fn)
 	CWebTextFile f;
 	if(!f.Open(fn) || !f.ReadString(str) || str != _T("MPCPLAYLIST"))
 		return false;
+
+	CPath base(fn);
+	base.RemoveFileSpec();
 
 	while(f.ReadString(str))
 	{
@@ -333,8 +342,8 @@ bool CPlayerPlaylistBar::ParseMPCPlayList(CString fn)
 
 			if(key == _T("type")) {pli[i].m_type = (CPlaylistItem::type_t)_ttol(value); idx.Add(i);}
 			else if(key == _T("label")) pli[i].m_label = value;
-			else if(key == _T("filename")) pli[i].m_fns.AddTail(value);
-			else if(key == _T("subtitle")) pli[i].m_subs.AddTail(value);
+			else if(key == _T("filename")) {value = CombinePath(base, value); pli[i].m_fns.AddTail(value);}
+			else if(key == _T("subtitle")) {value = CombinePath(base, value); pli[i].m_subs.AddTail(value);}
 			else if(key == _T("video")) {while(pli[i].m_fns.GetCount() < 2) pli[i].m_fns.AddTail(_T("")); pli[i].m_fns.GetHead() = value;}
 			else if(key == _T("audio")) {while(pli[i].m_fns.GetCount() < 2) pli[i].m_fns.AddTail(_T("")); pli[i].m_fns.GetTail() = value;}
 			else if(key == _T("vinput")) pli[i].m_vinput = _ttol(value);
@@ -351,7 +360,7 @@ bool CPlayerPlaylistBar::ParseMPCPlayList(CString fn)
 	return pli.GetCount() > 0;
 }
 
-bool CPlayerPlaylistBar::SaveMPCPlayList(CString fn, CTextFile::enc e)
+bool CPlayerPlaylistBar::SaveMPCPlayList(CString fn, CTextFile::enc e, bool fRemovePath)
 {
 	CTextFile f;
 	if(!f.Save(fn, e))
@@ -377,9 +386,20 @@ bool CPlayerPlaylistBar::SaveMPCPlayList(CString fn, CTextFile::enc e)
 		if(pli.m_type == CPlaylistItem::file)
 		{
 			pos2 = pli.m_fns.GetHeadPosition();
-			while(pos2) f.WriteString(idx + _T(",filename,") + pli.m_fns.GetNext(pos2) + _T("\n"));
+			while(pos2)
+			{
+				CString fn = pli.m_fns.GetNext(pos2);
+				if(fRemovePath) {CPath p(fn); p.StripPath(); fn = (LPCTSTR)p;}
+				f.WriteString(idx + _T(",filename,") + fn + _T("\n"));
+			}
+
 			pos2 = pli.m_subs.GetHeadPosition();
-			while(pos2) f.WriteString(idx + _T(",subtitle,") + pli.m_subs.GetNext(pos2) + _T("\n"));
+			while(pos2)
+			{
+				CString fn = pli.m_subs.GetNext(pos2);
+				if(fRemovePath) {CPath p(fn); p.StripPath(); fn = (LPCTSTR)p;}
+				f.WriteString(idx + _T(",subtitle,") + fn + _T("\n"));
+			}
 		}
 		else if(pli.m_type == CPlaylistItem::device && pli.m_fns.GetCount() == 2)
 		{
@@ -683,7 +703,7 @@ void CPlayerPlaylistBar::SavePlaylist()
 		}
 		else
 		{
-			SaveMPCPlayList(p, CTextFile::UTF8);
+			SaveMPCPlayList(p, CTextFile::UTF8, false);
 		}
 	}
 }
@@ -1265,9 +1285,47 @@ void CPlayerPlaylistBar::OnContextMenu(CWnd* /*pWnd*/, CPoint p)
 			default: break;
 			}
 
+			bool fRemovePath = true;
+
+			CPath p(path);
+			p.RemoveFileSpec();
+			CString base = (LPCTSTR)p;
+
+			pos = m_pl.GetHeadPosition();
+			while(pos && fRemovePath)
+			{
+				CPlaylistItem& pli = m_pl.GetNext(pos);
+
+				if(pli.m_type != CPlaylistItem::file) fRemovePath = false;
+				else
+				{
+					POSITION pos;
+
+					pos = pli.m_fns.GetHeadPosition();
+					while(pos && fRemovePath)
+					{
+						CString fn = pli.m_fns.GetNext(pos);
+
+						CPath p(fn);
+						p.RemoveFileSpec();
+						if(base != (LPCTSTR)p) fRemovePath = false;
+					}
+
+					pos = pli.m_subs.GetHeadPosition();
+					while(pos && fRemovePath)
+					{
+						CString fn = pli.m_subs.GetNext(pos);
+
+						CPath p(fn);
+						p.RemoveFileSpec();
+						if(base != (LPCTSTR)p) fRemovePath = false;
+					}
+				}
+			}
+
 			if(idx == 1)
 			{
-				SaveMPCPlayList(path, fd.GetEncoding());
+				SaveMPCPlayList(path, fd.GetEncoding(), fRemovePath);
 				break;
 			}
 
@@ -1289,6 +1347,15 @@ void CPlayerPlaylistBar::OnContextMenu(CWnd* /*pWnd*/, CPoint p)
 					continue;
 
 				CString fn = pli.m_fns.GetHead();
+
+				/*
+				if(fRemovePath)
+				{
+					CPath p(path);
+					p.StripPath();
+					fn = (LPCTSTR)p;
+				}
+				*/
 
 				CString str;
 				switch(idx)

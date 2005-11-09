@@ -724,7 +724,7 @@ void ShowPPage(IUnknown* pUnk, HWND hParentWnd)
 CLSID GetCLSID(IBaseFilter* pBF)
 {
 	CLSID clsid = GUID_NULL;
-	pBF->GetClassID(&clsid);
+	if(pBF) pBF->GetClassID(&clsid);
 	return(clsid);
 }
 
