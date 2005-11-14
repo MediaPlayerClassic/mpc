@@ -55,6 +55,20 @@ public:
 
     AP4_Array<AP4_Tx3gFontRecord>& GetFontRecords() { return m_FontRecords; }
 
+	AP4_Result LookupFont(AP4_UI16 Id, AP4_String& Name)
+	{
+		for(int i = 0; i < fonts.ItemCount(); i++)
+		{
+			if(fonts[i].Id == desc.Style.Font.Id)
+			{
+				Name = fonts[i].Name;
+				return AP4_SUCCESS;
+			}
+		}
+
+		return AP4_FAILURE;
+	}
+
 private:
 
 	// members
