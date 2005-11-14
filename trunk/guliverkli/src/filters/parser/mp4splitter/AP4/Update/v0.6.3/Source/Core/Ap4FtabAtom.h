@@ -57,11 +57,11 @@ public:
 
 	AP4_Result LookupFont(AP4_UI16 Id, AP4_String& Name)
 	{
-		for(int i = 0; i < fonts.ItemCount(); i++)
+		for(int i = 0; i < m_FontRecords.ItemCount(); i++)
 		{
-			if(fonts[i].Id == desc.Style.Font.Id)
+			if(m_FontRecords[i].Id == Id)
 			{
-				Name = fonts[i].Name;
+				Name = m_FontRecords[i].Name;
 				return AP4_SUCCESS;
 			}
 		}
