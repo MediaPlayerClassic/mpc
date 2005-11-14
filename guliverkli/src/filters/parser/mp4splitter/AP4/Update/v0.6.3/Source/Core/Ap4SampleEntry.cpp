@@ -868,7 +868,7 @@ AP4_TextSampleEntry::ReadFields(AP4_ByteStream& stream)
     if (AP4_FAILED(result)) return result;
     result = stream.ReadUI32(m_Description.TextJustification);
     if (AP4_FAILED(result)) return result;
-    result = stream.ReadUI32(m_Description.BackgroundColor);
+    result = stream.Read(&m_Description.BackgroundColor, 4);
     if (AP4_FAILED(result)) return result;
     result = stream.ReadUI16(m_Description.TextBox.Top);
     if (AP4_FAILED(result)) return result;
@@ -890,7 +890,7 @@ AP4_TextSampleEntry::ReadFields(AP4_ByteStream& stream)
     if (AP4_FAILED(result)) return result;
     result = stream.ReadUI08(m_Description.Style.Font.Size);
     if (AP4_FAILED(result)) return result;
-    result = stream.ReadUI32(m_Description.Style.Font.Color);
+    result = stream.Read(&m_Description.Style.Font.Color, 4);
     if (AP4_FAILED(result)) return result;
 
     // TODO: stream.ReadString(); -> m_Description.DefaultFontName
@@ -976,7 +976,7 @@ AP4_Tx3gSampleEntry::ReadFields(AP4_ByteStream& stream)
     if (AP4_FAILED(result)) return result;
     result = stream.ReadUI08(m_Description.VerticalJustification);
     if (AP4_FAILED(result)) return result;
-    result = stream.ReadUI32(m_Description.BackgroundColor);
+    result = stream.Read(&m_Description.BackgroundColor, 4);
     if (AP4_FAILED(result)) return result;
     result = stream.ReadUI16(m_Description.TextBox.Top);
     if (AP4_FAILED(result)) return result;
@@ -996,7 +996,7 @@ AP4_Tx3gSampleEntry::ReadFields(AP4_ByteStream& stream)
     if (AP4_FAILED(result)) return result;
     result = stream.ReadUI08(m_Description.Style.Font.Size);
     if (AP4_FAILED(result)) return result;
-    result = stream.ReadUI32(m_Description.Style.Font.Color);
+    result = stream.Read(&m_Description.Style.Font.Color, 4);
     if (AP4_FAILED(result)) return result;
 
     return AP4_SUCCESS;
