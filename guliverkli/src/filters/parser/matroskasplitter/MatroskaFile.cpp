@@ -103,7 +103,7 @@ HRESULT CMatroskaFile::Init()
 template <class T>
 HRESULT CMatroskaFile::Read(T& var)
 {
-	HRESULT hr = Read((BYTE*)&var, sizeof(var));
+	HRESULT hr = ByteRead((BYTE*)&var, sizeof(var));
 	if(S_OK == hr) bswap((BYTE*)&var, sizeof(var));
 	return hr;
 }
@@ -1073,7 +1073,7 @@ QWORD CMatroskaNode::GetPos() {return m_pMF->GetPos();}
 QWORD CMatroskaNode::GetLength() {return m_pMF->GetLength();}
 template <class T> 
 HRESULT CMatroskaNode::Read(T& var) {return m_pMF->Read(var);}
-HRESULT CMatroskaNode::Read(BYTE* pData, QWORD len) {return m_pMF->Read(pData, len);}
+HRESULT CMatroskaNode::Read(BYTE* pData, QWORD len) {return m_pMF->ByteRead(pData, len);}
 
 QWORD CMatroskaNode::FindPos(DWORD id, QWORD start)
 {

@@ -308,9 +308,9 @@ typedef CArray<Codec> CCodecArray;
 
 // CPlayerCaptureDialog dialog
 
-class CPlayerCaptureDialog : public CDialog
+class CPlayerCaptureDialog : public CResizableDialog //CDialog
 {
-	DECLARE_DYNAMIC(CPlayerCaptureDialog)
+	//DECLARE_DYNAMIC(CPlayerCaptureDialog)
 
 	// video input
 	CStringW m_VidDisplayName;

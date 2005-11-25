@@ -168,17 +168,17 @@ static void MC_put_y_8_sse2(uint8_t* dest, const uint8_t* ref, const int stride,
 		mov esi, height
 		lea edi, [eax+eax]
 
-		movhpd xmm0, [edx] 
-		movlpd xmm0, [edx+eax] 
+		movlpd xmm0, [edx] 
 
 	MC_put_y_8_sse2_loop:
 
-		movhpd xmm1, [edx+eax] 
-		movlpd xmm1, [edx+edi] 
+		movlpd xmm1, [edx+eax] 
+		movlpd xmm2, [edx+edi] 
 		pavgb xmm0, xmm1 
-		movhpd [ecx], xmm0 
-		movlpd [ecx+eax], xmm0 
-		movdqa xmm0, xmm1 
+		pavgb xmm1, xmm2
+		movlpd [ecx], xmm0 
+		movlpd [ecx+eax], xmm1 
+		movdqa xmm0, xmm2 
 		add edx, edi 
 		add ecx, edi
 		sub esi, 2
@@ -189,42 +189,6 @@ static void MC_put_y_8_sse2(uint8_t* dest, const uint8_t* ref, const int stride,
 
 static void MC_put_xy_16_sse2(uint8_t* dest, const uint8_t* ref, const int stride, int height)
 {
-/*
-	__asm
-	{
-		mov edx, ref 
-		mov ecx, dest
-		mov eax, stride 
-		mov esi, height 
-		lea edi, [eax+eax] 
-		
-		movdqa xmm7, [const_1_16_bytes] 
-		movdqu xmm0, [edx] 
-		movdqu xmm1, [edx+1]
-		pavgb xmm0, xmm1 
-
-	MC_put_xy_16_sse2_loop:
-
-		movdqu xmm2, [edx+eax] 
-		movdqu xmm3, [edx+eax+1] 
-		movdqu xmm4, [edx+edi] 
-		movdqu xmm5, [edx+edi+1] 
-		pavgb xmm2, xmm3 
-		pavgb xmm5, xmm4 
-		psubusb xmm2, xmm7 
-		movdqa xmm1, xmm0 
-		movdqa xmm0, xmm2 
-		pavgb xmm1, xmm2 
-		pavgb xmm2, xmm5
-		movdqa [ecx], xmm1
-		movdqa [ecx+eax], xmm2
-		add edx, edi
-		add ecx, edi
-		sub esi, 2
-
-		jg MC_put_xy_16_sse2_loop
-	}
-*/
 	__asm
 	{
 		mov edx, ref 
@@ -265,38 +229,39 @@ static void MC_put_xy_8_sse2(uint8_t* dest, const uint8_t* ref, const int stride
 {
 	__asm
 	{
-		mov edx, ref
+		mov edx, ref 
 		mov ecx, dest
-		mov eax, stride
-		mov esi, height
-		lea edi, [eax+eax]
-
+		mov eax, stride 
+		mov esi, height 
+		lea edi, [eax+eax] 
+		
 		movdqa xmm7, [const_1_16_bytes] 
-		movhpd xmm0, [edx] 
-		movlpd xmm0, [edx+eax] 
-		movhpd xmm2, [edx+1] 
-		movlpd xmm2, [edx+eax+1] 
+		movlpd xmm0, [edx] 
+		movlpd xmm1, [edx+1] 
 
 	MC_put_xy_8_sse2_loop:
 
-		movhpd xmm1, [edx+eax] 
-		movlpd xmm1, [edx+edi] 
-		movhpd xmm3, [edx+eax+1] 
-		movlpd xmm3, [edx+edi+1] 
+		movlpd xmm2, [edx+eax] 
+		movlpd xmm3, [edx+eax+1] 
+		movlpd xmm4, [edx+edi] 
+		movlpd xmm5, [edx+edi+1] 
 		pavgb xmm0, xmm1 
 		pavgb xmm2, xmm3 
-		psubusb xmm0, xmm7 
-		pavgb xmm0, xmm1 
-		movhpd [ecx], xmm0 
-		movlpd [ecx+eax], xmm0 
-		movdqa xmm0, xmm1 
-		movdqa xmm2, xmm3 
-		add edx, edi 
+		movdqa xmm1, xmm5 
+		pavgb xmm5, xmm4 
+		psubusb xmm2, xmm7 
+		pavgb xmm0, xmm2 
+		pavgb xmm2, xmm5
+		movlpd [ecx], xmm0
+		movdqa xmm0, xmm4
+		movlpd [ecx+eax], xmm2
+		add edx, edi
 		add ecx, edi
 		sub esi, 2
 
 		jg MC_put_xy_8_sse2_loop
 	}
+
 }
 
 static void MC_avg_o_16_sse2(uint8_t* dest, const uint8_t* ref, const int stride, int height)

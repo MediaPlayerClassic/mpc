@@ -949,15 +949,15 @@ HRESULT CRealMediaSplitterOutputPin::DeliverPacket(CAutoPtr<Packet> p)
 		POSITION pos = sizes.GetHeadPosition();
 		while(pos)
 		{
+			WORD size = sizes.GetNext(pos);
+
 			CAutoPtr<Packet> p(new Packet);
 			p->bDiscontinuity = bDiscontinuity;
 			p->bSyncPoint = true;
 			p->rtStart = rtStart;
-			p->rtStop = rtStart + rtDur;
-			p->pData.SetSize(sizes.GetNext(pos));
-			memcpy(p->pData.GetData(), ptr, p->pData.GetSize());
-			ptr += p->pData.GetSize();
-			rtStart = p->rtStop;
+			p->rtStop = rtStart += rtDur;
+			p->SetData(ptr, size);
+			ptr += size;
 			bDiscontinuity = false;
 			if(S_OK != (hr = __super::DeliverPacket(p)))
 				break;
@@ -996,7 +996,7 @@ CRMFile::CRMFile(IAsyncReader* pAsyncReader, HRESULT& hr)
 template<typename T> 
 HRESULT CRMFile::Read(T& var)
 {
-	HRESULT hr = Read((BYTE*)&var, sizeof(var));
+	HRESULT hr = ByteRead((BYTE*)&var, sizeof(var));
 	bswap(var);
 	return hr;
 }
@@ -1042,7 +1042,7 @@ HRESULT CRMFile::Read(MediaPacketHeader& mph, bool fFull)
 	if(fFull)
 	{
 		mph.pData.SetSize(len);
-		if(mph.len > 0 && S_OK != (hr = Read(mph.pData.GetData(), len)))
+		if(mph.len > 0 && S_OK != (hr = ByteRead(mph.pData.GetData(), len)))
 			return hr;
 	}
 	else
@@ -1090,13 +1090,13 @@ HRESULT CRMFile::Init()
 			case 'CONT':
 				UINT16 slen;
 				if(S_OK != (hr = Read(slen))) return hr;
-				if(slen > 0 && S_OK != (hr = Read((BYTE*)m_cd.title.GetBufferSetLength(slen), slen))) return hr;
+				if(slen > 0 && S_OK != (hr = ByteRead((BYTE*)m_cd.title.GetBufferSetLength(slen), slen))) return hr;
 				if(S_OK != (hr = Read(slen))) return hr;
-				if(slen > 0 && S_OK != (hr = Read((BYTE*)m_cd.author.GetBufferSetLength(slen), slen))) return hr;
+				if(slen > 0 && S_OK != (hr = ByteRead((BYTE*)m_cd.author.GetBufferSetLength(slen), slen))) return hr;
 				if(S_OK != (hr = Read(slen))) return hr;
-				if(slen > 0 && S_OK != (hr = Read((BYTE*)m_cd.copyright.GetBufferSetLength(slen), slen))) return hr;
+				if(slen > 0 && S_OK != (hr = ByteRead((BYTE*)m_cd.copyright.GetBufferSetLength(slen), slen))) return hr;
 				if(S_OK != (hr = Read(slen))) return hr;
-				if(slen > 0 && S_OK != (hr = Read((BYTE*)m_cd.comment.GetBufferSetLength(slen), slen))) return hr;
+				if(slen > 0 && S_OK != (hr = ByteRead((BYTE*)m_cd.comment.GetBufferSetLength(slen), slen))) return hr;
 				break;
 			case 'PROP':
 				if(S_OK != (hr = Read(m_p.maxBitRate))) return hr;
@@ -1126,13 +1126,13 @@ HRESULT CRMFile::Init()
 				if(S_OK != (hr = Read(mp->tDuration))) return hr;
 				UINT8 slen;
 				if(S_OK != (hr = Read(slen))) return hr;
-				if(slen > 0 && S_OK != (hr = Read((BYTE*)mp->name.GetBufferSetLength(slen), slen))) return hr;
+				if(slen > 0 && S_OK != (hr = ByteRead((BYTE*)mp->name.GetBufferSetLength(slen), slen))) return hr;
 				if(S_OK != (hr = Read(slen))) return hr;
-				if(slen > 0 && S_OK != (hr = Read((BYTE*)mp->mime.GetBufferSetLength(slen), slen))) return hr;
+				if(slen > 0 && S_OK != (hr = ByteRead((BYTE*)mp->mime.GetBufferSetLength(slen), slen))) return hr;
 				UINT32 tsdlen;
 				if(S_OK != (hr = Read(tsdlen))) return hr;
 				mp->typeSpecData.SetSize(tsdlen);
-				if(tsdlen > 0 && S_OK != (hr = Read(mp->typeSpecData.GetData(), tsdlen))) return hr;
+				if(tsdlen > 0 && S_OK != (hr = ByteRead(mp->typeSpecData.GetData(), tsdlen))) return hr;
 				mp->width = mp->height = 0;
 				mp->interlaced = mp->top_field_first = false;
 				m_mps.AddTail(mp);
@@ -1177,7 +1177,7 @@ HRESULT CRMFile::Init()
 					CAutoVectorPtr<char> buff;
 					if(!buff.Allocate(size)) return E_OUTOFMEMORY;
 					char* p = buff;
-					if(S_OK != (hr = Read((BYTE*)p, size))) return hr;
+					if(S_OK != (hr = ByteRead((BYTE*)p, size))) return hr;
 					for(char* end = p + size; p < end; )
 					{
 						subtitle s;
@@ -1634,7 +1634,7 @@ void CRealVideoDecoder::ResizeWidth(BYTE* pIn, DWORD wi, DWORD hi, BYTE* pOut, D
 {
 	for(DWORD y = 0; y < hi; y++, pIn += wi, pOut += wo)
 	{
-		if(wi == wo) memcpy_accel(pOut, pIn, wo);
+		if(wi == wo) memcpy(pOut, pIn, wo);
 		else ResizeRow(pIn, wi, 1, pOut, wo, 1);
 	}
 }
@@ -1643,7 +1643,7 @@ void CRealVideoDecoder::ResizeHeight(BYTE* pIn, DWORD wi, DWORD hi, BYTE* pOut, 
 {
 	if(hi == ho) 
 	{
-		memcpy_accel(pOut, pIn, wo*ho);
+		memcpy(pOut, pIn, wo*ho);
 	}
 	else
 	{

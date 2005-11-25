@@ -32,6 +32,8 @@ class CBaseSplitterFile
 	bool m_fStreaming;
 	__int64 m_pos, m_len;
 
+	virtual HRESULT Read(BYTE* pData, __int64 len); // use ByteRead
+
 protected:
 	UINT64 m_bitbuff;
 	int m_bitlen;
@@ -47,7 +49,6 @@ public:
 	__int64 GetPos();
 	__int64 GetLength();
 	virtual void Seek(__int64 pos);
-	virtual HRESULT Read(BYTE* pData, __int64 len);
 
 	UINT64 UExpGolombRead();
 	INT64 SExpGolombRead();

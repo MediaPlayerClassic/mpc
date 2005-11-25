@@ -41,7 +41,7 @@ CPlayerCaptureBar::~CPlayerCaptureBar()
 
 BOOL CPlayerCaptureBar::Create(CWnd* pParentWnd)
 {
-	if(!baseCPlayerCaptureBar::Create(_T("Capture Settings"), pParentWnd, 50))
+	if(!baseCPlayerCaptureBar::Create(_T("Capture Settings"), pParentWnd, 0))
 		return FALSE;
 
 	m_capdlg.Create(this);
@@ -66,7 +66,7 @@ BOOL CPlayerCaptureBar::PreTranslateMessage(MSG* pMsg)
 			return TRUE;
 	}
 
-	return baseCPlayerCaptureBar::PreTranslateMessage(pMsg);
+	return __super::PreTranslateMessage(pMsg);
 }
 
 BEGIN_MESSAGE_MAP(CPlayerCaptureBar, baseCPlayerCaptureBar)

@@ -90,6 +90,8 @@ public:
 protected:
 	virtual BOOL PreCreateWindow(CREATESTRUCT& cs);
 	virtual BOOL PreTranslateMessage(MSG* pMsg);
+	
+	bool IsShortCut(MSG* pMsg);
 
 	DECLARE_MESSAGE_MAP()
 

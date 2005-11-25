@@ -86,7 +86,7 @@
 #define ID_HELP_ABOUT                   173
 #define IDS_OPTIONS_CAPTION             173
 #define ID_HELP_HOMEPAGE                174
-#define IDS_SHADER_EDIT                 174
+#define IDS_SHADER_COMBINE              174
 #define IDS_SHADER_OFF                  175
 #define IDS_SHADER_POPUP                176
 #define IDS_FAVORITES_POPUP             177
@@ -145,6 +145,7 @@
 #define IDD_PLAYERCAPTUREDIALOG         243
 #define IDD_CAPTUREDIALOG               243
 #define ID_VIEW_CAPTURE                 244
+#define ID_VIEW_SHADEREDITOR            245
 #define ID_HELP_DONATE                  246
 #define ID_PANSCAN_MOVELEFT             247
 #define ID_PANSCAN_MOVERIGHT            248
@@ -290,6 +291,19 @@
 #define IDD_CONVERTRESDIALOG            405
 #define IDD_CONVERTCHAPDIALOG           406
 #define IDF_SHADER_RESIZER              407
+#define IDF_SHADER_EMPTY                408
+#define IDR_SHADER_CONTOUR              409
+#define IDR_SHADER_DEINTERLACE          410
+#define IDR_SHADER_EMBOSS               411
+#define IDR_SHADER_GRAYSCALE            412
+#define IDR_SHADER_INVERT               413
+#define IDR_SHADER_LETTERBOX            414
+#define IDR_SHADER_SPHERE               415
+#define IDR_SHADER_SPOTLIGHT            416
+#define IDR_SHADER_WAVE                 417
+#define IDD_DIALOG4                     418
+#define IDD_SHADERCOMBINEDLG            418
+#define IDR_SHADER_SHARPEN              419
 #define IDS_R_SETTINGS                  500
 #define IDS_RS_CONTROLSTATE             501
 #define IDS_RS_VOLUME                   502
@@ -428,6 +442,7 @@
 #define IDS_RS_WEBDEFINDEX              629
 #define IDS_RS_FREEWINDOWRESIZING       630
 #define IDS_RS_NOTIFYMSN                631
+#define IDS_RS_NOTIFYGTSDLL             632
 #define IDC_BROWSEBUTTON                1016
 #define IDC_BROWSEBUTTON2               1017
 #define IDC_COMBO1                      1018
@@ -435,6 +450,7 @@
 #define IDC_VOLUMESLIDER                1020
 #define IDC_SLIDER2                     1020
 #define IDC_COMBO9                      1020
+#define IDC_BROWSEBUTTON3               1020
 #define IDC_SLIDER3                     1021
 #define IDC_COMBO12                     1021
 #define IDC_RADIO1                      1022
@@ -457,6 +473,7 @@
 #define IDC_CHECK5                      1031
 #define IDC_EDIT8                       1031
 #define IDC_SPIN1                       1032
+#define IDC_CHECKGTS                    1032
 #define IDC_SPIN2                       1033
 #define IDC_LANGRADIO1                  1034
 #define IDC_SPIN3                       1034
@@ -642,6 +659,7 @@
 #define IDS_SRC_MPA                     1166
 #define IDC_DX9RESIZER_COMBO            1167
 #define IDS_SRC_MP4                     1168
+#define IDC_STATICLINKGTS               1169
 #define IDD_COMPROPERTYPAGE             10002
 #define IDD_FILEPROPCLIP1               10003
 #define IDD_FILEPROPRES                 10003
@@ -737,6 +755,7 @@
 #define ID_AFTERPLAYBACK_DONOTHING      32871
 #define ID_PLAY_RESETRATE               32872
 #define ID_HELP_DOCUMENTATION           32873
+#define ID_VIEW_SHADEREDITOR32874       32874
 #define ID_FILTERS_SUBITEM_START        33000
 #define ID_FILTERS_SUBITEM_END          33099
 #define ID_FILTERSTREAMS_SUBITEM_START  33100
@@ -770,9 +789,9 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        409
-#define _APS_NEXT_COMMAND_VALUE         32874
-#define _APS_NEXT_CONTROL_VALUE         1169
+#define _APS_NEXT_RESOURCE_VALUE        420
+#define _APS_NEXT_COMMAND_VALUE         32875
+#define _APS_NEXT_CONTROL_VALUE         1170
 #define _APS_NEXT_SYMED_VALUE           10003
 #endif
 #endif

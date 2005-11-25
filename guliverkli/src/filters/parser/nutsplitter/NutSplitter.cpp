@@ -260,7 +260,7 @@ TRACE(_T("[%I64d]: %I64d:%I64d\n"), stream_id, sh->msb_timestamp, lsb_timestamp)
 				if(fh.subpacket_type == 1)
 				{
 					p->pData.SetSize(len);
-					m_pFile->CBaseSplitterFile::Read(p->pData.GetData(), p->pData.GetSize());
+					m_pFile->ByteRead(p->pData.GetData(), p->pData.GetSize());
 
 					if(FAILED(DeliverPacket(p)))
 						break;

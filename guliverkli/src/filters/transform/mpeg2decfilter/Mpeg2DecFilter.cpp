@@ -27,6 +27,9 @@
 #include "libmpeg2.h"
 #include "Mpeg2DecFilter.h"
 
+#include <xmmintrin.h>
+#include <emmintrin.h>
+
 #include "..\..\..\DSUtil\DSUtil.h"
 #include "..\..\..\DSUtil\MediaTypes.h"
 
@@ -42,8 +45,8 @@ const AMOVIESETUP_MEDIATYPE sudPinTypesIn[] =
 	{&MEDIATYPE_MPEG2_PACK, &MEDIASUBTYPE_MPEG2_VIDEO},
 	{&MEDIATYPE_MPEG2_PES, &MEDIASUBTYPE_MPEG2_VIDEO},
 	{&MEDIATYPE_Video, &MEDIASUBTYPE_MPEG2_VIDEO},
-	{&MEDIATYPE_Video, &MEDIASUBTYPE_MPEG1Packet},
-	{&MEDIATYPE_Video, &MEDIASUBTYPE_MPEG1Payload},
+	// {&MEDIATYPE_Video, &MEDIASUBTYPE_MPEG1Packet},
+	// {&MEDIATYPE_Video, &MEDIASUBTYPE_MPEG1Payload},
 };
 
 const AMOVIESETUP_MEDIATYPE sudPinTypesOut[] =
@@ -252,7 +255,7 @@ void CMpeg2DecFilter::InputTypeChanged()
 		m_dec->m_pictures[i].flags &= ~PIC_MASK_CODING_TYPE;
 	}
 
-	CMediaType& mt = m_pInput->CurrentMediaType();
+	const CMediaType& mt = m_pInput->CurrentMediaType();
 
 	BYTE* pSequenceHeader = NULL;
 	DWORD cbSequenceHeader = 0;
@@ -313,9 +316,11 @@ HRESULT CMpeg2DecFilter::Transform(IMediaSample* pIn)
 			else {m_dec->mpeg2_buffer(pDataIn, pDataIn + len); len = 0;}
 			break;
 		case STATE_INVALID:
-			TRACE(_T("STATE_INVALID\n"));
-//			if(m_fWaitForKeyFrame)
-//				ResetMpeg2Decoder();
+			TRACE(_T("*** STATE_INVALID\n"));
+/*
+			if(m_fWaitForKeyFrame)
+				InputTypeChanged();
+*/
 			break;
 		case STATE_GOP:
 			// TRACE(_T("STATE_GOP\n"));
@@ -756,9 +761,59 @@ void CMpeg2DecFilter::ApplyBrContHueSat(BYTE* srcy, BYTE* srcu, BYTE* srcv, int 
 
 	double EPSILON = 1e-4;
 
-	if(fabs(m_bright-0.0) > EPSILON || fabs(m_cont-1.0) > EPSILON)
+	if(fabs(m_bright) > EPSILON || fabs(m_cont-1.0) > EPSILON)
 	{
-		for(int size = pitch*h; size > 0; size--)
+		int size = pitch*h;
+
+		if(g_cpuid.m_flags&CCpuID::sse2 && ((DWORD_PTR)srcy & 15) == 0)
+		{
+			short Cont = (short)(min(max(m_cont, 0) * 512, (1<<16)-1));
+			short Bright = (short)(m_bright + 16);
+
+			__m128i bc = _mm_set_epi16(Bright, Cont, Bright, Cont, Bright, Cont, Bright, Cont);
+
+			__m128i zero = _mm_setzero_si128();
+			__m128i _16 = _mm_set1_epi16(16);
+			__m128i _512 = _mm_set1_epi16(512);
+
+			for(int i = 0, j = size>>4; i < j; i++)
+			{
+				__m128i r = _mm_load_si128((__m128i*)&srcy[i*16]);
+
+				__m128i rl = _mm_unpacklo_epi8(r, zero);
+				__m128i rh = _mm_unpackhi_epi8(r, zero);
+
+				rl = _mm_subs_epi16(rl, _16);
+				rh = _mm_subs_epi16(rh, _16);
+
+				__m128i rll = _mm_unpacklo_epi16(rl, _512);
+				__m128i rlh = _mm_unpackhi_epi16(rl, _512);
+				__m128i rhl = _mm_unpacklo_epi16(rh, _512);
+				__m128i rhh = _mm_unpackhi_epi16(rh, _512);
+
+				rll = _mm_madd_epi16(rll, bc);
+				rlh = _mm_madd_epi16(rlh, bc);
+				rhl = _mm_madd_epi16(rhl, bc);
+				rhh = _mm_madd_epi16(rhh, bc);
+
+				rll = _mm_srai_epi32(rll, 9);
+				rlh = _mm_srai_epi32(rlh, 9);
+				rhl = _mm_srai_epi32(rhl, 9);
+				rhh = _mm_srai_epi32(rhh, 9);
+
+				rl = _mm_packs_epi32(rll, rlh);
+				rh = _mm_packs_epi32(rhl, rhh);
+
+				r = _mm_packus_epi16(rl, rh);
+
+				_mm_store_si128((__m128i*)&srcy[i*16], r);
+			}
+
+			srcy += size>>4;
+			size &= 15;
+		}
+
+		for(; size > 0; size--)
 		{
 			*srcy++ = m_YTbl[*srcy];
 		}

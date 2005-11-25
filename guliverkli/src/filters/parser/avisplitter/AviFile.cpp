@@ -16,7 +16,7 @@ template<typename T>
 HRESULT CAviFile::Read(T& var, int offset)
 {
 	memset(&var, 0, sizeof(var));
-	HRESULT hr = Read((BYTE*)&var + offset, sizeof(var) - offset);
+	HRESULT hr = ByteRead((BYTE*)&var + offset, sizeof(var) - offset);
 	return hr;
 }
 
@@ -134,7 +134,7 @@ HRESULT CAviFile::Parse(DWORD parentid, __int64 end)
 				case FCC('ITCH'): // Technician. Identifies the technician who digitized the subject file; for example, “Smith, John.”
 					{
 						CStringA str;
-						if(S_OK != Read((BYTE*)str.GetBufferSetLength(size), size)) return E_FAIL;
+						if(S_OK != ByteRead((BYTE*)str.GetBufferSetLength(size), size)) return E_FAIL;
 						m_info[id] = str;
 						break;
 					}
@@ -155,12 +155,12 @@ HRESULT CAviFile::Parse(DWORD parentid, __int64 end)
 				if(S_OK != Read(strm->strh, 8)) return E_FAIL;
 				break;
 			case FCC('strn'):
-				if(S_OK != Read((BYTE*)strm->strn.GetBufferSetLength(size), size)) return E_FAIL;
+				if(S_OK != ByteRead((BYTE*)strm->strn.GetBufferSetLength(size), size)) return E_FAIL;
 				break;
 			case FCC('strf'):
 				if(!strm) strm.Attach(new strm_t());
 				strm->strf.SetSize(size);
-				if(S_OK != Read(strm->strf.GetData(), size)) return E_FAIL;
+				if(S_OK != ByteRead(strm->strf.GetData(), size)) return E_FAIL;
 				break;
 			case FCC('indx'):
 				if(!strm) strm.Attach(new strm_t());
@@ -168,7 +168,7 @@ HRESULT CAviFile::Parse(DWORD parentid, __int64 end)
 				strm->indx.Attach((AVISUPERINDEX*)new BYTE[size + 8]);
 				strm->indx->fcc = FCC('indx');
 				strm->indx->cb = size;
-				if(S_OK != Read((BYTE*)(AVISUPERINDEX*)strm->indx + 8, size)) return E_FAIL;
+				if(S_OK != ByteRead((BYTE*)(AVISUPERINDEX*)strm->indx + 8, size)) return E_FAIL;
 				ASSERT(strm->indx->wLongsPerEntry == 4 && strm->indx->bIndexType == AVI_INDEX_OF_INDEXES);
 				break;
 			case FCC('dmlh'):
@@ -182,7 +182,7 @@ HRESULT CAviFile::Parse(DWORD parentid, __int64 end)
 				m_idx1.Attach((AVIOLDINDEX*)new BYTE[size + 8]);
 				m_idx1->fcc = FCC('idx1');
 				m_idx1->cb = size;
-				if(S_OK != Read((BYTE*)(AVIOLDINDEX*)m_idx1 + 8, size)) return E_FAIL;
+				if(S_OK != ByteRead((BYTE*)(AVIOLDINDEX*)m_idx1 + 8, size)) return E_FAIL;
 				break;
 			}
 
@@ -240,7 +240,7 @@ HRESULT CAviFile::BuildIndex()
 				Seek(idx->aIndex[j].qwOffset);
 
 				AVISTDINDEX stdidx;
-				if(S_OK != Read((BYTE*)&stdidx, FIELD_OFFSET(AVISTDINDEX, aIndex)))
+				if(S_OK != ByteRead((BYTE*)&stdidx, FIELD_OFFSET(AVISTDINDEX, aIndex)))
 				{
 					EmptyIndex();
 					return E_FAIL;
@@ -259,7 +259,7 @@ HRESULT CAviFile::BuildIndex()
 				Seek(idx->aIndex[j].qwOffset);
 
 				CAutoPtr<AVISTDINDEX> p((AVISTDINDEX*)new BYTE[idx->aIndex[j].dwSize]);
-				if(!p || S_OK != Read((BYTE*)(AVISTDINDEX*)p, idx->aIndex[j].dwSize)) 
+				if(!p || S_OK != ByteRead((BYTE*)(AVISTDINDEX*)p, idx->aIndex[j].dwSize)) 
 				{
 					EmptyIndex();
 					return E_FAIL;
@@ -456,39 +456,31 @@ bool CAviFile::IsInterleaved(bool fKeepInfo)
 
 REFERENCE_TIME CAviFile::strm_t::GetRefTime(DWORD frame, UINT64 size)
 {
-	REFERENCE_TIME rt = -1;
+	double dframe = frame;
 
 	if(strh.fccType == FCC('auds'))
 	{
 		WAVEFORMATEX* wfe = (WAVEFORMATEX*)strf.GetData();
 
-		rt = wfe->nBlockAlign && strh.dwRate
-			? ((10000000i64 * size + (wfe->nBlockAlign>>1)) / wfe->nBlockAlign * strh.dwScale + (strh.dwRate>>1)) / strh.dwRate 
-			: 0;
-	}
-	else
-	{
-		rt = strh.dwRate
-			? 10000i64 * ((1000i64 * frame * strh.dwScale + (strh.dwRate>>1)) / strh.dwRate) // 10000 * (1000 * ... ) because it is less likely to overflow this way
-			: 0;
+		dframe = wfe->nBlockAlign ? 1.0 * size / wfe->nBlockAlign : 0;
 	}
 
-	return(rt);
+	double scale_per_rate = strh.dwRate ? 1.0 * strh.dwScale / strh.dwRate : 0;
+
+	return (REFERENCE_TIME)(scale_per_rate * dframe * 10000000 + 0.5);
 }
 
 int CAviFile::strm_t::GetFrame(REFERENCE_TIME rt)
 {
 	int frame = -1;
 
-	rt /= 10000; // avoiding overflow later
+	double rate_per_scale = strh.dwScale ? 1.0 * strh.dwRate / strh.dwScale : 0;
 
 	if(strh.fccType == FCC('auds'))
 	{
 		WAVEFORMATEX* wfe = (WAVEFORMATEX*)strf.GetData();
 
-		INT64 size = strh.dwScale
-			? ((rt * strh.dwRate + strh.dwScale/2) / strh.dwScale * wfe->nBlockAlign + 1000/2) / 1000
-			: 0;
+		__int64 size = (__int64)(rate_per_scale * wfe->nBlockAlign * rt / 10000000);
 
 		for(frame = 0; frame < cs.GetCount(); frame++)
 		{
@@ -501,15 +493,12 @@ int CAviFile::strm_t::GetFrame(REFERENCE_TIME rt)
 	}
 	else
 	{
-		frame = strh.dwScale
-			? (int)(((rt * strh.dwRate + strh.dwScale/2) / strh.dwScale + 1000/2) / 1000)
-			: 0;
+		frame = (int)(rate_per_scale * rt / 10000000);
 	}
 
-	if(frame >= cs.GetCount())
-		frame = cs.GetCount()-1;
+	if(frame >= cs.GetCount()) frame = cs.GetCount()-1;
 
-	return(frame);
+	return frame;
 }
 
 int CAviFile::strm_t::GetKeyFrame(REFERENCE_TIME rt)
@@ -524,12 +513,10 @@ DWORD CAviFile::strm_t::GetChunkSize(DWORD size)
 	if(strh.fccType == FCC('auds'))
 	{
 		WORD nBlockAlign = ((WAVEFORMATEX*)strf.GetData())->nBlockAlign;
-		size = nBlockAlign
-			? (size + (nBlockAlign-1)) / nBlockAlign * nBlockAlign // round up for nando's vbr hack
-			: 0;
+		size = nBlockAlign ? (size + (nBlockAlign-1)) / nBlockAlign * nBlockAlign : 0; // round up for nando's vbr hack
 	}
 
-	return(size);
+	return size;
 }
 
 bool CAviFile::strm_t::IsRawSubtitleStream()

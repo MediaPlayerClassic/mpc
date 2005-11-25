@@ -157,11 +157,11 @@ HRESULT CMpegSplitterFilter::DemuxNextPacket(REFERENCE_TIME rtStartOffset)
 		if(!m_pFile->Read(h)) 
 			return S_FALSE;
 
-		if(h.scrambling) {ASSERT(0); return S_FALSE;}
+		//if(h.scrambling) {ASSERT(0); m_pFile->Seek(h.next); return S_FALSE;}
 
 		__int64 pos = m_pFile->GetPos();
 
-		if(h.payload && h.pid >= 16 && h.pid < 0x1fff)
+		if(h.payload && h.pid >= 16 && h.pid < 0x1fff && !h.scrambling)
 		{
 			DWORD TrackNumber = h.pid;
 
@@ -584,8 +584,7 @@ HRESULT CMpegSplitterOutputPin::DeliverPacket(CAutoPtr<Packet> p)
 			p->rtStart = m_p->rtStart; m_p->rtStart = Packet::INVALID_TIME;
 			p->rtStop = m_p->rtStop; m_p->rtStop = Packet::INVALID_TIME;
 			p->pmt = m_p->pmt; m_p->pmt = NULL;
-			p->pData.SetSize(len);
-			memcpy(p->pData.GetData(), s, len);
+			p->SetData(s, len);
 			s += len;
 			memmove(base, s, e - s);
 			m_p->pData.SetSize(e - s);

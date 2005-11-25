@@ -21,6 +21,7 @@
 
 #pragma once
 #include "PPageBase.h"
+#include "StaticLink.h"
 
 // CPPageTweaks dialog
 
@@ -47,6 +48,8 @@ public:
 	int m_nJumpDistL;
 	BOOL m_fFreeWindowResizing;
 	BOOL m_fNotifyMSN;
+	BOOL m_fNotifyGTSdll;
+	CStaticLink m_GTSdllLink;
 
 protected:
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV support

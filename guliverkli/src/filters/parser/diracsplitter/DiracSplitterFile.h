@@ -16,7 +16,7 @@ class CDiracSplitterFile : public CBaseSplitterFile
 public:
 	CDiracSplitterFile(IAsyncReader* pAsyncReader, HRESULT& hr);
 
-	using CBaseSplitterFile::Read;
+	//using CBaseSplitterFile::Read;
 
 	bool Next(BYTE& code, __int64 len = -1);
 	const BYTE* NextBlock(BYTE& code, int& size, int& fnum);

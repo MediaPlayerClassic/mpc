@@ -1449,7 +1449,7 @@ bool CRenderedTextSubtitle::ParseSSATag(CSubtitle* sub, CStringW str, STSStyle& 
 			params.Add(cmd.Mid(2)), cmd = cmd.Left(2);
 		else if(!cmd.Find(L"i"))
 			params.Add(cmd.Mid(1)), cmd = cmd.Left(1);
-		else if(!cmd.Find(L"kf") || !cmd.Find(L"ko"))
+		else if(!cmd.Find(L"kt") || !cmd.Find(L"kf") || !cmd.Find(L"ko"))
 			params.Add(cmd.Mid(2)), cmd = cmd.Left(2);
 		else if(!cmd.Find(L"k") || !cmd.Find(L"K"))
 			params.Add(cmd.Mid(1)), cmd = cmd.Left(1);
@@ -1558,11 +1558,27 @@ bool CRenderedTextSubtitle::ParseSSATag(CSubtitle* sub, CStringW str, STSStyle& 
 			}
 			else if(params.GetCount() == 4)
 			{
+				CRect r;
+
+				r.SetRect(
+					wcstol(params[0], NULL, 10),
+					wcstol(params[1], NULL, 10),
+					wcstol(params[2], NULL, 10),
+					wcstol(params[3], NULL, 10));
+
+				CPoint o(0, 0);
+
+				if(sub->m_relativeTo == 1) // TODO: this should also apply to the other two clippings above
+				{
+					o.x = m_vidrect.left>>3;
+					o.y = m_vidrect.top>>3;
+				}
+
 				sub->m_clip.SetRect(
-					(int)CalcAnimation(sub->m_scalex*wcstol(params[0], NULL, 10), sub->m_clip.left, fAnimate),
-					(int)CalcAnimation(sub->m_scaley*wcstol(params[1], NULL, 10), sub->m_clip.top, fAnimate),
-					(int)CalcAnimation(sub->m_scalex*wcstol(params[2], NULL, 10), sub->m_clip.right, fAnimate),
-					(int)CalcAnimation(sub->m_scaley*wcstol(params[3], NULL, 10), sub->m_clip.bottom, fAnimate));
+					(int)CalcAnimation(sub->m_scalex*r.left + o.x, sub->m_clip.left, fAnimate),
+					(int)CalcAnimation(sub->m_scaley*r.top + o.y, sub->m_clip.top, fAnimate),
+					(int)CalcAnimation(sub->m_scalex*r.right + o.x, sub->m_clip.right, fAnimate),
+					(int)CalcAnimation(sub->m_scaley*r.bottom + o.y, sub->m_clip.bottom, fAnimate));
 			}
 		}
 		else if(cmd == L"c")
@@ -1684,6 +1700,13 @@ bool CRenderedTextSubtitle::ParseSSATag(CSubtitle* sub, CStringW str, STSStyle& 
 			style.fItalic = !p.IsEmpty()
 				? (n == 0 ? false : n == 1 ? true : org.fItalic)
 				: org.fItalic;
+		}
+		else if(cmd == L"kt")
+		{
+			m_kstart = !p.IsEmpty() 
+				? wcstol(p, NULL, 10)*10
+				: 0;
+			m_kend = m_kstart;
 		}
 		else if(cmd == L"kf" || cmd == L"K")
 		{

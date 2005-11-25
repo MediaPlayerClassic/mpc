@@ -94,8 +94,8 @@ BOOL COpenDlg::OnInitDialog()
 	AddAnchor(m_mrucombo2, TOP_LEFT, TOP_RIGHT);
 	AddAnchor(IDC_BROWSEBUTTON, TOP_RIGHT);
 	AddAnchor(IDC_BROWSEBUTTON2, TOP_RIGHT);
-	AddAnchor(IDOK, TOP_CENTER);
-	AddAnchor(IDCANCEL, TOP_CENTER);
+	AddAnchor(IDOK, TOP_RIGHT);
+	AddAnchor(IDCANCEL, TOP_RIGHT);
 	AddAnchor(IDC_STATIC1, TOP_LEFT, TOP_RIGHT);
 
 	CRect r;

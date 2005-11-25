@@ -59,7 +59,7 @@ public:
 
 class COggFile : public CBaseSplitterFile
 {
-	using CBaseSplitterFile::Read;
+	// using CBaseSplitterFile::Read;
 
 	HRESULT Init();
 

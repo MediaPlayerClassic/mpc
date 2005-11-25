@@ -1,5 +1,5 @@
 #pragma once
-#include "afxwin.h"
+#include "resource.h"
 
 
 // CShaderAutoCompleteDlg dialog

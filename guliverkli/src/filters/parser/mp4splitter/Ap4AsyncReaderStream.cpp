@@ -40,7 +40,7 @@ AP4_Result AP4_AsyncReaderStream::Read(void* buffer, AP4_Size bytesToRead, AP4_S
 		return AP4_ERROR_EOS;
 	}
 
-	if(FAILED(m_pFile->Read((BYTE*)buffer, bytesToRead)))
+	if(FAILED(m_pFile->ByteRead((BYTE*)buffer, bytesToRead)))
 	{
 		if(bytesRead) *bytesRead = 0;
 		return AP4_ERROR_READ_FAILED;

@@ -147,7 +147,6 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				RegisterOutput="true"
 				AdditionalDependencies="idct_mmx.obj motion_comp_mmx.obj decssR.lib dsutilR.lib strmbaseR.lib basevideofilterR.lib"
 				OutputFile="$(OutDir)/$(ProjectName).ax"
 				AdditionalLibraryDirectories="../../../../lib;../../../../lib/detours"
@@ -318,7 +317,6 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				RegisterOutput="true"
 				AdditionalDependencies="idct_mmx.obj motion_comp_mmx.obj decssRU.lib dsutilRU.lib strmbaseRU.lib basevideofilterRU.lib"
 				OutputFile="$(OutDir)/$(ProjectName).ax"
 				AdditionalLibraryDirectories="../../../../lib;../../../../lib/detours"
@@ -641,6 +639,14 @@
 			<File
 				RelativePath=".\idct_sse2.cpp"
 				>
+				<FileConfiguration
+					Name="Release Unicode|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						AssemblerOutput="4"
+					/>
+				</FileConfiguration>
 			</File>
 			<File
 				RelativePath=".\libmpeg2.cpp"
@@ -677,6 +683,14 @@
 			<File
 				RelativePath=".\Mpeg2DecFilter.cpp"
 				>
+				<FileConfiguration
+					Name="Release Unicode|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						AssemblerOutput="4"
+					/>
+				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="stdafx.cpp"

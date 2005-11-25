@@ -408,7 +408,7 @@ namespace MatroskaReader
 
 		HRESULT Init();
 
-		using CBaseSplitterFile::Read;
+		//using CBaseSplitterFile::Read;
 		template <class T> HRESULT Read(T& var);
 
 		EBML m_ebml;

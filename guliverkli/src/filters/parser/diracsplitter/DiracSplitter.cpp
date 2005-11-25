@@ -213,14 +213,11 @@ bool CDiracSplitterFilter::DemuxLoop()
 		if(isFrameStartCode(code))
 		{
 			CAutoPtr<Packet> p(new Packet());
-			p->pData.SetSize(size);
-			memcpy(p->pData.GetData(), pBuff, size);
-
 			p->TrackNumber = 0;
 			p->rtStart = rtAvgTimePerFrame*fnum;
 			p->rtStop = p->rtStart + rtAvgTimePerFrame;
 			p->bSyncPoint = code == IFRAME_START_CODE;
-
+			p->SetData(pBuff, size);
 			hr = DeliverPacket(p);
 		}
 

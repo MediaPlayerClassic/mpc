@@ -43,7 +43,7 @@ CPlayerSubresyncBar::~CPlayerSubresyncBar()
 
 BOOL CPlayerSubresyncBar::Create(CWnd* pParentWnd, CCritSec* pSubLock)
 {
-	if(!CSizingControlBarG::Create(_T("Subresync"), pParentWnd, 50))
+	if(!CSizingControlBarG::Create(_T("Subresync"), pParentWnd, 0))
 		return FALSE;
 
 	m_pSubLock = pSubLock;
@@ -70,7 +70,7 @@ BOOL CPlayerSubresyncBar::PreTranslateMessage(MSG* pMsg)
 {
 	if(IsWindow(pMsg->hwnd) && IsVisible() && pMsg->message >= WM_KEYFIRST && pMsg->message <= WM_KEYLAST)
 	{
-		if(IsDialogMessage(pMsg))
+		if(IsShortCut(pMsg) || IsDialogMessage(pMsg))
 			return TRUE;
 	}
 
@@ -792,16 +792,16 @@ void CPlayerSubresyncBar::OnRclickList(NMHDR* pNMHDR, LRESULT* pResult)
 		if(lpnmlv->iSubItem == COL_START && (m_mode == VOBSUB || m_mode == TEXTSUB))
 		{
 			m.AppendMenu(MF_SEPARATOR);
-			m.AppendMenu(MF_STRING|MF_ENABLED, RESETS, ResStr(IDS_SUBRESYNC_RESET));
-			m.AppendMenu(MF_STRING|MF_ENABLED, SETOS, ResStr(IDS_SUBRESYNC_ORIGINAL));
-			m.AppendMenu(MF_STRING|MF_ENABLED, SETCS, ResStr(IDS_SUBRESYNC_CURRENT));
+			m.AppendMenu(MF_STRING|MF_ENABLED, RESETS, ResStr(IDS_SUBRESYNC_RESET) + _T("\tF1"));
+			m.AppendMenu(MF_STRING|MF_ENABLED, SETOS, ResStr(IDS_SUBRESYNC_ORIGINAL) + _T("\tF3"));
+			m.AppendMenu(MF_STRING|MF_ENABLED, SETCS, ResStr(IDS_SUBRESYNC_CURRENT) + _T("\tF5"));
 		}
 		else if(lpnmlv->iSubItem == COL_END && m_mode == TEXTSUB)
 		{
 			m.AppendMenu(MF_SEPARATOR);
-			m.AppendMenu(MF_STRING|MF_ENABLED, RESETE, ResStr(IDS_SUBRESYNC_RESET));
-			m.AppendMenu(MF_STRING|MF_ENABLED, SETOE, ResStr(IDS_SUBRESYNC_ORIGINAL));
-			m.AppendMenu(MF_STRING|MF_ENABLED, SETCE, ResStr(IDS_SUBRESYNC_CURRENT));
+			m.AppendMenu(MF_STRING|MF_ENABLED, RESETE, ResStr(IDS_SUBRESYNC_RESET) + _T("\tF2"));
+			m.AppendMenu(MF_STRING|MF_ENABLED, SETOE, ResStr(IDS_SUBRESYNC_ORIGINAL) + _T("\tF4"));
+			m.AppendMenu(MF_STRING|MF_ENABLED, SETCE, ResStr(IDS_SUBRESYNC_CURRENT) + _T("\tF6"));
 		}
 		else if(lpnmlv->iSubItem == COL_STYLE && m_mode == TEXTSUB)
 		{
@@ -1256,3 +1256,49 @@ void CPlayerSubresyncBar::OnCustomdrawList(NMHDR* pNMHDR, LRESULT* pResult)
 	}
 }
 
+
+bool CPlayerSubresyncBar::IsShortCut(MSG* pMsg)
+{
+	if(pMsg->message == WM_KEYDOWN && VK_F1 <= pMsg->wParam && pMsg->wParam <= VK_F6)
+	{
+		int iItem = -1;
+
+		bool fNeedsUpdate = false;
+		bool fStep = false;
+
+		POSITION pos = m_list.GetFirstSelectedItemPosition();
+		while(pos)
+		{
+			iItem = m_list.GetNextSelectedItem(pos);
+
+			SubTime& st = m_subtimes[iItem];
+
+			switch(pMsg->wParam)
+			{
+				case VK_F1: /*if(*/ModStart(iItem, st.orgstart, true);/*)*/ fNeedsUpdate = true; break;
+				case VK_F3: /*if(*/ModStart(iItem, st.orgstart);/*)*/ fNeedsUpdate = true; break;
+				case VK_F5: /*if(*/ModStart(iItem, (int)(m_rt/10000));/*)*/ fNeedsUpdate = true; break;
+				case VK_F2: /*if(*/ModEnd(iItem, st.orgend, true);/*)*/ fNeedsUpdate = true; break;
+				case VK_F4: /*if(*/ModEnd(iItem, st.orgend);/*)*/ fNeedsUpdate = true; break;
+				case VK_F6: /*if(*/ModEnd(iItem, (int)(m_rt/10000));/*)*/ fNeedsUpdate = fStep = true; break;
+			}
+		}
+
+		if(fNeedsUpdate)
+		{
+			if(fStep && m_list.GetSelectedCount() == 1 && iItem < m_list.GetItemCount()-1)
+			{
+				m_list.SetItemState(iItem, 0, LVIS_SELECTED);
+				m_list.SetItemState(iItem+1, LVIS_SELECTED, LVIS_SELECTED);
+				m_list.SetSelectionMark(iItem+1);
+				m_list.EnsureVisible(iItem+1, false); 
+			}
+
+			UpdatePreview();
+
+			return true;
+		}
+	}
+
+	return false;
+}

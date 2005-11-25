@@ -20,7 +20,7 @@ HRESULT CDiracSplitterFile::Init()
 	Seek(0);
 
 	UINT64 hdr;
-	if(FAILED(Read((BYTE*)&hdr, sizeof(hdr))) || hdr != 0x43415249442D574Bui64) // KW-DIRAC
+	if(FAILED(ByteRead((BYTE*)&hdr, sizeof(hdr))) || hdr != 0x43415249442D574Bui64) // KW-DIRAC
 		return E_FAIL;
 
 	dirac_decoder_t* decoder = dirac_decoder_init(0);
@@ -48,7 +48,7 @@ HRESULT CDiracSplitterFile::Init()
 			memset(m_mt.Format(), 0, m_mt.FormatLength());
 
 			dvih->cbSequenceHeader = len - 5;
-			Read((BYTE*)&dvih->dwSequenceHeader[0], len);
+			ByteRead((BYTE*)&dvih->dwSequenceHeader[0], len);
 
 			dirac_buffer(decoder, (BYTE*)&dvih->dwSequenceHeader[0], (BYTE*)&dvih->dwSequenceHeader[0] + len);
 			if(dirac_parse(decoder) != STATE_SEQUENCE) {ASSERT(0); break;}

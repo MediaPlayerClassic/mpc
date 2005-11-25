@@ -592,8 +592,7 @@ void CBaseSplitterOutputPin::MakeISCRHappy()
 			p->TrackNumber = (DWORD)-1;
 			p->rtStart = -1; p->rtStop = 0;
 			p->bSyncPoint = FALSE;
-			p->pData.SetSize(2);
-			strcpy((char*)p->pData.GetData(), " ");
+			p->SetData(" ", 2);
 			QueuePacket(p);
 			break;
 		}

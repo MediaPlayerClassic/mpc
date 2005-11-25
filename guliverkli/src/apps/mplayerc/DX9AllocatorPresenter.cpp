@@ -64,9 +64,11 @@ protected:
 
 	CComPtr<IDirect3D9> m_pD3D;
     CComPtr<IDirect3DDevice9> m_pD3DDev;
-	CComPtr<IDirect3DTexture9> m_pVideoTexture[2];
-	CComPtr<IDirect3DSurface9> m_pVideoSurface[2];
-	CComPtr<IDirect3DPixelShader9> m_pPixelShader, m_pResizerPixelShader[4];
+	CComPtr<IDirect3DTexture9> m_pVideoTexture[3];
+	CComPtr<IDirect3DSurface9> m_pVideoSurface[3];
+	CInterfaceList<IDirect3DPixelShader9> m_pPixelShaders;
+	CComPtr<IDirect3DPixelShader9> m_pResizerPixelShader[5];
+	CComPtr<IDirect3DTexture9> m_pResizerBicubicLUT;
 	D3DTEXTUREFILTERTYPE m_Filter;
 
 	CAutoPtr<CPixelShaderCompiler> m_pPSC;
@@ -76,6 +78,9 @@ protected:
 	virtual void DeleteSurfaces();
 
     UINT  GetAdapter(IDirect3D9 *pD3D);
+
+	float m_bicubicA;
+	HRESULT InitBicubicLUT(float A);
 
 public:
 	CDX9AllocatorPresenter(HWND hWnd, HRESULT& hr);
@@ -383,6 +388,7 @@ static HRESULT TextureBlt(CComPtr<IDirect3DTexture9> pTexture, CRect dst, CRect 
 CDX9AllocatorPresenter::CDX9AllocatorPresenter(HWND hWnd, HRESULT& hr) 
 	: ISubPicAllocatorPresenterImpl(hWnd)
 	, m_ScreenSize(0, 0)
+	, m_bicubicA(0)
 {
     if(!IsWindow(m_hWnd))
     {
@@ -455,7 +461,11 @@ HRESULT CDX9AllocatorPresenter::CreateDevice()
 		CStringA data;
 		if(LoadResource(IDF_SHADER_RESIZER, data, _T("FILE")))
 		{
-			m_pPSC->CompileShader(data, "main_bilinear", "ps_2_0", 0, &m_pResizerPixelShader[0]);
+			{
+				CStringA str = data;
+				str.Replace("_The_Value_Of_A_Is_Set_Here_", "(0)");
+				m_pPSC->CompileShader(str, "main_bilinear", "ps_2_0", 0, &m_pResizerPixelShader[0]);
+			}
 
 			{
 				CStringA str = data;
@@ -473,6 +483,12 @@ HRESULT CDX9AllocatorPresenter::CreateDevice()
 				CStringA str = data;
 				str.Replace("_The_Value_Of_A_Is_Set_Here_", "(-1.00)");
 				m_pPSC->CompileShader(str, "main_bicubic", "ps_2_0", 0, &m_pResizerPixelShader[3]);
+			}
+
+			{
+				CStringA str = data;
+				str.Replace("_The_Value_Of_A_Is_Set_Here_", "(0)");
+				m_pPSC->CompileShader(str, "main_bicubic_lut", "ps_2_0", 0, &m_pResizerPixelShader[4]);
 			}
 		}
 	}
@@ -522,36 +538,36 @@ HRESULT CDX9AllocatorPresenter::AllocSurfaces()
 
 	AppSettings& s = AfxGetAppSettings();
 
-	m_pVideoTexture[0] = NULL;
-	m_pVideoTexture[1] = NULL;
-	m_pVideoSurface[0] = NULL;
-	m_pVideoSurface[1] = NULL;
+	for(int i = 0; i < countof(m_pVideoTexture); i++)
+	{
+		m_pVideoTexture[i] = NULL;
+		m_pVideoSurface[i] = NULL;
+	}
 
 	HRESULT hr;
 
 	if(s.iAPSurfaceUsage == VIDRNDT_AP_TEXTURE2D || s.iAPSurfaceUsage == VIDRNDT_AP_TEXTURE3D)
 	{
-		if(FAILED(hr = m_pD3DDev->CreateTexture(
-			m_NativeVideoSize.cx, m_NativeVideoSize.cy, 1, D3DUSAGE_RENDERTARGET, /*D3DFMT_X8R8G8B8*/D3DFMT_A8R8G8B8, 
-			D3DPOOL_DEFAULT, &m_pVideoTexture[0], NULL)))
-			return hr;
+		int nTexturesNeeded = s.iAPSurfaceUsage == VIDRNDT_AP_TEXTURE3D ? countof(m_pVideoTexture) : 1;
 
-		if(FAILED(hr = m_pVideoTexture[0]->GetSurfaceLevel(0, &m_pVideoSurface[0])))
-			return hr;
-
-		if(s.iAPSurfaceUsage == VIDRNDT_AP_TEXTURE3D)
+		for(int i = 0; i < nTexturesNeeded; i++)
 		{
 			if(FAILED(hr = m_pD3DDev->CreateTexture(
 				m_NativeVideoSize.cx, m_NativeVideoSize.cy, 1, D3DUSAGE_RENDERTARGET, /*D3DFMT_X8R8G8B8*/D3DFMT_A8R8G8B8, 
-				D3DPOOL_DEFAULT, &m_pVideoTexture[1], NULL)))
+				D3DPOOL_DEFAULT, &m_pVideoTexture[i], NULL)))
 				return hr;
 
-			if(FAILED(hr = m_pVideoTexture[1]->GetSurfaceLevel(0, &m_pVideoSurface[1])))
+			if(FAILED(hr = m_pVideoTexture[i]->GetSurfaceLevel(0, &m_pVideoSurface[i])))
 				return hr;
 		}
 
 		if(s.iAPSurfaceUsage == VIDRNDT_AP_TEXTURE2D)
-			m_pVideoTexture[0] = NULL, m_pVideoTexture[1] = NULL;
+		{
+			for(int i = 0; i < countof(m_pVideoTexture); i++)
+			{
+				m_pVideoTexture[i] = NULL;
+			}
+		}
 	}
 	else
 	{
@@ -570,8 +586,11 @@ void CDX9AllocatorPresenter::DeleteSurfaces()
 {
     CAutoLock cAutoLock(this);
 
-	m_pVideoTexture[0] = m_pVideoTexture[1] = NULL;
-	m_pVideoSurface[0] = m_pVideoSurface[1] = NULL;
+	for(int i = 0; i < countof(m_pVideoTexture); i++)
+	{
+		m_pVideoTexture[i] = NULL;
+		m_pVideoSurface[i] = NULL;
+	}
 }
 
 UINT CDX9AllocatorPresenter::GetAdapter(IDirect3D9 *pD3D)
@@ -625,6 +644,56 @@ static bool ClipToSurface(IDirect3DSurface9* pSurface, CRect& s, CRect& d)
 	return(true);   
 } 
 
+HRESULT CDX9AllocatorPresenter::InitBicubicLUT(float A)
+{
+	const int size = 1024; // TODO: this may or may not be too much, test lower numbers like 512 or 256
+
+	if(m_pResizerBicubicLUT && m_bicubicA == A)
+		return S_OK;
+
+	m_pResizerBicubicLUT = NULL;
+
+	if(FAILED(m_pD3DDev->CreateTexture(size, 1, 1, 0, D3DFMT_A32B32G32R32F, D3DPOOL_MANAGED, &m_pResizerBicubicLUT, NULL)))
+		return E_FAIL;
+
+	D3DLOCKED_RECT lr;
+	if(FAILED(m_pResizerBicubicLUT->LockRect(0, &lr, NULL, 0)))
+	{
+		m_pResizerBicubicLUT = NULL;
+		return E_FAIL;
+	}
+
+	float m[4][4] =
+	{
+		{0, A, A*-2, A},
+		{1, 0, -A-3, A+2},
+		{0, -A, A*2+3, -A-2},
+		{0, 0, A, -A}
+	};
+
+	float* f = (float*)lr.pBits;
+
+	for(int i = 0; i < size; i++)
+	{
+		float s = (float)i / size;
+
+		float v[4] = {1, s, s*s, s*s*s};
+
+		f[i*4 + 0] = v[0] * m[0][0] + v[1] * m[0][1] + v[2] * m[0][2] + v[3] * m[0][3];
+		f[i*4 + 1] = v[0] * m[1][0] + v[1] * m[1][1] + v[2] * m[1][2] + v[3] * m[1][3];
+		f[i*4 + 2] = v[0] * m[2][0] + v[1] * m[2][1] + v[2] * m[2][2] + v[3] * m[2][3];
+		f[i*4 + 3] = v[0] * m[3][0] + v[1] * m[3][1] + v[2] * m[3][2] + v[3] * m[3][3];
+
+		TRACE(_T("%d/%d: %f, %f, %f, %f\n"), i, size, f[i*4 + 0], f[i*4 + 1], f[i*4 + 2], f[i*4 + 3]);
+	}
+
+	m_pResizerBicubicLUT->UnlockRect(0);
+
+	m_bicubicA = A;
+
+	return S_OK;
+}
+
 STDMETHODIMP_(bool) CDX9AllocatorPresenter::Paint(bool fAll)
 {
 	CAutoLock cAutoLock(this);
@@ -659,7 +728,7 @@ STDMETHODIMP_(bool) CDX9AllocatorPresenter::Paint(bool fAll)
 			{
 				CComPtr<IDirect3DTexture9> pVideoTexture = m_pVideoTexture[0];
 
-				if(m_pVideoTexture[1] && m_pPixelShader)
+				if(m_pVideoTexture[1] && m_pVideoTexture[2] && !m_pPixelShaders.IsEmpty())
 				{
 					static __int64 counter = 0;
 					static long start = clock();
@@ -675,18 +744,28 @@ STDMETHODIMP_(bool) CDX9AllocatorPresenter::Paint(bool fAll)
 						{1.0f / m_NativeVideoSize.cx, 1.0f / m_NativeVideoSize.cy, 0, 0},
 					};
 
+					hr = m_pD3DDev->SetPixelShaderConstantF(0, (float*)fConstData, countof(fConstData));
+
 					CComPtr<IDirect3DSurface9> pRT;
 					hr = m_pD3DDev->GetRenderTarget(0, &pRT);
-					hr = m_pD3DDev->SetRenderTarget(0, m_pVideoSurface[1]);
-					hr = m_pD3DDev->SetPixelShaderConstantF(0, (float*)fConstData, countof(fConstData));
-					hr = m_pD3DDev->SetPixelShader(m_pPixelShader);
 
-					TextureBlt(m_pVideoTexture[0], rSrcVid, rSrcVid);
+					int src = 0, dst = 1;
+
+					POSITION pos = m_pPixelShaders.GetHeadPosition();
+					while(pos)
+					{
+						pVideoTexture = m_pVideoTexture[dst];
+
+						hr = m_pD3DDev->SetRenderTarget(0, m_pVideoSurface[dst]);
+						hr = m_pD3DDev->SetPixelShader(m_pPixelShaders.GetNext(pos));
+						TextureBlt(m_pVideoTexture[src], rSrcVid, rSrcVid);
+
+						if(++src > 2) src = 1;
+						if(++dst > 2) dst = 1;
+					}
 
 					hr = m_pD3DDev->SetRenderTarget(0, pRT);
 					hr = m_pD3DDev->SetPixelShader(NULL);
-
-					pVideoTexture = m_pVideoTexture[1];
 				}
 
 				DWORD resizer = AfxGetAppSettings().iDX9Resizer;
@@ -696,10 +775,31 @@ STDMETHODIMP_(bool) CDX9AllocatorPresenter::Paint(bool fAll)
 
 				if(rSrcVid != rDstVid)
 				{
-					if(resizer == 2 && m_pResizerPixelShader[0]) pResizerPixelShader = m_pResizerPixelShader[0];
-					else if(resizer == 3 && m_pResizerPixelShader[1]) pResizerPixelShader = m_pResizerPixelShader[1];
-					else if(resizer == 4 && m_pResizerPixelShader[2]) pResizerPixelShader = m_pResizerPixelShader[2];
-					else if(resizer == 5 && m_pResizerPixelShader[3]) pResizerPixelShader = m_pResizerPixelShader[3];
+					if(resizer == 2)
+					{
+						pResizerPixelShader = m_pResizerPixelShader[0];
+					}
+					else if(resizer > 2)
+					{
+						float A = -0.60f;
+
+						switch(resizer)
+						{
+						case 3: A = -0.60f; pResizerPixelShader = m_pResizerPixelShader[1]; break;
+						case 4: A = -0.75f; pResizerPixelShader = m_pResizerPixelShader[2]; break;
+						case 5: A = -1.00f; pResizerPixelShader = m_pResizerPixelShader[3]; break;
+						}
+
+						if(SUCCEEDED(InitBicubicLUT(A)))
+						{
+							pResizerPixelShader = m_pResizerPixelShader[4];
+
+							m_pD3DDev->SetTexture(1, m_pResizerBicubicLUT);
+							m_pD3DDev->SetSamplerState(1, D3DSAMP_MAGFILTER, D3DTEXF_POINT);
+							m_pD3DDev->SetSamplerState(1, D3DSAMP_MINFILTER, D3DTEXF_POINT);
+							m_pD3DDev->SetSamplerState(1, D3DSAMP_MIPFILTER, D3DTEXF_POINT);
+						}
+					}
 				}
 
 				if(pResizerPixelShader)
@@ -816,14 +916,22 @@ STDMETHODIMP CDX9AllocatorPresenter::SetPixelShader(LPCSTR pSrcData, LPCSTR pTar
 {
 	CAutoLock cAutoLock(this);
 
-	m_pPixelShader = NULL;
-	m_pD3DDev->SetPixelShader(NULL);
+	if(!pSrcData && !pTarget)
+	{
+		m_pPixelShaders.RemoveAll();
+		m_pD3DDev->SetPixelShader(NULL);
+		return S_OK;
+	}
 
 	if(!pSrcData || !pTarget)
 		return E_INVALIDARG;
 
-	HRESULT hr = m_pPSC->CompileShader(pSrcData, "main", pTarget, 0, &m_pPixelShader);
+	CComPtr<IDirect3DPixelShader9> pPixelShader;
+
+	HRESULT hr = m_pPSC->CompileShader(pSrcData, "main", pTarget, 0, &pPixelShader);
 	if(FAILED(hr)) return hr;
+
+	m_pPixelShaders.AddTail(pPixelShader);
 
 	Paint(true);
 
@@ -1178,7 +1286,7 @@ STDMETHODIMP CVMR9AllocatorPresenter::InitializeDevice(DWORD_PTR dwUserID, VMR9A
 
 	if(!m_pIVMRSurfAllocNotify)
 		return E_FAIL;
-
+/**/
 	// StretchRect's yv12 -> rgb conversion looks horribly bright compared to the result of yuy2 -> rgb
 	if(lpAllocInfo->Format == '21VY' || lpAllocInfo->Format == '024Y')
 		return E_FAIL;

@@ -10,7 +10,7 @@ class CWebClientSocket : public CAsyncSocket
 	CString m_hdr;
 
 	struct cookie_attribs {CString path, expire, domain;};
-	CAtlMap<CString, cookie_attribs, CStringElementTraits<CString> > m_cookieattribs;
+	CAtlStringMap<cookie_attribs> m_cookieattribs;
 
 	void Clear();
 	void Header();
@@ -25,14 +25,12 @@ public:
 
 	bool SetCookie(CString name, CString value = _T(""), __time64_t expire = -1, CString path = _T("/"), CString domain = _T(""));
 
-	typedef CAtlMap<CString, CString, CStringElementTraits<CString>, CStringElementTraits<CString> > CAtlStringMap;
-
 	CString m_sessid;
 	CString m_cmd, m_path, m_query, m_ver;
 	CStringA m_data;
-	CAtlStringMap m_hdrlines;
-	CAtlStringMap m_get, m_post, m_cookie;
-	CAtlStringMap m_request;
+	CAtlStringMap<> m_hdrlines;
+	CAtlStringMap<> m_get, m_post, m_cookie;
+	CAtlStringMap<> m_request;
 
 	bool OnCommand(CStringA& hdr, CStringA& body, CStringA& mime);
 	bool OnIndex(CStringA& hdr, CStringA& body, CStringA& mime);
