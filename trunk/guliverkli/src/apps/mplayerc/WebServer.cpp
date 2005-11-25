@@ -9,9 +9,9 @@
 #include "WebServer.h"
 #include "..\..\zlib\zlib.h"
 
-CAtlMap<CString, CWebServer::RequestHandler, CStringElementTraits<CString> > CWebServer::m_internalpages;
-CAtlMap<CString, UINT, CStringElementTraits<CString> > CWebServer::m_downloads;
-CAtlMap<CStringA, CStringA, CStringElementTraits<CStringA> > CWebServer::m_mimes;
+CAtlStringMap<CWebServer::RequestHandler> CWebServer::m_internalpages;
+CAtlStringMap<UINT> CWebServer::m_downloads;
+CAtlStringMap<CStringA, CStringA> CWebServer::m_mimes;
 
 CWebServer::CWebServer(CMainFrame* pMainFrame, int nPort)
 	: m_pMainFrame(pMainFrame)

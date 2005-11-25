@@ -58,7 +58,7 @@ HRESULT CSubtitleInputPin::CheckMediaType(const CMediaType* pmt)
 {
 	return pmt->majortype == MEDIATYPE_Text && (pmt->subtype == MEDIASUBTYPE_NULL || pmt->subtype == FOURCCMap((DWORD)0))
 		|| pmt->majortype == MEDIATYPE_Subtitle && pmt->subtype == MEDIASUBTYPE_UTF8
-		|| pmt->majortype == MEDIATYPE_Subtitle && (pmt->subtype == MEDIASUBTYPE_SSA || pmt->subtype == MEDIASUBTYPE_ASS)
+		|| pmt->majortype == MEDIATYPE_Subtitle && (pmt->subtype == MEDIASUBTYPE_SSA || pmt->subtype == MEDIASUBTYPE_ASS || pmt->subtype == MEDIASUBTYPE_ASS2)
 		|| pmt->majortype == MEDIATYPE_Subtitle && (pmt->subtype == MEDIASUBTYPE_VOBSUB)
 		? S_OK 
 		: E_FAIL;
@@ -83,8 +83,11 @@ HRESULT CSubtitleInputPin::CompleteConnect(IPin* pReceivePin)
 		if(name.IsEmpty()) name = _T("English");
 		if(wcslen(psi->TrackName) > 0) name += _T(" (") + CString(psi->TrackName) + _T(")");
 
-		if(m_mt.subtype == MEDIASUBTYPE_UTF8 /*|| m_mt.subtype == MEDIASUBTYPE_USF*/
-		|| m_mt.subtype == MEDIASUBTYPE_SSA || m_mt.subtype == MEDIASUBTYPE_ASS)
+		if(m_mt.subtype == MEDIASUBTYPE_UTF8 
+		/*|| m_mt.subtype == MEDIASUBTYPE_USF*/
+		|| m_mt.subtype == MEDIASUBTYPE_SSA 
+		|| m_mt.subtype == MEDIASUBTYPE_ASS 
+		|| m_mt.subtype == MEDIASUBTYPE_ASS2)
 		{
 			if(!(m_pSubStream = new CRenderedTextSubtitle(m_pSubLock))) return E_FAIL;
 			CRenderedTextSubtitle* pRTS = (CRenderedTextSubtitle*)(ISubStream*)m_pSubStream;
@@ -152,8 +155,11 @@ STDMETHODIMP CSubtitleInputPin::NewSegment(REFERENCE_TIME tStart, REFERENCE_TIME
 
 	if(m_mt.majortype == MEDIATYPE_Text
 	|| m_mt.majortype == MEDIATYPE_Subtitle 
-		&& (m_mt.subtype == MEDIASUBTYPE_UTF8 /*|| m_mt.subtype == MEDIASUBTYPE_USF*/
-		|| m_mt.subtype == MEDIASUBTYPE_SSA || m_mt.subtype == MEDIASUBTYPE_ASS))
+		&& (m_mt.subtype == MEDIASUBTYPE_UTF8 
+		/*|| m_mt.subtype == MEDIASUBTYPE_USF*/
+		|| m_mt.subtype == MEDIASUBTYPE_SSA 
+		|| m_mt.subtype == MEDIASUBTYPE_ASS 
+		|| m_mt.subtype == MEDIASUBTYPE_ASS2))
 	{
 		CAutoLock cAutoLock(m_pSubLock);
 		CRenderedTextSubtitle* pRTS = (CRenderedTextSubtitle*)(ISubStream*)m_pSubStream;
@@ -282,7 +288,7 @@ STDMETHODIMP CSubtitleInputPin::Receive(IMediaSample* pSample)
 				fInvalidate = true;
 			}
 		}
-		else if(m_mt.subtype == MEDIASUBTYPE_SSA || m_mt.subtype == MEDIASUBTYPE_ASS)
+		else if(m_mt.subtype == MEDIASUBTYPE_SSA || m_mt.subtype == MEDIASUBTYPE_ASS || m_mt.subtype == MEDIASUBTYPE_ASS2)
 		{
 			CRenderedTextSubtitle* pRTS = (CRenderedTextSubtitle*)(ISubStream*)m_pSubStream;
 
@@ -291,9 +297,11 @@ STDMETHODIMP CSubtitleInputPin::Receive(IMediaSample* pSample)
 			{
 				STSEntry stse;
 
+				int fields = m_mt.subtype == MEDIASUBTYPE_ASS2 ? 10 : 9;
+
 				CList<CStringW> sl;
-				Explode(str, sl, ',', 9);
-				if(sl.GetCount() == 9)
+				Explode(str, sl, ',', fields);
+				if(sl.GetCount() == fields)
 				{
 					stse.readorder = wcstol(sl.RemoveHead(), NULL, 10);
 					stse.layer = wcstol(sl.RemoveHead(), NULL, 10);
@@ -302,6 +310,7 @@ STDMETHODIMP CSubtitleInputPin::Receive(IMediaSample* pSample)
 					stse.marginRect.left = wcstol(sl.RemoveHead(), NULL, 10);
 					stse.marginRect.right = wcstol(sl.RemoveHead(), NULL, 10);
 					stse.marginRect.top = stse.marginRect.bottom = wcstol(sl.RemoveHead(), NULL, 10);
+					if(fields == 10) stse.marginRect.bottom = wcstol(sl.RemoveHead(), NULL, 10);
 					stse.effect = sl.RemoveHead();
 					stse.str = sl.RemoveHead();
 				}

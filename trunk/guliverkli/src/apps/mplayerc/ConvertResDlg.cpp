@@ -62,7 +62,7 @@ BOOL CConvertResDlg::OnInitDialog()
 	CString str(_T("MIME\\Database\\Content Type"));
 	if(ERROR_SUCCESS == key.Open(HKEY_CLASSES_ROOT, str, KEY_READ))
 	{
-		CAtlMap<CString, bool, CStringElementTraits<CString> > mimes;
+		CAtlStringMap<bool> mimes;
 
 		TCHAR buff[256];
 		DWORD len = countof(buff);

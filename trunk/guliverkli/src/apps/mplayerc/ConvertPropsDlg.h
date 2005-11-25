@@ -36,7 +36,7 @@ public:
 	CConvertPropsDlg(bool fPin, CWnd* pParent = NULL);   // standard constructor
 	virtual ~CConvertPropsDlg();
 
-	CAtlMap<CString, CString, CStringElementTraits<CString> > m_props;
+	CAtlStringMap<> m_props;
 
 // Dialog Data
 	enum { IDD = IDD_CONVERTPROPSDIALOG };

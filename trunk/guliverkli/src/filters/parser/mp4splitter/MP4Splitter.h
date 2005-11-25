@@ -32,6 +32,7 @@ class CMP4SplitterFilter : public CBaseSplitterFilter
 {
 	struct trackpos {DWORD /*AP4_Ordinal*/ index; DWORD /*AP4_TimeStamp*/ ts;};
 	CAtlMap<DWORD, trackpos> m_trackpos;
+	CSize m_framesize;
 
 protected:
 	CAutoPtr<CMP4SplitterFile> m_pFile;

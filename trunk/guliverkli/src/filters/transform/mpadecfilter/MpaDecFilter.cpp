@@ -89,7 +89,7 @@ const AMOVIESETUP_PIN sudpPins[] =
 
 const AMOVIESETUP_FILTER sudFilter[] =
 {
-	{&__uuidof(CMpaDecFilter), L"MPEG/AC3/DTS/LPCM Audio Decoder", MERIT_DO_NOT_USE/*0x40000001*/, countof(sudpPins), sudpPins},
+	{&__uuidof(CMpaDecFilter), L"MPEG/AC3/DTS/LPCM Audio Decoder", /*MERIT_DO_NOT_USE*/0x40000001, countof(sudpPins), sudpPins},
 };
 
 CFactoryTemplate g_Templates[] =

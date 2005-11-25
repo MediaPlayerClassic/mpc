@@ -31,7 +31,7 @@ public:
 	CBaseSplitterFileEx(IAsyncReader* pReader, HRESULT& hr, int cachelen = DEFAULT_CACHELEN);
 	virtual ~CBaseSplitterFileEx();
 
-	using CBaseSplitterFile::Read;
+	// using CBaseSplitterFile::Read;
 
 	bool NextMpegStartCode(BYTE& b, __int64 len = 65536);
 

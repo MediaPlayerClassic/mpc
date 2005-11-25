@@ -522,9 +522,10 @@ void CDirectVobSubFilter::InitSubPicQueue()
 
 	CComPtr<ISubPicAllocator> pSubPicAllocator = new CMemSubPicAllocator(m_spd.type, CSize(m_w, m_h));
 
-	CSize video(bihIn.biWidth, bihIn.biHeight);
-	CSize window(m_w, m_h);
+	CSize video(bihIn.biWidth, bihIn.biHeight), window = video;
 	if(AdjustFrameSize(window)) video += video;
+	ASSERT(window == CSize(m_w, m_h));
+
 	pSubPicAllocator->SetCurSize(window);
 	pSubPicAllocator->SetCurVidRect(CRect(CPoint((window.cx - video.cx)/2, (window.cy - video.cy)/2), video));
 
@@ -554,8 +555,9 @@ bool CDirectVobSubFilter::AdjustFrameSize(CSize& s)
 	int horizontal, vertical, resx2, resx2minw, resx2minh;
 	get_ExtendPicture(&horizontal, &vertical, &resx2, &resx2minw, &resx2minh);
 
-	bool fRet;
-	if(fRet = (resx2 == 1) || (resx2 == 2 && s.cx*s.cy <= resx2minw*resx2minh))
+	bool fRet = (resx2 == 1) || (resx2 == 2 && s.cx*s.cy <= resx2minw*resx2minh);
+
+	if(fRet)
 	{
 		s.cx <<= 1; 
 		s.cy <<= 1;
@@ -1243,7 +1245,9 @@ bool CDirectVobSubFilter2::ShouldWeAutoload(IFilterGraph* pGraph)
 		|| (pBF = FindFilter(L"{6D3688CE-3E9D-42F4-92CA-8A11119D25CD}", pGraph)) // our ogg source
 		|| (pBF = FindFilter(L"{9FF48807-E133-40AA-826F-9B2959E5232D}", pGraph)) // our ogg splitter
 		|| (pBF = FindFilter(L"{803E8280-F3CE-4201-982C-8CD8FB512004}", pGraph)) // dsm source
-		|| (pBF = FindFilter(L"{0912B4DD-A30A-4568-B590-7179EBB420EC}", pGraph))) // dsm splitter
+		|| (pBF = FindFilter(L"{0912B4DD-A30A-4568-B590-7179EBB420EC}", pGraph)) // dsm splitter
+		|| (pBF = FindFilter(L"{3CCC052E-BDEE-408a-BEA7-90914EF2964B}", pGraph)) // mp4 source
+		|| (pBF = FindFilter(L"{61F47056-E400-43d3-AF1E-AB7DFFD4C4AD}", pGraph))) // mp4 splitter
 		{
 			BeginEnumPins(pBF, pEP, pPin)
 			{

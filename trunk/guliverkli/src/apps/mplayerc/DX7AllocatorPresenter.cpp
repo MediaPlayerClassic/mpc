@@ -781,7 +781,7 @@ STDMETHODIMP CVMR7AllocatorPresenter::PrepareSurface(DWORD_PTR dwUserID, IDirect
 
 	// FIXME: sometimes the msmpeg4/divx3/wmv decoder wants to reuse our 
 	// surface (expects it to point to the same mem every time), and to avoid 
-	// problems we can't cal m_pSA->PrepareSurface (flips? clears?).
+	// problems we can't call m_pSA->PrepareSurface (flips? clears?).
 	return S_OK; 
 /*
 	return m_pSA->PrepareSurface(dwUserID, lpSurface, dwSurfaceFlags);
@@ -834,6 +834,7 @@ STDMETHODIMP CVMR7AllocatorPresenter::PresentImage(DWORD_PTR dwUserID, VMRPRESEN
 		{
 			REFERENCE_TIME rtTimePerFrame = lpPresInfo->rtEnd - lpPresInfo->rtStart;
 			m_fps = 10000000.0 / rtTimePerFrame;
+
 			if(m_pSubPicQueue) 
 			{
 				m_pSubPicQueue->SetFPS(m_fps);

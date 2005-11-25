@@ -5,9 +5,9 @@
 #include "mplayerc.h"
 #include "PixelShaderCompiler.h"
 #include "ShaderEditorDlg.h"
+#include "MainFrm.h"
 
 #undef SubclassWindow
-
 
 // CShaderLabelComboBox
 
@@ -191,18 +191,54 @@ void CShaderEdit::OnTimer(UINT nIDEvent)
 
 // CShaderEditorDlg dialog
 
-CShaderEditorDlg::CShaderEditorDlg(CString label, ISubPicAllocatorPresenter* pCAP, CWnd* pParent /*=NULL*/)
-	: CResizableDialog(CShaderEditorDlg::IDD, pParent)
-	, m_label(label)
-	, m_pCAP(pCAP)
+CShaderEditorDlg::CShaderEditorDlg()
+	: CResizableDialog(CShaderEditorDlg::IDD, NULL)
 	, m_fSplitterGrabbed(false)
+	, m_pPSC(NULL)
+	, m_pShader(NULL)
 {
-	m_pPSC = new CPixelShaderCompiler(NULL);
 }
 
 CShaderEditorDlg::~CShaderEditorDlg()
 {
 	delete m_pPSC;
+}
+
+BOOL CShaderEditorDlg::Create(CWnd* pParent)
+{
+	if(!__super::Create(IDD, pParent))
+		return FALSE;
+
+	AddAnchor(IDC_COMBO1, TOP_LEFT, TOP_RIGHT);
+	AddAnchor(IDC_COMBO2, TOP_RIGHT);
+	AddAnchor(IDC_EDIT1, TOP_LEFT, BOTTOM_RIGHT);
+	AddAnchor(IDC_EDIT2, BOTTOM_LEFT, BOTTOM_RIGHT);
+	AddAnchor(IDC_BUTTON2, TOP_RIGHT);
+
+	m_srcdata.SetTabStops(16);
+
+	SetMinTrackSize(CSize(250, 40));
+
+	m_targets.AddString(_T("ps_1_1"));
+	m_targets.AddString(_T("ps_1_2"));
+	m_targets.AddString(_T("ps_1_3"));
+	m_targets.AddString(_T("ps_1_4"));
+	m_targets.AddString(_T("ps_2_0"));
+	m_targets.AddString(_T("ps_2_a"));
+	m_targets.AddString(_T("ps_2_sw"));
+	m_targets.AddString(_T("ps_3_0"));
+	m_targets.AddString(_T("ps_3_sw"));
+
+	POSITION pos = AfxGetAppSettings().m_shaders.GetHeadPosition();
+	while(pos)
+	{
+		const AppSettings::Shader& s = AfxGetAppSettings().m_shaders.GetNext(pos);
+		m_labels.SetItemDataPtr(m_labels.AddString(s.label), (void*)&s);
+	}
+
+	m_nIDEventShader = SetTimer(1, 1000, NULL);
+
+	return TRUE;
 }
 
 void CShaderEditorDlg::DoDataExchange(CDataExchange* pDX)
@@ -231,111 +267,21 @@ bool CShaderEditorDlg::HitTestSplitter(CPoint p)
 
 BEGIN_MESSAGE_MAP(CShaderEditorDlg, CResizableDialog)
 	ON_CBN_SELCHANGE(IDC_COMBO1, OnCbnSelchangeCombo1)
-	ON_BN_CLICKED(IDC_BUTTON1, OnBnClickedButton1)
 	ON_BN_CLICKED(IDC_BUTTON2, OnBnClickedButton2)
 	ON_WM_TIMER()
-	ON_WM_CLOSE()
 	ON_WM_LBUTTONDOWN()
 	ON_WM_LBUTTONUP()
 	ON_WM_MOUSEMOVE()
 	ON_WM_SETCURSOR()
 END_MESSAGE_MAP()
 
-
 // CShaderEditorDlg message handlers
-
-BOOL CShaderEditorDlg::OnInitDialog()
-{
-	__super::OnInitDialog();
-
-	AddAnchor(IDC_COMBO1, TOP_LEFT, TOP_RIGHT);
-	AddAnchor(IDC_COMBO2, TOP_RIGHT);
-	AddAnchor(IDC_BUTTON1, TOP_RIGHT);
-	AddAnchor(IDC_BUTTON2, TOP_RIGHT);
-	AddAnchor(IDC_EDIT1, TOP_LEFT, BOTTOM_RIGHT);
-	AddAnchor(IDC_EDIT2, BOTTOM_LEFT, BOTTOM_RIGHT);
-
-	m_srcdata.SetTabStops(16);
-
-	CRect r;
-	GetWindowRect(r);
-	CSize s = r.Size();
-	s.cx = 400;
-	s.cy = 150;
-	SetMinTrackSize(s);
-
-	CMap<CString, LPCTSTR, bool, bool> targetmap;
-	targetmap[_T("ps_1_1")] = true;
-	targetmap[_T("ps_1_2")] = true;
-	targetmap[_T("ps_1_3")] = true;
-	targetmap[_T("ps_1_4")] = true;
-	targetmap[_T("ps_2_0")] = true;
-	targetmap[_T("ps_2_a")] = true;
-	targetmap[_T("ps_2_sw")] = true;
-	targetmap[_T("ps_3_0")] = true;
-	targetmap[_T("ps_3_sw")] = true;
-
-	int nSelIndex = -1;
-
-	for(int i = 0; ; i++)
-	{
-		CString str;
-		str.Format(_T("%d"), i);
-		str = AfxGetApp()->GetProfileString(_T("Shaders"), str);
-
-		CList<CString> sl;
-		Explode(str, sl, '|', 3);
-		if(sl.GetCount() != 3) break;
-
-		CString label = sl.RemoveHead();
-		CString target = sl.RemoveHead();
-		CString srcdata = sl.RemoveHead();
-		srcdata.Replace(_T("\\n"), _T("\r\n"));
-		srcdata.Replace(_T("\\t"), _T("\t"));
-
-		targetmap[target] = false;
-
-		shader_t s = {target, srcdata};
-		m_shaders[label] = s;
-
-		int nIndex = m_labels.AddString(label);
-
-		if(m_label == label) 
-			nSelIndex = nIndex;
-	}
-
-	m_labels.SetCurSel(nSelIndex);
-
-	POSITION pos = targetmap.GetStartPosition();
-	while(pos) 
-	{
-		CString target;
-		bool b;
-		targetmap.GetNextAssoc(pos, target, b);
-		m_targets.AddString(target);
-	}
-
-	OnCbnSelchangeCombo1();
-
-	m_nIDEventShader = SetTimer(1, 1000, NULL);
-
-	return TRUE;  // return TRUE unless you set the focus to a control
-	// EXCEPTION: OCX Property Pages should return FALSE
-}
 
 BOOL CShaderEditorDlg::PreTranslateMessage(MSG* pMsg)
 {
 	if(pMsg->message == WM_KEYDOWN && pMsg->wParam == VK_RETURN
 		&& pMsg->hwnd == m_labels.m_edit.GetSafeHwnd())
 	{
-		CString label;
-		m_labels.GetWindowText(label);
-
-		shader_t s;
-		m_labels.SetCurSel(!m_shaders.Lookup(label, s) 
-			? m_labels.AddString(label) 
-			: m_labels.FindStringExact(0, label));
-
 		OnCbnSelchangeCombo1();
         
 		return TRUE;
@@ -345,10 +291,7 @@ BOOL CShaderEditorDlg::PreTranslateMessage(MSG* pMsg)
 	{
 		int nStartChar, nEndChar;
 		m_srcdata.GetSel(nStartChar, nEndChar);
-
-		if(nStartChar == nEndChar)
-            m_srcdata.ReplaceSel(_T("\t"));
-
+		if(nStartChar == nEndChar) m_srcdata.ReplaceSel(_T("\t"));
 		return TRUE;
 	}
 	else if(pMsg->message == WM_KEYDOWN && pMsg->wParam == VK_ESCAPE)
@@ -362,134 +305,113 @@ BOOL CShaderEditorDlg::PreTranslateMessage(MSG* pMsg)
 void CShaderEditorDlg::OnCbnSelchangeCombo1()
 {
 	int i = m_labels.GetCurSel();
-	if(i < 0) return;
-	CString label;
-	m_labels.GetLBText(i, label);
-	if(label.IsEmpty()) return;
 
-	shader_t s;
-
-	if(!m_shaders.Lookup(label, s))
+	if(i < 0)
 	{
+		CString label;
+		m_labels.GetWindowText(label);
+		label.Trim();
+
+		if(label.IsEmpty()) return;
+
+		CStringA srcdata;
+		LoadResource(IDF_SHADER_EMPTY, srcdata, _T("FILE"));
+
+		AppSettings::Shader s;
+		s.label = label;
 		s.target = _T("ps_2_0");
-		s.srcdata = 
-            "sampler s0 : register(s0);\r\n"
-			"float4 p0 : register(c0);\r\n"
-            "\r\n"
-			"#define width (p0[0])\r\n"
-			"#define height (p0[1])\r\n"
-			"#define counter (p0[2])\r\n"
-            "#define clock (p0[3])\r\n"
-			"\r\n"
-			"float4 main(float2 tex : TEXCOORD0) : COLOR\r\n"
-			"{\r\n"
-			"\tfloat4 c0 = tex2D(s0, tex);\r\n"
-			"\t// TODO\r\n"
-			"\treturn c0;\r\n"
-			"}\r\n";
-		m_shaders[label] = s;
+		s.srcdata = CString(srcdata);
+
+		POSITION pos = AfxGetAppSettings().m_shaders.AddTail(s);
+
+		i = m_labels.AddString(s.label);
+		m_labels.SetCurSel(i);
+		m_labels.SetItemDataPtr(i, (void*)&AfxGetAppSettings().m_shaders.GetAt(pos));
 	}
 
-	if(m_shaders.Lookup(label, s))
-	{
-		m_targets.SetWindowText(s.target);
-		m_srcdata.SetWindowText(s.srcdata);
-	}
-}
+	m_pShader = (AppSettings::Shader*)m_labels.GetItemDataPtr(i);
 
-void CShaderEditorDlg::OnBnClickedButton1()
-{
-	CString label;
-	m_labels.GetWindowText(label);
-	int nIndex = m_labels.FindStringExact(0, label);
-	if(nIndex >= 0) m_labels.DeleteString(nIndex);
-	m_labels.SetWindowText(_T(""));
-	m_targets.SetWindowText(_T(""));
-	m_srcdata.SetWindowText(_T(""));
-	m_shaders.RemoveKey(label);
+	m_targets.SetWindowText(m_pShader->target);
+
+	CString srcdata = m_pShader->srcdata;
+	srcdata.Replace(_T("\n"), _T("\r\n"));
+	m_srcdata.SetWindowText(srcdata);
+
+	((CMainFrame*)AfxGetMainWnd())->UpdateShaders(m_pShader->label);
 }
 
 void CShaderEditorDlg::OnBnClickedButton2()
 {
-	CString label;
-	m_labels.GetWindowText(label);
-	m_targets.GetWindowText(m_shaders[label].target);
-	m_srcdata.GetWindowText(m_shaders[label].srcdata);
-	if(m_labels.FindStringExact(0, label) < 0)
-		m_labels.SetCurSel(m_labels.AddString(label));
+	if(!m_pShader) return;
+
+	if(IDOK != AfxMessageBox(_T("Are you sure you want to delete this shader?"), MB_YESNO))
+		return;
+
+	AppSettings& s = AfxGetAppSettings();
+
+	for(POSITION pos = s.m_shaders.GetHeadPosition(); pos; s.m_shaders.GetNext(pos))
+	{
+		if(m_pShader == &s.m_shaders.GetAt(pos))
+		{
+			m_pShader = NULL;
+			s.m_shaders.RemoveAt(pos);
+			int i = m_labels.GetCurSel();
+			if(i >= 0) m_labels.DeleteString(i);
+			m_labels.SetWindowText(_T(""));
+			m_targets.SetWindowText(_T(""));
+			m_srcdata.SetWindowText(_T(""));
+			m_output.SetWindowText(_T(""));
+			((CMainFrame*)AfxGetMainWnd())->UpdateShaders(_T(""));
+			break;
+		}
+	}
 }
 
 void CShaderEditorDlg::OnTimer(UINT nIDEvent)
 {
-	if(nIDEvent == m_nIDEventShader)
+	if(nIDEvent == m_nIDEventShader && IsWindowVisible() && m_pShader)
 	{
-		static CString s_srcdata, s_target;
-		
 		CString srcdata;
 		m_srcdata.GetWindowText(srcdata);
+		srcdata.Replace(_T("\r"), _T(""));
 		srcdata.Trim();
 
 		CString target;
 		m_targets.GetWindowText(target);
 		target.Trim();
 
-		if(!srcdata.IsEmpty() && !target.IsEmpty() && (s_srcdata != srcdata || s_target != target))
+		if(!srcdata.IsEmpty() && !target.IsEmpty() && (m_pShader->srcdata != srcdata || m_pShader->target != target))
 		{
-			CString disasm, errmsg(_T("Unknown Error"));
+			KillTimer(m_nIDEventShader);
 
+			m_pShader->srcdata = srcdata;
+			m_pShader->target = target;
+
+			if(!m_pPSC) m_pPSC = new CPixelShaderCompiler(NULL);
+
+			CString disasm, errmsg;
 			HRESULT hr = m_pPSC->CompileShader(CStringA(srcdata), "main", CStringA(target), D3DXSHADER_DEBUG, NULL, &disasm, &errmsg); 
 
 			if(SUCCEEDED(hr))
 			{
 				errmsg = _T("D3DXCompileShader succeeded\n");
-				if(m_pCAP && FAILED(m_pCAP->SetPixelShader(CStringA(srcdata), CStringA(target))))
-					errmsg += _T("SetPixelShader failed\n");
 				errmsg += _T("\n");
 				errmsg += disasm;
+
+				((CMainFrame*)AfxGetMainWnd())->UpdateShaders(m_pShader->label);
 			}
 
 			errmsg.Replace(_T("\n"), _T("\r\n"));
 
 			m_output.SetWindowText(errmsg);
-		}
 
-		s_srcdata = srcdata;
-		s_target = target;
+			// TODO: autosave
+
+			m_nIDEventShader = SetTimer(1, 1000, NULL);
+		}
 	}
 
 	__super::OnTimer(nIDEvent);
-}
-
-void CShaderEditorDlg::OnClose()
-{
-	if(IDYES == AfxMessageBox(_T("Save changes?"), MB_YESNO))
-	{
-		OnBnClickedButton2();
-
-		CWinApp* pApp = AfxGetApp();
-
-		pApp->WriteProfileString(_T("Shaders"), NULL, NULL);
-		pApp->WriteProfileInt(_T("Shaders"), _T("Initialized"), 1);
-
-		for(int i = 0, id = 0; i < m_labels.GetCount(); i++)
-		{
-			CString label;
-			m_labels.GetLBText(i, label);
-
-			shader_t s;
-			if(!label.IsEmpty() && m_shaders.Lookup(label, s))
-			{
-				CString str;
-				str.Format(_T("%d"), id++);
-				s.srcdata.Replace(_T("\r"), _T(""));
-				s.srcdata.Replace(_T("\n"), _T("\\n"));
-				s.srcdata.Replace(_T("\t"), _T("\\t"));
-				AfxGetApp()->WriteProfileString(_T("Shaders"), str, label + _T("|") + s.target + _T("|") + s.srcdata);
-			}
-		}
-	}
-
-	__super::OnClose();
 }
 
 void CShaderEditorDlg::OnLButtonDown(UINT nFlags, CPoint point)

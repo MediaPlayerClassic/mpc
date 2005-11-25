@@ -3,6 +3,7 @@
 #include "..\..\subpic\ISubPic.h"
 #include "LineNumberEdit.h"
 #include "ShaderAutoCompleteDlg.h"
+#include "mplayerc.h"
 
 // Q174667
 
@@ -41,22 +42,19 @@ class CPixelShaderCompiler;
 class CShaderEditorDlg : public CResizableDialog
 {
 private:
-	CString m_label;
-	CComPtr<ISubPicAllocatorPresenter> m_pCAP;
-
-	struct shader_t {CString target, srcdata;};
-	CMap<CString, LPCTSTR, shader_t, shader_t&> m_shaders;
-
 	UINT m_nIDEventShader;
 
 	bool m_fSplitterGrabbed;
 	bool HitTestSplitter(CPoint p);
 
 	CPixelShaderCompiler* m_pPSC;
+	AppSettings::Shader* m_pShader;
 
 public:
-	CShaderEditorDlg(CString label, ISubPicAllocatorPresenter* pCAP, CWnd* pParent = NULL);   // standard constructor
+	CShaderEditorDlg();   // standard constructor
 	virtual ~CShaderEditorDlg();
+
+	BOOL Create(CWnd* pParent = NULL);
 
 // Dialog Data
 	enum { IDD = IDD_SHADEREDITORDIALOG };
@@ -67,17 +65,14 @@ public:
 
 protected:
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV support
-	virtual BOOL OnInitDialog();
 	virtual BOOL PreTranslateMessage(MSG* pMsg);
 
 	DECLARE_MESSAGE_MAP()
 
 public:
 	afx_msg void OnCbnSelchangeCombo1();
-	afx_msg void OnBnClickedButton1();
 	afx_msg void OnBnClickedButton2();
 	afx_msg void OnTimer(UINT nIDEvent);
-	afx_msg void OnClose();
 	afx_msg void OnLButtonDown(UINT nFlags, CPoint point);
 	afx_msg void OnLButtonUp(UINT nFlags, CPoint point);
 	afx_msg void OnMouseMove(UINT nFlags, CPoint point);

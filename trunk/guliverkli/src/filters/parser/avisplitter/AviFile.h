@@ -11,7 +11,7 @@ class CAviFile : public CBaseSplitterFile
 public:
 	CAviFile(IAsyncReader* pAsyncReader, HRESULT& hr);
 
-	using CBaseSplitterFile::Read;
+	//using CBaseSplitterFile::Read;
 	template<typename T> HRESULT Read(T& var, int offset = 0);
 
 	AVIMAINHEADER m_avih;

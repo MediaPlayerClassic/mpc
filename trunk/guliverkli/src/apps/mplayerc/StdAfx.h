@@ -57,6 +57,9 @@
 #include "..\..\ui\ui.h"
 #include "..\..\DSUtil\DSUtil.h"
 
+template <class T = CString, class S = CString>
+class CAtlStringMap : public CAtlMap<S, T, CStringElementTraits<S> > {};
+
 //{{AFX_INSERT_LOCATION}}
 // Microsoft Visual C++ will insert additional declarations immediately before the previous line.
 

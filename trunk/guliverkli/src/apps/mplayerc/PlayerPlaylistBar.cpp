@@ -44,7 +44,7 @@ CPlayerPlaylistBar::~CPlayerPlaylistBar()
 
 BOOL CPlayerPlaylistBar::Create(CWnd* pParentWnd)
 {
-	if(!CSizingControlBarG::Create(_T("Playlist"), pParentWnd, 50))
+	if(!CSizingControlBarG::Create(_T("Playlist"), pParentWnd, 0))
 		return FALSE;
 
 	m_list.CreateEx(

@@ -488,9 +488,9 @@ static int ShowPPage(CArray<Codec>& codecs, CComboBox& box, HWND hWnd = NULL)
 
 // CPlayerCaptureDialog dialog
 
-IMPLEMENT_DYNAMIC(CPlayerCaptureDialog, CDialog)
+//IMPLEMENT_DYNAMIC(CPlayerCaptureDialog, CResizableDialog)
 CPlayerCaptureDialog::CPlayerCaptureDialog()
-	: CDialog(CPlayerCaptureDialog::IDD, NULL)
+	: CResizableDialog(CPlayerCaptureDialog::IDD, NULL)
 	, m_vidfps(0)
 	, m_file(_T(""))
 	, m_fVidOutput(TRUE)
@@ -1209,7 +1209,7 @@ int CPlayerCaptureDialog::GetAudioInput()
 	return m_audinput.GetItemData(i);
 }
 
-BEGIN_MESSAGE_MAP(CPlayerCaptureDialog, CDialog)
+BEGIN_MESSAGE_MAP(CPlayerCaptureDialog, CResizableDialog)
 	ON_WM_DESTROY()
 	ON_CBN_SELCHANGE(IDC_COMBO4, OnVideoInput)
 	ON_CBN_SELCHANGE(IDC_COMBO1, OnVideoType)

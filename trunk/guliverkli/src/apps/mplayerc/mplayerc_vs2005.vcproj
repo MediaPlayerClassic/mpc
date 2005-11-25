@@ -877,6 +877,10 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath=".\PlayerShaderEditorBar.cpp"
+				>
+			</File>
+			<File
 				RelativePath="PlayerStatusBar.cpp"
 				>
 				<FileConfiguration
@@ -1246,6 +1250,10 @@
 			</File>
 			<File
 				RelativePath=".\ShaderAutoCompleteDlg.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\ShaderCombineDlg.cpp"
 				>
 			</File>
 			<File
@@ -1774,6 +1782,10 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath=".\PlayerShaderEditorBar.h"
+				>
+			</File>
+			<File
 				RelativePath="PlayerStatusBar.h"
 				>
 				<FileConfiguration
@@ -2158,6 +2170,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\ShaderCombineDlg.h"
+				>
+			</File>
+			<File
 				RelativePath=".\ShaderEditorDlg.h"
 				>
 			</File>
@@ -2514,7 +2530,51 @@
 				Name="shaders"
 				>
 				<File
+					RelativePath=".\res\shaders\contour.psh"
+					>
+				</File>
+				<File
+					RelativePath=".\res\shaders\deinterlace (blend).psh"
+					>
+				</File>
+				<File
+					RelativePath=".\res\shaders\emboss.psh"
+					>
+				</File>
+				<File
+					RelativePath=".\res\shaders\empty.psh"
+					>
+				</File>
+				<File
+					RelativePath=".\res\shaders\grayscale.psh"
+					>
+				</File>
+				<File
+					RelativePath=".\res\shaders\invert.psh"
+					>
+				</File>
+				<File
+					RelativePath=".\res\shaders\letterbox.psh"
+					>
+				</File>
+				<File
 					RelativePath=".\res\shaders\resizer.psh"
+					>
+				</File>
+				<File
+					RelativePath=".\res\shaders\sharpen.psh"
+					>
+				</File>
+				<File
+					RelativePath=".\res\shaders\sphere.psh"
+					>
+				</File>
+				<File
+					RelativePath=".\res\shaders\spotlight.psh"
+					>
+				</File>
+				<File
+					RelativePath=".\res\shaders\wave.psh"
 					>
 				</File>
 			</Filter>

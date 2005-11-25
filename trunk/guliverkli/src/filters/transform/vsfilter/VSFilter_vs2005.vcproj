@@ -6,7 +6,6 @@
 	ProjectGUID="{F671100C-469F-4723-AAC4-B7FE4F5B8DC4}"
 	RootNamespace="VSFilter"
 	Keyword="AtlProj"
-	SignManifests="true"
 	>
 	<Platforms>
 		<Platform
@@ -43,7 +42,6 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-DisableSpecificWarnings="4995;4996"
 				Optimization="0"
 				PreprocessorDefinitions="WIN32;_WINDOWS;_DEBUG;_USRDLL;WINVER=0x0500;_WIN32_WINNT=0x501;ISOLATION_AWARE_ENABLED;"
 				MinimalRebuild="false"
@@ -60,6 +58,7 @@ DisableSpecificWarnings="4995;4996"
 				WarningLevel="3"
 				SuppressStartupBanner="true"
 				DebugInformationFormat="4"
+				DisableSpecificWarnings="4995;4996"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -139,7 +138,6 @@ DisableSpecificWarnings="4995;4996"
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-DisableSpecificWarnings="4995;4996"
 				Optimization="0"
 				PreprocessorDefinitions="WIN32;_WINDOWS;_DEBUG;_USRDLL;WINVER=0x0500;_WIN32_WINNT=0x501;ISOLATION_AWARE_ENABLED;"
 				BasicRuntimeChecks="3"
@@ -155,6 +153,7 @@ DisableSpecificWarnings="4995;4996"
 				WarningLevel="3"
 				SuppressStartupBanner="true"
 				DebugInformationFormat="4"
+				DisableSpecificWarnings="4995;4996"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -236,7 +235,6 @@ DisableSpecificWarnings="4995;4996"
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-DisableSpecificWarnings="4995;4996"
 				Optimization="3"
 				InlineFunctionExpansion="2"
 				EnableIntrinsicFunctions="true"
@@ -258,6 +256,7 @@ DisableSpecificWarnings="4995;4996"
 				SuppressStartupBanner="true"
 				Detect64BitPortabilityProblems="false"
 				DebugInformationFormat="0"
+				DisableSpecificWarnings="4995;4996"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -272,7 +271,6 @@ DisableSpecificWarnings="4995;4996"
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				RegisterOutput="true"
 				AdditionalOptions="/MACHINE:I386"
 				AdditionalDependencies="delayimp.lib strmbaseRU.lib dsutilRU.lib subtitlesRU.lib subpicRU.lib"
 				OutputFile="$(OutDir)/$(ProjectName).dll"
@@ -309,8 +307,7 @@ DisableSpecificWarnings="4995;4996"
 			/>
 			<Tool
 				Name="VCPostBuildEventTool"
-				CommandLine="..\..\..\..\bin\upx.exe --best --compress-icons=0 &quot;$(TargetPath)&quot;"
-				ExcludedFromBuild="false"
+				CommandLine=""
 			/>
 		</Configuration>
 		<Configuration
@@ -341,7 +338,6 @@ DisableSpecificWarnings="4995;4996"
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-DisableSpecificWarnings="4995;4996"
 				Optimization="3"
 				InlineFunctionExpansion="2"
 				EnableIntrinsicFunctions="true"
@@ -360,6 +356,7 @@ DisableSpecificWarnings="4995;4996"
 				BrowseInformation="1"
 				WarningLevel="3"
 				SuppressStartupBanner="true"
+				DisableSpecificWarnings="4995;4996"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -374,7 +371,6 @@ DisableSpecificWarnings="4995;4996"
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				RegisterOutput="false"
 				AdditionalOptions="/MACHINE:I386"
 				AdditionalDependencies="delayimp.lib strmbaseR.lib dsutilR.lib subtitlesR.lib subpicR.lib"
 				OutputFile="$(OutDir)/$(ProjectName).dll"
@@ -411,7 +407,7 @@ DisableSpecificWarnings="4995;4996"
 			/>
 			<Tool
 				Name="VCPostBuildEventTool"
-				CommandLine="..\..\..\..\bin\upx.exe --best --compress-icons=0 &quot;$(TargetPath)&quot;"
+				CommandLine=""
 				ExcludedFromBuild="false"
 			/>
 		</Configuration>

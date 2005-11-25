@@ -43,8 +43,8 @@
 #include "SaveTextFileDialog.h"
 #include "FavoriteAddDlg.h"
 #include "FavoriteOrganizeDlg.h"
-#include "ShaderEditorDlg.h"
 #include "ConvertDlg.h"
+#include "ShaderCombineDlg.h"
 
 #include <mtype.h>
 #include <Mpconfig.h>
@@ -251,6 +251,8 @@ BEGIN_MESSAGE_MAP(CMainFrame, CFrameWnd)
 	ON_UPDATE_COMMAND_UI(ID_VIEW_PLAYLIST, OnUpdateViewPlaylist)
 	ON_COMMAND(ID_VIEW_CAPTURE, OnViewCapture)
 	ON_UPDATE_COMMAND_UI(ID_VIEW_CAPTURE, OnUpdateViewCapture)
+	ON_COMMAND(ID_VIEW_SHADEREDITOR, OnViewShaderEditor)
+	ON_UPDATE_COMMAND_UI(ID_VIEW_SHADEREDITOR, OnUpdateViewShaderEditor)
 	ON_COMMAND(ID_VIEW_PRESETS_MINIMAL, OnViewMinimal)
 	ON_UPDATE_COMMAND_UI(ID_VIEW_PRESETS_MINIMAL, OnUpdateViewMinimal)
 	ON_COMMAND(ID_VIEW_PRESETS_COMPACT, OnViewCompact)
@@ -448,9 +450,15 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	m_wndCaptureBar.EnableDocking(CBRS_ALIGN_LEFT|CBRS_ALIGN_RIGHT);
 	LoadControlBar(&m_wndCaptureBar, _T("ToolBars\\Capture"), AFX_IDW_DOCKBAR_LEFT);
 
+	m_wndShaderEditorBar.Create(this);
+	m_wndShaderEditorBar.SetBarStyle(m_wndShaderEditorBar.GetBarStyle() | CBRS_TOOLTIPS | CBRS_FLYBY | CBRS_SIZE_DYNAMIC);
+	m_wndShaderEditorBar.EnableDocking(CBRS_ALIGN_ANY);
+	LoadControlBar(&m_wndShaderEditorBar, _T("ToolBars\\ShaderEditor"), AFX_IDW_DOCKBAR_TOP);
+
 	m_dockingbars.AddTail(&m_wndSubresyncBar);
 	m_dockingbars.AddTail(&m_wndPlaylistBar);
 	m_dockingbars.AddTail(&m_wndCaptureBar);
+	m_dockingbars.AddTail(&m_wndShaderEditorBar);
 
 	m_fileDropTarget.Register(this);
 
@@ -502,6 +510,7 @@ void CMainFrame::OnClose()
 	SaveControlBar(&m_wndSubresyncBar, _T("ToolBars\\Subresync"));
 	SaveControlBar(&m_wndPlaylistBar, _T("ToolBars\\Playlist"));
 	SaveControlBar(&m_wndCaptureBar, _T("ToolBars\\Capture"));
+	SaveControlBar(&m_wndShaderEditorBar, _T("ToolBars\\ShaderEditor"));
 
 	ShowWindow(SW_HIDE);
 
@@ -594,7 +603,10 @@ void CMainFrame::LoadControlBar(CControlBar* pBar, CString section, UINT defDock
 	}
 
 	pBar->ShowWindow(
-		pApp->GetProfileInt(section, _T("Visible"), FALSE) && pBar != &m_wndSubresyncBar && pBar != &m_wndCaptureBar
+		pApp->GetProfileInt(section, _T("Visible"), FALSE) 
+		&& pBar != &m_wndSubresyncBar 
+		&& pBar != &m_wndCaptureBar
+		&& pBar != &m_wndShaderEditorBar
 		? SW_SHOW
 		: SW_HIDE);
 
@@ -882,14 +894,13 @@ void CMainFrame::OnGetMinMaxInfo(MINMAXINFO* lpMMI)
 		lpMMI->ptMinTrackSize.y += pCB->CalcFixedLayout(TRUE, TRUE).cy;
 	}
 
-	if(IsWindow(m_wndSubresyncBar.m_hWnd) && m_wndSubresyncBar.IsWindowVisible() && !m_wndSubresyncBar.IsFloating())
-		lpMMI->ptMinTrackSize.y += m_wndSubresyncBar.CalcFixedLayout(TRUE, TRUE).cy-2;
-
-	if(IsWindow(m_wndPlaylistBar.m_hWnd) && m_wndPlaylistBar.IsWindowVisible() && !m_wndPlaylistBar.IsFloating())
-		lpMMI->ptMinTrackSize.y += m_wndPlaylistBar.CalcFixedLayout(TRUE, TRUE).cy-2;
-
-	if(IsWindow(m_wndCaptureBar.m_hWnd) && m_wndCaptureBar.IsWindowVisible() && !m_wndCaptureBar.IsFloating())
-		lpMMI->ptMinTrackSize.y += m_wndCaptureBar.CalcFixedLayout(TRUE, TRUE).cy-2;
+	pos = m_dockingbars.GetHeadPosition();
+	while(pos)
+	{
+		CSizingControlBar* pCB = m_dockingbars.GetNext(pos);
+		if(IsWindow(pCB->m_hWnd) && pCB->IsWindowVisible() && !pCB->IsFloating())
+			lpMMI->ptMinTrackSize.y += pCB->CalcFixedLayout(TRUE, TRUE).cy-2;
+	}
 
 	__super::OnGetMinMaxInfo(lpMMI);
 }
@@ -968,28 +979,16 @@ void CMainFrame::OnSizing(UINT fwSide, LPRECT pRect)
 				fsize.cy += pCB->CalcFixedLayout(TRUE, TRUE).cy;
 		}
 
-		if(IsWindow(m_wndSubresyncBar.m_hWnd) && m_wndSubresyncBar.IsWindowVisible())
+		pos = m_dockingbars.GetHeadPosition();
+		while(pos)
 		{
-			if(m_wndSubresyncBar.IsHorzDocked())
-				fsize.cy += m_wndSubresyncBar.CalcFixedLayout(TRUE, TRUE).cy-2;
-			else if(m_wndSubresyncBar.IsVertDocked())
-				fsize.cx += m_wndSubresyncBar.CalcFixedLayout(TRUE, FALSE).cx;
-		}
-
-		if(IsWindow(m_wndPlaylistBar.m_hWnd) && m_wndPlaylistBar.IsWindowVisible())
-		{
-			if(m_wndPlaylistBar.IsHorzDocked())
-				fsize.cy += m_wndPlaylistBar.CalcFixedLayout(TRUE, TRUE).cy-2;
-			else if(m_wndPlaylistBar.IsVertDocked())
-				fsize.cx += m_wndPlaylistBar.CalcFixedLayout(TRUE, FALSE).cx;
-		}
-
-		if(IsWindow(m_wndCaptureBar.m_hWnd) && m_wndCaptureBar.IsWindowVisible())
-		{
-			if(m_wndCaptureBar.IsHorzDocked())
-				fsize.cy += m_wndCaptureBar.CalcFixedLayout(TRUE, TRUE).cy-2;
-			else if(m_wndCaptureBar.IsVertDocked())
-				fsize.cx += m_wndCaptureBar.CalcFixedLayout(TRUE, FALSE).cx;
+			CSizingControlBar* pCB = m_dockingbars.GetNext(pos);
+			
+			if(IsWindow(pCB->m_hWnd) && pCB->IsWindowVisible())
+			{
+				if(pCB->IsHorzDocked()) fsize.cy += pCB->CalcFixedLayout(TRUE, TRUE).cy-2;
+				else if(pCB->IsVertDocked()) fsize.cx += pCB->CalcFixedLayout(TRUE, FALSE).cx;
+			}
 		}
 	}
 
@@ -2124,12 +2123,12 @@ void CMainFrame::OnInitMenuPopup(CMenu* pPopupMenu, UINT nIndex, BOOL bSysMenu)
 {
 	__super::OnInitMenuPopup(pPopupMenu, nIndex, bSysMenu);
 
-	static CAtlMap<CString, UINT, CStringElementTraits<CString> > transl;
+	static CAtlStringMap<UINT> transl;
 
 	if(transl.IsEmpty())
 	{
 		transl[_T("Navigate")] = IDS_NAVIGATE_POPUP;
-		transl[_T("Open CD-ROM")] = IDS_OPENCDROM_POPUP;
+		transl[_T("Open Disc")] = IDS_OPENCDROM_POPUP;
 		transl[_T("Filters")] = IDS_FILTERS_POPUP;
 		transl[_T("Audio")] = IDS_AUDIO_POPUP;
 		transl[_T("Subtitles")] = IDS_SUBTITLES_POPUP;
@@ -2562,6 +2561,7 @@ void CMainFrame::OnFilePostOpenmedia()
 	}
 
 	SendNowPlayingToMSN();
+	SendNowPlayingTomIRC();
 }
 
 void CMainFrame::OnUpdateFilePostOpenmedia(CCmdUI* pCmdUI)
@@ -3740,6 +3740,17 @@ void CMainFrame::OnUpdateViewCapture(CCmdUI* pCmdUI)
 	pCmdUI->Enable(m_iMediaLoadState == MLS_LOADED && m_iPlaybackMode == PM_CAPTURE);
 }
 
+void CMainFrame::OnViewShaderEditor()
+{
+	ShowControlBar(&m_wndShaderEditorBar, !m_wndShaderEditorBar.IsWindowVisible(), TRUE);
+}
+
+void CMainFrame::OnUpdateViewShaderEditor(CCmdUI* pCmdUI)
+{
+	pCmdUI->SetCheck(m_wndShaderEditorBar.IsWindowVisible());
+	pCmdUI->Enable(TRUE);
+}
+
 void CMainFrame::OnViewMinimal()
 {
 	if(!AfxGetAppSettings().fHideCaptionMenu)
@@ -3876,11 +3887,6 @@ void CMainFrame::OnViewPanNScan(UINT nID)
 	if(dy > 0 && m_PosY < 1) m_PosY = min(m_PosY + 0.005*m_ZoomY, 1);
 
 	MoveVideoWindow(true);
-
-	if(nID == ID_VIEW_RESET && m_pCAP)
-	{
-		m_pCAP->SetVideoAngle(Vector(DegToRad(m_AngleX), DegToRad(m_AngleY), DegToRad(m_AngleZ)));
-	}
 }
 
 void CMainFrame::OnUpdateViewPanNScan(CCmdUI* pCmdUI)
@@ -4606,54 +4612,56 @@ void CMainFrame::OnUpdatePlayFilters(CCmdUI* pCmdUI)
 
 void CMainFrame::OnPlayShaders(UINT nID)
 {
+	if(!m_pCAP) return;
+
 	if(nID == ID_SHADERS_START)
 	{
-		CShaderEditorDlg(m_shaderlabel, m_pCAP, this).DoModal();
+		m_shaderlabels.RemoveAll();
 	}
 	else if(nID == ID_SHADERS_START+1)
 	{
-		m_pCAP->SetPixelShader(NULL, NULL);
-		m_shaderlabel.Empty();
+		if(IDOK != CShaderCombineDlg(m_shaderlabels, this).DoModal())
+			return;
 	}
 	else if(nID >= ID_SHADERS_START+2)
 	{
-		nID -= ID_SHADERS_START+2;
+		MENUITEMINFO mii;
+		memset(&mii, 0, sizeof(mii));
+		mii.cbSize = sizeof(mii);
+		mii.fMask = MIIM_DATA;
+		m_shaders.GetMenuItemInfo(nID, &mii);
 
-		CString str;
-		str.Format(_T("%d"), nID);
-
-		CList<CString> sl;
-		Explode(AfxGetApp()->GetProfileString(_T("Shaders"), str), sl, '|', 3);
-		if(sl.GetCount() != 3) {AfxMessageBox(_T("Invalid shader data"), S_OK); return;}
-
-		CString label = sl.RemoveHead();
-		CStringA target = CStringA(sl.RemoveHead());
-		CStringA srcdata = CStringA(sl.RemoveHead());
-
-		srcdata.Replace("\\n", "\n");
-		srcdata.Replace("\\t", "\t");
-
-		HRESULT hr = m_pCAP->SetPixelShader(srcdata, target);
-		if(FAILED(hr)) AfxMessageBox(_T("Could not load shader."), MB_OK);
-		else {SendStatusMessage(_T("Shader: ") + label, 3000); m_shaderlabel = label;}
+		m_shaderlabels.RemoveAll();
+		m_shaderlabels.AddTail(((const AppSettings::Shader*)mii.dwItemData)->label);
 	}
+
+	SetShaders();
 }
 
 void CMainFrame::OnUpdatePlayShaders(CCmdUI* pCmdUI)
 {
-	if(pCmdUI->m_nID > ID_SHADERS_START)
+	if(pCmdUI->m_nID >= ID_SHADERS_START)
 	{
 		pCmdUI->Enable(!!m_pCAP);
 
-		if(pCmdUI->m_nID == ID_SHADERS_START+1)
+		if(pCmdUI->m_nID == ID_SHADERS_START)
 		{
-			pCmdUI->SetRadio(m_shaderlabel.IsEmpty());
+			pCmdUI->SetRadio(m_shaderlabels.IsEmpty());
+		}
+		else if(pCmdUI->m_nID == ID_SHADERS_START+1)
+		{
+			pCmdUI->SetRadio(m_shaderlabels.GetCount() > 1);
 		}
 		else
 		{
-			CString str;
-			m_shaders.GetMenuString(pCmdUI->m_nID, str, MF_BYCOMMAND);
-			pCmdUI->SetRadio(str == m_shaderlabel);
+			MENUITEMINFO mii;
+			memset(&mii, 0, sizeof(mii));
+			mii.cbSize = sizeof(mii);
+			mii.fMask = MIIM_DATA;
+			m_shaders.GetMenuItemInfo(pCmdUI->m_nID, &mii);
+
+			pCmdUI->SetRadio(m_shaderlabels.GetCount() == 1 
+				&& m_shaderlabels.GetHead() == ((AppSettings::Shader*)mii.dwItemData)->label);
 		}
 	}
 }
@@ -5824,6 +5832,7 @@ void CMainFrame::MoveVideoWindow(bool fShowStats)
 		if(m_pCAP)
 		{
 			m_pCAP->SetPosition(wr, vr);
+			m_pCAP->SetVideoAngle(Vector(DegToRad(m_AngleX), DegToRad(m_AngleY), DegToRad(m_AngleZ)));
 		}
 		else
 		{
@@ -5950,6 +5959,81 @@ void CMainFrame::ZoomVideoWindow(double scale)
 void CMainFrame::RepaintVideo()
 {
 	if(m_pCAP) m_pCAP->Paint(false);
+}
+
+void CMainFrame::SetShaders()
+{
+	if(!m_pCAP) return;
+
+	AppSettings& s = AfxGetAppSettings();
+
+	CAtlStringMap<const AppSettings::Shader*> s2s;
+
+	POSITION pos = s.m_shaders.GetHeadPosition();
+	while(pos)
+	{
+		const AppSettings::Shader* pShader = &s.m_shaders.GetNext(pos);
+		s2s[pShader->label] = pShader;
+	}
+
+	m_pCAP->SetPixelShader(NULL, NULL);
+
+	CList<CString> labels;
+
+	pos = m_shaderlabels.GetHeadPosition();
+	while(pos)
+	{
+		const AppSettings::Shader* pShader = NULL;
+		if(s2s.Lookup(m_shaderlabels.GetNext(pos), pShader))
+		{
+			CStringA target = pShader->target;
+			CStringA srcdata = pShader->srcdata;
+
+			HRESULT hr = m_pCAP->SetPixelShader(srcdata, target);
+
+			if(FAILED(hr))
+			{
+				m_pCAP->SetPixelShader(NULL, NULL);
+				SendStatusMessage(_T("Could not load shader: ") + pShader->label, 3000);
+				return;
+			}
+
+			labels.AddTail(pShader->label);
+		}
+	}
+
+	if(m_iMediaLoadState == MLS_LOADED)
+	{
+		CString str = Implode(labels, '|');
+		str.Replace(_T("|"), _T(", "));
+		SendStatusMessage(_T("Shader: ") + str, 3000);
+	}
+}
+
+void CMainFrame::UpdateShaders(CString label)
+{
+	if(!m_pCAP) return;
+
+	if(m_shaderlabels.GetCount() <= 1)
+		m_shaderlabels.RemoveAll();
+
+	if(m_shaderlabels.IsEmpty() && !label.IsEmpty())
+		m_shaderlabels.AddTail(label);
+
+	bool fUpdate = m_shaderlabels.IsEmpty();
+
+	POSITION pos = m_shaderlabels.GetHeadPosition();
+	while(pos)
+	{
+		if(label == m_shaderlabels.GetNext(pos))
+		{
+			fUpdate = true;
+			break;
+		}
+	}
+
+	if(fUpdate) SetShaders();
+
 }
 
 void CMainFrame::SetBalance(int balance)
@@ -6722,34 +6806,7 @@ void CMainFrame::OpenSetupVideo()
 	}
 	else
 	{
-return;
-/*		char pSrcData[] = 
-			"sampler s0 : register(s0);\r\n"
-			"float4 p0 : register(c0);\r\n"
-			"\r\n"
-			"#define counter (p0[2])\r\n"
-			"#define clock (p0[3])\r\n"
-			"\r\n"
-			"float4 main(float2 t0 : TEXCOORD0) : COLOR\r\n"
-			"{\r\n"
-			"\tfloat4 c0 = tex2D(s0, t0);\r\n"
-			"\tfloat3 lightsrc = float3(sin(clock*3.1415/3000)/2+0.5,cos(clock*3.1415/1000)/2+0.5,1);\r\n"
-			"\tfloat3 light = normalize(lightsrc - float3(t0.x,t0.y,0));\r\n"
-			"\tc0 *= pow(dot(light, float3(0,0,1)), 10);\r\n"
-			"\treturn c0;\r\n"
-			"}\r\n";
-
-		//CComPtr<ID3DXBuffer> pErrorMsgs;
-		HRESULT hr = m_pCAP->SetPixelShader(pSrcData, "ps_2_0");
-		if(FAILED(hr))
-		{
-
-			CStringA err;
-			int len = pErrorMsgs->GetBufferSize();
-			memcpy(err.GetBufferSetLength(len), pErrorMsgs->GetBufferPointer(), len);
-			if(!err.IsEmpty()) AfxMessageBox(CString(err), MB_OK);
-		}
-*/
+		SetShaders();
 	}
 }
 
@@ -7216,7 +7273,6 @@ RemoveFromRot(m_dwRegister);
 //	if(pVW) pVW->put_MessageDrain((OAHWND)NULL), pVW->put_Owner((OAHWND)NULL);
 
 	m_pCAP = NULL; // IMPORTANT: IVMRSurfaceAllocatorNotify/IVMRSurfaceAllocatorNotify9 has to be released before the VMR/VMR9, otherwise it will crash in Release()
-	m_shaderlabel.Empty();
 
 	pAMXBar.Release(); pAMTuner.Release(); pAMDF.Release();
 	pAMVCCap.Release(); pAMVCPrev.Release(); pAMVSCCap.Release(); pAMVSCPrev.Release(); pAMASC.Release();
@@ -7317,6 +7373,45 @@ void CMainFrame::SendNowPlayingToMSN()
 	HWND hWnd = NULL;
 	while(hWnd = ::FindWindowEx(NULL, hWnd, _T("MsnMsgrUIManager"), NULL))
 		::SendMessage(hWnd, WM_COPYDATA, (WPARAM)NULL, (LPARAM)&data);
+}
+
+// mIRC
+
+void CMainFrame::SendNowPlayingTomIRC()
+{
+	if(!AfxGetAppSettings().fNotifyGTSdll)
+		return;
+
+	for(int i = 0; i < 20; i++)
+	{
+		HANDLE hFMap = CreateFileMapping(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, 0, 1024, _T("mIRC"));
+		if(!hFMap) return;
+
+		if(GetLastError() == ERROR_ALREADY_EXISTS)
+		{
+			CloseHandle(hFMap);
+			Sleep(50);
+			continue;
+		}
+
+		if(LPVOID lpMappingAddress = MapViewOfFile(hFMap, FILE_MAP_WRITE, 0, 0, 0))
+		{
+			// LPCSTR cmd = m_fAudioOnly ? ".timerAUDGTS 1 1 /mpcaud" : ".timerVIDGTS 1 1 /mpcvid";
+			// LPCSTR cmd = m_fAudioOnly ? ".timerAUDGTS 1 5 /mpcaud" : ".timerVIDGTS 1 5 /mpcvid";
+			// LPCSTR cmd = m_fAudioOnly ? ".timerAUDGTS 1 5 //mpcaud\0" : ".timerVIDGTS 1 5 //mpcvid\0";
+			LPCSTR cmd = m_fAudioOnly ? "/.timerAUDGTS 1 5 mpcaud" : "/.timerVIDGTS 1 5 mpcvid";
+			strcpy((char*)lpMappingAddress, cmd);
+
+			if(HWND hWnd = ::FindWindow(_T("mIRC"), NULL))
+				::SendMessage(hWnd, (WM_USER + 200), (WPARAM)1, (LPARAM)0);
+
+			UnmapViewOfFile(lpMappingAddress);
+		}
+		
+		CloseHandle(hFMap);
+
+		break;
+	}
 }
 
 // dynamic menus
@@ -8136,30 +8231,31 @@ void CMainFrame::SetupShadersSubMenu()
 
 	CWinApp* pApp = AfxGetApp();
 
-	pSub->AppendMenu(MF_BYCOMMAND|MF_STRING|MF_ENABLED, ID_SHADERS_START, ResStr(IDS_SHADER_EDIT));
+	pSub->AppendMenu(MF_BYCOMMAND|MF_STRING|MF_ENABLED, ID_SHADERS_START, ResStr(IDS_SHADER_OFF));
 
 	UINT id = ID_SHADERS_START+1;
 
-	for(int i = 0; ; i++)
+	if(POSITION pos = AfxGetAppSettings().m_shaders.GetHeadPosition())
 	{
-		CString str;
-		str.Format(_T("%d"), i);
-		str = pApp->GetProfileString(_T("Shaders"), str);
+		pSub->AppendMenu(MF_SEPARATOR);
+		pSub->AppendMenu(MF_BYCOMMAND|MF_STRING|MF_ENABLED, id++, ResStr(IDS_SHADER_COMBINE));
+		pSub->AppendMenu(MF_SEPARATOR);
 
-		CList<CString> sl;
-		CString label = Explode(str, sl, '|');
-		if(label.IsEmpty()) break;
+		MENUITEMINFO mii;
+		memset(&mii, 0, sizeof(mii));
+		mii.cbSize = sizeof(mii);
+		mii.fMask |= MIIM_DATA;
 
-		UINT flags = MF_BYCOMMAND|MF_STRING|MF_ENABLED;
-
-		if(i == 0)
+		while(pos)
 		{
-			pSub->AppendMenu(MF_SEPARATOR);
-			pSub->AppendMenu(flags, id++, ResStr(IDS_SHADER_OFF));
+			const AppSettings::Shader& s = AfxGetAppSettings().m_shaders.GetNext(pos);
+			CString label = s.label;
+			label.Replace(_T("&"), _T("&&"));
+			pSub->AppendMenu(MF_BYCOMMAND|MF_STRING|MF_ENABLED, id, label);
+			mii.dwItemData = (ULONG_PTR)&s;
+			pSub->SetMenuItemInfo(id, &mii);
+			id++;
 		}
-
-		label.Replace(_T("&"), _T("&&"));
-		pSub->AppendMenu(flags, id++, label);
 	}
 }
 
@@ -9005,6 +9101,7 @@ void CMainFrame::OpenMedia(CAutoPtr<OpenMediaData> pOMD)
 			m_wndCaptureBar.m_capdlg.SetVideoChannel(p->vchannel);
 			m_wndCaptureBar.m_capdlg.SetAudioInput(p->ainput);
 			SendNowPlayingToMSN();
+			SendNowPlayingTomIRC();
 			return;
 		}
 	}

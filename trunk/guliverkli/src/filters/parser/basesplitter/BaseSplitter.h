@@ -45,6 +45,7 @@ public:
 	Packet() {pmt = NULL; bDiscontinuity = bAppendable = FALSE;}
 	virtual ~Packet() {if(pmt) DeleteMediaType(pmt);}
 	virtual int GetSize() {return pData.GetSize();}
+	void SetData(const void* ptr, DWORD len) {pData.SetSize(len); memcpy(pData.GetData(), ptr, len);}
 };
 
 class CPacketQueue 

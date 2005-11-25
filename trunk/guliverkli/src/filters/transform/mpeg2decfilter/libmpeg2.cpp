@@ -1962,8 +1962,8 @@ CMpeg2Decoder::CMpeg2Decoder()
 
 	m_mpeg1 = 0;
 
-	//
-
+//	//
+/**/
 	if(g_cpuid.m_flags&CCpuID::sse2)
 	{
 		m_idct_init = mpeg2_idct_init_sse2;

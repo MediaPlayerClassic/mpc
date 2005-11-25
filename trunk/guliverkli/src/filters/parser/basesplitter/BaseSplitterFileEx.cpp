@@ -356,11 +356,11 @@ bool CBaseSplitterFileEx::Read(seqhdr& h, int len, CMediaType* pmt)
 		vi->hdr.bmiHeader.biHeight = h.height;
 		vi->hdr.bmiHeader.biXPelsPerMeter = h.width * h.ary;
 		vi->hdr.bmiHeader.biYPelsPerMeter = h.height * h.arx;
-		vi->cbSequenceHeader = shlen;
+		vi->cbSequenceHeader = shlen + shextlen;
 		Seek(shpos);
-		Read((BYTE*)&vi->bSequenceHeader[0], shlen);
+		ByteRead((BYTE*)&vi->bSequenceHeader[0], shlen);
 		if(shextpos && shextlen) Seek(shextpos);
-		Read((BYTE*)&vi->bSequenceHeader[0] + shlen, shextlen);
+		ByteRead((BYTE*)&vi->bSequenceHeader[0] + shlen, shextlen);
 		pmt->SetFormat((BYTE*)vi, len);
 		delete [] vi;
 	}
@@ -380,11 +380,11 @@ bool CBaseSplitterFileEx::Read(seqhdr& h, int len, CMediaType* pmt)
 		vi->hdr.bmiHeader.biHeight = h.height;
 		vi->dwProfile = h.profile;
 		vi->dwLevel = h.level;
-		vi->cbSequenceHeader = shlen;
+		vi->cbSequenceHeader = shlen + shextlen;
 		Seek(shpos);
-		Read((BYTE*)&vi->dwSequenceHeader[0], shlen);
+		ByteRead((BYTE*)&vi->dwSequenceHeader[0], shlen);
 		if(shextpos && shextlen) Seek(shextpos);
-		Read((BYTE*)&vi->dwSequenceHeader[0] + shlen, shextlen);
+		ByteRead((BYTE*)&vi->dwSequenceHeader[0] + shlen, shextlen);
 		pmt->SetFormat((BYTE*)vi, len);
 		delete [] vi;
 	}
@@ -783,15 +783,15 @@ bool CBaseSplitterFileEx::Read(ps2audhdr& h, CMediaType* pmt)
 		if(tag == 'SShd')
 		{
 			BitRead(32);
-			Read((BYTE*)&size, sizeof(size));
+			ByteRead((BYTE*)&size, sizeof(size));
 			ASSERT(size == 0x18);
 			Seek(GetPos());
-			Read((BYTE*)&h, sizeof(h));
+			ByteRead((BYTE*)&h, sizeof(h));
 		}
 		else if(tag == 'SSbd')
 		{
 			BitRead(32);
-			Read((BYTE*)&size, sizeof(size));
+			ByteRead((BYTE*)&size, sizeof(size));
 			break;
 		}
 	}
@@ -898,7 +898,7 @@ bool CBaseSplitterFileEx::Read(trhdr& h, bool fSync)
 	h.payload = BitRead(1);
 	h.counter = BitRead(4);
 
-	h.bytes = 184;
+	h.bytes = 188 - 4;
 
 	if(h.adapfield)
 	{
@@ -911,12 +911,14 @@ bool CBaseSplitterFileEx::Read(trhdr& h, bool fSync)
 		h.splicingpoint = BitRead(1);
 		h.privatedata = BitRead(1);
 		h.extension = BitRead(1);
+/*
 		if(!(0 < h.length && h.length <= 183))
 			return(false);
+*/
 		for(int i = 1; i < h.length; i++)
 			BitRead(8);
 
-		h.bytes = 183 - h.length;
+		h.bytes -= h.length+1;
 	}
 
 	return(true);
@@ -1066,9 +1068,9 @@ bool CBaseSplitterFileEx::Read(avchdr& h, int len, CMediaType* pmt)
 		vi->dwLevel = h.level;
 		vi->cbSequenceHeader = spslen + ppslen;
 		Seek(spspos);
-		Read((BYTE*)&vi->dwSequenceHeader[0], spslen);
+		ByteRead((BYTE*)&vi->dwSequenceHeader[0], spslen);
 		Seek(ppspos);
-		Read((BYTE*)&vi->dwSequenceHeader[0] + spslen, ppslen);
+		ByteRead((BYTE*)&vi->dwSequenceHeader[0] + spslen, ppslen);
 		pmt->SetFormat((BYTE*)vi, len);
 		delete [] vi;
 	}

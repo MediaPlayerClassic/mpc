@@ -98,45 +98,46 @@ HRESULT CMpaSplitterFile::Init()
 			CStringA str;
 			
 			// title
-			Read((BYTE*)str.GetBufferSetLength(30), 30);
-			m_tags['TIT2'] = CString(str).Trim();
+			ByteRead((BYTE*)str.GetBufferSetLength(30), 30);
+			m_tags['TIT2'] = CStringW(str).Trim();
 
 			// artist
-			Read((BYTE*)str.GetBufferSetLength(30), 30);
-			m_tags['TPE1'] = CString(str).Trim();
+			ByteRead((BYTE*)str.GetBufferSetLength(30), 30);
+			m_tags['TPE1'] = CStringW(str).Trim();
 
 			// album
-			Read((BYTE*)str.GetBufferSetLength(30), 30);
-			m_tags['TALB'] = CString(str).Trim();
+			ByteRead((BYTE*)str.GetBufferSetLength(30), 30);
+			m_tags['TALB'] = CStringW(str).Trim();
 
 			// year
-			Read((BYTE*)str.GetBufferSetLength(4), 4);
-			m_tags['TYER'] = CString(str).Trim();
+			ByteRead((BYTE*)str.GetBufferSetLength(4), 4);
+			m_tags['TYER'] = CStringW(str).Trim();
 
 			// comment
-			Read((BYTE*)str.GetBufferSetLength(30), 30);
-			m_tags['COMM'] = CString(str).Trim(); 
+			ByteRead((BYTE*)str.GetBufferSetLength(30), 30);
+			m_tags['COMM'] = CStringW(str).Trim(); 
 
 			// track
 			LPCSTR s = str;
 			if(s[28] == 0 && s[29] != 0)
-				m_tags['TRCK'].Format(_T("%d"), s[29]); 
+				m_tags['TRCK'].Format(L"%d", s[29]); 
 
 			// genre
 			BYTE genre = (BYTE)BitRead(8);
 			if(genre < countof(s_genre))
-				m_tags['TCON'] = s_genre[genre];
+				m_tags['TCON'] = CStringW(s_genre[genre]);
 		}
 	}
 
 	Seek(0);
 
-	if(BitRead(24, true) == 'ID3')
+	while(BitRead(24, true) == 'ID3')
 	{
-		Seek(3);
+		BitRead(24);
 
 		BYTE major = (BYTE)BitRead(8);
 		BYTE revision = (BYTE)BitRead(8);
+
 		BYTE flags = (BYTE)BitRead(8);
 		DWORD size = 0;
 		if(BitRead(1) != 0) return E_FAIL;
@@ -150,7 +151,67 @@ HRESULT CMpaSplitterFile::Init()
 
 		m_startpos = GetPos() + size;
 
-		// TODO: read tags
+		// TODO: read extended header
+
+		if(major <= 4)
+		{
+			__int64 pos = GetPos();
+
+			while(pos < m_startpos)
+			{
+				Seek(pos);
+
+				DWORD tag = (DWORD)BitRead(32);
+				DWORD size = 0;
+				size |= BitRead(8) << 24;
+				size |= BitRead(8) << 16;
+				size |= BitRead(8) << 8;
+				size |= BitRead(8);
+				WORD flags = (WORD)BitRead(16);
+
+				pos += 4+4+2+size;
+
+				if(!size || pos >= m_startpos)
+					break;
+
+				if(tag == 'TIT2'
+				|| tag == 'TPE1'
+				|| tag == 'TALB'
+				|| tag == 'TYER'
+				|| tag == 'COMM'
+				|| tag == 'TRCK')
+				{
+					BYTE encoding = (BYTE)BitRead(8);
+					size--;
+
+					WORD bom = (WORD)BitRead(16, true);
+
+					CStringA str;
+					CStringW wstr;
+
+					if(encoding > 0 && size >= 2 && bom == 0xfeff)
+					{
+						BitRead(16);
+						ByteRead((BYTE*)wstr.GetBufferSetLength(size), size);
+						m_tags[tag] = wstr.Trim();
+					}
+					else if(encoding > 0 && size >= 2 && bom == 0xfffe)
+					{
+						BitRead(16);
+						ByteRead((BYTE*)wstr.GetBufferSetLength(size), size);
+						for(int i = 0, j = wstr.GetLength(); i < j; i++) wstr.SetAt(i, (wstr[i]<<8)|(wstr[i]>>8));
+						m_tags[tag] = wstr.Trim();
+					}
+					else
+					{
+						ByteRead((BYTE*)str.GetBufferSetLength(size), size);
+						m_tags[tag] = (encoding > 0 ? UTF8To16(str) : CStringW(str)).Trim();
+					}			
+				}
+			}
+		}
+
+		Seek(m_startpos);
 	}
 
 	__int64 startpos;
@@ -158,7 +219,7 @@ HRESULT CMpaSplitterFile::Init()
 
 	Seek(m_startpos);
 
-	if(m_mode == none && Read(m_mpahdr, min(m_endpos - GetPos(), 0x100), true, &m_mt))
+	if(m_mode == none && Read(m_mpahdr, min(m_endpos - GetPos(), 0x200), true, &m_mt))
 	{
 		m_mode = mpa;
 
@@ -172,7 +233,7 @@ HRESULT CMpaSplitterFile::Init()
 
 	Seek(m_startpos);
 
-	if(m_mode == none && Read(m_aachdr, min(m_endpos - GetPos(), 0x100), &m_mt))
+	if(m_mode == none && Read(m_aachdr, min(m_endpos - GetPos(), 0x200), &m_mt))
 	{
 		m_mode = mp4a;
 

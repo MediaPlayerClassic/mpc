@@ -120,13 +120,13 @@ HRESULT CMpaSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 	m_rtNewStart = m_rtCurrent = 0;
 	m_rtNewStop = m_rtStop = m_rtDuration = m_pFile->GetDuration();
 
-	CString str, title;
+	CStringW str, title;
 	if(m_pFile->m_tags.Lookup('TIT2', str)) title = str;
-	if(m_pFile->m_tags.Lookup('TPE1', str)) title = title.IsEmpty() ? str : str + _T(" - ") + title;
-	if(m_pFile->m_tags.Lookup('TYER', str) && !title.IsEmpty() && !str.IsEmpty()) title += _T(" (") + str + _T(")");
-	if(!title.IsEmpty()) SetProperty(L"TITL", CStringW(title));
-	if(m_pFile->m_tags.Lookup('TCOP', str)) SetProperty(L"CPYR", CStringW(str));
-	if(m_pFile->m_tags.Lookup('COMM', str)) SetProperty(L"DESC", CStringW(str));
+	if(m_pFile->m_tags.Lookup('TYER', str) && !title.IsEmpty() && !str.IsEmpty()) title += L" (" + str + L")";
+	if(!title.IsEmpty()) SetProperty(L"TITL", title);
+	if(m_pFile->m_tags.Lookup('TPE1', str)) SetProperty(L"AUTH", str);
+	if(m_pFile->m_tags.Lookup('TCOP', str)) SetProperty(L"CPYR", str);
+	if(m_pFile->m_tags.Lookup('COMM', str)) SetProperty(L"DESC", str);
 
 	return m_pOutputs.GetCount() > 0 ? S_OK : E_FAIL;
 }
@@ -181,7 +181,7 @@ bool CMpaSplitterFilter::DemuxLoop()
 
 		CAutoPtr<Packet> p(new Packet());
 		p->pData.SetSize(FrameSize);
-		m_pFile->Read(p->pData.GetData(), FrameSize);
+		m_pFile->ByteRead(p->pData.GetData(), FrameSize);
 
 		p->TrackNumber = 0;
 		p->rtStart = m_rtStart;

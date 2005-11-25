@@ -155,7 +155,7 @@ void CComPropertySheet::OnActivated(CPropertyPage* pPage)
 	if(CWnd* pChild = pPage->GetWindow(GW_CHILD))
 	{
 		pChild->ModifyStyle(WS_CAPTION|WS_THICKFRAME, 0);
-		pChild->ModifyStyleEx(WS_EX_DLGMODALFRAME, 0);
+		pChild->ModifyStyleEx(WS_EX_DLGMODALFRAME, WS_EX_CONTROLPARENT);
 
 		for(CWnd* pGrandChild = pChild->GetWindow(GW_CHILD); pGrandChild; pGrandChild = pGrandChild->GetNextWindow())
 		{

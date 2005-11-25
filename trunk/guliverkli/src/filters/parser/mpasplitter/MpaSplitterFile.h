@@ -43,7 +43,7 @@ class CMpaSplitterFile : public CBaseSplitterFileEx
 public:
 	CMpaSplitterFile(IAsyncReader* pAsyncReader, HRESULT& hr);
 
-	CMap<DWORD, DWORD, CString, CString&> m_tags;
+	CAtlMap<DWORD, CStringW> m_tags;
 
 	const CMediaType& GetMediaType() {return m_mt;}
 	REFERENCE_TIME GetDuration() {return m_rtDuration;}

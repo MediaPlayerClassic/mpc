@@ -31,6 +31,7 @@
 #include "PlayerSubresyncBar.h"
 #include "PlayerPlaylistBar.h"
 #include "PlayerCaptureBar.h"
+#include "PlayerShaderEditorBar.h"
 #include "PPageSheet.h"
 #include "PPageFileInfoSheet.h"
 #include "OpenCapDeviceDlg.h"
@@ -226,7 +227,6 @@ class CMainFrame : public CFrameWnd, public CDropTarget
 	CMenu m_navchapters, m_navtitles;
 	CMenu m_favorites;
 	CMenu m_shaders;
-	CString m_shaderlabel;
 
 	CInterfaceArray<ISpecifyPropertyPages> m_spparray;
 	CInterfaceArray<IAMStreamSelect> m_ssarray;
@@ -327,6 +327,7 @@ protected:
 	void CloseMediaPrivate();
 	
 	void SendNowPlayingToMSN();
+	void SendNowPlayingTomIRC();
 
 	void OpenCreateGraphObject(OpenMediaData* pOMD);
 	void OpenFile(OpenFileData* pOFD);
@@ -376,6 +377,11 @@ public:
 	void InvalidateSubtitle(DWORD_PTR nSubtitleId = -1, REFERENCE_TIME rtInvalidate = -1);
 	void ReloadSubtitle();
 
+	// shaders
+	CAtlList<CString> m_shaderlabels;
+	void SetShaders();
+	void UpdateShaders(CString label);
+
 	// capturing
 	bool m_fCapturing;
 	HRESULT BuildCapture(IPin* pPin, IBaseFilter* pBF[3], const GUID& majortype, AM_MEDIA_TYPE* pmt); // pBF: 0 buff, 1 enc, 2 mux, pmt is for 1 enc
@@ -414,7 +420,8 @@ protected:  // control bar embedded members
 	CPlayerSubresyncBar m_wndSubresyncBar;
 	CPlayerPlaylistBar m_wndPlaylistBar;
 	CPlayerCaptureBar m_wndCaptureBar;
-	CList<CControlBar*> m_dockingbars;
+	CPlayerShaderEditorBar m_wndShaderEditorBar;
+	CList<CSizingControlBar*> m_dockingbars;
 
 	CFileDropTarget m_fileDropTarget;
 	// TODO
@@ -549,6 +556,8 @@ public:
 	afx_msg void OnUpdateViewPlaylist(CCmdUI* pCmdUI);
 	afx_msg void OnViewCapture();
 	afx_msg void OnUpdateViewCapture(CCmdUI* pCmdUI);
+	afx_msg void OnViewShaderEditor();
+	afx_msg void OnUpdateViewShaderEditor(CCmdUI* pCmdUI);
 	afx_msg void OnViewMinimal();
 	afx_msg void OnUpdateViewMinimal(CCmdUI* pCmdUI);
 	afx_msg void OnViewCompact();

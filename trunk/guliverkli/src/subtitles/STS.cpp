@@ -1359,6 +1359,7 @@ static bool OpenSubStationAlpha(CTextFile* file, CSimpleTextSubtitle& ret, int C
 		{
 			if(buff.GetLength() >= 4 && !buff.Right(4).CompareNoCase(L"4.00")) version = sver = 4;
 			else if(buff.GetLength() >= 5 && !buff.Right(5).CompareNoCase(L"4.00+")) version = sver = 5;
+			else if(buff.GetLength() >= 6 && !buff.Right(6).CompareNoCase(L"4.00++")) version = sver = 6;
 		}
 		else if(entry == L"collisions")
 		{
@@ -1381,6 +1382,11 @@ static bool OpenSubStationAlpha(CTextFile* file, CSimpleTextSubtitle& ret, int C
 		{
 			fRet = true;
             sver = 5;
+		}
+		else if(entry == L"[v4++ styles]")
+		{
+			fRet = true;
+            sver = 6;
 		}
 		else if(entry == L"style")
 		{
@@ -1411,8 +1417,10 @@ if(sver >= 4)	style->borderStyle = GetInt(buff);
 				style->marginRect.left = GetInt(buff);
 				style->marginRect.right = GetInt(buff);
 				style->marginRect.top = style->marginRect.bottom = GetInt(buff);
+if(sver >= 6)	style->marginRect.bottom = GetInt(buff);
 if(sver <= 4)	alpha = GetInt(buff);
 				style->charSet = GetInt(buff);
+if(sver >= 6)	style->relativeTo = GetInt(buff);
 
 if(sver <= 4)	style->colors[2] = style->colors[3]; // style->colors[2] is used for drawing the outline
 if(sver <= 4)	alpha = max(min(alpha, 0xff), 0);
@@ -1466,6 +1474,7 @@ if(version >= 5)layer = GetInt(buff);
 				marginRect.left = GetInt(buff);
 				marginRect.right = GetInt(buff);
 				marginRect.top = marginRect.bottom = GetInt(buff);
+if(version >= 6)marginRect.bottom = GetInt(buff);
 				Effect = WToT(GetStr(buff));
 
 				int len = min(Effect.GetLength(), buff.GetLength());

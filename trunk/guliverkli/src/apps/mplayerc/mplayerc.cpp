@@ -146,8 +146,16 @@ bool LoadType(CString fn, CString& type)
 	{
 		len = sizeof(buff);
 		memset(buff, 0, len);
-		if(ERROR_SUCCESS != key.QueryStringValue(NULL, buff, &len) || (tmp = buff).Trim().IsEmpty())
-			return(false);
+		if(ERROR_SUCCESS != key.QueryStringValue(NULL, buff, &len))
+			break;
+
+		CString str(buff);
+		str.Trim();
+
+		if(str.IsEmpty() || str == tmp)
+			break;
+
+		tmp = str;
 	}
 
 	type = tmp;
@@ -883,6 +891,7 @@ CMPlayerCApp::Settings::Settings()
 	ADDCMD((ID_VIEW_SUBRESYNC, '6', FVIRTKEY|FCONTROL|FNOINVERT, _T("Toggle Subresync Bar")));
 	ADDCMD((ID_VIEW_PLAYLIST, '7', FVIRTKEY|FCONTROL|FNOINVERT, _T("Toggle Playlist Bar")));
 	ADDCMD((ID_VIEW_CAPTURE, '8', FVIRTKEY|FCONTROL|FNOINVERT, _T("Toggle Capture Bar")));
+	ADDCMD((ID_VIEW_SHADEREDITOR, '9', FVIRTKEY|FCONTROL|FNOINVERT, _T("Toggle Shader Editor Bar")));
 	ADDCMD((ID_VIEW_PRESETS_MINIMAL, '0', FVIRTKEY|FSHIFT|FCONTROL|FNOINVERT, _T("View Minimal")));
 	ADDCMD((ID_VIEW_PRESETS_COMPACT, '1', FVIRTKEY|FSHIFT|FCONTROL|FNOINVERT, _T("View Compact")));
 	ADDCMD((ID_VIEW_PRESETS_NORMAL, '2', FVIRTKEY|FSHIFT|FCONTROL|FNOINVERT, _T("View Normal")));
@@ -1137,6 +1146,7 @@ void CMPlayerCApp::Settings::UpdateData(bool fSave)
 		pApp->WriteProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_JUMPDISTL), nJumpDistL);
 		pApp->WriteProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_FREEWINDOWRESIZING), fFreeWindowResizing);
 		pApp->WriteProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_NOTIFYMSN), fNotifyMSN);		
+		pApp->WriteProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_NOTIFYGTSDLL), fNotifyGTSdll);
 
 		Formats.UpdateData(true);
 
@@ -1182,6 +1192,27 @@ void CMPlayerCApp::Settings::UpdateData(bool fSave)
 		pApp->WriteProfileString(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_SNAPSHOTEXT), SnapShotExt);
 
 		pApp->WriteProfileString(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_ISDB), ISDb);
+
+		pApp->WriteProfileString(_T("Shaders"), NULL, NULL);
+		pApp->WriteProfileInt(_T("Shaders"), _T("Initialized"), 1);
+		pApp->WriteProfileString(_T("Shaders"), _T("Combine"), m_shadercombine);
+
+		pos = m_shaders.GetHeadPosition();
+		for(int i = 0; pos; i++)
+		{
+			const Shader& s = m_shaders.GetNext(pos);
+
+			if(!s.label.IsEmpty())
+			{
+				CString index;
+				index.Format(_T("%d"), i);
+				CString srcdata = s.srcdata;
+				srcdata.Replace(_T("\r"), _T(""));
+				srcdata.Replace(_T("\n"), _T("\\n"));
+				srcdata.Replace(_T("\t"), _T("\\t"));
+				AfxGetApp()->WriteProfileString(_T("Shaders"), index, s.label + _T("|") + s.target + _T("|") + srcdata);
+			}
+		}
 
 		if(pApp->m_pszRegistryKey)
 		{
@@ -1247,7 +1278,7 @@ void CMPlayerCApp::Settings::UpdateData(bool fSave)
 		iRMVideoRendererType = pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_RMVIDEORENDERERTYPE), VIDRNDT_RM_DEFAULT);
 		iQTVideoRendererType = pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_QTVIDEORENDERERTYPE), VIDRNDT_QT_DEFAULT);
 		iAPSurfaceUsage = pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_APSURACEFUSAGE), VIDRNDT_AP_TEXTURE2D);
-		fVMRSyncFix = !!pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_VMRSYNCFIX), TRUE);
+		fVMRSyncFix = !!pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_VMRSYNCFIX), FALSE);
 		iDX9Resizer = pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_DX9_RESIZER), 1);
 		AudioRendererDisplayName = pApp->GetProfileString(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_AUDIORENDERERTYPE), _T(""));
 		fAutoloadAudio = !!pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_AUTOLOADAUDIO), TRUE);
@@ -1466,7 +1497,8 @@ void CMPlayerCApp::Settings::UpdateData(bool fSave)
 		nJumpDistM = pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_JUMPDISTM), 5000);
 		nJumpDistL = pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_JUMPDISTL), 20000);
 		fFreeWindowResizing = pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_FREEWINDOWRESIZING), TRUE);
-		fNotifyMSN = pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_NOTIFYMSN), TRUE);
+		fNotifyMSN = pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_NOTIFYMSN), FALSE);
+		fNotifyGTSdll = pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_NOTIFYGTSDLL), FALSE);
 
 		Formats.UpdateData(false);
 
@@ -1532,145 +1564,64 @@ void CMPlayerCApp::Settings::UpdateData(bool fSave)
 		{
 			pApp->WriteProfileString(_T("Shaders"), NULL, NULL);
 
-			CString hdr = 
-				_T("|ps_2_0|")
-				_T("sampler s0 : register(s0);\\n")
-				_T("float4 p0 : register(c0);\\n")
-				_T("float4 p1 : register(c1);\\n")
-				_T("\\n")
-				_T("#define width (p0[0])\\n")
-				_T("#define height (p0[1])\\n")
-				_T("#define counter (p0[2])\\n")
-				_T("#define clock (p0[3])\\n")
-				_T("#define one_over_width (p1[0])\\n")
-				_T("#define one_over_height (p1[1])\\n")
-				_T("\\n")
-				_T("#define PI acos(-1)\\n")
-				_T("\\n")
-				_T("float4 main(float2 tex : TEXCOORD0) : COLOR\\n")
-				_T("{\\n");
+			CAtlMap<UINT, CString> shaders;
 
-			CString ftr = 
-				_T("\\t\\n")
-				_T("\\treturn c0;\\n}")
-				_T("\\n");
+			shaders[IDR_SHADER_CONTOUR] = _T("contour");
+			shaders[IDR_SHADER_DEINTERLACE] = _T("deinterlace (blend)");
+			shaders[IDR_SHADER_EMBOSS] = _T("emboss");
+			shaders[IDR_SHADER_GRAYSCALE] = _T("grayscale");
+			shaders[IDR_SHADER_INVERT] = _T("invert");
+			shaders[IDR_SHADER_LETTERBOX] = _T("letterbox");
+			shaders[IDR_SHADER_SHARPEN] = _T("sharpen");
+			shaders[IDR_SHADER_SPHERE] = _T("sphere");
+			shaders[IDR_SHADER_SPOTLIGHT] = _T("spotlight");
+			shaders[IDR_SHADER_WAVE] = _T("wave");
 
-			pApp->WriteProfileString(_T("Shaders"), _T("0"), _T("contour") + hdr + 
-				_T("\\tfloat dx = 4/width;\\n")
-				_T("\\tfloat dy = 4/height;\\n")
-				_T("\\t\\n")
-				_T("\\tfloat4 c2 = tex2D(s0, tex + float2(0,-dy));\\n")
-				_T("\\tfloat4 c4 = tex2D(s0, tex + float2(-dx,0));\\n")
-				_T("\\tfloat4 c5 = tex2D(s0, tex + float2(0,0));\\n")
-				_T("\\tfloat4 c6 = tex2D(s0, tex + float2(dx,0));\\n")
-				_T("\\tfloat4 c8 = tex2D(s0, tex + float2(0,dy));\\n")
-				_T("\\t\\n")
-				_T("\\tfloat4 c0 = (-c2-c4+c5*4-c6-c8);\\n")
-				_T("\\tif(length(c0) < 1.0) c0 = float4(0,0,0,0);\\n")
-				_T("\\telse c0 = float4(1,1,1,0);\\n") + ftr);
+			POSITION pos = shaders.GetStartPosition();
+			for(int i = 0; pos; i++)
+			{
+				CAtlMap<UINT, CString>::CPair* pPair = shaders.GetNext(pos);
 
-			pApp->WriteProfileString(_T("Shaders"), _T("1"), _T("deinterlace (blend)") + hdr + 
-				_T("\\tfloat4 c0 = tex2D(s0, tex);\\n")
-				_T("\\t\\n")
-				_T("\\tfloat2 h = float2(0, 1/height);\\n")
-				_T("\\tfloat4 c1 = tex2D(s0, tex-h);\\n")
-				_T("\\tfloat4 c2 = tex2D(s0, tex+h);\\n")
-				_T("\\tc0 = (c0*2+c1+c2)/4;\\n") + ftr);
+				CStringA srcdata;
+				if(LoadResource(pPair->m_key, srcdata, _T("FILE")))
+				{
+					srcdata.Replace("\n", "\\n");
+					srcdata.Replace("\t", "\\t");
 
-			pApp->WriteProfileString(_T("Shaders"), _T("2"), _T("emboss") + hdr + 
-				_T("\\tfloat dx = 1/width;\\n")
-				_T("\\tfloat dy = 1/height;\\n")
-				_T("\\t\\n")
-				_T("\\tfloat4 c1 = tex2D(s0, tex + float2(-dx,-dy));\\n")
-				_T("\\tfloat4 c2 = tex2D(s0, tex + float2(0,-dy));\\n")
-				_T("\\tfloat4 c4 = tex2D(s0, tex + float2(-dx,0));\\n")
-				_T("\\tfloat4 c6 = tex2D(s0, tex + float2(dx,0));\\n")
-				_T("\\tfloat4 c8 = tex2D(s0, tex + float2(0,dy));\\n")
-				_T("\\tfloat4 c9 = tex2D(s0, tex + float2(dx,dy));\\n")
-				_T("\\t\\n")
-				_T("\\tfloat4 c0 = (-c1-c2-c4+c6+c8+c9);\\n")
-				_T("\\tc0 = (c0.r+c0.g+c0.b)/3 + 0.5;\\n") + ftr);
-
-			pApp->WriteProfileString(_T("Shaders"), _T("3"), _T("grayscale") + hdr + 
-				_T("\\tfloat c0 = dot(tex2D(s0, tex), float4(0.299, 0.587, 0.114, 0));\\n") + ftr);
-
-			pApp->WriteProfileString(_T("Shaders"), _T("4"), _T("invert") + hdr + 
-				_T("\\tfloat4 c0 = float4(1, 1, 1, 1) - tex2D(s0, tex);\\n") + ftr);
-
-			pApp->WriteProfileString(_T("Shaders"), _T("5"), _T("letterbox") + hdr + 
-				_T("\\tfloat4 c0 = 0;\\n")
-				_T("\\t\\n")
-				_T("\\tfloat2 ar = float2(16, 9);\\n")
-				_T("\\tfloat h = (1 - width/height * ar.y/ar.x) / 2;\\n")
-				_T("\\t\\n")
-				_T("\\tif(tex.y >= h && tex.y <= 1-h)\\n")
-				_T("\\t\\tc0 = tex2D(s0, tex);\\n") + ftr);
-
-			pApp->WriteProfileString(_T("Shaders"), _T("6"), _T("sphere") + hdr + 
-				_T("\\t// - this is a very simple raytracer, one sphere only\\n")
-				_T("\\t// - no reflection or refraction, yet (my ati 9800 has a 64 + 32 instruction limit...)\\n")
-				_T("\\t\\n")
-				_T("\\tfloat3 pl = float3(3,-3,-4); // light pos\\n")
-				_T("\\tfloat4 cl = 0.4; // light color\\n")
-				_T("\\t\\n")
-				_T("\\tfloat3 pc = float3(0,0,-1); // cam pos\\n")
-				_T("\\tfloat3 ps = float3(0,0,0.5); // sphere pos\\n")
-				_T("\\tfloat r = 0.65; // sphere radius\\n")
-				_T("\\t\\n")
-				_T("\\tfloat3 pd = normalize(float3(tex.x-0.5, tex.y-0.5, 0) - pc);\\n")
-				_T("\\t\\n")
-				_T("\\tfloat A = 1;\\n")
-				_T("\\tfloat B = 2*dot(pd, pc - ps);\\n")
-				_T("\\tfloat C = dot(pc - ps, pc - ps) - r*r;\\n")
-				_T("\\tfloat D = B*B - 4*A*C;\\n")
-				_T("\\t\\n")
-				_T("\\tfloat4 c0 = 0;\\n")
-				_T("\\t\\n")
-				_T("\\tif(D >= 0)\\n")
-				_T("\\t{\\n")
-				_T("\\t\\t// t2 is the smaller, obviously...\\n")
-				_T("\\t\\t// float t1 = (-B + sqrt(D)) / (2*A);\\n")
-				_T("\\t\\t// float t2 = (-B - sqrt(D)) / (2*A);\\n")
-				_T("\\t\\t// float t = min(t1, t2); \\n")
-				_T("\\t\\t\\n")
-				_T("\\t\\tfloat t = (-B - sqrt(D)) / (2*A);\\n")
-				_T("\\t\\t\\n")
-				_T("\\t\\t// intersection data\\n")
-				_T("\\t\\tfloat3 p = pc + pd*t;\\n")
-				_T("\\t\\tfloat3 n = normalize(p - ps);\\n")
-				_T("\\t\\tfloat3 l = normalize(pl - p);\\n")
-				_T("\\t\\t\\n")
-				_T("\\t\\t// mapping the image onto the sphere\\n")
-				_T("\\t\\ttex = acos(-n)/PI; \\n")
-				_T("\\t\\t\\n")
-				_T("\\t\\t// rotate it\\n")
-				_T("\\t\\ttex.x = frac(tex.x + frac(clock/10));\\n")
-				_T("\\t\\t\\n")
-				_T("\\t\\t// diffuse + specular\\n")
-				_T("\\t\\tc0 = tex2D(s0, tex) * dot(n, l) + cl * pow(max(dot(l, reflect(pd, n)), 0), 50);\\n")
-				_T("\\t}\\n") + ftr);
-
-			pApp->WriteProfileString(_T("Shaders"), _T("7"), _T("spotlight") + hdr + 
-				_T("\\tfloat4 c0 = tex2D(s0, tex);\\n")
-				_T("\\tfloat3 lightsrc = float3(sin(clock*PI/1.5)/2+0.5,cos(clock*PI)/2+0.5,1);\\n")
-				_T("\\tfloat3 light = normalize(lightsrc - float3(tex.x,tex.y,0));\\n")
-				_T("\\tc0 *= pow(dot(light, float3(0,0,1)), 50);\\n") + ftr);
-
-			pApp->WriteProfileString(_T("Shaders"), _T("8"), _T("wave") + hdr + 
-				_T("\\t// don't look at this for too long, you'll get dizzy :)\\n")
-				_T("\\t\\n")
-				_T("\\tfloat4 c0 = 0;\\n")
-				_T("\\t\\n")
-				_T("\\ttex.x += sin(tex.x+clock/0.3)/20;\\n")
-				_T("\\ttex.y += sin(tex.x+clock/0.3)/20;\\n")
-				_T("\\t\\n")
-				_T("\\tif(tex.x >= 0 && tex.x <= 1 && tex.y >= 0 && tex.y <= 1)\\n")
-				_T("\\t{\\n")
-				_T("\\t\\tc0 = tex2D(s0, tex);\\n")
-				_T("\\t}\\n") + ftr);
+					CString index;
+					index.Format(_T("%d"), i);
+					pApp->WriteProfileString(_T("Shaders"), index, pPair->m_value + _T("|ps_2_0|") + CString(srcdata));
+				}
+			}
 
 			pApp->WriteProfileInt(_T("Shaders"), _T("Initialized"), 1);
 		}
+
+		m_shaders.RemoveAll();
+
+		for(int i = 0; ; i++)
+		{
+			CString str;
+			str.Format(_T("%d"), i);
+			str = pApp->GetProfileString(_T("Shaders"), str);
+
+			CList<CString> sl;
+			CString label = Explode(str, sl, '|');
+			if(label.IsEmpty()) break;
+			if(sl.GetCount() < 3) continue;
+
+			Shader s;
+			s.label = sl.RemoveHead();
+			s.target = sl.RemoveHead();
+			s.srcdata = sl.RemoveHead();
+			s.srcdata.Replace(_T("\\n"), _T("\n"));
+			s.srcdata.Replace(_T("\\t"), _T("\t"));
+			m_shaders.AddTail(s);
+		}
+
+		// TODO: sort shaders by label
+
+		m_shadercombine = pApp->GetProfileString(_T("Shaders"), _T("Combine"), _T(""));
 
 		fInitialized = true;
 	}

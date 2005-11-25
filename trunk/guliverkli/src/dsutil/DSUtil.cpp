@@ -1015,38 +1015,43 @@ void memsetd(void* dst, unsigned int c, int nbytes)
 
 bool ExtractBIH(const AM_MEDIA_TYPE* pmt, BITMAPINFOHEADER* bih)
 {
-	if(pmt)
+	if(pmt && bih)
 	{
+		memset(bih, 0, sizeof(*bih));
+
 		if(pmt->formattype == FORMAT_VideoInfo)
 		{
 			VIDEOINFOHEADER* vih = (VIDEOINFOHEADER*)pmt->pbFormat;
 			memcpy(bih, &vih->bmiHeader, sizeof(BITMAPINFOHEADER));
+			return true;
 		}
 		else if(pmt->formattype == FORMAT_VideoInfo2)
 		{
 			VIDEOINFOHEADER2* vih = (VIDEOINFOHEADER2*)pmt->pbFormat;
 			memcpy(bih, &vih->bmiHeader, sizeof(BITMAPINFOHEADER));
+			return true;
 		}
 		else if(pmt->formattype == FORMAT_MPEGVideo)
 		{
 			VIDEOINFOHEADER* vih = &((MPEG1VIDEOINFO*)pmt->pbFormat)->hdr;
 			memcpy(bih, &vih->bmiHeader, sizeof(BITMAPINFOHEADER));
+			return true;
 		}
 		else if(pmt->formattype == FORMAT_MPEG2_VIDEO)
 		{
 			VIDEOINFOHEADER2* vih = &((MPEG2VIDEOINFO*)pmt->pbFormat)->hdr;
 			memcpy(bih, &vih->bmiHeader, sizeof(BITMAPINFOHEADER));
+			return true;
 		}
 		else if(pmt->formattype == FORMAT_DiracVideoInfo)
 		{
 			VIDEOINFOHEADER2* vih = &((DIRACINFOHEADER*)pmt->pbFormat)->hdr;
 			memcpy(bih, &vih->bmiHeader, sizeof(BITMAPINFOHEADER));
+			return true;
 		}
-
-		return(true);
 	}
 	
-	return(false);
+	return false;
 }
 
 bool ExtractBIH(IMediaSample* pMS, BITMAPINFOHEADER* bih)

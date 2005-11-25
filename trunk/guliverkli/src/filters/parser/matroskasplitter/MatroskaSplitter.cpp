@@ -184,12 +184,9 @@ HRESULT CMatroskaSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 				else if(CodecID == "V_UNCOMPRESSED")
 				{
 				}
-				else if(CodecID.Find("V_MPEG4/ISO/AVC") == 0)
+				else if(CodecID.Find("V_MPEG4/ISO/AVC") == 0 && pTE->CodecPrivate.GetSize() >= 6)
 				{
-					if(pTE->CodecPrivate.GetSize() >= 6)
-					{
 					BYTE sps = pTE->CodecPrivate[5] & 0x1f;
-
 
 	std::vector<BYTE> avcC;
 	for(int i = 0, j = pTE->CodecPrivate.GetSize(); i < j; i++)
@@ -244,35 +241,33 @@ avcsuccess:
 					pm2vi->hdr.bmiHeader.biSize = sizeof(pm2vi->hdr.bmiHeader);
 					pm2vi->hdr.bmiHeader.biWidth = (LONG)pTE->v.PixelWidth;
 					pm2vi->hdr.bmiHeader.biHeight = (LONG)pTE->v.PixelHeight;
-					pm2vi->hdr.bmiHeader.biCompression = '1cva';
+					pm2vi->hdr.bmiHeader.biCompression = '1CVA';
 					pm2vi->hdr.bmiHeader.biPlanes = 1;
 					pm2vi->hdr.bmiHeader.biBitCount = 24;
-
 					pm2vi->dwProfile = pTE->CodecPrivate[1];
 					pm2vi->dwLevel = pTE->CodecPrivate[3];
 					pm2vi->dwFlags = (pTE->CodecPrivate[4] & 3) + 1;
-
 					BYTE* pSequenceHeader = (BYTE*)pm2vi->dwSequenceHeader;
 					memcpy(pSequenceHeader, data.GetData(), data.GetSize());
 					pm2vi->cbSequenceHeader = data.GetSize();
-
 					mts.Add(mt);
-
-					}
 				}
-				else if(CodecID.Find("V_MPEG4/") == 0) // TODO: find out which V_MPEG4/*/* ids can be mapped to 'mp4v'
+				else if(CodecID.Find("V_MPEG4/") == 0)
 				{
-					mt.subtype = FOURCCMap('v4pm');
-					mt.formattype = FORMAT_VideoInfo;
-					VIDEOINFOHEADER* pvih = (VIDEOINFOHEADER*)mt.AllocFormatBuffer(sizeof(VIDEOINFOHEADER));
-					memset(pvih, 0, mt.FormatLength());
-					pvih->bmiHeader.biSize = sizeof(pvih->bmiHeader);
-					pvih->bmiHeader.biWidth = (LONG)pTE->v.PixelWidth;
-					pvih->bmiHeader.biHeight = (LONG)pTE->v.PixelHeight;
-					pvih->bmiHeader.biCompression = 'v4pm';
+					mt.subtype = FOURCCMap('V4PM');
+					mt.formattype = FORMAT_MPEG2Video;
+					MPEG2VIDEOINFO* pm2vi = (MPEG2VIDEOINFO*)mt.AllocFormatBuffer(FIELD_OFFSET(MPEG2VIDEOINFO, dwSequenceHeader) + pTE->CodecPrivate.GetCount());
+					memset(mt.Format(), 0, mt.FormatLength());
+					pm2vi->hdr.bmiHeader.biSize = sizeof(pm2vi->hdr.bmiHeader);
+					pm2vi->hdr.bmiHeader.biWidth = (LONG)pTE->v.PixelWidth;
+					pm2vi->hdr.bmiHeader.biHeight = (LONG)pTE->v.PixelHeight;
+					pm2vi->hdr.bmiHeader.biCompression = 'V4PM';
+					pm2vi->hdr.bmiHeader.biPlanes = 1;
+					pm2vi->hdr.bmiHeader.biBitCount = 24;
+					BYTE* pSequenceHeader = (BYTE*)pm2vi->dwSequenceHeader;
+					memcpy(pSequenceHeader, pTE->CodecPrivate.GetData(), pTE->CodecPrivate.GetCount());
+					pm2vi->cbSequenceHeader = pTE->CodecPrivate.GetCount();
 					mts.Add(mt);
-
-					// TODO: add (-1,0) dummy frame to timeoverride when it is /asp (that is having b-frames almost certainly)
 				}
 				else if(CodecID.Find("V_REAL/RV") == 0)
 				{
@@ -513,12 +508,26 @@ avcsuccess:
 						mts.InsertAt(0, mt);
 					}
 				}
+				else if(CodecID.Find("A_AAC") == 0 && pTE->CodecPrivate.GetCount() > 0)
+				{
+					mt.subtype = FOURCCMap(pwfe->wFormatTag = WAVE_FORMAT_AAC);
+
+					WORD cbSize = pTE->CodecPrivate.GetCount();
+					pwfe = (WAVEFORMATEX*)mt.ReallocFormatBuffer(sizeof(WAVEFORMATEX) + cbSize);
+					pwfe->cbSize = cbSize;
+					memcpy(pwfe + 1, pTE->CodecPrivate.GetData(), pTE->CodecPrivate.GetCount());
+
+					mts.Add(mt);
+				}
 				else if(CodecID.Find("A_REAL/") == 0 && CodecID.GetLength() >= 11)
 				{
-					mt.bTemporalCompression = TRUE;
 					mt.subtype = FOURCCMap((DWORD)CodecID[7]|((DWORD)CodecID[8]<<8)|((DWORD)CodecID[9]<<16)|((DWORD)CodecID[10]<<24));
-					BYTE* p = mt.ReallocFormatBuffer(sizeof(WAVEFORMATEX) + pTE->CodecPrivate.GetCount());
-					memcpy(p + sizeof(WAVEFORMATEX), pTE->CodecPrivate.GetData(), pTE->CodecPrivate.GetCount());
+					mt.bTemporalCompression = TRUE;
+
+					WORD cbSize = pTE->CodecPrivate.GetCount();
+					pwfe = (WAVEFORMATEX*)mt.ReallocFormatBuffer(sizeof(WAVEFORMATEX) + cbSize);
+					pwfe->cbSize = cbSize;
+					memcpy(pwfe + 1, pTE->CodecPrivate.GetData(), pTE->CodecPrivate.GetCount());
 
 					mts.Add(mt);
 				}
@@ -619,7 +628,7 @@ avcsuccess:
 				CArray<BYTE> pData;
 				pData.SetSize(pF->FileDataLen);
 				m_pFile->Seek(pF->FileDataPos);
-				if(SUCCEEDED(m_pFile->Read(pData.GetData(), pData.GetSize())))
+				if(SUCCEEDED(m_pFile->ByteRead(pData.GetData(), pData.GetSize())))
 					ResAppend(pF->FileName, pF->FileDescription, CStringW(pF->FileMimeType), pData.GetData(), pData.GetSize());
 			}
 		}
@@ -678,7 +687,7 @@ void CMatroskaSplitterFilter::InstallFonts()
 				{
 					m_pFile->Seek(pF->FileDataPos);
 
-					if(SUCCEEDED(m_pFile->Read(pData, pF->FileDataLen)))
+					if(SUCCEEDED(m_pFile->ByteRead(pData, pF->FileDataLen)))
 						m_fontinst.InstallFont(pData, (UINT)pF->FileDataLen);
 
 					delete [] pData;
@@ -731,10 +740,10 @@ void CMatroskaSplitterFilter::SendVorbisHeaderSample()
 				p->TrackNumber = (DWORD)pTE->TrackNumber;
 				p->rtStart = 0; p->rtStop = 1;
 				p->bSyncPoint = FALSE;
-				p->pData.SetSize(len);
-				memcpy(p->pData.GetData(), ptr, len);
+				
+				p->SetData(ptr, len);
 				ptr += len;
-
+				
 				hr = DeliverPacket(p);
 			}
 
@@ -952,12 +961,14 @@ bool CMatroskaSplitterFilter::DemuxLoop()
 				p->bSyncPoint = !p->bg->ReferenceBlock.IsValid();
 				p->TrackNumber = (DWORD)p->bg->Block.TrackNumber;
 
-				TrackEntry *pTE = m_pTrackEntryMap[p->TrackNumber];
+				TrackEntry* pTE = m_pTrackEntryMap[p->TrackNumber];
+				if(!pTE) continue;
+
 				p->rtStart = m_pFile->m_segment.GetRefTime((REFERENCE_TIME)c.TimeCode + p->bg->Block.TimeCode);
 				p->rtStop = p->rtStart + (p->bg->BlockDuration.IsValid() ? m_pFile->m_segment.GetRefTime(p->bg->BlockDuration) : 1);
 
 				// Fix subtitle with duration = 0
-				if(pTE && (pTE->TrackType == TrackEntry::TypeSubtitle) && (!p->bg->BlockDuration.IsValid()))
+				if(pTE->TrackType == TrackEntry::TypeSubtitle && !p->bg->BlockDuration.IsValid())
 				{
 					p->bg->BlockDuration.Set(1); // just setting it to be valid
 					p->rtStop = p->rtStart;
@@ -967,7 +978,7 @@ bool CMatroskaSplitterFilter::DemuxLoop()
 				while(pos)
 				{
 					CBinary* pb = p->bg->Block.BlockData.GetNext(pos);
-					m_pTrackEntryMap[p->TrackNumber]->Expand(*pb, ContentEncoding::AllFrameContents);
+					pTE->Expand(*pb, ContentEncoding::AllFrameContents);
 				}
 
 				// HACK
@@ -1064,7 +1075,7 @@ CMatroskaSplitterOutputPin::CMatroskaSplitterOutputPin(
 	: CBaseSplitterOutputPin(mts, pName, pFilter, pLock, phr)
 	, m_nMinCache(nMinCache), m_rtDefaultDuration(rtDefaultDuration)
 {
-	m_nMinCache = max(m_nMinCache, 1);
+	m_nMinCache = 1;//max(m_nMinCache, 1);
 }
 
 CMatroskaSplitterOutputPin::~CMatroskaSplitterOutputPin()

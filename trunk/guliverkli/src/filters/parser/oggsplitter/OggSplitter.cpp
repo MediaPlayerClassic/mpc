@@ -827,8 +827,7 @@ HRESULT COggVorbisOutputPin::UnpackPacket(CAutoPtr<OggPacket>& p, BYTE* pData, i
 	p->bSyncPoint = TRUE;
 	p->rtStart = m_rtLast;
 	p->rtStop = m_rtLast+1;
-	p->pData.SetSize(len);
-	memcpy(p->pData.GetData(), pData, len);
+	p->SetData(pData, len);
 
 	return S_OK;
 }
@@ -915,8 +914,7 @@ HRESULT COggDirectShowOutputPin::UnpackPacket(CAutoPtr<OggPacket>& p, BYTE* pDat
 		p->bSyncPoint = !!(hdr&8);
 		p->rtStart = m_rtLast;
 		p->rtStop = m_rtLast + (nLenBytes ? GetRefTime(Length) : GetRefTime(1));
-		p->pData.SetSize(len - i);
-		memcpy(p->pData.GetData(), &pData[i], len - i);
+		p->SetData(&pData[i], len - i);
 
 		return S_OK;
 	}
@@ -959,8 +957,7 @@ HRESULT COggStreamOutputPin::UnpackPacket(CAutoPtr<OggPacket>& p, BYTE* pData, i
 		p->bSyncPoint = !!(hdr&8);
 		p->rtStart = m_rtLast;
 		p->rtStop = m_rtLast + (nLenBytes ? GetRefTime(Length) : GetRefTime(m_default_len));
-		p->pData.SetSize(len - i);
-		memcpy(p->pData.GetData(), &pData[i], len - i);
+		p->SetData(&pData[i], len - i);
 
 		return S_OK;
 	}

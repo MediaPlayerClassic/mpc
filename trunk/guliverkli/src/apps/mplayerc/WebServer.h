@@ -27,12 +27,12 @@ class CWebServer
 	CAutoPtrList<CWebClientSocket> m_clients;
 
 	typedef bool (CWebClientSocket::*RequestHandler)(CStringA& hdr, CStringA& body, CStringA& mime);
-	static CAtlMap<CString, RequestHandler, CStringElementTraits<CString> > m_internalpages;
-	static CAtlMap<CString, UINT, CStringElementTraits<CString> > m_downloads;
-	static CAtlMap<CStringA, CStringA, CStringElementTraits<CStringA> > m_mimes;
+	static CAtlStringMap<RequestHandler> m_internalpages;
+	static CAtlStringMap<UINT> m_downloads;
+	static CAtlStringMap<CStringA, CStringA> m_mimes;
 	CPath m_webroot;
 
-	CAtlMap<CString, CString, CStringElementTraits<CString> > m_cgi;
+	CAtlStringMap<> m_cgi;
 	bool CallCGI(CWebClientSocket* pClient, CStringA& hdr, CStringA& body, CStringA& mime);
 
 public:

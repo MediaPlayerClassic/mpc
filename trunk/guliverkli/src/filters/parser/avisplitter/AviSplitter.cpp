@@ -551,9 +551,9 @@ bool CAviSplitterFilter::DemuxLoop()
 			p->bDiscontinuity = fDiscontinuity[minTrack];
 			p->rtStart = s->GetRefTime(f, s->cs[f].size);
 			p->rtStop = s->GetRefTime(f+1, f+1 < (DWORD)s->cs.GetCount() ? s->cs[f+1].size : s->totalsize);
+			
 			p->pData.SetSize(size);
-
-			if(S_OK != (hr = m_pFile->Read(p->pData.GetData(), p->pData.GetSize()))) 
+			if(S_OK != (hr = m_pFile->ByteRead(p->pData.GetData(), p->pData.GetSize()))) 
 				return(true); // break;
 /*
 			DbgLog((LOG_TRACE, 0, _T("%d (%d): %I64d - %I64d, %I64d - %I64d (size = %d)"), 

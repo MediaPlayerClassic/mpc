@@ -411,6 +411,7 @@ public:
 		int nJumpDistL;
 		bool fFreeWindowResizing;
 		bool fNotifyMSN;
+		bool fNotifyGTSdll;
 
 		bool fEnableAudioSwitcher;
 		bool fDownSampleTo441;
@@ -471,6 +472,10 @@ public:
 		CString SnapShotPath, SnapShotExt;
 
 		CString ISDb;
+
+		struct Shader {CString label, target, srcdata;};
+		CAtlList<Shader> m_shaders;
+		CString m_shadercombine;
 
 	public:
 		Settings();

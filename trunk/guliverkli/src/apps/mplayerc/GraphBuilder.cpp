@@ -981,6 +981,14 @@ HRESULT CGraphBuilder::AddSourceFilter(LPCTSTR lpsz, IBaseFilter** ppBF, UINT Sr
 				hr = pReader.CoCreateInstance(AfxGetAppSettings().fUseWMASFReader ? CLSID_WMAsfReader : CLSID_NetShowSource);
 				if(SUCCEEDED(hr) && SUCCEEDED(pReader->Load(fnw, NULL)))
 					pBF = pReader;
+
+				if(!pBF)
+				{
+					pReader = NULL;
+					hr = pReader.CoCreateInstance(!AfxGetAppSettings().fUseWMASFReader ? CLSID_WMAsfReader : CLSID_NetShowSource);
+					if(SUCCEEDED(hr) && SUCCEEDED(pReader->Load(fnw, NULL)))
+						pBF = pReader;
+				}
 			}
 		}
 /*
