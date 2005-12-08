@@ -527,19 +527,21 @@ public:
 	afx_msg void OnUpdateFileSaveas(CCmdUI* pCmdUI);
 	afx_msg void OnFileSaveImage();
 	afx_msg void OnFileSaveImageAuto();
-	afx_msg void OnUpdateFileSaveImage(CCmdUI *pCmdUI);
+	afx_msg void OnUpdateFileSaveImage(CCmdUI* pCmdUI);
 	afx_msg void OnFileConvert();
 	afx_msg void OnUpdateFileConvert(CCmdUI* pCmdUI);
+	afx_msg void OnStreamDemuxer();
+	afx_msg void OnUpdateStreamDemuxer(CCmdUI* pCmdUI);
 	afx_msg void OnFileLoadsubtitles();
 	afx_msg void OnUpdateFileLoadsubtitles(CCmdUI* pCmdUI);
 	afx_msg void OnFileSavesubtitles();
 	afx_msg void OnUpdateFileSavesubtitles(CCmdUI* pCmdUI);
 	afx_msg void OnSubtitledatabaseSearch();
-	afx_msg void OnUpdateSubtitledatabaseSearch(CCmdUI *pCmdUI);
+	afx_msg void OnUpdateSubtitledatabaseSearch(CCmdUI* pCmdUI);
 	afx_msg void OnSubtitledatabaseUpload();
-	afx_msg void OnUpdateSubtitledatabaseUpload(CCmdUI *pCmdUI);
+	afx_msg void OnUpdateSubtitledatabaseUpload(CCmdUI* pCmdUI);
 	afx_msg void OnSubtitledatabaseDownload();
-	afx_msg void OnUpdateSubtitledatabaseDownload(CCmdUI *pCmdUI);
+	afx_msg void OnUpdateSubtitledatabaseDownload(CCmdUI* pCmdUI);
 	afx_msg void OnFileProperties();
 	afx_msg void OnUpdateFileProperties(CCmdUI* pCmdUI);
 	afx_msg void OnFileClosePlaylist();
@@ -547,7 +549,7 @@ public:
 	afx_msg void OnUpdateFileClose(CCmdUI* pCmdUI);
 
 	afx_msg void OnViewCaptionmenu();
-	afx_msg void OnUpdateViewCaptionmenu(CCmdUI *pCmdUI);
+	afx_msg void OnUpdateViewCaptionmenu(CCmdUI* pCmdUI);
 	afx_msg void OnViewControlBar(UINT nID);
 	afx_msg void OnUpdateViewControlBar(CCmdUI* pCmdUI);
 	afx_msg void OnViewSubresync();
@@ -646,6 +648,6 @@ public:
 	afx_msg void OnHelpHomepage();
 	afx_msg void OnHelpDocumentation();
 	afx_msg void OnHelpDonate();
-public:
+
 	afx_msg void OnClose();
 };

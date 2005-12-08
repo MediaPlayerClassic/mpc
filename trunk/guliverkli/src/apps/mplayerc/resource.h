@@ -304,6 +304,8 @@
 #define IDD_DIALOG4                     418
 #define IDD_SHADERCOMBINEDLG            418
 #define IDR_SHADER_SHARPEN              419
+#define IDD_DIALOG5                     420
+#define IDD_STREAM_DEMUXER_DLG          420
 #define IDS_R_SETTINGS                  500
 #define IDS_RS_CONTROLSTATE             501
 #define IDS_RS_VOLUME                   502
@@ -450,7 +452,6 @@
 #define IDC_VOLUMESLIDER                1020
 #define IDC_SLIDER2                     1020
 #define IDC_COMBO9                      1020
-#define IDC_BROWSEBUTTON3               1020
 #define IDC_SLIDER3                     1021
 #define IDC_COMBO12                     1021
 #define IDC_RADIO1                      1022
@@ -756,6 +757,7 @@
 #define ID_PLAY_RESETRATE               32872
 #define ID_HELP_DOCUMENTATION           32873
 #define ID_VIEW_SHADEREDITOR32874       32874
+#define ID_UTILS_STREAMDEMUXER          32875
 #define ID_FILTERS_SUBITEM_START        33000
 #define ID_FILTERS_SUBITEM_END          33099
 #define ID_FILTERSTREAMS_SUBITEM_START  33100
@@ -789,8 +791,8 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        420
-#define _APS_NEXT_COMMAND_VALUE         32875
+#define _APS_NEXT_RESOURCE_VALUE        421
+#define _APS_NEXT_COMMAND_VALUE         32876
 #define _APS_NEXT_CONTROL_VALUE         1170
 #define _APS_NEXT_SYMED_VALUE           10003
 #endif

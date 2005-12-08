@@ -67,9 +67,10 @@ protected:
 	CComPtr<IDirect3DTexture9> m_pVideoTexture[3];
 	CComPtr<IDirect3DSurface9> m_pVideoSurface[3];
 	CInterfaceList<IDirect3DPixelShader9> m_pPixelShaders;
-	CComPtr<IDirect3DPixelShader9> m_pResizerPixelShader[5];
-	CComPtr<IDirect3DTexture9> m_pResizerBicubicLUT;
-	D3DTEXTUREFILTERTYPE m_Filter;
+	CComPtr<IDirect3DPixelShader9> m_pResizerPixelShader[5]; // bl, bc1, bc2, bc1lut, bc2lut 
+	CComPtr<IDirect3DTexture9> m_pResizerBicubic1stPass;
+	D3DTEXTUREFILTERTYPE m_filter;
+	D3DCAPS9 m_caps;
 
 	CAutoPtr<CPixelShaderCompiler> m_pPSC;
 
@@ -77,10 +78,16 @@ protected:
 	virtual HRESULT AllocSurfaces();
 	virtual void DeleteSurfaces();
 
-    UINT  GetAdapter(IDirect3D9 *pD3D);
+    UINT GetAdapter(IDirect3D9 *pD3D);
 
 	float m_bicubicA;
-	HRESULT InitBicubicLUT(float A);
+	HRESULT InitResizers(float bicubicA);
+
+	HRESULT TextureCopy(CComPtr<IDirect3DTexture9> pTexture);
+	HRESULT TextureResize(CComPtr<IDirect3DTexture9> pTexture, Vector dst[4], D3DTEXTUREFILTERTYPE filter);
+	HRESULT TextureResizeBilinear(CComPtr<IDirect3DTexture9> pTexture, Vector dst[4]);
+	HRESULT TextureResizeBicubic1pass(CComPtr<IDirect3DTexture9> pTexture, Vector dst[4]);
+	HRESULT TextureResizeBicubic2pass(CComPtr<IDirect3DTexture9> pTexture, Vector dst[4]);
 
 public:
 	CDX9AllocatorPresenter(HWND hWnd, HRESULT& hr);
@@ -227,154 +234,71 @@ HRESULT CreateAP9(const CLSID& clsid, HWND hWnd, ISubPicAllocatorPresenter** ppA
 
 //
 
-static HRESULT TextureBlt(CComPtr<IDirect3DTexture9> pTexture, Vector dst[4], CRect src, DWORD filter = D3DTEXF_LINEAR)
+#pragma pack(push, 1)
+template<int texcoords>
+struct MYD3DVERTEX {float x, y, z, rhw; struct {float u, v;} t[texcoords];};
+#pragma pack(pop)
+
+template<int texcoords>
+static HRESULT TextureBlt(CComPtr<IDirect3DDevice9> pD3DDev, MYD3DVERTEX<texcoords> v[4], D3DTEXTUREFILTERTYPE filter = D3DTEXF_LINEAR)
 {
-	if(!pTexture)
+	if(!pD3DDev)
 		return E_POINTER;
 
-	CComPtr<IDirect3DDevice9> pD3DDev;
-	if(FAILED(pTexture->GetDevice(&pD3DDev)) || !pD3DDev)
-		return E_FAIL;
+	DWORD FVF = 0;
+
+	switch(texcoords)
+	{
+	case 1: FVF = D3DFVF_TEX1; break;
+	case 2: FVF = D3DFVF_TEX2; break;
+	case 3: FVF = D3DFVF_TEX3; break;
+	case 4: FVF = D3DFVF_TEX4; break;
+	case 5: FVF = D3DFVF_TEX5; break;
+	case 6: FVF = D3DFVF_TEX6; break;
+	case 7: FVF = D3DFVF_TEX7; break;
+	case 8: FVF = D3DFVF_TEX8; break;
+	default: return E_FAIL;
+	}
 
 	HRESULT hr;
 
     do
 	{
-		D3DSURFACE_DESC d3dsd;
-		ZeroMemory(&d3dsd, sizeof(d3dsd));
-		if(FAILED(pTexture->GetLevelDesc(0, &d3dsd)))
-			break;
-
-        float w = (float)d3dsd.Width;
-        float h = (float)d3dsd.Height;
-
-		struct
-		{
-			float x, y, z, rhw;
-			float tu, tv;
-		}
-		pVertices[] =
-		{
-//			{(float)dst[0].x, (float)dst[0].y, (float)dst[0].z, 1.0f/(float)dst[0].z, (float)src.left / w, (float)src.top / h },
-//			{(float)(dst[0].x + 2*(dst[1].x-dst[0].x)), (float)(dst[0].y + 2*(dst[1].y-dst[0].y)), (float)dst[1].z, 1.0f/(float)dst[1].z, (float)(src.left + 2*(src.right-src.left)) / w, (float)src.top / h},
-//			{(float)(dst[0].x + 2*(dst[2].x-dst[0].x)), (float)(dst[0].y + 2*(dst[2].y-dst[0].y)), (float)dst[2].z, 1.0f/(float)dst[2].z, (float)src.left / w, (float)(src.top + 2*(src.bottom-src.top)) / h},
-			{(float)dst[0].x, (float)dst[0].y, (float)dst[0].z, 1.0f/(float)dst[0].z, (float)src.left / w, (float)src.top / h},
-			{(float)dst[1].x, (float)dst[1].y, (float)dst[1].z, 1.0f/(float)dst[1].z, (float)src.right / w, (float)src.top / h},
-			{(float)dst[2].x, (float)dst[2].y, (float)dst[2].z, 1.0f/(float)dst[2].z, (float)src.left / w, (float)src.bottom / h},
-			{(float)dst[3].x, (float)dst[3].y, (float)dst[3].z, 1.0f/(float)dst[3].z, (float)src.right / w, (float)src.bottom / h},
-		};
-
-		for(int i = 0; i < countof(pVertices); i++)
-		{
-			pVertices[i].x -= 0.5;
-			pVertices[i].y -= 0.5;
-		}
-
-        hr = pD3DDev->SetTexture(0, pTexture);
-
         hr = pD3DDev->SetRenderState(D3DRS_CULLMODE, D3DCULL_NONE);
         hr = pD3DDev->SetRenderState(D3DRS_LIGHTING, FALSE);
 		hr = pD3DDev->SetRenderState(D3DRS_ZENABLE, FALSE);
     	hr = pD3DDev->SetRenderState(D3DRS_ALPHABLENDENABLE, FALSE);
 		hr = pD3DDev->SetRenderState(D3DRS_ALPHATESTENABLE, FALSE); 
 
-		hr = pD3DDev->SetSamplerState(0, D3DSAMP_MAGFILTER, filter);
-        hr = pD3DDev->SetSamplerState(0, D3DSAMP_MINFILTER, filter);
-        hr = pD3DDev->SetSamplerState(0, D3DSAMP_MIPFILTER, filter);
+		for(int i = 0; i < texcoords; i++)
+		{
+			hr = pD3DDev->SetSamplerState(i, D3DSAMP_MAGFILTER, filter);
+			hr = pD3DDev->SetSamplerState(i, D3DSAMP_MINFILTER, filter);
+			hr = pD3DDev->SetSamplerState(i, D3DSAMP_MIPFILTER, filter);
 
-		hr = pD3DDev->SetSamplerState(0, D3DSAMP_ADDRESSU, D3DTADDRESS_CLAMP);
-		hr = pD3DDev->SetSamplerState(0, D3DSAMP_ADDRESSV, D3DTADDRESS_CLAMP);
+			hr = pD3DDev->SetSamplerState(i, D3DSAMP_ADDRESSU, D3DTADDRESS_CLAMP);
+			hr = pD3DDev->SetSamplerState(i, D3DSAMP_ADDRESSV, D3DTADDRESS_CLAMP);
+		}
 
 		//
 
 		if(FAILED(hr = pD3DDev->BeginScene()))
 			break;
 
-        hr = pD3DDev->SetFVF(D3DFVF_XYZRHW | D3DFVF_TEX1);
-//	    hr = pD3DDev->DrawPrimitiveUP(D3DPT_TRIANGLELIST, 1, pVertices, sizeof(pVertices[0]));
-		hr = pD3DDev->DrawPrimitiveUP(D3DPT_TRIANGLESTRIP, 2, pVertices, sizeof(pVertices[0]));
+        hr = pD3DDev->SetFVF(D3DFVF_XYZRHW | FVF);
+		// hr = pD3DDev->DrawPrimitiveUP(D3DPT_TRIANGLESTRIP, 2, v, sizeof(v[0]));
+
+		MYD3DVERTEX<texcoords> tmp = v[2]; v[2] = v[3]; v[3] = tmp;
+		hr = pD3DDev->DrawPrimitiveUP(D3DPT_TRIANGLEFAN, 2, v, sizeof(v[0]));	
 
 		hr = pD3DDev->EndScene();
 
         //
 
-		pD3DDev->SetTexture(0, NULL);
-
-		return S_OK;
-    }
-	while(0);
-
-    return E_FAIL;
-}
-
-static HRESULT TextureBlt(CComPtr<IDirect3DTexture9> pTexture, CRect dst, CRect src, DWORD filter = D3DTEXF_LINEAR)
-{
-	if(!pTexture)
-		return E_POINTER;
-
-	CComPtr<IDirect3DDevice9> pD3DDev;
-	if(FAILED(pTexture->GetDevice(&pD3DDev)) || !pD3DDev)
-		return E_FAIL;
-
-	HRESULT hr;
-
-    do
-	{
-		D3DSURFACE_DESC d3dsd;
-		ZeroMemory(&d3dsd, sizeof(d3dsd));
-		if(FAILED(pTexture->GetLevelDesc(0, &d3dsd)))
-			break;
-
-        float w = (float)d3dsd.Width;
-        float h = (float)d3dsd.Height;
-
-		struct
+		for(int i = 0; i < texcoords; i++)
 		{
-			float x, y, z, rhw;
-			float tu, tv;
+			pD3DDev->SetTexture(i, NULL);
 		}
-		pVertices[] =
-		{
-			{(float)dst.left, (float)dst.top, 0.5f, 2.0f, (float)src.left / w, (float)src.top / h},
-			{(float)dst.right, (float)dst.top, 0.5f, 2.0f, (float)src.right / w, (float)src.top / h},
-			{(float)dst.left, (float)dst.bottom, 0.5f, 2.0f, (float)src.left / w, (float)src.bottom / h},
-			{(float)dst.right, (float)dst.bottom, 0.5f, 2.0f, (float)src.right / w, (float)src.bottom / h},
-		};
-
-		for(int i = 0; i < countof(pVertices); i++)
-		{
-			pVertices[i].x -= 0.5;
-			pVertices[i].y -= 0.5;
-		}
-
-        hr = pD3DDev->SetTexture(0, pTexture);
-
-        hr = pD3DDev->SetRenderState(D3DRS_CULLMODE, D3DCULL_NONE);
-        hr = pD3DDev->SetRenderState(D3DRS_LIGHTING, FALSE);
-		hr = pD3DDev->SetRenderState(D3DRS_ZENABLE, FALSE);
-    	hr = pD3DDev->SetRenderState(D3DRS_ALPHABLENDENABLE, FALSE);
-		hr = pD3DDev->SetRenderState(D3DRS_ALPHATESTENABLE, FALSE); 
-
-		hr = pD3DDev->SetSamplerState(0, D3DSAMP_MAGFILTER, filter);
-        hr = pD3DDev->SetSamplerState(0, D3DSAMP_MINFILTER, filter);
-        hr = pD3DDev->SetSamplerState(0, D3DSAMP_MIPFILTER, filter);
-
-		hr = pD3DDev->SetSamplerState(0, D3DSAMP_ADDRESSU, D3DTADDRESS_CLAMP);
-		hr = pD3DDev->SetSamplerState(0, D3DSAMP_ADDRESSV, D3DTADDRESS_CLAMP);
-
-		//
-
-		if(FAILED(hr = pD3DDev->BeginScene()))
-			break;
-
-        hr = pD3DDev->SetFVF(D3DFVF_XYZRHW | D3DFVF_TEX1);
-		hr = pD3DDev->DrawPrimitiveUP(D3DPT_TRIANGLESTRIP, 2, pVertices, sizeof(pVertices[0]));
-
-		hr = pD3DDev->EndScene();
-
-        //
-
-		pD3DDev->SetTexture(0, NULL);
 
 		return S_OK;
     }
@@ -438,6 +362,12 @@ HRESULT CDX9AllocatorPresenter::CreateDevice()
 						GetAdapter(m_pD3D), D3DDEVTYPE_HAL, m_hWnd,
 						D3DCREATE_SOFTWARE_VERTEXPROCESSING|D3DCREATE_MULTITHREADED, //D3DCREATE_MANAGED 
 						&pp, &m_pD3DDev);
+/*
+	HRESULT hr = m_pD3D->CreateDevice(
+						m_pD3D->GetAdapterCount()-1, D3DDEVTYPE_REF, m_hWnd,
+						D3DCREATE_SOFTWARE_VERTEXPROCESSING|D3DCREATE_MULTITHREADED, //D3DCREATE_MANAGED 
+						&pp, &m_pD3DDev);
+*/
 	if(FAILED(hr))
 		return hr;
 
@@ -445,53 +375,18 @@ HRESULT CDX9AllocatorPresenter::CreateDevice()
 
 	//
 
-	m_Filter = D3DTEXF_NONE;
+	m_filter = D3DTEXF_NONE;
 
-	D3DCAPS9 caps;
-    ZeroMemory(&caps, sizeof(caps));
-	m_pD3DDev->GetDeviceCaps(&caps);
-	if((caps.StretchRectFilterCaps&D3DPTFILTERCAPS_MINFLINEAR)
-	&& (caps.StretchRectFilterCaps&D3DPTFILTERCAPS_MAGFLINEAR))
-		m_Filter = D3DTEXF_LINEAR;
+    ZeroMemory(&m_caps, sizeof(m_caps));
+	m_pD3DDev->GetDeviceCaps(&m_caps);
+
+	if((m_caps.StretchRectFilterCaps&D3DPTFILTERCAPS_MINFLINEAR)
+	&& (m_caps.StretchRectFilterCaps&D3DPTFILTERCAPS_MAGFLINEAR))
+		m_filter = D3DTEXF_LINEAR;
 
 	//
 
-	if(caps.PixelShaderVersion >= D3DVS_VERSION(2, 0))
-	{
-		CStringA data;
-		if(LoadResource(IDF_SHADER_RESIZER, data, _T("FILE")))
-		{
-			{
-				CStringA str = data;
-				str.Replace("_The_Value_Of_A_Is_Set_Here_", "(0)");
-				m_pPSC->CompileShader(str, "main_bilinear", "ps_2_0", 0, &m_pResizerPixelShader[0]);
-			}
-
-			{
-				CStringA str = data;
-				str.Replace("_The_Value_Of_A_Is_Set_Here_", "(-0.60)");
-				m_pPSC->CompileShader(str, "main_bicubic", "ps_2_0", 0, &m_pResizerPixelShader[1]);
-			}
-
-			{
-				CStringA str = data;
-				str.Replace("_The_Value_Of_A_Is_Set_Here_", "(-0.75)");
-				m_pPSC->CompileShader(str, "main_bicubic", "ps_2_0", 0, &m_pResizerPixelShader[2]);
-			}
-
-			{
-				CStringA str = data;
-				str.Replace("_The_Value_Of_A_Is_Set_Here_", "(-1.00)");
-				m_pPSC->CompileShader(str, "main_bicubic", "ps_2_0", 0, &m_pResizerPixelShader[3]);
-			}
-
-			{
-				CStringA str = data;
-				str.Replace("_The_Value_Of_A_Is_Set_Here_", "(0)");
-				m_pPSC->CompileShader(str, "main_bicubic_lut", "ps_2_0", 0, &m_pResizerPixelShader[4]);
-			}
-		}
-	}
+	m_bicubicA = 0;
 
 	//
 
@@ -544,6 +439,8 @@ HRESULT CDX9AllocatorPresenter::AllocSurfaces()
 		m_pVideoSurface[i] = NULL;
 	}
 
+	m_pResizerBicubic1stPass = NULL;
+
 	HRESULT hr;
 
 	if(s.iAPSurfaceUsage == VIDRNDT_AP_TEXTURE2D || s.iAPSurfaceUsage == VIDRNDT_AP_TEXTURE3D)
@@ -553,7 +450,8 @@ HRESULT CDX9AllocatorPresenter::AllocSurfaces()
 		for(int i = 0; i < nTexturesNeeded; i++)
 		{
 			if(FAILED(hr = m_pD3DDev->CreateTexture(
-				m_NativeVideoSize.cx, m_NativeVideoSize.cy, 1, D3DUSAGE_RENDERTARGET, /*D3DFMT_X8R8G8B8*/D3DFMT_A8R8G8B8, 
+				m_NativeVideoSize.cx, m_NativeVideoSize.cy, 1, 
+				D3DUSAGE_RENDERTARGET, /*D3DFMT_X8R8G8B8*/D3DFMT_A8R8G8B8, 
 				D3DPOOL_DEFAULT, &m_pVideoTexture[i], NULL)))
 				return hr;
 
@@ -572,7 +470,8 @@ HRESULT CDX9AllocatorPresenter::AllocSurfaces()
 	else
 	{
 		if(FAILED(hr = m_pD3DDev->CreateOffscreenPlainSurface(
-			m_NativeVideoSize.cx, m_NativeVideoSize.cy, D3DFMT_X8R8G8B8/*D3DFMT_A8R8G8B8*/, 
+			m_NativeVideoSize.cx, m_NativeVideoSize.cy, 
+			D3DFMT_X8R8G8B8/*D3DFMT_A8R8G8B8*/, 
 			D3DPOOL_DEFAULT, &m_pVideoSurface[0], NULL)))
 			return hr;
 	}
@@ -593,7 +492,7 @@ void CDX9AllocatorPresenter::DeleteSurfaces()
 	}
 }
 
-UINT CDX9AllocatorPresenter::GetAdapter(IDirect3D9 *pD3D)
+UINT CDX9AllocatorPresenter::GetAdapter(IDirect3D9* pD3D)
 {
 	if(m_hWnd == NULL || pD3D == NULL)
 		return D3DADAPTER_DEFAULT;
@@ -641,57 +540,305 @@ static bool ClipToSurface(IDirect3DSurface9* pSurface, CRect& s, CRect& d)
 	if(d.left < 0) {s.left += (0-d.left)*sw/dw; d.left = 0;}   
 	if(d.top < 0) {s.top += (0-d.top)*sh/dh; d.top = 0;}   
 
-	return(true);   
-} 
+	return(true);
+}
 
-HRESULT CDX9AllocatorPresenter::InitBicubicLUT(float A)
+HRESULT CDX9AllocatorPresenter::InitResizers(float bicubicA)
 {
-	const int size = 1024; // TODO: this may or may not be too much, test lower numbers like 512 or 256
+	HRESULT hr;
 
-	if(m_pResizerBicubicLUT && m_bicubicA == A)
+	if(m_pResizerPixelShader[0] && m_bicubicA == 0 && bicubicA == 0
+	|| m_pResizerPixelShader[1] && m_pResizerPixelShader[2] && m_bicubicA == bicubicA && m_pResizerBicubic1stPass)
 		return S_OK;
 
-	m_pResizerBicubicLUT = NULL;
+	m_bicubicA = bicubicA;
+	m_pResizerBicubic1stPass = NULL;
 
-	if(FAILED(m_pD3DDev->CreateTexture(size, 1, 1, 0, D3DFMT_A32B32G32R32F, D3DPOOL_MANAGED, &m_pResizerBicubicLUT, NULL)))
+	for(int i = 0; i < countof(m_pResizerPixelShader); i++)
+		m_pResizerPixelShader[i] = NULL;
+
+	if(m_caps.PixelShaderVersion < D3DVS_VERSION(2, 0))
 		return E_FAIL;
 
-	D3DLOCKED_RECT lr;
-	if(FAILED(m_pResizerBicubicLUT->LockRect(0, &lr, NULL, 0)))
-	{
-		m_pResizerBicubicLUT = NULL;
+	LPCSTR pProfile = m_caps.PixelShaderVersion >= D3DVS_VERSION(3, 0) ? "ps_3_0" : "ps_2_0";
+
+	CStringA str;
+	if(!LoadResource(IDF_SHADER_RESIZER, str, _T("FILE")))
 		return E_FAIL;
+
+	CStringA A;
+	A.Format("(%f)", bicubicA);
+	str.Replace("_The_Value_Of_A_Is_Set_Here_", A);
+
+	LPCSTR pEntries[] = {"main_bilinear", "main_bicubic1pass", "main_bicubic2pass"};
+
+	ASSERT(countof(pEntries) == countof(m_pResizerPixelShader));
+
+	for(int i = 0; i < countof(pEntries); i++)
+	{
+		hr = m_pPSC->CompileShader(str, pEntries[i], pProfile, 0, &m_pResizerPixelShader[i]);
+		if(FAILED(hr)) return hr;
 	}
 
-	float m[4][4] =
+	if(m_bicubicA)
 	{
-		{0, A, A*-2, A},
-		{1, 0, -A-3, A+2},
-		{0, -A, A*2+3, -A-2},
-		{0, 0, A, -A}
-	};
-
-	float* f = (float*)lr.pBits;
-
-	for(int i = 0; i < size; i++)
-	{
-		float s = (float)i / size;
-
-		float v[4] = {1, s, s*s, s*s*s};
-
-		f[i*4 + 0] = v[0] * m[0][0] + v[1] * m[0][1] + v[2] * m[0][2] + v[3] * m[0][3];
-		f[i*4 + 1] = v[0] * m[1][0] + v[1] * m[1][1] + v[2] * m[1][2] + v[3] * m[1][3];
-		f[i*4 + 2] = v[0] * m[2][0] + v[1] * m[2][1] + v[2] * m[2][2] + v[3] * m[2][3];
-		f[i*4 + 3] = v[0] * m[3][0] + v[1] * m[3][1] + v[2] * m[3][2] + v[3] * m[3][3];
-
-		TRACE(_T("%d/%d: %f, %f, %f, %f\n"), i, size, f[i*4 + 0], f[i*4 + 1], f[i*4 + 2], f[i*4 + 3]);
+		if(FAILED(m_pD3DDev->CreateTexture(m_ScreenSize.cx, m_NativeVideoSize.cy, 1, D3DUSAGE_RENDERTARGET, D3DFMT_A8R8G8B8, D3DPOOL_DEFAULT, &m_pResizerBicubic1stPass, NULL)))
+		{
+			ASSERT(0);
+			m_pResizerBicubic1stPass = NULL; // will do 1 pass then
+		}
 	}
-
-	m_pResizerBicubicLUT->UnlockRect(0);
-
-	m_bicubicA = A;
 
 	return S_OK;
+}
+
+HRESULT CDX9AllocatorPresenter::TextureCopy(CComPtr<IDirect3DTexture9> pTexture)
+{
+	HRESULT hr;
+
+	D3DSURFACE_DESC desc;
+	if(!pTexture || FAILED(pTexture->GetLevelDesc(0, &desc)))
+		return E_FAIL;
+
+	float w = (float)desc.Width;
+	float h = (float)desc.Height;
+
+	MYD3DVERTEX<1> v[] =
+	{
+		{0, 0, 0.5f, 2.0f, 0, 0},
+		{w, 0, 0.5f, 2.0f, 1, 0},
+		{0, h, 0.5f, 2.0f, 0, 1},
+		{w, h, 0.5f, 2.0f, 1, 1},
+	};
+
+	for(int i = 0; i < countof(v); i++)
+	{
+		v[i].x -= 0.5;
+		v[i].y -= 0.5;
+	}
+
+	hr = m_pD3DDev->SetTexture(0, pTexture);
+
+	return TextureBlt(m_pD3DDev, v, D3DTEXF_LINEAR);
+}
+
+HRESULT CDX9AllocatorPresenter::TextureResize(CComPtr<IDirect3DTexture9> pTexture, Vector dst[4], D3DTEXTUREFILTERTYPE filter)
+{
+	HRESULT hr;
+
+	D3DSURFACE_DESC desc;
+	if(!pTexture || FAILED(pTexture->GetLevelDesc(0, &desc)))
+		return E_FAIL;
+
+	float w = (float)desc.Width;
+	float h = (float)desc.Height;
+
+	float dx = 1.0f/w;
+	float dy = 1.0f/h;
+
+	MYD3DVERTEX<1> v[] =
+	{
+		{dst[0].x, dst[0].y, dst[0].z, 1.0f/dst[0].z,  0, 0},
+		{dst[1].x, dst[1].y, dst[1].z, 1.0f/dst[1].z,  1, 0},
+		{dst[2].x, dst[2].y, dst[2].z, 1.0f/dst[2].z,  0, 1},
+		{dst[3].x, dst[3].y, dst[3].z, 1.0f/dst[3].z,  1, 1},
+	};
+
+	for(int i = 0; i < countof(v); i++)
+	{
+		v[i].x -= 0.5;
+		v[i].y -= 0.5;
+	}
+
+	hr = m_pD3DDev->SetTexture(0, pTexture);
+
+	hr = m_pD3DDev->SetPixelShader(NULL);
+
+	hr = TextureBlt(m_pD3DDev, v, filter);
+
+	return hr;
+}
+
+HRESULT CDX9AllocatorPresenter::TextureResizeBilinear(CComPtr<IDirect3DTexture9> pTexture, Vector dst[4])
+{
+	HRESULT hr;
+
+	D3DSURFACE_DESC desc;
+	if(!pTexture || FAILED(pTexture->GetLevelDesc(0, &desc)))
+		return E_FAIL;
+
+	float w = (float)desc.Width;
+	float h = (float)desc.Height;
+
+	float dx = 1.0f/w;
+	float dy = 1.0f/h;
+
+	MYD3DVERTEX<5> v[] =
+	{
+		{dst[0].x, dst[0].y, dst[0].z, 1.0f/dst[0].z,  0, 0,  0+dx, 0,  0, 0+dy,  0+dx, 0+dy,  0, 0},
+		{dst[1].x, dst[1].y, dst[1].z, 1.0f/dst[1].z,  1, 0,  1+dx, 0,  1, 0+dy,  1+dx, 0+dy,  w, 0},
+		{dst[2].x, dst[2].y, dst[2].z, 1.0f/dst[2].z,  0, 1,  0+dx, 1,  0, 1+dy,  0+dx, 1+dy,  0, h},
+		{dst[3].x, dst[3].y, dst[3].z, 1.0f/dst[3].z,  1, 1,  1+dx, 1,  1, 1+dy,  1+dx, 1+dy,  w, h},
+	};
+
+	for(int i = 0; i < countof(v); i++)
+	{
+		v[i].x -= 0.001f;
+		v[i].y -= 0.001f;
+	}
+
+	hr = m_pD3DDev->SetTexture(0, pTexture);
+	hr = m_pD3DDev->SetTexture(1, pTexture);
+	hr = m_pD3DDev->SetTexture(2, pTexture);
+	hr = m_pD3DDev->SetTexture(3, pTexture);
+
+	hr = m_pD3DDev->SetPixelShader(m_pResizerPixelShader[0]);
+
+	hr = TextureBlt(m_pD3DDev, v, D3DTEXF_POINT);
+
+	//
+
+	m_pD3DDev->SetPixelShader(NULL);
+
+	return hr;
+}
+
+HRESULT CDX9AllocatorPresenter::TextureResizeBicubic1pass(CComPtr<IDirect3DTexture9> pTexture, Vector dst[4])
+{
+	HRESULT hr;
+
+	D3DSURFACE_DESC desc;
+	if(!pTexture || FAILED(pTexture->GetLevelDesc(0, &desc)))
+		return E_FAIL;
+
+	float w = (float)desc.Width;
+	float h = (float)desc.Height;
+
+	float dx = 1.0f/w;
+	float dy = 1.0f/h;
+
+	MYD3DVERTEX<2> v[] =
+	{
+		{dst[0].x, dst[0].y, dst[0].z, 1.0f/dst[0].z,  0, 0, 0, 0},
+		{dst[1].x, dst[1].y, dst[1].z, 1.0f/dst[1].z,  1, 0, w, 0},
+		{dst[2].x, dst[2].y, dst[2].z, 1.0f/dst[2].z,  0, 1, 0, h},
+		{dst[3].x, dst[3].y, dst[3].z, 1.0f/dst[3].z,  1, 1, w, h},
+	};
+
+	for(int i = 0; i < countof(v); i++)
+	{
+		v[i].x -= 0.001f;
+		v[i].y -= 0.001f;
+	}
+
+	hr = m_pD3DDev->SetTexture(0, pTexture);
+
+	float fConstData[][4] = {{w, h, 0, 0}, {1.0f / w, 1.0f / h, 0, 0}, {1.0f / w, 0, 0, 0}, {0, 1.0f / h, 0, 0}};
+	hr = m_pD3DDev->SetPixelShaderConstantF(0, (float*)fConstData, countof(fConstData));
+
+	hr = m_pD3DDev->SetPixelShader(m_pResizerPixelShader[1]);
+
+	hr = TextureBlt(m_pD3DDev, v, D3DTEXF_POINT);
+
+	m_pD3DDev->SetPixelShader(NULL);
+
+	return hr;
+}
+
+HRESULT CDX9AllocatorPresenter::TextureResizeBicubic2pass(CComPtr<IDirect3DTexture9> pTexture, Vector dst[4])
+{
+	// return TextureResizeBicubic1pass(pTexture, dst);
+
+	HRESULT hr;
+
+	// rotated?
+	if(dst[0].z != dst[1].z || dst[2].z != dst[3].z || dst[0].z != dst[3].z
+	|| dst[0].y != dst[1].y || dst[0].x != dst[2].x || dst[2].y != dst[3].y || dst[1].x != dst[3].x)
+		return TextureResizeBicubic1pass(pTexture, dst);
+
+	D3DSURFACE_DESC desc;
+	if(!pTexture || FAILED(pTexture->GetLevelDesc(0, &desc)))
+		return E_FAIL;
+
+	float dx = 1.0f/desc.Width;
+
+	float w = (float)desc.Width;
+	float h = (float)desc.Height;
+
+	CRect dst1(0, 0, (int)(dst[3].x - dst[0].x), (int)h);
+
+	if(!m_pResizerBicubic1stPass || FAILED(m_pResizerBicubic1stPass->GetLevelDesc(0, &desc)))
+		return TextureResizeBicubic1pass(pTexture, dst);
+
+	float dy = 1.0f/desc.Height;
+
+	float dw = (float)dst1.Width() / desc.Width;
+	float dh = (float)dst1.Height() / desc.Height;
+
+	ASSERT(dst1.Height() == desc.Height);
+
+	// if(dst1.Width() > desc.Width || dst1.Height() > desc.Height)
+	if(dst1.Width() != desc.Width || dst1.Height() != desc.Height)
+		return TextureResizeBicubic1pass(pTexture, dst);
+
+	MYD3DVERTEX<5> vx[] =
+	{
+		{(float)dst1.left, (float)dst1.top, 0.5f, 2.0f, 0-dx, 0,  0, 0,  0+dx, 0,  0+dx*2, 0,  0, 0},
+		{(float)dst1.right, (float)dst1.top, 0.5f, 2.0f,  1-dx, 0,  1, 0,  1+dx, 0,  1+dx*2, 0,  w, 0},
+		{(float)dst1.left, (float)dst1.bottom, 0.5f, 2.0f,  0-dx, 1,  0, 1,  0+dx, 1,  0+dx*2, 1,  0, 0},
+		{(float)dst1.right, (float)dst1.bottom, 0.5f, 2.0f,  1-dx, 1,  1, 1,  1+dx, 1,  1+dx*2, 1,  w, 0},
+	};
+
+	for(int i = 0; i < countof(vx); i++)
+	{
+		vx[i].x -= 0.001f;
+		vx[i].y -= 0.001f;
+	}
+
+	w = (float)dst1.Width();
+
+	MYD3DVERTEX<5> vy[] =
+	{
+		{dst[0].x, dst[0].y, dst[0].z, 1.0f/dst[0].z,  0, 0-dy,  0, 0,  0, 0+dy,  0, 0+dy*2,  0, 0},
+		{dst[1].x, dst[1].y, dst[1].z, 1.0f/dst[1].z,  dw, 0-dy,  dw, 0,  dw, 0+dy,  dw, 0+dy*2,  0, 0},
+		{dst[2].x, dst[2].y, dst[2].z, 1.0f/dst[2].z,  0, dh-dy,  0, dh,  0, dh+dy,  0, dh+dy*2,  h, 0},
+		{dst[3].x, dst[3].y, dst[3].z, 1.0f/dst[3].z,  dw, dh-dy,  dw, dh,  dw, dh+dy,  dw, dh+dy*2,  h, 0},
+	};
+
+	for(int i = 0; i < countof(vy); i++)
+	{
+		vy[i].x -= 0.001f;
+		vy[i].y -= 0.001f;
+	}
+
+	hr = m_pD3DDev->SetPixelShader(m_pResizerPixelShader[2]);
+
+	hr = m_pD3DDev->SetTexture(0, pTexture);
+	hr = m_pD3DDev->SetTexture(1, pTexture);
+	hr = m_pD3DDev->SetTexture(2, pTexture);
+	hr = m_pD3DDev->SetTexture(3, pTexture);
+
+	CComPtr<IDirect3DSurface9> pRTOld;
+	hr = m_pD3DDev->GetRenderTarget(0, &pRTOld);
+
+	CComPtr<IDirect3DSurface9> pRT;
+	hr = m_pResizerBicubic1stPass->GetSurfaceLevel(0, &pRT);
+	hr = m_pD3DDev->SetRenderTarget(0, pRT);
+
+	hr = TextureBlt(m_pD3DDev, vx, D3DTEXF_POINT);
+
+	hr = m_pD3DDev->SetTexture(0, m_pResizerBicubic1stPass);
+	hr = m_pD3DDev->SetTexture(1, m_pResizerBicubic1stPass);
+	hr = m_pD3DDev->SetTexture(2, m_pResizerBicubic1stPass);
+	hr = m_pD3DDev->SetTexture(3, m_pResizerBicubic1stPass);
+
+	hr = m_pD3DDev->SetRenderTarget(0, pRTOld);
+
+	hr = TextureBlt(m_pD3DDev, vy, D3DTEXF_POINT);
+
+	m_pD3DDev->SetPixelShader(NULL);
+
+	return hr;
 }
 
 STDMETHODIMP_(bool) CDX9AllocatorPresenter::Paint(bool fAll)
@@ -758,7 +905,7 @@ STDMETHODIMP_(bool) CDX9AllocatorPresenter::Paint(bool fAll)
 
 						hr = m_pD3DDev->SetRenderTarget(0, m_pVideoSurface[dst]);
 						hr = m_pD3DDev->SetPixelShader(m_pPixelShaders.GetNext(pos));
-						TextureBlt(m_pVideoTexture[src], rSrcVid, rSrcVid);
+						TextureCopy(m_pVideoTexture[src]);
 
 						if(++src > 2) src = 1;
 						if(++dst > 2) dst = 1;
@@ -768,62 +915,34 @@ STDMETHODIMP_(bool) CDX9AllocatorPresenter::Paint(bool fAll)
 					hr = m_pD3DDev->SetPixelShader(NULL);
 				}
 
-				DWORD resizer = AfxGetAppSettings().iDX9Resizer;
-				DWORD filter = resizer == 0 ? D3DTEXF_POINT : D3DTEXF_LINEAR;
+				Vector dst[4];
+				Transform(rDstVid, dst);
 
-				CComPtr<IDirect3DPixelShader9> pResizerPixelShader;
+				DWORD iDX9Resizer = AfxGetAppSettings().iDX9Resizer;
 
-				if(rSrcVid != rDstVid)
+				float A = 0;
+
+				switch(iDX9Resizer)
 				{
-					if(resizer == 2)
-					{
-						pResizerPixelShader = m_pResizerPixelShader[0];
-					}
-					else if(resizer > 2)
-					{
-						float A = -0.60f;
-
-						switch(resizer)
-						{
-						case 3: A = -0.60f; pResizerPixelShader = m_pResizerPixelShader[1]; break;
-						case 4: A = -0.75f; pResizerPixelShader = m_pResizerPixelShader[2]; break;
-						case 5: A = -1.00f; pResizerPixelShader = m_pResizerPixelShader[3]; break;
-						}
-
-						if(SUCCEEDED(InitBicubicLUT(A)))
-						{
-							pResizerPixelShader = m_pResizerPixelShader[4];
-
-							m_pD3DDev->SetTexture(1, m_pResizerBicubicLUT);
-							m_pD3DDev->SetSamplerState(1, D3DSAMP_MAGFILTER, D3DTEXF_POINT);
-							m_pD3DDev->SetSamplerState(1, D3DSAMP_MINFILTER, D3DTEXF_POINT);
-							m_pD3DDev->SetSamplerState(1, D3DSAMP_MIPFILTER, D3DTEXF_POINT);
-						}
-					}
+					case 3: A = -0.60f; break;
+					case 4: A = -0.75f; break;
+					case 5: A = -1.00f; break;
 				}
 
-				if(pResizerPixelShader)
+				hr = InitResizers(A);
+
+				if(iDX9Resizer == 0 || iDX9Resizer == 1 || rSrcVid.Size() == rDstVid.Size() || FAILED(hr))
 				{
-					float fConstData[][4] = 
-					{
-						{(float)m_NativeVideoSize.cx, (float)m_NativeVideoSize.cy, 0, 0},
-						{1.0f / m_NativeVideoSize.cx, 1.0f / m_NativeVideoSize.cy, 0, 0},
-						{1.0f / m_NativeVideoSize.cx, 0, 0, 0},
-						{0, 1.0f / m_NativeVideoSize.cy, 0, 0},
-					};
-
-					hr = m_pD3DDev->SetPixelShaderConstantF(0, (float*)fConstData, countof(fConstData));
-					hr = m_pD3DDev->SetPixelShader(pResizerPixelShader);
-
-					filter = D3DTEXF_POINT;
+					hr = TextureResize(pVideoTexture, dst, iDX9Resizer == 0 ? D3DTEXF_POINT : D3DTEXF_LINEAR);
 				}
-
-				Vector v[4];
-				Transform(rDstVid, v);
-				hr = TextureBlt(pVideoTexture, v, rSrcVid, filter);
-
-				if(pResizerPixelShader)
-					hr = m_pD3DDev->SetPixelShader(NULL);
+				else if(iDX9Resizer == 2)
+				{
+					hr = TextureResizeBilinear(pVideoTexture, dst);
+				}
+				else if(iDX9Resizer >= 3)
+				{
+					hr = TextureResizeBicubic2pass(pVideoTexture, dst);
+				}
 			}
 			else
 			{
@@ -833,7 +952,7 @@ STDMETHODIMP_(bool) CDX9AllocatorPresenter::Paint(bool fAll)
 					// IMPORTANT: rSrcVid has to be aligned on mod2 for yuy2->rgb conversion with StretchRect!!!
 					rSrcVid.left &= ~1; rSrcVid.right &= ~1;
 					rSrcVid.top &= ~1; rSrcVid.bottom &= ~1;
-					hr = m_pD3DDev->StretchRect(m_pVideoSurface[0], rSrcVid, pBackBuffer, rDstVid, m_Filter);
+					hr = m_pD3DDev->StretchRect(m_pVideoSurface[0], rSrcVid, pBackBuffer, rDstVid, m_filter);
 				}
 			}
 		}

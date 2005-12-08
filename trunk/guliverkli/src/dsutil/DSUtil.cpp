@@ -253,21 +253,7 @@ bool IsAudioWaveRenderer(IBaseFilter* pBF)
 
 IBaseFilter* GetUpStreamFilter(IBaseFilter* pBF, IPin* pInputPin)
 {
-	BeginEnumPins(pBF, pEP, pPin)
-	{
-		if(pInputPin && pInputPin != pPin) continue;
-
-		PIN_DIRECTION dir;
-		CComPtr<IPin> pPinConnectedTo;
-		if(SUCCEEDED(pPin->QueryDirection(&dir)) && dir == PINDIR_INPUT
-		&& SUCCEEDED(pPin->ConnectedTo(&pPinConnectedTo)))
-		{
-			return(GetFilterFromPin(pPinConnectedTo));
-		}
-	}
-	EndEnumPins
-
-	return(NULL);
+	return GetFilterFromPin(GetUpStreamPin(pBF, pInputPin));
 }
 
 IPin* GetUpStreamPin(IBaseFilter* pBF, IPin* pInputPin)

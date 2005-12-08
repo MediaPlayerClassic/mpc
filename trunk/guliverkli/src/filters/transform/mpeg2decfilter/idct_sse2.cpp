@@ -509,43 +509,6 @@ void mpeg2_idct_add_sse2(const int last, int16_t* block, uint8_t* dest, const in
 		block += 8;
     }
 */
-/*
-	__asm
-	{
-		mov esi, block
-		mov edi, dest
-		mov ecx, 4
-		mov edx, stride
-		xorps xmm7, xmm7
-
-	mpeg2_idct_add_sse2_loop:
-
-		movdqa xmm0, [esi]
-		movdqa xmm1, [esi+16]
-
-		movlps xmm2, [edi]
-		punpcklbw xmm2, xmm7
-		paddsw xmm0, xmm2
-
-		movlps xmm2, [edi+edx]
-		punpcklbw xmm2, xmm7
-		paddsw xmm1, xmm2
-
-		packuswb xmm0, xmm1
-
-		movdqa [esi], xmm7
-		movdqa [esi+16], xmm7
-
-		movlps [edi], xmm0
-		movhps [edi+edx], xmm0
-
-		lea esi, [esi+16*2]
-		lea edi, [edi+edx*2]
-
-		dec	ecx
-		jnz	mpeg2_idct_add_sse2_loop
-	}
-*/
 	__m128i* src = (__m128i*)block;
 
 	__m128i zero = _mm_setzero_si128();
@@ -559,23 +522,25 @@ void mpeg2_idct_add_sse2(const int last, int16_t* block, uint8_t* dest, const in
 	__m128i r6 = _mm_load_si128(&src[6]);
 	__m128i r7 = _mm_load_si128(&src[7]);
 
-	__m128 q0 = _mm_loadl_pi(*(__m128*)&zero, (__m64*)&dest[0*stride]);
-	__m128 q1 = _mm_loadl_pi(*(__m128*)&zero, (__m64*)&dest[1*stride]);
-	__m128 q2 = _mm_loadl_pi(*(__m128*)&zero, (__m64*)&dest[2*stride]);
-	__m128 q3 = _mm_loadl_pi(*(__m128*)&zero, (__m64*)&dest[3*stride]);
-	__m128 q4 = _mm_loadl_pi(*(__m128*)&zero, (__m64*)&dest[4*stride]);
-	__m128 q5 = _mm_loadl_pi(*(__m128*)&zero, (__m64*)&dest[5*stride]);
-	__m128 q6 = _mm_loadl_pi(*(__m128*)&zero, (__m64*)&dest[6*stride]);
-	__m128 q7 = _mm_loadl_pi(*(__m128*)&zero, (__m64*)&dest[7*stride]);
+	__m128 q0, q2, q4, q6;
+
+	q0 = _mm_loadl_pi(*(__m128*)&zero, (__m64*)&dest[0*stride]);
+	q0 = _mm_loadh_pi(q0, (__m64*)&dest[1*stride]);
+	q2 = _mm_loadl_pi(*(__m128*)&zero, (__m64*)&dest[2*stride]);
+	q2 = _mm_loadh_pi(q2, (__m64*)&dest[3*stride]);
+	q4 = _mm_loadl_pi(*(__m128*)&zero, (__m64*)&dest[4*stride]);
+	q4 = _mm_loadh_pi(q4, (__m64*)&dest[5*stride]);
+	q6 = _mm_loadl_pi(*(__m128*)&zero, (__m64*)&dest[6*stride]);
+	q6 = _mm_loadh_pi(q6, (__m64*)&dest[7*stride]);
 
 	r0 = _mm_adds_epi16(r0, _mm_unpacklo_epi8(*(__m128i*)&q0, zero));
-	r1 = _mm_adds_epi16(r1, _mm_unpacklo_epi8(*(__m128i*)&q1, zero));
+	r1 = _mm_adds_epi16(r1, _mm_unpackhi_epi8(*(__m128i*)&q0, zero));
 	r2 = _mm_adds_epi16(r2, _mm_unpacklo_epi8(*(__m128i*)&q2, zero));
-	r3 = _mm_adds_epi16(r3, _mm_unpacklo_epi8(*(__m128i*)&q3, zero));
+	r3 = _mm_adds_epi16(r3, _mm_unpackhi_epi8(*(__m128i*)&q2, zero));
 	r4 = _mm_adds_epi16(r4, _mm_unpacklo_epi8(*(__m128i*)&q4, zero));
-	r5 = _mm_adds_epi16(r5, _mm_unpacklo_epi8(*(__m128i*)&q5, zero));
+	r5 = _mm_adds_epi16(r5, _mm_unpackhi_epi8(*(__m128i*)&q4, zero));
 	r6 = _mm_adds_epi16(r6, _mm_unpacklo_epi8(*(__m128i*)&q6, zero));
-	r7 = _mm_adds_epi16(r7, _mm_unpacklo_epi8(*(__m128i*)&q7, zero));
+	r7 = _mm_adds_epi16(r7, _mm_unpackhi_epi8(*(__m128i*)&q6, zero));
 
 	r0 = _mm_packus_epi16(r0, r1);
 	r1 = _mm_packus_epi16(r2, r3);

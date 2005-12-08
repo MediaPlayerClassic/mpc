@@ -423,6 +423,7 @@ void CMPlayerCApp::SendCommandLine(HWND hWnd)
 // CMPlayerCApp initialization
 
 #include "..\..\..\include\detours\detours.h"
+#include "..\..\..\include\winddk\ntddcdvd.h"
 
 DETOUR_TRAMPOLINE(BOOL WINAPI Real_IsDebuggerPresent(), IsDebuggerPresent);
 BOOL WINAPI Mine_IsDebuggerPresent()
@@ -507,6 +508,21 @@ MMRESULT WINAPI Mine_mixerSetControlDetails(HMIXEROBJ hmxobj, LPMIXERCONTROLDETA
 	return Real_mixerSetControlDetails(hmxobj, pmxcd, fdwDetails);
 }
 
+DETOUR_TRAMPOLINE(BOOL WINAPI Real_DeviceIoControl(HANDLE hDevice, DWORD dwIoControlCode, LPVOID lpInBuffer, DWORD nInBufferSize, LPVOID lpOutBuffer, DWORD nOutBufferSize, LPDWORD lpBytesReturned, LPOVERLAPPED lpOverlapped), DeviceIoControl);
+BOOL WINAPI Mine_DeviceIoControl(HANDLE hDevice, DWORD dwIoControlCode, LPVOID lpInBuffer, DWORD nInBufferSize, LPVOID lpOutBuffer, DWORD nOutBufferSize, LPDWORD lpBytesReturned, LPOVERLAPPED lpOverlapped)
+{
+	BOOL ret = Real_DeviceIoControl(hDevice, dwIoControlCode, lpInBuffer, nInBufferSize, lpOutBuffer, nOutBufferSize, lpBytesReturned, lpOverlapped);
+
+	if(IOCTL_DVD_GET_REGION == dwIoControlCode && lpOutBuffer
+	&& lpBytesReturned && *lpBytesReturned == sizeof(DVD_REGION))
+	{
+		DVD_REGION* pDVDRegion = (DVD_REGION*)lpOutBuffer;
+		pDVDRegion->SystemRegion = ~pDVDRegion->RegionData;
+	}
+
+	return ret;
+}
+
 BOOL CMPlayerCApp::InitInstance()
 {
 	DetourFunctionWithTrampoline((PBYTE)Real_IsDebuggerPresent, (PBYTE)Mine_IsDebuggerPresent);
@@ -515,6 +531,7 @@ BOOL CMPlayerCApp::InitInstance()
 	DetourFunctionWithTrampoline((PBYTE)Real_CreateFileA, (PBYTE)Mine_CreateFileA);
 	DetourFunctionWithTrampoline((PBYTE)Real_CreateFileW, (PBYTE)Mine_CreateFileW);
 	DetourFunctionWithTrampoline((PBYTE)Real_mixerSetControlDetails, (PBYTE)Mine_mixerSetControlDetails);
+	DetourFunctionWithTrampoline((PBYTE)Real_DeviceIoControl, (PBYTE)Mine_DeviceIoControl);
 	CFilterMapper2::Init();
 
 	HRESULT hr;

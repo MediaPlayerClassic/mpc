@@ -45,8 +45,8 @@ const AMOVIESETUP_MEDIATYPE sudPinTypesIn[] =
 	{&MEDIATYPE_MPEG2_PACK, &MEDIASUBTYPE_MPEG2_VIDEO},
 	{&MEDIATYPE_MPEG2_PES, &MEDIASUBTYPE_MPEG2_VIDEO},
 	{&MEDIATYPE_Video, &MEDIASUBTYPE_MPEG2_VIDEO},
-	// {&MEDIATYPE_Video, &MEDIASUBTYPE_MPEG1Packet},
-	// {&MEDIATYPE_Video, &MEDIASUBTYPE_MPEG1Payload},
+	{&MEDIATYPE_Video, &MEDIASUBTYPE_MPEG1Packet},
+	{&MEDIATYPE_Video, &MEDIASUBTYPE_MPEG1Payload},
 };
 
 const AMOVIESETUP_MEDIATYPE sudPinTypesOut[] =
@@ -157,15 +157,19 @@ BOOL APIENTRY DllMain(HANDLE hModule, DWORD dwReason, LPVOID lpReserved)
 //
 
 CMpeg2DecFilter::CMpeg2DecFilter(LPUNKNOWN lpunk, HRESULT* phr) 
-	: CBaseVideoFilter(NAME("CMpeg2DecFilter"), lpunk, phr, __uuidof(this))
+	: CBaseVideoFilter(NAME("CMpeg2DecFilter"), lpunk, phr, __uuidof(this), 1)
 	, m_fWaitForKeyFrame(true)
 {
 	delete m_pInput;
+//	delete m_pOutput;
 
 	if(FAILED(*phr)) return;
 
 	if(!(m_pInput = new CMpeg2DecInputPin(this, phr, L"Video"))) *phr = E_OUTOFMEMORY;
 	if(FAILED(*phr)) return;
+
+//	if(!(m_pOutput = new CMpeg2DecOutputPin(this, phr, L"Output"))) *phr = E_OUTOFMEMORY;
+//	if(FAILED(*phr)) return;
 
 	if(!(m_pSubpicInput = new CSubpicInputPin(this, phr))) *phr = E_OUTOFMEMORY;
 	if(FAILED(*phr)) return;
@@ -525,6 +529,12 @@ ASSERT(!(m_fb.flags&PIC_FLAG_SKIP));
 	return S_OK;
 }
 
+#if _MSC_VER >= 1400
+extern "C" unsigned __int64 __rdtsc();
+#else
+__declspec(naked) unsigned __int64 __rdtsc() {__asm rdtsc __asm ret}
+#endif
+
 HRESULT CMpeg2DecFilter::Deliver(bool fRepeatLast)
 {
 	CAutoLock cAutoLock(&m_csReceive);
@@ -598,8 +608,17 @@ HRESULT CMpeg2DecFilter::Deliver(bool fRepeatLast)
 
 	CopyBuffer(pDataOut, buf, (m_fb.w+7)&~7, m_fb.h, m_fb.pitch, MEDIASUBTYPE_I420);
 
+static unsigned __int64 _last_start = 0, _total_time = 0, _total_disp_time = 0;
+unsigned __int64 _start = __rdtsc();
+if(_last_start != 0) _total_time += _start - _last_start;
+_last_start = _start;
+
 	if(FAILED(hr = m_pOutput->Deliver(pOut)))
 		return hr;
+
+_total_disp_time += __rdtsc() - _start;
+
+TRACE(_T("%f\n"), 1.0 * _total_disp_time / _total_time);
 
 	return S_OK;
 }
@@ -665,7 +684,9 @@ HRESULT CMpeg2DecFilter::CheckInputType(const CMediaType* mtIn)
 
 HRESULT CMpeg2DecFilter::CheckTransform(const CMediaType* mtIn, const CMediaType* mtOut)
 {
-	bool fPlanarYUV = mtOut->subtype == MEDIASUBTYPE_YV12 || mtOut->subtype == MEDIASUBTYPE_I420 || mtOut->subtype == MEDIASUBTYPE_IYUV;
+	bool fPlanarYUV = mtOut->subtype == MEDIASUBTYPE_YV12 
+		|| mtOut->subtype == MEDIASUBTYPE_I420 
+		|| mtOut->subtype == MEDIASUBTYPE_IYUV;
 
 	return SUCCEEDED(__super::CheckTransform(mtIn, mtOut))
 		&& (!fPlanarYUV || IsPlanarYUVEnabled())
@@ -695,7 +716,7 @@ HRESULT CMpeg2DecFilter::StopStreaming()
 
 HRESULT CMpeg2DecFilter::AlterQuality(Quality q)
 {
-	if(q.Late > 500*10000i64) m_fDropFrames = true;
+	if(q.Late > 100*10000i64) m_fDropFrames = true;
 	else if(q.Late <= 0) m_fDropFrames = false;
 
 //	TRACE(_T("CMpeg2DecFilter::AlterQuality: Type=%d, Proportion=%d, Late=%I64d, TimeStamp=%I64d\n"), q.Type, q.Proportion, q.Late, q.TimeStamp);
@@ -1097,6 +1118,78 @@ STDMETHODIMP CMpeg2DecInputPin::QuerySupported(REFGUID PropSet, ULONG Id, ULONG*
 */
 	return S_OK;
 }
+
+//
+// CMpeg2DecOutputPin
+//
+
+CMpeg2DecOutputPin::CMpeg2DecOutputPin(CBaseVideoFilter* pFilter, HRESULT* phr, LPWSTR pName)
+	: CBaseVideoOutputPin(NAME("CMpeg2DecOutputPin"), pFilter, phr, pName)
+{
+}
+
+HRESULT CMpeg2DecOutputPin::Active()
+{
+	CAutoLock cAutoLock(m_pLock);
+
+	// TODO
+
+	if(m_Connected && !m_pOutputQueue)
+	{
+		HRESULT hr = NOERROR;
+
+		m_pOutputQueue.Attach(new COutputQueue(m_Connected, &hr));
+		if(!m_pOutputQueue) hr = E_OUTOFMEMORY;
+
+		if(FAILED(hr))
+		{
+			m_pOutputQueue.Free();
+			return hr;
+		}
+	}
+
+	return __super::Active();
+}
+
+HRESULT CMpeg2DecOutputPin::Inactive()
+{
+	CAutoLock cAutoLock(m_pLock);
+	m_pOutputQueue.Free();
+	return __super::Inactive();
+}
+
+HRESULT CMpeg2DecOutputPin::Deliver(IMediaSample* pMediaSample)
+{
+	if(!m_pOutputQueue) return NOERROR;
+	pMediaSample->AddRef();
+	return m_pOutputQueue->Receive(pMediaSample);
+}
+
+#define CallQueue(call) \
+	if(!m_pOutputQueue) return NOERROR; \
+	m_pOutputQueue->##call; \
+	return NOERROR; \
+
+HRESULT CMpeg2DecOutputPin::DeliverEndOfStream()
+{
+	CallQueue(EOS());
+}
+
+HRESULT CMpeg2DecOutputPin::DeliverBeginFlush()
+{
+	CallQueue(BeginFlush());
+}
+
+HRESULT CMpeg2DecOutputPin::DeliverEndFlush()
+{
+	CallQueue(EndFlush());
+}
+
+HRESULT CMpeg2DecOutputPin::DeliverNewSegment(REFERENCE_TIME tStart, REFERENCE_TIME tStop, double dRate)
+{
+	CallQueue(NewSegment(tStart, tStop, dRate));
+}
+
 
 //
 // CSubpicInputPin

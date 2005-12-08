@@ -22,7 +22,7 @@
 #pragma once 
 
 #ifndef PI
-#define PI (3.141592654)
+#define PI (3.141592654f)
 #endif
 
 #define DegToRad(d) ((d)*PI/180.0)
@@ -33,58 +33,58 @@
 class Vector
 {
 public:
-	double x, y, z;
+	float x, y, z;
 
 	Vector() {x = y = z = 0;}
-	Vector(double x, double y, double z);
-	void Set(double x, double y, double z);
+	Vector(float x, float y, float z);
+	void Set(float x, float y, float z);
 
 	Vector Normal(Vector& a, Vector& b);
-	double Angle(Vector& a, Vector& b);
-	double Angle(Vector& a);
-	void Angle(double& u, double& v); // returns spherical coords in radian, -PI/2 <= u <= PI/2, -PI <= v <= PI
+	float Angle(Vector& a, Vector& b);
+	float Angle(Vector& a);
+	void Angle(float& u, float& v); // returns spherical coords in radian, -PI/2 <= u <= PI/2, -PI <= v <= PI
 	Vector Angle(); // does like prev., returns 'u' in 'ret.x', and 'v' in 'ret.y'
 
 	Vector Unit();
 	Vector& Unitalize();
-	double Length();
-	double Sum(); // x + y + z
-	double CrossSum(); // xy + xz + yz
+	float Length();
+	float Sum(); // x + y + z
+	float CrossSum(); // xy + xz + yz
 	Vector Cross(); // xy, xz, yz
-	Vector Pow(double exp);
+	Vector Pow(float exp);
 
 	Vector& Min(Vector& a);
 	Vector& Max(Vector& a);
 	Vector Abs();
 
 	Vector Reflect(Vector& n);
-	Vector Refract(Vector& n, double nFront, double nBack, double* nOut = NULL);
-	Vector Refract2(Vector& n, double nFrom, double nTo, double* nOut = NULL);
+	Vector Refract(Vector& n, float nFront, float nBack, float* nOut = NULL);
+	Vector Refract2(Vector& n, float nFrom, float nTo, float* nOut = NULL);
 
 	Vector operator - ();
-	double& operator [] (int i);
+	float& operator [] (int i);
 
-	double operator | (Vector& v); // dot
+	float operator | (Vector& v); // dot
 	Vector operator % (Vector& v); // cross
 
 	bool operator == (const Vector& v) const;
 	bool operator != (const Vector& v) const;
 
-	Vector operator + (double d);
+	Vector operator + (float d);
 	Vector operator + (Vector& v);
-	Vector operator - (double d);
+	Vector operator - (float d);
 	Vector operator - (Vector& v);
-	Vector operator * (double d);
+	Vector operator * (float d);
 	Vector operator * (Vector& v);
-	Vector operator / (double d);
+	Vector operator / (float d);
 	Vector operator / (Vector& v);
-	Vector& operator += (double d);
+	Vector& operator += (float d);
 	Vector& operator += (Vector& v);
-	Vector& operator -= (double d);
+	Vector& operator -= (float d);
 	Vector& operator -= (Vector& v);
-	Vector& operator *= (double d);
+	Vector& operator *= (float d);
 	Vector& operator *= (Vector& v);
-	Vector& operator /= (double d);
+	Vector& operator /= (float d);
 	Vector& operator /= (Vector& v);
 };
 
@@ -97,10 +97,10 @@ public:
 	Ray(Vector& p, Vector& d);
 	void Set(Vector& p, Vector& d);
 
-	double GetDistanceFrom(Ray& r); // r = plane
-	double GetDistanceFrom(Vector& v); // v = point
+	float GetDistanceFrom(Ray& r); // r = plane
+	float GetDistanceFrom(Vector& v); // v = point
 
-	Vector operator [] (double t);
+	Vector operator [] (float t);
 };
 
 class XForm
@@ -108,7 +108,7 @@ class XForm
 	class Matrix
 	{
 	public:
-		double mat[4][4];
+		float mat[4][4];
 
 		Matrix();
 		void Initalize();

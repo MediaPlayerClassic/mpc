@@ -79,8 +79,11 @@ void GetSubFileNames(CString fn, CStringArray& paths, SubFiles& ret)
 
 	if(!fWeb)
 	{
-		struct _tfinddata_t file, file2;
-		long hFile, hFile2 = 0;
+		// struct _tfinddata_t file, file2;
+		// long hFile, hFile2 = 0;
+
+		WIN32_FIND_DATA wfd, wfd2;
+		HANDLE hFile, hFile2;
 
 		for(int k = 0; k < paths.GetSize(); k++)
 		{
@@ -95,54 +98,55 @@ void GetSubFileNames(CString fn, CStringArray& paths, SubFiles& ret)
 			path.Replace(_T("/./"), _T("/"));
 			path.Replace('/', '\\');
 
+			// CList<CString> sl;
+
+			bool fEmpty = true;
+
+			if((hFile = FindFirstFile(path + title + "*", &wfd)) != INVALID_HANDLE_VALUE)
 			{
-				CList<CString> sl;
-
-				bool fEmpty = true;
-
-				if((hFile = _tfindfirst((LPTSTR)(LPCTSTR)(path + title + "*"), &file)) != -1L)
+				do
 				{
-					do
+					if(filename.CompareNoCase(wfd.cFileName) != 0) 
 					{
-						if(filename.CompareNoCase(file.name)) 
-						{
-							fEmpty = false;
-							// sl.AddTail(path + file.name);
-						}
+						fEmpty = false;
+						// sl.AddTail(path + file.name);
 					}
-					while(_tfindnext(hFile, &file) != -1);
-					_findclose(hFile);
 				}
+				while(FindNextFile(hFile, &wfd));
 
-				// TODO: use 'sl' in the next step to find files (already a nice speedup as it is now...)
-				if(fEmpty) continue;
+				FindClose(hFile);
 			}
+
+			// TODO: use 'sl' in the next step to find files (already a nice speedup as it is now...)
+			if(fEmpty) continue;
 
 			for(int j = 0; j < extlistnum; j++)
 			{
 				for(int i = 0; i < extsubnum; i++)
 				{
-					CString fn2 = path + title + ext[j][i];
-
-					if((hFile = _tfindfirst((LPTSTR)(LPCTSTR)fn2, &file)) != -1L)
+					if((hFile = FindFirstFile(path + title + ext[j][i], &wfd)) != INVALID_HANDLE_VALUE)
 					{
 						do
 						{
-							CString fn = path + file.name;
+							CString fn = path + wfd.cFileName;
 
-							hFile2 = -1;
-							if(j == 0 || (hFile2 = _tfindfirst((LPTSTR)(LPCTSTR)(fn.Left(fn.ReverseFind('.')) + _T(".avi")), &file2)) == -1L)
+							hFile2 = INVALID_HANDLE_VALUE;
+
+							if(j == 0 || (hFile2 = FindFirstFile(fn.Left(fn.ReverseFind('.')) + _T(".avi"), &wfd2)) == INVALID_HANDLE_VALUE)
 							{
 								SubFile f;
 								f.fn = fn;
 								ret.Add(f);
 							}
 							
-							if(hFile2 >= 0) _findclose(hFile2);
+							if(hFile2 != INVALID_HANDLE_VALUE)
+							{
+								FindClose(hFile2);
+							}
 						}
-						while(_tfindnext(hFile, &file) != -1);
+						while(FindNextFile(hFile, &wfd));
 						
-						_findclose(hFile);
+						FindClose(hFile);
 					}
 				}
 			}

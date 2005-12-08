@@ -794,6 +794,10 @@ STDMETHODIMP_(void) ISubPicAllocatorPresenterImpl::SetPosition(RECT w, RECT v)
 
 STDMETHODIMP_(void) ISubPicAllocatorPresenterImpl::SetTime(REFERENCE_TIME rtNow)
 {
+/*
+	if(m_rtNow <= rtNow && rtNow <= m_rtNow + 1000000)
+		return;
+*/
 	m_rtNow = rtNow;
 
 	if(m_pSubPicQueue)

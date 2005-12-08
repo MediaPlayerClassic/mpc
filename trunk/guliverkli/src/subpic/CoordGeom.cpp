@@ -31,31 +31,31 @@
 // Vector
 //
 
-Vector::Vector(double x, double y, double z)
+Vector::Vector(float x, float y, float z)
 {
 	this->x = x;
 	this->y = y;
 	this->z = z;
 }
 
-void Vector::Set(double x, double y, double z)
+void Vector::Set(float x, float y, float z)
 {
 	this->x = x;
 	this->y = y;
 	this->z = z;
 }
 
-double Vector::Length()
+float Vector::Length()
 {
 	return(sqrt(x * x + y * y + z * z));
 }
 
-double Vector::Sum()
+float Vector::Sum()
 {
 	return(x + y + z);
 }
 
-double Vector::CrossSum()
+float Vector::CrossSum()
 {
 	return(x*y + x*z + y*z);
 }
@@ -65,14 +65,14 @@ Vector Vector::Cross()
 	return(Vector(x*y, x*z, y*z));
 }
 
-Vector Vector::Pow(double exp)
+Vector Vector::Pow(float exp)
 {
 	return(exp == 0 ? Vector(1, 1, 1) : exp == 1 ? *this : Vector(pow(x, exp), pow(y, exp), pow(z, exp)));
 }
 
 Vector Vector::Unit()
 {
-	double l = Length();
+	float l = Length();
 	if(!l || l == 1) return(*this);
 	return(*this * (1 / l));
 }
@@ -87,18 +87,18 @@ Vector Vector::Normal(Vector& a, Vector& b)
 	return((a - *this) % (b - a));
 }
 
-double Vector::Angle(Vector& a, Vector& b)
+float Vector::Angle(Vector& a, Vector& b)
 {
 	return(((a - *this).Unit()).Angle((b - *this).Unit()));
 }
 
-double Vector::Angle(Vector& a)
+float Vector::Angle(Vector& a)
 {
-	double angle = *this | a;
+	float angle = *this | a;
 	return((angle > 1) ? 0 : (angle < -1) ? PI : acos(angle));
 }
 
-void Vector::Angle(double& u, double& v)
+void Vector::Angle(float& u, float& v)
 {
 	Vector n = Unit();
 
@@ -143,17 +143,17 @@ Vector Vector::Reflect(Vector& n)
 	return(n * ((-*this) | n) * 2 - (-*this));
 }
 
-Vector Vector::Refract(Vector& N, double nFront, double nBack, double* nOut)
+Vector Vector::Refract(Vector& N, float nFront, float nBack, float* nOut)
 {
 	Vector D = -*this;
 
-	double N_dot_D = (N | D);
-	double n = N_dot_D >= 0 ? (nFront / nBack) : (nBack / nFront);
+	float N_dot_D = (N | D);
+	float n = N_dot_D >= 0 ? (nFront / nBack) : (nBack / nFront);
 
 	Vector cos_D = N * N_dot_D;
 	Vector sin_T = (cos_D - D) * n;
 
-	double len_sin_T = sin_T | sin_T;
+	float len_sin_T = sin_T | sin_T;
 
 	if(len_sin_T > 1) 
 	{
@@ -161,7 +161,7 @@ Vector Vector::Refract(Vector& N, double nFront, double nBack, double* nOut)
 		return((*this).Reflect(N));
 	}
 
-	double N_dot_T = sqrt(1.0 - len_sin_T);
+	float N_dot_T = sqrt(1.0 - len_sin_T);
 	if(N_dot_D < 0) N_dot_T = -N_dot_T;
 
 	if(nOut) {*nOut = N_dot_D >= 0 ? nBack : nFront;}
@@ -169,17 +169,17 @@ Vector Vector::Refract(Vector& N, double nFront, double nBack, double* nOut)
 	return(sin_T - (N * N_dot_T));
 }
 
-Vector Vector::Refract2(Vector& N, double nFrom, double nTo, double* nOut)
+Vector Vector::Refract2(Vector& N, float nFrom, float nTo, float* nOut)
 {
 	Vector D = -*this;
 
-	double N_dot_D = (N | D);
-	double n = nFrom / nTo;
+	float N_dot_D = (N | D);
+	float n = nFrom / nTo;
 
 	Vector cos_D = N * N_dot_D;
 	Vector sin_T = (cos_D - D) * n;
 
-	double len_sin_T = sin_T | sin_T;
+	float len_sin_T = sin_T | sin_T;
 
 	if(len_sin_T > 1) 
 	{
@@ -187,7 +187,7 @@ Vector Vector::Refract2(Vector& N, double nFrom, double nTo, double* nOut)
 		return((*this).Reflect(N));
 	}
 
-	double N_dot_T = sqrt(1.0 - len_sin_T);
+	float N_dot_T = sqrt(1.0 - len_sin_T);
 	if(N_dot_D < 0) N_dot_T = -N_dot_T;
 
 	if(nOut) {*nOut = nTo;}
@@ -195,7 +195,7 @@ Vector Vector::Refract2(Vector& N, double nFrom, double nTo, double* nOut)
 	return(sin_T - (N * N_dot_T));
 }
 
-double Vector::operator | (Vector& v)
+float Vector::operator | (Vector& v)
 {
 	return(x * v.x + y * v.y + z * v.z);
 }
@@ -205,7 +205,7 @@ Vector Vector::operator % (Vector& v)
 	return(Vector(y * v.z - z * v.y, z * v.x - x * v.z, x * v.y - y * v.x));
 }
 
-double& Vector::operator [] (int i)
+float& Vector::operator [] (int i)
 {
 	return(!i ? x : (i == 1) ? y : z);
 }
@@ -226,7 +226,7 @@ bool Vector::operator != (const Vector& v) const
 	return((*this == v) ? false : true);
 }
 
-Vector Vector::operator + (double d)
+Vector Vector::operator + (float d)
 {
 	return(Vector(x + d, y + d, z + d));
 }
@@ -236,7 +236,7 @@ Vector Vector::operator + (Vector& v)
 	return(Vector(x + v.x, y + v.y, z + v.z));
 }
 
-Vector Vector::operator - (double d)
+Vector Vector::operator - (float d)
 {
 	return(Vector(x - d, y - d, z - d));
 }
@@ -246,7 +246,7 @@ Vector Vector::operator - (Vector& v)
 	return(Vector(x - v.x, y - v.y, z - v.z));
 }
 
-Vector Vector::operator * (double d)
+Vector Vector::operator * (float d)
 {
 	return(Vector(x * d, y * d, z * d));
 }
@@ -256,7 +256,7 @@ Vector Vector::operator * (Vector& v)
 	return(Vector(x * v.x, y * v.y, z * v.z));
 }
 
-Vector Vector::operator / (double d)
+Vector Vector::operator / (float d)
 {
 	return(Vector(x / d, y / d, z / d));
 }
@@ -266,7 +266,7 @@ Vector Vector::operator / (Vector& v)
 	return(Vector(x / v.x, y / v.y, z / v.z));
 }
 
-Vector& Vector::operator += (double d)
+Vector& Vector::operator += (float d)
 {
 	x += d; y += d; z += d;
 	return(*this);
@@ -278,7 +278,7 @@ Vector& Vector::operator += (Vector& v)
 	return(*this);
 }
 
-Vector& Vector::operator -= (double d)
+Vector& Vector::operator -= (float d)
 {
 	x -= d; y -= d; z -= d;
 	return(*this);
@@ -290,7 +290,7 @@ Vector& Vector::operator -= (Vector& v)
 	return(*this);
 }
 
-Vector& Vector::operator *= (double d)
+Vector& Vector::operator *= (float d)
 {
 	x *= d; y *= d; z *= d;
 	return(*this);
@@ -302,7 +302,7 @@ Vector& Vector::operator *= (Vector& v)
 	return(*this);
 }
 
-Vector& Vector::operator /= (double d)
+Vector& Vector::operator /= (float d)
 {
 	x /= d; y /= d; z /= d;
 	return(*this);
@@ -330,20 +330,20 @@ void Ray::Set(Vector& p, Vector& d)
 	this->d = d;
 }
 
-double Ray::GetDistanceFrom(Ray& r)
+float Ray::GetDistanceFrom(Ray& r)
 {
-	double t = (d | r.d);
+	float t = (d | r.d);
 	if(IsZero(t)) return(-BIGNUMBER); // plane is paralell to the ray, return -infinite
 	return(((r.p - p) | r.d) / t);
 }
 
-double Ray::GetDistanceFrom(Vector& v)
+float Ray::GetDistanceFrom(Vector& v)
 {
-	double t = ((v - p) | d) / (d | d);
+	float t = ((v - p) | d) / (d | d);
 	return(((p + d*t) - v).Length());
 }
 
-Vector Ray::operator [] (double t)
+Vector Ray::operator [] (float t)
 {
 	return(p + d*t);
 }

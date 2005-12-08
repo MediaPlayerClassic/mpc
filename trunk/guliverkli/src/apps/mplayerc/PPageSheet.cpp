@@ -42,7 +42,6 @@ CPPageSheet::CPPageSheet(LPCTSTR pszCaption, IFilterGraph* pFG, CWnd* pParentWnd
 	AddPage(&m_logo);
 	AddPage(&m_playback);
 	AddPage(&m_dvd);
-//	AddPage(&m_realmediaquicktime);
 	AddPage(&m_output);
 	AddPage(&m_webserver);
 	AddPage(&m_filters);

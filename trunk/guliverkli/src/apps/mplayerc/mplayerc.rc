@@ -13,15 +13,17 @@
 #undef APSTUDIO_READONLY_SYMBOLS
 
 /////////////////////////////////////////////////////////////////////////////
-// Hungarian resources
+// English (U.S.) resources
 
-#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_HUN)
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
 #ifdef _WIN32
-LANGUAGE LANG_HUNGARIAN, SUBLANG_DEFAULT
-#pragma code_page(1250)
+LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
+#pragma code_page(1252)
+#include "afxres.rc"         // Standard components
 #endif //_WIN32
 
 #ifdef APSTUDIO_INVOKED
+
 /////////////////////////////////////////////////////////////////////////////
 //
 // TEXTINCLUDE
@@ -53,207 +55,6 @@ BEGIN
 END
 
 #endif    // APSTUDIO_INVOKED
-
-
-/////////////////////////////////////////////////////////////////////////////
-//
-// Dialog
-//
-
-IDD_SHADERCOMBINEDLG DIALOGEX 0, 0, 225, 153
-STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
-CAPTION "Dialog"
-FONT 8, "MS Shell Dlg", 400, 0, 0x1
-BEGIN
-    LISTBOX         IDC_LIST1,7,7,157,117,LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_TABSTOP
-    DEFPUSHBUTTON   "OK",IDOK,168,7,50,14
-    PUSHBUTTON      "Cancel",IDCANCEL,168,23,50,14
-    PUSHBUTTON      "Move &Up",IDC_BUTTON1,168,57,50,14
-    PUSHBUTTON      "Move &Down",IDC_BUTTON11,168,73,50,14
-    PUSHBUTTON      "&Remove",IDC_BUTTON13,168,110,50,14
-    CONTROL         "",IDC_STATIC1,"Static",SS_ETCHEDHORZ,7,128,211,1
-    COMBOBOX        IDC_COMBO1,7,133,157,120,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
-    PUSHBUTTON      "&Add",IDC_BUTTON12,168,132,50,14
-END
-
-
-/////////////////////////////////////////////////////////////////////////////
-//
-// DESIGNINFO
-//
-
-#ifdef APSTUDIO_INVOKED
-GUIDELINES DESIGNINFO 
-BEGIN
-    IDD_SHADERCOMBINEDLG, DIALOG
-    BEGIN
-        LEFTMARGIN, 7
-        RIGHTMARGIN, 218
-        VERTGUIDE, 164
-        TOPMARGIN, 7
-        BOTTOMMARGIN, 146
-    END
-END
-#endif    // APSTUDIO_INVOKED
-
-#endif    // Hungarian resources
-/////////////////////////////////////////////////////////////////////////////
-
-
-/////////////////////////////////////////////////////////////////////////////
-// Neutral (Sys. Default) resources
-
-#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_NEUSD)
-#ifdef _WIN32
-LANGUAGE LANG_NEUTRAL, SUBLANG_SYS_DEFAULT
-#pragma code_page(1250)
-#endif //_WIN32
-
-/////////////////////////////////////////////////////////////////////////////
-//
-// Dialog
-//
-
-IDD_SHADEREDITORDIALOG DIALOGEX 0, 0, 198, 71
-STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD
-FONT 8, "MS Shell Dlg", 400, 0, 0x1
-BEGIN
-    COMBOBOX        IDC_COMBO1,0,0,115,51,CBS_DROPDOWN | CBS_SORT | WS_VSCROLL | WS_TABSTOP
-    EDITTEXT        IDC_EDIT1,0,15,198,27,ES_MULTILINE | ES_AUTOVSCROLL | ES_AUTOHSCROLL | ES_WANTRETURN | WS_VSCROLL
-    COMBOBOX        IDC_COMBO2,117,0,47,42,CBS_DROPDOWN | CBS_SORT | WS_VSCROLL | WS_TABSTOP
-    EDITTEXT        IDC_EDIT2,0,44,198,26,ES_MULTILINE | ES_AUTOHSCROLL | ES_READONLY | WS_VSCROLL
-    PUSHBUTTON      "Delete",IDC_BUTTON2,166,0,32,13
-END
-
-IDD_SHADERAUTOCOMPLETEDLG DIALOGEX 0, 0, 99, 81
-STYLE DS_SETFONT | DS_FIXEDSYS | WS_POPUP | WS_SYSMENU | WS_THICKFRAME
-FONT 8, "MS Shell Dlg", 400, 0, 0x1
-BEGIN
-    LISTBOX         IDC_LIST1,0,0,99,81,LBS_SORT | LBS_NOINTEGRALHEIGHT | NOT WS_BORDER | WS_VSCROLL | WS_TABSTOP
-END
-
-IDD_CONVERTDIALOG DIALOGEX 0, 0, 322, 190
-STYLE DS_SETFONT | DS_FIXEDSYS | WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
-EXSTYLE WS_EX_ACCEPTFILES
-CAPTION "DSM Converter - Right click the empty area to add media files"
-FONT 8, "MS Shell Dlg", 400, 0, 0x1
-BEGIN
-    CONTROL         "",IDC_TREE1,"SysTreeView32",TVS_HASBUTTONS | TVS_LINESATROOT | TVS_SHOWSELALWAYS | WS_BORDER | WS_TABSTOP,5,5,312,138
-    PUSHBUTTON      "Save &As...",IDC_BUTTON1,267,146,50,14
-    EDITTEXT        IDC_EDIT1,5,146,259,14,ES_AUTOHSCROLL | ES_READONLY
-    PUSHBUTTON      "Start",IDC_BUTTON2,83,169,50,14
-    PUSHBUTTON      "Pause",IDC_BUTTON3,136,169,50,14
-    PUSHBUTTON      "Stop",IDC_BUTTON4,188,169,50,14
-    CONTROL         "",IDC_HLINE,"Static",SS_ETCHEDHORZ,5,164,312,1
-END
-
-IDD_CONVERTPROPSDIALOG DIALOGEX 0, 0, 266, 145
-STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
-CAPTION "Properties"
-FONT 8, "MS Shell Dlg", 400, 0, 0x1
-BEGIN
-    PUSHBUTTON      "OK",IDOK,81,125,50,14
-    PUSHBUTTON      "Cancel",IDCANCEL,133,125,50,14
-    COMBOBOX        IDC_COMBO1,7,7,48,82,CBS_DROPDOWN | CBS_SORT | WS_VSCROLL | WS_TABSTOP
-    EDITTEXT        IDC_EDIT1,56,7,167,13,ES_AUTOHSCROLL
-    DEFPUSHBUTTON   "Set",IDC_BUTTON1,225,7,34,13
-    CONTROL         "",IDC_LIST1,"SysListView32",LVS_REPORT | LVS_SINGLESEL | LVS_SHOWSELALWAYS | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,7,22,252,98
-END
-
-IDD_CONVERTRESDIALOG DIALOGEX 0, 0, 230, 126
-STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
-CAPTION "Resource"
-FONT 8, "MS Shell Dlg", 400, 0, 0x1
-BEGIN
-    DEFPUSHBUTTON   "OK",IDOK,64,106,50,14
-    PUSHBUTTON      "Cancel",IDCANCEL,116,106,50,14
-    COMBOBOX        IDC_COMBO1,7,40,216,30,CBS_DROPDOWN | CBS_SORT | WS_VSCROLL | WS_TABSTOP
-    EDITTEXT        IDC_EDIT2,7,65,216,36,ES_MULTILINE | ES_AUTOHSCROLL | ES_WANTRETURN
-    EDITTEXT        IDC_EDIT3,7,16,216,13,ES_AUTOHSCROLL
-    LTEXT           "Name",IDC_STATIC,7,6,19,8
-    LTEXT           "Mime",IDC_STATIC,7,30,17,8
-    LTEXT           "Description",IDC_STATIC,7,55,36,8
-END
-
-IDD_CONVERTCHAPDIALOG DIALOGEX 0, 0, 213, 46
-STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
-CAPTION "Chapter"
-FONT 8, "MS Shell Dlg", 400, 0, 0x1
-BEGIN
-    DEFPUSHBUTTON   "OK",IDOK,55,25,50,14
-    PUSHBUTTON      "Cancel",IDCANCEL,107,25,50,14
-    EDITTEXT        IDC_EDIT2,72,7,134,13,ES_AUTOHSCROLL
-    EDITTEXT        IDC_EDIT1,7,7,61,13,ES_AUTOHSCROLL
-END
-
-
-/////////////////////////////////////////////////////////////////////////////
-//
-// DESIGNINFO
-//
-
-#ifdef APSTUDIO_INVOKED
-GUIDELINES DESIGNINFO 
-BEGIN
-    IDD_SHADEREDITORDIALOG, DIALOG
-    BEGIN
-        BOTTOMMARGIN, 70
-    END
-
-    IDD_CONVERTDIALOG, DIALOG
-    BEGIN
-        LEFTMARGIN, 5
-        RIGHTMARGIN, 317
-        VERTGUIDE, 12
-        TOPMARGIN, 5
-        BOTTOMMARGIN, 183
-    END
-
-    IDD_CONVERTPROPSDIALOG, DIALOG
-    BEGIN
-        LEFTMARGIN, 7
-        RIGHTMARGIN, 259
-        TOPMARGIN, 7
-        BOTTOMMARGIN, 139
-    END
-
-    IDD_CONVERTRESDIALOG, DIALOG
-    BEGIN
-        LEFTMARGIN, 7
-        RIGHTMARGIN, 223
-        TOPMARGIN, 6
-        BOTTOMMARGIN, 120
-    END
-
-    IDD_CONVERTCHAPDIALOG, DIALOG
-    BEGIN
-        LEFTMARGIN, 7
-        RIGHTMARGIN, 206
-        TOPMARGIN, 7
-        BOTTOMMARGIN, 39
-    END
-END
-#endif    // APSTUDIO_INVOKED
-
-
-/////////////////////////////////////////////////////////////////////////////
-//
-// Bitmap
-//
-
-IDB_STREAMTYPES         BITMAP                  "res\\streamtypes.bmp"
-#endif    // Neutral (Sys. Default) resources
-/////////////////////////////////////////////////////////////////////////////
-
-
-/////////////////////////////////////////////////////////////////////////////
-// English (U.S.) resources
-
-#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
-#ifdef _WIN32
-LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
-#pragma code_page(1252)
-#endif //_WIN32
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -647,28 +448,6 @@ BEGIN
     EDITTEXT        IDC_EDIT7,58,132,144,47,ES_MULTILINE | ES_AUTOHSCROLL | ES_READONLY
 END
 
-IDD_PPAGERMQT DIALOGEX 0, 0, 295, 194
-STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD
-FONT 8, "MS Shell Dlg", 400, 0, 0x1
-BEGIN
-    GROUPBOX        "RealMedia renderer settings",IDC_STATIC,6,4,282,48
-    CONTROL         "Use special renderer for subtitling (works under every Windows version)",IDC_CHECK1,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,14,19,247,10
-    CONTROL         "Allow interaction with video (needs re-opening)",IDC_CHECK2,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,14,34,167,10
-    GROUPBOX        "QuickTime renderer settings",IDC_STATIC,6,56,282,65
-    CONTROL         "QuickTime Movie Controller (uses overlay when available, a bit kludgy)",IDC_RADIO1,
-                    "Button",BS_AUTORADIOBUTTON | WS_GROUP,14,70,241,10
-    CONTROL         "GDI (very fast, no image filtering)",IDC_RADIO2,"Button",BS_AUTORADIOBUTTON,14,82,124,10
-    CONTROL         "DirectX7 (hw accelerated d3d card is needed, enables subtitling)",IDC_RADIO3,
-                    "Button",BS_AUTORADIOBUTTON,14,94,221,10
-    CONTROL         "DirectX9 (Same as DX7, but can be used for full screen video mirroring)",IDC_RADIO12,
-                    "Button",BS_AUTORADIOBUTTON,14,106,243,10
-    GROUPBOX        "Framerate for microdvd subtitles",IDC_STATIC,6,124,282,34,WS_GROUP
-    EDITTEXT        IDC_EDIT2,14,137,33,13,ES_CENTER | ES_AUTOHSCROLL
-    LTEXT           "Note: MPC is unable to determine the framerate of RealMedia and QuickTime sources, yet.",IDC_STATIC,60,135,220,17
-END
-
 IDD_FAVADD DIALOGEX 0, 0, 252, 70
 STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "Add Favorite"
@@ -1034,6 +813,103 @@ BEGIN
     CONTROL         "",IDC_LIST1,"SysListView32",LVS_REPORT | LVS_SINGLESEL | LVS_SHOWSELALWAYS | LVS_SORTASCENDING | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,8,43,213,134
 END
 
+IDD_SHADERCOMBINEDLG DIALOGEX 0, 0, 225, 153
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Shader Combiner"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    LISTBOX         IDC_LIST1,7,7,157,117,LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_TABSTOP
+    DEFPUSHBUTTON   "OK",IDOK,168,7,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,168,23,50,14
+    PUSHBUTTON      "Move &Up",IDC_BUTTON1,168,57,50,14
+    PUSHBUTTON      "Move &Down",IDC_BUTTON11,168,73,50,14
+    PUSHBUTTON      "&Remove",IDC_BUTTON13,168,110,50,14
+    CONTROL         "",IDC_STATIC1,"Static",SS_ETCHEDHORZ,7,128,211,1
+    COMBOBOX        IDC_COMBO1,7,133,157,120,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    PUSHBUTTON      "&Add",IDC_BUTTON12,168,132,50,14
+END
+
+IDD_STREAM_DEMUXER_DLG DIALOGEX 0, 0, 254, 196
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Stream Demuxer"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    EDITTEXT        IDC_EDIT1,7,17,186,14,ES_AUTOHSCROLL
+    PUSHBUTTON      "Browse...",IDC_BUTTON1,197,17,50,14
+    LTEXT           "Please select a media file to be demuxed!",IDC_STATIC,7,7,133,8
+END
+
+IDD_SHADEREDITORDIALOG DIALOGEX 0, 0, 198, 71
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    COMBOBOX        IDC_COMBO1,0,0,115,51,CBS_DROPDOWN | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    EDITTEXT        IDC_EDIT1,0,15,198,27,ES_MULTILINE | ES_AUTOVSCROLL | ES_AUTOHSCROLL | ES_WANTRETURN | WS_VSCROLL
+    COMBOBOX        IDC_COMBO2,117,0,47,42,CBS_DROPDOWN | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    EDITTEXT        IDC_EDIT2,0,44,198,26,ES_MULTILINE | ES_AUTOHSCROLL | ES_READONLY | WS_VSCROLL
+    PUSHBUTTON      "Delete",IDC_BUTTON2,166,0,32,13
+END
+
+IDD_SHADERAUTOCOMPLETEDLG DIALOGEX 0, 0, 99, 81
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_POPUP | WS_SYSMENU | WS_THICKFRAME
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    LISTBOX         IDC_LIST1,0,0,99,81,LBS_SORT | LBS_NOINTEGRALHEIGHT | NOT WS_BORDER | WS_VSCROLL | WS_TABSTOP
+END
+
+IDD_CONVERTDIALOG DIALOGEX 0, 0, 322, 190
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
+EXSTYLE WS_EX_ACCEPTFILES
+CAPTION "DSM Converter - Right click the empty area to add media files"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    CONTROL         "",IDC_TREE1,"SysTreeView32",TVS_HASBUTTONS | TVS_LINESATROOT | TVS_SHOWSELALWAYS | WS_BORDER | WS_TABSTOP,5,5,312,138
+    PUSHBUTTON      "Save &As...",IDC_BUTTON1,267,146,50,14
+    EDITTEXT        IDC_EDIT1,5,146,259,14,ES_AUTOHSCROLL | ES_READONLY
+    PUSHBUTTON      "Start",IDC_BUTTON2,83,169,50,14
+    PUSHBUTTON      "Pause",IDC_BUTTON3,136,169,50,14
+    PUSHBUTTON      "Stop",IDC_BUTTON4,188,169,50,14
+    CONTROL         "",IDC_HLINE,"Static",SS_ETCHEDHORZ,5,164,312,1
+END
+
+IDD_CONVERTPROPSDIALOG DIALOGEX 0, 0, 266, 145
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Properties"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    PUSHBUTTON      "OK",IDOK,81,125,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,133,125,50,14
+    COMBOBOX        IDC_COMBO1,7,7,48,82,CBS_DROPDOWN | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    EDITTEXT        IDC_EDIT1,56,7,167,13,ES_AUTOHSCROLL
+    DEFPUSHBUTTON   "Set",IDC_BUTTON1,225,7,34,13
+    CONTROL         "",IDC_LIST1,"SysListView32",LVS_REPORT | LVS_SINGLESEL | LVS_SHOWSELALWAYS | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,7,22,252,98
+END
+
+IDD_CONVERTRESDIALOG DIALOGEX 0, 0, 230, 126
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Resource"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,64,106,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,116,106,50,14
+    COMBOBOX        IDC_COMBO1,7,40,216,30,CBS_DROPDOWN | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    EDITTEXT        IDC_EDIT2,7,65,216,36,ES_MULTILINE | ES_AUTOHSCROLL | ES_WANTRETURN
+    EDITTEXT        IDC_EDIT3,7,16,216,13,ES_AUTOHSCROLL
+    LTEXT           "Name",IDC_STATIC,7,6,19,8
+    LTEXT           "Mime",IDC_STATIC,7,30,17,8
+    LTEXT           "Description",IDC_STATIC,7,55,36,8
+END
+
+IDD_CONVERTCHAPDIALOG DIALOGEX 0, 0, 213, 46
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Chapter"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,55,25,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,107,25,50,14
+    EDITTEXT        IDC_EDIT2,72,7,134,13,ES_AUTOHSCROLL
+    EDITTEXT        IDC_EDIT1,7,7,61,13,ES_AUTOHSCROLL
+END
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -1204,16 +1080,6 @@ BEGIN
         HORZGUIDE, 108
     END
 
-    IDD_PPAGERMQT, DIALOG
-    BEGIN
-        VERTGUIDE, 6
-        VERTGUIDE, 14
-        VERTGUIDE, 60
-        VERTGUIDE, 280
-        VERTGUIDE, 288
-        HORZGUIDE, 182
-    END
-
     IDD_FAVADD, DIALOG
     BEGIN
         LEFTMARGIN, 7
@@ -1354,9 +1220,65 @@ BEGIN
         VERTGUIDE, 35
         VERTGUIDE, 221
     END
+
+    IDD_SHADERCOMBINEDLG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 218
+        VERTGUIDE, 164
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 146
+    END
+
+    IDD_STREAM_DEMUXER_DLG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 247
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 189
+        HORZGUIDE, 17
+        HORZGUIDE, 31
+    END
+
+    IDD_SHADEREDITORDIALOG, DIALOG
+    BEGIN
+        BOTTOMMARGIN, 70
+    END
+
+    IDD_CONVERTDIALOG, DIALOG
+    BEGIN
+        LEFTMARGIN, 5
+        RIGHTMARGIN, 317
+        VERTGUIDE, 12
+        TOPMARGIN, 5
+        BOTTOMMARGIN, 183
+    END
+
+    IDD_CONVERTPROPSDIALOG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 259
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 139
+    END
+
+    IDD_CONVERTRESDIALOG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 223
+        TOPMARGIN, 6
+        BOTTOMMARGIN, 120
+    END
+
+    IDD_CONVERTCHAPDIALOG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 206
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 39
+    END
 END
 #endif    // APSTUDIO_INVOKED
-
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -1377,6 +1299,7 @@ IDB_LOGO5               BITMAP                  "res\\logo.5.bmp"
 IDB_LOGO6               BITMAP                  "res\\logo.6.bmp"
 IDB_AUTHHDRPIC          BITMAP                  "res\\authhdrpic.bmp"
 IDB_LOGO7               BITMAP                  "res\\logo.7.bmp"
+IDB_STREAMTYPES         BITMAP                  "res\\streamtypes.bmp"
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -1578,6 +1501,7 @@ BEGIN
         POPUP "Utils"
         BEGIN
             MENUITEM "DSM Co&nverter...",           ID_FILE_CONVERT
+            MENUITEM "Stream Demuxer...",           ID_UTILS_STREAMDEMUXER
         END
         MENUITEM SEPARATOR
         MENUITEM "E&xit\tAlt+X",                ID_FILE_EXIT
@@ -1830,7 +1754,7 @@ BEGIN
             MENUITEM "Subresync",                   ID_VIEW_SUBRESYNC
             MENUITEM "Playlist",                    ID_VIEW_PLAYLIST
             MENUITEM "Capture",                     ID_VIEW_CAPTURE
-            MENUITEM "Shader Editor",               ID_VIEW_SHADEREDITOR
+            MENUITEM "Shaders",                     ID_VIEW_SHADEREDITOR
             POPUP "Presets..."
             BEGIN
                 MENUITEM "Minimal",                     ID_VIEW_PRESETS_MINIMAL
@@ -1868,6 +1792,12 @@ BEGIN
             END
             MENUITEM SEPARATOR
             MENUITEM "Prope&rties",                 ID_FILE_PROPERTIES
+            MENUITEM SEPARATOR
+            POPUP "Utils"
+            BEGIN
+                MENUITEM "DSM Co&nverter...",           ID_FILE_CONVERT
+                MENUITEM "Stream Demuxer...",           ID_UTILS_STREAMDEMUXER
+            END
         END
         POPUP "&View"
         BEGIN
@@ -2419,8 +2349,6 @@ END
 #endif    // English (U.S.) resources
 /////////////////////////////////////////////////////////////////////////////
 
-
-
 #ifndef APSTUDIO_INVOKED
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -2438,4 +2366,6 @@ LANGUAGE 9, 1
 #endif
 /////////////////////////////////////////////////////////////////////////////
 #endif    // not APSTUDIO_INVOKED
+
+
 

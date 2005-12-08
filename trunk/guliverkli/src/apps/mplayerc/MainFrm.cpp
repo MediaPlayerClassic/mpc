@@ -225,6 +225,8 @@ BEGIN_MESSAGE_MAP(CMainFrame, CFrameWnd)
 	ON_UPDATE_COMMAND_UI(ID_FILE_SAVE_IMAGE_AUTO, OnUpdateFileSaveImage)
 	ON_COMMAND(ID_FILE_CONVERT, OnFileConvert)
 	ON_UPDATE_COMMAND_UI(ID_FILE_CONVERT, OnUpdateFileConvert)
+	ON_COMMAND(ID_UTILS_STREAMDEMUXER, OnStreamDemuxer)
+	ON_UPDATE_COMMAND_UI(ID_UTILS_STREAMDEMUXER, OnUpdateStreamDemuxer)
 	ON_COMMAND(ID_FILE_LOADSUBTITLE, OnFileLoadsubtitles)
 	ON_UPDATE_COMMAND_UI(ID_FILE_LOADSUBTITLE, OnUpdateFileLoadsubtitles)
 	ON_COMMAND(ID_FILE_SAVESUBTITLES, OnFileSavesubtitles)
@@ -381,8 +383,6 @@ CMainFrame::CMainFrame() :
 	m_fileDropTarget(this),
 	m_fTrayIcon(false)
 {
-
-
 }
 
 CMainFrame::~CMainFrame()
@@ -1306,27 +1306,6 @@ void CMainFrame::OnTimer(UINT nIDEvent)
 		{
 			ULONG ulAvailable, ulCurrent;
 
-			// Domain
-
-			CString Domain('-');
-
-			DVD_DOMAIN dom;
-
-			if(SUCCEEDED(pDVDI->GetCurrentDomain(&dom)))
-			{
-				switch(dom)
-				{
-				case DVD_DOMAIN_FirstPlay: Domain = _T("First Play"); break;
-				case DVD_DOMAIN_VideoManagerMenu: Domain = _T("Video Manager Menu"); break;
-				case DVD_DOMAIN_VideoTitleSetMenu: Domain = _T("Video Title Set Menu"); break;
-				case DVD_DOMAIN_Title: Domain = _T("Title"); break;
-				case DVD_DOMAIN_Stop: Domain = _T("Stop"); break;
-				default: Domain = _T("-"); break;
-				}
-			}
-
-			m_wndInfoBar.SetLine(_T("Domain"), Domain);
-
 			// Location
 
 			CString Location('-');
@@ -1685,34 +1664,49 @@ LRESULT CMainFrame::OnGraphNotify(WPARAM wParam, LPARAM lParam)
 		else if(EC_DVD_TITLE_CHANGE == evCode)
 		{
 			if(m_iPlaybackMode == PM_FILE)
+			{
 				SetupChapters();
+			}
 		}
 		else if(EC_DVD_DOMAIN_CHANGE == evCode)
 		{
 			m_iDVDDomain = (DVD_DOMAIN)evParam1;
-			TRACE(_T("EC_DVD_DOMAIN_CHANGE %d\n"), m_iDVDDomain);
+
+			CString Domain('-');
+
+			switch(m_iDVDDomain)
+			{
+			case DVD_DOMAIN_FirstPlay: Domain = _T("First Play"); break;
+			case DVD_DOMAIN_VideoManagerMenu: Domain = _T("Video Manager Menu"); break;
+			case DVD_DOMAIN_VideoTitleSetMenu: Domain = _T("Video Title Set Menu"); break;
+			case DVD_DOMAIN_Title: Domain = _T("Title"); break;
+			case DVD_DOMAIN_Stop: Domain = _T("Stop"); break;
+			default: Domain = _T("-"); break;
+			}
+
+			m_wndInfoBar.SetLine(_T("Domain"), Domain);
+
 			MoveVideoWindow(); // AR might have changed
 		}
 		else if(EC_DVD_CURRENT_HMSF_TIME == evCode)
 		{
-			REFERENCE_TIME rtNow = 0, rtDur = 0;
-
 			double fps = evParam2 == DVD_TC_FLAG_25fps ? 25.0
 				: evParam2 == DVD_TC_FLAG_30fps ? 30.0
 				: evParam2 == DVD_TC_FLAG_DropFrame ? 29.97
 				: 25.0;
 
-			rtNow = HMSF2RT(*((DVD_HMSF_TIMECODE*)&evParam1), fps);
+			REFERENCE_TIME rtDur = 0;
 
 			DVD_HMSF_TIMECODE tcDur;
 			ULONG ulFlags;
 			if(SUCCEEDED(pDVDI->GetTotalTitleTime(&tcDur, &ulFlags)))
-			{
 				rtDur = HMSF2RT(tcDur, fps);
-			}
 
 			m_wndSeekBar.Enable(rtDur > 0);
 			m_wndSeekBar.SetRange(0, rtDur);
+
+			REFERENCE_TIME rtNow = HMSF2RT(*((DVD_HMSF_TIMECODE*)&evParam1), fps);
+
 			m_wndSeekBar.SetPos(rtNow);
 
 			if(m_pSubClock) m_pSubClock->SetTime(rtNow);
@@ -3399,6 +3393,16 @@ void CMainFrame::OnFileConvert()
 void CMainFrame::OnUpdateFileConvert(CCmdUI* pCmdUI)
 {
 	// TODO: Add your command update UI handler code here
+}
+
+void CMainFrame::OnStreamDemuxer()
+{
+	// TODO: Add your command handler code here
+}
+
+void CMainFrame::OnUpdateStreamDemuxer(CCmdUI* pCmdUI)
+{
+	// TODO: Add your command handler code here
 }
 
 void CMainFrame::OnFileLoadsubtitles()
@@ -9236,5 +9240,4 @@ void CGraphThread::OnClose(WPARAM wParam, LPARAM lParam)
 	if(m_pMainFrame) m_pMainFrame->CloseMediaPrivate();
 	if(CAMEvent* e = (CAMEvent*)lParam) e->Set();
 }
-
 
