@@ -33,8 +33,9 @@
 // CBaseVideoFilter
 //
 
-CBaseVideoFilter::CBaseVideoFilter(TCHAR* pName, LPUNKNOWN lpunk, HRESULT* phr, REFCLSID clsid) 
+CBaseVideoFilter::CBaseVideoFilter(TCHAR* pName, LPUNKNOWN lpunk, HRESULT* phr, REFCLSID clsid, long cBuffers) 
 	: CTransformFilter(pName, lpunk, clsid)
+	, m_cBuffers(cBuffers)
 {
 	if(phr) *phr = S_OK;
 
@@ -412,7 +413,9 @@ HRESULT CBaseVideoFilter::DecideBufferSize(IMemAllocator* pAllocator, ALLOCATOR_
 	BITMAPINFOHEADER bih;
 	ExtractBIH(&m_pOutput->CurrentMediaType(), &bih);
 
-	pProperties->cBuffers = 1;
+	long cBuffers = m_pOutput->CurrentMediaType().formattype == FORMAT_VideoInfo ? 1 : m_cBuffers;
+
+	pProperties->cBuffers = m_cBuffers;
 	pProperties->cbBuffer = bih.biSizeImage;
 	pProperties->cbAlign = 1;
 	pProperties->cbPrefix = 0;
@@ -455,7 +458,7 @@ HRESULT CBaseVideoFilter::GetMediaType(int iPosition, CMediaType* pmt)
 	bool fFoundDVDNavigator = false;
 	CComPtr<IBaseFilter> pBF = this;
 	CComPtr<IPin> pPin = m_pInput;
-	for(; !fFoundDVDNavigator && (pBF = GetFilterFromPin(GetUpStreamPin(pBF, pPin))); pPin = GetFirstPin(pBF))
+	for(; !fFoundDVDNavigator && (pBF = GetUpStreamFilter(pBF, pPin)); pPin = GetFirstPin(pBF))
         fFoundDVDNavigator = GetCLSID(pBF) == CLSID_DVDNavigator;
 
 	if(fFoundDVDNavigator || m_pInput->CurrentMediaType().formattype == FORMAT_VideoInfo2)

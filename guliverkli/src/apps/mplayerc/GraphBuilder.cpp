@@ -608,6 +608,25 @@ CGraphBuilder::CGraphBuilder(IGraphBuilder* pGB, HWND hWnd)
 
 	// ISCR suxx
 	AddFilter(new CGraphRegFilter(GUIDFromCString(_T("{48025243-2D39-11CE-875D-00608CB78066}")), LMERIT_DO_NOT_USE));
+
+
+	// DCDSPFilter
+	{
+		CRegKey key;
+
+		TCHAR buff[256];
+		ULONG len = sizeof(buff);
+		memset(buff, 0, len);
+
+		CString clsid = _T("{B38C58A0-1809-11D6-A458-EDAE78F1DF12}");
+
+		if(ERROR_SUCCESS == key.Open(HKEY_CLASSES_ROOT, _T("CLSID\\") + clsid + _T("\\InprocServer32"), KEY_READ)
+		&& ERROR_SUCCESS == key.QueryStringValue(NULL, buff, &len)
+		&& GetFileVersion(buff) < 0x0001000000030000ui64)
+		{
+			AddFilter(new CGraphRegFilter(GUIDFromCString(clsid), LMERIT_DO_NOT_USE));
+		}
+	}
 }
 
 CGraphBuilder::~CGraphBuilder()

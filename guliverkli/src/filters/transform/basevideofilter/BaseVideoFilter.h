@@ -10,6 +10,8 @@ private:
 	DWORD m_win, m_hin, m_arxin, m_aryin;
 	DWORD m_wout, m_hout, m_arxout, m_aryout;
 
+	long m_cBuffers;
+
 protected:
 	CCritSec m_csReceive;
 
@@ -23,7 +25,7 @@ protected:
 	virtual HRESULT Transform(IMediaSample* pIn) = 0;
 
 public:
-	CBaseVideoFilter(TCHAR* pName, LPUNKNOWN lpunk, HRESULT* phr, REFCLSID clsid);
+	CBaseVideoFilter(TCHAR* pName, LPUNKNOWN lpunk, HRESULT* phr, REFCLSID clsid, long cBuffers = 1);
 	virtual ~CBaseVideoFilter();
 
 	int GetPinCount();

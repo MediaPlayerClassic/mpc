@@ -219,6 +219,9 @@ HRESULT CMpaSplitterFile::Init()
 
 	Seek(m_startpos);
 
+	while(m_startpos < m_endpos && BitRead(8, true) == 0)
+		BitRead(8), m_startpos++;
+
 	if(m_mode == none && Read(m_mpahdr, min(m_endpos - GetPos(), 0x200), true, &m_mt))
 	{
 		m_mode = mpa;

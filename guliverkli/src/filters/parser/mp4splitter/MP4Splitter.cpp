@@ -730,7 +730,7 @@ static CStringW ConvertTX3GToSSA(
 				chars[start].pre += s;
 				chars[end-1].post += font_color;
 
-				chars[start].pre += L"{\\bord1}";
+				chars[start].pre += L"{\\bord0.1}";
 				chars[end-1].post += L"{\\bord}";
 			}
 		}

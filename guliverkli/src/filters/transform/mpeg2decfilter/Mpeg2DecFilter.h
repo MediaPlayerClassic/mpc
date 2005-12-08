@@ -37,6 +37,7 @@ class CMpeg2DecFilter : public CBaseVideoFilter, public IMpeg2DecFilter
 {
 	CSubpicInputPin* m_pSubpicInput;
 	CClosedCaptionOutputPin* m_pClosedCaptionOutput;
+
 	CAutoPtr<CMpeg2Dec> m_dec;
 	REFERENCE_TIME m_AvgTimePerFrame;
 	bool m_fWaitForKeyFrame;
@@ -146,6 +147,23 @@ public:
     STDMETHODIMP Set(REFGUID PropSet, ULONG Id, LPVOID InstanceData, ULONG InstanceLength, LPVOID PropertyData, ULONG DataLength);
     STDMETHODIMP Get(REFGUID PropSet, ULONG Id, LPVOID InstanceData, ULONG InstanceLength, LPVOID PropertyData, ULONG DataLength, ULONG* pBytesReturned);
     STDMETHODIMP QuerySupported(REFGUID PropSet, ULONG Id, ULONG* pTypeSupport);
+};
+
+class CMpeg2DecOutputPin : public CBaseVideoOutputPin
+{
+public:
+	CMpeg2DecOutputPin(CBaseVideoFilter* pFilter, HRESULT* phr, LPWSTR pName);
+
+	CAutoPtr<COutputQueue> m_pOutputQueue;
+
+	HRESULT Active();
+    HRESULT Inactive();
+
+	HRESULT Deliver(IMediaSample* pMediaSample);
+    HRESULT DeliverEndOfStream();
+    HRESULT DeliverBeginFlush();
+	HRESULT DeliverEndFlush();
+    HRESULT DeliverNewSegment(REFERENCE_TIME tStart, REFERENCE_TIME tStop, double dRate);
 };
 
 class CSubpicInputPin : public CMpeg2DecInputPin

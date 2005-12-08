@@ -67,11 +67,13 @@ void CConvertDlg::AddFile(CString fn)
 		if(CComQIPtr<IDSMPropertyBag> pPB = m_pMux)
 			pPB->DelAllProperties();
 
-		if(CString(_T(".dsm")).CompareNoCase(path.GetExtension()) != 0)
+		CString dsm(_T(".dsm"));
+
+		if(dsm.CompareNoCase(path.GetExtension()) != 0)
 		{
 			CPath p(fn);
 			p.RemoveExtension();
-			SetOutputFile(CString((LPCTSTR)p) + _T(".dsm"));
+			SetOutputFile((LPCTSTR)p + dsm);
 		}
 	}
 
