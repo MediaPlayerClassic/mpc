@@ -11,6 +11,14 @@
 	<script type="text/javascript" src="script/flip.js"></script>
 	<link rel="stylesheet" type="text/css" href="css/flip.css" />
 	<link rel="stylesheet" type="text/css" href="css/default.css" />
+
+	<script src="http://www.google-analytics.com/urchin.js" type="text/javascript">
+	</script>
+	<script type="text/javascript">
+	_uacct = "UA-83903-2";
+	urchinTracker();
+	</script>
+
 </head>
 
 <body bgcolor="#ffffff">
