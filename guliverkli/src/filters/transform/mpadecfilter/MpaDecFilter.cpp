@@ -292,7 +292,7 @@ HRESULT CMpaDecFilter::Receive(IMediaSample* pIn)
 	}
 
 	int tmp = m_buff.GetSize();
-	m_buff.SetSize(m_buff.GetSize() + len);
+	m_buff.SetSize(m_buff.GetSize() + len, 4096);
 	memcpy(m_buff.GetData() + tmp, pDataIn, len);
 	len += tmp;
 

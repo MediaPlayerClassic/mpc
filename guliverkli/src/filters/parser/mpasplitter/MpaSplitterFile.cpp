@@ -189,16 +189,16 @@ HRESULT CMpaSplitterFile::Init()
 					CStringA str;
 					CStringW wstr;
 
-					if(encoding > 0 && size >= 2 && bom == 0xfeff)
+					if(encoding > 0 && size >= 2 && bom == 0xfffe)
 					{
 						BitRead(16);
-						ByteRead((BYTE*)wstr.GetBufferSetLength(size), size);
+						ByteRead((BYTE*)wstr.GetBufferSetLength((size-2+1)/2), size);
 						m_tags[tag] = wstr.Trim();
 					}
-					else if(encoding > 0 && size >= 2 && bom == 0xfffe)
+					else if(encoding > 0 && size >= 2 && bom == 0xfeff)
 					{
 						BitRead(16);
-						ByteRead((BYTE*)wstr.GetBufferSetLength(size), size);
+						ByteRead((BYTE*)wstr.GetBufferSetLength((size-2+1)/2), size);
 						for(int i = 0, j = wstr.GetLength(); i < j; i++) wstr.SetAt(i, (wstr[i]<<8)|(wstr[i]>>8));
 						m_tags[tag] = wstr.Trim();
 					}
@@ -212,22 +212,25 @@ HRESULT CMpaSplitterFile::Init()
 		}
 
 		Seek(m_startpos);
+
+		while(m_startpos < m_endpos && BitRead(8, true) == 0)
+			BitRead(8), m_startpos++;
 	}
-
-	__int64 startpos;
-	int nBytesPerSec = 0;
-
-	Seek(m_startpos);
 
 	while(m_startpos < m_endpos && BitRead(8, true) == 0)
 		BitRead(8), m_startpos++;
 
-	if(m_mode == none && Read(m_mpahdr, min(m_endpos - GetPos(), 0x200), true, &m_mt))
+	__int64 searchlen = min(m_endpos - m_startpos, m_startpos > 0 ? 0x200 : 4);
+
+	__int64 startpos;
+
+	Seek(m_startpos);
+
+	if(m_mode == none && Read(m_mpahdr, searchlen, true, &m_mt))
 	{
 		m_mode = mpa;
 
 		startpos = GetPos() - 4;
-		nBytesPerSec = m_mpahdr.nBytesPerSec;
 		
 		// make sure the first frame is followed by another of the same kind (validates m_mpahdr basically)
 		Seek(startpos + m_mpahdr.FrameSize);
@@ -236,12 +239,11 @@ HRESULT CMpaSplitterFile::Init()
 
 	Seek(m_startpos);
 
-	if(m_mode == none && Read(m_aachdr, min(m_endpos - GetPos(), 0x200), &m_mt))
+	if(m_mode == none && Read(m_aachdr, searchlen, &m_mt))
 	{
 		m_mode = mp4a;
 
 		startpos = GetPos() - (m_aachdr.fcrc?7:9);
-		nBytesPerSec = ((WAVEFORMATEX*)m_mt.Format())->nAvgBytesPerSec;
 
 		// make sure the first frame is followed by another of the same kind (validates m_aachdr basically)
 		Seek(startpos + m_aachdr.aac_frame_length);
@@ -253,8 +255,18 @@ HRESULT CMpaSplitterFile::Init()
 
 	m_startpos = startpos;
 
-	// initial duration, may not be correct (VBR files...)
-	m_rtDuration = 10000000i64 * (m_endpos - m_startpos) / nBytesPerSec;
+	int FrameSize;
+	REFERENCE_TIME rtFrameDur, rtPrevDur = -1;
+	clock_t start = clock();
+	int i = 0;
+	while(Sync(FrameSize, rtFrameDur) && (clock() - start) < CLOCKS_PER_SEC)
+	{
+		TRACE(_T("%I64d\n"), m_rtDuration);
+		Seek(GetPos() + FrameSize);
+		i = rtPrevDur == m_rtDuration ? i+1 : 0;
+		if(i == 10) break;
+		rtPrevDur = m_rtDuration;
+	}
 
 	return S_OK;
 }

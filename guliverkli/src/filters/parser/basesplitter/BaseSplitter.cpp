@@ -24,6 +24,7 @@
 #include <initguid.h>
 #include "..\..\..\..\include\moreuuids.h"
 #include "..\..\..\..\include\matroska\matroska.h"
+#include "..\..\..\..\include\ogg\oggds.h"
 #include "..\..\switcher\AudioSwitcher\AudioSwitcher.h"
 #include "BaseSplitter.h"
 
@@ -249,6 +250,12 @@ HRESULT CBaseSplitterOutputPin::DecideBufferSize(IMemAllocator* pAlloc, ALLOCATO
 
 	pProperties->cBuffers = m_nBuffers;
 	pProperties->cbBuffer = max(m_mt.lSampleSize, 1);
+
+	if(m_mt.subtype == MEDIASUBTYPE_Vorbis && m_mt.formattype == FORMAT_VorbisFormat)
+	{
+		// oh great, the oggds vorbis decoder assumes there will be two at least, stupid thing...
+		pProperties->cBuffers = max(pProperties->cBuffers, 2);
+	}
 
     ALLOCATOR_PROPERTIES Actual;
     if(FAILED(hr = pAlloc->SetProperties(pProperties, &Actual))) return hr;
@@ -554,11 +561,11 @@ HRESULT CBaseSplitterOutputPin::DeliverPacket(CAutoPtr<Packet> p)
 /*
 //if(p->TrackNumber == 1)
 //if(p->rtStart != Packet::INVALID_TIME)
-TRACE(_T("[%d]: d%d s%d p%d, b=%d, %I64d-%I64d \n"), 
+*/TRACE(_T("[%d]: d%d s%d p%d, b=%d, %I64d-%I64d \n"), 
 	  p->TrackNumber,
 	  p->bDiscontinuity, p->bSyncPoint, fTimeValid && p->rtStart < 0,
 	  nBytes, p->rtStart, p->rtStop);
-*/
+
 		ASSERT(!p->bSyncPoint || fTimeValid);
 
 		BYTE* pData = NULL;

@@ -110,9 +110,11 @@ AP4_AtomSampleTable::GetSample(AP4_Ordinal index,
 
     // set the dts and cts
     AP4_TimeStamp cts_offset, dts;
-    result = m_SttsAtom->GetDts(index, dts);
+	AP4_Duration duration;
+    result = m_SttsAtom->GetDts(index, dts, duration);
     if (AP4_FAILED(result)) return result;
     sample.SetDts(dts);
+	sample.SetDuration(duration);
     if (m_CttsAtom == NULL) {
         sample.SetCts(dts);
     } else {

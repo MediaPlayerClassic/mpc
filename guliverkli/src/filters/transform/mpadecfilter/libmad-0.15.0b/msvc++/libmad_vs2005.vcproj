@@ -5,7 +5,6 @@
 	Name="libmad"
 	ProjectGUID="{D8365C15-2166-4DB6-8A2D-1C8F0239EB18}"
 	RootNamespace="libmad"
-	SignManifests="true"
 	>
 	<Platforms>
 		<Platform
@@ -41,7 +40,6 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-DisableSpecificWarnings="4995;4996"
 				Optimization="0"
 				AdditionalIncludeDirectories="."
 				PreprocessorDefinitions="FPM_DEFAULT;_LIB;HAVE_CONFIG_H;ASO_ZEROCHECK;WIN32;_DEBUG;DEBUG"
@@ -54,10 +52,11 @@ DisableSpecificWarnings="4995;4996"
 				AssemblerListingLocation=".\Debug/"
 				ObjectFile=".\Debug/"
 				ProgramDataBaseFileName=".\Debug/"
-				WarningLevel="1"
+				WarningLevel="3"
 				SuppressStartupBanner="true"
 				DebugInformationFormat="4"
 				CompileAs="0"
+				DisableSpecificWarnings="4995;4996"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -117,7 +116,6 @@ DisableSpecificWarnings="4995;4996"
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-DisableSpecificWarnings="4995;4996"
 				Optimization="2"
 				InlineFunctionExpansion="1"
 				AdditionalIncludeDirectories="."
@@ -132,7 +130,9 @@ DisableSpecificWarnings="4995;4996"
 				ObjectFile=".\Release/"
 				ProgramDataBaseFileName=".\Release/"
 				SuppressStartupBanner="true"
+				DebugInformationFormat="3"
 				CompileAs="0"
+				DisableSpecificWarnings="4995;4996"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"

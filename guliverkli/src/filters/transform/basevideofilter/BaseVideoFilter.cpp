@@ -1,4 +1,3 @@
-
 /* 
  *	Copyright (C) 2003-2005 Gabest
  *	http://www.gabest.org

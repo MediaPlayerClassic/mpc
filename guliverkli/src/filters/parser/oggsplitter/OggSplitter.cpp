@@ -854,7 +854,7 @@ HRESULT COggVorbisOutputPin::DeliverNewSegment(REFERENCE_TIME tStart, REFERENCE_
 			Packet* pi = m_initpackets.GetNext(pos);
 			CAutoPtr<OggPacket> p(new OggPacket());
 			p->TrackNumber = pi->TrackNumber;
-			p->bDiscontinuity = p->bSyncPoint = TRUE;
+			p->bDiscontinuity = p->bSyncPoint = FALSE;//TRUE;
 			p->rtStart = p->rtStop = 0;
 			p->pData.Copy(pi->pData);
 			__super::DeliverPacket(p);

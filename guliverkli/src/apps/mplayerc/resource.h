@@ -661,6 +661,8 @@
 #define IDC_DX9RESIZER_COMBO            1167
 #define IDS_SRC_MP4                     1168
 #define IDC_STATICLINKGTS               1169
+#define IDC_BUTTON_EXT_SETIDC_BUTTON11  1170
+#define IDC_BUTTON_EXT_SET              1170
 #define IDD_COMPROPERTYPAGE             10002
 #define IDD_FILEPROPCLIP1               10003
 #define IDD_FILEPROPRES                 10003
@@ -747,7 +749,8 @@
 #define ID_ASPECTRATIO_4                32857
 #define ID_ASPECTRATIO_5                32858
 #define ID_ASPECTRATIO_16               32859
-#define ID_ASPECTRATIO_END              32865
+#define ID_ASPECTRATIO_END              32864
+#define ID_ASPECTRATIO_NEXT             32865
 #define ID_AFTERPLAYBACK_CLOSE          32866
 #define ID_AFTERPLAYBACK_STANDBY        32867
 #define ID_AFTERPLAYBACK_HIBERNATE      32868
@@ -793,7 +796,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        421
 #define _APS_NEXT_COMMAND_VALUE         32876
-#define _APS_NEXT_CONTROL_VALUE         1170
+#define _APS_NEXT_CONTROL_VALUE         1171
 #define _APS_NEXT_SYMED_VALUE           10003
 #endif
 #endif

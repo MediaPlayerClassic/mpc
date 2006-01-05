@@ -641,7 +641,7 @@ int Eval_Exception(int n_except)
 	{
 		AfxMessageBox(_T("The property page of this filter has just caused a\nmemory access violation. The application will gently die now :)"));
 	}
-        
+
 	return EXCEPTION_CONTINUE_SEARCH;
 }
 

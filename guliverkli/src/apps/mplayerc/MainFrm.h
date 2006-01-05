@@ -317,6 +317,7 @@ protected:
 	dispmode m_dmBeforeFullscreen;
 
 	DVD_DOMAIN m_iDVDDomain;
+	DWORD m_iDVDTitle;
 	int m_iSpeedLevel;
 
 	double m_ZoomX, m_ZoomY, m_PosX, m_PosY;
@@ -585,6 +586,7 @@ public:
 	afx_msg void OnUpdateViewRotate(CCmdUI* pCmdUI);
 	afx_msg void OnViewAspectRatio(UINT nID);
 	afx_msg void OnUpdateViewAspectRatio(CCmdUI* pCmdUI);
+	afx_msg void OnViewAspectRatioNext();
 	afx_msg void OnViewOntop(UINT nID);
 	afx_msg void OnUpdateViewOntop(CCmdUI* pCmdUI);
 	afx_msg void OnViewOptions();

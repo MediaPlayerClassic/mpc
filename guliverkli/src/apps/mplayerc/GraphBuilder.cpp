@@ -2115,6 +2115,8 @@ CGraphRendererFilter::CGraphRendererFilter(const CLSID& clsid, HWND hWnd, CStrin
 	m_guids.AddTail(MEDIASUBTYPE_NULL);
 }
 
+#include "IPinHook.h"
+
 HRESULT CGraphRendererFilter::Create(IBaseFilter** ppBF, IUnknown** ppUnk)
 {
 	CheckPointer(ppBF, E_POINTER);
@@ -2175,7 +2177,11 @@ HRESULT CGraphRendererFilter::Create(IBaseFilter** ppBF, IUnknown** ppUnk)
 	}
 
 	if(!*ppBF) hr = E_FAIL;
-
+/*
+CComPtr<IPin> pPin = GetFirstPin(*ppBF);
+if(CComQIPtr<IAMVideoAccelerator> pAMVA = pPin)
+	HookAMVideoAccelerator((IAMVideoAcceleratorC*)(IAMVideoAccelerator*)pAMVA);
+*/
 	return hr;
 }
 

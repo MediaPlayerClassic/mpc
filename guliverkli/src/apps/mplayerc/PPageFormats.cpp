@@ -425,11 +425,11 @@ BEGIN_MESSAGE_MAP(CPPageFormats, CPPageBase)
 	ON_NOTIFY(LVN_ENDLABELEDIT, IDC_LIST1, OnEndlabeleditList)
 	ON_BN_CLICKED(IDC_BUTTON1, OnBnClickedButton1)
 	ON_BN_CLICKED(IDC_BUTTON12, OnBnClickedButton12)
-	ON_BN_CLICKED(IDC_BUTTON11, OnBnClickedButton11)
+	ON_BN_CLICKED(IDC_BUTTON_EXT_SET, OnBnClickedButton11)
 	ON_BN_CLICKED(IDC_BUTTON14, OnBnClickedButton14)
 	ON_BN_CLICKED(IDC_BUTTON13, OnBnClickedButton13)
 	ON_UPDATE_COMMAND_UI(IDC_BUTTON12, OnUpdateButtonDefault)
-	ON_UPDATE_COMMAND_UI(IDC_BUTTON11, OnUpdateButtonSet)
+	ON_UPDATE_COMMAND_UI(IDC_BUTTON_EXT_SET, OnUpdateButtonSet)
 END_MESSAGE_MAP()
 
 // CPPageFormats message handlers
@@ -497,6 +497,8 @@ BOOL CPPageFormats::OnInitDialog()
 		m_apaudiocd.ShowWindow(SW_HIDE);
 		m_apdvd.ShowWindow(SW_HIDE);
 	}
+
+	CreateToolTip();
 
 	return TRUE;  // return TRUE unless you set the focus to a control
 	// EXCEPTION: OCX Property Pages should return FALSE
