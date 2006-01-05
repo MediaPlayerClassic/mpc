@@ -67,7 +67,7 @@ protected:
 	CComPtr<IDirect3DTexture9> m_pVideoTexture[3];
 	CComPtr<IDirect3DSurface9> m_pVideoSurface[3];
 	CInterfaceList<IDirect3DPixelShader9> m_pPixelShaders;
-	CComPtr<IDirect3DPixelShader9> m_pResizerPixelShader[5]; // bl, bc1, bc2, bc1lut, bc2lut 
+	CComPtr<IDirect3DPixelShader9> m_pResizerPixelShader[3]; // bl, bc1, bc2
 	CComPtr<IDirect3DTexture9> m_pResizerBicubic1stPass;
 	D3DTEXTUREFILTERTYPE m_filter;
 	D3DCAPS9 m_caps;
@@ -238,6 +238,28 @@ HRESULT CreateAP9(const CLSID& clsid, HWND hWnd, ISubPicAllocatorPresenter** ppA
 template<int texcoords>
 struct MYD3DVERTEX {float x, y, z, rhw; struct {float u, v;} t[texcoords];};
 #pragma pack(pop)
+
+template<int texcoords>
+static void AdjustQuad(MYD3DVERTEX<texcoords>* v, float dx, float dy)
+{
+	for(int i = 0; i < 4; i++)
+	{
+		v[i].x -= 0.51f;
+		v[i].y -= 0.51f;
+		
+		for(int j = 0; j < texcoords-1; j++)
+		{
+			v[i].t[j].u -= 0.5f*dx;
+			v[i].t[j].v -= 0.5f*dy;
+		}
+
+		if(texcoords > 1)
+		{
+			v[i].t[texcoords-1].u -= 0.5f;
+			v[i].t[texcoords-1].v -= 0.5f;
+		}
+	}
+}
 
 template<int texcoords>
 static HRESULT TextureBlt(CComPtr<IDirect3DDevice9> pD3DDev, MYD3DVERTEX<texcoords> v[4], D3DTEXTUREFILTERTYPE filter = D3DTEXF_LINEAR)
@@ -557,10 +579,10 @@ HRESULT CDX9AllocatorPresenter::InitResizers(float bicubicA)
 	for(int i = 0; i < countof(m_pResizerPixelShader); i++)
 		m_pResizerPixelShader[i] = NULL;
 
-	if(m_caps.PixelShaderVersion < D3DVS_VERSION(2, 0))
+	if(m_caps.PixelShaderVersion < D3DPS_VERSION(2, 0))
 		return E_FAIL;
 
-	LPCSTR pProfile = m_caps.PixelShaderVersion >= D3DVS_VERSION(3, 0) ? "ps_3_0" : "ps_2_0";
+	LPCSTR pProfile = m_caps.PixelShaderVersion >= D3DPS_VERSION(3, 0) ? "ps_3_0" : "ps_2_0";
 
 	CStringA str;
 	if(!LoadResource(IDF_SHADER_RESIZER, str, _T("FILE")))
@@ -644,11 +666,7 @@ HRESULT CDX9AllocatorPresenter::TextureResize(CComPtr<IDirect3DTexture9> pTextur
 		{dst[3].x, dst[3].y, dst[3].z, 1.0f/dst[3].z,  1, 1},
 	};
 
-	for(int i = 0; i < countof(v); i++)
-	{
-		v[i].x -= 0.5;
-		v[i].y -= 0.5;
-	}
+	AdjustQuad(v, dx, dy);
 
 	hr = m_pD3DDev->SetTexture(0, pTexture);
 
@@ -681,11 +699,7 @@ HRESULT CDX9AllocatorPresenter::TextureResizeBilinear(CComPtr<IDirect3DTexture9>
 		{dst[3].x, dst[3].y, dst[3].z, 1.0f/dst[3].z,  1, 1,  1+dx, 1,  1, 1+dy,  1+dx, 1+dy,  w, h},
 	};
 
-	for(int i = 0; i < countof(v); i++)
-	{
-		v[i].x -= 0.001f;
-		v[i].y -= 0.001f;
-	}
+	AdjustQuad(v, dx, dy);
 
 	hr = m_pD3DDev->SetTexture(0, pTexture);
 	hr = m_pD3DDev->SetTexture(1, pTexture);
@@ -725,11 +739,7 @@ HRESULT CDX9AllocatorPresenter::TextureResizeBicubic1pass(CComPtr<IDirect3DTextu
 		{dst[3].x, dst[3].y, dst[3].z, 1.0f/dst[3].z,  1, 1, w, h},
 	};
 
-	for(int i = 0; i < countof(v); i++)
-	{
-		v[i].x -= 0.001f;
-		v[i].y -= 0.001f;
-	}
+	AdjustQuad(v, dx, dy);
 
 	hr = m_pD3DDev->SetTexture(0, pTexture);
 
@@ -777,8 +787,8 @@ HRESULT CDX9AllocatorPresenter::TextureResizeBicubic2pass(CComPtr<IDirect3DTextu
 
 	ASSERT(dst1.Height() == desc.Height);
 
-	// if(dst1.Width() > desc.Width || dst1.Height() > desc.Height)
-	if(dst1.Width() != desc.Width || dst1.Height() != desc.Height)
+	if(dst1.Width() > desc.Width || dst1.Height() > desc.Height)
+	// if(dst1.Width() != desc.Width || dst1.Height() != desc.Height)
 		return TextureResizeBicubic1pass(pTexture, dst);
 
 	MYD3DVERTEX<5> vx[] =
@@ -789,13 +799,7 @@ HRESULT CDX9AllocatorPresenter::TextureResizeBicubic2pass(CComPtr<IDirect3DTextu
 		{(float)dst1.right, (float)dst1.bottom, 0.5f, 2.0f,  1-dx, 1,  1, 1,  1+dx, 1,  1+dx*2, 1,  w, 0},
 	};
 
-	for(int i = 0; i < countof(vx); i++)
-	{
-		vx[i].x -= 0.001f;
-		vx[i].y -= 0.001f;
-	}
-
-	w = (float)dst1.Width();
+	AdjustQuad(vx, dx, 0);
 
 	MYD3DVERTEX<5> vy[] =
 	{
@@ -805,11 +809,7 @@ HRESULT CDX9AllocatorPresenter::TextureResizeBicubic2pass(CComPtr<IDirect3DTextu
 		{dst[3].x, dst[3].y, dst[3].z, 1.0f/dst[3].z,  dw, dh-dy,  dw, dh,  dw, dh+dy,  dw, dh+dy*2,  h, 0},
 	};
 
-	for(int i = 0; i < countof(vy); i++)
-	{
-		vy[i].x -= 0.001f;
-		vy[i].y -= 0.001f;
-	}
+	AdjustQuad(vy, 0, dy);
 
 	hr = m_pD3DDev->SetPixelShader(m_pResizerPixelShader[2]);
 
@@ -1363,6 +1363,12 @@ STDMETHODIMP CVMR9AllocatorPresenter::CreateRenderer(IUnknown** ppRenderer)
 		if(!pBF) pBF.CoCreateInstance(CLSID_VideoMixingRenderer9);
 */
 
+		CComPtr<IPin> pPin = GetFirstPin(pBF);
+		HookNewSegment((IPinC*)(IPin*)pPin);
+/*
+if(CComQIPtr<IAMVideoAccelerator> pAMVA = pPin)
+	HookAMVideoAccelerator((IAMVideoAcceleratorC*)(IAMVideoAccelerator*)pAMVA);
+*/
 		CComQIPtr<IVMRFilterConfig9> pConfig = pBF;
 		if(!pConfig)
 			break;
@@ -1377,9 +1383,6 @@ STDMETHODIMP CVMR9AllocatorPresenter::CreateRenderer(IUnknown** ppRenderer)
 		if(FAILED(hr = pSAN->AdviseSurfaceAllocator(MY_USER_ID, static_cast<IVMRSurfaceAllocator9*>(this)))
 		|| FAILED(hr = AdviseNotify(pSAN)))
 			break;
-
-		CComPtr<IPin> pPin = GetFirstPin(pBF);
-		HookNewSegment((IPinC*)(IPin*)pPin);
 
 		*ppRenderer = (IUnknown*)pBF.Detach();
 

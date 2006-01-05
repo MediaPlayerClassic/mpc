@@ -456,31 +456,31 @@ bool CAviFile::IsInterleaved(bool fKeepInfo)
 
 REFERENCE_TIME CAviFile::strm_t::GetRefTime(DWORD frame, UINT64 size)
 {
-	double dframe = frame;
+	float dframe = frame;
 
 	if(strh.fccType == FCC('auds'))
 	{
 		WAVEFORMATEX* wfe = (WAVEFORMATEX*)strf.GetData();
 
-		dframe = wfe->nBlockAlign ? 1.0 * size / wfe->nBlockAlign : 0;
+		dframe = wfe->nBlockAlign ? 1.0f * size / wfe->nBlockAlign : 0;
 	}
 
-	double scale_per_rate = strh.dwRate ? 1.0 * strh.dwScale / strh.dwRate : 0;
+	float scale_per_rate = strh.dwRate ? 1.0f * strh.dwScale / strh.dwRate : 0;
 
-	return (REFERENCE_TIME)(scale_per_rate * dframe * 10000000 + 0.5);
+	return (REFERENCE_TIME)(scale_per_rate * dframe * 10000000 + 0.5f);
 }
 
 int CAviFile::strm_t::GetFrame(REFERENCE_TIME rt)
 {
 	int frame = -1;
 
-	double rate_per_scale = strh.dwScale ? 1.0 * strh.dwRate / strh.dwScale : 0;
+	float rate_per_scale = strh.dwScale ? 1.0f * strh.dwRate / strh.dwScale : 0;
 
 	if(strh.fccType == FCC('auds'))
 	{
 		WAVEFORMATEX* wfe = (WAVEFORMATEX*)strf.GetData();
 
-		__int64 size = (__int64)(rate_per_scale * wfe->nBlockAlign * rt / 10000000);
+		__int64 size = (__int64)(rate_per_scale * wfe->nBlockAlign * rt / 10000000 + 0.5f);
 
 		for(frame = 0; frame < cs.GetCount(); frame++)
 		{
@@ -493,7 +493,7 @@ int CAviFile::strm_t::GetFrame(REFERENCE_TIME rt)
 	}
 	else
 	{
-		frame = (int)(rate_per_scale * rt / 10000000);
+		frame = (int)(rate_per_scale * rt / 10000000 + 0.5f);
 	}
 
 	if(frame >= cs.GetCount()) frame = cs.GetCount()-1;

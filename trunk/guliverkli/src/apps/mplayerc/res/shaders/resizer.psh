@@ -33,7 +33,7 @@ float4 main_bilinear(PS_INPUT input) : COLOR
 		lerp(tex2D(s0, input.t0), tex2D(s1, input.t1), dd.x),
 		lerp(tex2D(s2, input.t2), tex2D(s3, input.t3), dd.x),
 		dd.y);
-	
+
 	return c;
 }
 

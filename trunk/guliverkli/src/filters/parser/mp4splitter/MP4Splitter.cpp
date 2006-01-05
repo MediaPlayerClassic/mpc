@@ -904,7 +904,7 @@ bool CMP4SplitterFilter::DemuxLoop()
 
 			p->TrackNumber = (DWORD)track->GetId();
 			p->rtStart = (REFERENCE_TIME)(10000000.0 / track->GetMediaTimeScale() * sample.GetCts());
-			p->rtStop = p->rtStart + 1;
+			p->rtStop = p->rtStart + (REFERENCE_TIME)(10000000.0 / track->GetMediaTimeScale() * sample.GetDuration());
 			p->bSyncPoint = TRUE;
 
 			// FIXME: slow search & stss->m_Entries is private
@@ -927,7 +927,7 @@ bool CMP4SplitterFilter::DemuxLoop()
 			if(track->GetType() == AP4_Track::TYPE_TEXT)
 			{
 				CStringA dlgln_bkg, dlgln_plaintext;
-
+/*
 				if(pPairNext->m_value.index < track->GetSampleCount()-1)
 				{
 					AP4_Sample sample;
@@ -938,7 +938,7 @@ bool CMP4SplitterFilter::DemuxLoop()
 				{
 					p->rtStop = m_rtDuration;
 				}
-
+*/
 				const AP4_Byte* ptr = data.GetData();
 				AP4_Size avail = data.GetDataSize();
 

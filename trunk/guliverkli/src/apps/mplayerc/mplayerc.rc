@@ -19,11 +19,9 @@
 #ifdef _WIN32
 LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
 #pragma code_page(1252)
-#include "afxres.rc"         // Standard components
 #endif //_WIN32
 
 #ifdef APSTUDIO_INVOKED
-
 /////////////////////////////////////////////////////////////////////////////
 //
 // TEXTINCLUDE
@@ -50,11 +48,11 @@ BEGIN
     "#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)\r\n"
     "LANGUAGE 9, 1\r\n"
     "#pragma code_page(1252)\r\n"
-    "#include ""afxres.rc""         // Standard components\r\n"
     "#endif\0"
 END
 
 #endif    // APSTUDIO_INVOKED
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -346,7 +344,7 @@ BEGIN
     GROUPBOX        "File extensions",IDC_STATIC,6,4,283,135
     EDITTEXT        IDC_EDIT1,13,118,192,14,ES_AUTOHSCROLL
     PUSHBUTTON      "Default",IDC_BUTTON12,210,118,34,14
-    PUSHBUTTON      "Set",IDC_BUTTON11,247,118,34,14
+    PUSHBUTTON      "Set",IDC_BUTTON_EXT_SET,247,118,34,14
     GROUPBOX        "Real-Time Streaming Protocol handler (for rtsp://... URLs)",IDC_STATIC,6,141,283,27
     CONTROL         "RealMedia",IDC_RADIO4,"Button",BS_AUTORADIOBUTTON | WS_GROUP,14,153,49,10
     CONTROL         "QuickTime",IDC_RADIO5,"Button",BS_AUTORADIOBUTTON,66,153,48,10
@@ -911,6 +909,7 @@ BEGIN
     EDITTEXT        IDC_EDIT1,7,7,61,13,ES_AUTOHSCROLL
 END
 
+
 /////////////////////////////////////////////////////////////////////////////
 //
 // DESIGNINFO
@@ -1280,6 +1279,7 @@ BEGIN
 END
 #endif    // APSTUDIO_INVOKED
 
+
 /////////////////////////////////////////////////////////////////////////////
 //
 // Bitmap
@@ -1517,7 +1517,7 @@ BEGIN
         MENUITEM "Subresync\tCtrl+6",           ID_VIEW_SUBRESYNC
         MENUITEM "Playlist\tCtrl+7",            ID_VIEW_PLAYLIST
         MENUITEM "Capture\tCtrl+8",             ID_VIEW_CAPTURE
-        MENUITEM "Shaders\tCtrl+9",             ID_VIEW_SHADEREDITOR
+        MENUITEM "Shader Editor\tCtrl+9",       ID_VIEW_SHADEREDITOR
         POPUP "Presets..."
         BEGIN
             MENUITEM "Minimal",                     ID_VIEW_PRESETS_MINIMAL
@@ -1754,7 +1754,7 @@ BEGIN
             MENUITEM "Subresync",                   ID_VIEW_SUBRESYNC
             MENUITEM "Playlist",                    ID_VIEW_PLAYLIST
             MENUITEM "Capture",                     ID_VIEW_CAPTURE
-            MENUITEM "Shaders",                     ID_VIEW_SHADEREDITOR
+            MENUITEM "Shader Editor",               ID_VIEW_SHADEREDITOR
             POPUP "Presets..."
             BEGIN
                 MENUITEM "Minimal",                     ID_VIEW_PRESETS_MINIMAL
@@ -1810,7 +1810,7 @@ BEGIN
             MENUITEM "Subresync\tCtrl+6",           ID_VIEW_SUBRESYNC
             MENUITEM "Playlist\tCtrl+7",            ID_VIEW_PLAYLIST
             MENUITEM "Capture\tCtrl+8",             ID_VIEW_CAPTURE
-            MENUITEM "Shaders\tCtrl+9",             ID_VIEW_SHADEREDITOR
+            MENUITEM "Shader Editor\tCtrl+9",       ID_VIEW_SHADEREDITOR
             POPUP "Presets..."
             BEGIN
                 MENUITEM "Minimal",                     ID_VIEW_PRESETS_MINIMAL
@@ -2260,6 +2260,7 @@ END
 STRINGTABLE 
 BEGIN
     IDS_SRC_MP4             "6.4.0.1"
+    IDC_BUTTON_EXT_SET      "After clicking this button, the checked state of the format group will reflect the actual file association for mpc. A newly added extension will usually make it grayed, so don't forget to check it again before closing this dialog!"
 END
 
 STRINGTABLE 
@@ -2349,6 +2350,8 @@ END
 #endif    // English (U.S.) resources
 /////////////////////////////////////////////////////////////////////////////
 
+
+
 #ifndef APSTUDIO_INVOKED
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -2362,10 +2365,7 @@ END
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
 LANGUAGE 9, 1
 #pragma code_page(1252)
-#include "afxres.rc"         // Standard components
 #endif
 /////////////////////////////////////////////////////////////////////////////
 #endif    // not APSTUDIO_INVOKED
-
-
 

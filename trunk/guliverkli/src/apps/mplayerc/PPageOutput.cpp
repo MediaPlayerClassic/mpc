@@ -88,8 +88,10 @@ BOOL CPPageOutput::OnInitDialog()
 		LPOLESTR olestr = NULL;
 		if(FAILED(pMoniker->GetDisplayName(0, 0, &olestr)))
 			continue;
+
 		CStringW str(olestr);
 		CoTaskMemFree(olestr);
+
 		m_AudioRendererDisplayNames.Add(CString(str));
 
 		CComPtr<IPropertyBag> pPB;
@@ -138,7 +140,6 @@ BOOL CPPageOutput::OnInitDialog()
 	CorrectComboListWidth(m_iAudioRendererTypeCtrl, GetFont());
 
 	UpdateData(FALSE);
-
 
 	if(!AfxGetAppSettings().fXpOrBetter)
 	{

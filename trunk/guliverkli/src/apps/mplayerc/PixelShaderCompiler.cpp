@@ -38,9 +38,17 @@ CPixelShaderCompiler::CPixelShaderCompiler(IDirect3DDevice9* pD3DDev, bool fStay
 		m_pD3DXCompileShader = (D3DXCompileShaderPtr)GetProcAddress(m_hDll, "D3DXCompileShader");
 		m_pD3DXDisassembleShader = (D3DXDisassembleShaderPtr)GetProcAddress(m_hDll, "D3DXDisassembleShader");
 	}
-	else if(!fStaySilent)
+
+	if(!fStaySilent)
 	{
-		AfxMessageBox(_T("Cannot load ") + d3dx9_dll + _T(", pixel shaders will not work."), MB_OK);
+		if(!m_hDll)
+		{
+			AfxMessageBox(_T("Cannot load ") + d3dx9_dll + _T(", pixel shaders will not work."), MB_OK);
+		}
+		else if(!m_pD3DXCompileShader || !m_pD3DXDisassembleShader) 
+		{
+			AfxMessageBox(_T("Cannot find necessary function entry points in ") + d3dx9_dll + _T(", pixel shaders will not work."), MB_OK);
+		}
 	}
 }
 
@@ -58,13 +66,12 @@ HRESULT CPixelShaderCompiler::CompileShader(
 	CString* disasm,
 	CString* errmsg)
 {
-	if(!m_pD3DXCompileShader || !m_pD3DXDisassembleShader) 
+	if(!m_pD3DXCompileShader || !m_pD3DXDisassembleShader)
 		return E_FAIL;
 
 	HRESULT hr;
 
 	CComPtr<ID3DXBuffer> pShader, pDisAsm, pErrorMsgs;
-
 	hr = m_pD3DXCompileShader(pSrcData, strlen(pSrcData), NULL, NULL, pFunctionName, pProfile, Flags, &pShader, &pErrorMsgs, NULL);
 
 	if(FAILED(hr))

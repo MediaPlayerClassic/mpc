@@ -86,7 +86,7 @@ HRESULT CMpegSplitterFile::Init()
 				|| b == 0xbd) // private stream 1, 0xbd, ac3/dts/lpcm/subpic
 			{
 				peshdr h;
-				if(Read(h, b))
+				if(Read(h, b) && BitRead(24, true) == 0x000001)
 				{
 					m_type = es;
 				}

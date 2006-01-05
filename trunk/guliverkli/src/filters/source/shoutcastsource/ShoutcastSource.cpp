@@ -462,6 +462,7 @@ UINT CShoutcastStream::SocketThreadProc()
 		f.rtStop = (f.rtStart = m_rtSampleTime) + (10000000i64 * len * 8/m_socket.m_bitrate);
 		m_rtSampleTime = f.rtStop;
 		f.title = m_socket.m_title;
+		if(f.title.IsEmpty()) f.title = m_socket.m_url;
 
 		CAutoLock cAutoLock(&m_queue);
 		m_queue.AddTail(f);
@@ -521,8 +522,12 @@ int CShoutcastStream::CShoutcastSocket::Receive(void* lpBuf, int nBufLen, int nF
 		memset(buff, 0, sizeof(buff));
 		if(1 == __super::Receive(&b, 1) && b && b*16 == __super::Receive(buff, b*16))
 		{
-			CStringA str = (LPCSTR)buff, title("StreamTitle='");
-TRACE(_T("Metainfo: %s\n"), CString(str));
+			CStringA str = (LPCSTR)buff;
+			
+			TRACE(_T("Metainfo: %s\n"), CString(str));
+
+			CStringA title("StreamTitle='"), url("StreamUrl='");
+			
 			int i = str.Find(title);
 			if(i >= 0)
 			{
@@ -532,7 +537,15 @@ TRACE(_T("Metainfo: %s\n"), CString(str));
 			}
 			else
 			{
-TRACE(_T("!!!!!!!!!Missing StreamTitle!!!!!!!!!\n"));
+				TRACE(_T("!!!!!!!!!Missing StreamTitle!!!!!!!!!\n"));
+			}
+
+			i = str.Find(url);
+			if(i >= 0)
+			{
+				i += url.GetLength();
+				int j = str.Find('\'', i);
+				if(j > i) m_url = str.Mid(i, j - i);
 			}
 		}
 	}

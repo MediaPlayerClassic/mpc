@@ -282,6 +282,7 @@ BEGIN_MESSAGE_MAP(CMainFrame, CFrameWnd)
 	ON_UPDATE_COMMAND_UI_RANGE(ID_PANSCAN_ROTATEXP, ID_PANSCAN_ROTATEZM, OnUpdateViewRotate)
 	ON_COMMAND_RANGE(ID_ASPECTRATIO_START, ID_ASPECTRATIO_END, OnViewAspectRatio)
 	ON_UPDATE_COMMAND_UI_RANGE(ID_ASPECTRATIO_START, ID_ASPECTRATIO_END, OnUpdateViewAspectRatio)
+	ON_COMMAND(ID_ASPECTRATIO_NEXT, OnViewAspectRatioNext)
 	ON_COMMAND_RANGE(ID_ONTOP_NEVER, ID_ONTOP_WHILEPLAYING, OnViewOntop)
 	ON_UPDATE_COMMAND_UI_RANGE(ID_ONTOP_NEVER, ID_ONTOP_WHILEPLAYING, OnUpdateViewOntop)
 	ON_COMMAND(ID_VIEW_OPTIONS, OnViewOptions)
@@ -1667,6 +1668,17 @@ LRESULT CMainFrame::OnGraphNotify(WPARAM wParam, LPARAM lParam)
 			{
 				SetupChapters();
 			}
+			else if(m_iPlaybackMode == PM_DVD)
+			{
+				m_iDVDTitle = (DWORD)evParam1;
+
+				if(m_iDVDDomain == DVD_DOMAIN_Title)
+				{
+					CString Domain;
+					Domain.Format(_T("Title %d"), m_iDVDTitle);
+					m_wndInfoBar.SetLine(_T("Domain"), Domain);
+				}
+			}
 		}
 		else if(EC_DVD_DOMAIN_CHANGE == evCode)
 		{
@@ -1679,7 +1691,7 @@ LRESULT CMainFrame::OnGraphNotify(WPARAM wParam, LPARAM lParam)
 			case DVD_DOMAIN_FirstPlay: Domain = _T("First Play"); break;
 			case DVD_DOMAIN_VideoManagerMenu: Domain = _T("Video Manager Menu"); break;
 			case DVD_DOMAIN_VideoTitleSetMenu: Domain = _T("Video Title Set Menu"); break;
-			case DVD_DOMAIN_Title: Domain = _T("Title"); break;
+			case DVD_DOMAIN_Title: Domain.Format(_T("Title %d"), m_iDVDTitle); break;
 			case DVD_DOMAIN_Stop: Domain = _T("Stop"); break;
 			default: Domain = _T("-"); break;
 			}
@@ -2787,12 +2799,12 @@ void CMainFrame::OnDvdAngle(UINT nID)
 	if(pDVDI && pDVDC)
 	{
 		ULONG ulAnglesAvailable, ulCurrentAngle;
-		if(SUCCEEDED(pDVDI->GetCurrentAngle(&ulAnglesAvailable, &ulCurrentAngle))
-		&& ulAnglesAvailable > 1)
+		if(SUCCEEDED(pDVDI->GetCurrentAngle(&ulAnglesAvailable, &ulCurrentAngle)) && ulAnglesAvailable > 1)
 		{
-			pDVDC->SelectAngle(
-				(ulCurrentAngle+(nID==0?1:ulAnglesAvailable-1))%ulAnglesAvailable, 
-				DVD_CMD_FLAG_Block, NULL);
+			ulCurrentAngle += nID==0 ? 1 : ulAnglesAvailable-1;
+			if(ulCurrentAngle > ulAnglesAvailable) ulCurrentAngle = 1;
+			else if(ulCurrentAngle < 1) ulCurrentAngle = ulAnglesAvailable;
+			pDVDC->SelectAngle(ulCurrentAngle, DVD_CMD_FLAG_Block, NULL);
 		}
 	}
 }
@@ -2806,13 +2818,8 @@ void CMainFrame::OnDvdAudio(UINT nID)
 	if(pDVDI && pDVDC)
 	{
 		ULONG nStreamsAvailable, nCurrentStream;
-		if(SUCCEEDED(pDVDI->GetCurrentAudio(&nStreamsAvailable, &nCurrentStream))
-		&& nStreamsAvailable > 1)
-		{
-			pDVDC->SelectAudioStream(
-				(nCurrentStream+(nID==0?1:nStreamsAvailable-1))%nStreamsAvailable, 
-				DVD_CMD_FLAG_Block, NULL);
-		}
+		if(SUCCEEDED(pDVDI->GetCurrentAudio(&nStreamsAvailable, &nCurrentStream)) && nStreamsAvailable > 1)
+			pDVDC->SelectAudioStream((nCurrentStream+(nID==0?1:nStreamsAvailable-1))%nStreamsAvailable, DVD_CMD_FLAG_Block, NULL);
 	}
 }
 
@@ -3135,19 +3142,29 @@ void CMainFrame::OnDropFiles(HDROP hDropInfo)
 	CList<CString> sl;
 
 	UINT nFiles = ::DragQueryFile(hDropInfo, (UINT)-1, NULL, 0);
+
 	for(UINT iFile = 0; iFile < nFiles; iFile++)
 	{
 		CString fn;
 		fn.ReleaseBuffer(::DragQueryFile(hDropInfo, iFile, fn.GetBuffer(MAX_PATH), MAX_PATH));
 		sl.AddTail(fn);
 	}
+
 	::DragFinish(hDropInfo);
 
-	if(!sl.IsEmpty())
+	if(sl.IsEmpty()) return;
+
+	if(sl.GetCount() == 1 && m_iMediaLoadState == MLS_LOADED && m_pCAP)
 	{
-		m_wndPlaylistBar.Open(sl, true);
-		OpenCurPlaylistItem();
+		if(LoadSubtitle(sl.GetHead()))
+		{
+			SetSubtitle(m_pSubStreams.GetTail());
+			return;
+		}
 	}
+
+	m_wndPlaylistBar.Open(sl, true);
+	OpenCurPlaylistItem();
 }
 
 void CMainFrame::OnFileSaveas()
@@ -3986,17 +4003,14 @@ void CMainFrame::OnUpdateViewRotate(CCmdUI* pCmdUI)
 	pCmdUI->Enable(m_iMediaLoadState == MLS_LOADED && !m_fAudioOnly && m_pCAP);
 }
 
+// FIXME
+const static SIZE s_ar[] = {{0,0}, {4,3}, {5,4}, {16,9}};
+
 void CMainFrame::OnViewAspectRatio(UINT nID)
 {
 	CSize& ar = AfxGetAppSettings().AspectRatio;
 
-	switch(nID)
-	{
-	default: ar.SetSize(0, 0); break;
-	case ID_ASPECTRATIO_4: ar.SetSize(4, 3); break;
-	case ID_ASPECTRATIO_5: ar.SetSize(5, 4); break;
-	case ID_ASPECTRATIO_16: ar.SetSize(16, 9); break;
-	}
+	ar = s_ar[nID - ID_ASPECTRATIO_START];
 
 	CString info;
 	if(ar.cx && ar.cy) info.Format(_T("Aspect Ratio: %d:%d"), ar.cx, ar.cy);
@@ -4008,17 +4022,26 @@ void CMainFrame::OnViewAspectRatio(UINT nID)
 
 void CMainFrame::OnUpdateViewAspectRatio(CCmdUI* pCmdUI)
 {
-	const CSize& ar = AfxGetAppSettings().AspectRatio;
+	pCmdUI->SetRadio(AfxGetAppSettings().AspectRatio == s_ar[pCmdUI->m_nID - ID_ASPECTRATIO_START]);
+	pCmdUI->Enable(m_iMediaLoadState == MLS_LOADED && !m_fAudioOnly);
+}
 
-	switch(pCmdUI->m_nID)
+void CMainFrame::OnViewAspectRatioNext()
+{
+	CSize& ar = AfxGetAppSettings().AspectRatio;
+
+	UINT nID = ID_ASPECTRATIO_START;
+
+	for(int i = 0; i < countof(s_ar); i++)
 	{
-	default: pCmdUI->SetRadio(ar == CSize(0, 0)); break;
-	case ID_ASPECTRATIO_4: pCmdUI->SetRadio(ar == CSize(4, 3)); break;
-	case ID_ASPECTRATIO_5: pCmdUI->SetRadio(ar == CSize(5, 4)); break;
-	case ID_ASPECTRATIO_16: pCmdUI->SetRadio(ar == CSize(16, 9)); break;
+		if(ar == s_ar[i])
+		{
+			nID += (i + 1) % countof(s_ar);
+			break;
+		}
 	}
 
-	pCmdUI->Enable(m_iMediaLoadState == MLS_LOADED && !m_fAudioOnly);
+	OnViewAspectRatio(nID);
 }
 
 void CMainFrame::OnViewOntop(UINT nID)
@@ -4040,6 +4063,8 @@ void CMainFrame::OnViewOptions()
 }
 
 // play
+
+#include "IPinHook.h"
 
 void CMainFrame::OnPlayPlay()
 {
@@ -4355,6 +4380,12 @@ void CMainFrame::OnPlaySeekKey(UINT nID)
 			rtCurrent = m_kfs[i+1];
 		else
 			return;
+
+		// HACK: if d3d or something changes fpu control word the values of 
+		// m_kfs may be different now (if it was asked again), adding a little
+		// to the seek position eliminates this error usually.
+
+		rtCurrent += 10;
 
 		hr = pMS->SetPositions(
 			&rtCurrent, AM_SEEKING_AbsolutePositioning|AM_SEEKING_SeekToKeyFrame, 
@@ -5123,7 +5154,7 @@ void CMainFrame::OnNavigateAngle(UINT nID)
 	}
 	else if(m_iPlaybackMode == PM_DVD)
 	{
-		pDVDC->SelectAngle(nID, DVD_CMD_FLAG_Block, NULL);
+		pDVDC->SelectAngle(nID+1, DVD_CMD_FLAG_Block, NULL);
 	}
 }
 
@@ -5487,6 +5518,9 @@ void CMainFrame::SetDefaultWindowRect()
 		CSize logosize = m_wndView.GetLogoSize();
 		int _DEFCLIENTW = max(logosize.cx, DEFCLIENTW);
 		int _DEFCLIENTH = max(logosize.cy, DEFCLIENTH);
+
+		if(GetSystemMetrics(SM_REMOTESESSION))
+			_DEFCLIENTH = 0;
 
 		DWORD style = GetStyle();
 
@@ -7798,6 +7832,29 @@ void CMainFrame::SetupNavAudioSubMenu()
 				case DVD_AUD_EXT_DirectorComments1: str += _T(" (Director Comments 1)"); break;
 				case DVD_AUD_EXT_DirectorComments2: str += _T(" (Director Comments 2)"); break;
 				}
+
+				CString format;
+				switch(ATR.AudioFormat)
+				{
+				case DVD_AudioFormat_AC3: format = _T("AC3"); break;
+				case DVD_AudioFormat_MPEG1: 
+				case DVD_AudioFormat_MPEG1_DRC: format = _T("MPEG1"); break;
+				case DVD_AudioFormat_MPEG2: 
+				case DVD_AudioFormat_MPEG2_DRC: format = _T("MPEG2"); break;
+				case DVD_AudioFormat_LPCM: format = _T("LPCM"); break;
+				case DVD_AudioFormat_DTS: format = _T("DTS"); break;
+				case DVD_AudioFormat_SDDS: format = _T("SDDS"); break;
+				}
+
+				if(!format.IsEmpty())
+				{
+					str.Format(_T("%s, %s %dHz %dbits %d channel(s)"), 
+						CString(str),
+						format,
+						ATR.dwFrequency,
+						ATR.bQuantization,
+						ATR.bNumberOfChannels);
+				}
 			}
 
 			str.Replace(_T("&"), _T("&&"));
@@ -7905,13 +7962,13 @@ void CMainFrame::SetupNavAngleSubMenu()
 
 		if(ulStreamsAvailable < 2) return; // one choice is not a choice...
 
-        for(ULONG i = 0; i < ulStreamsAvailable; i++)
+        for(ULONG i = 1; i <= ulStreamsAvailable; i++)
 		{
 			UINT flags = MF_BYCOMMAND|MF_STRING|MF_ENABLED;
             if(i == ulCurrentStream) flags |= MF_CHECKED;
 
 			CString str;
-			str.Format(_T("Angle %d"), i+1);
+			str.Format(_T("Angle %d"), i);
 
 			pSub->AppendMenu(flags, id++, str);
 		}
@@ -8371,7 +8428,7 @@ bool CMainFrame::LoadSubtitle(CString fn)
 		if(!pSubStream)
 		{
 			CAutoPtr<CVobSubFile> pVSF(new CVobSubFile(&m_csSubLock));
-			if(pVSF && pVSF->Open(fn) && pVSF->GetStreamCount() > 0)
+			if(CString(CPath(fn).GetExtension()).MakeLower() == _T(".idx") && pVSF && pVSF->Open(fn) && pVSF->GetStreamCount() > 0)
 				pSubStream = pVSF.Detach();
 		}
 

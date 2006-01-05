@@ -110,7 +110,7 @@ class CShoutcastStream : public CSourceStream
 		int Receive(void* lpBuf, int nBufLen, int nFlags = 0);
 
 		DWORD m_metaint, m_bitrate, m_freq, m_channels;
-		CString m_title;
+		CString m_title, m_url;
 		bool Connect(CUrl& url);
 		bool FindSync();
 	} m_socket;
