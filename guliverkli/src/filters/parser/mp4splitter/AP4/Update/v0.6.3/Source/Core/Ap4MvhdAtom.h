@@ -1,8 +1,8 @@
 /*****************************************************************
 |
-|    AP4 - ftab Atom
+|    AP4 - mvhd Atoms 
 |
-|    Copyright 2002 Gilles Boccon-Gibod & Julien Boeuf
+|    Copyright 2002-2005 Gilles Boccon-Gibod
 |
 |
 |    This file is part of Bento4/AP4 (MP4 Atom Processing Library).
@@ -26,53 +26,55 @@
 |
  ****************************************************************/
 
-#ifndef _AP4_FTAB_ATOM_H_
-#define _AP4_FTAB_ATOM_H_
+#ifndef _AP4_MVHD_ATOM_H_
+#define _AP4_MVHD_ATOM_H_
 
 /*----------------------------------------------------------------------
 |       includes
 +---------------------------------------------------------------------*/
+#include "Ap4.h"
+#include "Ap4ByteStream.h"
+#include "Ap4List.h"
 #include "Ap4Atom.h"
-#include "Ap4Types.h"
-#include "Ap4Array.h"
 
 /*----------------------------------------------------------------------
-|       AP4_FtabAtom
+|       AP4_MvhdAtom
 +---------------------------------------------------------------------*/
-class AP4_FtabAtom : public AP4_Atom
+class AP4_MvhdAtom : public AP4_Atom
 {
 public:
-	AP4_FtabAtom(AP4_Size         size,
-                 AP4_ByteStream&  stream);
-
-    AP4_Result WriteFields(AP4_ByteStream& stream) { return AP4_FAILURE; }
-
-	struct AP4_Tx3gFontRecord 
-	{
-		AP4_UI16 Id;
-		AP4_String Name;
-	};
-
-    AP4_Array<AP4_Tx3gFontRecord>& GetFontRecords() { return m_FontRecords; }
-
-	AP4_Result LookupFont(AP4_UI16 Id, AP4_String& Name)
-	{
-		for(unsigned long i = 0; i < m_FontRecords.ItemCount(); i++)
-		{
-			if(m_FontRecords[i].Id == Id)
-			{
-				Name = m_FontRecords[i].Name;
-				return AP4_SUCCESS;
-			}
-		}
-
-		return AP4_FAILURE;
-	}
+    // methods
+    AP4_MvhdAtom(AP4_UI64 creation_time,
+                 AP4_UI64 modification_time,
+                 AP4_UI32 time_scale,
+                 AP4_UI64 duration,
+                 AP4_UI32 rate,
+                 AP4_UI16 volume);
+    AP4_MvhdAtom(AP4_Size size, AP4_ByteStream& stream); 
+    virtual AP4_Result InspectFields(AP4_AtomInspector& inspector);
+    virtual AP4_Result WriteFields(AP4_ByteStream& stream);
+    AP4_UI64           GetDuration() { return m_Duration; }
+    void               SetDuration(AP4_UI64 duration) { m_Duration = duration;}
+    AP4_Duration       GetDurationMs();
+    AP4_UI32           GetTimeScale() { return m_TimeScale; }
+    AP4_Result         SetTimeScale(AP4_UI32 time_scale) {
+        m_TimeScale = time_scale;
+        return AP4_SUCCESS;
+    }
 
 private:
-
-	// members
-	AP4_Array<AP4_Tx3gFontRecord> m_FontRecords;
+    // members
+    AP4_UI64 m_CreationTime;
+    AP4_UI64 m_ModificationTime;
+    AP4_UI32 m_TimeScale;
+    AP4_UI64 m_Duration;
+    AP4_UI32 m_Rate;
+    AP4_UI16 m_Volume;
+    AP4_UI08 m_Reserved1[2];
+    AP4_UI08 m_Reserved2[8];
+    AP4_UI32 m_Matrix[9];
+    AP4_UI08 m_Predefined[24];
+    AP4_UI32 m_NextTrackId;
 };
 
-#endif // _AP4_FTAB_ATOM_H_
+#endif // _AP4_MVHD_ATOM_H_

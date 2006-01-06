@@ -1,8 +1,8 @@
 /*****************************************************************
 |
-|    AP4 - Shared Types
+|    AP4 - Movie 
 |
-|    Copyright 2002 Gilles Boccon-Gibod
+|    Copyright 2002-2005 Gilles Boccon-Gibod
 |
 |
 |    This file is part of Bento4/AP4 (MP4 Atom Processing Library).
@@ -26,42 +26,45 @@
 |
  ****************************************************************/
 
-#ifndef _AP4_TYPES_H_
-#define _AP4_TYPES_H_
+#ifndef _AP4_MOVIE_H_
+#define _AP4_MOVIE_H_
 
 /*----------------------------------------------------------------------
 |       includes
 +---------------------------------------------------------------------*/
-#include "Ap4Config.h"
-#if defined(AP4_CONFIG_HAVE_CPP_STRING_H)
-#include <string>
-#endif
+#include "Ap4.h"
+#include "Ap4MoovAtom.h"
+#include "Ap4MvhdAtom.h"
+#include "Ap4Track.h"
+#include "Ap4List.h"
+#include "Ap4ByteStream.h"
 
 /*----------------------------------------------------------------------
-|       types
+|       AP4_Movie
 +---------------------------------------------------------------------*/
-typedef int            AP4_Result;
-typedef unsigned long  AP4_Flags;
-typedef unsigned long  AP4_Mask;
-typedef unsigned long  AP4_Size;
-typedef unsigned long  AP4_Offset;
-typedef unsigned long  AP4_Range;
-typedef unsigned long  AP4_Cardinal;
-typedef unsigned long  AP4_Ordinal;
-// typedef unsigned long  AP4_TimeStamp;
-// typedef unsigned long  AP4_Duration;
-typedef int            AP4_Coordinate;
-typedef int            AP4_Distance;
-typedef int            AP4_Integer;
-typedef unsigned int   AP4_UI32;
-typedef unsigned short AP4_UI16;
-typedef unsigned char  AP4_UI08;
-typedef float          AP4_Float;
-typedef std::string    AP4_String;
-typedef unsigned char  AP4_Byte;
+class AP4_Movie {
+public:
+    // methods
+    AP4_Movie(AP4_UI32 time_scale = 0);
+    AP4_Movie(AP4_MoovAtom* moov, AP4_ByteStream& mdat);
+    virtual ~AP4_Movie();
+    AP4_Result Inspect(AP4_AtomInspector& inspector);
 
-typedef unsigned long long AP4_TimeStamp;
-typedef unsigned long long AP4_Duration;
-typedef unsigned long long AP4_UI64;
+    AP4_MoovAtom* GetMoovAtom() { return m_MoovAtom;}
+    AP4_MvhdAtom* GetMvhdAtom() { return m_MvhdAtom;}
+    AP4_List<AP4_Track>& GetTracks() { return m_Tracks; }
+    AP4_Track* GetTrack(AP4_UI32 track_id);
+    AP4_Track* GetTrack(AP4_Track::Type type, AP4_Ordinal index = 0);
+    AP4_Result AddTrack(AP4_Track* track);
+    AP4_UI32   GetTimeScale();
+    AP4_Duration GetDuration();
+    AP4_Duration GetDurationMs();
 
-#endif // _AP4_TYPES_H_
+private:
+    // members
+    AP4_MoovAtom*       m_MoovAtom;
+    AP4_MvhdAtom*       m_MvhdAtom;
+    AP4_List<AP4_Track> m_Tracks;
+};
+
+#endif // _AP4_MOVIE_H_

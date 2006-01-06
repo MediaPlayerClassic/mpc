@@ -30,7 +30,7 @@
 [uuid("61F47056-E400-43d3-AF1E-AB7DFFD4C4AD")]
 class CMP4SplitterFilter : public CBaseSplitterFilter
 {
-	struct trackpos {DWORD /*AP4_Ordinal*/ index; DWORD /*AP4_TimeStamp*/ ts;};
+	struct trackpos {DWORD /*AP4_Ordinal*/ index; unsigned __int64 /*AP4_TimeStamp*/ ts;};
 	CAtlMap<DWORD, trackpos> m_trackpos;
 	CSize m_framesize;
 

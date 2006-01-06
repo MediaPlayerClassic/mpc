@@ -72,7 +72,7 @@ class AP4_Track {
               AP4_UI32         track_id, 
               AP4_UI32         movie_time_scale, // 0 = use default
               AP4_UI32         media_time_scale,
-              AP4_UI32         media_duration,
+              AP4_UI64         media_duration,
               const char*      language,
               AP4_UI32         width,
               AP4_UI32         height);
@@ -81,7 +81,7 @@ class AP4_Track {
               AP4_UI32        movie_time_scale);
     virtual ~AP4_Track();
     AP4_Track::Type GetType() { return m_Type; }
-    AP4_UI32     GetDuration();
+    AP4_UI64     GetDuration();
     AP4_Duration GetDurationMs();
     AP4_Cardinal GetSampleCount();
 	AP4_Result   GetSample(AP4_Ordinal index, AP4_Sample& sample);
