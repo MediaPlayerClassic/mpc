@@ -144,7 +144,7 @@ AP4_SttsAtom::GetSampleIndexForTimeStamp(AP4_TimeStamp ts, AP4_Ordinal& sample)
         
         // check if the ts is in the range of this entry
         if (ts < next_accumulated) {
-            sample += (ts - accumulated) / m_Entries[i].m_SampleDuration;
+            sample += (AP4_Ordinal) ((ts - accumulated) / m_Entries[i].m_SampleDuration);
             return AP4_SUCCESS;
         }
 

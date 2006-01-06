@@ -1,6 +1,6 @@
 /*****************************************************************
 |
-|    AP4 - mdhd Atoms 
+|    AP4 - tkhd Atoms 
 |
 |    Copyright 2002 Gilles Boccon-Gibod
 |
@@ -30,89 +30,101 @@
 |       includes
 +---------------------------------------------------------------------*/
 #include "Ap4.h"
-#include "Ap4MdhdAtom.h"
+#include "Ap4TkhdAtom.h"
 #include "Ap4AtomFactory.h"
 #include "Ap4Utils.h"
 
 /*----------------------------------------------------------------------
-|       AP4_MdhdAtom::AP4_MdhdAtom
+|       AP4_TkhdAtom::AP4_TkhdAtom
 +---------------------------------------------------------------------*/
-AP4_MdhdAtom::AP4_MdhdAtom(AP4_UI64    creation_time,
-                           AP4_UI64    modification_time,
-                           AP4_UI32    time_scale,
-                           AP4_UI64    duration,
-                           const char* language) :
-    AP4_Atom(AP4_ATOM_TYPE_MDHD, 20+AP4_FULL_ATOM_HEADER_SIZE, true),
+AP4_TkhdAtom::AP4_TkhdAtom(AP4_UI64 creation_time,
+                           AP4_UI64 modification_time,
+                           AP4_UI32 track_id,
+                           AP4_UI64 duration,
+                           AP4_UI16 volume,
+                           AP4_UI32 width,
+                           AP4_UI32 height) :
+    AP4_Atom(AP4_ATOM_TYPE_TKHD, 80+AP4_FULL_ATOM_HEADER_SIZE, true),
     m_CreationTime(creation_time),
     m_ModificationTime(modification_time),
-    m_TimeScale(time_scale),
-    m_Duration(duration)
+    m_TrackId(track_id),
+    m_Reserved1(0),
+    m_Duration(duration),
+    m_Layer(0),
+    m_AlternateGroup(0),
+    m_Volume(volume),
+    m_Reserved3(0),
+    m_Width(width),
+    m_Height(height)
 {
-    m_Language[0] = language[0];
-    m_Language[1] = language[1];
-    m_Language[2] = language[2];
+    m_Flags = AP4_TKHD_FLAG_DEFAULTS;
+
+    m_Matrix[0] = 0x00010000;
+    m_Matrix[1] = 0;
+    m_Matrix[2] = 0;
+    m_Matrix[3] = 0;
+    m_Matrix[4] = 0x00010000;
+    m_Matrix[5] = 0;
+    m_Matrix[6] = 0;
+    m_Matrix[7] = 0;
+    m_Matrix[8] = 0x40000000;
+
+    m_Reserved2[0] = 0;
+    m_Reserved2[1] = 0;
 }
 
 /*----------------------------------------------------------------------
-|       AP4_MdhdAtom::AP4_MdhdAtom
+|       AP4_TkhdAtom::AP4_TkhdAtom
 +---------------------------------------------------------------------*/
-AP4_MdhdAtom::AP4_MdhdAtom(AP4_Size size, AP4_ByteStream& stream) :
-    AP4_Atom(AP4_ATOM_TYPE_MDHD, size, true, stream),
-    m_CreationTime(0),
-    m_ModificationTime(0),
-    m_TimeScale(0),
-    m_Duration(0)
+AP4_TkhdAtom::AP4_TkhdAtom(AP4_Size size, AP4_ByteStream& stream) :
+    AP4_Atom(AP4_ATOM_TYPE_TKHD, size, true, stream)
 {
-    m_Language[0] = 0;
-    m_Language[1] = 0;
-    m_Language[2] = 0;
-
     if (m_Version == 0) {
 		AP4_UI32 tmp = 0;
         stream.ReadUI32(tmp); m_CreationTime = tmp;
         stream.ReadUI32(tmp); m_ModificationTime = tmp;
-        stream.ReadUI32(m_TimeScale);
+        stream.ReadUI32(m_TrackId);
+        stream.ReadUI32(m_Reserved1);
         stream.ReadUI32(tmp); m_Duration = tmp;
 	} else if (m_Version == 1) {
         stream.ReadUI64(m_CreationTime);
         stream.ReadUI64(m_ModificationTime);
-        stream.ReadUI32(m_TimeScale);
+        stream.ReadUI32(m_TrackId);
+        stream.ReadUI32(m_Reserved1);
         stream.ReadUI64(m_Duration);
     } else {
-		// TODO
+        // TODO
     }
-    
-    unsigned char lang[2];
-    stream.Read(lang, 2, NULL);
-    char l0 = ((lang[0]>>2)&0x1F);
-    char l1 = (((lang[0]&0x3)<<3) | ((lang[1]>>5)&0x7));
-    char l2 = ((lang[1]&0x1F));
-    if (l0) {
-        m_Language[0] = l0+0x60;
+
+    stream.Read((void*)m_Reserved2, 8, NULL);
+    stream.ReadUI16(m_Layer);
+    stream.ReadUI16(m_AlternateGroup);
+    stream.ReadUI16(m_Volume);
+    stream.ReadUI16(m_Reserved3);
+    for (int i=0; i<9; i++) {
+        stream.ReadUI32(m_Matrix[i]);
     }
-    if (l1) {
-        m_Language[1] = l1+0x60;
-    }
-    if (l2) {
-        m_Language[2] = l2+0x60;
-    }
+    stream.ReadUI32(m_Width);
+    stream.ReadUI32(m_Height);
 }
 
 /*----------------------------------------------------------------------
-|       AP4_MdhdAtom::WriteFields
+|       AP4_TkhdAtom::WriteFields
 +---------------------------------------------------------------------*/
 AP4_Result
-AP4_MdhdAtom::WriteFields(AP4_ByteStream& stream)
+AP4_TkhdAtom::WriteFields(AP4_ByteStream& stream)
 {
     AP4_Result result;
 
+    // creation/modification time, track id, reserved1 & duration
     if (m_Version == 0) {
-        // we only deal with version 0 for the moment
         result = stream.WriteUI32((AP4_UI32)m_CreationTime);
         if (AP4_FAILED(result)) return result;
         result = stream.WriteUI32((AP4_UI32)m_ModificationTime);
         if (AP4_FAILED(result)) return result;
-        result = stream.WriteUI32(m_TimeScale);
+        result = stream.WriteUI32(m_TrackId);
+        if (AP4_FAILED(result)) return result;
+        result = stream.WriteUI32(m_Reserved1);
         if (AP4_FAILED(result)) return result;
         result = stream.WriteUI32((AP4_UI32)m_Duration);
         if (AP4_FAILED(result)) return result;
@@ -121,7 +133,9 @@ AP4_MdhdAtom::WriteFields(AP4_ByteStream& stream)
         if (AP4_FAILED(result)) return result;
         result = stream.WriteUI64(m_ModificationTime);
         if (AP4_FAILED(result)) return result;
-        result = stream.WriteUI32(m_TimeScale);
+        result = stream.WriteUI32(m_TrackId);
+        if (AP4_FAILED(result)) return result;
+        result = stream.WriteUI32(m_Reserved1);
         if (AP4_FAILED(result)) return result;
         result = stream.WriteUI64(m_Duration);
         if (AP4_FAILED(result)) return result;
@@ -129,44 +143,45 @@ AP4_MdhdAtom::WriteFields(AP4_ByteStream& stream)
 		// TODO
     }
 
-    // write the language
-    AP4_UI08 l0 = (m_Language[0]==0)?0:(m_Language[0]-0x60);
-    AP4_UI08 l1 = (m_Language[1]==0)?0:(m_Language[1]-0x60);
-    AP4_UI08 l2 = (m_Language[2]==0)?0:(m_Language[2]-0x60);
-    result = stream.WriteUI08(l0<<2 | l1>>3);
-    if (AP4_FAILED(result)) return result;
-    result = stream.WriteUI08(l1<<5 | l2);
+    // reserved2
+    result = stream.Write(m_Reserved2, sizeof(m_Reserved2));
     if (AP4_FAILED(result)) return result;
 
-    // pre-defined
-    return stream.WriteUI16(0);
+    // layer, alternate group & volume
+    result = stream.WriteUI16(m_Layer);
+    if (AP4_FAILED(result)) return result;
+    result = stream.WriteUI16(m_AlternateGroup);
+    if (AP4_FAILED(result)) return result;
+    result = stream.WriteUI16(m_Volume);
+    if (AP4_FAILED(result)) return result;
+
+    // reserved3
+    result = stream.WriteUI16(m_Reserved3);
+
+    // matrix
+    for (int i=0; i<9; i++) {
+        result = stream.WriteUI32(m_Matrix[i]);
+        if (AP4_FAILED(result)) return result;
+    }
+
+    // width & height
+    result = stream.WriteUI32(m_Width);
+    if (AP4_FAILED(result)) return result;
+    result = stream.WriteUI32(m_Height);
+    if (AP4_FAILED(result)) return result;
+
+    return result;
 }
 
 /*----------------------------------------------------------------------
-|       AP4_MdhdAtom::GetDurationMs
-+---------------------------------------------------------------------*/
-AP4_UI32
-AP4_MdhdAtom::GetDurationMs()
-{
-    return AP4_DurationMsFromUnits(m_Duration, m_TimeScale);
-}
-
-/*----------------------------------------------------------------------
-|       AP4_MdhdAtom::InspectFields
+|       AP4_TkhdAtom::InspectFields
 +---------------------------------------------------------------------*/
 AP4_Result
-AP4_MdhdAtom::InspectFields(AP4_AtomInspector& inspector)
+AP4_TkhdAtom::InspectFields(AP4_AtomInspector& inspector)
 {
-    inspector.AddField("timescale", m_TimeScale);
-    inspector.AddField("duration", (AP4_UI32)m_Duration); // TODO
-    inspector.AddField("duration(ms)", GetDurationMs());
-    char language[4];
-    AP4_StringFormat(language, sizeof(language), 
-        "%c%c%c", 
-        m_Language[0] ? m_Language[0]:'-',
-        m_Language[1] ? m_Language[1]:'-',
-        m_Language[2] ? m_Language[2]:'-');
-    inspector.AddField("language", (const char*)language);
+    inspector.AddField("enabled", ((m_Flags & AP4_TKHD_FLAG_TRACK_ENABLED) ? 1 : 0), AP4_AtomInspector::HINT_BOOLEAN);
+    inspector.AddField("id", m_TrackId);
+    inspector.AddField("duration", (AP4_UI32)m_Duration);
 
     return AP4_SUCCESS;
 }

@@ -50,7 +50,7 @@ AP4_Track::AP4_Track(Type             type,
                      AP4_UI32         track_id, 
                      AP4_UI32         movie_time_scale,
                      AP4_UI32         media_time_scale,
-                     AP4_UI32         media_duration,
+                     AP4_UI64         media_duration,
                      const char*      language,
                      AP4_UI32         width,
                      AP4_UI32         height) :
@@ -93,7 +93,7 @@ AP4_Track::AP4_Track(Type             type,
     }
 
     // compute the track duration in units of the movie time scale
-    AP4_UI32 track_duration = AP4_ConvertTime(media_duration,
+    AP4_UI64 track_duration = AP4_ConvertTime(media_duration,
                                               media_time_scale,
                                               movie_time_scale);
 
@@ -196,7 +196,7 @@ AP4_Track::SetId(AP4_UI32 id)
 /*----------------------------------------------------------------------
 |       AP4_Track::GetDuration
 +---------------------------------------------------------------------*/
-AP4_UI32
+AP4_UI64
 AP4_Track::GetDuration()
 {
     return m_TrakAtom->GetDuration();
@@ -208,7 +208,7 @@ AP4_Track::GetDuration()
 AP4_Duration
 AP4_Track::GetDurationMs()
 {
-    AP4_UI32 duration = m_TrakAtom->GetDuration();
+    AP4_UI64 duration = m_TrakAtom->GetDuration();
     return AP4_DurationMsFromUnits(duration, m_MovieTimeScale);
 }
 

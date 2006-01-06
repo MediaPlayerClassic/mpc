@@ -1,6 +1,6 @@
 /*****************************************************************
 |
-|    AP4 - mdhd Atoms 
+|    AP4 - trak Atoms 
 |
 |    Copyright 2002 Gilles Boccon-Gibod
 |
@@ -26,8 +26,8 @@
 |
  ****************************************************************/
 
-#ifndef _AP4_MDHD_ATOM_H_
-#define _AP4_MDHD_ATOM_H_
+#ifndef _AP4_TRAK_ATOM_H_
+#define _AP4_TRAK_ATOM_H_
 
 /*----------------------------------------------------------------------
 |       includes
@@ -36,41 +36,50 @@
 #include "Ap4ByteStream.h"
 #include "Ap4List.h"
 #include "Ap4Atom.h"
+#include "Ap4HdlrAtom.h"
+#include "Ap4TkhdAtom.h"
+#include "Ap4ContainerAtom.h"
+#include "Ap4SampleTable.h"
 
 /*----------------------------------------------------------------------
-|       constants
+|       AP4_TrakAtom
 +---------------------------------------------------------------------*/
-const AP4_UI32 AP4_MDHD_DEFAULT_GENERIC_TIMESCALE = 1000;
-const AP4_UI32 AP4_MDHD_DEFAULT_VIDEO_TIMESCALE = 90000;
-
-/*----------------------------------------------------------------------
-|       AP4_MdhdAtom
-+---------------------------------------------------------------------*/
-class AP4_MdhdAtom : public AP4_Atom
+class AP4_TrakAtom : public AP4_ContainerAtom
 {
  public:
     // methods
-    AP4_MdhdAtom(AP4_UI64    creation_time,
-                 AP4_UI64    modification_time,
-                 AP4_UI32    time_scale,
-                 AP4_UI64    duration,
-                 const char* language);
-    AP4_MdhdAtom(AP4_Size size, AP4_ByteStream& stream);
-    virtual AP4_Result InspectFields(AP4_AtomInspector& inspector);
-    virtual AP4_Result WriteFields(AP4_ByteStream& stream);
-
-    AP4_UI32 GetDurationMs();
-    AP4_UI64 GetDuration()  { return m_Duration;  }
-    AP4_UI32 GetTimeScale() { return m_TimeScale; }
-	AP4_String GetLanguage() { return AP4_String(m_Language, 3); }
+     AP4_TrakAtom(AP4_SampleTable* sample_table,
+                  AP4_Atom::Type   hdlr_type,
+                  const char*      hdlr_name,
+                  AP4_UI32         track_id, 
+                  AP4_UI64         creation_time,
+                  AP4_UI64         modification_time,
+                  AP4_UI64         track_duration,
+                  AP4_UI32         media_time_scale,
+                  AP4_UI64         media_duration,
+                  AP4_UI16         volume,
+                  const char*      language,
+                  AP4_UI32         width,
+                  AP4_UI32         heigh);
+    AP4_TrakAtom(AP4_Size         size,
+                 AP4_ByteStream&  stream,
+                 AP4_AtomFactory& atom_factory);
+    AP4_Result AdjustChunkOffsets(AP4_Offset offset);
+    AP4_UI32   GetId() { 
+        return m_TkhdAtom->GetTrackId(); 
+    }
+    AP4_Result SetId(AP4_UI32 track_id) {
+        return m_TkhdAtom->SetTrackId(track_id);
+    }
+    AP4_UI64   GetDuration();
+    AP4_Result SetDuration(AP4_UI64 duration);
+    AP4_TkhdAtom* GetTkhdAtom() { return m_TkhdAtom; }
+    AP4_HdlrAtom* GetHdlrAtom() { return m_HdlrAtom; }
 
  private:
     // members
-    AP4_UI64 m_CreationTime;
-    AP4_UI64 m_ModificationTime;
-    AP4_UI32 m_TimeScale;
-    AP4_UI64 m_Duration;
-    char     m_Language[3];
+    AP4_HdlrAtom* m_HdlrAtom;
+    AP4_TkhdAtom* m_TkhdAtom;
 };
 
-#endif // _AP4_MDHD_ATOM_H_
+#endif // _AP4_TRAK_ATOM_H_
