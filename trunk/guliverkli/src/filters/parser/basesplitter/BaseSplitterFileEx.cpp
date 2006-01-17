@@ -903,20 +903,21 @@ bool CBaseSplitterFileEx::Read(trhdr& h, bool fSync)
 	if(h.adapfield)
 	{
 		h.length = (BYTE)BitRead(8);
-		h.discontinuity = BitRead(1);
-		h.randomaccess = BitRead(1);
-		h.priority = BitRead(1);
-		h.PCR = BitRead(1);
-		h.OPCR = BitRead(1);
-		h.splicingpoint = BitRead(1);
-		h.privatedata = BitRead(1);
-		h.extension = BitRead(1);
-/*
-		if(!(0 < h.length && h.length <= 183))
-			return(false);
-*/
-		for(int i = 1; i < h.length; i++)
-			BitRead(8);
+
+		if(h.length > 0)
+		{
+			h.discontinuity = BitRead(1);
+			h.randomaccess = BitRead(1);
+			h.priority = BitRead(1);
+			h.PCR = BitRead(1);
+			h.OPCR = BitRead(1);
+			h.splicingpoint = BitRead(1);
+			h.privatedata = BitRead(1);
+			h.extension = BitRead(1);
+
+			for(int i = 1; i < h.length; i++)
+				BitRead(8);
+		}
 
 		h.bytes -= h.length+1;
 	}
@@ -1049,10 +1050,12 @@ bool CBaseSplitterFileEx::Read(avchdr& h, int len, CMediaType* pmt)
 	if(!pmt) return(true);
 
 	{
+		int extra = 2+spslen-4 + 2+ppslen-4;
+
 		pmt->majortype = MEDIATYPE_Video;
-		pmt->subtype = MEDIASUBTYPE_MPEG2_VIDEO;
+		pmt->subtype = FOURCCMap('1CVA');
 		pmt->formattype = FORMAT_MPEG2_VIDEO;
-		int len = FIELD_OFFSET(MPEG2VIDEOINFO, dwSequenceHeader) + spslen + ppslen;
+		int len = FIELD_OFFSET(MPEG2VIDEOINFO, dwSequenceHeader) + extra;
 		MPEG2VIDEOINFO* vi = (MPEG2VIDEOINFO*)new BYTE[len];
 		memset(vi, 0, len);
 		// vi->hdr.dwBitRate = ;
@@ -1062,15 +1065,22 @@ bool CBaseSplitterFileEx::Read(avchdr& h, int len, CMediaType* pmt)
 		vi->hdr.bmiHeader.biSize = sizeof(vi->hdr.bmiHeader);
 		vi->hdr.bmiHeader.biWidth = h.width;
 		vi->hdr.bmiHeader.biHeight = h.height;
-		vi->hdr.bmiHeader.biCompression = '1cva';
+		vi->hdr.bmiHeader.biCompression = '1CVA';
 		vi->dwProfile = h.profile;
 		vi->dwFlags = 4; // ?
 		vi->dwLevel = h.level;
-		vi->cbSequenceHeader = spslen + ppslen;
-		Seek(spspos);
-		ByteRead((BYTE*)&vi->dwSequenceHeader[0], spslen);
-		Seek(ppspos);
-		ByteRead((BYTE*)&vi->dwSequenceHeader[0] + spslen, ppslen);
+		vi->cbSequenceHeader = extra;
+		BYTE* p = (BYTE*)&vi->dwSequenceHeader[0];
+		*p++ = (spslen-4) >> 8;
+		*p++ = (spslen-4) & 0xff;
+		Seek(spspos+4);
+		ByteRead(p, spslen-4);
+		p += spslen-4;
+		*p++ = (ppslen-4) >> 8;
+		*p++ = (ppslen-4) & 0xff;
+		Seek(ppspos+4);
+		ByteRead(p, ppslen-4);
+		p += ppslen-4;
 		pmt->SetFormat((BYTE*)vi, len);
 		delete [] vi;
 	}

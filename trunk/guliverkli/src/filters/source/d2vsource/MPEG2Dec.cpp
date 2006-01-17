@@ -3745,7 +3745,7 @@ static char* myfgets(char* buff, int len, FILE* file)
 	return(ret);
 }
 
-int CMPEG2Dec::Open(const char *path, DstFormat dstFormat)
+int CMPEG2Dec::Open(LPCTSTR path, DstFormat dstFormat)
 {
 	m_dstFormat = dstFormat;
 	char ID[19], PASS[19] = "DVD2AVIProjectFile";
@@ -3758,7 +3758,7 @@ int CMPEG2Dec::Open(const char *path, DstFormat dstFormat)
 
 	CMPEG2Dec* out = this;
 
-	out->VF_File = fopen(path, "r");
+	out->VF_File = _tfopen(path, _T("r"));
 	if (out->VF_File==NULL)
 		return 0;
 	if (fgets(ID, 19, out->VF_File)==NULL)

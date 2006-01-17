@@ -296,7 +296,7 @@ public:
 
   CMPEG2Dec();
   ~CMPEG2Dec() {Close();}
-  int Open(const char *path, DstFormat);
+  int Open(LPCTSTR path, DstFormat);
   void Close();
   void Decode(unsigned char *dst, DWORD frame, int pitch);
   bool dstRGB24() const { return m_dstFormat == RGB24; }

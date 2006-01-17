@@ -1410,6 +1410,7 @@ STDMETHODIMP CVMR9AllocatorPresenter::InitializeDevice(DWORD_PTR dwUserID, VMR9A
 		return E_FAIL;
 /**/
 	// StretchRect's yv12 -> rgb conversion looks horribly bright compared to the result of yuy2 -> rgb
+	if(!(GetAsyncKeyState(VK_CONTROL)&0x80000000))
 	if(lpAllocInfo->Format == '21VY' || lpAllocInfo->Format == '024Y')
 		return E_FAIL;
 

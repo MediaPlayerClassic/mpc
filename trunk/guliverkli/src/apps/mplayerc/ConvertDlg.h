@@ -189,4 +189,6 @@ public:
 	afx_msg void OnUpdateButton2(CCmdUI* pCmdUI);
 	afx_msg void OnUpdateButton3(CCmdUI* pCmdUI);
 	afx_msg void OnUpdateButton4(CCmdUI* pCmdUI);
+public:
+	BOOL m_bOutputRawStreams;
 };

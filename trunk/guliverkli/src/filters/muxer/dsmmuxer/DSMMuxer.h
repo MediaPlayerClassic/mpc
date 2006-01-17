@@ -24,10 +24,22 @@
 #include "..\basemuxer\basemuxer.h"
 #include "..\..\..\..\include\dsm\dsm.h"
 
+[uuid("8D0256EA-993A-4ACC-9C87-26D04F0C6A6C")]
+interface IDSMMuxerFilter : public IUnknown
+{
+	STDMETHOD(SetOutputRawStreams) (BOOL b) = 0;
+};
+
 [uuid("C6590B76-587E-4082-9125-680D0693A97B")]
-class CDSMMuxerFilter : public CBaseMuxerFilter
+class CDSMMuxerFilter 
+	: public CBaseMuxerFilter
+	, public IDSMMuxerFilter
 {
 	bool m_fAutoChap, m_fAutoRes;
+
+	BOOL m_bOutputRawStreams;
+	struct file_t {FILE* pFile; int iPacket;};
+	CAtlMap<CBaseMuxerInputPin*, file_t> m_pPinToFile;
 
 	struct SyncPoint {BYTE id; REFERENCE_TIME rtStart, rtStop; __int64 fp;};
 	struct IndexedSyncPoint {BYTE id; REFERENCE_TIME rt, rtfp; __int64 fp;};
@@ -42,11 +54,23 @@ class CDSMMuxerFilter : public CBaseMuxerFilter
 
 protected:
 	void MuxInit();
+
 	void MuxHeader(IBitStream* pBS);
 	void MuxPacket(IBitStream* pBS, const MuxerPacket* pPacket);
 	void MuxFooter(IBitStream* pBS);
 
+	void MuxHeader();
+	void MuxPacket(const MuxerPacket* pPacket);
+	void MuxFooter();
+
 public:
 	CDSMMuxerFilter(LPUNKNOWN pUnk, HRESULT* phr, bool fAutoChap = true, bool fAutoRes = true);
 	virtual ~CDSMMuxerFilter();
+
+	DECLARE_IUNKNOWN;
+    STDMETHODIMP NonDelegatingQueryInterface(REFIID riid, void** ppv);
+
+	// IDSMMuxerFilter
+
+	STDMETHODIMP SetOutputRawStreams(BOOL b);
 };

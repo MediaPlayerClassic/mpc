@@ -20,6 +20,7 @@
  */
 
 #include "StdAfx.h"
+#include "Mmreg.h"
 #include "MP4Splitter.h"
 #include "..\..\..\DSUtil\DSUtil.h"
 
@@ -29,6 +30,7 @@
 #include "Ap4.h"
 #include "Ap4File.h"
 #include "Ap4StssAtom.h"
+#include "Ap4StsdAtom.h"
 #include "Ap4IsmaCryp.h"
 #include "Ap4AvcCAtom.h"
 #include "Ap4ChplAtom.h"
@@ -380,38 +382,88 @@ HRESULT CMP4SplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 					mts.Add(mt);
 				}
 			}
-			else if(AP4_VisualSampleEntry* s263 = dynamic_cast<AP4_VisualSampleEntry*>(
-				track->GetTrakAtom()->FindChild("mdia/minf/stbl/stsd/s263")))
+			else if(AP4_StsdAtom* stsd = dynamic_cast<AP4_StsdAtom*>(
+				track->GetTrakAtom()->FindChild("mdia/minf/stbl/stsd")))
 			{
-				mt.majortype = MEDIATYPE_Video;
-				mt.subtype = FOURCCMap('362s');
-				mt.formattype = FORMAT_VideoInfo;
-				vih = (VIDEOINFOHEADER*)mt.AllocFormatBuffer(sizeof(VIDEOINFOHEADER));
-				memset(vih, 0, mt.FormatLength());
-				vih->bmiHeader.biSize = sizeof(vih->bmiHeader);
-				vih->bmiHeader.biWidth = (LONG)s263->GetWidth();
-				vih->bmiHeader.biHeight = (LONG)s263->GetHeight();
-				vih->bmiHeader.biCompression = '362s';
-				mts.Add(mt);
+				for(AP4_List<AP4_Atom>::Item* item = stsd->GetChildren().FirstItem(); 
+					item; 
+					item = item->GetNext())
+				{
+					AP4_Atom* atom = item->GetData();
 
-				mt.subtype = FOURCCMap(vih->bmiHeader.biCompression = '362S');
-				mts.Add(mt);
-			}
-			else if(AP4_AudioSampleEntry* samr = dynamic_cast<AP4_AudioSampleEntry*>(
-				track->GetTrakAtom()->FindChild("mdia/minf/stbl/stsd/samr")))
-			{
-				mt.majortype = MEDIATYPE_Audio;
-				mt.subtype = FOURCCMap('rmas');
-				mt.formattype = FORMAT_WaveFormatEx;
-				wfe = (WAVEFORMATEX*)mt.AllocFormatBuffer(sizeof(WAVEFORMATEX));
-				memset(wfe, 0, mt.FormatLength());
-				wfe->nSamplesPerSec = samr->GetSampleRate();
-				wfe->nChannels = samr->GetChannelCount();
-				mts.Add(mt);
+					AP4_Atom::Type type = atom->GetType();
 
-				mt.subtype = FOURCCMap('RMAS');
-				mts.Add(mt);
+					if((type & 0xffff0000) == AP4_ATOM_TYPE('m', 's', 0, 0))
+					{
+						type &= 0xffff;
+					}
+					else
+					{
+						type = 
+							((type >> 24) & 0x000000ff) |
+							((type >>  8) & 0x0000ff00) |
+							((type <<  8) & 0x00ff0000) |
+							((type << 24) & 0xff000000);
+					}
+
+					if(AP4_VisualSampleEntry* vse = dynamic_cast<AP4_VisualSampleEntry*>(atom))
+					{
+						mt.majortype = MEDIATYPE_Video;
+						mt.subtype = FOURCCMap(type);
+						mt.formattype = FORMAT_VideoInfo;
+						vih = (VIDEOINFOHEADER*)mt.AllocFormatBuffer(sizeof(VIDEOINFOHEADER));
+						memset(vih, 0, mt.FormatLength());
+						vih->bmiHeader.biSize = sizeof(vih->bmiHeader);
+						vih->bmiHeader.biWidth = (LONG)vse->GetWidth();
+						vih->bmiHeader.biHeight = (LONG)vse->GetHeight();
+						vih->bmiHeader.biCompression = type;
+						mts.Add(mt);
+
+						char buff[5];
+						memcpy(buff, &type, 4);
+						buff[4] = 0;
+
+						strlwr((char*)&buff);
+						AP4_Atom::Type typelwr = *(AP4_Atom::Type*)buff;
+
+						if(typelwr != type)
+						{
+							mt.subtype = FOURCCMap(vih->bmiHeader.biCompression = typelwr);
+							mts.Add(mt);
+						}
+
+						strupr((char*)&buff);
+						AP4_Atom::Type typeupr = *(AP4_Atom::Type*)buff;
+
+						if(typeupr != type)
+						{
+							mt.subtype = FOURCCMap(vih->bmiHeader.biCompression = typeupr);
+							mts.Add(mt);
+						}
+
+						break;
+					}
+					else if(AP4_AudioSampleEntry* ase = dynamic_cast<AP4_AudioSampleEntry*>(atom))
+					{
+						mt.majortype = MEDIATYPE_Audio;
+						mt.subtype = FOURCCMap(type);
+						mt.formattype = FORMAT_WaveFormatEx;
+						wfe = (WAVEFORMATEX*)mt.AllocFormatBuffer(sizeof(WAVEFORMATEX));
+						memset(wfe, 0, mt.FormatLength());
+						if(!(type & 0xffff0000)) wfe->wFormatTag = (WORD)type;
+						wfe->nSamplesPerSec = ase->GetSampleRate();
+						wfe->nChannels = ase->GetChannelCount();
+						mts.Add(mt);
+
+//						mt.subtype = FOURCCMap('RMAS');
+//						mts.Add(mt);
+
+						break;
+					}
+				}
 			}
+
+			if(mts.IsEmpty()) continue;
 
 			REFERENCE_TIME rtDuration = 10000i64 * track->GetDurationMs();
 			if(m_rtDuration < rtDuration) m_rtDuration = rtDuration;
@@ -880,6 +932,9 @@ bool CMP4SplitterFilter::DemuxLoop()
 
 			AP4_Track* track = movie->GetTrack(pPair->m_key);
 
+			CBaseSplitterOutputPin* pPin = GetOutputPin((DWORD)track->GetId());
+			if(!pPin->IsConnected()) continue;
+
 			REFERENCE_TIME rt = (REFERENCE_TIME)(10000000.0 / track->GetMediaTimeScale() * pPair->m_value.ts);
 
 			if(pPair->m_value.index < track->GetSampleCount() && (!pPairNext || rt < rtNext))
@@ -898,7 +953,7 @@ bool CMP4SplitterFilter::DemuxLoop()
 		AP4_Sample sample;
 		AP4_DataBuffer data;
 
-		if(pPin && AP4_SUCCEEDED(track->ReadSample(pPairNext->m_value.index, sample, data)))
+		if(pPin && pPin->IsConnected() && AP4_SUCCEEDED(track->ReadSample(pPairNext->m_value.index, sample, data)))
 		{
 			CAutoPtr<Packet> p(new Packet());
 
@@ -927,18 +982,7 @@ bool CMP4SplitterFilter::DemuxLoop()
 			if(track->GetType() == AP4_Track::TYPE_TEXT)
 			{
 				CStringA dlgln_bkg, dlgln_plaintext;
-/*
-				if(pPairNext->m_value.index < track->GetSampleCount()-1)
-				{
-					AP4_Sample sample;
-					if(AP4_SUCCEEDED(track->GetSample(pPairNext->m_value.index+1, sample)))
-						p->rtStop = (REFERENCE_TIME)(10000000.0 / track->GetMediaTimeScale() * sample.GetCts());
-				}
-				else
-				{
-					p->rtStop = m_rtDuration;
-				}
-*/
+
 				const AP4_Byte* ptr = data.GetData();
 				AP4_Size avail = data.GetDataSize();
 

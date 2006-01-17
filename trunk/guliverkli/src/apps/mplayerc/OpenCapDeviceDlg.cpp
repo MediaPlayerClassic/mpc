@@ -369,6 +369,12 @@ BOOL COpenCapDeviceDlg::OnInitDialog()
 	}
 	EndEnumSysDev
 
+	{
+		int i = m_audctrl.AddString(_T("<Video Capture Device>"));
+		m_audnames.Add(_T(""));
+		if(audstr.IsEmpty()) iSel = i;
+	}
+
 	if(m_audctrl.GetCount())
 		m_audctrl.SetCurSel(iSel);
 

@@ -225,8 +225,6 @@ BEGIN_MESSAGE_MAP(CMainFrame, CFrameWnd)
 	ON_UPDATE_COMMAND_UI(ID_FILE_SAVE_IMAGE_AUTO, OnUpdateFileSaveImage)
 	ON_COMMAND(ID_FILE_CONVERT, OnFileConvert)
 	ON_UPDATE_COMMAND_UI(ID_FILE_CONVERT, OnUpdateFileConvert)
-	ON_COMMAND(ID_UTILS_STREAMDEMUXER, OnStreamDemuxer)
-	ON_UPDATE_COMMAND_UI(ID_UTILS_STREAMDEMUXER, OnUpdateStreamDemuxer)
 	ON_COMMAND(ID_FILE_LOADSUBTITLE, OnFileLoadsubtitles)
 	ON_UPDATE_COMMAND_UI(ID_FILE_LOADSUBTITLE, OnUpdateFileLoadsubtitles)
 	ON_COMMAND(ID_FILE_SAVESUBTITLES, OnFileSavesubtitles)
@@ -3410,16 +3408,6 @@ void CMainFrame::OnFileConvert()
 void CMainFrame::OnUpdateFileConvert(CCmdUI* pCmdUI)
 {
 	// TODO: Add your command update UI handler code here
-}
-
-void CMainFrame::OnStreamDemuxer()
-{
-	// TODO: Add your command handler code here
-}
-
-void CMainFrame::OnUpdateStreamDemuxer(CCmdUI* pCmdUI)
-{
-	// TODO: Add your command handler code here
 }
 
 void CMainFrame::OnFileLoadsubtitles()

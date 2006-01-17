@@ -111,7 +111,7 @@ CD2VStream::CD2VStream(const WCHAR* fn, CSource* pParent, HRESULT* phr)
 		return;
 	}
 
-	if(!m_pDecoder->Open(CStringA(fn), CMPEG2Dec::YUY2))
+	if(!m_pDecoder->Open(CString(fn), CMPEG2Dec::YUY2))
 	{
 		if(phr) *phr = E_FAIL;
 		return;

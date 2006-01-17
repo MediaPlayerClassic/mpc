@@ -40,6 +40,7 @@ CConvertDlg::CConvertDlg(CWnd* pParent /*=NULL*/)
 	: CResizableDialog(CConvertDlg::IDD, pParent)
 	, m_dwRegister(0)
 	, m_fn(_T(""))
+	, m_bOutputRawStreams(FALSE)
 {
 }
 
@@ -107,6 +108,7 @@ bool CConvertDlg::SetOutputFile(LPCTSTR fn)
 		return false;
 	}
 
+	UpdateData();
 	m_fn = fn;
 	UpdateData(FALSE);
 
@@ -644,6 +646,7 @@ void CConvertDlg::DoDataExchange(CDataExchange* pDX)
 	__super::DoDataExchange(pDX);
 	DDX_Control(pDX, IDC_TREE1, m_tree);
 	DDX_Text(pDX, IDC_EDIT1, m_fn);
+	DDX_Check(pDX, IDC_CHECK1, m_bOutputRawStreams);
 }
 
 BOOL CConvertDlg::PreTranslateMessage(MSG* pMsg)
@@ -924,6 +927,8 @@ void CConvertDlg::OnTimer(UINT nIDEvent)
 
 void CConvertDlg::OnBnClickedButton2()
 {
+	UpdateData();
+
 	OAFilterState fs;
 	if(FAILED(m_pMC->GetState(0, &fs)))
 		return;
@@ -934,6 +939,11 @@ void CConvertDlg::OnBnClickedButton2()
 		{
 			LONGLONG pos = 0;
 			m_pMS->SetPositions(&pos, AM_SEEKING_AbsolutePositioning, NULL, AM_SEEKING_NoPositioning);
+		}
+
+		if(CComQIPtr<IDSMMuxerFilter> pDSMMF = m_pMux)
+		{
+			pDSMMF->SetOutputRawStreams(m_bOutputRawStreams);
 		}
 
 		if(CComQIPtr<IDSMPropertyBag> pPB = m_pMux)
