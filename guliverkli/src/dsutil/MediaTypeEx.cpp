@@ -86,8 +86,10 @@ CString CMediaTypeEx::ToString(IPin* pPin)
 		if(formattype == FORMAT_WaveFormatEx)
 		{
 			WAVEFORMATEX* wfe = (WAVEFORMATEX*)Format();
+
 			if(wfe->wFormatTag/* > WAVE_FORMAT_PCM && wfe->wFormatTag < WAVE_FORMAT_EXTENSIBLE
-			&& wfe->wFormatTag != WAVE_FORMAT_IEEE_FLOAT*/)
+			&& wfe->wFormatTag != WAVE_FORMAT_IEEE_FLOAT*/
+			|| subtype != GUID_NULL)
 			{
 				codec = GetAudioCodecName(subtype, wfe->wFormatTag);
 				dim.Format(_T("%dHz"), wfe->nSamplesPerSec);
@@ -284,14 +286,16 @@ CString CMediaTypeEx::GetAudioCodecName(const GUID& subtype, WORD wFormatTag)
 		else if(subtype == MEDIASUBTYPE_Vorbis2) str = _T("Vorbis");
 		else if(subtype == MEDIASUBTYPE_MP4A) str = _T("MPEG4 Audio");
 		else if(subtype == MEDIASUBTYPE_FLAC_FRAMED) str = _T("FLAC (framed)");
+		else if(subtype == MEDIASUBTYPE_DOLBY_AC3) str += _T("Dolby AC3");
+		else if(subtype == MEDIASUBTYPE_DTS) str += _T("DTS");
 		// else if(subtype == ) str = _T("");
 		else str.Format(_T("0x%04x"), wFormatTag);
 	}
 
 	if(wFormatTag == WAVE_FORMAT_PCM)
 	{
-		if(subtype == MEDIASUBTYPE_DTS) str += _T(" (DTS)");
-		else if(subtype == MEDIASUBTYPE_DOLBY_AC3) str += _T(" (AC3)");
+		if(subtype == MEDIASUBTYPE_DOLBY_AC3) str += _T(" (AC3)");
+		else if(subtype == MEDIASUBTYPE_DTS) str += _T(" (DTS)");
 	}
 
 	return str;
