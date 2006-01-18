@@ -149,12 +149,19 @@ protected:
     virtual AP4_Result InspectFields(AP4_AtomInspector& inspector);
 
     // members
-    AP4_UI08 m_Reserved2[8]; // = 0
-    AP4_UI32 m_SampleRate;           
-    AP4_UI16 m_ChannelCount; // = 2
-    AP4_UI16 m_SampleSize;   // = 16
-    AP4_UI16 m_Predefined1;  // = 0
-    AP4_UI16 m_Reserved3;    // = 0
+	AP4_UI16 m_DescriptionVersion;
+	AP4_UI16 m_RevisionLevel;
+	AP4_UI32 m_Vendor;
+    AP4_UI16 m_ChannelCount;
+    AP4_UI16 m_SampleSize;
+	AP4_UI16 m_CompressionID;
+    AP4_UI16 m_PacketSize;
+    AP4_UI32 m_SampleRate;
+    // m_Version == 1 ?
+    AP4_UI32 m_SamplesPerPacket; 
+    AP4_UI32 m_BytesPerPacket; 
+    AP4_UI32 m_BytesPerFrame; 
+    AP4_UI32 m_BytesPerSample; 
 };
 
 /*----------------------------------------------------------------------
