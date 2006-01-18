@@ -29,6 +29,7 @@ interface IBitStream : public IUnknown
 	STDMETHOD(ByteWrite) (const void* pData, int len) = 0;
 	STDMETHOD(BitWrite) (UINT64 data, int len) = 0;
 	STDMETHOD(BitFlush) () = 0;
+	STDMETHOD(StrWrite) (LPCSTR pData, BOOL bFixNewLine) = 0;
 };
 
 class CBitStream : public CUnknown, public IBitStream
@@ -52,4 +53,5 @@ public:
 	STDMETHODIMP ByteWrite(const void* pData, int len);
 	STDMETHODIMP BitWrite(UINT64 data, int len);
 	STDMETHODIMP BitFlush();
+	STDMETHODIMP StrWrite(LPCSTR pData, BOOL bFixNewLine);
 };

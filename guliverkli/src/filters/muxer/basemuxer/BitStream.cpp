@@ -141,3 +141,16 @@ STDMETHODIMP CBitStream::BitFlush()
 
 	return hr;
 }
+
+STDMETHODIMP CBitStream::StrWrite(LPCSTR pData, BOOL bFixNewLine)
+{
+	CStringA str = pData;
+
+	if(bFixNewLine)
+	{
+		str.Replace("\r", "");
+		str.Replace("\n", "\r\n");
+	}
+
+	return ByteWrite((LPCSTR)str, str.GetLength());
+}

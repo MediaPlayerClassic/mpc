@@ -21,16 +21,30 @@
 
 #pragma once
 
-class CBaseMuxerOutputPin : public CBaseOutputPin
+#include "BitStream.h"
+#include "BaseMuxerRelatedPin.h"
+
+class CBaseMuxerOutputPin : public CBaseOutputPin, public CBaseMuxerRelatedPin
 {
+	CComPtr<IBitStream> m_pBitStream;
+
 public:
-	CBaseMuxerOutputPin(TCHAR* pName, CBaseFilter* pFilter, CCritSec* pLock, HRESULT* phr);
+	CBaseMuxerOutputPin(LPCWSTR pName, CBaseFilter* pFilter, CCritSec* pLock, HRESULT* phr);
 	virtual ~CBaseMuxerOutputPin();
+
+	DECLARE_IUNKNOWN;
+    STDMETHODIMP NonDelegatingQueryInterface(REFIID riid, void** ppv);
+
+	IBitStream* GetBitStream();
+
+	HRESULT BreakConnect();
 
     HRESULT DecideBufferSize(IMemAllocator* pAlloc, ALLOCATOR_PROPERTIES* pProperties);
 
     HRESULT CheckMediaType(const CMediaType* pmt);
     HRESULT GetMediaType(int iPosition, CMediaType* pmt);
+
+    HRESULT DeliverEndOfStream();
 
 	STDMETHODIMP Notify(IBaseFilter* pSender, Quality q);
 };

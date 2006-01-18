@@ -38,6 +38,7 @@ CBaseMuxerInputPin::CBaseMuxerInputPin(LPCWSTR pName, CBaseFilter* pFilter, CCri
 	: CBaseInputPin(NAME("CBaseMuxerInputPin"), pFilter, pLock, phr, pName)
 	, m_rtDuration(0)
 	, m_evAcceptPacket(TRUE)
+	, m_iPacketIndex(0)
 {
 	static int s_iID = 0;
 	m_iID = s_iID++;
@@ -52,6 +53,7 @@ STDMETHODIMP CBaseMuxerInputPin::NonDelegatingQueryInterface(REFIID riid, void**
 	CheckPointer(ppv, E_POINTER);
 
 	return 
+		QI(IBaseMuxerRelatedPin)
 		QI(IPropertyBag)
 		QI(IPropertyBag2)
 		QI(IDSMPropertyBag)
@@ -181,6 +183,7 @@ HRESULT CBaseMuxerInputPin::Active()
 {
 	m_rtMaxStart = _I64_MIN;
 	m_fEOS = false;
+	m_iPacketIndex = 0;
 	m_evAcceptPacket.Set();
 	return __super::Active();
 }
@@ -242,6 +245,8 @@ STDMETHODIMP CBaseMuxerInputPin::Receive(IMediaSample* pSample)
 	{
 		pPacket->flags |= MuxerPacket::discontinuity;
 	}
+
+	pPacket->index = m_iPacketIndex++;
 
 	PushPacket(pPacket);
 

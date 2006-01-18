@@ -26,13 +26,42 @@
 // CBaseMuxerOutputPin
 //
 
-CBaseMuxerOutputPin::CBaseMuxerOutputPin(TCHAR* pName, CBaseFilter* pFilter, CCritSec* pLock, HRESULT* phr)
-	: CBaseOutputPin(pName, pFilter, pLock, phr, L"Output")
+CBaseMuxerOutputPin::CBaseMuxerOutputPin(LPCWSTR pName, CBaseFilter* pFilter, CCritSec* pLock, HRESULT* phr)
+	: CBaseOutputPin(_T("CBaseMuxerOutputPin"), pFilter, pLock, phr, pName)
 {
 }
 
 CBaseMuxerOutputPin::~CBaseMuxerOutputPin()
 {
+}
+
+STDMETHODIMP CBaseMuxerOutputPin::NonDelegatingQueryInterface(REFIID riid, void** ppv)
+{
+	CheckPointer(ppv, E_POINTER);
+
+	return 
+		QI(IBaseMuxerRelatedPin)
+		__super::NonDelegatingQueryInterface(riid, ppv);
+}
+
+IBitStream* CBaseMuxerOutputPin::GetBitStream()
+{
+	if(!m_pBitStream)
+	{
+		if(CComQIPtr<IStream> pStream = GetConnected())
+		{
+			m_pBitStream = new CBitStream(pStream, true);
+		}
+	}
+
+	return m_pBitStream;
+}
+
+HRESULT CBaseMuxerOutputPin::BreakConnect()
+{
+	m_pBitStream = NULL;
+
+	return __super::BreakConnect();
 }
 
 HRESULT CBaseMuxerOutputPin::DecideBufferSize(IMemAllocator* pAlloc, ALLOCATOR_PROPERTIES* pProperties)
@@ -75,6 +104,13 @@ HRESULT CBaseMuxerOutputPin::GetMediaType(int iPosition, CMediaType* pmt)
 	pmt->formattype = FORMAT_None;
 
 	return S_OK;
+}
+
+HRESULT CBaseMuxerOutputPin::DeliverEndOfStream()
+{
+	m_pBitStream = NULL;
+
+	return __super::DeliverEndOfStream();
 }
 
 STDMETHODIMP CBaseMuxerOutputPin::Notify(IBaseFilter* pSender, Quality q)

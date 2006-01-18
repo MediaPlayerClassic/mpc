@@ -23,9 +23,11 @@
 //
 
 #include "stdafx.h"
+#include <mmreg.h>
 #include "mplayerc.h"
 #include "..\..\filters\filters.h"
 #include "..\..\..\include\matroska\matroska.h"
+#include "..\..\..\include\moreuuids.h"
 #include "GraphBuilder.h"
 #include "ConvertPropsDlg.h"
 #include "ConvertResDlg.h"
@@ -40,7 +42,6 @@ CConvertDlg::CConvertDlg(CWnd* pParent /*=NULL*/)
 	: CResizableDialog(CConvertDlg::IDD, pParent)
 	, m_dwRegister(0)
 	, m_fn(_T(""))
-	, m_bOutputRawStreams(FALSE)
 {
 }
 
@@ -74,7 +75,8 @@ void CConvertDlg::AddFile(CString fn)
 		{
 			CPath p(fn);
 			p.RemoveExtension();
-			SetOutputFile((LPCTSTR)p + dsm);
+			m_fn = (LPCTSTR)p + dsm;
+			UpdateData(FALSE);
 		}
 	}
 
@@ -86,31 +88,80 @@ void CConvertDlg::AddFile(CString fn)
 	m_tree.EnsureVisible(*t);
 }
 
-bool CConvertDlg::SetOutputFile(LPCTSTR fn)
+bool CConvertDlg::ConvertFile(LPCTSTR fn, IPin* pPin)
 {
-	if(!m_pGB || !m_pMux)
+	OAFilterState fs;
+	if(!m_pMC || FAILED(m_pMC->GetState(0, &fs)) || fs != State_Stopped)
 		return false;
 
 	NukeDownstream(m_pMux, m_pGB);
 
 	CComPtr<IBaseFilter> pFW;
-	CComQIPtr<IFileSinkFilter2> pFSF = m_pMux;
-	if(pFSF) {pFW = m_pMux;}
-	else {pFW.CoCreateInstance(CLSID_FileWriter); pFSF = pFW;}
+	pFW.CoCreateInstance(CLSID_FileWriter);
+	CComQIPtr<IFileSinkFilter2> pFSF = pFW;
 
-	if(!pFSF
+	if(pPin)
+	{
+		CComQIPtr<IBaseMuxerRelatedPin> pRP = pPin;
+		if(!pRP) return false;
+
+		pPin = pRP->GetRelatedPin();
+	}
+	else
+	{
+		pPin = GetFirstPin(m_pMux, PINDIR_OUTPUT);
+	}
+
+	if(!pPin || !pFSF
 	|| FAILED(m_pGB->AddFilter(pFW, NULL))
 	|| FAILED(pFSF->SetFileName(CStringW(fn), NULL))
 	|| FAILED(pFSF->SetMode(AM_FILE_OVERWRITE))
-	|| FAILED(m_pCGB->RenderStream(NULL, NULL, m_pMux, NULL, pFW)))
+	|| FAILED(m_pGB->ConnectDirect(pPin, GetFirstPin(pFW), NULL)))
 	{
 		m_pGB->RemoveFilter(pFW);
 		return false;
 	}
 
-	UpdateData();
-	m_fn = fn;
-	UpdateData(FALSE);
+	if(m_pMS)
+	{
+		LONGLONG pos = 0;
+		m_pMS->SetPositions(&pos, AM_SEEKING_AbsolutePositioning, NULL, AM_SEEKING_NoPositioning);
+	}
+
+	if(CComQIPtr<IDSMPropertyBag> pPB = m_pMux)
+	{
+		pPB->SetProperty(L"APPL", L"Media Player Classic");
+	}
+
+	if(CComQIPtr<IDSMResourceBag> pRB = m_pMux)
+	{
+		pRB->ResRemoveAll(0);
+		POSITION pos = m_pTIs.GetHeadPosition();
+		while(pos)
+		{
+			if(CTreeItemResource* t2 = dynamic_cast<CTreeItemResource*>((CTreeItem*)m_pTIs.GetNext(pos)))
+				pRB->ResAppend(
+					t2->m_res.name, t2->m_res.desc, t2->m_res.mime, 
+					t2->m_res.data.GetData(), t2->m_res.data.GetSize(), 
+					NULL);
+		}		
+	}
+
+	if(CComQIPtr<IDSMChapterBag> pCB = m_pMux)
+	{
+		pCB->ChapRemoveAll();
+		POSITION pos = m_pTIs.GetHeadPosition();
+		while(pos)
+		{
+			if(CTreeItemChapter* t2 = dynamic_cast<CTreeItemChapter*>((CTreeItem*)m_pTIs.GetNext(pos)))
+				pCB->ChapAppend(t2->m_chap.rt, t2->m_chap.name);
+		}		
+	}
+
+	if(FAILED(m_pMC->Run()))
+		return false;
+
+	m_tree.EnableWindow(FALSE);
 
 	return true;
 }
@@ -322,8 +373,8 @@ void CConvertDlg::ShowPinPopup(HTREEITEM hTI, CPoint p)
 	CComPtr<IPin> pPinTo;
 	t->m_pPin->ConnectedTo(&pPinTo);
 
-	CMediaType mtconn;
-	if(pPinTo) t->m_pPin->ConnectionMediaType(&mtconn);
+	CMediaType mt;
+	if(pPinTo) t->m_pPin->ConnectionMediaType(&mt);
 
 	CArray<CMediaType> mts;
 	BeginEnumMediaTypes(t->m_pPin, pEMT, pmt)
@@ -336,12 +387,13 @@ void CConvertDlg::ShowPinPopup(HTREEITEM hTI, CPoint p)
 	int i = 1, mtbase = 1000, mti = mtbase;
 
 	m.AppendMenu(MF_STRING, i++, !pPinTo ? ResStr(IDS_CONVERT_ENABLESTREAM) : ResStr(IDS_CONVERT_DISABLESTREAM));
+	m.AppendMenu(MF_STRING | (!pPinTo ? MF_GRAYED : 0), i++, ResStr(IDS_CONVERT_DEMUXSTREAM));
 
 	if(mts.GetCount() > 1)
 	{
 		m.AppendMenu(MF_SEPARATOR);
 		for(int i = 0; i < mts.GetCount(); i++)
-			m.AppendMenu(MF_STRING | (mts[i] == mtconn ? MF_CHECKED : 0), mti++, CMediaTypeEx(mts[i]).ToString());
+			m.AppendMenu(MF_STRING | (mts[i] == mt ? MF_CHECKED : 0), mti++, CMediaTypeEx(mts[i]).ToString());
 	}
 
 	m.AppendMenu(MF_SEPARATOR);
@@ -355,6 +407,43 @@ void CConvertDlg::ShowPinPopup(HTREEITEM hTI, CPoint p)
 		t->Update();
 		break;
 	case 2:
+		{
+			UpdateData();
+
+			CString ext = _T("raw");
+
+			if(mt.subtype == MEDIASUBTYPE_AAC) ext = _T("aac");
+			else if(mt.subtype == MEDIASUBTYPE_MP3) ext = _T("mp3");
+			else if(mt.subtype == FOURCCMap(WAVE_FORMAT_MPEG)) ext = _T("m1a");
+			else if(mt.subtype == MEDIASUBTYPE_MPEG2_AUDIO) ext = _T("m2a");
+			else if(mt.subtype == FOURCCMap(WAVE_FORMAT_DOLBY_AC3_SPDIF) || mt.subtype == MEDIASUBTYPE_DOLBY_AC3) ext = _T("ac3");
+			else if(mt.subtype == MEDIASUBTYPE_WAVE_DTS || mt.subtype == MEDIASUBTYPE_DTS) ext = _T("dts");
+			else if((mt.subtype == FOURCCMap('1CVA') || mt.subtype == FOURCCMap('1cva')) && mt.formattype == FORMAT_MPEG2_VIDEO) ext = _T("h264");
+			else if(mt.subtype == FOURCCMap('GEPJ') || mt.subtype == FOURCCMap('gepj')) ext = _T("jpg");
+			else if(mt.majortype == MEDIATYPE_Video && mt.subtype == MEDIASUBTYPE_MPEG2_VIDEO) ext = _T("m2v");
+			else if(mt.majortype == MEDIATYPE_Video && mt.subtype == MEDIASUBTYPE_MPEG1Payload) ext = _T("m1v");
+			else if(mt.subtype == MEDIASUBTYPE_UTF8 || mt.majortype == MEDIATYPE_Text) ext = _T("srt");
+			else if(mt.subtype == MEDIASUBTYPE_SSA) ext = _T("ssa");
+			else if(mt.subtype == MEDIASUBTYPE_ASS || mt.subtype == MEDIASUBTYPE_ASS2) ext = _T("ass");
+			// TODO: else if...
+
+			CPath path(m_fn);
+			path.RemoveExtension();
+			path.AddExtension('.'+ext);
+
+			CFileDialog fd(TRUE, NULL, (LPCTSTR)path, 
+				OFN_EXPLORER|OFN_ENABLESIZING|OFN_HIDEREADONLY, 
+				_T("Media files|*.*||"), this, 0);
+			if(fd.DoModal() == IDOK)
+			{
+				if(!ConvertFile(fd.GetPathName(), pPinTo))
+				{
+					AfxMessageBox(_T("Failed to start conversion"));
+				}
+			}
+		}
+		break;
+	case 3:
 		EditProperties(CComQIPtr<IDSMPropertyBag>(pPinTo));
 		break;
 	default:
@@ -367,8 +456,8 @@ void CConvertDlg::ShowPinPopup(HTREEITEM hTI, CPoint p)
 			if(FAILED(hr))
 			{
 				AfxMessageBox(_T("Reconnection attempt failed!"));
-				if(mtconn.majortype != GUID_NULL) 
-					hr = m_pGB->ConnectDirect(t->m_pPin, pPinTo, &mtconn);
+				if(mt.majortype != GUID_NULL) 
+					hr = m_pGB->ConnectDirect(t->m_pPin, pPinTo, &mt);
 			}
 			t->Update();
 		}
@@ -646,7 +735,6 @@ void CConvertDlg::DoDataExchange(CDataExchange* pDX)
 	__super::DoDataExchange(pDX);
 	DDX_Control(pDX, IDC_TREE1, m_tree);
 	DDX_Text(pDX, IDC_EDIT1, m_fn);
-	DDX_Check(pDX, IDC_CHECK1, m_bOutputRawStreams);
 }
 
 BOOL CConvertDlg::PreTranslateMessage(MSG* pMsg)
@@ -880,11 +968,10 @@ void CConvertDlg::OnBnClickedButton1()
 		OFN_EXPLORER|OFN_ENABLESIZING|OFN_HIDEREADONLY|OFN_OVERWRITEPROMPT, 
 		_T("DirectShow Media file|*.dsm|All files|*.*|"), this, 0);
 
-	if(fd.DoModal() != IDOK) return;
-
-	if(!SetOutputFile(fd.GetPathName()))
+	if(fd.DoModal() == IDOK)
 	{
-		AfxMessageBox(_T("Could not set output file"));
+		m_fn = fd.GetPathName();
+		UpdateData(FALSE);
 	}
 }
 
@@ -927,60 +1014,21 @@ void CConvertDlg::OnTimer(UINT nIDEvent)
 
 void CConvertDlg::OnBnClickedButton2()
 {
-	UpdateData();
-
 	OAFilterState fs;
 	if(FAILED(m_pMC->GetState(0, &fs)))
 		return;
 
-	if(fs == State_Stopped)
+	if(fs != State_Stopped)
 	{
-		if(m_pMS)
-		{
-			LONGLONG pos = 0;
-			m_pMS->SetPositions(&pos, AM_SEEKING_AbsolutePositioning, NULL, AM_SEEKING_NoPositioning);
-		}
-
-		if(CComQIPtr<IDSMMuxerFilter> pDSMMF = m_pMux)
-		{
-			pDSMMF->SetOutputRawStreams(m_bOutputRawStreams);
-		}
-
-		if(CComQIPtr<IDSMPropertyBag> pPB = m_pMux)
-		{
-			pPB->SetProperty(L"APPL", L"Media Player Classic");
-		}
-
-		if(CComQIPtr<IDSMResourceBag> pRB = m_pMux)
-		{
-			pRB->ResRemoveAll(0);
-			POSITION pos = m_pTIs.GetHeadPosition();
-			while(pos)
-			{
-				if(CTreeItemResource* t2 = dynamic_cast<CTreeItemResource*>((CTreeItem*)m_pTIs.GetNext(pos)))
-					pRB->ResAppend(
-						t2->m_res.name, t2->m_res.desc, t2->m_res.mime, 
-						t2->m_res.data.GetData(), t2->m_res.data.GetSize(), 
-						NULL);
-			}		
-		}
-
-		if(CComQIPtr<IDSMChapterBag> pCB = m_pMux)
-		{
-			pCB->ChapRemoveAll();
-			POSITION pos = m_pTIs.GetHeadPosition();
-			while(pos)
-			{
-				if(CTreeItemChapter* t2 = dynamic_cast<CTreeItemChapter*>((CTreeItem*)m_pTIs.GetNext(pos)))
-					pCB->ChapAppend(t2->m_chap.rt, t2->m_chap.name);
-			}		
-		}
+		m_pMC->Run();
+		return;
 	}
 
-	if(m_pMC) 
+	UpdateData();
+
+	if(!ConvertFile(m_fn))
 	{
-		if(SUCCEEDED(m_pMC->Run()))
-			m_tree.EnableWindow(FALSE);
+		AfxMessageBox(_T("Failed to start conversion"));
 	}
 }
 
