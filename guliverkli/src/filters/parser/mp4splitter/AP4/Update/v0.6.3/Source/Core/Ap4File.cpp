@@ -1,8 +1,8 @@
 /*****************************************************************
 |
-|    AP4 - ctts Atoms 
+|    AP4 - File
 |
-|    Copyright 2003 Gilles Boccon-Gibod & Julien Boeuf
+|    Copyright 2002 Gilles Boccon-Gibod
 |
 |
 |    This file is part of Bento4/AP4 (MP4 Atom Processing Library).
@@ -26,48 +26,65 @@
 |
  ****************************************************************/
 
-#ifndef _AP4_CTTS_ATOM_H_
-#define _AP4_CTTS_ATOM_H_
-
 /*----------------------------------------------------------------------
 |       includes
 +---------------------------------------------------------------------*/
+#include "Ap4File.h"
 #include "Ap4Atom.h"
-#include "Ap4Types.h"
-#include "Ap4Array.h"
+#include "Ap4TrakAtom.h"
+#include "Ap4MoovAtom.h"
+#include "Ap4MvhdAtom.h"
+#include "Ap4AtomFactory.h"
 
 /*----------------------------------------------------------------------
-|       AP4_CttsTableEntry
+|       AP4_File::AP4_File
 +---------------------------------------------------------------------*/
-class AP4_CttsTableEntry {
- public:
-    AP4_CttsTableEntry() : 
-        m_SampleCount(0), 
-        m_SampleOffset(0) {}
-    AP4_CttsTableEntry(AP4_Cardinal sample_count,
-                       AP4_Offset sample_offset) :
-        m_SampleCount(sample_count),
-        m_SampleOffset(sample_offset) {}
-
-    AP4_Cardinal m_SampleCount;
-    AP4_Offset   m_SampleOffset;
-};
-
-/*----------------------------------------------------------------------
-|       AP4_CttsAtom
-+---------------------------------------------------------------------*/
-class AP4_CttsAtom : public AP4_Atom
+AP4_File::AP4_File(AP4_Movie* movie) :
+    m_Movie(movie)
 {
- public:
-    // methods
-    AP4_CttsAtom(AP4_Size size, AP4_ByteStream& stream);
-    virtual AP4_Result InspectFields(AP4_AtomInspector& inspector);
-    virtual AP4_Result WriteFields(AP4_ByteStream& stream);
-    virtual AP4_Result GetCtsOffset(AP4_Ordinal sample, 
-                                    AP4_UI32& cts_offset);
+}
 
- private:
-    AP4_Array<AP4_CttsTableEntry> m_Entries;
-};
+/*----------------------------------------------------------------------
+|       AP4_File::AP4_File
++---------------------------------------------------------------------*/
+AP4_File::AP4_File(AP4_ByteStream& stream, AP4_AtomFactory& atom_factory) :
+    m_Movie(NULL)
+{
+    // get all atoms
+    AP4_Atom* atom;
+    while (AP4_SUCCEEDED(atom_factory.CreateAtomFromStream(stream, atom))) {
+        switch (atom->GetType()) {
+            case AP4_ATOM_TYPE_MOOV:
+                m_Movie = new AP4_Movie(dynamic_cast<AP4_MoovAtom*>(atom),
+                                        stream);
+                break;
 
-#endif // _AP4_CTTS_ATOM_H_
+            default:
+                m_OtherAtoms.Add(atom);
+        }
+    }
+}
+    
+/*----------------------------------------------------------------------
+|       AP4_File::~AP4_File
++---------------------------------------------------------------------*/
+AP4_File::~AP4_File()
+{
+    delete m_Movie;
+    m_OtherAtoms.DeleteReferences();
+}
+
+/*----------------------------------------------------------------------
+|       AP4_File::Inspect
++---------------------------------------------------------------------*/
+AP4_Result
+AP4_File::Inspect(AP4_AtomInspector& inspector)
+{
+    // dump the moov atom first
+    if (m_Movie) m_Movie->Inspect(inspector);
+
+    // dump the other atoms
+    m_OtherAtoms.Apply(AP4_AtomListInspector(inspector));
+
+    return AP4_SUCCESS;
+}

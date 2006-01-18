@@ -82,6 +82,8 @@ AP4_Co64Atom::GetChunkOffset(AP4_Ordinal chunk, AP4_Offset& chunk_offset)
         return AP4_ERROR_OUT_OF_RANGE;
     }
 
+	// FIXME!!!
+
     // get the chunk offset
     chunk_offset = m_Entries[chunk - 1]; // m_Entries is zero index based
 

@@ -1,8 +1,8 @@
 /*****************************************************************
 |
-|    AP4 - ctts Atoms 
+|    AP4 - Atom Factory
 |
-|    Copyright 2003 Gilles Boccon-Gibod & Julien Boeuf
+|    Copyright 2002 Gilles Boccon-Gibod
 |
 |
 |    This file is part of Bento4/AP4 (MP4 Atom Processing Library).
@@ -26,48 +26,59 @@
 |
  ****************************************************************/
 
-#ifndef _AP4_CTTS_ATOM_H_
-#define _AP4_CTTS_ATOM_H_
+#ifndef _AP4_ATOM_FACTORY_H_
+#define _AP4_ATOM_FACTORY_H_
 
 /*----------------------------------------------------------------------
 |       includes
 +---------------------------------------------------------------------*/
-#include "Ap4Atom.h"
 #include "Ap4Types.h"
-#include "Ap4Array.h"
+#include "Ap4Atom.h"
 
 /*----------------------------------------------------------------------
-|       AP4_CttsTableEntry
+|       class references
 +---------------------------------------------------------------------*/
-class AP4_CttsTableEntry {
- public:
-    AP4_CttsTableEntry() : 
-        m_SampleCount(0), 
-        m_SampleOffset(0) {}
-    AP4_CttsTableEntry(AP4_Cardinal sample_count,
-                       AP4_Offset sample_offset) :
-        m_SampleCount(sample_count),
-        m_SampleOffset(sample_offset) {}
-
-    AP4_Cardinal m_SampleCount;
-    AP4_Offset   m_SampleOffset;
-};
+class AP4_ByteStream;
 
 /*----------------------------------------------------------------------
-|       AP4_CttsAtom
+|       AP4_AtomFactory
 +---------------------------------------------------------------------*/
-class AP4_CttsAtom : public AP4_Atom
-{
+class AP4_AtomFactory {
  public:
+    // types
+     class TypeHandler {
+     public:
+         virtual ~TypeHandler() {};
+         virtual AP4_Result CreateAtom(AP4_Atom::Type   type,
+                                       AP4_Size         size,
+                                       AP4_ByteStream&  stream,
+                                       AP4_Atom*&       atom) = 0;
+    };
+
+    // class members
+    static AP4_AtomFactory DefaultFactory;
+
+    // constructor
+    AP4_AtomFactory() : m_Context(0) {}
+
     // methods
-    AP4_CttsAtom(AP4_Size size, AP4_ByteStream& stream);
-    virtual AP4_Result InspectFields(AP4_AtomInspector& inspector);
-    virtual AP4_Result WriteFields(AP4_ByteStream& stream);
-    virtual AP4_Result GetCtsOffset(AP4_Ordinal sample, 
-                                    AP4_UI32& cts_offset);
+    AP4_Result AddTypeHandler(TypeHandler* handler);
+    AP4_Result RemoveTypeHandler(TypeHandler* handler);
+    AP4_Result CreateAtomFromStream(AP4_ByteStream&  stream,
+                                    AP4_Size&        bytes_available,
+                                    AP4_Atom*&       atom,
+									AP4_Atom*        parent);
+    AP4_Result CreateAtomFromStream(AP4_ByteStream&  stream,
+                                    AP4_Atom*&       atom);
 
- private:
-    AP4_Array<AP4_CttsTableEntry> m_Entries;
+    // context
+    void SetContext(AP4_Atom::Type context) { m_Context = context; }
+    AP4_Atom::Type GetContext() const { return m_Context; }
+
+private:
+    // members
+    AP4_Atom::Type        m_Context;
+    AP4_List<TypeHandler> m_TypeHandlers;
 };
 
-#endif // _AP4_CTTS_ATOM_H_
+#endif // _AP4_ATOM_FACTORY_H_

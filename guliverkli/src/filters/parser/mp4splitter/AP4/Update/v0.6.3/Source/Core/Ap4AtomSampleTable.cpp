@@ -109,7 +109,7 @@ AP4_AtomSampleTable::GetSample(AP4_Ordinal index,
     sample.SetDescriptionIndex(desc-1); // adjust for 0-based indexes
 
     // set the dts and cts
-    AP4_TimeStamp cts_offset, dts;
+    AP4_TimeStamp dts;
 	AP4_Duration duration;
     result = m_SttsAtom->GetDts(index, dts, duration);
     if (AP4_FAILED(result)) return result;
@@ -118,9 +118,10 @@ AP4_AtomSampleTable::GetSample(AP4_Ordinal index,
     if (m_CttsAtom == NULL) {
         sample.SetCts(dts);
     } else {
+		AP4_UI32 cts_offset;
         result = m_CttsAtom->GetCtsOffset(index, cts_offset); 
 	    if (AP4_FAILED(result)) return result;
-        sample.SetCts(dts + cts_offset);
+        sample.SetCts(dts + *((signed long*)&cts_offset)); // HACK: it shouldn't be signed, but such files exist unfortunatelly
     }     
 
     // set the size

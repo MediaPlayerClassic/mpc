@@ -230,6 +230,15 @@ const AP4_DecoderConfigDescriptor*
 AP4_MpegSampleEntry::GetDecoderConfigDescriptor()
 {
     AP4_Atom* child = GetChild(AP4_ATOM_TYPE_ESDS);
+
+	if(!child && (child = GetChild(AP4_ATOM_TYPE_WAVE)))
+	{
+		if(AP4_ContainerAtom* wave = dynamic_cast<AP4_ContainerAtom*>(child))
+		{
+			child = wave->GetChild(AP4_ATOM_TYPE_ESDS);
+		}
+	}
+
     if (child) {
         AP4_EsdsAtom* esds = (AP4_EsdsAtom*)child;
 
@@ -298,14 +307,13 @@ AP4_AudioSampleEntry::AP4_AudioSampleEntry(AP4_Atom::Type    format,
                                            AP4_UI16          sample_size,
                                            AP4_UI16          channel_count) :
     AP4_MpegSampleEntry(format, descriptor),
+	m_DescriptionVersion(0),
+	m_RevisionLevel(0),
+	m_Vendor(0),
     m_SampleRate(sample_rate),
     m_ChannelCount(channel_count),
     m_SampleSize(sample_size)
 {
-    m_Predefined1 = 0;
-    memset(m_Reserved2, 0, sizeof(m_Reserved2));
-    m_Reserved3 = 0;
-
     m_Size += 20;
 }
 
@@ -319,8 +327,10 @@ AP4_AudioSampleEntry::AP4_AudioSampleEntry(AP4_Atom::Type   format,
     AP4_MpegSampleEntry(format, size)
 {
     // read fields
-    AP4_Size fields_size = GetFieldsSize();
     ReadFields(stream);
+
+	// must be called after m_DescriptionVersion was already set
+    AP4_Size fields_size = GetFieldsSize();
 
     // read children atoms (ex: esds and maybe others)
     ReadChildren(atom_factory, stream, size-AP4_ATOM_HEADER_SIZE-fields_size);
@@ -332,7 +342,7 @@ AP4_AudioSampleEntry::AP4_AudioSampleEntry(AP4_Atom::Type   format,
 AP4_Size
 AP4_AudioSampleEntry::GetFieldsSize()
 {
-    return AP4_SampleEntry::GetFieldsSize()+20;
+	return AP4_SampleEntry::GetFieldsSize() + 20 + (m_DescriptionVersion == 1 ? 16 : 0);
 }
 
 /*----------------------------------------------------------------------
@@ -346,12 +356,26 @@ AP4_AudioSampleEntry::ReadFields(AP4_ByteStream& stream)
     if (result < 0) return result;
 
     // read the fields of this class
-    stream.Read(m_Reserved2, sizeof(m_Reserved2), NULL);
+	stream.ReadUI16(m_DescriptionVersion);
+	stream.ReadUI16(m_RevisionLevel);
+	stream.ReadUI32(m_Vendor);
     stream.ReadUI16(m_ChannelCount);
     stream.ReadUI16(m_SampleSize);
-    stream.ReadUI16(m_Predefined1);
-    stream.ReadUI16(m_Reserved3);
+	stream.ReadUI16(m_CompressionID);
+    stream.ReadUI16(m_PacketSize);
     stream.ReadUI32(m_SampleRate);
+
+	if(m_DescriptionVersion == 1)
+	{
+		stream.ReadUI32(m_SamplesPerPacket); 
+		stream.ReadUI32(m_BytesPerPacket); 
+		stream.ReadUI32(m_BytesPerFrame); 
+		stream.ReadUI32(m_BytesPerSample); 
+	}
+	else if(m_DescriptionVersion != 0)
+	{
+		return AP4_FAILURE;
+	}
 
     return AP4_SUCCESS;
 }
@@ -367,8 +391,12 @@ AP4_AudioSampleEntry::WriteFields(AP4_ByteStream& stream)
     // write the fields of the base class
     result = AP4_SampleEntry::WriteFields(stream);
 
-    // reserved2
-    result = stream.Write(m_Reserved2, sizeof(m_Reserved2));
+    // 
+    result = stream.WriteUI16(m_DescriptionVersion);
+    if (AP4_FAILED(result)) return result;
+    result = stream.WriteUI16(m_RevisionLevel);
+    if (AP4_FAILED(result)) return result;
+    result = stream.WriteUI32(m_Vendor);
     if (AP4_FAILED(result)) return result;
 
     // channel count
@@ -380,16 +408,32 @@ AP4_AudioSampleEntry::WriteFields(AP4_ByteStream& stream)
     if (AP4_FAILED(result)) return result;
 
     // predefined1
-    result = stream.WriteUI16(m_Predefined1);
+    result = stream.WriteUI16(m_CompressionID);
     if (AP4_FAILED(result)) return result;
 
     // reserved3
-    result = stream.WriteUI16(m_Reserved3);
+    result = stream.WriteUI16(m_PacketSize);
     if (AP4_FAILED(result)) return result;
 
     // sample rate
     result = stream.WriteUI32(m_SampleRate);
     if (AP4_FAILED(result)) return result;
+
+	if(m_DescriptionVersion == 1)
+	{
+		result = stream.WriteUI32(m_SamplesPerPacket);
+	    if (AP4_FAILED(result)) return result;
+		result = stream.WriteUI32(m_BytesPerPacket);
+	    if (AP4_FAILED(result)) return result;
+		result = stream.WriteUI32(m_BytesPerFrame);
+	    if (AP4_FAILED(result)) return result;
+		result = stream.WriteUI32(m_BytesPerSample);
+	    if (AP4_FAILED(result)) return result;
+	}
+	else if(m_DescriptionVersion != 0)
+	{
+		return AP4_FAILURE;
+	}
 
     return result;
 }

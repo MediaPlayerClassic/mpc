@@ -103,7 +103,7 @@ AP4_AtomFactory::CreateAtomFromStream(AP4_ByteStream& stream,
         bytes_available == 0) {
         bytes_available = (AP4_Size)((unsigned long)(-1));
     }
-    return CreateAtomFromStream(stream, bytes_available, atom);
+    return CreateAtomFromStream(stream, bytes_available, atom, NULL);
 }
 
 /*----------------------------------------------------------------------
@@ -112,7 +112,8 @@ AP4_AtomFactory::CreateAtomFromStream(AP4_ByteStream& stream,
 AP4_Result
 AP4_AtomFactory::CreateAtomFromStream(AP4_ByteStream& stream, 
                                       AP4_Size&       bytes_available,
-                                      AP4_Atom*&      atom)
+                                      AP4_Atom*&      atom,
+									  AP4_Atom*	      parent)
 {
     AP4_Result result;
 
@@ -245,7 +246,9 @@ AP4_AtomFactory::CreateAtomFromStream(AP4_ByteStream& stream,
         break;
 
       case AP4_ATOM_TYPE_MP4A:
-        atom = new AP4_Mp4aSampleEntry(size, stream, *this);
+		atom = parent && parent->GetType() == AP4_ATOM_TYPE_STSD 
+			? (AP4_Atom*)new AP4_Mp4aSampleEntry(size, stream, *this)
+			: (AP4_Atom*)new AP4_UnknownAtom(type, size, false, stream);
         break;
 
       case AP4_ATOM_TYPE_MP4V:
@@ -344,7 +347,8 @@ AP4_AtomFactory::CreateAtomFromStream(AP4_ByteStream& stream,
       case AP4_ATOM_TYPE_CMT:
       case AP4_ATOM_TYPE_GEN:
 	  case AP4_ATOM_TYPE_TRKN:
-	  case AP4_ATOM_TYPE_EDTS: {
+	  case AP4_ATOM_TYPE_EDTS:
+	  case AP4_ATOM_TYPE_WAVE: {
           AP4_UI32 context = m_Context;
           m_Context = type; // set the context for the children
           atom = new AP4_ContainerAtom(type, size, false, stream, *this);
@@ -375,12 +379,15 @@ AP4_AtomFactory::CreateAtomFromStream(AP4_ByteStream& stream,
         atom = new AP4_FtabAtom(size, stream);
         break;
 
+      case AP4_ATOM_TYPE_SVQ3:
+	  case AP4_ATOM_TYPE_H263:
       case AP4_ATOM_TYPE_S263:
-        atom = new AP4_VisualSampleEntry(AP4_ATOM_TYPE_S263, size, stream, *this); // TODO
+        atom = new AP4_VisualSampleEntry(type, size, stream, *this);
         break;
 
 	  case AP4_ATOM_TYPE_SAMR:
-        atom = new AP4_AudioSampleEntry(AP4_ATOM_TYPE_SAMR, size, stream, *this); // TODO
+	  case AP4_ATOM_TYPE_IMA4:
+        atom = new AP4_AudioSampleEntry(type, size, stream, *this);
         break;
 
       case AP4_ATOM_TYPE_CHPL:
@@ -392,7 +399,12 @@ AP4_AtomFactory::CreateAtomFromStream(AP4_ByteStream& stream,
         break;
 
       default:
-        // try all the external type handlers
+
+		if(parent && parent->GetType() == AP4_ATOM_TYPE_STSD && (type & 0xffff0000) == AP4_ATOM_TYPE('m', 's', 0, 0))
+		{
+	        atom = new AP4_AudioSampleEntry(type, size, stream, *this);
+		}
+		else // try all the external type handlers
         {
             atom = NULL;
             AP4_List<TypeHandler>::Item* handler_item = m_TypeHandlers.FirstItem();
@@ -407,8 +419,9 @@ AP4_AtomFactory::CreateAtomFromStream(AP4_ByteStream& stream,
                 // no custom handlers, create a generic atom
                 atom = new AP4_UnknownAtom(type, size, false, stream);
             }
-            break;
         }
+
+		break;
     }
 
     // skip to the end of the atom
