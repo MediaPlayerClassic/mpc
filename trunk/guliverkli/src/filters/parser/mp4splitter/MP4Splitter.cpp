@@ -1075,6 +1075,9 @@ bool CMP4SplitterFilter::DemuxLoop()
 							}
 						}
 
+						dlgln.Replace("\r", "");
+						dlgln.Replace("\n", "\\N");
+
 						p->SetData((LPCSTR)dlgln, dlgln.GetLength());
 					}
 				}

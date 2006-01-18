@@ -23,7 +23,6 @@
 
 #include "BaseMuxerInputPin.h"
 #include "BaseMuxerOutputPin.h"
-#include "BitStream.h"
 
 class CBaseMuxerFilter
 	: public CBaseFilter
@@ -37,6 +36,7 @@ class CBaseMuxerFilter
 private:
 	CAutoPtrList<CBaseMuxerInputPin> m_pInputs;
 	CAutoPtr<CBaseMuxerOutputPin> m_pOutput;
+	CAutoPtrList<CBaseMuxerOutputPin> m_pOutputs;
 
 	enum {CMD_EXIT, CMD_RUN};
 	DWORD ThreadProc();
@@ -45,6 +45,10 @@ private:
 	CList<CBaseMuxerInputPin*> m_pActivePins;
 
 	CAutoPtr<MuxerPacket> GetPacket();
+
+	void MuxHeaderInternal();
+	void MuxPacketInternal(const MuxerPacket* pPacket);
+	void MuxFooterInternal();
 
 protected:
 	CList<CBaseMuxerInputPin*> m_pPins;
@@ -62,7 +66,9 @@ protected:
 	virtual void MuxPacket(const MuxerPacket* pPacket) {}
 	virtual void MuxFooter() {}
 
+	// allows customized pins in derived classes
 	virtual HRESULT CreateInput(CStringW name, CBaseMuxerInputPin** ppPin);
+	virtual HRESULT CreateOutput(CStringW name, CBaseMuxerOutputPin** ppPin);
 
 public:
 	CBaseMuxerFilter(LPUNKNOWN pUnk, HRESULT* phr, const CLSID& clsid);
@@ -72,7 +78,6 @@ public:
     STDMETHODIMP NonDelegatingQueryInterface(REFIID riid, void** ppv);
 
 	void AddInput();
-	//void Receive(CAutoPtr<Packet> pPacket);
 
 	int GetPinCount();
 	CBasePin* GetPin(int n);

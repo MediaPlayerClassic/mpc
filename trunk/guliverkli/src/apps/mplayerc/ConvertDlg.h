@@ -136,7 +136,7 @@ private:
 	CList<CTreeItem*> m_pTIs;
 
 	void AddFile(CString fn);
-	bool SetOutputFile(LPCTSTR fn);
+	bool ConvertFile(LPCTSTR fn, IPin* pPin = NULL);
 	void AddFilter(HTREEITEM hTI, IBaseFilter* pBF);
 	void DeleteFilter(IBaseFilter* pBF);
 	void DeleteItem(HTREEITEM hTI);
@@ -189,6 +189,4 @@ public:
 	afx_msg void OnUpdateButton2(CCmdUI* pCmdUI);
 	afx_msg void OnUpdateButton3(CCmdUI* pCmdUI);
 	afx_msg void OnUpdateButton4(CCmdUI* pCmdUI);
-public:
-	BOOL m_bOutputRawStreams;
 };

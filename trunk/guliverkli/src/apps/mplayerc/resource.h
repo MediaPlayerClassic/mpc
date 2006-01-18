@@ -103,6 +103,7 @@
 #define IDS_PANSCAN_POPUP               188
 #define IDS_ASPECTRATIO_POPUP           189
 #define IDS_ZOOM_POPUP                  190
+#define IDS_CONVERT_DEMUXSTREAM         191
 #define IDB_NOAUDIO                     200
 #define IDB_MONO                        201
 #define IDB_STEREO                      202

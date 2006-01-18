@@ -21,6 +21,7 @@
 
 #pragma once
 
+#include "BaseMuxerRelatedPin.h"
 #include "..\..\..\DSUtil\DSMPropertyBag.h"
 
 class CBaseMuxerInputPin;
@@ -32,7 +33,8 @@ struct MuxerPacket
 	CArray<BYTE> pData;
 	enum flag_t {empty = 0, timevalid = 1, syncpoint = 2, discontinuity = 4, eos = 8, bogus = 16};
 	DWORD flags;
-	struct MuxerPacket(CBaseMuxerInputPin* pPin) {this->pPin = pPin; rtStart = rtStop = _I64_MIN; flags = empty;}
+	int index;
+	struct MuxerPacket(CBaseMuxerInputPin* pPin) {this->pPin = pPin; rtStart = rtStop = _I64_MIN; flags = empty; index = -1;}
 	bool IsTimeValid() const {return !!(flags & timevalid);}
 	bool IsSyncPoint() const {return !!(flags & syncpoint);}
 	bool IsDiscontinuity() const {return !!(flags & discontinuity);}
@@ -40,7 +42,7 @@ struct MuxerPacket
 	bool IsBogus() const {return !!(flags & bogus);}
 };
 
-class CBaseMuxerInputPin : public CBaseInputPin, public IDSMPropertyBagImpl
+class CBaseMuxerInputPin : public CBaseInputPin, public CBaseMuxerRelatedPin, public IDSMPropertyBagImpl
 {
 private:
 	int m_iID;
@@ -48,6 +50,7 @@ private:
 	CCritSec m_csReceive;
 	REFERENCE_TIME m_rtMaxStart, m_rtDuration;
 	bool m_fEOS;
+	int m_iPacketIndex;
 
 	CCritSec m_csQueue;
 	CAutoPtrList<MuxerPacket> m_queue;
