@@ -68,6 +68,7 @@ int g_cTemplates = countof(g_Templates);
 STDAPI DllRegisterServer()
 {
 	DeleteRegKey(_T("Media Type\\Extensions\\"), _T(".mp4"));
+	DeleteRegKey(_T("Media Type\\Extensions\\"), _T(".mov"));
 
 	CList<CString> chkbytes;
 

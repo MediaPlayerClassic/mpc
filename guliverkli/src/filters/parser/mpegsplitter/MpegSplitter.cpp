@@ -562,7 +562,7 @@ HRESULT CMpegSplitterOutputPin::DeliverPacket(CAutoPtr<Packet> p)
 			BYTE* e = s + m_p->pData.GetSize();
 			//bool layer0 = ((s[3]>>1)&3) == 0;
 			int len = ((s[3]&3)<<11)|(s[4]<<3)|(s[5]>>5);
-			bool crc = !(s[3]&1);
+			bool crc = !(s[1]&1);
 			s += 7; len -= 7;
 			if(crc) s += 2, len -= 2;
 
@@ -603,6 +603,150 @@ HRESULT CMpegSplitterOutputPin::DeliverPacket(CAutoPtr<Packet> p)
 
 		return S_OK;
 	}
+	else if(m_mt.subtype == FOURCCMap('1CVA') || m_mt.subtype == FOURCCMap('1cva')) // just like aac, this has to be starting nalus, more can be packed together
+	{
+		if(p->rtStart != Packet::INVALID_TIME)
+		{
+			if(m_p)
+			{
+				BYTE* start = m_p->pData.GetData();
+				BYTE* next = start;
+				BYTE* end = next + m_p->pData.GetSize();
+
+				ASSERT(*(DWORD*)start == 0x01000000);
+
+				while(++next <= end-4)
+				{
+					if(*(DWORD*)next == 0x01000000 || next == end-4)
+					{
+						if(next == end-4) next = end;
+
+						int size = next - start - 4;
+
+						*(DWORD*)start = 
+							((size >> 24) & 0x000000ff) |
+							((size >>  8) & 0x0000ff00) |
+							((size <<  8) & 0x00ff0000) |
+							((size << 24) & 0xff000000);
+
+						start = next;
+					}
+				}
+
+				HRESULT hr = __super::DeliverPacket(m_p);
+				if(hr != S_OK) return hr;
+			}
+
+			if(p->pData.GetSize() >= 4 && *(DWORD*)p->pData.GetData() == 0x01000000)
+			{
+				m_p = p;
+			}
+			else
+			{
+				ASSERT(0);
+			}
+		}
+		else
+		{
+			if(m_p)
+			{
+				m_p->pData.Append(p->pData);
+				
+				if(!m_p->bDiscontinuity) m_p->bDiscontinuity = p->bDiscontinuity;
+				if(!m_p->bSyncPoint) m_p->bSyncPoint = p->bSyncPoint;
+				if(m_p->pmt) DeleteMediaType(m_p->pmt); m_p->pmt = p->pmt; p->pmt = NULL;
+			}
+		}
+
+		return S_OK;
+	}
+/*
+		// TODO: handle special cases (sync word is split between buffers, etc)
+
+		if(!m_p)
+		{
+			BYTE* base = p->pData.GetData();
+			BYTE* s = base;
+			BYTE* e = s + p->pData.GetSize();
+
+			for(; s < e-4; s++)
+			{
+				if(*(DWORD*)s == 0x01000000)
+				{
+					memmove(base, s, e - s);
+					p->pData.SetSize(e - s);
+					m_p = p;
+					break;
+				}
+			}
+		}
+		else
+		{
+			m_p->pData.Append(p->pData);
+		}
+
+		if(m_p && m_p->pData.GetSize() > 8)
+		{
+			BYTE* base = m_p->pData.GetData();
+			BYTE* s = base;
+			BYTE* e = s + m_p->pData.GetSize();
+			s += 4;
+
+			while(s < e-4)
+			{
+				if(*(DWORD*)s == 0x01000000)
+				{
+					int len = s - base;
+
+					*(DWORD*)base = 
+						(((len-4) >> 24) & 0x000000ff) |
+						(((len-4) >>  8) & 0x0000ff00) |
+						(((len-4) <<  8) & 0x00ff0000) |
+						(((len-4) << 24) & 0xff000000);
+
+					CAutoPtr<Packet> p(new Packet());
+					p->TrackNumber = m_p->TrackNumber;
+					p->bDiscontinuity |= m_p->bDiscontinuity; m_p->bDiscontinuity = false;
+					p->bSyncPoint = m_p->rtStart != Packet::INVALID_TIME;
+					p->rtStart = m_p->rtStart; 
+					p->rtStop = m_p->rtStop; 
+					if((base[4]&0x9f) == 0x01 && (base[4]&0x9f) == 0x05)
+					{
+						m_p->rtStart = Packet::INVALID_TIME;
+						m_p->rtStop = Packet::INVALID_TIME;
+					}
+					p->pmt = m_p->pmt; m_p->pmt = NULL;
+					p->SetData(base, len);
+					memmove(base, s, e - s);
+					m_p->pData.SetSize(e - s);
+
+					HRESULT hr = __super::DeliverPacket(p);
+					if(hr != S_OK) return hr;
+
+					base = m_p->pData.GetData();
+					s = base;
+					e = s + m_p->pData.GetSize();
+					s += 4;
+				}
+				else
+				{
+					s++;
+				}
+			}
+		}
+
+		if(m_p && p)
+		{
+			if(!m_p->bDiscontinuity) m_p->bDiscontinuity = p->bDiscontinuity;
+			if(!m_p->bSyncPoint) m_p->bSyncPoint = p->bSyncPoint;
+			// if(m_p->rtStart == Packet::INVALID_TIME)
+				m_p->rtStart = p->rtStart, m_p->rtStop = p->rtStop;
+			if(m_p->pmt) DeleteMediaType(m_p->pmt); m_p->pmt = p->pmt; p->pmt = NULL;
+		}
+
+		return S_OK;
+	}
+*/
 	else
 	{
 		m_p.Free();
