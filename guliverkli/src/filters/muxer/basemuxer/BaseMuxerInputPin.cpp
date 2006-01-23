@@ -91,6 +91,7 @@ CAutoPtr<MuxerPacket> CBaseMuxerInputPin::PopPacket()
 
 	if(m_queue.GetCount()) 
 		pPacket = m_queue.RemoveHead();
+
 	if(m_queue.GetCount() < MAXQUEUESIZE)
 		m_evAcceptPacket.Set();
 
@@ -106,6 +107,8 @@ HRESULT CBaseMuxerInputPin::CheckMediaType(const CMediaType* pmt)
 		|| wFormatTag == WAVE_FORMAT_EXTENSIBLE
 		|| wFormatTag == WAVE_FORMAT_IEEE_FLOAT)
 		&& pmt->subtype != FOURCCMap(wFormatTag)
+		&& !(pmt->subtype == MEDIASUBTYPE_PCM && wFormatTag == WAVE_FORMAT_EXTENSIBLE)
+		&& !(pmt->subtype == MEDIASUBTYPE_PCM && wFormatTag == WAVE_FORMAT_IEEE_FLOAT)
 		&& pmt->subtype != MEDIASUBTYPE_DVD_LPCM_AUDIO
 		&& pmt->subtype != MEDIASUBTYPE_DOLBY_AC3
 		&& pmt->subtype != MEDIASUBTYPE_DTS)

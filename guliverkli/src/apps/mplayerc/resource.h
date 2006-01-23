@@ -613,6 +613,8 @@
 #define IDC_DSNULL_COMP                 1137
 #define IDC_CHECK_AVI                   1138
 #define IDS_SRC_AVI                     1138
+#define IDC_DSNULL_UNCOMP2              1138
+#define IDC_DSDXR                       1138
 #define IDC_CHECK_CDDA                  1139
 #define IDS_SRC_CDDA                    1139
 #define IDC_CHECK_CDXA                  1140

@@ -544,19 +544,22 @@ HRESULT CMpeg2DecFilter::Deliver(bool fRepeatLast)
 
 	TCHAR frametype[] = {'?','I', 'P', 'B', 'D'};
 //	TRACE(_T("%010I64d - %010I64d [%c] [prsq %d prfr %d tff %d rff %d nb_fields %d ref %d] (%dx%d/%dx%d)\n"), 
-
-	TRACE(_T("%010I64d - %010I64d [%c] [prsq %d prfr %d tff %d rff %d] (%dx%d %d) (preroll %d)\n"), 
-		m_fb.rtStart, m_fb.rtStop,
-		frametype[m_fb.flags&PIC_MASK_CODING_TYPE],
-		!!(m_dec->m_info.m_sequence->flags&SEQ_FLAG_PROGRESSIVE_SEQUENCE),
-		!!(m_fb.flags&PIC_FLAG_PROGRESSIVE_FRAME),
-		!!(m_fb.flags&PIC_FLAG_TOP_FIELD_FIRST),
-		!!(m_fb.flags&PIC_FLAG_REPEAT_FIRST_FIELD),
-//		m_dec->m_info.m_display_picture->nb_fields,
-//		m_dec->m_info.m_display_picture->temporal_reference,
-		m_fb.w, m_fb.h, m_fb.pitch,
-		!!(m_fb.rtStart < 0 || m_fWaitForKeyFrame));
-/**/
+/*
+	if(!fRepeatLast)
+	{
+		TRACE(_T("%010I64d - %010I64d [%c] [prsq %d prfr %d tff %d rff %d] (%dx%d %d) (preroll %d)\n"), 
+			m_fb.rtStart, m_fb.rtStop,
+			frametype[m_fb.flags&PIC_MASK_CODING_TYPE],
+			!!(m_dec->m_info.m_sequence->flags&SEQ_FLAG_PROGRESSIVE_SEQUENCE),
+			!!(m_fb.flags&PIC_FLAG_PROGRESSIVE_FRAME),
+			!!(m_fb.flags&PIC_FLAG_TOP_FIELD_FIRST),
+			!!(m_fb.flags&PIC_FLAG_REPEAT_FIRST_FIELD),
+//			m_dec->m_info.m_display_picture->nb_fields,
+//			m_dec->m_info.m_display_picture->temporal_reference,
+			m_fb.w, m_fb.h, m_fb.pitch,
+			!!(m_fb.rtStart < 0 || m_fWaitForKeyFrame));
+	}
+*/
 	if(m_fb.rtStart < 0 || m_fWaitForKeyFrame)
 		return S_OK;
 
@@ -608,17 +611,8 @@ HRESULT CMpeg2DecFilter::Deliver(bool fRepeatLast)
 
 	CopyBuffer(pDataOut, buf, (m_fb.w+7)&~7, m_fb.h, m_fb.pitch, MEDIASUBTYPE_I420);
 
-static unsigned __int64 _last_start = 0, _total_time = 0, _total_disp_time = 0;
-unsigned __int64 _start = __rdtsc();
-if(_last_start != 0) _total_time += _start - _last_start;
-_last_start = _start;
-
 	if(FAILED(hr = m_pOutput->Deliver(pOut)))
 		return hr;
-
-_total_disp_time += __rdtsc() - _start;
-
-TRACE(_T("%f\n"), 1.0 * _total_disp_time / _total_time);
 
 	return S_OK;
 }
@@ -1268,7 +1262,7 @@ void CSubpicInputPin::RenderSubpics(REFERENCE_TIME rt, BYTE** yuv, int w, int h)
 		spu* sp = m_sps.GetNext(pos);
 		if(sp->m_rtStart <= rt && rt < sp->m_rtStop 
 		&& (m_spon || sp->m_fForced && (((CMpeg2DecFilter*)m_pFilter)->IsForcedSubtitlesEnabled() || sp->m_psphli)))
-			sp->Render(yuv, w, h, m_sppal, m_fsppal);
+			sp->Render(rt, yuv, w, h, m_sppal, m_fsppal);
 	}
 }
 
@@ -1387,6 +1381,7 @@ STDMETHODIMP CSubpicInputPin::Set(REFGUID PropSet, ULONG Id, LPVOID pInstanceDat
 	case AM_PROPERTY_DVDSUBPIC_PALETTE:
 		{
 			CAutoLock cAutoLock(&m_csReceive);
+
 			AM_PROPERTY_SPPAL* pSPPAL = (AM_PROPERTY_SPPAL*)pPropertyData;
 			memcpy(m_sppal, pSPPAL->sppal, sizeof(AM_PROPERTY_SPPAL));
 			m_fsppal = true;
@@ -1443,6 +1438,7 @@ STDMETHODIMP CSubpicInputPin::Set(REFGUID PropSet, ULONG Id, LPVOID pInstanceDat
 	case AM_PROPERTY_DVDSUBPIC_COMPOSIT_ON:
 		{
 			CAutoLock cAutoLock(&m_csReceive);
+
 			AM_PROPERTY_COMPOSIT_ON* pCompositOn = (AM_PROPERTY_COMPOSIT_ON*)pPropertyData;
 			m_spon = *pCompositOn;
 		}
@@ -1557,6 +1553,8 @@ static __inline void DrawPixels(BYTE** yuv, int pitch, CPoint pt, int len, AM_DV
 
 bool CSubpicInputPin::dvdspu::Parse()
 {
+	m_offsets.RemoveAll();
+
 	BYTE* p = m_pData.GetData();
 
 	WORD packetsize = (p[0]<<8)|p[1];
@@ -1578,6 +1576,8 @@ bool CSubpicInputPin::dvdspu::Parse()
 
 		if(next > packetsize || next < datasize)
 			return(false);
+
+		REFERENCE_TIME rt = m_rtStart + 1024*PTS2RT(pts);
 
 		for(bool fBreak = false; !fBreak; )
 		{
@@ -1610,7 +1610,7 @@ bool CSubpicInputPin::dvdspu::Parse()
 					m_fForced = false;
 					break;
 				case 0x02: // stop displaying
-					m_rtStop = m_rtStart + 1024*PTS2RT(pts);
+					m_rtStop = rt;
 					break;
 				case 0x03:
 					m_sphli.ColCon.emph2col = p[i]>>4;
@@ -1645,13 +1645,16 @@ bool CSubpicInputPin::dvdspu::Parse()
 					break;
 			}
 		}
+
+		offset_t o = {rt, m_sphli};
+		m_offsets.AddTail(o); // is it always going to be sorted?
 	}
 	while(i <= next && i < packetsize);
 
 	return(true);
 }
 
-void CSubpicInputPin::dvdspu::Render(BYTE** yuv, int w, int h, AM_DVD_YUV* sppal, bool fsppal)
+void CSubpicInputPin::dvdspu::Render(REFERENCE_TIME rt, BYTE** yuv, int w, int h, AM_DVD_YUV* sppal, bool fsppal)
 {
 	BYTE* p = m_pData.GetData();
 	DWORD offset[2] = {m_offset[0], m_offset[1]};
@@ -1667,6 +1670,15 @@ void CSubpicInputPin::dvdspu::Render(BYTE** yuv, int w, int h, AM_DVD_YUV* sppal
 	{
 		rcclip &= CRect(m_psphli->StartX, m_psphli->StartY, m_psphli->StopX, m_psphli->StopY);
 		sphli = *m_psphli;
+	}
+	else if(m_offsets.GetCount() > 1)
+	{
+		POSITION pos = m_offsets.GetTailPosition();
+		while(pos)
+		{
+			const offset_t& o = m_offsets.GetPrev(pos);
+			if(rt >= o.rt) {sphli = o.sphli; break;}
+		}
 	}
 
 	AM_DVD_YUV pal[4];
@@ -1774,7 +1786,7 @@ bool CSubpicInputPin::cvdspu::Parse()
 	return(true);
 }
 
-void CSubpicInputPin::cvdspu::Render(BYTE** yuv, int w, int h, AM_DVD_YUV* sppal, bool fsppal)
+void CSubpicInputPin::cvdspu::Render(REFERENCE_TIME rt, BYTE** yuv, int w, int h, AM_DVD_YUV* sppal, bool fsppal)
 {
 	BYTE* p = m_pData.GetData();
 	DWORD offset[2] = {m_offset[0], m_offset[1]};
@@ -1866,7 +1878,7 @@ bool CSubpicInputPin::svcdspu::Parse()
 	return(true);
 }
 
-void CSubpicInputPin::svcdspu::Render(BYTE** yuv, int w, int h, AM_DVD_YUV* sppal, bool fsppal)
+void CSubpicInputPin::svcdspu::Render(REFERENCE_TIME rt, BYTE** yuv, int w, int h, AM_DVD_YUV* sppal, bool fsppal)
 {
 	BYTE* p = m_pData.GetData();
 	DWORD offset[2] = {m_offset[0], m_offset[1]};

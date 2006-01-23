@@ -372,6 +372,14 @@ CGraphBuilder::CGraphBuilder(IGraphBuilder* pGB, HWND hWnd)
 		guids.AddTail(MEDIASUBTYPE_MP4A);
 		guids.AddTail(MEDIATYPE_Audio);
 		guids.AddTail(MEDIASUBTYPE_MP4A);
+		guids.AddTail(MEDIATYPE_DVD_ENCRYPTED_PACK);
+		guids.AddTail(MEDIASUBTYPE_mp4a);
+		guids.AddTail(MEDIATYPE_MPEG2_PACK);
+		guids.AddTail(MEDIASUBTYPE_mp4a);
+		guids.AddTail(MEDIATYPE_MPEG2_PES);
+		guids.AddTail(MEDIASUBTYPE_mp4a);
+		guids.AddTail(MEDIATYPE_Audio);
+		guids.AddTail(MEDIASUBTYPE_mp4a);
 		AddFilter(new CGraphCustomFilter(__uuidof(CMpaDecFilter), guids, 
 			(s.TraFilters&TRA_AAC) ? L"AAC Decoder" : L"AAC Decoder (low merit)",
 			(s.TraFilters&TRA_AAC) ? LMERIT_ABOVE_DSHOW+1 : LMERIT_DO_USE));
@@ -517,6 +525,9 @@ CGraphBuilder::CGraphBuilder(IGraphBuilder* pGB, HWND hWnd)
 		case VIDRNDT_DS_VMR9RENDERLESS:
 			AddFilter(new CGraphRendererFilter(CLSID_VMR9AllocatorPresenter, m_hWnd, L"Video Mixing Render 9 (Renderless)", m_VRMerit));
 			break;
+		case VIDRNDT_DS_DXR:
+			AddFilter(new CGraphRendererFilter(CLSID_DXR, m_hWnd, L"Haali's Video Render", m_VRMerit));
+			break;
 		case VIDRNDT_DS_NULL_COMP:
 			guids.AddTail(MEDIATYPE_Video);
 			guids.AddTail(MEDIASUBTYPE_NULL);
@@ -609,6 +620,8 @@ CGraphBuilder::CGraphBuilder(IGraphBuilder* pGB, HWND hWnd)
 	// ISCR suxx
 	AddFilter(new CGraphRegFilter(GUIDFromCString(_T("{48025243-2D39-11CE-875D-00608CB78066}")), LMERIT_DO_NOT_USE));
 
+	// Samsung's "mpeg-4 demultiplexor" can even open matroska files, amazing...
+	AddFilter(new CGraphRegFilter(GUIDFromCString(_T("{99EC0C72-4D1B-411B-AB1F-D561EE049D94}")), LMERIT_DO_NOT_USE));
 
 	// DCDSPFilter
 	{

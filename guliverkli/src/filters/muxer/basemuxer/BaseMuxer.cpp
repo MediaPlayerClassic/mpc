@@ -21,6 +21,7 @@
 
 #include "StdAfx.h"
 #include <mmreg.h>
+#include <aviriff.h>
 #include "BaseMuxer.h"
 
 #include <initguid.h>
@@ -251,6 +252,23 @@ void CBaseMuxerFilter::MuxHeaderInternal()
 			if(str.Find("[Events]") < 0) 
 				pBitStream->StrWrite("\n\n[Events]\n", true);
 		}
+		else if(mt.majortype == MEDIATYPE_Audio 
+			&& (mt.subtype == MEDIASUBTYPE_PCM 
+			|| mt.subtype == FOURCCMap(WAVE_FORMAT_EXTENSIBLE) 
+			|| mt.subtype == FOURCCMap(WAVE_FORMAT_IEEE_FLOAT))
+			&& mt.formattype == FORMAT_WaveFormatEx)
+		{
+			pBitStream->BitWrite('RIFF', 32);
+			pBitStream->BitWrite(0, 32); // file length - 8, set later
+			pBitStream->BitWrite('WAVE', 32);
+
+			pBitStream->BitWrite('fmt ', 32);
+			pBitStream->ByteWrite(&mt.cbFormat, 4);
+			pBitStream->ByteWrite(mt.pbFormat, mt.cbFormat);
+
+			pBitStream->BitWrite('data', 32);
+			pBitStream->BitWrite(0, 32); // data length, set later
+		}
 	}
 }
 
@@ -425,7 +443,7 @@ void CBaseMuxerFilter::MuxPacketInternal(const MuxerPacket* pPacket)
 
 			break;
 		}
-		// else // TODO: restore more streams
+		// else // TODO: restore more streams (vorbis to ogg, vobsub to idx/sub)
 
 		pBitStream->ByteWrite(pData, DataSize);
 	}
@@ -440,6 +458,42 @@ void CBaseMuxerFilter::MuxFooterInternal()
 		MuxFooter(pBitStream);
 
 	MuxFooter();
+
+	//
+
+	POSITION pos = m_pPins.GetHeadPosition();
+	while(pos)
+	{
+		CBaseMuxerInputPin* pInput = m_pPins.GetNext(pos);
+		
+		CBaseMuxerOutputPin* pOutput = dynamic_cast<CBaseMuxerOutputPin*>(pInput->GetRelatedPin());
+		if(!pOutput) continue;
+
+		CComQIPtr<IBitStream> pBitStream = pOutput->GetBitStream();
+		if(!pBitStream) continue;
+
+		const CMediaType& mt = pInput->CurrentMediaType();
+
+		if(mt.majortype == MEDIATYPE_Audio 
+			&& (mt.subtype == MEDIASUBTYPE_PCM 
+			|| mt.subtype == FOURCCMap(WAVE_FORMAT_EXTENSIBLE) 
+			|| mt.subtype == FOURCCMap(WAVE_FORMAT_IEEE_FLOAT))
+			&& mt.formattype == FORMAT_WaveFormatEx)
+		{
+			pBitStream->BitFlush();
+
+			ASSERT(pBitStream->GetPos() <= 0xffffffff);
+			UINT32 size = (UINT32)pBitStream->GetPos();
+
+			size -= 8;
+			pBitStream->Seek(4);
+			pBitStream->ByteWrite(&size, 4);
+
+			size -= sizeof(RIFFLIST) + sizeof(RIFFCHUNK) + mt.FormatLength();
+			pBitStream->Seek(sizeof(RIFFLIST) + sizeof(RIFFCHUNK) + mt.FormatLength() + 4);
+			pBitStream->ByteWrite(&size, 4);
+		}
+	}
 }
 
 CAutoPtr<MuxerPacket> CBaseMuxerFilter::GetPacket()
