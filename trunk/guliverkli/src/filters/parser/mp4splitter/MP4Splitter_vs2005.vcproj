@@ -331,7 +331,7 @@
 			<Tool
 				Name="VCLinkerTool"
 				RegisterOutput="true"
-				AdditionalDependencies="strmbaseD.lib dsutilD.lib basesplitterD.lib"
+				AdditionalDependencies="zlibD.lib strmbaseD.lib dsutilD.lib basesplitterD.lib"
 				OutputFile="$(OutDir)/$(ProjectName).ax"
 				AdditionalLibraryDirectories="..\..\..\..\lib"
 				ModuleDefinitionFile="$(ProjectName).def"
@@ -415,7 +415,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="strmbaseR.lib dsutilR.lib basesplitterR.lib"
+				AdditionalDependencies="zlibR.lib strmbaseR.lib dsutilR.lib basesplitterR.lib"
 				OutputFile="$(OutDir)/$(ProjectName).ax"
 				AdditionalLibraryDirectories="..\..\..\..\lib"
 				ModuleDefinitionFile="$(ProjectName).def"
@@ -499,7 +499,7 @@
 			<Tool
 				Name="VCLinkerTool"
 				RegisterOutput="true"
-				AdditionalDependencies="strmbaseDU.lib dsutilDU.lib basesplitterDU.lib"
+				AdditionalDependencies="zlibD.lib strmbaseDU.lib dsutilDU.lib basesplitterDU.lib"
 				OutputFile="$(OutDir)/$(ProjectName).ax"
 				AdditionalLibraryDirectories="..\..\..\..\lib"
 				IgnoreDefaultLibraryNames="libc.lib"
@@ -584,7 +584,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="strmbaseRU.lib dsutilRU.lib basesplitterRU.lib"
+				AdditionalDependencies="zlibR.lib strmbaseRU.lib dsutilRU.lib basesplitterRU.lib"
 				OutputFile="$(OutDir)/$(ProjectName).ax"
 				AdditionalLibraryDirectories="..\..\..\..\lib"
 				ModuleDefinitionFile="$(ProjectName).def"
@@ -873,6 +873,14 @@
 					>
 				</File>
 				<File
+					RelativePath=".\AP4\Source\Core\Ap4CmvdAtom.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\AP4\Source\Core\Ap4CmvdAtom.h"
+					>
+				</File>
+				<File
 					RelativePath=".\AP4\Source\Core\Ap4Co64Atom.cpp"
 					>
 				</File>
@@ -914,6 +922,14 @@
 				</File>
 				<File
 					RelativePath=".\AP4\Source\Core\Ap4DataBuffer.h"
+					>
+				</File>
+				<File
+					RelativePath=".\AP4\Source\Core\Ap4DcomAtom.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\AP4\Source\Core\Ap4DcomAtom.h"
 					>
 				</File>
 				<File

@@ -26,6 +26,7 @@
 #include "mplayerc.h"
 #include "MainFrm.h"
 #include "PPageOutput.h"
+#include "../../../include/moreuuids.h"
 
 // CPPageOutput dialog
 
@@ -153,6 +154,11 @@ BOOL CPPageOutput::OnInitDialog()
 		GetDlgItem(IDC_DSVMR9REN)->EnableWindow(FALSE);
 		GetDlgItem(IDC_RMDX9)->EnableWindow(FALSE);
 		GetDlgItem(IDC_QTDX9)->EnableWindow(FALSE);
+	}
+
+	if(!IsCLSIDRegistered(CLSID_DXR))
+	{
+		GetDlgItem(IDC_DSDXR)->EnableWindow(FALSE);
 	}
 
 	CreateToolTip();

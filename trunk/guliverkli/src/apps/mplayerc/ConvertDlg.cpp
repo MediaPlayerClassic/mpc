@@ -69,15 +69,17 @@ void CConvertDlg::AddFile(CString fn)
 		if(CComQIPtr<IDSMPropertyBag> pPB = m_pMux)
 			pPB->DelAllProperties();
 
-		CString dsm(_T(".dsm"));
+		CString ext(_T(".dsm"));
 
-		if(dsm.CompareNoCase(path.GetExtension()) != 0)
-		{
-			CPath p(fn);
-			p.RemoveExtension();
-			m_fn = (LPCTSTR)p + dsm;
-			UpdateData(FALSE);
-		}
+		CPath p(fn);
+		p.RemoveExtension();
+
+		if(ext.CompareNoCase(path.GetExtension()) == 0)
+			ext = _T(" (remuxed)") + ext;
+
+		m_fn = (LPCTSTR)p + ext;
+		
+		UpdateData(FALSE);
 	}
 
 	CTreeItemFile* t = new CTreeItemFile(fn, pBF, m_tree, NULL);
@@ -416,7 +418,7 @@ void CConvertDlg::ShowPinPopup(HTREEITEM hTI, CPoint p)
 			else if(mt.subtype == MEDIASUBTYPE_MP3) ext = _T("mp3");
 			else if(mt.subtype == FOURCCMap(WAVE_FORMAT_MPEG)) ext = _T("m1a");
 			else if(mt.subtype == MEDIASUBTYPE_MPEG2_AUDIO) ext = _T("m2a");
-			else if(mt.subtype == FOURCCMap(WAVE_FORMAT_DOLBY_AC3_SPDIF) || mt.subtype == MEDIASUBTYPE_DOLBY_AC3) ext = _T("ac3");
+			else if(mt.subtype == MEDIASUBTYPE_WAVE_DOLBY_AC3 || mt.subtype == MEDIASUBTYPE_DOLBY_AC3) ext = _T("ac3");
 			else if(mt.subtype == MEDIASUBTYPE_WAVE_DTS || mt.subtype == MEDIASUBTYPE_DTS) ext = _T("dts");
 			else if((mt.subtype == FOURCCMap('1CVA') || mt.subtype == FOURCCMap('1cva')) && mt.formattype == FORMAT_MPEG2_VIDEO) ext = _T("h264");
 			else if(mt.subtype == FOURCCMap('GEPJ') || mt.subtype == FOURCCMap('gepj')) ext = _T("jpg");
@@ -1038,7 +1040,7 @@ void CConvertDlg::OnUpdateButton2(CCmdUI* pCmdUI)
 	CountPins(m_pMux, nIn, nOut, nInC, nOutC);
 
 	OAFilterState fs;
-	pCmdUI->Enable(nInC > 0 && nOutC > 0 && GetDlgItem(IDC_EDIT1)->GetWindowTextLength() > 0
+	pCmdUI->Enable(nInC > 0 && GetDlgItem(IDC_EDIT1)->GetWindowTextLength() > 0
         && m_pMS && m_pMC && SUCCEEDED(m_pMC->GetState(0, &fs)) && fs != State_Running);
 }
 

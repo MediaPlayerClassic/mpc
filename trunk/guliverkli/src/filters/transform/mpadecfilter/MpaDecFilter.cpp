@@ -64,6 +64,10 @@ const AMOVIESETUP_MEDIATYPE sudPinTypesIn[] =
 	{&MEDIATYPE_MPEG2_PACK, &MEDIASUBTYPE_MP4A},
 	{&MEDIATYPE_MPEG2_PES, &MEDIASUBTYPE_MP4A},
 	{&MEDIATYPE_Audio, &MEDIASUBTYPE_MP4A},
+	{&MEDIATYPE_DVD_ENCRYPTED_PACK, &MEDIASUBTYPE_mp4a},
+	{&MEDIATYPE_MPEG2_PACK, &MEDIASUBTYPE_mp4a},
+	{&MEDIATYPE_MPEG2_PES, &MEDIASUBTYPE_mp4a},
+	{&MEDIATYPE_Audio, &MEDIASUBTYPE_mp4a},
 	{&MEDIATYPE_DVD_ENCRYPTED_PACK, &MEDIASUBTYPE_PS2_PCM},
 	{&MEDIATYPE_MPEG2_PACK, &MEDIASUBTYPE_PS2_PCM},
 	{&MEDIATYPE_MPEG2_PES, &MEDIASUBTYPE_PS2_PCM},
@@ -304,7 +308,7 @@ HRESULT CMpaDecFilter::Receive(IMediaSample* pIn)
 		hr = ProcessAC3();
 	else if(subtype == MEDIASUBTYPE_DTS || subtype == MEDIASUBTYPE_WAVE_DTS)
 		hr = ProcessDTS();
-	else if(subtype == MEDIASUBTYPE_AAC || subtype == MEDIASUBTYPE_MP4A)
+	else if(subtype == MEDIASUBTYPE_AAC || subtype == MEDIASUBTYPE_MP4A || subtype == MEDIASUBTYPE_mp4a)
 		hr = ProcessAAC();
 	else if(subtype == MEDIASUBTYPE_PS2_PCM)
 		hr = ProcessPS2PCM();
@@ -1329,7 +1333,11 @@ void aac_state_t::close()
 
 bool aac_state_t::init(CMediaType& mt)
 {
-	if(mt.subtype != MEDIASUBTYPE_AAC && mt.subtype != MEDIASUBTYPE_MP4A) return(true); // nothing to do
+	if(mt.subtype != MEDIASUBTYPE_AAC 
+	&& mt.subtype != MEDIASUBTYPE_MP4A 
+	&& mt.subtype != MEDIASUBTYPE_mp4a)
+		return true; // nothing to do
+
 	open();
 	WAVEFORMATEX* wfe = (WAVEFORMATEX*)mt.Format();
 	return !NeAACDecInit2(h, (BYTE*)(wfe+1), wfe->cbSize, &freq, &channels);
