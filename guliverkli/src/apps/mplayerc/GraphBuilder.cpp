@@ -1,5 +1,5 @@
 /* 
- *	Copyright (C) 2003-2005 Gabest
+ *	Copyright (C) 2003-2006 Gabest
  *	http://www.gabest.org
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -526,7 +526,7 @@ CGraphBuilder::CGraphBuilder(IGraphBuilder* pGB, HWND hWnd)
 			AddFilter(new CGraphRendererFilter(CLSID_VMR9AllocatorPresenter, m_hWnd, L"Video Mixing Render 9 (Renderless)", m_VRMerit));
 			break;
 		case VIDRNDT_DS_DXR:
-			AddFilter(new CGraphRendererFilter(CLSID_DXR, m_hWnd, L"Haali's Video Render", m_VRMerit));
+			AddFilter(new CGraphRendererFilter(CLSID_DXR, m_hWnd, L"Haali's Video Rendere", m_VRMerit));
 			break;
 		case VIDRNDT_DS_NULL_COMP:
 			guids.AddTail(MEDIATYPE_Video);
@@ -2154,7 +2154,7 @@ HRESULT CGraphRendererFilter::Create(IBaseFilter** ppBF, IUnknown** ppUnk)
 			*ppBF = pBF.Detach();
 		}
 	}
-	else if(m_clsid == CLSID_VideoMixingRenderer)
+	/*else if(m_clsid == CLSID_VideoMixingRenderer)
 	{
 		CComPtr<IBaseFilter> pBF;
 		if(SUCCEEDED(pBF.CoCreateInstance(CLSID_VideoMixingRenderer)))
@@ -2166,7 +2166,7 @@ HRESULT CGraphRendererFilter::Create(IBaseFilter** ppBF, IUnknown** ppUnk)
 		if(SUCCEEDED(pBF.CoCreateInstance(CLSID_VideoMixingRenderer9)))
 			*ppBF = pBF.Detach();
 	}
-	else if(m_clsid == CLSID_VMR7AllocatorPresenter)
+	else*/ if(m_clsid == CLSID_VMR7AllocatorPresenter)
 	{
 		CComPtr<ISubPicAllocatorPresenter> pCAP;
 		CComPtr<IUnknown> pRenderer;
@@ -2187,6 +2187,12 @@ HRESULT CGraphRendererFilter::Create(IBaseFilter** ppBF, IUnknown** ppUnk)
 			*ppBF = CComQIPtr<IBaseFilter>(pRenderer).Detach();
 			if(ppUnk) *ppUnk = (IUnknown*)pCAP.Detach();
 		}
+	}
+	else
+	{
+		CComPtr<IBaseFilter> pBF;
+		if(SUCCEEDED(pBF.CoCreateInstance(m_clsid)))
+			*ppBF = pBF.Detach();
 	}
 
 	if(!*ppBF) hr = E_FAIL;
