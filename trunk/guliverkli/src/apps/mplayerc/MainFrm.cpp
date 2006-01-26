@@ -1,5 +1,5 @@
 /* 
- *	Copyright (C) 2003-2005 Gabest
+ *	Copyright (C) 2003-2006 Gabest
  *	http://www.gabest.org
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -3415,7 +3415,7 @@ void CMainFrame::OnFileLoadsubtitles()
 	if(!m_pCAP)
 	{
 		AfxMessageBox(_T("To load subtitles you have change the video renderer type and reopen the file.\n")
-					_T("- DirectShow: VMR7 or VMR9 renderless\n")
+					_T("- DirectShow: VMR7/VMR9 renderless or Haali's\n")
 					_T("- RealMedia: Special renderer for RealMedia, or open it through DirectShow\n")
 					_T("- Quicktime: DX7 or DX9 renderer for QuickTime\n")
 					_T("- ShockWave: n/a\n")
@@ -6821,18 +6821,20 @@ void CMainFrame::OpenSetupVideo()
 		m_fAudioOnly = false;
 	}
 
-	if(!m_pCAP)
+	if(m_pCAP)
 	{
+		SetShaders();
+	}
+	// else
+	{
+		// TESTME
+
 		pVW->put_Owner((OAHWND)m_wndView.m_hWnd);
 		pVW->put_WindowStyle(WS_CHILD|WS_CLIPSIBLINGS|WS_CLIPCHILDREN);
 		pVW->put_MessageDrain((OAHWND)m_hWnd);
 
 		for(CWnd* pWnd = m_wndView.GetWindow(GW_CHILD); pWnd; pWnd = pWnd->GetNextWindow())
 			pWnd->EnableWindow(FALSE); // little trick to let WM_SETCURSOR thru
-	}
-	else
-	{
-		SetShaders();
 	}
 }
 

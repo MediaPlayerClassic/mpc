@@ -1,5 +1,5 @@
 /* 
- *	Copyright (C) 2003-2005 Gabest
+ *	Copyright (C) 2003-2006 Gabest
  *	http://www.gabest.org
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -431,7 +431,7 @@ void CConvertDlg::ShowPinPopup(HTREEITEM hTI, CPoint p)
 
 			CPath path(m_fn);
 			path.RemoveExtension();
-			path.AddExtension('.'+ext);
+			path += '.' + ext;
 
 			CFileDialog fd(TRUE, NULL, (LPCTSTR)path, 
 				OFN_EXPLORER|OFN_ENABLESIZING|OFN_HIDEREADONLY, 

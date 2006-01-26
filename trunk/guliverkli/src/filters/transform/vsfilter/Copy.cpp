@@ -1,4 +1,4 @@
-// Copyright 2003-2005 Gabest
+// Copyright 2003-2006 Gabest
 // http://www.gabest.org
 //
 // This program is free software; you can redistribute it and/or modify

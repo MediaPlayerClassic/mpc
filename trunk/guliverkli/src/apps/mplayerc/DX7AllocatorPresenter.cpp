@@ -1,5 +1,5 @@
 /* 
- *	Copyright (C) 2003-2005 Gabest
+ *	Copyright (C) 2003-2006 Gabest
  *	http://www.gabest.org
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -286,26 +286,16 @@ static HRESULT TextureBlt(CComPtr<IDirect3DDevice7> pD3DDev, CComPtr<IDirectDraw
 //
 
 CDX7AllocatorPresenter::CDX7AllocatorPresenter(HWND hWnd, HRESULT& hr) 
-	: ISubPicAllocatorPresenterImpl(hWnd)
+	: ISubPicAllocatorPresenterImpl(hWnd, hr)
 	, m_ScreenSize(0, 0)
 {
-    if(!IsWindow(m_hWnd))
-    {
-        hr = E_INVALIDARG;
-        return;
-    }
+	if(FAILED(hr)) return;
 
 	if(FAILED(hr = DirectDrawCreateEx(NULL, (VOID**)&m_pDD, IID_IDirectDraw7, NULL))
 	|| FAILED(hr = m_pDD->SetCooperativeLevel(AfxGetMainWnd()->GetSafeHwnd(), DDSCL_NORMAL)))
 		return;
 
-	if(!(m_pD3D = m_pDD))
-	{
-		hr = E_NOINTERFACE;
-		return;
-	}
-
-	GetWindowRect(m_hWnd, &m_WindowRect);
+	if(!(m_pD3D = m_pDD)) {hr = E_NOINTERFACE; return;}
 
 	hr = CreateDevice();
 }

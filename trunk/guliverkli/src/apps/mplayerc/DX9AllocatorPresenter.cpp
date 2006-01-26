@@ -1,5 +1,5 @@
 /* 
- *	Copyright (C) 2003-2005 Gabest
+ *	Copyright (C) 2003-2006 Gabest
  *	http://www.gabest.org
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -38,6 +38,7 @@
 #include "..\..\..\include\RealMedia\pncom.h"
 #include "..\..\..\include\RealMedia\rmavsurf.h"
 #include "IQTVideoSurface.h"
+#include "..\..\..\include\moreuuids.h"
 
 #include "MacrovisionKicker.h"
 #include "IPinHook.h"
@@ -201,6 +202,71 @@ public:
 	STDMETHODIMP DoBlt(const BITMAP& bm);
 };
 
+class CDXRAllocatorPresenter
+	: public ISubPicAllocatorPresenterImpl
+{
+	class CSubRenderCallback : public CUnknown, public ISubRenderCallback, public CCritSec
+	{
+		CDXRAllocatorPresenter* m_pDXRAP;
+
+	public:
+		CSubRenderCallback(CDXRAllocatorPresenter* pDXRAP)
+			: CUnknown(_T("CSubRender"), NULL)
+			, m_pDXRAP(pDXRAP)
+		{
+		}
+
+		DECLARE_IUNKNOWN
+		STDMETHODIMP NonDelegatingQueryInterface(REFIID riid, void** ppv)
+		{
+			return 
+				QI(ISubRenderCallback)
+				__super::NonDelegatingQueryInterface(riid, ppv);
+		}
+
+		void SetDXRAP(CDXRAllocatorPresenter* pDXRAP)
+		{
+			CAutoLock cAutoLock(this);
+			m_pDXRAP = pDXRAP;
+		}
+
+		// ISubRenderCallback
+
+		STDMETHODIMP SetDevice(IDirect3DDevice9* pD3DDev)
+		{
+			CAutoLock cAutoLock(this);
+			return m_pDXRAP ? m_pDXRAP->SetDevice(pD3DDev) : E_UNEXPECTED;
+		}
+
+		STDMETHODIMP Render(REFERENCE_TIME rtStart, int left, int top, int right, int bottom, int width, int height)
+		{
+			CAutoLock cAutoLock(this);
+			return m_pDXRAP ? m_pDXRAP->Render(rtStart, left, top, right, bottom, width, height) : E_UNEXPECTED;
+		}
+	};
+
+	CComPtr<IUnknown> m_pDXR;
+	CComPtr<ISubRenderCallback> m_pSRCB;
+
+public:
+	CDXRAllocatorPresenter(HWND hWnd, HRESULT& hr);
+	virtual ~CDXRAllocatorPresenter();
+
+	DECLARE_IUNKNOWN
+    STDMETHODIMP NonDelegatingQueryInterface(REFIID riid, void** ppv);
+
+	HRESULT SetDevice(IDirect3DDevice9* pD3DDev);
+	HRESULT Render(REFERENCE_TIME rtStart, int left, int top, int bottom, int right, int width, int height);
+
+	// ISubPicAllocatorPresenter
+	STDMETHODIMP CreateRenderer(IUnknown** ppRenderer);
+	STDMETHODIMP_(void) SetPosition(RECT w, RECT v);
+	STDMETHODIMP_(SIZE) GetVideoSize(bool fCorrectAR);
+	STDMETHODIMP_(bool) Paint(bool fAll);
+	STDMETHODIMP GetDIB(BYTE* lpDib, DWORD* size);
+	STDMETHODIMP SetPixelShader(LPCSTR pSrcData, LPCSTR pTarget);
+};
+
 }
 using namespace DSObjects;
 
@@ -212,10 +278,11 @@ HRESULT CreateAP9(const CLSID& clsid, HWND hWnd, ISubPicAllocatorPresenter** ppA
 
 	*ppAP = NULL;
 
-	HRESULT hr;
+	HRESULT hr = E_FAIL;
 	if(clsid == CLSID_VMR9AllocatorPresenter && !(*ppAP = new CVMR9AllocatorPresenter(hWnd, hr))
 	|| clsid == CLSID_RM9AllocatorPresenter && !(*ppAP = new CRM9AllocatorPresenter(hWnd, hr))
-	|| clsid == CLSID_QT9AllocatorPresenter && !(*ppAP = new CQT9AllocatorPresenter(hWnd, hr)))
+	|| clsid == CLSID_QT9AllocatorPresenter && !(*ppAP = new CQT9AllocatorPresenter(hWnd, hr))
+	|| clsid == CLSID_DXRAllocatorPresenter && !(*ppAP = new CDXRAllocatorPresenter(hWnd, hr)))
 		return E_OUTOFMEMORY;
 
 	if(*ppAP == NULL)
@@ -332,27 +399,14 @@ static HRESULT TextureBlt(CComPtr<IDirect3DDevice9> pD3DDev, MYD3DVERTEX<texcoor
 // CDX9AllocatorPresenter
 
 CDX9AllocatorPresenter::CDX9AllocatorPresenter(HWND hWnd, HRESULT& hr) 
-	: ISubPicAllocatorPresenterImpl(hWnd)
+	: ISubPicAllocatorPresenterImpl(hWnd, hr)
 	, m_ScreenSize(0, 0)
 	, m_bicubicA(0)
 {
-    if(!IsWindow(m_hWnd))
-    {
-        hr = E_INVALIDARG;
-        return;
-    }
-
+	if(FAILED(hr)) return;
 	m_pD3D.Attach(Direct3DCreate9(D3D_SDK_VERSION));
 	if(!m_pD3D) m_pD3D.Attach(Direct3DCreate9(D3D9b_SDK_VERSION));
-
-	if(!m_pD3D)
-	{
-		hr = E_FAIL;
-		return;
-	}
-
-	GetWindowRect(m_hWnd, &m_WindowRect);
-
+	if(!m_pD3D) {hr = E_FAIL; return;}
 	hr = CreateDevice();
 }
 
@@ -1408,23 +1462,24 @@ STDMETHODIMP CVMR9AllocatorPresenter::InitializeDevice(DWORD_PTR dwUserID, VMR9A
 
 	if(!m_pIVMRSurfAllocNotify)
 		return E_FAIL;
-/**/
-	// StretchRect's yv12 -> rgb conversion looks horribly bright compared to the result of yuy2 -> rgb
-	if(!(GetAsyncKeyState(VK_CONTROL)&0x80000000))
-	if(lpAllocInfo->Format == '21VY' || lpAllocInfo->Format == '024Y')
+
+	if((GetAsyncKeyState(VK_CONTROL)&0x80000000))
+	if(lpAllocInfo->Format == '21VY' || lpAllocInfo->Format == '024I')
 		return E_FAIL;
 
 	DeleteSurfaces();
+
 	m_pSurfaces.SetCount(*lpNumBuffers);
+
+	int w = lpAllocInfo->dwWidth;
+	int h = abs((int)lpAllocInfo->dwHeight);
 
     HRESULT hr;
 
 	hr = m_pIVMRSurfAllocNotify->AllocateSurfaceHelper(lpAllocInfo, lpNumBuffers, &m_pSurfaces[0]);
-	if(FAILED(hr))
-		return hr;
+	if(FAILED(hr)) return hr;
 
-	m_NativeVideoSize = CSize(lpAllocInfo->dwWidth, abs((int)lpAllocInfo->dwHeight));
-	m_AspectRatio = m_NativeVideoSize;
+	m_NativeVideoSize = m_AspectRatio = CSize(w, h);
 	int arx = lpAllocInfo->szAspectRatio.cx, ary = lpAllocInfo->szAspectRatio.cy;
 	if(arx > 0 && ary > 0) m_AspectRatio.SetSize(arx, ary);
 
@@ -1929,4 +1984,176 @@ STDMETHODIMP CQT9AllocatorPresenter::DoBlt(const BITMAP& bm)
 	Paint(true);
 
 	return S_OK;
+}
+
+//
+// CDXRAllocatorPresenter
+//
+
+CDXRAllocatorPresenter::CDXRAllocatorPresenter(HWND hWnd, HRESULT& hr)
+	: ISubPicAllocatorPresenterImpl(hWnd, hr)
+{
+	if(FAILED(hr)) return;
+
+	hr = S_OK;
+}
+
+CDXRAllocatorPresenter::~CDXRAllocatorPresenter()
+{
+	if(m_pSRCB)
+	{
+		// nasty, but we have to let it know about our death somehow
+		((CSubRenderCallback*)(ISubRenderCallback*)m_pSRCB)->SetDXRAP(NULL);
+	}
+
+	// the order is important here
+	m_pSubPicQueue = NULL;
+	m_pAllocator = NULL;
+	m_pDXR = NULL;
+}
+
+STDMETHODIMP CDXRAllocatorPresenter::NonDelegatingQueryInterface(REFIID riid, void** ppv)
+{
+/*
+	if(riid == __uuidof(IVideoWindow))
+		return GetInterface((IVideoWindow*)this, ppv);
+	if(riid == __uuidof(IBasicVideo))
+		return GetInterface((IBasicVideo*)this, ppv);
+	if(riid == __uuidof(IBasicVideo2))
+		return GetInterface((IBasicVideo2*)this, ppv);
+*/
+/*
+	if(riid == __uuidof(IVMRWindowlessControl))
+		return GetInterface((IVMRWindowlessControl*)this, ppv);
+*/
+
+	if(riid != IID_IUnknown && m_pDXR)
+	{
+		if(SUCCEEDED(m_pDXR->QueryInterface(riid, ppv)))
+			return S_OK;
+	}
+
+	return __super::NonDelegatingQueryInterface(riid, ppv);
+}
+
+HRESULT CDXRAllocatorPresenter::SetDevice(IDirect3DDevice9* pD3DDev)
+{
+	CheckPointer(pD3DDev, E_POINTER);
+
+	CComPtr<ISubPicProvider> pSubPicProvider;
+	if(m_pSubPicQueue) m_pSubPicQueue->GetSubPicProvider(&pSubPicProvider);
+
+	CSize size;
+	switch(AfxGetAppSettings().nSPCMaxRes)
+	{
+	// TODO: m_ScreenSize ? 
+	// case 0: default: size = m_ScreenSize; break;
+	default: 
+	case 1: size.SetSize(1024, 768); break;
+	case 2: size.SetSize(800, 600); break;
+	case 3: size.SetSize(640, 480); break;
+	case 4: size.SetSize(512, 384); break;
+	case 5: size.SetSize(384, 288); break;
+	}
+
+	if(m_pAllocator)
+	{
+		m_pAllocator->ChangeDevice(pD3DDev);
+	}
+	else
+	{
+		m_pAllocator = new CDX9SubPicAllocator(pD3DDev, size, AfxGetAppSettings().fSPCPow2Tex);
+		if(!m_pAllocator)
+			return E_FAIL;
+	}
+
+	HRESULT hr = S_OK;
+
+	m_pSubPicQueue = AfxGetAppSettings().nSPCSize > 0 
+		? (ISubPicQueue*)new CSubPicQueue(AfxGetAppSettings().nSPCSize, m_pAllocator, &hr)
+		: (ISubPicQueue*)new CSubPicQueueNoThread(m_pAllocator, &hr);
+	if(!m_pSubPicQueue || FAILED(hr))
+		return E_FAIL;
+
+	if(pSubPicProvider) m_pSubPicQueue->SetSubPicProvider(pSubPicProvider);
+
+	return S_OK;
+}
+
+HRESULT CDXRAllocatorPresenter::Render(REFERENCE_TIME rtStart, int left, int top, int right, int bottom, int width, int height)
+{	
+	__super::SetPosition(CRect(0, 0, width, height), CRect(left, top, right, bottom)); // needed? should be already set by the player
+	SetTime(rtStart);
+	AlphaBltSubPic(CSize(width, height));
+	return S_OK;
+}
+
+// ISubPicAllocatorPresenter
+
+STDMETHODIMP CDXRAllocatorPresenter::CreateRenderer(IUnknown** ppRenderer)
+{
+    CheckPointer(ppRenderer, E_POINTER);
+
+	if(m_pDXR) return E_UNEXPECTED;
+	m_pDXR.CoCreateInstance(CLSID_DXR, GetOwner());
+	if(!m_pDXR) return E_FAIL;
+
+	CComQIPtr<ISubRender> pSR = m_pDXR;
+	if(!pSR) {m_pDXR = NULL; return E_FAIL;}
+
+	m_pSRCB = new CSubRenderCallback(this);
+	if(FAILED(pSR->SetCallback(m_pSRCB))) {m_pDXR = NULL; return E_FAIL;}
+
+	(*ppRenderer = this)->AddRef();
+
+	return *ppRenderer ? S_OK : E_FAIL;
+}
+
+STDMETHODIMP_(void) CDXRAllocatorPresenter::SetPosition(RECT w, RECT v)
+{
+	if(CComQIPtr<IBasicVideo> pBV = m_pDXR)
+	{
+		pBV->SetDefaultSourcePosition();
+		pBV->SetDestinationPosition(v.left, v.top, v.right - v.left, v.bottom - v.top);
+	}
+
+	if(CComQIPtr<IVideoWindow> pVW = m_pDXR)
+	{
+		pVW->SetWindowPosition(w.left, w.top, w.right - w.left, w.bottom - w.top);
+	}
+
+	// __super::SetPosition(w, v);
+}
+
+STDMETHODIMP_(SIZE) CDXRAllocatorPresenter::GetVideoSize(bool fCorrectAR)
+{
+	SIZE size = {0, 0};
+
+	if(!fCorrectAR)
+	{
+		if(CComQIPtr<IBasicVideo> pBV = m_pDXR)
+			pBV->GetVideoSize(&size.cx, &size.cy);
+	}
+	else
+	{
+		if(CComQIPtr<IBasicVideo2> pBV2 = m_pDXR)
+			pBV2->GetPreferredAspectRatio(&size.cx, &size.cy);
+	}
+
+	return size;
+}
+
+STDMETHODIMP_(bool) CDXRAllocatorPresenter::Paint(bool fAll)
+{
+	return false; // TODO
+}
+
+STDMETHODIMP CDXRAllocatorPresenter::GetDIB(BYTE* lpDib, DWORD* size)
+{
+	return E_NOTIMPL; // TODO
+}
+
+STDMETHODIMP CDXRAllocatorPresenter::SetPixelShader(LPCSTR pSrcData, LPCSTR pTarget)
+{
+	return E_NOTIMPL; // TODO
 }

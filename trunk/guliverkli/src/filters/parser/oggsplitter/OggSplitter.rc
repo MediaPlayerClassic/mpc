@@ -48,7 +48,7 @@ BEGIN
             VALUE "FileDescription", "Ogg Splitter"
             VALUE "FileVersion", "1, 0, 0, 0"
             VALUE "InternalName", "Ogg Splitter"
-            VALUE "LegalCopyright", "Copyright (C) 2003-2005 Gabest"
+            VALUE "LegalCopyright", "Copyright (C) 2003-2006 Gabest"
             VALUE "OriginalFilename", "OggSplitter.ax"
             VALUE "ProductName", "Ogg Splitter"
             VALUE "ProductVersion", "1, 0, 0, 0"

@@ -188,7 +188,7 @@ FONT 8, "MS Shell Dlg", 400, 0, 0xB1
 BEGIN
     ICON            IDR_MAINFRAME,IDC_STATIC,11,17,20,20
     LTEXT           "Media Player Classic",IDC_STATIC1,40,10,126,8,SS_NOPREFIX
-    LTEXT           "Copyright (C) 2002-2005 Gabest",IDC_STATIC,40,21,113,8
+    LTEXT           "Copyright (C) 2002-2006 Gabest",IDC_STATIC,40,21,113,8
     LTEXT           "Version: 6.4.8.7",IDC_STATIC,40,33,92,8
     PUSHBUTTON      "OK",IDOK,160,8,50,14,WS_GROUP
     LTEXT           "This program is freeware and released under the GNU General Public License.\nDistribution in Codec Packs is allowed, but the author (Gabest) is not liable for the additional content.",IDC_STATIC,11,47,199,34
@@ -1458,7 +1458,7 @@ BEGIN
             VALUE "FileDescription", "Media Player Classic"
             VALUE "FileVersion", "6, 4, 8, 7"
             VALUE "InternalName", "Media Player Classic"
-            VALUE "LegalCopyright", "Copyright (C) 2002-2005 Gabest"
+            VALUE "LegalCopyright", "Copyright (C) 2002-2006 Gabest"
             VALUE "OriginalFilename", "mplayerc.EXE"
             VALUE "ProductName", "Media Player Classic"
             VALUE "ProductVersion", "6, 4, 8, 7"
