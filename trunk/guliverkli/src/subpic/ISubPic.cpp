@@ -738,19 +738,22 @@ void ISubPicAllocatorPresenterImpl::AlphaBltSubPic(CSize size, SubPicDesc* pTarg
 		SubPicDesc spd;
 		pSubPic->GetDesc(spd);
 
-		CRect r;
-		pSubPic->GetDirtyRect(r);
+		if(spd.w > 0 && spd.h > 0)
+		{
+			CRect r;
+			pSubPic->GetDirtyRect(r);
 
-		// FIXME
-		r.DeflateRect(1, 1);
+			// FIXME
+			r.DeflateRect(1, 1);
 
-		CRect rDstText(
-			r.left * size.cx / spd.w,
-			r.top * size.cy / spd.h,
-			r.right * size.cx / spd.w,
-			r.bottom * size.cy / spd.h);
+			CRect rDstText(
+				r.left * size.cx / spd.w,
+				r.top * size.cy / spd.h,
+				r.right * size.cx / spd.w,
+				r.bottom * size.cy / spd.h);
 
-		pSubPic->AlphaBlt(r, rDstText, pTarget);
+			pSubPic->AlphaBlt(r, rDstText, pTarget);
+		}
 	}
 }
 
@@ -816,13 +819,10 @@ STDMETHODIMP_(double) ISubPicAllocatorPresenterImpl::GetFPS()
 
 STDMETHODIMP_(void) ISubPicAllocatorPresenterImpl::SetSubPicProvider(ISubPicProvider* pSubPicProvider)
 {
-	// CComPtr will make sure it gets destroyed even if it was passed 
-	// here with 0 refcnt and m_pSubPicQueue->SetSubPicProvider fails 
-	// to accept it.
-	CComPtr<ISubPicProvider> pSPP = pSubPicProvider;
+	m_SubPicProvider = pSubPicProvider;
 
 	if(m_pSubPicQueue)
-		m_pSubPicQueue->SetSubPicProvider(pSPP); // pSPP == NULL is ok, we use it to empty the provider
+		m_pSubPicQueue->SetSubPicProvider(pSubPicProvider);
 }
 
 STDMETHODIMP_(void) ISubPicAllocatorPresenterImpl::Invalidate(REFERENCE_TIME rtInvalidate)

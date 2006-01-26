@@ -350,6 +350,7 @@ protected:
 	REFERENCE_TIME m_rtNow;
 	double m_fps;
 
+	CComPtr<ISubPicProvider> m_SubPicProvider;
 	CComPtr<ISubPicAllocator> m_pAllocator;
 	CComPtr<ISubPicQueue> m_pSubPicQueue;
 
