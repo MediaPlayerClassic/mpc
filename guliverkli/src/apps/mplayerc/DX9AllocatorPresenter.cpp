@@ -2040,9 +2040,6 @@ HRESULT CDXRAllocatorPresenter::SetDevice(IDirect3DDevice9* pD3DDev)
 {
 	CheckPointer(pD3DDev, E_POINTER);
 
-	CComPtr<ISubPicProvider> pSubPicProvider;
-	if(m_pSubPicQueue) m_pSubPicQueue->GetSubPicProvider(&pSubPicProvider);
-
 	CSize size;
 	switch(AfxGetAppSettings().nSPCMaxRes)
 	{
@@ -2075,7 +2072,7 @@ HRESULT CDXRAllocatorPresenter::SetDevice(IDirect3DDevice9* pD3DDev)
 	if(!m_pSubPicQueue || FAILED(hr))
 		return E_FAIL;
 
-	if(pSubPicProvider) m_pSubPicQueue->SetSubPicProvider(pSubPicProvider);
+	if(m_SubPicProvider) m_pSubPicQueue->SetSubPicProvider(m_SubPicProvider);
 
 	return S_OK;
 }
