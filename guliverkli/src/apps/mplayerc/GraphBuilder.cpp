@@ -526,7 +526,8 @@ CGraphBuilder::CGraphBuilder(IGraphBuilder* pGB, HWND hWnd)
 			AddFilter(new CGraphRendererFilter(CLSID_VMR9AllocatorPresenter, m_hWnd, L"Video Mixing Render 9 (Renderless)", m_VRMerit));
 			break;
 		case VIDRNDT_DS_DXR:
-			AddFilter(new CGraphRendererFilter(CLSID_DXR, m_hWnd, L"Haali's Video Rendere", m_VRMerit));
+			// AddFilter(new CGraphRendererFilter(CLSID_DXR, m_hWnd, L"Haali's Video Renderer", m_VRMerit));
+			AddFilter(new CGraphRendererFilter(CLSID_DXRAllocatorPresenter, m_hWnd, L"Haali's Video Renderer", m_VRMerit));			
 			break;
 		case VIDRNDT_DS_NULL_COMP:
 			guids.AddTail(MEDIATYPE_Video);
@@ -2136,52 +2137,22 @@ HRESULT CGraphRendererFilter::Create(IBaseFilter** ppBF, IUnknown** ppUnk)
 
 	HRESULT hr = S_OK;
 
-	if(m_clsid == CLSID_OverlayMixer)
-	{
-		CComPtr<IBaseFilter> pBF;
-		if(SUCCEEDED(pBF.CoCreateInstance(CLSID_OverlayMixer)))
-		{
-			BeginEnumPins(pBF, pEP, pPin)
-			{
-				if(CComQIPtr<IMixerPinConfig, &IID_IMixerPinConfig> pMPC = pPin)
-				{
-					if(ppUnk) *ppUnk = pMPC.Detach();
-					break;
-				}
-			}
-			EndEnumPins
-
-			*ppBF = pBF.Detach();
-		}
-	}
-	/*else if(m_clsid == CLSID_VideoMixingRenderer)
-	{
-		CComPtr<IBaseFilter> pBF;
-		if(SUCCEEDED(pBF.CoCreateInstance(CLSID_VideoMixingRenderer)))
-			*ppBF = pBF.Detach();
-	}
-	else if(m_clsid == CLSID_VideoMixingRenderer9)
-	{
-		CComPtr<IBaseFilter> pBF;
-		if(SUCCEEDED(pBF.CoCreateInstance(CLSID_VideoMixingRenderer9)))
-			*ppBF = pBF.Detach();
-	}
-	else*/ if(m_clsid == CLSID_VMR7AllocatorPresenter)
+	if(m_clsid == CLSID_VMR7AllocatorPresenter)
 	{
 		CComPtr<ISubPicAllocatorPresenter> pCAP;
 		CComPtr<IUnknown> pRenderer;
-		if(SUCCEEDED(hr = CreateAP7(CLSID_VMR7AllocatorPresenter, m_hWnd, &pCAP))
+		if(SUCCEEDED(hr = CreateAP7(m_clsid, m_hWnd, &pCAP))
 		&& SUCCEEDED(hr = pCAP->CreateRenderer(&pRenderer)))
 		{
 			*ppBF = CComQIPtr<IBaseFilter>(pRenderer).Detach();
 			if(ppUnk) *ppUnk = (IUnknown*)pCAP.Detach();
 		}
 	}
-	else if(m_clsid == CLSID_VMR9AllocatorPresenter)
+	else if(m_clsid == CLSID_VMR9AllocatorPresenter || m_clsid == CLSID_DXRAllocatorPresenter)
 	{
 		CComPtr<ISubPicAllocatorPresenter> pCAP;
 		CComPtr<IUnknown> pRenderer;
-		if(SUCCEEDED(hr = CreateAP9(CLSID_VMR9AllocatorPresenter, m_hWnd, &pCAP))
+		if(SUCCEEDED(hr = CreateAP9(m_clsid, m_hWnd, &pCAP))
 		&& SUCCEEDED(hr = pCAP->CreateRenderer(&pRenderer)))
 		{
 			*ppBF = CComQIPtr<IBaseFilter>(pRenderer).Detach();
@@ -2192,7 +2163,20 @@ HRESULT CGraphRendererFilter::Create(IBaseFilter** ppBF, IUnknown** ppUnk)
 	{
 		CComPtr<IBaseFilter> pBF;
 		if(SUCCEEDED(pBF.CoCreateInstance(m_clsid)))
+		{
+			BeginEnumPins(pBF, pEP, pPin)
+			{
+				// overlay mixer?
+				if(CComQIPtr<IMixerPinConfig, &IID_IMixerPinConfig> pMPC = pPin)
+				{
+					if(ppUnk) *ppUnk = pMPC.Detach();
+					break;
+				}
+			}
+			EndEnumPins
+
 			*ppBF = pBF.Detach();
+		}
 	}
 
 	if(!*ppBF) hr = E_FAIL;

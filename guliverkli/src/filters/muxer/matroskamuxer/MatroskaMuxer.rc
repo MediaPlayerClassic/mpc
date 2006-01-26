@@ -48,7 +48,7 @@ BEGIN
             VALUE "FileDescription", "Matroska Muxer"
             VALUE "FileVersion", "1, 0, 0, 9"
             VALUE "InternalName", "Matroska Muxer"
-            VALUE "LegalCopyright", "Copyright (C) 2003-2005 Gabest"
+            VALUE "LegalCopyright", "Copyright (C) 2003-2006 Gabest"
             VALUE "OriginalFilename", "MatroskaMuxer.ax"
             VALUE "ProductName", "Matroska Muxer"
             VALUE "ProductVersion", "1, 0, 0, 9"

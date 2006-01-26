@@ -1,5 +1,5 @@
 /* 
- *	Copyright (C) 2003-2005 Gabest
+ *	Copyright (C) 2003-2006 Gabest
  *	http://www.gabest.org
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -34,6 +34,10 @@ DEFINE_GUID(CLSID_RM9AllocatorPresenter,
 // {622A4032-70CE-4040-8231-0F24F2886618}
 DEFINE_GUID(CLSID_QT9AllocatorPresenter,
 0x622a4032, 0x70ce, 0x4040, 0x82, 0x31, 0xf, 0x24, 0xf2, 0x88, 0x66, 0x18);
+
+// {B72EBDD4-831D-440f-A656-B48F5486CD82}
+DEFINE_GUID(CLSID_DXRAllocatorPresenter, 
+0xb72ebdd4, 0x831d, 0x440f, 0xa6, 0x56, 0xb4, 0x8f, 0x54, 0x86, 0xcd, 0x82);
 
 extern HRESULT CreateAP9(const CLSID& clsid, HWND hWnd, ISubPicAllocatorPresenter** ppAP);
 

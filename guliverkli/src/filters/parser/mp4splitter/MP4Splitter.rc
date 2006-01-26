@@ -48,7 +48,7 @@ BEGIN
             VALUE "FileDescription", "MP4 Splitter"
             VALUE "FileVersion", "1, 0, 0, 1"
             VALUE "InternalName", "MP4 Splitter"
-            VALUE "LegalCopyright", "Copyright (C) 2005"
+            VALUE "LegalCopyright", "Copyright (C) 2005-2006 Gabest"
             VALUE "OriginalFilename", "MP4Splitter.ax"
             VALUE "ProductName", "MP4 Splitter"
             VALUE "ProductVersion", "1, 0, 0, 1"

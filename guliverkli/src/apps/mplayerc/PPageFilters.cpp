@@ -1,7 +1,7 @@
 
 
 /* 
- *	Copyright (C) 2003-2005 Gabest
+ *	Copyright (C) 2003-2006 Gabest
  *	http://www.gabest.org
  *
  *  This Program is free software; you can redistribute it and/or modify

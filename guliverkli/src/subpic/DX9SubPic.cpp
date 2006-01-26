@@ -1,5 +1,5 @@
 /* 
- *	Copyright (C) 2003-2005 Gabest
+ *	Copyright (C) 2003-2006 Gabest
  *	http://www.gabest.org
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -228,7 +228,13 @@ STDMETHODIMP CDX9SubPic::AlphaBlt(RECT* pSrc, RECT* pDst, SubPicDesc* pTarget)
 			pVertices[i].y -= 0.5;
 		}
 */
+
         hr = pD3DDev->SetTexture(0, pTexture);
+
+		DWORD abe, sb, db;
+		hr = pD3DDev->GetRenderState(D3DRS_ALPHABLENDENABLE, &abe);
+		hr = pD3DDev->GetRenderState(D3DRS_SRCBLEND, &sb);
+		hr = pD3DDev->GetRenderState(D3DRS_DESTBLEND, &db);
 
         hr = pD3DDev->SetRenderState(D3DRS_CULLMODE, D3DCULL_NONE);
         hr = pD3DDev->SetRenderState(D3DRS_LIGHTING, FALSE);
@@ -261,6 +267,8 @@ STDMETHODIMP CDX9SubPic::AlphaBlt(RECT* pSrc, RECT* pDst, SubPicDesc* pTarget)
 
 		*///
 
+        hr = pD3DDev->SetPixelShader(NULL);
+
 		if(FAILED(hr = pD3DDev->BeginScene()))
 			break;
 
@@ -272,6 +280,10 @@ STDMETHODIMP CDX9SubPic::AlphaBlt(RECT* pSrc, RECT* pDst, SubPicDesc* pTarget)
         //
 
 		pD3DDev->SetTexture(0, NULL);
+
+    	pD3DDev->SetRenderState(D3DRS_ALPHABLENDENABLE, abe);
+        pD3DDev->SetRenderState(D3DRS_SRCBLEND, sb);
+        pD3DDev->SetRenderState(D3DRS_DESTBLEND, db);
 
 		return S_OK;
     }

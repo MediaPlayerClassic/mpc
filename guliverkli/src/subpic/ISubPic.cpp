@@ -1,5 +1,5 @@
 /* 
- *	Copyright (C) 2003-2005 Gabest
+ *	Copyright (C) 2003-2006 Gabest
  *	http://www.gabest.org
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -706,14 +706,17 @@ STDMETHODIMP CSubPicQueueNoThread::GetStats(int nSubPic, REFERENCE_TIME& rtStart
 // ISubPicAllocatorPresenterImpl
 //
 
-ISubPicAllocatorPresenterImpl::ISubPicAllocatorPresenterImpl(HWND hWnd)
+ISubPicAllocatorPresenterImpl::ISubPicAllocatorPresenterImpl(HWND hWnd, HRESULT& hr)
 	: CUnknown(NAME("ISubPicAllocatorPresenterImpl"), NULL)
 	, m_hWnd(hWnd)
 	, m_NativeVideoSize(0, 0), m_AspectRatio(0, 0)
 	, m_VideoRect(0, 0, 0, 0), m_WindowRect(0, 0, 0, 0)
 	, m_fps(25.0)
 {
+    if(!IsWindow(m_hWnd)) {hr = E_INVALIDARG; return;}
+	GetWindowRect(m_hWnd, &m_WindowRect);
 	SetVideoAngle(Vector(), false);
+	hr = S_OK;
 }
 
 ISubPicAllocatorPresenterImpl::~ISubPicAllocatorPresenterImpl()

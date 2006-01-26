@@ -74,7 +74,7 @@ BEGIN
             VALUE "FileDescription", "MPEG-1/2 Decoder Filter for DirectShow"
             VALUE "FileVersion", "1, 0, 0, 1"
             VALUE "InternalName", " Mpeg2Dec Filter"
-            VALUE "LegalCopyright", "Copyright (C) 2003-2005 Gabest"
+            VALUE "LegalCopyright", "Copyright (C) 2003-2006 Gabest"
             VALUE "OriginalFilename", "Mpeg2DecFilter.ax"
             VALUE "ProductName", " Mpeg2Dec Filter"
             VALUE "ProductVersion", "1, 0, 0, 1"
