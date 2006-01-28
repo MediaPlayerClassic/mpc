@@ -359,20 +359,56 @@ AP4_AudioSampleEntry::ReadFields(AP4_ByteStream& stream)
 	stream.ReadUI16(m_DescriptionVersion);
 	stream.ReadUI16(m_RevisionLevel);
 	stream.ReadUI32(m_Vendor);
-    stream.ReadUI16(m_ChannelCount);
-    stream.ReadUI16(m_SampleSize);
-	stream.ReadUI16(m_CompressionID);
-    stream.ReadUI16(m_PacketSize);
-    stream.ReadUI32(m_SampleRate);
 
-	if(m_DescriptionVersion == 1)
+	if(m_DescriptionVersion == 0 || m_DescriptionVersion == 1)
 	{
-		stream.ReadUI32(m_SamplesPerPacket); 
-		stream.ReadUI32(m_BytesPerPacket); 
-		stream.ReadUI32(m_BytesPerFrame); 
-		stream.ReadUI32(m_BytesPerSample); 
+		stream.ReadUI16(m_ChannelCount);
+	    stream.ReadUI16(m_SampleSize);
+		stream.ReadUI16(m_CompressionID);
+	    stream.ReadUI16(m_PacketSize);
+	    stream.ReadUI32(m_SampleRate);
+
+		if(m_DescriptionVersion == 1)
+		{
+			stream.ReadUI32(m_SamplesPerPacket); 
+			stream.ReadUI32(m_BytesPerPacket); 
+			stream.ReadUI32(m_BytesPerFrame); 
+			stream.ReadUI32(m_BytesPerSample); 
+		}
 	}
-	else if(m_DescriptionVersion != 0)
+	else if(m_DescriptionVersion == 2)
+	{
+		char junk[16];
+
+		stream.Read(junk, 12); // always 00 03 00 10 FF FE 00 00 00 01 00 00
+		
+		AP4_UI32 SizeOfStructOnly;
+		stream.ReadUI32(SizeOfStructOnly);
+		if(SizeOfStructOnly < 0x48) return AP4_FAILURE;
+
+		m_SampleSize = 0;
+
+		AP4_UI64 SampleRate;
+		stream.ReadUI64(SampleRate);
+		m_SampleRate = (AP4_UI32)(*(double*)&SampleRate * 65536);
+
+		AP4_UI32 ChannelCount;
+		stream.ReadUI32(ChannelCount);
+		m_ChannelCount = (AP4_UI16)ChannelCount;
+
+		stream.Read(junk, 4); // always 7f 00 00 00
+		stream.Read(junk, 16); // constBitsPerChannel, formatSpecificFlags, constBytesPerAudioPacket, constLPCMFramesPerAudioPacket
+
+		SizeOfStructOnly -= 0x48;
+
+		if(SizeOfStructOnly > 0)
+		{
+			AP4_Offset offset;
+			stream.Tell(offset);
+			stream.Seek(offset + SizeOfStructOnly);
+		}
+	}
+	else
 	{
 		return AP4_FAILURE;
 	}
