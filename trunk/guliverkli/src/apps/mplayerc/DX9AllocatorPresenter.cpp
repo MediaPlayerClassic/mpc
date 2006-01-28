@@ -2103,7 +2103,7 @@ STDMETHODIMP CDXRAllocatorPresenter::CreateRenderer(IUnknown** ppRenderer)
 
 	(*ppRenderer = this)->AddRef();
 
-	return *ppRenderer ? S_OK : E_FAIL;
+	return S_OK;
 }
 
 STDMETHODIMP_(void) CDXRAllocatorPresenter::SetPosition(RECT w, RECT v)
@@ -2118,8 +2118,6 @@ STDMETHODIMP_(void) CDXRAllocatorPresenter::SetPosition(RECT w, RECT v)
 	{
 		pVW->SetWindowPosition(w.left, w.top, w.right - w.left, w.bottom - w.top);
 	}
-
-	// __super::SetPosition(w, v);
 }
 
 STDMETHODIMP_(SIZE) CDXRAllocatorPresenter::GetVideoSize(bool fCorrectAR)
@@ -2147,7 +2145,10 @@ STDMETHODIMP_(bool) CDXRAllocatorPresenter::Paint(bool fAll)
 
 STDMETHODIMP CDXRAllocatorPresenter::GetDIB(BYTE* lpDib, DWORD* size)
 {
-	return E_NOTIMPL; // TODO
+	HRESULT hr = E_NOTIMPL;
+	if(CComQIPtr<IBasicVideo> pBV = m_pDXR)
+		hr = pBV->GetCurrentImage((long*)size, (long*)lpDib);
+	return hr;
 }
 
 STDMETHODIMP CDXRAllocatorPresenter::SetPixelShader(LPCSTR pSrcData, LPCSTR pTarget)
