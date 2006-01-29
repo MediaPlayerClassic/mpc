@@ -4589,7 +4589,6 @@ void CMainFrame::OnUpdatePlayResetRate(CCmdUI* pCmdUI)
 	pCmdUI->Enable(m_iMediaLoadState == MLS_LOADED);
 }
 
-
 void CMainFrame::OnPlayChangeAudDelay(UINT nID)
 {
 	if(CComQIPtr<IAudioSwitcherFilter> pAS = FindFilter(__uuidof(CAudioSwitcherFilter), pGB))
@@ -4609,11 +4608,10 @@ void CMainFrame::OnPlayChangeAudDelay(UINT nID)
 
 void CMainFrame::OnUpdatePlayChangeAudDelay(CCmdUI* pCmdUI)
 {
-	pCmdUI->Enable(pGB && !!FindFilter(__uuidof(CAudioSwitcherFilter), pGB));
+	pCmdUI->Enable(!!pGB /*&& !!FindFilter(__uuidof(CAudioSwitcherFilter), pGB)*/);
 }
 
 #include "ComPropertySheet.h"
-#include ".\mainfrm.h"
 
 void CMainFrame::OnPlayFilters(UINT nID)
 {
@@ -8092,7 +8090,6 @@ void CMainFrame::SetupNavStreamSelectSubMenu(CMenu* pSub, UINT id, DWORD dwSelGr
 			continue;
 
 		CStringW name(pszName);
-		name.MakeLower();
 
 		if(pszName) CoTaskMemFree(pszName);
 
@@ -8105,18 +8102,24 @@ void CMainFrame::SetupNavStreamSelectSubMenu(CMenu* pSub, UINT id, DWORD dwSelGr
 
 		CString str;
 
-		if(name.Find(L" off") >= 0)
+		if(CString(name).MakeLower().Find(L" off") >= 0)
 		{
 			str = _T("Disabled");
 		}
-		else if(lcid == 0)
+		else 
 		{
-			str.Format(_T("Unknown %d"), id - baseid);
-		}
-		else
-		{
-			int len = GetLocaleInfo(lcid, LOCALE_SENGLANGUAGE, str.GetBuffer(64), 64);
-			str.ReleaseBufferSetLength(max(len-1, 0));
+			if(lcid == 0)
+			{
+				str.Format(_T("Unknown %d"), id - baseid);
+			}
+			else
+			{
+				int len = GetLocaleInfo(lcid, LOCALE_SENGLANGUAGE, str.GetBuffer(64), 64);
+				str.ReleaseBufferSetLength(max(len-1, 0));
+			}
+
+			if(str.IsEmpty()) str = CString(name);
+			else str = CString(name) + _T(" (") + str + _T(")"); 
 		}
 
 		UINT flags = MF_BYCOMMAND|MF_STRING|MF_ENABLED;

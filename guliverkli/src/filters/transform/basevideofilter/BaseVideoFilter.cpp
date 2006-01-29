@@ -501,7 +501,6 @@ HRESULT CBaseVideoFilter::GetMediaType(int iPosition, CMediaType* pmt)
 		vih->bmiHeader = bihOut;
 		vih->dwPictAspectRatioX = arx;
 		vih->dwPictAspectRatioY = ary;
-		vih->dwCopyProtectFlags &= ~AMCOPYPROTECT_RestrictDuplication; // hehe
 	}
 
 	CMediaType& mt = m_pInput->CurrentMediaType();

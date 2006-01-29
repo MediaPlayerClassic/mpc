@@ -615,14 +615,16 @@ CGraphBuilder::CGraphBuilder(IGraphBuilder* pGB, HWND hWnd)
 
 	// FIXME: "Subtitle Mixer" makes an access violation around 
 	// the 11-12th media type when enumerating them on its output.
-	CLSID CLSID_SubtitlerMixer = GUIDFromCString(_T("{00A95963-3BE5-48C0-AD9F-3356D67EA09D}"));
-	AddFilter(new CGraphRegFilter(CLSID_SubtitlerMixer, LMERIT_DO_NOT_USE));
+	AddFilter(new CGraphRegFilter(GUIDFromCString(_T("{00A95963-3BE5-48C0-AD9F-3356D67EA09D}")), LMERIT_DO_NOT_USE));
 
 	// ISCR suxx
 	AddFilter(new CGraphRegFilter(GUIDFromCString(_T("{48025243-2D39-11CE-875D-00608CB78066}")), LMERIT_DO_NOT_USE));
 
 	// Samsung's "mpeg-4 demultiplexor" can even open matroska files, amazing...
 	AddFilter(new CGraphRegFilter(GUIDFromCString(_T("{99EC0C72-4D1B-411B-AB1F-D561EE049D94}")), LMERIT_DO_NOT_USE));
+
+	// LG Video Renderer (lgvid.ax) just crashes when trying to connect it
+	AddFilter(new CGraphRegFilter(GUIDFromCString(_T("{9F711C60-0668-11D0-94D4-0000C02BA972}")), LMERIT_DO_NOT_USE));
 
 	// DCDSPFilter
 	{

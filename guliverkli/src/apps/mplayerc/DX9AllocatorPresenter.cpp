@@ -309,21 +309,23 @@ struct MYD3DVERTEX {float x, y, z, rhw; struct {float u, v;} t[texcoords];};
 template<int texcoords>
 static void AdjustQuad(MYD3DVERTEX<texcoords>* v, float dx, float dy)
 {
+	float offset = 0.5f;
+
 	for(int i = 0; i < 4; i++)
 	{
-		v[i].x -= 0.51f;
-		v[i].y -= 0.51f;
+		v[i].x -= offset;
+		v[i].y -= offset;
 		
 		for(int j = 0; j < texcoords-1; j++)
 		{
-			v[i].t[j].u -= 0.5f*dx;
-			v[i].t[j].v -= 0.5f*dy;
+			v[i].t[j].u -= offset*dx;
+			v[i].t[j].v -= offset*dy;
 		}
 
 		if(texcoords > 1)
 		{
-			v[i].t[texcoords-1].u -= 0.5f;
-			v[i].t[texcoords-1].v -= 0.5f;
+			v[i].t[texcoords-1].u -= offset;
+			v[i].t[texcoords-1].v -= offset;
 		}
 	}
 }
@@ -658,7 +660,9 @@ HRESULT CDX9AllocatorPresenter::InitResizers(float bicubicA)
 
 	if(m_bicubicA)
 	{
-		if(FAILED(m_pD3DDev->CreateTexture(m_ScreenSize.cx, m_NativeVideoSize.cy, 1, D3DUSAGE_RENDERTARGET, D3DFMT_A8R8G8B8, D3DPOOL_DEFAULT, &m_pResizerBicubic1stPass, NULL)))
+		if(FAILED(m_pD3DDev->CreateTexture(
+			min(max(2048, m_ScreenSize.cx), m_caps.MaxTextureWidth), m_NativeVideoSize.cy, 1, D3DUSAGE_RENDERTARGET, D3DFMT_A8R8G8B8, 
+			D3DPOOL_DEFAULT, &m_pResizerBicubic1stPass, NULL)))
 		{
 			ASSERT(0);
 			m_pResizerBicubic1stPass = NULL; // will do 1 pass then
