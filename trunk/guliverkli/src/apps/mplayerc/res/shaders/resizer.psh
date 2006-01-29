@@ -27,13 +27,13 @@ struct PS_INPUT
 
 float4 main_bilinear(PS_INPUT input) : COLOR
 {
-	float2 dd = frac(input.t4); 
+	float2 dd = frac(input.t4);
 
 	float4 c = lerp(
 		lerp(tex2D(s0, input.t0), tex2D(s1, input.t1), dd.x),
 		lerp(tex2D(s2, input.t2), tex2D(s3, input.t3), dd.x),
 		dd.y);
-
+		
 	return c;
 }
 

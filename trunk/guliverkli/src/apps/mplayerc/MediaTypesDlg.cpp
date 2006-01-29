@@ -84,7 +84,7 @@ void CMediaTypesDlg::AddMediaType(AM_MEDIA_TYPE* pmt)
 
 	CString str;
 
-	AddLine(_T("AM_MEDIA_TYPE:\n"));
+	AddLine(_T("AM_MEDIA_TYPE: (") + CMediaTypeEx(*pmt).ToString() + _T(")\n"));
 	str.Format(_T("majortype: %s %s\n"), CString(GuidNames[pmt->majortype]), major);
 	AddLine(str);
 	str.Format(_T("subtype: %s %s\n"), CString(GuidNames[pmt->subtype]), sub);
