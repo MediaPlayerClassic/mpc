@@ -8,7 +8,6 @@
 // Generated from the TEXTINCLUDE 2 resource.
 //
 #include "afxres.h"
-#include "afxres.rc"
 
 /////////////////////////////////////////////////////////////////////////////
 #undef APSTUDIO_READONLY_SYMBOLS
@@ -36,7 +35,6 @@ END
 2 TEXTINCLUDE 
 BEGIN
     "#include ""afxres.h""\r\n"
-    "#include ""afxres.rc""\r\n"
 END
 
 3 TEXTINCLUDE 
@@ -49,6 +47,7 @@ BEGIN
     "#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)\r\n"
     "LANGUAGE 9, 1\r\n"
     "#pragma code_page(1252)\r\n"
+    "#include ""afxres.rc""     // Standard components\r\n"
     "#endif\0"
 END
 
@@ -1488,6 +1487,7 @@ BEGIN
         MENUITEM SEPARATOR
         MENUITEM "&Save As...",                 ID_FILE_SAVEAS
         MENUITEM "Save &Image...",              ID_FILE_SAVE_IMAGE
+        MENUITEM "Save Thumbnails...",          ID_FILE_SAVE_THUMBNAILS
         MENUITEM SEPARATOR
         MENUITEM "&Load Subtitle...\tCtrl+L",   ID_FILE_LOADSUBTITLE
         MENUITEM "Save Subtitle...\tCtrl+S",    ID_FILE_SAVESUBTITLES
@@ -1782,6 +1782,7 @@ BEGIN
             MENUITEM SEPARATOR
             MENUITEM "&Save As...",                 313
             MENUITEM "Save Image...",               32832
+            MENUITEM "Save Thumbnails...",          ID_FILE_SAVE_THUMBNAILS
             MENUITEM SEPARATOR
             MENUITEM "&Load Subtitle...\tCtrl+L",   ID_FILE_LOADSUBTITLE
             MENUITEM "Save Subtitle...\tCtrl+S",    ID_FILE_SAVESUBTITLES
@@ -2366,6 +2367,7 @@ END
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
 LANGUAGE 9, 1
 #pragma code_page(1252)
+#include "afxres.rc"     // Standard components
 #endif
 /////////////////////////////////////////////////////////////////////////////
 #endif    // not APSTUDIO_INVOKED

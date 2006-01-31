@@ -220,9 +220,11 @@ BEGIN_MESSAGE_MAP(CMainFrame, CFrameWnd)
 	ON_COMMAND(ID_FILE_SAVEAS, OnFileSaveas)
 	ON_UPDATE_COMMAND_UI(ID_FILE_SAVEAS, OnUpdateFileSaveas)
 	ON_COMMAND(ID_FILE_SAVE_IMAGE, OnFileSaveImage)
-	ON_COMMAND(ID_FILE_SAVE_IMAGE_AUTO, OnFileSaveImageAuto)
 	ON_UPDATE_COMMAND_UI(ID_FILE_SAVE_IMAGE, OnUpdateFileSaveImage)
+	ON_COMMAND(ID_FILE_SAVE_IMAGE_AUTO, OnFileSaveImageAuto)
 	ON_UPDATE_COMMAND_UI(ID_FILE_SAVE_IMAGE_AUTO, OnUpdateFileSaveImage)
+	ON_COMMAND(ID_FILE_SAVE_THUMBNAILS, OnFileSaveThumbnails)
+	ON_UPDATE_COMMAND_UI(ID_FILE_SAVE_THUMBNAILS, OnUpdateFileSaveThumbnails)
 	ON_COMMAND(ID_FILE_CONVERT, OnFileConvert)
 	ON_UPDATE_COMMAND_UI(ID_FILE_CONVERT, OnUpdateFileConvert)
 	ON_COMMAND(ID_FILE_LOADSUBTITLE, OnFileLoadsubtitles)
@@ -1783,7 +1785,7 @@ LRESULT CMainFrame::OnGraphNotify(WPARAM wParam, LPARAM lParam)
 		}
 		else if(!m_fCustomGraph)
 		{
-			TRACE(_T("%d\n"), evCode);
+			TRACE(_T("evCode: %d\n"), evCode);
 		}
 		else if(EC_BG_AUDIO_CHANGED == evCode)
 		{
@@ -3246,7 +3248,7 @@ bool CMainFrame::GetDIB(BYTE** ppData, long& size, bool fSilent)
 		GetMediaState(); // wait for completion of the pause command
 	}
 
-	HRESULT hr;
+	HRESULT hr = S_OK;
 	CString errmsg;
 
 	do
@@ -3287,74 +3289,335 @@ bool CMainFrame::GetDIB(BYTE** ppData, long& size, bool fSilent)
 		pMC->Run();
 	}
 
-	return !!*ppData;
+	if(FAILED(hr))
+	{
+		if(*ppData) {ASSERT(0); delete [] *ppData; *ppData = NULL;} // huh?
+		return false;
+	}
+
+	return true;
 }
 
 #include "jpeg.h"
+
+void CMainFrame::SaveDIB(LPCTSTR fn, BYTE* pData, long size)
+{
+	CString ext = CString(CPath(fn).GetExtension()).MakeLower();
+
+	if(ext == _T(".bmp"))
+	{
+		if(FILE* f = _tfopen(fn, _T("wb")))
+		{
+			BITMAPINFO* bi = (BITMAPINFO*)pData;
+
+			BITMAPFILEHEADER bfh;
+			bfh.bfType = 'MB';
+			bfh.bfOffBits = sizeof(bfh) + sizeof(bi->bmiHeader);
+			bfh.bfSize = sizeof(bfh) + size;
+			bfh.bfReserved1 = bfh.bfReserved2 = 0;
+
+			if(bi->bmiHeader.biBitCount <= 8)
+			{
+				if(bi->bmiHeader.biClrUsed) bfh.bfOffBits += bi->bmiHeader.biClrUsed * sizeof(bi->bmiColors[0]);
+				else bfh.bfOffBits += (1 << bi->bmiHeader.biBitCount) * sizeof(bi->bmiColors[0]);
+			}
+
+			fwrite(&bfh, 1, sizeof(bfh), f);
+			fwrite(pData, 1, size, f);
+
+			fclose(f);
+		}
+		else
+		{
+			AfxMessageBox(_T("Cannot create file"), MB_OK);
+		}
+	}
+	else if(ext == _T(".jpg"))
+	{
+		CJpegEncoderFile(fn).Encode(pData);
+	}
+
+	CPath p(fn);
+
+	if(CDC* pDC = m_wndStatusBar.m_status.GetDC())
+	{
+		CRect r;
+		m_wndStatusBar.m_status.GetClientRect(r);
+		p.CompactPath(pDC->m_hDC, r.Width());
+		m_wndStatusBar.m_status.ReleaseDC(pDC);
+	}
+
+	SendStatusMessage((LPCTSTR)p, 3000);
+}
 
 void CMainFrame::SaveImage(LPCTSTR fn)
 {
 	BYTE* pData = NULL;
 	long size = 0;
+
 	if(GetDIB(&pData, size))
 	{
-		CString ext = CString(CPath(fn).GetExtension()).MakeLower();
-
-		if(ext == _T(".bmp"))
-		{
-			if(FILE* f = _tfopen(fn, _T("wb")))
-			{
-				BITMAPINFO* bi = (BITMAPINFO*)pData;
-
-				BITMAPFILEHEADER bfh;
-				bfh.bfType = 'MB';
-				bfh.bfOffBits = sizeof(bfh) + sizeof(bi->bmiHeader);
-				bfh.bfSize = sizeof(bfh) + size;
-				bfh.bfReserved1 = bfh.bfReserved2 = 0;
-
-				if(bi->bmiHeader.biBitCount <= 8)
-				{
-					if(bi->bmiHeader.biClrUsed) bfh.bfOffBits += bi->bmiHeader.biClrUsed * sizeof(bi->bmiColors[0]);
-					else bfh.bfOffBits += (1 << bi->bmiHeader.biBitCount) * sizeof(bi->bmiColors[0]);
-				}
-
-				fwrite(&bfh, 1, sizeof(bfh), f);
-				fwrite(pData, 1, size, f);
-
-				fclose(f);
-			}
-			else
-			{
-				AfxMessageBox(_T("Cannot create file"), MB_OK);
-			}
-		}
-		else if(ext == _T(".jpg"))
-		{
-			CJpegEncoderFile(fn).Encode(pData);
-		}
-
+		SaveDIB(fn, pData, size);
 		delete [] pData;
-
-		CPath p(fn);
-
-		if(CDC* pDC = m_wndStatusBar.m_status.GetDC())
-		{
-			CRect r;
-			m_wndStatusBar.m_status.GetClientRect(r);
-			p.CompactPath(pDC->m_hDC, r.Width());
-			m_wndStatusBar.m_status.ReleaseDC(pDC);
-		}
-
-		SendStatusMessage((LPCTSTR)p, 3000);
 	}
 }
 
-static CString MakeSnapshotFileName()
+void CMainFrame::SaveThumbnails(LPCTSTR fn)
+{
+	if(!pMC || !pMS || m_iPlaybackMode != PM_FILE /*&& m_iPlaybackMode != PM_DVD*/) 
+		return;
+
+	REFERENCE_TIME rtDur = GetDur();
+
+	if(rtDur <= 0)
+	{
+		AfxMessageBox(_T("Cannot create thumbnails for files with no duration"));
+		return;
+	}
+
+	pMC->Pause();
+	GetMediaState(); // wait for completion of the pause command
+
+	//
+
+	CSize video, wh(0, 0), arxy(0, 0);
+
+	if(m_pCAP)
+	{
+		wh = m_pCAP->GetVideoSize(false);
+		arxy = m_pCAP->GetVideoSize(true);
+	}
+	else
+	{
+		pBV->GetVideoSize(&wh.cx, &wh.cy);
+
+		long arx = 0, ary = 0;
+		CComQIPtr<IBasicVideo2> pBV2 = pBV;
+		if(pBV2 && SUCCEEDED(pBV2->GetPreferredAspectRatio(&arx, &ary)) && arx > 0 && ary > 0)
+			arxy.SetSize(arx, ary);
+	}
+
+	if(wh.cx <= 0 || wh.cy <= 0)
+	{
+		AfxMessageBox(_T("Failed to get video frame size"));
+		return;
+	}
+
+	// with the overlay mixer IBasicVideo2 won't tell the new AR when changed dynamically
+	DVD_VideoAttributes VATR;
+	if(m_iPlaybackMode == PM_DVD && SUCCEEDED(pDVDI->GetCurrentVideoAttributes(&VATR)))
+		arxy.SetSize(VATR.ulAspectX, VATR.ulAspectY);
+
+	video = (arxy.cx <= 0 || arxy.cy <= 0) ? wh : CSize(MulDiv(wh.cy, arxy.cx, arxy.cy), wh.cy);
+
+	//
+
+	int cols = 4, rows = 4;
+//	int cols = 3, rows = 2;
+
+	int margin = 5;
+	int infoheight = 70;
+	int width = 1024, height = width * video.cy / video.cx * rows / cols + infoheight;
+
+	int dibsize = sizeof(BITMAPINFOHEADER) + width*height*4;
+
+	CAutoVectorPtr<BYTE> dib;
+	if(!dib.Allocate(dibsize))
+	{
+		AfxMessageBox(_T("Out of memory, go buy some more!"));
+		return;
+	}
+
+	BITMAPINFOHEADER* bih = (BITMAPINFOHEADER*)(BYTE*)dib;
+	memset(bih, 0, sizeof(BITMAPINFOHEADER));
+	bih->biSize = sizeof(BITMAPINFOHEADER);
+	bih->biWidth = width;
+	bih->biHeight = height;
+	bih->biPlanes = 1;
+	bih->biBitCount = 32;
+	bih->biCompression = BI_RGB;
+	bih->biSizeImage = width*height*4;
+	memsetd(bih + 1, 0xffffff, bih->biSizeImage);
+
+	SubPicDesc spd;
+	spd.w = width;
+	spd.h = height;
+	spd.bpp = 32;
+	spd.pitch = -width*4;
+	spd.bits = (BYTE*)(bih + 1) + (width*4)*(height-1);
+
+	CCritSec csSubLock;
+
+	for(int i = 1, pics = cols*rows; i <= pics; i++)
+	{
+		REFERENCE_TIME rt = rtDur * i / (pics+1);
+		DVD_HMSF_TIMECODE hmsf = RT2HMSF(rt, 25);
+
+		SeekTo(rt);
+
+		HRESULT hr = pFS ? pFS->Step(1, NULL) : E_FAIL;
+
+		if(FAILED(hr))
+		{
+			AfxMessageBox(_T("Cannot frame step, try a different video renderer."));
+			return;
+		}
+
+		HANDLE hGraphEvent = NULL;
+		pME->GetEventHandle((OAEVENT*)&hGraphEvent);
+
+		while(hGraphEvent && WaitForSingleObject(hGraphEvent, INFINITE) == WAIT_OBJECT_0)
+		{
+			LONG evCode = 0, evParam1, evParam2;
+			while(SUCCEEDED(pME->GetEvent(&evCode, (LONG_PTR*)&evParam1, (LONG_PTR*)&evParam2, 0)))
+			{
+				pME->FreeEventParams(evCode, evParam1, evParam2);
+				if(EC_STEP_COMPLETE == evCode) hGraphEvent = NULL;
+			}
+		}
+
+		int col = (i-1)%cols;
+		int row = (i-1)/cols;
+
+		CSize s((width-margin*2)/cols, (height-margin*2-infoheight)/rows);
+		CPoint p(margin+col*s.cx, margin+row*s.cy+infoheight);
+		CRect r(p, s);
+		r.DeflateRect(margin, margin);
+
+		CRenderedTextSubtitle rts(&csSubLock);
+		rts.CreateDefaultStyle(0);
+		rts.m_dstScreenSize.SetSize(width, height);
+		STSStyle* style = new STSStyle();
+		style->marginRect.SetRectEmpty();
+		rts.AddStyle(_T("thumbs"), style);
+
+		CStringW str;
+		str.Format(L"{\\an7\\1c&Hffffff&\\4a&Hb0&\\bord1\\shad4\\be1}{\\p1}m %d %d l %d %d %d %d %d %d{\\p}", 
+			r.left, r.top, r.right, r.top, r.right, r.bottom, r.left, r.bottom);
+		rts.Add(str, true, 0, 1, _T("thumbs"));
+		str.Format(L"{\\an3\\1c&Hffffff&\\3c&H000000&\\fs16\\b1\\bord2\\shad0\\pos(%d,%d)}%02d:%02d:%02d", 
+			r.right-5, r.bottom-5, hmsf.bHours, hmsf.bMinutes, hmsf.bSeconds);
+		rts.Add(str, true, 1, 2, _T("thumbs"));
+
+		RECT bbox;
+		rts.Render(spd, 0, 25, bbox);
+
+		BYTE* pData = NULL;
+		long size = 0;
+		if(!GetDIB(&pData, size)) return;
+
+		BITMAPINFO* bi = (BITMAPINFO*)pData;
+
+		if(bi->bmiHeader.biBitCount != 32)
+		{
+			delete [] pData;
+			CString str;
+			str.Format(_T("Invalid image format, cannot create thumbnails out of %d bpp dibs."), bi->bmiHeader.biBitCount);
+			AfxMessageBox(str);
+			return;
+		}
+
+		int sw = bi->bmiHeader.biWidth;
+		int sh = abs(bi->bmiHeader.biHeight);
+		int sp = sw*4;
+		const BYTE* src = pData + sizeof(bi->bmiHeader);
+		if(bi->bmiHeader.biHeight >= 0) {src += sp*(sh-1); sp = -sp;}
+
+		int dw = spd.w;
+		int dh = spd.h;
+		int dp = spd.pitch;
+		BYTE* dst = (BYTE*)spd.bits + spd.pitch*r.top + r.left*4;
+
+		for(DWORD h = r.bottom - r.top, y = 0, yd = (sh<<8)/h; h > 0; y += yd, h--)
+		{
+			DWORD yf = y&0xff;
+			DWORD yi = y>>8;
+
+			DWORD* s0 = (DWORD*)(src + yi*sp);
+			DWORD* s1 = (DWORD*)(src + yi*sp + sp);
+			DWORD* d = (DWORD*)dst;
+
+			for(DWORD w = r.right - r.left, x = 0, xd = (sw<<8)/w; w > 0; x += xd, w--)
+			{
+				DWORD xf = x&0xff;
+				DWORD xi = x>>8;
+
+				DWORD c0 = s0[xi];
+				DWORD c1 = s0[xi+1];
+				DWORD c2 = s1[xi];
+				DWORD c3 = s1[xi+1];
+
+				c0 = ((c0&0xff00ff) + ((((c1&0xff00ff) - (c0&0xff00ff)) * xf) >> 8)) & 0xff00ff
+				  | ((c0&0x00ff00) + ((((c1&0x00ff00) - (c0&0x00ff00)) * xf) >> 8)) & 0x00ff00;
+
+				c2 = ((c2&0xff00ff) + ((((c3&0xff00ff) - (c2&0xff00ff)) * xf) >> 8)) & 0xff00ff
+				  | ((c2&0x00ff00) + ((((c3&0x00ff00) - (c2&0x00ff00)) * xf) >> 8)) & 0x00ff00;
+
+				c0 = ((c0&0xff00ff) + ((((c2&0xff00ff) - (c0&0xff00ff)) * yf) >> 8)) & 0xff00ff
+				  | ((c0&0x00ff00) + ((((c2&0x00ff00) - (c0&0x00ff00)) * yf) >> 8)) & 0x00ff00;
+
+				*d++ = c0;
+			}
+
+			dst += dp;
+		}
+
+		rts.Render(spd, 10000, 25, bbox);
+
+		delete [] pData;
+	}
+
+	{
+		CRenderedTextSubtitle rts(&csSubLock);
+		rts.CreateDefaultStyle(0);
+		rts.m_dstScreenSize.SetSize(width, height);
+		STSStyle* style = new STSStyle();
+		style->marginRect.SetRect(margin*2, margin*2, margin*2, infoheight-margin);
+		rts.AddStyle(_T("thumbs"), style);
+
+		DVD_HMSF_TIMECODE hmsf = RT2HMSF(rtDur, 25);
+
+		CPath path(m_wndPlaylistBar.GetCur());
+		path.StripPath();
+		CStringW fn = (LPCTSTR)path;
+
+		CStringW fs;
+		WIN32_FIND_DATA wfd;
+		HANDLE hFind = FindFirstFile(m_wndPlaylistBar.GetCur(), &wfd);
+		if(hFind != INVALID_HANDLE_VALUE)
+		{
+			FindClose(hFind);
+
+			__int64 size = (__int64(wfd.nFileSizeHigh)<<32)|wfd.nFileSizeLow;
+			__int64 shortsize = size;
+			CString measure = _T("B");
+			if(shortsize > 10240) shortsize /= 1024, measure = _T("KB");
+			if(shortsize > 10240) shortsize /= 1024, measure = _T("MB");
+			if(shortsize > 10240) shortsize /= 1024, measure = _T("GB");
+			fs.Format(L"File Size: %I64d%s (%I64d bytes)\\N", shortsize, measure, size);
+		}
+
+		CStringW ar;
+		if(arxy.cx > 0 && arxy.cy > 0 && arxy.cx != wh.cx && arxy.cy != wh.cy)
+			ar.Format(L"(%d:%d)", arxy.cx, arxy.cy);
+
+		CStringW str;
+		str.Format(L"{\\an7\\1c&H000000&\\fs16\\b0\\bord0\\shad0}File Name: %s\\N%sResolution: %dx%d %s\\NDuration: %02d:%02d:%02d", 
+			fn, fs, wh.cx, wh.cy, ar, hmsf.bHours, hmsf.bMinutes, hmsf.bSeconds);
+		rts.Add(str, true, 0, 1, _T("thumbs"));
+
+		RECT bbox;
+		rts.Render(spd, 0, 25, bbox);
+	}
+
+	SaveDIB(fn, (BYTE*)dib, dibsize);
+}
+
+static CString MakeSnapshotFileName(LPCTSTR prefix)
 {
 	CTime t = CTime::GetCurrentTime();
 	CString fn;
-	fn.Format(_T("snapshot%s%s"), 
-		t.Format(_T("%Y%m%d%H%M%S")), AfxGetAppSettings().SnapShotExt);
+	fn.Format(_T("%s%s%s"), prefix, t.Format(_T("%Y%m%d%H%M%S")), AfxGetAppSettings().SnapShotExt);
 	return fn;
 }
 
@@ -3363,7 +3626,7 @@ void CMainFrame::OnFileSaveImage()
 	AppSettings& s = AfxGetAppSettings();
 
 	CPath psrc(s.SnapShotPath);
-	psrc.Combine(s.SnapShotPath, MakeSnapshotFileName());
+	psrc.Combine(s.SnapShotPath, MakeSnapshotFileName(_T("snapshot")));
 
 	CFileDialog fd(FALSE, 0, (LPCTSTR)psrc, 
 		OFN_EXPLORER|OFN_ENABLESIZING|OFN_HIDEREADONLY|OFN_OVERWRITEPROMPT|OFN_PATHMUSTEXIST, 
@@ -3389,15 +3652,48 @@ void CMainFrame::OnFileSaveImage()
 void CMainFrame::OnFileSaveImageAuto()
 {
 	CString fn;
-	fn.Format(_T("%s\\%s"), AfxGetAppSettings().SnapShotPath, MakeSnapshotFileName());
+	fn.Format(_T("%s\\%s"), AfxGetAppSettings().SnapShotPath, MakeSnapshotFileName(_T("snapshot")));
 	SaveImage(fn);
 }
 
 void CMainFrame::OnUpdateFileSaveImage(CCmdUI* pCmdUI)
 {
 	OAFilterState fs = GetMediaState();
-	pCmdUI->Enable(m_iMediaLoadState == MLS_LOADED && !m_fAudioOnly 
-		&& (fs == State_Paused || fs == State_Running));
+	pCmdUI->Enable(m_iMediaLoadState == MLS_LOADED && !m_fAudioOnly && (fs == State_Paused || fs == State_Running));
+}
+
+void CMainFrame::OnFileSaveThumbnails()
+{
+	AppSettings& s = AfxGetAppSettings();
+
+	CPath psrc(s.SnapShotPath);
+	psrc.Combine(s.SnapShotPath, MakeSnapshotFileName(_T("thumbs")));
+
+	CFileDialog fd(FALSE, 0, (LPCTSTR)psrc, 
+		OFN_EXPLORER|OFN_ENABLESIZING|OFN_HIDEREADONLY|OFN_OVERWRITEPROMPT|OFN_PATHMUSTEXIST, 
+		_T("Bitmaps (*.bmp)|*.bmp|Jpeg (*.jpg)|*.jpg||"), this, 0);
+
+	if(s.SnapShotExt == _T(".bmp")) fd.m_pOFN->nFilterIndex = 1;
+	else if(s.SnapShotExt == _T(".jpg")) fd.m_pOFN->nFilterIndex = 2;
+
+	if(fd.DoModal() != IDOK) return;
+
+	if(fd.m_pOFN->nFilterIndex == 1) s.SnapShotExt = _T(".bmp");
+	else if(fd.m_pOFN->nFilterIndex = 2) s.SnapShotExt = _T(".jpg");
+
+	CPath pdst(fd.GetPathName());
+	pdst.AddExtension(s.SnapShotExt);
+	CString path = (LPCTSTR)pdst;
+	pdst.RemoveFileSpec();
+	s.SnapShotPath = (LPCTSTR)pdst;
+
+	SaveThumbnails(path);
+}
+
+void CMainFrame::OnUpdateFileSaveThumbnails(CCmdUI* pCmdUI)
+{
+	OAFilterState fs = GetMediaState();
+	pCmdUI->Enable(m_iMediaLoadState == MLS_LOADED && !m_fAudioOnly && (m_iPlaybackMode == PM_FILE /*|| m_iPlaybackMode == PM_DVD*/));
 }
 
 void CMainFrame::OnFileConvert()
@@ -8089,7 +8385,8 @@ void CMainFrame::SetupNavStreamSelectSubMenu(CMenu* pSub, UINT id, DWORD dwSelGr
 		|| !pszName)
 			continue;
 
-		CStringW name(pszName);
+		CString name(pszName);
+		CString lcname = CString(name).MakeLower();
 
 		if(pszName) CoTaskMemFree(pszName);
 
@@ -8102,7 +8399,7 @@ void CMainFrame::SetupNavStreamSelectSubMenu(CMenu* pSub, UINT id, DWORD dwSelGr
 
 		CString str;
 
-		if(CString(name).MakeLower().Find(L" off") >= 0)
+		if(lcname.Find(_T(" off")) >= 0)
 		{
 			str = _T("Disabled");
 		}
@@ -8118,8 +8415,10 @@ void CMainFrame::SetupNavStreamSelectSubMenu(CMenu* pSub, UINT id, DWORD dwSelGr
 				str.ReleaseBufferSetLength(max(len-1, 0));
 			}
 
-			if(str.IsEmpty()) str = CString(name);
-			else str = CString(name) + _T(" (") + str + _T(")"); 
+			CString lcstr = CString(str).MakeLower();
+
+			if(str.IsEmpty() || lcname.Find(lcstr) >= 0) str = name;
+			else if(!name.IsEmpty()) str = CString(name) + _T(" (") + str + _T(")");
 		}
 
 		UINT flags = MF_BYCOMMAND|MF_STRING|MF_ENABLED;
