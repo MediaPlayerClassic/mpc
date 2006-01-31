@@ -38,6 +38,9 @@ CStatusLabel::CStatusLabel(bool fRightAlign, bool fAddEllipses)
 	double scale = 1.0*GetDeviceCaps(hdc, LOGPIXELSY) / 96.0;
 	::ReleaseDC(0, hdc);
 
+	m_font.m_hObject = NULL;
+
+	if(!(::GetVersion()&0x80000000))
 	m_font.CreateFont(int(14.0 * scale), 0, 0, 0, FW_NORMAL, 0, 0, 0, DEFAULT_CHARSET,
 		OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY, DEFAULT_PITCH|FF_DONTCARE, 
 		_T("Microsoft Sans Serif"));

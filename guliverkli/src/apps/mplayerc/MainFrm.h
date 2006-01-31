@@ -273,7 +273,9 @@ class CMainFrame : public CFrameWnd, public CDropTarget
 	void ShowOptions(int idPage = 0);
 
 	bool GetDIB(BYTE** ppData, long& size, bool fSilent = false);
+	void SaveDIB(LPCTSTR fn, BYTE* pData, long size);
 	void SaveImage(LPCTSTR fn);
+	void SaveThumbnails(LPCTSTR fn);
 
 	//
 
@@ -529,6 +531,8 @@ public:
 	afx_msg void OnFileSaveImage();
 	afx_msg void OnFileSaveImageAuto();
 	afx_msg void OnUpdateFileSaveImage(CCmdUI* pCmdUI);
+	afx_msg void OnFileSaveThumbnails();
+	afx_msg void OnUpdateFileSaveThumbnails(CCmdUI* pCmdUI);
 	afx_msg void OnFileConvert();
 	afx_msg void OnUpdateFileConvert(CCmdUI* pCmdUI);
 	afx_msg void OnFileLoadsubtitles();
