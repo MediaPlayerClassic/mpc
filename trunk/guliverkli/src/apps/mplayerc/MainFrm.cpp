@@ -3367,6 +3367,7 @@ void CMainFrame::SaveThumbnails(LPCTSTR fn)
 	if(!pMC || !pMS || m_iPlaybackMode != PM_FILE /*&& m_iPlaybackMode != PM_DVD*/) 
 		return;
 
+	REFERENCE_TIME rtPos = GetPos();
 	REFERENCE_TIME rtDur = GetDur();
 
 	if(rtDur <= 0)
@@ -3447,6 +3448,7 @@ void CMainFrame::SaveThumbnails(LPCTSTR fn)
 	spd.bits = (BYTE*)(bih + 1) + (width*4)*(height-1);
 
 	CCritSec csSubLock;
+	RECT bbox;
 
 	for(int i = 1, pics = cols*rows; i <= pics; i++)
 	{
@@ -3499,7 +3501,6 @@ void CMainFrame::SaveThumbnails(LPCTSTR fn)
 			r.right-5, r.bottom-5, hmsf.bHours, hmsf.bMinutes, hmsf.bSeconds);
 		rts.Add(str, true, 1, 2, _T("thumbs"));
 
-		RECT bbox;
 		rts.Render(spd, 0, 25, bbox);
 
 		BYTE* pData = NULL;
@@ -3572,8 +3573,10 @@ void CMainFrame::SaveThumbnails(LPCTSTR fn)
 		rts.CreateDefaultStyle(0);
 		rts.m_dstScreenSize.SetSize(width, height);
 		STSStyle* style = new STSStyle();
-		style->marginRect.SetRect(margin*2, margin*2, margin*2, infoheight-margin);
+		style->marginRect.SetRect(margin*2, margin*2, margin*2, height-infoheight-margin);
 		rts.AddStyle(_T("thumbs"), style);
+
+		rts.Add(_T("{\\an6\\fs50\\bord0\\shad0\\1a&He8&\\1c&H0000ff&}Media Player Classic"), true, 0, 1, _T("thumbs"));
 
 		DVD_HMSF_TIMECODE hmsf = RT2HMSF(rtDur, 25);
 
@@ -3606,11 +3609,12 @@ void CMainFrame::SaveThumbnails(LPCTSTR fn)
 			fn, fs, wh.cx, wh.cy, ar, hmsf.bHours, hmsf.bMinutes, hmsf.bSeconds);
 		rts.Add(str, true, 0, 1, _T("thumbs"));
 
-		RECT bbox;
 		rts.Render(spd, 0, 25, bbox);
 	}
 
 	SaveDIB(fn, (BYTE*)dib, dibsize);
+
+	SeekTo(rtPos);
 }
 
 static CString MakeSnapshotFileName(LPCTSTR prefix)
