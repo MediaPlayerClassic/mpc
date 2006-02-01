@@ -678,23 +678,23 @@ BEGIN
     CONTROL         "Haali's Video Renderer",IDC_DSDXR,"Button",BS_AUTORADIOBUTTON,13,92,83,10
     CONTROL         "Null (anything)",IDC_DSNULL_COMP,"Button",BS_AUTORADIOBUTTON,13,103,63,10
     CONTROL         "Null (uncompressed)",IDC_DSNULL_UNCOMP,"Button",BS_AUTORADIOBUTTON,13,114,81,10
-    GROUPBOX        "RealMedia Video",IDC_STATIC,105,2,89,51
-    CONTROL         "System Default *",IDC_RMSYSDEF,"Button",BS_AUTORADIOBUTTON | WS_GROUP,113,15,71,10
-    CONTROL         "DirectX 7 **",IDC_RMDX7,"Button",BS_AUTORADIOBUTTON,113,26,55,10
-    CONTROL         "DirectX 9 **",IDC_RMDX9,"Button",BS_AUTORADIOBUTTON,113,37,55,10
-    GROUPBOX        "QuickTime Video",IDC_STATIC,199,2,89,51
-    CONTROL         "System Default *",IDC_QTSYSDEF,"Button",BS_AUTORADIOBUTTON | WS_GROUP,207,15,71,10
-    CONTROL         "DirectX 7 **",IDC_QTDX7,"Button",BS_AUTORADIOBUTTON,207,26,55,10
-    CONTROL         "DirectX 9 **",IDC_QTDX9,"Button",BS_AUTORADIOBUTTON,207,37,55,10
-    GROUPBOX        """VMR7/9 (renderless)"" && ""DirectX 7/9"" settings",IDC_STATIC,105,55,183,73
+    GROUPBOX        "RealMedia Video",IDC_STATIC,105,2,89,50
+    CONTROL         "System Default *",IDC_RMSYSDEF,"Button",BS_AUTORADIOBUTTON | WS_GROUP,113,14,71,10
+    CONTROL         "DirectX 7 **",IDC_RMDX7,"Button",BS_AUTORADIOBUTTON,113,25,55,10
+    CONTROL         "DirectX 9 **",IDC_RMDX9,"Button",BS_AUTORADIOBUTTON,113,36,55,10
+    GROUPBOX        "QuickTime Video",IDC_STATIC,199,2,89,50
+    CONTROL         "System Default *",IDC_QTSYSDEF,"Button",BS_AUTORADIOBUTTON | WS_GROUP,207,14,71,10
+    CONTROL         "DirectX 7 **",IDC_QTDX7,"Button",BS_AUTORADIOBUTTON,207,25,55,10
+    CONTROL         "DirectX 9 **",IDC_QTDX9,"Button",BS_AUTORADIOBUTTON,207,36,55,10
+    GROUPBOX        """VMR7/9 (renderless)"" && ""DirectX 7/9"" settings",IDC_STATIC,105,53,183,75
     CONTROL         "Use regular offscreen plain surfaces",IDC_REGULARSURF,
-                    "Button",BS_AUTORADIOBUTTON | WS_GROUP,113,67,131,10
+                    "Button",BS_AUTORADIOBUTTON | WS_GROUP,113,64,131,10
     CONTROL         "Use texture surfaces and render video in 2D",IDC_TEXTURESURF2D,
-                    "Button",BS_AUTORADIOBUTTON,113,78,158,10
+                    "Button",BS_AUTORADIOBUTTON,113,75,158,10
     CONTROL         "Use texture surfaces and render video in 3D ***",IDC_TEXTURESURF3D,
-                    "Button",BS_AUTORADIOBUTTON,113,89,172,10
-    LTEXT           "Resizer:",IDC_STATIC,134,107,27,8
-    COMBOBOX        IDC_DX9RESIZER_COMBO,163,105,94,49,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+                    "Button",BS_AUTORADIOBUTTON,113,86,172,10
+    LTEXT           "Resizer:",IDC_STATIC,134,99,27,8
+    COMBOBOX        IDC_DX9RESIZER_COMBO,163,98,94,49,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
     GROUPBOX        "DirectShow Audio",IDC_STATIC,5,129,283,28
     COMBOBOX        IDC_COMBO1,14,139,266,66,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
     CONTROL         "Lock back-buffer before presenting (may fix broken vertical syncronization)",IDC_CHECK1,
@@ -702,6 +702,7 @@ BEGIN
     LTEXT           "* Saving images won't work with these renderers",IDC_STATIC,13,171,158,8
     LTEXT           "** Required for loading subtitles",IDC_STATIC,13,181,104,8
     LTEXT           "*** Required for image rotation and pixelshaders (DX9-only)",IDC_STATIC,13,190,195,8
+    CONTROL         "VMR9 mixer mode",IDC_DSVMR9MIX,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,113,112,73,10
 END
 
 IDD_PPAGEMPEG DIALOGEX 0, 0, 296, 203
@@ -2262,6 +2263,7 @@ STRINGTABLE
 BEGIN
     IDS_SRC_MP4             "6.4.0.1"
     IDC_BUTTON_EXT_SET      "After clicking this button, the checked state of the format group will reflect the actual file association for mpc. A newly added extension will usually make it grayed, so don't forget to check it again before closing this dialog!"
+    IDC_DSVMR9MIX           "Puts VMR9 (renderless) into mixer mode, this means most of the controls on its property page will work and it will use a separate worker thread to renderer frames."
 END
 
 STRINGTABLE 

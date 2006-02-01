@@ -358,8 +358,11 @@ static HRESULT TextureBlt(CComPtr<IDirect3DDevice9> pD3DDev, MYD3DVERTEX<texcoor
         hr = pD3DDev->SetRenderState(D3DRS_CULLMODE, D3DCULL_NONE);
         hr = pD3DDev->SetRenderState(D3DRS_LIGHTING, FALSE);
 		hr = pD3DDev->SetRenderState(D3DRS_ZENABLE, FALSE);
+		hr = pD3DDev->SetRenderState(D3DRS_STENCILENABLE, FALSE);
     	hr = pD3DDev->SetRenderState(D3DRS_ALPHABLENDENABLE, FALSE);
 		hr = pD3DDev->SetRenderState(D3DRS_ALPHATESTENABLE, FALSE); 
+		hr = pD3DDev->SetRenderState(D3DRS_SCISSORTESTENABLE, FALSE); 
+		hr = pD3DDev->SetRenderState(D3DRS_COLORWRITEENABLE, D3DCOLORWRITEENABLE_ALPHA|D3DCOLORWRITEENABLE_BLUE|D3DCOLORWRITEENABLE_GREEN|D3DCOLORWRITEENABLE_RED); 
 
 		for(int i = 0; i < texcoords; i++)
 		{
@@ -432,6 +435,7 @@ HRESULT CDX9AllocatorPresenter::CreateDevice()
 	pp.Flags = D3DPRESENTFLAG_VIDEO;
 	pp.BackBufferWidth = d3ddm.Width;
 	pp.BackBufferHeight = d3ddm.Height;
+	pp.PresentationInterval = D3DPRESENT_INTERVAL_ONE;
 
 	if(m_fVMRSyncFix = AfxGetMyApp()->m_s.fVMRSyncFix)
 		pp.Flags = D3DPRESENTFLAG_LOCKABLE_BACKBUFFER;
@@ -919,6 +923,8 @@ STDMETHODIMP_(bool) CDX9AllocatorPresenter::Paint(bool fAll)
 	CComPtr<IDirect3DSurface9> pBackBuffer;
 	m_pD3DDev->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &pBackBuffer);
 
+	m_pD3DDev->SetRenderTarget(0, pBackBuffer);
+
 	if(fAll)
 	{
 		// clear the backbuffer
@@ -1001,6 +1007,7 @@ STDMETHODIMP_(bool) CDX9AllocatorPresenter::Paint(bool fAll)
 				{
 					hr = TextureResizeBicubic2pass(pVideoTexture, dst);
 				}
+
 			}
 			else
 			{
@@ -1431,6 +1438,9 @@ if(CComQIPtr<IAMVideoAccelerator> pAMVA = pPin)
 		if(!pConfig)
 			break;
 
+		if(AfxGetAppSettings().fVMR9MixerMode && FAILED(hr = pConfig->SetNumberOfStreams(1)))
+			break;
+
 		if(FAILED(hr = pConfig->SetRenderingMode(VMR9Mode_Renderless)))
 			break;
 
@@ -1478,7 +1488,10 @@ STDMETHODIMP CVMR9AllocatorPresenter::InitializeDevice(DWORD_PTR dwUserID, VMR9A
 	int w = lpAllocInfo->dwWidth;
 	int h = abs((int)lpAllocInfo->dwHeight);
 
-    HRESULT hr;
+	HRESULT hr;
+
+	if(lpAllocInfo->dwFlags & VMR9AllocFlag_3DRenderTarget)
+		lpAllocInfo->dwFlags |= VMR9AllocFlag_TextureSurface;
 
 	hr = m_pIVMRSurfAllocNotify->AllocateSurfaceHelper(lpAllocInfo, lpNumBuffers, &m_pSurfaces[0]);
 	if(FAILED(hr)) return hr;
@@ -1490,11 +1503,14 @@ STDMETHODIMP CVMR9AllocatorPresenter::InitializeDevice(DWORD_PTR dwUserID, VMR9A
 	if(FAILED(hr = AllocSurfaces()))
 		return hr;
 
-	// test if the colorspace is acceptable
-	if(FAILED(hr = m_pD3DDev->StretchRect(m_pSurfaces[0], NULL, m_pVideoSurface[0], NULL, D3DTEXF_NONE)))
+	if(!(lpAllocInfo->dwFlags & VMR9AllocFlag_TextureSurface))
 	{
-		DeleteSurfaces();
-		return E_FAIL;
+		// test if the colorspace is acceptable
+		if(FAILED(hr = m_pD3DDev->StretchRect(m_pSurfaces[0], NULL, m_pVideoSurface[0], NULL, D3DTEXF_NONE)))
+		{
+			DeleteSurfaces();
+			return E_FAIL;
+		}
 	}
 
 	hr = m_pD3DDev->ColorFill(m_pVideoSurface[0], NULL, 0);
@@ -1592,7 +1608,18 @@ STDMETHODIMP CVMR9AllocatorPresenter::PresentImage(DWORD_PTR dwUserID, VMR9Prese
 
 		CAutoLock cAutoLock(this);
 
-		hr = m_pD3DDev->StretchRect(lpPresInfo->lpSurf, NULL, m_pVideoSurface[0], NULL, D3DTEXF_NONE);
+		CComPtr<IDirect3DTexture9> pTexture;
+		lpPresInfo->lpSurf->GetContainer(IID_IDirect3DTexture9, (void**)&pTexture);
+
+		if(pTexture)
+		{
+			m_pVideoSurface[0] = lpPresInfo->lpSurf;
+			if(m_pVideoTexture[0]) m_pVideoTexture[0] = pTexture;
+		}
+		else
+		{
+			hr = m_pD3DDev->StretchRect(lpPresInfo->lpSurf, NULL, m_pVideoSurface[0], NULL, D3DTEXF_NONE);
+		}
 
 		if(lpPresInfo->rtEnd > lpPresInfo->rtStart)
 		{

@@ -46,6 +46,7 @@ public:
 	CComboBox m_iAudioRendererTypeCtrl;
 	BOOL m_fVMRSyncFix;
 	int m_iDX9Resizer;
+	BOOL m_fVMR9MixerMode;
 
 protected:
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV support

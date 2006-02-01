@@ -20,12 +20,7 @@
  */
 
 #include "StdAfx.h"
-#include <mmreg.h>
-#include <aviriff.h>
 #include "BaseMuxer.h"
-
-#include <initguid.h>
-#include "..\..\..\..\include\moreuuids.h"
 
 //
 // CBaseMuxerFilter
@@ -79,17 +74,17 @@ void CBaseMuxerFilter::AddInput()
 	if(FAILED(CreateInput(name, &pInputPin)) || !pInputPin) {ASSERT(0); return;}
 	CAutoPtr<CBaseMuxerInputPin> pAutoPtrInputPin(pInputPin);
 
-	name.Format(L"~Output %d", m_pOutputs.GetCount()+1);
+	name.Format(L"~Output %d", m_pRawOutputs.GetCount()+1);
 
-	CBaseMuxerOutputPin* pOutputPin = NULL;
-	if(FAILED(CreateOutput(name, &pOutputPin)) || !pOutputPin) {ASSERT(0); return;}
-	CAutoPtr<CBaseMuxerOutputPin> pAutoPtrOutputPin(pOutputPin);
+	CBaseMuxerRawOutputPin* pRawOutputPin = NULL;
+	if(FAILED(CreateRawOutput(name, &pRawOutputPin)) || !pRawOutputPin) {ASSERT(0); return;}
+	CAutoPtr<CBaseMuxerRawOutputPin> pAutoPtrRawOutputPin(pRawOutputPin);
 
-	pInputPin->SetRelatedPin(pOutputPin);
-	pOutputPin->SetRelatedPin(pInputPin);
+	pInputPin->SetRelatedPin(pRawOutputPin);
+	pRawOutputPin->SetRelatedPin(pInputPin);
 
 	m_pInputs.AddTail(pAutoPtrInputPin);
-	m_pOutputs.AddTail(pAutoPtrOutputPin);
+	m_pRawOutputs.AddTail(pAutoPtrRawOutputPin);
 }
 
 HRESULT CBaseMuxerFilter::CreateInput(CStringW name, CBaseMuxerInputPin** ppPin)
@@ -100,11 +95,11 @@ HRESULT CBaseMuxerFilter::CreateInput(CStringW name, CBaseMuxerInputPin** ppPin)
 	return hr;
 }
 
-HRESULT CBaseMuxerFilter::CreateOutput(CStringW name, CBaseMuxerOutputPin** ppPin)
+HRESULT CBaseMuxerFilter::CreateRawOutput(CStringW name, CBaseMuxerRawOutputPin** ppPin)
 {
 	CheckPointer(ppPin, E_POINTER);
 	HRESULT hr = S_OK;
-	*ppPin = new CBaseMuxerOutputPin(name, this, this, &hr);
+	*ppPin = new CBaseMuxerRawOutputPin(name, this, this, &hr);
 	return hr;
 }
 
@@ -178,8 +173,8 @@ DWORD CBaseMuxerFilter::ThreadProc()
 
 			m_pOutput->DeliverEndOfStream();
 
-			pos = m_pOutputs.GetHeadPosition();
-			while(pos) m_pOutputs.GetNext(pos)->DeliverEndOfStream();
+			pos = m_pRawOutputs.GetHeadPosition();
+			while(pos) m_pRawOutputs.GetNext(pos)->DeliverEndOfStream();
 
 			m_pActivePins.RemoveAll();
 			m_pPins.RemoveAll();
@@ -208,67 +203,9 @@ void CBaseMuxerFilter::MuxHeaderInternal()
 	POSITION pos = m_pPins.GetHeadPosition();
 	while(pos)
 	{
-		CBaseMuxerInputPin* pInput = m_pPins.GetNext(pos);
-		
-		CBaseMuxerOutputPin* pOutput = dynamic_cast<CBaseMuxerOutputPin*>(pInput->GetRelatedPin());
-		if(!pOutput) continue;
-
-		CComQIPtr<IBitStream> pBitStream = pOutput->GetBitStream();
-		if(!pBitStream) continue;
-
-		const CMediaType& mt = pInput->CurrentMediaType();
-
-		//
-
-		const BYTE utf8bom[3] = {0xef, 0xbb, 0xbf};
-
-		if((mt.subtype == FOURCCMap('1CVA') || mt.subtype == FOURCCMap('1cva')) && mt.formattype == FORMAT_MPEG2_VIDEO)
-		{
-			MPEG2VIDEOINFO* vih = (MPEG2VIDEOINFO*)mt.Format();
-
-			for(DWORD i = 0; i < vih->cbSequenceHeader-2; i += 2)
-			{
-				pBitStream->BitWrite(0x00000001, 32);
-				WORD size = (((BYTE*)vih->dwSequenceHeader)[i+0]<<8) | ((BYTE*)vih->dwSequenceHeader)[i+1];
-				pBitStream->ByteWrite(&((BYTE*)vih->dwSequenceHeader)[i+2], size);
-				i += size;
-			}
-		}
-		else if(mt.subtype == MEDIASUBTYPE_UTF8)
-		{
-			pBitStream->ByteWrite(utf8bom, sizeof(utf8bom));
-		}
-		else if(mt.subtype == MEDIASUBTYPE_SSA || mt.subtype == MEDIASUBTYPE_ASS || mt.subtype == MEDIASUBTYPE_ASS2)
-		{
-			SUBTITLEINFO* si = (SUBTITLEINFO*)mt.Format();
-			BYTE* p = (BYTE*)si + si->dwOffset;
-
-			if(memcmp(utf8bom, p, 3) != 0) 
-				pBitStream->ByteWrite(utf8bom, sizeof(utf8bom));;
-
-			CStringA str((char*)p, mt.FormatLength() - (p - mt.Format()));
-			pBitStream->StrWrite(str + '\n', true);
-
-			if(str.Find("[Events]") < 0) 
-				pBitStream->StrWrite("\n\n[Events]\n", true);
-		}
-		else if(mt.majortype == MEDIATYPE_Audio 
-			&& (mt.subtype == MEDIASUBTYPE_PCM 
-			|| mt.subtype == FOURCCMap(WAVE_FORMAT_EXTENSIBLE) 
-			|| mt.subtype == FOURCCMap(WAVE_FORMAT_IEEE_FLOAT))
-			&& mt.formattype == FORMAT_WaveFormatEx)
-		{
-			pBitStream->BitWrite('RIFF', 32);
-			pBitStream->BitWrite(0, 32); // file length - 8, set later
-			pBitStream->BitWrite('WAVE', 32);
-
-			pBitStream->BitWrite('fmt ', 32);
-			pBitStream->ByteWrite(&mt.cbFormat, 4);
-			pBitStream->ByteWrite(mt.pbFormat, mt.cbFormat);
-
-			pBitStream->BitWrite('data', 32);
-			pBitStream->BitWrite(0, 32); // data length, set later
-		}
+		if(CBaseMuxerInputPin* pInput = m_pPins.GetNext(pos))		
+		if(CBaseMuxerRawOutputPin* pOutput = dynamic_cast<CBaseMuxerRawOutputPin*>(pInput->GetRelatedPin()))
+			pOutput->MuxHeader(pInput->CurrentMediaType());
 	}
 }
 
@@ -287,167 +224,9 @@ void CBaseMuxerFilter::MuxPacketInternal(const MuxerPacket* pPacket)
 
 	MuxPacket(pPacket);
 
-	//
-
-	do
-	{
-		CBaseMuxerInputPin* pInput = pPacket->pPin;
-		if(!pInput) break;
-
-		CBaseMuxerOutputPin* pOutput = dynamic_cast<CBaseMuxerOutputPin*>(pInput->GetRelatedPin());
-		if(!pOutput) break;
-
-		CComQIPtr<IBitStream> pBitStream = pOutput->GetBitStream();
-		if(!pBitStream) break;
-
-		const CMediaType& mt = pInput->CurrentMediaType();
-
-		//
-
-		const BYTE* pData = pPacket->pData.GetData();
-		const int DataSize = pPacket->pData.GetSize();
-
-		if(mt.subtype == MEDIASUBTYPE_AAC && mt.formattype == FORMAT_WaveFormatEx)
-		{
-			WAVEFORMATEX* wfe = (WAVEFORMATEX*)mt.Format();
-
-			int profile = 0;
-
-			int srate_idx = 11;
-			if(92017 <= wfe->nSamplesPerSec) srate_idx = 0;
-			else if(75132 <= wfe->nSamplesPerSec) srate_idx = 1;
-			else if(55426 <= wfe->nSamplesPerSec) srate_idx = 2;
-			else if(46009 <= wfe->nSamplesPerSec) srate_idx = 3;
-			else if(37566 <= wfe->nSamplesPerSec) srate_idx = 4;
-			else if(27713 <= wfe->nSamplesPerSec) srate_idx = 5;
-			else if(23004 <= wfe->nSamplesPerSec) srate_idx = 6;
-			else if(18783 <= wfe->nSamplesPerSec) srate_idx = 7;
-			else if(13856 <= wfe->nSamplesPerSec) srate_idx = 8;
-			else if(11502 <= wfe->nSamplesPerSec) srate_idx = 9;
-			else if(9391 <= wfe->nSamplesPerSec) srate_idx = 10;
-
-			int channels = wfe->nChannels;
-
-			if(wfe->cbSize >= 2)
-			{
-				BYTE* p = (BYTE*)(wfe+1);
-				profile = (p[0]>>3)-1;
-				srate_idx = ((p[0]&7)<<1)|((p[1]&0x80)>>7);
-				channels = (p[1]>>3)&15;
-			}
-
-			int len = (DataSize + 7) & 0x1fff;
-
-			BYTE hdr[7] = {0xff, 0xf9};
-			hdr[2] = (profile<<6) | (srate_idx<<2) | ((channels&4)>>2);
-			hdr[3] = ((channels&3)<<6) | (len>>11);
-			hdr[4] = (len>>3)&0xff;
-			hdr[5] = ((len&7)<<5) | 0x1f;
-			hdr[6] = 0xfc;
-
-			pBitStream->ByteWrite(hdr, sizeof(hdr));
-		}
-		else if((mt.subtype == FOURCCMap('1CVA') || mt.subtype == FOURCCMap('1cva')) && mt.formattype == FORMAT_MPEG2_VIDEO)
-		{
-			const BYTE* p = pData;
-			int i = DataSize;
-
-			while(i >= 4)
-			{
-				DWORD len = (p[0]<<24)|(p[1]<<16)|(p[2]<<8)|p[3];
-
-				i -= len + 4;
-				p += len + 4;
-			}
-
-			if(i == 0)
-			{
-				p = pData;
-				i = DataSize;
-
-				while(i >= 4)
-				{
-					DWORD len = (p[0]<<24)|(p[1]<<16)|(p[2]<<8)|p[3];
-
-					pBitStream->BitWrite(0x00000001, 32);
-
-					p += 4; 
-					i -= 4;
-
-					if(len > i || len == 1) {len = i; ASSERT(0);}
-
-					pBitStream->ByteWrite(p, len);
-
-					p += len;
-					i -= len;
-				}
-
-				break;
-			}
-		}
-		else if(mt.subtype == MEDIASUBTYPE_UTF8 || mt.majortype == MEDIATYPE_Text)
-		{
-			CStringA str((char*)pData, DataSize);
-			str.Trim();
-			if(str.IsEmpty()) break;
-
-			DVD_HMSF_TIMECODE start = RT2HMSF(pPacket->rtStart, 25);
-			DVD_HMSF_TIMECODE stop = RT2HMSF(pPacket->rtStop, 25);
-
-			str.Format("%d\n%02d:%02d:%02d,%03d --> %02d:%02d:%02d,%03d\n%s\n\n", 
-				pPacket->index+1,
-				start.bHours, start.bMinutes, start.bSeconds, (int)((pPacket->rtStart/10000)%1000), 
-				stop.bHours, stop.bMinutes, stop.bSeconds, (int)((pPacket->rtStop/10000)%1000),
-				CStringA(str));
-
-			pBitStream->StrWrite(str, true);
-
-			break;
-		}
-		else if(mt.subtype == MEDIASUBTYPE_SSA || mt.subtype == MEDIASUBTYPE_ASS || mt.subtype == MEDIASUBTYPE_ASS2)
-		{
-			CStringA str((char*)pData, DataSize);
-			str.Trim();
-			if(str.IsEmpty()) break;
-
-			DVD_HMSF_TIMECODE start = RT2HMSF(pPacket->rtStart, 25);
-			DVD_HMSF_TIMECODE stop = RT2HMSF(pPacket->rtStop, 25);
-
-			int fields = mt.subtype == MEDIASUBTYPE_ASS2 ? 10 : 9;
-
-			CList<CStringA> sl;
-			Explode(str, sl, ',', fields);
-			if(sl.GetCount() < fields) break;
-
-			CStringA readorder = sl.RemoveHead(); // TODO
-			CStringA layer = sl.RemoveHead();
-			CStringA style = sl.RemoveHead();
-			CStringA actor = sl.RemoveHead();
-			CStringA left = sl.RemoveHead();
-			CStringA right = sl.RemoveHead();
-			CStringA top = sl.RemoveHead();
-			if(fields == 10) top += ',' + sl.RemoveHead(); // bottom
-			CStringA effect = sl.RemoveHead();
-			str = sl.RemoveHead();
-
-			if(mt.subtype == MEDIASUBTYPE_SSA) layer = "Marked=0";
-
-			str.Format("Dialogue: %s,%d:%02d:%02d.%02d,%d:%02d:%02d.%02d,%s,%s,%s,%s,%s,%s,%s\n",
-				layer,
-				start.bHours, start.bMinutes, start.bSeconds, (int)((pPacket->rtStart/100000)%100), 
-				stop.bHours, stop.bMinutes, stop.bSeconds, (int)((pPacket->rtStop/100000)%100),
-				style, actor, left, right, top, effect, 
-				CStringA(str));
-
-			pBitStream->StrWrite(str, true);
-
-			break;
-		}
-		// else // TODO: restore more streams (vorbis to ogg, vobsub to idx/sub)
-
-		pBitStream->ByteWrite(pData, DataSize);
-	}
-	while(0);
+	if(CBaseMuxerInputPin* pInput = pPacket->pPin)
+	if(CBaseMuxerRawOutputPin* pOutput = dynamic_cast<CBaseMuxerRawOutputPin*>(pInput->GetRelatedPin()))
+		pOutput->MuxPacket(pInput->CurrentMediaType(), pPacket);
 }
 
 void CBaseMuxerFilter::MuxFooterInternal()
@@ -464,35 +243,9 @@ void CBaseMuxerFilter::MuxFooterInternal()
 	POSITION pos = m_pPins.GetHeadPosition();
 	while(pos)
 	{
-		CBaseMuxerInputPin* pInput = m_pPins.GetNext(pos);
-		
-		CBaseMuxerOutputPin* pOutput = dynamic_cast<CBaseMuxerOutputPin*>(pInput->GetRelatedPin());
-		if(!pOutput) continue;
-
-		CComQIPtr<IBitStream> pBitStream = pOutput->GetBitStream();
-		if(!pBitStream) continue;
-
-		const CMediaType& mt = pInput->CurrentMediaType();
-
-		if(mt.majortype == MEDIATYPE_Audio 
-			&& (mt.subtype == MEDIASUBTYPE_PCM 
-			|| mt.subtype == FOURCCMap(WAVE_FORMAT_EXTENSIBLE) 
-			|| mt.subtype == FOURCCMap(WAVE_FORMAT_IEEE_FLOAT))
-			&& mt.formattype == FORMAT_WaveFormatEx)
-		{
-			pBitStream->BitFlush();
-
-			ASSERT(pBitStream->GetPos() <= 0xffffffff);
-			UINT32 size = (UINT32)pBitStream->GetPos();
-
-			size -= 8;
-			pBitStream->Seek(4);
-			pBitStream->ByteWrite(&size, 4);
-
-			size -= sizeof(RIFFLIST) + sizeof(RIFFCHUNK) + mt.FormatLength();
-			pBitStream->Seek(sizeof(RIFFLIST) + sizeof(RIFFCHUNK) + mt.FormatLength() + 4);
-			pBitStream->ByteWrite(&size, 4);
-		}
+		if(CBaseMuxerInputPin* pInput = m_pPins.GetNext(pos))		
+		if(CBaseMuxerRawOutputPin* pOutput = dynamic_cast<CBaseMuxerRawOutputPin*>(pInput->GetRelatedPin()))
+			pOutput->MuxFooter(pInput->CurrentMediaType());
 	}
 }
 
@@ -547,7 +300,7 @@ CAutoPtr<MuxerPacket> CBaseMuxerFilter::GetPacket()
 
 int CBaseMuxerFilter::GetPinCount()
 {
-	return m_pInputs.GetCount() + (m_pOutput ? 1 : 0) + m_pOutputs.GetCount();
+	return m_pInputs.GetCount() + (m_pOutput ? 1 : 0) + m_pRawOutputs.GetCount();
 }
 
 CBasePin* CBaseMuxerFilter::GetPin(int n)
@@ -569,13 +322,13 @@ CBasePin* CBaseMuxerFilter::GetPin(int n)
 
 	n--;
 
-	if(n >= 0 && n < (int)m_pOutputs.GetCount())
+	if(n >= 0 && n < (int)m_pRawOutputs.GetCount())
 	{
-		if(POSITION pos = m_pOutputs.FindIndex(n))
-			return m_pOutputs.GetAt(pos);
+		if(POSITION pos = m_pRawOutputs.FindIndex(n))
+			return m_pRawOutputs.GetAt(pos);
 	}
 
-	n -= m_pOutputs.GetCount();
+	n -= m_pRawOutputs.GetCount();
 
 	return NULL;
 }

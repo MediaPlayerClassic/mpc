@@ -40,6 +40,7 @@ CPPageOutput::CPPageOutput()
 	, m_iAudioRendererType(0)
 	, m_fVMRSyncFix(FALSE)
 	, m_iDX9Resizer(0)
+	, m_fVMR9MixerMode(FALSE)
 {
 }
 
@@ -58,6 +59,7 @@ void CPPageOutput::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_COMBO1, m_iAudioRendererTypeCtrl);
 	DDX_Check(pDX, IDC_CHECK1, m_fVMRSyncFix);
 	DDX_CBIndex(pDX, IDC_DX9RESIZER_COMBO, m_iDX9Resizer);
+	DDX_Check(pDX, IDC_DSVMR9MIX, m_fVMR9MixerMode);
 }
 
 
@@ -79,6 +81,7 @@ BOOL CPPageOutput::OnInitDialog()
 	m_iAPSurfaceUsage = s.iAPSurfaceUsage;
 	m_fVMRSyncFix = s.fVMRSyncFix;
 	m_iDX9Resizer = s.iDX9Resizer;
+	m_fVMR9MixerMode = s.fVMR9MixerMode;
 
 	m_AudioRendererDisplayNames.Add(_T(""));
 	m_iAudioRendererTypeCtrl.AddString(_T("System Default"));
@@ -180,6 +183,7 @@ BOOL CPPageOutput::OnApply()
 	s.fVMRSyncFix = !!m_fVMRSyncFix;
 	s.AudioRendererDisplayName = m_AudioRendererDisplayNames[m_iAudioRendererType];
 	s.iDX9Resizer = m_iDX9Resizer;
+	s.fVMR9MixerMode = !!m_fVMR9MixerMode;
 
 	return __super::OnApply();
 }

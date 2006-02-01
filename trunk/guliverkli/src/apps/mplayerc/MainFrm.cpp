@@ -3159,6 +3159,9 @@ void CMainFrame::OnDropFiles(HDROP hDropInfo)
 		if(LoadSubtitle(sl.GetHead()))
 		{
 			SetSubtitle(m_pSubStreams.GetTail());
+			CPath p(sl.GetHead());
+			p.StripPath();
+			SendStatusMessage(CString((LPCTSTR)p) + _T(" loaded successfully"), 3000);
 			return;
 		}
 	}
@@ -3593,10 +3596,10 @@ void CMainFrame::SaveThumbnails(LPCTSTR fn)
 
 			__int64 size = (__int64(wfd.nFileSizeHigh)<<32)|wfd.nFileSizeLow;
 			__int64 shortsize = size;
-			CString measure = _T("B");
-			if(shortsize > 10240) shortsize /= 1024, measure = _T("KB");
-			if(shortsize > 10240) shortsize /= 1024, measure = _T("MB");
-			if(shortsize > 10240) shortsize /= 1024, measure = _T("GB");
+			CStringW measure = _T("B");
+			if(shortsize > 10240) shortsize /= 1024, measure = L"KB";
+			if(shortsize > 10240) shortsize /= 1024, measure = L"MB";
+			if(shortsize > 10240) shortsize /= 1024, measure = L"GB";
 			fs.Format(L"File Size: %I64d%s (%I64d bytes)\\N", shortsize, measure, size);
 		}
 
@@ -3645,7 +3648,7 @@ void CMainFrame::OnFileSaveImage()
 	else if(fd.m_pOFN->nFilterIndex = 2) s.SnapShotExt = _T(".jpg");
 
 	CPath pdst(fd.GetPathName());
-	pdst.AddExtension(s.SnapShotExt);
+	if(pdst.GetExtension().MakeLower() != s.SnapShotExt) pdst += s.SnapShotExt;
 	CString path = (LPCTSTR)pdst;
 	pdst.RemoveFileSpec();
 	s.SnapShotPath = (LPCTSTR)pdst;
@@ -3686,7 +3689,7 @@ void CMainFrame::OnFileSaveThumbnails()
 	else if(fd.m_pOFN->nFilterIndex = 2) s.SnapShotExt = _T(".jpg");
 
 	CPath pdst(fd.GetPathName());
-	pdst.AddExtension(s.SnapShotExt);
+	if(pdst.GetExtension().MakeLower() != s.SnapShotExt) pdst += s.SnapShotExt;
 	CString path = (LPCTSTR)pdst;
 	pdst.RemoveFileSpec();
 	s.SnapShotPath = (LPCTSTR)pdst;
