@@ -427,11 +427,11 @@ void CConvertDlg::ShowPinPopup(HTREEITEM hTI, CPoint p)
 			else if(mt.subtype == MEDIASUBTYPE_UTF8 || mt.majortype == MEDIATYPE_Text) ext = _T("srt");
 			else if(mt.subtype == MEDIASUBTYPE_SSA) ext = _T("ssa");
 			else if(mt.subtype == MEDIASUBTYPE_ASS || mt.subtype == MEDIASUBTYPE_ASS2) ext = _T("ass");
+			else if(mt.subtype == MEDIASUBTYPE_VOBSUB) ext = _T("sub");
 			// TODO: else if...
 
 			CPath path(m_fn);
-			path.RemoveExtension();
-			path += '.' + ext;
+			path.RenameExtension('.' + ext);
 
 			CFileDialog fd(TRUE, NULL, (LPCTSTR)path, 
 				OFN_EXPLORER|OFN_ENABLESIZING|OFN_HIDEREADONLY, 

@@ -36,7 +36,7 @@ class CBaseMuxerFilter
 private:
 	CAutoPtrList<CBaseMuxerInputPin> m_pInputs;
 	CAutoPtr<CBaseMuxerOutputPin> m_pOutput;
-	CAutoPtrList<CBaseMuxerOutputPin> m_pOutputs;
+	CAutoPtrList<CBaseMuxerRawOutputPin> m_pRawOutputs;
 
 	enum {CMD_EXIT, CMD_RUN};
 	DWORD ThreadProc();
@@ -68,7 +68,7 @@ protected:
 
 	// allows customized pins in derived classes
 	virtual HRESULT CreateInput(CStringW name, CBaseMuxerInputPin** ppPin);
-	virtual HRESULT CreateOutput(CStringW name, CBaseMuxerOutputPin** ppPin);
+	virtual HRESULT CreateRawOutput(CStringW name, CBaseMuxerRawOutputPin** ppPin);
 
 public:
 	CBaseMuxerFilter(LPUNKNOWN pUnk, HRESULT* phr, const CLSID& clsid);

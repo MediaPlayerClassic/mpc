@@ -446,6 +446,7 @@
 #define IDS_RS_FREEWINDOWRESIZING       630
 #define IDS_RS_NOTIFYMSN                631
 #define IDS_RS_NOTIFYGTSDLL             632
+#define IDS_RS_VMR9MIXERMODE			633
 #define IDC_BROWSEBUTTON                1016
 #define IDC_BROWSEBUTTON2               1017
 #define IDC_COMBO1                      1018
@@ -666,6 +667,7 @@
 #define IDC_STATICLINKGTS               1169
 #define IDC_BUTTON_EXT_SETIDC_BUTTON11  1170
 #define IDC_BUTTON_EXT_SET              1170
+#define IDC_DSVMR9MIX                   1171
 #define IDD_COMPROPERTYPAGE             10002
 #define IDD_FILEPROPCLIP1               10003
 #define IDD_FILEPROPRES                 10003
@@ -801,7 +803,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        421
 #define _APS_NEXT_COMMAND_VALUE         32878
-#define _APS_NEXT_CONTROL_VALUE         1171
+#define _APS_NEXT_CONTROL_VALUE         1172
 #define _APS_NEXT_SYMED_VALUE           10003
 #endif
 #endif

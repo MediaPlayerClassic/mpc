@@ -42,7 +42,7 @@ static struct filter_t {LPCTSTR label; int type; int flag; UINT nHintID;} s_filt
 	{_T("DVD2AVI Project File"), 0, SRC_D2V, IDS_SRC_D2V},
 	{_T("FLI/FLC"), 0, SRC_FLIC, IDS_SRC_FLIC},
 	{_T("Matroska"), 0, SRC_MATROSKA, IDS_SRC_MATROSKA},
-	{_T("MP4"), 0, SRC_MP4, IDS_SRC_MP4},
+	{_T("MP4/MOV"), 0, SRC_MP4, IDS_SRC_MP4},
 	{_T("MPEG Audio"), 0, SRC_MPA, IDS_SRC_MPA},
 	{_T("MPEG PS/TS/PVA"), 0, SRC_MPEG, 0},
 	{_T("Nut"), 0, SRC_NUT, IDS_SRC_NUT},

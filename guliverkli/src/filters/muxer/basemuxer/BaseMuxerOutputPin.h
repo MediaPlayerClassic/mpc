@@ -22,18 +22,16 @@
 #pragma once
 
 #include "BitStream.h"
+#include "BaseMuxerInputPin.h"
 #include "BaseMuxerRelatedPin.h"
 
-class CBaseMuxerOutputPin : public CBaseOutputPin, public CBaseMuxerRelatedPin
+class CBaseMuxerOutputPin : public CBaseOutputPin
 {
 	CComPtr<IBitStream> m_pBitStream;
 
 public:
 	CBaseMuxerOutputPin(LPCWSTR pName, CBaseFilter* pFilter, CCritSec* pLock, HRESULT* phr);
-	virtual ~CBaseMuxerOutputPin();
-
-	DECLARE_IUNKNOWN;
-    STDMETHODIMP NonDelegatingQueryInterface(REFIID riid, void** ppv);
+	virtual ~CBaseMuxerOutputPin() {}
 
 	IBitStream* GetBitStream();
 
@@ -47,4 +45,21 @@ public:
     HRESULT DeliverEndOfStream();
 
 	STDMETHODIMP Notify(IBaseFilter* pSender, Quality q);
+};
+
+class CBaseMuxerRawOutputPin : public CBaseMuxerOutputPin, public CBaseMuxerRelatedPin
+{
+	struct idx_t {REFERENCE_TIME rt; __int64 fp;};
+	CAtlList<idx_t> m_idx;
+
+public:
+	CBaseMuxerRawOutputPin(LPCWSTR pName, CBaseFilter* pFilter, CCritSec* pLock, HRESULT* phr);
+	virtual ~CBaseMuxerRawOutputPin() {}
+
+	DECLARE_IUNKNOWN;
+    STDMETHODIMP NonDelegatingQueryInterface(REFIID riid, void** ppv);
+
+	virtual void MuxHeader(const CMediaType& mt);
+	virtual void MuxPacket(const CMediaType& mt, const MuxerPacket* pPacket);
+	virtual void MuxFooter(const CMediaType& mt);
 };

@@ -920,9 +920,11 @@ bool CBaseSplitterFileEx::Read(trhdr& h, bool fSync)
 		}
 
 		h.bytes -= h.length+1;
+
+		if(h.bytes < 0) {ASSERT(0); return false;}
 	}
 
-	return(true);
+	return true;
 }
 
 bool CBaseSplitterFileEx::Read(pvahdr& h, bool fSync)

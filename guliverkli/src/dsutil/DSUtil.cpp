@@ -2080,6 +2080,18 @@ CString ISO6391To6392(LPCSTR code)
 	return _T("");
 }
 
+CString ISO6392To6391(LPCSTR code)
+{
+	CHAR tmp[3+1];
+	strncpy(tmp, code, 3);
+	tmp[3] = 0;
+	_strlwr(tmp);
+	for(int i = 0, j = countof(s_isolangs); i < j; i++)
+		if(!strcmp(s_isolangs[i].iso6392, tmp))
+			return CString(CStringA(s_isolangs[i].iso6391));
+	return _T("");
+}
+
 CString LanguageToISO6392(LPCTSTR lang)
 {
 	CString str = lang;

@@ -362,6 +362,7 @@ public:
 		int iAPSurfaceUsage;
 		bool fVMRSyncFix;
 		int iDX9Resizer;
+		bool fVMR9MixerMode;
 
 		int nVolume;
 		int nBalance;
