@@ -3450,6 +3450,13 @@ void CMainFrame::SaveThumbnails(LPCTSTR fn)
 	spd.pitch = -width*4;
 	spd.bits = (BYTE*)(bih + 1) + (width*4)*(height-1);
 
+	{
+		BYTE* p = (BYTE*)spd.bits;
+		for(int y = 0; y < spd.h; y++, p += spd.pitch)
+		for(int x = 0; x < spd.w; x++)
+			((DWORD*)p)[x] = 0x010101 * (0xe0 + 0x08*y/spd.h + 0x18*(spd.w-x)/spd.w);
+	}
+
 	CCritSec csSubLock;
 	RECT bbox;
 
@@ -3460,10 +3467,14 @@ void CMainFrame::SaveThumbnails(LPCTSTR fn)
 
 		SeekTo(rt);
 
+		m_VolumeBeforeFrameStepping = m_wndToolBar.Volume;
+		pBA->put_Volume(-10000);
+
 		HRESULT hr = pFS ? pFS->Step(1, NULL) : E_FAIL;
 
 		if(FAILED(hr))
 		{
+			pBA->put_Volume(m_VolumeBeforeFrameStepping);
 			AfxMessageBox(_T("Cannot frame step, try a different video renderer."));
 			return;
 		}
@@ -3480,6 +3491,8 @@ void CMainFrame::SaveThumbnails(LPCTSTR fn)
 				if(EC_STEP_COMPLETE == evCode) hGraphEvent = NULL;
 			}
 		}
+
+		pBA->put_Volume(m_VolumeBeforeFrameStepping);
 
 		int col = (i-1)%cols;
 		int row = (i-1)/cols;
@@ -3579,7 +3592,10 @@ void CMainFrame::SaveThumbnails(LPCTSTR fn)
 		style->marginRect.SetRect(margin*2, margin*2, margin*2, height-infoheight-margin);
 		rts.AddStyle(_T("thumbs"), style);
 
-		rts.Add(_T("{\\an6\\fs50\\bord0\\shad0\\1a&He8&\\1c&H0000ff&}Media Player Classic"), true, 0, 1, _T("thumbs"));
+		CStringW str;
+		str.Format(_T("{\\an9\\fs%d\\b1\\bord0\\shad0\\1c&Hffffff&}Media Player Classic"), infoheight-10);
+
+		rts.Add(str, true, 0, 1, _T("thumbs"), _T(""), _T(""), CRect(0,0,0,0), -1);
 
 		DVD_HMSF_TIMECODE hmsf = RT2HMSF(rtDur, 25);
 
@@ -3607,7 +3623,6 @@ void CMainFrame::SaveThumbnails(LPCTSTR fn)
 		if(arxy.cx > 0 && arxy.cy > 0 && arxy.cx != wh.cx && arxy.cy != wh.cy)
 			ar.Format(L"(%d:%d)", arxy.cx, arxy.cy);
 
-		CStringW str;
 		str.Format(L"{\\an7\\1c&H000000&\\fs16\\b0\\bord0\\shad0}File Name: %s\\N%sResolution: %dx%d %s\\NDuration: %02d:%02d:%02d", 
 			fn, fs, wh.cx, wh.cy, ar, hmsf.bHours, hmsf.bMinutes, hmsf.bSeconds);
 		rts.Add(str, true, 0, 1, _T("thumbs"));
