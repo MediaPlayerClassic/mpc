@@ -97,7 +97,7 @@ BEGIN_MESSAGE_MAP(CFavoriteOrganizeDlg, CResizableDialog)
 	ON_BN_CLICKED(IDC_BUTTON1, OnBnClickedButton1)
 	ON_BN_CLICKED(IDC_BUTTON2, OnBnClickedButton2)
 	ON_BN_CLICKED(IDC_BUTTON3, OnBnClickedButton3)
-	ON_BN_CLICKED(IDC_BUTTON7, OnBnClickedButton7)
+	ON_BN_CLICKED(IDC_BUTTON4, OnBnClickedButton7)
 	ON_NOTIFY(TCN_SELCHANGING, IDC_TAB1, OnTcnSelchangingTab1)
 	ON_BN_CLICKED(IDOK, OnBnClickedOk)
 	ON_WM_ACTIVATE()
@@ -131,7 +131,7 @@ BOOL CFavoriteOrganizeDlg::OnInitDialog()
 	AddAnchor(IDC_BUTTON1, TOP_RIGHT);
 	AddAnchor(IDC_BUTTON2, TOP_RIGHT);
 	AddAnchor(IDC_BUTTON3, TOP_RIGHT);
-	AddAnchor(IDC_BUTTON7, TOP_RIGHT);
+	AddAnchor(IDC_BUTTON4, TOP_RIGHT);
 	AddAnchor(IDOK, BOTTOM_RIGHT);
 
 	return TRUE;  // return TRUE unless you set the focus to a control

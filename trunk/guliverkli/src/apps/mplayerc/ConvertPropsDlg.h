@@ -39,7 +39,7 @@ public:
 	CAtlStringMap<> m_props;
 
 // Dialog Data
-	enum { IDD = IDD_CONVERTPROPSDIALOG };
+	enum { IDD = IDD_CONVERTPROPS_DLG };
 	CComboBox m_fcc;
 	CEdit m_text;
 	CListCtrl m_list;

@@ -25,10 +25,10 @@ void CShaderCombineDlg::DoDataExchange(CDataExchange* pDX)
 }
 
 BEGIN_MESSAGE_MAP(CShaderCombineDlg, CResizableDialog)
-	ON_BN_CLICKED(IDC_BUTTON12, &CShaderCombineDlg::OnBnClickedButton12)
-	ON_BN_CLICKED(IDC_BUTTON13, &CShaderCombineDlg::OnBnClickedButton13)
+	ON_BN_CLICKED(IDC_BUTTON2, &CShaderCombineDlg::OnBnClickedButton12)
+	ON_BN_CLICKED(IDC_BUTTON3, &CShaderCombineDlg::OnBnClickedButton13)
 	ON_BN_CLICKED(IDC_BUTTON1, &CShaderCombineDlg::OnBnClickedButton1)
-	ON_BN_CLICKED(IDC_BUTTON11, &CShaderCombineDlg::OnBnClickedButton11)
+	ON_BN_CLICKED(IDC_BUTTON4, &CShaderCombineDlg::OnBnClickedButton11)
 END_MESSAGE_MAP()
 
 // CShaderCombineDlg message handlers
@@ -40,10 +40,10 @@ BOOL CShaderCombineDlg::OnInitDialog()
 	AddAnchor(IDC_LIST1, TOP_LEFT, BOTTOM_RIGHT);
 	AddAnchor(IDC_COMBO1, BOTTOM_LEFT, BOTTOM_RIGHT);
 	AddAnchor(IDC_STATIC1, BOTTOM_LEFT, BOTTOM_RIGHT);
-	AddAnchor(IDC_BUTTON12, BOTTOM_RIGHT);
-	AddAnchor(IDC_BUTTON13, BOTTOM_RIGHT);
+	AddAnchor(IDC_BUTTON2, BOTTOM_RIGHT);
+	AddAnchor(IDC_BUTTON3, BOTTOM_RIGHT);
 	AddAnchor(IDC_BUTTON1, TOP_RIGHT);
-	AddAnchor(IDC_BUTTON11, TOP_RIGHT);
+	AddAnchor(IDC_BUTTON4, TOP_RIGHT);
 	AddAnchor(IDOK, TOP_RIGHT);
 	AddAnchor(IDCANCEL, TOP_RIGHT);
 

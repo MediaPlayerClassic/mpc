@@ -389,6 +389,7 @@ public:
 		bool fExitFullScreenAtTheEnd;
 		bool fRememberWindowPos;
 		bool fRememberWindowSize;
+		bool fSnapToDesktopEdges;
 		CRect rcLastWindowPos;
 		UINT lastWindowType;
 		CSize AspectRatio;
@@ -472,6 +473,7 @@ public:
 		CString WebServerCGI;
 
 		CString SnapShotPath, SnapShotExt;
+		int ThumbRows, ThumbCols;
 
 		CString ISDb;
 

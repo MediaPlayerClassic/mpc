@@ -30,7 +30,7 @@ public:
 	virtual ~CConvertChapDlg();
 
 // Dialog Data
-	enum { IDD = IDD_CONVERTCHAPDIALOG };
+	enum { IDD = IDD_CONVERTCHAP_DLG };
 	CString m_time;
 	CString m_name;
 

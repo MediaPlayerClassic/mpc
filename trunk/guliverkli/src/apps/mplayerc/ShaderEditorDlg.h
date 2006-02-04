@@ -57,7 +57,7 @@ public:
 	BOOL Create(CWnd* pParent = NULL);
 
 // Dialog Data
-	enum { IDD = IDD_SHADEREDITORDIALOG };
+	enum { IDD = IDD_SHADEREDITOR_DLG };
 	CShaderLabelComboBox m_labels;
 	CComboBox m_targets;
 	CShaderEdit m_srcdata;

@@ -1856,11 +1856,11 @@ HRESULT CRealAudioDecoder::InitRA(const CMediaType* pmt)
 {
 	FreeRA();
 
-	HRESULT hr = VFW_E_TYPE_NOT_ACCEPTED;
+	HRESULT hr;
 
 	if(RAOpenCodec2 && FAILED(hr = RAOpenCodec2(&m_dwCookie, m_dllpath))
 	|| RAOpenCodec && FAILED(hr = RAOpenCodec(&m_dwCookie)))
-		return hr;
+		return VFW_E_TYPE_NOT_ACCEPTED;
 
 	WAVEFORMATEX* pwfe = (WAVEFORMATEX*)pmt->Format();
 
@@ -1892,7 +1892,7 @@ HRESULT CRealAudioDecoder::InitRA(const CMediaType* pmt)
 	else
 	{
 		if(pmt->FormatLength() <= sizeof(WAVEFORMATEX) + cbSize) // must have type_specific_data appended
-			return hr;
+			return VFW_E_TYPE_NOT_ACCEPTED;
 
 		BYTE* fmt = pmt->Format() + sizeof(WAVEFORMATEX) + cbSize;
 
@@ -1911,7 +1911,7 @@ HRESULT CRealAudioDecoder::InitRA(const CMediaType* pmt)
 		{
 			p = (BYTE*)((rainfo4*)fmt+1);
 			int len = *p++; p += len; len = *p++; p += len; 
-			ASSERT(len == 4);		
+			ASSERT(len == 4);
 		}
 		else if(m_rai.version2 == 5)
 		{
@@ -1919,7 +1919,7 @@ HRESULT CRealAudioDecoder::InitRA(const CMediaType* pmt)
 		}
 		else
 		{
-			return hr;
+			return VFW_E_TYPE_NOT_ACCEPTED;
 		}
 
 		p += 3;
@@ -1932,15 +1932,15 @@ HRESULT CRealAudioDecoder::InitRA(const CMediaType* pmt)
 	}
 
 	if(FAILED(hr = RAInitDecoder(m_dwCookie, &initdata)))
-		return hr;
+		return VFW_E_TYPE_NOT_ACCEPTED;
 
 	if(RASetPwd)
 		RASetPwd(m_dwCookie, "Ardubancel Quazanga");
 
 	if(RASetFlavor && FAILED(hr = RASetFlavor(m_dwCookie, m_rai.flavor)))
-		return hr;
+		return VFW_E_TYPE_NOT_ACCEPTED;
 
-	return hr;
+	return S_OK;
 }
 
 void CRealAudioDecoder::FreeRA()

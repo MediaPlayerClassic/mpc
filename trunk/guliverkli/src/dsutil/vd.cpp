@@ -26,11 +26,6 @@
 
 #pragma warning(disable : 4799) // no emms... blahblahblah
 
-#define ReadTSC( x ) __asm cpuid \
-	__asm rdtsc \
-	__asm mov dword ptr x,eax \
-	__asm mov dword ptr x+4,edx
-
 CCpuID::CCpuID()
 {
 	DWORD flags = 0;
@@ -69,35 +64,150 @@ TEST_END:
 
 CCpuID g_cpuid;
 
+void memcpy_accel(void* dst, const void* src, size_t len)
+{
+	if((g_cpuid.m_flags & CCpuID::flag_t::ssefpu) && len >= 128 
+		&& !((DWORD)src&15) && !((DWORD)dst&15))
+	{
+		__asm
+		{
+			mov     esi, dword ptr [src]
+			mov     edi, dword ptr [dst]
+			mov     ecx, len
+			shr     ecx, 7
+	memcpy_accel_sse_loop:
+			prefetchnta	[esi+16*8]
+			movaps		xmm0, [esi]
+			movaps		xmm1, [esi+16*1]
+			movaps		xmm2, [esi+16*2]
+			movaps		xmm3, [esi+16*3]
+			movaps		xmm4, [esi+16*4]
+			movaps		xmm5, [esi+16*5]
+			movaps		xmm6, [esi+16*6]
+			movaps		xmm7, [esi+16*7]
+			movntps		[edi], xmm0
+			movntps		[edi+16*1], xmm1
+			movntps		[edi+16*2], xmm2
+			movntps		[edi+16*3], xmm3
+			movntps		[edi+16*4], xmm4
+			movntps		[edi+16*5], xmm5
+			movntps		[edi+16*6], xmm6
+			movntps		[edi+16*7], xmm7
+			add			esi, 128
+			add			edi, 128
+			dec			ecx
+			jne			memcpy_accel_sse_loop
+			mov     ecx, len
+			and     ecx, 127
+			cmp     ecx, 0
+			je		memcpy_accel_sse_end
+	memcpy_accel_sse_loop2:
+			mov		dl, byte ptr[esi] 
+			mov		byte ptr[edi], dl
+			inc		esi
+			inc		edi
+			dec		ecx
+			jne		memcpy_accel_sse_loop2
+	memcpy_accel_sse_end:
+			emms
+			sfence
+		}
+	}
+	else if((g_cpuid.m_flags & CCpuID::flag_t::mmx) && len >= 64
+		&& !((DWORD)src&7) && !((DWORD)dst&7))
+	{
+		__asm 
+		{
+			mov     esi, dword ptr [src]
+			mov     edi, dword ptr [dst]
+			mov     ecx, len
+			shr     ecx, 6
+	memcpy_accel_mmx_loop:
+			movq    mm0, qword ptr [esi]
+			movq    mm1, qword ptr [esi+8*1]
+			movq    mm2, qword ptr [esi+8*2]
+			movq    mm3, qword ptr [esi+8*3]
+			movq    mm4, qword ptr [esi+8*4]
+			movq    mm5, qword ptr [esi+8*5]
+			movq    mm6, qword ptr [esi+8*6]
+			movq    mm7, qword ptr [esi+8*7]
+			movq    qword ptr [edi], mm0
+			movq    qword ptr [edi+8*1], mm1
+			movq    qword ptr [edi+8*2], mm2
+			movq    qword ptr [edi+8*3], mm3
+			movq    qword ptr [edi+8*4], mm4
+			movq    qword ptr [edi+8*5], mm5
+			movq    qword ptr [edi+8*6], mm6
+			movq    qword ptr [edi+8*7], mm7
+			add     esi, 64
+			add     edi, 64
+			loop	memcpy_accel_mmx_loop
+			mov     ecx, len
+			and     ecx, 63
+			cmp     ecx, 0
+			je		memcpy_accel_mmx_end
+	memcpy_accel_mmx_loop2:
+			mov		dl, byte ptr [esi] 
+			mov		byte ptr [edi], dl
+			inc		esi
+			inc		edi
+			dec		ecx
+			jne		memcpy_accel_mmx_loop2
+	memcpy_accel_mmx_end:
+			emms
+		}
+	}
+	else
+	{
+		memcpy(dst, src, len);
+	}
+}
+
 bool BitBltFromI420ToI420(int w, int h, BYTE* dsty, BYTE* dstu, BYTE* dstv, int dstpitch, BYTE* srcy, BYTE* srcu, BYTE* srcv, int srcpitch)
 {
-	if(w&1) return(false);
+	if((w&1)) return(false);
 
-	int pitch = min(abs(srcpitch), abs(dstpitch));
+	if(w > 0 && w == srcpitch && w == dstpitch)
+	{
+		memcpy_accel(dsty, srcy, h*srcpitch);
+		memcpy_accel(dstu, srcu, h/2*srcpitch/2);
+		memcpy_accel(dstv, srcv, h/2*srcpitch/2);
+	}
+	else
+	{
+		int pitch = min(abs(srcpitch), abs(dstpitch));
 
-	for(int y = 0; y < h; y++, srcy += srcpitch, dsty += dstpitch)
-		memcpy(dsty, srcy, pitch);
+		for(int y = 0; y < h; y++, srcy += srcpitch, dsty += dstpitch)
+			memcpy_accel(dsty, srcy, pitch);
 
-	srcpitch >>= 1;
-	dstpitch >>= 1;
+		srcpitch >>= 1;
+		dstpitch >>= 1;
 
-	pitch = min(abs(srcpitch), abs(dstpitch));
+		pitch = min(abs(srcpitch), abs(dstpitch));
 
-	for(int y = 0; y < h; y+=2, srcu += srcpitch, dstu += dstpitch)
-		memcpy(dstu, srcu, pitch);
+		for(int y = 0; y < h; y+=2, srcu += srcpitch, dstu += dstpitch)
+			memcpy_accel(dstu, srcu, pitch);
 
-	for(int y = 0; y < h; y+=2, srcv += srcpitch, dstv += dstpitch)
-		memcpy(dstv, srcv, pitch);
+		for(int y = 0; y < h; y+=2, srcv += srcpitch, dstv += dstpitch)
+			memcpy_accel(dstv, srcv, pitch);
+	}
 
-	return(true);
+	return true;
 }
 
 bool BitBltFromYUY2ToYUY2(int w, int h, BYTE* dst, int dstpitch, BYTE* src, int srcpitch)
 {
-	int pitch = min(abs(srcpitch), abs(dstpitch));
+	if(w > 0 && w == srcpitch && w == dstpitch)
+	{
+		memcpy_accel(dst, src, h*srcpitch);
+	}
+	else
+	{
+		int pitch = min(abs(srcpitch), abs(dstpitch));
 
-	for(int y = 0; y < h; y++, src += srcpitch, dst += dstpitch)
-		memcpy(dst, src, pitch);
+		for(int y = 0; y < h; y++, src += srcpitch, dst += dstpitch)
+			memcpy_accel(dst, src, pitch);
+	}
 
 	return(true);
 }
@@ -347,9 +457,18 @@ bool BitBltFromRGBToRGB(int w, int h, BYTE* dst, int dstpitch, int dbpp, BYTE* s
 {
 	if(dbpp == sbpp)
 	{
-		int bytes = w*dbpp>>3;
-		for(int y = 0; y < h; y++, src += srcpitch, dst += dstpitch)
-			memcpy(dst, src, bytes);
+		int rowbytes = w*dbpp>>3;
+
+		if(rowbytes > 0 && rowbytes == srcpitch && rowbytes == dstpitch)
+		{
+			memcpy_accel(dst, src, h*rowbytes);
+		}
+		else
+		{
+			for(int y = 0; y < h; y++, src += srcpitch, dst += dstpitch)
+				memcpy_accel(dst, src, rowbytes);
+		}
+
 		return(true);
 	}
 	
@@ -765,6 +884,20 @@ void DeinterlaceBlend(BYTE* dst, BYTE* src, DWORD rowbytes, DWORD h, DWORD dstpi
 		__asm emms
 }
 
+void DeinterlaceBob(BYTE* dst, BYTE* src, DWORD rowbytes, DWORD h, DWORD dstpitch, DWORD srcpitch, bool topfield)
+{
+	if(topfield)
+	{
+		BitBltFromRGBToRGB(rowbytes, h/2, dst, dstpitch*2, 8, src, srcpitch*2, 8);
+		AvgLines8(dst, h, dstpitch);
+	}
+	else
+	{
+		BitBltFromRGBToRGB(rowbytes, h/2, dst + dstpitch, dstpitch*2, 8, src + srcpitch, srcpitch*2, 8);
+		AvgLines8(dst + dstpitch, h-1, dstpitch);
+	}
+}
+
 void AvgLines8(BYTE* dst, DWORD h, DWORD pitch)
 {
 	if(h <= 1) return;
@@ -862,7 +995,7 @@ AvgLines8_mmx_loop:
 	if(!(h&1) && h >= 2)
 	{
 		dst += (h-2)*pitch;
-		memcpy(dst + pitch, dst, pitch);
+		memcpy_accel(dst + pitch, dst, pitch);
 	}
 
 	__asm emms;
@@ -948,7 +1081,7 @@ AvgLines555_loop:
 	if(!(h&1) && h >= 2)
 	{
 		dst += (h-2)*pitch;
-		memcpy(dst + pitch, dst, pitch);
+		memcpy_accel(dst + pitch, dst, pitch);
 	}
 
 	__asm emms;
@@ -1034,7 +1167,7 @@ AvgLines565_loop:
 	if(!(h&1) && h >= 2)
 	{
 		dst += (h-2)*pitch;
-		memcpy(dst + pitch, dst, pitch);
+		memcpy_accel(dst + pitch, dst, pitch);
 	}
 
 	__asm emms;

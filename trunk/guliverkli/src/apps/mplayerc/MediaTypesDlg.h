@@ -43,7 +43,7 @@ public:
 	virtual ~CMediaTypesDlg();
 
 // Dialog Data
-	enum { IDD = IDD_MEDIATYPESDIALOG };
+	enum { IDD = IDD_MEDIATYPES_DLG };
 	CComboBox m_pins;
 	CEdit m_report;
 

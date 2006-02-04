@@ -39,18 +39,21 @@ class CMpeg2DecFilter : public CBaseVideoFilter, public IMpeg2DecFilter
 	CClosedCaptionOutputPin* m_pClosedCaptionOutput;
 
 	CAutoPtr<CMpeg2Dec> m_dec;
+
 	REFERENCE_TIME m_AvgTimePerFrame;
 	bool m_fWaitForKeyFrame;
-	bool m_fFilm;
+
 	struct framebuf 
 	{
 		int w, h, pitch;
+		BYTE* buf_base;
 		BYTE* buf[6];
 		REFERENCE_TIME rtStart, rtStop;
 		DWORD flags;
         framebuf()
 		{
 			w = h = pitch = 0;
+			buf_base = NULL;
 			memset(&buf, 0, sizeof(buf));
 			rtStart = rtStop = 0;
 			flags = 0;
@@ -59,12 +62,25 @@ class CMpeg2DecFilter : public CBaseVideoFilter, public IMpeg2DecFilter
 		void alloc(int w, int h, int pitch)
 		{
 			this->w = w; this->h = h; this->pitch = pitch;
-			buf[0] = (BYTE*)_aligned_malloc(pitch*h, 16); buf[3] = (BYTE*)_aligned_malloc(pitch*h, 16);
-			buf[1] = (BYTE*)_aligned_malloc(pitch*h/4, 16); buf[4] = (BYTE*)_aligned_malloc(pitch*h/4, 16);
-			buf[2] = (BYTE*)_aligned_malloc(pitch*h/4, 16); buf[5] = (BYTE*)_aligned_malloc(pitch*h/4, 16);
+			int size = pitch*h;
+			buf_base = (BYTE*)_aligned_malloc(size*3+6*16, 16);
+			BYTE* p = buf_base;
+			buf[0] = p; p += (size + 15) & ~15;
+			buf[3] = p; p += (size + 15) & ~15;
+			buf[1] = p; p += (size/4 + 15) & ~15;
+			buf[4] = p; p += (size/4 + 15) & ~15;
+			buf[2] = p; p += (size/4 + 15) & ~15;
+			buf[5] = p; p += (size/4 + 15) & ~15;
 		}
-		void free() {for(int i = 0; i < 6; i++) {_aligned_free(buf[i]); buf[i] = NULL;}}
+		void free()
+		{
+			if(buf_base) _aligned_free(buf_base); 
+			buf_base = NULL;
+		}
 	} m_fb;
+
+	bool m_fFilm;
+	ditype SuggestDeinterlaceMethod();
 
 	AM_SimpleRateChange m_rate;
 
@@ -79,6 +95,7 @@ public:
 	DECLARE_IUNKNOWN
     STDMETHODIMP NonDelegatingQueryInterface(REFIID riid, void** ppv);
 
+	HRESULT DeliverFast(ditype di);
 	HRESULT Deliver(bool fRepeatLast);
 
 	int GetPinCount();
@@ -247,4 +264,6 @@ public:
     HRESULT DecideBufferSize(IMemAllocator* pAllocator, ALLOCATOR_PROPERTIES* pProperties);
 
 	CMediaType& CurrentMediaType() {return m_mt;}
+
+	HRESULT Deliver(const void* ptr, int len);
 };

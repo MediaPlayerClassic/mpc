@@ -40,7 +40,7 @@ CVolumeCtrl::~CVolumeCtrl()
 
 bool CVolumeCtrl::Create(CWnd* pParentWnd)
 {
-	if(!CSliderCtrl::Create(WS_CHILD|WS_VISIBLE|TBS_NOTICKS|TBS_HORZ, CRect(0,0,0,0), pParentWnd, IDC_VOLUMESLIDER))
+	if(!CSliderCtrl::Create(WS_CHILD|WS_VISIBLE|TBS_NOTICKS|TBS_HORZ, CRect(0,0,0,0), pParentWnd, IDC_SLIDER1))
 		return(false);
 
 	SetRange(1, 100);

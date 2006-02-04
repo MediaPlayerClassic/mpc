@@ -526,7 +526,7 @@ avcsuccess:
 
 					WORD cbSize = pTE->CodecPrivate.GetCount();
 					pwfe = (WAVEFORMATEX*)mt.ReallocFormatBuffer(sizeof(WAVEFORMATEX) + cbSize);
-					pwfe->cbSize = cbSize;
+					pwfe->cbSize = 0; // IMPORTANT: this is screwed, but cbSize has to be 0 and the extra data from codec priv must be after WAVEFORMATEX
 					memcpy(pwfe + 1, pTE->CodecPrivate.GetData(), pTE->CodecPrivate.GetCount());
 
 					mts.Add(mt);

@@ -161,7 +161,7 @@ public:
 	virtual ~CConvertDlg();
 
 // Dialog Data
-	enum { IDD = IDD_CONVERTDIALOG };
+	enum { IDD = IDD_CONVERT_DLG };
 	CFilterTreeCtrl m_tree;
 	CString m_fn;
 

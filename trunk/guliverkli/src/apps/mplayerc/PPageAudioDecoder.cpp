@@ -66,9 +66,9 @@ void CPPageAudioDecoder::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_CHECK1, m_fAc3SpeakerConfigLFE);
 	DDX_Check(pDX, IDC_CHECK2, m_fAc3DynamicRangeControl);
 	DDX_Control(pDX, IDC_COMBO1, m_ac3sclist);
-	DDX_Radio(pDX, IDC_RADIO12, m_fDtsSpeakerConfig);
+	DDX_Radio(pDX, IDC_RADIO7, m_fDtsSpeakerConfig);
 	DDX_CBIndex(pDX, IDC_COMBO2, m_iDtsSpeakerConfig);
-	DDX_Check(pDX, IDC_CHECK17, m_fDtsSpeakerConfigLFE);
+	DDX_Check(pDX, IDC_CHECK6, m_fDtsSpeakerConfigLFE);
 	DDX_Check(pDX, IDC_CHECK4, m_fDtsDynamicRangeControl);
 	DDX_Control(pDX, IDC_COMBO2, m_dtssclist);
 	DDX_Check(pDX, IDC_CHECK5, m_iAacSpeakerConfig);

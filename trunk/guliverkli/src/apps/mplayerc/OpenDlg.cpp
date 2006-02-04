@@ -52,17 +52,16 @@ void COpenDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_COMBO2, m_mrucombo2);
 	DDX_CBString(pDX, IDC_COMBO2, m_path2);
 	DDX_Control(pDX, IDC_STATIC1, m_label2);
-	DDX_Control(pDX, IDC_BROWSEBUTTON2, m_openbtn2);
 }
 
 
 BEGIN_MESSAGE_MAP(COpenDlg, CResizableDialog)
-	ON_BN_CLICKED(IDC_BROWSEBUTTON, OnBnClickedBrowsebutton)
-	ON_BN_CLICKED(IDC_BROWSEBUTTON2, OnBnClickedBrowsebutton2)
+	ON_BN_CLICKED(IDC_BUTTON1, OnBnClickedBrowsebutton)
+	ON_BN_CLICKED(IDC_BUTTON2, OnBnClickedBrowsebutton2)
 	ON_BN_CLICKED(IDOK, OnBnClickedOk)
 	ON_UPDATE_COMMAND_UI(IDC_STATIC1, OnUpdateDub)
 	ON_UPDATE_COMMAND_UI(IDC_COMBO2, OnUpdateDub)
-	ON_UPDATE_COMMAND_UI(IDC_BROWSEBUTTON2, OnUpdateDub)
+	ON_UPDATE_COMMAND_UI(IDC_BUTTON2, OnUpdateDub)
 END_MESSAGE_MAP()
 
 
@@ -92,8 +91,8 @@ BOOL COpenDlg::OnInitDialog()
 
 	AddAnchor(m_mrucombo, TOP_LEFT, TOP_RIGHT);
 	AddAnchor(m_mrucombo2, TOP_LEFT, TOP_RIGHT);
-	AddAnchor(IDC_BROWSEBUTTON, TOP_RIGHT);
-	AddAnchor(IDC_BROWSEBUTTON2, TOP_RIGHT);
+	AddAnchor(IDC_BUTTON1, TOP_RIGHT);
+	AddAnchor(IDC_BUTTON2, TOP_RIGHT);
 	AddAnchor(IDOK, TOP_RIGHT);
 	AddAnchor(IDCANCEL, TOP_RIGHT);
 	AddAnchor(IDC_STATIC1, TOP_LEFT, TOP_RIGHT);

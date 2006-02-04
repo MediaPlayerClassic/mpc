@@ -35,16 +35,21 @@ static void MC_put_o_16_sse2(uint8_t* dest, const uint8_t* ref, const int stride
 		mov esi, height
 		mov eax, stride
 		lea edi, [eax+eax]
+		lea ebx, [edi+eax]
 
 	MC_put_o_16_sse2_loop:
 
 		movdqu xmm0, [edx]
 		movdqu xmm1, [edx+eax] 
+		movdqu xmm2, [edx+edi]
+		movdqu xmm3, [edx+ebx] 
 		movdqa [ecx], xmm0
 		movdqa [ecx+eax], xmm1 
-		add edx, edi
-		add ecx, edi
-		sub esi, 2
+		movdqa [ecx+edi], xmm2
+		movdqa [ecx+ebx], xmm3 
+		lea edx, [edx+edi*2]
+		lea ecx, [ecx+edi*2]
+		sub esi, 4
 
 		jg MC_put_o_16_sse2_loop
 	}
@@ -59,16 +64,21 @@ static void MC_put_o_8_sse2(uint8_t* dest, const uint8_t* ref, const int stride,
 		mov esi, height
 		mov eax, stride
 		lea edi, [eax+eax]
+		lea ebx, [edi+eax]
 
 	MC_put_o_8_sse2_loop:
 
 		movlpd xmm0, [edx]
-		movhpd xmm0, [edx+eax] 
+		movlpd xmm1, [edx+eax] 
+		movlpd xmm2, [edx+edi]
+		movlpd xmm3, [edx+ebx] 
 		movlpd [ecx], xmm0
-		movhpd [ecx+eax], xmm0 
-		add edx, edi
-		add ecx, edi
-		sub esi, 2
+		movlpd [ecx+eax], xmm1 
+		movlpd [ecx+edi], xmm2
+		movlpd [ecx+ebx], xmm3 
+		lea edx, [edx+edi*2]
+		lea ecx, [ecx+edi*2]
+		sub esi, 4
 
 		jg MC_put_o_8_sse2_loop
 	}
@@ -83,6 +93,7 @@ static void MC_put_x_16_sse2(uint8_t* dest, const uint8_t* ref, const int stride
 		mov eax, stride
 		mov esi, height
 		lea edi, [eax+eax]
+		lea ebx, [edi+eax]
 
 	MC_put_x_16_sse2_loop:
 
@@ -90,13 +101,21 @@ static void MC_put_x_16_sse2(uint8_t* dest, const uint8_t* ref, const int stride
 		movdqu xmm1, [edx+1]
 		movdqu xmm2, [edx+eax]
 		movdqu xmm3, [edx+eax+1]
+		movdqu xmm4, [edx+edi]
+		movdqu xmm5, [edx+edi+1]
+		movdqu xmm6, [edx+ebx] 
+		movdqu xmm7, [edx+ebx+1] 
 		pavgb xmm0, xmm1
 		pavgb xmm2, xmm3
+		pavgb xmm4, xmm5
+		pavgb xmm6, xmm7
 		movdqa [ecx], xmm0
 		movdqa [ecx+eax], xmm2
-		add edx, edi
-		add ecx, edi
-		sub esi, 2
+		movdqa [ecx+edi], xmm4
+		movdqa [ecx+ebx], xmm6
+		lea edx, [edx+edi*2]
+		lea ecx, [ecx+edi*2]
+		sub esi, 4
 
 		jg MC_put_x_16_sse2_loop
 	}
@@ -273,20 +292,29 @@ static void MC_avg_o_16_sse2(uint8_t* dest, const uint8_t* ref, const int stride
 		mov esi, height
 		mov eax, stride
 		lea edi, [eax+eax]
+		lea ebx, [edi+eax]
 
 	MC_avg_o_16_sse2_loop:
 
 		movdqu xmm0, [edx]
 		movdqu xmm1, [edx+eax] 
-		movdqa xmm2, [ecx]
-		movdqa xmm3, [ecx+eax]
-		pavgb xmm0, xmm2
-		pavgb xmm1, xmm3
+		movdqu xmm2, [edx+edi]
+		movdqu xmm3, [edx+ebx] 
+		lea edx, [edx+edi*2]
+		movdqa xmm4, [ecx]
+		movdqa xmm5, [ecx+eax]
+		movdqa xmm6, [ecx+edi]
+		movdqa xmm7, [ecx+ebx]
+		pavgb xmm0, xmm4
+		pavgb xmm1, xmm5
+		pavgb xmm2, xmm6
+		pavgb xmm3, xmm7
 		movdqa [ecx], xmm0
 		movdqa [ecx+eax], xmm1 
-		add edx, edi
-		add ecx, edi
-		sub esi, 2
+		movdqa [ecx+edi], xmm2
+		movdqa [ecx+ebx], xmm3 
+		lea ecx, [ecx+edi*2]
+		sub esi, 4
 
 		jg MC_avg_o_16_sse2_loop
 	}
@@ -300,9 +328,8 @@ static void MC_avg_o_8_sse2(uint8_t* dest, const uint8_t* ref, const int stride,
 		mov ecx, dest
 		mov esi, height
 		mov eax, stride
-		lea edi, [eax+eax]
 
-	MC_avg_o_16_sse2_loop:
+	MC_avg_o_8_sse2_loop:
 
 		movlpd xmm0, [edx]
 		movhpd xmm0, [edx+eax] 
@@ -311,11 +338,11 @@ static void MC_avg_o_8_sse2(uint8_t* dest, const uint8_t* ref, const int stride,
 		pavgb xmm0, xmm1
 		movlpd [ecx], xmm0
 		movhpd [ecx+eax], xmm0
-		add edx, edi
-		add ecx, edi
+		lea edx, [edx+eax*2]
+		lea ecx, [ecx+eax*2]
 		sub esi, 2
 
-		jg MC_avg_o_16_sse2_loop
+		jg MC_avg_o_8_sse2_loop
 	}
 }
 

@@ -867,11 +867,11 @@ CMPlayerCApp::Settings::Settings()
 	ADDCMD((ID_FILE_OPENMEDIA, 'O', FVIRTKEY|FCONTROL|FNOINVERT, _T("Open File")));
 	ADDCMD((ID_FILE_OPENDVD, 'D', FVIRTKEY|FCONTROL|FNOINVERT, _T("Open DVD")));
 	ADDCMD((ID_FILE_OPENDEVICE, 'V', FVIRTKEY|FCONTROL|FNOINVERT, _T("Open Device")));
-	ADDCMD((ID_FILE_SAVEAS, 0, FVIRTKEY|FNOINVERT, _T("Save As")));
+	ADDCMD((ID_FILE_SAVE_COPY, 0, FVIRTKEY|FNOINVERT, _T("Save As")));
 	ADDCMD((ID_FILE_SAVE_IMAGE, 0, FVIRTKEY|FNOINVERT, _T("Save Image")));
 	ADDCMD((ID_FILE_SAVE_IMAGE_AUTO, VK_F5, FVIRTKEY|FNOINVERT, _T("Save Image (auto)")));
-	ADDCMD((ID_FILE_LOADSUBTITLE, 'L', FVIRTKEY|FCONTROL|FNOINVERT, _T("Load Subtitle")));
-	ADDCMD((ID_FILE_SAVESUBTITLES, 'S', FVIRTKEY|FCONTROL|FNOINVERT, _T("Save Subtitle")));
+	ADDCMD((ID_FILE_LOAD_SUBTITLE, 'L', FVIRTKEY|FCONTROL|FNOINVERT, _T("Load Subtitle")));
+	ADDCMD((ID_FILE_SAVE_SUBTITLE, 'S', FVIRTKEY|FCONTROL|FNOINVERT, _T("Save Subtitle")));
 	ADDCMD((ID_FILE_CLOSEPLAYLIST, 'C', FVIRTKEY|FCONTROL|FNOINVERT, _T("Close")));
 	ADDCMD((ID_FILE_PROPERTIES, VK_F10, FVIRTKEY|FSHIFT|FNOINVERT, _T("Properties")));
 	ADDCMD((ID_FILE_EXIT, 'X', FVIRTKEY|FALT|FNOINVERT, _T("Exit")));
@@ -909,9 +909,9 @@ CMPlayerCApp::Settings::Settings()
 	ADDCMD((ID_VIEW_PLAYLIST, '7', FVIRTKEY|FCONTROL|FNOINVERT, _T("Toggle Playlist Bar")));
 	ADDCMD((ID_VIEW_CAPTURE, '8', FVIRTKEY|FCONTROL|FNOINVERT, _T("Toggle Capture Bar")));
 	ADDCMD((ID_VIEW_SHADEREDITOR, '9', FVIRTKEY|FCONTROL|FNOINVERT, _T("Toggle Shader Editor Bar")));
-	ADDCMD((ID_VIEW_PRESETS_MINIMAL, '0', FVIRTKEY|FSHIFT|FCONTROL|FNOINVERT, _T("View Minimal")));
-	ADDCMD((ID_VIEW_PRESETS_COMPACT, '1', FVIRTKEY|FSHIFT|FCONTROL|FNOINVERT, _T("View Compact")));
-	ADDCMD((ID_VIEW_PRESETS_NORMAL, '2', FVIRTKEY|FSHIFT|FCONTROL|FNOINVERT, _T("View Normal")));
+	ADDCMD((ID_VIEW_PRESETS_MINIMAL, '1', FVIRTKEY|FNOINVERT, _T("View Minimal")));
+	ADDCMD((ID_VIEW_PRESETS_COMPACT, '2', FVIRTKEY|FNOINVERT, _T("View Compact")));
+	ADDCMD((ID_VIEW_PRESETS_NORMAL, '3', FVIRTKEY|FNOINVERT, _T("View Normal")));
 	ADDCMD((ID_VIEW_FULLSCREEN, VK_RETURN, FVIRTKEY|FALT|FNOINVERT, _T("Fullscreen"), 0, wmcmd::LDBLCLK));
 	ADDCMD((ID_VIEW_FULLSCREEN_SECONDARY, VK_RETURN, FVIRTKEY|FCONTROL|FNOINVERT, _T("Fullscreen (w/o res.change)")));
 	ADDCMD((ID_VIEW_ZOOM_50, '1', FVIRTKEY|FALT|FNOINVERT, _T("Zoom 50%")));
@@ -1029,6 +1029,7 @@ void CMPlayerCApp::Settings::UpdateData(bool fSave)
 		pApp->WriteProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_EXITFULLSCREENATTHEEND), fExitFullScreenAtTheEnd);
 		pApp->WriteProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_REMEMBERWINDOWPOS), fRememberWindowPos);
 		pApp->WriteProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_REMEMBERWINDOWSIZE), fRememberWindowSize);
+		pApp->WriteProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_SNAPTODESKTOPEDGES), fSnapToDesktopEdges);		
 		pApp->WriteProfileBinary(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_LASTWINDOWRECT), (BYTE*)&rcLastWindowPos, sizeof(rcLastWindowPos));
 		pApp->WriteProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_LASTWINDOWTYPE), lastWindowType);
 		pApp->WriteProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_ASPECTRATIO_X), AspectRatio.cx);
@@ -1210,6 +1211,9 @@ void CMPlayerCApp::Settings::UpdateData(bool fSave)
 		pApp->WriteProfileString(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_SNAPSHOTPATH), SnapShotPath);
 		pApp->WriteProfileString(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_SNAPSHOTEXT), SnapShotExt);
 
+		pApp->WriteProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_THUMBROWS), ThumbRows);
+		pApp->WriteProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_THUMBCOLS), ThumbCols);
+
 		pApp->WriteProfileString(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_ISDB), ISDb);
 
 		pApp->WriteProfileString(_T("Shaders"), NULL, NULL);
@@ -1324,6 +1328,7 @@ void CMPlayerCApp::Settings::UpdateData(bool fSave)
 		fExitFullScreenAtTheEnd = !!pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_EXITFULLSCREENATTHEEND), 0);
 		fRememberWindowPos = !!pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_REMEMBERWINDOWPOS), 0);
 		fRememberWindowSize = !!pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_REMEMBERWINDOWSIZE), 0);
+		fSnapToDesktopEdges = !!pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_SNAPTODESKTOPEDGES), 0);
 		AspectRatio.cx = pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_ASPECTRATIO_X), 0);
 		AspectRatio.cy = pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_ASPECTRATIO_Y), 0);
 		fKeepHistory = !!pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_KEEPHISTORY), 1);
@@ -1516,9 +1521,9 @@ void CMPlayerCApp::Settings::UpdateData(bool fSave)
 		nJumpDistS = pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_JUMPDISTS), 1000);
 		nJumpDistM = pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_JUMPDISTM), 5000);
 		nJumpDistL = pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_JUMPDISTL), 20000);
-		fFreeWindowResizing = pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_FREEWINDOWRESIZING), TRUE);
-		fNotifyMSN = pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_NOTIFYMSN), FALSE);
-		fNotifyGTSdll = pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_NOTIFYGTSDLL), FALSE);
+		fFreeWindowResizing = !!pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_FREEWINDOWRESIZING), TRUE);
+		fNotifyMSN = !!pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_NOTIFYMSN), FALSE);
+		fNotifyGTSdll = !!pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_NOTIFYGTSDLL), FALSE);
 
 		Formats.UpdateData(false);
 
@@ -1576,6 +1581,9 @@ void CMPlayerCApp::Settings::UpdateData(bool fSave)
 		SnapShotPath = pApp->GetProfileString(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_SNAPSHOTPATH), MyPictures);
 		SnapShotExt = pApp->GetProfileString(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_SNAPSHOTEXT), _T(".bmp"));
 
+		ThumbRows = pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_THUMBROWS), 4);
+		ThumbCols = pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_THUMBCOLS), 4);
+
 		ISDb = pApp->GetProfileString(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_ISDB), _T("isdb.go.dyndns.org"));
 
 		pApp->WriteProfileInt(ResStr(IDS_R_SETTINGS), _T("LastUsedPage"), 0);
@@ -1586,16 +1594,16 @@ void CMPlayerCApp::Settings::UpdateData(bool fSave)
 
 			CAtlMap<UINT, CString> shaders;
 
-			shaders[IDR_SHADER_CONTOUR] = _T("contour");
-			shaders[IDR_SHADER_DEINTERLACE] = _T("deinterlace (blend)");
-			shaders[IDR_SHADER_EMBOSS] = _T("emboss");
-			shaders[IDR_SHADER_GRAYSCALE] = _T("grayscale");
-			shaders[IDR_SHADER_INVERT] = _T("invert");
-			shaders[IDR_SHADER_LETTERBOX] = _T("letterbox");
-			shaders[IDR_SHADER_SHARPEN] = _T("sharpen");
-			shaders[IDR_SHADER_SPHERE] = _T("sphere");
-			shaders[IDR_SHADER_SPOTLIGHT] = _T("spotlight");
-			shaders[IDR_SHADER_WAVE] = _T("wave");
+			shaders[IDF_SHADER_CONTOUR] = _T("contour");
+			shaders[IDF_SHADER_DEINTERLACE] = _T("deinterlace (blend)");
+			shaders[IDF_SHADER_EMBOSS] = _T("emboss");
+			shaders[IDF_SHADER_GRAYSCALE] = _T("grayscale");
+			shaders[IDF_SHADER_INVERT] = _T("invert");
+			shaders[IDF_SHADER_LETTERBOX] = _T("letterbox");
+			shaders[IDF_SHADER_SHARPEN] = _T("sharpen");
+			shaders[IDF_SHADER_SPHERE] = _T("sphere");
+			shaders[IDF_SHADER_SPOTLIGHT] = _T("spotlight");
+			shaders[IDF_SHADER_WAVE] = _T("wave");
 
 			POSITION pos = shaders.GetStartPosition();
 			for(int i = 0; pos; i++)

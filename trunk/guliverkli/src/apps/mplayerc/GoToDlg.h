@@ -41,7 +41,7 @@ public:
 	float m_fps;
 
 // Dialog Data
-	enum { IDD = IDD_GOTODIALOG };
+	enum { IDD = IDD_GOTO_DLG };
 
 protected:
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV support
@@ -51,6 +51,6 @@ protected:
 	DECLARE_MESSAGE_MAP()
 
 public:
-	afx_msg void OnBnClickedOk();
+	afx_msg void OnBnClickedOk1();
 	afx_msg void OnBnClickedOk2();
 };

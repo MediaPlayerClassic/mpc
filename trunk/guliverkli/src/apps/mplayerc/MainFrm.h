@@ -195,6 +195,8 @@ class CMainFrame : public CFrameWnd, public CDropTarget
 	CRect m_lastWindowRect;
 	CPoint m_lastMouseMove;
 
+	CRect m_rcDesktop;
+
 	void ShowControls(int nCS, bool fSave = true);
 
 	void SetDefaultWindowRect();
@@ -455,6 +457,7 @@ public:
 	afx_msg void OnSetFocus(CWnd* pOldWnd);
 	afx_msg void OnGetMinMaxInfo(MINMAXINFO* lpMMI);
 	afx_msg void OnMove(int x, int y);
+	afx_msg void OnMoving(UINT fwSide, LPRECT pRect);
 	afx_msg void OnSize(UINT nType, int cx, int cy);
 	afx_msg void OnSizing(UINT fwSide, LPRECT pRect);
 	afx_msg void OnDisplayChange();
@@ -526,8 +529,8 @@ public:
 	afx_msg void OnFileOpendevice();
 	afx_msg void OnFileOpenCD(UINT nID);
 	afx_msg void OnDropFiles(HDROP hDropInfo); // no menu item
-	afx_msg void OnFileSaveas();
-	afx_msg void OnUpdateFileSaveas(CCmdUI* pCmdUI);
+	afx_msg void OnFileSaveAs();
+	afx_msg void OnUpdateFileSaveAs(CCmdUI* pCmdUI);
 	afx_msg void OnFileSaveImage();
 	afx_msg void OnFileSaveImageAuto();
 	afx_msg void OnUpdateFileSaveImage(CCmdUI* pCmdUI);
@@ -535,16 +538,16 @@ public:
 	afx_msg void OnUpdateFileSaveThumbnails(CCmdUI* pCmdUI);
 	afx_msg void OnFileConvert();
 	afx_msg void OnUpdateFileConvert(CCmdUI* pCmdUI);
-	afx_msg void OnFileLoadsubtitles();
-	afx_msg void OnUpdateFileLoadsubtitles(CCmdUI* pCmdUI);
-	afx_msg void OnFileSavesubtitles();
-	afx_msg void OnUpdateFileSavesubtitles(CCmdUI* pCmdUI);
-	afx_msg void OnSubtitledatabaseSearch();
-	afx_msg void OnUpdateSubtitledatabaseSearch(CCmdUI* pCmdUI);
-	afx_msg void OnSubtitledatabaseUpload();
-	afx_msg void OnUpdateSubtitledatabaseUpload(CCmdUI* pCmdUI);
-	afx_msg void OnSubtitledatabaseDownload();
-	afx_msg void OnUpdateSubtitledatabaseDownload(CCmdUI* pCmdUI);
+	afx_msg void OnFileLoadsubtitle();
+	afx_msg void OnUpdateFileLoadsubtitle(CCmdUI* pCmdUI);
+	afx_msg void OnFileSavesubtitle();
+	afx_msg void OnUpdateFileSavesubtitle(CCmdUI* pCmdUI);
+	afx_msg void OnFileISDBSearch();
+	afx_msg void OnUpdateFileISDBSearch(CCmdUI* pCmdUI);
+	afx_msg void OnFileISDBUpload();
+	afx_msg void OnUpdateFileISDBUpload(CCmdUI* pCmdUI);
+	afx_msg void OnFileISDBDownload();
+	afx_msg void OnUpdateFileISDBDownload(CCmdUI* pCmdUI);
 	afx_msg void OnFileProperties();
 	afx_msg void OnUpdateFileProperties(CCmdUI* pCmdUI);
 	afx_msg void OnFileClosePlaylist();

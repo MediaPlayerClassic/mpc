@@ -38,7 +38,7 @@ public:
 	virtual ~CAuthDlg();
 
 // Dialog Data
-	enum { IDD = IDD_AUTHDLG };
+	enum { IDD = IDD_AUTH_DLG };
 	CComboBox m_usernamectrl;
 	CString m_username;
 	CString m_password;

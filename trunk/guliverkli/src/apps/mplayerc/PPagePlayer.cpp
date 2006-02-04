@@ -42,6 +42,7 @@ CPPagePlayer::CPPagePlayer()
 	, m_fExitFullScreenAtTheEnd(FALSE)
 	, m_fRememberWindowPos(FALSE)
 	, m_fRememberWindowSize(FALSE)
+	, m_fSnapToDesktopEdges(FALSE)
 	, m_fUseIni(FALSE)
 	, m_fKeepHistory(FALSE)
 	, m_fHideCDROMsSubMenu(FALSE)
@@ -66,6 +67,7 @@ void CPPagePlayer::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_CHECK5, m_fExitFullScreenAtTheEnd);
 	DDX_Check(pDX, IDC_CHECK6, m_fRememberWindowPos);
 	DDX_Check(pDX, IDC_CHECK7, m_fRememberWindowSize);
+	DDX_Check(pDX, IDC_CHECK12, m_fSnapToDesktopEdges);	
 	DDX_Check(pDX, IDC_CHECK8, m_fUseIni);
 	DDX_Control(pDX, IDC_SPIN1, m_nTimeOutCtrl);
 	DDX_Check(pDX, IDC_CHECK1, m_fKeepHistory);
@@ -102,6 +104,7 @@ BOOL CPPagePlayer::OnInitDialog()
 	m_fExitFullScreenAtTheEnd = s.fExitFullScreenAtTheEnd;
 	m_fRememberWindowPos = s.fRememberWindowPos;
 	m_fRememberWindowSize = s.fRememberWindowSize;
+	m_fSnapToDesktopEdges = s.fSnapToDesktopEdges;
 	m_fUseIni = ((CMPlayerCApp*)AfxGetApp())->IsIniValid();
 	m_fKeepHistory = s.fKeepHistory;
 	m_fHideCDROMsSubMenu = s.fHideCDROMsSubMenu;
@@ -129,6 +132,7 @@ BOOL CPPagePlayer::OnApply()
 	s.fExitFullScreenAtTheEnd = !!m_fExitFullScreenAtTheEnd;
 	s.fRememberWindowPos = !!m_fRememberWindowPos;
 	s.fRememberWindowSize = !!m_fRememberWindowSize;
+	s.fSnapToDesktopEdges = !!m_fSnapToDesktopEdges;
 	s.fKeepHistory = !!m_fKeepHistory;
 	s.fHideCDROMsSubMenu = !!m_fHideCDROMsSubMenu;
 	s.priority = !m_priority ? NORMAL_PRIORITY_CLASS : GetVersion() < 0 ? HIGH_PRIORITY_CLASS : ABOVE_NORMAL_PRIORITY_CLASS;

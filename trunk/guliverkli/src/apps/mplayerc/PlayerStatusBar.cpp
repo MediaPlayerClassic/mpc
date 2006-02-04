@@ -73,10 +73,10 @@ int CPlayerStatusBar::OnCreate(LPCREATESTRUCT lpCreateStruct)
 		r, this, IDC_STATIC1);
 
 	m_status.Create(_T(""), WS_CHILD|WS_VISIBLE|SS_OWNERDRAW, 
-		r, this, ID_PLAYERSTATUS);
+		r, this, IDC_PLAYERSTATUS);
 
 	m_time.Create(_T(""), WS_CHILD|WS_VISIBLE|SS_OWNERDRAW, 
-		r, this, ID_PLAYERTIME);
+		r, this, IDC_PLAYERTIME);
 
 	m_status.SetWindowPos(&m_time, 0, 0, 0, 0, SWP_NOMOVE|SWP_NOSIZE);
 

@@ -52,7 +52,7 @@ void CPPageFormats::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_CHECK2, m_apmusic);
 	DDX_Control(pDX, IDC_CHECK3, m_apaudiocd);
 	DDX_Control(pDX, IDC_CHECK4, m_apdvd);
-	DDX_Radio(pDX, IDC_RADIO4, m_iRtspHandler);
+	DDX_Radio(pDX, IDC_RADIO1, m_iRtspHandler);
 	DDX_Check(pDX, IDC_CHECK5, m_fRtspFileExtFirst);
 }
 
@@ -424,11 +424,11 @@ BEGIN_MESSAGE_MAP(CPPageFormats, CPPageBase)
 	ON_NOTIFY(LVN_DOLABELEDIT, IDC_LIST1, OnDolabeleditList)
 	ON_NOTIFY(LVN_ENDLABELEDIT, IDC_LIST1, OnEndlabeleditList)
 	ON_BN_CLICKED(IDC_BUTTON1, OnBnClickedButton1)
-	ON_BN_CLICKED(IDC_BUTTON12, OnBnClickedButton12)
+	ON_BN_CLICKED(IDC_BUTTON2, OnBnClickedButton12)
 	ON_BN_CLICKED(IDC_BUTTON_EXT_SET, OnBnClickedButton11)
-	ON_BN_CLICKED(IDC_BUTTON14, OnBnClickedButton14)
-	ON_BN_CLICKED(IDC_BUTTON13, OnBnClickedButton13)
-	ON_UPDATE_COMMAND_UI(IDC_BUTTON12, OnUpdateButtonDefault)
+	ON_BN_CLICKED(IDC_BUTTON4, OnBnClickedButton14)
+	ON_BN_CLICKED(IDC_BUTTON3, OnBnClickedButton13)
+	ON_UPDATE_COMMAND_UI(IDC_BUTTON2, OnUpdateButtonDefault)
 	ON_UPDATE_COMMAND_UI(IDC_BUTTON_EXT_SET, OnUpdateButtonSet)
 END_MESSAGE_MAP()
 
