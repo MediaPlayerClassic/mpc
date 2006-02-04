@@ -26,7 +26,7 @@ public:
 	CList<isdb_subtitle> m_selsubs;
 
 // Dialog Data
-	enum { IDD = IDD_SUBTITLEDLDLG };
+	enum { IDD = IDD_SUBTITLEDL_DLG };
 	CListCtrl m_list;
 
 protected:

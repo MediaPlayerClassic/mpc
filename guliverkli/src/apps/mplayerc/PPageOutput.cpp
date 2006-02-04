@@ -59,7 +59,7 @@ void CPPageOutput::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_COMBO1, m_iAudioRendererTypeCtrl);
 	DDX_Check(pDX, IDC_CHECK1, m_fVMRSyncFix);
 	DDX_CBIndex(pDX, IDC_DX9RESIZER_COMBO, m_iDX9Resizer);
-	DDX_Check(pDX, IDC_DSVMR9MIX, m_fVMR9MixerMode);
+	DDX_Check(pDX, IDC_DSVMR9LOADMIXER, m_fVMR9MixerMode);
 }
 
 

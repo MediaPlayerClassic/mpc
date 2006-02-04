@@ -41,6 +41,7 @@ public:
 	BOOL m_fExitFullScreenAtTheEnd;
 	BOOL m_fRememberWindowPos;
 	BOOL m_fRememberWindowSize;
+	BOOL m_fSnapToDesktopEdges;
 	BOOL m_fUseIni;
 	CSpinButtonCtrl m_nTimeOutCtrl;
 	BOOL m_fTrayIcon;

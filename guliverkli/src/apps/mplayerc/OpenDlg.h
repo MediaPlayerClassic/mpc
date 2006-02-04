@@ -36,12 +36,11 @@ public:
 	CList<CString> m_fns;
 
 // Dialog Data
-	enum { IDD = IDD_OPENDIALOG };
+	enum { IDD = IDD_OPEN_DLG };
 	CComboBox m_mrucombo;
 	CString m_path;
 	CComboBox m_mrucombo2;
 	CString m_path2;
-	CButton m_openbtn2;
 	CStatic m_label2;
 
 protected:

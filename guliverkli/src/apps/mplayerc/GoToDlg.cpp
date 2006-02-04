@@ -54,9 +54,9 @@ void CGoToDlg::DoDataExchange(CDataExchange* pDX)
 {
 	CDialog::DoDataExchange(pDX);
 	DDX_Text(pDX, IDC_EDIT1, m_timestr);
-	DDX_Text(pDX, IDC_EDIT4, m_framestr);
+	DDX_Text(pDX, IDC_EDIT2, m_framestr);
 	DDX_Control(pDX, IDC_EDIT1, m_timeedit);
-	DDX_Control(pDX, IDC_EDIT4, m_frameedit);
+	DDX_Control(pDX, IDC_EDIT2, m_frameedit);
 }
 
 BOOL CGoToDlg::OnInitDialog()
@@ -92,14 +92,14 @@ BOOL CGoToDlg::OnInitDialog()
 
 
 BEGIN_MESSAGE_MAP(CGoToDlg, CDialog)
-	ON_BN_CLICKED(IDOK, OnBnClickedOk)
-	ON_BN_CLICKED(IDOK2, OnBnClickedOk2)
+	ON_BN_CLICKED(IDC_OK1, OnBnClickedOk1)
+	ON_BN_CLICKED(IDC_OK2, OnBnClickedOk2)
 END_MESSAGE_MAP()
 
 
 // CGoToDlg message handlers
 
-void CGoToDlg::OnBnClickedOk()
+void CGoToDlg::OnBnClickedOk1()
 {
 	UpdateData();
 
@@ -194,11 +194,11 @@ BOOL CGoToDlg::PreTranslateMessage(MSG* pMsg)
 {
 	if(pMsg->message == WM_KEYDOWN && pMsg->wParam == VK_RETURN)
 	{
-		if(*GetFocus() == m_timeedit) OnBnClickedOk();
+		if(*GetFocus() == m_timeedit) OnBnClickedOk1();
 		else if(*GetFocus() == m_frameedit) OnBnClickedOk2();
 
 		return TRUE;
 	}
 
-	return CDialog::PreTranslateMessage(pMsg);
+	return __super::PreTranslateMessage(pMsg);
 }

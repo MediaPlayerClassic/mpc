@@ -32,7 +32,7 @@ public:
 	virtual ~CConvertResDlg();
 
 // Dialog Data
-	enum { IDD = IDD_CONVERTRESDIALOG };
+	enum { IDD = IDD_CONVERTRES_DLG };
 	CString m_name;
 	CString m_mime;
 	CComboBox m_mimectrl;

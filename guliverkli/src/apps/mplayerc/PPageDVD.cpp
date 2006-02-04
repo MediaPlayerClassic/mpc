@@ -195,8 +195,8 @@ CPPageDVD::~CPPageDVD()
 void CPPageDVD::DoDataExchange(CDataExchange* pDX)
 {
 	__super::DoDataExchange(pDX);
-	DDX_Radio(pDX, IDC_LOCRADIO1, m_iDVDLocation);
-	DDX_Radio(pDX, IDC_LANGRADIO1, m_iDVDLangType);
+	DDX_Radio(pDX, IDC_RADIO1, m_iDVDLocation);
+	DDX_Radio(pDX, IDC_RADIO3, m_iDVDLangType);
 	DDX_Control(pDX, IDC_LIST1, m_lcids);
 	DDX_Text(pDX, IDC_DVDPATH, m_dvdpath);
 	DDX_Control(pDX, IDC_DVDPATH, m_dvdpathctrl);
@@ -225,7 +225,7 @@ void CPPageDVD::UpdateLCIDList()
 
 BEGIN_MESSAGE_MAP(CPPageDVD, CPPageBase)
 	ON_BN_CLICKED(IDC_BUTTON1, OnBnClickedButton1)
-	ON_CONTROL_RANGE(BN_CLICKED, IDC_LANGRADIO1, IDC_LANGRADIO3, OnBnClickedLangradio123)
+	ON_CONTROL_RANGE(BN_CLICKED, IDC_RADIO3, IDC_RADIO5, OnBnClickedLangradio123)
 	ON_LBN_SELCHANGE(IDC_LIST1, OnLbnSelchangeList1)
 	ON_UPDATE_COMMAND_UI(IDC_DVDPATH, OnUpdateDVDPath)
 	ON_UPDATE_COMMAND_UI(IDC_BUTTON1, OnUpdateDVDPath)

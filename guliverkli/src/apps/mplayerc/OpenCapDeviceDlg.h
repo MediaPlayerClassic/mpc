@@ -45,7 +45,7 @@ public:
 	long m_country;
 
 // Dialog Data
-	enum { IDD = IDD_OPENCAPDEVICEDIALOG };
+	enum { IDD = IDD_OPENCAPDEVICE_DLG };
 
 protected:
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV support

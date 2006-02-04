@@ -37,6 +37,8 @@
 #include "..\..\..\..\include\moreuuids.h"
 #include "..\..\..\..\include\matroska\matroska.h"
 
+#define EPSILON 1e-4
+
 #ifdef REGISTER_FILTER
 
 const AMOVIESETUP_MEDIATYPE sudPinTypesIn[] =
@@ -178,6 +180,7 @@ CMpeg2DecFilter::CMpeg2DecFilter(LPUNKNOWN lpunk, HRESULT* phr)
 	if(FAILED(*phr)) return;
 
 	SetDeinterlaceMethod(DIAuto);
+//	SetDeinterlaceMethod(DIWeave);
 	SetBrightness(0.0);
 	SetContrast(1.0);
 	SetHue(0.0);
@@ -286,6 +289,55 @@ void CMpeg2DecFilter::InputTypeChanged()
 	m_fb.flags = 0;
 }
 
+ditype CMpeg2DecFilter::SuggestDeinterlaceMethod()
+{
+	ASSERT(m_dec->m_info.m_sequence);
+	ASSERT(m_dec->m_info.m_display_picture);
+
+	DWORD seqflags = m_dec->m_info.m_sequence->flags;
+	DWORD oldflags = m_fb.flags;
+	DWORD newflags = m_dec->m_info.m_display_picture->flags;
+
+	if(!(seqflags & SEQ_FLAG_PROGRESSIVE_SEQUENCE) 
+	&& !(oldflags & PIC_FLAG_REPEAT_FIRST_FIELD)
+	&& (newflags & PIC_FLAG_PROGRESSIVE_FRAME))
+	{
+		if(!m_fFilm && (newflags & PIC_FLAG_REPEAT_FIRST_FIELD))
+		{
+			TRACE(_T("m_fFilm = true\n"));
+			m_fFilm = true;
+		}
+		else if(m_fFilm && !(newflags & PIC_FLAG_REPEAT_FIRST_FIELD))
+		{
+			TRACE(_T("m_fFilm = false\n"));
+			m_fFilm = false;
+		}
+	}
+
+	ditype di = GetDeinterlaceMethod();
+
+	if(di == DIAuto || di != DIWeave && di != DIBlend && di != DIBob)
+	{
+		if(seqflags & SEQ_FLAG_PROGRESSIVE_SEQUENCE)
+			di = DIWeave; // hurray!
+		else if(m_fFilm)
+			di = DIWeave; // we are lucky
+		else if(!(m_fb.flags & PIC_FLAG_PROGRESSIVE_FRAME))
+			di = DIBlend; // ok, clear thing
+		else
+			// big trouble here, the progressive_frame bit is not reliable :'(
+			// frames without temporal field diffs can be only detected when ntsc 
+			// uses the repeat field flag (signaled with m_fFilm), if it's not set 
+			// or we have pal then we might end up blending the fields unnecessarily...
+			di = DIBlend;
+	}
+
+	return di;
+}
+
+#include <intrin.h>
+#pragma intrinsic(__rdtsc)
+
 HRESULT CMpeg2DecFilter::Transform(IMediaSample* pIn)
 {
 	HRESULT hr;
@@ -316,92 +368,36 @@ HRESULT CMpeg2DecFilter::Transform(IMediaSample* pIn)
 		switch(state)
 		{
 		case STATE_BUFFER:
-			if(len == 0) len = -1;
-			else {m_dec->mpeg2_buffer(pDataIn, pDataIn + len); len = 0;}
+			if(len > 0) {m_dec->mpeg2_buffer(pDataIn, pDataIn + len); len = 0;}
+			else len = -1;
 			break;
 		case STATE_INVALID:
 			TRACE(_T("*** STATE_INVALID\n"));
-/*
-			if(m_fWaitForKeyFrame)
-				InputTypeChanged();
-*/
 			break;
 		case STATE_GOP:
-			// TRACE(_T("STATE_GOP\n"));
-			if(m_dec->m_info.m_user_data_len > 4 && *(DWORD*)m_dec->m_info.m_user_data == 0xf8014343
-			&& m_pClosedCaptionOutput->IsConnected())
-			{
-				CComPtr<IMediaSample> pSample;
-				m_pClosedCaptionOutput->GetDeliveryBuffer(&pSample, NULL, NULL, 0);
-				BYTE* pData = NULL;
-				pSample->GetPointer(&pData);
-				*(DWORD*)pData = 0xb2010000;
-				memcpy(pData + 4, m_dec->m_info.m_user_data, m_dec->m_info.m_user_data_len);
-				pSample->SetActualDataLength(m_dec->m_info.m_user_data_len + 4);
-				m_pClosedCaptionOutput->Deliver(pSample);
-			}
+			m_pClosedCaptionOutput->Deliver(m_dec->m_info.m_user_data, m_dec->m_info.m_user_data_len);
 			break;
 		case STATE_SEQUENCE:
-			TRACE(_T("STATE_SEQUENCE\n"));
-			m_AvgTimePerFrame = 10i64 * m_dec->m_info.m_sequence->frame_period / 27;
-			if(m_AvgTimePerFrame == 0) m_AvgTimePerFrame = ((VIDEOINFOHEADER*)m_pInput->CurrentMediaType().Format())->AvgTimePerFrame;
+			m_AvgTimePerFrame = m_dec->m_info.m_sequence->frame_period 
+				? 10i64 * m_dec->m_info.m_sequence->frame_period / 27
+				: ((VIDEOINFOHEADER*)m_pInput->CurrentMediaType().Format())->AvgTimePerFrame;
 			break;
 		case STATE_PICTURE:
-/*			{
-			TCHAR frametype[] = {'?','I', 'P', 'B', 'D'};
-			TRACE(_T("STATE_PICTURE %010I64d [%c]\n"), rtStart, frametype[m_dec->m_picture->flags&PIC_MASK_CODING_TYPE]);
-			}
-*/			m_dec->m_picture->rtStart = rtStart;
-			rtStart = _I64_MIN;
+			m_dec->m_picture->rtStart = rtStart; rtStart = _I64_MIN;
 			m_dec->m_picture->fDelivered = false;
-
 			m_dec->mpeg2_skip(m_fDropFrames && (m_dec->m_picture->flags&PIC_MASK_CODING_TYPE) == PIC_FLAG_CODING_TYPE_B);
-
 			break;
 		case STATE_SLICE:
 		case STATE_END:
 			{
 				mpeg2_picture_t* picture = m_dec->m_info.m_display_picture;
-				mpeg2_picture_t* picture_2nd = m_dec->m_info.m_display_picture_2nd;
 				mpeg2_fbuf_t* fbuf = m_dec->m_info.m_display_fbuf;
 
-				if(picture && fbuf && !(picture->flags&PIC_FLAG_SKIP))
+				if(picture && !(picture->flags&PIC_FLAG_SKIP) && fbuf)
 				{
 					ASSERT(!picture->fDelivered);
 
-					// start - end
-
-					m_fb.rtStart = picture->rtStart;
-					if(m_fb.rtStart == _I64_MIN) m_fb.rtStart = m_fb.rtStop;
-					m_fb.rtStop = m_fb.rtStart + m_AvgTimePerFrame * picture->nb_fields / (picture_2nd ? 1 : 2);
-
-					REFERENCE_TIME rtStart = m_fb.rtStart;
-					REFERENCE_TIME rtStop = m_fb.rtStop;
-
-					// flags
-
-					if(!(m_dec->m_info.m_sequence->flags&SEQ_FLAG_PROGRESSIVE_SEQUENCE)
-					&& (picture->flags&PIC_FLAG_PROGRESSIVE_FRAME))
-					{
-						if(!m_fFilm
-						&& (picture->flags&PIC_FLAG_REPEAT_FIRST_FIELD)
-						&& !(m_fb.flags&PIC_FLAG_REPEAT_FIRST_FIELD))
-						{
-							TRACE(_T("m_fFilm = true\n"));
-							m_fFilm = true;
-						}
-						else if(m_fFilm
-						&& !(picture->flags&PIC_FLAG_REPEAT_FIRST_FIELD)
-						&& !(m_fb.flags&PIC_FLAG_REPEAT_FIRST_FIELD))
-						{
-							TRACE(_T("m_fFilm = false\n"));
-							m_fFilm = false;
-						}
-					}
-
-					m_fb.flags = picture->flags;
-
-ASSERT(!(m_fb.flags&PIC_FLAG_SKIP));
+					picture->fDelivered = true;
 
 					// frame buffer
 
@@ -412,32 +408,36 @@ ASSERT(!(m_fb.flags&PIC_FLAG_SKIP));
 					if(m_fb.w != w || m_fb.h != h || m_fb.pitch != pitch)
 						m_fb.alloc(w, h, pitch);
 
+					// start - end
+
+					m_fb.rtStart = picture->rtStart;
+					if(m_fb.rtStart == _I64_MIN) m_fb.rtStart = m_fb.rtStop;
+					m_fb.rtStop = m_fb.rtStart + m_AvgTimePerFrame * picture->nb_fields / (m_dec->m_info.m_display_picture_2nd ? 1 : 2);
+
+					REFERENCE_TIME rtStart = m_fb.rtStart;
+					REFERENCE_TIME rtStop = m_fb.rtStop;
+
+					//
+
+					ditype di = SuggestDeinterlaceMethod();
+
+					// save flags
+
+					m_fb.flags = picture->flags;
+
+					//
+
+					if(FAILED(hr = DeliverFast(di)))
+						return hr;
+
+					if(hr == S_OK)
+						break;
+
 					// deinterlace
-
-					ditype di = GetDeinterlaceMethod();
-
-					if(di == DIAuto || di != DIWeave && di != DIBlend && di != DIBob)
-					{
-						if(!!(m_dec->m_info.m_sequence->flags&SEQ_FLAG_PROGRESSIVE_SEQUENCE))
-							di = DIWeave; // hurray!
-						else if(m_fFilm)
-							di = DIWeave; // we are lucky
-						else if(!(m_fb.flags&PIC_FLAG_PROGRESSIVE_FRAME))
-							di = DIBlend; // ok, clear thing
-						else
-							// big trouble here, the progressive_frame bit is not reliable :'(
-							// frames without temporal field diffs can be only detected when ntsc 
-							// uses the repeat field flag (signaled with m_fFilm), if it's not set 
-							// or we have pal then we might end up blending the fields unnecessarily...
-							di = DIBlend;
-							// TODO: find out if the pic is really interlaced by analysing it
-					}
 
 					if(di == DIWeave)
 					{
-						BitBltFromI420ToI420(w, h, 
-							m_fb.buf[0], m_fb.buf[1], m_fb.buf[2], pitch, 
-							fbuf->buf[0], fbuf->buf[1], fbuf->buf[2], pitch);
+						BitBltFromI420ToI420(w, h, m_fb.buf[0], m_fb.buf[1], m_fb.buf[2], pitch, fbuf->buf[0], fbuf->buf[1], fbuf->buf[2], pitch);
 					}
 					else if(di == DIBlend)
 					{
@@ -447,24 +447,11 @@ ASSERT(!(m_fb.flags&PIC_FLAG_SKIP));
 					}
 					else if(di == DIBob)
 					{
-						if(m_fb.flags&PIC_FLAG_TOP_FIELD_FIRST)
-						{
-							BitBltFromRGBToRGB(w, h/2, m_fb.buf[0], pitch*2, 8, fbuf->buf[0], pitch*2, 8);
-							AvgLines8(m_fb.buf[0], h, pitch);
-							BitBltFromRGBToRGB(w/2, h/4, m_fb.buf[1], pitch, 8, fbuf->buf[1], pitch, 8);
-							AvgLines8(m_fb.buf[1], h/2, pitch/2);
-							BitBltFromRGBToRGB(w/2, h/4, m_fb.buf[2], pitch, 8, fbuf->buf[2], pitch, 8);
-							AvgLines8(m_fb.buf[2], h/2, pitch/2);
-						}
-						else
-						{
-							BitBltFromRGBToRGB(w, h/2, m_fb.buf[0]+pitch, pitch*2, 8, fbuf->buf[0]+pitch, pitch*2, 8);
-							AvgLines8(m_fb.buf[0]+pitch, h-1, pitch);
-							BitBltFromRGBToRGB(w/2, h/4, m_fb.buf[1]+pitch/2, pitch, 8, fbuf->buf[1]+pitch/2, pitch, 8);
-							AvgLines8(m_fb.buf[1]+pitch/2, (h-1)/2, pitch/2);
-							BitBltFromRGBToRGB(w/2, h/4, m_fb.buf[2]+pitch/2, pitch, 8, fbuf->buf[2]+pitch/2, pitch, 8);
-							AvgLines8(m_fb.buf[2]+pitch/2, (h-1)/2, pitch/2);
-						}
+						bool tff = !!(m_fb.flags&PIC_FLAG_TOP_FIELD_FIRST);
+
+						DeinterlaceBob(m_fb.buf[0], fbuf->buf[0], w, h, pitch, pitch, tff);
+						DeinterlaceBob(m_fb.buf[1], fbuf->buf[1], w/2, h/2, pitch/2, pitch/2, tff);
+						DeinterlaceBob(m_fb.buf[2], fbuf->buf[2], w/2, h/2, pitch/2, pitch/2, tff);
 
 						m_fb.rtStart = rtStart;
 						m_fb.rtStop = (rtStart + rtStop) / 2;
@@ -476,8 +463,6 @@ ASSERT(!(m_fb.flags&PIC_FLAG_SKIP));
 
 					// deliver
 
-					picture->fDelivered = true;
-
 					if(FAILED(hr = Deliver(false)))
 						return hr;
 
@@ -485,24 +470,11 @@ ASSERT(!(m_fb.flags&PIC_FLAG_SKIP));
 
 					if(di == DIBob)
 					{
-						if(m_fb.flags&PIC_FLAG_TOP_FIELD_FIRST)
-						{
-							BitBltFromRGBToRGB(w, h/2, m_fb.buf[0]+pitch, pitch*2, 8, fbuf->buf[0]+pitch, pitch*2, 8);
-							AvgLines8(m_fb.buf[0]+pitch, h-1, pitch);
-							BitBltFromRGBToRGB(w/2, h/4, m_fb.buf[1]+pitch/2, pitch, 8, fbuf->buf[1]+pitch/2, pitch, 8);
-							AvgLines8(m_fb.buf[1]+pitch/2, (h-1)/2, pitch/2);
-							BitBltFromRGBToRGB(w/2, h/4, m_fb.buf[2]+pitch/2, pitch, 8, fbuf->buf[2]+pitch/2, pitch, 8);
-							AvgLines8(m_fb.buf[2]+pitch/2, (h-1)/2, pitch/2);
-						}
-						else
-						{
-							BitBltFromRGBToRGB(w, h/2, m_fb.buf[0], pitch*2, 8, fbuf->buf[0], pitch*2, 8);
-							AvgLines8(m_fb.buf[0], h, pitch);
-							BitBltFromRGBToRGB(w/2, h/4, m_fb.buf[1], pitch, 8, fbuf->buf[1], pitch, 8);
-							AvgLines8(m_fb.buf[1], h/2, pitch/2);
-							BitBltFromRGBToRGB(w/2, h/4, m_fb.buf[2], pitch, 8, fbuf->buf[2], pitch, 8);
-							AvgLines8(m_fb.buf[2], h/2, pitch/2);
-						}
+						bool tff = !!(m_fb.flags&PIC_FLAG_TOP_FIELD_FIRST);
+
+						DeinterlaceBob(m_fb.buf[0], fbuf->buf[0], w, h, pitch, pitch, !tff);
+						DeinterlaceBob(m_fb.buf[1], fbuf->buf[1], w/2, h/2, pitch/2, pitch/2, !tff);
+						DeinterlaceBob(m_fb.buf[2], fbuf->buf[2], w/2, h/2, pitch/2, pitch/2, !tff);
 
 						m_fb.rtStart = (rtStart + rtStop) / 2;
 						m_fb.rtStop = rtStop;
@@ -512,8 +484,6 @@ ASSERT(!(m_fb.flags&PIC_FLAG_SKIP));
 						ApplyBrContHueSat(m_fb.buf[0], m_fb.buf[1], m_fb.buf[2], w, h, pitch);
 
 						// deliver
-
-						picture->fDelivered = true;
 
 						if(FAILED(hr = Deliver(false)))
 							return hr;
@@ -529,11 +499,122 @@ ASSERT(!(m_fb.flags&PIC_FLAG_SKIP));
 	return S_OK;
 }
 
-#if _MSC_VER >= 1400
-extern "C" unsigned __int64 __rdtsc();
-#else
-__declspec(naked) unsigned __int64 __rdtsc() {__asm rdtsc __asm ret}
-#endif
+HRESULT CMpeg2DecFilter::DeliverFast(ditype di)
+{
+	HRESULT hr;
+
+	CAutoLock cAutoLock(&m_csReceive);
+
+	mpeg2_fbuf_t* fbuf = m_dec->m_info.m_display_fbuf;
+	if(!fbuf) return S_FALSE;
+
+	if(GetCLSID(m_pInput->GetConnected()) == CLSID_DVDNavigator)
+		return S_FALSE;
+
+	CComPtr<IMediaSample> pOut;
+
+	if((m_fb.flags&PIC_MASK_CODING_TYPE) == PIC_FLAG_CODING_TYPE_I)
+		m_fWaitForKeyFrame = false;
+
+	if(m_fb.rtStart < 0 || m_fWaitForKeyFrame)
+		return S_OK;
+
+	{
+
+	CAutoLock cAutoLock2(&m_csProps);
+
+	if(fabs(m_bright) > EPSILON || fabs(m_cont-1.0) > EPSILON
+	|| fabs(m_hue) > EPSILON || fabs(m_sat-1.0) > EPSILON)
+		return S_FALSE; 
+
+	const CMediaType& mt = m_pOutput->CurrentMediaType();
+	
+	if(mt.subtype != MEDIASUBTYPE_I420 && mt.subtype != MEDIASUBTYPE_IYUV && mt.subtype != MEDIASUBTYPE_YV12)
+		return S_FALSE;
+
+	BYTE* pDataOut = NULL;
+	if(FAILED(hr = GetDeliveryBuffer(m_fb.w, m_fb.h, &pOut))
+	|| FAILED(hr = pOut->GetPointer(&pDataOut)))
+		return hr;
+
+	if(mt.subtype != MEDIASUBTYPE_I420 && mt.subtype != MEDIASUBTYPE_IYUV && mt.subtype != MEDIASUBTYPE_YV12)
+		return S_FALSE;
+
+	BITMAPINFOHEADER bihOut;
+	ExtractBIH(&mt, &bihOut);
+
+	// (m_fb.w+7)&~7; // TODO
+	int srcpitch = m_fb.pitch;
+	int w = bihOut.biWidth;
+	int h = abs(bihOut.biHeight);
+	int dstpitch = bihOut.biWidth;
+	BYTE* y = pDataOut;
+	BYTE* u = y + dstpitch*h;
+	BYTE* v = y + dstpitch*h*5/4;
+
+	if(bihOut.biCompression == '21VY') {BYTE* tmp = u; u = v; v = tmp;}
+
+	if(di == DIWeave)
+	{
+		BitBltFromI420ToI420(w, h, y, u, v, dstpitch, fbuf->buf[0], fbuf->buf[1], fbuf->buf[2], srcpitch);
+	}
+	else if(di == DIBlend)
+	{
+		DeinterlaceBlend(y, fbuf->buf[0], w, h, dstpitch, srcpitch);
+		DeinterlaceBlend(u, fbuf->buf[1], w/2, h/2, dstpitch/2, srcpitch/2);
+		DeinterlaceBlend(v, fbuf->buf[2], w/2, h/2, dstpitch/2, srcpitch/2);
+	}
+	else if(di == DIBob)
+	{
+		return S_FALSE; // TODO
+	}
+
+	// postproc
+
+	ApplyBrContHueSat(y, u, v, w, h, dstpitch);
+
+	if(h == 1088)
+	{
+		memset(y + dstpitch*(h-8), 0xff, w*8);
+		memset(u + dstpitch*(h-8)/4, 0x80, w*8/4);
+		memset(v + dstpitch*(h-8)/4, 0x80, w*8/4);
+	}
+
+	if(m_pSubpicInput->HasAnythingToRender(m_fb.rtStart))
+	{
+		BYTE* buf[3] = {y, u, v};
+		m_pSubpicInput->RenderSubpics(m_fb.rtStart, buf, dstpitch, h);
+	}
+
+	}
+
+	if(CMpeg2DecInputPin* pPin = dynamic_cast<CMpeg2DecInputPin*>(m_pInput))
+	{
+		CAutoLock cAutoLock(&pPin->m_csRateLock);
+
+		if(m_rate.Rate != pPin->m_ratechange.Rate)
+		{
+			m_rate.Rate = pPin->m_ratechange.Rate;
+			m_rate.StartTime = m_fb.rtStart;
+		}
+	}
+
+	REFERENCE_TIME rtStart = m_fb.rtStart;
+	REFERENCE_TIME rtStop = m_fb.rtStop;
+
+	rtStart = m_rate.StartTime + (rtStart - m_rate.StartTime) * m_rate.Rate / 10000;
+	rtStop = m_rate.StartTime + (rtStop - m_rate.StartTime) * m_rate.Rate / 10000;
+
+	pOut->SetTime(&rtStart, &rtStop);
+	pOut->SetMediaTime(NULL, NULL);
+
+	//
+
+	hr = m_pOutput->Deliver(pOut);
+	if(FAILED(hr)) return hr;
+
+	return S_OK;
+}
 
 HRESULT CMpeg2DecFilter::Deliver(bool fRepeatLast)
 {
@@ -542,24 +623,6 @@ HRESULT CMpeg2DecFilter::Deliver(bool fRepeatLast)
 	if((m_fb.flags&PIC_MASK_CODING_TYPE) == PIC_FLAG_CODING_TYPE_I)
 		m_fWaitForKeyFrame = false;
 
-	TCHAR frametype[] = {'?','I', 'P', 'B', 'D'};
-//	TRACE(_T("%010I64d - %010I64d [%c] [prsq %d prfr %d tff %d rff %d nb_fields %d ref %d] (%dx%d/%dx%d)\n"), 
-/*
-	if(!fRepeatLast)
-	{
-		TRACE(_T("%010I64d - %010I64d [%c] [prsq %d prfr %d tff %d rff %d] (%dx%d %d) (preroll %d)\n"), 
-			m_fb.rtStart, m_fb.rtStop,
-			frametype[m_fb.flags&PIC_MASK_CODING_TYPE],
-			!!(m_dec->m_info.m_sequence->flags&SEQ_FLAG_PROGRESSIVE_SEQUENCE),
-			!!(m_fb.flags&PIC_FLAG_PROGRESSIVE_FRAME),
-			!!(m_fb.flags&PIC_FLAG_TOP_FIELD_FIRST),
-			!!(m_fb.flags&PIC_FLAG_REPEAT_FIRST_FIELD),
-//			m_dec->m_info.m_display_picture->nb_fields,
-//			m_dec->m_info.m_display_picture->temporal_reference,
-			m_fb.w, m_fb.h, m_fb.pitch,
-			!!(m_fb.rtStart < 0 || m_fWaitForKeyFrame));
-	}
-*/
 	if(m_fb.rtStart < 0 || m_fWaitForKeyFrame)
 		return S_OK;
 
@@ -570,24 +633,6 @@ HRESULT CMpeg2DecFilter::Deliver(bool fRepeatLast)
 	if(FAILED(hr = GetDeliveryBuffer(m_fb.w, m_fb.h, &pOut))
 	|| FAILED(hr = pOut->GetPointer(&pDataOut)))
 		return hr;
-
-	{
-		CMpeg2DecInputPin* pPin = (CMpeg2DecInputPin*)m_pInput;
-		CAutoLock cAutoLock(&pPin->m_csRateLock);
-		if(m_rate.Rate != pPin->m_ratechange.Rate)
-		{
-			m_rate.Rate = pPin->m_ratechange.Rate;
-			m_rate.StartTime = m_fb.rtStart;
-		}
-	}
-
-	REFERENCE_TIME rtStart = m_fb.rtStart;
-	REFERENCE_TIME rtStop = m_fb.rtStop;
-	rtStart = m_rate.StartTime + (rtStart - m_rate.StartTime) * m_rate.Rate / 10000;
-	rtStop = m_rate.StartTime + (rtStop - m_rate.StartTime) * m_rate.Rate / 10000;
-
-	pOut->SetTime(&rtStart, &rtStop);
-	pOut->SetMediaTime(NULL, NULL);
 
 	if(m_fb.h == 1088)
 	{
@@ -609,24 +654,58 @@ HRESULT CMpeg2DecFilter::Deliver(bool fRepeatLast)
 		m_pSubpicInput->RenderSubpics(m_fb.rtStart, buf, m_fb.pitch, m_fb.h);
 	}
 
+/*
+static CAtlList<UINT64> ts;
+UINT64 t = __rdtsc();
+*/
 	CopyBuffer(pDataOut, buf, (m_fb.w+7)&~7, m_fb.h, m_fb.pitch, MEDIASUBTYPE_I420);
+/*
+t = __rdtsc() - t;
+ts.AddTail(t);
+if(ts.GetCount() == 100)
+{
+	UINT64 total = 0;
+	POSITION pos = ts.GetHeadPosition();
+	while(pos) total += ts.GetNext(pos);
+	t = __rdtsc();
+	Sleep(1000);
+	t = __rdtsc() - t;
+	CString str;
+	str.Format(_T("%.6f"), 1.0f*total/ts.GetCount()/t);
+	AfxMessageBox(str);
+	ts.RemoveAll();
+}
+*/
+	//
 
-	if(FAILED(hr = m_pOutput->Deliver(pOut)))
-		return hr;
+	if(CMpeg2DecInputPin* pPin = dynamic_cast<CMpeg2DecInputPin*>(m_pInput))
+	{
+		CAutoLock cAutoLock(&pPin->m_csRateLock);
 
-	return S_OK;
+		if(m_rate.Rate != pPin->m_ratechange.Rate)
+		{
+			m_rate.Rate = pPin->m_ratechange.Rate;
+			m_rate.StartTime = m_fb.rtStart;
+		}
+	}
+
+	REFERENCE_TIME rtStart = m_fb.rtStart;
+	REFERENCE_TIME rtStop = m_fb.rtStop;
+
+	rtStart = m_rate.StartTime + (rtStart - m_rate.StartTime) * m_rate.Rate / 10000;
+	rtStop = m_rate.StartTime + (rtStop - m_rate.StartTime) * m_rate.Rate / 10000;
+
+	pOut->SetTime(&rtStart, &rtStop);
+	pOut->SetMediaTime(NULL, NULL);
+
+	//
+
+	hr = m_pOutput->Deliver(pOut);
+
+	return hr;
 }
 
 #include "..\..\..\..\include\IFilterVersion.h"
-
-[uuid("04FE9017-F873-410E-871E-AB91661A4EF7")]
-struct ffdshow {};
-[uuid("93A22E7A-5091-45ef-BA61-6DA26156A5D0")]
-struct dvs {};
-[uuid("9852A670-F845-491b-9BE6-EBD841B8A613")]
-struct dvsauto {};
-[uuid("fd501043-8ebe-11ce-8183-00aa00577da1")]
-struct dladapter {};
 
 HRESULT CMpeg2DecFilter::CheckConnect(PIN_DIRECTION dir, IPin* pPin)
 {
@@ -646,10 +725,10 @@ HRESULT CMpeg2DecFilter::CheckConnect(PIN_DIRECTION dir, IPin* pPin)
 			/*&& clsid != CLSID_OverlayMixer2*/
 			&& clsid != CLSID_VideoMixingRenderer 
 			&& clsid != CLSID_VideoMixingRenderer9
-			&& clsid != __uuidof(ffdshow)
-			&& (clsid != __uuidof(dvs) || ver < 0x0234)
-			&& (clsid != __uuidof(dvsauto) || ver < 0x0234)
-			&& clsid != __uuidof(dladapter))
+			&& clsid != GUIDFromCString(_T("04FE9017-F873-410E-871E-AB91661A4EF7")) // ffdshow
+			&& (clsid != GUIDFromCString(_T("93A22E7A-5091-45ef-BA61-6DA26156A5D0")) || ver < 0x0234) // dvobsub
+			&& (clsid != GUIDFromCString(_T("9852A670-F845-491b-9BE6-EBD841B8A613")) || ver < 0x0234) // dvobsub auto
+			&& clsid != GUIDFromCString(_T("fd501043-8ebe-11ce-8183-00aa00577da1"))) // dladapter
 				return E_FAIL;
 		}
 	}
@@ -774,8 +853,6 @@ void CMpeg2DecFilter::ApplyBrContHueSat(BYTE* srcy, BYTE* srcu, BYTE* srcv, int 
 {
 	CAutoLock cAutoLock(&m_csProps);
 
-	double EPSILON = 1e-4;
-
 	if(fabs(m_bright) > EPSILON || fabs(m_cont-1.0) > EPSILON)
 	{
 		int size = pitch*h;
@@ -838,7 +915,7 @@ void CMpeg2DecFilter::ApplyBrContHueSat(BYTE* srcy, BYTE* srcu, BYTE* srcv, int 
 	w /= 2;
 	h /= 2;
 
-	if(fabs(m_hue-0.0) > EPSILON || fabs(m_sat-1.0) > EPSILON)
+	if(fabs(m_hue) > EPSILON || fabs(m_sat-1.0) > EPSILON)
 	{
 		for(int size = pitch*h; size > 0; size--)
 		{
@@ -1960,4 +2037,23 @@ HRESULT CClosedCaptionOutputPin::DecideBufferSize(IMemAllocator* pAllocator, ALL
     return pProperties->cBuffers > Actual.cBuffers || pProperties->cbBuffer > Actual.cbBuffer
 		? E_FAIL
 		: NOERROR;
+}
+
+HRESULT CClosedCaptionOutputPin::Deliver(const void* ptr, int len)
+{
+	HRESULT hr = S_FALSE;
+
+	if(len > 4 && ptr && *(DWORD*)ptr == 0xf8014343 && IsConnected())
+	{
+		CComPtr<IMediaSample> pSample;
+		GetDeliveryBuffer(&pSample, NULL, NULL, 0);
+		BYTE* pData = NULL;
+		pSample->GetPointer(&pData);
+		*(DWORD*)pData = 0xb2010000;
+		memcpy(pData + 4, ptr, len);
+		pSample->SetActualDataLength(len + 4);
+		hr = __super::Deliver(pSample);
+	}
+
+	return hr;
 }

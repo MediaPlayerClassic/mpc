@@ -41,6 +41,7 @@
 #include "PnSPresetsDlg.h"
 #include "MediaTypesDlg.h"
 #include "SaveTextFileDialog.h"
+#include "SaveThumbnailsDialog.h"
 #include "FavoriteAddDlg.h"
 #include "FavoriteOrganizeDlg.h"
 #include "ConvertDlg.h"
@@ -149,7 +150,9 @@ BEGIN_MESSAGE_MAP(CMainFrame, CFrameWnd)
 	ON_WM_SETFOCUS()
 	ON_WM_GETMINMAXINFO()
 	ON_WM_MOVE()
+	ON_WM_MOVING()
 	ON_WM_SIZE()
+	ON_WM_SIZING()
 	ON_MESSAGE_VOID(WM_DISPLAYCHANGE, OnDisplayChange)
 
 	ON_WM_SYSCOMMAND()
@@ -188,7 +191,7 @@ BEGIN_MESSAGE_MAP(CMainFrame, CFrameWnd)
 	ON_COMMAND(ID_MENU_PLAYER_LONG, OnMenuPlayerLong)
 	ON_COMMAND(ID_MENU_FILTERS, OnMenuFilters)
 
-	ON_UPDATE_COMMAND_UI(ID_PLAYERSTATUS, OnUpdatePlayerStatus)
+	ON_UPDATE_COMMAND_UI(IDC_PLAYERSTATUS, OnUpdatePlayerStatus)
 
 	ON_COMMAND(ID_FILE_POST_OPENMEDIA, OnFilePostOpenmedia)
 	ON_UPDATE_COMMAND_UI(ID_FILE_POST_OPENMEDIA, OnUpdateFilePostOpenmedia)
@@ -217,8 +220,8 @@ BEGIN_MESSAGE_MAP(CMainFrame, CFrameWnd)
 	ON_COMMAND_RANGE(ID_FILE_OPEN_CD_START, ID_FILE_OPEN_CD_END, OnFileOpenCD)
 	ON_UPDATE_COMMAND_UI_RANGE(ID_FILE_OPEN_CD_START, ID_FILE_OPEN_CD_END, OnUpdateFileOpen)
 	ON_WM_DROPFILES()
-	ON_COMMAND(ID_FILE_SAVEAS, OnFileSaveas)
-	ON_UPDATE_COMMAND_UI(ID_FILE_SAVEAS, OnUpdateFileSaveas)
+	ON_COMMAND(ID_FILE_SAVE_COPY, OnFileSaveAs)
+	ON_UPDATE_COMMAND_UI(ID_FILE_SAVE_COPY, OnUpdateFileSaveAs)
 	ON_COMMAND(ID_FILE_SAVE_IMAGE, OnFileSaveImage)
 	ON_UPDATE_COMMAND_UI(ID_FILE_SAVE_IMAGE, OnUpdateFileSaveImage)
 	ON_COMMAND(ID_FILE_SAVE_IMAGE_AUTO, OnFileSaveImageAuto)
@@ -227,16 +230,16 @@ BEGIN_MESSAGE_MAP(CMainFrame, CFrameWnd)
 	ON_UPDATE_COMMAND_UI(ID_FILE_SAVE_THUMBNAILS, OnUpdateFileSaveThumbnails)
 	ON_COMMAND(ID_FILE_CONVERT, OnFileConvert)
 	ON_UPDATE_COMMAND_UI(ID_FILE_CONVERT, OnUpdateFileConvert)
-	ON_COMMAND(ID_FILE_LOADSUBTITLE, OnFileLoadsubtitles)
-	ON_UPDATE_COMMAND_UI(ID_FILE_LOADSUBTITLE, OnUpdateFileLoadsubtitles)
-	ON_COMMAND(ID_FILE_SAVESUBTITLES, OnFileSavesubtitles)
-	ON_UPDATE_COMMAND_UI(ID_FILE_SAVESUBTITLES, OnUpdateFileSavesubtitles)
-	ON_COMMAND(ID_SUBTITLEDATABASE_SEARCH, OnSubtitledatabaseSearch)
-	ON_UPDATE_COMMAND_UI(ID_SUBTITLEDATABASE_SEARCH, OnUpdateSubtitledatabaseSearch)
-	ON_COMMAND(ID_SUBTITLEDATABASE_UPLOAD, OnSubtitledatabaseUpload)
-	ON_UPDATE_COMMAND_UI(ID_SUBTITLEDATABASE_UPLOAD, OnUpdateSubtitledatabaseUpload)
-	ON_COMMAND(ID_SUBTITLEDATABASE_DOWNLOAD, OnSubtitledatabaseDownload)
-	ON_UPDATE_COMMAND_UI(ID_SUBTITLEDATABASE_DOWNLOAD, OnUpdateSubtitledatabaseDownload)
+	ON_COMMAND(ID_FILE_LOAD_SUBTITLE, OnFileLoadsubtitle)
+	ON_UPDATE_COMMAND_UI(ID_FILE_LOAD_SUBTITLE, OnUpdateFileLoadsubtitle)
+	ON_COMMAND(ID_FILE_SAVE_SUBTITLE, OnFileSavesubtitle)
+	ON_UPDATE_COMMAND_UI(ID_FILE_SAVE_SUBTITLE, OnUpdateFileSavesubtitle)
+	ON_COMMAND(ID_FILE_ISDB_SEARCH, OnFileISDBSearch)
+	ON_UPDATE_COMMAND_UI(ID_FILE_ISDB_SEARCH, OnUpdateFileISDBSearch)
+	ON_COMMAND(ID_FILE_ISDB_UPLOAD, OnFileISDBUpload)
+	ON_UPDATE_COMMAND_UI(ID_FILE_ISDB_UPLOAD, OnUpdateFileISDBUpload)
+	ON_COMMAND(ID_FILE_ISDB_DOWNLOAD, OnFileISDBDownload)
+	ON_UPDATE_COMMAND_UI(ID_FILE_ISDB_DOWNLOAD, OnUpdateFileISDBDownload)
 	ON_COMMAND(ID_FILE_PROPERTIES, OnFileProperties)
 	ON_UPDATE_COMMAND_UI(ID_FILE_PROPERTIES, OnUpdateFileProperties)
 	ON_COMMAND(ID_FILE_CLOSEPLAYLIST, OnFileClosePlaylist)
@@ -351,7 +354,6 @@ BEGIN_MESSAGE_MAP(CMainFrame, CFrameWnd)
 	ON_COMMAND(ID_HELP_DOCUMENTATION, OnHelpDocumentation)
 	ON_COMMAND(ID_HELP_DONATE, OnHelpDonate)
 
-	ON_WM_SIZING()
 	END_MESSAGE_MAP()
 
 /////////////////////////////////////////////////////////////////////////////
@@ -462,6 +464,8 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	m_dockingbars.AddTail(&m_wndShaderEditorBar);
 
 	m_fileDropTarget.Register(this);
+
+	GetDesktopWindow()->GetWindowRect(&m_rcDesktop);
 
 	AppSettings& s = AfxGetAppSettings();
 
@@ -918,6 +922,35 @@ void CMainFrame::OnMove(int x, int y)
 		GetWindowRect(AfxGetAppSettings().rcLastWindowPos);
 }
 
+void CMainFrame::OnMoving(UINT fwSide, LPRECT pRect)
+{
+	__super::OnMoving(fwSide, pRect);
+
+	if(AfxGetAppSettings().fSnapToDesktopEdges)
+	{
+		const CPoint threshold(3, 3);
+
+		CRect r0 = m_rcDesktop;
+		CRect r1 = r0 + threshold;
+		CRect r2 = r0 - threshold;
+
+		RECT& wr = *pRect;
+		CSize ws = CRect(wr).Size();
+
+		if(wr.left < r1.left && wr.left > r2.left)
+			wr.right = (wr.left = r0.left) + ws.cx;
+
+		if(wr.top < r1.top && wr.top > r2.top)
+			wr.bottom = (wr.top = r0.top) + ws.cy;
+
+		if(wr.right < r1.right && wr.right > r2.right)
+			wr.left = (wr.right = r0.right) - ws.cx;
+
+		if(wr.bottom < r1.bottom && wr.bottom > r2.bottom)
+			wr.top = (wr.bottom = r0.bottom) - ws.cy;
+	}
+}
+
 void CMainFrame::OnSize(UINT nType, int cx, int cy)
 {
 	__super::OnSize(nType, cx, cy);
@@ -1028,6 +1061,8 @@ void CMainFrame::OnDisplayChange() // untested, not sure if it's working...
 	if(m_iMediaLoadState == MLS_LOADED && m_pCAP) 
 		m_pCAP->OnDisplayChange();
 */
+
+	GetDesktopWindow()->GetWindowRect(&m_rcDesktop);
 }
 
 void CMainFrame::OnSysCommand(UINT nID, LPARAM lParam)
@@ -3170,7 +3205,7 @@ void CMainFrame::OnDropFiles(HDROP hDropInfo)
 	OpenCurPlaylistItem();
 }
 
-void CMainFrame::OnFileSaveas()
+void CMainFrame::OnFileSaveAs()
 {
 	CString ext, in = m_wndPlaylistBar.GetCur(), out = in;
 
@@ -3203,7 +3238,7 @@ void CMainFrame::OnFileSaveas()
 	if(fs == State_Running) pMC->Run();
 }
 
-void CMainFrame::OnUpdateFileSaveas(CCmdUI* pCmdUI)
+void CMainFrame::OnUpdateFileSaveAs(CCmdUI* pCmdUI)
 {
 	if(m_iMediaLoadState != MLS_LOADED || m_iPlaybackMode != PM_FILE)
 	{
@@ -3416,8 +3451,9 @@ void CMainFrame::SaveThumbnails(LPCTSTR fn)
 
 	//
 
-	int cols = 4, rows = 4;
-//	int cols = 3, rows = 2;
+	AppSettings& s = AfxGetAppSettings();
+
+	int cols = s.ThumbCols, rows = s.ThumbRows;
 
 	int margin = 5;
 	int infoheight = 70;
@@ -3514,7 +3550,7 @@ void CMainFrame::SaveThumbnails(LPCTSTR fn)
 			r.left, r.top, r.right, r.top, r.right, r.bottom, r.left, r.bottom);
 		rts.Add(str, true, 0, 1, _T("thumbs"));
 		str.Format(L"{\\an3\\1c&Hffffff&\\3c&H000000&\\fs16\\b1\\bord2\\shad0\\pos(%d,%d)}%02d:%02d:%02d", 
-			r.right-5, r.bottom-5, hmsf.bHours, hmsf.bMinutes, hmsf.bSeconds);
+			r.right-5, r.bottom-3, hmsf.bHours, hmsf.bMinutes, hmsf.bSeconds);
 		rts.Add(str, true, 1, 2, _T("thumbs"));
 
 		rts.Render(spd, 0, 25, bbox);
@@ -3691,9 +3727,10 @@ void CMainFrame::OnFileSaveThumbnails()
 	CPath psrc(s.SnapShotPath);
 	psrc.Combine(s.SnapShotPath, MakeSnapshotFileName(_T("thumbs")));
 
-	CFileDialog fd(FALSE, 0, (LPCTSTR)psrc, 
-		OFN_EXPLORER|OFN_ENABLESIZING|OFN_HIDEREADONLY|OFN_OVERWRITEPROMPT|OFN_PATHMUSTEXIST, 
-		_T("Bitmaps (*.bmp)|*.bmp|Jpeg (*.jpg)|*.jpg||"), this, 0);
+	CSaveThumbnailsDialog fd(
+		s.ThumbRows, s.ThumbCols,
+		0, (LPCTSTR)psrc, 
+		_T("Bitmaps (*.bmp)|*.bmp|Jpeg (*.jpg)|*.jpg||"), this);
 
 	if(s.SnapShotExt == _T(".bmp")) fd.m_pOFN->nFilterIndex = 1;
 	else if(s.SnapShotExt == _T(".jpg")) fd.m_pOFN->nFilterIndex = 2;
@@ -3702,6 +3739,9 @@ void CMainFrame::OnFileSaveThumbnails()
 
 	if(fd.m_pOFN->nFilterIndex == 1) s.SnapShotExt = _T(".bmp");
 	else if(fd.m_pOFN->nFilterIndex = 2) s.SnapShotExt = _T(".jpg");
+
+	s.ThumbRows = fd.m_rows;
+	s.ThumbCols = fd.m_cols;
 
 	CPath pdst(fd.GetPathName());
 	if(pdst.GetExtension().MakeLower() != s.SnapShotExt) pdst += s.SnapShotExt;
@@ -3728,7 +3768,7 @@ void CMainFrame::OnUpdateFileConvert(CCmdUI* pCmdUI)
 	// TODO: Add your command update UI handler code here
 }
 
-void CMainFrame::OnFileLoadsubtitles()
+void CMainFrame::OnFileLoadsubtitle()
 {
 	if(!m_pCAP)
 	{
@@ -3755,12 +3795,12 @@ void CMainFrame::OnFileLoadsubtitles()
 		SetSubtitle(m_pSubStreams.GetTail());
 }
 
-void CMainFrame::OnUpdateFileLoadsubtitles(CCmdUI *pCmdUI)
+void CMainFrame::OnUpdateFileLoadsubtitle(CCmdUI *pCmdUI)
 {
 	pCmdUI->Enable(m_iMediaLoadState == MLS_LOADED && /*m_pCAP &&*/ !m_fAudioOnly);
 }
 
-void CMainFrame::OnFileSavesubtitles()
+void CMainFrame::OnFileSavesubtitle()
 {
 	int i = m_iSubtitleSel;
 
@@ -3820,7 +3860,7 @@ void CMainFrame::OnFileSavesubtitles()
 	}
 }
 
-void CMainFrame::OnUpdateFileSavesubtitles(CCmdUI* pCmdUI)
+void CMainFrame::OnUpdateFileSavesubtitle(CCmdUI* pCmdUI)
 {
 	pCmdUI->Enable(m_iSubtitleSel >= 0);
 }
@@ -3830,31 +3870,31 @@ void CMainFrame::OnUpdateFileSavesubtitles(CCmdUI* pCmdUI)
 #include "SubtitleDlDlg.h"
 #include "ISDb.h"
 
-void CMainFrame::OnSubtitledatabaseSearch()
+void CMainFrame::OnFileISDBSearch()
 {
 	CStringA url = "http://" + AfxGetAppSettings().ISDb + "/index.php?";
 	CStringA args = makeargs(m_wndPlaylistBar.m_pl);
 	ShellExecute(m_hWnd, _T("open"), CString(url+args), NULL, NULL, SW_SHOWDEFAULT);
 }
 
-void CMainFrame::OnUpdateSubtitledatabaseSearch(CCmdUI *pCmdUI)
+void CMainFrame::OnUpdateFileISDBSearch(CCmdUI *pCmdUI)
 {
 	pCmdUI->Enable(TRUE);
 }
 
-void CMainFrame::OnSubtitledatabaseUpload()
+void CMainFrame::OnFileISDBUpload()
 {
 	CStringA url = "http://" + AfxGetAppSettings().ISDb + "/ul.php?";
 	CStringA args = makeargs(m_wndPlaylistBar.m_pl);
 	ShellExecute(m_hWnd, _T("open"), CString(url+args), NULL, NULL, SW_SHOWDEFAULT);
 }
 
-void CMainFrame::OnUpdateSubtitledatabaseUpload(CCmdUI *pCmdUI)
+void CMainFrame::OnUpdateFileISDBUpload(CCmdUI *pCmdUI)
 {
 	pCmdUI->Enable(m_wndPlaylistBar.GetCount() > 0);
 }
 
-void CMainFrame::OnSubtitledatabaseDownload()
+void CMainFrame::OnFileISDBDownload()
 {
 	filehash fh;
 	if(!hash(m_wndPlaylistBar.GetCur(), fh))
@@ -3953,7 +3993,7 @@ void CMainFrame::OnSubtitledatabaseDownload()
 	}
 }
 
-void CMainFrame::OnUpdateSubtitledatabaseDownload(CCmdUI *pCmdUI)
+void CMainFrame::OnUpdateFileISDBDownload(CCmdUI *pCmdUI)
 {
 	pCmdUI->Enable(m_iMediaLoadState == MLS_LOADED && m_pCAP && !m_fAudioOnly);
 }
@@ -9611,4 +9651,3 @@ void CGraphThread::OnClose(WPARAM wParam, LPARAM lParam)
 	if(m_pMainFrame) m_pMainFrame->CloseMediaPrivate();
 	if(CAMEvent* e = (CAMEvent*)lParam) e->Set();
 }
-

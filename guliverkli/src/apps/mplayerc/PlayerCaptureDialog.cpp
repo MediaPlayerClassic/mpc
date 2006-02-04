@@ -541,22 +541,22 @@ void CPlayerCaptureDialog::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_COMBO7, m_vidcodec);
 	DDX_Control(pDX, IDC_COMBO9, m_vidcodectype);
 	DDX_Control(pDX, IDC_COMBO10, m_vidcodecdimension);
-	DDX_Check(pDX, IDC_CHECK2, m_fVidOutput);
-	DDX_Control(pDX, IDC_CHECK2, m_vidoutput);
-	DDX_Check(pDX, IDC_CHECK4, m_fVidPreview);
-	DDX_Control(pDX, IDC_CHECK4, m_vidpreview);
+	DDX_Check(pDX, IDC_CHECK1, m_fVidOutput);
+	DDX_Control(pDX, IDC_CHECK1, m_vidoutput);
+	DDX_Check(pDX, IDC_CHECK2, m_fVidPreview);
+	DDX_Control(pDX, IDC_CHECK2, m_vidpreview);
 	DDX_Control(pDX, IDC_COMBO8, m_audcodec);
 	DDX_Control(pDX, IDC_COMBO12, m_audcodectype);
 	DDX_Control(pDX, IDC_COMBO11, m_audcodecdimension);
 	DDX_Check(pDX, IDC_CHECK3, m_fAudOutput);
 	DDX_Control(pDX, IDC_CHECK3, m_audoutput);
-	DDX_Check(pDX, IDC_CHECK5, m_fAudPreview);
-	DDX_Control(pDX, IDC_CHECK5, m_audpreview);
+	DDX_Check(pDX, IDC_CHECK4, m_fAudPreview);
+	DDX_Control(pDX, IDC_CHECK4, m_audpreview);
 	DDX_Text(pDX, IDC_EDIT4, m_file);
 	DDX_Control(pDX, IDC_BUTTON2, m_recordbtn);
-	DDX_Text(pDX, IDC_EDIT9, m_nVidBuffers);
-	DDX_Text(pDX, IDC_EDIT12, m_nAudBuffers);
-	DDX_Check(pDX, IDC_CHECK7, m_fSepAudio);
+	DDX_Text(pDX, IDC_EDIT5, m_nVidBuffers);
+	DDX_Text(pDX, IDC_EDIT6, m_nAudBuffers);
+	DDX_Check(pDX, IDC_CHECK5, m_fSepAudio);
 	DDX_CBIndex(pDX, IDC_COMBO14, m_muxtype);
 	DDX_Control(pDX, IDC_COMBO14, m_muxctrl);
 }
@@ -1218,7 +1218,7 @@ BEGIN_MESSAGE_MAP(CPlayerCaptureDialog, CResizableDialog)
 	ON_CBN_SELCHANGE(IDC_COMBO3, OnAudioInput)
 	ON_CBN_SELCHANGE(IDC_COMBO2, OnAudioType)
 	ON_CBN_SELCHANGE(IDC_COMBO6, OnAudioDimension)
-	ON_BN_CLICKED(IDC_CHECK2, OnRecordVideo)
+	ON_BN_CLICKED(IDC_CHECK1, OnRecordVideo)
 	ON_CBN_SELCHANGE(IDC_COMBO7, OnVideoCodec)
 	ON_CBN_SELCHANGE(IDC_COMBO9, OnVideoCodecType)
 	ON_CBN_SELCHANGE(IDC_COMBO10, OnVideoCodecDimension)
@@ -1228,12 +1228,12 @@ BEGIN_MESSAGE_MAP(CPlayerCaptureDialog, CResizableDialog)
 	ON_CBN_SELCHANGE(IDC_COMBO11, OnAudioCodecDimension)
 	ON_BN_CLICKED(IDC_BUTTON3, OnOpenFile)
 	ON_BN_CLICKED(IDC_BUTTON2, OnRecord)
-	ON_EN_CHANGE(IDC_EDIT9, OnEnChangeEdit9)
-	ON_EN_CHANGE(IDC_EDIT12, OnEnChangeEdit12)
+	ON_EN_CHANGE(IDC_EDIT5, OnEnChangeEdit9)
+	ON_EN_CHANGE(IDC_EDIT6, OnEnChangeEdit12)
 	ON_WM_TIMER()
+	ON_BN_CLICKED(IDC_CHECK2, OnBnClickedVidAudPreview)
 	ON_BN_CLICKED(IDC_CHECK4, OnBnClickedVidAudPreview)
-	ON_BN_CLICKED(IDC_CHECK5, OnBnClickedVidAudPreview)
-	ON_BN_CLICKED(IDC_CHECK7, OnBnClickedCheck7)
+	ON_BN_CLICKED(IDC_CHECK5, OnBnClickedCheck7)
 	ON_CBN_SELCHANGE(IDC_COMBO14, OnCbnSelchangeCombo14)
 END_MESSAGE_MAP()
 
@@ -1653,8 +1653,8 @@ void CPlayerCaptureDialog::OnCbnSelchangeCombo14()
 
 	UpdateData(FALSE);
 
-	GetDlgItem(IDC_EDIT9)->EnableWindow(m_muxtype != 2 && m_muxtype != 3);
-	GetDlgItem(IDC_EDIT12)->EnableWindow(m_muxtype != 2 && m_muxtype != 3);
+	GetDlgItem(IDC_EDIT5)->EnableWindow(m_muxtype != 2 && m_muxtype != 3);
+	GetDlgItem(IDC_EDIT6)->EnableWindow(m_muxtype != 2 && m_muxtype != 3);
 
 	m_recordbtn.EnableWindow(m_muxtype != 1 || m_fEnableOgm);
 }

@@ -56,12 +56,12 @@ CSaveTextFileDialog::~CSaveTextFileDialog()
 void CSaveTextFileDialog::DoDataExchange(CDataExchange* pDX)
 {
 	DDX_Control(pDX, IDC_COMBO1, m_encoding);
-	CFileDialog::DoDataExchange(pDX);
+	__super::DoDataExchange(pDX);
 }
 
 BOOL CSaveTextFileDialog::OnInitDialog()
 {
-	CFileDialog::OnInitDialog();
+	__super::OnInitDialog();
 
 	m_encoding.AddString(_T("ANSI"));
 	m_encoding.AddString(_T("Unicode 16-LE"));
@@ -97,5 +97,5 @@ BOOL CSaveTextFileDialog::OnFileNameOK()
 	default: break;
 	}
 
-	return CFileDialog::OnFileNameOK();
+	return __super::OnFileNameOK();
 }

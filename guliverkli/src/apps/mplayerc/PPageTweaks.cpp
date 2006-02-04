@@ -61,7 +61,7 @@ void CPPageTweaks::DoDataExchange(CDataExchange* pDX)
 	DDX_Text(pDX, IDC_EDIT3, m_nJumpDistL);
 	DDX_Check(pDX, IDC_CHECK1, m_fFreeWindowResizing);
 	DDX_Check(pDX, IDC_CHECK4, m_fNotifyMSN);
-	DDX_Check(pDX, IDC_CHECKGTS, m_fNotifyGTSdll);
+	DDX_Check(pDX, IDC_CHECK5, m_fNotifyGTSdll);
 	DDX_Control(pDX, IDC_STATICLINKGTS, m_GTSdllLink);
 }
 

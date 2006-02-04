@@ -54,10 +54,10 @@ CPPagePlayback::~CPPagePlayback()
 void CPPagePlayback::DoDataExchange(CDataExchange* pDX)
 {
 	__super::DoDataExchange(pDX);
-	DDX_Control(pDX, IDC_SLIDER2, m_volumectrl);
-	DDX_Control(pDX, IDC_SLIDER3, m_balancectrl);
-	DDX_Slider(pDX, IDC_SLIDER2, m_nVolume);
-	DDX_Slider(pDX, IDC_SLIDER3, m_nBalance);
+	DDX_Control(pDX, IDC_SLIDER1, m_volumectrl);
+	DDX_Control(pDX, IDC_SLIDER2, m_balancectrl);
+	DDX_Slider(pDX, IDC_SLIDER1, m_nVolume);
+	DDX_Slider(pDX, IDC_SLIDER2, m_nBalance);
 	DDX_Radio(pDX, IDC_RADIO1, m_iLoopForever);
 	DDX_Control(pDX, IDC_EDIT1, m_loopnumctrl);
 	DDX_Text(pDX, IDC_EDIT1, m_nLoops);
@@ -68,7 +68,7 @@ void CPPagePlayback::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_COMBO2, m_dispmodecombo);
 	DDX_Check(pDX, IDC_CHECK2, m_fAutoloadAudio);
 	DDX_Check(pDX, IDC_CHECK3, m_fAutoloadSubtitles);
-	DDX_Check(pDX, IDC_CHECK9, m_fEnableWorkerThreadForOpening);
+	DDX_Check(pDX, IDC_CHECK7, m_fEnableWorkerThreadForOpening);
 	DDX_Check(pDX, IDC_CHECK6, m_fReportFailedPins);
 }
 

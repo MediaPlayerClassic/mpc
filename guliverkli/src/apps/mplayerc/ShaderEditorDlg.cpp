@@ -213,7 +213,7 @@ BOOL CShaderEditorDlg::Create(CWnd* pParent)
 	AddAnchor(IDC_COMBO2, TOP_RIGHT);
 	AddAnchor(IDC_EDIT1, TOP_LEFT, BOTTOM_RIGHT);
 	AddAnchor(IDC_EDIT2, BOTTOM_LEFT, BOTTOM_RIGHT);
-	AddAnchor(IDC_BUTTON2, TOP_RIGHT);
+	AddAnchor(IDC_BUTTON1, TOP_RIGHT);
 
 	m_srcdata.SetTabStops(16);
 
@@ -267,7 +267,7 @@ bool CShaderEditorDlg::HitTestSplitter(CPoint p)
 
 BEGIN_MESSAGE_MAP(CShaderEditorDlg, CResizableDialog)
 	ON_CBN_SELCHANGE(IDC_COMBO1, OnCbnSelchangeCombo1)
-	ON_BN_CLICKED(IDC_BUTTON2, OnBnClickedButton2)
+	ON_BN_CLICKED(IDC_BUTTON1, OnBnClickedButton2)
 	ON_WM_TIMER()
 	ON_WM_LBUTTONDOWN()
 	ON_WM_LBUTTONUP()

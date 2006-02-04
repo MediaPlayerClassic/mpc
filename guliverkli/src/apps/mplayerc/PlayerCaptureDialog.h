@@ -358,7 +358,7 @@ public:
 	BOOL Create(CWnd* pParent = NULL);
 
 // Dialog Data
-	enum { IDD = IDD_CAPTUREDIALOG };
+	enum { IDD = IDD_CAPTURE_DLG };
 
 	CComboBox m_vidinput;
 	CComboBox m_vidtype;

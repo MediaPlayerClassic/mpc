@@ -13,7 +13,7 @@ public:
 	virtual ~CShaderCombineDlg();
 
 // Dialog Data
-	enum { IDD = IDD_SHADERCOMBINEDLG };
+	enum { IDD = IDD_SHADERCOMBINE_DLG };
 
 protected:
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV support

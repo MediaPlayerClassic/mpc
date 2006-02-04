@@ -89,7 +89,7 @@ void CPPageSubStyle::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_COMBO1, m_charset);
 	DDX_Text(pDX, IDC_EDIT3, m_spacing);
 	DDX_Control(pDX, IDC_SPIN3, m_spacingspin);
-	DDX_Text(pDX, IDC_EDIT11, m_angle);
+	DDX_Text(pDX, IDC_EDIT4, m_angle);
 	DDX_Control(pDX, IDC_SPIN10, m_anglespin);
 	DDX_Text(pDX, IDC_EDIT5, m_scalex);
 	DDX_Control(pDX, IDC_SPIN4, m_scalexspin);
@@ -113,14 +113,14 @@ void CPPageSubStyle::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_COLORSEC, m_color[1]);
 	DDX_Control(pDX, IDC_COLOROUTL, m_color[2]);
 	DDX_Control(pDX, IDC_COLORSHAD, m_color[3]);
-	DDX_Slider(pDX, IDC_SLIDER2, m_alpha[0]);
-	DDX_Slider(pDX, IDC_SLIDER3, m_alpha[1]);
-	DDX_Slider(pDX, IDC_SLIDER5, m_alpha[2]);
-	DDX_Slider(pDX, IDC_SLIDER6, m_alpha[3]);
-	DDX_Control(pDX, IDC_SLIDER2, m_alphasliders[0]);
-	DDX_Control(pDX, IDC_SLIDER3, m_alphasliders[1]);
-	DDX_Control(pDX, IDC_SLIDER5, m_alphasliders[2]);
-	DDX_Control(pDX, IDC_SLIDER6, m_alphasliders[3]);
+	DDX_Slider(pDX, IDC_SLIDER1, m_alpha[0]);
+	DDX_Slider(pDX, IDC_SLIDER2, m_alpha[1]);
+	DDX_Slider(pDX, IDC_SLIDER3, m_alpha[2]);
+	DDX_Slider(pDX, IDC_SLIDER4, m_alpha[3]);
+	DDX_Control(pDX, IDC_SLIDER1, m_alphasliders[0]);
+	DDX_Control(pDX, IDC_SLIDER2, m_alphasliders[1]);
+	DDX_Control(pDX, IDC_SLIDER3, m_alphasliders[2]);
+	DDX_Control(pDX, IDC_SLIDER4, m_alphasliders[3]);
 	DDX_Check(pDX, IDC_CHECK1, m_linkalphasliders);
 	DDX_Check(pDX, IDC_CHECK_RELATIVETO, m_relativeTo);
 }

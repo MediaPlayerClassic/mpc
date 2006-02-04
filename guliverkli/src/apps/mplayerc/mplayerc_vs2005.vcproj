@@ -1225,6 +1225,10 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath=".\SaveThumbnailsDialog.cpp"
+				>
+			</File>
+			<File
 				RelativePath="SelectMediaType.cpp"
 				>
 				<FileConfiguration
@@ -2128,6 +2132,10 @@
 						Name="VCCustomBuildTool"
 					/>
 				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\SaveThumbnailsDialog.h"
+				>
 			</File>
 			<File
 				RelativePath="SelectMediaType.h"

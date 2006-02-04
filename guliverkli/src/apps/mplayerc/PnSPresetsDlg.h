@@ -39,7 +39,7 @@ public:
 	CStringArray m_pnspresets;
 
 // Dialog Data
-	enum { IDD = IDD_PNSPRESETDIALOG };
+	enum { IDD = IDD_PNSPRESET_DLG };
 	CFloatEdit m_PosX;
 	CFloatEdit m_PosY;
 	CFloatEdit m_ZoomX;

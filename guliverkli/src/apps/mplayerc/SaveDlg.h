@@ -43,7 +43,7 @@ public:
 	virtual ~CSaveDlg();
 
 // Dialog Data
-	enum { IDD = IDD_SAVEDIALOG };
+	enum { IDD = IDD_SAVE_DLG };
 	CAnimateCtrl m_anim;
 	CProgressCtrl m_progress;
 	CStatic m_report;
