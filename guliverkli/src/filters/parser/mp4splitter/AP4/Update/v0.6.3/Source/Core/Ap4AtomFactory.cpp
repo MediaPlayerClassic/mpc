@@ -382,6 +382,7 @@ AP4_AtomFactory::CreateAtomFromStream(AP4_ByteStream& stream,
         atom = new AP4_FtabAtom(size, stream);
         break;
 
+      case AP4_ATOM_TYPE_SVQ1:
       case AP4_ATOM_TYPE_SVQ3:
 	  case AP4_ATOM_TYPE_H263:
       case AP4_ATOM_TYPE_S263:

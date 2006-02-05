@@ -240,6 +240,7 @@ const AP4_Atom::Type AP4_ATOM_TYPE_AVCC = AP4_ATOM_TYPE('a','v','c','C');
 const AP4_Atom::Type AP4_ATOM_TYPE_TEXT = AP4_ATOM_TYPE('t','e','x','t');
 const AP4_Atom::Type AP4_ATOM_TYPE_TX3G = AP4_ATOM_TYPE('t','x','3','g');
 const AP4_Atom::Type AP4_ATOM_TYPE_FTAB = AP4_ATOM_TYPE('f','t','a','b');
+const AP4_Atom::Type AP4_ATOM_TYPE_SVQ1 = AP4_ATOM_TYPE('S','V','Q','1');
 const AP4_Atom::Type AP4_ATOM_TYPE_SVQ3 = AP4_ATOM_TYPE('S','V','Q','3');
 const AP4_Atom::Type AP4_ATOM_TYPE_H263 = AP4_ATOM_TYPE('h','2','6','3');
 const AP4_Atom::Type AP4_ATOM_TYPE_S263 = AP4_ATOM_TYPE('s','2','6','3');
