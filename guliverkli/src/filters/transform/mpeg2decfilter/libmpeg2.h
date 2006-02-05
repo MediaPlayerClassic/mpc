@@ -191,6 +191,9 @@ private:
 	void slice_intra_DCT(const int cc, uint8_t* dest, int stride);
 	void slice_non_intra_DCT(uint8_t* dest, int stride);
 
+	void MOTION(mpeg2_mc_fct * const * const table, uint8_t** ref, int motion_x, int motion_y, unsigned int size, unsigned int y, unsigned int limit_y);
+	void MOTION_FIELD(mpeg2_mc_fct * const * const table, uint8_t** ref, int motion_x, int motion_y, int dest_field, int src_field, unsigned int op);
+
 	void motion_mp1(motion_t* motion, mpeg2_mc_fct * const * const table);
 	void motion_fr_frame(motion_t* motion, mpeg2_mc_fct * const * const table);
 	void motion_fr_field(motion_t* motion, mpeg2_mc_fct * const * const table);

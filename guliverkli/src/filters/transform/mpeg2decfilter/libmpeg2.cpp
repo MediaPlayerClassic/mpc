@@ -2989,66 +2989,77 @@ void CMpeg2Decoder::slice_non_intra_DCT(uint8_t* dest, int stride)
 	m_idct_add(last, m_DCTblock, dest, stride);
 }
 
-#define MOTION(table,ref,motion_x,motion_y,size,y)			      \
-    pos_x = 2 * m_offset + motion_x;				      \
-    pos_y = 2 * m_v_offset + motion_y + 2 * y;			      \
-    if(pos_x > m_limit_x) {				      \
-	pos_x = ((int)pos_x < 0) ? 0 : m_limit_x;		      \
-	motion_x = pos_x - 2 * m_offset;				      \
-    }									      \
-    if(pos_y > m_limit_y_ ## size) {			      \
-	pos_y = ((int)pos_y < 0) ? 0 : m_limit_y_ ## size;	      \
-	motion_y = pos_y - 2 * m_v_offset - 2 * y;		      \
-    }									      \
-    xy_half = ((pos_y & 1) << 1) | (pos_x & 1);				      \
-    table[xy_half] (m_dest[0] + y * m_stride + m_offset, \
-		    ref[0] + (pos_x >> 1) + (pos_y >> 1) * m_stride,   \
-		    m_stride, size);				      \
-    motion_x /= 2;	motion_y /= 2;					      \
-    xy_half = ((motion_y & 1) << 1) | (motion_x & 1);			      \
-    offset = (((m_offset + motion_x) >> 1) +			      \
-	      ((((m_v_offset + motion_y) >> 1) + y/2) *		      \
-	       m_uv_stride));					      \
-    table[4+xy_half] (m_dest[1] + y/2 * m_uv_stride +	      \
-		      (m_offset >> 1), ref[1] + offset,		      \
-		      m_uv_stride, size/2);			      \
-    table[4+xy_half] (m_dest[2] + y/2 * m_uv_stride +	      \
-		      (m_offset >> 1), ref[2] + offset,		      \
-		      m_uv_stride, size/2)
+void CMpeg2Decoder::MOTION(
+	mpeg2_mc_fct * const * const table, uint8_t** ref, 
+	int motion_x, int motion_y, 
+	unsigned int size, unsigned int y, unsigned int limit_y)
+{
+	unsigned int pos_x, pos_y, xy_half, offset;
 
-#define MOTION_FIELD(table,ref,motion_x,motion_y,dest_field,op,src_field)     \
-    pos_x = 2 * m_offset + motion_x;				      \
-    pos_y = m_v_offset + motion_y;				      \
-    if(pos_x > m_limit_x) {				      \
-	pos_x = ((int)pos_x < 0) ? 0 : m_limit_x;		      \
-	motion_x = pos_x - 2 * m_offset;				      \
-    }									      \
-    if(pos_y > m_limit_y) {				      \
-	pos_y = ((int)pos_y < 0) ? 0 : m_limit_y;		      \
-	motion_y = pos_y - m_v_offset;				      \
-    }									      \
-    xy_half = ((pos_y & 1) << 1) | (pos_x & 1);				      \
-    table[xy_half] (m_dest[0] + dest_field * m_stride +	      \
-		    m_offset,					      \
-		    (ref[0] + (pos_x >> 1) +				      \
-		     ((pos_y op) + src_field) * m_stride),	      \
-		    2 * m_stride, 8);				      \
-    motion_x /= 2;	motion_y /= 2;					      \
-    xy_half = ((motion_y & 1) << 1) | (motion_x & 1);			      \
-    offset = (((m_offset + motion_x) >> 1) +			      \
-	      (((m_v_offset >> 1) + (motion_y op) + src_field) *	      \
-	       m_uv_stride));					      \
-    table[4+xy_half] (m_dest[1] + dest_field * m_uv_stride +    \
-		      (m_offset >> 1), ref[1] + offset,		      \
-		      2 * m_uv_stride, 4);			      \
-    table[4+xy_half] (m_dest[2] + dest_field * m_uv_stride +    \
-		      (m_offset >> 1), ref[2] + offset,		      \
-		      2 * m_uv_stride, 4)
+	pos_x = 2 * m_offset + motion_x;
+	pos_y = 2 * m_v_offset + motion_y + 2 * y;
+
+	if(pos_x > m_limit_x)
+	{
+		pos_x = ((int)pos_x < 0) ? 0 : m_limit_x;
+		motion_x = pos_x - 2 * m_offset;
+	}
+
+	if(pos_y > limit_y)
+	{
+		pos_y = ((int)pos_y < 0) ? 0 : limit_y;
+		motion_y = pos_y - 2 * m_v_offset - 2 * y;
+	}
+
+	xy_half = ((pos_y & 1) << 1) | (pos_x & 1);
+	offset = (pos_x >> 1) + (pos_y >> 1) * m_stride;
+	table[xy_half] (m_dest[0] + y * m_stride + m_offset, ref[0] + offset, m_stride, size);
+
+	motion_x /= 2;	motion_y /= 2;
+
+	xy_half = ((motion_y & 1) << 1) | (motion_x & 1);
+	offset = ((m_offset + motion_x) >> 1) + ((((m_v_offset + motion_y) >> 1) + y/2) * m_uv_stride);
+	table[4+xy_half] (m_dest[1] + y/2 * m_uv_stride + (m_offset >> 1), ref[1] + offset, m_uv_stride, size/2);
+	table[4+xy_half] (m_dest[2] + y/2 * m_uv_stride + (m_offset >> 1), ref[2] + offset, m_uv_stride, size/2);
+}
+
+void CMpeg2Decoder::MOTION_FIELD(
+	mpeg2_mc_fct * const * const table, uint8_t** ref, 
+	int motion_x, int motion_y, 
+	int dest_field, int src_field, unsigned int op)
+{
+    unsigned int pos_x, pos_y, xy_half, offset;
+
+	pos_x = 2 * m_offset + motion_x;
+	pos_y = m_v_offset + motion_y;
+
+	if(pos_x > m_limit_x)
+	{
+		pos_x = ((int)pos_x < 0) ? 0 : m_limit_x;
+		motion_x = pos_x - 2 * m_offset;
+	}
+
+	if(pos_y > m_limit_y)
+	{
+		pos_y = ((int)pos_y < 0) ? 0 : m_limit_y;
+		motion_y = pos_y - m_v_offset;
+	}
+
+	xy_half = ((pos_y & 1) << 1) | (pos_x & 1);
+	offset = (pos_x >> 1) + ((op ? (pos_y | 1) : (pos_y & ~1)) + src_field) * m_stride;
+	table[xy_half] (m_dest[0] + dest_field * m_stride + m_offset, ref[0] + offset, 2 * m_stride, 8);
+	
+	motion_x /= 2;	motion_y /= 2;
+
+	xy_half = ((motion_y & 1) << 1) | (motion_x & 1);
+	offset = ((m_offset + motion_x) >> 1) + (((m_v_offset >> 1) + (op ? (motion_y | 1) :(motion_y & ~1)) + src_field) * m_uv_stride);
+	table[4+xy_half] (m_dest[1] + dest_field * m_uv_stride + (m_offset >> 1), ref[1] + offset, 2 * m_uv_stride, 4);
+	table[4+xy_half] (m_dest[2] + dest_field * m_uv_stride + (m_offset >> 1), ref[2] + offset, 2 * m_uv_stride, 4);
+}
 
 void CMpeg2Decoder::motion_mp1(motion_t* motion, mpeg2_mc_fct * const * const table)
 {
     int motion_x, motion_y;
-    unsigned int pos_x, pos_y, xy_half, offset;
 
     NEEDBITS;
     motion_x = motion->pmv[0][0] + (get_motion_delta(motion->f_code[0]) << motion->f_code[1]);
@@ -3060,13 +3071,12 @@ void CMpeg2Decoder::motion_mp1(motion_t* motion, mpeg2_mc_fct * const * const ta
     motion_y = bound_motion_vector(motion_y, motion->f_code[0] + motion->f_code[1]);
     motion->pmv[0][1] = motion_y;
 
-    MOTION(table, motion->ref[0], motion_x, motion_y, 16, 0);
+    MOTION(table, motion->ref[0], motion_x, motion_y, 16, 0, m_limit_y_16);
 }
 
 void CMpeg2Decoder::motion_fr_frame(motion_t* motion, mpeg2_mc_fct * const * const table)
 {
     int motion_x, motion_y;
-    unsigned int pos_x, pos_y, xy_half, offset;
 
     NEEDBITS;
     motion_x = motion->pmv[0][0] + get_motion_delta(motion->f_code[0]);
@@ -3078,13 +3088,12 @@ void CMpeg2Decoder::motion_fr_frame(motion_t* motion, mpeg2_mc_fct * const * con
     motion_y = bound_motion_vector (motion_y, motion->f_code[1]);
     motion->pmv[1][1] = motion->pmv[0][1] = motion_y;
 
-    MOTION(table, motion->ref[0], motion_x, motion_y, 16, 0);
+    MOTION(table, motion->ref[0], motion_x, motion_y, 16, 0, m_limit_y_16);
 }
 
 void CMpeg2Decoder::motion_fr_field(motion_t* motion, mpeg2_mc_fct * const * const table)
 {
     int motion_x, motion_y, field;
-    unsigned int pos_x, pos_y, xy_half, offset;
 
     NEEDBITS;
     field = UBITS(bit_buf, 1);
@@ -3099,7 +3108,7 @@ void CMpeg2Decoder::motion_fr_field(motion_t* motion, mpeg2_mc_fct * const * con
     /* motion_y = bound_motion_vector(motion_y, motion->f_code[1]); */
     motion->pmv[0][1] = motion_y << 1;
 
-    MOTION_FIELD(table, motion->ref[0], motion_x, motion_y, 0, & ~1, field);
+    MOTION_FIELD(table, motion->ref[0], motion_x, motion_y, 0, field, 0);
 
     NEEDBITS;
     field = UBITS(bit_buf, 1);
@@ -3114,13 +3123,12 @@ void CMpeg2Decoder::motion_fr_field(motion_t* motion, mpeg2_mc_fct * const * con
     /* motion_y = bound_motion_vector(motion_y, motion->f_code[1]); */
     motion->pmv[1][1] = motion_y << 1;
 
-    MOTION_FIELD(table, motion->ref[0], motion_x, motion_y, 1, & ~1, field);
+    MOTION_FIELD(table, motion->ref[0], motion_x, motion_y, 1, field, 0);
 }
 
 void CMpeg2Decoder::motion_fr_dmv(motion_t* motion, mpeg2_mc_fct * const * const table)
 {
     int motion_x, motion_y, dmv_x, dmv_y, m, other_x, other_y;
-    unsigned int pos_x, pos_y, xy_half, offset;
 
     NEEDBITS;
     motion_x = motion->pmv[0][0] + get_motion_delta(motion->f_code[0]);
@@ -3137,12 +3145,14 @@ void CMpeg2Decoder::motion_fr_dmv(motion_t* motion, mpeg2_mc_fct * const * const
     m = m_top_field_first ? 1 : 3;
     other_x = ((motion_x * m + (motion_x > 0)) >> 1) + dmv_x;
     other_y = ((motion_y * m + (motion_y > 0)) >> 1) + dmv_y - 1;
-    MOTION_FIELD(m_mc->put, motion->ref[0], other_x, other_y, 0, | 1, 0);
+    MOTION_FIELD(m_mc->put, motion->ref[0], other_x, other_y, 0, 0, 1);
 
     m = m_top_field_first ? 3 : 1;
     other_x = ((motion_x * m + (motion_x > 0)) >> 1) + dmv_x;
     other_y = ((motion_y * m + (motion_y > 0)) >> 1) + dmv_y + 1;
-    MOTION_FIELD(m_mc->put, motion->ref[0], other_x, other_y, 1, & ~1, 0);
+    MOTION_FIELD(m_mc->put, motion->ref[0], other_x, other_y, 1, 0, 0);
+
+    unsigned int pos_x, pos_y, xy_half, offset;
 
     pos_x = 2 * m_offset + motion_x;
     pos_y = m_v_offset + motion_y;
@@ -3156,6 +3166,7 @@ void CMpeg2Decoder::motion_fr_dmv(motion_t* motion, mpeg2_mc_fct * const * const
 		pos_y = ((int)pos_y < 0) ? 0 : m_limit_y;
 		motion_y = pos_y - m_v_offset;
     }
+
     xy_half = ((pos_y & 1) << 1) | (pos_x & 1);
     offset = (pos_x >> 1) + (pos_y & ~1) * m_stride;
     m_mc->avg[xy_half](m_dest[0] + m_offset, motion->ref[0][0] + offset, 2 * m_stride, 8);
@@ -3173,12 +3184,11 @@ void CMpeg2Decoder::motion_fr_dmv(motion_t* motion, mpeg2_mc_fct * const * const
 void CMpeg2Decoder::motion_reuse(motion_t* motion, mpeg2_mc_fct * const * const table)
 {
     int motion_x, motion_y;
-    unsigned int pos_x, pos_y, xy_half, offset;
 
     motion_x = motion->pmv[0][0];
     motion_y = motion->pmv[0][1];
 
-    MOTION(table, motion->ref[0], motion_x, motion_y, 16, 0);
+    MOTION(table, motion->ref[0], motion_x, motion_y, 16, 0, m_limit_y_16);
 }
 
 void CMpeg2Decoder::motion_zero(motion_t* motion, mpeg2_mc_fct * const * const table)
@@ -3213,7 +3223,6 @@ void CMpeg2Decoder::motion_fi_field(motion_t * motion, mpeg2_mc_fct * const * co
 {
     int motion_x, motion_y;
     uint8_t** ref_field;
-    unsigned int pos_x, pos_y, xy_half, offset;
 
     NEEDBITS;
     ref_field = motion->ref2[UBITS(bit_buf, 1)];
@@ -3228,14 +3237,13 @@ void CMpeg2Decoder::motion_fi_field(motion_t * motion, mpeg2_mc_fct * const * co
     motion_y = bound_motion_vector(motion_y, motion->f_code[1]);
     motion->pmv[1][1] = motion->pmv[0][1] = motion_y;
 
-    MOTION(table, ref_field, motion_x, motion_y, 16, 0);
+    MOTION(table, ref_field, motion_x, motion_y, 16, 0, m_limit_y_16);
 }
 
 void CMpeg2Decoder::motion_fi_16x8(motion_t* motion, mpeg2_mc_fct * const * const table)
 {
     int motion_x, motion_y;
     uint8_t** ref_field;
-    unsigned int pos_x, pos_y, xy_half, offset;
 
     NEEDBITS;
     ref_field = motion->ref2[UBITS(bit_buf, 1)];
@@ -3250,7 +3258,7 @@ void CMpeg2Decoder::motion_fi_16x8(motion_t* motion, mpeg2_mc_fct * const * cons
     motion_y = bound_motion_vector(motion_y, motion->f_code[1]);
     motion->pmv[0][1] = motion_y;
 
-    MOTION(table, ref_field, motion_x, motion_y, 8, 0);
+    MOTION(table, ref_field, motion_x, motion_y, 8, 0, m_limit_y_8);
 
     NEEDBITS;
     ref_field = motion->ref2[UBITS(bit_buf, 1)];
@@ -3265,13 +3273,12 @@ void CMpeg2Decoder::motion_fi_16x8(motion_t* motion, mpeg2_mc_fct * const * cons
     motion_y = bound_motion_vector(motion_y, motion->f_code[1]);
     motion->pmv[1][1] = motion_y;
 
-    MOTION(table, ref_field, motion_x, motion_y, 8, 8);
+    MOTION(table, ref_field, motion_x, motion_y, 8, 8, m_limit_y_8);
 }
 
 void CMpeg2Decoder::motion_fi_dmv(motion_t* motion, mpeg2_mc_fct * const * const table)
 {
     int motion_x, motion_y, other_x, other_y;
-    unsigned int pos_x, pos_y, xy_half, offset;
 
     NEEDBITS;
     motion_x = motion->pmv[0][0] + get_motion_delta(motion->f_code[0]);
@@ -3285,8 +3292,8 @@ void CMpeg2Decoder::motion_fi_dmv(motion_t* motion, mpeg2_mc_fct * const * const
     motion->pmv[1][1] = motion->pmv[0][1] = motion_y;
     other_y = ((motion_y + (motion_y > 0)) >> 1) + get_dmv () + m_dmv_offset;
 
-    MOTION(m_mc->put, motion->ref[0], motion_x, motion_y, 16, 0);
-    MOTION(m_mc->avg, motion->ref[1], other_x, other_y, 16, 0);
+    MOTION(m_mc->put, motion->ref[0], motion_x, motion_y, 16, 0, m_limit_y_16);
+    MOTION(m_mc->avg, motion->ref[1], other_x, other_y, 16, 0, m_limit_y_16);
 }
 
 void CMpeg2Decoder::motion_fi_conceal()
