@@ -379,8 +379,8 @@ static void idct_M128ASM(short* src)
 	__asm movdqa xmm4, XMMWORD PTR[edx+16*7] //row 8
 	//__asm lea ecx, M128_tab_i_17
 	DCT_8_INV_ROW; //Row 6, tab_i_35 and Row 8, tab_i_17
-	//__asm movdqa XMMWORD PTR[edx+80], xmm0
-	//__asm movdqa xmm0, XMMWORD PTR [edx+80] /* 0 /* x5 */
+	//__asm movdqa XMMWORD PTR[edx+16*5], xmm0
+	//__asm movdqa xmm0, XMMWORD PTR [edx+16*5] /* 0 /* x5 */
 	//__asm movdqa XMMWORD PTR[edx+16*7], xmm4
 	//__asm movdqa xmm4, XMMWORD PTR [edx+7*16]/* 4 ; x7 */
 	DCT_8_INV_COL_8
