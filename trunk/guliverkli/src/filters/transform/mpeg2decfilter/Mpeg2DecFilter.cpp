@@ -508,10 +508,17 @@ HRESULT CMpeg2DecFilter::DeliverFast(ditype di)
 	mpeg2_fbuf_t* fbuf = m_dec->m_info.m_display_fbuf;
 	if(!fbuf) return S_FALSE;
 
-	if(GetCLSID(m_pInput->GetConnected()) == CLSID_DVDNavigator)
+	{
+
+	CAutoLock cAutoLock2(&m_csProps);
+
+	if(GetCLSID(m_pInput->GetConnected()) == CLSID_DVDNavigator
+	|| m_pSubpicInput->HasAnythingToRender(m_fb.rtStart)
+	|| fabs(m_bright) > EPSILON || fabs(m_cont-1.0) > EPSILON
+	|| fabs(m_hue) > EPSILON || fabs(m_sat-1.0) > EPSILON)
 		return S_FALSE;
 
-	CComPtr<IMediaSample> pOut;
+	}
 
 	if((m_fb.flags&PIC_MASK_CODING_TYPE) == PIC_FLAG_CODING_TYPE_I)
 		m_fWaitForKeyFrame = false;
@@ -519,19 +526,12 @@ HRESULT CMpeg2DecFilter::DeliverFast(ditype di)
 	if(m_fb.rtStart < 0 || m_fWaitForKeyFrame)
 		return S_OK;
 
-	{
-
-	CAutoLock cAutoLock2(&m_csProps);
-
-	if(fabs(m_bright) > EPSILON || fabs(m_cont-1.0) > EPSILON
-	|| fabs(m_hue) > EPSILON || fabs(m_sat-1.0) > EPSILON)
-		return S_FALSE; 
-
 	const CMediaType& mt = m_pOutput->CurrentMediaType();
 	
 	if(mt.subtype != MEDIASUBTYPE_I420 && mt.subtype != MEDIASUBTYPE_IYUV && mt.subtype != MEDIASUBTYPE_YV12)
 		return S_FALSE;
 
+	CComPtr<IMediaSample> pOut;
 	BYTE* pDataOut = NULL;
 	if(FAILED(hr = GetDeliveryBuffer(m_fb.w, m_fb.h, &pOut))
 	|| FAILED(hr = pOut->GetPointer(&pDataOut)))
@@ -569,23 +569,11 @@ HRESULT CMpeg2DecFilter::DeliverFast(ditype di)
 		return S_FALSE; // TODO
 	}
 
-	// postproc
-
-	ApplyBrContHueSat(y, u, v, w, h, dstpitch);
-
 	if(h == 1088)
 	{
 		memset(y + dstpitch*(h-8), 0xff, w*8);
 		memset(u + dstpitch*(h-8)/4, 0x80, w*8/4);
 		memset(v + dstpitch*(h-8)/4, 0x80, w*8/4);
-	}
-
-	if(m_pSubpicInput->HasAnythingToRender(m_fb.rtStart))
-	{
-		BYTE* buf[3] = {y, u, v};
-		m_pSubpicInput->RenderSubpics(m_fb.rtStart, buf, dstpitch, h);
-	}
-
 	}
 
 	if(CMpeg2DecInputPin* pPin = dynamic_cast<CMpeg2DecInputPin*>(m_pInput))
@@ -610,10 +598,7 @@ HRESULT CMpeg2DecFilter::DeliverFast(ditype di)
 
 	//
 
-	hr = m_pOutput->Deliver(pOut);
-	if(FAILED(hr)) return hr;
-
-	return S_OK;
+	return m_pOutput->Deliver(pOut);
 }
 
 HRESULT CMpeg2DecFilter::Deliver(bool fRepeatLast)
