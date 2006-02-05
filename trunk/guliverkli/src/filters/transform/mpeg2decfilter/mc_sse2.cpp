@@ -580,10 +580,8 @@ static void MC_avg_xy_16_sse2(uint8_t* dest, const uint8_t* ref, const int strid
 		psubusb xmm2, xmm7 
 		pavgb xmm0, xmm2 
 		pavgb xmm2, xmm5
-		movdqa xmm5, [ecx]
-		movdqa xmm6, [ecx+eax]
-		pavgb xmm0, xmm5 
-		pavgb xmm2, xmm6
+		pavgb xmm0, [ecx] 
+		pavgb xmm2, [ecx+eax]
 		movdqa [ecx], xmm0
 		movdqa xmm0, xmm4
 		movdqa [ecx+eax], xmm2
