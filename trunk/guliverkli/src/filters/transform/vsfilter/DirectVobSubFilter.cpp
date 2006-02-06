@@ -229,6 +229,10 @@ HRESULT CDirectVobSubFilter::Transform(IMediaSample* pIn)
 	pOut->SetTime(&rtStart, &rtStop);
 	pOut->SetMediaTime(NULL, NULL);
 
+	pOut->SetDiscontinuity(pIn->IsDiscontinuity() == S_OK);
+	pOut->SetSyncPoint(pIn->IsSyncPoint() == S_OK);
+	pOut->SetPreroll(pIn->IsPreroll() == S_OK);
+
 	// 
 
 	BITMAPINFOHEADER bihOut;
