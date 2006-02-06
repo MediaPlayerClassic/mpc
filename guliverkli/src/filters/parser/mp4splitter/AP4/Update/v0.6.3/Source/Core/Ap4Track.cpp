@@ -141,6 +141,8 @@ AP4_Track::AP4_Track(AP4_TrakAtom&   atom,
                 m_Type = TYPE_TEXT;
             } else if (type == AP4_HANDLER_TYPE_TX3G) {
                 m_Type = TYPE_TEXT;
+            } else if (type == AP4_HANDLER_TYPE_SUBP) {
+                m_Type = TYPE_SUBP;
             } else if (type == AP4_HANDLER_TYPE_HINT) {
                 m_Type = TYPE_HINT;
             }

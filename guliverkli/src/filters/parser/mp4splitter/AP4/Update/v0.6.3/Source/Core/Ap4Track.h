@@ -63,6 +63,7 @@ class AP4_Track {
         TYPE_AUDIO,
         TYPE_VIDEO,
         TYPE_TEXT,
+        TYPE_SUBP,
         TYPE_HINT
     } Type;
 

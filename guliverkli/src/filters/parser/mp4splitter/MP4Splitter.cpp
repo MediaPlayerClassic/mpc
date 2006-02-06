@@ -139,7 +139,8 @@ HRESULT CMP4SplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 
 			if(track->GetType() != AP4_Track::TYPE_VIDEO 
 			&& track->GetType() != AP4_Track::TYPE_AUDIO
-			&& track->GetType() != AP4_Track::TYPE_TEXT)
+			&& track->GetType() != AP4_Track::TYPE_TEXT
+			&& track->GetType() != AP4_Track::TYPE_SUBP)
 				continue;
 
 			AP4_Sample sample;
@@ -292,6 +293,66 @@ HRESULT CMP4SplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 					if(mt.subtype == GUID_NULL)
 					{
 						TRACE(_T("Unknown audio OBI: %02x\n"), audio_desc->GetObjectTypeId());
+					}
+				}
+				else if(AP4_MpegSystemSampleDescription* system_desc = 
+					dynamic_cast<AP4_MpegSystemSampleDescription*>(desc))
+				{
+					const AP4_DataBuffer* di = system_desc->GetDecoderInfo();
+					if(!di) di = &empty;
+
+					switch(system_desc->GetObjectTypeId())
+					{
+					case AP4_NERO_VOBSUB:
+						if(di->GetDataSize() >= 16*4)
+						{
+							CSize size(720, 576);
+							if(AP4_TkhdAtom* tkhd = dynamic_cast<AP4_TkhdAtom*>(track->GetTrakAtom()->GetChild(AP4_ATOM_TYPE_TKHD)))
+							{
+								size.cx = tkhd->GetWidth()>>16;
+								size.cy = tkhd->GetHeight()>>16;
+							}
+
+							const AP4_Byte* pal = di->GetData();
+							CList<CStringA> sl;
+							for(int i = 0; i < 16*4; i += 4)
+							{
+								BYTE y = (pal[i+1]-16)*255/219;
+								BYTE u = pal[i+2];
+								BYTE v = pal[i+3];
+								BYTE r = (BYTE)min(max(1.0*y + 1.4022*(u-128), 0), 255);
+								BYTE g = (BYTE)min(max(1.0*y - 0.3456*(u-128) - 0.7145*(v-128), 0), 255);
+								BYTE b = (BYTE)min(max(1.0*y + 1.7710*(v-128), 0) , 255);
+								CStringA str;
+								str.Format("%02x%02x%02x", r, g, b);
+								sl.AddTail(str);
+							}
+
+							CStringA hdr;
+							hdr.Format(
+								"# VobSub index file, v7 (do not modify this line!)\n"
+								"size: %dx%d\n" // ???
+								"palette: %s\n",
+								size.cx, size.cy,
+								Implode(sl, ','));
+							
+							mt.majortype = MEDIATYPE_Subtitle;
+							mt.subtype = MEDIASUBTYPE_VOBSUB;
+							mt.formattype = FORMAT_SubtitleInfo;
+							SUBTITLEINFO* si = (SUBTITLEINFO*)mt.AllocFormatBuffer(sizeof(SUBTITLEINFO) + hdr.GetLength());
+							memset(si, 0, mt.FormatLength());
+							si->dwOffset = sizeof(SUBTITLEINFO);
+							strcpy_s(si->IsoLang, countof(si->IsoLang), CStringA(TrackLanguage));
+							wcscpy_s(si->TrackName, countof(si->TrackName), TrackName);
+							memcpy(si + 1, (LPCSTR)hdr, hdr.GetLength());
+							mts.Add(mt);
+						}
+						break;
+					}
+
+					if(mt.subtype == GUID_NULL)
+					{
+						TRACE(_T("Unknown audio OBI: %02x\n"), system_desc->GetObjectTypeId());
 					}
 				}
 				else if(AP4_UnknownSampleDescription* unknown_desc = 
