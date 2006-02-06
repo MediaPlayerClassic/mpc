@@ -132,7 +132,7 @@ void CVobSubImage::GetPacketInfo(BYTE* lpData, int packetsize, int datasize)
 //	delay = 0;
 
 	int i, nextctrlblk = datasize;
-	WORD pal, tr;
+	WORD pal = 0, tr = 0;
 
 	do
 	{

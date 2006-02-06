@@ -81,6 +81,9 @@ public:
 		y = (AP4_Float)(*(int*)&m_Matrix[7]) / 65536;
 	}
 
+	AP4_UI32 GetWidth() const {return m_Width;}
+	AP4_UI32 GetHeight() const {return m_Height;}
+
  private:
     // members
     AP4_UI64 m_CreationTime;
