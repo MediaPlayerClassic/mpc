@@ -331,7 +331,7 @@ HRESULT CMP4SplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 							CStringA hdr;
 							hdr.Format(
 								"# VobSub index file, v7 (do not modify this line!)\n"
-								"size: %dx%d\n" // ???
+								"size: %dx%d\n"
 								"palette: %s\n",
 								size.cx, size.cy,
 								Implode(sl, ','));
