@@ -428,12 +428,13 @@ void CConvertDlg::ShowPinPopup(HTREEITEM hTI, CPoint p)
 			else if(mt.subtype == MEDIASUBTYPE_SSA) ext = _T("ssa");
 			else if(mt.subtype == MEDIASUBTYPE_ASS || mt.subtype == MEDIASUBTYPE_ASS2) ext = _T("ass");
 			else if(mt.subtype == MEDIASUBTYPE_VOBSUB) ext = _T("sub");
+			else if(mt.subtype == MEDIASUBTYPE_PCM || mt.subtype == MEDIASUBTYPE_DVD_LPCM_AUDIO || mt.subtype == FOURCCMap(WAVE_FORMAT_EXTENSIBLE) || mt.subtype == FOURCCMap(WAVE_FORMAT_IEEE_FLOAT)) ext = _T("wav");
 			// TODO: else if...
 
 			CPath path(m_fn);
 			path.RenameExtension('.' + ext);
 
-			CFileDialog fd(TRUE, NULL, (LPCTSTR)path, 
+			CFileDialog fd(FALSE, NULL, (LPCTSTR)path, 
 				OFN_EXPLORER|OFN_ENABLESIZING|OFN_HIDEREADONLY, 
 				_T("Media files|*.*||"), this, 0);
 			if(fd.DoModal() == IDOK)

@@ -1061,6 +1061,7 @@ void CMPlayerCApp::Settings::UpdateData(bool fSave)
 		pApp->WriteProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_SPCSIZE), nSPCSize);
 		pApp->WriteProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_SPCMAXRES), nSPCMaxRes);
 		pApp->WriteProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_POW2TEX), fSPCPow2Tex);
+		pApp->WriteProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_ENABLESUBTITLES), fEnableSubtitles);		
 		pApp->WriteProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_ENABLEAUDIOSWITCHER), fEnableAudioSwitcher);
 		pApp->WriteProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_ENABLEAUDIOTIMESHIFT), fAudioTimeShift);
 		pApp->WriteProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_AUDIOTIMESHIFT), tAudioTimeShift);
@@ -1356,6 +1357,7 @@ void CMPlayerCApp::Settings::UpdateData(bool fSave)
 		nSPCSize = pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_SPCSIZE), 3);
 		nSPCMaxRes = pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_SPCMAXRES), 2);
 		fSPCPow2Tex = !!pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_POW2TEX), TRUE);
+		fEnableSubtitles = !!pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_ENABLESUBTITLES), TRUE);
 		fEnableAudioSwitcher = !!pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_ENABLEAUDIOSWITCHER), TRUE);
 		fAudioTimeShift = !!pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_ENABLEAUDIOTIMESHIFT), 0);
 		tAudioTimeShift = pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_AUDIOTIMESHIFT), 0);
@@ -1588,49 +1590,30 @@ void CMPlayerCApp::Settings::UpdateData(bool fSave)
 
 		pApp->WriteProfileInt(ResStr(IDS_R_SETTINGS), _T("LastUsedPage"), 0);
 
-		if(!pApp->GetProfileInt(_T("Shaders"), _T("Initialized"), 0))
-		{
-			pApp->WriteProfileString(_T("Shaders"), NULL, NULL);
-
-			CAtlMap<UINT, CString> shaders;
-
-			shaders[IDF_SHADER_CONTOUR] = _T("contour");
-			shaders[IDF_SHADER_DEINTERLACE] = _T("deinterlace (blend)");
-			shaders[IDF_SHADER_EMBOSS] = _T("emboss");
-			shaders[IDF_SHADER_GRAYSCALE] = _T("grayscale");
-			shaders[IDF_SHADER_INVERT] = _T("invert");
-			shaders[IDF_SHADER_LETTERBOX] = _T("letterbox");
-			shaders[IDF_SHADER_SHARPEN] = _T("sharpen");
-			shaders[IDF_SHADER_SPHERE] = _T("sphere");
-			shaders[IDF_SHADER_SPOTLIGHT] = _T("spotlight");
-			shaders[IDF_SHADER_WAVE] = _T("wave");
-
-			POSITION pos = shaders.GetStartPosition();
-			for(int i = 0; pos; i++)
-			{
-				CAtlMap<UINT, CString>::CPair* pPair = shaders.GetNext(pos);
-
-				CStringA srcdata;
-				if(LoadResource(pPair->m_key, srcdata, _T("FILE")))
-				{
-					srcdata.Replace("\n", "\\n");
-					srcdata.Replace("\t", "\\t");
-
-					CString index;
-					index.Format(_T("%d"), i);
-					pApp->WriteProfileString(_T("Shaders"), index, pPair->m_value + _T("|ps_2_0|") + CString(srcdata));
-				}
-			}
-
-			pApp->WriteProfileInt(_T("Shaders"), _T("Initialized"), 1);
-		}
+		//
 
 		m_shaders.RemoveAll();
 
-		for(int i = 0; ; i++)
+		CAtlStringMap<UINT> shaders;
+
+		shaders[_T("contour")] = IDF_SHADER_CONTOUR;
+		shaders[_T("deinterlace (blend)")] = IDF_SHADER_DEINTERLACE;
+		shaders[_T("emboss")] = IDF_SHADER_EMBOSS;
+		shaders[_T("grayscale")] = IDF_SHADER_GRAYSCALE;
+		shaders[_T("invert")] = IDF_SHADER_INVERT;
+		shaders[_T("letterbox")] = IDF_SHADER_LETTERBOX;
+		shaders[_T("procamp")] = IDF_SHADER_PROCAMP;
+		shaders[_T("sharpen")] = IDF_SHADER_SHARPEN;
+		shaders[_T("sphere")] = IDF_SHADER_SPHERE;
+		shaders[_T("spotlight")] = IDF_SHADER_SPOTLIGHT;
+		shaders[_T("wave")] = IDF_SHADER_WAVE;
+
+		int iShader = 0;
+
+		for(; ; iShader++)
 		{
 			CString str;
-			str.Format(_T("%d"), i);
+			str.Format(_T("%d"), iShader);
 			str = pApp->GetProfileString(_T("Shaders"), str);
 
 			CList<CString> sl;
@@ -1645,6 +1628,24 @@ void CMPlayerCApp::Settings::UpdateData(bool fSave)
 			s.srcdata.Replace(_T("\\n"), _T("\n"));
 			s.srcdata.Replace(_T("\\t"), _T("\t"));
 			m_shaders.AddTail(s);
+
+			shaders.RemoveKey(s.label);
+		}
+
+		pos = shaders.GetStartPosition();
+		for(; pos; iShader++)
+		{
+			CAtlStringMap<UINT>::CPair* pPair = shaders.GetNext(pos);
+
+			CStringA srcdata;
+			if(LoadResource(pPair->m_value, srcdata, _T("FILE")))
+			{
+				Shader s;
+				s.label = pPair->m_key;
+				s.target = _T("ps_2_0");
+				s.srcdata = CString(srcdata);
+				m_shaders.AddTail(s);
+			}
 		}
 
 		// TODO: sort shaders by label

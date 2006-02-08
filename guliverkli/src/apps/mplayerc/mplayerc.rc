@@ -1209,7 +1209,7 @@ BEGIN
         VERTGUIDE, 52
         VERTGUIDE, 289
         BOTTOMMARGIN, 200
-        HORZGUIDE, 164
+        HORZGUIDE, 162
     END
 
     IDD_AUTH_DLG, DIALOG
@@ -1329,16 +1329,17 @@ IDB_STREAMTYPES         BITMAP                  "res\\streamtypes.bmp"
 //
 
 IDF_SHADER_EMPTY        FILE                    "res\\shaders\\empty.psh"
-IDR_SHADER_CONTOUR      FILE                    "res\\shaders\\contour.psh"
-IDR_SHADER_DEINTERLACE  FILE                    "res\\shaders\\deinterlace (blend).psh"
-IDR_SHADER_EMBOSS       FILE                    "res\\shaders\\emboss.psh"
-IDR_SHADER_GRAYSCALE    FILE                    "res\\shaders\\grayscale.psh"
-IDR_SHADER_INVERT       FILE                    "res\\shaders\\invert.psh"
-IDR_SHADER_LETTERBOX    FILE                    "res\\shaders\\letterbox.psh"
-IDR_SHADER_SHARPEN      FILE                    "res\\shaders\\sharpen.psh"
-IDR_SHADER_SPHERE       FILE                    "res\\shaders\\sphere.psh"
-IDR_SHADER_SPOTLIGHT    FILE                    "res\\shaders\\spotlight.psh"
-IDR_SHADER_WAVE         FILE                    "res\\shaders\\wave.psh"
+IDF_SHADER_CONTOUR      FILE                    "res\\shaders\\contour.psh"
+IDF_SHADER_DEINTERLACE  FILE                    "res\\shaders\\deinterlace (blend).psh"
+IDF_SHADER_EMBOSS       FILE                    "res\\shaders\\emboss.psh"
+IDF_SHADER_GRAYSCALE    FILE                    "res\\shaders\\grayscale.psh"
+IDF_SHADER_INVERT       FILE                    "res\\shaders\\invert.psh"
+IDF_SHADER_LETTERBOX    FILE                    "res\\shaders\\letterbox.psh"
+IDF_SHADER_PROCAMP      FILE                    "res\\shaders\\procamp.psh"
+IDF_SHADER_SHARPEN      FILE                    "res\\shaders\\sharpen.psh"
+IDF_SHADER_SPHERE       FILE                    "res\\shaders\\sphere.psh"
+IDF_SHADER_SPOTLIGHT    FILE                    "res\\shaders\\spotlight.psh"
+IDF_SHADER_WAVE         FILE                    "res\\shaders\\wave.psh"
 IDF_DEFAULT_CSS         FILE                    "res\\web\\default.css"
 IDF_VBR_GIF             FILE                    "res\\web\\vbg.gif"
 IDF_VBS_GIF             FILE                    "res\\web\\vbs.GIF"
@@ -2372,6 +2373,7 @@ END
 STRINGTABLE 
 BEGIN
     IDS_RS_SNAPTODESKTOPEDGES "SnapToDesktopEdges"
+    IDS_RS_ENABLESUBTITLES  "EnableSubtitles"
 END
 
 #endif    // English (U.S.) resources
