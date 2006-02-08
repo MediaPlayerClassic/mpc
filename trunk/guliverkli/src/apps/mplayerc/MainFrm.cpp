@@ -1065,6 +1065,8 @@ void CMainFrame::OnDisplayChange() // untested, not sure if it's working...
 	GetDesktopWindow()->GetWindowRect(&m_rcDesktop);
 }
 
+#include <psapi.h>
+
 void CMainFrame::OnSysCommand(UINT nID, LPARAM lParam)
 {
 	if((nID & 0xFFF0) == SC_SCREENSAVE)
@@ -1088,9 +1090,49 @@ void CMainFrame::OnActivateApp(BOOL bActive, DWORD dwThreadID)
 	mi.cbSize = sizeof(MONITORINFO);
 	GetMonitorInfo(MonitorFromWindow(m_hWnd, MONITOR_DEFAULTTONEAREST), &mi);
 
-	if(m_iMediaLoadState == MLS_LOADED && m_fFullScreen && !bActive && (mi.dwFlags&MONITORINFOF_PRIMARY))
+	if(!bActive && (mi.dwFlags&MONITORINFOF_PRIMARY) && m_fFullScreen && m_iMediaLoadState == MLS_LOADED)
 	{
 		OnViewFullscreen();
+
+		if(CWnd* pWnd = GetForegroundWindow())
+		{
+			CString title;
+			pWnd->GetWindowText(title);
+
+			CString module;
+
+			if(GetVersion()&0x80000000)
+			{
+				module.ReleaseBufferSetLength(GetWindowModuleFileName(pWnd->m_hWnd, module.GetBuffer(MAX_PATH), MAX_PATH));
+			}
+			else
+			{
+				DWORD pid; 
+				GetWindowThreadProcessId(pWnd->m_hWnd, &pid); 
+
+				if(HANDLE hProcess = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, pid))
+				{
+					HMODULE hMod; 
+					DWORD cbNeeded; 
+
+					if(EnumProcessModules(hProcess, &hMod, sizeof(hMod), &cbNeeded))
+					{
+						module.ReleaseBufferSetLength(GetModuleFileNameEx(hProcess, hMod, module.GetBuffer(MAX_PATH), MAX_PATH)); 
+					} 
+
+					CloseHandle(hProcess); 
+				} 
+			}
+
+			CPath p(module);
+			p.StripPath();
+			module = (LPCTSTR)p;
+			module.MakeLower();
+
+			CString str;
+			str.Format(_T("Focus lost to: %s - %s"), module, title);
+			SendStatusMessage(str, 5000);
+		}
 	}
 }
 
@@ -5166,6 +5208,8 @@ void CMainFrame::OnPlaySubtitles(UINT nID)
 		m_iSubtitleSel = i;
 		UpdateSubtitle();
 	}
+
+	AfxGetAppSettings().fEnableSubtitles = !!(m_iSubtitleSel & 0x80000000);
 }
 
 void CMainFrame::OnUpdatePlaySubtitles(CCmdUI* pCmdUI)
@@ -7540,7 +7584,7 @@ AddToRot(pGB, &m_dwRegister);
 			POSITION pos = pOMD->subs.GetHeadPosition();
 			while(pos) LoadSubtitle(pOMD->subs.GetNext(pos));
 
-			if(m_pSubStreams.GetCount() > 0)
+			if(AfxGetAppSettings().fEnableSubtitles && m_pSubStreams.GetCount() > 0)
 				SetSubtitle(m_pSubStreams.GetHead());
 		}
 
@@ -8652,7 +8696,6 @@ void CMainFrame::SetupShadersSubMenu()
 
 	if(POSITION pos = AfxGetAppSettings().m_shaders.GetHeadPosition())
 	{
-		pSub->AppendMenu(MF_SEPARATOR);
 		pSub->AppendMenu(MF_BYCOMMAND|MF_STRING|MF_ENABLED, id++, ResStr(IDS_SHADER_COMBINE));
 		pSub->AppendMenu(MF_SEPARATOR);
 

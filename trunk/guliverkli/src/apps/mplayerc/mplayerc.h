@@ -406,6 +406,7 @@ public:
 		int nSPCSize;
 		int nSPCMaxRes;
 		bool fSPCPow2Tex;
+		bool fEnableSubtitles;
 
 		bool fDisabeXPToolbars;
 		bool fUseWMASFReader;

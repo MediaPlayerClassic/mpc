@@ -167,8 +167,13 @@ void CBaseMuxerRawOutputPin::MuxHeader(const CMediaType& mt)
 		if(str.Find("[Events]") < 0) 
 			pBitStream->StrWrite("\n\n[Events]\n", true);
 	}
+	else if(mt.subtype == MEDIASUBTYPE_VOBSUB)
+	{
+		m_idx.RemoveAll();
+	}
 	else if(mt.majortype == MEDIATYPE_Audio 
 		&& (mt.subtype == MEDIASUBTYPE_PCM 
+		|| mt.subtype == MEDIASUBTYPE_DVD_LPCM_AUDIO
 		|| mt.subtype == FOURCCMap(WAVE_FORMAT_EXTENSIBLE) 
 		|| mt.subtype == FOURCCMap(WAVE_FORMAT_IEEE_FLOAT))
 		&& mt.formattype == FORMAT_WaveFormatEx)
@@ -183,10 +188,6 @@ void CBaseMuxerRawOutputPin::MuxHeader(const CMediaType& mt)
 
 		pBitStream->BitWrite('data', 32);
 		pBitStream->BitWrite(0, 32); // data length, set later
-	}
-	else if(mt.subtype == MEDIASUBTYPE_VOBSUB)
-	{
-		m_idx.RemoveAll();
 	}
 }
 
@@ -391,6 +392,16 @@ void CBaseMuxerRawOutputPin::MuxPacket(const CMediaType& mt, const MuxerPacket* 
 
 		return;
 	}
+	else if(mt.subtype == MEDIASUBTYPE_DVD_LPCM_AUDIO)
+	{
+		WAVEFORMATEX* wfe = (WAVEFORMATEX*)mt.Format();
+
+		for(int i = 0, bps = wfe->wBitsPerSample/8; i < DataSize; i += bps)
+			for(int j = bps-1; j >= 0; j--)
+				pBitStream->BitWrite(pData[i+j], 8);
+
+		return;
+	}
 	// else // TODO: restore more streams (vorbis to ogg)
 
 	pBitStream->ByteWrite(pData, DataSize);
@@ -403,6 +414,7 @@ void CBaseMuxerRawOutputPin::MuxFooter(const CMediaType& mt)
 
 	if(mt.majortype == MEDIATYPE_Audio 
 	&& (mt.subtype == MEDIASUBTYPE_PCM 
+	|| mt.subtype == MEDIASUBTYPE_DVD_LPCM_AUDIO
 	|| mt.subtype == FOURCCMap(WAVE_FORMAT_EXTENSIBLE) 
 	|| mt.subtype == FOURCCMap(WAVE_FORMAT_IEEE_FLOAT))
 	&& mt.formattype == FORMAT_WaveFormatEx)

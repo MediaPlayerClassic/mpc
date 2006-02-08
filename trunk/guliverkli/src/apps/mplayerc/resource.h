@@ -76,6 +76,7 @@
 #define IDF_SHADER_SPHERE               709
 #define IDF_SHADER_SPOTLIGHT            710
 #define IDF_SHADER_WAVE                 711
+#define IDF_SHADER_PROCAMP              712
 #define ID_FILE_OPENMEDIA               800
 #define ID_FILE_OPENDVD                 801
 #define ID_FILE_OPENDEVICE              802
@@ -578,6 +579,7 @@
 #define IDS_RS_THUMBROWS                13134
 #define IDS_RS_THUMBCOLS                13135
 #define IDS_RS_SNAPTODESKTOPEDGES		13136
+#define IDS_RS_ENABLESUBTITLES			13137
 #define IDS_SRC_RADGT                   14000
 #define IDS_SRC_CDDA                    14001
 #define IDS_SRC_AVI                     14002
