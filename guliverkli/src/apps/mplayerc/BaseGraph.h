@@ -21,6 +21,8 @@
 
 #pragma once
 
+#include "IGraphBuilder2.h"
+
 class CPlayerWindow : public CWnd
 {
 public:
@@ -40,9 +42,6 @@ interface IGraphEngine : public IUnknown
 	STDMETHOD_(engine_t, GetEngine) () = 0;
 };
 
-namespace DSObjects
-{
-
 enum 
 {
 	EC_BG_AUDIO_CHANGED = EC_USER+1,
@@ -51,7 +50,7 @@ enum
 
 class CBaseGraph
 	: public CUnknown
-	, public IGraphBuilder
+	, public IGraphBuilder2
 	, public IMediaControl
 	, public IMediaEventEx
 	, public IMediaSeeking
@@ -105,6 +104,17 @@ protected:
     STDMETHODIMP SetLogFile(DWORD_PTR hFile);
     STDMETHODIMP Abort();
     STDMETHODIMP ShouldOperationContinue();
+
+	// IFilterGraph2
+	STDMETHODIMP AddSourceFilterForMoniker(IMoniker* pMoniker, IBindCtx* pCtx, LPCWSTR lpcwstrFilterName, IBaseFilter** ppFilter);
+	STDMETHODIMP ReconnectEx(IPin* ppin, const AM_MEDIA_TYPE* pmt);
+	STDMETHODIMP RenderEx(IPin* pPinOut, DWORD dwFlags, DWORD* pvContext);
+
+	// IGraphBuilder2
+	STDMETHODIMP ConnectFilter(IBaseFilter* pBF, IPin* pPinIn);
+	STDMETHODIMP ConnectFilter(IPin* pPinOut, IBaseFilter* pBF);
+	STDMETHODIMP ConnectFilterDirect(IPin* pPinOut, IBaseFilter* pBF, const AM_MEDIA_TYPE* pmt);
+	STDMETHODIMP FindInterface(REFIID iid, void** ppv, BOOL bRemove);
 
 	// IMediaControl
     STDMETHODIMP Run();
@@ -238,5 +248,3 @@ protected:
 	STDMETHODIMP_(engine_t) GetEngine();
 };
 
-}
-using namespace DSObjects;

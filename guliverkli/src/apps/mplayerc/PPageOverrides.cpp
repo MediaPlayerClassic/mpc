@@ -28,7 +28,7 @@
 #include "ComPropertySheet.h"
 #include "RegFilterChooserDlg.h"
 #include "SelectMediaType.h"
-#include "GraphBuilder.h"
+#include "FGFilter.h"
 #include "..\..\..\include\moreuuids.h"
 
 #include <initguid.h>
@@ -39,7 +39,7 @@
 IMPLEMENT_DYNAMIC(CPPageOverrides, CPPageBase)
 CPPageOverrides::CPPageOverrides()
 	: CPPageBase(CPPageOverrides::IDD, CPPageOverrides::IDD)
-	, m_iLoadType(Filter::PREFERRED)
+	, m_iLoadType(FilterOverride::PREFERRED)
 	, m_pLastSelFilter(NULL)
 {
 }
@@ -91,10 +91,10 @@ void CPPageOverrides::StepDown(CCheckListBox& list)
 	list.SetCurSel(i);
 }
 
-Filter* CPPageOverrides::GetCurFilter()
+FilterOverride* CPPageOverrides::GetCurFilter()
 {
 	int i = m_filters.GetCurSel();
-	return i >= 0 ? (Filter*)m_pFilters.GetAt((POSITION)m_filters.GetItemDataPtr(i)) : (Filter*)NULL;
+	return i >= 0 ? (FilterOverride*)m_pFilters.GetAt((POSITION)m_filters.GetItemDataPtr(i)) : (FilterOverride*)NULL;
 }
 
 void CPPageOverrides::SetupMajorTypes(CArray<GUID>& guids)
@@ -289,16 +289,16 @@ BOOL CPPageOverrides::OnInitDialog()
 	POSITION pos = s.filters.GetHeadPosition();
 	while(pos)
 	{
-		CAutoPtr<Filter> f(new Filter(s.filters.GetNext(pos)));
+		CAutoPtr<FilterOverride> f(new FilterOverride(s.filters.GetNext(pos)));
 
 		CString name(_T("<unknown>"));
 
-		if(f->type == Filter::REGISTERED)
+		if(f->type == FilterOverride::REGISTERED)
 		{
-			name = CGraphRegFilter(f->dispname).GetName();
+			name = CFGFilterRegistry(f->dispname).GetName();
 			if(name.IsEmpty()) name = f->name + _T(" <not registered>");
 		}
-		else if(f->type == Filter::EXTERNAL)
+		else if(f->type == FilterOverride::EXTERNAL)
 		{
 			name = f->name;
 			if(f->fTemporary) name += _T(" <temporary>");
@@ -328,7 +328,7 @@ BOOL CPPageOverrides::OnApply()
 	{
 		if(POSITION pos = (POSITION)m_filters.GetItemData(i))
 		{
-			CAutoPtr<Filter> f(new Filter(m_pFilters.GetAt(pos)));
+			CAutoPtr<FilterOverride> f(new FilterOverride(m_pFilters.GetAt(pos)));
 			f->fDisabled = !m_filters.GetCheck(i);
 			s.filters.AddTail(f);
 		}
@@ -339,9 +339,9 @@ BOOL CPPageOverrides::OnApply()
 
 void CPPageOverrides::OnUpdateFilter(CCmdUI* pCmdUI)
 {
-	if(Filter* f = GetCurFilter())
+	if(FilterOverride* f = GetCurFilter())
 	{
-		pCmdUI->Enable(!(pCmdUI->m_nID == IDC_RADIO2 && f->type == Filter::EXTERNAL));
+		pCmdUI->Enable(!(pCmdUI->m_nID == IDC_RADIO2 && f->type == FilterOverride::EXTERNAL));
 	}
 	else
 	{
@@ -362,7 +362,7 @@ void CPPageOverrides::OnUpdateFilterDown(CCmdUI* pCmdUI)
 void CPPageOverrides::OnUpdateFilterMerit(CCmdUI* pCmdUI)
 {
 	UpdateData();
-	pCmdUI->Enable(m_iLoadType == Filter::MERIT);
+	pCmdUI->Enable(m_iLoadType == FilterOverride::MERIT);
 }
 
 void CPPageOverrides::OnUpdateSubType(CCmdUI* pCmdUI)
@@ -383,13 +383,13 @@ void CPPageOverrides::OnAddRegistered()
 	{
 		while(!dlg.m_filters.IsEmpty())
 		{
-			if(Filter* f = dlg.m_filters.RemoveHead())
+			if(FilterOverride* f = dlg.m_filters.RemoveHead())
 			{
-				CAutoPtr<Filter> p(f);
+				CAutoPtr<FilterOverride> p(f);
 
 				CString name = f->name;
 
-				if(f->type == Filter::EXTERNAL)
+				if(f->type == FilterOverride::EXTERNAL)
 				{
 					if(!CPath(MakeFullPath(f->path)).FileExists()) name += _T(" <not found!>");
 				}
@@ -430,18 +430,18 @@ void CPPageOverrides::OnMoveFilterDown()
 
 void CPPageOverrides::OnLbnDblclkFilter()
 {
-	if(Filter* f = GetCurFilter())
+	if(FilterOverride* f = GetCurFilter())
 	{
 		CComPtr<IBaseFilter> pBF;
 		CString name;
 
-		if(f->type == Filter::REGISTERED)
+		if(f->type == FilterOverride::REGISTERED)
 		{
 			CStringW namew;
 			if(CreateFilter(f->dispname, &pBF, namew))
 				name = namew;
 		}
-		else if(f->type == Filter::EXTERNAL)
+		else if(f->type == FilterOverride::EXTERNAL)
 		{
 			if(SUCCEEDED(LoadExternalFilter(f->path, f->clsid, &pBF)))
 				name = f->name;
@@ -464,7 +464,7 @@ void CPPageOverrides::OnLbnDblclkFilter()
 
 void CPPageOverrides::OnAddMajorType()
 {
-	Filter* f = GetCurFilter();
+	FilterOverride* f = GetCurFilter();
 	if(!f) return;
 
 	CArray<GUID> guids;
@@ -497,7 +497,7 @@ void CPPageOverrides::OnAddMajorType()
 
 void CPPageOverrides::OnAddSubType()
 {
-	Filter* f = GetCurFilter();
+	FilterOverride* f = GetCurFilter();
 	if(!f) return;
 
 	HTREEITEM node = m_tree.GetSelectedItem();
@@ -535,7 +535,7 @@ void CPPageOverrides::OnAddSubType()
 
 void CPPageOverrides::OnDeleteType()
 {
-	if(Filter* f = GetCurFilter())
+	if(FilterOverride* f = GetCurFilter())
 	{
 		HTREEITEM node = m_tree.GetSelectedItem();
 		if(!node) return;
@@ -587,10 +587,10 @@ void CPPageOverrides::OnDeleteType()
 
 void CPPageOverrides::OnResetTypes()
 {
-	if(Filter* f = GetCurFilter())
+	if(FilterOverride* f = GetCurFilter())
 	{
 		f->guids.RemoveAll();
-		f->guids.AddTail(&f->backup);
+		f->guids.AddTailList(&f->backup);
 
 		m_pLastSelFilter = NULL;
 		OnLbnSelchangeList1();
@@ -599,7 +599,7 @@ void CPPageOverrides::OnResetTypes()
 
 void CPPageOverrides::OnLbnSelchangeList1()
 {
-	if(Filter* f = GetCurFilter())
+	if(FilterOverride* f = GetCurFilter())
 	{
 		if(m_pLastSelFilter == f) return;
 		m_pLastSelFilter = f;
@@ -644,7 +644,7 @@ void CPPageOverrides::OnLbnSelchangeList1()
 	{
 		m_pLastSelFilter = NULL;
 
-		m_iLoadType = Filter::PREFERRED;
+		m_iLoadType = FilterOverride::PREFERRED;
 		UpdateData(FALSE);
 		m_dwMerit = 0;
 
@@ -655,14 +655,14 @@ void CPPageOverrides::OnLbnSelchangeList1()
 void CPPageOverrides::OnBnClickedRadio()
 {
 	UpdateData();
-	if(Filter* f = GetCurFilter())
+	if(FilterOverride* f = GetCurFilter())
 		f->iLoadType = m_iLoadType;
 }
 
 void CPPageOverrides::OnEnChangeEdit1()
 {
 	UpdateData();
-	if(Filter* f = GetCurFilter())
+	if(FilterOverride* f = GetCurFilter())
 	{
 		DWORD dw;
 		if(m_dwMerit.GetDWORD(dw))
@@ -674,7 +674,7 @@ void CPPageOverrides::OnNMDblclkTree2(NMHDR *pNMHDR, LRESULT *pResult)
 {
 	*pResult = 0;
 
-	if(Filter* f = GetCurFilter())
+	if(FilterOverride* f = GetCurFilter())
 	{
 		HTREEITEM node = m_tree.GetSelectedItem();
 		if(!node) return;
@@ -712,9 +712,9 @@ void CPPageOverrides::OnDropFiles(HDROP hDropInfo)
 
 		while(!fm2.m_filters.IsEmpty())
 		{
-			if(Filter* f = fm2.m_filters.RemoveHead())
+			if(FilterOverride* f = fm2.m_filters.RemoveHead())
 			{
-				CAutoPtr<Filter> p(f);
+				CAutoPtr<FilterOverride> p(f);
 				int i = m_filters.AddString(f->name);
 				m_filters.SetItemDataPtr(i, m_pFilters.AddTail(p));
 				m_filters.SetCheck(i, 1);

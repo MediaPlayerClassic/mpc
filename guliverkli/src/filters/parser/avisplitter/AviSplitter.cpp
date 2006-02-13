@@ -55,10 +55,14 @@ int g_cTemplates = countof(g_Templates);
 
 STDAPI DllRegisterServer()
 {
+	CList<CString> chkbytes;
+	chkbytes.AddTail(_T("0,4,,52494646,8,4,41564920")); // 'RIFF' ... 'AVI '
+	chkbytes.AddTail(_T("0,4,,52494646,8,4,41564958")); // 'RIFF' ... 'AVIX'
+
 	RegisterSourceFilter(
 		CLSID_AsyncReader, 
 		MEDIASUBTYPE_Avi, 
-		_T("0,4,,52494646,8,4,41564920"), 
+		chkbytes, 
 		_T(".avi"), _T(".divx"), _T(".vp6"), NULL);
 
 	return AMovieDllRegisterServer2(TRUE);

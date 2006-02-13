@@ -25,14 +25,13 @@
 #include "mplayerc.h"
 #include "mainfrm.h"
 #include "TextPassThruFilter.h"
-#include "..\..\..\include\matroska\matroska.h"
+#include "..\..\..\include\moreuuids.h"
 #include "..\..\DSUtil\DSUtil.h"
+#include "..\..\subtitles\SubtitleInputPin.h"
 
 //
 // CTextPassThruInputPin
 //
-
-#include "..\..\subtitles\SubtitleInputPin.h"
 
 class CTextPassThruInputPin : public CSubtitleInputPin
 {

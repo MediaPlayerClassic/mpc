@@ -31,7 +31,7 @@
 #include "..\..\..\DSUtil\DSUtil.h"
 
 #include <initguid.h>
-#include "..\..\..\..\include\Ogg\OggDS.h"
+#include "..\..\..\..\include\moreuuids.h"
 
 
 #ifdef REGISTER_FILTER

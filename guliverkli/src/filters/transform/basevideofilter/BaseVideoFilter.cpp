@@ -501,6 +501,7 @@ HRESULT CBaseVideoFilter::GetMediaType(int iPosition, CMediaType* pmt)
 		vih->bmiHeader = bihOut;
 		vih->dwPictAspectRatioX = arx;
 		vih->dwPictAspectRatioY = ary;
+		if(IsVideoInterlaced()) vih->dwInterlaceFlags = AMINTERLACE_IsInterlaced;
 	}
 
 	CMediaType& mt = m_pInput->CurrentMediaType();

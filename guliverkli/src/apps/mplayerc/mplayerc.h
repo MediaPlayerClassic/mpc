@@ -354,7 +354,7 @@ public:
 		CRecentFileAndURLList MRU;
 		CRecentFileAndURLList MRUDub;
 
-		CAutoPtrList<Filter> filters;
+		CAutoPtrList<FilterOverride> filters;
 
 		int iDSVideoRendererType;
 		int iRMVideoRendererType;
@@ -451,7 +451,7 @@ public:
 
 		int mpegdi;
 		double mpegbright, mpegcont, mpeghue, mpegsat;
-		bool mpegforcedsubs, mpegplanaryuv;
+		bool mpegforcedsubs, mpegplanaryuv, mpeginterlaced;
 		DWORD mpegpreffmt;
 
 		int mpasf;

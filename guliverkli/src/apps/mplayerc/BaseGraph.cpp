@@ -83,6 +83,8 @@ STDMETHODIMP CBaseGraph::NonDelegatingQueryInterface(REFIID riid, void** ppv)
 	return 
 		QI(IFilterGraph)
 		QI(IGraphBuilder)
+		QI(IFilterGraph2)
+		QI(IGraphBuilder2)
 		QI(IMediaControl)
 		QI(IMediaSeeking)
 		QI(IMediaEventEx)
@@ -141,6 +143,17 @@ STDMETHODIMP CBaseGraph::AddSourceFilter(LPCWSTR lpcwstrFileName, LPCWSTR lpcwst
 STDMETHODIMP CBaseGraph::SetLogFile(DWORD_PTR hFile) {return E_NOTIMPL;}
 STDMETHODIMP CBaseGraph::Abort() {return E_NOTIMPL;}
 STDMETHODIMP CBaseGraph::ShouldOperationContinue() {return E_NOTIMPL;}
+
+// IFilterGraph2
+STDMETHODIMP CBaseGraph::AddSourceFilterForMoniker(IMoniker* pMoniker, IBindCtx* pCtx, LPCWSTR lpcwstrFilterName, IBaseFilter** ppFilter) {return E_NOTIMPL;}
+STDMETHODIMP CBaseGraph::ReconnectEx(IPin* ppin, const AM_MEDIA_TYPE* pmt) {return E_NOTIMPL;}
+STDMETHODIMP CBaseGraph::RenderEx(IPin* pPinOut, DWORD dwFlags, DWORD* pvContext) {return E_NOTIMPL;}
+
+// IGraphBuilder2
+STDMETHODIMP CBaseGraph::ConnectFilter(IBaseFilter* pBF, IPin* pPinIn) {return E_NOTIMPL;}
+STDMETHODIMP CBaseGraph::ConnectFilter(IPin* pPinOut, IBaseFilter* pBF) {return E_NOTIMPL;}
+STDMETHODIMP CBaseGraph::ConnectFilterDirect(IPin* pPinOut, IBaseFilter* pBF, const AM_MEDIA_TYPE* pmt) {return E_NOTIMPL;}
+STDMETHODIMP CBaseGraph::FindInterface(REFIID iid, void** ppv, BOOL bRemove) {return QueryInterface(iid, ppv);}
 
 // IMediaControl
 STDMETHODIMP CBaseGraph::Run() {return E_NOTIMPL;}
@@ -333,3 +346,4 @@ STDMETHODIMP CBaseGraph::AbortOperation() {return E_NOTIMPL;}
 
 // IGraphEngine
 STDMETHODIMP_(engine_t) CBaseGraph::GetEngine() {return DirectShow;}
+

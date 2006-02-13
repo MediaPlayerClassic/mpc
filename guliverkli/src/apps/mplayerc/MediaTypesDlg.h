@@ -23,7 +23,7 @@
 
 #include <afxwin.h>
 #include <atlcoll.h>
-#include "GraphBuilder.h"
+#include "IGraphBuilder2.h"
 
 // CMediaTypesDlg dialog
 
@@ -32,14 +32,14 @@ class CMediaTypesDlg : public CResizableDialog
 //	DECLARE_DYNAMIC(CMediaTypesDlg)
 
 private:
-	CArray<CGraphBuilder::DeadEnd*> m_DeadEnds;
+	CComPtr<IGraphBuilderDeadEnd> m_pGBDE;
 	enum {UNKNOWN, VIDEO, AUDIO} m_type;
 	GUID m_subtype;
 	void AddLine(CString str = _T("\n"));
 	void AddMediaType(AM_MEDIA_TYPE* pmt);
 
 public:
-	CMediaTypesDlg(CGraphBuilder& gb, CWnd* pParent = NULL);   // standard constructor
+	CMediaTypesDlg(IGraphBuilderDeadEnd* pGBDE, CWnd* pParent = NULL);   // standard constructor
 	virtual ~CMediaTypesDlg();
 
 // Dialog Data

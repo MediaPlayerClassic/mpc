@@ -20,13 +20,11 @@
  */
 
 #include "stdafx.h"
+#include "cdxareader.h"
+#include "..\..\..\DSUtil\DSUtil.h"
 #include <initguid.h>
 #include <uuids.h>
-#include "cdxareader.h"
-#include "..\..\..\..\include\matroska\matroska.h"
-#include "..\..\..\..\include\ogg\OggDS.h"
 #include "..\..\..\..\include\moreuuids.h"
-#include "..\..\..\DSUtil\DSUtil.h"
 
 /////////
 
@@ -473,7 +471,7 @@ bool CCDXAStream::LookForMediaSubType()
 
 				__int64 offset = 0;
 				DWORD cb = 0;
-				CByteArray mask, val;
+				CAtlArray<BYTE> mask, val;
 
 				int nMatches = 0, nTries = 0;
 
@@ -488,14 +486,14 @@ bool CCDXAStream::LookForMediaSubType()
 					{
 						case 0: offset = _tcstol(s, &end, 10); break;
 						case 1: cb = _tcstol(s, &end, 10); break;
-						case 2: StringToBin(s, mask); break;
-						case 3: StringToBin(s, val); break;
+						case 2: CStringToBin(s, mask); break;
+						case 3: CStringToBin(s, val); break;
 						default: nTries = -1; break;
 					}
 
 					if(nTries >= 0 && (nTries&3) == 3)
 					{
-						if(cb > 0 && val.GetSize() > 0 && cb == val.GetSize())
+						if(cb > 0 && val.GetCount() > 0 && cb == val.GetCount())
 						{
 							if(offset >= 0 && S_OK == SetPointer(offset)
 							|| S_OK == SetPointer(m_llLength + offset))
@@ -506,10 +504,10 @@ bool CCDXAStream::LookForMediaSubType()
 									DWORD BytesRead = 0;
 									if(S_OK == Read(pData, cb, 1, &BytesRead) && cb == BytesRead)
 									{
-										if(mask.GetSize() < cb)
+										if(mask.GetCount() < cb)
 										{
-											int i = mask.GetSize();
-											mask.SetSize(cb);
+											int i = mask.GetCount();
+											mask.SetCount(cb);
 											for(; i < cb; i++) mask[i] = 0xff;
 										}
 

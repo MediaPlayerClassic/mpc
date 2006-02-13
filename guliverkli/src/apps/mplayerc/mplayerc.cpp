@@ -1083,7 +1083,7 @@ void CMPlayerCApp::Settings::UpdateData(bool fSave)
 			POSITION pos = filters.GetHeadPosition();
 			for(int i = 0; pos; i++)
 			{
-				Filter* f = filters.GetNext(pos);
+				FilterOverride* f = filters.GetNext(pos);
 
 				if(f->fTemporary)
 					continue;
@@ -1093,12 +1093,12 @@ void CMPlayerCApp::Settings::UpdateData(bool fSave)
 
 				pApp->WriteProfileInt(key, _T("SourceType"), (int)f->type);
 				pApp->WriteProfileInt(key, _T("Enabled"), (int)!f->fDisabled);
-				if(f->type == Filter::REGISTERED)
+				if(f->type == FilterOverride::REGISTERED)
 				{
 					pApp->WriteProfileString(key, _T("DisplayName"), CString(f->dispname));
 					pApp->WriteProfileString(key, _T("Name"), f->name);
 				}
-				else if(f->type == Filter::EXTERNAL)
+				else if(f->type == FilterOverride::EXTERNAL)
 				{
 					pApp->WriteProfileString(key, _T("Path"), f->path);
 					pApp->WriteProfileString(key, _T("Name"), f->name);
@@ -1185,6 +1185,7 @@ void CMPlayerCApp::Settings::UpdateData(bool fSave)
 		pApp->WriteProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_MPEGSAT), (int)(mpegsat*100));
 		pApp->WriteProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_MPEGFORCEDSUBS), mpegforcedsubs);
 		pApp->WriteProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_MPEGPLANARYUV), mpegplanaryuv);
+		pApp->WriteProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_MPEGINTERLACED), mpeginterlaced);		
 
 		pApp->WriteProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_MPASF), mpasf);
 		pApp->WriteProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_MPANORMALIZE), mpanormalize);
@@ -1399,20 +1400,20 @@ void CMPlayerCApp::Settings::UpdateData(bool fSave)
 				CString key;
 				key.Format(_T("%s\\%04d"), ResStr(IDS_R_FILTERS), i);
 
-				CAutoPtr<Filter> f(new Filter);
+				CAutoPtr<FilterOverride> f(new FilterOverride);
 
 				f->fDisabled = !pApp->GetProfileInt(key, _T("Enabled"), 0);
 
 				UINT j = pApp->GetProfileInt(key, _T("SourceType"), -1);
 				if(j == 0)
 				{
-					f->type = Filter::REGISTERED;
+					f->type = FilterOverride::REGISTERED;
 					f->dispname = CStringW(pApp->GetProfileString(key, _T("DisplayName"), _T("")));
 					f->name = pApp->GetProfileString(key, _T("Name"), _T(""));
 				}
 				else if(j == 1)
 				{
-					f->type = Filter::EXTERNAL;
+					f->type = FilterOverride::EXTERNAL;
 					f->path = pApp->GetProfileString(key, _T("Path"), _T(""));
 					f->name = pApp->GetProfileString(key, _T("Name"), _T(""));
 					f->clsid = GUIDFromCString(pApp->GetProfileString(key, _T("CLSID"), _T("")));
@@ -1543,6 +1544,7 @@ void CMPlayerCApp::Settings::UpdateData(bool fSave)
 		mpegsat = (double)pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_MPEGSAT), 100) / 100;
 		mpegforcedsubs = !!pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_MPEGFORCEDSUBS), 1);
 		mpegplanaryuv = !!pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_MPEGPLANARYUV), 1);
+		mpeginterlaced = !!pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_MPEGINTERLACED), 0);		
 
 		mpasf = pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_MPASF), 0);
 		mpanormalize = !!pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_MPANORMALIZE), FALSE);

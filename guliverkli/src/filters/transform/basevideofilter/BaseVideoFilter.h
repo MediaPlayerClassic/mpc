@@ -44,6 +44,7 @@ protected:
 
 	virtual void GetOutputSize(int& w, int& h, int& arx, int& ary) {}
 	virtual HRESULT Transform(IMediaSample* pIn) = 0;
+	virtual HRESULT IsVideoInterlaced() {return false;}
 
 public:
 	CBaseVideoFilter(TCHAR* pName, LPUNKNOWN lpunk, HRESULT* phr, REFCLSID clsid, long cBuffers = 1);

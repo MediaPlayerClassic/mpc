@@ -23,10 +23,8 @@
 #include <mmreg.h>
 #include "BaseMuxer.h"
 #include "..\..\..\DSUtil\DSUtil.h"
-#include "..\..\..\..\include\moreuuids.h"
-
 #include <initguid.h>
-#include "..\..\..\..\include\ogg\OggDS.h"
+#include "..\..\..\..\include\moreuuids.h"
 
 #define MAXQUEUESIZE 100
 

@@ -106,7 +106,7 @@ BEGIN
     COMBOBOX        IDC_COMBO6,10,87,102,118,CBS_DROPDOWNLIST | CBS_SORT | WS_DISABLED | WS_VSCROLL | WS_TABSTOP
     GROUPBOX        "Output",IDC_STATIC,3,105,116,171
     CONTROL         "Record Video",IDC_CHECK1,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,10,114,58,10
-    CONTROL         "Preview",IDC_CHECK2,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,72,114,41,10
+    CONTROL         "Preview",IDC_CHECK2,"Button",BS_AUTO3STATE | WS_TABSTOP,72,114,41,10
     COMBOBOX        IDC_COMBO7,10,126,102,62,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
     COMBOBOX        IDC_COMBO9,10,142,37,89,CBS_DROPDOWNLIST | CBS_SORT | WS_DISABLED | WS_VSCROLL | WS_TABSTOP
     COMBOBOX        IDC_COMBO10,50,142,62,89,CBS_DROPDOWNLIST | CBS_SORT | WS_DISABLED | WS_VSCROLL | WS_TABSTOP
@@ -218,9 +218,9 @@ BEGIN
     GROUPBOX        "Open options",IDC_STATIC,5,7,117,119
     CONTROL         "Use the same player for each media file",IDC_RADIO1,
                     "Button",BS_AUTORADIOBUTTON | BS_MULTILINE | WS_GROUP,15,20,93,20
-    ICON            IDI_SINGLE,IDC_STATIC,51,40,20,20,SS_CENTERIMAGE | WS_GROUP
     CONTROL         "Open a new player for each media file played",IDC_RADIO2,
                     "Button",BS_AUTORADIOBUTTON | BS_MULTILINE,15,63,98,15
+    ICON            IDI_SINGLE,IDC_STATIC,51,40,20,20,SS_CENTERIMAGE
     ICON            IDI_MULTI,IDC_STATIC,51,84,20,20,SS_CENTERIMAGE
     CONTROL         "Launch files in fullscreen",IDC_CHECK11,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,109,93,10
     GROUPBOX        "Title bar",IDC_STATIC,5,130,117,61
@@ -228,7 +228,7 @@ BEGIN
     CONTROL         "File name only",IDC_RADIO4,"Button",BS_AUTORADIOBUTTON,16,158,61,10
     CONTROL         "Don't prefix anything",IDC_RADIO5,"Button",BS_AUTORADIOBUTTON,16,173,83,10
     GROUPBOX        "Other",IDC_STATIC,130,7,159,184,WS_GROUP
-    CONTROL         "Always on top",IDC_CHECK2,"Button",BS_AUTO3STATE | WS_TABSTOP,140,19,61,10
+    CONTROL         "Always on top",IDC_CHECK2,"Button",BS_AUTO3STATE | WS_GROUP | WS_TABSTOP,140,19,61,10
     CONTROL         "Tray icon",IDC_CHECK3,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,140,32,45,10
     CONTROL         "Show controls in fullscreen for",IDC_CHECK4,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,140,45,112,10
     EDITTEXT        IDC_EDIT1,152,60,32,13,ES_CENTER | ES_AUTOHSCROLL | ES_READONLY | ES_NUMBER
@@ -752,6 +752,8 @@ BEGIN
     PUSHBUTTON      "Y: 16-235 -> 0-255",IDC_BUTTON2,99,157,74,14
     PUSHBUTTON      "Reset",IDC_BUTTON1,175,157,50,14
     LTEXT           "Note: Using a non-planar output format, bob deinterlacer, or adjusting color properies can degrade performance. ""Auto"" deinterlacer will switch to ""Blend"" when necessary.",IDC_STATIC,7,178,282,22
+    CONTROL         "Set interlaced flag in output media type",IDC_CHECK_MPEGINTERLACED,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,143,51,138,10
 END
 
 IDD_AUTH_DLG DIALOGEX 0, 0, 213, 146
@@ -2195,6 +2197,13 @@ END
 
 STRINGTABLE 
 BEGIN
+    IDS_RS_SNAPTODESKTOPEDGES "SnapToDesktopEdges"
+    IDS_RS_ENABLESUBTITLES  "EnableSubtitles"
+    IDS_RS_MPEGINTERLACED   "MPEGInterlaced"
+END
+
+STRINGTABLE 
+BEGIN
     IDS_RS_ONTOP            "OnTop"
     IDS_RS_MPASF            "MPASampleFormat"
     IDS_RS_AC3SC            "AC3SpeakerConfig"
@@ -2243,6 +2252,8 @@ BEGIN
     IDC_TEXTURESURF3D       "Video surface will be allocated as a texture and drawn as two triangles in 3d. Antialiasing turned on at the display settings may have a bad effect on the rendering speed."
     IDC_DX9RESIZER_COMBO    "If there is no Pixel Shader 2.0 support, simple bilinear is used automatically."
     IDC_DSVMR9LOADMIXER     "Puts VMR9 (renderless) into mixer mode, this means most of the controls on its property page will work and it will use a separate worker thread to renderer frames."
+    IDC_CHECK_MPEGINTERLACED 
+                            "Use it together with ""Weave"" if the video renderer can also deinterlace. The currently loaded file has to be opened again."
 END
 
 STRINGTABLE 
@@ -2368,12 +2379,6 @@ BEGIN
     IDS_PANSCAN_POPUP       "Pan&&Scan"
     IDS_ASPECTRATIO_POPUP   "Aspect Ratio"
     IDS_ZOOM_POPUP          "Zoom"
-END
-
-STRINGTABLE 
-BEGIN
-    IDS_RS_SNAPTODESKTOPEDGES "SnapToDesktopEdges"
-    IDS_RS_ENABLESUBTITLES  "EnableSubtitles"
 END
 
 #endif    // English (U.S.) resources

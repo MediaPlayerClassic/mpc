@@ -4,7 +4,8 @@
 class CDeinterlacerFilter : public CTransformFilter
 {
 protected:
-    HRESULT CheckInputType(const CMediaType* mtIn);
+    HRESULT CDeinterlacerFilter::CheckConnect(PIN_DIRECTION dir, IPin* pPin);
+	HRESULT CheckInputType(const CMediaType* mtIn);
     HRESULT CheckTransform(const CMediaType* mtIn, const CMediaType* mtOut);
 	HRESULT Transform(IMediaSample* pIn, IMediaSample* pOut);
 	HRESULT DecideBufferSize(IMemAllocator* pAllocator, ALLOCATOR_PROPERTIES* pProperties);

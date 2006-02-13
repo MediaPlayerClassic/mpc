@@ -9,6 +9,11 @@ CDeinterlacerFilter::CDeinterlacerFilter(LPUNKNOWN punk, HRESULT* phr)
 	if(phr) *phr = S_OK;
 }
 
+HRESULT CDeinterlacerFilter::CheckConnect(PIN_DIRECTION dir, IPin* pPin)
+{
+	return GetCLSID(pPin) == __uuidof(*this) ? E_FAIL : S_OK;
+}
+
 HRESULT CDeinterlacerFilter::CheckInputType(const CMediaType* mtIn)
 {
 	BITMAPINFOHEADER bih;

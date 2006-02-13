@@ -26,7 +26,7 @@
 #include "mplayerc.h"
 #include <dmo.h>
 #include "RegFilterChooserDlg.h"
-#include "GraphBuilder.h"
+#include "FGFilter.h"
 #include "..\..\DSUtil\DSUtil.h"
 
 
@@ -130,16 +130,16 @@ void CRegFilterChooserDlg::OnBnClickedOk()
 	if(pos) pMoniker = m_monikers.GetAt(pos);
 	if(pMoniker)
 	{
-		CGraphRegFilter gf(pMoniker);
-		Filter* f = new Filter;
+		CFGFilterRegistry fgf(pMoniker);
+		FilterOverride* f = new FilterOverride;
 		f->fDisabled = false;
-		f->type = Filter::REGISTERED;
-		f->name = gf.GetName();
-		f->dispname = gf.GetDispName();
-		gf.GetGUIDs(f->guids);
-		gf.GetGUIDs(f->backup);
-		f->dwMerit = gf.GetDWORDMerit();
-		f->iLoadType = Filter::MERIT;
+		f->type = FilterOverride::REGISTERED;
+		f->name = fgf.GetName();
+		f->dispname = fgf.GetDisplayName();
+		f->guids.AddTailList(&fgf.GetTypes());
+		f->backup.AddTailList(&fgf.GetTypes());
+		f->dwMerit = fgf.GetMeritForDirectShow();
+		f->iLoadType = FilterOverride::MERIT;
 		m_filters.AddTail(f);
 	}
 

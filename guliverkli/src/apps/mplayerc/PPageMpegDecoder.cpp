@@ -35,8 +35,10 @@ CPPageMpegDecoder::CPPageMpegDecoder(IFilterGraph* pFG)
 	: CPPageBase(CPPageMpegDecoder::IDD, CPPageMpegDecoder::IDD)
 	, m_fForcedSubs(FALSE)
 	, m_fPlanarYUV(FALSE)
+	, m_fInterlacedOutput(FALSE)
 {
-	m_pMpeg2DecFilter = FindFilter(__uuidof(CMpeg2DecFilter), pFG);
+	m_pM2DF = FindFilter(__uuidof(CMpeg2DecFilter), pFG);
+	m_pM2DF2 = m_pM2DF;
 }
 
 CPPageMpegDecoder::~CPPageMpegDecoder()
@@ -53,6 +55,7 @@ void CPPageMpegDecoder::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_SLIDER4, m_satctrl);
 	DDX_Check(pDX, IDC_CHECK1, m_fForcedSubs);
 	DDX_Check(pDX, IDC_CHECK2, m_fPlanarYUV);
+	DDX_Check(pDX, IDC_CHECK_MPEGINTERLACED, m_fInterlacedOutput);
 }
 
 
@@ -97,8 +100,11 @@ BOOL CPPageMpegDecoder::OnInitDialog()
 	m_satctrl.SetPos((int)(100*s.mpegsat));
 	m_fForcedSubs = s.mpegforcedsubs;
 	m_fPlanarYUV = s.mpegplanaryuv;
+	m_fInterlacedOutput = s.mpeginterlaced;
 
 	UpdateData(FALSE);
+
+	CreateToolTip();
 
 	return TRUE;  // return TRUE unless you set the focus to a control
 	// EXCEPTION: OCX Property Pages should return FALSE
@@ -117,16 +123,22 @@ BOOL CPPageMpegDecoder::OnApply()
 	s.mpegsat = (double)m_satctrl.GetPos() / 100;
 	s.mpegforcedsubs = !!m_fForcedSubs;
 	s.mpegplanaryuv = !!m_fPlanarYUV;
+	s.mpeginterlaced = !!m_fInterlacedOutput;
 
-	if(m_pMpeg2DecFilter)
+	if(m_pM2DF)
 	{
-		m_pMpeg2DecFilter->SetDeinterlaceMethod((ditype)s.mpegdi);
-		m_pMpeg2DecFilter->SetBrightness(s.mpegbright);
-		m_pMpeg2DecFilter->SetContrast(s.mpegcont);
-		m_pMpeg2DecFilter->SetHue(s.mpeghue);
-		m_pMpeg2DecFilter->SetSaturation(s.mpegsat);
-		m_pMpeg2DecFilter->EnableForcedSubtitles(s.mpegforcedsubs);
-		m_pMpeg2DecFilter->EnablePlanarYUV(s.mpegplanaryuv);
+		m_pM2DF->SetDeinterlaceMethod((ditype)s.mpegdi);
+		m_pM2DF->SetBrightness(s.mpegbright);
+		m_pM2DF->SetContrast(s.mpegcont);
+		m_pM2DF->SetHue(s.mpeghue);
+		m_pM2DF->SetSaturation(s.mpegsat);
+		m_pM2DF->EnableForcedSubtitles(s.mpegforcedsubs);
+		m_pM2DF->EnablePlanarYUV(s.mpegplanaryuv);
+	}
+
+	if(m_pM2DF2)
+	{
+		m_pM2DF2->EnableInterlaced(s.mpeginterlaced);
 	}
 
 	return __super::OnApply();
@@ -136,8 +148,8 @@ void CPPageMpegDecoder::OnCbnSelchangeCombo2()
 {
 	SetModified();
 
-	if(m_pMpeg2DecFilter)
-		m_pMpeg2DecFilter->SetDeinterlaceMethod((ditype)m_dilist.GetItemData(m_dilist.GetCurSel()));
+	if(m_pM2DF)
+		m_pM2DF->SetDeinterlaceMethod((ditype)m_dilist.GetItemData(m_dilist.GetCurSel()));
 }
 
 void CPPageMpegDecoder::OnCbnSelchangeCombo1()
@@ -149,16 +161,16 @@ void CPPageMpegDecoder::OnHScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrollBa
 {
 	SetModified();
 
-	if(m_pMpeg2DecFilter)
+	if(m_pM2DF)
 	{
 		if(*pScrollBar == m_brightctrl)
-			m_pMpeg2DecFilter->SetBrightness((double)m_brightctrl.GetPos()-128);
+			m_pM2DF->SetBrightness((double)m_brightctrl.GetPos()-128);
 		else if(*pScrollBar == m_contctrl)
-			m_pMpeg2DecFilter->SetContrast((double)m_contctrl.GetPos() / 100);
+			m_pM2DF->SetContrast((double)m_contctrl.GetPos() / 100);
 		else if(*pScrollBar == m_huectrl)
-			m_pMpeg2DecFilter->SetHue((double)m_huectrl.GetPos()-180);
+			m_pM2DF->SetHue((double)m_huectrl.GetPos()-180);
 		else if(*pScrollBar == m_satctrl)
-			m_pMpeg2DecFilter->SetSaturation((double)m_satctrl.GetPos() / 100);
+			m_pM2DF->SetSaturation((double)m_satctrl.GetPos() / 100);
 	}
 
 	CPPageBase::OnHScroll(nSBCode, nPos, pScrollBar);
@@ -170,8 +182,8 @@ void CPPageMpegDecoder::OnBnClickedCheck1()
 
 	UpdateData();
 
-	if(m_pMpeg2DecFilter)
-		m_pMpeg2DecFilter->EnableForcedSubtitles(!!m_fForcedSubs);
+	if(m_pM2DF)
+		m_pM2DF->EnableForcedSubtitles(!!m_fForcedSubs);
 }
 
 void CPPageMpegDecoder::OnBnClickedButton1()
@@ -183,12 +195,12 @@ void CPPageMpegDecoder::OnBnClickedButton1()
 	m_huectrl.SetPos(180);
 	m_satctrl.SetPos(100);
 
-	if(m_pMpeg2DecFilter)
+	if(m_pM2DF)
 	{
-		m_pMpeg2DecFilter->SetBrightness((double)m_brightctrl.GetPos()-128);
-		m_pMpeg2DecFilter->SetContrast((double)m_contctrl.GetPos() / 100);
-		m_pMpeg2DecFilter->SetHue((double)m_huectrl.GetPos()-180);
-		m_pMpeg2DecFilter->SetSaturation((double)m_satctrl.GetPos() / 100);
+		m_pM2DF->SetBrightness((double)m_brightctrl.GetPos()-128);
+		m_pM2DF->SetContrast((double)m_contctrl.GetPos() / 100);
+		m_pM2DF->SetHue((double)m_huectrl.GetPos()-180);
+		m_pM2DF->SetSaturation((double)m_satctrl.GetPos() / 100);
 	}
 }
 
@@ -198,8 +210,8 @@ void CPPageMpegDecoder::OnBnClickedCheck2()
 
 	UpdateData();
 
-	if(m_pMpeg2DecFilter)
-		m_pMpeg2DecFilter->EnablePlanarYUV(!!m_fPlanarYUV);
+	if(m_pM2DF)
+		m_pM2DF->EnablePlanarYUV(!!m_fPlanarYUV);
 }
 
 void CPPageMpegDecoder::OnBnClickedButton2()
@@ -209,9 +221,9 @@ void CPPageMpegDecoder::OnBnClickedButton2()
 	m_brightctrl.SetPos(128-16);
 	m_contctrl.SetPos(100*255/(235-16));
 
-	if(m_pMpeg2DecFilter)
+	if(m_pM2DF)
 	{
-		m_pMpeg2DecFilter->SetBrightness((double)m_brightctrl.GetPos()-128);
-		m_pMpeg2DecFilter->SetContrast((double)m_contctrl.GetPos() / 100);
+		m_pM2DF->SetBrightness((double)m_brightctrl.GetPos()-128);
+		m_pM2DF->SetContrast((double)m_contctrl.GetPos() / 100);
 	}
 }

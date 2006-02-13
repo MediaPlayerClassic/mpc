@@ -378,14 +378,14 @@ public:
 	CComboBox m_vidcodecdimension;
 	BOOL m_fVidOutput;
 	CButton m_vidoutput;
-	BOOL m_fVidPreview;
+	int m_fVidPreview;
 	CButton m_vidpreview;
 	CComboBox m_audcodec;
 	CComboBox m_audcodectype;
 	CComboBox m_audcodecdimension;
 	BOOL m_fAudOutput;
 	CButton m_audoutput;
-	BOOL m_fAudPreview;
+	int m_fAudPreview;
 	CButton m_audpreview;
 	int m_nVidBuffers;
 	int m_nAudBuffers;

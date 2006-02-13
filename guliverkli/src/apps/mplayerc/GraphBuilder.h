@@ -37,7 +37,7 @@ protected:
 	CStringW m_name;
 	struct {union {ULONGLONG val; struct {ULONGLONG low:16, mid:32, high:16;};};} m_merit;
 	CLSID m_clsid;
-	CList<GUID> m_guids;
+	CAtlList<GUID> m_guids;
 
 public:
 	CGraphFilter(CStringW name = L"", ULONGLONG merit = LMERIT_DO_USE);
@@ -47,10 +47,10 @@ public:
 	ULONGLONG GetMerit() {return(m_merit.val);}
 	DWORD GetDWORDMerit() {return(m_merit.mid);}
 	CLSID GetCLSID() {return(m_clsid);}
-	void GetGUIDs(CList<GUID>& guids) {guids.RemoveAll(); guids.AddTail(&m_guids);}
-	void SetGUIDs(CList<GUID>& guids) {m_guids.RemoveAll(); m_guids.AddTail(&guids);}
-	bool IsExactMatch(CArray<GUID>& guids);
-	bool IsCompatible(CArray<GUID>& guids);
+	void GetGUIDs(CAtlList<GUID>& guids) {guids.RemoveAll(); guids.AddTailList(&m_guids);}
+	void SetGUIDs(CAtlList<GUID>& guids) {m_guids.RemoveAll(); m_guids.AddTailList(&guids);}
+	bool IsExactMatch(CAtlArray<GUID>& guids);
+	bool IsCompatible(CAtlArray<GUID>& guids);
 
 	virtual HRESULT Create(IBaseFilter** ppBF, IUnknown** ppUnk) = 0;
 };
@@ -77,7 +77,7 @@ public:
 class CGraphCustomFilter : public CGraphFilter
 {
 public:
-	CGraphCustomFilter(const CLSID& clsid, CList<GUID>& guids, CStringW name = L"", ULONGLONG merit = LMERIT_DO_USE);
+	CGraphCustomFilter(const CLSID& clsid, CAtlList<GUID>& guids, CStringW name = L"", ULONGLONG merit = LMERIT_DO_USE);
 
 	HRESULT Create(IBaseFilter** ppBF, IUnknown** ppUnk);
 };
@@ -89,7 +89,7 @@ protected:
 	HINSTANCE m_hInst;
 
 public:
-	CGraphFileFilter(const CLSID& clsid, CList<GUID>& guids, CString path, CStringW name = L"", ULONGLONG merit = LMERIT_DO_USE);
+	CGraphFileFilter(const CLSID& clsid, CAtlList<GUID>& guids, CString path, CStringW name = L"", ULONGLONG merit = LMERIT_DO_USE);
 
 	HRESULT Create(IBaseFilter** ppBF, IUnknown** ppUnk);
 };
@@ -109,7 +109,7 @@ public:
 class CGraphBuilder
 {
 public:
-	typedef struct {int nStream; CString clsid, filter, pin; CList<CMediaType> mts; CList<CString> path;} DeadEnd;
+	typedef struct {int nStream; CString clsid, filter, pin; CAtlList<CMediaType> mts; CAtlList<CString> path;} DeadEnd;
 
 protected:
 	HWND m_hWnd;
@@ -120,10 +120,7 @@ protected:
 	ULONGLONG m_VRMerit, m_ARMerit;
 
 	UINT m_nTotalStreams, m_nCurrentStream;
-	CList<CGraphFilter*> m_chain;
-
-	void ExtractMediaTypes(IPin* pPin, CArray<GUID>& guids);
-	void ExtractMediaTypes(IPin* pPin, CList<CMediaType>& mts);
+	CAtlList<CGraphFilter*> m_chain;
 
 	void SaveFilters(CInterfaceList<IBaseFilter>& bfl);
 	void RestoreFilters(CInterfaceList<IBaseFilter>& bfl);

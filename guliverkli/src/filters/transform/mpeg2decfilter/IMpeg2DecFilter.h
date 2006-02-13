@@ -50,3 +50,10 @@ interface IMpeg2DecFilter : public IUnknown
 	STDMETHOD_(bool, IsPlanarYUVEnabled()) = 0;
 };
 
+[uuid("F25F1C98-049E-4FEB-BFF5-39CB560DCBC0")]
+interface IMpeg2DecFilter2 : public IMpeg2DecFilter
+{
+	STDMETHOD(EnableInterlaced(bool fEnable)) = 0;
+	STDMETHOD_(bool, IsInterlacedEnabled()) = 0;
+};
+

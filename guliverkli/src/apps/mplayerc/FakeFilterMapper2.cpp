@@ -403,14 +403,14 @@ STDMETHODIMP CFilterMapper2::RegisterFilter(REFCLSID clsidFilter, LPCWSTR Name, 
 {
 	if(!m_path.IsEmpty())
 	{
-		if(Filter* f = new Filter)
+		if(FilterOverride* f = new FilterOverride)
 		{
 			f->fDisabled = false;
-			f->type = Filter::EXTERNAL;
+			f->type = FilterOverride::EXTERNAL;
 			f->path = m_path;
 			f->name = CStringW(Name);
 			f->clsid = clsidFilter;
-			f->iLoadType = Filter::MERIT;
+			f->iLoadType = FilterOverride::MERIT;
 			f->dwMerit = prf2->dwMerit;
 
 			if(prf2->dwVersion == 1)
@@ -444,7 +444,7 @@ STDMETHODIMP CFilterMapper2::RegisterFilter(REFCLSID clsidFilter, LPCWSTR Name, 
 				}
 			}
 
-			f->backup.AddTail(&f->guids);
+			f->backup.AddTailList(&f->guids);
 
 			m_filters.AddTail(f);
 		}

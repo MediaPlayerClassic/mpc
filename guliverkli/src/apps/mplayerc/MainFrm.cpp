@@ -57,21 +57,17 @@
 #include <initguid.h>
 #include <uuids.h>
 #include "..\..\..\include\moreuuids.h"
-#include "..\..\..\include\Ogg\OggDS.h"
 #include <Qnetwork.h>
 #include <qedit.h>
 
 #include "..\..\DSUtil\DSUtil.h"
-
-#include "GraphBuilder.h"
+#include "FGManager.h"
 
 #include "textpassthrufilter.h"
 #include "..\..\filters\filters.h"
 
 #include "DX7AllocatorPresenter.h"
 #include "DX9AllocatorPresenter.h"
-
-#include "..\..\..\include\matroska\matroska.h"
 
 #define DEFCLIENTW 292
 #define DEFCLIENTH 200
@@ -1092,10 +1088,14 @@ void CMainFrame::OnActivateApp(BOOL bActive, DWORD dwThreadID)
 
 	if(!bActive && (mi.dwFlags&MONITORINFOF_PRIMARY) && m_fFullScreen && m_iMediaLoadState == MLS_LOADED)
 	{
-		OnViewFullscreen();
+		bool fExitFullscreen = true;
 
 		if(CWnd* pWnd = GetForegroundWindow())
 		{
+			HMONITOR hMonitor1 = MonitorFromWindow(m_hWnd, MONITOR_DEFAULTTONEAREST);
+			HMONITOR hMonitor2 = MonitorFromWindow(pWnd->m_hWnd, MONITOR_DEFAULTTONEAREST);
+			if(hMonitor1 && hMonitor2 && hMonitor1 != hMonitor2) fExitFullscreen = false;
+
 			CString title;
 			pWnd->GetWindowText(title);
 
@@ -1133,6 +1133,8 @@ void CMainFrame::OnActivateApp(BOOL bActive, DWORD dwThreadID)
 			str.Format(_T("Focus lost to: %s - %s"), module, title);
 			SendStatusMessage(str, 5000);
 		}
+
+		if(fExitFullscreen) OnViewFullscreen();
 	}
 }
 
@@ -3016,7 +3018,7 @@ BOOL CMainFrame::OnCopyData(CWnd* pWnd, COPYDATASTRUCT* pCDS)
 				fm2.Register(path + fd.cFileName);
 				while(!fm2.m_filters.IsEmpty())
 				{
-					if(Filter* f = fm2.m_filters.RemoveTail())
+					if(FilterOverride* f = fm2.m_filters.RemoveTail())
 					{
 						f->fTemporary = true;
 
@@ -3025,8 +3027,8 @@ BOOL CMainFrame::OnCopyData(CWnd* pWnd, COPYDATASTRUCT* pCDS)
 						POSITION pos2 = s.filters.GetHeadPosition();
 						while(pos2)
 						{
-							Filter* f2 = s.filters.GetNext(pos2);
-							if(f2->type == Filter::EXTERNAL && !f2->path.CompareNoCase(f->path))
+							FilterOverride* f2 = s.filters.GetNext(pos2);
+							if(f2->type == FilterOverride::EXTERNAL && !f2->path.CompareNoCase(f->path))
 							{
 								fFound = true;
 								break;
@@ -3035,7 +3037,7 @@ BOOL CMainFrame::OnCopyData(CWnd* pWnd, COPYDATASTRUCT* pCDS)
 
 						if(!fFound)
 						{
-							CAutoPtr<Filter> p(f);
+							CAutoPtr<FilterOverride> p(f);
 							s.filters.AddHead(p);
 						}
 					}
@@ -5200,7 +5202,8 @@ void CMainFrame::OnPlaySubtitles(UINT nID)
 	}
 	else if(i == -1)
 	{
-		m_iSubtitleSel ^= (1<<31);
+		if(m_iSubtitleSel == -1) m_iSubtitleSel = 0;
+		else m_iSubtitleSel ^= (1<<31);
 		UpdateSubtitle();
 	}
 	else if(i >= 0)
@@ -5209,7 +5212,7 @@ void CMainFrame::OnPlaySubtitles(UINT nID)
 		UpdateSubtitle();
 	}
 
-	AfxGetAppSettings().fEnableSubtitles = !!(m_iSubtitleSel & 0x80000000);
+	AfxGetAppSettings().fEnableSubtitles = !(m_iSubtitleSel & 0x80000000);
 }
 
 void CMainFrame::OnUpdatePlaySubtitles(CCmdUI* pCmdUI)
@@ -5649,7 +5652,7 @@ public:
 
 	DECLARE_IUNKNOWN;
 
-	CByteArray m_data;
+	CAtlArray<BYTE> m_data;
 
     // ISequentialStream
 	STDMETHODIMP Read(void* pv, ULONG cb, ULONG* pcbRead)
@@ -5753,7 +5756,7 @@ void CMainFrame::OnFavoritesAdd()
 			&& (pPersistStream = pStateData)
 			&& SUCCEEDED(OleSaveToStream(pPersistStream, (IStream*)&stream)))
 			{
-				pos = BinToString(stream.m_data.GetData(), stream.m_data.GetCount());
+				pos = BinToCString(stream.m_data.GetData(), stream.m_data.GetCount());
 			}
 		}
 
@@ -5841,7 +5844,7 @@ void CMainFrame::OnFavoritesDVD(UINT nID)
 			if(j == 0) ; // desc
 			else if(j == 1 && s2 != _T("0")) // state
 			{
-				StringToBin(s2, stream.m_data);
+				CStringToBin(s2, stream.m_data);
 			}
 			else if(j == 2) fn = s2; // path
 		}
@@ -6530,10 +6533,10 @@ void CMainFrame::OpenCreateGraphObject(OpenMediaData* pOMD)
 	m_fCustomGraph = false;
 	m_fRealMediaGraph = m_fShockwaveGraph = m_fQuicktimeGraph = false;
 
+	AppSettings& s = AfxGetAppSettings();
+
 	if(OpenFileData* p = dynamic_cast<OpenFileData*>(pOMD))
 	{
-		AppSettings& s = AfxGetAppSettings();
-
 		engine_t engine = s.Formats.GetEngine(p->fns.GetHead());
 
 		CStringA ct = GetContentType(p->fns.GetHead());
@@ -6571,10 +6574,6 @@ void CMainFrame::OpenCreateGraphObject(OpenMediaData* pOMD)
 			if(!(pUnk = (IUnknown*)(INonDelegatingUnknown*)new CRealMediaGraph(m_wndView.m_hWnd, hr)))
 				throw _T("Out of memory");
 
-			m_pCAP = CComQIPtr<ISubPicAllocatorPresenter>(pUnk);
-
-//			if(FAILED(hr) || !(pGB = CComQIPtr<IGraphBuilder>(pUnk)))
-//				throw _T("RealMedia files require RealPlayer/RealOne to be installed");
 			if(SUCCEEDED(hr) && !!(pGB = CComQIPtr<IGraphBuilder>(pUnk)))
 				m_fRealMediaGraph = true;
 		}
@@ -6593,23 +6592,29 @@ void CMainFrame::OpenCreateGraphObject(OpenMediaData* pOMD)
 			if(!(pUnk = (IUnknown*)(INonDelegatingUnknown*)new CQuicktimeGraph(m_wndView.m_hWnd, hr)))
 				throw _T("Out of memory");
 
-			m_pCAP = CComQIPtr<ISubPicAllocatorPresenter>(pUnk);
-
-//			if(FAILED(hr) || !(pGB = CComQIPtr<IGraphBuilder>(pUnk)))
-//				throw _T("Can't initialize QuickTime");
 			if(SUCCEEDED(hr) && !!(pGB = CComQIPtr<IGraphBuilder>(pUnk)))
                 m_fQuicktimeGraph = true;
 		}
 
 		m_fCustomGraph = m_fRealMediaGraph || m_fShockwaveGraph || m_fQuicktimeGraph;
+
+		if(!m_fCustomGraph)
+		{
+			pGB = new CFGManagerPlayer(_T("CFGManagerPlayer"), NULL, m_wndView.m_hWnd);
+		}
+	}
+	else if(OpenDVDData* p = dynamic_cast<OpenDVDData*>(pOMD))
+	{
+		pGB = new CFGManagerDVD(_T("CFGManagerDVD"), NULL, m_wndView.m_hWnd);
+	}
+	else if(OpenDeviceData* p = dynamic_cast<OpenDeviceData*>(pOMD))
+	{
+		pGB = new CFGManagerCapture(_T("CFGManagerCapture"), NULL, m_wndView.m_hWnd);
 	}
 
-	if(!m_fCustomGraph)
+	if(!pGB)
 	{
-		if(FAILED(pGB.CoCreateInstance(CLSID_FilterGraph)))
-		{
-			throw _T("Failed to create the filter graph object");
-		}
+		throw _T("Failed to create the filter graph object");
 	}
 
 	pMC = pGB; pME = pGB; pMS = pGB; // general
@@ -6644,8 +6649,6 @@ void CMainFrame::OpenFile(OpenFileData* pOFD)
 
 	AppSettings& s = AfxGetAppSettings();
 
-    CGraphBuilderFile gb(pGB, m_wndView.m_hWnd);
-
 	bool fFirst = true;
 
 	POSITION pos = pOFD->fns.GetHeadPosition();
@@ -6657,18 +6660,16 @@ void CMainFrame::OpenFile(OpenFileData* pOFD)
 		if(fn.IsEmpty() && !fFirst)
 			break;
 
-		HRESULT hr = gb.Render(fn);
+		HRESULT hr = pGB->RenderFile(CStringW(fn), NULL);
 
 		if(FAILED(hr))
 		{
 			if(fFirst)
 			{
-				if(s.fReportFailedPins && gb.GetDeadEnd(0))
+				if(s.fReportFailedPins)
 				{
-					CMediaTypesDlg(gb, this).DoModal();
-
-					if(gb.GetStreamCount() == 0)
-						throw _T("Cannot render any of the streams");
+					CComQIPtr<IGraphBuilderDeadEnd> pGBDE = pGB;
+					if(pGBDE && pGBDE->GetCount()) CMediaTypesDlg(pGBDE, this).DoModal();
 				}
 
 				CString err;
@@ -6710,11 +6711,11 @@ void CMainFrame::OpenFile(OpenFileData* pOFD)
 		if(m_fCustomGraph) break;
 	}
 
-	if(s.fReportFailedPins && gb.GetDeadEnd(0))
-		CMediaTypesDlg(gb, this).DoModal();
-
-	if(!m_fCustomGraph)
-		gb.FindInterface(__uuidof(ISubPicAllocatorPresenter), (void**)&m_pCAP);
+	if(s.fReportFailedPins)
+	{
+		CComQIPtr<IGraphBuilderDeadEnd> pGBDE = pGB;
+		if(pGBDE && pGBDE->GetCount()) CMediaTypesDlg(pGBDE, this).DoModal();
+	}
 
 	if(!(pAMOP = pGB))
 	{
@@ -6880,41 +6881,41 @@ void CMainFrame::SetupChapters()
 
 void CMainFrame::OpenDVD(OpenDVDData* pODD)
 {
-	CGraphBuilderDVD gb(pGB, m_wndView.m_hWnd);
-
-	HRESULT hr = gb.Render(pODD->path, pODD->title);
+	HRESULT hr = pGB->RenderFile(pODD->path, NULL);
 
 	AppSettings& s = AfxGetAppSettings();
+
+	if(s.fReportFailedPins)
+	{
+		CComQIPtr<IGraphBuilderDeadEnd> pGBDE = pGB;
+		if(pGBDE && pGBDE->GetCount()) CMediaTypesDlg(pGBDE, this).DoModal();
+	}
 
 	if(hr == VFW_E_CANNOT_LOAD_SOURCE_FILTER)
 		throw _T("Can't find DVD directory");
 	else if(hr == VFW_E_CANNOT_RENDER)
 		throw _T("Failed to render all pins of the DVD Navigator filter");
 	else if(hr == VFW_S_PARTIAL_RENDER)
-	{
-		if(s.fReportFailedPins && gb.GetDeadEnd(0))
-			CMediaTypesDlg(gb, this).DoModal();
-
 		throw _T("Failed to render some of the pins of the DVD Navigator filter");
-	}
 	else if(hr == E_NOINTERFACE)
 		throw _T("Failed to query the needed interfaces for DVD playback");
 	else if(FAILED(hr))
 		throw _T("Can't create the DVD Navigator filter");
 
-	gb.FindInterface(__uuidof(ISubPicAllocatorPresenter), (void**)&m_pCAP);
-	gb.FindInterface(__uuidof(IDvdControl2), (void**)&pDVDC);
-	gb.FindInterface(__uuidof(IDvdInfo2), (void**)&pDVDI);
+	pGB->FindInterface(__uuidof(IDvdControl2), (void**)&pDVDC, TRUE);
+	pGB->FindInterface(__uuidof(IDvdInfo2), (void**)&pDVDI, TRUE);
 
 	if(!pDVDC || !pDVDI)
 		throw _T("Failed to query the needed interfaces for DVD playback");
 
-	if(s.idMenuLang)
-		pDVDC->SelectDefaultMenuLanguage(s.idMenuLang);
-	if(s.idAudioLang)
-		pDVDC->SelectDefaultAudioLanguage(s.idAudioLang, DVD_AUD_EXT_NotSpecified);
-	if(s.idSubtitlesLang)
-		pDVDC->SelectDefaultSubpictureLanguage(s.idSubtitlesLang, DVD_SP_EXT_NotSpecified);
+	WCHAR buff[MAX_PATH];
+	ULONG len = 0;
+	if(SUCCEEDED(hr = pDVDI->GetDVDDirectory(buff, countof(buff), &len)))
+		pODD->title = CString(CStringW(buff));
+
+	if(s.idMenuLang) pDVDC->SelectDefaultMenuLanguage(s.idMenuLang);
+	if(s.idAudioLang) pDVDC->SelectDefaultAudioLanguage(s.idAudioLang, DVD_AUD_EXT_NotSpecified);
+	if(s.idSubtitlesLang) pDVDC->SelectDefaultSubpictureLanguage(s.idSubtitlesLang, DVD_SP_EXT_NotSpecified);
 
 	m_iDVDDomain = DVD_DOMAIN_Stop;
 
@@ -7540,7 +7541,8 @@ bool CMainFrame::OpenMediaPrivate(CAutoPtr<OpenMediaData> pOMD)
 		if(m_fOpeningAborted) throw aborted;
 
 		OpenCreateGraphObject(pOMD);
-AddToRot(pGB, &m_dwRegister);
+		
+		AddToRot(pGB, &m_dwRegister);
 
 		if(m_fOpeningAborted) throw aborted;
 
@@ -7548,22 +7550,12 @@ AddToRot(pGB, &m_dwRegister);
 
 		if(m_fOpeningAborted) throw aborted;
 
-		if(OpenFileData* p = dynamic_cast<OpenFileData*>(pOMD.m_p))
-		{
-			OpenFile(p);
-		}
-		else if(OpenDVDData* p = dynamic_cast<OpenDVDData*>(pOMD.m_p))
-		{
-			OpenDVD(p);
-		}
-		else if(OpenDeviceData* p = dynamic_cast<OpenDeviceData*>(pOMD.m_p))
-		{
-			OpenCapture(p);
-		}
-		else
-		{
-			throw _T("Can't open, invalid input parameters");
-		}
+		if(OpenFileData* p = dynamic_cast<OpenFileData*>(pOMD.m_p)) OpenFile(p);
+		else if(OpenDVDData* p = dynamic_cast<OpenDVDData*>(pOMD.m_p)) OpenDVD(p);
+		else if(OpenDeviceData* p = dynamic_cast<OpenDeviceData*>(pOMD.m_p)) OpenCapture(p);
+		else throw _T("Can't open, invalid input parameters");
+
+		pGB->FindInterface(__uuidof(ISubPicAllocatorPresenter), (void**)&m_pCAP, TRUE);
 
 		if(m_fOpeningAborted) throw aborted;
 
@@ -7695,7 +7687,7 @@ void CMainFrame::CloseMediaPrivate()
 
 	m_pCB = NULL;
 
-RemoveFromRot(m_dwRegister);
+	RemoveFromRot(m_dwRegister);
 
 //	if(pVW) pVW->put_Visible(OAFALSE);
 //	if(pVW) pVW->put_MessageDrain((OAHWND)NULL), pVW->put_Owner((OAHWND)NULL);
@@ -7706,7 +7698,6 @@ RemoveFromRot(m_dwRegister);
 	pAMVCCap.Release(); pAMVCPrev.Release(); pAMVSCCap.Release(); pAMVSCPrev.Release(); pAMASC.Release();
 	pVidCap.Release(); pAudCap.Release();
 	pCGB.Release();
-	pVMR.Release();
 	pDVDC.Release(); pDVDI.Release();
 	pQP.Release(); pBI.Release(); pAMOP.Release(); pFS.Release();
 	pMC.Release(); pME.Release(); pMS.Release();
@@ -8892,7 +8883,7 @@ void CMainFrame::SetSubtitle(ISubStream* pSubStream, bool fApplyDefStyle)
 				pVSF->SetAlignment(s.fOverridePlacement, s.nHorPos, s.nVerPos, 1, 1);
 			}
 		}
-		if(clsid == __uuidof(CVobSubStream))
+		else if(clsid == __uuidof(CVobSubStream))
 		{
 			CVobSubStream* pVSS = (CVobSubStream*)(ISubStream*)pSubStream;
 
@@ -9283,7 +9274,7 @@ bool CMainFrame::BuildToCapturePreviewPin(
 	return(true);
 }
 
-bool CMainFrame::BuildGraphVideoAudio(bool fVPreview, bool fVCapture, bool fAPreview, bool fACapture)
+bool CMainFrame::BuildGraphVideoAudio(int fVPreview, bool fVCapture, int fAPreview, bool fACapture)
 {
 	if(!pCGB) return(false);
 
@@ -9323,14 +9314,12 @@ bool CMainFrame::BuildGraphVideoAudio(bool fVPreview, bool fVCapture, bool fAPre
 	CComPtr<IPin> pVidCapPin, pVidPrevPin, pAudCapPin, pAudPrevPin;
 	BuildToCapturePreviewPin(pVidCap, &pVidCapPin, &pVidPrevPin, pAudCap, &pAudCapPin, &pAudPrevPin);
 
-	CGraphBuilderCapture gb(pGB, m_wndView.m_hWnd);
-
 //	if(pVidCap)
 	{
 		bool fVidPrev = pVidPrevPin && fVPreview;
 		bool fVidCap = pVidCapPin && fVCapture && fFileOutput && m_wndCaptureBar.m_capdlg.m_fVidOutput;
 
-		if(fVidPrev && !fVidCap && pVidCapPin)
+		if(fVPreview == 2 && !fVidCap && pVidCapPin)
 		{
 			pVidPrevPin = pVidCapPin;
 			pVidCapPin = NULL;
@@ -9339,8 +9328,8 @@ bool CMainFrame::BuildGraphVideoAudio(bool fVPreview, bool fVCapture, bool fAPre
 		if(fVidPrev)
 		{
 			m_pCAP = NULL;
-			gb.Render(pVidPrevPin);
-			gb.FindInterface(__uuidof(ISubPicAllocatorPresenter), (void**)&m_pCAP);
+			pGB->Render(pVidPrevPin);
+			pGB->FindInterface(__uuidof(ISubPicAllocatorPresenter), (void**)&m_pCAP, TRUE);
 		}
 
 		if(fVidCap)
@@ -9358,9 +9347,15 @@ bool CMainFrame::BuildGraphVideoAudio(bool fVPreview, bool fVCapture, bool fAPre
 		bool fAudPrev = pAudPrevPin && fAPreview;
 		bool fAudCap = pAudCapPin && fACapture && fFileOutput && m_wndCaptureBar.m_capdlg.m_fAudOutput;
 
+		if(fAPreview == 2 && !fAudCap && pAudCapPin)
+		{
+			pAudPrevPin = pAudCapPin;
+			pAudCapPin = NULL;
+		}
+
 		if(fAudPrev)
 		{
-			gb.Render(fAudCap ? pAudPrevPin : pAudCapPin);
+			pGB->Render(fAudCap ? pAudPrevPin : pAudCapPin);
 		}
 
 		if(fAudCap)

@@ -34,9 +34,9 @@ private:
 	void StepUp(CCheckListBox& list);
 	void StepDown(CCheckListBox& list);
 
-	CAutoPtrList<Filter> m_pFilters;
-	Filter* m_pLastSelFilter;
-	Filter* GetCurFilter();
+	CAutoPtrList<FilterOverride> m_pFilters;
+	FilterOverride* m_pLastSelFilter;
+	FilterOverride* GetCurFilter();
 
 	void SetupMajorTypes(CArray<GUID>& guids);
 	void SetupSubTypes(CArray<GUID>& guids);

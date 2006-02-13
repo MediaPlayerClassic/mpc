@@ -32,7 +32,6 @@
 
 #include <initguid.h>
 #include "..\..\..\..\include\moreuuids.h"
-#include "..\..\..\..\include\Ogg\OggDS.h"
 
 ///////////////////////////////////////////////////////////////////////////
 

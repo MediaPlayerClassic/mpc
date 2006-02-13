@@ -24,7 +24,6 @@
 #include "..\..\..\DSUtil\DSUtil.h"
 
 #include <initguid.h>
-#include "..\..\..\..\include\ogg\OggDS.h"
 #include "..\..\..\..\include\moreuuids.h"
 
 #ifdef REGISTER_FILTER

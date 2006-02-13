@@ -35,7 +35,6 @@
 
 #include <initguid.h>
 #include "..\..\..\..\include\moreuuids.h"
-#include "..\..\..\..\include\matroska\matroska.h"
 
 #define EPSILON 1e-4
 
@@ -187,6 +186,7 @@ CMpeg2DecFilter::CMpeg2DecFilter(LPUNKNOWN lpunk, HRESULT* phr)
 	SetSaturation(1.0);
 	EnableForcedSubtitles(true);
 	EnablePlanarYUV(true);
+	EnableInterlaced(false);
 
 	m_rate.Rate = 10000;
 	m_rate.StartTime = 0;
@@ -202,6 +202,7 @@ STDMETHODIMP CMpeg2DecFilter::NonDelegatingQueryInterface(REFIID riid, void** pp
 {
 	return
 		QI(IMpeg2DecFilter)
+		QI(IMpeg2DecFilter2)
 		 __super::NonDelegatingQueryInterface(riid, ppv);
 }
 
@@ -289,7 +290,7 @@ void CMpeg2DecFilter::InputTypeChanged()
 	m_fb.flags = 0;
 }
 
-ditype CMpeg2DecFilter::SuggestDeinterlaceMethod()
+void CMpeg2DecFilter::SetDeinterlaceMethod()
 {
 	ASSERT(m_dec->m_info.m_sequence);
 	ASSERT(m_dec->m_info.m_display_picture);
@@ -314,29 +315,58 @@ ditype CMpeg2DecFilter::SuggestDeinterlaceMethod()
 		}
 	}
 
-	ditype di = GetDeinterlaceMethod();
+	m_fb.di = GetDeinterlaceMethod();
 
-	if(di == DIAuto || di != DIWeave && di != DIBlend && di != DIBob)
+	if(m_fb.di == DIAuto || m_fb.di != DIWeave && m_fb.di != DIBlend && m_fb.di != DIBob)
 	{
 		if(seqflags & SEQ_FLAG_PROGRESSIVE_SEQUENCE)
-			di = DIWeave; // hurray!
+			m_fb.di = DIWeave; // hurray!
 		else if(m_fFilm)
-			di = DIWeave; // we are lucky
+			m_fb.di = DIWeave; // we are lucky
 		else if(!(m_fb.flags & PIC_FLAG_PROGRESSIVE_FRAME))
-			di = DIBlend; // ok, clear thing
+			m_fb.di = DIBlend; // ok, clear thing
 		else
 			// big trouble here, the progressive_frame bit is not reliable :'(
 			// frames without temporal field diffs can be only detected when ntsc 
 			// uses the repeat field flag (signaled with m_fFilm), if it's not set 
 			// or we have pal then we might end up blending the fields unnecessarily...
-			di = DIBlend;
+			m_fb.di = DIBlend;
 	}
-
-	return di;
+	
+	m_fb.flags = newflags;
 }
 
-#include <intrin.h>
-#pragma intrinsic(__rdtsc)
+void CMpeg2DecFilter::SetTypeSpecificFlags(IMediaSample* pMS)
+{
+	if(CComQIPtr<IMediaSample2> pMS2 = pMS)
+	{
+		AM_SAMPLE2_PROPERTIES props;
+		if(SUCCEEDED(pMS2->GetProperties(sizeof(props), (BYTE*)&props)))
+		{
+			props.dwTypeSpecificFlags &= ~0x7f;
+
+			const CMediaType& mt = m_pOutput->CurrentMediaType();
+			if(mt.formattype == FORMAT_VideoInfo2 && (((VIDEOINFOHEADER2*)mt.pbFormat)->dwInterlaceFlags & AMINTERLACE_IsInterlaced))
+			{
+				// props.dwTypeSpecificFlags |= AM_VIDEO_FLAG_WEAVE;
+
+				if(m_fb.flags & PIC_FLAG_TOP_FIELD_FIRST)
+					props.dwTypeSpecificFlags |= AM_VIDEO_FLAG_FIELD1FIRST;
+				if(m_fb.flags & PIC_FLAG_REPEAT_FIRST_FIELD)
+					props.dwTypeSpecificFlags |= AM_VIDEO_FLAG_REPEAT_FIELD;
+
+				if((m_fb.flags & PIC_MASK_CODING_TYPE) == PIC_FLAG_CODING_TYPE_I)
+					props.dwTypeSpecificFlags |= AM_VIDEO_FLAG_I_SAMPLE;
+				if((m_fb.flags & PIC_MASK_CODING_TYPE) == PIC_FLAG_CODING_TYPE_P)
+					props.dwTypeSpecificFlags |= AM_VIDEO_FLAG_P_SAMPLE;
+				if((m_fb.flags & PIC_MASK_CODING_TYPE) == PIC_FLAG_CODING_TYPE_B)
+					props.dwTypeSpecificFlags |= AM_VIDEO_FLAG_B_SAMPLE;
+			}
+
+			pMS2->SetProperties(sizeof(props), (BYTE*)&props);
+		}
+	}
+}
 
 HRESULT CMpeg2DecFilter::Transform(IMediaSample* pIn)
 {
@@ -419,75 +449,11 @@ HRESULT CMpeg2DecFilter::Transform(IMediaSample* pIn)
 
 					//
 
-					ditype di = SuggestDeinterlaceMethod();
+					SetDeinterlaceMethod();
 
-					// save flags
-
-					m_fb.flags = picture->flags;
-
-					//
-
-					if(FAILED(hr = DeliverFast(di)))
+					if(S_OK != (hr = DeliverFast()) 
+					&& S_OK != (hr = DeliverNormal()))
 						return hr;
-
-					if(hr == S_OK)
-						break;
-
-					// deinterlace
-
-					if(di == DIWeave)
-					{
-						BitBltFromI420ToI420(w, h, m_fb.buf[0], m_fb.buf[1], m_fb.buf[2], pitch, fbuf->buf[0], fbuf->buf[1], fbuf->buf[2], pitch);
-					}
-					else if(di == DIBlend)
-					{
-						DeinterlaceBlend(m_fb.buf[0], fbuf->buf[0], w, h, pitch, pitch);
-						DeinterlaceBlend(m_fb.buf[1], fbuf->buf[1], w/2, h/2, pitch/2, pitch/2);
-						DeinterlaceBlend(m_fb.buf[2], fbuf->buf[2], w/2, h/2, pitch/2, pitch/2);
-					}
-					else if(di == DIBob)
-					{
-						bool tff = !!(m_fb.flags&PIC_FLAG_TOP_FIELD_FIRST);
-
-						DeinterlaceBob(m_fb.buf[0], fbuf->buf[0], w, h, pitch, pitch, tff);
-						DeinterlaceBob(m_fb.buf[1], fbuf->buf[1], w/2, h/2, pitch/2, pitch/2, tff);
-						DeinterlaceBob(m_fb.buf[2], fbuf->buf[2], w/2, h/2, pitch/2, pitch/2, tff);
-
-						m_fb.rtStart = rtStart;
-						m_fb.rtStop = (rtStart + rtStop) / 2;
-					}
-
-					// postproc
-
-					ApplyBrContHueSat(m_fb.buf[0], m_fb.buf[1], m_fb.buf[2], w, h, pitch);
-
-					// deliver
-
-					if(FAILED(hr = Deliver(false)))
-						return hr;
-
-					// spec code for bob
-
-					if(di == DIBob)
-					{
-						bool tff = !!(m_fb.flags&PIC_FLAG_TOP_FIELD_FIRST);
-
-						DeinterlaceBob(m_fb.buf[0], fbuf->buf[0], w, h, pitch, pitch, !tff);
-						DeinterlaceBob(m_fb.buf[1], fbuf->buf[1], w/2, h/2, pitch/2, pitch/2, !tff);
-						DeinterlaceBob(m_fb.buf[2], fbuf->buf[2], w/2, h/2, pitch/2, pitch/2, !tff);
-
-						m_fb.rtStart = (rtStart + rtStop) / 2;
-						m_fb.rtStop = rtStop;
-
-						// postproc
-
-						ApplyBrContHueSat(m_fb.buf[0], m_fb.buf[1], m_fb.buf[2], w, h, pitch);
-
-						// deliver
-
-						if(FAILED(hr = Deliver(false)))
-							return hr;
-					}
 				}
 			}
 			break;
@@ -499,7 +465,12 @@ HRESULT CMpeg2DecFilter::Transform(IMediaSample* pIn)
 	return S_OK;
 }
 
-HRESULT CMpeg2DecFilter::DeliverFast(ditype di)
+HRESULT CMpeg2DecFilter::IsVideoInterlaced()
+{
+	return IsInterlacedEnabled();
+}
+
+HRESULT CMpeg2DecFilter::DeliverFast()
 {
 	HRESULT hr;
 
@@ -517,10 +488,9 @@ HRESULT CMpeg2DecFilter::DeliverFast(ditype di)
 	|| fabs(m_bright) > EPSILON || fabs(m_cont-1.0) > EPSILON
 	|| fabs(m_hue) > EPSILON || fabs(m_sat-1.0) > EPSILON)
 		return S_FALSE;
-
 	}
 
-	if((m_fb.flags&PIC_MASK_CODING_TYPE) == PIC_FLAG_CODING_TYPE_I)
+	if((m_fb.flags & PIC_MASK_CODING_TYPE) == PIC_FLAG_CODING_TYPE_I)
 		m_fWaitForKeyFrame = false;
 
 	if(m_fb.rtStart < 0 || m_fWaitForKeyFrame)
@@ -554,17 +524,17 @@ HRESULT CMpeg2DecFilter::DeliverFast(ditype di)
 
 	if(bihOut.biCompression == '21VY') {BYTE* tmp = u; u = v; v = tmp;}
 
-	if(di == DIWeave)
+	if(m_fb.di == DIWeave)
 	{
 		BitBltFromI420ToI420(w, h, y, u, v, dstpitch, fbuf->buf[0], fbuf->buf[1], fbuf->buf[2], srcpitch);
 	}
-	else if(di == DIBlend)
+	else if(m_fb.di == DIBlend)
 	{
 		DeinterlaceBlend(y, fbuf->buf[0], w, h, dstpitch, srcpitch);
 		DeinterlaceBlend(u, fbuf->buf[1], w/2, h/2, dstpitch/2, srcpitch/2);
 		DeinterlaceBlend(v, fbuf->buf[2], w/2, h/2, dstpitch/2, srcpitch/2);
 	}
-	else if(di == DIBob)
+	else if(m_fb.di == DIBob)
 	{
 		return S_FALSE; // TODO
 	}
@@ -598,8 +568,88 @@ HRESULT CMpeg2DecFilter::DeliverFast(ditype di)
 
 	//
 
+	SetTypeSpecificFlags(pOut);
+
+	//
+
 	return m_pOutput->Deliver(pOut);
 }
+
+HRESULT CMpeg2DecFilter::DeliverNormal()
+{
+	HRESULT hr;
+
+	CAutoLock cAutoLock(&m_csReceive);
+
+	mpeg2_fbuf_t* fbuf = m_dec->m_info.m_display_fbuf;
+	if(!fbuf) return S_FALSE;
+
+	int w = m_fb.w;
+	int h = m_fb.h;
+	int pitch = m_fb.pitch;
+
+	REFERENCE_TIME rtStart = m_fb.rtStart;
+	REFERENCE_TIME rtStop = m_fb.rtStop;
+
+	// deinterlace
+
+	if(m_fb.di == DIWeave)
+	{
+		BitBltFromI420ToI420(w, h, m_fb.buf[0], m_fb.buf[1], m_fb.buf[2], pitch, fbuf->buf[0], fbuf->buf[1], fbuf->buf[2], pitch);
+	}
+	else if(m_fb.di == DIBlend)
+	{
+		DeinterlaceBlend(m_fb.buf[0], fbuf->buf[0], w, h, pitch, pitch);
+		DeinterlaceBlend(m_fb.buf[1], fbuf->buf[1], w/2, h/2, pitch/2, pitch/2);
+		DeinterlaceBlend(m_fb.buf[2], fbuf->buf[2], w/2, h/2, pitch/2, pitch/2);
+	}
+	else if(m_fb.di == DIBob)
+	{
+		bool tff = !!(m_fb.flags&PIC_FLAG_TOP_FIELD_FIRST);
+
+		DeinterlaceBob(m_fb.buf[0], fbuf->buf[0], w, h, pitch, pitch, tff);
+		DeinterlaceBob(m_fb.buf[1], fbuf->buf[1], w/2, h/2, pitch/2, pitch/2, tff);
+		DeinterlaceBob(m_fb.buf[2], fbuf->buf[2], w/2, h/2, pitch/2, pitch/2, tff);
+
+		m_fb.rtStart = rtStart;
+		m_fb.rtStop = (rtStart + rtStop) / 2;
+	}
+
+	// postproc
+
+	ApplyBrContHueSat(m_fb.buf[0], m_fb.buf[1], m_fb.buf[2], w, h, pitch);
+
+	// deliver
+
+	if(FAILED(hr = Deliver(false)))
+		return hr;
+
+	// spec code for bob
+
+	if(m_fb.di == DIBob)
+	{
+		bool tff = !!(m_fb.flags&PIC_FLAG_TOP_FIELD_FIRST);
+
+		DeinterlaceBob(m_fb.buf[0], fbuf->buf[0], w, h, pitch, pitch, !tff);
+		DeinterlaceBob(m_fb.buf[1], fbuf->buf[1], w/2, h/2, pitch/2, pitch/2, !tff);
+		DeinterlaceBob(m_fb.buf[2], fbuf->buf[2], w/2, h/2, pitch/2, pitch/2, !tff);
+
+		m_fb.rtStart = (rtStart + rtStop) / 2;
+		m_fb.rtStop = rtStop;
+
+		// postproc
+
+		ApplyBrContHueSat(m_fb.buf[0], m_fb.buf[1], m_fb.buf[2], w, h, pitch);
+
+		// deliver
+
+		if(FAILED(hr = Deliver(false)))
+			return hr;
+	}
+
+	return S_OK;
+}
+
 
 HRESULT CMpeg2DecFilter::Deliver(bool fRepeatLast)
 {
@@ -639,28 +689,8 @@ HRESULT CMpeg2DecFilter::Deliver(bool fRepeatLast)
 		m_pSubpicInput->RenderSubpics(m_fb.rtStart, buf, m_fb.pitch, m_fb.h);
 	}
 
-/*
-static CAtlList<UINT64> ts;
-UINT64 t = __rdtsc();
-*/
 	CopyBuffer(pDataOut, buf, (m_fb.w+7)&~7, m_fb.h, m_fb.pitch, MEDIASUBTYPE_I420);
-/*
-t = __rdtsc() - t;
-ts.AddTail(t);
-if(ts.GetCount() == 100)
-{
-	UINT64 total = 0;
-	POSITION pos = ts.GetHeadPosition();
-	while(pos) total += ts.GetNext(pos);
-	t = __rdtsc();
-	Sleep(1000);
-	t = __rdtsc() - t;
-	CString str;
-	str.Format(_T("%.6f"), 1.0f*total/ts.GetCount()/t);
-	AfxMessageBox(str);
-	ts.RemoveAll();
-}
-*/
+
 	//
 
 	if(CMpeg2DecInputPin* pPin = dynamic_cast<CMpeg2DecInputPin*>(m_pInput))
@@ -682,6 +712,10 @@ if(ts.GetCount() == 100)
 
 	pOut->SetTime(&rtStart, &rtStop);
 	pOut->SetMediaTime(NULL, NULL);
+
+	//
+
+	SetTypeSpecificFlags(pOut);
 
 	//
 
@@ -987,6 +1021,21 @@ STDMETHODIMP_(bool) CMpeg2DecFilter::IsPlanarYUVEnabled()
 {
 	CAutoLock cAutoLock(&m_csProps);
 	return m_fPlanarYUV;
+}
+
+// IMpeg2DecFilter2
+
+STDMETHODIMP CMpeg2DecFilter::EnableInterlaced(bool fEnable)
+{
+	CAutoLock cAutoLock(&m_csProps);
+	m_fInterlaced = fEnable;
+	return S_OK;
+}
+
+STDMETHODIMP_(bool) CMpeg2DecFilter::IsInterlacedEnabled()
+{
+	CAutoLock cAutoLock(&m_csProps);
+	return m_fInterlaced;
 }
 
 //
