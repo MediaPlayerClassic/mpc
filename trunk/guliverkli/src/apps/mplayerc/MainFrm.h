@@ -42,6 +42,8 @@
 
 #include "..\..\subpic\ISubPic.h"
 
+#include "IGraphBuilder2.h"
+
 #include "RealMediaGraph.h"
 #include "QuicktimeGraph.h"
 #include "ShockwaveGraph.h"
@@ -151,7 +153,7 @@ class CMainFrame : public CFrameWnd, public CDropTarget
 
 	DWORD m_dwRegister;
 
-	CComPtr<IGraphBuilder> pGB;
+	CComPtr<IGraphBuilder2> pGB;
 	CComQIPtr<IMediaControl> pMC;
 	CComQIPtr<IMediaEventEx> pME;
 	CComQIPtr<IVideoWindow> pVW;
@@ -165,8 +167,6 @@ class CMainFrame : public CFrameWnd, public CDropTarget
 
 	CComQIPtr<IDvdControl2> pDVDC;
 	CComQIPtr<IDvdInfo2> pDVDI;
-
-	CComQIPtr<IBaseFilter> pVMR;
 
 	CComPtr<ICaptureGraphBuilder2> pCGB;
 	CStringW m_VidDispName, m_AudDispName;
@@ -393,7 +393,7 @@ public:
 	bool BuildToCapturePreviewPin(
 		IBaseFilter* pVidCap, IPin** pVidCapPin, IPin** pVidPrevPin, 
 		IBaseFilter* pAudCap, IPin** pAudCapPin, IPin** pAudPrevPin);
-	bool BuildGraphVideoAudio(bool fVPreview, bool fVCapture, bool fAPreview, bool fACapture);
+	bool BuildGraphVideoAudio(int fVPreview, bool fVCapture, int fAPreview, bool fACapture);
 	bool DoCapture(), StartCapture(), StopCapture();
 
 	bool DoAfterPlaybackEvent();

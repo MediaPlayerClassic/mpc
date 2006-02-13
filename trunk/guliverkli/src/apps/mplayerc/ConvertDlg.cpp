@@ -26,9 +26,8 @@
 #include <mmreg.h>
 #include "mplayerc.h"
 #include "..\..\filters\filters.h"
-#include "..\..\..\include\matroska\matroska.h"
 #include "..\..\..\include\moreuuids.h"
-#include "GraphBuilder.h"
+#include "FGManager.h"
 #include "ConvertPropsDlg.h"
 #include "ConvertResDlg.h"
 #include "ConvertChapDlg.h"
@@ -54,10 +53,8 @@ void CConvertDlg::AddFile(CString fn)
 	CPath path(fn);
 	path.StripPath();
 
-	CGraphBuilder gb(m_pGB, NULL);
-
 	CComPtr<IBaseFilter> pBF;
-	if(FAILED(gb.AddSourceFilter(fn, &pBF)))
+	if(FAILED(m_pGB->AddSourceFilter(CStringW(fn), CStringW(fn), &pBF)))
 		return;
 
 	int cnt = 0;
@@ -777,8 +774,9 @@ BOOL CConvertDlg::OnInitDialog()
 	HRESULT hr;
 	m_pMux = new CDSMMuxerFilter(NULL, &hr, false, false);
 
+	m_pGB = new CFGManagerMuxer(_T("CFGManagerMuxer"), NULL);
+
 	if(FAILED(m_pCGB.CoCreateInstance(CLSID_CaptureGraphBuilder2))
-	|| FAILED(m_pGB.CoCreateInstance(CLSID_FilterGraph))
 	|| FAILED(m_pCGB->SetFiltergraph(m_pGB))
 	|| FAILED(m_pGB->AddFilter(m_pMux, L"Mux"))
 	|| !(m_pMC = m_pGB) || !(m_pME = m_pGB) || !(m_pMS = m_pMux)

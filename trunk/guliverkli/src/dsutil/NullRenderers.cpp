@@ -22,11 +22,24 @@
 #include "StdAfx.h"
 #include "NullRenderers.h"
 #include "..\..\include\moreuuids.h"
-#include "..\..\include\matroska\matroska.h"
+
+//
+// CNullRenderer
+//
+
+CNullRenderer::CNullRenderer(REFCLSID clsid, TCHAR* pName, LPUNKNOWN pUnk, HRESULT* phr) 
+	: CBaseRenderer(clsid, pName, pUnk, phr)
+{
+}
 
 //
 // CNullVideoRenderer
 //
+
+CNullVideoRenderer::CNullVideoRenderer(LPUNKNOWN pUnk, HRESULT* phr) 
+	: CNullRenderer(__uuidof(this), NAME("Null Video Renderer"), pUnk, phr)
+{
+}
 
 HRESULT CNullVideoRenderer::CheckMediaType(const CMediaType* pmt)
 {
@@ -39,6 +52,11 @@ HRESULT CNullVideoRenderer::CheckMediaType(const CMediaType* pmt)
 //
 // CNullUVideoRenderer
 //
+
+CNullUVideoRenderer::CNullUVideoRenderer(LPUNKNOWN pUnk, HRESULT* phr) 
+	: CNullRenderer(__uuidof(this), NAME("Null Video Renderer (Uncompressed)"), pUnk, phr)
+{
+}
 
 HRESULT CNullUVideoRenderer::CheckMediaType(const CMediaType* pmt)
 {
@@ -74,6 +92,11 @@ HRESULT CNullUVideoRenderer::CheckMediaType(const CMediaType* pmt)
 // CNullAudioRenderer
 //
 
+CNullAudioRenderer::CNullAudioRenderer(LPUNKNOWN pUnk, HRESULT* phr) 
+	: CNullRenderer(__uuidof(this), NAME("Null Audio Renderer"), pUnk, phr)
+{
+}
+
 HRESULT CNullAudioRenderer::CheckMediaType(const CMediaType* pmt)
 {
 	return pmt->majortype == MEDIATYPE_Audio
@@ -93,6 +116,11 @@ HRESULT CNullAudioRenderer::CheckMediaType(const CMediaType* pmt)
 //
 // CNullUAudioRenderer
 //
+
+CNullUAudioRenderer::CNullUAudioRenderer(LPUNKNOWN pUnk, HRESULT* phr) 
+	: CNullRenderer(__uuidof(this), NAME("Null Audio Renderer (Uncompressed)"), pUnk, phr)
+{
+}
 
 HRESULT CNullUAudioRenderer::CheckMediaType(const CMediaType* pmt)
 {

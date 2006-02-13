@@ -1,7 +1,7 @@
 #include "StdAfx.h"
 #include "DSMSplitterFile.h"
 #include "..\..\..\DSUtil\DSUtil.h"
-#include "..\..\..\..\include\matroska\matroska.h"
+#include "..\..\..\..\include\moreuuids.h"
 
 CDSMSplitterFile::CDSMSplitterFile(IAsyncReader* pReader, HRESULT& hr, IDSMResourceBagImpl& res, IDSMChapterBagImpl& chap) 
 	: CBaseSplitterFile(pReader, hr)

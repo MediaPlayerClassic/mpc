@@ -68,14 +68,16 @@ extern IFilterGraph* GetGraphFromFilter(IBaseFilter* pBF);
 extern IBaseFilter* GetFilterFromPin(IPin* pPin);
 extern IPin* AppendFilter(IPin* pPin, CString DisplayName, IGraphBuilder* pGB);
 extern IPin* InsertFilter(IPin* pPin, CString DisplayName, IGraphBuilder* pGB);
+extern void ExtractMediaTypes(IPin* pPin, CAtlArray<GUID>& types);
+extern void ExtractMediaTypes(IPin* pPin, CAtlList<CMediaType>& mts);
 extern void ShowPPage(CString DisplayName, HWND hParentWnd);
 extern void ShowPPage(IUnknown* pUnknown, HWND hParentWnd);
 extern CLSID GetCLSID(IBaseFilter* pBF);
 extern CLSID GetCLSID(IPin* pPin);
 extern bool IsCLSIDRegistered(LPCTSTR clsid);
 extern bool IsCLSIDRegistered(const CLSID& clsid);
-extern void StringToBin(CString s, CByteArray& data);
-extern CString BinToString(BYTE* ptr, int len);
+extern void CStringToBin(CString str, CAtlArray<BYTE>& data);
+extern CString BinToCString(BYTE* ptr, int len);
 typedef enum {CDROM_NotFound, CDROM_Audio, CDROM_VideoCD, CDROM_DVDVideo, CDROM_Unknown} cdrom_t;
 extern cdrom_t GetCDROMType(TCHAR drive, CList<CString>& files);
 extern CString GetDriveLabel(TCHAR drive);
@@ -100,6 +102,7 @@ extern void UnloadExternalObjects();
 extern CString MakeFullPath(LPCTSTR path);
 extern CString GetMediaTypeName(const GUID& guid);
 extern GUID GUIDFromCString(CString str);
+extern HRESULT GUIDFromCString(CString str, GUID& guid);
 extern CString CStringFromGUID(const GUID& guid);
 extern CStringW UTF8To16(LPCSTR utf8);
 extern CStringA UTF16To8(LPCWSTR utf16);
@@ -139,6 +142,15 @@ public:
 		{ \
 
 #define EndEnumFilters }}}
+
+#define BeginEnumCachedFilters(pGraphConfig, pEnumFilters, pBaseFilter) \
+	{CComPtr<IEnumFilters> pEnumFilters; \
+	if(pGraphConfig && SUCCEEDED(pGraphConfig->EnumCacheFilter(&pEnumFilters))) \
+	{ \
+		for(CComPtr<IBaseFilter> pBaseFilter; S_OK == pEnumFilters->Next(1, &pBaseFilter, 0); pBaseFilter = NULL) \
+		{ \
+
+#define EndEnumCachedFilters }}}
 
 #define BeginEnumPins(pBaseFilter, pEnumPins, pPin) \
 	{CComPtr<IEnumPins> pEnumPins; \

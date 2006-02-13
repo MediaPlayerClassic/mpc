@@ -43,11 +43,10 @@ typedef struct
 // CMediaTypesDlg dialog
 
 //IMPLEMENT_DYNAMIC(CMediaTypesDlg, CResizableDialog)
-CMediaTypesDlg::CMediaTypesDlg(CGraphBuilder& gb, CWnd* pParent /*=NULL*/)
+CMediaTypesDlg::CMediaTypesDlg(IGraphBuilderDeadEnd* pGBDE, CWnd* pParent /*=NULL*/)
 	: CResizableDialog(CMediaTypesDlg::IDD, pParent)
+	, m_pGBDE(pGBDE)
 {
-	CGraphBuilder::DeadEnd* pde;
-	for(int i = 0; pde = gb.GetDeadEnd(i); i++) m_DeadEnds.Add(pde);
 	m_subtype = GUID_NULL;
 	m_type = UNKNOWN;
 }
@@ -167,6 +166,8 @@ void CMediaTypesDlg::AddMediaType(AM_MEDIA_TYPE* pmt)
 		AddLine(str);
 		str.Format(_T("biClrImportant: %d\n"), bih->biClrImportant);
 		AddLine(str);
+
+		AddLine();
     }
 	else if(pmt->formattype == FORMAT_WaveFormatEx)
 	{
@@ -224,6 +225,23 @@ void CMediaTypesDlg::AddMediaType(AM_MEDIA_TYPE* pmt)
 
 		AddLine();
 	}
+
+	AddLine(_T("pbFormat:\n"));
+
+	for(int i = 0, j = (pmt->cbFormat + 15) & ~15; i < j; i += 16)
+	{
+		str.Format(_T("%08x:"), i);
+		for(int k = i, l = min(i+16, pmt->cbFormat); k < l; k++)
+		{
+			CString byte;
+			byte.Format(_T(" %02x"), pmt->pbFormat[k]);
+			str += byte;
+		}
+		str += '\n';
+		AddLine(str);
+	}
+
+	AddLine();
 }
 
 BEGIN_MESSAGE_MAP(CMediaTypesDlg, CResizableDialog)
@@ -237,13 +255,15 @@ END_MESSAGE_MAP()
 
 BOOL CMediaTypesDlg::OnInitDialog()
 {
-	CResizableDialog::OnInitDialog();
+	__super::OnInitDialog();
 
-	for(int i = 0; i < m_DeadEnds.GetCount(); i++)
+	CAtlList<CStringW> path;
+	CAtlList<CMediaType> mts;
+
+	for(int i = 0; S_OK == m_pGBDE->GetDeadEnd(i, path, mts); i++)
 	{
-		m_pins.SetItemData(
-			m_pins.AddString(m_DeadEnds[i]->filter + _T("::") + m_DeadEnds[i]->pin), 
-			(DWORD_PTR)m_DeadEnds[i]);
+		if(!path.GetCount()) continue;
+		m_pins.SetItemData(m_pins.AddString(CString(path.GetTail())), (DWORD_PTR)i);
 	}
 
 	m_pins.SetCurSel(0);
@@ -269,24 +289,27 @@ void CMediaTypesDlg::OnCbnSelchangeCombo1()
 	int i = m_pins.GetCurSel();
 	if(i < 0) return;
 
-	POSITION pos;
+	CAtlList<CStringW> path;
+	CAtlList<CMediaType> mts;
 
-	CList<CString>& path = m_DeadEnds[i]->path;
-	pos = path.GetHeadPosition();
+	if(FAILED(m_pGBDE->GetDeadEnd(i, path, mts)) || !path.GetCount()) 
+		return;
+
+	POSITION pos = path.GetHeadPosition();
 	while(pos)
 	{
-		AddLine(path.GetNext(pos) + _T("\n"));
+		AddLine(CString(path.GetNext(pos)) + _T("\n"));
 		if(!pos) AddLine(_T("\n"));
 	}
 
-	pos = m_DeadEnds[i]->mts.GetHeadPosition();
+	pos = mts.GetHeadPosition();
 	for(int j = 0; pos; j++)
 	{
 		CString str;
 		str.Format(_T("Media Type %d:\n"), j);
 		AddLine(str);
 		AddLine(_T("--------------------------\n"));
-		AddMediaType(&m_DeadEnds[i]->mts.GetNext(pos));
+		AddMediaType(&mts.GetNext(pos));
 		AddLine();
 	}
 

@@ -23,7 +23,7 @@
 
 #include <atlbase.h>
 
-class Filter
+class FilterOverride
 {
 public:
 	bool fDisabled, fTemporary;
@@ -34,13 +34,13 @@ public:
 	CString path, name;
 	CLSID clsid;
 	// props
-	CList<GUID> guids, backup;
+	CAtlList<GUID> guids, backup;
 	enum {PREFERRED, BLOCK, MERIT};
 	int iLoadType;
 	DWORD dwMerit;
 
-	Filter() {fTemporary = false;}
-	Filter(Filter* f)
+	FilterOverride() {fTemporary = false;}
+	FilterOverride(FilterOverride* f)
 	{
 		fDisabled = f->fDisabled;
 		fTemporary = f->fTemporary;
@@ -49,8 +49,8 @@ public:
 		path = f->path;
 		name = f->name;
 		clsid = f->clsid;
-		guids.AddTail(&f->guids);
-		backup.AddTail(&f->backup);
+		guids.AddTailList(&f->guids);
+		backup.AddTailList(&f->backup);
 		iLoadType = f->iLoadType;
 		dwMerit = f->dwMerit;
 	}
@@ -119,6 +119,6 @@ public:
 	static void Init();
 
 	static IFilterMapper2* m_pFilterMapper2;
-	CList<Filter*> m_filters;
+	CList<FilterOverride*> m_filters;
 	void Register(CString path);
 };

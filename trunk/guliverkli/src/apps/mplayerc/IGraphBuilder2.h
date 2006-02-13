@@ -20,37 +20,19 @@
  */
 
 #pragma once
-#include "afxwin.h"
 
-// CRegFilterChooserDlg dialog
-
-class CRegFilterChooserDlg : public CResizableDialog
+[uuid("165BE9D6-0929-4363-9BA3-580D735AA0F6")]
+interface IGraphBuilder2 : public IFilterGraph2
 {
-//	DECLARE_DYNAMIC(CRegFilterChooserDlg)
+	STDMETHOD(ConnectFilter) (IBaseFilter* pBF, IPin* pPinIn) = 0;
+	STDMETHOD(ConnectFilter) (IPin* pPinOut, IBaseFilter* pBF) = 0;
+	STDMETHOD(ConnectFilterDirect) (IPin* pPinOut, IBaseFilter* pBF, const AM_MEDIA_TYPE* pmt) = 0;
+	STDMETHOD(FindInterface) (REFIID iid, void** ppv, BOOL bRemove) = 0;
+};
 
-	CInterfaceList<IMoniker> m_monikers;
-	void AddToList(IMoniker* pMoniker);
-
-public:
-	CRegFilterChooserDlg(CWnd* pParent = NULL);   // standard constructor
-	virtual ~CRegFilterChooserDlg();
-
-	CList<FilterOverride*> m_filters;
-
-// Dialog Data
-	enum { IDD = IDD_ADDREGFILTER };
-	CListCtrl m_list;
-
-protected:
-	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV support
-	virtual BOOL OnInitDialog();
-
-	DECLARE_MESSAGE_MAP()
-
-public:
-	afx_msg void OnLbnDblclkList1();
-	afx_msg void OnUpdateOK(CCmdUI* pCmdUI);
-	afx_msg void OnBnClickedOk();
-	afx_msg void OnBnClickedButton1();
-	afx_msg void OnNMDblclkList2(NMHDR *pNMHDR, LRESULT *pResult);
+[uuid("43CDA93D-6A4E-4A07-BD3E-49D161073EE7")]
+interface IGraphBuilderDeadEnd : public IUnknown
+{
+	STDMETHOD_(size_t, GetCount)() = 0;
+	STDMETHOD(GetDeadEnd) (int iIndex, CAtlList<CStringW>& path, CAtlList<CMediaType>& mts) = 0;
 };

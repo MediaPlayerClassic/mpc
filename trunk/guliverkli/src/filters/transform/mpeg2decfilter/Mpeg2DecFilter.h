@@ -33,7 +33,7 @@ class CClosedCaptionOutputPin;
 class CMpeg2Dec;
 
 [uuid("39F498AF-1A09-4275-B193-673B0BA3D478")]
-class CMpeg2DecFilter : public CBaseVideoFilter, public IMpeg2DecFilter
+class CMpeg2DecFilter : public CBaseVideoFilter, public IMpeg2DecFilter2
 {
 	CSubpicInputPin* m_pSubpicInput;
 	CClosedCaptionOutputPin* m_pClosedCaptionOutput;
@@ -50,6 +50,7 @@ class CMpeg2DecFilter : public CBaseVideoFilter, public IMpeg2DecFilter
 		BYTE* buf[6];
 		REFERENCE_TIME rtStart, rtStop;
 		DWORD flags;
+		ditype di;
         framebuf()
 		{
 			w = h = pitch = 0;
@@ -80,13 +81,15 @@ class CMpeg2DecFilter : public CBaseVideoFilter, public IMpeg2DecFilter
 	} m_fb;
 
 	bool m_fFilm;
-	ditype SuggestDeinterlaceMethod();
+	void SetDeinterlaceMethod();
+	void SetTypeSpecificFlags(IMediaSample* pMS);
 
 	AM_SimpleRateChange m_rate;
 
 protected:
 	void InputTypeChanged();
 	HRESULT Transform(IMediaSample* pIn);
+	HRESULT IsVideoInterlaced();
 
 public:
 	CMpeg2DecFilter(LPUNKNOWN lpunk, HRESULT* phr);
@@ -95,7 +98,8 @@ public:
 	DECLARE_IUNKNOWN
     STDMETHODIMP NonDelegatingQueryInterface(REFIID riid, void** ppv);
 
-	HRESULT DeliverFast(ditype di);
+	HRESULT DeliverFast();
+	HRESULT DeliverNormal();
 	HRESULT Deliver(bool fRepeatLast);
 
 	int GetPinCount();
@@ -123,6 +127,7 @@ protected:
 	BYTE m_YTbl[256], m_UTbl[256*256], m_VTbl[256*256];
 	bool m_fForcedSubs;
 	bool m_fPlanarYUV;
+	bool m_fInterlaced;
 
 	static void CalcBrCont(BYTE* YTbl, double bright, double cont);
 	static void CalcHueSat(BYTE* UTbl, BYTE* VTbl, double hue, double sat);
@@ -148,6 +153,11 @@ public:
 
 	STDMETHODIMP EnablePlanarYUV(bool fEnable);
 	STDMETHODIMP_(bool) IsPlanarYUVEnabled();
+
+	// IMpeg2DecFilter2
+
+	STDMETHODIMP EnableInterlaced(bool fEnable);
+	STDMETHODIMP_(bool) IsInterlacedEnabled();
 };
 
 class CMpeg2DecInputPin : public CDeCSSInputPin
@@ -192,39 +202,44 @@ class CSubpicInputPin : public CMpeg2DecInputPin
 	bool m_fsppal;
 	CAutoPtr<AM_PROPERTY_SPHLI> m_sphli; // temp
 
-	struct spu
+	class spu
 	{
+	public:
 		bool m_fForced;
 		REFERENCE_TIME m_rtStart, m_rtStop; 
 		CArray<BYTE> m_pData;
 		DWORD m_offset[2];
 		AM_PROPERTY_SPHLI m_sphli; // parsed
 		CAutoPtr<AM_PROPERTY_SPHLI> m_psphli; // for the menu (optional)
-		struct spu() {memset(&m_sphli, 0, sizeof(m_sphli)); m_fForced = false; m_rtStart = m_rtStop = 0;}
+		spu() {memset(&m_sphli, 0, sizeof(m_sphli)); m_fForced = false; m_rtStart = m_rtStop = 0;}
+		virtual ~spu() {}
 		virtual bool Parse() = 0;
 		virtual void Render(REFERENCE_TIME rt, BYTE** p, int w, int h, AM_DVD_YUV* sppal, bool fsppal) = 0;
 	};
 
-	struct dvdspu : public spu
+	class dvdspu : public spu
 	{
+	public:
 		struct offset_t {REFERENCE_TIME rt; AM_PROPERTY_SPHLI sphli;};
 		CAtlList<offset_t> m_offsets;
 		bool Parse();
 		void Render(REFERENCE_TIME rt, BYTE** p, int w, int h, AM_DVD_YUV* sppal, bool fsppal);
 	};
 
-	struct cvdspu : public spu
+	class cvdspu : public spu
 	{
+	public:
 		AM_DVD_YUV m_sppal[2][4];
-		struct cvdspu() {memset(m_sppal, 0, sizeof(m_sppal));}
+		cvdspu() {memset(m_sppal, 0, sizeof(m_sppal));}
 		bool Parse();
 		void Render(REFERENCE_TIME rt, BYTE** p, int w, int h, AM_DVD_YUV* sppal, bool fsppal);
 	};
 
-	struct svcdspu : public spu
+	class svcdspu : public spu
 	{
+	public:
 		AM_DVD_YUV m_sppal[4];
-		struct svcdspu() {memset(m_sppal, 0, sizeof(m_sppal));}
+		svcdspu() {memset(m_sppal, 0, sizeof(m_sppal));}
 		bool Parse();
 		void Render(REFERENCE_TIME rt, BYTE** p, int w, int h, AM_DVD_YUV* sppal, bool fsppal);
 	};

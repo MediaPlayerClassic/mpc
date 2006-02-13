@@ -637,6 +637,14 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath=".\FGFilter.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\FGManager.cpp"
+				>
+			</File>
+			<File
 				RelativePath="FileDropTarget.cpp"
 				>
 				<FileConfiguration
@@ -662,18 +670,6 @@
 			</File>
 			<File
 				RelativePath="GoToDlg.cpp"
-				>
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-					/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath="GraphBuilder.cpp"
 				>
 				<FileConfiguration
 					Name="ResourceDLL|Win32"
@@ -1522,6 +1518,14 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath=".\FGFilter.h"
+				>
+			</File>
+			<File
+				RelativePath=".\FGManager.h"
+				>
+			</File>
+			<File
 				RelativePath="FileDropTarget.h"
 				>
 				<FileConfiguration
@@ -1558,16 +1562,8 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath="GraphBuilder.h"
+				RelativePath=".\IGraphBuilder2.h"
 				>
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCustomBuildTool"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath=".\IPinHook.h"

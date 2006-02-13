@@ -530,10 +530,10 @@ bool CRealMediaSplitterFilter::DemuxInit()
 				if(S_OK != (hr = m_pFile->Read(mph, false)))
 					break;
 
+				m_rtDuration = max((__int64)(10000i64*mph.tStart), m_rtDuration);
+
 				if(mph.stream == stream && (mph.flags&MediaPacketHeader::PN_KEYFRAME_FLAG) && tLastStart != mph.tStart)
 				{
-					m_rtDuration = max((__int64)(10000i64*mph.tStart), m_rtDuration);
-
 					CAutoPtr<IndexRecord> pir(new IndexRecord());
 					pir->tStart = mph.tStart;
 					pir->ptrFilePos = (UINT32)filepos;

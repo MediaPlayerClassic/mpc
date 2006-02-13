@@ -5,7 +5,6 @@
 #include <mmreg.h>
 #include <initguid.h>
 #include "..\..\include\moreuuids.h"
-#include "..\..\include\ogg\OggDS.h"
 
 CMediaTypeEx::CMediaTypeEx()
 {

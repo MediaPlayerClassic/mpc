@@ -25,7 +25,7 @@
 #include "RTS.h"
 
 #include <initguid.h>
-#include "..\..\include\matroska\matroska.h"
+#include "..\..\include\moreuuids.h"
 
 // our first format id
 #define __GAB1__ "GAB1"

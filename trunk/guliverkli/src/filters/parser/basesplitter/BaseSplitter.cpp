@@ -23,8 +23,6 @@
 #include "..\..\..\DSUtil\DSUtil.h"
 #include <initguid.h>
 #include "..\..\..\..\include\moreuuids.h"
-#include "..\..\..\..\include\matroska\matroska.h"
-#include "..\..\..\..\include\ogg\oggds.h"
 #include "..\..\switcher\AudioSwitcher\AudioSwitcher.h"
 #include "BaseSplitter.h"
 

@@ -27,11 +27,10 @@
 #include "mainfrm.h"
 #include "PlayerCaptureDialog.h"
 #include "..\..\DSUtil\DSUtil.h"
-#include "..\..\..\include\Ogg\OggDS.h"
+#include "..\..\..\include\moreuuids.h"
 #include "..\..\filters\muxer\wavdest\wavdest.h"
 #include "..\..\filters\muxer\MatroskaMuxer\MatroskaMuxer.h"
 #include "..\..\filters\muxer\DSMMuxer\DSMMuxer.h"
-#include ".\playercapturedialog.h"
 
 static bool LoadMediaType(CStringW DisplayName, AM_MEDIA_TYPE** ppmt)
 {
@@ -850,7 +849,7 @@ void CPlayerCaptureDialog::UpdateGraph()
 
 //	UpdateMuxer();
 
-	((CMainFrame*)AfxGetMainWnd())->BuildGraphVideoAudio(!!m_fVidPreview, false, !!m_fAudPreview, false);
+	((CMainFrame*)AfxGetMainWnd())->BuildGraphVideoAudio(m_fVidPreview, false, m_fAudPreview, false);
 
 	UpdateUserDefinableControls();
 }
@@ -1256,8 +1255,8 @@ BOOL CPlayerCaptureDialog::OnInitDialog()
 	m_nAudBuffers = AfxGetApp()->GetProfileInt(_T("Capture"), _T("AudBuffers"), 50);
 	m_fVidOutput = !!AfxGetApp()->GetProfileInt(_T("Capture"), _T("VidOutput"), TRUE);
 	m_fAudOutput = !!AfxGetApp()->GetProfileInt(_T("Capture"), _T("AudOutput"), TRUE);
-	m_fVidPreview = !!AfxGetApp()->GetProfileInt(_T("Capture"), _T("VidPreview"), TRUE);
-	m_fAudPreview = !!AfxGetApp()->GetProfileInt(_T("Capture"), _T("AudPreview"), TRUE);
+	m_fVidPreview = AfxGetApp()->GetProfileInt(_T("Capture"), _T("VidPreview"), TRUE);
+	m_fAudPreview = AfxGetApp()->GetProfileInt(_T("Capture"), _T("AudPreview"), TRUE);
 	m_muxtype = AfxGetApp()->GetProfileInt(_T("Capture"), _T("FileFormat"), 0);
 	m_file = AfxGetApp()->GetProfileString(_T("Capture"), _T("FileName"), _T(""));
 	m_fSepAudio = AfxGetApp()->GetProfileInt(_T("Capture"), _T("SepAudio"), TRUE);

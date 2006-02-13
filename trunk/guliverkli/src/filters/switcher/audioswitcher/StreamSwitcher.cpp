@@ -29,7 +29,7 @@
 #include "..\..\..\DSUtil\DSUtil.h"
 
 #include <initguid.h>
-#include "..\..\..\..\include\Ogg\OggDS.h"
+#include "..\..\..\..\include\moreuuids.h"
 
 #define BLOCKSTREAM
 
@@ -547,6 +547,9 @@ STDMETHODIMP CStreamSwitcherInputPin::ReceiveConnection(IPin* pConnector, const 
 	HRESULT hr;
 	if(S_OK != (hr = QueryAcceptDownstream(pmt)))
 		return VFW_E_TYPE_NOT_ACCEPTED;
+
+    if(m_Connected && m_Connected != pConnector)
+        return VFW_E_ALREADY_CONNECTED;
 
 	if(m_Connected) 
 		m_Connected->Release(), m_Connected = NULL;

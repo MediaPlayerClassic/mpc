@@ -442,6 +442,7 @@
 #define IDC_TEXTURESURF3D               12129
 #define IDC_DX9RESIZER_COMBO            12130
 #define IDC_DSVMR9LOADMIXER             12131
+#define IDC_CHECK_MPEGINTERLACED        12132
 #define IDS_R_SETTINGS                  13000
 #define IDS_RS_TITLEBARTEXTSTYLE        13001
 #define IDS_RS_USEWMASFREADER           13002
@@ -578,8 +579,9 @@
 #define IDS_RS_VMR9MIXERMODE            13133
 #define IDS_RS_THUMBROWS                13134
 #define IDS_RS_THUMBCOLS                13135
-#define IDS_RS_SNAPTODESKTOPEDGES		13136
-#define IDS_RS_ENABLESUBTITLES			13137
+#define IDS_RS_SNAPTODESKTOPEDGES       13136
+#define IDS_RS_ENABLESUBTITLES          13137
+#define IDS_RS_MPEGINTERLACED           13138
 #define IDS_SRC_RADGT                   14000
 #define IDS_SRC_CDDA                    14001
 #define IDS_SRC_AVI                     14002

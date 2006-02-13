@@ -33,7 +33,8 @@ class CPPageMpegDecoder : public CPPageBase
 	DECLARE_DYNAMIC(CPPageMpegDecoder)
 
 private:
-	CComQIPtr<IMpeg2DecFilter> m_pMpeg2DecFilter;
+	CComQIPtr<IMpeg2DecFilter> m_pM2DF;
+	CComQIPtr<IMpeg2DecFilter2> m_pM2DF2;
 
 public:
 	CPPageMpegDecoder(IFilterGraph* pFG);
@@ -57,6 +58,7 @@ public:
 	CSliderCtrl m_satctrl;
 	BOOL m_fForcedSubs;
 	BOOL m_fPlanarYUV;
+	BOOL m_fInterlacedOutput;
 	afx_msg void OnCbnSelchangeCombo2();
 	afx_msg void OnCbnSelchangeCombo1();
 	afx_msg void OnHScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrollBar);

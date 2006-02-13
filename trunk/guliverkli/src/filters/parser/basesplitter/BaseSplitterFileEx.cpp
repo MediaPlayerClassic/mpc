@@ -25,7 +25,6 @@
 #include "..\..\..\DSUtil\DSUtil.h"
 #include <initguid.h>
 #include "..\..\..\..\include\moreuuids.h"
-#include "..\..\..\..\include\matroska\matroska.h"
 
 //
 // CBaseSplitterFileEx

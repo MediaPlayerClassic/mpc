@@ -57,7 +57,7 @@ STDAPI DllRegisterServer()
 {
 	CList<CString> chkbytes;
 	chkbytes.AddTail(_T("0,2,FFE0,FFE0"));
-	chkbytes.AddTail(_T("0,10,FFFFFFFF000000000000,494433030080808080"));
+	chkbytes.AddTail(_T("0,10,FFFFFF00000080808080,49443300000000000000"));
 
 	RegisterSourceFilter(
 		CLSID_AsyncReader, 

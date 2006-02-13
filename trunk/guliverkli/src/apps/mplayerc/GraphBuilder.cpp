@@ -25,8 +25,6 @@
 #include "..\..\DSUtil\DSUtil.h"
 #include "..\..\filters\filters.h"
 #include "..\..\..\include\moreuuids.h"
-#include "..\..\..\include\Ogg\OggDS.h"
-#include "..\..\..\include\matroska\matroska.h"
 #include "DX7AllocatorPresenter.h"
 #include "DX9AllocatorPresenter.h"
 #include "DeinterlacerFilter.h"
@@ -160,7 +158,7 @@ CGraphBuilder::CGraphBuilder(IGraphBuilder* pGB, HWND hWnd)
 
 	// transform filters
 
-	CList<GUID> guids;
+	CAtlList<GUID> guids;
 
 	guids.AddTail(MEDIATYPE_Audio);
 	guids.AddTail(MEDIASUBTYPE_WAVE_DOLBY_AC3);
@@ -566,26 +564,26 @@ CGraphBuilder::CGraphBuilder(IGraphBuilder* pGB, HWND hWnd)
 	POSITION pos = s.filters.GetTailPosition();
 	while(pos)
 	{
-		Filter* f = s.filters.GetPrev(pos);
+		FilterOverride* f = s.filters.GetPrev(pos);
 
 		if(f->fDisabled
-		|| f->type == Filter::EXTERNAL && !CPath(MakeFullPath(f->path)).FileExists()) 
+		|| f->type == FilterOverride::EXTERNAL && !CPath(MakeFullPath(f->path)).FileExists()) 
 			continue;
 
 		ULONGLONG merit = 
-			f->iLoadType == Filter::PREFERRED ? LMERIT_ABOVE_DSHOW : 
-			f->iLoadType == Filter::MERIT ? LMERIT(f->dwMerit) : 
+			f->iLoadType == FilterOverride::PREFERRED ? LMERIT_ABOVE_DSHOW : 
+			f->iLoadType == FilterOverride::MERIT ? LMERIT(f->dwMerit) : 
 			LMERIT_DO_NOT_USE; // f->iLoadType == Filter::BLOCKED
 
 		merit += lowmerit++;
 
 		CGraphFilter* gf = NULL;
 
-		if(f->type == Filter::REGISTERED)
+		if(f->type == FilterOverride::REGISTERED)
 		{
 			gf = new CGraphRegFilter(f->dispname, merit);
 		}
-		else if(f->type == Filter::EXTERNAL)
+		else if(f->type == FilterOverride::EXTERNAL)
 		{
 			gf = new CGraphFileFilter(f->clsid, f->guids, f->path, CStringW(f->name), merit);
 		}
@@ -669,53 +667,6 @@ void CGraphBuilder::LOG(LPCTSTR fmt, ...)
 	va_end(args);
 }
 */
-
-void CGraphBuilder::ExtractMediaTypes(IPin* pPin, CArray<GUID>& guids)
-{
-	guids.RemoveAll();
-
-    BeginEnumMediaTypes(pPin, pEM, pmt)
-	{
-		bool fFound = false;
-
-		for(int i = 0; !fFound && i < guids.GetCount(); i += 2)
-		{
-			if(guids[i] == pmt->majortype && guids[i+1] == pmt->subtype)
-				fFound = true;
-		}
-
-		if(!fFound)
-		{
-			guids.Add(pmt->majortype);
-			guids.Add(pmt->subtype);
-		}
-	}
-	EndEnumMediaTypes(pmt)
-}
-
-void CGraphBuilder::ExtractMediaTypes(IPin* pPin, CList<CMediaType>& mts)
-{
-	mts.RemoveAll();
-
-    BeginEnumMediaTypes(pPin, pEM, pmt)
-	{
-		bool fFound = false;
-
-		POSITION pos = mts.GetHeadPosition();
-		while(!fFound && pos)
-		{
-			CMediaType& mt = mts.GetNext(pos);
-			if(mt.majortype == pmt->majortype && mt.subtype == pmt->subtype)
-				fFound = true;
-		}
-
-		if(!fFound)
-		{
-			mts.AddTail(CMediaType(*pmt));
-		}
-	}
-	EndEnumMediaTypes(pmt)
-}
 
 void CGraphBuilder::SaveFilters(CInterfaceList<IBaseFilter>& bfl)
 {
@@ -1264,7 +1215,7 @@ HRESULT CGraphBuilder::Render(IPin* pPin)
 
 	// TODO: try media types one-by-one and pass pmt to ConnectDirect (this may not be better than the current!!!)
 
-	CArray<GUID> guids;
+	CAtlArray<GUID> guids;
     ExtractMediaTypes(pPin, guids);
 
 	if(guids.GetCount() == 2 && guids[0] == MEDIATYPE_Stream && guids[1] == MEDIASUBTYPE_NULL)
@@ -1531,7 +1482,7 @@ HRESULT CGraphBuilder::FindInterface(REFIID iid, void** ppv)
 CGraphBuilderFile::CGraphBuilderFile(IGraphBuilder* pGB, HWND hWnd)
 	: CGraphBuilder(pGB, hWnd)
 {
-	CList<GUID> guids;
+	CAtlList<GUID> guids;
 
 	if(AfxGetAppSettings().fEnableAudioSwitcher)
 	{
@@ -1552,7 +1503,7 @@ CGraphBuilderFile::CGraphBuilderFile(IGraphBuilder* pGB, HWND hWnd)
 CGraphBuilderDVD::CGraphBuilderDVD(IGraphBuilder* pGB, HWND hWnd)
 	: CGraphBuilderFile(pGB, hWnd)
 {
-	CList<GUID> guids;
+	CAtlList<GUID> guids;
 /*
 	// there wasn't much use of this and the users were just 
 	// confused by "decss" being in the report after a failed 
@@ -1653,7 +1604,7 @@ HRESULT CGraphBuilderDVD::Render(CString fn, CString& path)
 CGraphBuilderCapture::CGraphBuilderCapture(IGraphBuilder* pGB, HWND hWnd)
 	: CGraphBuilderFile(pGB, hWnd)
 {
-	CList<GUID> guids;
+	CAtlList<GUID> guids;
 
 	// if(AfxGetAppSettings().fEnableDeinterlacer)
 	{
@@ -1677,7 +1628,7 @@ CGraphFilter::CGraphFilter(CStringW name, ULONGLONG merit)
 	m_merit.val = merit;
 }
 
-bool CGraphFilter::IsExactMatch(CArray<GUID>& guids)
+bool CGraphFilter::IsExactMatch(CAtlArray<GUID>& guids)
 {
 	POSITION pos = m_guids.GetHeadPosition();
 	while(pos)
@@ -1697,7 +1648,7 @@ bool CGraphFilter::IsExactMatch(CArray<GUID>& guids)
 	return(false);
 }
 
-bool CGraphFilter::IsCompatible(CArray<GUID>& guids)
+bool CGraphFilter::IsCompatible(CAtlArray<GUID>& guids)
 {
 	POSITION pos = m_guids.GetHeadPosition();
 	while(pos)
@@ -2015,12 +1966,12 @@ HRESULT CGraphRegFilter::Create(IBaseFilter** ppBF, IUnknown** ppUnk)
 // CGraphCustomFilter
 //
 
-CGraphCustomFilter::CGraphCustomFilter(const CLSID& clsid, CList<GUID>& guids, CStringW name, ULONGLONG merit) 
+CGraphCustomFilter::CGraphCustomFilter(const CLSID& clsid, CAtlList<GUID>& guids, CStringW name, ULONGLONG merit) 
 	: CGraphFilter(name, merit)
 {
 	m_clsid = clsid;
 	ASSERT(guids.GetCount() > 0);
-	m_guids.AddTail(&guids);
+	m_guids.AddTailList(&guids);
 }
 
 HRESULT CGraphCustomFilter::Create(IBaseFilter** ppBF, IUnknown** ppUnk)
@@ -2053,10 +2004,10 @@ HRESULT CGraphCustomFilter::Create(IBaseFilter** ppBF, IUnknown** ppUnk)
 		m_clsid == __uuidof(CMpaDecFilter) ? (IBaseFilter*)new CMpaDecFilter(NULL, &hr) :
 		m_clsid == __uuidof(CDSMSplitterFilter) ? (IBaseFilter*)new CDSMSplitterFilter(NULL, &hr) :
 		m_clsid == __uuidof(CMP4SplitterFilter) ? (IBaseFilter*)new CMP4SplitterFilter(NULL, &hr) :
-		m_clsid == __uuidof(CNullVideoRenderer) ? (IBaseFilter*)new CNullVideoRenderer() :
-		m_clsid == __uuidof(CNullAudioRenderer) ? (IBaseFilter*)new CNullAudioRenderer() :
-		m_clsid == __uuidof(CNullUVideoRenderer) ? (IBaseFilter*)new CNullUVideoRenderer() :
-		m_clsid == __uuidof(CNullUAudioRenderer) ? (IBaseFilter*)new CNullUAudioRenderer() :
+		m_clsid == __uuidof(CNullVideoRenderer) ? (IBaseFilter*)new CNullVideoRenderer(NULL, &hr) :
+		m_clsid == __uuidof(CNullAudioRenderer) ? (IBaseFilter*)new CNullAudioRenderer(NULL, &hr) :
+		m_clsid == __uuidof(CNullUVideoRenderer) ? (IBaseFilter*)new CNullUVideoRenderer(NULL, &hr) :
+		m_clsid == __uuidof(CNullUAudioRenderer) ? (IBaseFilter*)new CNullUAudioRenderer(NULL, &hr) :
 		m_clsid == __uuidof(CNullTextRenderer) ? (IBaseFilter*)new CNullTextRenderer(NULL, &hr) :
 		m_clsid == __uuidof(CDeinterlacerFilter) ? (IBaseFilter*)new CDeinterlacerFilter(NULL, &hr) :	
 		NULL;
@@ -2101,7 +2052,7 @@ HRESULT CGraphCustomFilter::Create(IBaseFilter** ppBF, IUnknown** ppUnk)
 // CGraphFileFilter
 //
 
-CGraphFileFilter::CGraphFileFilter(const CLSID& clsid, CList<GUID>& guids, CString path, CStringW name, ULONGLONG merit)
+CGraphFileFilter::CGraphFileFilter(const CLSID& clsid, CAtlList<GUID>& guids, CString path, CStringW name, ULONGLONG merit)
 	: CGraphCustomFilter(clsid, guids, name, merit), m_path(path), m_hInst(NULL)
 {
 }

@@ -635,6 +635,53 @@ IPin* InsertFilter(IPin* pPin, CString DisplayName, IGraphBuilder* pGB)
 	return(pPin);
 }
 
+void ExtractMediaTypes(IPin* pPin, CAtlArray<GUID>& types)
+{
+	types.RemoveAll();
+
+    BeginEnumMediaTypes(pPin, pEM, pmt)
+	{
+		bool fFound = false;
+
+		for(int i = 0; !fFound && i < types.GetCount(); i += 2)
+		{
+			if(types[i] == pmt->majortype && types[i+1] == pmt->subtype)
+				fFound = true;
+		}
+
+		if(!fFound)
+		{
+			types.Add(pmt->majortype);
+			types.Add(pmt->subtype);
+		}
+	}
+	EndEnumMediaTypes(pmt)
+}
+
+void ExtractMediaTypes(IPin* pPin, CAtlList<CMediaType>& mts)
+{
+	mts.RemoveAll();
+
+    BeginEnumMediaTypes(pPin, pEM, pmt)
+	{
+		bool fFound = false;
+
+		POSITION pos = mts.GetHeadPosition();
+		while(!fFound && pos)
+		{
+			CMediaType& mt = mts.GetNext(pos);
+			if(mt.majortype == pmt->majortype && mt.subtype == pmt->subtype)
+				fFound = true;
+		}
+
+		if(!fFound)
+		{
+			mts.AddTail(CMediaType(*pmt));
+		}
+	}
+	EndEnumMediaTypes(pmt)
+}
+
 int Eval_Exception(int n_except)
 {
     if(n_except == STATUS_ACCESS_VIOLATION)
@@ -742,18 +789,18 @@ bool IsCLSIDRegistered(const CLSID& clsid)
 	return(fRet);
 }
 
-void StringToBin(CString s, CByteArray& data)
+void CStringToBin(CString str, CAtlArray<BYTE>& data)
 {
-	s.Trim();
-	ASSERT((s.GetLength()&1) == 0);
-	data.SetSize(s.GetLength()/2);
+	str.Trim();
+	ASSERT((str.GetLength()&1) == 0);
+	data.SetCount(str.GetLength()/2);
 
 	BYTE b = 0;
 
-	s.MakeUpper();
-	for(int i = 0, j = s.GetLength(); i < j; i++)
+	str.MakeUpper();
+	for(int i = 0, j = str.GetLength(); i < j; i++)
 	{
-		TCHAR c = s[i];
+		TCHAR c = str[i];
 		if(c >= '0' && c <= '9') 
 		{
 			if(!(i&1)) b = ((char(c-'0')<<4)&0xf0)|(b&0x0f);
@@ -774,7 +821,7 @@ void StringToBin(CString s, CByteArray& data)
 	}
 }
 
-CString BinToString(BYTE* ptr, int len)
+CString BinToCString(BYTE* ptr, int len)
 {
 	CString ret;
 
@@ -784,9 +831,9 @@ CString BinToString(BYTE* ptr, int len)
 		high = (*ptr>>4) >= 10 ? (*ptr>>4)-10 + 'A' : (*ptr>>4) + '0';
 		low = (*ptr&0xf) >= 10 ? (*ptr&0xf)-10 + 'A' : (*ptr&0xf) + '0';
 
-		CString s;
-		s.Format(_T("%c%c"), high, low);
-		ret += s;
+		CString str;
+		str.Format(_T("%c%c"), high, low);
+		ret += str;
 
 		ptr++;
 	}
@@ -1472,8 +1519,15 @@ CString GetMediaTypeName(const GUID& guid)
 GUID GUIDFromCString(CString str)
 {
 	GUID guid = GUID_NULL;
-	CLSIDFromString(CComBSTR(str), &guid);
+	HRESULT hr = CLSIDFromString(CComBSTR(str), &guid);
+	ASSERT(SUCCEEDED(hr));
 	return guid;
+}
+
+HRESULT GUIDFromCString(CString str, GUID& guid)
+{
+	guid = GUID_NULL;
+	return CLSIDFromString(CComBSTR(str), &guid);
 }
 
 CString CStringFromGUID(const GUID& guid)
