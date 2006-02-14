@@ -366,6 +366,8 @@ void CMpeg2DecFilter::SetTypeSpecificFlags(IMediaSample* pMS)
 			pMS2->SetProperties(sizeof(props), (BYTE*)&props);
 		}
 	}
+
+	TRACE(_T("tff %d\n"), !!(m_fb.flags & PIC_FLAG_TOP_FIELD_FIRST));
 }
 
 HRESULT CMpeg2DecFilter::Transform(IMediaSample* pIn)
