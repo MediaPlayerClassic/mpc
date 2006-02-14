@@ -146,11 +146,6 @@ bool CFGManager::CheckBytes(HANDLE hFile, CString chkbytes)
 	return true;
 }
 
-HRESULT CFGManager::CreateFilter(CFGFilter* pFGF, IBaseFilter** ppBF, IUnknown** ppUnk)
-{
-	return pFGF->Create(ppBF, ppUnk);
-}
-
 HRESULT CFGManager::AddSourceFilter(CFGFilter* pFGF, LPCWSTR lpcwstrFileName, LPCWSTR lpcwstrFilterName, IBaseFilter** ppBF)
 {
 	TRACE(_T("FGM: AddSourceFilter trying '%s'\n"), CStringFromGUID(pFGF->GetCLSID()));
@@ -164,7 +159,7 @@ HRESULT CFGManager::AddSourceFilter(CFGFilter* pFGF, LPCWSTR lpcwstrFileName, LP
 
 	CComPtr<IBaseFilter> pBF;
 	CComPtr<IUnknown> pUnk;
-	if(FAILED(hr = CreateFilter(pFGF, &pBF, &pUnk)))
+	if(FAILED(hr = pFGF->Create(&pBF, &pUnk)))
 		return hr;
 
 	CComQIPtr<IFileSourceFilter> pFSF = pBF;
@@ -420,7 +415,7 @@ STDMETHODIMP CFGManager::Connect(IPin* pPinOut, IPin* pPinIn)
 
 			CComPtr<IBaseFilter> pBF;
 			CComPtr<IUnknown> pUnk;
-			if(FAILED(CreateFilter(pFGF, &pBF, &pUnk)))
+			if(FAILED(pFGF->Create(&pBF, &pUnk)))
 				continue;
 
 			if(pPinIn && IsStreamEnd(pBF))
@@ -1451,6 +1446,13 @@ STDMETHODIMP CFGManagerCustom::AddFilter(IBaseFilter* pBF, LPCWSTR pName)
 		m_pMDF->SetBoost(s.mpaboost);
 	}
 
+	if(CComQIPtr<IAudioSwitcherFilter> pASF = pBF)
+	{
+		pASF->SetSpeakerConfig(s.fCustomChannelMapping, s.pSpeakerToChannelMap);
+		pASF->EnableDownSamplingTo441(s.fDownSampleTo441);
+		pASF->SetAudioTimeShift(s.fAudioTimeShift ? 10000i64*s.tAudioTimeShift : 0);
+	}
+
 	return hr;
 }
 
@@ -1572,29 +1574,6 @@ CFGManagerPlayer::CFGManagerPlayer(LPCTSTR pName, LPUNKNOWN pUnk, HWND hWnd)
 		pFGF->AddType(MEDIATYPE_Audio, MEDIASUBTYPE_NULL);
 		m_transform.AddTail(pFGF);
 	}
-}
-
-HRESULT CFGManagerPlayer::CreateFilter(CFGFilter* pFGF, IBaseFilter** ppBF, IUnknown** ppUnk)
-{
-	HRESULT hr;
-
-	if(FAILED(hr = __super::CreateFilter(pFGF, ppBF, ppUnk)))
-		return hr;
-
-	if(ppBF && *ppBF && ppUnk && !*ppUnk)
-	{
-		AppSettings& s = AfxGetAppSettings();
-
-		if(CComQIPtr<IAudioSwitcherFilter> pASF = *ppBF)
-		{
-			pASF->SetSpeakerConfig(s.fCustomChannelMapping, s.pSpeakerToChannelMap);
-			pASF->EnableDownSamplingTo441(s.fDownSampleTo441);
-			pASF->SetAudioTimeShift(s.fAudioTimeShift ? 10000i64*s.tAudioTimeShift : 0);
-			*ppUnk = pASF.Detach();
-		}
-	}
-
-	return hr;
 }
 
 STDMETHODIMP CFGManagerPlayer::ConnectDirect(IPin* pPinOut, IPin* pPinIn, const AM_MEDIA_TYPE* pmt)
