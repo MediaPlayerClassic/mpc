@@ -148,20 +148,7 @@ bool CFGManager::CheckBytes(HANDLE hFile, CString chkbytes)
 
 HRESULT CFGManager::CreateFilter(CFGFilter* pFGF, IBaseFilter** ppBF, IUnknown** ppUnk)
 {
-	CheckPointer(pFGF, E_POINTER);
-	CheckPointer(ppBF, E_POINTER);
-	CheckPointer(ppUnk, E_POINTER);
-
-	CComPtr<IBaseFilter> pBF;
-	CComPtr<IUnknown> pUnk;
-
-	if(FAILED(pFGF->Create(&pBF, &pUnk)))
-		return E_FAIL;
-
-	*ppBF = pBF.Detach();
-	if(pUnk) *ppUnk = pUnk.Detach();
-
-	return S_OK;
+	return pFGF->Create(ppBF, ppUnk);
 }
 
 HRESULT CFGManager::AddSourceFilter(CFGFilter* pFGF, LPCWSTR lpcwstrFileName, LPCWSTR lpcwstrFilterName, IBaseFilter** ppBF)
