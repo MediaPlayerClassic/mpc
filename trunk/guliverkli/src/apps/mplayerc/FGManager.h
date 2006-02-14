@@ -48,7 +48,6 @@ protected:
 
 	static bool CheckBytes(HANDLE hFile, CString chkbytes);
 
-	virtual HRESULT CreateFilter(CFGFilter* pFGF, IBaseFilter** ppBF, IUnknown** ppUnk);
 	HRESULT AddSourceFilter(CFGFilter* pFGF, LPCWSTR lpcwstrFileName, LPCWSTR lpcwstrFilterName, IBaseFilter** ppBF);
 
 	// IFilterGraph
@@ -114,8 +113,6 @@ class CFGManagerPlayer : public CFGManagerCustom
 protected:
 	HWND m_hWnd;
 	UINT64 m_vrmerit, m_armerit;
-
-	HRESULT CreateFilter(CFGFilter* pFGF, IBaseFilter** ppBF, IUnknown** ppUnk);
 
 	// IFilterGraph
 
