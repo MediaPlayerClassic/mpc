@@ -2381,6 +2381,48 @@ BEGIN
     IDS_ZOOM_POPUP          "Zoom"
 END
 
+STRINGTABLE 
+BEGIN
+    IDS_FAVORITES_ADD       "&Add to Favorites..."
+    IDS_FAVORITES_ORGANIZE  "&Organize Favorites..."
+    IDS_PLAYLIST_SHUFFLE    "Shuffle"
+    IDS_PLAYLIST_REMEBERITEMS "Remember items"
+    IDS_CONTROLS_CLOSING    "Closing..."
+    IDS_CONTROLS_PLAYING    "Playing"
+    IDS_CONTROLS_PAUSED     "Paused"
+    IDS_CONTROLS_STOPPED    "Stopped"
+    IDS_CONTROLS_BUFFERING  "Buffering... (%d%%)"
+    IDS_CONTROLS_CAPTURING  "Capturing..."
+    IDS_CONTROLS_OPENING    "Opening..."
+    IDS_CONTROLS_CLOSED     "Closed"
+    IDS_SUBTITLES_OPTIONS   "&Options..."
+    IDS_SUBTITLES_STYLES    "&Styles..."
+    IDS_SUBTITLES_RELOAD    "&Reload"
+    IDS_SUBTITLES_ENABLE    "&Enable"
+    IDS_PANSCAN_EDIT        "Edit..."
+    IDS_INFOBAR_TITLE       "Title"
+    IDS_INFOBAR_AUTHOR      "Author"
+    IDS_INFOBAR_COPYRIGHT   "Copyright"
+    IDS_INFOBAR_RATING      "Rating"
+    IDS_INFOBAR_DESCRIPTION "Description"
+    IDS_INFOBAR_DOMAIN      "Domain"
+END
+
+STRINGTABLE 
+BEGIN
+    IDS_INFOBAR_LOCATION    "Location"
+    IDS_INFOBAR_VIDEO       "Video"
+    IDS_INFOBAR_AUDIO       "Audio"
+    IDS_INFOBAR_SUBTITLES   "Subtitles"
+    IDS_CONTROLS_COMPLETING "Completing..."
+    IDS_AUTOPLAY_PLAYVIDEO  "Play Video"
+    IDS_AUTOPLAY_PLAYMUSIC  "Play Music"
+    IDS_AUTOPLAY_PLAYAUDIOCD "Play Audio CD"
+    IDS_AUTOPLAY_PLAYDVDMOVIE "Play DVD Movie"
+    IDS_PROPSHEET_PROPERTIES "Properties"
+    IDS_GRAPHBUILDER_AUDIOSWITCHER "Audio Switcher"
+END
+
 #endif    // English (U.S.) resources
 /////////////////////////////////////////////////////////////////////////////
 

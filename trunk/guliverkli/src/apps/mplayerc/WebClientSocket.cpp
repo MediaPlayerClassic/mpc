@@ -576,9 +576,9 @@ bool CWebClientSocket::OnControls(CStringA& hdr, CStringA& body, CStringA& mime)
 	CString statestring;
 	switch(fs)
 	{
-	case State_Stopped: statestring = _T("Stopped"); break;
-	case State_Paused: statestring = _T("Paused"); break;
-	case State_Running: statestring = _T("Playing"); break;
+	case State_Stopped: statestring = ResStr(IDS_CONTROLS_STOPPED); break;
+	case State_Paused: statestring = ResStr(IDS_CONTROLS_PAUSED); break;
+	case State_Running: statestring = ResStr(IDS_CONTROLS_PLAYING); break;
 	default: statestring = _T("n/a"); break;
 	}
 

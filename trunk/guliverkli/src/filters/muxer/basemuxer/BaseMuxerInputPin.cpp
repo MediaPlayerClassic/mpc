@@ -241,6 +241,11 @@ STDMETHODIMP CBaseMuxerInputPin::Receive(IMediaSample* pSample)
 
 		m_rtMaxStart = max(m_rtMaxStart,  pPacket->rtStart);
 	}
+	else if(pPacket->flags & MuxerPacket::syncpoint)
+	{
+		pPacket->flags &= ~MuxerPacket::syncpoint;
+		pPacket->flags |= MuxerPacket::bogus;
+	}
 
 	if(S_OK == pSample->IsDiscontinuity())
 	{

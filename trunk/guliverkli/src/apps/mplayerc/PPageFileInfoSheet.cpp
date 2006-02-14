@@ -31,7 +31,7 @@
 
 IMPLEMENT_DYNAMIC(CPPageFileInfoSheet, CPropertySheet)
 CPPageFileInfoSheet::CPPageFileInfoSheet(CString fn, CMainFrame* pParentWnd)
-	: CPropertySheet(_T("Properties"), pParentWnd, 0)
+	: CPropertySheet(ResStr(IDS_PROPSHEET_PROPERTIES), pParentWnd, 0)
 	, m_clip(fn, pParentWnd->pGB)
 	, m_details(fn, pParentWnd->pGB, pParentWnd->m_pCAP)
 	, m_res(fn, pParentWnd->pGB)

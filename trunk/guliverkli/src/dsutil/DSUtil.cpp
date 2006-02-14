@@ -318,46 +318,6 @@ IPin* GetFirstDisconnectedPin(IBaseFilter* pBF, PIN_DIRECTION dir)
 	return(NULL);
 }
 
-int RenderFilterPins(IBaseFilter* pBF, IGraphBuilder* pGB, bool fAll)
-{
-	int nPinsRendered = 0;
-
-	CInterfaceList<IPin> pProcessedPins;
-
-	BeginEnumPins(pBF, pEP, pPin)
-	{
-		PIN_DIRECTION dir;
-		CComPtr<IPin> pPinConnectedTo;
-		if(SUCCEEDED(pPin->QueryDirection(&dir)) && dir == PINDIR_OUTPUT
-		&& FAILED(pPin->ConnectedTo(&pPinConnectedTo))
-		&& !pProcessedPins.Find(pPin))
-		{
-			CPinInfo pi;
-			if(SUCCEEDED(pPin->QueryPinInfo(&pi)))
-			{
-				if(pi.achName[0] == '~' && !fAll)
-				{
-					pProcessedPins.AddTail(pPin);
-					continue;
-				}
-			}
-
-			if(FAILED(pPin->ConnectedTo(&pPinConnectedTo)))
-			{
-				if(SUCCEEDED(pGB->Render(pPin)) && SUCCEEDED(pPin->ConnectedTo(&pPinConnectedTo)))
-					nPinsRendered++;
-			}
-				
-			pEP->Reset();
-		}
-
-		pProcessedPins.AddTail(pPin);
-	}
-	EndEnumPins
-
-	return(nPinsRendered);
-}
-
 void NukeDownstream(IBaseFilter* pBF, IFilterGraph* pFG)
 {
 	if(!pBF) return;
@@ -394,11 +354,6 @@ void NukeDownstream(IPin* pPin, IFilterGraph* pFG)
 	NukeDownstream(pi.pFilter, pFG);
 
 	pFG->RemoveFilter(pi.pFilter);
-}
-
-HRESULT AddFilterToGraph(IFilterGraph* pFG, IBaseFilter* pBF, WCHAR* pName)
-{
-	return GetGraphFromFilter(pBF) ? S_FALSE : pFG->AddFilter(pBF, pName);
 }
 
 IBaseFilter* FindFilter(LPCWSTR clsid, IFilterGraph* pFG)
@@ -1005,32 +960,6 @@ REFERENCE_TIME HMSF2RT(DVD_HMSF_TIMECODE hmsf, double fps)
 {
 	if(fps == 0) {hmsf.bFrames = 0; fps = 1;}
 	return (REFERENCE_TIME)((((REFERENCE_TIME)hmsf.bHours*60+hmsf.bMinutes)*60+hmsf.bSeconds)*1000+1.0*hmsf.bFrames*1000/fps)*10000;
-}
-
-HRESULT AddToRot(IUnknown* pUnkGraph, DWORD* pdwRegister) 
-{
-    CComPtr<IRunningObjectTable> pROT;
-    if(FAILED(GetRunningObjectTable(0, &pROT)))
-		return E_FAIL;
-
-	WCHAR wsz[256];
-    swprintf(wsz, L"FilterGraph %08p pid %08x (MPC)", (DWORD_PTR)pUnkGraph, GetCurrentProcessId());
-
-    HRESULT hr;
-
-	CComPtr<IMoniker> pMoniker;
-    if(SUCCEEDED(hr = CreateItemMoniker(L"!", wsz, &pMoniker)))
-        hr = pROT->Register(ROTFLAGS_REGISTRATIONKEEPSALIVE, pUnkGraph, pMoniker, pdwRegister);
-
-	return hr;
-}
-
-void RemoveFromRot(DWORD& dwRegister)
-{
-	CComPtr<IRunningObjectTable> pROT;
-    if(SUCCEEDED(GetRunningObjectTable(0, &pROT)))
-        pROT->Revoke(dwRegister);
-	dwRegister = 0;
 }
 
 void memsetd(void* dst, unsigned int c, int nbytes)
