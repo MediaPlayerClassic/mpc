@@ -894,6 +894,8 @@ STDMETHODIMP CFGManager::FindInterface(REFIID iid, void** ppv, BOOL bRemove)
 
 HRESULT CFGManager::AddToROT()
 {
+	CAutoLock cAutoLock(this);
+
     HRESULT hr;
 
 	if(m_dwRegister) return S_FALSE;
@@ -911,6 +913,8 @@ HRESULT CFGManager::AddToROT()
 
 HRESULT CFGManager::RemoveFromROT()
 {
+	CAutoLock cAutoLock(this);
+
 	HRESULT hr;
 
 	if(!m_dwRegister) return S_FALSE;
@@ -927,11 +931,15 @@ HRESULT CFGManager::RemoveFromROT()
 
 STDMETHODIMP_(size_t) CFGManager::GetCount()
 {
+	CAutoLock cAutoLock(this);
+
 	return m_deadends.GetCount();
 }
 
 STDMETHODIMP CFGManager::GetDeadEnd(int iIndex, CAtlList<CStringW>& path, CAtlList<CMediaType>& mts)
 {
+	CAutoLock cAutoLock(this);
+
 	if(iIndex < 0 || iIndex >= m_deadends.GetCount()) return E_FAIL;
 
 	path.RemoveAll();
@@ -1092,7 +1100,7 @@ CFGManagerCustom::CFGManagerCustom(LPCTSTR pName, LPUNKNOWN pUnk, UINT src, UINT
 		pFGF->m_chkbytes.AddTail(_T("0,8,,4B572D4449524143"));
 		m_source.AddTail(pFGF);
 	}
-/*
+
 	if(src & SRC_MPEG)
 	{
 		pFGF = new CFGFilterCustom<CMpegSourceFilter>();
@@ -1103,7 +1111,7 @@ CFGManagerCustom::CFGManagerCustom(LPCTSTR pName, LPUNKNOWN pUnk, UINT src, UINT
 		pFGF->m_chkbytes.AddTail(_T("0,8,fffffc00ffe00000,4156000055000000"));
 		m_source.AddTail(pFGF);
 	}
-*/
+
 	if(src & SRC_DTSAC3)
 	{
 		pFGF = new CFGFilterCustom<CDTSAC3Source>();
