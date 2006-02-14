@@ -315,24 +315,33 @@ void CMpeg2DecFilter::SetDeinterlaceMethod()
 		}
 	}
 
-	m_fb.di = GetDeinterlaceMethod();
+	const CMediaType& mt = m_pOutput->CurrentMediaType();
 
-	if(m_fb.di == DIAuto || m_fb.di != DIWeave && m_fb.di != DIBlend && m_fb.di != DIBob)
+	if(mt.formattype == FORMAT_VideoInfo2 && (((VIDEOINFOHEADER2*)mt.pbFormat)->dwInterlaceFlags & AMINTERLACE_IsInterlaced))
 	{
-		if(seqflags & SEQ_FLAG_PROGRESSIVE_SEQUENCE)
-			m_fb.di = DIWeave; // hurray!
-		else if(m_fFilm)
-			m_fb.di = DIWeave; // we are lucky
-		else if(!(m_fb.flags & PIC_FLAG_PROGRESSIVE_FRAME))
-			m_fb.di = DIBlend; // ok, clear thing
-		else
-			// big trouble here, the progressive_frame bit is not reliable :'(
-			// frames without temporal field diffs can be only detected when ntsc 
-			// uses the repeat field flag (signaled with m_fFilm), if it's not set 
-			// or we have pal then we might end up blending the fields unnecessarily...
-			m_fb.di = DIBlend;
+		m_fb.di = DIWeave;
 	}
-	
+	else
+	{
+		m_fb.di = GetDeinterlaceMethod();
+
+		if(m_fb.di == DIAuto || m_fb.di != DIWeave && m_fb.di != DIBlend && m_fb.di != DIBob)
+		{
+			if(seqflags & SEQ_FLAG_PROGRESSIVE_SEQUENCE)
+				m_fb.di = DIWeave; // hurray!
+			else if(m_fFilm)
+				m_fb.di = DIWeave; // we are lucky
+			else if(!(m_fb.flags & PIC_FLAG_PROGRESSIVE_FRAME))
+				m_fb.di = DIBlend; // ok, clear thing
+			else
+				// big trouble here, the progressive_frame bit is not reliable :'(
+				// frames without temporal field diffs can be only detected when ntsc 
+				// uses the repeat field flag (signaled with m_fFilm), if it's not set 
+				// or we have pal then we might end up blending the fields unnecessarily...
+				m_fb.di = DIBlend;
+		}
+	}
+
 	m_fb.flags = newflags;
 }
 
@@ -366,8 +375,6 @@ void CMpeg2DecFilter::SetTypeSpecificFlags(IMediaSample* pMS)
 			pMS2->SetProperties(sizeof(props), (BYTE*)&props);
 		}
 	}
-
-	TRACE(_T("tff %d\n"), !!(m_fb.flags & PIC_FLAG_TOP_FIELD_FIRST));
 }
 
 HRESULT CMpeg2DecFilter::Transform(IMediaSample* pIn)
@@ -749,7 +756,8 @@ HRESULT CMpeg2DecFilter::CheckConnect(PIN_DIRECTION dir, IPin* pPin)
 			&& clsid != GUIDFromCString(_T("04FE9017-F873-410E-871E-AB91661A4EF7")) // ffdshow
 			&& (clsid != GUIDFromCString(_T("93A22E7A-5091-45ef-BA61-6DA26156A5D0")) || ver < 0x0234) // dvobsub
 			&& (clsid != GUIDFromCString(_T("9852A670-F845-491b-9BE6-EBD841B8A613")) || ver < 0x0234) // dvobsub auto
-			&& clsid != GUIDFromCString(_T("fd501043-8ebe-11ce-8183-00aa00577da1"))) // dladapter
+			&& clsid != GUIDFromCString(_T("fd501043-8ebe-11ce-8183-00aa00577da1"))
+			&& clsid != CLSID_DXR) // Haali's video renderer
 				return E_FAIL;
 		}
 	}

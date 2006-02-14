@@ -67,6 +67,7 @@ BEGIN_MESSAGE_MAP(CPPageMpegDecoder, CPPageBase)
 	ON_BN_CLICKED(IDC_BUTTON1, OnBnClickedButton1)
 	ON_BN_CLICKED(IDC_CHECK2, OnBnClickedCheck2)
 	ON_BN_CLICKED(IDC_BUTTON2, OnBnClickedButton2)
+	ON_UPDATE_COMMAND_UI(IDC_COMBO2, OnUpdateCombo2)	
 END_MESSAGE_MAP()
 
 
@@ -226,4 +227,9 @@ void CPPageMpegDecoder::OnBnClickedButton2()
 		m_pM2DF->SetBrightness((double)m_brightctrl.GetPos()-128);
 		m_pM2DF->SetContrast((double)m_contctrl.GetPos() / 100);
 	}
+}
+
+void CPPageMpegDecoder::OnUpdateCombo2(CCmdUI* pCmdUI)
+{	
+	pCmdUI->Enable(!IsDlgButtonChecked(IDC_CHECK_MPEGINTERLACED));
 }
