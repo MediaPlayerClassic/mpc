@@ -20,7 +20,7 @@
  */
 
 #pragma once
-#include "afxcmn.h"
+#include "IGraphBuilder2.h"
 #include "..\..\DSUtil\DSMPropertyBag.h"
 
 class CFilterTreeCtrl : public CTreeCtrl
@@ -121,7 +121,7 @@ public:
 private:
 	DWORD m_dwRegister;
 	CComPtr<ICaptureGraphBuilder2> m_pCGB;
-	CComPtr<IGraphBuilder> m_pGB;
+	CComPtr<IGraphBuilder2> m_pGB;
 	CComPtr<IBaseFilter> m_pMux;
 	CComQIPtr<IMediaControl> m_pMC;
 	CComQIPtr<IMediaEventEx> m_pME;

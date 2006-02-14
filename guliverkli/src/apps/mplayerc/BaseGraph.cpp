@@ -154,6 +154,8 @@ STDMETHODIMP CBaseGraph::ConnectFilter(IBaseFilter* pBF, IPin* pPinIn) {return E
 STDMETHODIMP CBaseGraph::ConnectFilter(IPin* pPinOut, IBaseFilter* pBF) {return E_NOTIMPL;}
 STDMETHODIMP CBaseGraph::ConnectFilterDirect(IPin* pPinOut, IBaseFilter* pBF, const AM_MEDIA_TYPE* pmt) {return E_NOTIMPL;}
 STDMETHODIMP CBaseGraph::FindInterface(REFIID iid, void** ppv, BOOL bRemove) {return QueryInterface(iid, ppv);}
+STDMETHODIMP CBaseGraph::AddToROT() {return E_NOTIMPL;}
+STDMETHODIMP CBaseGraph::RemoveFromROT() {return E_NOTIMPL;}
 
 // IMediaControl
 STDMETHODIMP CBaseGraph::Run() {return E_NOTIMPL;}

@@ -115,6 +115,8 @@ protected:
 	STDMETHODIMP ConnectFilter(IPin* pPinOut, IBaseFilter* pBF);
 	STDMETHODIMP ConnectFilterDirect(IPin* pPinOut, IBaseFilter* pBF, const AM_MEDIA_TYPE* pmt);
 	STDMETHODIMP FindInterface(REFIID iid, void** ppv, BOOL bRemove);
+	STDMETHODIMP AddToROT();
+	STDMETHODIMP RemoveFromROT();
 
 	// IMediaControl
     STDMETHODIMP Run();

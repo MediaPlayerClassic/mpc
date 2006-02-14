@@ -664,6 +664,40 @@
 #define IDS_PANSCAN_POPUP               14150
 #define IDS_ASPECTRATIO_POPUP           14151
 #define IDS_ZOOM_POPUP                  14152
+#define IDS_FAVORITES_ADD               14153
+#define IDS_FAVORITES_ORGANIZE          14154
+#define IDS_PLAYLIST_SHUFFLE            14155
+#define IDS_PLAYLIST_REMEBERITEMS       14156
+#define IDS_CONTROLS_CLOSING            14157
+#define IDS_CONTROLS_PLAYING            14158
+#define IDS_CONTROLS_PAUSED             14159
+#define IDS_CONTROLS_STOPPED            14160
+#define IDS_CONTROLS_BUFFERING          14161
+#define IDS_CONTROLS_CAPTURING          14162
+#define IDS_CONTROLS_OPENING            14163
+#define IDS_CONTROLS_CLOSED             14164
+#define IDS_SUBTITLES_OPTIONS           14165
+#define IDS_SUBTITLES_STYLES            14166
+#define IDS_SUBTITLES_RELOAD            14167
+#define IDS_SUBTITLES_ENABLE            14168
+#define IDS_PANSCAN_EDIT                14169
+#define IDS_INFOBAR_TITLE               14170
+#define IDS_INFOBAR_AUTHOR              14171
+#define IDS_INFOBAR_COPYRIGHT           14172
+#define IDS_INFOBAR_RATING              14173
+#define IDS_INFOBAR_DESCRIPTION         14174
+#define IDS_INFOBAR_DOMAIN              14175
+#define IDS_INFOBAR_LOCATION            14176
+#define IDS_INFOBAR_VIDEO               14177
+#define IDS_INFOBAR_AUDIO               14178
+#define IDS_INFOBAR_SUBTITLES           14179
+#define IDS_CONTROLS_COMPLETING         14180
+#define IDS_AUTOPLAY_PLAYVIDEO          14181
+#define IDS_AUTOPLAY_PLAYMUSIC          14182
+#define IDS_AUTOPLAY_PLAYAUDIOCD        14183
+#define IDS_AUTOPLAY_PLAYDVDMOVIE       14184
+#define IDS_PROPSHEET_PROPERTIES        14185
+#define IDS_GRAPHBUILDER_AUDIOSWITCHER  14186
 
 // Next default values for new objects
 // 

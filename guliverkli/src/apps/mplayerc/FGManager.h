@@ -37,6 +37,7 @@ public:
 
 private:
 	CComPtr<IUnknown> m_pUnkInner;
+	DWORD m_dwRegister;
 
 	CStreamPath m_streampath;
 	CAutoPtrArray<CStreamDeadEnd> m_deadends;
@@ -83,6 +84,8 @@ protected:
 	STDMETHODIMP ConnectFilter(IPin* pPinOut, IBaseFilter* pBF);
 	STDMETHODIMP ConnectFilterDirect(IPin* pPinOut, IBaseFilter* pBF, const AM_MEDIA_TYPE* pmt);
 	STDMETHODIMP FindInterface(REFIID iid, void** ppv, BOOL bRemove);
+	STDMETHODIMP AddToROT();
+	STDMETHODIMP RemoveFromROT();
 
 	// IGraphBuilderDeadEnd
 
@@ -105,7 +108,7 @@ public:
 	STDMETHODIMP AddFilter(IBaseFilter* pFilter, LPCWSTR pName);
 
 public:
-	CFGManagerCustom(LPCTSTR pName, LPUNKNOWN pUnk);
+	CFGManagerCustom(LPCTSTR pName, LPUNKNOWN pUnk, UINT src, UINT tra);
 };
 
 class CFGManagerPlayer : public CFGManagerCustom
@@ -119,7 +122,7 @@ protected:
 	STDMETHODIMP ConnectDirect(IPin* pPinOut, IPin* pPinIn, const AM_MEDIA_TYPE* pmt);
 
 public:
-	CFGManagerPlayer(LPCTSTR pName, LPUNKNOWN pUnk, HWND hWnd);
+	CFGManagerPlayer(LPCTSTR pName, LPUNKNOWN pUnk, UINT src, UINT tra, HWND hWnd);
 };
 
 class CFGManagerDVD : public CFGManagerPlayer
@@ -130,13 +133,13 @@ protected:
 	STDMETHODIMP AddSourceFilter(LPCWSTR lpcwstrFileName, LPCWSTR lpcwstrFilterName, IBaseFilter** ppFilter);
 
 public:
-	CFGManagerDVD(LPCTSTR pName, LPUNKNOWN pUnk, HWND hWnd);
+	CFGManagerDVD(LPCTSTR pName, LPUNKNOWN pUnk, UINT src, UINT tra, HWND hWnd);
 };
 
 class CFGManagerCapture : public CFGManagerPlayer
 {
 public:
-	CFGManagerCapture(LPCTSTR pName, LPUNKNOWN pUnk, HWND hWnd);
+	CFGManagerCapture(LPCTSTR pName, LPUNKNOWN pUnk, UINT src, UINT tra, HWND hWnd);
 };
 
 class CFGManagerMuxer : public CFGManagerCustom

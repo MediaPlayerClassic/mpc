@@ -776,6 +776,8 @@ BOOL CConvertDlg::OnInitDialog()
 
 	m_pGB = new CFGManagerMuxer(_T("CFGManagerMuxer"), NULL);
 
+	m_pGB->AddToROT();
+
 	if(FAILED(m_pCGB.CoCreateInstance(CLSID_CaptureGraphBuilder2))
 	|| FAILED(m_pCGB->SetFiltergraph(m_pGB))
 	|| FAILED(m_pGB->AddFilter(m_pMux, L"Mux"))
@@ -786,8 +788,6 @@ BOOL CConvertDlg::OnInitDialog()
 		SendMessage(WM_CLOSE);
 		return TRUE;
 	}
-
-	AddToRot(m_pGB, &m_dwRegister);
 
 	return TRUE;  // return TRUE unless you set the focus to a control
 	// EXCEPTION: OCX Property Pages should return FALSE
@@ -884,7 +884,8 @@ void CConvertDlg::OnClose()
 		hTI = hTINext;
 	}
 
-	if(m_dwRegister) RemoveFromRot(m_dwRegister);
+	m_pGB->RemoveFromROT();
+	m_pGB = NULL;
 
 	__super::OnClose();
 }

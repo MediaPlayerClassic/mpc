@@ -1406,7 +1406,7 @@ void CMainFrame::OnTimer(UINT nIDEvent)
 					loc.ChapterNum, ulNumOfChapters);
 			}
 
-			m_wndInfoBar.SetLine(_T("Location"), Location);
+			m_wndInfoBar.SetLine(ResStr(IDS_INFOBAR_LOCATION), Location);
 
 			// Video
 
@@ -1423,7 +1423,7 @@ void CMainFrame::OnTimer(UINT nIDEvent)
 					VATR.ulAspectX, VATR.ulAspectY);
 			}
 
-			m_wndInfoBar.SetLine(_T("Video"), Video);
+			m_wndInfoBar.SetLine(ResStr(IDS_INFOBAR_VIDEO), Video);
 
 			// Audio
 
@@ -1476,7 +1476,7 @@ void CMainFrame::OnTimer(UINT nIDEvent)
 					: IDB_NOAUDIO);
 			}
 
-			m_wndInfoBar.SetLine(_T("Audio"), Audio);
+			m_wndInfoBar.SetLine(ResStr(IDS_INFOBAR_AUDIO), Audio);
 
 			// Subtitles
 
@@ -1514,7 +1514,7 @@ void CMainFrame::OnTimer(UINT nIDEvent)
 					lang);
 			}
 
-			m_wndInfoBar.SetLine(_T("Subtitles"), Subtitles);
+			m_wndInfoBar.SetLine(ResStr(IDS_INFOBAR_SUBTITLES), Subtitles);
 		}
 
 		if(GetMediaState() == State_Running)
@@ -1755,7 +1755,7 @@ LRESULT CMainFrame::OnGraphNotify(WPARAM wParam, LPARAM lParam)
 				{
 					CString Domain;
 					Domain.Format(_T("Title %d"), m_iDVDTitle);
-					m_wndInfoBar.SetLine(_T("Domain"), Domain);
+					m_wndInfoBar.SetLine(ResStr(IDS_INFOBAR_DOMAIN), Domain);
 				}
 			}
 		}
@@ -1775,7 +1775,7 @@ LRESULT CMainFrame::OnGraphNotify(WPARAM wParam, LPARAM lParam)
 			default: Domain = _T("-"); break;
 			}
 
-			m_wndInfoBar.SetLine(_T("Domain"), Domain);
+			m_wndInfoBar.SetLine(ResStr(IDS_INFOBAR_DOMAIN), Domain);
 
 			MoveVideoWindow(); // AR might have changed
 		}
@@ -2406,7 +2406,7 @@ void CMainFrame::OnInitMenuPopup(CMenu* pPopupMenu, UINT nIndex, BOOL bSysMenu)
 		}
 //		if(j > 0)
 		{
-			pPopupMenu->InsertMenu(ID_VIEW_RESET, MF_BYCOMMAND, ID_PANNSCAN_PRESETS_START+i, _T("Edit..."));
+			pPopupMenu->InsertMenu(ID_VIEW_RESET, MF_BYCOMMAND, ID_PANNSCAN_PRESETS_START+i, ResStr(IDS_PANSCAN_EDIT));
 			pPopupMenu->InsertMenu(ID_VIEW_RESET, MF_BYCOMMAND|MF_SEPARATOR);
 		}
 	}
@@ -2454,7 +2454,7 @@ void CMainFrame::OnUpdatePlayerStatus(CCmdUI* pCmdUI)
 {
 	if(m_iMediaLoadState == MLS_LOADING)
 	{
-		pCmdUI->SetText(_T("Opening..."));
+		pCmdUI->SetText(ResStr(IDS_CONTROLS_OPENING));
 	}
 	else if(m_iMediaLoadState == MLS_LOADED)
 	{
@@ -2466,7 +2466,7 @@ void CMainFrame::OnUpdatePlayerStatus(CCmdUI* pCmdUI)
 		}
 		else if(m_fCapturing)
 		{
-			msg = _T("Capturing...");
+			msg = ResStr(IDS_CONTROLS_CAPTURING);
 
 			if(pAMDF)
 			{
@@ -2557,7 +2557,7 @@ void CMainFrame::OnUpdatePlayerStatus(CCmdUI* pCmdUI)
 					long BufferingProgress = 0;
 					if(SUCCEEDED(pAMNS->get_BufferingProgress(&BufferingProgress)) && BufferingProgress > 0)
 					{
-						msg.Format(_T("Buffering... (%d%%)"), BufferingProgress);
+						msg.Format(ResStr(IDS_CONTROLS_BUFFERING), BufferingProgress);
 
 						__int64 start = 0, stop = 0;
 						m_wndSeekBar.GetRange(start, stop);
@@ -2572,7 +2572,7 @@ void CMainFrame::OnUpdatePlayerStatus(CCmdUI* pCmdUI)
 		{
 			__int64 t = 0, c = 0;
 			if(SUCCEEDED(pAMOP->QueryProgress(&t, &c)) && t > 0 && c < t)
-				msg.Format(_T("Buffering... (%d%%)"), c*100/t);
+				msg.Format(ResStr(IDS_CONTROLS_BUFFERING), c*100/t);
 
 			if(m_fUpdateInfoBar)
 				OpenSetupInfoBar();
@@ -2581,14 +2581,14 @@ void CMainFrame::OnUpdatePlayerStatus(CCmdUI* pCmdUI)
 		OAFilterState fs = GetMediaState();
 		pCmdUI->SetText(
 			!msg.IsEmpty() ? msg : 
-			fs == State_Stopped ? _T("Stopped") :
-			(fs == State_Paused || m_fFrameSteppingActive) ? _T("Paused") :
-			fs == State_Running ? _T("Playing") :
+			fs == State_Stopped ? ResStr(IDS_CONTROLS_STOPPED) :
+			(fs == State_Paused || m_fFrameSteppingActive) ? ResStr(IDS_CONTROLS_PAUSED) :
+			fs == State_Running ? ResStr(IDS_CONTROLS_PLAYING) :
 			_T(""));
 	}
 	else if(m_iMediaLoadState == MLS_CLOSING)
 	{
-		pCmdUI->SetText(_T("Closing..."));
+		pCmdUI->SetText(ResStr(IDS_CONTROLS_CLOSING));
 	}
 	else
 	{
@@ -5021,7 +5021,7 @@ void CMainFrame::OnPlayFilters(UINT nID)
 
 	CComPtr<ISpecifyPropertyPages> pSPP = m_spparray[nID - ID_FILTERS_SUBITEM_START];
 
-	CComPropertySheet ps(_T("Properties"), this);
+	CComPropertySheet ps(ResStr(IDS_PROPSHEET_PROPERTIES), this);
 	ps.AddPages(pSPP);
 	ps.DoModal();
 
@@ -6528,7 +6528,7 @@ void CMainFrame::SetupIViAudReg()
 
 void CMainFrame::OpenCreateGraphObject(OpenMediaData* pOMD)
 {
-	pGB = NULL;
+	ASSERT(pGB == NULL);
 
 	m_fCustomGraph = false;
 	m_fRealMediaGraph = m_fShockwaveGraph = m_fQuicktimeGraph = false;
@@ -6600,22 +6600,24 @@ void CMainFrame::OpenCreateGraphObject(OpenMediaData* pOMD)
 
 		if(!m_fCustomGraph)
 		{
-			pGB = new CFGManagerPlayer(_T("CFGManagerPlayer"), NULL, m_wndView.m_hWnd);
+			pGB = new CFGManagerPlayer(_T("CFGManagerPlayer"), NULL, s.SrcFilters, s.TraFilters, m_wndView.m_hWnd);
 		}
 	}
 	else if(OpenDVDData* p = dynamic_cast<OpenDVDData*>(pOMD))
 	{
-		pGB = new CFGManagerDVD(_T("CFGManagerDVD"), NULL, m_wndView.m_hWnd);
+		pGB = new CFGManagerDVD(_T("CFGManagerDVD"), NULL, s.SrcFilters, s.TraFilters, m_wndView.m_hWnd);
 	}
 	else if(OpenDeviceData* p = dynamic_cast<OpenDeviceData*>(pOMD))
 	{
-		pGB = new CFGManagerCapture(_T("CFGManagerCapture"), NULL, m_wndView.m_hWnd);
+		pGB = new CFGManagerCapture(_T("CFGManagerCapture"), NULL, s.SrcFilters, s.TraFilters, m_wndView.m_hWnd);
 	}
 
 	if(!pGB)
 	{
 		throw _T("Failed to create the filter graph object");
 	}
+
+	pGB->AddToROT();
 
 	pMC = pGB; pME = pGB; pMS = pGB; // general
 	pVW = pGB; pBV = pGB; // video
@@ -7310,11 +7312,11 @@ void CMainFrame::OpenSetupInfoBar()
 			if(CComQIPtr<IAMMediaContent, &IID_IAMMediaContent> pAMMC = pBF)
 			{
 				CComBSTR bstr;
-				if(SUCCEEDED(pAMMC->get_Title(&bstr))) {m_wndInfoBar.SetLine(_T("Title"), bstr.m_str); if(bstr.Length()) fEmpty = false;}
-				if(SUCCEEDED(pAMMC->get_AuthorName(&bstr))) {m_wndInfoBar.SetLine(_T("Author"), bstr.m_str); if(bstr.Length()) fEmpty = false;}
-				if(SUCCEEDED(pAMMC->get_Copyright(&bstr))) {m_wndInfoBar.SetLine(_T("Copyright"), bstr.m_str); if(bstr.Length()) fEmpty = false;}
-				if(SUCCEEDED(pAMMC->get_Rating(&bstr))) {m_wndInfoBar.SetLine(_T("Rating"), bstr.m_str); if(bstr.Length()) fEmpty = false;}
-				if(SUCCEEDED(pAMMC->get_Description(&bstr))) {m_wndInfoBar.SetLine(_T("Description"), bstr.m_str); if(bstr.Length()) fEmpty = false;}
+				if(SUCCEEDED(pAMMC->get_Title(&bstr))) {m_wndInfoBar.SetLine(ResStr(IDS_INFOBAR_TITLE), bstr.m_str); if(bstr.Length()) fEmpty = false;}
+				if(SUCCEEDED(pAMMC->get_AuthorName(&bstr))) {m_wndInfoBar.SetLine(ResStr(IDS_INFOBAR_AUTHOR), bstr.m_str); if(bstr.Length()) fEmpty = false;}
+				if(SUCCEEDED(pAMMC->get_Copyright(&bstr))) {m_wndInfoBar.SetLine(ResStr(IDS_INFOBAR_COPYRIGHT), bstr.m_str); if(bstr.Length()) fEmpty = false;}
+				if(SUCCEEDED(pAMMC->get_Rating(&bstr))) {m_wndInfoBar.SetLine(ResStr(IDS_INFOBAR_RATING), bstr.m_str); if(bstr.Length()) fEmpty = false;}
+				if(SUCCEEDED(pAMMC->get_Description(&bstr))) {m_wndInfoBar.SetLine(ResStr(IDS_INFOBAR_DESCRIPTION), bstr.m_str); if(bstr.Length()) fEmpty = false;}
 				if(!fEmpty)
 				{
 					RecalcLayout();
@@ -7327,11 +7329,11 @@ void CMainFrame::OpenSetupInfoBar()
 	else if(m_iPlaybackMode == PM_DVD)
 	{
 		CString info('-');
-		m_wndInfoBar.SetLine(_T("Domain"), info);
-		m_wndInfoBar.SetLine(_T("Location"), info);
-		m_wndInfoBar.SetLine(_T("Video"), info);
-		m_wndInfoBar.SetLine(_T("Audio"), info);
-		m_wndInfoBar.SetLine(_T("Subtitles"), info);
+		m_wndInfoBar.SetLine(ResStr(IDS_INFOBAR_DOMAIN), info);
+		m_wndInfoBar.SetLine(ResStr(IDS_INFOBAR_LOCATION), info);
+		m_wndInfoBar.SetLine(ResStr(IDS_INFOBAR_VIDEO), info);
+		m_wndInfoBar.SetLine(ResStr(IDS_INFOBAR_AUDIO), info);
+		m_wndInfoBar.SetLine(ResStr(IDS_INFOBAR_SUBTITLES), info);
 		RecalcLayout();
 	}
 }
@@ -7542,8 +7544,6 @@ bool CMainFrame::OpenMediaPrivate(CAutoPtr<OpenMediaData> pOMD)
 
 		OpenCreateGraphObject(pOMD);
 		
-		AddToRot(pGB, &m_dwRegister);
-
 		if(m_fOpeningAborted) throw aborted;
 
 		SetupIViAudReg();
@@ -7687,8 +7687,6 @@ void CMainFrame::CloseMediaPrivate()
 
 	m_pCB = NULL;
 
-	RemoveFromRot(m_dwRegister);
-
 //	if(pVW) pVW->put_Visible(OAFALSE);
 //	if(pVW) pVW->put_MessageDrain((OAHWND)NULL), pVW->put_Owner((OAHWND)NULL);
 
@@ -7703,6 +7701,8 @@ void CMainFrame::CloseMediaPrivate()
 	pMC.Release(); pME.Release(); pMS.Release();
 	pVW.Release(); pBV.Release();
 	pBA.Release();
+
+	if(pGB) pGB->RemoveFromROT();
 	pGB.Release();
 
 	m_fRealMediaGraph = m_fShockwaveGraph = m_fQuicktimeGraph = false;
@@ -7719,7 +7719,7 @@ void CMainFrame::CloseMediaPrivate()
 	m_VidDispName.Empty();
 	m_AudDispName.Empty();
 
-	m_closingmsg = _T("Closed");
+	m_closingmsg = ResStr(IDS_CONTROLS_CLOSED);
 
 	AfxGetAppSettings().nCLSwitches &= CLSW_OPEN|CLSW_PLAY|CLSW_AFTERPLAYBACK_MASK|CLSW_NOFOCUS;
 
@@ -7737,8 +7737,8 @@ void CMainFrame::SendNowPlayingToMSN()
 
 	if(m_iMediaLoadState == MLS_LOADED)
 	{
-		m_wndInfoBar.GetLine(_T("Title"), title);
-		m_wndInfoBar.GetLine(_T("Author"), author);
+		m_wndInfoBar.GetLine(ResStr(IDS_INFOBAR_TITLE), title);
+		m_wndInfoBar.GetLine(ResStr(IDS_INFOBAR_AUTHOR), author);
 
 		if(title.IsEmpty())
 		{
@@ -8077,7 +8077,7 @@ void CMainFrame::SetupAudioSwitcherSubMenu()
 			DWORD cStreams = 0;
 			if(SUCCEEDED(pSS->Count(&cStreams)) && cStreams > 0)
 			{
-				pSub->AppendMenu(MF_BYCOMMAND|MF_STRING|MF_ENABLED, id++, _T("&Options..."));
+				pSub->AppendMenu(MF_BYCOMMAND|MF_STRING|MF_ENABLED, id++, ResStr(IDS_SUBTITLES_OPTIONS));
 				pSub->AppendMenu(MF_SEPARATOR|MF_ENABLED);
 
 				for(int i = 0; i < (int)cStreams; i++)
@@ -8114,12 +8114,12 @@ void CMainFrame::SetupSubtitlesSubMenu()
 
 	if(pos)
 	{
-		pSub->AppendMenu(MF_BYCOMMAND|MF_STRING|MF_ENABLED, id++, _T("&Options..."));
-		pSub->AppendMenu(MF_BYCOMMAND|MF_STRING|MF_ENABLED, id++, _T("&Styles..."));
-		pSub->AppendMenu(MF_BYCOMMAND|MF_STRING|MF_ENABLED, id++, _T("&Reload"));
+		pSub->AppendMenu(MF_BYCOMMAND|MF_STRING|MF_ENABLED, id++, ResStr(IDS_SUBTITLES_OPTIONS));
+		pSub->AppendMenu(MF_BYCOMMAND|MF_STRING|MF_ENABLED, id++, ResStr(IDS_SUBTITLES_STYLES));
+		pSub->AppendMenu(MF_BYCOMMAND|MF_STRING|MF_ENABLED, id++, ResStr(IDS_SUBTITLES_RELOAD));
 		pSub->AppendMenu(MF_SEPARATOR);
 
-		pSub->AppendMenu(MF_BYCOMMAND|MF_STRING|MF_ENABLED, id++, _T("&Enable"));
+		pSub->AppendMenu(MF_BYCOMMAND|MF_STRING|MF_ENABLED, id++, ResStr(IDS_SUBTITLES_ENABLE));
 		pSub->AppendMenu(MF_SEPARATOR);
 	}
 
@@ -8570,8 +8570,8 @@ void CMainFrame::SetupFavoritesSubMenu()
 
 	AppSettings& s = AfxGetAppSettings();
 
-	pSub->AppendMenu(MF_BYCOMMAND|MF_STRING|MF_ENABLED, ID_FAVORITES_ADD, _T("&Add to Favorites..."));
-	pSub->AppendMenu(MF_BYCOMMAND|MF_STRING|MF_ENABLED, ID_FAVORITES_ORGANIZE, _T("&Organize Favorites..."));
+	pSub->AppendMenu(MF_BYCOMMAND|MF_STRING|MF_ENABLED, ID_FAVORITES_ADD, ResStr(IDS_FAVORITES_ADD));
+	pSub->AppendMenu(MF_BYCOMMAND|MF_STRING|MF_ENABLED, ID_FAVORITES_ORGANIZE, ResStr(IDS_FAVORITES_ORGANIZE));
 
 	int nLastGroupStart = pSub->GetMenuItemCount();
 
@@ -9107,7 +9107,9 @@ HRESULT CMainFrame::BuildCapture(IPin* pPin, IBaseFilter* pBF[3], const GUID& ma
 
 	HRESULT hr = S_OK;
 
-	AddFilterToGraph(pGB, pMux, L"Multiplexer");
+	CFilterInfo fi;
+	if(FAILED(pMux->QueryFilterInfo(&fi)) || !fi.pGraph)
+		pGB->AddFilter(pMux, L"Multiplexer");
 
 	IUnknown* pPrev = pPin;
 
@@ -9447,7 +9449,7 @@ bool CMainFrame::StopCapture()
 
 	HRESULT hr;
 
-	m_wndStatusBar.SetStatusMessage(_T("Completing..."));
+	m_wndStatusBar.SetStatusMessage(ResStr(IDS_CONTROLS_COMPLETING));
 
 	m_fCapturing = false;
 

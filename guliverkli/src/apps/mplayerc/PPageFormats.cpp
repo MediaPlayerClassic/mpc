@@ -314,10 +314,10 @@ bool CPPageFormats::RegisterExt(CString ext, bool fRegister)
 
 static struct {TCHAR verb[20], cmd[20], action[100];} handlers[] =
 {
-	{_T("VideoFiles"), _T(" %1"), _T("Play Video")},
-	{_T("MusicFiles"), _T(" %1"), _T("Play Music")},
-	{_T("CDAudio"), _T(" %1 /cd"), _T("Play Audio CD")},
-	{_T("DVDMovie"), _T(" %1 /dvd"), _T("Play DVD Movie")},
+	{_T("VideoFiles"), _T(" %1"), _T("")},
+	{_T("MusicFiles"), _T(" %1"), _T("")},
+	{_T("CDAudio"), _T(" %1 /cd"), _T("")},
+	{_T("DVDMovie"), _T(" %1 /dvd"), _T("")},
 };
 
 void CPPageFormats::AddAutoPlayToRegistry(autoplay_t ap, bool fRegister)
@@ -437,6 +437,11 @@ END_MESSAGE_MAP()
 BOOL CPPageFormats::OnInitDialog()
 {
 	__super::OnInitDialog();
+
+	_tcscpy_s(handlers[0].action, countof(handlers[0].action), ResStr(IDS_AUTOPLAY_PLAYVIDEO));
+	_tcscpy_s(handlers[1].action, countof(handlers[1].action), ResStr(IDS_AUTOPLAY_PLAYMUSIC));
+	_tcscpy_s(handlers[2].action, countof(handlers[2].action), ResStr(IDS_AUTOPLAY_PLAYAUDIOCD));
+	_tcscpy_s(handlers[3].action, countof(handlers[3].action), ResStr(IDS_AUTOPLAY_PLAYDVDMOVIE));
 
 	m_list.SetExtendedStyle(m_list.GetExtendedStyle()|LVS_EX_FULLROWSELECT);
 
