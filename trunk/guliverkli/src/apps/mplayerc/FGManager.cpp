@@ -71,9 +71,10 @@ STDMETHODIMP CFGManager::NonDelegatingQueryInterface(REFIID riid, void** ppv)
 
 //
 
-void CFGManager::CStreamPath::Append(IBaseFilter* pBF, IPin* pPin, int i)
+void CFGManager::CStreamPath::Append(IBaseFilter* pBF, IPin* pPin)
 {
 	path_t p;
+	p.clsid = GetCLSID(pBF);
 	p.filter = GetFilterName(pBF);
 	p.pin = GetPinName(pPin);
 	AddTail(p);
@@ -95,6 +96,8 @@ bool CFGManager::CStreamPath::Compare(const CStreamPath& path)
 
 	return true;
 }
+
+//
 
 bool CFGManager::CheckBytes(HANDLE hFile, CString chkbytes)
 {
@@ -236,6 +239,15 @@ STDMETHODIMP CFGManager::ConnectDirect(IPin* pPinOut, IPin* pPinIn, const AM_MED
 {
 	CAutoLock cAutoLock(this);
 
+	CComPtr<IBaseFilter> pBF = GetFilterFromPin(pPinIn);
+	CLSID clsid = GetCLSID(pBF);
+
+	for(CComPtr<IBaseFilter> pBFUS = GetFilterFromPin(pPinOut); pBFUS; pBFUS = GetUpStreamFilter(pBFUS))
+	{
+		if(pBFUS == pBF) return VFW_E_CIRCULAR_GRAPH;
+        if(GetCLSID(pBFUS) == clsid) return VFW_E_CANNOT_CONNECT;
+	}
+
 	return CComQIPtr<IFilterGraph2>(m_pUnkInner)->ConnectDirect(pPinOut, pPinIn, pmt);
 }
 
@@ -314,6 +326,8 @@ STDMETHODIMP CFGManager::Connect(IPin* pPinOut, IPin* pPinIn)
 				continue;
 
 			hr = pGC->RemoveFilterFromCache(pBF);
+
+			// does RemoveFilterFromCache call AddFilter like AddFilterToCache calls RemoveFilter ?
 
 			if(SUCCEEDED(hr = ConnectFilterDirect(pPinOut, pBF, NULL)))
 			{
@@ -747,6 +761,9 @@ STDMETHODIMP CFGManager::RenderEx(IPin* pPinOut, DWORD dwFlags, DWORD* pvContext
 {
 	CAutoLock cAutoLock(this);
 
+	m_streampath.RemoveAll();
+	m_deadends.RemoveAll();
+
 	if(!pPinOut || dwFlags > AM_RENDEREX_RENDERTOEXISTINGRENDERERS || pvContext)
 		return E_INVALIDARG;
 
@@ -790,14 +807,13 @@ HRESULT CFGManager::ConnectFilter(IBaseFilter* pBF, IPin* pPinIn)
 
 	BeginEnumPins(pBF, pEP, pPin)
 	{
-
 		PIN_DIRECTION dir;
 		CComPtr<IPin> pPinTo;
 		if(GetPinName(pPin)[0] != '~'
 		&& SUCCEEDED(pPin->QueryDirection(&dir)) && dir == PINDIR_OUTPUT
 		&& (FAILED(pPin->ConnectedTo(&pPinTo)) || !pPinTo))
 		{
-			m_streampath.Append(pBF, pPin, nTotal);
+			m_streampath.Append(pBF, pPin);
 
 			HRESULT hr = Connect(pPin, pPinIn);
 
