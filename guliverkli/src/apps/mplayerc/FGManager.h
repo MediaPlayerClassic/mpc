@@ -31,9 +31,20 @@ class CFGManager
 	, public CCritSec
 {
 public:
-	struct path_t {CString filter, pin;};
-	class CStreamPath : public CAtlList<path_t> {public: void Append(IBaseFilter* pBF, IPin* pPin, int i); bool Compare(const CStreamPath& path);};
-	class CStreamDeadEnd : public CStreamPath {public: CAtlList<CMediaType> mts;};
+	struct path_t {CLSID clsid; CString filter, pin;};
+
+	class CStreamPath : public CAtlList<path_t> 
+	{
+	public: 
+		void Append(IBaseFilter* pBF, IPin* pPin); 
+		bool Compare(const CStreamPath& path);
+	};
+
+	class CStreamDeadEnd : public CStreamPath 
+	{
+	public: 
+		CAtlList<CMediaType> mts;
+	};
 
 private:
 	CComPtr<IUnknown> m_pUnkInner;
