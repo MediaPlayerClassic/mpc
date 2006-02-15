@@ -28,10 +28,6 @@
 #include "libmpeg2.h"
 #include "..\..\..\DSUtil\vd.h"
 
-#ifndef NULL
-#define NULL 0
-#endif
-
 // decode
 
 #define SEQ_EXT 2
@@ -2994,7 +2990,7 @@ void CMpeg2Decoder::MOTION(
 	int motion_x, int motion_y, 
 	unsigned int size, unsigned int y, unsigned int limit_y)
 {
-	unsigned int pos_x, pos_y, xy_half, offset;
+	unsigned int pos_x, pos_y, xy_half, offset, dest_offset;
 
 	pos_x = 2 * m_offset + motion_x;
 	pos_y = 2 * m_v_offset + motion_y + 2 * y;
@@ -3019,8 +3015,9 @@ void CMpeg2Decoder::MOTION(
 
 	xy_half = ((motion_y & 1) << 1) | (motion_x & 1);
 	offset = ((m_offset + motion_x) >> 1) + ((((m_v_offset + motion_y) >> 1) + y/2) * m_uv_stride);
-	table[4+xy_half] (m_dest[1] + y/2 * m_uv_stride + (m_offset >> 1), ref[1] + offset, m_uv_stride, size/2);
-	table[4+xy_half] (m_dest[2] + y/2 * m_uv_stride + (m_offset >> 1), ref[2] + offset, m_uv_stride, size/2);
+	dest_offset = y/2 * m_uv_stride + (m_offset >> 1);
+	table[4+xy_half] (m_dest[1] + dest_offset, ref[1] + offset, m_uv_stride, size/2);
+	table[4+xy_half] (m_dest[2] + dest_offset, ref[2] + offset, m_uv_stride, size/2);
 }
 
 void CMpeg2Decoder::MOTION_FIELD(
@@ -3028,7 +3025,7 @@ void CMpeg2Decoder::MOTION_FIELD(
 	int motion_x, int motion_y, 
 	int dest_field, int src_field, unsigned int op)
 {
-    unsigned int pos_x, pos_y, xy_half, offset;
+    unsigned int pos_x, pos_y, xy_half, offset, dest_offset;
 
 	pos_x = 2 * m_offset + motion_x;
 	pos_y = m_v_offset + motion_y;
@@ -3053,8 +3050,9 @@ void CMpeg2Decoder::MOTION_FIELD(
 
 	xy_half = ((motion_y & 1) << 1) | (motion_x & 1);
 	offset = ((m_offset + motion_x) >> 1) + (((m_v_offset >> 1) + (op ? (motion_y | 1) :(motion_y & ~1)) + src_field) * m_uv_stride);
-	table[4+xy_half] (m_dest[1] + dest_field * m_uv_stride + (m_offset >> 1), ref[1] + offset, 2 * m_uv_stride, 4);
-	table[4+xy_half] (m_dest[2] + dest_field * m_uv_stride + (m_offset >> 1), ref[2] + offset, 2 * m_uv_stride, 4);
+	dest_offset = dest_field * m_uv_stride + (m_offset >> 1);
+	table[4+xy_half] (m_dest[1] + dest_offset, ref[1] + offset, 2 * m_uv_stride, 4);
+	table[4+xy_half] (m_dest[2] + dest_offset, ref[2] + offset, 2 * m_uv_stride, 4);
 }
 
 void CMpeg2Decoder::motion_mp1(motion_t* motion, mpeg2_mc_fct * const * const table)
@@ -3549,47 +3547,39 @@ void CMpeg2Decoder::mpeg2_slice(int code, const uint8_t* buffer)
 		{
 			if(m_picture_structure == FRAME_PICTURE)
 			{
-				switch(macroblock_modes & MOTION_TYPE_MASK)
+				switch((macroblock_modes >> 6) & 3) // macroblock_modes & MOTION_TYPE_MASK
 				{
-				case MC_FRAME:
+				case 0:
+					// non-intra mb without forward mv in a P picture //
+					m_f_motion.pmv[0][0] = 0;
+					m_f_motion.pmv[0][1] = 0;
+					m_f_motion.pmv[1][0] = 0;
+					m_f_motion.pmv[1][1] = 0;
+					MOTION_CALL(motion_zero, MACROBLOCK_MOTION_FORWARD);
+					break;
+
+				case 1: // MC_FIELD:
+					MOTION_CALL(motion_fr_field, macroblock_modes);
+					break;
+
+				case 2: // MC_FRAME:
+
 					if(m_mpeg1) MOTION_CALL(motion_mp1, macroblock_modes);
 					else MOTION_CALL (motion_fr_frame, macroblock_modes);
 					break;
 
-				case MC_FIELD:
-					MOTION_CALL(motion_fr_field, macroblock_modes);
-					break;
-
-				case MC_DMV:
+				case 3: // MC_DMV:
 					MOTION_CALL(motion_fr_dmv, MACROBLOCK_MOTION_FORWARD);
 					break;
 
-				case 0:
-					/* non-intra mb without forward mv in a P picture */
-					m_f_motion.pmv[0][0] = 0;
-					m_f_motion.pmv[0][1] = 0;
-					m_f_motion.pmv[1][0] = 0;
-					m_f_motion.pmv[1][1] = 0;
-					MOTION_CALL(motion_zero, MACROBLOCK_MOTION_FORWARD);
-					break;
+				default:
+					__assume(0);
 				}
 			}
 			else
 			{
-				switch (macroblock_modes & MOTION_TYPE_MASK)
+				switch((macroblock_modes >> 6) & 3) // macroblock_modes & MOTION_TYPE_MASK
 				{
-				case MC_FIELD:
-					MOTION_CALL(motion_fi_field, macroblock_modes);
-					break;
-
-				case MC_16X8:
-					MOTION_CALL(motion_fi_16x8, macroblock_modes);
-					break;
-
-				case MC_DMV:
-					MOTION_CALL(motion_fi_dmv, MACROBLOCK_MOTION_FORWARD);
-					break;
-
 				case 0:
 					/* non-intra mb without forward mv in a P picture */
 					m_f_motion.pmv[0][0] = 0;
@@ -3598,6 +3588,21 @@ void CMpeg2Decoder::mpeg2_slice(int code, const uint8_t* buffer)
 					m_f_motion.pmv[1][1] = 0;
 					MOTION_CALL(motion_zero, MACROBLOCK_MOTION_FORWARD);
 					break;
+
+				case 1: // MC_FIELD
+					MOTION_CALL(motion_fi_field, macroblock_modes);
+					break;
+
+				case 2: // MC_16X8
+					MOTION_CALL(motion_fi_16x8, macroblock_modes);
+					break;
+
+				case 3: // MC_DMV
+					MOTION_CALL(motion_fi_dmv, MACROBLOCK_MOTION_FORWARD);
+					break;
+
+				default:
+					__assume(0);
 				}
 			}
 

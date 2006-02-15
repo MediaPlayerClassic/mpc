@@ -796,6 +796,8 @@ HRESULT CMpeg2DecFilter::CheckTransform(const CMediaType* mtIn, const CMediaType
 		: VFW_E_TYPE_NOT_ACCEPTED;
 }
 
+DWORD g_clock;
+
 HRESULT CMpeg2DecFilter::StartStreaming()
 {
 	HRESULT hr = __super::StartStreaming();
@@ -806,11 +808,18 @@ HRESULT CMpeg2DecFilter::StartStreaming()
 
 	InputTypeChanged();
 
+//	g_clock = clock();
+
 	return S_OK;
 }
 
 HRESULT CMpeg2DecFilter::StopStreaming()
 {
+/*
+	CString str;
+	str.Format(_T("%d"), clock()-g_clock);
+	AfxMessageBox(str);
+*/
 	m_dec.Free();
 
 	return __super::StopStreaming();
