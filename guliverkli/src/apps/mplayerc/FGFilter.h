@@ -75,10 +75,10 @@ public:
 };
 
 template<class T>
-class CFGFilterCustom : public CFGFilter
+class CFGFilterInternal : public CFGFilter
 {
 public:
-	CFGFilterCustom(CStringW name = L"", UINT64 merit = MERIT64_DO_USE) : CFGFilter(__uuidof(T), name, merit) {}
+	CFGFilterInternal(CStringW name = L"", UINT64 merit = MERIT64_DO_USE) : CFGFilter(__uuidof(T), name, merit) {}
 
 	HRESULT Create(IBaseFilter** ppBF, IUnknown** ppUnk)
 	{

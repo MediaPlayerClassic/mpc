@@ -657,6 +657,7 @@
 					<Tool
 						Name="VCCLCompilerTool"
 						InlineFunctionExpansion="1"
+						AssemblerOutput="4"
 					/>
 				</FileConfiguration>
 				<FileConfiguration
