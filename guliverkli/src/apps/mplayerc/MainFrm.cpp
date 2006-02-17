@@ -3501,7 +3501,8 @@ void CMainFrame::SaveThumbnails(LPCTSTR fn)
 
 	int margin = 5;
 	int infoheight = 70;
-	int width = 1024, height = width * video.cy / video.cx * rows / cols + infoheight;
+	int width = s.ThumbWidth;
+	int height = width * video.cy / video.cx * rows / cols + infoheight;
 
 	int dibsize = sizeof(BITMAPINFOHEADER) + width*height*4;
 
@@ -3593,7 +3594,7 @@ void CMainFrame::SaveThumbnails(LPCTSTR fn)
 		str.Format(L"{\\an7\\1c&Hffffff&\\4a&Hb0&\\bord1\\shad4\\be1}{\\p1}m %d %d l %d %d %d %d %d %d{\\p}", 
 			r.left, r.top, r.right, r.top, r.right, r.bottom, r.left, r.bottom);
 		rts.Add(str, true, 0, 1, _T("thumbs"));
-		str.Format(L"{\\an3\\1c&Hffffff&\\3c&H000000&\\fs16\\b1\\bord2\\shad0\\pos(%d,%d)}%02d:%02d:%02d", 
+		str.Format(L"{\\an3\\1c&Hffffff&\\3c&H000000&\\alpha&H80&\\fs16\\b1\\bord2\\shad0\\pos(%d,%d)}%02d:%02d:%02d", 
 			r.right-5, r.bottom-3, hmsf.bHours, hmsf.bMinutes, hmsf.bSeconds);
 		rts.Add(str, true, 1, 2, _T("thumbs"));
 
@@ -3673,7 +3674,7 @@ void CMainFrame::SaveThumbnails(LPCTSTR fn)
 		rts.AddStyle(_T("thumbs"), style);
 
 		CStringW str;
-		str.Format(_T("{\\an9\\fs%d\\b1\\bord0\\shad0\\1c&Hffffff&}Media Player Classic"), infoheight-10);
+		str.Format(L"{\\an9\\fs%d\\b1\\bord0\\shad0\\1c&Hffffff&}%s", infoheight-10, width >= 550 ? L"Media Player Classic" : L"MPC");
 
 		rts.Add(str, true, 0, 1, _T("thumbs"), _T(""), _T(""), CRect(0,0,0,0), -1);
 
@@ -3743,7 +3744,7 @@ void CMainFrame::OnFileSaveImage()
 	else if(fd.m_pOFN->nFilterIndex = 2) s.SnapShotExt = _T(".jpg");
 
 	CPath pdst(fd.GetPathName());
-	if(pdst.GetExtension().MakeLower() != s.SnapShotExt) pdst += s.SnapShotExt;
+	if(pdst.GetExtension().MakeLower() != s.SnapShotExt) pdst = CPath((LPCTSTR)pdst + s.SnapShotExt);
 	CString path = (LPCTSTR)pdst;
 	pdst.RemoveFileSpec();
 	s.SnapShotPath = (LPCTSTR)pdst;
@@ -3772,7 +3773,7 @@ void CMainFrame::OnFileSaveThumbnails()
 	psrc.Combine(s.SnapShotPath, MakeSnapshotFileName(_T("thumbs")));
 
 	CSaveThumbnailsDialog fd(
-		s.ThumbRows, s.ThumbCols,
+		s.ThumbRows, s.ThumbCols, s.ThumbWidth,
 		0, (LPCTSTR)psrc, 
 		_T("Bitmaps (*.bmp)|*.bmp|Jpeg (*.jpg)|*.jpg||"), this);
 
@@ -3786,9 +3787,10 @@ void CMainFrame::OnFileSaveThumbnails()
 
 	s.ThumbRows = fd.m_rows;
 	s.ThumbCols = fd.m_cols;
+	s.ThumbWidth = fd.m_width;
 
 	CPath pdst(fd.GetPathName());
-	if(pdst.GetExtension().MakeLower() != s.SnapShotExt) pdst += s.SnapShotExt;
+	if(pdst.GetExtension().MakeLower() != s.SnapShotExt) pdst = CPath((LPCTSTR)pdst + s.SnapShotExt);
 	CString path = (LPCTSTR)pdst;
 	pdst.RemoveFileSpec();
 	s.SnapShotPath = (LPCTSTR)pdst;
@@ -6893,22 +6895,19 @@ void CMainFrame::OpenDVD(OpenDVDData* pODD)
 		if(pGBDE && pGBDE->GetCount()) CMediaTypesDlg(pGBDE, this).DoModal();
 	}
 
+	pGB->FindInterface(__uuidof(IDvdControl2), (void**)&pDVDC, TRUE);
+	pGB->FindInterface(__uuidof(IDvdInfo2), (void**)&pDVDI, TRUE);
+
 	if(hr == VFW_E_CANNOT_LOAD_SOURCE_FILTER)
 		throw _T("Can't find DVD directory");
 	else if(hr == VFW_E_CANNOT_RENDER)
 		throw _T("Failed to render all pins of the DVD Navigator filter");
 	else if(hr == VFW_S_PARTIAL_RENDER)
 		throw _T("Failed to render some of the pins of the DVD Navigator filter");
-	else if(hr == E_NOINTERFACE)
+	else if(hr == E_NOINTERFACE || !pDVDC || !pDVDI)
 		throw _T("Failed to query the needed interfaces for DVD playback");
 	else if(FAILED(hr))
 		throw _T("Can't create the DVD Navigator filter");
-
-	pGB->FindInterface(__uuidof(IDvdControl2), (void**)&pDVDC, TRUE);
-	pGB->FindInterface(__uuidof(IDvdInfo2), (void**)&pDVDI, TRUE);
-
-	if(!pDVDC || !pDVDI)
-		throw _T("Failed to query the needed interfaces for DVD playback");
 
 	WCHAR buff[MAX_PATH];
 	ULONG len = 0;

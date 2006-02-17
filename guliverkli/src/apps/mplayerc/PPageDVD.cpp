@@ -324,5 +324,6 @@ void CPPageDVD::OnLbnSelchangeList1()
 void CPPageDVD::OnUpdateDVDPath(CCmdUI* pCmdUI)
 {
 	UpdateData();
+
 	pCmdUI->Enable(m_iDVDLocation == 1);
 }

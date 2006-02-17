@@ -96,14 +96,19 @@ AP4_AtomSampleTable::GetSample(AP4_Ordinal index,
 	else if (m_Co64Atom) result = m_Co64Atom->GetChunkOffset(chunk, offset); 
 	else result = AP4_ERROR_INTERNAL;    
     if (AP4_FAILED(result)) return result;
-    
-    // compute the additional offset inside the chunk
+/*
+	// compute the additional offset inside the chunk
     for (unsigned int i = index-skip; i < index; i++) {
         AP4_Size size;
         result = m_StszAtom->GetSampleSize(i, size); 
         if (AP4_FAILED(result)) return result;
         offset += size;
     }
+*/
+	AP4_Size size;
+	result = m_StszAtom->GetSampleSize(index - skip, index, size);
+	if (AP4_FAILED(result)) return result;
+	offset += size;
 
     // set the description index
     sample.SetDescriptionIndex(desc-1); // adjust for 0-based indexes

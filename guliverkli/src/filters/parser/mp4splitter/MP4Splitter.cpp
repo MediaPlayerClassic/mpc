@@ -459,6 +459,10 @@ HRESULT CMP4SplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 					{
 						type &= 0xffff;
 					}
+					else if(type == AP4_ATOM_TYPE__MP3)
+					{
+						type = 0x0055;
+					}
 					else
 					{
 						type = 
@@ -515,6 +519,7 @@ HRESULT CMP4SplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 						if(!(type & 0xffff0000)) wfe->wFormatTag = (WORD)type;
 						wfe->nSamplesPerSec = ase->GetSampleRate();
 						wfe->nChannels = ase->GetChannelCount();
+						wfe->wBitsPerSample = ase->GetSampleSize();
 						mts.Add(mt);
 
 //						mt.subtype = FOURCCMap('RMAS');
@@ -1041,7 +1046,25 @@ bool CMP4SplitterFilter::DemuxLoop()
 
 			//
 
-			if(track->GetType() == AP4_Track::TYPE_TEXT)
+			if(track->GetType() == AP4_Track::TYPE_AUDIO && data.GetDataSize() == 1)
+			{
+				p->rtStop = p->rtStart;
+
+				while(AP4_SUCCEEDED(track->ReadSample(pPairNext->m_value.index, sample, data)))
+				{
+					AP4_Size size = data.GetDataSize();
+					const AP4_Byte* ptr = data.GetData();
+					for(int i = 0; i < size; i++) p->pData.Add(ptr[i]);
+
+					p->rtStop += (REFERENCE_TIME)(10000000.0 / track->GetMediaTimeScale() * sample.GetDuration());
+
+					if(pPairNext->m_value.index+1 >= track->GetSampleCount() || p->pData.GetCount() >= 300)
+						break;
+
+					pPairNext->m_value.index++;
+				}
+			}
+			else if(track->GetType() == AP4_Track::TYPE_TEXT)
 			{
 				CStringA dlgln_bkg, dlgln_plaintext;
 

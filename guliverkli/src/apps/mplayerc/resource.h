@@ -582,6 +582,7 @@
 #define IDS_RS_SNAPTODESKTOPEDGES       13136
 #define IDS_RS_ENABLESUBTITLES          13137
 #define IDS_RS_MPEGINTERLACED           13138
+#define IDS_RS_THUMBWIDTH				13139
 #define IDS_SRC_RADGT                   14000
 #define IDS_SRC_CDDA                    14001
 #define IDS_SRC_AVI                     14002
