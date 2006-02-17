@@ -159,11 +159,14 @@ void CPPagePlayer::OnBnClickedCheck8()
 
 	if(m_fUseIni) ((CMPlayerCApp*)AfxGetApp())->StoreSettingsToIni();
 	else ((CMPlayerCApp*)AfxGetApp())->StoreSettingsToRegistry();
+
+	SetModified();
 }
 
 void CPPagePlayer::OnUpdateTimeout(CCmdUI* pCmdUI)
 {
 	UpdateData();
+
 	pCmdUI->Enable(m_iShowBarsWhenFullScreen);
 }
 

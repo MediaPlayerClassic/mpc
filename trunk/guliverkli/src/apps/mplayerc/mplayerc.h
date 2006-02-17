@@ -474,7 +474,7 @@ public:
 		CString WebServerCGI;
 
 		CString SnapShotPath, SnapShotExt;
-		int ThumbRows, ThumbCols;
+		int ThumbRows, ThumbCols, ThumbWidth;
 
 		CString ISDb;
 

@@ -242,6 +242,7 @@ STDMETHODIMP CFGManager::ConnectDirect(IPin* pPinOut, IPin* pPinIn, const AM_MED
 	CComPtr<IBaseFilter> pBF = GetFilterFromPin(pPinIn);
 	CLSID clsid = GetCLSID(pBF);
 
+	// TODO: GetUpStreamFilter goes up on the first input pin only
 	for(CComPtr<IBaseFilter> pBFUS = GetFilterFromPin(pPinOut); pBFUS; pBFUS = GetUpStreamFilter(pBFUS))
 	{
 		if(pBFUS == pBF) return VFW_E_CIRCULAR_GRAPH;
@@ -924,7 +925,7 @@ STDMETHODIMP CFGManager::FindInterface(REFIID iid, void** ppv, BOOL bRemove)
 	return E_NOINTERFACE;
 }
 
-HRESULT CFGManager::AddToROT()
+STDMETHODIMP CFGManager::AddToROT()
 {
 	CAutoLock cAutoLock(this);
 
@@ -943,7 +944,7 @@ HRESULT CFGManager::AddToROT()
 	return hr;
 }
 
-HRESULT CFGManager::RemoveFromROT()
+STDMETHODIMP CFGManager::RemoveFromROT()
 {
 	CAutoLock cAutoLock(this);
 
@@ -1084,12 +1085,15 @@ CFGManagerCustom::CFGManagerCustom(LPCTSTR pName, LPUNKNOWN pUnk, UINT src, UINT
 		m_source.AddTail(pFGF);
 	}
 
+	__if_exists(CD2VSource)
+	{
 	if(src & SRC_D2V)
 	{
 		pFGF = new CFGFilterInternal<CD2VSource>();
 		pFGF->m_chkbytes.AddTail(_T("0,18,,4456443241564950726F6A65637446696C65"));
 		pFGF->m_extensions.AddTail(_T(".d2v"));
 		m_source.AddTail(pFGF);
+	}
 	}
 
 	__if_exists(CRadGtSourceFilter)

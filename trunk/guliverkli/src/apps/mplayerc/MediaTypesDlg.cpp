@@ -226,22 +226,25 @@ void CMediaTypesDlg::AddMediaType(AM_MEDIA_TYPE* pmt)
 		AddLine();
 	}
 
-	AddLine(_T("pbFormat:\n"));
-
-	for(int i = 0, j = (pmt->cbFormat + 15) & ~15; i < j; i += 16)
+	if(pmt->cbFormat > 0)
 	{
-		str.Format(_T("%08x:"), i);
-		for(int k = i, l = min(i+16, pmt->cbFormat); k < l; k++)
-		{
-			CString byte;
-			byte.Format(_T(" %02x"), pmt->pbFormat[k]);
-			str += byte;
-		}
-		str += '\n';
-		AddLine(str);
-	}
+		AddLine(_T("pbFormat:\n"));
 
-	AddLine();
+		for(int i = 0, j = (pmt->cbFormat + 15) & ~15; i < j; i += 16)
+		{
+			str.Format(_T("%08x:"), i);
+			for(int k = i, l = min(i+16, pmt->cbFormat); k < l; k++)
+			{
+				CString byte;
+				byte.Format(_T(" %02x"), pmt->pbFormat[k]);
+				str += byte;
+			}
+			str += '\n';
+			AddLine(str);
+		}
+
+		AddLine();
+	}
 }
 
 BEGIN_MESSAGE_MAP(CMediaTypesDlg, CResizableDialog)

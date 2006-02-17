@@ -550,9 +550,9 @@ HRESULT CMpeg2DecFilter::DeliverFast()
 
 	if(h == 1088)
 	{
-		memset(y + dstpitch*(h-8), 0xff, w*8);
-		memset(u + dstpitch*(h-8)/4, 0x80, w*8/4);
-		memset(v + dstpitch*(h-8)/4, 0x80, w*8/4);
+		memset(y + dstpitch*(h-8), 0xff, dstpitch*8);
+		memset(u + dstpitch*(h-8)/4, 0x80, dstpitch*8/4);
+		memset(v + dstpitch*(h-8)/4, 0x80, dstpitch*8/4);
 	}
 
 	if(CMpeg2DecInputPin* pPin = dynamic_cast<CMpeg2DecInputPin*>(m_pInput))
@@ -680,9 +680,9 @@ HRESULT CMpeg2DecFilter::Deliver(bool fRepeatLast)
 
 	if(m_fb.h == 1088)
 	{
-		memset(m_fb.buf[0] + m_fb.w*(m_fb.h-8), 0xff, m_fb.w*8);
-		memset(m_fb.buf[1] + m_fb.w*(m_fb.h-8)/4, 0x80, m_fb.w*8/4);
-		memset(m_fb.buf[2] + m_fb.w*(m_fb.h-8)/4, 0x80, m_fb.w*8/4);
+		memset(m_fb.buf[0] + m_fb.w*(m_fb.h-8), 0xff, m_fb.pitch*8);
+		memset(m_fb.buf[1] + m_fb.w*(m_fb.h-8)/4, 0x80, m_fb.pitch*8/4);
+		memset(m_fb.buf[2] + m_fb.w*(m_fb.h-8)/4, 0x80, m_fb.pitch*8/4);
 	}
 
 	BYTE** buf = &m_fb.buf[0];

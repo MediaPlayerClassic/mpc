@@ -29,7 +29,7 @@ class CSaveThumbnailsDialog : public CFileDialog
 
 public:
 	CSaveThumbnailsDialog(
-		int rows, int cols,
+		int rows, int cols, int width,
 		LPCTSTR lpszDefExt = NULL, LPCTSTR lpszFileName = NULL, 
 		LPCTSTR lpszFilter = NULL, CWnd* pParentWnd = NULL);
 	virtual ~CSaveThumbnailsDialog();
@@ -41,9 +41,10 @@ protected:
 	virtual BOOL OnFileNameOK();
 
 public:
-	int m_rows, m_cols;
+	int m_rows, m_cols, m_width;
 	CSpinButtonCtrl m_rowsctrl;
 	CSpinButtonCtrl m_colsctrl;
+	CSpinButtonCtrl m_widthctrl;
 };
 
 
