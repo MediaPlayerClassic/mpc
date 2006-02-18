@@ -1015,6 +1015,13 @@ CFGManagerCustom::CFGManagerCustom(LPCTSTR pName, LPUNKNOWN pUnk, UINT src, UINT
 		m_source.AddTail(pFGF);
 	}
 
+	// if(src & SRC_UDP)
+	{
+		pFGF = new CFGFilterInternal<CUDPReader>();
+		pFGF->m_protocols.AddTail(_T("udp"));
+		m_source.AddTail(pFGF);
+	}
+
 	if(src & SRC_AVI)
 	{
 		pFGF = new CFGFilterInternal<CAviSourceFilter>();

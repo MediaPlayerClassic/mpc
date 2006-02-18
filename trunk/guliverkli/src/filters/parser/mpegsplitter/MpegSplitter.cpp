@@ -517,12 +517,15 @@ HRESULT CMpegSplitterOutputPin::DeliverPacket(CAutoPtr<Packet> p)
 
 	if(p->rtStart != Packet::INVALID_TIME)
 	{
-		if(p->rtStart + m_rtOffset + 10000000 < m_rtPrev)
-			m_rtOffset += m_rtPrev - (p->rtStart + m_rtOffset);
+		REFERENCE_TIME rt = p->rtStart + m_rtOffset;
+
+		if(m_rtPrev != Packet::INVALID_TIME)
+		if(abs(rt - m_rtPrev) > 50000000)
+			m_rtOffset += m_rtPrev - rt;
 
 		p->rtStart += m_rtOffset;
 		p->rtStop += m_rtOffset;
-
+TRACE(_T("%I64d, %I64d (%I64d)\n"), p->rtStart, m_rtPrev, m_rtOffset);
 		m_rtPrev = p->rtStart;
 	}
 
