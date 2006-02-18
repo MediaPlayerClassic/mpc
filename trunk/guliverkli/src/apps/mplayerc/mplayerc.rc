@@ -2364,6 +2364,7 @@ BEGIN
     IDS_SUBRESYNC_INCREASE  "&Increase"
     IDS_OPTIONS_CAPTION     "Options"
     IDS_SHADER_COMBINE      "&Combine..."
+	IDS_SHADER_EDIT			"&Edit..."
     IDS_SHADER_OFF          "Off"
     IDS_SHADER_POPUP        "Shaders"
     IDS_FAVORITES_POPUP     "F&avorites"

@@ -428,6 +428,8 @@ protected:  // control bar embedded members
 	CPlayerShaderEditorBar m_wndShaderEditorBar;
 	CList<CSizingControlBar*> m_dockingbars;
 
+	void LoadControlBars();
+
 	CFileDropTarget m_fileDropTarget;
 	// TODO
 	DROPEFFECT OnDragEnter(COleDataObject* pDataObject, DWORD dwKeyState, CPoint point);
@@ -440,8 +442,9 @@ protected:  // control bar embedded members
 	friend class CPPagePlayback; // TODO
 	friend class CMPlayerCApp; // TODO
 
-	void LoadControlBar(CControlBar* pBar, CString section, UINT defDockBarID);
-	void SaveControlBar(CControlBar* pBar, CString section);
+	void LoadControlBar(CControlBar* pBar, UINT defDockBarID);
+	void LoadFloatingControlBars();
+	void SaveControlBar(CControlBar* pBar);
 
 // Generated message map functions
 

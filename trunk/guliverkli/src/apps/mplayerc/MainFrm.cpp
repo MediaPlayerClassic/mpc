@@ -435,24 +435,24 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	m_wndSubresyncBar.SetBarStyle(m_wndSubresyncBar.GetBarStyle() | CBRS_TOOLTIPS | CBRS_FLYBY | CBRS_SIZE_DYNAMIC);
 	m_wndSubresyncBar.EnableDocking(CBRS_ALIGN_ANY);
 	m_wndSubresyncBar.SetHeight(200);
-	LoadControlBar(&m_wndSubresyncBar, _T("ToolBars\\Subresync"), AFX_IDW_DOCKBAR_TOP);
+	LoadControlBar(&m_wndSubresyncBar, AFX_IDW_DOCKBAR_TOP);
 
 	m_wndPlaylistBar.Create(this);
 	m_wndPlaylistBar.SetBarStyle(m_wndPlaylistBar.GetBarStyle() | CBRS_TOOLTIPS | CBRS_FLYBY | CBRS_SIZE_DYNAMIC);
 	m_wndPlaylistBar.EnableDocking(CBRS_ALIGN_ANY);
 	m_wndPlaylistBar.SetHeight(100);
-	LoadControlBar(&m_wndPlaylistBar, _T("ToolBars\\Playlist"), AFX_IDW_DOCKBAR_BOTTOM);
+	LoadControlBar(&m_wndPlaylistBar, AFX_IDW_DOCKBAR_BOTTOM);
 	m_wndPlaylistBar.LoadPlaylist();
 
 	m_wndCaptureBar.Create(this);
 	m_wndCaptureBar.SetBarStyle(m_wndCaptureBar.GetBarStyle() | CBRS_TOOLTIPS | CBRS_FLYBY | CBRS_SIZE_DYNAMIC);
 	m_wndCaptureBar.EnableDocking(CBRS_ALIGN_LEFT|CBRS_ALIGN_RIGHT);
-	LoadControlBar(&m_wndCaptureBar, _T("ToolBars\\Capture"), AFX_IDW_DOCKBAR_LEFT);
+	LoadControlBar(&m_wndCaptureBar, AFX_IDW_DOCKBAR_LEFT);
 
 	m_wndShaderEditorBar.Create(this);
 	m_wndShaderEditorBar.SetBarStyle(m_wndShaderEditorBar.GetBarStyle() | CBRS_TOOLTIPS | CBRS_FLYBY | CBRS_SIZE_DYNAMIC);
 	m_wndShaderEditorBar.EnableDocking(CBRS_ALIGN_ANY);
-	LoadControlBar(&m_wndShaderEditorBar, _T("ToolBars\\ShaderEditor"), AFX_IDW_DOCKBAR_TOP);
+	LoadControlBar(&m_wndShaderEditorBar, AFX_IDW_DOCKBAR_TOP);
 
 	m_dockingbars.AddTail(&m_wndSubresyncBar);
 	m_dockingbars.AddTail(&m_wndPlaylistBar);
@@ -508,10 +508,10 @@ void CMainFrame::OnClose()
 {
 	m_wndPlaylistBar.SavePlaylist();
 
-	SaveControlBar(&m_wndSubresyncBar, _T("ToolBars\\Subresync"));
-	SaveControlBar(&m_wndPlaylistBar, _T("ToolBars\\Playlist"));
-	SaveControlBar(&m_wndCaptureBar, _T("ToolBars\\Capture"));
-	SaveControlBar(&m_wndShaderEditorBar, _T("ToolBars\\ShaderEditor"));
+	SaveControlBar(&m_wndSubresyncBar);
+	SaveControlBar(&m_wndPlaylistBar);
+	SaveControlBar(&m_wndCaptureBar);
+	SaveControlBar(&m_wndShaderEditorBar);
 
 	ShowWindow(SW_HIDE);
 
@@ -580,9 +580,14 @@ DROPEFFECT CMainFrame::OnDragScroll(DWORD dwKeyState, CPoint point)
 	return DROPEFFECT_NONE;
 }
 
-void CMainFrame::LoadControlBar(CControlBar* pBar, CString section, UINT defDockBarID)
+void CMainFrame::LoadControlBar(CControlBar* pBar, UINT defDockBarID)
 {
-	if(!pBar || section.IsEmpty()) return;
+	if(!pBar) return;
+
+	CString str;
+	pBar->GetWindowText(str);
+	if(str.IsEmpty()) return;
+	CString section = _T("ToolBars\\") + str;
 
 	CWinApp* pApp = AfxGetApp();
 
@@ -591,16 +596,6 @@ void CMainFrame::LoadControlBar(CControlBar* pBar, CString section, UINT defDock
 	if(nID != AFX_IDW_DOCKBAR_FLOAT)
 	{
 		DockControlBar(pBar, nID);
-	}
-	else
-	{
-		// FIXME
-		CRect r;
-		GetWindowRect(r);
-		CPoint p;
-		p.x = r.left + pApp->GetProfileInt(section, _T("DockPosX"), r.Width());
-		p.y = r.top + pApp->GetProfileInt(section, _T("DockPosY"), 0);
-		FloatControlBar(pBar, p);
 	}
 
 	pBar->ShowWindow(
@@ -617,9 +612,40 @@ void CMainFrame::LoadControlBar(CControlBar* pBar, CString section, UINT defDock
 	}
 }
 
-void CMainFrame::SaveControlBar(CControlBar* pBar, CString section)
+void CMainFrame::LoadFloatingControlBars()
 {
-	if(!pBar || section.IsEmpty()) return;
+	CWinApp* pApp = AfxGetApp();
+
+	POSITION pos = m_dockingbars.GetHeadPosition();
+	while(pos)
+	{
+		CSizingControlBar* pBar = m_dockingbars.GetNext(pos);
+
+		CString str;
+		pBar->GetWindowText(str);
+		if(str.IsEmpty()) return;
+		CString section = _T("ToolBars\\") + str;
+
+		if(pApp->GetProfileInt(section, _T("DockState"), ~AFX_IDW_DOCKBAR_FLOAT) == AFX_IDW_DOCKBAR_FLOAT)
+		{
+			CRect r;
+			GetWindowRect(r);
+			CPoint p;
+			p.x = r.left + pApp->GetProfileInt(section, _T("DockPosX"), r.Width());
+			p.y = r.top + pApp->GetProfileInt(section, _T("DockPosY"), 0);
+			FloatControlBar(pBar, p);
+		}
+	}
+}
+
+void CMainFrame::SaveControlBar(CControlBar* pBar)
+{
+	if(!pBar) return;
+
+	CString str;
+	pBar->GetWindowText(str);
+	if(str.IsEmpty()) return;
+	CString section = _T("ToolBars\\") + str;
 
 	CWinApp* pApp = AfxGetApp();
 
@@ -632,11 +658,11 @@ void CMainFrame::SaveControlBar(CControlBar* pBar, CString section)
 
 	if(nID == AFX_IDW_DOCKBAR_FLOAT)
 	{
-return;//
+//return;
 		// FIXME
 		CRect r1, r2;
 		GetWindowRect(r1);
-		pBar->GetWindowRect(r2);
+		pBar->GetParent()->GetParent()->GetWindowRect(r2);
 		pApp->WriteProfileInt(section, _T("DockPosX"), r2.left - r1.left);
 		pApp->WriteProfileInt(section, _T("DockPosY"), r2.top - r1.top);
 	}
@@ -2422,7 +2448,7 @@ BOOL CMainFrame::OnMenu(CMenu* pMenu)
 	CPoint point;
 	GetCursorPos(&point);
 
-	pMenu->TrackPopupMenu(TPM_RIGHTBUTTON|TPM_NOANIMATION, point.x, point.y, this);
+	pMenu->TrackPopupMenu(TPM_RIGHTBUTTON|TPM_NOANIMATION, point.x+1, point.y+1, this);
 
 	return TRUE;
 }
@@ -5037,6 +5063,12 @@ void CMainFrame::OnUpdatePlayFilters(CCmdUI* pCmdUI)
 
 void CMainFrame::OnPlayShaders(UINT nID)
 {
+	if(nID == ID_SHADERS_START+2)
+	{
+		ShowControlBar(&m_wndShaderEditorBar, TRUE, TRUE);
+		return;
+	}
+
 	if(!m_pCAP) return;
 
 	if(nID == ID_SHADERS_START)
@@ -5048,7 +5080,7 @@ void CMainFrame::OnPlayShaders(UINT nID)
 		if(IDOK != CShaderCombineDlg(m_shaderlabels, this).DoModal())
 			return;
 	}
-	else if(nID >= ID_SHADERS_START+2)
+	else if(nID >= ID_SHADERS_START+3)
 	{
 		MENUITEMINFO mii;
 		memset(&mii, 0, sizeof(mii));
@@ -5076,6 +5108,10 @@ void CMainFrame::OnUpdatePlayShaders(CCmdUI* pCmdUI)
 		else if(pCmdUI->m_nID == ID_SHADERS_START+1)
 		{
 			pCmdUI->SetRadio(m_shaderlabels.GetCount() > 1);
+		}
+		else if(pCmdUI->m_nID == ID_SHADERS_START+2)
+		{
+			pCmdUI->Enable(TRUE);
 		}
 		else
 		{
@@ -5897,7 +5933,6 @@ void CMainFrame::OnHelpDonate()
 }
 
 //////////////////////////////////
-
 
 void CMainFrame::SetDefaultWindowRect()
 {
@@ -8687,6 +8722,7 @@ void CMainFrame::SetupShadersSubMenu()
 	if(POSITION pos = AfxGetAppSettings().m_shaders.GetHeadPosition())
 	{
 		pSub->AppendMenu(MF_BYCOMMAND|MF_STRING|MF_ENABLED, id++, ResStr(IDS_SHADER_COMBINE));
+		pSub->AppendMenu(MF_BYCOMMAND|MF_STRING|MF_ENABLED, id++, ResStr(IDS_SHADER_EDIT));
 		pSub->AppendMenu(MF_SEPARATOR);
 
 		MENUITEMINFO mii;
