@@ -181,11 +181,10 @@ void CUDPStream::Append(BYTE* buff, int len)
 bool CUDPStream::Load(const WCHAR* fnw)
 {
 	Clear();
-/*
-#ifdef DEBUG
-	CStringW url = L"udp://@:4321"; 
-#else
-*/
+
+//#ifdef DEBUG
+//	CStringW url = L"udp://@:4321"; 
+//#else
 	CStringW url = CStringW(fnw);
 //#endif
 
@@ -330,7 +329,7 @@ DWORD CUDPStream::ThreadProc()
 	SetThreadPriority(m_hThread, THREAD_PRIORITY_TIME_CRITICAL);
 
 	FILE* dump = NULL;
-//	dump = _tfopen(_T("c:\\rip\\dump.ts"), _T("wb"));
+	// dump = _tfopen(_T("c:\\rip\\dump.ts"), _T("wb"));
 
 	while(1)
 	{
