@@ -699,6 +699,7 @@
 #define IDS_AUTOPLAY_PLAYDVDMOVIE       14184
 #define IDS_PROPSHEET_PROPERTIES        14185
 #define IDS_GRAPHBUILDER_AUDIOSWITCHER  14186
+#define IDS_SHADER_EDIT					14187
 
 // Next default values for new objects
 // 
