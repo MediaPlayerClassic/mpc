@@ -18,6 +18,7 @@
 
 #include ".\reader\CDDAReader\CDDAReader.h"
 #include ".\reader\CDXAReader\CDXAReader.h"
+#include ".\reader\UDPReader\UDPReader.h"
 #include ".\reader\VTSReader\VTSReader.h"
 #include ".\source\D2VSource\D2VSource.h"
 #include ".\source\DTSAC3Source\DTSAC3Source.h"

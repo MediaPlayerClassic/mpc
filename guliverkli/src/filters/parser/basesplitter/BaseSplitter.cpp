@@ -559,11 +559,11 @@ HRESULT CBaseSplitterOutputPin::DeliverPacket(CAutoPtr<Packet> p)
 /*
 //if(p->TrackNumber == 1)
 //if(p->rtStart != Packet::INVALID_TIME)
-*/TRACE(_T("[%d]: d%d s%d p%d, b=%d, %I64d-%I64d \n"), 
+TRACE(_T("[%d]: d%d s%d p%d, b=%d, %I64d-%I64d \n"), 
 	  p->TrackNumber,
 	  p->bDiscontinuity, p->bSyncPoint, fTimeValid && p->rtStart < 0,
 	  nBytes, p->rtStart, p->rtStop);
-
+*/
 		ASSERT(!p->bSyncPoint || fTimeValid);
 
 		BYTE* pData = NULL;
