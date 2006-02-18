@@ -50,8 +50,17 @@ CConvertDlg::~CConvertDlg()
 
 void CConvertDlg::AddFile(CString fn)
 {
-	CPath path(fn);
-	path.StripPath();
+	CString protocol;
+
+	int i = fn.Find(_T("://"));
+	if(i > 0)
+	{
+		CString url = fn.Mid(i);
+		CPath path(fn.Left(i));
+		path.StripPath();
+		protocol = (LPCTSTR)path;
+		fn = (LPCTSTR)path + url;
+	}
 
 	CComPtr<IBaseFilter> pBF;
 	if(FAILED(m_pGB->AddSourceFilter(CStringW(fn), CStringW(fn), &pBF)))
@@ -68,13 +77,18 @@ void CConvertDlg::AddFile(CString fn)
 
 		CString ext(_T(".dsm"));
 
-		CPath p(fn);
-		p.RemoveExtension();
-
-		if(ext.CompareNoCase(path.GetExtension()) == 0)
-			ext = _T(" (remuxed)") + ext;
-
-		m_fn = (LPCTSTR)p + ext;
+		if(!protocol.IsEmpty())
+		{
+			m_fn = protocol + ext;
+		}
+		else
+		{
+			CPath p(fn);
+			if(ext.CompareNoCase(p.GetExtension()) == 0) 
+				ext = _T(" (remuxed)") + ext;
+			p.RemoveExtension();
+			m_fn = (LPCTSTR)p + ext;
+		}
 		
 		UpdateData(FALSE);
 	}
@@ -331,7 +345,7 @@ void CConvertDlg::ShowPopup(CPoint p)
 	case 1:
 		{
 			CFileDialog fd(TRUE, NULL, m_fn, 
-				OFN_EXPLORER|OFN_ENABLESIZING|OFN_HIDEREADONLY, 
+				OFN_EXPLORER|OFN_ENABLESIZING|OFN_HIDEREADONLY|OFN_NOVALIDATE, 
 				_T("Media files|*.*||"), this, 0);
 			if(fd.DoModal() == IDOK) AddFile(fd.GetPathName());
 		}
@@ -998,7 +1012,8 @@ void CConvertDlg::OnTimer(UINT nIDEvent)
 			m_pMS->GetCurrentPosition(&rtCur);
 			
 			CString str;
-			if(hr == S_OK) str.Format(_T("%.2f%%"), 1.0 * (rtCur * 100) / rtDur);
+			if(hr == S_OK && rtDur != 0) str.Format(_T("%.2f%%"), 1.0 * (rtCur * 100) / rtDur);
+			else if(hr == S_OK && rtDur == 0) str = _T("Live");
 			else if(tf == TIME_FORMAT_BYTE) str.Format(_T("%.2fKB"), 1.0 * rtCur / 1024);
 			else if(tf == TIME_FORMAT_MEDIA_TIME) str.Format(_T("%02d:%02d:%02d"), int(rtCur/3600000000)%60, int(rtCur/60000000)%60, int(rtCur/1000000)%60);
 			else str = _T("Please Wait");
