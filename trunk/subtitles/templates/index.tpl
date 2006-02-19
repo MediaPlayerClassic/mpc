@@ -115,7 +115,7 @@
 			<nobr>
 				{if !empty($s.has_file)}<img src="img/video.gif" />{/if}
 				{if !empty($s.notes)}<img src="img/note.png" onmouseover="return overlib('{$s.notes|escape:"quote"}', WRAP);" onmouseout="return nd();" />{/if}
-				{if $s.userid > 0 && $s.userid == $user.userid}<a href="{$smarty.server.PHP_SELF}?del={$s.ms_id}" onclick="return confirm('Are you sure you want to delete this?')"><img src="img/del.gif" /></a>{/if}
+				{if $user.userid == 1 || $s.userid > 0 && $s.userid == $user.userid}<a href="{$smarty.server.PHP_SELF}?del={$s.ms_id}" onclick="return confirm('Are you sure you want to delete this?')"><img src="img/del.gif" /></a>{/if}
 				{*$user.userid == 1 || *}
 			</nobr>
 			</td>
