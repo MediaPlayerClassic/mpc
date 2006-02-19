@@ -85,6 +85,32 @@ inline int LNKO(int a, int b)
 
 // CPPageFileInfoDetails message handlers
 
+static bool GetProperty(IFilterGraph* pFG, LPCOLESTR propName, VARIANT* vt)
+{
+	BeginEnumFilters(pFG, pEF, pBF)
+	{
+		if(CComQIPtr<IPropertyBag> pPB = pBF)
+		if(SUCCEEDED(pPB->Read(propName, vt, NULL)))
+			return true;
+	}
+	EndEnumFilters
+
+	return false;
+}
+
+static CString FormatDateTime(FILETIME tm)
+{
+	SYSTEMTIME t;
+	FileTimeToSystemTime(&tm, &t);
+	TCHAR buff[256];
+	GetDateFormat(LOCALE_USER_DEFAULT, DATE_LONGDATE, &t, NULL, buff, 256);
+	CString	ret(buff);
+	ret += _T(" ");
+	GetTimeFormat(LOCALE_USER_DEFAULT, 0, &t, NULL, buff, 256);
+	ret += buff;
+	return ret;
+}
+
 BOOL CPPageFileInfoDetails::OnInitDialog()
 {
 	__super::OnInitDialog();
@@ -98,6 +124,22 @@ BOOL CPPageFileInfoDetails::OnInitDialog()
 
 	if(!LoadType(ext, m_type))
 		m_type = _T("Not known");
+
+	CComVariant vt;
+	if(::GetProperty(m_pFG, L"CurFile.TimeCreated", &vt))
+	{
+		if(V_VT(&vt) == VT_UI8)
+		{
+			ULARGE_INTEGER  uli;
+			uli.QuadPart = V_UI8(&vt);
+
+			FILETIME ft;
+			ft.dwLowDateTime = uli.LowPart;
+			ft.dwHighDateTime = uli.HighPart;
+
+			m_created = FormatDateTime(ft);
+		}
+	}
 
 	WIN32_FIND_DATA wfd;
 	HANDLE hFind = FindFirstFile(m_fn, &wfd);
@@ -113,14 +155,10 @@ BOOL CPPageFileInfoDetails::OnInitDialog()
 		if(shortsize > 10240) shortsize /= 1024, measure = _T("GB");
 		m_size.Format(_T("%I64d%s (%I64d bytes)"), shortsize, measure, size);
 
-		SYSTEMTIME t;
-		FileTimeToSystemTime(&wfd.ftCreationTime, &t);
-		TCHAR buff[256];
-		GetDateFormat(LOCALE_USER_DEFAULT, DATE_LONGDATE, &t, NULL, buff, 256);
-		m_created = buff;
-		m_created += _T(" ");
-		GetTimeFormat(LOCALE_USER_DEFAULT, 0, &t, NULL, buff, 256);
-		m_created += buff;
+		if(m_created.IsEmpty())
+		{
+			m_created = FormatDateTime(wfd.ftCreationTime);
+		}
 	}
 
 	REFERENCE_TIME rtDur = 0;
