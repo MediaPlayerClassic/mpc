@@ -18,6 +18,7 @@
 //  Notes: 
 //  - BitBltFromI420ToRGB is from VirtualDub
 //	- The core assembly function of CCpuID is from DVD2AVI
+//  - sse2 yv12 to yuy2 conversion by Haali
 //	(- vd.cpp/h should be renamed to something more sensible already :)
 
 
@@ -408,12 +409,317 @@ yuvtoyuy2row_avg_loop:
 	};
 }
 
-bool BitBltFromI420ToYUY2(int w, int h, BYTE* dst, int dstpitch, BYTE* srcy, BYTE* srcu, BYTE* srcv, int srcpitch)
+static void __declspec(naked) yv12_yuy2_row_sse2() {
+  __asm {
+    // ebx - Y
+    // edx - U
+    // esi - V
+    // edi - dest
+    // ecx - halfwidth
+    xor     eax, eax
+
+one:
+    movdqa  xmm0, [ebx + eax*2]    // YYYYYYYY
+    movdqa  xmm1, [ebx + eax*2 + 16]    // YYYYYYYY
+
+    movdqa  xmm2, [edx + eax]      // UUUUUUUU
+    movdqa  xmm3, [esi + eax]      // VVVVVVVV
+
+    movdqa  xmm4, xmm2
+    movdqa  xmm5, xmm0
+    movdqa  xmm6, xmm1
+    punpcklbw xmm2, xmm3          // VUVUVUVU
+    punpckhbw xmm4, xmm3          // VUVUVUVU
+
+    punpcklbw xmm0, xmm2          // VYUYVYUY
+    punpcklbw xmm1, xmm4
+    punpckhbw xmm5, xmm2
+    punpckhbw xmm6, xmm4
+
+    movntdq [edi + eax*4], xmm0
+    movntdq [edi + eax*4 + 16], xmm5
+    movntdq [edi + eax*4 + 32], xmm1
+    movntdq [edi + eax*4 + 48], xmm6
+
+    add     eax, 16
+    cmp     eax, ecx
+
+    jb      one
+
+    ret
+  };
+}
+
+static void __declspec(naked) yv12_yuy2_row_sse2_linear() {
+  __asm {
+    // ebx - Y
+    // edx - U
+    // esi - V
+    // edi - dest
+    // ecx - width
+    // ebp - uv_stride
+    xor     eax, eax
+
+one:
+    movdqa  xmm0, [ebx + eax*2]    // YYYYYYYY
+    movdqa  xmm1, [ebx + eax*2 + 16]    // YYYYYYYY
+
+    movdqa  xmm2, [edx]
+    movdqa  xmm3, [esi]
+    pavgb   xmm2, [edx + ebp]      // UUUUUUUU
+    pavgb   xmm3, [esi + ebp]      // VVVVVVVV
+
+    movdqa  xmm4, xmm2
+    movdqa  xmm5, xmm0
+    movdqa  xmm6, xmm1
+    punpcklbw xmm2, xmm3          // VUVUVUVU
+    punpckhbw xmm4, xmm3          // VUVUVUVU
+
+    punpcklbw xmm0, xmm2          // VYUYVYUY
+    punpcklbw xmm1, xmm4
+    punpckhbw xmm5, xmm2
+    punpckhbw xmm6, xmm4
+
+    movntdq [edi + eax*4], xmm0
+    movntdq [edi + eax*4 + 16], xmm5
+    movntdq [edi + eax*4 + 32], xmm1
+    movntdq [edi + eax*4 + 48], xmm6
+
+    add     eax, 16
+    add     edx, 16
+    add     esi, 16
+    cmp     eax, ecx
+
+    jb      one
+
+    ret
+  };
+}
+
+static void __declspec(naked) yv12_yuy2_row_sse2_linear_interlaced() {
+  __asm {
+    // ebx - Y
+    // edx - U
+    // esi - V
+    // edi - dest
+    // ecx - width
+    // ebp - uv_stride
+    xor     eax, eax
+
+one:
+    movdqa  xmm0, [ebx + eax*2]    // YYYYYYYY
+    movdqa  xmm1, [ebx + eax*2 + 16]    // YYYYYYYY
+
+    movdqa  xmm2, [edx]
+    movdqa  xmm3, [esi]
+    pavgb   xmm2, [edx + ebp*2]      // UUUUUUUU
+    pavgb   xmm3, [esi + ebp*2]      // VVVVVVVV
+
+    movdqa  xmm4, xmm2
+    movdqa  xmm5, xmm0
+    movdqa  xmm6, xmm1
+    punpcklbw xmm2, xmm3          // VUVUVUVU
+    punpckhbw xmm4, xmm3          // VUVUVUVU
+
+    punpcklbw xmm0, xmm2          // VYUYVYUY
+    punpcklbw xmm1, xmm4
+    punpckhbw xmm5, xmm2
+    punpckhbw xmm6, xmm4
+
+    movntdq [edi + eax*4], xmm0
+    movntdq [edi + eax*4 + 16], xmm5
+    movntdq [edi + eax*4 + 32], xmm1
+    movntdq [edi + eax*4 + 48], xmm6
+
+    add     eax, 16
+    add     edx, 16
+    add     esi, 16
+    cmp     eax, ecx
+
+    jb      one
+
+    ret
+  };
+}
+
+void __declspec(naked) yv12_yuy2_sse2(const BYTE *Y, const BYTE *U, const BYTE *V,
+    int halfstride, unsigned halfwidth, unsigned height,
+    BYTE *YUY2, int d_stride)
+{
+  __asm {
+    push    ebx
+    push    esi
+    push    edi
+    push    ebp
+
+    mov     ebx, [esp + 20] // Y
+    mov     edx, [esp + 24] // U
+    mov     esi, [esp + 28] // V
+    mov     edi, [esp + 44] // D
+    mov     ebp, [esp + 32] // uv_stride
+    mov     ecx, [esp + 36] // uv_width
+
+    mov     eax, ecx
+    add     eax, 15
+    and     eax, 0xfffffff0
+    sub     [esp + 32], eax
+
+    cmp     dword ptr [esp + 40], 2
+    jbe     last2
+
+row:
+    sub     dword ptr [esp + 40], 2
+    call    yv12_yuy2_row_sse2
+
+    lea     ebx, [ebx + ebp*2]
+    add     edi, [esp + 48]
+
+    call    yv12_yuy2_row_sse2_linear
+
+    add     edx, [esp + 32]
+    add     esi, [esp + 32]
+
+    lea     ebx, [ebx + ebp*2]
+    add     edi, [esp + 48]
+
+    cmp     dword ptr [esp + 40], 2
+    ja      row
+
+last2:
+    call    yv12_yuy2_row_sse2
+
+    dec     dword ptr [esp + 40]
+    jz      done
+
+    lea     ebx, [ebx + ebp*2]
+    add     edi, [esp + 48]
+    call    yv12_yuy2_row_sse2
+done:
+
+    pop     ebp
+    pop     edi
+    pop     esi
+    pop     ebx
+
+    ret
+  };
+}
+
+void __declspec(naked) yv12_yuy2_sse2_interlaced(const BYTE *Y, const BYTE *U, const BYTE *V,
+    int halfstride, unsigned halfwidth, unsigned height,
+    BYTE *YUY2, int d_stride)
+{
+  __asm {
+    push    ebx
+    push    esi
+    push    edi
+    push    ebp
+
+    mov     ebx, [esp + 20] // Y
+    mov     edx, [esp + 24] // U
+    mov     esi, [esp + 28] // V
+    mov     edi, [esp + 44] // D
+    mov     ebp, [esp + 32] // uv_stride
+    mov     ecx, [esp + 36] // uv_width
+
+    mov     eax, ecx
+    add     eax, 15
+    and     eax, 0xfffffff0
+    sub     [esp + 32], eax
+
+    cmp     dword ptr [esp + 40], 4
+    jbe     last4
+
+row:
+    sub     dword ptr [esp + 40], 4
+    call    yv12_yuy2_row_sse2	// first row, first field
+
+    lea     ebx, [ebx + ebp*2]
+    add     edi, [esp + 48]
+
+    add	    edx, ebp
+    add	    esi, ebp
+
+    call    yv12_yuy2_row_sse2	// first row, second field
+
+    lea     ebx, [ebx + ebp*2]
+    add     edi, [esp + 48]
+
+    sub	    edx, ebp
+    sub	    esi, ebp
+
+    call    yv12_yuy2_row_sse2_linear_interlaced // second row, first field
+
+    add     edx, [esp + 32]
+    add     esi, [esp + 32]
+
+    lea     ebx, [ebx + ebp*2]
+    add     edi, [esp + 48]
+
+    call    yv12_yuy2_row_sse2_linear_interlaced // second row, second field
+
+    add     edx, [esp + 32]
+    add     esi, [esp + 32]
+
+    lea     ebx, [ebx + ebp*2]
+    add     edi, [esp + 48]
+
+    cmp     dword ptr [esp + 40], 4
+    ja      row
+
+last4:
+    call    yv12_yuy2_row_sse2
+
+    lea     ebx, [ebx + ebp*2]
+    add     edi, [esp + 48]
+
+    add     edx, ebp
+    add     esi, ebp
+
+    call    yv12_yuy2_row_sse2
+
+    lea     ebx, [ebx + ebp*2]
+    add     edi, [esp + 48]
+
+    sub     edx, ebp
+    sub     esi, ebp
+
+    call    yv12_yuy2_row_sse2
+
+    lea     ebx, [ebx + ebp*2]
+    add     edi, [esp + 48]
+
+    add     edx, ebp
+    add     esi, ebp
+
+    call    yv12_yuy2_row_sse2
+
+    pop     ebp
+    pop     edi
+    pop     esi
+    pop     ebx
+
+    ret
+  };
+}
+
+bool BitBltFromI420ToYUY2(int w, int h, BYTE* dst, int dstpitch, BYTE* srcy, BYTE* srcu, BYTE* srcv, int srcpitch, bool fInterlaced)
 {
 	if(w<=0 || h<=0 || (w&1) || (h&1))
 		return(false);
 
 	if(srcpitch == 0) srcpitch = w;
+
+	if((g_cpuid.m_flags & CCpuID::sse2) && !(srcpitch&15) && !(dstpitch&15))
+	{
+		if(!fInterlaced) yv12_yuy2_sse2(srcy, srcu, srcv, srcpitch/2, w/2, h, dst, dstpitch);
+		else yv12_yuy2_sse2_interlaced(srcy, srcu, srcv, srcpitch/2, w/2, h, dst, dstpitch);
+		return true;
+	}
+	else
+	{
+		ASSERT(!fInterlaced);
+	}
 
 	void (*yuvtoyuy2row)(BYTE* dst, BYTE* srcy, BYTE* srcu, BYTE* srcv, DWORD width) = NULL;
 	void (*yuvtoyuy2row_avg)(BYTE* dst, BYTE* srcy, BYTE* srcu, BYTE* srcv, DWORD width, DWORD pitchuv) = NULL;

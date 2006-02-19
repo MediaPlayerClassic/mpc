@@ -217,14 +217,14 @@ HRESULT hr1 = 0, hr2 = 0;
 	return S_FALSE;
 }
 
-HRESULT CBaseVideoFilter::CopyBuffer(BYTE* pOut, BYTE* pIn, int w, int h, int pitchIn, const GUID& subtype)
+HRESULT CBaseVideoFilter::CopyBuffer(BYTE* pOut, BYTE* pIn, int w, int h, int pitchIn, const GUID& subtype, bool fInterlaced)
 {
 	int abs_h = abs(h);
 	BYTE* pInYUV[3] = {pIn, pIn + pitchIn*abs_h, pIn + pitchIn*abs_h + (pitchIn>>1)*(abs_h>>1)};
-	return CopyBuffer(pOut, pInYUV, w, h, pitchIn, subtype);
+	return CopyBuffer(pOut, pInYUV, w, h, pitchIn, subtype, fInterlaced);
 }
 
-HRESULT CBaseVideoFilter::CopyBuffer(BYTE* pOut, BYTE** ppIn, int w, int h, int pitchIn, const GUID& subtype)
+HRESULT CBaseVideoFilter::CopyBuffer(BYTE* pOut, BYTE** ppIn, int w, int h, int pitchIn, const GUID& subtype, bool fInterlaced)
 {
 	BITMAPINFOHEADER bihOut;
 	ExtractBIH(&m_pOutput->CurrentMediaType(), &bihOut);
@@ -269,7 +269,7 @@ HRESULT CBaseVideoFilter::CopyBuffer(BYTE* pOut, BYTE** ppIn, int w, int h, int 
 
 		if(bihOut.biCompression == '2YUY')
 		{
-			BitBltFromI420ToYUY2(w, h, pOut, bihOut.biWidth*2, pIn, pInU, pInV, pitchIn);
+			BitBltFromI420ToYUY2(w, h, pOut, bihOut.biWidth*2, pIn, pInU, pInV, pitchIn, fInterlaced);
 		}
 		else if(bihOut.biCompression == '024I' || bihOut.biCompression == 'VUYI' || bihOut.biCompression == '21VY')
 		{

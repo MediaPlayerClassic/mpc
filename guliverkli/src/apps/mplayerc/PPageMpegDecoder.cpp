@@ -83,6 +83,7 @@ BOOL CPPageMpegDecoder::OnInitDialog()
 	m_dilist.SetItemData(m_dilist.AddString(_T("Weave")), (DWORD)DIWeave);
 	m_dilist.SetItemData(m_dilist.AddString(_T("Blend")), (DWORD)DIBlend);
 	m_dilist.SetItemData(m_dilist.AddString(_T("Bob")), (DWORD)DIBob);
+	m_dilist.SetItemData(m_dilist.AddString(_T("Field Shift")), (DWORD)DIFieldShift);
 	m_dilist.SetCurSel(0);
 	for(int i = 0; i < m_dilist.GetCount(); i++)
 		if((int)m_dilist.GetItemData(i) == s.mpegdi)

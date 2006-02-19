@@ -273,6 +273,7 @@ HRESULT CMP4SplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 					case AP4_MPEG2_AAC_AUDIO_LC_OTI: // ???
 					case AP4_MPEG2_AAC_AUDIO_SSRP_OTI: // ???
 						mt.subtype = FOURCCMap(wfe->wFormatTag = WAVE_FORMAT_AAC);
+						if(wfe->cbSize >= 2) wfe->nChannels = (((BYTE*)(wfe+1))[1]>>3) & 0xf;
 						mts.Add(mt);
 						break;
 					case AP4_MPEG2_PART3_AUDIO_OTI: // ???
