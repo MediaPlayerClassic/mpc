@@ -616,6 +616,9 @@ void CMainFrame::LoadFloatingControlBars()
 {
 	CWinApp* pApp = AfxGetApp();
 
+	CRect r;
+	GetWindowRect(r);
+
 	POSITION pos = m_dockingbars.GetHeadPosition();
 	while(pos)
 	{
@@ -628,11 +631,9 @@ void CMainFrame::LoadFloatingControlBars()
 
 		if(pApp->GetProfileInt(section, _T("DockState"), ~AFX_IDW_DOCKBAR_FLOAT) == AFX_IDW_DOCKBAR_FLOAT)
 		{
-			CRect r;
-			GetWindowRect(r);
 			CPoint p;
-			p.x = r.left + pApp->GetProfileInt(section, _T("DockPosX"), r.Width());
-			p.y = r.top + pApp->GetProfileInt(section, _T("DockPosY"), 0);
+			p.x = pApp->GetProfileInt(section, _T("DockPosX"), r.right);
+			p.y = pApp->GetProfileInt(section, _T("DockPosY"), r.top);
 			FloatControlBar(pBar, p);
 		}
 	}
@@ -658,11 +659,10 @@ void CMainFrame::SaveControlBar(CControlBar* pBar)
 
 	if(nID == AFX_IDW_DOCKBAR_FLOAT)
 	{
-		CRect r1, r2;
-		GetWindowRect(r1);
-		pBar->GetParent()->GetParent()->GetWindowRect(r2);
-		pApp->WriteProfileInt(section, _T("DockPosX"), r2.left - r1.left);
-		pApp->WriteProfileInt(section, _T("DockPosY"), r2.top - r1.top);
+		CRect r;
+		pBar->GetParent()->GetParent()->GetWindowRect(r);
+		pApp->WriteProfileInt(section, _T("DockPosX"), r.left);
+		pApp->WriteProfileInt(section, _T("DockPosY"), r.top);
 	}
 
 	pApp->WriteProfileInt(section, _T("DockState"), nID);
@@ -9390,7 +9390,7 @@ bool CMainFrame::BuildGraphVideoAudio(int fVPreview, bool fVCapture, int fAPrevi
 
 		if(fAudPrev)
 		{
-			pGB->Render(fAudCap ? pAudPrevPin : pAudCapPin);
+			pGB->Render(pAudPrevPin);
 		}
 
 		if(fAudCap)
