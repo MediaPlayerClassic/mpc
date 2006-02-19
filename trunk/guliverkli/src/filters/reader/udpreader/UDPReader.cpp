@@ -182,10 +182,9 @@ bool CUDPStream::Load(const WCHAR* fnw)
 {
 	Clear();
 
-//#ifdef DEBUG
-//	CStringW url = L"udp://@:4321"; 
-//#else
 	CStringW url = CStringW(fnw);
+//#ifdef DEBUG
+//	url = L"udp://@:1234"; 
 //#endif
 
 	CList<CStringW> sl;
@@ -329,7 +328,9 @@ DWORD CUDPStream::ThreadProc()
 	SetThreadPriority(m_hThread, THREAD_PRIORITY_TIME_CRITICAL);
 
 	FILE* dump = NULL;
-	// dump = _tfopen(_T("c:\\rip\\dump.ts"), _T("wb"));
+//	dump = _tfopen(_T("c:\\rip\\udp.ts"), _T("wb"));
+	FILE* log = NULL;
+//	log = _tfopen(_T("c:\\rip\\udp.txt"), _T("wt"));
 
 	while(1)
 	{
@@ -342,6 +343,7 @@ DWORD CUDPStream::ThreadProc()
 			if(m_socket >= 0) {closesocket(m_socket); m_socket = -1;}
 			if(err == 0) WSACleanup();
 			if(dump) fclose(dump);
+			if(log) fclose(log);
 			Reply(S_OK);
 			return 0;
 		case CMD_RUN:
@@ -364,12 +366,42 @@ DWORD CUDPStream::ThreadProc()
 					int len = recvfrom(m_socket, &buff[buffsize], 65536, 0, (SOCKADDR*)&from, &fromlen);
 					if(len <= 0) {Sleep(1); continue;}
 
+					if(log)
+					{
+						if(buffsize >= len && !memcmp(&buff[buffsize-len], &buff[buffsize], len))
+						{
+							DWORD pid = ((buff[buffsize+1]<<8)|buff[buffsize+2])&0x1fff;
+							DWORD counter = buff[buffsize+3]&0xf;
+							_ftprintf(log, _T("%04d %2d DUP\n"), pid, counter);
+						}
+					}
+
 					buffsize += len;
 					
 					if(buffsize >= 65536 || m_len == 0)
 					{
+						if(dump)
+						{
+							fwrite(buff, buffsize, 1, dump);
+						}
+
+						if(log)
+						{
+							static BYTE pid2counter[0x2000];
+							static bool init = false;
+							if(!init) {memset(pid2counter, 0, sizeof(pid2counter)); init = true;}
+
+							for(int i = 0; i < buffsize; i += 188)
+							{
+								DWORD pid = ((buff[i+1]<<8)|buff[i+2])&0x1fff;
+								DWORD counter = buff[i+3]&0xf;
+								if(pid2counter[pid] != ((counter-1+16)&15))
+									_ftprintf(log, _T("%04x %2d -> %2d\n"), pid, pid2counter[pid], counter);
+								pid2counter[pid] = counter;
+							}
+						}
+
 						Append((BYTE*)buff, buffsize);
-						if(dump) fwrite(buff, buffsize, 1, dump);
 						buffsize = 0;
 					}
 				}

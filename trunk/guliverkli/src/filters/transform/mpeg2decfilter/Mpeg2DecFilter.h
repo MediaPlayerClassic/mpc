@@ -64,14 +64,14 @@ class CMpeg2DecFilter : public CBaseVideoFilter, public IMpeg2DecFilter2
 		{
 			this->w = w; this->h = h; this->pitch = pitch;
 			int size = pitch*h;
-			buf_base = (BYTE*)_aligned_malloc(size*3+6*16, 16);
+			buf_base = (BYTE*)_aligned_malloc(size*3+6*32, 32);
 			BYTE* p = buf_base;
-			buf[0] = p; p += (size + 15) & ~15;
-			buf[3] = p; p += (size + 15) & ~15;
-			buf[1] = p; p += (size/4 + 15) & ~15;
-			buf[4] = p; p += (size/4 + 15) & ~15;
-			buf[2] = p; p += (size/4 + 15) & ~15;
-			buf[5] = p; p += (size/4 + 15) & ~15;
+			buf[0] = p; p += (size + 31) & ~31;
+			buf[3] = p; p += (size + 31) & ~31;
+			buf[1] = p; p += (size/4 + 31) & ~31;
+			buf[4] = p; p += (size/4 + 31) & ~31;
+			buf[2] = p; p += (size/4 + 31) & ~31;
+			buf[5] = p; p += (size/4 + 31) & ~31;
 		}
 		void free()
 		{

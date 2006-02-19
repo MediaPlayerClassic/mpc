@@ -658,8 +658,6 @@ void CMainFrame::SaveControlBar(CControlBar* pBar)
 
 	if(nID == AFX_IDW_DOCKBAR_FLOAT)
 	{
-//return;
-		// FIXME
 		CRect r1, r2;
 		GetWindowRect(r1);
 		pBar->GetParent()->GetParent()->GetWindowRect(r2);

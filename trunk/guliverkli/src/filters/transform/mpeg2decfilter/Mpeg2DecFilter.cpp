@@ -179,7 +179,6 @@ CMpeg2DecFilter::CMpeg2DecFilter(LPUNKNOWN lpunk, HRESULT* phr)
 	if(FAILED(*phr)) return;
 
 	SetDeinterlaceMethod(DIAuto);
-//	SetDeinterlaceMethod(DIWeave);
 	SetBrightness(0.0);
 	SetContrast(1.0);
 	SetHue(0.0);
@@ -325,7 +324,7 @@ void CMpeg2DecFilter::SetDeinterlaceMethod()
 	{
 		m_fb.di = GetDeinterlaceMethod();
 
-		if(m_fb.di == DIAuto || m_fb.di != DIWeave && m_fb.di != DIBlend && m_fb.di != DIBob)
+		if(m_fb.di == DIAuto || m_fb.di != DIWeave && m_fb.di != DIBlend && m_fb.di != DIBob && m_fb.di != DIFieldShift)
 		{
 			if(seqflags & SEQ_FLAG_PROGRESSIVE_SEQUENCE)
 				m_fb.di = DIWeave; // hurray!
@@ -442,7 +441,7 @@ HRESULT CMpeg2DecFilter::Transform(IMediaSample* pIn)
 
 					int w = m_dec->m_info.m_sequence->picture_width;
 					int h = m_dec->m_info.m_sequence->picture_height;
-					int pitch = m_dec->m_info.m_sequence->width;
+					int pitch = (m_dec->m_info.m_sequence->width + 31) & ~31;
 
 					if(m_fb.w != w || m_fb.h != h || m_fb.pitch != pitch)
 						m_fb.alloc(w, h, pitch);
@@ -522,11 +521,11 @@ HRESULT CMpeg2DecFilter::DeliverFast()
 	BITMAPINFOHEADER bihOut;
 	ExtractBIH(&mt, &bihOut);
 
-	// (m_fb.w+7)&~7; // TODO
-	int srcpitch = m_fb.pitch;
 	int w = bihOut.biWidth;
 	int h = abs(bihOut.biHeight);
+	int srcpitch = m_dec->m_info.m_sequence->width; // TODO (..+7)&~7; ?
 	int dstpitch = bihOut.biWidth;
+
 	BYTE* y = pDataOut;
 	BYTE* u = y + dstpitch*h;
 	BYTE* v = y + dstpitch*h*5/4;
@@ -543,9 +542,9 @@ HRESULT CMpeg2DecFilter::DeliverFast()
 		DeinterlaceBlend(u, fbuf->buf[1], w/2, h/2, dstpitch/2, srcpitch/2);
 		DeinterlaceBlend(v, fbuf->buf[2], w/2, h/2, dstpitch/2, srcpitch/2);
 	}
-	else if(m_fb.di == DIBob)
+	else // TODO
 	{
-		return S_FALSE; // TODO
+		return S_FALSE;
 	}
 
 	if(h == 1088)
@@ -595,65 +594,78 @@ HRESULT CMpeg2DecFilter::DeliverNormal()
 
 	int w = m_fb.w;
 	int h = m_fb.h;
-	int pitch = m_fb.pitch;
+	int spitch = m_dec->m_info.m_sequence->width; // TODO (..+7)&~7; ?
+	int dpitch = m_fb.pitch;
 
 	REFERENCE_TIME rtStart = m_fb.rtStart;
 	REFERENCE_TIME rtStop = m_fb.rtStop;
+
+	bool tff = !!(m_fb.flags&PIC_FLAG_TOP_FIELD_FIRST);
 
 	// deinterlace
 
 	if(m_fb.di == DIWeave)
 	{
-		BitBltFromI420ToI420(w, h, m_fb.buf[0], m_fb.buf[1], m_fb.buf[2], pitch, fbuf->buf[0], fbuf->buf[1], fbuf->buf[2], pitch);
+		BitBltFromI420ToI420(w, h, m_fb.buf[0], m_fb.buf[1], m_fb.buf[2], dpitch, fbuf->buf[0], fbuf->buf[1], fbuf->buf[2], spitch);
 	}
 	else if(m_fb.di == DIBlend)
 	{
-		DeinterlaceBlend(m_fb.buf[0], fbuf->buf[0], w, h, pitch, pitch);
-		DeinterlaceBlend(m_fb.buf[1], fbuf->buf[1], w/2, h/2, pitch/2, pitch/2);
-		DeinterlaceBlend(m_fb.buf[2], fbuf->buf[2], w/2, h/2, pitch/2, pitch/2);
+		DeinterlaceBlend(m_fb.buf[0], fbuf->buf[0], w, h, dpitch, spitch);
+		DeinterlaceBlend(m_fb.buf[1], fbuf->buf[1], w/2, h/2, dpitch/2, spitch/2);
+		DeinterlaceBlend(m_fb.buf[2], fbuf->buf[2], w/2, h/2, dpitch/2, spitch/2);
 	}
 	else if(m_fb.di == DIBob)
 	{
-		bool tff = !!(m_fb.flags&PIC_FLAG_TOP_FIELD_FIRST);
-
-		DeinterlaceBob(m_fb.buf[0], fbuf->buf[0], w, h, pitch, pitch, tff);
-		DeinterlaceBob(m_fb.buf[1], fbuf->buf[1], w/2, h/2, pitch/2, pitch/2, tff);
-		DeinterlaceBob(m_fb.buf[2], fbuf->buf[2], w/2, h/2, pitch/2, pitch/2, tff);
+		DeinterlaceBob(m_fb.buf[0], fbuf->buf[0], w, h, dpitch, spitch, tff);
+		DeinterlaceBob(m_fb.buf[1], fbuf->buf[1], w/2, h/2, dpitch/2, spitch/2, tff);
+		DeinterlaceBob(m_fb.buf[2], fbuf->buf[2], w/2, h/2, dpitch/2, spitch/2, tff);
 
 		m_fb.rtStart = rtStart;
 		m_fb.rtStop = (rtStart + rtStop) / 2;
 	}
+	else if(m_fb.di == DIFieldShift)
+	{
+		int soffset = tff ? 0 : spitch;
+		int doffset = tff ? 0 : dpitch;
+		BitBltFromRGBToRGB(w, h/2, m_fb.buf[0] + doffset, dpitch*2, 8, fbuf->buf[0] + soffset, spitch*2, 8);
+		BitBltFromRGBToRGB(w/2, h/4, m_fb.buf[1] + doffset/2, dpitch, 8, fbuf->buf[1] + soffset/2, spitch, 8);
+		BitBltFromRGBToRGB(w/2, h/4, m_fb.buf[2] + doffset/2, dpitch, 8, fbuf->buf[2] + soffset/2, spitch, 8);
+	}
 
 	// postproc
 
-	ApplyBrContHueSat(m_fb.buf[0], m_fb.buf[1], m_fb.buf[2], w, h, pitch);
+	ApplyBrContHueSat(m_fb.buf[0], m_fb.buf[1], m_fb.buf[2], w, h, dpitch);
 
 	// deliver
 
 	if(FAILED(hr = Deliver(false)))
 		return hr;
 
-	// spec code for bob
-
 	if(m_fb.di == DIBob)
 	{
-		bool tff = !!(m_fb.flags&PIC_FLAG_TOP_FIELD_FIRST);
-
-		DeinterlaceBob(m_fb.buf[0], fbuf->buf[0], w, h, pitch, pitch, !tff);
-		DeinterlaceBob(m_fb.buf[1], fbuf->buf[1], w/2, h/2, pitch/2, pitch/2, !tff);
-		DeinterlaceBob(m_fb.buf[2], fbuf->buf[2], w/2, h/2, pitch/2, pitch/2, !tff);
+		DeinterlaceBob(m_fb.buf[0], fbuf->buf[0], w, h, dpitch, spitch, !tff);
+		DeinterlaceBob(m_fb.buf[1], fbuf->buf[1], w/2, h/2, dpitch/2, spitch/2, !tff);
+		DeinterlaceBob(m_fb.buf[2], fbuf->buf[2], w/2, h/2, dpitch/2, spitch/2, !tff);
 
 		m_fb.rtStart = (rtStart + rtStop) / 2;
 		m_fb.rtStop = rtStop;
 
 		// postproc
 
-		ApplyBrContHueSat(m_fb.buf[0], m_fb.buf[1], m_fb.buf[2], w, h, pitch);
+		ApplyBrContHueSat(m_fb.buf[0], m_fb.buf[1], m_fb.buf[2], w, h, dpitch);
 
 		// deliver
 
 		if(FAILED(hr = Deliver(false)))
 			return hr;
+	}
+	else if(m_fb.di == DIFieldShift)
+	{
+		int soffset = !tff ? 0 : spitch;
+		int doffset = !tff ? 0 : dpitch;
+		BitBltFromRGBToRGB(w, h/2, m_fb.buf[0] + doffset, dpitch*2, 8, fbuf->buf[0] + soffset, spitch*2, 8);
+		BitBltFromRGBToRGB(w/2, h/4, m_fb.buf[1] + doffset/2, dpitch, 8, fbuf->buf[1] + soffset/2, spitch, 8);
+		BitBltFromRGBToRGB(w/2, h/4, m_fb.buf[2] + doffset/2, dpitch, 8, fbuf->buf[2] + soffset/2, spitch, 8);
 	}
 
 	return S_OK;
@@ -698,7 +710,7 @@ HRESULT CMpeg2DecFilter::Deliver(bool fRepeatLast)
 		m_pSubpicInput->RenderSubpics(m_fb.rtStart, buf, m_fb.pitch, m_fb.h);
 	}
 
-	CopyBuffer(pDataOut, buf, (m_fb.w+7)&~7, m_fb.h, m_fb.pitch, MEDIASUBTYPE_I420);
+	CopyBuffer(pDataOut, buf, (m_fb.w+7)&~7, m_fb.h, m_fb.pitch, MEDIASUBTYPE_I420, !(m_fb.flags & PIC_FLAG_PROGRESSIVE_FRAME));
 
 	//
 
@@ -895,7 +907,7 @@ void CMpeg2DecFilter::ApplyBrContHueSat(BYTE* srcy, BYTE* srcu, BYTE* srcv, int 
 	{
 		int size = pitch*h;
 
-		if(g_cpuid.m_flags&CCpuID::sse2 && ((DWORD_PTR)srcy & 15) == 0)
+		if((g_cpuid.m_flags&CCpuID::sse2) && ((DWORD_PTR)srcy & 15) == 0)
 		{
 			short Cont = (short)(min(max(m_cont, 0) * 512, (1<<16)-1));
 			short Bright = (short)(m_bright + 16);
