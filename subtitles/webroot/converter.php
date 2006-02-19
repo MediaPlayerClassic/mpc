@@ -12,11 +12,10 @@ $outtypes = array(
 	0 => 'srt',
 	1 => 'sub');
 	
-$smarty->assign('fps', 24);
 $smarty->assign('intypes', $intypes);
 $smarty->assign('outtypes', $outtypes);
 
-$fps = !empty($_POST['fps']) ? stripslashes($_POST['fps']) : 24;
+$fps = !empty($_POST['fps']) ? stripslashes($_POST['fps']) : 25;
 $intype = isset($_POST['intype']) ? intval($_POST['intype']) : 0;
 $outtype = isset($_POST['outtype']) ? intval($_POST['outtype']) : 0;
 $text = isset($_POST['text']) ? stripslashes($_POST['text']) : '';
@@ -33,7 +32,7 @@ if(!empty($_POST))
 		$sample = array_slice($rows, 0, min(10, count($rows)));
 		foreach($sample as $row)
 		{	
-			if(preg_match('/^([0-9]{2})([0-9]{2})\.([0-9]+)-([0-9]{2})([0-9]{2})\.([0-9]+)/', $row, $matches))
+			if(preg_match('/^([0-9]{4})\.([0-9]+)-([0-9]{4})\.([0-9]+)/', $row, $matches))
 			{
 				$intype = 1;
 				break;
@@ -46,10 +45,10 @@ if(!empty($_POST))
 			{
 				$row = trim($row);
 				
-				if(preg_match('/^([0-9]{2})([0-9]{2})\.([0-9]+)-([0-9]{2})([0-9]{2})\.([0-9]+)/', $row, $matches))
+				if(preg_match('/^([0-9]{4})\.([0-9]+)-([0-9]{4})\.([0-9]+)/', $row, $matches))
 				{
-					$start = (intval($matches[1])*60 + intval($matches[2])*60/100 + intval($matches[3])/$fps)*1000;
-					$stop = (intval($matches[4])*60 + intval($matches[5])*60/100 + intval($matches[6])/$fps)*1000;
+					$start = ((intval($matches[1])*16 + intval($matches[2])) / $fps) * 1000;
+					$stop = ((intval($matches[3])*16 + intval($matches[4])) / $fps) *1000;
 					$subs[] = array('start' => $start, 'stop' => $stop, 'rows' => array());
 					$sub = end($subs);
 				}
@@ -120,10 +119,11 @@ if(!empty($_POST))
 	
 	$smarty->assign('intype', $intype);
 	$smarty->assign('outtype', $outtype);
-	$smarty->assign('fps', $fps);
 	$smarty->assign('text', $_POST['text']);
 	$smarty->assign('conversion_error', true);
 }
+
+$smarty->assign('fps', $fps);
 
 $smarty->display('main.tpl');
 
