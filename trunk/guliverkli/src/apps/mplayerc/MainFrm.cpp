@@ -431,6 +431,8 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 
 	EnableDocking(CBRS_ALIGN_ANY);
 
+	m_dockingbars.RemoveAll();
+
 	m_wndSubresyncBar.Create(this, &m_csSubLock);
 	m_wndSubresyncBar.SetBarStyle(m_wndSubresyncBar.GetBarStyle() | CBRS_TOOLTIPS | CBRS_FLYBY | CBRS_SIZE_DYNAMIC);
 	m_wndSubresyncBar.EnableDocking(CBRS_ALIGN_ANY);
@@ -453,11 +455,6 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	m_wndShaderEditorBar.SetBarStyle(m_wndShaderEditorBar.GetBarStyle() | CBRS_TOOLTIPS | CBRS_FLYBY | CBRS_SIZE_DYNAMIC);
 	m_wndShaderEditorBar.EnableDocking(CBRS_ALIGN_ANY);
 	LoadControlBar(&m_wndShaderEditorBar, AFX_IDW_DOCKBAR_TOP);
-
-	m_dockingbars.AddTail(&m_wndSubresyncBar);
-	m_dockingbars.AddTail(&m_wndPlaylistBar);
-	m_dockingbars.AddTail(&m_wndCaptureBar);
-	m_dockingbars.AddTail(&m_wndShaderEditorBar);
 
 	m_fileDropTarget.Register(this);
 
@@ -508,10 +505,7 @@ void CMainFrame::OnClose()
 {
 	m_wndPlaylistBar.SavePlaylist();
 
-	SaveControlBar(&m_wndSubresyncBar);
-	SaveControlBar(&m_wndPlaylistBar);
-	SaveControlBar(&m_wndCaptureBar);
-	SaveControlBar(&m_wndShaderEditorBar);
+	SaveControlBars();
 
 	ShowWindow(SW_HIDE);
 
@@ -606,13 +600,14 @@ void CMainFrame::LoadControlBar(CControlBar* pBar, UINT defDockBarID)
 		? SW_SHOW
 		: SW_HIDE);
 
-	if(pBar->IsKindOf(RUNTIME_CLASS(CSizingControlBar)))
+	if(CSizingControlBar* pSCB = dynamic_cast<CSizingControlBar*>(pBar))
 	{
-		((CSizingControlBar*)(pBar))->LoadState(section + _T("\\State"));
+		pSCB->LoadState(section + _T("\\State"));
+		m_dockingbars.AddTail(pSCB);
 	}
 }
 
-void CMainFrame::LoadFloatingControlBars()
+void CMainFrame::RestoreFloatingControlBars()
 {
 	CWinApp* pApp = AfxGetApp();
 
@@ -639,34 +634,39 @@ void CMainFrame::LoadFloatingControlBars()
 	}
 }
 
-void CMainFrame::SaveControlBar(CControlBar* pBar)
+void CMainFrame::SaveControlBars()
 {
-	if(!pBar) return;
-
-	CString str;
-	pBar->GetWindowText(str);
-	if(str.IsEmpty()) return;
-	CString section = _T("ToolBars\\") + str;
-
 	CWinApp* pApp = AfxGetApp();
 
-	pApp->WriteProfileInt(section, _T("Visible"), pBar->IsWindowVisible());
-
-	if(pBar->IsKindOf(RUNTIME_CLASS(CSizingControlBar)))
-		((CSizingControlBar*)(pBar))->SaveState(section + _T("\\State"));
-
-	UINT nID = pBar->GetParent()->GetDlgCtrlID();
-
-	if(nID == AFX_IDW_DOCKBAR_FLOAT)
+	POSITION pos = m_dockingbars.GetHeadPosition();
+	while(pos)
 	{
-		CRect r;
-		pBar->GetParent()->GetParent()->GetWindowRect(r);
-		pApp->WriteProfileInt(section, _T("DockPosX"), r.left);
-		pApp->WriteProfileInt(section, _T("DockPosY"), r.top);
+		CSizingControlBar* pBar = m_dockingbars.GetNext(pos);
+
+		CString str;
+		pBar->GetWindowText(str);
+		if(str.IsEmpty()) return;
+		CString section = _T("ToolBars\\") + str;
+
+		pApp->WriteProfileInt(section, _T("Visible"), pBar->IsWindowVisible());
+
+		if(CSizingControlBar* pSCB = dynamic_cast<CSizingControlBar*>(pBar))
+		{
+			pSCB->SaveState(section + _T("\\State"));
+		}
+
+		UINT nID = pBar->GetParent()->GetDlgCtrlID();
+		
+		if(nID == AFX_IDW_DOCKBAR_FLOAT)
+		{
+			CRect r;
+			pBar->GetParent()->GetParent()->GetWindowRect(r);
+			pApp->WriteProfileInt(section, _T("DockPosX"), r.left);
+			pApp->WriteProfileInt(section, _T("DockPosY"), r.top);
+		}
+
+		pApp->WriteProfileInt(section, _T("DockState"), nID);
 	}
-
-	pApp->WriteProfileInt(section, _T("DockState"), nID);
-
 }
 
 LRESULT CMainFrame::OnTaskBarRestart(WPARAM, LPARAM)
@@ -9266,7 +9266,7 @@ bool CMainFrame::BuildToCapturePreviewPin(
 		}
 		else
 		{
-			AfxMessageBox(_T("No video capture pin found"));
+			AfxMessageBox(_T("No video capture pin was found"));
 			return(false);
 		}
 
@@ -9292,7 +9292,7 @@ bool CMainFrame::BuildToCapturePreviewPin(
 		}
 		else
 		{
-			AfxMessageBox(_T("No audio capture pin found"));
+			AfxMessageBox(_T("No audio capture pin was found"));
 			return(false);
 		}
 
@@ -9317,8 +9317,8 @@ bool CMainFrame::BuildGraphVideoAudio(int fVPreview, bool fVCapture, int fAPrevi
 
 	HRESULT hr;
 
-	NukeDownstream(pVidCap, pGB);
-	NukeDownstream(pAudCap, pGB);
+	pGB->NukeDownstream(pVidCap);
+	pGB->NukeDownstream(pAudCap);
 
 	CleanGraph();
 

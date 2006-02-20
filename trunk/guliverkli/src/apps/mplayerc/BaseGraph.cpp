@@ -150,9 +150,12 @@ STDMETHODIMP CBaseGraph::ReconnectEx(IPin* ppin, const AM_MEDIA_TYPE* pmt) {retu
 STDMETHODIMP CBaseGraph::RenderEx(IPin* pPinOut, DWORD dwFlags, DWORD* pvContext) {return E_NOTIMPL;}
 
 // IGraphBuilder2
+STDMETHODIMP CBaseGraph::IsPinDirection(IPin* pPin, PIN_DIRECTION dir) {return E_NOTIMPL;}
+STDMETHODIMP CBaseGraph::IsPinConnected(IPin* pPin) {return E_NOTIMPL;}
 STDMETHODIMP CBaseGraph::ConnectFilter(IBaseFilter* pBF, IPin* pPinIn) {return E_NOTIMPL;}
 STDMETHODIMP CBaseGraph::ConnectFilter(IPin* pPinOut, IBaseFilter* pBF) {return E_NOTIMPL;}
 STDMETHODIMP CBaseGraph::ConnectFilterDirect(IPin* pPinOut, IBaseFilter* pBF, const AM_MEDIA_TYPE* pmt) {return E_NOTIMPL;}
+STDMETHODIMP CBaseGraph::NukeDownstream(IUnknown* pUnk) {return E_NOTIMPL;}
 STDMETHODIMP CBaseGraph::FindInterface(REFIID iid, void** ppv, BOOL bRemove) {return QueryInterface(iid, ppv);}
 STDMETHODIMP CBaseGraph::AddToROT() {return E_NOTIMPL;}
 STDMETHODIMP CBaseGraph::RemoveFromROT() {return E_NOTIMPL;}

@@ -184,7 +184,7 @@ bool CUDPStream::Load(const WCHAR* fnw)
 
 	CStringW url = CStringW(fnw);
 //#ifdef DEBUG
-//	url = L"udp://@:1234"; 
+//	url = L"udp://239.255.255.250:1234/{e436eb8e-524f-11ce-9f53-0020af0ba770}"; 
 //#endif
 
 	CList<CStringW> sl;
@@ -194,13 +194,14 @@ bool CUDPStream::Load(const WCHAR* fnw)
 	CStringW protocol = sl.RemoveHead();
 	if(protocol != L"udp") return false;
 
-	if(FAILED(GUIDFromCString(CString(sl.RemoveHead()).TrimLeft('/'), m_subtype)))
-		m_subtype = MEDIASUBTYPE_NULL; // TODO
+	m_ip = CString(sl.RemoveHead()).TrimLeft('/');
 
-	int port = _wtoi(sl.RemoveHead());
+	int port = _wtoi(Explode(sl.RemoveHead(), sl, '/', 2));
 	if(port < 0 || port > 0xffff) return false;
-
 	m_port = port;
+
+	if(sl.GetCount() != 2 || FAILED(GUIDFromCString(CString(sl.GetTail()), m_subtype)))
+		m_subtype = MEDIASUBTYPE_NULL; // TODO: detect subtype
 
 	CAMThread::Create();
 	if(FAILED(CAMThread::CallWorker(CMD_RUN)))
@@ -305,32 +306,42 @@ void CUDPStream::Unlock()
 DWORD CUDPStream::ThreadProc()
 {
 	WSADATA wsaData;
-	int err = WSAStartup(MAKEWORD(2, 2), &wsaData);
+	int init = WSAStartup(MAKEWORD(2, 0), &wsaData);
+	if(init != 0) init = WSAStartup(MAKEWORD(1, 0), &wsaData);
+
+	sockaddr_in addr;
+	memset(&addr, 0, sizeof(addr));
+	addr.sin_family = AF_INET;
+	addr.sin_addr.s_addr = htonl(INADDR_ANY);
+	addr.sin_port = htons((u_short)m_port);
+
+	ip_mreq imr; 
+	imr.imr_multiaddr.s_addr = inet_addr(CStringA(m_ip));
+	imr.imr_interface.s_addr = INADDR_ANY;
 
     if((m_socket = socket(AF_INET, SOCK_DGRAM, 0)) >= 0)
 	{
 /*		u_long argp = 1;
 		ioctlsocket(m_socket, FIONBIO, &argp);
 */
-		sockaddr_in addr;
-		memset(&addr, 0, sizeof(addr));
-		addr.sin_family = AF_INET;
-		addr.sin_addr.s_addr = htonl(INADDR_ANY);
-		addr.sin_port = htons((u_short)m_port);
-
 	    if(bind(m_socket, (struct sockaddr*)&addr, sizeof(addr)) < 0)
 		{
 			closesocket(m_socket);
 			m_socket = -1;
+		}
+
+		if((htonl(imr.imr_multiaddr.s_addr) & 0xf0000000) == 0xe0000000)
+		{
+			setsockopt(m_socket, IPPROTO_IP, IP_ADD_MEMBERSHIP, (const char*)&imr, sizeof(imr));
 		}
 	}
 
 	SetThreadPriority(m_hThread, THREAD_PRIORITY_TIME_CRITICAL);
 
 	FILE* dump = NULL;
-//	dump = _tfopen(_T("c:\\rip\\udp.ts"), _T("wb"));
+//	dump = _tfopen(_T("c:\\udp.ts"), _T("wb"));
 	FILE* log = NULL;
-//	log = _tfopen(_T("c:\\rip\\udp.txt"), _T("wt"));
+//	log = _tfopen(_T("c:\\udp.txt"), _T("wt"));
 
 	while(1)
 	{
@@ -341,7 +352,7 @@ DWORD CUDPStream::ThreadProc()
 		default:
 		case CMD_EXIT: 
 			if(m_socket >= 0) {closesocket(m_socket); m_socket = -1;}
-			if(err == 0) WSACleanup();
+			if(init == 0) WSACleanup();
 			if(dump) fclose(dump);
 			if(log) fclose(log);
 			Reply(S_OK);

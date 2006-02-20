@@ -111,9 +111,12 @@ protected:
 	STDMETHODIMP RenderEx(IPin* pPinOut, DWORD dwFlags, DWORD* pvContext);
 
 	// IGraphBuilder2
+	STDMETHODIMP IsPinDirection(IPin* pPin, PIN_DIRECTION dir);
+	STDMETHODIMP IsPinConnected(IPin* pPin);
 	STDMETHODIMP ConnectFilter(IBaseFilter* pBF, IPin* pPinIn);
 	STDMETHODIMP ConnectFilter(IPin* pPinOut, IBaseFilter* pBF);
 	STDMETHODIMP ConnectFilterDirect(IPin* pPinOut, IBaseFilter* pBF, const AM_MEDIA_TYPE* pmt);
+	STDMETHODIMP NukeDownstream(IUnknown* pUnk);
 	STDMETHODIMP FindInterface(REFIID iid, void** ppv, BOOL bRemove);
 	STDMETHODIMP AddToROT();
 	STDMETHODIMP RemoveFromROT();

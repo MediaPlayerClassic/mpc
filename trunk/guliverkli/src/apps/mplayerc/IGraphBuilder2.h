@@ -24,9 +24,12 @@
 [uuid("165BE9D6-0929-4363-9BA3-580D735AA0F6")]
 interface IGraphBuilder2 : public IFilterGraph2
 {
+	STDMETHOD(IsPinDirection) (IPin* pPin, PIN_DIRECTION dir) = 0;
+	STDMETHOD(IsPinConnected) (IPin* pPin) = 0;
 	STDMETHOD(ConnectFilter) (IBaseFilter* pBF, IPin* pPinIn) = 0;
 	STDMETHOD(ConnectFilter) (IPin* pPinOut, IBaseFilter* pBF) = 0;
 	STDMETHOD(ConnectFilterDirect) (IPin* pPinOut, IBaseFilter* pBF, const AM_MEDIA_TYPE* pmt) = 0;
+	STDMETHOD(NukeDownstream) (IUnknown* pUnk) = 0;
 	STDMETHOD(FindInterface) (REFIID iid, void** ppv, BOOL bRemove) = 0;
 	STDMETHOD(AddToROT) () = 0;
 	STDMETHOD(RemoveFromROT) () = 0;

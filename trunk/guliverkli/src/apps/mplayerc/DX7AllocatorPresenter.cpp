@@ -692,7 +692,8 @@ STDMETHODIMP CVMR7AllocatorPresenter::CreateRenderer(IUnknown** ppRenderer)
 			break;
 
 		CComPtr<IPin> pPin = GetFirstPin(pBF);
-		HookNewSegment((IPinC*)(IPin*)pPin);
+		if(CComQIPtr<IMemInputPin> pMemInputPin = pPin)
+			HookNewSegmentAndReceive((IPinC*)(IPin*)pPin, (IMemInputPinC*)(IMemInputPin*)pMemInputPin);
 
 		*ppRenderer = (IUnknown*)pBF.Detach();
 
