@@ -283,17 +283,13 @@ STDMETHODIMP CFGManager::Connect(IPin* pPinOut, IPin* pPinIn)
 
 	HRESULT hr;
 
-	{
-		PIN_DIRECTION dir;
-		if(FAILED(hr = pPinOut->QueryDirection(&dir)) || dir != PINDIR_OUTPUT
-		|| pPinIn && (FAILED(hr = pPinIn->QueryDirection(&dir)) || dir != PINDIR_INPUT))
-			return VFW_E_INVALID_DIRECTION;
+	if(S_OK != IsPinDirection(pPinOut, PINDIR_OUTPUT) 
+	|| pPinIn && S_OK != IsPinDirection(pPinIn, PINDIR_INPUT))
+		return VFW_E_INVALID_DIRECTION;
 
-		CComPtr<IPin> pPinTo;
-		if(SUCCEEDED(hr = pPinOut->ConnectedTo(&pPinTo)) || pPinTo
-		|| pPinIn && (SUCCEEDED(hr = pPinIn->ConnectedTo(&pPinTo)) || pPinTo))
-			return VFW_E_ALREADY_CONNECTED;
-	}
+	if(S_OK == IsPinConnected(pPinOut)
+	|| pPinIn && S_OK == IsPinConnected(pPinIn))
+		return VFW_E_ALREADY_CONNECTED;
 
 	bool fDeadEnd = true;
 
@@ -814,7 +810,30 @@ STDMETHODIMP CFGManager::RenderEx(IPin* pPinOut, DWORD dwFlags, DWORD* pvContext
 
 // IGraphBuilder2
 
-HRESULT CFGManager::ConnectFilter(IBaseFilter* pBF, IPin* pPinIn)
+STDMETHODIMP CFGManager::IsPinDirection(IPin* pPin, PIN_DIRECTION dir1)
+{
+	CAutoLock cAutoLock(this);
+
+	CheckPointer(pPin, E_POINTER);
+
+	PIN_DIRECTION dir2;
+	if(FAILED(pPin->QueryDirection(&dir2)))
+		return E_FAIL;
+
+	return dir1 == dir2 ? S_OK : S_FALSE;
+}
+
+STDMETHODIMP CFGManager::IsPinConnected(IPin* pPin)
+{
+	CAutoLock cAutoLock(this);
+
+	CheckPointer(pPin, E_POINTER);
+
+	CComPtr<IPin> pPinTo;
+	return SUCCEEDED(pPin->ConnectedTo(&pPinTo)) && pPinTo ? S_OK : S_FALSE;
+}
+
+STDMETHODIMP CFGManager::ConnectFilter(IBaseFilter* pBF, IPin* pPinIn)
 {
 	CAutoLock cAutoLock(this);
 
@@ -859,7 +878,7 @@ HRESULT CFGManager::ConnectFilter(IBaseFilter* pBF, IPin* pPinIn)
 		VFW_E_CANNOT_RENDER;
 }
 
-HRESULT CFGManager::ConnectFilter(IPin* pPinOut, IBaseFilter* pBF)
+STDMETHODIMP CFGManager::ConnectFilter(IPin* pPinOut, IBaseFilter* pBF)
 {
 	CAutoLock cAutoLock(this);
 
@@ -870,11 +889,9 @@ HRESULT CFGManager::ConnectFilter(IPin* pPinOut, IBaseFilter* pBF)
 
 	BeginEnumPins(pBF, pEP, pPin)
 	{
-		PIN_DIRECTION dir;
-		CComPtr<IPin> pPinTo;
 		if(GetPinName(pPin)[0] != '~'
-		&& SUCCEEDED(hr = pPin->QueryDirection(&dir)) && dir == PINDIR_INPUT
-		&& (FAILED(pPin->ConnectedTo(&pPinTo)) || !pPinTo)
+		&& S_OK == IsPinDirection(pPin, PINDIR_INPUT)
+		&& S_OK != IsPinConnected(pPin)
 		&& SUCCEEDED(hr = Connect(pPinOut, pPin)))
 			return hr;
 	}
@@ -883,7 +900,7 @@ HRESULT CFGManager::ConnectFilter(IPin* pPinOut, IBaseFilter* pBF)
 	return VFW_E_CANNOT_CONNECT;
 }
 
-HRESULT CFGManager::ConnectFilterDirect(IPin* pPinOut, IBaseFilter* pBF, const AM_MEDIA_TYPE* pmt)
+STDMETHODIMP CFGManager::ConnectFilterDirect(IPin* pPinOut, IBaseFilter* pBF, const AM_MEDIA_TYPE* pmt)
 {
 	CAutoLock cAutoLock(this);
 
@@ -894,17 +911,51 @@ HRESULT CFGManager::ConnectFilterDirect(IPin* pPinOut, IBaseFilter* pBF, const A
 
 	BeginEnumPins(pBF, pEP, pPin)
 	{
-		PIN_DIRECTION dir;
-		CComPtr<IPin> pPinTo;
 		if(GetPinName(pPin)[0] != '~'
-		&& SUCCEEDED(hr = pPin->QueryDirection(&dir)) && dir == PINDIR_INPUT
-		&& (FAILED(pPin->ConnectedTo(&pPinTo)) || !pPinTo)
+		&& S_OK == IsPinDirection(pPin, PINDIR_INPUT)
+		&& S_OK != IsPinConnected(pPin)
 		&& SUCCEEDED(hr = ConnectDirect(pPinOut, pPin, pmt)))
 			return hr;
 	}
 	EndEnumPins
 
 	return VFW_E_CANNOT_CONNECT;
+}
+
+STDMETHODIMP CFGManager::NukeDownstream(IUnknown* pUnk)
+{
+	CAutoLock cAutoLock(this);
+
+	if(CComQIPtr<IBaseFilter> pBF = pUnk)
+	{
+		BeginEnumPins(pBF, pEP, pPin)
+		{
+			NukeDownstream(pPin);
+		}
+		EndEnumPins
+	}
+	else if(CComQIPtr<IPin> pPin = pUnk)
+	{
+		// TESTME
+		CComPtr<IPin> pPinTo;
+		if(IsPinDirection(pPin, PINDIR_OUTPUT)
+		&& SUCCEEDED(pPin->ConnectedTo(&pPinTo)) && pPinTo)
+		{
+			if(CComPtr<IBaseFilter> pBF = GetFilterFromPin(pPinTo))
+			{
+				NukeDownstream(pBF);
+				Disconnect(pPinTo);
+				Disconnect(pPin);
+				RemoveFilter(pBF);
+			}
+		}
+	}
+	else
+	{
+		return E_INVALIDARG;
+	}
+
+	return S_OK;
 }
 
 STDMETHODIMP CFGManager::FindInterface(REFIID iid, void** ppv, BOOL bRemove)

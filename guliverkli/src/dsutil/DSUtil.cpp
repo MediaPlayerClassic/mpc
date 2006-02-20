@@ -318,44 +318,6 @@ IPin* GetFirstDisconnectedPin(IBaseFilter* pBF, PIN_DIRECTION dir)
 	return(NULL);
 }
 
-void NukeDownstream(IBaseFilter* pBF, IFilterGraph* pFG)
-{
-	if(!pBF) return;
-
-	BeginEnumPins(pBF, pEP, pPin)
-	{
-		CComPtr<IPin> pPinTo;
-		CPinInfo pi;
-        if(SUCCEEDED(pPin->ConnectedTo(&pPinTo)) && pPinTo
-		&& SUCCEEDED(pPinTo->QueryPinInfo(&pi)))
-		{
-			if(pi.dir == PINDIR_INPUT)
-			{
-				NukeDownstream(pi.pFilter, pFG);
-				pFG->Disconnect(pPinTo);
-				pFG->Disconnect(pPin);
-				pFG->RemoveFilter(pi.pFilter);
-			}
-		}
-	}
-	EndEnumPins
-}
-
-void NukeDownstream(IPin* pPin, IFilterGraph* pFG)
-{
-	CComPtr<IPin> pPinTo;
-	if(!pPin || FAILED(pPin->ConnectedTo(&pPinTo)) || !pPinTo)
-		return;
-
-	CPinInfo pi;
-	if(FAILED(pPinTo->QueryPinInfo(&pi)) || pi.dir != PINDIR_INPUT)
-		return;
-
-	NukeDownstream(pi.pFilter, pFG);
-
-	pFG->RemoveFilter(pi.pFilter);
-}
-
 IBaseFilter* FindFilter(LPCWSTR clsid, IFilterGraph* pFG)
 {
 	CLSID clsid2;

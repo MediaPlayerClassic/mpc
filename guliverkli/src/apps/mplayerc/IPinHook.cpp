@@ -23,6 +23,7 @@
 #include "IPinHook.h"
 
 REFERENCE_TIME g_tSegmentStart = 0;
+REFERENCE_TIME g_tSampleStart = 0;
 
 static HRESULT (STDMETHODCALLTYPE * NewSegmentOrg)(IPinC * This, /* [in] */ REFERENCE_TIME tStart, /* [in] */ REFERENCE_TIME tStop, /* [in] */ double dRate) = NULL;
 
@@ -32,19 +33,33 @@ static HRESULT STDMETHODCALLTYPE NewSegmentMine(IPinC * This, /* [in] */ REFEREN
 	return NewSegmentOrg(This, tStart, tStop, dRate);
 }
 
-void HookNewSegment(IPinC* pPinC)
+static HRESULT ( STDMETHODCALLTYPE *ReceiveOrg )( IMemInputPinC * This, IMediaSample *pSample) = NULL;
+
+static HRESULT STDMETHODCALLTYPE ReceiveMine(IMemInputPinC * This, IMediaSample *pSample)
+{
+	REFERENCE_TIME rtStart, rtStop;
+	if(pSample && SUCCEEDED(pSample->GetTime(&rtStart, &rtStop)))
+		g_tSampleStart = rtStart;
+	return ReceiveOrg(This, pSample);
+}
+
+void HookNewSegmentAndReceive(IPinC* pPinC, IMemInputPinC* pMemInputPinC)
 {
 	g_tSegmentStart = 0;
+	g_tSampleStart = 0;
 
 	BOOL res;
 	DWORD flOldProtect = 0;
+
 	res = VirtualProtect(pPinC->lpVtbl, sizeof(IPinC), PAGE_WRITECOPY, &flOldProtect);
-
 	if(NewSegmentOrg == NULL) NewSegmentOrg = pPinC->lpVtbl->NewSegment;
-
 	pPinC->lpVtbl->NewSegment = NewSegmentMine;
-
 	res = VirtualProtect(pPinC->lpVtbl, sizeof(IPinC), PAGE_EXECUTE, &flOldProtect);
+
+	res = VirtualProtect(pMemInputPinC->lpVtbl, sizeof(IMemInputPinC), PAGE_WRITECOPY, &flOldProtect);
+	if(ReceiveOrg == NULL) ReceiveOrg = pMemInputPinC->lpVtbl->Receive;
+	pMemInputPinC->lpVtbl->Receive = ReceiveMine;
+	res = VirtualProtect(pMemInputPinC->lpVtbl, sizeof(IMemInputPinC), PAGE_EXECUTE, &flOldProtect);
 }
 
 static HRESULT ( STDMETHODCALLTYPE *GetVideoAcceleratorGUIDsOrg )( IAMVideoAcceleratorC * This,/* [out][in] */ LPDWORD pdwNumGuidsSupported,/* [out][in] */ LPGUID pGuidsSupported) = NULL;

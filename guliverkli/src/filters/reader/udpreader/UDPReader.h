@@ -40,6 +40,7 @@ private:
 	};
 
 	int m_port;
+	CString m_ip;
 	SOCKET m_socket;
 	GUID m_subtype;
 	__int64 m_pos, m_len;

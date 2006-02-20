@@ -107,7 +107,7 @@ bool CConvertDlg::ConvertFile(LPCTSTR fn, IPin* pPin)
 	if(!m_pMC || FAILED(m_pMC->GetState(0, &fs)) || fs != State_Stopped)
 		return false;
 
-	NukeDownstream(m_pMux, m_pGB);
+	m_pGB->NukeDownstream(m_pMux);
 
 	CComPtr<IBaseFilter> pFW;
 	pFW.CoCreateInstance(CLSID_FileWriter);
