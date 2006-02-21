@@ -28,7 +28,7 @@
 
 class CMpegSplitterFile : public CBaseSplitterFileEx
 {
-	CMap<WORD,WORD,BYTE,BYTE> m_pid2pes;
+	CAtlMap<WORD, BYTE> m_pid2pes;
 
 	HRESULT Init();
 
@@ -36,6 +36,8 @@ public:
 	CMpegSplitterFile(IAsyncReader* pAsyncReader, HRESULT& hr);
 
 	REFERENCE_TIME NextPTS(DWORD TrackNum);
+
+	CCritSec m_csProps;
 
 	enum {us, ps, ts, es, pva} m_type;
 
@@ -77,8 +79,32 @@ public:
 				type == subpic ? L"Subtitle" : 
 				L"Unknown";
 		}
+
+		const stream* FindStream(int pid)
+		{
+			for(POSITION pos = GetHeadPosition(); pos; GetNext(pos))
+			{
+				const stream& s = GetAt(pos);
+				if(s.pid == pid) return &s;
+			}
+
+			return NULL;
+		}
+
 	} m_streams[unknown];
 
 	HRESULT SearchStreams(__int64 start, __int64 stop);
 	DWORD AddStream(WORD pid, BYTE pesid, DWORD len);
+
+	struct program
+	{
+		WORD program_number;
+		WORD pid[16];
+		struct program() {memset(this, 0, sizeof(*this));}
+	};
+
+	CAtlMap<WORD, program> m_programs;
+
+	void UpdatePrograms(const trhdr& h);
+	const program* FindProgram(WORD pid);
 };

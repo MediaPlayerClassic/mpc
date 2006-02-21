@@ -424,3 +424,12 @@ DWORD CUDPStream::ThreadProc()
 	ASSERT(0);
 	return -1;
 }
+
+CUDPStream::packet_t::packet_t(BYTE* p, __int64 start, __int64 end) 
+	: m_start(start)
+	, m_end(end)
+{
+	int size = end - start;
+	m_buff = new BYTE[size];
+	memcpy(m_buff, p, size);
+}

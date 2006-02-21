@@ -839,6 +839,9 @@ STDMETHODIMP CFGManager::ConnectFilter(IBaseFilter* pBF, IPin* pPinIn)
 
 	CheckPointer(pBF, E_POINTER);
 
+	if(pPinIn && S_OK != IsPinDirection(pPinIn, PINDIR_INPUT))
+		return VFW_E_INVALID_DIRECTION;
+
 	int nTotal = 0, nRendered = 0;
 
 	BeginEnumPins(pBF, pEP, pPin)
@@ -885,6 +888,9 @@ STDMETHODIMP CFGManager::ConnectFilter(IPin* pPinOut, IBaseFilter* pBF)
 	CheckPointer(pPinOut, E_POINTER);
 	CheckPointer(pBF, E_POINTER);
 
+	if(S_OK != IsPinDirection(pPinOut, PINDIR_OUTPUT))
+		return VFW_E_INVALID_DIRECTION;
+
 	HRESULT hr;
 
 	BeginEnumPins(pBF, pEP, pPin)
@@ -906,6 +912,9 @@ STDMETHODIMP CFGManager::ConnectFilterDirect(IPin* pPinOut, IBaseFilter* pBF, co
 
 	CheckPointer(pPinOut, E_POINTER);
 	CheckPointer(pBF, E_POINTER);
+
+	if(S_OK != IsPinDirection(pPinOut, PINDIR_OUTPUT))
+		return VFW_E_INVALID_DIRECTION;
 
 	HRESULT hr;
 
@@ -936,7 +945,6 @@ STDMETHODIMP CFGManager::NukeDownstream(IUnknown* pUnk)
 	}
 	else if(CComQIPtr<IPin> pPin = pUnk)
 	{
-		// TESTME
 		CComPtr<IPin> pPinTo;
 		if(S_OK == IsPinDirection(pPin, PINDIR_OUTPUT)
 		&& SUCCEEDED(pPin->ConnectedTo(&pPinTo)) && pPinTo)

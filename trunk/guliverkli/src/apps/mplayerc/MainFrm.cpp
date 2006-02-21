@@ -7320,10 +7320,6 @@ void CMainFrame::OpenSetupCaptureBar()
 
 			BeginEnumPins(pAudCap, pEP, pPin)
 			{
-				PIN_DIRECTION dir;
-				if(FAILED(pPin->QueryDirection(&dir)) || dir != PINDIR_INPUT)
-					continue;
-
 				if(CComQIPtr<IAMAudioInputMixer> pAIM = pPin) 
 					pAMAIM.Add(pAIM);
 			}
@@ -7334,8 +7330,8 @@ void CMainFrame::OpenSetupCaptureBar()
 	}
 
 	BuildGraphVideoAudio(
-		!!m_wndCaptureBar.m_capdlg.m_fVidPreview, false, 
-		!!m_wndCaptureBar.m_capdlg.m_fAudPreview, false);
+		m_wndCaptureBar.m_capdlg.m_fVidPreview, false, 
+		m_wndCaptureBar.m_capdlg.m_fAudPreview, false);
 }
 
 void CMainFrame::OpenSetupInfoBar()
@@ -7418,17 +7414,14 @@ void CMainFrame::OpenSetupStatusBar()
 
 			BeginEnumPins(pBF, pEP, pPin)
 			{
-				PIN_DIRECTION dir;
-				CComPtr<IPin> pPinTo;
-				if(S_OK == pPin->QueryDirection(&dir) && dir == PINDIR_INPUT
-				&& S_OK == pPin->ConnectedTo(&pPinTo) && pPinTo)
+				if(S_OK == pGB->IsPinDirection(pPin, PINDIR_INPUT) 
+				&& S_OK == pGB->IsPinConnected(pPin))
 				{
 					AM_MEDIA_TYPE mt;
 					memset(&mt, 0, sizeof(mt));
 					pPin->ConnectionMediaType(&mt);
 
-					if(mt.majortype == MEDIATYPE_Audio 
-					&& mt.formattype == FORMAT_WaveFormatEx)
+					if(mt.majortype == MEDIATYPE_Audio && mt.formattype == FORMAT_WaveFormatEx)
 					{
 						switch(((WAVEFORMATEX*)mt.pbFormat)->nChannels)
 						{
@@ -7851,9 +7844,6 @@ void CMainFrame::SendNowPlayingTomIRC()
 
 		if(LPVOID lpMappingAddress = MapViewOfFile(hFMap, FILE_MAP_WRITE, 0, 0, 0))
 		{
-			// LPCSTR cmd = m_fAudioOnly ? ".timerAUDGTS 1 1 /mpcaud" : ".timerVIDGTS 1 1 /mpcvid";
-			// LPCSTR cmd = m_fAudioOnly ? ".timerAUDGTS 1 5 /mpcaud" : ".timerVIDGTS 1 5 /mpcvid";
-			// LPCSTR cmd = m_fAudioOnly ? ".timerAUDGTS 1 5 //mpcaud\0" : ".timerVIDGTS 1 5 //mpcvid\0";
 			LPCSTR cmd = m_fAudioOnly ? "/.timerAUDGTS 1 5 mpcaud" : "/.timerVIDGTS 1 5 mpcvid";
 			strcpy((char*)lpMappingAddress, cmd);
 
@@ -9148,8 +9138,6 @@ HRESULT CMainFrame::BuildCapture(IPin* pPin, IBaseFilter* pBF[3], const GUID& ma
 	if(FAILED(pMux->QueryFilterInfo(&fi)) || !fi.pGraph)
 		pGB->AddFilter(pMux, L"Multiplexer");
 
-	IUnknown* pPrev = pPin;
-
 	CStringW prefix, prefixl;
 	if(majortype == MEDIATYPE_Video) prefix = L"Video ";
 	else if(majortype == MEDIATYPE_Audio) prefix = L"Audio ";
@@ -9166,7 +9154,7 @@ HRESULT CMainFrame::BuildCapture(IPin* pPin, IBaseFilter* pBF[3], const GUID& ma
 			return hr;
 		}
 
-		hr = pCGB->RenderStream(NULL, &majortype, pPrev, NULL, pBuff);
+		hr = pGB->ConnectFilter(pPin, pBuff);
 		if(FAILED(hr))
 		{
 			err = _T("Error connecting the ") + CString(prefixl) + _T("buffer filter");
@@ -9174,7 +9162,7 @@ HRESULT CMainFrame::BuildCapture(IPin* pPin, IBaseFilter* pBF[3], const GUID& ma
 			return(hr);
 		}
 
-		pPrev = pBuff;
+		pPin = GetFirstPin(pBuff, PINDIR_OUTPUT);
 	}
 
 	if(pEnc)
@@ -9187,7 +9175,7 @@ HRESULT CMainFrame::BuildCapture(IPin* pPin, IBaseFilter* pBF[3], const GUID& ma
 			return hr;
 		}
 
-		hr = pCGB->RenderStream(NULL, &majortype, pPrev, NULL, pEnc);
+		hr = pGB->ConnectFilter(pPin, pEnc);
 		if(FAILED(hr))
 		{
 			err = _T("Error connecting the ") + CString(prefixl) + _T("encoder filter");
@@ -9195,9 +9183,9 @@ HRESULT CMainFrame::BuildCapture(IPin* pPin, IBaseFilter* pBF[3], const GUID& ma
 			return(hr);
 		}
 
-		pPrev = pEnc;
+		pPin = GetFirstPin(pEnc, PINDIR_OUTPUT);
 
-		if(CComQIPtr<IAMStreamConfig> pAMSC = GetFirstPin(pEnc, PINDIR_OUTPUT))
+		if(CComQIPtr<IAMStreamConfig> pAMSC = pPin)
 		{
 			if(pmt->majortype == majortype)
 			{
@@ -9215,7 +9203,7 @@ HRESULT CMainFrame::BuildCapture(IPin* pPin, IBaseFilter* pBF[3], const GUID& ma
 
 //	if(pMux)
 	{
-		hr = pCGB->RenderStream(NULL, &majortype, pPrev, NULL, pMux);
+		hr = pGB->ConnectFilter(pPin, pMux);
 		if(FAILED(hr))
 		{
 			err = _T("Error connecting ") + CString(prefixl) + _T(" to the muliplexer filter");
@@ -9260,7 +9248,7 @@ bool CMainFrame::BuildToCapturePreviewPin(
 			hr = pDVDec.CoCreateInstance(CLSID_DVVideoCodec);
 			hr = pGB->AddFilter(pDVDec, L"DV Video Decoder");
 
-			hr = pCGB->RenderStream(NULL, &MEDIATYPE_Video, pPin, NULL, pDVDec);
+			hr = pGB->ConnectFilter(pPin, pDVDec);
 
 			pPin = NULL;
 			hr = pCGB->FindPin(pDVDec, PINDIR_OUTPUT, NULL, &MEDIATYPE_Video, TRUE, 0, &pPin);
@@ -9278,7 +9266,7 @@ bool CMainFrame::BuildToCapturePreviewPin(
 		hr = pSmartTee.CoCreateInstance(CLSID_SmartTee);
 		hr = pGB->AddFilter(pSmartTee, L"Smart Tee (video)");
 
-		hr = pCGB->RenderStream(NULL, &MEDIATYPE_Video, pPin, NULL, pSmartTee);
+		hr = pGB->ConnectFilter(pPin, pSmartTee);
 
 		hr = pSmartTee->FindPin(L"Preview", ppVidPrevPin);
 		hr = pSmartTee->FindPin(L"Capture", ppVidCapPin);
@@ -9304,7 +9292,7 @@ bool CMainFrame::BuildToCapturePreviewPin(
 		hr = pSmartTee.CoCreateInstance(CLSID_SmartTee);
 		hr = pGB->AddFilter(pSmartTee, L"Smart Tee (audio)");
 
-		hr = pCGB->RenderStream(NULL, &MEDIATYPE_Audio, pPin, NULL, pSmartTee);
+		hr = pGB->ConnectFilter(pPin, pSmartTee);
 
 		hr = pSmartTee->FindPin(L"Preview", ppAudPrevPin);
 		hr = pSmartTee->FindPin(L"Capture", ppAudCapPin);
@@ -9409,7 +9397,7 @@ bool CMainFrame::BuildGraphVideoAudio(int fVPreview, bool fVCapture, int fAPrevi
 		if(pMux != pDst)
 		{
 			hr = pGB->AddFilter(pDst, L"File Writer V/A");
-			hr = pCGB->RenderStream(NULL, NULL, pMux, NULL, pDst);
+			hr = pGB->ConnectFilter(GetFirstPin(pMux, PINDIR_OUTPUT), pDst);
 		}
 
 		if(CComQIPtr<IConfigAviMux> pCAM = pMux)
@@ -9434,7 +9422,7 @@ bool CMainFrame::BuildGraphVideoAudio(int fVPreview, bool fVCapture, int fAPrevi
 		if(pMux != pAudMux && pAudMux != pAudDst)
 		{
 			hr = pGB->AddFilter(pAudDst, L"File Writer A");
-			hr = pCGB->RenderStream(NULL, NULL, pAudMux, NULL, pAudDst);
+			hr = pGB->ConnectFilter(GetFirstPin(pAudMux, PINDIR_OUTPUT), pAudDst);
 		}
 	}
 
@@ -9466,8 +9454,8 @@ bool CMainFrame::StartCapture()
 //	hr = CComQIPtr<IAMGraphStreams>(pGB)->SyncUsingStreamOffset(TRUE); // TODO:
 
 	BuildGraphVideoAudio(
-		!!m_wndCaptureBar.m_capdlg.m_fVidPreview, true, 
-		!!m_wndCaptureBar.m_capdlg.m_fAudPreview, true);
+		m_wndCaptureBar.m_capdlg.m_fVidPreview, true, 
+		m_wndCaptureBar.m_capdlg.m_fAudPreview, true);
 
 	hr = pME->CancelDefaultHandling(EC_REPAINT);
 
@@ -9491,8 +9479,8 @@ bool CMainFrame::StopCapture()
 	m_fCapturing = false;
 
 	BuildGraphVideoAudio(
-		!!m_wndCaptureBar.m_capdlg.m_fVidPreview, false, 
-		!!m_wndCaptureBar.m_capdlg.m_fAudPreview, false);
+		m_wndCaptureBar.m_capdlg.m_fVidPreview, false, 
+		m_wndCaptureBar.m_capdlg.m_fAudPreview, false);
 
 	hr = pME->RestoreDefaultHandling(EC_REPAINT);
 

@@ -33,13 +33,12 @@
 #include "ConvertChapDlg.h"
 #include "ConvertDlg.h"
 
-// TODO: subtitle source filter
+// TODO: subtitle source filter for vobsub
 
 // CConvertDlg dialog
 
 CConvertDlg::CConvertDlg(CWnd* pParent /*=NULL*/)
 	: CResizableDialog(CConvertDlg::IDD, pParent)
-	, m_dwRegister(0)
 	, m_fn(_T(""))
 {
 }
@@ -66,9 +65,11 @@ void CConvertDlg::AddFile(CString fn)
 	if(FAILED(m_pGB->AddSourceFilter(CStringW(fn), CStringW(fn), &pBF)))
 		return;
 
-	int cnt = 0;
-	while(S_OK == m_pCGB->RenderStream(NULL, NULL, pBF, NULL, m_pMux)) cnt++;
-	if(!cnt) {MessageBeep(-1); DeleteFilter(pBF); return;}
+	int nConnected = 0;
+	BeginEnumPins(pBF, pEP, pPin)
+		if(S_OK == m_pGB->ConnectFilter(pPin, m_pMux)) nConnected++;
+	EndEnumPins
+	if(!nConnected) {MessageBeep(-1); DeleteFilter(pBF); return;}
 
 	if(m_tree.GetCount() == 0)
 	{
@@ -183,10 +184,9 @@ void CConvertDlg::AddFilter(HTREEITEM hTIParent, IBaseFilter* pBFParent)
 {
 	BeginEnumPins(pBFParent, pEP, pPin)
 	{
-		PIN_DIRECTION dir;
 		CComPtr<IPin> pPinTo;
 		CComPtr<IBaseFilter> pBF;
-		if(FAILED(pPin->QueryDirection(&dir)) || dir != PINDIR_OUTPUT
+		if(S_OK != m_pGB->IsPinDirection(pPin, PINDIR_OUTPUT)
 		|| FAILED(pPin->ConnectedTo(&pPinTo)) || !pPinTo
 		|| !(pBF = GetFilterFromPin(pPinTo)))
 			continue;
@@ -276,10 +276,9 @@ void CConvertDlg::DeleteFilter(IBaseFilter* pBF)
 {
 	BeginEnumPins(pBF, pEP, pPin)
 	{
-		PIN_DIRECTION dir;
 		CComPtr<IPin> pPinTo;
 		CComPtr<IBaseFilter> pBF;
-		if(FAILED(pPin->QueryDirection(&dir)) || dir != PINDIR_OUTPUT
+		if(S_OK != m_pGB->IsPinDirection(pPin, PINDIR_OUTPUT)
 		|| FAILED(pPin->ConnectedTo(&pPinTo)) || !pPinTo
 		|| !(pBF = GetFilterFromPin(pPinTo)))
 			continue;
@@ -789,12 +788,9 @@ BOOL CConvertDlg::OnInitDialog()
 	m_pMux = new CDSMMuxerFilter(NULL, &hr, false, false);
 
 	m_pGB = new CFGManagerMuxer(_T("CFGManagerMuxer"), NULL);
-
 	m_pGB->AddToROT();
 
-	if(FAILED(m_pCGB.CoCreateInstance(CLSID_CaptureGraphBuilder2))
-	|| FAILED(m_pCGB->SetFiltergraph(m_pGB))
-	|| FAILED(m_pGB->AddFilter(m_pMux, L"Mux"))
+	if(FAILED(m_pGB->AddFilter(m_pMux, L"Mux"))
 	|| !(m_pMC = m_pGB) || !(m_pME = m_pGB) || !(m_pMS = m_pMux)
 	|| FAILED(m_pME->SetNotifyWindow((OAHWND)m_hWnd, WM_GRAPHNOTIFY, 0))) 
 	{

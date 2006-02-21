@@ -926,6 +926,24 @@ bool CBaseSplitterFileEx::Read(trhdr& h, bool fSync)
 	return true;
 }
 
+bool CBaseSplitterFileEx::Read(trsechdr& h)
+{
+	BYTE pointer_field = BitRead(8);
+	while(pointer_field-- > 0) BitRead(8);
+	h.table_id = BitRead(8);
+	h.section_syntax_indicator = BitRead(1);
+	h.zero = BitRead(1);
+	h.reserved1 = BitRead(2);
+	h.section_length = BitRead(12);
+	h.transport_stream_id = BitRead(16);
+	h.reserved2 = BitRead(2);
+	h.version_number = BitRead(5);
+	h.current_next_indicator = BitRead(1);
+	h.section_number = BitRead(8);
+	h.last_section_number = BitRead(8);
+	return h.section_syntax_indicator == 1 && h.zero == 0;
+}
+
 bool CBaseSplitterFileEx::Read(pvahdr& h, bool fSync)
 {
 	memset(&h, 0, sizeof(h));
