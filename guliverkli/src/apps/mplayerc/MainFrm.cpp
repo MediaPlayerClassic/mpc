@@ -629,6 +629,10 @@ void CMainFrame::RestoreFloatingControlBars()
 			CPoint p;
 			p.x = pApp->GetProfileInt(section, _T("DockPosX"), r.right);
 			p.y = pApp->GetProfileInt(section, _T("DockPosY"), r.top);
+			if(p.x < m_rcDesktop.left) p.x = m_rcDesktop.left;
+			if(p.y < m_rcDesktop.top) p.y = m_rcDesktop.top;
+			if(p.x >= m_rcDesktop.right) p.x = m_rcDesktop.right-1;
+			if(p.y >= m_rcDesktop.bottom) p.y = m_rcDesktop.bottom-1;
 			FloatControlBar(pBar, p);
 		}
 	}

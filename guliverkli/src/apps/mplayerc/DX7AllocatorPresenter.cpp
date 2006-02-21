@@ -829,7 +829,7 @@ STDMETHODIMP CVMR7AllocatorPresenter::PresentImage(DWORD_PTR dwUserID, VMRPRESEN
 			if(m_pSubPicQueue) 
 			{
 				m_pSubPicQueue->SetFPS(m_fps);
-				if(m_fUseInternalTimer) __super::SetTime(g_tSegmentStart + lpPresInfo->rtStart);
+				if(m_fUseInternalTimer) __super::SetTime(g_tSegmentStart + g_tSampleStart);
 			}
 		}
 
