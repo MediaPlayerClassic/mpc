@@ -162,6 +162,11 @@ HRESULT CMpegSplitterFilter::DemuxNextPacket(REFERENCE_TIME rtStartOffset)
 
 		__int64 pos = m_pFile->GetPos();
 
+		if(h.payload && h.payloadstart)
+		{
+			m_pFile->UpdatePrograms(h);
+		}
+
 		if(h.payload && h.pid >= 16 && h.pid < 0x1fff && !h.scrambling)
 		{
 			DWORD TrackNumber = h.pid;
@@ -385,6 +390,7 @@ STDMETHODIMP CMpegSplitterFilter::Count(DWORD* pcStreams)
 	CheckPointer(pcStreams, E_POINTER);
 
 	*pcStreams = 0;
+
 	for(int i = 0; i < countof(m_pFile->m_streams); i++)
 		(*pcStreams) += m_pFile->m_streams[i].GetCount();
 
@@ -413,8 +419,37 @@ STDMETHODIMP CMpegSplitterFilter::Enable(long lIndex, DWORD dwFlags)
 			while(pos)
 			{
 				CMpegSplitterFile::stream& from = m_pFile->m_streams[i].GetNext(pos);
-				if(GetOutputPin(from))
-					return RenameOutputPin(from, to, &to.mt);
+				if(!GetOutputPin(from)) continue;
+
+				HRESULT hr;
+				if(FAILED(hr = RenameOutputPin(from, to, &to.mt)))
+					return hr;
+
+				if(const CMpegSplitterFile::program* p = m_pFile->FindProgram(to.pid))
+				{
+					for(int k = 0; k < countof(m_pFile->m_streams); k++)
+					{
+						if(k == i) continue;
+
+						pos = m_pFile->m_streams[k].GetHeadPosition();
+						while(pos)
+						{
+							CMpegSplitterFile::stream& from = m_pFile->m_streams[k].GetNext(pos);
+							if(!GetOutputPin(from)) continue;
+
+							for(int l = 0; l < countof(p->pid); l++)
+							{
+								if(const CMpegSplitterFile::stream* s = m_pFile->m_streams[k].FindStream(p->pid[l]))
+								{
+									if(from != *s) hr = RenameOutputPin(from, *s, &s->mt);
+									break;
+								}
+							}
+						}
+					}
+				}
+
+				return S_OK;
 			}
 		}
 
@@ -448,8 +483,6 @@ STDMETHODIMP CMpegSplitterFilter::Info(long lIndex, AM_MEDIA_TYPE** ppmt, DWORD*
 			
 			if(ppszName)
 			{
-				*ppszName = NULL;
-
 				CStringW name = CMpegSplitterFile::CStreamList::ToString(i);
 
 				CStringW str;

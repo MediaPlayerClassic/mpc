@@ -35,7 +35,7 @@ private:
 	public:
 		BYTE* m_buff; 
 		__int64 m_start, m_end;
-		packet_t(BYTE* p, __int64 start, __int64 end) : m_start(start), m_end(end) {memcpy(m_buff = new BYTE[end - start], p, end - start);}
+		packet_t(BYTE* p, __int64 start, __int64 end);
 		virtual ~packet_t() {delete [] m_buff;}
 	};
 

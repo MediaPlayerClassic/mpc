@@ -344,7 +344,7 @@ void CShaderEditorDlg::OnBnClickedButton2()
 {
 	if(!m_pShader) return;
 
-	if(IDOK != AfxMessageBox(_T("Are you sure you want to delete this shader?"), MB_YESNO))
+	if(IDYES != AfxMessageBox(_T("Are you sure you want to delete this shader?"), MB_YESNO))
 		return;
 
 	AppSettings& s = AfxGetAppSettings();

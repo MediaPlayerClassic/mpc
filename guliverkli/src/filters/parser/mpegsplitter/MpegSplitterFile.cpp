@@ -288,6 +288,11 @@ m_rate = rate;
 
 			__int64 pos = GetPos();
 
+			if(h.payload && h.payloadstart)
+			{
+				UpdatePrograms(h);
+			}
+				
 			if(h.payload && ISVALIDPID(h.pid))
 			{
 				peshdr h2;
@@ -479,7 +484,7 @@ DWORD CMpegSplitterFile::AddStream(WORD pid, BYTE pesid, DWORD len)
 				s.ps1id = (BYTE)BitRead(8);
 				s.pid = (WORD)((BitRead(8) << 8) | BitRead(16)); // pid = 0x9000 | track id
 
-				w = BitRead(16, true);
+				w = (WORD)BitRead(16, true);
 
 				if(w == 0x0b77)
 				{
@@ -517,4 +522,84 @@ DWORD CMpegSplitterFile::AddStream(WORD pid, BYTE pesid, DWORD len)
 	}
 
 	return s;
+}
+
+void CMpegSplitterFile::UpdatePrograms(const trhdr& h)
+{
+	CAutoLock cAutoLock(&m_csProps);
+
+	if(h.pid == 0)
+	{
+		trsechdr h2;
+		if(Read(h2) && h2.table_id == 0)
+		{
+			CAtlMap<WORD, bool> newprograms;
+
+			int len = h2.section_length;
+			len -= 5+4;
+			for(int i = len/4; i > 0; i--)
+			{
+				WORD program_number = (WORD)BitRead(16);
+				BYTE reserved = (BYTE)BitRead(3);
+				WORD pid = (WORD)BitRead(13);
+				if(program_number != 0)
+				{
+					m_programs[pid].program_number = program_number;
+					newprograms[program_number] = true;
+				}
+			}
+
+			POSITION pos = m_programs.GetStartPosition();
+			while(pos)
+			{
+				const CAtlMap<WORD, program>::CPair* pPair = m_programs.GetNext(pos);
+
+				if(!newprograms.Lookup(pPair->m_value.program_number))
+				{
+					m_programs.RemoveKey(pPair->m_key);
+				}
+			}
+		}
+	}
+	else if(CAtlMap<WORD, program>::CPair* pPair = m_programs.Lookup(h.pid))
+	{
+		trsechdr h2;
+		if(Read(h2) && h2.table_id == 2)
+		{
+			memset(pPair->m_value.pid, 0, sizeof(pPair->m_value.pid));
+
+			int len = h2.section_length;
+			len -= 5+4;
+			BYTE reserved1 = (BYTE)BitRead(3);
+			WORD PCR_PID = (WORD)BitRead(13);
+			BYTE reserved2 = (BYTE)BitRead(4);
+			WORD program_info_length = (WORD)BitRead(12);
+			len -= 4+program_info_length;
+			while(program_info_length-- > 0) BitRead(8);
+			for(int i = 0; i < countof(pPair->m_value.pid) && len >= 5; i++)
+			{
+				BYTE stream_type = (BYTE)BitRead(8);
+				BYTE reserved1 = (BYTE)BitRead(3);
+				WORD pid = (WORD)BitRead(13);
+				BYTE reserved2 = (BYTE)BitRead(4);
+				WORD ES_info_length = (WORD)BitRead(12);
+				len -= 5+ES_info_length;
+				while(ES_info_length-- > 0) BitRead(8);
+				pPair->m_value.pid[i] = pid;
+			}
+		}
+	}
+}
+
+const CMpegSplitterFile::program* CMpegSplitterFile::FindProgram(WORD pid)
+{
+	POSITION pos = m_programs.GetStartPosition();
+	while(pos)
+	{
+		const program* p = &m_programs.GetNextValue(pos);
+		for(int i = 0; i < countof(p->pid); i++)
+			if(p->pid[i] == pid) return p;
+	}
+
+	return NULL;
 }

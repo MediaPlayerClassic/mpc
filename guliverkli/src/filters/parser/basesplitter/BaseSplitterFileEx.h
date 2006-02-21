@@ -253,6 +253,21 @@ public:
 		__int64 next;
 	};
 
+	struct trsechdr
+	{
+		BYTE table_id;
+		WORD section_syntax_indicator:1;
+		WORD zero:1;
+		WORD reserved1:2;
+		WORD section_length:12;
+		WORD transport_stream_id;
+		BYTE reserved2:2;
+		BYTE version_number:5;
+		BYTE current_next_indicator:1;
+		BYTE section_number;
+		BYTE last_section_number;
+	};
+
 	// http://www.technotrend.de/download/av_format_v1.pdf
 
 	struct pvahdr
@@ -292,6 +307,7 @@ public:
 	bool Read(ps2audhdr& h, CMediaType* pmt = NULL);
 	bool Read(ps2subhdr& h, CMediaType* pmt = NULL);
 	bool Read(trhdr& h, bool fSync = true);
+	bool Read(trsechdr& h);
 	bool Read(pvahdr& h, bool fSync = true);
 	bool Read(avchdr& h, int len, CMediaType* pmt = NULL);
 };

@@ -119,8 +119,6 @@ public:
 	};
 
 private:
-	DWORD m_dwRegister;
-	CComPtr<ICaptureGraphBuilder2> m_pCGB;
 	CComPtr<IGraphBuilder2> m_pGB;
 	CComPtr<IBaseFilter> m_pMux;
 	CComQIPtr<IMediaControl> m_pMC;
