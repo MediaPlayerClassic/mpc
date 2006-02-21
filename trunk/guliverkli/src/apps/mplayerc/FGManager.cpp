@@ -938,7 +938,7 @@ STDMETHODIMP CFGManager::NukeDownstream(IUnknown* pUnk)
 	{
 		// TESTME
 		CComPtr<IPin> pPinTo;
-		if(IsPinDirection(pPin, PINDIR_OUTPUT)
+		if(S_OK == IsPinDirection(pPin, PINDIR_OUTPUT)
 		&& SUCCEEDED(pPin->ConnectedTo(&pPinTo)) && pPinTo)
 		{
 			if(CComPtr<IBaseFilter> pBF = GetFilterFromPin(pPinTo))
