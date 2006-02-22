@@ -415,27 +415,21 @@ HRESULT CFGFilterVideoRenderer::Create(IBaseFilter** ppBF, IUnknown** ppUnk)
 
 	HRESULT hr = S_OK;
 
-	if(m_clsid == CLSID_VMR7AllocatorPresenter)
+	CComPtr<ISubPicAllocatorPresenter> pCAP;
+
+	if(m_clsid == CLSID_VMR7AllocatorPresenter 
+	|| m_clsid == CLSID_VMR9AllocatorPresenter 
+	|| m_clsid == CLSID_DXRAllocatorPresenter)
 	{
-		CComPtr<ISubPicAllocatorPresenter> pCAP;
-		CComPtr<IUnknown> pRenderer;
-		if(SUCCEEDED(hr = CreateAP7(m_clsid, m_hWnd, &pCAP))
-		&& SUCCEEDED(hr = pCAP->CreateRenderer(&pRenderer)))
+		if(SUCCEEDED(CreateAP7(m_clsid, m_hWnd, &pCAP))
+		|| SUCCEEDED(CreateAP9(m_clsid, m_hWnd, &pCAP)))
 		{
-			*ppBF = CComQIPtr<IBaseFilter>(pRenderer).Detach();
-			if(ppUnk) *ppUnk = (IUnknown*)pCAP.Detach();
-		}
-	}
-	else if(m_clsid == CLSID_VMR9AllocatorPresenter 
-		|| m_clsid == CLSID_DXRAllocatorPresenter)
-	{
-		CComPtr<ISubPicAllocatorPresenter> pCAP;
-		CComPtr<IUnknown> pRenderer;
-		if(SUCCEEDED(hr = CreateAP9(m_clsid, m_hWnd, &pCAP))
-		&& SUCCEEDED(hr = pCAP->CreateRenderer(&pRenderer)))
-		{
-			*ppBF = CComQIPtr<IBaseFilter>(pRenderer).Detach();
-			if(ppUnk) *ppUnk = (IUnknown*)pCAP.Detach();
+			CComPtr<IUnknown> pRenderer;
+			if(SUCCEEDED(hr = pCAP->CreateRenderer(&pRenderer)))
+			{
+				*ppBF = CComQIPtr<IBaseFilter>(pRenderer).Detach();
+				if(ppUnk) *ppUnk = (IUnknown*)pCAP.Detach();
+			}
 		}
 	}
 	else
@@ -443,10 +437,8 @@ HRESULT CFGFilterVideoRenderer::Create(IBaseFilter** ppBF, IUnknown** ppUnk)
 		CComPtr<IBaseFilter> pBF;
 		if(SUCCEEDED(pBF.CoCreateInstance(m_clsid)))
 		{
-			/* TODO
 			BeginEnumPins(pBF, pEP, pPin)
 			{
-				// overlay mixer?
 				if(CComQIPtr<IMixerPinConfig, &IID_IMixerPinConfig> pMPC = pPin)
 				{
 					if(ppUnk) *ppUnk = pMPC.Detach();
@@ -454,7 +446,6 @@ HRESULT CFGFilterVideoRenderer::Create(IBaseFilter** ppBF, IUnknown** ppUnk)
 				}
 			}
 			EndEnumPins
-			*/
 
 			*ppBF = pBF.Detach();
 		}

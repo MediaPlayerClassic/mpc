@@ -43,8 +43,11 @@ static HRESULT STDMETHODCALLTYPE ReceiveMine(IMemInputPinC * This, IMediaSample 
 	return ReceiveOrg(This, pSample);
 }
 
-void HookNewSegmentAndReceive(IPinC* pPinC, IMemInputPinC* pMemInputPinC)
+bool HookNewSegmentAndReceive(IPinC* pPinC, IMemInputPinC* pMemInputPinC)
 {
+	if(!pPinC || !pMemInputPinC || (GetVersion()&0x80000000))
+		return false;
+
 	g_tSegmentStart = 0;
 	g_tSampleStart = 0;
 
@@ -60,6 +63,8 @@ void HookNewSegmentAndReceive(IPinC* pPinC, IMemInputPinC* pMemInputPinC)
 	if(ReceiveOrg == NULL) ReceiveOrg = pMemInputPinC->lpVtbl->Receive;
 	pMemInputPinC->lpVtbl->Receive = ReceiveMine;
 	res = VirtualProtect(pMemInputPinC->lpVtbl, sizeof(IMemInputPinC), PAGE_EXECUTE, &flOldProtect);
+
+	return true;
 }
 
 static HRESULT ( STDMETHODCALLTYPE *GetVideoAcceleratorGUIDsOrg )( IAMVideoAcceleratorC * This,/* [out][in] */ LPDWORD pdwNumGuidsSupported,/* [out][in] */ LPGUID pGuidsSupported) = NULL;

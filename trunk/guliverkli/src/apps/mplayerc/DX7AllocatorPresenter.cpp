@@ -612,7 +612,7 @@ STDMETHODIMP CDX7AllocatorPresenter::GetDIB(BYTE* lpDib, DWORD* size)
 
 CVMR7AllocatorPresenter::CVMR7AllocatorPresenter(HWND hWnd, HRESULT& hr) 
 	: CDX7AllocatorPresenter(hWnd, hr)
-	, m_fUseInternalTimer(true)
+	, m_fUseInternalTimer(false)
 {
     if(FAILED(hr))
 		return;
@@ -692,8 +692,8 @@ STDMETHODIMP CVMR7AllocatorPresenter::CreateRenderer(IUnknown** ppRenderer)
 			break;
 
 		CComPtr<IPin> pPin = GetFirstPin(pBF);
-		if(CComQIPtr<IMemInputPin> pMemInputPin = pPin)
-			HookNewSegmentAndReceive((IPinC*)(IPin*)pPin, (IMemInputPinC*)(IMemInputPin*)pMemInputPin);
+		CComQIPtr<IMemInputPin> pMemInputPin = pPin;
+		m_fUseInternalTimer = HookNewSegmentAndReceive((IPinC*)(IPin*)pPin, (IMemInputPinC*)(IMemInputPin*)pMemInputPin);
 
 		*ppRenderer = (IUnknown*)pBF.Detach();
 
@@ -706,8 +706,10 @@ STDMETHODIMP CVMR7AllocatorPresenter::CreateRenderer(IUnknown** ppRenderer)
 
 STDMETHODIMP_(void) CVMR7AllocatorPresenter::SetTime(REFERENCE_TIME rtNow)
 {
-	m_fUseInternalTimer = false;
-	__super::SetTime(rtNow);
+	if(!m_fUseInternalTimer)
+	{
+		__super::SetTime(rtNow);
+	}
 }
 
 // IVMRSurfaceAllocator
@@ -829,7 +831,11 @@ STDMETHODIMP CVMR7AllocatorPresenter::PresentImage(DWORD_PTR dwUserID, VMRPRESEN
 			if(m_pSubPicQueue) 
 			{
 				m_pSubPicQueue->SetFPS(m_fps);
-				if(m_fUseInternalTimer) __super::SetTime(g_tSegmentStart + g_tSampleStart);
+
+				if(m_fUseInternalTimer)
+				{
+					__super::SetTime(g_tSegmentStart + g_tSampleStart);
+				}
 			}
 		}
 
