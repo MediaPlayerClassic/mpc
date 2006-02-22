@@ -1131,7 +1131,7 @@ STDMETHODIMP CDX9AllocatorPresenter::SetPixelShader(LPCSTR pSrcData, LPCSTR pTar
 
 CVMR9AllocatorPresenter::CVMR9AllocatorPresenter(HWND hWnd, HRESULT& hr) 
 	: CDX9AllocatorPresenter(hWnd, hr)
-	, m_fUseInternalTimer(true)
+	, m_fUseInternalTimer(false)
 	, m_rtPrevStart(-1)
 {
 }
@@ -1431,8 +1431,8 @@ STDMETHODIMP CVMR9AllocatorPresenter::CreateRenderer(IUnknown** ppRenderer)
 */
 
 		CComPtr<IPin> pPin = GetFirstPin(pBF);
-		if(CComQIPtr<IMemInputPin> pMemInputPin = pPin)
-			HookNewSegmentAndReceive((IPinC*)(IPin*)pPin, (IMemInputPinC*)(IMemInputPin*)pMemInputPin);
+		CComQIPtr<IMemInputPin> pMemInputPin = pPin;
+		m_fUseInternalTimer = HookNewSegmentAndReceive((IPinC*)(IPin*)pPin, (IMemInputPinC*)(IMemInputPin*)pMemInputPin);
 /*
 if(CComQIPtr<IAMVideoAccelerator> pAMVA = pPin)
 	HookAMVideoAccelerator((IAMVideoAcceleratorC*)(IAMVideoAccelerator*)pAMVA);
@@ -1479,8 +1479,10 @@ if(CComQIPtr<IAMVideoAccelerator> pAMVA = pPin)
 
 STDMETHODIMP_(void) CVMR9AllocatorPresenter::SetTime(REFERENCE_TIME rtNow)
 {
-	m_fUseInternalTimer = false;
-	__super::SetTime(rtNow);
+	if(!m_fUseInternalTimer)
+	{
+		__super::SetTime(rtNow);
+	}
 }
 
 // IVMRSurfaceAllocator9
@@ -1645,7 +1647,11 @@ STDMETHODIMP CVMR9AllocatorPresenter::PresentImage(DWORD_PTR dwUserID, VMR9Prese
 			if(m_pSubPicQueue)
 			{
 				m_pSubPicQueue->SetFPS(m_fps);
-				if(m_fUseInternalTimer) __super::SetTime(g_tSegmentStart + g_tSampleStart);
+
+				if(m_fUseInternalTimer)
+				{
+					__super::SetTime(g_tSegmentStart + g_tSampleStart);
+				}
 			}
 		}
 
