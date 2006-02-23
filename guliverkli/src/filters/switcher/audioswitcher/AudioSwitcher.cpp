@@ -317,7 +317,7 @@ HRESULT CAudioSwitcherFilter::Transform(IMediaSample* pIn, IMediaSample* pOut)
 			{
 				if(fPCM && wfe->wBitsPerSample == 8) buff[i] = (double)((BYTE*)pDataOut)[i] / UCHAR_MAX;
 				else if(fPCM && wfe->wBitsPerSample == 16) buff[i] = (double)((short*)pDataOut)[i] / SHRT_MAX;
-				else if(fPCM && wfe->wBitsPerSample == 24) {int tmp; memcpy(((BYTE*)&tmp)+1, &pDataOut[i*3], 3); buff[i] = (tmp >> 8) / ((1<<23)-1);}
+				else if(fPCM && wfe->wBitsPerSample == 24) {int tmp; memcpy(((BYTE*)&tmp)+1, &pDataOut[i*3], 3); buff[i] = (float)(tmp >> 8) / ((1<<23)-1);}
 				else if(fPCM && wfe->wBitsPerSample == 32) buff[i] = (double)((int*)pDataOut)[i] / INT_MAX;
 				else if(fFloat && wfe->wBitsPerSample == 32) buff[i] = (double)((float*)pDataOut)[i];
 				else if(fFloat && wfe->wBitsPerSample == 64) buff[i] = ((double*)pDataOut)[i];
