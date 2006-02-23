@@ -1570,39 +1570,40 @@ STDMETHODIMP CFGManagerCustom::AddFilter(IBaseFilter* pBF, LPCWSTR pName)
 		}
 	}
 
-	if(CComQIPtr<IMpeg2DecFilter> m_pM2DF = pBF)
+	if(CComQIPtr<IMpeg2DecFilter> pM2DF = pBF)
 	{
-		m_pM2DF->SetDeinterlaceMethod((ditype)s.mpegdi);
-		m_pM2DF->SetBrightness(s.mpegbright);
-		m_pM2DF->SetContrast(s.mpegcont);
-		m_pM2DF->SetHue(s.mpeghue);
-		m_pM2DF->SetSaturation(s.mpegsat);
-		m_pM2DF->EnableForcedSubtitles(s.mpegforcedsubs);
-		m_pM2DF->EnablePlanarYUV(s.mpegplanaryuv);
+		pM2DF->SetDeinterlaceMethod((ditype)s.mpegdi);
+		pM2DF->SetBrightness(s.mpegbright);
+		pM2DF->SetContrast(s.mpegcont);
+		pM2DF->SetHue(s.mpeghue);
+		pM2DF->SetSaturation(s.mpegsat);
+		pM2DF->EnableForcedSubtitles(s.mpegforcedsubs);
+		pM2DF->EnablePlanarYUV(s.mpegplanaryuv);
 	}
 
-	if(CComQIPtr<IMpeg2DecFilter2> m_pM2DF2 = pBF)
+	if(CComQIPtr<IMpeg2DecFilter2> pM2DF2 = pBF)
 	{
-		m_pM2DF2->EnableInterlaced(s.mpeginterlaced);
+		pM2DF2->EnableInterlaced(s.mpeginterlaced);
 	}
 
-	if(CComQIPtr<IMpaDecFilter> m_pMDF = pBF)
+	if(CComQIPtr<IMpaDecFilter> pMDF = pBF)
 	{
-		m_pMDF->SetSampleFormat((SampleFormat)s.mpasf);
-		m_pMDF->SetNormalize(s.mpanormalize);
-		m_pMDF->SetSpeakerConfig(IMpaDecFilter::ac3, s.ac3sc);
-		m_pMDF->SetDynamicRangeControl(IMpaDecFilter::ac3, s.ac3drc);
-		m_pMDF->SetSpeakerConfig(IMpaDecFilter::dts, s.dtssc);
-		m_pMDF->SetDynamicRangeControl(IMpaDecFilter::dts, s.dtsdrc);
-		m_pMDF->SetSpeakerConfig(IMpaDecFilter::aac, s.aacsc);
-		m_pMDF->SetBoost(s.mpaboost);
+		pMDF->SetSampleFormat((SampleFormat)s.mpasf);
+		pMDF->SetNormalize(s.mpanormalize);
+		pMDF->SetSpeakerConfig(IMpaDecFilter::ac3, s.ac3sc);
+		pMDF->SetDynamicRangeControl(IMpaDecFilter::ac3, s.ac3drc);
+		pMDF->SetSpeakerConfig(IMpaDecFilter::dts, s.dtssc);
+		pMDF->SetDynamicRangeControl(IMpaDecFilter::dts, s.dtsdrc);
+		pMDF->SetSpeakerConfig(IMpaDecFilter::aac, s.aacsc);
+		pMDF->SetBoost(s.mpaboost);
 	}
 
 	if(CComQIPtr<IAudioSwitcherFilter> pASF = pBF)
 	{
-		pASF->SetSpeakerConfig(s.fCustomChannelMapping, s.pSpeakerToChannelMap);
 		pASF->EnableDownSamplingTo441(s.fDownSampleTo441);
+		pASF->SetSpeakerConfig(s.fCustomChannelMapping, s.pSpeakerToChannelMap);
 		pASF->SetAudioTimeShift(s.fAudioTimeShift ? 10000i64*s.tAudioTimeShift : 0);
+		pASF->SetNormalizeBoost(s.fAudioNormalize, s.AudioBoost);
 	}
 
 	return hr;

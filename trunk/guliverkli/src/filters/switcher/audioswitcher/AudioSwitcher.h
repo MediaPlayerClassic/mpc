@@ -31,6 +31,8 @@ interface IAudioSwitcherFilter : public IUnknown
 	STDMETHOD(EnableDownSamplingTo441) (bool fEnable) = 0;
 	STDMETHOD_(REFERENCE_TIME, GetAudioTimeShift) () = 0;
 	STDMETHOD(SetAudioTimeShift) (REFERENCE_TIME rtAudioTimeShift) = 0;
+	STDMETHOD(GetNormalizeBoost) (bool& fNormalize, float& boost) = 0;
+	STDMETHOD(SetNormalizeBoost) (bool fNormalize, float boost) = 0;
 };
 
 class AudioStreamResampler;
@@ -46,6 +48,9 @@ class CAudioSwitcherFilter : public CStreamSwitcherFilter, public IAudioSwitcher
 	bool m_fDownSampleTo441;
 	REFERENCE_TIME m_rtAudioTimeShift;
 	CAutoPtrArray<AudioStreamResampler> m_pResamplers;
+	double m_sample_max;
+	bool m_fNormalize;
+	float m_boost;
 
 	REFERENCE_TIME m_rtNextStart, m_rtNextStop;
 
@@ -60,6 +65,9 @@ public:
 	CMediaType CreateNewOutputMediaType(CMediaType mt, long& cbBuffer);
 	void OnNewOutputMediaType(const CMediaType& mtIn, const CMediaType& mtOut);
 
+	HRESULT DeliverEndFlush();
+	HRESULT DeliverNewSegment(REFERENCE_TIME tStart, REFERENCE_TIME tStop, double dRate);
+
 	// IAudioSwitcherFilter
 	STDMETHODIMP GetInputSpeakerConfig(DWORD* pdwChannelMask);
     STDMETHODIMP GetSpeakerConfig(bool* pfCustomChannelMapping, DWORD pSpeakerToChannelMap[18][18]);
@@ -69,4 +77,9 @@ public:
 	STDMETHODIMP EnableDownSamplingTo441(bool fEnable);
 	STDMETHODIMP_(REFERENCE_TIME) GetAudioTimeShift();
 	STDMETHODIMP SetAudioTimeShift(REFERENCE_TIME rtAudioTimeShift);
+	STDMETHODIMP GetNormalizeBoost(bool& fNormalize, float& boost);
+	STDMETHODIMP SetNormalizeBoost(bool fNormalize, float boost);
+
+	// IAMStreamSelect
+	STDMETHODIMP Enable(long lIndex, DWORD dwFlags);
 };

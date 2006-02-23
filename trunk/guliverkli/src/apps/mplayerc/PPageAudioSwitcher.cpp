@@ -23,6 +23,7 @@
 //
 
 #include "stdafx.h"
+#include <math.h>
 #include "mplayerc.h"
 #include "PPageAudioSwitcher.h"
 
@@ -31,6 +32,7 @@
 IMPLEMENT_DYNAMIC(CPPageAudioSwitcher, CPPageBase)
 CPPageAudioSwitcher::CPPageAudioSwitcher(IFilterGraph* pFG)
 	: CPPageBase(CPPageAudioSwitcher::IDD, CPPageAudioSwitcher::IDD)
+	, m_fAudioNormalize(FALSE)
 	, m_fDownSampleTo441(FALSE)
 	, m_fCustomChannelMapping(FALSE)
 	, m_nChannels(0)
@@ -38,8 +40,9 @@ CPPageAudioSwitcher::CPPageAudioSwitcher(IFilterGraph* pFG)
 	, m_dwChannelMask(0)
 	, m_tAudioTimeShift(0)
 	, m_fAudioTimeShift(FALSE)
+	, m_AudioBoost(0)
 {
-	m_pAudioSwitcher = FindFilter(__uuidof(CAudioSwitcherFilter), pFG);
+	m_pASF = FindFilter(__uuidof(CAudioSwitcherFilter), pFG);
 }
 
 CPPageAudioSwitcher::~CPPageAudioSwitcher()
@@ -49,6 +52,9 @@ CPPageAudioSwitcher::~CPPageAudioSwitcher()
 void CPPageAudioSwitcher::DoDataExchange(CDataExchange* pDX)
 {
 	__super::DoDataExchange(pDX);
+	DDX_Check(pDX, IDC_CHECK5, m_fAudioNormalize);
+	DDX_Slider(pDX, IDC_SLIDER1, m_AudioBoost);
+	DDX_Control(pDX, IDC_SLIDER1, m_AudioBoostCtrl);
 	DDX_Check(pDX, IDC_CHECK3, m_fDownSampleTo441);
 	DDX_Check(pDX, IDC_CHECK1, m_fCustomChannelMapping);
 	DDX_Control(pDX, IDC_EDIT1, m_nChannelsCtrl);
@@ -69,6 +75,8 @@ BEGIN_MESSAGE_MAP(CPPageAudioSwitcher, CPPageBase)
 	ON_NOTIFY(NM_CLICK, IDC_LIST1, OnNMClickList1)
 	ON_WM_DRAWITEM()
 	ON_EN_CHANGE(IDC_EDIT1, OnEnChangeEdit1)
+	ON_UPDATE_COMMAND_UI(IDC_SLIDER1, OnUpdateAudioSwitcher)
+	ON_UPDATE_COMMAND_UI(IDC_CHECK5, OnUpdateAudioSwitcher)
 	ON_UPDATE_COMMAND_UI(IDC_CHECK3, OnUpdateAudioSwitcher)
 	ON_UPDATE_COMMAND_UI(IDC_CHECK4, OnUpdateAudioSwitcher)
 	ON_UPDATE_COMMAND_UI(IDC_EDIT2, OnUpdateAudioSwitcher)
@@ -80,6 +88,7 @@ BEGIN_MESSAGE_MAP(CPPageAudioSwitcher, CPPageBase)
 	ON_UPDATE_COMMAND_UI(IDC_STATIC1, OnUpdateChannelMapping)
 	ON_UPDATE_COMMAND_UI(IDC_STATIC2, OnUpdateChannelMapping)
 	ON_UPDATE_COMMAND_UI(IDC_STATIC3, OnUpdateChannelMapping)
+	ON_WM_HSCROLL()
 END_MESSAGE_MAP()
 
 
@@ -92,6 +101,9 @@ BOOL CPPageAudioSwitcher::OnInitDialog()
 	AppSettings& s = AfxGetAppSettings();
 
 	m_fEnableAudioSwitcher = s.fEnableAudioSwitcher;
+	m_fAudioNormalize = s.fAudioNormalize;
+	m_AudioBoost = (int)(50.0f*log10(s.AudioBoost));
+	m_AudioBoostCtrl.SetRange(0, 100);
 	m_fDownSampleTo441 = s.fDownSampleTo441;
 	m_fAudioTimeShift = s.fAudioTimeShift;
 	m_tAudioTimeShift = s.tAudioTimeShift;
@@ -99,14 +111,14 @@ BOOL CPPageAudioSwitcher::OnInitDialog()
 	m_fCustomChannelMapping = s.fCustomChannelMapping;
 	memcpy(m_pSpeakerToChannelMap, s.pSpeakerToChannelMap, sizeof(s.pSpeakerToChannelMap));
 
-	if(m_pAudioSwitcher)
-		m_pAudioSwitcher->GetInputSpeakerConfig(&m_dwChannelMask);
+	if(m_pASF)
+		m_pASF->GetInputSpeakerConfig(&m_dwChannelMask);
 
 	m_nChannels = 1;
 	m_nChannelsSpinCtrl.SetRange(1, 18);
 
-	if(m_pAudioSwitcher)
-		m_nChannels = m_pAudioSwitcher->GetNumberOfInputChannels();		
+	if(m_pASF)
+		m_nChannels = m_pASF->GetNumberOfInputChannels();		
 
 	m_list.InsertColumn(0, _T(""), LVCFMT_LEFT, 100);
 	m_list.InsertItem(0, _T(""));
@@ -153,17 +165,20 @@ BOOL CPPageAudioSwitcher::OnApply()
 	AppSettings& s = AfxGetAppSettings();
 
 	s.fEnableAudioSwitcher = !!m_fEnableAudioSwitcher;
+	s.fAudioNormalize = !!m_fAudioNormalize;
+	s.AudioBoost = (float)pow(10.0, (double)m_AudioBoost/50);
 	s.fDownSampleTo441 = !!m_fDownSampleTo441;
 	s.fAudioTimeShift = !!m_fAudioTimeShift;
 	s.tAudioTimeShift = m_tAudioTimeShift;
 	s.fCustomChannelMapping = !!m_fCustomChannelMapping;
 	memcpy(s.pSpeakerToChannelMap, m_pSpeakerToChannelMap, sizeof(m_pSpeakerToChannelMap));
 
-	if(m_pAudioSwitcher)
+	if(m_pASF)
 	{
-		m_pAudioSwitcher->SetSpeakerConfig(s.fCustomChannelMapping, m_pSpeakerToChannelMap);
-		m_pAudioSwitcher->EnableDownSamplingTo441(s.fDownSampleTo441);
-		m_pAudioSwitcher->SetAudioTimeShift(m_fAudioTimeShift ? 10000i64*m_tAudioTimeShift : 0);
+		m_pASF->SetSpeakerConfig(s.fCustomChannelMapping, s.pSpeakerToChannelMap);
+		m_pASF->EnableDownSamplingTo441(s.fDownSampleTo441);
+		m_pASF->SetAudioTimeShift(s.fAudioTimeShift ? 10000i64*s.tAudioTimeShift : 0);
+		m_pASF->SetNormalizeBoost(s.fAudioNormalize, s.AudioBoost);
 	}
 
 	return __super::OnApply();
@@ -308,4 +323,11 @@ void CPPageAudioSwitcher::OnUpdateChannelMapping(CCmdUI* pCmdUI)
 //	UpdateData();
 	pCmdUI->Enable(IsDlgButtonChecked(IDC_CHECK2)/*m_fEnableAudioSwitcher*/ 
 		&& IsDlgButtonChecked(IDC_CHECK1)/*m_fCustomChannelMapping*/);
+}
+
+void CPPageAudioSwitcher::OnHScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrollBar)
+{
+	SetModified();
+
+	__super::OnHScroll(nSBCode, nPos, pScrollBar);
 }

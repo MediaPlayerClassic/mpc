@@ -585,37 +585,45 @@ STDMETHODIMP CStreamSwitcherInputPin::BeginFlush()
 {
     CAutoLock cAutoLock(&((CStreamSwitcherFilter*)m_pFilter)->m_csState);
 
-	CStreamSwitcherOutputPin* pOut = ((CStreamSwitcherFilter*)m_pFilter)->GetOutputPin();
+	HRESULT hr;
+
+	CStreamSwitcherFilter* pSSF = (CStreamSwitcherFilter*)m_pFilter;
+
+	CStreamSwitcherOutputPin* pOut = pSSF->GetOutputPin();
     if(!IsConnected() || !pOut || !pOut->IsConnected())
 		return VFW_E_NOT_CONNECTED;
 
-	HRESULT hr = __super::BeginFlush();
-    if(FAILED(hr)) 
+    if(FAILED(hr = __super::BeginFlush())) 
 		return hr;
 
-	return IsActive() ? pOut->DeliverBeginFlush() : Block(false), S_OK;
+	return IsActive() ? pSSF->DeliverBeginFlush() : Block(false), S_OK;
 }
 
 STDMETHODIMP CStreamSwitcherInputPin::EndFlush()
 {
 	CAutoLock cAutoLock(&((CStreamSwitcherFilter*)m_pFilter)->m_csState);
 
-	CStreamSwitcherOutputPin* pOut = ((CStreamSwitcherFilter*)m_pFilter)->GetOutputPin();
+	HRESULT hr;
+
+	CStreamSwitcherFilter* pSSF = (CStreamSwitcherFilter*)m_pFilter;
+
+	CStreamSwitcherOutputPin* pOut = pSSF->GetOutputPin();
     if(!IsConnected() || !pOut || !pOut->IsConnected())
 		return VFW_E_NOT_CONNECTED;
 
-	HRESULT hr = __super::EndFlush();
-    if(FAILED(hr)) 
+    if(FAILED(hr = __super::EndFlush())) 
 		return hr;
 
-	return IsActive() ? pOut->DeliverEndFlush() : Block(true), S_OK;
+	return IsActive() ? pSSF->DeliverEndFlush() : Block(true), S_OK;
 }
 
 STDMETHODIMP CStreamSwitcherInputPin::EndOfStream()
 {
     CAutoLock cAutoLock(&m_csReceive);
 
-	CStreamSwitcherOutputPin* pOut = ((CStreamSwitcherFilter*)m_pFilter)->GetOutputPin();
+	CStreamSwitcherFilter* pSSF = (CStreamSwitcherFilter*)m_pFilter;
+
+	CStreamSwitcherOutputPin* pOut = pSSF->GetOutputPin();
 	if(!IsConnected() || !pOut || !pOut->IsConnected())
 		return VFW_E_NOT_CONNECTED;
 
@@ -625,7 +633,7 @@ STDMETHODIMP CStreamSwitcherInputPin::EndOfStream()
 		return S_OK;
 	}
 
-	return IsActive() ? pOut->DeliverEndOfStream() : S_OK;
+	return IsActive() ? pSSF->DeliverEndOfStream() : S_OK;
 }
 
 // IMemInputPin
@@ -791,15 +799,14 @@ STDMETHODIMP CStreamSwitcherInputPin::NewSegment(REFERENCE_TIME tStart, REFERENC
 
 	CAutoLock cAutoLock(&m_csReceive);
 
-	CStreamSwitcherOutputPin* pOut = ((CStreamSwitcherFilter*)m_pFilter)->GetOutputPin();
+	CStreamSwitcherFilter* pSSF = (CStreamSwitcherFilter*)m_pFilter;
+
+	CStreamSwitcherOutputPin* pOut = pSSF->GetOutputPin();
     if(!pOut || !pOut->IsConnected())
 		return VFW_E_NOT_CONNECTED;
 
-	HRESULT hr = pOut->DeliverNewSegment(tStart, tStop, dRate);
-
-	return hr;
+	return pSSF->DeliverNewSegment(tStart, tStop, dRate);
 }
-
 
 //
 // CStreamSwitcherOutputPin
@@ -1201,7 +1208,27 @@ HRESULT CStreamSwitcherFilter::Transform(IMediaSample* pIn, IMediaSample* pOut)
 
 CMediaType CStreamSwitcherFilter::CreateNewOutputMediaType(CMediaType mt, long& cbBuffer)
 {
-	return(mt);
+	return mt;
+}
+
+HRESULT CStreamSwitcherFilter::DeliverEndOfStream()
+{
+	return m_pOutput ? m_pOutput->DeliverEndOfStream() : E_FAIL;
+}
+
+HRESULT CStreamSwitcherFilter::DeliverBeginFlush()
+{
+	return m_pOutput ? m_pOutput->DeliverBeginFlush() : E_FAIL;
+}
+
+HRESULT CStreamSwitcherFilter::DeliverEndFlush()
+{
+	return m_pOutput ? m_pOutput->DeliverEndFlush() : E_FAIL;
+}
+
+HRESULT CStreamSwitcherFilter::DeliverNewSegment(REFERENCE_TIME tStart, REFERENCE_TIME tStop, double dRate)
+{
+	return m_pOutput ? m_pOutput->DeliverNewSegment(tStart, tStop, dRate) : E_FAIL;
 }
 
 // IAMStreamSelect

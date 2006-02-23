@@ -36,6 +36,7 @@
 #include "Ap4ChplAtom.h"
 #include "Ap4FtabAtom.h"
 #include "Ap4DataAtom.h"
+#include "AP4WaveAtom.h"
 
 #ifdef REGISTER_FILTER
 
@@ -521,6 +522,15 @@ HRESULT CMP4SplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 						wfe->nSamplesPerSec = ase->GetSampleRate();
 						wfe->nChannels = ase->GetChannelCount();
 						wfe->wBitsPerSample = ase->GetSampleSize();
+						wfe->nBlockAlign = ase->GetBytesPerFrame();
+
+						if(AP4_WaveAtom* wave = dynamic_cast<AP4_WaveAtom*>(ase->GetChild(AP4_ATOM_TYPE_WAVE)))
+						{
+							wfe->cbSize = (WORD)wave->GetDataBuffer().GetDataSize()-4;
+							wfe = (WAVEFORMATEX*)mt.ReallocFormatBuffer(sizeof(WAVEFORMATEX) + wfe->cbSize);
+							memcpy(wfe+1, wave->GetDataBuffer().GetData()+4, wfe->cbSize);
+						}
+
 						mts.Add(mt);
 
 //						mt.subtype = FOURCCMap('RMAS');
@@ -1051,15 +1061,27 @@ bool CMP4SplitterFilter::DemuxLoop()
 			{
 				p->rtStop = p->rtStart;
 
+				int nBlockAlign = 300;
+
+				WAVEFORMATEX* wfe = (WAVEFORMATEX*)pPin->CurrentMediaType().Format();
+				if(wfe->nBlockAlign > 1)
+				{
+					nBlockAlign = wfe->nBlockAlign;
+					pPairNext->m_value.index -= pPairNext->m_value.index % nBlockAlign;
+				}
+
+				int fFirst = true;
+
 				while(AP4_SUCCEEDED(track->ReadSample(pPairNext->m_value.index, sample, data)))
 				{
 					AP4_Size size = data.GetDataSize();
 					const AP4_Byte* ptr = data.GetData();
 					for(int i = 0; i < size; i++) p->pData.Add(ptr[i]);
 
+					if(fFirst) {p->rtStart = p->rtStop = (REFERENCE_TIME)(10000000.0 / track->GetMediaTimeScale() * sample.GetCts()); fFirst = false;}
 					p->rtStop += (REFERENCE_TIME)(10000000.0 / track->GetMediaTimeScale() * sample.GetDuration());
 
-					if(pPairNext->m_value.index+1 >= track->GetSampleCount() || p->pData.GetCount() >= 300)
+					if(pPairNext->m_value.index+1 >= track->GetSampleCount() || p->pData.GetCount() >= nBlockAlign)
 						break;
 
 					pPairNext->m_value.index++;

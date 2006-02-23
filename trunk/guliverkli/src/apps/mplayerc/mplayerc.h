@@ -423,6 +423,8 @@ public:
 		int tAudioTimeShift;
 		bool fCustomChannelMapping;
 		DWORD pSpeakerToChannelMap[18][18];
+		bool fAudioNormalize;
+		float AudioBoost;
 
 		bool fIntRealMedia;
 		// bool fRealMediaRenderless;

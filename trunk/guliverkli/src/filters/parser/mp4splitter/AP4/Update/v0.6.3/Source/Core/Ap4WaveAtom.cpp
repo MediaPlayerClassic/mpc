@@ -1,6 +1,6 @@
 /*****************************************************************
 |
-|    AP4 - cmvd Atoms 
+|    AP4 - wave Atoms 
 |
 |    Copyright 2002 Gilles Boccon-Gibod
 |
@@ -26,39 +26,31 @@
 |
  ****************************************************************/
 
-#ifndef _AP4_CMVD_ATOM_H_
-#define _AP4_CMVD_ATOM_H_
-
 /*----------------------------------------------------------------------
 |       includes
 +---------------------------------------------------------------------*/
 #include "Ap4.h"
-#include "Ap4ByteStream.h"
-#include "Ap4Array.h"
-#include "Ap4Atom.h"
+#include "Ap4WaveAtom.h"
 #include "Ap4AtomFactory.h"
 #include "Ap4ContainerAtom.h"
-#include "Ap4DataBuffer.h"
 
 /*----------------------------------------------------------------------
-|       AP4_CmvdAtom
+|       AP4_WaveAtom::AP4_WaveAtom
 +---------------------------------------------------------------------*/
-class AP4_CmvdAtom : public AP4_ContainerAtom
+AP4_WaveAtom::AP4_WaveAtom(AP4_Size         size,
+                           AP4_ByteStream&  stream,
+                           AP4_AtomFactory& atom_factory) :
+    AP4_ContainerAtom(AP4_ATOM_TYPE_WAVE, size, false, stream)
 {
-public:
-    // methods
-    AP4_CmvdAtom(AP4_Size         size,
-                 AP4_ByteStream&  stream,
-                 AP4_AtomFactory& atom_factory);
+	AP4_Offset offset;
+	stream.Tell(offset);
 
-    virtual AP4_Result WriteFields(AP4_ByteStream& stream) { return AP4_FAILURE; }
+	size -= AP4_ATOM_HEADER_SIZE;
 
-	AP4_UI32 GetMovieResourceSize() const { return m_MovieResourceSize; }
-    const AP4_DataBuffer& GetDataBuffer() { return m_Data; }
+	m_Data.SetDataSize(size);
+	stream.Read(m_Data.UseData(), size);
 
-private:
-	AP4_UI32 m_MovieResourceSize;
-	AP4_DataBuffer m_Data;
-};
-
-#endif // _AP4_CMVD_ATOM_H_
+	AP4_ByteStream* s = new AP4_MemoryByteStream(m_Data.UseData(), m_Data.GetDataSize());
+	ReadChildren(atom_factory, *s, m_Data.GetDataSize());
+	s->Release();
+}

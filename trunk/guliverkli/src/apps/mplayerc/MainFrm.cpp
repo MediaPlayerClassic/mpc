@@ -4922,7 +4922,15 @@ void CMainFrame::OnPlayChangeRate(UINT nID)
 
 			pAMTuner->get_VideoFrequency(&lFreqNew);
 
-			int i = 0;
+			if(CComQIPtr<IAudioSwitcherFilter> pASF = FindFilter(__uuidof(CAudioSwitcherFilter), pGB))
+			{
+				AppSettings& s = AfxGetAppSettings();
+				if(s.fAudioNormalize)
+				{
+					pASF->SetNormalizeBoost(false, s.AudioBoost);
+					pASF->SetNormalizeBoost(true, s.AudioBoost);
+				}
+			}
 		}
 		while(FALSE);
 /*			SUCCEEDED(pAMTuner->SignalPresent(&lSignalStrength)) 
@@ -5023,14 +5031,14 @@ void CMainFrame::OnUpdatePlayResetRate(CCmdUI* pCmdUI)
 
 void CMainFrame::OnPlayChangeAudDelay(UINT nID)
 {
-	if(CComQIPtr<IAudioSwitcherFilter> pAS = FindFilter(__uuidof(CAudioSwitcherFilter), pGB))
+	if(CComQIPtr<IAudioSwitcherFilter> pASF = FindFilter(__uuidof(CAudioSwitcherFilter), pGB))
 	{
-		REFERENCE_TIME rtShift = pAS->GetAudioTimeShift();
+		REFERENCE_TIME rtShift = pASF->GetAudioTimeShift();
 		rtShift += 
 			nID == ID_PLAY_INCAUDDELAY ? 100000 :
 			nID == ID_PLAY_DECAUDDELAY ? -100000 : 
 			0;
-		pAS->SetAudioTimeShift(rtShift);
+		pASF->SetAudioTimeShift(rtShift);
 
 		CString str;
 		str.Format(_T("Audio Delay: %I64dms"), rtShift/10000);
