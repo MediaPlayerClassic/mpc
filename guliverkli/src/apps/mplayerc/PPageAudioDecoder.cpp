@@ -26,7 +26,6 @@
 #include <math.h>
 #include "mplayerc.h"
 #include "PPageAudioDecoder.h"
-#include ".\ppageaudiodecoder.h"
 
 // CPPageAudioDecoder dialog
 

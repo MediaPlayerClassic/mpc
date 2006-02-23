@@ -360,6 +360,8 @@ AP4_AudioSampleEntry::ReadFields(AP4_ByteStream& stream)
 	stream.ReadUI16(m_RevisionLevel);
 	stream.ReadUI32(m_Vendor);
 
+	m_BytesPerFrame = 0;
+
 	if(m_DescriptionVersion == 0 || m_DescriptionVersion == 1)
 	{
 		stream.ReadUI16(m_ChannelCount);

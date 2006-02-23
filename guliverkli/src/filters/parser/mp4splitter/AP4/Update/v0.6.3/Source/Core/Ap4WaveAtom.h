@@ -1,6 +1,6 @@
 /*****************************************************************
 |
-|    AP4 - cmvd Atoms 
+|    AP4 - wave Atoms 
 |
 |    Copyright 2002 Gilles Boccon-Gibod
 |
@@ -26,8 +26,8 @@
 |
  ****************************************************************/
 
-#ifndef _AP4_CMVD_ATOM_H_
-#define _AP4_CMVD_ATOM_H_
+#ifndef _AP4_WAVE_ATOM_H_
+#define _AP4_WAVE_ATOM_H_
 
 /*----------------------------------------------------------------------
 |       includes
@@ -41,23 +41,21 @@
 #include "Ap4DataBuffer.h"
 
 /*----------------------------------------------------------------------
-|       AP4_CmvdAtom
+|       AP4_WaveAtom
 +---------------------------------------------------------------------*/
-class AP4_CmvdAtom : public AP4_ContainerAtom
+class AP4_WaveAtom : public AP4_ContainerAtom
 {
 public:
     // methods
-    AP4_CmvdAtom(AP4_Size         size,
+    AP4_WaveAtom(AP4_Size         size,
                  AP4_ByteStream&  stream,
                  AP4_AtomFactory& atom_factory);
 
     virtual AP4_Result WriteFields(AP4_ByteStream& stream) { return AP4_FAILURE; }
 
-	AP4_UI32 GetMovieResourceSize() const { return m_MovieResourceSize; }
     const AP4_DataBuffer& GetDataBuffer() { return m_Data; }
 
 private:
-	AP4_UI32 m_MovieResourceSize;
 	AP4_DataBuffer m_Data;
 };
 

@@ -266,6 +266,12 @@ public:
 	virtual CMediaType CreateNewOutputMediaType(CMediaType mt, long& cbBuffer);
 	virtual void OnNewOutputMediaType(const CMediaType& mtIn, const CMediaType& mtOut) {}
 
+	// and maybe these
+    virtual HRESULT DeliverEndOfStream();
+    virtual HRESULT DeliverBeginFlush();
+    virtual HRESULT DeliverEndFlush();
+    virtual HRESULT DeliverNewSegment(REFERENCE_TIME tStart, REFERENCE_TIME tStop, double dRate);
+
 	// IAMStreamSelect
     STDMETHODIMP Count(DWORD* pcStreams);
     STDMETHODIMP Info(long lIndex, AM_MEDIA_TYPE** ppmt, DWORD* pdwFlags, LCID* plcid, DWORD* pdwGroup, WCHAR** ppszName, IUnknown** ppObject, IUnknown** ppUnk);

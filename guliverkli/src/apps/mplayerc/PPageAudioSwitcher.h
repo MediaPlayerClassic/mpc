@@ -32,7 +32,7 @@ class CPPageAudioSwitcher : public CPPageBase
 	DECLARE_DYNAMIC(CPPageAudioSwitcher)
 
 private:
-	CComQIPtr<IAudioSwitcherFilter> m_pAudioSwitcher;
+	CComQIPtr<IAudioSwitcherFilter> m_pASF;
 	DWORD m_pSpeakerToChannelMap[18][18];
 	DWORD m_dwChannelMask;
 
@@ -44,6 +44,9 @@ public:
 	enum { IDD = IDD_PPAGEAUDIOSWITCHER };
 
 	BOOL m_fEnableAudioSwitcher;
+	BOOL m_fAudioNormalize;
+	int m_AudioBoost;
+	CSliderCtrl m_AudioBoostCtrl;
 	BOOL m_fDownSampleTo441;
 	CButton m_fDownSampleTo441Ctrl;
 	BOOL m_fCustomChannelMapping;
@@ -71,4 +74,6 @@ public:
 	afx_msg void OnEnChangeEdit1();
 	afx_msg void OnUpdateAudioSwitcher(CCmdUI* pCmdUI);
 	afx_msg void OnUpdateChannelMapping(CCmdUI* pCmdUI);
+public:
+	afx_msg void OnHScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrollBar);
 };

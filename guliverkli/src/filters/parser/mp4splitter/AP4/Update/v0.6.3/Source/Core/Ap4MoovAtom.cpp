@@ -85,7 +85,7 @@ AP4_MoovAtom::AP4_MoovAtom(AP4_Size         size,
 
 		if(dcom && dcom->GetCompressorSubType() == AP4_ATOM_TYPE('z','l','i','b') && cmvd)
 		{
-			AP4_DataBuffer* data = cmvd->GetData();
+			const AP4_DataBuffer& data = cmvd->GetDataBuffer();
 
 			z_stream d_stream;
 			d_stream.zalloc = (alloc_func)0;
@@ -96,8 +96,8 @@ AP4_MoovAtom::AP4_MoovAtom(AP4_Size         size,
 
 			if(Z_OK == (res = inflateInit(&d_stream)))
 			{
-				d_stream.next_in = data->UseData();
-				d_stream.avail_in = data->GetDataSize();
+				d_stream.next_in = (Bytef*)data.GetData();
+				d_stream.avail_in = data.GetDataSize();
 
 				unsigned char* dst = NULL;
 				int n = 0;

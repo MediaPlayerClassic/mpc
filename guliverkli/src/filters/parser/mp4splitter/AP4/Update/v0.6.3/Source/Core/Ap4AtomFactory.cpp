@@ -69,6 +69,7 @@
 #include "Ap4DataAtom.h"
 #include "Ap4DcomAtom.h"
 #include "Ap4CmvdAtom.h"
+#include "Ap4WaveAtom.h"
 
 /*----------------------------------------------------------------------
 |       class variables
@@ -350,7 +351,6 @@ AP4_AtomFactory::CreateAtomFromStream(AP4_ByteStream& stream,
       case AP4_ATOM_TYPE_GEN:
 	  case AP4_ATOM_TYPE_TRKN:
 	  case AP4_ATOM_TYPE_EDTS:
-	  case AP4_ATOM_TYPE_WAVE: 
 	  case AP4_ATOM_TYPE_CMOV: {
           AP4_UI32 context = m_Context;
           m_Context = type; // set the context for the children
@@ -358,6 +358,10 @@ AP4_AtomFactory::CreateAtomFromStream(AP4_ByteStream& stream,
           m_Context = context; // restore the previous context
           break;
       }
+
+	  case AP4_ATOM_TYPE_WAVE: 
+		atom = new AP4_WaveAtom(size, stream, *this);
+		break;
 
       // full container atoms
       case AP4_ATOM_TYPE_META:
@@ -394,6 +398,8 @@ AP4_AtomFactory::CreateAtomFromStream(AP4_ByteStream& stream,
 	  case AP4_ATOM_TYPE_SAMR:
 	  case AP4_ATOM_TYPE__MP3:
 	  case AP4_ATOM_TYPE_IMA4:
+	  case AP4_ATOM_TYPE_QDMC:
+	  case AP4_ATOM_TYPE_QDM2:
 	  case AP4_ATOM_TYPE_TWOS:
 	  case AP4_ATOM_TYPE_SOWT:
         atom = new AP4_AudioSampleEntry(type, size, stream, *this);
