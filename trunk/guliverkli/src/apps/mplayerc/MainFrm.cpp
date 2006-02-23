@@ -9440,6 +9440,7 @@ bool CMainFrame::BuildGraphVideoAudio(int fVPreview, bool fVCapture, int fAPrevi
 	CleanGraph();
 
 	OpenSetupVideo();
+	OpenSetupAudio();
 	OpenSetupStatsBar();
 	OpenSetupStatusBar();
 
