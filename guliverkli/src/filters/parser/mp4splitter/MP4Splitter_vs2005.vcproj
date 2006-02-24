@@ -500,7 +500,7 @@
 				Name="VCLinkerTool"
 				RegisterOutput="true"
 				AdditionalDependencies="zlibD.lib strmbaseDU.lib dsutilDU.lib basesplitterDU.lib"
-				OutputFile="$(OutDir)/$(ProjectName)2.ax"
+				OutputFile="$(OutDir)/$(ProjectName).ax"
 				AdditionalLibraryDirectories="..\..\..\..\lib"
 				IgnoreDefaultLibraryNames="libc.lib"
 				ModuleDefinitionFile="$(ProjectName).def"
