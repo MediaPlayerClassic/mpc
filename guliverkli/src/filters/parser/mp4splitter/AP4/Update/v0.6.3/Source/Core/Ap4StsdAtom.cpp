@@ -72,9 +72,14 @@ AP4_StsdAtom::AP4_StsdAtom(AP4_Size         size,
 
     // read all entries
     AP4_Size bytes_available = size-AP4_FULL_ATOM_HEADER_SIZE-4;
+
+	m_Data.SetDataSize(bytes_available);
+	stream.Read(m_Data.UseData(), m_Data.GetDataSize());
+
+	AP4_ByteStream* s = new AP4_MemoryByteStream(m_Data.UseData(), m_Data.GetDataSize());
     for (unsigned int i=0; i<entry_count; i++) {
         AP4_Atom* atom;
-        if (AP4_SUCCEEDED(atom_factory.CreateAtomFromStream(stream, 
+        if (AP4_SUCCEEDED(atom_factory.CreateAtomFromStream(*s, 
                                                             bytes_available,
                                                             atom,
 															this))) {
@@ -82,6 +87,7 @@ AP4_StsdAtom::AP4_StsdAtom(AP4_Size         size,
             m_Children.Add(atom);
         }
     }
+	s->Release();
 
     // initialize the sample description cache
     m_SampleDescriptions.EnsureCapacity(m_Children.ItemCount());
