@@ -1,6 +1,6 @@
 /*****************************************************************
 |
-|    AP4 - wave Atoms 
+|    AP4 - stsd Atoms 
 |
 |    Copyright 2002 Gilles Boccon-Gibod
 |
@@ -26,37 +26,55 @@
 |
  ****************************************************************/
 
-#ifndef _AP4_WAVE_ATOM_H_
-#define _AP4_WAVE_ATOM_H_
+#ifndef _AP4_STSD_ATOM_H_
+#define _AP4_STSD_ATOM_H_
 
 /*----------------------------------------------------------------------
 |       includes
 +---------------------------------------------------------------------*/
 #include "Ap4.h"
-#include "Ap4ByteStream.h"
+#include "Ap4Types.h"
 #include "Ap4Array.h"
+#include "Ap4ByteStream.h"
+#include "Ap4List.h"
 #include "Ap4Atom.h"
+#include "Ap4SampleDescription.h"
 #include "Ap4AtomFactory.h"
 #include "Ap4ContainerAtom.h"
-#include "Ap4DataBuffer.h"
 
 /*----------------------------------------------------------------------
-|       AP4_WaveAtom
+|       class references
 +---------------------------------------------------------------------*/
-class AP4_WaveAtom : public AP4_ContainerAtom
+class AP4_SampleTable;
+
+/*----------------------------------------------------------------------
+|       AP4_StsdAtom
++---------------------------------------------------------------------*/
+class AP4_StsdAtom : public AP4_ContainerAtom
 {
-public:
+ public:
     // methods
-    AP4_WaveAtom(AP4_Size         size,
+    AP4_StsdAtom(AP4_SampleTable* sample_table);
+    AP4_StsdAtom(AP4_Size         size,
                  AP4_ByteStream&  stream,
                  AP4_AtomFactory& atom_factory);
+    ~AP4_StsdAtom();
+    virtual AP4_Result InspectFields(AP4_AtomInspector& inspector);
+    virtual AP4_Result WriteFields(AP4_ByteStream& stream);
+    virtual AP4_Cardinal           GetSampleDescriptionCount();
+    virtual AP4_SampleDescription* GetSampleDescription(AP4_Ordinal index);
+    virtual AP4_SampleEntry*       GetSampleEntry(AP4_Ordinal index);
 
-    virtual AP4_Result WriteFields(AP4_ByteStream& stream) { return AP4_FAILURE; }
+    // AP4_AtomParent methods
+    void OnChildChanged(AP4_Atom* child);
 
     const AP4_DataBuffer& GetDataBuffer() { return m_Data; }
 
 private:
+    // members
 	AP4_DataBuffer m_Data;
+    AP4_Array<AP4_SampleDescription*> m_SampleDescriptions;
 };
 
-#endif // _AP4_CMVD_ATOM_H_
+#endif // _AP4_STSD_ATOM_H_
+

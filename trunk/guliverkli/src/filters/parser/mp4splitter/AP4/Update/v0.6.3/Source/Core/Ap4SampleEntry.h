@@ -137,7 +137,10 @@ class AP4_AudioSampleEntry : public AP4_MpegSampleEntry
     AP4_UI32 GetSampleRate()   { return m_SampleRate>>16; }
     AP4_UI16 GetSampleSize()   { return m_SampleSize;     }
     AP4_UI16 GetChannelCount() { return m_ChannelCount;   }
-	AP4_UI32 GetBytesPerFrame(){ return m_BytesPerFrame;  }
+	AP4_UI32 GetSamplesPerPacket(){ return m_SamplesPerPacket; }
+	AP4_UI32 GetBytesPerPacket(){ return m_BytesPerPacket; }
+	AP4_UI32 GetBytesPerFrame(){ return m_BytesPerFrame; }
+	AP4_UI32 GetBytesPerSample(){ return m_BytesPerSample; }
 
     // methods
     AP4_SampleDescription* ToSampleDescription();

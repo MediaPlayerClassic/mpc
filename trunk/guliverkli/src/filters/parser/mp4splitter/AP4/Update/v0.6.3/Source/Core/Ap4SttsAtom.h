@@ -70,6 +70,9 @@ class AP4_SttsAtom : public AP4_Atom
                                                   AP4_Ordinal& sample);
     virtual AP4_Result WriteFields(AP4_ByteStream& stream);
 
+	// FIXME
+	friend class AP4_AtomSampleTable;
+
  private:
     AP4_Array<AP4_SttsTableEntry> m_Entries;
 };

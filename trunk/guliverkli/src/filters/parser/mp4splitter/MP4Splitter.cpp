@@ -36,7 +36,6 @@
 #include "Ap4ChplAtom.h"
 #include "Ap4FtabAtom.h"
 #include "Ap4DataAtom.h"
-#include "AP4WaveAtom.h"
 
 #ifdef REGISTER_FILTER
 
@@ -449,6 +448,8 @@ HRESULT CMP4SplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 			else if(AP4_StsdAtom* stsd = dynamic_cast<AP4_StsdAtom*>(
 				track->GetTrakAtom()->FindChild("mdia/minf/stbl/stsd")))
 			{
+				const AP4_DataBuffer& db = stsd->GetDataBuffer();
+
 				for(AP4_List<AP4_Atom>::Item* item = stsd->GetChildren().FirstItem(); 
 					item; 
 					item = item->GetNext())
@@ -479,12 +480,13 @@ HRESULT CMP4SplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 						mt.majortype = MEDIATYPE_Video;
 						mt.subtype = FOURCCMap(type);
 						mt.formattype = FORMAT_VideoInfo;
-						vih = (VIDEOINFOHEADER*)mt.AllocFormatBuffer(sizeof(VIDEOINFOHEADER));
+						vih = (VIDEOINFOHEADER*)mt.AllocFormatBuffer(sizeof(VIDEOINFOHEADER)+db.GetDataSize());
 						memset(vih, 0, mt.FormatLength());
 						vih->bmiHeader.biSize = sizeof(vih->bmiHeader);
 						vih->bmiHeader.biWidth = (LONG)vse->GetWidth();
 						vih->bmiHeader.biHeight = (LONG)vse->GetHeight();
 						vih->bmiHeader.biCompression = type;
+						memcpy(vih+1, db.GetData(), db.GetDataSize());
 						mts.Add(mt);
 
 						char buff[5];
@@ -516,21 +518,15 @@ HRESULT CMP4SplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 						mt.majortype = MEDIATYPE_Audio;
 						mt.subtype = FOURCCMap(type);
 						mt.formattype = FORMAT_WaveFormatEx;
-						wfe = (WAVEFORMATEX*)mt.AllocFormatBuffer(sizeof(WAVEFORMATEX));
+						wfe = (WAVEFORMATEX*)mt.AllocFormatBuffer(sizeof(WAVEFORMATEX) + db.GetDataSize());
 						memset(wfe, 0, mt.FormatLength());
 						if(!(type & 0xffff0000)) wfe->wFormatTag = (WORD)type;
 						wfe->nSamplesPerSec = ase->GetSampleRate();
 						wfe->nChannels = ase->GetChannelCount();
 						wfe->wBitsPerSample = ase->GetSampleSize();
 						wfe->nBlockAlign = ase->GetBytesPerFrame();
-
-						if(AP4_WaveAtom* wave = dynamic_cast<AP4_WaveAtom*>(ase->GetChild(AP4_ATOM_TYPE_WAVE)))
-						{
-							wfe->cbSize = (WORD)wave->GetDataBuffer().GetDataSize()-4;
-							wfe = (WAVEFORMATEX*)mt.ReallocFormatBuffer(sizeof(WAVEFORMATEX) + wfe->cbSize);
-							memcpy(wfe+1, wave->GetDataBuffer().GetData()+4, wfe->cbSize);
-						}
-
+						wfe->cbSize = db.GetDataSize();
+						memcpy(wfe+1, db.GetData(), db.GetDataSize());
 						mts.Add(mt);
 
 //						mt.subtype = FOURCCMap('RMAS');

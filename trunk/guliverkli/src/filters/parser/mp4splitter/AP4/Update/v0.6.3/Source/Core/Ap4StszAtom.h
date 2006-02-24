@@ -58,6 +58,9 @@ class AP4_StszAtom : public AP4_Atom
                                      AP4_Size    sample_size);
     virtual AP4_Result AddEntry(AP4_UI32 size);
 
+	// FIXME
+	friend class AP4_AtomSampleTable;
+
  private:
     AP4_UI32            m_SampleSize;
     AP4_UI32            m_SampleCount;
