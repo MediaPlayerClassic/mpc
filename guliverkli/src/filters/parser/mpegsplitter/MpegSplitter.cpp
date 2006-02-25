@@ -642,148 +642,67 @@ TRACE(_T("%I64d, %I64d (%I64d)\n"), p->rtStart, m_rtPrev, m_rtOffset);
 	}
 	else if(m_mt.subtype == FOURCCMap('1CVA') || m_mt.subtype == FOURCCMap('1cva')) // just like aac, this has to be starting nalus, more can be packed together
 	{
-		if(p->rtStart != Packet::INVALID_TIME)
-		{
-			if(m_p)
-			{
-				BYTE* start = m_p->pData.GetData();
-				BYTE* next = start;
-				BYTE* end = next + m_p->pData.GetSize();
-
-				ASSERT(*(DWORD*)start == 0x01000000);
-
-				while(++next <= end-4)
-				{
-					if(*(DWORD*)next == 0x01000000 || next == end-4)
-					{
-						if(next == end-4) next = end;
-
-						int size = next - start - 4;
-
-						*(DWORD*)start = 
-							((size >> 24) & 0x000000ff) |
-							((size >>  8) & 0x0000ff00) |
-							((size <<  8) & 0x00ff0000) |
-							((size << 24) & 0xff000000);
-
-						start = next;
-					}
-				}
-
-				HRESULT hr = __super::DeliverPacket(m_p);
-				if(hr != S_OK) return hr;
-			}
-
-			if(p->pData.GetSize() >= 4 && *(DWORD*)p->pData.GetData() == 0x01000000)
-			{
-				m_p = p;
-			}
-			else
-			{
-				ASSERT(0);
-			}
-		}
-		else
-		{
-			if(m_p)
-			{
-				m_p->pData.Append(p->pData);
-				
-				if(!m_p->bDiscontinuity) m_p->bDiscontinuity = p->bDiscontinuity;
-				if(!m_p->bSyncPoint) m_p->bSyncPoint = p->bSyncPoint;
-				if(m_p->pmt) DeleteMediaType(m_p->pmt); m_p->pmt = p->pmt; p->pmt = NULL;
-			}
-		}
-
-		return S_OK;
-	}
-/*
-		// TODO: handle special cases (sync word is split between buffers, etc)
-
 		if(!m_p)
 		{
-			BYTE* base = p->pData.GetData();
-			BYTE* s = base;
-			BYTE* e = s + p->pData.GetSize();
-
-			for(; s < e-4; s++)
-			{
-				if(*(DWORD*)s == 0x01000000)
-				{
-					memmove(base, s, e - s);
-					p->pData.SetSize(e - s);
-					m_p = p;
-					break;
-				}
-			}
-		}
-		else
-		{
-			m_p->pData.Append(p->pData);
+			m_p.Attach(new Packet());
+			m_p->TrackNumber = p->TrackNumber;
+			m_p->bAppendable = TRUE;
+			m_p->bDiscontinuity = p->bDiscontinuity; p->bDiscontinuity = FALSE;
+			m_p->bSyncPoint = p->bSyncPoint; p->bSyncPoint = FALSE;
+			m_p->rtStart = p->rtStart; p->rtStart = Packet::INVALID_TIME;
+			m_p->rtStop = p->rtStop; p->rtStop = Packet::INVALID_TIME;
 		}
 
-		if(m_p && m_p->pData.GetSize() > 8)
+		m_p->pData.Append(p->pData);
+
+		BYTE* start = m_p->pData.GetData();
+		BYTE* end = start + m_p->pData.GetSize();
+
+		while(start <= end-4 && *(DWORD*)start != 0x01000000) start++;
+
+		while(start <= end-4)
 		{
-			BYTE* base = m_p->pData.GetData();
-			BYTE* s = base;
-			BYTE* e = s + m_p->pData.GetSize();
-			s += 4;
+			BYTE* next = start+1;
 
-			while(s < e-4)
-			{
-				if(*(DWORD*)s == 0x01000000)
-				{
-					int len = s - base;
+			while(next <= end-4 && *(DWORD*)next != 0x01000000) next++;
 
-					*(DWORD*)base = 
-						(((len-4) >> 24) & 0x000000ff) |
-						(((len-4) >>  8) & 0x0000ff00) |
-						(((len-4) <<  8) & 0x00ff0000) |
-						(((len-4) << 24) & 0xff000000);
+			if(next >= end-4) break;
 
-					CAutoPtr<Packet> p(new Packet());
-					p->TrackNumber = m_p->TrackNumber;
-					p->bDiscontinuity |= m_p->bDiscontinuity; m_p->bDiscontinuity = false;
-					p->bSyncPoint = m_p->rtStart != Packet::INVALID_TIME;
-					p->rtStart = m_p->rtStart; 
-					p->rtStop = m_p->rtStop; 
-					if((base[4]&0x9f) == 0x01 && (base[4]&0x9f) == 0x05)
-					{
-						m_p->rtStart = Packet::INVALID_TIME;
-						m_p->rtStop = Packet::INVALID_TIME;
-					}
-					p->pmt = m_p->pmt; m_p->pmt = NULL;
-					p->SetData(base, len);
-					memmove(base, s, e - s);
-					m_p->pData.SetSize(e - s);
+			int size = next - start - 4;
 
-					HRESULT hr = __super::DeliverPacket(p);
-					if(hr != S_OK) return hr;
+			*(DWORD*)start = 
+				((size >> 24) & 0x000000ff) |
+				((size >>  8) & 0x0000ff00) |
+				((size <<  8) & 0x00ff0000) |
+				((size << 24) & 0xff000000);
 
-					base = m_p->pData.GetData();
-					s = base;
-					e = s + m_p->pData.GetSize();
-					s += 4;
-				}
-				else
-				{
-					s++;
-				}
-			}
-		}
+			CAutoPtr<Packet> p2(new Packet());
+			p2->TrackNumber = m_p->TrackNumber;
+			p2->bDiscontinuity = m_p->bDiscontinuity; m_p->bDiscontinuity = FALSE;
+			p2->bSyncPoint = m_p->bSyncPoint; m_p->bSyncPoint = FALSE;
+			p2->rtStart = m_p->rtStart; m_p->rtStart = Packet::INVALID_TIME;
+			p2->rtStop = m_p->rtStop; m_p->rtStop = Packet::INVALID_TIME;
+			p2->pmt = m_p->pmt; m_p->pmt = NULL;
+			p2->SetData(start, next - start);
 
-		if(m_p && p)
-		{
-			if(!m_p->bDiscontinuity) m_p->bDiscontinuity = p->bDiscontinuity;
-			if(!m_p->bSyncPoint) m_p->bSyncPoint = p->bSyncPoint;
-			// if(m_p->rtStart == Packet::INVALID_TIME)
-				m_p->rtStart = p->rtStart, m_p->rtStop = p->rtStop;
+			HRESULT hr = __super::DeliverPacket(p2);
+			if(hr != S_OK) return hr;
+
+			start = next;
+
+			if(p->rtStart != Packet::INVALID_TIME) {m_p->rtStart = p->rtStart; m_p->rtStop = p->rtStop; p->rtStart = Packet::INVALID_TIME;}
+			if(p->bDiscontinuity) {m_p->bDiscontinuity = p->bDiscontinuity; p->bDiscontinuity = FALSE;}
+			if(p->bSyncPoint) {m_p->bSyncPoint = p->bSyncPoint; p->bSyncPoint = FALSE;}
 			if(m_p->pmt) DeleteMediaType(m_p->pmt); m_p->pmt = p->pmt; p->pmt = NULL;
 		}
 
+		if(start > m_p->pData.GetData())
+		{
+			m_p->pData.RemoveAt(0, start - m_p->pData.GetData());
+		}
+
 		return S_OK;
 	}
-*/
 	else
 	{
 		m_p.Free();
