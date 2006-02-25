@@ -625,6 +625,7 @@ HRESULT COggSplitterOutputPin::UnpackPage(OggPage& page)
 	if(m_lastseqnum != page.m_hdr.page_sequence_number-1)
 	{
 		ResetState(page.m_hdr.page_sequence_number);
+		return S_FALSE; // FIXME
 	}
 	else
 	{
@@ -685,19 +686,25 @@ if(abs(rtLast - m_rtLast) == GetRefTime(1)) m_rtLast = rtLast; // FIXME
 
 				if(S_OK == UnpackPacket(p, pData + i, j-i))
 				{
-
 if(p->TrackNumber == 0)
 TRACE(_T("[%d]: %d, %I64d -> %I64d (skip=%d, disc=%d, sync=%d)\n"), 
 		(int)p->TrackNumber, p->pData.GetSize(), p->rtStart, p->rtStop,
 		(int)m_fSkip, (int)p->bDiscontinuity, (int)p->bSyncPoint);
 
-					CAutoLock csAutoLock(&m_csPackets);
+					if(p->rtStart <= p->rtStop && p->rtStop <= p->rtStart + 10000000i64*60)
+					{
+						CAutoLock csAutoLock(&m_csPackets);
 
-					m_rtLast = p->rtStop;
-					p->fSkip = m_fSkip;
+						m_rtLast = p->rtStop;
+						p->fSkip = m_fSkip;
 
-					if(len < 255) m_packets.AddTail(p);
-					else m_lastpacket = p;
+						if(len < 255) m_packets.AddTail(p);
+						else m_lastpacket = p;
+					}
+					else
+					{
+						ASSERT(0);
+					}
 				}
 			}
 
@@ -925,7 +932,7 @@ HRESULT COggDirectShowOutputPin::UnpackPacket(CAutoPtr<OggPacket>& p, BYTE* pDat
 		for(int j = 0; j < nLenBytes; j++)
 			Length |= (__int64)pData[i++] << (j << 3);
 
-		// TODO: if(len < i) {ASSERT(0); return E_FAIL;}
+		if(len < i) {ASSERT(0); return E_FAIL;}
 
 		p->bSyncPoint = !!(hdr&8);
 		p->rtStart = m_rtLast;
@@ -968,7 +975,7 @@ HRESULT COggStreamOutputPin::UnpackPacket(CAutoPtr<OggPacket>& p, BYTE* pData, i
 		for(int j = 0; j < nLenBytes; j++)
 			Length |= (__int64)pData[i++] << (j << 3);
 
-		// TODO: if(len < i) {ASSERT(0); return E_FAIL;}
+		if(len < i) {ASSERT(0); return E_FAIL;}
 
 		p->bSyncPoint = !!(hdr&8);
 		p->rtStart = m_rtLast;

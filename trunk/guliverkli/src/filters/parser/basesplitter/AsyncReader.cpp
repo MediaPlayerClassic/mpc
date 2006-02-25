@@ -63,7 +63,7 @@ STDMETHODIMP CAsyncFileReader::SyncRead(LONGLONG llPosition, LONG lLength, BYTE*
 			if(llPosition != Seek(llPosition, begin)) return E_FAIL;
 			if((UINT)lLength < Read(pBuffer, lLength)) return E_FAIL;
 
-#ifdef DEBUG
+#if 0 // def DEBUG
 			static __int64 s_total = 0, s_laststoppos = 0;
 			s_total += lLength;
 			if(s_laststoppos > llPosition)
