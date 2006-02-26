@@ -225,8 +225,7 @@ void CGSSettingsDlg::OnBnClickedButton1()
 	bi.lParam = 0;
 	bi.iImage = 0; 
 
-	LPITEMIDLIST iil;
-	if(iil = SHBrowseForFolder(&bi))
+	if(LPITEMIDLIST iil = SHBrowseForFolder(&bi))
 	{
 		SHGetPathFromIDList(iil, path);
 		m_strRecordState = path;

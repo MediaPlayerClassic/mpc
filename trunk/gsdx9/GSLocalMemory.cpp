@@ -1177,7 +1177,7 @@ DWORD GSLocalMemory::readPixel16SZ(DWORD addr)
 */
 ////////////////////
 
-bool GSLocalMemory::FillRect(CRect& r, DWORD c, DWORD psm, DWORD fbp, DWORD fbw)
+bool GSLocalMemory::FillRect(const CRect& r, DWORD c, DWORD psm, DWORD fbp, DWORD fbw)
 {
 	const psmtbl_t& tbl = m_psmtbl[psm];
 

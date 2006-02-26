@@ -82,7 +82,7 @@
 
 #define EndEnumSysDev }}}
 
-#pragma warning(disable : 4995)
+#pragma warning(disable : 4995 4324)
 
 #ifndef RESTRICT
 	#ifdef __INTEL_COMPILER
