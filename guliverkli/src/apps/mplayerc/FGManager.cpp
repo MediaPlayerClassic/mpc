@@ -846,11 +846,9 @@ STDMETHODIMP CFGManager::ConnectFilter(IBaseFilter* pBF, IPin* pPinIn)
 
 	BeginEnumPins(pBF, pEP, pPin)
 	{
-		PIN_DIRECTION dir;
-		CComPtr<IPin> pPinTo;
 		if(GetPinName(pPin)[0] != '~'
-		&& SUCCEEDED(pPin->QueryDirection(&dir)) && dir == PINDIR_OUTPUT
-		&& (FAILED(pPin->ConnectedTo(&pPinTo)) || !pPinTo))
+		&& S_OK == IsPinDirection(pPin, PINDIR_OUTPUT)
+		&& S_OK != IsPinConnected(pPin))
 		{
 			m_streampath.Append(pBF, pPin);
 
@@ -1096,6 +1094,8 @@ CFGManagerCustom::CFGManagerCustom(LPCTSTR pName, LPUNKNOWN pUnk, UINT src, UINT
 		pFGF->m_chkbytes.AddTail(_T("4,4,,6d6f6f76")); // moov
 		pFGF->m_chkbytes.AddTail(_T("4,4,,6d646174")); // mdat
 		pFGF->m_chkbytes.AddTail(_T("4,4,,736b6970")); // skip
+		pFGF->m_chkbytes.AddTail(_T("4,12,ffffffff00000000ffffffff,77696465027fe3706d646174")); // wide ? mdat
+		pFGF->m_extensions.AddTail(_T(".mov"));
 		m_source.AddTail(pFGF);
 	}
 

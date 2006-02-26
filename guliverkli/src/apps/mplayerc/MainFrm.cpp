@@ -4919,16 +4919,6 @@ void CMainFrame::OnPlayChangeRate(UINT nID)
 			pAMTuner->AutoTune(lChannel, &flFoundSignal);
 
 			pAMTuner->get_VideoFrequency(&lFreqNew);
-
-			if(CComQIPtr<IAudioSwitcherFilter> pASF = FindFilter(__uuidof(CAudioSwitcherFilter), pGB))
-			{
-				AppSettings& s = AfxGetAppSettings();
-				if(s.fAudioNormalize)
-				{
-					pASF->SetNormalizeBoost(false, s.AudioBoost);
-					pASF->SetNormalizeBoost(true, s.AudioBoost);
-				}
-			}
 		}
 		while(FALSE);
 /*			SUCCEEDED(pAMTuner->SignalPresent(&lSignalStrength)) 
