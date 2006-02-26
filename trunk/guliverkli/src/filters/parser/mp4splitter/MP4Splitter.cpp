@@ -76,6 +76,7 @@ STDAPI DllRegisterServer()
 	chkbytes.AddTail(_T("4,4,,6d6f6f76")); // moov
 	chkbytes.AddTail(_T("4,4,,6d646174")); // mdat
 	chkbytes.AddTail(_T("4,4,,736b6970")); // skip
+	chkbytes.AddTail(_T("4,12,ffffffff00000000ffffffff,77696465027fe3706d646174")); // wide ? mdat
 
 	RegisterSourceFilter(CLSID_AsyncReader, MEDIASUBTYPE_MP4, chkbytes, NULL);
 
@@ -528,10 +529,6 @@ HRESULT CMP4SplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 						wfe->cbSize = db.GetDataSize();
 						memcpy(wfe+1, db.GetData(), db.GetDataSize());
 						mts.Add(mt);
-
-//						mt.subtype = FOURCCMap('RMAS');
-//						mts.Add(mt);
-
 						break;
 					}
 				}
@@ -1029,8 +1026,9 @@ bool CMP4SplitterFilter::DemuxLoop()
 
 		if(pPin && pPin->IsConnected() && AP4_SUCCEEDED(track->ReadSample(pPairNext->m_value.index, sample, data)))
 		{
-			CAutoPtr<Packet> p(new Packet());
+			const CMediaType& mt = pPin->CurrentMediaType();
 
+			CAutoPtr<Packet> p(new Packet());
 			p->TrackNumber = (DWORD)track->GetId();
 			p->rtStart = (REFERENCE_TIME)(10000000.0 / track->GetMediaTimeScale() * sample.GetCts());
 			p->rtStop = p->rtStart + (REFERENCE_TIME)(10000000.0 / track->GetMediaTimeScale() * sample.GetDuration());
@@ -1055,16 +1053,17 @@ bool CMP4SplitterFilter::DemuxLoop()
 
 			if(track->GetType() == AP4_Track::TYPE_AUDIO && data.GetDataSize() == 1)
 			{
-				p->rtStop = p->rtStart;
+				WAVEFORMATEX* wfe = (WAVEFORMATEX*)mt.Format();
 
-				int nBlockAlign = 300;
+				int nBlockAlign = 1200;
 
-				WAVEFORMATEX* wfe = (WAVEFORMATEX*)pPin->CurrentMediaType().Format();
 				if(wfe->nBlockAlign > 1)
 				{
 					nBlockAlign = wfe->nBlockAlign;
-					pPairNext->m_value.index -= pPairNext->m_value.index % nBlockAlign;
+					pPairNext->m_value.index -= pPairNext->m_value.index % wfe->nBlockAlign;
 				}
+
+				p->rtStop = p->rtStart;
 
 				int fFirst = true;
 
@@ -1111,7 +1110,7 @@ bool CMP4SplitterFilter::DemuxLoop()
 
 						CStringA dlgln = str;
 
-						if(pPin->CurrentMediaType().subtype == MEDIASUBTYPE_ASS2)
+						if(mt.subtype == MEDIASUBTYPE_ASS2)
 						{
 							AP4_SampleDescription* desc = track->GetSampleDescription(sample.GetDescriptionIndex());
 

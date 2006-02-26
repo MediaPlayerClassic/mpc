@@ -169,18 +169,7 @@ HRESULT COggSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 
 			HRESULT hr;
 
-			if(type >= 0x80 && type <= 0x82 && !memcmp(p, "theora", 6))
-			{
-				if(type == 0x80)
-				{
-					name.Format(L"Theora %d", i);
-					CAutoPtr<CBaseSplitterOutputPin> pPinOut;
-					pPinOut.Attach(new COggTheoraOutputPin(page.GetData(), name, this, this, &hr));
-					AddOutputPin(page.m_hdr.bitstream_serial_number, pPinOut);
-					nWaitForMore++;
-				}
-			}
-			else if(type == 1 && (page.m_hdr.header_type_flag & OggPageHeader::first))
+			if(type == 1 && (page.m_hdr.header_type_flag & OggPageHeader::first))
 			{
 				CAutoPtr<CBaseSplitterOutputPin> pPinOut;
 
@@ -227,12 +216,6 @@ HRESULT COggSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 			}
 		}
 
-		if(COggTheoraOutputPin* p = dynamic_cast<COggTheoraOutputPin*>(GetOutputPin(page.m_hdr.bitstream_serial_number)))
-		{
-			p->UnpackInitPage(page);
-			if(p->IsInitialized()) nWaitForMore--;
-		}
-
 		if(COggVorbisOutputPin* p = dynamic_cast<COggVorbisOutputPin*>(GetOutputPin(page.m_hdr.bitstream_serial_number)))
 		{
 			p->UnpackInitPage(page);
@@ -247,8 +230,7 @@ HRESULT COggSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 	while(m_pFile->Read(page))
 	{
 		COggSplitterOutputPin* pOggPin = dynamic_cast<COggSplitterOutputPin*>(GetOutputPin(page.m_hdr.bitstream_serial_number));
-		if(!pOggPin) {ASSERT(0); continue;}
-		if(page.m_hdr.granule_position == -1) continue;
+		if(!pOggPin || page.m_hdr.granule_position == -1) continue;
 		REFERENCE_TIME rt = pOggPin->GetRefTime(page.m_hdr.granule_position);
 		m_rtDuration = max(rt, m_rtDuration);
 	}
@@ -322,14 +304,14 @@ bool COggSplitterFilter::DemuxInit()
 
 void COggSplitterFilter::DemuxSeek(REFERENCE_TIME rt)
 {
-	if(rt <= 0)
+	if(rt <= 0 )
 	{
 		m_pFile->Seek(0);
 	}
 	else if(m_rtDuration > 0)
 	{
 		// oh, the horror...
-clock_t t1 = clock();
+
 		__int64 len = m_pFile->GetLength();
 		__int64 startpos = len * rt/m_rtDuration;
 		__int64 diff = 0;
@@ -400,16 +382,15 @@ clock_t t1 = clock();
 			startpos = max(min(newpos, len), 0);
 		}
 
-TRACE(_T("****** t1: %d\n"), clock() - t1);
-t1 = clock();
 		m_pFile->Seek(startpos);
 
 		POSITION pos = m_pOutputs.GetHeadPosition();
 		while(pos)
 		{
-			CBaseSplitterOutputPin* pPin = m_pOutputs.GetNext(pos);
-			COggVideoOutputPin* pOggVideoPin = dynamic_cast<COggVideoOutputPin*>(pPin);
-			if(!pOggVideoPin) continue;
+			COggSplitterOutputPin* pPin = dynamic_cast<COggSplitterOutputPin*>((CBaseSplitterOutputPin*)m_pOutputs.GetNext(pos));
+
+			if(!dynamic_cast<COggVideoOutputPin*>(pPin))
+				continue;
 
 			bool fKeyFrameFound = false, fSkipKeyFrame = true;
 			__int64 endpos = _I64_MAX;
@@ -419,22 +400,21 @@ t1 = clock();
 				OggPage page;
 				while(!(fKeyFrameFound && !fSkipKeyFrame) && m_pFile->GetPos() < endpos && m_pFile->Read(page))
 				{
-					if(page.m_hdr.granule_position == -1) continue;
+					if(page.m_hdr.granule_position == -1) 
+						continue;
 
-					COggSplitterOutputPin* pOggPin = dynamic_cast<COggSplitterOutputPin*>(GetOutputPin(page.m_hdr.bitstream_serial_number));
-					if(pOggPin != pOggVideoPin) continue;
+					if(pPin != dynamic_cast<COggSplitterOutputPin*>(GetOutputPin(page.m_hdr.bitstream_serial_number)))
+						continue;
 
-					REFERENCE_TIME rtPos = pOggPin->GetRefTime(page.m_hdr.granule_position);
-
-					if(rtPos > rt)
+					if(pPin->GetRefTime(page.m_hdr.granule_position) > rt)
 						break;
 
 					if(!fKeyFrameFound)
 					{
-						pOggPin->UnpackPage(page);
+						pPin->UnpackPage(page);
 
 						CAutoPtr<OggPacket> p;
-						while(p = pOggPin->GetPacket())
+						while(p = pPin->GetPacket())
 						{
 							if(p->bSyncPoint)
 							{
@@ -447,10 +427,10 @@ t1 = clock();
 					}
 					else
 					{
-						pOggPin->UnpackPage(page);
+						pPin->UnpackPage(page);
 
 						CAutoPtr<OggPacket> p;
-						while(p = pOggPin->GetPacket())
+						while(p = pPin->GetPacket())
 						{
 							if(!p->fSkip)
 							{
@@ -465,8 +445,6 @@ t1 = clock();
 
 				m_pFile->Seek(startpos);
 			}
-TRACE(_T("****** t2: %d\n"), clock() - t1);
-t1 = clock();
 
 #ifdef DEBUG
 			// verify kf
@@ -479,17 +457,17 @@ t1 = clock();
 				{
 					if(page.m_hdr.granule_position == -1) continue;
 
-					COggSplitterOutputPin* pOggPin = dynamic_cast<COggSplitterOutputPin*>(GetOutputPin(page.m_hdr.bitstream_serial_number));
-					if(pOggPin != pOggVideoPin) continue;
+					if(pPin != dynamic_cast<COggSplitterOutputPin*>(GetOutputPin(page.m_hdr.bitstream_serial_number)))
+						continue;
 
-					REFERENCE_TIME rtPos = pOggPin->GetRefTime(page.m_hdr.granule_position);
+					REFERENCE_TIME rtPos = pPin->GetRefTime(page.m_hdr.granule_position);
 					if(rtPos > rt)
 						break;
 
-					pOggPin->UnpackPage(page);
+					pPin->UnpackPage(page);
 
 					CAutoPtr<OggPacket> p;
-					while(p = pOggPin->GetPacket())
+					while(p = pPin->GetPacket())
 					{
 						if(p->bSyncPoint)
 						{
@@ -503,8 +481,6 @@ t1 = clock();
 
 				m_pFile->Seek(startpos);
 			}
-TRACE(_T("****** t3: %d\n"), clock() - t1);
-t1 = clock();
 #endif
 			break;
 		}
@@ -686,7 +662,7 @@ if(abs(rtLast - m_rtLast) == GetRefTime(1)) m_rtLast = rtLast; // FIXME
 
 				if(S_OK == UnpackPacket(p, pData + i, j-i))
 				{
-if(p->TrackNumber == 0)
+//if(p->TrackNumber == 1)
 TRACE(_T("[%d]: %d, %I64d -> %I64d (skip=%d, disc=%d, sync=%d)\n"), 
 		(int)p->TrackNumber, p->pData.GetSize(), p->rtStart, p->rtStop,
 		(int)m_fSkip, (int)p->bDiscontinuity, (int)p->bSyncPoint);
@@ -1069,74 +1045,5 @@ COggTextOutputPin::COggTextOutputPin(OggStreamHeader* h, LPCWSTR pName, CBaseFil
 	mt.formattype = FORMAT_None;
 	mt.SetSampleSize(1);
 	m_mts.Add(mt);
-}
-
-// COggTheoraOutputPin
-
-COggTheoraOutputPin::COggTheoraOutputPin(BYTE* p, LPCWSTR pName, CBaseFilter* pFilter, CCritSec* pLock, HRESULT* phr)
-	: COggSplitterOutputPin(pName, pFilter, pLock, phr)
-{
-	CMediaType mt;
-	mt.majortype = MEDIATYPE_Video;
-	mt.subtype = FOURCCMap('OEHT');
-	mt.formattype = FORMAT_MPEG2_VIDEO;
-	MPEG2VIDEOINFO* vih = (MPEG2VIDEOINFO*)mt.AllocFormatBuffer(sizeof(MPEG2VIDEOINFO));
-	memset(mt.Format(), 0, mt.FormatLength());
-	vih->hdr.bmiHeader.biSize = sizeof(vih->hdr.bmiHeader);
-	vih->hdr.bmiHeader.biWidth = *(WORD*)&p[10] >> 4;
-	vih->hdr.bmiHeader.biHeight = *(WORD*)&p[12] >> 4;
-	vih->hdr.bmiHeader.biCompression = 'OEHT';
-	DWORD fps_num = (p[22]<<24)|(p[23]<<16)|(p[24]<<16)|p[25];
-	DWORD fps_denum = (p[26]<<24)|(p[27]<<16)|(p[28]<<16)|p[29];
-	if(fps_num) vih->hdr.AvgTimePerFrame = (REFERENCE_TIME)(10000000.0 * fps_denum / fps_num);
-	vih->hdr.dwPictAspectRatioX = (p[14]<<16)|(p[15]<<16)|p[16];
-	vih->hdr.dwPictAspectRatioY = (p[17]<<16)|(p[18]<<16)|p[19];
-	m_mts.Add(mt);
-}
-
-HRESULT COggTheoraOutputPin::UnpackInitPage(OggPage& page)
-{
-	HRESULT hr = __super::UnpackPage(page);
-
-	while(m_packets.GetCount())
-	{
-		Packet* p = m_packets.GetHead();
-
-		CMediaType& mt = m_mts[0];
-		int size = p->pData.GetSize();
-		ASSERT(size <= 0xffff);
-		MPEG2VIDEOINFO* vih = (MPEG2VIDEOINFO*)mt.ReallocFormatBuffer(
-			FIELD_OFFSET(MPEG2VIDEOINFO, dwSequenceHeader) + 
-			((MPEG2VIDEOINFO*)mt.Format())->cbSequenceHeader + 
-			2 + size);
-		*(WORD*)((BYTE*)vih->dwSequenceHeader + vih->cbSequenceHeader) = (size>>8)|(size<<8);
-		memcpy((BYTE*)vih->dwSequenceHeader + vih->cbSequenceHeader + 2, p->pData.GetData(), size);
-		vih->cbSequenceHeader += 2 + size;
-
-		m_initpackets.AddTail(m_packets.RemoveHead());
-	}
-
-	return hr;
-}
-
-REFERENCE_TIME COggTheoraOutputPin::GetRefTime(__int64 granule_position)
-{
-	REFERENCE_TIME rt = 0;
-	if(m_mt.majortype == MEDIATYPE_Video)
-		rt = granule_position * ((MPEG2VIDEOINFO*)m_mt.Format())->hdr.AvgTimePerFrame;
-	return rt;
-}
-
-HRESULT COggTheoraOutputPin::UnpackPacket(CAutoPtr<OggPacket>& p, BYTE* pData, int len)
-{
-	p->bSyncPoint = len > 0 ? !(*pData & 0x40) : TRUE;
-	p->rtStart = m_rtLast;
-	p->rtStop = m_rtLast+1;
-	p->SetData(pData, len);
-
-	if(!(*pData & 0x80) && m_mt.majortype == MEDIATYPE_Video)
-		p->rtStop = p->rtStart + ((MPEG2VIDEOINFO*)m_mt.Format())->hdr.AvgTimePerFrame;
-
-	return S_OK;
 }
 

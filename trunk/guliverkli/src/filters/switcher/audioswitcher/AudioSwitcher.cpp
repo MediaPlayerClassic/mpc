@@ -192,8 +192,10 @@ HRESULT CAudioSwitcherFilter::Transform(IMediaSample* pIn, IMediaSample* pOut)
 		pOut->SetTime(&m_rtNextStart, &m_rtNextStop);
 	}
 
-	m_rtNextStart += 10000000i64*len/wfe->nSamplesPerSec;
-	m_rtNextStop += 10000000i64*len/wfe->nSamplesPerSec;
+	REFERENCE_TIME rtDur = 10000000i64*len/wfe->nSamplesPerSec;
+
+	m_rtNextStart += rtDur;
+	m_rtNextStop += rtDur;
 
 	if(pIn->IsDiscontinuity() == S_OK)
 	{
@@ -331,10 +333,14 @@ HRESULT CAudioSwitcherFilter::Transform(IMediaSample* pIn, IMediaSample* pOut)
 				{
 					double s = buff[i];
 					if(s < 0) s = -s;
+					if(s > 1) s = 1;
 					if(m_sample_max < s) m_sample_max = s;
 				}
 
 				sample_mul = 1.0f / m_sample_max;
+
+				m_sample_max -= 1.0*rtDur/100000000; // -10%/sec
+				if(m_sample_max < 0.1) m_sample_max = 0.1;
 			}
 
 			if(m_boost > 1)
