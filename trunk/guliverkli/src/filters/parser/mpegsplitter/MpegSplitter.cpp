@@ -646,7 +646,6 @@ TRACE(_T("%I64d, %I64d (%I64d)\n"), p->rtStart, m_rtPrev, m_rtOffset);
 		{
 			m_p.Attach(new Packet());
 			m_p->TrackNumber = p->TrackNumber;
-			m_p->bAppendable = TRUE;
 			m_p->bDiscontinuity = p->bDiscontinuity; p->bDiscontinuity = FALSE;
 			m_p->bSyncPoint = p->bSyncPoint; p->bSyncPoint = FALSE;
 			m_p->rtStart = p->rtStart; p->rtStart = Packet::INVALID_TIME;
