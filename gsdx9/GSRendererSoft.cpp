@@ -29,10 +29,11 @@ GSRendererSoft<Vertex>::GSRendererSoft(HWND hWnd, HRESULT& hr)
 {
 	Reset();
 
-	int i = SHRT_MIN, j = 0;
-	for(; i < 0; i++, j++) m_clip[j] = 0, m_mask[j] = j&255;
-	for(; i < 256; i++, j++) m_clip[j] = i, m_mask[j] = j&255;
-	for(; i < SHRT_MAX; i++, j++) m_clip[j] = 255, m_mask[j] = j&255;
+	int i = SHRT_MIN;
+	BYTE j = 0;
+	for(; i < 0; i++, j++) m_clip[j] = 0, m_mask[j] = j;
+	for(; i < 256; i++, j++) m_clip[j] = (BYTE)i, m_mask[j] = j;
+	for(; i < SHRT_MAX; i++, j++) m_clip[j] = 255, m_mask[j] = j;
 
 	m_uv = (uv_wrap_t*)_aligned_malloc(sizeof(uv_wrap_t), 16);
 
@@ -329,7 +330,7 @@ void GSRendererSoft<Vertex>::Flip()
 			ZeroMemory(&rt[i].rd, sizeof(rt[i].rd));
 			if(m_pRT[i]) m_pRT[i]->GetLevelDesc(0, &rt[i].rd);
 
-			if(rt[i].rd.Width != rect.right || rt[i].rd.Height != rect.bottom)
+			if(rt[i].rd.Width != (UINT)rect.right || rt[i].rd.Height != (UINT)rect.bottom)
 				m_pRT[i] = NULL;
 
 			if(!m_pRT[i])
@@ -799,9 +800,9 @@ void GSRendererSoft<Vertex>::DrawVertex(const Vertex& v)
 			if(m_de.DTHE.DTHE)
 			{
 				short DMxy = (signed char)((*((WORD*)&m_de.DIMX.i64 + (m_fy&3)) >> ((m_fx&3)<<2)) << 5) >> 5;
-				Rf += DMxy;
-				Gf += DMxy;
-				Bf += DMxy;
+				Rf = (short)(Rf + DMxy);
+				Gf = (short)(Gf + DMxy);
+				Bf = (short)(Bf + DMxy);
 			}
 
 			Rf = m_clamp[Rf];
@@ -860,7 +861,13 @@ void GSRendererSoft<Vertex>::DrawVertexTFX(typename Vertex::Vector& Cf, const Ve
 
 	if(fBiLinear) t -= Vertex::Scalar(0.5f);
 
-	__declspec(align(16)) short ituv[8] = {(int)t.x, (int)t.x+1, (int)t.y, (int)t.y+1};
+	__declspec(align(16)) short ituv[8] = 
+	{
+		(short)(int)t.x, 
+		(short)(int)t.x+1, 
+		(short)(int)t.y, 
+		(short)(int)t.y+1
+	};
 
 #if _M_IX86_FP >= 2 || defined(_M_AMD64)
 
@@ -958,10 +965,10 @@ void GSRendererSoft<Vertex>::SetupTexture()
 
 	switch(m_ctxt->CLAMP.WMS)
 	{
-	case 0: m_uv->and[0] = tw-1; m_uv->or[0] = 0; m_uv->mask[0] = 0xffff; break;
-	case 1: m_uv->min[0] = 0; m_uv->max[0] = tw-1; m_uv->mask[0] = 0; break;
-	case 2: m_uv->min[0] = m_ctxt->CLAMP.MINU; m_uv->max[0] = m_ctxt->CLAMP.MAXU; m_uv->mask[0] = 0; break;
-	case 3: m_uv->and[0] = m_ctxt->CLAMP.MINU; m_uv->or[0] = m_ctxt->CLAMP.MAXU; m_uv->mask[0] = 0xffff; break;
+	case 0: m_uv->and[0] = (short)(tw-1); m_uv->or[0] = 0; m_uv->mask[0] = 0xffff; break;
+	case 1: m_uv->min[0] = 0; m_uv->max[0] = (short)(tw-1); m_uv->mask[0] = 0; break;
+	case 2: m_uv->min[0] = (short)m_ctxt->CLAMP.MINU; m_uv->max[0] = (short)m_ctxt->CLAMP.MAXU; m_uv->mask[0] = 0; break;
+	case 3: m_uv->and[0] = (short)m_ctxt->CLAMP.MINU; m_uv->or[0] = (short)m_ctxt->CLAMP.MAXU; m_uv->mask[0] = 0xffff; break;
 	default: __assume(0);
 	}
 
@@ -973,10 +980,10 @@ void GSRendererSoft<Vertex>::SetupTexture()
 
 	switch(m_ctxt->CLAMP.WMT)
 	{
-	case 0: m_uv->and[2] = th-1; m_uv->or[2] = 0; m_uv->mask[2] = 0xffff; break;
-	case 1: m_uv->min[2] = 0; m_uv->max[2] = th-1; m_uv->mask[2] = 0; break;
-	case 2: m_uv->min[2] = m_ctxt->CLAMP.MINV; m_uv->max[2] = m_ctxt->CLAMP.MAXV; m_uv->mask[2] = 0; break;
-	case 3: m_uv->and[2] = m_ctxt->CLAMP.MINV; m_uv->or[2] = m_ctxt->CLAMP.MAXV; m_uv->mask[2] = 0xffff; break;
+	case 0: m_uv->and[2] = (short)(th-1); m_uv->or[2] = 0; m_uv->mask[2] = 0xffff; break;
+	case 1: m_uv->min[2] = 0; m_uv->max[2] = (short)(th-1); m_uv->mask[2] = 0; break;
+	case 2: m_uv->min[2] = (short)m_ctxt->CLAMP.MINV; m_uv->max[2] = (short)m_ctxt->CLAMP.MAXV; m_uv->mask[2] = 0; break;
+	case 3: m_uv->and[2] = (short)m_ctxt->CLAMP.MINV; m_uv->or[2] = (short)m_ctxt->CLAMP.MAXV; m_uv->mask[2] = 0xffff; break;
 	default: __assume(0);
 	}
 

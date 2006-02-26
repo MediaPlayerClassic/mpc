@@ -71,7 +71,7 @@
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalDependencies="d3d9.lib d3dx9.lib strmbaseD.lib ddraw.lib dxguid.lib"
-				OutputFile="e:\pcsx2_0.6win\plugins\GSdx9.dll"
+				OutputFile="K:\pcsx2\plugins\GSdx9.dll"
 				LinkIncremental="2"
 				ModuleDefinitionFile=".\GSdx9.def"
 				GenerateDebugInformation="true"
@@ -248,7 +248,7 @@
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalDependencies="d3d9.lib d3dx9.lib strmbaseR.lib ddraw.lib dxguid.lib"
-				OutputFile="e:\pcsx2_0.6win\plugins\GSdx9.dll"
+				OutputFile="K:\pcsx2\plugins\GSdx9.dll"
 				LinkIncremental="1"
 				ModuleDefinitionFile=".\GSdx9.def"
 				SubSystem="2"
@@ -430,7 +430,7 @@
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalDependencies="d3d9.lib d3dx9.lib strmbaseD.lib ddraw.lib dxguid.lib"
-				OutputFile="e:\pcsx2_0.6win\plugins\GSdx9.dll"
+				OutputFile="K:\pcsx2\plugins\GSdx9.dll"
 				LinkIncremental="2"
 				ModuleDefinitionFile=".\GSdx9.def"
 				GenerateDebugInformation="true"
@@ -609,7 +609,7 @@
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalDependencies="d3d9.lib d3dx9.lib strmbaseR.lib ddraw.lib dxguid.lib"
-				OutputFile="e:\pcsx2_0.6win\plugins\GSdx9.dll"
+				OutputFile="K:\pcsx2\plugins\GSdx9.dll"
 				LinkIncremental="1"
 				ModuleDefinitionFile=".\GSdx9.def"
 				GenerateDebugInformation="true"

@@ -5,7 +5,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "GSdx9", "GSdx9_vs2005.vcpro
 		{7CDC5863-9F36-468D-A634-6D7799E0A15E} = {7CDC5863-9F36-468D-A634-6D7799E0A15E}
 	EndProjectSection
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "baseclasses", "G:\Program Files\Microsoft DirectX 9.0 SDK\Samples\C++\DirectShow\BaseClasses\baseclasses.vcproj", "{7CDC5863-9F36-468D-A634-6D7799E0A15E}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "baseclasses", "C:\Program Files\Microsoft DirectX 9.0 SDK\Samples\C++\DirectShow\BaseClasses\baseclasses.vcproj", "{7CDC5863-9F36-468D-A634-6D7799E0A15E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

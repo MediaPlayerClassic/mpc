@@ -93,7 +93,7 @@ DWORD hash_crc(const CRect& r, int pitch, BYTE* p)
 {
 	if(r.Width() == 0) {ASSERT(0); return 0;}
 
-	DWORD hash = ~0;
+	DWORD hash = 0xffffffff;
 
 	for(int j = r.top; j < r.bottom; j++, p += pitch)
 	{
