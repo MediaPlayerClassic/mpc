@@ -876,6 +876,9 @@ void GSState::Transfer(BYTE* pMem, UINT32 size, GIFPath& path)
 			}
 			else if(path.m_tag.NLOOP == 0)
 			{
+//				if(&path == &m_path[0])
+//					continue;
+
 				LOG(_T("*** WARNING *** m_tag.NLOOP == 0 && EOP == 0\n"));
 				fEOP = true;
 				// ASSERT(0);
