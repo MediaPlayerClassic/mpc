@@ -339,7 +339,7 @@ HRESULT CAudioSwitcherFilter::Transform(IMediaSample* pIn, IMediaSample* pOut)
 
 				sample_mul = 1.0f / m_sample_max;
 
-				m_sample_max -= 1.0*rtDur/100000000; // -10%/sec
+				m_sample_max -= 1.0*rtDur/200000000; // -5%/sec
 				if(m_sample_max < 0.1) m_sample_max = 0.1;
 			}
 
