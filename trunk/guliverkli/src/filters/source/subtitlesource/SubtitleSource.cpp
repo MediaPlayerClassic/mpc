@@ -68,8 +68,6 @@ CFactoryTemplate g_Templates[] =
 
 int g_cTemplates = countof(g_Templates);
 
-#include "..\..\registry.cpp"
-
 STDAPI DllRegisterServer()
 {
 /*
@@ -119,27 +117,28 @@ STDAPI DllUnregisterServer()
 	return AMovieDllRegisterServer2(FALSE);
 }
 
-extern "C" BOOL WINAPI DllEntryPoint(HINSTANCE, ULONG, LPVOID);
+#include "..\..\FilterApp.h"
 
-BOOL APIENTRY DllMain(HANDLE hModule, DWORD dwReason, LPVOID lpReserved)
+class CSubtitleSourceApp : public CFilterApp
 {
-	if(dwReason == DLL_PROCESS_ATTACH)
+public:
+	BOOL InitInstance()
 	{
+		if(!__super::InitInstance()) return FALSE;
+
 		_WIDTH = GetProfileInt(_T("SubtitleSource"), _T("w"), 640);
 		_HEIGHT = GetProfileInt(_T("SubtitleSource"), _T("h"), 480);
 		_ATPF = GetProfileInt(_T("SubtitleSource"), _T("atpf"), 400000);
 		if(_ATPF <= 0) _ATPF = 400000;
-		CString str; 
-		str.Format(_T("%d"), _WIDTH);
-		WriteProfileString(_T("SubtitleSource"), _T("w"), str);
-		str.Format(_T("%d"), _HEIGHT);
-		WriteProfileString(_T("SubtitleSource"), _T("h"), str);
-		str.Format(_T("%d"), _ATPF);
-		WriteProfileString(_T("SubtitleSource"), _T("atpf"), str);
-	}
+		WriteProfileInt(_T("SubtitleSource"), _T("w"), _WIDTH);
+		WriteProfileInt(_T("SubtitleSource"), _T("h"), _HEIGHT);
+		WriteProfileInt(_T("SubtitleSource"), _T("atpf"), _ATPF);
 
-    return DllEntryPoint((HINSTANCE)hModule, dwReason, 0); // "DllMain" of the dshow baseclasses;
-}
+		return TRUE;
+	}
+};
+
+CSubtitleSourceApp theApp;
 
 #endif
 

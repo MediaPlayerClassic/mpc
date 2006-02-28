@@ -69,6 +69,7 @@ const AMOVIESETUP_FILTER sudFilter[] =
 CFactoryTemplate g_Templates[] =
 {
     {sudFilter[0].strName, sudFilter[0].clsID, CreateInstance<CMpeg2DecFilter>, NULL, &sudFilter[0]},
+	{L"CMpeg2DecPropertyPage", &__uuidof(CMpeg2DecSettingsWnd), CreateInstance<CInternalPropertyPageTempl<CMpeg2DecSettingsWnd> >},
 };
 
 int g_cTemplates = countof(g_Templates);
@@ -132,24 +133,24 @@ LONG WINAPI Mine_ChangeDisplaySettingsExW(LPCWSTR lpszDeviceName, LPDEVMODEW lpD
 	return Mine_ChangeDisplaySettingsEx(Real_ChangeDisplaySettingsExW(lpszDeviceName, lpDevMode, hwnd, dwFlags, lParam), dwFlags, lParam);
 }
 
-bool fDetourInited = false;
-
 //
 
-extern "C" BOOL WINAPI DllEntryPoint(HINSTANCE, ULONG, LPVOID);
+#include "..\..\FilterApp.h"
 
-BOOL APIENTRY DllMain(HANDLE hModule, DWORD dwReason, LPVOID lpReserved)
+class CMpeg2DecFilterApp : public CFilterApp
 {
-	if(!fDetourInited)
+public:
+	BOOL InitInstance()
 	{
+		if(!__super::InitInstance()) return FALSE;
 		DetourFunctionWithTrampoline((PBYTE)Real_IsDebuggerPresent, (PBYTE)Mine_IsDebuggerPresent);
 		DetourFunctionWithTrampoline((PBYTE)Real_ChangeDisplaySettingsExA, (PBYTE)Mine_ChangeDisplaySettingsExA);
 		DetourFunctionWithTrampoline((PBYTE)Real_ChangeDisplaySettingsExW, (PBYTE)Mine_ChangeDisplaySettingsExW);
-		fDetourInited = true;
+		return TRUE;
 	}
+};
 
-	return DllEntryPoint((HINSTANCE)hModule, dwReason, 0); // "DllMain" of the dshow baseclasses;
-}
+CMpeg2DecFilterApp theApp;
 
 #endif
 
@@ -202,6 +203,8 @@ STDMETHODIMP CMpeg2DecFilter::NonDelegatingQueryInterface(REFIID riid, void** pp
 	return
 		QI(IMpeg2DecFilter)
 		QI(IMpeg2DecFilter2)
+		QI(ISpecifyPropertyPages)
+		QI(ISpecifyPropertyPages2)
 		 __super::NonDelegatingQueryInterface(riid, ppv);
 }
 
@@ -843,6 +846,37 @@ HRESULT CMpeg2DecFilter::AlterQuality(Quality q)
 
 //	TRACE(_T("CMpeg2DecFilter::AlterQuality: Type=%d, Proportion=%d, Late=%I64d, TimeStamp=%I64d\n"), q.Type, q.Proportion, q.Late, q.TimeStamp);
 	return S_OK;
+}
+
+// ISpecifyPropertyPages
+
+STDMETHODIMP CMpeg2DecFilter::GetPages(CAUUID* pPages)
+{
+	CheckPointer(pPages, E_POINTER);
+
+	pPages->cElems = 1;
+	pPages->pElems = (GUID*)CoTaskMemAlloc(sizeof(GUID) * pPages->cElems);
+	pPages->pElems[0] = __uuidof(CMpeg2DecSettingsWnd);
+
+	return S_OK;
+}
+
+// ISpecifyPropertyPages2
+
+STDMETHODIMP CMpeg2DecFilter::CreatePage(const GUID& guid, IPropertyPage** ppPage)
+{
+	CheckPointer(ppPage, E_POINTER);
+
+	if(*ppPage != NULL) return E_INVALIDARG;
+
+	HRESULT hr;
+
+	if(guid == __uuidof(CMpeg2DecSettingsWnd))
+	{
+		(*ppPage = new CInternalPropertyPageTempl<CMpeg2DecSettingsWnd>(NULL, &hr))->AddRef();
+	}
+
+	return *ppPage ? S_OK : E_FAIL;
 }
 
 // IMpeg2DecFilter

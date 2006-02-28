@@ -73,12 +73,9 @@ STDAPI DllUnregisterServer()
 	return AMovieDllRegisterServer2(FALSE);
 }
 
-extern "C" BOOL WINAPI DllEntryPoint(HINSTANCE, ULONG, LPVOID);
+#include "..\..\FilterApp.h"
 
-BOOL APIENTRY DllMain(HANDLE hModule, DWORD dwReason, LPVOID lpReserved)
-{
-	return DllEntryPoint((HINSTANCE)hModule, dwReason, 0); // "DllMain" of the dshow baseclasses;
-}
+CFilterApp theApp;
 
 #endif
 

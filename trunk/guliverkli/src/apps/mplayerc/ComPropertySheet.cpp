@@ -26,6 +26,7 @@
 #include "mplayerc.h"
 #include "ComPropertySheet.h"
 #include "..\..\DSUtil\DSUtil.h"
+#include "..\..\filters\InternalPropertyPage.h"
 
 // CComPropertyPageSite
 
@@ -100,17 +101,29 @@ int CComPropertySheet::AddPages(CComPtr<ISpecifyPropertyPages> pSPP)
 
 	m_spp.AddTail(pSPP);
 
+	CComQIPtr<ISpecifyPropertyPages2> pSPP2 = pSPP;
+	CComQIPtr<IPersist> pPersist = pSPP;
+
 	ULONG nPages = 0;
 	for(ULONG i = 0; i < caGUID.cElems; i++)
 	{
 		CComPtr<IPropertyPage> pPage;
 
-		HRESULT hr = pPage.CoCreateInstance(caGUID.pElems[i]);
+		HRESULT hr = E_FAIL;
 
-		if(FAILED(hr))
+		if(FAILED(hr) && !pPage && pSPP2)
 		{
-			if(CComQIPtr<IPersist> pP = pSPP)
-				hr = LoadExternalPropertyPage(pP, caGUID.pElems[i], &pPage);
+			hr = pSPP2->CreatePage(caGUID.pElems[i], &pPage);
+		}
+
+		if(FAILED(hr) && !pPage)
+		{
+			hr = pPage.CoCreateInstance(caGUID.pElems[i]);
+		}
+
+		if(FAILED(hr) && !pPage && pPersist)
+		{
+			hr = LoadExternalPropertyPage(pPersist, caGUID.pElems[i], &pPage);
 		}
 
 		if(SUCCEEDED(hr))
