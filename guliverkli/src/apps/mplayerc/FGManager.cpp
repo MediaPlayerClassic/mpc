@@ -431,20 +431,26 @@ STDMETHODIMP CFGManager::Connect(IPin* pPinOut, IPin* pPinIn)
 
 			hr = E_FAIL;
 
-			if(types.GetCount() == 2 && types[0] == MEDIATYPE_Stream && types[1] != MEDIATYPE_NULL)
+			if(FAILED(hr))
 			{
-				CMediaType mt;
-				
-				mt.majortype = types[0];
-				mt.subtype = types[1];
-				mt.formattype = FORMAT_None;
-				if(FAILED(hr)) hr = ConnectFilterDirect(pPinOut, pBF, &mt);
-
-				mt.formattype = GUID_NULL;
-				if(FAILED(hr)) hr = ConnectFilterDirect(pPinOut, pBF, &mt);
+				hr = ConnectFilterDirect(pPinOut, pBF, NULL);
 			}
 
-			if(FAILED(hr)) hr = ConnectFilterDirect(pPinOut, pBF, NULL);
+			if(FAILED(hr))
+			{
+				if(types.GetCount() >= 2 && types[0] == MEDIATYPE_Stream && types[1] != GUID_NULL)
+				{
+					CMediaType mt;
+					
+					mt.majortype = types[0];
+					mt.subtype = types[1];
+					mt.formattype = FORMAT_None;
+					if(FAILED(hr)) hr = ConnectFilterDirect(pPinOut, pBF, &mt);
+
+					mt.formattype = GUID_NULL;
+					if(FAILED(hr)) hr = ConnectFilterDirect(pPinOut, pBF, &mt);
+				}
+			}
 
 			if(SUCCEEDED(hr))
 			{
@@ -704,7 +710,7 @@ STDMETHODIMP CFGManager::AddSourceFilter(LPCWSTR lpcwstrFileName, LPCWSTR lpcwst
 	}
 
 	CFGFilter* pFGF = new CFGFilterRegistry(CLSID_AsyncReader);
-	pFGF->AddType(MEDIATYPE_Stream, MEDIASUBTYPE_None);
+	pFGF->AddType(MEDIATYPE_Stream, MEDIASUBTYPE_NULL);
 	fl.Insert(pFGF, 9);
 
 	POSITION pos = fl.GetHeadPosition();
@@ -1493,6 +1499,9 @@ CFGManagerCustom::CFGManagerCustom(LPCTSTR pName, LPUNKNOWN pUnk, UINT src, UINT
 
 	// LG Video Renderer (lgvid.ax) just crashes when trying to connect it
 	m_transform.AddTail(new CFGFilterRegistry(GUIDFromCString(_T("{9F711C60-0668-11D0-94D4-0000C02BA972}")), MERIT64_DO_NOT_USE));
+
+	// palm demuxer crashes (even crashes graphedit when dropping an .ac3 onto it)
+	m_transform.AddTail(new CFGFilterRegistry(GUIDFromCString(_T("{BE2CF8A7-08CE-4A2C-9A25-FD726A999196}")), MERIT64_DO_NOT_USE));
 
 	// DCDSPFilter (early versions crash mpc)
 	{

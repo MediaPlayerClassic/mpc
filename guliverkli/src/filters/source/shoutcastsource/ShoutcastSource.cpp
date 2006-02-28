@@ -111,31 +111,32 @@ STDAPI DllUnregisterServer()
 	return AMovieDllRegisterServer2(FALSE);
 }
 
-extern "C" BOOL WINAPI DllEntryPoint(HINSTANCE, ULONG, LPVOID);
+#include "..\..\FilterApp.h"
 
-BOOL APIENTRY DllMain(HANDLE hModule, DWORD dwReason, LPVOID lpReserved)
+class CShoutcastSourceApp : public CFilterApp
 {
-	if(dwReason == DLL_PROCESS_ATTACH)
+public:
+	BOOL InitInstance()
 	{
+		if(!__super::InitInstance()) return FALSE;
+/*
 		if(!AfxWinInit(::GetModuleHandle(NULL), NULL, ::GetCommandLine(), 0))
 		{
 			AfxMessageBox(_T("AfxWinInit failed!"));
 			return FALSE;
 		}
-
+*/
 		if(!AfxSocketInit(NULL))
 		{
 			AfxMessageBox(_T("AfxSocketInit failed!"));
 			return FALSE;
 		}
-	}
-	else if(dwReason == DLL_PROCESS_DETACH)
-	{
-		AfxWinTerm();
-	}
 
-    return DllEntryPoint((HINSTANCE)hModule, dwReason, 0); // "DllMain" of the dshow baseclasses;
-}
+		return TRUE;
+	}
+};
+
+CShoutcastSourceApp theApp;
 
 #endif
 

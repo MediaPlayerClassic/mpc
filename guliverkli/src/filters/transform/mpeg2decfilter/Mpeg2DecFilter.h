@@ -27,13 +27,17 @@
 #include "IMpeg2DecFilter.h"
 #include "..\..\..\decss\DeCSSInputPin.h"
 #include "..\BaseVideoFilter\BaseVideoFilter.h"
+#include "Mpeg2DecSettingsWnd.h"
 
 class CSubpicInputPin;
 class CClosedCaptionOutputPin;
 class CMpeg2Dec;
 
 [uuid("39F498AF-1A09-4275-B193-673B0BA3D478")]
-class CMpeg2DecFilter : public CBaseVideoFilter, public IMpeg2DecFilter2
+class CMpeg2DecFilter 
+	: public CBaseVideoFilter
+	, public IMpeg2DecFilter2
+	, public ISpecifyPropertyPages2
 {
 	CSubpicInputPin* m_pSubpicInput;
 	CClosedCaptionOutputPin* m_pClosedCaptionOutput;
@@ -134,6 +138,14 @@ protected:
 	void ApplyBrContHueSat(BYTE* srcy, BYTE* srcu, BYTE* srcv, int w, int h, int pitch);
 	
 public:
+	// ISpecifyPropertyPages
+
+	STDMETHODIMP GetPages(CAUUID* pPages);
+
+	// ISpecifyPropertyPages2
+
+	STDMETHODIMP CreatePage(const GUID& guid, IPropertyPage** ppPage);
+
 	// IMpeg2DecFilter
 
 	STDMETHODIMP SetDeinterlaceMethod(ditype di);

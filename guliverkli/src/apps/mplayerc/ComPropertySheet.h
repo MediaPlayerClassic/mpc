@@ -46,11 +46,10 @@ public:
 
 	int AddPages(CComPtr<ISpecifyPropertyPages> pSPP);
 
-	// CPropertySheet
-	void OnSetDirty(bool fDirty) {if(CPropertyPage* p = GetActivePage()) p->SetModified(fDirty);}
+	void OnActivated(CPropertyPage* pPage);
 
 	// IComPropertyPageDirty
-	void OnActivated(CPropertyPage* pPage);
+	void OnSetDirty(bool fDirty) {if(CPropertyPage* p = GetActivePage()) p->SetModified(fDirty);}
 
 	virtual BOOL OnInitDialog();
 

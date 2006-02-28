@@ -90,12 +90,9 @@ STDAPI DllUnregisterServer()
 	return AMovieDllRegisterServer2(FALSE);
 }
 
-extern "C" BOOL WINAPI DllEntryPoint(HINSTANCE, ULONG, LPVOID);
+#include "..\..\FilterApp.h"
 
-BOOL APIENTRY DllMain(HANDLE hModule, DWORD dwReason, LPVOID lpReserved)
-{
-    return DllEntryPoint((HINSTANCE)hModule, dwReason, 0); // "DllMain" of the dshow baseclasses;
-}
+CFilterApp theApp;
 
 #endif
 
@@ -608,7 +605,7 @@ HRESULT CMP4SplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 
 		if(AP4_ContainerAtom* ilst = dynamic_cast<AP4_ContainerAtom*>(movie->GetMoovAtom()->FindChild("udta/meta/ilst")))
 		{
-			CStringW title, artist, writer, album, year, appl, desc, track;
+			CStringW title, artist, writer, album, year, appl, desc, gen, track;
 
 			for(AP4_List<AP4_Atom>::Item* item = ilst->GetChildren().FirstItem();
 				item;
@@ -642,6 +639,7 @@ HRESULT CMP4SplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 							case AP4_ATOM_TYPE_DAY: year = str; break;
 							case AP4_ATOM_TYPE_TOO: appl = str; break;
 							case AP4_ATOM_TYPE_CMT: desc = str; break;
+							case AP4_ATOM_TYPE_GEN: gen = str; break;
 							}
 						}
 					}
@@ -653,6 +651,7 @@ HRESULT CMP4SplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 				if(!track.IsEmpty()) title = track + L" - " + title;
 				if(!album.IsEmpty()) title = album + L" - " + title;
 				if(!year.IsEmpty()) title += L" - " +  year;
+				if(!gen.IsEmpty()) title += L" - " + gen;
 				SetProperty(L"TITL", title);
 			}
 
