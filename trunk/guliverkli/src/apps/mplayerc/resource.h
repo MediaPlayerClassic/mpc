@@ -295,7 +295,6 @@
 #define IDD_PPAGEACCELTBL               10032
 #define IDD_PPAGESUBSTYLE               10033
 #define IDD_PPAGEMOUSE                  10034
-#define IDD_PPAGEMPEG                   10035
 #define IDD_PPAGEINTERNALFILTERS        10036
 #define IDD_PPAGELOGO                   10037
 #define IDD_PPAGEVIDREND                10038
@@ -582,9 +581,9 @@
 #define IDS_RS_SNAPTODESKTOPEDGES       13136
 #define IDS_RS_ENABLESUBTITLES          13137
 #define IDS_RS_MPEGINTERLACED           13138
-#define IDS_RS_THUMBWIDTH				13139
-#define IDS_RS_AUDIONORMALIZE			13140
-#define IDS_RS_AUDIOBOOST				13141
+#define IDS_RS_THUMBWIDTH               13139
+#define IDS_RS_AUDIONORMALIZE           13140
+#define IDS_RS_AUDIOBOOST               13141
 #define IDS_SRC_RADGT                   14000
 #define IDS_SRC_CDDA                    14001
 #define IDS_SRC_AVI                     14002
@@ -701,7 +700,7 @@
 #define IDS_AUTOPLAY_PLAYDVDMOVIE       14184
 #define IDS_PROPSHEET_PROPERTIES        14185
 #define IDS_GRAPHBUILDER_AUDIOSWITCHER  14186
-#define IDS_SHADER_EDIT					14187
+#define IDS_SHADER_EDIT                 14187
 
 // Next default values for new objects
 // 
