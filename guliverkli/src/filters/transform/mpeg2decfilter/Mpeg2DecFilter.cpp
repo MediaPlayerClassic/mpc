@@ -180,13 +180,27 @@ CMpeg2DecFilter::CMpeg2DecFilter(LPUNKNOWN lpunk, HRESULT* phr)
 	if(FAILED(*phr)) return;
 
 	SetDeinterlaceMethod(DIAuto);
-	SetBrightness(0.0);
-	SetContrast(1.0);
-	SetHue(0.0);
-	SetSaturation(1.0);
+	SetBrightness(0.0f);
+	SetContrast(1.0f);
+	SetHue(0.0f);
+	SetSaturation(1.0f);
 	EnableForcedSubtitles(true);
 	EnablePlanarYUV(true);
 	EnableInterlaced(false);
+
+	CRegKey key;
+	if(ERROR_SUCCESS == key.Open(HKEY_CURRENT_USER, _T("Software\\Gabest\\Filters\\MPEG Video Decoder"), KEY_READ))
+	{
+		DWORD dw;
+		if(ERROR_SUCCESS == key.QueryDWORDValue(_T("DeinterlaceMethod"), dw)) SetDeinterlaceMethod((ditype)dw);
+		if(ERROR_SUCCESS == key.QueryDWORDValue(_T("Brightness"), dw)) SetBrightness(*(float*)&dw);
+		if(ERROR_SUCCESS == key.QueryDWORDValue(_T("Contrast"), dw)) SetContrast(*(float*)&dw);
+		if(ERROR_SUCCESS == key.QueryDWORDValue(_T("Hue"), dw)) SetHue(*(float*)&dw);
+		if(ERROR_SUCCESS == key.QueryDWORDValue(_T("Saturation"), dw)) SetSaturation(*(float*)&dw);
+		if(ERROR_SUCCESS == key.QueryDWORDValue(_T("ForcedSubtitles"), dw)) EnableForcedSubtitles(!!dw);
+		if(ERROR_SUCCESS == key.QueryDWORDValue(_T("PlanarYUV"), dw)) EnablePlanarYUV(!!dw);
+		if(ERROR_SUCCESS == key.QueryDWORDValue(_T("Interlaced"), dw)) EnableInterlaced(!!dw);
+	}
 
 	m_rate.Rate = 10000;
 	m_rate.StartTime = 0;
@@ -194,6 +208,19 @@ CMpeg2DecFilter::CMpeg2DecFilter(LPUNKNOWN lpunk, HRESULT* phr)
 
 CMpeg2DecFilter::~CMpeg2DecFilter()
 {
+	CRegKey key;
+	if(ERROR_SUCCESS == key.Create(HKEY_CURRENT_USER, _T("Software\\Gabest\\Filters\\MPEG Video Decoder")))
+	{
+		key.SetDWORDValue(_T("DeinterlaceMethod"), m_ditype);
+		key.SetDWORDValue(_T("Brightness"), *(DWORD*)&m_bright);
+		key.SetDWORDValue(_T("Contrast"), *(DWORD*)&m_cont);
+		key.SetDWORDValue(_T("Hue"), *(DWORD*)&m_hue);
+		key.SetDWORDValue(_T("Saturation"), *(DWORD*)&m_sat);
+		key.SetDWORDValue(_T("ForcedSubtitles"), m_fForcedSubs);
+		key.SetDWORDValue(_T("PlanarYUV"), m_fPlanarYUV);
+		key.SetDWORDValue(_T("Interlaced"), m_fInterlaced);
+	}
+
 	delete m_pSubpicInput;
 	delete m_pClosedCaptionOutput;
 }
@@ -202,7 +229,6 @@ STDMETHODIMP CMpeg2DecFilter::NonDelegatingQueryInterface(REFIID riid, void** pp
 {
 	return
 		QI(IMpeg2DecFilter)
-		QI(IMpeg2DecFilter2)
 		QI(ISpecifyPropertyPages)
 		QI(ISpecifyPropertyPages2)
 		 __super::NonDelegatingQueryInterface(riid, ppv);
@@ -884,17 +910,17 @@ STDMETHODIMP CMpeg2DecFilter::CreatePage(const GUID& guid, IPropertyPage** ppPag
 STDMETHODIMP CMpeg2DecFilter::SetDeinterlaceMethod(ditype di)
 {
 	CAutoLock cAutoLock(&m_csProps);
-	m_di = di;
+	m_ditype = di;
 	return S_OK;
 }
 
 STDMETHODIMP_(ditype) CMpeg2DecFilter::GetDeinterlaceMethod()
 {
 	CAutoLock cAutoLock(&m_csProps);
-	return m_di;
+	return m_ditype;
 }
 
-void CMpeg2DecFilter::CalcBrCont(BYTE* YTbl, double bright, double cont)
+void CMpeg2DecFilter::CalcBrCont(BYTE* YTbl, float bright, float cont)
 {
 	int Cont = (int)(cont * 512);
 	int Bright = (int)bright;
@@ -907,7 +933,7 @@ void CMpeg2DecFilter::CalcBrCont(BYTE* YTbl, double bright, double cont)
 	}
 }
 
-void CMpeg2DecFilter::CalcHueSat(BYTE* UTbl, BYTE* VTbl, double hue, double sat)
+void CMpeg2DecFilter::CalcHueSat(BYTE* UTbl, BYTE* VTbl, float hue, float sat)
 {
 	int Sat = (int)(sat * 512);
 	double Hue = (hue * 3.1415926) / 180.0;
@@ -1009,53 +1035,53 @@ void CMpeg2DecFilter::ApplyBrContHueSat(BYTE* srcy, BYTE* srcu, BYTE* srcv, int 
 	}
 }
 
-STDMETHODIMP CMpeg2DecFilter::SetBrightness(double bright)
+STDMETHODIMP CMpeg2DecFilter::SetBrightness(float bright)
 {
 	CAutoLock cAutoLock(&m_csProps);
 	CalcBrCont(m_YTbl, m_bright = bright, m_cont);
 	return S_OK;
 }
 
-STDMETHODIMP CMpeg2DecFilter::SetContrast(double cont)
+STDMETHODIMP CMpeg2DecFilter::SetContrast(float cont)
 {
 	CAutoLock cAutoLock(&m_csProps);
 	CalcBrCont(m_YTbl, m_bright, m_cont = cont);
 	return S_OK;
 }
 
-STDMETHODIMP CMpeg2DecFilter::SetHue(double hue)
+STDMETHODIMP CMpeg2DecFilter::SetHue(float hue)
 {
 	CAutoLock cAutoLock(&m_csProps);
 	CalcHueSat(m_UTbl, m_VTbl, m_hue = hue, m_sat);
 	return S_OK;
 }
 
-STDMETHODIMP CMpeg2DecFilter::SetSaturation(double sat)
+STDMETHODIMP CMpeg2DecFilter::SetSaturation(float sat)
 {
 	CAutoLock cAutoLock(&m_csProps);
 	CalcHueSat(m_UTbl, m_VTbl, m_hue, m_sat = sat);
 	return S_OK;
 }
 
-STDMETHODIMP_(double) CMpeg2DecFilter::GetBrightness()
+STDMETHODIMP_(float) CMpeg2DecFilter::GetBrightness()
 {
 	CAutoLock cAutoLock(&m_csProps);
 	return m_bright;
 }
 
-STDMETHODIMP_(double) CMpeg2DecFilter::GetContrast()
+STDMETHODIMP_(float) CMpeg2DecFilter::GetContrast()
 {
 	CAutoLock cAutoLock(&m_csProps);
 	return m_cont;
 }
 
-STDMETHODIMP_(double) CMpeg2DecFilter::GetHue()
+STDMETHODIMP_(float) CMpeg2DecFilter::GetHue()
 {
 	CAutoLock cAutoLock(&m_csProps);
 	return m_hue;
 }
 
-STDMETHODIMP_(double) CMpeg2DecFilter::GetSaturation()
+STDMETHODIMP_(float) CMpeg2DecFilter::GetSaturation()
 {
 	CAutoLock cAutoLock(&m_csProps);
 	return m_sat;
@@ -1086,8 +1112,6 @@ STDMETHODIMP_(bool) CMpeg2DecFilter::IsPlanarYUVEnabled()
 	CAutoLock cAutoLock(&m_csProps);
 	return m_fPlanarYUV;
 }
-
-// IMpeg2DecFilter2
 
 STDMETHODIMP CMpeg2DecFilter::EnableInterlaced(bool fEnable)
 {

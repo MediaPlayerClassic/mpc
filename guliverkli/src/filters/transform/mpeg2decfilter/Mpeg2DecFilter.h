@@ -36,7 +36,7 @@ class CMpeg2Dec;
 [uuid("39F498AF-1A09-4275-B193-673B0BA3D478")]
 class CMpeg2DecFilter 
 	: public CBaseVideoFilter
-	, public IMpeg2DecFilter2
+	, public IMpeg2DecFilter
 	, public ISpecifyPropertyPages2
 {
 	CSubpicInputPin* m_pSubpicInput;
@@ -126,15 +126,15 @@ public:
 
 protected:
 	CCritSec m_csProps;
-	ditype m_di;
-	double m_bright, m_cont, m_hue, m_sat;
+	ditype m_ditype;
+	float m_bright, m_cont, m_hue, m_sat;
 	BYTE m_YTbl[256], m_UTbl[256*256], m_VTbl[256*256];
 	bool m_fForcedSubs;
 	bool m_fPlanarYUV;
 	bool m_fInterlaced;
 
-	static void CalcBrCont(BYTE* YTbl, double bright, double cont);
-	static void CalcHueSat(BYTE* UTbl, BYTE* VTbl, double hue, double sat);
+	static void CalcBrCont(BYTE* YTbl, float bright, float cont);
+	static void CalcHueSat(BYTE* UTbl, BYTE* VTbl, float hue, float sat);
 	void ApplyBrContHueSat(BYTE* srcy, BYTE* srcu, BYTE* srcv, int w, int h, int pitch);
 	
 public:
@@ -151,14 +151,14 @@ public:
 	STDMETHODIMP SetDeinterlaceMethod(ditype di);
 	STDMETHODIMP_(ditype) GetDeinterlaceMethod();
 
-	STDMETHODIMP SetBrightness(double bright);
-	STDMETHODIMP SetContrast(double cont);
-	STDMETHODIMP SetHue(double hue);
-	STDMETHODIMP SetSaturation(double sat);
-	STDMETHODIMP_(double) GetBrightness();
-	STDMETHODIMP_(double) GetContrast();
-	STDMETHODIMP_(double) GetHue();
-	STDMETHODIMP_(double) GetSaturation();
+	STDMETHODIMP SetBrightness(float bright);
+	STDMETHODIMP SetContrast(float cont);
+	STDMETHODIMP SetHue(float hue);
+	STDMETHODIMP SetSaturation(float sat);
+	STDMETHODIMP_(float) GetBrightness();
+	STDMETHODIMP_(float) GetContrast();
+	STDMETHODIMP_(float) GetHue();
+	STDMETHODIMP_(float) GetSaturation();
 
 	STDMETHODIMP EnableForcedSubtitles(bool fEnable);
 	STDMETHODIMP_(bool) IsForcedSubtitlesEnabled();

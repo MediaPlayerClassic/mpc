@@ -23,7 +23,7 @@
 
 typedef enum {DIAuto, DIWeave, DIBlend, DIBob, DIFieldShift} ditype;
 
-[uuid("A6C61113-B27A-4D69-BDE7-EC71E96866F4")]
+[uuid("0ABEAA65-0317-47B9-AE1D-D9EA905AFD25")]
 interface IMpeg2DecFilter : public IUnknown
 {
 	STDMETHOD(SetDeinterlaceMethod(ditype di)) = 0;
@@ -34,25 +34,21 @@ interface IMpeg2DecFilter : public IUnknown
 	// Hue: -180.0 to +180.0, default 0.0
 	// Saturation: 0.0 to 10.0, default 1.0
 
-	STDMETHOD(SetBrightness(double bright)) = 0;
-	STDMETHOD(SetContrast(double cont)) = 0;
-	STDMETHOD(SetHue(double hue)) = 0;
-	STDMETHOD(SetSaturation(double sat)) = 0;
-	STDMETHOD_(double, GetBrightness()) = 0;
-	STDMETHOD_(double, GetContrast()) = 0;
-	STDMETHOD_(double, GetHue()) = 0;
-	STDMETHOD_(double, GetSaturation()) = 0;
+	STDMETHOD(SetBrightness(float brightness)) = 0;
+	STDMETHOD(SetContrast(float contrast)) = 0;
+	STDMETHOD(SetHue(float hue)) = 0;
+	STDMETHOD(SetSaturation(float saturation)) = 0;
+	STDMETHOD_(float, GetBrightness()) = 0;
+	STDMETHOD_(float, GetContrast()) = 0;
+	STDMETHOD_(float, GetHue()) = 0;
+	STDMETHOD_(float, GetSaturation()) = 0;
 
 	STDMETHOD(EnableForcedSubtitles(bool fEnable)) = 0;
 	STDMETHOD_(bool, IsForcedSubtitlesEnabled()) = 0;
 
 	STDMETHOD(EnablePlanarYUV(bool fEnable)) = 0;
 	STDMETHOD_(bool, IsPlanarYUVEnabled()) = 0;
-};
 
-[uuid("F25F1C98-049E-4FEB-BFF5-39CB560DCBC0")]
-interface IMpeg2DecFilter2 : public IMpeg2DecFilter
-{
 	STDMETHOD(EnableInterlaced(bool fEnable)) = 0;
 	STDMETHOD_(bool, IsInterlacedEnabled()) = 0;
 };

@@ -19,12 +19,12 @@
  *
  */
 
-// PPageOverrides.cpp : implementation file
+// PPageExternalFilters.cpp : implementation file
 //
 
 #include "stdafx.h"
 #include "mplayerc.h"
-#include "PPageOverrides.h"
+#include "PPageExternalFilters.h"
 #include "ComPropertySheet.h"
 #include "RegFilterChooserDlg.h"
 #include "SelectMediaType.h"
@@ -34,21 +34,21 @@
 #include <initguid.h>
 #include <Dmoreg.h>
 
-// CPPageOverrides dialog
+// CPPageExternalFilters dialog
 
-IMPLEMENT_DYNAMIC(CPPageOverrides, CPPageBase)
-CPPageOverrides::CPPageOverrides()
-	: CPPageBase(CPPageOverrides::IDD, CPPageOverrides::IDD)
+IMPLEMENT_DYNAMIC(CPPageExternalFilters, CPPageBase)
+CPPageExternalFilters::CPPageExternalFilters()
+	: CPPageBase(CPPageExternalFilters::IDD, CPPageExternalFilters::IDD)
 	, m_iLoadType(FilterOverride::PREFERRED)
 	, m_pLastSelFilter(NULL)
 {
 }
 
-CPPageOverrides::~CPPageOverrides()
+CPPageExternalFilters::~CPPageExternalFilters()
 {
 }
 
-void CPPageOverrides::DoDataExchange(CDataExchange* pDX)
+void CPPageExternalFilters::DoDataExchange(CDataExchange* pDX)
 {
 	__super::DoDataExchange(pDX);
 	DDX_Control(pDX, IDC_LIST1, m_filters);
@@ -57,7 +57,7 @@ void CPPageOverrides::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_TREE2, m_tree);
 }
 
-void CPPageOverrides::StepUp(CCheckListBox& list)
+void CPPageExternalFilters::StepUp(CCheckListBox& list)
 {
 	int i = list.GetCurSel();
 	if(i < 1) return;
@@ -74,7 +74,7 @@ void CPPageOverrides::StepUp(CCheckListBox& list)
 	list.SetCurSel(i);
 }
 
-void CPPageOverrides::StepDown(CCheckListBox& list)
+void CPPageExternalFilters::StepDown(CCheckListBox& list)
 {
 	int i = list.GetCurSel();
 	if(i < 0 || i >= list.GetCount()-1) return;
@@ -91,13 +91,13 @@ void CPPageOverrides::StepDown(CCheckListBox& list)
 	list.SetCurSel(i);
 }
 
-FilterOverride* CPPageOverrides::GetCurFilter()
+FilterOverride* CPPageExternalFilters::GetCurFilter()
 {
 	int i = m_filters.GetCurSel();
 	return i >= 0 ? (FilterOverride*)m_pFilters.GetAt((POSITION)m_filters.GetItemDataPtr(i)) : (FilterOverride*)NULL;
 }
 
-void CPPageOverrides::SetupMajorTypes(CArray<GUID>& guids)
+void CPPageExternalFilters::SetupMajorTypes(CArray<GUID>& guids)
 {
 	guids.RemoveAll();
 	guids.Add(MEDIATYPE_NULL);
@@ -124,7 +124,7 @@ void CPPageOverrides::SetupMajorTypes(CArray<GUID>& guids)
 	guids.Add(MEDIATYPE_DVD_NAVIGATION);
 }
 
-void CPPageOverrides::SetupSubTypes(CArray<GUID>& guids)
+void CPPageExternalFilters::SetupSubTypes(CArray<GUID>& guids)
 {
 	guids.RemoveAll();
 	guids.Add(MEDIASUBTYPE_None);
@@ -243,7 +243,7 @@ void CPPageOverrides::SetupSubTypes(CArray<GUID>& guids)
 	guids.Add(MEDIASUBTYPE_WAVE_DTS);
 }
 
-BEGIN_MESSAGE_MAP(CPPageOverrides, CPPageBase)
+BEGIN_MESSAGE_MAP(CPPageExternalFilters, CPPageBase)
 	ON_UPDATE_COMMAND_UI(IDC_BUTTON2, OnUpdateFilter)
 	ON_UPDATE_COMMAND_UI(IDC_RADIO1, OnUpdateFilter)
 	ON_UPDATE_COMMAND_UI(IDC_RADIO2, OnUpdateFilter)
@@ -274,9 +274,9 @@ BEGIN_MESSAGE_MAP(CPPageOverrides, CPPageBase)
 END_MESSAGE_MAP()
 
 
-// CPPageOverrides message handlers
+// CPPageExternalFilters message handlers
 
-BOOL CPPageOverrides::OnInitDialog()
+BOOL CPPageExternalFilters::OnInitDialog()
 {
 	__super::OnInitDialog();
 	
@@ -316,7 +316,7 @@ BOOL CPPageOverrides::OnInitDialog()
 	// EXCEPTION: OCX Property Pages should return FALSE
 }
 
-BOOL CPPageOverrides::OnApply()
+BOOL CPPageExternalFilters::OnApply()
 {
 	UpdateData();
 
@@ -337,7 +337,7 @@ BOOL CPPageOverrides::OnApply()
 	return __super::OnApply();
 }
 
-void CPPageOverrides::OnUpdateFilter(CCmdUI* pCmdUI)
+void CPPageExternalFilters::OnUpdateFilter(CCmdUI* pCmdUI)
 {
 	if(FilterOverride* f = GetCurFilter())
 	{
@@ -349,34 +349,34 @@ void CPPageOverrides::OnUpdateFilter(CCmdUI* pCmdUI)
 	}
 }
 
-void CPPageOverrides::OnUpdateFilterUp(CCmdUI* pCmdUI)
+void CPPageExternalFilters::OnUpdateFilterUp(CCmdUI* pCmdUI)
 {
 	pCmdUI->Enable(m_filters.GetCurSel() > 0);
 }
 
-void CPPageOverrides::OnUpdateFilterDown(CCmdUI* pCmdUI)
+void CPPageExternalFilters::OnUpdateFilterDown(CCmdUI* pCmdUI)
 {
 	pCmdUI->Enable(m_filters.GetCurSel() >= 0 && m_filters.GetCurSel() < m_filters.GetCount()-1);
 }
 
-void CPPageOverrides::OnUpdateFilterMerit(CCmdUI* pCmdUI)
+void CPPageExternalFilters::OnUpdateFilterMerit(CCmdUI* pCmdUI)
 {
 	UpdateData();
 	pCmdUI->Enable(m_iLoadType == FilterOverride::MERIT);
 }
 
-void CPPageOverrides::OnUpdateSubType(CCmdUI* pCmdUI)
+void CPPageExternalFilters::OnUpdateSubType(CCmdUI* pCmdUI)
 {
 	HTREEITEM node = m_tree.GetSelectedItem();
 	pCmdUI->Enable(node != NULL && m_tree.GetItemData(node) == NULL);
 }
 
-void CPPageOverrides::OnUpdateDeleteType(CCmdUI* pCmdUI)
+void CPPageExternalFilters::OnUpdateDeleteType(CCmdUI* pCmdUI)
 {
 	pCmdUI->Enable(!!m_tree.GetSelectedItem());
 }
 
-void CPPageOverrides::OnAddRegistered()
+void CPPageExternalFilters::OnAddRegistered()
 {
 	CRegFilterChooserDlg dlg(this);
 	if(dlg.DoModal() == IDOK)
@@ -408,7 +408,7 @@ void CPPageOverrides::OnAddRegistered()
 	}
 }
 
-void CPPageOverrides::OnRemoveFilter()
+void CPPageExternalFilters::OnRemoveFilter()
 {
 	int i = m_filters.GetCurSel();
 	m_pFilters.RemoveAt((POSITION)m_filters.GetItemDataPtr(i));
@@ -418,17 +418,17 @@ void CPPageOverrides::OnRemoveFilter()
 	OnLbnSelchangeList1();
 }
 
-void CPPageOverrides::OnMoveFilterUp()
+void CPPageExternalFilters::OnMoveFilterUp()
 {
 	StepUp(m_filters);
 }
 
-void CPPageOverrides::OnMoveFilterDown()
+void CPPageExternalFilters::OnMoveFilterDown()
 {
 	StepDown(m_filters);
 }
 
-void CPPageOverrides::OnLbnDblclkFilter()
+void CPPageExternalFilters::OnLbnDblclkFilter()
 {
 	if(FilterOverride* f = GetCurFilter())
 	{
@@ -462,7 +462,7 @@ void CPPageOverrides::OnLbnDblclkFilter()
 	}
 }
 
-void CPPageOverrides::OnAddMajorType()
+void CPPageExternalFilters::OnAddMajorType()
 {
 	FilterOverride* f = GetCurFilter();
 	if(!f) return;
@@ -495,7 +495,7 @@ void CPPageOverrides::OnAddMajorType()
 	}
 }
 
-void CPPageOverrides::OnAddSubType()
+void CPPageExternalFilters::OnAddSubType()
 {
 	FilterOverride* f = GetCurFilter();
 	if(!f) return;
@@ -533,7 +533,7 @@ void CPPageOverrides::OnAddSubType()
 	}
 }
 
-void CPPageOverrides::OnDeleteType()
+void CPPageExternalFilters::OnDeleteType()
 {
 	if(FilterOverride* f = GetCurFilter())
 	{
@@ -585,7 +585,7 @@ void CPPageOverrides::OnDeleteType()
 	}
 }
 
-void CPPageOverrides::OnResetTypes()
+void CPPageExternalFilters::OnResetTypes()
 {
 	if(FilterOverride* f = GetCurFilter())
 	{
@@ -597,7 +597,7 @@ void CPPageOverrides::OnResetTypes()
 	}
 }
 
-void CPPageOverrides::OnLbnSelchangeList1()
+void CPPageExternalFilters::OnLbnSelchangeList1()
 {
 	if(FilterOverride* f = GetCurFilter())
 	{
@@ -652,14 +652,14 @@ void CPPageOverrides::OnLbnSelchangeList1()
 	}
 }
 
-void CPPageOverrides::OnBnClickedRadio()
+void CPPageExternalFilters::OnBnClickedRadio()
 {
 	UpdateData();
 	if(FilterOverride* f = GetCurFilter())
 		f->iLoadType = m_iLoadType;
 }
 
-void CPPageOverrides::OnEnChangeEdit1()
+void CPPageExternalFilters::OnEnChangeEdit1()
 {
 	UpdateData();
 	if(FilterOverride* f = GetCurFilter())
@@ -670,7 +670,7 @@ void CPPageOverrides::OnEnChangeEdit1()
 	}
 }
 
-void CPPageOverrides::OnNMDblclkTree2(NMHDR *pNMHDR, LRESULT *pResult)
+void CPPageExternalFilters::OnNMDblclkTree2(NMHDR *pNMHDR, LRESULT *pResult)
 {
 	*pResult = 0;
 
@@ -697,7 +697,7 @@ void CPPageOverrides::OnNMDblclkTree2(NMHDR *pNMHDR, LRESULT *pResult)
 	}
 }
 
-void CPPageOverrides::OnDropFiles(HDROP hDropInfo)
+void CPPageExternalFilters::OnDropFiles(HDROP hDropInfo)
 {
 	SetActiveWindow();
 

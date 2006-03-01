@@ -31,11 +31,10 @@ using namespace TreePropSheet;
 #include "PPageDVD.h"
 #include "PPageOutput.h"
 #include "PPageWebServer.h"
-#include "PPageFilters.h"
+#include "PPageInternalFilters.h"
 #include "PPageAudioSwitcher.h"
-#include "PPageMpegDecoder.h"
 #include "PPageAudioDecoder.h"
-#include "PPageOverrides.h"
+#include "PPageExternalFilters.h"
 #include "PPageSubtitles.h"
 #include "PPageSubStyle.h"
 #include "PPageSubDB.h"
@@ -74,11 +73,10 @@ private:
 	CPPageSubtitles m_subtitles;
 	CPPageSubStyle m_substyle;
 	CPPageSubDB m_subdb;
-	CPPageFilters m_filters;
+	CPPageInternalFilters m_internalfilters;
 	CPPageAudioSwitcher m_audioswitcher;
-	CPPageMpegDecoder m_mpegdecoder;
 	CPPageAudioDecoder m_audiodecoder;
-	CPPageOverrides m_overrides;
+	CPPageExternalFilters m_externalfilters;
 	CPPageTweaks m_tweaks;
 
 	CTreeCtrl* CreatePageTreeObject();
