@@ -202,6 +202,7 @@ class CMainFrame : public CFrameWnd, public CDropTarget
 	void SetDefaultWindowRect();
 	void RestoreDefaultWindowRect();
 	void ZoomVideoWindow(double scale = -1);
+	double GetZoomAutoFitScale();
 
 	void SetAlwaysOnTop(int i);
 
@@ -523,6 +524,7 @@ public:
 
 	// menu item handlers
 
+	afx_msg void OnFileOpenQuick();
 	afx_msg void OnFileOpenmedia();
 	afx_msg void OnUpdateFileOpen(CCmdUI* pCmdUI);
 	afx_msg BOOL OnCopyData(CWnd* pWnd, COPYDATASTRUCT* pCopyDataStruct);
@@ -578,6 +580,7 @@ public:
 	afx_msg void OnUpdateViewFullscreen(CCmdUI* pCmdUI);
 	afx_msg void OnViewZoom(UINT nID);
 	afx_msg void OnUpdateViewZoom(CCmdUI* pCmdUI);
+	afx_msg void OnViewZoomAutoFit();
 	afx_msg void OnViewDefaultVideoFrame(UINT nID);
 	afx_msg void OnUpdateViewDefaultVideoFrame(CCmdUI* pCmdUI);
 	afx_msg void OnViewKeepaspectratio();

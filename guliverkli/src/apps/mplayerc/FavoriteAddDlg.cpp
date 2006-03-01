@@ -34,7 +34,7 @@ CFavoriteAddDlg::CFavoriteAddDlg(CString shortname, CString fullname, CWnd* pPar
 	: CCmdUIDialog(CFavoriteAddDlg::IDD, pParent)
 	, m_shortname(shortname)
 	, m_fullname(fullname)
-	, m_fRememberPos(FALSE)
+	, m_fRememberPos(TRUE)
 {
 }
 
