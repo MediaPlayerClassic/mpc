@@ -385,7 +385,7 @@ BEGIN
     LTEXT           "Click here to download GTSdll",IDC_STATICLINKGTS,19,134,95,8
 END
 
-IDD_PPAGEETERNALFILTERS DIALOGEX 0, 0, 296, 200
+IDD_PPAGEEXTERNALFILTERS DIALOGEX 0, 0, 296, 200
 STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
@@ -741,30 +741,6 @@ BEGIN
     LTEXT           "** Required for loading subtitles",IDC_STATIC,13,181,104,8
     LTEXT           "*** Required for image rotation and pixelshaders (DX9-only)",IDC_STATIC,13,190,195,8
     CONTROL         "VMR9 mixer mode",IDC_DSVMR9LOADMIXER,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,113,112,73,10
-END
-
-IDD_PPAGEMPEG DIALOGEX 0, 0, 296, 203
-STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD
-FONT 8, "MS Shell Dlg", 400, 0, 0xEE
-BEGIN
-    CONTROL         "Enable planar YUV media types (VY12, I420, IYUY)",IDC_CHECK2,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,12,177,10
-    CONTROL         "Always display forced subtitles",IDC_CHECK1,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,30,114,10
-    LTEXT           "Deinterlacing method:",IDC_STATIC,7,51,71,8
-    COMBOBOX        IDC_COMBO2,83,49,48,48,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
-    LTEXT           "Brightness:",IDC_STATIC,7,77,37,8
-    CONTROL         "",IDC_SLIDER1,"msctls_trackbar32",WS_TABSTOP,52,72,237,18
-    LTEXT           "Contrast:",IDC_STATIC,7,97,32,8
-    CONTROL         "",IDC_SLIDER2,"msctls_trackbar32",WS_TABSTOP,52,92,237,18
-    LTEXT           "Hue:",IDC_STATIC,7,117,16,8
-    CONTROL         "",IDC_SLIDER3,"msctls_trackbar32",WS_TABSTOP,52,112,237,18
-    LTEXT           "Saturation:",IDC_STATIC,7,136,37,8
-    CONTROL         "",IDC_SLIDER4,"msctls_trackbar32",WS_TABSTOP,52,132,237,18
-    PUSHBUTTON      "Y: 16-235 -> 0-255",IDC_BUTTON2,99,157,74,14
-    PUSHBUTTON      "Reset",IDC_BUTTON1,175,157,50,14
-    LTEXT           "Note: Using a non-planar output format, bob deinterlacer, or adjusting color properies can degrade performance. ""Auto"" deinterlacer will switch to ""Blend"" when necessary.",IDC_STATIC,7,178,282,22
-    CONTROL         "Set interlaced flag in output media type",IDC_CHECK_MPEGINTERLACED,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,143,51,138,10
 END
 
 IDD_AUTH_DLG DIALOGEX 0, 0, 213, 146
@@ -1203,15 +1179,6 @@ BEGIN
         VERTGUIDE, 13
         VERTGUIDE, 288
         BOTTOMMARGIN, 200
-    END
-
-    IDD_PPAGEMPEG, DIALOG
-    BEGIN
-        VERTGUIDE, 7
-        VERTGUIDE, 52
-        VERTGUIDE, 289
-        BOTTOMMARGIN, 200
-        HORZGUIDE, 162
     END
 
     IDD_AUTH_DLG, DIALOG
