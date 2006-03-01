@@ -1578,7 +1578,7 @@ STDMETHODIMP CFGManagerCustom::AddFilter(IBaseFilter* pBF, LPCWSTR pName)
 			pPB->Write(CComBSTR(L"_HIRESOUTPUT"), &var);
 		}
 	}
-
+/*
 	if(CComQIPtr<IMpeg2DecFilter> pM2DF = pBF)
 	{
 		pM2DF->SetDeinterlaceMethod((ditype)s.mpegdi);
@@ -1588,13 +1588,9 @@ STDMETHODIMP CFGManagerCustom::AddFilter(IBaseFilter* pBF, LPCWSTR pName)
 		pM2DF->SetSaturation(s.mpegsat);
 		pM2DF->EnableForcedSubtitles(s.mpegforcedsubs);
 		pM2DF->EnablePlanarYUV(s.mpegplanaryuv);
+		pM2DF->EnableInterlaced(s.mpeginterlaced);
 	}
-
-	if(CComQIPtr<IMpeg2DecFilter2> pM2DF2 = pBF)
-	{
-		pM2DF2->EnableInterlaced(s.mpeginterlaced);
-	}
-
+*/
 	if(CComQIPtr<IMpaDecFilter> pMDF = pBF)
 	{
 		pMDF->SetSampleFormat((SampleFormat)s.mpasf);

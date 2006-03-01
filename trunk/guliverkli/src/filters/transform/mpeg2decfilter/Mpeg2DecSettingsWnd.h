@@ -29,7 +29,7 @@ class CMpeg2DecSettingsWnd : public CInternalPropertyPageWnd
 	CComQIPtr<IMpeg2DecFilter> m_pM2DF;
 
 	ditype m_ditype;
-	double m_procamp[4];
+	float m_procamp[4];
 	bool m_planaryuv;
 	bool m_interlaced;
 	bool m_forcedsubs;

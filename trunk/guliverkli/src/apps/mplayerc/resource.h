@@ -291,12 +291,12 @@
 #define IDD_PPAGEFORMATS                10027
 #define IDD_PPAGETWEAKS                 10028
 #define IDD_PPAGEAUDIOSWITCHER          10029
-#define IDD_PPAGEOVERRIDES              10030
+#define IDD_PPAGEEXTERNALFILTERS        10030
 #define IDD_PPAGEACCELTBL               10032
 #define IDD_PPAGESUBSTYLE               10033
 #define IDD_PPAGEMOUSE                  10034
 #define IDD_PPAGEMPEG                   10035
-#define IDD_PPAGEFILTERS                10036
+#define IDD_PPAGEINTERNALFILTERS        10036
 #define IDD_PPAGELOGO                   10037
 #define IDD_PPAGEVIDREND                10038
 #define IDD_PPAGEOUTPUT                 10039

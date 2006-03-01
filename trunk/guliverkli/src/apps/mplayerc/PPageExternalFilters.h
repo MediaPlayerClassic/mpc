@@ -24,11 +24,11 @@
 #include "floatedit.h"
 #include "mplayerc.h"
 
-// CPPageOverrides dialog
+// CPPageExternalFilters dialog
 
-class CPPageOverrides : public CPPageBase
+class CPPageExternalFilters : public CPPageBase
 {
-	DECLARE_DYNAMIC(CPPageOverrides)
+	DECLARE_DYNAMIC(CPPageExternalFilters)
 
 private:
 	void StepUp(CCheckListBox& list);
@@ -42,11 +42,11 @@ private:
 	void SetupSubTypes(CArray<GUID>& guids);
 
 public:
-	CPPageOverrides();
-	virtual ~CPPageOverrides();
+	CPPageExternalFilters();
+	virtual ~CPPageExternalFilters();
 
 // Dialog Data
-	enum { IDD = IDD_PPAGEOVERRIDES };
+	enum { IDD = IDD_PPAGEEXTERNALFILTERS };
 
 	CCheckListBox m_filters;
 	int m_iLoadType;

@@ -38,7 +38,6 @@ CPPageMpegDecoder::CPPageMpegDecoder(IFilterGraph* pFG)
 	, m_fInterlacedOutput(FALSE)
 {
 	m_pM2DF = FindFilter(__uuidof(CMpeg2DecFilter), pFG);
-	m_pM2DF2 = m_pM2DF;
 }
 
 CPPageMpegDecoder::~CPPageMpegDecoder()
@@ -136,11 +135,7 @@ BOOL CPPageMpegDecoder::OnApply()
 		m_pM2DF->SetSaturation(s.mpegsat);
 		m_pM2DF->EnableForcedSubtitles(s.mpegforcedsubs);
 		m_pM2DF->EnablePlanarYUV(s.mpegplanaryuv);
-	}
-
-	if(m_pM2DF2)
-	{
-		m_pM2DF2->EnableInterlaced(s.mpeginterlaced);
+		m_pM2DF->EnableInterlaced(s.mpeginterlaced);
 	}
 
 	return __super::OnApply();
@@ -151,7 +146,9 @@ void CPPageMpegDecoder::OnCbnSelchangeCombo2()
 	SetModified();
 
 	if(m_pM2DF)
+	{
 		m_pM2DF->SetDeinterlaceMethod((ditype)m_dilist.GetItemData(m_dilist.GetCurSel()));
+	}
 }
 
 void CPPageMpegDecoder::OnCbnSelchangeCombo1()
@@ -185,7 +182,9 @@ void CPPageMpegDecoder::OnBnClickedCheck1()
 	UpdateData();
 
 	if(m_pM2DF)
+	{
 		m_pM2DF->EnableForcedSubtitles(!!m_fForcedSubs);
+	}
 }
 
 void CPPageMpegDecoder::OnBnClickedButton1()
@@ -213,7 +212,9 @@ void CPPageMpegDecoder::OnBnClickedCheck2()
 	UpdateData();
 
 	if(m_pM2DF)
+	{
 		m_pM2DF->EnablePlanarYUV(!!m_fPlanarYUV);
+	}
 }
 
 void CPPageMpegDecoder::OnBnClickedButton2()

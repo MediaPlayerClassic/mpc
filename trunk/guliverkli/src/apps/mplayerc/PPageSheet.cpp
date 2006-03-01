@@ -33,7 +33,6 @@ IMPLEMENT_DYNAMIC(CPPageSheet, CTreePropSheet)
 CPPageSheet::CPPageSheet(LPCTSTR pszCaption, IFilterGraph* pFG, CWnd* pParentWnd, UINT idPage)
 	: CTreePropSheet(pszCaption, pParentWnd, 0)
 	, m_audioswitcher(pFG)
-	, m_mpegdecoder(pFG)
 	, m_audiodecoder(pFG)
 {
 	AddPage(&m_player);
@@ -44,11 +43,10 @@ CPPageSheet::CPPageSheet(LPCTSTR pszCaption, IFilterGraph* pFG, CWnd* pParentWnd
 	AddPage(&m_dvd);
 	AddPage(&m_output);
 	AddPage(&m_webserver);
-	AddPage(&m_filters);
+	AddPage(&m_internalfilters);
 	AddPage(&m_audioswitcher);
 	AddPage(&m_audiodecoder);
-	AddPage(&m_mpegdecoder);
-	AddPage(&m_overrides);
+	AddPage(&m_externalfilters);
 	AddPage(&m_subtitles);
 	AddPage(&m_substyle);
 	AddPage(&m_subdb);

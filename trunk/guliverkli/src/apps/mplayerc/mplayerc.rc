@@ -385,7 +385,7 @@ BEGIN
     LTEXT           "Click here to download GTSdll",IDC_STATICLINKGTS,19,134,95,8
 END
 
-IDD_PPAGEOVERRIDES DIALOGEX 0, 0, 296, 200
+IDD_PPAGEETERNALFILTERS DIALOGEX 0, 0, 296, 200
 STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
@@ -677,15 +677,15 @@ BEGIN
                     "Button",BS_AUTO3STATE | WS_TABSTOP,125,51,157,10
 END
 
-IDD_PPAGEFILTERS DIALOGEX 0, 0, 296, 200
+IDD_PPAGEINTERNALFILTERS DIALOGEX 0, 0, 296, 200
 STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
-    GROUPBOX        "Source Filters",IDC_STATIC,5,27,130,165
-    LTEXT           "If you would like to use the stand-alone version from these filters or a some other replacement, disable them here.",IDC_STATIC,5,5,269,18
-    LISTBOX         IDC_LIST1,11,36,118,150,LBS_OWNERDRAWFIXED | LBS_HASSTRINGS | LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_TABSTOP
-    GROUPBOX        "Transform Filters",IDC_STATIC,144,27,130,165
-    LISTBOX         IDC_LIST2,150,36,118,150,LBS_OWNERDRAWFIXED | LBS_HASSTRINGS | LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_TABSTOP
+    GROUPBOX        "Source Filters",IDC_STATIC,5,33,130,159
+    LTEXT           "If you would like to use the stand-alone version from these filters or a some other replacement, disable them here. Filters written bold can be double-clicked to show their property pages.",IDC_STATIC,5,4,269,25
+    LISTBOX         IDC_LIST1,11,44,118,142,LBS_OWNERDRAWFIXED | LBS_HASSTRINGS | LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_TABSTOP
+    GROUPBOX        "Transform Filters",IDC_STATIC,144,33,130,159
+    LISTBOX         IDC_LIST2,150,44,118,142,LBS_OWNERDRAWFIXED | LBS_HASSTRINGS | LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_TABSTOP
 END
 
 IDD_PPAGELOGO DIALOGEX 0, 0, 296, 203
@@ -1074,18 +1074,6 @@ BEGIN
         VERTGUIDE, 289
     END
 
-    IDD_PPAGEOVERRIDES, DIALOG
-    BEGIN
-        VERTGUIDE, 6
-        VERTGUIDE, 214
-        VERTGUIDE, 220
-        VERTGUIDE, 289
-        HORZGUIDE, 5
-        HORZGUIDE, 107
-        HORZGUIDE, 117
-        HORZGUIDE, 198
-    END
-
     IDD_FILEPROPDETAILS, DIALOG
     BEGIN
         VERTGUIDE, 8
@@ -1186,14 +1174,14 @@ BEGIN
         HORZGUIDE, 159
     END
 
-    IDD_PPAGEFILTERS, DIALOG
+    IDD_PPAGEINTERNALFILTERS, DIALOG
     BEGIN
         VERTGUIDE, 5
         VERTGUIDE, 274
         VERTGUIDE, 289
-        HORZGUIDE, 23
-        HORZGUIDE, 27
-        HORZGUIDE, 36
+        HORZGUIDE, 29
+        HORZGUIDE, 33
+        HORZGUIDE, 44
         HORZGUIDE, 186
         HORZGUIDE, 192
         HORZGUIDE, 198
@@ -2127,8 +2115,8 @@ BEGIN
     IDD_PPAGESUBTITLES      "Subtitles"
     IDD_PPAGEFORMATS        "Player::Formats"
     IDD_PPAGETWEAKS         "Tweaks"
-    IDD_PPAGEAUDIOSWITCHER  "Filters::Audio Switcher"
-    IDD_PPAGEOVERRIDES      "Filters::Overrides"
+    IDD_PPAGEAUDIOSWITCHER  "Internal Filters::Audio Switcher"
+    IDD_PPAGEEXTERNALFILTERS "External Filters"
 END
 
 STRINGTABLE 
@@ -2142,12 +2130,11 @@ STRINGTABLE
 BEGIN
     IDD_PPAGEACCELTBL       "Player::Keys"
     IDD_PPAGESUBSTYLE       "Subtitles::Default Style"
-    IDD_PPAGEMPEG           "Filters::Mpeg Decoder"
-    IDD_PPAGEFILTERS        "Filters"
+    IDD_PPAGEINTERNALFILTERS "Internal Filters"
     IDD_PPAGELOGO           "Player::Logo"
     IDD_PPAGEOUTPUT         "Playback::Output"
     IDD_PPAGEWEBSERVER      "Player::Web Interface"
-    IDD_PPAGEAUDIODEC       "Filters::Audio Decoders"
+    IDD_PPAGEAUDIODEC       "Internal Filters::Audio Decoders"
     IDD_PPAGESUBDB          "Subtitles::Database"
 END
 

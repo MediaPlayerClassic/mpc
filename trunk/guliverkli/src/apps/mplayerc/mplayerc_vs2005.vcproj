@@ -989,6 +989,10 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath=".\PPageExternalFilters.cpp"
+				>
+			</File>
+			<File
 				RelativePath="PPageFileInfoClip.cpp"
 				>
 				<FileConfiguration
@@ -1029,18 +1033,6 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath="PPageFilters.cpp"
-				>
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-					/>
-				</FileConfiguration>
-			</File>
-			<File
 				RelativePath="PPageFormats.cpp"
 				>
 				<FileConfiguration
@@ -1053,6 +1045,10 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath=".\PPageInternalFilters.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\PPageLogo.cpp"
 				>
 			</File>
@@ -1062,10 +1058,6 @@
 			</File>
 			<File
 				RelativePath=".\PPageOutput.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\PPageOverrides.cpp"
 				>
 			</File>
 			<File
@@ -1886,6 +1878,10 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath=".\PPageExternalFilters.h"
+				>
+			</File>
+			<File
 				RelativePath="PPageFileInfoClip.h"
 				>
 				<FileConfiguration
@@ -1926,18 +1922,6 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath="PPageFilters.h"
-				>
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCustomBuildTool"
-					/>
-				</FileConfiguration>
-			</File>
-			<File
 				RelativePath="PPageFormats.h"
 				>
 				<FileConfiguration
@@ -1950,6 +1934,10 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath=".\PPageInternalFilters.h"
+				>
+			</File>
+			<File
 				RelativePath=".\PPageLogo.h"
 				>
 			</File>
@@ -1959,10 +1947,6 @@
 			</File>
 			<File
 				RelativePath=".\PPageOutput.h"
-				>
-			</File>
-			<File
-				RelativePath=".\PPageOverrides.h"
 				>
 			</File>
 			<File

@@ -34,7 +34,6 @@ class CPPageMpegDecoder : public CPPageBase
 
 private:
 	CComQIPtr<IMpeg2DecFilter> m_pM2DF;
-	CComQIPtr<IMpeg2DecFilter2> m_pM2DF2;
 
 public:
 	CPPageMpegDecoder(IFilterGraph* pFG);

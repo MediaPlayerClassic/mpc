@@ -50,15 +50,7 @@ bool CMpeg2DecSettingsWnd::OnConnect(const CInterfaceList<IUnknown, &IID_IUnknow
 		m_procamp[3] = m_pM2DF->GetSaturation();
 		m_forcedsubs = m_pM2DF->IsForcedSubtitlesEnabled();
 		m_planaryuv = m_pM2DF->IsPlanarYUVEnabled();
-
-		if(CComQIPtr<IMpeg2DecFilter2> pM2DF2 = m_pM2DF)
-		{
-			m_interlaced = pM2DF2->IsInterlacedEnabled();
-		}
-		else
-		{
-			m_interlaced = false;
-		}
+		m_interlaced = m_pM2DF->IsInterlacedEnabled();
 
 		return true;
 	}
@@ -115,16 +107,16 @@ bool CMpeg2DecSettingsWnd::OnActivate()
 
 	m_procamp_slider[0].SetRange(0, 2*128);
 	m_procamp_slider[0].SetTic(128);
-	m_procamp_slider[0].SetPos((int)(m_procamp[0])+128);
+	m_procamp_slider[0].SetPos((int)(m_procamp[0] + (m_procamp[0] >= 0 ? 0.5f : -0.5f)) + 128);
 	m_procamp_slider[1].SetRange(0, 200);
 	m_procamp_slider[1].SetTic(100);
-	m_procamp_slider[1].SetPos((int)(100*m_procamp[1]));
+	m_procamp_slider[1].SetPos((int)(100*m_procamp[1] + 0.5f));
 	m_procamp_slider[2].SetRange(0, 2*180);
 	m_procamp_slider[2].SetTic(180);
-	m_procamp_slider[2].SetPos((int)(m_procamp[2])+180);
+	m_procamp_slider[2].SetPos((int)(m_procamp[2] + (m_procamp[2] >= 0 ? 0.5f : -0.5f)) + 180);
 	m_procamp_slider[3].SetRange(0, 200);
 	m_procamp_slider[3].SetTic(100);
-	m_procamp_slider[3].SetPos((int)(100*m_procamp[3]));
+	m_procamp_slider[3].SetPos((int)(100*m_procamp[3] + 0.5f));
 
 	p.y += 5;
 
@@ -149,10 +141,10 @@ bool CMpeg2DecSettingsWnd::OnActivate()
 void CMpeg2DecSettingsWnd::OnDeactivate()
 {
 	m_ditype = (ditype)m_ditype_combo.GetItemData(m_ditype_combo.GetCurSel());
-	m_procamp[0] = (double)m_procamp_slider[0].GetPos() - 128;
-	m_procamp[1] = (double)m_procamp_slider[1].GetPos() / 100;
-	m_procamp[2] = (double)m_procamp_slider[2].GetPos() - 180;
-	m_procamp[3] = (double)m_procamp_slider[3].GetPos() / 100;
+	m_procamp[0] = (float)m_procamp_slider[0].GetPos() - 128;
+	m_procamp[1] = (float)m_procamp_slider[1].GetPos() / 100;
+	m_procamp[2] = (float)m_procamp_slider[2].GetPos() - 180;
+	m_procamp[3] = (float)m_procamp_slider[3].GetPos() / 100;
 	m_planaryuv = !!IsDlgButtonChecked(m_planaryuv_check.GetDlgCtrlID());
 	m_interlaced = !!IsDlgButtonChecked(m_interlaced_check.GetDlgCtrlID());
 	m_forcedsubs = !!IsDlgButtonChecked(m_forcedsubs_check.GetDlgCtrlID());
@@ -171,11 +163,7 @@ bool CMpeg2DecSettingsWnd::OnApply()
 		m_pM2DF->SetSaturation(m_procamp[3]);
 		m_pM2DF->EnableForcedSubtitles(m_forcedsubs);
 		m_pM2DF->EnablePlanarYUV(m_planaryuv);
-
-		if(CComQIPtr<IMpeg2DecFilter2> pM2DF2 = m_pM2DF)
-		{
-			pM2DF2->EnableInterlaced(m_interlaced);
-		}
+		m_pM2DF->EnableInterlaced(m_interlaced);
 	}
 
 	return true;
@@ -185,13 +173,13 @@ void CMpeg2DecSettingsWnd::UpdateProcampValues()
 {
 	CString str;
 
-	str.Format(_T("%.2f"), (double)m_procamp_slider[0].GetPos() - 128);
+	str.Format(_T("%d"), m_procamp_slider[0].GetPos() - 128);
 	m_procamp_value[0].SetWindowTextW(str);
-	str.Format(_T("%.2f"), (double)m_procamp_slider[1].GetPos() / 100);
+	str.Format(_T("%d%%"), m_procamp_slider[1].GetPos());
 	m_procamp_value[1].SetWindowTextW(str);
-	str.Format(_T("%.2f"), (double)m_procamp_slider[2].GetPos() - 180);
+	str.Format(_T("%d"), m_procamp_slider[2].GetPos() - 180);
 	m_procamp_value[2].SetWindowTextW(str);
-	str.Format(_T("%.2f"), (double)m_procamp_slider[3].GetPos() / 100);
+	str.Format(_T("%d%%"), m_procamp_slider[3].GetPos());
 	m_procamp_value[3].SetWindowTextW(str);
 }
 

@@ -24,12 +24,14 @@
 #include "PPageBase.h"
 #include "afxwin.h"
 
-class CPPageFiltersListBox : public CCheckListBox
+class CPPageInternalFiltersListBox : public CCheckListBox
 {
-	DECLARE_DYNAMIC(CPPageFiltersListBox)
+	DECLARE_DYNAMIC(CPPageInternalFiltersListBox)
 
 public:
-	CPPageFiltersListBox();
+	CPPageInternalFiltersListBox();
+
+	CFont m_bold;
 
 protected:
 	virtual void PreSubclassWindow();
@@ -37,22 +39,27 @@ protected:
 
 	DECLARE_MESSAGE_MAP()
 	afx_msg BOOL OnToolTipNotify(UINT id, NMHDR* pNMHDR, LRESULT* pResult);
-};
-
-// CPPageFilters dialog
-
-class CPPageFilters : public CPPageBase
-{
-	DECLARE_DYNAMIC(CPPageFilters)
 
 public:
-	CPPageFilters();
-	virtual ~CPPageFilters();
+	virtual void DrawItem(LPDRAWITEMSTRUCT /*lpDrawItemStruct*/);
+};
+
+// CPPageInternalFilters dialog
+
+class CPPageInternalFilters : public CPPageBase
+{
+	DECLARE_DYNAMIC(CPPageInternalFilters)
+
+public:
+	CPPageInternalFilters();
+	virtual ~CPPageInternalFilters();
 
 // Dialog Data
-	enum { IDD = IDD_PPAGEFILTERS };
-	CPPageFiltersListBox m_listSrc;
-	CPPageFiltersListBox m_listTra;
+	enum { IDD = IDD_PPAGEINTERNALFILTERS };
+	CPPageInternalFiltersListBox m_listSrc;
+	CPPageInternalFiltersListBox m_listTra;
+
+	void ShowPPage(CPPageInternalFiltersListBox& l);
 
 protected:
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV support
@@ -60,4 +67,8 @@ protected:
 	virtual BOOL OnApply();
 
 	DECLARE_MESSAGE_MAP()
+
+public:
+	afx_msg void OnLbnDblclkList1();
+	afx_msg void OnLbnDblclkList2();
 };
