@@ -797,6 +797,10 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath=".\OpenFileDlg.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\PixelShaderCompiler.cpp"
 				>
 			</File>
@@ -1680,6 +1684,10 @@
 						Name="VCCustomBuildTool"
 					/>
 				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\OpenFileDlg.h"
+				>
 			</File>
 			<File
 				RelativePath=".\PixelShaderCompiler.h"

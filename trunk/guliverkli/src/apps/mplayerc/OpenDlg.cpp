@@ -25,9 +25,7 @@
 #include "stdafx.h"
 #include "mplayerc.h"
 #include "OpenDlg.h"
-#include <atlbase.h>
-#include <shlobj.h>
-#include "..\..\DSUtil\DSUtil.h"
+#include "OpenFileDlg.h"
 
 // COpenDlg dialog
 
@@ -119,40 +117,13 @@ void COpenDlg::OnBnClickedBrowsebutton()
 {
 	UpdateData();
 
-	CMediaFormats& mf = AfxGetAppSettings().Formats;
-
 	CString filter;
-	CStringArray mask;
+	CAtlArray<CString> mask;
+	AfxGetAppSettings().Formats.GetFilter(filter, mask);
 
-	filter += _T("Media files (all types)|__dummy|");
-	mask.Add(_T(""));
-
-	for(int i = 0; i < mf.GetCount(); i++) 
-		mask[0] += mf[i].GetFilter() + _T(";");
-	mask[0].TrimRight(_T(";"));
-
-	for(int i = 0; i < mf.GetCount(); i++)
-	{
-		CMediaFormatCategory& mfc = mf[i];
-		filter += mfc.GetLabel() + _T("|__dummy|");
-		mask.Add(mfc.GetFilter());
-	}
-
-	filter += _T("All files (*.*)|__dummy|");
-	mask.Add(_T("*.*"));
-
-	filter += _T("|");
-
-	COpenFileDialog fd(mask, true, NULL, m_path, 
+	COpenFileDlg fd(mask, true, NULL, m_path, 
 		OFN_EXPLORER|OFN_ENABLESIZING|OFN_HIDEREADONLY|OFN_ALLOWMULTISELECT|OFN_ENABLEINCLUDENOTIFY, 
 		filter, this);
-
-	CAutoVectorPtr<TCHAR> buff;
-	buff.Allocate(10000);
-	buff[0] = 0;
-	fd.m_pOFN->lpstrFile = buff;
-	fd.m_pOFN->nMaxFile = 10000;
-
 	if(fd.DoModal() != IDOK) return;
 
 	m_fns.RemoveAll();
@@ -188,36 +159,11 @@ void COpenDlg::OnBnClickedBrowsebutton2()
 {
 	UpdateData();
 
-	CMediaFormats& mf = AfxGetAppSettings().Formats;
-
 	CString filter;
-	CStringArray mask;
+	CAtlArray<CString> mask;
+	AfxGetAppSettings().Formats.GetAudioFilter(filter, mask);
 
-	filter += _T("Audio files (all types)|__dummy|");
-	mask.Add(_T(""));
-
-	for(int i = 0; i < mf.GetCount(); i++)
-	{
-		CMediaFormatCategory& mfc = mf[i];
-		if(!mfc.IsAudioOnly() || mfc.GetEngineType() != DirectShow) continue;
-		mask[0] += mf[i].GetFilter() + _T(";");
-	}
-	mask[0].TrimRight(_T(";"));
-
-	for(int i = 0; i < mf.GetCount(); i++)
-	{
-		CMediaFormatCategory& mfc = mf[i];
-		if(!mfc.IsAudioOnly() || mfc.GetEngineType() != DirectShow) continue;
-		filter += mfc.GetLabel() + _T("|__dummy|");
-		mask.Add(mfc.GetFilter());
-	}
-
-	filter += _T("All files (*.*)|__dummy|");
-	mask.Add(_T("*.*"));
-
-	filter += _T("|");
-
-	COpenFileDialog fd(mask, false, NULL, m_path2, 
+	COpenFileDlg fd(mask, false, NULL, m_path2, 
 		OFN_EXPLORER|OFN_ENABLESIZING|OFN_HIDEREADONLY|OFN_ENABLEINCLUDENOTIFY, 
 		filter, this);
 
@@ -244,129 +190,4 @@ void COpenDlg::OnUpdateDub(CCmdUI* pCmdUI)
 {
 	m_mrucombo.GetWindowText(m_path);
 	pCmdUI->Enable(AfxGetAppSettings().Formats.GetEngine(m_path) == DirectShow);
-}
-
-// OpenDlg.cpp : implementation file
-//
-
-#include "OpenDlg.h"
-#include <dlgs.h>
-
-#define __DUMMY__ _T("*.*")
-
-bool COpenFileDialog::m_fAllowDirSelection = false;
-WNDPROC COpenFileDialog::m_wndProc = NULL;
-
-// COpenFileDialog
-
-IMPLEMENT_DYNAMIC(COpenFileDialog, CFileDialog)
-COpenFileDialog::COpenFileDialog(CStringArray& mask, bool fAllowDirSelection, LPCTSTR lpszDefExt, LPCTSTR lpszFileName,
-		DWORD dwFlags, LPCTSTR lpszFilter, CWnd* pParentWnd)
-	: CFileDialog(TRUE, lpszDefExt, lpszFileName, dwFlags|OFN_NOVALIDATE, lpszFilter, pParentWnd, 0)
-	, m_mask(mask)
-{
-	m_fAllowDirSelection = fAllowDirSelection;
-	m_pOFN->lpstrInitialDir = lpszFileName;
-}
-
-COpenFileDialog::~COpenFileDialog()
-{
-}
-
-BEGIN_MESSAGE_MAP(COpenFileDialog, CFileDialog)
-	ON_WM_DESTROY()
-END_MESSAGE_MAP()
-
-
-// COpenFileDialog message handlers
-
-LRESULT CALLBACK COpenFileDialog::WindowProcNew(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
-{
-	if(message ==  WM_COMMAND && HIWORD(wParam) == BN_CLICKED && LOWORD(wParam) == IDOK
-	&& m_fAllowDirSelection)
-	{
-		CAutoVectorPtr<TCHAR> path;
-		path.Allocate(MAX_PATH+1); // MAX_PATH should be bigger for multiple selection, but we are only interested if it's zero length
-		// note: allocating MAX_PATH only will cause a buffer overrun for too long strings, and will result in a silent app disappearing crash, 100% reproducable
-		if(::GetDlgItemText(hwnd, cmb13, (TCHAR*)path, MAX_PATH) == 0)
-			::SendMessage(hwnd, CDM_SETCONTROLTEXT, edt1, (LPARAM)__DUMMY__);
-	}
-
-	return CallWindowProc(COpenFileDialog::m_wndProc, hwnd, message, wParam, lParam);
-}
-
-BOOL COpenFileDialog::OnInitDialog()
-{
-	CFileDialog::OnInitDialog();
-
-	m_wndProc = (WNDPROC)SetWindowLong(GetParent()->m_hWnd, GWL_WNDPROC, (LONG)WindowProcNew);
-
-	return TRUE;  // return TRUE unless you set the focus to a control
-	// EXCEPTION: OCX Property Pages should return FALSE
-}
-
-void COpenFileDialog::OnDestroy()
-{
-	int i = GetPathName().Find(__DUMMY__);
-	if(i >= 0) m_pOFN->lpstrFile[i] = m_pOFN->lpstrFile[i+1] = 0;
-
-	CFileDialog::OnDestroy();
-}
-
-BOOL COpenFileDialog::OnNotify(WPARAM wParam, LPARAM lParam, LRESULT* pResult)
-{
-	ASSERT(pResult != NULL);
-
-	OFNOTIFY* pNotify = (OFNOTIFY*)lParam;
-	// allow message map to override
-	if (__super::OnNotify(wParam, lParam, pResult))
-	{
-		ASSERT(pNotify->hdr.code != CDN_INCLUDEITEM);
-		return TRUE;
-	}
-
-	switch(pNotify->hdr.code)
-	{
-	case CDN_INCLUDEITEM:
-		if(OnIncludeItem((OFNOTIFYEX*)lParam, pResult))
-			return TRUE;
-		break;
-	}
-
-	return FALSE;   // not handled
-}
-
-BOOL COpenFileDialog::OnIncludeItem(OFNOTIFYEX* pOFNEx, LRESULT* pResult)
-{
-	TCHAR buff[MAX_PATH];
-	if(!SHGetPathFromIDList((LPCITEMIDLIST)pOFNEx->pidl, buff)) 
-	{
-		STRRET s;
-		HRESULT hr = ((IShellFolder*)pOFNEx->psf)->GetDisplayNameOf((LPCITEMIDLIST)pOFNEx->pidl, SHGDN_NORMAL|SHGDN_FORPARSING, &s);
-		if(S_OK != hr) return FALSE;
-		switch(s.uType)
-		{
-		case STRRET_CSTR: _tcscpy(buff, CString(s.cStr)); break;
-		case STRRET_WSTR: _tcscpy(buff, CString(s.pOleStr)); CoTaskMemFree(s.pOleStr); break;
-		default: return FALSE;
-		}
-	}
-
-	CString fn(buff);
-/*
-	WIN32_FILE_ATTRIBUTE_DATA fad;
-	if(GetFileAttributesEx(fn, GetFileExInfoStandard, &fad)
-	&& (fad.dwFileAttributes&FILE_ATTRIBUTE_DIRECTORY))
-		return FALSE;
-*/
-	int i = fn.ReverseFind('.'), j = fn.ReverseFind('\\');
-	if(i < 0 || i < j) 
-		return FALSE;
-
-	CString mask = m_mask[pOFNEx->lpOFN->nFilterIndex-1] + _T(";");
-	CString ext = fn.Mid(i).MakeLower() + _T(";");
-
-	*pResult = mask.Find(ext) >= 0 || mask.Find(_T("*.*")) >= 0;
-
-	return TRUE;
 }

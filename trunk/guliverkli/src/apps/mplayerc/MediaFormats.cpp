@@ -292,3 +292,53 @@ bool CMediaFormats::FindExt(CString ext, bool fAudioOnly)
 
 	return(false);
 }
+
+void CMediaFormats::GetFilter(CString& filter, CAtlArray<CString>& mask)
+{
+	filter += _T("Media files (all types)|__dummy|");
+	mask.Add(_T(""));
+
+	for(int i = 0; i < GetCount(); i++) 
+		mask[0] += GetAt(i).GetFilter() + _T(";");
+	mask[0].TrimRight(_T(";"));
+
+	for(int i = 0; i < GetCount(); i++)
+	{
+		CMediaFormatCategory& mfc = GetAt(i);
+		filter += mfc.GetLabel() + _T("|__dummy|");
+		mask.Add(mfc.GetFilter());
+	}
+
+	filter += _T("All files (*.*)|__dummy|");
+	mask.Add(_T("*.*"));
+
+	filter += _T("|");
+}
+
+void CMediaFormats::GetAudioFilter(CString& filter, CAtlArray<CString>& mask)
+{
+	filter += _T("Audio files (all types)|__dummy|");
+	mask.Add(_T(""));
+
+	for(int i = 0; i < GetCount(); i++)
+	{
+		CMediaFormatCategory& mfc = GetAt(i);
+		if(!mfc.IsAudioOnly() || mfc.GetEngineType() != DirectShow) continue;
+		mask[0] += GetAt(i).GetFilter() + _T(";");
+	}
+
+	mask[0].TrimRight(_T(";"));
+
+	for(int i = 0; i < GetCount(); i++)
+	{
+		CMediaFormatCategory& mfc = GetAt(i);
+		if(!mfc.IsAudioOnly() || mfc.GetEngineType() != DirectShow) continue;
+		filter += mfc.GetLabel() + _T("|__dummy|");
+		mask.Add(mfc.GetFilter());
+	}
+
+	filter += _T("All files (*.*)|__dummy|");
+	mask.Add(_T("*.*"));
+
+	filter += _T("|");
+}

@@ -1396,6 +1396,8 @@ BEGIN
 0x3031, 0x2530, "\000" 
     IDC_COMBO1, 0x403, 5, 0
 0x3032, 0x2530, "\000" 
+    IDC_COMBO1, 0x403, 9, 0
+0x7541, 0x6f74, 0x4620, 0x7469, "\000" 
     0
 END
 
@@ -1470,6 +1472,8 @@ IDR_MAINFRAME MENU
 BEGIN
     POPUP "&File"
     BEGIN
+        MENUITEM "&Quick Open File...\tCtrl+Q", ID_FILE_OPENQUICK
+        MENUITEM SEPARATOR
         MENUITEM "&Open File...\tCtrl+O",       ID_FILE_OPENMEDIA
         MENUITEM "Open &DVD...\tCtrl+D",        ID_FILE_OPENDVD
         MENUITEM "Open De&vice...\tCtrl+V",     ID_FILE_OPENDEVICE
@@ -1523,6 +1527,7 @@ BEGIN
             MENUITEM "&50%\tAlt+1",                 ID_VIEW_ZOOM_50
             MENUITEM "&100%\tAlt+2",                ID_VIEW_ZOOM_100
             MENUITEM "&200%\tAlt+3",                ID_VIEW_ZOOM_200
+            MENUITEM "Auto Fit\tAlt+4",             ID_VIEW_ZOOM_AUTOFIT
         END
         MENUITEM SEPARATOR
         POPUP "&Video Frame"
@@ -1647,6 +1652,7 @@ BEGIN
             MENUITEM "&50%\tAlt+1",                 ID_VIEW_ZOOM_50
             MENUITEM "&100%\tAlt+2",                ID_VIEW_ZOOM_100
             MENUITEM "&200%\tAlt+3",                ID_VIEW_ZOOM_200
+            MENUITEM "Auto Fit\tAlt+4",             ID_VIEW_ZOOM_AUTOFIT
         END
         MENUITEM SEPARATOR
         POPUP "&Video Frame"
@@ -1765,6 +1771,8 @@ BEGIN
     BEGIN
         POPUP "&File"
         BEGIN
+            MENUITEM "&Quick Open File...\tCtrl+Q", ID_FILE_OPENQUICK
+            MENUITEM SEPARATOR
             MENUITEM "&Open File...\tCtrl+O",       ID_FILE_OPENMEDIA
             MENUITEM "Open &DVD...\tCtrl+D",        ID_FILE_OPENDVD
             MENUITEM "Open De&vice...\tCtrl+V",     ID_FILE_OPENDEVICE
@@ -1816,6 +1824,7 @@ BEGIN
                 MENUITEM "&50%\tAlt+1",                 ID_VIEW_ZOOM_50
                 MENUITEM "&100%\tAlt+2",                ID_VIEW_ZOOM_100
                 MENUITEM "&200%\tAlt+3",                ID_VIEW_ZOOM_200
+                MENUITEM "Auto Fit\tAlt+4",             ID_VIEW_ZOOM_AUTOFIT
             END
             MENUITEM SEPARATOR
             POPUP "&Video Frame"

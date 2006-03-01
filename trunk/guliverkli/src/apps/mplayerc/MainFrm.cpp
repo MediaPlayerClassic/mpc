@@ -35,6 +35,7 @@
 #include <atlrx.h>
 #include <atlsync.h>
 
+#include "OpenFileDlg.h"
 #include "OpenDlg.h"
 #include "SaveDlg.h"
 #include "GoToDlg.h"
@@ -206,6 +207,9 @@ BEGIN_MESSAGE_MAP(CMainFrame, CFrameWnd)
 	ON_COMMAND_RANGE(ID_DVD_SUB_NEXT, ID_DVD_SUB_PREV, OnDvdSub)
 	ON_COMMAND(ID_DVD_SUB_ONOFF, OnDvdSubOnOff)
 
+	
+	ON_COMMAND(ID_FILE_OPENQUICK, OnFileOpenQuick)
+	ON_UPDATE_COMMAND_UI(ID_FILE_OPENMEDIA, OnUpdateFileOpen)
 	ON_COMMAND(ID_FILE_OPENMEDIA, OnFileOpenmedia)
 	ON_UPDATE_COMMAND_UI(ID_FILE_OPENMEDIA, OnUpdateFileOpen)
 	ON_WM_COPYDATA()
@@ -265,6 +269,8 @@ BEGIN_MESSAGE_MAP(CMainFrame, CFrameWnd)
 	ON_UPDATE_COMMAND_UI(ID_VIEW_FULLSCREEN, OnUpdateViewFullscreen)
 	ON_COMMAND_RANGE(ID_VIEW_ZOOM_50, ID_VIEW_ZOOM_200, OnViewZoom)
 	ON_UPDATE_COMMAND_UI_RANGE(ID_VIEW_ZOOM_50, ID_VIEW_ZOOM_200, OnUpdateViewZoom)
+	ON_COMMAND(ID_VIEW_ZOOM_AUTOFIT, OnViewZoomAutoFit)
+	ON_UPDATE_COMMAND_UI(ID_VIEW_ZOOM_AUTOFIT, OnUpdateViewZoom)
 	ON_COMMAND_RANGE(ID_VIEW_VF_HALF, ID_VIEW_VF_FROMOUTSIDE, OnViewDefaultVideoFrame)
 	ON_UPDATE_COMMAND_UI_RANGE(ID_VIEW_VF_HALF, ID_VIEW_VF_FROMOUTSIDE, OnUpdateViewDefaultVideoFrame)
 	ON_COMMAND(ID_VIEW_VF_KEEPASPECTRATIO, OnViewKeepaspectratio)
@@ -2969,6 +2975,49 @@ void CMainFrame::OnDvdSubOnOff()
 
 // file
 
+void CMainFrame::OnFileOpenQuick()
+{
+	if(m_iMediaLoadState == MLS_LOADING || !IsWindow(m_wndPlaylistBar)) return;
+
+	CString filter;
+	CAtlArray<CString> mask;
+	AfxGetAppSettings().Formats.GetFilter(filter, mask);
+
+	COpenFileDlg fd(mask, true, NULL, NULL, 
+		OFN_EXPLORER|OFN_ENABLESIZING|OFN_HIDEREADONLY|OFN_ALLOWMULTISELECT|OFN_ENABLEINCLUDENOTIFY, 
+		filter, this);
+	if(fd.DoModal() != IDOK) return;
+
+	CList<CString> fns;
+
+	POSITION pos = fd.GetStartPosition();
+	while(pos) fns.AddTail(fd.GetNextPathName(pos));
+
+	bool fMultipleFiles = false;
+
+	if(fns.GetCount() > 1 
+	|| fns.GetCount() == 1 
+		&& (fns.GetHead()[fns.GetHead().GetLength()-1] == '\\'
+		|| fns.GetHead()[fns.GetHead().GetLength()-1] == '*'))
+	{
+		fMultipleFiles = true;
+	}
+
+	SendMessage(WM_COMMAND, ID_FILE_CLOSEMEDIA);
+
+	ShowWindow(SW_SHOW);
+	SetForegroundWindow();
+
+	m_wndPlaylistBar.Open(fns, fMultipleFiles);
+
+	if(m_wndPlaylistBar.GetCount() == 1 && m_wndPlaylistBar.IsWindowVisible() && !m_wndPlaylistBar.IsFloating())
+	{
+		ShowControlBar(&m_wndPlaylistBar, FALSE, TRUE);
+	}
+
+	OpenCurPlaylistItem();
+}
+
 void CMainFrame::OnFileOpenmedia()
 {
 	if(m_iMediaLoadState == MLS_LOADING || !IsWindow(m_wndPlaylistBar)) return;
@@ -4247,6 +4296,11 @@ void CMainFrame::OnViewZoom(UINT nID)
 void CMainFrame::OnUpdateViewZoom(CCmdUI* pCmdUI)
 {
 	pCmdUI->Enable(m_iMediaLoadState == MLS_LOADED && !m_fAudioOnly);
+}
+
+void CMainFrame::OnViewZoomAutoFit()
+{
+	ZoomVideoWindow(GetZoomAutoFitScale());
 }
 
 void CMainFrame::OnViewDefaultVideoFrame(UINT nID)
@@ -6330,7 +6384,12 @@ void CMainFrame::ZoomVideoWindow(double scale)
 
 	if(scale <= 0)
 	{
-		scale = s.iZoomLevel == 0 ? 0.5 : s.iZoomLevel == 2 ? 2.0 : 1.0;
+		scale = 
+			s.iZoomLevel == 0 ? 0.5 : 
+			s.iZoomLevel == 1 ? 1.0 : 
+			s.iZoomLevel == 2 ? 2.0 : 
+			s.iZoomLevel == 3 ? GetZoomAutoFitScale() : 
+			1.0;
 	}
 
 	if(m_fFullScreen)
@@ -6418,6 +6477,19 @@ void CMainFrame::ZoomVideoWindow(double scale)
 //	ShowWindow(SW_SHOWNORMAL);
 
 	MoveVideoWindow();
+}
+
+double CMainFrame::GetZoomAutoFitScale()
+{
+	if(m_iMediaLoadState != MLS_LOADED || m_fAudioOnly)
+		return 1.0;
+
+	CSize arxy = GetVideoSize();
+
+	double sx = 2.0/3 * m_rcDesktop.Width() / arxy.cx;
+	double sy = 2.0/3 * m_rcDesktop.Height() / arxy.cy;
+
+	return sx < sy ? sx : sy;
 }
 
 void CMainFrame::RepaintVideo()
