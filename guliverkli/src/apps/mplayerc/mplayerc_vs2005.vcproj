@@ -1053,10 +1053,6 @@
 				>
 			</File>
 			<File
-				RelativePath=".\PPageMpegDecoder.cpp"
-				>
-			</File>
-			<File
 				RelativePath=".\PPageOutput.cpp"
 				>
 			</File>
@@ -1939,10 +1935,6 @@
 			</File>
 			<File
 				RelativePath=".\PPageLogo.h"
-				>
-			</File>
-			<File
-				RelativePath=".\PPageMpegDecoder.h"
 				>
 			</File>
 			<File
