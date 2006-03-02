@@ -29,6 +29,7 @@
 // #include "faad2\include\neaacdec.h" // conflicts with dxtrans.h
 #include "..\..\..\decss\DeCSSInputPin.h"
 #include "IMpaDecFilter.h"
+#include "MpaDecSettingsWnd.h"
 
 struct aac_state_t
 {
@@ -52,7 +53,10 @@ struct ps2_state_t
 };
 
 [uuid("3D446B6F-71DE-4437-BE15-8CE47174340F")]
-class CMpaDecFilter : public CTransformFilter, public IMpaDecFilter
+class CMpaDecFilter 
+	: public CTransformFilter
+	, public IMpaDecFilter
+	, public ISpecifyPropertyPages2
 {
 protected:
 	CCritSec m_csReceive;
@@ -114,6 +118,11 @@ public:
 
 	HRESULT StartStreaming();
 	HRESULT StopStreaming();
+
+	// ISpecifyPropertyPages2
+
+	STDMETHODIMP GetPages(CAUUID* pPages);
+	STDMETHODIMP CreatePage(const GUID& guid, IPropertyPage** ppPage);
 
 	// IMpaDecFilter
 

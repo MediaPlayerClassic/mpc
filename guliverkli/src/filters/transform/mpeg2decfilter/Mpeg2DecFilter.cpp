@@ -63,7 +63,7 @@ const AMOVIESETUP_PIN sudpPins[] =
 
 const AMOVIESETUP_FILTER sudFilter[] =
 {
-	{&__uuidof(CMpeg2DecFilter), L"Mpeg2Dec Filter", 0x40000002, countof(sudpPins), sudpPins},
+	{&__uuidof(CMpeg2DecFilter), L"MPV Decoder Filter", 0x40000002, countof(sudpPins), sudpPins},
 };
 
 CFactoryTemplate g_Templates[] =
@@ -874,7 +874,7 @@ HRESULT CMpeg2DecFilter::AlterQuality(Quality q)
 	return S_OK;
 }
 
-// ISpecifyPropertyPages
+// ISpecifyPropertyPages2
 
 STDMETHODIMP CMpeg2DecFilter::GetPages(CAUUID* pPages)
 {
@@ -886,8 +886,6 @@ STDMETHODIMP CMpeg2DecFilter::GetPages(CAUUID* pPages)
 
 	return S_OK;
 }
-
-// ISpecifyPropertyPages2
 
 STDMETHODIMP CMpeg2DecFilter::CreatePage(const GUID& guid, IPropertyPage** ppPage)
 {

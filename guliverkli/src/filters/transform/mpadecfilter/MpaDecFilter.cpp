@@ -93,12 +93,13 @@ const AMOVIESETUP_PIN sudpPins[] =
 
 const AMOVIESETUP_FILTER sudFilter[] =
 {
-	{&__uuidof(CMpaDecFilter), L"MPEG/AC3/DTS/LPCM Audio Decoder", /*MERIT_DO_NOT_USE*/0x40000001, countof(sudpPins), sudpPins},
+	{&__uuidof(CMpaDecFilter), L"MPA Decoder Filter", /*MERIT_DO_NOT_USE*/0x40000001, countof(sudpPins), sudpPins},
 };
 
 CFactoryTemplate g_Templates[] =
 {
-    {L"MPEG/AC3/DTS/LPCM Audio Decoder", &__uuidof(CMpaDecFilter), CreateInstance<CMpaDecFilter>, NULL, &sudFilter[0]},
+    {sudFilter[0].strName, &__uuidof(CMpaDecFilter), CreateInstance<CMpaDecFilter>, NULL, &sudFilter[0]},
+	{L"CMpaDecPropertyPage", &__uuidof(CMpaDecSettingsWnd), CreateInstance<CInternalPropertyPageTempl<CMpaDecSettingsWnd> >},
 };
 
 int g_cTemplates = countof(g_Templates);
@@ -204,16 +205,46 @@ CMpaDecFilter::CMpaDecFilter(LPUNKNOWN lpunk, HRESULT* phr)
 	m_fDynamicRangeControl[ac3] = false;
 	m_fDynamicRangeControl[dts] = false;
 	m_fDynamicRangeControl[aac] = false;
+
+	CRegKey key;
+	if(ERROR_SUCCESS == key.Open(HKEY_CURRENT_USER, _T("Software\\Gabest\\Filters\\MPEG Audio Decoder"), KEY_READ))
+	{
+		DWORD dw;
+		if(ERROR_SUCCESS == key.QueryDWORDValue(_T("SampleFormat"), dw)) m_iSampleFormat = (SampleFormat)dw;
+		if(ERROR_SUCCESS == key.QueryDWORDValue(_T("Normalize"), dw)) m_fNormalize = !!dw;
+		if(ERROR_SUCCESS == key.QueryDWORDValue(_T("Boost"), dw)) m_boost = *(float*)&dw;
+		if(ERROR_SUCCESS == key.QueryDWORDValue(_T("Ac3SpeakerConfig"), dw)) m_iSpeakerConfig[ac3] = (int)dw;
+		if(ERROR_SUCCESS == key.QueryDWORDValue(_T("DtsSpeakerConfig"), dw)) m_iSpeakerConfig[dts] = (int)dw;
+		if(ERROR_SUCCESS == key.QueryDWORDValue(_T("AacSpeakerConfig"), dw)) m_iSpeakerConfig[aac] = (int)dw;
+		if(ERROR_SUCCESS == key.QueryDWORDValue(_T("Ac3DynamicRangeControl"), dw)) m_fDynamicRangeControl[ac3] = !!dw;
+		if(ERROR_SUCCESS == key.QueryDWORDValue(_T("DtsDynamicRangeControl"), dw)) m_fDynamicRangeControl[dts] = !!dw;
+		if(ERROR_SUCCESS == key.QueryDWORDValue(_T("AacDynamicRangeControl"), dw)) m_fDynamicRangeControl[aac] = !!dw;
+	}
 }
 
 CMpaDecFilter::~CMpaDecFilter()
 {
+	CRegKey key;
+	if(ERROR_SUCCESS == key.Create(HKEY_CURRENT_USER, _T("Software\\Gabest\\Filters\\MPEG Audio Decoder")))
+	{
+		key.SetDWORDValue(_T("SampleFormat"), m_iSampleFormat);
+		key.SetDWORDValue(_T("Normalize"), m_fNormalize);
+		key.SetDWORDValue(_T("Boost"), *(DWORD*)&m_boost);
+		key.SetDWORDValue(_T("Ac3SpeakerConfig"), m_iSpeakerConfig[ac3]);
+		key.SetDWORDValue(_T("DtsSpeakerConfig"), m_iSpeakerConfig[dts]);
+		key.SetDWORDValue(_T("AacSpeakerConfig"), m_iSpeakerConfig[aac]);
+		key.SetDWORDValue(_T("Ac3DynamicRangeControl"), m_fDynamicRangeControl[ac3]);
+		key.SetDWORDValue(_T("DtsDynamicRangeControl"), m_fDynamicRangeControl[dts]);
+		key.SetDWORDValue(_T("AacDynamicRangeControl"), m_fDynamicRangeControl[aac]);
+	}
 }
 
 STDMETHODIMP CMpaDecFilter::NonDelegatingQueryInterface(REFIID riid, void** ppv)
 {
 	return
 		QI(IMpaDecFilter)
+		QI(ISpecifyPropertyPages)
+		QI(ISpecifyPropertyPages2)
 		 __super::NonDelegatingQueryInterface(riid, ppv);
 }
 
@@ -1294,6 +1325,35 @@ STDMETHODIMP_(float) CMpaDecFilter::GetBoost()
 {
 	CAutoLock cAutoLock(&m_csProps);
 	return m_boost;
+}
+
+// ISpecifyPropertyPages2
+
+STDMETHODIMP CMpaDecFilter::GetPages(CAUUID* pPages)
+{
+	CheckPointer(pPages, E_POINTER);
+
+	pPages->cElems = 1;
+	pPages->pElems = (GUID*)CoTaskMemAlloc(sizeof(GUID) * pPages->cElems);
+	pPages->pElems[0] = __uuidof(CMpaDecSettingsWnd);
+
+	return S_OK;
+}
+
+STDMETHODIMP CMpaDecFilter::CreatePage(const GUID& guid, IPropertyPage** ppPage)
+{
+	CheckPointer(ppPage, E_POINTER);
+
+	if(*ppPage != NULL) return E_INVALIDARG;
+
+	HRESULT hr;
+
+	if(guid == __uuidof(CMpaDecSettingsWnd))
+	{
+		(*ppPage = new CInternalPropertyPageTempl<CMpaDecSettingsWnd>(NULL, &hr))->AddRef();
+	}
+
+	return *ppPage ? S_OK : E_FAIL;
 }
 
 //

@@ -1590,7 +1590,7 @@ STDMETHODIMP CFGManagerCustom::AddFilter(IBaseFilter* pBF, LPCWSTR pName)
 		pM2DF->EnablePlanarYUV(s.mpegplanaryuv);
 		pM2DF->EnableInterlaced(s.mpeginterlaced);
 	}
-*/
+
 	if(CComQIPtr<IMpaDecFilter> pMDF = pBF)
 	{
 		pMDF->SetSampleFormat((SampleFormat)s.mpasf);
@@ -1602,7 +1602,7 @@ STDMETHODIMP CFGManagerCustom::AddFilter(IBaseFilter* pBF, LPCWSTR pName)
 		pMDF->SetSpeakerConfig(IMpaDecFilter::aac, s.aacsc);
 		pMDF->SetBoost(s.mpaboost);
 	}
-
+*/
 	if(CComQIPtr<IAudioSwitcherFilter> pASF = pBF)
 	{
 		pASF->EnableDownSamplingTo441(s.fDownSampleTo441);
