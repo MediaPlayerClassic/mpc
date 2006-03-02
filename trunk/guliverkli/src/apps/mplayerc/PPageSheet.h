@@ -33,7 +33,6 @@ using namespace TreePropSheet;
 #include "PPageWebServer.h"
 #include "PPageInternalFilters.h"
 #include "PPageAudioSwitcher.h"
-#include "PPageAudioDecoder.h"
 #include "PPageExternalFilters.h"
 #include "PPageSubtitles.h"
 #include "PPageSubStyle.h"
@@ -75,7 +74,6 @@ private:
 	CPPageSubDB m_subdb;
 	CPPageInternalFilters m_internalfilters;
 	CPPageAudioSwitcher m_audioswitcher;
-	CPPageAudioDecoder m_audiodecoder;
 	CPPageExternalFilters m_externalfilters;
 	CPPageTweaks m_tweaks;
 

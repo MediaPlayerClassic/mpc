@@ -953,10 +953,6 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\PPageAudioDecoder.cpp"
-				>
-			</File>
-			<File
 				RelativePath="PPageAudioSwitcher.cpp"
 				>
 				<FileConfiguration
@@ -1840,10 +1836,6 @@
 						Name="VCCustomBuildTool"
 					/>
 				</FileConfiguration>
-			</File>
-			<File
-				RelativePath=".\PPageAudioDecoder.h"
-				>
 			</File>
 			<File
 				RelativePath="PPageAudioSwitcher.h"

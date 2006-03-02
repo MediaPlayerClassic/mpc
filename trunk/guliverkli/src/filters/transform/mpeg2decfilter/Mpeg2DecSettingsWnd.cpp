@@ -40,21 +40,18 @@ bool CMpeg2DecSettingsWnd::OnConnect(const CInterfaceList<IUnknown, &IID_IUnknow
 	POSITION pos = pUnks.GetHeadPosition();
 	while(pos && !(m_pM2DF = pUnks.GetNext(pos)));
 	
-	if(m_pM2DF)
-	{
-		m_ditype = m_pM2DF->GetDeinterlaceMethod();
-		m_procamp[0] = m_pM2DF->GetBrightness();
-		m_procamp[1] = m_pM2DF->GetContrast();
-		m_procamp[2] = m_pM2DF->GetHue();
-		m_procamp[3] = m_pM2DF->GetSaturation();
-		m_forcedsubs = m_pM2DF->IsForcedSubtitlesEnabled();
-		m_planaryuv = m_pM2DF->IsPlanarYUVEnabled();
-		m_interlaced = m_pM2DF->IsInterlacedEnabled();
+	if(!m_pM2DF) return false;
 
-		return true;
-	}
+	m_ditype = m_pM2DF->GetDeinterlaceMethod();
+	m_procamp[0] = m_pM2DF->GetBrightness();
+	m_procamp[1] = m_pM2DF->GetContrast();
+	m_procamp[2] = m_pM2DF->GetHue();
+	m_procamp[3] = m_pM2DF->GetSaturation();
+	m_forcedsubs = m_pM2DF->IsForcedSubtitlesEnabled();
+	m_planaryuv = m_pM2DF->IsPlanarYUVEnabled();
+	m_interlaced = m_pM2DF->IsInterlacedEnabled();
 
-	return false;
+	return true;
 }
 
 void CMpeg2DecSettingsWnd::OnDisconnect()
@@ -83,7 +80,7 @@ bool CMpeg2DecSettingsWnd::OnActivate()
 	p.y += 10;
 
 	m_ditype_static.Create(_T("Deinterlacing"), dwStyle, CRect(p, CSize(70, m_fontheight)), this);
-	m_ditype_combo.Create(dwStyle|CBS_DROPDOWNLIST, CRect(p + CSize(85, 0), CSize(100, 200)), this, IDC_PP_COMBO1);
+	m_ditype_combo.Create(dwStyle|CBS_DROPDOWNLIST, CRect(p + CSize(85, -3), CSize(100, 200)), this, IDC_PP_COMBO1);
 	m_ditype_combo.SetItemData(m_ditype_combo.AddString(_T("Auto")), (DWORD)DIAuto);
 	m_ditype_combo.SetItemData(m_ditype_combo.AddString(_T("Weave")), (DWORD)DIWeave);
 	m_ditype_combo.SetItemData(m_ditype_combo.AddString(_T("Blend")), (DWORD)DIBlend);

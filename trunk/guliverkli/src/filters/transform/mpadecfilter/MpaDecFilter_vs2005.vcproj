@@ -630,6 +630,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\MpaDecSettingsWnd.cpp"
+				>
+			</File>
+			<File
 				RelativePath="stdafx.cpp"
 				>
 				<FileConfiguration
@@ -708,6 +712,10 @@
 			</File>
 			<File
 				RelativePath=".\MpaDecFilter.h"
+				>
+			</File>
+			<File
+				RelativePath=".\MpaDecSettingsWnd.h"
 				>
 			</File>
 			<File

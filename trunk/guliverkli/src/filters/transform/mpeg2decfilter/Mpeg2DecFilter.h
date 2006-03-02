@@ -23,9 +23,9 @@
 
 #include <atlcoll.h>
 #include <Videoacc.h>
-#include "IMpeg2DecFilter.h"
 #include "..\..\..\decss\DeCSSInputPin.h"
 #include "..\BaseVideoFilter\BaseVideoFilter.h"
+#include "IMpeg2DecFilter.h"
 #include "Mpeg2DecSettingsWnd.h"
 
 class CSubpicInputPin;
@@ -137,12 +137,10 @@ protected:
 	void ApplyBrContHueSat(BYTE* srcy, BYTE* srcu, BYTE* srcv, int w, int h, int pitch);
 	
 public:
-	// ISpecifyPropertyPages
-
-	STDMETHODIMP GetPages(CAUUID* pPages);
 
 	// ISpecifyPropertyPages2
 
+	STDMETHODIMP GetPages(CAUUID* pPages);
 	STDMETHODIMP CreatePage(const GUID& guid, IPropertyPage** ppPage);
 
 	// IMpeg2DecFilter

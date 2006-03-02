@@ -19,6 +19,8 @@
  *
  */
 
+#pragma once
+
 class CFilterApp : public CWinApp
 {
 public:
