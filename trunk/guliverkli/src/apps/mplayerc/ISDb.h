@@ -1,5 +1,6 @@
 #pragma once
 
+#include <atlcoll.h>
 #include <afxinet.h>
 #include "Playlist.h"
 
@@ -15,15 +16,15 @@ struct isdb_subtitle
 
 struct isdb_movie
 {
-	CList<CStringA> titles;
-	CList<isdb_subtitle> subs;
+	CAtlList<CStringA> titles;
+	CAtlList<isdb_subtitle> subs;
 	void reset() {titles.RemoveAll(); subs.RemoveAll();}
 	void operator = (const struct isdb_movie& m)
 	{
 		titles.RemoveAll(); 
-		titles.AddTail((CList<CStringA>*)&m.titles);
+		titles.AddTailList(&m.titles);
 		subs.RemoveAll(); 
-		subs.AddTail((CList<isdb_subtitle>*)&m.subs);
+		subs.AddTailList(&m.subs);
 	}
 };
 

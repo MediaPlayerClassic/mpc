@@ -55,7 +55,7 @@ int g_cTemplates = countof(g_Templates);
 
 STDAPI DllRegisterServer()
 {
-	CList<CString> chkbytes;
+	CAtlList<CString> chkbytes;
 	chkbytes.AddTail(_T("0,2,FFE0,FFE0"));
 	chkbytes.AddTail(_T("0,10,FFFFFF00000080808080,49443300000000000000"));
 
@@ -108,7 +108,7 @@ HRESULT CMpaSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 	if(!m_pFile) return E_OUTOFMEMORY;
 	if(FAILED(hr)) {m_pFile.Free(); return hr;}
 
-	CArray<CMediaType> mts;
+	CAtlArray<CMediaType> mts;
 	mts.Add(m_pFile->GetMediaType());
 
 	CAutoPtr<CBaseSplitterOutputPin> pPinOut(new CBaseSplitterOutputPin(mts, L"Audio", this, this, &hr));
@@ -177,8 +177,8 @@ bool CMpaSplitterFilter::DemuxLoop()
 		if(!m_pFile->Sync(FrameSize, rtDuration)) {Sleep(1); continue;}
 
 		CAutoPtr<Packet> p(new Packet());
-		p->pData.SetSize(FrameSize);
-		m_pFile->ByteRead(p->pData.GetData(), FrameSize);
+		p->SetCount(FrameSize);
+		m_pFile->ByteRead(p->GetData(), FrameSize);
 
 		p->TrackNumber = 0;
 		p->rtStart = m_rtStart;

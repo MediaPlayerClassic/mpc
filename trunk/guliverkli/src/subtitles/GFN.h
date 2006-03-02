@@ -21,10 +21,9 @@
 
 #pragma once
 
-#include <afxtempl.h>
+#include <atlcoll.h>
 
 enum exttype {EXTSRT = 0, EXTSUB, EXTSMI, EXTPSB, EXTSSA, EXTASS, EXTIDX, EXTUSF, EXTXSS};
 extern TCHAR* exttypestr[];
 typedef struct {CString fn; /*exttype ext;*/} SubFile;
-typedef CArray <SubFile, SubFile&> SubFiles;
-extern void GetSubFileNames(CString fn, CStringArray& paths, SubFiles& ret);
+extern void GetSubFileNames(CString fn, CAtlArray<CString>& paths, CAtlArray<SubFile>& ret);

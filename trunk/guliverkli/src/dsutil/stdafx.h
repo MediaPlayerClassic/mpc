@@ -38,5 +38,10 @@
 
 // TODO: reference additional headers your program requires here
 
+#include <Shlwapi.h>
+
+#include <atlcoll.h>
+#include <atlpath.h>
+
 #include <streams.h>
 #include <dvdmedia.h>

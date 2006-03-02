@@ -22,7 +22,6 @@
 #pragma once
 
 #include <atlcoll.h>
-#include <afxtempl.h>
 #include <Videoacc.h>
 #include "IMpeg2DecFilter.h"
 #include "..\..\..\decss\DeCSSInputPin.h"
@@ -214,12 +213,11 @@ class CSubpicInputPin : public CMpeg2DecInputPin
 	bool m_fsppal;
 	CAutoPtr<AM_PROPERTY_SPHLI> m_sphli; // temp
 
-	class spu
+	class spu : public CAtlArray<BYTE>
 	{
 	public:
 		bool m_fForced;
 		REFERENCE_TIME m_rtStart, m_rtStop; 
-		CArray<BYTE> m_pData;
 		DWORD m_offset[2];
 		AM_PROPERTY_SPHLI m_sphli; // parsed
 		CAutoPtr<AM_PROPERTY_SPHLI> m_psphli; // for the menu (optional)

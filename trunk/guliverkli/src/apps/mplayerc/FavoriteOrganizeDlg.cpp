@@ -45,7 +45,7 @@ void CFavoriteOrganizeDlg::SetupList(bool fSave)
 
 	if(fSave)
 	{
-		CList<CString> sl;
+		CAtlList<CString> sl;
 
 		for(int j = 0; j < m_list.GetItemCount(); j++)
 		{
@@ -56,7 +56,7 @@ void CFavoriteOrganizeDlg::SetupList(bool fSave)
 		}
 
 		m_sl[i].RemoveAll();
-		m_sl[i].AddTail(&sl);
+		m_sl[i].AddTailList(&sl);
 	}
 	else
 	{

@@ -55,7 +55,7 @@ int g_cTemplates = countof(g_Templates);
 
 STDAPI DllRegisterServer()
 {
-	CList<CString> chkbytes;
+	CAtlList<CString> chkbytes;
 	chkbytes.AddTail(_T("0,4,,52494646,8,4,41564920")); // 'RIFF' ... 'AVI '
 	chkbytes.AddTail(_T("0,4,,52494646,8,4,41564958")); // 'RIFF' ... 'AVIX'
 
@@ -180,7 +180,7 @@ HRESULT CAviSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 		if(fHasIndex && s->cs.GetCount() == 0) continue;
 
 		CMediaType mt;
-		CArray<CMediaType> mts;
+		CAtlArray<CMediaType> mts;
 		
 		CStringW name, label;
 
@@ -188,16 +188,16 @@ HRESULT CAviSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 		{
 			label = L"Video";
 
-			ASSERT(s->strf.GetSize() >= sizeof(BITMAPINFOHEADER));
+			ASSERT(s->strf.GetCount() >= sizeof(BITMAPINFOHEADER));
 
 			BITMAPINFOHEADER* pbmi = &((BITMAPINFO*)s->strf.GetData())->bmiHeader;
 
 			mt.majortype = MEDIATYPE_Video;
 			mt.subtype = FOURCCMap(pbmi->biCompression);
 			mt.formattype = FORMAT_VideoInfo;
-			VIDEOINFOHEADER* pvih = (VIDEOINFOHEADER*)mt.AllocFormatBuffer(sizeof(VIDEOINFOHEADER) + s->strf.GetSize() - sizeof(BITMAPINFOHEADER));
+			VIDEOINFOHEADER* pvih = (VIDEOINFOHEADER*)mt.AllocFormatBuffer(sizeof(VIDEOINFOHEADER) + s->strf.GetCount() - sizeof(BITMAPINFOHEADER));
 			memset(mt.Format(), 0, mt.FormatLength());
-			memcpy(&pvih->bmiHeader, s->strf.GetData(), s->strf.GetSize());
+			memcpy(&pvih->bmiHeader, s->strf.GetData(), s->strf.GetCount());
 			if(s->strh.dwRate > 0) pvih->AvgTimePerFrame = 10000000i64 * s->strh.dwScale / s->strh.dwRate;
 			switch(pbmi->biCompression)
 			{
@@ -231,8 +231,8 @@ HRESULT CAviSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 		{
 			label = L"Audio";
 
-			ASSERT(s->strf.GetSize() >= sizeof(WAVEFORMATEX)
-				|| s->strf.GetSize() == sizeof(PCMWAVEFORMAT));
+			ASSERT(s->strf.GetCount() >= sizeof(WAVEFORMATEX)
+				|| s->strf.GetCount() == sizeof(PCMWAVEFORMAT));
 
             WAVEFORMATEX* pwfe = (WAVEFORMATEX*)s->strf.GetData();
 
@@ -241,9 +241,9 @@ HRESULT CAviSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 			mt.majortype = MEDIATYPE_Audio;
 			mt.subtype = FOURCCMap(pwfe->wFormatTag);
 			mt.formattype = FORMAT_WaveFormatEx;
-			mt.SetFormat(s->strf.GetData(), max(s->strf.GetSize(), sizeof(WAVEFORMATEX)));
+			mt.SetFormat(s->strf.GetData(), max(s->strf.GetCount(), sizeof(WAVEFORMATEX)));
 			pwfe = (WAVEFORMATEX*)mt.Format();
-			if(s->strf.GetSize() == sizeof(PCMWAVEFORMAT)) pwfe->cbSize = 0;
+			if(s->strf.GetCount() == sizeof(PCMWAVEFORMAT)) pwfe->cbSize = 0;
 			if(pwfe->wFormatTag == WAVE_FORMAT_PCM) pwfe->nBlockAlign = pwfe->nChannels*pwfe->wBitsPerSample>>3;
 			mt.SetSampleSize(s->strh.dwSuggestedBufferSize > 0 
 				? s->strh.dwSuggestedBufferSize*3/2
@@ -283,7 +283,7 @@ HRESULT CAviSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 			mt.majortype = MEDIATYPE_Interleaved;
 			mt.subtype = FOURCCMap(s->strh.fccHandler);
 			mt.formattype = FORMAT_DvInfo;
-			mt.SetFormat(s->strf.GetData(), max(s->strf.GetSize(), sizeof(DVINFO)));
+			mt.SetFormat(s->strf.GetData(), max(s->strf.GetCount(), sizeof(DVINFO)));
 			mt.SetSampleSize(s->strh.dwSuggestedBufferSize > 0 
 				? s->strh.dwSuggestedBufferSize*3/2
 				: (1024*1024));
@@ -481,8 +481,8 @@ bool CAviSplitterFilter::DemuxLoop()
 
 	int nTracks = (int)m_pFile->m_strms.GetCount();
 
-	CArray<BOOL> fDiscontinuity;
-	fDiscontinuity.SetSize(nTracks);
+	CAtlArray<BOOL> fDiscontinuity;
+	fDiscontinuity.SetCount(nTracks);
 	memset(fDiscontinuity.GetData(), 0, nTracks*sizeof(bool));
 
 	while(SUCCEEDED(hr) && !CheckRequest(NULL))
@@ -556,8 +556,8 @@ bool CAviSplitterFilter::DemuxLoop()
 			p->rtStart = s->GetRefTime(f, s->cs[f].size);
 			p->rtStop = s->GetRefTime(f+1, f+1 < (DWORD)s->cs.GetCount() ? s->cs[f+1].size : s->totalsize);
 			
-			p->pData.SetSize(size);
-			if(S_OK != (hr = m_pFile->ByteRead(p->pData.GetData(), p->pData.GetSize()))) 
+			p->SetCount(size);
+			if(S_OK != (hr = m_pFile->ByteRead(p->GetData(), p->GetCount()))) 
 				return(true); // break;
 /*
 			DbgLog((LOG_TRACE, 0, _T("%d (%d): %I64d - %I64d, %I64d - %I64d (size = %d)"), 
@@ -825,7 +825,7 @@ CAviSourceFilter::CAviSourceFilter(LPUNKNOWN pUnk, HRESULT* phr)
 // CAviSplitterOutputPin
 //
 
-CAviSplitterOutputPin::CAviSplitterOutputPin(CArray<CMediaType>& mts, LPCWSTR pName, CBaseFilter* pFilter, CCritSec* pLock, HRESULT* phr)
+CAviSplitterOutputPin::CAviSplitterOutputPin(CAtlArray<CMediaType>& mts, LPCWSTR pName, CBaseFilter* pFilter, CCritSec* pLock, HRESULT* phr)
 	: CBaseSplitterOutputPin(mts, pName, pFilter, pLock, phr)
 {
 }

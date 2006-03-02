@@ -3,6 +3,7 @@
 #include "..\BaseSplitter\BaseSplitter.h"
 
 #pragma pack(push, 1)
+
 struct OggPageHeader
 {
 	DWORD capture_pattern;
@@ -14,6 +15,7 @@ struct OggPageHeader
 	DWORD CRC_checksum;
 	BYTE number_page_segments;
 };
+
 struct OggVorbisIdHeader
 {
 	DWORD vorbis_version;
@@ -26,15 +28,18 @@ struct OggVorbisIdHeader
 	BYTE blocksize_1:4;
 	BYTE framing_flag;
 };
+
 struct OggVideoHeader
 {
 	DWORD w, h;
 };
+
 struct OggAudioHeader
 {
 	WORD nChannels, nBlockAlign;
 	DWORD nAvgBytesPerSec;
 };
+
 struct OggStreamHeader
 {
 	char streamtype[8], subtype[4];
@@ -47,20 +52,19 @@ struct OggStreamHeader
     union {OggVideoHeader v; OggAudioHeader a;};
 	DWORD alignmentfix2;
 };
+
 #pragma pack(pop)
 
-class OggPage : public CArray<BYTE>
+class OggPage : public CAtlArray<BYTE>
 {
 public:
 	OggPageHeader m_hdr;
-	CList<int> m_lens;
+	CAtlList<int> m_lens;
 	OggPage() {memset(&m_hdr, 0, sizeof(m_hdr));}
 };
 
 class COggFile : public CBaseSplitterFile
 {
-	// using CBaseSplitterFile::Read;
-
 	HRESULT Init();
 
 public:

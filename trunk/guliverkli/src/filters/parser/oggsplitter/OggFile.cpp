@@ -47,7 +47,7 @@ bool COggFile::Read(OggPage& page, bool fFull, HANDLE hBreak)
 {
 	memset(&page.m_hdr, 0, sizeof(page.m_hdr));
 	page.m_lens.RemoveAll();
-	page.SetSize(0);
+	page.SetCount(0);
 
 	if(!Read(page.m_hdr, hBreak))
 		return(false);
@@ -63,13 +63,13 @@ bool COggFile::Read(OggPage& page, bool fFull, HANDLE hBreak)
 
 	if(fFull)
 	{
-		page.SetSize(pagelen);
-		if(S_OK != ByteRead(page.GetData(), page.GetSize())) 
+		page.SetCount(pagelen);
+		if(S_OK != ByteRead(page.GetData(), page.GetCount())) 
 			return(false);
 	}
 	else
 	{
-		Seek(GetPos()+pagelen);
+		Seek(GetPos() + pagelen);
 		page.m_lens.RemoveAll();
 	}
 

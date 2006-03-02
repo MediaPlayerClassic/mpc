@@ -18,7 +18,6 @@
 
 #pragma once
 
-#include <afxtempl.h>
 #include <atlbase.h>
 #include <atlcoll.h>
 
@@ -231,7 +230,7 @@ class CStreamSwitcherFilter : public CBaseFilter, public IAMStreamSelect
 	friend class CStreamSwitcherOutputPin;
 	friend class CStreamSwitcherPassThru;
 
-	CList<CStreamSwitcherInputPin*> m_pInputs;
+	CAtlList<CStreamSwitcherInputPin*> m_pInputs;
 	CStreamSwitcherInputPin* m_pInput;
 	CStreamSwitcherOutputPin* m_pOutput;
 

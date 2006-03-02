@@ -246,17 +246,17 @@ bool CAviPlotterWnd::Create(CAviFile* pAF, CRect r, CWnd* pParentWnd)
 
 	if(nmax > 0 && tmax > 0)
 	{
-		CArray<CPen> pen;
-		pen.SetSize(pAF->m_avih.dwStreams);
-		for(int i = 0; i < pen.GetSize(); i++)
+		CAtlArray<CPen> pen;
+		pen.SetCount(pAF->m_avih.dwStreams);
+		for(int i = 0; i < pen.GetCount(); i++)
 			pen[i].CreatePen(PS_SOLID, 2, clr[i]);
 
-		CArray<CPoint> pp;
-		pp.SetSize(pAF->m_avih.dwStreams);
-		for(int i = 0; i < pen.GetSize(); i++)
+		CAtlArray<CPoint> pp;
+		pp.SetCount(pAF->m_avih.dwStreams);
+		for(int i = 0; i < pen.GetCount(); i++)
 			pp[i].SetPoint(-1, -1);
 
-		m_chunkdist.SetSize(w);
+		m_chunkdist.SetCount(w);
 		memset(m_chunkdist.GetData(), 0, sizeof(int)*w);
 
 		DWORD* curchunks = new DWORD[pAF->m_avih.dwStreams];
@@ -272,7 +272,7 @@ bool CAviPlotterWnd::Create(CAviFile* pAF, CRect r, CWnd* pParentWnd)
 			for(int i = 0; i < (int)pAF->m_avih.dwStreams; i++)
 			{
 				int curchunk = curchunks[i];
-				if(curchunk >= pAF->m_strms[i]->cs2.GetSize()) continue;
+				if(curchunk >= pAF->m_strms[i]->cs2.GetCount()) continue;
 				CAviFile::strm_t::chunk2& cs2 = pAF->m_strms[i]->cs2[curchunk];
 				if(cs2.t < cs2min.t) {cs2min = cs2; n = i;}
 			}

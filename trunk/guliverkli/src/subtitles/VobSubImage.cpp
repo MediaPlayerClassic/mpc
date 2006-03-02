@@ -320,7 +320,7 @@ void CVobSubImage::TrimSubImage()
 
 #define GP(xx, yy) (((xx) < 0 || (yy) < 0 || (xx) >= w || (yy) >= h) ? 0 : p[(yy)*w+(xx)])
 
-COutlineList* CVobSubImage::GetOutlineList(CPoint& topleft)
+CAutoPtrList<COutline>* CVobSubImage::GetOutlineList(CPoint& topleft)
 {
 	int w = rect.Width(), h = rect.Height(), len = w*h;
 	if(len <= 0) return NULL;
@@ -328,7 +328,7 @@ COutlineList* CVobSubImage::GetOutlineList(CPoint& topleft)
 	CAutoVectorPtr<BYTE> p;
 	if(!p.Allocate(len)) return NULL;
 
-	COutlineList* ol = new COutlineList();
+	CAutoPtrList<COutline>* ol = new CAutoPtrList<COutline>();
 	if(!ol) return NULL;
 
 	BYTE* cp = p;
@@ -446,7 +446,7 @@ COutlineList* CVobSubImage::GetOutlineList(CPoint& topleft)
 		}
 		while(!(x == ox && y == oy && dir == odir));
 
-		if(o->pa.GetSize() > 0 && (x == ox && y == oy && dir == odir)) 
+		if(o->pa.GetCount() > 0 && (x == ox && y == oy && dir == odir)) 
 		{
 			ol->AddTail(o);
 		}
@@ -461,7 +461,7 @@ COutlineList* CVobSubImage::GetOutlineList(CPoint& topleft)
 
 static bool FitLine(COutline& o, int& start, int& end)
 {
-	int len = o.pa.GetSize();
+	int len = o.pa.GetCount();
 	if(len < 7) return(false); // small segments should be handled with beziers...
 
 	for(start = 0; start < len && !o.da[start]; start++);
@@ -540,7 +540,7 @@ static bool FitLine(COutline& o, int& start, int& end)
 
 static int CalcPossibleCurveDegree(COutline& o)
 {
-	int len2 = o.da.GetSize();
+	int len2 = o.da.GetCount();
 
 	CUIntArray la;
 
@@ -553,7 +553,7 @@ static int CalcPossibleCurveDegree(COutline& o)
 		}
 	}
 
-	int len = la.GetSize();
+	int len = la.GetCount();
 
 	int ret = 0;
 
@@ -605,9 +605,9 @@ inline double vectlen(CPoint p1, CPoint p2)
 
 static bool MinMaxCosfi(COutline& o, double& mincf, double& maxcf) // not really cosfi, it is weighted by the distance from the segment endpoints, and since it would be always between -1 and 0, the applied sign marks side 
 {
-	CPointArray& pa = o.pa;
+	CAtlArray<CPoint>& pa = o.pa;
 
-	int len = (int)pa.GetSize();
+	int len = (int)pa.GetCount();
 	if(len < 6) return(false);
 
 	mincf = 1;
@@ -636,9 +636,9 @@ static bool FitBezierVH(COutline& o, CPoint& p1, CPoint& p2)
 {
 	int i;
 
-	CPointArray& pa = o.pa;
+	CAtlArray<CPoint>& pa = o.pa;
 
-	int len = (int)pa.GetSize();
+	int len = (int)pa.GetCount();
 
 	if(len <= 1)
 	{
@@ -671,8 +671,8 @@ static bool FitBezierVH(COutline& o, CPoint& p1, CPoint& p2)
 	CPoint p0 = p1 = pa[0];
 	CPoint p3 = p2 = pa[len-1];
 
-	CArray<double,double&> pl;
-	pl.SetSize(len);
+	CAtlArray<double> pl;
+	pl.SetCount(len);
 
 	double c10 = 0, c11 = 0, c12 = 0, c13 = 0, c1x = 0, c1y = 0;
 	double c20 = 0, c21 = 0, c22 = 0, c23 = 0, c2x = 0, c2y = 0;
@@ -753,7 +753,7 @@ int CVobSubImage::GrabSegment(int start, COutline& o, COutline& ret)
 {
 	ret.RemoveAll();
 
-	int len = o.pa.GetSize();
+	int len = o.pa.GetCount();
 	
 	int cur = (start)%len, first = -1, last = -1;
 	int curDir = 0, lastDir = 0;
@@ -804,10 +804,10 @@ int CVobSubImage::GrabSegment(int start, COutline& o, COutline& ret)
 
 void CVobSubImage::SplitOutline(COutline& o, COutline& o1, COutline& o2)
 {
-	int len = o.pa.GetSize();
+	int len = o.pa.GetCount();
 	if(len < 4) return;
 
-	CUIntArray la, sa, ea;
+	CAtlArray<UINT> la, sa, ea;
 
 	int i, j, k;
 
@@ -825,7 +825,7 @@ void CVobSubImage::SplitOutline(COutline& o, COutline& o1, COutline& o2)
 	int maxlen = 0, maxidx = -1;
 	int maxlen2 = 0, maxidx2 = -1;
 
-	for(i = 0; i < la.GetSize(); i++)
+	for(i = 0; i < la.GetCount(); i++)
 	{
 		if(maxlen < la[i])
 		{
@@ -833,7 +833,7 @@ void CVobSubImage::SplitOutline(COutline& o, COutline& o1, COutline& o2)
 			maxidx = i;
 		}
 
-		if(maxlen2 < la[i] && i > 0 && i < la.GetSize()-1)
+		if(maxlen2 < la[i] && i > 0 && i < la.GetCount()-1)
 		{
 			maxlen2 = la[i];
 			maxidx2 = i;
@@ -861,9 +861,9 @@ void CVobSubImage::SplitOutline(COutline& o, COutline& o1, COutline& o2)
 		o2.Add(o.pa[i], o.da[i]);
 }
 
-void CVobSubImage::AddSegment(COutline& o, CByteArray& pathTypes, CPointArray& pathPoints)
+void CVobSubImage::AddSegment(COutline& o, CAtlArray<BYTE>& pathTypes, CAtlArray<CPoint>& pathPoints)
 {
-	int i, len = o.pa.GetSize();
+	int i, len = o.pa.GetCount();
 	if(len < 3) return;
 
 	int nLeftTurns = 0, nRightTurns = 0;
@@ -990,7 +990,7 @@ void CVobSubImage::AddSegment(COutline& o, CByteArray& pathTypes, CPointArray& p
 		pathTypes.Add(PT_BEZIERTO);
 		pathPoints.Add(p2);
 		pathTypes.Add(PT_BEZIERTO);
-		pathPoints.Add(o.pa[o.pa.GetSize()-1]);
+		pathPoints.Add(o.pa[o.pa.GetCount()-1]);
 
 		return;
 	}
@@ -1001,10 +1001,10 @@ void CVobSubImage::AddSegment(COutline& o, CByteArray& pathTypes, CPointArray& p
 	AddSegment(o2, pathTypes, pathPoints);
 }
 
-bool CVobSubImage::Polygonize(CByteArray& pathTypes, CPointArray& pathPoints, bool fSmooth, int scale)
+bool CVobSubImage::Polygonize(CAtlArray<BYTE>& pathTypes, CAtlArray<CPoint>& pathPoints, bool fSmooth, int scale)
 {
 	CPoint topleft;
-	CAutoPtr<COutlineList> ol(GetOutlineList(topleft));
+	CAutoPtr<CAutoPtrList<COutline> > ol(GetOutlineList(topleft));
 	if(!ol) return(false);
 
 	POSITION pos;
@@ -1012,8 +1012,8 @@ bool CVobSubImage::Polygonize(CByteArray& pathTypes, CPointArray& pathPoints, bo
 	pos = ol->GetHeadPosition();
 	while(pos)
 	{
-		CPointArray& pa = ol->GetNext(pos)->pa;
-		for(int i = 0; i < pa.GetSize(); i++)
+		CAtlArray<CPoint>& pa = ol->GetNext(pos)->pa;
+		for(int i = 0; i < pa.GetCount(); i++)
 		{
 			pa[i].x = (pa[i].x-topleft.x)<<scale;
 			pa[i].y = (pa[i].y-topleft.y)<<scale;
@@ -1068,7 +1068,8 @@ bool CVobSubImage::Polygonize(CByteArray& pathTypes, CPointArray& pathPoints, bo
 */
 			pathTypes.Add(PT_MOVETO);
 			pathPoints.Add(o.pa[0]);
-			for(int i = 1, len = o.pa.GetSize(); i < len; i++)
+
+			for(int i = 1, len = o.pa.GetCount(); i < len; i++)
 			{
 				pathTypes.Add(PT_LINETO);
 				pathPoints.Add(o.pa[i]);
@@ -1076,13 +1077,13 @@ bool CVobSubImage::Polygonize(CByteArray& pathTypes, CPointArray& pathPoints, bo
 		}
 	}
 
-	return(pathTypes.GetSize() > 0);
+	return !pathTypes.IsEmpty();
 }
 
 bool CVobSubImage::Polygonize(CStringW& assstr, bool fSmooth, int scale)
 {
-	CByteArray pathTypes;
-	CPointArray pathPoints;
+	CAtlArray<BYTE> pathTypes;
+	CAtlArray<CPoint> pathPoints;
 
 	if(!Polygonize(pathTypes, pathPoints, fSmooth, scale))
 		return(false);
@@ -1092,7 +1093,7 @@ bool CVobSubImage::Polygonize(CStringW& assstr, bool fSmooth, int scale)
 
 	BYTE lastType = 0;
 
-	int nPoints = pathTypes.GetSize();
+	int nPoints = pathTypes.GetCount();
 
 	for(int i = 0; i < nPoints; i++)
 	{
@@ -1141,7 +1142,7 @@ bool CVobSubImage::Polygonize(CStringW& assstr, bool fSmooth, int scale)
 
 	assstr += L"{\\p0}";
 
-	return(nPoints > 0);
+	return nPoints > 0;
 }
 
 void CVobSubImage::Scale2x()

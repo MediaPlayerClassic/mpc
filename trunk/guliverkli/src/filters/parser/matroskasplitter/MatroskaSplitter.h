@@ -23,7 +23,6 @@
 
 #include <atlbase.h>
 #include <atlcoll.h>
-#include <afxtempl.h>
 #include "MatroskaFile.h"
 #include "..\BaseSplitter\BaseSplitter.h"
 #include "..\..\..\..\include\ITrackInfo.h"
@@ -35,7 +34,7 @@ protected:
 	{
 		int size = 0;
 		POSITION pos = bg->Block.BlockData.GetHeadPosition();
-		while(pos) {size += bg->Block.BlockData.GetNext(pos)->GetSize();}
+		while(pos) {size += bg->Block.BlockData.GetNext(pos)->GetCount();}
 		return size;
 	}
 public:
@@ -51,10 +50,10 @@ class CMatroskaSplitterOutputPin : public CBaseSplitterOutputPin
 
 	CCritSec m_csQueue;
 	CAutoPtrList<MatroskaPacket> m_packets;
-	CList<MatroskaPacket*> m_rob;
+	CAtlList<MatroskaPacket*> m_rob;
 
 	typedef struct {REFERENCE_TIME rtStart, rtStop;} timeoverride;
-	CList<timeoverride> m_tos;
+	CAtlList<timeoverride> m_tos;
 
 protected:
 	HRESULT DeliverPacket(CAutoPtr<Packet> p);
@@ -62,7 +61,7 @@ protected:
 public:
 	CMatroskaSplitterOutputPin(
 		int nMinCache, REFERENCE_TIME rtDefaultDuration, 
-		CArray<CMediaType>& mts, LPCWSTR pName, CBaseFilter* pFilter, CCritSec* pLock, HRESULT* phr);
+		CAtlArray<CMediaType>& mts, LPCWSTR pName, CBaseFilter* pFilter, CCritSec* pLock, HRESULT* phr);
 	virtual ~CMatroskaSplitterOutputPin();
 
 	HRESULT DeliverEndFlush();
@@ -81,8 +80,8 @@ protected:
 	CAutoPtr<MatroskaReader::CMatroskaFile> m_pFile;
 	HRESULT CreateOutputs(IAsyncReader* pAsyncReader);
 
-	CMap<DWORD, DWORD, MatroskaReader::TrackEntry*, MatroskaReader::TrackEntry*> m_pTrackEntryMap;
-	CArray<MatroskaReader::TrackEntry* > m_pOrderedTrackArray;
+	CAtlMap<DWORD, MatroskaReader::TrackEntry*> m_pTrackEntryMap;
+	CAtlArray<MatroskaReader::TrackEntry* > m_pOrderedTrackArray;
 	MatroskaReader::TrackEntry* GetTrackEntryAt(UINT aTrackIdx);	
 
 	bool DemuxInit();

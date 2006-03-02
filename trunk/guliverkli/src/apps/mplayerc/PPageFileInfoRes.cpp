@@ -92,8 +92,8 @@ BOOL CPPageFileInfoRes::OnInitDialog()
 					r.name = name;
 					r.desc = desc;
 					r.mime = mime;
-					r.data.SetSize(len);
-					memcpy(r.data.GetData(), pData, r.data.GetSize());
+					r.data.SetCount(len);
+					memcpy(r.data.GetData(), pData, r.data.GetCount());
 					CoTaskMemFree(pData);
 					POSITION pos = m_res.AddTail(r);
 					int iItem = m_list.InsertItem(m_list.GetItemCount(), CString(name));
@@ -125,7 +125,7 @@ void CPPageFileInfoRes::OnSaveAs()
 	{
 		if(FILE* f = _tfopen(fd.GetPathName(), _T("wb")))
 		{
-			fwrite(r.data.GetData(), 1, r.data.GetSize(), f);
+			fwrite(r.data.GetData(), 1, r.data.GetCount(), f);
 			fclose(f);
 		}
 	}

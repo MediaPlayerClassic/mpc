@@ -22,7 +22,6 @@
 #pragma once
 
 #include <atlcoll.h>
-#include <afxtempl.h>
 #include "libmad-0.15.0b\msvc++\mad.h"
 #include "a52dec-0.7.4\vc++\inttypes.h"
 #include "a52dec-0.7.4\include\a52.h"
@@ -66,7 +65,7 @@ protected:
 	mad_synth m_synth;
 	ps2_state_t m_ps2_state;
 
-	CArray<BYTE> m_buff;
+	CAtlArray<BYTE> m_buff;
 	REFERENCE_TIME m_rtStart;
 	bool m_fDiscontinuity;
 
@@ -81,7 +80,7 @@ protected:
 	HRESULT ProcessMPA();
 
 	HRESULT GetDeliveryBuffer(IMediaSample** pSample, BYTE** pData);
-	HRESULT Deliver(CArray<float>& pBuff, DWORD nSamplesPerSec, WORD nChannels, DWORD dwChannelMask = 0);
+	HRESULT Deliver(CAtlArray<float>& pBuff, DWORD nSamplesPerSec, WORD nChannels, DWORD dwChannelMask = 0);
 	HRESULT Deliver(BYTE* pBuff, int size, int bit_rate, BYTE type);
 	HRESULT ReconnectOutput(int nSamples, CMediaType& mt);
 	CMediaType CreateMediaType(SampleFormat sf, DWORD nSamplesPerSec, WORD nChannels, DWORD dwChannelMask = 0);

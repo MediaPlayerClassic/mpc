@@ -134,7 +134,7 @@ void CShaderEdit::OnUpdate()
 
 			if(key.Find(text) == 0)
 			{
-				CList<CString> sl;
+				CAtlList<CString> sl;
 				Explode(value, sl, '|', 2);
 				if(sl.GetCount() != 2) continue;
 				CString name = sl.RemoveHead();

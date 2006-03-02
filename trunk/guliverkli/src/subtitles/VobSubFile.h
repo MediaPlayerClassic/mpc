@@ -21,7 +21,7 @@
 
 #pragma once
 
-#include <afxtempl.h>
+#include <atlcoll.h>
 #include "VobSubImage.h"
 #include "..\SubPic\ISubPic.h"
 
@@ -101,7 +101,7 @@ public:
 	{
 		int id;
 		CString name, alt;
-		CArray<SubPos> subpos;
+		CAtlArray<SubPos> subpos;
 	} SubLang;
 
 	int m_iLang;
@@ -149,7 +149,7 @@ class CVobSubStream : public CVobSubSettings, public ISubStream, public ISubPicP
 	CString m_name;
 
 	CCritSec m_csSubPics;
-	struct SubPic {REFERENCE_TIME tStart, tStop; CArray<BYTE> pData;};
+	struct SubPic {REFERENCE_TIME tStart, tStop; CAtlArray<BYTE> pData;};
 	CAutoPtrList<SubPic> m_subpics;
 
 public:

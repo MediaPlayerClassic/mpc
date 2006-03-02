@@ -1,6 +1,5 @@
 #pragma once
 
-#include <afxtempl.h>
 #include "AviFile.h"
 
 class CAviPlotterWnd : public CStatic
@@ -11,13 +10,13 @@ private:
 	CDC m_dc;
 	CBitmap m_bm;
 
-	CArray<int> m_chunkdist;
+	CAtlArray<int> m_chunkdist;
 
 public:
 	CAviPlotterWnd();
 	bool Create(CAviFile* pAF, CRect r, CWnd* pParentWnd);
 
-	int GetChunkDist(int x) {return x >= 0 && x < m_chunkdist.GetSize() ? m_chunkdist[x] : 0;}
+	int GetChunkDist(int x) {return x >= 0 && x < m_chunkdist.GetCount() ? m_chunkdist[x] : 0;}
 
 	DECLARE_MESSAGE_MAP()
 	afx_msg void OnPaint();

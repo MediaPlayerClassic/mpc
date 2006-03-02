@@ -30,8 +30,8 @@ class CPlaylistItem
 public:
 	UINT m_id;
 	CString m_label;
-	CList<CString> m_fns;
-	CList<CString> m_subs;
+	CAtlList<CString> m_fns;
+	CAtlList<CString> m_subs;
 	enum type_t {file, device} m_type;
 	REFERENCE_TIME m_duration; 
 	int m_vinput, m_vchannel;

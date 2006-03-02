@@ -47,17 +47,20 @@ void CPacketQueue::Add(CAutoPtr<Packet> p)
 
 	if(p)
 	{
-		m_size += p->GetSize();
+		m_size += p->GetCount();
 
-		if(p->bAppendable && !p->bDiscontinuity && !p->pmt && GetCount() > 0
+		if(p->bAppendable && !p->bDiscontinuity && !p->pmt
 		&& p->rtStart == Packet::INVALID_TIME
-		&& GetTail()->rtStart != Packet::INVALID_TIME)
+		&& !IsEmpty() && GetTail()->rtStart != Packet::INVALID_TIME)
 		{
-			Packet* tail = GetTail();
-			int oldsize = tail->pData.GetSize();
-			int newsize = tail->pData.GetSize() + p->pData.GetSize();
-			tail->pData.SetSize(newsize, max(1024, newsize)); // doubles the reserved buffer size
-			memcpy(tail->pData.GetData() + oldsize, p->pData.GetData(), p->pData.GetSize());
+			/*
+			Packet* tail = GetTail();			
+			int oldsize = tail->GetCount();
+			int newsize = tail->GetCount() + p->GetCount();
+			tail->SetCount(newsize, max(1024, newsize)); // doubles the reserved buffer size
+			memcpy(tail->GetData() + oldsize, p->GetData(), p->GetCount());
+			*/
+			GetTail()->Append(*p);
 			return;
 		}
 	}
@@ -70,7 +73,7 @@ CAutoPtr<Packet> CPacketQueue::Remove()
 	CAutoLock cAutoLock(this);
 	ASSERT(__super::GetCount() > 0);
 	CAutoPtr<Packet> p = RemoveHead();
-	if(p) m_size -= p->GetSize();
+	if(p) m_size -= p->GetCount();
 	return p;
 }
 
@@ -188,7 +191,7 @@ STDMETHODIMP CBaseSplitterInputPin::EndFlush()
 // CBaseSplitterOutputPin
 //
 
-CBaseSplitterOutputPin::CBaseSplitterOutputPin(CArray<CMediaType>& mts, LPCWSTR pName, CBaseFilter* pFilter, CCritSec* pLock, HRESULT* phr, int nBuffers)
+CBaseSplitterOutputPin::CBaseSplitterOutputPin(CAtlArray<CMediaType>& mts, LPCWSTR pName, CBaseFilter* pFilter, CCritSec* pLock, HRESULT* phr, int nBuffers)
 	: CBaseOutputPin(NAME("CBaseSplitterOutputPin"), pFilter, pLock, phr, pName)
 	, m_hrDeliver(S_OK) // just in case it were asked before the worker thread could be created and reset it
 	, m_fFlushing(false)
@@ -468,7 +471,7 @@ HRESULT CBaseSplitterOutputPin::DeliverPacket(CAutoPtr<Packet> p)
 {
 	HRESULT hr;
 
-	INT_PTR nBytes = p->pData.GetCount();
+	INT_PTR nBytes = p->GetCount();
 
 	if(nBytes == 0)
 	{
@@ -568,7 +571,7 @@ TRACE(_T("[%d]: d%d s%d p%d, b=%d, %I64d-%I64d \n"),
 
 		BYTE* pData = NULL;
 		if(S_OK != (hr = pSample->GetPointer(&pData)) || !pData) break;
-		memcpy(pData, p->pData.GetData(), nBytes);
+		memcpy(pData, p->GetData(), nBytes);
 		if(S_OK != (hr = pSample->SetActualDataLength(nBytes))) break;
 		if(S_OK != (hr = pSample->SetTime(fTimeValid ? &p->rtStart : NULL, fTimeValid ? &p->rtStop : NULL))) break;
 		if(S_OK != (hr = pSample->SetMediaTime(NULL, NULL))) break;
@@ -959,7 +962,7 @@ HRESULT CBaseSplitterFilter::DeliverPacket(CAutoPtr<Packet> p)
 TRACE(_T("[%d]: d%d s%d p%d, b=%d, %I64d-%I64d \n"), 
 	  p->TrackNumber,
 	  p->bDiscontinuity, p->bSyncPoint, p->rtStart != Packet::INVALID_TIME && p->rtStart < 0,
-	  p->pData.GetCount(), p->rtStart, p->rtStop);
+	  p->GetCount(), p->rtStart, p->rtStop);
 */
 
 	hr = pPin->QueuePacket(p);

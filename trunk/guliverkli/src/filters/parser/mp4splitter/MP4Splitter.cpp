@@ -70,7 +70,7 @@ STDAPI DllRegisterServer()
 	DeleteRegKey(_T("Media Type\\Extensions\\"), _T(".mp4"));
 	DeleteRegKey(_T("Media Type\\Extensions\\"), _T(".mov"));
 
-	CList<CString> chkbytes;
+	CAtlList<CString> chkbytes;
 
 	chkbytes.AddTail(_T("4,4,,66747970")); // ftyp
 	chkbytes.AddTail(_T("4,4,,6d6f6f76")); // moov
@@ -149,7 +149,7 @@ HRESULT CMP4SplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 			CStringW TrackName = UTF8To16(track->GetTrackName().c_str());
 			CStringA TrackLanguage = track->GetTrackLanguage().c_str();
 
-			CArray<CMediaType> mts;
+			CAtlArray<CMediaType> mts;
 
 			CMediaType mt;
 			mt.SetSampleSize(1);
@@ -313,7 +313,7 @@ HRESULT CMP4SplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 							}
 
 							const AP4_Byte* pal = di->GetData();
-							CList<CStringA> sl;
+							CAtlList<CStringA> sl;
 							for(int i = 0; i < 16*4; i += 4)
 							{
 								BYTE y = (pal[i+1]-16)*255/219;
@@ -1070,12 +1070,12 @@ bool CMP4SplitterFilter::DemuxLoop()
 				{
 					AP4_Size size = data.GetDataSize();
 					const AP4_Byte* ptr = data.GetData();
-					for(int i = 0; i < size; i++) p->pData.Add(ptr[i]);
+					for(int i = 0; i < size; i++) p->Add(ptr[i]);
 
 					if(fFirst) {p->rtStart = p->rtStop = (REFERENCE_TIME)(10000000.0 / track->GetMediaTimeScale() * sample.GetCts()); fFirst = false;}
 					p->rtStop += (REFERENCE_TIME)(10000000.0 / track->GetMediaTimeScale() * sample.GetDuration());
 
-					if(pPairNext->m_value.index+1 >= track->GetSampleCount() || p->pData.GetCount() >= nBlockAlign)
+					if(pPairNext->m_value.index+1 >= track->GetSampleCount() || p->GetCount() >= nBlockAlign)
 						break;
 
 					pPairNext->m_value.index++;

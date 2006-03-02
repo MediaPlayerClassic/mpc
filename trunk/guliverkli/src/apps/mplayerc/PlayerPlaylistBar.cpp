@@ -94,7 +94,7 @@ BOOL CPlayerPlaylistBar::PreTranslateMessage(MSG* pMsg)
 	return CSizingControlBarG::PreTranslateMessage(pMsg);
 }
 
-bool FindFileInList(CList<CString>& sl, CString fn)
+bool FindFileInList(CAtlList<CString>& sl, CString fn)
 {
 	bool fFound = false;
 	POSITION pos = sl.GetHeadPosition();
@@ -102,14 +102,14 @@ bool FindFileInList(CList<CString>& sl, CString fn)
 	return(fFound);
 }
 
-void CPlayerPlaylistBar::AddItem(CString fn, CList<CString>* subs)
+void CPlayerPlaylistBar::AddItem(CString fn, CAtlList<CString>* subs)
 {
-	CList<CString> sl;
+	CAtlList<CString> sl;
 	sl.AddTail(fn);
 	AddItem(sl, subs);
 }
 
-void CPlayerPlaylistBar::AddItem(CList<CString>& fns, CList<CString>* subs)
+void CPlayerPlaylistBar::AddItem(CAtlList<CString>& fns, CAtlList<CString>* subs)
 {
 	CPlaylistItem pli;
 
@@ -175,12 +175,12 @@ void CPlayerPlaylistBar::AddItem(CList<CString>& fns, CList<CString>* subs)
 
 	if(AfxGetAppSettings().fAutoloadSubtitles)
 	{
-		CStringArray paths;
+		CAtlArray<CString> paths;
 		paths.Add(_T("."));
 		paths.Add(_T(".\\subtitles"));
 		paths.Add(_T("c:\\subtitles"));
 
-		SubFiles ret;
+		CAtlArray<SubFile> ret;
 		GetSubFileNames(fn, paths, ret);
 
 		for(int i = 0; i < ret.GetCount(); i++)
@@ -193,7 +193,7 @@ void CPlayerPlaylistBar::AddItem(CList<CString>& fns, CList<CString>* subs)
 	m_pl.AddTail(pli);
 }
 
-static bool SearchFiles(CString mask, CList<CString>& sl)
+static bool SearchFiles(CString mask, CAtlList<CString>& sl)
 {
 	if(mask.Find(_T("://")) >= 0)
 		return(false);
@@ -244,14 +244,14 @@ static bool SearchFiles(CString mask, CList<CString>& sl)
 		|| sl.GetCount() == 0 && mask.FindOneOf(_T("?*")) >= 0);
 }
 
-void CPlayerPlaylistBar::ParsePlayList(CString fn, CList<CString>* subs)
+void CPlayerPlaylistBar::ParsePlayList(CString fn, CAtlList<CString>* subs)
 {
-	CList<CString> sl;
+	CAtlList<CString> sl;
 	sl.AddTail(fn);
 	ParsePlayList(sl, subs);
 }
 
-void CPlayerPlaylistBar::ParsePlayList(CList<CString>& fns, CList<CString>* subs)
+void CPlayerPlaylistBar::ParsePlayList(CAtlList<CString>& fns, CAtlList<CString>* subs)
 {
 	if(fns.IsEmpty()) return;
 
@@ -277,7 +277,7 @@ void CPlayerPlaylistBar::ParsePlayList(CList<CString>& fns, CList<CString>* subs
 
 	//	
 
-	CList<CString> sl;
+	CAtlList<CString> sl;
 	if(SearchFiles(fns.GetHead(), sl))
 	{
 		if(sl.GetCount() > 1) subs = NULL;
@@ -286,7 +286,7 @@ void CPlayerPlaylistBar::ParsePlayList(CList<CString>& fns, CList<CString>* subs
 		return;
 	}
 
-	CList<CString> redir;
+	CAtlList<CString> redir;
 	CStringA ct = GetContentType(fns.GetHead(), &redir);
 	if(!redir.IsEmpty())
 	{
@@ -331,7 +331,7 @@ bool CPlayerPlaylistBar::ParseMPCPlayList(CString fn)
 
 	while(f.ReadString(str))
 	{
-		CList<CString> sl;
+		CAtlList<CString> sl;
 		Explode(str, sl, ',', 3);
 		if(sl.GetCount() != 3) continue;
 
@@ -432,13 +432,13 @@ void CPlayerPlaylistBar::Empty()
 	SavePlaylist();
 }
 
-void CPlayerPlaylistBar::Open(CList<CString>& fns, bool fMulti, CList<CString>* subs)
+void CPlayerPlaylistBar::Open(CAtlList<CString>& fns, bool fMulti, CAtlList<CString>* subs)
 {
 	Empty();
 	Append(fns, fMulti, subs);
 }
 
-void CPlayerPlaylistBar::Append(CList<CString>& fns, bool fMulti, CList<CString>* subs)
+void CPlayerPlaylistBar::Append(CAtlList<CString>& fns, bool fMulti, CAtlList<CString>* subs)
 {
 	if(fMulti)
 	{
@@ -470,7 +470,7 @@ void CPlayerPlaylistBar::Append(CStringW vdn, CStringW adn, int vinput, int vcha
 	pli.m_vinput = vinput;
 	pli.m_vchannel = vchannel;
 	pli.m_ainput = ainput;
-	CList<CStringW> sl;
+	CAtlList<CStringW> sl;
 	CStringW vfn = GetFriendlyName(vdn);
 	CStringW afn = GetFriendlyName(adn);
 	if(!vfn.IsEmpty()) sl.AddTail(vfn);
@@ -637,7 +637,7 @@ OpenMediaData* CPlayerPlaylistBar::GetCurOMD(REFERENCE_TIME rtStart)
 		if(OpenDVDData* p = new OpenDVDData())
 		{
 			p->path = pli.m_fns.GetHead(); 
-			p->subs.AddTail(&pli.m_subs);
+			p->subs.AddTailList(&pli.m_subs);
 			return p;
 		}
 	}
@@ -659,8 +659,8 @@ OpenMediaData* CPlayerPlaylistBar::GetCurOMD(REFERENCE_TIME rtStart)
 	{
 		if(OpenFileData* p = new OpenFileData())
 		{
-			p->fns.AddTail((CList<CString>*)&pli.m_fns);
-			p->subs.AddTail((CList<CString>*)&pli.m_subs);
+			p->fns.AddTailList(&pli.m_fns);
+			p->subs.AddTailList(&pli.m_subs);
 			p->rtStart = rtStart;
 			return p;
 		}
@@ -919,7 +919,7 @@ void CPlayerPlaylistBar::OnDropFiles(HDROP hDropInfo)
 {
 	SetActiveWindow();
 
-	CList<CString> sl;
+	CAtlList<CString> sl;
 
 	UINT nFiles = ::DragQueryFile(hDropInfo, (UINT)-1, NULL, 0);
 	for(UINT iFile = 0; iFile < nFiles; iFile++)

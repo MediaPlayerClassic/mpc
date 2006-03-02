@@ -39,10 +39,10 @@ private:
 	int m_nTimeColWidth;
 	void ResizeListColumn();
 
-	void AddItem(CString fn, CList<CString>* subs);
-	void AddItem(CList<CString>& fns, CList<CString>* subs);
-	void ParsePlayList(CString fn, CList<CString>* subs);
-	void ParsePlayList(CList<CString>& fns, CList<CString>* subs);
+	void AddItem(CString fn, CAtlList<CString>* subs);
+	void AddItem(CAtlList<CString>& fns, CAtlList<CString>* subs);
+	void ParsePlayList(CString fn, CAtlList<CString>* subs);
+	void ParsePlayList(CAtlList<CString>& fns, CAtlList<CString>* subs);
 
 	bool ParseMPCPlayList(CString fn);
 	bool SaveMPCPlayList(CString fn, CTextFile::enc e, bool fRemovePath);
@@ -81,8 +81,8 @@ public:
 	void Refresh();
 	void Empty();
 
-	void Open(CList<CString>& fns, bool fMulti, CList<CString>* subs = NULL);
-	void Append(CList<CString>& fns, bool fMulti, CList<CString>* subs = NULL);
+	void Open(CAtlList<CString>& fns, bool fMulti, CAtlList<CString>* subs = NULL);
+	void Append(CAtlList<CString>& fns, bool fMulti, CAtlList<CString>* subs = NULL);
 
 	void Open(CStringW vdn, CStringW adn, int vinput, int vchannel, int ainput);
 	void Append(CStringW vdn, CStringW adn, int vinput, int vchannel, int ainput);

@@ -2,14 +2,13 @@
 
 #include <atlbase.h>
 #include <atlcoll.h>
-#include <afxtempl.h>
 #include "..\BaseSplitter\BaseSplitter.h"
 
 class CDiracSplitterFile : public CBaseSplitterFile
 {
 	CMediaType m_mt;
 	REFERENCE_TIME m_rtDuration;
-	CArray<BYTE> m_pBuff;
+	CAtlArray<BYTE> m_pBuff;
 
 	HRESULT Init();
 

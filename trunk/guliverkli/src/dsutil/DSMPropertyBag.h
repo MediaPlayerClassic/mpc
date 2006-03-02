@@ -1,4 +1,5 @@
 #pragma once
+#include <atlcoll.h>
 #include <atlsimpcoll.h>
 
 // IDSMPropertyBag
@@ -62,8 +63,9 @@ class CDSMResource
 public:
 	DWORD_PTR tag;
 	CStringW name, desc, mime;
-	CArray<BYTE> data;
+	CAtlArray<BYTE> data;
 	CDSMResource();
+	CDSMResource(const CDSMResource& r) {*this = r;}
 	CDSMResource(LPCWSTR name, LPCWSTR desc, LPCWSTR mime, BYTE* pData, int len, DWORD_PTR tag = 0);
 	virtual ~CDSMResource();
 	void operator = (const CDSMResource& r);
@@ -76,7 +78,7 @@ public:
 class IDSMResourceBagImpl : public IDSMResourceBag
 {
 protected:
-	CArray<CDSMResource> m_resources;
+	CAtlArray<CDSMResource> m_resources;
 
 public:
 	IDSMResourceBagImpl();
@@ -121,7 +123,7 @@ public:
 class IDSMChapterBagImpl : public IDSMChapterBag
 {
 protected:
-	CArray<CDSMChapter> m_chapters;
+	CAtlArray<CDSMChapter> m_chapters;
 	bool m_fSorted;
 
 public:
@@ -151,7 +153,7 @@ public:
 };
 
 template<class T>
-int range_bsearch(const CArray<T>& array, REFERENCE_TIME rt)
+int range_bsearch(const CAtlArray<T>& array, REFERENCE_TIME rt)
 {
 	int i = 0, j = array.GetCount() - 1, ret = -1;
 	if(j >= 0 && rt >= array[j].rt) return j;

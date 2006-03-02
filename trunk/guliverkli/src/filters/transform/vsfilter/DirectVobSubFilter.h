@@ -165,7 +165,7 @@ private:
 	{
 	public:
 		ATL::CEvent EndThreadEvent, RefreshEvent;
-		CList<CString> files;
+		CAtlList<CString> files;
 		CArray<CTime> mtime;
 	} m_frd;
 

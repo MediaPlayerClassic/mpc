@@ -97,7 +97,7 @@ void CNutFile::Read(binary& b)
 {
 	vint len;
 	Read(len);
-	b.SetSize((INT_PTR)len);
+	b.SetCount((INT_PTR)len);
 	for(BYTE* buff = b.GetData(); len-- > 0; *buff++ = (BYTE)BitRead(8));
 }
 
@@ -159,7 +159,7 @@ void CNutFile::Read(index_header& ih)
 
 	vint len;
 	Read(len);
-	ih.ie.SetSize((INT_PTR)len);
+	ih.ie.SetCount((INT_PTR)len);
 	for(index_entry* p = ih.ie.GetData(); len-- > 0;)
 	{
 		Read(p->timestamp);

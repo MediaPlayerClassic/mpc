@@ -23,7 +23,6 @@
 
 #include <atlbase.h>
 #include <atlcoll.h>
-#include <afxtempl.h>
 #include "MP4SplitterFile.h"
 #include "..\BaseSplitter\BaseSplitter.h"
 

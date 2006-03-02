@@ -159,7 +159,7 @@ HRESULT CAviFile::Parse(DWORD parentid, __int64 end)
 				break;
 			case FCC('strf'):
 				if(!strm) strm.Attach(new strm_t());
-				strm->strf.SetSize(size);
+				strm->strf.SetCount(size);
 				if(S_OK != ByteRead(strm->strf.GetData(), size)) return E_FAIL;
 				break;
 			case FCC('indx'):
@@ -249,7 +249,7 @@ HRESULT CAviFile::BuildIndex()
 				nEntriesInUse += stdidx.nEntriesInUse;
 			} 
 
-			s->cs.SetSize(nEntriesInUse);
+			s->cs.SetCount(nEntriesInUse);
 
 			DWORD frame = 0;
 			UINT64 size = 0;
@@ -306,7 +306,7 @@ HRESULT CAviFile::BuildIndex()
 					nFrames++;
 			}
 
-			s->cs.SetSize(nFrames);
+			s->cs.SetCount(nFrames);
 
 			DWORD frame = 0;
 			UINT64 size = 0;
@@ -372,7 +372,7 @@ bool CAviFile::IsInterleaved(bool fKeepInfo)
 		return(true);
 */
 	for(int i = 0; i < (int)m_avih.dwStreams; i++)
-		m_strms[i]->cs2.SetSize(m_strms[i]->cs.GetSize());
+		m_strms[i]->cs2.SetCount(m_strms[i]->cs.GetCount());
 
 	DWORD* curchunks = new DWORD[m_avih.dwStreams];
 	UINT64* cursizes = new UINT64[m_avih.dwStreams];
@@ -390,8 +390,8 @@ bool CAviFile::IsInterleaved(bool fKeepInfo)
 		for(int i = 0; i < (int)m_avih.dwStreams; i++)
 		{
 			int curchunk = curchunks[i];
-			CArray<strm_t::chunk>& cs = m_strms[i]->cs;
-			if(curchunk >= cs.GetSize()) continue;
+			CAtlArray<strm_t::chunk>& cs = m_strms[i]->cs;
+			if(curchunk >= cs.GetCount()) continue;
             UINT64 fp = cs[curchunk].filepos;
 			if(fp < fpmin) {fpmin = fp; n = i;}
 		}
@@ -427,7 +427,7 @@ bool CAviFile::IsInterleaved(bool fKeepInfo)
 		for(int i = 0; i < (int)m_avih.dwStreams; i++)
 		{
 			int curchunk = curchunks[i];
-			if(curchunk >= m_strms[i]->cs2.GetSize()) continue;
+			if(curchunk >= m_strms[i]->cs2.GetCount()) continue;
 			strm_t::chunk2& cs2 = m_strms[i]->cs2[curchunk];
 			if(cs2.t < cs2min.t) {cs2min = cs2; n = i;}
 		}
@@ -448,7 +448,7 @@ bool CAviFile::IsInterleaved(bool fKeepInfo)
 	{
 		// this is not needed anymore, let's save a little memory then
 		for(int i = 0; i < (int)m_avih.dwStreams; i++)
-			m_strms[i]->cs2.SetSize(0);
+			m_strms[i]->cs2.RemoveAll();
 	}
 
 	return(fInterleaved);

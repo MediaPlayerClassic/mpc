@@ -44,16 +44,18 @@
 
 #define ResStr(id) CString(MAKEINTRESOURCE(id))
 
-#include <afxtempl.h>
 #include <afxdisp.h>
+#include <afxole.h>
+
 #include <Shlwapi.h>
+
+#include <atlcoll.h>
 #include <atlpath.h>
+
 #include <streams.h>
 #include <dvdmedia.h>
 #include <mpconfig.h>
 #include "..\..\..\include\qt\qt.h"
-#include <afxole.h>
-
 #include "..\..\ui\ui.h"
 #include "..\..\DSUtil\DSUtil.h"
 

@@ -197,7 +197,7 @@ void CBaseMuxerRawOutputPin::MuxPacket(const CMediaType& mt, const MuxerPacket* 
 	if(!pBitStream) return;
 
 	const BYTE* pData = pPacket->pData.GetData();
-	const int DataSize = pPacket->pData.GetSize();
+	const int DataSize = pPacket->pData.GetCount();
 
 	if(mt.subtype == MEDIASUBTYPE_AAC && mt.formattype == FORMAT_WaveFormatEx)
 	{
@@ -307,7 +307,7 @@ void CBaseMuxerRawOutputPin::MuxPacket(const CMediaType& mt, const MuxerPacket* 
 
 		int fields = mt.subtype == MEDIASUBTYPE_ASS2 ? 10 : 9;
 
-		CList<CStringA> sl;
+		CAtlList<CStringA> sl;
 		Explode(str, sl, ',', fields);
 		if(sl.GetCount() < fields) return;
 

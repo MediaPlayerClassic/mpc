@@ -389,7 +389,7 @@ DWORD CMatroskaMuxerFilter::ThreadProc()
 	bool fFirstBlock = true;
 	INT64 firstTimeCode = 0;
 
-	CList<CMatroskaMuxerInputPin*> pActivePins;
+	CAtlList<CMatroskaMuxerInputPin*> pActivePins;
 
 	POSITION pos = m_pInputs.GetHeadPosition();
 	while(pos)
@@ -736,15 +736,15 @@ HRESULT CMatroskaMuxerInputPin::CompleteConnect(IPin* pPin)
 		|| m_mt.subtype == MEDIASUBTYPE_RV30 || m_mt.subtype == MEDIASUBTYPE_RV40)
 		{
 			m_pTE->CodecID.Set("V_REAL/RV00");
-			m_pTE->CodecID[9] = (CHAR)(m_mt.subtype.Data1>>16);
+			m_pTE->CodecID.SetAt(9, (BYTE)(m_mt.subtype.Data1>>16));
 
 			if(m_mt.formattype == FORMAT_VideoInfo)
 			{
 				VIDEOINFOHEADER* vih = (VIDEOINFOHEADER*)m_mt.pbFormat;
 				if(m_mt.cbFormat > sizeof(VIDEOINFOHEADER))
 				{
-					m_pTE->CodecPrivate.SetSize(m_mt.cbFormat - sizeof(VIDEOINFOHEADER));
-					memcpy(m_pTE->CodecPrivate, m_mt.pbFormat + sizeof(VIDEOINFOHEADER), m_pTE->CodecPrivate.GetSize());
+					m_pTE->CodecPrivate.SetCount(m_mt.cbFormat - sizeof(VIDEOINFOHEADER));
+					memcpy(m_pTE->CodecPrivate, m_mt.pbFormat + sizeof(VIDEOINFOHEADER), m_pTE->CodecPrivate.GetCount());
 				}
 				m_pTE->DefaultDuration.Set(vih->AvgTimePerFrame*100); 
 				m_pTE->DescType = TrackEntry::DescVideo;
@@ -758,8 +758,8 @@ HRESULT CMatroskaMuxerInputPin::CompleteConnect(IPin* pPin)
 				VIDEOINFOHEADER2* vih = (VIDEOINFOHEADER2*)m_mt.pbFormat;
 				if(m_mt.cbFormat > sizeof(VIDEOINFOHEADER2))
 				{
-					m_pTE->CodecPrivate.SetSize(m_mt.cbFormat - sizeof(VIDEOINFOHEADER2));
-					memcpy(m_pTE->CodecPrivate, m_mt.pbFormat + sizeof(VIDEOINFOHEADER2), m_pTE->CodecPrivate.GetSize());
+					m_pTE->CodecPrivate.SetCount(m_mt.cbFormat - sizeof(VIDEOINFOHEADER2));
+					memcpy(m_pTE->CodecPrivate, m_mt.pbFormat + sizeof(VIDEOINFOHEADER2), m_pTE->CodecPrivate.GetCount());
 				}
 				m_pTE->DefaultDuration.Set(vih->AvgTimePerFrame*100); 
 				m_pTE->DescType = TrackEntry::DescVideo;
@@ -783,8 +783,8 @@ HRESULT CMatroskaMuxerInputPin::CompleteConnect(IPin* pPin)
 			m_pTE->CodecID.Set("V_MS/VFW/FOURCC");
 
 			VIDEOINFOHEADER* vih = (VIDEOINFOHEADER*)m_mt.pbFormat;
-			m_pTE->CodecPrivate.SetSize(m_mt.cbFormat - FIELD_OFFSET(VIDEOINFOHEADER, bmiHeader));
-			memcpy(m_pTE->CodecPrivate, &vih->bmiHeader, m_pTE->CodecPrivate.GetSize());
+			m_pTE->CodecPrivate.SetCount(m_mt.cbFormat - FIELD_OFFSET(VIDEOINFOHEADER, bmiHeader));
+			memcpy(m_pTE->CodecPrivate, &vih->bmiHeader, m_pTE->CodecPrivate.GetCount());
 			m_pTE->DefaultDuration.Set(vih->AvgTimePerFrame*100); 
 			m_pTE->DescType = TrackEntry::DescVideo;
 			m_pTE->v.PixelWidth.Set(vih->bmiHeader.biWidth);
@@ -799,8 +799,8 @@ HRESULT CMatroskaMuxerInputPin::CompleteConnect(IPin* pPin)
 			m_pTE->CodecID.Set("V_MS/VFW/FOURCC");
 
 			VIDEOINFOHEADER2* vih = (VIDEOINFOHEADER2*)m_mt.pbFormat;
-			m_pTE->CodecPrivate.SetSize(m_mt.cbFormat - FIELD_OFFSET(VIDEOINFOHEADER2, bmiHeader));
-			memcpy(m_pTE->CodecPrivate, &vih->bmiHeader, m_pTE->CodecPrivate.GetSize());
+			m_pTE->CodecPrivate.SetCount(m_mt.cbFormat - FIELD_OFFSET(VIDEOINFOHEADER2, bmiHeader));
+			memcpy(m_pTE->CodecPrivate, &vih->bmiHeader, m_pTE->CodecPrivate.GetCount());
 			m_pTE->DefaultDuration.Set(vih->AvgTimePerFrame*100);
 			m_pTE->DescType = TrackEntry::DescVideo;
 			m_pTE->v.PixelWidth.Set(vih->bmiHeader.biWidth);
@@ -817,8 +817,8 @@ HRESULT CMatroskaMuxerInputPin::CompleteConnect(IPin* pPin)
 			m_pTE->CodecID.Set("V_DIRAC");
 
 			DIRACINFOHEADER* vih = (DIRACINFOHEADER*)m_mt.pbFormat;
-			m_pTE->CodecPrivate.SetSize(vih->cbSequenceHeader);
-			memcpy(m_pTE->CodecPrivate, (BYTE*)&vih->dwSequenceHeader[0], m_pTE->CodecPrivate.GetSize());
+			m_pTE->CodecPrivate.SetCount(vih->cbSequenceHeader);
+			memcpy(m_pTE->CodecPrivate, (BYTE*)&vih->dwSequenceHeader[0], m_pTE->CodecPrivate.GetCount());
 			m_pTE->DefaultDuration.Set(vih->hdr.AvgTimePerFrame*100);
 			m_pTE->DescType = TrackEntry::DescVideo;
 			m_pTE->v.PixelWidth.Set(vih->hdr.bmiHeader.biWidth);
@@ -836,8 +836,8 @@ HRESULT CMatroskaMuxerInputPin::CompleteConnect(IPin* pPin)
 			m_pTE->CodecID.Set("V_DSHOW/MPEG1VIDEO"); // V_MPEG1
 
 			MPEG1VIDEOINFO* pm1vi = (MPEG1VIDEOINFO*)m_mt.pbFormat;
-			m_pTE->CodecPrivate.SetSize(m_mt.FormatLength());
-			memcpy(m_pTE->CodecPrivate, m_mt.pbFormat, m_pTE->CodecPrivate.GetSize());
+			m_pTE->CodecPrivate.SetCount(m_mt.FormatLength());
+			memcpy(m_pTE->CodecPrivate, m_mt.pbFormat, m_pTE->CodecPrivate.GetCount());
 			m_pTE->DefaultDuration.Set(pm1vi->hdr.AvgTimePerFrame*100);
 			m_pTE->DescType = TrackEntry::DescVideo;
 			m_pTE->v.PixelWidth.Set(pm1vi->hdr.bmiHeader.biWidth);
@@ -852,8 +852,8 @@ HRESULT CMatroskaMuxerInputPin::CompleteConnect(IPin* pPin)
 			m_pTE->CodecID.Set("V_DSHOW/MPEG2VIDEO"); // V_MPEG2
 
 			MPEG2VIDEOINFO* pm2vi = (MPEG2VIDEOINFO*)m_mt.pbFormat;
-			m_pTE->CodecPrivate.SetSize(m_mt.FormatLength());
-			memcpy(m_pTE->CodecPrivate, m_mt.pbFormat, m_pTE->CodecPrivate.GetSize());
+			m_pTE->CodecPrivate.SetCount(m_mt.FormatLength());
+			memcpy(m_pTE->CodecPrivate, m_mt.pbFormat, m_pTE->CodecPrivate.GetCount());
 			m_pTE->DefaultDuration.Set(pm2vi->hdr.AvgTimePerFrame*100);
 			m_pTE->DescType = TrackEntry::DescVideo;
 			m_pTE->v.PixelWidth.Set(pm2vi->hdr.bmiHeader.biWidth);
@@ -959,7 +959,7 @@ HRESULT CMatroskaMuxerInputPin::CompleteConnect(IPin* pPin)
 
 			if(wfe->cbSize)
 			{
-				m_pTE->CodecPrivate.SetSize(wfe->cbSize);
+				m_pTE->CodecPrivate.SetCount(wfe->cbSize);
 				memcpy(m_pTE->CodecPrivate, m_mt.pbFormat + sizeof(WAVEFORMATEX), wfe->cbSize);
 			}
 
@@ -986,8 +986,8 @@ HRESULT CMatroskaMuxerInputPin::CompleteConnect(IPin* pPin)
 			DWORD cbSize = sizeof(WAVEFORMATEX) + wfe->cbSize;
 			if(m_mt.cbFormat > cbSize)
 			{
-			m_pTE->CodecPrivate.SetSize(m_mt.cbFormat - cbSize);
-			memcpy(m_pTE->CodecPrivate, m_mt.pbFormat + cbSize, m_pTE->CodecPrivate.GetSize());
+			m_pTE->CodecPrivate.SetCount(m_mt.cbFormat - cbSize);
+			memcpy(m_pTE->CodecPrivate, m_mt.pbFormat + cbSize, m_pTE->CodecPrivate.GetCount());
 			}
 			m_pTE->DescType = TrackEntry::DescAudio;
 			m_pTE->a.SamplingFrequency.Set((float)wfe->nSamplesPerSec);
@@ -1014,8 +1014,8 @@ HRESULT CMatroskaMuxerInputPin::CompleteConnect(IPin* pPin)
 			m_pTE->CodecID.Set("A_MS/ACM");
 
 			WAVEFORMATEX* wfe = (WAVEFORMATEX*)m_mt.pbFormat;
-			m_pTE->CodecPrivate.SetSize(m_mt.cbFormat);
-			memcpy(m_pTE->CodecPrivate, wfe, m_pTE->CodecPrivate.GetSize());
+			m_pTE->CodecPrivate.SetCount(m_mt.cbFormat);
+			memcpy(m_pTE->CodecPrivate, wfe, m_pTE->CodecPrivate.GetCount());
 			m_pTE->DescType = TrackEntry::DescAudio;
 			m_pTE->a.SamplingFrequency.Set((float)wfe->nSamplesPerSec);
 			m_pTE->a.Channels.Set(wfe->nChannels);
@@ -1049,7 +1049,7 @@ HRESULT CMatroskaMuxerInputPin::CompleteConnect(IPin* pPin)
 			int len = 1;
 			for(int i = 0; i < 2; i++) len += pvf2->HeaderSize[i]/255 + 1;
 			for(int i = 0; i < 3; i++) len += pvf2->HeaderSize[i];
-			m_pTE->CodecPrivate.SetSize(len);
+			m_pTE->CodecPrivate.SetCount(len);
 
 			BYTE* src = (BYTE*)m_mt.pbFormat + sizeof(VORBISFORMAT2);
 			BYTE* dst = m_pTE->CodecPrivate.GetData();
@@ -1070,7 +1070,7 @@ HRESULT CMatroskaMuxerInputPin::CompleteConnect(IPin* pPin)
 			src += pvf2->HeaderSize[2];
 
 			ASSERT(src <= m_mt.pbFormat + m_mt.cbFormat);
-			ASSERT(dst <= m_pTE->CodecPrivate.GetData() + m_pTE->CodecPrivate.GetSize());
+			ASSERT(dst <= m_pTE->CodecPrivate.GetData() + m_pTE->CodecPrivate.GetCount());
 
 			hr = S_OK;
 		}
@@ -1104,8 +1104,8 @@ HRESULT CMatroskaMuxerInputPin::CompleteConnect(IPin* pPin)
 			SUBTITLEINFO* psi = (SUBTITLEINFO*)m_mt.pbFormat;
 			if(psi->dwOffset)
 			{
-				m_pTE->CodecPrivate.SetSize(m_mt.cbFormat - psi->dwOffset);
-				memcpy(m_pTE->CodecPrivate, m_mt.pbFormat + psi->dwOffset, m_pTE->CodecPrivate.GetSize());
+				m_pTE->CodecPrivate.SetCount(m_mt.cbFormat - psi->dwOffset);
+				memcpy(m_pTE->CodecPrivate, m_mt.pbFormat + psi->dwOffset, m_pTE->CodecPrivate.GetCount());
 			}
 		}
 	}
@@ -1205,28 +1205,28 @@ STDMETHODIMP CMatroskaMuxerInputPin::Receive(IMediaSample* pSample)
 	if(m_mt.subtype == MEDIASUBTYPE_Vorbis && m_pVorbisHdrs.GetCount() < 3)
 	{
 		CAutoPtr<CBinary> data(new CBinary(0));
-		data->SetSize(len);
+		data->SetCount(len);
 		memcpy(data->GetData(), pData, len);
 		m_pVorbisHdrs.Add(data);
 
 		if(m_pVorbisHdrs.GetCount() == 3)
 		{
 			int len = 1;
-			for(int i = 0; i < 2; i++) len += m_pVorbisHdrs[i]->GetSize()/255 + 1;
-			for(int i = 0; i < 3; i++) len += m_pVorbisHdrs[i]->GetSize();
-			m_pTE->CodecPrivate.SetSize(len);
+			for(int i = 0; i < 2; i++) len += m_pVorbisHdrs[i]->GetCount()/255 + 1;
+			for(int i = 0; i < 3; i++) len += m_pVorbisHdrs[i]->GetCount();
+			m_pTE->CodecPrivate.SetCount(len);
 
 			BYTE* dst = m_pTE->CodecPrivate.GetData();
 
 			*dst++ = 2;
 			for(int i = 0; i < 2; i++)
-				for(int len = m_pVorbisHdrs[i]->GetSize(); len >= 0; len -= 255)
+				for(int len = m_pVorbisHdrs[i]->GetCount(); len >= 0; len -= 255)
 					*dst++ = min(len, 255);
 
 			for(int i = 0; i < 3; i++)
 			{
-				memcpy(dst, m_pVorbisHdrs[i]->GetData(), m_pVorbisHdrs[i]->GetSize());
-				dst += m_pVorbisHdrs[i]->GetSize(); 
+				memcpy(dst, m_pVorbisHdrs[i]->GetData(), m_pVorbisHdrs[i]->GetCount());
+				dst += m_pVorbisHdrs[i]->GetCount(); 
 			}
 		}
 
@@ -1265,7 +1265,7 @@ STDMETHODIMP CMatroskaMuxerInputPin::Receive(IMediaSample* pSample)
 	}
 
 	CAutoPtr<CBinary> data(new CBinary(0));
-	data->SetSize(len);
+	data->SetCount(len);
 	memcpy(data->GetData(), pData, len);
 	b->Block.BlockData.AddTail(data);
 

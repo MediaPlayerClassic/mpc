@@ -137,7 +137,7 @@ HRESULT CRoQSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 	// pins
 
 	CMediaType mt;
-	CArray<CMediaType> mts;
+	CAtlArray<CMediaType> mts;
 
 	int iHasVideo = 0;
 	int iHasAudio = 0;
@@ -279,9 +279,9 @@ bool CRoQSplitterFilter::DemuxLoop()
 
 		if(rc.id == 0x1002 || rc.id == 0x1011 || rc.id == 0x1020 || rc.id == 0x1021)
 		{
-			p->pData.SetSize(sizeof(rc) + rc.size);
-			memcpy(p->pData.GetData(), &rc, sizeof(rc));
-			if(S_OK != (hr = m_pAsyncReader->SyncRead(pos, rc.size, p->pData.GetData() + sizeof(rc))))
+			p->SetCount(sizeof(rc) + rc.size);
+			memcpy(p->GetData(), &rc, sizeof(rc));
+			if(S_OK != (hr = m_pAsyncReader->SyncRead(pos, rc.size, p->GetData() + sizeof(rc))))
 				break;
 		}
 
@@ -291,7 +291,7 @@ bool CRoQSplitterFilter::DemuxLoop()
 			p->bSyncPoint = rtVideo == 0;
 			p->rtStart = rtVideo;
 			p->rtStop = rtVideo += (rc.id == 0x1011 ? 10000000i64/30 : 0);
-			TRACE(_T("v: %I64d - %I64d (%d)\n"), p->rtStart/10000, p->rtStop/10000, p->pData.GetSize());
+			TRACE(_T("v: %I64d - %I64d (%d)\n"), p->rtStart/10000, p->rtStop/10000, p->GetCount());
 		}
 		else if(rc.id == 0x1020 || rc.id == 0x1021)
 		{
@@ -301,7 +301,7 @@ bool CRoQSplitterFilter::DemuxLoop()
 			p->bSyncPoint = TRUE;
 			p->rtStart = rtAudio;
 			p->rtStop = rtAudio += 10000000i64*rc.size/(nChannels*22050);
-			TRACE(_T("a: %I64d - %I64d (%d)\n"), p->rtStart/10000, p->rtStop/10000, p->pData.GetSize());
+			TRACE(_T("a: %I64d - %I64d (%d)\n"), p->rtStart/10000, p->rtStop/10000, p->GetCount());
 		}
 
 		if(rc.id == 0x1002 || rc.id == 0x1011 || rc.id == 0x1020 || rc.id == 0x1021)

@@ -743,7 +743,7 @@ void CPPageAccelTbl::OnDolabeleditList(NMHDR* pNMHDR, LRESULT* pResult)
 	wmcmd& wc = m_wmcmds.GetAt((POSITION)m_list.GetItemData(pItem->iItem));
 	ACCEL& a = wc;
 
-	CList<CString> sl;
+	CAtlList<CString> sl;
 	int nSel = -1;
 
 	if(pItem->iSubItem == COL_MOD)

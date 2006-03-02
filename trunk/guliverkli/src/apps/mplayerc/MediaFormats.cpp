@@ -33,12 +33,12 @@ CMediaFormatCategory::CMediaFormatCategory()
 }
 
 CMediaFormatCategory::CMediaFormatCategory(
-	CString label, CList<CString>& exts, bool fAudioOnly,
+	CString label, CAtlList<CString>& exts, bool fAudioOnly,
 	CString specreqnote, engine_t engine)
 {
 	m_label = label;
-	m_exts.AddTail(&exts);
-	m_backupexts.AddTail(&m_exts);
+	m_exts.AddTailList(&exts);
+	m_backupexts.AddTailList(&m_exts);
 	m_specreqnote = specreqnote;
 	m_fAudioOnly = fAudioOnly;
 	m_engine = engine;
@@ -53,7 +53,7 @@ CMediaFormatCategory::CMediaFormatCategory(
 	POSITION pos = m_exts.GetHeadPosition();
 	while(pos) m_exts.GetNext(pos).TrimLeft('.');
 
-	m_backupexts.AddTail(&m_exts);
+	m_backupexts.AddTailList(&m_exts);
 	m_specreqnote = specreqnote;
 	m_fAudioOnly = fAudioOnly;
 	m_engine = engine;
@@ -85,9 +85,9 @@ CMediaFormatCategory& CMediaFormatCategory::operator = (const CMediaFormatCatego
 	m_label = mfc.m_label;
 	m_specreqnote = mfc.m_specreqnote;
 	m_exts.RemoveAll();
-	m_exts.AddTail((CList<CString>*)&mfc.m_exts);
+	m_exts.AddTailList(&mfc.m_exts);
 	m_backupexts.RemoveAll();
-	m_backupexts.AddTail((CList<CString>*)&mfc.m_backupexts);
+	m_backupexts.AddTailList(&mfc.m_backupexts);
 	m_fAudioOnly = mfc.m_fAudioOnly;
 	m_engine = mfc.m_engine;
 
@@ -97,13 +97,13 @@ CMediaFormatCategory& CMediaFormatCategory::operator = (const CMediaFormatCatego
 void CMediaFormatCategory::RestoreDefaultExts()
 {
 	m_exts.RemoveAll();
-	m_exts.AddTail(&m_backupexts);
+	m_exts.AddTailList(&m_backupexts);
 }
 
-void CMediaFormatCategory::SetExts(CList<CString>& exts)
+void CMediaFormatCategory::SetExts(CAtlList<CString>& exts)
 {
 	m_exts.RemoveAll();
-	m_exts.AddTail(&exts);
+	m_exts.AddTailList(&exts);
 }
 
 void CMediaFormatCategory::SetExts(CString exts)

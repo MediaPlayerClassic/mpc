@@ -52,7 +52,7 @@ static int SubFileCompare(const void* elem1, const void* elem2)
 	return(((SubFile*)elem1)->fn.CompareNoCase(((SubFile*)elem2)->fn));
 }
 
-void GetSubFileNames(CString fn, CStringArray& paths, SubFiles& ret)
+void GetSubFileNames(CString fn, CAtlArray<CString>& paths, CAtlArray<SubFile>& ret)
 {
 	ret.RemoveAll();
 
@@ -85,7 +85,7 @@ void GetSubFileNames(CString fn, CStringArray& paths, SubFiles& ret)
 		WIN32_FIND_DATA wfd, wfd2;
 		HANDLE hFile, hFile2;
 
-		for(int k = 0; k < paths.GetSize(); k++)
+		for(int k = 0; k < paths.GetCount(); k++)
 		{
 			CString path = paths[k];
 			path.Replace('\\', '/');
@@ -98,7 +98,7 @@ void GetSubFileNames(CString fn, CStringArray& paths, SubFiles& ret)
 			path.Replace(_T("/./"), _T("/"));
 			path.Replace('/', '\\');
 
-			// CList<CString> sl;
+			// CAtlList<CString> sl;
 
 			bool fEmpty = true;
 
@@ -169,5 +169,5 @@ void GetSubFileNames(CString fn, CStringArray& paths, SubFiles& ret)
 
 	// sort files, this way the user can define the order (movie.00.English.srt, movie.01.Hungarian.srt, etc)
 
-	qsort(ret.GetData(), ret.GetSize(), sizeof(SubFile), SubFileCompare);
+	qsort(ret.GetData(), ret.GetCount(), sizeof(SubFile), SubFileCompare);
 }

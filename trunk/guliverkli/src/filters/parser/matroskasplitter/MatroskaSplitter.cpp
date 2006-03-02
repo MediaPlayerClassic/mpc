@@ -143,7 +143,7 @@ HRESULT CMatroskaSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 			Name.Format(L"Output %I64d", (UINT64)pTE->TrackNumber);
 
 			CMediaType mt;
-			CArray<CMediaType> mts;
+			CAtlArray<CMediaType> mts;
 
 			mt.SetSampleSize(1);
 
@@ -158,7 +158,7 @@ HRESULT CMatroskaSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 					mt.formattype = FORMAT_VideoInfo;
 					VIDEOINFOHEADER* pvih = (VIDEOINFOHEADER*)mt.AllocFormatBuffer(sizeof(VIDEOINFOHEADER) + pTE->CodecPrivate.GetCount() - sizeof(BITMAPINFOHEADER));
 					memset(mt.Format(), 0, mt.FormatLength());
-					memcpy(&pvih->bmiHeader, (BYTE*)pTE->CodecPrivate, pTE->CodecPrivate.GetCount());
+					memcpy(&pvih->bmiHeader, pTE->CodecPrivate.GetData(), pTE->CodecPrivate.GetCount());
 					mt.subtype = FOURCCMap(pvih->bmiHeader.biCompression);
 					switch(pvih->bmiHeader.biCompression)
 					{
@@ -179,12 +179,12 @@ HRESULT CMatroskaSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 				else if(CodecID == "V_UNCOMPRESSED")
 				{
 				}
-				else if(CodecID.Find("V_MPEG4/ISO/AVC") == 0 && pTE->CodecPrivate.GetSize() >= 6)
+				else if(CodecID.Find("V_MPEG4/ISO/AVC") == 0 && pTE->CodecPrivate.GetCount() >= 6)
 				{
 					BYTE sps = pTE->CodecPrivate[5] & 0x1f;
 
 	std::vector<BYTE> avcC;
-	for(int i = 0, j = pTE->CodecPrivate.GetSize(); i < j; i++)
+	for(int i = 0, j = pTE->CodecPrivate.GetCount(); i < j; i++)
 		avcC.push_back(pTE->CodecPrivate[i]);
 
 	std::vector<BYTE> sh;
@@ -225,13 +225,13 @@ avcfail:
 	continue;
 avcsuccess:
 
-					CArray<BYTE> data;
-					data.SetSize(sh.size());
-					std::copy(sh.begin(), sh.end(), (BYTE*)data.GetData());
+					CAtlArray<BYTE> data;
+					data.SetCount(sh.size());
+					std::copy(sh.begin(), sh.end(), data.GetData());
 
 					mt.subtype = FOURCCMap('1CVA');
 					mt.formattype = FORMAT_MPEG2Video;
-					MPEG2VIDEOINFO* pm2vi = (MPEG2VIDEOINFO*)mt.AllocFormatBuffer(FIELD_OFFSET(MPEG2VIDEOINFO, dwSequenceHeader) + data.GetSize());
+					MPEG2VIDEOINFO* pm2vi = (MPEG2VIDEOINFO*)mt.AllocFormatBuffer(FIELD_OFFSET(MPEG2VIDEOINFO, dwSequenceHeader) + data.GetCount());
 					memset(mt.Format(), 0, mt.FormatLength());
 					pm2vi->hdr.bmiHeader.biSize = sizeof(pm2vi->hdr.bmiHeader);
 					pm2vi->hdr.bmiHeader.biWidth = (LONG)pTE->v.PixelWidth;
@@ -243,8 +243,8 @@ avcsuccess:
 					pm2vi->dwLevel = pTE->CodecPrivate[3];
 					pm2vi->dwFlags = (pTE->CodecPrivate[4] & 3) + 1;
 					BYTE* pSequenceHeader = (BYTE*)pm2vi->dwSequenceHeader;
-					memcpy(pSequenceHeader, data.GetData(), data.GetSize());
-					pm2vi->cbSequenceHeader = data.GetSize();
+					memcpy(pSequenceHeader, data.GetData(), data.GetCount());
+					pm2vi->cbSequenceHeader = data.GetCount();
 					mts.Add(mt);
 				}
 				else if(CodecID.Find("V_MPEG4/") == 0)
@@ -281,7 +281,7 @@ avcsuccess:
 				{
 					mt.subtype = MEDIASUBTYPE_DiracVideo;
 					mt.formattype = FORMAT_DiracVideoInfo;
-					DIRACINFOHEADER* dvih = (DIRACINFOHEADER*)mt.AllocFormatBuffer(FIELD_OFFSET(DIRACINFOHEADER, dwSequenceHeader) + pTE->CodecPrivate.GetSize());
+					DIRACINFOHEADER* dvih = (DIRACINFOHEADER*)mt.AllocFormatBuffer(FIELD_OFFSET(DIRACINFOHEADER, dwSequenceHeader) + pTE->CodecPrivate.GetCount());
 					memset(mt.Format(), 0, mt.FormatLength());
 					dvih->hdr.bmiHeader.biSize = sizeof(dvih->hdr.bmiHeader);
 					dvih->hdr.bmiHeader.biWidth = (LONG)pTE->v.PixelWidth;
@@ -290,15 +290,15 @@ avcsuccess:
 					dvih->hdr.dwPictAspectRatioY = dvih->hdr.bmiHeader.biHeight;
 
 					BYTE* pSequenceHeader = (BYTE*)dvih->dwSequenceHeader;
-					memcpy(pSequenceHeader, pTE->CodecPrivate.GetData(), pTE->CodecPrivate.GetSize());
-					dvih->cbSequenceHeader = pTE->CodecPrivate.GetSize();
+					memcpy(pSequenceHeader, pTE->CodecPrivate.GetData(), pTE->CodecPrivate.GetCount());
+					dvih->cbSequenceHeader = pTE->CodecPrivate.GetCount();
 
 					mts.Add(mt);
 				}
 				else if(CodecID == "V_MPEG2")
 				{
 					BYTE* seqhdr = pTE->CodecPrivate.GetData();
-					DWORD len = pTE->CodecPrivate.GetSize();
+					DWORD len = pTE->CodecPrivate.GetCount();
 					int w = pTE->v.PixelWidth;
 					int h = pTE->v.PixelHeight;
 
@@ -311,8 +311,8 @@ avcsuccess:
 					mt.majortype = MEDIATYPE_Video;
 					mt.subtype = MEDIASUBTYPE_MPEG1Payload;
 					mt.formattype = FORMAT_MPEGVideo;
-					MPEG1VIDEOINFO* pm1vi = (MPEG1VIDEOINFO*)mt.AllocFormatBuffer(pTE->CodecPrivate.GetSize());
-					memcpy(pm1vi, pTE->CodecPrivate.GetData(), pTE->CodecPrivate.GetSize());
+					MPEG1VIDEOINFO* pm1vi = (MPEG1VIDEOINFO*)mt.AllocFormatBuffer(pTE->CodecPrivate.GetCount());
+					memcpy(pm1vi, pTE->CodecPrivate.GetData(), pTE->CodecPrivate.GetCount());
 					mt.SetSampleSize(pm1vi->hdr.bmiHeader.biWidth*pm1vi->hdr.bmiHeader.biHeight*4);
 					mts.Add(mt);
 				}
@@ -380,20 +380,20 @@ avcsuccess:
 
 				if(CodecID == "A_VORBIS")
 				{
-					BYTE* p = (BYTE*)pTE->CodecPrivate;
-					CArray<long> sizes;
+					BYTE* p = pTE->CodecPrivate.GetData();
+					CAtlArray<int> sizes;
 					for(BYTE n = *p++; n > 0; n--)
 					{
-						long size = 0;
+						int size = 0;
 						do {size += *p;} while(*p++ == 0xff);
 						sizes.Add(size);
 					}
 
-					long totalsize = 0;
+					int totalsize = 0;
 					for(int i = 0; i < sizes.GetCount(); i++)
 						totalsize += sizes[i];
 
-					sizes.Add(pTE->CodecPrivate.GetSize() - (p - (BYTE*)pTE->CodecPrivate) - totalsize);
+					sizes.Add(pTE->CodecPrivate.GetCount() - (p - pTE->CodecPrivate.GetData()) - totalsize);
 					totalsize += sizes[sizes.GetCount()-1];
 
 					if(sizes.GetCount() == 3)
@@ -461,7 +461,7 @@ avcsuccess:
 				else if(CodecID == "A_MS/ACM")
 				{
 					pwfe = (WAVEFORMATEX*)mt.AllocFormatBuffer(pTE->CodecPrivate.GetCount());
-					memcpy(pwfe, (WAVEFORMATEX*)(BYTE*)pTE->CodecPrivate, pTE->CodecPrivate.GetCount());
+					memcpy(pwfe, (WAVEFORMATEX*)pTE->CodecPrivate.GetData(), pTE->CodecPrivate.GetCount());
 					mt.subtype = FOURCCMap(pwfe->wFormatTag);
 					mts.Add(mt);
 				}
@@ -546,11 +546,11 @@ avcsuccess:
 				{
 					mt.majortype = MEDIATYPE_Subtitle;
 					mt.formattype = FORMAT_SubtitleInfo;
-					SUBTITLEINFO* psi = (SUBTITLEINFO*)mt.AllocFormatBuffer(sizeof(SUBTITLEINFO) + pTE->CodecPrivate.GetSize());
+					SUBTITLEINFO* psi = (SUBTITLEINFO*)mt.AllocFormatBuffer(sizeof(SUBTITLEINFO) + pTE->CodecPrivate.GetCount());
 					memset(psi, 0, mt.FormatLength());
 					strncpy(psi->IsoLang, pTE->Language, countof(psi->IsoLang)-1);
 					wcsncpy(psi->TrackName, pTE->Name, countof(psi->TrackName)-1);
-					memcpy(mt.pbFormat + (psi->dwOffset = sizeof(SUBTITLEINFO)), pTE->CodecPrivate.GetData(), pTE->CodecPrivate.GetSize());
+					memcpy(mt.pbFormat + (psi->dwOffset = sizeof(SUBTITLEINFO)), pTE->CodecPrivate.GetData(), pTE->CodecPrivate.GetCount());
 
 					mt.subtype = 
 						CodecID == "S_TEXT/UTF8" ? MEDIASUBTYPE_UTF8 :
@@ -620,11 +620,11 @@ avcsuccess:
 			{
 				AttachedFile* pF = pA->AttachedFiles.GetNext(pos);
 
-				CArray<BYTE> pData;
-				pData.SetSize(pF->FileDataLen);
+				CAtlArray<BYTE> pData;
+				pData.SetCount(pF->FileDataLen);
 				m_pFile->Seek(pF->FileDataPos);
-				if(SUCCEEDED(m_pFile->ByteRead(pData.GetData(), pData.GetSize())))
-					ResAppend(pF->FileName, pF->FileDescription, CStringW(pF->FileMimeType), pData.GetData(), pData.GetSize());
+				if(SUCCEEDED(m_pFile->ByteRead(pData.GetData(), pData.GetCount())))
+					ResAppend(pF->FileName, pF->FileDescription, CStringW(pF->FileMimeType), pData.GetData(), pData.GetCount());
 			}
 		}
 	}
@@ -709,20 +709,20 @@ void CMatroskaSplitterFilter::SendVorbisHeaderSample()
 			continue;
 
 		if(pTE->CodecID.ToString() == "A_VORBIS" && pPin->CurrentMediaType().subtype == MEDIASUBTYPE_Vorbis
-		&& pTE->CodecPrivate.GetSize() > 0)
+		&& pTE->CodecPrivate.GetCount() > 0)
 		{
-			BYTE* ptr = (BYTE*)pTE->CodecPrivate;
+			BYTE* ptr = pTE->CodecPrivate.GetData();
 
-			CList<long> sizes;
+			CAtlList<int> sizes;
 			long last = 0;
 			for(BYTE n = *ptr++; n > 0; n--)
 			{
-				long size = 0;
+				int size = 0;
 				do {size += *ptr;} while(*ptr++ == 0xff);
 				sizes.AddTail(size);
 				last += size;
 			}
-			sizes.AddTail(pTE->CodecPrivate.GetSize() - (ptr - (BYTE*)pTE->CodecPrivate) - last);
+			sizes.AddTail(pTE->CodecPrivate.GetCount() - (ptr - pTE->CodecPrivate.GetData()) - last);
 
 			hr = S_OK;
 
@@ -1066,7 +1066,7 @@ CMatroskaSourceFilter::CMatroskaSourceFilter(LPUNKNOWN pUnk, HRESULT* phr)
 
 CMatroskaSplitterOutputPin::CMatroskaSplitterOutputPin(
 		int nMinCache, REFERENCE_TIME rtDefaultDuration,
-		CArray<CMediaType>& mts, LPCWSTR pName, CBaseFilter* pFilter, CCritSec* pLock, HRESULT* phr)
+		CAtlArray<CMediaType>& mts, LPCWSTR pName, CBaseFilter* pFilter, CCritSec* pLock, HRESULT* phr)
 	: CBaseSplitterOutputPin(mts, pName, pFilter, pLock, phr)
 	, m_nMinCache(nMinCache), m_rtDefaultDuration(rtDefaultDuration)
 {
@@ -1210,7 +1210,7 @@ HRESULT CMatroskaSplitterOutputPin::DeliverBlock(MatroskaPacket* p)
 		tmp->bSyncPoint = p->bSyncPoint;
 		tmp->rtStart = rtStart;
 		tmp->rtStop = rtStop;
-		tmp->pData.Copy(*p->bg->Block.BlockData.GetNext(pos));
+		tmp->Copy(*p->bg->Block.BlockData.GetNext(pos));
 		if(S_OK != (hr = DeliverPacket(tmp))) break;
 
 		rtStart += rtDelta;

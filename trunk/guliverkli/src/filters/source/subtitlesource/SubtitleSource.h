@@ -22,7 +22,6 @@
 #pragma once
 
 #include <atlbase.h>
-#include <afxtempl.h>
 #include "..\..\..\subtitles\RTS.h"
 
 class CSubtitleSource

@@ -23,7 +23,6 @@
 
 #include <atlbase.h>
 #include <atlcoll.h>
-#include <afxtempl.h>
 #include "..\BaseSplitter\BaseSplitter.h"
 
 class CMpegSplitterFile : public CBaseSplitterFileEx
@@ -57,7 +56,7 @@ public:
 
 	enum {video, audio, subpic, unknown};
 
-	class CStreamList : public CList<stream>
+	class CStreamList : public CAtlList<stream>
 	{
 	public:
 		void Insert(stream& s)

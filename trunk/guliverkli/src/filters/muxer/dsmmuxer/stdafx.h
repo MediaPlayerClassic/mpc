@@ -41,7 +41,6 @@
 #include <atlbase.h>
 #include <atlcoll.h>
 #include <atlpath.h>
-#include <afxtempl.h>
 
 #include <dshow.h>
 #include <streams.h>

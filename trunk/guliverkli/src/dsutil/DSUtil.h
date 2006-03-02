@@ -35,9 +35,6 @@
 #endif
 #endif
 
-#include <afx.h>
-#include <afxwin.h>
-#include <afxtempl.h>
 #include "NullRenderers.h"
 //#include "MediaTypes.h"
 #include "MediaTypeEx.h"
@@ -77,7 +74,7 @@ extern bool IsCLSIDRegistered(const CLSID& clsid);
 extern void CStringToBin(CString str, CAtlArray<BYTE>& data);
 extern CString BinToCString(BYTE* ptr, int len);
 typedef enum {CDROM_NotFound, CDROM_Audio, CDROM_VideoCD, CDROM_DVDVideo, CDROM_Unknown} cdrom_t;
-extern cdrom_t GetCDROMType(TCHAR drive, CList<CString>& files);
+extern cdrom_t GetCDROMType(TCHAR drive, CAtlList<CString>& files);
 extern CString GetDriveLabel(TCHAR drive);
 extern bool GetKeyFrames(CString fn, CUIntArray& kfs);
 extern DVD_HMSF_TIMECODE RT2HMSF(REFERENCE_TIME rt, double fps = 0);
@@ -113,7 +110,7 @@ extern bool DeleteRegKey(LPCTSTR pszKey, LPCTSTR pszSubkey);
 extern bool SetRegKeyValue(LPCTSTR pszKey, LPCTSTR pszSubkey, LPCTSTR pszValueName, LPCTSTR pszValue);
 extern bool SetRegKeyValue(LPCTSTR pszKey, LPCTSTR pszSubkey, LPCTSTR pszValue);
 extern void RegisterSourceFilter(const CLSID& clsid, const GUID& subtype2, LPCTSTR chkbytes, LPCTSTR ext = NULL, ...);
-extern void RegisterSourceFilter(const CLSID& clsid, const GUID& subtype2, const CList<CString>& chkbytes, LPCTSTR ext = NULL, ...);
+extern void RegisterSourceFilter(const CLSID& clsid, const GUID& subtype2, const CAtlList<CString>& chkbytes, LPCTSTR ext = NULL, ...);
 extern void UnRegisterSourceFilter(const GUID& subtype);
 
 class CPinInfo : public PIN_INFO

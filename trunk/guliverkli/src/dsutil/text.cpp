@@ -1,8 +1,8 @@
 #include "stdafx.h"
-#include <afxtempl.h>
+#include "text.h"
 
 /*
-CString Explode(CString str, CList<CString>& sl, TCHAR sep, int limit)
+CString Explode(CString str, CAtlList<CString>& sl, TCHAR sep, int limit)
 {
 	sl.RemoveAll();
 
@@ -40,7 +40,7 @@ CString Explode(CString str, CList<CString>& sl, TCHAR sep, int limit)
 	return sl.GetHead();
 }
 
-CString ExplodeMin(CString str, CList<CString>& sl, TCHAR sep, int limit)
+CString ExplodeMin(CString str, CAtlList<CString>& sl, TCHAR sep, int limit)
 {
 	Explode(str, sl, sep, limit);
 	POSITION pos = sl.GetHeadPosition();
@@ -55,7 +55,7 @@ CString ExplodeMin(CString str, CList<CString>& sl, TCHAR sep, int limit)
 	return sl.GetHead();
 }
 
-CString Implode(CList<CString>& sl, TCHAR sep)
+CString Implode(CAtlList<CString>& sl, TCHAR sep)
 {
 	CString ret;
 	POSITION pos = sl.GetHeadPosition();
@@ -192,21 +192,21 @@ CString ExtractTag(CString tag, CMapStringToString& attribs, bool& fClosing)
 	return(type);
 }
 
-CList<CString>& MakeLower(CList<CString>& sl)
+CAtlList<CString>& MakeLower(CAtlList<CString>& sl)
 {
 	POSITION pos = sl.GetHeadPosition();
 	while(pos) sl.GetNext(pos).MakeLower();
 	return sl;
 }
 
-CList<CString>& MakeUpper(CList<CString>& sl)
+CAtlList<CString>& MakeUpper(CAtlList<CString>& sl)
 {
 	POSITION pos = sl.GetHeadPosition();
 	while(pos) sl.GetNext(pos).MakeUpper();
 	return sl;
 }
 
-CList<CString>& RemoveStrings(CList<CString>& sl, int minlen, int maxlen)
+CAtlList<CString>& RemoveStrings(CAtlList<CString>& sl, int minlen, int maxlen)
 {
 	POSITION pos = sl.GetHeadPosition();
 	while(pos)

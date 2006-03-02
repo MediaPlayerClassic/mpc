@@ -20,10 +20,6 @@
  */
 
 #include "stdafx.h"
-#include <atlcoll.h>
-#include <afxtempl.h>
-#include <Shlwapi.h>
-#include <atlpath.h>
 #include <Vfw.h>
 #include "..\..\include\winddk\devioctl.h"
 #include "..\..\include\winddk\ntddcdrm.h"
@@ -758,7 +754,7 @@ CString BinToCString(BYTE* ptr, int len)
 	return(ret);
 }
 
-static void FindFiles(CString fn, CList<CString>& files)
+static void FindFiles(CString fn, CAtlList<CString>& files)
 {
 	CString path = fn;
 	path.Replace('/', '\\');
@@ -775,7 +771,7 @@ static void FindFiles(CString fn, CList<CString>& files)
 	}
 }
 
-cdrom_t GetCDROMType(TCHAR drive, CList<CString>& files)
+cdrom_t GetCDROMType(TCHAR drive, CAtlList<CString>& files)
 {
 	files.RemoveAll();
 
@@ -1262,7 +1258,7 @@ typedef struct
 	CLSID clsid;
 } ExternalObject;
 
-static CList<ExternalObject> s_extobjs;
+static CAtlList<ExternalObject> s_extobjs;
 
 HRESULT LoadExternalObject(LPCTSTR path, REFCLSID clsid, REFIID iid, void** ppv)
 {
@@ -2043,7 +2039,7 @@ CString LanguageToISO6392(LPCTSTR lang)
 	str.MakeLower();
 	for(int i = 0, j = countof(s_isolangs); i < j; i++)
 	{
-		CList<CString> sl;
+		CAtlList<CString> sl;
 		Explode(CString(s_isolangs[i].name), sl, ';');
 		POSITION pos = sl.GetHeadPosition();
 		while(pos)
@@ -2191,7 +2187,7 @@ void RegisterSourceFilter(const CLSID& clsid, const GUID& subtype2, LPCTSTR chkb
 	va_end(marker);
 }
 
-void RegisterSourceFilter(const CLSID& clsid, const GUID& subtype2, const CList<CString>& chkbytes, LPCTSTR ext, ...)
+void RegisterSourceFilter(const CLSID& clsid, const GUID& subtype2, const CAtlList<CString>& chkbytes, LPCTSTR ext, ...)
 {
 	CString null = CStringFromGUID(GUID_NULL);
 	CString majortype = CStringFromGUID(MEDIATYPE_Stream);

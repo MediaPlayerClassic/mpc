@@ -32,7 +32,7 @@ class CFavoriteOrganizeDlg : public CResizableDialog
 //	DECLARE_DYNAMIC(CFavoriteOrganizeDlg)
 
 private:
-	CList<CString> m_sl[3];
+	CAtlList<CString> m_sl[3];
 	void SetupList(bool fSave);
 
 public:

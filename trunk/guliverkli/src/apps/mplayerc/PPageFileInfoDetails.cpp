@@ -257,7 +257,7 @@ BOOL CPPageFileInfoDetails::OnInitDialog()
 
 void CPPageFileInfoDetails::InitEncoding()
 {
-	CList<CString> sl;
+	CAtlList<CString> sl;
 
 	BeginEnumFilters(m_pFG, pEF, pBF)
 	{

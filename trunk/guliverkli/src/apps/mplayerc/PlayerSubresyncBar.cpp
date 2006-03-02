@@ -113,9 +113,9 @@ void CPlayerSubresyncBar::SetSubtitle(ISubStream* pSubStream, double fps)
 
 		m_mode = VOBSUB;
 
-		CArray<CVobSubFile::SubPos>& sp = pVSF->m_langs[pVSF->m_iLang].subpos;
+		CAtlArray<CVobSubFile::SubPos>& sp = pVSF->m_langs[pVSF->m_iLang].subpos;
 
-		for(int i = 0, j = sp.GetSize(); i < j; i++)
+		for(int i = 0, j = sp.GetCount(); i < j; i++)
 		{
 			CString str;
 			str.Format(_T("%d,%d,%d,%d"), sp[i].vobid, sp[i].cellid, sp[i].fForced, i);
@@ -172,9 +172,9 @@ void CPlayerSubresyncBar::SetSubtitle(ISubStream* pSubStream, double fps)
 		m_list.InsertColumn(COL_EFFECT, _T("Effect"), LVCFMT_LEFT, 80);
 	}
 
-	m_subtimes.SetSize(m_sts.GetSize());
+	m_subtimes.SetCount(m_sts.GetCount());
 
-	for(int i = 0, j = m_sts.GetSize(); i < j; i++)
+	for(int i = 0, j = m_sts.GetCount(); i < j; i++)
 	{
 		m_subtimes[i].orgstart = m_sts[i].start;
 		m_subtimes[i].orgend = m_sts[i].end;
@@ -193,7 +193,7 @@ void CPlayerSubresyncBar::ResetSubtitle()
 
 		int prevstart = INT_MIN;
 
-		for(int i = 0, j = m_sts.GetSize(); i < j; i++)
+		for(int i = 0, j = m_sts.GetCount(); i < j; i++)
 		{
 			m_subtimes[i].newstart = m_subtimes[i].orgstart;
 			m_subtimes[i].newend = m_subtimes[i].orgend;
@@ -232,14 +232,14 @@ void CPlayerSubresyncBar::SaveSubtitle()
 
 		CAutoLock cAutoLock(m_pSubLock);
 
-		CArray<CVobSubFile::SubPos>& sp = pVSF->m_langs[pVSF->m_iLang].subpos;
+		CAtlArray<CVobSubFile::SubPos>& sp = pVSF->m_langs[pVSF->m_iLang].subpos;
 
-		for(int i = 0, j = sp.GetSize(); i < j; i++) 
+		for(int i = 0, j = sp.GetCount(); i < j; i++) 
 		{
 			sp[i].fValid = false;
 		}
 
-		for(int i = 0, j = m_sts.GetSize(); i < j; i++) 
+		for(int i = 0, j = m_sts.GetCount(); i < j; i++) 
 		{
 			int vobid, cellid, forced, spnum, c;
 			if(_stscanf(m_sts.GetStr(i), _T("%d%c%d%c%d%c%d"), &vobid, &c, &cellid, &c, &forced, &c, &spnum) != 7) continue;
@@ -270,7 +270,7 @@ void CPlayerSubresyncBar::UpdatePreview()
 	{
 		if(0/*m_fUnlink*/)
 		{
-			for(int i = 0, j = m_sts.GetSize(); i < j; i++)
+			for(int i = 0, j = m_sts.GetCount(); i < j; i++)
 			{
 				bool fStartMod, fEndMod, fStartAdj, fEndAdj;
 				GetCheck(i, fStartMod, fEndMod, fStartAdj, fEndAdj);
@@ -280,9 +280,9 @@ void CPlayerSubresyncBar::UpdatePreview()
 		}
 		else
 		{
-			CArray <int, int> schk;
+			CAtlArray<int> schk;
 
-			for(int i = 0, j = m_sts.GetSize(); i < j;)
+			for(int i = 0, j = m_sts.GetCount(); i < j;)
 			{
 				schk.RemoveAll();
 
@@ -296,7 +296,7 @@ void CPlayerSubresyncBar::UpdatePreview()
 						schk.Add(end);
 				}
 
-				if(schk.GetSize() == 0)
+				if(schk.GetCount() == 0)
 				{
 					for(; start < end; start++) 
 					{
@@ -304,7 +304,7 @@ void CPlayerSubresyncBar::UpdatePreview()
 						m_sts[start].end = m_subtimes[start].orgend;
 					}
 				}
-				else if(schk.GetSize() == 1)
+				else if(schk.GetCount() == 1)
 				{
 					int k = schk[0];
 					int dt = m_subtimes[k].newstart - m_subtimes[k].orgstart;
@@ -316,12 +316,12 @@ void CPlayerSubresyncBar::UpdatePreview()
 							: (m_subtimes[start].orgend + dt);
 					}
 				}
-				else if(schk.GetSize() >= 2)
+				else if(schk.GetCount() >= 2)
 				{
 					int i0, i1, ti0, ds;
 					double m = 0;
 
-					for(int k = 0, l = schk.GetSize()-1; k < l; k++)
+					for(int k = 0, l = schk.GetCount()-1; k < l; k++)
 					{
 						i0 = schk[k];
 						i1 = schk[k+1];
@@ -385,7 +385,7 @@ void CPlayerSubresyncBar::UpdatePreview()
 
 		m_sts.CreateSegments();
 
-		for(int i = 0, j = m_sts.GetSize(); i < j; i++)
+		for(int i = 0, j = m_sts.GetCount(); i < j; i++)
 		{
 			TCHAR buff[32];
 			FormatTime(i, buff, 2, false);
@@ -407,7 +407,7 @@ void CPlayerSubresyncBar::UpdateStrings()
 
 	if(m_mode == TEXTSUB)
 	{
-		for(int i = 0, j = m_sts.GetSize(); i < j; i++)
+		for(int i = 0, j = m_sts.GetCount(); i < j; i++)
 		{
 			STSStyle stss;
 			m_sts.GetStyle(i, stss);
@@ -426,7 +426,7 @@ void CPlayerSubresyncBar::UpdateStrings()
 	}
 	else if(m_mode == VOBSUB)
 	{
-		for(int i = 0, j = m_sts.GetSize(); i < j; i++)
+		for(int i = 0, j = m_sts.GetCount(); i < j; i++)
 		{
 			int vobid, cellid, forced, c;
 			if(_stscanf(m_sts.GetStr(i), _T("%d%c%d%c%d"), &vobid, &c, &cellid, &c, &forced) != 5) continue;
@@ -444,7 +444,7 @@ void CPlayerSubresyncBar::UpdateStrings()
 
 void CPlayerSubresyncBar::GetCheck(int iItem, bool& fStartMod, bool& fEndMod, bool& fStartAdj, bool& fEndAdj)
 {
-	if(0 <= iItem && iItem < m_sts.GetSize())
+	if(0 <= iItem && iItem < m_sts.GetCount())
 	{
         int nCheck = (int)m_list.GetItemData(iItem);
 		fStartMod = !!(nCheck&TSMOD);
@@ -456,7 +456,7 @@ void CPlayerSubresyncBar::GetCheck(int iItem, bool& fStartMod, bool& fEndMod, bo
 
 void CPlayerSubresyncBar::SetCheck(int iItem, bool fStart, bool fEnd)
 {
-	if(0 <= iItem && iItem < m_sts.GetSize())
+	if(0 <= iItem && iItem < m_sts.GetCount())
 	{
 		SubTime& st = m_subtimes[iItem];
 
@@ -700,8 +700,7 @@ void CPlayerSubresyncBar::OnEndlabeleditList(NMHDR* pNMHDR, LRESULT* pResult)
 			{
 				fNeedsUpdate = true;
 
-				void* val;
-				if(!m_sts.m_styles.Lookup(str, val))
+				if(!m_sts.m_styles.Lookup(str)) 
 					m_sts.AddStyle(str, new STSStyle());
 
 				m_sts[pItem->iItem].style = str;
@@ -813,11 +812,9 @@ void CPlayerSubresyncBar::OnRclickList(NMHDR* pNMHDR, LRESULT* pResult)
 			while(pos && id <= STYLELAST)
 			{
 				CString key;
-				void* val;
+				STSStyle* val;
 				m_sts.m_styles.GetNextAssoc(pos, key, val);
-
 				styles.Add(key);
-
 				m.AppendMenu(MF_STRING|MF_ENABLED, id++, key);
 			}
 
@@ -843,7 +840,7 @@ void CPlayerSubresyncBar::OnRclickList(NMHDR* pNMHDR, LRESULT* pResult)
 		{
 			CMapStringToPtr actormap;
 
-			for(int i = 0, j = m_sts.GetSize(); i < j; i++)
+			for(int i = 0, j = m_sts.GetCount(); i < j; i++)
 				actormap[m_sts[i].actor] = NULL;
 
 			actormap.RemoveKey(_T(""));
@@ -871,7 +868,7 @@ void CPlayerSubresyncBar::OnRclickList(NMHDR* pNMHDR, LRESULT* pResult)
 		{
 			CMapStringToPtr effectmap;
 
-			for(int i = 0, j = m_sts.GetSize(); i < j; i++)
+			for(int i = 0, j = m_sts.GetCount(); i < j; i++)
 				effectmap[m_sts[i].effect] = NULL;
 
 			effectmap.RemoveKey(_T(""));
@@ -923,9 +920,9 @@ void CPlayerSubresyncBar::OnRclickList(NMHDR* pNMHDR, LRESULT* pResult)
 					pos = m_list.GetFirstSelectedItemPosition();
 					while(pos) items.Add(m_list.GetNextSelectedItem(pos));
 
-					qsort(items.GetData(), items.GetSize(), sizeof(UINT), uintcomp);
+					qsort(items.GetData(), items.GetCount(), sizeof(UINT), uintcomp);
 
-					for(int i = 0; i < items.GetSize(); i++)
+					for(int i = 0; i < items.GetCount(); i++)
 					{
 						iItem = items[i];
 
@@ -959,9 +956,9 @@ void CPlayerSubresyncBar::OnRclickList(NMHDR* pNMHDR, LRESULT* pResult)
 					pos = m_list.GetFirstSelectedItemPosition();
 					while(pos) items.Add(m_list.GetNextSelectedItem(pos));
 
-					qsort(items.GetData(), items.GetSize(), sizeof(UINT), uintcomp);
+					qsort(items.GetData(), items.GetCount(), sizeof(UINT), uintcomp);
 
-					for(int i = 0; i < items.GetSize(); i++)
+					for(int i = 0; i < items.GetCount(); i++)
 					{
 						iItem = items[i];
 						m_sts.RemoveAt(iItem);
@@ -969,7 +966,7 @@ void CPlayerSubresyncBar::OnRclickList(NMHDR* pNMHDR, LRESULT* pResult)
 						m_list.DeleteItem(iItem);
 					}
 
-					iItem = items[items.GetSize()-1];
+					iItem = items[items.GetCount()-1];
 					if(iItem >= m_list.GetItemCount()) iItem = m_list.GetItemCount()-1;
 
 					m_list.SetSelectionMark(iItem);
@@ -1002,15 +999,15 @@ void CPlayerSubresyncBar::OnRclickList(NMHDR* pNMHDR, LRESULT* pResult)
 					for(int i = 0; pos; i++)
 					{
 						CString key;
-						void* val;
+						STSStyle* val;
 						m_sts.m_styles.GetNextAssoc(pos, key, val);
 
 						CAutoPtr<CPPageSubStyle> page(new CPPageSubStyle());
-						page->InitStyle(key, *(STSStyle*)val);
+						page->InitStyle(key, *val);
 						pages.Add(page);
-						styles.Add((STSStyle*)val);
+						styles.Add(val);
 
-						if(stss == (STSStyle*)val) 
+						if(stss == val) 
 							iSelPage = i;
 					}
 
@@ -1024,7 +1021,7 @@ void CPlayerSubresyncBar::OnRclickList(NMHDR* pNMHDR, LRESULT* pResult)
 							stss = styles[j];
 							pages[j]->GetStyle(*stss);
 
-							for(int i = 0; i < m_sts.GetSize(); i++)
+							for(int i = 0; i < m_sts.GetCount(); i++)
 							{
 								if(m_sts.GetStyle(i) == stss)
 								{

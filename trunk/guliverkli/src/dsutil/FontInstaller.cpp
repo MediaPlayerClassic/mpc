@@ -22,9 +22,9 @@ CFontInstaller::~CFontInstaller()
 	UninstallFonts();
 }
 
-bool CFontInstaller::InstallFont(const CArray<BYTE>& data)
+bool CFontInstaller::InstallFont(const CAtlArray<BYTE>& data)
 {
-	return InstallFont(data.GetData(), data.GetSize());
+	return InstallFont(data.GetData(), data.GetCount());
 }
 
 bool CFontInstaller::InstallFont(const void* pData, UINT len)

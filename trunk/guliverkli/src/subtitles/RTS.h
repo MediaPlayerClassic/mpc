@@ -91,8 +91,8 @@ protected:
 	double m_scalex, m_scaley;
 	int m_baseline;
 
-	CArray<BYTE> m_pathTypesOrg;
-	CArray<CPoint> m_pathPointsOrg;
+	CAtlArray<BYTE> m_pathTypesOrg;
+	CAtlArray<CPoint> m_pathPointsOrg;
 
 	virtual bool CreatePath();
 
@@ -118,7 +118,7 @@ public:
 	BYTE* m_pAlphaMask;
 };
 
-class CLine : public CList<CWord*>
+class CLine : public CAtlList<CWord*>
 {
 public:
 	int m_width, m_ascent, m_descent, m_border;
@@ -151,7 +151,7 @@ public:
 	int t[4];
 };
 
-class CSubtitle : public CList<CLine*>
+class CSubtitle : public CAtlList<CLine*>
 {
 	int GetFullWidth();
 	int GetFullLineWidth(POSITION pos);
@@ -166,7 +166,7 @@ public:
 
 	Effect* m_effects[EF_NUMBEROFEFFECTS];
 
-	CList<CWord*> m_words;
+	CAtlList<CWord*> m_words;
 
 	CClipper* m_pClipper;
 
@@ -193,19 +193,19 @@ class CScreenLayoutAllocator
 		int segment, entry, layer;
 	} SubRect;
 
-	CList <SubRect, SubRect&> m_subrects;
+	CAtlList<SubRect> m_subrects;
 
 public:
 	virtual void Empty();
 
-	void AdvanceToSegment(int segment, const CSubArray& sa);
+	void AdvanceToSegment(int segment, const CAtlArray<int>& sa);
 	CRect AllocRect(CSubtitle* s, int segment, int entry, int layer, int collisions);
 };
 
 [uuid("537DCACA-2812-4a4f-B2C6-1A34C17ADEB0")]
 class CRenderedTextSubtitle : public CSimpleTextSubtitle, public ISubPicProviderImpl, public ISubStream
 {
-	CMap <int, int, CSubtitle*, CSubtitle*> m_subtitleCache;
+	CAtlMap<int, CSubtitle*> m_subtitleCache;
 
 	CScreenLayoutAllocator m_sla;
 

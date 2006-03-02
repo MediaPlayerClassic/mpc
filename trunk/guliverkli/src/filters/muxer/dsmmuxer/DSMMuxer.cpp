@@ -270,7 +270,7 @@ void CDSMMuxerFilter::MuxHeader(IBitStream* pBS)
 
 	if(pCB)
 	{
-		CList<CDSMChapter> chapters;
+		CAtlList<CDSMChapter> chapters;
 		REFERENCE_TIME rtPrev = 0;
 		int len = 0;
 
@@ -362,7 +362,7 @@ void CDSMMuxerFilter::MuxFooter(IBitStream* pBS)
 	// syncpoints
 
 	int len = 0;
-	CList<IndexedSyncPoint> isps;
+	CAtlList<IndexedSyncPoint> isps;
 	REFERENCE_TIME rtPrev = 0, rt;
 	UINT64 fpPrev = 0, fp;
 

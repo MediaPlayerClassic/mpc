@@ -204,7 +204,7 @@ HRESULT COggSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 				if(COggSplitterOutputPin* pOggPin = 
 					dynamic_cast<COggSplitterOutputPin*>(GetOutputPin(page.m_hdr.bitstream_serial_number)))
 				{
-					pOggPin->AddComment(p+6, page.GetSize()-6-1);
+					pOggPin->AddComment(p+6, page.GetCount()-6-1);
 				}
 			}
 			else if(!(type&1) && nWaitForMore == 0)
@@ -537,7 +537,7 @@ void COggSplitterOutputPin::AddComment(BYTE* p, int len)
 		for(int len = bs.getbits(32); len-- > 0; )
 			str += (CHAR)bs.getbits(8);
 
-		CList<CStringA> sl;
+		CAtlList<CStringA> sl;
 		Explode(str, sl, '=', 2);
 		if(sl.GetCount() == 2)
 		{
@@ -573,7 +573,7 @@ void COggSplitterOutputPin::AddComment(BYTE* p, int len)
 CStringW COggSplitterOutputPin::GetComment(CStringW key)
 {
 	key.MakeUpper();
-	CList<CStringW> sl;
+	CAtlList<CStringW> sl;
 	POSITION pos = m_pComments.GetHeadPosition();
 	while(pos)
 	{
@@ -630,9 +630,9 @@ HRESULT COggSplitterOutputPin::UnpackPage(OggPage& page)
 
 				if(m_lastpacket)
 				{
-					int size = m_lastpacket->pData.GetSize();
-					m_lastpacket->pData.SetSize(size + j-i);
-					memcpy(m_lastpacket->pData.GetData() + size, pData + i, j-i);
+					int size = m_lastpacket->GetCount();
+					m_lastpacket->SetCount(size + j-i);
+					memcpy(m_lastpacket->GetData() + size, pData + i, j-i);
 
 					CAutoLock csAutoLock(&m_csPackets);
 
@@ -661,7 +661,7 @@ if(abs(rtLast - m_rtLast) == GetRefTime(1)) m_rtLast = rtLast; // FIXME
 				{
 //if(p->TrackNumber == 1)
 TRACE(_T("[%d]: %d, %I64d -> %I64d (skip=%d, disc=%d, sync=%d)\n"), 
-		(int)p->TrackNumber, p->pData.GetSize(), p->rtStart, p->rtStop,
+		(int)p->TrackNumber, p->GetCount(), p->rtStart, p->rtStop,
 		(int)m_fSkip, (int)p->bDiscontinuity, (int)p->bSyncPoint);
 
 					if(p->rtStart <= p->rtStop && p->rtStop <= p->rtStart + 10000000i64*60)
@@ -757,10 +757,10 @@ HRESULT COggVorbisOutputPin::UnpackInitPage(OggPage& page)
 	{
 		Packet* p = m_packets.GetHead();
 
-		if(p->pData.GetCount() >= 6 && p->pData.GetData()[0] == 0x05)
+		if(p->GetCount() >= 6 && p->GetAt(0) == 0x05)
 		{
 			// yeah, right, we are going to be parsing this backwards! :P
-			bitstream bs(p->pData.GetData(), p->pData.GetCount(), true);
+			bitstream bs(p->GetData(), p->GetCount(), true);
 			while(bs.hasbits(-1) && bs.getbits(-1) != 1);
 			for(int cnt = 0; bs.hasbits(-8-16-16-1-6); cnt++)
 			{
@@ -784,13 +784,13 @@ HRESULT COggVorbisOutputPin::UnpackInitPage(OggPage& page)
 		int cnt = m_initpackets.GetCount();
 		if(cnt <= 3)
 		{
-			ASSERT(p->pData.GetCount() >= 6 && p->pData.GetData()[0] == 1+cnt*2);
+			ASSERT(p->GetCount() >= 6 && p->GetAt(0) == 1+cnt*2);
 			VORBISFORMAT2* vf2 = (VORBISFORMAT2*)m_mts[0].Format();
-			vf2->HeaderSize[cnt] = p->pData.GetSize();
+			vf2->HeaderSize[cnt] = p->GetCount();
 			int len = m_mts[0].FormatLength();
 			memcpy(
-				m_mts[0].ReallocFormatBuffer(len + p->pData.GetSize()) + len, 
-				p->pData.GetData(), p->pData.GetSize());
+				m_mts[0].ReallocFormatBuffer(len + p->GetCount()) + len, 
+				p->GetData(), p->GetCount());
 		}
 
 		m_initpackets.AddTail(m_packets.RemoveHead());
@@ -830,7 +830,7 @@ HRESULT COggVorbisOutputPin::UnpackPacket(CAutoPtr<OggPacket>& p, BYTE* pData, i
 
 HRESULT COggVorbisOutputPin::DeliverPacket(CAutoPtr<OggPacket> p)
 {
-	if(p->pData.GetSize() > 0 && (p->pData.GetData()[0]&1))
+	if(p->GetCount() > 0 && (p->GetAt(0)&1))
 		return S_OK;
 
 	return __super::DeliverPacket(p);
@@ -852,7 +852,7 @@ HRESULT COggVorbisOutputPin::DeliverNewSegment(REFERENCE_TIME tStart, REFERENCE_
 			p->TrackNumber = pi->TrackNumber;
 			p->bDiscontinuity = p->bSyncPoint = FALSE;//TRUE;
 			p->rtStart = p->rtStop = 0;
-			p->pData.Copy(pi->pData);
+			p->Copy(*pi);
 			__super::DeliverPacket(p);
 		}
 	}

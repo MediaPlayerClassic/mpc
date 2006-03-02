@@ -34,7 +34,7 @@ class CPPageFileInfoRes : public CPPageBase
 private:
 	CComPtr<IFilterGraph> m_pFG;
 	HICON m_hIcon;
-	CList<CDSMResource> m_res;
+	CAtlList<CDSMResource> m_res;
 
 public:
 	CPPageFileInfoRes(CString fn, IFilterGraph* pFG);   // standard constructor

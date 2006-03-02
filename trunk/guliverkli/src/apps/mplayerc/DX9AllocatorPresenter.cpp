@@ -242,7 +242,15 @@ class CDXRAllocatorPresenter
 		STDMETHODIMP Render(REFERENCE_TIME rtStart, int left, int top, int right, int bottom, int width, int height)
 		{
 			CAutoLock cAutoLock(this);
-			return m_pDXRAP ? m_pDXRAP->Render(rtStart, left, top, right, bottom, width, height) : E_UNEXPECTED;
+			return m_pDXRAP ? m_pDXRAP->Render(rtStart, 0, 0, left, top, right, bottom, width, height) : E_UNEXPECTED;
+		}
+
+		// ISubRendererCallback2
+
+		STDMETHODIMP RenderEx(REFERENCE_TIME rtStart, REFERENCE_TIME rtStop, REFERENCE_TIME AvgTimePerFrame, int left, int top, int right, int bottom, int width, int height)
+		{
+			CAutoLock cAutoLock(this);
+			return m_pDXRAP ? m_pDXRAP->Render(rtStart, rtStop, AvgTimePerFrame, left, top, right, bottom, width, height) : E_UNEXPECTED;
 		}
 	};
 
@@ -257,7 +265,9 @@ public:
     STDMETHODIMP NonDelegatingQueryInterface(REFIID riid, void** ppv);
 
 	HRESULT SetDevice(IDirect3DDevice9* pD3DDev);
-	HRESULT Render(REFERENCE_TIME rtStart, int left, int top, int bottom, int right, int width, int height);
+	HRESULT Render(
+		REFERENCE_TIME rtStart, REFERENCE_TIME rtStop, REFERENCE_TIME atpf,
+		int left, int top, int bottom, int right, int width, int height);
 
 	// ISubPicAllocatorPresenter
 	STDMETHODIMP CreateRenderer(IUnknown** ppRenderer);
@@ -2130,10 +2140,13 @@ HRESULT CDXRAllocatorPresenter::SetDevice(IDirect3DDevice9* pD3DDev)
 	return S_OK;
 }
 
-HRESULT CDXRAllocatorPresenter::Render(REFERENCE_TIME rtStart, int left, int top, int right, int bottom, int width, int height)
+HRESULT CDXRAllocatorPresenter::Render(
+	REFERENCE_TIME rtStart, REFERENCE_TIME rtStop, REFERENCE_TIME atpf,
+	int left, int top, int right, int bottom, int width, int height)
 {	
 	__super::SetPosition(CRect(0, 0, width, height), CRect(left, top, right, bottom)); // needed? should be already set by the player
 	SetTime(rtStart);
+	if(atpf > 0 && m_pSubPicQueue) m_pSubPicQueue->SetFPS(10000000.0 / atpf);
 	AlphaBltSubPic(CSize(width, height));
 	return S_OK;
 }

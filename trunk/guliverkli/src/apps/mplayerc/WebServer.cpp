@@ -108,12 +108,12 @@ CWebServer::CWebServer(CMainFrame* pMainFrame, int nPort)
 	m_webroot.MakePretty();
 	if(!m_webroot.IsDirectory()) m_webroot = CPath();
 
-	CList<CString> sl;
+	CAtlList<CString> sl;
 	Explode(AfxGetAppSettings().WebServerCGI, sl, ';');
 	POSITION pos = sl.GetHeadPosition();
 	while(pos)
 	{
-		CList<CString> sl2;
+		CAtlList<CString> sl2;
 		CString ext = Explode(sl.GetNext(pos), sl2, '=', 2);
 		if(sl2.GetCount() < 2) continue;
 		m_cgi[ext] = sl2.GetTail();
@@ -198,7 +198,7 @@ bool CWebServer::ToLocalPath(CString& path, CString& redir)
 
 		if(p.IsDirectory())
 		{
-			CList<CString> sl;
+			CAtlList<CString> sl;
 			Explode(AfxGetAppSettings().WebDefIndex, sl, ';');
 			POSITION pos = sl.GetHeadPosition();
 			while(pos)
@@ -297,13 +297,13 @@ void CWebServer::OnRequest(CWebClientSocket* pClient, CStringA& hdr, CStringA& b
 		if(fHandled)
 		{
 			tmphdr.Replace("\r\n", "\n");
-			CList<CStringA> hdrlines;
+			CAtlList<CStringA> hdrlines;
 			ExplodeMin(tmphdr, hdrlines, '\n');
 			POSITION pos = hdrlines.GetHeadPosition();
 			while(pos)
 			{
 				POSITION cur = pos;
-				CList<CStringA> sl;
+				CAtlList<CStringA> sl;
 				CStringA key = Explode(hdrlines.GetNext(pos), sl, ':', 2);
 				if(sl.GetCount() < 2) continue;
 				key.Trim().MakeLower();
@@ -405,7 +405,7 @@ void CWebServer::OnRequest(CWebClientSocket* pClient, CStringA& hdr, CStringA& b
 		CString accept_encoding;
 		pClient->m_hdrlines.Lookup(_T("accept-encoding"), accept_encoding);
 		accept_encoding.MakeLower();
-		CList<CString> sl;
+		CAtlList<CString> sl;
 		ExplodeMin(accept_encoding, sl, ',');
 		if(!sl.Find(_T("gzip"))) break;;
 
@@ -503,7 +503,7 @@ bool CWebServer::CallCGI(CWebClientSocket* pClient, CStringA& hdr, CStringA& bod
 	{
 		CString str; 
 
-		CList<CString> env;
+		CAtlList<CString> env;
 		for(LPTSTR lpszVariable = (LPTSTR)lpvEnv; *lpszVariable; lpszVariable += _tcslen(lpszVariable)+1)
 			if(lpszVariable != (LPTSTR)lpvEnv)
 				env.AddTail(lpszVariable);

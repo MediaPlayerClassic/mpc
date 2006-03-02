@@ -21,8 +21,7 @@
 
 #pragma once
 
-#include <atlbase.h>
-#include <afxtempl.h>
+#include <atlcoll.h>
 
 #pragma pack(push, 1)
 enum
@@ -106,7 +105,7 @@ class CFLICStream
 {
 	CFile m_flic;
 	FLIC m_hdr;
-	CArray<FLIC_FRAME_ENTRY> m_frames;
+	CAtlArray<FLIC_FRAME_ENTRY> m_frames;
 
 	CCritSec m_cSharedState;
 

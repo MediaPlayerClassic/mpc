@@ -213,7 +213,7 @@ void CBaseMuxerFilter::MuxPacketInternal(const MuxerPacket* pPacket)
 {
 	TRACE(_T("MuxPacket pPin=%x, size=%d, s%d e%d b%d, rt=(%I64d-%I64d)\n"), 
 		pPacket->pPin->GetID(),
-		pPacket->pData.GetSize(),
+		pPacket->pData.GetCount(),
 		!!(pPacket->flags & MuxerPacket::syncpoint),
 		!!(pPacket->flags & MuxerPacket::eos), 
 		!!(pPacket->flags & MuxerPacket::bogus), 

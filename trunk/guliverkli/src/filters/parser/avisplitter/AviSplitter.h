@@ -23,7 +23,6 @@
 
 #include <atlbase.h>
 #include <atlcoll.h>
-#include <afxtempl.h>
 #include "..\BaseSplitter\BaseSplitter.h"
 
 class CAviFile;
@@ -31,7 +30,7 @@ class CAviFile;
 class CAviSplitterOutputPin : public CBaseSplitterOutputPin
 {
 public:
-	CAviSplitterOutputPin(CArray<CMediaType>& mts, LPCWSTR pName, CBaseFilter* pFilter, CCritSec* pLock, HRESULT* phr);
+	CAviSplitterOutputPin(CAtlArray<CMediaType>& mts, LPCWSTR pName, CBaseFilter* pFilter, CCritSec* pLock, HRESULT* phr);
 
 	HRESULT CheckConnect(IPin* pPin);
 };

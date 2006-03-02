@@ -224,7 +224,7 @@ HRESULT CRealMediaSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 		name.Format(L"Output %02d", pmp->stream);
 		if(!pmp->name.IsEmpty()) name += L" (" + CStringW(pmp->name) + L")";
 
-		CArray<CMediaType> mts;
+		CAtlArray<CMediaType> mts;
 
 		CMediaType mt;
 		mt.SetSampleSize(max(pmp->maxPacketSize*16/**/, 1));
@@ -292,7 +292,7 @@ HRESULT CRealMediaSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 			fccstr[4] = 0;
 
 			BYTE* fmt = pmp->typeSpecData.GetData();
-			for(int i = 0; i < pmp->typeSpecData.GetSize()-4; i++, fmt++)
+			for(int i = 0; i < pmp->typeSpecData.GetCount()-4; i++, fmt++)
 			{
 				if(fmt[0] == '.' || fmt[1] == 'r' || fmt[2] == 'a')
 					break;
@@ -384,7 +384,7 @@ HRESULT CRealMediaSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 		}
 		else if(pmp->mime == "logical-fileinfo")
 		{
-			CMap<CStringA,LPCSTR,CStringA,LPCSTR> lfi;
+			CAtlMap<CStringA, CStringA, CStringElementTraits<CStringA> > lfi;
 			CStringA key, value;
 
 			BYTE* p = pmp->typeSpecData.GetData();
@@ -475,7 +475,7 @@ HRESULT CRealMediaSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 		mt.SetSampleSize(1);
 		mt.majortype = MEDIATYPE_Text;
 
-		CArray<CMediaType> mts;
+		CAtlArray<CMediaType> mts;
 		mts.Add(mt);
 
 		HRESULT hr;
@@ -668,8 +668,8 @@ bool CRealMediaSplitterFilter::DemuxLoop()
 		p->rtStart = 0;
 		p->rtStop = 1;
 
-		p->pData.SetSize((4+1) + (2+4+(s.name.GetLength()+1)*2) + (2+4+s.data.GetLength()));
-		BYTE* ptr = p->pData.GetData();
+		p->SetCount((4+1) + (2+4+(s.name.GetLength()+1)*2) + (2+4+s.data.GetLength()));
+		BYTE* ptr = p->GetData();
 
 		strcpy((char*)ptr, "GAB2"); ptr += 4+1;
 
@@ -702,7 +702,7 @@ bool CRealMediaSplitterFilter::DemuxLoop()
 			p->bSyncPoint = !!(mph.flags&MediaPacketHeader::PN_KEYFRAME_FLAG);
 			p->rtStart = 10000i64*(mph.tStart);
 			p->rtStop = p->rtStart+1;
-			p->pData.Copy(mph.pData);
+			p->Copy(mph.pData);
 			hr = DeliverPacket(p);
 		}
 
@@ -743,7 +743,7 @@ STDMETHODIMP CRealMediaSplitterFilter::GetKeyFrames(const GUID* pFormat, REFEREN
 // CRealMediaSplitterOutputPin
 //
 
-CRealMediaSplitterOutputPin::CRealMediaSplitterOutputPin(CArray<CMediaType>& mts, LPCWSTR pName, CBaseFilter* pFilter, CCritSec* pLock, HRESULT* phr)
+CRealMediaSplitterOutputPin::CRealMediaSplitterOutputPin(CAtlArray<CMediaType>& mts, LPCWSTR pName, CBaseFilter* pFilter, CCritSec* pLock, HRESULT* phr)
 	: CBaseSplitterOutputPin(mts, pName, pFilter, pLock, phr)
 {
 }
@@ -791,9 +791,9 @@ HRESULT CRealMediaSplitterOutputPin::DeliverSegments()
 	ASSERT(len == total);
 	len += 1 + 2*4*(!m_segments.fMerged ? m_segments.GetCount() : 1);
 	
-	p->pData.SetSize(len);
+	p->SetCount(len);
 
-	BYTE* pData = p->pData.GetData();
+	BYTE* pData = p->GetData();
 
 	*pData++ = m_segments.fMerged ? 0 : m_segments.GetCount()-1;
 
@@ -834,8 +834,8 @@ HRESULT CRealMediaSplitterOutputPin::DeliverPacket(CAutoPtr<Packet> p)
 
 	if(m_mt.subtype == MEDIASUBTYPE_WAVE_DOLBY_AC3)
 	{
-		WORD* s = (WORD*)p->pData.GetData();
-		WORD* e = s + p->pData.GetSize()/2;
+		WORD* s = (WORD*)p->GetData();
+		WORD* e = s + p->GetCount()/2;
 		while(s < e) bswap(*s++);
 	}
 
@@ -845,8 +845,8 @@ HRESULT CRealMediaSplitterOutputPin::DeliverPacket(CAutoPtr<Packet> p)
 	{
 		CAutoLock cAutoLock(&m_csQueue);
 
-		int len = p->pData.GetCount();
-		BYTE* pIn = p->pData.GetData();
+		int len = p->GetCount();
+		BYTE* pIn = p->GetData();
 		BYTE* pInOrg = pIn;
 
 		if(m_segments.rtStart != p->rtStart)
@@ -902,7 +902,7 @@ HRESULT CRealMediaSplitterOutputPin::DeliverPacket(CAutoPtr<Packet> p)
 
 			CAutoPtr<segment> s(new segment);
 			s->offset = packetoffset;
-			s->data.SetSize(len2);
+			s->data.SetCount(len2);
 			memcpy(s->data.GetData(), pIn, len2);
 			m_segments.AddTail(s);
 
@@ -918,11 +918,11 @@ HRESULT CRealMediaSplitterOutputPin::DeliverPacket(CAutoPtr<Packet> p)
 	else if(m_mt.subtype == MEDIASUBTYPE_RAAC || m_mt.subtype == MEDIASUBTYPE_RACP
 		 || m_mt.subtype == MEDIASUBTYPE_AAC)
 	{
-		BYTE* ptr = p->pData.GetData()+2;
+		BYTE* ptr = p->GetData()+2;
 
-		CList<WORD> sizes;
+		CAtlList<WORD> sizes;
 		int total = 0;
-		int remaining = p->pData.GetSize()-2;
+		int remaining = p->GetCount()-2;
 		int expected = *(ptr-1)>>4;
 
 		while(total < remaining)
@@ -1038,7 +1038,7 @@ HRESULT CRMFile::Read(MediaPacketHeader& mph, bool fFull)
 
 	if(fFull)
 	{
-		mph.pData.SetSize(len);
+		mph.pData.SetCount(len);
 		if(mph.len > 0 && S_OK != (hr = ByteRead(mph.pData.GetData(), len)))
 			return hr;
 	}
@@ -1128,7 +1128,7 @@ HRESULT CRMFile::Init()
 				if(slen > 0 && S_OK != (hr = ByteRead((BYTE*)mp->mime.GetBufferSetLength(slen), slen))) return hr;
 				UINT32 tsdlen;
 				if(S_OK != (hr = Read(tsdlen))) return hr;
-				mp->typeSpecData.SetSize(tsdlen);
+				mp->typeSpecData.SetCount(tsdlen);
 				if(tsdlen > 0 && S_OK != (hr = ByteRead(mp->typeSpecData.GetData(), tsdlen))) return hr;
 				mp->width = mp->height = 0;
 				mp->interlaced = mp->top_field_first = false;
@@ -1700,7 +1700,7 @@ HRESULT CRealVideoDecoder::CheckInputType(const CMediaType* mtIn)
 	{
 		if(m_hDrvDll) {FreeLibrary(m_hDrvDll); m_hDrvDll = NULL;}
 
-		CList<CString> paths;
+		CAtlList<CString> paths;
 		CString olddll, newdll, oldpath, newpath;
 
 		olddll.Format(_T("drv%c3260.dll"), (TCHAR)((mtIn->subtype.Data1>>16)&0xff));
@@ -2130,7 +2130,7 @@ HRESULT CRealAudioDecoder::CheckInputType(const CMediaType* mtIn)
 	{
 		if(m_hDrvDll) {FreeLibrary(m_hDrvDll); m_hDrvDll = NULL;}
 
-		CList<CString> paths;
+		CAtlList<CString> paths;
 		CString olddll, newdll, oldpath, newpath;
 
 		TCHAR fourcc[5] = 

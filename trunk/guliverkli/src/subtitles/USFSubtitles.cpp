@@ -90,7 +90,7 @@ static CStringW GetAttrib(CStringW attrib, CComPtr<IXMLDOMNode> pNode)
 
 static int TimeToInt(CStringW str)
 {
-	CList<CStringW> sl;
+	CAtlList<CStringW> sl;
 	int i = 0;
 	for(CStringW token = str.Tokenize(L":.,", i); !token.IsEmpty(); token = str.Tokenize(L":.,", i))
 		sl.AddHead(token);
@@ -133,9 +133,7 @@ static DWORD ColorToDWORD(CStringW str)
 	}
 	else
 	{
-		void* color = NULL;
-		g_colors.Lookup(CString(str), color);
-		ret = (DWORD)color;
+		g_colors.Lookup(CString(str), ret);
 	}
 
 	ret = ((ret&0xff)<<16)|(ret&0xff00ff00)|((ret>>16)&0xff);

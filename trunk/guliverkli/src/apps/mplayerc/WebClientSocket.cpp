@@ -61,11 +61,11 @@ void CWebClientSocket::Header()
 	{
 		if(m_hdr.IsEmpty()) return;
 
-		CList<CString> lines;
+		CAtlList<CString> lines;
 		Explode(m_hdr, lines, '\n');
 		CString str = lines.RemoveHead();
 
-		CList<CString> sl;
+		CAtlList<CString> sl;
 		ExplodeMin(str, sl, ' ', 3);
 		m_cmd = sl.RemoveHead().MakeUpper();
 		m_path = sl.RemoveHead();
@@ -91,12 +91,12 @@ void CWebClientSocket::Header()
 
 		if(key == _T("cookie"))
 		{
-			CList<CString> sl;
+			CAtlList<CString> sl;
 			Explode(value, sl, ';');
 			POSITION pos2 = sl.GetHeadPosition();
 			while(pos2)
 			{
-				CList<CString> sl2;
+				CAtlList<CString> sl2;
 				Explode(sl.GetNext(pos2), sl2, '=', 2);
 				m_cookie[sl2.GetHead()] = sl2.GetCount() == 2 ? sl2.GetTail() : _T("");
 			}
@@ -140,12 +140,12 @@ void CWebClientSocket::Header()
 					str += c;
 					if(c == '\n' || len == 1)
 					{
-						CList<CString> sl;
+						CAtlList<CString> sl;
 						Explode(AToT(UrlDecode(TToA(str))), sl, '&'); // FIXME
 						POSITION pos = sl.GetHeadPosition();
 						while(pos)
 						{
-							CList<CString> sl2;
+							CAtlList<CString> sl2;
 							Explode(sl.GetNext(pos), sl2, '=', 2);
 							m_post[sl2.GetHead().MakeLower()] = sl2.GetCount() == 2 ? sl2.GetTail() : _T("");
 						}
@@ -167,7 +167,7 @@ void CWebClientSocket::Header()
 	
 	if(m_cmd == _T("GET") || m_cmd == _T("HEAD") || m_cmd == _T("POST"))
 	{
-		CList<CString> sl;
+		CAtlList<CString> sl;
 		
 		Explode(m_path, sl, '?', 2);
 		m_path = sl.RemoveHead();
@@ -182,7 +182,7 @@ void CWebClientSocket::Header()
 			POSITION pos = sl.GetHeadPosition();
 			while(pos)
 			{
-				CList<CString> sl2;
+				CAtlList<CString> sl2;
 				Explode(AToT(UrlDecode(TToA(sl.GetNext(pos)))), sl2, '=', 2);
 				// Explode(sl.GetNext(pos), sl2, '=', 2);
 				m_get[sl2.GetHead()] = sl2.GetCount() == 2 ? sl2.GetTail() : _T("");
@@ -368,7 +368,7 @@ bool CWebClientSocket::OnIndex(CStringA& hdr, CStringA& body, CStringA& mime)
 
 bool CWebClientSocket::OnBrowser(CStringA& hdr, CStringA& body, CStringA& mime)
 {
-	CList<CStringA> rootdrives;
+	CAtlList<CStringA> rootdrives;
 	for(TCHAR drive[] = _T("A:"); drive[0] <= 'Z'; drive[0]++)
 		if(GetDriveType(drive) != DRIVE_NO_ROOT_DIR)
 			rootdrives.AddTail(CStringA(drive) + '\\');
@@ -385,7 +385,7 @@ bool CWebClientSocket::OnBrowser(CStringA& hdr, CStringA& body, CStringA& mime)
 		{
 			// TODO: make a new message for just opening files, this is a bit overkill now...
 
-			CList<CString> cmdln;
+			CAtlList<CString> cmdln;
 
 			cmdln.AddTail(path);
 
@@ -720,7 +720,7 @@ bool CWebClientSocket::OnConvRes(CStringA& hdr, CStringA& body, CStringA& mime)
 	if(!CDSMResource::m_resources.Lookup(key, res) || !res)
 		return false;
 
-	body = CStringA((const char*)res->data.GetData(), res->data.GetSize());
+	body = CStringA((const char*)res->data.GetData(), res->data.GetCount());
 	mime = CString(res->mime);
 
 	return true;

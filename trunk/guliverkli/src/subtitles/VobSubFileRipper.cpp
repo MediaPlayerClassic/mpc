@@ -185,7 +185,7 @@ bool CVobSubFileRipper::LoadIfo(CString fn)
 		ReadBEw(nPGC);
 
 		m_rd.pgcs.RemoveAll();
-		m_rd.pgcs.SetSize(nPGC);
+		m_rd.pgcs.SetCount(nPGC);
 
 		for(int i = 0; i < nPGC; i++)
 		{
@@ -261,14 +261,14 @@ bool CVobSubFileRipper::LoadIfo(CString fn)
 
 			//
 
-            CByteArray progs;
-			progs.SetSize(nProgs);
+            CAtlArray<BYTE> progs;
+			progs.SetCount(nProgs);
 			f.Seek(offset + progoff, CFile::begin);
 			f.Read(progs.GetData(), nProgs);
 
 			//
 
-			pgc.angles[0].SetSize(nCells);
+			pgc.angles[0].SetCount(nCells);
 			pgc.iSelAngle = 0;
 
 			//
@@ -368,7 +368,7 @@ bool CVobSubFileRipper::LoadVob(CString fn)
 {
 	Log(LOG_INFO, _T("Searching vobs..."));
 /*
-	CList<CString> m_vobs;
+	CAtlList<CString> m_vobs;
 
 	fn = fn.Left(fn.ReverseFind('.')+1);
 	fn.TrimRight(_T(".0123456789"));
@@ -411,7 +411,7 @@ bool CVobSubFileRipper::LoadVob(CString fn)
 		return(false);
 	}
 */
-	CList<CString> vobs;
+	CAtlList<CString> vobs;
 	if(!m_vob.Open(fn, vobs/*m_vobs*/))
 	{
 		Log(LOG_ERROR, _T("Cannot open vob sequence"));
@@ -518,7 +518,7 @@ bool CVobSubFileRipper::Create()
 		return(false);
 	}
 
-	CArray<vc_t>& angle = pgc.angles[pgc.iSelAngle];
+	CAtlArray<vc_t>& angle = pgc.angles[pgc.iSelAngle];
 
 	if(m_rd.selids.GetCount() == 0 && !m_rd.fClosedCaption)
 	{
@@ -562,12 +562,12 @@ bool CVobSubFileRipper::Create()
 			tStart, m_rd.selvcs[0]>>16, m_rd.selvcs[0]&0xffff);
 	}
 
-	CMap<DWORD, DWORD, int, int> selvcmap;
+	CAtlMap<DWORD, int> selvcmap;
 	selvcmap.RemoveAll();
 	for(int i = 0; i < m_rd.selvcs.GetCount(); i++)
 		selvcmap[m_rd.selvcs[i]] = 90000;
 
-	CArray<vcchunk> chunks, foundchunks, loadedchunks;
+	CAtlArray<vcchunk> chunks, foundchunks, loadedchunks;
 
 	if(m_vob.IsDVD())
 	{
@@ -575,8 +575,8 @@ bool CVobSubFileRipper::Create()
 
 		for(int i = 0; i < angle.GetCount(); i++)
 		{
-			UINT vc = (angle[i].vob<<16)|angle[i].cell;
-			if(selvcmap.PLookup(vc) == NULL)
+			DWORD vc = (angle[i].vob<<16)|angle[i].cell;
+			if(!selvcmap.Lookup(vc))
 				continue;
 
 			vcchunk c = {2048i64*angle[i].start, 2048i64*angle[i].end+2048, vc};
@@ -592,8 +592,8 @@ bool CVobSubFileRipper::Create()
 
 		for(int i = 0; i < loadedchunks.GetCount(); i++)
 		{
-			UINT vcid = loadedchunks[i].vc;
-			if(selvcmap.PLookup(vcid) == NULL)
+			DWORD vcid = loadedchunks[i].vc;
+			if(!selvcmap.Lookup(vcid))
 				continue;
 
 			chunks.Add(loadedchunks[i]);
@@ -719,7 +719,7 @@ bool CVobSubFileRipper::Create()
 
 				tOffset = tTotal = 0;
 
-				for(int i = 0; i < angle.GetSize(); i++)
+				for(int i = 0; i < angle.GetCount(); i++)
 				{
 					if(angle[i].vob == vob && angle[i].cell == cell)
 					{
@@ -748,7 +748,7 @@ bool CVobSubFileRipper::Create()
 				Log(LOG_INFO, str + str2);
 			}
 
-			UINT vcid = (vob<<16)|cell;
+			DWORD vcid = (vob<<16)|cell;
 			if(!selvcmap.Lookup(vcid, minPTSframeoffset))
 				continue;
 
@@ -785,7 +785,7 @@ bool CVobSubFileRipper::Create()
 			{
 				BYTE id = buff[0x17 + buff[0x16]], iLang = id&0x1f;
 
-				if((id & 0xe0) == 0x20 && m_rd.selids.PLookup(iLang))
+				if((id & 0xe0) == 0x20 && m_rd.selids.Lookup(iLang))
 				{
 					if(hasPTS)
 					{
@@ -832,12 +832,12 @@ bool CVobSubFileRipper::Create()
 
 	for(int i = 0; i < 32; i++)
 	{
-		if(m_iLang == -1 && m_langs[i].subpos.GetSize() > 0) m_iLang = i;
+		if(m_iLang == -1 && m_langs[i].subpos.GetCount() > 0) m_iLang = i;
 		m_langs[i].id = pgc.ids[i];
 		m_langs[i].name = m_langs[i].alt = FindLangFromId(m_langs[i].id);
 
-		CArray<SubPos>& sp = m_langs[i].subpos;
-		qsort(sp.GetData(), sp.GetSize(), sizeof(SubPos), SubPosSortProc);
+		CAtlArray<SubPos>& sp = m_langs[i].subpos;
+		qsort(sp.GetData(), sp.GetCount(), sizeof(SubPos), SubPosSortProc);
 
 		if(m_rd.fForcedOnly)
 		{
@@ -890,7 +890,7 @@ bool CVobSubFileRipper::Create()
 
 static const DWORD s_version = 1;
 
-bool CVobSubFileRipper::LoadChunks(CArray<vcchunk>& chunks)
+bool CVobSubFileRipper::LoadChunks(CAtlArray<vcchunk>& chunks)
 {
 	CFile f;
 
@@ -909,7 +909,7 @@ bool CVobSubFileRipper::LoadChunks(CArray<vcchunk>& chunks)
 		f.Read(&chksum, sizeof(chksum));
 		f.Read(&voblen, sizeof(voblen));
 		f.Read(&chunklen, sizeof(chunklen));
-		chunks.SetSize(chunklen);
+		chunks.SetCount(chunklen);
 		f.Read(chunks.GetData(), sizeof(vcchunk)*chunks.GetCount());
 	}
 	f.Close();
@@ -935,7 +935,7 @@ bool CVobSubFileRipper::LoadChunks(CArray<vcchunk>& chunks)
 	return(true);
 }
 
-bool CVobSubFileRipper::SaveChunks(CArray<vcchunk>& chunks)
+bool CVobSubFileRipper::SaveChunks(CAtlArray<vcchunk>& chunks)
 {
 	CFile f;
 
@@ -1016,7 +1016,7 @@ STDMETHODIMP CVobSubFileRipper::LoadParamFile(CString fn)
 			pgc.iSelAngle = _tcstol(line, NULL, 10);
 			if(pgc.iSelAngle < 0 || pgc.iSelAngle > max(1, pgc.nAngles) || pgc.iSelAngle > 9) break;
 
-			CArray<vc_t>& angle = pgc.angles[pgc.iSelAngle];
+			CAtlArray<vc_t>& angle = pgc.angles[pgc.iSelAngle];
 
 			if(line.Find('v') >= 0)
 			{
@@ -1124,7 +1124,7 @@ STDMETHODIMP CVobSubFileRipper::LoadParamFile(CString fn)
 					if(n != 1) break;
 				}
 
-				if((m_rd.selids.GetSize() > 0 || m_rd.fClosedCaption) && line.IsEmpty())
+				if((m_rd.selids.GetCount() > 0 || m_rd.fClosedCaption) && line.IsEmpty())
 					phase = P_OPTIONS;
 			}
 		}
@@ -1225,7 +1225,7 @@ void VSFRipperData::Copy(VSFRipperData& rd)
 	vidinfo = rd.vidinfo;
 	if(int len = rd.pgcs.GetCount())
 	{
-		pgcs.SetSize(len);
+		pgcs.SetCount(len);
 		for(int i = 0; i < len; i++)
 		{
 			PGC& src = rd.pgcs[i];

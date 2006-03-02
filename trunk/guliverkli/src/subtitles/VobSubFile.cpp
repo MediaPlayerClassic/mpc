@@ -310,7 +310,7 @@ bool CVobSubFile::Open(CString fn)
 
 		for(int i = 0; i < 32; i++)
 		{
-			CArray<SubPos>& sp = m_langs[i].subpos;
+			CAtlArray<SubPos>& sp = m_langs[i].subpos;
 
 			for(int j = 0; j < sp.GetCount(); j++)
 			{
@@ -321,9 +321,9 @@ bool CVobSubFile::Open(CString fn)
 				BYTE* buff = GetPacket(j, packetsize, datasize, i);
 				if(!buff) continue;
 
-				m_img.delay = j < (sp.GetSize()-1) ? sp[j+1].start - sp[j].start : 3000;
+				m_img.delay = j < (sp.GetCount()-1) ? sp[j+1].start - sp[j].start : 3000;
 				m_img.GetPacketInfo(buff, packetsize, datasize);
-				if(j < (sp.GetSize()-1)) m_img.delay = min(m_img.delay, sp[j+1].start - sp[j].start);
+				if(j < (sp.GetCount()-1)) m_img.delay = min(m_img.delay, sp[j+1].start - sp[j].start);
 
 				sp[j].stop = sp[j].start + m_img.delay;
 				sp[j].fForced = m_img.fForced;
@@ -637,9 +637,9 @@ bool CVobSubFile::ReadIdx(CString fn, int& ver)
 
 			if(_stscanf(str, _T("%I64x"), &sb.filepos) != 1) {fError = true; continue;}
 
-			if(delay < 0 && m_langs[id].subpos.GetSize() > 0)
+			if(delay < 0 && m_langs[id].subpos.GetCount() > 0)
 			{
-				__int64 ts = m_langs[id].subpos[m_langs[id].subpos.GetSize()-1].start;
+				__int64 ts = m_langs[id].subpos[m_langs[id].subpos.GetCount()-1].start;
 					
 				if(sb.start < ts)
 				{
@@ -941,7 +941,7 @@ bool CVobSubFile::WriteIdx(CString fn)
 	{
 		SubLang& sl = m_langs[i];
 
-		CArray<SubPos>& sp = sl.subpos;
+		CAtlArray<SubPos>& sp = sl.subpos;
 		if(sp.IsEmpty() && !sl.id) continue;
 
 		str.Format(_T("# %s\n"), sl.name);
@@ -1014,11 +1014,11 @@ BYTE* CVobSubFile::GetPacket(int idx, int& packetsize, int& datasize, int iLang)
 	BYTE* ret = NULL;
 
 	if(iLang < 0 || iLang >= 32) iLang = m_iLang;
-	CArray<SubPos>& sp = m_langs[iLang].subpos;
+	CAtlArray<SubPos>& sp = m_langs[iLang].subpos;
 
 	do
 	{
-		if(idx < 0 || idx >= sp.GetSize())
+		if(idx < 0 || idx >= sp.GetCount())
 			break;
 
 		if(m_sub.Seek(sp[idx].filepos, CFile::begin) != sp[idx].filepos) 
@@ -1075,7 +1075,7 @@ BYTE* CVobSubFile::GetPacket(int idx, int& packetsize, int& datasize, int iLang)
 bool CVobSubFile::GetFrame(int idx, int iLang)
 {
 	if(iLang < 0 || iLang >= 32) iLang = m_iLang;
-	CArray<SubPos>& sp = m_langs[iLang].subpos;
+	CAtlArray<SubPos>& sp = m_langs[iLang].subpos;
 
 	if(idx < 0 || idx >= sp.GetCount())
 		return(false);
@@ -1088,13 +1088,13 @@ bool CVobSubFile::GetFrame(int idx, int iLang)
 		if(!buff || packetsize <= 0 || datasize <= 0) return(false);
 
 		m_img.start = sp[idx].start;
-		m_img.delay = idx < (sp.GetSize()-1)
+		m_img.delay = idx < (sp.GetCount()-1)
 			? sp[idx+1].start - sp[idx].start
 			: 3000;
 
 		bool ret = m_img.Decode(buff, packetsize, datasize, m_fCustomPal, m_tridx, m_orgpal, m_cuspal, true);
 		
-		if(idx < (sp.GetSize()-1))
+		if(idx < (sp.GetCount()-1))
 			m_img.delay = min(m_img.delay, sp[idx+1].start - m_img.start);
 
 		if(!ret) return(false);
@@ -1116,7 +1116,7 @@ int CVobSubFile::GetFrameIdxByTimeStamp(__int64 time)
 	if(m_iLang < 0 || m_iLang >= 32)
 		return(-1);
 
-	CArray<SubPos>& sp = m_langs[m_iLang].subpos;
+	CAtlArray<SubPos>& sp = m_langs[m_iLang].subpos;
 
 	int i = 0, j = (int)sp.GetCount() - 1, ret = -1;
 
@@ -1269,7 +1269,7 @@ STDMETHODIMP CVobSubFile::SetStream(int iStream)
 {
 	for(int i = 0; i < 32; i++)
 	{
-		CArray<SubPos>& sp = m_langs[i].subpos;
+		CAtlArray<SubPos>& sp = m_langs[i].subpos;
 
 		if(sp.IsEmpty() || iStream-- > 0)
 			continue;
@@ -1546,7 +1546,7 @@ bool CVobSubFile::SaveWinSubMux(CString fn)
 	if(!p4bpp.Allocate(720*576/2))
 		return(false);
 
-	CArray<SubPos>& sp = m_langs[m_iLang].subpos;
+	CAtlArray<SubPos>& sp = m_langs[m_iLang].subpos;
 	for(int i = 0; i < sp.GetCount(); i++)
 	{
 		if(!GetFrame(i)) continue;
@@ -1583,7 +1583,7 @@ bool CVobSubFile::SaveWinSubMux(CString fn)
 			uipal[3] = *((DWORD*)&m_img.cuspal[pal[3]]) & 0xffffff;
 		}
 
-		CMap<DWORD,DWORD&,BYTE,BYTE&> palmap;
+		CAtlMap<DWORD,BYTE> palmap;
 		palmap[uipal[0]] = 0;
 		palmap[uipal[1]] = 1;
 		palmap[uipal[2]] = 2;
@@ -1785,7 +1785,7 @@ bool CVobSubFile::SaveScenarist(CString fn)
 
 	int pc[4] = {1, 1, 1, 1}, pa[4] = {15, 15, 15, 0};
 
-	CArray<SubPos>& sp = m_langs[m_iLang].subpos;
+	CAtlArray<SubPos>& sp = m_langs[m_iLang].subpos;
 	for(int i = 0, k = 0; i < sp.GetCount(); i++)
 	{
 		if(!GetFrame(i)) continue;
@@ -2012,7 +2012,7 @@ bool CVobSubFile::SaveMaestro(CString fn)
 
 	int pc[4] = {1,1,1,1}, pa[4] = {15,15,15,0};
 
-	CArray<SubPos>& sp = m_langs[m_iLang].subpos;
+	CAtlArray<SubPos>& sp = m_langs[m_iLang].subpos;
 	for(int i = 0, k = 0; i < sp.GetCount(); i++)
 	{
 		if(!GetFrame(i)) continue;
@@ -2145,11 +2145,11 @@ void CVobSubStream::Open(CString name, BYTE* pData, int len)
 
 	m_name = name;
 
-	CList<CString> lines;
+	CAtlList<CString> lines;
 	Explode(CString(CStringA((CHAR*)pData, len)), lines, '\n');
 	while(lines.GetCount())
 	{
-		CList<CString> sl;
+		CAtlList<CString> sl;
 		Explode(lines.RemoveHead(), sl, ':', 2);
 		if(sl.GetCount() != 2) continue;
 		CString key = sl.GetHead();
@@ -2198,7 +2198,7 @@ void CVobSubStream::Open(CString name, BYTE* pData, int len)
 			if(sl.GetCount() == 3)
 			{
 				sl.RemoveHead();
-				CList<CString> tridx, colors;
+				CAtlList<CString> tridx, colors;
 				Explode(sl.RemoveHead(), tridx, ':', 2);
 				if(tridx.RemoveHead() == _T("tridx"))
 				{
@@ -2229,8 +2229,8 @@ void CVobSubStream::Add(REFERENCE_TIME tStart, REFERENCE_TIME tStop, BYTE* pData
 	CAutoPtr<SubPic> p(new SubPic());
 	p->tStart = tStart;
 	p->tStop = vsi.delay > 0 ? (tStart + 10000i64*vsi.delay) : tStop;
-	p->pData.SetSize(len);
-	memcpy(p->pData.GetData(), pData, p->pData.GetSize());
+	p->pData.SetCount(len);
+	memcpy(p->pData.GetData(), pData, p->pData.GetCount());
 
 	CAutoLock cAutoLock(&m_csSubPics);
 	while(m_subpics.GetCount() && m_subpics.GetTail()->tStart >= tStart)
