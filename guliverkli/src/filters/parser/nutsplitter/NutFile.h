@@ -12,8 +12,8 @@ public:
 
 	typedef UINT64 vint;
 	typedef INT64 svint;
-	typedef CArray<BYTE> binary;
-	typedef CArray<BYTE> string;
+	typedef CAtlArray<BYTE> binary;
+	typedef CAtlArray<BYTE> string;
 
 	struct packet_header
 	{
@@ -85,7 +85,7 @@ public:
 	struct index_header
 	{
         vint stream_id;
-		CArray<index_entry> ie;
+		CAtlArray<index_entry> ie;
 	};
 
 	struct info_header

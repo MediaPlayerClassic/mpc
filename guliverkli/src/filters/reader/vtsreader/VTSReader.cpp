@@ -148,7 +148,7 @@ CVTSStream::~CVTSStream()
 
 bool CVTSStream::Load(const WCHAR* fnw)
 {
-	CList<CString> sl;
+	CAtlList<CString> sl;
 	return(m_vob && m_vob->Open(CString(fnw), sl) /*&& m_vob->IsDVD()*/);
 }
 

@@ -363,7 +363,7 @@ bool CVobFile::HasTitleKey(BYTE* key)
 	return m_fHasTitleKey;
 }
 
-bool CVobFile::Open(CString fn, CList<CString>& vobs)
+bool CVobFile::Open(CString fn, CAtlList<CString>& vobs)
 {
 	CFile f;
 	if(!f.Open(fn, CFile::modeRead|CFile::typeBinary|CFile::shareDenyWrite))
@@ -411,7 +411,7 @@ bool CVobFile::Open(CString fn, CList<CString>& vobs)
 	return Open(vobs, offset);
 }
 
-bool CVobFile::Open(CList<CString>& vobs, int offset)
+bool CVobFile::Open(CAtlList<CString>& vobs, int offset)
 {
 	Close();
 
@@ -572,9 +572,9 @@ int CVobFile::Seek(int pos)
 
 	// this suxx, but won't take long
 	do size += m_files[++i].size;
-	while(i < m_files.GetSize() && pos >= size);
+	while(i < m_files.GetCount() && pos >= size);
 
-	if(i != m_iFile && i < m_files.GetSize())
+	if(i != m_iFile && i < m_files.GetCount())
 	{
 		if(!m_file.Open(m_files[i].fn))
 			return(m_pos);
@@ -601,7 +601,7 @@ bool CVobFile::Read(BYTE* buff)
 
 	if(!m_file.IsOpen())
 	{
-		if(m_iFile >= m_files.GetSize()-1)
+		if(m_iFile >= m_files.GetCount()-1)
 		{
 			return(false);
 		}

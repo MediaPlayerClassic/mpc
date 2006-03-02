@@ -218,7 +218,7 @@ STDMETHODIMP CBaseMuxerInputPin::Receive(IMediaSample* pSample)
 	if(FAILED(pSample->GetPointer(&pData)) || !pData)
 		return S_OK;
 
-	pPacket->pData.SetSize(len);
+	pPacket->pData.SetCount(len);
 	memcpy(pPacket->pData.GetData(), pData, len);
 
 	if(S_OK == pSample->IsSyncPoint() || m_mt.majortype == MEDIATYPE_Audio && !m_mt.bTemporalCompression)

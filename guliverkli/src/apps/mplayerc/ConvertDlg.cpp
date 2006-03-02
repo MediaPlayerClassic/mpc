@@ -156,7 +156,7 @@ bool CConvertDlg::ConvertFile(LPCTSTR fn, IPin* pPin)
 			if(CTreeItemResource* t2 = dynamic_cast<CTreeItemResource*>((CTreeItem*)m_pTIs.GetNext(pos)))
 				pRB->ResAppend(
 					t2->m_res.name, t2->m_res.desc, t2->m_res.mime, 
-					t2->m_res.data.GetData(), t2->m_res.data.GetSize(), 
+					t2->m_res.data.GetData(), t2->m_res.data.GetCount(), 
 					NULL);
 		}		
 	}
@@ -527,7 +527,7 @@ void CConvertDlg::ShowResourceFolderPopup(HTREEITEM hTI, CPoint p)
 						fseek(f, 0, 2);
 						long size = ftell(f);
 						fseek(f, 0, 0);
-						t->m_res.data.SetSize(size);
+						t->m_res.data.SetCount(size);
 						for(BYTE* ptr = t->m_res.data.GetData(),* end = ptr + size; 
 							size > 0 && end - ptr >= size && fread(ptr, min(size, 1024), 1, f) > 0; 
 							ptr += 1024, size -= 1024);
@@ -580,7 +580,7 @@ void CConvertDlg::ShowResourcePopup(HTREEITEM hTI, CPoint p)
 			{
 				if(FILE* f = _tfopen(fd.GetPathName(), _T("wb")))
 				{
-					fwrite(t->m_res.data.GetData(), 1, t->m_res.data.GetSize(), f);
+					fwrite(t->m_res.data.GetData(), 1, t->m_res.data.GetCount(), f);
 					fclose(f);
 				}
 			}
@@ -1279,7 +1279,7 @@ bool CConvertDlg::CTreeItemResourceFolder::ToolTip(CString& str)
 	{
 		HTREEITEM hNextItem = m_tree.GetNextItem(hChildItem, TVGN_NEXT);
 		if(CTreeItemResource* t = dynamic_cast<CTreeItemResource*>((CTreeItem*)m_tree.GetItemData(hChildItem)))
-			size += t->m_res.data.GetSize(), files++;
+			size += t->m_res.data.GetCount(), files++;
 		hChildItem = hNextItem;
 	}
 

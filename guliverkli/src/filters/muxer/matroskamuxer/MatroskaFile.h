@@ -23,7 +23,6 @@
 
 #include <atlbase.h>
 #include <atlcoll.h>
-#include <afxtempl.h>
 
 namespace MatroskaWriter
 {
@@ -53,14 +52,14 @@ namespace MatroskaWriter
 		HRESULT Write(IStream* pStream);
 	};
 
-	class CBinary : public CArray<BYTE>, public CID
+	class CBinary : public CAtlArray<BYTE>, public CID
 	{
 	public:
 		CBinary(DWORD id) : CID(id) {}
 		CBinary& operator = (const CBinary& b) {Copy(b); return(*this);}
 		operator BYTE*() {return (BYTE*)GetData();}
-		CBinary& Set(CStringA str) {SetSize(str.GetLength()+1); strcpy((char*)GetData(), str); return(*this);}
-//		CBinary& Set(CStringA str) {SetSize(str.GetLength()); memcpy((char*)GetData(), str, str.GetLength()); return(*this);}
+		CBinary& Set(CStringA str) {SetCount(str.GetLength()+1); strcpy((char*)GetData(), str); return(*this);}
+//		CBinary& Set(CStringA str) {SetCount(str.GetLength()); memcpy((char*)GetData(), str, str.GetLength()); return(*this);}
 		QWORD Size(bool fWithHeader = true);
 		HRESULT Write(IStream* pStream);
 	};

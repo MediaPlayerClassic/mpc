@@ -184,7 +184,7 @@ bool CUDPStream::Load(const WCHAR* fnw)
 //	url = L"udp://239.255.255.250:1234/{e436eb8e-524f-11ce-9f53-0020af0ba770}"; 
 //#endif
 
-	CList<CStringW> sl;
+	CAtlList<CStringW> sl;
 	Explode(url, sl, ':');
 	if(sl.GetCount() != 3) return false;
 

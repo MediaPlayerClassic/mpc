@@ -114,7 +114,7 @@ HRESULT CMpegSplitterFile::Init()
 	m_rtMin = m_posMin = _I64_MAX;
 	m_rtMax = m_posMax = 0;
 
-	CList<__int64> fps;
+	CAtlList<__int64> fps;
 	for(int i = 0, j = 5; i <= j; i++)
 		fps.AddTail(i*GetLength()/j);
 

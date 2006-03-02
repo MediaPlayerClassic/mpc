@@ -55,8 +55,6 @@ public:
 	virtual bool OnApply() {return true;}
 
 	DECLARE_MESSAGE_MAP()
-
-	afx_msg void OnKickIdle();
 };
 
 class CInternalPropertyPage

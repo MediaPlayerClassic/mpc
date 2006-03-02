@@ -44,7 +44,7 @@
 
 #include <atlbase.h>
 #include <atlcoll.h>
-#include <afxtempl.h>
+
 #include "..\..\..\DSUtil\DSUtil.h"
 #include "..\..\..\DSUtil\MediaTypes.h"
 #include "..\..\..\DSUtil\vd.h"

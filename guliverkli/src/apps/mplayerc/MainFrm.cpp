@@ -545,7 +545,7 @@ BOOL CMainFrame::OnDrop(COleDataObject* pDataObject, DROPEFFECT dropEffect, CPoi
 
 				SetForegroundWindow();
 
-				CList<CString> sl;
+				CAtlList<CString> sl;
 				sl.AddTail(CString(url));
 
 				if(m_wndPlaylistBar.IsWindowVisible())
@@ -1344,7 +1344,7 @@ void CMainFrame::OnTimer(UINT nIDEvent)
 
 		if(pBI)
 		{
-			CList<CString> sl;
+			CAtlList<CString> sl;
 			
 			for(int i = 0, j = pBI->GetCount(); i < j; i++)
 			{
@@ -1381,7 +1381,7 @@ void CMainFrame::OnTimer(UINT nIDEvent)
 
 			if(!pBRIs.IsEmpty())
 			{
-				CList<CString> sl;
+				CAtlList<CString> sl;
 
 				POSITION pos = pBRIs.GetHeadPosition();
 				for(int i = 0; pos; i++)
@@ -2988,7 +2988,7 @@ void CMainFrame::OnFileOpenQuick()
 		filter, this);
 	if(fd.DoModal() != IDOK) return;
 
-	CList<CString> fns;
+	CAtlList<CString> fns;
 
 	POSITION pos = fd.GetStartPosition();
 	while(pos) fns.AddTail(fd.GetNextPathName(pos));
@@ -3057,7 +3057,7 @@ BOOL CMainFrame::OnCopyData(CWnd* pWnd, COPYDATASTRUCT* pCDS)
 	TCHAR* pBuff = (TCHAR*)((DWORD*)pCDS->lpData + 1);
 	TCHAR* pBuffEnd = (TCHAR*)((BYTE*)pBuff + pCDS->cbData - sizeof(DWORD));
 
-	CList<CString> cmdln;
+	CAtlList<CString> cmdln;
 
 	while(len-- > 0)
 	{
@@ -3132,7 +3132,7 @@ BOOL CMainFrame::OnCopyData(CWnd* pWnd, COPYDATASTRUCT* pCDS)
 		fSetForegroundWindow = true;
 
 		CAutoPtr<OpenDVDData> p(new OpenDVDData());
-		if(p) {p->path = s.slFiles.GetHead(); p->subs.AddTail(&s.slSubs);}
+		if(p) {p->path = s.slFiles.GetHead(); p->subs.AddTailList(&s.slSubs);}
 		OpenMedia(p);
 	}
 	else if(s.nCLSwitches&CLSW_CD)
@@ -3140,7 +3140,7 @@ BOOL CMainFrame::OnCopyData(CWnd* pWnd, COPYDATASTRUCT* pCDS)
 		SendMessage(WM_COMMAND, ID_FILE_CLOSEMEDIA);
 		fSetForegroundWindow = true;
 
-		CList<CString> sl;
+		CAtlList<CString> sl;
 
 		if(!s.slFiles.IsEmpty())
 		{
@@ -3166,9 +3166,9 @@ BOOL CMainFrame::OnCopyData(CWnd* pWnd, COPYDATASTRUCT* pCDS)
 	{
 		bool fMulti = s.slFiles.GetCount() > 1;
 
-		CList<CString> sl;
-		sl.AddTail((CList<CString>*)&s.slFiles);
-		if(!fMulti) sl.AddTail((CList<CString>*)&s.slDubs);
+		CAtlList<CString> sl;
+		sl.AddTailList(&s.slFiles);
+		if(!fMulti) sl.AddTailList(&s.slDubs);
 
 		if((s.nCLSwitches&CLSW_ADD) && m_wndPlaylistBar.GetCount() > 0)
 		{
@@ -3255,7 +3255,7 @@ void CMainFrame::OnFileOpenCD(UINT nID)
 	nID++;
 	for(TCHAR drive = 'C'; drive <= 'Z'; drive++)
 	{
-		CList<CString> sl;
+		CAtlList<CString> sl;
 
 		switch(GetCDROMType(drive, sl))
 		{
@@ -3293,7 +3293,7 @@ void CMainFrame::OnDropFiles(HDROP hDropInfo)
 		return;
 	}
 
-	CList<CString> sl;
+	CAtlList<CString> sl;
 
 	UINT nFiles = ::DragQueryFile(hDropInfo, (UINT)-1, NULL, 0);
 
@@ -4047,7 +4047,7 @@ void CMainFrame::OnFileISDBDownload()
 		isdb_movie m;
 		isdb_subtitle s;
 
-		CList<CStringA> sl;
+		CAtlList<CStringA> sl;
 		Explode(str, sl, '\n');
 
 		POSITION pos = sl.GetHeadPosition();
@@ -5259,13 +5259,13 @@ void CMainFrame::OnPlaySubtitles(UINT nID)
 					for(int i = 0; pos; i++)
 					{
 						CString key;
-						void* val;
+						STSStyle* val;
 						pRTS->m_styles.GetNextAssoc(pos, key, val);
 
 						CAutoPtr<CPPageSubStyle> page(new CPPageSubStyle());
-						page->InitStyle(key, *(STSStyle*)val);
+						page->InitStyle(key, *val);
 						pages.Add(page);
-						styles.Add((STSStyle*)val);
+						styles.Add(val);
 					}
 
 					CPropertySheet dlg(_T("Styles..."), this);
@@ -5884,12 +5884,12 @@ void CMainFrame::OnFavoritesFile(UINT nID)
 {
 	nID -= ID_FAVORITES_FILE_START;
 
-	CList<CString> sl;
+	CAtlList<CString> sl;
 	AfxGetAppSettings().GetFav(FAV_FILE, sl);
 
 	if(POSITION pos = sl.FindIndex(nID))
 	{
-		CList<CString> fns;
+		CAtlList<CString> fns;
 		REFERENCE_TIME rtStart = 0;
 
 		int i = 0, j = 0;
@@ -5916,7 +5916,7 @@ void CMainFrame::OnFavoritesDVD(UINT nID)
 {
 	nID -= ID_FAVORITES_DVD_START;
 
-	CList<CString> sl;
+	CAtlList<CString> sl;
 	AfxGetAppSettings().GetFav(FAV_DVD, sl);
 
 	if(POSITION pos = sl.FindIndex(nID))
@@ -6514,7 +6514,7 @@ void CMainFrame::SetShaders()
 
 	m_pCAP->SetPixelShader(NULL, NULL);
 
-	CList<CString> labels;
+	CAtlList<CString> labels;
 
 	pos = m_shaderlabels.GetHeadPosition();
 	while(pos)
@@ -7599,7 +7599,7 @@ bool CMainFrame::OpenMediaPrivate(CAutoPtr<OpenMediaData> pOMD)
 		{
 			CString drive = fn.Left(i+2);
 			UINT type = GetDriveType(drive);
-			CList<CString> sl;
+			CAtlList<CString> sl;
 			if(type == DRIVE_REMOVABLE || type == DRIVE_CDROM && GetCDROMType(drive[0], sl) != CDROM_Audio)
 			{
 				int ret = IDRETRY;
@@ -7946,7 +7946,7 @@ void CMainFrame::SetupOpenCDSubMenu()
 	{
 		CString label = GetDriveLabel(drive), str;
 
-		CList<CString> files;
+		CAtlList<CString> files;
 		switch(GetCDROMType(drive, files))
 		{
 		case CDROM_Audio:
@@ -8671,7 +8671,7 @@ void CMainFrame::SetupFavoritesSubMenu()
 
 	UINT id = ID_FAVORITES_FILE_START;
 
-	CList<CString> sl;
+	CAtlList<CString> sl;
 	AfxGetAppSettings().GetFav(FAV_FILE, sl);
 
 	POSITION pos = sl.GetHeadPosition();
@@ -8683,7 +8683,7 @@ void CMainFrame::SetupFavoritesSubMenu()
 		str.Replace(_T("&"), _T("&&"));
 		str.Replace(_T("\t"), _T(" "));
 
-		CList<CString> sl;
+		CAtlList<CString> sl;
 		Explode(str, sl, ';', 2);
 
 		str = sl.RemoveHead();
@@ -8721,7 +8721,7 @@ void CMainFrame::SetupFavoritesSubMenu()
 		CString str = sl.GetNext(pos);
 		str.Replace(_T("&"), _T("&&"));
 
-		CList<CString> sl;
+		CAtlList<CString> sl;
 		Explode(str, sl, ';', 2);
 
 		str = sl.RemoveHead();
@@ -8754,7 +8754,7 @@ void CMainFrame::SetupFavoritesSubMenu()
 		CString str = sl.GetNext(pos);
 		str.Replace(_T("&"), _T("&&"));
 
-		CList<CString> sl;
+		CAtlList<CString> sl;
 		Explode(str, sl, ';', 2);
 
 		str = sl.RemoveHead();

@@ -70,6 +70,6 @@ protected:
 	HRESULT DeliverEndFlush();
 
 public:
-	CMpegSplitterOutputPin(CArray<CMediaType>& mts, LPCWSTR pName, CBaseFilter* pFilter, CCritSec* pLock, HRESULT* phr);
+	CMpegSplitterOutputPin(CAtlArray<CMediaType>& mts, LPCWSTR pName, CBaseFilter* pFilter, CCritSec* pLock, HRESULT* phr);
 	virtual ~CMpegSplitterOutputPin();
 };

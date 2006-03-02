@@ -33,7 +33,7 @@ public:
 	virtual ~COpenDlg();
 
 	bool m_fMultipleFiles;
-	CList<CString> m_fns;
+	CAtlList<CString> m_fns;
 
 // Dialog Data
 	enum { IDD = IDD_OPEN_DLG };

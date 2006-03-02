@@ -124,7 +124,7 @@ HRESULT CDiracSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 	if(!m_pFile) return E_OUTOFMEMORY;
 	if(FAILED(hr)) {m_pFile.Free(); return hr;}
 
-	CArray<CMediaType> mts;
+	CAtlArray<CMediaType> mts;
 	mts.Add(m_pFile->GetMediaType());
 
 	CAutoPtr<CBaseSplitterOutputPin> pPinOut(new CBaseSplitterOutputPin(mts, L"Video", this, this, &hr));

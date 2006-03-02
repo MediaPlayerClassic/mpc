@@ -23,7 +23,6 @@
 
 #include <atlbase.h>
 #include <atlcoll.h>
-#include <afxtempl.h>
 #include "..\BaseSplitter\BaseSplitter.h"
 
 namespace MatroskaReader
@@ -62,11 +61,10 @@ namespace MatroskaReader
 
 	class ContentCompression;
 
-	class CBinary : public CArray<BYTE>
+	class CBinary : public CAtlArray<BYTE>
 	{
 	public:
 		CBinary& operator = (const CBinary& b) {Copy(b); return(*this);}
-		operator BYTE*() {return (BYTE*)GetData();}
 		CStringA ToString() {return CStringA((LPCSTR)GetData(), GetCount());}
 		bool Compress(ContentCompression& cc), Decompress(ContentCompression& cc);
 		HRESULT Parse(CMatroskaNode* pMN);

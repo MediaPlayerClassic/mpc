@@ -22,7 +22,6 @@
 #pragma once
 
 #include <atlbase.h>
-#include <afxtempl.h>
 #include "..\BaseSource\BaseSource.h"
 
 class CDTSAC3Stream;

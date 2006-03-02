@@ -259,7 +259,7 @@ void CMPlayerCApp::ShowCmdlnSwitches()
 
 	if(m_s.nCLSwitches&CLSW_UNRECOGNIZEDSWITCH)
 	{
-		CList<CString> sl;
+		CAtlList<CString> sl;
 		for(int i = 0; i < __argc; i++) sl.AddTail(__targv[i]);
 		s += "Unrecognized switch(es) found in command line string: \n\n" + Implode(sl, ' ') + "\n\n";
 	}
@@ -1627,7 +1627,7 @@ void CMPlayerCApp::Settings::UpdateData(bool fSave)
 			str.Format(_T("%d"), iShader);
 			str = pApp->GetProfileString(_T("Shaders"), str);
 
-			CList<CString> sl;
+			CAtlList<CString> sl;
 			CString label = Explode(str, sl, '|');
 			if(label.IsEmpty()) break;
 			if(sl.GetCount() < 3) continue;
@@ -1667,7 +1667,7 @@ void CMPlayerCApp::Settings::UpdateData(bool fSave)
 	}
 }
 
-void CMPlayerCApp::Settings::ParseCommandLine(CList<CString>& cmdln)
+void CMPlayerCApp::Settings::ParseCommandLine(CAtlList<CString>& cmdln)
 {
 	nCLSwitches = 0;
 	slFiles.RemoveAll();
@@ -1714,7 +1714,7 @@ void CMPlayerCApp::Settings::ParseCommandLine(CList<CString>& cmdln)
 			else if(sw == _T("logoff")) nCLSwitches |= CLSW_LOGOFF;
 			else if(sw == _T("fixedsize") && pos)
 			{
-				CList<CString> sl;
+				CAtlList<CString> sl;
 				Explode(cmdln.GetNext(pos), sl, ',', 2);
 				if(sl.GetCount() == 2)
 				{
@@ -1732,7 +1732,7 @@ void CMPlayerCApp::Settings::ParseCommandLine(CList<CString>& cmdln)
 	}
 }
 
-void CMPlayerCApp::Settings::GetFav(favtype ft, CList<CString>& sl)
+void CMPlayerCApp::Settings::GetFav(favtype ft, CAtlList<CString>& sl)
 {
 	sl.RemoveAll();
 
@@ -1756,7 +1756,7 @@ void CMPlayerCApp::Settings::GetFav(favtype ft, CList<CString>& sl)
 	}
 }
 
-void CMPlayerCApp::Settings::SetFav(favtype ft, CList<CString>& sl)
+void CMPlayerCApp::Settings::SetFav(favtype ft, CAtlList<CString>& sl)
 {
 	CString root;
 
@@ -1782,7 +1782,7 @@ void CMPlayerCApp::Settings::SetFav(favtype ft, CList<CString>& sl)
 
 void CMPlayerCApp::Settings::AddFav(favtype ft, CString s)
 {
-	CList<CString> sl;
+	CAtlList<CString> sl;
 	GetFav(ft, sl);
 	if(sl.Find(s)) return;
 	sl.AddTail(s);
@@ -1895,7 +1895,7 @@ void SetDispMode(dispmode& dm)
 typedef CAtlRegExp<CAtlRECharTraits> CAtlRegExpT;
 typedef CAtlREMatchContext<CAtlRECharTraits> CAtlREMatchContextT;
 
-bool FindRedir(CUrl& src, CString ct, CString& body, CList<CString>& urls, CAutoPtrList<CAtlRegExpT>& res)
+bool FindRedir(CUrl& src, CString ct, CString& body, CAtlList<CString>& urls, CAutoPtrList<CAtlRegExpT>& res)
 {
 	POSITION pos = res.GetHeadPosition();
 	while(pos)
@@ -1937,7 +1937,7 @@ bool FindRedir(CUrl& src, CString ct, CString& body, CList<CString>& urls, CAuto
 	return urls.GetCount() > 0;
 }
 
-bool FindRedir(CString& fn, CString ct, CList<CString>& fns, CAutoPtrList<CAtlRegExpT>& res)
+bool FindRedir(CString& fn, CString ct, CAtlList<CString>& fns, CAutoPtrList<CAtlRegExpT>& res)
 {
 	CString body;
 
@@ -1984,7 +1984,7 @@ bool FindRedir(CString& fn, CString ct, CList<CString>& fns, CAutoPtrList<CAtlRe
 	return fns.GetCount() > 0;
 }
 
-CString GetContentType(CString fn, CList<CString>* redir)
+CString GetContentType(CString fn, CAtlList<CString>* redir)
 {
 	CUrl url;
 	CString ct, body;
@@ -2014,14 +2014,14 @@ CString GetContentType(CString fn, CList<CString>* redir)
 		{
 			ProxyServer.ReleaseBufferSetLength(len);
 
-			CList<CString> sl;
+			CAtlList<CString> sl;
 			ProxyServer = Explode(ProxyServer, sl, ';');
 			if(sl.GetCount() > 1)
 			{
 				POSITION pos = sl.GetHeadPosition();
 				while(pos)
 				{
-					CList<CString> sl2;
+					CAtlList<CString> sl2;
 					if(!Explode(sl.GetNext(pos), sl2, '=', 2).CompareNoCase(_T("http"))
 					&& sl2.GetCount() == 2)
 					{
@@ -2071,13 +2071,13 @@ CString GetContentType(CString fn, CList<CString>* redir)
 
 // MessageBox(NULL, CString(hdr), _T("Received..."), MB_OK);
 
-			CList<CStringA> sl;
+			CAtlList<CStringA> sl;
 			Explode(hdr, sl, '\n');
 			POSITION pos = sl.GetHeadPosition();
 			while(pos)
 			{
 				CStringA& hdrline = sl.GetNext(pos);
-				CList<CStringA> sl2;
+				CAtlList<CStringA> sl2;
 				Explode(hdrline, sl2, ':', 2);
 				CStringA field = sl2.RemoveHead().MakeLower();
 				if(field == "location" && !sl2.IsEmpty())

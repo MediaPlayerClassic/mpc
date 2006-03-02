@@ -30,7 +30,7 @@ struct MuxerPacket
 {
 	CBaseMuxerInputPin* pPin;
 	REFERENCE_TIME rtStart, rtStop;
-	CArray<BYTE> pData;
+	CAtlArray<BYTE> pData;
 	enum flag_t {empty = 0, timevalid = 1, syncpoint = 2, discontinuity = 4, eos = 8, bogus = 16};
 	DWORD flags;
 	int index;

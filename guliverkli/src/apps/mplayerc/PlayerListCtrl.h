@@ -52,12 +52,12 @@ class CInPlaceComboBox : public CComboBox
 private:
 	int m_iItem;
 	int m_iSubItem;
-	CList<CString> m_lstItems;
+	CAtlList<CString> m_lstItems;
 	int m_nSel;
 	BOOL m_bESC; // To indicate whether ESC key was pressed
 
 public:
-	CInPlaceComboBox(int iItem, int iSubItem, CList<CString>& plstItems, int nSel);
+	CInPlaceComboBox(int iItem, int iSubItem, CAtlList<CString>& plstItems, int nSel);
 	virtual ~CInPlaceComboBox();
 
 protected:
@@ -78,12 +78,12 @@ class CInPlaceListBox : public CListBox
 private:
 	int m_iItem;
 	int m_iSubItem;
-	CList<CString> m_lstItems;
+	CAtlList<CString> m_lstItems;
 	int m_nSel;
 	BOOL m_bESC; // To indicate whether ESC key was pressed
 
 public:
-	CInPlaceListBox(int iItem, int iSubItem, CList<CString>& plstItems, int nSel);
+	CInPlaceListBox(int iItem, int iSubItem, CAtlList<CString>& plstItems, int nSel);
 	virtual ~CInPlaceListBox();
 
 protected:
@@ -120,8 +120,8 @@ public:
 	int GetBottomIndex() const;
 
 	CEdit* ShowInPlaceEdit(int nItem, int nCol);
-	CComboBox* ShowInPlaceComboBox(int nItem, int nCol, CList<CString>& lstItems, int nSel);
-	CListBox* ShowInPlaceListBox(int nItem, int nCol, CList<CString>& lstItems, int nSel);
+	CComboBox* ShowInPlaceComboBox(int nItem, int nCol, CAtlList<CString>& lstItems, int nSel);
+	CListBox* ShowInPlaceListBox(int nItem, int nCol, CAtlList<CString>& lstItems, int nSel);
 
 	bool m_fInPlaceDirty;
 

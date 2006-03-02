@@ -23,7 +23,6 @@
 
 #include <atlbase.h>
 #include <atlcoll.h>
-#include <afxtempl.h>
 #include "DSMSplitterFile.h"
 #include "..\BaseSplitter\BaseSplitter.h"
 

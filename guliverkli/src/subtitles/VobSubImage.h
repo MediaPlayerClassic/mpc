@@ -21,22 +21,15 @@
 
 #pragma once
 
-#include <afx.h>
-#include <afxtempl.h>
 #include <atlcoll.h>
-
-typedef CArray<CPoint> CPointArray;
-typedef CArray<int> CDirArray;
 
 typedef struct 
 {
-	CPointArray pa;
-	CDirArray da;
+	CAtlArray<CPoint> pa;
+	CAtlArray<int> da;
 	void RemoveAll() {pa.RemoveAll(); da.RemoveAll();}
 	void Add(CPoint p, int d) {pa.Add(p); da.Add(d);}
 } COutline;
-
-typedef CAutoPtrList<COutline> COutlineList;
 
 class CVobSubImage
 {
@@ -84,13 +77,13 @@ public:
 	/////////
 
 private:
-	COutlineList* GetOutlineList(CPoint& topleft);
+	CAutoPtrList<COutline>* GetOutlineList(CPoint& topleft);
 	int GrabSegment(int start, COutline& o, COutline& ret);
 	void SplitOutline(COutline& o, COutline& o1, COutline& o2);
-	void AddSegment(COutline& o, CByteArray& pathTypes, CPointArray& pathPoints);
+	void AddSegment(COutline& o, CAtlArray<BYTE>& pathTypes, CAtlArray<CPoint>& pathPoints);
 
 public:
-	bool Polygonize(CByteArray& pathTypes, CPointArray& pathPoints, bool fSmooth, int scale);
+	bool Polygonize(CAtlArray<BYTE>& pathTypes, CAtlArray<CPoint>& pathPoints, bool fSmooth, int scale);
 	bool Polygonize(CStringW& assstr, bool fSmooth = true, int scale = 3);
 
     void Scale2x();

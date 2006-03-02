@@ -23,7 +23,6 @@
 
 #include <atlbase.h>
 #include <atlcoll.h>
-#include <afxtempl.h>
 #include "MatroskaFile.h"
 
 #define MAXCLUSTERTIME 1000

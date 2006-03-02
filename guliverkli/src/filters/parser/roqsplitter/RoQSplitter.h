@@ -48,7 +48,7 @@ class CRoQSplitterFilter : public CBaseSplitterFilter
 	CComPtr<IAsyncReader> m_pAsyncReader;
 
 	struct index {REFERENCE_TIME rtv, rta; __int64 fp;};
-	CList<index> m_index;
+	CAtlList<index> m_index;
 	POSITION m_indexpos;
 
 protected:

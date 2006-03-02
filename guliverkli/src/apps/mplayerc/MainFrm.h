@@ -62,14 +62,14 @@ public:
 //	OpenMediaData() {}
 	virtual ~OpenMediaData() {} // one virtual funct is needed to enable rtti
 	CString title;
-	CList<CString> subs;
+	CAtlList<CString> subs;
 };
 
 class OpenFileData : public OpenMediaData 
 {
 public:
 	OpenFileData() : rtStart(0) {}
-	CList<CString> fns; 
+	CAtlList<CString> fns; 
 	REFERENCE_TIME rtStart;
 };
 

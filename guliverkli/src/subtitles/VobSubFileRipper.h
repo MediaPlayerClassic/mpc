@@ -21,7 +21,7 @@
 
 #pragma once
 
-#include <afxtempl.h>
+#include <atlcoll.h>
 #include "..\decss\VobFile.h"
 #include "VobSubFile.h"
 
@@ -54,7 +54,7 @@ typedef struct
 typedef struct 
 {
 	int nAngles;
-	CArray<vc_t> angles[10];
+	CAtlArray<vc_t> angles[10];
 	int iSelAngle;
 	RGBQUAD pal[16];
 	WORD ids[32];
@@ -64,15 +64,15 @@ typedef struct VSFRipperData_t
 {
 	CSize vidsize;
 	vidinfo vidinfo;
-	CArray<PGC> pgcs;
+	CAtlArray<PGC> pgcs;
 	int iSelPGC;
 	bool fResetTime, fClosedCaption, fForcedOnly;
 
 	bool fClose, fBeep, fAuto; // only used by the UI externally, but may be set through the parameter file
 	bool fCloseIgnoreError;
 
-	CUIntArray selvcs;
-	CMap<BYTE, BYTE, bool, bool> selids;
+	CAtlArray<UINT> selvcs;
+	CAtlMap<BYTE, bool> selids;
 
 	void Reset();
 	void Copy(struct VSFRipperData_t& rd);
@@ -165,7 +165,8 @@ private:
 
 	bool LoadIfo(CString fn);
 	bool LoadVob(CString fn);
-	bool LoadChunks(CArray<vcchunk>& chunks), SaveChunks(CArray<vcchunk>& chunks);
+	bool LoadChunks(CAtlArray<vcchunk>& chunks);
+	bool SaveChunks(CAtlArray<vcchunk>& chunks);
 
 	//
 

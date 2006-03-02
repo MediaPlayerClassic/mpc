@@ -110,7 +110,7 @@ HRESULT CDSMSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 	m_rtNewStart = m_rtCurrent = 0;
 	m_rtNewStop = m_rtStop = m_rtDuration = m_pFile->m_rtDuration;
 
-	CArray<BYTE> ids;
+	CAtlArray<BYTE> ids;
 
 	POSITION pos = m_pFile->m_mts.GetStartPosition();
 	while(pos)
@@ -131,7 +131,7 @@ HRESULT CDSMSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 		CStringW name, lang;
 		name.Format(L"Output %02d", id);
 
-		CArray<CMediaType> mts;
+		CAtlArray<CMediaType> mts;
 		mts.Add(mt);
 
 		CAutoPtr<CBaseSplitterOutputPin> pPinOut(new CBaseSplitterOutputPin(mts, name, this, this, &hr));
@@ -179,7 +179,7 @@ HRESULT CDSMSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 
 bool CDSMSplitterFilter::DemuxInit()
 {
-	return(true);
+	return true;
 }
 
 void CDSMSplitterFilter::DemuxSeek(REFERENCE_TIME rt)

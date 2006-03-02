@@ -20,11 +20,11 @@ public:
 	struct strm_t
 	{
 		AVISTREAMHEADER strh;
-		CArray<BYTE> strf;
+		CAtlArray<BYTE> strf;
 		CStringA strn;
 		CAutoPtr<AVISUPERINDEX> indx;
 		struct chunk {UINT64 fKeyFrame:1, fChunkHdr:1, size:62; UINT64 filepos; DWORD orgsize;};
-		CArray<chunk> cs;
+		CAtlArray<chunk> cs;
 		UINT64 totalsize;
 		REFERENCE_TIME GetRefTime(DWORD frame, UINT64 size);
 		int GetTime(DWORD frame, UINT64 size);
@@ -35,13 +35,13 @@ public:
 
 		// tmp
 		struct chunk2 {DWORD t; DWORD n;};
-		CArray<chunk2> cs2;
+		CAtlArray<chunk2> cs2;
 	};
 	CAutoPtrArray<strm_t> m_strms;
-	CMap<DWORD, DWORD, CStringA, CStringA&> m_info;
+	CAtlMap<DWORD, CStringA> m_info;
 	CAutoPtr<AVIOLDINDEX> m_idx1;
 
-	CList<UINT64> m_movis;
+	CAtlList<UINT64> m_movis;
     
 	REFERENCE_TIME GetTotalTime();
 	HRESULT BuildIndex();

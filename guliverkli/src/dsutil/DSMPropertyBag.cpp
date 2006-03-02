@@ -138,8 +138,8 @@ CDSMResource::CDSMResource(LPCWSTR name, LPCWSTR desc, LPCWSTR mime, BYTE* pData
 	this->name = name;
 	this->desc = desc;
 	this->mime = mime;
-	data.SetSize(len);
-	memcpy(data.GetData(), pData, data.GetSize());
+	data.SetCount(len);
+	memcpy(data.GetData(), pData, data.GetCount());
 	this->tag = tag;
 
 	CAutoLock cAutoLock(&m_csResources);
@@ -188,7 +188,7 @@ STDMETHODIMP IDSMResourceBagImpl::ResGet(DWORD iIndex, BSTR* ppName, BSTR* ppDes
 	if(ppName) *ppName = r.name.AllocSysString();
 	if(ppDesc) *ppDesc = r.desc.AllocSysString();
 	if(ppMime) *ppMime = r.mime.AllocSysString();
-	if(ppData) {*pDataLen = r.data.GetSize(); memcpy(*ppData = (BYTE*)CoTaskMemAlloc(*pDataLen), r.data.GetData(), *pDataLen);}
+	if(ppData) {*pDataLen = r.data.GetCount(); memcpy(*ppData = (BYTE*)CoTaskMemAlloc(*pDataLen), r.data.GetData(), *pDataLen);}
 	if(pTag) *pTag = r.tag;
 
 	return S_OK;
@@ -204,7 +204,7 @@ STDMETHODIMP IDSMResourceBagImpl::ResSet(DWORD iIndex, LPCWSTR pName, LPCWSTR pD
 	if(pName) r.name = pName;
 	if(pDesc) r.desc = pDesc;
 	if(pMime) r.mime = pMime;
-	if(pData || len == 0) {r.data.SetSize(len); if(pData) memcpy(r.data.GetData(), pData, r.data.GetSize());}
+	if(pData || len == 0) {r.data.SetCount(len); if(pData) memcpy(r.data.GetData(), pData, r.data.GetCount());}
 	r.tag = tag;
 
 	return S_OK;

@@ -23,7 +23,6 @@
 
 #include <atlbase.h>
 #include <atlcoll.h>
-#include <afxtempl.h>
 #include "..\BaseSplitter\BaseSplitter.h"
 #include "..\..\transform\BaseVideoFilter\BaseVideoFilter.h"
 
@@ -49,7 +48,7 @@ namespace RMFF
 		UINT32 maxPacketSize, avgPacketSize;
 		UINT32 tStart, tPreroll, tDuration;
 		CStringA name, mime;
-		CArray<BYTE> typeSpecData;
+		CAtlArray<BYTE> typeSpecData;
 		UINT32 width, height;
 		bool interlaced, top_field_first;
 	} MediaProperies;
@@ -61,7 +60,7 @@ namespace RMFF
 		UINT32 tStart;
 		UINT8 reserved;
 		enum flag_t {PN_RELIABLE_FLAG=1, PN_KEYFRAME_FLAG=2} flags; // UINT8
-		CArray<BYTE> pData;
+		CAtlArray<BYTE> pData;
 	} MediaPacketHeader;
 	typedef struct {UINT32 nIndices; UINT16 stream; UINT32 ptrNext;} IndexChunkHeader;
 	typedef struct {UINT32 tStart, ptrFilePos, packet;} IndexRecord;
@@ -142,7 +141,7 @@ public:
 	CAutoPtrList<RMFF::IndexRecord> m_irs;
 
 	typedef struct {CStringA name, data;} subtitle;
-	CList<subtitle> m_subs;
+	CAtlList<subtitle> m_subs;
 
 	int GetMasterStream();
 };
@@ -150,7 +149,7 @@ public:
 class CRealMediaSplitterOutputPin : public CBaseSplitterOutputPin
 {
 private:
-	typedef struct {CArray<BYTE> data; DWORD offset;} segment;
+	typedef struct {CAtlArray<BYTE> data; DWORD offset;} segment;
 
 	class CSegments : public CAutoPtrList<segment>, public CCritSec
 	{
@@ -174,7 +173,7 @@ protected:
 	HRESULT DeliverPacket(CAutoPtr<Packet> p);
 
 public:
-	CRealMediaSplitterOutputPin(CArray<CMediaType>& mts, LPCWSTR pName, CBaseFilter* pFilter, CCritSec* pLock, HRESULT* phr);
+	CRealMediaSplitterOutputPin(CAtlArray<CMediaType>& mts, LPCWSTR pName, CBaseFilter* pFilter, CCritSec* pLock, HRESULT* phr);
 	virtual ~CRealMediaSplitterOutputPin();
 
 	HRESULT DeliverEndFlush();

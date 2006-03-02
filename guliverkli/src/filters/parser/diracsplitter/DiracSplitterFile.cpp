@@ -10,7 +10,7 @@ CDiracSplitterFile::CDiracSplitterFile(IAsyncReader* pAsyncReader, HRESULT& hr)
 	, m_rtDuration(0)
 {
 	if(SUCCEEDED(hr)) hr = Init();
-	m_pBuff.SetSize(1024, 1024);
+	m_pBuff.SetCount(1024, 1024);
 }
 
 HRESULT CDiracSplitterFile::Init()
@@ -139,10 +139,10 @@ const BYTE* CDiracSplitterFile::NextBlock(BYTE& code, int& size, int& fnum)
 			}
 		}
 
-		if(size >= m_pBuff.GetSize())
+		if(size >= m_pBuff.GetCount())
 		{
 			int newsize = max(1024, size*2);
-			m_pBuff.SetSize(newsize, newsize);
+			m_pBuff.SetCount(newsize, newsize);
 			pBuff = m_pBuff.GetData();
 		}
 

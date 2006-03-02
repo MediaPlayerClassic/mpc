@@ -299,7 +299,7 @@ STDMETHODIMP CSubtitleInputPin::Receive(IMediaSample* pSample)
 
 				int fields = m_mt.subtype == MEDIASUBTYPE_ASS2 ? 10 : 9;
 
-				CList<CStringW> sl;
+				CAtlList<CStringW> sl;
 				Explode(str, sl, ',', fields);
 				if(sl.GetCount() == fields)
 				{

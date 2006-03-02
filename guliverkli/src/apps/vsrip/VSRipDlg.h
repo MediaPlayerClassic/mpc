@@ -21,12 +21,9 @@
 
 #pragma once
 
-#include <afxwin.h>
-#include <afxtempl.h>
 #include "VSRipFileDlg.h"
 #include "VSRipPGCDlg.h"
 #include "VSRipIndexingDlg.h"
-#include "afxwin.h"
 
 // CVSRipDlg dialog
 class CVSRipDlg : public CDialog

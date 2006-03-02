@@ -47,7 +47,7 @@ CStringA makeargs(CPlaylist& pl)
 	CList<filehash> fhs;
 	hash(pl, fhs);
 
-	CList<CStringA> args;
+	CAtlList<CStringA> args;
 
 	POSITION pos = fhs.GetHeadPosition();
 	for(int i = 0; pos; i++)

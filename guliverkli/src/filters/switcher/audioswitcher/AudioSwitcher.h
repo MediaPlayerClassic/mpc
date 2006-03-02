@@ -41,7 +41,7 @@ class AudioStreamResampler;
 class CAudioSwitcherFilter : public CStreamSwitcherFilter, public IAudioSwitcherFilter
 {
 	typedef struct {DWORD Speaker, Channel;} ChMap;
-	CArray<ChMap> m_chs[18];
+	CAtlArray<ChMap> m_chs[18];
 
 	bool m_fCustomChannelMapping;
 	DWORD m_pSpeakerToChannelMap[18][18];

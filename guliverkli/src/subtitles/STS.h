@@ -21,7 +21,7 @@
 
 #pragma once
 
-#include <afxtempl.h>
+#include <atlcoll.h>
 #include <wxutil.h>
 #include "TextFile.h"
 #include "GFN.h"
@@ -67,7 +67,7 @@ public:
 	friend STSStyle& operator <<= (STSStyle& s, CString& style);
 };
 
-class CSTSStyleMap : public CMapStringToPtr
+class CSTSStyleMap : public CAtlMap<CString, STSStyle*, CStringElementTraits<CString> >
 {
 public:
 	CSTSStyleMap() {}
@@ -86,15 +86,11 @@ typedef struct
 	int readorder;
 } STSEntry;
 
-typedef CArray<STSEntry> CSTSArray;
-
-typedef CArray<int> CSubArray;
-
 class STSSegment
 {
 public:
 	int start, end;
-	CSubArray subs;
+	CAtlArray<int> subs;
 
 	STSSegment() {};
 	STSSegment(int s, int e) {start = s; end = e;}
@@ -102,14 +98,12 @@ public:
 	void operator = (const STSSegment& stss) {start = stss.start; end = stss.end; subs.Copy(stss.subs);}
 };
 
-typedef CArray<STSSegment> CSTSSegmentArray;
-
-class CSimpleTextSubtitle : public CSTSArray
+class CSimpleTextSubtitle : public CAtlArray<STSEntry>
 {
 	friend class CSubtitleEditorDlg;
 
 protected:
-	CSTSSegmentArray m_segments;
+	CAtlArray<STSSegment> m_segments;
 	virtual void OnChanged() {}
 
 public:
@@ -164,7 +158,7 @@ public:
 	int TranslateSegmentStart(int i, double fps); 
 	int TranslateSegmentEnd(int i, double fps);
 	const STSSegment* SearchSubs(int t, double fps, /*[out]*/ int* iSegment = NULL, int* nSegments = NULL);
-	const STSSegment* GetSegment(int iSegment) {return(iSegment >= 0 && iSegment < m_segments.GetSize() ? &m_segments[iSegment] : NULL);}
+	const STSSegment* GetSegment(int iSegment) {return iSegment >= 0 && iSegment < (int)m_segments.GetCount() ? &m_segments[iSegment] : NULL;}
 
 	STSStyle* GetStyle(int i);
 	bool GetStyle(int i, STSStyle& stss);
@@ -190,6 +184,6 @@ extern BYTE CharSetList[];
 extern TCHAR* CharSetNames[];
 extern int CharSetLen;
 
-class CHtmlColorMap : public CMapStringToPtr {public: CHtmlColorMap();};
+class CHtmlColorMap : public CAtlMap<CString, DWORD, CStringElementTraits<CString> > {public: CHtmlColorMap();};
 extern CHtmlColorMap g_colors;
 

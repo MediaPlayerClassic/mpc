@@ -113,7 +113,7 @@ BOOL CAuthDlg::OnInitDialog()
 			CString str = p;
 			p += str.GetLength()+1;
 			len -= str.GetLength()+1;
-			CList<CString> sl;
+			CAtlList<CString> sl;
 			Explode(str, sl, '=', 2);
 			if(sl.GetCount() == 2)
 			{

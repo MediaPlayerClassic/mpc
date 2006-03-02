@@ -156,7 +156,7 @@ void CShaderAutoCompleteDlg::OnLbnSelchangeList1()
 	{
 		CString str, desc;
 		m_inst.GetNextAssoc(pos, str, desc);
-		CList<CString> sl;
+		CAtlList<CString> sl;
 		Explode(desc, sl, '|', 2);
 		if(sl.GetCount() != 2) return;
 		_tcscpy(m_ti.lpszText, sl.RemoveTail());

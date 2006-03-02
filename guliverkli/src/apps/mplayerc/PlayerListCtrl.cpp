@@ -129,12 +129,12 @@ int CInPlaceEdit::OnCreate(LPCREATESTRUCT lpCreateStruct)
 
 // CInPlaceComboBox
 
-CInPlaceComboBox::CInPlaceComboBox(int iItem, int iSubItem, CList<CString>& lstItems, int nSel)
+CInPlaceComboBox::CInPlaceComboBox(int iItem, int iSubItem, CAtlList<CString>& lstItems, int nSel)
 {
 	m_iItem = iItem;
 	m_iSubItem = iSubItem;
 
-	m_lstItems.AddTail(&lstItems);
+	m_lstItems.AddTailList(&lstItems);
 	m_nSel = nSel;
 	m_bESC = FALSE;
 }
@@ -237,12 +237,12 @@ void CInPlaceComboBox::OnCloseup()
 
 // CInPlaceListBox
 
-CInPlaceListBox::CInPlaceListBox(int iItem, int iSubItem, CList<CString>& lstItems, int nSel)
+CInPlaceListBox::CInPlaceListBox(int iItem, int iSubItem, CAtlList<CString>& lstItems, int nSel)
 {
 	m_iItem = iItem;
 	m_iSubItem = iSubItem;
 
-	m_lstItems.AddTail(&lstItems);
+	m_lstItems.AddTailList(&lstItems);
 	m_nSel = nSel;
 	m_bESC = FALSE;
 }
@@ -574,7 +574,7 @@ CEdit* CPlayerListCtrl::ShowInPlaceEdit(int nItem, int nCol)
 	return pEdit;
 }
 
-CComboBox* CPlayerListCtrl::ShowInPlaceComboBox(int nItem, int nCol, CList<CString>& lstItems, int nSel)
+CComboBox* CPlayerListCtrl::ShowInPlaceComboBox(int nItem, int nCol, CAtlList<CString>& lstItems, int nSel)
 {
 	CRect rect;
 	if(!PrepareInPlaceControl(nItem, nCol, rect))
@@ -596,7 +596,7 @@ CComboBox* CPlayerListCtrl::ShowInPlaceComboBox(int nItem, int nCol, CList<CStri
 	return pComboBox;
 }
 
-CListBox* CPlayerListCtrl::ShowInPlaceListBox(int nItem, int nCol, CList<CString>& lstItems, int nSel)
+CListBox* CPlayerListCtrl::ShowInPlaceListBox(int nItem, int nCol, CAtlList<CString>& lstItems, int nSel)
 {
 	CRect rect;
 	if(!PrepareInPlaceControl(nItem, nCol, rect))

@@ -31,8 +31,8 @@ class CDSMMuxerFilter : public CBaseMuxerFilter
 
 	struct SyncPoint {BYTE id; REFERENCE_TIME rtStart, rtStop; __int64 fp;};
 	struct IndexedSyncPoint {BYTE id; REFERENCE_TIME rt, rtfp; __int64 fp;};
-	CList<SyncPoint> m_sps;
-	CList<IndexedSyncPoint> m_isps;
+	CAtlList<SyncPoint> m_sps;
+	CAtlList<IndexedSyncPoint> m_isps;
 	REFERENCE_TIME m_rtPrevSyncPoint;
 	void IndexSyncPoint(const MuxerPacket* p, __int64 fp);
 

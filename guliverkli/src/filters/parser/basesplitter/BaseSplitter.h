@@ -23,7 +23,6 @@
 
 #include <atlbase.h>
 #include <atlcoll.h>
-#include <afxtempl.h>
 #include <qnetwork.h>
 #include "..\..\..\..\include\IKeyFrameInfo.h"
 #include "..\..\..\..\include\IBufferInfo.h"
@@ -33,19 +32,17 @@
 #include "..\..\..\DSUtil\DSMPropertyBag.h"
 #include "..\..\..\DSUtil\FontInstaller.h"
 
-class Packet
+class Packet : public CAtlArray<BYTE>
 {
 public:
 	DWORD TrackNumber;
 	BOOL bDiscontinuity, bSyncPoint, bAppendable;
 	static const REFERENCE_TIME INVALID_TIME = _I64_MIN;
 	REFERENCE_TIME rtStart, rtStop;
-	CArray<BYTE> pData;
 	AM_MEDIA_TYPE* pmt;
 	Packet() {pmt = NULL; bDiscontinuity = bAppendable = FALSE;}
 	virtual ~Packet() {if(pmt) DeleteMediaType(pmt);}
-	virtual int GetSize() {return pData.GetSize();}
-	void SetData(const void* ptr, DWORD len) {pData.SetSize(len); memcpy(pData.GetData(), ptr, len);}
+	void SetData(const void* ptr, DWORD len) {SetCount(len); memcpy(GetData(), ptr, len);}
 };
 
 class CPacketQueue 
@@ -96,7 +93,7 @@ class CBaseSplitterOutputPin
 	, public IBitRateInfo
 {
 protected:
-	CArray<CMediaType> m_mts;
+	CAtlArray<CMediaType> m_mts;
 	int m_nBuffers;
 
 private:
@@ -156,7 +153,7 @@ protected:
 	STDMETHODIMP GetPreroll(LONGLONG* pllPreroll);
 
 public:
-	CBaseSplitterOutputPin(CArray<CMediaType>& mts, LPCWSTR pName, CBaseFilter* pFilter, CCritSec* pLock, HRESULT* phr, int nBuffers = 0);
+	CBaseSplitterOutputPin(CAtlArray<CMediaType>& mts, LPCWSTR pName, CBaseFilter* pFilter, CCritSec* pLock, HRESULT* phr, int nBuffers = 0);
 	CBaseSplitterOutputPin(LPCWSTR pName, CBaseFilter* pFilter, CCritSec* pLock, HRESULT* phr, int nBuffers = 0);
 	virtual ~CBaseSplitterOutputPin();
 
@@ -246,8 +243,8 @@ protected:
 	REFERENCE_TIME m_rtStart, m_rtStop, m_rtCurrent, m_rtNewStart, m_rtNewStop;
 	double m_dRate;
 
-	CList<UINT64> m_bDiscontinuitySent;
-	CList<CBaseSplitterOutputPin*> m_pActivePins;
+	CAtlList<UINT64> m_bDiscontinuitySent;
+	CAtlList<CBaseSplitterOutputPin*> m_pActivePins;
 
 	CAMEvent m_eEndFlush;
 	bool m_fFlushing;
@@ -319,7 +316,7 @@ protected:
 
 private:
 	REFERENCE_TIME m_rtLastStart, m_rtLastStop;
-	CList<void*> m_LastSeekers;
+	CAtlList<void*> m_LastSeekers;
 
 public:
 	// IAMOpenProgress

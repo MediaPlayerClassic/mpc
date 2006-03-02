@@ -53,7 +53,7 @@ extern void CorrectComboListWidth(CComboBox& box, CFont* pWndFont);
 extern HICON LoadIcon(CString fn, bool fSmall);
 extern bool LoadType(CString fn, CString& type);
 extern bool LoadResource(UINT resid, CStringA& str, LPCTSTR restype);
-extern CString GetContentType(CString fn, CList<CString>* redir = NULL);
+extern CString GetContentType(CString fn, CAtlList<CString>* redir = NULL);
 
 /////////////////////////////////////////////////////////////////////////////
 // CMPlayerCApp:
@@ -289,7 +289,7 @@ class CMPlayerCApp : public CWinApp
 {
 	ATL::CMutex m_mutexOneInstance;
 
-	CList<CString> m_cmdln;
+	CAtlList<CString> m_cmdln;
 	void PreProcessCommandLine();
 	void SendCommandLine(HWND hWnd);
 
@@ -334,13 +334,13 @@ public:
 	public:
 		// cmdline params
 		int nCLSwitches;
-		CList<CString> slFiles, slDubs, slSubs, slFilters;
+		CAtlList<CString> slFiles, slDubs, slSubs, slFilters;
 		__int64 rtStart;
 		CSize fixedWindowSize;
 		bool HasFixedWindowSize() {return fixedWindowSize.cx > 0 || fixedWindowSize.cy > 0;}
 		// int iFixedWidth, iFixedHeight;
 
-		void ParseCommandLine(CList<CString>& cmdln);
+		void ParseCommandLine(CAtlList<CString>& cmdln);
 
 		bool fXpOrBetter;
 		int iDXVer;
@@ -489,8 +489,8 @@ public:
 		virtual ~Settings();
 		void UpdateData(bool fSave);
 
-		void GetFav(favtype ft, CList<CString>& sl);
-		void SetFav(favtype ft, CList<CString>& sl);
+		void GetFav(favtype ft, CAtlList<CString>& sl);
+		void SetFav(favtype ft, CAtlList<CString>& sl);
 		void AddFav(favtype ft, CString s);
 	} m_s;
 

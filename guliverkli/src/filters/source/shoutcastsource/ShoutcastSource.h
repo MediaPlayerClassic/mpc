@@ -22,10 +22,9 @@
 #pragma once
 
 #include <atlbase.h>
-#include <afxtempl.h>
+#include <atlutil.h>
 #include <afxinet.h>
 #include <afxsock.h>
-#include <atlutil.h>
 #include <qnetwork.h>
 
 [uuid("68F540E9-766F-44d2-AB07-E26CC6D27A79")]
@@ -99,7 +98,7 @@ class CShoutcastStream : public CSourceStream
 		}
 	};
 
-	class mp3queue : public CList<mp3frame>, public CCritSec {} m_queue;
+	class mp3queue : public CAtlList<mp3frame>, public CCritSec {} m_queue;
 
 	class CShoutcastSocket : public CSocket
 	{

@@ -339,7 +339,7 @@ bool CPolygon::GetPOINT(CStringW& str, POINT& ret)
 
 bool CPolygon::ParseStr()
 {
-	if(m_pathTypesOrg.GetSize() > 0) return(true);
+	if(m_pathTypesOrg.GetCount() > 0) return(true);
 
 	CPoint p;
 	int i, j, lastsplinestart = -1, firstmoveto = -1, lastmoveto = -1;
@@ -362,7 +362,7 @@ bool CPolygon::ParseStr()
 		switch(c)
 		{
 		case 'm': 
-			lastmoveto = m_pathTypesOrg.GetSize();
+			lastmoveto = m_pathTypesOrg.GetCount();
 			if(firstmoveto == -1) firstmoveto = lastmoveto;
 			while(GetPOINT(s, p)) {m_pathTypesOrg.Add(PT_MOVETO); m_pathPointsOrg.Add(p);}
 			break;
@@ -373,16 +373,16 @@ bool CPolygon::ParseStr()
 			while(GetPOINT(s, p)) {m_pathTypesOrg.Add(PT_LINETO); m_pathPointsOrg.Add(p);}
 			break;
 		case 'b':
-			j = m_pathTypesOrg.GetSize();
+			j = m_pathTypesOrg.GetCount();
 			while(GetPOINT(s, p)) {m_pathTypesOrg.Add(PT_BEZIERTO); m_pathPointsOrg.Add(p); j++;}
-			j = m_pathTypesOrg.GetSize() - ((m_pathTypesOrg.GetSize()-j)%3);
-			m_pathTypesOrg.SetSize(j); m_pathPointsOrg.SetSize(j);
+			j = m_pathTypesOrg.GetCount() - ((m_pathTypesOrg.GetCount()-j)%3);
+			m_pathTypesOrg.SetCount(j); m_pathPointsOrg.SetCount(j);
 			break;
 		case 's':
-			j = lastsplinestart = m_pathTypesOrg.GetSize();
+			j = lastsplinestart = m_pathTypesOrg.GetCount();
 			i = 3;
 			while(i-- && GetPOINT(s, p)) {m_pathTypesOrg.Add(PT_BSPLINETO); m_pathPointsOrg.Add(p); j++;}
-			if(m_pathTypesOrg.GetSize()-lastsplinestart < 3) {m_pathTypesOrg.SetSize(lastsplinestart); m_pathPointsOrg.SetSize(lastsplinestart); lastsplinestart = -1;}
+			if(m_pathTypesOrg.GetCount()-lastsplinestart < 3) {m_pathTypesOrg.SetCount(lastsplinestart); m_pathPointsOrg.SetCount(lastsplinestart); lastsplinestart = -1;}
 			// no break here
 		case 'p':
 			while(GetPOINT(s, p)) {m_pathTypesOrg.Add(PT_BSPLINEPATCHTO); m_pathPointsOrg.Add(p); j++;}
@@ -417,7 +417,7 @@ bool CPolygon::ParseStr()
 		switch(*str++)
 		{
 		case 'm': 
-			lastmoveto = m_pathTypesOrg.GetSize();
+			lastmoveto = m_pathTypesOrg.GetCount();
 			if(firstmoveto == -1) firstmoveto = lastmoveto;
 			while(GetPOINT(str, p)) {m_pathTypesOrg.Add(PT_MOVETO); m_pathPointsOrg.Add(p);}
 			break;
@@ -428,16 +428,16 @@ bool CPolygon::ParseStr()
 			while(GetPOINT(str, p)) {m_pathTypesOrg.Add(PT_LINETO); m_pathPointsOrg.Add(p);}
 			break;
 		case 'b':
-			j = m_pathTypesOrg.GetSize();
+			j = m_pathTypesOrg.GetCount();
 			while(GetPOINT(str, p)) {m_pathTypesOrg.Add(PT_BEZIERTO); m_pathPointsOrg.Add(p); j++;}
-			j = m_pathTypesOrg.GetSize() - ((m_pathTypesOrg.GetSize()-j)%3);
-			m_pathTypesOrg.SetSize(j); m_pathPointsOrg.SetSize(j);
+			j = m_pathTypesOrg.GetCount() - ((m_pathTypesOrg.GetCount()-j)%3);
+			m_pathTypesOrg.SetCount(j); m_pathPointsOrg.SetCount(j);
 			break;
 		case 's':
-			j = lastsplinestart = m_pathTypesOrg.GetSize();
+			j = lastsplinestart = m_pathTypesOrg.GetCount();
 			i = 3;
 			while(i-- && GetPOINT(str, p)) {m_pathTypesOrg.Add(PT_BSPLINETO); m_pathPointsOrg.Add(p); j++;}
-			if(m_pathTypesOrg.GetSize()-lastsplinestart < 3) {m_pathTypesOrg.SetSize(lastsplinestart); m_pathPointsOrg.SetSize(lastsplinestart); lastsplinestart = -1;}
+			if(m_pathTypesOrg.GetCount()-lastsplinestart < 3) {m_pathTypesOrg.SetCount(lastsplinestart); m_pathPointsOrg.SetCount(lastsplinestart); lastsplinestart = -1;}
 			// no break here
 		case 'p':
 			while(GetPOINT(str, p)) {m_pathTypesOrg.Add(PT_BSPLINEPATCHTO); m_pathPointsOrg.Add(p); j++;}
@@ -473,7 +473,7 @@ bool CPolygon::ParseStr()
 
 	int minx = INT_MAX, miny = INT_MAX, maxx = -INT_MAX, maxy = -INT_MAX;
 
-	for(i = 0; i < m_pathTypesOrg.GetSize(); i++)
+	for(i = 0; i < m_pathTypesOrg.GetCount(); i++)
 	{
 		m_pathPointsOrg[i].x = (int)(64 * m_scalex * m_pathPointsOrg[i].x);
 		m_pathPointsOrg[i].y = (int)(64 * m_scaley * m_pathPointsOrg[i].y);
@@ -499,7 +499,7 @@ bool CPolygon::ParseStr()
 
 bool CPolygon::CreatePath()
 {
-	int len = m_pathTypesOrg.GetSize();
+	int len = m_pathTypesOrg.GetCount();
 	if(len == 0) return(false);
 
 	if(mPathPoints != len)
@@ -608,7 +608,7 @@ void CLine::Compact()
 	if(IsEmpty()) return;
 
 	CLine l;
-	l.AddTail(this);
+	l.AddTailList(this);
 	RemoveAll();
 
 	CWord* last = NULL;
@@ -1088,7 +1088,7 @@ void CScreenLayoutAllocator::Empty()
 	m_subrects.RemoveAll();
 }
 
-void CScreenLayoutAllocator::AdvanceToSegment(int segment, const CSubArray& sa)
+void CScreenLayoutAllocator::AdvanceToSegment(int segment, const CAtlArray<int>& sa)
 {
 	POSITION pos = m_subrects.GetHeadPosition();
 	while(pos)
@@ -1101,7 +1101,7 @@ void CScreenLayoutAllocator::AdvanceToSegment(int segment, const CSubArray& sa)
 
 		if(abs(sr.segment - segment) <= 1) // using abs() makes it possible to play the subs backwards, too :)
 		{
-			for(int i = 0; i < sa.GetSize() && !fFound; i++)
+			for(int i = 0; i < sa.GetCount() && !fFound; i++)
 			{
 				if(sa[i] == sr.entry) 
 				{
@@ -1201,13 +1201,13 @@ CRenderedTextSubtitle::~CRenderedTextSubtitle()
 
 void CRenderedTextSubtitle::Copy(CSimpleTextSubtitle& sts)
 {
-	CSimpleTextSubtitle::Copy(sts);
+	__super::Copy(sts);
 
 	m_size = CSize(0, 0);
 
 	if(CRenderedTextSubtitle* pRTS = dynamic_cast<CRenderedTextSubtitle*>(&sts))
 	{
-		m_size = pRTS->m_nSize;
+		m_size = pRTS->m_size;
 	}
 }
 
@@ -1215,12 +1215,12 @@ void CRenderedTextSubtitle::Empty()
 {
 	Deinit();
 
-	CSimpleTextSubtitle::Empty();
+	__super::Empty();
 }
 
 void CRenderedTextSubtitle::OnChanged()
 {
-	CSimpleTextSubtitle::OnChanged();
+	__super::OnChanged();
 
 	POSITION pos = m_subtitleCache.GetStartPosition();
 	while(pos)
@@ -1382,7 +1382,7 @@ bool CRenderedTextSubtitle::ParseSSATag(CSubtitle* sub, CStringW str, STSStyle& 
 		cmd.Trim();
 		if(cmd.IsEmpty()) continue;
 
-		CArray<CStringW> params;
+		CAtlArray<CStringW> params;
 
 		if(str[j] == '(')
 		{
@@ -1800,8 +1800,8 @@ bool CRenderedTextSubtitle::ParseSSATag(CSubtitle* sub, CStringW str, STSStyle& 
 		}
 		else if(cmd == L"r")
 		{
-			void* val;
-			style = (!p.IsEmpty() && m_styles.Lookup(CString(p), val) && val) ? *((STSStyle*)val) : org;
+			STSStyle* val;
+			style = (!p.IsEmpty() && m_styles.Lookup(CString(p), val) && val) ? *val : org;
 		}
 		else if(cmd == L"shad")
 		{
@@ -1878,7 +1878,7 @@ bool CRenderedTextSubtitle::ParseHtmlTag(CSubtitle* sub, CStringW str, STSStyle&
 	CStringW tag = str.Left(i).MakeLower();
 	str = str.Mid(i).Trim();
 
-	CArray<CStringW> attribs, params;
+	CAtlArray<CStringW> attribs, params;
 	while((i = str.Find('=')) > 0)
 	{
 		attribs.Add(str.Left(i).Trim().MakeLower());
@@ -1949,10 +1949,10 @@ bool CRenderedTextSubtitle::ParseHtmlTag(CSubtitle* sub, CStringW str, STSStyle&
 				if(nColor >= 0 && nColor < 4)
 				{
 					CString key = WToT(params[i]).TrimLeft('#');
-					void* val;
+					DWORD val;
 					if(g_colors.Lookup(key, val))
-						style.colors[nColor] = (DWORD)val;
-					else if ((style.colors[nColor] = _tcstol(key, NULL, 16)) == 0)
+						style.colors[nColor] = val;
+					else if((style.colors[nColor] = _tcstol(key, NULL, 16)) == 0)
 						style.colors[nColor] = 0x00ffffff;  // default is white
 					style.colors[nColor] = ((style.colors[nColor]>>16)&0xff)|((style.colors[nColor]&0xff)<<16)|(style.colors[nColor]&0x00ff00);
 				}
@@ -2145,7 +2145,7 @@ STDMETHODIMP_(POSITION) CRenderedTextSubtitle::GetNext(POSITION pos)
 	int iSegment = (int)pos;
 
 	const STSSegment* stss;
-	while((stss = GetSegment(iSegment)) && stss->subs.GetSize() == 0)
+	while((stss = GetSegment(iSegment)) && stss->subs.GetCount() == 0)
 		iSegment++;
 
 	return(stss ? (POSITION)(iSegment+1) : NULL);
@@ -2210,9 +2210,9 @@ STDMETHODIMP CRenderedTextSubtitle::Render(SubPicDesc& spd, REFERENCE_TIME rt, d
 
 	m_sla.AdvanceToSegment(segment, stss->subs);
 
-	CArray<LSub> subs;
+	CAtlArray<LSub> subs;
 
-	for(int i = 0, j = stss->subs.GetSize(); i < j; i++)
+	for(int i = 0, j = stss->subs.GetCount(); i < j; i++)
 	{
 		LSub ls;
 		ls.idx = stss->subs[i];
@@ -2221,9 +2221,9 @@ STDMETHODIMP CRenderedTextSubtitle::Render(SubPicDesc& spd, REFERENCE_TIME rt, d
 		subs.Add(ls);
 	}
 
-	qsort(subs.GetData(), subs.GetSize(), sizeof(LSub), lscomp);
+	qsort(subs.GetData(), subs.GetCount(), sizeof(LSub), lscomp);
 
-	for(int i = 0, j = subs.GetSize(); i < j; i++)
+	for(int i = 0, j = subs.GetCount(); i < j; i++)
 	{
 		int entry = subs[i].idx;
 
@@ -2427,7 +2427,7 @@ STDMETHODIMP CRenderedTextSubtitle::Render(SubPicDesc& spd, REFERENCE_TIME rt, d
 
 	bbox = bbox2;
 
-	return (subs.GetSize() && !bbox2.IsRectEmpty()) ? S_OK : S_FALSE;
+	return (subs.GetCount() && !bbox2.IsRectEmpty()) ? S_OK : S_FALSE;
 }
 
 // IPersist

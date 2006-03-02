@@ -51,7 +51,7 @@ BOOL CShaderCombineDlg::OnInitDialog()
 
 	CString str = s.m_shadercombine.Trim();
 
-	CList<CString> sl;
+	CAtlList<CString> sl;
 	if(!str.IsEmpty()) Explode(str, sl, '|');
 
 	POSITION pos = sl.GetHeadPosition();
@@ -69,7 +69,7 @@ void CShaderCombineDlg::OnOK()
 {
 	m_labels.RemoveAll();
 
-	CList<CString> sl;
+	CAtlList<CString> sl;
 
 	for(int i = 0, j = m_list.GetCount(); i < j; i++)
 	{

@@ -103,7 +103,7 @@ HRESULT CNutSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 	{
 		CNutFile::stream_header* sh = m_pFile->m_streams.GetNext(pos);
 
-		CArray<CMediaType> mts;
+		CAtlArray<CMediaType> mts;
 		CMediaType mt;
 
 		if(sh->stream_class == CNutFile::SC_VIDEO)
@@ -256,8 +256,8 @@ TRACE(_T("[%I64d]: %I64d:%I64d\n"), stream_id, sh->msb_timestamp, lsb_timestamp)
 
 				if(fh.subpacket_type == 1)
 				{
-					p->pData.SetSize(len);
-					m_pFile->ByteRead(p->pData.GetData(), p->pData.GetSize());
+					p->SetCount(len);
+					m_pFile->ByteRead(p->GetData(), p->GetCount());
 
 					if(FAILED(DeliverPacket(p)))
 						break;

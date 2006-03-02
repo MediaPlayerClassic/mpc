@@ -170,14 +170,14 @@ bool CDSMSplitterFile::Read(__int64 len, Packet* p, bool fData)
 
 	if(fData)
 	{
-        p->pData.SetSize((INT_PTR)len - (2 + iTimeStamp + iDuration));
-		ByteRead(p->pData.GetData(), p->pData.GetSize());
+        p->SetCount((INT_PTR)len - (2 + iTimeStamp + iDuration));
+		ByteRead(p->GetData(), p->GetCount());
 	}
 
 	return true;
 }
 
-bool CDSMSplitterFile::Read(__int64 len, CArray<SyncPoint>& sps)
+bool CDSMSplitterFile::Read(__int64 len, CAtlArray<SyncPoint>& sps)
 {
 	SyncPoint sp = {0, 0};
 	sps.RemoveAll();
@@ -233,8 +233,8 @@ bool CDSMSplitterFile::Read(__int64 len, IDSMResourceBagImpl& res)
 
 	if(compression != 0) return false; // TODO
 
-	r.data.SetSize(len);
-	ByteRead(r.data.GetData(), r.data.GetSize());
+	r.data.SetCount(len);
+	ByteRead(r.data.GetData(), r.data.GetCount());
 
 	res += r;
 

@@ -65,20 +65,20 @@ HRESULT CID::HeaderWrite(IStream* pStream)
 
 QWORD CBinary::Size(bool fWithHeader)
 {
-	if(GetSize() == 0) return 0;
+	if(GetCount() == 0) return 0;
 
 	QWORD len = 0;
-	len += GetSize();
+	len += GetCount();
 	if(fWithHeader) len += HeaderSize(len);
 	return len;
 }
 
 HRESULT CBinary::Write(IStream* pStream)
 {
-	if(GetSize() == 0) return S_OK;
+	if(GetCount() == 0) return S_OK;
 
 	HeaderWrite(pStream);
-	return pStream->Write(GetData(), GetSize(), NULL);
+	return pStream->Write(GetData(), GetCount(), NULL);
 }
 
 QWORD CANSI::Size(bool fWithHeader)

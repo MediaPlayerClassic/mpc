@@ -28,7 +28,6 @@
 //
 
 CMpeg2DecSettingsWnd::CMpeg2DecSettingsWnd()
-	: CInternalPropertyPageWnd()
 {
 }
 

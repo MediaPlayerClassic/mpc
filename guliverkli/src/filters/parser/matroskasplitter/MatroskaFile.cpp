@@ -354,7 +354,7 @@ bool TrackEntry::Expand(CBinary& data, UINT64 Scope)
 {
 	if(ces.ce.GetCount() == 0) return(true);
 
-	CArray<ContentEncoding*> cearray;
+	CAtlArray<ContentEncoding*> cearray;
 	POSITION pos = ces.ce.GetHeadPosition();
 	while(pos) cearray.Add(ces.ce.GetNext(pos));
 	qsort(cearray.GetData(), cearray.GetCount(), sizeof(ContentEncoding*), cesort);
@@ -489,7 +489,7 @@ HRESULT SimpleBlock::Parse(CMatroskaNode* pMN, bool fFull)
 	
 	if(!fFull) return S_OK;
 
-	CList<QWORD> lens;
+	CAtlList<QWORD> lens;
 	QWORD tlen = 0;
 	QWORD FrameSize;
 	BYTE FramesInLaceLessOne;
@@ -550,7 +550,7 @@ HRESULT SimpleBlock::Parse(CMatroskaNode* pMN, bool fFull)
 	{
 		QWORD len = lens.GetNext(pos);
 		CAutoPtr<CBinary> p(new CBinary());
-		p->SetSize((INT_PTR)len);
+		p->SetCount((INT_PTR)len);
 		pMN->Read(p->GetData(), len);
 		BlockData.AddTail(p);
 	}
@@ -667,7 +667,7 @@ HRESULT ChapterDisplay::Parse(CMatroskaNode* pMN0)
 HRESULT CBinary::Parse(CMatroskaNode* pMN)
 {
 	ASSERT(pMN->m_len <= INT_MAX);
-	SetSize((INT_PTR)pMN->m_len);
+	SetCount((INT_PTR)pMN->m_len);
 	return pMN->Read(GetData(), pMN->m_len);
 }
 
@@ -686,7 +686,7 @@ bool CBinary::Compress(ContentCompression& cc)
 			return(false);
 
 		c_stream.next_in = GetData();
-		c_stream.avail_in = GetSize();
+		c_stream.avail_in = GetCount();
 
 		BYTE* dst = NULL;
 		int n = 0;
@@ -705,8 +705,8 @@ bool CBinary::Compress(ContentCompression& cc)
 
 		deflateEnd(&c_stream);
 
-		SetSize(c_stream.total_out);
-		memcpy(GetData(), dst, GetSize());
+		SetCount(c_stream.total_out);
+		memcpy(GetData(), dst, GetCount());
 
 		free(dst);
 
@@ -731,7 +731,7 @@ bool CBinary::Decompress(ContentCompression& cc)
 			return(false);
 
 		d_stream.next_in = GetData();
-		d_stream.avail_in = GetSize();
+		d_stream.avail_in = GetCount();
 
 		BYTE* dst = NULL;
 		int n = 0;
@@ -750,8 +750,8 @@ bool CBinary::Decompress(ContentCompression& cc)
 
 		inflateEnd(&d_stream);
 
-		SetSize(d_stream.total_out);
-		memcpy(GetData(), dst, GetSize());
+		SetCount(d_stream.total_out);
+		memcpy(GetData(), dst, GetCount());
 
 		free(dst);
 
@@ -759,7 +759,7 @@ bool CBinary::Decompress(ContentCompression& cc)
 	}
 	else if(cc.ContentCompAlgo == ContentCompression::HDRSTRIP)
 	{
-		InsertAt(0, &cc.ContentCompSettings);	
+		InsertArrayAt(0, &cc.ContentCompSettings);
 	}
 
 	return(false);

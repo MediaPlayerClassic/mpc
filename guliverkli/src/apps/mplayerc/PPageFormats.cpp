@@ -406,7 +406,7 @@ void CPPageFormats::SetListItemState(int nItem)
 
 	CString str = AfxGetAppSettings().Formats[(int)m_list.GetItemData(nItem)].GetExtsWithPeriod();
 
-	CList<CString> exts;
+	CAtlList<CString> exts;
 	ExplodeMin(str, exts, ' ');
 
 	int cnt = 0;
@@ -532,7 +532,7 @@ BOOL CPPageFormats::OnApply()
 		int iChecked = GetChecked(i);
 		if(iChecked == 2) continue;
 
-		CList<CString> exts;
+		CAtlList<CString> exts;
 		Explode(mf[(int)m_list.GetItemData(i)].GetExtsWithPeriod(), exts, ' ');
 
 		POSITION pos = exts.GetHeadPosition();
@@ -616,7 +616,7 @@ void CPPageFormats::OnDolabeleditList(NMHDR* pNMHDR, LRESULT* pResult)
 
 	CMediaFormatCategory& mfc = AfxGetAppSettings().Formats[m_list.GetItemData(pItem->iItem)];
 
-	CList<CString> sl;
+	CAtlList<CString> sl;
 	int nSel = -1;
 
 	if(pItem->iSubItem == COL_ENGINE)

@@ -292,10 +292,10 @@ HRESULT CMpaDecFilter::Receive(IMediaSample* pIn)
 		m_rtStart = rtStart;
 	}
 
-	int tmp = m_buff.GetSize();
-	m_buff.SetSize(m_buff.GetSize() + len, 4096);
-	memcpy(m_buff.GetData() + tmp, pDataIn, len);
-	len += tmp;
+	int bufflen = m_buff.GetCount();
+	m_buff.SetCount(bufflen + len, 4096);
+	memcpy(m_buff.GetData() + bufflen, pDataIn, len);
+	len += bufflen;
 
 	const GUID& subtype = m_pInput->CurrentMediaType().subtype;
 
@@ -325,17 +325,17 @@ HRESULT CMpaDecFilter::ProcessLPCM()
 	ASSERT(wfein->wBitsPerSample == 16);
 
 	BYTE* pDataIn = m_buff.GetData();
-	int len = m_buff.GetSize() & ~(wfein->nChannels*wfein->wBitsPerSample/8-1);
+	int len = m_buff.GetCount() & ~(wfein->nChannels*wfein->wBitsPerSample/8-1);
 
-	CArray<float> pBuff;
-	pBuff.SetSize(len*8/wfein->wBitsPerSample);
+	CAtlArray<float> pBuff;
+	pBuff.SetCount(len*8/wfein->wBitsPerSample);
 
 	float* pDataOut = pBuff.GetData();
 	for(int i = 0; i < len; i += 2, pDataIn += 2, pDataOut++)
 		*pDataOut = (float)(short)((pDataIn[0]<<8)|pDataIn[1]) / 0x8000; // FIXME: care about 20/24 bps too
 
-	memmove(m_buff.GetData(), pDataIn, m_buff.GetSize() - len);
-	m_buff.SetSize(m_buff.GetSize() - len);
+	memmove(m_buff.GetData(), pDataIn, m_buff.GetCount() - len);
+	m_buff.SetCount(m_buff.GetCount() - len);
 
 	return Deliver(pBuff, wfein->nSamplesPerSec, wfein->nChannels);
 }
@@ -344,7 +344,7 @@ HRESULT CMpaDecFilter::ProcessAC3()
 {
 	BYTE* p = m_buff.GetData();
 	BYTE* base = p;
-	BYTE* end = p + m_buff.GetSize();
+	BYTE* end = p + m_buff.GetCount();
 
 	while(end - p >= 7)
 	{
@@ -382,8 +382,8 @@ HRESULT CMpaDecFilter::ProcessAC3()
 						int scmapidx = min(flags&A52_CHANNEL_MASK, countof(s_scmap_ac3)/2);
                         scmap_t& scmap = s_scmap_ac3[scmapidx + ((flags&A52_LFE)?(countof(s_scmap_ac3)/2):0)];
 
-						CArray<float> pBuff;
-						pBuff.SetSize(6*256*scmap.nChannels);
+						CAtlArray<float> pBuff;
+						pBuff.SetCount(6*256*scmap.nChannels);
 						float* p = pBuff.GetData();
 
 						int i = 0;
@@ -427,7 +427,7 @@ HRESULT CMpaDecFilter::ProcessAC3()
 		}
 	}
 
-	m_buff.SetSize(end - p);
+	m_buff.SetCount(end - p);
 
 	return S_OK;
 }
@@ -436,7 +436,7 @@ HRESULT CMpaDecFilter::ProcessDTS()
 {
 	BYTE* p = m_buff.GetData();
 	BYTE* base = p;
-	BYTE* end = p + m_buff.GetSize();
+	BYTE* end = p + m_buff.GetCount();
 
 	while(end - p >= 14)
 	{
@@ -476,8 +476,8 @@ HRESULT CMpaDecFilter::ProcessDTS()
 
 						int blocks = dts_blocks_num(m_dts_state);
 
-						CArray<float> pBuff;
-						pBuff.SetSize(blocks*256*scmap.nChannels);
+						CAtlArray<float> pBuff;
+						pBuff.SetCount(blocks*256*scmap.nChannels);
 						float* p = pBuff.GetData();
 
 						int i = 0;
@@ -521,7 +521,7 @@ HRESULT CMpaDecFilter::ProcessDTS()
 		}
 	}
 
-	m_buff.SetSize(end - p);
+	m_buff.SetCount(end - p);
 
 	return S_OK;
 }
@@ -535,8 +535,8 @@ HRESULT CMpaDecFilter::ProcessAAC()
 	NeAACDecSetConfiguration(m_aac_state.h, c);
 
 	NeAACDecFrameInfo info;
-	float* src = (float*)NeAACDecDecode(m_aac_state.h, &info, m_buff.GetData(), m_buff.GetSize());
-	m_buff.SetSize(0);
+	float* src = (float*)NeAACDecDecode(m_aac_state.h, &info, m_buff.GetData(), m_buff.GetCount());
+	m_buff.RemoveAll();
 	//if(!src) return E_FAIL;
 	if(info.error) 	m_aac_state.init(m_pInput->CurrentMediaType());
 	if(!src || info.samples == 0) return S_OK;
@@ -548,11 +548,11 @@ HRESULT CMpaDecFilter::ProcessAAC()
 		info.channel_position[1] = FRONT_CHANNEL_RIGHT;
 	}
 
-	CArray<float> pBuff;
-	pBuff.SetSize(info.samples);
+	CAtlArray<float> pBuff;
+	pBuff.SetCount(info.samples);
 	float* dst = pBuff.GetData();
 
-	CMap<int,int,int,int> chmask;
+	CAtlMap<int, int> chmask;
 	chmask[FRONT_CHANNEL_CENTER] = SPEAKER_FRONT_CENTER;
 	chmask[FRONT_CHANNEL_LEFT] = SPEAKER_FRONT_LEFT;
 	chmask[FRONT_CHANNEL_RIGHT] = SPEAKER_FRONT_RIGHT;
@@ -604,15 +604,15 @@ HRESULT CMpaDecFilter::ProcessPS2PCM()
 {
 	BYTE* p = m_buff.GetData();
 	BYTE* base = p;
-	BYTE* end = p + m_buff.GetSize();
+	BYTE* end = p + m_buff.GetCount();
 
 	WAVEFORMATEXPS2* wfe = (WAVEFORMATEXPS2*)m_pInput->CurrentMediaType().Format();
 	int size = wfe->dwInterleave*wfe->nChannels;
 	int samples = wfe->dwInterleave/(wfe->wBitsPerSample>>3);
 	int channels = wfe->nChannels;
 
-	CArray<float> pBuff;
-	pBuff.SetSize(samples*channels);
+	CAtlArray<float> pBuff;
+	pBuff.SetCount(samples*channels);
 	float* f = pBuff.GetData();
 
 	while(end - p >= size)
@@ -656,7 +656,7 @@ HRESULT CMpaDecFilter::ProcessPS2PCM()
 		}
 	}
 
-	m_buff.SetSize(end - p);
+	m_buff.SetCount(end - p);
 
 	return S_OK;
 }
@@ -696,15 +696,15 @@ HRESULT CMpaDecFilter::ProcessPS2ADPCM()
 {
 	BYTE* p = m_buff.GetData();
 	BYTE* base = p;
-	BYTE* end = p + m_buff.GetSize();
+	BYTE* end = p + m_buff.GetCount();
 
 	WAVEFORMATEXPS2* wfe = (WAVEFORMATEXPS2*)m_pInput->CurrentMediaType().Format();
 	int size = wfe->dwInterleave*wfe->nChannels;
 	int samples = wfe->dwInterleave * 14 / 16 * 2;
 	int channels = wfe->nChannels;
 
-	CArray<float> pBuff;
-	pBuff.SetSize(samples*channels);
+	CAtlArray<float> pBuff;
+	pBuff.SetCount(samples*channels);
 	float* f = pBuff.GetData();
 
 	while(end - p >= size)
@@ -754,7 +754,7 @@ HRESULT CMpaDecFilter::ProcessPS2ADPCM()
 	end = base + (end - p);
 	p = base;
 
-	m_buff.SetSize(end - p);
+	m_buff.SetCount(end - p);
 
 	return S_OK;
 }
@@ -769,7 +769,7 @@ static inline float fscale(mad_fixed_t sample)
 
 HRESULT CMpaDecFilter::ProcessMPA()
 {
-	mad_stream_buffer(&m_stream, m_buff.GetData(), m_buff.GetSize());
+	mad_stream_buffer(&m_stream, m_buff.GetData(), m_buff.GetCount());
 
 	while(1)
 	{
@@ -778,7 +778,7 @@ HRESULT CMpaDecFilter::ProcessMPA()
 			if(m_stream.error == MAD_ERROR_BUFLEN)
 			{
 				memmove(m_buff.GetData(), m_stream.this_frame, m_stream.bufend - m_stream.this_frame);
-				m_buff.SetSize(m_stream.bufend - m_stream.this_frame);
+				m_buff.SetCount(m_stream.bufend - m_stream.this_frame);
 				break;
 			}
 
@@ -813,8 +813,8 @@ continue;
 		const mad_fixed_t* left_ch   = m_synth.pcm.samples[0];
 		const mad_fixed_t* right_ch  = m_synth.pcm.samples[1];
 
-		CArray<float> pBuff;
-		pBuff.SetSize(m_synth.pcm.length*m_synth.pcm.channels);
+		CAtlArray<float> pBuff;
+		pBuff.SetCount(m_synth.pcm.length*m_synth.pcm.channels);
 
 		float* pDataOut = pBuff.GetData();
 		for(unsigned short i = 0; i < m_synth.pcm.length; i++)
@@ -852,7 +852,7 @@ HRESULT CMpaDecFilter::GetDeliveryBuffer(IMediaSample** pSample, BYTE** pData)
 	return S_OK;
 }
 
-HRESULT CMpaDecFilter::Deliver(CArray<float>& pBuff, DWORD nSamplesPerSec, WORD nChannels, DWORD dwChannelMask)
+HRESULT CMpaDecFilter::Deliver(CAtlArray<float>& pBuff, DWORD nSamplesPerSec, WORD nChannels, DWORD dwChannelMask)
 {
 	HRESULT hr;
 
@@ -861,7 +861,7 @@ HRESULT CMpaDecFilter::Deliver(CArray<float>& pBuff, DWORD nSamplesPerSec, WORD 
 	CMediaType mt = CreateMediaType(sf, nSamplesPerSec, nChannels, dwChannelMask);
 	WAVEFORMATEX* wfe = (WAVEFORMATEX*)mt.Format();
 
-	int nSamples = pBuff.GetSize()/wfe->nChannels;
+	int nSamples = pBuff.GetCount()/wfe->nChannels;
 
 	if(FAILED(hr = ReconnectOutput(nSamples, mt)))
 		return hr;
@@ -891,7 +891,7 @@ HRESULT CMpaDecFilter::Deliver(CArray<float>& pBuff, DWORD nSamplesPerSec, WORD 
 	pOut->SetDiscontinuity(m_fDiscontinuity); m_fDiscontinuity = false;
 	pOut->SetSyncPoint(TRUE);
 
-	pOut->SetActualDataLength(pBuff.GetSize()*wfe->wBitsPerSample/8);
+	pOut->SetActualDataLength(pBuff.GetCount()*wfe->wBitsPerSample/8);
 
 WAVEFORMATEX* wfeout = (WAVEFORMATEX*)m_pOutput->CurrentMediaType().Format();
 ASSERT(wfeout->nChannels == wfe->nChannels);
@@ -903,7 +903,7 @@ ASSERT(wfeout->nSamplesPerSec == wfe->nSamplesPerSec);
 	float sample_mul = 1;
 	if(m_fNormalize)
 	{
-		for(int i = 0, len = pBuff.GetSize(); i < len; i++)
+		for(int i = 0, len = pBuff.GetCount(); i < len; i++)
 		{
 			float f = *pDataIn++;
 			if(f < 0) f = -f;
@@ -916,7 +916,7 @@ ASSERT(wfeout->nSamplesPerSec == wfe->nSamplesPerSec);
 	bool fBoost = m_boost > 1;
 	double boost = 1+log10(m_boost);
 
-	for(int i = 0, len = pBuff.GetSize(); i < len; i++)
+	for(int i = 0, len = pBuff.GetCount(); i < len; i++)
 	{
 		float f = *pDataIn++;
 

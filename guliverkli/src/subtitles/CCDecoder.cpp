@@ -38,7 +38,7 @@ CCDecoder::CCDecoder(CString fn, CString rawfn) : m_fn(fn), m_rawfn(rawfn)
 
 CCDecoder::~CCDecoder()
 {
-	if(m_sts.GetSize() > 0 && !m_fn.IsEmpty()) 
+	if(!m_sts.IsEmpty() && !m_fn.IsEmpty()) 
 	{
 		m_sts.Sort();
 		m_sts.SaveAs(m_fn, EXTSRT, -1, CTextFile::ASCII);

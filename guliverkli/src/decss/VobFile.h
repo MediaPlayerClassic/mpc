@@ -3,7 +3,7 @@
 #pragma warning(disable : 4200)
 
 #include <atlbase.h>
-#include <afxtempl.h>
+#include <atlcoll.h>
 //#include <winioctl.h> // platform sdk
 #include "..\..\include\winddk\ntddcdvd.h"
 
@@ -58,7 +58,7 @@ class CVobFile : public CDVDSession
 {
 	// all files
 	typedef struct {CString fn; int size;} file_t;
-	CArray<file_t> m_files;
+	CAtlArray<file_t> m_files;
 	int m_iFile;
 	int m_pos, m_size, m_offset;
 
@@ -76,8 +76,8 @@ public:
 	bool HasDiscKey(BYTE* key);
 	bool HasTitleKey(BYTE* key);
 
-	bool Open(CString fn, CList<CString>& files /* out */); // vts ifo
-	bool Open(CList<CString>& files, int offset = -1); // vts vobs, video vob offset in lba
+	bool Open(CString fn, CAtlList<CString>& files /* out */); // vts ifo
+	bool Open(CAtlList<CString>& files, int offset = -1); // vts vobs, video vob offset in lba
 	void Close();
 
 	int GetLength();

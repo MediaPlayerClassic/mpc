@@ -23,7 +23,6 @@
 
 #include <atlbase.h>
 #include <atlcoll.h>
-#include <afxtempl.h>
 #include "OggFile.h"
 #include "..\BaseSplitter\BaseSplitter.h"
 
@@ -76,7 +75,7 @@ class COggVorbisOutputPin : public COggSplitterOutputPin
 
 	DWORD m_audio_sample_rate;
 	DWORD m_blocksize[2], m_lastblocksize;
-	CArray<bool> m_blockflags;
+	CAtlArray<bool> m_blockflags;
 
 	virtual HRESULT UnpackPacket(CAutoPtr<OggPacket>& p, BYTE* pData, int len);
 	virtual REFERENCE_TIME GetRefTime(__int64 granule_position);
