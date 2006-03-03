@@ -52,7 +52,6 @@ GSState::GSState(int w, int h, HWND hWnd, HRESULT& hr)
 	m_pPRIM = &m_de.PRIM;
 	m_PRIM = 8;
 
-	m_pCSRr = &m_rs.CSRr;
 	m_fpGSirq = NULL;
 
 	m_ctxt = &m_de.CTXT[0];
@@ -281,6 +280,8 @@ GSState::GSState(int w, int h, HWND hWnd, HRESULT& hr)
 
 	m_fEnablePalettizedTextures = !!pApp->GetProfileInt(_T("Settings"), _T("fEnablePalettizedTextures"), FALSE);
 
+	m_fNloopHack = pApp->GetProfileInt(_T("Settings"), _T("fNloopHack"), FALSE);
+
 	//
 
 	m_pRefClock = new CBaseReferenceClock(_T("RefClock"), NULL, &hr);
@@ -296,7 +297,7 @@ GSState::GSState(int w, int h, HWND hWnd, HRESULT& hr)
 	m_fp = _tfopen(_T("g:\\gs.txt"), _T("at"));
 #endif
 
-//	m_pCSRr->REV = 0x20;
+//	m_rs.pCSR->rREV = 0x20;
 
 /*
 	GSLocalMemory lm;
@@ -451,7 +452,7 @@ HRESULT GSState::ResetDevice(bool fForceWindowed)
 UINT32 GSState::Freeze(freezeData* fd, bool fSizeOnly)
 {
 	int size = sizeof(m_version)
-		+ sizeof(m_de) + sizeof(m_rs) + sizeof(m_v) 
+		+ sizeof(m_de) + sizeof(m_v) 
 		+ sizeof(m_x) + sizeof(m_y) + 1024*1024*4
 		+ sizeof(m_path) + sizeof(m_q)
 		/*+ sizeof(m_vl)*/;
@@ -473,7 +474,6 @@ UINT32 GSState::Freeze(freezeData* fd, bool fSizeOnly)
 	BYTE* data = fd->data;
 	memcpy(data, &m_version, sizeof(m_version)); data += sizeof(m_version);
 	memcpy(data, &m_de, sizeof(m_de)); data += sizeof(m_de);
-	memcpy(data, &m_rs, sizeof(m_rs)); data += sizeof(m_rs);
 	memcpy(data, &m_v, sizeof(m_v)); data += sizeof(m_v);
 	memcpy(data, &m_x, sizeof(m_x)); data += sizeof(m_x);
 	memcpy(data, &m_y, sizeof(m_y)); data += sizeof(m_y);
@@ -491,7 +491,7 @@ UINT32 GSState::Defrost(const freezeData* fd)
 		return -1;
 
 	int size = sizeof(m_version)
-		+ sizeof(m_de) + sizeof(m_rs) + sizeof(m_v) 
+		+ sizeof(m_de) + sizeof(m_v) 
 		+ sizeof(m_x) + sizeof(m_y) + 1024*1024*4
 		+ sizeof(m_path)
 		+ sizeof(m_q)
@@ -509,7 +509,6 @@ UINT32 GSState::Defrost(const freezeData* fd)
 	FlushPrimInternal();
 
 	memcpy(&m_de, data, sizeof(m_de)); data += sizeof(m_de);
-	memcpy(&m_rs, data, sizeof(m_rs)); data += sizeof(m_rs);
 	memcpy(&m_v, data, sizeof(m_v)); data += sizeof(m_v);
 	memcpy(&m_x, data, sizeof(m_x)); data += sizeof(m_x);
 	memcpy(&m_y, data, sizeof(m_y)); data += sizeof(m_y);
@@ -532,7 +531,7 @@ UINT32 GSState::Defrost(const freezeData* fd)
 
 	return 0;
 }
-
+/*
 void GSState::Write(GS_REG mem, GSReg* r, UINT64 mask)
 {
 	ASSERT(r);
@@ -692,9 +691,9 @@ void GSState::Write(GS_REG mem, GSReg* r, UINT64 mask)
 				r->CSR.FIFO,
 				r->CSR.REV,
 				r->CSR.ID);
-			if(m_rs.CSRw.SIGNAL) m_pCSRr->SIGNAL = 0;
-			if(m_rs.CSRw.FINISH) m_pCSRr->FINISH = 0;
-			if(m_rs.CSRw.RESET) Reset();
+			if(m_rs.pCSRw->SIGNAL) m_rs.pCSR->rSIGNAL = 0;
+			if(m_rs.pCSRw->FINISH) m_rs.pCSR->rFINISH = 0;
+			if(m_rs.pCSRw->RESET) Reset();
 			break;
 
 		case GS_IMR:
@@ -733,7 +732,7 @@ void GSState::Write(GS_REG mem, GSReg* r, UINT64 mask)
 UINT64 GSState::Read(GS_REG mem)
 {
 	if(mem == GS_CSR)
-		return m_pCSRr->i64;
+		return m_rs.pCSR->ri64;
 
 	GSPerfMonAutoTimer at(m_perfmon);
 
@@ -769,7 +768,7 @@ UINT64 GSState::Read(GS_REG mem)
 
 		case GS_UNKNOWN:
 			LOG(_T("*** WARNING *** Read(%08x)\n"), mem);
-			return m_pCSRr->FIELD << 13;
+			return m_rs.pCSR->rFIELD << 13;
 			break;
 
 		default:
@@ -779,6 +778,12 @@ UINT64 GSState::Read(GS_REG mem)
 	}
 
 	return r ? r->i64 : 0;
+}
+*/
+
+void GSState::WriteCSR(UINT32 csr)
+{
+	m_rs.pCSR->ai32[1] = csr;
 }
 
 void GSState::ReadFIFO(BYTE* pMem)
@@ -876,8 +881,8 @@ void GSState::Transfer(BYTE* pMem, UINT32 size, GIFPath& path)
 			}
 			else if(path.m_tag.NLOOP == 0)
 			{
-//				if(&path == &m_path[0])
-//					continue;
+				if(m_fNloopHack && &path == &m_path[0])
+					continue;
 
 				LOG(_T("*** WARNING *** m_tag.NLOOP == 0 && EOP == 0\n"));
 				fEOP = true;
@@ -918,7 +923,7 @@ break;
 			{
 				int len = min(size, path.m_tag.NLOOP);
 				//ASSERT(!(len&3));
-				switch(m_rs.TRXDIR.XDIR)
+				switch(m_de.TRXDIR.XDIR)
 				{
 				case 0:
 					WriteTransfer(pMem, len*16);
@@ -1001,11 +1006,13 @@ void GSState::CaptureState(CString fn)
 #endif
 }
 
-void GSState::VSync()
+void GSState::VSync(int field)
 {
 	GSPerfMonAutoTimer at(m_perfmon);
 
-	LOG(_T("VSync(%d)\n"), m_perfmon.GetFrame());
+	LOG(_T("VSync(%d) %d\n"), field, m_perfmon.GetFrame());
+
+	m_fField = !!field;
 
 #ifdef ENABLE_CAPTURE_STATE
 	if(m_sfp) fputc(ST_VSYNC, m_sfp);
@@ -1023,7 +1030,6 @@ void GSState::Reset()
 	GSPerfMonAutoTimer at(m_perfmon);
 
 	memset(&m_de, 0, sizeof(m_de));
-	memset(&m_rs, 0, sizeof(m_rs));
 	memset(m_path, 0, sizeof(m_path));
 	memset(&m_v, 0, sizeof(m_v));
 
@@ -1066,7 +1072,7 @@ void GSState::FinishFlip(FlipInfo rt[2])
 				(int)(rt[i].scale.x * r.right),
 				(int)(rt[i].scale.y * r.bottom));
 
-			if(m_rs.SMODE2.INT && m_rs.SMODE2.FFMD)
+			if(m_rs.pSMODE2->INT && m_rs.pSMODE2->FFMD)
 				src[i].bottom /= 2;
 		}
 		else
@@ -1100,15 +1106,15 @@ void GSState::FinishFlip(FlipInfo rt[2])
 	};
 
 /*
-	if(m_rs.SMODE2.INT)
+	if(m_rs.pSMODE2->INT)
 	{
-		if(!m_rs.SMODE2.FFMD)
+		if(!m_rs.pSMODE2->FFMD)
 		{
-			// m_pCSRr->FIELD = 1 - m_pCSRr->FIELD;
+			// m_rs.pCSR->rFIELD = 1 - m_rs.pCSR->rFIELD;
 		}
-		else if(!m_pCSRr->FIELD)
+		else if(!m_rs.pCSR->rFIELD)
 		{
-			// if(m_pCSRr->FIELD == 0) m_pCSRr->FIELD = 1; // FIXME: might stop a few games, but this is the only way to stop shaking the bios or sfae
+			// if(m_rs.pCSR->rFIELD == 0) m_rs.pCSR->rFIELD = 1; // FIXME: might stop a few games, but this is the only way to stop shaking the bios or sfae
 
 			for(int i = 0; i < countof(pVertices); i++)
 			{
@@ -1120,20 +1126,20 @@ void GSState::FinishFlip(FlipInfo rt[2])
 */	
 
 	// FIXME: sw mode / poolmaster + funslower
-	// if(m_nVSync > 1 || m_pCSRr->FIELD == 0)
-	if(m_rs.SMODE2.FFMD == 1)
+	// if(m_nVSync > 1 || m_rs.pCSR->rFIELD == 0)
+	if(m_rs.pSMODE2->FFMD == 1)
 	{
-		m_pCSRr->FIELD = 1 - m_pCSRr->FIELD; 
+//		m_rs.pCSR->rFIELD = 1 - m_rs.pCSR->rFIELD; 
 		m_nVSync = 0;
 	}
 	else
 	{
-		m_pCSRr->FIELD = 0;
+//		m_rs.pCSR->rFIELD = 0;
 	}
 
 	m_nVSync++;
 
-	if(m_pCSRr->FIELD && m_rs.SMODE2.INT /*&& m_rs.SMODE2.FFMD*/)
+	if(m_fField /*m_rs.pCSR->rFIELD*/ && m_rs.pSMODE2->INT /*&& m_rs.pSMODE2->FFMD*/)
 	{
 		for(int i = 0; i < countof(pVertices); i++)
 		{
@@ -1214,26 +1220,26 @@ void GSState::FinishFlip(FlipInfo rt[2])
 
 		if(fEN[0] && fEN[1]) // RAO1 + RAO2
 		{
-			if(m_rs.PMODE.ALP < 0xff)
+			if(m_rs.pPMODE->ALP < 0xff)
 			{
 				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_COLOROP, D3DTOP_LERP);
 				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_COLORARG1, D3DTA_CURRENT);
-				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_COLORARG2, m_rs.PMODE.SLBG ? D3DTA_CONSTANT : D3DTA_TEXTURE);
-				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_COLORARG0, D3DTA_ALPHAREPLICATE|(m_rs.PMODE.MMOD ? D3DTA_CONSTANT : D3DTA_TEXTURE));
+				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_COLORARG2, m_rs.pPMODE->SLBG ? D3DTA_CONSTANT : D3DTA_TEXTURE);
+				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_COLORARG0, D3DTA_ALPHAREPLICATE|(m_rs.pPMODE->MMOD ? D3DTA_CONSTANT : D3DTA_TEXTURE));
 				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_ALPHAOP, D3DTOP_DISABLE);
-				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_CONSTANT, D3DCOLOR_ARGB(m_rs.PMODE.ALP, m_rs.BGCOLOR.R, m_rs.BGCOLOR.G, m_rs.BGCOLOR.B));
+				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_CONSTANT, D3DCOLOR_ARGB(m_rs.pPMODE->ALP, m_rs.pBGCOLOR->R, m_rs.pBGCOLOR->G, m_rs.pBGCOLOR->B));
 				stage++;
 			}
 		}
 		else if(fEN[0]) // RAO1
 		{
-			if(m_rs.PMODE.ALP < 0xff)
+			if(m_rs.pPMODE->ALP < 0xff)
 			{
 				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_COLOROP, D3DTOP_MODULATE);
 				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_COLORARG1, D3DTA_CURRENT);
-				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_COLORARG2, D3DTA_ALPHAREPLICATE|(m_rs.PMODE.MMOD ? D3DTA_CONSTANT : D3DTA_TEXTURE));
+				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_COLORARG2, D3DTA_ALPHAREPLICATE|(m_rs.pPMODE->MMOD ? D3DTA_CONSTANT : D3DTA_TEXTURE));
 				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_ALPHAOP, D3DTOP_DISABLE);
-				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_CONSTANT, D3DCOLOR_ARGB(m_rs.PMODE.ALP, 0, 0, 0));
+				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_CONSTANT, D3DCOLOR_ARGB(m_rs.pPMODE->ALP, 0, 0, 0));
 				stage++;
 			}
 		}
@@ -1259,9 +1265,9 @@ void GSState::FinishFlip(FlipInfo rt[2])
 	{
 		const float c[] = 
 		{
-			(float)m_rs.BGCOLOR.B / 255, (float)m_rs.BGCOLOR.G / 255, (float)m_rs.BGCOLOR.R / 255, (float)m_rs.PMODE.ALP / 255,
-			(float)m_rs.PMODE.AMOD - 0.1f, (float)m_rs.IsEnabled(0), (float)m_rs.IsEnabled(1), (float)m_rs.PMODE.MMOD - 0.1f,
-			(float)m_de.TEXA.AEM, (float)m_de.TEXA.TA0 / 255, (float)m_de.TEXA.TA1 / 255, (float)m_rs.PMODE.SLBG - 0.1f
+			(float)m_rs.pBGCOLOR->B / 255, (float)m_rs.pBGCOLOR->G / 255, (float)m_rs.pBGCOLOR->R / 255, (float)m_rs.pPMODE->ALP / 255,
+			(float)m_rs.pPMODE->AMOD - 0.1f, (float)m_rs.IsEnabled(0), (float)m_rs.IsEnabled(1), (float)m_rs.pPMODE->MMOD - 0.1f,
+			(float)m_de.TEXA.AEM, (float)m_de.TEXA.TA0 / 255, (float)m_de.TEXA.TA1 / 255, (float)m_rs.pPMODE->SLBG - 0.1f
 		};
 
 		hr = m_pD3DDev->SetPixelShaderConstantF(0, c, countof(c)/4);
@@ -1354,11 +1360,11 @@ void GSState::FinishFlip(FlipInfo rt[2])
 		CString str;
 		str.Format(
 			_T("\n")
-			_T("SMODE2.INT=%d, SMODE2.FFMD=%d, XYOFFSET.OFY=%.2f, CSR.FIELD=%d\n")
+			_T("SMODE2.INT=%d, SMODE2.FFMD=%d, XYOFFSET.OFY=%.2f, CSR.FIELD=%d, m_fField = %d\n")
 			_T("[%c] DBX=%d, DBY=%d, DW=%d, DH=%d | [%c] DBX=%d, DBY=%d, DW=%d, DH=%d\n"),
-			m_rs.SMODE2.INT, m_rs.SMODE2.FFMD, (float)m_ctxt->XYOFFSET.OFY / 16, m_pCSRr->FIELD,
-			fEN[0] ? 'o' : 'x', m_rs.DISPFB[0].DBX, m_rs.DISPFB[0].DBY, m_rs.DISPLAY[0].DW + 1, m_rs.DISPLAY[0].DH + 1,
-			fEN[1] ? 'o' : 'x', m_rs.DISPFB[1].DBX, m_rs.DISPFB[1].DBY, m_rs.DISPLAY[1].DW + 1, m_rs.DISPLAY[1].DH + 1);
+			m_rs.pSMODE2->INT, m_rs.pSMODE2->FFMD, (float)m_ctxt->XYOFFSET.OFY / 16, m_rs.pCSR->rFIELD, m_fField,
+			fEN[0] ? 'o' : 'x', m_rs.pDISPFB[0]->DBX, m_rs.pDISPFB[0]->DBY, m_rs.pDISPLAY[0]->DW + 1, m_rs.pDISPLAY[0]->DH + 1,
+			fEN[1] ? 'o' : 'x', m_rs.pDISPFB[1]->DBX, m_rs.pDISPFB[1]->DBY, m_rs.pDISPLAY[1]->DW + 1, m_rs.pDISPLAY[1]->DH + 1);
 
 		str = s_stats + str;
 

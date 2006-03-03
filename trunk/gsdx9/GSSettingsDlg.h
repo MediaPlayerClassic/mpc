@@ -43,6 +43,7 @@ public:
 	BOOL m_fEnablePalettizedTextures;
 	BOOL m_fEnableTvOut;
 	BOOL m_fRecordState;
+	BOOL m_fNloopHack;
 	CString m_strRecordState;
 	BOOL m_fLinearTexFilter;
 

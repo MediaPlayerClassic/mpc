@@ -918,10 +918,10 @@ void __fastcall GSState::GIFRegHandlerBITBLTBUF(GIFReg* r)
 		r->BITBLTBUF.DBW*64,
 		r->BITBLTBUF.DPSM);
 
-	if(m_rs.BITBLTBUF.i64 != r->BITBLTBUF.i64)
+	if(m_de.BITBLTBUF.i64 != r->BITBLTBUF.i64)
 		FlushWriteTransfer();
 
-	m_rs.BITBLTBUF = r->BITBLTBUF;
+	m_de.BITBLTBUF = r->BITBLTBUF;
 }
 
 void __fastcall GSState::GIFRegHandlerTRXPOS(GIFReg* r)
@@ -933,10 +933,10 @@ void __fastcall GSState::GIFRegHandlerTRXPOS(GIFReg* r)
 		r->TRXPOS.DSAY,
 		r->TRXPOS.DIR);
 
-	if(m_rs.TRXPOS.i64 != r->TRXPOS.i64)
+	if(m_de.TRXPOS.i64 != r->TRXPOS.i64)
 		FlushWriteTransfer();
 
-	m_rs.TRXPOS = r->TRXPOS;
+	m_de.TRXPOS = r->TRXPOS;
 }
 
 void __fastcall GSState::GIFRegHandlerTRXREG(GIFReg* r)
@@ -945,10 +945,10 @@ void __fastcall GSState::GIFRegHandlerTRXREG(GIFReg* r)
 		r->TRXREG.RRW,
 		r->TRXREG.RRH);
 
-	if(m_rs.TRXREG.i64 != r->TRXREG.i64 || m_rs.TRXREG2.i64 != r->TRXREG.i64)
+	if(m_de.TRXREG.i64 != r->TRXREG.i64 || m_de.TRXREG2.i64 != r->TRXREG.i64)
 		FlushWriteTransfer();
 
-	m_rs.TRXREG = m_rs.TRXREG2 = r->TRXREG;
+	m_de.TRXREG = m_de.TRXREG2 = r->TRXREG;
 }
 
 void __fastcall GSState::GIFRegHandlerTRXDIR(GIFReg* r)
@@ -960,21 +960,21 @@ void __fastcall GSState::GIFRegHandlerTRXDIR(GIFReg* r)
 
 	FlushPrimInternal();
 
-	m_rs.TRXDIR = r->TRXDIR;
+	m_de.TRXDIR = r->TRXDIR;
 
-	switch(m_rs.TRXDIR.XDIR)
+	switch(m_de.TRXDIR.XDIR)
 	{
 	case 0: // host -> local
-		m_x = m_rs.TRXPOS.DSAX;
-		m_y = m_rs.TRXPOS.DSAY;
-		m_rs.TRXREG.RRW = m_x + m_rs.TRXREG2.RRW;
-		m_rs.TRXREG.RRH = m_y + m_rs.TRXREG2.RRH;
+		m_x = m_de.TRXPOS.DSAX;
+		m_y = m_de.TRXPOS.DSAY;
+		m_de.TRXREG.RRW = m_x + m_de.TRXREG2.RRW;
+		m_de.TRXREG.RRH = m_y + m_de.TRXREG2.RRH;
 		break;
 	case 1: // local -> host
-		m_x = m_rs.TRXPOS.SSAX;
-		m_y = m_rs.TRXPOS.SSAY;
-		m_rs.TRXREG.RRW = m_x + m_rs.TRXREG2.RRW;
-		m_rs.TRXREG.RRH = m_y + m_rs.TRXREG2.RRH;
+		m_x = m_de.TRXPOS.SSAX;
+		m_y = m_de.TRXPOS.SSAY;
+		m_de.TRXREG.RRW = m_x + m_de.TRXREG2.RRW;
+		m_de.TRXREG.RRH = m_y + m_de.TRXREG2.RRH;
 		break;
 	case 2: // local -> local
 		MoveTransfer();
@@ -1002,18 +1002,22 @@ void __fastcall GSState::GIFRegHandlerSIGNAL(GIFReg* r)
 		r->SIGNAL.ID, 
 		r->SIGNAL.IDMSK);
 
-	m_rs.SIGLBLID.SIGID = (m_rs.SIGLBLID.SIGID&~r->SIGNAL.IDMSK)|(r->SIGNAL.ID&r->SIGNAL.IDMSK);
+	if(m_fMultiThreaded) return;
 
-	if(m_rs.CSRw.SIGNAL) m_pCSRr->SIGNAL = 1;
-	if(!m_rs.IMR.SIGMSK && m_fpGSirq) m_fpGSirq();
+	m_rs.pSIGLBLID->SIGID = (m_rs.pSIGLBLID->SIGID & ~r->SIGNAL.IDMSK) | (r->SIGNAL.ID & r->SIGNAL.IDMSK);
+
+	if(m_rs.pCSR->wSIGNAL) m_rs.pCSR->rSIGNAL = 1;
+	if(!m_rs.pIMR->SIGMSK && m_fpGSirq) m_fpGSirq();
 }
 
 void __fastcall GSState::GIFRegHandlerFINISH(GIFReg* r)
 {
 	LOG(_T("FINISH()\n"));
 
-	if(m_rs.CSRw.FINISH) m_pCSRr->FINISH = 1;
-	if(!m_rs.IMR.FINISHMSK && m_fpGSirq) m_fpGSirq();
+	if(m_fMultiThreaded) return;
+
+	if(m_rs.pCSR->wFINISH) m_rs.pCSR->rFINISH = 1;
+	if(!m_rs.pIMR->FINISHMSK && m_fpGSirq) m_fpGSirq();
 }
 
 void __fastcall GSState::GIFRegHandlerLABEL(GIFReg* r)
@@ -1022,6 +1026,8 @@ void __fastcall GSState::GIFRegHandlerLABEL(GIFReg* r)
 		r->LABEL.ID, 
 		r->LABEL.IDMSK);
 
-	m_rs.SIGLBLID.LBLID = (m_rs.SIGLBLID.LBLID&~r->LABEL.IDMSK)|(r->LABEL.ID&r->LABEL.IDMSK);
+	if(m_fMultiThreaded) return;
+
+	m_rs.pSIGLBLID->LBLID = (m_rs.pSIGLBLID->LBLID & ~r->LABEL.IDMSK) | (r->LABEL.ID & r->LABEL.IDMSK);
 }
 

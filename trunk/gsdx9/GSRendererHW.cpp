@@ -596,7 +596,7 @@ void GSRendererHW::Flip()
 	{
 		if(!m_rs.IsEnabled(i)) continue;
 
-		DWORD FBP = m_rs.DISPFB[i].FBP<<5;
+		DWORD FBP = m_rs.pDISPFB[i]->FBP<<5;
 
 #ifdef DEBUG_RENDERTARGETS
 		if(::GetAsyncKeyState(VK_SPACE)&0x80000000) FBP = m_ctxt->FRAME.Block();
@@ -643,16 +643,16 @@ void GSRendererHW::Flip()
 				CRect r = m_rs.GetDispRect(m_rs.IsEnabled(1)?1:0);
 
 				scale_t scale(
-					(float)m_bd.Width / (m_rs.DISPFB[i].FBW*64), 
+					(float)m_bd.Width / (m_rs.pDISPFB[i]->FBW*64), 
 			//		(float)m_bd.Width / m_rs.GetDispRect(m_rs.IsEnabled(1)?1:0).right, 
 					(float)m_bd.Height / r.bottom);
 
 				scale.Set(pRT);
 
 				GIFRegTEX0 TEX0;
-				TEX0.TBP0 = m_rs.DISPFB[i].FBP;
-				TEX0.TBW = m_rs.DISPFB[i].FBW;
-				TEX0.PSM = m_rs.DISPFB[i].PSM;
+				TEX0.TBP0 = m_rs.pDISPFB[i]->FBP;
+				TEX0.TBW = m_rs.pDISPFB[i]->FBW;
+				TEX0.PSM = m_rs.pDISPFB[i]->PSM;
 
 				m_tc.AddRT(TEX0, pRT, scale);
 
