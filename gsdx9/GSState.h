@@ -30,8 +30,8 @@
 #include "GSCapture.h"
 #include "GSPerfMon.h"
 //
-#define ENABLE_CAPTURE_STATE
-////
+//#define ENABLE_CAPTURE_STATE
+//
 
 /*
 //#define DEBUG_SAVETEXTURES
@@ -83,59 +83,91 @@ struct GSDrawingEnvironment
 	GIFRegCOLCLAMP		COLCLAMP;
 	GIFRegPABE			PABE;
 	GSDrawingContext	CTXT[2];
+
+	GIFRegBITBLTBUF	BITBLTBUF;
+	GIFRegTRXDIR	TRXDIR;
+	GIFRegTRXPOS	TRXPOS;
+	GIFRegTRXREG	TRXREG, TRXREG2;
 };
 
 struct GSRegSet
 {
-	struct GSRegSet() {memset(this, 0, sizeof(*this));}
+	GSRegPMODE*		pPMODE;
+	GSRegSMODE1*	pSMODE1;
+	GSRegSMODE2*	pSMODE2;
+	GSRegDISPFB*	pDISPFB[2];
+	GSRegDISPLAY*	pDISPLAY[2];
+	GSRegEXTBUF*	pEXTBUF;
+	GSRegEXTDATA*	pEXTDATA;
+	GSRegEXTWRITE*	pEXTWRITE;
+	GSRegBGCOLOR*	pBGCOLOR;
+	GSRegCSR*		pCSR;
+	GSRegIMR*		pIMR;
+	GSRegBUSDIR*	pBUSDIR;
+	GSRegSIGLBLID*	pSIGLBLID;
+
+	struct GSRegSet()
+	{
+		memset(this, 0, sizeof(*this));
+
+		extern BYTE* g_pBasePS2Mem;
+
+		ASSERT(g_pBasePS2Mem);
+
+		pPMODE = (GSRegPMODE*)(g_pBasePS2Mem + GS_PMODE);
+		pSMODE1 = (GSRegSMODE1*)(g_pBasePS2Mem + GS_SMODE1);
+		pSMODE2 = (GSRegSMODE2*)(g_pBasePS2Mem + GS_SMODE2);
+		// pSRFSH = (GSRegPMODE*)(g_pBasePS2Mem + GS_SRFSH);
+		// pSYNCH1 = (GSRegPMODE*)(g_pBasePS2Mem + GS_SYNCH1);
+		// pSYNCH2 = (GSRegPMODE*)(g_pBasePS2Mem + GS_SYNCH2);
+		// pSYNCV = (GSRegPMODE*)(g_pBasePS2Mem + GS_SYNCV);
+		pDISPFB[0] = (GSRegDISPFB*)(g_pBasePS2Mem + GS_DISPFB1);
+		pDISPFB[1] = (GSRegDISPFB*)(g_pBasePS2Mem + GS_DISPFB2);
+		pDISPLAY[0] = (GSRegDISPLAY*)(g_pBasePS2Mem + GS_DISPLAY1);
+		pDISPLAY[1] = (GSRegDISPLAY*)(g_pBasePS2Mem + GS_DISPLAY2);
+		pEXTBUF = (GSRegEXTBUF*)(g_pBasePS2Mem + GS_EXTBUF);
+		pEXTDATA = (GSRegEXTDATA*)(g_pBasePS2Mem + GS_EXTDATA);
+		pEXTWRITE = (GSRegEXTWRITE*)(g_pBasePS2Mem + GS_EXTWRITE);
+		pBGCOLOR = (GSRegBGCOLOR*)(g_pBasePS2Mem + GS_BGCOLOR);
+		pCSR = (GSRegCSR*)(g_pBasePS2Mem + GS_CSR);
+		pIMR = (GSRegIMR*)(g_pBasePS2Mem + GS_IMR);
+		pBUSDIR = (GSRegBUSDIR*)(g_pBasePS2Mem + GS_BUSDIR);
+		pSIGLBLID = (GSRegSIGLBLID*)(g_pBasePS2Mem + GS_SIGLBLID);
+	}
 
 	CSize GetDispSize(int en)
 	{
 		ASSERT(en >= 0 && en < 2);
 		CSize size;
-		size.cx = (DISPLAY[en].DW + 1) / (DISPLAY[en].MAGH + 1);
-		size.cy = (DISPLAY[en].DH + 1) / (DISPLAY[en].MAGV + 1);
-		//if(SMODE2.INT && SMODE2.FFMD && size.cy > 1) size.cy >>= 1;
+		size.cx = (pDISPLAY[en]->DW + 1) / (pDISPLAY[en]->MAGH + 1);
+		size.cy = (pDISPLAY[en]->DH + 1) / (pDISPLAY[en]->MAGV + 1);
+		//if(pSMODE2->INT && pSMODE2->FFMD && size.cy > 1) size.cy >>= 1;
 		return size;
 	}
 
 	CRect GetDispRect(int en)
 	{
 		ASSERT(en >= 0 && en < 2);
-		return CRect(CPoint(DISPFB[en].DBX, DISPFB[en].DBY), GetDispSize(en));
+		return CRect(CPoint(pDISPFB[en]->DBX, pDISPFB[en]->DBY), GetDispSize(en));
 	}
 
 	bool IsEnabled(int en)
 	{
 		ASSERT(en >= 0 && en < 2);
-		if(en == 0 && PMODE.EN1) {return(DISPLAY[0].DW || DISPLAY[0].DH);}
-		else if(en == 1 && PMODE.EN2) {return(DISPLAY[1].DW || DISPLAY[1].DH);}
+		if(en == 0 && pPMODE->EN1) {return(pDISPLAY[0]->DW || pDISPLAY[0]->DH);}
+		else if(en == 1 && pPMODE->EN2) {return(pDISPLAY[1]->DW || pDISPLAY[1]->DH);}
 		return(false);
 	}
 
 	int GetFPS()
 	{
-		return ((SMODE1.CMOD&1) ? 50 : 60) / (SMODE2.INT ? 1 : 2);
+		return ((pSMODE1->CMOD&1) ? 50 : 60) / (pSMODE2->INT ? 1 : 2);
 	}
+};
 
-	GSRegBGCOLOR	BGCOLOR;
-	GSRegBUSDIR		BUSDIR;
-	GSRegCSR		CSRw, CSRr;
-	GSRegDISPFB		DISPFB[2];
-	GSRegDISPLAY	DISPLAY[2];
-	GSRegEXTBUF		EXTBUF;
-	GSRegEXTDATA	EXTDATA;
-	GSRegEXTWRITE	EXTWRITE;
-	GSRegIMR		IMR;
-	GSRegPMODE		PMODE;
-	GSRegSIGLBLID	SIGLBLID;
-	GSRegSMODE1		SMODE1;
-	GSRegSMODE2		SMODE2;
-
-	GIFRegBITBLTBUF	BITBLTBUF;
-	GIFRegTRXDIR	TRXDIR;
-	GIFRegTRXPOS	TRXPOS;
-	GIFRegTRXREG	TRXREG, TRXREG2;
+struct GSTransferRegs
+{
+	struct GSTransferRegs() {memset(this, 0, sizeof(*this));}
 };
 
 struct GSVertex
@@ -152,7 +184,7 @@ class GSState
 	friend class GSTextureCache;
 
 protected:
-	static const int m_version = 3;
+	static const int m_version = 4;
 
 	GSLocalMemory m_lm;
 	GSDrawingEnvironment m_de;
@@ -194,9 +226,10 @@ protected:
 	D3DSURFACE_DESC m_bd;
 	D3DFORMAT m_fmtDepthStencil;
 	bool m_fEnablePalettizedTextures;
+	bool m_fNloopHack;
+	bool m_fField;
 	D3DTEXTUREFILTERTYPE m_texfilter;
 
-	virtual void Reset();
 	virtual void VertexKick(bool fSkip) = 0;
 	virtual int DrawingKick(bool fSkip) = 0;
 	virtual void NewPrim() = 0;
@@ -224,7 +257,6 @@ protected:
 	GIFRegPRIM* m_pPRIM;
 	UINT32 m_PRIM;
 
-	GSRegCSR* m_pCSRr;
 	void (*m_fpGSirq)();
 
 	typedef void (__fastcall GSState::*GIFPackedRegHandler)(GIFPackedReg* r);
@@ -311,21 +343,22 @@ public:
 	GSState(int w, int h, HWND hWnd, HRESULT& hr);
 	virtual ~GSState();
 
+	bool m_fMultiThreaded;
+
 	virtual HRESULT ResetDevice(bool fForceWindowed = false);
 
 	UINT32 Freeze(freezeData* fd, bool fSizeOnly);
 	UINT32 Defrost(const freezeData* fd);
-	void Write(GS_REG mem, GSReg* r, UINT64 mask);
-	UINT64 Read(GS_REG mem);
+	virtual void Reset();
+	void WriteCSR(UINT32 csr);
 	void ReadFIFO(BYTE* pMem);
 	void Transfer1(BYTE* pMem, UINT32 addr);
 	void Transfer2(BYTE* pMem, UINT32 size);
 	void Transfer3(BYTE* pMem, UINT32 size);
 	void Transfer(BYTE* pMem, UINT32 size, GIFPath& path);
-	void VSync();
+	void VSync(int field);
 
 	void GSirq(void (*fpGSirq)()) {m_fpGSirq = fpGSirq;}
-	void GSsetCSR(UINT64* pCSRr) {m_pCSRr = pCSRr ? (GSRegCSR*)pCSRr : &m_rs.CSRr;}
 
 	UINT32 MakeSnapshot(char* path);
 	void Capture();

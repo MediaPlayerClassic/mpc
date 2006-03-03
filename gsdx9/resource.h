@@ -10,6 +10,7 @@
 #define IDR_PS11_TFX011                 2003
 #define IDD_CONFIG                      2004
 #define IDR_PS11_TFX1x0                 2004
+#define IDC_CHECK5                      2004
 #define IDR_PS11_TFX1x1                 2005
 #define IDR_PS11_TFX200                 2006
 #define IDC_COMBO1                      2006

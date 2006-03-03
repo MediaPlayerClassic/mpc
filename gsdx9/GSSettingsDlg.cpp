@@ -46,6 +46,7 @@ CGSSettingsDlg::CGSSettingsDlg(CWnd* pParent /*=NULL*/)
 	: CDialog(CGSSettingsDlg::IDD, pParent)
 	, m_fEnablePalettizedTextures(FALSE)
 	, m_fEnableTvOut(FALSE)
+	, m_fNloopHack(FALSE)
 	, m_fRecordState(FALSE)
 	, m_fLinearTexFilter(TRUE)
 {
@@ -64,6 +65,7 @@ void CGSSettingsDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_CHECK1, m_fEnablePalettizedTextures);
 	DDX_Check(pDX, IDC_CHECK3, m_fEnableTvOut);
 	DDX_Check(pDX, IDC_CHECK2, m_fRecordState);
+	DDX_Check(pDX, IDC_CHECK5, m_fNloopHack);
 	DDX_Text(pDX, IDC_EDIT1, m_strRecordState);
 	DDX_Check(pDX, IDC_CHECK4, m_fLinearTexFilter);
 }
@@ -163,7 +165,9 @@ BOOL CGSSettingsDlg::OnInitDialog()
 	m_fEnableTvOut = pApp->GetProfileInt(_T("Settings"), _T("fEnableTvOut"), FALSE);
 
 	//
+	m_fNloopHack = pApp->GetProfileInt(_T("Settings"), _T("fNloopHack"), FALSE);
 
+	//
 	m_fRecordState = pApp->GetProfileInt(_T("Settings"), _T("RecordState"), FALSE);
 	m_strRecordState = pApp->GetProfileString(_T("Settings"), _T("RecordStatePath"), _T(""));
 
@@ -204,7 +208,7 @@ void CGSSettingsDlg::OnOK()
 	pApp->WriteProfileInt(_T("Settings"), _T("TexFilter"), m_fLinearTexFilter ? D3DTEXF_LINEAR : D3DTEXF_POINT);
 
 	pApp->WriteProfileInt(_T("Settings"), _T("fEnableTvOut"), m_fEnableTvOut);
-
+	pApp->WriteProfileInt(_T("Settings"), _T("fNloopHack"), m_fNloopHack);
 	pApp->WriteProfileInt(_T("Settings"), _T("RecordState"), m_fRecordState);
 	pApp->WriteProfileString(_T("Settings"), _T("RecordStatePath"), m_strRecordState);
 
@@ -225,7 +229,8 @@ void CGSSettingsDlg::OnBnClickedButton1()
 	bi.lParam = 0;
 	bi.iImage = 0; 
 
-	if(LPITEMIDLIST iil = SHBrowseForFolder(&bi))
+	LPITEMIDLIST iil;
+	if(iil = SHBrowseForFolder(&bi))
 	{
 		SHGetPathFromIDList(iil, path);
 		m_strRecordState = path;

@@ -104,7 +104,13 @@ static HRESULT s_hrCoInit = E_FAIL;
 static CGSWnd s_hWnd;
 static CAutoPtr<GSState> s_gs;
 static void (*s_fpGSirq)() = NULL;
-static UINT64* s_pCSRr = NULL;
+
+BYTE* g_pBasePS2Mem = NULL;
+
+EXPORT_C GSsetBaseMem(BYTE* pBasePS2Mem)
+{
+	g_pBasePS2Mem = pBasePS2Mem;
+}
 
 EXPORT_C_(INT32) GSinit()
 {
@@ -150,7 +156,7 @@ EXPORT_C GSshutdown()
 	if(SUCCEEDED(s_hrCoInit)) ::CoUninitialize();
 }
 
-EXPORT_C_(INT32) GSopen(void* pDsp, char* Title)
+EXPORT_C_(INT32) GSopen(void* pDsp, char* Title, int multithread)
 {
 	AFX_MANAGE_STATE(AfxGetStaticModuleState());
 
@@ -162,7 +168,8 @@ EXPORT_C_(INT32) GSopen(void* pDsp, char* Title)
 	s_gs->ResetDevice();
 
 	s_gs->GSirq(s_fpGSirq);
-	s_gs->GSsetCSR(s_pCSRr);
+
+	s_gs->m_fMultiThreaded = !!multithread;
 
 	if((!Title || strcmp(Title, REPLAY_TITLE) != 0) 
 	&& AfxGetApp()->GetProfileInt(_T("Settings"), _T("RecordState"), FALSE))
@@ -186,44 +193,14 @@ EXPORT_C GSclose()
 	s_hWnd.Show(false);
 }
 
-EXPORT_C GSwrite8(GS_REG mem, UINT8 value)
+EXPORT_C GSreset()
 {
-	s_gs->Write(mem, (GSReg*)&value, 0xff);
+	s_gs->Reset();
 }
 
-EXPORT_C GSwrite16(GS_REG mem, UINT16 value)
+EXPORT_C GSwriteCSR(UINT32 csr)
 {
-	s_gs->Write(mem, (GSReg*)&value, 0xffff);
-}
-
-EXPORT_C GSwrite32(GS_REG mem, UINT32 value)
-{
-	s_gs->Write(mem, (GSReg*)&value, 0xffffffff);
-}
-
-EXPORT_C GSwrite64(GS_REG mem, UINT64 value)
-{
-	s_gs->Write(mem, (GSReg*)&value, 0xffffffffffffffff);
-}
-
-EXPORT_C_(UINT8) GSread8(GS_REG mem)
-{
-	return (UINT8)s_gs->Read(mem);
-}
-
-EXPORT_C_(UINT16) GSread16(GS_REG mem)
-{
-	return (UINT16)s_gs->Read(mem);
-}
-
-EXPORT_C_(UINT32) GSread32(GS_REG mem)
-{
-	return (UINT32)s_gs->Read(mem);
-}
-
-EXPORT_C_(UINT64) GSread64(GS_REG mem)
-{
-	return (UINT64)s_gs->Read(mem);
+	s_gs->WriteCSR(csr);
 }
 
 EXPORT_C GSreadFIFO(BYTE* pMem)
@@ -246,7 +223,7 @@ EXPORT_C GSgifTransfer3(BYTE* pMem, UINT32 size)
 	s_gs->Transfer3(pMem, size);
 }
 
-EXPORT_C GSvsync()
+EXPORT_C GSvsync(int field)
 {
 	MSG msg;
 	ZeroMemory(&msg, sizeof(msg));
@@ -261,7 +238,7 @@ EXPORT_C GSvsync()
 		{
 			// TODO
 			// Sleep(40);
-			s_gs->VSync();
+			s_gs->VSync(field);
 			break;
 		}
 	}
@@ -388,14 +365,8 @@ EXPORT_C GSirqCallback(void (*fpGSirq)())
 	// if(s_gs) s_gs->GSirq(fpGSirq);
 }
 
-EXPORT_C GSsetCSR(UINT64* pCSRr)
-{
-	s_pCSRr = pCSRr;
-	// if(s_gs) s_gs->GSsetCSR(pCSRr);
-}
-
 /////////////////
-
+/*
 EXPORT_C GSReplay(HWND hwnd, HINSTANCE hinst, LPSTR lpszCmdLine, int nCmdShow)
 {
 	if(!GSinit())
@@ -453,3 +424,4 @@ EXPORT_C GSReplay(HWND hwnd, HINSTANCE hinst, LPSTR lpszCmdLine, int nCmdShow)
 		GSshutdown();
 	}
 }
+*/

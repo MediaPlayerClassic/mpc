@@ -7,19 +7,14 @@ EXPORTS
 	PS2EgetLibType		
 	PS2EgetLibName		
 	PS2EgetLibVersion2	
-	PS2EgetCpuPlatform	
+	PS2EgetCpuPlatform
+	GSsetBaseMem
 	GSinit				
 	GSshutdown			
 	GSopen				
-	GSclose				
-	GSwrite8			
-	GSwrite16			
-	GSwrite32			
-	GSwrite64			
-	GSread8			
-	GSread16			
-	GSread32			
-	GSread64			
+	GSclose		
+	GSreset
+	GSwriteCSR		
 	GSgifTransfer1		
 	GSgifTransfer2		
 	GSgifTransfer3		
@@ -32,5 +27,4 @@ EXPORTS
 	GSabout				
 	GSreadFIFO          
 	GSirqCallback
-	GSsetCSR		
-	GSReplay
+	; GSReplay

@@ -364,9 +364,9 @@ void GSRendererSoft<Vertex>::Flip()
 				continue;
 
 			GIFRegTEX0 TEX0;
-			TEX0.TBP0 = m_rs.DISPFB[i].FBP<<5;
-			TEX0.TBW = m_rs.DISPFB[i].FBW;
-			TEX0.PSM = m_rs.DISPFB[i].PSM;
+			TEX0.TBP0 = m_rs.pDISPFB[i]->FBP<<5;
+			TEX0.TBW = m_rs.pDISPFB[i]->FBW;
+			TEX0.PSM = m_rs.pDISPFB[i]->PSM;
 
 			GIFRegCLAMP CLAMP;
 			CLAMP.WMS = CLAMP.WMT = 1;
