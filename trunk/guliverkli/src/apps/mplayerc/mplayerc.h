@@ -451,17 +451,6 @@ public:
 		UINT logoid;
 		bool logoext;
 
-		int mpegdi;
-		double mpegbright, mpegcont, mpeghue, mpegsat;
-		bool mpegforcedsubs, mpegplanaryuv, mpeginterlaced;
-		DWORD mpegpreffmt;
-
-		int mpasf;
-		bool mpanormalize;
-		int ac3sc, dtssc, aacsc;
-		bool ac3drc, dtsdrc;
-		float mpaboost;
-
 		bool fHideCDROMsSubMenu;
 
 		DWORD priority;

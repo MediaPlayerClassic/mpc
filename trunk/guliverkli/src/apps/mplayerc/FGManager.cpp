@@ -435,7 +435,7 @@ STDMETHODIMP CFGManager::Connect(IPin* pPinOut, IPin* pPinIn)
 			{
 				hr = ConnectFilterDirect(pPinOut, pBF, NULL);
 			}
-
+/*
 			if(FAILED(hr))
 			{
 				if(types.GetCount() >= 2 && types[0] == MEDIATYPE_Stream && types[1] != GUID_NULL)
@@ -451,7 +451,7 @@ STDMETHODIMP CFGManager::Connect(IPin* pPinOut, IPin* pPinIn)
 					if(FAILED(hr)) hr = ConnectFilterDirect(pPinOut, pBF, &mt);
 				}
 			}
-
+*/
 			if(SUCCEEDED(hr))
 			{
 				if(!IsStreamEnd(pBF)) fDeadEnd = false;
@@ -536,7 +536,7 @@ STDMETHODIMP CFGManager::AddSourceFilter(LPCWSTR lpcwstrFileName, LPCWSTR lpcwst
 
 	CFGFilterList fl;
 
-	HANDLE hFile = CreateFile(fn, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, (HANDLE)NULL);
+	HANDLE hFile = CreateFile(CString(fn), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, (HANDLE)NULL);
 
 	// internal / protocol
 
@@ -546,7 +546,7 @@ STDMETHODIMP CFGManager::AddSourceFilter(LPCWSTR lpcwstrFileName, LPCWSTR lpcwst
 		while(pos)
 		{
 			CFGFilter* pFGF = m_source.GetNext(pos);
-			if(pFGF->m_protocols.Find(CStringW(protocol)))
+			if(pFGF->m_protocols.Find(CString(protocol)))
 				fl.Insert(pFGF, 0, false, false);
 		}
 	}
@@ -580,7 +580,7 @@ STDMETHODIMP CFGManager::AddSourceFilter(LPCWSTR lpcwstrFileName, LPCWSTR lpcwst
 		while(pos)
 		{
 			CFGFilter* pFGF = m_source.GetNext(pos);
-			if(pFGF->m_extensions.Find(CStringW(ext)))
+			if(pFGF->m_extensions.Find(CString(ext)))
 				fl.Insert(pFGF, 2, false, false);
 		}
 	}
@@ -602,7 +602,7 @@ STDMETHODIMP CFGManager::AddSourceFilter(LPCWSTR lpcwstrFileName, LPCWSTR lpcwst
 	if(protocol.GetLength() > 1 && protocol != L"file")
 	{
 		CRegKey key;
-		if(ERROR_SUCCESS == key.Open(HKEY_CLASSES_ROOT, protocol, KEY_READ))
+		if(ERROR_SUCCESS == key.Open(HKEY_CLASSES_ROOT, CString(protocol), KEY_READ))
 		{
 			CRegKey exts;
 			if(ERROR_SUCCESS == exts.Open(key, _T("Extensions"), KEY_READ))
@@ -1578,31 +1578,7 @@ STDMETHODIMP CFGManagerCustom::AddFilter(IBaseFilter* pBF, LPCWSTR pName)
 			pPB->Write(CComBSTR(L"_HIRESOUTPUT"), &var);
 		}
 	}
-/*
-	if(CComQIPtr<IMpeg2DecFilter> pM2DF = pBF)
-	{
-		pM2DF->SetDeinterlaceMethod((ditype)s.mpegdi);
-		pM2DF->SetBrightness(s.mpegbright);
-		pM2DF->SetContrast(s.mpegcont);
-		pM2DF->SetHue(s.mpeghue);
-		pM2DF->SetSaturation(s.mpegsat);
-		pM2DF->EnableForcedSubtitles(s.mpegforcedsubs);
-		pM2DF->EnablePlanarYUV(s.mpegplanaryuv);
-		pM2DF->EnableInterlaced(s.mpeginterlaced);
-	}
 
-	if(CComQIPtr<IMpaDecFilter> pMDF = pBF)
-	{
-		pMDF->SetSampleFormat((SampleFormat)s.mpasf);
-		pMDF->SetNormalize(s.mpanormalize);
-		pMDF->SetSpeakerConfig(IMpaDecFilter::ac3, s.ac3sc);
-		pMDF->SetDynamicRangeControl(IMpaDecFilter::ac3, s.ac3drc);
-		pMDF->SetSpeakerConfig(IMpaDecFilter::dts, s.dtssc);
-		pMDF->SetDynamicRangeControl(IMpaDecFilter::dts, s.dtsdrc);
-		pMDF->SetSpeakerConfig(IMpaDecFilter::aac, s.aacsc);
-		pMDF->SetBoost(s.mpaboost);
-	}
-*/
 	if(CComQIPtr<IAudioSwitcherFilter> pASF = pBF)
 	{
 		pASF->EnableDownSamplingTo441(s.fDownSampleTo441);

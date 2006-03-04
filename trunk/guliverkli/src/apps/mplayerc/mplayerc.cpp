@@ -1183,24 +1183,6 @@ void CMPlayerCApp::Settings::UpdateData(bool fSave)
 		pApp->WriteProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_LOGOID), logoid);
 		pApp->WriteProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_LOGOEXT), logoext);
 
-		pApp->WriteProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_MPEGDI), mpegdi);
-		pApp->WriteProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_MPEGBRIGHT), (int)(mpegbright+255));
-		pApp->WriteProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_MPEGCONT), (int)(mpegcont*100));
-		pApp->WriteProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_MPEGHUE), (int)(mpeghue+180));
-		pApp->WriteProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_MPEGSAT), (int)(mpegsat*100));
-		pApp->WriteProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_MPEGFORCEDSUBS), mpegforcedsubs);
-		pApp->WriteProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_MPEGPLANARYUV), mpegplanaryuv);
-		pApp->WriteProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_MPEGINTERLACED), mpeginterlaced);		
-
-		pApp->WriteProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_MPASF), mpasf);
-		pApp->WriteProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_MPANORMALIZE), mpanormalize);
-		pApp->WriteProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_AC3SC), ac3sc);
-		pApp->WriteProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_AC3DRC), ac3drc);
-		pApp->WriteProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_DTSSC), dtssc);
-		pApp->WriteProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_DTSDRC), dtsdrc);
-		pApp->WriteProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_AACSC), aacsc);
-		pApp->WriteProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_MPABOOST), (int)mpaboost);
-
 		pApp->WriteProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_HIDECDROMSSUBMENU), fHideCDROMsSubMenu);
 
 		pApp->WriteProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_PRIORITY), priority);
@@ -1544,24 +1526,6 @@ void CMPlayerCApp::Settings::UpdateData(bool fSave)
 		logofn = pApp->GetProfileString(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_LOGOFILE), _T(""));
 		logoid = pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_LOGOID), IDB_LOGO7);
 		logoext = !!pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_LOGOEXT), 0);
-
-		mpegdi = pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_MPEGDI), 0);
-		mpegbright = (double)pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_MPEGBRIGHT), 255) - 255;
-		mpegcont = (double)pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_MPEGCONT), 100) / 100;
-		mpeghue = (double)pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_MPEGHUE), 180) - 180;
-		mpegsat = (double)pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_MPEGSAT), 100) / 100;
-		mpegforcedsubs = !!pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_MPEGFORCEDSUBS), 1);
-		mpegplanaryuv = !!pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_MPEGPLANARYUV), 1);
-		mpeginterlaced = !!pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_MPEGINTERLACED), 0);		
-
-		mpasf = pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_MPASF), 0);
-		mpanormalize = !!pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_MPANORMALIZE), FALSE);
-		ac3sc = (int)pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_AC3SC), 2);
-		ac3drc = !!pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_AC3DRC), FALSE);
-		dtssc = (int)pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_DTSSC), 2);
-		dtsdrc = !!pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_DTSDRC), FALSE);
-		aacsc = (int)pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_AACSC), 1);
-		mpaboost = (float)pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_MPABOOST), 1);
 
 		fHideCDROMsSubMenu = !!pApp->GetProfileInt(ResStr(IDS_R_SETTINGS), ResStr(IDS_RS_HIDECDROMSSUBMENU), 0);		
 

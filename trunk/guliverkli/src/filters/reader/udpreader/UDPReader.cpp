@@ -180,9 +180,11 @@ bool CUDPStream::Load(const WCHAR* fnw)
 	Clear();
 
 	CStringW url = CStringW(fnw);
-//#ifdef DEBUG
+
+#ifdef DEBUG
+//	url = L"udp://:1234/"; 
 //	url = L"udp://239.255.255.250:1234/{e436eb8e-524f-11ce-9f53-0020af0ba770}"; 
-//#endif
+#endif
 
 	CAtlList<CStringW> sl;
 	Explode(url, sl, ':');

@@ -6990,7 +6990,7 @@ void CMainFrame::SetupChapters()
 
 void CMainFrame::OpenDVD(OpenDVDData* pODD)
 {
-	HRESULT hr = pGB->RenderFile(pODD->path, NULL);
+	HRESULT hr = pGB->RenderFile(CStringW(pODD->path), NULL);
 
 	AppSettings& s = AfxGetAppSettings();
 
