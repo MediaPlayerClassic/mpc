@@ -73,7 +73,7 @@ CAutoPtr<Packet> CPacketQueue::Remove()
 	CAutoLock cAutoLock(this);
 	ASSERT(__super::GetCount() > 0);
 	CAutoPtr<Packet> p = RemoveHead();
-	if(p) m_size -= p->GetCount();
+	if(p) m_size -= p->GetDataSize();
 	return p;
 }
 

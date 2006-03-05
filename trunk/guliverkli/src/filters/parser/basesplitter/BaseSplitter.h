@@ -51,6 +51,7 @@ class CPacketQueue
 	, protected CAutoPtrList<Packet>
 {
 	int m_size;
+
 public:
 	CPacketQueue();
 	void Add(CAutoPtr<Packet> p);
