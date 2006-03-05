@@ -30,7 +30,7 @@
 class MatroskaPacket : public Packet
 {
 protected:
-	int GetSize()
+	int GetDataSize()
 	{
 		int size = 0;
 		POSITION pos = bg->Block.BlockData.GetHeadPosition();
