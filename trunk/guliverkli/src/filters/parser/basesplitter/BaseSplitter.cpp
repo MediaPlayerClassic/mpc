@@ -47,7 +47,7 @@ void CPacketQueue::Add(CAutoPtr<Packet> p)
 
 	if(p)
 	{
-		m_size += p->GetCount();
+		m_size += p->GetDataSize();
 
 		if(p->bAppendable && !p->bDiscontinuity && !p->pmt
 		&& p->rtStart == Packet::INVALID_TIME

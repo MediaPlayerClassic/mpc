@@ -42,6 +42,7 @@ public:
 	AM_MEDIA_TYPE* pmt;
 	Packet() {pmt = NULL; bDiscontinuity = bAppendable = FALSE;}
 	virtual ~Packet() {if(pmt) DeleteMediaType(pmt);}
+	virtual int GetDataSize() {return GetCount();}
 	void SetData(const void* ptr, DWORD len) {SetCount(len); memcpy(GetData(), ptr, len);}
 };
 
