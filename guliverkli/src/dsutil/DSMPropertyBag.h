@@ -65,7 +65,7 @@ public:
 	CStringW name, desc, mime;
 	CAtlArray<BYTE> data;
 	CDSMResource();
-	CDSMResource(const CDSMResource& r) {*this = r;}
+	CDSMResource(const CDSMResource& r);
 	CDSMResource(LPCWSTR name, LPCWSTR desc, LPCWSTR mime, BYTE* pData, int len, DWORD_PTR tag = 0);
 	virtual ~CDSMResource();
 	void operator = (const CDSMResource& r);
