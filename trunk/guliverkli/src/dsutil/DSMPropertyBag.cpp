@@ -133,6 +133,14 @@ CDSMResource::CDSMResource()
 	m_resources.SetAt((DWORD)this, this);
 }
 
+CDSMResource::CDSMResource(const CDSMResource& r)
+{
+	*this = r;
+
+	CAutoLock cAutoLock(&m_csResources);
+	m_resources.SetAt((DWORD)this, this);
+}
+
 CDSMResource::CDSMResource(LPCWSTR name, LPCWSTR desc, LPCWSTR mime, BYTE* pData, int len, DWORD_PTR tag)
 {
 	this->name = name;
