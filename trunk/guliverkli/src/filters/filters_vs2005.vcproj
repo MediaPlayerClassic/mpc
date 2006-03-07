@@ -296,6 +296,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\PinInfoWnd.cpp"
+				>
+			</File>
+			<File
 				RelativePath="stdafx.cpp"
 				>
 				<FileConfiguration
@@ -346,6 +350,10 @@
 			</File>
 			<File
 				RelativePath=".\ISpecifyPropertyPages2.h"
+				>
+			</File>
+			<File
+				RelativePath=".\PinInfoWnd.h"
 				>
 			</File>
 			<File

@@ -35,7 +35,7 @@ class CInternalPropertyPageWnd : public CWnd
 	CComPtr<IPropertyPageSite> m_pPageSite;
 
 protected:
-	CFont m_font;
+	CFont m_font, m_monospacefont;
 	int m_fontheight;
 
 	virtual BOOL OnWndMsg(UINT message, WPARAM wParam, LPARAM lParam, LRESULT* pResult);
@@ -93,7 +93,7 @@ public:
     STDMETHODIMP TranslateAccelerator(LPMSG lpMsg);
 };
 
-template<class WndClass, int WndWidth = 320, int WndHeight = 280>
+template<class WndClass>
 class CInternalPropertyPageTempl : public CInternalPropertyPage
 {
 	virtual CInternalPropertyPageWnd* GetWindow()
@@ -108,7 +108,7 @@ class CInternalPropertyPageTempl : public CInternalPropertyPage
 
 	virtual CSize GetWindowSize()
 	{
-		return CSize(WndWidth, WndHeight);
+		return WndClass::GetWindowSize();
 	}
 
 public:
