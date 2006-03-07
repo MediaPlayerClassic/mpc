@@ -536,6 +536,7 @@ HRESULT CMpegSplitterOutputPin::DeliverEndFlush()
 	{
 		CAutoLock cAutoLock(this);
 		m_p.Free();
+		m_pl.RemoveAll();
 	}
 
 	return __super::DeliverEndFlush();
@@ -680,16 +681,14 @@ TRACE(_T("%I64d, %I64d (%I64d)\n"), p->rtStart, m_rtPrev, m_rtOffset);
 			p2->rtStop = m_p->rtStop; m_p->rtStop = Packet::INVALID_TIME;
 			p2->pmt = m_p->pmt; m_p->pmt = NULL;
 			p2->SetData(start, next - start);
-
-			HRESULT hr = __super::DeliverPacket(p2);
-			if(hr != S_OK) return hr;
-
-			start = next;
+			m_pl.AddTail(p2);
 
 			if(p->rtStart != Packet::INVALID_TIME) {m_p->rtStart = p->rtStart; m_p->rtStop = p->rtStop; p->rtStart = Packet::INVALID_TIME;}
 			if(p->bDiscontinuity) {m_p->bDiscontinuity = p->bDiscontinuity; p->bDiscontinuity = FALSE;}
 			if(p->bSyncPoint) {m_p->bSyncPoint = p->bSyncPoint; p->bSyncPoint = FALSE;}
 			if(m_p->pmt) DeleteMediaType(m_p->pmt); m_p->pmt = p->pmt; p->pmt = NULL;
+
+			start = next;
 		}
 
 		if(start > m_p->GetData())
@@ -697,11 +696,35 @@ TRACE(_T("%I64d, %I64d (%I64d)\n"), p->rtStart, m_rtPrev, m_rtOffset);
 			m_p->RemoveAt(0, start - m_p->GetData());
 		}
 
+		for(POSITION pos = m_pl.GetHeadPosition(); pos; m_pl.GetNext(pos))
+		{
+			if(pos == m_pl.GetHeadPosition()) 
+				continue;
+
+			Packet* pPacket = m_pl.GetAt(pos);
+			BYTE* pData = pPacket->GetData();
+
+			if(pPacket->rtStart != Packet::INVALID_TIME || (pData[4]&0x1f) == 0x09)
+			{
+				p = m_pl.RemoveHead();
+
+				while(pos != m_pl.GetHeadPosition())
+				{
+					CAutoPtr<Packet> p2 = m_pl.RemoveHead();
+					p->Append(*p2);
+				}
+
+				HRESULT hr = __super::DeliverPacket(p);
+				if(hr != S_OK) return hr;
+			}
+		}
+
 		return S_OK;
 	}
 	else
 	{
 		m_p.Free();
+		m_pl.RemoveAll();
 	}
 
 	return __super::DeliverPacket(p);

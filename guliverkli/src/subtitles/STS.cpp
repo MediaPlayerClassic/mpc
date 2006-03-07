@@ -2112,7 +2112,7 @@ void CSimpleTextSubtitle::AddStyle(CString name, STSStyle* style)
 			name3.Format(_T("%s%d"), name2, idx);
 			idx++;
 		}
-		while(m_styles[name3]);
+		while(m_styles.Lookup(name3));
 
 		m_styles.RemoveKey(name);
 		m_styles[name3] = val;

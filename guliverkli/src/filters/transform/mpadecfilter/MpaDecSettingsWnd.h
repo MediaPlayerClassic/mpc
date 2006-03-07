@@ -36,23 +36,6 @@ class CMpaDecSettingsWnd : public CInternalPropertyPageWnd
 	int m_dtsspkcfg;
 	bool m_dtsdrc;
 	bool m_aacdownmix;
-/*
-	int m_enctype;
-	bool m_normalize;
-	float m_boost;
-
-
-	STDMETHOD(SetSampleFormat(SampleFormat sf)) = 0;
-	STDMETHOD_(SampleFormat, GetSampleFormat()) = 0;
-	STDMETHOD(SetNormalize(bool fNormalize)) = 0;
-	STDMETHOD_(bool, GetNormalize()) = 0;
-	STDMETHOD(SetSpeakerConfig(enctype et, int sc)) = 0; // sign of sc tells if spdif is active
-	STDMETHOD_(int, GetSpeakerConfig(enctype et)) = 0;
-	STDMETHOD(SetDynamicRangeControl(enctype et, bool fDRC)) = 0;
-	STDMETHOD_(bool, GetDynamicRangeControl(enctype et)) = 0;
-	STDMETHOD(SetBoost(float boost)) = 0;
-	STDMETHOD_(float, GetBoost()) = 0;
-*/
 
 	enum 
 	{
@@ -65,7 +48,9 @@ class CMpaDecSettingsWnd : public CInternalPropertyPageWnd
 		IDC_PP_COMBO3,
 		IDC_PP_CHECK1,
 		IDC_PP_CHECK2,
-		IDC_PP_CHECK3
+		IDC_PP_CHECK3,
+		IDC_PP_CHECK4,
+		IDC_PP_CHECK5
 	};
 
 	CStatic m_outputformat_static;
@@ -74,11 +59,13 @@ class CMpaDecSettingsWnd : public CInternalPropertyPageWnd
 	CButton m_ac3spkcfg_radio[2];
 	CComboBox m_ac3spkcfg_combo;
 	CButton m_ac3spkcfg_check;
+	CButton m_ac3lfe_check;
 	CStatic m_dtsspkcfg_static;
 	CButton m_dtsspkcfg_radio[2];
 	CComboBox m_dtsspkcfg_combo;
 	CButton m_dtsspkcfg_check;
 	CStatic m_aacspkcfg_static;
+	CButton m_dtslfe_check;
 	CButton m_aacdownmix_check;
 
 /*

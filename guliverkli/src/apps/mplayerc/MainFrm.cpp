@@ -5986,7 +5986,14 @@ void CMainFrame::OnHelpDonate()
 
 //////////////////////////////////
 
-void CMainFrame::SetDefaultWindowRect()
+static BOOL CALLBACK MonitorEnumProc(HMONITOR hMonitor, HDC hdcMonitor, LPRECT lprcMonitor, LPARAM dwData)
+{
+	CAtlArray<HMONITOR>* ml = (CAtlArray<HMONITOR>*)dwData;
+	ml->Add(hMonitor);
+	return TRUE;
+}
+
+void CMainFrame::SetDefaultWindowRect(int iMonitor)
 {
 	AppSettings& s = AfxGetAppSettings();
 
@@ -6029,9 +6036,19 @@ void CMainFrame::SetDefaultWindowRect()
 			h = s.rcLastWindowPos.Height();
 		}
 
+		HMONITOR hMonitor = MonitorFromWindow(m_hWnd, MONITOR_DEFAULTTONEAREST);
+
+		if(iMonitor > 0)
+		{
+			iMonitor--;
+			CAtlArray<HMONITOR> ml;
+			EnumDisplayMonitors(NULL, NULL, MonitorEnumProc, (LPARAM)&ml);
+			if(iMonitor < ml.GetCount()) hMonitor = ml[iMonitor];
+		}
+
 		MONITORINFO mi;
 		mi.cbSize = sizeof(MONITORINFO);
-		GetMonitorInfo(MonitorFromWindow(m_hWnd, MONITOR_DEFAULTTONEAREST), &mi);
+		GetMonitorInfo(hMonitor, &mi);
 
 		int x = (mi.rcWork.left+mi.rcWork.right-w)/2;
 		int y = (mi.rcWork.top+mi.rcWork.bottom-h)/2;
