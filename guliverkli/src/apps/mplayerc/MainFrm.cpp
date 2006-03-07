@@ -66,6 +66,7 @@
 
 #include "textpassthrufilter.h"
 #include "..\..\filters\filters.h"
+#include "..\..\filters\PinInfoWnd.h"
 
 #include "DX7AllocatorPresenter.h"
 #include "DX9AllocatorPresenter.h"
@@ -5099,13 +5100,27 @@ void CMainFrame::OnPlayFilters(UINT nID)
 {
 //	ShowPPage(m_spparray[nID - ID_FILTERS_SUBITEM_START], m_hWnd);
 
-	CComPtr<ISpecifyPropertyPages> pSPP = m_spparray[nID - ID_FILTERS_SUBITEM_START];
+	CComPtr<IUnknown> pUnk = m_pparray[nID - ID_FILTERS_SUBITEM_START];
 
 	CComPropertySheet ps(ResStr(IDS_PROPSHEET_PROPERTIES), this);
-	ps.AddPages(pSPP);
-	ps.DoModal();
 
-	OpenSetupStatusBar();
+	if(CComQIPtr<ISpecifyPropertyPages> pSPP = pUnk)
+	{
+		ps.AddPages(pSPP);
+	}
+
+	if(CComQIPtr<IBaseFilter> pBF = pUnk)
+	{
+		HRESULT hr;
+		CComPtr<IPropertyPage> pPP = new CInternalPropertyPageTempl<CPinInfoWnd>(NULL, &hr);
+		ps.AddPage(pPP, pBF);
+	}
+
+	if(ps.GetPageCount() > 0)
+	{
+		ps.DoModal();
+		OpenSetupStatusBar();
+	}
 }
 
 void CMainFrame::OnUpdatePlayFilters(CCmdUI* pCmdUI)
@@ -7590,57 +7605,10 @@ void CMainFrame::OpenSetupWindowTitle(CString fn)
 
 bool CMainFrame::OpenMediaPrivate(CAutoPtr<OpenMediaData> pOMD)
 {
-	if(m_iMediaLoadState != MLS_CLOSED)
+	if(m_iMediaLoadState != MLS_CLOSED && m_iMediaLoadState != MLS_LOADING)
 	{
 		ASSERT(0);
 		return(false);
-	}
-
-	if(!dynamic_cast<OpenFileData*>(pOMD.m_p)
-	&& !dynamic_cast<OpenDVDData*>(pOMD.m_p)
-	&& !dynamic_cast<OpenDeviceData*>(pOMD.m_p))
-	{
-		ASSERT(0);
-		return(false);
-	}
-
-	if(OpenFileData* pOFD = dynamic_cast<OpenFileData*>(pOMD.m_p))
-	{
-		if(pOFD->fns.IsEmpty())
-			return(false);
-
-		CString fn = pOFD->fns.GetHead();
-
-		int i = fn.Find(_T(":\\"));
-		if(i > 0)
-		{
-			CString drive = fn.Left(i+2);
-			UINT type = GetDriveType(drive);
-			CAtlList<CString> sl;
-			if(type == DRIVE_REMOVABLE || type == DRIVE_CDROM && GetCDROMType(drive[0], sl) != CDROM_Audio)
-			{
-				int ret = IDRETRY;
-				while(ret == IDRETRY)
-				{
-					WIN32_FIND_DATA findFileData;
-					HANDLE h = FindFirstFile(fn, &findFileData);
-					if(h != INVALID_HANDLE_VALUE)
-					{
-						FindClose(h);
-						ret = IDOK;
-					}
-					else
-					{
-						CString msg;
-						msg.Format(_T("%s was not found, please insert media containing this file."), fn);
-						ret = AfxMessageBox(msg, MB_RETRYCANCEL);
-					}
-				}
-
-				if(ret != IDOK)
-					return(false);
-			}
-		}
 	}
 
 	m_iMediaLoadState = MLS_LOADING;
@@ -7654,6 +7622,45 @@ bool CMainFrame::OpenMediaPrivate(CAutoPtr<OpenMediaData> pOMD)
 
 	try
 	{
+		if(m_fOpeningAborted) throw aborted;
+
+		if(OpenFileData* pOFD = dynamic_cast<OpenFileData*>(pOMD.m_p))
+		{
+			if(pOFD->fns.IsEmpty()) throw _T("File not found");
+
+			CString fn = pOFD->fns.GetHead();
+
+			int i = fn.Find(_T(":\\"));
+			if(i > 0)
+			{
+				CString drive = fn.Left(i+2);
+				UINT type = GetDriveType(drive);
+				CAtlList<CString> sl;
+				if(type == DRIVE_REMOVABLE || type == DRIVE_CDROM && GetCDROMType(drive[0], sl) != CDROM_Audio)
+				{
+					int ret = IDRETRY;
+					while(ret == IDRETRY)
+					{
+						WIN32_FIND_DATA findFileData;
+						HANDLE h = FindFirstFile(fn, &findFileData);
+						if(h != INVALID_HANDLE_VALUE)
+						{
+							FindClose(h);
+							ret = IDOK;
+						}
+						else
+						{
+							CString msg;
+							msg.Format(_T("%s was not found, please insert media containing this file."), fn);
+							ret = AfxMessageBox(msg, MB_RETRYCANCEL);
+						}
+					}
+
+					if(ret != IDOK) throw aborted;
+				}
+			}
+		}
+
 		if(m_fOpeningAborted) throw aborted;
 
 		OpenCreateGraphObject(pOMD);
@@ -7996,7 +8003,7 @@ void CMainFrame::SetupFiltersSubMenu()
 
 	m_filterpopups.RemoveAll();
 
-	m_spparray.RemoveAll();
+	m_pparray.RemoveAll();
 	m_ssarray.RemoveAll();
 
 	if(m_iMediaLoadState == MLS_LOADED)
@@ -8052,21 +8059,22 @@ void CMainFrame::SetupFiltersSubMenu()
 			int nPPages = 0;
 
 			CComQIPtr<ISpecifyPropertyPages> pSPP = pBF;
-			if(pSPP)
+
+/*			if(pSPP)
 			{
 				CAUUID caGUID;
 				caGUID.pElems = NULL;
 				if(SUCCEEDED(pSPP->GetPages(&caGUID)) && caGUID.cElems > 0)
 				{
-					m_spparray.Add(pSPP);
+*/					m_pparray.Add(pBF);
 					pSubSub->AppendMenu(MF_BYCOMMAND|MF_STRING|MF_ENABLED, ids, _T("&Properties..."));
-
+/*
 					if(caGUID.pElems) CoTaskMemFree(caGUID.pElems);
-
+*/
 					nPPages++;
-				}
+/*				}
 			}
-
+*/
 			BeginEnumPins(pBF, pEP, pPin)
 			{
 				CString name = GetPinName(pPin);
@@ -8078,7 +8086,7 @@ void CMainFrame::SetupFiltersSubMenu()
 					caGUID.pElems = NULL;
 					if(SUCCEEDED(pSPP->GetPages(&caGUID)) && caGUID.cElems > 0)
 					{
-						m_spparray.Add(pSPP);
+						m_pparray.Add(pPin);
 						pSubSub->AppendMenu(MF_BYCOMMAND|MF_STRING|MF_ENABLED, ids+nPPages, name + _T(" (pin) properties..."));
 
 						if(caGUID.pElems) CoTaskMemFree(caGUID.pElems);
@@ -9674,6 +9682,8 @@ void CMainFrame::OpenMedia(CAutoPtr<OpenMediaData> pOMD)
 
 	if(m_iMediaLoadState != MLS_CLOSED)
 		CloseMedia();
+
+	m_iMediaLoadState = MLS_LOADING; // HACK: hides the logo
 
 	AppSettings& s = AfxGetAppSettings();
 

@@ -128,17 +128,8 @@ int CComPropertySheet::AddPages(CComPtr<ISpecifyPropertyPages> pSPP)
 
 		if(SUCCEEDED(hr))
 		{
-			HRESULT hr;
-			hr = pPage->SetPageSite(m_pSite);
-			hr = pPage->SetObjects(1, &lpUnk);
-			PROPPAGEINFO ppi;
-			hr = pPage->GetPageInfo(&ppi);
-			m_size.cx = max(m_size.cx, ppi.size.cx);
-			m_size.cy = max(m_size.cy, ppi.size.cy);
-			CAutoPtr<CComPropertyPage> p(new CComPropertyPage(pPage));
-			AddPage(p);
-			m_pages.AddTail(p);
-			nPages++;
+			if(AddPage(pPage, lpUnk))
+				nPages++;
 		}
 	}
 
@@ -146,6 +137,24 @@ int CComPropertySheet::AddPages(CComPtr<ISpecifyPropertyPages> pSPP)
 	lpUnk->Release();
 
 	return(nPages);
+}
+
+bool CComPropertySheet::AddPage(IPropertyPage* pPage, IUnknown* pUnk)
+{
+	if(!pPage || !pUnk) return false;
+
+	HRESULT hr;
+	hr = pPage->SetPageSite(m_pSite);
+	hr = pPage->SetObjects(1, &pUnk);
+	PROPPAGEINFO ppi;
+	hr = pPage->GetPageInfo(&ppi);
+	m_size.cx = max(m_size.cx, ppi.size.cx);
+	m_size.cy = max(m_size.cy, ppi.size.cy);
+	CAutoPtr<CComPropertyPage> p(new CComPropertyPage(pPage));
+	__super::AddPage(p);
+	m_pages.AddTail(p);
+
+	return true;
 }
 
 void CComPropertySheet::OnActivated(CPropertyPage* pPage)

@@ -6,6 +6,18 @@
 #include <initguid.h>
 #include "..\..\include\moreuuids.h"
 
+#pragma pack(push, 1)
+typedef struct
+{
+	WAVEFORMATEX Format;
+	BYTE bBigEndian;
+	BYTE bsid;
+	BYTE lfeon;
+	BYTE copyrightb;
+	BYTE nAuxBitsCode;  //  Aux bits per frame
+} DOLBYAC3WAVEFORMAT;
+#pragma pack(pop)
+
 CMediaTypeEx::CMediaTypeEx()
 {
 }
@@ -322,4 +334,304 @@ CString CMediaTypeEx::GetSubtitleCodecName(const GUID& subtype)
 	}
 
 	return str;
+}
+
+void CMediaTypeEx::Dump(CAtlList<CString>& sl)
+{
+	CString str;
+
+	sl.RemoveAll();
+
+	int fmtsize = 0;
+
+	CString major = CStringFromGUID(majortype);
+	CString sub = CStringFromGUID(subtype);
+	CString format = CStringFromGUID(formattype);
+
+	sl.AddTail(ToString() + _T("\n"));	
+
+	sl.AddTail(_T("AM_MEDIA_TYPE: "));
+	str.Format(_T("majortype: %s %s"), CString(GuidNames[majortype]), major);
+	sl.AddTail(str);
+	str.Format(_T("subtype: %s %s"), CString(GuidNames[subtype]), sub);
+	sl.AddTail(str);
+	str.Format(_T("formattype: %s %s"), CString(GuidNames[formattype]), format);
+	sl.AddTail(str);
+	str.Format(_T("bFixedSizeSamples: %d"), bFixedSizeSamples);
+	sl.AddTail(str);
+	str.Format(_T("bTemporalCompression: %d"), bTemporalCompression);
+	sl.AddTail(str);
+	str.Format(_T("lSampleSize: %d"), lSampleSize);
+	sl.AddTail(str);
+	str.Format(_T("cbFormat: %d"), cbFormat);
+	sl.AddTail(str);
+
+	sl.AddTail(_T(""));
+
+	if(formattype == FORMAT_VideoInfo || formattype == FORMAT_VideoInfo2
+	|| formattype == FORMAT_MPEGVideo || formattype == FORMAT_MPEG2_VIDEO)
+	{
+		fmtsize = 
+			formattype == FORMAT_VideoInfo ? sizeof(VIDEOINFOHEADER) :
+			formattype == FORMAT_VideoInfo2 ? sizeof(VIDEOINFOHEADER2) :
+			formattype == FORMAT_MPEGVideo ? sizeof(MPEG1VIDEOINFO)-1 :
+			formattype == FORMAT_MPEG2_VIDEO ? sizeof(MPEG2VIDEOINFO)-4 :
+			0;
+
+		VIDEOINFOHEADER& vih = *(VIDEOINFOHEADER*)pbFormat;
+		BITMAPINFOHEADER* bih = &vih.bmiHeader;
+
+		sl.AddTail(_T("VIDEOINFOHEADER:"));
+		str.Format(_T("rcSource: (%d,%d)-(%d,%d)"), vih.rcSource);
+		sl.AddTail(str);
+		str.Format(_T("rcTarget: (%d,%d)-(%d,%d)"), vih.rcTarget);
+		sl.AddTail(str);
+		str.Format(_T("dwBitRate: %d"), vih.dwBitRate);
+		sl.AddTail(str);
+		str.Format(_T("dwBitErrorRate: %d"), vih.dwBitErrorRate);
+		sl.AddTail(str);
+		str.Format(_T("AvgTimePerFrame: %I64d"), vih.AvgTimePerFrame);
+		sl.AddTail(str);
+
+		sl.AddTail(_T(""));
+
+		if(formattype == FORMAT_VideoInfo2 || formattype == FORMAT_MPEG2_VIDEO)
+		{
+			VIDEOINFOHEADER2& vih = *(VIDEOINFOHEADER2*)pbFormat;
+			bih = &vih.bmiHeader;
+
+			sl.AddTail(_T("VIDEOINFOHEADER2:"));
+			str.Format(_T("dwInterlaceFlags: 0x%08x"), vih.dwInterlaceFlags);
+			sl.AddTail(str);
+			str.Format(_T("dwCopyProtectFlags: 0x%08x"), vih.dwCopyProtectFlags);
+			sl.AddTail(str);
+			str.Format(_T("dwPictAspectRatioX: %d"), vih.dwPictAspectRatioX);
+			sl.AddTail(str);
+			str.Format(_T("dwPictAspectRatioY: %d"), vih.dwPictAspectRatioY);
+			sl.AddTail(str);
+			str.Format(_T("dwControlFlags: 0x%08x"), vih.dwControlFlags);
+			sl.AddTail(str);
+			str.Format(_T("dwReserved2: 0x%08x"), vih.dwReserved2);
+			sl.AddTail(str);
+
+			sl.AddTail(_T(""));
+		}
+
+		if(formattype == FORMAT_MPEGVideo)
+		{
+			MPEG1VIDEOINFO& mvih = *(MPEG1VIDEOINFO*)pbFormat;
+
+			sl.AddTail(_T("MPEG1VIDEOINFO:"));
+			str.Format(_T("dwStartTimeCode: %d"), mvih.dwStartTimeCode);
+			sl.AddTail(str);
+			str.Format(_T("cbSequenceHeader: %d"), mvih.cbSequenceHeader);
+			sl.AddTail(str);
+
+			sl.AddTail(_T(""));
+		}
+		else if(formattype == FORMAT_MPEG2_VIDEO)
+		{
+			MPEG2VIDEOINFO& mvih = *(MPEG2VIDEOINFO*)pbFormat;
+
+			sl.AddTail(_T("MPEG2VIDEOINFO:"));
+			str.Format(_T("dwStartTimeCode: %d"), mvih.dwStartTimeCode);
+			sl.AddTail(str);
+			str.Format(_T("cbSequenceHeader: %d"), mvih.cbSequenceHeader);
+			sl.AddTail(str);
+			str.Format(_T("dwProfile: 0x%08x"), mvih.dwProfile);
+			sl.AddTail(str);
+			str.Format(_T("dwLevel: 0x%08x"), mvih.dwLevel);
+			sl.AddTail(str);
+			str.Format(_T("dwFlags: 0x%08x"), mvih.dwFlags);
+			sl.AddTail(str);
+
+			sl.AddTail(_T(""));
+		}
+
+		sl.AddTail(_T("BITMAPINFOHEADER:"));
+		str.Format(_T("biSize: %d"), bih->biSize);
+		sl.AddTail(str);
+		str.Format(_T("biWidth: %d"), bih->biWidth);
+		sl.AddTail(str);
+		str.Format(_T("biHeight: %d"), bih->biHeight);
+		sl.AddTail(str);
+		str.Format(_T("biPlanes: %d"), bih->biPlanes);
+		sl.AddTail(str);
+		str.Format(_T("biBitCount: %d"), bih->biBitCount);
+		sl.AddTail(str);
+		if(bih->biCompression < 256) str.Format(_T("biCompression: %d"), bih->biCompression);
+		else str.Format(_T("biCompression: %4.4hs"), &bih->biCompression);
+		sl.AddTail(str);
+		str.Format(_T("biSizeImage: %d"), bih->biSizeImage);
+		sl.AddTail(str);
+		str.Format(_T("biXPelsPerMeter: %d"), bih->biXPelsPerMeter);
+		sl.AddTail(str);
+		str.Format(_T("biYPelsPerMeter: %d"), bih->biYPelsPerMeter);
+		sl.AddTail(str);
+		str.Format(_T("biYPelsPerMeter: %d"), bih->biYPelsPerMeter);
+		sl.AddTail(str);
+		str.Format(_T("biClrUsed: %d"), bih->biClrUsed);
+		sl.AddTail(str);
+		str.Format(_T("biClrImportant: %d"), bih->biClrImportant);
+		sl.AddTail(str);
+
+		sl.AddTail(_T(""));
+    }
+	else if(formattype == FORMAT_WaveFormatEx)
+	{
+		fmtsize = sizeof(WAVEFORMATEX);
+
+		WAVEFORMATEX& wfe = *(WAVEFORMATEX*)pbFormat;
+
+		sl.AddTail(_T("WAVEFORMATEX:"));
+		str.Format(_T("wFormatTag: 0x%04x"), wfe.wFormatTag);
+		sl.AddTail(str);
+		str.Format(_T("nChannels: %d"), wfe.nChannels);
+		sl.AddTail(str);
+		str.Format(_T("nSamplesPerSec: %d"), wfe.nSamplesPerSec);
+		sl.AddTail(str);
+		str.Format(_T("nAvgBytesPerSec: %d"), wfe.nAvgBytesPerSec);
+		sl.AddTail(str);
+		str.Format(_T("nBlockAlign: %d"), wfe.nBlockAlign);
+		sl.AddTail(str);
+		str.Format(_T("wBitsPerSample: %d"), wfe.wBitsPerSample);
+		sl.AddTail(str);
+		str.Format(_T("cbSize: %d (extra bytes)"), wfe.cbSize);
+		sl.AddTail(str);
+
+		sl.AddTail(_T(""));
+
+		if(wfe.wFormatTag != WAVE_FORMAT_PCM && wfe.cbSize > 0)
+		{
+			if(wfe.wFormatTag == WAVE_FORMAT_EXTENSIBLE && wfe.cbSize == sizeof(WAVEFORMATEXTENSIBLE)-sizeof(WAVEFORMATEX))
+			{
+				fmtsize = sizeof(WAVEFORMATEXTENSIBLE);
+
+				WAVEFORMATEXTENSIBLE& wfe = *(WAVEFORMATEXTENSIBLE*)pbFormat;
+
+				sl.AddTail(_T("WAVEFORMATEXTENSIBLE:"));
+				if(wfe.Format.wBitsPerSample != 0) str.Format(_T("wValidBitsPerSample: %d"), wfe.Samples.wValidBitsPerSample);
+				else str.Format(_T("wSamplesPerBlock: %d"), wfe.Samples.wSamplesPerBlock);
+				sl.AddTail(str);
+				str.Format(_T("dwChannelMask: 0x%08x"), wfe.dwChannelMask);
+				sl.AddTail(str);
+				str.Format(_T("SubFormat: %s"), CStringFromGUID(wfe.SubFormat));
+				sl.AddTail(str);
+
+				sl.AddTail(_T(""));
+			}
+			else if(wfe.wFormatTag == WAVE_FORMAT_DOLBY_AC3 && wfe.cbSize == sizeof(DOLBYAC3WAVEFORMAT)-sizeof(WAVEFORMATEX))
+			{
+				fmtsize = sizeof(DOLBYAC3WAVEFORMAT);
+
+				DOLBYAC3WAVEFORMAT& wfe = *(DOLBYAC3WAVEFORMAT*)pbFormat;
+
+				sl.AddTail(_T("DOLBYAC3WAVEFORMAT:"));
+				str.Format(_T("bBigEndian: %d"), wfe.bBigEndian);
+				sl.AddTail(str);
+				str.Format(_T("bsid: %d"), wfe.bsid);
+				sl.AddTail(str);
+				str.Format(_T("lfeon: %d"), wfe.lfeon);
+				sl.AddTail(str);
+				str.Format(_T("copyrightb: %d"), wfe.copyrightb);
+				sl.AddTail(str);
+				str.Format(_T("nAuxBitsCode: %d"), wfe.nAuxBitsCode);
+				sl.AddTail(str);
+
+				sl.AddTail(_T(""));
+			}
+		}
+	}
+	else if(formattype == FORMAT_VorbisFormat)
+	{
+		fmtsize = sizeof(VORBISFORMAT);
+
+		VORBISFORMAT& vf = *(VORBISFORMAT*)pbFormat;
+
+		sl.AddTail(_T("VORBISFORMAT:"));
+		str.Format(_T("nChannels: %d"), vf.nChannels);
+		sl.AddTail(str);
+		str.Format(_T("nSamplesPerSec: %d"), vf.nSamplesPerSec);
+		sl.AddTail(str);
+		str.Format(_T("nMinBitsPerSec: %d"), vf.nMinBitsPerSec);
+		sl.AddTail(str);
+		str.Format(_T("nAvgBitsPerSec: %d"), vf.nAvgBitsPerSec);
+		sl.AddTail(str);
+		str.Format(_T("nMaxBitsPerSec: %d"), vf.nMaxBitsPerSec);
+		sl.AddTail(str);
+		str.Format(_T("fQuality: %.3f"), vf.fQuality);
+		sl.AddTail(str);
+
+		sl.AddTail(_T(""));
+	}
+	else if(formattype == FORMAT_VorbisFormat2)
+	{
+		fmtsize = sizeof(VORBISFORMAT2);
+
+		VORBISFORMAT2& vf = *(VORBISFORMAT2*)pbFormat;
+
+		sl.AddTail(_T("VORBISFORMAT:"));
+		str.Format(_T("Channels: %d"), vf.Channels);
+		sl.AddTail(str);
+		str.Format(_T("SamplesPerSec: %d"), vf.SamplesPerSec);
+		sl.AddTail(str);
+		str.Format(_T("BitsPerSample: %d"), vf.BitsPerSample);
+		sl.AddTail(str);
+		str.Format(_T("HeaderSize: {%d, %d, %d}"), vf.HeaderSize[0], vf.HeaderSize[1], vf.HeaderSize[2]);
+		sl.AddTail(str);
+
+		sl.AddTail(_T(""));
+	}
+	else if(formattype == FORMAT_SubtitleInfo)
+	{
+		fmtsize = sizeof(SUBTITLEINFO);
+
+		SUBTITLEINFO& si = *(SUBTITLEINFO*)pbFormat;
+
+		sl.AddTail(_T("SUBTITLEINFO:"));
+		str.Format(_T("dwOffset: %d"), si.dwOffset);
+		sl.AddTail(str);
+		str.Format(_T("IsoLang: %s"), CString(CStringA(si.IsoLang, sizeof(si.IsoLang)-1)));
+		sl.AddTail(str);
+		str.Format(_T("TrackName: %s"), CString(CStringW(si.TrackName, sizeof(si.TrackName)-1)));
+		sl.AddTail(str);
+
+		sl.AddTail(_T(""));
+	}
+
+	if(cbFormat > 0)
+	{
+		sl.AddTail(_T("pbFormat:"));
+
+		for(int i = 0, j = (cbFormat + 15) & ~15; i < j; i += 16)
+		{
+			str.Format(_T("%04x:"), i);
+
+			for(int k = i, l = min(i + 16, cbFormat); k < l; k++)
+			{
+				CString byte;
+				byte.Format(_T("%c%02x"), fmtsize > 0 && fmtsize == k ? '|' : ' ', pbFormat[k]);
+				str += byte;
+			}
+
+			for(int k = min(i + 16, cbFormat), l = i + 16; k < l; k++)
+			{
+				str += _T("   ");
+			}
+
+			str += ' ';
+
+			for(int k = i, l = min(i + 16, cbFormat); k < l; k++)
+			{
+				unsigned char c = (unsigned char)pbFormat[k];
+				CStringA ch;
+				ch.Format("%c", c >= 0x20 ? c : '.');
+				str += ch;
+			}
+
+			sl.AddTail(str);
+		}
+
+		sl.AddTail(_T(""));
+	}
 }

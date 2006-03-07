@@ -45,6 +45,7 @@ public:
 	virtual ~CComPropertySheet();
 
 	int AddPages(CComPtr<ISpecifyPropertyPages> pSPP);
+	bool AddPage(IPropertyPage* pPage, IUnknown* pUnk);
 
 	void OnActivated(CPropertyPage* pPage);
 

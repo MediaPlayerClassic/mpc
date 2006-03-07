@@ -58,6 +58,15 @@ BOOL CInternalPropertyPageWnd::Create(IPropertyPageSite* pPageSite, LPCRECT pRec
 		if(!m_font.CreateFontIndirect(&lf))
 			return FALSE;
 
+		lf.lfHeight -= -1;
+		_tcscpy(lf.lfFaceName, _T("Lucida Console"));
+		if(!m_monospacefont.CreateFontIndirect(&lf))
+		{
+			_tcscpy(lf.lfFaceName, _T("Courier New"));
+			if(!m_monospacefont.CreateFontIndirect(&lf))
+				return FALSE;
+		}
+
 		hDC = ::GetDC(0);
 		HFONT hFontOld = (HFONT)::SelectObject(hDC, m_font.m_hObject);
 		CSize size;

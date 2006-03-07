@@ -231,7 +231,7 @@ class CMainFrame : public CFrameWnd, public CDropTarget
 	CMenu m_favorites;
 	CMenu m_shaders;
 
-	CInterfaceArray<ISpecifyPropertyPages> m_spparray;
+	CInterfaceArray<IUnknown, &IID_IUnknown> m_pparray;
 	CInterfaceArray<IAMStreamSelect> m_ssarray;
 
 	// chapters (file mode)
@@ -308,7 +308,7 @@ public:
 
 	bool IsFrameLessWindow() {return(m_fFullScreen || AfxGetAppSettings().fHideCaptionMenu);}
 	bool IsCaptionMenuHidden() {return(!m_fFullScreen && AfxGetAppSettings().fHideCaptionMenu);}
-	bool IsSomethingLoaded() {return(m_iMediaLoadState == MLS_LOADING || m_iMediaLoadState == MLS_LOADED);}
+	bool IsSomethingLoaded() {return(m_iMediaLoadState != MLS_CLOSED);}
 	bool IsPlaylistEmpty() {return(m_wndPlaylistBar.GetCount() == 0);}
 	bool IsInteractiveVideo() {return(AfxGetAppSettings().fIntRealMedia && m_fRealMediaGraph || m_fShockwaveGraph);}
 
