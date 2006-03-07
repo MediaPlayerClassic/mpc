@@ -286,6 +286,7 @@ void CMPlayerCApp::ShowCmdlnSwitches()
 		_T("/unregaud\tUnregister audio formats\n")
 		_T("/start ms\t\tStart playing at \"ms\" (= milliseconds)\n")
 		_T("/fixedsize w,h\tSet fixed window size.\n")
+		_T("/monitor N\tStart on monitor N, where N starts from 1.\n")
 		_T("/help /h /?\tShow help about command line switches. (this message box)\n");
 
 	AfxMessageBox(s);
@@ -656,7 +657,7 @@ BOOL CMPlayerCApp::InitInstance()
 	CMainFrame* pFrame = new CMainFrame;
 	m_pMainWnd = pFrame;
 	pFrame->LoadFrame(IDR_MAINFRAME, WS_OVERLAPPEDWINDOW|FWS_ADDTOTITLE, NULL, NULL);
-	pFrame->SetDefaultWindowRect();
+	pFrame->SetDefaultWindowRect((m_s.nCLSwitches&CLSW_MONITOR)?m_s.iMonitor:0);
 	pFrame->RestoreFloatingControlBars();
 	pFrame->SetIcon(AfxGetApp()->LoadIcon(IDR_MAINFRAME), TRUE);
 	pFrame->DragAcceptFiles();
@@ -1640,6 +1641,7 @@ void CMPlayerCApp::Settings::ParseCommandLine(CAtlList<CString>& cmdln)
 	slFilters.RemoveAll();
 	rtStart = 0;
 	fixedWindowSize.SetSize(0, 0);
+	iMonitor = 0;
 
 	if(launchfullscreen) nCLSwitches |= CLSW_FULLSCREEN;
 
@@ -1687,6 +1689,7 @@ void CMPlayerCApp::Settings::ParseCommandLine(CAtlList<CString>& cmdln)
 						nCLSwitches |= CLSW_FIXEDSIZE;
 				}
 			}
+			else if(sw == _T("monitor") && pos) {iMonitor = _tcstol(cmdln.GetNext(pos), NULL, 10); nCLSwitches |= CLSW_MONITOR;}
 			else nCLSwitches |= CLSW_HELP|CLSW_UNRECOGNIZEDSWITCH;
 		}
 		else

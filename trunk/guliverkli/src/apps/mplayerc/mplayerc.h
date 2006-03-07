@@ -97,7 +97,8 @@ enum
 	CLSW_STARTVALID=CLSW_UNREGEXTAUD<<1,
 	CLSW_NOFOCUS=CLSW_STARTVALID<<1,
 	CLSW_FIXEDSIZE=CLSW_NOFOCUS<<1,
-	CLSW_UNRECOGNIZEDSWITCH=CLSW_FIXEDSIZE<<1	
+	CLSW_MONITOR=CLSW_FIXEDSIZE<<1,	
+	CLSW_UNRECOGNIZEDSWITCH=CLSW_MONITOR<<1	
 };
 
 enum
@@ -339,6 +340,7 @@ public:
 		CSize fixedWindowSize;
 		bool HasFixedWindowSize() {return fixedWindowSize.cx > 0 || fixedWindowSize.cy > 0;}
 		// int iFixedWidth, iFixedHeight;
+		int iMonitor;
 
 		void ParseCommandLine(CAtlList<CString>& cmdln);
 

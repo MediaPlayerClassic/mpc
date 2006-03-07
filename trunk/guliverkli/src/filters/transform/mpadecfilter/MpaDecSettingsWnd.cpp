@@ -47,7 +47,7 @@ bool CMpaDecSettingsWnd::OnConnect(const CInterfaceList<IUnknown, &IID_IUnknown>
 	m_ac3drc = m_pMDF->GetDynamicRangeControl(IMpaDecFilter::ac3);
 	m_dtsspkcfg = m_pMDF->GetSpeakerConfig(IMpaDecFilter::dts);
 	m_dtsdrc = m_pMDF->GetDynamicRangeControl(IMpaDecFilter::dts);
-	m_aacdownmix = m_pMDF->GetSpeakerConfig(IMpaDecFilter::aac);
+	m_aacdownmix = !!m_pMDF->GetSpeakerConfig(IMpaDecFilter::aac);
 
 	return true;
 }
@@ -60,6 +60,8 @@ void CMpaDecSettingsWnd::OnDisconnect()
 bool CMpaDecSettingsWnd::OnActivate()
 {
 	DWORD dwStyle = WS_VISIBLE|WS_CHILD|WS_TABSTOP;
+
+	CRect r;
 
 	CPoint p(10, 10);
 
@@ -101,6 +103,12 @@ bool CMpaDecSettingsWnd::OnActivate()
 		if((int)m_ac3spkcfg_combo.GetItemData(i) == sel)
 			m_ac3spkcfg_combo.SetCurSel(i);
 
+	m_ac3spkcfg_combo.GetWindowRect(r);
+	ScreenToClient(r);
+
+	m_ac3lfe_check.Create(_T("LFE"), dwStyle|BS_AUTOCHECKBOX, CRect(CPoint(r.left, r.bottom + 3), CSize(50, m_fontheight)), this, IDC_PP_CHECK4);
+	m_ac3lfe_check.SetCheck(!!(abs(m_ac3spkcfg) & A52_LFE));
+
 	for(int i = 0, h = max(20, m_fontheight)+1; i < countof(m_ac3spkcfg_radio); i++, p.y += h)
 	{
 		static const TCHAR* labels[] = {_T("Decode to speakers"), _T("SPDIF")};
@@ -136,6 +144,12 @@ bool CMpaDecSettingsWnd::OnActivate()
 		if((int)m_dtsspkcfg_combo.GetItemData(i) == sel)
 			m_dtsspkcfg_combo.SetCurSel(i);
 
+	m_dtsspkcfg_combo.GetWindowRect(r);
+	ScreenToClient(r);
+
+	m_dtslfe_check.Create(_T("LFE"), dwStyle|BS_AUTOCHECKBOX, CRect(CPoint(r.left, r.bottom + 3), CSize(50, m_fontheight)), this, IDC_PP_CHECK5);
+	m_dtslfe_check.SetCheck(!!(abs(m_dtsspkcfg) & DTS_LFE));
+
 	for(int i = 0, h = max(20, m_fontheight)+1; i < countof(m_dtsspkcfg_radio); i++, p.y += h)
 	{
 		static const TCHAR* labels[] = {_T("Decode to speakers"), _T("SPDIF")};
@@ -168,9 +182,11 @@ void CMpaDecSettingsWnd::OnDeactivate()
 {
 	m_outputformat = m_outputformat_combo.GetItemData(m_outputformat_combo.GetCurSel());
 	m_ac3spkcfg = m_ac3spkcfg_combo.GetItemData(m_ac3spkcfg_combo.GetCurSel());
+	if(!!m_ac3lfe_check.GetCheck()) m_ac3spkcfg |= A52_LFE;
 	if(IsDlgButtonChecked(IDC_PP_RADIO2)) m_ac3spkcfg = -m_ac3spkcfg;
 	m_ac3drc = !!m_ac3spkcfg_check.GetCheck();
 	m_dtsspkcfg = m_dtsspkcfg_combo.GetItemData(m_dtsspkcfg_combo.GetCurSel());
+	if(!!m_dtslfe_check.GetCheck()) m_dtsspkcfg |= DTS_LFE;
 	if(IsDlgButtonChecked(IDC_PP_RADIO4)) m_dtsspkcfg = -m_dtsspkcfg;
 	m_dtsdrc = !!m_dtsspkcfg_check.GetCheck();
 	m_aacdownmix = !!m_aacdownmix_check.GetCheck();

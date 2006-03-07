@@ -369,16 +369,52 @@ avcsuccess:
 
 				mt.majortype = MEDIATYPE_Audio;
 				mt.formattype = FORMAT_WaveFormatEx;
-				WAVEFORMATEX* pwfe = (WAVEFORMATEX*)mt.AllocFormatBuffer(sizeof(WAVEFORMATEX));
-				memset(pwfe, 0, mt.FormatLength());
-				pwfe->nChannels = (WORD)pTE->a.Channels;
-				pwfe->nSamplesPerSec = (DWORD)pTE->a.SamplingFrequency;
-				pwfe->wBitsPerSample = (WORD)pTE->a.BitDepth;
-				pwfe->nBlockAlign = (WORD)((pwfe->nChannels * pwfe->wBitsPerSample) / 8);
-				pwfe->nAvgBytesPerSec = pwfe->nSamplesPerSec * pwfe->nBlockAlign;
+				WAVEFORMATEX* wfe = (WAVEFORMATEX*)mt.AllocFormatBuffer(sizeof(WAVEFORMATEX));
+				memset(wfe, 0, mt.FormatLength());
+				wfe->nChannels = (WORD)pTE->a.Channels;
+				wfe->nSamplesPerSec = (DWORD)pTE->a.SamplingFrequency;
+				wfe->wBitsPerSample = (WORD)pTE->a.BitDepth;
+				wfe->nBlockAlign = (WORD)((wfe->nChannels * wfe->wBitsPerSample) / 8);
+				wfe->nAvgBytesPerSec = wfe->nSamplesPerSec * wfe->nBlockAlign;
 				mt.SetSampleSize(256000);
 
-				if(CodecID == "A_VORBIS")
+				static CAtlMap<CStringA, int, CStringElementTraits<CStringA> > id2ft;
+
+				if(id2ft.IsEmpty())
+				{
+					id2ft["A_MPEG/L3"] = WAVE_FORMAT_MP3;
+					id2ft["A_MPEG/L2"] = WAVE_FORMAT_MPEG;
+					id2ft["A_AC3"] = WAVE_FORMAT_DOLBY_AC3;
+					id2ft["A_DTS"] = WAVE_FORMAT_DVD_DTS;
+					id2ft["A_PCM/INT/LIT"] = WAVE_FORMAT_PCM;
+					id2ft["A_PCM/FLOAT/IEEE"] = WAVE_FORMAT_IEEE_FLOAT;
+					id2ft["A_AAC"] = -WAVE_FORMAT_AAC;
+					id2ft["A_FLAC"] = -WAVE_FORMAT_FLAC;
+					id2ft["A_WAVPACK4"] = -WAVE_FORMAT_WAVPACK4;
+					id2ft["A_TTA1"] = WAVE_FORMAT_TTA1;
+				}
+
+				int wFormatTag;
+				if(id2ft.Lookup(CodecID, wFormatTag))
+				{
+					if(wFormatTag < 0)
+					{
+						wFormatTag = -wFormatTag;
+						wfe->cbSize = pTE->CodecPrivate.GetCount();
+						wfe = (WAVEFORMATEX*)mt.ReallocFormatBuffer(sizeof(WAVEFORMATEX) + pTE->CodecPrivate.GetCount());
+						memcpy(wfe + 1, pTE->CodecPrivate.GetData(), pTE->CodecPrivate.GetCount());
+					}
+
+					mt.subtype = FOURCCMap(wfe->wFormatTag = wFormatTag);
+					mts.Add(mt);
+
+					if(wFormatTag == WAVE_FORMAT_FLAC)
+					{
+						mt.subtype = MEDIASUBTYPE_FLAC_FRAMED;
+						mts.InsertAt(0, mt);
+					}
+				}
+				else if(CodecID == "A_VORBIS")
 				{
 					BYTE* p = pTE->CodecPrivate.GetData();
 					CAtlArray<int> sizes;
@@ -414,72 +450,25 @@ avcsuccess:
 
 					mt.subtype = MEDIASUBTYPE_Vorbis;
 					mt.formattype = FORMAT_VorbisFormat;
-					VORBISFORMAT* pvf = (VORBISFORMAT*)mt.AllocFormatBuffer(sizeof(VORBISFORMAT));
-					memset(pvf, 0, mt.FormatLength());
-					pvf->nChannels = (WORD)pTE->a.Channels;
-					pvf->nSamplesPerSec = (DWORD)pTE->a.SamplingFrequency;
-					pvf->nMinBitsPerSec = pvf->nMaxBitsPerSec = pvf->nAvgBitsPerSec = -1;
-					mts.Add(mt);
-				}
-				else if(CodecID == "A_MPEG/L3")
-				{
-					mt.subtype = FOURCCMap(pwfe->wFormatTag = WAVE_FORMAT_MP3);
-					mts.Add(mt);
-				}
-				else if(CodecID == "A_MPEG/L2")
-				{					
-					mt.subtype = FOURCCMap(pwfe->wFormatTag = WAVE_FORMAT_MPEG);
-					mts.Add(mt);
-					// TODO : add MPEG1WAVEFORMAT
-				}
-				else if(CodecID == "A_AC3")
-				{
-					mt.subtype = FOURCCMap(pwfe->wFormatTag = WAVE_FORMAT_DOLBY_AC3);
-					mts.Add(mt);
-				}
-				else if(CodecID == "A_DTS")
-				{
-					mt.subtype = FOURCCMap(pwfe->wFormatTag = WAVE_FORMAT_DVD_DTS);
-					mts.Add(mt);
-				}
-				else if(CodecID == "A_FLAC")
-				{
-					mt.subtype = FOURCCMap(pwfe->wFormatTag = WAVE_FORMAT_FLAC);
-					pwfe->cbSize = pTE->CodecPrivate.GetCount();
-					BYTE* pExtra = mt.ReallocFormatBuffer(sizeof(WAVEFORMATEX) + pTE->CodecPrivate.GetCount()) + sizeof(WAVEFORMATEX);
-					memcpy(pExtra, pTE->CodecPrivate.GetData(), pTE->CodecPrivate.GetCount());
-					mts.Add(mt);
-
-					mt.subtype = MEDIASUBTYPE_FLAC_FRAMED;
-					mts.InsertAt(0, mt);
-				}
-				else if(CodecID == "A_TTA1")
-				{
-					mt.subtype = FOURCCMap(pwfe->wFormatTag = WAVE_FORMAT_TTA1);
+					VORBISFORMAT* vf = (VORBISFORMAT*)mt.AllocFormatBuffer(sizeof(VORBISFORMAT));
+					memset(vf, 0, mt.FormatLength());
+					vf->nChannels = (WORD)pTE->a.Channels;
+					vf->nSamplesPerSec = (DWORD)pTE->a.SamplingFrequency;
+					vf->nMinBitsPerSec = vf->nMaxBitsPerSec = vf->nAvgBitsPerSec = -1;
 					mts.Add(mt);
 				}
 				else if(CodecID == "A_MS/ACM")
 				{
-					pwfe = (WAVEFORMATEX*)mt.AllocFormatBuffer(pTE->CodecPrivate.GetCount());
-					memcpy(pwfe, (WAVEFORMATEX*)pTE->CodecPrivate.GetData(), pTE->CodecPrivate.GetCount());
-					mt.subtype = FOURCCMap(pwfe->wFormatTag);
-					mts.Add(mt);
-				}
-				else if(CodecID == "A_PCM/INT/LIT")
-				{
-					mt.subtype = FOURCCMap(pwfe->wFormatTag = WAVE_FORMAT_PCM);
-					mts.Add(mt);
-				}
-				else if(CodecID == "A_PCM/FLOAT/IEEE")
-				{
-					mt.subtype = FOURCCMap(pwfe->wFormatTag = WAVE_FORMAT_IEEE_FLOAT);
+					wfe = (WAVEFORMATEX*)mt.AllocFormatBuffer(pTE->CodecPrivate.GetCount());
+					memcpy(wfe, (WAVEFORMATEX*)pTE->CodecPrivate.GetData(), pTE->CodecPrivate.GetCount());
+					mt.subtype = FOURCCMap(wfe->wFormatTag);
 					mts.Add(mt);
 				}
 				else if(CodecID.Find("A_AAC/") == 0)
 				{
-					mt.subtype = FOURCCMap(pwfe->wFormatTag = WAVE_FORMAT_AAC);
-					BYTE* pExtra = mt.ReallocFormatBuffer(sizeof(WAVEFORMATEX)+5) + sizeof(WAVEFORMATEX);
-					(pwfe = (WAVEFORMATEX*)mt.pbFormat)->cbSize = 2;
+					mt.subtype = FOURCCMap(wfe->wFormatTag = WAVE_FORMAT_AAC);
+					wfe = (WAVEFORMATEX*)mt.ReallocFormatBuffer(sizeof(WAVEFORMATEX) + 5);
+					wfe->cbSize = 2;
 
 					int profile;
 
@@ -490,40 +479,27 @@ avcsuccess:
 					else if(CodecID.Find("/LTP") > 0) profile = 3;
 					else continue;
 
-					WORD cbSize = MakeAACInitData(pExtra, profile, pwfe->nSamplesPerSec, pTE->a.Channels);
+					WORD cbSize = MakeAACInitData((BYTE*)(wfe + 1), profile, wfe->nSamplesPerSec, pTE->a.Channels);
 
 					mts.Add(mt);
 
 					if(profile < 0)
 					{
-						pwfe->cbSize = cbSize;
-						pwfe->nSamplesPerSec *= 2;
-						pwfe->nAvgBytesPerSec *= 2;
+						wfe->cbSize = cbSize;
+						wfe->nSamplesPerSec *= 2;
+						wfe->nAvgBytesPerSec *= 2;
 
 						mts.InsertAt(0, mt);
 					}
-				}
-				else if(CodecID.Find("A_AAC") == 0 && pTE->CodecPrivate.GetCount() > 0)
-				{
-					mt.subtype = FOURCCMap(pwfe->wFormatTag = WAVE_FORMAT_AAC);
-
-					WORD cbSize = pTE->CodecPrivate.GetCount();
-					pwfe = (WAVEFORMATEX*)mt.ReallocFormatBuffer(sizeof(WAVEFORMATEX) + cbSize);
-					pwfe->cbSize = cbSize;
-					memcpy(pwfe + 1, pTE->CodecPrivate.GetData(), pTE->CodecPrivate.GetCount());
-
-					mts.Add(mt);
 				}
 				else if(CodecID.Find("A_REAL/") == 0 && CodecID.GetLength() >= 11)
 				{
 					mt.subtype = FOURCCMap((DWORD)CodecID[7]|((DWORD)CodecID[8]<<8)|((DWORD)CodecID[9]<<16)|((DWORD)CodecID[10]<<24));
 					mt.bTemporalCompression = TRUE;
-
-					WORD cbSize = pTE->CodecPrivate.GetCount();
-					pwfe = (WAVEFORMATEX*)mt.ReallocFormatBuffer(sizeof(WAVEFORMATEX) + cbSize);
-					pwfe->cbSize = 0; // IMPORTANT: this is screwed, but cbSize has to be 0 and the extra data from codec priv must be after WAVEFORMATEX
-					memcpy(pwfe + 1, pTE->CodecPrivate.GetData(), pTE->CodecPrivate.GetCount());
-
+					wfe->cbSize = pTE->CodecPrivate.GetCount();
+					wfe = (WAVEFORMATEX*)mt.ReallocFormatBuffer(sizeof(WAVEFORMATEX) + pTE->CodecPrivate.GetCount());
+					memcpy(wfe + 1, pTE->CodecPrivate.GetData(), pTE->CodecPrivate.GetCount());
+					wfe->cbSize = 0; // IMPORTANT: this is screwed, but cbSize has to be 0 and the extra data from codec priv must be after WAVEFORMATEX
 					mts.Add(mt);
 				}
 			}

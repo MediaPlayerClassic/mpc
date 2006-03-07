@@ -107,6 +107,8 @@ bool CFGManager::CheckBytes(HANDLE hFile, CString chkbytes)
 	if(sl.GetCount() < 4)
 		return false;
 
+	ASSERT(!(sl.GetCount()&3));
+
 	LARGE_INTEGER size = {0, 0};
 	size.LowPart = GetFileSize(hFile, (DWORD*)&size.HighPart);
 
@@ -147,7 +149,7 @@ bool CFGManager::CheckBytes(HANDLE hFile, CString chkbytes)
 		}
 	}
 
-	return true;
+	return sl.IsEmpty();
 }
 
 HRESULT CFGManager::AddSourceFilter(CFGFilter* pFGF, LPCWSTR lpcwstrFileName, LPCWSTR lpcwstrFilterName, IBaseFilter** ppBF)
@@ -1088,8 +1090,8 @@ CFGManagerCustom::CFGManagerCustom(LPCTSTR pName, LPUNKNOWN pUnk, UINT src, UINT
 	if(src & SRC_AVI)
 	{
 		pFGF = new CFGFilterInternal<CAviSourceFilter>();
-		pFGF->m_chkbytes.AddTail(_T("0,4,,52494646,8,4,41564920"));
-		pFGF->m_chkbytes.AddTail(_T("0,4,,52494646,8,4,41564958"));
+		pFGF->m_chkbytes.AddTail(_T("0,4,,52494646,8,4,,41564920"));
+		pFGF->m_chkbytes.AddTail(_T("0,4,,52494646,8,4,,41564958"));
 		m_source.AddTail(pFGF);
 	}
 
