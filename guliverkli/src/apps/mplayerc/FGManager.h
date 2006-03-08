@@ -60,6 +60,7 @@ protected:
 
 	static bool CheckBytes(HANDLE hFile, CString chkbytes);
 
+	HRESULT EnumSourceFilters(LPCWSTR lpcwstrFileName, CFGFilterList& fl);
 	HRESULT AddSourceFilter(CFGFilter* pFGF, LPCWSTR lpcwstrFileName, LPCWSTR lpcwstrFilterName, IBaseFilter** ppBF);
 
 	// IFilterGraph

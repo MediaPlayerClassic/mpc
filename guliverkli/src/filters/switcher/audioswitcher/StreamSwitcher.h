@@ -34,7 +34,7 @@
 	if(_pMS) _hr = _pMS->GetCurrentPosition(&_rtNow); \
 
 #define ResumeGraph \
-	if(SUCCEEDED(_hr) && _pMS) \
+	if(SUCCEEDED(_hr) && _pMS && _fs != State_Stopped) \
 		_hr = _pMS->SetPositions(&_rtNow, AM_SEEKING_AbsolutePositioning, NULL, AM_SEEKING_NoPositioning); \
  \
 	if(_fs == State_Running && _pMS) \
