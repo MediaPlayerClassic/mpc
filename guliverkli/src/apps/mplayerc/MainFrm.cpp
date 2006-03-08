@@ -9164,6 +9164,8 @@ void CMainFrame::SeekTo(REFERENCE_TIME rtPos, bool fSeekToKeyFrame)
 	{
 		TRACE(_T("Warning (CMainFrame::SeekTo): Trying to seek in capture mode"));
 	}
+
+	m_fEndOfStream = false;
 }
 
 void CMainFrame::CleanGraph()
