@@ -145,6 +145,7 @@ class CFGManagerDVD : public CFGManagerPlayer
 protected:
 	// IGraphBuilder
 
+	STDMETHODIMP RenderFile(LPCWSTR lpcwstrFile, LPCWSTR lpcwstrPlayList);
 	STDMETHODIMP AddSourceFilter(LPCWSTR lpcwstrFileName, LPCWSTR lpcwstrFilterName, IBaseFilter** ppFilter);
 
 public:

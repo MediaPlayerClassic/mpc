@@ -1118,8 +1118,6 @@ CFGManagerCustom::CFGManagerCustom(LPCTSTR pName, LPUNKNOWN pUnk, UINT src, UINT
 
 	// Source filters
 
-//	UINT src = s.SrcFilters;
-
 	if(src & SRC_SHOUTCAST)
 	{
 		pFGF = new CFGFilterInternal<CShoutcastSource>();
@@ -1298,8 +1296,6 @@ CFGManagerCustom::CFGManagerCustom(LPCTSTR pName, LPUNKNOWN pUnk, UINT src, UINT
 	}
 
 	// Transform filters
-
-//	UINT tra = s.TraFilters;
 
 	pFGF = new CFGFilterInternal<CAVI2AC3Filter>(L"AVI<->AC3/DTS", MERIT64(0x00680000)+1);
 	pFGF->AddType(MEDIATYPE_Audio, MEDIASUBTYPE_WAVE_DOLBY_AC3);
@@ -1808,6 +1804,17 @@ public:
 		}
 	}
 };
+
+STDMETHODIMP CFGManagerDVD::RenderFile(LPCWSTR lpcwstrFile, LPCWSTR lpcwstrPlayList)
+{
+	CAutoLock cAutoLock(this);
+
+	CComPtr<IBaseFilter> pBF;
+	if(FAILED(hr = AddSourceFilter(lpcwstrFile, lpcwstrFile, &pBF)))
+		return hr;
+
+	return ConnectFilter(pBF, NULL);
+}
 
 STDMETHODIMP CFGManagerDVD::AddSourceFilter(LPCWSTR lpcwstrFileName, LPCWSTR lpcwstrFilterName, IBaseFilter** ppFilter)
 {
