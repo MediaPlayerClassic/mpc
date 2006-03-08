@@ -1809,6 +1809,8 @@ STDMETHODIMP CFGManagerDVD::RenderFile(LPCWSTR lpcwstrFile, LPCWSTR lpcwstrPlayL
 {
 	CAutoLock cAutoLock(this);
 
+	HRESULT hr;
+
 	CComPtr<IBaseFilter> pBF;
 	if(FAILED(hr = AddSourceFilter(lpcwstrFile, lpcwstrFile, &pBF)))
 		return hr;
