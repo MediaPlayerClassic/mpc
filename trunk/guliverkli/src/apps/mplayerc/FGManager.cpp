@@ -152,6 +152,206 @@ bool CFGManager::CheckBytes(HANDLE hFile, CString chkbytes)
 	return sl.IsEmpty();
 }
 
+HRESULT CFGManager::EnumSourceFilters(LPCWSTR lpcwstrFileName, CFGFilterList& fl)
+{
+	// TODO: use overrides
+
+	CheckPointer(lpcwstrFileName, E_POINTER);
+
+	fl.RemoveAll();
+
+	CStringW fn = CStringW(lpcwstrFileName).TrimLeft();
+	CStringW protocol = fn.Left(fn.Find(':')+1).TrimRight(':').MakeLower();
+	CStringW ext = CPathW(fn).GetExtension();
+
+	TCHAR buff[256], buff2[256];
+	ULONG len, len2;
+
+	HANDLE hFile = CreateFile(CString(fn), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, (HANDLE)NULL);
+
+	// internal / protocol
+
+	if(protocol.GetLength() > 1 && protocol != L"file")
+	{
+		POSITION pos = m_source.GetHeadPosition();
+		while(pos)
+		{
+			CFGFilter* pFGF = m_source.GetNext(pos);
+			if(pFGF->m_protocols.Find(CString(protocol)))
+				fl.Insert(pFGF, 0, false, false);
+		}
+	}
+
+	// internal / check bytes
+
+	if(hFile != INVALID_HANDLE_VALUE)
+	{
+		POSITION pos = m_source.GetHeadPosition();
+		while(pos)
+		{
+			CFGFilter* pFGF = m_source.GetNext(pos);
+
+			POSITION pos2 = pFGF->m_chkbytes.GetHeadPosition();
+			while(pos2)
+			{
+				if(CheckBytes(hFile, pFGF->m_chkbytes.GetNext(pos2)))
+				{
+					fl.Insert(pFGF, 1, false, false);
+					break;
+				}
+			}
+		}
+	}
+
+	// insernal / file extension
+
+	if(!ext.IsEmpty())
+	{
+		POSITION pos = m_source.GetHeadPosition();
+		while(pos)
+		{
+			CFGFilter* pFGF = m_source.GetNext(pos);
+			if(pFGF->m_extensions.Find(CString(ext)))
+				fl.Insert(pFGF, 2, false, false);
+		}
+	}
+
+	// internal / the rest
+
+	{
+		POSITION pos = m_source.GetHeadPosition();
+		while(pos)
+		{
+			CFGFilter* pFGF = m_source.GetNext(pos);
+			if(pFGF->m_protocols.IsEmpty() && pFGF->m_chkbytes.IsEmpty() && pFGF->m_extensions.IsEmpty())
+				fl.Insert(pFGF, 3, false, false);
+		}
+	}
+
+	// protocol
+
+	if(protocol.GetLength() > 1 && protocol != L"file")
+	{
+		CRegKey key;
+		if(ERROR_SUCCESS == key.Open(HKEY_CLASSES_ROOT, CString(protocol), KEY_READ))
+		{
+			CRegKey exts;
+			if(ERROR_SUCCESS == exts.Open(key, _T("Extensions"), KEY_READ))
+			{
+				len = countof(buff);
+				if(ERROR_SUCCESS == exts.QueryStringValue(CString(ext), buff, &len))
+					fl.Insert(new CFGFilterRegistry(GUIDFromCString(buff)), 4);
+			}
+
+			len = countof(buff);
+			if(ERROR_SUCCESS == key.QueryStringValue(_T("Source Filter"), buff, &len))
+				fl.Insert(new CFGFilterRegistry(GUIDFromCString(buff)), 5);
+		}
+
+		fl.Insert(new CFGFilterRegistry(CLSID_URLReader), 6);
+	}
+
+	// check bytes
+
+	if(hFile != INVALID_HANDLE_VALUE)
+	{
+		CRegKey key;
+		if(ERROR_SUCCESS == key.Open(HKEY_CLASSES_ROOT, _T("Media Type"), KEY_READ))
+		{
+			FILETIME ft;
+			len = countof(buff);
+			for(DWORD i = 0; ERROR_SUCCESS == key.EnumKey(i, buff, &len, &ft); i++, len = countof(buff))
+			{
+				GUID majortype;
+				if(FAILED(GUIDFromCString(buff, majortype)))
+					continue;
+
+				CRegKey majorkey;
+				if(ERROR_SUCCESS == majorkey.Open(key, buff, KEY_READ))
+				{
+					len = countof(buff);
+					for(DWORD j = 0; ERROR_SUCCESS == majorkey.EnumKey(j, buff, &len, &ft); j++, len = countof(buff))
+					{
+						GUID subtype;
+						if(FAILED(GUIDFromCString(buff, subtype)))
+							continue;
+
+						CRegKey subkey;
+						if(ERROR_SUCCESS == subkey.Open(majorkey, buff, KEY_READ))
+						{
+							len = countof(buff);
+							if(ERROR_SUCCESS != subkey.QueryStringValue(_T("Source Filter"), buff, &len))
+								continue;
+
+							GUID clsid = GUIDFromCString(buff);
+
+							len = countof(buff);
+							len2 = sizeof(buff2);
+							for(DWORD k = 0, type; 
+								clsid != GUID_NULL && ERROR_SUCCESS == RegEnumValue(subkey, k, buff2, &len2, 0, &type, (BYTE*)buff, &len); 
+								k++, len = countof(buff), len2 = sizeof(buff2))
+							{
+								if(CheckBytes(hFile, CString(buff)))
+								{
+									CFGFilter* pFGF = new CFGFilterRegistry(clsid);
+									pFGF->AddType(majortype, subtype);
+									fl.Insert(pFGF, 7);
+									break;
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	// file extension
+
+	if(!ext.IsEmpty())
+	{
+		CRegKey key;
+		if(ERROR_SUCCESS == key.Open(HKEY_CLASSES_ROOT, _T("Media Type\\Extensions\\") + CString(ext), KEY_READ))
+		{
+			ULONG len = countof(buff);
+			memset(buff, 0, sizeof(buff));
+			LONG ret = key.QueryStringValue(_T("Source Filter"), buff, &len); // QueryStringValue can return ERROR_INVALID_DATA on bogus strings (radlight mpc v1003, fixed in v1004)
+			if(ERROR_SUCCESS == ret || ERROR_INVALID_DATA == ret && GUIDFromCString(buff) != GUID_NULL)
+			{
+				GUID clsid = GUIDFromCString(buff);
+				GUID majortype = GUID_NULL;
+				GUID subtype = GUID_NULL;
+
+				len = countof(buff);
+				if(ERROR_SUCCESS == key.QueryStringValue(_T("Media Type"), buff, &len))
+					majortype = GUIDFromCString(buff);
+
+				len = countof(buff);
+				if(ERROR_SUCCESS == key.QueryStringValue(_T("Subtype"), buff, &len))
+					subtype = GUIDFromCString(buff);
+
+				CFGFilter* pFGF = new CFGFilterRegistry(clsid);
+				pFGF->AddType(majortype, subtype);
+				fl.Insert(pFGF, 8);
+			}
+		}
+	}
+
+	if(hFile != INVALID_HANDLE_VALUE)
+	{
+		CloseHandle(hFile);
+	}
+
+	CFGFilter* pFGF = new CFGFilterRegistry(CLSID_AsyncReader);
+	pFGF->AddType(MEDIATYPE_Stream, MEDIASUBTYPE_NULL);
+	fl.Insert(pFGF, 9);
+
+	return 
+		hFile == INVALID_HANDLE_VALUE ? VFW_E_NOT_FOUND : 
+		fl.IsEmpty() ? VFW_E_CANNOT_LOAD_SOURCE_FILTER :
+		S_OK;
+}
+
 HRESULT CFGManager::AddSourceFilter(CFGFilter* pFGF, LPCWSTR lpcwstrFileName, LPCWSTR lpcwstrFilterName, IBaseFilter** ppBF)
 {
 	TRACE(_T("FGM: AddSourceFilter trying '%s'\n"), CStringFromGUID(pFGF->GetCLSID()));
@@ -502,7 +702,7 @@ STDMETHODIMP CFGManager::Render(IPin* pPinOut)
 	return RenderEx(pPinOut, 0, NULL);
 }
 
-STDMETHODIMP CFGManager::RenderFile(LPCWSTR lpcwstrFile, LPCWSTR lpcwstrPlayList)
+STDMETHODIMP CFGManager::RenderFile(LPCWSTR lpcwstrFileName, LPCWSTR lpcwstrPlayList)
 {
 	CAutoLock cAutoLock(this);
 
@@ -511,209 +711,56 @@ STDMETHODIMP CFGManager::RenderFile(LPCWSTR lpcwstrFile, LPCWSTR lpcwstrPlayList
 
 	HRESULT hr;
 
+/*
 	CComPtr<IBaseFilter> pBF;
 	if(FAILED(hr = AddSourceFilter(lpcwstrFile, lpcwstrFile, &pBF)))
 		return hr;
 
 	return ConnectFilter(pBF, NULL);
+*/
+
+	CFGFilterList fl;
+	if(FAILED(hr = EnumSourceFilters(lpcwstrFileName, fl)))
+		return hr;
+
+	CAutoPtrArray<CStreamDeadEnd> deadends;
+
+	hr = VFW_E_CANNOT_RENDER;
+
+	POSITION pos = fl.GetHeadPosition();
+	while(pos)
+	{
+		CComPtr<IBaseFilter> pBF;
+		
+		if(SUCCEEDED(hr = AddSourceFilter(fl.GetNext(pos), lpcwstrFileName, lpcwstrFileName, &pBF)))
+		{
+			m_streampath.RemoveAll();
+			m_deadends.RemoveAll();
+
+			if(SUCCEEDED(hr = ConnectFilter(pBF, NULL)))
+				return hr;
+
+			NukeDownstream(pBF);
+			RemoveFilter(pBF);
+
+			deadends.Append(m_deadends);
+		}
+	}
+
+	m_deadends.Copy(deadends);
+
+	return hr;
 }
 
 STDMETHODIMP CFGManager::AddSourceFilter(LPCWSTR lpcwstrFileName, LPCWSTR lpcwstrFilterName, IBaseFilter** ppFilter)
 {
 	CAutoLock cAutoLock(this);
 
-	// TODO: use overrides
-
-	CheckPointer(lpcwstrFileName, E_POINTER);
-	CheckPointer(ppFilter, E_POINTER);
-
 	HRESULT hr;
 
-	CStringW fn = CStringW(lpcwstrFileName).TrimLeft();
-	CStringW protocol = fn.Left(fn.Find(':')+1).TrimRight(':').MakeLower();
-	CStringW ext = CPathW(fn).GetExtension();
-
-	TCHAR buff[256], buff2[256];
-	ULONG len, len2;
-
 	CFGFilterList fl;
-
-	HANDLE hFile = CreateFile(CString(fn), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, (HANDLE)NULL);
-
-	// internal / protocol
-
-	if(protocol.GetLength() > 1 && protocol != L"file")
-	{
-		POSITION pos = m_source.GetHeadPosition();
-		while(pos)
-		{
-			CFGFilter* pFGF = m_source.GetNext(pos);
-			if(pFGF->m_protocols.Find(CString(protocol)))
-				fl.Insert(pFGF, 0, false, false);
-		}
-	}
-
-	// internal / check bytes
-
-	if(hFile != INVALID_HANDLE_VALUE)
-	{
-		POSITION pos = m_source.GetHeadPosition();
-		while(pos)
-		{
-			CFGFilter* pFGF = m_source.GetNext(pos);
-
-			POSITION pos2 = pFGF->m_chkbytes.GetHeadPosition();
-			while(pos2)
-			{
-				if(CheckBytes(hFile, pFGF->m_chkbytes.GetNext(pos2)))
-				{
-					fl.Insert(pFGF, 1, false, false);
-					break;
-				}
-			}
-		}
-	}
-
-	// insernal / file extension
-
-	if(!ext.IsEmpty())
-	{
-		POSITION pos = m_source.GetHeadPosition();
-		while(pos)
-		{
-			CFGFilter* pFGF = m_source.GetNext(pos);
-			if(pFGF->m_extensions.Find(CString(ext)))
-				fl.Insert(pFGF, 2, false, false);
-		}
-	}
-
-	// internal / the rest
-
-	{
-		POSITION pos = m_source.GetHeadPosition();
-		while(pos)
-		{
-			CFGFilter* pFGF = m_source.GetNext(pos);
-			if(pFGF->m_protocols.IsEmpty() && pFGF->m_chkbytes.IsEmpty() && pFGF->m_extensions.IsEmpty())
-				fl.Insert(pFGF, 3, false, false);
-		}
-	}
-
-	// protocol
-
-	if(protocol.GetLength() > 1 && protocol != L"file")
-	{
-		CRegKey key;
-		if(ERROR_SUCCESS == key.Open(HKEY_CLASSES_ROOT, CString(protocol), KEY_READ))
-		{
-			CRegKey exts;
-			if(ERROR_SUCCESS == exts.Open(key, _T("Extensions"), KEY_READ))
-			{
-				len = countof(buff);
-				if(ERROR_SUCCESS == exts.QueryStringValue(CString(ext), buff, &len))
-					fl.Insert(new CFGFilterRegistry(GUIDFromCString(buff)), 4);
-			}
-
-			len = countof(buff);
-			if(ERROR_SUCCESS == key.QueryStringValue(_T("Source Filter"), buff, &len))
-				fl.Insert(new CFGFilterRegistry(GUIDFromCString(buff)), 5);
-		}
-
-		fl.Insert(new CFGFilterRegistry(CLSID_URLReader), 6);
-	}
-
-	// check bytes
-
-	if(hFile != INVALID_HANDLE_VALUE)
-	{
-		CRegKey key;
-		if(ERROR_SUCCESS == key.Open(HKEY_CLASSES_ROOT, _T("Media Type"), KEY_READ))
-		{
-			FILETIME ft;
-			len = countof(buff);
-			for(DWORD i = 0; ERROR_SUCCESS == key.EnumKey(i, buff, &len, &ft); i++, len = countof(buff))
-			{
-				GUID majortype;
-				if(FAILED(GUIDFromCString(buff, majortype)))
-					continue;
-
-				CRegKey majorkey;
-				if(ERROR_SUCCESS == majorkey.Open(key, buff, KEY_READ))
-				{
-					len = countof(buff);
-					for(DWORD j = 0; ERROR_SUCCESS == majorkey.EnumKey(j, buff, &len, &ft); j++, len = countof(buff))
-					{
-						GUID subtype;
-						if(FAILED(GUIDFromCString(buff, subtype)))
-							continue;
-
-						CRegKey subkey;
-						if(ERROR_SUCCESS == subkey.Open(majorkey, buff, KEY_READ))
-						{
-							len = countof(buff);
-							if(ERROR_SUCCESS != subkey.QueryStringValue(_T("Source Filter"), buff, &len))
-								continue;
-
-							GUID clsid = GUIDFromCString(buff);
-
-							len = countof(buff);
-							len2 = sizeof(buff2);
-							for(DWORD k = 0, type; 
-								clsid != GUID_NULL && ERROR_SUCCESS == RegEnumValue(subkey, k, buff2, &len2, 0, &type, (BYTE*)buff, &len); 
-								k++, len = countof(buff), len2 = sizeof(buff2))
-							{
-								if(CheckBytes(hFile, CString(buff)))
-								{
-									CFGFilter* pFGF = new CFGFilterRegistry(clsid);
-									pFGF->AddType(majortype, subtype);
-									fl.Insert(pFGF, 7);
-									break;
-								}
-							}
-						}
-					}
-				}
-			}
-		}
-	}
-
-	// file extension
-
-	if(!ext.IsEmpty())
-	{
-		CRegKey key;
-		if(ERROR_SUCCESS == key.Open(HKEY_CLASSES_ROOT, _T("Media Type\\Extensions\\") + CString(ext), KEY_READ))
-		{
-			ULONG len = countof(buff);
-			if(ERROR_SUCCESS == key.QueryStringValue(_T("Source Filter"), buff, &len))
-			{
-				GUID clsid = GUIDFromCString(buff);
-				GUID majortype = GUID_NULL;
-				GUID subtype = GUID_NULL;
-
-				len = countof(buff);
-				if(ERROR_SUCCESS == key.QueryStringValue(_T("Media Type"), buff, &len))
-					majortype = GUIDFromCString(buff);
-
-				len = countof(buff);
-				if(ERROR_SUCCESS == key.QueryStringValue(_T("Subtype"), buff, &len))
-					subtype = GUIDFromCString(buff);
-
-				CFGFilter* pFGF = new CFGFilterRegistry(clsid);
-				pFGF->AddType(majortype, subtype);
-				fl.Insert(pFGF, 8);
-			}
-		}
-	}
-
-	if(hFile != INVALID_HANDLE_VALUE)
-	{
-		CloseHandle(hFile);
-	}
-
-	CFGFilter* pFGF = new CFGFilterRegistry(CLSID_AsyncReader);
-	pFGF->AddType(MEDIATYPE_Stream, MEDIASUBTYPE_NULL);
-	fl.Insert(pFGF, 9);
+	if(FAILED(hr = EnumSourceFilters(lpcwstrFileName, fl)))
+		return hr;
 
 	POSITION pos = fl.GetHeadPosition();
 	while(pos)
@@ -722,7 +769,7 @@ STDMETHODIMP CFGManager::AddSourceFilter(LPCWSTR lpcwstrFileName, LPCWSTR lpcwst
 			return hr;
 	}
 
-	return hFile == INVALID_HANDLE_VALUE ? VFW_E_NOT_FOUND : VFW_E_CANNOT_LOAD_SOURCE_FILTER;
+	return VFW_E_CANNOT_LOAD_SOURCE_FILTER;
 }
 
 STDMETHODIMP CFGManager::SetLogFile(DWORD_PTR hFile)

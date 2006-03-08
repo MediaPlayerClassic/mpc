@@ -130,6 +130,7 @@ public:
 	CFGFilterList();
 	virtual ~CFGFilterList();
 
+	bool IsEmpty() {return m_filters.IsEmpty();}
 	void RemoveAll();
 	void Insert(CFGFilter* pFGF, int group, bool exactmatch = false, bool autodelete = true);
 
