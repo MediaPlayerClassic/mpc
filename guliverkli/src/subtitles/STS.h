@@ -140,7 +140,7 @@ public:
 
 	void Add(CStringW str, bool fUnicode, int start, int end, CString style = _T("Default"), CString actor = _T(""), CString effect = _T(""), CRect marginRect = CRect(0,0,0,0), int layer = 0, int readorder = -1);
 
-	void CreateDefaultStyle(int CharSet);
+	STSStyle* CreateDefaultStyle(int CharSet);
 	void ChangeUnknownStylesToDefault();
 	void AddStyle(CString name, STSStyle* style); // style will be stored and freed in Empty() later
 	bool CopyStyles(const CSTSStyleMap& styles, bool fAppend = false);
