@@ -147,8 +147,9 @@ BEGIN
     CONTROL         "",IDC_LIST1,"SysListView32",LVS_REPORT | LVS_OWNERDRAWFIXED | LVS_ALIGNLEFT | LVS_NOCOLUMNHEADER | WS_BORDER | WS_TABSTOP,7,93,282,94
     CTEXT           "Hold shift for immediate changes when clicking something ",IDC_STATIC3,7,189,282,8
     CONTROL         "Normalize",IDC_CHECK5,"Button",BS_AUTOCHECKBOX | WS_GROUP | WS_TABSTOP,7,23,47,8
-    LTEXT           "Boost:",IDC_STATIC,65,23,19,8
-    CONTROL         "",IDC_SLIDER1,"msctls_trackbar32",TBS_BOTH | TBS_NOTICKS | WS_TABSTOP,89,23,200,11
+    LTEXT           "Boost:",IDC_STATIC,129,23,19,8
+    CONTROL         "",IDC_SLIDER1,"msctls_trackbar32",TBS_BOTH | TBS_NOTICKS | WS_TABSTOP,152,23,137,11
+    CONTROL         "Regain volume",IDC_CHECK6,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,59,22,59,10
 END
 
 IDD_GOTO_DLG DIALOGEX 0, 0, 157, 113
@@ -2043,6 +2044,7 @@ BEGIN
     IDS_RS_THUMBWIDTH       "ThumbWidth"
     IDS_RS_AUDIONORMALIZE   "AudioNormalize"
     IDS_RS_AUDIOBOOST       "AudioBoost"
+	IDS_RS_AUDIONORMALIZERECOVER "AudioNormalizeRecover"
 END
 
 STRINGTABLE 

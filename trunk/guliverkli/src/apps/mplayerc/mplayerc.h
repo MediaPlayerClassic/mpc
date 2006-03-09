@@ -426,6 +426,7 @@ public:
 		bool fCustomChannelMapping;
 		DWORD pSpeakerToChannelMap[18][18];
 		bool fAudioNormalize;
+		bool fAudioNormalizeRecover;
 		float AudioBoost;
 
 		bool fIntRealMedia;

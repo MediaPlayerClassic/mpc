@@ -45,6 +45,7 @@ public:
 
 	BOOL m_fEnableAudioSwitcher;
 	BOOL m_fAudioNormalize;
+	BOOL m_fAudioNormalizeRecover;
 	int m_AudioBoost;
 	CSliderCtrl m_AudioBoostCtrl;
 	BOOL m_fDownSampleTo441;
