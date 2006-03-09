@@ -586,6 +586,7 @@
 #define IDS_RS_THUMBWIDTH               13139
 #define IDS_RS_AUDIONORMALIZE           13140
 #define IDS_RS_AUDIOBOOST               13141
+#define IDS_RS_AUDIONORMALIZERECOVER    13142
 #define IDS_SRC_RADGT                   14000
 #define IDS_SRC_CDDA                    14001
 #define IDS_SRC_AVI                     14002

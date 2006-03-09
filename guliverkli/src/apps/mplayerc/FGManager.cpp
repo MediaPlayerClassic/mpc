@@ -1633,7 +1633,7 @@ STDMETHODIMP CFGManagerCustom::AddFilter(IBaseFilter* pBF, LPCWSTR pName)
 		pASF->EnableDownSamplingTo441(s.fDownSampleTo441);
 		pASF->SetSpeakerConfig(s.fCustomChannelMapping, s.pSpeakerToChannelMap);
 		pASF->SetAudioTimeShift(s.fAudioTimeShift ? 10000i64*s.tAudioTimeShift : 0);
-		pASF->SetNormalizeBoost(s.fAudioNormalize, s.AudioBoost);
+		pASF->SetNormalizeBoost(s.fAudioNormalize, s.fAudioNormalizeRecover, s.AudioBoost);
 	}
 
 	return hr;

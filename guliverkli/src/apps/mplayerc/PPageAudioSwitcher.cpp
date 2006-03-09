@@ -33,6 +33,7 @@ IMPLEMENT_DYNAMIC(CPPageAudioSwitcher, CPPageBase)
 CPPageAudioSwitcher::CPPageAudioSwitcher(IFilterGraph* pFG)
 	: CPPageBase(CPPageAudioSwitcher::IDD, CPPageAudioSwitcher::IDD)
 	, m_fAudioNormalize(FALSE)
+	, m_fAudioNormalizeRecover(FALSE)
 	, m_fDownSampleTo441(FALSE)
 	, m_fCustomChannelMapping(FALSE)
 	, m_nChannels(0)
@@ -53,6 +54,7 @@ void CPPageAudioSwitcher::DoDataExchange(CDataExchange* pDX)
 {
 	__super::DoDataExchange(pDX);
 	DDX_Check(pDX, IDC_CHECK5, m_fAudioNormalize);
+	DDX_Check(pDX, IDC_CHECK6, m_fAudioNormalizeRecover);	
 	DDX_Slider(pDX, IDC_SLIDER1, m_AudioBoost);
 	DDX_Control(pDX, IDC_SLIDER1, m_AudioBoostCtrl);
 	DDX_Check(pDX, IDC_CHECK3, m_fDownSampleTo441);
@@ -77,6 +79,7 @@ BEGIN_MESSAGE_MAP(CPPageAudioSwitcher, CPPageBase)
 	ON_EN_CHANGE(IDC_EDIT1, OnEnChangeEdit1)
 	ON_UPDATE_COMMAND_UI(IDC_SLIDER1, OnUpdateAudioSwitcher)
 	ON_UPDATE_COMMAND_UI(IDC_CHECK5, OnUpdateAudioSwitcher)
+	ON_UPDATE_COMMAND_UI(IDC_CHECK6, OnUpdateAudioSwitcher)
 	ON_UPDATE_COMMAND_UI(IDC_CHECK3, OnUpdateAudioSwitcher)
 	ON_UPDATE_COMMAND_UI(IDC_CHECK4, OnUpdateAudioSwitcher)
 	ON_UPDATE_COMMAND_UI(IDC_EDIT2, OnUpdateAudioSwitcher)
@@ -102,6 +105,7 @@ BOOL CPPageAudioSwitcher::OnInitDialog()
 
 	m_fEnableAudioSwitcher = s.fEnableAudioSwitcher;
 	m_fAudioNormalize = s.fAudioNormalize;
+	m_fAudioNormalizeRecover = s.fAudioNormalizeRecover;	
 	m_AudioBoost = (int)(50.0f*log10(s.AudioBoost));
 	m_AudioBoostCtrl.SetRange(0, 100);
 	m_fDownSampleTo441 = s.fDownSampleTo441;
@@ -166,6 +170,7 @@ BOOL CPPageAudioSwitcher::OnApply()
 
 	s.fEnableAudioSwitcher = !!m_fEnableAudioSwitcher;
 	s.fAudioNormalize = !!m_fAudioNormalize;
+	s.fAudioNormalizeRecover = !!m_fAudioNormalizeRecover;
 	s.AudioBoost = (float)pow(10.0, (double)m_AudioBoost/50);
 	s.fDownSampleTo441 = !!m_fDownSampleTo441;
 	s.fAudioTimeShift = !!m_fAudioTimeShift;
@@ -178,7 +183,7 @@ BOOL CPPageAudioSwitcher::OnApply()
 		m_pASF->SetSpeakerConfig(s.fCustomChannelMapping, s.pSpeakerToChannelMap);
 		m_pASF->EnableDownSamplingTo441(s.fDownSampleTo441);
 		m_pASF->SetAudioTimeShift(s.fAudioTimeShift ? 10000i64*s.tAudioTimeShift : 0);
-		m_pASF->SetNormalizeBoost(s.fAudioNormalize, s.AudioBoost);
+		m_pASF->SetNormalizeBoost(s.fAudioNormalize, s.fAudioNormalizeRecover, s.AudioBoost);
 	}
 
 	return __super::OnApply();
