@@ -616,6 +616,7 @@
 #define IDS_TRA_AAC                     14026
 #define IDS_TRA_DIRAC                   14027
 #define IDS_TRA_PS2AUD                  14028
+#define IDS_SRC_FLV						14029
 #define IDS_VIDRENDDESC                 14100
 #define IDS_CONVERT_ADDFILE             14101
 #define IDS_CONVERT_PROPERTIES          14102
