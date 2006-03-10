@@ -7032,8 +7032,12 @@ void CMainFrame::OpenDVD(OpenDVDData* pODD)
 		if(pGBDE && pGBDE->GetCount()) CMediaTypesDlg(pGBDE, this).DoModal();
 	}
 
-	pGB->FindInterface(__uuidof(IDvdControl2), (void**)&pDVDC, TRUE);
-	pGB->FindInterface(__uuidof(IDvdInfo2), (void**)&pDVDI, TRUE);
+	BeginEnumFilters(pGB, pEF, pBF)
+	{
+		if((pDVDC = pBF) && (pDVDI = pBF))
+			break;
+	}
+	EndEnumFilters
 
 	if(hr == VFW_E_CANNOT_LOAD_SOURCE_FILTER)
 		throw _T("Can't find DVD directory");
@@ -7050,6 +7054,11 @@ void CMainFrame::OpenDVD(OpenDVDData* pODD)
 	ULONG len = 0;
 	if(SUCCEEDED(hr = pDVDI->GetDVDDirectory(buff, countof(buff), &len)))
 		pODD->title = CString(CStringW(buff));
+
+	// TODO: resetdvd
+
+	pDVDC->SetOption(DVD_ResetOnStop, FALSE);
+	pDVDC->SetOption(DVD_HMSF_TimeCodeEvents, TRUE);
 
 	if(s.idMenuLang) pDVDC->SelectDefaultMenuLanguage(s.idMenuLang);
 	if(s.idAudioLang) pDVDC->SelectDefaultAudioLanguage(s.idAudioLang, DVD_AUD_EXT_NotSpecified);

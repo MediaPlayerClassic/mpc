@@ -228,11 +228,9 @@ CFGFilterRegistry::CFGFilterRegistry(const CLSID& clsid, UINT64 merit)
 	if(merit != MERIT64_DO_USE) m_merit.val = merit;
 }
 
-HRESULT CFGFilterRegistry::Create(IBaseFilter** ppBF, IUnknown** ppUnk)
+HRESULT CFGFilterRegistry::Create(IBaseFilter** ppBF, CInterfaceList<IUnknown, &IID_IUnknown>& pUnks)
 {
 	CheckPointer(ppBF, E_POINTER);
-
-	if(ppUnk) *ppUnk = NULL;
 
 	HRESULT hr = E_FAIL;
 	
@@ -245,9 +243,13 @@ HRESULT CFGFilterRegistry::Create(IBaseFilter** ppBF, IUnknown** ppUnk)
 	}
 	else if(m_clsid != GUID_NULL)
 	{
-		CComPtr<IBaseFilter> pBF;
-		if(FAILED(pBF.CoCreateInstance(m_clsid))) return E_FAIL;
+		CComQIPtr<IBaseFilter> pBF;
+
+		if(FAILED(pBF.CoCreateInstance(m_clsid))) 
+			return E_FAIL;
+
 		*ppBF = pBF.Detach();
+		
 		hr = S_OK;
 	}
 
@@ -389,11 +391,9 @@ CFGFilterFile::CFGFilterFile(const CLSID& clsid, CString path, CStringW name, UI
 {
 }
 
-HRESULT CFGFilterFile::Create(IBaseFilter** ppBF, IUnknown** ppUnk)
+HRESULT CFGFilterFile::Create(IBaseFilter** ppBF, CInterfaceList<IUnknown, &IID_IUnknown>& pUnks)
 {
 	CheckPointer(ppBF, E_POINTER);
-
-	if(ppUnk) *ppUnk = NULL;
 
 	return LoadExternalFilter(m_path, m_clsid, ppBF);
 }
@@ -409,7 +409,7 @@ CFGFilterVideoRenderer::CFGFilterVideoRenderer(HWND hWnd, const CLSID& clsid, CS
 	AddType(MEDIATYPE_Video, MEDIASUBTYPE_NULL);
 }
 
-HRESULT CFGFilterVideoRenderer::Create(IBaseFilter** ppBF, IUnknown** ppUnk)
+HRESULT CFGFilterVideoRenderer::Create(IBaseFilter** ppBF, CInterfaceList<IUnknown, &IID_IUnknown>& pUnks)
 {
 	CheckPointer(ppBF, E_POINTER);
 
@@ -428,7 +428,7 @@ HRESULT CFGFilterVideoRenderer::Create(IBaseFilter** ppBF, IUnknown** ppUnk)
 			if(SUCCEEDED(hr = pCAP->CreateRenderer(&pRenderer)))
 			{
 				*ppBF = CComQIPtr<IBaseFilter>(pRenderer).Detach();
-				if(ppUnk) *ppUnk = (IUnknown*)pCAP.Detach();
+				pUnks.AddTail(pCAP);
 			}
 		}
 	}
@@ -441,7 +441,7 @@ HRESULT CFGFilterVideoRenderer::Create(IBaseFilter** ppBF, IUnknown** ppUnk)
 			{
 				if(CComQIPtr<IMixerPinConfig, &IID_IMixerPinConfig> pMPC = pPin)
 				{
-					if(ppUnk) *ppUnk = pMPC.Detach();
+					pUnks.AddTail(pMPC);
 					break;
 				}
 			}
@@ -590,3 +590,5 @@ int CFGFilterList::filter_cmp(const void* a, const void* b)
 
 	return 0;
 }
+
+
