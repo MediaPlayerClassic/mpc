@@ -31,8 +31,8 @@ interface IAudioSwitcherFilter : public IUnknown
 	STDMETHOD(EnableDownSamplingTo441) (bool fEnable) = 0;
 	STDMETHOD_(REFERENCE_TIME, GetAudioTimeShift) () = 0;
 	STDMETHOD(SetAudioTimeShift) (REFERENCE_TIME rtAudioTimeShift) = 0;
-	STDMETHOD(GetNormalizeBoost) (bool& fNormalize, float& boost) = 0;
-	STDMETHOD(SetNormalizeBoost) (bool fNormalize, float boost) = 0;
+	STDMETHOD(GetNormalizeBoost) (bool& fNormalize, bool& fNormalizeRecover, float& boost) = 0;
+	STDMETHOD(SetNormalizeBoost) (bool fNormalize, bool fNormalizeRecover, float boost) = 0;
 };
 
 class AudioStreamResampler;
@@ -49,7 +49,7 @@ class CAudioSwitcherFilter : public CStreamSwitcherFilter, public IAudioSwitcher
 	REFERENCE_TIME m_rtAudioTimeShift;
 	CAutoPtrArray<AudioStreamResampler> m_pResamplers;
 	double m_sample_max;
-	bool m_fNormalize;
+	bool m_fNormalize, m_fNormalizeRecover;
 	float m_boost;
 
 	REFERENCE_TIME m_rtNextStart, m_rtNextStop;
@@ -77,8 +77,8 @@ public:
 	STDMETHODIMP EnableDownSamplingTo441(bool fEnable);
 	STDMETHODIMP_(REFERENCE_TIME) GetAudioTimeShift();
 	STDMETHODIMP SetAudioTimeShift(REFERENCE_TIME rtAudioTimeShift);
-	STDMETHODIMP GetNormalizeBoost(bool& fNormalize, float& boost);
-	STDMETHODIMP SetNormalizeBoost(bool fNormalize, float boost);
+	STDMETHODIMP GetNormalizeBoost(bool& fNormalize, bool& fNormalizeRecover, float& boost);
+	STDMETHODIMP SetNormalizeBoost(bool fNormalize, bool fNormalizeRecover, float boost);
 
 	// IAMStreamSelect
 	STDMETHODIMP Enable(long lIndex, DWORD dwFlags);

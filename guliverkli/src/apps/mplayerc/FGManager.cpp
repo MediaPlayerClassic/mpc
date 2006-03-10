@@ -162,7 +162,7 @@ HRESULT CFGManager::EnumSourceFilters(LPCWSTR lpcwstrFileName, CFGFilterList& fl
 
 	CStringW fn = CStringW(lpcwstrFileName).TrimLeft();
 	CStringW protocol = fn.Left(fn.Find(':')+1).TrimRight(':').MakeLower();
-	CStringW ext = CPathW(fn).GetExtension();
+	CStringW ext = CPathW(fn).GetExtension().MakeLower();
 
 	TCHAR buff[256], buff2[256];
 	ULONG len, len2;
@@ -364,8 +364,8 @@ HRESULT CFGManager::AddSourceFilter(CFGFilter* pFGF, LPCWSTR lpcwstrFileName, LP
 	HRESULT hr;
 
 	CComPtr<IBaseFilter> pBF;
-	CComPtr<IUnknown> pUnk;
-	if(FAILED(hr = pFGF->Create(&pBF, &pUnk)))
+	CInterfaceList<IUnknown, &IID_IUnknown> pUnks;
+	if(FAILED(hr = pFGF->Create(&pBF, pUnks)))
 		return hr;
 
 	CComQIPtr<IFileSourceFilter> pFSF = pBF;
@@ -393,7 +393,7 @@ HRESULT CFGManager::AddSourceFilter(CFGFilter* pFGF, LPCWSTR lpcwstrFileName, LP
 
 	*ppBF = pBF.Detach();
 
-	if(pUnk) m_pUnks.AddTail(pUnk);
+	m_pUnks.AddTailList(&pUnks);
 
 	return S_OK;
 }
@@ -624,8 +624,8 @@ STDMETHODIMP CFGManager::Connect(IPin* pPinOut, IPin* pPinIn)
 			TRACE(_T("FGM: Connecting '%s'\n"), pFGF->GetName());
 
 			CComPtr<IBaseFilter> pBF;
-			CComPtr<IUnknown> pUnk;
-			if(FAILED(pFGF->Create(&pBF, &pUnk)))
+			CInterfaceList<IUnknown, &IID_IUnknown> pUnks;
+			if(FAILED(pFGF->Create(&pBF, pUnks)))
 				continue;
 
 			if(FAILED(hr = AddFilter(pBF, pFGF->GetName())))
@@ -662,13 +662,20 @@ STDMETHODIMP CFGManager::Connect(IPin* pPinOut, IPin* pPinIn)
 
 				if(SUCCEEDED(hr))
 				{
-					if(pUnk) m_pUnks.AddTail(pUnk);
+					m_pUnks.AddTailList(&pUnks);
 
 					// maybe the application should do this...
-					if(CComQIPtr<IMixerPinConfig, &IID_IMixerPinConfig> pMPC = pUnk)
-						pMPC->SetAspectRatioMode(AM_ARMODE_STRETCHED);
+					
+					POSITION pos = pUnks.GetHeadPosition();
+					while(pos)
+					{
+						if(CComQIPtr<IMixerPinConfig, &IID_IMixerPinConfig> pMPC = pUnks.GetNext(pos))
+							pMPC->SetAspectRatioMode(AM_ARMODE_STRETCHED);
+					}
+
 					if(CComQIPtr<IVMRAspectRatioControl> pARC = pBF)
 						pARC->SetAspectRatioMode(VMR_ARMODE_NONE);
+					
 					if(CComQIPtr<IVMRAspectRatioControl9> pARC = pBF)
 						pARC->SetAspectRatioMode(VMR_ARMODE_NONE);
 
@@ -1783,6 +1790,7 @@ CFGManagerDVD::CFGManagerDVD(LPCTSTR pName, LPUNKNOWN pUnk, UINT src, UINT tra, 
 {
 	AppSettings& s = AfxGetAppSettings();
 
+	// have to avoid the old video renderer
 	if(!s.fXpOrBetter && s.iDSVideoRendererType != VIDRNDT_DS_OVERLAYMIXER || s.iDSVideoRendererType == VIDRNDT_DS_OLDRENDERER)
 		m_transform.AddTail(new CFGFilterVideoRenderer(m_hWnd, CLSID_OverlayMixer, L"Overlay Mixer", m_vrmerit-1));
 
@@ -1829,7 +1837,7 @@ STDMETHODIMP CFGManagerDVD::AddSourceFilter(LPCWSTR lpcwstrFileName, LPCWSTR lpc
 
 	CStringW fn = CStringW(lpcwstrFileName).TrimLeft();
 	CStringW protocol = fn.Left(fn.Find(':')+1).TrimRight(':').MakeLower();
-	CStringW ext = CPathW(fn).GetExtension();
+	CStringW ext = CPathW(fn).GetExtension().MakeLower();
 
 	GUID clsid = ext == L".ratdvd" ? GUIDFromCString(_T("{482d10b6-376e-4411-8a17-833800A065DB}")) : CLSID_DVDNavigator;
 
@@ -1855,9 +1863,6 @@ STDMETHODIMP CFGManagerDVD::AddSourceFilter(LPCWSTR lpcwstrFileName, LPCWSTR lpc
 
 	pDVDC->SetOption(DVD_ResetOnStop, FALSE);
 	pDVDC->SetOption(DVD_HMSF_TimeCodeEvents, TRUE);
-
-	m_pUnks.AddTail(pDVDC);
-	m_pUnks.AddTail(pDVDI);
 
 	if(clsid == CLSID_DVDNavigator)
 		CResetDVD(CString(buff));
@@ -1894,3 +1899,26 @@ CFGManagerMuxer::CFGManagerMuxer(LPCTSTR pName, LPUNKNOWN pUnk)
 	m_source.AddTail(new CFGFilterInternal<CSubtitleSourceASS>());
 }
 
+//
+// CFGAggregator
+//
+
+CFGAggregator::CFGAggregator(const CLSID& clsid, LPCTSTR pName, LPUNKNOWN pUnk, HRESULT& hr)
+	: CUnknown(pName, pUnk)
+{
+	hr = m_pUnkInner.CoCreateInstance(clsid, GetOwner());
+}
+
+CFGAggregator::~CFGAggregator()
+{
+	m_pUnkInner.Release();
+}
+
+STDMETHODIMP CFGAggregator::NonDelegatingQueryInterface(REFIID riid, void** ppv)
+{
+    CheckPointer(ppv, E_POINTER);
+
+	return
+		m_pUnkInner && (riid != IID_IUnknown && SUCCEEDED(m_pUnkInner->QueryInterface(riid, ppv))) ? S_OK :
+		__super::NonDelegatingQueryInterface(riid, ppv);
+}

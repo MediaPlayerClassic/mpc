@@ -93,6 +93,7 @@ CAudioSwitcherFilter::CAudioSwitcherFilter(LPUNKNOWN lpunk, HRESULT* phr)
 	, m_rtNextStart(0)
 	, m_rtNextStop(1)
 	, m_fNormalize(false)
+	, m_fNormalizeRecover(false)
 	, m_boost(1)
 	, m_sample_max(0.1f)
 {
@@ -133,21 +134,47 @@ HRESULT CAudioSwitcherFilter::CheckMediaType(const CMediaType* pmt)
 		: VFW_E_TYPE_NOT_ACCEPTED;
 }
 
-#define mixchannels(type, sumtype, mintype, maxtype) \
-	sumtype sum = 0; \
-	int num = 0; \
-	for(int j = 0; j < 18 && j < wfe->nChannels; j++) \
-	{ \
-		if(Channel&(1<<j)) \
-		{ \
-			num++; \
-			sum += *(type*)&pDataIn[bps*(j + wfe->nChannels*k)]; \
-		} \
-	} \
-	sum = min(max(sum, mintype), maxtype); \
-	*(type*)&pDataOut[bps*(i + wfeout->nChannels*k)] = (type)sum; \
+template<class T, class U, int Umin, int Umax> 
+void mix(DWORD mask, int ch, int bps, BYTE* src, BYTE* dst)
+{
+	U sum = 0;
 
-template<class T> T clamp(double s, T smin, T smax)
+	for(int i = 0, j = min(18, ch); i < j; i++)
+	{
+		if(mask & (1<<i))
+		{
+			sum += *(T*)&src[bps*i];
+		}
+	}
+
+	if(sum < Umin) sum = Umin;
+	if(sum > Umax) sum = Umax;
+	
+	*(T*)dst = (T)sum;
+}
+
+template<> 
+void mix<int, INT64, (-1<<24), (+1<<24)-1>(DWORD mask, int ch, int bps, BYTE* src, BYTE* dst)
+{
+	INT64 sum = 0;
+
+	for(int i = 0, j = min(18, ch); i < j; i++)
+	{
+		if(mask & (1<<i))
+		{
+			int tmp;
+			memcpy((BYTE*)&tmp+1, &src[bps*i], 3);
+			sum += tmp >> 8;
+		}
+	}
+
+	sum = min(max(sum, (-1<<24)), (+1<<24)-1);
+
+	memcpy(dst, (BYTE*)&sum, 3);
+}
+
+template<class T>
+T clamp(double s, T smin, T smax)
 {
 	if(s < -1) s = -1;
 	else if(s > 1) s = 1;
@@ -221,49 +248,54 @@ HRESULT CAudioSwitcherFilter::Transform(IMediaSample* pIn, IMediaSample* pOut)
 		{
 			for(int i = 0; i < wfeout->nChannels; i++)
 			{
-				DWORD Channel = m_chs[wfe->nChannels-1][i].Channel, nChannels = 0;
+				DWORD mask = m_chs[wfe->nChannels-1][i].Channel;
 
-				for(int k = 0; k < len; k++)
+				BYTE* src = pDataIn;
+				BYTE* dst = &pDataOut[bps*i];
+
+				int srcstep = bps*wfe->nChannels;
+				int dststep = bps*wfeout->nChannels;
+
+				if(fPCM && wfe->wBitsPerSample == 8)
 				{
-					if(fPCM && wfe->wBitsPerSample == 8)
+					for(int k = 0; k < len; k++, src += srcstep, dst += dststep)
 					{
-						mixchannels(unsigned char, __int64, 0, UCHAR_MAX);
+						mix<unsigned char, INT64, 0, UCHAR_MAX>(mask, wfe->nChannels, bps, src, dst);
 					}
-					else if(fPCM && wfe->wBitsPerSample == 16)
+				}
+				else if(fPCM && wfe->wBitsPerSample == 16)
+				{
+					for(int k = 0; k < len; k++, src += srcstep, dst += dststep)
 					{
-						mixchannels(short, __int64, SHRT_MIN, SHRT_MAX);
+						mix<short, INT64, SHRT_MIN, SHRT_MAX>(mask, wfe->nChannels, bps, src, dst);
 					}
-					else if(fPCM && wfe->wBitsPerSample == 24)
+				}
+				else if(fPCM && wfe->wBitsPerSample == 24)
+				{
+					for(int k = 0; k < len; k++, src += srcstep, dst += dststep)
 					{
-//						mixchannels(_int24, __int64, _INT24_MIN, _INT24_MAX);
-
-						__int64 sum = 0;
-						int num = 0;
-						for(int j = 0; j < 18 && j < wfe->nChannels; j++)
-						{
-							if(Channel&(1<<j))
-							{
-								num++;
-								int tmp;
-								memcpy((BYTE*)&tmp+1, &pDataIn[bps*(j + wfe->nChannels*k)], 3);
-								tmp>>=8;
-								sum += tmp;
-							}
-						}
-						sum = min(max(sum, -(1<<24)), (1<<24)-1);
-						memcpy(&pDataOut[bps*(i + wfeout->nChannels*k)], (BYTE*)&sum, 3);
+						mix<int, INT64, (-1<<24), (+1<<24)-1>(mask, wfe->nChannels, bps, src, dst);
 					}
-					else if(fPCM && wfe->wBitsPerSample == 32)
+				}
+				else if(fPCM && wfe->wBitsPerSample == 32)
+				{
+					for(int k = 0; k < len; k++, src += srcstep, dst += dststep)
 					{
-						mixchannels(int, __int64, INT_MIN, INT_MAX);
+						mix<int, __int64, INT_MIN, INT_MAX>(mask, wfe->nChannels, bps, src, dst);
 					}
-					else if(fFloat && wfe->wBitsPerSample == 32)
+				}
+				else if(fFloat && wfe->wBitsPerSample == 32)
+				{
+					for(int k = 0; k < len; k++, src += srcstep, dst += dststep)
 					{
-						mixchannels(float, double, -1, 1);
+						mix<float, double, -1, 1>(mask, wfe->nChannels, bps, src, dst);
 					}
-					else if(fFloat && wfe->wBitsPerSample == 64)
+				}
+				else if(fFloat && wfe->wBitsPerSample == 64)
+				{
+					for(int k = 0; k < len; k++, src += srcstep, dst += dststep)
 					{
-						mixchannels(double, double, -1, 1);
+						mix<double, double, -1, 1>(mask, wfe->nChannels, bps, src, dst);
 					}
 				}
 			}
@@ -336,7 +368,7 @@ HRESULT CAudioSwitcherFilter::Transform(IMediaSample* pIn, IMediaSample* pOut)
 
 				sample_mul = 1.0f / m_sample_max;
 
-				m_sample_max -= 1.0*rtDur/200000000; // -5%/sec
+				if(m_fNormalizeRecover) m_sample_max -= 1.0*rtDur/200000000; // -5%/sec
 				if(m_sample_max < 0.1) m_sample_max = 0.1;
 			}
 
@@ -557,17 +589,19 @@ STDMETHODIMP CAudioSwitcherFilter::SetAudioTimeShift(REFERENCE_TIME rtAudioTimeS
 	return S_OK;
 }
 
-STDMETHODIMP CAudioSwitcherFilter::GetNormalizeBoost(bool& fNormalize, float& boost)
+STDMETHODIMP CAudioSwitcherFilter::GetNormalizeBoost(bool& fNormalize, bool& fNormalizeRecover, float& boost)
 {
 	fNormalize = m_fNormalize;
+	fNormalizeRecover = m_fNormalizeRecover;
 	boost = m_boost;
 	return S_OK;
 }
 
-STDMETHODIMP CAudioSwitcherFilter::SetNormalizeBoost(bool fNormalize, float boost)
+STDMETHODIMP CAudioSwitcherFilter::SetNormalizeBoost(bool fNormalize, bool fNormalizeRecover, float boost)
 {
 	if(m_fNormalize != fNormalize) m_sample_max = 0.1f;
 	m_fNormalize = fNormalize;
+	m_fNormalizeRecover = fNormalizeRecover;
 	m_boost = boost;
 	return S_OK;
 }

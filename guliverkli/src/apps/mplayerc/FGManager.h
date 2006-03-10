@@ -164,3 +164,17 @@ public:
 	CFGManagerMuxer(LPCTSTR pName, LPUNKNOWN pUnk);
 };
 
+//
+
+class CFGAggregator : public CUnknown
+{
+protected:
+	CComPtr<IUnknown> m_pUnkInner;
+
+public:
+	CFGAggregator(const CLSID& clsid, LPCTSTR pName, LPUNKNOWN pUnk, HRESULT& hr);
+	virtual ~CFGAggregator();
+
+    DECLARE_IUNKNOWN;
+    STDMETHODIMP NonDelegatingQueryInterface(REFIID riid, void** ppv);
+};
