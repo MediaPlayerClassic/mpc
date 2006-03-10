@@ -1163,7 +1163,7 @@ CFGManagerCustom::CFGManagerCustom(LPCTSTR pName, LPUNKNOWN pUnk, UINT src, UINT
 	if(src & SRC_FLV)
 	{
 		pFGF = new CFGFilterInternal<CFLVSourceFilter>();
-		pFGF->m_chkbytes.AddTail(_T("4,4,,464C5601")); // FLV (v1)
+		pFGF->m_chkbytes.AddTail(_T("0,4,,464C5601")); // FLV (v1)
 		m_source.AddTail(pFGF);
 	}
 

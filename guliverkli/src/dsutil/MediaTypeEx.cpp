@@ -180,36 +180,40 @@ CString CMediaTypeEx::GetVideoCodecName(const GUID& subtype, DWORD biCompression
 {
 	CString str;
 
-	static CAtlMap<CString, CString, CStringElementTraits<CString> > names;
+	static CAtlMap<DWORD, CString> names;
 
 	if(names.IsEmpty())
 	{
-		names[_T("WMV1")] = _T("Windows Media Video 7");
-		names[_T("WMV2")] = _T("Windows Media Video 8");
-		names[_T("WMV3")] = _T("Windows Media Video 9");
-		names[_T("DIV3")] = _T("DivX 3");
-		names[_T("DX50")] = _T("DivX 5");
-		names[_T("MP4V")] = _T("MPEG4 Video");
-		names[_T("AVC1")] = _T("MPEG4 Video (AVC)");
-		names[_T("RV10")] = _T("RealVideo 1");
-		names[_T("RV20")] = _T("RealVideo 2");
-		names[_T("RV30")] = _T("RealVideo 3");
-		names[_T("RV40")] = _T("RealVideo 4");
-		// names[_T("")] = _T("");
+		names['WMV1'] = _T("Windows Media Video 7");
+		names['WMV2'] = _T("Windows Media Video 8");
+		names['WMV3'] = _T("Windows Media Video 9");
+		names['DIV3'] = _T("DivX 3");
+		names['DX50'] = _T("DivX 5");
+		names['MP4V'] = _T("MPEG4 Video");
+		names['AVC1'] = _T("MPEG4 Video (H264)");
+		names['H264'] = _T("MPEG4 Video (H264)");
+		names['RV10'] = _T("RealVideo 1");
+		names['RV20'] = _T("RealVideo 2");
+		names['RV30'] = _T("RealVideo 3");
+		names['RV40'] = _T("RealVideo 4");
+		names['FLV1'] = _T("Flash Video 1");
+		// names[''] = _T("");
 	}
 
 	if(biCompression)
 	{
-		CString fcc;
-		fcc.Format(_T("%4.4hs"), &biCompression);
-		fcc.MakeUpper();
+		BYTE* b = (BYTE*)&biCompression;
 
-		if(!names.Lookup(fcc, str))
+		for(int i = 0; i < 4; i++)
+			if(b[i] >= 'a' && b[i] <= 'z') 
+				b[i] = toupper(b[i]);
+
+		if(!names.Lookup(MAKEFOURCC(b[3], b[2], b[1], b[0]), str))
 		{
 			if(subtype == MEDIASUBTYPE_DiracVideo) str = _T("Dirac Video");
 			// else if(subtype == ) str = _T("");
 			else if(biCompression < 256) str.Format(_T("%d"), biCompression);
-			else str = fcc;
+			else str.Format(_T("%4.4hs"), &biCompression);
 		}
 	}
 
