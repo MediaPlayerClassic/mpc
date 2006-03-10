@@ -605,7 +605,7 @@ HRESULT CMP4SplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 			for(AP4_Cardinal i = 0; i < chapters.ItemCount(); i++)
 			{
 				AP4_ChplAtom::AP4_Chapter& chapter = chapters[i];
-				ChapAppend(chapter.Time, UTF8To16(ConvertMBCS(chapter.Name.c_str(), DEFAULT_CHARSET, CP_UTF8))); // this is b0rked, thx to nero :P
+				ChapAppend(chapter.Time, UTF8To16(ConvertMBCS(chapter.Name.c_str(), ANSI_CHARSET, CP_UTF8))); // this is b0rked, thx to nero :P
 			}
 
 			ChapSort();
