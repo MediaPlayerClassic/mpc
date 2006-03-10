@@ -47,3 +47,4 @@
 #include ".\parser\MpaSplitter\MpaSplitter.h"
 #include ".\parser\DSMSplitter\DSMSplitter.h"
 #include ".\parser\MP4Splitter\MP4Splitter.h"
+#include ".\parser\FLVSplitter\FLVSplitter.h"

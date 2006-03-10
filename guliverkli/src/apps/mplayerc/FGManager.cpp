@@ -1160,6 +1160,13 @@ CFGManagerCustom::CFGManagerCustom(LPCTSTR pName, LPUNKNOWN pUnk, UINT src, UINT
 		m_source.AddTail(pFGF);
 	}
 
+	if(src & SRC_FLV)
+	{
+		pFGF = new CFGFilterInternal<CFLVSourceFilter>();
+		pFGF->m_chkbytes.AddTail(_T("4,4,,464C5601")); // FLV (v1)
+		m_source.AddTail(pFGF);
+	}
+
 	if(src & SRC_MATROSKA)
 	{
 		pFGF = new CFGFilterInternal<CMatroskaSourceFilter>();
@@ -1397,6 +1404,13 @@ CFGManagerCustom::CFGManagerCustom(LPCTSTR pName, LPUNKNOWN pUnk, UINT src, UINT
 		(src & SRC_MP4) ? L"MP4 Splitter" : L"MP4 Splitter (low merit)",
 		(src & SRC_MP4) ? MERIT64_ABOVE_DSHOW : MERIT64_DO_USE);
 	pFGF->AddType(MEDIATYPE_Stream, MEDIASUBTYPE_MP4);
+	pFGF->AddType(MEDIATYPE_Stream, GUID_NULL);
+	m_transform.AddTail(pFGF);
+
+	pFGF = new CFGFilterInternal<CFLVSplitterFilter>(
+		(src & SRC_FLV) ? L"FLV Splitter" : L"FLV Splitter (low merit)",
+		(src & SRC_FLV) ? MERIT64_ABOVE_DSHOW : MERIT64_DO_USE);
+	pFGF->AddType(MEDIATYPE_Stream, MEDIASUBTYPE_FLV);
 	pFGF->AddType(MEDIATYPE_Stream, GUID_NULL);
 	m_transform.AddTail(pFGF);
 

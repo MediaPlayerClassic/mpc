@@ -2222,6 +2222,7 @@ STRINGTABLE
 BEGIN
     IDS_SRC_MPA             "6.4.0.2\nSource filter for mp3 and aac"
     IDS_SRC_MP4             "6.4.0.1"
+	IDS_SRC_FLV				"6.4.0.0"
     IDS_TRA_RV              "6.4.1.0\nRequires RealVideo decoder dlls, RV10 also works with ffdshow"
     IDS_TRA_RA              "6.4.1.0\nRequires RealAudio decoder dlls, DNET also works with ac3filter"
     IDS_TRA_MPEG1           "6.4.0.1\nBased on libmpeg2 (mpeg1 video decoding is bogus)"
