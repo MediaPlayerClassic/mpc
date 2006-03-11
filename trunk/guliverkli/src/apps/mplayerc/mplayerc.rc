@@ -192,7 +192,7 @@ BEGIN
     ICON            IDR_MAINFRAME,IDC_STATIC,11,17,20,20
     LTEXT           "Media Player Classic",IDC_STATIC1,40,10,126,8,SS_NOPREFIX
     LTEXT           "Copyright (C) 2002-2006 Gabest",IDC_STATIC,40,21,113,8
-    LTEXT           "Version: 6.4.8.8",IDC_STATIC,40,33,92,8
+    LTEXT           "Version: 6.4.8.9",IDC_STATIC,40,33,92,8
     PUSHBUTTON      "OK",IDOK,160,8,50,14,WS_GROUP
     LTEXT           "This program is freeware and released under the GNU General Public License.\nDistribution in Codec Packs is allowed, but the author (Gabest) is not liable for the additional content.",IDC_STATIC,11,47,199,34
 END
@@ -1392,8 +1392,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 6,4,8,8
- PRODUCTVERSION 6,4,8,8
+ FILEVERSION 6,4,8,9
+ PRODUCTVERSION 6,4,8,9
  FILEFLAGSMASK 0x1fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -1411,12 +1411,12 @@ BEGIN
             VALUE "Comments", "http://gabest.org/"
             VALUE "CompanyName", "Gabest"
             VALUE "FileDescription", "Media Player Classic"
-            VALUE "FileVersion", "6, 4, 8, 8"
+            VALUE "FileVersion", "6, 4, 8, 9"
             VALUE "InternalName", "Media Player Classic"
             VALUE "LegalCopyright", "Copyright (C) 2002-2006 Gabest"
             VALUE "OriginalFilename", "mplayerc.EXE"
             VALUE "ProductName", "Media Player Classic"
-            VALUE "ProductVersion", "6, 4, 8, 8"
+            VALUE "ProductVersion", "6, 4, 8, 9"
         END
     END
     BLOCK "VarFileInfo"
@@ -2044,7 +2044,7 @@ BEGIN
     IDS_RS_THUMBWIDTH       "ThumbWidth"
     IDS_RS_AUDIONORMALIZE   "AudioNormalize"
     IDS_RS_AUDIOBOOST       "AudioBoost"
-	IDS_RS_AUDIONORMALIZERECOVER "AudioNormalizeRecover"
+    IDS_RS_AUDIONORMALIZERECOVER "AudioNormalizeRecover"
 END
 
 STRINGTABLE 
@@ -2202,7 +2202,7 @@ STRINGTABLE
 BEGIN
     IDS_SRC_RADGT           "6.4.0.0\nRequires smackw32.dll and binkw32.dll"
     IDS_SRC_CDDA            "6.4.0.1\n2K/XP only"
-    IDS_SRC_AVI             "6.4.0.6\nNon-interleaved files are not welcome"
+    IDS_SRC_AVI             "6.4.0.7\nNon-interleaved files are not welcome"
     IDS_SRC_CDXA            "6.4.0.1"
     IDS_SRC_VTS             "6.4.0.0\nOpen VTS_xx_0.ifo to load VTS_xx_x.vob files in one piece"
     IDS_SRC_FLIC            "6.4.0.0"
@@ -2210,7 +2210,7 @@ BEGIN
     IDS_SRC_DTSAC3          "6.4.0.1"
     IDS_SRC_SHOUTCAST       "6.4.0.1"
     IDS_SRC_REALMEDIA       "6.4.1.1\nRealMedia format categories must be set to 'DirectShow' to make it load\nDoesn't support streaming"
-    IDS_SRC_MATROSKA        "6.4.2.8"
+    IDS_SRC_MATROSKA        "6.4.2.9"
     IDS_SRC_ROQ             "6.4.0.0"
     IDS_SRC_OGG             "6.4.0.2"
     IDS_SRC_NUT             "6.4.0.0\nBased on ""NUT Open Container Format DRAFT 20030906""\nStill very incomplete, if you have or can make test files, please contact me."
@@ -2221,19 +2221,19 @@ END
 STRINGTABLE 
 BEGIN
     IDS_SRC_MPA             "6.4.0.2\nSource filter for mp3 and aac"
-    IDS_SRC_MP4             "6.4.0.1"
-	IDS_SRC_FLV				"6.4.0.0"
+    IDS_SRC_MP4             "6.4.0.2"
     IDS_TRA_RV              "6.4.1.0\nRequires RealVideo decoder dlls, RV10 also works with ffdshow"
     IDS_TRA_RA              "6.4.1.0\nRequires RealAudio decoder dlls, DNET also works with ac3filter"
-    IDS_TRA_MPEG1           "6.4.0.1\nBased on libmpeg2 (mpeg1 video decoding is bogus)"
-    IDS_TRA_MPEG2           "6.4.0.1\nBased on libmpeg2"
-    IDS_TRA_MPA             "6.4.0.2\nBased on libmad, liba52, libdts, libfaad"
+    IDS_TRA_MPEG1           "6.4.0.3\nBased on libmpeg2 (mpeg1 video decoding is bogus)"
+    IDS_TRA_MPEG2           "6.4.0.3\nBased on libmpeg2"
+    IDS_TRA_MPA             "6.4.0.3\nBased on libmad, liba52, libdts, libfaad"
     IDS_TRA_LPCM            "6.4.0.1"
     IDS_TRA_AC3             "6.4.0.1\nBased on liba52 0.7.4, http://liba52.sourceforge.net/"
     IDS_TRA_DTS             "6.4.0.1\nBased on libdts 0.0.2, http://www.videolan.org/dtsdec.html"
     IDS_TRA_AAC             "6.4.0.1\nBased on libfaad 2.0, http://www.audiocoding.com/"
     IDS_TRA_DIRAC           "6.4.0.1\nBased on libdirac 0.5.0"
     IDS_TRA_PS2AUD          "6.4.0.1\nDecodes audio streams of PSS files"
+    IDS_SRC_FLV             "6.4.0.0"
 END
 
 STRINGTABLE 
