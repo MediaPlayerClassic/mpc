@@ -1873,7 +1873,7 @@ STDMETHODIMP CFGManagerDVD::AddSourceFilter(LPCWSTR lpcwstrFileName, LPCWSTR lpc
 	&& FAILED(hr = pDVDC->SetDVDDirectory(fn + L"VIDEO_TS"))
 	&& FAILED(hr = pDVDC->SetDVDDirectory(fn + L"\\VIDEO_TS")))
 	|| FAILED(hr = pDVDI->GetDVDDirectory(buff, countof(buff), &len)) || len == 0)
-		return VFW_E_CANNOT_LOAD_SOURCE_FILTER;
+		return E_INVALIDARG;
 
 	pDVDC->SetOption(DVD_ResetOnStop, FALSE);
 	pDVDC->SetOption(DVD_HMSF_TimeCodeEvents, TRUE);

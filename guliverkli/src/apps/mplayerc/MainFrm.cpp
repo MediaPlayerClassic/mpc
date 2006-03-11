@@ -7039,16 +7039,18 @@ void CMainFrame::OpenDVD(OpenDVDData* pODD)
 	}
 	EndEnumFilters
 
-	if(hr == VFW_E_CANNOT_LOAD_SOURCE_FILTER)
-		throw _T("Can't find DVD directory");
+	if(hr == E_INVALIDARG)
+		throw _T("Cannot find DVD directory");
 	else if(hr == VFW_E_CANNOT_RENDER)
 		throw _T("Failed to render all pins of the DVD Navigator filter");
 	else if(hr == VFW_S_PARTIAL_RENDER)
 		throw _T("Failed to render some of the pins of the DVD Navigator filter");
 	else if(hr == E_NOINTERFACE || !pDVDC || !pDVDI)
 		throw _T("Failed to query the needed interfaces for DVD playback");
-	else if(FAILED(hr))
+	else if(hr == VFW_E_CANNOT_LOAD_SOURCE_FILTER)
 		throw _T("Can't create the DVD Navigator filter");
+	else if(FAILED(hr))
+		throw _T("Failed");
 
 	WCHAR buff[MAX_PATH];
 	ULONG len = 0;
