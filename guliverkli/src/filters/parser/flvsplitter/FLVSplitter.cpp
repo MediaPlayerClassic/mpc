@@ -183,13 +183,16 @@ HRESULT CFLVSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 	bool fTypeFlagsVideo = !!m_pFile->BitRead(1);
 	m_DataOffset = (UINT32)m_pFile->BitRead(32);
 
+	// doh, these flags aren't always telling the truth
+	fTypeFlagsAudio = fTypeFlagsVideo = true;
+
 	Tag t;
 	AudioTag at;
 	VideoTag vt;
 
 	m_pFile->Seek(m_DataOffset);
 
-	while(ReadTag(t) && (fTypeFlagsVideo || fTypeFlagsAudio))
+	for(int i = 0; ReadTag(t) && (fTypeFlagsVideo || fTypeFlagsAudio) && i < 100; i++)
 	{
 		UINT64 next = m_pFile->GetPos() + t.DataSize;
 
@@ -199,7 +202,7 @@ HRESULT CFLVSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 		mt.SetSampleSize(1);
 		mt.subtype = GUID_NULL;
 
-		if(t.TagType == 8)
+		if(t.TagType == 8 && fTypeFlagsAudio)
 		{
 			fTypeFlagsAudio = false;
 
@@ -235,7 +238,7 @@ HRESULT CFLVSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 				}
 			}
 		}
-		else if(t.TagType == 9)
+		else if(t.TagType == 9 && fTypeFlagsVideo)
 		{
 			fTypeFlagsVideo = false;
 
