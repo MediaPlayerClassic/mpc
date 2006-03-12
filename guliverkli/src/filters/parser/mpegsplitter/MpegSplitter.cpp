@@ -59,11 +59,16 @@ int g_cTemplates = countof(g_Templates);
 
 STDAPI DllRegisterServer()
 {
+	DeleteRegKey(_T("Media Type\\Extensions\\"), _T(".ts"));
+
 	RegisterSourceFilter(CLSID_AsyncReader, MEDIASUBTYPE_MPEG1System, _T("0,16,FFFFFFFFF100010001800001FFFFFFFF,000001BA2100010001800001000001BB"), NULL);
 	RegisterSourceFilter(CLSID_AsyncReader, MEDIASUBTYPE_MPEG2_PROGRAM, _T("0,5,FFFFFFFFC0,000001BA40"), NULL);
-	RegisterSourceFilter(CLSID_AsyncReader, MEDIASUBTYPE_MPEG2_TRANSPORT, _T("0,1,,47,188,1,,47,376,1,,47"), NULL);
-	RegisterSourceFilter(CLSID_AsyncReader, MEDIASUBTYPE_MPEG2_TRANSPORT, _T("4,1,,47,196,1,,47,388,1,,47"), NULL);
 	RegisterSourceFilter(CLSID_AsyncReader, MEDIASUBTYPE_MPEG2_PVA, _T("0,8,fffffc00ffe00000,4156000055000000"), NULL);
+
+	CAtlList<CString> chkbytes;
+	chkbytes.AddTail(_T("0,1,,47,188,1,,47,376,1,,47"));
+	chkbytes.AddTail(_T("4,1,,47,196,1,,47,388,1,,47"));
+	RegisterSourceFilter(CLSID_AsyncReader, MEDIASUBTYPE_MPEG2_TRANSPORT, chkbytes, NULL);
 
 	return AMovieDllRegisterServer2(TRUE);
 }
@@ -372,9 +377,12 @@ bool CMpegSplitterFilter::DemuxLoop()
 	HRESULT hr = S_OK;
 	while(SUCCEEDED(hr) && !CheckRequest(NULL))
 	{
-		if((hr = m_pFile->HasMoreData(1024*500)) == S_OK)
-			if((hr = DemuxNextPacket(rtStartOffset)) == S_FALSE)
-				Sleep(1);
+		for(int i = 0; SUCCEEDED(hr) && i < 10; i++)
+		{
+			if((hr = m_pFile->HasMoreData(1024*500)) == S_OK)
+				if((hr = DemuxNextPacket(rtStartOffset)) == S_FALSE)
+					Sleep(1);
+		}
 	}
 
 	return(true);

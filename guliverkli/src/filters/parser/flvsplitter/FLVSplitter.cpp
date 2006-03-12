@@ -58,9 +58,7 @@ STDAPI DllRegisterServer()
 {
 	DeleteRegKey(_T("Media Type\\Extensions\\"), _T(".flv"));
 
-	CAtlList<CString> chkbytes;
-	chkbytes.AddTail(_T("0,4,,464C5601")); // FLV (v1)
-	RegisterSourceFilter(CLSID_AsyncReader, MEDIASUBTYPE_FLV, chkbytes, NULL);
+	RegisterSourceFilter(CLSID_AsyncReader, MEDIASUBTYPE_FLV, _T("0,4,,464C5601"), NULL);
 
 	return AMovieDllRegisterServer2(TRUE);
 }
