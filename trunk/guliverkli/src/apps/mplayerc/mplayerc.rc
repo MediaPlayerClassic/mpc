@@ -751,7 +751,7 @@ FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
     DEFPUSHBUTTON   "OK",IDOK,100,125,50,14
     PUSHBUTTON      "Cancel",IDCANCEL,154,125,50,14
-    CONTROL         337,IDC_STATIC,"Static",SS_BITMAP,0,0,213,37
+    CONTROL         214,IDC_STATIC,"Static",SS_BITMAP,0,0,213,37
     LTEXT           "Restricted area",IDC_STATIC,13,48,50,8
     LTEXT           "Username:",IDC_STATIC,13,66,36,8
     LTEXT           "Password:",IDC_STATIC,13,83,34,8
