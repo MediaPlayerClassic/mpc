@@ -37,6 +37,8 @@ class CGSdx9App : public CWinApp
 public:
 	CGSdx9App();
 
+	static D3DDEVTYPE D3DDEVTYPE_X;
+
 // Overrides
 public:
 	virtual BOOL InitInstance();
@@ -51,6 +53,3 @@ enum
 	RENDERER_D3D_SW_FP, 
 	RENDERER_D3D_HW
 };
-
-#define D3DDEVTYPE_X D3DDEVTYPE_HAL
-// #define D3DDEVTYPE_X D3DDEVTYPE_REF

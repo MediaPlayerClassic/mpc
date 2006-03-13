@@ -126,7 +126,7 @@ BOOL CGSSettingsDlg::OnInitDialog()
 			}
 		}
 
-		pD3D->GetDeviceCaps(D3DADAPTER_DEFAULT, D3DDEVTYPE_X, &caps);
+		pD3D->GetDeviceCaps(D3DADAPTER_DEFAULT, CGSdx9App::D3DDEVTYPE_X, &caps);
 	}
 
 	// renderer
