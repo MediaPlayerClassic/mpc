@@ -156,7 +156,7 @@ GSState::GSState(int w, int h, HWND hWnd, HRESULT& hr)
 		return;
 
 	ZeroMemory(&m_caps, sizeof(m_caps));
-	m_pD3D->GetDeviceCaps(D3DADAPTER_DEFAULT, D3DDEVTYPE_X, &m_caps);
+	m_pD3D->GetDeviceCaps(D3DADAPTER_DEFAULT, CGSdx9App::D3DDEVTYPE_X, &m_caps);
 
 	m_fmtDepthStencil = 
 		IsDepthFormatOk(m_pD3D, D3DFMT_D32, D3DFMT_X8R8G8B8, D3DFMT_X8R8G8B8) ? D3DFMT_D32 :
@@ -380,7 +380,7 @@ HRESULT GSState::ResetDevice(bool fForceWindowed)
 	{
 		if(FAILED(hr = m_pD3D->CreateDevice(
 			// m_pD3D->GetAdapterCount()-1, D3DDEVTYPE_REF,
-			D3DADAPTER_DEFAULT, D3DDEVTYPE_X, 
+			D3DADAPTER_DEFAULT, CGSdx9App::D3DDEVTYPE_X, 
 			m_hWnd,
 			m_caps.VertexProcessingCaps ? D3DCREATE_HARDWARE_VERTEXPROCESSING : D3DCREATE_SOFTWARE_VERTEXPROCESSING, 
 			&m_d3dpp, &m_pD3DDev)))

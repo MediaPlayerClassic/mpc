@@ -109,12 +109,26 @@ BYTE* g_pBasePS2Mem = NULL;
 
 EXPORT_C GSsetBaseMem(BYTE* pBasePS2Mem)
 {
-	g_pBasePS2Mem = pBasePS2Mem;
+	g_pBasePS2Mem = pBasePS2Mem - 0x12000000;
 }
 
 EXPORT_C_(INT32) GSinit()
 {
 	AFX_MANAGE_STATE(AfxGetStaticModuleState());
+
+	return 0;
+}
+
+EXPORT_C GSshutdown()
+{
+	AFX_MANAGE_STATE(AfxGetStaticModuleState());
+}
+
+EXPORT_C_(INT32) GSopen(void* pDsp, char* Title, int multithread)
+{
+	AFX_MANAGE_STATE(AfxGetStaticModuleState());
+
+	//
 
 	s_hrCoInit = ::CoInitialize(0);
 
@@ -141,24 +155,7 @@ EXPORT_C_(INT32) GSinit()
 		return -1;
 	}
 
-	return 0;
-}
-
-EXPORT_C GSshutdown()
-{
-	AFX_MANAGE_STATE(AfxGetStaticModuleState());
-
-	ASSERT(s_gs);
-	s_gs.Free();
-
-	s_hWnd.DestroyWindow();
-
-	if(SUCCEEDED(s_hrCoInit)) ::CoUninitialize();
-}
-
-EXPORT_C_(INT32) GSopen(void* pDsp, char* Title, int multithread)
-{
-	AFX_MANAGE_STATE(AfxGetStaticModuleState());
+	//
 
 	if(!IsWindow(s_hWnd))
 		return -1;
@@ -191,6 +188,13 @@ EXPORT_C_(INT32) GSopen(void* pDsp, char* Title, int multithread)
 EXPORT_C GSclose()
 {
 	s_hWnd.Show(false);
+
+	ASSERT(s_gs);
+	s_gs.Free();
+
+	s_hWnd.DestroyWindow();
+
+	if(SUCCEEDED(s_hrCoInit)) ::CoUninitialize();
 }
 
 EXPORT_C GSreset()
@@ -311,7 +315,7 @@ EXPORT_C_(INT32) GStest()
 
 	if(CComPtr<IDirect3D9> pD3D = Direct3DCreate9(D3D_SDK_VERSION))
 	{
-		pD3D->GetDeviceCaps(D3DADAPTER_DEFAULT, D3DDEVTYPE_X, &caps);
+		pD3D->GetDeviceCaps(D3DADAPTER_DEFAULT, CGSdx9App::D3DDEVTYPE_X, &caps);
 
 		LPCTSTR yep = _T("^_^"), nope = _T(":'(");
 
