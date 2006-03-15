@@ -2086,6 +2086,9 @@ END
 
 STRINGTABLE 
 BEGIN
+    IDS_FAVFILES          "Files"
+    IDS_FAVDVDS           "DVDs"
+    IDS_FAVDEVICES        "Devices"
     IDS_RS_ENABLEAUDIOTIMESHIFT "EnableAudioTimeShift"
     IDS_R_FAVFILES          "Favorites\\Files"
     IDS_R_FAVDVDS           "Favorites\\DVDs"

@@ -491,7 +491,7 @@ void CConvertDlg::ShowResourceFolderPopup(HTREEITEM hTI, CPoint p)
 	if(m_tree.ItemHasChildren(*t))
 	{
 		m.AppendMenu(MF_SEPARATOR);
-		m.AppendMenu(MF_STRING, i++, ResStr(IDS_CONVERT_ADDRESOURCE));
+		m.AppendMenu(MF_STRING, i++, ResStr(IDS_CONVERT_REMOVEALL));
 	}
 
 	switch((int)m.TrackPopupMenu(TPM_LEFTBUTTON|TPM_RETURNCMD, p.x, p.y, this))

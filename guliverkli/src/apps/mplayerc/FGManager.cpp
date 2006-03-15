@@ -164,15 +164,25 @@ HRESULT CFGManager::EnumSourceFilters(LPCWSTR lpcwstrFileName, CFGFilterList& fl
 	CStringW protocol = fn.Left(fn.Find(':')+1).TrimRight(':').MakeLower();
 	CStringW ext = CPathW(fn).GetExtension().MakeLower();
 
+	HANDLE hFile = INVALID_HANDLE_VALUE;
+
+	if(protocol.GetLength() <= 1 || protocol == L"file")
+	{
+		hFile = CreateFile(CString(fn), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, (HANDLE)NULL);
+
+		if(hFile == INVALID_HANDLE_VALUE)
+		{
+			return VFW_E_NOT_FOUND;
+		}
+	}
+
 	TCHAR buff[256], buff2[256];
 	ULONG len, len2;
 
-	HANDLE hFile = CreateFile(CString(fn), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, (HANDLE)NULL);
-
-	// internal / protocol
-
-	if(protocol.GetLength() > 1 && protocol != L"file")
+	if(hFile == INVALID_HANDLE_VALUE)
 	{
+		// internal / protocol
+
 		POSITION pos = m_source.GetHeadPosition();
 		while(pos)
 		{
@@ -181,11 +191,10 @@ HRESULT CFGManager::EnumSourceFilters(LPCWSTR lpcwstrFileName, CFGFilterList& fl
 				fl.Insert(pFGF, 0, false, false);
 		}
 	}
-
-	// internal / check bytes
-
-	if(hFile != INVALID_HANDLE_VALUE)
+	else
 	{
+		// internal / check bytes
+
 		POSITION pos = m_source.GetHeadPosition();
 		while(pos)
 		{
@@ -203,10 +212,10 @@ HRESULT CFGManager::EnumSourceFilters(LPCWSTR lpcwstrFileName, CFGFilterList& fl
 		}
 	}
 
-	// insernal / file extension
-
 	if(!ext.IsEmpty())
 	{
+		// internal / file extension
+
 		POSITION pos = m_source.GetHeadPosition();
 		while(pos)
 		{
@@ -216,9 +225,9 @@ HRESULT CFGManager::EnumSourceFilters(LPCWSTR lpcwstrFileName, CFGFilterList& fl
 		}
 	}
 
-	// internal / the rest
-
 	{
+		// internal / the rest
+
 		POSITION pos = m_source.GetHeadPosition();
 		while(pos)
 		{
@@ -228,10 +237,10 @@ HRESULT CFGManager::EnumSourceFilters(LPCWSTR lpcwstrFileName, CFGFilterList& fl
 		}
 	}
 
-	// protocol
-
-	if(protocol.GetLength() > 1 && protocol != L"file")
+	if(hFile == INVALID_HANDLE_VALUE)
 	{
+		// protocol
+	
 		CRegKey key;
 		if(ERROR_SUCCESS == key.Open(HKEY_CLASSES_ROOT, CString(protocol), KEY_READ))
 		{
@@ -250,11 +259,10 @@ HRESULT CFGManager::EnumSourceFilters(LPCWSTR lpcwstrFileName, CFGFilterList& fl
 
 		fl.Insert(new CFGFilterRegistry(CLSID_URLReader), 6);
 	}
-
-	// check bytes
-
-	if(hFile != INVALID_HANDLE_VALUE)
+	else
 	{
+		// check bytes
+
 		CRegKey key;
 		if(ERROR_SUCCESS == key.Open(HKEY_CLASSES_ROOT, _T("Media Type"), KEY_READ))
 		{
@@ -306,10 +314,10 @@ HRESULT CFGManager::EnumSourceFilters(LPCWSTR lpcwstrFileName, CFGFilterList& fl
 		}
 	}
 
-	// file extension
-
 	if(!ext.IsEmpty())
 	{
+		// file extension
+
 		CRegKey key;
 		if(ERROR_SUCCESS == key.Open(HKEY_CLASSES_ROOT, _T("Media Type\\Extensions\\") + CString(ext), KEY_READ))
 		{
@@ -346,10 +354,7 @@ HRESULT CFGManager::EnumSourceFilters(LPCWSTR lpcwstrFileName, CFGFilterList& fl
 	pFGF->AddType(MEDIATYPE_Stream, MEDIASUBTYPE_NULL);
 	fl.Insert(pFGF, 9);
 
-	return 
-		hFile == INVALID_HANDLE_VALUE ? VFW_E_NOT_FOUND : 
-		fl.IsEmpty() ? VFW_E_CANNOT_LOAD_SOURCE_FILTER :
-		S_OK;
+	return S_OK;
 }
 
 HRESULT CFGManager::AddSourceFilter(CFGFilter* pFGF, LPCWSTR lpcwstrFileName, LPCWSTR lpcwstrFilterName, IBaseFilter** ppBF)
@@ -693,10 +698,15 @@ STDMETHODIMP CFGManager::Connect(IPin* pPinOut, IPin* pPinIn)
 	{
 		CAutoPtr<CStreamDeadEnd> psde(new CStreamDeadEnd());
 		psde->AddTailList(&m_streampath);
+		int skip = 0;
 		BeginEnumMediaTypes(pPinOut, pEM, pmt)
+		{
+			if(pmt->majortype == MEDIATYPE_Stream && pmt->subtype == MEDIASUBTYPE_NULL) skip++;
 			psde->mts.AddTail(CMediaType(*pmt));
+		}
 		EndEnumMediaTypes(pmt)
-		m_deadends.Add(psde);
+		if(skip < psde->mts.GetCount())
+			m_deadends.Add(psde);
 	}
 
 	return pPinIn ? VFW_E_CANNOT_CONNECT : VFW_E_CANNOT_RENDER;

@@ -1489,10 +1489,8 @@ if(CComQIPtr<IAMVideoAccelerator> pAMVA = pPin)
 
 STDMETHODIMP_(void) CVMR9AllocatorPresenter::SetTime(REFERENCE_TIME rtNow)
 {
-	if(!m_fUseInternalTimer)
-	{
-		__super::SetTime(rtNow);
-	}
+	__super::SetTime(rtNow);
+	m_fUseInternalTimer = true;
 }
 
 // IVMRSurfaceAllocator9
