@@ -705,6 +705,9 @@
 #define IDS_PROPSHEET_PROPERTIES        14185
 #define IDS_GRAPHBUILDER_AUDIOSWITCHER  14186
 #define IDS_SHADER_EDIT                 14187
+#define IDS_FAVFILES                    14188
+#define IDS_FAVDVDS						14189
+#define IDS_FAVDEVICES					14190
 
 // Next default values for new objects
 // 

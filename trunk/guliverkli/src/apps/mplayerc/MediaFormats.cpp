@@ -212,7 +212,7 @@ void CMediaFormats::UpdateData(bool fSave)
 		ADDFMT((_T("Dirac Video file"), _T("drc"), false));
 		ADDFMT((_T("DirectShow Media file"), _T("dsm dsv dsa dss")));
 		ADDFMT((_T("Musepack file"), _T("mpc"), true));
-		ADDFMT((_T("Flash Video file"), _T("flv")));
+		ADDFMT((_T("Flash Video file "), _T("flv")));
 		ADDFMT((_T("Shockwave Flash file"), _T("swf"), false, _T("ShockWave ActiveX control"), ShockWave));
 		ADDFMT((_T("Quicktime file "), _T("mov qt amr"), false, _T("QuickTime Player or codec pack"), QuickTime));
 		ADDFMT((_T("Image file"), _T("jpeg jpg bmp gif pic png dib tiff tif")));
