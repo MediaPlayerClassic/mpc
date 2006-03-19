@@ -1910,7 +1910,7 @@ bool FindRedir(CString& fn, CString ct, CAtlList<CString>& fns, CAutoPtrList<CAt
 {
 	CString body;
 
-	CTextFile f;
+	CTextFile f(CTextFile::ANSI);
 	if(f.Open(fn)) for(CString tmp; f.ReadString(tmp); body += tmp + '\n');
 
 	CString dir = fn.Left(max(fn.ReverseFind('/'), fn.ReverseFind('\\'))+1); // "ReverseFindOneOf"
@@ -2076,9 +2076,7 @@ CString GetContentType(CString fn, CAtlList<CString>* redir)
 					return "video/quicktime";
 			}
 
-			if(redir && (ct == _T("video/x-ms-asf")
-				|| ct == _T("audio/x-scpls") 
-				|| ct == _T("audio/x-mpegurl")))
+			if(redir && (ct == _T("audio/x-scpls") || ct == _T("audio/x-mpegurl")))
 			{
 				while(body.GetLength() < 4*1024) // should be enough for a playlist...
 				{

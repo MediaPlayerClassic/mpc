@@ -63,10 +63,10 @@ BOOL CSaveTextFileDialog::OnInitDialog()
 {
 	__super::OnInitDialog();
 
-	m_encoding.AddString(_T("ANSI"));
-	m_encoding.AddString(_T("Unicode 16-LE"));
-	m_encoding.AddString(_T("Unicode 16-BE"));
-	m_encoding.AddString(_T("UTF-8"));
+	m_encoding.SetItemData(m_encoding.AddString(_T("ANSI")), CTextFile::ASCII);
+	m_encoding.SetItemData(m_encoding.AddString(_T("Unicode 16-LE")), CTextFile::LE16);
+	m_encoding.SetItemData(m_encoding.AddString(_T("Unicode 16-BE")), CTextFile::BE16);
+	m_encoding.SetItemData(m_encoding.AddString(_T("UTF-8")), CTextFile::UTF8);
 
 	switch(m_e)
 	{
@@ -88,14 +88,6 @@ END_MESSAGE_MAP()
 
 BOOL CSaveTextFileDialog::OnFileNameOK()
 {
-	switch(m_encoding.GetCurSel())
-	{
-	case 0: m_e = CTextFile::ASCII; break;
-	case 1: m_e = CTextFile::LE16; break;
-	case 2: m_e = CTextFile::BE16; break;
-	case 3: m_e = CTextFile::UTF8; break;
-	default: break;
-	}
-
+	m_e = (CTextFile::enc)m_encoding.GetItemData(m_encoding.GetCurSel());
 	return __super::OnFileNameOK();
 }

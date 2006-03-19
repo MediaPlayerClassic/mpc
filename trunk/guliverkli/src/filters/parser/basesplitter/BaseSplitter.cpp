@@ -53,14 +53,14 @@ void CPacketQueue::Add(CAutoPtr<Packet> p)
 		&& p->rtStart == Packet::INVALID_TIME
 		&& !IsEmpty() && GetTail()->rtStart != Packet::INVALID_TIME)
 		{
-			/*
 			Packet* tail = GetTail();			
 			int oldsize = tail->GetCount();
 			int newsize = tail->GetCount() + p->GetCount();
 			tail->SetCount(newsize, max(1024, newsize)); // doubles the reserved buffer size
 			memcpy(tail->GetData() + oldsize, p->GetData(), p->GetCount());
-			*/
+			/*
 			GetTail()->Append(*p);
+			*/
 			return;
 		}
 	}

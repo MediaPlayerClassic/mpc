@@ -3031,6 +3031,12 @@ void CMainFrame::OnFileOpenmedia()
 	ShowWindow(SW_SHOW);
 	SetForegroundWindow();
 
+	if(dlg.m_fAppendPlaylist)
+	{
+		m_wndPlaylistBar.Append(dlg.m_fns, dlg.m_fMultipleFiles);
+		return;
+	}
+
 	m_wndPlaylistBar.Open(dlg.m_fns, dlg.m_fMultipleFiles);
 
 	if(m_wndPlaylistBar.GetCount() == 1 && m_wndPlaylistBar.IsWindowVisible() && !m_wndPlaylistBar.IsFloating())

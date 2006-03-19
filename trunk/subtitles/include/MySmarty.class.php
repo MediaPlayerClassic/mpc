@@ -8,6 +8,9 @@ define('CACHE_DIR', ROOT_DIR.'/cache');
 require ROOT_DIR.'/libs/Smarty.class.php';
 
 $ServerName = @file_get_contents('../configs/ServerName.cfg');
+$EncodingType = 'UTF-8';
+
+if(!empty($EncodingTypeOverride)) $EncodingType = $EncodingTypeOverride;
 
 class MySmarty extends Smarty
 {
@@ -31,7 +34,9 @@ class MySmarty extends Smarty
 		global $ServerName;
 		$this->assign('ServerName', $ServerName);
 
-		@header('Content-Type: text/html; charset=UTF-8');
+		global $EncodingType;
+		$this->assign('EncodingType', $EncodingType);
+		@header('Content-Type: text/html; charset='.$EncodingType);
 
 		$this->load_filter('output', 'gzcompress');
 	}

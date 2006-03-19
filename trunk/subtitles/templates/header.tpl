@@ -6,7 +6,7 @@
 
 <head>
 	<title>{$ServerName} @ {$smarty.server.HTTP_HOST}</title>
-	<meta HTTP-EQUIV="content-type" CONTENT="text/html; charset=UTF-8">
+	<meta HTTP-EQUIV="content-type" CONTENT="text/html; charset={$EncodingType}">
 	{popup_init src="script/overlib_mini.js"}
 	<script type="text/javascript" src="script/flip.js"></script>
 	<link rel="stylesheet" type="text/css" href="css/flip.css" />

@@ -396,6 +396,21 @@ HRESULT CFGManager::AddSourceFilter(CFGFilter* pFGF, LPCWSTR lpcwstrFileName, LP
 		return hr;
 	}
 
+	// doh :P
+	BeginEnumMediaTypes(GetFirstPin(pBF, PINDIR_OUTPUT), pEMT, pmt)
+	{
+		if(pmt->subtype == GUIDFromCString(_T("{640999A0-A946-11D0-A520-000000000000}"))
+		|| pmt->subtype == GUIDFromCString(_T("{640999A1-A946-11D0-A520-000000000000}")))
+		{
+			RemoveFilter(pBF);
+			pFGF = new CFGFilterRegistry(CLSID_NetShowSource);
+			hr = AddSourceFilter(pFGF, lpcwstrFileName, lpcwstrFilterName, ppBF);
+			delete pFGF;
+			return hr;
+		}
+	}
+	EndEnumMediaTypes(pmt)
+
 	*ppBF = pBF.Detach();
 
 	m_pUnks.AddTailList(&pUnks);
