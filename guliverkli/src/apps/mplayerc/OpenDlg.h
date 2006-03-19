@@ -42,6 +42,7 @@ public:
 	CComboBox m_mrucombo2;
 	CString m_path2;
 	CStatic m_label2;
+	BOOL m_fAppendPlaylist;
 
 protected:
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV support

@@ -322,7 +322,7 @@ bool CPlayerPlaylistBar::ParseMPCPlayList(CString fn)
 	CMap<int, int, CPlaylistItem, CPlaylistItem&> pli;
 	CArray<int> idx;
 
-	CWebTextFile f;
+	CWebTextFile f(CTextFile::ANSI);
 	if(!f.Open(fn) || !f.ReadString(str) || str != _T("MPCPLAYLIST"))
 		return false;
 
@@ -1272,6 +1272,9 @@ void CPlayerPlaylistBar::OnContextMenu(CWnd* /*pWnd*/, CPoint p)
 			if(fd.DoModal() != IDOK)
 				break;
 
+			CTextFile::enc encoding = (CTextFile::enc)fd.GetEncoding();
+			if(encoding == CTextFile::ASCII) encoding = CTextFile::ANSI;
+
 			int idx = fd.m_pOFN->nFilterIndex;
 
 			CPath path(fd.GetPathName());
@@ -1325,12 +1328,12 @@ void CPlayerPlaylistBar::OnContextMenu(CWnd* /*pWnd*/, CPoint p)
 
 			if(idx == 1)
 			{
-				SaveMPCPlayList(path, fd.GetEncoding(), fRemovePath);
+				SaveMPCPlayList(path, encoding, fRemovePath);
 				break;
 			}
 
 			CTextFile f;
-			if(!f.Save(path, fd.GetEncoding()))
+			if(!f.Save(path, encoding))
 				break;
 
 			if(idx == 4)

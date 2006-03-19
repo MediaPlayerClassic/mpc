@@ -24,9 +24,9 @@
 #include <afxinet.h>
 #include "TextFile.h"
 
-CTextFile::CTextFile()
+CTextFile::CTextFile(enc e)
 {
-	m_encoding = ASCII;
+	m_encoding = m_defaultencoding = e;
 	m_offset = 0;
 }
 
@@ -35,7 +35,7 @@ bool CTextFile::Open(LPCTSTR lpszFileName)
 	if(!__super::Open(lpszFileName, modeRead|typeBinary|shareDenyWrite))
 		return(false);
 
-	m_encoding = ASCII;
+	m_encoding = m_defaultencoding;
 	m_offset = 0;
 
 	if(__super::GetLength() >= 2)
@@ -68,7 +68,7 @@ bool CTextFile::Open(LPCTSTR lpszFileName)
 		}
 	}
 
-	if(m_encoding == ASCII)
+	if(m_encoding == m_defaultencoding)
 	{
 		__super::Close(); // CWebTextFile::Close() would delete the temp file if we called it...
 		if(!__super::Open(lpszFileName, modeRead|typeText|shareDenyWrite))
@@ -162,6 +162,11 @@ void CTextFile::WriteString(LPCSTR lpsz/*CStringA str*/)
 	{
 		__super::WriteString(AToT(str));
 	}
+	else if(m_encoding == ANSI)
+	{
+		str.Replace("\n", "\r\n");
+		Write((LPCSTR)str, str.GetLength());
+	}
 	else if(m_encoding == UTF8)
 	{
 		WriteString(AToW(str));
@@ -183,6 +188,12 @@ void CTextFile::WriteString(LPCWSTR lpsz/*CStringW str*/)
 	if(m_encoding == ASCII)
 	{
 		__super::WriteString(WToT(str));
+	}
+	else if(m_encoding == ANSI)
+	{
+		str.Replace(L"\n", L"\r\n");
+		CStringA stra = CStringA(CString(str));
+		Write((LPCSTR)stra, stra.GetLength());
 	}
 	else if(m_encoding == UTF8)
 	{
@@ -240,6 +251,17 @@ BOOL CTextFile::ReadString(CStringA& str)
 		CString s;
 		fEOF = !__super::ReadString(s);
 		str = TToA(s);
+	}
+	else if(m_encoding == ANSI)
+	{
+		char c;
+		while(Read(&c, sizeof(c)) == sizeof(c))
+		{
+			fEOF = false;
+			if(c == '\r') continue;
+			if(c == '\n') break;
+			str += c;
+		}
 	}
 	else if(m_encoding == UTF8)
 	{
@@ -307,6 +329,19 @@ BOOL CTextFile::ReadString(CStringW& str)
 		CString s;
 		fEOF = !__super::ReadString(s);
 		str = TToW(s);
+	}
+	else if(m_encoding == ANSI)
+	{
+		CStringA stra;
+		char c;
+		while(Read(&c, sizeof(c)) == sizeof(c))
+		{
+			fEOF = false;
+			if(c == '\r') continue;
+			if(c == '\n') break;
+			stra += c;
+		}
+		str = CStringW(CString(stra));
 	}
 	else if(m_encoding == UTF8)
 	{

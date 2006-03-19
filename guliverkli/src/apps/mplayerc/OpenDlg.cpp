@@ -35,6 +35,7 @@ COpenDlg::COpenDlg(CWnd* pParent /*=NULL*/)
 	, m_path(_T(""))
 	, m_path2(_T(""))
 	, m_fMultipleFiles(false)
+	, m_fAppendPlaylist(FALSE)
 {
 }
 
@@ -50,6 +51,7 @@ void COpenDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_COMBO2, m_mrucombo2);
 	DDX_CBString(pDX, IDC_COMBO2, m_path2);
 	DDX_Control(pDX, IDC_STATIC1, m_label2);
+	DDX_Check(pDX, IDC_CHECK1, m_fAppendPlaylist);
 }
 
 

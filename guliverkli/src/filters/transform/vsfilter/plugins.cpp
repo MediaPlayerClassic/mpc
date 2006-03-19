@@ -97,7 +97,7 @@ public:
 	{
 		SetThreadPriority(m_hThread, THREAD_PRIORITY_LOWEST);
 
-		CArray<HANDLE> handles;
+		CAtlArray<HANDLE> handles;
 		handles.Add(GetRequestHandle());
 
 		CString fn = GetFileName();
@@ -107,7 +107,7 @@ public:
 
 		while(1)
 		{
-			DWORD i = WaitForMultipleObjects(handles.GetSize(), handles.GetData(), FALSE, 1000);
+			DWORD i = WaitForMultipleObjects(handles.GetCount(), handles.GetData(), FALSE, 1000);
 
 			if(WAIT_OBJECT_0 == i)
 			{
@@ -150,7 +150,7 @@ public:
 					if(h != INVALID_HANDLE_VALUE)
 					{
 						fn = fn2;
-						handles.SetSize(1);
+						handles.SetCount(1);
 						handles.Add(h);
 					}
 				}

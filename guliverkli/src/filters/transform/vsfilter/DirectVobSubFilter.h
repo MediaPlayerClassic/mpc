@@ -82,7 +82,7 @@ public:
 			StopStreaming(),
 			NewSegment(REFERENCE_TIME tStart, REFERENCE_TIME tStop, double dRate);
 
-    CArray<CTextInputPin*> m_pTextInput;
+    CAtlArray<CTextInputPin*> m_pTextInput;
 
     // IDirectVobSub
     STDMETHODIMP put_FileName(WCHAR* fn);
@@ -166,10 +166,10 @@ private:
 	public:
 		ATL::CEvent EndThreadEvent, RefreshEvent;
 		CAtlList<CString> files;
-		CArray<CTime> mtime;
+		CAtlArray<CTime> mtime;
 	} m_frd;
 
-	void SetupFRD(CStringArray& paths, CArray<HANDLE>& handles);
+	void SetupFRD(CStringArray& paths, CAtlArray<HANDLE>& handles);
 	DWORD ThreadProc();
 
 private:

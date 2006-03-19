@@ -26,14 +26,14 @@
 class CTextFile : protected CStdioFile
 {
 public:
-	typedef enum {ASCII, UTF8, LE16, BE16} enc;
+	typedef enum {ASCII, UTF8, LE16, BE16, ANSI} enc;
 
 private:
-	enc m_encoding;
+	enc m_encoding, m_defaultencoding;
 	int m_offset;
 
 public:
-	CTextFile();
+	CTextFile(enc e = ASCII);
 
 	virtual bool Open(LPCTSTR lpszFileName);
 	virtual bool Save(LPCTSTR lpszFileName, enc e /*= ASCII*/);

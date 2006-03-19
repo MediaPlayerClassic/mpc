@@ -2,11 +2,14 @@
 
 session_start();
 
+$EncodingTypeOverride = 'iso-8859-2'; // FIXME
+
 require '../include/MySmarty.class.php';
 
 $intypes = array(
 	0 => 'detect',
-	1 => '???');
+	1 => '???',
+	2 => '"mie" :P');
 
 $outtypes = array(
 	0 => 'srt',
@@ -37,6 +40,11 @@ if(!empty($_POST))
 				$intype = 1;
 				break;
 			}
+			else if(preg_match('/^File:<</', $row, $matches))
+			{
+				$intype = 2;
+				break;
+			}
 		}
 		
 		if($intype == 1)
@@ -47,8 +55,8 @@ if(!empty($_POST))
 				
 				if(preg_match('/^([0-9]{4})\.([0-9]+)-([0-9]{4})\.([0-9]+)/', $row, $matches))
 				{
-					$start = ((intval($matches[1])*16 + intval($matches[2])) / $fps) * 1000;
-					$stop = ((intval($matches[3])*16 + intval($matches[4])) / $fps) *1000;
+					$start = ((intval($matches[1])*16 + intval($matches[2])) / $fps)*1000;
+					$stop = ((intval($matches[3])*16 + intval($matches[4])) / $fps)*1000;
 					$subs[] = array('start' => $start, 'stop' => $stop, 'rows' => array());
 					$sub = end($subs);
 				}
@@ -56,6 +64,69 @@ if(!empty($_POST))
 				{
 					if(empty($subs)) break;
 					$subs[count($subs)-1]['rows'][] = $row;
+				}
+			}
+		}
+		else if($intype == 2)
+		{
+			$text = array();
+			$start = 0;
+			$stop = 0;
+			
+			foreach($rows as $row)
+			{
+				$row = trim($row);
+
+				if(preg_match('/^[0-9]+\.(.+?)([0-9]+), *([0-9]+) +([0-9]+), *([0-9]+)/', $row, $matches))
+				{
+					$text = array();
+					
+					$row = trim($matches[1]);
+					if(!empty($row)) $text[] = $row;
+					
+					$start = intval($matches[2])*600 + intval($matches[3])*1000/16;
+					$stop = intval($matches[4])*600 + intval($matches[5])*1000/16;
+				}
+				else if(preg_match('/^\[ *[0-9]+\](.+)$/', $row, $matches))
+				{
+					if($start == 0 && $stop == 0) continue;
+
+					$row = trim($matches[1]);
+					if(!empty($row)) $text[] = $row;
+					
+					foreach($text as $i => $t)
+					{
+						for($j = 0; $j < strlen($t); $j++)
+						{
+							$c = ord($t[$j]);
+							switch($c)
+							{
+								case 0x81: $c = 'ü'; break;
+								case 0x82: $c = 'é'; break;
+								case 0x90: $c = 'É'; break;
+								case 0x94: $c = 'ö'; break;
+								case 0x99: $c = 'Ö'; break;
+								case 0x9A: $c = 'Ü'; break;
+								case 0xa0: $c = 'á'; break;
+								case 0xa1: $c = 'í'; break;
+								case 0xa2: $c = 'ó'; break;
+								case 0xa3: $c = 'ú'; break;
+								case 0xf0: $c = 'Í'; break;
+								case 0xf1: $c = 'Ó'; break;
+								case 0xf2: $c = 'Õ'; break;
+								case 0xf3: $c = 'õ'; break;
+								case 0xf4: $c = 'Ú'; break;
+								case 0xf9: $c = 'û'; break;
+								case 0xfa: $c = 'Á'; break;
+								default: $c = chr($c); break;
+							}
+							$text[$i][$j] = $c;
+						}
+					}
+					
+					$subs[] = array('start' => $start, 'stop' => $stop, 'rows' => $text);
+					
+					$start = $stop = 0;
 				}
 			}
 		}
