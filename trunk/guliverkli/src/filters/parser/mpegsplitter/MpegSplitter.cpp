@@ -377,12 +377,9 @@ bool CMpegSplitterFilter::DemuxLoop()
 	HRESULT hr = S_OK;
 	while(SUCCEEDED(hr) && !CheckRequest(NULL))
 	{
-		for(int i = 0; SUCCEEDED(hr) && i < 10; i++)
-		{
-			if((hr = m_pFile->HasMoreData(1024*500)) == S_OK)
-				if((hr = DemuxNextPacket(rtStartOffset)) == S_FALSE)
-					Sleep(1);
-		}
+		if((hr = m_pFile->HasMoreData(1024*500)) == S_OK)
+			if((hr = DemuxNextPacket(rtStartOffset)) == S_FALSE)
+				Sleep(1);
 	}
 
 	return(true);
