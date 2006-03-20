@@ -59,7 +59,7 @@ void CPacketQueue::Add(CAutoPtr<Packet> p)
 			tail->SetCount(newsize, max(1024, newsize)); // doubles the reserved buffer size
 			memcpy(tail->GetData() + oldsize, p->GetData(), p->GetCount());
 			/*
-			GetTail()->Append(*p);
+			GetTail()->Append(*p); // too slow
 			*/
 			return;
 		}

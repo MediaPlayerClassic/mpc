@@ -400,7 +400,8 @@ HRESULT CFGManager::AddSourceFilter(CFGFilter* pFGF, LPCWSTR lpcwstrFileName, LP
 	BeginEnumMediaTypes(GetFirstPin(pBF, PINDIR_OUTPUT), pEMT, pmt)
 	{
 		if(pmt->subtype == GUIDFromCString(_T("{640999A0-A946-11D0-A520-000000000000}"))
-		|| pmt->subtype == GUIDFromCString(_T("{640999A1-A946-11D0-A520-000000000000}")))
+		|| pmt->subtype == GUIDFromCString(_T("{640999A1-A946-11D0-A520-000000000000}"))
+		|| pmt->subtype == GUIDFromCString(_T("{D51BD5AE-7548-11CF-A520-0080C77EF58A}")))
 		{
 			RemoveFilter(pBF);
 			pFGF = new CFGFilterRegistry(CLSID_NetShowSource);
