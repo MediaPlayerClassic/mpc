@@ -235,6 +235,10 @@
 #define ID_DVD_SUB_ONOFF                966
 #define ID_VIEW_ZOOM_AUTOFIT            967
 #define ID_FILE_OPENQUICK               968
+#define ID_VOLUME_BOOST_INC             969
+#define ID_VOLUME_BOOST_DEC             970
+#define ID_VOLUME_BOOST_MIN             971
+#define ID_VOLUME_BOOST_MAX             972
 #define ID_FILTERS_SUBITEM_START        2000
 #define ID_FILTERS_SUBITEM_END          2099
 #define ID_FILTERSTREAMS_SUBITEM_START  2100

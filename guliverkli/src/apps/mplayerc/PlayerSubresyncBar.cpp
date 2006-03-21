@@ -990,7 +990,7 @@ void CPlayerSubresyncBar::OnRclickList(NMHDR* pNMHDR, LRESULT* pResult)
 				else if(id == STYLEEDIT)
 				{
 					CAutoPtrArray<CPPageSubStyle> pages;
-					CArray<STSStyle*> styles;
+					CAtlArray<STSStyle*> styles;
 
 					STSStyle* stss = m_sts.GetStyle(iItem);
 					int iSelPage = 0;

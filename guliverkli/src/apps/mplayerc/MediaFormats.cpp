@@ -75,7 +75,7 @@ void CMediaFormatCategory::UpdateData(bool fSave)
 	}
 }
 
-CMediaFormatCategory::CMediaFormatCategory(CMediaFormatCategory& mfc)
+CMediaFormatCategory::CMediaFormatCategory(const CMediaFormatCategory& mfc)
 {
 	*this = mfc;
 }
@@ -90,8 +90,7 @@ CMediaFormatCategory& CMediaFormatCategory::operator = (const CMediaFormatCatego
 	m_backupexts.AddTailList(&mfc.m_backupexts);
 	m_fAudioOnly = mfc.m_fAudioOnly;
 	m_engine = mfc.m_engine;
-
-	return(*this);
+	return *this;
 }
 
 void CMediaFormatCategory::RestoreDefaultExts()

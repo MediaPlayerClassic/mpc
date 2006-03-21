@@ -320,7 +320,7 @@ bool CPlayerPlaylistBar::ParseMPCPlayList(CString fn)
 {
 	CString str;
 	CMap<int, int, CPlaylistItem, CPlaylistItem&> pli;
-	CArray<int> idx;
+	CAtlArray<int> idx;
 
 	CWebTextFile f(CTextFile::ANSI);
 	if(!f.Open(fn) || !f.ReadString(str) || str != _T("MPCPLAYLIST"))

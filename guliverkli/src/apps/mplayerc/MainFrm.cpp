@@ -324,6 +324,8 @@ BEGIN_MESSAGE_MAP(CMainFrame, CFrameWnd)
 	ON_COMMAND_RANGE(ID_FILTERSTREAMS_SUBITEM_START, ID_FILTERSTREAMS_SUBITEM_END, OnPlayLanguage)
 	ON_UPDATE_COMMAND_UI_RANGE(ID_FILTERSTREAMS_SUBITEM_START, ID_FILTERSTREAMS_SUBITEM_END, OnUpdatePlayLanguage)
 	ON_COMMAND_RANGE(ID_VOLUME_UP, ID_VOLUME_MUTE, OnPlayVolume)
+	ON_COMMAND_RANGE(ID_VOLUME_BOOST_INC, ID_VOLUME_BOOST_MAX, OnPlayVolumeBoost)
+	ON_UPDATE_COMMAND_UI_RANGE(ID_VOLUME_BOOST_INC, ID_VOLUME_BOOST_MAX, OnUpdatePlayVolumeBoost)
 	ON_COMMAND_RANGE(ID_AFTERPLAYBACK_CLOSE, ID_AFTERPLAYBACK_DONOTHING, OnAfterplayback)
 	ON_UPDATE_COMMAND_UI_RANGE(ID_AFTERPLAYBACK_CLOSE, ID_AFTERPLAYBACK_DONOTHING, OnUpdateAfterplayback)
 
@@ -2824,7 +2826,7 @@ void CMainFrame::OnOgmAudio(UINT nID)
 	if(!pSS) pSS = FindFilter(L"{55DA30FC-F16B-49fc-BAA5-AE59FC65F82D}", pGB);
 	if(!pSS) return;
 
-    CArray<int> snds;
+    CAtlArray<int> snds;
 	int iSel = -1;
 
 	DWORD cStreams = 0;
@@ -2868,7 +2870,7 @@ void CMainFrame::OnOgmSub(UINT nID)
 	if(!pSS) pSS = FindFilter(L"{55DA30FC-F16B-49fc-BAA5-AE59FC65F82D}", pGB);
 	if(!pSS) return;
 
-    CArray<int> subs;
+    CAtlArray<int> subs;
 	int iSel = -1;
 
 	DWORD cStreams = 0;
@@ -4812,9 +4814,9 @@ void CMainFrame::OnPlaySeek(UINT nID)
 	SeekTo(m_wndSeekBar.GetPos() + dt);
 }
 
-static int rangebsearch(REFERENCE_TIME val, CArray<REFERENCE_TIME>& rta)
+static int rangebsearch(REFERENCE_TIME val, CAtlArray<REFERENCE_TIME>& rta)
 {
-	int i = 0, j = rta.GetSize() - 1, ret = -1;
+	int i = 0, j = rta.GetCount() - 1, ret = -1;
 
 	if(j >= 0 && val >= rta[j]) return(j);
 
@@ -5274,7 +5276,7 @@ void CMainFrame::OnPlaySubtitles(UINT nID)
 					CRenderedTextSubtitle* pRTS = (CRenderedTextSubtitle*)(ISubStream*)pSubStream;
 
 					CAutoPtrArray<CPPageSubStyle> pages;
-					CArray<STSStyle*> styles;
+					CAtlArray<STSStyle*> styles;
 
 					POSITION pos = pRTS->m_styles.GetStartPosition();
 					for(int i = 0; pos; i++)
@@ -5399,7 +5401,39 @@ void CMainFrame::OnUpdatePlayLanguage(CCmdUI* pCmdUI)
 void CMainFrame::OnPlayVolume(UINT nID)
 {
 	if(m_iMediaLoadState == MLS_LOADED) 
+	{
 		pBA->put_Volume(m_wndToolBar.Volume);
+	}
+}
+
+void CMainFrame::OnPlayVolumeBoost(UINT nID)
+{
+	AppSettings& s = AfxGetAppSettings();
+
+	int i = (int)(50.0f*log10(s.AudioBoost));
+
+	switch(nID)
+	{
+	case ID_VOLUME_BOOST_INC: i = min(i+10, 100); break;
+	case ID_VOLUME_BOOST_DEC: i = max(i-10, 0); break;
+	case ID_VOLUME_BOOST_MIN: i = 0; break;
+	case ID_VOLUME_BOOST_MAX: i = 100; break;
+	}
+
+	s.AudioBoost = pow(10.0f, (float)i/50);
+
+	if(CComQIPtr<IAudioSwitcherFilter> pASF = FindFilter(__uuidof(CAudioSwitcherFilter), pGB))
+	{
+		bool fNormalize, fNormalizeRecover;
+		float boost;
+		pASF->GetNormalizeBoost(fNormalize, fNormalizeRecover, boost);
+		pASF->SetNormalizeBoost(fNormalize, fNormalizeRecover, s.AudioBoost);
+	}
+}
+
+void CMainFrame::OnUpdatePlayVolumeBoost(CCmdUI* pCmdUI)
+{
+	pCmdUI->Enable();
 }
 
 void CMainFrame::OnAfterplayback(UINT nID)
@@ -6883,9 +6917,9 @@ void CMainFrame::OpenFile(OpenFileData* pOFD)
 	UINT nKFs = 0, nKFsTmp = 0;
 	if(pKFI && S_OK == pKFI->GetKeyFrameCount(nKFs) && nKFs > 0)
 	{
-		m_kfs.SetSize(nKFsTmp = nKFs);
+		m_kfs.SetCount(nKFsTmp = nKFs);
 		if(S_OK != pKFI->GetKeyFrames(&TIME_FORMAT_MEDIA_TIME, m_kfs.GetData(), nKFsTmp) || nKFsTmp != nKFs)
-			m_kfs.SetSize(0);
+			m_kfs.RemoveAll();
 	}
 
 	m_iPlaybackMode = PM_FILE;

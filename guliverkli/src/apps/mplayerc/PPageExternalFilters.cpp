@@ -97,7 +97,7 @@ FilterOverride* CPPageExternalFilters::GetCurFilter()
 	return i >= 0 ? (FilterOverride*)m_pFilters.GetAt((POSITION)m_filters.GetItemDataPtr(i)) : (FilterOverride*)NULL;
 }
 
-void CPPageExternalFilters::SetupMajorTypes(CArray<GUID>& guids)
+void CPPageExternalFilters::SetupMajorTypes(CAtlArray<GUID>& guids)
 {
 	guids.RemoveAll();
 	guids.Add(MEDIATYPE_NULL);
@@ -124,7 +124,7 @@ void CPPageExternalFilters::SetupMajorTypes(CArray<GUID>& guids)
 	guids.Add(MEDIATYPE_DVD_NAVIGATION);
 }
 
-void CPPageExternalFilters::SetupSubTypes(CArray<GUID>& guids)
+void CPPageExternalFilters::SetupSubTypes(CAtlArray<GUID>& guids)
 {
 	guids.RemoveAll();
 	guids.Add(MEDIASUBTYPE_None);
@@ -467,7 +467,7 @@ void CPPageExternalFilters::OnAddMajorType()
 	FilterOverride* f = GetCurFilter();
 	if(!f) return;
 
-	CArray<GUID> guids;
+	CAtlArray<GUID> guids;
 	SetupMajorTypes(guids);
 	
 	CSelectMediaType dlg(guids, MEDIATYPE_NULL, this);
@@ -509,7 +509,7 @@ void CPPageExternalFilters::OnAddSubType()
 	POSITION pos = (POSITION)m_tree.GetItemData(child);
 	GUID major = f->guids.GetAt(pos);
 
-	CArray<GUID> guids;
+	CAtlArray<GUID> guids;
 	SetupSubTypes(guids);
 	
 	CSelectMediaType dlg(guids, MEDIASUBTYPE_NULL, this);
@@ -685,7 +685,7 @@ void CPPageExternalFilters::OnNMDblclkTree2(NMHDR *pNMHDR, LRESULT *pResult)
 		f->guids.GetNext(pos);
 		if(!pos) return;
 
-		CArray<GUID> guids;
+		CAtlArray<GUID> guids;
 		SetupSubTypes(guids);
 
 		CSelectMediaType dlg(guids, f->guids.GetAt(pos), this);

@@ -30,7 +30,7 @@ class CPPagePlayback : public CPPageBase
 	DECLARE_DYNAMIC(CPPagePlayback)
 
 private:
-	CArray<dispmode> m_dms;
+	CAtlArray<dispmode> m_dms;
 
 public:
 	CPPagePlayback();

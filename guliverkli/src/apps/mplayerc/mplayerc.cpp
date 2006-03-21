@@ -954,6 +954,10 @@ CMPlayerCApp::Settings::Settings()
 	ADDCMD((ID_VOLUME_UP, VK_UP, FVIRTKEY|FNOINVERT, _T("Volume Up"), APPCOMMAND_VOLUME_UP, wmcmd::WUP));
 	ADDCMD((ID_VOLUME_DOWN, VK_DOWN, FVIRTKEY|FNOINVERT, _T("Volume Down"), APPCOMMAND_VOLUME_DOWN, wmcmd::WDOWN));
 	ADDCMD((ID_VOLUME_MUTE, 'M', FVIRTKEY|FCONTROL|FNOINVERT, _T("Volume Mute"), APPCOMMAND_VOLUME_MUTE));
+	ADDCMD((ID_VOLUME_BOOST_INC, 0, FVIRTKEY|FNOINVERT, _T("Volume Boost Increase")));
+	ADDCMD((ID_VOLUME_BOOST_DEC, 0, FVIRTKEY|FNOINVERT, _T("Volume Boost Decrease")));
+	ADDCMD((ID_VOLUME_BOOST_MIN, 0, FVIRTKEY|FNOINVERT, _T("Volume Boost Min")));
+	ADDCMD((ID_VOLUME_BOOST_MAX, 0, FVIRTKEY|FNOINVERT, _T("Volume Boost Max")));
 	ADDCMD((ID_NAVIGATE_TITLEMENU, 0, FVIRTKEY|FNOINVERT, _T("DVD Title Menu")));
 	ADDCMD((ID_NAVIGATE_ROOTMENU, 0, FVIRTKEY|FNOINVERT, _T("DVD Root Menu")));
 	ADDCMD((ID_NAVIGATE_SUBPICTUREMENU, 0, FVIRTKEY|FNOINVERT, _T("DVD Subtitle Menu")));
@@ -1501,8 +1505,8 @@ void CMPlayerCApp::Settings::UpdateData(bool fSave)
 			}
 		}
 
-		CArray<ACCEL> pAccel;
-		pAccel.SetSize(wmcmds.GetCount());
+		CAtlArray<ACCEL> pAccel;
+		pAccel.SetCount(wmcmds.GetCount());
 		POSITION pos = wmcmds.GetHeadPosition();
 		for(int i = 0; pos; i++) pAccel[i] = wmcmds.GetNext(pos);
 		hAccel = CreateAcceleratorTable(pAccel.GetData(), pAccel.GetCount());
