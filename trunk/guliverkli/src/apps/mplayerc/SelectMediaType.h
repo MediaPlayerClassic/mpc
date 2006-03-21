@@ -30,10 +30,10 @@ class CSelectMediaType : public CCmdUIDialog
 	DECLARE_DYNAMIC(CSelectMediaType)
 
 private:
-	CArray<GUID>& m_guids;
+	CAtlArray<GUID>& m_guids;
 
 public:
-	CSelectMediaType(CArray<GUID>& guids, GUID guid, CWnd* pParent = NULL);   // standard constructor
+	CSelectMediaType(CAtlArray<GUID>& guids, GUID guid, CWnd* pParent = NULL);   // standard constructor
 	virtual ~CSelectMediaType();
 
 	GUID m_guid;

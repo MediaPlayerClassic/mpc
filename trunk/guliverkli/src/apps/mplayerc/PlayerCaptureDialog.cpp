@@ -78,7 +78,7 @@ static void SaveMediaType(CStringW DisplayName, AM_MEDIA_TYPE* pmt)
 	AfxGetApp()->WriteProfileBinary(_T("Capture\\") + CString(DisplayName), _T("Format"), pmt->pbFormat, pmt->cbFormat);
 }
 
-static void LoadDefaultCodec(CArray<Codec>& codecs, CComboBox& box, const GUID& cat)
+static void LoadDefaultCodec(CAtlArray<Codec>& codecs, CComboBox& box, const GUID& cat)
 {
 	int len = box.GetCount();
 	if(len >= 0) box.SetCurSel(0);
@@ -103,7 +103,7 @@ static void LoadDefaultCodec(CArray<Codec>& codecs, CComboBox& box, const GUID& 
 	}
 }
 
-static void SaveDefaultCodec(CArray<Codec>& codecs, CComboBox& box, const GUID& cat)
+static void SaveDefaultCodec(CAtlArray<Codec>& codecs, CComboBox& box, const GUID& cat)
 {
 	if(cat == GUID_NULL) return;
 
@@ -386,7 +386,7 @@ static bool SetupDimension(CFormatArray<T>& tfa, CComboBox& type, CComboBox& dim
 	return(dim.GetCurSel() >= 0);
 }
 
-static void InitCodecList(CArray<Codec>& codecs, CComboBox& box, const GUID& cat)
+static void InitCodecList(CAtlArray<Codec>& codecs, CComboBox& box, const GUID& cat)
 {
 	codecs.RemoveAll();
 	box.ResetContent();
@@ -443,7 +443,7 @@ static void InitCodecList(CArray<Codec>& codecs, CComboBox& box, const GUID& cat
 	LoadDefaultCodec(codecs, box, cat);
 }
 
-static int ShowPPage(CArray<Codec>& codecs, CComboBox& box, HWND hWnd = NULL)
+static int ShowPPage(CAtlArray<Codec>& codecs, CComboBox& box, HWND hWnd = NULL)
 {
 	int iSel = box.GetCurSel();
 	if(iSel < 0) return(-1);

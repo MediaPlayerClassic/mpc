@@ -389,14 +389,14 @@ bool CJpegEncoderMem::PutByte(BYTE b)
 
 bool CJpegEncoderMem::PutBytes(const void* pData, int len)
 {
-	CArray<BYTE> moredata;
-	moredata.SetSize(len);
+	CAtlArray<BYTE> moredata;
+	moredata.SetCount(len);
 	memcpy(moredata.GetData(), pData, len);
 	m_pdata->Append(moredata);
 	return true;
 }
 
-bool CJpegEncoderMem::Encode(const BYTE* dib, CArray<BYTE>& data)
+bool CJpegEncoderMem::Encode(const BYTE* dib, CAtlArray<BYTE>& data)
 {
 	m_pdata = &data;
 	return __super::Encode(dib);

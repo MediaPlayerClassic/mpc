@@ -661,8 +661,8 @@ BOOL CPPageAccelTbl::OnApply()
 	s.wmcmds.RemoveAll();
 	s.wmcmds.AddTail(&m_wmcmds);
 
-	CArray<ACCEL> pAccel;
-	pAccel.SetSize(m_wmcmds.GetCount());
+	CAtlArray<ACCEL> pAccel;
+	pAccel.SetCount(m_wmcmds.GetCount());
 	POSITION pos = m_wmcmds.GetHeadPosition();
 	for(int i = 0; pos; i++) pAccel[i] = m_wmcmds.GetNext(pos);
 	if(s.hAccel) DestroyAcceleratorTable(s.hAccel);

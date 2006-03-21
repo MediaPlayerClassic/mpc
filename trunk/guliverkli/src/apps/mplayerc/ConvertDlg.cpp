@@ -388,7 +388,7 @@ void CConvertDlg::ShowPinPopup(HTREEITEM hTI, CPoint p)
 	CMediaType mt;
 	if(pPinTo) t->m_pPin->ConnectionMediaType(&mt);
 
-	CArray<CMediaType> mts;
+	CAtlArray<CMediaType> mts;
 	BeginEnumMediaTypes(t->m_pPin, pEMT, pmt)
 		mts.Add(*pmt);
 	EndEnumMediaTypes(pmt)	

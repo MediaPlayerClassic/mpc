@@ -31,7 +31,7 @@ class COpenCapDeviceDlg : public CResizableDialog
 //	DECLARE_DYNAMIC(COpenCapDeviceDlg)
 
 private:
-	CArray<CString> m_vidnames, m_audnames;
+	CAtlArray<CString> m_vidnames, m_audnames;
 
 public:
 	COpenCapDeviceDlg(CWnd* pParent = NULL);   // standard constructor

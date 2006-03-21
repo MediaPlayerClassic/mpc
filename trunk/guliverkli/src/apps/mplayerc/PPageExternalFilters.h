@@ -38,8 +38,8 @@ private:
 	FilterOverride* m_pLastSelFilter;
 	FilterOverride* GetCurFilter();
 
-	void SetupMajorTypes(CArray<GUID>& guids);
-	void SetupSubTypes(CArray<GUID>& guids);
+	void SetupMajorTypes(CAtlArray<GUID>& guids);
+	void SetupSubTypes(CAtlArray<GUID>& guids);
 
 public:
 	CPPageExternalFilters();

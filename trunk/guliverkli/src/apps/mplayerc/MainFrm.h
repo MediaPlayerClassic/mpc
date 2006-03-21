@@ -352,7 +352,7 @@ protected:
 	friend class CGraphThread;
 	CGraphThread* m_pGraphThread;
 
-	CArray<REFERENCE_TIME> m_kfs;
+	CAtlArray<REFERENCE_TIME> m_kfs;
 
 	bool m_fOpeningAborted;
 
@@ -629,6 +629,8 @@ public:
 	afx_msg void OnPlayLanguage(UINT nID);
 	afx_msg void OnUpdatePlayLanguage(CCmdUI* pCmdUI);
 	afx_msg void OnPlayVolume(UINT nID);
+	afx_msg void OnPlayVolumeBoost(UINT nID);
+	afx_msg void OnUpdatePlayVolumeBoost(CCmdUI* pCmdUI);
 	afx_msg void OnAfterplayback(UINT nID);
 	afx_msg void OnUpdateAfterplayback(CCmdUI* pCmdUI);
 

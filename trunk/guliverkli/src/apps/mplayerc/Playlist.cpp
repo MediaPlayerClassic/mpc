@@ -168,8 +168,8 @@ int compare2(const void* arg1, const void* arg2)
 
 void CPlaylist::SortById()
 {
-	CArray<plsort_t> a;
-	a.SetSize(GetCount());
+	CAtlArray<plsort_t> a;
+	a.SetCount(GetCount());
 	POSITION pos = GetHeadPosition();
 	for(int i = 0; pos; i++, GetNext(pos))
 		a[i].n = GetAt(pos).m_id, a[i].pos = pos;
@@ -184,8 +184,8 @@ void CPlaylist::SortById()
 
 void CPlaylist::SortByName()
 {
-	CArray<plsort2_t> a;
-	a.SetSize(GetCount());
+	CAtlArray<plsort2_t> a;
+	a.SetCount(GetCount());
 	POSITION pos = GetHeadPosition();
 	for(int i = 0; pos; i++, GetNext(pos))
 	{
@@ -204,8 +204,8 @@ void CPlaylist::SortByName()
 
 void CPlaylist::SortByPath()
 {
-	CArray<plsort2_t> a;
-	a.SetSize(GetCount());
+	CAtlArray<plsort2_t> a;
+	a.SetCount(GetCount());
 	POSITION pos = GetHeadPosition();
 	for(int i = 0; pos; i++, GetNext(pos))
 		a[i].str = GetAt(pos).m_fns.GetHead(), a[i].pos = pos;
@@ -220,8 +220,8 @@ void CPlaylist::SortByPath()
 
 void CPlaylist::Randomize()
 {
-	CArray<plsort_t> a;
-	a.SetSize(GetCount());
+	CAtlArray<plsort_t> a;
+	a.SetCount(GetCount());
 	srand((unsigned int)time(NULL));
 	POSITION pos = GetHeadPosition();
 	for(int i = 0; pos; i++, GetNext(pos))

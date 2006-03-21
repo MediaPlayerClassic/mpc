@@ -682,7 +682,7 @@ bool CWebClientSocket::OnSnapShotJpeg(CStringA& hdr, CStringA& body, CStringA& m
 
 	BYTE* pData = NULL;
 	long size = 0;
-	CArray<BYTE> jpeg;
+	CAtlArray<BYTE> jpeg;
 	if(m_pMainFrame->GetDIB(&pData, size, true))
 	{
 		if(CJpegEncoderMem().Encode(pData, jpeg))
@@ -691,7 +691,7 @@ bool CWebClientSocket::OnSnapShotJpeg(CStringA& hdr, CStringA& body, CStringA& m
 				"Expires: Thu, 19 Nov 1981 08:52:00 GMT\r\n"
 				"Cache-Control: no-store, no-cache, must-revalidate, post-check=0, pre-check=0\r\n"
 				"Pragma: no-cache\r\n";
-			body = CStringA((char*)jpeg.GetData(), jpeg.GetSize());
+			body = CStringA((char*)jpeg.GetData(), jpeg.GetCount());
 			mime = "image/jpeg";
 			fRet = true;
 		}

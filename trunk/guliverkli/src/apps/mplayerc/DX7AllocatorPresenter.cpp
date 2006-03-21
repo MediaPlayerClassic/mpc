@@ -707,7 +707,7 @@ STDMETHODIMP CVMR7AllocatorPresenter::CreateRenderer(IUnknown** ppRenderer)
 STDMETHODIMP_(void) CVMR7AllocatorPresenter::SetTime(REFERENCE_TIME rtNow)
 {
 	__super::SetTime(rtNow);
-	m_fUseInternalTimer = true;
+	m_fUseInternalTimer = false;
 }
 
 // IVMRSurfaceAllocator

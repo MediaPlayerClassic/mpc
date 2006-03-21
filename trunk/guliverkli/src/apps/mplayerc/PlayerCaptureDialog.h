@@ -304,7 +304,7 @@ typedef struct
 	CComBSTR DisplayName;
 } Codec;
 
-typedef CArray<Codec> CCodecArray;
+typedef CAtlArray<Codec> CCodecArray;
 
 // CPlayerCaptureDialog dialog
 

@@ -45,7 +45,7 @@ public:
 
 class CJpegEncoderMem : public CJpegEncoder
 {
-	CArray<BYTE>* m_pdata;
+	CAtlArray<BYTE>* m_pdata;
 
 protected:
 	bool PutByte(BYTE b);
@@ -54,6 +54,6 @@ protected:
 public:
 	CJpegEncoderMem();
 
-	bool Encode(const BYTE* dib, CArray<BYTE>& data);
+	bool Encode(const BYTE* dib, CAtlArray<BYTE>& data);
 };
 
