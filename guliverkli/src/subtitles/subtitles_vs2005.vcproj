@@ -364,6 +364,10 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath=".\SSF.cpp"
+				>
+			</File>
+			<File
 				RelativePath="stdafx.cpp"
 				>
 				<FileConfiguration
@@ -511,6 +515,10 @@
 			</File>
 			<File
 				RelativePath="RTS.h"
+				>
+			</File>
+			<File
+				RelativePath=".\SSF.h"
 				>
 			</File>
 			<File

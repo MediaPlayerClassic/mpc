@@ -1613,10 +1613,10 @@ CFGManagerCustom::CFGManagerCustom(LPCTSTR pName, LPUNKNOWN pUnk, UINT src, UINT
 			m_transform.AddTail(new CFGFilterRegistry(GUIDFromCString(clsid), MERIT64_DO_NOT_USE));
 		}
 	}
-
+/*
 	// NVIDIA Transport Demux crashed for someone, I could not reproduce it
 	m_transform.AddTail(new CFGFilterRegistry(GUIDFromCString(_T("{735823C1-ACC4-11D3-85AC-006008376FB8}")), MERIT64_DO_NOT_USE));	
-
+*/
 	// Overrides
 
 	WORD merit_low = 1;
