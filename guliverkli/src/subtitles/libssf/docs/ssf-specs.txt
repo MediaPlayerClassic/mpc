@@ -484,6 +484,11 @@ align#bottomright {v: "bottom"; h: "right";};
 time#time {scale: 1;};
 time#startstop {start: "start"; stop: "stop";};
 
+#b {font.weight: "bold"};
+#i {font.italic: "true"};
+#u {font.underline: "true"};
+#s {font.strikethrough: "true"};
+
 subtitle#subtitle
 {
 	frame
