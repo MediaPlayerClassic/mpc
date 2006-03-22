@@ -498,12 +498,17 @@ namespace ssf
 
 	//
 
-	Point Placement::TopLeft(Size s)
+	Point Placement::TopLeft(Rect r, Size s)
 	{
+		r.l += margin.l;
+		r.t += margin.t;
+		r.r -= margin.r;
+		r.b -= margin.b;
+
 		Point p;
-		if(pos.auto_x) p.x = margin.l + ((margin.r - margin.l) - s.cx) * align.h;
+		if(pos.auto_x) p.x = r.l + ((r.r - r.l) - s.cx) * align.h;
 		else p.x = pos.x - s.cx * align.h;
-		if(pos.auto_y) p.y = margin.t + ((margin.b - margin.t) - s.cy) * align.v;
+		if(pos.auto_y) p.y = r.t + ((r.b - r.t) - s.cy) * align.v;
 		else p.y = pos.y - s.cy * align.v;
 		return p;
 	}
