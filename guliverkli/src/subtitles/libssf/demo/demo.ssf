@@ -130,6 +130,17 @@ subtitle : clocktest {@ {0:08};};
 subtitle : clocktest {@ {0:09};};
 subtitle : clocktest {@ {0:10};};
 
+/*
+Dialogue: Marked=0,0:00:12.00,0:00:15.00,MainT,,0000,0000,0000,!Effect,{\c&H80FF00&}Hello.
+Dialogue: Marked=0,0:00:16.00,0:00:19.00,MainT,,0000,0000,0000,!Effect,{\c&HE0E0E0&}Oh, hi.
+Dialogue: Marked=0,0:00:10.00,0:00:12.00,MainT,,0000,0000,0080,!Effect,{\c&H407F00&}[02:00-05:00] Hello.
+Dialogue: Marked=0,0:00:12.00,0:00:15.00,MainT,,0000,0000,0080,!Effect,{\c&H80FF00&}[02:00-05:00] Hello.
+Dialogue: Marked=0,0:00:15.00,0:00:21.00,MainT,,0000,0000,0080,!Effect,{\c&H407F00&}[02:00-05:00] Hello.
+Dialogue: Marked=0,0:00:10.00,0:00:16.00,MainT,,0000,0000,0080,!Effect,{\c&H707070&}[06:00-09:00] Oh, hi.
+Dialogue: Marked=0,0:00:16.00,0:00:19.00,MainT,,0000,0000,0080,!Effect,{\c&HE0E0E0&}[06:00-09:00] Oh, hi.
+Dialogue: Marked=0,0:00:19.00,0:00:21.00,MainT,,0000,0000,0080,!Effect,{\c&H707070&}[06:00-09:00] Oh, hi.
+*/
+
 subtitle
 {
 	time {start: 00:00:12.000; stop: 00:00:15.000;};
@@ -143,17 +154,6 @@ subtitle
 	style: MainT {font.color {r: 0xe0; g: 0xe0; b: 0xe0;};};
 	@ {Oh, hi.};
 };
-
-/*
-Dialogue: Marked=0,0:00:12.00,0:00:15.00,MainT,,0000,0000,0000,!Effect,{\c&H80FF00&}Hello.
-Dialogue: Marked=0,0:00:16.00,0:00:19.00,MainT,,0000,0000,0000,!Effect,{\c&HE0E0E0&}Oh, hi.
-Dialogue: Marked=0,0:00:10.00,0:00:12.00,MainT,,0000,0000,0080,!Effect,{\c&H407F00&}[02:00-05:00] Hello.
-Dialogue: Marked=0,0:00:12.00,0:00:15.00,MainT,,0000,0000,0080,!Effect,{\c&H80FF00&}[02:00-05:00] Hello.
-Dialogue: Marked=0,0:00:15.00,0:00:21.00,MainT,,0000,0000,0080,!Effect,{\c&H407F00&}[02:00-05:00] Hello.
-Dialogue: Marked=0,0:00:10.00,0:00:16.00,MainT,,0000,0000,0080,!Effect,{\c&H707070&}[06:00-09:00] Oh, hi.
-Dialogue: Marked=0,0:00:16.00,0:00:19.00,MainT,,0000,0000,0080,!Effect,{\c&HE0E0E0&}[06:00-09:00] Oh, hi.
-Dialogue: Marked=0,0:00:19.00,0:00:21.00,MainT,,0000,0000,0080,!Effect,{\c&H707070&}[06:00-09:00] Oh, hi.
-*/
 
 #dialogtest
 {
@@ -512,14 +512,14 @@ subtitle
 {
 	time {start: 00:01:50.000; stop: 00:02:00.000;};
 	style: ShiftJIS;
-	@ {\[Keitarou\] TODO};
+	@ {\[Keitarou\] だ。。。大丈夫};
 };
 
 subtitle
 {
 	time {start: 00:01:52.000; stop: 00:02:00.000;};
 	style: ShiftJIS {color: yellow; placement.align: topright;};
-	@ {\[Naru\] TODO};
+	@ {\[Naru\] 何よ！};
 };
 
 /*
