@@ -69,11 +69,11 @@ otherwise there would be no meaning of the expression.
 - using the type as the name (type#type) can change the type's default values
 	- however, the scope is important:
 	
-	subtitle#subtitle {style {font.size: 20;};};
+	subtitle#subtitle {style.font.size: 20;};
 	style#style {font.size: 30;};
 	style#s1 {font.face: "Arial";};
-	style#s2 {font.color: red;};
-	subtitle#a {style: s1 {font.weight: "normal";};}; 
+	style#s2 : s1 {font.color: red;};
+	subtitle#a {style: s2 {font.weight: "normal";};}; 
 
 	Here font.size equals to 20, because it inherits from subtitle#subtitle.style instead of the 
 	global style#style, additionally it gets the properties of s2-s1 and the inline def. If it also 
