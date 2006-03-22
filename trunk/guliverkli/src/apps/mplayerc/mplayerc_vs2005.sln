@@ -15,6 +15,7 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "subtitles", "..\..\subtitles\subtitles_vs2005.vcproj", "{5E56335F-0FB1-4EEA-B240-D8DC5E0608E4}"
 	ProjectSection(ProjectDependencies) = postProject
 		{D514EA4D-EAFB-47A9-A437-A582CA571251} = {D514EA4D-EAFB-47A9-A437-A582CA571251}
+		{DD9D2D92-2241-408A-859E-B85D444B7E3C} = {DD9D2D92-2241-408A-859E-B85D444B7E3C}
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "dsutil", "..\..\dsutil\dsutil_vs2005.vcproj", "{FC70988B-1AE5-4381-866D-4F405E28AC42}"
@@ -32,6 +33,8 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "TreePropSheet", "..\..\ui\TreePropSheet\TreePropSheet_vs2005.vcproj", "{AB494732-EF6D-44D0-BCF8-80FF04858D10}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "baseclasses", "C:\Program Files\Microsoft DirectX 9.0 SDK\Samples\C++\DirectShow\BaseClasses\baseclasses.vcproj", "{7CDC5863-9F36-468D-A634-6D7799E0A15E}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libssf", "..\..\subtitles\libssf\libssf.vcproj", "{DD9D2D92-2241-408A-859E-B85D444B7E3C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -198,6 +201,21 @@ Global
 		{7CDC5863-9F36-468D-A634-6D7799E0A15E}.ResourceDLL|Win32.ActiveCfg = Release Unicode|Win64 (AMD64)
 		{7CDC5863-9F36-468D-A634-6D7799E0A15E}.ResourceDLL|Win64 (AMD64).ActiveCfg = Release Unicode|Win64 (AMD64)
 		{7CDC5863-9F36-468D-A634-6D7799E0A15E}.ResourceDLL|Win64 (AMD64).Build.0 = Release Unicode|Win64 (AMD64)
+		{DD9D2D92-2241-408A-859E-B85D444B7E3C}.Debug Unicode|Win32.ActiveCfg = Debug Unicode|Win32
+		{DD9D2D92-2241-408A-859E-B85D444B7E3C}.Debug Unicode|Win32.Build.0 = Debug Unicode|Win32
+		{DD9D2D92-2241-408A-859E-B85D444B7E3C}.Debug Unicode|Win64 (AMD64).ActiveCfg = Debug Unicode|Win32
+		{DD9D2D92-2241-408A-859E-B85D444B7E3C}.Debug|Win32.ActiveCfg = Debug|Win32
+		{DD9D2D92-2241-408A-859E-B85D444B7E3C}.Debug|Win32.Build.0 = Debug|Win32
+		{DD9D2D92-2241-408A-859E-B85D444B7E3C}.Debug|Win64 (AMD64).ActiveCfg = Debug|Win32
+		{DD9D2D92-2241-408A-859E-B85D444B7E3C}.Release Unicode|Win32.ActiveCfg = Release Unicode|Win32
+		{DD9D2D92-2241-408A-859E-B85D444B7E3C}.Release Unicode|Win32.Build.0 = Release Unicode|Win32
+		{DD9D2D92-2241-408A-859E-B85D444B7E3C}.Release Unicode|Win64 (AMD64).ActiveCfg = Release Unicode|Win32
+		{DD9D2D92-2241-408A-859E-B85D444B7E3C}.Release|Win32.ActiveCfg = Release|Win32
+		{DD9D2D92-2241-408A-859E-B85D444B7E3C}.Release|Win32.Build.0 = Release|Win32
+		{DD9D2D92-2241-408A-859E-B85D444B7E3C}.Release|Win64 (AMD64).ActiveCfg = Release|Win32
+		{DD9D2D92-2241-408A-859E-B85D444B7E3C}.ResourceDLL|Win32.ActiveCfg = Release Unicode|Win32
+		{DD9D2D92-2241-408A-859E-B85D444B7E3C}.ResourceDLL|Win32.Build.0 = Release Unicode|Win32
+		{DD9D2D92-2241-408A-859E-B85D444B7E3C}.ResourceDLL|Win64 (AMD64).ActiveCfg = Release Unicode|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
