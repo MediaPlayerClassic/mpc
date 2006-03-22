@@ -175,6 +175,8 @@ rect
 
 align
 {
+	// when given in percent, 0 means top/left, 1 bottom/right, 0.5 middle/center
+	
 	v: ["top" | "middle" | "bottom" | <percent>];
 	h: ["left" | "center" | "right" | <percent>];
 };
@@ -202,7 +204,7 @@ placement
 {
 	clip: ["frame" | <rect>]; // anything drawn outside this rectangle is clipped
 	margin: <rect>; // "top" "right" "bottom" "left" are also valid values for the rect members, they refer to the values of the "frame" rect (0, 0, frame.resolution.cx, frame.resolution.cy)
-	align: <align>; // @.l = margin.l + ((margin.r - margin.l) - @.w) * align.h / text.t = ... replace l/t, r/b, w/h, h/v ...
+	align: <align>;
 	pos: ["auto" | <point>]; // absolute values, pos.x or pos.y can be animated only when both the source and destination style defined it
 	offset: <point>; // relative to pos
 	angle: <angle>; // origin of rotation is the alignment point
