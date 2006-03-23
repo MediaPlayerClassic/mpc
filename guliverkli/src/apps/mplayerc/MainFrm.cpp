@@ -71,6 +71,8 @@
 #include "DX7AllocatorPresenter.h"
 #include "DX9AllocatorPresenter.h"
 
+#include "..\..\subtitles\SSF.h"
+
 #define DEFCLIENTW 292
 #define DEFCLIENTH 200
 
@@ -4102,10 +4104,30 @@ void CMainFrame::OnFileISDBDownload()
 
 				if(OpenUrl(is, CString(url+args), str))
 				{
-					CAutoPtr<CRenderedTextSubtitle> pRTS(new CRenderedTextSubtitle(&m_csSubLock));
-					if(pRTS && pRTS->Open((BYTE*)(LPCSTR)str, str.GetLength(), DEFAULT_CHARSET, CString(s.name)) && pRTS->GetStreamCount() > 0)
+					CComPtr<ISubStream> pSubStream;
+
+					if(!pSubStream)
 					{
-						CComPtr<ISubStream> pSubStream = pRTS.Detach();
+						CAutoPtr<CRenderedSSF> p(new CRenderedSSF(&m_csSubLock));
+
+						if(p->Open(ssf::MemoryStream((BYTE*)(LPCSTR)str, str.GetLength(), false, false), CString(s.name)) && p->GetStreamCount() > 0)
+						{
+							pSubStream = p.Detach();
+						}
+					}
+
+					if(!pSubStream)
+					{
+						CAutoPtr<CRenderedTextSubtitle> p(new CRenderedTextSubtitle(&m_csSubLock));
+
+						if(p->Open((BYTE*)(LPCSTR)str, str.GetLength(), DEFAULT_CHARSET, CString(s.name)) && p->GetStreamCount() > 0)
+						{
+							pSubStream = p.Detach();
+						}
+					}
+
+					if(pSubStream)
+					{
 						m_pSubStreams.AddTail(pSubStream);
 						if(!pSubStreamToSet) pSubStreamToSet = pSubStream;
 					}
@@ -8986,16 +9008,23 @@ bool CMainFrame::LoadSubtitle(CString fn)
 	{
 		if(!pSubStream)
 		{
-			CAutoPtr<CVobSubFile> pVSF(new CVobSubFile(&m_csSubLock));
-			if(CString(CPath(fn).GetExtension()).MakeLower() == _T(".idx") && pVSF && pVSF->Open(fn) && pVSF->GetStreamCount() > 0)
-				pSubStream = pVSF.Detach();
+			CAutoPtr<CVobSubFile> p(new CVobSubFile(&m_csSubLock));
+			if(CString(CPath(fn).GetExtension()).MakeLower() == _T(".idx") && p && p->Open(fn) && p->GetStreamCount() > 0)
+				pSubStream = p.Detach();
 		}
 
 		if(!pSubStream)
 		{
-			CAutoPtr<CRenderedTextSubtitle> pRTS(new CRenderedTextSubtitle(&m_csSubLock));
-			if(pRTS && pRTS->Open(fn, DEFAULT_CHARSET) && pRTS->GetStreamCount() > 0)
-				pSubStream = pRTS.Detach();
+			CAutoPtr<CRenderedSSF> p(new CRenderedSSF(&m_csSubLock));
+			if(p && p->Open(fn) && p->GetStreamCount() > 0)
+				pSubStream = p.Detach();
+		}
+
+		if(!pSubStream)
+		{
+			CAutoPtr<CRenderedTextSubtitle> p(new CRenderedTextSubtitle(&m_csSubLock));
+			if(p && p->Open(fn, DEFAULT_CHARSET) && p->GetStreamCount() > 0)
+				pSubStream = p.Detach();
 		}
 	}
 	catch(CException* e)

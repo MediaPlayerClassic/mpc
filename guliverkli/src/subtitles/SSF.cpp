@@ -155,7 +155,7 @@ STDMETHODIMP CRenderedSSF::Render(SubPicDesc& spd, REFERENCE_TIME rt, double fps
 		while(pos)
 		{
 			ssf::Text& t = s->m_text.GetNext(pos);
-
+/*
 
 			ssf::Placement& p = t.style.placement;
 			TRACE(_T("%.1f: %d [%.0f-%.0f-%.0f-%.0f, %f, %.0f-%.0f-%.0f-%.0f] '%s'\n"), 
@@ -165,6 +165,7 @@ STDMETHODIMP CRenderedSSF::Render(SubPicDesc& spd, REFERENCE_TIME rt, double fps
 				t.style.fill.width, 
 				t.style.fill.color[0], t.style.fill.color[1], t.style.fill.color[2], t.style.fill.color[3],
 				t.str);
+*/
 		}
 
 		TRACE(_T("------------\n"));

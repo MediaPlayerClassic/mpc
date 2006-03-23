@@ -6,7 +6,6 @@
 	ProjectGUID="{D514EA4D-EAFB-47A9-A437-A582CA571251}"
 	RootNamespace="subpic"
 	Keyword="Win32Proj"
-	SignManifests="true"
 	>
 	<Platforms>
 		<Platform
@@ -41,7 +40,6 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-DisableSpecificWarnings="4995;4996"
 				Optimization="0"
 				PreprocessorDefinitions="WIN32;_DEBUG;_LIB;"
 				MinimalRebuild="true"
@@ -51,6 +49,7 @@ DisableSpecificWarnings="4995;4996"
 				WarningLevel="3"
 				Detect64BitPortabilityProblems="false"
 				DebugInformationFormat="4"
+				DisableSpecificWarnings="4995;4996"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -107,8 +106,7 @@ DisableSpecificWarnings="4995;4996"
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-DisableSpecificWarnings="4995;4996"
-				Optimization="3"
+				Optimization="2"
 				InlineFunctionExpansion="2"
 				EnableIntrinsicFunctions="true"
 				FavorSizeOrSpeed="1"
@@ -121,6 +119,7 @@ DisableSpecificWarnings="4995;4996"
 				WarningLevel="3"
 				Detect64BitPortabilityProblems="false"
 				DebugInformationFormat="3"
+				DisableSpecificWarnings="4995;4996"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -177,7 +176,6 @@ DisableSpecificWarnings="4995;4996"
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-DisableSpecificWarnings="4995;4996"
 				Optimization="0"
 				PreprocessorDefinitions="WIN32;_DEBUG;_LIB;"
 				MinimalRebuild="true"
@@ -187,6 +185,7 @@ DisableSpecificWarnings="4995;4996"
 				WarningLevel="3"
 				Detect64BitPortabilityProblems="false"
 				DebugInformationFormat="4"
+				DisableSpecificWarnings="4995;4996"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -243,8 +242,7 @@ DisableSpecificWarnings="4995;4996"
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-DisableSpecificWarnings="4995;4996"
-				Optimization="3"
+				Optimization="2"
 				InlineFunctionExpansion="2"
 				EnableIntrinsicFunctions="true"
 				FavorSizeOrSpeed="1"
@@ -257,6 +255,7 @@ DisableSpecificWarnings="4995;4996"
 				WarningLevel="3"
 				Detect64BitPortabilityProblems="false"
 				DebugInformationFormat="3"
+				DisableSpecificWarnings="4995;4996"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
