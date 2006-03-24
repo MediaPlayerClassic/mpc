@@ -91,9 +91,15 @@ namespace ssf
 		CString name = GenName();
 
 		Reference* pRef = new Reference(this, name);
+
 		m_nodes.SetAt(name, pRef);
 		m_newnodes.AddTail(name);
-		if(pParentDef) pParentDef->AddTail(pRef);
+
+		if(pParentDef)
+		{
+			pParentDef->AddTail(pRef);
+			pRef->m_parent = pParentDef;
+		}
 
 		return pRef;
 	}
@@ -127,9 +133,15 @@ namespace ssf
 		if(!pDef)
 		{
 			pDef = new Definition(this, name);
+
 			m_nodes.SetAt(name, pDef);
 			m_newnodes.AddTail(name);
-			if(pParentRef) pParentRef->AddTail(pDef);
+
+			if(pParentRef)
+			{
+				pParentRef->AddTail(pDef);
+				pDef->m_parent = pParentRef;
+			}
 		}
 
 		pDef->m_type = type;

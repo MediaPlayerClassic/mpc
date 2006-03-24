@@ -34,6 +34,7 @@ namespace ssf
 		, m_type(_T("?"))
 		, m_name(name)
 		, m_priority(PNormal)
+		, m_parent(NULL)
 	{
 		ASSERT(m_pnf);
 	}
@@ -47,6 +48,7 @@ namespace ssf
 		}
 
 		m_nodes.AddTail(pNode);
+		m_name2node[pNode->m_name] = pNode;
 	}
 
 	bool Node::IsNameUnknown()
@@ -165,6 +167,23 @@ namespace ssf
 		RemoveFromCache();
 	}
 
+	bool Definition::IsVisible(Definition* pDef)
+	{
+		Node* pNode = m_parent;
+
+		while(pNode)
+		{
+			if(pNode->m_name2node.Lookup(pDef->m_name))
+			{
+				return true;
+			}
+
+			pNode = pNode->m_parent;
+		}
+
+		return false;
+	}
+
 	void Definition::AddTail(Node* pNode)
 	{
 //		if(Reference* pRef = dynamic_cast<Reference*>(pNode))
@@ -204,6 +223,7 @@ namespace ssf
 			Definition* pDef = l.RemoveHead();
 
 			pRetDef->m_priority = pDef->m_priority;
+			pRetDef->m_parent = pDef->m_parent;
 
 			if(pDef->IsValue())
 			{
@@ -243,6 +263,7 @@ namespace ssf
 		ASSERT(s != node);
 
 		m_nodes.RemoveAll();
+		m_name2node.RemoveAll();
 
 		m_status = s;
 

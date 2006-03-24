@@ -54,8 +54,9 @@ bool CRenderedSSF::Open(CString fn, CString name)
 			return true;
 		}
 	}
-	catch(ssf::Exception&)
+	catch(ssf::Exception& e)
 	{
+		TRACE(_T("%s\n"), e.ToString());
 	}
 
 	return false;	
@@ -73,12 +74,32 @@ bool CRenderedSSF::Open(ssf::Stream& s, CString name)
 		m_psf->Parse(s);
 #ifdef DEBUG
 		m_psf->Dump(ssf::PLow);
+		double at = 0;
+		for(int i = 9000; i < 12000; i += 10)
+		{
+			double at = (double)i/1000;
+			CAutoPtrList<ssf::Subtitle> subs;
+			m_psf->Lookup(at, subs);
+			POSITION pos = subs.GetHeadPosition();
+			while(pos)
+			{
+				const ssf::Subtitle* s = subs.GetNext(pos);
+
+				POSITION pos = s->m_text.GetHeadPosition();
+				while(pos)
+				{
+					const ssf::Text& t = s->m_text.GetNext(pos);
+					TRACE(_T("%.3f: [%.2f] %s\n"), at, t.style.font.size, t.str);
+				}
+			}
+		}
 #endif
 		m_name = name;
 		return true;
 	}
-	catch(ssf::Exception&)
+	catch(ssf::Exception& e)
 	{
+		TRACE(_T("%s\n"), e.ToString());
 	}
 
 	return false;

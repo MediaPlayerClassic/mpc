@@ -3902,6 +3902,7 @@ void CMainFrame::OnUpdateFileConvert(CCmdUI* pCmdUI)
 
 void CMainFrame::OnFileLoadsubtitle()
 {
+#ifndef DEBUG
 	if(!m_pCAP)
 	{
 		AfxMessageBox(_T("To load subtitles you have change the video renderer type and reopen the file.\n")
@@ -3912,10 +3913,12 @@ void CMainFrame::OnFileLoadsubtitle()
 					, MB_OK);
 		return;
 	}
-
+#endif
 	static TCHAR BASED_CODE szFilter[] = 
-		_T(".srt .sub .ssa .ass .smi .psb .txt .idx .usf .xss|")
-		_T("*.srt;*.sub;*.ssa;*.ass;*smi;*.psb;*.txt;*.idx;*.usf;*.xss||");
+		_T(".srt .sub .ssa .ass .smi .psb .txt .idx .usf .xss .ssf|")
+		_T("*.srt;*.sub;*.ssa;*.ass;*smi;*.psb;*.txt;*.idx;*.usf;*.xss;*.ssf|")
+		_T("All files (*.*)|")
+		_T("*.*||");
 
 	CFileDialog fd(TRUE, NULL, NULL, 
 		OFN_EXPLORER | OFN_ENABLESIZING | OFN_HIDEREADONLY, 
@@ -3929,7 +3932,11 @@ void CMainFrame::OnFileLoadsubtitle()
 
 void CMainFrame::OnUpdateFileLoadsubtitle(CCmdUI *pCmdUI)
 {
+#ifdef DEBUG
+	pCmdUI->Enable();
+#else
 	pCmdUI->Enable(m_iMediaLoadState == MLS_LOADED && /*m_pCAP &&*/ !m_fAudioOnly);
+#endif
 }
 
 void CMainFrame::OnFileSavesubtitle()
