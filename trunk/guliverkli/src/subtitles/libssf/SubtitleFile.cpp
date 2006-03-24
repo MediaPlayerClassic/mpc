@@ -283,6 +283,8 @@ namespace ssf
 		_T("#u {font.underline: \"true\"}; \n")
 		_T("#s {font.strikethrough: \"true\"}; \n")
 		_T(" \n")
+		_T("#nobr {linebreak: \"none\"}; \n")
+		_T(" \n")
 		_T("subtitle#subtitle \n")
 		_T("{ \n")
 		_T("	frame \n")

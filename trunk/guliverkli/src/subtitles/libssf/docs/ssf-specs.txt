@@ -42,6 +42,7 @@ otherwise there would be no meaning of the expression.
 	#b {t: 234;};
 	#ab a b;
 	#c ab; // t of c still equals to 123
+- there are also low priority definitions, but only the parser is allowed to use them to predefine the defaults.
 
 "type" and "name":
 - alphanumeric or underscore characters only, without spaces
@@ -63,7 +64,6 @@ otherwise there would be no meaning of the expression.
 - type.type.type.... is equal to writing: type {type {type {...};};};
 
 "name":
-- forward references are not allowed
 - every name is globally visible
 - redefining a name is forbidden, unless it was predefined by the application
 - using the type as the name (type#type) can change the type's default values
@@ -87,6 +87,7 @@ otherwise there would be no meaning of the expression.
 
 "refs":
 - combination of any names or nested definitions separated by spaces
+- forward references are not allowed
 - referencing a value type directly is not allowed: (TODO: this may change)
 	OK:
 	color#c1: {a: 12;};
@@ -94,6 +95,14 @@ otherwise there would be no meaning of the expression.
 	BAD:
 	#twelve: 12;
 	color#c2: {a: twelve;};
+- 'name' must have been defined by a parent node
+	OK:
+	#c1: {a: 12;};
+	style#s1 {color: c1;};
+	style#s2 {color: c1;};
+	BAD:
+	style#s1 {color#c1: {a: 12;};};
+	style#s2 {color: c1;}; // c1 cannot be accessed here
 
 "quoted string" or 'quoted string':
 - \ escapes characters, including " and '
@@ -109,26 +118,6 @@ otherwise there would be no meaning of the expression.
 "bool":
 - "true" | "false" | "on" | "off" | "yes" | "no" | 1 | 0
 - unrecognizable values will result in unpredictable behaviour, since there can't be a default fallback value
-
-Examples
---------
-
-#red: {r: 0xff};
-
-style#s1
-{
-	#blue: {b: 0xff};
-	font#whitefont {color: red {g: 0xff;} blue;};
-	#b1 {size: 1;};
-};
-
-style#s2: s1 {shadow.depth: 4;}
-{
-	font: whitefont;
-	background: b1;
-};
-
-Some of them may look strange, but it's only to demonstrate the features of the language for now.
 
 Recognized types and attributes
 -------------------------------
@@ -248,7 +237,7 @@ fill
 	// #k1 {fill.width:1; time {start: +0; stop: +1s;}};
 	// #k2 {fill.width:1; time {start: 0; stop: 2s;}};
 	//
-	// GOOD: 
+	// OK: 
 	// [k1] {Hello} 
 	//
 	// BAD: 
@@ -266,7 +255,7 @@ time
 
 style
 {
-	linebreak: ["word" | "char" | "none"];
+	linebreak: ["word" | "char" | "none"]; // ignored if subtitle.wrap: "manual"
 	placement: <placement>;
 	font: <font>;
 	background: <background>;
@@ -278,7 +267,8 @@ animation
 {
 	time: <time>; // before start: previous style, after stop: this style, animation is done between start and stop according to transition
 	transition: ["linear" | "start" | "stop" | <num>]; // <num> is the same as the acceleration parameter of advanced ssa (see the "ass-specs"), "start" or "stop" sets num to 0 and inf, "linear" sets it to 1.0
-	// TODO: transition: f(t); (eg "(t-5)^3*rand(10)")
+	loop: <num>; // the number of times the effect should repeat, e.g. loop set to 2 makes the style turn from src to dst twice, between start => (start+stop)/2 and (start+stop)/2 => stop 
+	direction: ["fw" | "bw" | "fwbw" | "bwfw"]; // "bwfw" and "fwbw" makes the value of loop multiplied by two internally
 };
 
 subtitle
@@ -461,6 +451,8 @@ subtitle
 Defaults and predefined names
 -----------------------------
 
+These must be predefined by the application, where each definition is low priority.
+
 color#white {a: 255; r: 255; g: 255; b: 255;};
 color#black {a: 255; r: 0; g: 0; b: 0;};
 color#gray {a: 255; r: 128; g: 128; b: 128;}; 
@@ -488,6 +480,8 @@ time#startstop {start: "start"; stop: "stop";};
 #i {font.italic: "true"};
 #u {font.underline: "true"};
 #s {font.strikethrough: "true"};
+
+#nobr {linebreak: "none"};
 
 subtitle#subtitle
 {
@@ -556,3 +550,37 @@ subtitle#subtitle
 		};
 	};
 };
+
+Streaming
+---------
+
+Correct packetization is important when a subtitle file has to be embeded into a media 
+file. Putting everything into the header would be trivial, but sending the whole track 
+data ahead cannot be called streaming really, and it also makes editing impossible 
+unless the application learns how to parse and resave our format. 
+
+The recommended way of segmenting ssf into media samples:
+- Search top level definitions which do not satisfy the requirements of a displayable 
+subtitle (one of start/stop/@ is absent) and save them into the file header of the media 
+file as the initializer data for playback.
+- Multiplex the rest of the top level definitions as media samples, their timestamps 
+shall be used for interleaving with other streams.
+
+Example:
+
+#mystyle {font.face: "Times New Roman";};
+subtitle#s1 {time.start: 2s;};
+subtitle#s2 : s1 {style: mystyle; time.stop: +1s; @ {2s -> 3s};};
+subtitle#s3 {style: mystyle; time.start: 5s; @ {5s -> 7s};};
+subtitle#s4 : s3 {time.stop: +2s;};
+
+File header:
+
+#mystyle {font.face: "Times New Roman";};
+subtitle#s1 {time.start: 2s;};
+subtitle#s3 {style: mystyle; time.start: 5s; @ {5s -> 7s};};
+
+Media samples:
+
+subtitle#s2 : s1 {style: mystyle; time.stop: +1s; @ {2s -> 3s};};
+subtitle#s4 : s3 {time.stop: +2s;};

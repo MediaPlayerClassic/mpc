@@ -49,7 +49,9 @@ namespace ssf
 		const NodeFactory* m_pnf;
 
 	public:
+		Node* m_parent;
 		CAtlList<Node*> m_nodes;
+		CAtlStringMap<Node*> m_name2node;
 		CString m_type, m_name;
 		NodePriority m_priority;
 
@@ -97,6 +99,8 @@ namespace ssf
 	public:
 		Definition(const NodeFactory* pnf, CString name);
 		virtual ~Definition();
+
+		bool IsVisible(Definition* pDef);
 
 		void AddTail(Node* pNode);
 		void Dump(NodePriority minpriority = PNormal, int level = 0, bool fLast = false);

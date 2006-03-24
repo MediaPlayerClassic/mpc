@@ -544,6 +544,7 @@ subtitle : effecttest notes
 
 subtitle : effecttest
 {
+	wrap: "manual";
 	style.placement {margin {l: "right"; r: "left";}; align.h = "left";};
 	#hscroll {time {start: "start"; stop: "stop";}; placement.align.h = "right";};
 

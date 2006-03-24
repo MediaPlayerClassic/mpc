@@ -102,7 +102,8 @@ namespace ssf
 			GetStyle(&(*pDef)[_T("style")], style);
 
 			CAtlStringMap<double> offset;
-			Parse(CharacterStream((LPCTSTR)(*pDef)[_T("@")]), style, at, offset);
+			Definition& block = (*pDef)[_T("@")];
+			Parse(CharacterStream((LPCTSTR)block), style, at, offset, dynamic_cast<Reference*>(block.m_parent));
 
 			m_pFile->Rollback();
 
@@ -238,28 +239,39 @@ namespace ssf
 			n2n[_T("stop")] = m_time.stop - m_time.start;
 
 			Definition::Time time;
-			if(pDef->GetAsTime(time, offset, &n2n, default_id))
+			if(pDef->GetAsTime(time, offset, &n2n, default_id) && time.start.value < time.stop.value)
 			{
-				if(at < time.start.value) t = 0;
-				else if(at >= time.stop.value) t = 1;
-				else if(time.start.value <= at && at < time.stop.value)
+				t = (at - time.start.value) / (time.stop.value - time.start.value);
+
+				if(t < 0) t = 0;
+				else if(t > 1) t = 1;
+
+				if((*pDef)[_T("loop")].IsValue()) t *= (double)(*pDef)[_T("loop")];
+
+				CString direction = (*pDef)[_T("direction")].IsValue() ? (*pDef)[_T("direction")] : _T("fw");
+				if(direction == _T("fwbw") || direction == _T("bwfw")) t *= 2;
+
+				double n;
+				t = modf(t, &n);
+
+				if(direction == _T("bw") 
+				|| direction == _T("fwbw") && ((int)n & 1)
+				|| direction == _T("bwfw") && !((int)n & 1)) 
+					t = 1 - t;
+
+				double accel = 1;
+
+				if((*pDef)[_T("transition")].IsValue())
 				{
-					t = (at - time.start.value) / (time.stop.value - time.start.value);
-
-					double accel = 1;
-
-					if((*pDef)[_T("transition")].IsValue())
-					{
-						Definition::Number<double> n;
-						(*pDef)[_T("transition")].GetAsNumber(n, &m_n2n.transition);
-						if(n.value >= 0) accel = n.value;
-					}
-
-					t = accel == 0 ? 1 : 
-						accel == 1 ? t : 
-						accel >= 1e10 ? 0 :
-						pow(t, accel);
+					Definition::Number<double> n;
+					(*pDef)[_T("transition")].GetAsNumber(n, &m_n2n.transition);
+					if(n.value >= 0) accel = n.value;
 				}
+
+				t = accel == 0 ? 1 : 
+					accel == 1 ? t : 
+					accel >= 1e10 ? 0 :
+					pow(t, accel);
 			}
 		}
 		catch(Exception&)
@@ -402,7 +414,7 @@ namespace ssf
 		}
 	}
 
-	void Subtitle::Parse(Stream& s, Style style, double at, CAtlStringMap<double> offset)
+	void Subtitle::Parse(Stream& s, Style style, double at, CAtlStringMap<double> offset, Reference* pParentRef)
 	{
 		Text text;
 		text.style = style;
@@ -423,7 +435,8 @@ namespace ssf
 
 				do
 				{
-					Definition* pDef = m_pFile->CreateDef();
+					Definition* pDef = m_pFile->CreateDef(pParentRef);
+
 					m_pFile->ParseRefs(s, pDef, _T(",;]"));
 
 					ASSERT(pDef->IsType(_T("style")) || pDef->IsTypeUnknown());
@@ -445,7 +458,7 @@ namespace ssf
 				if(c == '{') 
 				{
 					s.GetChar();
-					Parse(s, style, at, inneroffset);
+					Parse(s, style, at, inneroffset, pParentRef);
 				}
 				else 
 				{
@@ -460,7 +473,7 @@ namespace ssf
 			else if(c == '{')
 			{
 				AddText(text);
-				Parse(s, text.style, at, offset);
+				Parse(s, text.style, at, offset, pParentRef);
 			}
 			else if(c == '}')
 			{

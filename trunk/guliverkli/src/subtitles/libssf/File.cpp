@@ -245,6 +245,8 @@ namespace ssf
 				Definition* pDef = GetDefByName(str);
 				if(!pDef) s.ThrowError(_T("cannot find definition of '%s'"), str);
 
+				if(!pParentDef->IsVisible(pDef)) s.ThrowError(_T("cannot access '%s' from here"), str);
+
 				pParentDef->AddTail(pDef);
 			}
 			else if(!_tcschr(term, c) && c != Stream::EOS)
