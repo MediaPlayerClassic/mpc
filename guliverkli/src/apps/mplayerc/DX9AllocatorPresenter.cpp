@@ -1047,19 +1047,28 @@ STDMETHODIMP_(bool) CDX9AllocatorPresenter::Paint(bool fAll)
 
 	hr = m_pD3DDev->Present(rSrcPri, rDstPri, NULL, NULL);
 
-	if(hr == D3DERR_DEVICELOST)
-	{
-		if(m_pD3DDev->TestCooperativeLevel() == D3DERR_DEVICENOTRESET) 
-		{
-			DeleteSurfaces();
-			if(FAILED(hr = CreateDevice()) || FAILED(hr = AllocSurfaces()))
-				return(false);
-		}
+	bool fResetDevice = false;
 
-		hr = S_OK;
+	if(hr == D3DERR_DEVICELOST && m_pD3DDev->TestCooperativeLevel() == D3DERR_DEVICENOTRESET)
+	{
+		fResetDevice = true;
 	}
 
-	return(true);
+	D3DDEVICE_CREATION_PARAMETERS Parameters;
+	if(SUCCEEDED(m_pD3DDev->GetCreationParameters(&Parameters))
+	&& m_pD3D->GetAdapterMonitor(Parameters.AdapterOrdinal) != m_pD3D->GetAdapterMonitor(GetAdapter(m_pD3D)))
+	{
+		fResetDevice = true;
+	}
+
+	if(fResetDevice)
+	{
+		DeleteSurfaces();
+		if(FAILED(hr = CreateDevice()) || FAILED(hr = AllocSurfaces()))
+			return false;
+	}
+
+	return true;
 }
 
 STDMETHODIMP CDX9AllocatorPresenter::GetDIB(BYTE* lpDib, DWORD* size)
@@ -1597,87 +1606,56 @@ STDMETHODIMP CVMR9AllocatorPresenter::StopPresenting(DWORD_PTR dwUserID)
 
 STDMETHODIMP CVMR9AllocatorPresenter::PresentImage(DWORD_PTR dwUserID, VMR9PresentationInfo* lpPresInfo)
 {
+	CheckPointer(m_pIVMRSurfAllocNotify, E_UNEXPECTED);
+
     HRESULT hr;
 
+	if(!lpPresInfo || !lpPresInfo->lpSurf)
+		return E_POINTER;
+
+	CAutoLock cAutoLock(this);
+
+	CComPtr<IDirect3DTexture9> pTexture;
+	lpPresInfo->lpSurf->GetContainer(IID_IDirect3DTexture9, (void**)&pTexture);
+
+	if(pTexture)
 	{
-		if(!m_pIVMRSurfAllocNotify)
-			return E_FAIL;
-
-		D3DDEVICE_CREATION_PARAMETERS Parameters;
-		if(FAILED(m_pD3DDev->GetCreationParameters(&Parameters)))
-		{
-			ASSERT(0);
-			return E_FAIL;
-		}
-
-		HMONITOR hCurMonitor = m_pD3D->GetAdapterMonitor(Parameters.AdapterOrdinal);
-		HMONITOR hMonitor = m_pD3D->GetAdapterMonitor(GetAdapter(m_pD3D));
-
-		if(hMonitor != hCurMonitor)
-		{
-			ASSERT(0);
-		}
+		m_pVideoSurface[0] = lpPresInfo->lpSurf;
+		if(m_pVideoTexture[0]) m_pVideoTexture[0] = pTexture;
+	}
+	else
+	{
+		hr = m_pD3DDev->StretchRect(lpPresInfo->lpSurf, NULL, m_pVideoSurface[0], NULL, D3DTEXF_NONE);
 	}
 
-/*
-    // if we are in the middle of the display change
-    if(NeedToHandleDisplayChange())
-    {
-        // NOTE: this piece of code is left as a user exercise.  
-        // The D3DDevice here needs to be switched
-        // to the device that is using another adapter
-    }
-*/
+	if(lpPresInfo->rtEnd > lpPresInfo->rtStart)
 	{
-		if(!lpPresInfo || !lpPresInfo->lpSurf)
-			return E_POINTER;
+		REFERENCE_TIME rtTimePerFrame = lpPresInfo->rtEnd - lpPresInfo->rtStart;
+		m_fps = 10000000.0 / rtTimePerFrame;
 
-		CAutoLock cAutoLock(this);
-
-		CComPtr<IDirect3DTexture9> pTexture;
-		lpPresInfo->lpSurf->GetContainer(IID_IDirect3DTexture9, (void**)&pTexture);
-
-		if(pTexture)
+		if(m_pSubPicQueue)
 		{
-			m_pVideoSurface[0] = lpPresInfo->lpSurf;
-			if(m_pVideoTexture[0]) m_pVideoTexture[0] = pTexture;
-		}
-		else
-		{
-			hr = m_pD3DDev->StretchRect(lpPresInfo->lpSurf, NULL, m_pVideoSurface[0], NULL, D3DTEXF_NONE);
-		}
+			m_pSubPicQueue->SetFPS(m_fps);
 
-		if(lpPresInfo->rtEnd > lpPresInfo->rtStart)
-		{
-			REFERENCE_TIME rtTimePerFrame = lpPresInfo->rtEnd - lpPresInfo->rtStart;
-			m_fps = 10000000.0 / rtTimePerFrame;
-
-			if(m_pSubPicQueue)
+			if(m_fUseInternalTimer)
 			{
-				m_pSubPicQueue->SetFPS(m_fps);
-
-				if(m_fUseInternalTimer)
-				{
-					__super::SetTime(g_tSegmentStart + g_tSampleStart);
-				}
+				__super::SetTime(g_tSegmentStart + g_tSampleStart);
 			}
 		}
-
-		CSize VideoSize = m_NativeVideoSize;
-		int arx = lpPresInfo->szAspectRatio.cx, ary = lpPresInfo->szAspectRatio.cy;
-		if(arx > 0 && ary > 0) VideoSize.cx = VideoSize.cy*arx/ary;
-		if(VideoSize != GetVideoSize())
-		{
-			m_AspectRatio.SetSize(arx, ary);
-			AfxGetApp()->m_pMainWnd->PostMessage(WM_REARRANGERENDERLESS);
-		}
-
-		Paint(true);
-
-		hr = S_OK;
 	}
 
-    return hr;
+	CSize VideoSize = m_NativeVideoSize;
+	int arx = lpPresInfo->szAspectRatio.cx, ary = lpPresInfo->szAspectRatio.cy;
+	if(arx > 0 && ary > 0) VideoSize.cx = VideoSize.cy*arx/ary;
+	if(VideoSize != GetVideoSize())
+	{
+		m_AspectRatio.SetSize(arx, ary);
+		AfxGetApp()->m_pMainWnd->PostMessage(WM_REARRANGERENDERLESS);
+	}
+
+	Paint(true);
+
+	return S_OK;
 }
 
 // IVMRWindowlessControl9
