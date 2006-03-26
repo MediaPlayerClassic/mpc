@@ -531,7 +531,6 @@ Dialogue: Marked=0,0:02:02.00,0:02:17.00,MainT,,0000,0000,0000,Scroll Up;40;50;1
 #effecttest
 {
 	time {start: 00:02:02.000; stop: 00:02:17.000;};
-	style: MainT;
 };
 
 subtitle : effecttest notes
@@ -545,7 +544,7 @@ subtitle : effecttest notes
 subtitle : effecttest
 {
 	wrap: "manual";
-	style.placement {margin {l: "right"; r: "left";}; align.h = "left";};
+	style: MainT {placement {margin {l: "right"; r: "left";}; align.h = "left";};};
 	#hscroll {time {start: "start"; stop: "stop";}; placement.align.h = "right";};
 
 	@ {
@@ -556,7 +555,7 @@ subtitle : effecttest
 
 subtitle : effecttest
 {
-	style.placement {margin {t: 120; b: 40;}; clip {t: 40; b: 120;}; align.v = "top";};
+	style: MainT {placement {margin {t: 120; b: 200;}; clip {t: 40; b: 120;}; align.v = "top";};};
 	#vscroll {time {start: "start"; stop: "stop";}; placement.align.v = "bottom";};
 
 	@ {

@@ -247,7 +247,6 @@
 				RuntimeTypeInfo="true"
 				PrecompiledHeaderThrough="stdafx.h"
 				PrecompiledHeaderFile=".\$(OutDir)/$(ProjectName).pch"
-				AssemblerOutput="0"
 				AssemblerListingLocation=".\$(OutDir)/"
 				ObjectFile=".\$(OutDir)/"
 				ProgramDataBaseFileName=".\$(OutDir)/"
@@ -255,7 +254,7 @@
 				WarningLevel="3"
 				SuppressStartupBanner="true"
 				Detect64BitPortabilityProblems="false"
-				DebugInformationFormat="0"
+				DebugInformationFormat="3"
 				DisableSpecificWarnings="4995;4996"
 			/>
 			<Tool
@@ -280,6 +279,7 @@
 				AdditionalLibraryDirectories="..\..\..\..\lib"
 				ModuleDefinitionFile=".\VSFilter.def"
 				DelayLoadDLLs="oleacc.dll"
+				GenerateDebugInformation="true"
 				ProgramDatabaseFile=".\$(OutDir)/$(ProjectName).pdb"
 				SubSystem="2"
 				ImportLibrary=".\$(OutDir)/$(ProjectName).lib"

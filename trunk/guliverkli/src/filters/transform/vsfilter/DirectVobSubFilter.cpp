@@ -1367,6 +1367,15 @@ bool CDirectVobSubFilter::Open()
 
 		if(!pSubStream)
 		{
+			CAutoPtr<CRenderedSSF> pSSF(new CRenderedSSF(&m_csSubLock));
+			if(pSSF && pSSF->Open(ret[i].fn) && pSSF->GetStreamCount() > 0)
+			{
+				pSubStream = pSSF.Detach();
+			}
+		}
+	    
+		if(!pSubStream)
+		{
 			CAutoPtr<CRenderedTextSubtitle> pRTS(new CRenderedTextSubtitle(&m_csSubLock));
 			if(pRTS && pRTS->Open(ret[i].fn, DEFAULT_CHARSET) && pRTS->GetStreamCount() > 0)
 			{
