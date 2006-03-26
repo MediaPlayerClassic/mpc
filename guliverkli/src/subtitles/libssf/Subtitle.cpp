@@ -114,6 +114,32 @@ namespace ssf
 
 			while(!m_text.IsEmpty() && (m_text.GetTail().str == Text::SP || m_text.GetTail().str == Text::LSEP))
 				m_text.RemoveTail();
+
+			for(POSITION pos = m_text.GetHeadPosition(); pos; m_text.GetNext(pos))
+			{
+				if(m_text.GetAt(pos).str == Text::LSEP)
+				{
+					POSITION prev = pos;
+					m_text.GetPrev(prev);
+
+					while(prev && m_text.GetAt(prev).str == Text::SP)
+					{
+						POSITION tmp = prev;
+						m_text.GetPrev(prev);
+						m_text.RemoveAt(tmp);
+					}
+
+					POSITION next = pos;
+					m_text.GetNext(next);
+
+					while(next && m_text.GetAt(next).str == Text::SP)
+					{
+						POSITION tmp = next;
+						m_text.GetNext(next);
+						m_text.RemoveAt(tmp);
+					}
+				}
+			}
 		}
 		catch(Exception& e)
 		{
@@ -158,17 +184,21 @@ namespace ssf
 			if(clip[_T("l")].IsValue()) style.placement.clip.l = clip[_T("l")];
 		}
 
-		CAtlStringMap<double> n2n_margin;
+		CAtlStringMap<double> n2n_margin[2];
 
-		n2n_margin[_T("top")] = frame.t;
-		n2n_margin[_T("right")] = frame.r;
-		n2n_margin[_T("bottom")] = frame.b;
-		n2n_margin[_T("left")] = frame.l;
+		n2n_margin[0][_T("top")] = 0;
+		n2n_margin[0][_T("right")] = 0;
+		n2n_margin[0][_T("bottom")] = frame.b - frame.t;
+		n2n_margin[0][_T("left")] = frame.r - frame.l;
+		n2n_margin[1][_T("top")] = frame.b - frame.t;
+		n2n_margin[1][_T("right")] = frame.r - frame.l;
+		n2n_margin[1][_T("bottom")] = 0;
+		n2n_margin[1][_T("left")] = 0;
 
-		placement[_T("margin")][_T("t")].GetAsNumber(style.placement.margin.t, &n2n_margin);
-		placement[_T("margin")][_T("r")].GetAsNumber(style.placement.margin.r, &n2n_margin);
-		placement[_T("margin")][_T("b")].GetAsNumber(style.placement.margin.b, &n2n_margin);
-		placement[_T("margin")][_T("l")].GetAsNumber(style.placement.margin.l, &n2n_margin);
+		placement[_T("margin")][_T("t")].GetAsNumber(style.placement.margin.t, &n2n_margin[0]);
+		placement[_T("margin")][_T("r")].GetAsNumber(style.placement.margin.r, &n2n_margin[0]);
+		placement[_T("margin")][_T("b")].GetAsNumber(style.placement.margin.b, &n2n_margin[1]);
+		placement[_T("margin")][_T("l")].GetAsNumber(style.placement.margin.l, &n2n_margin[1]);
 
 		placement[_T("align")][_T("h")].GetAsNumber(style.placement.align.h, &m_n2n.align[0]);
 		placement[_T("align")][_T("v")].GetAsNumber(style.placement.align.v, &m_n2n.align[1]);
@@ -531,21 +561,6 @@ namespace ssf
 	}
 
 	//
-
-	Point Placement::TopLeft(Rect r, Size s)
-	{
-		r.l += margin.l;
-		r.t += margin.t;
-		r.r -= margin.r;
-		r.b -= margin.b;
-
-		Point p;
-		if(pos.auto_x) p.x = r.l + ((r.r - r.l) - s.cx) * align.h;
-		else p.x = pos.x - s.cx * align.h;
-		if(pos.auto_y) p.y = r.t + ((r.b - r.t) - s.cy) * align.v;
-		else p.y = pos.y - s.cy * align.v;
-		return p;
-	}
 
 	unsigned int Fill::gen_id = 0;
 }

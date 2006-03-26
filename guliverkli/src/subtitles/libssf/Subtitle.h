@@ -35,7 +35,7 @@ namespace ssf
 	struct Time {double start, stop;};
 	struct Background {double color[4], size; CString type;};
 	struct Shadow {double color[4], depth, angle, blur;};
-	struct Placement {Rect clip, margin; Align align; Point pos, offset; Angle angle; Point TopLeft(Rect r, Size s);};
+	struct Placement {Rect clip, margin; Align align; Point pos, offset; Angle angle;};
 
 	struct Font
 	{

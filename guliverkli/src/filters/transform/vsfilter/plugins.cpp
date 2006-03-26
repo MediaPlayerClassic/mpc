@@ -25,6 +25,7 @@
 #include "resource.h"
 #include "..\..\..\subtitles\VobSubFile.h"
 #include "..\..\..\subtitles\RTS.h"
+#include "..\..\..\subtitles\SSF.h"
 #include "..\..\..\SubPic\MemSubPic.h"
 
 //
@@ -207,11 +208,24 @@ public:
 		SetFileName(_T(""));
 		m_pSubPicProvider = NULL;
 
-		if(CRenderedTextSubtitle* rts = new CRenderedTextSubtitle(&m_csSubLock))
+		if(!m_pSubPicProvider)
 		{
-			m_pSubPicProvider = (ISubPicProvider*)rts;
-			if(rts->Open(CString(fn), CharSet)) SetFileName(fn);
-			else m_pSubPicProvider = NULL;
+			if(CRenderedSSF* ssf = new CRenderedSSF(&m_csSubLock))
+			{
+				m_pSubPicProvider = (ISubPicProvider*)ssf;
+				if(ssf->Open(CString(fn))) SetFileName(fn);
+				else m_pSubPicProvider = NULL;
+			}
+		}
+
+		if(!m_pSubPicProvider)
+		{
+			if(CRenderedTextSubtitle* rts = new CRenderedTextSubtitle(&m_csSubLock))
+			{
+				m_pSubPicProvider = (ISubPicProvider*)rts;
+				if(rts->Open(CString(fn), CharSet)) SetFileName(fn);
+				else m_pSubPicProvider = NULL;
+			}
 		}
 
 		return !!m_pSubPicProvider;
