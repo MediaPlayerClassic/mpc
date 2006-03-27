@@ -522,7 +522,7 @@ subtitle
 subtitle
 {
 	time {start: 00:01:52.000; stop: 00:02:00.000;};
-	style: ShiftJIS {color: yellow; placement.align: topright;};
+	style: ShiftJIS {font.color: yellow; placement.align: topright;};
 	@ {\[Naru\] 何よ！};
 };
 
