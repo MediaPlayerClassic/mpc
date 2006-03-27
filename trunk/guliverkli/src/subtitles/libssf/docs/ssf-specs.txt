@@ -191,7 +191,7 @@ direction
 
 placement
 {
-	clip: ["frame" | <rect>]; // anything drawn outside this rectangle is clipped
+	clip: ["none" | "frame" | <rect>]; // anything drawn outside this rectangle is clipped, negative or larger than 'resolution' values are not allowed for rect
 	margin: <rect>; // "top" "right" "bottom" "left" are also valid values for the rect members, they refer to the values of the "frame" rect (0, 0, frame.resolution.cx, frame.resolution.cy)
 	align: <align>;
 	pos: ["auto" | <point>]; // absolute values, pos.x or pos.y can be animated only when both the source and destination style defined it
@@ -507,7 +507,7 @@ subtitle#subtitle
 	
 		placement
 		{
-			clip: "frame";
+			clip: "none";
 			margin: {t: 0; r: 0; b: 0; l: 0;};
 			align: bottomcenter;
 			pos: "auto";

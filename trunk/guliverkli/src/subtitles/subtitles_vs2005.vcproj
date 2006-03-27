@@ -368,6 +368,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\SSFRasterizer.cpp"
+				>
+			</File>
+			<File
 				RelativePath="stdafx.cpp"
 				>
 				<FileConfiguration
@@ -519,6 +523,10 @@
 			</File>
 			<File
 				RelativePath=".\SSF.h"
+				>
+			</File>
+			<File
+				RelativePath=".\SSFRasterizer.h"
 				>
 			</File>
 			<File

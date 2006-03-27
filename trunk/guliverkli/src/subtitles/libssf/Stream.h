@@ -29,7 +29,7 @@ namespace ssf
 	{
 	public:
 		enum {EOS = -1};
-		enum {none, unknown, utf8, utf16le, utf16be, tchar} m_encoding;
+		enum {none, unknown, utf8, utf16le, utf16be, wchar} m_encoding;
 
 	private:
 		int m_line, m_col;
@@ -48,8 +48,8 @@ namespace ssf
 
 		int PeekChar(), GetChar();
 
-		static bool IsWhiteSpace(int c, LPCTSTR morechars = NULL);
-		int SkipWhiteSpace(LPCTSTR morechars = NULL);
+		static bool IsWhiteSpace(int c, LPCWSTR morechars = NULL);
+		int SkipWhiteSpace(LPCWSTR morechars = NULL);
 
 		void ThrowError(LPCTSTR fmt, ...);
 	};
@@ -80,15 +80,15 @@ namespace ssf
 		~MemoryStream();
 	};
 
-	class CharacterStream : public Stream
+	class WCharStream : public Stream
 	{
-		CString m_str;
+		CStringW m_str;
 		int m_pos;
 
 	protected:
 		int NextByte();
 
 	public:
-		CharacterStream(CString str);
+		WCharStream(CStringW str);
 	};
 }

@@ -37,10 +37,10 @@ namespace ssf
 		RemoveAll();
 	}
 
-	CString NodeFactory::GenName()
+	CStringW NodeFactory::GenName()
 	{
-		CString name;
-		name.Format(_T("%I64d"), m_counter++);
+		CStringW name;
+		name.Format(L"%I64d", m_counter++);
 		return name;
 	}
 
@@ -65,7 +65,7 @@ namespace ssf
 		POSITION pos = m_newnodes.GetTailPosition();
 		while(pos)
 		{
-			if(CAtlStringMap<Node*>::CPair* p = m_nodes.Lookup(m_newnodes.GetPrev(pos)))
+			if(CAtlStringMap<Node*, CStringW>::CPair* p = m_nodes.Lookup(m_newnodes.GetPrev(pos)))
 			{
 				delete p->m_value; // TODO: remove it from "parent"->m_nodes too
 				m_nodes.RemoveKey(p->m_key);
@@ -88,7 +88,7 @@ namespace ssf
 
 	Reference* NodeFactory::CreateRef(Definition* pParentDef)
 	{
-		CString name = GenName();
+		CStringW name = GenName();
 
 		Reference* pRef = new Reference(this, name);
 
@@ -104,7 +104,7 @@ namespace ssf
 		return pRef;
 	}
 
-	Definition* NodeFactory::CreateDef(Reference* pParentRef, CString type, CString name, NodePriority priority)
+	Definition* NodeFactory::CreateDef(Reference* pParentRef, CStringW type, CStringW name, NodePriority priority)
 	{
 		Definition* pDef = NULL;
 
@@ -120,12 +120,12 @@ namespace ssf
 			{
 				if(pDef->m_priority != PLow)
 				{
-					throw Exception(_T("redefinition of '%s' is not allowed"), name);
+					throw Exception(_T("redefinition of '%s' is not allowed"), CString(name));
 				}
 
 				if(!pDef->IsTypeUnknown() && !pDef->IsType(type))
 				{
-					throw Exception(_T("cannot redefine type of %s to %s"), name, type);
+					throw Exception(_T("cannot redefine type of %s to %s"), CString(name), CString(type));
 				}
 			}
 		}
@@ -150,7 +150,7 @@ namespace ssf
 		return pDef;
 	}
 
-	Definition* NodeFactory::GetDefByName(CString name) const
+	Definition* NodeFactory::GetDefByName(CStringW name) const
 	{
 		Node* pNode = NULL;
 		m_nodes.Lookup(name, pNode);
