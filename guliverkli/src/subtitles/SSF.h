@@ -32,7 +32,7 @@ class CRenderedSSF : public ISubPicProviderImpl, public ISubStream
 {
 	CString m_fn, m_name;
 	CAutoPtr<ssf::SubtitleFile> m_psf;
-
+	HDC m_hDC;
 	class CFontCache : private ssf::CAtlStringMap<HFONT> {public: HFONT Create(const LOGFONT& lf);} m_fonts;
 
 public:

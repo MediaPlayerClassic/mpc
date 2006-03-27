@@ -38,6 +38,12 @@ namespace ssf
 		}
 	};
 
+	template <class T = CStringA, class S = CStringA> 
+	class CAtlStringMapA : public CAtlStringMap<T, S> {};
+
+	template <class T = CStringW, class S = CStringW> 
+	class CAtlStringMapW : public CAtlStringMap<T, S> {};
+
 	class Definition;
 	class NodeFactory;
 
@@ -51,36 +57,36 @@ namespace ssf
 	public:
 		Node* m_parent;
 		CAtlList<Node*> m_nodes;
-		CAtlStringMap<Node*> m_name2node;
-		CString m_type, m_name;
+		CAtlStringMapW<Node*> m_name2node;
+		CStringW m_type, m_name;
 		NodePriority m_priority;
 
-		Node(const NodeFactory* pnf, CString name);
+		Node(const NodeFactory* pnf, CStringW name);
 		virtual ~Node() {}
 
 		bool IsNameUnknown();
 		bool IsTypeUnknown();
-		bool IsType(CString type);
+		bool IsType(CStringW type);
 
 		virtual void AddTail(Node* pNode);
-		virtual void GetChildDefs(CAtlList<Definition*>& l, LPCTSTR type = NULL, bool fFirst = true);
+		virtual void GetChildDefs(CAtlList<Definition*>& l, LPCWSTR type = NULL, bool fFirst = true);
 		virtual void Dump(NodePriority minpriority = PNormal, int level = 0, bool fLast = false) = 0;
 	};
 
 	class Reference : public Node
 	{
 	public:
-		Reference(const NodeFactory* pnf, CString name);
+		Reference(const NodeFactory* pnf, CStringW name);
 		virtual ~Reference();
 
-		void GetChildDefs(CAtlList<Definition*>& l, LPCTSTR type = NULL, bool fFirst = true);
+		void GetChildDefs(CAtlList<Definition*>& l, LPCWSTR type = NULL, bool fFirst = true);
 		void Dump(NodePriority minpriority = PNormal, int level = 0, bool fLast = false);
 	};
 
 	class Definition : public Node
 	{
 	public:
-		template<typename T> struct Number {T value; int sign; CString unit;};
+		template<typename T> struct Number {T value; int sign; CStringW unit;};
 		struct Time {Number<double> start, stop;};
 
 		enum status_t {node, string, number, boolean, block};
@@ -88,16 +94,16 @@ namespace ssf
 	private:
 		status_t m_status;
 		bool m_autotype;
-		CString m_value, m_unit;
+		CStringW m_value, m_unit;
 
-		CAtlStringMap<Definition*> m_type2def;
-		void RemoveFromCache(LPCTSTR type = NULL);
+		CAtlStringMapW<Definition*> m_type2def;
+		void RemoveFromCache(LPCWSTR type = NULL);
 
 		template<typename T> 
-		void GetAsNumber(Number<T>& n, CAtlStringMap<T>* n2n = NULL);
+		void GetAsNumber(Number<T>& n, CAtlStringMapW<T>* n2n = NULL);
 
 	public:
-		Definition(const NodeFactory* pnf, CString name);
+		Definition(const NodeFactory* pnf, CStringW name);
 		virtual ~Definition();
 
 		bool IsVisible(Definition* pDef);
@@ -105,23 +111,23 @@ namespace ssf
 		void AddTail(Node* pNode);
 		void Dump(NodePriority minpriority = PNormal, int level = 0, bool fLast = false);
 
-		Definition& operator[] (LPCTSTR type);
+		Definition& operator[] (LPCWSTR type);
 
 		bool IsValue(status_t s = (status_t)0);
 
-		void SetAsValue(status_t s, CString v, CString u = _T(""));
-		void SetAsNumber(CString v, CString u = _T(""));
+		void SetAsValue(status_t s, CStringW v, CStringW u = L"");
+		void SetAsNumber(CStringW v, CStringW u = L"");
 
-		void GetAsString(CString& str);
-		void GetAsNumber(Number<int>& n, CAtlStringMap<int>* n2n = NULL);
-		void GetAsNumber(Number<DWORD>& n, CAtlStringMap<DWORD>* n2n = NULL);
-		void GetAsNumber(Number<double>& n, CAtlStringMap<double>* n2n = NULL);
+		void GetAsString(CStringW& str);
+		void GetAsNumber(Number<int>& n, CAtlStringMapW<int>* n2n = NULL);
+		void GetAsNumber(Number<DWORD>& n, CAtlStringMapW<DWORD>* n2n = NULL);
+		void GetAsNumber(Number<double>& n, CAtlStringMapW<double>* n2n = NULL);
 		template<typename T> 
-		void GetAsNumber(T& t, CAtlStringMap<T>* n2n = NULL) {Number<T> n; GetAsNumber(n, n2n); t = n.value; if(n.sign) t *= n.sign;}
+		void GetAsNumber(T& t, CAtlStringMapW<T>* n2n = NULL) {Number<T> n; GetAsNumber(n, n2n); t = n.value;}
 		void GetAsBoolean(bool& b);
-		bool GetAsTime(Time& t, CAtlStringMap<double>& offset, CAtlStringMap<double>* n2n = NULL, int default_id = 0);
+		bool GetAsTime(Time& t, CAtlStringMapW<double>& offset, CAtlStringMapW<double>* n2n = NULL, int default_id = 0);
 
-		operator LPCTSTR();
+		operator LPCWSTR();
 		operator double();
 		operator bool();
 	};

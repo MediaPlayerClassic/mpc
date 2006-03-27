@@ -17,6 +17,13 @@
  *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
  *  http://www.gnu.org/copyleft/gpl.html
  *
+ *  TODO: 
+ *  - merge and draw glyphs together which have the same style (~ fix semi-transparent overlapping shapes)
+ *  - fill effect
+ *  - box background
+ *  - collision detection
+ *  - super slow, make it faster
+ *
  */
 
 #include "stdafx.h"
@@ -58,10 +65,15 @@ HFONT CRenderedSSF::CFontCache::Create(const LOGFONT& lf)
 CRenderedSSF::CRenderedSSF(CCritSec* pLock)
 	: ISubPicProviderImpl(pLock)
 {
+	m_hDC = CreateCompatibleDC(NULL);
+	SetBkMode(m_hDC, TRANSPARENT); 
+	SetTextColor(m_hDC, 0xffffff); 
+	SetMapMode(m_hDC, MM_TEXT);
 }
 
 CRenderedSSF::~CRenderedSSF()
 {
+	DeleteDC(m_hDC);
 }
 
 bool CRenderedSSF::Open(CString fn, CString name)
@@ -123,7 +135,7 @@ bool CRenderedSSF::Open(ssf::Stream& s, CString name)
 				while(pos)
 				{
 					const ssf::Text& t = s->m_text.GetNext(pos);
-					TRACE(_T("%.3f: [%.2f] %s\n"), at, t.style.font.size, t.str);
+					TRACE(_T("%.3f: [%.2f] %s\n"), at, t.style.font.size, CString(t.str));
 				}
 			}
 		}
@@ -186,22 +198,98 @@ STDMETHODIMP_(bool) CRenderedSSF::IsAnimated(POSITION pos)
 	return true;
 }
 
+// 
+
+#include <math.h>
+#include "SSFRasterizer.h"
+
+#define deg2rad(d) (3.14159/180*(d))
+
 class CGlyph
 {
 public:
-	TCHAR c;
+	WCHAR c;
 	const ssf::Style* style;
-	int ascent, descent, width, spacing;
+	int ascent, descent, width, spacing, fillwidth;
+	int pathcount;
 	CAutoVectorPtr<BYTE> pathtypes;
 	CAutoVectorPtr<POINT> pathpoints;
-	ssf::Rect rect;
+	ssf::Point tl, tls;
+	SSFRasterizer ras, ras2;
 
 	CGlyph()
 	{
 		c = 0;
 		style = NULL;
-		ascent = descent = width = 0;
-		rect.l = rect.t = rect.r = rect.b = 0;
+		ascent = descent = width = spacing = fillwidth = 0;
+		pathcount = 0;
+		tl.x = tl.y = tls.x = tls.y = 0;
+	}
+
+	void CGlyph::Rasterize(ssf::Point org, ssf::Size scale)
+	{
+		org.x -= tl.x;
+		org.y -= tl.y;
+
+		double sx = style->font.scale.cx;
+		double sy = style->font.scale.cy;
+
+		double caz = cos(deg2rad(style->placement.angle.z));
+		double saz = sin(deg2rad(style->placement.angle.z));
+		double cax = cos(deg2rad(style->placement.angle.x));
+		double sax = sin(deg2rad(style->placement.angle.x));
+		double cay = cos(deg2rad(style->placement.angle.y));
+		double say = sin(deg2rad(style->placement.angle.y));
+
+		for(int i = 0; i < pathcount; i++)
+		{
+			double x, y, z, xx, yy, zz;
+
+			x = sx * (pathpoints[i].x - org.x);
+			y = sy * (pathpoints[i].y - org.y);
+			z = 0;
+
+			xx = x*caz + y*saz;
+			yy = -(x*saz - y*caz);
+			zz = z;
+
+			x = xx;
+			y = yy*cax + zz*sax;
+			z = yy*sax - zz*cax;
+
+			xx = x*cay + z*say;
+			yy = y;
+			zz = x*say - z*cay;
+
+			zz = max(zz, -19000);
+
+			x = (xx * 20000) / (zz + 20000);
+			y = (yy * 20000) / (zz + 20000);
+
+			pathpoints[i].x = (LONG)(x + org.x + 0.5);
+			pathpoints[i].y = (LONG)(y + org.y + 0.5);
+		}
+
+		ras.ScanConvert(pathcount, pathtypes, pathpoints);
+
+		if(style->background.type == L"outline" && style->background.size > 0)
+		{
+			ras.CreateWidenedRegion((int)(style->background.size * (scale.cx + scale.cy) / 2 / 8));
+		}
+
+		ras.Rasterize((int)tl.x >> 3, (int)tl.y >> 3);
+
+		if(style->shadow.depth > 0)
+		{
+			ras2.Clone(ras);
+
+			double depth = style->shadow.depth * (scale.cx + scale.cy) / 2;
+
+			tls.x = tl.x + (int)(depth * cos(deg2rad(style->shadow.angle)) + 0.5);
+			tls.y = tl.y + (int)(depth * -sin(deg2rad(style->shadow.angle)) + 0.5);
+
+			ras2.Rasterize((int)tls.x >> 3, (int)tls.y >> 3);
+		}
 	}
 };
 
@@ -242,6 +330,12 @@ static ssf::Point GetAlignPoint(const ssf::Rect& frame, const ssf::Placement& pl
 	return p;
 }
 
+static ssf::Point GetAlignPoint(const ssf::Rect& frame, const ssf::Placement& placement, const ssf::Size& scale)
+{
+	ssf::Size size = {0, 0};
+	return GetAlignPoint(frame, placement, scale, size);
+}
+
 STDMETHODIMP CRenderedSSF::Render(SubPicDesc& spd, REFERENCE_TIME rt, double fps, RECT& bbox)
 {
 	CheckPointer(m_psf, E_UNEXPECTED);
@@ -252,10 +346,9 @@ STDMETHODIMP CRenderedSSF::Render(SubPicDesc& spd, REFERENCE_TIME rt, double fps
 
 	double at = (double)rt/10000000;
 
-	CRect bbox2 = CRect(spd.w, spd.h, 0, 0);
+	CRect bbox2 = CRect(0, 0, 0, 0);
 
-	HDC hDC = GetDC(0);
-	HFONT hOldFont = (HFONT)GetCurrentObject(hDC, OBJ_FONT);
+	HFONT hOldFont = (HFONT)GetCurrentObject(m_hDC, OBJ_FONT);
 
 	CAutoPtrList<ssf::Subtitle> subs;
 	m_psf->Lookup(at, subs);
@@ -274,24 +367,32 @@ STDMETHODIMP CRenderedSSF::Render(SubPicDesc& spd, REFERENCE_TIME rt, double fps
 		CRect spdrc = s->m_frame.reference == _T("video") ? spd.vidrect : CRect(0, 0, spd.w, spd.h);
 
 		ssf::Size scale;
+
 		scale.cx = (double)(spdrc.right - spdrc.left) / s->m_frame.resolution.cx;
 		scale.cy = (double)(spdrc.bottom - spdrc.top) / s->m_frame.resolution.cy;
 
 		ssf::Rect frame;
+
 		frame.l = spdrc.left + style.placement.margin.l * scale.cx;
 		frame.t = spdrc.top + style.placement.margin.t * scale.cy;
 		frame.r = spdrc.right - style.placement.margin.r * scale.cx;
 		frame.b = spdrc.bottom - style.placement.margin.b * scale.cy;
 
-		ssf::Rect clip;
-		clip.l = spdrc.left + style.placement.clip.l * scale.cx;
-		clip.t = spdrc.top + style.placement.clip.t * scale.cy;
-		clip.r = spdrc.left + style.placement.clip.r * scale.cx;
-		clip.b = spdrc.top + style.placement.clip.b * scale.cy;
-		clip.l = max(clip.l, 0);
-		clip.t = max(clip.t, 0);
-		clip.r = min(clip.r, spd.w);
-		clip.b = min(clip.b, spd.h);
+		CRect clip;
+
+		if(style.placement.clip.l == -1) clip.left = 0;
+		else clip.left = (int)(spdrc.left + style.placement.clip.l * scale.cx);
+		if(style.placement.clip.t == -1) clip.top = 0;
+		else clip.top = (int)(spdrc.top + style.placement.clip.t * scale.cy); 
+		if(style.placement.clip.r == -1) clip.right = spd.w;
+		else clip.right = (int)(spdrc.left + style.placement.clip.r * scale.cx);
+		if(style.placement.clip.b == -1) clip.bottom = spd.h;
+		else clip.bottom = (int)(spdrc.top + style.placement.clip.b * scale.cy);
+
+		clip.left = max(clip.left, 0);
+		clip.top = max(clip.top, 0);
+		clip.right = min(clip.right, spd.w);
+		clip.bottom = min(clip.bottom, spd.h);
 
 		scale.cx *= 64;
 		scale.cy *= 64;
@@ -301,14 +402,9 @@ STDMETHODIMP CRenderedSSF::Render(SubPicDesc& spd, REFERENCE_TIME rt, double fps
 		frame.r *= 64;
 		frame.b *= 64;
 
-		clip.l *= 64;
-		clip.t *= 64;
-		clip.r *= 64;
-		clip.b *= 64;
-
 		bool fVertical = s->m_direction.primary == _T("down") || s->m_direction.primary == _T("up");
 
-		//
+		// 
 
 		CAutoPtrList<CGlyph> glyphs;
 
@@ -320,7 +416,7 @@ STDMETHODIMP CRenderedSSF::Render(SubPicDesc& spd, REFERENCE_TIME rt, double fps
 			LOGFONT lf;
 			memset(&lf, 0, sizeof(lf));
 			lf.lfCharSet = DEFAULT_CHARSET;
-			_tcscpy_s(lf.lfFaceName, t.style.font.face);
+			_tcscpy_s(lf.lfFaceName, CString(t.style.font.face));
 			lf.lfHeight = (LONG)(t.style.font.size * scale.cy + 0.5);
 			lf.lfWeight = (LONG)(t.style.font.weight + 0.5);
 			lf.lfItalic = !!t.style.font.italic;
@@ -344,12 +440,12 @@ STDMETHODIMP CRenderedSSF::Render(SubPicDesc& spd, REFERENCE_TIME rt, double fps
 				}
 			}
 
-			SelectObject(hDC, hFont);
+			SelectObject(m_hDC, hFont);
 
 			TEXTMETRIC tm;
-			GetTextMetrics(hDC, &tm);
+			GetTextMetrics(m_hDC, &tm);
 
-			for(LPCTSTR c = t.str; *c; c++)
+			for(LPCWSTR c = t.str; *c; c++)
 			{
 				CAutoPtr<CGlyph> g(new CGlyph());
 
@@ -357,7 +453,7 @@ STDMETHODIMP CRenderedSSF::Render(SubPicDesc& spd, REFERENCE_TIME rt, double fps
 				g->style = &t.style;
 
 				CSize extent;
-				GetTextExtentPoint32(hDC, c, 1, &extent);
+				GetTextExtentPoint32W(m_hDC, c, 1, &extent);
 
 				ASSERT(extent.cx >= 0 && extent.cy >= 0);
 
@@ -367,6 +463,12 @@ STDMETHODIMP CRenderedSSF::Render(SubPicDesc& spd, REFERENCE_TIME rt, double fps
 					g->ascent = extent.cx / 2;
 					g->descent = extent.cx - g->ascent;
 					g->width = extent.cy;
+
+					// TESTME
+					if(g->c == ssf::Text::SP)
+					{
+						g->width /= 2;
+					}
 				}
 				else
 				{
@@ -386,19 +488,19 @@ STDMETHODIMP CRenderedSSF::Render(SubPicDesc& spd, REFERENCE_TIME rt, double fps
 				{
 					// TODO: cache outline of font+char
 
-					BeginPath(hDC);
-					TextOut(hDC, 0, 0, c, 1);
-					CloseFigure(hDC);
-					if(!EndPath(hDC)) {AbortPath(hDC); ASSERT(0); continue;}
+					BeginPath(m_hDC);
+					TextOutW(m_hDC, 0, 0, c, 1);
+					CloseFigure(m_hDC);
+					if(!EndPath(m_hDC)) {AbortPath(m_hDC); ASSERT(0); continue;}
 
-					int points = GetPath(hDC, NULL, NULL, 0);
+					g->pathcount = GetPath(m_hDC, NULL, NULL, 0);
 
-					if(points > 0)
+					if(g->pathcount > 0)
 					{
-						g->pathpoints.Allocate(points);
-						g->pathtypes.Allocate(points);
+						g->pathpoints.Allocate(g->pathcount);
+						g->pathtypes.Allocate(g->pathcount);
 
-						if(points != GetPath(hDC, g->pathpoints, g->pathtypes, points))
+						if(g->pathcount != GetPath(m_hDC, g->pathpoints, g->pathtypes, g->pathcount))
 						{
 							ASSERT(0);
 							continue;
@@ -410,7 +512,7 @@ STDMETHODIMP CRenderedSSF::Render(SubPicDesc& spd, REFERENCE_TIME rt, double fps
 			}
 		}
 
-		//
+		// break glyphs into rows
 
 		CAutoPtrList<CRow> rows;
 		CAutoPtr<CRow> row;
@@ -424,7 +526,7 @@ STDMETHODIMP CRenderedSSF::Render(SubPicDesc& spd, REFERENCE_TIME rt, double fps
 			if(g->c == ssf::Text::LSEP || !pos) rows.AddTail(row);
 		}
 
-		// 
+		// wrap rows
 
 		if(s->m_wrap == _T("normal") || s->m_wrap == _T("even"))
 		{
@@ -484,12 +586,7 @@ STDMETHODIMP CRenderedSSF::Render(SubPicDesc& spd, REFERENCE_TIME rt, double fps
 			}
 		}
 
-		// TODO: calc fill width for each glyph here, later the lists may get reversed
-
-		ssf::Size size = {0, 0};
-
-		if(s->m_direction.secondary == _T("left") || s->m_direction.secondary == _T("up"))
-			ReverseList(rows);
+		// trim rows
 
 		for(POSITION pos = rows.GetHeadPosition(); pos; rows.GetNext(pos))
 		{
@@ -500,6 +597,60 @@ STDMETHODIMP CRenderedSSF::Render(SubPicDesc& spd, REFERENCE_TIME rt, double fps
 
 			while(!r->IsEmpty() && r->GetTail()->c == ssf::Text::SP)
 				r->RemoveTail();
+		}
+
+		// calc fill width for each glyph
+
+		CRow glypsh2fill;
+		int fill_id = 0;
+
+		for(POSITION pos = rows.GetHeadPosition(); pos; rows.GetNext(pos))
+		{
+			CRow* r = rows.GetAt(pos);
+
+			POSITION gpos = r->GetHeadPosition();
+			while(gpos)
+			{
+				CGlyph* g = r->GetNext(gpos);
+
+				if(!glypsh2fill.IsEmpty() && fill_id && (g->style->fill.id != fill_id || !pos && !gpos))
+				{
+					int fillwidth = (int)(g->style->fill.width * glypsh2fill.width + 0.5);
+
+					while(!glypsh2fill.IsEmpty())
+					{
+						CGlyph* g = glypsh2fill.RemoveTail();
+						glypsh2fill.width -= g->width;
+						g->fillwidth = fillwidth - glypsh2fill.width;
+					}
+
+					ASSERT(glypsh2fill.IsEmpty());
+					ASSERT(glypsh2fill.width == 0);
+
+					glypsh2fill.RemoveAll();
+					glypsh2fill.width = 0;
+				}
+
+				fill_id = g->style->fill.id;
+
+				if(g->style->fill.id)
+				{
+					glypsh2fill.AddTail(g);
+					glypsh2fill.width += g->width;
+				}
+			}
+		}
+
+		// calc row sizes and total subtitle size
+
+		ssf::Size size = {0, 0};
+
+		if(s->m_direction.secondary == _T("left") || s->m_direction.secondary == _T("up"))
+			ReverseList(rows);
+
+		for(POSITION pos = rows.GetHeadPosition(); pos; rows.GetNext(pos))
+		{
+			CRow* r = rows.GetAt(pos);
 
 			if(s->m_direction.primary == _T("left") || s->m_direction.primary == _T("up"))
 				ReverseList(*r);
@@ -533,13 +684,14 @@ STDMETHODIMP CRenderedSSF::Render(SubPicDesc& spd, REFERENCE_TIME rt, double fps
 			}
 		}
 
-		//
+		// align rows and calc glyph positions
 
-		CAtlList<const CGlyph*> glyphs2render;
+		CAtlList<CGlyph*> glyphs2render;
 
 		ssf::Point p = GetAlignPoint(frame, style.placement, scale, size);
+		ssf::Point org = GetAlignPoint(frame, style.placement, scale);
 
-		// TODO: do collision detection here and move p if needed
+		// TODO: do collision detection here and move p+org if needed
 
 		for(POSITION pos = rows.GetHeadPosition(); pos; rows.GetNext(pos))
 		{
@@ -556,10 +708,8 @@ STDMETHODIMP CRenderedSSF::Render(SubPicDesc& spd, REFERENCE_TIME rt, double fps
 				{
 					CGlyph* g = r->GetAt(gpos);
 
-					g->rect.l = p.x + g->style->placement.offset.x * scale.cx + r->ascent - g->ascent;
-					g->rect.t = p.y + g->style->placement.offset.y * scale.cy;
-					g->rect.r = g->rect.l + g->ascent + g->descent;
-					g->rect.b = g->rect.t + g->width;
+					g->tl.x = p.x + g->style->placement.offset.x * scale.cx + r->ascent - g->ascent;
+					g->tl.y = p.y + g->style->placement.offset.y * scale.cy;
 
 					glyphs2render.AddTail(g);
 
@@ -576,10 +726,8 @@ STDMETHODIMP CRenderedSSF::Render(SubPicDesc& spd, REFERENCE_TIME rt, double fps
 				{
 					CGlyph* g = r->GetAt(gpos);
 
-					g->rect.l = p.x + g->style->placement.offset.x * scale.cx;
-					g->rect.t = p.y + g->style->placement.offset.y * scale.cy + r->ascent - g->ascent;
-					g->rect.r = g->rect.l + g->width;
-					g->rect.b = g->rect.t + g->ascent + g->descent;
+					g->tl.x = p.x + g->style->placement.offset.x * scale.cx;
+					g->tl.y = p.y + g->style->placement.offset.y * scale.cy + r->ascent - g->ascent;
 
 					glyphs2render.AddTail(g);
 
@@ -590,56 +738,75 @@ STDMETHODIMP CRenderedSSF::Render(SubPicDesc& spd, REFERENCE_TIME rt, double fps
 			}
 		}
 
-		//
+		// rasterize
 
-		ssf::Point org;
+		pos = glyphs2render.GetHeadPosition();
+		while(pos) glyphs2render.GetNext(pos)->Rasterize(org, scale);
 
-		org.x = frame.l;
-		org.x += style.placement.pos.auto_x
-			? (frame.r - frame.l) * style.placement.align.h
-			: style.placement.pos.x * scale.cx;
-
-		org.y = frame.t;
-		org.y += style.placement.pos.auto_y 
-			? (frame.b - frame.t) * style.placement.align.v
-			: style.placement.pos.y * scale.cy;
+		// draw shadow
 
 		pos = glyphs2render.GetHeadPosition();
 		while(pos)
 		{
-			const CGlyph* g = glyphs2render.GetNext(pos);
+			CGlyph* g = glyphs2render.GetNext(pos);
 
-			if(g->rect.r < clip.l || g->rect.l >= clip.r
-			|| g->rect.b < clip.t || g->rect.t >= clip.b)
-				continue;
+			if(g->style->shadow.depth <= 0) continue;
 
-			// TODO: render g
+			DWORD c = 
+				(min(max((DWORD)g->style->shadow.color.b, 0), 255) <<  0) |
+				(min(max((DWORD)g->style->shadow.color.g, 0), 255) <<  8) |
+				(min(max((DWORD)g->style->shadow.color.r, 0), 255) << 16) |
+				(min(max((DWORD)g->style->shadow.color.a, 0), 255) << 24);
 
-			CRect r;
-			r.left = (int)(g->rect.l) / 64;
-			r.top = (int)(g->rect.t) / 64;
-			r.right = (int)(g->rect.r) / 64;
-			r.bottom = (int)(g->rect.b) / 64;
+			bool outline = g->style->background.type == L"outline" && g->style->background.size > 0;
 
-			if(r.IsRectEmpty())
-				continue;
+			DWORD sw[6] = {c, -1};
 
-			bbox2 |= r;
+			bbox2 |= g->ras2.Draw(spd, clip, (int)g->tls.x >> 3, (int)g->tls.y >> 3, sw, true, outline);
+		}
 
-			TRACE(_T("%c (%d, %d, %d, %d)\n"), g->c, r);
+		// draw outline
 
-			if(g->c != ssf::Text::SP)
-			{
-				BYTE* p = ((BYTE*)spd.bits + r.top*spd.pitch);
-				for(int y = r.top; y < r.bottom; y++, p += spd.pitch)
-					for(int x = r.left; x < r.right; x++)
-						((DWORD*)p)[x] = 0x80ff00ff;
-			}
+		pos = glyphs2render.GetHeadPosition();
+		while(pos)
+		{
+			CGlyph* g = glyphs2render.GetNext(pos);
+
+			if(g->style->background.size <= 0) continue;
+
+			DWORD c = 
+				(min(max((DWORD)g->style->background.color.b, 0), 255) <<  0) |
+				(min(max((DWORD)g->style->background.color.g, 0), 255) <<  8) |
+				(min(max((DWORD)g->style->background.color.r, 0), 255) << 16) |
+				(min(max((DWORD)g->style->background.color.a, 0), 255) << 24);
+
+			bool body = !g->style->font.color.a && !g->style->background.color.a;
+
+			DWORD sw[6] = {c, -1};
+
+			bbox2 |= g->ras.Draw(spd, clip, (int)g->tl.x >> 3, (int)g->tl.y >> 3, sw, body, true);
+		}
+
+		// draw body
+
+		pos = glyphs2render.GetHeadPosition();
+		while(pos)
+		{
+			CGlyph* g = glyphs2render.GetNext(pos);
+
+			DWORD c = 
+				(min(max((DWORD)g->style->font.color.b, 0), 255) <<  0) |
+				(min(max((DWORD)g->style->font.color.g, 0), 255) <<  8) |
+				(min(max((DWORD)g->style->font.color.r, 0), 255) << 16) |
+				(min(max((DWORD)g->style->font.color.a, 0), 255) << 24);
+
+			DWORD sw[6] = {c, -1}; // TODO: fill
+
+			bbox2 |= g->ras.Draw(spd, clip, (int)g->tl.x >> 3, (int)g->tl.y >> 3, sw, true, false);
 		}
 	}
 
-	SelectObject(hDC, hOldFont);
-	ReleaseDC(0, hDC);
+	SelectObject(m_hDC, hOldFont);
 
 	bbox = bbox2 & CRect(0, 0, spd.w, spd.h);
 

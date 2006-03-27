@@ -28,7 +28,7 @@ namespace ssf
 {
 	class SubtitleFile : public File
 	{
-		static LPCTSTR s_predef;
+		static LPCWSTR s_predef;
 
 	public:
 		struct SegmentItem

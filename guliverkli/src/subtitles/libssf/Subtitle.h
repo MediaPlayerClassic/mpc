@@ -30,18 +30,19 @@ namespace ssf
 	struct Rect {double t, r, b, l;};
 	struct Align {double v, h;};
 	struct Angle {double x, y, z;};
-	struct Frame {CString reference; Size resolution;};
-	struct Direction {CString primary, secondary;};
+	struct Color {double a, r, g, b;};
+	struct Frame {CStringW reference; Size resolution;};
+	struct Direction {CStringW primary, secondary;};
 	struct Time {double start, stop;};
-	struct Background {double color[4], size; CString type;};
-	struct Shadow {double color[4], depth, angle, blur;};
+	struct Background {Color color; double size; CStringW type;};
+	struct Shadow {Color color; double depth, angle, blur;};
 	struct Placement {Rect clip, margin; Align align; Point pos, offset; Angle angle;};
 
 	struct Font
 	{
-		CString face;
+		CStringW face;
 		double size, weight;
-		double color[4];
+		Color color;
 		bool underline, strikethrough, italic;
 		double spacing;
 		Size scale;
@@ -51,14 +52,14 @@ namespace ssf
 	{
 		static unsigned int gen_id;
 		int id;
-		double color[4];
+		Color color;
 		double width;
 		struct Fill() : id(0) {}
 	};
 
 	struct Style
 	{
-		CString linebreak;
+		CStringW linebreak;
 		Placement placement;
 		Font font;
 		Background background;
@@ -70,32 +71,32 @@ namespace ssf
 	{
 		enum {SP = 0x20, NBSP = 0xa0, LSEP = 0x0a};
 		Style style;
-		CString str;
+		CStringW str;
 	};
 
 	class Subtitle
 	{
-		static struct n2n_t {CAtlStringMap<double> align[2], weight, transition;} m_n2n;
+		static struct n2n_t {CAtlStringMapW<double> align[2], weight, transition;} m_n2n;
 
 		File* m_pFile;
 
 		void GetStyle(Definition* pDef, Style& style);
-		double GetMixWeight(Definition* pDef, double at, CAtlStringMap<double>& offset, int default_id);
+		double GetMixWeight(Definition* pDef, double at, CAtlStringMapW<double>& offset, int default_id);
 		template<class T> bool MixValue(Definition& def, T& value, double t);
 		template<> bool MixValue(Definition& def, double& value, double t);
-		template<class T> bool MixValue(Definition& def, T& value, double t, CAtlStringMap<T>* n2n);
-		template<> bool MixValue(Definition& def, double& value, double t, CAtlStringMap<double>* n2n);
+		template<class T> bool MixValue(Definition& def, T& value, double t, CAtlStringMapW<T>* n2n);
+		template<> bool MixValue(Definition& def, double& value, double t, CAtlStringMapW<double>* n2n);
 		void MixStyle(Definition* pDef, Style& dst, double t);
 
-		void Parse(Stream& s, Style style, double at, CAtlStringMap<double> offset, Reference* pParentRef);
+		void Parse(Stream& s, Style style, double at, CAtlStringMapW<double> offset, Reference* pParentRef);
 
-		void AddChar(Text& t, TCHAR c);
+		void AddChar(Text& t, WCHAR c);
 		void AddText(Text& t);
 
 	public:
 		Frame m_frame;
 		Direction m_direction;
-		CString m_wrap;
+		CStringW m_wrap;
 		double m_layer;
 		Time m_time;
 		CAtlList<Text> m_text;

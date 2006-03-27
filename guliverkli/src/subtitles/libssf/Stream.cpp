@@ -82,7 +82,7 @@ namespace ssf
 			if(c == EOS) {cur = EOS; break;}
 			cur = cur | (c << 8);
 			break;
-		case tchar:
+		case wchar:
 			break;
 		}
 
@@ -143,12 +143,12 @@ namespace ssf
 		return PopChar();
 	}
 
-	bool Stream::IsWhiteSpace(int c, LPCTSTR morechars)
+	bool Stream::IsWhiteSpace(int c, LPCWSTR morechars)
 	{
-		return c != 0xa0 && _istspace(c) || morechars && _tcschr(morechars, (TCHAR)c);
+		return c != 0xa0 && iswspace(c) || morechars && wcschr(morechars, (WCHAR)c);
 	}
 
-	int Stream::SkipWhiteSpace(LPCTSTR morechars)
+	int Stream::SkipWhiteSpace(LPCWSTR morechars)
 	{
 		int c = PeekChar();
 		for(; IsWhiteSpace(c, morechars); c = PeekChar()) 
@@ -222,16 +222,16 @@ namespace ssf
 		return (int)m_pBytes[m_pos++];
 	}
 
-	// CharacterStream
+	// WCharStream
 	
-	CharacterStream::CharacterStream(CString str)
+	WCharStream::WCharStream(CStringW str)
 		: m_str(str)
 		, m_pos(0)
 	{
-		m_encoding = Stream::tchar;
+		m_encoding = Stream::wchar; // HACK: it should return real bytes from NextByte (two per wchar_t), but this way it's a lot more simple...
 	}
 
-	int CharacterStream::NextByte()
+	int WCharStream::NextByte()
 	{
 		if(m_pos >= m_str.GetLength()) return Stream::EOS;
 		return m_str[m_pos++];
