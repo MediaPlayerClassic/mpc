@@ -60,6 +60,7 @@ namespace ssf
 		CAtlStringMapW<Node*> m_name2node;
 		CStringW m_type, m_name;
 		NodePriority m_priority;
+		bool m_predefined;
 
 		Node(const NodeFactory* pnf, CStringW name);
 		virtual ~Node() {}
@@ -70,7 +71,7 @@ namespace ssf
 
 		virtual void AddTail(Node* pNode);
 		virtual void GetChildDefs(CAtlList<Definition*>& l, LPCWSTR type = NULL, bool fFirst = true);
-		virtual void Dump(NodePriority minpriority = PNormal, int level = 0, bool fLast = false) = 0;
+		virtual void Dump(int level = 0, bool fLast = false) = 0;
 	};
 
 	class Reference : public Node
@@ -80,7 +81,7 @@ namespace ssf
 		virtual ~Reference();
 
 		void GetChildDefs(CAtlList<Definition*>& l, LPCWSTR type = NULL, bool fFirst = true);
-		void Dump(NodePriority minpriority = PNormal, int level = 0, bool fLast = false);
+		void Dump(int level = 0, bool fLast = false);
 	};
 
 	class Definition : public Node
@@ -109,7 +110,7 @@ namespace ssf
 		bool IsVisible(Definition* pDef);
 
 		void AddTail(Node* pNode);
-		void Dump(NodePriority minpriority = PNormal, int level = 0, bool fLast = false);
+		void Dump(int level = 0, bool fLast = false);
 
 		Definition& operator[] (LPCWSTR type);
 

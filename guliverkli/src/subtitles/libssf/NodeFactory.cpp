@@ -28,7 +28,7 @@ namespace ssf
 	NodeFactory::NodeFactory()
 		: m_counter(0)
 		, m_root(NULL)
-		, m_priority(PNormal)
+		, m_predefined(false)
 	{
 	}
 
@@ -118,7 +118,7 @@ namespace ssf
 
 			if(pDef)
 			{
-				if(pDef->m_priority != PLow)
+				if(!pDef->m_predefined)
 				{
 					throw Exception(_T("redefinition of '%s' is not allowed"), CString(name));
 				}
@@ -145,7 +145,8 @@ namespace ssf
 		}
 
 		pDef->m_type = type;
-		pDef->m_priority = priority == PNormal ? m_priority : priority;
+		pDef->m_priority = priority;
+		pDef->m_predefined = m_predefined;
 
 		return pDef;
 	}
@@ -157,11 +158,11 @@ namespace ssf
 		return dynamic_cast<Definition*>(pNode);
 	}
 
-	void NodeFactory::Dump(NodePriority priority) const
+	void NodeFactory::Dump() const
 	{
 		if(!m_root) return;
 
 		POSITION pos = m_root->m_nodes.GetHeadPosition();
-		while(pos) m_root->m_nodes.GetNext(pos)->Dump(priority);
+		while(pos) m_root->m_nodes.GetNext(pos)->Dump();
 	}
 }

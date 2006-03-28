@@ -30,7 +30,7 @@ namespace ssf
 		Reference* m_root;
 		CAtlStringMapW<Node*> m_nodes;
 		CAtlList<CStringW> m_newnodes;
-		NodePriority m_priority;
+		bool m_predefined;
 
 		unsigned __int64 m_counter;
 		CStringW GenName();
@@ -41,7 +41,7 @@ namespace ssf
 
 		virtual void RemoveAll();
 
-		void SetDefaultPriority(NodePriority priority) {m_priority = priority;}
+		void SetPredefined(bool predefined) {m_predefined = predefined;}
 
 		void Commit();
 		void Rollback();
@@ -52,6 +52,6 @@ namespace ssf
 		Definition* CreateDef(Reference* pParentRef = NULL, CStringW type = L"", CStringW name = L"", NodePriority priority = PNormal);
 		Definition* GetDefByName(CStringW name) const;
 
-		void Dump(NodePriority priority) const;
+		void Dump() const;
 	};
 }
