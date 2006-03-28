@@ -324,6 +324,8 @@ subtitle
 	If there is a text block right after an override, the new style will be used only inside 
 	that block.
 	
+	Style and time offsets are restored at the end of text blocks.
+	
 	Examples:
 
 	[s1] {s1 applies only to this block.}
@@ -444,13 +446,31 @@ subtitle
 	It is also possible to leave some of the ref list slots empty.
 
 	[s1] [a1,a2,a3]{Ka}[,a2,a3]{ra}[a1,,a3]{o}[a1,a2,]{ke!}
+	
+	Text includes
+	-------------
 
+	Text blocks can also be defined outside subtitles and included later. 
+	
+	#hw { @ {[{font.italic: "true"}]Hello World!}; };
+	subtitle { @ {[hw]}; };
+	
+	When mixing style overrides and text includes, the new style applies to the text too.
+	
+	#hw { @ {Hello World!}; };
+	subtitle { @ {[hw {font.italic: "true"}]}; };
+	
+	Multiple levels of recursion:
+	
+	#dblspace { @ {[{font.scale.cx: 2;}]             }; }; // note: there is still only one space character here because of white space compression
+	#hw { @ {Hello[dblspace]World!}; };
+	subtitle { @ {[hw]}; };
 };
 
 Defaults and predefined names
 -----------------------------
 
-These must be predefined by the application, where each definition is low priority.
+These must be predefined by the application and always assumed to be there for ssf version 1.
 
 color#white {a: 255; r: 255; g: 255; b: 255;};
 color#black {a: 255; r: 0; g: 0; b: 0;};
