@@ -549,8 +549,8 @@ subtitle : effecttest notes
 subtitle : effecttest
 {
 	wrap: "manual";
-	style: MainT {placement {margin {l: "right"; r: "left";}; align.h = "left";};};
-	#hscroll {time {start: "start"; stop: "stop";}; placement.align.h = "right";};
+	style: MainT {placement {margin {l: "right"; r: "left";}; align.h: "left";};};
+	#hscroll {time {start: "start"; stop: "stop";}; placement.align.h: "right";};
 
 	@ {
 		[hscroll]
@@ -560,8 +560,8 @@ subtitle : effecttest
 
 subtitle : effecttest
 {
-	style: MainT {placement {margin {t: 120; b: 200;}; clip {t: 40; b: 120;}; align.v = "top";};};
-	#vscroll {time {start: "start"; stop: "stop";}; placement.align.v = "bottom";};
+	style: MainT {placement {margin {t: 120; b: 200;}; clip {t: 40; b: 120;}; align.v: "top";};};
+	#vscroll {time {start: "start"; stop: "stop";}; placement.align.v: "bottom";};
 
 	@ {
 		[vscroll]
