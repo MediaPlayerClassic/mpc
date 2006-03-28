@@ -34,6 +34,7 @@ namespace ssf
 		, m_type('?')
 		, m_name(name)
 		, m_priority(PNormal)
+		, m_predefined(false)
 		, m_parent(NULL)
 	{
 		ASSERT(m_pnf);
@@ -126,9 +127,9 @@ namespace ssf
 		}
 	}
 
-	void Reference::Dump(NodePriority priority, int level, bool fLast)
+	void Reference::Dump(int level, bool fLast)
 	{
-		if(m_priority < priority) return;
+		// if(m_predefined) return;
 
 		CString tabs(' ', level*4);
 
@@ -140,7 +141,7 @@ namespace ssf
 		{
 			if(Definition* pDef = dynamic_cast<Definition*>(m_nodes.GetNext(pos)))
 			{
-				pDef->Dump(priority, level + 1, pos == NULL);
+				pDef->Dump(level + 1, pos == NULL);
 			}
 		}
 
@@ -412,13 +413,14 @@ namespace ssf
 		return b;
 	}
 
-	void Definition::Dump(NodePriority priority, int level, bool fLast)
+	void Definition::Dump(int level, bool fLast)
 	{
-		if(m_priority < priority) return;
+		// if(m_predefined) return;
 
 		CString tabs(' ', level*4);
 
 		CString str = tabs;
+		if(m_predefined) str += '?';
 		if(m_priority == PLow) str += '*';
 		else if(m_priority == PHigh) str += '!';
 		if(!IsTypeUnknown() && !m_autotype) str += CString(m_type);
@@ -435,7 +437,7 @@ namespace ssf
 
 				if(Reference* pRef = dynamic_cast<Reference*>(pNode))
 				{
-					pRef->Dump(priority, level, fLast);
+					pRef->Dump(level, fLast);
 				}
 				else 
 				{

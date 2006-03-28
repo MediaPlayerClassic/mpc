@@ -117,28 +117,8 @@ bool CRenderedSSF::Open(ssf::Stream& s, CString name)
 	{
 		m_psf.Attach(new ssf::SubtitleFile());
 		m_psf->Parse(s);
-
-#if 0 // def DEBUG
-		m_psf->Dump(ssf::PLow);
-		double at = 0;
-		for(int i = 9000; i < 12000; i += 10)
-		{
-			double at = (double)i/1000;
-			CAutoPtrList<ssf::Subtitle> subs;
-			m_psf->Lookup(at, subs);
-			POSITION pos = subs.GetHeadPosition();
-			while(pos)
-			{
-				const ssf::Subtitle* s = subs.GetNext(pos);
-
-				POSITION pos = s->m_text.GetHeadPosition();
-				while(pos)
-				{
-					const ssf::Text& t = s->m_text.GetNext(pos);
-					TRACE(_T("%.3f: [%.2f] %s\n"), at, t.style.font.size, CString(t.str));
-				}
-			}
-		}
+#ifdef DEBUG
+		m_psf->Dump();
 #endif
 		m_name = name;
 		return true;
@@ -346,7 +326,7 @@ STDMETHODIMP CRenderedSSF::Render(SubPicDesc& spd, REFERENCE_TIME rt, double fps
 
 	double at = (double)rt/10000000;
 
-	CRect bbox2 = CRect(0, 0, 0, 0);
+	CRect bbox2(0, 0, 0, 0);
 
 	HFONT hOldFont = (HFONT)GetCurrentObject(m_hDC, OBJ_FONT);
 

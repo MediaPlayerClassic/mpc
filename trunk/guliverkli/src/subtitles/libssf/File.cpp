@@ -40,12 +40,12 @@ namespace ssf
 	{
 		Reference* pRef = CreateRootRef();
 
-		SetDefaultPriority(PLow);
+		SetPredefined(true);
 
 		try {ParseDefs(WCharStream(predef), pRef);}
 		catch(Exception& e) {ASSERT(0); TRACE(_T("%s\n"), e.ToString());}
 
-		SetDefaultPriority(PNormal);
+		SetPredefined(false);
 
 		ParseDefs(s, pRef);
 
