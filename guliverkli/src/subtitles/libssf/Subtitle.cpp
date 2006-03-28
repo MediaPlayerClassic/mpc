@@ -454,7 +454,7 @@ namespace ssf
 		}
 	}
 
-	void Subtitle::Parse(Stream& s, Style style, double at, CAtlStringMapW<double>& offset, Reference* pParentRef)
+	void Subtitle::Parse(Stream& s, Style style, double at, CAtlStringMapW<double> offset, Reference* pParentRef)
 	{
 		Text text;
 		text.style = style;
@@ -516,8 +516,6 @@ namespace ssf
 			}
 			else if(c == '{')
 			{
-				CAtlStringMapW<double> inneroffset = offset;
-
 				AddText(text);
 				Parse(s, text.style, at, offset, pParentRef);
 			}
