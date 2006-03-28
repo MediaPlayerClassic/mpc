@@ -42,7 +42,6 @@ otherwise there would be no meaning of the expression.
 	#b {t: 234;};
 	#ab a b;
 	#c ab; // t of c still equals to 123
-- there are also low priority definitions, but only the parser is allowed to use them to predefine the defaults.
 
 "type" and "name":
 - alphanumeric or underscore characters only, without spaces
