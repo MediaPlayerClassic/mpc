@@ -25,26 +25,26 @@
 
 namespace ssf
 {
-	struct Point {double x, y; bool auto_x, auto_y;};
-	struct Size {double cx, cy;};
-	struct Rect {double t, r, b, l;};
-	struct Align {double v, h;};
-	struct Angle {double x, y, z;};
-	struct Color {double a, r, g, b;};
+	struct Point {float x, y; bool auto_x, auto_y;};
+	struct Size {float cx, cy;};
+	struct Rect {float t, r, b, l;};
+	struct Align {float v, h;};
+	struct Angle {float x, y, z;};
+	struct Color {float a, r, g, b;};
 	struct Frame {CStringW reference; Size resolution;};
 	struct Direction {CStringW primary, secondary;};
-	struct Time {double start, stop;};
-	struct Background {Color color; double size; CStringW type;};
-	struct Shadow {Color color; double depth, angle, blur;};
+	struct Time {float start, stop;};
+	struct Background {Color color; float size; CStringW type;};
+	struct Shadow {Color color; float depth, angle, blur;};
 	struct Placement {Rect clip, margin; Align align; Point pos, offset; Angle angle;};
 
 	struct Font
 	{
 		CStringW face;
-		double size, weight;
+		float size, weight;
 		Color color;
 		bool underline, strikethrough, italic;
-		double spacing;
+		float spacing;
 		Size scale;
 	};
 
@@ -53,7 +53,7 @@ namespace ssf
 		static unsigned int gen_id;
 		int id;
 		Color color;
-		double width;
+		float width;
 		struct Fill() : id(0) {}
 	};
 
@@ -65,6 +65,8 @@ namespace ssf
 		Background background;
 		Shadow shadow;
 		Fill fill;
+
+		bool IsSimilar(const Style& s);
 	};
 
 	struct Text
@@ -76,28 +78,30 @@ namespace ssf
 
 	class Subtitle
 	{
-		static struct n2n_t {CAtlStringMapW<double> align[2], weight, transition;} m_n2n;
+		static struct n2n_t {CAtlStringMapW<float> align[2], weight, transition;} m_n2n;
 
 		File* m_pFile;
 
 		void GetStyle(Definition* pDef, Style& style);
-		double GetMixWeight(Definition* pDef, double at, CAtlStringMapW<double>& offset, int default_id);
-		template<class T> bool MixValue(Definition& def, T& value, double t);
-		template<> bool MixValue(Definition& def, double& value, double t);
-		template<class T> bool MixValue(Definition& def, T& value, double t, CAtlStringMapW<T>* n2n);
-		template<> bool MixValue(Definition& def, double& value, double t, CAtlStringMapW<double>* n2n);
-		void MixStyle(Definition* pDef, Style& dst, double t);
+		float GetMixWeight(Definition* pDef, float at, CAtlStringMapW<float>& offset, int default_id);
+		template<class T> bool MixValue(Definition& def, T& value, float t);
+		template<> bool MixValue(Definition& def, float& value, float t);
+		template<class T> bool MixValue(Definition& def, T& value, float t, CAtlStringMapW<T>* n2n);
+		template<> bool MixValue(Definition& def, float& value, float t, CAtlStringMapW<float>* n2n);
+		void MixStyle(Definition* pDef, Style& dst, float t);
 
-		void Parse(Stream& s, Style style, double at, CAtlStringMapW<double> offset, Reference* pParentRef);
+		void Parse(Stream& s, Style style, float at, CAtlStringMapW<float> offset, Reference* pParentRef);
 
 		void AddChar(Text& t, WCHAR c);
 		void AddText(Text& t);
 
 	public:
+		CStringW m_name;
+		bool m_animated;
 		Frame m_frame;
 		Direction m_direction;
 		CStringW m_wrap;
-		double m_layer;
+		float m_layer;
 		Time m_time;
 		CAtlList<Text> m_text;
 
@@ -105,6 +109,6 @@ namespace ssf
 		Subtitle(File* pFile);
 		virtual ~Subtitle();
 
-		bool Parse(Definition* pDef, double start, double stop, double at);
+		bool Parse(Definition* pDef, float start, float stop, float at);
 	};
 };

@@ -2957,11 +2957,7 @@ void STSStyle::operator = (LOGFONT& lf)
 LOGFONTA& operator <<= (LOGFONTA& lfa, STSStyle& s)
 {
 	lfa.lfCharSet = s.charSet;
-#ifdef UNICODE
-	wcstombs(lfa.lfFaceName, s.fontName, 32);
-#else
-	strncpy(lfa.lfFaceName, s.fontName, 32);
-#endif
+	strcpy_s(lfa.lfFaceName, CStringA(s.fontName));
 	HDC hDC = GetDC(0);
 	lfa.lfHeight = -MulDiv((int)(s.fontSize+0.5), GetDeviceCaps(hDC, LOGPIXELSY), 72);
 	ReleaseDC(0, hDC);
@@ -2969,18 +2965,13 @@ LOGFONTA& operator <<= (LOGFONTA& lfa, STSStyle& s)
 	lfa.lfItalic = s.fItalic?-1:0;
 	lfa.lfUnderline = s.fUnderline?-1:0;
 	lfa.lfStrikeOut = s.fStrikeOut?-1:0;
-
 	return(lfa);
 }
 
 LOGFONTW& operator <<= (LOGFONTW& lfw, STSStyle& s)
 {
 	lfw.lfCharSet = s.charSet;
-#ifdef UNICODE
-	wcsncpy(lfw.lfFaceName, s.fontName, 32);
-#else
-	mbstowcs(lfw.lfFaceName, s.fontName, 32);
-#endif
+	wcscpy_s(lfw.lfFaceName, CStringW(s.fontName));
 	HDC hDC = GetDC(0);
 	lfw.lfHeight = -MulDiv((int)(s.fontSize+0.5), GetDeviceCaps(hDC, LOGPIXELSY), 72);
 	ReleaseDC(0, hDC);
@@ -2988,7 +2979,6 @@ LOGFONTW& operator <<= (LOGFONTW& lfw, STSStyle& s)
 	lfw.lfItalic = s.fItalic?-1:0;
 	lfw.lfUnderline = s.fUnderline?-1:0;
 	lfw.lfStrikeOut = s.fStrikeOut?-1:0;
-
 	return(lfw);
 }
 

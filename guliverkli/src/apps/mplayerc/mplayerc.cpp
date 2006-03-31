@@ -524,8 +524,70 @@ BOOL WINAPI Mine_DeviceIoControl(HANDLE hDevice, DWORD dwIoControlCode, LPVOID l
 	return ret;
 }
 
+#include "../../subtitles/SSF.h"
+#include "../../subtitles/RTS.h"
+#include "../../subpic/MemSubPic.h"
+
+class ssftest
+{
+public:
+	ssftest()
+	{
+		Sleep(10000);
+
+		MessageBeep(-1);
+// 8; //
+		SubPicDesc spd;
+		spd.w = 640;
+		spd.h = 480;
+		spd.bpp = 32;
+		spd.pitch = spd.w*spd.bpp>>3;
+		spd.type = MSP_RGB32;
+		spd.vidrect = CRect(0, 0, spd.w, spd.h);
+		spd.bits = new BYTE[spd.pitch*spd.h];
+
+		CCritSec csLock;
+/*
+		CRenderedTextSubtitle s(&csLock);
+		s.Open(_T("../../subtitles/libssf/demo/demo.ssa"), 1);
+
+		for(int i = 2*60*1000+2000; i < 2*60*1000+17000; i += 10)
+		{
+			memsetd(spd.bits, 0xff000000, spd.pitch*spd.h);
+			CRect bbox;
+			bbox.SetRectEmpty();
+			s.Render(spd, 10000i64*i, 25, bbox);
+		}
+*/
+		try
+		{
+			CRenderedSSF s(&csLock);
+			s.Open(_T("../../subtitles/libssf/demo/demo.ssf"));
+
+			for(int i = 2*60*1000+2000; i < 2*60*1000+17000; i += 40)
+			{
+				memsetd(spd.bits, 0xff000000, spd.pitch*spd.h);
+				CRect bbox;
+				bbox.SetRectEmpty();
+				s.Render(spd, 10000i64*i, 25, bbox);
+			}
+		}
+		catch(ssf::Exception& e)
+		{
+			TRACE(_T("%s\n"), e.ToString());
+			ASSERT(0);
+		}
+
+		delete [] spd.bits;
+
+		::ExitProcess(0);
+	}
+};
+
 BOOL CMPlayerCApp::InitInstance()
 {
+	//ssftest s;
+
 	DetourFunctionWithTrampoline((PBYTE)Real_IsDebuggerPresent, (PBYTE)Mine_IsDebuggerPresent);
 	DetourFunctionWithTrampoline((PBYTE)Real_ChangeDisplaySettingsExA, (PBYTE)Mine_ChangeDisplaySettingsExA);
 	DetourFunctionWithTrampoline((PBYTE)Real_ChangeDisplaySettingsExW, (PBYTE)Mine_ChangeDisplaySettingsExW);
