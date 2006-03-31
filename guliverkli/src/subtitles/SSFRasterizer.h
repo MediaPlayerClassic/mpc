@@ -36,8 +36,8 @@ class SSFArray
 	size_t m_nGrowBy;
 
 public:
-	SSFArray() {m_pData = NULL; m_nSize = m_nMaxSize = 0; m_nGrowBy = 2048;}
-	virtual ~SSFArray() {if(m_pData) free(m_pData);}
+	SSFArray() {m_pData = NULL; m_nSize = m_nMaxSize = 0; m_nGrowBy = 4096;}
+	virtual ~SSFArray() {if(m_pData) _aligned_free(m_pData);}
 
 	void SetCount(size_t nSize, size_t nGrowBy = 0)
 	{
@@ -50,7 +50,7 @@ public:
 		{
 			m_nMaxSize = nSize + max(m_nGrowBy, m_nSize);
 			size_t nBytes = m_nMaxSize * sizeof(T);
-			m_pData = m_pData ? (T*)realloc(m_pData, nBytes) : (T*)malloc(nBytes);
+			m_pData = m_pData ? (T*)_aligned_realloc(m_pData, nBytes, 16) : (T*)_aligned_malloc(nBytes, 16);
 		}
 
 		m_nSize = nSize;
@@ -72,10 +72,15 @@ public:
 
 	void Append(const SSFArray& a, size_t nGrowBy = 0)
 	{
-		if(a.IsEmpty()) return;
-		size_t nSize = m_nSize;
-		SetCount(m_nSize + a.m_nSize, nGrowBy);
-		memcpy(m_pData + nSize, a.m_pData, a.m_nSize * sizeof(T));
+		Append(a.m_pData, a.m_nSize, nGrowBy);
+	}
+
+	void Append(const T* ptr, size_t nSize, size_t nGrowBy = 0)
+	{
+		if(!nSize) return;
+		size_t nOldSize = m_nSize;
+		SetCount(nOldSize + nSize);
+		memcpy(m_pData + nOldSize, ptr, nSize * sizeof(T));
 	}
 
 	const T& operator [] (size_t i) const {return m_pData[i];}
@@ -118,9 +123,7 @@ private:
 
 	typedef SSFArray<tSpan> tSpanBuffer;
 
-	tSpanBuffer mOutline;
-	tSpanBuffer mWideOutline;
-	tSpanBuffer mWideOutlineTemp;
+	tSpanBuffer mOutline, mWideOutline, mWideOutlineTmp;
 	int mWideBorder;
 
 	struct Edge {int next, posandflag;}* mpEdgeBuffer;
