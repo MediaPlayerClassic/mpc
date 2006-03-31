@@ -390,20 +390,18 @@ using namespace std;
 
 void SSFRasterizer::_OverlapRegion(tSpanBuffer& dst, tSpanBuffer& src, int dx, int dy)
 {
-	mWideOutlineTemp.Move(dst);
-
-	tSpan* a = mWideOutlineTemp.GetData();
-	tSpan* ae = a + mWideOutlineTemp.GetCount();
-	tSpan* b = src.GetData();
-	tSpan* be = b + src.GetCount();
-
-	// Don't worry -- even if dy<0 this will still work!
-
 	tSpan o;
 	o.y1 = o.y2 = dy;
 	o.x1 = o.x2 = 0;
 	o.first -= dx;
 	o.second += dx;
+
+	mWideOutlineTmp.Move(dst);
+
+	tSpan* a = mWideOutlineTmp.GetData();
+	tSpan* ae = a + mWideOutlineTmp.GetCount();
+	tSpan* b = src.GetData();
+	tSpan* be = b + src.GetCount();
 
 	while(a != ae && b != be)
 	{
@@ -484,10 +482,7 @@ void SSFRasterizer::_OverlapRegion(tSpanBuffer& dst, tSpanBuffer& src, int dx, i
 
 	// Copy over leftover spans.
 
-	for(; a != ae; a++)
-	{
-		dst.Add(*a);
-	}
+	dst.Append(a, ae - a);
 
 	for(; b != be; b++)
 	{
