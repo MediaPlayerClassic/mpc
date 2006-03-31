@@ -88,7 +88,7 @@ namespace ssf
 	{
 	public:
 		template<typename T> struct Number {T value; int sign; CStringW unit;};
-		struct Time {Number<double> start, stop;};
+		struct Time {Number<float> start, stop;};
 
 		enum status_t {node, string, number, boolean, block};
 
@@ -122,14 +122,14 @@ namespace ssf
 		void GetAsString(CStringW& str);
 		void GetAsNumber(Number<int>& n, CAtlStringMapW<int>* n2n = NULL);
 		void GetAsNumber(Number<DWORD>& n, CAtlStringMapW<DWORD>* n2n = NULL);
-		void GetAsNumber(Number<double>& n, CAtlStringMapW<double>* n2n = NULL);
+		void GetAsNumber(Number<float>& n, CAtlStringMapW<float>* n2n = NULL);
 		template<typename T> 
 		void GetAsNumber(T& t, CAtlStringMapW<T>* n2n = NULL) {Number<T> n; GetAsNumber(n, n2n); t = n.value;}
 		void GetAsBoolean(bool& b);
-		bool GetAsTime(Time& t, CAtlStringMapW<double>& offset, CAtlStringMapW<double>* n2n = NULL, int default_id = 0);
+		bool GetAsTime(Time& t, CAtlStringMapW<float>& offset, CAtlStringMapW<float>* n2n = NULL, int default_id = 0);
 
 		operator LPCWSTR();
-		operator double();
+		operator float();
 		operator bool();
 	};
 }

@@ -22,7 +22,85 @@
 #pragma once
 
 #include <vector>
+#include <atlcoll.h>
 #include "..\SubPic\ISubPic.h"
+
+// simple array class for simple types without constructors, and it doesn't free its reserves on SetCount(0)
+
+template<class T>
+class SSFArray
+{
+	T* m_pData;
+	size_t m_nSize;
+	size_t m_nMaxSize;
+	size_t m_nGrowBy;
+
+public:
+	SSFArray() {m_pData = NULL; m_nSize = m_nMaxSize = 0; m_nGrowBy = 2048;}
+	virtual ~SSFArray() {if(m_pData) free(m_pData);}
+
+	void SetCount(size_t nSize, size_t nGrowBy = 0)
+	{
+		if(nGrowBy > 0)
+		{
+			m_nGrowBy = nGrowBy;
+		}
+
+		if(nSize > m_nMaxSize)
+		{
+			m_nMaxSize = nSize + max(m_nGrowBy, m_nSize);
+			size_t nBytes = m_nMaxSize * sizeof(T);
+			m_pData = m_pData ? (T*)realloc(m_pData, nBytes) : (T*)malloc(nBytes);
+		}
+
+		m_nSize = nSize;
+	}
+
+	size_t GetCount() const {return m_nSize;}
+
+	void RemoveAll() {m_nSize = 0;}
+	bool IsEmpty() const {return m_nSize == 0;}
+
+	T* GetData() {return m_pData;}
+
+	void Add(const T& t)
+	{
+		size_t nPos = m_nSize;
+		SetCount(m_nSize+1);
+		m_pData[nPos] = t;
+	}
+
+	void Append(const SSFArray& a, size_t nGrowBy = 0)
+	{
+		if(a.IsEmpty()) return;
+		size_t nSize = m_nSize;
+		SetCount(m_nSize + a.m_nSize, nGrowBy);
+		memcpy(m_pData + nSize, a.m_pData, a.m_nSize * sizeof(T));
+	}
+
+	const T& operator [] (size_t i) const {return m_pData[i];}
+	T& operator [] (size_t i) {return m_pData[i];}
+
+	void Copy(const SSFArray& v)
+	{
+		SetCount(v.GetCount());
+		memcpy(m_pData, v.m_pData, m_nSize * sizeof(T));
+	}
+
+	void Move(SSFArray& v)
+	{
+		Swap(v);
+		v.SetCount(0);
+	}
+
+	void Swap(SSFArray& v)
+	{
+		T* pData = m_pData; m_pData = v.m_pData; v.m_pData = pData;
+		size_t nSize = m_nSize; m_nSize = v.m_nSize; v.m_nSize = nSize;
+		size_t nMaxSize = m_nMaxSize; m_nMaxSize = v.m_nMaxSize; v.m_nMaxSize = nMaxSize;
+		size_t nGrowBy = m_nGrowBy; m_nGrowBy = v.m_nGrowBy; v.m_nGrowBy = nGrowBy;
+	}
+};
 
 class SSFRasterizer
 {
@@ -32,22 +110,26 @@ class SSFRasterizer
 private:
 	int mWidth, mHeight;
 
-	typedef std::pair<unsigned __int64, unsigned __int64> tSpan;
-	typedef std::vector<tSpan> tSpanBuffer;
+	union tSpan
+	{
+		struct {unsigned int x1, y1, x2, y2;};
+		struct {unsigned __int64 first, second;};
+	};
+
+	typedef SSFArray<tSpan> tSpanBuffer;
 
 	tSpanBuffer mOutline;
 	tSpanBuffer mWideOutline;
+	tSpanBuffer mWideOutlineTemp;
 	int mWideBorder;
 
-	struct Edge {int next; int posandflag;}* mpEdgeBuffer;
-
+	struct Edge {int next, posandflag;}* mpEdgeBuffer;
 	unsigned int mEdgeHeapSize;
 	unsigned int mEdgeNext;
-
 	unsigned int* mpScanBuffer;
 
 protected:
-	unsigned char* mpOverlayBuffer;
+	BYTE* mpOverlayBuffer;
 	int mOverlayWidth, mOverlayHeight;
 	int mPathOffsetX, mPathOffsetY;
 	int mOffsetX, mOffsetY;
@@ -55,21 +137,22 @@ protected:
 private:
 	void _TrashOverlay();
 	void _ReallocEdgeBuffer(int edges);
-	void _EvaluateBezier(const POINT* pt, bool spline);
+	void _EvaluateBezier(const POINT* pt);
 	void _EvaluateLine(const POINT* pt);
 	void _EvaluateLine(int x0, int y0, int x1, int y1);
-	static void _OverlapRegion(tSpanBuffer& dst, tSpanBuffer& src, int dx, int dy);
+	void _OverlapRegion(tSpanBuffer& dst, tSpanBuffer& src, int dx, int dy);
 
 public:
 	SSFRasterizer();
 	virtual ~SSFRasterizer();
 
-	bool ScanConvert(unsigned int npoints, BYTE* types, POINT* pt);
+	static void MovePoints(POINT* p, unsigned int n, int dx, int dy);
+
+	bool ScanConvert(unsigned int npts, BYTE* types, POINT* pt);
 	bool CreateWidenedRegion(int r);
-	void DeleteOutlines();
 	bool Rasterize(int xsub, int ysub);
 
-	void Clone(const SSFRasterizer& r);
+	void Reuse(SSFRasterizer& r);
 
 	CRect Draw(const SubPicDesc& spd, const CRect& clip, int xsub, int ysub, const DWORD* switchpts, bool fBody, bool fBorder);
 };

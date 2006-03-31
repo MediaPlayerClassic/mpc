@@ -30,6 +30,7 @@ namespace ssf
 
 	Subtitle::Subtitle(File* pFile) 
 		: m_pFile(pFile)
+		, m_animated(false)
 	{
 		if(m_n2n.align[0].IsEmpty())
 		{
@@ -66,9 +67,11 @@ namespace ssf
 	{
 	}
 
-	bool Subtitle::Parse(Definition* pDef, double start, double stop, double at)
+	bool Subtitle::Parse(Definition* pDef, float start, float stop, float at)
 	{
 		ASSERT(m_pFile && pDef);
+
+		m_name = pDef->m_name;
 
 		m_text.RemoveAll();
 
@@ -101,7 +104,7 @@ namespace ssf
 			Style style;
 			GetStyle(&(*pDef)[L"style"], style);
 
-			CAtlStringMapW<double> offset;
+			CAtlStringMapW<float> offset;
 			Definition& block = (*pDef)[L"@"];
 			Parse(WCharStream((LPCWSTR)block), style, at, offset, dynamic_cast<Reference*>(block.m_parent));
 
@@ -187,7 +190,7 @@ namespace ssf
 			if(clip[L"l"].IsValue()) style.placement.clip.l = clip[L"l"];
 		}
 
-		CAtlStringMapW<double> n2n_margin[2];
+		CAtlStringMapW<float> n2n_margin[2];
 
 		n2n_margin[0][L"top"] = 0;
 		n2n_margin[0][L"right"] = 0;
@@ -260,13 +263,13 @@ namespace ssf
 		style.fill.width = fill[L"width"];
 	}
 
-	double Subtitle::GetMixWeight(Definition* pDef, double at, CAtlStringMapW<double>& offset, int default_id)
+	float Subtitle::GetMixWeight(Definition* pDef, float at, CAtlStringMapW<float>& offset, int default_id)
 	{
-		double t = 1;
+		float t = 1;
 
 		try
 		{
-			CAtlStringMapW<double> n2n;
+			CAtlStringMapW<float> n2n;
 
 			n2n[L"start"] = 0;
 			n2n[L"stop"] = m_time.stop - m_time.start;
@@ -276,17 +279,17 @@ namespace ssf
 			{
 				t = (at - time.start.value) / (time.stop.value - time.start.value);
 
-				double u = t;
+				float u = t;
 
 				if(t < 0) t = 0;
-				else if(t >= 1) t = 0.999999; // doh
+				else if(t >= 1) t = 0.99999; // doh
 
-				if((*pDef)[L"loop"].IsValue()) t *= (double)(*pDef)[L"loop"];
+				if((*pDef)[L"loop"].IsValue()) t *= (float)(*pDef)[L"loop"];
 
 				CStringW direction = (*pDef)[L"direction"].IsValue() ? (*pDef)[L"direction"] : L"fw";
 				if(direction == L"fwbw" || direction == L"bwfw") t *= 2;
 
-				double n;
+				float n;
 				t = modf(t, &n);
 
 				if(direction == L"bw" 
@@ -294,16 +297,16 @@ namespace ssf
 				|| direction == L"bwfw" && !((int)n & 1)) 
 					t = 1 - t;
 
-				double accel = 1;
+				float accel = 1;
 
 				if((*pDef)[L"transition"].IsValue())
 				{
-					Definition::Number<double> n;
+					Definition::Number<float> n;
 					(*pDef)[L"transition"].GetAsNumber(n, &m_n2n.transition);
 					if(n.value >= 0) accel = n.value;
 				}
 
-				if(t == 0.999999) t = 1;
+				if(t == 0.99999) t = 1;
 
 				if(u >= 0 && u < 1)
 				{
@@ -322,21 +325,21 @@ namespace ssf
 	}
 
 	template<class T> 
-	bool Subtitle::MixValue(Definition& def, T& value, double t)
+	bool Subtitle::MixValue(Definition& def, T& value, float t)
 	{
 		CAtlStringMapW<T> n2n;
 		return MixValue(def, value, t, &n2n);
 	}
 
 	template<> 
-	bool Subtitle::MixValue(Definition& def, double& value, double t)
+	bool Subtitle::MixValue(Definition& def, float& value, float t)
 	{
-		CAtlStringMapW<double> n2n;
+		CAtlStringMapW<float> n2n;
 		return MixValue(def, value, t, &n2n);
 	}
 
 	template<class T> 
-	bool Subtitle::MixValue(Definition& def, T& value, double t, CAtlStringMapW<T>* n2n)
+	bool Subtitle::MixValue(Definition& def, T& value, float t, CAtlStringMapW<T>* n2n)
 	{
 		if(!def.IsValue()) return false;
 
@@ -358,7 +361,7 @@ namespace ssf
 	}
 
 	template<> 
-	bool Subtitle::MixValue(Definition& def, double& value, double t, CAtlStringMapW<double>* n2n)
+	bool Subtitle::MixValue(Definition& def, float& value, float t, CAtlStringMapW<float>* n2n)
 	{
 		if(!def.IsValue()) return false;
 
@@ -366,20 +369,20 @@ namespace ssf
 		{
 			if(n2n && def.IsValue(Definition::string))
 			{
-				if(CAtlStringMap<double, CStringW>::CPair* p = n2n->Lookup(def))
+				if(CAtlStringMap<float, CStringW>::CPair* p = n2n->Lookup(def))
 				{
 					value += (p->m_value - value) * t;
 					return true;
 				}
 			}
 
-			value += ((double)def - value) * t;
+			value += ((float)def - value) * t;
 		}
 
 		return true;
 	}
 
-	void Subtitle::MixStyle(Definition* pDef, Style& dst, double t)
+	void Subtitle::MixStyle(Definition* pDef, Style& dst, float t)
 	{
 		const Style src = dst;
 
@@ -454,7 +457,7 @@ namespace ssf
 		}
 	}
 
-	void Subtitle::Parse(Stream& s, Style style, double at, CAtlStringMapW<double> offset, Reference* pParentRef)
+	void Subtitle::Parse(Stream& s, Style style, float at, CAtlStringMapW<float> offset, Reference* pParentRef)
 	{
 		Text text;
 		text.style = style;
@@ -469,7 +472,7 @@ namespace ssf
 
 				style = text.style;
 
-				CAtlStringMapW<double> inneroffset = offset;
+				CAtlStringMapW<float> inneroffset = offset;
 
 				int default_id = 0;
 
@@ -481,7 +484,12 @@ namespace ssf
 
 					ASSERT(pDef->IsType(L"style") || pDef->IsTypeUnknown());
 
-					double t = GetMixWeight(pDef, at, offset, ++default_id);
+					if((*pDef)[L"time"][L"start"].IsValue() && (*pDef)[L"time"][L"stop"].IsValue())
+					{
+						m_animated = true;
+					}
+
+					float t = GetMixWeight(pDef, at, offset, ++default_id);
 					MixStyle(pDef, style, t);
 
 					if((*pDef)[L"@"].IsValue())
@@ -577,4 +585,27 @@ namespace ssf
 	//
 
 	unsigned int Fill::gen_id = 0;
+
+	bool Style::IsSimilar(const Style& s)
+	{
+		return 
+		   font.color.r == s.font.color.r
+		&& font.color.g == s.font.color.g
+		&& font.color.b == s.font.color.b
+		&& font.color.a == s.font.color.a
+		&& background.color.r == s.background.color.r
+		&& background.color.g == s.background.color.g
+		&& background.color.b == s.background.color.b
+		&& background.color.a == s.background.color.a
+		&& background.size == s.background.size
+		&& background.type == s.background.type
+		&& shadow.color.r == s.shadow.color.r
+		&& shadow.color.g == s.shadow.color.g
+		&& shadow.color.b == s.shadow.color.b
+		&& shadow.color.a == s.shadow.color.a
+		&& shadow.depth == s.shadow.depth
+		&& shadow.angle == s.shadow.angle
+		&& shadow.blur == s.shadow.blur
+		&& fill.id == s.fill.id;
+	}
 }

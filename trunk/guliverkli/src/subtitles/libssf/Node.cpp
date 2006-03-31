@@ -270,7 +270,7 @@ namespace ssf
 	{
 		SetAsValue(number, v, u);
 
-		Number<double> n;
+		Number<float> n;
 		GetAsNumber(n); // will throw an exception if not a number
 	}
 
@@ -313,9 +313,9 @@ namespace ssf
 
 			if(sa == 0 || sa2 == 0 || sa2 > 2) throw Exception(_T("invalid number"));
 
-			double d = 0;
+			float d = 0;
 			for(size_t i = 0; i < sa; i++) {d *= 60; d += wcstoul(sa[i], NULL, 10);}
-			if(sa2 > 1) d += (double)wcstoul(sa2[1], NULL, 10) / pow((float)10, sa2[1].GetLength());
+			if(sa2 > 1) d += (float)wcstoul(sa2[1], NULL, 10) / pow((float)10, sa2[1].GetLength());
 
 			if(n.unit == L"ms") {d /= 1000; n.unit = L"s";}
 			else if(n.unit == L"m") {d *= 60; n.unit = L"s";}
@@ -336,7 +336,7 @@ namespace ssf
 
 	void Definition::GetAsNumber(Number<int>& n, CAtlStringMapW<int>* n2n) {return GetAsNumber<int>(n, n2n);}
 	void Definition::GetAsNumber(Number<DWORD>& n, CAtlStringMapW<DWORD>* n2n) {return GetAsNumber<DWORD>(n, n2n);}
-	void Definition::GetAsNumber(Number<double>& n, CAtlStringMapW<double>* n2n) {return GetAsNumber<double>(n, n2n);}
+	void Definition::GetAsNumber(Number<float>& n, CAtlStringMapW<float>* n2n) {return GetAsNumber<float>(n, n2n);}
 
 	void Definition::GetAsBoolean(bool& b)
 	{
@@ -360,7 +360,7 @@ namespace ssf
 		}
 	}
 
-	bool Definition::GetAsTime(Time& t, CAtlStringMapW<double>& offset, CAtlStringMapW<double>* n2n, int default_id)
+	bool Definition::GetAsTime(Time& t, CAtlStringMapW<float>& offset, CAtlStringMapW<float>* n2n, int default_id)
 	{
 		Definition& time = (*this)[L"time"];
 
@@ -368,7 +368,7 @@ namespace ssf
 		if(time[L"id"].IsValue()) id = time[L"id"];
 		else id.Format(L"%d", default_id);
 
-		double scale = time[L"scale"].IsValue() ? time[L"scale"] : 1.0;
+		float scale = time[L"scale"].IsValue() ? time[L"scale"] : 1.0;
 
 		if(time[L"start"].IsValue() && time[L"stop"].IsValue())
 		{
@@ -378,7 +378,7 @@ namespace ssf
 			if(t.start.unit.IsEmpty()) t.start.value *= scale;
 			if(t.stop.unit.IsEmpty()) t.stop.value *= scale;
 
-			double o = 0;
+			float o = 0;
 			offset.Lookup(id, o);
 
 			if(t.start.sign != 0) t.start.value = o + t.start.value;
@@ -399,9 +399,9 @@ namespace ssf
 		return str;
 	}
 
-	Definition::operator double()
+	Definition::operator float()
 	{
-		double d;
+		float d;
 		GetAsNumber(d);
 		return d;
 	}

@@ -67,7 +67,7 @@ Dialogue: Marked=0,0:00:10.00,0:00:21.00,MainB,,0000,0000,0000,!Effect,{\q1}Dial
 subtitle : notes
 {
 	time {start: 00:00:00.000; stop: 00:00:05.000;};
-
+	
 	@ {
 		Subtitler filter for VirtualDub\n
 		Demonstration script\n\n

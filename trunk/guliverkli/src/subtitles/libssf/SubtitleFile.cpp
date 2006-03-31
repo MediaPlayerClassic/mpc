@@ -43,7 +43,7 @@ namespace ssf
 		CAtlList<Definition*> defs;
 		GetRootRef()->GetChildDefs(defs, L"subtitle");
 		
-		CAtlStringMapW<double> offset;
+		CAtlStringMapW<float> offset;
 
 		POSITION pos = defs.GetHeadPosition();
 		while(pos)
@@ -65,7 +65,7 @@ namespace ssf
 		}
 	}
 
-	bool SubtitleFile::Lookup(double at, CAutoPtrList<Subtitle>& subs)
+	bool SubtitleFile::Lookup(float at, CAutoPtrList<Subtitle>& subs)
 	{
 		if(!subs.IsEmpty()) {ASSERT(0); return false;}
 
@@ -102,7 +102,7 @@ namespace ssf
 
 	//
 
-	SubtitleFile::Segment::Segment(double start, double stop, const SegmentItem* si)
+	SubtitleFile::Segment::Segment(float start, float stop, const SegmentItem* si)
 	{
 		m_start = start;
 		m_stop = stop;
@@ -130,7 +130,7 @@ namespace ssf
 		m_index.RemoveAll();
 	}
 
-	void SubtitleFile::SegmentList::Insert(double start, double stop, Definition* pDef)
+	void SubtitleFile::SegmentList::Insert(float start, float stop, Definition* pDef)
 	{
 		if(start >= stop) {ASSERT(0); return;}
 
@@ -217,7 +217,7 @@ namespace ssf
 		return m_index.GetCount();
 	}
 
-	void SubtitleFile::SegmentList::Lookup(double at, CAtlList<SegmentItem>& sis)
+	void SubtitleFile::SegmentList::Lookup(float at, CAtlList<SegmentItem>& sis)
 	{
 		sis.RemoveAll();
 
@@ -228,7 +228,7 @@ namespace ssf
 		}
 	}
 
-	bool SubtitleFile::SegmentList::Lookup(double at, size_t& k)
+	bool SubtitleFile::SegmentList::Lookup(float at, size_t& k)
 	{
 		if(!Index()) return false;
 

@@ -24,6 +24,7 @@
 //#include "Rasterizer.h"
 #include "..\SubPic\ISubPic.h"
 #include ".\libssf\SubtitleFile.h"
+#include "SSFRasterizer.h"
 
 #pragma once
 
@@ -33,7 +34,157 @@ class CRenderedSSF : public ISubPicProviderImpl, public ISubStream
 	CString m_fn, m_name;
 	CAutoPtr<ssf::SubtitleFile> m_psf;
 	HDC m_hDC;
-	class CFontCache : private ssf::CAtlStringMap<HFONT> {public: HFONT Create(const LOGFONT& lf);} m_fonts;
+
+	template<class T>
+	class CCache
+	{
+	protected:
+		ssf::CAtlStringMapW<T> m_key2obj;
+		CAtlList<CStringW> m_objs;
+		size_t m_limit;
+
+		void Add(const CStringW& key, T& obj)
+		{
+			if(ssf::CAtlStringMapW<T>::CPair* p = m_key2obj.Lookup(key))
+			{
+				delete p->m_value;
+			}
+			else
+			{
+				m_objs.AddTail(key);
+			}
+
+			m_key2obj[key] = obj;
+
+			while(m_objs.GetCount() > m_limit)
+			{
+				CStringW key = m_objs.RemoveHead();
+				ASSERT(m_key2obj.Lookup(key));
+				delete m_key2obj[key];
+				m_key2obj.RemoveKey(key);
+			}
+		}
+
+	public:
+		CCache(size_t limit)
+		{
+			m_limit = max(1, limit);
+		}
+
+		virtual ~CCache() 
+		{
+			RemoveAll();
+		}
+
+		void RemoveAll()
+		{
+			POSITION pos = m_key2obj.GetStartPosition();
+			while(pos) delete m_key2obj.GetNextValue(pos);
+			m_key2obj.RemoveAll();
+			m_objs.RemoveAll();
+		}
+
+		bool Lookup(const CStringW& key, T& val)
+		{
+			return m_key2obj.Lookup(key, val) && val;
+		}
+
+		void Invalidate(const CStringW& key)
+		{
+			T val;
+			if(m_key2obj.Lookup(key, val))
+			{
+				delete val;
+				m_key2obj[key] = NULL;
+			}
+		}
+	};
+
+	class CFontWrapper
+	{
+		HFONT m_hFont;
+		CStringW m_key;
+
+	public:
+		CFontWrapper(HFONT hFont, const CStringW& key) : m_hFont(hFont), m_key(key) {}
+		virtual ~CFontWrapper() {DeleteFont(m_hFont);}
+		operator HFONT() const {return m_hFont;}
+		operator LPCWSTR() const {return m_key;}
+	};
+
+	class CFontCache : public CCache<CFontWrapper*> 
+	{
+	public:
+		CFontCache() : CCache(20) {}
+		CFontWrapper* Create(const LOGFONT& lf);
+	};
+
+	class CGlyphPath
+	{
+	public:
+		CGlyphPath() {}
+		virtual ~CGlyphPath() {}
+
+		CGlyphPath(const CGlyphPath& path);
+		void operator = (const CGlyphPath& path);
+
+		// SSFArray<BYTE> types;
+		// SSFArray<POINT> points;
+		CAtlArray<BYTE> types;
+		CAtlArray<POINT> points;
+	};
+
+	class CGlyphPathCache : public CCache<CGlyphPath*>
+	{
+	public:
+		CGlyphPathCache() : CCache(100) {}
+		CGlyphPath* Create(HDC hDC, const CFontWrapper* f, WCHAR c);
+	};
+
+	class CGlyph
+	{
+	public:
+		WCHAR c;
+		ssf::Style style;
+		int ascent, descent, width, spacing, fill;
+		CGlyphPath path;
+		CPoint tl, tls;
+		SSFRasterizer ras, ras2;
+
+	public:
+		CGlyph();
+		void Transform(CPoint org);
+		void Rasterize(ssf::Size scale);
+	};
+
+	class CRow : public CAutoPtrList<CGlyph>
+	{
+	public:
+		int ascent, descent, width;
+		CRow() {ascent = descent = width = 0;}
+	};
+
+	class CSubtitle
+	{
+	public:
+		CRect m_spdrc;
+		CRect m_clip;
+		CAutoPtrList<CGlyph> m_glyphs;
+
+		CSubtitle(const CRect& spdrc, const CRect& clip) : m_spdrc(spdrc), m_clip(clip) {}
+		virtual ~CSubtitle() {}
+	};
+
+	class CSubtitleCache : public CCache<CSubtitle*>
+	{
+	public:
+		CSubtitleCache() : CCache(10) {}
+		void Create(const CStringW& name, CSubtitle* sub);
+	};
+
+	CFontCache m_fontcache;
+	CGlyphPathCache m_glyphpathcache;
+	CSubtitleCache m_subtitlecache;
 
 public:
 	CRenderedSSF(CCritSec* pLock);

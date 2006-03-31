@@ -25,6 +25,12 @@
 #include <vector>
 #include <algorithm>
 #include "SSFRasterizer.h"
+#include <xmmintrin.h>
+#include <emmintrin.h>
+#include "../dsutil/vd.h"
+
+template<class T> T mymax(T a, T b) {return a > b ? a : b;}
+template<class T> T mymin(T a, T b) {return a < b ? a : b;}
 
 SSFRasterizer::SSFRasterizer() : mpOverlayBuffer(NULL)
 {
@@ -40,7 +46,7 @@ SSFRasterizer::~SSFRasterizer()
 
 void SSFRasterizer::_TrashOverlay()
 {
-	delete [] mpOverlayBuffer;
+	if(mpOverlayBuffer) delete [] mpOverlayBuffer;
 	mpOverlayBuffer = NULL;
 }
 
@@ -50,46 +56,24 @@ void SSFRasterizer::_ReallocEdgeBuffer(int edges)
 	mpEdgeBuffer = (Edge*)realloc(mpEdgeBuffer, sizeof(Edge)*edges);
 }
 
-void SSFRasterizer::_EvaluateBezier(const POINT* pt, bool spline)
+void SSFRasterizer::_EvaluateBezier(const POINT* pt)
 {
-	double cx3, cx2, cx1, cx0, cy3, cy2, cy1, cy0;
+	int cx3, cx2, cx1, cx0, cy3, cy2, cy1, cy0;
 
-	if(spline)
-	{
-		// 1   [-1 +3 -3 +1]
-		// - * [+3 -6 +3  0]
-		// 6   [-3  0 +3  0]
-		//	   [+1 +4 +1  0]
+	// [-1 +3 -3 +1]
+	// [+3 -6 +3  0]
+	// [-3 +3  0  0]
+	// [+1  0  0  0]
 
-		double _1div6 = 1.0/6.0;
+	cx3 = -  pt[0].x + 3*pt[1].x - 3*pt[2].x + pt[3].x;
+	cx2 =  3*pt[0].x - 6*pt[1].x + 3*pt[2].x;
+	cx1 = -3*pt[0].x + 3*pt[1].x;
+	cx0 =    pt[0].x;
 
-		cx3 = _1div6*(-  pt[0].x + 3*pt[1].x - 3*pt[2].x + pt[3].x);
-		cx2 = _1div6*( 3*pt[0].x - 6*pt[1].x + 3*pt[2].x          );
-		cx1 = _1div6*(-3*pt[0].x             + 3*pt[2].x          );
-		cx0 = _1div6*(   pt[0].x + 4*pt[1].x + 1*pt[2].x          );
-
-		cy3 = _1div6*(-  pt[0].y + 3*pt[1].y - 3*pt[2].y + pt[3].y);
-		cy2 = _1div6*( 3*pt[0].y - 6*pt[1].y + 3*pt[2].y          );
-		cy1 = _1div6*(-3*pt[0].y             + 3*pt[2].y          );
-		cy0 = _1div6*(   pt[0].y + 4*pt[1].y + 1*pt[2].y          );
-	}
-	else // bezier
-	{
-		// [-1 +3 -3 +1]
-		// [+3 -6 +3  0]
-		// [-3 +3  0  0]
-		// [+1  0  0  0]
-
-		cx3 = -  pt[0].x + 3*pt[1].x - 3*pt[2].x + pt[3].x;
-		cx2 =  3*pt[0].x - 6*pt[1].x + 3*pt[2].x;
-		cx1 = -3*pt[0].x + 3*pt[1].x;
-		cx0 =    pt[0].x;
-
-		cy3 = -  pt[0].y + 3*pt[1].y - 3*pt[2].y + pt[3].y;
-		cy2 =  3*pt[0].y - 6*pt[1].y + 3*pt[2].y;
-		cy1 = -3*pt[0].y + 3*pt[1].y;
-		cy0 =    pt[0].y;
-	}
+	cy3 = -  pt[0].y + 3*pt[1].y - 3*pt[2].y + pt[3].y;
+	cy2 =  3*pt[0].y - 6*pt[1].y + 3*pt[2].y;
+	cy1 = -3*pt[0].y + 3*pt[1].y;
+	cy0 =    pt[0].y;
 
 	//
 	// This equation is from Graphics Gems I.
@@ -107,32 +91,30 @@ void SSFRasterizer::_EvaluateBezier(const POINT* pt, bool spline)
 	// If a=0 for both X and Y, the curve is a line segment and we can
 	// use a step size of 1.
 
-	double maxaccel1 = fabs(2*cy2) + fabs(6*cy3);
-	double maxaccel2 = fabs(2*cx2) + fabs(6*cx3);
+	int maxaccel1 = abs(2*cy2) + abs(6*cy3);
+	int maxaccel2 = abs(2*cx2) + abs(6*cx3);
 
-	double maxaccel = maxaccel1 > maxaccel2 ? maxaccel1 : maxaccel2;
-	double h = 1.0;
+	int maxaccel = maxaccel1 > maxaccel2 ? maxaccel1 : maxaccel2;
+	float h = 1.0f;
 
-	if(maxaccel > 8.0) h = sqrt(8.0 / maxaccel);
+	if(maxaccel > 8) h = sqrt(8.0f / maxaccel);
 
 	if(!fFirstSet)
 	{
-		firstp.x = (LONG)cx0; 
-		firstp.y = (LONG)cy0; 
+		firstp = pt[0]; 
 		lastp = firstp; 
 		fFirstSet = true;
 	}
 
-	for(double t = 0; t < 1.0; t += h)
+	for(float t = 0; t < 1.0f; t += h)
 	{
-		double x = cx0 + t*(cx1 + t*(cx2 + t*cx3));
-		double y = cy0 + t*(cy1 + t*(cy2 + t*cy3));
+		float x = cx0 + t*(cx1 + t*(cx2 + t*cx3));
+		float y = cy0 + t*(cy1 + t*(cy2 + t*cy3));
 		_EvaluateLine(lastp.x, lastp.y, (int)x, (int)y);
 	}
 
-	double x = cx0 + cx1 + cx2 + cx3;
-	double y = cy0 + cy1 + cy2 + cy3;
-	_EvaluateLine(lastp.x, lastp.y, (int)x, (int)y);
+	_EvaluateLine(lastp.x, lastp.y, pt[3].x, pt[3].y);
+
 }
 
 void SSFRasterizer::_EvaluateLine(const POINT* pt)
@@ -149,8 +131,7 @@ void SSFRasterizer::_EvaluateLine(int x0, int y0, int x1, int y1)
 
 	if(!fFirstSet)
 	{
-		firstp.x = x0; 
-		firstp.y = y0; 
+		firstp.SetPoint(x0, y0); 
 		fFirstSet = true;
 	}
 
@@ -158,7 +139,7 @@ void SSFRasterizer::_EvaluateLine(int x0, int y0, int x1, int y1)
 
 	if(y1 > y0)	// down
 	{
-		__int64 xacc = (__int64)x0 << 13;
+		int xacc = x0 << 5;
 
 		// prestep y0 down
 
@@ -170,7 +151,7 @@ void SSFRasterizer::_EvaluateLine(int x0, int y0, int x1, int y1)
 
 		if(iy <= y1)
 		{
-			__int64 invslope = (__int64(x1 - x0) << 16) / dy;
+			int invslope = ((x1 - x0) << 8) / dy;
 
 			while(mEdgeNext + y1 + 1 - iy > mEdgeHeapSize)
 				_ReallocEdgeBuffer(mEdgeHeapSize*2);
@@ -179,7 +160,7 @@ void SSFRasterizer::_EvaluateLine(int x0, int y0, int x1, int y1)
 
 			while(iy <= y1)
 			{
-				int ix = (int)((xacc + 32768) >> 16);
+				int ix = (xacc + 128) >> 8;
 
 				mpEdgeBuffer[mEdgeNext].next = mpScanBuffer[iy];
 				mpEdgeBuffer[mEdgeNext].posandflag = ix*2 + 1;
@@ -193,7 +174,7 @@ void SSFRasterizer::_EvaluateLine(int x0, int y0, int x1, int y1)
 	}
 	else if(y1 < y0) // up
 	{
-		__int64 xacc = (__int64)x1 << 13;
+		int xacc = x1 << 5;
 
 		// prestep y1 down
 
@@ -205,7 +186,7 @@ void SSFRasterizer::_EvaluateLine(int x0, int y0, int x1, int y1)
 
 		if(iy <= y0)
 		{
-			__int64 invslope = (__int64(x0 - x1) << 16) / dy;
+			int invslope = ((x0 - x1) << 8) / dy;
 
 			while(mEdgeNext + y0 + 1 - iy > mEdgeHeapSize)
 				_ReallocEdgeBuffer(mEdgeHeapSize*2);
@@ -214,7 +195,7 @@ void SSFRasterizer::_EvaluateLine(int x0, int y0, int x1, int y1)
 
 			while(iy <= y0)
 			{
-				int ix = (int)((xacc + 32768) >> 16);
+				int ix = (xacc + 128) >> 8;
 
 				mpEdgeBuffer[mEdgeNext].next = mpScanBuffer[iy];
 				mpEdgeBuffer[mEdgeNext].posandflag = ix*2;
@@ -228,16 +209,16 @@ void SSFRasterizer::_EvaluateLine(int x0, int y0, int x1, int y1)
 	}
 }
 
-bool SSFRasterizer::ScanConvert(unsigned int npoints, BYTE* type, POINT* pt)
+bool SSFRasterizer::ScanConvert(unsigned int npts, BYTE* type, POINT* pt)
 {
 	// Drop any outlines we may have.
 
-	mOutline.clear();
-	mWideOutline.clear();
+	mOutline.RemoveAll();
+	mWideOutline.RemoveAll();
 
 	// Determine bounding box
 
-	if(!npoints || !type || !pt)
+	if(!npts || !type || !pt)
 	{
 		mPathOffsetX = mPathOffsetY = 0;
 		mWidth = mHeight = 0;
@@ -249,7 +230,7 @@ bool SSFRasterizer::ScanConvert(unsigned int npoints, BYTE* type, POINT* pt)
 	int maxx = INT_MIN;
 	int maxy = INT_MIN;
 
-	for(unsigned int i = 0; i < npoints; i++)
+	for(unsigned int i = 0; i < npts; i++)
 	{
 		int ix = pt[i].x;
 		int iy = pt[i].y;
@@ -265,11 +246,7 @@ bool SSFRasterizer::ScanConvert(unsigned int npoints, BYTE* type, POINT* pt)
 	maxx = (maxx + 7) >> 3;
 	maxy = (maxy + 7) >> 3;
 
-	for(unsigned int i = 0; i < npoints; i++)
-	{
-		pt[i].x -= minx*8;
-		pt[i].y -= miny*8;
-	}
+	MovePoints(pt, npts, -minx*8, -miny*8);
 
 	if(minx > maxx || miny > maxy)
 	{
@@ -287,7 +264,7 @@ bool SSFRasterizer::ScanConvert(unsigned int npoints, BYTE* type, POINT* pt)
 	// Initialize edge buffer.  We use edge 0 as a sentinel.
 
 	mEdgeNext = 1;
-	mEdgeHeapSize = 2048;
+	mEdgeHeapSize = 0x10000;
 	mpEdgeBuffer = (Edge*)malloc(sizeof(Edge)*mEdgeHeapSize);
 
 	// Initialize scanline list.
@@ -307,7 +284,7 @@ bool SSFRasterizer::ScanConvert(unsigned int npoints, BYTE* type, POINT* pt)
 
 	int lastmoveto = -1;
 
-	for(unsigned int i = 0; i < npoints; i++)
+	for(unsigned int i = 0; i < npts; i++)
 	{
 		switch(type[i] & ~PT_CLOSEFIGURE)
 		{
@@ -319,21 +296,12 @@ bool SSFRasterizer::ScanConvert(unsigned int npoints, BYTE* type, POINT* pt)
 			lastp = pt[i];
 			break;
 		case PT_LINETO:
-			if(npoints - (i-1) >= 2) _EvaluateLine(&pt[i-1]);
+			if(npts - (i-1) >= 2) _EvaluateLine(&pt[i-1]);
 			break;
 		case PT_BEZIERTO:
-			if(npoints - (i-1) >= 4) _EvaluateBezier(&pt[i-1], false);
+			if(npts - (i-1) >= 4) _EvaluateBezier(&pt[i-1]);
 			i += 2;
 			break;
-/*
-		case PT_BSPLINETO:
-			if(npoints - (i-1) >= 4) _EvaluateBezier(&pt[i-1], true);
-			i += 2;
-			break;
-		case PT_BSPLINEPATCHTO:
-			if(npoints - (i-3) >= 4) _EvaluateBezier(&pt[i-3], true);
-			break;
-*/
 		}
 	}
 
@@ -348,15 +316,15 @@ bool SSFRasterizer::ScanConvert(unsigned int npoints, BYTE* type, POINT* pt)
 
 	std::vector<int> heap;
 
-	mOutline.reserve(mEdgeNext / 2);
+	mOutline.SetCount(0, mEdgeNext / 2);
 
-	for(__int64 y = 0; y < mHeight; y++)
+	for(int y = 0; y < mHeight; y++)
 	{
 		int count = 0;
 
 		// Detangle scanline into edge heap.
 
-		for(unsigned int ptr = (unsigned int)(mpScanBuffer[y]&0xffffffff); ptr; ptr = mpEdgeBuffer[ptr].next)
+		for(unsigned int ptr = mpScanBuffer[y]; ptr; ptr = mpEdgeBuffer[ptr].next)
 		{
 			heap.push_back(mpEdgeBuffer[ptr].posandflag);
 		}
@@ -371,7 +339,7 @@ bool SSFRasterizer::ScanConvert(unsigned int npoints, BYTE* type, POINT* pt)
 		// winding number, it doesn't matter which way the outlines go!
 
 		std::vector<int>::iterator itX1 = heap.begin();
-		std::vector<int>::iterator itX2 = heap.end(); // begin() + heap.size();
+		std::vector<int>::iterator itX2 = heap.end();
 
 		int x1, x2;
 
@@ -380,17 +348,28 @@ bool SSFRasterizer::ScanConvert(unsigned int npoints, BYTE* type, POINT* pt)
 			int x = *itX1;
 
 			if(!count) 
-				x1 = (x>>1);
+			{
+				x1 = x >> 1;
+			}
 
 			if(x&1) ++count;
 			else --count;
 
 			if(!count)
 			{
-				x2 = (x>>1);
+				x2 = x >> 1;
 
-				if(x2>x1)
-					mOutline.push_back(std::pair<__int64,__int64>((y<<32)+x1+0x4000000040000000i64, (y<<32)+x2+0x4000000040000000i64)); // G: damn Avery, this is evil! :)
+				if(x2 > x1)
+				{
+					tSpan s;
+					s.y1 = y;
+					s.y2 = y;
+					s.x1 = x1;
+					s.x2 = x2;
+					s.first += 0x4000000040000000i64;
+					s.second += 0x4000000040000000i64;
+					mOutline.Add(s);
+				}
 			}
 		}
 
@@ -411,32 +390,33 @@ using namespace std;
 
 void SSFRasterizer::_OverlapRegion(tSpanBuffer& dst, tSpanBuffer& src, int dx, int dy)
 {
-	tSpanBuffer temp;
+	mWideOutlineTemp.Move(dst);
 
-	temp.reserve(dst.size() + src.size());
+	tSpan* a = mWideOutlineTemp.GetData();
+	tSpan* ae = a + mWideOutlineTemp.GetCount();
+	tSpan* b = src.GetData();
+	tSpan* be = b + src.GetCount();
 
-	dst.swap(temp);
+	// Don't worry -- even if dy<0 this will still work!
 
-	tSpanBuffer::iterator itA = temp.begin();
-	tSpanBuffer::iterator itAE = temp.end();
-	tSpanBuffer::iterator itB = src.begin();
-	tSpanBuffer::iterator itBE = src.end();
+	tSpan o;
+	o.y1 = o.y2 = dy;
+	o.x1 = o.x2 = 0;
+	o.first -= dx;
+	o.second += dx;
 
-	// Don't worry -- even if dy<0 this will still work! // G: hehe, the evil twin :)
-
-	unsigned __int64 offset1 = (((__int64)dy)<<32) - dx;
-	unsigned __int64 offset2 = (((__int64)dy)<<32) + dx;
-
-	while(itA != itAE && itB != itBE)
+	while(a != ae && b != be)
 	{
-		if((*itB).first + offset1 < (*itA).first)
+		tSpan x;
+
+		if(b->first + o.first < a->first)
 		{
 			// B span is earlier.  Use it.
 
-			unsigned __int64 x1 = (*itB).first + offset1;
-			unsigned __int64 x2 = (*itB).second + offset2;
+			x.first = b->first + o.first;
+			x.second = b->second + o.second;
 
-			++itB;
+			b++;
 
 			// B spans don't overlap, so begin merge loop with A first.
 
@@ -446,35 +426,30 @@ void SSFRasterizer::_OverlapRegion(tSpanBuffer& dst, tSpanBuffer& src, int dx, i
 				// then the next B span can't either (because B spans don't
 				// overlap) and we exit.
 
-				if(itA == itAE || (*itA).first > x2)
+				if(a == ae || a->first > x.second)
 					break;
 
-				do {x2 = _MAX(x2, (*itA++).second);}
-				while(itA != itAE && (*itA).first <= x2);
+				do {x.second = mymax(x.second, a->second);}
+				while(++a != ae && a->first <= x.second);
 
 				// If we run out of B spans or the B span doesn't overlap,
 				// then the next A span can't either (because A spans don't
 				// overlap) and we exit.
 
-				if(itB == itBE || (*itB).first + offset1 > x2)
+				if(b == be || b->first + o.first > x.second)
 					break;
 
-				do {x2 = _MAX(x2, (*itB++).second + offset2);}
-				while(itB != itBE && (*itB).first + offset1 <= x2);
+				do {x.second = mymax(x.second, b->second + o.second);}
+				while(++b != be && b->first + o.first <= x.second);
 			}
-
-			// Flush span.
-
-			dst.push_back(tSpan(x1, x2));	
 		}
 		else
 		{
 			// A span is earlier.  Use it.
 
-			unsigned __int64 x1 = (*itA).first;
-			unsigned __int64 x2 = (*itA).second;
+			x = *a;
 
-			++itA;
+			a++;
 
 			// A spans don't overlap, so begin merge loop with B first.
 
@@ -484,38 +459,42 @@ void SSFRasterizer::_OverlapRegion(tSpanBuffer& dst, tSpanBuffer& src, int dx, i
 				// then the next A span can't either (because A spans don't
 				// overlap) and we exit.
 
-				if(itB == itBE || (*itB).first + offset1 > x2)
+				if(b == be || b->first + o.first > x.second)
 					break;
 
-				do {x2 = _MAX(x2, (*itB++).second + offset2);}
-				while(itB != itBE && (*itB).first + offset1 <= x2);
+				do {x.second = mymax(x.second, b->second + o.second);}
+				while(++b != be && b->first + o.first <= x.second);
 
 				// If we run out of A spans or the A span doesn't overlap,
 				// then the next B span can't either (because B spans don't
 				// overlap) and we exit.
 
-				if(itA == itAE || (*itA).first > x2)
+				if(a == ae || a->first > x.second)
 					break;
 
-				do {x2 = _MAX(x2, (*itA++).second);}
-				while(itA != itAE && (*itA).first <= x2);
+				do {x.second = mymax(x.second, a->second);}
+				while(++a != ae && a->first <= x.second);
 			}
-
-			// Flush span.
-
-			dst.push_back(tSpan(x1, x2));	
 		}
+
+		// Flush span.
+
+		dst.Add(x);
 	}
 
 	// Copy over leftover spans.
 
-	while(itA != itAE)
-		dst.push_back(*itA++);
-
-	while(itB != itBE)
+	for(; a != ae; a++)
 	{
-		dst.push_back(tSpan((*itB).first + offset1, (*itB).second + offset2));	
-		++itB;
+		dst.Add(*a);
+	}
+
+	for(; b != be; b++)
+	{
+		tSpan s;
+		s.first = b->first + o.first;
+		s.second = b->second + o.second;
+		dst.Add(s);
 	}
 }
 
@@ -525,7 +504,7 @@ bool SSFRasterizer::CreateWidenedRegion(int r)
 
 	for(int y = -r; y <= r; ++y)
 	{
-		int x = (int)(0.5 + sqrt(float(r*r - y*y)));
+		int x = (int)(0.5f + sqrt(float(r*r - y*y)));
 
 		_OverlapRegion(mWideOutline, mOutline, x, y);
 	}
@@ -533,12 +512,6 @@ bool SSFRasterizer::CreateWidenedRegion(int r)
 	mWideBorder = r;
 
 	return true;
-}
-
-void SSFRasterizer::DeleteOutlines()
-{
-	mWideOutline.clear();
-	mOutline.clear();
 }
 
 bool SSFRasterizer::Rasterize(int xsub, int ysub)
@@ -560,9 +533,9 @@ bool SSFRasterizer::Rasterize(int xsub, int ysub)
 	mOffsetX = mPathOffsetX - xsub;
 	mOffsetY = mPathOffsetY - ysub;
 
-	int border = (mWideBorder+7)&~7;
+	int border = (mWideBorder + 7) & ~7;
 
-	if(!mWideOutline.empty())
+	if(!mWideOutline.IsEmpty())
 	{
 		width += 2*border;
 		height += 2*border;
@@ -574,38 +547,38 @@ bool SSFRasterizer::Rasterize(int xsub, int ysub)
 		mOffsetY -= border;
 	}
 
-	mOverlayWidth = ((width+7)>>3) + 1;
-	mOverlayHeight = ((height+7)>>3) + 1;
+	mOverlayWidth = ((width + 7) >> 3) + 1;
+	mOverlayHeight = ((height + 7) >> 3) + 1;
 
-	mpOverlayBuffer = new byte[2 * mOverlayWidth * mOverlayHeight];
+	mpOverlayBuffer = new BYTE[2 * mOverlayWidth * mOverlayHeight];
 	memset(mpOverlayBuffer, 0, 2 * mOverlayWidth * mOverlayHeight);
-
-	// Are we doing a border?
 
 	tSpanBuffer* pOutline[2] = {&mOutline, &mWideOutline};
 
 	for(int i = countof(pOutline)-1; i >= 0; i--)
 	{
-		tSpanBuffer::iterator it = pOutline[i]->begin();
-		tSpanBuffer::iterator itEnd = pOutline[i]->end();
+		const tSpan* s = pOutline[i]->GetData();
 
-		for(; it!=itEnd; ++it)
+		for(int j = 0, k = pOutline[i]->GetCount(); j < k; j++)
 		{
-			int y = (int)(((*it).first >> 32) - 0x40000000 + ysub);
-			int x1 = (int)(((*it).first & 0xffffffff) - 0x40000000 + xsub);
-			int x2 = (int)(((*it).second & 0xffffffff) - 0x40000000 + xsub);
+			int y = s[j].y1 - 0x40000000 + ysub;
+			int x1 = s[j].x1 - 0x40000000 + xsub;
+			int x2 = s[j].x2 - 0x40000000 + xsub;
 
 			if(x2 > x1)
 			{
-				int first = x1>>3;
-				int last = (x2-1)>>3;
-				byte* dst = mpOverlayBuffer + 2*(mOverlayWidth*(y>>3) + first) + i;
+				int first = x1 >> 3;
+				int last = (x2-1) >> 3;
+
+				BYTE* dst = mpOverlayBuffer + 2*(mOverlayWidth * (y >> 3) + first) + i;
 
 				if(first == last)
-					*dst += x2-x1;
+				{
+					*dst += x2 - x1;
+				}
 				else
 				{
-					*dst += ((first+1)<<3) - x1;
+					*dst += ((first+1) << 3) - x1;
 					dst += 2;
 
 					while(++first < last)
@@ -614,7 +587,7 @@ bool SSFRasterizer::Rasterize(int xsub, int ysub)
 						dst += 2;
 					}
 
-					*dst += x2 - (last<<3);
+					*dst += x2 - (last << 3);
 				}
 			}
 		}
@@ -623,15 +596,15 @@ bool SSFRasterizer::Rasterize(int xsub, int ysub)
 	return true;
 }
 
-void SSFRasterizer::Clone(const SSFRasterizer& r)
+void SSFRasterizer::Reuse(SSFRasterizer& r)
 {
 	mWidth = r.mWidth;
 	mHeight = r.mHeight;
 	mPathOffsetX = r.mPathOffsetX;
 	mPathOffsetY = r.mPathOffsetY;
 	mWideBorder = r.mWideBorder;
-	mOutline = r.mOutline;
-	mWideOutline = r.mWideOutline;
+	mOutline.Move(r.mOutline);
+	mWideOutline.Move(r.mWideOutline);
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -644,9 +617,6 @@ void SSFRasterizer::Clone(const SSFRasterizer& r)
 			| ((((dst[wt]&0x0000ff00)*ia + (color&0x0000ff00)*a)&0x00ff0000)>>8) \
 			| ((((dst[wt]>>8)&0x00ff0000)*ia)&0xff000000);						 \
 	} \
-
-#include <xmmintrin.h>
-#include <emmintrin.h>
 
 static __forceinline void pixmix_sse2(DWORD* dst, DWORD color, DWORD alpha)
 {
@@ -666,8 +636,6 @@ static __forceinline void pixmix_sse2(DWORD* dst, DWORD color, DWORD alpha)
 
 	*dst = (DWORD)_mm_cvtsi128_si32(r);
 }
-
-#include "../dsutil/vd.h"
 
 CRect SSFRasterizer::Draw(const SubPicDesc& spd, const CRect& clip, int xsub, int ysub, const DWORD* switchpts, bool fBody, bool fBorder)
 {
@@ -763,4 +731,38 @@ CRect SSFRasterizer::Draw(const SubPicDesc& spd, const CRect& clip, int xsub, in
 	}
 
 	return bbox;
+}
+
+void SSFRasterizer::MovePoints(POINT* p, unsigned int n, int dx, int dy)
+{
+	unsigned int i = 0;
+
+	if(!!(g_cpuid.m_flags & CCpuID::sse2) && !((DWORD_PTR)p & 1))
+	{
+		for( ; i < n && ((DWORD_PTR)&p[i] & 15); i++)
+		{
+			p[i].x += dx;
+			p[i].y += dy;
+		}
+
+		__m128i dp = _mm_set_epi32(dy, dx, dy, dx);
+
+		for(unsigned int j = i + ((n - i) & ~7); i < j; i += 8)
+		{
+			__m128i r0 = _mm_load_si128((__m128i*)&p[i+0]);
+			__m128i r1 = _mm_load_si128((__m128i*)&p[i+2]);
+			__m128i r2 = _mm_load_si128((__m128i*)&p[i+4]);
+			__m128i r3 = _mm_load_si128((__m128i*)&p[i+6]);
+			_mm_store_si128((__m128i*)&p[i+0], _mm_add_epi32(r0, dp));
+			_mm_store_si128((__m128i*)&p[i+2], _mm_add_epi32(r1, dp));
+			_mm_store_si128((__m128i*)&p[i+4], _mm_add_epi32(r2, dp));
+			_mm_store_si128((__m128i*)&p[i+6], _mm_add_epi32(r3, dp));
+		}
+	}
+
+	for(; i < n; i++)
+	{
+		p[i].x += dx;
+		p[i].y += dy;
+	}
 }
