@@ -128,6 +128,8 @@ class CRenderedSSF : public ISubPicProviderImpl, public ISubStream
 		CGlyphPath(const CGlyphPath& path);
 		void operator = (const CGlyphPath& path);
 
+		void Enlarge(const CGlyphPath& src, float size);
+
 		// SSFArray<BYTE> types;
 		// SSFArray<POINT> points;
 		CAtlArray<BYTE> types;
@@ -147,14 +149,16 @@ class CRenderedSSF : public ISubPicProviderImpl, public ISubStream
 		WCHAR c;
 		ssf::Style style;
 		int ascent, descent, width, spacing, fill;
-		CGlyphPath path;
+		CGlyphPath path, path_enlarge;
 		CPoint tl, tls;
-		SSFRasterizer ras, ras2;
+		SSFRasterizer ras, ras_enlarge, ras_shadow;
+
+		void Transform(CGlyphPath& path, CPoint org);
 
 	public:
 		CGlyph();
-		void Transform(CPoint org);
-		void Rasterize(ssf::Size scale);
+		void Transform(const ssf::Size& scale, CPoint org);
+		void Rasterize(const ssf::Size& scale);
 	};
 
 	class CRow : public CAutoPtrList<CGlyph>

@@ -135,7 +135,8 @@ void SSFRasterizer::_EvaluateLine(int x0, int y0, int x1, int y1)
 		fFirstSet = true;
 	}
 
-	lastp.x = x1; lastp.y = y1;
+	lastp.x = x1; 
+	lastp.y = y1;
 
 	if(y1 > y0)	// down
 	{
@@ -361,11 +362,7 @@ bool SSFRasterizer::ScanConvert(unsigned int npts, BYTE* type, POINT* pt)
 
 				if(x2 > x1)
 				{
-					tSpan s;
-					s.y1 = y;
-					s.y2 = y;
-					s.x1 = x1;
-					s.x2 = x2;
+					tSpan s(x1, y, x2, y);
 					s.first += 0x4000000040000000i64;
 					s.second += 0x4000000040000000i64;
 					mOutline.Add(s);
@@ -390,18 +387,16 @@ using namespace std;
 
 void SSFRasterizer::_OverlapRegion(tSpanBuffer& dst, tSpanBuffer& src, int dx, int dy)
 {
-	tSpan o;
-	o.y1 = o.y2 = dy;
-	o.x1 = o.x2 = 0;
-	o.first -= dx;
-	o.second += dx;
-
 	mWideOutlineTmp.Move(dst);
 
 	tSpan* a = mWideOutlineTmp.GetData();
 	tSpan* ae = a + mWideOutlineTmp.GetCount();
 	tSpan* b = src.GetData();
 	tSpan* be = b + src.GetCount();
+
+	tSpan o(0, dy, 0, dy);
+	o.first -= dx;
+	o.second += dx;
 
 	while(a != ae && b != be)
 	{
@@ -486,10 +481,7 @@ void SSFRasterizer::_OverlapRegion(tSpanBuffer& dst, tSpanBuffer& src, int dx, i
 
 	for(; b != be; b++)
 	{
-		tSpan s;
-		s.first = b->first + o.first;
-		s.second = b->second + o.second;
-		dst.Add(s);
+		dst.Add(tSpan(b->first + o.first, b->second + o.second));
 	}
 }
 
@@ -649,14 +641,14 @@ CRect SSFRasterizer::Draw(const SubPicDesc& spd, const CRect& clip, int xsub, in
 	int h = mOverlayHeight;
 	int xo = 0, yo = 0;
 
-	if(x < r.left) {xo = r.left-x; w -= r.left-x; x = r.left;}
-	if(y < r.top) {yo = r.top-y; h -= r.top-y; y = r.top;}
-	if(x+w > r.right) w = r.right-x;
-	if(y+h > r.bottom) h = r.bottom-y;
+	if(x < r.left) {xo = r.left - x; w -= r.left - x; x = r.left;}
+	if(y < r.top) {yo = r.top - y; h -= r.top - y; y = r.top;}
+	if(x+w > r.right) w = r.right - x;
+	if(y+h > r.bottom) h = r.bottom - y;
 
 	if(w <= 0 || h <= 0) return bbox;
 
-	bbox.SetRect(x, y, x+w, y+h);
+	bbox.SetRect(x, y, x + w, y + h);
 	bbox &= CRect(0, 0, spd.w, spd.h);
 
 	// draw

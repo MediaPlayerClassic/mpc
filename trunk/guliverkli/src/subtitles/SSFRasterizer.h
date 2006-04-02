@@ -117,8 +117,11 @@ private:
 
 	union tSpan
 	{
-		struct {unsigned int x1, y1, x2, y2;};
+		struct {int x1, y1, x2, y2;};
 		struct {unsigned __int64 first, second;};
+		union tSpan() {}
+		union tSpan(int _x1, int _y1, int _x2, int _y2) {x1 = _x1; y1 = _y1; x2 = _x2; y2 = _y2;}
+		union tSpan(unsigned __int64 _first, unsigned __int64 _second) {first = _first; second = _second;}
 	};
 
 	typedef SSFArray<tSpan> tSpanBuffer;
@@ -159,4 +162,3 @@ public:
 
 	CRect Draw(const SubPicDesc& spd, const CRect& clip, int xsub, int ysub, const DWORD* switchpts, bool fBody, bool fBorder);
 };
-
