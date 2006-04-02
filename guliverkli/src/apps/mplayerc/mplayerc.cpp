@@ -565,6 +565,8 @@ public:
 			s.Open(_T("../../subtitles/libssf/demo/demo.ssf"));
 
 			for(int i = 2*60*1000+2000; i < 2*60*1000+17000; i += 40)
+			// for(int i = 2*60*1000+2000; i < 2*60*1000+17000; i += 1000)
+			//for(int i = 0; i < 5000; i += 1000)
 			{
 				memsetd(spd.bits, 0xff000000, spd.pitch*spd.h);
 				CRect bbox;
