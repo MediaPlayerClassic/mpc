@@ -90,7 +90,7 @@ namespace ssf
 		template<> bool MixValue(Definition& def, float& value, float t, CAtlStringMapW<float>* n2n);
 		void MixStyle(Definition* pDef, Style& dst, float t);
 
-		void Parse(Stream& s, Style style, float at, CAtlStringMapW<float> offset, Reference* pParentRef);
+		void Parse(InputStream& s, Style style, float at, CAtlStringMapW<float> offset, Reference* pParentRef);
 
 		void AddChar(Text& t, WCHAR c);
 		void AddText(Text& t);

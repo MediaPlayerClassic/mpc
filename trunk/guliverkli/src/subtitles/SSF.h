@@ -130,8 +130,6 @@ class CRenderedSSF : public ISubPicProviderImpl, public ISubStream
 
 		void Enlarge(const CGlyphPath& src, float size);
 
-		// SSFArray<BYTE> types;
-		// SSFArray<POINT> points;
 		CAtlArray<BYTE> types;
 		CAtlArray<POINT> points;
 	};
@@ -148,17 +146,25 @@ class CRenderedSSF : public ISubPicProviderImpl, public ISubStream
 	public:
 		WCHAR c;
 		ssf::Style style;
+		ssf::Size scale;
+		bool vertical;
 		int ascent, descent, width, spacing, fill;
-		CGlyphPath path, path_enlarge;
+		int row_ascent, row_descent;
+		CGlyphPath path, path_bkg;
+		CRect bbox;
 		CPoint tl, tls;
-		SSFRasterizer ras, ras_enlarge, ras_shadow;
+		SSFRasterizer ras, ras_bkg, ras_shadow;
+
+		float GetBackgroundSize();
+		float GetShadowDepth();
 
 		void Transform(CGlyphPath& path, CPoint org);
 
 	public:
 		CGlyph();
-		void Transform(const ssf::Size& scale, CPoint org);
-		void Rasterize(const ssf::Size& scale);
+		void Transform(CPoint org);
+		void Rasterize();
+		CRect GetClipRect();
 	};
 
 	class CRow : public CAutoPtrList<CGlyph>
@@ -195,7 +201,7 @@ public:
 	virtual ~CRenderedSSF();
 
 	bool Open(CString fn, CString name = _T(""));
-	bool Open(ssf::Stream& s, CString name);
+	bool Open(ssf::InputStream& s, CString name);
 
 	DECLARE_IUNKNOWN
     STDMETHODIMP NonDelegatingQueryInterface(REFIID riid, void** ppv);

@@ -21,6 +21,8 @@
 
 #pragma once
 
+#include "Stream.h"
+
 namespace ssf
 {
 	template <class T = CString, class S = CString> 
@@ -71,7 +73,7 @@ namespace ssf
 
 		virtual void AddTail(Node* pNode);
 		virtual void GetChildDefs(CAtlList<Definition*>& l, LPCWSTR type = NULL, bool fFirst = true);
-		virtual void Dump(int level = 0, bool fLast = false) = 0;
+		virtual void Dump(OutputStream& s, int level = 0, bool fLast = false) = 0;
 	};
 
 	class Reference : public Node
@@ -81,7 +83,7 @@ namespace ssf
 		virtual ~Reference();
 
 		void GetChildDefs(CAtlList<Definition*>& l, LPCWSTR type = NULL, bool fFirst = true);
-		void Dump(int level = 0, bool fLast = false);
+		void Dump(OutputStream& s, int level = 0, bool fLast = false);
 	};
 
 	class Definition : public Node
@@ -110,7 +112,7 @@ namespace ssf
 		bool IsVisible(Definition* pDef);
 
 		void AddTail(Node* pNode);
-		void Dump(int level = 0, bool fLast = false);
+		void Dump(OutputStream& s, int level = 0, bool fLast = false);
 
 		Definition& operator[] (LPCWSTR type);
 

@@ -32,7 +32,7 @@ namespace ssf
 	{
 	}
 
-	void SubtitleFile::Parse(Stream& s)
+	void SubtitleFile::Parse(InputStream& s)
 	{
 		m_segments.RemoveAll();
 

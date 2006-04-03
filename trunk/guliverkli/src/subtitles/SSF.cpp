@@ -19,9 +19,8 @@
  *
  *  TODO: 
  *  - fill effect
- *  - box background
  *  - collision detection
- *  - super slow, make it faster
+ *  - outline bkg still very slow
  *
  */
 
@@ -65,7 +64,7 @@ bool CRenderedSSF::Open(CString fn, CString name)
 
 	try
 	{
-		if(Open(ssf::FileStream(fn), name)) 
+		if(Open(ssf::FileInputStream(fn), name)) 
 		{
 			m_fn = fn;
 			return true;
@@ -79,7 +78,7 @@ bool CRenderedSSF::Open(CString fn, CString name)
 	return false;	
 }
 
-bool CRenderedSSF::Open(ssf::Stream& s, CString name)
+bool CRenderedSSF::Open(ssf::InputStream& s, CString name)
 {
 	m_fn.Empty();
 	m_name.Empty();
@@ -91,8 +90,8 @@ bool CRenderedSSF::Open(ssf::Stream& s, CString name)
 		m_psf.Attach(new ssf::SubtitleFile());
 		m_psf->Parse(s);
 
-#if 0 // def DEBUG
-		m_psf->Dump();
+#ifdef DEBUG
+		m_psf->Dump(ssf::DebugOutputStream());
 /*
 		float at = 0;
 		for(int i = 0; i < 1000; i += 100)
@@ -174,183 +173,6 @@ STDMETHODIMP_(bool) CRenderedSSF::IsAnimated(POSITION pos)
 }
 
 // 
-
-#define deg2rad(d) (3.14159f/180*(d))
-
-CRenderedSSF::CGlyph::CGlyph()
-{
-	c = 0;
-	ascent = descent = width = spacing = fill = 0;
-	tl.x = tl.y = tls.x = tls.y = 0;
-}
-
-void CRenderedSSF::CGlyph::Transform(CGlyphPath& path, CPoint org)
-{
-	// TODO: add sse code path
-
-	float sx = style.font.scale.cx;
-	float sy = style.font.scale.cy;
-
-	float caz = cos(deg2rad(style.placement.angle.z));
-	float saz = sin(deg2rad(style.placement.angle.z));
-	float cax = cos(deg2rad(style.placement.angle.x));
-	float sax = sin(deg2rad(style.placement.angle.x));
-	float cay = cos(deg2rad(style.placement.angle.y));
-	float say = sin(deg2rad(style.placement.angle.y));
-
-	for(size_t i = 0, j = path.types.GetCount(); i < j; i++)
-	{
-		float x, y, z, xx, yy, zz;
-
-		x = sx * (path.points[i].x - org.x);
-		y = sy * (path.points[i].y - org.y);
-		z = 0;
-
-		xx = x*caz + y*saz;
-		yy = -(x*saz - y*caz);
-		zz = z;
-
-		x = xx;
-		y = yy*cax + zz*sax;
-		z = yy*sax - zz*cax;
-
-		xx = x*cay + z*say;
-		yy = y;
-		zz = x*say - z*cay;
-
-		zz = 1.0f / (max(zz, -19000) + 20000);
-
-		x = (xx * 20000) * zz;
-		y = (yy * 20000) * zz;
-
-		path.points[i].x = (LONG)(x + org.x + 0.5);
-		path.points[i].y = (LONG)(y + org.y + 0.5);
-	}
-}
-
-void CRenderedSSF::CGlyph::Transform(const ssf::Size& scale, CPoint org)
-{
-	org -= tl;
-
-	if(style.background.type == L"enlarge" && style.background.size > 0)
-	{
-		path_enlarge.Enlarge(path, style.background.size * (scale.cx + scale.cy) / 2);
-		Transform(path_enlarge, org);
-	}
-
-	Transform(path, org);
-}
-
-void CRenderedSSF::CGlyphPath::Enlarge(const CGlyphPath& src, float size)
-{
-	types.SetCount(src.types.GetCount());
-	points.SetCount(src.points.GetCount());
-
-	memcpy(types.GetData(), src.types.GetData(), types.GetCount());
-
-	size_t start = 0, end = 0;
-
-	for(size_t i = 0, j = src.types.GetCount(); i <= j; i++)
-	{
-		if(i > 0 && (i == j || (src.types[i] & ~PT_CLOSEFIGURE) == PT_MOVETO))
-		{
-			end = i-1;
-
-			bool cw = true; // TODO: determine orientation
-			float rotate = cw ? -M_PI_2 : M_PI_2;
-
-			CPoint prev = src.points[end];
-			CPoint cur = src.points[start];
-
-			for(size_t k = start; k <= end; k++)
-			{
-				CPoint next = k < end ? src.points[k+1] : src.points[start];
-
-				for(int l = k-1; prev == cur; l--)
-				{
-					if(l < (int)start) l = end;
-					prev = src.points[l];
-				}
-
-				for(int l = k+1; next == cur; l++)
-				{
-					if(l > (int)end) l = start;
-					next = src.points[l];
-				}
-
-				CPoint in = cur - prev;
-				CPoint out = next - cur;
-
-				float angle_in = atan2((float)in.y, (float)in.x);
-				float angle_out = atan2((float)out.y, (float)out.x);
-				float angle_diff = angle_out - angle_in;
-				if(angle_diff < 0) angle_diff += M_PI*2;
-				if(angle_diff > M_PI) angle_diff -= M_PI*2;
-				float scale = cos(angle_diff / 2);
-
-				CPoint p;
-
-				if(angle_diff < 0)
-				{
-					if(angle_diff > -M_PI/8) {if(scale < 1) scale = 1;}
-					else {if(scale < 0.50) scale = 0.50;}
-				}
-				else
-				{
-					if(angle_diff < M_PI/8) {if(scale < 0.75) scale = 0.75;}
-					else {if(scale < 0.25) scale = 0.25;}
-				}
-
-				if(scale < 0.1) scale = 0.1;
-
-				float angle = angle_in + angle_diff / 2 - rotate;
-				float radius = -size / scale; // FIXME
-				p.x = radius * cos(angle);
-				p.y = radius * sin(angle);
-
-				points[k] = cur + p;
-
-				prev = cur;
-				cur = next;
-			}
-
-			start = end+1;
-		}
-	}
-}
-
-void CRenderedSSF::CGlyph::Rasterize(const ssf::Size& scale)
-{
-	SSFRasterizer* r = &ras;
-
-	if(style.background.type == L"enlarge" && style.background.size > 0)
-	{
-		ras_enlarge.ScanConvert(path_enlarge.types.GetCount(), path_enlarge.types.GetData(), path_enlarge.points.GetData());
-		ras_enlarge.Rasterize(tl.x >> 3, tl.y >> 3);
-		r = &ras_enlarge;
-	}
-
-	ras.ScanConvert(path.types.GetCount(), path.types.GetData(), path.points.GetData());
-
-	if(style.background.type == L"outline" && style.background.size > 0)
-	{
-		ras.CreateWidenedRegion((int)(style.background.size * (scale.cx + scale.cy) / 2 / 8));
-	}
-	
-	ras.Rasterize(tl.x >> 3, tl.y >> 3);
-
-	if(style.shadow.depth > 0)
-	{
-		ras_shadow.Reuse(*r);
-
-		float depth = style.shadow.depth * (scale.cx + scale.cy) / 2;
-
-		tls.x = tl.x + (int)(depth * cos(deg2rad(style.shadow.angle)) + 0.5);
-		tls.y = tl.y + (int)(depth * -sin(deg2rad(style.shadow.angle)) + 0.5);
-
-		ras_shadow.Rasterize(tls.x >> 3, tls.y >> 3);
-	}
-}
 
 template <class T>
 void ReverseList(T& l)
@@ -460,7 +282,7 @@ STDMETHODIMP CRenderedSSF::Render(SubPicDesc& spd, REFERENCE_TIME rt, double fps
 			scale.cx *= 64;
 			scale.cy *= 64;
 
-			bool fVertical = s->m_direction.primary == _T("down") || s->m_direction.primary == _T("up");
+			bool vertical = s->m_direction.primary == _T("down") || s->m_direction.primary == _T("up");
 
 			// 
 
@@ -509,13 +331,14 @@ STDMETHODIMP CRenderedSSF::Render(SubPicDesc& spd, REFERENCE_TIME rt, double fps
 
 					g->c = *c;
 					g->style = t.style;
+					g->scale = scale;
+					g->vertical = vertical;
 
 					CSize extent;
 					GetTextExtentPoint32W(m_hDC, c, 1, &extent);
-
 					ASSERT(extent.cx >= 0 && extent.cy >= 0);
 
-					if(fVertical) 
+					if(vertical) 
 					{
 						g->spacing = (int)(t.style.font.spacing * scale.cy + 0.5);
 						g->ascent = extent.cx / 2;
@@ -575,7 +398,7 @@ STDMETHODIMP CRenderedSSF::Render(SubPicDesc& spd, REFERENCE_TIME rt, double fps
 
 			if(s->m_wrap == _T("normal") || s->m_wrap == _T("even"))
 			{
-				int maxwidth = abs((int)(fVertical ? frame.Height() : frame.Width()));
+				int maxwidth = abs((int)(vertical ? frame.Height() : frame.Width()));
 				int minwidth = 0;
 
 				for(POSITION rpos = rows.GetHeadPosition(); rpos; rows.GetNext(rpos))
@@ -724,7 +547,14 @@ STDMETHODIMP CRenderedSSF::Render(SubPicDesc& spd, REFERENCE_TIME rt, double fps
 					r->descent = max(r->descent, g->descent);
 				}
 
-				if(fVertical)
+				for(POSITION gpos = r->GetHeadPosition(); gpos; r->GetNext(gpos))
+				{
+					CGlyph* g = r->GetAt(gpos);
+					g->row_ascent = r->ascent;
+					g->row_descent = r->descent;
+				}
+
+				if(vertical)
 				{
 					size.cx += h;
 					size.cy = max(size.cy, w);
@@ -752,7 +582,7 @@ STDMETHODIMP CRenderedSSF::Render(SubPicDesc& spd, REFERENCE_TIME rt, double fps
 				CSize rsize;
 				rsize.cx = rsize.cy = r->width;
 
-				if(fVertical)
+				if(vertical)
 				{
 					p.y = GetAlignPoint(style.placement, scale, frame, rsize).y;
 
@@ -787,7 +617,7 @@ STDMETHODIMP CRenderedSSF::Render(SubPicDesc& spd, REFERENCE_TIME rt, double fps
 			//
 
 			pos = sub->m_glyphs.GetHeadPosition();
-			while(pos) sub->m_glyphs.GetNext(pos)->Transform(scale, org);
+			while(pos) sub->m_glyphs.GetNext(pos)->Transform(org);
 
 			// merge glyphs (TODO: merge 'fill' too)
 
@@ -800,7 +630,24 @@ STDMETHODIMP CRenderedSSF::Render(SubPicDesc& spd, REFERENCE_TIME rt, double fps
 
 				CGlyph* g = sub->m_glyphs.GetNext(pos);
 
-				if(g0 && g0->style.IsSimilar(g->style))
+				CRect r = g->bbox + g->tl;
+
+				int size = (int)(g->GetBackgroundSize() + 0.5);
+				int depth = (int)(g->GetShadowDepth() + 0.5);
+
+				r.InflateRect(size, size);
+				r.InflateRect(depth, depth);
+
+				r.left >>= 6;
+				r.top >>= 6;
+				r.right = (r.right + 32) >> 6;
+				r.bottom = (r.bottom + 32) >> 6;
+
+				if((r & clip).IsRectEmpty()) // clip
+				{
+					sub->m_glyphs.RemoveAt(cur);
+				}
+				else if(g0 && g0->style.IsSimilar(g->style)) // append
 				{
 					CPoint o = g->tl - g0->tl;
 
@@ -809,14 +656,16 @@ STDMETHODIMP CRenderedSSF::Render(SubPicDesc& spd, REFERENCE_TIME rt, double fps
 					g0->path.types.Append(g->path.types);
 					g0->path.points.Append(g->path.points);
 
-					SSFRasterizer::MovePoints(g->path_enlarge.points.GetData(), g->path_enlarge.types.GetCount(), o.x, o.y);
+					SSFRasterizer::MovePoints(g->path_bkg.points.GetData(), g->path_bkg.types.GetCount(), o.x, o.y);
 
-					g0->path_enlarge.types.Append(g->path_enlarge.types);
-					g0->path_enlarge.points.Append(g->path_enlarge.points);
+					g0->path_bkg.types.Append(g->path_bkg.types);
+					g0->path_bkg.points.Append(g->path_bkg.points);
+
+					g0->bbox |= g->bbox + o;
 
 					sub->m_glyphs.RemoveAt(cur);
 				}
-				else
+				else // leave alone
 				{
 					g0 = g;
 				}
@@ -825,7 +674,7 @@ STDMETHODIMP CRenderedSSF::Render(SubPicDesc& spd, REFERENCE_TIME rt, double fps
 			// rasterize
 
 			pos = sub->m_glyphs.GetHeadPosition();
-			while(pos) sub->m_glyphs.GetNext(pos)->Rasterize(scale);
+			while(pos) sub->m_glyphs.GetNext(pos)->Rasterize();
 
 			m_subtitlecache.Create(s->m_name, sub);
 		}
@@ -859,8 +708,6 @@ STDMETHODIMP CRenderedSSF::Render(SubPicDesc& spd, REFERENCE_TIME rt, double fps
 		{
 			CGlyph* g = sub->m_glyphs.GetNext(pos);
 
-			if(g->style.background.size <= 0) continue;
-
 			DWORD c = 
 				(min(max((DWORD)g->style.background.color.b, 0), 255) <<  0) |
 				(min(max((DWORD)g->style.background.color.g, 0), 255) <<  8) |
@@ -869,15 +716,16 @@ STDMETHODIMP CRenderedSSF::Render(SubPicDesc& spd, REFERENCE_TIME rt, double fps
 
 			DWORD sw[6] = {c, -1};
 
-			if(g->style.background.type == L"outline")
+			if(g->style.background.type == L"outline" && g->style.background.size > 0)
 			{
 				bool body = !g->style.font.color.a && !g->style.background.color.a;
 
 				bbox2 |= g->ras.Draw(spd, sub->m_clip, g->tl.x >> 3, g->tl.y >> 3, sw, body, true);
 			}
-			else if(g->style.background.type == L"enlarge")
+			else if(g->style.background.type == L"enlarge" && g->style.background.size > 0
+			|| g->style.background.type == L"box" && g->style.background.size >= 0)
 			{
-				bbox2 |= g->ras_enlarge.Draw(spd, sub->m_clip, g->tl.x >> 3, g->tl.y >> 3, sw, true, false);
+				bbox2 |= g->ras_bkg.Draw(spd, sub->m_clip, g->tl.x >> 3, g->tl.y >> 3, sw, true, false);
 			}
 		}
 
@@ -990,6 +838,171 @@ CRenderedSSF::CFontWrapper* CRenderedSSF::CFontCache::Create(const LOGFONT& lf)
 
 //
 
+#define deg2rad(d) (float)(M_PI/180*(d))
+
+CRenderedSSF::CGlyph::CGlyph()
+{
+	c = 0;
+	ascent = descent = width = spacing = fill = 0;
+	tl.x = tl.y = tls.x = tls.y = 0;
+}
+
+float CRenderedSSF::CGlyph::GetBackgroundSize()
+{
+	return style.background.size * (scale.cx + scale.cy) / 2;
+}
+
+float CRenderedSSF::CGlyph::GetShadowDepth()
+{
+	return style.shadow.depth * (scale.cx + scale.cy) / 2;
+}
+
+void CRenderedSSF::CGlyph::Transform(CGlyphPath& path, CPoint org)
+{
+	// TODO: add sse code path
+
+	float sx = style.font.scale.cx;
+	float sy = style.font.scale.cy;
+
+	float caz = cos(deg2rad(style.placement.angle.z));
+	float saz = sin(deg2rad(style.placement.angle.z));
+	float cax = cos(deg2rad(style.placement.angle.x));
+	float sax = sin(deg2rad(style.placement.angle.x));
+	float cay = cos(deg2rad(style.placement.angle.y));
+	float say = sin(deg2rad(style.placement.angle.y));
+
+	for(size_t i = 0, j = path.types.GetCount(); i < j; i++)
+	{
+		float x, y, z, xx, yy, zz;
+
+		x = sx * (path.points[i].x - org.x);
+		y = sy * (path.points[i].y - org.y);
+		z = 0;
+
+		xx = x*caz + y*saz;
+		yy = -(x*saz - y*caz);
+		zz = z;
+
+		x = xx;
+		y = yy*cax + zz*sax;
+		z = yy*sax - zz*cax;
+
+		xx = x*cay + z*say;
+		yy = y;
+		zz = x*say - z*cay;
+
+		zz = 1.0f / (max(zz, -19000) + 20000);
+
+		x = (xx * 20000) * zz;
+		y = (yy * 20000) * zz;
+
+		CPoint p;
+
+		p.x = (int)(x + org.x + 0.5);
+		p.y = (int)(y + org.y + 0.5);
+
+		if(p.x < bbox.left) bbox.left = p.x;
+		if(p.x > bbox.right) bbox.right = p.x;
+		if(p.y < bbox.top) bbox.top = p.y;
+		if(p.y > bbox.bottom) bbox.bottom = p.y;
+
+		path.points[i] = p;
+	}
+}
+
+void CRenderedSSF::CGlyph::Transform(CPoint org)
+{
+	org -= tl;
+
+	bbox.SetRect(INT_MAX, INT_MAX, INT_MIN, INT_MIN);
+
+	if(style.background.type == L"enlarge" && style.background.size > 0)
+	{
+		path_bkg.Enlarge(path, GetBackgroundSize());
+		Transform(path_bkg, org);
+	}
+	else if(style.background.type == L"box" && style.background.size >= 0)
+	{
+		if(c != ssf::Text::LSEP)
+		{
+			int s = (int)(GetBackgroundSize() + 0.5);
+			int x0 = (!vertical ? -spacing/2 : ascent - row_ascent);
+			int y0 = (!vertical ? ascent - row_ascent : -spacing/2);
+			int x1 = x0 + (!vertical ? width + spacing : row_ascent + row_descent);
+			int y1 = y0 + (!vertical ? row_ascent + row_descent : width + spacing);
+			path_bkg.types.SetCount(4);
+			path_bkg.types[0] = PT_MOVETO;
+			path_bkg.types[1] = PT_LINETO;
+			path_bkg.types[2] = PT_LINETO;
+			path_bkg.types[3] = PT_LINETO;
+			path_bkg.points.SetCount(4);
+			path_bkg.points[0] = CPoint(x0-s, y0-s);
+			path_bkg.points[1] = CPoint(x1+s, y0-s);
+			path_bkg.points[2] = CPoint(x1+s, y1+s);
+			path_bkg.points[3] = CPoint(x0-s, y1+s);
+			Transform(path_bkg, org);
+		}
+	}
+
+	Transform(path, org);
+
+	bbox |= CRect(0, 0, 0, 0);
+}
+
+CRect CRenderedSSF::CGlyph::GetClipRect()
+{
+	CRect r = bbox + tl;
+
+	int size = (int)(GetBackgroundSize() + 0.5);
+	int depth = (int)(GetShadowDepth() + 0.5);
+
+	r.InflateRect(size, size);
+	r.InflateRect(depth, depth);
+
+	r.left >>= 6;
+	r.top >>= 6;
+	r.right = (r.right + 32) >> 6;
+	r.bottom = (r.bottom + 32) >> 6;
+
+	return r;
+}
+
+void CRenderedSSF::CGlyph::Rasterize()
+{
+	SSFRasterizer* r = &ras;
+
+	if(style.background.type == L"enlarge" && style.background.size > 0
+	|| style.background.type == L"box" && style.background.size >= 0)
+	{
+		ras_bkg.ScanConvert(path_bkg.types.GetCount(), path_bkg.types.GetData(), path_bkg.points.GetData());
+		ras_bkg.Rasterize(tl.x >> 3, tl.y >> 3);
+		r = &ras_bkg;
+	}
+
+	ras.ScanConvert(path.types.GetCount(), path.types.GetData(), path.points.GetData());
+
+	if(style.background.type == L"outline" && style.background.size > 0)
+	{
+		ras.CreateWidenedRegion((int)(GetBackgroundSize() / 8));
+	}
+	
+	ras.Rasterize(tl.x >> 3, tl.y >> 3);
+
+	if(style.shadow.depth > 0)
+	{
+		ras_shadow.Reuse(*r);
+
+		float depth = GetShadowDepth();
+
+		tls.x = tl.x + (int)(depth * cos(deg2rad(style.shadow.angle)) + 0.5);
+		tls.y = tl.y + (int)(depth * -sin(deg2rad(style.shadow.angle)) + 0.5);
+
+		ras_shadow.Rasterize(tls.x >> 3, tls.y >> 3);
+	}
+}
+
+//
+
 CRenderedSSF::CGlyphPath::CGlyphPath(const CGlyphPath& path)
 {
 	*this = path;
@@ -999,6 +1012,85 @@ void CRenderedSSF::CGlyphPath::operator = (const CGlyphPath& path)
 {
 	types.Copy(path.types);
 	points.Copy(path.points);
+}
+
+void CRenderedSSF::CGlyphPath::Enlarge(const CGlyphPath& src, float size)
+{
+	types.SetCount(src.types.GetCount());
+	points.SetCount(src.points.GetCount());
+
+	memcpy(types.GetData(), src.types.GetData(), types.GetCount());
+
+	size_t start = 0, end = 0;
+
+	for(size_t i = 0, j = src.types.GetCount(); i <= j; i++)
+	{
+		if(i > 0 && (i == j || (src.types[i] & ~PT_CLOSEFIGURE) == PT_MOVETO))
+		{
+			end = i-1;
+
+			bool cw = true; // TODO: determine orientation
+			float rotate = cw ? -M_PI_2 : M_PI_2;
+
+			CPoint prev = src.points[end];
+			CPoint cur = src.points[start];
+
+			for(size_t k = start; k <= end; k++)
+			{
+				CPoint next = k < end ? src.points[k+1] : src.points[start];
+
+				for(int l = k-1; prev == cur; l--)
+				{
+					if(l < (int)start) l = end;
+					prev = src.points[l];
+				}
+
+				for(int l = k+1; next == cur; l++)
+				{
+					if(l > (int)end) l = start;
+					next = src.points[l];
+				}
+
+				CPoint in = cur - prev;
+				CPoint out = next - cur;
+
+				float angle_in = atan2((float)in.y, (float)in.x);
+				float angle_out = atan2((float)out.y, (float)out.x);
+				float angle_diff = angle_out - angle_in;
+				if(angle_diff < 0) angle_diff += M_PI*2;
+				if(angle_diff > M_PI) angle_diff -= M_PI*2;
+				float scale = cos(angle_diff / 2);
+
+				CPoint p;
+
+				if(angle_diff < 0)
+				{
+					if(angle_diff > -M_PI/8) {if(scale < 1) scale = 1;}
+					else {if(scale < 0.50) scale = 0.50;}
+				}
+				else
+				{
+					if(angle_diff < M_PI/8) {if(scale < 0.75) scale = 0.75;}
+					else {if(scale < 0.25) scale = 0.25;}
+				}
+
+				if(scale < 0.1) scale = 0.1;
+
+				float angle = angle_in + angle_diff / 2 - rotate;
+				float radius = -size / scale; // FIXME
+
+				p.x = (int)(radius * cos(angle) + 0.5);
+				p.y = (int)(radius * sin(angle) + 0.5);
+
+				points[k] = cur + p;
+
+				prev = cur;
+				cur = next;
+			}
+
+			start = end+1;
+		}
+	}
 }
 
 //

@@ -158,11 +158,11 @@ namespace ssf
 		return dynamic_cast<Definition*>(pNode);
 	}
 
-	void NodeFactory::Dump() const
+	void NodeFactory::Dump(OutputStream& s) const
 	{
 		if(!m_root) return;
 
 		POSITION pos = m_root->m_nodes.GetHeadPosition();
-		while(pos) m_root->m_nodes.GetNext(pos)->Dump();
+		while(pos) m_root->m_nodes.GetNext(pos)->Dump(s);
 	}
 }
