@@ -32,14 +32,14 @@ namespace ssf
 		File();
 		virtual ~File();
 
-		void Parse(Stream& s, LPCWSTR predef = NULL);
+		void Parse(InputStream& s, LPCWSTR predef = NULL);
 
-		void ParseDefs(Stream& s, Reference* pParentRef);
-		void ParseTypes(Stream& s, CAtlList<CStringW>& types);
-		void ParseName(Stream& s, CStringW& name);
-		void ParseQuotedString(Stream& s, Definition* pDef);
-		void ParseNumber(Stream& s, Definition* pDef);
-		void ParseBlock(Stream& s, Definition* pDef);
-		void ParseRefs(Stream& s, Definition* pParentDef, LPCWSTR term = L";}]");
+		void ParseDefs(InputStream& s, Reference* pParentRef);
+		void ParseTypes(InputStream& s, CAtlList<CStringW>& types);
+		void ParseName(InputStream& s, CStringW& name);
+		void ParseQuotedString(InputStream& s, Definition* pDef);
+		void ParseNumber(InputStream& s, Definition* pDef);
+		void ParseBlock(InputStream& s, Definition* pDef);
+		void ParseRefs(InputStream& s, Definition* pParentDef, LPCWSTR term = L";}]");
 	};
 }

@@ -4117,7 +4117,7 @@ void CMainFrame::OnFileISDBDownload()
 					{
 						CAutoPtr<CRenderedSSF> p(new CRenderedSSF(&m_csSubLock));
 
-						if(p->Open(ssf::MemoryStream((BYTE*)(LPCSTR)str, str.GetLength(), false, false), CString(s.name)) && p->GetStreamCount() > 0)
+						if(p->Open(ssf::MemoryInputStream((BYTE*)(LPCSTR)str, str.GetLength(), false, false), CString(s.name)) && p->GetStreamCount() > 0)
 						{
 							pSubStream = p.Detach();
 						}

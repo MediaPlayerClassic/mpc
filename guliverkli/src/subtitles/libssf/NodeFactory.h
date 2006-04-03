@@ -52,6 +52,6 @@ namespace ssf
 		Definition* CreateDef(Reference* pParentRef = NULL, CStringW type = L"", CStringW name = L"", NodePriority priority = PNormal);
 		Definition* GetDefByName(CStringW name) const;
 
-		void Dump() const;
+		void Dump(OutputStream& s) const;
 	};
 }

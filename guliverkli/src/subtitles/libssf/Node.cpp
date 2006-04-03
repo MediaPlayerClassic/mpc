@@ -127,25 +127,27 @@ namespace ssf
 		}
 	}
 
-	void Reference::Dump(int level, bool fLast)
+	void Reference::Dump(OutputStream& s, int level, bool fLast)
 	{
-		// if(m_predefined) return;
+		if(m_predefined) return;
 
-		CString tabs(' ', level*4);
+		CStringW tabs(' ', level*4);
 
-		// TRACE(tabs + _T("\n") + tabs + _T(" {\n"));
-		TRACE(L" {\n");
+		// s.PutString(tabs + '\n' + tabs + L" {\n");
+		s.PutString(L" {\n");
 
 		POSITION pos = m_nodes.GetHeadPosition();
 		while(pos)
 		{
-			if(Definition* pDef = dynamic_cast<Definition*>(m_nodes.GetNext(pos)))
+			Node* pNode = m_nodes.GetNext(pos);
+
+			if(Definition* pDef = dynamic_cast<Definition*>(pNode))
 			{
-				pDef->Dump(level + 1, pos == NULL);
+				pDef->Dump(s, level + 1, pos == NULL);
 			}
 		}
 
-		TRACE(tabs + '}');
+		s.PutString(tabs + '}');
 	}
 
 	// Definition
@@ -413,20 +415,20 @@ namespace ssf
 		return b;
 	}
 
-	void Definition::Dump(int level, bool fLast)
+	void Definition::Dump(OutputStream& s, int level, bool fLast)
 	{
-		// if(m_predefined) return;
+		if(m_predefined) return;
 
-		CString tabs(' ', level*4);
+		CStringW tabs(' ', level*4);
 
-		CString str = tabs;
+		CStringW str = tabs;
 		if(m_predefined) str += '?';
 		if(m_priority == PLow) str += '*';
 		else if(m_priority == PHigh) str += '!';
-		if(!IsTypeUnknown() && !m_autotype) str += CString(m_type);
-		if(!IsNameUnknown()) str += '#' + CString(m_name);
+		if(!IsTypeUnknown() && !m_autotype) str += m_type;
+		if(!IsNameUnknown()) str += '#' + m_name;
 		str += ':';
-		TRACE(_T("%s"), str);
+		s.PutString(L"%s", str);
 
 		if(!m_nodes.IsEmpty())
 		{
@@ -437,42 +439,42 @@ namespace ssf
 
 				if(Reference* pRef = dynamic_cast<Reference*>(pNode))
 				{
-					pRef->Dump(level, fLast);
+					pRef->Dump(s, level, fLast);
 				}
 				else 
 				{
 					ASSERT(!pNode->IsNameUnknown());
-					TRACE(_T(" %s"), CString(pNode->m_name));
+					s.PutString(L" %s", pNode->m_name);
 				}
 			}
 
-			TRACE(_T(";\n"));
+			s.PutString(L";\n");
 
-			if(!fLast && (!m_nodes.IsEmpty() || level == 0)) TRACE(_T("\n"));
+			if(!fLast && (!m_nodes.IsEmpty() || level == 0)) s.PutString(L"\n");
 		}
 		else if(m_status == string)
 		{
-			CString str = CString(m_value);
-			str.Replace(_T("\""), _T("\\\""));
-			TRACE(_T(" \"%s\";\n"), str);
+			CStringW str = m_value;
+			str.Replace(L"\"", L"\\\"");
+			s.PutString(L" \"%s\";\n", str);
 		}
 		else if(m_status == number)
 		{
-			CString str = CString(m_value);
-			if(!m_unit.IsEmpty()) str += CString(m_unit);
-			TRACE(_T(" %s;\n"), str);
+			CStringW str = m_value;
+			if(!m_unit.IsEmpty()) str += m_unit;
+			s.PutString(L" %s;\n", str);
 		}
 		else if(m_status == boolean)
 		{
-			TRACE(_T(" %s;\n"), CString(m_value));
+			s.PutString(L" %s;\n", m_value);
 		}
 		else if(m_status == block)
 		{
-			TRACE(_T(" {%s};\n"), CString(m_value));
+			s.PutString(L" {%s};\n", m_value);
 		}
 		else
 		{
-			TRACE(_T(" null;\n"));
+			s.PutString(L" null;\n");
 		}
 	}
 }

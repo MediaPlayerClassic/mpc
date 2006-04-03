@@ -36,13 +36,13 @@ namespace ssf
 	{
 	}
 
-	void File::Parse(Stream& s, LPCWSTR predef)
+	void File::Parse(InputStream& s, LPCWSTR predef)
 	{
 		Reference* pRef = CreateRootRef();
 
 		SetPredefined(true);
 
-		try {ParseDefs(WCharStream(predef), pRef);}
+		try {ParseDefs(WCharInputStream(predef), pRef);}
 		catch(Exception& e) {ASSERT(0); TRACE(_T("%s\n"), e.ToString());}
 
 		SetPredefined(false);
@@ -57,7 +57,7 @@ namespace ssf
 		}
 	}
 
-	void File::ParseDefs(Stream& s, Reference* pParentRef)
+	void File::ParseDefs(InputStream& s, Reference* pParentRef)
 	{
 		while(s.SkipWhiteSpace(L";") != '}' && s.PeekChar() != Stream::EOS)
 		{
@@ -105,7 +105,7 @@ namespace ssf
 		s.GetChar();
 	}
 
-	void File::ParseTypes(Stream& s, CAtlList<CStringW>& types)
+	void File::ParseTypes(InputStream& s, CAtlList<CStringW>& types)
 	{
 		types.RemoveAll();
 
@@ -138,7 +138,7 @@ namespace ssf
 		}
 	}
 
-	void File::ParseName(Stream& s, CStringW& name)
+	void File::ParseName(InputStream& s, CStringW& name)
 	{
 		name.Empty();
 
@@ -149,7 +149,7 @@ namespace ssf
 		}
 	}
 
-	void File::ParseQuotedString(Stream& s, Definition* pDef)
+	void File::ParseQuotedString(InputStream& s, Definition* pDef)
 	{
 		CStringW v;
 
@@ -170,7 +170,7 @@ namespace ssf
 		s.ThrowError(_T("unterminated quoted string"));
 	}
 
-	void File::ParseNumber(Stream& s, Definition* pDef)
+	void File::ParseNumber(InputStream& s, Definition* pDef)
 	{
 		CStringW v, u;
 
@@ -198,7 +198,7 @@ namespace ssf
 		pDef->SetAsNumber(v, u);
 	}
 
-	void File::ParseBlock(Stream& s, Definition* pDef)
+	void File::ParseBlock(InputStream& s, Definition* pDef)
 	{
 		CStringW v;
 
@@ -222,7 +222,7 @@ namespace ssf
 		s.ThrowError(_T("unterminated block"));
 	}
 
-	void File::ParseRefs(Stream& s, Definition* pParentDef, LPCWSTR term)
+	void File::ParseRefs(InputStream& s, Definition* pParentDef, LPCWSTR term)
 	{
 		int c = s.SkipWhiteSpace();
 

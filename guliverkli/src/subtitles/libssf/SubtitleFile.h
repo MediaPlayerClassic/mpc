@@ -66,7 +66,7 @@ namespace ssf
 		SubtitleFile();
 		virtual ~SubtitleFile();
 
-		void Parse(Stream& s);
+		void Parse(InputStream& s);
 		bool Lookup(float at, CAutoPtrList<Subtitle>& subs);
 	};
 }

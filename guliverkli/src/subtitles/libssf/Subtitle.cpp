@@ -106,7 +106,7 @@ namespace ssf
 
 			CAtlStringMapW<float> offset;
 			Definition& block = (*pDef)[L"@"];
-			Parse(WCharStream((LPCWSTR)block), style, at, offset, dynamic_cast<Reference*>(block.m_parent));
+			Parse(WCharInputStream((LPCWSTR)block), style, at, offset, dynamic_cast<Reference*>(block.m_parent));
 
 			m_pFile->Rollback();
 
@@ -457,7 +457,7 @@ namespace ssf
 		}
 	}
 
-	void Subtitle::Parse(Stream& s, Style style, float at, CAtlStringMapW<float> offset, Reference* pParentRef)
+	void Subtitle::Parse(InputStream& s, Style style, float at, CAtlStringMapW<float> offset, Reference* pParentRef)
 	{
 		Text text;
 		text.style = style;
@@ -494,7 +494,7 @@ namespace ssf
 
 					if((*pDef)[L"@"].IsValue())
 					{
-						Parse(WCharStream((LPCWSTR)(*pDef)[L"@"]), style, at, offset, pParentRef);
+						Parse(WCharInputStream((LPCWSTR)(*pDef)[L"@"]), style, at, offset, pParentRef);
 					}
 
 					s.SkipWhiteSpace();
