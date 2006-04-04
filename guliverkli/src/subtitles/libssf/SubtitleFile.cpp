@@ -43,7 +43,7 @@ namespace ssf
 		CAtlList<Definition*> defs;
 		GetRootRef()->GetChildDefs(defs, L"subtitle");
 		
-		CAtlStringMapW<float> offset;
+		StringMapW<float> offset;
 
 		POSITION pos = defs.GetHeadPosition();
 		while(pos)

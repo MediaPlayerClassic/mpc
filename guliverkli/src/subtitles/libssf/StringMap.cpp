@@ -19,39 +19,10 @@
  *
  */
 
-#pragma once
-
-#include "Node.h"
+#include "stdafx.h"
+#include "Exception.h"
 
 namespace ssf
 {
-	class NodeFactory
-	{
-		Reference* m_root;
-		StringMapW<Node*> m_nodes;
-		CAtlList<CStringW> m_newnodes;
-		bool m_predefined;
 
-		unsigned __int64 m_counter;
-		CStringW GenName();
-
-	public:
-		NodeFactory();
-		virtual ~NodeFactory();
-
-		virtual void RemoveAll();
-
-		void SetPredefined(bool predefined) {m_predefined = predefined;}
-
-		void Commit();
-		void Rollback();
-
-		Reference* CreateRootRef();
-		Reference* GetRootRef() const;
-		Reference* CreateRef(Definition* pParentDef);
-		Definition* CreateDef(Reference* pParentRef = NULL, CStringW type = L"", CStringW name = L"", NodePriority priority = PNormal);
-		Definition* GetDefByName(CStringW name) const;
-
-		void Dump(OutputStream& s) const;
-	};
 }

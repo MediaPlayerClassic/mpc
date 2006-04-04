@@ -709,7 +709,7 @@ TRACE(_T("%I64d, %I64d (%I64d)\n"), p->rtStart, m_rtPrev, m_rtOffset);
 			Packet* pPacket = m_pl.GetAt(pos);
 			BYTE* pData = pPacket->GetData();
 
-			if(pPacket->rtStart != Packet::INVALID_TIME || (pData[4]&0x1f) == 0x09)
+			if(/*pPacket->rtStart != Packet::INVALID_TIME ||*/ (pData[4]&0x1f) == 0x09)
 			{
 				p = m_pl.RemoveHead();
 

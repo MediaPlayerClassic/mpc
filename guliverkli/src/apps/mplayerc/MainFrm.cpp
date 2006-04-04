@@ -4115,7 +4115,7 @@ void CMainFrame::OnFileISDBDownload()
 
 					if(!pSubStream)
 					{
-						CAutoPtr<CRenderedSSF> p(new CRenderedSSF(&m_csSubLock));
+						CAutoPtr<ssf::CRenderer> p(new ssf::CRenderer(&m_csSubLock));
 
 						if(p->Open(ssf::MemoryInputStream((BYTE*)(LPCSTR)str, str.GetLength(), false, false), CString(s.name)) && p->GetStreamCount() > 0)
 						{
@@ -9022,7 +9022,7 @@ bool CMainFrame::LoadSubtitle(CString fn)
 
 		if(!pSubStream)
 		{
-			CAutoPtr<CRenderedSSF> p(new CRenderedSSF(&m_csSubLock));
+			CAutoPtr<ssf::CRenderer> p(new ssf::CRenderer(&m_csSubLock));
 			if(p && p->Open(fn) && p->GetStreamCount() > 0)
 				pSubStream = p.Detach();
 		}
