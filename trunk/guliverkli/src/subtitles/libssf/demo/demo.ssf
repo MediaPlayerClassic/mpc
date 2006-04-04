@@ -516,14 +516,14 @@ subtitle
 {
 	time {start: 00:01:50.000; stop: 00:02:00.000;};
 	style: ShiftJIS;
-	@ {\[Keitarou\] だ。。。大丈夫};
+	@ {\[Keitarou\]だ。。。大丈夫？};
 };
 
 subtitle
 {
 	time {start: 00:01:52.000; stop: 00:02:00.000;};
-	style: ShiftJIS {font.color: yellow; placement.align: topright;};
-	@ {\[Naru\] 何よ！};
+	style: ShiftJIS {font.color: cyan; placement.align: topright;};
+	@ {\[Naru\]何よ！};
 };
 
 /*
