@@ -78,19 +78,19 @@ namespace ssf
 
 	class Subtitle
 	{
-		static struct n2n_t {CAtlStringMapW<float> align[2], weight, transition;} m_n2n;
+		static struct n2n_t {StringMapW<float> align[2], weight, transition;} m_n2n;
 
 		File* m_pFile;
 
 		void GetStyle(Definition* pDef, Style& style);
-		float GetMixWeight(Definition* pDef, float at, CAtlStringMapW<float>& offset, int default_id);
+		float GetMixWeight(Definition* pDef, float at, StringMapW<float>& offset, int default_id);
 		template<class T> bool MixValue(Definition& def, T& value, float t);
 		template<> bool MixValue(Definition& def, float& value, float t);
-		template<class T> bool MixValue(Definition& def, T& value, float t, CAtlStringMapW<T>* n2n);
-		template<> bool MixValue(Definition& def, float& value, float t, CAtlStringMapW<float>* n2n);
+		template<class T> bool MixValue(Definition& def, T& value, float t, StringMapW<T>* n2n);
+		template<> bool MixValue(Definition& def, float& value, float t, StringMapW<float>* n2n);
 		void MixStyle(Definition* pDef, Style& dst, float t);
 
-		void Parse(InputStream& s, Style style, float at, CAtlStringMapW<float> offset, Reference* pParentRef);
+		void Parse(InputStream& s, Style style, float at, StringMapW<float> offset, Reference* pParentRef);
 
 		void AddChar(Text& t, WCHAR c);
 		void AddText(Text& t);

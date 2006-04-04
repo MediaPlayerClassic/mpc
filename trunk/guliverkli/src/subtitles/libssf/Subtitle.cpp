@@ -104,7 +104,7 @@ namespace ssf
 			Style style;
 			GetStyle(&(*pDef)[L"style"], style);
 
-			CAtlStringMapW<float> offset;
+			StringMapW<float> offset;
 			Definition& block = (*pDef)[L"@"];
 			Parse(WCharInputStream((LPCWSTR)block), style, at, offset, dynamic_cast<Reference*>(block.m_parent));
 
@@ -190,7 +190,7 @@ namespace ssf
 			if(clip[L"l"].IsValue()) style.placement.clip.l = clip[L"l"];
 		}
 
-		CAtlStringMapW<float> n2n_margin[2];
+		StringMapW<float> n2n_margin[2];
 
 		n2n_margin[0][L"top"] = 0;
 		n2n_margin[0][L"right"] = 0;
@@ -263,13 +263,13 @@ namespace ssf
 		style.fill.width = fill[L"width"];
 	}
 
-	float Subtitle::GetMixWeight(Definition* pDef, float at, CAtlStringMapW<float>& offset, int default_id)
+	float Subtitle::GetMixWeight(Definition* pDef, float at, StringMapW<float>& offset, int default_id)
 	{
 		float t = 1;
 
 		try
 		{
-			CAtlStringMapW<float> n2n;
+			StringMapW<float> n2n;
 
 			n2n[L"start"] = 0;
 			n2n[L"stop"] = m_time.stop - m_time.start;
@@ -327,19 +327,19 @@ namespace ssf
 	template<class T> 
 	bool Subtitle::MixValue(Definition& def, T& value, float t)
 	{
-		CAtlStringMapW<T> n2n;
+		StringMapW<T> n2n;
 		return MixValue(def, value, t, &n2n);
 	}
 
 	template<> 
 	bool Subtitle::MixValue(Definition& def, float& value, float t)
 	{
-		CAtlStringMapW<float> n2n;
+		StringMapW<float> n2n;
 		return MixValue(def, value, t, &n2n);
 	}
 
 	template<class T> 
-	bool Subtitle::MixValue(Definition& def, T& value, float t, CAtlStringMapW<T>* n2n)
+	bool Subtitle::MixValue(Definition& def, T& value, float t, StringMapW<T>* n2n)
 	{
 		if(!def.IsValue()) return false;
 
@@ -347,7 +347,7 @@ namespace ssf
 		{
 			if(n2n && def.IsValue(Definition::string))
 			{
-				if(CAtlStringMapW<T>::CPair* p = n2n->Lookup(def))
+				if(StringMapW<T>::CPair* p = n2n->Lookup(def))
 				{
 					value = p->m_value;
 					return true;
@@ -361,7 +361,7 @@ namespace ssf
 	}
 
 	template<> 
-	bool Subtitle::MixValue(Definition& def, float& value, float t, CAtlStringMapW<float>* n2n)
+	bool Subtitle::MixValue(Definition& def, float& value, float t, StringMapW<float>* n2n)
 	{
 		if(!def.IsValue()) return false;
 
@@ -369,7 +369,7 @@ namespace ssf
 		{
 			if(n2n && def.IsValue(Definition::string))
 			{
-				if(CAtlStringMap<float, CStringW>::CPair* p = n2n->Lookup(def))
+				if(StringMap<float, CStringW>::CPair* p = n2n->Lookup(def))
 				{
 					value += (p->m_value - value) * t;
 					return true;
@@ -457,7 +457,7 @@ namespace ssf
 		}
 	}
 
-	void Subtitle::Parse(InputStream& s, Style style, float at, CAtlStringMapW<float> offset, Reference* pParentRef)
+	void Subtitle::Parse(InputStream& s, Style style, float at, StringMapW<float> offset, Reference* pParentRef)
 	{
 		Text text;
 		text.style = style;
@@ -472,7 +472,7 @@ namespace ssf
 
 				style = text.style;
 
-				CAtlStringMapW<float> inneroffset = offset;
+				StringMapW<float> inneroffset = offset;
 
 				int default_id = 0;
 

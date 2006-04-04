@@ -289,6 +289,10 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
+				RelativePath=".\Array.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\Exception.cpp"
 				>
 			</File>
@@ -297,11 +301,27 @@
 				>
 			</File>
 			<File
+				RelativePath=".\Glyph.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\GlyphPath.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\Node.cpp"
 				>
 			</File>
 			<File
 				RelativePath=".\NodeFactory.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Rasterizer.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Renderer.cpp"
 				>
 			</File>
 			<File
@@ -349,6 +369,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\StringMap.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\Subtitle.cpp"
 				>
 			</File>
@@ -363,6 +387,10 @@
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
 			>
 			<File
+				RelativePath=".\Array.h"
+				>
+			</File>
+			<File
 				RelativePath=".\Exception.h"
 				>
 			</File>
@@ -371,11 +399,27 @@
 				>
 			</File>
 			<File
+				RelativePath=".\Glyph.h"
+				>
+			</File>
+			<File
+				RelativePath=".\GlyphPath.h"
+				>
+			</File>
+			<File
 				RelativePath=".\Node.h"
 				>
 			</File>
 			<File
 				RelativePath=".\NodeFactory.h"
+				>
+			</File>
+			<File
+				RelativePath=".\Rasterizer.h"
+				>
+			</File>
+			<File
+				RelativePath=".\Renderer.h"
 				>
 			</File>
 			<File
@@ -388,6 +432,10 @@
 			</File>
 			<File
 				RelativePath=".\Stream.h"
+				>
+			</File>
+			<File
+				RelativePath=".\StringMap.h"
 				>
 			</File>
 			<File

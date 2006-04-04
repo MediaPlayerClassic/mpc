@@ -21,37 +21,36 @@
 
 #pragma once
 
-#include "Node.h"
+#include <atlcoll.h>
+#include "GlyphPath.h"
+#include "Rasterizer.h"
 
 namespace ssf
 {
-	class NodeFactory
+	class Glyph
 	{
-		Reference* m_root;
-		StringMapW<Node*> m_nodes;
-		CAtlList<CStringW> m_newnodes;
-		bool m_predefined;
-
-		unsigned __int64 m_counter;
-		CStringW GenName();
+		void Transform(GlyphPath& path, CPoint org);
 
 	public:
-		NodeFactory();
-		virtual ~NodeFactory();
+		WCHAR c;
+		Style style;
+		Size scale;
+		bool vertical;
+		int ascent, descent, width, spacing, fill;
+		int row_ascent, row_descent;
+		GlyphPath path, path_bkg;
+		CRect bbox;
+		CPoint tl, tls;
+		Rasterizer ras, ras_bkg, ras_shadow;
 
-		virtual void RemoveAll();
+	public:
+		Glyph();
 
-		void SetPredefined(bool predefined) {m_predefined = predefined;}
+		void Transform(CPoint org);
+		void Rasterize();
 
-		void Commit();
-		void Rollback();
-
-		Reference* CreateRootRef();
-		Reference* GetRootRef() const;
-		Reference* CreateRef(Definition* pParentDef);
-		Definition* CreateDef(Reference* pParentRef = NULL, CStringW type = L"", CStringW name = L"", NodePriority priority = PNormal);
-		Definition* GetDefByName(CStringW name) const;
-
-		void Dump(OutputStream& s) const;
+		float GetBackgroundSize();
+		float GetShadowDepth();
+		CRect GetClipRect();
 	};
 }

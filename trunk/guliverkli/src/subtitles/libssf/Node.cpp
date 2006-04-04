@@ -243,7 +243,7 @@ namespace ssf
 			POSITION pos = m_type2def.GetStartPosition();
 			while(pos) delete m_type2def.GetNextValue(pos);
 		}
-		else if(CAtlStringMapW<Definition*>::CPair* p = m_type2def.Lookup(type))
+		else if(StringMapW<Definition*>::CPair* p = m_type2def.Lookup(type))
 		{
 			delete p->m_value;
 			m_type2def.RemoveKey(type);
@@ -277,7 +277,7 @@ namespace ssf
 	}
 
 	template<class T> 
-	void Definition::GetAsNumber(Number<T>& n, CAtlStringMapW<T>* n2n)
+	void Definition::GetAsNumber(Number<T>& n, StringMapW<T>* n2n)
 	{
 		CStringW str = m_value;
 		str.Replace(L" ", L"");
@@ -290,7 +290,7 @@ namespace ssf
 		{
 			if(m_status == node) throw Exception(_T("expected value type"));
 
-			if(CAtlStringMapW<T>::CPair* p = n2n->Lookup(str))
+			if(StringMapW<T>::CPair* p = n2n->Lookup(str))
 			{
 				n.value = p->m_value;
 				return;
@@ -336,13 +336,13 @@ namespace ssf
 		str = m_value; 
 	}
 
-	void Definition::GetAsNumber(Number<int>& n, CAtlStringMapW<int>* n2n) {return GetAsNumber<int>(n, n2n);}
-	void Definition::GetAsNumber(Number<DWORD>& n, CAtlStringMapW<DWORD>* n2n) {return GetAsNumber<DWORD>(n, n2n);}
-	void Definition::GetAsNumber(Number<float>& n, CAtlStringMapW<float>* n2n) {return GetAsNumber<float>(n, n2n);}
+	void Definition::GetAsNumber(Number<int>& n, StringMapW<int>* n2n) {return GetAsNumber<int>(n, n2n);}
+	void Definition::GetAsNumber(Number<DWORD>& n, StringMapW<DWORD>* n2n) {return GetAsNumber<DWORD>(n, n2n);}
+	void Definition::GetAsNumber(Number<float>& n, StringMapW<float>* n2n) {return GetAsNumber<float>(n, n2n);}
 
 	void Definition::GetAsBoolean(bool& b)
 	{
-		static CAtlStringMapW<bool> s2b;
+		static StringMapW<bool> s2b;
 
 		if(s2b.IsEmpty())
 		{
@@ -362,7 +362,7 @@ namespace ssf
 		}
 	}
 
-	bool Definition::GetAsTime(Time& t, CAtlStringMapW<float>& offset, CAtlStringMapW<float>* n2n, int default_id)
+	bool Definition::GetAsTime(Time& t, StringMapW<float>& offset, StringMapW<float>* n2n, int default_id)
 	{
 		Definition& time = (*this)[L"time"];
 

@@ -21,37 +21,26 @@
 
 #pragma once
 
-#include "Node.h"
-
 namespace ssf
 {
-	class NodeFactory
+	template <class T = CString, class S = CString> 
+	class StringMap : public CAtlMap<S, T, CStringElementTraits<S> >
 	{
-		Reference* m_root;
-		StringMapW<Node*> m_nodes;
-		CAtlList<CStringW> m_newnodes;
-		bool m_predefined;
-
-		unsigned __int64 m_counter;
-		CStringW GenName();
-
 	public:
-		NodeFactory();
-		virtual ~NodeFactory();
-
-		virtual void RemoveAll();
-
-		void SetPredefined(bool predefined) {m_predefined = predefined;}
-
-		void Commit();
-		void Rollback();
-
-		Reference* CreateRootRef();
-		Reference* GetRootRef() const;
-		Reference* CreateRef(Definition* pParentDef);
-		Definition* CreateDef(Reference* pParentRef = NULL, CStringW type = L"", CStringW name = L"", NodePriority priority = PNormal);
-		Definition* GetDefByName(CStringW name) const;
-
-		void Dump(OutputStream& s) const;
+		StringMap() {}
+		StringMap(const StringMap& s2t) {*this = s2t;}
+		StringMap& operator = (const StringMap& s2t)
+		{
+			RemoveAll();
+			POSITION pos = s2t.GetStartPosition();
+			while(pos) {const StringMap::CPair* p = s2t.GetNext(pos); SetAt(p->m_key, p->m_value);}
+			return *this;
+		}
 	};
+
+	template <class T = CStringA, class S = CStringA> 
+	class StringMapA : public StringMap<T, S> {};
+
+	template <class T = CStringW, class S = CStringW> 
+	class StringMapW : public StringMap<T, S> {};
 }

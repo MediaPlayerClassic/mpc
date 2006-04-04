@@ -21,37 +21,23 @@
 
 #pragma once
 
-#include "Node.h"
+#include <atlcoll.h>
 
 namespace ssf
 {
-	class NodeFactory
+	class GlyphPath
 	{
-		Reference* m_root;
-		StringMapW<Node*> m_nodes;
-		CAtlList<CStringW> m_newnodes;
-		bool m_predefined;
-
-		unsigned __int64 m_counter;
-		CStringW GenName();
-
 	public:
-		NodeFactory();
-		virtual ~NodeFactory();
+		GlyphPath() {}
+		virtual ~GlyphPath() {}
 
-		virtual void RemoveAll();
+		GlyphPath(const GlyphPath& path);
+		void operator = (const GlyphPath& path);
 
-		void SetPredefined(bool predefined) {m_predefined = predefined;}
+		void MovePoints(const CPoint& o); 
+		void Enlarge(const GlyphPath& src, float size);
 
-		void Commit();
-		void Rollback();
-
-		Reference* CreateRootRef();
-		Reference* GetRootRef() const;
-		Reference* CreateRef(Definition* pParentDef);
-		Definition* CreateDef(Reference* pParentRef = NULL, CStringW type = L"", CStringW name = L"", NodePriority priority = PNormal);
-		Definition* GetDefByName(CStringW name) const;
-
-		void Dump(OutputStream& s) const;
+		CAtlArray<BYTE> types;
+		CAtlArray<POINT> points;
 	};
 }

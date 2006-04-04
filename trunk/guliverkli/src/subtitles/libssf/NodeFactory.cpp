@@ -65,7 +65,7 @@ namespace ssf
 		POSITION pos = m_newnodes.GetTailPosition();
 		while(pos)
 		{
-			if(CAtlStringMap<Node*, CStringW>::CPair* p = m_nodes.Lookup(m_newnodes.GetPrev(pos)))
+			if(StringMap<Node*, CStringW>::CPair* p = m_nodes.Lookup(m_newnodes.GetPrev(pos)))
 			{
 				delete p->m_value; // TODO: remove it from "parent"->m_nodes too
 				m_nodes.RemoveKey(p->m_key);
