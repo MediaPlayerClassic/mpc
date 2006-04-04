@@ -33,17 +33,17 @@ namespace ssf
 		tl.x = tl.y = tls.x = tls.y = 0;
 	}
 
-	float Glyph::GetBackgroundSize()
+	float Glyph::GetBackgroundSize() const
 	{
 		return style.background.size * (scale.cx + scale.cy) / 2;
 	}
 
-	float Glyph::GetShadowDepth()
+	float Glyph::GetShadowDepth() const
 	{
 		return style.shadow.depth * (scale.cx + scale.cy) / 2;
 	}
 
-	CRect Glyph::GetClipRect()
+	CRect Glyph::GetClipRect() const
 	{
 		CRect r = bbox + tl;
 
@@ -69,6 +69,7 @@ namespace ssf
 		float sy = style.font.scale.cy;
 
 		bool rotate = style.placement.angle.x || style.placement.angle.y || style.placement.angle.z;
+		bool scale = rotate || sx != 1 || sy != 1;
 
 		float caz = cos(deg2rad(style.placement.angle.z));
 		float saz = sin(deg2rad(style.placement.angle.z));
@@ -79,43 +80,46 @@ namespace ssf
 
 		for(size_t i = 0, j = path.types.GetCount(); i < j; i++)
 		{
-			float x, y, z, xx, yy, zz;
+			CPoint p = path.points[i];
 
-			x = sx * (path.points[i].x - org.x);
-			y = sy * (path.points[i].y - org.y);
-			z = 0;
-
-			if(rotate)
+			if(scale)
 			{
-				xx = x*caz + y*saz;
-				yy = -(x*saz - y*caz);
-				zz = z;
+				float x, y, z, xx, yy, zz;
 
-				x = xx;
-				y = yy*cax + zz*sax;
-				z = yy*sax - zz*cax;
+				x = sx * (p.x - org.x);
+				y = sy * (p.y - org.y);
+				z = 0;
 
-				xx = x*cay + z*say;
-				yy = y;
-				zz = x*say - z*cay;
+				if(rotate)
+				{
+					xx = x*caz + y*saz;
+					yy = -(x*saz - y*caz);
+					zz = z;
 
-				zz = 1.0f / (max(zz, -19000) + 20000);
+					x = xx;
+					y = yy*cax + zz*sax;
+					z = yy*sax - zz*cax;
 
-				x = (xx * 20000) * zz;
-				y = (yy * 20000) * zz;
+					xx = x*cay + z*say;
+					yy = y;
+					zz = x*say - z*cay;
+
+					zz = 1.0f / (max(zz, -19000) + 20000);
+
+					x = (xx * 20000) * zz;
+					y = (yy * 20000) * zz;
+				}
+
+				p.x = (int)(x + org.x + 0.5);
+				p.y = (int)(y + org.y + 0.5);
+				
+				path.points[i] = p;
 			}
-
-			CPoint p;
-
-			p.x = (int)(x + org.x + 0.5);
-			p.y = (int)(y + org.y + 0.5);
 
 			if(p.x < bbox.left) bbox.left = p.x;
 			if(p.x > bbox.right) bbox.right = p.x;
 			if(p.y < bbox.top) bbox.top = p.y;
 			if(p.y > bbox.bottom) bbox.bottom = p.y;
-
-			path.points[i] = p;
 		}
 	}
 
@@ -167,6 +171,7 @@ namespace ssf
 		{
 			ras_bkg.ScanConvert(path_bkg, bbox);
 			ras_bkg.Rasterize(tl.x >> 3, tl.y >> 3);
+			ras_bkg.Blur(style.background.blur, 0);
 			r = &ras_bkg;
 		}
 
@@ -179,6 +184,11 @@ namespace ssf
 		
 		ras.Rasterize(tl.x >> 3, tl.y >> 3);
 
+		if(style.background.type == L"outline" && style.background.size > 0)
+		{
+			ras.Blur(style.background.blur, 1);
+		}
+
 		if(style.shadow.depth > 0)
 		{
 			ras_shadow.Reuse(*r);
@@ -189,6 +199,16 @@ namespace ssf
 			tls.y = tl.y + (int)(depth * -sin(deg2rad(style.shadow.angle)) + 0.5);
 
 			ras_shadow.Rasterize(tls.x >> 3, tls.y >> 3);
+
+			if(style.background.type == L"enlarge" && style.background.size > 0
+			|| style.background.type == L"box" && style.background.size >= 0)
+			{
+				ras_shadow.Blur(style.shadow.blur, 0);
+			}
+			else if(style.background.type == L"outline" && style.background.size > 0)
+			{
+				ras_shadow.Blur(style.shadow.blur, 1);
+			}
 		}
 	}
 

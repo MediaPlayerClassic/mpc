@@ -19,7 +19,6 @@
  *
  *  TODO: 
  *  - fill effect
- *  - collision detection
  *  - outline bkg still very slow
  *
  */
@@ -152,88 +151,20 @@ namespace ssf
 
 		CAutoLock csAutoLock(m_pLock);
 
-		CRect bbox2(0, 0, 0, 0);
+		CRect bbox2;
+		bbox2.SetRectEmpty();
 
 		CAutoPtrList<Subtitle> subs;
 		m_file->Lookup((float)rt/10000000, subs);
+
+		m_renderer->NextSegment(subs);
 
 		POSITION pos = subs.GetHeadPosition();
 		while(pos)
 		{
 			const Subtitle* s = subs.GetNext(pos);
-
 			const RenderedSubtitle* rs = m_renderer->Lookup(s, CSize(spd.w, spd.h), spd.vidrect);
-
-			if(rs)
-			{
-				// shadow
-
-				POSITION pos = rs->m_glyphs.GetHeadPosition();
-				while(pos)
-				{
-					Glyph* g = rs->m_glyphs.GetNext(pos);
-
-					if(g->style.shadow.depth <= 0) continue;
-
-					DWORD c = 
-						(min(max((DWORD)g->style.shadow.color.b, 0), 255) <<  0) |
-						(min(max((DWORD)g->style.shadow.color.g, 0), 255) <<  8) |
-						(min(max((DWORD)g->style.shadow.color.r, 0), 255) << 16) |
-						(min(max((DWORD)g->style.shadow.color.a, 0), 255) << 24);
-
-					DWORD sw[6] = {c, -1};
-
-					bool outline = g->style.background.type == L"outline" && g->style.background.size > 0;
-
-					bbox2 |= g->ras_shadow.Draw(spd, rs->m_clip, g->tls.x >> 3, g->tls.y >> 3, sw, true, outline);
-				}
-
-				// background
-
-				pos = rs->m_glyphs.GetHeadPosition();
-				while(pos)
-				{
-					Glyph* g = rs->m_glyphs.GetNext(pos);
-
-					DWORD c = 
-						(min(max((DWORD)g->style.background.color.b, 0), 255) <<  0) |
-						(min(max((DWORD)g->style.background.color.g, 0), 255) <<  8) |
-						(min(max((DWORD)g->style.background.color.r, 0), 255) << 16) |
-						(min(max((DWORD)g->style.background.color.a, 0), 255) << 24);
-
-					DWORD sw[6] = {c, -1};
-
-					if(g->style.background.type == L"outline" && g->style.background.size > 0)
-					{
-						bool body = !g->style.font.color.a && !g->style.background.color.a;
-
-						bbox2 |= g->ras.Draw(spd, rs->m_clip, g->tl.x >> 3, g->tl.y >> 3, sw, body, true);
-					}
-					else if(g->style.background.type == L"enlarge" && g->style.background.size > 0
-					|| g->style.background.type == L"box" && g->style.background.size >= 0)
-					{
-						bbox2 |= g->ras_bkg.Draw(spd, rs->m_clip, g->tl.x >> 3, g->tl.y >> 3, sw, true, false);
-					}
-				}
-
-				// body
-
-				pos = rs->m_glyphs.GetHeadPosition();
-				while(pos)
-				{
-					Glyph* g = rs->m_glyphs.GetNext(pos);
-
-					DWORD c = 
-						(min(max((DWORD)g->style.font.color.b, 0), 255) <<  0) |
-						(min(max((DWORD)g->style.font.color.g, 0), 255) <<  8) |
-						(min(max((DWORD)g->style.font.color.r, 0), 255) << 16) |
-						(min(max((DWORD)g->style.font.color.a, 0), 255) << 24);
-
-					DWORD sw[6] = {c, -1}; // TODO: fill
-
-					bbox2 |= g->ras.Draw(spd, rs->m_clip, g->tl.x >> 3, g->tl.y >> 3, sw, true, false);
-				}
-			}
+			if(rs) bbox2 |= rs->Draw(spd);
 		}
 
 		bbox = bbox2 & CRect(0, 0, spd.w, spd.h);

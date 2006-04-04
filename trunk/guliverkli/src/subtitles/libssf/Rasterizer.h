@@ -75,9 +75,9 @@ namespace ssf
 		bool ScanConvert(GlyphPath& path, const CRect& bbox);
 		bool CreateWidenedRegion(int r);
 		bool Rasterize(int xsub, int ysub);
-
 		void Reuse(Rasterizer& r);
 
+		void Blur(float n, int plane);
 		CRect Draw(const SubPicDesc& spd, const CRect& clip, int xsub, int ysub, const DWORD* switchpts, bool fBody, bool fBorder);
 	};
 }

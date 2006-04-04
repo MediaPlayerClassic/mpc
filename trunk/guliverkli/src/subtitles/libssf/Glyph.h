@@ -49,8 +49,8 @@ namespace ssf
 		void Transform(CPoint org);
 		void Rasterize();
 
-		float GetBackgroundSize();
-		float GetShadowDepth();
-		CRect GetClipRect();
+		float GetBackgroundSize() const;
+		float GetShadowDepth() const;
+		CRect GetClipRect() const;
 	};
 }
