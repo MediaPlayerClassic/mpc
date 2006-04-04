@@ -34,7 +34,7 @@ namespace ssf
 	struct Frame {CStringW reference; Size resolution;};
 	struct Direction {CStringW primary, secondary;};
 	struct Time {float start, stop;};
-	struct Background {Color color; float size; CStringW type;};
+	struct Background {Color color; float size, blur; CStringW type;};
 	struct Shadow {Color color; float depth, angle, blur;};
 	struct Placement {Rect clip, margin; Align align; Point pos, offset; Angle angle;};
 

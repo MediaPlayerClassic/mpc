@@ -503,7 +503,7 @@ namespace ssf
 		mOffsetX = mPathOffsetX - xsub;
 		mOffsetY = mPathOffsetY - ysub;
 
-		int border = (mWideBorder + 7) & ~7;
+		int border = ((mWideBorder + 7) & ~7) + 32;
 
 		if(!mWideOutline.IsEmpty())
 		{
@@ -553,7 +553,7 @@ namespace ssf
 
 						while(++first < last)
 						{
-							*dst += 0x08;
+							*dst += 8;
 							dst += 2;
 						}
 
@@ -564,6 +564,46 @@ namespace ssf
 		}
 
 		return true;
+	}
+
+	void Rasterizer::Blur(float n, int plane)
+	{
+		if(n <= 0 || !mOverlayWidth || !mOverlayHeight || !mpOverlayBuffer)
+			return;
+
+		int w = mOverlayWidth;
+		int h = mOverlayHeight;
+		int pitch = w*2;
+		BYTE* q0 = new BYTE[w*h];
+
+		for(int pass = 0, limit = (int)(n + 0.5); pass < n; pass++)
+		{
+			BYTE* p = mpOverlayBuffer + plane;
+			BYTE* q = q0;
+
+			for(int y = 0; y < h; y++, p += pitch, q += w)
+			{
+				q[0] = (2*p[0] + p[2]) >> 2;
+				int x = 0;
+				for(x = 1; x < w-1; x++)
+					q[x] = (p[(x-1)*2] + 2*p[x*2] + p[(x+1)*2]) >> 2;
+				q[x] = (p[(x-1)*2] + 2*p[x*2]) >> 2;
+			}
+
+			p = mpOverlayBuffer + plane;
+			q = q0;
+
+			for(int x = 0; x < w; x++, p += 2, q++)
+			{
+				p[0] = (2*q[0] + q[w]) >> 2;
+				int y = 0, yp, yq;
+				for(y = 1, yp = y*pitch, yq = y*w; y < h-1; y++, yp += pitch, yq += w)
+					p[yp] = (q[yq-w] + 2*q[yq] + q[yq+w]) >> 2;
+				p[yp] = (q[yq-w] + 2*q[yq]) >> 2;
+			}
+		}
+
+		delete [] q0;
 	}
 
 	void Rasterizer::Reuse(Rasterizer& r)
@@ -648,7 +688,7 @@ namespace ssf
 		{
 			if(switchpts[1] == 0xffffffff)
 			{
-				if(fBody)
+				if(1) // fBody)
 				{
 					if(fSSE2) for(int wt=0; wt<w; ++wt) pixmix_sse2(&dst[wt], color, s[wt*2]);
 					else for(int wt=0; wt<w; ++wt) pixmix(s[wt*2]);
@@ -663,7 +703,7 @@ namespace ssf
 			{
 				const DWORD* sw = switchpts;
 
-				if(fBody)
+				if(1) // fBody)
 				{
 					if(fSSE2) 
 					for(int wt=0; wt<w; ++wt)

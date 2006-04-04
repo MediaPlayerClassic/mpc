@@ -243,6 +243,7 @@ namespace ssf
 		style.background.color.b = background[L"color"][L"b"];
 		style.background.size = background[L"size"];
 		style.background.type = background[L"type"];
+		style.background.blur = background[L"blur"];
 
 		Definition& shadow = (*pDef)[L"shadow"];
 
@@ -431,6 +432,7 @@ namespace ssf
 		MixValue(background[L"color"][L"b"], dst.background.color.b, t);
 		MixValue(background[L"size"], dst.background.size, t);
 		MixValue(background[L"type"], dst.background.type, t);
+		MixValue(background[L"blur"], dst.background.blur, t);
 
 		Definition& shadow = (*pDef)[L"shadow"];
 
@@ -599,6 +601,7 @@ namespace ssf
 		&& background.color.a == s.background.color.a
 		&& background.size == s.background.size
 		&& background.type == s.background.type
+		&& background.blur == s.background.blur
 		&& shadow.color.r == s.shadow.color.r
 		&& shadow.color.g == s.shadow.color.g
 		&& shadow.color.b == s.shadow.color.b

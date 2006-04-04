@@ -107,8 +107,8 @@ namespace ssf
 	class Row : public CAutoPtrList<Glyph>
 	{
 	public:
-		int ascent, descent, width;
-		Row() {ascent = descent = width = 0;}
+		int ascent, descent, border, width;
+		Row() {ascent = descent = border = width = 0;}
 	};
 
 	class RenderedSubtitle
@@ -120,12 +120,32 @@ namespace ssf
 
 		RenderedSubtitle(const CRect& spdrc, const CRect& clip) : m_spdrc(spdrc), m_clip(clip) {}
 		virtual ~RenderedSubtitle() {}
+
+		CRect Draw(SubPicDesc& spd) const;
 	};
 
 	class RenderedSubtitleCache : public Cache<RenderedSubtitle*>
 	{
 	public:
 		RenderedSubtitleCache() : Cache(10) {}
+	};
+
+	class SubRect
+	{
+	public:
+		CRect rect;
+		float layer;
+		SubRect() {}
+		SubRect(const CRect& r, float l) : rect(r), layer(l) {}
+	};
+
+	class SubRectAllocator : public StringMapW<SubRect>
+	{
+		CSize vs;
+		CRect vr;
+	public:
+		void UpdateTarget(const CSize& vs, const CRect& vr);
+		void GetRect(CRect& rect, const Subtitle* s, const Align& align, int tlb, int brb);
 	};
 
 	class Renderer
@@ -135,11 +155,13 @@ namespace ssf
 		FontCache m_fc;
 		GlyphPathCache m_gpc;
 		RenderedSubtitleCache m_rsc;
+		SubRectAllocator m_sra;
 
 	public:
 		Renderer();
 		virtual ~Renderer();
 
+		void NextSegment(const CAutoPtrList<Subtitle>& subs);
 		RenderedSubtitle* Lookup(const Subtitle* s, const CSize& vs, const CRect& vr);
 	};
 }

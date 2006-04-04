@@ -75,8 +75,25 @@ namespace ssf
 		DeleteDC(m_hDC);
 	}
 
+	void Renderer::NextSegment(const CAutoPtrList<Subtitle>& subs)
+	{
+		StringMapW<bool> names;
+		POSITION pos = subs.GetHeadPosition();
+		while(pos) names[subs.GetNext(pos)->m_name] = true;
+
+		pos = m_sra.GetStartPosition();
+		while(pos)
+		{
+			POSITION cur = pos;
+			const CStringW& name = m_sra.GetNextKey(pos);
+			if(!names.Lookup(name)) m_sra.RemoveAtPos(cur);
+		}
+	}
+
 	RenderedSubtitle* Renderer::Lookup(const Subtitle* s, const CSize& vs, const CRect& vr)
 	{
+		m_sra.UpdateTarget(vs, vr);
+
 		if(s->m_text.IsEmpty())
 			return NULL;
 
@@ -391,6 +408,7 @@ namespace ssf
 				if(gpos) r->width += g->spacing;
 				r->ascent = max(r->ascent, g->ascent);
 				r->descent = max(r->descent, g->descent);
+				r->border = max(r->border, g->GetBackgroundSize());
 			}
 
 			for(POSITION gpos = r->GetHeadPosition(); gpos; r->GetNext(gpos))
@@ -419,7 +437,20 @@ namespace ssf
 		CPoint p = GetAlignPoint(style.placement, scale, frame, size);
 		CPoint org = GetAlignPoint(style.placement, scale, frame);
 
-		// TODO: do collision detection here and move p+org if needed
+		// collision detection
+
+		if(!s->m_animated)
+		{
+			int tlb = !rows.IsEmpty() ? rows.GetHead()->border : 0;
+			int brb = !rows.IsEmpty() ? rows.GetTail()->border : 0;
+
+			CRect r(p, size);
+			m_sra.GetRect(r, s, style.placement.align, tlb, brb);
+			org += r.TopLeft() - p;
+			p = r.TopLeft();
+		}
+
+		//
 
 		for(POSITION pos = rows.GetHeadPosition(); pos; rows.GetNext(pos))
 		{
@@ -527,6 +558,163 @@ namespace ssf
 		m_rsc.Add(s->m_name, rs);
 
 		return rs;
+	}
+
+	//
+
+	CRect RenderedSubtitle::Draw(SubPicDesc& spd) const
+	{
+		CRect bbox;
+		bbox.SetRectEmpty();
+
+		// shadow
+
+		POSITION pos = m_glyphs.GetHeadPosition();
+		while(pos)
+		{
+			Glyph* g = m_glyphs.GetNext(pos);
+
+			if(g->style.shadow.depth <= 0) continue;
+
+			DWORD c = 
+				(min(max((DWORD)g->style.shadow.color.b, 0), 255) <<  0) |
+				(min(max((DWORD)g->style.shadow.color.g, 0), 255) <<  8) |
+				(min(max((DWORD)g->style.shadow.color.r, 0), 255) << 16) |
+				(min(max((DWORD)g->style.shadow.color.a, 0), 255) << 24);
+
+			DWORD sw[6] = {c, -1};
+
+			bool outline = g->style.background.type == L"outline" && g->style.background.size > 0;
+
+			bbox |= g->ras_shadow.Draw(spd, m_clip, g->tls.x >> 3, g->tls.y >> 3, sw, true, outline);
+		}
+
+		// background
+
+		pos = m_glyphs.GetHeadPosition();
+		while(pos)
+		{
+			Glyph* g = m_glyphs.GetNext(pos);
+
+			DWORD c = 
+				(min(max((DWORD)g->style.background.color.b, 0), 255) <<  0) |
+				(min(max((DWORD)g->style.background.color.g, 0), 255) <<  8) |
+				(min(max((DWORD)g->style.background.color.r, 0), 255) << 16) |
+				(min(max((DWORD)g->style.background.color.a, 0), 255) << 24);
+
+			DWORD sw[6] = {c, -1};
+
+			if(g->style.background.type == L"outline" && g->style.background.size > 0)
+			{
+				bool body = !g->style.font.color.a && !g->style.background.color.a;
+
+				bbox |= g->ras.Draw(spd, m_clip, g->tl.x >> 3, g->tl.y >> 3, sw, body, true);
+			}
+			else if(g->style.background.type == L"enlarge" && g->style.background.size > 0
+			|| g->style.background.type == L"box" && g->style.background.size >= 0)
+			{
+				bbox |= g->ras_bkg.Draw(spd, m_clip, g->tl.x >> 3, g->tl.y >> 3, sw, true, false);
+			}
+		}
+
+		// body
+
+		pos = m_glyphs.GetHeadPosition();
+		while(pos)
+		{
+			Glyph* g = m_glyphs.GetNext(pos);
+
+			DWORD c = 
+				(min(max((DWORD)g->style.font.color.b, 0), 255) <<  0) |
+				(min(max((DWORD)g->style.font.color.g, 0), 255) <<  8) |
+				(min(max((DWORD)g->style.font.color.r, 0), 255) << 16) |
+				(min(max((DWORD)g->style.font.color.a, 0), 255) << 24);
+
+			DWORD sw[6] = {c, -1}; // TODO: fill
+
+			bbox |= g->ras.Draw(spd, m_clip, g->tl.x >> 3, g->tl.y >> 3, sw, true, false);
+		}
+
+		return bbox;
+	}
+
+	//
+
+	void SubRectAllocator::UpdateTarget(const CSize& vs, const CRect& vr)
+	{
+		if(this->vs != vs || this->vr != vr) RemoveAll();
+		this->vs = vs;
+		this->vr = vr;
+	}
+	
+	void SubRectAllocator::GetRect(CRect& rect, const Subtitle* s, const Align& align, int tlb, int brb)
+	{
+		SubRect sr(rect, s->m_layer);
+
+		StringMapW<SubRect>::CPair* pPair = Lookup(s->m_name);
+
+		if(pPair && pPair->m_value.rect != sr.rect)
+		{
+			RemoveKey(s->m_name);
+			pPair = NULL;
+		}
+
+		if(!pPair)
+		{
+			bool vertical = s->m_direction.primary == _T("down") || s->m_direction.primary == _T("up");
+
+			bool fOK = false;
+
+			while(!fOK)
+			{
+				fOK = true;
+
+				POSITION pos = GetStartPosition();
+				while(pos)
+				{
+					const SubRect& sr2 = GetNextValue(pos);
+
+					CRect r = sr2.rect;
+					r.InflateRect(tlb, tlb, brb, brb);
+
+					if(sr.layer == sr2.layer && !(sr.rect & r).IsRectEmpty())
+					{
+						if(vertical)
+						{
+							if(align.h < 0.5)
+							{
+								sr.rect.right = r.right + sr.rect.Width();
+								sr.rect.left = r.right;
+							}
+							else
+							{
+								sr.rect.left = r.left - sr.rect.Width();
+								sr.rect.right = r.left;
+							}
+						}
+						else
+						{
+							if(align.v < 0.5)
+							{
+								sr.rect.bottom = r.bottom + sr.rect.Height();
+								sr.rect.top = r.bottom;
+							}
+							else
+							{
+								sr.rect.top = r.top - sr.rect.Height();
+								sr.rect.bottom = r.top;
+							}
+						}
+
+						fOK = false;
+					}
+				}
+			}
+
+			rect = sr.rect;
+
+			SetAt(s->m_name, sr);
+		}
 	}
 
 	//

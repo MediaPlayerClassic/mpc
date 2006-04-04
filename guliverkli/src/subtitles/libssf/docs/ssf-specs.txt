@@ -216,7 +216,8 @@ background
 	color: <color>;
 	size: <num>;
 	type: ["outline" | "enlarge" | "box"];
-	
+	blur: <num>; // number of passes
+
 	// "enlarge" can be computed faster, but because it follows the path of the original outline it is 
 	// not rounded and size > 1 can make it look pretty bad if it intersects with itself.
 };
@@ -226,7 +227,7 @@ shadow
 	color: <color>;
 	depth: <num>;
 	angle: <degrees>;
-	blur: <percent>;
+	blur: <num>; // number of passes
 };
 
 fill

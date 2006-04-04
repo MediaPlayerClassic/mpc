@@ -335,6 +335,7 @@ namespace ssf
 		L"			color: black; \n"
 		L"			size: 2; \n"
 		L"			type: \"outline\"; \n"
+		L"			blur: 0; \n"
 		L"		}; \n"
 		L" \n"
 		L"		shadow \n"
