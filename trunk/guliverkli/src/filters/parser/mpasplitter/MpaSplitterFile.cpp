@@ -87,6 +87,11 @@ HRESULT CMpaSplitterFile::Init()
 	m_startpos = 0;
 	m_endpos = GetLength();
 
+	Seek(0);
+
+	if(BitRead(24, true) == 0x000001)
+		return E_FAIL;
+
 	if(m_endpos > 128)
 	{
 		Seek(m_endpos - 128);
