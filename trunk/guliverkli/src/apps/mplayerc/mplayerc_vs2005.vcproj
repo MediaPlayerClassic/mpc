@@ -261,7 +261,6 @@
 				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;"
 				StringPooling="true"
 				RuntimeLibrary="0"
-				EnableFunctionLevelLinking="true"
 				ForceConformanceInForLoopScope="true"
 				RuntimeTypeInfo="true"
 				PrecompiledHeaderThrough="stdafx.h"

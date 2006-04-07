@@ -23,6 +23,7 @@
 
 #include <atlcoll.h>
 #include "GlyphPath.h"
+#include "FontWrapper.h"
 #include "Rasterizer.h"
 
 namespace ssf
@@ -36,6 +37,7 @@ namespace ssf
 		Style style;
 		Size scale;
 		bool vertical;
+		FontWrapper* font;
 		int ascent, descent, width, spacing, fill;
 		int row_ascent, row_descent;
 		GlyphPath path, path_bkg;

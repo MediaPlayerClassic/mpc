@@ -310,20 +310,34 @@ namespace ssf
 		}
 		else
 		{
-			Split sa(':', str);
-			Split sa2('.', sa ? sa[sa-1] : L"");
+			CStringW num_string = m_value + m_unit;
 
-			if(sa == 0 || sa2 == 0 || sa2 > 2) throw Exception(_T("invalid number"));
+			if(m_num_string != num_string)
+			{
+				Split sa(':', str);
+				Split sa2('.', sa ? sa[sa-1] : L"");
 
-			float d = 0;
-			for(size_t i = 0; i < sa; i++) {d *= 60; d += wcstoul(sa[i], NULL, 10);}
-			if(sa2 > 1) d += (float)wcstoul(sa2[1], NULL, 10) / pow((float)10, sa2[1].GetLength());
+				if(sa == 0 || sa2 == 0 || sa2 > 2) throw Exception(_T("invalid number"));
 
-			if(n.unit == L"ms") {d /= 1000; n.unit = L"s";}
-			else if(n.unit == L"m") {d *= 60; n.unit = L"s";}
-			else if(n.unit == L"h") {d *= 3600; n.unit = L"s";}
+				float f = 0;
+				for(size_t i = 0; i < sa; i++) {f *= 60; f += wcstoul(sa[i], NULL, 10);}
+				if(sa2 > 1) f += (float)wcstoul(sa2[1], NULL, 10) / pow((float)10, sa2[1].GetLength());
 
-			n.value = (T)d;
+				if(n.unit == L"ms") {f /= 1000; n.unit = L"s";}
+				else if(n.unit == L"m") {f *= 60; n.unit = L"s";}
+				else if(n.unit == L"h") {f *= 3600; n.unit = L"s";}
+
+				m_num.value = f;
+				m_num.unit = n.unit;
+				m_num_string = num_string;
+
+				n.value = (T)f;
+			}
+			else
+			{
+				n.value = (T)m_num.value;
+				n.unit = m_num.unit;
+			}
 
 			if(n.sign) n.value *= n.sign;
 		}
@@ -370,7 +384,7 @@ namespace ssf
 		if(time[L"id"].IsValue()) id = time[L"id"];
 		else id.Format(L"%d", default_id);
 
-		float scale = time[L"scale"].IsValue() ? time[L"scale"] : 1.0;
+		float scale = time[L"scale"].IsValue() ? time[L"scale"] : 1.0f;
 
 		if(time[L"start"].IsValue() && time[L"stop"].IsValue())
 		{

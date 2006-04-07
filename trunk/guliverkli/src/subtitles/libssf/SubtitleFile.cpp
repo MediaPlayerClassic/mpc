@@ -328,6 +328,7 @@ namespace ssf
 		L"			italic: \"false\"; \n"
 		L"			spacing: 0; \n"
 		L"			scale: {cx: 1; cy: 1;}; \n"
+		L"			kerning: \"true\"; \n"
 		L"		}; \n"
 		L" \n"
 		L"		background \n"

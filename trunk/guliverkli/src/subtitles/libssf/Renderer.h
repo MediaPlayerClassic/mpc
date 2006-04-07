@@ -46,13 +46,18 @@ namespace ssf
 			m_objs.RemoveAll();
 		}
 
-		void Add(const CStringW& key, T& obj)
+		void Add(const CStringW& key, T& obj, bool fFlush = true)
 		{
 			if(StringMapW<T>::CPair* p = m_key2obj.Lookup(key)) delete p->m_value;
 			else m_objs.AddTail(key);
 
 			m_key2obj[key] = obj;
 
+			if(fFlush) Flush();
+		}
+
+		void Flush()
+		{
 			while(m_objs.GetCount() > m_limit)
 			{
 				CStringW key = m_objs.RemoveHead();
@@ -78,23 +83,11 @@ namespace ssf
 		}
 	};
 
-	class FontWrapper
-	{
-		HFONT m_hFont;
-		CStringW m_key;
-
-	public:
-		FontWrapper(HFONT hFont, const CStringW& key) : m_hFont(hFont), m_key(key) {}
-		virtual ~FontWrapper() {DeleteFont(m_hFont);}
-		operator HFONT() const {return m_hFont;}
-		operator LPCWSTR() const {return m_key;}
-	};
-
 	class FontCache : public Cache<FontWrapper*> 
 	{
 	public:
 		FontCache() : Cache(20) {}
-		FontWrapper* Create(const LOGFONT& lf);
+		FontWrapper* Create(HDC hDC, const LOGFONT& lf);
 	};
 
 	class GlyphPathCache : public Cache<GlyphPath*>
