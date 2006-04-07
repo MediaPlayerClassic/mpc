@@ -172,11 +172,11 @@ namespace ssf
 
 			FontWrapper* font;
 
-			if(!(font = m_fc.Create(lf)))
+			if(!(font = m_fc.Create(m_hDC, lf)))
 			{
 				_tcscpy_s(lf.lfFaceName, _T("Arial"));
 
-				if(!(font = m_fc.Create(lf)))
+				if(!(font = m_fc.Create(m_hDC, lf)))
 				{
 					ASSERT(0);
 					continue;
@@ -185,8 +185,7 @@ namespace ssf
 
 			HFONT hOldFont = SelectFont(m_hDC, *font);
 
-			TEXTMETRIC tm;
-			GetTextMetrics(m_hDC, &tm);
+			const TEXTMETRIC& tm = font->GetTextMetric();
 
 			for(LPCWSTR c = t.str; *c; c++)
 			{
@@ -196,6 +195,7 @@ namespace ssf
 				g->style = t.style;
 				g->scale = scale;
 				g->vertical = vertical;
+				g->font = font;
 
 				CSize extent;
 				GetTextExtentPoint32W(m_hDC, c, 1, &extent);
@@ -255,6 +255,33 @@ namespace ssf
 			WCHAR c = g->c;
 			row->AddTail(g);
 			if(c == Text::LSEP || !pos) rows.AddTail(row);
+		}
+
+		// kerning
+
+		if(s->m_direction.primary == _T("right")) // || s->m_direction.primary == _T("left")
+		{
+			for(POSITION rpos = rows.GetHeadPosition(); rpos; rows.GetNext(rpos))
+			{
+				Row* r = rows.GetAt(rpos);
+
+				POSITION gpos = r->GetHeadPosition();
+				while(gpos)
+				{
+					Glyph* g1 = r->GetNext(gpos);
+					if(!gpos) break;
+
+					Glyph* g2 = r->GetAt(gpos);
+					if(g1->font != g2->font || !g1->style.font.kerning || !g2->style.font.kerning)
+						continue;
+
+					if(int size = g1->font->GetKernAmount(g1->c, g2->c))
+					{
+						g2->path.MovePoints(CPoint(size, 0));
+						g2->width += size;
+					}
+				}
+			}				
 		}
 
 		// wrap rows
@@ -450,7 +477,7 @@ namespace ssf
 			p = r.TopLeft();
 		}
 
-		//
+		// continue positioning
 
 		for(POSITION pos = rows.GetHeadPosition(); pos; rows.GetNext(pos))
 		{
@@ -557,6 +584,8 @@ namespace ssf
 
 		m_rsc.Add(s->m_name, rs);
 
+		m_fc.Flush();
+
 		return rs;
 	}
 
@@ -640,16 +669,17 @@ namespace ssf
 
 	//
 
-	void SubRectAllocator::UpdateTarget(const CSize& vs, const CRect& vr)
+	void SubRectAllocator::UpdateTarget(const CSize& s, const CRect& r)
 	{
-		if(this->vs != vs || this->vr != vr) RemoveAll();
-		this->vs = vs;
-		this->vr = vr;
+		if(vs != s || vr != r) RemoveAll();
+		vs = s;
+		vr = r;
 	}
 	
 	void SubRectAllocator::GetRect(CRect& rect, const Subtitle* s, const Align& align, int tlb, int brb)
 	{
 		SubRect sr(rect, s->m_layer);
+		sr.rect.InflateRect(tlb, tlb, brb, brb);
 
 		StringMapW<SubRect>::CPair* pPair = Lookup(s->m_name);
 
@@ -674,35 +704,32 @@ namespace ssf
 				{
 					const SubRect& sr2 = GetNextValue(pos);
 
-					CRect r = sr2.rect;
-					r.InflateRect(tlb, tlb, brb, brb);
-
-					if(sr.layer == sr2.layer && !(sr.rect & r).IsRectEmpty())
+					if(sr.layer == sr2.layer && !(sr.rect & sr2.rect).IsRectEmpty())
 					{
 						if(vertical)
 						{
 							if(align.h < 0.5)
 							{
-								sr.rect.right = r.right + sr.rect.Width();
-								sr.rect.left = r.right;
+								sr.rect.right = sr2.rect.right + sr.rect.Width();
+								sr.rect.left = sr2.rect.right;
 							}
 							else
 							{
-								sr.rect.left = r.left - sr.rect.Width();
-								sr.rect.right = r.left;
+								sr.rect.left = sr2.rect.left - sr.rect.Width();
+								sr.rect.right = sr2.rect.left;
 							}
 						}
 						else
 						{
 							if(align.v < 0.5)
 							{
-								sr.rect.bottom = r.bottom + sr.rect.Height();
-								sr.rect.top = r.bottom;
+								sr.rect.bottom = sr2.rect.bottom + sr.rect.Height();
+								sr.rect.top = sr2.rect.bottom;
 							}
 							else
 							{
-								sr.rect.top = r.top - sr.rect.Height();
-								sr.rect.bottom = r.top;
+								sr.rect.top = sr2.rect.top - sr.rect.Height();
+								sr.rect.bottom = sr2.rect.top;
 							}
 						}
 
@@ -711,21 +738,22 @@ namespace ssf
 				}
 			}
 
-			rect = sr.rect;
-
 			SetAt(s->m_name, sr);
+
+			rect = sr.rect;
+			rect.DeflateRect(tlb, tlb, brb, brb);
 		}
 	}
 
 	//
 
-	FontWrapper* FontCache::Create(const LOGFONT& lf)
+	FontWrapper* FontCache::Create(HDC hDC, const LOGFONT& lf)
 	{
 		CStringW key;
 
-		key.Format(L"%s,%d,%d,%d,%d,%d", 
+		key.Format(L"%s,%d,%d,%d", 
 			CStringW(lf.lfFaceName), lf.lfHeight, lf.lfWeight, 
-			lf.lfItalic, lf.lfUnderline, lf.lfStrikeOut);
+			(lf.lfItalic&1)<<2, (lf.lfUnderline&1)<<1, (lf.lfStrikeOut&1)<<0);
 
 		FontWrapper* pFW = NULL;
 
@@ -742,9 +770,9 @@ namespace ssf
 			return NULL;
 		}
 
-		pFW = new FontWrapper(hFont, key);
+		pFW = new FontWrapper(hDC, hFont, key);
 
-		Add(key, pFW);
+		Add(key, pFW, false);
 
 		return pFW;
 	}

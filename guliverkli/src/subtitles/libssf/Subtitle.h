@@ -46,6 +46,7 @@ namespace ssf
 		bool underline, strikethrough, italic;
 		float spacing;
 		Size scale;
+		bool kerning;
 	};
 
 	struct Fill

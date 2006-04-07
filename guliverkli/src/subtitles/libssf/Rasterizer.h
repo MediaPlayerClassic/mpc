@@ -63,9 +63,8 @@ namespace ssf
 	private:
 		void _TrashOverlay();
 		void _ReallocEdgeBuffer(int edges);
-		void _EvaluateBezier(const POINT* pt);
-		void _EvaluateLine(const POINT* pt);
-		void _EvaluateLine(int x0, int y0, int x1, int y1);
+		void _EvaluateBezier(const CPoint& p0, const CPoint& p1, const CPoint& p2, const CPoint& p3);
+		void _EvaluateLine(CPoint p0, CPoint p1);
 		void _OverlapRegion(Array<Span>& dst, Array<Span>& src, int dx, int dy);
 
 	public:

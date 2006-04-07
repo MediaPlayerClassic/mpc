@@ -234,6 +234,7 @@ namespace ssf
 		style.font.spacing = font[L"spacing"];
 		style.font.scale.cx = font[L"scale"][L"cx"];
 		style.font.scale.cy = font[L"scale"][L"cy"];
+		style.font.kerning = font[L"kerning"];
 
 		Definition& background = (*pDef)[L"background"];
 
@@ -283,7 +284,7 @@ namespace ssf
 				float u = t;
 
 				if(t < 0) t = 0;
-				else if(t >= 1) t = 0.99999; // doh
+				else if(t >= 1) t = 0.99999f; // doh
 
 				if((*pDef)[L"loop"].IsValue()) t *= (float)(*pDef)[L"loop"];
 
@@ -307,7 +308,7 @@ namespace ssf
 					if(n.value >= 0) accel = n.value;
 				}
 
-				if(t == 0.99999) t = 1;
+				if(t == 0.99999f) t = 1;
 
 				if(u >= 0 && u < 1)
 				{
@@ -423,6 +424,7 @@ namespace ssf
 		MixValue(font[L"spacing"], dst.font.spacing, t);
 		MixValue(font[L"scale"][L"cx"], dst.font.scale.cx, t);
 		MixValue(font[L"scale"][L"cy"], dst.font.scale.cy, t);
+		MixValue(font[L"kerning"], dst.font.kerning, t);
 
 		Definition& background = (*pDef)[L"background"];
 

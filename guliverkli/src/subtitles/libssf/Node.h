@@ -78,6 +78,8 @@ namespace ssf
 		status_t m_status;
 		bool m_autotype;
 		CStringW m_value, m_unit;
+		Number<float> m_num;
+		CStringW m_num_string;
 
 		StringMapW<Definition*> m_type2def;
 		void RemoveFromCache(LPCWSTR type = NULL);

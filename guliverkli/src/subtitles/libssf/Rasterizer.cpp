@@ -56,110 +56,74 @@ namespace ssf
 		mpEdgeBuffer = (Edge*)realloc(mpEdgeBuffer, sizeof(Edge)*edges);
 	}
 
-	void Rasterizer::_EvaluateBezier(const POINT* pt)
+	void Rasterizer::_EvaluateBezier(const CPoint& p0, const CPoint& p1, const CPoint& p2, const CPoint& p3)
 	{
-		int cx3, cx2, cx1, cx0, cy3, cy2, cy1, cy0;
-
-		// [-1 +3 -3 +1]
-		// [+3 -6 +3  0]
-		// [-3 +3  0  0]
-		// [+1  0  0  0]
-
-		cx3 = -  pt[0].x + 3*pt[1].x - 3*pt[2].x + pt[3].x;
-		cx2 =  3*pt[0].x - 6*pt[1].x + 3*pt[2].x;
-		cx1 = -3*pt[0].x + 3*pt[1].x;
-		cx0 =    pt[0].x;
-
-		cy3 = -  pt[0].y + 3*pt[1].y - 3*pt[2].y + pt[3].y;
-		cy2 =  3*pt[0].y - 6*pt[1].y + 3*pt[2].y;
-		cy1 = -3*pt[0].y + 3*pt[1].y;
-		cy0 =    pt[0].y;
-
-		//
-		// This equation is from Graphics Gems I.
-		//
-		// The idea is that since we're approximating a cubic curve with lines,
-		// any error we incur is due to the curvature of the line, which we can
-		// estimate by calculating the maximum acceleration of the curve.  For
-		// a cubic, the acceleration (second derivative) is a line, meaning that
-		// the absolute maximum acceleration must occur at either the beginning
-		// (|c2|) or the end (|c2+c3|).  Our bounds here are a little more
-		// conservative than that, but that's okay.
-		//
-		// If the acceleration of the parametric formula is zero (c2 = c3 = 0),
-		// that component of the curve is linear and does not incur any error.
-		// If a=0 for both X and Y, the curve is a line segment and we can
-		// use a step size of 1.
-
-		int maxaccel1 = abs(2*cy2) + abs(6*cy3);
-		int maxaccel2 = abs(2*cx2) + abs(6*cx3);
-
-		int maxaccel = maxaccel1 > maxaccel2 ? maxaccel1 : maxaccel2;
-		float h = 1.0f;
-
-		if(maxaccel > 8) h = sqrt(8.0f / maxaccel);
-
-		if(!fFirstSet)
+		if(abs(p0.x + p2.x - p1.x*2) +
+		   abs(p0.y + p2.y - p1.y*2) +
+		   abs(p1.x + p3.x - p2.x*2) +
+		   abs(p1.y + p3.y - p2.y*2) <= 8)
 		{
-			firstp = pt[0]; 
-			lastp = firstp; 
-			fFirstSet = true;
+			_EvaluateLine(p0, p3);
 		}
-
-		for(float t = 0; t < 1.0f; t += h)
+		else
 		{
-			float x = cx0 + t*(cx1 + t*(cx2 + t*cx3));
-			float y = cy0 + t*(cy1 + t*(cy2 + t*cy3));
-			_EvaluateLine(lastp.x, lastp.y, (int)x, (int)y);
+			CPoint p01, p12, p23, p012, p123, p0123;
+
+			p01.x = (p0.x + p1.x + 1) >> 1;
+			p01.y = (p0.y + p1.y + 1) >> 1;
+			p12.x = (p1.x + p2.x + 1) >> 1;
+			p12.y = (p1.y + p2.y + 1) >> 1;
+			p23.x = (p2.x + p3.x + 1) >> 1;
+			p23.y = (p2.y + p3.y + 1) >> 1;
+			p012.x = (p01.x + p12.x + 1) >> 1;
+			p012.y = (p01.y + p12.y + 1) >> 1;
+			p123.x = (p12.x + p23.x + 1) >> 1;
+			p123.y = (p12.y + p23.y + 1) >> 1;
+			p0123.x = (p012.x + p123.x + 1) >> 1;
+			p0123.y = (p012.y + p123.y + 1) >> 1;
+
+			_EvaluateBezier(p0, p01, p012, p0123);
+			_EvaluateBezier(p0123, p123, p23, p3);
 		}
-
-		_EvaluateLine(lastp.x, lastp.y, pt[3].x, pt[3].y);
-
 	}
 
-	void Rasterizer::_EvaluateLine(const POINT* pt)
+	void Rasterizer::_EvaluateLine(CPoint p0, CPoint p1)
 	{
-		_EvaluateLine(pt[0].x, pt[0].y, pt[1].x, pt[1].y);
-	}
-
-	void Rasterizer::_EvaluateLine(int x0, int y0, int x1, int y1)
-	{
-		if(lastp.x != x0 || lastp.y != y0)
+		if(lastp != p0)
 		{
-			_EvaluateLine(lastp.x, lastp.y, x0, y0);
+			_EvaluateLine(lastp, p0);
 		}
 
 		if(!fFirstSet)
 		{
-			firstp.SetPoint(x0, y0); 
+			firstp = p0; 
 			fFirstSet = true;
 		}
 
-		lastp.x = x1; 
-		lastp.y = y1;
+		lastp = p1;
 
-		if(y1 > y0)	// down
+		if(p1.y > p0.y)	// down
 		{
-			int xacc = x0 << 5;
+			int xacc = p0.x << 5;
 
-			// prestep y0 down
+			// prestep p0.y down
 
-			int dy = y1 - y0;
-			int y = ((y0 + 3)&~7) + 4;
+			int dy = p1.y - p0.y;
+			int y = ((p0.y + 3)&~7) + 4;
 			int iy = y >> 3;
 
-			y1 = (y1 - 5) >> 3;
+			p1.y = (p1.y - 5) >> 3;
 
-			if(iy <= y1)
+			if(iy <= p1.y)
 			{
-				int invslope = ((x1 - x0) << 8) / dy;
+				int invslope = ((p1.x - p0.x) << 8) / dy;
 
-				while(mEdgeNext + y1 + 1 - iy > mEdgeHeapSize)
+				while(mEdgeNext + p1.y + 1 - iy > mEdgeHeapSize)
 					_ReallocEdgeBuffer(mEdgeHeapSize*2);
 
-				xacc += (invslope * (y - y0)) >> 3;
+				xacc += (invslope * (y - p0.y)) >> 3;
 
-				while(iy <= y1)
+				while(iy <= p1.y)
 				{
 					int ix = (xacc + 128) >> 8;
 
@@ -173,28 +137,28 @@ namespace ssf
 				}
 			}
 		}
-		else if(y1 < y0) // up
+		else if(p1.y < p0.y) // up
 		{
-			int xacc = x1 << 5;
+			int xacc = p1.x << 5;
 
-			// prestep y1 down
+			// prestep p1.y down
 
-			int dy = y0 - y1;
-			int y = ((y1 + 3)&~7) + 4;
+			int dy = p0.y - p1.y;
+			int y = ((p1.y + 3)&~7) + 4;
 			int iy = y >> 3;
 
-			y0 = (y0 - 5) >> 3;
+			p0.y = (p0.y - 5) >> 3;
 
-			if(iy <= y0)
+			if(iy <= p0.y)
 			{
-				int invslope = ((x0 - x1) << 8) / dy;
+				int invslope = ((p0.x - p1.x) << 8) / dy;
 
-				while(mEdgeNext + y0 + 1 - iy > mEdgeHeapSize)
+				while(mEdgeNext + p0.y + 1 - iy > mEdgeHeapSize)
 					_ReallocEdgeBuffer(mEdgeHeapSize*2);
 
-				xacc += (invslope * (y - y1)) >> 3;
+				xacc += (invslope * (y - p1.y)) >> 3;
 
-				while(iy <= y0)
+				while(iy <= p0.y)
 				{
 					int ix = (xacc + 128) >> 8;
 
@@ -275,24 +239,22 @@ namespace ssf
 			switch(type[i] & ~PT_CLOSEFIGURE)
 			{
 			case PT_MOVETO:
-				if(lastmoveto >= 0 && firstp != lastp)
-					_EvaluateLine(lastp.x, lastp.y, firstp.x, firstp.y);
+				if(lastmoveto >= 0 && firstp != lastp) _EvaluateLine(lastp, firstp);
 				lastmoveto = i;
 				fFirstSet = false;
 				lastp = pt[i];
 				break;
 			case PT_LINETO:
-				if(j - (i-1) >= 2) _EvaluateLine(&pt[i-1]);
+				if(j - (i-1) >= 2) _EvaluateLine(pt[i-1], pt[i]);
 				break;
 			case PT_BEZIERTO:
-				if(j - (i-1) >= 4) _EvaluateBezier(&pt[i-1]);
+				if(j - (i-1) >= 4) _EvaluateBezier(pt[i-1], pt[i], pt[i+1], pt[i+2]);
 				i += 2;
 				break;
 			}
 		}
 
-		if(lastmoveto >= 0 && firstp != lastp)
-			_EvaluateLine(lastp.x, lastp.y, firstp.x, firstp.y);
+		if(lastmoveto >= 0 && firstp != lastp) _EvaluateLine(lastp, firstp);
 
 		// Convert the edges to spans.  We couldn't do this before because some of
 		// the regions may have winding numbers >+1 and it would have been a pain

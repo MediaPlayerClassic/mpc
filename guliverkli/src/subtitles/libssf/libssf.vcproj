@@ -242,9 +242,9 @@
 				EnableIntrinsicFunctions="true"
 				FavorSizeOrSpeed="1"
 				OmitFramePointers="true"
-				WholeProgramOptimization="false"
 				PreprocessorDefinitions="WIN32;NDEBUG;_LIB"
 				RuntimeLibrary="0"
+				EnableFunctionLevelLinking="true"
 				UsePrecompiledHeader="2"
 				WarningLevel="3"
 				Detect64BitPortabilityProblems="true"
@@ -301,6 +301,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\FontWrapper.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\Glyph.cpp"
 				>
 			</File>
@@ -319,6 +323,14 @@
 			<File
 				RelativePath=".\Rasterizer.cpp"
 				>
+				<FileConfiguration
+					Name="Release Unicode|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						AssemblerOutput="4"
+					/>
+				</FileConfiguration>
 			</File>
 			<File
 				RelativePath=".\Renderer.cpp"
@@ -396,6 +408,10 @@
 			</File>
 			<File
 				RelativePath=".\File.h"
+				>
+			</File>
+			<File
+				RelativePath=".\FontWrapper.h"
 				>
 			</File>
 			<File

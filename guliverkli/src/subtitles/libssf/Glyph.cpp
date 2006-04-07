@@ -29,6 +29,7 @@ namespace ssf
 	Glyph::Glyph()
 	{
 		c = 0;
+		font = NULL;
 		ascent = descent = width = spacing = fill = 0;
 		tl.x = tl.y = tls.x = tls.y = 0;
 	}

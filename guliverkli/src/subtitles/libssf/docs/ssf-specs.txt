@@ -209,6 +209,7 @@ font
 	italic: <bool>;
 	spacing: <num>;
 	scale: <size>;
+	kerning: <bool>;
 };
 
 background
@@ -549,6 +550,7 @@ subtitle#subtitle
 			italic: "false"; 
 			spacing: 0; 
 			scale: {cx: 1; cy: 1;};
+			kerning: "true";
 		};
 
 		background

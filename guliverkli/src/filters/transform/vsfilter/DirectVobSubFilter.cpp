@@ -1367,7 +1367,7 @@ bool CDirectVobSubFilter::Open()
 
 		if(!pSubStream)
 		{
-			CAutoPtr<CRenderedSSF> pSSF(new CRenderedSSF(&m_csSubLock));
+			CAutoPtr<ssf::CRenderer> pSSF(new ssf::CRenderer(&m_csSubLock));
 			if(pSSF && pSSF->Open(ret[i].fn) && pSSF->GetStreamCount() > 0)
 			{
 				pSubStream = pSSF.Detach();

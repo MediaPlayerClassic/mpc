@@ -473,7 +473,7 @@ subtitle : notes
 subtitle : karaoketest
 {
 	@ {
-		[hleffect1 {time.stop: +200;}] {one}
+		[hleffect1 {time.stop: +100;}] {one}
 		[hleffect1 {time.stop: +100;}] {two}
 		[hleffect1 {time.stop:  +50;}] {three-}
 		[hleffect1 {time.stop:  +50;}] {and}
@@ -486,7 +486,7 @@ subtitle : karaoketest
 	style {placement.margin.t: 30; fill.color: hlcolor;};
 
 	@ {
-		[hleffect2 {time.stop: +200;}] {one}
+		[hleffect2 {time.stop: +100;}] {one}
 		[hleffect2 {time.stop: +100;}] {two}
 		[hleffect2 {time.stop:  +50;}] {three-}
 		[hleffect2 {time.stop:  +50;}] {and}

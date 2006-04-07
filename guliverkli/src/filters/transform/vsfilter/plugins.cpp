@@ -210,7 +210,7 @@ public:
 
 		if(!m_pSubPicProvider)
 		{
-			if(CRenderedSSF* ssf = new CRenderedSSF(&m_csSubLock))
+			if(ssf::CRenderer* ssf = new ssf::CRenderer(&m_csSubLock))
 			{
 				m_pSubPicProvider = (ISubPicProvider*)ssf;
 				if(ssf->Open(CString(fn))) SetFileName(fn);
