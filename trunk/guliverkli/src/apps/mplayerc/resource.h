@@ -448,6 +448,7 @@
 #define IDC_DX9RESIZER_COMBO            12130
 #define IDC_DSVMR9LOADMIXER             12131
 #define IDC_CHECK_MPEGINTERLACED        12132
+#define IDC_DSVMR9YUVMIXER				12133
 #define IDS_R_SETTINGS                  13000
 #define IDS_RS_TITLEBARTEXTSTYLE        13001
 #define IDS_RS_USEWMASFREADER           13002
@@ -591,6 +592,7 @@
 #define IDS_RS_AUDIONORMALIZE           13140
 #define IDS_RS_AUDIOBOOST               13141
 #define IDS_RS_AUDIONORMALIZERECOVER    13142
+#define IDS_RS_VMR9MIXERYUV				13143
 #define IDS_SRC_RADGT                   14000
 #define IDS_SRC_CDDA                    14001
 #define IDS_SRC_AVI                     14002

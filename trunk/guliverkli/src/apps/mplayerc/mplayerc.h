@@ -178,7 +178,8 @@ enum
 	TRA_AAC=TRA_DTS<<1,
 	TRA_PS2AUD=TRA_AAC<<1,
 	TRA_DIRAC=TRA_PS2AUD<<1,
-	TRA_LAST=TRA_DIRAC<<1
+	TRA_VORBIS=TRA_DIRAC<<1,
+	TRA_LAST=TRA_VORBIS<<1
 };
 
 enum
@@ -366,6 +367,7 @@ public:
 		bool fVMRSyncFix;
 		int iDX9Resizer;
 		bool fVMR9MixerMode;
+		bool fVMR9MixerYUV;
 
 		int nVolume;
 		int nBalance;

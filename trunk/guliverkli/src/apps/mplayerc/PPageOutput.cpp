@@ -41,6 +41,7 @@ CPPageOutput::CPPageOutput()
 	, m_fVMRSyncFix(FALSE)
 	, m_iDX9Resizer(0)
 	, m_fVMR9MixerMode(FALSE)
+	, m_fVMR9MixerYUV(FALSE)
 {
 }
 
@@ -60,12 +61,23 @@ void CPPageOutput::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_CHECK1, m_fVMRSyncFix);
 	DDX_CBIndex(pDX, IDC_DX9RESIZER_COMBO, m_iDX9Resizer);
 	DDX_Check(pDX, IDC_DSVMR9LOADMIXER, m_fVMR9MixerMode);
+	DDX_Check(pDX, IDC_DSVMR9YUVMIXER, m_fVMR9MixerYUV);
 }
 
-
 BEGIN_MESSAGE_MAP(CPPageOutput, CPPageBase)
+	ON_UPDATE_COMMAND_UI(IDC_DSVMR9YUVMIXER, OnUpdateMixerYUV)	
 END_MESSAGE_MAP()
 
+void CPPageOutput::DisableRadioButton(UINT nID, UINT nDefID)
+{
+	if(IsDlgButtonChecked(nID))
+	{
+		CheckDlgButton(nID, BST_UNCHECKED);
+		CheckDlgButton(nDefID, BST_CHECKED);
+	}
+
+	GetDlgItem(nID)->EnableWindow(FALSE);
+}
 
 // CPPageOutput message handlers
 
@@ -82,6 +94,7 @@ BOOL CPPageOutput::OnInitDialog()
 	m_fVMRSyncFix = s.fVMRSyncFix;
 	m_iDX9Resizer = s.iDX9Resizer;
 	m_fVMR9MixerMode = s.fVMR9MixerMode;
+	m_fVMR9MixerYUV = s.fVMR9MixerYUV;
 
 	m_AudioRendererDisplayNames.Add(_T(""));
 	m_iAudioRendererTypeCtrl.AddString(_T("System Default"));
@@ -147,21 +160,21 @@ BOOL CPPageOutput::OnInitDialog()
 
 	if(!AfxGetAppSettings().fXpOrBetter)
 	{
-		GetDlgItem(IDC_DSVMR7WIN)->EnableWindow(FALSE);
-		GetDlgItem(IDC_DSVMR7REN)->EnableWindow(FALSE);
+		DisableRadioButton(IDC_DSVMR7WIN, IDC_DSSYSDEF);
+		DisableRadioButton(IDC_DSVMR7REN, IDC_DSSYSDEF);
 	}
 
 	if(!IsCLSIDRegistered(CLSID_VideoMixingRenderer9))
 	{
-		GetDlgItem(IDC_DSVMR9WIN)->EnableWindow(FALSE);
-		GetDlgItem(IDC_DSVMR9REN)->EnableWindow(FALSE);
-		GetDlgItem(IDC_RMDX9)->EnableWindow(FALSE);
-		GetDlgItem(IDC_QTDX9)->EnableWindow(FALSE);
+		DisableRadioButton(IDC_DSVMR9WIN, IDC_DSSYSDEF);
+		DisableRadioButton(IDC_DSVMR9REN, IDC_DSSYSDEF);
+		DisableRadioButton(IDC_RMDX9, IDC_RMSYSDEF);
+		DisableRadioButton(IDC_QTDX9, IDC_QTSYSDEF);
 	}
 
 	if(!IsCLSIDRegistered(CLSID_DXR))
 	{
-		GetDlgItem(IDC_DSDXR)->EnableWindow(FALSE);
+		DisableRadioButton(IDC_DSDXR, IDC_DSSYSDEF);
 	}
 
 	CreateToolTip();
@@ -184,7 +197,12 @@ BOOL CPPageOutput::OnApply()
 	s.AudioRendererDisplayName = m_AudioRendererDisplayNames[m_iAudioRendererType];
 	s.iDX9Resizer = m_iDX9Resizer;
 	s.fVMR9MixerMode = !!m_fVMR9MixerMode;
+	s.fVMR9MixerYUV = !!m_fVMR9MixerYUV;
 
 	return __super::OnApply();
 }
 
+void CPPageOutput::OnUpdateMixerYUV(CCmdUI* pCmdUI)
+{
+	pCmdUI->Enable(!!IsDlgButtonChecked(IDC_DSVMR9LOADMIXER));
+}

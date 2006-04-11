@@ -171,7 +171,7 @@ namespace ssf
 		|| style.background.type == L"box" && style.background.size >= 0)
 		{
 			ras_bkg.ScanConvert(path_bkg, bbox);
-			ras_bkg.Rasterize(tl.x >> 3, tl.y >> 3);
+			ras_bkg.Rasterize(tl.x, tl.y);
 			ras_bkg.Blur(style.background.blur, 0);
 			r = &ras_bkg;
 		}
@@ -180,10 +180,10 @@ namespace ssf
 
 		if(style.background.type == L"outline" && style.background.size > 0)
 		{
-			ras.CreateWidenedRegion((int)(GetBackgroundSize() / 8));
+			ras.CreateWidenedRegion((int)(GetBackgroundSize() + 0.5));
 		}
 		
-		ras.Rasterize(tl.x >> 3, tl.y >> 3);
+		ras.Rasterize(tl.x, tl.y);
 
 		if(style.background.type == L"outline" && style.background.size > 0)
 		{
@@ -199,7 +199,7 @@ namespace ssf
 			tls.x = tl.x + (int)(depth * cos(deg2rad(style.shadow.angle)) + 0.5);
 			tls.y = tl.y + (int)(depth * -sin(deg2rad(style.shadow.angle)) + 0.5);
 
-			ras_shadow.Rasterize(tls.x >> 3, tls.y >> 3);
+			ras_shadow.Rasterize(tls.x, tls.y);
 
 			if(style.background.type == L"enlarge" && style.background.size > 0
 			|| style.background.type == L"box" && style.background.size >= 0)

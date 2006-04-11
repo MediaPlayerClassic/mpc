@@ -32,6 +32,8 @@ class CPPageOutput : public CPPageBase
 private:
 	CStringArray m_AudioRendererDisplayNames;
 
+	void DisableRadioButton(UINT nID, UINT nDefID);
+
 public:
 	CPPageOutput();
 	virtual ~CPPageOutput();
@@ -47,6 +49,7 @@ public:
 	BOOL m_fVMRSyncFix;
 	int m_iDX9Resizer;
 	BOOL m_fVMR9MixerMode;
+	BOOL m_fVMR9MixerYUV;
 
 protected:
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV support
@@ -56,4 +59,5 @@ protected:
 	DECLARE_MESSAGE_MAP()
 
 public:
+	afx_msg void OnUpdateMixerYUV(CCmdUI* pCmdUI);
 };

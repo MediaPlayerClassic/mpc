@@ -26,6 +26,12 @@
 #include "Rasterizer.h"
 #include "Glyph.h"
 
+#define FONT_AA 3
+#define FONT_SCALE (6-FONT_AA)
+
+// FONT_AA: 0 - 3
+
+
 namespace ssf
 {
 	template<class T> T mymax(T a, T b) {return a > b ? a : b;}
@@ -61,7 +67,7 @@ namespace ssf
 		if(abs(p0.x + p2.x - p1.x*2) +
 		   abs(p0.y + p2.y - p1.y*2) +
 		   abs(p1.x + p3.x - p2.x*2) +
-		   abs(p1.y + p3.y - p2.y*2) <= 8)
+		   abs(p1.y + p3.y - p2.y*2) <= max(2, 1<<FONT_AA))
 		{
 			_EvaluateLine(p0, p3);
 		}
@@ -102,17 +108,19 @@ namespace ssf
 
 		lastp = p1;
 
+		// TODO: ((1<<FONT_SCALE)/2+-1)  
+
 		if(p1.y > p0.y)	// down
 		{
-			int xacc = p0.x << 5;
+			int xacc = p0.x << (8 - FONT_SCALE);
 
 			// prestep p0.y down
 
 			int dy = p1.y - p0.y;
-			int y = ((p0.y + 3)&~7) + 4;
-			int iy = y >> 3;
+			int y = ((p0.y + ((1<<FONT_SCALE)/2-1)) & ~((1<<FONT_SCALE)-1)) + (1<<FONT_SCALE)/2;
+			int iy = y >> FONT_SCALE;
 
-			p1.y = (p1.y - 5) >> 3;
+			p1.y = (p1.y - ((1<<FONT_SCALE)/2+1)) >> FONT_SCALE;
 
 			if(iy <= p1.y)
 			{
@@ -121,7 +129,7 @@ namespace ssf
 				while(mEdgeNext + p1.y + 1 - iy > mEdgeHeapSize)
 					_ReallocEdgeBuffer(mEdgeHeapSize*2);
 
-				xacc += (invslope * (y - p0.y)) >> 3;
+				xacc += (invslope * (y - p0.y)) >> FONT_SCALE;
 
 				while(iy <= p1.y)
 				{
@@ -139,15 +147,15 @@ namespace ssf
 		}
 		else if(p1.y < p0.y) // up
 		{
-			int xacc = p1.x << 5;
+			int xacc = p1.x << (8 - FONT_SCALE);
 
 			// prestep p1.y down
 
 			int dy = p0.y - p1.y;
-			int y = ((p1.y + 3)&~7) + 4;
-			int iy = y >> 3;
+			int y = ((p1.y + ((1<<FONT_SCALE)/2-1)) & ~((1<<FONT_SCALE)-1)) + (1<<FONT_SCALE)/2;
+			int iy = y >> FONT_SCALE;
 
-			p0.y = (p0.y - 5) >> 3;
+			p0.y = (p0.y - ((1<<FONT_SCALE)/2+1)) >> FONT_SCALE;
 
 			if(iy <= p0.y)
 			{
@@ -156,7 +164,7 @@ namespace ssf
 				while(mEdgeNext + p0.y + 1 - iy > mEdgeHeapSize)
 					_ReallocEdgeBuffer(mEdgeHeapSize*2);
 
-				xacc += (invslope * (y - p1.y)) >> 3;
+				xacc += (invslope * (y - p1.y)) >> FONT_SCALE;
 
 				while(iy <= p0.y)
 				{
@@ -188,12 +196,12 @@ namespace ssf
 			return 0;
 		}
 
-		int minx = (bbox.left >> 3) & ~7;
-		int miny = (bbox.top >> 3) & ~7;
-		int maxx = (bbox.right + 7) >> 3;
-		int maxy = (bbox.bottom + 7) >> 3;
+		int minx = (bbox.left >> FONT_SCALE) & ~((1<<FONT_SCALE)-1);
+		int miny = (bbox.top >> FONT_SCALE) & ~((1<<FONT_SCALE)-1);
+		int maxx = (bbox.right + ((1<<FONT_SCALE)-1)) >> FONT_SCALE;
+		int maxy = (bbox.bottom + ((1<<FONT_SCALE)-1)) >> FONT_SCALE;
 
-		path.MovePoints(CPoint(-minx*8, -miny*8));
+		path.MovePoints(CPoint(-minx*(1<<FONT_SCALE), -miny*(1<<FONT_SCALE)));
 
 		if(minx > maxx || miny > maxy)
 		{
@@ -434,6 +442,8 @@ namespace ssf
 	{
 		if(r < 0) r = 0;
 
+		r >>= FONT_SCALE;
+
 		for(int y = -r; y <= r; ++y)
 		{
 			int x = (int)(0.5f + sqrt(float(r*r - y*y)));
@@ -456,8 +466,11 @@ namespace ssf
 			return true;
 		}
 
-		xsub &= 7;
-		ysub &= 7;
+		xsub >>= FONT_SCALE;
+		ysub >>= FONT_SCALE;
+
+		xsub &= (1<<FONT_AA)-1;
+		ysub &= (1<<FONT_AA)-1;
 
 		int width = mWidth + xsub;
 		int height = mHeight + ysub;
@@ -465,7 +478,7 @@ namespace ssf
 		mOffsetX = mPathOffsetX - xsub;
 		mOffsetY = mPathOffsetY - ysub;
 
-		int border = ((mWideBorder + 7) & ~7) + 32;
+		int border = ((mWideBorder + ((1<<FONT_AA)-1)) & ~((1<<FONT_AA)-1)) + (1<<FONT_AA)*4;
 
 		if(!mWideOutline.IsEmpty())
 		{
@@ -479,8 +492,8 @@ namespace ssf
 			mOffsetY -= border;
 		}
 
-		mOverlayWidth = ((width + 7) >> 3) + 1;
-		mOverlayHeight = ((height + 7) >> 3) + 1;
+		mOverlayWidth = ((width + ((1<<FONT_AA)-1)) >> FONT_AA) + 1;
+		mOverlayHeight = ((height + ((1<<FONT_AA)-1)) >> FONT_AA) + 1;
 
 		mpOverlayBuffer = new BYTE[2 * mOverlayWidth * mOverlayHeight];
 		memset(mpOverlayBuffer, 0, 2 * mOverlayWidth * mOverlayHeight);
@@ -499,10 +512,10 @@ namespace ssf
 
 				if(x2 > x1)
 				{
-					int first = x1 >> 3;
-					int last = (x2-1) >> 3;
+					int first = x1 >> FONT_AA;
+					int last = (x2-1) >> FONT_AA;
 
-					BYTE* dst = mpOverlayBuffer + 2*(mOverlayWidth * (y >> 3) + first) + i;
+					BYTE* dst = mpOverlayBuffer + 2*(mOverlayWidth * (y >> FONT_AA) + first) + i;
 
 					if(first == last)
 					{
@@ -510,16 +523,16 @@ namespace ssf
 					}
 					else
 					{
-						*dst += ((first+1) << 3) - x1;
+						*dst += (((first+1) << FONT_AA) - x1) << (6 - FONT_AA*2);
 						dst += 2;
 
 						while(++first < last)
 						{
-							*dst += 8;
+							*dst += (1 << FONT_AA) << (6 - FONT_AA*2);
 							dst += 2;
 						}
 
-						*dst += x2 - (last << 3);
+						*dst += (x2 - (last << FONT_AA)) << (6 - FONT_AA*2);
 					}
 				}
 			}
@@ -582,7 +595,7 @@ namespace ssf
 	///////////////////////////////////////////////////////////////////////////
 
 	#define pixmix(s) {																 \
-		int a = (((s)*(color>>24))>>6)&0xff;										 \
+		int a = (((s) * (color>>24)) >> 6) & 0xff;										 \
 		int ia = 256-a;																 \
 																					 \
 		dst[wt] = ((((dst[wt]&0x00ff00ff)*ia + (color&0x00ff00ff)*a)&0xff00ff00)>>8) \
@@ -620,8 +633,11 @@ namespace ssf
 		CRect r(0, 0, spd.w, spd.h);
 		r &= clip;
 
-		int x = (xsub + mOffsetX + 4) >> 3;
-		int y = (ysub + mOffsetY + 4) >> 3;
+		xsub >>= FONT_SCALE;
+		ysub >>= FONT_SCALE;
+
+		int x = (xsub + mOffsetX + (1<<FONT_AA)/2) >> FONT_AA;
+		int y = (ysub + mOffsetY + (1<<FONT_AA)/2) >> FONT_AA;
 		int w = mOverlayWidth;
 		int h = mOverlayHeight;
 		int xo = 0, yo = 0;

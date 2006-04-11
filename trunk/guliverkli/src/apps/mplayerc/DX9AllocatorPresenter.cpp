@@ -1460,20 +1460,24 @@ if(CComQIPtr<IAMVideoAccelerator> pAMVA = pPin)
 		if(!pConfig)
 			break;
 
-		if(AfxGetAppSettings().fVMR9MixerMode)
+		AppSettings& s = AfxGetAppSettings();
+
+		if(s.fVMR9MixerMode)
 		{
 			if(FAILED(hr = pConfig->SetNumberOfStreams(1)))
 				break;
-/*
-			if(CComQIPtr<IVMRMixerControl9> pMC = pBF)
+
+			if(s.fVMR9MixerYUV)
 			{
-				DWORD dwPrefs;
-				pMC->GetMixingPrefs(&dwPrefs);  
-				dwPrefs &= ~MixerPref9_RenderTargetMask; 
-				dwPrefs |= MixerPref9_RenderTargetYUV;
-				pMC->SetMixingPrefs(dwPrefs);
+				if(CComQIPtr<IVMRMixerControl9> pMC = pBF)
+				{
+					DWORD dwPrefs;
+					pMC->GetMixingPrefs(&dwPrefs);  
+					dwPrefs &= ~MixerPref9_RenderTargetMask; 
+					dwPrefs |= MixerPref9_RenderTargetYUV;
+					pMC->SetMixingPrefs(dwPrefs);
+				}
 			}
-*/
 		}
 
 		if(FAILED(hr = pConfig->SetRenderingMode(VMR9Mode_Renderless)))

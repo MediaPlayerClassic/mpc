@@ -614,28 +614,45 @@ avcsuccess:
 		CStringA ChapLanguage = CStringA(ISO6391To6392(str));
 		if(ChapLanguage.GetLength() < 3) ChapLanguage = "eng";
 
-		POSITION pos = caroot->ChapterAtoms.GetHeadPosition();
-		while(pos)
-		{
-			// ca == caroot->ChapterAtoms.GetNext(pos) ?
-			if(ChapterAtom* ca = m_pFile->m_segment.FindChapterAtom(caroot->ChapterAtoms.GetNext(pos)->ChapterUID))
-			{
-				CStringW name, first;
-
-				POSITION pos = ca->ChapterDisplays.GetHeadPosition();
-				while(pos)
-				{
-					ChapterDisplay* cd = ca->ChapterDisplays.GetNext(pos);
-					if(first.IsEmpty()) first = cd->ChapString;
-					if(cd->ChapLanguage == ChapLanguage) name = cd->ChapString;
-				}
-
-				ChapAppend(ca->ChapterTimeStart / 100 - m_pFile->m_rtOffset, !name.IsEmpty() ? name : first);
-			}			
-		}
+		SetupChapters(ChapLanguage, caroot);
 	}
 
 	return m_pOutputs.GetCount() > 0 ? S_OK : E_FAIL;
+}
+
+void CMatroskaSplitterFilter::SetupChapters(LPCSTR lng, ChapterAtom* parent, int level)
+{
+	CStringW tabs('+', level);
+
+	if(!tabs.IsEmpty()) tabs += ' ';
+
+	POSITION pos = parent->ChapterAtoms.GetHeadPosition();
+	while(pos)
+	{
+		// ca == caroot->ChapterAtoms.GetNext(pos) ?
+		if(ChapterAtom* ca = m_pFile->m_segment.FindChapterAtom(parent->ChapterAtoms.GetNext(pos)->ChapterUID))
+		{
+			CStringW name, first;
+
+			POSITION pos = ca->ChapterDisplays.GetHeadPosition();
+			while(pos)
+			{
+				ChapterDisplay* cd = ca->ChapterDisplays.GetNext(pos);
+				if(first.IsEmpty()) first = cd->ChapString;
+				if(cd->ChapLanguage == lng) name = cd->ChapString;
+			}
+
+			name = tabs + (!name.IsEmpty() ? name : first);
+
+			ChapAppend(ca->ChapterTimeStart / 100 - m_pFile->m_rtOffset, name);
+
+			if(!ca->ChapterAtoms.IsEmpty())
+			{
+				SetupChapters(lng, ca, level+1);
+			}
+		}			
+	}
+
 }
 
 void CMatroskaSplitterFilter::InstallFonts()
