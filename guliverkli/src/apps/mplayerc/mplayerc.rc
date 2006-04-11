@@ -743,6 +743,7 @@ BEGIN
     LTEXT           "** Required for loading subtitles",IDC_STATIC,13,181,104,8
     LTEXT           "*** Required for image rotation and pixelshaders (DX9-only)",IDC_STATIC,13,190,195,8
     CONTROL         "VMR9 mixer mode",IDC_DSVMR9LOADMIXER,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,113,112,73,10
+    CONTROL         "YUV mixing",IDC_DSVMR9YUVMIXER,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,189,112,49,10
 END
 
 IDD_AUTH_DLG DIALOGEX 0, 0, 213, 146
@@ -2046,6 +2047,7 @@ BEGIN
     IDS_RS_AUDIONORMALIZE   "AudioNormalize"
     IDS_RS_AUDIOBOOST       "AudioBoost"
     IDS_RS_AUDIONORMALIZERECOVER "AudioNormalizeRecover"
+    IDS_RS_VMR9MIXERYUV     "VMRMixerYUV"
 END
 
 STRINGTABLE 

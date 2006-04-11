@@ -615,7 +615,7 @@ namespace ssf
 
 			bool outline = g->style.background.type == L"outline" && g->style.background.size > 0;
 
-			bbox |= g->ras_shadow.Draw(spd, m_clip, g->tls.x >> 3, g->tls.y >> 3, sw, true, outline);
+			bbox |= g->ras_shadow.Draw(spd, m_clip, g->tls.x, g->tls.y, sw, true, outline);
 		}
 
 		// background
@@ -637,12 +637,12 @@ namespace ssf
 			{
 				bool body = !g->style.font.color.a && !g->style.background.color.a;
 
-				bbox |= g->ras.Draw(spd, m_clip, g->tl.x >> 3, g->tl.y >> 3, sw, body, true);
+				bbox |= g->ras.Draw(spd, m_clip, g->tl.x, g->tl.y, sw, body, true);
 			}
 			else if(g->style.background.type == L"enlarge" && g->style.background.size > 0
 			|| g->style.background.type == L"box" && g->style.background.size >= 0)
 			{
-				bbox |= g->ras_bkg.Draw(spd, m_clip, g->tl.x >> 3, g->tl.y >> 3, sw, true, false);
+				bbox |= g->ras_bkg.Draw(spd, m_clip, g->tl.x, g->tl.y, sw, true, false);
 			}
 		}
 
@@ -661,7 +661,7 @@ namespace ssf
 
 			DWORD sw[6] = {c, -1}; // TODO: fill
 
-			bbox |= g->ras.Draw(spd, m_clip, g->tl.x >> 3, g->tl.y >> 3, sw, true, false);
+			bbox |= g->ras.Draw(spd, m_clip, g->tl.x, g->tl.y, sw, true, false);
 		}
 
 		return bbox;

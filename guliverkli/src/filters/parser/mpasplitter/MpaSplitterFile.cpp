@@ -218,12 +218,9 @@ HRESULT CMpaSplitterFile::Init()
 
 		Seek(m_startpos);
 
-		while(m_startpos < m_endpos && BitRead(8, true) == 0)
+		for(int i = 0; i < (1<<20) && m_startpos < m_endpos && BitRead(8, true) == 0; i++)
 			BitRead(8), m_startpos++;
 	}
-
-	while(m_startpos < m_endpos && BitRead(8, true) == 0)
-		BitRead(8), m_startpos++;
 
 	__int64 searchlen = min(m_endpos - m_startpos, m_startpos > 0 ? 0x200 : 7);
 

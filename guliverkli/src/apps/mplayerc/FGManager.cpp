@@ -1550,6 +1550,12 @@ CFGManagerCustom::CFGManagerCustom(LPCTSTR pName, LPUNKNOWN pUnk, UINT src, UINT
 	pFGF->AddType(MEDIATYPE_Audio, MEDIASUBTYPE_RAAC);
 	m_transform.AddTail(pFGF);
 
+	pFGF = new CFGFilterInternal<CMpaDecFilter>(
+		(tra & TRA_VORBIS) ? L"Vorbis Audio Decoder" : L"Vorbis Audio Decoder (low merit)",
+		(tra & TRA_VORBIS) ? MERIT64_ABOVE_DSHOW : MERIT64_DO_USE);
+	pFGF->AddType(MEDIATYPE_Audio, MEDIASUBTYPE_Vorbis2);
+	m_transform.AddTail(pFGF);
+
 	pFGF = new CFGFilterInternal<CRoQVideoDecoder>(
 		(tra & TRA_RV) ? L"RoQ Video Decoder" : L"RoQ Video Decoder (low merit)",
 		(tra & TRA_RV) ? MERIT64_ABOVE_DSHOW : MERIT64_DO_USE);

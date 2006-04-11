@@ -71,6 +71,7 @@ s_filters[] =
 	{_T("PS2 Audio (PCM/ADPCM)"), 1, TRA_PS2AUD, IDS_TRA_PS2AUD, CreateInstance<CMpaDecFilter>},
 	{_T("RealVideo"), 1, TRA_RV, IDS_TRA_RV, NULL},
 	{_T("RealAudio"), 1, TRA_RA, IDS_TRA_RA, NULL},
+	{_T("Vorbis"), 1, TRA_VORBIS, 0, NULL /* TODO: CreateInstance<CMpaDecFilter>*/},
 };
 
 IMPLEMENT_DYNAMIC(CPPageInternalFiltersListBox, CCheckListBox)

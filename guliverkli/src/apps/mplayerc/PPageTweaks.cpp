@@ -97,9 +97,9 @@ BOOL CPPageTweaks::OnApply()
 	s.nJumpDistS = m_nJumpDistS;
 	s.nJumpDistM = m_nJumpDistM;
 	s.nJumpDistL = m_nJumpDistL;
-	s.fFreeWindowResizing = m_fFreeWindowResizing;
-	s.fNotifyMSN = m_fNotifyMSN;
-	s.fNotifyGTSdll = m_fNotifyGTSdll;
+	s.fFreeWindowResizing = !!m_fFreeWindowResizing;
+	s.fNotifyMSN = !!m_fNotifyMSN;
+	s.fNotifyGTSdll = !!m_fNotifyGTSdll;
 
 	return __super::OnApply();
 }

@@ -71,8 +71,9 @@ public:
 [uuid("149D2E01-C32E-4939-80F6-C07B81015A7A")]
 class CMatroskaSplitterFilter : public CBaseSplitterFilter, public ITrackInfo
 {
-	void SendVorbisHeaderSample();
+	void SetupChapters(LPCSTR lng, MatroskaReader::ChapterAtom* parent, int level = 0);
 	void InstallFonts();
+	void SendVorbisHeaderSample();
 
 	CAutoPtr<MatroskaReader::CMatroskaNode> m_pSegment, m_pCluster, m_pBlock;
 
