@@ -827,7 +827,6 @@ HRESULT CMpaDecFilter::ProcessVorbis()
 
 		int samples;
 		ogg_int32_t** pcm;
-		unsigned int samplessum = 0;
 
 		while((samples = vorbis_synthesis_pcmout(&m_vorbis.vd, &pcm)) > 0)
 		{
