@@ -196,6 +196,7 @@ placement
 	pos: ["auto" | <point>]; // absolute values, pos.x or pos.y can be animated only when both the source and destination style defined it
 	offset: <point>; // relative to pos, unlike pos this can be applied to fragments of the text as an override
 	angle: <angle>; // origin of rotation is the alignment point
+	path: <string>; // a series of x y coord pairs (at least two points)
 };
 
 font

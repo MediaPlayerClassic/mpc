@@ -35,6 +35,17 @@ namespace ssf
 		points.Copy(path.points);
 	}
 
+	bool GlyphPath::IsEmpty()
+	{
+		return types.IsEmpty() || points.IsEmpty();
+	}
+
+	void GlyphPath::RemoveAll()
+	{
+		types.RemoveAll();
+		points.RemoveAll();
+	}
+
 	void GlyphPath::MovePoints(const CPoint& o)
 	{
 		size_t n = points.GetCount();

@@ -32,5 +32,7 @@ namespace ssf
 		Split(WCHAR sep, CStringW str, size_t limit = 0, SplitType type = Def);
 		operator size_t() {return GetCount();}
 		void DoSplit(LPCWSTR sep, CStringW str, size_t limit, SplitType type);
+		int GetAtInt(size_t i);
+		float GetAtFloat(size_t i);
 	};
 }
