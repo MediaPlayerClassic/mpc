@@ -17,6 +17,8 @@
  *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
  *  http://www.gnu.org/copyleft/gpl.html
  *
+ *  TODO: do something about bidi (at least handle these ranges: 0590-07BF, FB1D-FDFF, FE70-FEFF)
+ *
  */
 
 #include "stdafx.h"
@@ -477,6 +479,8 @@ namespace ssf
 			p = r.TopLeft();
 		}
 
+		CRect sr(p, size);
+
 		// continue positioning
 
 		for(POSITION pos = rows.GetHeadPosition(); pos; rows.GetNext(pos))
@@ -518,10 +522,16 @@ namespace ssf
 			}
 		}
 
-		// transform
+		// bkg, precalc style.placement.path, transform
 
 		pos = rs->m_glyphs.GetHeadPosition();
-		while(pos) rs->m_glyphs.GetNext(pos)->Transform(org);
+		while(pos)
+		{
+			Glyph* g = rs->m_glyphs.GetNext(pos);
+			g->CreateBkg();
+			g->CreateSplineCoeffs(spdrc);
+			g->Transform(org, sr);
+		}
 
 		// merge glyphs (TODO: merge 'fill' too)
 

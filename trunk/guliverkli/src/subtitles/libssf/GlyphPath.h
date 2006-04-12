@@ -34,6 +34,8 @@ namespace ssf
 		GlyphPath(const GlyphPath& path);
 		void operator = (const GlyphPath& path);
 
+		bool IsEmpty();
+		void RemoveAll();
 		void MovePoints(const CPoint& o); 
 		void Enlarge(const GlyphPath& src, float size);
 

@@ -219,6 +219,8 @@ namespace ssf
 		style.placement.angle.y = placement[L"angle"][L"y"];
 		style.placement.angle.z = placement[L"angle"][L"z"];
 
+		style.placement.path = placement[L"path"];
+
 		Definition& font = (*pDef)[L"font"];
 
 		style.font.face = font[L"face"];
@@ -408,6 +410,7 @@ namespace ssf
 		MixValue(placement[L"angle"][L"x"], dst.placement.angle.x, t);
 		MixValue(placement[L"angle"][L"y"], dst.placement.angle.y, t);
 		MixValue(placement[L"angle"][L"z"], dst.placement.angle.z, t);
+		MixValue(placement[L"path"], dst.placement.path, t); // TODO: we could morph the coords if we really wanted to
 
 		Definition& font = (*pDef)[L"font"];
 

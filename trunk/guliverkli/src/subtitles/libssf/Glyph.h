@@ -30,11 +30,14 @@ namespace ssf
 {
 	class Glyph
 	{
-		void Transform(GlyphPath& path, CPoint org);
+		void Transform(GlyphPath& path, CPoint org, const CRect& sr);
+
+		struct SplineCoeffs {float cx[4], cy[4];};
 
 	public:
 		WCHAR c;
 		Style style;
+		CAtlArray<SplineCoeffs> spline;
 		Size scale;
 		bool vertical;
 		FontWrapper* font;
@@ -48,7 +51,9 @@ namespace ssf
 	public:
 		Glyph();
 
-		void Transform(CPoint org);
+		void CreateBkg();
+		void CreateSplineCoeffs(const CRect& spdrc);
+		void Transform(CPoint org, const CRect& subrect);
 		void Rasterize();
 
 		float GetBackgroundSize() const;

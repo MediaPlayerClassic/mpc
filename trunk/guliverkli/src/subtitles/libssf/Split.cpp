@@ -21,6 +21,7 @@
 
 #include "stdafx.h"
 #include "Split.h"
+#include "Exception.h"
 
 namespace ssf
 {
@@ -57,5 +58,17 @@ namespace ssf
 				}
 			}
 		}
+	}
+
+	int Split::GetAtInt(size_t i)
+	{
+		if(i >= GetCount()) throw Exception(_T("Index out of bounds"));
+		return _wtoi(GetAt(i));
+	}
+
+	float Split::GetAtFloat(size_t i)
+	{
+		if(i >= GetCount()) throw Exception(_T("Index out of bounds"));
+		return (float)_wtof(GetAt(i));
 	}
 }

@@ -536,10 +536,10 @@ public:
 		Sleep(10000);
 
 		MessageBeep(-1);
-// 
+// 8; //
 		SubPicDesc spd;
-		spd.w = 8; //640;
-		spd.h = 8; //480;
+		spd.w = 640;
+		spd.h = 480;
 		spd.bpp = 32;
 		spd.pitch = spd.w*spd.bpp>>3;
 		spd.type = MSP_RGB32;
@@ -564,9 +564,9 @@ public:
 			ssf::CRenderer s(&csLock);
 			s.Open(_T("../../subtitles/libssf/demo/demo.ssf"));
 
-			for(int i = 2*60*1000+2000; i < 2*60*1000+17000; i += 40)
+			//for(int i = 2*60*1000+2000; i < 2*60*1000+17000; i += 40)
 			// for(int i = 2*60*1000+2000; i < 2*60*1000+17000; i += 1000)
-			//for(int i = 0; i < 5000; i += 1000)
+			for(int i = 0; i < 5000; i += 1000)
 			{
 				memsetd(spd.bits, 0xff000000, spd.pitch*spd.h);
 				CRect bbox;

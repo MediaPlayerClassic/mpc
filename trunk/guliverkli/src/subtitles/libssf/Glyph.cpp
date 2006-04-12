@@ -21,6 +21,7 @@
 
 #include "stdafx.h"
 #include "Glyph.h"
+#include "Split.h"
 
 #define deg2rad(d) (float)(M_PI/180*(d))
 
@@ -62,15 +63,109 @@ namespace ssf
 		return r;
 	}
 
-	void Glyph::Transform(GlyphPath& path, CPoint org)
+	void Glyph::CreateBkg()
+	{
+		path_bkg.RemoveAll();
+
+		if(style.background.type == L"enlarge" && style.background.size > 0)
+		{
+			path_bkg.Enlarge(path, GetBackgroundSize());
+		}
+		else if(style.background.type == L"box" && style.background.size >= 0)
+		{
+			if(c != ssf::Text::LSEP)
+			{
+				int s = (int)(GetBackgroundSize() + 0.5);
+				int x0 = (!vertical ? -spacing/2 : ascent - row_ascent);
+				int y0 = (!vertical ? ascent - row_ascent : -spacing/2);
+				int x1 = x0 + (!vertical ? width + spacing : row_ascent + row_descent);
+				int y1 = y0 + (!vertical ? row_ascent + row_descent : width + spacing);
+				path_bkg.types.SetCount(4);
+				path_bkg.types[0] = PT_MOVETO;
+				path_bkg.types[1] = PT_LINETO;
+				path_bkg.types[2] = PT_LINETO;
+				path_bkg.types[3] = PT_LINETO;
+				path_bkg.points.SetCount(4);
+				path_bkg.points[0] = CPoint(x0-s, y0-s);
+				path_bkg.points[1] = CPoint(x1+s, y0-s);
+				path_bkg.points[2] = CPoint(x1+s, y1+s);
+				path_bkg.points[3] = CPoint(x0-s, y1+s);
+			}
+		}
+	}
+
+	void Glyph::CreateSplineCoeffs(const CRect& spdrc)
+	{
+		spline.RemoveAll();
+
+		if(style.placement.path.IsEmpty())
+			return;
+
+		CAtlArray<Point> pts;
+
+		Point p;
+		Split s(' ', style.placement.path);
+		size_t i = 0, j = s/2;
+		pts.SetCount(j+2);
+
+		while(i < j)
+		{
+			p.x = s.GetAtFloat(i*2+0) * scale.cx + spdrc.left * 64;
+			p.y = s.GetAtFloat(i*2+1) * scale.cy + spdrc.top * 64;
+			pts.SetAt(++i, p);
+		}
+
+		if(pts.GetCount() >= 4)
+		{
+			if(pts[1].x == pts[j].x && pts[1].y == pts[j].y)
+			{
+				pts.SetAt(0, pts[j-1]);
+				pts.SetAt(j+1, pts[2]);
+			}
+			else
+			{
+				p.x = pts[1].x*2 - pts[2].x;
+				p.y = pts[1].y*2 - pts[2].y;
+				pts.SetAt(0, p);
+
+				p.x = pts[j].x*2 - pts[j-1].x;
+				p.y = pts[j].y*2 - pts[j-1].y;
+				pts.SetAt(j+1, p);
+			}
+
+			spline.SetCount(pts.GetCount()-3);
+
+			for(size_t i = 0, j = pts.GetCount()-4; i <= j; i++)
+			{
+				static const float _1div6 = 1.0f / 6;
+
+				SplineCoeffs sc;
+
+				sc.cx[3] = _1div6*(-  pts[i+0].x + 3*pts[i+1].x - 3*pts[i+2].x + pts[i+3].x);
+				sc.cx[2] = _1div6*( 3*pts[i+0].x - 6*pts[i+1].x + 3*pts[i+2].x);
+				sc.cx[1] = _1div6*(-3*pts[i+0].x	            + 3*pts[i+2].x);
+				sc.cx[0] = _1div6*(   pts[i+0].x + 4*pts[i+1].x + 1*pts[i+2].x);
+
+				sc.cy[3] = _1div6*(-  pts[i+0].y + 3*pts[i+1].y - 3*pts[i+2].y + pts[i+3].y);
+				sc.cy[2] = _1div6*( 3*pts[i+0].y - 6*pts[i+1].y + 3*pts[i+2].y);
+				sc.cy[1] = _1div6*(-3*pts[i+0].y                + 3*pts[i+2].y);
+				sc.cy[0] = _1div6*(   pts[i+0].y + 4*pts[i+1].y + 1*pts[i+2].y);
+
+				spline.SetAt(i, sc);
+			}
+		}
+	}
+
+	void Glyph::Transform(GlyphPath& path, CPoint org, const CRect& subrect)
 	{
 		// TODO: add sse code path
 
 		float sx = style.font.scale.cx;
 		float sy = style.font.scale.cy;
 
-		bool rotate = style.placement.angle.x || style.placement.angle.y || style.placement.angle.z;
-		bool scale = rotate || sx != 1 || sy != 1;
+		bool brotate = style.placement.angle.x || style.placement.angle.y || style.placement.angle.z;
+		bool bspline = !spline.IsEmpty();
+		bool bscale = brotate || bspline || sx != 1 || sy != 1;
 
 		float caz = cos(deg2rad(style.placement.angle.z));
 		float saz = sin(deg2rad(style.placement.angle.z));
@@ -83,7 +178,7 @@ namespace ssf
 		{
 			CPoint p = path.points[i];
 
-			if(scale)
+			if(bscale)
 			{
 				float x, y, z, xx, yy, zz;
 
@@ -91,7 +186,39 @@ namespace ssf
 				y = sy * (p.y - org.y);
 				z = 0;
 
-				if(rotate)
+				if(bspline)
+				{
+					float pos = vertical ? y + org.y + tl.y - subrect.top : x + org.x + tl.x - subrect.left;
+					float size = vertical ? subrect.Size().cy : subrect.Size().cx;
+					float dist = vertical ? x : y;
+
+					const SplineCoeffs* sc;
+					float t;
+
+					if(pos >= size)
+					{
+						sc = &spline[spline.GetCount() - 1];
+						t = 1;
+					}
+					else
+					{
+						float u = size / spline.GetCount();
+						sc = &spline[max((int)(pos / u), 0)];
+						t = fmod(pos, u) / u;
+					}
+
+					float nx = sc->cx[1] + 2*t*sc->cx[2] + 3*t*t*sc->cx[3];
+					float ny = sc->cy[1] + 2*t*sc->cy[2] + 3*t*t*sc->cy[3];
+					float nl = 1.0f / sqrt(nx*nx + ny*ny);
+
+					nx *= nl;
+					ny *= nl;
+
+					x = sc->cx[0] + t*(sc->cx[1] + t*(sc->cx[2] + t*sc->cx[3])) - ny * dist - org.x - tl.x;
+					y = sc->cy[0] + t*(sc->cy[1] + t*(sc->cy[2] + t*sc->cy[3])) + nx * dist - org.y - tl.y;
+				}
+
+				if(brotate)
 				{
 					xx = x*caz + y*saz;
 					yy = -(x*saz - y*caz);
@@ -113,7 +240,7 @@ namespace ssf
 
 				p.x = (int)(x + org.x + 0.5);
 				p.y = (int)(y + org.y + 0.5);
-				
+
 				path.points[i] = p;
 			}
 
@@ -124,56 +251,24 @@ namespace ssf
 		}
 	}
 
-	void Glyph::Transform(CPoint org)
+	void Glyph::Transform(CPoint org, const CRect& sr)
 	{
 		org -= tl;
 
 		bbox.SetRect(INT_MAX, INT_MAX, INT_MIN, INT_MIN);
 
-		if(style.background.type == L"enlarge" && style.background.size > 0)
-		{
-			path_bkg.Enlarge(path, GetBackgroundSize());
-			Transform(path_bkg, org);
-		}
-		else if(style.background.type == L"box" && style.background.size >= 0)
-		{
-			if(c != ssf::Text::LSEP)
-			{
-				int s = (int)(GetBackgroundSize() + 0.5);
-				int x0 = (!vertical ? -spacing/2 : ascent - row_ascent);
-				int y0 = (!vertical ? ascent - row_ascent : -spacing/2);
-				int x1 = x0 + (!vertical ? width + spacing : row_ascent + row_descent);
-				int y1 = y0 + (!vertical ? row_ascent + row_descent : width + spacing);
-				path_bkg.types.SetCount(4);
-				path_bkg.types[0] = PT_MOVETO;
-				path_bkg.types[1] = PT_LINETO;
-				path_bkg.types[2] = PT_LINETO;
-				path_bkg.types[3] = PT_LINETO;
-				path_bkg.points.SetCount(4);
-				path_bkg.points[0] = CPoint(x0-s, y0-s);
-				path_bkg.points[1] = CPoint(x1+s, y0-s);
-				path_bkg.points[2] = CPoint(x1+s, y1+s);
-				path_bkg.points[3] = CPoint(x0-s, y1+s);
-				Transform(path_bkg, org);
-			}
-		}
-
-		Transform(path, org);
+		Transform(path_bkg, org, sr);
+		Transform(path, org, sr);
 
 		bbox |= CRect(0, 0, 0, 0);
 	}
 
 	void Glyph::Rasterize()
 	{
-		Rasterizer* r = &ras;
-
-		if(style.background.type == L"enlarge" && style.background.size > 0
-		|| style.background.type == L"box" && style.background.size >= 0)
+		if(!path_bkg.IsEmpty())
 		{
 			ras_bkg.ScanConvert(path_bkg, bbox);
 			ras_bkg.Rasterize(tl.x, tl.y);
-			ras_bkg.Blur(style.background.blur, 0);
-			r = &ras_bkg;
 		}
 
 		ras.ScanConvert(path, bbox);
@@ -182,13 +277,14 @@ namespace ssf
 		{
 			ras.CreateWidenedRegion((int)(GetBackgroundSize() + 0.5));
 		}
+
+		//
+
+		Rasterizer* r = path_bkg.IsEmpty() ? &ras : &ras_bkg;
+		int plane = path_bkg.IsEmpty() ? 1 : 0;
 		
 		ras.Rasterize(tl.x, tl.y);
-
-		if(style.background.type == L"outline" && style.background.size > 0)
-		{
-			ras.Blur(style.background.blur, 1);
-		}
+		r->Blur(style.background.blur, plane);
 
 		if(style.shadow.depth > 0)
 		{
@@ -200,16 +296,7 @@ namespace ssf
 			tls.y = tl.y + (int)(depth * -sin(deg2rad(style.shadow.angle)) + 0.5);
 
 			ras_shadow.Rasterize(tls.x, tls.y);
-
-			if(style.background.type == L"enlarge" && style.background.size > 0
-			|| style.background.type == L"box" && style.background.size >= 0)
-			{
-				ras_shadow.Blur(style.shadow.blur, 0);
-			}
-			else if(style.background.type == L"outline" && style.background.size > 0)
-			{
-				ras_shadow.Blur(style.shadow.blur, 1);
-			}
+			ras_shadow.Blur(style.shadow.blur, plane);
 		}
 	}
 
