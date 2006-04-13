@@ -479,7 +479,10 @@ namespace ssf
 			p = r.TopLeft();
 		}
 
-		CRect sr(p, size);
+		if(!style.placement.org.auto_x) org.x = style.placement.org.x;
+		if(!style.placement.org.auto_y) org.y = style.placement.org.y;
+
+		CRect subrect(p, size);
 
 		// continue positioning
 
@@ -530,7 +533,7 @@ namespace ssf
 			Glyph* g = rs->m_glyphs.GetNext(pos);
 			g->CreateBkg();
 			g->CreateSplineCoeffs(spdrc);
-			g->Transform(org, sr);
+			g->Transform(org, subrect);
 		}
 
 		// merge glyphs (TODO: merge 'fill' too)

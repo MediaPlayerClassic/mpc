@@ -251,14 +251,14 @@ namespace ssf
 		}
 	}
 
-	void Glyph::Transform(CPoint org, const CRect& sr)
+	void Glyph::Transform(CPoint org, const CRect& subrect)
 	{
 		org -= tl;
 
 		bbox.SetRect(INT_MAX, INT_MAX, INT_MIN, INT_MIN);
 
-		Transform(path_bkg, org, sr);
-		Transform(path, org, sr);
+		Transform(path_bkg, org, subrect);
+		Transform(path, org, subrect);
 
 		bbox |= CRect(0, 0, 0, 0);
 	}

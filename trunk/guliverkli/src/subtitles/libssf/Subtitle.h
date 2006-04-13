@@ -36,7 +36,16 @@ namespace ssf
 	struct Time {float start, stop;};
 	struct Background {Color color; float size, blur; CStringW type;};
 	struct Shadow {Color color; float depth, angle, blur;};
-	struct Placement {Rect clip, margin; Align align; Point pos, offset; Angle angle; CStringW path;};
+
+	struct Placement 
+	{
+		Rect clip, margin; 
+		Align align; 
+		Point pos, offset; 
+		Angle angle; 
+		Point org;
+		CStringW path;
+	};
 
 	struct Font
 	{

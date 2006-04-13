@@ -30,7 +30,7 @@ namespace ssf
 {
 	class Glyph
 	{
-		void Transform(GlyphPath& path, CPoint org, const CRect& sr);
+		void Transform(GlyphPath& path, CPoint org, const CRect& subrect);
 
 		struct SplineCoeffs {float cx[4], cy[4];};
 
