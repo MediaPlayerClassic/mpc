@@ -479,9 +479,6 @@ namespace ssf
 			p = r.TopLeft();
 		}
 
-		if(!style.placement.org.auto_x) org.x = style.placement.org.x;
-		if(!style.placement.org.auto_y) org.y = style.placement.org.y;
-
 		CRect subrect(p, size);
 
 		// continue positioning

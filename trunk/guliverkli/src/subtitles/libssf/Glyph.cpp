@@ -253,6 +253,9 @@ namespace ssf
 
 	void Glyph::Transform(CPoint org, const CRect& subrect)
 	{
+		if(!style.placement.org.auto_x) org.x = style.placement.org.x;
+		if(!style.placement.org.auto_y) org.y = style.placement.org.y;
+
 		org -= tl;
 
 		bbox.SetRect(INT_MAX, INT_MAX, INT_MIN, INT_MIN);
