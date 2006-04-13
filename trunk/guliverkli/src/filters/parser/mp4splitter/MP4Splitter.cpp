@@ -283,7 +283,6 @@ HRESULT CMP4SplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 						mts.Add(mt);
 						break;
 					case AP4_MPEG2_PART3_AUDIO_OTI: // ???
-						break;
 					case AP4_MPEG1_AUDIO_OTI:
 						mt.subtype = FOURCCMap(wfe->wFormatTag = WAVE_FORMAT_MP3);
 						{

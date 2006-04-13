@@ -141,8 +141,8 @@ const AMOVIESETUP_FILTER sudFilter[] =
 {
 	{&__uuidof(CRealMediaSplitterFilter), L"RealMedia Splitter", MERIT_NORMAL, countof(sudpPins), sudpPins},
 	{&__uuidof(CRealMediaSourceFilter), L"RealMedia Source", MERIT_NORMAL, 0, NULL},
-	{&__uuidof(CRealVideoDecoder), L"RealVideo Decoder", MERIT_UNLIKELY, countof(sudpPins2), sudpPins2},
-	{&__uuidof(CRealAudioDecoder), L"RealAudio Decoder", MERIT_UNLIKELY, countof(sudpPins3), sudpPins3},
+	{&__uuidof(CRealVideoDecoder), L"RealVideo Decoder", MERIT_NORMAL, countof(sudpPins2), sudpPins2},
+	{&__uuidof(CRealAudioDecoder), L"RealAudio Decoder", MERIT_NORMAL, countof(sudpPins3), sudpPins3},
 };
 
 CFactoryTemplate g_Templates[] =
