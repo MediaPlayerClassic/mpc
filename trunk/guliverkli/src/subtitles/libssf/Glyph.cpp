@@ -253,8 +253,8 @@ namespace ssf
 
 	void Glyph::Transform(CPoint org, const CRect& subrect)
 	{
-		if(!style.placement.org.auto_x) org.x = style.placement.org.x;
-		if(!style.placement.org.auto_y) org.y = style.placement.org.y;
+		if(!style.placement.org.auto_x) org.x = style.placement.org.x * scale.cx;
+		if(!style.placement.org.auto_y) org.y = style.placement.org.y * scale.cy;
 
 		org -= tl;
 
