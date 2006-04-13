@@ -160,6 +160,11 @@ namespace ssf
 		style.placement.pos.auto_x = true;
 		style.placement.pos.auto_y = true;
 
+		style.placement.org.x = 0;
+		style.placement.org.y = 0;
+		style.placement.org.auto_x = true;
+		style.placement.org.auto_y = true;
+
 		Rect frame = {0, m_frame.resolution.cx, m_frame.resolution.cy, 0};
 
 		style.placement.clip.t = -1;
