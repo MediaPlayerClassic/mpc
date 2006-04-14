@@ -101,18 +101,18 @@ namespace ssf
 		if(style.placement.path.IsEmpty())
 			return;
 
+		size_t i = 0, j = style.placement.path.GetCount();
+
 		CAtlArray<Point> pts;
+		pts.SetCount(j + 2);
 
 		Point p;
-		Split s(' ', style.placement.path);
-		size_t i = 0, j = s/2;
-		pts.SetCount(j+2);
 
 		while(i < j)
 		{
-			p.x = s.GetAtFloat(i*2+0) * scale.cx + spdrc.left * 64;
-			p.y = s.GetAtFloat(i*2+1) * scale.cy + spdrc.top * 64;
-			pts.SetAt(++i, p);
+			p.x = style.placement.path[i].x * scale.cx + spdrc.left * 64;
+			p.y = style.placement.path[i].y * scale.cy + spdrc.top * 64;
+			pts[++i] = p;
 		}
 
 		if(pts.GetCount() >= 4)

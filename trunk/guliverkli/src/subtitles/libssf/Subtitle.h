@@ -25,7 +25,8 @@
 
 namespace ssf
 {
-	struct Point {float x, y; bool auto_x, auto_y;};
+	struct Point {float x, y;};
+	struct PointAuto : public Point {bool auto_x, auto_y;};
 	struct Size {float cx, cy;};
 	struct Rect {float t, r, b, l;};
 	struct Align {float v, h;};
@@ -37,14 +38,26 @@ namespace ssf
 	struct Background {Color color; float size, blur; CStringW type;};
 	struct Shadow {Color color; float depth, angle, blur;};
 
+	class Path : public CAtlArray<Point>
+	{
+	public: 
+		Path() {} 
+		Path(const Path& path) {*this = path;} 
+		Path& operator = (const Path& path) {Copy(path); return *this;} 
+		Path(LPCWSTR str) {*this = str;} 
+		Path& operator = (LPCWSTR str);
+		CStringW ToString();
+	};
+
 	struct Placement 
 	{
 		Rect clip, margin; 
 		Align align; 
-		Point pos, offset; 
+		PointAuto pos; 
+		Point offset;
 		Angle angle; 
-		Point org;
-		CStringW path;
+		PointAuto org;
+		Path path;
 	};
 
 	struct Font
@@ -98,7 +111,7 @@ namespace ssf
 		template<> bool MixValue(Definition& def, float& value, float t);
 		template<class T> bool MixValue(Definition& def, T& value, float t, StringMapW<T>* n2n);
 		template<> bool MixValue(Definition& def, float& value, float t, StringMapW<float>* n2n);
-		bool MixPath(Definition& def, CStringW& path, float t);
+		template<> bool MixValue(Definition& def, Path& value, float t);
 		void MixStyle(Definition* pDef, Style& dst, float t);
 
 		void Parse(InputStream& s, Style style, float at, StringMapW<float> offset, Reference* pParentRef);
