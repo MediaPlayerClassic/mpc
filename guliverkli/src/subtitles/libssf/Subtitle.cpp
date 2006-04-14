@@ -394,33 +394,27 @@ namespace ssf
 		return true;
 	}
 
-	bool Subtitle::MixPath(Definition& def, CStringW& path, float t)
+	template<>
+	bool Subtitle::MixValue(Definition& def, Path& src, float t)
 	{
 		if(!def.IsValue(Definition::string)) return false;
 
 		if(t >= 1)
 		{
-			path = def;
+			src = (LPCWSTR)def;
 		}
 		else if(t > 0)
 		{
-			Split ssrc(' ', path);
-			Split sdst(' ', (LPCWSTR)def);
+			Path dst = (LPCWSTR)def;
 
-			if(ssrc == sdst)
+			if(src.GetCount() == dst.GetCount())
 			{
-				path.Empty();
-
-				for(size_t i = 0, j = ssrc / 2; i < j; i++)
+				for(size_t i = 0, j = src.GetCount(); i < j; i++)
 				{
-					Point p;
-					p.x = ssrc.GetAtFloat(i*2+0);
-					p.y = ssrc.GetAtFloat(i*2+1);
-					p.x += (sdst.GetAtFloat(i*2+0) - p.x) * t;
-					p.y += (sdst.GetAtFloat(i*2+1) - p.y) * t;
-					CStringW str;
-					str.Format(L"%f %f ", p.x, p.y);
-					path += str;
+					Point& s = src[i];
+					const Point& d = dst[i];
+					s.x += (d.x - s.x) * t;
+					s.y += (d.y - s.y) * t;
 				}
 			}
 		}
@@ -454,7 +448,7 @@ namespace ssf
 		MixValue(placement[L"angle"][L"z"], dst.placement.angle.z, t);
 		dst.placement.org.auto_x = !MixValue(placement[L"org"][L"x"], dst.placement.org.x, dst.placement.org.auto_x ? 1 : t);
 		dst.placement.org.auto_y = !MixValue(placement[L"org"][L"y"], dst.placement.org.y, dst.placement.org.auto_y ? 1 : t);
-		MixPath(placement[L"path"], dst.placement.path, t);
+		MixValue(placement[L"path"], dst.placement.path, t);
 
 		Definition& font = (*pDef)[L"font"];
 
@@ -636,6 +630,39 @@ namespace ssf
 	//
 
 	unsigned int Fill::gen_id = 0;
+
+	Path& Path::operator = (LPCWSTR str)
+	{
+		Split s(' ', str);
+
+		SetCount(s/2);
+
+		for(size_t i = 0, j = GetCount(); i < j; i++)
+		{
+			Point p;
+			p.x = s.GetAtFloat(i*2+0);
+			p.y = s.GetAtFloat(i*2+1);
+			SetAt(i, p);
+		}
+
+		return *this;
+	}
+
+	CStringW Path::ToString()
+	{
+		CStringW ret;
+
+		for(size_t i = 0, j = GetCount(); i < j; i++)
+		{
+			const Point& p = GetAt(i);
+
+			CStringW str;
+			str.Format(_T("%f %f "), p.x, p.y);
+			ret += str;
+		}
+
+		return ret;
+	}
 
 	bool Style::IsSimilar(const Style& s)
 	{
