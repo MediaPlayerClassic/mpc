@@ -538,6 +538,19 @@ namespace ssf
 			}
 		}
 
+		if(!mWideOutline.IsEmpty())
+		{
+			BYTE* p = mpOverlayBuffer;
+
+			for(int j = 0; j < mOverlayHeight; j++, p += mOverlayWidth*2)
+			{
+				for(int i = 0; i < mOverlayWidth; i++)
+				{
+					p[i*2+1] = min(p[i*2+1], 64 - p[i*2]); // TODO: sse2
+				}
+			}
+		}
+
 		return true;
 	}
 
@@ -666,50 +679,24 @@ namespace ssf
 		{
 			if(switchpts[1] == 0xffffffff)
 			{
-				if(1) // fBody)
-				{
-					if(fSSE2) for(int wt=0; wt<w; ++wt) pixmix_sse2(&dst[wt], color, s[wt*2]);
-					else for(int wt=0; wt<w; ++wt) pixmix(s[wt*2]);
-				}
-				else
-				{
-					if(fSSE2) for(int wt=0; wt<w; ++wt) pixmix_sse2(&dst[wt], color, src[wt*2+1] - src[wt*2]);
-					else for(int wt=0; wt<w; ++wt) pixmix(src[wt*2+1] - src[wt*2]);
-				}
+				if(fSSE2) for(int wt=0; wt<w; ++wt) pixmix_sse2(&dst[wt], color, s[wt*2]);
+				else for(int wt=0; wt<w; ++wt) pixmix(s[wt*2]);
 			}
 			else
 			{
 				const DWORD* sw = switchpts;
 
-				if(1) // fBody)
+				if(fSSE2) 
+				for(int wt=0; wt<w; ++wt)
 				{
-					if(fSSE2) 
-					for(int wt=0; wt<w; ++wt)
-					{
-						if(wt+xo >= sw[1]) {while(wt+xo >= sw[1]) sw += 2; color = sw[-2];}
-						pixmix_sse2(&dst[wt], color, s[wt*2]);
-					}
-					else
-					for(int wt=0; wt<w; ++wt)
-					{
-						if(wt+xo >= sw[1]) {while(wt+xo >= sw[1]) sw += 2; color = sw[-2];}
-						pixmix(s[wt*2]);
-					}
+					if(wt+xo >= sw[1]) {while(wt+xo >= sw[1]) sw += 2; color = sw[-2];}
+					pixmix_sse2(&dst[wt], color, s[wt*2]);
 				}
 				else
+				for(int wt=0; wt<w; ++wt)
 				{
-					if(fSSE2) 
-					for(int wt=0; wt<w; ++wt)
-					{
-						if(wt+xo >= sw[1]) {while(wt+xo >= sw[1]) sw += 2; color = sw[-2];} 
-						pixmix_sse2(&dst[wt], color, src[wt*2+1] - src[wt*2]);
-					}
-					else
-					for(int wt=0; wt<w; ++wt)
-					{
-						if(wt+xo >= sw[1]) {while(wt+xo >= sw[1]) sw += 2; color = sw[-2];} 
-						pixmix(src[wt*2+1] - src[wt*2]);
-					}
+					if(wt+xo >= sw[1]) {while(wt+xo >= sw[1]) sw += 2; color = sw[-2];}
+					pixmix(s[wt*2]);
 				}
 			}
 
