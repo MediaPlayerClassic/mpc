@@ -394,6 +394,40 @@ namespace ssf
 		return true;
 	}
 
+	bool Subtitle::MixPath(Definition& def, CStringW& path, float t)
+	{
+		if(!def.IsValue(Definition::string)) return false;
+
+		if(t >= 1)
+		{
+			path = def;
+		}
+		else if(t > 0)
+		{
+			Split ssrc(' ', path);
+			Split sdst(' ', (LPCWSTR)def);
+
+			if(ssrc == sdst)
+			{
+				path.Empty();
+
+				for(size_t i = 0, j = ssrc / 2; i < j; i++)
+				{
+					Point p;
+					p.x = ssrc.GetAtFloat(i*2+0);
+					p.y = ssrc.GetAtFloat(i*2+1);
+					p.x += (sdst.GetAtFloat(i*2+0) - p.x) * t;
+					p.y += (sdst.GetAtFloat(i*2+1) - p.y) * t;
+					CStringW str;
+					str.Format(L"%f %f ", p.x, p.y);
+					path += str;
+				}
+			}
+		}
+
+		return true;
+	}
+
 	void Subtitle::MixStyle(Definition* pDef, Style& dst, float t)
 	{
 		const Style src = dst;
@@ -420,7 +454,7 @@ namespace ssf
 		MixValue(placement[L"angle"][L"z"], dst.placement.angle.z, t);
 		dst.placement.org.auto_x = !MixValue(placement[L"org"][L"x"], dst.placement.org.x, dst.placement.org.auto_x ? 1 : t);
 		dst.placement.org.auto_y = !MixValue(placement[L"org"][L"y"], dst.placement.org.y, dst.placement.org.auto_y ? 1 : t);
-		MixValue(placement[L"path"], dst.placement.path, t); // TODO: we could morph the coords if we really wanted to
+		MixPath(placement[L"path"], dst.placement.path, t);
 
 		Definition& font = (*pDef)[L"font"];
 
