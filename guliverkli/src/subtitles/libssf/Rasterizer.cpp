@@ -495,8 +495,8 @@ namespace ssf
 		mOverlayWidth = ((width + ((1<<FONT_AA)-1)) >> FONT_AA) + 1;
 		mOverlayHeight = ((height + ((1<<FONT_AA)-1)) >> FONT_AA) + 1;
 
-		mpOverlayBuffer = new BYTE[2 * mOverlayWidth * mOverlayHeight];
-		memset(mpOverlayBuffer, 0, 2 * mOverlayWidth * mOverlayHeight);
+		mpOverlayBuffer = new BYTE[4 * mOverlayWidth * mOverlayHeight];
+		memset(mpOverlayBuffer, 0, 4 * mOverlayWidth * mOverlayHeight);
 
 		Array<Span>* pOutline[2] = {&mOutline, &mWideOutline};
 
@@ -515,7 +515,7 @@ namespace ssf
 					int first = x1 >> FONT_AA;
 					int last = (x2-1) >> FONT_AA;
 
-					BYTE* dst = mpOverlayBuffer + 2*(mOverlayWidth * (y >> FONT_AA) + first) + i;
+					BYTE* dst = mpOverlayBuffer + 4*(mOverlayWidth * (y >> FONT_AA) + first) + i;
 
 					if(first == last)
 					{
@@ -524,12 +524,12 @@ namespace ssf
 					else
 					{
 						*dst += (((first+1) << FONT_AA) - x1) << (6 - FONT_AA*2);
-						dst += 2;
+						dst += 4;
 
 						while(++first < last)
 						{
 							*dst += (1 << FONT_AA) << (6 - FONT_AA*2);
-							dst += 2;
+							dst += 4;
 						}
 
 						*dst += (x2 - (last << FONT_AA)) << (6 - FONT_AA*2);
@@ -542,11 +542,11 @@ namespace ssf
 		{
 			BYTE* p = mpOverlayBuffer;
 
-			for(int j = 0; j < mOverlayHeight; j++, p += mOverlayWidth*2)
+			for(int j = 0; j < mOverlayHeight; j++, p += mOverlayWidth*4)
 			{
 				for(int i = 0; i < mOverlayWidth; i++)
 				{
-					p[i*2+1] = min(p[i*2+1], 64 - p[i*2]); // TODO: sse2
+					p[i*4+2] = min(p[i*4+1], 64 - p[i*4]); // TODO: sse2
 				}
 			}
 		}
@@ -561,7 +561,7 @@ namespace ssf
 
 		int w = mOverlayWidth;
 		int h = mOverlayHeight;
-		int pitch = w*2;
+		int pitch = w*4;
 		BYTE* q0 = new BYTE[w*h];
 
 		for(int pass = 0, limit = (int)(n + 0.5); pass < n; pass++)
@@ -571,17 +571,17 @@ namespace ssf
 
 			for(int y = 0; y < h; y++, p += pitch, q += w)
 			{
-				q[0] = (2*p[0] + p[2]) >> 2;
+				q[0] = (2*p[0] + p[4]) >> 2;
 				int x = 0;
 				for(x = 1; x < w-1; x++)
-					q[x] = (p[(x-1)*2] + 2*p[x*2] + p[(x+1)*2]) >> 2;
-				q[x] = (p[(x-1)*2] + 2*p[x*2]) >> 2;
+					q[x] = (p[(x-1)*4] + 2*p[x*4] + p[(x+1)*4]) >> 2;
+				q[x] = (p[(x-1)*4] + 2*p[x*4]) >> 2;
 			}
 
 			p = mpOverlayBuffer + plane;
 			q = q0;
 
-			for(int x = 0; x < w; x++, p += 2, q++)
+			for(int x = 0; x < w; x++, p += 4, q++)
 			{
 				p[0] = (2*q[0] + q[w]) >> 2;
 				int y = 0, yp, yq;
@@ -635,11 +635,11 @@ namespace ssf
 		*dst = (DWORD)_mm_cvtsi128_si32(r);
 	}
 
-	CRect Rasterizer::Draw(const SubPicDesc& spd, const CRect& clip, int xsub, int ysub, const DWORD* switchpts, bool fBody, bool fBorder)
+	CRect Rasterizer::Draw(const SubPicDesc& spd, const CRect& clip, int xsub, int ysub, const DWORD* switchpts, int plane)
 	{
 		CRect bbox(0, 0, 0, 0);
 
-		if(!switchpts || !fBody && !fBorder) return bbox;
+		if(!switchpts) return bbox;
 
 		// clip
 
@@ -667,8 +667,7 @@ namespace ssf
 
 		// draw
 
-		const BYTE* src = mpOverlayBuffer + 2*(mOverlayWidth * yo + xo);
-		const BYTE* s = fBorder ? (src+1) : src;
+		const BYTE* src = mpOverlayBuffer + 4*(mOverlayWidth * yo + xo) + plane;
 		DWORD* dst = (DWORD*)((BYTE*)spd.bits + spd.pitch * y) + x;
 
 		DWORD color = switchpts[0];
@@ -679,8 +678,8 @@ namespace ssf
 		{
 			if(switchpts[1] == 0xffffffff)
 			{
-				if(fSSE2) for(int wt=0; wt<w; ++wt) pixmix_sse2(&dst[wt], color, s[wt*2]);
-				else for(int wt=0; wt<w; ++wt) pixmix(s[wt*2]);
+				if(fSSE2) for(int wt=0; wt<w; ++wt) pixmix_sse2(&dst[wt], color, src[wt*4]);
+				else for(int wt=0; wt<w; ++wt) pixmix(src[wt*4]);
 			}
 			else
 			{
@@ -690,18 +689,17 @@ namespace ssf
 				for(int wt=0; wt<w; ++wt)
 				{
 					if(wt+xo >= sw[1]) {while(wt+xo >= sw[1]) sw += 2; color = sw[-2];}
-					pixmix_sse2(&dst[wt], color, s[wt*2]);
+					pixmix_sse2(&dst[wt], color, src[wt*4]);
 				}
 				else
 				for(int wt=0; wt<w; ++wt)
 				{
 					if(wt+xo >= sw[1]) {while(wt+xo >= sw[1]) sw += 2; color = sw[-2];}
-					pixmix(s[wt*2]);
+					pixmix(src[wt*4]);
 				}
 			}
 
-			src += 2*mOverlayWidth;
-			s += 2*mOverlayWidth;
+			src += 4*mOverlayWidth;
 			dst = (DWORD*)((BYTE*)dst + spd.pitch);
 		}
 
