@@ -284,7 +284,7 @@ namespace ssf
 		//
 
 		Rasterizer* r = path_bkg.IsEmpty() ? &ras : &ras_bkg;
-		int plane = path_bkg.IsEmpty() ? 1 : 0;
+		int plane = path_bkg.IsEmpty() ? 2 : 0;
 		
 		ras.Rasterize(tl.x, tl.y);
 		r->Blur(style.background.blur, plane);
@@ -299,7 +299,7 @@ namespace ssf
 			tls.y = tl.y + (int)(depth * -sin(deg2rad(style.shadow.angle)) + 0.5);
 
 			ras_shadow.Rasterize(tls.x, tls.y);
-			ras_shadow.Blur(style.shadow.blur, plane);
+			ras_shadow.Blur(style.shadow.blur, plane ? 1 : 0);
 		}
 	}
 

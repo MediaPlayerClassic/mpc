@@ -77,6 +77,6 @@ namespace ssf
 		void Reuse(Rasterizer& r);
 
 		void Blur(float n, int plane);
-		CRect Draw(const SubPicDesc& spd, const CRect& clip, int xsub, int ysub, const DWORD* switchpts, bool fBody, bool fBorder);
+		CRect Draw(const SubPicDesc& spd, const CRect& clip, int xsub, int ysub, const DWORD* switchpts, int plane);
 	};
 }
