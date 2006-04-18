@@ -7655,7 +7655,9 @@ void CMainFrame::OpenSetupWindowTitle(CString fn)
 {
 	CString title(MAKEINTRESOURCE(IDR_MAINFRAME));
 
-	int i = AfxGetAppSettings().iTitleBarTextStyle;
+	AppSettings& s = AfxGetAppSettings();
+
+	int i = s.iTitleBarTextStyle;
 
 	if(!fn.IsEmpty() && (i == 0 || i == 1))
 	{
@@ -7666,6 +7668,23 @@ void CMainFrame::OpenSetupWindowTitle(CString fn)
 				fn.Replace('\\', '/');
 				CString fn2 = fn.Mid(fn.ReverseFind('/')+1);
 				if(!fn2.IsEmpty()) fn = fn2;
+
+				if(s.fTitleBarTextTitle)
+				{
+					BeginEnumFilters(pGB, pEF, pBF)
+					{
+						if(CComQIPtr<IAMMediaContent, &IID_IAMMediaContent> pAMMC = pBF)
+						{
+							CComBSTR bstr;
+							if(SUCCEEDED(pAMMC->get_Title(&bstr)) && bstr.Length())
+							{
+								fn = CString(bstr.m_str);
+								break;
+							}
+						}
+					}
+					EndEnumFilters
+				}
 			}
 			else if(m_iPlaybackMode == PM_DVD)
 			{

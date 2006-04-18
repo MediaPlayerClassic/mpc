@@ -60,6 +60,7 @@ void CPPagePlayer::DoDataExchange(CDataExchange* pDX)
 	__super::DoDataExchange(pDX);
 	DDX_Radio(pDX, IDC_RADIO1, m_iAllowMultipleInst);
 	DDX_Radio(pDX, IDC_RADIO3, m_iTitleBarTextStyle);
+	DDX_Check(pDX, IDC_CHECK13, m_bTitleBarTextTitle);
 	DDX_Check(pDX, IDC_CHECK2, m_iAlwaysOnTop);
 	DDX_Check(pDX, IDC_CHECK3, m_fTrayIcon);
 	DDX_Check(pDX, IDC_CHECK4, m_iShowBarsWhenFullScreen);
@@ -76,15 +77,14 @@ void CPPagePlayer::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_CHECK11, m_launchfullscreen);
 }
 
-
 BEGIN_MESSAGE_MAP(CPPagePlayer, CPPageBase)
 	ON_BN_CLICKED(IDC_CHECK8, OnBnClickedCheck8)
 	ON_UPDATE_COMMAND_UI(IDC_SPIN1, OnUpdateTimeout)
 	ON_UPDATE_COMMAND_UI(IDC_EDIT1, OnUpdateTimeout)
 	ON_UPDATE_COMMAND_UI(IDC_STATIC1, OnUpdateTimeout)
 	ON_UPDATE_COMMAND_UI(IDC_STATIC2, OnUpdateTimeout)
+	ON_UPDATE_COMMAND_UI(IDC_CHECK13, OnUpdateCheck13)
 END_MESSAGE_MAP()
-
 
 // CPPagePlayer message handlers
 
@@ -96,6 +96,7 @@ BOOL CPPagePlayer::OnInitDialog()
 
 	m_iAllowMultipleInst = s.fAllowMultipleInst;
 	m_iTitleBarTextStyle = s.iTitleBarTextStyle;
+	m_bTitleBarTextTitle = s.fTitleBarTextTitle;
 	m_iAlwaysOnTop = s.iOnTop;
 	m_fTrayIcon = s.fTrayIcon;
 	m_iShowBarsWhenFullScreen = s.fShowBarsWhenFullScreen;
@@ -125,6 +126,7 @@ BOOL CPPagePlayer::OnApply()
 
 	s.fAllowMultipleInst = !!m_iAllowMultipleInst;
 	s.iTitleBarTextStyle = m_iTitleBarTextStyle;
+	s.fTitleBarTextTitle = !!m_bTitleBarTextTitle;
 	s.iOnTop = m_iAlwaysOnTop;
 	s.fTrayIcon = !!m_fTrayIcon;
 	s.fShowBarsWhenFullScreen = !!m_iShowBarsWhenFullScreen;
@@ -170,3 +172,9 @@ void CPPagePlayer::OnUpdateTimeout(CCmdUI* pCmdUI)
 	pCmdUI->Enable(m_iShowBarsWhenFullScreen);
 }
 
+void CPPagePlayer::OnUpdateCheck13(CCmdUI* pCmdUI)
+{
+	UpdateData();
+
+	pCmdUI->Enable(m_iTitleBarTextStyle == 1);
+}

@@ -385,6 +385,7 @@ public:
 
 		bool fAllowMultipleInst;
 		int iTitleBarTextStyle;
+		bool fTitleBarTextTitle;
 		int iOnTop;
 		bool fTrayIcon;
 		bool fRememberZoomLevel;

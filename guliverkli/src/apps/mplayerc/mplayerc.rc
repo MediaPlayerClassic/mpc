@@ -230,8 +230,8 @@ BEGIN
     CONTROL         "Launch files in fullscreen",IDC_CHECK11,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,109,93,10
     GROUPBOX        "Title bar",IDC_STATIC,5,130,117,61
     CONTROL         "Display full path",IDC_RADIO3,"Button",BS_AUTORADIOBUTTON | WS_GROUP,16,143,67,10
-    CONTROL         "File name only",IDC_RADIO4,"Button",BS_AUTORADIOBUTTON,16,158,61,10
-    CONTROL         "Don't prefix anything",IDC_RADIO5,"Button",BS_AUTORADIOBUTTON,16,173,83,10
+    CONTROL         "File name only",IDC_RADIO4,"Button",BS_AUTORADIOBUTTON,16,154,61,10
+    CONTROL         "Don't prefix anything",IDC_RADIO5,"Button",BS_AUTORADIOBUTTON,16,165,83,10
     GROUPBOX        "Other",IDC_STATIC,130,7,159,184,WS_GROUP
     CONTROL         "Always on top",IDC_CHECK2,"Button",BS_AUTO3STATE | WS_GROUP | WS_TABSTOP,140,19,61,10
     CONTROL         "Tray icon",IDC_CHECK3,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,140,32,45,10
@@ -250,6 +250,7 @@ BEGIN
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,140,144,133,10
     CONTROL         "Hide CD-ROMs menu",IDC_CHECK10,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,140,157,82,10
     CONTROL         "Process priority above normal",IDC_CHECK9,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,140,170,111,10
+    CONTROL         "Replace file name with title",IDC_CHECK13,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,177,101,10
 END
 
 IDD_PPAGEDVD DIALOGEX 0, 0, 296, 193
@@ -1936,6 +1937,7 @@ STRINGTABLE
 BEGIN
     IDS_R_SETTINGS          "Settings"
     IDS_RS_TITLEBARTEXTSTYLE "TitleBarTextStyle"
+	IDS_RS_TITLEBARTEXTTITLE "TitleBarTextTitle"
     IDS_RS_USEWMASFREADER   "UseWMASFReader"
     IDS_RS_CONTROLSTATE     "ControlState"
     IDS_RS_VOLUME           "Volume"
