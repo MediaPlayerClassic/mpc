@@ -129,9 +129,11 @@ bool CFLVSplitterFilter::Sync(__int64& pos)
 
 	while(m_pFile->GetPos() <= m_pFile->GetLength() - 11)
 	{
+		int limit = m_pFile->GetLength() - m_pFile->GetPos();
+
 		BYTE b;
 		do {b = m_pFile->BitRead(8);}
-		while(b != 8 && b != 9);
+		while(b != 8 && b != 9 && limit-- > 0);
 
 		pos = m_pFile->GetPos();
 
@@ -250,6 +252,10 @@ HRESULT CFLVSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 				VIDEOINFOHEADER* vih = (VIDEOINFOHEADER*)mt.AllocFormatBuffer(sizeof(VIDEOINFOHEADER));
 				memset(vih, 0, sizeof(VIDEOINFOHEADER));
 
+				BITMAPINFOHEADER* bih = &vih->bmiHeader;
+
+				int w, h, arx, ary;
+
 				switch(vt.CodecID)
 				{
 				case 2: 
@@ -257,9 +263,7 @@ HRESULT CFLVSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 
 					m_pFile->BitRead(13); // Version (5), TemporalReference (8)
 
-					BYTE PictureSize = (BYTE)m_pFile->BitRead(3);
-
-					switch(PictureSize)
+					switch(BYTE PictureSize = (BYTE)m_pFile->BitRead(3)) // w00t
 					{
 					case 0: case 1:
 						vih->bmiHeader.biWidth = (WORD)m_pFile->BitRead(8*(PictureSize+1));
@@ -279,6 +283,32 @@ HRESULT CFLVSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 					if(!vih->bmiHeader.biWidth || !vih->bmiHeader.biHeight) break;
 
 					mt.subtype = FOURCCMap(vih->bmiHeader.biCompression = '1VLF');
+
+					break;
+
+				case 4:
+					EXECUTE_ASSERT(m_pFile->BitRead(8) == 0);
+					if((m_pFile->BitRead(16) & 0x80fe) != 0x0046) break;
+
+					h = m_pFile->BitRead(8) * 16;
+					w = m_pFile->BitRead(8) * 16;
+
+					ary = m_pFile->BitRead(8) * 16;
+					arx = m_pFile->BitRead(8) * 16;
+
+					if(arx && arx != w || ary && ary != h)
+					{
+						VIDEOINFOHEADER2* vih2 = (VIDEOINFOHEADER2*)mt.AllocFormatBuffer(sizeof(VIDEOINFOHEADER2));
+						memset(vih2, 0, sizeof(VIDEOINFOHEADER2));
+						vih2->dwPictAspectRatioX = arx;
+						vih2->dwPictAspectRatioY = ary;
+						bih = &vih2->bmiHeader;						
+					}
+
+					bih->biWidth = w;
+					bih->biHeight = h;
+
+					mt.subtype = FOURCCMap(bih->biCompression = '26PV');
 
 					break;
 				}
@@ -408,6 +438,8 @@ bool CFLVSplitterFilter::DemuxLoop()
 			p->rtStart = 10000i64 * t.TimeStamp; 
 			p->rtStop = p->rtStart + 1;
 			p->bSyncPoint = t.TagType == 9 ? vt.FrameType == 1 : true;
+			if(t.TagType == 9 && vt.CodecID == 4) 
+				EXECUTE_ASSERT(m_pFile->BitRead(8) == 0);
 			p->SetCount(next - m_pFile->GetPos());
 			m_pFile->ByteRead(p->GetData(), p->GetCount());
 			hr = DeliverPacket(p); 

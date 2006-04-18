@@ -368,6 +368,7 @@
 #define IDC_CHECK10                     11089
 #define IDC_CHECK11                     11090
 #define IDC_CHECK12                     11091
+#define IDC_CHECK13                     11092
 #define IDC_SPIN1                       11100
 #define IDC_SPIN2                       11101
 #define IDC_SPIN3                       11102
@@ -448,7 +449,7 @@
 #define IDC_DX9RESIZER_COMBO            12130
 #define IDC_DSVMR9LOADMIXER             12131
 #define IDC_CHECK_MPEGINTERLACED        12132
-#define IDC_DSVMR9YUVMIXER				12133
+#define IDC_DSVMR9YUVMIXER              12133
 #define IDS_R_SETTINGS                  13000
 #define IDS_RS_TITLEBARTEXTSTYLE        13001
 #define IDS_RS_USEWMASFREADER           13002
@@ -592,7 +593,8 @@
 #define IDS_RS_AUDIONORMALIZE           13140
 #define IDS_RS_AUDIOBOOST               13141
 #define IDS_RS_AUDIONORMALIZERECOVER    13142
-#define IDS_RS_VMR9MIXERYUV				13143
+#define IDS_RS_VMR9MIXERYUV             13143
+#define IDS_RS_TITLEBARTEXTTITLE		13144
 #define IDS_SRC_RADGT                   14000
 #define IDS_SRC_CDDA                    14001
 #define IDS_SRC_AVI                     14002
@@ -622,7 +624,7 @@
 #define IDS_TRA_AAC                     14026
 #define IDS_TRA_DIRAC                   14027
 #define IDS_TRA_PS2AUD                  14028
-#define IDS_SRC_FLV						14029
+#define IDS_SRC_FLV                     14029
 #define IDS_VIDRENDDESC                 14100
 #define IDS_CONVERT_ADDFILE             14101
 #define IDS_CONVERT_PROPERTIES          14102
@@ -712,8 +714,8 @@
 #define IDS_GRAPHBUILDER_AUDIOSWITCHER  14186
 #define IDS_SHADER_EDIT                 14187
 #define IDS_FAVFILES                    14188
-#define IDS_FAVDVDS						14189
-#define IDS_FAVDEVICES					14190
+#define IDS_FAVDVDS                     14189
+#define IDS_FAVDEVICES                  14190
 
 // Next default values for new objects
 // 

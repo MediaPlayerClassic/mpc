@@ -158,7 +158,7 @@ BOOL CPPageOutput::OnInitDialog()
 
 	UpdateData(FALSE);
 
-	if(!AfxGetAppSettings().fXpOrBetter)
+	if(!IsCLSIDRegistered(CLSID_VideoMixingRenderer))
 	{
 		DisableRadioButton(IDC_DSVMR7WIN, IDC_DSSYSDEF);
 		DisableRadioButton(IDC_DSVMR7REN, IDC_DSSYSDEF);

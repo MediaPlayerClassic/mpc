@@ -35,6 +35,7 @@ public:
 
 	int m_iAllowMultipleInst;
 	int m_iTitleBarTextStyle;
+	BOOL m_bTitleBarTextTitle;
 	BOOL m_iAlwaysOnTop;
 	BOOL m_iShowBarsWhenFullScreen;
 	int m_nShowBarsWhenFullScreenTimeOut;
@@ -63,4 +64,5 @@ protected:
 public:
 	afx_msg void OnBnClickedCheck8();
 	afx_msg void OnUpdateTimeout(CCmdUI* pCmdUI);
+	afx_msg void OnUpdateCheck13(CCmdUI* pCmdUI);
 };
