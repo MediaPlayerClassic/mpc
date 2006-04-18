@@ -518,6 +518,7 @@ CMpegSourceFilter::CMpegSourceFilter(LPUNKNOWN pUnk, HRESULT* phr, const CLSID& 
 
 CMpegSplitterOutputPin::CMpegSplitterOutputPin(CAtlArray<CMediaType>& mts, LPCWSTR pName, CBaseFilter* pFilter, CCritSec* pLock, HRESULT* phr)
 	: CBaseSplitterOutputPin(mts, pName, pFilter, pLock, phr)
+	, m_fHasAccessUnitDelimiters(false)
 {
 }
 
@@ -709,7 +710,9 @@ TRACE(_T("%I64d, %I64d (%I64d)\n"), p->rtStart, m_rtPrev, m_rtOffset);
 			Packet* pPacket = m_pl.GetAt(pos);
 			BYTE* pData = pPacket->GetData();
 
-			if(/*pPacket->rtStart != Packet::INVALID_TIME ||*/ (pData[4]&0x1f) == 0x09)
+			if((pData[4]&0x1f) == 0x09) m_fHasAccessUnitDelimiters = true;
+
+			if((pData[4]&0x1f) == 0x09 || !m_fHasAccessUnitDelimiters && pPacket->rtStart != Packet::INVALID_TIME)
 			{
 				p = m_pl.RemoveHead();
 
