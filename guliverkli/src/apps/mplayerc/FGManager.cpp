@@ -1584,6 +1584,23 @@ CFGManagerCustom::CFGManagerCustom(LPCTSTR pName, LPUNKNOWN pUnk, UINT src, UINT
 	pFGF->AddType(MEDIATYPE_NULL, MEDIASUBTYPE_SVCD_SUBPICTURE);
 	m_transform.AddTail(pFGF);
 
+	__if_exists(CFLVVideoDecoder)
+	{
+	pFGF = new CFGFilterInternal<CFLVVideoDecoder>(
+		(tra & TRA_FLV4) ? L"FLV Video Decoder" : L"FLV Video Decoder (low merit)",
+		(tra & TRA_FLV4) ? MERIT64_ABOVE_DSHOW : MERIT64_DO_USE);
+	pFGF->AddType(MEDIATYPE_Video, MEDIASUBTYPE_FLV4);
+	m_transform.AddTail(pFGF);
+	
+	pFGF = new CFGFilterInternal<CFLVVideoDecoder>(
+		(tra & TRA_VP62) ? L"VP62 Video Decoder" : L"VP62 Video Decoder (low merit)",
+		(tra & TRA_VP62) ? MERIT64_ABOVE_DSHOW : MERIT64_DO_USE);
+	pFGF->AddType(MEDIATYPE_Video, MEDIASUBTYPE_VP62);
+	// pFGF->AddType(MEDIATYPE_Video, MEDIASUBTYPE_VP61);
+	// pFGF->AddType(MEDIATYPE_Video, MEDIASUBTYPE_VP60);
+	m_transform.AddTail(pFGF);
+	}
+
 	// Blocked filters
 
 	// "Subtitle Mixer" makes an access violation around the 
