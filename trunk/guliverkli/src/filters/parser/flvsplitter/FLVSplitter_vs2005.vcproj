@@ -326,7 +326,7 @@
 			<Tool
 				Name="VCLinkerTool"
 				RegisterOutput="true"
-				AdditionalDependencies="strmbaseD.lib dsutilD.lib basesplitterD.lib"
+				AdditionalDependencies="strmbaseD.lib dsutilD.lib basesplitterD.lib basevideofilterD.lib"
 				OutputFile="$(OutDir)/$(ProjectName).ax"
 				AdditionalLibraryDirectories="..\..\..\..\lib"
 				ModuleDefinitionFile="$(ProjectName).def"
@@ -409,7 +409,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="strmbaseR.lib dsutilR.lib basesplitterR.lib"
+				AdditionalDependencies="strmbaseR.lib dsutilR.lib basesplitterR.lib basevideofilterR.lib"
 				OutputFile="$(OutDir)/$(ProjectName).ax"
 				AdditionalLibraryDirectories="..\..\..\..\lib"
 				ModuleDefinitionFile="$(ProjectName).def"
@@ -492,7 +492,7 @@
 			<Tool
 				Name="VCLinkerTool"
 				RegisterOutput="true"
-				AdditionalDependencies="strmbaseDU.lib dsutilDU.lib basesplitterDU.lib"
+				AdditionalDependencies="strmbaseDU.lib dsutilDU.lib basesplitterDU.lib basevideofilterDU.lib"
 				OutputFile="$(OutDir)/$(ProjectName).ax"
 				AdditionalLibraryDirectories="..\..\..\..\lib"
 				IgnoreDefaultLibraryNames=""
@@ -576,7 +576,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies=" strmbaseRU.lib dsutilRU.lib basesplitterRU.lib"
+				AdditionalDependencies=" strmbaseRU.lib dsutilRU.lib basesplitterRU.lib basevideofilterRU.lib"
 				OutputFile="$(OutDir)/$(ProjectName).ax"
 				AdditionalLibraryDirectories="..\..\..\..\lib"
 				ModuleDefinitionFile="$(ProjectName).def"
@@ -703,6 +703,10 @@
 					/>
 				</FileConfiguration>
 			</File>
+			<File
+				RelativePath=".\VP62.cpp"
+				>
+			</File>
 		</Filter>
 		<Filter
 			Name="Header Files"
@@ -750,6 +754,10 @@
 			</File>
 			<File
 				RelativePath="stdafx.h"
+				>
+			</File>
+			<File
+				RelativePath=".\VP62.h"
 				>
 			</File>
 		</Filter>
