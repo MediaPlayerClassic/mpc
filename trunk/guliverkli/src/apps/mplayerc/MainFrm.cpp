@@ -6261,9 +6261,6 @@ CSize CMainFrame::GetVideoSize()
 			arxy.SetSize(arx, ary);
 	}
 
-	CSize& ar = AfxGetAppSettings().AspectRatio;
-	if(ar.cx && ar.cy) arxy = ar;
-
 	if(wh.cx <= 0 || wh.cy <= 0)
 		return ret;
 
@@ -6271,6 +6268,9 @@ CSize CMainFrame::GetVideoSize()
 	DVD_VideoAttributes VATR;
 	if(m_iPlaybackMode == PM_DVD && SUCCEEDED(pDVDI->GetCurrentVideoAttributes(&VATR)))
 		arxy.SetSize(VATR.ulAspectX, VATR.ulAspectY);
+
+	CSize& ar = AfxGetAppSettings().AspectRatio;
+	if(ar.cx && ar.cy) arxy = ar;
 
 	ret = (!fKeepAspectRatio || arxy.cx <= 0 || arxy.cy <= 0)
 		? wh
