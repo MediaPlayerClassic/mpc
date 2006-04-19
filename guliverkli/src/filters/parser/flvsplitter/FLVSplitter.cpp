@@ -62,7 +62,7 @@ const AMOVIESETUP_FILTER sudFilter[] =
 	{&__uuidof(CFLVSplitterFilter), L"FLV Splitter", MERIT_NORMAL, countof(sudpPins), sudpPins},
 	{&__uuidof(CFLVSourceFilter), L"FLV Source", MERIT_NORMAL, 0, NULL},
 	__if_exists(CFLVVideoDecoder) {
-	{&__uuidof(CFLVVideoDecoder), L"FLV Video Decoder", MERIT_PREFERRED+1, countof(sudpPins2), sudpPins2},
+	{&__uuidof(CFLVVideoDecoder), L"FLV Video Decoder", MERIT_NORMAL, countof(sudpPins2), sudpPins2},
 	}
 };
 
