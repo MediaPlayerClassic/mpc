@@ -95,6 +95,20 @@ namespace ssf
 		return false;
 	}
 
+	void CRenderer::Append(REFERENCE_TIME rtStart, REFERENCE_TIME rtStop, LPCWSTR str)
+	{
+		if(!m_file) return;
+
+		try
+		{
+			m_file->Append(ssf::WCharInputStream(str), (float)rtStart / 10000000, (float)rtStop / 10000000);
+		}
+		catch(Exception& e)
+		{
+			TRACE(_T("%s\n"), e.ToString());
+		}
+	}
+
 	STDMETHODIMP CRenderer::NonDelegatingQueryInterface(REFIID riid, void** ppv)
 	{
 		CheckPointer(ppv, E_POINTER);

@@ -43,6 +43,8 @@ namespace ssf
 		bool Open(CString fn, CString name = _T(""));
 		bool Open(InputStream& s, CString name);
 
+		void Append(REFERENCE_TIME rtStart, REFERENCE_TIME rtStop, LPCWSTR str);
+
 		DECLARE_IUNKNOWN
 		STDMETHODIMP NonDelegatingQueryInterface(REFIID riid, void** ppv);
 

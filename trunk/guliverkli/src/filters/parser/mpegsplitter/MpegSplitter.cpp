@@ -68,7 +68,8 @@ STDAPI DllRegisterServer()
 	CAtlList<CString> chkbytes;
 	chkbytes.AddTail(_T("0,1,,47,188,1,,47,376,1,,47"));
 	chkbytes.AddTail(_T("4,1,,47,196,1,,47,388,1,,47"));
-	RegisterSourceFilter(CLSID_AsyncReader, MEDIASUBTYPE_MPEG2_TRANSPORT, chkbytes, NULL);
+	chkbytes.AddTail(_T("0,4,,54467263,1660,1,,47")); // TFrc
+	RegisterSourceFilter(CLSID_AsyncReader, MEDIASUBTYPE_MPEG2_TRANSPORT, chkbytes, NULL);	
 
 	return AMovieDllRegisterServer2(TRUE);
 }

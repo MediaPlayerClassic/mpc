@@ -1304,6 +1304,7 @@ CFGManagerCustom::CFGManagerCustom(LPCTSTR pName, LPUNKNOWN pUnk, UINT src, UINT
 		pFGF->m_chkbytes.AddTail(_T("0,5,FFFFFFFFC0,000001BA40"));
 		pFGF->m_chkbytes.AddTail(_T("0,1,,47,188,1,,47,376,1,,47"));
 		pFGF->m_chkbytes.AddTail(_T("4,1,,47,196,1,,47,388,1,,47"));
+		pFGF->m_chkbytes.AddTail(_T("0,4,,54467263,1660,1,,47"));
 		pFGF->m_chkbytes.AddTail(_T("0,8,fffffc00ffe00000,4156000055000000"));
 		m_source.AddTail(pFGF);
 	}
@@ -1596,8 +1597,6 @@ CFGManagerCustom::CFGManagerCustom(LPCTSTR pName, LPUNKNOWN pUnk, UINT src, UINT
 		(tra & TRA_VP62) ? L"VP62 Video Decoder" : L"VP62 Video Decoder (low merit)",
 		(tra & TRA_VP62) ? MERIT64_ABOVE_DSHOW : MERIT64_DO_USE);
 	pFGF->AddType(MEDIATYPE_Video, MEDIASUBTYPE_VP62);
-	// pFGF->AddType(MEDIATYPE_Video, MEDIASUBTYPE_VP61);
-	// pFGF->AddType(MEDIATYPE_Video, MEDIASUBTYPE_VP60);
 	m_transform.AddTail(pFGF);
 	}
 
@@ -1960,6 +1959,7 @@ CFGManagerMuxer::CFGManagerMuxer(LPCTSTR pName, LPUNKNOWN pUnk)
 	: CFGManagerCustom(pName, pUnk, ~0, ~0)
 {
 	m_source.AddTail(new CFGFilterInternal<CSubtitleSourceASS>());
+	m_source.AddTail(new CFGFilterInternal<CSSFSourceFilter>());
 }
 
 //

@@ -319,7 +319,7 @@ static CString CombinePath(CPath p, CString fn)
 bool CPlayerPlaylistBar::ParseMPCPlayList(CString fn)
 {
 	CString str;
-	CMap<int, int, CPlaylistItem, CPlaylistItem&> pli;
+	CAtlMap<int, CPlaylistItem> pli;
 	CAtlArray<int> idx;
 
 	CWebTextFile f(CTextFile::ANSI);

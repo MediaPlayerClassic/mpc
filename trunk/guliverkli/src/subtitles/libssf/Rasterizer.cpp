@@ -546,7 +546,7 @@ namespace ssf
 			{
 				for(int i = 0; i < mOverlayWidth; i++)
 				{
-					p[i*4+2] = min(p[i*4+1], 64 - p[i*4]); // TODO: sse2
+					p[i*4+2] = min(p[i*4+1], (1<<6) - p[i*4]); // TODO: sse2
 				}
 			}
 		}

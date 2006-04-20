@@ -631,6 +631,17 @@ namespace ssf
 
 	unsigned int Fill::gen_id = 0;
 
+	Color::operator DWORD()
+	{
+		DWORD c = 
+			(min(max((DWORD)b, 0), 255) <<  0) |
+			(min(max((DWORD)g, 0), 255) <<  8) |
+			(min(max((DWORD)r, 0), 255) << 16) |
+			(min(max((DWORD)a, 0), 255) << 24);
+
+		return c;
+	}
+
 	Path& Path::operator = (LPCWSTR str)
 	{
 		Split s(' ', str);
