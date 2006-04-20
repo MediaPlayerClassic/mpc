@@ -615,12 +615,7 @@ namespace ssf
 
 			if(g->style.shadow.depth <= 0) continue;
 
-			DWORD c = 
-				(min(max((DWORD)g->style.shadow.color.b, 0), 255) <<  0) |
-				(min(max((DWORD)g->style.shadow.color.g, 0), 255) <<  8) |
-				(min(max((DWORD)g->style.shadow.color.r, 0), 255) << 16) |
-				(min(max((DWORD)g->style.shadow.color.a, 0), 255) << 24);
-
+			DWORD c = g->style.shadow.color;
 			DWORD sw[6] = {c, -1};
 
 			bool outline = g->style.background.type == L"outline" && g->style.background.size > 0;
@@ -635,12 +630,7 @@ namespace ssf
 		{
 			Glyph* g = m_glyphs.GetNext(pos);
 
-			DWORD c = 
-				(min(max((DWORD)g->style.background.color.b, 0), 255) <<  0) |
-				(min(max((DWORD)g->style.background.color.g, 0), 255) <<  8) |
-				(min(max((DWORD)g->style.background.color.r, 0), 255) << 16) |
-				(min(max((DWORD)g->style.background.color.a, 0), 255) << 24);
-
+			DWORD c = g->style.background.color;
 			DWORD sw[6] = {c, -1};
 
 			if(g->style.background.type == L"outline" && g->style.background.size > 0)
@@ -661,12 +651,7 @@ namespace ssf
 		{
 			Glyph* g = m_glyphs.GetNext(pos);
 
-			DWORD c = 
-				(min(max((DWORD)g->style.font.color.b, 0), 255) <<  0) |
-				(min(max((DWORD)g->style.font.color.g, 0), 255) <<  8) |
-				(min(max((DWORD)g->style.font.color.r, 0), 255) << 16) |
-				(min(max((DWORD)g->style.font.color.a, 0), 255) << 24);
-
+			DWORD c = g->style.font.color;
 			DWORD sw[6] = {c, -1}; // TODO: fill
 
 			bbox |= g->ras.Draw(spd, m_clip, g->tl.x, g->tl.y, sw, 0);

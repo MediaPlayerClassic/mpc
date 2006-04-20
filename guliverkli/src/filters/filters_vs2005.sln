@@ -195,10 +195,10 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "baseclasses", "C:\Program F
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MP4Splitter", "parser\mp4splitter\MP4Splitter_vs2005.vcproj", "{9ED4B036-7399-4128-868D-6E71188E0277}"
 	ProjectSection(ProjectDependencies) = postProject
-		{37768B3F-89BC-4C16-B2A8-767C5DA84C3F} = {37768B3F-89BC-4C16-B2A8-767C5DA84C3F}
 		{2FCD4B66-9CF9-4C8F-BC70-37CD20002D49} = {2FCD4B66-9CF9-4C8F-BC70-37CD20002D49}
 		{7CDC5863-9F36-468D-A634-6D7799E0A15E} = {7CDC5863-9F36-468D-A634-6D7799E0A15E}
 		{273B3149-3192-4B75-A791-470320B90812} = {273B3149-3192-4B75-A791-470320B90812}
+		{37768B3F-89BC-4C16-B2A8-767C5DA84C3F} = {37768B3F-89BC-4C16-B2A8-767C5DA84C3F}
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "udpreader", "reader\udpreader\udpreader_vs2005.vcproj", "{3020FF9B-8202-488D-B137-11DECC510E6E}"
@@ -217,6 +217,13 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "FLVSplitter", "parser\flvsp
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libvorbisidec", "transform\mpadecfilter\libvorbisidec\libvorbisidec_vs2005.vcproj", "{A7134255-DFF3-42F7-9BC2-FAC6E71CFFAE}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SSFSplitter", "parser\ssfsplitter\SSFSplitter_vs2005.vcproj", "{CC07B80F-D44F-41A9-9E37-5F2B47B46EDC}"
+	ProjectSection(ProjectDependencies) = postProject
+		{37768B3F-89BC-4C16-B2A8-767C5DA84C3F} = {37768B3F-89BC-4C16-B2A8-767C5DA84C3F}
+		{273B3149-3192-4B75-A791-470320B90812} = {273B3149-3192-4B75-A791-470320B90812}
+		{7CDC5863-9F36-468D-A634-6D7799E0A15E} = {7CDC5863-9F36-468D-A634-6D7799E0A15E}
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -1350,6 +1357,30 @@ Global
 		{A7134255-DFF3-42F7-9BC2-FAC6E71CFFAE}.Release|Win32.ActiveCfg = Release|Win32
 		{A7134255-DFF3-42F7-9BC2-FAC6E71CFFAE}.Release|Win32.Build.0 = Release|Win32
 		{A7134255-DFF3-42F7-9BC2-FAC6E71CFFAE}.Release|x64.ActiveCfg = Release|Win32
+		{CC07B80F-D44F-41A9-9E37-5F2B47B46EDC}.Debug lib|Win32.ActiveCfg = Debug lib|Win32
+		{CC07B80F-D44F-41A9-9E37-5F2B47B46EDC}.Debug lib|Win32.Build.0 = Debug lib|Win32
+		{CC07B80F-D44F-41A9-9E37-5F2B47B46EDC}.Debug lib|x64.ActiveCfg = Debug lib|Win32
+		{CC07B80F-D44F-41A9-9E37-5F2B47B46EDC}.Debug Unicode lib|Win32.ActiveCfg = Debug Unicode lib|Win32
+		{CC07B80F-D44F-41A9-9E37-5F2B47B46EDC}.Debug Unicode lib|Win32.Build.0 = Debug Unicode lib|Win32
+		{CC07B80F-D44F-41A9-9E37-5F2B47B46EDC}.Debug Unicode lib|x64.ActiveCfg = Debug Unicode lib|Win32
+		{CC07B80F-D44F-41A9-9E37-5F2B47B46EDC}.Debug Unicode|Win32.ActiveCfg = Debug Unicode|Win32
+		{CC07B80F-D44F-41A9-9E37-5F2B47B46EDC}.Debug Unicode|Win32.Build.0 = Debug Unicode|Win32
+		{CC07B80F-D44F-41A9-9E37-5F2B47B46EDC}.Debug Unicode|x64.ActiveCfg = Debug Unicode|Win32
+		{CC07B80F-D44F-41A9-9E37-5F2B47B46EDC}.Debug|Win32.ActiveCfg = Debug|Win32
+		{CC07B80F-D44F-41A9-9E37-5F2B47B46EDC}.Debug|Win32.Build.0 = Debug|Win32
+		{CC07B80F-D44F-41A9-9E37-5F2B47B46EDC}.Debug|x64.ActiveCfg = Debug|Win32
+		{CC07B80F-D44F-41A9-9E37-5F2B47B46EDC}.Release lib|Win32.ActiveCfg = Release lib|Win32
+		{CC07B80F-D44F-41A9-9E37-5F2B47B46EDC}.Release lib|Win32.Build.0 = Release lib|Win32
+		{CC07B80F-D44F-41A9-9E37-5F2B47B46EDC}.Release lib|x64.ActiveCfg = Release lib|Win32
+		{CC07B80F-D44F-41A9-9E37-5F2B47B46EDC}.Release Unicode lib|Win32.ActiveCfg = Release Unicode lib|Win32
+		{CC07B80F-D44F-41A9-9E37-5F2B47B46EDC}.Release Unicode lib|Win32.Build.0 = Release Unicode lib|Win32
+		{CC07B80F-D44F-41A9-9E37-5F2B47B46EDC}.Release Unicode lib|x64.ActiveCfg = Release Unicode lib|Win32
+		{CC07B80F-D44F-41A9-9E37-5F2B47B46EDC}.Release Unicode|Win32.ActiveCfg = Release Unicode|Win32
+		{CC07B80F-D44F-41A9-9E37-5F2B47B46EDC}.Release Unicode|Win32.Build.0 = Release Unicode|Win32
+		{CC07B80F-D44F-41A9-9E37-5F2B47B46EDC}.Release Unicode|x64.ActiveCfg = Release Unicode|Win32
+		{CC07B80F-D44F-41A9-9E37-5F2B47B46EDC}.Release|Win32.ActiveCfg = Release|Win32
+		{CC07B80F-D44F-41A9-9E37-5F2B47B46EDC}.Release|Win32.Build.0 = Release|Win32
+		{CC07B80F-D44F-41A9-9E37-5F2B47B46EDC}.Release|x64.ActiveCfg = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

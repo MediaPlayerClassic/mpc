@@ -158,6 +158,20 @@ namespace ssf
 		return dynamic_cast<Definition*>(pNode);
 	}
 
+	void NodeFactory::GetNewDefs(CAtlList<Definition*>& defs)
+	{
+		defs.RemoveAll();
+
+		POSITION pos = m_newnodes.GetHeadPosition();
+		while(pos)
+		{
+			if(Definition* pDef = GetDefByName(m_newnodes.GetNext(pos)))
+			{
+				defs.AddTail(pDef);
+			}
+		}
+	}
+
 	void NodeFactory::Dump(OutputStream& s) const
 	{
 		if(!m_root) return;

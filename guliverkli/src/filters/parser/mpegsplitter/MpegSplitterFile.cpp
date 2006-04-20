@@ -49,6 +49,7 @@ HRESULT CMpegSplitterFile::Init()
 
 	if(m_type == us)
 	{
+		if(BitRead(32, true) == 'TFrc') Seek(0x67c);
 		int cnt = 0, limit = 4;
 		for(trhdr h; cnt < limit && Read(h); cnt++) Seek(h.next);
 		if(cnt >= limit) m_type = ts;

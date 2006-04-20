@@ -2168,6 +2168,7 @@ CString GetContentType(CString fn, CAtlList<CString>* redir)
 		else if(ext == _T(".pls")) ct = _T("audio/x-scpls");
 		else if(ext == _T(".m3u")) ct = _T("audio/x-mpegurl");
 		else if(ext == _T(".qtl")) ct = _T("application/x-quicktimeplayer");
+		else if(ext == _T(".mpcpl")) ct = _T("application/x-mpc-playlist");
 
 		if(FILE* f = _tfopen(fn, _T("rb")))
 		{
@@ -2185,9 +2186,6 @@ CString GetContentType(CString fn, CAtlList<CString>* redir)
 			return "audio/x-pn-realaudio";
 		if(!strncmp((LPCSTR)str, "FWS", 3))
 			return "application/x-shockwave-flash";
-		if(strstr((LPCSTR)str, "MPCPLAYLIST"))
-			return "application/x-mpc-playlist";
-
 	}
 
 	if(redir && !ct.IsEmpty())

@@ -65,6 +65,31 @@ namespace ssf
 		}
 	}
 
+	void SubtitleFile::Append(InputStream& s, float start, float stop)
+	{
+		Reference* pRootRef = GetRootRef();
+
+		ParseDefs(s, pRootRef);
+
+		CAtlList<Definition*> defs;
+		GetNewDefs(defs);
+
+		POSITION pos = defs.GetHeadPosition();
+		while(pos)
+		{
+			Definition* pDef = defs.GetNext(pos);
+
+			if(pDef->m_parent == pRootRef && pDef->m_type == L"subtitle" && (*pDef)[L"@"].IsValue())
+			{
+				m_segments.Insert(start, stop, pDef);
+
+				// TODO: old segment numbers become invalid here, invalidate pre-buffered subpics somehow
+			}
+		}
+
+		Commit();
+	}
+
 	bool SubtitleFile::Lookup(float at, CAutoPtrList<Subtitle>& subs)
 	{
 		if(!subs.IsEmpty()) {ASSERT(0); return false;}
@@ -98,6 +123,24 @@ namespace ssf
 		}
 
 		return !subs.IsEmpty();
+	}
+
+	void SubtitleFile::SetTime(Definition* pDef, float start, float stop)
+	{
+		// TODO: remove/overwrite dups
+
+		CStringW str;
+
+		Reference* pRefTime = CreateRef(pDef);
+		Definition* pDefTime = CreateDef(pRefTime, L"time");
+		
+		Reference* pRefStart = CreateRef(pDefTime);
+		str.Format(L"%.3f", start);
+		CreateDef(pRefStart, L"start")->SetAsNumber(str, L"s");
+		
+		Reference* pRefStop = CreateRef(pDefTime);
+		str.Format(L"%.3f", stop);
+		CreateDef(pRefStop, L"stop")->SetAsNumber(str, L"s");
 	}
 
 	//
