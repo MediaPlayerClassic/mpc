@@ -65,7 +65,7 @@ namespace ssf
 		}
 	}
 
-	void SubtitleFile::Append(InputStream& s, float start, float stop)
+	void SubtitleFile::Append(InputStream& s, float start, float stop, bool fSetTime)
 	{
 		Reference* pRootRef = GetRootRef();
 
@@ -83,7 +83,7 @@ namespace ssf
 			{
 				m_segments.Insert(start, stop, pDef);
 
-				// TODO: old segment numbers become invalid here, invalidate pre-buffered subpics somehow
+				if(fSetTime) SetTime(pDef, start, stop);
 			}
 		}
 
@@ -128,6 +128,18 @@ namespace ssf
 	void SubtitleFile::SetTime(Definition* pDef, float start, float stop)
 	{
 		// TODO: remove/overwrite dups
+
+		try
+		{
+			Definition::Time time;
+			StringMapW<float> offset;
+			pDef->GetAsTime(time, offset);
+			if(time.start.value == start && time.stop.value == stop)
+				return;
+		}
+		catch(Exception&)
+		{
+		}
 
 		CStringW str;
 
