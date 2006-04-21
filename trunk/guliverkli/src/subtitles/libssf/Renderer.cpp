@@ -635,7 +635,7 @@ namespace ssf
 
 			if(g->style.background.type == L"outline" && g->style.background.size > 0)
 			{
-				bbox |= g->ras.Draw(spd, m_clip, g->tl.x, g->tl.y, sw, 2);
+				bbox |= g->ras.Draw(spd, m_clip, g->tl.x, g->tl.y, sw, g->style.font.color.a < 255 ? 2 : 1);
 			}
 			else if(g->style.background.type == L"enlarge" && g->style.background.size > 0
 			|| g->style.background.type == L"box" && g->style.background.size >= 0)

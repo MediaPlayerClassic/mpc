@@ -542,7 +542,7 @@ HRESULT CFLVVideoDecoder::Transform(IMediaSample* pIn)
 	int pitch;
 	m_dec.getYUV(yuv, &pitch);
 
-	if(m_pInput->CurrentMediaType().subtype != MEDIASUBTYPE_FLV4)
+	if(m_pInput->CurrentMediaType().subtype == MEDIASUBTYPE_VP62)
 	{
 		yuv[0] += pitch * (h-1);
 		yuv[1] += (pitch/2) * ((h/2)-1);

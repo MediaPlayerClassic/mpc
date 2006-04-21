@@ -6,7 +6,6 @@
 	ProjectGUID="{ECB1B3B7-196D-4809-A5E2-6F65CDBB6CCA}"
 	RootNamespace="DiracSplitter"
 	Keyword="Win32Proj"
-	SignManifests="true"
 	>
 	<Platforms>
 		<Platform
@@ -18,9 +17,8 @@
 	<Configurations>
 		<Configuration
 			Name="Debug lib|Win32"
-			OutputDirectory="$(ConfigurationName)"
-			IntermediateDirectory="$(OutDir)"
 			ConfigurationType="4"
+			InheritedPropertySheets="..\..\..\common.vsprops"
 			UseOfMFC="1"
 			CharacterSet="2"
 			>
@@ -41,7 +39,6 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-DisableSpecificWarnings="4995;4996"
 				Optimization="0"
 				AdditionalIncludeDirectories="./libdirac"
 				PreprocessorDefinitions="WIN32;_DEBUG;_LIB"
@@ -50,8 +47,6 @@ DisableSpecificWarnings="4995;4996"
 				RuntimeLibrary="1"
 				ForceConformanceInForLoopScope="true"
 				RuntimeTypeInfo="true"
-				WarningLevel="3"
-				Detect64BitPortabilityProblems="false"
 				DebugInformationFormat="4"
 			/>
 			<Tool
@@ -86,9 +81,8 @@ DisableSpecificWarnings="4995;4996"
 		</Configuration>
 		<Configuration
 			Name="Release lib|Win32"
-			OutputDirectory="$(ConfigurationName)"
-			IntermediateDirectory="$(OutDir)"
 			ConfigurationType="4"
+			InheritedPropertySheets="..\..\..\common.vsprops"
 			UseOfMFC="1"
 			CharacterSet="2"
 			>
@@ -109,7 +103,6 @@ DisableSpecificWarnings="4995;4996"
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-DisableSpecificWarnings="4995;4996"
 				Optimization="2"
 				InlineFunctionExpansion="1"
 				FavorSizeOrSpeed="1"
@@ -121,8 +114,6 @@ DisableSpecificWarnings="4995;4996"
 				EnableFunctionLevelLinking="true"
 				ForceConformanceInForLoopScope="true"
 				RuntimeTypeInfo="true"
-				WarningLevel="3"
-				Detect64BitPortabilityProblems="false"
 				DebugInformationFormat="0"
 			/>
 			<Tool
@@ -157,9 +148,8 @@ DisableSpecificWarnings="4995;4996"
 		</Configuration>
 		<Configuration
 			Name="Debug Unicode lib|Win32"
-			OutputDirectory="$(ConfigurationName)"
-			IntermediateDirectory="$(OutDir)"
 			ConfigurationType="4"
+			InheritedPropertySheets="..\..\..\common.vsprops"
 			UseOfMFC="1"
 			CharacterSet="1"
 			>
@@ -180,7 +170,6 @@ DisableSpecificWarnings="4995;4996"
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-DisableSpecificWarnings="4995;4996"
 				Optimization="0"
 				AdditionalIncludeDirectories="./libdirac"
 				PreprocessorDefinitions="WIN32;_DEBUG;_LIB"
@@ -189,8 +178,6 @@ DisableSpecificWarnings="4995;4996"
 				RuntimeLibrary="1"
 				ForceConformanceInForLoopScope="true"
 				RuntimeTypeInfo="true"
-				WarningLevel="3"
-				Detect64BitPortabilityProblems="false"
 				DebugInformationFormat="4"
 			/>
 			<Tool
@@ -225,9 +212,8 @@ DisableSpecificWarnings="4995;4996"
 		</Configuration>
 		<Configuration
 			Name="Release Unicode lib|Win32"
-			OutputDirectory="$(ConfigurationName)"
-			IntermediateDirectory="$(OutDir)"
 			ConfigurationType="4"
+			InheritedPropertySheets="..\..\..\common.vsprops"
 			UseOfMFC="1"
 			CharacterSet="1"
 			>
@@ -248,7 +234,6 @@ DisableSpecificWarnings="4995;4996"
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-DisableSpecificWarnings="4995;4996"
 				Optimization="2"
 				InlineFunctionExpansion="1"
 				FavorSizeOrSpeed="1"
@@ -260,8 +245,6 @@ DisableSpecificWarnings="4995;4996"
 				EnableFunctionLevelLinking="true"
 				ForceConformanceInForLoopScope="true"
 				RuntimeTypeInfo="true"
-				WarningLevel="3"
-				Detect64BitPortabilityProblems="false"
 				DebugInformationFormat="0"
 			/>
 			<Tool
@@ -296,9 +279,8 @@ DisableSpecificWarnings="4995;4996"
 		</Configuration>
 		<Configuration
 			Name="Debug|Win32"
-			OutputDirectory="Debug"
-			IntermediateDirectory="Debug"
 			ConfigurationType="2"
+			InheritedPropertySheets="..\..\..\common.vsprops"
 			UseOfMFC="1"
 			CharacterSet="2"
 			>
@@ -319,7 +301,6 @@ DisableSpecificWarnings="4995;4996"
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-DisableSpecificWarnings="4995;4996"
 				Optimization="0"
 				AdditionalIncludeDirectories="./libdirac"
 				PreprocessorDefinitions="REGISTER_FILTER;WIN32;_DEBUG;_USRDLL"
@@ -328,8 +309,6 @@ DisableSpecificWarnings="4995;4996"
 				RuntimeLibrary="1"
 				ForceConformanceInForLoopScope="true"
 				RuntimeTypeInfo="true"
-				WarningLevel="3"
-				Detect64BitPortabilityProblems="false"
 				DebugInformationFormat="4"
 			/>
 			<Tool
@@ -379,9 +358,8 @@ DisableSpecificWarnings="4995;4996"
 		</Configuration>
 		<Configuration
 			Name="Release|Win32"
-			OutputDirectory="Release"
-			IntermediateDirectory="Release"
 			ConfigurationType="2"
+			InheritedPropertySheets="..\..\..\common.vsprops"
 			UseOfMFC="1"
 			CharacterSet="2"
 			>
@@ -402,7 +380,6 @@ DisableSpecificWarnings="4995;4996"
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-DisableSpecificWarnings="4995;4996"
 				Optimization="2"
 				InlineFunctionExpansion="1"
 				FavorSizeOrSpeed="1"
@@ -414,8 +391,6 @@ DisableSpecificWarnings="4995;4996"
 				EnableFunctionLevelLinking="true"
 				ForceConformanceInForLoopScope="true"
 				RuntimeTypeInfo="true"
-				WarningLevel="3"
-				Detect64BitPortabilityProblems="false"
 				DebugInformationFormat="0"
 			/>
 			<Tool
@@ -466,9 +441,8 @@ DisableSpecificWarnings="4995;4996"
 		</Configuration>
 		<Configuration
 			Name="Debug Unicode|Win32"
-			OutputDirectory="Debug Unicode"
-			IntermediateDirectory="Debug Unicode"
 			ConfigurationType="2"
+			InheritedPropertySheets="..\..\..\common.vsprops"
 			UseOfMFC="1"
 			CharacterSet="1"
 			>
@@ -489,17 +463,13 @@ DisableSpecificWarnings="4995;4996"
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-DisableSpecificWarnings="4995;4996"
 				Optimization="0"
 				AdditionalIncludeDirectories="./libdirac"
 				PreprocessorDefinitions="REGISTER_FILTER;WIN32;_DEBUG;_USRDLL"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="1"
-				ForceConformanceInForLoopScope="true"
 				RuntimeTypeInfo="true"
-				WarningLevel="3"
-				Detect64BitPortabilityProblems="false"
 				DebugInformationFormat="4"
 			/>
 			<Tool
@@ -550,9 +520,8 @@ DisableSpecificWarnings="4995;4996"
 		</Configuration>
 		<Configuration
 			Name="Release Unicode|Win32"
-			OutputDirectory="Release Unicode"
-			IntermediateDirectory="Release Unicode"
 			ConfigurationType="2"
+			InheritedPropertySheets="..\..\..\common.vsprops"
 			UseOfMFC="1"
 			CharacterSet="1"
 			>
@@ -573,7 +542,6 @@ DisableSpecificWarnings="4995;4996"
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-DisableSpecificWarnings="4995;4996"
 				Optimization="2"
 				InlineFunctionExpansion="1"
 				FavorSizeOrSpeed="1"
@@ -585,8 +553,6 @@ DisableSpecificWarnings="4995;4996"
 				EnableFunctionLevelLinking="true"
 				ForceConformanceInForLoopScope="true"
 				RuntimeTypeInfo="true"
-				WarningLevel="3"
-				Detect64BitPortabilityProblems="false"
 				DebugInformationFormat="0"
 			/>
 			<Tool
