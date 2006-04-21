@@ -595,6 +595,8 @@ STDMETHODIMP CRealMediaGraph::NonDelegatingQueryInterface(REFIID riid, void** pp
 // IGraphBuilder
 STDMETHODIMP CRealMediaGraph::RenderFile(LPCWSTR lpcwstrFile, LPCWSTR lpcwstrPlayList)
 {
+	m_fn = lpcwstrFile;
+
 	CHAR buff[MAX_PATH] = {0};
 	WideCharToMultiByte(GetACP(), 0, lpcwstrFile, -1, buff, MAX_PATH, 0, 0);
 
@@ -616,6 +618,9 @@ STDMETHODIMP CRealMediaGraph::RenderFile(LPCWSTR lpcwstrFile, LPCWSTR lpcwstrPla
 // IMediaControl
 STDMETHODIMP CRealMediaGraph::Run()
 {
+	if(m_pRMP->m_pPlayer->IsDone())
+		RenderFile(m_fn, NULL);
+
 	m_pRMP->m_UserState = State_Running;
 	return (PNR_OK == m_pRMP->m_pPlayer->Begin()) ? S_OK : E_FAIL;
 }

@@ -183,6 +183,8 @@ class CRealMediaGraph : public CBaseGraph
 {
 	CRealMediaPlayer* m_pRMP; // TODO: access m_pRMP through a private interface
 
+	CStringW m_fn;
+
 public:
 	CRealMediaGraph(HWND hWndParent, HRESULT& hr); // in windowless mode IVideoWindow::* will return E_NOTIMPL, use ISubPicAllocatorPresenter instead
 	virtual ~CRealMediaGraph();
