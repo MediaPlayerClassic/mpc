@@ -67,7 +67,7 @@ namespace ssf
 		virtual ~SubtitleFile();
 
 		void Parse(InputStream& s);
-		void Append(InputStream& s, float start, float stop);
+		void Append(InputStream& s, float start, float stop, bool fSetTime = false);
 		bool Lookup(float at, CAutoPtrList<Subtitle>& subs);
 
 		void SetTime(Definition* pDef, float start, float stop);
