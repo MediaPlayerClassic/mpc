@@ -17,9 +17,8 @@
 	<Configurations>
 		<Configuration
 			Name="Debug lib|Win32"
-			OutputDirectory="$(ConfigurationName)"
-			IntermediateDirectory="$(OutDir)"
 			ConfigurationType="4"
+			InheritedPropertySheets="..\..\..\common.vsprops"
 			UseOfMFC="1"
 			CharacterSet="2"
 			>
@@ -46,10 +45,7 @@
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="1"
 				ForceConformanceInForLoopScope="true"
-				WarningLevel="3"
-				Detect64BitPortabilityProblems="false"
 				DebugInformationFormat="4"
-				DisableSpecificWarnings="4995;4996"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -82,9 +78,8 @@
 		</Configuration>
 		<Configuration
 			Name="Release lib|Win32"
-			OutputDirectory="$(ConfigurationName)"
-			IntermediateDirectory="$(OutDir)"
 			ConfigurationType="4"
+			InheritedPropertySheets="..\..\..\common.vsprops"
 			UseOfMFC="1"
 			CharacterSet="2"
 			>
@@ -113,10 +108,7 @@
 				RuntimeLibrary="0"
 				EnableFunctionLevelLinking="true"
 				ForceConformanceInForLoopScope="true"
-				WarningLevel="3"
-				Detect64BitPortabilityProblems="false"
 				DebugInformationFormat="0"
-				DisableSpecificWarnings="4995;4996"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -149,9 +141,8 @@
 		</Configuration>
 		<Configuration
 			Name="Debug Unicode lib|Win32"
-			OutputDirectory="Debug Unicode lib"
-			IntermediateDirectory="Debug Unicode lib"
 			ConfigurationType="4"
+			InheritedPropertySheets="..\..\..\common.vsprops"
 			UseOfMFC="1"
 			CharacterSet="1"
 			>
@@ -178,10 +169,7 @@
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="1"
 				ForceConformanceInForLoopScope="true"
-				WarningLevel="3"
-				Detect64BitPortabilityProblems="false"
 				DebugInformationFormat="4"
-				DisableSpecificWarnings="4995;4996"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -214,9 +202,8 @@
 		</Configuration>
 		<Configuration
 			Name="Release Unicode lib|Win32"
-			OutputDirectory="Release Unicode lib"
-			IntermediateDirectory="Release Unicode lib"
 			ConfigurationType="4"
+			InheritedPropertySheets="..\..\..\common.vsprops"
 			UseOfMFC="1"
 			CharacterSet="1"
 			>
@@ -245,10 +232,7 @@
 				RuntimeLibrary="0"
 				EnableFunctionLevelLinking="true"
 				ForceConformanceInForLoopScope="true"
-				WarningLevel="3"
-				Detect64BitPortabilityProblems="false"
 				DebugInformationFormat="0"
-				DisableSpecificWarnings="4995;4996"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -281,9 +265,8 @@
 		</Configuration>
 		<Configuration
 			Name="Debug|Win32"
-			OutputDirectory="Debug"
-			IntermediateDirectory="Debug"
 			ConfigurationType="2"
+			InheritedPropertySheets="..\..\..\common.vsprops"
 			UseOfMFC="1"
 			CharacterSet="2"
 			>
@@ -310,10 +293,7 @@
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="1"
 				ForceConformanceInForLoopScope="true"
-				WarningLevel="3"
-				Detect64BitPortabilityProblems="false"
 				DebugInformationFormat="4"
-				DisableSpecificWarnings="4995;4996"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -362,9 +342,8 @@
 		</Configuration>
 		<Configuration
 			Name="Debug Unicode|Win32"
-			OutputDirectory="Debug Unicode"
-			IntermediateDirectory="Debug Unicode"
 			ConfigurationType="2"
+			InheritedPropertySheets="..\..\..\common.vsprops"
 			UseOfMFC="1"
 			CharacterSet="1"
 			>
@@ -390,11 +369,7 @@
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="1"
-				ForceConformanceInForLoopScope="true"
-				WarningLevel="3"
-				Detect64BitPortabilityProblems="false"
 				DebugInformationFormat="4"
-				DisableSpecificWarnings="4995;4996"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -443,9 +418,8 @@
 		</Configuration>
 		<Configuration
 			Name="Release|Win32"
-			OutputDirectory="Release"
-			IntermediateDirectory="Release"
 			ConfigurationType="2"
+			InheritedPropertySheets="..\..\..\common.vsprops"
 			UseOfMFC="1"
 			CharacterSet="2"
 			>
@@ -474,10 +448,7 @@
 				RuntimeLibrary="0"
 				EnableFunctionLevelLinking="true"
 				ForceConformanceInForLoopScope="true"
-				WarningLevel="3"
-				Detect64BitPortabilityProblems="false"
 				DebugInformationFormat="0"
-				DisableSpecificWarnings="4995;4996"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -528,9 +499,8 @@
 		</Configuration>
 		<Configuration
 			Name="Release Unicode|Win32"
-			OutputDirectory="Release Unicode"
-			IntermediateDirectory="Release Unicode"
 			ConfigurationType="2"
+			InheritedPropertySheets="..\..\..\common.vsprops"
 			UseOfMFC="1"
 			CharacterSet="1"
 			>
@@ -559,10 +529,7 @@
 				RuntimeLibrary="0"
 				EnableFunctionLevelLinking="true"
 				ForceConformanceInForLoopScope="true"
-				WarningLevel="3"
-				Detect64BitPortabilityProblems="false"
 				DebugInformationFormat="0"
-				DisableSpecificWarnings="4995;4996"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"

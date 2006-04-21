@@ -17,9 +17,8 @@
 	<Configurations>
 		<Configuration
 			Name="Debug|Win32"
-			OutputDirectory="Debug"
-			IntermediateDirectory="Debug"
 			ConfigurationType="4"
+			InheritedPropertySheets="..\..\common.vsprops"
 			UseOfMFC="1"
 			CharacterSet="2"
 			>
@@ -46,10 +45,7 @@
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="1"
 				RuntimeTypeInfo="true"
-				WarningLevel="3"
-				Detect64BitPortabilityProblems="false"
 				DebugInformationFormat="4"
-				DisableSpecificWarnings="4995;4996"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -82,9 +78,8 @@
 		</Configuration>
 		<Configuration
 			Name="Release|Win32"
-			OutputDirectory="Release"
-			IntermediateDirectory="Release"
 			ConfigurationType="4"
+			InheritedPropertySheets="..\..\common.vsprops"
 			UseOfMFC="1"
 			CharacterSet="2"
 			>
@@ -115,10 +110,7 @@
 				RuntimeLibrary="0"
 				EnableFunctionLevelLinking="true"
 				RuntimeTypeInfo="true"
-				WarningLevel="3"
-				Detect64BitPortabilityProblems="false"
 				DebugInformationFormat="3"
-				DisableSpecificWarnings="4995;4996"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -151,9 +143,8 @@
 		</Configuration>
 		<Configuration
 			Name="Debug Unicode|Win32"
-			OutputDirectory="Debug Unicode"
-			IntermediateDirectory="Debug Unicode"
 			ConfigurationType="4"
+			InheritedPropertySheets="..\..\common.vsprops"
 			UseOfMFC="1"
 			CharacterSet="1"
 			>
@@ -180,10 +171,7 @@
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="1"
 				RuntimeTypeInfo="true"
-				WarningLevel="3"
-				Detect64BitPortabilityProblems="false"
 				DebugInformationFormat="4"
-				DisableSpecificWarnings="4995;4996"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -216,9 +204,8 @@
 		</Configuration>
 		<Configuration
 			Name="Release Unicode|Win32"
-			OutputDirectory="Release Unicode"
-			IntermediateDirectory="Release Unicode"
 			ConfigurationType="4"
+			InheritedPropertySheets="..\..\common.vsprops"
 			UseOfMFC="1"
 			CharacterSet="1"
 			>
@@ -248,12 +235,7 @@
 				StringPooling="true"
 				RuntimeLibrary="0"
 				EnableFunctionLevelLinking="true"
-				ForceConformanceInForLoopScope="true"
-				RuntimeTypeInfo="true"
-				WarningLevel="3"
-				Detect64BitPortabilityProblems="false"
 				DebugInformationFormat="3"
-				DisableSpecificWarnings="4995;4996"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"

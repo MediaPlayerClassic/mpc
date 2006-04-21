@@ -6,7 +6,6 @@
 	ProjectGUID="{12BE3440-A1F3-4C48-A229-30CB619EA276}"
 	RootNamespace="libdirac"
 	Keyword="Win32Proj"
-	SignManifests="true"
 	>
 	<Platforms>
 		<Platform
@@ -18,9 +17,8 @@
 	<Configurations>
 		<Configuration
 			Name="Debug|Win32"
-			OutputDirectory="Debug"
-			IntermediateDirectory="Debug"
 			ConfigurationType="4"
+			InheritedPropertySheets="..\..\..\..\common.vsprops"
 			CharacterSet="2"
 			>
 			<Tool
@@ -40,7 +38,6 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-DisableSpecificWarnings="4995;4996"
 				Optimization="0"
 				AdditionalIncludeDirectories="."
 				PreprocessorDefinitions="WIN32;_DEBUG;_LIB"
@@ -48,8 +45,6 @@ DisableSpecificWarnings="4995;4996"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="1"
 				UsePrecompiledHeader="0"
-				WarningLevel="3"
-				Detect64BitPortabilityProblems="true"
 				DebugInformationFormat="4"
 			/>
 			<Tool
@@ -83,9 +78,8 @@ DisableSpecificWarnings="4995;4996"
 		</Configuration>
 		<Configuration
 			Name="Release|Win32"
-			OutputDirectory="Release"
-			IntermediateDirectory="Release"
 			ConfigurationType="4"
+			InheritedPropertySheets="..\..\..\..\common.vsprops"
 			CharacterSet="2"
 			>
 			<Tool
@@ -105,7 +99,6 @@ DisableSpecificWarnings="4995;4996"
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-DisableSpecificWarnings="4995;4996"
 				Optimization="2"
 				InlineFunctionExpansion="2"
 				EnableIntrinsicFunctions="false"
@@ -116,8 +109,6 @@ DisableSpecificWarnings="4995;4996"
 				StringPooling="true"
 				RuntimeLibrary="0"
 				UsePrecompiledHeader="0"
-				WarningLevel="3"
-				Detect64BitPortabilityProblems="true"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"

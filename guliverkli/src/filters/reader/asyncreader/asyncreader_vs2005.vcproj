@@ -6,7 +6,6 @@
 	ProjectGUID="{9F31D122-E84D-485A-A58D-09DAD01A56CE}"
 	RootNamespace="asyncreader"
 	Keyword="Win32Proj"
-	SignManifests="true"
 	>
 	<Platforms>
 		<Platform
@@ -18,9 +17,8 @@
 	<Configurations>
 		<Configuration
 			Name="Debug|Win32"
-			OutputDirectory="Debug"
-			IntermediateDirectory="Debug"
 			ConfigurationType="4"
+			InheritedPropertySheets="..\..\..\common.vsprops"
 			CharacterSet="2"
 			>
 			<Tool
@@ -40,15 +38,12 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-DisableSpecificWarnings="4995;4996"
 				Optimization="0"
 				PreprocessorDefinitions="WIN32;_DEBUG;_LIB"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="1"
 				ForceConformanceInForLoopScope="true"
-				WarningLevel="3"
-				Detect64BitPortabilityProblems="false"
 				DebugInformationFormat="4"
 			/>
 			<Tool
@@ -82,9 +77,8 @@ DisableSpecificWarnings="4995;4996"
 		</Configuration>
 		<Configuration
 			Name="Release|Win32"
-			OutputDirectory="Release"
-			IntermediateDirectory="Release"
 			ConfigurationType="4"
+			InheritedPropertySheets="..\..\..\common.vsprops"
 			CharacterSet="2"
 			>
 			<Tool
@@ -104,7 +98,6 @@ DisableSpecificWarnings="4995;4996"
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-DisableSpecificWarnings="4995;4996"
 				Optimization="2"
 				InlineFunctionExpansion="1"
 				OmitFramePointers="true"
@@ -113,8 +106,6 @@ DisableSpecificWarnings="4995;4996"
 				RuntimeLibrary="0"
 				EnableFunctionLevelLinking="true"
 				ForceConformanceInForLoopScope="true"
-				WarningLevel="3"
-				Detect64BitPortabilityProblems="false"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -147,9 +138,8 @@ DisableSpecificWarnings="4995;4996"
 		</Configuration>
 		<Configuration
 			Name="Debug Unicode|Win32"
-			OutputDirectory="Debug Unicode"
-			IntermediateDirectory="Debug Unicode"
 			ConfigurationType="4"
+			InheritedPropertySheets="..\..\..\common.vsprops"
 			CharacterSet="1"
 			>
 			<Tool
@@ -169,15 +159,11 @@ DisableSpecificWarnings="4995;4996"
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-DisableSpecificWarnings="4995;4996"
 				Optimization="0"
 				PreprocessorDefinitions="WIN32;_DEBUG;_LIB"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="1"
-				ForceConformanceInForLoopScope="true"
-				WarningLevel="3"
-				Detect64BitPortabilityProblems="false"
 				DebugInformationFormat="4"
 			/>
 			<Tool
@@ -211,9 +197,8 @@ DisableSpecificWarnings="4995;4996"
 		</Configuration>
 		<Configuration
 			Name="Release Unicode|Win32"
-			OutputDirectory="Release Unicode"
-			IntermediateDirectory="Release Unicode"
 			ConfigurationType="4"
+			InheritedPropertySheets="..\..\..\common.vsprops"
 			CharacterSet="1"
 			>
 			<Tool
@@ -233,7 +218,6 @@ DisableSpecificWarnings="4995;4996"
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-DisableSpecificWarnings="4995;4996"
 				Optimization="2"
 				InlineFunctionExpansion="1"
 				OmitFramePointers="true"
@@ -242,8 +226,6 @@ DisableSpecificWarnings="4995;4996"
 				RuntimeLibrary="0"
 				EnableFunctionLevelLinking="true"
 				ForceConformanceInForLoopScope="true"
-				WarningLevel="3"
-				Detect64BitPortabilityProblems="false"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"

@@ -622,7 +622,7 @@ namespace ssf
 		color &= 0xffffff;
 
 		__m128i zero = _mm_setzero_si128();
-		__m128i a = _mm_set1_epi32((alpha << 16) | (0x100 - alpha));
+		__m128i a = _mm_set1_epi32((alpha << 16) | (0xff - alpha));
 		__m128i d = _mm_unpacklo_epi8(_mm_cvtsi32_si128(*dst), zero);
 		__m128i s = _mm_unpacklo_epi8(_mm_cvtsi32_si128(color), zero);
 		__m128i r = _mm_unpacklo_epi16(d, s);
