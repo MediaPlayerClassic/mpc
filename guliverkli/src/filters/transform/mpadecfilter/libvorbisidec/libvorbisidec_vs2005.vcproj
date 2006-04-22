@@ -47,9 +47,6 @@
 				UsePrecompiledHeader="0"
 				PrecompiledHeaderFile=".\Debug/libvorbisidec.pch"
 				AssemblerOutput="0"
-				AssemblerListingLocation=".\Debug/"
-				ObjectFile=".\Debug/"
-				ProgramDataBaseFileName=".\Debug/"
 				DebugInformationFormat="4"
 				CompileAs="0"
 			/>
@@ -117,12 +114,9 @@
 				StringPooling="true"
 				RuntimeLibrary="0"
 				EnableFunctionLevelLinking="true"
-				ForceConformanceInForLoopScope="true"
+				
 				UsePrecompiledHeader="0"
 				PrecompiledHeaderFile=".\Release/libvorbisidec.pch"
-				AssemblerListingLocation=".\Release/"
-				ObjectFile=".\Release/"
-				ProgramDataBaseFileName=".\Release/"
 				DebugInformationFormat="3"
 				CompileAs="0"
 			/>

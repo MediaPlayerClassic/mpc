@@ -25,7 +25,7 @@
 
 # include "global.h"
 
-# include "huffman.h"
+# include "hufftab.h"
 
 /*
  * These are the Huffman code words for Layer III.
