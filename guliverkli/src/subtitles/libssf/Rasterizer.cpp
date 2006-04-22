@@ -607,14 +607,14 @@ namespace ssf
 
 	///////////////////////////////////////////////////////////////////////////
 
-	#define pixmix(s) {																 \
-		int a = (((s) * (color>>24)) >> 6) & 0xff;										 \
-		int ia = 256-a;																 \
-																					 \
-		dst[wt] = ((((dst[wt]&0x00ff00ff)*ia + (color&0x00ff00ff)*a)&0xff00ff00)>>8) \
-				| ((((dst[wt]&0x0000ff00)*ia + (color&0x0000ff00)*a)&0x00ff0000)>>8) \
-				| ((((dst[wt]>>8)&0x00ff0000)*ia)&0xff000000);						 \
-		} \
+	static __forceinline void pixmix_c(DWORD* dst, DWORD color, DWORD alpha)
+	{
+		int a = ((alpha * (color>>24)) >> 6) & 0xff;
+		int ia = 0xff - a;
+
+		*dst = ((((*dst & 0x00ff00ff)*ia + (color & 0x00ff00ff)*a) & 0xff00ff00) >> 8)
+			| ((((*dst>>8) & 0x00ff00ff)*ia + ((color>>8) & 0x000000ff)*a) & 0xff00ff00);
+	}
 
 	static __forceinline void pixmix_sse2(DWORD* dst, DWORD color, DWORD alpha)
 	{
@@ -679,7 +679,7 @@ namespace ssf
 			if(switchpts[1] == 0xffffffff)
 			{
 				if(fSSE2) for(int wt=0; wt<w; ++wt) pixmix_sse2(&dst[wt], color, src[wt*4]);
-				else for(int wt=0; wt<w; ++wt) pixmix(src[wt*4]);
+				else for(int wt=0; wt<w; ++wt) pixmix_c(&dst[wt], color, src[wt*4]);
 			}
 			else
 			{
@@ -695,7 +695,7 @@ namespace ssf
 				for(int wt=0; wt<w; ++wt)
 				{
 					if(wt+xo >= sw[1]) {while(wt+xo >= sw[1]) sw += 2; color = sw[-2];}
-					pixmix(src[wt*4]);
+					pixmix_c(&dst[wt], color, src[wt*4]);
 				}
 			}
 
