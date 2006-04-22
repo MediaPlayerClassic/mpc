@@ -46,11 +46,8 @@
 				StringPooling="true"
 				RuntimeLibrary="0"
 				EnableFunctionLevelLinking="true"
-				ForceConformanceInForLoopScope="true"
+				
 				PrecompiledHeaderFile=".\Release/liba52.pch"
-				AssemblerListingLocation=".\Release/"
-				ObjectFile=".\Release/"
-				ProgramDataBaseFileName=".\Release/"
 				CompileAs="0"
 			/>
 			<Tool
@@ -118,9 +115,6 @@
 				RuntimeLibrary="1"
 				PrecompiledHeaderFile=".\Debug/liba52.pch"
 				AssemblerOutput="0"
-				AssemblerListingLocation=".\Debug/"
-				ObjectFile=".\Debug/"
-				ProgramDataBaseFileName=".\Debug/"
 				DebugInformationFormat="4"
 				CompileAs="0"
 			/>

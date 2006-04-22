@@ -44,7 +44,7 @@
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="1"
-				ForceConformanceInForLoopScope="true"
+				
 				UsePrecompiledHeader="2"
 				DebugInformationFormat="4"
 			/>
@@ -108,9 +108,9 @@
 				StringPooling="true"
 				RuntimeLibrary="0"
 				EnableFunctionLevelLinking="true"
-				ForceConformanceInForLoopScope="true"
+				
 				UsePrecompiledHeader="2"
-				DebugInformationFormat="0"
+				
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -170,7 +170,7 @@
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="1"
-				ForceConformanceInForLoopScope="true"
+				
 				UsePrecompiledHeader="2"
 				DebugInformationFormat="4"
 			/>
@@ -234,9 +234,9 @@
 				StringPooling="true"
 				RuntimeLibrary="0"
 				EnableFunctionLevelLinking="true"
-				ForceConformanceInForLoopScope="true"
+				
 				UsePrecompiledHeader="2"
-				DebugInformationFormat="0"
+				
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -296,7 +296,7 @@
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="1"
-				ForceConformanceInForLoopScope="true"
+				
 				UsePrecompiledHeader="2"
 				DebugInformationFormat="4"
 			/>
@@ -452,9 +452,9 @@
 				StringPooling="true"
 				RuntimeLibrary="0"
 				EnableFunctionLevelLinking="true"
-				ForceConformanceInForLoopScope="true"
+				
 				UsePrecompiledHeader="2"
-				DebugInformationFormat="0"
+				
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -534,9 +534,9 @@
 				StringPooling="true"
 				RuntimeLibrary="0"
 				EnableFunctionLevelLinking="true"
-				ForceConformanceInForLoopScope="true"
+				
 				UsePrecompiledHeader="2"
-				DebugInformationFormat="0"
+				
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"

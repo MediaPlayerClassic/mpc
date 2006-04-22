@@ -44,9 +44,6 @@
 				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS"
 				RuntimeLibrary="1"
 				PrecompiledHeaderFile=".\Debug/zlib.pch"
-				AssemblerListingLocation=".\Debug/"
-				ObjectFile=".\Debug/"
-				ProgramDataBaseFileName=".\Debug/"
 				DebugInformationFormat="4"
 			/>
 			<Tool
@@ -116,11 +113,7 @@
 				RuntimeLibrary="0"
 				BufferSecurityCheck="false"
 				EnableFunctionLevelLinking="true"
-				ForceConformanceInForLoopScope="true"
 				PrecompiledHeaderFile=".\Release/zlib.pch"
-				AssemblerListingLocation=".\Release/"
-				ObjectFile=".\Release/"
-				ProgramDataBaseFileName=".\Release/"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"

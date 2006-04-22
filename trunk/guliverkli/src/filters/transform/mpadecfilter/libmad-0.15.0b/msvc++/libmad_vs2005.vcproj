@@ -47,9 +47,6 @@
 				UsePrecompiledHeader="0"
 				PrecompiledHeaderFile=".\Debug/libmad.pch"
 				AssemblerOutput="0"
-				AssemblerListingLocation=".\Debug/"
-				ObjectFile=".\Debug/"
-				ProgramDataBaseFileName=".\Debug/"
 				DebugInformationFormat="4"
 				CompileAs="0"
 			/>
@@ -117,12 +114,8 @@
 				StringPooling="true"
 				RuntimeLibrary="0"
 				EnableFunctionLevelLinking="true"
-				ForceConformanceInForLoopScope="true"
 				UsePrecompiledHeader="0"
 				PrecompiledHeaderFile=".\Release/libmad.pch"
-				AssemblerListingLocation=".\Release/"
-				ObjectFile=".\Release/"
-				ProgramDataBaseFileName=".\Release/"
 				DebugInformationFormat="3"
 				CompileAs="0"
 			/>
@@ -267,29 +260,8 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath="..\huffman.c"
+				RelativePath="..\hufftab.c"
 				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="0"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-						BasicRuntimeChecks="3"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="2"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="..\layer12.c"
@@ -471,7 +443,7 @@
 				>
 			</File>
 			<File
-				RelativePath="..\huffman.h"
+				RelativePath="..\hufftab.h"
 				>
 			</File>
 			<File

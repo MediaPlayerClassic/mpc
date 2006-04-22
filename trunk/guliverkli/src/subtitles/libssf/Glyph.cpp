@@ -284,7 +284,7 @@ namespace ssf
 		//
 
 		Rasterizer* r = path_bkg.IsEmpty() ? &ras : &ras_bkg;
-		int plane = path_bkg.IsEmpty() ? 2 : 0;
+		int plane = path_bkg.IsEmpty() ? (style.font.color.a < 255 ? 2 : 1) : 0;
 		
 		ras.Rasterize(tl.x, tl.y);
 		r->Blur(style.background.blur, plane);

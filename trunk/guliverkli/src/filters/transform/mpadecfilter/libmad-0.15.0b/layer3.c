@@ -42,7 +42,7 @@
 # include "bit.h"
 # include "stream.h"
 # include "frame.h"
-# include "huffman.h"
+# include "hufftab.h"
 # include "layer3.h"
 
 /* --- Layer III ----------------------------------------------------------- */
