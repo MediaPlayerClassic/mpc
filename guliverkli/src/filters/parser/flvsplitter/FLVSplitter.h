@@ -84,9 +84,9 @@ public:
 
 /*
 
-VP62::getYUV defined as:
+getYUV defined as:
 
-void getYUV(BYTE** yuv, int* pitch)
+void VP62::getYUV(BYTE** yuv, int* pitch)
 {
     yuv[0] = yuvLastFrame + yStride * 48 + 48;
     yuv[1] = yuvLastFrame + ySize + uvStride * 24 + 24;
