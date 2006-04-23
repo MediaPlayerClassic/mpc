@@ -82,6 +82,20 @@ public:
 #include "..\..\transform\BaseVideoFilter\BaseVideoFilter.h"
 #include "VP62.h" // comment this out if you don't have VP62.cpp/h
 
+/*
+
+VP62::getYUV defined as:
+
+void getYUV(BYTE** yuv, int* pitch)
+{
+    yuv[0] = yuvLastFrame + yStride * 48 + 48;
+    yuv[1] = yuvLastFrame + ySize + uvStride * 24 + 24;
+    yuv[2] = yuvLastFrame + ySize + uvSize + uvStride * 24 + 24;
+	*pitch = yStride;
+}
+
+*/
+
 __if_exists(VP62) {
 
 [uuid("7CEEEECF-3FEE-4548-B529-C254CAF4D182")]

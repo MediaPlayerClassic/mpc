@@ -23,6 +23,7 @@
 
 #include "stdafx.h"
 #include "Renderer.h"
+#include "Arabic.h"
 
 namespace ssf
 {
@@ -151,6 +152,8 @@ namespace ssf
 
 		// create glyph paths
 
+		WCHAR c_prev = 0, c_next;
+
 		CAutoPtrList<Glyph> glyphs;
 
 		POSITION pos = s->m_text.GetHeadPosition();
@@ -199,8 +202,12 @@ namespace ssf
 				g->vertical = vertical;
 				g->font = font;
 
+				c_next = !c[1] && pos ? c_next = s->m_text.GetAt(pos).str[0] : c[1];
+				Arabic::Replace(g->c, c_prev, c_next);
+				c_prev = c[0];
+
 				CSize extent;
-				GetTextExtentPoint32W(m_hDC, c, 1, &extent);
+				GetTextExtentPoint32W(m_hDC, &g->c, 1, &extent);
 				ASSERT(extent.cx >= 0 && extent.cy >= 0);
 
 				if(vertical) 
