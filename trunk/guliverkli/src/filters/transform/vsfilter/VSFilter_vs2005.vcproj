@@ -42,23 +42,16 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				Optimization="0"
-				PreprocessorDefinitions="WIN32;_WINDOWS;_DEBUG;_USRDLL;WINVER=0x0500;_WIN32_WINNT=0x501;ISOLATION_AWARE_ENABLED;"
-				MinimalRebuild="false"
-				BasicRuntimeChecks="3"
-				RuntimeLibrary="1"
 				
-				RuntimeTypeInfo="true"
+				PreprocessorDefinitions="WIN32;_WINDOWS;_DEBUG;_USRDLL;WINVER=0x0500;_WIN32_WINNT=0x501;ISOLATION_AWARE_ENABLED;"
+				
+				
+				
+				
+				
 				PrecompiledHeaderThrough="stdafx.h"
 				PrecompiledHeaderFile=".\$(OutDir)/$(ProjectName).pch"
-				AssemblerListingLocation=".\$(OutDir)/"
-				ObjectFile=".\$(OutDir)/"
-				ProgramDataBaseFileName=".\$(OutDir)/"
-				BrowseInformation="1"
-				WarningLevel="3"
-				SuppressStartupBanner="true"
-				DebugInformationFormat="4"
-				DisableSpecificWarnings="4995;4996"
+				
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -78,10 +71,10 @@
 				AdditionalDependencies="strmbaseDU.lib dsutilDU.lib subtitlesDU.lib subpicDU.lib basevideofilterDU.lib"
 				OutputFile="$(OutDir)/$(ProjectName).dll"
 				LinkIncremental="2"
-				SuppressStartupBanner="true"
+				
 				AdditionalLibraryDirectories="..\..\..\..\lib"
 				ModuleDefinitionFile=".\VSFilter.def"
-				GenerateDebugInformation="true"
+				
 				ProgramDatabaseFile=".\$(OutDir)/$(ProjectName).pdb"
 				SubSystem="2"
 				ImportLibrary=".\$(OutDir)/$(ProjectName).lib"
@@ -138,22 +131,17 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				Optimization="0"
-				PreprocessorDefinitions="WIN32;_WINDOWS;_DEBUG;_USRDLL;WINVER=0x0500;_WIN32_WINNT=0x501;ISOLATION_AWARE_ENABLED;"
-				BasicRuntimeChecks="3"
-				RuntimeLibrary="1"
 				
-				RuntimeTypeInfo="true"
+				PreprocessorDefinitions="WIN32;_WINDOWS;_DEBUG;_USRDLL;WINVER=0x0500;_WIN32_WINNT=0x501;ISOLATION_AWARE_ENABLED;"
+				
+				
+				
+				
 				PrecompiledHeaderThrough="stdafx.h"
 				PrecompiledHeaderFile=".\$(OutDir)/$(ProjectName).pch"
-				AssemblerListingLocation=".\$(OutDir)/"
-				ObjectFile=".\$(OutDir)/"
-				ProgramDataBaseFileName=".\$(OutDir)/"
-				BrowseInformation="1"
-				WarningLevel="3"
-				SuppressStartupBanner="true"
-				DebugInformationFormat="4"
-				DisableSpecificWarnings="4995;4996"
+				
+				
+				
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -173,10 +161,10 @@
 				AdditionalDependencies="strmbaseD.lib dsutilD.lib subtitlesD.lib subpicD.lib basevideofilterD.lib"
 				OutputFile="$(OutDir)/$(ProjectName).dll"
 				LinkIncremental="2"
-				SuppressStartupBanner="true"
+				
 				AdditionalLibraryDirectories="..\..\..\..\lib"
 				ModuleDefinitionFile=".\VSFilter.def"
-				GenerateDebugInformation="true"
+				
 				ProgramDatabaseFile=".\$(OutDir)/$(ProjectName).pdb"
 				SubSystem="2"
 				ImportLibrary=".\$(OutDir)/$(ProjectName).lib"
@@ -215,7 +203,6 @@
 			UseOfATL="0"
 			ATLMinimizesCRunTimeLibraryUsage="false"
 			CharacterSet="1"
-			WholeProgramOptimization="1"
 			>
 			<Tool
 				Name="VCPreBuildEventTool"
@@ -235,27 +222,21 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				Optimization="3"
-				InlineFunctionExpansion="2"
-				EnableIntrinsicFunctions="true"
-				FavorSizeOrSpeed="1"
-				PreprocessorDefinitions="WIN32;_WINDOWS;NDEBUG;_USRDLL;WINVER=0x0500;_WIN32_WINNT=0x501;ISOLATION_AWARE_ENABLED;"
-				StringPooling="true"
-				RuntimeLibrary="0"
-				EnableFunctionLevelLinking="true"
 				
-				RuntimeTypeInfo="true"
+				
+				
+				
+				PreprocessorDefinitions="WIN32;_WINDOWS;NDEBUG;_USRDLL;WINVER=0x0500;_WIN32_WINNT=0x501;ISOLATION_AWARE_ENABLED;"
+				
+				
+				
+				
+				
 				PrecompiledHeaderThrough="stdafx.h"
 				PrecompiledHeaderFile=".\$(OutDir)/$(ProjectName).pch"
-				AssemblerListingLocation=".\$(OutDir)/"
-				ObjectFile=".\$(OutDir)/"
-				ProgramDataBaseFileName=".\$(OutDir)/"
-				BrowseInformation="1"
-				WarningLevel="3"
-				SuppressStartupBanner="true"
-				Detect64BitPortabilityProblems="false"
-				DebugInformationFormat="3"
-				DisableSpecificWarnings="4995;4996"
+				
+				
+				
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -275,11 +256,11 @@
 				OutputFile="$(OutDir)/$(ProjectName).dll"
 				Version=""
 				LinkIncremental="1"
-				SuppressStartupBanner="true"
+				
 				AdditionalLibraryDirectories="..\..\..\..\lib"
 				ModuleDefinitionFile=".\VSFilter.def"
 				DelayLoadDLLs="oleacc.dll"
-				GenerateDebugInformation="true"
+				
 				ProgramDatabaseFile=".\$(OutDir)/$(ProjectName).pdb"
 				SubSystem="2"
 				ImportLibrary=".\$(OutDir)/$(ProjectName).lib"
@@ -338,25 +319,22 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				Optimization="3"
-				InlineFunctionExpansion="2"
-				EnableIntrinsicFunctions="true"
-				FavorSizeOrSpeed="1"
-				PreprocessorDefinitions="WIN32;_WINDOWS;NDEBUG;_USRDLL;WINVER=0x0500;_WIN32_WINNT=0x501;ISOLATION_AWARE_ENABLED;"
-				StringPooling="true"
-				RuntimeLibrary="0"
-				EnableFunctionLevelLinking="true"
 				
-				RuntimeTypeInfo="true"
+				
+				
+				
+				PreprocessorDefinitions="WIN32;_WINDOWS;NDEBUG;_USRDLL;WINVER=0x0500;_WIN32_WINNT=0x501;ISOLATION_AWARE_ENABLED;"
+				
+				
+				
+				
+				
 				PrecompiledHeaderThrough="stdafx.h"
 				PrecompiledHeaderFile=".\$(OutDir)/$(ProjectName).pch"
-				AssemblerListingLocation=".\$(OutDir)/"
-				ObjectFile=".\$(OutDir)/"
-				ProgramDataBaseFileName=".\$(OutDir)/"
-				BrowseInformation="1"
-				WarningLevel="3"
-				SuppressStartupBanner="true"
-				DisableSpecificWarnings="4995;4996"
+				
+				
+				
+				
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -376,7 +354,7 @@
 				OutputFile="$(OutDir)/$(ProjectName).dll"
 				Version=""
 				LinkIncremental="1"
-				SuppressStartupBanner="true"
+				
 				AdditionalLibraryDirectories="..\..\..\..\lib"
 				ModuleDefinitionFile=".\VSFilter.def"
 				DelayLoadDLLs="oleacc.dll"

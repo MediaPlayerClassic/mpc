@@ -18,7 +18,7 @@
 		<Configuration
 			Name="Release Unicode|Win32"
 			ConfigurationType="1"
-			InheritedPropertySheets="..\..\common.vsprops"
+			InheritedPropertySheets="..\..\common.vsprops;..\..\release.vsprops"
 			UseOfMFC="1"
 			UseOfATL="0"
 			ATLMinimizesCRunTimeLibraryUsage="false"
@@ -40,25 +40,16 @@
 				Name="VCMIDLTool"
 				PreprocessorDefinitions="NDEBUG"
 				MkTypLibCompatible="true"
-				SuppressStartupBanner="true"
+				
 				TargetEnvironment="1"
 				TypeLibraryName=".\Release_unicode/mplayerc.tlb"
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				Optimization="2"
-				InlineFunctionExpansion="2"
-				EnableIntrinsicFunctions="true"
-				FavorSizeOrSpeed="1"
-				OmitFramePointers="true"
 				AdditionalIncludeDirectories=""
 				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;"
-				StringPooling="true"
-				RuntimeLibrary="0"
-				EnableFunctionLevelLinking="true"
 				PrecompiledHeaderThrough="stdafx.h"
 				PrecompiledHeaderFile="$(OutDir)\$(ProjectName).pch"
-				DebugInformationFormat="3"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -80,8 +71,6 @@
 				AdditionalLibraryDirectories="../../../lib;../../../lib/wm7;../../../lib/qt6;../../../lib/detours"
 				IgnoreDefaultLibraryNames="MSVCRT"
 				DelayLoadDLLs="d3d9.dll;msimg32.dll;gdiplus.dll;psapi.dll"
-				GenerateDebugInformation="true"
-				ProgramDatabaseFile="$(OutDir)\$(ProjectName).pdb"
 				SubSystem="2"
 				SupportUnloadOfDelayLoadedDLL="true"
 			/>
@@ -115,7 +104,7 @@
 		<Configuration
 			Name="Debug Unicode|Win32"
 			ConfigurationType="1"
-			InheritedPropertySheets="..\..\common.vsprops"
+			InheritedPropertySheets="..\..\common.vsprops;..\..\debug.vsprops"
 			UseOfMFC="1"
 			ATLMinimizesCRunTimeLibraryUsage="false"
 			CharacterSet="1"
@@ -136,20 +125,16 @@
 				Name="VCMIDLTool"
 				PreprocessorDefinitions="_DEBUG"
 				MkTypLibCompatible="true"
-				SuppressStartupBanner="true"
+				
 				TargetEnvironment="1"
 				TypeLibraryName="$(OutDir)\$(ProjectName).tlb"
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				Optimization="0"
 				AdditionalIncludeDirectories=""
 				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;"
-				BasicRuntimeChecks="3"
-				RuntimeLibrary="1"
 				PrecompiledHeaderThrough="stdafx.h"
 				PrecompiledHeaderFile="$(OutDir)\$(ProjectName).pch"
-				DebugInformationFormat="4"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -167,12 +152,9 @@
 				AdditionalOptions="/MACHINE:I386"
 				AdditionalDependencies="Delayimp.lib psapi.lib detours.lib qtmlClient.lib wmstub.lib Dsound.lib dxguid.lib strmbaseDU.lib dsutilDU.lib subpicDU.lib subtitlesDU.lib libssfDU.lib asyncreaderDU.lib audioswitcherDU.lib avi2ac3filterDU.lib bufferfilterDU.lib cddareaderDU.lib cdxareaderDU.lib d2vsourceDU.lib decssfilterDU.lib flicsourceDU.lib dtsac3sourceDU.lib basesourceDU.lib subtitlesourceDU.lib wavdestDU.lib shoutcastsourceDU.lib streamdrivethruDU.lib vtsreaderDU.lib basesplitterDU.lib MatroskaSplitterDU.lib MatroskaMuxerDU.lib RealMediaSplitterDU.lib AviSplitterDU.lib Mpeg2DecFilterDU.lib MpaDecFilterDU.lib RadGtSplitterDU.lib RoQSplitterDU.lib OggSplitterDU.lib NutSplitterDU.lib MpegSplitterDU.lib DiracSplitterDU.lib MpaSplitterDU.lib DSMSplitterDU.lib MP4SplitterDU.lib BaseMuxerDU.lib DSMMuxerDU.lib UDPReaderDU.lib FLVSplitterDU.lib zlibD.lib filtersDU.lib libvorbisidecD.lib SSFSplitterDU.lib"
 				OutputFile="$(OutDir)\$(ProjectName).exe"
-				LinkIncremental="2"
 				AdditionalLibraryDirectories="../../../lib;../../../lib/wm7;../../../lib/qt6;../../../lib/detours"
 				IgnoreDefaultLibraryNames="MSVCRT;LIBCMT"
 				DelayLoadDLLs="d3d9.dll;msimg32.dll;gdiplus.dll;psapi.dll"
-				GenerateDebugInformation="true"
-				ProgramDatabaseFile="$(OutDir)\$(ProjectName).pdb"
 				SubSystem="2"
 			/>
 			<Tool
@@ -203,7 +185,7 @@
 		<Configuration
 			Name="Release|Win32"
 			ConfigurationType="1"
-			InheritedPropertySheets="..\..\common.vsprops"
+			InheritedPropertySheets="..\..\common.vsprops;..\..\release.vsprops"
 			UseOfMFC="1"
 			ATLMinimizesCRunTimeLibraryUsage="false"
 			CharacterSet="2"
@@ -224,21 +206,14 @@
 				Name="VCMIDLTool"
 				PreprocessorDefinitions="NDEBUG"
 				MkTypLibCompatible="true"
-				SuppressStartupBanner="true"
+				
 				TargetEnvironment="1"
 				TypeLibraryName=".\Release/mplayerc.tlb"
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				Optimization="2"
-				InlineFunctionExpansion="2"
-				EnableIntrinsicFunctions="true"
-				FavorSizeOrSpeed="1"
-				OmitFramePointers="true"
 				AdditionalIncludeDirectories=""
 				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;"
-				StringPooling="true"
-				RuntimeLibrary="0"
 				PrecompiledHeaderThrough="stdafx.h"
 				PrecompiledHeaderFile="$(OutDir)\$(ProjectName).pch"
 			/>
@@ -262,7 +237,6 @@
 				AdditionalLibraryDirectories="../../../lib;../../../lib/wm7;../../../lib/qt6;../../../lib/detours"
 				IgnoreDefaultLibraryNames="MSVCRT"
 				DelayLoadDLLs="d3d9.dll;msimg32.dll;gdiplus.dll;psapi.dll"
-				ProgramDatabaseFile="$(OutDir)\$(ProjectName).pdb"
 				SubSystem="2"
 				SupportUnloadOfDelayLoadedDLL="true"
 			/>
@@ -296,7 +270,7 @@
 		<Configuration
 			Name="Debug|Win32"
 			ConfigurationType="1"
-			InheritedPropertySheets="..\..\common.vsprops"
+			InheritedPropertySheets="..\..\common.vsprops;..\..\debug.vsprops"
 			UseOfMFC="1"
 			ATLMinimizesCRunTimeLibraryUsage="false"
 			CharacterSet="2"
@@ -317,20 +291,16 @@
 				Name="VCMIDLTool"
 				PreprocessorDefinitions="_DEBUG"
 				MkTypLibCompatible="true"
-				SuppressStartupBanner="true"
+				
 				TargetEnvironment="1"
 				TypeLibraryName="$(OutDir)\$(ProjectName).tlb"
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				Optimization="0"
 				AdditionalIncludeDirectories=""
 				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;"
-				BasicRuntimeChecks="3"
-				RuntimeLibrary="1"
 				PrecompiledHeaderThrough="stdafx.h"
 				PrecompiledHeaderFile="$(OutDir)\$(ProjectName).pch"
-				DebugInformationFormat="4"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -348,12 +318,9 @@
 				AdditionalOptions="/MACHINE:I386"
 				AdditionalDependencies="Delayimp.lib psapi.lib detours.lib qtmlClient.lib wmstub.lib Dsound.lib dxguid.lib strmbaseD.lib dsutilD.lib subpicD.lib subtitlesD.lib libssfD.lib asyncreaderD.lib audioswitcherD.lib avi2ac3filterD.lib bufferfilterD.lib cddareaderD.lib cdxareaderD.lib d2vsourceD.lib decssfilterD.lib flicsourceD.lib dtsac3sourceD.lib basesourceD.lib subtitlesourceD.lib wavdestD.lib shoutcastsourceD.lib streamdrivethruD.lib vtsreaderD.lib basesplitterD.lib MatroskaSplitterD.lib MatroskaMuxerD.lib RealMediaSplitterD.lib AviSplitterD.lib Mpeg2DecFilterD.lib MpaDecFilterD.lib RadGtSplitterD.lib RoQSplitterD.lib OggSplitterD.lib NutSplitterD.lib MpegSplitterD.lib DiracSplitterD.lib MpaSplitterD.lib DSMSplitterD.lib MP4SplitterD.lib BaseMuxerD.lib DSMMuxerD.lib UDPReaderD.lib FLVSplitterD.lib zlibD.lib filtersD.lib libvorbisidecD.lib SSFSplitterD.lib"
 				OutputFile="$(OutDir)\$(ProjectName).exe"
-				LinkIncremental="2"
 				AdditionalLibraryDirectories="../../../lib;../../../lib/wm7;../../../lib/qt6;../../../lib/detours"
 				IgnoreDefaultLibraryNames="MSVCRT;LIBCMT"
 				DelayLoadDLLs="d3d9.dll;msimg32.dll;gdiplus.dll;psapi.dll"
-				GenerateDebugInformation="true"
-				ProgramDatabaseFile="$(OutDir)\$(ProjectName).pdb"
 				SubSystem="2"
 			/>
 			<Tool
@@ -403,7 +370,7 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				RuntimeTypeInfo="true"
+				
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"

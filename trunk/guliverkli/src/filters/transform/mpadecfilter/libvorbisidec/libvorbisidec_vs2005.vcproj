@@ -17,7 +17,7 @@
 		<Configuration
 			Name="Debug|Win32"
 			ConfigurationType="4"
-			InheritedPropertySheets="..\..\..\..\common.vsprops"
+			InheritedPropertySheets="..\..\..\..\common.vsprops;..\..\..\..\debug.vsprops"
 			UseOfMFC="0"
 			ATLMinimizesCRunTimeLibraryUsage="false"
 			CharacterSet="2"
@@ -39,15 +39,11 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				Optimization="0"
 				AdditionalIncludeDirectories="."
 				PreprocessorDefinitions="_LIB;_WIN32;WIN32;_DEBUG;DEBUG"
-				BasicRuntimeChecks="3"
-				RuntimeLibrary="1"
 				UsePrecompiledHeader="0"
 				PrecompiledHeaderFile=".\Debug/libvorbisidec.pch"
 				AssemblerOutput="0"
-				DebugInformationFormat="4"
 				CompileAs="0"
 			/>
 			<Tool
@@ -64,7 +60,6 @@
 			<Tool
 				Name="VCLibrarianTool"
 				OutputFile="..\..\..\..\..\lib\libvorbisidecD.lib"
-				SuppressStartupBanner="true"
 			/>
 			<Tool
 				Name="VCALinkTool"
@@ -85,7 +80,7 @@
 		<Configuration
 			Name="Release|Win32"
 			ConfigurationType="4"
-			InheritedPropertySheets="..\..\..\..\common.vsprops"
+			InheritedPropertySheets="..\..\..\..\common.vsprops;..\..\..\..\release.vsprops"
 			UseOfMFC="0"
 			ATLMinimizesCRunTimeLibraryUsage="false"
 			CharacterSet="2"
@@ -107,17 +102,10 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				Optimization="2"
-				InlineFunctionExpansion="1"
 				AdditionalIncludeDirectories="."
 				PreprocessorDefinitions="_LIB;_WIN32;WIN32;NDEBUG"
-				StringPooling="true"
-				RuntimeLibrary="0"
-				EnableFunctionLevelLinking="true"
-				
 				UsePrecompiledHeader="0"
 				PrecompiledHeaderFile=".\Release/libvorbisidec.pch"
-				DebugInformationFormat="3"
 				CompileAs="0"
 			/>
 			<Tool
@@ -134,7 +122,6 @@
 			<Tool
 				Name="VCLibrarianTool"
 				OutputFile="..\..\..\..\..\lib\libvorbisidecR.lib"
-				SuppressStartupBanner="true"
 			/>
 			<Tool
 				Name="VCALinkTool"

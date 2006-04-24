@@ -18,7 +18,7 @@
 		<Configuration
 			Name="Debug lib|Win32"
 			ConfigurationType="4"
-			InheritedPropertySheets="..\..\..\common.vsprops"
+			InheritedPropertySheets="..\..\..\common.vsprops;..\..\..\debug.vsprops"
 			UseOfMFC="1"
 			CharacterSet="2"
 			>
@@ -39,13 +39,7 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				Optimization="0"
 				PreprocessorDefinitions="WIN32;_DEBUG;_LIB"
-				MinimalRebuild="true"
-				BasicRuntimeChecks="3"
-				RuntimeLibrary="1"
-				
-				DebugInformationFormat="4"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -79,7 +73,7 @@
 		<Configuration
 			Name="Release lib|Win32"
 			ConfigurationType="4"
-			InheritedPropertySheets="..\..\..\common.vsprops"
+			InheritedPropertySheets="..\..\..\common.vsprops;..\..\..\release.vsprops"
 			UseOfMFC="1"
 			CharacterSet="2"
 			>
@@ -100,15 +94,7 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				Optimization="2"
-				InlineFunctionExpansion="1"
-				OmitFramePointers="true"
 				PreprocessorDefinitions="WIN32;NDEBUG;_LIB"
-				StringPooling="true"
-				RuntimeLibrary="0"
-				EnableFunctionLevelLinking="true"
-				
-				
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -142,7 +128,7 @@
 		<Configuration
 			Name="Debug Unicode lib|Win32"
 			ConfigurationType="4"
-			InheritedPropertySheets="..\..\..\common.vsprops"
+			InheritedPropertySheets="..\..\..\common.vsprops;..\..\..\debug.vsprops"
 			UseOfMFC="1"
 			CharacterSet="1"
 			>
@@ -163,12 +149,7 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				Optimization="0"
 				PreprocessorDefinitions="WIN32;_DEBUG;_LIB"
-				MinimalRebuild="true"
-				BasicRuntimeChecks="3"
-				RuntimeLibrary="1"
-				DebugInformationFormat="4"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -202,7 +183,7 @@
 		<Configuration
 			Name="Release Unicode lib|Win32"
 			ConfigurationType="4"
-			InheritedPropertySheets="..\..\..\common.vsprops"
+			InheritedPropertySheets="..\..\..\common.vsprops;..\..\..\release.vsprops"
 			UseOfMFC="1"
 			CharacterSet="1"
 			>
@@ -223,15 +204,7 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				Optimization="2"
-				InlineFunctionExpansion="1"
-				OmitFramePointers="true"
 				PreprocessorDefinitions="WIN32;NDEBUG;_LIB"
-				StringPooling="true"
-				RuntimeLibrary="0"
-				EnableFunctionLevelLinking="true"
-				
-				
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"

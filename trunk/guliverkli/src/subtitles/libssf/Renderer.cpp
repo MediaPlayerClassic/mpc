@@ -753,7 +753,7 @@ namespace ssf
 
 		key.Format(L"%s,%d,%d,%d", 
 			CStringW(lf.lfFaceName), lf.lfHeight, lf.lfWeight, 
-			(lf.lfItalic&1)<<2, (lf.lfUnderline&1)<<1, (lf.lfStrikeOut&1)<<0);
+			((lf.lfItalic&1)<<2) | ((lf.lfUnderline&1)<<1) | ((lf.lfStrikeOut&1)<<0));
 
 		FontWrapper* pFW = NULL;
 
