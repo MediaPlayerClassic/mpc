@@ -17,9 +17,8 @@
 	<Configurations>
 		<Configuration
 			Name="Debug Unicode|Win32"
-			OutputDirectory="$(ConfigurationName)"
-			IntermediateDirectory="$(OutDir)"
 			ConfigurationType="2"
+			InheritedPropertySheets="..\..\..\common.vsprops;..\..\..\debug.vsprops"
 			UseOfMFC="1"
 			ATLMinimizesCRunTimeLibraryUsage="false"
 			CharacterSet="1"
@@ -42,16 +41,9 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				
 				PreprocessorDefinitions="WIN32;_WINDOWS;_DEBUG;_USRDLL;WINVER=0x0500;_WIN32_WINNT=0x501;ISOLATION_AWARE_ENABLED;"
-				
-				
-				
-				
-				
 				PrecompiledHeaderThrough="stdafx.h"
 				PrecompiledHeaderFile=".\$(OutDir)/$(ProjectName).pch"
-				
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -70,14 +62,9 @@
 				AdditionalOptions="/MACHINE:I386"
 				AdditionalDependencies="strmbaseDU.lib dsutilDU.lib subtitlesDU.lib subpicDU.lib basevideofilterDU.lib"
 				OutputFile="$(OutDir)/$(ProjectName).dll"
-				LinkIncremental="2"
-				
 				AdditionalLibraryDirectories="..\..\..\..\lib"
 				ModuleDefinitionFile=".\VSFilter.def"
-				
-				ProgramDatabaseFile=".\$(OutDir)/$(ProjectName).pdb"
 				SubSystem="2"
-				ImportLibrary=".\$(OutDir)/$(ProjectName).lib"
 			/>
 			<Tool
 				Name="VCALinkTool"
@@ -106,9 +93,8 @@
 		</Configuration>
 		<Configuration
 			Name="Debug|Win32"
-			OutputDirectory="$(ConfigurationName)"
-			IntermediateDirectory="$(OutDir)"
 			ConfigurationType="2"
+			InheritedPropertySheets="..\..\..\common.vsprops;..\..\..\debug.vsprops"
 			UseOfMFC="1"
 			ATLMinimizesCRunTimeLibraryUsage="false"
 			CharacterSet="2"
@@ -131,17 +117,9 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				
 				PreprocessorDefinitions="WIN32;_WINDOWS;_DEBUG;_USRDLL;WINVER=0x0500;_WIN32_WINNT=0x501;ISOLATION_AWARE_ENABLED;"
-				
-				
-				
-				
 				PrecompiledHeaderThrough="stdafx.h"
 				PrecompiledHeaderFile=".\$(OutDir)/$(ProjectName).pch"
-				
-				
-				
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -160,14 +138,9 @@
 				AdditionalOptions="/MACHINE:I386"
 				AdditionalDependencies="strmbaseD.lib dsutilD.lib subtitlesD.lib subpicD.lib basevideofilterD.lib"
 				OutputFile="$(OutDir)/$(ProjectName).dll"
-				LinkIncremental="2"
-				
 				AdditionalLibraryDirectories="..\..\..\..\lib"
 				ModuleDefinitionFile=".\VSFilter.def"
-				
-				ProgramDatabaseFile=".\$(OutDir)/$(ProjectName).pdb"
 				SubSystem="2"
-				ImportLibrary=".\$(OutDir)/$(ProjectName).lib"
 			/>
 			<Tool
 				Name="VCALinkTool"
@@ -196,9 +169,8 @@
 		</Configuration>
 		<Configuration
 			Name="Release Unicode|Win32"
-			OutputDirectory="$(ConfigurationName)"
-			IntermediateDirectory="$(OutDir)"
 			ConfigurationType="2"
+			InheritedPropertySheets="..\..\..\common.vsprops;..\..\..\release.vsprops"
 			UseOfMFC="1"
 			UseOfATL="0"
 			ATLMinimizesCRunTimeLibraryUsage="false"
@@ -222,21 +194,9 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				
-				
-				
-				
 				PreprocessorDefinitions="WIN32;_WINDOWS;NDEBUG;_USRDLL;WINVER=0x0500;_WIN32_WINNT=0x501;ISOLATION_AWARE_ENABLED;"
-				
-				
-				
-				
-				
 				PrecompiledHeaderThrough="stdafx.h"
 				PrecompiledHeaderFile=".\$(OutDir)/$(ProjectName).pch"
-				
-				
-				
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -255,13 +215,9 @@
 				AdditionalDependencies="delayimp.lib strmbaseRU.lib dsutilRU.lib subtitlesRU.lib subpicRU.lib basevideofilterRU.lib"
 				OutputFile="$(OutDir)/$(ProjectName).dll"
 				Version=""
-				LinkIncremental="1"
-				
 				AdditionalLibraryDirectories="..\..\..\..\lib"
 				ModuleDefinitionFile=".\VSFilter.def"
 				DelayLoadDLLs="oleacc.dll"
-				
-				ProgramDatabaseFile=".\$(OutDir)/$(ProjectName).pdb"
 				SubSystem="2"
 				ImportLibrary=".\$(OutDir)/$(ProjectName).lib"
 			/>
@@ -293,9 +249,8 @@
 		</Configuration>
 		<Configuration
 			Name="Release|Win32"
-			OutputDirectory="$(ConfigurationName)"
-			IntermediateDirectory="$(OutDir)"
 			ConfigurationType="2"
+			InheritedPropertySheets="..\..\..\common.vsprops;..\..\..\release.vsprops"
 			UseOfMFC="1"
 			UseOfATL="0"
 			ATLMinimizesCRunTimeLibraryUsage="false"
@@ -319,22 +274,9 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				
-				
-				
-				
 				PreprocessorDefinitions="WIN32;_WINDOWS;NDEBUG;_USRDLL;WINVER=0x0500;_WIN32_WINNT=0x501;ISOLATION_AWARE_ENABLED;"
-				
-				
-				
-				
-				
 				PrecompiledHeaderThrough="stdafx.h"
 				PrecompiledHeaderFile=".\$(OutDir)/$(ProjectName).pch"
-				
-				
-				
-				
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -353,12 +295,9 @@
 				AdditionalDependencies="delayimp.lib strmbaseR.lib dsutilR.lib subtitlesR.lib subpicR.lib basevideofilterR.lib"
 				OutputFile="$(OutDir)/$(ProjectName).dll"
 				Version=""
-				LinkIncremental="1"
-				
 				AdditionalLibraryDirectories="..\..\..\..\lib"
 				ModuleDefinitionFile=".\VSFilter.def"
 				DelayLoadDLLs="oleacc.dll"
-				ProgramDatabaseFile=".\$(OutDir)/$(ProjectName).pdb"
 				SubSystem="2"
 				ImportLibrary=".\$(OutDir)/$(ProjectName).lib"
 			/>
