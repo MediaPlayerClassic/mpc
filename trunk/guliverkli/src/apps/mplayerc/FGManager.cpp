@@ -1343,103 +1343,116 @@ CFGManagerCustom::CFGManagerCustom(LPCTSTR pName, LPUNKNOWN pUnk, UINT src, UINT
 	pFGF->AddType(MEDIATYPE_Audio, MEDIASUBTYPE_WAVE_DTS);
 	m_transform.AddTail(pFGF);
 
-	pFGF = new CFGFilterInternal<CMatroskaSplitterFilter>(
-		(src & SRC_MATROSKA) ? L"Matroska Splitter" : L"Matroska Splitter (low merit)",
-		(src & SRC_MATROSKA) ? MERIT64_ABOVE_DSHOW : MERIT64_DO_USE);
-	pFGF->AddType(MEDIATYPE_Stream, MEDIASUBTYPE_Matroska);
-	pFGF->AddType(MEDIATYPE_Stream, GUID_NULL);
-	m_transform.AddTail(pFGF);
+	if(src & SRC_MATROSKA)
+	{
+		pFGF = new CFGFilterInternal<CMatroskaSplitterFilter>(L"Matroska Splitter", MERIT64_ABOVE_DSHOW);
+		pFGF->AddType(MEDIATYPE_Stream, MEDIASUBTYPE_Matroska);
+		pFGF->AddType(MEDIATYPE_Stream, GUID_NULL);
+		m_transform.AddTail(pFGF);
+	}
 
-	pFGF = new CFGFilterInternal<CRealMediaSplitterFilter>(
-		(src & SRC_REALMEDIA) ? L"RealMedia Splitter" : L"RealMedia Splitter (low merit)", 
-		(src & SRC_REALMEDIA) ? MERIT64_ABOVE_DSHOW : MERIT64_DO_USE);
-	pFGF->AddType(MEDIATYPE_Stream, MEDIASUBTYPE_RealMedia);
-	pFGF->AddType(MEDIATYPE_Stream, GUID_NULL);
-	m_transform.AddTail(pFGF);
-
-	pFGF = new CFGFilterInternal<CAviSplitterFilter>(
-		(src & SRC_AVI) ? L"Avi Splitter" : L"Avi Splitter (low merit)",
-		(src & SRC_AVI) ? MERIT64_ABOVE_DSHOW : MERIT64_DO_USE);
-	pFGF->AddType(MEDIATYPE_Stream, MEDIASUBTYPE_Avi);
-	pFGF->AddType(MEDIATYPE_Stream, GUID_NULL);
-	m_transform.AddTail(pFGF);
+	if(src & SRC_REALMEDIA)
+	{
+		pFGF = new CFGFilterInternal<CRealMediaSplitterFilter>(L"RealMedia Splitter", MERIT64_ABOVE_DSHOW);
+		pFGF->AddType(MEDIATYPE_Stream, MEDIASUBTYPE_RealMedia);
+		pFGF->AddType(MEDIATYPE_Stream, GUID_NULL);
+		m_transform.AddTail(pFGF);
+	}
+	
+	if(src & SRC_AVI)
+	{
+		pFGF = new CFGFilterInternal<CAviSplitterFilter>(L"Avi Splitter", MERIT64_ABOVE_DSHOW);
+		pFGF->AddType(MEDIATYPE_Stream, MEDIASUBTYPE_Avi);
+		pFGF->AddType(MEDIATYPE_Stream, GUID_NULL);
+		m_transform.AddTail(pFGF);
+	}
 
 	__if_exists(CRadGtSplitterFilter)
 	{
-	pFGF = new CFGFilterInternal<CRadGtSplitterFilter>(
-		(src & SRC_RADGT) ? L"RadGt Splitter" : L"RadGt Splitter (low merit)",
-		(src & SRC_RADGT) ? MERIT64_ABOVE_DSHOW : MERIT64_DO_USE);
-	pFGF->AddType(MEDIATYPE_Stream, MEDIASUBTYPE_Bink);
-	pFGF->AddType(MEDIATYPE_Stream, MEDIASUBTYPE_Smacker);
-	pFGF->AddType(MEDIATYPE_Stream, GUID_NULL);
-	m_transform.AddTail(pFGF);
+	if(src & SRC_RADGT)
+	{
+		pFGF = new CFGFilterInternal<CRadGtSplitterFilter>(L"RadGt Splitter", MERIT64_ABOVE_DSHOW);
+		pFGF->AddType(MEDIATYPE_Stream, MEDIASUBTYPE_Bink);
+		pFGF->AddType(MEDIATYPE_Stream, MEDIASUBTYPE_Smacker);
+		pFGF->AddType(MEDIATYPE_Stream, GUID_NULL);
+		m_transform.AddTail(pFGF);
+	}
 	}
 
-	pFGF = new CFGFilterInternal<CRoQSplitterFilter>(
-		(src & SRC_ROQ) ? L"RoQ Splitter" : L"RoQ Splitter (low merit)",
-		(src & SRC_ROQ) ? MERIT64_ABOVE_DSHOW : MERIT64_DO_USE);
-	pFGF->AddType(MEDIATYPE_Stream, MEDIASUBTYPE_RoQ);
-	pFGF->AddType(MEDIATYPE_Stream, GUID_NULL);
-	m_transform.AddTail(pFGF);
+	if(src & SRC_ROQ)
+	{
+		pFGF = new CFGFilterInternal<CRoQSplitterFilter>(L"RoQ Splitter", MERIT64_ABOVE_DSHOW);
+		pFGF->AddType(MEDIATYPE_Stream, MEDIASUBTYPE_RoQ);
+		pFGF->AddType(MEDIATYPE_Stream, GUID_NULL);
+		m_transform.AddTail(pFGF);
+	}
 
-	pFGF = new CFGFilterInternal<COggSplitterFilter>(
-		(src & SRC_OGG) ? L"Ogg Splitter" : L"Ogg Splitter (low merit)",
-		(src & SRC_OGG) ? MERIT64_ABOVE_DSHOW : MERIT64_DO_USE);
-	pFGF->AddType(MEDIATYPE_Stream, MEDIASUBTYPE_Ogg);
-	pFGF->AddType(MEDIATYPE_Stream, GUID_NULL);
-	m_transform.AddTail(pFGF);
+	if(src & SRC_OGG)
+	{
+		pFGF = new CFGFilterInternal<COggSplitterFilter>(L"Ogg Splitter", MERIT64_ABOVE_DSHOW);
+		pFGF->AddType(MEDIATYPE_Stream, MEDIASUBTYPE_Ogg);
+		pFGF->AddType(MEDIATYPE_Stream, GUID_NULL);
+		m_transform.AddTail(pFGF);
+	}
 
-	pFGF = new CFGFilterInternal<CNutSplitterFilter>(
-		(src & SRC_NUT) ? L"Nut Splitter" : L"Nut Splitter (low merit)",
-		(src & SRC_NUT) ? MERIT64_ABOVE_DSHOW : MERIT64_DO_USE);
-	pFGF->AddType(MEDIATYPE_Stream, MEDIASUBTYPE_Nut);
-	pFGF->AddType(MEDIATYPE_Stream, GUID_NULL);
-	m_transform.AddTail(pFGF);
+	if(src & SRC_NUT)
+	{
+		pFGF = new CFGFilterInternal<CNutSplitterFilter>(L"Nut Splitter", MERIT64_ABOVE_DSHOW);
+		pFGF->AddType(MEDIATYPE_Stream, MEDIASUBTYPE_Nut);
+		pFGF->AddType(MEDIATYPE_Stream, GUID_NULL);
+		m_transform.AddTail(pFGF);
+	}
 
-	pFGF = new CFGFilterInternal<CMpegSplitterFilter>(
-		(src & SRC_MPEG) ? L"Mpeg Splitter" : L"Mpeg Splitter (low merit)",
-		(src & SRC_MPEG) ? MERIT64_ABOVE_DSHOW : MERIT64_DO_USE);
-	pFGF->AddType(MEDIATYPE_Stream, MEDIASUBTYPE_MPEG1System);
-	pFGF->AddType(MEDIATYPE_Stream, MEDIASUBTYPE_MPEG2_PROGRAM);
-	pFGF->AddType(MEDIATYPE_Stream, MEDIASUBTYPE_MPEG2_TRANSPORT);
-	pFGF->AddType(MEDIATYPE_Stream, MEDIASUBTYPE_MPEG2_PVA);
-	pFGF->AddType(MEDIATYPE_Stream, GUID_NULL);
-	m_transform.AddTail(pFGF);
+	if(src & SRC_MPEG)
+	{
+		pFGF = new CFGFilterInternal<CMpegSplitterFilter>(L"Mpeg Splitter", MERIT64_ABOVE_DSHOW);
+		pFGF->AddType(MEDIATYPE_Stream, MEDIASUBTYPE_MPEG1System);
+		pFGF->AddType(MEDIATYPE_Stream, MEDIASUBTYPE_MPEG2_PROGRAM);
+		pFGF->AddType(MEDIATYPE_Stream, MEDIASUBTYPE_MPEG2_TRANSPORT);
+		pFGF->AddType(MEDIATYPE_Stream, MEDIASUBTYPE_MPEG2_PVA);
+		pFGF->AddType(MEDIATYPE_Stream, GUID_NULL);
+		m_transform.AddTail(pFGF);
+	}
 
-	pFGF = new CFGFilterInternal<CDiracSplitterFilter>(
-		(src & SRC_DIRAC) ? L"Dirac Splitter" : L"Dirac Splitter (low merit)",
-		(src & SRC_DIRAC) ? MERIT64_ABOVE_DSHOW : MERIT64_DO_USE);
-	pFGF->AddType(MEDIATYPE_Stream, MEDIASUBTYPE_Dirac);
-	pFGF->AddType(MEDIATYPE_Stream, GUID_NULL);
-	m_transform.AddTail(pFGF);
+	if(src & SRC_DIRAC)
+	{
+		pFGF = new CFGFilterInternal<CDiracSplitterFilter>(L"Dirac Splitter", MERIT64_ABOVE_DSHOW);
+		pFGF->AddType(MEDIATYPE_Stream, MEDIASUBTYPE_Dirac);
+		pFGF->AddType(MEDIATYPE_Stream, GUID_NULL);
+		m_transform.AddTail(pFGF);
+	}
 
-	pFGF = new CFGFilterInternal<CMpaSplitterFilter>(
-		(src & SRC_MPA) ? L"Mpa Splitter" : L"Mpa Splitter (low merit)",
-		(src & SRC_MPA) ? MERIT64_ABOVE_DSHOW : MERIT64_DO_USE);
-	pFGF->AddType(MEDIATYPE_Stream, MEDIASUBTYPE_MPEG1Audio);
-	pFGF->AddType(MEDIATYPE_Stream, GUID_NULL);
-	m_transform.AddTail(pFGF);
+	if(src & SRC_MPA)
+	{
+		pFGF = new CFGFilterInternal<CMpaSplitterFilter>(L"Mpa Splitter", MERIT64_ABOVE_DSHOW);
+		pFGF->AddType(MEDIATYPE_Stream, MEDIASUBTYPE_MPEG1Audio);
+		pFGF->AddType(MEDIATYPE_Stream, GUID_NULL);
+		m_transform.AddTail(pFGF);
+	}
 
-	pFGF = new CFGFilterInternal<CDSMSplitterFilter>(
-		(src & SRC_DSM) ? L"DSM Splitter" : L"DSM Splitter (low merit)",
-		(src & SRC_DSM) ? MERIT64_ABOVE_DSHOW : MERIT64_DO_USE);
-	pFGF->AddType(MEDIATYPE_Stream, MEDIASUBTYPE_DirectShowMedia);
-	pFGF->AddType(MEDIATYPE_Stream, GUID_NULL);
-	m_transform.AddTail(pFGF);
+	if(src & SRC_DSM)
+	{
+		pFGF = new CFGFilterInternal<CDSMSplitterFilter>(L"DSM Splitter", MERIT64_ABOVE_DSHOW);
+		pFGF->AddType(MEDIATYPE_Stream, MEDIASUBTYPE_DirectShowMedia);
+		pFGF->AddType(MEDIATYPE_Stream, GUID_NULL);
+		m_transform.AddTail(pFGF);
+	}
 
-	pFGF = new CFGFilterInternal<CMP4SplitterFilter>(
-		(src & SRC_MP4) ? L"MP4 Splitter" : L"MP4 Splitter (low merit)",
-		(src & SRC_MP4) ? MERIT64_ABOVE_DSHOW : MERIT64_DO_USE);
-	pFGF->AddType(MEDIATYPE_Stream, MEDIASUBTYPE_MP4);
-	pFGF->AddType(MEDIATYPE_Stream, GUID_NULL);
-	m_transform.AddTail(pFGF);
+	if(src & SRC_MP4)
+	{
+		pFGF = new CFGFilterInternal<CMP4SplitterFilter>(L"MP4 Splitter", MERIT64_ABOVE_DSHOW);
+		pFGF->AddType(MEDIATYPE_Stream, MEDIASUBTYPE_MP4);
+		pFGF->AddType(MEDIATYPE_Stream, GUID_NULL);
+		m_transform.AddTail(pFGF);
+	}
 
-	pFGF = new CFGFilterInternal<CFLVSplitterFilter>(
-		(src & SRC_FLV) ? L"FLV Splitter" : L"FLV Splitter (low merit)",
-		(src & SRC_FLV) ? MERIT64_ABOVE_DSHOW : MERIT64_DO_USE);
-	pFGF->AddType(MEDIATYPE_Stream, MEDIASUBTYPE_FLV);
-	pFGF->AddType(MEDIATYPE_Stream, GUID_NULL);
-	m_transform.AddTail(pFGF);
+	if(src & SRC_FLV)
+	{
+		pFGF = new CFGFilterInternal<CFLVSplitterFilter>(L"FLV Splitter", MERIT64_ABOVE_DSHOW);
+		pFGF->AddType(MEDIATYPE_Stream, MEDIASUBTYPE_FLV);
+		pFGF->AddType(MEDIATYPE_Stream, GUID_NULL);
+		m_transform.AddTail(pFGF);
+	}
 
 	pFGF = new CFGFilterInternal<CMpeg2DecFilter>(
 		(tra & TRA_MPEG1) ? L"MPEG-1 Video Decoder" : L"MPEG-1 Video Decoder (low merit)", 

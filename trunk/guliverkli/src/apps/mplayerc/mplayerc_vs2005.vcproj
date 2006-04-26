@@ -40,7 +40,6 @@
 				Name="VCMIDLTool"
 				PreprocessorDefinitions="NDEBUG"
 				MkTypLibCompatible="true"
-				
 				TargetEnvironment="1"
 				TypeLibraryName=".\Release_unicode/mplayerc.tlb"
 			/>
@@ -125,7 +124,6 @@
 				Name="VCMIDLTool"
 				PreprocessorDefinitions="_DEBUG"
 				MkTypLibCompatible="true"
-				
 				TargetEnvironment="1"
 				TypeLibraryName="$(OutDir)\$(ProjectName).tlb"
 			/>
@@ -206,7 +204,6 @@
 				Name="VCMIDLTool"
 				PreprocessorDefinitions="NDEBUG"
 				MkTypLibCompatible="true"
-				
 				TargetEnvironment="1"
 				TypeLibraryName=".\Release/mplayerc.tlb"
 			/>
@@ -291,7 +288,6 @@
 				Name="VCMIDLTool"
 				PreprocessorDefinitions="_DEBUG"
 				MkTypLibCompatible="true"
-				
 				TargetEnvironment="1"
 				TypeLibraryName="$(OutDir)\$(ProjectName).tlb"
 			/>
@@ -348,68 +344,6 @@
 				Name="VCPostBuildEventTool"
 			/>
 		</Configuration>
-		<Configuration
-			Name="ResourceDLL|Win32"
-			ConfigurationType="2"
-			InheritedPropertySheets="..\..\common.vsprops"
-			>
-			<Tool
-				Name="VCPreBuildEventTool"
-			/>
-			<Tool
-				Name="VCCustomBuildTool"
-			/>
-			<Tool
-				Name="VCXMLDataGeneratorTool"
-			/>
-			<Tool
-				Name="VCWebServiceProxyGeneratorTool"
-			/>
-			<Tool
-				Name="VCMIDLTool"
-			/>
-			<Tool
-				Name="VCCLCompilerTool"
-				
-			/>
-			<Tool
-				Name="VCManagedResourceCompilerTool"
-			/>
-			<Tool
-				Name="VCResourceCompilerTool"
-			/>
-			<Tool
-				Name="VCPreLinkEventTool"
-			/>
-			<Tool
-				Name="VCLinkerTool"
-				ResourceOnlyDLL="true"
-			/>
-			<Tool
-				Name="VCALinkTool"
-			/>
-			<Tool
-				Name="VCManifestTool"
-			/>
-			<Tool
-				Name="VCXDCMakeTool"
-			/>
-			<Tool
-				Name="VCBscMakeTool"
-			/>
-			<Tool
-				Name="VCFxCopTool"
-			/>
-			<Tool
-				Name="VCAppVerifierTool"
-			/>
-			<Tool
-				Name="VCWebDeploymentTool"
-			/>
-			<Tool
-				Name="VCPostBuildEventTool"
-			/>
-		</Configuration>
 	</Configurations>
 	<References>
 	</References>
@@ -425,50 +359,18 @@
 			<File
 				RelativePath="BaseGraph.cpp"
 				>
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath=".\ChildView.cpp"
 				>
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="ComPropertyPage.cpp"
 				>
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="ComPropertySheet.cpp"
 				>
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath=".\ConvertChapDlg.cpp"
@@ -489,14 +391,6 @@
 			<File
 				RelativePath="CShockwaveFlash.cpp"
 				>
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath=".\DeinterlacerFilter.cpp"
@@ -505,62 +399,22 @@
 			<File
 				RelativePath="DX7AllocatorPresenter.cpp"
 				>
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="DX9AllocatorPresenter.cpp"
 				>
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath=".\FakeFilterMapper2.cpp"
 				>
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="FavoriteAddDlg.cpp"
 				>
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="FavoriteOrganizeDlg.cpp"
 				>
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath=".\FGFilter.cpp"
@@ -573,38 +427,14 @@
 			<File
 				RelativePath="FileDropTarget.cpp"
 				>
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="FloatEdit.cpp"
 				>
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="GoToDlg.cpp"
 				>
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath=".\IPinHook.cpp"
@@ -621,14 +451,6 @@
 			<File
 				RelativePath="KeyProvider.cpp"
 				>
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath=".\LineNumberEdit.cpp"
@@ -637,62 +459,22 @@
 			<File
 				RelativePath=".\MacrovisionKicker.cpp"
 				>
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath=".\MainFrm.cpp"
 				>
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="MediaFormats.cpp"
 				>
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="MediaTypesDlg.cpp"
 				>
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath=".\mplayerc.cpp"
 				>
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath=".\mplayerc.rc"
@@ -701,26 +483,10 @@
 			<File
 				RelativePath="OpenCapDeviceDlg.cpp"
 				>
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="OpenDlg.cpp"
 				>
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath=".\OpenFileDlg.cpp"
@@ -733,74 +499,26 @@
 			<File
 				RelativePath="PlayerCaptureBar.cpp"
 				>
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="PlayerCaptureDialog.cpp"
 				>
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="PlayerInfoBar.cpp"
 				>
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="PlayerListCtrl.cpp"
 				>
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="PlayerPlaylistBar.cpp"
 				>
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="PlayerSeekBar.cpp"
 				>
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath=".\PlayerShaderEditorBar.cpp"
@@ -809,110 +527,38 @@
 			<File
 				RelativePath="PlayerStatusBar.cpp"
 				>
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="PlayerSubresyncBar.cpp"
 				>
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="PlayerToolBar.cpp"
 				>
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="Playlist.cpp"
 				>
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="PnSPresetsDlg.cpp"
 				>
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="PPageAccelTbl.cpp"
 				>
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="PPageAudioSwitcher.cpp"
 				>
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="PPageBase.cpp"
 				>
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="PPageDVD.cpp"
 				>
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath=".\PPageExternalFilters.cpp"
@@ -921,26 +567,10 @@
 			<File
 				RelativePath="PPageFileInfoClip.cpp"
 				>
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="PPageFileInfoDetails.cpp"
 				>
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath=".\PPageFileInfoRes.cpp"
@@ -949,26 +579,10 @@
 			<File
 				RelativePath="PPageFileInfoSheet.cpp"
 				>
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="PPageFormats.cpp"
 				>
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath=".\PPageInternalFilters.cpp"
@@ -985,38 +599,14 @@
 			<File
 				RelativePath="PPagePlayback.cpp"
 				>
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="PPagePlayer.cpp"
 				>
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="PPageSheet.cpp"
 				>
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath=".\PPageSubDB.cpp"
@@ -1025,38 +615,14 @@
 			<File
 				RelativePath="PPageSubStyle.cpp"
 				>
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="PPageSubtitles.cpp"
 				>
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="PPageTweaks.cpp"
 				>
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath=".\PPageWebServer.cpp"
@@ -1065,74 +631,26 @@
 			<File
 				RelativePath="QuicktimeGraph.cpp"
 				>
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="RealMediaGraph.cpp"
 				>
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="RealMediaWindowlessSite.cpp"
 				>
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="RegFilterChooserDlg.cpp"
 				>
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="SaveDlg.cpp"
 				>
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="SaveTextFileDialog.cpp"
 				>
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath=".\SaveThumbnailsDialog.cpp"
@@ -1141,14 +659,6 @@
 			<File
 				RelativePath="SelectMediaType.cpp"
 				>
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath=".\ShaderAutoCompleteDlg.cpp"
@@ -1165,38 +675,14 @@
 			<File
 				RelativePath="ShockwaveGraph.cpp"
 				>
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="StaticLink.cpp"
 				>
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="StatusLabel.cpp"
 				>
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath=".\StdAfx.cpp"
@@ -1233,14 +719,6 @@
 						UsePrecompiledHeader="1"
 					/>
 				</FileConfiguration>
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath=".\SubtitleDlDlg.cpp"
@@ -1249,26 +727,10 @@
 			<File
 				RelativePath="TextPassThruFilter.cpp"
 				>
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="VolumeCtrl.cpp"
 				>
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath=".\WebClientSocket.cpp"
@@ -1294,50 +756,18 @@
 			<File
 				RelativePath="BaseGraph.h"
 				>
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCustomBuildTool"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath=".\ChildView.h"
 				>
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCustomBuildTool"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="ComPropertyPage.h"
 				>
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCustomBuildTool"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="ComPropertySheet.h"
 				>
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCustomBuildTool"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath=".\ConvertChapDlg.h"
@@ -1358,14 +788,6 @@
 			<File
 				RelativePath="CShockwaveFlash.h"
 				>
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCustomBuildTool"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath=".\DeinterlacerFilter.h"
@@ -1374,62 +796,22 @@
 			<File
 				RelativePath="DX7AllocatorPresenter.h"
 				>
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCustomBuildTool"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="DX9AllocatorPresenter.h"
 				>
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCustomBuildTool"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath=".\FakeFilterMapper2.h"
 				>
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCustomBuildTool"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="FavoriteAddDlg.h"
 				>
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCustomBuildTool"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="FavoriteOrganizeDlg.h"
 				>
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCustomBuildTool"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath=".\FGFilter.h"
@@ -1442,38 +824,14 @@
 			<File
 				RelativePath="FileDropTarget.h"
 				>
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCustomBuildTool"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="FloatEdit.h"
 				>
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCustomBuildTool"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="GoToDlg.h"
 				>
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCustomBuildTool"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath=".\IGraphBuilder2.h"
@@ -1486,14 +844,6 @@
 			<File
 				RelativePath="IQTVideoSurface.h"
 				>
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCustomBuildTool"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath=".\ISDb.h"
@@ -1510,14 +860,6 @@
 			<File
 				RelativePath="KeyProvider.h"
 				>
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCustomBuildTool"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath=".\LineNumberEdit.h"
@@ -1526,86 +868,30 @@
 			<File
 				RelativePath=".\MacrovisionKicker.h"
 				>
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCustomBuildTool"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath=".\MainFrm.h"
 				>
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCustomBuildTool"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="MediaFormats.h"
 				>
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCustomBuildTool"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="MediaTypesDlg.h"
 				>
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCustomBuildTool"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath=".\mplayerc.h"
 				>
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCustomBuildTool"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="OpenCapDeviceDlg.h"
 				>
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCustomBuildTool"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="OpenDlg.h"
 				>
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCustomBuildTool"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath=".\OpenFileDlg.h"
@@ -1618,74 +904,26 @@
 			<File
 				RelativePath="PlayerCaptureBar.h"
 				>
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCustomBuildTool"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="PlayerCaptureDialog.h"
 				>
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCustomBuildTool"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="PlayerInfoBar.h"
 				>
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCustomBuildTool"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="PlayerListCtrl.h"
 				>
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCustomBuildTool"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="PlayerPlaylistBar.h"
 				>
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCustomBuildTool"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="PlayerSeekBar.h"
 				>
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCustomBuildTool"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath=".\PlayerShaderEditorBar.h"
@@ -1694,110 +932,38 @@
 			<File
 				RelativePath="PlayerStatusBar.h"
 				>
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCustomBuildTool"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="PlayerSubresyncBar.h"
 				>
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCustomBuildTool"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="PlayerToolBar.h"
 				>
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCustomBuildTool"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="Playlist.h"
 				>
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCustomBuildTool"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="PnSPresetsDlg.h"
 				>
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCustomBuildTool"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="PPageAccelTbl.h"
 				>
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCustomBuildTool"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="PPageAudioSwitcher.h"
 				>
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCustomBuildTool"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="PPageBase.h"
 				>
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCustomBuildTool"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="PPageDVD.h"
 				>
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCustomBuildTool"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath=".\PPageExternalFilters.h"
@@ -1806,26 +972,10 @@
 			<File
 				RelativePath="PPageFileInfoClip.h"
 				>
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCustomBuildTool"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="PPageFileInfoDetails.h"
 				>
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCustomBuildTool"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath=".\PPageFileInfoRes.h"
@@ -1834,26 +984,10 @@
 			<File
 				RelativePath="PPageFileInfoSheet.h"
 				>
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCustomBuildTool"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="PPageFormats.h"
 				>
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCustomBuildTool"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath=".\PPageInternalFilters.h"
@@ -1870,38 +1004,14 @@
 			<File
 				RelativePath="PPagePlayback.h"
 				>
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCustomBuildTool"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="PPagePlayer.h"
 				>
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCustomBuildTool"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="PPageSheet.h"
 				>
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCustomBuildTool"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath=".\PPageSubDB.h"
@@ -1910,38 +1020,14 @@
 			<File
 				RelativePath="PPageSubStyle.h"
 				>
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCustomBuildTool"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="PPageSubtitles.h"
 				>
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCustomBuildTool"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="PPageTweaks.h"
 				>
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCustomBuildTool"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath=".\PPageWebServer.h"
@@ -1950,86 +1036,30 @@
 			<File
 				RelativePath="QuicktimeGraph.h"
 				>
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCustomBuildTool"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="RealMediaGraph.h"
 				>
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCustomBuildTool"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="RealMediaWindowlessSite.h"
 				>
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCustomBuildTool"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="RegFilterChooserDlg.h"
 				>
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCustomBuildTool"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath=".\Resource.h"
 				>
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCustomBuildTool"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="SaveDlg.h"
 				>
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCustomBuildTool"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="SaveTextFileDialog.h"
 				>
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCustomBuildTool"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath=".\SaveThumbnailsDialog.h"
@@ -2038,14 +1068,6 @@
 			<File
 				RelativePath="SelectMediaType.h"
 				>
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCustomBuildTool"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath=".\ShaderAutoCompleteDlg.h"
@@ -2062,50 +1084,18 @@
 			<File
 				RelativePath="ShockwaveGraph.h"
 				>
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCustomBuildTool"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="StaticLink.h"
 				>
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCustomBuildTool"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="StatusLabel.h"
 				>
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCustomBuildTool"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath=".\StdAfx.h"
 				>
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCustomBuildTool"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath=".\SubtitleDlDlg.h"
@@ -2114,26 +1104,10 @@
 			<File
 				RelativePath="TextPassThruFilter.h"
 				>
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCustomBuildTool"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="VolumeCtrl.h"
 				>
-				<FileConfiguration
-					Name="ResourceDLL|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCustomBuildTool"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath=".\WebClientSocket.h"
