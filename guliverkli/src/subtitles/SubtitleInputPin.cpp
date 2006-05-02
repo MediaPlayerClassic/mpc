@@ -180,7 +180,7 @@ STDMETHODIMP CSubtitleInputPin::NewSegment(REFERENCE_TIME tStart, REFERENCE_TIME
 		ssf::CRenderer* pSSF = (ssf::CRenderer*)(ISubStream*)m_pSubStream;
 		// LAME, implement RemoveSubtitles
 		DWORD dwOffset = ((SUBTITLEINFO*)m_mt.pbFormat)->dwOffset;
-		pSSF->Open(ssf::MemoryInputStream(m_mt.pbFormat + dwOffset, m_mt.cbFormat - dwOffset, false, false), L"");
+		pSSF->Open(ssf::MemoryInputStream(m_mt.pbFormat + dwOffset, m_mt.cbFormat - dwOffset, false, false), _T(""));
 		// pSSF->RemoveSubtitles();
 	}
 	else if(m_mt.majortype == MEDIATYPE_Subtitle && (m_mt.subtype == MEDIASUBTYPE_VOBSUB))

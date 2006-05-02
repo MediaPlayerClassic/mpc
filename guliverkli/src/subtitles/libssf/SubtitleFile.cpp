@@ -83,7 +83,26 @@ namespace ssf
 			{
 				m_segments.Insert(start, stop, pDef);
 
-				if(fSetTime) SetTime(pDef, start, stop);
+				if(fSetTime) 
+				{
+					try
+					{
+						Definition::Time time;
+						StringMapW<float> offset;
+						pDef->GetAsTime(time, offset);
+						if(time.start.value == start && time.stop.value == stop)
+							continue;
+					}
+					catch(Exception&)
+					{
+					}
+
+					CStringW str;
+					str.Format(L"%.3f", start);
+					pDef->SetChildAsNumber(L"time.start", str, L"s");
+					str.Format(L"%.3f", stop);
+					pDef->SetChildAsNumber(L"time.stop", str, L"s");
+				}
 			}
 		}
 
@@ -123,36 +142,6 @@ namespace ssf
 		}
 
 		return !subs.IsEmpty();
-	}
-
-	void SubtitleFile::SetTime(Definition* pDef, float start, float stop)
-	{
-		// TODO: remove/overwrite dups
-
-		try
-		{
-			Definition::Time time;
-			StringMapW<float> offset;
-			pDef->GetAsTime(time, offset);
-			if(time.start.value == start && time.stop.value == stop)
-				return;
-		}
-		catch(Exception&)
-		{
-		}
-
-		CStringW str;
-
-		Reference* pRefTime = CreateRef(pDef);
-		Definition* pDefTime = CreateDef(pRefTime, L"time");
-		
-		Reference* pRefStart = CreateRef(pDefTime);
-		str.Format(L"%.3f", start);
-		CreateDef(pRefStart, L"start")->SetAsNumber(str, L"s");
-		
-		Reference* pRefStop = CreateRef(pDefTime);
-		str.Format(L"%.3f", stop);
-		CreateDef(pRefStop, L"stop")->SetAsNumber(str, L"s");
 	}
 
 	//

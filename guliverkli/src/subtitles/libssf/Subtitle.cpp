@@ -82,6 +82,8 @@ namespace ssf
 
 		Fill::gen_id = 0;
 
+		m_pFile->Commit();
+
 		try
 		{
 			Definition& frame = (*pDef)[L"frame"];
@@ -99,16 +101,12 @@ namespace ssf
 
 			m_layer = (*pDef)[L"layer"];
 
-			m_pFile->Commit();
-
 			Style style;
 			GetStyle(&(*pDef)[L"style"], style);
 
 			StringMapW<float> offset;
 			Definition& block = (*pDef)[L"@"];
 			Parse(WCharInputStream((LPCWSTR)block), style, at, offset, dynamic_cast<Reference*>(block.m_parent));
-
-			m_pFile->Rollback();
 
 			// TODO: trimming should be done by the renderer later, after breaking the words into lines
 
@@ -149,6 +147,8 @@ namespace ssf
 			TRACE(_T("%s"), e.ToString());
 			return false;
 		}
+
+		m_pFile->Rollback();
 
 		return true;
 	}
@@ -668,7 +668,7 @@ namespace ssf
 			const Point& p = GetAt(i);
 
 			CStringW str;
-			str.Format(_T("%f %f "), p.x, p.y);
+			str.Format(L"%f %f ", p.x, p.y);
 			ret += str;
 		}
 

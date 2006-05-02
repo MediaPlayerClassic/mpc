@@ -72,7 +72,7 @@ static const LPCTSTR s_genre[] =
 //
 
 CMpaSplitterFile::CMpaSplitterFile(IAsyncReader* pAsyncReader, HRESULT& hr)
-	: CBaseSplitterFileEx(pAsyncReader, hr)
+	: CBaseSplitterFileEx(pAsyncReader, hr, DEFAULT_CACHE_LENGTH, false)
 	, m_mode(none)
 	, m_rtDuration(0)
 	, m_startpos(0)
@@ -92,7 +92,7 @@ HRESULT CMpaSplitterFile::Init()
 	if(BitRead(24, true) == 0x000001)
 		return E_FAIL;
 
-	if(m_endpos > 128)
+	if(m_endpos > 128 && IsRandomAccess())
 	{
 		Seek(m_endpos - 128);
 

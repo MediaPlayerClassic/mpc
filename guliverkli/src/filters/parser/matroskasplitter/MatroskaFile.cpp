@@ -71,7 +71,7 @@ static void bswap(BYTE* s, int len)
 //
 
 CMatroskaFile::CMatroskaFile(IAsyncReader* pAsyncReader, HRESULT& hr) 
-	: CBaseSplitterFile(pAsyncReader, hr)
+	: CBaseSplitterFile(pAsyncReader, hr, DEFAULT_CACHE_LENGTH, false)
 	, m_rtOffset(0)
 {
 	if(FAILED(hr)) return;
@@ -174,6 +174,11 @@ HRESULT Segment::ParseMinimal(CMatroskaNode* pMN0)
 		}
 	}
 	while(n < 3 && pMN->Next());
+
+	if(!pMN->IsRandomAccess())
+	{
+		return S_OK;
+	}
 
 	while(QWORD pos = pMN->FindPos(0x114D9B74, pMN->GetPos()))
 	{

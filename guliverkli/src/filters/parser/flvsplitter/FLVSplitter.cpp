@@ -72,7 +72,7 @@ CFactoryTemplate g_Templates[] =
 	{sudFilter[1].strName, sudFilter[1].clsID, CreateInstance<CFLVSourceFilter>, NULL, &sudFilter[1]},
 	__if_exists(CFLVVideoDecoder) {
 	{sudFilter[2].strName, sudFilter[2].clsID, CreateInstance<CFLVVideoDecoder>, NULL, &sudFilter[2]},
-		}
+	}
 };
 
 int g_cTemplates = countof(g_Templates);
@@ -110,7 +110,7 @@ CFLVSplitterFilter::CFLVSplitterFilter(LPUNKNOWN pUnk, HRESULT* phr)
 
 bool CFLVSplitterFilter::ReadTag(Tag& t)
 {
-	if(m_pFile->GetPos() > m_pFile->GetLength() - 15) 
+	if(m_pFile->GetRemaining() < 15) 
 		return false;
 
 	t.PreviousTagSize = (UINT32)m_pFile->BitRead(32);
@@ -119,12 +119,12 @@ bool CFLVSplitterFilter::ReadTag(Tag& t)
 	t.TimeStamp = (UINT32)m_pFile->BitRead(24);
 	t.Reserved = (UINT32)m_pFile->BitRead(32);
 
-	return m_pFile->GetPos() <= m_pFile->GetLength() - t.DataSize;
+	return m_pFile->GetRemaining() >= t.DataSize;
 }
 
 bool CFLVSplitterFilter::ReadTag(AudioTag& at)
 {
-	if(m_pFile->GetPos() > m_pFile->GetLength() - 1) 
+	if(!m_pFile->GetRemaining()) 
 		return false;
 
 	at.SoundFormat = (BYTE)m_pFile->BitRead(4);
@@ -137,7 +137,7 @@ bool CFLVSplitterFilter::ReadTag(AudioTag& at)
 
 bool CFLVSplitterFilter::ReadTag(VideoTag& vt)
 {
-	if(m_pFile->GetPos() > m_pFile->GetLength() - 1) 
+	if(!m_pFile->GetRemaining()) 
 		return false;
 
 	vt.FrameType = (BYTE)m_pFile->BitRead(4);
@@ -150,9 +150,9 @@ bool CFLVSplitterFilter::Sync(__int64& pos)
 {
 	m_pFile->Seek(pos);
 
-	while(m_pFile->GetPos() <= m_pFile->GetLength() - 11)
+	while(m_pFile->GetRemaining() >= 11)
 	{
-		int limit = m_pFile->GetLength() - m_pFile->GetPos();
+		int limit = m_pFile->GetRemaining();
 
 		BYTE b;
 		do {b = m_pFile->BitRead(8);}
@@ -190,7 +190,7 @@ HRESULT CFLVSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 	HRESULT hr = E_FAIL;
 
 	m_pFile.Free();
-	m_pFile.Attach(new CBaseSplitterFileEx(pAsyncReader, hr));
+	m_pFile.Attach(new CBaseSplitterFileEx(pAsyncReader, hr, DEFAULT_CACHE_LENGTH, false));
 	if(!m_pFile) return E_OUTOFMEMORY;
 	if(FAILED(hr)) {m_pFile.Free(); return hr;}
 
@@ -268,7 +268,7 @@ HRESULT CFLVSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 			name = L"Video";
 
 			VideoTag vt;
-			if(ReadTag(vt))
+			if(ReadTag(vt) && vt.FrameType == 1)
 			{
 				mt.majortype = MEDIATYPE_Video;
 				mt.formattype = FORMAT_VideoInfo;
@@ -309,8 +309,10 @@ HRESULT CFLVSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 
 					break;
 
+				case 5:
+					m_pFile->BitRead(24);
 				case 4:
-					EXECUTE_ASSERT(m_pFile->BitRead(8) == 0);
+					m_pFile->BitRead(8);
 					if((m_pFile->BitRead(16) & 0x80fe) != 0x0046) break;
 
 					h = m_pFile->BitRead(8) * 16;
@@ -349,20 +351,27 @@ HRESULT CFLVSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 		m_pFile->Seek(next);
 	}
 
-	__int64 pos = max(m_DataOffset, m_pFile->GetLength() - 65536);
-
-	if(Sync(pos))
+	if(m_pFile->IsRandomAccess())
 	{
-		while(ReadTag(t))
+		__int64 pos = max(m_DataOffset, m_pFile->GetLength() - 65536);
+
+		if(Sync(pos))
 		{
-			UINT64 next = m_pFile->GetPos() + t.DataSize;
+			Tag t;
+			AudioTag at;
+			VideoTag vt;
 
-			if(t.TagType == 8 && ReadTag(at) || t.TagType == 9 && ReadTag(vt))
+			while(ReadTag(t))
 			{
-				m_rtDuration = max(m_rtDuration, 10000i64 * t.TimeStamp); 
-			}
+				UINT64 next = m_pFile->GetPos() + t.DataSize;
 
-			m_pFile->Seek(next);
+				if(t.TagType == 8 && ReadTag(at) || t.TagType == 9 && ReadTag(vt))
+				{
+					m_rtDuration = max(m_rtDuration, 10000i64 * t.TimeStamp); 
+				}
+
+				m_pFile->Seek(next);
+			}
 		}
 	}
 
@@ -448,7 +457,7 @@ bool CFLVSplitterFilter::DemuxLoop()
 	AudioTag at;
 	VideoTag vt;
 
-	while(SUCCEEDED(hr) && !CheckRequest(NULL) && m_pFile->GetPos() < m_pFile->GetLength())
+	while(SUCCEEDED(hr) && !CheckRequest(NULL) && m_pFile->GetRemaining())
 	{
 		if(!ReadTag(t)) break;
 
@@ -461,8 +470,8 @@ bool CFLVSplitterFilter::DemuxLoop()
 			p->rtStart = 10000i64 * t.TimeStamp; 
 			p->rtStop = p->rtStart + 1;
 			p->bSyncPoint = t.TagType == 9 ? vt.FrameType == 1 : true;
-			if(t.TagType == 9 && vt.CodecID == 4) 
-				EXECUTE_ASSERT(m_pFile->BitRead(8) == 0);
+			if(t.TagType == 9 && vt.CodecID == 4) m_pFile->BitRead(8);
+			if(t.TagType == 9 && vt.CodecID == 5) m_pFile->BitRead(32);
 			p->SetCount(next - m_pFile->GetPos());
 			m_pFile->ByteRead(p->GetData(), p->GetCount());
 			hr = DeliverPacket(p); 

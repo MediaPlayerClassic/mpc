@@ -450,5 +450,7 @@ namespace MatroskaReader
 			
 		CAutoPtr<CMatroskaNode> GetFirstBlock();
 		bool NextBlock();
+
+		bool IsRandomAccess() {return m_pMF->IsRandomAccess();}
 	};
 }

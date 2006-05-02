@@ -96,10 +96,6 @@ public:
 	DECLARE_IUNKNOWN;
     STDMETHODIMP NonDelegatingQueryInterface(REFIID riid, void** ppv);
 
-	// IMediaSeeking
-
-	STDMETHODIMP GetDuration(LONGLONG* pDuration);
-
 	// IKeyFrameInfo
 
 	STDMETHODIMP GetKeyFrameCount(UINT& nKFs);
