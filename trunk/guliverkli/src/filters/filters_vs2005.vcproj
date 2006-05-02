@@ -301,6 +301,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\filters.h"
+				>
+			</File>
+			<File
 				RelativePath=".\InternalPropertyPage.h"
 				>
 			</File>

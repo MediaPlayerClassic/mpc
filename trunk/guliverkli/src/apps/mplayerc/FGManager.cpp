@@ -423,6 +423,8 @@ HRESULT CFGManager::AddSourceFilter(CFGFilter* pFGF, LPCWSTR lpcwstrFileName, LP
 
 STDMETHODIMP CFGManager::AddFilter(IBaseFilter* pFilter, LPCWSTR pName)
 {
+	if(!m_pUnkInner) return E_UNEXPECTED;
+
 	CAutoLock cAutoLock(this);
 
 	HRESULT hr;
@@ -439,6 +441,8 @@ STDMETHODIMP CFGManager::AddFilter(IBaseFilter* pFilter, LPCWSTR pName)
 
 STDMETHODIMP CFGManager::RemoveFilter(IBaseFilter* pFilter)
 {
+	if(!m_pUnkInner) return E_UNEXPECTED;
+
 	CAutoLock cAutoLock(this);
 
 	return CComQIPtr<IFilterGraph2>(m_pUnkInner)->RemoveFilter(pFilter);
@@ -446,6 +450,8 @@ STDMETHODIMP CFGManager::RemoveFilter(IBaseFilter* pFilter)
 
 STDMETHODIMP CFGManager::EnumFilters(IEnumFilters** ppEnum)
 {
+	if(!m_pUnkInner) return E_UNEXPECTED;
+
 	CAutoLock cAutoLock(this);
 
 	return CComQIPtr<IFilterGraph2>(m_pUnkInner)->EnumFilters(ppEnum);
@@ -453,6 +459,8 @@ STDMETHODIMP CFGManager::EnumFilters(IEnumFilters** ppEnum)
 
 STDMETHODIMP CFGManager::FindFilterByName(LPCWSTR pName, IBaseFilter** ppFilter)
 {
+	if(!m_pUnkInner) return E_UNEXPECTED;
+
 	CAutoLock cAutoLock(this);
 
 	return CComQIPtr<IFilterGraph2>(m_pUnkInner)->FindFilterByName(pName, ppFilter);
@@ -460,6 +468,8 @@ STDMETHODIMP CFGManager::FindFilterByName(LPCWSTR pName, IBaseFilter** ppFilter)
 
 STDMETHODIMP CFGManager::ConnectDirect(IPin* pPinOut, IPin* pPinIn, const AM_MEDIA_TYPE* pmt)
 {
+	if(!m_pUnkInner) return E_UNEXPECTED;
+
 	CAutoLock cAutoLock(this);
 
 	CComPtr<IBaseFilter> pBF = GetFilterFromPin(pPinIn);
@@ -477,6 +487,8 @@ STDMETHODIMP CFGManager::ConnectDirect(IPin* pPinOut, IPin* pPinIn, const AM_MED
 
 STDMETHODIMP CFGManager::Reconnect(IPin* ppin)
 {
+	if(!m_pUnkInner) return E_UNEXPECTED;
+
 	CAutoLock cAutoLock(this);
 
 	return CComQIPtr<IFilterGraph2>(m_pUnkInner)->Reconnect(ppin);
@@ -484,6 +496,8 @@ STDMETHODIMP CFGManager::Reconnect(IPin* ppin)
 
 STDMETHODIMP CFGManager::Disconnect(IPin* ppin)
 {
+	if(!m_pUnkInner) return E_UNEXPECTED;
+
 	CAutoLock cAutoLock(this);
 
 	return CComQIPtr<IFilterGraph2>(m_pUnkInner)->Disconnect(ppin);
@@ -491,6 +505,8 @@ STDMETHODIMP CFGManager::Disconnect(IPin* ppin)
 
 STDMETHODIMP CFGManager::SetDefaultSyncSource()
 {
+	if(!m_pUnkInner) return E_UNEXPECTED;
+
 	CAutoLock cAutoLock(this);
 
 	return CComQIPtr<IFilterGraph2>(m_pUnkInner)->SetDefaultSyncSource();
@@ -807,6 +823,8 @@ STDMETHODIMP CFGManager::AddSourceFilter(LPCWSTR lpcwstrFileName, LPCWSTR lpcwst
 
 STDMETHODIMP CFGManager::SetLogFile(DWORD_PTR hFile)
 {
+	if(!m_pUnkInner) return E_UNEXPECTED;
+
 	CAutoLock cAutoLock(this);
 
 	return CComQIPtr<IFilterGraph2>(m_pUnkInner)->SetLogFile(hFile);
@@ -814,6 +832,8 @@ STDMETHODIMP CFGManager::SetLogFile(DWORD_PTR hFile)
 
 STDMETHODIMP CFGManager::Abort()
 {
+	if(!m_pUnkInner) return E_UNEXPECTED;
+
 	CAutoLock cAutoLock(this);
 
 	return CComQIPtr<IFilterGraph2>(m_pUnkInner)->Abort();
@@ -821,6 +841,8 @@ STDMETHODIMP CFGManager::Abort()
 
 STDMETHODIMP CFGManager::ShouldOperationContinue()
 {
+	if(!m_pUnkInner) return E_UNEXPECTED;
+
 	CAutoLock cAutoLock(this);
 
 	return CComQIPtr<IFilterGraph2>(m_pUnkInner)->ShouldOperationContinue();
@@ -830,6 +852,8 @@ STDMETHODIMP CFGManager::ShouldOperationContinue()
 
 STDMETHODIMP CFGManager::AddSourceFilterForMoniker(IMoniker* pMoniker, IBindCtx* pCtx, LPCWSTR lpcwstrFilterName, IBaseFilter** ppFilter)
 {
+	if(!m_pUnkInner) return E_UNEXPECTED;
+
 	CAutoLock cAutoLock(this);
 
 	return CComQIPtr<IFilterGraph2>(m_pUnkInner)->AddSourceFilterForMoniker(pMoniker, pCtx, lpcwstrFilterName, ppFilter);
@@ -837,6 +861,8 @@ STDMETHODIMP CFGManager::AddSourceFilterForMoniker(IMoniker* pMoniker, IBindCtx*
 
 STDMETHODIMP CFGManager::ReconnectEx(IPin* ppin, const AM_MEDIA_TYPE* pmt)
 {
+	if(!m_pUnkInner) return E_UNEXPECTED;
+
 	CAutoLock cAutoLock(this);
 
 	return CComQIPtr<IFilterGraph2>(m_pUnkInner)->ReconnectEx(ppin, pmt);
@@ -1283,18 +1309,24 @@ CFGManagerCustom::CFGManagerCustom(LPCTSTR pName, LPUNKNOWN pUnk, UINT src, UINT
 		m_source.AddTail(pFGF);
 	}
 
+	__if_exists(CNutSourceFilter)
+	{
 	if(src & SRC_NUT)
 	{
 		pFGF = new CFGFilterInternal<CNutSourceFilter>();
 		pFGF->m_chkbytes.AddTail(_T("0,8,,F9526A624E55544D"));
 		m_source.AddTail(pFGF);
 	}
+	}
 
+	__if_exists(CDiracSourceFilter)
+	{
 	if(src & SRC_DIRAC)
 	{
 		pFGF = new CFGFilterInternal<CDiracSourceFilter>();
 		pFGF->m_chkbytes.AddTail(_T("0,8,,4B572D4449524143"));
 		m_source.AddTail(pFGF);
+	}
 	}
 
 	if(src & SRC_MPEG)
@@ -1395,12 +1427,15 @@ CFGManagerCustom::CFGManagerCustom(LPCTSTR pName, LPUNKNOWN pUnk, UINT src, UINT
 		m_transform.AddTail(pFGF);
 	}
 
+	__if_exists(CNutSplitterFilter)
+	{
 	if(src & SRC_NUT)
 	{
 		pFGF = new CFGFilterInternal<CNutSplitterFilter>(L"Nut Splitter", MERIT64_ABOVE_DSHOW);
 		pFGF->AddType(MEDIATYPE_Stream, MEDIASUBTYPE_Nut);
 		pFGF->AddType(MEDIATYPE_Stream, GUID_NULL);
 		m_transform.AddTail(pFGF);
+	}
 	}
 
 	if(src & SRC_MPEG)
@@ -1414,12 +1449,15 @@ CFGManagerCustom::CFGManagerCustom(LPCTSTR pName, LPUNKNOWN pUnk, UINT src, UINT
 		m_transform.AddTail(pFGF);
 	}
 
+	__if_exists(CDiracSplitterFilter)
+	{
 	if(src & SRC_DIRAC)
 	{
 		pFGF = new CFGFilterInternal<CDiracSplitterFilter>(L"Dirac Splitter", MERIT64_ABOVE_DSHOW);
 		pFGF->AddType(MEDIATYPE_Stream, MEDIASUBTYPE_Dirac);
 		pFGF->AddType(MEDIATYPE_Stream, GUID_NULL);
 		m_transform.AddTail(pFGF);
+	}
 	}
 
 	if(src & SRC_MPA)
@@ -1582,11 +1620,14 @@ CFGManagerCustom::CFGManagerCustom(LPCTSTR pName, LPUNKNOWN pUnk, UINT src, UINT
 	pFGF->AddType(MEDIATYPE_Audio, MEDIASUBTYPE_RoQA);
 	m_transform.AddTail(pFGF);
 
+	__if_exists(CDiracVideoDecoder)
+	{
 	pFGF = new CFGFilterInternal<CDiracVideoDecoder>(
 		(tra & TRA_DIRAC) ? L"Dirac Video Decoder" : L"Dirac Video Decoder (low merit)",
 		(tra & TRA_DIRAC) ? MERIT64_ABOVE_DSHOW : MERIT64_DO_USE);
 	pFGF->AddType(MEDIATYPE_Video, MEDIASUBTYPE_DiracVideo);
 	m_transform.AddTail(pFGF);
+	}
 
 	pFGF = new CFGFilterInternal<CNullTextRenderer>(L"NullTextRenderer", MERIT64_DO_USE);
 	pFGF->AddType(MEDIATYPE_Text, MEDIASUBTYPE_NULL);

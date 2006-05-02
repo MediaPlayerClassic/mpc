@@ -3030,16 +3030,16 @@ void CMainFrame::OnFileOpenmedia()
 	COpenDlg dlg;
 	if(dlg.DoModal() != IDOK || dlg.m_fns.GetCount() == 0) return;
 
-	SendMessage(WM_COMMAND, ID_FILE_CLOSEMEDIA);
-
-	ShowWindow(SW_SHOW);
-	SetForegroundWindow();
-
 	if(dlg.m_fAppendPlaylist)
 	{
 		m_wndPlaylistBar.Append(dlg.m_fns, dlg.m_fMultipleFiles);
 		return;
 	}
+
+	SendMessage(WM_COMMAND, ID_FILE_CLOSEMEDIA);
+
+	ShowWindow(SW_SHOW);
+	SetForegroundWindow();
 
 	m_wndPlaylistBar.Open(dlg.m_fns, dlg.m_fMultipleFiles);
 
@@ -3379,10 +3379,15 @@ void CMainFrame::OnUpdateFileSaveAs(CCmdUI* pCmdUI)
     CString fn = m_wndPlaylistBar.GetCur();
 	CString ext = fn.Mid(fn.ReverseFind('.')+1).MakeLower();
 
-	if(fn.Find(_T("://")) >= 0)
+	int i = fn.Find(_T("://"));
+	if(i >= 0)
 	{
-		pCmdUI->Enable(FALSE);
-		return;
+		CString protocol = fn.Left(i).MakeLower();
+		if(protocol != _T("http"))
+		{
+			pCmdUI->Enable(FALSE);
+			return;
+		}
 	}
 
 	if((GetVersion()&0x80000000) && (ext == _T("cda") || ext == _T("ifo")))

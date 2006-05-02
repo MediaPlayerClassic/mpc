@@ -1056,7 +1056,7 @@ HRESULT CRMFile::Init()
 	HRESULT hr;
 
 	ChunkHdr hdr;
-	while(GetPos() < GetLength() && S_OK == (hr = Read(hdr)))
+	while(GetRemaining() && S_OK == (hr = Read(hdr)))
 	{
 		__int64 pos = GetPos() - sizeof(hdr);
 

@@ -1247,15 +1247,7 @@ IDB_PLAYERTOOLBAR       BITMAP                  "res\\toolbar1.bmp"
 IDB_MONO                BITMAP                  "res\\mono.bmp"
 IDB_STEREO              BITMAP                  "res\\stereo.bmp"
 IDB_NOAUDIO             BITMAP                  "res\\noaudio.bmp"
-IDB_LOGO0               BITMAP                  "res\\logo.0.bmp"
-IDB_LOGO1               BITMAP                  "res\\logo.1.bmp"
-IDB_LOGO2               BITMAP                  "res\\logo.2.bmp"
-IDB_LOGO3               BITMAP                  "res\\logo.3.bmp"
-IDB_LOGO4               BITMAP                  "res\\logo.4.bmp"
-IDB_LOGO5               BITMAP                  "res\\logo.5.bmp"
-IDB_LOGO6               BITMAP                  "res\\logo.6.bmp"
 IDB_AUTHHDRPIC          BITMAP                  "res\\authhdrpic.bmp"
-IDB_LOGO7               BITMAP                  "res\\logo.7.bmp"
 IDB_STREAMTYPES         BITMAP                  "res\\streamtypes.bmp"
 
 /////////////////////////////////////////////////////////////////////////////
@@ -1294,7 +1286,6 @@ IDF_SEEKBARLEFT_PNG     FILE                    "res\\web\\seekbarleft.png"
 IDF_SEEKBARMID_PNG      FILE                    "res\\web\\seekbarmid.png"
 IDF_SEEKBARRIGHT_PNG    FILE                    "res\\web\\seekbarright.png"
 IDF_SEEKBARGRIP_PNG     FILE                    "res\\web\\seekbargrip.png"
-IDF_LOGO_PNG            FILE                    "res\\web\\logo.png"
 IDF_CONTROLBACK_PNG     FILE                    "res\\web\\controlback.png"
 IDF_CONTROLBUTTONPLAY_PNG FILE                    "res\\web\\controlbuttonplay.png"
 IDF_CONTROLBUTTONPAUSE_PNG FILE                    "res\\web\\controlbuttonpause.png"
@@ -1309,6 +1300,14 @@ IDF_CONTROLVOLUMEOFF_PNG FILE                    "res\\web\\controlvolumeoff.png
 IDF_CONTROLVOLUMEBAR_PNG FILE                    "res\\web\\controlvolumebar.png"
 IDF_CONTROLVOLUMEGRIP_PNG FILE                    "res\\web\\controlvolumegrip.png"
 IDF_SHADER_RESIZER      FILE                    "res\\shaders\\resizer.psh"
+IDF_LOGO0               FILE                  "res\\logo.0.png"
+IDF_LOGO1               FILE                  "res\\logo.1.png"
+IDF_LOGO2               FILE                  "res\\logo.2.png"
+IDF_LOGO3               FILE                  "res\\logo.3.png"
+IDF_LOGO4               FILE                  "res\\logo.4.png"
+IDF_LOGO5               FILE                  "res\\logo.5.png"
+IDF_LOGO6               FILE                  "res\\logo.6.png"
+IDF_LOGO7               FILE                  "res\\logo.7.png"
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -2066,9 +2065,9 @@ END
 
 STRINGTABLE 
 BEGIN
-    IDB_LOGO3               "Andrew S. Gildehaus, agildehaus@runbox.com"
-    IDB_LOGO4               "Marcel Hoffs, marcelhoffs@hotmail.com"
-    IDB_LOGO7               "Steven W. Smith, smith78@sbcglobal.net"
+    IDF_LOGO3               "Andrew S. Gildehaus, agildehaus@runbox.com"
+    IDF_LOGO4               "Marcel Hoffs, marcelhoffs@hotmail.com"
+    IDF_LOGO7               "Steven W. Smith, smith78@sbcglobal.net"
 END
 
 STRINGTABLE 

@@ -474,8 +474,6 @@ void CMediaTypeEx::Dump(CAtlList<CString>& sl)
 		sl.AddTail(str);
 		str.Format(_T("biYPelsPerMeter: %d"), bih->biYPelsPerMeter);
 		sl.AddTail(str);
-		str.Format(_T("biYPelsPerMeter: %d"), bih->biYPelsPerMeter);
-		sl.AddTail(str);
 		str.Format(_T("biClrUsed: %d"), bih->biClrUsed);
 		sl.AddTail(str);
 		str.Format(_T("biClrImportant: %d"), bih->biClrImportant);

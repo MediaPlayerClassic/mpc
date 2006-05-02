@@ -88,7 +88,7 @@ namespace ssf
 		int InputStreamBSF::NextByte()
 		{
 			if(!m_pFile) ThrowError(_T("m_pFile is NULL"));
-			if(m_pFile->GetPos() >= m_pFile->GetLength()) return EOS;
+			if(!m_pFile->GetRemaining()) return EOS;
 			return (int)m_pFile->BitRead(8);
 		}
 	};

@@ -30,8 +30,8 @@
 // CBaseSplitterFileEx
 //
 
-CBaseSplitterFileEx::CBaseSplitterFileEx(IAsyncReader* pReader, HRESULT& hr, int cachelen)
-	: CBaseSplitterFile(pReader, hr, cachelen)
+CBaseSplitterFileEx::CBaseSplitterFileEx(IAsyncReader* pReader, HRESULT& hr, int cachelen, bool fNeedRandomAccess)
+	: CBaseSplitterFile(pReader, hr, cachelen, fNeedRandomAccess)
 	, m_tslen(0)
 {
 }
@@ -48,7 +48,7 @@ bool CBaseSplitterFileEx::NextMpegStartCode(BYTE& code, __int64 len)
 	DWORD dw = -1;
 	do
 	{
-		if(len-- == 0 || GetPos() >= GetLength()) return(false);
+		if(len-- == 0 || !GetRemaining()) return(false);
 		dw = (dw << 8) | (BYTE)BitRead(8);
 	}
 	while((dw&0xffffff00) != 0x00000100);

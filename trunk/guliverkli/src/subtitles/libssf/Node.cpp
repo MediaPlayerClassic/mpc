@@ -29,7 +29,7 @@
 
 namespace ssf
 {
-	Node::Node(const NodeFactory* pnf, CStringW name)
+	Node::Node(NodeFactory* pnf, CStringW name)
 		: m_pnf(pnf)
 		, m_type('?')
 		, m_name(name)
@@ -96,7 +96,7 @@ namespace ssf
 
 	// Reference
 
-	Reference::Reference(const NodeFactory* pnf, CStringW name)
+	Reference::Reference(NodeFactory* pnf, CStringW name)
 		: Node(pnf, name)
 	{
 	}
@@ -152,7 +152,7 @@ namespace ssf
 
 	// Definition
 
-	Definition::Definition(const NodeFactory* pnf, CStringW name)
+	Definition::Definition(NodeFactory* pnf, CStringW name)
 		: Node(pnf, name)
 		, m_status(node)
 		, m_autotype(false)
@@ -427,6 +427,63 @@ namespace ssf
 		bool b;
 		GetAsBoolean(b);
 		return b;
+	}
+
+	Definition* Definition::SetChildAsValue(CStringW path, status_t s, CStringW v, CStringW u)
+	{
+		Definition* pDef = this;
+
+		Split split('.', path);
+
+		for(size_t i = 0, j = split-1; i <= j; i++)
+		{
+			CStringW type = split[i];
+
+			if(pDef->m_nodes.IsEmpty() || !dynamic_cast<Reference*>(pDef->m_nodes.GetTail()))
+			{
+				EXECUTE_ASSERT(m_pnf->CreateRef(pDef) != NULL);
+			}
+
+			if(Reference* pRef = dynamic_cast<Reference*>(pDef->m_nodes.GetTail()))
+			{
+				pDef = NULL;
+
+				POSITION pos = pRef->m_nodes.GetTailPosition();
+				while(pos)
+				{
+					Definition* pChildDef = dynamic_cast<Definition*>(pRef->m_nodes.GetPrev(pos));
+
+					if(pChildDef->IsType(type))
+					{
+						if(pChildDef->IsNameUnknown()) pDef = pChildDef;
+						break;
+					}
+				}
+
+				if(!pDef)
+				{
+					pDef = m_pnf->CreateDef(pRef, type);
+				}
+
+				if(i == j)
+				{
+					pDef->SetAsValue(s, v, u);
+					return pDef;
+				}
+			}
+		}
+
+		return NULL;
+	}
+
+	Definition* Definition::SetChildAsNumber(CStringW path, CStringW v, CStringW u)
+	{
+		Definition* pDef = SetChildAsValue(path, number, v, u);
+
+		Number<float> n;
+		pDef->GetAsNumber(n); // will throw an exception if not a number
+
+		return pDef;
 	}
 
 	void Definition::Dump(OutputStream& s, int level, bool fLast)

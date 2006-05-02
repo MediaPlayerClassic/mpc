@@ -120,7 +120,7 @@ HRESULT CMatroskaSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 	if(FAILED(hr)) {m_pFile.Free(); return hr;}
 
 	m_rtNewStart = m_rtCurrent = 0;
-	m_rtNewStop = m_rtStop = 0;
+	m_rtNewStop = m_rtStop = m_rtDuration = 0;
 
 	int iVideo = 1, iAudio = 1, iSubtitle = 1;
 
@@ -532,6 +532,7 @@ avcsuccess:
 						CodecID == "S_TEXT/UTF8" ? MEDIASUBTYPE_UTF8 :
 						CodecID == "S_TEXT/SSA" || CodecID == "S_SSA" ? MEDIASUBTYPE_SSA :
 						CodecID == "S_TEXT/ASS" || CodecID == "S_ASS" ? MEDIASUBTYPE_ASS :
+						CodecID == "S_TEXT/SSF" || CodecID == "S_SSF" ? MEDIASUBTYPE_SSF :
 						CodecID == "S_TEXT/USF" || CodecID == "S_USF" ? MEDIASUBTYPE_USF :
 						CodecID == "S_VOBSUB" ? MEDIASUBTYPE_VOBSUB :
 						MEDIASUBTYPE_NULL;
@@ -564,8 +565,13 @@ avcsuccess:
 	}
 
 	Info& info = m_pFile->m_segment.SegmentInfo;
-	m_rtNewStart = m_rtCurrent = 0;
-	m_rtNewStop = m_rtStop = (REFERENCE_TIME)(info.Duration*info.TimeCodeScale/100);
+
+	if(m_pFile->IsRandomAccess())
+	{
+		m_rtDuration = (REFERENCE_TIME)(info.Duration * info.TimeCodeScale / 100);
+	}
+
+	m_rtNewStop = m_rtStop = m_rtDuration;
 
 #ifdef DEBUG
 	/*
@@ -751,7 +757,7 @@ bool CMatroskaSplitterFilter::DemuxInit()
 
 	// reindex if needed
 
-	if(m_pFile->m_segment.Cues.GetCount() == 0)
+	if(m_pFile->IsRandomAccess() && m_pFile->m_segment.Cues.GetCount() == 0)
 	{
 		m_nOpenProgress = 0;
 		m_pFile->m_segment.SegmentInfo.Duration.Set(0);
@@ -986,19 +992,6 @@ bool CMatroskaSplitterFilter::DemuxLoop()
 	m_pCluster.Free();
 
 	return(true);
-}
-
-// IMediaSeeking
-
-STDMETHODIMP CMatroskaSplitterFilter::GetDuration(LONGLONG* pDuration)
-{
-	CheckPointer(pDuration, E_POINTER);
-	CheckPointer(m_pFile, VFW_E_NOT_CONNECTED);
-
-	Segment& s = m_pFile->m_segment;
-	*pDuration = s.GetRefTime((INT64)s.SegmentInfo.Duration);
-
-	return S_OK;
 }
 
 // IKeyFrameInfo

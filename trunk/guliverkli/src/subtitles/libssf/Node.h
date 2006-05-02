@@ -34,7 +34,7 @@ namespace ssf
 	class Node
 	{
 	protected:
-		const NodeFactory* m_pnf;
+		NodeFactory* m_pnf;
 
 	public:
 		Node* m_parent;
@@ -44,7 +44,7 @@ namespace ssf
 		NodePriority m_priority;
 		bool m_predefined;
 
-		Node(const NodeFactory* pnf, CStringW name);
+		Node(NodeFactory* pnf, CStringW name);
 		virtual ~Node() {}
 
 		bool IsNameUnknown();
@@ -59,7 +59,7 @@ namespace ssf
 	class Reference : public Node
 	{
 	public:
-		Reference(const NodeFactory* pnf, CStringW name);
+		Reference(NodeFactory* pnf, CStringW name);
 		virtual ~Reference();
 
 		void GetChildDefs(CAtlList<Definition*>& l, LPCWSTR type = NULL, bool fFirst = true);
@@ -88,7 +88,7 @@ namespace ssf
 		void GetAsNumber(Number<T>& n, StringMapW<T>* n2n = NULL);
 
 	public:
-		Definition(const NodeFactory* pnf, CStringW name);
+		Definition(NodeFactory* pnf, CStringW name);
 		virtual ~Definition();
 
 		bool IsVisible(Definition* pDef);
@@ -115,5 +115,8 @@ namespace ssf
 		operator LPCWSTR();
 		operator float();
 		operator bool();
+
+		Definition* SetChildAsValue(CStringW path, status_t s, CStringW v, CStringW u = L"");
+		Definition* SetChildAsNumber(CStringW path, CStringW v, CStringW u = L"");
 	};
 }

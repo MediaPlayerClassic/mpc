@@ -1571,11 +1571,11 @@ bool CMPEG4VideoSplitterFilter::DemuxLoop()
 
 	DWORD sync = ~0;
 
-	while(SUCCEEDED(hr) && !CheckRequest(NULL) && m_pFile->GetPos() < m_pFile->GetLength())
+	while(SUCCEEDED(hr) && !CheckRequest(NULL) && m_pFile->GetRemaining())
 	{
 		for(int i = 0; i < 65536; i++) // don't call CheckRequest so often
 		{
-			bool eof = m_pFile->GetPos() >= m_pFile->GetLength();
+			bool eof = !m_pFile->GetRemaining();
 
 			if(p && !p->IsEmpty() && (m_pFile->BitRead(32, true) == 0x000001b6 || eof))
 			{

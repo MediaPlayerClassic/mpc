@@ -264,7 +264,10 @@ HRESULT CMpegSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 		}
 	}
 
-	m_rtNewStop = m_rtStop = m_rtDuration = m_pFile->IsStreaming() ? 0 : 10000000i64 * m_pFile->GetLength() / m_pFile->m_rate;
+	if(m_pFile->IsRandomAccess() && m_pFile->m_rate)
+	{
+		m_rtNewStop = m_rtStop = m_rtDuration = 10000000i64 * m_pFile->GetLength() / m_pFile->m_rate;
+	}
 
 	return m_pOutputs.GetCount() > 0 ? S_OK : E_FAIL;
 }
