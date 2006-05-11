@@ -196,14 +196,16 @@ HRESULT CMpaSplitterFile::Init()
 
 					if(encoding > 0 && size >= 2 && bom == 0xfffe)
 					{
-						BitRead(16);
-						ByteRead((BYTE*)wstr.GetBufferSetLength((size-2+1)/2), size);
+						BitRead(16); 
+						size = (size - 2) / 2;
+						ByteRead((BYTE*)wstr.GetBufferSetLength(size), size*2);
 						m_tags[tag] = wstr.Trim();
 					}
 					else if(encoding > 0 && size >= 2 && bom == 0xfeff)
 					{
 						BitRead(16);
-						ByteRead((BYTE*)wstr.GetBufferSetLength((size-2+1)/2), size);
+						size = (size - 2) / 2;
+						ByteRead((BYTE*)wstr.GetBufferSetLength(size), size*2);
 						for(int i = 0, j = wstr.GetLength(); i < j; i++) wstr.SetAt(i, (wstr[i]<<8)|(wstr[i]>>8));
 						m_tags[tag] = wstr.Trim();
 					}
