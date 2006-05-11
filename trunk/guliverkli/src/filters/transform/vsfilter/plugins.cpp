@@ -115,10 +115,6 @@ public:
 				Reply(S_OK);
 				break;
 			}
-			else if(WAIT_ABANDONED_0 == i)
-			{
-				break;
-			}
 			else if(WAIT_OBJECT_0 + 1 >= i && i <= WAIT_OBJECT_0 + handles.GetCount())
 			{
 				if(FindNextChangeNotification(handles[i - WAIT_OBJECT_0]))
@@ -156,7 +152,13 @@ public:
 					}
 				}
 			}
+			else // if(WAIT_ABANDONED_0 == i || WAIT_FAILED == i)
+			{
+				break;
+			}
 		}
+
+		m_hThread = 0;
 
 		for(int i = 1; i < handles.GetCount(); i++)
 			FindCloseChangeNotification(handles[i]);

@@ -947,7 +947,7 @@ bool CMatroskaSplitterFilter::DemuxLoop()
 				bgn.AddTail(bg);
 			}
 
-			while(bgn.GetCount())
+			while(bgn.GetCount() && SUCCEEDED(hr))
 			{
 				CAutoPtr<MatroskaPacket> p(new MatroskaPacket());
 				p->bg = bgn.RemoveHead();
@@ -1204,6 +1204,23 @@ HRESULT CMatroskaSplitterOutputPin::DeliverBlock(MatroskaPacket* p)
 
 		p->bSyncPoint = false;
 		p->bDiscontinuity = false;
+	}
+
+	if(m_mt.subtype == FOURCCMap(WAVE_FORMAT_WAVPACK4))
+	{
+		POSITION pos = p->bg->ba.bm.GetHeadPosition();
+		while(pos)
+		{
+			const BlockMore* bm = p->bg->ba.bm.GetNext(pos);
+			CAutoPtr<Packet> tmp(new Packet());
+			tmp->TrackNumber = p->TrackNumber;
+			tmp->bDiscontinuity = false;
+			tmp->bSyncPoint = false;
+			tmp->rtStart = p->rtStart;
+			tmp->rtStop = p->rtStop;
+			tmp->Copy(bm->BlockAdditional);
+			if(S_OK != (hr = DeliverPacket(tmp))) break;
+		}
 	}
 
 	return hr;

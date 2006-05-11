@@ -219,7 +219,6 @@
 				ModuleDefinitionFile=".\VSFilter.def"
 				DelayLoadDLLs="oleacc.dll"
 				SubSystem="2"
-				ImportLibrary=".\$(OutDir)/$(ProjectName).lib"
 			/>
 			<Tool
 				Name="VCALinkTool"
@@ -299,7 +298,6 @@
 				ModuleDefinitionFile=".\VSFilter.def"
 				DelayLoadDLLs="oleacc.dll"
 				SubSystem="2"
-				ImportLibrary=".\$(OutDir)/$(ProjectName).lib"
 			/>
 			<Tool
 				Name="VCALinkTool"
