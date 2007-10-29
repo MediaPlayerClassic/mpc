@@ -602,15 +602,17 @@ void GSRendererHW::Flip()
 		if(::GetAsyncKeyState(VK_SPACE)&0x80000000) FBP = m_ctxt->FRAME.Block();
 #endif
 
-		CSurfMap<IDirect3DTexture9>::CPair* pPair = m_pRTs.PLookup(FBP);
+		CSurfMap<IDirect3DTexture9>::CPair* pPair = m_pRTs.Lookup(FBP);
 
 		if(!pPair)
 		{
-			for(CSurfMap<IDirect3DTexture9>::CPair* pPair2 = m_pRTs.PGetFirstAssoc(); 
-				pPair2; 
-				pPair2 = m_pRTs.PGetNextAssoc(pPair2))
+			POSITION pos = m_pRTs.GetStartPosition(); 
+			
+			while(pos)
 			{
-				if(pPair2->key <= FBP && (!pPair || pPair2->key >= pPair->key))
+				CSurfMap<IDirect3DTexture9>::CPair* pPair2 = m_pRTs.GetNext(pos);
+
+				if(pPair2->m_key <= FBP && (!pPair || pPair2->m_key >= pPair->m_key))
 				{
 					pPair = pPair2;
 				}
@@ -625,7 +627,7 @@ void GSRendererHW::Flip()
 			{
 				m_pRTs[FBP] = pRT;
 
-				EXECUTE_ASSERT(pPair = m_pRTs.PLookup(FBP));
+				EXECUTE_ASSERT(pPair = m_pRTs.Lookup(FBP));
 
 #ifdef DEBUG_RENDERTARGETS
 				CGSWnd* pWnd = NULL;
@@ -667,9 +669,9 @@ void GSRendererHW::Flip()
 
 		if(pPair)
 		{
-			m_tc.ResetAge(pPair->key);
+			m_tc.ResetAge(pPair->m_key);
 
-			rt[i].pRT = pPair->value;
+			rt[i].pRT = pPair->m_value;
 
 			ZeroMemory(&rt[i].rd, sizeof(rt[i].rd));
 			hr = rt[i].pRT->GetLevelDesc(0, &rt[i].rd);

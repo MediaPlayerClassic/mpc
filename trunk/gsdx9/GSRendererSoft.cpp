@@ -531,7 +531,11 @@ void GSRendererSoft<Vertex>::DrawTriangle(Vertex* v)
 		}
 
 		ASSERT(top >= bottom || (int)((edge[1].p.y - edge[0].p.y) * 10) == 0);
-
+/*
+static struct eb_t {Vertex scan; int top; int left; int steps;} eb[1024];
+int _top = top;
+int _bottom = bottom;
+*/
 		for(; top < bottom; top++)
 		{
 			scan = edge[0];
@@ -544,7 +548,13 @@ void GSRendererSoft<Vertex>::DrawTriangle(Vertex* v)
 				scan += dscan * (Vertex::Scalar(left) - edge[0].p.x);
 				scan.p.x = Vertex::Scalar(left);
 			}
-
+/*
+eb[top].scan = scan;
+eb[top].top = top;
+eb[top].left = left;
+eb[top].steps = right - left;
+*/
+///*
 			RowInit(left, top);
 
 			for(int steps = right - left; steps > 0; steps--)
@@ -553,12 +563,28 @@ void GSRendererSoft<Vertex>::DrawTriangle(Vertex* v)
 				scan += dscan;
 				RowStep();
 			}
-
+//*/
 			// for(int j = 0; j < 2; j++) edge[j] += dedge[j];
 			edge[0] += dedge[0];
 			edge[1].p += dedge[1].p;
 		}
+/*
+top = _top;
+bottom = _bottom;
+for(; top < bottom; top++)
+{
+	eb_t& sl = eb[top];
 
+	RowInit(sl.left, top);
+
+	for(; sl.steps > 0; sl.steps--)
+	{
+		(this->*m_pDrawVertex)(sl.scan);
+		sl.scan += dscan;
+		RowStep();
+	}
+}
+*/
 		if(v[1].p.y < v[2].p.y)
 		{
 			edge[ledge] = v[1];

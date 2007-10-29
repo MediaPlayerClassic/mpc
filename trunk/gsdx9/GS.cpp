@@ -47,7 +47,7 @@ EXPORT_C_(char*) PS2EgetLibName()
 	str += _T(" 64-bit");
 #endif
 
-	CList<CString> sl;
+	CAtlList<CString> sl;
 
 #ifdef __INTEL_COMPILER
 	CString s;
@@ -187,7 +187,7 @@ EXPORT_C_(INT32) GSopen(void* pDsp, char* Title, int multithread)
 
 EXPORT_C GSclose()
 {
-	s_hWnd.Show(false);
+	s_hWnd.Hide();
 
 	ASSERT(s_gs);
 	s_gs.Free();
@@ -230,7 +230,9 @@ EXPORT_C GSgifTransfer3(BYTE* pMem, UINT32 size)
 EXPORT_C GSvsync(int field)
 {
 	MSG msg;
+
 	ZeroMemory(&msg, sizeof(msg));
+
 	while(msg.message != WM_QUIT)
 	{
 		if(PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))

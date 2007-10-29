@@ -6,7 +6,6 @@
 	ProjectGUID="{345C9F24-0B9A-4289-B375-ADD3B63461B7}"
 	RootNamespace="GSdx9"
 	Keyword="MFCDLLProj"
-	SignManifests="true"
 	>
 	<Platforms>
 		<Platform
@@ -48,6 +47,7 @@
 				Name="VCCLCompilerTool"
 				Optimization="0"
 				EnableIntrinsicFunctions="true"
+				AdditionalIncludeDirectories="./baseclasses"
 				PreprocessorDefinitions="D3D_DEBUG_INFO;WIN32;_WINDOWS;_DEBUG;_USRDLL"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
@@ -70,8 +70,8 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="d3d9.lib d3dx9.lib strmbaseD.lib ddraw.lib dxguid.lib"
-				OutputFile="K:\pcsx2\plugins\GSdx9.dll"
+				AdditionalDependencies="d3d9.lib d3dx9.lib ddraw.lib dxguid.lib winmm.lib"
+				OutputFile="$(OutDir)\GSdx9.dll"
 				LinkIncremental="2"
 				ModuleDefinitionFile=".\GSdx9.def"
 				GenerateDebugInformation="true"
@@ -225,6 +225,7 @@
 				EnableIntrinsicFunctions="true"
 				FavorSizeOrSpeed="1"
 				OmitFramePointers="true"
+				AdditionalIncludeDirectories="./baseclasses"
 				PreprocessorDefinitions="WIN32;_WINDOWS;NDEBUG;_USRDLL"
 				StringPooling="true"
 				RuntimeLibrary="0"
@@ -247,8 +248,8 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="d3d9.lib d3dx9.lib strmbaseR.lib ddraw.lib dxguid.lib"
-				OutputFile="K:\pcsx2\plugins\GSdx9.dll"
+				AdditionalDependencies="d3d9.lib d3dx9.lib ddraw.lib dxguid.lib winmm.lib"
+				OutputFile="$(OutDir)\GSdx9.dll"
 				LinkIncremental="1"
 				ModuleDefinitionFile=".\GSdx9.def"
 				SubSystem="2"
@@ -405,6 +406,7 @@
 				Name="VCCLCompilerTool"
 				Optimization="0"
 				EnableIntrinsicFunctions="true"
+				AdditionalIncludeDirectories="./baseclasses"
 				PreprocessorDefinitions="D3D_DEBUG_INFO;WIN32;_WINDOWS;_DEBUG;_USRDLL"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
@@ -429,8 +431,8 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="d3d9.lib d3dx9.lib strmbaseD.lib ddraw.lib dxguid.lib"
-				OutputFile="K:\pcsx2\plugins\GSdx9.dll"
+				AdditionalDependencies="d3d9.lib d3dx9.lib ddraw.lib dxguid.lib winmm.lib"
+				OutputFile="C:\Documents and Settings\Administrator\Desktop\pcsx2\plugins\GSdx9.dll"
 				LinkIncremental="2"
 				ModuleDefinitionFile=".\GSdx9.def"
 				GenerateDebugInformation="true"
@@ -584,6 +586,7 @@
 				EnableIntrinsicFunctions="true"
 				FavorSizeOrSpeed="1"
 				OmitFramePointers="true"
+				AdditionalIncludeDirectories="./baseclasses"
 				PreprocessorDefinitions="WIN32;_WINDOWS;NDEBUG;_USRDLL"
 				StringPooling="true"
 				RuntimeLibrary="0"
@@ -608,8 +611,8 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="d3d9.lib d3dx9.lib strmbaseR.lib ddraw.lib dxguid.lib"
-				OutputFile="K:\pcsx2\plugins\GSdx9.dll"
+				AdditionalDependencies="d3d9.lib d3dx9.lib ddraw.lib dxguid.lib winmm.lib"
+				OutputFile="C:\Documents and Settings\Administrator\Desktop\pcsx2\plugins\GSdx9.dll"
 				LinkIncremental="1"
 				ModuleDefinitionFile=".\GSdx9.def"
 				GenerateDebugInformation="true"
@@ -845,6 +848,10 @@
 			</File>
 			<File
 				RelativePath=".\GSPerfMon.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\GSQueue.cpp"
 				>
 			</File>
 			<File
@@ -1239,6 +1246,10 @@
 			</File>
 			<File
 				RelativePath=".\GSPerfMon.h"
+				>
+			</File>
+			<File
+				RelativePath=".\GSQueue.h"
 				>
 			</File>
 			<File

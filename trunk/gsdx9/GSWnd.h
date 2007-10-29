@@ -29,7 +29,9 @@ public:
 	CGSWnd();
 
 	BOOL Create(LPCSTR pTitle);
-	void Show(bool bShow = true);
+
+	void Show();
+	void Hide();
 
 	DECLARE_MESSAGE_MAP()
 

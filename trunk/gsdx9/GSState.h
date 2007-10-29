@@ -29,6 +29,7 @@
 #include "GSVertexList.h"
 #include "GSCapture.h"
 #include "GSPerfMon.h"
+#include "GSQueue.h"
 //
 //#define ENABLE_CAPTURE_STATE
 //
@@ -165,11 +166,6 @@ struct GSRegSet
 	}
 };
 
-struct GSTransferRegs
-{
-	struct GSTransferRegs() {memset(this, 0, sizeof(*this));}
-};
-
 struct GSVertex
 {
 	GIFRegRGBAQ		RGBAQ;
@@ -179,6 +175,12 @@ struct GSVertex
 	GIFRegFOG		FOG;
 };
 
+struct GIFPath
+{
+	GIFTag m_tag; 
+	int m_nreg;
+};
+
 class GSState
 {
 	friend class GSTextureCache;
@@ -186,6 +188,7 @@ class GSState
 protected:
 	static const int m_version = 4;
 
+	GIFPath m_path[3];
 	GSLocalMemory m_lm;
 	GSDrawingEnvironment m_de;
 	GSDrawingContext* m_ctxt;
@@ -240,10 +243,6 @@ protected:
 	virtual void InvalidateLocalMem(DWORD TBP0, DWORD BW, DWORD PSM, CRect r) {}
 	virtual void MinMaxUV(int w, int h, CRect& r) {r.SetRect(0, 0, w, h);}
 
-	DWORD m_nVSync;
-	CAMEvent m_evVSync;
-	CComPtr<IReferenceClock> m_pRefClock;
-
 	struct FlipInfo {CComPtr<IDirect3DTexture9> pRT; D3DSURFACE_DESC rd; scale_t scale;};
 	void FinishFlip(FlipInfo rt[2]);
 
@@ -251,7 +250,6 @@ protected:
 
 	//
 
-	struct GIFPath {GIFTag m_tag; int m_nreg;} m_path[3];
 
 	// FIXME: savestate
 	GIFRegPRIM* m_pPRIM;
@@ -355,7 +353,8 @@ public:
 	void Transfer1(BYTE* pMem, UINT32 addr);
 	void Transfer2(BYTE* pMem, UINT32 size);
 	void Transfer3(BYTE* pMem, UINT32 size);
-	void Transfer(BYTE* pMem, UINT32 size, GIFPath& path);
+	void Transfer(BYTE* pMem, UINT32 size, int pathIndex);
+	void TransferMT(BYTE* pMem, UINT32 size, int pathIndex);
 	void VSync(int field);
 
 	void GSirq(void (*fpGSirq)()) {m_fpGSirq = fpGSirq;}
@@ -446,4 +445,66 @@ public:
 #else
 #define LOG2 __noop
 #endif
+
+protected:
+
+	GIFPath m_path2[3];
+
+	class GSTransferBuffer
+	{
+	public:
+		BYTE* m_buff;
+		UINT32 m_size;
+		int m_pathIndex;
+
+		GSTransferBuffer()
+		{
+			m_buff = NULL;
+			m_size = 0;
+		}
+
+		~GSTransferBuffer()
+		{
+			delete [] m_buff;
+		}
+	};
+
+	GSQueue<GSTransferBuffer*> m_queue;
+
+	CAMEvent m_evThreadQuit;
+	CAMEvent m_evThreadIdle;
+	HANDLE m_hThread;
+	DWORD m_ThreadId;
+
+	HANDLE CreateThread()
+	{
+		m_ThreadId = 0;
+		m_hThread = ::CreateThread(NULL, 0, StaticThreadProc, (LPVOID)this, 0, &m_ThreadId);
+
+		m_evThreadIdle.Set();
+
+		return m_hThread;
+	}
+
+	void QuitThread()
+	{
+		m_evThreadQuit.Set();
+			
+		if(WaitForSingleObject(m_hThread, 30000) == WAIT_TIMEOUT) 
+		{
+			ASSERT(0); 
+			TerminateThread(m_hThread, (DWORD)-1);
+		}
+	}
+
+	static DWORD WINAPI StaticThreadProc(LPVOID lpParam);
+
+	DWORD ThreadProc();
+
+	void SyncThread()
+	{
+		m_queue.GetDequeueEvent().Wait();
+
+		m_evThreadIdle.Wait();
+	}
 };
