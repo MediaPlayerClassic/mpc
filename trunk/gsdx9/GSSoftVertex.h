@@ -25,7 +25,9 @@
 // GSSoftVertexFP
 //
 
-extern const __m128i _80000000, _4b000000, _3f800000;
+#define _80000000 _mm_set1_epi32(0x80000000)
+#define _4b000000 _mm_set1_epi32(0x4b000000)
+#define _3f800000 _mm_set1_epi32(0x3f800000)
 
 __declspec(align(16)) union GSSoftVertexFP
 {
@@ -38,7 +40,8 @@ __declspec(align(16)) union GSSoftVertexFP
 		explicit Scalar(float f) {val = f;}
 		explicit Scalar(int i) {val = (float)i;}
 
-		float Value() const {return val;}
+		float GetValue() const {return val;}
+		void SetValue(int i) {val = i;}
 
 #if _M_IX86_FP >= 2 || defined(_M_AMD64)
 		void sat() {_mm_store_ss(&val, _mm_min_ss(_mm_max_ss(_mm_set_ss(val), _mm_setzero_ps()), _mm_set_ss(255)));}
@@ -222,6 +225,17 @@ __declspec(align(16)) union GSSoftVertexFP
 #endif
 	}
 
+	friend GSSoftVertexFP operator + (const GSSoftVertexFP& v1, const GSSoftVertexFP& v2);
+	friend GSSoftVertexFP operator - (const GSSoftVertexFP& v1, const GSSoftVertexFP& v2);
+	friend GSSoftVertexFP operator * (const GSSoftVertexFP& v, Scalar s);
+	friend GSSoftVertexFP operator / (const GSSoftVertexFP& v, Scalar s);
+
+	static void Exchange(GSSoftVertexFP* RESTRICT v1, GSSoftVertexFP* RESTRICT v2)
+	{
+		Vector c = v1->c, p = v1->p, t = v1->t;
+		v1->c = v2->c; v1->p = v2->p; v1->t = v2->t;
+		v2->c = c; v2->p = p; v2->t = t;
+	}
 };
 
 #if _M_IX86_FP >= 2 || defined(_M_AMD64)
@@ -256,54 +270,43 @@ __forceinline GSSoftVertexFP::Vector operator >> (const GSSoftVertexFP::Vector& 
 
 #endif
 
-//
-
-template <class Vertex>
-__forceinline Vertex operator + (const Vertex& v1, const Vertex& v2)
+__forceinline GSSoftVertexFP operator + (const GSSoftVertexFP& v1, const GSSoftVertexFP& v2)
 {
-	Vertex v0;
+	GSSoftVertexFP v0;
 	v0.c = v1.c + v2.c;
 	v0.p = v1.p + v2.p;
 	v0.t = v1.t + v2.t;
 	return v0;
 }
 
-template <class Vertex>
-__forceinline Vertex operator - (const Vertex& v1, const Vertex& v2)
+__forceinline GSSoftVertexFP operator - (const GSSoftVertexFP& v1, const GSSoftVertexFP& v2)
 {
-	Vertex v0;
+	GSSoftVertexFP v0;
 	v0.c = v1.c - v2.c;
 	v0.p = v1.p - v2.p;
 	v0.t = v1.t - v2.t;
 	return v0;
 }
 
-template <class Vertex>
-__forceinline Vertex operator * (const Vertex& v, typename Vertex::Scalar s)
+__forceinline GSSoftVertexFP operator * (const GSSoftVertexFP& v, GSSoftVertexFP::Scalar s)
 {
-	Vertex v0;
-	Vertex::Vector vs(s);
+	GSSoftVertexFP v0;
+	GSSoftVertexFP::Vector vs(s);
 	v0.c = v.c * vs;
 	v0.p = v.p * vs;
 	v0.t = v.t * vs;
 	return v0;
 }
 
-template <class Vertex>
-__forceinline Vertex operator / (const Vertex& v, typename Vertex::Scalar s)
+__forceinline GSSoftVertexFP operator / (const GSSoftVertexFP& v, GSSoftVertexFP::Scalar s)
 {
-	Vertex v0;
-	Vertex::Vector vs(s);
+	GSSoftVertexFP v0;
+	GSSoftVertexFP::Vector vs(s);
 	v0.c = v.c / vs;
 	v0.p = v.p / vs;
 	v0.t = v.t / vs;
 	return v0;
 }
 
-template <class Vertex>
-__forceinline void Exchange(Vertex* RESTRICT v1, Vertex* RESTRICT v2)
-{
-	typename Vertex::Vector c = v1->c, p = v1->p, t = v1->t;
-	v1->c = v2->c; v1->p = v2->p; v1->t = v2->t;
-	v2->c = c; v2->p = p; v2->t = t;
-}
+// #include "GSSoftVertexFX.h"
+

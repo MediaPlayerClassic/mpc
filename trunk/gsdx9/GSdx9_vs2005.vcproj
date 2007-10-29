@@ -71,7 +71,7 @@
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalDependencies="d3d9.lib d3dx9.lib ddraw.lib dxguid.lib winmm.lib"
-				OutputFile="$(OutDir)\GSdx9.dll"
+				OutputFile="C:\Documents and Settings\Administrator\Desktop\pcsx2\plugins\GSdx9.dll"
 				LinkIncremental="2"
 				ModuleDefinitionFile=".\GSdx9.def"
 				GenerateDebugInformation="true"
@@ -561,6 +561,7 @@
 			ConfigurationType="2"
 			UseOfMFC="1"
 			CharacterSet="2"
+			WholeProgramOptimization="0"
 			>
 			<Tool
 				Name="VCPreBuildEventTool"
@@ -1344,86 +1345,6 @@
 			</File>
 			<File
 				RelativePath=".\res\hlsl_tfx.fx"
-				>
-			</File>
-			<File
-				RelativePath=".\res\ps11_en00.psh"
-				>
-			</File>
-			<File
-				RelativePath=".\res\ps11_en01.psh"
-				>
-			</File>
-			<File
-				RelativePath=".\res\ps11_en10.psh"
-				>
-			</File>
-			<File
-				RelativePath=".\res\ps11_en11.psh"
-				>
-			</File>
-			<File
-				RelativePath=".\res\ps11_tfx000.psh"
-				>
-			</File>
-			<File
-				RelativePath=".\res\ps11_tfx010.psh"
-				>
-			</File>
-			<File
-				RelativePath=".\res\ps11_tfx011.psh"
-				>
-			</File>
-			<File
-				RelativePath=".\res\ps11_tfx1x0.psh"
-				>
-			</File>
-			<File
-				RelativePath=".\res\ps11_tfx1x1.psh"
-				>
-			</File>
-			<File
-				RelativePath=".\res\ps11_tfx200.psh"
-				>
-			</File>
-			<File
-				RelativePath=".\res\ps11_tfx210.psh"
-				>
-			</File>
-			<File
-				RelativePath=".\res\ps11_tfx211.psh"
-				>
-			</File>
-			<File
-				RelativePath=".\res\ps11_tfx300.psh"
-				>
-			</File>
-			<File
-				RelativePath=".\res\ps11_tfx310.psh"
-				>
-			</File>
-			<File
-				RelativePath=".\res\ps11_tfx311.psh"
-				>
-			</File>
-			<File
-				RelativePath=".\res\ps11_tfx4xx.psh"
-				>
-			</File>
-			<File
-				RelativePath=".\res\ps14_en00.psh"
-				>
-			</File>
-			<File
-				RelativePath=".\res\ps14_en01.psh"
-				>
-			</File>
-			<File
-				RelativePath=".\res\ps14_en10.psh"
-				>
-			</File>
-			<File
-				RelativePath=".\res\ps14_en11.psh"
 				>
 			</File>
 		</Filter>

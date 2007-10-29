@@ -25,21 +25,13 @@
 	#error include 'stdafx.h' before including this file for PCH
 #endif
 
-#include "resource.h"		// main symbols
-
-
-// CGSdx9App
-// See GSdx9.cpp for the implementation of this class
-//
+#include "resource.h"
 
 class CGSdx9App : public CWinApp
 {
 public:
 	CGSdx9App();
 
-	static D3DDEVTYPE D3DDEVTYPE_X;
-
-// Overrides
 public:
 	virtual BOOL InitInstance();
 
@@ -49,7 +41,7 @@ public:
 enum
 {
 	RENDERER_D3D_NULL, 
-	RENDERER_D3D_SW_FX, 
 	RENDERER_D3D_SW_FP, 
+	RENDERER_D3D_SW_FX, 
 	RENDERER_D3D_HW
 };

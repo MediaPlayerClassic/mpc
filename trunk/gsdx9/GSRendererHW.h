@@ -24,6 +24,7 @@
 #include "GSRenderer.h"
 
 #pragma pack(push, 1)
+
 __declspec(align(16)) union GSVertexHW
 {
 	struct
@@ -40,6 +41,7 @@ __declspec(align(16)) union GSVertexHW
 	GSVertexHW& operator = (GSVertexHW& v) {xmm[0] = v.xmm[0]; xmm[1] = v.xmm[1]; return *this;}
 #endif
 };
+
 #pragma pack(pop)
 
 class GSRendererHW : public GSRenderer<GSVertexHW>
@@ -59,8 +61,8 @@ protected:
 	void SetupScissor(scale_t& s);
 
 	void Reset();
-	void VertexKick(bool fSkip);
-	int DrawingKick(bool fSkip);
+	void VertexKick(bool skip);
+	int DrawingKick(bool skip);
 	void FlushPrim();
 	void Flip();
 	void EndFrame();
@@ -72,18 +74,7 @@ protected:
 
 public:
 	GSRendererHW(HWND hWnd, HRESULT& hr);
-	~GSRendererHW();
+	virtual ~GSRendererHW();
 
 	HRESULT ResetDevice(bool fForceWindowed = false);
-
-	void LOGVERTEX(GSVertexHW& v, LPCTSTR type)
-	{
-		int tw = 1, th = 1;
-		if(m_pPRIM->TME) {tw = 1<<m_ctxt->TEX0.TW; th = 1<<m_ctxt->TEX0.TH;}
-		LOG2(_T("\t %s (%.2f, %.2f, %.2f, %.2f) (%08x) (%f, %f) (%f, %f)\n"), 
-			type,
-			v.x, v.y, v.z, v.rhw, 
-			v.color, v.tu, v.tv,
-			v.tu*tw, v.tv*th);
-	}
 };

@@ -31,16 +31,16 @@ GSRendererNull::~GSRendererNull()
 {
 }
 
-void GSRendererNull::VertexKick(bool fSkip)
+void GSRendererNull::VertexKick(bool skip)
 {
 	NULLVERTEX v;
 
 	m_vl.AddTail(v);
 
-	__super::VertexKick(fSkip);
+	__super::VertexKick(skip);
 }
 
-int GSRendererNull::DrawingKick(bool fSkip)
+int GSRendererNull::DrawingKick(bool skip)
 {
 	NULLVERTEX v;
 
@@ -82,7 +82,7 @@ int GSRendererNull::DrawingKick(bool fSkip)
 		return 0;
 	}
 
-	if(!fSkip)
+	if(!skip)
 	{
 		m_perfmon.IncCounter(GSPerfMon::c_prim, 1);
 	}

@@ -23,72 +23,75 @@
 
 #include "GSState.h"
 
-template <class VERTEX>
-class GSRenderer : public GSState
+template <class VERTEX> class GSRenderer : public GSState
 {
 protected:
-	GSVertexList<VERTEX> m_vl;
-
 	VERTEX* m_pVertices;
 	int m_nMaxVertices, m_nVertices, m_nPrims;
+	GSVertexList<VERTEX> m_vl;
 
 	void Reset()
 	{
 		m_nVertices = m_nPrims = 0;
 		m_vl.RemoveAll();
+
 		__super::Reset();
 	}
 
-	void VertexKick(bool fSkip)
+	void ReallocVertices()
 	{
-		LOG(_T("VertexKick(%d)\n"), fSkip);
+		VERTEX* pVertices = (VERTEX*)_aligned_malloc(sizeof(VERTEX) * m_nMaxVertices, 16);
+		memcpy(pVertices, m_pVertices, sizeof(VERTEX) * m_nVertices);
+		_aligned_free(m_pVertices);
+		m_pVertices = pVertices;
+	}
 
+	void VertexKick(bool skip)
+	{
 		static const int vmin[8] = {1, 2, 2, 3, 3, 3, 2, 1};
 
 		while(m_vl.GetCount() >= vmin[m_pPRIM->PRIM])
 		{
-			if(m_nVertices+6 > m_nMaxVertices)
+			if(m_nVertices + 6 > m_nMaxVertices)
 			{
-				VERTEX* pVertices = (VERTEX*)_aligned_malloc(sizeof(VERTEX) * (m_nMaxVertices <<= 1), 16);
-				memcpy(pVertices, m_pVertices, m_nVertices*sizeof(VERTEX));
-				_aligned_free(m_pVertices);
-				m_pVertices = pVertices;
+				m_nMaxVertices <<= 1;
+
+				ReallocVertices();
 			}
 
-			LOG(_T("DrawingKick %d\n"), m_pPRIM->PRIM);
-            
-			if(m_PRIM != m_pPRIM->PRIM && m_nVertices > 0) FlushPrimInternal();
+			if(m_PRIM != m_pPRIM->PRIM && m_nVertices > 0)
+			{
+				Flush();
+			}
+
 			m_PRIM = m_pPRIM->PRIM;
 
-			LOG2(_T("Prim (%d) %05x %05x %05x %04x\n"), 
-				m_PRIM,
-				m_ctxt->FRAME.Block(), 
-				m_pPRIM->TME ? (UINT32)m_ctxt->TEX0.TBP0 : 0xfffff,
-				m_pPRIM->TME ? (UINT32)m_ctxt->TEX0.CBP : 0xfffff,
-				(m_pPRIM->ABE || (m_PRIM == 1 || m_PRIM == 2) && m_pPRIM->AA1)
-					? ((m_ctxt->ALPHA.A<<12)|(m_ctxt->ALPHA.B<<8)|(m_ctxt->ALPHA.C<<4)|m_ctxt->ALPHA.D)
-					: 0xffff);
-
-			m_nVertices += DrawingKick(fSkip);
-
-#ifdef DEBUG_RENDERTARGETS
-			if(::GetAsyncKeyState(VK_SPACE)&0x80000000) {FlushPrimInternal(); Flip();}
-#endif
+			m_nVertices += DrawingKick(skip);
 		}
 	}
 
-	void NewPrim() {m_vl.RemoveAll();}
-	void FlushPrim() {m_PRIM = 8; m_nVertices = 0;}
+	void NewPrim()
+	{
+		m_vl.RemoveAll();
+	}
+
+	void FlushPrim() 
+	{
+		m_PRIM = 8; 
+		m_nVertices = 0;
+	}
 
 public:
 	GSRenderer(int w, int h, HWND hWnd, HRESULT& hr)
 		: GSState(w, h, hWnd, hr)
+		, m_nMaxVertices(256)
 	{
-		m_pVertices = (VERTEX*)_aligned_malloc(sizeof(VERTEX) * (m_nMaxVertices = 256), 16);
+		m_pVertices = (VERTEX*)_aligned_malloc(sizeof(VERTEX) * m_nMaxVertices, 16);
+
 		Reset();
 	}
 
-	~GSRenderer()
+	virtual ~GSRenderer()
 	{
 		_aligned_free(m_pVertices);
 	}

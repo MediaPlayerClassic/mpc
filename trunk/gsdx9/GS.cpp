@@ -143,8 +143,8 @@ EXPORT_C_(INT32) GSopen(void* pDsp, char* Title, int multithread)
 	switch(AfxGetApp()->GetProfileInt(_T("Settings"), _T("Renderer"), RENDERER_D3D_HW))
 	{
 	case RENDERER_D3D_HW: s_gs.Attach(new GSRendererHW(s_hWnd, hr)); break;
-	// case RENDERER_D3D_SW_FX: s_gs.Attach(new GSRendererSoftFX(s_hWnd, hr)); break;
 	case RENDERER_D3D_SW_FP: s_gs.Attach(new GSRendererSoftFP(s_hWnd, hr)); break;
+	// case RENDERER_D3D_SW_FX: s_gs.Attach(new GSRendererSoftFX(s_hWnd, hr)); break;
 	case RENDERER_D3D_NULL: s_gs.Attach(new GSRendererNull(s_hWnd, hr)); break;
 	}
 
@@ -167,16 +167,6 @@ EXPORT_C_(INT32) GSopen(void* pDsp, char* Title, int multithread)
 	s_gs->GSirq(s_fpGSirq);
 
 	s_gs->m_fMultiThreaded = !!multithread;
-
-	if((!Title || strcmp(Title, REPLAY_TITLE) != 0) 
-	&& AfxGetApp()->GetProfileInt(_T("Settings"), _T("RecordState"), FALSE))
-	{
-		CPath spath = AfxGetApp()->GetProfileString(_T("Settings"), _T("RecordStatePath"), _T(""));
-		CString fn;
-		fn.Format(_T("gsdx9_%s.gs"), CTime::GetCurrentTime().Format(_T("%Y%m%d%H%M%S")));
-		spath.Append(fn);
-		s_gs->CaptureState(spath);
-	}
 
 	s_hWnd.SetWindowText(CString(Title));
 
@@ -207,24 +197,24 @@ EXPORT_C GSwriteCSR(UINT32 csr)
 	s_gs->WriteCSR(csr);
 }
 
-EXPORT_C GSreadFIFO(BYTE* pMem)
+EXPORT_C GSreadFIFO(BYTE* mem)
 {
-	s_gs->ReadFIFO(pMem);
+	s_gs->ReadFIFO(mem);
 }
 
-EXPORT_C GSgifTransfer1(BYTE* pMem, UINT32 addr)
+EXPORT_C GSgifTransfer1(BYTE* mem, UINT32 addr)
 {
-	s_gs->Transfer1(pMem, addr);
+	s_gs->Transfer1(mem, addr);
 }
 
-EXPORT_C GSgifTransfer2(BYTE* pMem, UINT32 size)
+EXPORT_C GSgifTransfer2(BYTE* mem, UINT32 size)
 {
-	s_gs->Transfer2(pMem, size);
+	s_gs->Transfer2(mem, size);
 }
 
-EXPORT_C GSgifTransfer3(BYTE* pMem, UINT32 size)
+EXPORT_C GSgifTransfer3(BYTE* mem, UINT32 size)
 {
-	s_gs->Transfer3(pMem, size);
+	s_gs->Transfer3(mem, size);
 }
 
 EXPORT_C GSvsync(int field)
@@ -317,7 +307,7 @@ EXPORT_C_(INT32) GStest()
 
 	if(CComPtr<IDirect3D9> pD3D = Direct3DCreate9(D3D_SDK_VERSION))
 	{
-		pD3D->GetDeviceCaps(D3DADAPTER_DEFAULT, CGSdx9App::D3DDEVTYPE_X, &caps);
+		pD3D->GetDeviceCaps(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, &caps);
 
 		LPCTSTR yep = _T("^_^"), nope = _T(":'(");
 

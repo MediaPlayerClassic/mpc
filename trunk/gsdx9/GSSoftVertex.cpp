@@ -21,7 +21,3 @@
 
 #include "StdAfx.h"
 #include "GSSoftVertex.h"
-
-const __m128i _80000000 = _mm_set1_epi32(0x80000000);
-const __m128i _4b000000 = _mm_set1_epi32(0x4b000000);
-const __m128i _3f800000 = _mm_set1_epi32(0x3f800000);

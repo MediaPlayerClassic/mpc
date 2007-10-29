@@ -28,7 +28,7 @@ class GSRendererSoft : public GSRenderer<Vertex>
 {
 protected:
 	void Reset();
-	int DrawingKick(bool fSkip);
+	int DrawingKick(bool skip);
 	void FlushPrim();
 	void Flip();
 	void EndFrame();
@@ -75,26 +75,15 @@ protected:
 
 public:
 	GSRendererSoft(HWND hWnd, HRESULT& hr);
-	~GSRendererSoft();
+	virtual ~GSRendererSoft();
 
 	HRESULT ResetDevice(bool fForceWindowed = false);
-
-	void LOGVERTEX(Vertex& v, LPCTSTR type)
-	{
-		int tw = 1, th = 1;
-		if(m_de.PRIM.TME) {tw = 1<<m_ctxt->TEX0.TW; th = 1<<m_ctxt->TEX0.TH;}
-		LOG2(_T("- %s (%.2f, %.2f, %.2f, %.2f) (%08x) (%.3f, %.3f) (%.2f, %.2f)\n"), 
-			type,
-			(float)v.p.x, (float)v.p.y, (float)v.p.z / UINT_MAX, (float)v.t.q, 
-			(DWORD)v.c,
-			(float)v.t.x/tw, (float)v.t.y/th, (float)v.t.x, (float)v.t.y);
-	}
 };
 
 class GSRendererSoftFP : public GSRendererSoft<GSSoftVertexFP>
 {
 protected:
-	void VertexKick(bool fSkip);
+	void VertexKick(bool skip);
 
 public:
 	GSRendererSoftFP(HWND hWnd, HRESULT& hr);
@@ -103,8 +92,7 @@ public:
 class GSRendererSoftFX : public GSRendererSoft<GSSoftVertexFX>
 {
 protected:
-	void VertexKick(bool fSkip);
-	//void DrawVertex(int x, int y, GSSoftVertexFX& v);
+	void VertexKick(bool skip);
 
 public:
 	GSRendererSoftFX(HWND hWnd, HRESULT& hr);
