@@ -33,37 +33,26 @@ GSState::GSState(int w, int h, HWND hWnd, HRESULT& hr)
 	: m_hWnd(hWnd)
 	, m_width(w)
 	, m_height(h)
-	, m_sfp(NULL)
-	, m_fp(NULL)
 	, m_iOSD(1)
 	, m_evThreadQuit(FALSE)
 	, m_evThreadIdle(TRUE)
 	, m_queue(100)
+	, m_fpGSirq(NULL)
+	, m_q(1.0f)
 {
 	hr = E_FAIL;
-
-	AFX_MANAGE_STATE(AfxGetStaticModuleState());
-
-    CWinApp* pApp = AfxGetApp();
-
-	m_v.RGBAQ.Q = m_q = 1.0f;
-
-	memset(m_path, 0, sizeof(m_path));
-	memset(m_path2, 0, sizeof(m_path2));	
-
-	m_de.PRMODECONT.AC = 1;
-	m_pPRIM = &m_de.PRIM;
-	m_PRIM = 8;
-
-	m_fpGSirq = NULL;
-
-	m_ctxt = &m_de.CTXT[0];
 
 	m_pTrBuff = (BYTE*)_aligned_malloc(1024*1024*4, 16);
 	m_nTrBytes = 0;
 
+	m_strDefaultTitle.ReleaseBufferSetLength(GetWindowText(m_hWnd, m_strDefaultTitle.GetBuffer(256), 256));
+	m_fEnablePalettizedTextures = !!AfxGetApp()->GetProfileInt(_T("Settings"), _T("fEnablePalettizedTextures"), FALSE);
+	m_fNloopHack = !!AfxGetApp()->GetProfileInt(_T("Settings"), _T("fNloopHack"), FALSE);
+
 	for(int i = 0; i < countof(m_fpGIFPackedRegHandlers); i++)
+	{
 		m_fpGIFPackedRegHandlers[i] = &GSState::GIFPackedRegHandlerNull;
+	}
 
 	m_fpGIFPackedRegHandlers[GIF_REG_PRIM] = &GSState::GIFPackedRegHandlerPRIM;
 	m_fpGIFPackedRegHandlers[GIF_REG_RGBA] = &GSState::GIFPackedRegHandlerRGBA;
@@ -82,7 +71,9 @@ GSState::GSState(int w, int h, HWND hWnd, HRESULT& hr)
 	m_fpGIFPackedRegHandlers[GIF_REG_NOP] = &GSState::GIFPackedRegHandlerNOP;
 
 	for(int i = 0; i < countof(m_fpGIFRegHandlers); i++)
+	{
 		m_fpGIFRegHandlers[i] = &GSState::GIFRegHandlerNull;
+	}
 
 	m_fpGIFRegHandlers[GIF_A_D_REG_PRIM] = &GSState::GIFRegHandlerPRIM;
 	m_fpGIFRegHandlers[GIF_A_D_REG_RGBAQ] = &GSState::GIFRegHandlerRGBAQ;
@@ -143,10 +134,12 @@ GSState::GSState(int w, int h, HWND hWnd, HRESULT& hr)
 	// DD
 
 	CComPtr<IDirectDraw7> pDD; 
+
 	if(FAILED(DirectDrawCreateEx(0, (void**)&pDD, IID_IDirectDraw7, 0)))
 		return;
 
 	m_ddcaps.dwSize = sizeof(DDCAPS); 
+
 	if(FAILED(pDD->GetCaps(&m_ddcaps, NULL)))
 		return;
 
@@ -154,12 +147,12 @@ GSState::GSState(int w, int h, HWND hWnd, HRESULT& hr)
 
 	// D3D
 
-	if(!(m_pD3D = Direct3DCreate9(D3D_SDK_VERSION))
-	&& !(m_pD3D = Direct3DCreate9(D3D9b_SDK_VERSION)))
+	if(!(m_pD3D = Direct3DCreate9(D3D_SDK_VERSION)))
 		return;
 
-	ZeroMemory(&m_caps, sizeof(m_caps));
-	m_pD3D->GetDeviceCaps(D3DADAPTER_DEFAULT, CGSdx9App::D3DDEVTYPE_X, &m_caps);
+	memset(&m_caps, 0, sizeof(m_caps));
+
+	m_pD3D->GetDeviceCaps(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, &m_caps);
 
 	m_fmtDepthStencil = 
 		IsDepthFormatOk(m_pD3D, D3DFMT_D32, D3DFMT_X8R8G8B8, D3DFMT_X8R8G8B8) ? D3DFMT_D32 :
@@ -173,16 +166,20 @@ GSState::GSState(int w, int h, HWND hWnd, HRESULT& hr)
 
 	// Shaders
 
-	DWORD PixelShaderVersion = pApp->GetProfileInt(_T("Settings"), _T("PixelShaderVersion2"), D3DPS_VERSION(2, 0));
+	DWORD PixelShaderVersion = AfxGetApp()->GetProfileInt(_T("Settings"), _T("PixelShaderVersion2"), D3DPS_VERSION(2, 0));
 
 	if(PixelShaderVersion > m_caps.PixelShaderVersion)
 	{
 		CString str;
+
 		str.Format(_T("Supported pixel shader version is too low!\n\nSupported: %d.%d\nSelected: %d.%d"),
 			D3DSHADER_VERSION_MAJOR(m_caps.PixelShaderVersion), D3DSHADER_VERSION_MINOR(m_caps.PixelShaderVersion),
 			D3DSHADER_VERSION_MAJOR(PixelShaderVersion), D3DSHADER_VERSION_MINOR(PixelShaderVersion));
+
 		AfxMessageBox(str);
+
 		m_pD3DDev = NULL;
+
 		return;
 	}
 
@@ -207,22 +204,24 @@ GSState::GSState(int w, int h, HWND hWnd, HRESULT& hr)
 
 	if(m_caps.PixelShaderVersion >= D3DPS_VERSION(3, 0))
 	{
+		DWORD flags = D3DXSHADER_AVOID_FLOW_CONTROL|D3DXSHADER_PARTIALPRECISION;
+
 		for(int i = 0; i < countof(hlsl_tfx); i++)
 		{
-			if(m_pHLSLTFX[i]) continue;
-
-			CompileShaderFromResource(m_pD3DDev, IDR_HLSL_TFX, hlsl_tfx[i], _T("ps_3_0"),
-				D3DXSHADER_AVOID_FLOW_CONTROL|D3DXSHADER_PARTIALPRECISION, &m_pHLSLTFX[i]);
+			if(!m_pHLSLTFX[i])
+			{
+				CompileShaderFromResource(m_pD3DDev, IDR_HLSL_TFX, hlsl_tfx[i], _T("ps_3_0"), flags, &m_pHLSLTFX[i]);
+			}
 		}
 
 		for(int i = 0; i < 3; i++)
 		{
-			if(m_pHLSLMerge[i]) continue;
-
-			CString main;
-			main.Format(_T("main%d"), i);
-			CompileShaderFromResource(m_pD3DDev, IDR_HLSL_MERGE, main, _T("ps_3_0"), 
-				D3DXSHADER_AVOID_FLOW_CONTROL|D3DXSHADER_PARTIALPRECISION, &m_pHLSLMerge[i]);
+			if(!m_pHLSLMerge[i])
+			{
+				CString main;
+				main.Format(_T("main%d"), i);
+				CompileShaderFromResource(m_pD3DDev, IDR_HLSL_MERGE, main, _T("ps_3_0"), flags, &m_pHLSLMerge[i]);
+			}
 		}
 	}
 
@@ -230,95 +229,39 @@ GSState::GSState(int w, int h, HWND hWnd, HRESULT& hr)
 
 	if(m_caps.PixelShaderVersion >= D3DPS_VERSION(2, 0))
 	{
+		DWORD flags = D3DXSHADER_PARTIALPRECISION;
+
 		for(int i = 0; i < countof(hlsl_tfx); i++)
 		{
-			if(m_pHLSLTFX[i]) continue;
-
-			CompileShaderFromResource(m_pD3DDev, IDR_HLSL_TFX, hlsl_tfx[i], _T("ps_2_0"), 
-				D3DXSHADER_PARTIALPRECISION, &m_pHLSLTFX[i]);
+			if(!m_pHLSLTFX[i])
+			{
+				CompileShaderFromResource(m_pD3DDev, IDR_HLSL_TFX, hlsl_tfx[i], _T("ps_2_0"), flags, &m_pHLSLTFX[i]);
+			}
 		}
 
 		for(int i = 0; i < 3; i++)
 		{
-			if(m_pHLSLMerge[i]) continue;
-
-			CString main;
-			main.Format(_T("main%d"), i);
-			CompileShaderFromResource(m_pD3DDev, IDR_HLSL_MERGE, main, _T("ps_2_0"), 
-				D3DXSHADER_PARTIALPRECISION, &m_pHLSLMerge[i]);
+			if(!m_pHLSLMerge[i])
+			{
+				CString main;
+				main.Format(_T("main%d"), i);
+				CompileShaderFromResource(m_pD3DDev, IDR_HLSL_MERGE, main, _T("ps_2_0"), flags, &m_pHLSLMerge[i]);
+			}
 		}
 	}
-
-	// ps_1_1 + ps_1_4
-
-	if(m_caps.PixelShaderVersion >= D3DPS_VERSION(1, 1))
-	{
-		static const UINT nShaderIDs[] = 
-		{
-			IDR_PS11_TFX000, IDR_PS11_TFX010, IDR_PS11_TFX011, 
-			IDR_PS11_TFX1x0, IDR_PS11_TFX1x1,
-			IDR_PS11_TFX200, IDR_PS11_TFX210, IDR_PS11_TFX211,
-			IDR_PS11_TFX300, IDR_PS11_TFX310, IDR_PS11_TFX311,
-			IDR_PS11_TFX4xx,
-			IDR_PS11_EN11, IDR_PS11_EN01, IDR_PS11_EN10, IDR_PS11_EN00,
-			IDR_PS14_EN11, IDR_PS14_EN01, IDR_PS14_EN10, IDR_PS14_EN00
-		};
-
-		for(int i = 0; i < countof(nShaderIDs); i++)
-		{
-			if(m_pPixelShaders[i]) continue;
-			AssembleShaderFromResource(m_pD3DDev, nShaderIDs[i], 0, &m_pPixelShaders[i]);
-		}
-
-		if(!m_pHLSLRedBlue)
-		{
-			CompileShaderFromResource(m_pD3DDev, IDR_HLSL_RB, _T("main"), _T("ps_1_1"), 
-				D3DXSHADER_PARTIALPRECISION, &m_pHLSLRedBlue);
-		}
-	}
-
-	//
-
-	m_strDefaultTitle.ReleaseBufferSetLength(GetWindowText(m_hWnd, m_strDefaultTitle.GetBuffer(256), 256));
-
-	m_fEnablePalettizedTextures = !!pApp->GetProfileInt(_T("Settings"), _T("fEnablePalettizedTextures"), FALSE);
-
-	m_fNloopHack = !!pApp->GetProfileInt(_T("Settings"), _T("fNloopHack"), FALSE);
-
 
 	//
 
 	hr = S_OK;
 
+//	m_regs.pCSR->rREV = 0x20;
+
+	m_env.PRMODECONT.AC = 1;
+	m_pPRIM = &m_env.PRIM;
+	// m_PRIM = 8;
+
 	Reset();
 
-#if defined(DEBUG_LOG) || defined(DEBUG_LOG2)
-	::DeleteFile(_T("g:\\gs.txt"));
-	m_fp = _tfopen(_T("g:\\gs.txt"), _T("at"));
-#endif
-
-//	m_rs.pCSR->rREV = 0x20;
-
-/*
-	GSLocalMemory lm;
-
-	int w = 512, h = 512;
-
-	for(int y = 0; y < h; y++)
-	{
-		for(int x = 0; x < w; x++)
-		{
-			lm.writePixel24(x, y, (x * 255 / w) | ((y * 255 / h) << 8), 0x500, 8);
-		}
-	}
-
-	for(int i = 16; i > 0; i--)
-	{
-		CString fn;
-		fn.Format(_T("g:/%02d.bmp"), i);
-		lm.SaveBMP(m_pD3DDev, fn, 0x500, i, PSM_PSMCT24, i*64, 512);
-	}
-*/
 	CreateThread();
 }
 
@@ -327,9 +270,8 @@ GSState::~GSState()
 	QuitThread();
 
 	Reset();
+
 	_aligned_free(m_pTrBuff);
-	if(m_sfp) fclose(m_sfp);
-	if(m_fp) fclose(m_fp);
 }
 
 HRESULT GSState::ResetDevice(bool fForceWindowed)
@@ -383,7 +325,7 @@ HRESULT GSState::ResetDevice(bool fForceWindowed)
 	{
 		if(FAILED(hr = m_pD3D->CreateDevice(
 			// m_pD3D->GetAdapterCount()-1, D3DDEVTYPE_REF,
-			D3DADAPTER_DEFAULT, CGSdx9App::D3DDEVTYPE_X, 
+			D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, 
 			m_hWnd,
 			D3DCREATE_MULTITHREADED | (m_caps.VertexProcessingCaps ? D3DCREATE_HARDWARE_VERTEXPROCESSING : D3DCREATE_SOFTWARE_VERTEXPROCESSING), 
 			&m_d3dpp, &m_pD3DDev)))
@@ -454,10 +396,8 @@ HRESULT GSState::ResetDevice(bool fForceWindowed)
 
 UINT32 GSState::Freeze(freezeData* fd, bool fSizeOnly)
 {
-	SyncThread();
-
 	int size = sizeof(m_version)
-		+ sizeof(m_de) + sizeof(m_v) 
+		+ sizeof(m_env) + sizeof(m_v) 
 		+ sizeof(m_x) + sizeof(m_y) + 1024*1024*4
 		+ sizeof(m_path) + sizeof(m_q)
 		/*+ sizeof(m_vl)*/;
@@ -472,15 +412,17 @@ UINT32 GSState::Freeze(freezeData* fd, bool fSizeOnly)
 		return -1;
 	}
 
-	FlushPrimInternal();
+	SyncThread();
+
+	Flush();
 
 	BYTE* data = fd->data;
 	memcpy(data, &m_version, sizeof(m_version)); data += sizeof(m_version);
-	memcpy(data, &m_de, sizeof(m_de)); data += sizeof(m_de);
+	memcpy(data, &m_env, sizeof(m_env)); data += sizeof(m_env);
 	memcpy(data, &m_v, sizeof(m_v)); data += sizeof(m_v);
 	memcpy(data, &m_x, sizeof(m_x)); data += sizeof(m_x);
 	memcpy(data, &m_y, sizeof(m_y)); data += sizeof(m_y);
-	memcpy(data, m_lm.GetVM(), 1024*1024*4); data += 1024*1024*4;
+	memcpy(data, m_mem.GetVM(), 1024*1024*4); data += 1024*1024*4;
 	memcpy(data, m_path, sizeof(m_path)); data += sizeof(m_path);
 	memcpy(data, &m_q, sizeof(m_q)); data += sizeof(m_q);
 	// memcpy(data, &m_vl, sizeof(m_vl)); data += sizeof(m_vl);
@@ -490,13 +432,11 @@ UINT32 GSState::Freeze(freezeData* fd, bool fSizeOnly)
 
 UINT32 GSState::Defrost(const freezeData* fd)
 {
-	SyncThread();
-
 	if(!fd || !fd->data || fd->size == 0) 
 		return -1;
 
 	int size = sizeof(m_version)
-		+ sizeof(m_de) + sizeof(m_v) 
+		+ sizeof(m_env) + sizeof(m_v) 
 		+ sizeof(m_x) + sizeof(m_y) + 1024*1024*4
 		+ sizeof(m_path)
 		+ sizeof(m_q)
@@ -511,38 +451,40 @@ UINT32 GSState::Defrost(const freezeData* fd)
 	memcpy(&version, data, sizeof(version)); data += sizeof(version);
 	if(m_version != version) return -1;
 
-	FlushPrimInternal();
+	SyncThread();
 
-	memcpy(&m_de, data, sizeof(m_de)); data += sizeof(m_de);
+	Flush();
+
+	memcpy(&m_env, data, sizeof(m_env)); data += sizeof(m_env);
 	memcpy(&m_v, data, sizeof(m_v)); data += sizeof(m_v);
 	memcpy(&m_x, data, sizeof(m_x)); data += sizeof(m_x);
 	memcpy(&m_y, data, sizeof(m_y)); data += sizeof(m_y);
-	memcpy(m_lm.GetVM(), data, 1024*1024*4); data += 1024*1024*4;
+	memcpy(m_mem.GetVM(), data, 1024*1024*4); data += 1024*1024*4;
 	memcpy(&m_path, data, sizeof(m_path)); data += sizeof(m_path);
 	memcpy(&m_q, data, sizeof(m_q)); data += sizeof(m_q);
 	// memcpy(&m_vl, data, sizeof(m_vl)); data += sizeof(m_vl);
 
-	m_pPRIM = !m_de.PRMODECONT.AC ? (GIFRegPRIM*)&m_de.PRMODE : &m_de.PRIM;
+	m_pPRIM = !m_env.PRMODECONT.AC ? (GIFRegPRIM*)&m_env.PRMODE : &m_env.PRIM;
 
-	m_ctxt = &m_de.CTXT[m_pPRIM->CTXT];
+	m_context = &m_env.CTXT[m_pPRIM->CTXT];
 
-	m_de.CTXT[0].ftbl = &GSLocalMemory::m_psmtbl[m_de.CTXT[0].FRAME.PSM];
-	m_de.CTXT[0].ztbl = &GSLocalMemory::m_psmtbl[m_de.CTXT[0].ZBUF.PSM];
-	m_de.CTXT[0].ttbl = &GSLocalMemory::m_psmtbl[m_de.CTXT[0].TEX0.PSM];
+	m_env.CTXT[0].ftbl = &GSLocalMemory::m_psmtbl[m_env.CTXT[0].FRAME.PSM];
+	m_env.CTXT[0].ztbl = &GSLocalMemory::m_psmtbl[m_env.CTXT[0].ZBUF.PSM];
+	m_env.CTXT[0].ttbl = &GSLocalMemory::m_psmtbl[m_env.CTXT[0].TEX0.PSM];
 
-	m_de.CTXT[1].ftbl = &GSLocalMemory::m_psmtbl[m_de.CTXT[1].FRAME.PSM];
-	m_de.CTXT[1].ztbl = &GSLocalMemory::m_psmtbl[m_de.CTXT[1].ZBUF.PSM];
-	m_de.CTXT[1].ttbl = &GSLocalMemory::m_psmtbl[m_de.CTXT[1].TEX0.PSM];
+	m_env.CTXT[1].ftbl = &GSLocalMemory::m_psmtbl[m_env.CTXT[1].FRAME.PSM];
+	m_env.CTXT[1].ztbl = &GSLocalMemory::m_psmtbl[m_env.CTXT[1].ZBUF.PSM];
+	m_env.CTXT[1].ttbl = &GSLocalMemory::m_psmtbl[m_env.CTXT[1].TEX0.PSM];
 
 	return 0;
 }
 
 void GSState::WriteCSR(UINT32 csr)
 {
-	m_rs.pCSR->ai32[1] = csr;
+	m_regs.pCSR->ai32[1] = csr;
 }
 
-void GSState::ReadFIFO(BYTE* pMem)
+void GSState::ReadFIFO(BYTE* mem)
 {
 	GSPerfMonAutoTimer at(m_perfmon);
 
@@ -550,160 +492,134 @@ void GSState::ReadFIFO(BYTE* pMem)
 
 	FlushWriteTransfer();
 
-	LOG(_T("*** WARNING *** ReadFIFO(%08x)\n"), pMem);
-	ReadTransfer(pMem, 16);
+	ReadTransfer(mem, 16);
 }
 
-__declspec(align(16)) static BYTE tr1_buff[0x4000];
-
-void GSState::Transfer1(BYTE* pMem, UINT32 addr)
+void GSState::Transfer1(BYTE* mem, UINT32 addr)
 {
-//	GSPerfMonAutoTimer at(m_perfmon);
+	ASSERT(m_path2[1].tag.NLOOP == 0 && m_path2[2].tag.NLOOP == 0);
 
-	LOG(_T("Transfer1(%08x, %d)\n"), pMem, addr);
-
-	// TODO: this is too cheap...
-	addr &= 0x3fff;
-	memcpy(tr1_buff, pMem + addr, 0x4000 - addr);
-	memcpy(tr1_buff + 0x4000 - addr, pMem, addr);
-/*
-	if((m_tag).NLOOP
-		&& ((GIFTag*)tr1_buff)->NLOOP == 8 && ((GIFTag*)tr1_buff)->PRIM == 0x5b
-		&& ((GIFTag*)tr1_buff)->NREG == 9 && ((GIFTag*)tr1_buff)->REGS == 0x0000000412412412ui64)
-	{
-		ASSERT(0);
-	}
-*/
-/*
-	ASSERT(m_path[1].m_tag.NLOOP == 0 && m_path[2].m_tag.NLOOP == 0);
-
-	Transfer(tr1_buff, -1, 0);
-*/
-	ASSERT(m_path2[1].m_tag.NLOOP == 0 && m_path2[2].m_tag.NLOOP == 0);
-
-	TransferMT(tr1_buff, -1, 0);
+	TransferMT(mem + addr, -1, 0);
 }
 
-void GSState::Transfer2(BYTE* pMem, UINT32 size)
+void GSState::Transfer2(BYTE* mem, UINT32 size)
 {
-/*
-	ASSERT(m_path[0].m_tag.NLOOP == 0 && m_path[2].m_tag.NLOOP == 0);
+	ASSERT(m_path2[0].tag.NLOOP == 0 && m_path2[2].tag.NLOOP == 0);
 
-	Transfer(pMem, size, 1);
-*/
-	ASSERT(m_path2[0].m_tag.NLOOP == 0 && m_path2[2].m_tag.NLOOP == 0);
-
-	TransferMT(pMem, size, 1);
+	TransferMT(mem, size, 1);
 }
 
-void GSState::Transfer3(BYTE* pMem, UINT32 size)
+void GSState::Transfer3(BYTE* mem, UINT32 size)
 {
-/*
-	ASSERT(m_path[0].m_tag.NLOOP == 0 && m_path[1].m_tag.NLOOP == 0);
+	ASSERT(m_path2[0].tag.NLOOP == 0 && m_path2[1].tag.NLOOP == 0);
 
-	Transfer(pMem, size, 2);
-*/
-	ASSERT(m_path2[0].m_tag.NLOOP == 0 && m_path2[1].m_tag.NLOOP == 0);
-
-	TransferMT(pMem, size, 2);
+	TransferMT(mem, size, 2);
 }
 
-void GSState::Transfer(BYTE* pMem, UINT32 size, int pathIndex)
+void GSState::Transfer(BYTE* mem, UINT32 size, int index)
 {
 	GSPerfMonAutoTimer at(m_perfmon);
 
-	BYTE* pMemOrg = pMem;
-	UINT32 sizeOrg = size;
-	GIFPath& path = m_path[pathIndex];
+	GIFPath& path = m_path[index];
 
 	while(size > 0)
 	{
-		LOG(_T("Transfer(%08x, %d) START\n"), pMem, size);
-
 		bool fEOP = false;
 
-		if(path.m_tag.NLOOP == 0)
+		if(path.tag.NLOOP == 0)
 		{
-			path.m_tag = *(GIFTag*)pMem;
-			path.m_nreg = 0;
-			m_q = 1.0f;
-/*
-			LOG(_T("GIFTag NLOOP=%x EOP=%x PRE=%x PRIM=%x FLG=%x NREG=%x REGS=%x\n"), 
-				m_tag.NLOOP,
-				m_tag.EOP,
-				m_tag.PRE,
-				m_tag.PRIM,
-				m_tag.FLG,
-				m_tag.NREG,
-				m_tag.REGS);
-*/
-			pMem += sizeof(GIFTag);
+			path.tag = *(GIFTag*)mem;
+			path.nreg = 0;
+
+			mem += sizeof(GIFTag);
 			size--;
 
-			if(path.m_tag.PRE)
+			m_q = 1.0f;
+
+			if(path.tag.PRE)
 			{
-				LOG(_T("PRE "));
 				GIFReg r;
-				r.i64 = path.m_tag.PRIM;
+				r.i64 = path.tag.PRIM;
 				(this->*m_fpGIFRegHandlers[GIF_A_D_REG_PRIM])(&r);
 			}
 
-			if(path.m_tag.EOP)
+			if(path.tag.EOP)
 			{
-				LOG(_T("EOP\n"));
 				fEOP = true;
 			}
-			else if(path.m_tag.NLOOP == 0)
+			else if(path.tag.NLOOP == 0)
 			{
-				if(m_fNloopHack && pathIndex == 0)
+				if(m_fNloopHack && index == 0)
+				{
 					continue;
+				}
 
-				LOG(_T("*** WARNING *** m_tag.NLOOP == 0 && EOP == 0\n"));
 				fEOP = true;
+
 				// ASSERT(0);
 			}
 		}
 
 		UINT32 size_msb = size & (1<<31);
 
-		switch(path.m_tag.FLG)
+		switch(path.tag.FLG)
 		{
 		case GIF_FLG_PACKED:
-			for(GIFPackedReg* r = (GIFPackedReg*)pMem; path.m_tag.NLOOP > 0 && size > 0; r++, size--, pMem += sizeof(GIFPackedReg))
+
+			for(GIFPackedReg* r = (GIFPackedReg*)mem; path.tag.NLOOP > 0 && size > 0; r++, size--, mem += sizeof(GIFPackedReg))
 			{
-				DWORD reg = GET_GIF_REG(path.m_tag, path.m_nreg);
-				(this->*m_fpGIFPackedRegHandlers[reg])(r);
-				if((path.m_nreg = (path.m_nreg+1)&0xf) == path.m_tag.NREG) {path.m_nreg = 0; path.m_tag.NLOOP--;}
+				(this->*m_fpGIFPackedRegHandlers[path.GetGIFReg()])(r);
+
+				if((path.nreg = (path.nreg + 1) & 0xf) == path.tag.NREG) 
+				{
+					path.nreg = 0; 
+					path.tag.NLOOP--;
+				}
 			}
+
 			break;
+
 		case GIF_FLG_REGLIST:
+
 			size *= 2;
-			for(GIFReg* r = (GIFReg*)pMem; path.m_tag.NLOOP > 0 && size > 0; r++, size--, pMem += sizeof(GIFReg))
+
+			for(GIFReg* r = (GIFReg*)mem; path.tag.NLOOP > 0 && size > 0; r++, size--, mem += sizeof(GIFReg))
 			{
-				DWORD reg = GET_GIF_REG(path.m_tag, path.m_nreg);
-				(this->*m_fpGIFRegHandlers[reg])(r);
-				if((path.m_nreg = (path.m_nreg+1)&0xf) == path.m_tag.NREG) {path.m_nreg = 0; path.m_tag.NLOOP--;}
+				(this->*m_fpGIFRegHandlers[path.GetGIFReg()])(r);
+
+				if((path.nreg = (path.nreg +1) & 0xf) == path.tag.NREG)
+				{
+					path.nreg = 0; 
+					path.tag.NLOOP--;
+				}
 			}
-			if(size&1) pMem += sizeof(GIFReg);
+			
+			if(size & 1) mem += sizeof(GIFReg);
+
 			size /= 2;
 			size |= size_msb; // a bit lame :P
+			
 			break;
-		case GIF_FLG_IMAGE2:
-			LOG(_T("*** WARNING **** Unexpected GIFTag flag\n"));
-path.m_tag.NLOOP = 0;
-break;
-			ASSERT(0);
+
+		case GIF_FLG_IMAGE2: // hmmm
+			
+			path.tag.NLOOP = 0;
+
+			break;
+
 		case GIF_FLG_IMAGE:
 			{
-				int len = min(size, path.m_tag.NLOOP);
+				int len = min(size, path.tag.NLOOP);
+
 				//ASSERT(!(len&3));
-				switch(m_de.TRXDIR.XDIR)
+
+				switch(m_env.TRXDIR.XDIR)
 				{
 				case 0:
-					WriteTransfer(pMem, len*16);
+					WriteTransfer(mem, len*16);
 					break;
 				case 1: 
-					ReadTransfer(pMem, len*16);
+					ReadTransfer(mem, len*16);
 					break;
 				case 2: 
 					//MoveTransfer();
@@ -714,107 +630,122 @@ break;
 				default: 
 					__assume(0);
 				}
-				pMem += len*16;
-				path.m_tag.NLOOP -= len;
+
+				mem += len*16;
+				path.tag.NLOOP -= len;
 				size -= len;
 			}
+
 			break;
+
 		default: 
 			__assume(0);
 		}
-
-		LOG(_T("Transfer(%08x, %d) END\n"), pMem, size);
 
 		if(fEOP && (INT32)size <= 0)
 		{
 			break;
 		}
 	}
-	
-#ifdef ENABLE_CAPTURE_STATE
-	if(m_sfp)
-	{
-		fputc(ST_TRANSFER, m_sfp);
-		fwrite(&sizeOrg, 4, 1, m_sfp);
-		UINT32 len = (UINT32)(pMem - pMemOrg);
-		fwrite(&len, 4, 1, m_sfp);
-		fwrite(pMemOrg, len, 1, m_sfp);
-	}
-#endif
 }
 
-void GSState::TransferMT(BYTE* pMem, UINT32 size, int pathIndex)
+void GSState::TransferMT(BYTE* mem, UINT32 size, int index)
 {
 	GSTransferBuffer* buff = new GSTransferBuffer();
 
-{
-	CAutoLock cAutoLock(&m_queue);
+	buff->m_data = mem;
+	buff->m_size = size;
+	buff->m_index = index;
 
-	BYTE* pMemOrg = pMem;
-	UINT32 sizeOrg = size;
-	GIFPath& path = m_path2[pathIndex];
+	m_queue.Lock();
+
+	GIFPath& path = m_path2[index];
 
 	while(size > 0)
 	{
 		bool fEOP = false;
 
-		if(path.m_tag.NLOOP == 0)
+		if(path.tag.NLOOP == 0)
 		{
-			path.m_tag = *(GIFTag*)pMem;
-			path.m_nreg = 0;
+			path.tag = *(GIFTag*)mem;
+			path.nreg = 0;
 
-			pMem += sizeof(GIFTag);
+			mem += sizeof(GIFTag);
 			size--;
 
-			if(path.m_tag.EOP)
+			if(path.tag.EOP)
 			{
-				LOG(_T("EOP\n"));
 				fEOP = true;
 			}
-			else if(path.m_tag.NLOOP == 0)
+			else if(path.tag.NLOOP == 0)
 			{
-				if(m_fNloopHack && pathIndex == 0)
+				if(m_fNloopHack && index == 0)
+				{
 					continue;
+				}
 
 				fEOP = true;
+
+				// ASSERT(0);
 			}
 		}
 
 		UINT32 size_msb = size & (1<<31);
 
-		switch(path.m_tag.FLG)
+		switch(path.tag.FLG)
 		{
 		case GIF_FLG_PACKED:
-			for(GIFPackedReg* r = (GIFPackedReg*)pMem; path.m_tag.NLOOP > 0 && size > 0; r++, size--, pMem += sizeof(GIFPackedReg))
+
+			for(GIFPackedReg* r = (GIFPackedReg*)mem; path.tag.NLOOP > 0 && size > 0; r++, size--, mem += sizeof(GIFPackedReg))
 			{
-				DWORD reg = GET_GIF_REG(path.m_tag, path.m_nreg);
-				if((path.m_nreg = (path.m_nreg+1)&0xf) == path.m_tag.NREG) {path.m_nreg = 0; path.m_tag.NLOOP--;}
+				if((path.nreg = (path.nreg + 1) & 0xf) == path.tag.NREG) 
+				{
+					path.nreg = 0; 
+					path.tag.NLOOP--;
+				}
 			}
+
 			break;
+
 		case GIF_FLG_REGLIST:
+
 			size *= 2;
-			for(GIFReg* r = (GIFReg*)pMem; path.m_tag.NLOOP > 0 && size > 0; r++, size--, pMem += sizeof(GIFReg))
+
+			for(GIFReg* r = (GIFReg*)mem; path.tag.NLOOP > 0 && size > 0; r++, size--, mem += sizeof(GIFReg))
 			{
-				DWORD reg = GET_GIF_REG(path.m_tag, path.m_nreg);
-				if((path.m_nreg = (path.m_nreg+1)&0xf) == path.m_tag.NREG) {path.m_nreg = 0; path.m_tag.NLOOP--;}
+				if((path.nreg = (path.nreg +1) & 0xf) == path.tag.NREG)
+				{
+					path.nreg = 0; 
+					path.tag.NLOOP--;
+				}
 			}
-			if(size&1) pMem += sizeof(GIFReg);
+			
+			if(size & 1) mem += sizeof(GIFReg);
+
 			size /= 2;
 			size |= size_msb; // a bit lame :P
+			
 			break;
-		case GIF_FLG_IMAGE2:
-			LOG(_T("*** WARNING **** Unexpected GIFTag flag\n"));
-path.m_tag.NLOOP = 0;
-break;
-			ASSERT(0);
+
+		case GIF_FLG_IMAGE2: // hmmm
+			
+			path.tag.NLOOP = 0;
+
+			break;
+
 		case GIF_FLG_IMAGE:
 			{
-				int len = min(size, path.m_tag.NLOOP);
-				pMem += len*16;
-				path.m_tag.NLOOP -= len;
+				int len = min(size, path.tag.NLOOP);
+
+				//ASSERT(!(len&3));
+
+				mem += len*16;
+				path.tag.NLOOP -= len;
 				size -= len;
 			}
+
 			break;
+
 		default: 
 			__assume(0);
 		}
@@ -825,15 +756,14 @@ break;
 		}
 	}
 
-	size = pMem - pMemOrg;
+	size = mem - buff->m_data;
 
 	ASSERT(size > 0);
 
-	buff->m_size = sizeOrg;
-	buff->m_buff = new BYTE[size];
-	memcpy(buff->m_buff, pMemOrg, size);
-	buff->m_pathIndex = pathIndex;
-}
+	memcpy(buff->m_data = new BYTE[size], mem - size, size);
+
+	m_queue.Unlock();
+
 	m_queue.Enqueue(buff);
 }
 
@@ -850,15 +780,25 @@ void GSState::Capture()
 {
 	GSPerfMonAutoTimer at(m_perfmon);
 
-	if(!m_capture.IsCapturing()) m_capture.BeginCapture(m_pD3DDev, m_rs.GetFPS());
-	else m_capture.EndCapture();
+	if(!m_capture.IsCapturing()) 
+	{
+		m_capture.BeginCapture(m_pD3DDev, m_regs.GetFPS());
+	}
+	else
+	{
+		m_capture.EndCapture();
+	}
 }
 
 void GSState::ToggleOSD()
 {
 	if(m_d3dpp.Windowed)
 	{
-		if(m_iOSD == 1) SetWindowText(m_hWnd, m_strDefaultTitle);
+		if(m_iOSD == 1)
+		{
+			SetWindowText(m_hWnd, m_strDefaultTitle);
+		}
+
 		m_iOSD = ++m_iOSD % 3;
 	}
 	else
@@ -867,28 +807,15 @@ void GSState::ToggleOSD()
 	}
 }
 
-void GSState::CaptureState(CString fn)
-{
-#ifdef ENABLE_CAPTURE_STATE
-	if(!m_sfp) m_sfp = !fn.IsEmpty() ? _tfopen(fn, _T("wb")) : NULL;
-#endif
-}
-
 void GSState::VSync(int field)
 {
 	GSPerfMonAutoTimer at(m_perfmon);
 
-	LOG(_T("VSync(%d) %d\n"), field, m_perfmon.GetFrame());
+	m_fField = !!field;
 
 	SyncThread();
 
-	m_fField = !!field;
-
-#ifdef ENABLE_CAPTURE_STATE
-	if(m_sfp) fputc(ST_VSYNC, m_sfp);
-#endif
-
-	FlushPrimInternal();
+	Flush();
 
 	Flip();
 
@@ -899,24 +826,24 @@ void GSState::Reset()
 {
 	GSPerfMonAutoTimer at(m_perfmon);
 
-	memset(&m_de, 0, sizeof(m_de));
+	memset(&m_env, 0, sizeof(m_env));
 	memset(m_path, 0, sizeof(m_path));
+	memset(m_path2, 0, sizeof(m_path2));
 	memset(&m_v, 0, sizeof(m_v));
 
-//	m_de.PRMODECONT.AC = 1;
-
-//	m_pPRIM = &m_de.PRIM;
+//	m_env.PRMODECONT.AC = 1;
+//	m_pPRIM = &m_env.PRIM;
 	m_PRIM = 8;
 
-	m_ctxt = &m_de.CTXT[0];
+	m_context = &m_env.CTXT[0];
 
-	m_de.CTXT[0].ftbl = &GSLocalMemory::m_psmtbl[m_de.CTXT[0].FRAME.PSM];
-	m_de.CTXT[0].ztbl = &GSLocalMemory::m_psmtbl[m_de.CTXT[0].ZBUF.PSM];
-	m_de.CTXT[0].ttbl = &GSLocalMemory::m_psmtbl[m_de.CTXT[0].TEX0.PSM];
+	m_env.CTXT[0].ftbl = &GSLocalMemory::m_psmtbl[m_env.CTXT[0].FRAME.PSM];
+	m_env.CTXT[0].ztbl = &GSLocalMemory::m_psmtbl[m_env.CTXT[0].ZBUF.PSM];
+	m_env.CTXT[0].ttbl = &GSLocalMemory::m_psmtbl[m_env.CTXT[0].TEX0.PSM];
 
-	m_de.CTXT[1].ftbl = &GSLocalMemory::m_psmtbl[m_de.CTXT[1].FRAME.PSM];
-	m_de.CTXT[1].ztbl = &GSLocalMemory::m_psmtbl[m_de.CTXT[1].ZBUF.PSM];
-	m_de.CTXT[1].ttbl = &GSLocalMemory::m_psmtbl[m_de.CTXT[1].TEX0.PSM];
+	m_env.CTXT[1].ftbl = &GSLocalMemory::m_psmtbl[m_env.CTXT[1].FRAME.PSM];
+	m_env.CTXT[1].ztbl = &GSLocalMemory::m_psmtbl[m_env.CTXT[1].ZBUF.PSM];
+	m_env.CTXT[1].ttbl = &GSLocalMemory::m_psmtbl[m_env.CTXT[1].TEX0.PSM];
 
 	if(m_pD3DDev) m_pD3DDev->Clear(0, NULL, D3DCLEAR_TARGET/*|D3DCLEAR_ZBUFFER|D3DCLEAR_STENCIL*/, 0, 1.0f, 0);
 }
@@ -930,11 +857,11 @@ void GSState::FinishFlip(FlipInfo rt[2])
 
 	for(int i = 0; i < countof(fEN); i++)
 	{
-		fEN[i] = m_rs.IsEnabled(i) && rt[i].pRT;
+		fEN[i] = m_regs.IsEnabled(i) && rt[i].pRT;
 
 		if(fEN[i])
 		{
-			CRect r = m_rs.GetDispRect(i);
+			CRect r = m_regs.GetDispRect(i);
 
 			src[i] = CRect(
 				(int)(rt[i].scale.x * r.left),
@@ -942,7 +869,7 @@ void GSState::FinishFlip(FlipInfo rt[2])
 				(int)(rt[i].scale.x * r.right),
 				(int)(rt[i].scale.y * r.bottom));
 
-			if(m_rs.pSMODE2->INT && m_rs.pSMODE2->FFMD)
+			if(m_regs.pSMODE2->INT && m_regs.pSMODE2->FFMD)
 				src[i].bottom /= 2;
 		}
 		else
@@ -976,15 +903,15 @@ void GSState::FinishFlip(FlipInfo rt[2])
 	};
 
 /*
-	if(m_rs.pSMODE2->INT)
+	if(m_regs.pSMODE2->INT)
 	{
-		if(!m_rs.pSMODE2->FFMD)
+		if(!m_regs.pSMODE2->FFMD)
 		{
-			// m_rs.pCSR->rFIELD = 1 - m_rs.pCSR->rFIELD;
+			// m_regs.pCSR->rFIELD = 1 - m_regs.pCSR->rFIELD;
 		}
-		else if(!m_rs.pCSR->rFIELD)
+		else if(!m_regs.pCSR->rFIELD)
 		{
-			// if(m_rs.pCSR->rFIELD == 0) m_rs.pCSR->rFIELD = 1; // FIXME: might stop a few games, but this is the only way to stop shaking the bios or sfae
+			// if(m_regs.pCSR->rFIELD == 0) m_regs.pCSR->rFIELD = 1; // FIXME: might stop a few games, but this is the only way to stop shaking the bios or sfae
 
 			for(int i = 0; i < countof(pVertices); i++)
 			{
@@ -995,7 +922,7 @@ void GSState::FinishFlip(FlipInfo rt[2])
 	}
 */	
 
-	if(m_fField /*m_rs.pCSR->rFIELD*/ && m_rs.pSMODE2->INT /*&& m_rs.pSMODE2->FFMD*/)
+	if(m_fField /*m_regs.pCSR->rFIELD*/ && m_regs.pSMODE2->INT /*&& m_regs.pSMODE2->FFMD*/)
 	{
 		for(int i = 0; i < countof(pVertices); i++)
 		{
@@ -1033,97 +960,13 @@ void GSState::FinishFlip(FlipInfo rt[2])
 		pPixelShader = m_pHLSLMerge[PS_M32];
 	}
 
-	if(!pPixelShader && m_caps.PixelShaderVersion >= D3DPS_VERSION(1, 4))
-	{
-		if(fEN[0] && fEN[1]) // RAO1 + RAO2
-		{
-			pPixelShader = m_pPixelShaders[PS14_EN11];
-		}
-		else if(fEN[0]) // RAO1
-		{
-			pPixelShader = m_pPixelShaders[PS14_EN10];
-		}
-		else if(fEN[1]) // RAO2
-		{
-			pPixelShader = m_pPixelShaders[PS14_EN01];
-		}
-	}
-
-	if(!pPixelShader && m_caps.PixelShaderVersion >= D3DPS_VERSION(1, 1))
-	{
-		if(fEN[0] && fEN[1]) // RAO1 + RAO2
-		{
-			pPixelShader = m_pPixelShaders[PS11_EN11];
-		}
-		else if(fEN[0]) // RAO1
-		{
-			pPixelShader = m_pPixelShaders[PS11_EN10];
-		}
-		else if(fEN[1]) // RAO2
-		{
-			pPixelShader = m_pPixelShaders[PS11_EN01];
-		}
-	}
-
-	if(!pPixelShader)
-	{
-		int stage = 0;
-
-		hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_COLOROP, D3DTOP_SELECTARG1);
-		hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_COLORARG1, D3DTA_TEXTURE);
-		hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_ALPHAOP, D3DTOP_DISABLE);
-		stage++;
-
-		if(fEN[0] && fEN[1]) // RAO1 + RAO2
-		{
-			if(m_rs.pPMODE->ALP < 0xff)
-			{
-				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_COLOROP, D3DTOP_LERP);
-				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_COLORARG1, D3DTA_CURRENT);
-				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_COLORARG2, m_rs.pPMODE->SLBG ? D3DTA_CONSTANT : D3DTA_TEXTURE);
-				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_COLORARG0, D3DTA_ALPHAREPLICATE|(m_rs.pPMODE->MMOD ? D3DTA_CONSTANT : D3DTA_TEXTURE));
-				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_ALPHAOP, D3DTOP_DISABLE);
-				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_CONSTANT, D3DCOLOR_ARGB(m_rs.pPMODE->ALP, m_rs.pBGCOLOR->R, m_rs.pBGCOLOR->G, m_rs.pBGCOLOR->B));
-				stage++;
-			}
-		}
-		else if(fEN[0]) // RAO1
-		{
-			if(m_rs.pPMODE->ALP < 0xff)
-			{
-				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_COLOROP, D3DTOP_MODULATE);
-				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_COLORARG1, D3DTA_CURRENT);
-				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_COLORARG2, D3DTA_ALPHAREPLICATE|(m_rs.pPMODE->MMOD ? D3DTA_CONSTANT : D3DTA_TEXTURE));
-				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_ALPHAOP, D3DTOP_DISABLE);
-				hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_CONSTANT, D3DCOLOR_ARGB(m_rs.pPMODE->ALP, 0, 0, 0));
-				stage++;
-			}
-		}
-		else if(fEN[1]) // RAO2
-		{
-			hr = m_pD3DDev->SetTexture(0, rt[1].pRT);
-			hr = m_pD3DDev->SetTextureStageState(0, D3DTSS_TEXCOORDINDEX, 1);
-
-			// FIXME
-			hr = m_pD3DDev->SetTextureStageState(0, D3DTSS_TEXCOORDINDEX, 0);
-			for(int i = 0; i < countof(pVertices); i++)
-			{
-				pVertices[i].tu1 = pVertices[i].tu2;
-				pVertices[i].tv1 = pVertices[i].tv2;
-			}
-		}
-
-		hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_COLOROP, D3DTOP_DISABLE);
-		hr = m_pD3DDev->SetTextureStageState(stage, D3DTSS_ALPHAOP, D3DTOP_DISABLE);
-	}
-
 	if(pPixelShader)
 	{
 		const float c[] = 
 		{
-			(float)m_rs.pBGCOLOR->B / 255, (float)m_rs.pBGCOLOR->G / 255, (float)m_rs.pBGCOLOR->R / 255, (float)m_rs.pPMODE->ALP / 255,
-			(float)m_rs.pPMODE->AMOD - 0.1f, (float)m_rs.IsEnabled(0), (float)m_rs.IsEnabled(1), (float)m_rs.pPMODE->MMOD - 0.1f,
-			(float)m_de.TEXA.AEM, (float)m_de.TEXA.TA0 / 255, (float)m_de.TEXA.TA1 / 255, (float)m_rs.pPMODE->SLBG - 0.1f
+			(float)m_regs.pBGCOLOR->B / 255, (float)m_regs.pBGCOLOR->G / 255, (float)m_regs.pBGCOLOR->R / 255, (float)m_regs.pPMODE->ALP / 255,
+			(float)m_regs.pPMODE->AMOD - 0.1f, (float)m_regs.IsEnabled(0), (float)m_regs.IsEnabled(1), (float)m_regs.pPMODE->MMOD - 0.1f,
+			(float)m_env.TEXA.AEM, (float)m_env.TEXA.TA0 / 255, (float)m_env.TEXA.TA1 / 255, (float)m_regs.pPMODE->SLBG - 0.1f
 		};
 
 		hr = m_pD3DDev->SetPixelShaderConstantF(0, c, countof(c)/4);
@@ -1200,9 +1043,9 @@ void GSState::FinishFlip(FlipInfo rt[2])
 
 	static CString s_stats;
 
-	if(!(m_perfmon.GetFrame()&15)) 
+	if(!(m_perfmon.GetFrame() & 15)) 
 	{
-		s_stats = m_perfmon.ToString(m_rs.GetFPS());
+		s_stats = m_perfmon.ToString(m_regs.GetFPS());
 		// stats.Format(_T("%s - %.2f MB"), CString(stats), 1.0f*m_pD3DDev->GetAvailableTextureMem()/1024/1024);
 
 		if(m_iOSD == 1)
@@ -1214,27 +1057,33 @@ void GSState::FinishFlip(FlipInfo rt[2])
 	if(m_iOSD == 2)
 	{
 		CString str;
+
 		str.Format(
 			_T("\n")
 			_T("SMODE2.INT=%d, SMODE2.FFMD=%d, XYOFFSET.OFY=%.2f, CSR.FIELD=%d, m_fField = %d\n")
 			_T("[%c] DBX=%d, DBY=%d, DW=%d, DH=%d | [%c] DBX=%d, DBY=%d, DW=%d, DH=%d\n"),
-			m_rs.pSMODE2->INT, m_rs.pSMODE2->FFMD, (float)m_ctxt->XYOFFSET.OFY / 16, m_rs.pCSR->rFIELD, m_fField,
-			fEN[0] ? 'o' : 'x', m_rs.pDISPFB[0]->DBX, m_rs.pDISPFB[0]->DBY, m_rs.pDISPLAY[0]->DW + 1, m_rs.pDISPLAY[0]->DH + 1,
-			fEN[1] ? 'o' : 'x', m_rs.pDISPFB[1]->DBX, m_rs.pDISPFB[1]->DBY, m_rs.pDISPLAY[1]->DW + 1, m_rs.pDISPLAY[1]->DH + 1);
+			m_regs.pSMODE2->INT, m_regs.pSMODE2->FFMD, (float)m_context->XYOFFSET.OFY / 16, m_regs.pCSR->rFIELD, m_fField,
+			fEN[0] ? 'o' : 'x', m_regs.pDISPFB[0]->DBX, m_regs.pDISPFB[0]->DBY, m_regs.pDISPLAY[0]->DW + 1, m_regs.pDISPLAY[0]->DH + 1,
+			fEN[1] ? 'o' : 'x', m_regs.pDISPFB[1]->DBX, m_regs.pDISPFB[1]->DBY, m_regs.pDISPLAY[1]->DW + 1, m_regs.pDISPLAY[1]->DH + 1);
 
 		str = s_stats + str;
 
 		hr = m_pD3DDev->BeginScene();
+
 		CRect r = dst;
 		D3DCOLOR c = D3DCOLOR_ARGB(255, 0, 255, 0);
+
 		if(m_pD3DXFont->DrawText(NULL, str, -1, &r, DT_CALCRECT|DT_LEFT|DT_WORDBREAK, c))
+		{
 			m_pD3DXFont->DrawText(NULL, str, -1, &r, DT_LEFT|DT_WORDBREAK, c);
+		}
+
 		hr = m_pD3DDev->EndScene();
 	}
 /*
 	// this suxx
 
-	REFERENCE_TIME rtTimePerFrame = 10000000i64 / m_rs.GetFPS();
+	REFERENCE_TIME rtTimePerFrame = 10000000i64 / m_regs.GetFPS();
 
 	REFERENCE_TIME rtNow = 0;
 	hr = m_pRefClock->GetTime(&rtNow);
@@ -1248,7 +1097,7 @@ void GSState::FinishFlip(FlipInfo rt[2])
 	hr = m_pD3DDev->Present(NULL, NULL, NULL, NULL);
 }
 
-void GSState::FlushPrimInternal()
+void GSState::Flush()
 {
 	FlushWriteTransfer();
 
@@ -1273,17 +1122,24 @@ DWORD GSState::ThreadProc()
 		{
 		case WAIT_OBJECT_0+0:
 			return 0;
+
 		case WAIT_OBJECT_0+1:
+
 			m_evThreadIdle.Reset();
+
 			while(m_queue.GetCount() > 0)
 			{
 				GSTransferBuffer* tb = m_queue.Dequeue();
-				Transfer(tb->m_buff, tb->m_size, tb->m_pathIndex);
+				Transfer(tb->m_data, tb->m_size, tb->m_index);
 				delete tb;
 			}
-			FlushPrimInternal();
+			
+			// Flush();
+
 			m_evThreadIdle.Set();
+
 			break;
+
 		default:
 			return -1;
 		}

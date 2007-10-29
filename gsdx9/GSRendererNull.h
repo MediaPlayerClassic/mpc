@@ -30,12 +30,12 @@ struct NULLVERTEX {/*DWORD dummy;*/};
 class GSRendererNull : public GSRenderer<NULLVERTEX>
 {
 protected:
-	void VertexKick(bool fSkip);
-	int DrawingKick(bool fSkip);
+	void VertexKick(bool skip);
+	int DrawingKick(bool skip);
 	void Flip();
 	void EndFrame();
 
 public:
 	GSRendererNull(HWND hWnd, HRESULT& hr);
-	~GSRendererNull();
+	virtual ~GSRendererNull();
 };

@@ -56,38 +56,20 @@
 //		details.
 //
 
-// CGSdx9App
-
 BEGIN_MESSAGE_MAP(CGSdx9App, CWinApp)
 END_MESSAGE_MAP()
 
-D3DDEVTYPE CGSdx9App::D3DDEVTYPE_X;
-
-// CGSdx9App construction
+#include "GSSoftVertexFX.h"
 
 CGSdx9App::CGSdx9App()
 {
-	// TODO: add construction code here,
-	// Place all significant initialization in InitInstance
 }
 
-
-// The one and only CGSdx9App object
-
 CGSdx9App theApp;
-
-// CGSdx9App initialization
 
 BOOL CGSdx9App::InitInstance()
 {
 	__super::InitInstance();
-
-	D3DDEVTYPE_X = D3DDEVTYPE_HAL;
-
-	if(GetSystemMetrics(SM_REMOTESESSION))
-	{
-		D3DDEVTYPE_X = D3DDEVTYPE_REF;
-	}
 
 	return TRUE;
 }

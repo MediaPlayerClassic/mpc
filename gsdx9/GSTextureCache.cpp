@@ -371,7 +371,7 @@ HRESULT GSTextureCache::UpdateTexture(GSState* s, GSTexture* pt, GSLocalMemory::
 	HRESULT hr;
 	D3DLOCKED_RECT lr;
 	if(FAILED(hr = pt->m_pTexture->LockRect(0, &lr, &r, D3DLOCK_NO_DIRTY_UPDATE))) {ASSERT(0); return hr;}
-	(s->m_lm.*rt)(r, (BYTE*)lr.pBits, lr.Pitch, s->m_ctxt->TEX0, s->m_de.TEXA, s->m_ctxt->CLAMP);
+	(s->m_mem.*rt)(r, (BYTE*)lr.pBits, lr.Pitch, s->m_context->TEX0, s->m_env.TEXA, s->m_context->CLAMP);
 	s->m_perfmon.IncCounter(GSPerfMon::c_unswizzle, r.Width()*r.Height()*bpp>>3);
 	pt->m_pTexture->UnlockRect(0);
 
@@ -426,7 +426,7 @@ HRESULT GSTextureCache::UpdateTexture(GSState* s, GSTexture* pt, GSLocalMemory::
 #endif
 
 #ifdef DEBUG_SAVETEXTURES   
-if(s->m_ctxt->FRAME.Block() == 0x00000 && pt->m_TEX0.TBP0 == 0x02800)
+if(s->m_context->FRAME.Block() == 0x00000 && pt->m_TEX0.TBP0 == 0x02800)
 {   
 	CString fn;   
 	fn.Format(_T("c:\\%08I64x_%I64d_%I64d_%I64d_%I64d_%I64d_%I64d_%I64d-%I64d_%I64d-%I64d.bmp"),   
@@ -442,21 +442,21 @@ if(s->m_ctxt->FRAME.Block() == 0x00000 && pt->m_TEX0.TBP0 == 0x02800)
 
 GSTexture* GSTextureCache::ConvertRTPitch(GSState* s, GSTexture* pt)
 {
-	if(pt->m_TEX0.TBW == s->m_ctxt->TEX0.TBW)
+	if(pt->m_TEX0.TBW == s->m_context->TEX0.TBW)
 		return pt;
 
 	// sfex3 uses this trick (bw: 10 -> 5, wraps the right side below the left)
-	ASSERT(pt->m_TEX0.TBW > s->m_ctxt->TEX0.TBW); // otherwise scale.x need to be reduced to make the larger texture fit (TODO)
+	ASSERT(pt->m_TEX0.TBW > s->m_context->TEX0.TBW); // otherwise scale.x need to be reduced to make the larger texture fit (TODO)
 
 	int bw = 64;
-	int bh = s->m_ctxt->TEX0.PSM == PSM_PSMCT32 || s->m_ctxt->TEX0.PSM == PSM_PSMCT24 ? 32 : 64;
+	int bh = s->m_context->TEX0.PSM == PSM_PSMCT32 || s->m_context->TEX0.PSM == PSM_PSMCT24 ? 32 : 64;
 
 	int sw = pt->m_TEX0.TBW << 6;
 
-	int dw = s->m_ctxt->TEX0.TBW << 6;
-	int dh = 1 << s->m_ctxt->TEX0.TH;
+	int dw = s->m_context->TEX0.TBW << 6;
+	int dh = 1 << s->m_context->TEX0.TH;
 
-	// TRACE(_T("ConvertRT: %05x %x %d -> %d\n"), (DWORD)s->m_ctxt->TEX0.TBP0, (DWORD)s->m_ctxt->TEX0.PSM, (DWORD)pt->m_TEX0.TBW, (DWORD)s->m_ctxt->TEX0.TBW);
+	// TRACE(_T("ConvertRT: %05x %x %d -> %d\n"), (DWORD)s->m_context->TEX0.TBP0, (DWORD)s->m_context->TEX0.PSM, (DWORD)pt->m_TEX0.TBW, (DWORD)s->m_context->TEX0.TBW);
 
 	HRESULT hr;
 /*
@@ -511,8 +511,8 @@ hr = D3DXSaveTextureToFile(_T("g:/1.bmp"), D3DXIFF_BMP, pt->m_pTexture, NULL);
 		}
 	}
 
-	pt->m_TEX0.TW = s->m_ctxt->TEX0.TW;
-	pt->m_TEX0.TBW = s->m_ctxt->TEX0.TBW;
+	pt->m_TEX0.TW = s->m_context->TEX0.TW;
+	pt->m_TEX0.TBW = s->m_context->TEX0.TBW;
 /*		
 if(s->m_perfmon.GetFrame() > 400)
 hr = D3DXSaveTextureToFile(_T("g:/2.bmp"), D3DXIFF_BMP, pt->m_pTexture, NULL);
@@ -523,8 +523,8 @@ hr = D3DXSaveTextureToFile(_T("g:/2.bmp"), D3DXIFF_BMP, pt->m_pTexture, NULL);
 
 GSTexture* GSTextureCache::ConvertRTWidthHeight(GSState* s, GSTexture* pt)
 {
-	int tw = pt->m_scale.x * (1 << s->m_ctxt->TEX0.TW);
-	int th = pt->m_scale.y * (1 << s->m_ctxt->TEX0.TH);
+	int tw = pt->m_scale.x * (1 << s->m_context->TEX0.TW);
+	int th = pt->m_scale.y * (1 << s->m_context->TEX0.TH);
 
 	int rw = pt->m_desc.Width;
 	int rh = pt->m_desc.Height;
@@ -634,15 +634,15 @@ GSTexture* GSTextureCache::ConvertRT(GSState* s, GSTexture* pt)
 
 	// FIXME: RT + 8h,4hl,4hh
 
-	if(s->m_ctxt->TEX0.PSM == PSM_PSMT8H)
+	if(s->m_context->TEX0.PSM == PSM_PSMT8H)
 	{
 		if(!pt->m_pPalette)
 		{
-			if(FAILED(s->m_pD3DDev->CreateTexture(256, 1, 1, 0, s->m_ctxt->TEX0.CPSM == PSM_PSMCT32 ? D3DFMT_A8R8G8B8 : D3DFMT_A1R5G5B5, D3DPOOL_MANAGED, &pt->m_pPalette, NULL)))
+			if(FAILED(s->m_pD3DDev->CreateTexture(256, 1, 1, 0, s->m_context->TEX0.CPSM == PSM_PSMCT32 ? D3DFMT_A8R8G8B8 : D3DFMT_A1R5G5B5, D3DPOOL_MANAGED, &pt->m_pPalette, NULL)))
 				return NULL;
 		}
 	}
-	else if(GSLocalMemory::m_psmtbl[s->m_ctxt->TEX0.PSM].pal)
+	else if(GSLocalMemory::m_psmtbl[s->m_context->TEX0.PSM].pal)
 	{
 		return NULL;
 	}
@@ -658,20 +658,20 @@ bool GSTextureCache::Fetch(GSState* s, GSTextureBase& t)
 {
 	GSTexture* pt = NULL;
 
-	int nPaletteEntries = GSLocalMemory::m_psmtbl[s->m_ctxt->TEX0.PSM].pal;
+	int nPaletteEntries = GSLocalMemory::m_psmtbl[s->m_context->TEX0.PSM].pal;
 
 	DWORD clut[256];
 
 	if(nPaletteEntries)
 	{
-		s->m_lm.SetupCLUT32(s->m_ctxt->TEX0, s->m_de.TEXA);
-		s->m_lm.CopyCLUT32(clut, nPaletteEntries);
+		s->m_mem.SetupCLUT32(s->m_context->TEX0, s->m_env.TEXA);
+		s->m_mem.CopyCLUT32(clut, nPaletteEntries);
 	}
 
 #ifdef DEBUG_LOG
 	s->LOG(_T("*TC2 Fetch %dx%d %05I64x %I64d (%d)\n"), 
-		1 << s->m_ctxt->TEX0.TW, 1 << s->m_ctxt->TEX0.TH, 
-		s->m_ctxt->TEX0.TBP0, s->m_ctxt->TEX0.PSM, nPaletteEntries);
+		1 << s->m_context->TEX0.TW, 1 << s->m_context->TEX0.TH, 
+		s->m_context->TEX0.TBP0, s->m_context->TEX0.PSM, nPaletteEntries);
 #endif
 
 	enum lookupresult {notfound, needsupdate, found} lr = notfound;
@@ -682,7 +682,7 @@ bool GSTextureCache::Fetch(GSState* s, GSTextureBase& t)
 		POSITION cur = pos;
 		pt = GetNext(pos);
 
-		if(HasSharedBits(pt->m_TEX0.TBP0, pt->m_TEX0.PSM, s->m_ctxt->TEX0.TBP0, s->m_ctxt->TEX0.PSM))
+		if(HasSharedBits(pt->m_TEX0.TBP0, pt->m_TEX0.PSM, s->m_context->TEX0.TBP0, s->m_context->TEX0.PSM))
 		{
 			if(pt->m_fRT)
 			{
@@ -691,11 +691,11 @@ bool GSTextureCache::Fetch(GSState* s, GSTextureBase& t)
 				if(!(pt = ConvertRT(s, pt)))
 					return false;
 			}
-			else if(s->m_ctxt->TEX0.PSM == pt->m_TEX0.PSM && pt->m_TEX0.TBW == s->m_ctxt->TEX0.TBW
-			&& s->m_ctxt->TEX0.TW == pt->m_TEX0.TW && s->m_ctxt->TEX0.TH == pt->m_TEX0.TH
-			&& (!(s->m_ctxt->CLAMP.WMS&2) && !(pt->m_CLAMP.WMS&2) && !(s->m_ctxt->CLAMP.WMT&2) && !(pt->m_CLAMP.WMT&2) || s->m_ctxt->CLAMP.i64 == pt->m_CLAMP.i64)
-			&& s->m_de.TEXA.TA0 == pt->m_TEXA.TA0 && s->m_de.TEXA.TA1 == pt->m_TEXA.TA1 && s->m_de.TEXA.AEM == pt->m_TEXA.AEM
-			&& (!nPaletteEntries || s->m_ctxt->TEX0.CPSM == pt->m_TEX0.CPSM && !memcmp(pt->m_clut, clut, nPaletteEntries*sizeof(clut[0]))))
+			else if(s->m_context->TEX0.PSM == pt->m_TEX0.PSM && pt->m_TEX0.TBW == s->m_context->TEX0.TBW
+			&& s->m_context->TEX0.TW == pt->m_TEX0.TW && s->m_context->TEX0.TH == pt->m_TEX0.TH
+			&& (!(s->m_context->CLAMP.WMS&2) && !(pt->m_CLAMP.WMS&2) && !(s->m_context->CLAMP.WMT&2) && !(pt->m_CLAMP.WMT&2) || s->m_context->CLAMP.i64 == pt->m_CLAMP.i64)
+			&& s->m_env.TEXA.TA0 == pt->m_TEXA.TA0 && s->m_env.TEXA.TA1 == pt->m_TEXA.TA1 && s->m_env.TEXA.AEM == pt->m_TEXA.AEM
+			&& (!nPaletteEntries || s->m_context->TEX0.CPSM == pt->m_TEX0.CPSM && !memcmp(pt->m_clut, clut, nPaletteEntries*sizeof(clut[0]))))
 			{
 				lr = needsupdate;
 			}
@@ -714,9 +714,9 @@ bool GSTextureCache::Fetch(GSState* s, GSTextureBase& t)
 	{
 		pt = new GSTexture();
 
-		pt->m_TEX0 = s->m_ctxt->TEX0;
-		pt->m_CLAMP = s->m_ctxt->CLAMP;
-		pt->m_TEXA = s->m_de.TEXA;
+		pt->m_TEX0 = s->m_context->TEX0;
+		pt->m_CLAMP = s->m_context->CLAMP;
+		pt->m_TEXA = s->m_env.TEXA;
 
 		if(!SUCCEEDED(CreateTexture(s, pt, PSM_PSMCT32)))
 		{
@@ -763,12 +763,12 @@ bool GSTextureCache::FetchP(GSState* s, GSTextureBase& t)
 {
 	GSTexture* pt = NULL;
 
-	int nPaletteEntries = GSLocalMemory::m_psmtbl[s->m_ctxt->TEX0.PSM].pal;
+	int nPaletteEntries = GSLocalMemory::m_psmtbl[s->m_context->TEX0.PSM].pal;
 
 #ifdef DEBUG_LOG
 	s->LOG(_T("*TC2 Fetch %dx%d %05I64x %I64d (%d)\n"), 
-		1 << s->m_ctxt->TEX0.TW, 1 << s->m_ctxt->TEX0.TH, 
-		s->m_ctxt->TEX0.TBP0, s->m_ctxt->TEX0.PSM, nPaletteEntries);
+		1 << s->m_context->TEX0.TW, 1 << s->m_context->TEX0.TH, 
+		s->m_context->TEX0.TBP0, s->m_context->TEX0.PSM, nPaletteEntries);
 #endif
 
 	enum lookupresult {notfound, needsupdate, found} lr = notfound;
@@ -779,7 +779,7 @@ bool GSTextureCache::FetchP(GSState* s, GSTextureBase& t)
 		POSITION cur = pos;
 		pt = GetNext(pos);
 
-		if(HasSharedBits(pt->m_TEX0.TBP0, pt->m_TEX0.PSM, s->m_ctxt->TEX0.TBP0, s->m_ctxt->TEX0.PSM))
+		if(HasSharedBits(pt->m_TEX0.TBP0, pt->m_TEX0.PSM, s->m_context->TEX0.TBP0, s->m_context->TEX0.PSM))
 		{
 			if(pt->m_fRT)
 			{
@@ -788,9 +788,9 @@ bool GSTextureCache::FetchP(GSState* s, GSTextureBase& t)
 				if(!(pt = ConvertRT(s, pt)))
 					return false;
 			}
-			else if(s->m_ctxt->TEX0.PSM == pt->m_TEX0.PSM && pt->m_TEX0.TBW == s->m_ctxt->TEX0.TBW
-			&& s->m_ctxt->TEX0.TW == pt->m_TEX0.TW && s->m_ctxt->TEX0.TH == pt->m_TEX0.TH
-			&& (!(s->m_ctxt->CLAMP.WMS&2) && !(pt->m_CLAMP.WMS&2) && !(s->m_ctxt->CLAMP.WMT&2) && !(pt->m_CLAMP.WMT&2) || s->m_ctxt->CLAMP.i64 == pt->m_CLAMP.i64))
+			else if(s->m_context->TEX0.PSM == pt->m_TEX0.PSM && pt->m_TEX0.TBW == s->m_context->TEX0.TBW
+			&& s->m_context->TEX0.TW == pt->m_TEX0.TW && s->m_context->TEX0.TH == pt->m_TEX0.TH
+			&& (!(s->m_context->CLAMP.WMS&2) && !(pt->m_CLAMP.WMS&2) && !(s->m_context->CLAMP.WMT&2) && !(pt->m_CLAMP.WMT&2) || s->m_context->CLAMP.i64 == pt->m_CLAMP.i64))
 			{
 				lr = needsupdate;
 			}
@@ -809,11 +809,11 @@ bool GSTextureCache::FetchP(GSState* s, GSTextureBase& t)
 	{
 		pt = new GSTexture();
 
-		pt->m_TEX0 = s->m_ctxt->TEX0;
-		pt->m_CLAMP = s->m_ctxt->CLAMP;
-		// pt->m_TEXA = s->m_de.TEXA;
+		pt->m_TEX0 = s->m_context->TEX0;
+		pt->m_CLAMP = s->m_context->CLAMP;
+		// pt->m_TEXA = s->m_env.TEXA;
 
-		if(!SUCCEEDED(CreateTexture(s, pt, s->m_ctxt->TEX0.PSM, PSM_PSMCT32)))
+		if(!SUCCEEDED(CreateTexture(s, pt, s->m_context->TEX0.PSM, PSM_PSMCT32)))
 		{
 			delete pt;
 			return false;
@@ -833,7 +833,7 @@ bool GSTextureCache::FetchP(GSState* s, GSTextureBase& t)
 		D3DLOCKED_RECT r;
 		if(FAILED(pt->m_pPalette->LockRect(0, &r, NULL, 0)))
 			return false;
-		s->m_lm.ReadCLUT32(s->m_ctxt->TEX0, s->m_de.TEXA, (DWORD*)r.pBits);
+		s->m_mem.ReadCLUT32(s->m_context->TEX0, s->m_env.TEXA, (DWORD*)r.pBits);
 		pt->m_pPalette->UnlockRect(0);
 		s->m_perfmon.IncCounter(GSPerfMon::c_texture, 256*4);
 	}
@@ -863,20 +863,20 @@ bool GSTextureCache::FetchNP(GSState* s, GSTextureBase& t)
 {
 	GSTexture* pt = NULL;
 
-	int nPaletteEntries = GSLocalMemory::m_psmtbl[s->m_ctxt->TEX0.PSM].pal;
+	int nPaletteEntries = GSLocalMemory::m_psmtbl[s->m_context->TEX0.PSM].pal;
 
 	DWORD clut[256];
 
 	if(nPaletteEntries)
 	{
-		s->m_lm.SetupCLUT(s->m_ctxt->TEX0, s->m_de.TEXA);
-		s->m_lm.CopyCLUT32(clut, nPaletteEntries);
+		s->m_mem.SetupCLUT(s->m_context->TEX0, s->m_env.TEXA);
+		s->m_mem.CopyCLUT32(clut, nPaletteEntries);
 	}
 
 #ifdef DEBUG_LOG
 	s->LOG(_T("*TC2 Fetch %dx%d %05I64x %I64d (%d)\n"), 
-		1 << s->m_ctxt->TEX0.TW, 1 << s->m_ctxt->TEX0.TH, 
-		s->m_ctxt->TEX0.TBP0, s->m_ctxt->TEX0.PSM, nPaletteEntries);
+		1 << s->m_context->TEX0.TW, 1 << s->m_context->TEX0.TH, 
+		s->m_context->TEX0.TBP0, s->m_context->TEX0.PSM, nPaletteEntries);
 #endif
 
 	enum lookupresult {notfound, needsupdate, found} lr = notfound;
@@ -887,7 +887,7 @@ bool GSTextureCache::FetchNP(GSState* s, GSTextureBase& t)
 		POSITION cur = pos;
 		pt = GetNext(pos);
 
-		if(HasSharedBits(pt->m_TEX0.TBP0, pt->m_TEX0.PSM, s->m_ctxt->TEX0.TBP0, s->m_ctxt->TEX0.PSM))
+		if(HasSharedBits(pt->m_TEX0.TBP0, pt->m_TEX0.PSM, s->m_context->TEX0.TBP0, s->m_context->TEX0.PSM))
 		{
 			if(pt->m_fRT)
 			{
@@ -896,11 +896,11 @@ bool GSTextureCache::FetchNP(GSState* s, GSTextureBase& t)
 				if(!(pt = ConvertRT(s, pt)))
 					return false;
 			}
-			else if(s->m_ctxt->TEX0.PSM == pt->m_TEX0.PSM && pt->m_TEX0.TBW == s->m_ctxt->TEX0.TBW
-			&& s->m_ctxt->TEX0.TW == pt->m_TEX0.TW && s->m_ctxt->TEX0.TH == pt->m_TEX0.TH
-			&& (!(s->m_ctxt->CLAMP.WMS&2) && !(pt->m_CLAMP.WMS&2) && !(s->m_ctxt->CLAMP.WMT&2) && !(pt->m_CLAMP.WMT&2) || s->m_ctxt->CLAMP.i64 == pt->m_CLAMP.i64)
-			// && s->m_de.TEXA.TA0 == pt->m_TEXA.TA0 && s->m_de.TEXA.TA1 == pt->m_TEXA.TA1 && s->m_de.TEXA.AEM == pt->m_TEXA.AEM
-			&& (!nPaletteEntries || s->m_ctxt->TEX0.CPSM == pt->m_TEX0.CPSM && !memcmp(pt->m_clut, clut, nPaletteEntries*sizeof(clut[0]))))
+			else if(s->m_context->TEX0.PSM == pt->m_TEX0.PSM && pt->m_TEX0.TBW == s->m_context->TEX0.TBW
+			&& s->m_context->TEX0.TW == pt->m_TEX0.TW && s->m_context->TEX0.TH == pt->m_TEX0.TH
+			&& (!(s->m_context->CLAMP.WMS&2) && !(pt->m_CLAMP.WMS&2) && !(s->m_context->CLAMP.WMT&2) && !(pt->m_CLAMP.WMT&2) || s->m_context->CLAMP.i64 == pt->m_CLAMP.i64)
+			// && s->m_env.TEXA.TA0 == pt->m_TEXA.TA0 && s->m_env.TEXA.TA1 == pt->m_TEXA.TA1 && s->m_env.TEXA.AEM == pt->m_TEXA.AEM
+			&& (!nPaletteEntries || s->m_context->TEX0.CPSM == pt->m_TEX0.CPSM && !memcmp(pt->m_clut, clut, nPaletteEntries*sizeof(clut[0]))))
 			{
 				lr = needsupdate;
 			}
@@ -919,11 +919,11 @@ bool GSTextureCache::FetchNP(GSState* s, GSTextureBase& t)
 	{
 		pt = new GSTexture();
 
-		pt->m_TEX0 = s->m_ctxt->TEX0;
-		pt->m_CLAMP = s->m_ctxt->CLAMP;
-		// pt->m_TEXA = s->m_de.TEXA;
+		pt->m_TEX0 = s->m_context->TEX0;
+		pt->m_CLAMP = s->m_context->CLAMP;
+		// pt->m_TEXA = s->m_env.TEXA;
 
-		DWORD psm = s->m_ctxt->TEX0.PSM;
+		DWORD psm = s->m_context->TEX0.PSM;
 
 		switch(psm)
 		{
@@ -932,7 +932,7 @@ bool GSTextureCache::FetchNP(GSState* s, GSTextureBase& t)
 		case PSM_PSMT4:
 		case PSM_PSMT4HL:
 		case PSM_PSMT4HH:
-			psm = s->m_ctxt->TEX0.CPSM;
+			psm = s->m_context->TEX0.CPSM;
 			break;
 		}
 
@@ -1070,7 +1070,7 @@ void GSTextureCache::InvalidateTexture(GSState* s, const GIFRegBITBLTBUF& BITBLT
 						CLAMP.WMS = 0;
 						CLAMP.WMT = 0;
 
-						s->m_lm.ReadTexture(r, (BYTE*)lr.pBits, lr.Pitch, TEX0, TEXA, CLAMP);
+						s->m_mem.ReadTexture(r, (BYTE*)lr.pBits, lr.Pitch, TEX0, TEXA, CLAMP);
 						s->m_perfmon.IncCounter(GSPerfMon::c_unswizzle, r.Width()*r.Height()*4);
 
 						pSrc->UnlockRect(0);
@@ -1186,13 +1186,13 @@ void GSTextureCache::InvalidateLocalMem(GSState* s, DWORD TBP0, DWORD BW, DWORD 
 		}
 		else
 		{
-			GSLocalMemory::writeFrame wf = s->m_lm.GetWriteFrame(PSM);
+			GSLocalMemory::writeFrame wf = s->m_mem.GetWriteFrame(PSM);
 
 			for(int y = r.top; y < r.bottom; y++, p += lr.Pitch)
 			{
 				for(int x = r.left; x < r.right; x++)
 				{
-					(s->m_lm.*wf)(x, y, ((DWORD*)p)[x], TBP0, BW);
+					(s->m_mem.*wf)(x, y, ((DWORD*)p)[x], TBP0, BW);
 				}
 			}
 		}

@@ -27,8 +27,8 @@
 static struct {int id; const TCHAR* name;} s_renderers[] =
 {
 	{RENDERER_D3D_HW, "Direct3D"},
-	// {RENDERER_D3D_SW_FX, "Software (fixed)"},
 	{RENDERER_D3D_SW_FP, "Software (float)"},
+	// {RENDERER_D3D_SW_FX, "Software (fixed)"},
 	{RENDERER_D3D_NULL, "Do not render"},
 };
 
@@ -126,7 +126,7 @@ BOOL CGSSettingsDlg::OnInitDialog()
 			}
 		}
 
-		pD3D->GetDeviceCaps(D3DADAPTER_DEFAULT, CGSdx9App::D3DDEVTYPE_X, &caps);
+		pD3D->GetDeviceCaps(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, &caps);
 	}
 
 	// renderer

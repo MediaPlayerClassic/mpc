@@ -934,6 +934,14 @@ REG128_SET(GIFPackedReg)
 	GIFPackedNOP	NOP;
 REG_SET_END
 
+struct GIFPath
+{
+	GIFTag tag; 
+	int nreg;
+
+	DWORD GetGIFReg() {return GET_GIF_REG(tag, nreg);}
+};
+
 #pragma pack(pop)
 
 enum {KEYPRESS=1, KEYRELEASE=2};
