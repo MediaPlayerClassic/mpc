@@ -39,7 +39,7 @@ private:
 		CComBSTR DisplayName;
 	};
 
-	CList<Codec> m_codecs;
+	CAtlList<Codec> m_codecs;
 
 	int GetSelCodec(Codec& c);
 

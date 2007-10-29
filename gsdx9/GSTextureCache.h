@@ -24,7 +24,7 @@
 #include "GS.h"
 #include "GSLocalMemory.h"
 
-template <class T> class CSurfMap : public CMap<DWORD, DWORD, CComPtr<T>, CComPtr<T>& > {};
+template <class T> class CSurfMap : public CAtlMap<DWORD, CComPtr<T> > {};
 
 extern bool IsRenderTarget(IDirect3DTexture9* pTexture);
 extern bool HasSharedBits(DWORD sbp, DWORD spsm, DWORD dbp, DWORD dpsm);

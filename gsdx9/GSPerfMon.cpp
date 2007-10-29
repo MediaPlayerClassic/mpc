@@ -89,9 +89,9 @@ CString GSPerfMon::ToString(double expected_fps)
 
 	CString str;
 
-	str.Format(_T("frame: %I64d | cpu: %d%% | %.2f fps (%d%%) | %d ppf | %.2f kbpf | %.2f kbpf | %.2f kbpf"), 
+	str.Format(_T("frame: %I64d | %.2f fps (%d%%) | %d ppf | %.2f kbpf | %.2f kbpf | %.2f kbpf"),  // cpu: %d%% | 
 		m_frame,
-		(int)(cpu),
+		// (int)(cpu),
 		(float)(fps),
 		(int)(100.0 * fps / expected_fps),
 		(int)(stats[c_prim]),

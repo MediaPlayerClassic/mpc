@@ -22,7 +22,8 @@
 #include "StdAfx.h"
 #include "GSCapture.h"
 #include "GSCaptureDlg.h"
-
+#include <initguid.h>
+#include <uuids.h>
 //
 // GSSource
 //

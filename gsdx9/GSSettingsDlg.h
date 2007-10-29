@@ -29,7 +29,7 @@ class CGSSettingsDlg : public CDialog
 	DECLARE_DYNAMIC(CGSSettingsDlg)
 
 private:
-	CList<D3DDISPLAYMODE> m_modes;
+	CAtlList<D3DDISPLAYMODE> m_modes;
 
 public:
 	CGSSettingsDlg(CWnd* pParent = NULL);   // standard constructor

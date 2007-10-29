@@ -36,7 +36,9 @@ GSState::GSState(int w, int h, HWND hWnd, HRESULT& hr)
 	, m_sfp(NULL)
 	, m_fp(NULL)
 	, m_iOSD(1)
-	, m_nVSync(0)
+	, m_evThreadQuit(FALSE)
+	, m_evThreadIdle(TRUE)
+	, m_queue(100)
 {
 	hr = E_FAIL;
 
@@ -47,6 +49,7 @@ GSState::GSState(int w, int h, HWND hWnd, HRESULT& hr)
 	m_v.RGBAQ.Q = m_q = 1.0f;
 
 	memset(m_path, 0, sizeof(m_path));
+	memset(m_path2, 0, sizeof(m_path2));	
 
 	m_de.PRMODECONT.AC = 1;
 	m_pPRIM = &m_de.PRIM;
@@ -280,11 +283,8 @@ GSState::GSState(int w, int h, HWND hWnd, HRESULT& hr)
 
 	m_fEnablePalettizedTextures = !!pApp->GetProfileInt(_T("Settings"), _T("fEnablePalettizedTextures"), FALSE);
 
-	m_fNloopHack = pApp->GetProfileInt(_T("Settings"), _T("fNloopHack"), FALSE);
+	m_fNloopHack = !!pApp->GetProfileInt(_T("Settings"), _T("fNloopHack"), FALSE);
 
-	//
-
-	m_pRefClock = new CBaseReferenceClock(_T("RefClock"), NULL, &hr);
 
 	//
 
@@ -319,10 +319,13 @@ GSState::GSState(int w, int h, HWND hWnd, HRESULT& hr)
 		lm.SaveBMP(m_pD3DDev, fn, 0x500, i, PSM_PSMCT24, i*64, 512);
 	}
 */
+	CreateThread();
 }
 
 GSState::~GSState()
 {
+	QuitThread();
+
 	Reset();
 	_aligned_free(m_pTrBuff);
 	if(m_sfp) fclose(m_sfp);
@@ -382,7 +385,7 @@ HRESULT GSState::ResetDevice(bool fForceWindowed)
 			// m_pD3D->GetAdapterCount()-1, D3DDEVTYPE_REF,
 			D3DADAPTER_DEFAULT, CGSdx9App::D3DDEVTYPE_X, 
 			m_hWnd,
-			m_caps.VertexProcessingCaps ? D3DCREATE_HARDWARE_VERTEXPROCESSING : D3DCREATE_SOFTWARE_VERTEXPROCESSING, 
+			D3DCREATE_MULTITHREADED | (m_caps.VertexProcessingCaps ? D3DCREATE_HARDWARE_VERTEXPROCESSING : D3DCREATE_SOFTWARE_VERTEXPROCESSING), 
 			&m_d3dpp, &m_pD3DDev)))
 			return hr;
 	}
@@ -451,6 +454,8 @@ HRESULT GSState::ResetDevice(bool fForceWindowed)
 
 UINT32 GSState::Freeze(freezeData* fd, bool fSizeOnly)
 {
+	SyncThread();
+
 	int size = sizeof(m_version)
 		+ sizeof(m_de) + sizeof(m_v) 
 		+ sizeof(m_x) + sizeof(m_y) + 1024*1024*4
@@ -466,8 +471,6 @@ UINT32 GSState::Freeze(freezeData* fd, bool fSizeOnly)
 	{
 		return -1;
 	}
-
-	FlushWriteTransfer();
 
 	FlushPrimInternal();
 
@@ -487,6 +490,8 @@ UINT32 GSState::Freeze(freezeData* fd, bool fSizeOnly)
 
 UINT32 GSState::Defrost(const freezeData* fd)
 {
+	SyncThread();
+
 	if(!fd || !fd->data || fd->size == 0) 
 		return -1;
 
@@ -541,6 +546,8 @@ void GSState::ReadFIFO(BYTE* pMem)
 {
 	GSPerfMonAutoTimer at(m_perfmon);
 
+	SyncThread();
+
 	FlushWriteTransfer();
 
 	LOG(_T("*** WARNING *** ReadFIFO(%08x)\n"), pMem);
@@ -567,31 +574,47 @@ void GSState::Transfer1(BYTE* pMem, UINT32 addr)
 		ASSERT(0);
 	}
 */
+/*
 	ASSERT(m_path[1].m_tag.NLOOP == 0 && m_path[2].m_tag.NLOOP == 0);
 
-	Transfer(tr1_buff, -1, m_path[0]);
+	Transfer(tr1_buff, -1, 0);
+*/
+	ASSERT(m_path2[1].m_tag.NLOOP == 0 && m_path2[2].m_tag.NLOOP == 0);
+
+	TransferMT(tr1_buff, -1, 0);
 }
 
 void GSState::Transfer2(BYTE* pMem, UINT32 size)
 {
+/*
 	ASSERT(m_path[0].m_tag.NLOOP == 0 && m_path[2].m_tag.NLOOP == 0);
 
-	Transfer(pMem, size, m_path[1]);
+	Transfer(pMem, size, 1);
+*/
+	ASSERT(m_path2[0].m_tag.NLOOP == 0 && m_path2[2].m_tag.NLOOP == 0);
+
+	TransferMT(pMem, size, 1);
 }
 
 void GSState::Transfer3(BYTE* pMem, UINT32 size)
 {
+/*
 	ASSERT(m_path[0].m_tag.NLOOP == 0 && m_path[1].m_tag.NLOOP == 0);
 
-	Transfer(pMem, size, m_path[2]);
+	Transfer(pMem, size, 2);
+*/
+	ASSERT(m_path2[0].m_tag.NLOOP == 0 && m_path2[1].m_tag.NLOOP == 0);
+
+	TransferMT(pMem, size, 2);
 }
 
-void GSState::Transfer(BYTE* pMem, UINT32 size, GIFPath& path)
+void GSState::Transfer(BYTE* pMem, UINT32 size, int pathIndex)
 {
 	GSPerfMonAutoTimer at(m_perfmon);
 
 	BYTE* pMemOrg = pMem;
 	UINT32 sizeOrg = size;
+	GIFPath& path = m_path[pathIndex];
 
 	while(size > 0)
 	{
@@ -632,7 +655,7 @@ void GSState::Transfer(BYTE* pMem, UINT32 size, GIFPath& path)
 			}
 			else if(path.m_tag.NLOOP == 0)
 			{
-				if(m_fNloopHack && &path == &m_path[0])
+				if(m_fNloopHack && pathIndex == 0)
 					continue;
 
 				LOG(_T("*** WARNING *** m_tag.NLOOP == 0 && EOP == 0\n"));
@@ -720,6 +743,100 @@ break;
 #endif
 }
 
+void GSState::TransferMT(BYTE* pMem, UINT32 size, int pathIndex)
+{
+	GSTransferBuffer* buff = new GSTransferBuffer();
+
+{
+	CAutoLock cAutoLock(&m_queue);
+
+	BYTE* pMemOrg = pMem;
+	UINT32 sizeOrg = size;
+	GIFPath& path = m_path2[pathIndex];
+
+	while(size > 0)
+	{
+		bool fEOP = false;
+
+		if(path.m_tag.NLOOP == 0)
+		{
+			path.m_tag = *(GIFTag*)pMem;
+			path.m_nreg = 0;
+
+			pMem += sizeof(GIFTag);
+			size--;
+
+			if(path.m_tag.EOP)
+			{
+				LOG(_T("EOP\n"));
+				fEOP = true;
+			}
+			else if(path.m_tag.NLOOP == 0)
+			{
+				if(m_fNloopHack && pathIndex == 0)
+					continue;
+
+				fEOP = true;
+			}
+		}
+
+		UINT32 size_msb = size & (1<<31);
+
+		switch(path.m_tag.FLG)
+		{
+		case GIF_FLG_PACKED:
+			for(GIFPackedReg* r = (GIFPackedReg*)pMem; path.m_tag.NLOOP > 0 && size > 0; r++, size--, pMem += sizeof(GIFPackedReg))
+			{
+				DWORD reg = GET_GIF_REG(path.m_tag, path.m_nreg);
+				if((path.m_nreg = (path.m_nreg+1)&0xf) == path.m_tag.NREG) {path.m_nreg = 0; path.m_tag.NLOOP--;}
+			}
+			break;
+		case GIF_FLG_REGLIST:
+			size *= 2;
+			for(GIFReg* r = (GIFReg*)pMem; path.m_tag.NLOOP > 0 && size > 0; r++, size--, pMem += sizeof(GIFReg))
+			{
+				DWORD reg = GET_GIF_REG(path.m_tag, path.m_nreg);
+				if((path.m_nreg = (path.m_nreg+1)&0xf) == path.m_tag.NREG) {path.m_nreg = 0; path.m_tag.NLOOP--;}
+			}
+			if(size&1) pMem += sizeof(GIFReg);
+			size /= 2;
+			size |= size_msb; // a bit lame :P
+			break;
+		case GIF_FLG_IMAGE2:
+			LOG(_T("*** WARNING **** Unexpected GIFTag flag\n"));
+path.m_tag.NLOOP = 0;
+break;
+			ASSERT(0);
+		case GIF_FLG_IMAGE:
+			{
+				int len = min(size, path.m_tag.NLOOP);
+				pMem += len*16;
+				path.m_tag.NLOOP -= len;
+				size -= len;
+			}
+			break;
+		default: 
+			__assume(0);
+		}
+
+		if(fEOP && (INT32)size <= 0)
+		{
+			break;
+		}
+	}
+
+	size = pMem - pMemOrg;
+
+	ASSERT(size > 0);
+
+	buff->m_size = sizeOrg;
+	buff->m_buff = new BYTE[size];
+	memcpy(buff->m_buff, pMemOrg, size);
+	buff->m_pathIndex = pathIndex;
+}
+	m_queue.Enqueue(buff);
+}
+
 UINT32 GSState::MakeSnapshot(char* path)
 {
 	GSPerfMonAutoTimer at(m_perfmon);
@@ -762,6 +879,8 @@ void GSState::VSync(int field)
 	GSPerfMonAutoTimer at(m_perfmon);
 
 	LOG(_T("VSync(%d) %d\n"), field, m_perfmon.GetFrame());
+
+	SyncThread();
 
 	m_fField = !!field;
 
@@ -875,20 +994,6 @@ void GSState::FinishFlip(FlipInfo rt[2])
 		}
 	}
 */	
-
-	// FIXME: sw mode / poolmaster + funslower
-	// if(m_nVSync > 1 || m_rs.pCSR->rFIELD == 0)
-	if(m_rs.pSMODE2->FFMD == 1)
-	{
-//		m_rs.pCSR->rFIELD = 1 - m_rs.pCSR->rFIELD; 
-		m_nVSync = 0;
-	}
-	else
-	{
-//		m_rs.pCSR->rFIELD = 0;
-	}
-
-	m_nVSync++;
 
 	if(m_fField /*m_rs.pCSR->rFIELD*/ && m_rs.pSMODE2->INT /*&& m_rs.pSMODE2->FFMD*/)
 	{
@@ -1148,4 +1253,43 @@ void GSState::FlushPrimInternal()
 	FlushWriteTransfer();
 
 	FlushPrim();
+}
+
+DWORD WINAPI GSState::StaticThreadProc(LPVOID lpParam)
+{
+	HRESULT hr = ::CoInitializeEx(0, COINIT_MULTITHREADED);
+	DWORD ret = ((GSState*)lpParam)->ThreadProc();
+	if(SUCCEEDED(hr)) ::CoUninitialize();
+	return ret;
+}
+
+DWORD GSState::ThreadProc()
+{
+	const HANDLE events[] = {m_evThreadQuit, m_queue.GetEnqueueEvent()};
+
+	while(1)
+	{
+		switch(WaitForMultipleObjects(countof(events), events, FALSE, INFINITE))
+		{
+		case WAIT_OBJECT_0+0:
+			return 0;
+		case WAIT_OBJECT_0+1:
+			m_evThreadIdle.Reset();
+			while(m_queue.GetCount() > 0)
+			{
+				GSTransferBuffer* tb = m_queue.Dequeue();
+				Transfer(tb->m_buff, tb->m_size, tb->m_pathIndex);
+				delete tb;
+			}
+			FlushPrimInternal();
+			m_evThreadIdle.Set();
+			break;
+		default:
+			return -1;
+		}
+	}
+
+	ASSERT(0);
+
+	return -1;
 }
