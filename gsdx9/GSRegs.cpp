@@ -26,7 +26,7 @@
 
 void __fastcall GSState::GIFPackedRegHandlerNull(GIFPackedReg* r)
 {
-	ASSERT(0);
+	// ASSERT(0);
 }
 
 void __fastcall GSState::GIFPackedRegHandlerPRIM(GIFPackedReg* r)

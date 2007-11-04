@@ -59,6 +59,7 @@
 #include <streams.h>
 #include <xmmintrin.h>
 #include <emmintrin.h>
+
 #ifdef _OPENMP
 #include <omp.h>
 #endif

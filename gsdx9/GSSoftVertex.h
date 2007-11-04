@@ -41,7 +41,7 @@ __declspec(align(16)) union GSSoftVertexFP
 		explicit Scalar(int i) {val = (float)i;}
 
 		float GetValue() const {return val;}
-		void SetValue(int i) {val = i;}
+		void SetValue(int i) {val = (float)i;}
 
 #if _M_IX86_FP >= 2 || defined(_M_AMD64)
 		void sat() {_mm_store_ss(&val, _mm_min_ss(_mm_max_ss(_mm_set_ss(val), _mm_setzero_ps()), _mm_set_ss(255)));}

@@ -192,11 +192,15 @@ int GSRendererSoft<Vertex>::DrawingKick(bool skip)
 	return nVertices;
 }
 
+static int bZTE; // , iZTST, iATST, iLOD, bLCM, bTCC, iTFX;
+
 template <class Vertex>
 void GSRendererSoft<Vertex>::FlushPrim()
 {
 	if(m_nVertices > 0)
 	{
+		bZTE = m_context->TEST.ZTE && m_context->TEST.ZTST >= 2 || !m_context->ZBUF.ZMSK;
+
 		int iZTST = !m_context->TEST.ZTE ? 1 : m_context->TEST.ZTST;
 		int iATST = !m_context->TEST.ATE ? 1 : m_context->TEST.ATST;
 		int iLOD = 0;
@@ -346,10 +350,13 @@ template <class Vertex>
 void GSRendererSoft<Vertex>::RowInit(int x, int y)
 {
 	m_faddr_x0 = (m_context->ftbl->pa)(0, y, m_context->FRAME.FBP<<5, m_context->FRAME.FBW);
-	m_zaddr_x0 = (m_context->ztbl->pa)(0, y, m_context->ZBUF.ZBP<<5, m_context->FRAME.FBW);
-
 	m_faddr_ro = &m_context->ftbl->rowOffset[y&7][x];
+
+if(bZTE)
+{
+	m_zaddr_x0 = (m_context->ztbl->pa)(0, y, m_context->ZBUF.ZBP<<5, m_context->FRAME.FBW);
 	m_zaddr_ro = &m_context->ztbl->rowOffset[y&7][x];
+}
 
 	m_fx = x-1; // -1 because RowStep() will do +1, yea lame...
 	m_fy = y;
@@ -363,6 +370,8 @@ void GSRendererSoft<Vertex>::RowStep()
 	m_fx++;
 
 	m_faddr = m_faddr_x0 + *m_faddr_ro++;
+
+if(bZTE)
 	m_zaddr = m_zaddr_x0 + *m_zaddr_ro++;
 }
 
@@ -634,7 +643,7 @@ bool GSRendererSoft<Vertex>::DrawFilledRect(int left, int top, int right, int bo
 }
 
 template <class Vertex>
-template <int iZTST, int iATST>
+template <int iZTST, int iATST> 
 void GSRendererSoft<Vertex>::DrawVertex(const Vertex& v)
 {
 	DWORD vz;
@@ -643,9 +652,18 @@ void GSRendererSoft<Vertex>::DrawVertex(const Vertex& v)
 	{
 	case 0: return;
 	case 1: break;
-	case 2: vz = v.GetZ(); if(vz < (m_mem.*m_context->ztbl->rpa)(m_zaddr)) return; break;
-	case 3: vz = v.GetZ(); if(vz <= (m_mem.*m_context->ztbl->rpa)(m_zaddr)) return; break;
-	default: __assume(0);
+	case 2: 
+		vz = v.GetZ(); 
+		if(vz < m_mem.readPixelX(m_context->ZBUF.PSM, m_zaddr)) return; 
+		//if(vz < (m_mem.*m_context->ztbl->rpa)(m_zaddr)) return; 
+		break;
+	case 3: 
+		vz = v.GetZ(); 
+		if(vz <= m_mem.readPixelX(m_context->ZBUF.PSM, m_zaddr)) return; 
+		// if(vz <= (m_mem.*m_context->ztbl->rpa)(m_zaddr)) return; 
+		break;
+	default:
+		__assume(0);
 	}
 
 	union
@@ -704,14 +722,17 @@ void GSRendererSoft<Vertex>::DrawVertex(const Vertex& v)
 	if(!ZMSK)
 	{
 		if(iZTST != 2 && iZTST != 3) vz = v.GetZ(); 
-		(m_mem.*m_context->ztbl->wpa)(m_zaddr, vz);
+		m_mem.writePixelX(m_context->ZBUF.PSM, m_zaddr, vz);
+		// (m_mem.*m_context->ztbl->wpa)(m_zaddr, vz);
 	}
 
 	if(FBMSK != ~0)
 	{
 		if(m_context->TEST.DATE && m_context->FRAME.PSM <= PSM_PSMCT16S && m_context->FRAME.PSM != PSM_PSMCT24)
 		{
-			BYTE A = (BYTE)((m_mem.*m_context->ftbl->rpa)(m_faddr) >> (m_context->FRAME.PSM == PSM_PSMCT32 ? 31 : 15));
+			DWORD c = m_mem.readPixelX(m_context->FRAME.PSM, m_faddr);
+			// DWORD c = (m_mem.*m_context->ftbl->rpa)(m_faddr);
+			BYTE A = (BYTE)(c >> (m_context->FRAME.PSM == PSM_PSMCT32 ? 31 : 15));
 			if(A ^ m_context->TEST.DATM) return;
 		}
 
@@ -729,7 +750,9 @@ void GSRendererSoft<Vertex>::DrawVertex(const Vertex& v)
 			*/
 			TEXA.ai32[0] = 0;
 			TEXA.ai32[1] = 0x80;
-			Cd = (m_mem.*m_context->ftbl->rta)(m_faddr, m_context->TEX0, TEXA);
+
+			Cd = m_mem.readTexelX(m_context->FRAME.PSM, m_faddr, m_context->TEX0, TEXA);
+			// Cd = (m_mem.*m_context->ftbl->rta)(m_faddr, m_context->TEX0, TEXA);
 		}
 
 		if(fABE)
@@ -782,7 +805,8 @@ void GSRendererSoft<Vertex>::DrawVertex(const Vertex& v)
 			Cdw = (Cdw & ~FBMSK) | ((DWORD)Cd & FBMSK);
 		}
 
-		(m_mem.*m_context->ftbl->wfa)(m_faddr, Cdw);
+		m_mem.writeFrameX(m_context->FRAME.PSM, m_faddr, Cdw);
+		// (m_mem.*m_context->ftbl->wfa)(m_faddr, Cdw);
 	}
 }
 
@@ -800,7 +824,7 @@ void GSRendererSoft<Vertex>::DrawVertexTFX(typename Vertex::Vector& Cf, const Ve
 
 	if(iLOD == 3)
 	{
-		fBiLinear = bLCM;
+		fBiLinear = !!bLCM;
 	}
 	else
 	{
@@ -857,10 +881,11 @@ void GSRendererSoft<Vertex>::DrawVertexTFX(typename Vertex::Vector& Cf, const Ve
 		}
 		else
 		{
-			Ct[0] = (m_mem.*m_context->ttbl->rt)(ituv[0], ituv[2], m_context->TEX0, m_env.TEXA);
-			Ct[1] = (m_mem.*m_context->ttbl->rt)(ituv[1], ituv[2], m_context->TEX0, m_env.TEXA);
-			Ct[2] = (m_mem.*m_context->ttbl->rt)(ituv[0], ituv[3], m_context->TEX0, m_env.TEXA);
-			Ct[3] = (m_mem.*m_context->ttbl->rt)(ituv[1], ituv[3], m_context->TEX0, m_env.TEXA);
+			for(int i = 0; i < 4; i++)
+			{
+				Ct[i] = m_mem.readTexelX(m_context->TEX0.PSM, ituv[i&1], ituv[2+(i>>1)], m_context->TEX0, m_env.TEXA);
+				// Ct[i] = (m_mem.*m_context->ttbl->rt)(ituv[i&1], ituv[2+(i>>1)], m_context->TEX0, m_env.TEXA);
+			}
 		}
 
 		Vertex::Vector ft = t - t.floor();
@@ -877,7 +902,8 @@ void GSRendererSoft<Vertex>::DrawVertexTFX(typename Vertex::Vector& Cf, const Ve
 		}
 		else
 		{
-			Ct[0] = (m_mem.*m_context->ttbl->rt)(ituv[0], ituv[2], m_context->TEX0, m_env.TEXA);
+			Ct[0] = m_mem.readTexelX(m_context->TEX0.PSM, ituv[0], ituv[2], m_context->TEX0, m_env.TEXA);
+			// Ct[0] = (m_mem.*m_context->ttbl->rt)(ituv[0], ituv[2], m_context->TEX0, m_env.TEXA);
 		}
 	}
 
@@ -995,11 +1021,11 @@ void GSRendererSoftFP::VertexKick(bool skip)
 
 	__super::VertexKick(skip);
 }
-
+/*
 //
 // GSRendererSoftFX
 //
-/*
+
 GSRendererSoftFX::GSRendererSoftFX(HWND hWnd, HRESULT& hr)
 	: GSRendererSoft<GSSoftVertexFX>(hWnd, hr)
 {
@@ -1013,7 +1039,8 @@ void GSRendererSoftFX::VertexKick(bool skip)
 
 	v.p.x.SetValue(((int)m_v.XYZ.X - (int)m_context->XYOFFSET.OFX) << 12);
 	v.p.y.SetValue(((int)m_v.XYZ.Y - (int)m_context->XYOFFSET.OFY) << 12);
-	v.p.zq = (__int64)m_v.XYZ.Z << 31;
+	// v.p.zq = (UINT64)m_v.XYZ.Z << 32;
+	v.p.z = (int)m_v.XYZ.Z;
 
 	if(m_pPRIM->TME)
 	{

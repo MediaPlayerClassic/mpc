@@ -98,8 +98,6 @@ EXPORT_C_(UINT32) PS2EgetCpuPlatform()
 
 //////////////////
 
-#define REPLAY_TITLE "Replay"
-
 static HRESULT s_hrCoInit = E_FAIL;
 static CGSWnd s_hWnd;
 static CAutoPtr<GSState> s_gs;

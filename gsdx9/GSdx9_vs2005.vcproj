@@ -561,7 +561,7 @@
 			ConfigurationType="2"
 			UseOfMFC="1"
 			CharacterSet="2"
-			WholeProgramOptimization="0"
+			WholeProgramOptimization="1"
 			>
 			<Tool
 				Name="VCPreBuildEventTool"
@@ -628,7 +628,7 @@
 			/>
 			<Tool
 				Name="VCManifestTool"
-				EmbedManifest="false"
+				EmbedManifest="true"
 			/>
 			<Tool
 				Name="VCXDCMakeTool"
