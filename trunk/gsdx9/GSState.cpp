@@ -657,7 +657,7 @@ void GSState::TransferMT(BYTE* mem, UINT32 size, int index)
 	buff->m_size = size;
 	buff->m_index = index;
 
-	m_queue.Lock();
+	// m_queue.Lock();
 
 	GIFPath& path = m_path2[index];
 
@@ -762,7 +762,7 @@ void GSState::TransferMT(BYTE* mem, UINT32 size, int index)
 
 	memcpy(buff->m_data = new BYTE[size], mem - size, size);
 
-	m_queue.Unlock();
+	// m_queue.Unlock();
 
 	m_queue.Enqueue(buff);
 }
@@ -1061,10 +1061,10 @@ void GSState::FinishFlip(FlipInfo rt[2])
 		str.Format(
 			_T("\n")
 			_T("SMODE2.INT=%d, SMODE2.FFMD=%d, XYOFFSET.OFY=%.2f, CSR.FIELD=%d, m_fField = %d\n")
-			_T("[%c] DBX=%d, DBY=%d, DW=%d, DH=%d | [%c] DBX=%d, DBY=%d, DW=%d, DH=%d\n"),
+			_T("[%c] DBX=%d, DBY=%d, DW=%d, DH=%d, MAGH=%d, MAGV=%d | [%c] DBX=%d, DBY=%d, DW=%d, DH=%d, MAGH=%d, MAGV=%d\n"),
 			m_regs.pSMODE2->INT, m_regs.pSMODE2->FFMD, (float)m_context->XYOFFSET.OFY / 16, m_regs.pCSR->rFIELD, m_fField,
-			fEN[0] ? 'o' : 'x', m_regs.pDISPFB[0]->DBX, m_regs.pDISPFB[0]->DBY, m_regs.pDISPLAY[0]->DW + 1, m_regs.pDISPLAY[0]->DH + 1,
-			fEN[1] ? 'o' : 'x', m_regs.pDISPFB[1]->DBX, m_regs.pDISPFB[1]->DBY, m_regs.pDISPLAY[1]->DW + 1, m_regs.pDISPLAY[1]->DH + 1);
+			fEN[0] ? 'o' : 'x', m_regs.pDISPFB[0]->DBX, m_regs.pDISPFB[0]->DBY, m_regs.pDISPLAY[0]->DW + 1, m_regs.pDISPLAY[0]->DH + 1, m_regs.pDISPLAY[0]->MAGH, m_regs.pDISPLAY[0]->MAGV,
+			fEN[1] ? 'o' : 'x', m_regs.pDISPFB[1]->DBX, m_regs.pDISPFB[1]->DBY, m_regs.pDISPLAY[1]->DW + 1, m_regs.pDISPLAY[1]->DH + 1, m_regs.pDISPLAY[1]->MAGH, m_regs.pDISPLAY[1]->MAGV);
 
 		str = s_stats + str;
 
@@ -1127,6 +1127,7 @@ DWORD GSState::ThreadProc()
 
 			m_evThreadIdle.Reset();
 
+			// for(size_t count = m_queue.GetCount(); count > 0; count--)
 			while(m_queue.GetCount() > 0)
 			{
 				GSTransferBuffer* tb = m_queue.Dequeue();

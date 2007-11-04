@@ -49,7 +49,7 @@ protected:
 	void DrawSprite(Vertex* v);
 	bool DrawFilledRect(int left, int top, int right, int bottom, const Vertex& v);
 
-	template <int iZTST, int iATST>
+	template <int iZTST, int iATST> 
 	void DrawVertex(const Vertex& v);
 
 	typedef void (GSRendererSoft<Vertex>::*DrawVertexPtr)(const Vertex& v);

@@ -29,7 +29,7 @@
 class GSLocalMemory
 {
 public:
-	typedef DWORD (__fastcall *pixelAddress)(int x, int y, DWORD bp, DWORD bw);
+	typedef DWORD (*pixelAddress)(int x, int y, DWORD bp, DWORD bw);
 	typedef void (GSLocalMemory::*writePixel)(int x, int y, DWORD c, DWORD bp, DWORD bw);
 	typedef void (GSLocalMemory::*writeFrame)(int x, int y, DWORD c, DWORD bp, DWORD bw);
 	typedef DWORD (GSLocalMemory::*readPixel)(int x, int y, DWORD bp, DWORD bw);
@@ -99,120 +99,743 @@ public:
 	GSLocalMemory();
 	virtual ~GSLocalMemory();
 
-	static void RoundDown(CSize& s, CSize bs);
-	static void RoundUp(CSize& s, CSize bs);
-
-	static DWORD Expand24To32(DWORD c, BYTE TCC, GIFRegTEXA& TEXA)
+	BYTE* GetVM() 
 	{
-		BYTE A = (!TEXA.AEM|(c&0xffffff)) ? TEXA.TA0 : 0;
-		return (A<<24) | (c&0xffffff);
+		return m_vm8;
 	}
 
-	static DWORD Expand16To32(WORD c, GIFRegTEXA& TEXA)
+	__forceinline static void RoundDown(CSize& s, CSize bs)
 	{
-		BYTE A = (c&0x8000) ? TEXA.TA1 : (!TEXA.AEM|c) ? TEXA.TA0 : 0;
-		return (A << 24) | ((c&0x7c00) << 9) | ((c&0x03e0) << 6) | ((c&0x001f) << 3);
+		s.cx &= ~(bs.cx-1);
+		s.cy &= ~(bs.cy-1);
 	}
 
-	BYTE* GetVM() {return m_vm8;}
+	__forceinline static void RoundUp(CSize& s, CSize bs)
+	{
+		s.cx = (s.cx + (bs.cx-1)) & ~(bs.cx-1);
+		s.cy = (s.cy + (bs.cy-1)) & ~(bs.cy-1);
+	}
+
+	__forceinline static DWORD Expand24To32(DWORD c, BYTE TCC, GIFRegTEXA& TEXA)
+	{
+		return (((!TEXA.AEM | (c & 0xffffff)) ? TEXA.TA0 : 0) << 24) | (c & 0xffffff);
+	}
+
+	__forceinline static DWORD Expand16To32(WORD c, GIFRegTEXA& TEXA)
+	{
+		return (((c & 0x8000) ? TEXA.TA1 : (!TEXA.AEM | c) ? TEXA.TA0 : 0) << 24) | ((c & 0x7c00) << 9) | ((c & 0x03e0) << 6) | ((c & 0x001f) << 3);
+	}
 
 	// address
 
-	static DWORD __fastcall pageAddress32(int x, int y, DWORD bp, DWORD bw);
-	static DWORD __fastcall pageAddress16(int x, int y, DWORD bp, DWORD bw);
-	static DWORD __fastcall pageAddress8(int x, int y, DWORD bp, DWORD bw);
-	static DWORD __fastcall pageAddress4(int x, int y, DWORD bp, DWORD bw);
+	static DWORD pageAddress32(int x, int y, DWORD bp, DWORD bw)
+	{
+		return ((bp >> 5) + (y >> 5) * bw + (x >> 6)) << 11; 
+	}
 
-	static DWORD __fastcall blockAddress32(int x, int y, DWORD bp, DWORD bw);
-	static DWORD __fastcall blockAddress16(int x, int y, DWORD bp, DWORD bw);
-	static DWORD __fastcall blockAddress16S(int x, int y, DWORD bp, DWORD bw);
-	static DWORD __fastcall blockAddress8(int x, int y, DWORD bp, DWORD bw);
-	static DWORD __fastcall blockAddress4(int x, int y, DWORD bp, DWORD bw);
-	static DWORD __fastcall blockAddress32Z(int x, int y, DWORD bp, DWORD bw);
-	static DWORD __fastcall blockAddress16Z(int x, int y, DWORD bp, DWORD bw);
-	static DWORD __fastcall blockAddress16SZ(int x, int y, DWORD bp, DWORD bw);
+	static DWORD pageAddress16(int x, int y, DWORD bp, DWORD bw)
+	{
+		return ((bp >> 5) + (y >> 6) * bw + (x >> 6)) << 12;
+	}
 
-	static DWORD __fastcall pixelAddressOrg32(int x, int y, DWORD bp, DWORD bw);
-	static DWORD __fastcall pixelAddressOrg16(int x, int y, DWORD bp, DWORD bw);
-	static DWORD __fastcall pixelAddressOrg16S(int x, int y, DWORD bp, DWORD bw);
-	static DWORD __fastcall pixelAddressOrg8(int x, int y, DWORD bp, DWORD bw);
-	static DWORD __fastcall pixelAddressOrg4(int x, int y, DWORD bp, DWORD bw);
-	static DWORD __fastcall pixelAddressOrg32Z(int x, int y, DWORD bp, DWORD bw);
-	static DWORD __fastcall pixelAddressOrg16Z(int x, int y, DWORD bp, DWORD bw);
-	static DWORD __fastcall pixelAddressOrg16SZ(int x, int y, DWORD bp, DWORD bw);
+	static DWORD pageAddress8(int x, int y, DWORD bp, DWORD bw)
+	{
+		return ((bp >> 5) + (y >> 6) * ((bw+1)>>1) + (x >> 7)) << 13; 
+	}
 
-	static DWORD __fastcall pixelAddress32(int x, int y, DWORD bp, DWORD bw);
-	static DWORD __fastcall pixelAddress16(int x, int y, DWORD bp, DWORD bw);
-	static DWORD __fastcall pixelAddress16S(int x, int y, DWORD bp, DWORD bw);
-	static DWORD __fastcall pixelAddress8(int x, int y, DWORD bp, DWORD bw);
-	static DWORD __fastcall pixelAddress4(int x, int y, DWORD bp, DWORD bw);
-	static DWORD __fastcall pixelAddress32Z(int x, int y, DWORD bp, DWORD bw);
-	static DWORD __fastcall pixelAddress16Z(int x, int y, DWORD bp, DWORD bw);
-	static DWORD __fastcall pixelAddress16SZ(int x, int y, DWORD bp, DWORD bw);
+	static DWORD pageAddress4(int x, int y, DWORD bp, DWORD bw)
+	{
+		return ((bp >> 5) + (y >> 7) * ((bw+1)>>1) + (x >> 7)) << 14;
+	}
 
-	// raw pixel R/W
+	static DWORD blockAddress32(int x, int y, DWORD bp, DWORD bw)
+	{
+		DWORD page = bp + (y & ~0x1f) * bw + ((x >> 1) & ~0x1f);
+		DWORD block = blockTable32[(y >> 3) & 3][(x >> 3) & 7];
+		return (page + block) << 6;
+	}
 
-	void writePixel32(int x, int y, DWORD c, DWORD bp, DWORD bw);
-	void writePixel24(int x, int y, DWORD c, DWORD bp, DWORD bw);
-	void writePixel16(int x, int y, DWORD c, DWORD bp, DWORD bw);
-	void writePixel16S(int x, int y, DWORD c, DWORD bp, DWORD bw);
-	void writePixel8(int x, int y, DWORD c, DWORD bp, DWORD bw);
-	void writePixel8H(int x, int y, DWORD c, DWORD bp, DWORD bw);
-	void writePixel4(int x, int y, DWORD c, DWORD bp, DWORD bw);
-    void writePixel4HL(int x, int y, DWORD c, DWORD bp, DWORD bw);
-	void writePixel4HH(int x, int y, DWORD c, DWORD bp, DWORD bw);
-	void writePixel32Z(int x, int y, DWORD c, DWORD bp, DWORD bw);
-	void writePixel24Z(int x, int y, DWORD c, DWORD bp, DWORD bw);
-	void writePixel16Z(int x, int y, DWORD c, DWORD bp, DWORD bw);
-	void writePixel16SZ(int x, int y, DWORD c, DWORD bp, DWORD bw);
+	static DWORD blockAddress16(int x, int y, DWORD bp, DWORD bw)
+	{
+		DWORD page = bp + ((y >> 1) & ~0x1f) * bw + ((x >> 1) & ~0x1f); 
+		DWORD block = blockTable16[(y >> 3) & 7][(x >> 4) & 3];
+		return (page + block) << 7;
+	}
 
-	void writeFrame16(int x, int y, DWORD c, DWORD bp, DWORD bw);
-	void writeFrame16S(int x, int y, DWORD c, DWORD bp, DWORD bw);
+	static DWORD blockAddress16S(int x, int y, DWORD bp, DWORD bw)
+	{
+		DWORD page = bp + ((y >> 1) & ~0x1f) * bw + ((x >> 1) & ~0x1f); 
+		DWORD block = blockTable16S[(y >> 3) & 7][(x >> 4) & 3];
+		return (page + block) << 7;
+	}
 
-	DWORD readPixel32(int x, int y, DWORD bp, DWORD bw);
-	DWORD readPixel24(int x, int y, DWORD bp, DWORD bw);
-	DWORD readPixel16(int x, int y, DWORD bp, DWORD bw);
-	DWORD readPixel16S(int x, int y, DWORD bp, DWORD bw);
-	DWORD readPixel8(int x, int y, DWORD bp, DWORD bw);
-	DWORD readPixel8H(int x, int y, DWORD bp, DWORD bw);
-	DWORD readPixel4(int x, int y, DWORD bp, DWORD bw);
-	DWORD readPixel4HL(int x, int y, DWORD bp, DWORD bw);
-	DWORD readPixel4HH(int x, int y, DWORD bp, DWORD bw);
-	DWORD readPixel32Z(int x, int y, DWORD bp, DWORD bw);
-	DWORD readPixel24Z(int x, int y, DWORD bp, DWORD bw);
-	DWORD readPixel16Z(int x, int y, DWORD bp, DWORD bw);
-	DWORD readPixel16SZ(int x, int y, DWORD bp, DWORD bw);
+	static DWORD blockAddress8(int x, int y, DWORD bp, DWORD bw)
+	{
+		DWORD page = bp + ((y >> 1) & ~0x1f) * ((bw+1)>>1) + ((x >> 2) & ~0x1f); 
+		DWORD block = blockTable8[(y >> 4) & 3][(x >> 4) & 7];
+		return (page + block) << 8;
+	}
 
-	void writePixel32(DWORD addr, DWORD c) {m_vm32[addr] = c;}
-	void writePixel24(DWORD addr, DWORD c) {m_vm32[addr] = (m_vm32[addr] & 0xff000000) | (c & 0x00ffffff);}
-	void writePixel16(DWORD addr, DWORD c) {m_vm16[addr] = (WORD)c;}
-	void writePixel16S(DWORD addr, DWORD c) {m_vm16[addr] = (WORD)c;}
-	void writePixel8(DWORD addr, DWORD c) {m_vm8[addr] = (BYTE)c;}
-	void writePixel8H(DWORD addr, DWORD c) {m_vm32[addr] = (m_vm32[addr] & 0x00ffffff) | (c << 24);}
-	void writePixel4(DWORD addr, DWORD c) {int shift = (addr&1) << 2; addr >>= 1; m_vm8[addr] = (BYTE)((m_vm8[addr] & (0xf0 >> shift)) | ((c & 0x0f) << shift));}
-	void writePixel4HL(DWORD addr, DWORD c) {m_vm32[addr] = (m_vm32[addr] & 0xf0ffffff) | ((c & 0x0f) << 24);}
-	void writePixel4HH(DWORD addr, DWORD c) {m_vm32[addr] = (m_vm32[addr] & 0x0fffffff) | ((c & 0x0f) << 28);}
-	void writePixel32Z(DWORD addr, DWORD c) {m_vm32[addr] = c;}
-	void writePixel24Z(DWORD addr, DWORD c) {m_vm32[addr] = (m_vm32[addr] & 0xff000000) | (c & 0x00ffffff);}
-	void writePixel16Z(DWORD addr, DWORD c) {m_vm16[addr] = (WORD)c;}
-	void writePixel16SZ(DWORD addr, DWORD c) {m_vm16[addr] = (WORD)c;}
+	static DWORD blockAddress4(int x, int y, DWORD bp, DWORD bw)
+	{
+		DWORD page = bp + ((y >> 2) & ~0x1f) * ((bw+1)>>1) + ((x >> 2) & ~0x1f); 
+		DWORD block = blockTable4[(y >> 4) & 7][(x >> 5) & 3];
+		return (page + block) << 9;
+	}
 
-	void writeFrame16(DWORD addr, DWORD c) {writePixel16(addr, ((c>>16)&0x8000)|((c>>9)&0x7c00)|((c>>6)&0x03e0)|((c>>3)&0x001f));}
-	void writeFrame16S(DWORD addr, DWORD c) {writePixel16S(addr, ((c>>16)&0x8000)|((c>>9)&0x7c00)|((c>>6)&0x03e0)|((c>>3)&0x001f));}
+	static DWORD blockAddress32Z(int x, int y, DWORD bp, DWORD bw)
+	{
+		DWORD page = bp + (y & ~0x1f) * bw + ((x >> 1) & ~0x1f); 
+		DWORD block = blockTable32Z[(y >> 3) & 3][(x >> 3) & 7];
+		return (page + block) << 6;
+	}
 
-	DWORD readPixel32(DWORD addr) {return m_vm32[addr];}
-	DWORD readPixel24(DWORD addr) {return m_vm32[addr] & 0x00ffffff;}
-	DWORD readPixel16(DWORD addr) {return (DWORD)m_vm16[addr];}
-	DWORD readPixel16S(DWORD addr) {return (DWORD)m_vm16[addr];}
-	DWORD readPixel8(DWORD addr) {return (DWORD)m_vm8[addr];}
-	DWORD readPixel8H(DWORD addr) {return m_vm32[addr] >> 24;}
-	DWORD readPixel4(DWORD addr) {return (m_vm8[addr>>1] >> ((addr&1) << 2)) & 0x0f;}
-	DWORD readPixel4HL(DWORD addr) {return (m_vm32[addr] >> 24) & 0x0f;}
-	DWORD readPixel4HH(DWORD addr) {return (m_vm32[addr] >> 28) & 0x0f;}
-	DWORD readPixel32Z(DWORD addr) {return m_vm32[addr];}
-	DWORD readPixel24Z(DWORD addr) {return m_vm32[addr] & 0x00ffffff;}
-	DWORD readPixel16Z(DWORD addr) {return (DWORD)m_vm16[addr];}
-	DWORD readPixel16SZ(DWORD addr) {return (DWORD)m_vm16[addr];}
+	static DWORD blockAddress16Z(int x, int y, DWORD bp, DWORD bw)
+	{
+		DWORD page = bp + ((y >> 1) & ~0x1f) * bw + ((x >> 1) & ~0x1f); 
+		DWORD block = blockTable16Z[(y >> 3) & 7][(x >> 4) & 3];
+		return (page + block) << 7;
+	}
+
+	static DWORD blockAddress16SZ(int x, int y, DWORD bp, DWORD bw)
+	{
+		DWORD page = bp + ((y >> 1) & ~0x1f) * bw + ((x >> 1) & ~0x1f); 
+		DWORD block = blockTable16SZ[(y >> 3) & 7][(x >> 4) & 3];
+		return (page + block) << 7;
+	}
+
+	static DWORD pixelAddressOrg32(int x, int y, DWORD bp, DWORD bw)
+	{
+		DWORD page = bp + (y & ~0x1f) * bw + ((x >> 1) & ~0x1f);
+		DWORD block = blockTable32[(y >> 3) & 3][(x >> 3) & 7];
+		DWORD word = ((page + block) << 6) + columnTable32[y & 7][x & 7];
+		ASSERT(word < 1024*1024);
+		return word;
+	}
+
+	static DWORD pixelAddressOrg16(int x, int y, DWORD bp, DWORD bw)
+	{
+		DWORD page = bp + ((y >> 1) & ~0x1f) * bw + ((x >> 1) & ~0x1f); 
+		DWORD block = blockTable16[(y >> 3) & 7][(x >> 4) & 3];
+		DWORD word = ((page + block) << 7) + columnTable16[y & 7][x & 15];
+		ASSERT(word < 1024*1024*2);
+		return word;
+	}
+
+	static DWORD pixelAddressOrg16S(int x, int y, DWORD bp, DWORD bw)
+	{
+		DWORD page = bp + ((y >> 1) & ~0x1f) * bw + ((x >> 1) & ~0x1f); 
+		DWORD block = blockTable16S[(y >> 3) & 7][(x >> 4) & 3];
+		DWORD word = ((page + block) << 7) + columnTable16[y & 7][x & 15];
+		ASSERT(word < 1024*1024*2);
+		return word;
+	}
+
+	static DWORD pixelAddressOrg8(int x, int y, DWORD bp, DWORD bw)
+	{
+		DWORD page = bp + ((y >> 1) & ~0x1f) * ((bw + 1)>>1) + ((x >> 2) & ~0x1f); 
+		DWORD block = blockTable8[(y >> 4) & 3][(x >> 4) & 7];
+		DWORD word = ((page + block) << 8) + columnTable8[y & 15][x & 15];
+	//	ASSERT(word < 1024*1024*4);
+		return word;
+	}
+
+	static DWORD pixelAddressOrg4(int x, int y, DWORD bp, DWORD bw)
+	{
+		DWORD page = bp + ((y >> 2) & ~0x1f) * ((bw + 1)>>1) + ((x >> 2) & ~0x1f); 
+		DWORD block = blockTable4[(y >> 4) & 7][(x >> 5) & 3];
+		DWORD word = ((page + block) << 9) + columnTable4[y & 15][x & 31];
+		ASSERT(word < 1024*1024*8);
+		return word;
+	}
+
+	static DWORD pixelAddressOrg32Z(int x, int y, DWORD bp, DWORD bw)
+	{
+		DWORD page = bp + (y & ~0x1f) * bw + ((x >> 1) & ~0x1f); 
+		DWORD block = blockTable32Z[(y >> 3) & 3][(x >> 3) & 7];
+		DWORD word = ((page + block) << 6) + ((y & 7) << 3) + (x & 7);
+		ASSERT(word < 1024*1024);
+		return word;
+	}
+
+	static DWORD pixelAddressOrg16Z(int x, int y, DWORD bp, DWORD bw)
+	{
+		DWORD page = bp + ((y >> 1) & ~0x1f) * bw + ((x >> 1) & ~0x1f); 
+		DWORD block = blockTable16Z[(y >> 3) & 7][(x >> 4) & 3];
+		DWORD word = ((page + block) << 7) + ((y & 7) << 4) + (x & 15);
+		ASSERT(word < 1024*1024*2);
+		return word;
+	}
+
+	static DWORD pixelAddressOrg16SZ(int x, int y, DWORD bp, DWORD bw)
+	{
+		DWORD page = bp + ((y >> 1) & ~0x1f) * bw + ((x >> 1) & ~0x1f); 
+		DWORD block = blockTable16SZ[(y >> 3) & 7][(x >> 4) & 3];
+		DWORD word = ((page + block) << 7) + ((y & 7) << 4) + (x & 15);
+		ASSERT(word < 1024*1024*2);
+		return word;
+	}
+
+	static DWORD pixelAddress32(int x, int y, DWORD bp, DWORD bw)
+	{
+		DWORD page = (bp >> 5) + (y >> 5) * bw + (x >> 6); 
+		DWORD word = (page << 11) + pageOffset32[bp & 0x1f][y & 0x1f][x & 0x3f];
+		ASSERT(word < 1024*1024);
+		return word;
+	}
+
+	static DWORD pixelAddress16(int x, int y, DWORD bp, DWORD bw)
+	{
+		DWORD page = (bp >> 5) + (y >> 6) * bw + (x >> 6); 
+		DWORD word = (page << 12) + pageOffset16[bp & 0x1f][y & 0x3f][x & 0x3f];
+		ASSERT(word < 1024*1024*2);
+		return word;
+	}
+
+	static DWORD pixelAddress16S(int x, int y, DWORD bp, DWORD bw)
+	{
+		DWORD page = (bp >> 5) + (y >> 6) * bw + (x >> 6); 
+		DWORD word = (page << 12) + pageOffset16S[bp & 0x1f][y & 0x3f][x & 0x3f];
+		ASSERT(word < 1024*1024*2);
+		return word;
+	}
+
+	static DWORD pixelAddress8(int x, int y, DWORD bp, DWORD bw)
+	{
+		DWORD page = (bp >> 5) + (y >> 6) * ((bw + 1)>>1) + (x >> 7); 
+		DWORD word = (page << 13) + pageOffset8[bp & 0x1f][y & 0x3f][x & 0x7f];
+		ASSERT(word < 1024*1024*4);
+		return word;
+	}
+
+	static DWORD pixelAddress4(int x, int y, DWORD bp, DWORD bw)
+	{
+		DWORD page = (bp >> 5) + (y >> 7) * ((bw + 1)>>1) + (x >> 7);
+		DWORD word = (page << 14) + pageOffset4[bp & 0x1f][y & 0x7f][x & 0x7f];
+		ASSERT(word < 1024*1024*8);
+		return word;
+	}
+
+	static DWORD pixelAddress32Z(int x, int y, DWORD bp, DWORD bw)
+	{
+		DWORD page = (bp >> 5) + (y >> 5) * bw + (x >> 6); 
+		DWORD word = (page << 11) + pageOffset32Z[bp & 0x1f][y & 0x1f][x & 0x3f];
+		ASSERT(word < 1024*1024);
+		return word;
+	}
+
+	static DWORD pixelAddress16Z(int x, int y, DWORD bp, DWORD bw)
+	{
+		DWORD page = (bp >> 5) + (y >> 6) * bw + (x >> 6); 
+		DWORD word = (page << 12) + pageOffset16Z[bp & 0x1f][y & 0x3f][x & 0x3f];
+		ASSERT(word < 1024*1024*2);
+		return word;
+	}
+
+	static DWORD pixelAddress16SZ(int x, int y, DWORD bp, DWORD bw)
+	{
+		DWORD page = (bp >> 5) + (y >> 6) * bw + (x >> 6); 
+		DWORD word = (page << 12) + pageOffset16SZ[bp & 0x1f][y & 0x3f][x & 0x3f];
+		ASSERT(word < 1024*1024*2);
+		return word;
+	}
+
+	// pixel R/W
+
+	__forceinline DWORD readPixel32(DWORD addr) 
+	{
+		return m_vm32[addr];
+	}
+
+	__forceinline DWORD readPixel24(DWORD addr) 
+	{
+		return m_vm32[addr] & 0x00ffffff;
+	}
+
+	__forceinline DWORD readPixel16(DWORD addr) 
+	{
+		return (DWORD)m_vm16[addr];
+	}
+
+	__forceinline DWORD readPixel16S(DWORD addr) 
+	{
+		return (DWORD)m_vm16[addr];
+	}
+
+	__forceinline DWORD readPixel8(DWORD addr) 
+	{
+		return (DWORD)m_vm8[addr];
+	}
+
+	__forceinline DWORD readPixel4(DWORD addr) 
+	{
+		return (m_vm8[addr>>1] >> ((addr&1) << 2)) & 0x0f;
+	}
+
+	__forceinline DWORD readPixel8H(DWORD addr) 
+	{
+		return m_vm32[addr] >> 24;
+	}
+
+	__forceinline DWORD readPixel4HL(DWORD addr) 
+	{
+		return (m_vm32[addr] >> 24) & 0x0f;
+	}
+
+	__forceinline DWORD readPixel4HH(DWORD addr) 
+	{
+		return (m_vm32[addr] >> 28) & 0x0f;
+	}
+
+	__forceinline DWORD readPixel32Z(DWORD addr) 
+	{
+		return m_vm32[addr];
+	}
+
+	__forceinline DWORD readPixel24Z(DWORD addr) 
+	{
+		return m_vm32[addr] & 0x00ffffff;
+	}
+
+	__forceinline DWORD readPixel16Z(DWORD addr) 
+	{
+		return (DWORD)m_vm16[addr];
+	}
+
+	__forceinline DWORD readPixel16SZ(DWORD addr) 
+	{
+		return (DWORD)m_vm16[addr];
+	}
+
+	__forceinline DWORD readPixel32(int x, int y, DWORD bp, DWORD bw)
+	{
+		return readPixel32(pixelAddress32(x, y, bp, bw));
+	}
+
+	__forceinline DWORD readPixel24(int x, int y, DWORD bp, DWORD bw)
+	{
+		return readPixel24(pixelAddress32(x, y, bp, bw));
+	}
+
+	__forceinline DWORD readPixel16(int x, int y, DWORD bp, DWORD bw)
+	{
+		return readPixel16(pixelAddress16(x, y, bp, bw));
+	}
+
+	__forceinline DWORD readPixel16S(int x, int y, DWORD bp, DWORD bw)
+	{
+		return readPixel16S(pixelAddress16S(x, y, bp, bw));
+	}
+
+	__forceinline DWORD readPixel8(int x, int y, DWORD bp, DWORD bw)
+	{
+		return readPixel8(pixelAddress8(x, y, bp, bw));
+	}
+
+	__forceinline DWORD readPixel4(int x, int y, DWORD bp, DWORD bw)
+	{
+		return readPixel4(pixelAddress4(x, y, bp, bw));
+	}
+
+	__forceinline DWORD readPixel8H(int x, int y, DWORD bp, DWORD bw)
+	{
+		return readPixel8H(pixelAddress32(x, y, bp, bw));
+	}
+
+	__forceinline DWORD readPixel4HL(int x, int y, DWORD bp, DWORD bw)
+	{
+		return readPixel4HL(pixelAddress32(x, y, bp, bw));
+	}
+
+	__forceinline DWORD readPixel4HH(int x, int y, DWORD bp, DWORD bw)
+	{
+		return readPixel4HH(pixelAddress32(x, y, bp, bw));
+	}
+
+	__forceinline DWORD readPixel32Z(int x, int y, DWORD bp, DWORD bw)
+	{
+		return readPixel32Z(pixelAddress32Z(x, y, bp, bw));
+	}
+
+	__forceinline DWORD readPixel24Z(int x, int y, DWORD bp, DWORD bw)
+	{
+		return readPixel24Z(pixelAddress32Z(x, y, bp, bw));
+	}
+
+	__forceinline DWORD readPixel16Z(int x, int y, DWORD bp, DWORD bw)
+	{
+		return readPixel16Z(pixelAddress16Z(x, y, bp, bw));
+	}
+
+	__forceinline DWORD readPixel16SZ(int x, int y, DWORD bp, DWORD bw)
+	{
+		return readPixel16SZ(pixelAddress16SZ(x, y, bp, bw));
+	}
+
+	__forceinline void writePixel32(DWORD addr, DWORD c) 
+	{
+		m_vm32[addr] = c;
+	}
+
+	__forceinline void writePixel24(DWORD addr, DWORD c) 
+	{
+		m_vm32[addr] = (m_vm32[addr] & 0xff000000) | (c & 0x00ffffff);
+	}
+
+	__forceinline void writePixel16(DWORD addr, DWORD c) 
+	{
+		m_vm16[addr] = (WORD)c;
+	}
+
+	__forceinline void writePixel16S(DWORD addr, DWORD c)
+	{
+		m_vm16[addr] = (WORD)c;
+	}
+
+	__forceinline void writePixel8(DWORD addr, DWORD c)
+	{
+		m_vm8[addr] = (BYTE)c;
+	}
+
+	__forceinline void writePixel4(DWORD addr, DWORD c) 
+	{
+		int shift = (addr&1) << 2; addr >>= 1; 
+		m_vm8[addr] = (BYTE)((m_vm8[addr] & (0xf0 >> shift)) | ((c & 0x0f) << shift));
+	}
+
+	__forceinline void writePixel8H(DWORD addr, DWORD c)
+	{
+		m_vm32[addr] = (m_vm32[addr] & 0x00ffffff) | (c << 24);
+	}
+
+	__forceinline void writePixel4HL(DWORD addr, DWORD c) 
+	{
+		m_vm32[addr] = (m_vm32[addr] & 0xf0ffffff) | ((c & 0x0f) << 24);
+	}
+
+	__forceinline void writePixel4HH(DWORD addr, DWORD c)
+	{
+		m_vm32[addr] = (m_vm32[addr] & 0x0fffffff) | ((c & 0x0f) << 28);
+	}
+
+	__forceinline void writePixel32Z(DWORD addr, DWORD c)
+	{
+		m_vm32[addr] = c;
+	}
+
+	__forceinline void writePixel24Z(DWORD addr, DWORD c)
+	{
+		m_vm32[addr] = (m_vm32[addr] & 0xff000000) | (c & 0x00ffffff);
+	}
+
+	__forceinline void writePixel16Z(DWORD addr, DWORD c)
+	{
+		m_vm16[addr] = (WORD)c;
+	}
+
+	__forceinline void writePixel16SZ(DWORD addr, DWORD c)
+	{
+		m_vm16[addr] = (WORD)c;
+	}
+
+	__forceinline void writeFrame16(DWORD addr, DWORD c) 
+	{
+		writePixel16(addr, ((c>>16)&0x8000) | ((c>>9)&0x7c00) | ((c>>6)&0x03e0) | ((c>>3)&0x001f));
+	}
+
+	__forceinline void writeFrame16S(DWORD addr, DWORD c) 
+	{
+		writePixel16S(addr, ((c>>16)&0x8000) | ((c>>9)&0x7c00) | ((c>>6)&0x03e0) | ((c>>3)&0x001f));
+	}
+
+	__forceinline void writePixel32(int x, int y, DWORD c, DWORD bp, DWORD bw)
+	{
+		writePixel32(pixelAddress32(x, y, bp, bw), c);
+	}
+
+	__forceinline void writePixel24(int x, int y, DWORD c, DWORD bp, DWORD bw)
+	{
+		writePixel24(pixelAddress32(x, y, bp, bw), c);
+	}
+
+	__forceinline void writePixel16(int x, int y, DWORD c, DWORD bp, DWORD bw)
+	{
+		writePixel16(pixelAddress16(x, y, bp, bw), c);
+	}
+
+	__forceinline void writePixel16S(int x, int y, DWORD c, DWORD bp, DWORD bw)
+	{
+		writePixel16S(pixelAddress16S(x, y, bp, bw), c);
+	}
+
+	__forceinline void writePixel8(int x, int y, DWORD c, DWORD bp, DWORD bw)
+	{
+		writePixel8(pixelAddress8(x, y, bp, bw), c);
+	}
+
+	__forceinline void writePixel4(int x, int y, DWORD c, DWORD bp, DWORD bw)
+	{
+		writePixel4(pixelAddress4(x, y, bp, bw), c);
+	}
+
+	__forceinline void writePixel8H(int x, int y, DWORD c, DWORD bp, DWORD bw)
+	{
+		writePixel8H(pixelAddress32(x, y, bp, bw), c);
+	}
+
+    __forceinline void writePixel4HL(int x, int y, DWORD c, DWORD bp, DWORD bw)
+	{
+		writePixel4HL(pixelAddress32(x, y, bp, bw), c);
+	}
+
+	__forceinline void writePixel4HH(int x, int y, DWORD c, DWORD bp, DWORD bw)
+	{
+		writePixel4HH(pixelAddress32(x, y, bp, bw), c);
+	}
+
+	__forceinline void writePixel32Z(int x, int y, DWORD c, DWORD bp, DWORD bw)
+	{
+		writePixel32Z(pixelAddress32Z(x, y, bp, bw), c);
+	}
+
+	__forceinline void writePixel24Z(int x, int y, DWORD c, DWORD bp, DWORD bw)
+	{
+		writePixel24Z(pixelAddress32Z(x, y, bp, bw), c);
+	}
+
+	__forceinline void writePixel16Z(int x, int y, DWORD c, DWORD bp, DWORD bw)
+	{
+		writePixel16Z(pixelAddress16Z(x, y, bp, bw), c);
+	}
+
+	__forceinline void writePixel16SZ(int x, int y, DWORD c, DWORD bp, DWORD bw)
+	{
+		writePixel16SZ(pixelAddress16SZ(x, y, bp, bw), c);
+	}
+
+	__forceinline void writeFrame16(int x, int y, DWORD c, DWORD bp, DWORD bw)
+	{
+		writeFrame16(pixelAddress16(x, y, bp, bw), c);
+	}
+
+	__forceinline void writeFrame16S(int x, int y, DWORD c, DWORD bp, DWORD bw)
+	{
+		writeFrame16S(pixelAddress16S(x, y, bp, bw), c);
+	}
+
+	__forceinline DWORD readTexel32(DWORD addr, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA) 
+	{
+		return m_vm32[addr];
+	}
+	__forceinline DWORD readTexel24(DWORD addr, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA) 
+	{
+		return Expand24To32(m_vm32[addr], TEX0.ai32[1]&4, TEXA);
+	}
+
+	__forceinline DWORD readTexel16(DWORD addr, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA) 
+	{
+		return Expand16To32(m_vm16[addr], TEXA);
+	}
+
+	__forceinline DWORD readTexel16S(DWORD addr, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA) 
+	{
+		return Expand16To32(m_vm16[addr], TEXA);
+	}
+
+	__forceinline DWORD readTexel8(DWORD addr, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA) 
+	{
+		return m_pCLUT32[readPixel8(addr)];
+	}
+
+	__forceinline DWORD readTexel4(DWORD addr, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA) 
+	{
+		return m_pCLUT32[readPixel4(addr)];
+	}
+
+	__forceinline DWORD readTexel8H(DWORD addr, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA) 
+	{
+		return m_pCLUT32[readPixel8H(addr)];
+	}
+
+	__forceinline DWORD readTexel4HL(DWORD addr, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA)
+	{
+		return m_pCLUT32[readPixel4HL(addr)];
+	}
+
+	__forceinline DWORD readTexel4HH(DWORD addr, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA) 
+	{
+		return m_pCLUT32[readPixel4HH(addr)];
+	}
+
+	__forceinline DWORD readTexel32(int x, int y, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA)
+	{
+		return readTexel32(pixelAddress32(x, y, TEX0.TBP0, TEX0.TBW), TEX0, TEXA);
+	}
+
+	__forceinline DWORD readTexel24(int x, int y, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA)
+	{
+		return readTexel24(pixelAddress32(x, y, TEX0.TBP0, TEX0.TBW), TEX0, TEXA);
+	}
+
+	__forceinline DWORD readTexel16(int x, int y, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA)
+	{
+		return readTexel16(pixelAddress16(x, y, TEX0.TBP0, TEX0.TBW), TEX0, TEXA);
+	}
+
+	__forceinline DWORD readTexel16S(int x, int y, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA)
+	{
+		return readTexel16S(pixelAddress16S(x, y, TEX0.TBP0, TEX0.TBW), TEX0, TEXA);
+	}
+
+	__forceinline DWORD readTexel8(int x, int y, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA)
+	{
+		return readTexel8(pixelAddress8(x, y, TEX0.TBP0, TEX0.TBW), TEX0, TEXA);
+	}
+
+	__forceinline DWORD readTexel4(int x, int y, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA)
+	{
+		return readTexel4(pixelAddress4(x, y, TEX0.TBP0, TEX0.TBW), TEX0, TEXA);
+	}
+
+	__forceinline DWORD readTexel8H(int x, int y, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA)
+	{
+		return readTexel8H(pixelAddress32(x, y, TEX0.TBP0, TEX0.TBW), TEX0, TEXA);
+	}
+
+	__forceinline DWORD readTexel4HL(int x, int y, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA)
+	{
+		return readTexel4HL(pixelAddress32(x, y, TEX0.TBP0, TEX0.TBW), TEX0, TEXA);
+	}
+
+	__forceinline DWORD readTexel4HH(int x, int y, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA)
+	{
+		return readTexel4HH(pixelAddress32(x, y, TEX0.TBP0, TEX0.TBW), TEX0, TEXA);
+	}
+
+	__forceinline DWORD readTexel16P(int x, int y, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA)
+	{
+		return readPixel16(x, y, TEX0.TBP0, TEX0.TBW);
+	}
+
+	__forceinline DWORD readTexel16SP(int x, int y, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA)
+	{
+		return readPixel16S(x, y, TEX0.TBP0, TEX0.TBW);
+	}
+
+	__forceinline DWORD readTexel8P(int x, int y, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA)
+	{
+		return readPixel8(x, y, TEX0.TBP0, TEX0.TBW);
+	}
+
+	__forceinline DWORD readTexel8HP(int x, int y, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA)
+	{
+		return readPixel8H(x, y, TEX0.TBP0, TEX0.TBW);
+	}
+
+	__forceinline DWORD readTexel4P(int x, int y, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA)
+	{
+		return readPixel4(x, y, TEX0.TBP0, TEX0.TBW);
+	}
+
+	__forceinline DWORD readTexel4HLP(int x, int y, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA)
+	{
+		return readPixel4HL(x, y, TEX0.TBP0, TEX0.TBW);
+	}
+
+	__forceinline DWORD readTexel4HHP(int x, int y, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA)
+	{
+		return readPixel4HH(x, y, TEX0.TBP0, TEX0.TBW);
+	}
+
+	//
+
+	__forceinline DWORD readPixelX(int PSM, DWORD addr)
+	{
+		switch(PSM)
+		{
+		case PSM_PSMCT32: return readPixel32(addr); 
+		case PSM_PSMCT24: return readPixel24(addr); 
+		case PSM_PSMCT16: return readPixel16(addr);
+		case PSM_PSMCT16S: return readPixel16S(addr);
+		case PSM_PSMT8: return readPixel8(addr);
+		case PSM_PSMT4: return readPixel4(addr);
+		case PSM_PSMT8H: return readPixel8H(addr);
+		case PSM_PSMT4HL: return readPixel4HL(addr);
+		case PSM_PSMT4HH: return readPixel4HH(addr);
+		case PSM_PSMZ32: return readPixel32Z(addr);
+		case PSM_PSMZ24: return readPixel24Z(addr);
+		case PSM_PSMZ16: return readPixel16Z(addr);
+		case PSM_PSMZ16S: return readPixel16SZ(addr);
+		default: ASSERT(0); return readPixel32(addr);
+		}
+	}
+
+	__forceinline DWORD readTexelX(int PSM, DWORD addr, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA)
+	{
+		switch(PSM)
+		{
+		case PSM_PSMCT32: return readTexel32(addr, TEX0, TEXA);
+		case PSM_PSMCT24: return readTexel24(addr, TEX0, TEXA);
+		case PSM_PSMCT16: return readTexel16(addr, TEX0, TEXA);
+		case PSM_PSMCT16S: return readTexel16S(addr, TEX0, TEXA);
+		case PSM_PSMT8: return readTexel8(addr, TEX0, TEXA);
+		case PSM_PSMT4: return readTexel4(addr, TEX0, TEXA);
+		case PSM_PSMT8H: return readTexel8H(addr, TEX0, TEXA);
+		case PSM_PSMT4HL: return readTexel4HL(addr, TEX0, TEXA);
+		case PSM_PSMT4HH: return readTexel4HH(addr, TEX0, TEXA);
+		default: ASSERT(0); return readTexel32(addr, TEX0, TEXA);
+		}
+	}
+
+	__forceinline DWORD readTexelX(int PSM, int x, int y, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA)
+	{
+		switch(PSM)
+		{
+		case PSM_PSMCT32: return readTexel32(x, y, TEX0, TEXA);
+		case PSM_PSMCT24: return readTexel24(x, y, TEX0, TEXA);
+		case PSM_PSMCT16: return readTexel16(x, y, TEX0, TEXA);
+		case PSM_PSMCT16S: return readTexel16S(x, y, TEX0, TEXA);
+		case PSM_PSMT8: return readTexel8(x, y, TEX0, TEXA);
+		case PSM_PSMT4: return readTexel4(x, y, TEX0, TEXA);
+		case PSM_PSMT8H: return readTexel8H(x, y, TEX0, TEXA);
+		case PSM_PSMT4HL: return readTexel4HL(x, y, TEX0, TEXA);
+		case PSM_PSMT4HH: return readTexel4HH(x, y, TEX0, TEXA);
+		default: ASSERT(0); return readTexel32(x, y, TEX0, TEXA);
+		}
+	}
+
+	__forceinline void writePixelX(int PSM, DWORD addr, DWORD c)
+	{
+		switch(PSM)
+		{
+		case PSM_PSMCT32: writePixel32(addr, c); break; 
+		case PSM_PSMCT24: writePixel24(addr, c); break; 
+		case PSM_PSMCT16: writePixel16(addr, c); break;
+		case PSM_PSMCT16S: writePixel16S(addr, c); break;
+		case PSM_PSMT8: writePixel8(addr, c); break;
+		case PSM_PSMT4: writePixel4(addr, c); break;
+		case PSM_PSMT8H: writePixel8H(addr, c); break;
+		case PSM_PSMT4HL: writePixel4HL(addr, c); break;
+		case PSM_PSMT4HH: writePixel4HH(addr, c); break;
+		case PSM_PSMZ32: writePixel32Z(addr, c); break;
+		case PSM_PSMZ24: writePixel24Z(addr, c); break;
+		case PSM_PSMZ16: writePixel16Z(addr, c); break;
+		case PSM_PSMZ16S: writePixel16SZ(addr, c); break;
+		default: ASSERT(0); writePixel32(addr, c); break;
+		}
+	}
+
+	__forceinline void writeFrameX(int PSM, DWORD addr, DWORD c)
+	{
+		switch(PSM)
+		{
+		case PSM_PSMCT32: writePixel32(addr, c); break; 
+		case PSM_PSMCT24: writePixel24(addr, c); break; 
+		case PSM_PSMCT16: writeFrame16(addr, c); break;
+		case PSM_PSMCT16S: writeFrame16S(addr, c); break;
+		default: ASSERT(0); writePixel32(addr, c); break;
+		}
+	}
 
 	// FillRect
 
@@ -227,31 +850,12 @@ public:
 	void SetupCLUT(GIFRegTEX0 TEX0, GIFRegTEXA TEXA);
 
 	// expands 16->32
+
 	void ReadCLUT32(GIFRegTEX0 TEX0, GIFRegTEXA TEXA, DWORD* pCLUT32);
 	void SetupCLUT32(GIFRegTEX0 TEX0, GIFRegTEXA TEXA);
 	void CopyCLUT32(DWORD* pCLUT32, int nPaletteEntries);
 
-	// 32-only
-
-	DWORD readTexel32(int x, int y, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
-	DWORD readTexel24(int x, int y, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
-	DWORD readTexel16(int x, int y, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
-	DWORD readTexel16S(int x, int y, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
-	DWORD readTexel8(int x, int y, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
-	DWORD readTexel8H(int x, int y, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
-	DWORD readTexel4(int x, int y, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
-	DWORD readTexel4HL(int x, int y, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
-	DWORD readTexel4HH(int x, int y, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
-
-	DWORD readTexel32(DWORD addr, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA) {return m_vm32[addr];}
-	DWORD readTexel24(DWORD addr, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA) {return Expand24To32(m_vm32[addr], TEX0.ai32[1]&4, TEXA);}
-	DWORD readTexel16(DWORD addr, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA) {return Expand16To32(m_vm16[addr], TEXA);}
-	DWORD readTexel16S(DWORD addr, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA) {return Expand16To32(m_vm16[addr], TEXA);}
-	DWORD readTexel8(DWORD addr, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA) {return m_pCLUT32[readPixel8(addr)];}
-	DWORD readTexel8H(DWORD addr, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA) {return m_pCLUT32[readPixel8H(addr)];}
-	DWORD readTexel4(DWORD addr, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA) {return m_pCLUT32[readPixel4(addr)];}
-	DWORD readTexel4HL(DWORD addr, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA) {return m_pCLUT32[readPixel4HL(addr)];}
-	DWORD readTexel4HH(DWORD addr, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA) {return m_pCLUT32[readPixel4HH(addr)];}
+	// 
 
 	void SwizzleTexture32(int& tx, int& ty, BYTE* src, int len, GIFRegBITBLTBUF& BITBLTBUF, GIFRegTRXPOS& TRXPOS, GIFRegTRXREG& TRXREG);
 	void SwizzleTexture24(int& tx, int& ty, BYTE* src, int len, GIFRegBITBLTBUF& BITBLTBUF, GIFRegTRXPOS& TRXPOS, GIFRegTRXREG& TRXREG);
@@ -277,14 +881,6 @@ public:
 	void ReadTexture(const CRect& r, BYTE* dst, int dstpitch, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA, GIFRegCLAMP& CLAMP);
 
 	// 32/16/8P
-
-	DWORD readTexel16P(int x, int y, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
-	DWORD readTexel16SP(int x, int y, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
-	DWORD readTexel8P(int x, int y, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
-	DWORD readTexel8HP(int x, int y, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
-	DWORD readTexel4P(int x, int y, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
-	DWORD readTexel4HLP(int x, int y, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
-	DWORD readTexel4HHP(int x, int y, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
 
 	void unSwizzleTexture16P(const CRect& r, BYTE* dst, int dstpitch, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
 	void unSwizzleTexture16SP(const CRect& r, BYTE* dst, int dstpitch, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA);
