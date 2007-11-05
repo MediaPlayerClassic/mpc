@@ -51,6 +51,18 @@ HRESULT CompileShaderFromResource(IDirect3DDevice9* pD3DDev, UINT id, CString en
 	{
 		hr = pD3DDev->CreatePixelShader((DWORD*)pShader->GetBufferPointer(), ppPixelShader);
 		ASSERT(SUCCEEDED(hr));
+/*
+		CComPtr<ID3DXBuffer> pDisAsm;
+
+		hr = D3DXDisassembleShader((DWORD*)pShader->GetBufferPointer(), FALSE, NULL, &pDisAsm);
+
+		if(SUCCEEDED(hr) && pDisAsm)
+		{
+			CString str = CString(CStringA((const char*)pDisAsm->GetBufferPointer()));
+
+			TRACE(_T("%s\n"), str);
+		}
+*/
 	}
 
 	return hr;

@@ -207,6 +207,8 @@ __declspec(align(16)) union GSSoftVertexFP
 
 	__forceinline DWORD GetZ() const 
 	{
+		return (int)p.z;
+
 		ASSERT((float)p.z >= 0 && (float)p.q >= 0);
 #if _M_IX86_FP >= 2 || defined(_M_AMD64)
 		__m128 z = _mm_shuffle_ps(p, p, _MM_SHUFFLE(2,2,2,2));

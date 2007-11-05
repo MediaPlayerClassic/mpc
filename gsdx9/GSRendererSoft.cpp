@@ -352,11 +352,11 @@ void GSRendererSoft<Vertex>::RowInit(int x, int y)
 	m_faddr_x0 = (m_context->ftbl->pa)(0, y, m_context->FRAME.FBP<<5, m_context->FRAME.FBW);
 	m_faddr_ro = &m_context->ftbl->rowOffset[y&7][x];
 
-if(bZTE)
-{
-	m_zaddr_x0 = (m_context->ztbl->pa)(0, y, m_context->ZBUF.ZBP<<5, m_context->FRAME.FBW);
-	m_zaddr_ro = &m_context->ztbl->rowOffset[y&7][x];
-}
+	if(bZTE)
+	{
+		m_zaddr_x0 = (m_context->ztbl->pa)(0, y, m_context->ZBUF.ZBP<<5, m_context->FRAME.FBW);
+		m_zaddr_ro = &m_context->ztbl->rowOffset[y&7][x];
+	}
 
 	m_fx = x-1; // -1 because RowStep() will do +1, yea lame...
 	m_fy = y;
@@ -371,8 +371,10 @@ void GSRendererSoft<Vertex>::RowStep()
 
 	m_faddr = m_faddr_x0 + *m_faddr_ro++;
 
-if(bZTE)
-	m_zaddr = m_zaddr_x0 + *m_zaddr_ro++;
+	if(bZTE)
+	{
+		m_zaddr = m_zaddr_x0 + *m_zaddr_ro++;
+	}
 }
 
 template <class Vertex>
@@ -383,6 +385,7 @@ void GSRendererSoft<Vertex>::DrawPoint(Vertex* v)
 	if(m_scissor.PtInRect(p))
 	{
 		RowInit(p.x, p.y);
+
 		(this->*m_pDrawVertex)(*v);
 	}
 }
@@ -393,6 +396,7 @@ void GSRendererSoft<Vertex>::DrawLine(Vertex* v)
 	Vertex dv = v[1] - v[0];
 
 	Vertex::Vector dp = dv.p;
+
 	dp.x.abs();
 	dp.y.abs();
 
@@ -417,6 +421,7 @@ void GSRendererSoft<Vertex>::DrawLine(Vertex* v)
 		if(m_scissor.PtInRect(p))
 		{
 			RowInit(p.x, p.y);
+
 			(this->*m_pDrawVertex)(edge);
 		}
 
@@ -458,9 +463,12 @@ void GSRendererSoft<Vertex>::DrawTriangle(Vertex* v)
 
 	for(int i = 0; i < 2; i++, v++)
 	{ 
-		int top = edge[0].p.y.ceil_i(), bottom = v[1].p.y.ceil_i();
+		int top = edge[0].p.y.ceil_i();
+		int bottom = v[1].p.y.ceil_i();
+
 		if(top < m_scissor.top) top = min(m_scissor.top, bottom);
 		if(bottom > m_scissor.bottom) bottom = m_scissor.bottom;
+
 		if(edge[0].p.y < Vertex::Scalar(top)) // for(int j = 0; j < 2; j++) edge[j] += dedge[j] * ((float)top - edge[0].p.y);
 		{
 			Vertex::Scalar dy = Vertex::Scalar(top) - edge[0].p.y;
@@ -470,60 +478,40 @@ void GSRendererSoft<Vertex>::DrawTriangle(Vertex* v)
 		}
 
 		ASSERT(top >= bottom || (int)((edge[1].p.y - edge[0].p.y) * 10) == 0);
-/*
-static struct eb_t {Vertex scan; int top; int left; int steps;} eb[1024];
-int _top = top;
-int _bottom = bottom;
-*/
+
 		for(; top < bottom; top++)
 		{
-			scan = edge[0];
+			int left = edge[0].p.x.ceil_i();
+			int right = edge[1].p.x.ceil_i();
 
-			int left = edge[0].p.x.ceil_i(), right = edge[1].p.x.ceil_i();
 			if(left < m_scissor.left) left = m_scissor.left;
 			if(right > m_scissor.right) right = m_scissor.right;
-			if(edge[0].p.x < Vertex::Scalar(left))
-			{
-				scan += dscan * (Vertex::Scalar(left) - edge[0].p.x);
-				scan.p.x = Vertex::Scalar(left);
-			}
-/*
-eb[top].scan = scan;
-eb[top].top = top;
-eb[top].left = left;
-eb[top].steps = right - left;
-*/
-///*
-			RowInit(left, top);
 
-			for(int steps = right - left; steps > 0; steps--)
+			if(right > left)
 			{
-				(this->*m_pDrawVertex)(scan);
-				scan += dscan;
-				RowStep();
+				scan = edge[0];
+
+				if(edge[0].p.x < Vertex::Scalar(left))
+				{
+					scan += dscan * (Vertex::Scalar(left) - edge[0].p.x);
+					scan.p.x = Vertex::Scalar(left);
+				}
+
+				RowInit(left, top);
+
+				for(int steps = right - left; steps > 0; steps--)
+				{
+					(this->*m_pDrawVertex)(scan);
+					scan += dscan;
+					RowStep();
+				}
 			}
-//*/
+
 			// for(int j = 0; j < 2; j++) edge[j] += dedge[j];
 			edge[0] += dedge[0];
 			edge[1].p += dedge[1].p;
 		}
-/*
-top = _top;
-bottom = _bottom;
-for(; top < bottom; top++)
-{
-	eb_t& sl = eb[top];
 
-	RowInit(sl.left, top);
-
-	for(; sl.steps > 0; sl.steps--)
-	{
-		(this->*m_pDrawVertex)(sl.scan);
-		sl.scan += dscan;
-		RowStep();
-	}
-}
-*/
 		if(v[1].p.y < v[2].p.y)
 		{
 			edge[ledge] = v[1];
@@ -549,14 +537,22 @@ void GSRendererSoft<Vertex>::DrawSprite(Vertex* v)
 	Vertex scan;
 	Vertex dscan = v01 / v01.p.x;
 
-	int top = v[0].p.y.ceil_i(), bottom = v[2].p.y.ceil_i();
+	int top = v[0].p.y.ceil_i();
+	int bottom = v[2].p.y.ceil_i();
+
 	if(top < m_scissor.top) top = min(m_scissor.top, bottom);
 	if(bottom > m_scissor.bottom) bottom = m_scissor.bottom;
+
 	if(v[0].p.y < Vertex::Scalar(top)) edge += dedge * (Vertex::Scalar(top) - v[0].p.y);
 
-	int left = v[0].p.x.ceil_i(), right = v[1].p.x.ceil_i();
+	int left = v[0].p.x.ceil_i();
+	int right = v[1].p.x.ceil_i();
+
 	if(left < m_scissor.left) left = m_scissor.left;
 	if(right > m_scissor.right) right = m_scissor.right;
+
+	if(left >= right || top >= bottom) return;
+
 	if(v[0].p.x < Vertex::Scalar(left)) edge += dscan * (Vertex::Scalar(left) - v[0].p.x);
 
 	if(DrawFilledRect(left, top, right, bottom, edge))
@@ -655,7 +651,7 @@ void GSRendererSoft<Vertex>::DrawVertex(const Vertex& v)
 	case 2: 
 		vz = v.GetZ(); 
 		if(vz < m_mem.readPixelX(m_context->ZBUF.PSM, m_zaddr)) return; 
-		//if(vz < (m_mem.*m_context->ztbl->rpa)(m_zaddr)) return; 
+		// if(vz < (m_mem.*m_context->ztbl->rpa)(m_zaddr)) return; 
 		break;
 	case 3: 
 		vz = v.GetZ(); 
@@ -994,8 +990,9 @@ void GSRendererSoftFP::VertexKick(bool skip)
 	v.p.x = (int)m_v.XYZ.X - (int)m_context->XYOFFSET.OFX;
 	v.p.y = (int)m_v.XYZ.Y - (int)m_context->XYOFFSET.OFY;
 	v.p *= GSSoftVertexFP::Scalar(1.0f/16);
-	v.p.z = (float)(m_v.XYZ.Z >> 16);
-	v.p.q = (float)(m_v.XYZ.Z & 0xffff);
+	v.p.z = (float)m_v.XYZ.Z;
+	//v.p.z = (float)(m_v.XYZ.Z >> 16);
+	//v.p.q = (float)(m_v.XYZ.Z & 0xffff);
 
 	if(m_pPRIM->TME)
 	{

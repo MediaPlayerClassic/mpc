@@ -230,8 +230,6 @@ EXPORT_C GSvsync(int field)
 		}
 		else
 		{
-			// TODO
-			// Sleep(40);
 			s_gs->VSync(field);
 			break;
 		}
