@@ -119,6 +119,7 @@ void GSRendererHW::VertexKick(bool skip)
 
 int GSRendererHW::DrawingKick(bool skip)
 {
+
 	GSVertexHW* pVertices = &m_pVertices[m_nVertices];
 	int nVertices = 0;
 
@@ -978,6 +979,7 @@ void GSRendererHW::SetupZBuffer()
 
 	hr = m_pD3DDev->SetRenderState(D3DRS_ZENABLE, m_context->TEST.ZTE);
 	hr = m_pD3DDev->SetRenderState(D3DRS_ZWRITEENABLE, !m_context->ZBUF.ZMSK);
+
 	if(m_context->TEST.ZTE)
 	{
 		static const DWORD zfunc[] = {D3DCMP_NEVER, D3DCMP_ALWAYS, D3DCMP_GREATEREQUAL, D3DCMP_GREATER};

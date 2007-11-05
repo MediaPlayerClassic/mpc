@@ -204,7 +204,7 @@ GSState::GSState(int w, int h, HWND hWnd, HRESULT& hr)
 
 	if(m_caps.PixelShaderVersion >= D3DPS_VERSION(3, 0))
 	{
-		DWORD flags = D3DXSHADER_AVOID_FLOW_CONTROL|D3DXSHADER_PARTIALPRECISION;
+		DWORD flags = D3DXSHADER_PARTIALPRECISION|D3DXSHADER_AVOID_FLOW_CONTROL;
 
 		for(int i = 0; i < countof(hlsl_tfx); i++)
 		{
@@ -657,8 +657,6 @@ void GSState::TransferMT(BYTE* mem, UINT32 size, int index)
 	buff->m_size = size;
 	buff->m_index = index;
 
-	// m_queue.Lock();
-
 	GIFPath& path = m_path2[index];
 
 	while(size > 0)
@@ -761,8 +759,6 @@ void GSState::TransferMT(BYTE* mem, UINT32 size, int index)
 	ASSERT(size > 0);
 
 	memcpy(buff->m_data = new BYTE[size], mem - size, size);
-
-	// m_queue.Unlock();
 
 	m_queue.Enqueue(buff);
 }
@@ -1129,12 +1125,13 @@ DWORD GSState::ThreadProc()
 
 			// for(size_t count = m_queue.GetCount(); count > 0; count--)
 			while(m_queue.GetCount() > 0)
+			// while(m_queue.GetEnqueueEvent().Wait(0))
 			{
 				GSTransferBuffer* tb = m_queue.Dequeue();
 				Transfer(tb->m_data, tb->m_size, tb->m_index);
 				delete tb;
 			}
-			
+
 			// Flush();
 
 			m_evThreadIdle.Set();
