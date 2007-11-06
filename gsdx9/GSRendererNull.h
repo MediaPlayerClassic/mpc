@@ -33,9 +33,8 @@ protected:
 	void VertexKick(bool skip);
 	int DrawingKick(bool skip);
 	void Flip();
-	void EndFrame();
 
 public:
-	GSRendererNull(HWND hWnd, HRESULT& hr);
+	GSRendererNull();
 	virtual ~GSRendererNull();
 };

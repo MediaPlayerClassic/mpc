@@ -25,13 +25,12 @@
 #include "GSUtil.h"
 #include "resource.h"
 
-//
-// GSState
-//
+BEGIN_MESSAGE_MAP(GSState, CWnd)
+	ON_WM_CLOSE()
+END_MESSAGE_MAP()
 
-GSState::GSState(int w, int h, HWND hWnd, HRESULT& hr) 
-	: m_hWnd(hWnd)
-	, m_width(w)
+GSState::GSState(int w, int h) 
+	: m_width(w)
 	, m_height(h)
 	, m_iOSD(1)
 	, m_evThreadQuit(FALSE)
@@ -40,14 +39,17 @@ GSState::GSState(int w, int h, HWND hWnd, HRESULT& hr)
 	, m_fpGSirq(NULL)
 	, m_q(1.0f)
 {
-	hr = E_FAIL;
-
-	m_pTrBuff = (BYTE*)_aligned_malloc(1024*1024*4, 16);
-	m_nTrBytes = 0;
-
-	m_strDefaultTitle.ReleaseBufferSetLength(GetWindowText(m_hWnd, m_strDefaultTitle.GetBuffer(256), 256));
 	m_fEnablePalettizedTextures = !!AfxGetApp()->GetProfileInt(_T("Settings"), _T("fEnablePalettizedTextures"), FALSE);
 	m_fNloopHack = !!AfxGetApp()->GetProfileInt(_T("Settings"), _T("fNloopHack"), FALSE);
+
+//	m_regs.pCSR->rREV = 0x20;
+
+	m_env.PRMODECONT.AC = 1;
+
+	m_pPRIM = &m_env.PRIM;
+
+	m_pTransferBuffer = (BYTE*)_aligned_malloc(1024*1024*4, 16);
+	m_nTransferBytes = 0;
 
 	for(int i = 0; i < countof(m_fpGIFPackedRegHandlers); i++)
 	{
@@ -131,40 +133,84 @@ GSState::GSState(int w, int h, HWND hWnd, HRESULT& hr)
 	m_fpGIFRegHandlers[GIF_A_D_REG_FINISH] = &GSState::GIFRegHandlerFINISH;
 	m_fpGIFRegHandlers[GIF_A_D_REG_LABEL] = &GSState::GIFRegHandlerLABEL;
 
-	// DD
+	ResetState();
+
+	CreateThread();
+}
+
+GSState::~GSState()
+{
+	QuitThread();
+
+	ResetState();
+
+	_aligned_free(m_pTransferBuffer);
+
+	DestroyWindow();
+}
+
+bool GSState::Create(LPCTSTR title)
+{
+	// window
+
+	CRect r;
+	
+	GetDesktopWindow()->GetWindowRect(r);
+	// r.DeflateRect(r.Width()*3/8, r.Height()*3/8);
+	r.DeflateRect(r.Width()/3, r.Height()/3);
+
+	LPCTSTR wc = AfxRegisterWndClass(CS_VREDRAW|CS_HREDRAW|CS_DBLCLKS, AfxGetApp()->LoadStandardCursor(IDC_ARROW), 0, 0);
+
+	if(!CreateEx(0, wc, title, WS_OVERLAPPEDWINDOW, r, NULL, 0))
+	{
+		return false;
+	}
+
+	// ddraw
 
 	CComPtr<IDirectDraw7> pDD; 
 
 	if(FAILED(DirectDrawCreateEx(0, (void**)&pDD, IID_IDirectDraw7, 0)))
-		return;
+	{
+		return false;
+	}
 
 	m_ddcaps.dwSize = sizeof(DDCAPS); 
 
 	if(FAILED(pDD->GetCaps(&m_ddcaps, NULL)))
-		return;
+	{
+		return false;
+	}
 
 	pDD = NULL;
 
-	// D3D
+	// d3d
 
 	if(!(m_pD3D = Direct3DCreate9(D3D_SDK_VERSION)))
-		return;
+	{
+		return false;
+	}
 
 	memset(&m_caps, 0, sizeof(m_caps));
 
-	m_pD3D->GetDeviceCaps(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, &m_caps);
+	m_pD3D->GetDeviceCaps(
+		D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, 
+		// D3DADAPTER_DEFAULT, D3DDEVTYPE_REF, 
+		&m_caps);
 
 	m_fmtDepthStencil = 
 		IsDepthFormatOk(m_pD3D, D3DFMT_D32, D3DFMT_X8R8G8B8, D3DFMT_X8R8G8B8) ? D3DFMT_D32 :
 		IsDepthFormatOk(m_pD3D, D3DFMT_D24X8, D3DFMT_X8R8G8B8, D3DFMT_X8R8G8B8) ? D3DFMT_D24X8 :
 		D3DFMT_D16;
 
-	// D3D Device
+	// d3d device
 
 	if(FAILED(ResetDevice(true)))
-		return;
+	{
+		return false;
+	}
 
-	// Shaders
+	// shaders
 
 	DWORD PixelShaderVersion = AfxGetApp()->GetProfileInt(_T("Settings"), _T("PixelShaderVersion2"), D3DPS_VERSION(2, 0));
 
@@ -180,7 +226,7 @@ GSState::GSState(int w, int h, HWND hWnd, HRESULT& hr)
 
 		m_pD3DDev = NULL;
 
-		return;
+		return false;
 	}
 
 	m_caps.PixelShaderVersion = min(PixelShaderVersion, m_caps.PixelShaderVersion);
@@ -250,46 +296,74 @@ GSState::GSState(int w, int h, HWND hWnd, HRESULT& hr)
 		}
 	}
 
-	//
+	ResetState();
 
-	hr = S_OK;
-
-//	m_regs.pCSR->rREV = 0x20;
-
-	m_env.PRMODECONT.AC = 1;
-	m_pPRIM = &m_env.PRIM;
-	// m_PRIM = 8;
-
-	Reset();
-
-	CreateThread();
+	return true;
 }
 
-GSState::~GSState()
+void GSState::Show()
 {
-	QuitThread();
+	SetWindowPos(&wndTop, 0, 0, 0, 0, SWP_NOMOVE|SWP_NOSIZE);
+	SetForegroundWindow();
+	ShowWindow(SW_SHOWNORMAL);
+}
 
-	Reset();
+void GSState::Hide()
+{
+	ShowWindow(SW_HIDE);
+}
 
-	_aligned_free(m_pTrBuff);
+void GSState::OnClose()
+{
+	Hide();
+
+	PostMessage(WM_QUIT);
+}
+
+void GSState::ResetState()
+{
+	memset(&m_env, 0, sizeof(m_env));
+	memset(m_path, 0, sizeof(m_path));
+	memset(m_path2, 0, sizeof(m_path2));
+	memset(&m_v, 0, sizeof(m_v));
+
+//	m_env.PRMODECONT.AC = 1;
+//	m_pPRIM = &m_env.PRIM;
+
+	m_context = &m_env.CTXT[0];
+
+	m_env.CTXT[0].ftbl = &GSLocalMemory::m_psmtbl[m_env.CTXT[0].FRAME.PSM];
+	m_env.CTXT[0].ztbl = &GSLocalMemory::m_psmtbl[m_env.CTXT[0].ZBUF.PSM];
+	m_env.CTXT[0].ttbl = &GSLocalMemory::m_psmtbl[m_env.CTXT[0].TEX0.PSM];
+
+	m_env.CTXT[1].ftbl = &GSLocalMemory::m_psmtbl[m_env.CTXT[1].FRAME.PSM];
+	m_env.CTXT[1].ztbl = &GSLocalMemory::m_psmtbl[m_env.CTXT[1].ZBUF.PSM];
+	m_env.CTXT[1].ttbl = &GSLocalMemory::m_psmtbl[m_env.CTXT[1].TEX0.PSM];
+
+	if(m_pD3DDev) m_pD3DDev->Clear(0, NULL, D3DCLEAR_TARGET/*|D3DCLEAR_ZBUFFER|D3DCLEAR_STENCIL*/, 0, 1.0f, 0);
 }
 
 HRESULT GSState::ResetDevice(bool fForceWindowed)
 {
 	AFX_MANAGE_STATE(AfxGetStaticModuleState());
+
 	HMODULE hModule = AfxGetResourceHandle();
+
     CWinApp* pApp = AfxGetApp();
 
 	HRESULT hr;
 
 	if(!m_pD3D)
+	{
 		return E_FAIL;
+	}
 
 	m_pOrgRenderTarget = NULL;
 	m_pTmpRenderTarget = NULL;
 	m_pD3DXFont = NULL;
 
-	ZeroMemory(&m_d3dpp, sizeof(m_d3dpp));
+	memset(&m_d3dpp, 0, sizeof(m_d3dpp));
+
 	m_d3dpp.Windowed = TRUE;
 	m_d3dpp.hDeviceWindow = m_hWnd;
 	m_d3dpp.SwapEffect = /*D3DSWAPEFFECT_COPY*/D3DSWAPEFFECT_DISCARD/*D3DSWAPEFFECT_FLIP*/;
@@ -300,7 +374,9 @@ HRESULT GSState::ResetDevice(bool fForceWindowed)
 	m_d3dpp.PresentationInterval = D3DPRESENT_INTERVAL_IMMEDIATE;
 
 	if(!!pApp->GetProfileInt(_T("Settings"), _T("fEnableTvOut"), FALSE))
+	{
 		m_d3dpp.Flags |= D3DPRESENTFLAG_VIDEO;
+	}
 
 	int ModeWidth = pApp->GetProfileInt(_T("Settings"), _T("ModeWidth"), 0);
 	int ModeHeight = pApp->GetProfileInt(_T("Settings"), _T("ModeHeight"), 0);
@@ -315,8 +391,8 @@ HRESULT GSState::ResetDevice(bool fForceWindowed)
 		m_d3dpp.PresentationInterval = D3DPRESENT_INTERVAL_DEFAULT;
 
 		::SetWindowLong(m_hWnd, GWL_STYLE, ::GetWindowLong(m_hWnd, GWL_STYLE) & ~(WS_CAPTION|WS_THICKFRAME));
-		::SetWindowPos(m_hWnd, NULL, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE);
-		::SetMenu(m_hWnd, NULL);
+		SetWindowPos(NULL, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE);
+		SetMenu(NULL);
 
 		m_iOSD = 0;
 	}
@@ -325,11 +401,14 @@ HRESULT GSState::ResetDevice(bool fForceWindowed)
 	{
 		if(FAILED(hr = m_pD3D->CreateDevice(
 			// m_pD3D->GetAdapterCount()-1, D3DDEVTYPE_REF,
+			// D3DADAPTER_DEFAULT, D3DDEVTYPE_REF,
 			D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, 
 			m_hWnd,
 			D3DCREATE_MULTITHREADED | (m_caps.VertexProcessingCaps ? D3DCREATE_HARDWARE_VERTEXPROCESSING : D3DCREATE_SOFTWARE_VERTEXPROCESSING), 
 			&m_d3dpp, &m_pD3DDev)))
+		{
 			return hr;
+		}
 	}
 	else
 	{
@@ -338,8 +417,11 @@ HRESULT GSState::ResetDevice(bool fForceWindowed)
 			if(D3DERR_DEVICELOST == hr)
 			{
 				Sleep(1000);
+
 				if(FAILED(hr = m_pD3DDev->Reset(&m_d3dpp)))
+				{
 					return hr;
+				}
 			}
 			else
 			{
@@ -349,17 +431,18 @@ HRESULT GSState::ResetDevice(bool fForceWindowed)
 	}
 
 	CComPtr<IDirect3DSurface9> pBackBuff;
+
 	hr = m_pD3DDev->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &pBackBuff);
 
-	ZeroMemory(&m_bd, sizeof(m_bd));
+	memset(&m_bd, 0, sizeof(m_bd));
+
 	pBackBuff->GetDesc(&m_bd);
 
 	hr = m_pD3DDev->Clear(0, NULL, D3DCLEAR_TARGET, 0, 1.0f, 0);
 
     hr = m_pD3DDev->GetRenderTarget(0, &m_pOrgRenderTarget);
 
-	if(m_caps.PixelShaderVersion >= D3DPS_VERSION(1, 1) && m_caps.PixelShaderVersion <= D3DPS_VERSION(1, 3)
-		&& m_pHLSLRedBlue)
+	if(m_caps.PixelShaderVersion >= D3DPS_VERSION(1, 1) && m_caps.PixelShaderVersion <= D3DPS_VERSION(1, 3) && m_pHLSLRedBlue)
 	{
 		hr = m_pD3DDev->CreateTexture(
 			m_bd.Width, m_bd.Height, 0, D3DUSAGE_RENDERTARGET, D3DFMT_X8R8G8B8, 
@@ -392,6 +475,11 @@ HRESULT GSState::ResetDevice(bool fForceWindowed)
 	hr = m_pD3DDev->SetRenderState(D3DRS_DESTBLENDALPHA, D3DBLEND_ZERO);
 
 	return S_OK;
+}
+
+void GSState::Reset()
+{
+	ResetState();
 }
 
 UINT32 GSState::Freeze(freezeData* fd, bool fSizeOnly)
@@ -486,7 +574,7 @@ void GSState::WriteCSR(UINT32 csr)
 
 void GSState::ReadFIFO(BYTE* mem)
 {
-	GSPerfMonAutoTimer at(m_perfmon);
+	// GSPerfMonAutoTimer at(m_perfmon);
 
 	SyncThread();
 
@@ -518,7 +606,7 @@ void GSState::Transfer3(BYTE* mem, UINT32 size)
 
 void GSState::Transfer(BYTE* mem, UINT32 size, int index)
 {
-	GSPerfMonAutoTimer at(m_perfmon);
+	// GSPerfMonAutoTimer at(m_perfmon);
 
 	GIFPath& path = m_path[index];
 
@@ -587,7 +675,7 @@ void GSState::Transfer(BYTE* mem, UINT32 size, int index)
 			{
 				(this->*m_fpGIFRegHandlers[path.GetGIFReg()])(r);
 
-				if((path.nreg = (path.nreg +1) & 0xf) == path.tag.NREG)
+				if((path.nreg = (path.nreg + 1) & 0xf) == path.tag.NREG)
 				{
 					path.nreg = 0; 
 					path.tag.NLOOP--;
@@ -711,7 +799,7 @@ void GSState::TransferMT(BYTE* mem, UINT32 size, int index)
 
 			for(GIFReg* r = (GIFReg*)mem; path.tag.NLOOP > 0 && size > 0; r++, size--, mem += sizeof(GIFReg))
 			{
-				if((path.nreg = (path.nreg +1) & 0xf) == path.tag.NREG)
+				if((path.nreg = (path.nreg + 1) & 0xf) == path.tag.NREG)
 				{
 					path.nreg = 0; 
 					path.tag.NLOOP--;
@@ -765,7 +853,7 @@ void GSState::TransferMT(BYTE* mem, UINT32 size, int index)
 
 UINT32 GSState::MakeSnapshot(char* path)
 {
-	GSPerfMonAutoTimer at(m_perfmon);
+	// GSPerfMonAutoTimer at(m_perfmon);
 
 	CString fn;
 	fn.Format(_T("%sgsdx9_%s.bmp"), CString(path), CTime::GetCurrentTime().Format(_T("%Y%m%d%H%M%S")));
@@ -774,7 +862,7 @@ UINT32 GSState::MakeSnapshot(char* path)
 
 void GSState::Capture()
 {
-	GSPerfMonAutoTimer at(m_perfmon);
+	// GSPerfMonAutoTimer at(m_perfmon);
 
 	if(!m_capture.IsCapturing()) 
 	{
@@ -792,7 +880,7 @@ void GSState::ToggleOSD()
 	{
 		if(m_iOSD == 1)
 		{
-			SetWindowText(m_hWnd, m_strDefaultTitle);
+			SetWindowText(_T("PCSX"));
 		}
 
 		m_iOSD = ++m_iOSD % 3;
@@ -805,7 +893,7 @@ void GSState::ToggleOSD()
 
 void GSState::VSync(int field)
 {
-	GSPerfMonAutoTimer at(m_perfmon);
+	// GSPerfMonAutoTimer at(m_perfmon);
 
 	m_fField = !!field;
 
@@ -814,34 +902,6 @@ void GSState::VSync(int field)
 	Flush();
 
 	Flip();
-
-	EndFrame();
-}
-
-void GSState::Reset()
-{
-	GSPerfMonAutoTimer at(m_perfmon);
-
-	memset(&m_env, 0, sizeof(m_env));
-	memset(m_path, 0, sizeof(m_path));
-	memset(m_path2, 0, sizeof(m_path2));
-	memset(&m_v, 0, sizeof(m_v));
-
-//	m_env.PRMODECONT.AC = 1;
-//	m_pPRIM = &m_env.PRIM;
-	m_PRIM = 8;
-
-	m_context = &m_env.CTXT[0];
-
-	m_env.CTXT[0].ftbl = &GSLocalMemory::m_psmtbl[m_env.CTXT[0].FRAME.PSM];
-	m_env.CTXT[0].ztbl = &GSLocalMemory::m_psmtbl[m_env.CTXT[0].ZBUF.PSM];
-	m_env.CTXT[0].ttbl = &GSLocalMemory::m_psmtbl[m_env.CTXT[0].TEX0.PSM];
-
-	m_env.CTXT[1].ftbl = &GSLocalMemory::m_psmtbl[m_env.CTXT[1].FRAME.PSM];
-	m_env.CTXT[1].ztbl = &GSLocalMemory::m_psmtbl[m_env.CTXT[1].ZBUF.PSM];
-	m_env.CTXT[1].ttbl = &GSLocalMemory::m_psmtbl[m_env.CTXT[1].TEX0.PSM];
-
-	if(m_pD3DDev) m_pD3DDev->Clear(0, NULL, D3DCLEAR_TARGET/*|D3DCLEAR_ZBUFFER|D3DCLEAR_STENCIL*/, 0, 1.0f, 0);
 }
 
 void GSState::FinishFlip(FlipInfo rt[2])
@@ -1046,7 +1106,7 @@ void GSState::FinishFlip(FlipInfo rt[2])
 
 		if(m_iOSD == 1)
 		{
-			SetWindowText(m_hWnd, s_stats);
+			SetWindowText(s_stats);
 		}
 	}
 

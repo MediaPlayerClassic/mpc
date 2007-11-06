@@ -56,17 +56,17 @@ void GSState::WriteTransfer(BYTE* pMem, int len)
 	int pitch = (m_env.TRXREG.RRW - m_env.TRXPOS.DSAX)*bpp>>3;
 	int height = len / pitch;
 
-	if(m_nTrBytes > 0 || height < m_env.TRXREG.RRH - m_env.TRXPOS.DSAY)
+	if(m_nTransferBytes > 0 || height < m_env.TRXREG.RRH - m_env.TRXPOS.DSAY)
 	{
 		ASSERT(len <= m_nTrMaxBytes); // transferring more than 4mb into a 4mb local mem doesn't make any sense
 
 		len = min(m_nTrMaxBytes, len);
 
-		if(m_nTrBytes + len > m_nTrMaxBytes)
+		if(m_nTransferBytes + len > m_nTrMaxBytes)
 			FlushWriteTransfer();
 
-		memcpy(&m_pTrBuff[m_nTrBytes], pMem, len);
-		m_nTrBytes += len;
+		memcpy(&m_pTransferBuffer[m_nTransferBytes], pMem, len);
+		m_nTransferBytes += len;
 	}
 	else
 	{
@@ -88,15 +88,15 @@ void GSState::WriteTransfer(BYTE* pMem, int len)
 
 void GSState::FlushWriteTransfer()
 {
-	if(!m_nTrBytes) return;
+	if(!m_nTransferBytes) return;
 
 	int x = m_x, y = m_y;
 
-	(m_mem.*GSLocalMemory::m_psmtbl[m_env.BITBLTBUF.DPSM].st)(m_x, m_y, m_pTrBuff, m_nTrBytes, m_env.BITBLTBUF, m_env.TRXPOS, m_env.TRXREG);
+	(m_mem.*GSLocalMemory::m_psmtbl[m_env.BITBLTBUF.DPSM].st)(m_x, m_y, m_pTransferBuffer, m_nTransferBytes, m_env.BITBLTBUF, m_env.TRXPOS, m_env.TRXREG);
 
-	m_perfmon.IncCounter(GSPerfMon::c_swizzle, m_nTrBytes);
+	m_perfmon.IncCounter(GSPerfMon::c_swizzle, m_nTransferBytes);
 
-	m_nTrBytes = 0;
+	m_nTransferBytes = 0;
 
 	//ASSERT(m_env.TRXREG.RRH >= m_y - y);
 

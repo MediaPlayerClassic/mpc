@@ -34,14 +34,22 @@ static const float one_over_log_2pow32 = 1.0f / (log(2.0f)*32);
 
 //
 
-GSRendererHW::GSRendererHW(HWND hWnd, HRESULT& hr)
-	: GSRenderer<GSVertexHW>(INTERNALRESX, INTERNALRESY, hWnd, hr)
+GSRendererHW::GSRendererHW()
+	: GSRenderer<GSVertexHW>(INTERNALRESX, INTERNALRESY)
 {
-	Reset();
 }
 
 GSRendererHW::~GSRendererHW()
 {
+}
+
+void GSRendererHW::ResetState()
+{
+	m_tc.RemoveAll();
+	m_pRTs.RemoveAll();
+	m_pDSs.RemoveAll();
+
+	__super::ResetState();
 }
 
 HRESULT GSRendererHW::ResetDevice(bool fForceWindowed)
@@ -51,29 +59,6 @@ HRESULT GSRendererHW::ResetDevice(bool fForceWindowed)
 	m_tc.RemoveAll();
 
 	return __super::ResetDevice(fForceWindowed);
-}
-
-void GSRendererHW::Reset()
-{
-	m_primtype = D3DPT_FORCE_DWORD;
-	
-	m_tc.RemoveAll();
-
-	m_pRTs.RemoveAll();
-	m_pDSs.RemoveAll();
-
-	POSITION pos = m_pRenderWnds.GetStartPosition();
-	while(pos)
-	{
-		DWORD FBP;
-		CGSWnd* pWnd = NULL;
-		m_pRenderWnds.GetNextAssoc(pos, FBP, pWnd);
-		pWnd->DestroyWindow();
-		delete pWnd;
-	}
-	m_pRenderWnds.RemoveAll();
-
-	__super::Reset();
 }
 
 void GSRendererHW::VertexKick(bool skip)
@@ -119,16 +104,40 @@ void GSRendererHW::VertexKick(bool skip)
 
 int GSRendererHW::DrawingKick(bool skip)
 {
-
 	GSVertexHW* pVertices = &m_pVertices[m_nVertices];
 	int nVertices = 0;
 
 	CRect sc(m_context->SCISSOR.SCAX0, m_context->SCISSOR.SCAY0, m_context->SCISSOR.SCAX1+1, m_context->SCISSOR.SCAY1+1);
 
-	switch(m_PRIM)
+	switch(m_prim)
 	{
+	case 0: // point
+		m_vl.RemoveAt(0, pVertices[nVertices++]);
+		if(pVertices[nVertices-1].x < sc.left
+		|| pVertices[nVertices-1].y < sc.top
+		|| pVertices[nVertices-1].x >= sc.right
+		|| pVertices[nVertices-1].y >= sc.bottom)
+			return 0;
+		break;
+	case 1: // line
+		m_vl.RemoveAt(0, pVertices[nVertices++]);
+		m_vl.RemoveAt(0, pVertices[nVertices++]);
+		if(pVertices[nVertices-1].x < sc.left && pVertices[nVertices-2].x < sc.left
+		|| pVertices[nVertices-1].y < sc.top && pVertices[nVertices-2].y < sc.top
+		|| pVertices[nVertices-1].x >= sc.right && pVertices[nVertices-2].x >= sc.right
+		|| pVertices[nVertices-1].y >= sc.bottom && pVertices[nVertices-2].y >= sc.bottom)
+			return 0;
+		break;
+	case 2: // line strip
+		m_vl.RemoveAt(0, pVertices[nVertices++]);
+		m_vl.GetAt(0, pVertices[nVertices++]);
+		if(pVertices[nVertices-1].x < sc.left && pVertices[nVertices-2].x < sc.left
+		|| pVertices[nVertices-1].y < sc.top && pVertices[nVertices-2].y < sc.top
+		|| pVertices[nVertices-1].x >= sc.right && pVertices[nVertices-2].x >= sc.right
+		|| pVertices[nVertices-1].y >= sc.bottom && pVertices[nVertices-2].y >= sc.bottom)
+			return 0;
+		break;
 	case 3: // triangle list
-		m_primtype = D3DPT_TRIANGLELIST;
 		m_vl.RemoveAt(0, pVertices[nVertices++]);
 		m_vl.RemoveAt(0, pVertices[nVertices++]);
 		m_vl.RemoveAt(0, pVertices[nVertices++]);
@@ -139,7 +148,6 @@ int GSRendererHW::DrawingKick(bool skip)
 			return 0;
 		break;
 	case 4: // triangle strip
-		m_primtype = D3DPT_TRIANGLELIST;
 		m_vl.RemoveAt(0, pVertices[nVertices++]);
 		m_vl.GetAt(0, pVertices[nVertices++]);
 		m_vl.GetAt(1, pVertices[nVertices++]);
@@ -150,7 +158,6 @@ int GSRendererHW::DrawingKick(bool skip)
 			return 0;
 		break;
 	case 5: // triangle fan
-		m_primtype = D3DPT_TRIANGLELIST;
 		m_vl.GetAt(0, pVertices[nVertices++]);
 		m_vl.RemoveAt(1, pVertices[nVertices++]);
 		m_vl.GetAt(1, pVertices[nVertices++]);
@@ -161,7 +168,6 @@ int GSRendererHW::DrawingKick(bool skip)
 			return 0;
 		break;
 	case 6: // sprite
-		m_primtype = D3DPT_TRIANGLELIST;
 		m_vl.RemoveAt(0, pVertices[nVertices++]);
 		m_vl.RemoveAt(0, pVertices[nVertices++]);
 		if(pVertices[nVertices-1].x < sc.left && pVertices[nVertices-2].x < sc.left
@@ -200,54 +206,21 @@ int GSRendererHW::DrawingKick(bool skip)
 		pVertices[3] = pVertices[1];
 		pVertices[4] = pVertices[2];
 		break;
-	case 1: // line
-		m_primtype = D3DPT_LINELIST;
-		m_vl.RemoveAt(0, pVertices[nVertices++]);
-		m_vl.RemoveAt(0, pVertices[nVertices++]);
-		if(pVertices[nVertices-1].x < sc.left && pVertices[nVertices-2].x < sc.left
-		|| pVertices[nVertices-1].y < sc.top && pVertices[nVertices-2].y < sc.top
-		|| pVertices[nVertices-1].x >= sc.right && pVertices[nVertices-2].x >= sc.right
-		|| pVertices[nVertices-1].y >= sc.bottom && pVertices[nVertices-2].y >= sc.bottom)
-			return 0;
-		break;
-	case 2: // line strip
-		m_primtype = D3DPT_LINELIST;
-		m_vl.RemoveAt(0, pVertices[nVertices++]);
-		m_vl.GetAt(0, pVertices[nVertices++]);
-		if(pVertices[nVertices-1].x < sc.left && pVertices[nVertices-2].x < sc.left
-		|| pVertices[nVertices-1].y < sc.top && pVertices[nVertices-2].y < sc.top
-		|| pVertices[nVertices-1].x >= sc.right && pVertices[nVertices-2].x >= sc.right
-		|| pVertices[nVertices-1].y >= sc.bottom && pVertices[nVertices-2].y >= sc.bottom)
-			return 0;
-		break;
-	case 0: // point
-		m_primtype = D3DPT_POINTLIST;
-		m_vl.RemoveAt(0, pVertices[nVertices++]);
-		if(pVertices[nVertices-1].x < sc.left
-		|| pVertices[nVertices-1].y < sc.top
-		|| pVertices[nVertices-1].x >= sc.right
-		|| pVertices[nVertices-1].y >= sc.bottom)
-			return 0;
-		break;
 	default:
 		//ASSERT(0);
 		m_vl.RemoveAll();
 		return 0;
 	}
-/*
-	int gt = 0;
-	for(int i = 0; i < nVertices; i++)
-		if(pVertices[i].rhw > 0) gt++;
-	if(gt != nVertices) 
-		return 0;
-*/
+
 	if(skip || !m_regs.IsEnabled(0) && !m_regs.IsEnabled(1))
+	{
 		return 0;
+	}
 
 	if(!m_pPRIM->IIP)
 	{
 		pVertices[0].color = pVertices[nVertices-1].color;
-		if(m_PRIM == 6) pVertices[3].color = pVertices[5].color;
+		if(m_prim == 6) pVertices[3].color = pVertices[5].color;
 		/*for(int i = nVertices-1; i > 0; i--)
 			pVertices[i-1].color = pVertices[i].color;*/
 	}
@@ -260,17 +233,31 @@ void GSRendererHW::FlushPrim()
 	if(m_nVertices > 0 && !(m_pPRIM->TME && HasSharedBits(m_context->TEX0.TBP0, m_context->TEX0.PSM, m_context->FRAME.Block(), m_context->FRAME.PSM)))
 	do
 	{
+		D3DPRIMITIVETYPE primtype;
+
 		int nPrims = 0;
 
-		switch(m_primtype)
+		switch(m_prim)
 		{
-		case D3DPT_TRIANGLELIST: ASSERT(!(m_nVertices%3)); nPrims = m_nVertices/3; break;
-		case D3DPT_TRIANGLESTRIP: ASSERT(m_nVertices > 2); nPrims = m_nVertices-2; break;
-		case D3DPT_TRIANGLEFAN: ASSERT(m_nVertices > 2); nPrims = m_nVertices-2; break;
-		case D3DPT_LINELIST: ASSERT(!(m_nVertices&1)); nPrims = m_nVertices/2; break;
-		case D3DPT_LINESTRIP: ASSERT(m_nVertices > 1); nPrims = m_nVertices-1; break;
-		case D3DPT_POINTLIST: nPrims = m_nVertices; break;
-		default: ASSERT(0); return;
+		case 0:
+			primtype = D3DPT_POINTLIST;
+			nPrims = m_nVertices;
+			break;
+		case 1: case 2:
+			primtype = D3DPT_LINELIST;
+			nPrims = m_nVertices / 2; 
+			break;
+		case 3: case 4: case 5: case 6:
+			primtype = D3DPT_TRIANGLELIST;
+			nPrims = m_nVertices / 3; 
+			break;
+		default:
+#ifdef _DEBUG
+			ASSERT(0);
+			break;
+#else
+			__assume(0);
+#endif
 		}
 
 		m_perfmon.IncCounter(GSPerfMon::c_prim, nPrims);
@@ -486,7 +473,7 @@ void GSRendererHW::FlushPrim()
 
 		if(1)//!m_env.PABE.PABE)
 		{
-			hr = m_pD3DDev->DrawPrimitiveUP(m_primtype, nPrims, m_pVertices, sizeof(GSVertexHW));
+			hr = m_pD3DDev->DrawPrimitiveUP(primtype, nPrims, m_pVertices, sizeof(GSVertexHW));
 		}
 /*		else
 		{
@@ -497,11 +484,11 @@ void GSRendererHW::FlushPrim()
 
 			hr = m_pD3DDev->SetRenderState(D3DRS_ALPHAFUNC, D3DCMP_GREATEREQUAL);
 			hr = m_pD3DDev->SetRenderState(D3DRS_ALPHABLENDENABLE, TRUE);
-			hr = m_pD3DDev->DrawPrimitive(m_primtype, 0, nPrims);
+			hr = m_pD3DDev->DrawPrimitive(primtype, 0, nPrims);
 
 			hr = m_pD3DDev->SetRenderState(D3DRS_ALPHAFUNC, D3DCMP_LESS);
 			hr = m_pD3DDev->SetRenderState(D3DRS_ALPHABLENDENABLE, FALSE);
-			hr = m_pD3DDev->DrawPrimitive(m_primtype, 0, nPrims);
+			hr = m_pD3DDev->DrawPrimitive(primtype, 0, nPrims);
 		}
 */
 		if(m_context->TEST.ATE && m_context->TEST.AFAIL && m_context->TEST.ATST != 1)
@@ -529,7 +516,9 @@ void GSRendererHW::FlushPrim()
 			hr = m_pD3DDev->SetRenderState(D3DRS_COLORWRITEENABLE, mask);
 
 			if(mask || zwrite)
-				hr = m_pD3DDev->DrawPrimitiveUP(m_primtype, nPrims, m_pVertices, sizeof(GSVertexHW));
+			{
+				hr = m_pD3DDev->DrawPrimitiveUP(primtype, nPrims, m_pVertices, sizeof(GSVertexHW));
+			}
 		}
 
 		hr = m_pD3DDev->EndScene();
@@ -543,8 +532,6 @@ void GSRendererHW::FlushPrim()
 		m_tc.AddRT(TEX0, pRT, scale); 
 	}
 	while(0);
-
-	m_primtype = D3DPT_FORCE_DWORD;
 
 	__super::FlushPrim();
 }
@@ -627,10 +614,7 @@ void GSRendererHW::Flip()
 	}
 
 	FinishFlip(rt);
-}
 
-void GSRendererHW::EndFrame()
-{
 	m_tc.IncAge(m_pRTs);
 }
 
@@ -837,7 +821,7 @@ void GSRendererHW::SetupAlphaBlend()
 
 	hr = m_pD3DDev->GetRenderState(D3DRS_ALPHABLENDENABLE, &ABE);
 
-	bool fABE = m_pPRIM->ABE || (m_primtype == D3DPT_LINELIST || m_primtype == D3DPT_LINESTRIP) && m_pPRIM->AA1; // FIXME
+	bool fABE = m_pPRIM->ABE || (m_prim == 1 || m_prim == 2) && m_pPRIM->AA1; // FIXME
 
 	if(fABE != !!ABE)
 	{

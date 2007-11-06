@@ -49,7 +49,6 @@ class GSRendererHW : public GSRenderer<GSVertexHW>
 protected:
 	CSurfMap<IDirect3DTexture9> m_pRTs;
 	CSurfMap<IDirect3DSurface9> m_pDSs;
-	CAtlMap<DWORD, CGSWnd*> m_pRenderWnds;
 
 	GSTextureCache m_tc;
 
@@ -60,20 +59,17 @@ protected:
 	void SetupAlphaTest();
 	void SetupScissor(scale_t& s);
 
-	void Reset();
+	void ResetState();
 	void VertexKick(bool skip);
 	int DrawingKick(bool skip);
 	void FlushPrim();
 	void Flip();
-	void EndFrame();
 	void InvalidateTexture(const GIFRegBITBLTBUF& BITBLTBUF, CRect r);
 	void InvalidateLocalMem(DWORD BP, DWORD TBP0, DWORD PSM, CRect r);
 	void MinMaxUV(int w, int h, CRect& r);
 
-	D3DPRIMITIVETYPE m_primtype;
-
 public:
-	GSRendererHW(HWND hWnd, HRESULT& hr);
+	GSRendererHW();
 	virtual ~GSRendererHW();
 
 	HRESULT ResetDevice(bool fForceWindowed = false);

@@ -1235,6 +1235,14 @@
 				>
 			</File>
 			<File
+				RelativePath=".\GSDrawingContext.h"
+				>
+			</File>
+			<File
+				RelativePath=".\GSDrawingEnvironment.h"
+				>
+			</File>
+			<File
 				RelativePath=".\GSdx9.h"
 				>
 			</File>
@@ -1252,6 +1260,10 @@
 			</File>
 			<File
 				RelativePath=".\GSQueue.h"
+				>
+			</File>
+			<File
+				RelativePath=".\GSRegSet.h"
 				>
 			</File>
 			<File
@@ -1292,6 +1304,10 @@
 			</File>
 			<File
 				RelativePath=".\GSUtil.h"
+				>
+			</File>
+			<File
+				RelativePath=".\GSVertex.h"
 				>
 			</File>
 			<File
