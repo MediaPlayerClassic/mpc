@@ -26,6 +26,7 @@
 #include "GSRendererSoft.h"
 #include "GSRendererNull.h"
 #include "GSSettingsDlg.h"
+#include "GSTransferThread.h"
 
 #define PS2E_LT_GS 0x01
 #define PS2E_GS_VERSION 0x0006
@@ -99,8 +100,9 @@ EXPORT_C_(UINT32) PS2EgetCpuPlatform()
 //////////////////
 
 static HRESULT s_hrCoInit = E_FAIL;
-static CAutoPtr<GSState> s_gs;
-static void (*s_fpGSirq)() = NULL;
+static GSState* s_gs;
+static GSTransferThread* s_gst;
+static void (*s_irq)() = NULL;
 
 BYTE* g_pBasePS2Mem = NULL;
 
@@ -121,34 +123,46 @@ EXPORT_C GSshutdown()
 	AFX_MANAGE_STATE(AfxGetStaticModuleState());
 }
 
-EXPORT_C_(INT32) GSopen(void* dsp, char* title, int multithread)
+EXPORT_C GSclose()
+{
+	delete s_gs; s_gs = NULL;
+	delete s_gst; s_gst = NULL;
+
+	if(SUCCEEDED(s_hrCoInit))
+	{
+		::CoUninitialize();
+
+		s_hrCoInit = E_FAIL;
+	}
+}
+
+EXPORT_C_(INT32) GSopen(void* dsp, char* title, int mt)
 {
 	AFX_MANAGE_STATE(AfxGetStaticModuleState());
 
-	s_hrCoInit = ::CoInitialize(0);
-
-	ASSERT(!s_gs);
-
-	s_gs.Free();
+	GSclose();
 
 	switch(AfxGetApp()->GetProfileInt(_T("Settings"), _T("Renderer"), RENDERER_D3D_HW))
 	{
-	case RENDERER_D3D_HW: s_gs.Attach(new GSRendererHW()); break;
-	case RENDERER_D3D_SW_FP: s_gs.Attach(new GSRendererSoftFP()); break;
-	// case RENDERER_D3D_SW_FX: s_gs.Attach(new GSRendererSoftFX()); break;
-	case RENDERER_D3D_NULL: s_gs.Attach(new GSRendererNull()); break;
+	case RENDERER_D3D_HW: s_gs = new GSRendererHW(); break;
+	case RENDERER_D3D_SW_FP: s_gs = new GSRendererSoftFP(); break;
+	// case RENDERER_D3D_SW_FX: s_gs = new GSRendererSoftFX(); break;
+	case RENDERER_D3D_NULL: s_gs = new GSRendererNull(); break;
+	default: return -1;
 	}
 
-	if(!s_gs || !s_gs->Create(CString(title)))
+	s_hrCoInit = ::CoInitialize(0);
+
+	if(!s_gs->Create(CString(title)))
 	{
-		s_gs.Free();
+		GSclose();
 		return -1;
 	}
 
-	s_gs->SetGSirq(s_fpGSirq);
+	s_gst = new GSTransferThread(s_gs);
 
-	s_gs->SetMultiThreaded(!!multithread);
-
+	s_gs->SetIrq(s_irq);
+	s_gs->SetMT(!!mt);
 	s_gs->Show();
 
 	*(HWND*)dsp = *s_gs;
@@ -156,17 +170,11 @@ EXPORT_C_(INT32) GSopen(void* dsp, char* title, int multithread)
 	return 0;
 }
 
-EXPORT_C GSclose()
-{
-	ASSERT(s_gs);
-
-	s_gs.Free();
-
-	if(SUCCEEDED(s_hrCoInit)) ::CoUninitialize();
-}
-
 EXPORT_C GSreset()
 {
+	s_gst->Wait();
+
+	s_gst->Reset();
 	s_gs->Reset();
 }
 
@@ -177,26 +185,30 @@ EXPORT_C GSwriteCSR(UINT32 csr)
 
 EXPORT_C GSreadFIFO(BYTE* mem)
 {
+	s_gst->Wait();
+
 	s_gs->ReadFIFO(mem);
 }
 
 EXPORT_C GSgifTransfer1(BYTE* mem, UINT32 addr)
 {
-	s_gs->Transfer1(mem, addr);
+	s_gst->Transfer(mem + addr, -1, 0);
 }
 
 EXPORT_C GSgifTransfer2(BYTE* mem, UINT32 size)
 {
-	s_gs->Transfer2(mem, size);
+	s_gst->Transfer(mem, size, 1);
 }
 
 EXPORT_C GSgifTransfer3(BYTE* mem, UINT32 size)
 {
-	s_gs->Transfer3(mem, size);
+	s_gst->Transfer(mem, size, 2);
 }
 
 EXPORT_C GSvsync(int field)
 {
+	s_gst->Wait();
+
 	MSG msg;
 
 	ZeroMemory(&msg, sizeof(msg));
@@ -216,8 +228,6 @@ EXPORT_C GSvsync(int field)
 	}
 }
 
-////////
-
 EXPORT_C_(UINT32) GSmakeSnapshot(char* path)
 {
 	return s_gs->MakeSnapshot(path);
@@ -229,6 +239,8 @@ EXPORT_C GSkeyEvent(keyEvent* ev)
 
 EXPORT_C_(INT32) GSfreeze(int mode, freezeData* data)
 {
+	s_gst->Wait();
+
 	if(mode == FREEZE_SAVE)
 	{
 		return s_gs->Freeze(data, false);
@@ -316,10 +328,9 @@ EXPORT_C GSabout()
 {
 }
 
-EXPORT_C GSirqCallback(void (*fpGSirq)())
+EXPORT_C GSirqCallback(void (*irq)())
 {
-	s_fpGSirq = fpGSirq;
-	// if(s_gs) s_gs->GSirq(fpGSirq);
+	s_irq = irq;
 }
 
 /////////////////

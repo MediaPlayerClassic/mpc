@@ -32,15 +32,11 @@ END_MESSAGE_MAP()
 GSState::GSState(int w, int h) 
 	: m_width(w)
 	, m_height(h)
-	, m_iOSD(1)
-	, m_evThreadQuit(FALSE)
-	, m_evThreadIdle(TRUE)
-	, m_queue(100)
-	, m_fpGSirq(NULL)
+	, m_osd(1)
+	, m_irq(NULL)
 	, m_q(1.0f)
 {
 	m_fEnablePalettizedTextures = !!AfxGetApp()->GetProfileInt(_T("Settings"), _T("fEnablePalettizedTextures"), FALSE);
-	m_fNloopHack = !!AfxGetApp()->GetProfileInt(_T("Settings"), _T("fNloopHack"), FALSE);
 
 //	m_regs.pCSR->rREV = 0x20;
 
@@ -134,14 +130,10 @@ GSState::GSState(int w, int h)
 	m_fpGIFRegHandlers[GIF_A_D_REG_LABEL] = &GSState::GIFRegHandlerLABEL;
 
 	ResetState();
-
-	CreateThread();
 }
 
 GSState::~GSState()
 {
-	QuitThread();
-
 	ResetState();
 
 	_aligned_free(m_pTransferBuffer);
@@ -324,7 +316,6 @@ void GSState::ResetState()
 {
 	memset(&m_env, 0, sizeof(m_env));
 	memset(m_path, 0, sizeof(m_path));
-	memset(m_path2, 0, sizeof(m_path2));
 	memset(&m_v, 0, sizeof(m_v));
 
 //	m_env.PRMODECONT.AC = 1;
@@ -353,10 +344,7 @@ HRESULT GSState::ResetDevice(bool fForceWindowed)
 
 	HRESULT hr;
 
-	if(!m_pD3D)
-	{
-		return E_FAIL;
-	}
+	if(!m_pD3D) return E_FAIL;
 
 	m_pOrgRenderTarget = NULL;
 	m_pTmpRenderTarget = NULL;
@@ -394,7 +382,7 @@ HRESULT GSState::ResetDevice(bool fForceWindowed)
 		SetWindowPos(NULL, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE);
 		SetMenu(NULL);
 
-		m_iOSD = 0;
+		m_osd = 0;
 	}
 
 	if(!m_pD3DDev)
@@ -500,8 +488,6 @@ UINT32 GSState::Freeze(freezeData* fd, bool fSizeOnly)
 		return -1;
 	}
 
-	SyncThread();
-
 	Flush();
 
 	BYTE* data = fd->data;
@@ -539,8 +525,6 @@ UINT32 GSState::Defrost(const freezeData* fd)
 	memcpy(&version, data, sizeof(version)); data += sizeof(version);
 	if(m_version != version) return -1;
 
-	SyncThread();
-
 	Flush();
 
 	memcpy(&m_env, data, sizeof(m_env)); data += sizeof(m_env);
@@ -574,40 +558,13 @@ void GSState::WriteCSR(UINT32 csr)
 
 void GSState::ReadFIFO(BYTE* mem)
 {
-	// GSPerfMonAutoTimer at(m_perfmon);
-
-	SyncThread();
-
 	FlushWriteTransfer();
 
 	ReadTransfer(mem, 16);
 }
 
-void GSState::Transfer1(BYTE* mem, UINT32 addr)
-{
-	ASSERT(m_path2[1].tag.NLOOP == 0 && m_path2[2].tag.NLOOP == 0);
-
-	TransferMT(mem + addr, -1, 0);
-}
-
-void GSState::Transfer2(BYTE* mem, UINT32 size)
-{
-	ASSERT(m_path2[0].tag.NLOOP == 0 && m_path2[2].tag.NLOOP == 0);
-
-	TransferMT(mem, size, 1);
-}
-
-void GSState::Transfer3(BYTE* mem, UINT32 size)
-{
-	ASSERT(m_path2[0].tag.NLOOP == 0 && m_path2[1].tag.NLOOP == 0);
-
-	TransferMT(mem, size, 2);
-}
-
 void GSState::Transfer(BYTE* mem, UINT32 size, int index)
 {
-	// GSPerfMonAutoTimer at(m_perfmon);
-
 	GIFPath& path = m_path[index];
 
 	while(size > 0)
@@ -637,7 +594,7 @@ void GSState::Transfer(BYTE* mem, UINT32 size, int index)
 			}
 			else if(path.tag.NLOOP == 0)
 			{
-				if(m_fNloopHack && index == 0)
+				if(index == 0)
 				{
 					continue;
 				}
@@ -737,167 +694,16 @@ void GSState::Transfer(BYTE* mem, UINT32 size, int index)
 	}
 }
 
-void GSState::TransferMT(BYTE* mem, UINT32 size, int index)
-{
-	GSTransferBuffer* buff = new GSTransferBuffer();
-
-	buff->m_data = mem;
-	buff->m_size = size;
-	buff->m_index = index;
-
-	GIFPath& path = m_path2[index];
-
-	while(size > 0)
-	{
-		bool fEOP = false;
-
-		if(path.tag.NLOOP == 0)
-		{
-			path.tag = *(GIFTag*)mem;
-			path.nreg = 0;
-
-			mem += sizeof(GIFTag);
-			size--;
-
-			if(path.tag.EOP)
-			{
-				fEOP = true;
-			}
-			else if(path.tag.NLOOP == 0)
-			{
-				if(m_fNloopHack && index == 0)
-				{
-					continue;
-				}
-
-				fEOP = true;
-
-				// ASSERT(0);
-			}
-		}
-
-		UINT32 size_msb = size & (1<<31);
-
-		switch(path.tag.FLG)
-		{
-		case GIF_FLG_PACKED:
-
-			for(GIFPackedReg* r = (GIFPackedReg*)mem; path.tag.NLOOP > 0 && size > 0; r++, size--, mem += sizeof(GIFPackedReg))
-			{
-				if((path.nreg = (path.nreg + 1) & 0xf) == path.tag.NREG) 
-				{
-					path.nreg = 0; 
-					path.tag.NLOOP--;
-				}
-			}
-
-			break;
-
-		case GIF_FLG_REGLIST:
-
-			size *= 2;
-
-			for(GIFReg* r = (GIFReg*)mem; path.tag.NLOOP > 0 && size > 0; r++, size--, mem += sizeof(GIFReg))
-			{
-				if((path.nreg = (path.nreg + 1) & 0xf) == path.tag.NREG)
-				{
-					path.nreg = 0; 
-					path.tag.NLOOP--;
-				}
-			}
-			
-			if(size & 1) mem += sizeof(GIFReg);
-
-			size /= 2;
-			size |= size_msb; // a bit lame :P
-			
-			break;
-
-		case GIF_FLG_IMAGE2: // hmmm
-			
-			path.tag.NLOOP = 0;
-
-			break;
-
-		case GIF_FLG_IMAGE:
-			{
-				int len = min(size, path.tag.NLOOP);
-
-				//ASSERT(!(len&3));
-
-				mem += len*16;
-				path.tag.NLOOP -= len;
-				size -= len;
-			}
-
-			break;
-
-		default: 
-			__assume(0);
-		}
-
-		if(fEOP && (INT32)size <= 0)
-		{
-			break;
-		}
-	}
-
-	size = mem - buff->m_data;
-
-	ASSERT(size > 0);
-
-	memcpy(buff->m_data = new BYTE[size], mem - size, size);
-
-	m_queue.Enqueue(buff);
-}
-
 UINT32 GSState::MakeSnapshot(char* path)
 {
-	// GSPerfMonAutoTimer at(m_perfmon);
-
 	CString fn;
 	fn.Format(_T("%sgsdx9_%s.bmp"), CString(path), CTime::GetCurrentTime().Format(_T("%Y%m%d%H%M%S")));
 	return D3DXSaveSurfaceToFile(fn, D3DXIFF_BMP, m_pOrgRenderTarget, NULL, NULL);
 }
 
-void GSState::Capture()
-{
-	// GSPerfMonAutoTimer at(m_perfmon);
-
-	if(!m_capture.IsCapturing()) 
-	{
-		m_capture.BeginCapture(m_pD3DDev, m_regs.GetFPS());
-	}
-	else
-	{
-		m_capture.EndCapture();
-	}
-}
-
-void GSState::ToggleOSD()
-{
-	if(m_d3dpp.Windowed)
-	{
-		if(m_iOSD == 1)
-		{
-			SetWindowText(_T("PCSX"));
-		}
-
-		m_iOSD = ++m_iOSD % 3;
-	}
-	else
-	{
-		m_iOSD = m_iOSD ? 0 : 2;
-	}
-}
-
 void GSState::VSync(int field)
 {
-	// GSPerfMonAutoTimer at(m_perfmon);
-
 	m_fField = !!field;
-
-	SyncThread();
 
 	Flush();
 
@@ -1104,13 +910,13 @@ void GSState::FinishFlip(FlipInfo rt[2])
 		s_stats = m_perfmon.ToString(m_regs.GetFPS());
 		// stats.Format(_T("%s - %.2f MB"), CString(stats), 1.0f*m_pD3DDev->GetAvailableTextureMem()/1024/1024);
 
-		if(m_iOSD == 1)
+		if(m_osd == 1)
 		{
 			SetWindowText(s_stats);
 		}
 	}
 
-	if(m_iOSD == 2)
+	if(m_osd == 2)
 	{
 		CString str;
 
@@ -1160,50 +966,3 @@ void GSState::Flush()
 	FlushPrim();
 }
 
-DWORD WINAPI GSState::StaticThreadProc(LPVOID lpParam)
-{
-	HRESULT hr = ::CoInitializeEx(0, COINIT_MULTITHREADED);
-	DWORD ret = ((GSState*)lpParam)->ThreadProc();
-	if(SUCCEEDED(hr)) ::CoUninitialize();
-	return ret;
-}
-
-DWORD GSState::ThreadProc()
-{
-	const HANDLE events[] = {m_evThreadQuit, m_queue.GetEnqueueEvent()};
-
-	while(1)
-	{
-		switch(WaitForMultipleObjects(countof(events), events, FALSE, INFINITE))
-		{
-		case WAIT_OBJECT_0+0:
-			return 0;
-
-		case WAIT_OBJECT_0+1:
-
-			m_evThreadIdle.Reset();
-
-			// for(size_t count = m_queue.GetCount(); count > 0; count--)
-			while(m_queue.GetCount() > 0)
-			// while(m_queue.GetEnqueueEvent().Wait(0))
-			{
-				GSTransferBuffer* tb = m_queue.Dequeue();
-				Transfer(tb->m_data, tb->m_size, tb->m_index);
-				delete tb;
-			}
-
-			// Flush();
-
-			m_evThreadIdle.Set();
-
-			break;
-
-		default:
-			return -1;
-		}
-	}
-
-	ASSERT(0);
-
-	return -1;
-}
