@@ -22,7 +22,6 @@
 #pragma once
 
 #include "GS.h"
-#include "GSWnd.h"
 #include "GSDrawingContext.h"
 #include "GSDrawingEnvironment.h"
 #include "GSRegSet.h"
@@ -34,9 +33,56 @@
 #include "GSPerfMon.h"
 #include "GSQueue.h"
 
-class GSState
+class GSState : public CWnd
 {
+	DECLARE_MESSAGE_MAP()
+
 	friend class GSTextureCache;
+
+public:
+	GSState(int w, int h);
+	virtual ~GSState();
+
+	virtual bool Create(LPCTSTR title);
+
+	void Show();
+	void Hide();
+
+	void OnClose();
+
+	UINT32 Freeze(freezeData* fd, bool fSizeOnly);
+	UINT32 Defrost(const freezeData* fd);
+	void Reset();
+	void WriteCSR(UINT32 csr);
+	void ReadFIFO(BYTE* mem);
+	void Transfer1(BYTE* mem, UINT32 addr);
+	void Transfer2(BYTE* mem, UINT32 size);
+	void Transfer3(BYTE* mem, UINT32 size);
+	void Transfer(BYTE* mem, UINT32 size, int index);
+	void TransferMT(BYTE* mem, UINT32 size, int index);
+	void VSync(int field);
+	UINT32 MakeSnapshot(char* path);
+	void Capture();
+	void ToggleOSD();
+	void SetGSirq(void (*fpGSirq)()) {m_fpGSirq = fpGSirq;}
+	void SetMultiThreaded(bool mt) {m_fMultiThreaded = mt;}
+
+private:
+	void (*m_fpGSirq)();
+	bool m_fMultiThreaded;
+	int m_iOSD;
+
+private:
+	static const int m_nTrMaxBytes = 1024*1024*4;
+	int m_nTransferBytes;
+	BYTE* m_pTransferBuffer;
+	int m_x, m_y;
+	void WriteStep();
+	void ReadStep();
+	void WriteTransfer(BYTE* mem, int len);
+	void FlushWriteTransfer();
+	void ReadTransfer(BYTE* mem, int len);
+	void MoveTransfer();
 
 protected:
 	static const int m_version = 4;
@@ -50,21 +96,10 @@ protected:
 	float m_q;
 	GSPerfMon m_perfmon;
 	GSCapture m_capture;
-
-private:
-	static const int m_nTrMaxBytes = 1024*1024*4;
-	int m_nTrBytes;
-	BYTE* m_pTrBuff;
-	int m_x, m_y;
-	void WriteStep();
-	void ReadStep();
-	void WriteTransfer(BYTE* mem, int len);
-	void FlushWriteTransfer();
-	void ReadTransfer(BYTE* mem, int len);
-	void MoveTransfer();
+	// FIXME: savestate
+	GIFRegPRIM* m_pPRIM;
 
 protected:
-	HWND m_hWnd;
 	int m_width, m_height;
 	CComPtr<IDirect3D9> m_pD3D;
 	CComPtr<IDirect3DDevice9> m_pD3DDev;
@@ -84,12 +119,14 @@ protected:
 	bool m_fField;
 	D3DTEXTUREFILTERTYPE m_texfilter;
 
+	virtual void ResetState();
+	virtual HRESULT ResetDevice(bool fForceWindowed = false);
+
 	virtual void VertexKick(bool skip) = 0;
 	virtual int DrawingKick(bool skip) = 0;
 	virtual void NewPrim() = 0;
 	virtual void FlushPrim() = 0;
 	virtual void Flip() = 0;
-	virtual void EndFrame() = 0;
 	virtual void InvalidateTexture(const GIFRegBITBLTBUF& BITBLTBUF, CRect r) {}
 	virtual void InvalidateLocalMem(DWORD TBP0, DWORD BW, DWORD PSM, CRect r) {}
 	virtual void MinMaxUV(int w, int h, CRect& r) {r.SetRect(0, 0, w, h);}
@@ -99,14 +136,7 @@ protected:
 
 	void Flush();
 
-	//
-
-
-	// FIXME: savestate
-	GIFRegPRIM* m_pPRIM;
-	UINT32 m_PRIM;
-
-	void (*m_fpGSirq)();
+private:
 
 	typedef void (__fastcall GSState::*GIFPackedRegHandler)(GIFPackedReg* r);
 	GIFPackedRegHandler m_fpGIFPackedRegHandlers[16];
@@ -188,36 +218,7 @@ protected:
 	void __fastcall GIFRegHandlerFINISH(GIFReg* r);
 	void __fastcall GIFRegHandlerLABEL(GIFReg* r);
 
-public:
-	GSState(int w, int h, HWND hWnd, HRESULT& hr);
-	virtual ~GSState();
-
-	bool m_fMultiThreaded;
-
-	virtual HRESULT ResetDevice(bool fForceWindowed = false);
-
-	UINT32 Freeze(freezeData* fd, bool fSizeOnly);
-	UINT32 Defrost(const freezeData* fd);
-	virtual void Reset();
-	void WriteCSR(UINT32 csr);
-	void ReadFIFO(BYTE* mem);
-	void Transfer1(BYTE* mem, UINT32 addr);
-	void Transfer2(BYTE* mem, UINT32 size);
-	void Transfer3(BYTE* mem, UINT32 size);
-	void Transfer(BYTE* mem, UINT32 size, int index);
-	void TransferMT(BYTE* mem, UINT32 size, int index);
-	void VSync(int field);
-
-	void GSirq(void (*fpGSirq)()) {m_fpGSirq = fpGSirq;}
-
-	UINT32 MakeSnapshot(char* path);
-	void Capture();
-
-	CString m_strDefaultTitle;
-	int m_iOSD;
-	void ToggleOSD();
-
-protected:
+private:
 
 	GIFPath m_path2[3];
 
@@ -275,7 +276,6 @@ protected:
 	void SyncThread()
 	{
 		m_queue.GetDequeueEvent().Wait();
-
 		m_evThreadIdle.Wait();
 	}
 };

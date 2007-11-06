@@ -25,7 +25,6 @@
 #include "GSRendererHW.h"
 #include "GSRendererSoft.h"
 #include "GSRendererNull.h"
-#include "GSWnd.h"
 #include "GSSettingsDlg.h"
 
 #define PS2E_LT_GS 0x01
@@ -70,6 +69,7 @@ EXPORT_C_(char*) PS2EgetLibName()
 #endif
 
 	POSITION pos = sl.GetHeadPosition();
+
 	while(pos)
 	{
 		if(pos == sl.GetHeadPosition()) str += _T(" (");
@@ -99,7 +99,6 @@ EXPORT_C_(UINT32) PS2EgetCpuPlatform()
 //////////////////
 
 static HRESULT s_hrCoInit = E_FAIL;
-static CGSWnd s_hWnd;
 static CAutoPtr<GSState> s_gs;
 static void (*s_fpGSirq)() = NULL;
 
@@ -122,65 +121,46 @@ EXPORT_C GSshutdown()
 	AFX_MANAGE_STATE(AfxGetStaticModuleState());
 }
 
-EXPORT_C_(INT32) GSopen(void* pDsp, char* Title, int multithread)
+EXPORT_C_(INT32) GSopen(void* dsp, char* title, int multithread)
 {
 	AFX_MANAGE_STATE(AfxGetStaticModuleState());
-
-	//
 
 	s_hrCoInit = ::CoInitialize(0);
 
 	ASSERT(!s_gs);
+
 	s_gs.Free();
-
-	if(!s_hWnd.Create(_T("PCSX2")))
-		return -1;
-
-	HRESULT hr;
 
 	switch(AfxGetApp()->GetProfileInt(_T("Settings"), _T("Renderer"), RENDERER_D3D_HW))
 	{
-	case RENDERER_D3D_HW: s_gs.Attach(new GSRendererHW(s_hWnd, hr)); break;
-	case RENDERER_D3D_SW_FP: s_gs.Attach(new GSRendererSoftFP(s_hWnd, hr)); break;
-	// case RENDERER_D3D_SW_FX: s_gs.Attach(new GSRendererSoftFX(s_hWnd, hr)); break;
-	case RENDERER_D3D_NULL: s_gs.Attach(new GSRendererNull(s_hWnd, hr)); break;
+	case RENDERER_D3D_HW: s_gs.Attach(new GSRendererHW()); break;
+	case RENDERER_D3D_SW_FP: s_gs.Attach(new GSRendererSoftFP()); break;
+	// case RENDERER_D3D_SW_FX: s_gs.Attach(new GSRendererSoftFX()); break;
+	case RENDERER_D3D_NULL: s_gs.Attach(new GSRendererNull()); break;
 	}
 
-	if(!s_gs || FAILED(hr))
+	if(!s_gs || !s_gs->Create(CString(title)))
 	{
 		s_gs.Free();
-		s_hWnd.DestroyWindow();
 		return -1;
 	}
 
-	//
+	s_gs->SetGSirq(s_fpGSirq);
 
-	if(!IsWindow(s_hWnd))
-		return -1;
+	s_gs->SetMultiThreaded(!!multithread);
 
-	*(HWND*)pDsp = s_hWnd;
+	s_gs->Show();
 
-	s_gs->ResetDevice();
-
-	s_gs->GSirq(s_fpGSirq);
-
-	s_gs->m_fMultiThreaded = !!multithread;
-
-	s_hWnd.SetWindowText(CString(Title));
-
-	s_hWnd.Show();
+	*(HWND*)dsp = *s_gs;
 
 	return 0;
 }
 
 EXPORT_C GSclose()
 {
-	s_hWnd.Hide();
-
 	ASSERT(s_gs);
-	s_gs.Free();
 
-	s_hWnd.DestroyWindow();
+	s_gs.Free();
 
 	if(SUCCEEDED(s_hrCoInit)) ::CoUninitialize();
 }
@@ -245,21 +225,6 @@ EXPORT_C_(UINT32) GSmakeSnapshot(char* path)
 
 EXPORT_C GSkeyEvent(keyEvent* ev)
 {
-	if(ev->event != KEYPRESS) return;
-
-	switch(ev->key)
-	{
-		case VK_INSERT:
-			s_gs->Capture();
-			break;
-
-		case VK_DELETE:
-			s_gs->ToggleOSD();
-			break;
-
-		default:
-			break;
-	}
 }
 
 EXPORT_C_(INT32) GSfreeze(int mode, freezeData* data)

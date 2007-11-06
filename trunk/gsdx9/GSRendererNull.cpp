@@ -22,8 +22,8 @@
 #include "StdAfx.h"
 #include "GSRendererNull.h"
 
-GSRendererNull::GSRendererNull(HWND hWnd, HRESULT& hr)
-	: GSRenderer<NULLVERTEX>(256, 256, hWnd, hr)
+GSRendererNull::GSRendererNull()
+	: GSRenderer<NULLVERTEX>(256, 256)
 {
 }
 
@@ -44,8 +44,19 @@ int GSRendererNull::DrawingKick(bool skip)
 {
 	NULLVERTEX v;
 
-	switch(m_PRIM)
+	switch(m_prim)
 	{
+	case 0: // point
+		m_vl.RemoveAt(0, v);
+		break;
+	case 1: // line
+		m_vl.RemoveAt(0, v);
+		m_vl.RemoveAt(0, v);
+		break;
+	case 2: // line strip
+		m_vl.RemoveAt(0, v);
+		m_vl.GetAt(0, v);
+		break;
 	case 3: // triangle list
 		m_vl.RemoveAt(0, v);
 		m_vl.RemoveAt(0, v);
@@ -63,17 +74,6 @@ int GSRendererNull::DrawingKick(bool skip)
 		break;
 	case 6: // sprite
 		m_vl.RemoveAt(0, v);
-		m_vl.RemoveAt(0, v);
-		break;
-	case 1: // line
-		m_vl.RemoveAt(0, v);
-		m_vl.RemoveAt(0, v);
-		break;
-	case 2: // line strip
-		m_vl.RemoveAt(0, v);
-		m_vl.GetAt(0, v);
-		break;
-	case 0: // point
 		m_vl.RemoveAt(0, v);
 		break;
 	default:
@@ -94,8 +94,4 @@ void GSRendererNull::Flip()
 {
 	FlipInfo rt[2];
 	FinishFlip(rt);
-}
-
-void GSRendererNull::EndFrame()
-{
 }

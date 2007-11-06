@@ -27,13 +27,10 @@ template <class Vertex>
 class GSRendererSoft : public GSRenderer<Vertex>
 {
 protected:
-	void Reset();
+	void ResetState();
 	int DrawingKick(bool skip);
 	void FlushPrim();
 	void Flip();
-	void EndFrame();
-
-	enum {PRIM_NONE, PRIM_SPRITE, PRIM_TRIANGLE, PRIM_LINE, PRIM_POINT} m_primtype;
 
 	DWORD m_faddr_x0, m_faddr;
 	DWORD m_zaddr_x0, m_zaddr;
@@ -74,7 +71,7 @@ protected:
 	BYTE* m_clamp;
 
 public:
-	GSRendererSoft(HWND hWnd, HRESULT& hr);
+	GSRendererSoft();
 	virtual ~GSRendererSoft();
 
 	HRESULT ResetDevice(bool fForceWindowed = false);
@@ -86,7 +83,7 @@ protected:
 	void VertexKick(bool skip);
 
 public:
-	GSRendererSoftFP(HWND hWnd, HRESULT& hr);
+	GSRendererSoftFP();
 };
 /*
 class GSRendererSoftFX : public GSRendererSoft<GSSoftVertexFX>
@@ -95,6 +92,6 @@ protected:
 	void VertexKick(bool skip);
 
 public:
-	GSRendererSoftFX(HWND hWnd, HRESULT& hr);
+	GSRendererSoftFX();
 };
 */

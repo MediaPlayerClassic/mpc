@@ -24,11 +24,9 @@
 #include "x86.h"
 
 template <class Vertex>
-GSRendererSoft<Vertex>::GSRendererSoft(HWND hWnd, HRESULT& hr)
-	: GSRenderer<Vertex>(640, 512, hWnd, hr)
+GSRendererSoft<Vertex>::GSRendererSoft()
+	: GSRenderer<Vertex>(640, 512)
 {
-	Reset();
-
 	int i = SHRT_MIN;
 	BYTE j = 0;
 	for(; i < 0; i++, j++) m_clip[j] = 0, m_mask[j] = j;
@@ -102,12 +100,11 @@ HRESULT GSRendererSoft<Vertex>::ResetDevice(bool fForceWindowed)
 }
 
 template <class Vertex>
-void GSRendererSoft<Vertex>::Reset()
+void GSRendererSoft<Vertex>::ResetState()
 {
-	m_primtype = PRIM_NONE;
 	m_pTexture = NULL;
 
-	__super::Reset();
+	__super::ResetState();
 }
 
 template <class Vertex>
@@ -116,28 +113,35 @@ int GSRendererSoft<Vertex>::DrawingKick(bool skip)
 	Vertex* pVertices = &m_pVertices[m_nVertices];
 	int nVertices = 0;
 
-	switch(m_PRIM)
+	switch(m_prim)
 	{
+	case 0: // point
+		m_vl.RemoveAt(0, pVertices[nVertices++]);
+		break;
+	case 1: // line
+		m_vl.RemoveAt(0, pVertices[nVertices++]);
+		m_vl.RemoveAt(0, pVertices[nVertices++]);
+		break;
+	case 2: // line strip
+		m_vl.RemoveAt(0, pVertices[nVertices++]);
+		m_vl.GetAt(0, pVertices[nVertices++]);
+		break;
 	case 3: // triangle list
-		m_primtype = PRIM_TRIANGLE;
 		m_vl.RemoveAt(0, pVertices[nVertices++]);
 		m_vl.RemoveAt(0, pVertices[nVertices++]);
 		m_vl.RemoveAt(0, pVertices[nVertices++]);
 		break;
 	case 4: // triangle strip
-		m_primtype = PRIM_TRIANGLE;
 		m_vl.RemoveAt(0, pVertices[nVertices++]);
 		m_vl.GetAt(0, pVertices[nVertices++]);
 		m_vl.GetAt(1, pVertices[nVertices++]);
 		break;
 	case 5: // triangle fan
-		m_primtype = PRIM_TRIANGLE;
 		m_vl.GetAt(0, pVertices[nVertices++]);
 		m_vl.RemoveAt(1, pVertices[nVertices++]);
 		m_vl.GetAt(1, pVertices[nVertices++]);
 		break;
 	case 6: // sprite
-		m_primtype = PRIM_SPRITE;
 		m_vl.RemoveAt(0, pVertices[nVertices++]);
 		m_vl.RemoveAt(0, pVertices[nVertices++]);
 		nVertices += 2;
@@ -157,27 +161,15 @@ int GSRendererSoft<Vertex>::DrawingKick(bool skip)
 		pVertices[4] = pVertices[2];
 		*/
 		break;
-	case 1: // line
-		m_primtype = PRIM_LINE;
-		m_vl.RemoveAt(0, pVertices[nVertices++]);
-		m_vl.RemoveAt(0, pVertices[nVertices++]);
-		break;
-	case 2: // line strip
-		m_primtype = PRIM_LINE;
-		m_vl.RemoveAt(0, pVertices[nVertices++]);
-		m_vl.GetAt(0, pVertices[nVertices++]);
-		break;
-	case 0: // point
-		m_primtype = PRIM_POINT;
-		m_vl.RemoveAt(0, pVertices[nVertices++]);
-		break;
 	default:
 		ASSERT(0);
 		return 0;
 	}
 
 	if(skip || !m_regs.IsEnabled(0) && !m_regs.IsEnabled(1))
+	{
 		return 0;
+	}
 
 	if(!m_pPRIM->IIP)
 	{
@@ -239,36 +231,38 @@ void GSRendererSoft<Vertex>::FlushPrim()
 		int nPrims = 0;
 		Vertex* pVertices = m_pVertices;
 
-		switch(m_primtype)
+		switch(m_prim)
 		{
-		case PRIM_SPRITE:
-			ASSERT(!(m_nVertices&3));
-			nPrims = m_nVertices / 4;
-			for(int i = 0; i < nPrims; i++) DrawSprite(&m_pVertices[i*4]);
+		case 0:
+			nPrims = m_nVertices;
+			for(int i = 0; i < nPrims; i++, pVertices++) DrawPoint(pVertices);
 			break;
-		case PRIM_TRIANGLE:
+		case 1: case 2: 
+			ASSERT(!(m_nVertices&1));
+			nPrims = m_nVertices / 2;
+			for(int i = 0; i < nPrims; i++, pVertices += 2) DrawLine(pVertices);
+			break;
+		case 3: case 4: case 5:
 			ASSERT(!(m_nVertices%3));
 			nPrims = m_nVertices / 3;
 			for(int i = 0; i < nPrims; i++, pVertices += 3) DrawTriangle(pVertices);
 			break;
-		case PRIM_LINE: 
-			ASSERT(!(m_nVertices&1));
-			nPrims = m_nVertices / 2;
-			for(int i = 0; i < nPrims; i++) DrawLine(&m_pVertices[i*2]);
-			break;
-		case PRIM_POINT:
-			nPrims = m_nVertices;
-			for(int i = 0; i < nPrims; i++) DrawPoint(&m_pVertices[i]);
+		case 6:
+			ASSERT(!(m_nVertices&3));
+			nPrims = m_nVertices / 4;
+			for(int i = 0; i < nPrims; i++, pVertices += 4) DrawSprite(pVertices);
 			break;
 		default:
-			ASSERT(m_nVertices == 0);
-			return;
+#ifdef _DEBUG
+			ASSERT(0);
+			break;
+#else
+			__assume(0);
+#endif
 		}
 
 		m_perfmon.IncCounter(GSPerfMon::c_prim, nPrims);
 	}
-
-	m_primtype = PRIM_NONE;
 
 	__super::FlushPrim();
 }
@@ -339,11 +333,6 @@ void GSRendererSoft<Vertex>::Flip()
 	}
 
 	FinishFlip(rt);
-}
-
-template <class Vertex>
-void GSRendererSoft<Vertex>::EndFrame()
-{
 }
 
 template <class Vertex>
@@ -806,8 +795,6 @@ void GSRendererSoft<Vertex>::DrawVertex(const Vertex& v)
 	}
 }
 
-static const float one_over_log2 = 1.0f / log(2.0f);
-
 template <class Vertex>
 template <int iLOD, bool bLCM, bool bTCC, int iTFX>
 void GSRendererSoft<Vertex>::DrawVertexTFX(typename Vertex::Vector& Cf, const Vertex& v)
@@ -829,6 +816,8 @@ void GSRendererSoft<Vertex>::DrawVertexTFX(typename Vertex::Vector& Cf, const Ve
 
 		if(iLOD == 1)
 		{
+			static const float one_over_log2 = 1.0f / log(2.0f);
+
 			float lod = (float)(int)m_context->TEX1.K;
 			if(!bLCM) lod += log(fabs((float)t.q)) * one_over_log2 * (1 << m_context->TEX1.L);
 			fBiLinear = lod <= 0 && (m_context->TEX1.MMAG & 1) || lod > 0 && (m_context->TEX1.MMIN & 1);
@@ -976,8 +965,8 @@ void GSRendererSoft<Vertex>::SetupTexture()
 // GSRendererSoftFP
 //
 
-GSRendererSoftFP::GSRendererSoftFP(HWND hWnd, HRESULT& hr)
-	: GSRendererSoft<GSSoftVertexFP>(hWnd, hr)
+GSRendererSoftFP::GSRendererSoftFP()
+	: GSRendererSoft<GSSoftVertexFP>()
 {
 }
 

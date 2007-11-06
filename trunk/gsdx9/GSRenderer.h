@@ -27,23 +27,17 @@ template <class VERTEX> class GSRenderer : public GSState
 {
 protected:
 	VERTEX* m_pVertices;
-	int m_nMaxVertices, m_nVertices, m_nPrims;
+	int m_nMaxVertices, m_nVertices;
 	GSVertexList<VERTEX> m_vl;
+	UINT32 m_prim;
 
-	void Reset()
+	void ResetState()
 	{
-		m_nVertices = m_nPrims = 0;
+		m_nVertices = 0;
 		m_vl.RemoveAll();
+		m_prim = 8; 
 
-		__super::Reset();
-	}
-
-	void ReallocVertices()
-	{
-		VERTEX* pVertices = (VERTEX*)_aligned_malloc(sizeof(VERTEX) * m_nMaxVertices, 16);
-		memcpy(pVertices, m_pVertices, sizeof(VERTEX) * m_nVertices);
-		_aligned_free(m_pVertices);
-		m_pVertices = pVertices;
+		__super::ResetState();
 	}
 
 	void VertexKick(bool skip)
@@ -56,15 +50,18 @@ protected:
 			{
 				m_nMaxVertices <<= 1;
 
-				ReallocVertices();
+				VERTEX* pVertices = (VERTEX*)_aligned_malloc(sizeof(VERTEX) * m_nMaxVertices, 16);
+				memcpy(pVertices, m_pVertices, sizeof(VERTEX) * m_nVertices);
+				_aligned_free(m_pVertices);
+				m_pVertices = pVertices;
 			}
 
-			if(m_PRIM != m_pPRIM->PRIM && m_nVertices > 0)
+			if(m_prim != m_pPRIM->PRIM && m_nVertices > 0)
 			{
 				Flush();
 			}
 
-			m_PRIM = m_pPRIM->PRIM;
+			m_prim = m_pPRIM->PRIM;
 
 			m_nVertices += DrawingKick(skip);
 		}
@@ -77,18 +74,16 @@ protected:
 
 	void FlushPrim() 
 	{
-		m_PRIM = 8; 
+		m_prim = 8; 
 		m_nVertices = 0;
 	}
 
 public:
-	GSRenderer(int w, int h, HWND hWnd, HRESULT& hr)
-		: GSState(w, h, hWnd, hr)
+	GSRenderer(int w, int h)
+		: GSState(w, h)
 		, m_nMaxVertices(256)
 	{
 		m_pVertices = (VERTEX*)_aligned_malloc(sizeof(VERTEX) * m_nMaxVertices, 16);
-
-		Reset();
 	}
 
 	virtual ~GSRenderer()
