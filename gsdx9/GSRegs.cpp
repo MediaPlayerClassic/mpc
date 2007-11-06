@@ -711,25 +711,25 @@ void __fastcall GSState::GIFRegHandlerHWREG(GIFReg* r)
 
 void __fastcall GSState::GIFRegHandlerSIGNAL(GIFReg* r)
 {
-	if(m_fMultiThreaded) return;
+	if(m_mt) return;
 
 	m_regs.pSIGLBLID->SIGID = (m_regs.pSIGLBLID->SIGID & ~r->SIGNAL.IDMSK) | (r->SIGNAL.ID & r->SIGNAL.IDMSK);
 
 	if(m_regs.pCSR->wSIGNAL) m_regs.pCSR->rSIGNAL = 1;
-	if(!m_regs.pIMR->SIGMSK && m_fpGSirq) m_fpGSirq();
+	if(!m_regs.pIMR->SIGMSK && m_irq) m_irq();
 }
 
 void __fastcall GSState::GIFRegHandlerFINISH(GIFReg* r)
 {
-	if(m_fMultiThreaded) return;
+	if(m_mt) return;
 
 	if(m_regs.pCSR->wFINISH) m_regs.pCSR->rFINISH = 1;
-	if(!m_regs.pIMR->FINISHMSK && m_fpGSirq) m_fpGSirq();
+	if(!m_regs.pIMR->FINISHMSK && m_irq) m_irq();
 }
 
 void __fastcall GSState::GIFRegHandlerLABEL(GIFReg* r)
 {
-	if(m_fMultiThreaded) return;
+	if(m_mt) return;
 
 	m_regs.pSIGLBLID->LBLID = (m_regs.pSIGLBLID->LBLID & ~r->LABEL.IDMSK) | (r->LABEL.ID & r->LABEL.IDMSK);
 }

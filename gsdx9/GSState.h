@@ -55,22 +55,16 @@ public:
 	void Reset();
 	void WriteCSR(UINT32 csr);
 	void ReadFIFO(BYTE* mem);
-	void Transfer1(BYTE* mem, UINT32 addr);
-	void Transfer2(BYTE* mem, UINT32 size);
-	void Transfer3(BYTE* mem, UINT32 size);
 	void Transfer(BYTE* mem, UINT32 size, int index);
-	void TransferMT(BYTE* mem, UINT32 size, int index);
 	void VSync(int field);
 	UINT32 MakeSnapshot(char* path);
-	void Capture();
-	void ToggleOSD();
-	void SetGSirq(void (*fpGSirq)()) {m_fpGSirq = fpGSirq;}
-	void SetMultiThreaded(bool mt) {m_fMultiThreaded = mt;}
+	void SetIrq(void (*irq)()) {m_irq = irq;}
+	void SetMT(bool mt) {m_mt = mt;}
 
 private:
-	void (*m_fpGSirq)();
-	bool m_fMultiThreaded;
-	int m_iOSD;
+	void (*m_irq)();
+	bool m_mt;
+	int m_osd;
 
 private:
 	static const int m_nTrMaxBytes = 1024*1024*4;
@@ -115,7 +109,6 @@ protected:
 	D3DSURFACE_DESC m_bd;
 	D3DFORMAT m_fmtDepthStencil;
 	bool m_fEnablePalettizedTextures;
-	bool m_fNloopHack;
 	bool m_fField;
 	D3DTEXTUREFILTERTYPE m_texfilter;
 
@@ -217,65 +210,4 @@ private:
 	void __fastcall GIFRegHandlerSIGNAL(GIFReg* r);
 	void __fastcall GIFRegHandlerFINISH(GIFReg* r);
 	void __fastcall GIFRegHandlerLABEL(GIFReg* r);
-
-private:
-
-	GIFPath m_path2[3];
-
-	class GSTransferBuffer
-	{
-	public:
-		BYTE* m_data;
-		UINT32 m_size;
-		int m_index;
-
-		GSTransferBuffer()
-		{
-			m_data = NULL;
-			m_size = 0;
-		}
-
-		~GSTransferBuffer()
-		{
-			delete [] m_data;
-		}
-	};
-
-	GSQueue<GSTransferBuffer*> m_queue;
-
-	CAMEvent m_evThreadQuit;
-	CAMEvent m_evThreadIdle;
-	HANDLE m_hThread;
-	DWORD m_ThreadId;
-
-	HANDLE CreateThread()
-	{
-		m_ThreadId = 0;
-		m_hThread = ::CreateThread(NULL, 0, StaticThreadProc, (LPVOID)this, 0, &m_ThreadId);
-
-		m_evThreadIdle.Set();
-
-		return m_hThread;
-	}
-
-	void QuitThread()
-	{
-		m_evThreadQuit.Set();
-			
-		if(WaitForSingleObject(m_hThread, 30000) == WAIT_TIMEOUT) 
-		{
-			ASSERT(0); 
-			TerminateThread(m_hThread, (DWORD)-1);
-		}
-	}
-
-	static DWORD WINAPI StaticThreadProc(LPVOID lpParam);
-
-	DWORD ThreadProc();
-
-	void SyncThread()
-	{
-		m_queue.GetDequeueEvent().Wait();
-		m_evThreadIdle.Wait();
-	}
 };

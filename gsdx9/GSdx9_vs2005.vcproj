@@ -957,6 +957,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\GSTransferThread.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\GSUtil.cpp"
 				>
 			</File>
@@ -1300,6 +1304,10 @@
 			</File>
 			<File
 				RelativePath=".\GSTextureCache.h"
+				>
+			</File>
+			<File
+				RelativePath=".\GSTransferThread.h"
 				>
 			</File>
 			<File
