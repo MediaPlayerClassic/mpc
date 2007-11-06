@@ -465,11 +465,6 @@ HRESULT GSState::ResetDevice(bool fForceWindowed)
 	return S_OK;
 }
 
-void GSState::Reset()
-{
-	ResetState();
-}
-
 UINT32 GSState::Freeze(freezeData* fd, bool fSizeOnly)
 {
 	int size = sizeof(m_version)
@@ -549,6 +544,11 @@ UINT32 GSState::Defrost(const freezeData* fd)
 	m_env.CTXT[1].ttbl = &GSLocalMemory::m_psmtbl[m_env.CTXT[1].TEX0.PSM];
 
 	return 0;
+}
+
+void GSState::Reset()
+{
+	ResetState();
 }
 
 void GSState::WriteCSR(UINT32 csr)
@@ -694,13 +694,6 @@ void GSState::Transfer(BYTE* mem, UINT32 size, int index)
 	}
 }
 
-UINT32 GSState::MakeSnapshot(char* path)
-{
-	CString fn;
-	fn.Format(_T("%sgsdx9_%s.bmp"), CString(path), CTime::GetCurrentTime().Format(_T("%Y%m%d%H%M%S")));
-	return D3DXSaveSurfaceToFile(fn, D3DXIFF_BMP, m_pOrgRenderTarget, NULL, NULL);
-}
-
 void GSState::VSync(int field)
 {
 	m_fField = !!field;
@@ -708,6 +701,13 @@ void GSState::VSync(int field)
 	Flush();
 
 	Flip();
+}
+
+UINT32 GSState::MakeSnapshot(char* path)
+{
+	CString fn;
+	fn.Format(_T("%sgsdx9_%s.bmp"), CString(path), CTime::GetCurrentTime().Format(_T("%Y%m%d%H%M%S")));
+	return D3DXSaveSurfaceToFile(fn, D3DXIFF_BMP, m_pOrgRenderTarget, NULL, NULL);
 }
 
 void GSState::FinishFlip(FlipInfo rt[2])
