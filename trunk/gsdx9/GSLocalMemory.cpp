@@ -1942,6 +1942,8 @@ void GSLocalMemory::ReadTexture(const CRect& r, BYTE* dst, int dstpitch, GIFRegT
 		}
 		else
 		{
+			// TODO: try to avoid this branch by doing a smarter check on m_xtbl/m_ytbl
+
 			for(int y = r.top; y < r.bottom; y++, dst += dstpitch)
 				for(int x = r.left, i = 0; x < r.right; x++, i++)
 					((DstT*)dst)[i] = (DstT)(this->*rt)(m_xtbl[x], m_ytbl[y], TEX0, TEXA);

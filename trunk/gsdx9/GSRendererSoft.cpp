@@ -215,6 +215,12 @@ void GSRendererSoft<Vertex>::FlushPrim()
 				bLCM = m_context->TEX1.K <= 0 && (m_context->TEX1.MMAG & 1) || m_context->TEX1.K > 0 && (m_context->TEX1.MMIN & 1);
 			}
 
+			if(m_texfilter != D3DTEXF_LINEAR)
+			{
+				if(iLOD == 3) bLCM = 0;
+				else iLOD = 0;
+			}
+
 			m_pDrawVertexTFX = m_dvtfx[iLOD][bLCM][bTCC][iTFX];
 		}
 
