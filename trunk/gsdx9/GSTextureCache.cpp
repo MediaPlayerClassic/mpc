@@ -24,13 +24,11 @@
 #include "GSHash.h"
 #include "GSRendererHW.h"
 
-//
-
 bool IsRenderTarget(IDirect3DTexture9* pTexture)
 {
 	D3DSURFACE_DESC desc;
 	memset(&desc, 0, sizeof(desc));
-	return pTexture && S_OK == pTexture->GetLevelDesc(0, &desc) && (desc.Usage&D3DUSAGE_RENDERTARGET);
+	return pTexture && S_OK == pTexture->GetLevelDesc(0, &desc) && (desc.Usage & D3DUSAGE_RENDERTARGET);
 }
 
 bool HasSharedBits(DWORD sbp, DWORD spsm, DWORD dbp, DWORD dpsm)
@@ -71,6 +69,7 @@ CRect GSDirtyRect::GetDirtyRect(const GIFRegTEX0& TEX0)
 	CRect rcDirty = m_rcDirty;
 
 	CSize src = GSLocalMemory::m_psmtbl[m_PSM].bs;
+
 	rcDirty.left = (rcDirty.left) & ~(src.cx-1);
 	rcDirty.right = (rcDirty.right + (src.cx-1) /* + 1 */) & ~(src.cx-1);
 	rcDirty.top = (rcDirty.top) & ~(src.cy-1);
@@ -79,13 +78,14 @@ CRect GSDirtyRect::GetDirtyRect(const GIFRegTEX0& TEX0)
 	if(m_PSM != TEX0.PSM)
 	{
 		CSize dst = GSLocalMemory::m_psmtbl[TEX0.PSM].bs;
+
 		rcDirty.left = MulDiv(m_rcDirty.left, dst.cx, src.cx);
 		rcDirty.right = MulDiv(m_rcDirty.right, dst.cx, src.cx);
 		rcDirty.top = MulDiv(m_rcDirty.top, dst.cy, src.cy);
 		rcDirty.bottom = MulDiv(m_rcDirty.bottom, dst.cy, src.cy);
 	}
 
-	rcDirty &= CRect(0, 0, 1<<TEX0.TW, 1<<TEX0.TH);
+	rcDirty &= CRect(0, 0, 1 << TEX0.TW, 1 << TEX0.TH);
 
 	return rcDirty;
 }
@@ -224,10 +224,13 @@ HRESULT GSTextureCache::CreateTexture(GSState* s, GSTexture* pt, DWORD PSM, DWOR
 bool GSTextureCache::IsTextureInCache(IDirect3DTexture9* pTexture)
 {
 	POSITION pos = GetHeadPosition();
+
 	while(pos)
 	{
 		if(GetNext(pos)->m_pTexture == pTexture)
+		{
 			return true;
+		}
 	}
 
 	return false;
@@ -238,17 +241,20 @@ void GSTextureCache::RemoveOldTextures(GSState* s)
 	DWORD nBytes = 0;
 
 	POSITION pos = GetHeadPosition();
-	while(pos) nBytes += GetNext(pos)->m_nBytes;
+	
+	while(pos)
+	{
+		nBytes += GetNext(pos)->m_nBytes;
+	}
 
 	pos = GetTailPosition();
+
 	while(pos && nBytes > 96*1024*1024/*s->m_ddcaps.dwVidMemTotal*/)
 	{
-#ifdef DEBUG_LOG
-		s->LOG(_T("*TC2 too many textures in cache (%d, %.2f MB)\n"), GetCount(), 1.0f*nBytes/1024/1024);
-#endif
 		POSITION cur = pos;
 
 		GSTexture* pt = GetPrev(pos);
+
 		if(!pt->m_fRT)
 		{
 			nBytes -= pt->m_nBytes;
@@ -260,8 +266,7 @@ void GSTextureCache::RemoveOldTextures(GSState* s)
 
 static bool RectInRect(const RECT& inner, const RECT& outer)
 {
-	return outer.left <= inner.left && inner.right <= outer.right
-		&& outer.top <= inner.top && inner.bottom <= outer.bottom;
+	return outer.left <= inner.left && inner.right <= outer.right && outer.top <= inner.top && inner.bottom <= outer.bottom;
 }
 
 static bool RectInRectH(const RECT& inner, const RECT& outer)
@@ -288,10 +293,6 @@ bool GSTextureCache::GetDirtyRect(GSState* s, GSTexture* pt, CRect& r)
 
 	CRect rcDirty = pt->m_rcDirty.GetDirtyRect(pt->m_TEX0);
 	CRect rcValid = pt->m_rcValid;
-
-#ifdef DEBUG_LOG
-	s->LOG(_T("*TC2 used %d,%d-%d,%d (%dx%d), valid %d,%d-%d,%d, dirty %d,%d-%d,%d\n"), r, w, h, rcValid, rcDirty);
-#endif
 
 	if(RectInRect(r, rcValid))
 	{
@@ -352,10 +353,6 @@ HRESULT GSTextureCache::UpdateTexture(GSState* s, GSTexture* pt, GSLocalMemory::
 	CRect r;
 	if(!GetDirtyRect(s, pt, r))
 		return S_OK;
-
-#ifdef DEBUG_LOG
-	s->LOG(_T("*TC2 updating texture %d,%d-%d,%d (%dx%d)\n"), r.left, r.top, r.right, r.bottom, 1 << pt->m_TEX0.TW, 1 << pt->m_TEX0.TH);
-#endif
 
 	int bpp = 0;
 
@@ -421,22 +418,6 @@ HRESULT GSTextureCache::UpdateTexture(GSState* s, GSTexture* pt, GSLocalMemory::
 	pt->m_pTexture->PreLoad();
 	s->m_perfmon.IncCounter(GSPerfMon::c_texture, r.Width()*r.Height()*bpp>>3);
 
-#ifdef DEBUG_LOG
-	s->LOG(_T("*TC2 texture was updated, valid %d,%dx%d,%d\n"), pt->m_rcValid);
-#endif
-
-#ifdef DEBUG_SAVETEXTURES   
-if(s->m_context->FRAME.Block() == 0x00000 && pt->m_TEX0.TBP0 == 0x02800)
-{   
-	CString fn;   
-	fn.Format(_T("c:\\%08I64x_%I64d_%I64d_%I64d_%I64d_%I64d_%I64d_%I64d-%I64d_%I64d-%I64d.bmp"),   
-			pt->m_TEX0.TBP0, pt->m_TEX0.PSM, pt->m_TEX0.TBW,   
-			pt->m_TEX0.TW, pt->m_TEX0.TH,   
-			pt->m_CLAMP.WMS, pt->m_CLAMP.WMT, pt->m_CLAMP.MINU, pt->m_CLAMP.MAXU, pt->m_CLAMP.MINV, pt->m_CLAMP.MAXV);   
-	D3DXSaveTextureToFile(fn, D3DXIFF_BMP, pt->m_pTexture, NULL);   
-}   
-#endif 
-
 	return S_OK;
 }
 
@@ -456,13 +437,8 @@ GSTexture* GSTextureCache::ConvertRTPitch(GSState* s, GSTexture* pt)
 	int dw = s->m_context->TEX0.TBW << 6;
 	int dh = 1 << s->m_context->TEX0.TH;
 
-	// TRACE(_T("ConvertRT: %05x %x %d -> %d\n"), (DWORD)s->m_context->TEX0.TBP0, (DWORD)s->m_context->TEX0.PSM, (DWORD)pt->m_TEX0.TBW, (DWORD)s->m_context->TEX0.TBW);
-
 	HRESULT hr;
-/*
-if(s->m_perfmon.GetFrame() > 400)
-hr = D3DXSaveTextureToFile(_T("g:/1.bmp"), D3DXIFF_BMP, pt->m_pTexture, NULL);
-*/
+
 	D3DSURFACE_DESC desc;
 	hr = pt->m_pTexture->GetLevelDesc(0, &desc);
 	if(FAILED(hr)) return NULL;
@@ -491,8 +467,6 @@ hr = D3DXSaveTextureToFile(_T("g:/1.bmp"), D3DXIFF_BMP, pt->m_pTexture, NULL);
 			int sx = o % sw;
 			int sy = o / sw;
 
-			// TRACE(_T("%d,%d - %d,%d  <=  %d,%d - %d,%d\n"), dx, dy, dx + bw, dy + bh, sx, sy, sx + bw, sy + bh);
-
 			CRect src, dst;
 
 			src.left = (LONG)(scale.x * sx + 0.5f);
@@ -513,10 +487,6 @@ hr = D3DXSaveTextureToFile(_T("g:/1.bmp"), D3DXIFF_BMP, pt->m_pTexture, NULL);
 
 	pt->m_TEX0.TW = s->m_context->TEX0.TW;
 	pt->m_TEX0.TBW = s->m_context->TEX0.TBW;
-/*		
-if(s->m_perfmon.GetFrame() > 400)
-hr = D3DXSaveTextureToFile(_T("g:/2.bmp"), D3DXIFF_BMP, pt->m_pTexture, NULL);
-*/
 
 	return pt;
 }
@@ -668,15 +638,10 @@ bool GSTextureCache::Fetch(GSState* s, GSTextureBase& t)
 		s->m_mem.CopyCLUT32(clut, nPaletteEntries);
 	}
 
-#ifdef DEBUG_LOG
-	s->LOG(_T("*TC2 Fetch %dx%d %05I64x %I64d (%d)\n"), 
-		1 << s->m_context->TEX0.TW, 1 << s->m_context->TEX0.TH, 
-		s->m_context->TEX0.TBP0, s->m_context->TEX0.PSM, nPaletteEntries);
-#endif
-
 	enum lookupresult {notfound, needsupdate, found} lr = notfound;
 
 	POSITION pos = GetHeadPosition();
+
 	while(pos && !pt)
 	{
 		POSITION cur = pos;
@@ -705,10 +670,6 @@ bool GSTextureCache::Fetch(GSState* s, GSTextureBase& t)
 
 		pt = NULL;
 	}
-
-#ifdef DEBUG_LOG
-	s->LOG(_T("*TC2 lr = %s\n"), lr == found ? _T("found") : lr == needsupdate ? _T("needsupdate") : _T("notfound"));
-#endif
 
 	if(lr == notfound)
 	{
@@ -747,9 +708,6 @@ bool GSTextureCache::Fetch(GSState* s, GSTextureBase& t)
 
 	if(lr == found)
 	{
-#ifdef DEBUG_LOG
-		s->LOG(_T("*TC2 texture was found, age %d -> 0\n"), pt->m_nAge);
-#endif
 		pt->m_nAge = 0;
 		t = *pt;
 		if(pt->m_fTemp) delete pt;
@@ -765,15 +723,10 @@ bool GSTextureCache::FetchP(GSState* s, GSTextureBase& t)
 
 	int nPaletteEntries = GSLocalMemory::m_psmtbl[s->m_context->TEX0.PSM].pal;
 
-#ifdef DEBUG_LOG
-	s->LOG(_T("*TC2 Fetch %dx%d %05I64x %I64d (%d)\n"), 
-		1 << s->m_context->TEX0.TW, 1 << s->m_context->TEX0.TH, 
-		s->m_context->TEX0.TBP0, s->m_context->TEX0.PSM, nPaletteEntries);
-#endif
-
 	enum lookupresult {notfound, needsupdate, found} lr = notfound;
 
 	POSITION pos = GetHeadPosition();
+
 	while(pos && !pt)
 	{
 		POSITION cur = pos;
@@ -800,10 +753,6 @@ bool GSTextureCache::FetchP(GSState* s, GSTextureBase& t)
 		
 		pt = NULL;
 	}
-
-#ifdef DEBUG_LOG
-	s->LOG(_T("*TC2 lr = %s\n"), lr == found ? _T("found") : lr == needsupdate ? _T("needsupdate") : _T("notfound"));
-#endif
 
 	if(lr == notfound)
 	{
@@ -847,9 +796,6 @@ bool GSTextureCache::FetchP(GSState* s, GSTextureBase& t)
 
 	if(lr == found)
 	{
-#ifdef DEBUG_LOG
-		s->LOG(_T("*TC2 texture was found, age %d -> 0\n"), pt->m_nAge);
-#endif
 		pt->m_nAge = 0;
 		t = *pt;
 		if(pt->m_fTemp) delete pt;
@@ -857,6 +803,11 @@ bool GSTextureCache::FetchP(GSState* s, GSTextureBase& t)
 	}
 
 	return false;
+}
+
+__declspec(noinline) static void Dummy()
+{
+	clock_t c = clock();
 }
 
 bool GSTextureCache::FetchNP(GSState* s, GSTextureBase& t)
@@ -873,15 +824,10 @@ bool GSTextureCache::FetchNP(GSState* s, GSTextureBase& t)
 		s->m_mem.CopyCLUT32(clut, nPaletteEntries);
 	}
 
-#ifdef DEBUG_LOG
-	s->LOG(_T("*TC2 Fetch %dx%d %05I64x %I64d (%d)\n"), 
-		1 << s->m_context->TEX0.TW, 1 << s->m_context->TEX0.TH, 
-		s->m_context->TEX0.TBP0, s->m_context->TEX0.PSM, nPaletteEntries);
-#endif
-
 	enum lookupresult {notfound, needsupdate, found} lr = notfound;
 
 	POSITION pos = GetHeadPosition();
+
 	while(pos && !pt)
 	{
 		POSITION cur = pos;
@@ -910,10 +856,6 @@ bool GSTextureCache::FetchNP(GSState* s, GSTextureBase& t)
 
 		pt = NULL;
 	}
-
-#ifdef DEBUG_LOG
-	s->LOG(_T("*TC2 lr = %s\n"), lr == found ? _T("found") : lr == needsupdate ? _T("needsupdate") : _T("notfound"));
-#endif
 
 	if(lr == notfound)
 	{
@@ -960,14 +902,13 @@ bool GSTextureCache::FetchNP(GSState* s, GSTextureBase& t)
 	{
 		UpdateTexture(s, pt, &GSLocalMemory::ReadTextureNP);
 
+		Dummy();
+
 		lr = found;
 	}
 
 	if(lr == found)
 	{
-#ifdef DEBUG_LOG
-		s->LOG(_T("*TC2 texture was found, age %d -> 0\n"), pt->m_nAge);
-#endif
 		pt->m_nAge = 0;
 		t = *pt;
 		if(pt->m_fTemp) delete pt;
@@ -980,6 +921,7 @@ bool GSTextureCache::FetchNP(GSState* s, GSTextureBase& t)
 void GSTextureCache::IncAge(CSurfMap<IDirect3DTexture9>& pRTs)
 {
 	POSITION pos = GetHeadPosition();
+
 	while(pos)
 	{
 		POSITION cur = pos;
@@ -998,6 +940,7 @@ void GSTextureCache::IncAge(CSurfMap<IDirect3DTexture9>& pRTs)
 void GSTextureCache::ResetAge(DWORD TBP0)
 {
 	POSITION pos = GetHeadPosition();
+
 	while(pos)
 	{
 		GSTexture* pt = GetNext(pos);
@@ -1015,16 +958,14 @@ void GSTextureCache::RemoveAll()
 void GSTextureCache::InvalidateTexture(GSState* s, const GIFRegBITBLTBUF& BITBLTBUF, const CRect& r)
 {
 	GIFRegTEX0 TEX0;
+
 	TEX0.TBP0 = BITBLTBUF.DBP;
 	TEX0.TBW = BITBLTBUF.DBW;
 	TEX0.PSM = BITBLTBUF.DPSM;
 	TEX0.TCC = 0;
 
-#ifdef DEBUG_LOG
-	s->LOG(_T("*TC2 invalidate %05x %x (%d,%d-%d,%d)\n"), TEX0.TBP0, TEX0.PSM, r.left, r.top, r.right, r.bottom);
-#endif
-
 	POSITION pos = GetHeadPosition();
+
 	while(pos)
 	{
 		POSITION cur = pos;
@@ -1143,6 +1084,7 @@ void GSTextureCache::InvalidateLocalMem(GSState* s, DWORD TBP0, DWORD BW, DWORD 
 	CComPtr<IDirect3DTexture9> pRT;
 
 	POSITION pos = GetHeadPosition();
+
 	while(pos)
 	{
 		POSITION cur = pos;
@@ -1205,6 +1147,7 @@ void GSTextureCache::InvalidateLocalMem(GSState* s, DWORD TBP0, DWORD BW, DWORD 
 void GSTextureCache::AddRT(GIFRegTEX0& TEX0, IDirect3DTexture9* pRT, scale_t scale)
 {
 	POSITION pos = GetHeadPosition();
+
 	while(pos)
 	{
 		POSITION cur = pos;

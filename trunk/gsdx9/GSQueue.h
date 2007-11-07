@@ -18,11 +18,6 @@ public:
 		_dequeue.Set();
 	}
 
-	virtual ~GSQueue()
-	{
-
-	}
-
 	size_t GetCount()
 	{
 		CAutoLock cAutoLock(this);

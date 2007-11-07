@@ -1869,7 +1869,7 @@ void GSLocalMemory::ReadTexture(const CRect& r, BYTE* dst, int dstpitch, GIFRegT
 
 	bool fAligned = ((DWORD_PTR)(dst + (cr.left-r.left)*sizeof(DstT)) & 0xf) == 0;
 
-	if((CLAMP.WMS&2) || (CLAMP.WMT&2))
+	if((CLAMP.WMS & 2) || (CLAMP.WMT & 2))
 	{
 		DWORD wms = CLAMP.WMS, wmt = CLAMP.WMT;
 		DWORD minu = CLAMP.MINU, maxu = CLAMP.MAXU;
@@ -1882,6 +1882,20 @@ void GSLocalMemory::ReadTexture(const CRect& r, BYTE* dst, int dstpitch, GIFRegT
 		case 3: for(int x = r.left; x < r.right; x++) m_xtbl[x] = (x & minu) | maxu; break;
 		}
 
+		bool xok = true;
+
+		if(wms & 2)
+		{
+			for(int x = r.left; x < r.right; x++) 
+			{
+				if(m_xtbl[x] != x) 
+				{
+					xok = false; 
+					break;
+				}
+			}
+		}
+
 		switch(wmt)
 		{
 		default: for(int y = r.top; y < r.bottom; y++) m_ytbl[y] = y; break;
@@ -1889,7 +1903,21 @@ void GSLocalMemory::ReadTexture(const CRect& r, BYTE* dst, int dstpitch, GIFRegT
 		case 3: for(int y = r.top; y < r.bottom; y++) m_ytbl[y] = (y & minv) | maxv; break;
 		}
 
-		if(fAligned && wms <= 2 && wmt <= 2)
+		bool yok = true;
+
+		if(wmt & 2)
+		{
+			for(int y = r.top; y < r.bottom; y++)
+			{
+				if(m_ytbl[y] != y) 
+				{
+					yok = false; 
+					break;
+				}
+			}
+		}
+
+		if(fAligned && (wms <= 2 || xok) && (wmt <= 2 || yok))
 		{
 			// TODO: read clamped areas only once
 
