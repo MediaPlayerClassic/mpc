@@ -30,7 +30,7 @@
 
 #define PS2E_LT_GS 0x01
 #define PS2E_GS_VERSION 0x0006
-#define PS2E_DLL_VERSION 0x09
+#define PS2E_DLL_VERSION 10
 #define PS2E_X86 0x01   // 32 bit
 #define PS2E_X86_64 0x02   // 64 bit
 
@@ -85,7 +85,7 @@ EXPORT_C_(char*) PS2EgetLibName()
 
 EXPORT_C_(UINT32) PS2EgetLibVersion2(UINT32 type)
 {
-	return (PS2E_GS_VERSION<<16)|(0x00<<8)|PS2E_DLL_VERSION;
+	return (PS2E_GS_VERSION<<16) | (0<<8) | PS2E_DLL_VERSION;
 }
 
 EXPORT_C_(UINT32) PS2EgetCpuPlatform()
@@ -101,7 +101,7 @@ EXPORT_C_(UINT32) PS2EgetCpuPlatform()
 
 static HRESULT s_hrCoInit = E_FAIL;
 static GSState* s_gs;
-static GSTransferThread* s_gst;
+// static GSTransferThread* s_gst;
 static void (*s_irq)() = NULL;
 
 BYTE* g_pBasePS2Mem = NULL;
@@ -126,7 +126,7 @@ EXPORT_C GSshutdown()
 EXPORT_C GSclose()
 {
 	delete s_gs; s_gs = NULL;
-	delete s_gst; s_gst = NULL;
+	// delete s_gst; s_gst = NULL;
 
 	if(SUCCEEDED(s_hrCoInit))
 	{
@@ -159,7 +159,7 @@ EXPORT_C_(INT32) GSopen(void* dsp, char* title, int mt)
 		return -1;
 	}
 
-	s_gst = new GSTransferThread(s_gs);
+	// s_gst = new GSTransferThread(s_gs);
 
 	s_gs->SetIrq(s_irq);
 	s_gs->SetMT(!!mt);
@@ -172,9 +172,9 @@ EXPORT_C_(INT32) GSopen(void* dsp, char* title, int mt)
 
 EXPORT_C GSreset()
 {
-	s_gst->Wait();
+	// s_gst->Wait();
+	// s_gst->Reset();
 
-	s_gst->Reset();
 	s_gs->Reset();
 }
 
@@ -185,29 +185,35 @@ EXPORT_C GSwriteCSR(UINT32 csr)
 
 EXPORT_C GSreadFIFO(BYTE* mem)
 {
-	s_gst->Wait();
+	// s_gst->Wait();
 
 	s_gs->ReadFIFO(mem);
 }
 
 EXPORT_C GSgifTransfer1(BYTE* mem, UINT32 addr)
 {
-	s_gst->Transfer(mem + addr, -1, 0);
+	// s_gst->Transfer(mem + addr, -1, 0);
+
+	s_gs->Transfer(mem + addr, -1, 0);
 }
 
 EXPORT_C GSgifTransfer2(BYTE* mem, UINT32 size)
 {
-	s_gst->Transfer(mem, size, 1);
+	// s_gst->Transfer(mem, size, 1);
+
+	s_gs->Transfer(mem, size, 1);
 }
 
 EXPORT_C GSgifTransfer3(BYTE* mem, UINT32 size)
 {
-	s_gst->Transfer(mem, size, 2);
+	// s_gst->Transfer(mem, size, 2);
+
+	s_gs->Transfer(mem, size, 2);
 }
 
 EXPORT_C GSvsync(int field)
 {
-	s_gst->Wait();
+	// s_gst->Wait();
 
 	MSG msg;
 
@@ -239,7 +245,7 @@ EXPORT_C GSkeyEvent(keyEvent* ev)
 
 EXPORT_C_(INT32) GSfreeze(int mode, freezeData* data)
 {
-	s_gst->Wait();
+	// s_gst->Wait();
 
 	if(mode == FREEZE_SAVE)
 	{

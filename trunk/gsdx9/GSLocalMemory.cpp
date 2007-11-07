@@ -1926,7 +1926,9 @@ void GSLocalMemory::ReadTexture(const CRect& r, BYTE* dst, int dstpitch, GIFRegT
 					((DstT*)dst)[i] = (DstT)(this->*rt)(m_xtbl[x], m_ytbl[y], TEX0, TEXA);
 
 			if(!cr.IsRectEmpty())
-			(this->*st)(cr, dst + (cr.left - r.left)*sizeof(DstT), dstpitch, TEX0, TEXA);
+			{
+				(this->*st)(cr, dst + (cr.left - r.left)*sizeof(DstT), dstpitch, TEX0, TEXA);
+			}
 
 			for(int y = cr.top; y < cr.bottom; y++, dst += dstpitch)
 			{
@@ -1958,7 +1960,9 @@ void GSLocalMemory::ReadTexture(const CRect& r, BYTE* dst, int dstpitch, GIFRegT
 					((DstT*)dst)[i] = (DstT)(this->*rt)(x, y, TEX0, TEXA);
 
 			if(!cr.IsRectEmpty())
-			(this->*st)(cr, dst + (cr.left - r.left)*sizeof(DstT), dstpitch, TEX0, TEXA);
+			{
+				(this->*st)(cr, dst + (cr.left - r.left)*sizeof(DstT), dstpitch, TEX0, TEXA);
+			}
 
 			for(int y = cr.top; y < cr.bottom; y++, dst += dstpitch)
 			{

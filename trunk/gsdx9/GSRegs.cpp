@@ -42,6 +42,12 @@ void GSState::GIFPackedRegHandlerRGBA(GIFPackedReg* r)
 	m_v.RGBAQ.G = r->RGBA.G;
 	m_v.RGBAQ.B = r->RGBA.B;
 	m_v.RGBAQ.A = r->RGBA.A;
+/*
+	__m128i r0 = _mm_loadu_si128((__m128i*)r);
+	r0 = _mm_packs_epi32(r0, r0);
+	r0 = _mm_packus_epi16(r0, r0);
+	m_v.RGBAQ.ai32[0] = _mm_cvtsi128_si32(r0);
+*/
 	m_v.RGBAQ.Q = m_q;
 }
 
@@ -49,6 +55,9 @@ void GSState::GIFPackedRegHandlerSTQ(GIFPackedReg* r)
 {
 	m_v.ST.S = r->STQ.S;
 	m_v.ST.T = r->STQ.T;
+/*	
+	_mm_storel_epi64((__m128i*)&m_v.ST.i64, _mm_loadl_epi64((__m128i*)r));
+*/
 	m_q = r->STQ.Q;
 }
 
@@ -56,6 +65,11 @@ void GSState::GIFPackedRegHandlerUV(GIFPackedReg* r)
 {
 	m_v.UV.U = r->UV.U;
 	m_v.UV.V = r->UV.V;
+/*
+	__m128i r0 = _mm_loadu_si128((__m128i*)r);
+	r0 = _mm_packs_epi32(r0, r0);
+	m_v.UV.ai32[0] = _mm_cvtsi128_si32(r0);
+*/
 }
 
 void GSState::GIFPackedRegHandlerXYZF2(GIFPackedReg* r)
@@ -168,8 +182,6 @@ void GSState::GIFRegHandlerXYZF2(GIFReg* r)
 	m_v.XYZ.Y = r->XYZF.Y;
 	m_v.XYZ.Z = r->XYZF.Z;
 	m_v.FOG.F = r->XYZF.F;
-
-	use a shortcut:
 */
 	m_v.XYZ.ai32[0] = r->XYZF.ai32[0];
 	m_v.XYZ.ai32[1] = r->XYZF.ai32[1] & 0x00ffffff;
@@ -263,8 +275,6 @@ void GSState::GIFRegHandlerXYZF3(GIFReg* r)
 	m_v.XYZ.Y = r->XYZF.Y;
 	m_v.XYZ.Z = r->XYZF.Z;
 	m_v.FOG.F = r->XYZF.F;
-
-	use a shortcut:
 */
 	m_v.XYZ.ai32[0] = r->XYZF.ai32[0];
 	m_v.XYZ.ai32[1] = r->XYZF.ai32[1] & 0x00ffffff;
