@@ -42,9 +42,6 @@ public:
 	CComboBox m_psversion;
 	BOOL m_fEnablePalettizedTextures;
 	BOOL m_fEnableTvOut;
-	BOOL m_fRecordState;
-	BOOL m_fNloopHack;
-	CString m_strRecordState;
 	BOOL m_fLinearTexFilter;
 
 protected:
@@ -53,6 +50,4 @@ protected:
 	virtual void OnOK();
 
 	DECLARE_MESSAGE_MAP()
-public:
-	afx_msg void OnBnClickedButton1();
 };

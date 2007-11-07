@@ -46,8 +46,6 @@ CGSSettingsDlg::CGSSettingsDlg(CWnd* pParent /*=NULL*/)
 	: CDialog(CGSSettingsDlg::IDD, pParent)
 	, m_fEnablePalettizedTextures(FALSE)
 	, m_fEnableTvOut(FALSE)
-	, m_fNloopHack(FALSE)
-	, m_fRecordState(FALSE)
 	, m_fLinearTexFilter(TRUE)
 {
 }
@@ -64,14 +62,10 @@ void CGSSettingsDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_COMBO4, m_psversion);
 	DDX_Check(pDX, IDC_CHECK1, m_fEnablePalettizedTextures);
 	DDX_Check(pDX, IDC_CHECK3, m_fEnableTvOut);
-	DDX_Check(pDX, IDC_CHECK2, m_fRecordState);
-	DDX_Check(pDX, IDC_CHECK5, m_fNloopHack);
-	DDX_Text(pDX, IDC_EDIT1, m_strRecordState);
 	DDX_Check(pDX, IDC_CHECK4, m_fLinearTexFilter);
 }
 
 BEGIN_MESSAGE_MAP(CGSSettingsDlg, CDialog)
-	ON_BN_CLICKED(IDC_BUTTON1, OnBnClickedButton1)
 END_MESSAGE_MAP()
 
 // CGSSettingsDlg message handlers
@@ -165,13 +159,6 @@ BOOL CGSSettingsDlg::OnInitDialog()
 	m_fEnableTvOut = pApp->GetProfileInt(_T("Settings"), _T("fEnableTvOut"), FALSE);
 
 	//
-	m_fNloopHack = pApp->GetProfileInt(_T("Settings"), _T("fNloopHack"), FALSE);
-
-	//
-	m_fRecordState = pApp->GetProfileInt(_T("Settings"), _T("RecordState"), FALSE);
-	m_strRecordState = pApp->GetProfileString(_T("Settings"), _T("RecordStatePath"), _T(""));
-
-	//
 
 	UpdateData(FALSE);
 
@@ -208,32 +195,6 @@ void CGSSettingsDlg::OnOK()
 	pApp->WriteProfileInt(_T("Settings"), _T("TexFilter"), m_fLinearTexFilter ? D3DTEXF_LINEAR : D3DTEXF_POINT);
 
 	pApp->WriteProfileInt(_T("Settings"), _T("fEnableTvOut"), m_fEnableTvOut);
-	pApp->WriteProfileInt(_T("Settings"), _T("fNloopHack"), m_fNloopHack);
-	pApp->WriteProfileInt(_T("Settings"), _T("RecordState"), m_fRecordState);
-	pApp->WriteProfileString(_T("Settings"), _T("RecordStatePath"), m_strRecordState);
 
 	__super::OnOK();
-}
-
-void CGSSettingsDlg::OnBnClickedButton1()
-{
-	TCHAR path[MAX_PATH];
-
-	BROWSEINFO bi;
-	bi.hwndOwner = m_hWnd;
-	bi.pidlRoot = NULL;
-	bi.pszDisplayName = path;
-	bi.lpszTitle = _T("Select path for the state file");
-	bi.ulFlags = BIF_RETURNONLYFSDIRS | BIF_VALIDATE | BIF_USENEWUI;
-	bi.lpfn = NULL;
-	bi.lParam = 0;
-	bi.iImage = 0; 
-
-	LPITEMIDLIST iil;
-	if(iil = SHBrowseForFolder(&bi))
-	{
-		SHGetPathFromIDList(iil, path);
-		m_strRecordState = path;
-		UpdateData(FALSE);
-	}
 }
