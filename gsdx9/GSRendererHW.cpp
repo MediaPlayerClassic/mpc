@@ -436,41 +436,47 @@ void GSRendererHW::FlushPrim()
 			// hr = m_pD3DDev->SetTextureStageState(1, D3DTSS_TEXCOORDINDEX, 1);
 			// hr = m_pD3DDev->SetTexture(1, pRT);
 
-			GSVertexHW* pVertices = m_pVertices;
+			GSVertexHW* v = m_pVertices;
 
-			for(int i = m_nVertices; i-- > 0; pVertices++)
+			for(int i = 0, j = m_nVertices; i < j; i++)
 			{
-				pVertices->x *= scale.x;
-				pVertices->y *= scale.y;
+				v[i].x *= scale.x;
+				v[i].y *= scale.y;
+			}
 
-				// pVertices->tu2 = pVertices->x / rd.Width;
-				// pVertices->tv2 = pVertices->y / rd.Height;
+				// v[i].tu2 = v[i].x / rd.Width;
+				// v[i].tv2 = v[i].y / rd.Height;
 
-				if(m_pPRIM->TME)
+			if(m_pPRIM->TME)
+			{
+				for(int i = 0, j = m_nVertices; i < j; i++)
 				{
 					// FIXME
 					float base, fract;
-					fract = modf(pVertices->tu, &base);
+					fract = modf(v[i].tu, &base);
 					fract *= tsx;
 					//ASSERT(-1 <= fract && fract <= 1.01);
-					pVertices->tu = base + fract;
-					fract = modf(pVertices->tv, &base);
+					v[i].tu = base + fract;
+					fract = modf(v[i].tv, &base);
 					fract *= tsy;
 					//ASSERT(-1 <= fract && fract <= 1.01);
-					pVertices->tv = base + fract;
+					v[i].tv = base + fract;
 				}
+			}
 
 /*
 				if(m_pPRIM->TME)
 				{
-					pVertices->tu *= tsx;
-					pVertices->tv *= tsy;
+					v[i].tu *= tsx;
+					v[i].tv *= tsy;
 				}
 */
-				if(m_pPRIM->FGE)
+			if(m_pPRIM->FGE)
+			{
+				for(int i = 0, j = m_nVertices; i < j; i++)
 				{
-					pVertices->fog = (pVertices->fog & 0xff000000) | (m_env.FOGCOL.ai32[0] & 0x00ffffff);
-					// D3DCOLOR_ARGB(pVertices->fog >> 24, m_env.FOGCOL.FCB, m_env.FOGCOL.FCG, m_env.FOGCOL.FCR)
+					v[i].fog = (v[i].fog & 0xff000000) | (m_env.FOGCOL.ai32[0] & 0x00ffffff);
+					// D3DCOLOR_ARGB(v[i].fog >> 24, m_env.FOGCOL.FCB, m_env.FOGCOL.FCG, m_env.FOGCOL.FCR)
 				}
 			}
 		}
@@ -967,6 +973,13 @@ void GSRendererHW::SetupZBuffer()
 {
 	HRESULT hr;
 
+	if(m_context->TEST.ZTE && m_context->TEST.ZTST == 1 && m_context->ZBUF.ZMSK)
+	{
+		hr = m_pD3DDev->SetRenderState(D3DRS_ZENABLE, FALSE);
+		hr = m_pD3DDev->SetRenderState(D3DRS_ZWRITEENABLE, FALSE);
+		return;
+	}
+
 	hr = m_pD3DDev->SetRenderState(D3DRS_ZENABLE, m_context->TEST.ZTE);
 	hr = m_pD3DDev->SetRenderState(D3DRS_ZWRITEENABLE, !m_context->ZBUF.ZMSK);
 
@@ -977,12 +990,14 @@ void GSRendererHW::SetupZBuffer()
 		hr = m_pD3DDev->SetRenderState(D3DRS_ZFUNC, zfunc[m_context->TEST.ZTST]);
 //		hr = m_pD3DDev->SetRenderState(D3DRS_ZFUNC, D3DCMP_ALWAYS);
 
+		/*
 		// FIXME
 		if(m_context->ZBUF.ZMSK && m_context->TEST.ZTST == 1)
 		{
 			for(int i = 0; i < m_nVertices; i++)
 				m_pVertices[i].z = 0;
 		}
+		*/
 	}
 }
 

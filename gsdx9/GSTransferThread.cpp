@@ -26,6 +26,9 @@ GSTransferThread::~GSTransferThread()
 
 void GSTransferThread::Transfer(BYTE* mem, UINT32 size, int index)
 {
+	m_gs->Transfer(mem, size, index);
+	return;
+
 	GSTransferBuffer* buff = new GSTransferBuffer();
 
 	buff->m_data = mem;
