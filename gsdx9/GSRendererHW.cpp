@@ -30,8 +30,6 @@ inline BYTE SCALE_ALPHA(BYTE a)
 	return (((a)&0x80)?0xff:((a)<<1));
 }
 
-static const float one_over_log_2pow32 = 1.0f / (log(2.0f)*32);
-
 //
 
 GSRendererHW::GSRendererHW()
@@ -63,6 +61,8 @@ HRESULT GSRendererHW::ResetDevice(bool fForceWindowed)
 
 void GSRendererHW::VertexKick(bool skip)
 {
+	static const float one_over_log_2pow32 = 1.0f / (log(2.0f)*32);
+
 	GSVertexHW& v = m_vl.AddTail();
 
 	v.x = (float)((int)m_v.XYZ.X - (int)m_context->XYOFFSET.OFX) * (1.0f/16);
@@ -220,7 +220,12 @@ int GSRendererHW::DrawingKick(bool skip)
 	if(!m_pPRIM->IIP)
 	{
 		pVertices[0].color = pVertices[nVertices-1].color;
-		if(m_prim == 6) pVertices[3].color = pVertices[5].color;
+
+		if(m_prim == 6)
+		{
+			pVertices[3].color = pVertices[5].color;
+		}
+
 		/*for(int i = nVertices-1; i > 0; i--)
 			pVertices[i-1].color = pVertices[i].color;*/
 	}
@@ -432,6 +437,7 @@ void GSRendererHW::FlushPrim()
 			// hr = m_pD3DDev->SetTexture(1, pRT);
 
 			GSVertexHW* pVertices = m_pVertices;
+
 			for(int i = m_nVertices; i-- > 0; pVertices++)
 			{
 				pVertices->x *= scale.x;

@@ -33,9 +33,7 @@ GSRendererNull::~GSRendererNull()
 
 void GSRendererNull::VertexKick(bool skip)
 {
-	NULLVERTEX v;
-
-	m_vl.AddTail(v);
+	NULLVERTEX& v = m_vl.AddTail();
 
 	__super::VertexKick(skip);
 }
