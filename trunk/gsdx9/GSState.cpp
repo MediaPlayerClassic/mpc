@@ -800,13 +800,6 @@ void GSState::FinishFlip(FlipInfo src[2])
 
 	Merge(src, surf[0]);
 
-	if(::GetAsyncKeyState(VK_CONTROL) & 0x80000000)
-	{
-		::D3DXSaveTextureToFile(_T("c:\\0s0.bmp"), D3DXIFF_BMP, src[0].tex, NULL);
-		::D3DXSaveTextureToFile(_T("c:\\0s1.bmp"), D3DXIFF_BMP, src[1].tex, NULL);
-		::D3DXSaveTextureToFile(_T("c:\\0d.bmp"), D3DXIFF_BMP, m_pMergeTexture, NULL);
-	}
-
 	dst = surf[0];
 
 	if(m_regs.pSMODE2->INT)
