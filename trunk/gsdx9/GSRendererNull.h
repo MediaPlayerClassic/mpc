@@ -23,11 +23,9 @@
 
 #include "GSRenderer.h"
 
-#pragma pack(push, 1)
-struct NULLVERTEX {/*DWORD dummy;*/};
-#pragma pack(pop)
+struct NullVertex {/*DWORD dummy;*/};
 
-class GSRendererNull : public GSRenderer<NULLVERTEX>
+class GSRendererNull : public GSRenderer<NullVertex>
 {
 protected:
 	void VertexKick(bool skip);

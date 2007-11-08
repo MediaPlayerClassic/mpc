@@ -44,9 +44,10 @@ static struct {DWORD id; const TCHAR* name;} s_psversions[] =
 IMPLEMENT_DYNAMIC(CGSSettingsDlg, CDialog)
 CGSSettingsDlg::CGSSettingsDlg(CWnd* pParent /*=NULL*/)
 	: CDialog(CGSSettingsDlg::IDD, pParent)
-	, m_fEnablePalettizedTextures(FALSE)
+	, m_fPalettizedTextures(FALSE)
 	, m_fEnableTvOut(FALSE)
-	, m_fLinearTexFilter(TRUE)
+	, m_fLinearTextureFilter(TRUE)
+	, m_fDeinterlace(TRUE)
 {
 }
 
@@ -60,9 +61,10 @@ void CGSSettingsDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_COMBO3, m_resolution);
 	DDX_Control(pDX, IDC_COMBO1, m_renderer);
 	DDX_Control(pDX, IDC_COMBO4, m_psversion);
-	DDX_Check(pDX, IDC_CHECK1, m_fEnablePalettizedTextures);
+	DDX_Check(pDX, IDC_CHECK1, m_fPalettizedTextures);
 	DDX_Check(pDX, IDC_CHECK3, m_fEnableTvOut);
-	DDX_Check(pDX, IDC_CHECK4, m_fLinearTexFilter);
+	DDX_Check(pDX, IDC_CHECK4, m_fLinearTextureFilter);
+	DDX_Check(pDX, IDC_CHECK5, m_fDeinterlace);
 }
 
 BEGIN_MESSAGE_MAP(CGSSettingsDlg, CDialog)
@@ -77,7 +79,7 @@ BOOL CGSSettingsDlg::OnInitDialog()
     CWinApp* pApp = AfxGetApp();
 
 	D3DCAPS9 caps;
-	ZeroMemory(&caps, sizeof(caps));
+	memset(&caps, 0, sizeof(caps));
 	caps.PixelShaderVersion = D3DPS_VERSION(0, 0);
 
 	m_modes.RemoveAll();
@@ -148,15 +150,10 @@ BOOL CGSSettingsDlg::OnInitDialog()
 
 	//
 
-	m_fEnablePalettizedTextures = pApp->GetProfileInt(_T("Settings"), _T("fEnablePalettizedTextures"), FALSE);
-
-	//
-
-	m_fLinearTexFilter = (D3DTEXTUREFILTERTYPE)pApp->GetProfileInt(_T("Settings"), _T("TexFilter"), D3DTEXF_LINEAR) == D3DTEXF_LINEAR;
-
-	//
-
+	m_fPalettizedTextures = pApp->GetProfileInt(_T("Settings"), _T("fPalettizedTextures"), FALSE);
+	m_fLinearTextureFilter = (D3DTEXTUREFILTERTYPE)pApp->GetProfileInt(_T("Settings"), _T("TextureFilter"), D3DTEXF_LINEAR) == D3DTEXF_LINEAR;
 	m_fEnableTvOut = pApp->GetProfileInt(_T("Settings"), _T("fEnableTvOut"), FALSE);
+	m_fDeinterlace = pApp->GetProfileInt(_T("Settings"), _T("fDeinterlace"), TRUE);
 
 	//
 
@@ -190,11 +187,10 @@ void CGSSettingsDlg::OnOK()
 		pApp->WriteProfileInt(_T("Settings"), _T("PixelShaderVersion2"), m_psversion.GetItemData(m_psversion.GetCurSel()));
 	}
 
-	pApp->WriteProfileInt(_T("Settings"), _T("fEnablePalettizedTextures"), m_fEnablePalettizedTextures);
-
-	pApp->WriteProfileInt(_T("Settings"), _T("TexFilter"), m_fLinearTexFilter ? D3DTEXF_LINEAR : D3DTEXF_POINT);
-
+	pApp->WriteProfileInt(_T("Settings"), _T("fPalettizedTextures"), m_fPalettizedTextures);
+	pApp->WriteProfileInt(_T("Settings"), _T("TextureFilter"), m_fLinearTextureFilter ? D3DTEXF_LINEAR : D3DTEXF_POINT);
 	pApp->WriteProfileInt(_T("Settings"), _T("fEnableTvOut"), m_fEnableTvOut);
+	pApp->WriteProfileInt(_T("Settings"), _T("fDeinterlace"), m_fDeinterlace);
 
 	__super::OnOK();
 }

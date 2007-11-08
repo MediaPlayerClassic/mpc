@@ -40,17 +40,16 @@ HRESULT CompileShaderFromResource(IDirect3DDevice9* pD3DDev, UINT id, CString en
 	CheckPointer(ppPixelShader, E_POINTER);
 
 	CComPtr<ID3DXBuffer> pShader, pErrorMsgs;
+
 	HRESULT hr = D3DXCompileShaderFromResource(
 		AfxGetResourceHandle(), MAKEINTRESOURCE(id),
 		NULL, NULL, 
 		entry, target, flags, 
 		&pShader, &pErrorMsgs, NULL);
-	ASSERT(SUCCEEDED(hr));
 
 	if(SUCCEEDED(hr))
 	{
 		hr = pD3DDev->CreatePixelShader((DWORD*)pShader->GetBufferPointer(), ppPixelShader);
-		ASSERT(SUCCEEDED(hr));
 /*
 		CComPtr<ID3DXBuffer> pDisAsm;
 
@@ -64,6 +63,14 @@ HRESULT CompileShaderFromResource(IDirect3DDevice9* pD3DDev, UINT id, CString en
 		}
 */
 	}
+	else
+	{
+		LPCSTR msg = (LPCSTR)pErrorMsgs->GetBufferPointer();
+
+		TRACE(_T("%s\n"), CString(msg));
+	}
+
+	ASSERT(SUCCEEDED(hr));
 
 	return hr;
 }
@@ -74,18 +81,19 @@ HRESULT AssembleShaderFromResource(IDirect3DDevice9* pD3DDev, UINT id, UINT flag
 	CheckPointer(ppPixelShader, E_POINTER);
 
 	CComPtr<ID3DXBuffer> pShader, pErrorMsgs;
+
 	HRESULT hr = D3DXAssembleShaderFromResource(
 		AfxGetResourceHandle(), MAKEINTRESOURCE(id),
 		NULL, NULL, 
 		flags, 
 		&pShader, &pErrorMsgs);
-	ASSERT(SUCCEEDED(hr));
 
 	if(SUCCEEDED(hr))
 	{
 		hr = pD3DDev->CreatePixelShader((DWORD*)pShader->GetBufferPointer(), ppPixelShader);
-		ASSERT(SUCCEEDED(hr));
 	}
+
+	ASSERT(SUCCEEDED(hr));
 
 	return hr;
 }

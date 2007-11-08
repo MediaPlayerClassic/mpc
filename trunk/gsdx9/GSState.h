@@ -40,7 +40,7 @@ class GSState : public CWnd
 	friend class GSTextureCache;
 
 public:
-	GSState(int w, int h);
+	GSState();
 	virtual ~GSState();
 
 	virtual bool Create(LPCTSTR title);
@@ -65,6 +65,7 @@ private:
 	void (*m_irq)();
 	bool m_mt;
 	int m_osd;
+	int m_field;
 
 private:
 	static const int m_nTrMaxBytes = 1024*1024*4;
@@ -94,23 +95,23 @@ protected:
 	GIFRegPRIM* m_pPRIM;
 
 protected:
-	int m_width, m_height;
 	CComPtr<IDirect3D9> m_pD3D;
 	CComPtr<IDirect3DDevice9> m_pD3DDev;
 	CComPtr<ID3DXFont> m_pD3DXFont;
-	CComPtr<IDirect3DSurface9> m_pOrgRenderTarget;
-	CComPtr<IDirect3DTexture9> m_pTmpRenderTarget;
+	CComPtr<IDirect3DSurface9> m_pBackBuffer;
+	CComPtr<IDirect3DTexture9> m_pMergeTexture;
+	CComPtr<IDirect3DTexture9> m_pInterlaceTexture;
+	CComPtr<IDirect3DTexture9> m_pDeinterlaceTexture;
 	CComPtr<IDirect3DPixelShader9> m_pPixelShaders[20];
-	CComPtr<IDirect3DPixelShader9> m_pHLSLTFX[38], m_pHLSLMerge[3], m_pHLSLRedBlue;
+	CComPtr<IDirect3DPixelShader9> m_pHLSLTFX[38], m_pHLSLMerge[3], m_pHLSLInterlace[3];
 	enum {PS_M16 = 0, PS_M24 = 1, PS_M32 = 2};
 	D3DPRESENT_PARAMETERS m_d3dpp;
 	DDCAPS m_ddcaps;
 	D3DCAPS9 m_caps;
-	D3DSURFACE_DESC m_bd;
 	D3DFORMAT m_fmtDepthStencil;
-	bool m_fEnablePalettizedTextures;
-	bool m_fField;
-	D3DTEXTUREFILTERTYPE m_texfilter;
+	bool m_fPalettizedTextures;
+	bool m_fDeinterlace;
+	D3DTEXTUREFILTERTYPE m_nTextureFilter;
 
 	virtual void ResetState();
 	virtual HRESULT ResetDevice(bool fForceWindowed = false);
@@ -124,8 +125,11 @@ protected:
 	virtual void InvalidateLocalMem(DWORD TBP0, DWORD BW, DWORD PSM, CRect r) {}
 	virtual void MinMaxUV(int w, int h, CRect& r) {r.SetRect(0, 0, w, h);}
 
-	struct FlipInfo {CComPtr<IDirect3DTexture9> pRT; D3DSURFACE_DESC rd; scale_t scale;};
-	void FinishFlip(FlipInfo rt[2]);
+	struct FlipInfo {CComPtr<IDirect3DTexture9> tex; D3DSURFACE_DESC desc; scale_t scale;};
+	void FinishFlip(FlipInfo src[2]);
+
+	void Merge(FlipInfo src[2], IDirect3DSurface9* dst);
+	void Interlace(IDirect3DTexture9* src, IDirect3DSurface9* dst, int field);
 
 	void Flush();
 

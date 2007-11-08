@@ -1361,6 +1361,10 @@
 			Name="Shaders"
 			>
 			<File
+				RelativePath=".\res\hlsl_interlace.fx"
+				>
+			</File>
+			<File
 				RelativePath=".\res\hlsl_merge.fx"
 				>
 			</File>
