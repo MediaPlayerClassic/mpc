@@ -23,7 +23,6 @@
 #include "GSRendererNull.h"
 
 GSRendererNull::GSRendererNull()
-	: GSRenderer<NULLVERTEX>(256, 256)
 {
 }
 
@@ -33,14 +32,14 @@ GSRendererNull::~GSRendererNull()
 
 void GSRendererNull::VertexKick(bool skip)
 {
-	NULLVERTEX& v = m_vl.AddTail();
+	NullVertex& v = m_vl.AddTail();
 
 	__super::VertexKick(skip);
 }
 
 int GSRendererNull::DrawingKick(bool skip)
 {
-	NULLVERTEX v;
+	NullVertex v;
 
 	switch(m_prim)
 	{

@@ -40,9 +40,10 @@ public:
 	CComboBox m_resolution;
 	CComboBox m_renderer;
 	CComboBox m_psversion;
-	BOOL m_fEnablePalettizedTextures;
+	BOOL m_fPalettizedTextures;
 	BOOL m_fEnableTvOut;
-	BOOL m_fLinearTexFilter;
+	BOOL m_fLinearTextureFilter;
+	BOOL m_fDeinterlace;
 
 protected:
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV support

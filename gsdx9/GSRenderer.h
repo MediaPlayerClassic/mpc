@@ -79,9 +79,8 @@ protected:
 	}
 
 public:
-	GSRenderer(int w, int h)
-		: GSState(w, h)
-		, m_nMaxVertices(256)
+	GSRenderer()
+		: m_nMaxVertices(256)
 	{
 		m_pVertices = (VERTEX*)_aligned_malloc(sizeof(VERTEX) * m_nMaxVertices, 16);
 	}

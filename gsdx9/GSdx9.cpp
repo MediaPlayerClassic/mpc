@@ -71,5 +71,7 @@ BOOL CGSdx9App::InitInstance()
 {
 	__super::InitInstance();
 
+	SetRegistryKey(_T("Gabest"));
+
 	return TRUE;
 }

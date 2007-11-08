@@ -47,6 +47,9 @@ __declspec(align(16)) union GSVertexHW
 class GSRendererHW : public GSRenderer<GSVertexHW>
 {
 protected:
+	int m_width;
+	int m_height;
+
 	CSurfMap<IDirect3DTexture9> m_pRTs;
 	CSurfMap<IDirect3DSurface9> m_pDSs;
 

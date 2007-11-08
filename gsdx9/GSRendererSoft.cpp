@@ -25,7 +25,6 @@
 
 template <class Vertex>
 GSRendererSoft<Vertex>::GSRendererSoft()
-	: GSRenderer<Vertex>(640, 512)
 {
 	int i = SHRT_MIN;
 	BYTE j = 0;
@@ -195,19 +194,15 @@ void GSRendererSoft<Vertex>::FlushPrim()
 
 		int iZTST = !m_context->TEST.ZTE ? 1 : m_context->TEST.ZTST;
 		int iATST = !m_context->TEST.ATE ? 1 : m_context->TEST.ATST;
-		int iLOD = 0;
-		int bLCM = 0;
-		int bTCC = 0;
-		int iTFX = 0;
 
 		m_pDrawVertex = m_dv[iZTST][iATST];
 
 		if(m_pPRIM->TME)
 		{
-			iLOD = (m_context->TEX1.MMAG & 1) + (m_context->TEX1.MMIN & 1);
-			bLCM = m_context->TEX1.LCM ? 1 : 0;
-			bTCC = m_context->TEX0.TCC ? 1 : 0;
-			iTFX = m_context->TEX0.TFX;
+			int iLOD = (m_context->TEX1.MMAG & 1) + (m_context->TEX1.MMIN & 1);
+			int bLCM = m_context->TEX1.LCM ? 1 : 0;
+			int bTCC = m_context->TEX0.TCC ? 1 : 0;
+			int iTFX = m_context->TEX0.TFX;
 
 			if(m_pPRIM->FST)
 			{
@@ -215,16 +210,16 @@ void GSRendererSoft<Vertex>::FlushPrim()
 				bLCM = m_context->TEX1.K <= 0 && (m_context->TEX1.MMAG & 1) || m_context->TEX1.K > 0 && (m_context->TEX1.MMIN & 1);
 			}
 
-			if(m_texfilter != D3DTEXF_LINEAR)
+			if(m_nTextureFilter != D3DTEXF_LINEAR)
 			{
 				if(iLOD == 3) bLCM = 0;
 				else iLOD = 0;
 			}
 
 			m_pDrawVertexTFX = m_dvtfx[iLOD][bLCM][bTCC][iTFX];
-		}
 
-		SetupTexture();
+			SetupTexture();
+		}
 		
 		m_scissor.SetRect(
 			max(m_context->SCISSOR.SCAX0, 0),
@@ -278,67 +273,88 @@ void GSRendererSoft<Vertex>::Flip()
 {
 	HRESULT hr;
 
-	FlipInfo rt[2];
+	FlipInfo src[2];
 
-	for(int i = 0; i < countof(rt); i++)
+	for(int i = 0; i < countof(src); i++)
 	{
-		if(m_regs.IsEnabled(i))
+		if(!m_regs.IsEnabled(i))
 		{
-			CRect rect = CRect(CPoint(0, 0), m_regs.GetDispRect(i).BottomRight());
-
-			//GSLocalMemory::RoundUp(, GSLocalMemory::GetBlockSize(m_regs.DISPFB[i].PSM));
-
-			ZeroMemory(&rt[i].rd, sizeof(rt[i].rd));
-			if(m_pRT[i]) m_pRT[i]->GetLevelDesc(0, &rt[i].rd);
-
-			if(rt[i].rd.Width != (UINT)rect.right || rt[i].rd.Height != (UINT)rect.bottom)
-				m_pRT[i] = NULL;
-
-			if(!m_pRT[i])
-			{
-				CComPtr<IDirect3DTexture9> pRT;
-				D3DLOCKED_RECT lr;
-				int nTries = 0, nMaxTries = 10;
-				do
-				{
-					pRT = NULL;
-					hr = m_pD3DDev->CreateTexture(rect.right, rect.bottom, 1, 0, D3DFMT_A8R8G8B8, D3DPOOL_MANAGED, &pRT, NULL);
-					if(FAILED(hr)) break;
-					if(SUCCEEDED(pRT->LockRect(0, &lr, NULL, 0)))
-						pRT->UnlockRect(0);
-					m_pRT[i] = pRT;
-				}
-				while((((DWORD_PTR)lr.pBits & 0xf) || (lr.Pitch & 0xf)) && ++nTries < nMaxTries);
-
-				if(nTries == nMaxTries) continue;
-
-				ZeroMemory(&rt[i].rd, sizeof(rt[i].rd));
-				hr = m_pRT[i]->GetLevelDesc(0, &rt[i].rd);
-			}
-
-			rt[i].pRT = m_pRT[i];
-
-			rt[i].scale = scale_t(1, 1);
-
-			D3DLOCKED_RECT lr;
-			if(FAILED(hr = rt[i].pRT->LockRect(0, &lr, NULL, 0)))
-				continue;
-
-			GIFRegTEX0 TEX0;
-			TEX0.TBP0 = m_regs.pDISPFB[i]->FBP<<5;
-			TEX0.TBW = m_regs.pDISPFB[i]->FBW;
-			TEX0.PSM = m_regs.pDISPFB[i]->PSM;
-
-			GIFRegCLAMP CLAMP;
-			CLAMP.WMS = CLAMP.WMT = 1;
-
-			m_mem.ReadTexture(rect, (BYTE*)lr.pBits, lr.Pitch, TEX0, m_env.TEXA, CLAMP);
-
-			rt[i].pRT->UnlockRect(0);
+			continue;
 		}
+
+		CRect r = CRect(CPoint(0, 0), m_regs.GetFrameSize(i));
+
+		//GSLocalMemory::RoundUp(, GSLocalMemory::GetBlockSize(m_regs.DISPFB[i].PSM));
+
+		memset(&src[i].desc, 0, sizeof(src[i].desc));
+
+		if(m_pRT[i])
+		{
+			m_pRT[i]->GetLevelDesc(0, &src[i].desc);
+		}
+
+		if(src[i].desc.Width != (UINT)r.right || src[i].desc.Height != (UINT)r.bottom)
+		{
+			m_pRT[i] = NULL;
+		}
+
+		D3DLOCKED_RECT lr;
+
+		if(!m_pRT[i])
+		{
+			CComPtr<IDirect3DTexture9> pRT;
+
+			int nTries = 0, nMaxTries = 10;
+
+			do
+			{
+				pRT = NULL;
+
+				hr = m_pD3DDev->CreateTexture(r.right, r.bottom, 1, 0, D3DFMT_A8R8G8B8, D3DPOOL_MANAGED, &pRT, NULL);
+
+				if(FAILED(hr)) break;
+
+				if(SUCCEEDED(pRT->LockRect(0, &lr, NULL, 0)))
+				{
+					pRT->UnlockRect(0);
+				}
+
+				m_pRT[i] = pRT;
+			}
+			while((((DWORD_PTR)lr.pBits & 0xf) || (lr.Pitch & 0xf)) && ++nTries < nMaxTries);
+
+			if(nTries == nMaxTries) continue;
+
+			memset(&src[i].desc, 0, sizeof(src[i].desc));
+
+			hr = m_pRT[i]->GetLevelDesc(0, &src[i].desc);
+		}
+
+		src[i].tex = m_pRT[i];
+
+		src[i].scale = scale_t(1, 1);
+
+		if(FAILED(hr = src[i].tex->LockRect(0, &lr, NULL, 0)))
+		{
+			continue;
+		}
+
+		GIFRegTEX0 TEX0;
+
+		TEX0.TBP0 = m_regs.pDISPFB[i]->FBP<<5;
+		TEX0.TBW = m_regs.pDISPFB[i]->FBW;
+		TEX0.PSM = m_regs.pDISPFB[i]->PSM;
+
+		GIFRegCLAMP CLAMP;
+
+		CLAMP.WMS = CLAMP.WMT = 1;
+
+		m_mem.ReadTexture(r, (BYTE*)lr.pBits, lr.Pitch, TEX0, m_env.TEXA, CLAMP);
+
+		src[i].tex->UnlockRect(0);
 	}
 
-	FinishFlip(rt);
+	FinishFlip(src);
 }
 
 template <class Vertex>
@@ -927,8 +943,6 @@ void GSRendererSoft<Vertex>::DrawVertexTFX(typename Vertex::Vector& Cf, const Ve
 template <class Vertex>
 void GSRendererSoft<Vertex>::SetupTexture()
 {
-	if(!m_pPRIM->TME) return;
-	
 	m_mem.SetupCLUT32(m_context->TEX0, m_env.TEXA);
 
 	//

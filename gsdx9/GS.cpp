@@ -217,7 +217,7 @@ EXPORT_C GSvsync(int field)
 
 	MSG msg;
 
-	ZeroMemory(&msg, sizeof(msg));
+	memset(&msg, 0, sizeof(msg));
 
 	while(msg.message != WM_QUIT)
 	{
@@ -281,7 +281,7 @@ EXPORT_C_(INT32) GStest()
 	int ret = 0;
 
 	D3DCAPS9 caps;
-	ZeroMemory(&caps, sizeof(caps));
+	memset(&caps, 0, sizeof(caps));
 	caps.PixelShaderVersion = D3DPS_VERSION(0, 0);
 
 	if(CComPtr<IDirect3D9> pD3D = Direct3DCreate9(D3D_SDK_VERSION))
@@ -292,11 +292,11 @@ EXPORT_C_(INT32) GStest()
 
 		CString str, tmp;
 
-		if(caps.PixelShaderVersion < D3DPS_VERSION(1, 4))
+		if(caps.PixelShaderVersion < D3DPS_VERSION(2, 0))
 			ret = -1;
 
 		tmp.Format(_T("%s Pixel Shader version %d.%d\n"), 
-			caps.PixelShaderVersion >= D3DPS_VERSION(1, 4) ? yep : nope,
+			caps.PixelShaderVersion >= D3DPS_VERSION(2, 0) ? yep : nope,
 			D3DSHADER_VERSION_MAJOR(caps.PixelShaderVersion),
 			D3DSHADER_VERSION_MINOR(caps.PixelShaderVersion));
 		str += tmp;
