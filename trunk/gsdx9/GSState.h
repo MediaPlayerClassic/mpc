@@ -60,10 +60,14 @@ public:
 	UINT32 MakeSnapshot(char* path);
 	void SetIrq(void (*irq)()) {m_irq = irq;}
 	void SetMT(bool mt) {m_mt = mt;}
+	void SetGameCRC(int crc, int options);
 
 private:
 	void (*m_irq)();
 	bool m_mt;
+	int m_crc;
+	int m_options;
+	bool m_nloophack;
 	int m_osd;
 	int m_field;
 

@@ -107,7 +107,7 @@ int GSRendererHW::DrawingKick(bool skip)
 
 	CRect sc(m_context->SCISSOR.SCAX0, m_context->SCISSOR.SCAY0, m_context->SCISSOR.SCAX1+1, m_context->SCISSOR.SCAY1+1);
 
-	switch(m_prim)
+	switch(m_pPRIM->PRIM)
 	{
 	case 0: // point
 		m_vl.RemoveAt(0, pVertices[nVertices++]);
@@ -219,7 +219,7 @@ int GSRendererHW::DrawingKick(bool skip)
 	{
 		pVertices[0].color = pVertices[nVertices-1].color;
 
-		if(m_prim == 6)
+		if(m_pPRIM->PRIM == 6)
 		{
 			pVertices[3].color = pVertices[5].color;
 		}
@@ -240,7 +240,7 @@ void GSRendererHW::FlushPrim()
 
 		int nPrims = 0;
 
-		switch(m_prim)
+		switch(m_pPRIM->PRIM)
 		{
 		case 0:
 			primtype = D3DPT_POINTLIST;
@@ -369,7 +369,21 @@ void GSRendererHW::FlushPrim()
 		}
 
 		//////////////////////
+/*
+		static int n = 0;
 
+		if(m_perfmon.GetFrame() == 1800)
+		{
+			if(n >= 152 && n <= 162)
+			{
+				CString str;
+				str.Format(_T("c:\\_%03dtex.bmp"), n);
+				::D3DXSaveTextureToFile(str, D3DXIFF_BMP, t.m_pTexture, NULL);
+				str.Format(_T("c:\\_%03drt0.bmp"), n);
+				::D3DXSaveTextureToFile(str, D3DXIFF_BMP, pRT, NULL);
+			}
+		}
+*/
 		hr = m_pD3DDev->BeginScene();
 
 		//////////////////////
@@ -391,17 +405,7 @@ void GSRendererHW::FlushPrim()
 
 		//////////////////////
 
-		float tsx = 1.0f, tsy = 1.0f;
-
-		if(m_pPRIM->TME)
-		{
-			tsx = 1.0f * (1 << m_context->TEX0.TW) / t.m_desc.Width * t.m_scale.x;
-			tsy = 1.0f * (1 << m_context->TEX0.TH) / t.m_desc.Height * t.m_scale.y;
-		}
-
-		ASSERT(abs(tsx - 1.0f) < 0.002 && abs(tsy - 1.0f) < 0.002);
-
-		SetupTexture(t, tsx, tsy);
+		SetupTexture(t);
 
 		//////////////////////
 
@@ -433,10 +437,9 @@ void GSRendererHW::FlushPrim()
 
 		//////////////////////
 
-		{
-			// hr = m_pD3DDev->SetTextureStageState(1, D3DTSS_TEXCOORDINDEX, 1);
-			// hr = m_pD3DDev->SetTexture(1, pRT);
+		// TODO: this could be done in a vertex shader, if we had one...
 
+		{
 			GSVertexHW* v = m_pVertices;
 
 			for(int i = 0, j = m_nVertices; i < j; i++)
@@ -445,33 +448,33 @@ void GSRendererHW::FlushPrim()
 				v[i].y *= scale.y;
 			}
 
-				// v[i].tu2 = v[i].x / rd.Width;
-				// v[i].tv2 = v[i].y / rd.Height;
-
 			if(m_pPRIM->TME)
 			{
-				for(int i = 0, j = m_nVertices; i < j; i++)
+				float tsx = 1.0f, tsy = 1.0f;
+
+				tsx = 1.0f * (1 << m_context->TEX0.TW) / t.m_desc.Width * t.m_scale.x;
+				tsy = 1.0f * (1 << m_context->TEX0.TH) / t.m_desc.Height * t.m_scale.y;
+
+				ASSERT(abs(tsx - 1.0f) < 0.002 && abs(tsy - 1.0f) < 0.002);
+
+				if(tsx != 1 || tsy != 1)
 				{
-					// FIXME
-					float base, fract;
-					fract = modf(v[i].tu, &base);
-					fract *= tsx;
-					//ASSERT(-1 <= fract && fract <= 1.01);
-					v[i].tu = base + fract;
-					fract = modf(v[i].tv, &base);
-					fract *= tsy;
-					//ASSERT(-1 <= fract && fract <= 1.01);
-					v[i].tv = base + fract;
+					for(int i = 0, j = m_nVertices; i < j; i++)
+					{
+						// FIXME
+						float base, fract;
+						fract = modf(v[i].tu, &base);
+						fract *= tsx;
+						//ASSERT(-1 <= fract && fract <= 1.01);
+						v[i].tu = base + fract;
+						fract = modf(v[i].tv, &base);
+						fract *= tsy;
+						//ASSERT(-1 <= fract && fract <= 1.01);
+						v[i].tv = base + fract;
+					}
 				}
 			}
 
-/*
-				if(m_pPRIM->TME)
-				{
-					v[i].tu *= tsx;
-					v[i].tv *= tsy;
-				}
-*/
 			if(m_pPRIM->FGE)
 			{
 				for(int i = 0, j = m_nVertices; i < j; i++)
@@ -535,13 +538,27 @@ void GSRendererHW::FlushPrim()
 		}
 
 		hr = m_pD3DDev->EndScene();
+/*
+		if(m_perfmon.GetFrame() == 1800)
+		{
+			if(n >= 152 && n <= 162)
+			{
+				CString str;
+				str.Format(_T("c:\\_%03drt1.bmp"), n);
+				::D3DXSaveTextureToFile(str, D3DXIFF_BMP, pRT, NULL);
+			}
 
+			n++;
+		}
+*/
 		//////////////////////
 
 		GIFRegTEX0 TEX0;
+
 		TEX0.TBP0 = m_context->FRAME.Block();
 		TEX0.TBW = m_context->FRAME.FBW;
 		TEX0.PSM = m_context->FRAME.PSM;
+
 		m_tc.AddRT(TEX0, pRT, scale); 
 	}
 	while(0);
@@ -727,7 +744,7 @@ void GSRendererHW::MinMaxUV(int w, int h, CRect& r)
 	ASSERT(r.top <= r.bottom);
 }
 
-void GSRendererHW::SetupTexture(const GSTextureBase& t, float tsx, float tsy)
+void GSRendererHW::SetupTexture(const GSTextureBase& t)
 {
 	HRESULT hr;
 
@@ -782,7 +799,7 @@ void GSRendererHW::SetupTexture(const GSTextureBase& t, float tsx, float tsy)
 			case D3DFMT_A8R8G8B8:
 				//ASSERT(m_context->TEX0.PSM != PSM_PSMCT24); // format must be D3DFMT_X8R8G8B8 for PSM_PSMCT24
 				//if(m_context->TEX0.PSM == PSM_PSMCT24) {i += 4; if(m_env.TEXA.AEM) i += 4;}
-				if(m_context->TEX0.PSM == PSM_PSMT8H) i += 32;
+				if(t.m_pPalette && m_context->TEX0.PSM == PSM_PSMT8H) i += 32;
 				break;
 			case D3DFMT_X8R8G8B8:
 				i += 4; if(m_env.TEXA.AEM) i += 4;
@@ -840,7 +857,7 @@ void GSRendererHW::SetupAlphaBlend()
 
 	hr = m_pD3DDev->GetRenderState(D3DRS_ALPHABLENDENABLE, &ABE);
 
-	bool fABE = m_pPRIM->ABE || (m_prim == 1 || m_prim == 2) && m_pPRIM->AA1; // FIXME
+	bool fABE = m_pPRIM->ABE || (m_pPRIM->PRIM == 1 || m_pPRIM->PRIM == 2) && m_pPRIM->AA1; // FIXME
 
 	if(fABE != !!ABE)
 	{

@@ -316,9 +316,9 @@ void GSState::GIFRegHandlerTEX1_2(GIFReg* r)
 
 void GSState::GIFRegHandlerTEX2_1(GIFReg* r)
 {
-	if(m_pPRIM->CTXT == 0 && m_env.CTXT[0].TEX2.i64 != r->TEX2.i64)
+	// if(m_pPRIM->CTXT == 0 && m_env.CTXT[0].TEX2.i64 != r->TEX2.i64)
 	{
-		Flush();
+		Flush(); // FIXME: must flush here, CLUT may be overwritten for the other context (not happening when writing TEX0, strange)
 	}
 
 	m_env.CTXT[0].TEX2 = r->TEX2;
@@ -330,9 +330,9 @@ void GSState::GIFRegHandlerTEX2_1(GIFReg* r)
 
 void GSState::GIFRegHandlerTEX2_2(GIFReg* r)
 {
-	if(m_pPRIM->CTXT == 1 && m_env.CTXT[1].TEX2.i64 != r->TEX2.i64)
+	// if(m_pPRIM->CTXT == 1 && m_env.CTXT[1].TEX2.i64 != r->TEX2.i64)
 	{
-		Flush();
+		Flush(); // FIXME: must flush here, CLUT may be overwritten for the other context (not happening when writing TEX0, strange)
 	}
 
 	m_env.CTXT[1].TEX2 = r->TEX2;

@@ -44,6 +44,7 @@ public:
 	BOOL m_fEnableTvOut;
 	BOOL m_fLinearTextureFilter;
 	BOOL m_fDeinterlace;
+	int m_nloophack;
 
 protected:
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV support

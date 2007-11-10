@@ -50,7 +50,9 @@ void GSState::WriteTransfer(BYTE* pMem, int len)
 
 	// TODO: hmmmm
 	if(m_pPRIM->TME && (m_env.BITBLTBUF.DBP == m_context->TEX0.TBP0 || m_env.BITBLTBUF.DBP == m_context->TEX0.CBP))
+	{
 		FlushPrim();
+	}
 
 	int bpp = GSLocalMemory::m_psmtbl[m_env.BITBLTBUF.DPSM].trbpp;
 	int pitch = (m_env.TRXREG.RRW - m_env.TRXPOS.DSAX)*bpp>>3;
@@ -63,9 +65,12 @@ void GSState::WriteTransfer(BYTE* pMem, int len)
 		len = min(m_nTrMaxBytes, len);
 
 		if(m_nTransferBytes + len > m_nTrMaxBytes)
+		{
 			FlushWriteTransfer();
+		}
 
 		memcpy(&m_pTransferBuffer[m_nTransferBytes], pMem, len);
+
 		m_nTransferBytes += len;
 	}
 	else
