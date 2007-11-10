@@ -20,8 +20,8 @@
 	<Configurations>
 		<Configuration
 			Name="Debug|Win32"
-			OutputDirectory="$(ConfigurationName)"
-			IntermediateDirectory="$(ConfigurationName)"
+			OutputDirectory="$(PlatformName)\$(ConfigurationName)"
+			IntermediateDirectory="$(PlatformName)\$(ConfigurationName)"
 			ConfigurationType="2"
 			UseOfMFC="1"
 			CharacterSet="2"
@@ -107,8 +107,8 @@
 		</Configuration>
 		<Configuration
 			Name="Debug|x64"
-			OutputDirectory="x64\$(ConfigurationName)"
-			IntermediateDirectory="x64\$(ConfigurationName)"
+			OutputDirectory="$(PlatformName)\$(ConfigurationName)"
+			IntermediateDirectory="$(PlatformName)\$(ConfigurationName)"
 			ConfigurationType="2"
 			UseOfMFC="2"
 			CharacterSet="2"
@@ -135,7 +135,7 @@
 				Name="VCCLCompilerTool"
 				Optimization="0"
 				EnableIntrinsicFunctions="true"
-				AdditionalIncludeDirectories="C:\Program Files\Microsoft DirectX 9.0 SDK (Summer 2004)\Include"
+				AdditionalIncludeDirectories="./baseclasses"
 				PreprocessorDefinitions="D3D_DEBUG_INFO;_WINDOWS;_DEBUG;_USRDLL"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
@@ -159,8 +159,8 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="d3d9.lib d3dx9.lib strmbaseD.lib ddraw.lib dxguid.lib"
-				OutputFile="e:\pcsx2_amd64\plugins\GSdx9.dll"
+				AdditionalDependencies="d3d9.lib d3dx9.lib ddraw.lib dxguid.lib winmm.lib"
+				OutputFile="$(OutDir)\GSdx9.dll"
 				LinkIncremental="2"
 				ModuleDefinitionFile=""
 				GenerateDebugInformation="true"
@@ -195,8 +195,8 @@
 		</Configuration>
 		<Configuration
 			Name="Release|Win32"
-			OutputDirectory="$(ConfigurationName)"
-			IntermediateDirectory="$(ConfigurationName)"
+			OutputDirectory="$(PlatformName)\$(ConfigurationName)"
+			IntermediateDirectory="$(PlatformName)\$(ConfigurationName)"
 			ConfigurationType="2"
 			UseOfMFC="1"
 			CharacterSet="2"
@@ -286,11 +286,12 @@
 		</Configuration>
 		<Configuration
 			Name="Release|x64"
-			OutputDirectory="x64\$(ConfigurationName)"
-			IntermediateDirectory="x64\$(ConfigurationName)"
+			OutputDirectory="$(PlatformName)\$(ConfigurationName)"
+			IntermediateDirectory="$(PlatformName)\$(ConfigurationName)"
 			ConfigurationType="2"
 			UseOfMFC="1"
 			CharacterSet="2"
+			WholeProgramOptimization="1"
 			>
 			<Tool
 				Name="VCPreBuildEventTool"
@@ -317,7 +318,7 @@
 				EnableIntrinsicFunctions="true"
 				FavorSizeOrSpeed="1"
 				OmitFramePointers="true"
-				AdditionalIncludeDirectories="C:\Program Files\Microsoft DirectX 9.0 SDK (Summer 2004)\Include"
+				AdditionalIncludeDirectories="./baseclasses"
 				PreprocessorDefinitions="_WINDOWS;NDEBUG;_USRDLL"
 				StringPooling="true"
 				RuntimeLibrary="0"
@@ -326,6 +327,7 @@
 				ForceConformanceInForLoopScope="true"
 				WarningLevel="3"
 				Detect64BitPortabilityProblems="true"
+				DebugInformationFormat="3"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -341,8 +343,8 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="d3d9.lib d3dx9.lib strmbaseR.lib ddraw.lib dxguid.lib"
-				OutputFile="e:\pcsx2_amd64\plugins\GSdx9.dll"
+				AdditionalDependencies="d3d9.lib d3dx9.lib ddraw.lib dxguid.lib winmm.lib"
+				OutputFile="$(OutDir)\GSdx9.dll"
 				LinkIncremental="1"
 				ModuleDefinitionFile=""
 				GenerateDebugInformation="true"
@@ -379,8 +381,8 @@
 		</Configuration>
 		<Configuration
 			Name="DebugSSE2|Win32"
-			OutputDirectory="$(ConfigurationName)"
-			IntermediateDirectory="$(ConfigurationName)"
+			OutputDirectory="$(PlatformName)\$(ConfigurationName)"
+			IntermediateDirectory="$(PlatformName)\$(ConfigurationName)"
 			ConfigurationType="2"
 			UseOfMFC="1"
 			CharacterSet="2"
@@ -468,8 +470,8 @@
 		</Configuration>
 		<Configuration
 			Name="DebugSSE2|x64"
-			OutputDirectory="x64\$(ConfigurationName)"
-			IntermediateDirectory="x64\$(ConfigurationName)"
+			OutputDirectory="$(PlatformName)\$(ConfigurationName)"
+			IntermediateDirectory="$(PlatformName)\$(ConfigurationName)"
 			ConfigurationType="2"
 			UseOfMFC="2"
 			CharacterSet="2"
@@ -496,7 +498,7 @@
 				Name="VCCLCompilerTool"
 				Optimization="0"
 				EnableIntrinsicFunctions="true"
-				AdditionalIncludeDirectories="C:\Program Files\Microsoft DirectX 9.0 SDK (Summer 2004)\Include"
+				AdditionalIncludeDirectories="./baseclasses"
 				PreprocessorDefinitions="D3D_DEBUG_INFO;_WINDOWS;_DEBUG;_USRDLL"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
@@ -520,8 +522,8 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="d3d9.lib d3dx9.lib strmbaseD.lib ddraw.lib dxguid.lib"
-				OutputFile="e:\pcsx2_amd64\plugins\GSdx9.dll"
+				AdditionalDependencies="d3d9.lib d3dx9.lib ddraw.lib dxguid.lib winmm.lib"
+				OutputFile="$(OutDir)\GSdx9.dll"
 				LinkIncremental="2"
 				ModuleDefinitionFile=""
 				GenerateDebugInformation="true"
@@ -556,8 +558,8 @@
 		</Configuration>
 		<Configuration
 			Name="ReleaseSSE2|Win32"
-			OutputDirectory="$(ConfigurationName)"
-			IntermediateDirectory="$(ConfigurationName)"
+			OutputDirectory="$(PlatformName)\$(ConfigurationName)"
+			IntermediateDirectory="$(PlatformName)\$(ConfigurationName)"
 			ConfigurationType="2"
 			UseOfMFC="1"
 			CharacterSet="2"
@@ -652,11 +654,12 @@
 		</Configuration>
 		<Configuration
 			Name="ReleaseSSE2|x64"
-			OutputDirectory="x64\$(ConfigurationName)"
-			IntermediateDirectory="x64\$(ConfigurationName)"
+			OutputDirectory="$(PlatformName)\$(ConfigurationName)"
+			IntermediateDirectory="$(PlatformName)\$(ConfigurationName)"
 			ConfigurationType="2"
 			UseOfMFC="1"
 			CharacterSet="2"
+			WholeProgramOptimization="1"
 			>
 			<Tool
 				Name="VCPreBuildEventTool"
@@ -683,11 +686,12 @@
 				EnableIntrinsicFunctions="true"
 				FavorSizeOrSpeed="1"
 				OmitFramePointers="true"
-				AdditionalIncludeDirectories="C:\Program Files\Microsoft DirectX 9.0 SDK (Summer 2004)\Include"
+				AdditionalIncludeDirectories="./baseclasses"
 				PreprocessorDefinitions="_WINDOWS;NDEBUG;_USRDLL"
 				StringPooling="true"
 				RuntimeLibrary="0"
-				EnableEnhancedInstructionSet="2"
+				StructMemberAlignment="5"
+				FloatingPointModel="2"
 				ForceConformanceInForLoopScope="true"
 				WarningLevel="3"
 				Detect64BitPortabilityProblems="true"
@@ -707,8 +711,8 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="d3d9.lib d3dx9.lib strmbaseR.lib ddraw.lib dxguid.lib"
-				OutputFile="e:\pcsx2_amd64\plugins\GSdx9.dll"
+				AdditionalDependencies="d3d9.lib d3dx9.lib ddraw.lib dxguid.lib winmm.lib"
+				OutputFile="$(OutDir)\GSdx9.dll"
 				LinkIncremental="1"
 				ModuleDefinitionFile=""
 				GenerateDebugInformation="true"
@@ -759,10 +763,24 @@
 			<File
 				RelativePath=".\GSCapture.cpp"
 				>
+				<FileConfiguration
+					Name="ReleaseSSE2|x64"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+					/>
+				</FileConfiguration>
 			</File>
 			<File
 				RelativePath=".\GSCaptureDlg.cpp"
 				>
+				<FileConfiguration
+					Name="ReleaseSSE2|x64"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+					/>
+				</FileConfiguration>
 			</File>
 			<File
 				RelativePath=".\GSdx9.cpp"
@@ -966,10 +984,6 @@
 			</File>
 			<File
 				RelativePath=".\GSVertexList.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\GSWnd.cpp"
 				>
 			</File>
 			<File
