@@ -339,6 +339,10 @@ EXPORT_C GSirqCallback(void (*irq)())
 	s_irq = irq;
 }
 
+EXPORT_C GSsetGameCRC(int crc, int options)
+{
+	s_gs->SetGameCRC(crc, options);
+}
 /////////////////
 /*
 EXPORT_C GSReplay(HWND hwnd, HINSTANCE hinst, LPSTR lpszCmdLine, int nCmdShow)

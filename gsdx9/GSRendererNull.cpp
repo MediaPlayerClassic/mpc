@@ -41,7 +41,7 @@ int GSRendererNull::DrawingKick(bool skip)
 {
 	NullVertex v;
 
-	switch(m_prim)
+	switch(m_pPRIM->PRIM)
 	{
 	case 0: // point
 		m_vl.RemoveAt(0, v);

@@ -34,10 +34,13 @@ GSState::GSState()
 	, m_field(0)
 	, m_irq(NULL)
 	, m_q(1.0f)
+	, m_crc(0)
+	, m_options(0)
 {
 	m_fPalettizedTextures = !!AfxGetApp()->GetProfileInt(_T("Settings"), _T("fPalettizedTextures"), FALSE);
 	m_fDeinterlace = !!AfxGetApp()->GetProfileInt(_T("Settings"), _T("fDeinterlace"), TRUE);
 	m_nTextureFilter = (D3DTEXTUREFILTERTYPE)AfxGetApp()->GetProfileInt(_T("Settings"), _T("TextureFilter"), D3DTEXF_LINEAR);
+	m_nloophack = AfxGetApp()->GetProfileInt(_T("Settings"), _T("nloophack"), 2) == 1;
 
 //	m_regs.pCSR->rREV = 0x20;
 
@@ -613,7 +616,7 @@ void GSState::Transfer(BYTE* mem, UINT32 size, int index)
 			}
 			else if(path.tag.NLOOP == 0)
 			{
-				if(index == 0)
+				if(index == 0 && m_nloophack)
 				{
 					continue;
 				}
@@ -729,6 +732,22 @@ UINT32 GSState::MakeSnapshot(char* path)
 	CString fn;
 	fn.Format(_T("%sgsdx9_%s.bmp"), CString(path), CTime::GetCurrentTime().Format(_T("%Y%m%d%H%M%S")));
 	return D3DXSaveSurfaceToFile(fn, D3DXIFF_BMP, m_pBackBuffer, NULL, NULL);
+}
+
+void GSState::SetGameCRC(int crc, int options)
+{
+	m_crc = crc;
+	m_options = options;
+
+	if(AfxGetApp()->GetProfileInt(_T("Settings"), _T("nloophack"), 2) == 2)
+	{
+		switch(crc)
+		{
+		case 0xa39517ab: // ffx pal
+			m_nloophack = true;
+			break;
+		}
+	}
 }
 
 static bool CheckSize(IDirect3DTexture9* t, CSize s)

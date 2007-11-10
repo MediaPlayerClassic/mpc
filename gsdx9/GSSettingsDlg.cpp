@@ -48,6 +48,7 @@ CGSSettingsDlg::CGSSettingsDlg(CWnd* pParent /*=NULL*/)
 	, m_fEnableTvOut(FALSE)
 	, m_fLinearTextureFilter(TRUE)
 	, m_fDeinterlace(TRUE)
+	, m_nloophack(2)
 {
 }
 
@@ -65,6 +66,7 @@ void CGSSettingsDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_CHECK3, m_fEnableTvOut);
 	DDX_Check(pDX, IDC_CHECK4, m_fLinearTextureFilter);
 	DDX_Check(pDX, IDC_CHECK5, m_fDeinterlace);
+	DDX_Check(pDX, IDC_CHECK6, m_nloophack);	
 }
 
 BEGIN_MESSAGE_MAP(CGSSettingsDlg, CDialog)
@@ -154,6 +156,7 @@ BOOL CGSSettingsDlg::OnInitDialog()
 	m_fLinearTextureFilter = (D3DTEXTUREFILTERTYPE)pApp->GetProfileInt(_T("Settings"), _T("TextureFilter"), D3DTEXF_LINEAR) == D3DTEXF_LINEAR;
 	m_fEnableTvOut = pApp->GetProfileInt(_T("Settings"), _T("fEnableTvOut"), FALSE);
 	m_fDeinterlace = pApp->GetProfileInt(_T("Settings"), _T("fDeinterlace"), TRUE);
+	m_nloophack = pApp->GetProfileInt(_T("Settings"), _T("nloophack"), 2);
 
 	//
 
@@ -191,6 +194,7 @@ void CGSSettingsDlg::OnOK()
 	pApp->WriteProfileInt(_T("Settings"), _T("TextureFilter"), m_fLinearTextureFilter ? D3DTEXF_LINEAR : D3DTEXF_POINT);
 	pApp->WriteProfileInt(_T("Settings"), _T("fEnableTvOut"), m_fEnableTvOut);
 	pApp->WriteProfileInt(_T("Settings"), _T("fDeinterlace"), m_fDeinterlace);
+	pApp->WriteProfileInt(_T("Settings"), _T("nloophack"), m_nloophack);
 
 	__super::OnOK();
 }

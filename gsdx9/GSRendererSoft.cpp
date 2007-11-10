@@ -112,7 +112,7 @@ int GSRendererSoft<Vertex>::DrawingKick(bool skip)
 	Vertex* pVertices = &m_pVertices[m_nVertices];
 	int nVertices = 0;
 
-	switch(m_prim)
+	switch(m_pPRIM->PRIM)
 	{
 	case 0: // point
 		m_vl.RemoveAt(0, pVertices[nVertices++]);
@@ -190,6 +190,20 @@ void GSRendererSoft<Vertex>::FlushPrim()
 {
 	if(m_nVertices > 0)
 	{
+/*
+static int n = 0;
+if(m_context->TEX0.TBP0 == 0x3c00 && m_context->TEX0.TBW == 4 && m_context->TEX0.PSM == 0x13)
+{
+	if(n >= 16 && n <= 30)
+	{
+	CString str;
+	str.Format(_T("c:\\_%03dtex.bmp"), n);
+	m_mem.SaveBMP(m_pD3DDev, str, m_context->TEX0.TBP0, m_context->TEX0.TBW, m_context->TEX0.PSM, 1 << m_context->TEX0.TW, 1 << m_context->TEX0.TH);
+	str.Format(_T("c:\\_%03drt0.bmp"), n);
+	m_mem.SaveBMP(m_pD3DDev, str, m_context->FRAME.FBP, m_context->FRAME.FBW, m_context->FRAME.FBW, m_regs.GetFrameSize(1).cx, m_regs.GetFrameSize(1).cy);
+	}
+}
+*/
 		bZTE = m_context->TEST.ZTE && m_context->TEST.ZTST >= 2 || !m_context->ZBUF.ZMSK;
 
 		int iZTST = !m_context->TEST.ZTE ? 1 : m_context->TEST.ZTST;
@@ -232,7 +246,7 @@ void GSRendererSoft<Vertex>::FlushPrim()
 		int nPrims = 0;
 		Vertex* pVertices = m_pVertices;
 
-		switch(m_prim)
+		switch(m_pPRIM->PRIM)
 		{
 		case 0:
 			nPrims = m_nVertices;
@@ -263,6 +277,18 @@ void GSRendererSoft<Vertex>::FlushPrim()
 		}
 
 		m_perfmon.IncCounter(GSPerfMon::c_prim, nPrims);
+/*
+if(m_context->TEX0.TBP0 == 0x3c00 && m_context->TEX0.TBW == 4 && m_context->TEX0.PSM == 0x13)
+{
+	if(n >= 16 && n <= 30)
+	{
+	CString str;
+	str.Format(_T("c:\\_%03drt1.bmp"), n);
+	m_mem.SaveBMP(m_pD3DDev, str, m_context->FRAME.FBP, m_context->FRAME.FBW, m_context->FRAME.FBW, m_regs.GetFrameSize(1).cx, m_regs.GetFrameSize(1).cy);
+	}
+	n++;
+}
+*/
 	}
 
 	__super::FlushPrim();

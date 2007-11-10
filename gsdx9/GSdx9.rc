@@ -81,13 +81,13 @@ IDB_LOGO1               BITMAP                  "res\\logo1.bmp"
 // Dialog
 //
 
-IDD_CONFIG DIALOGEX 0, 0, 189, 180
+IDD_CONFIG DIALOGEX 0, 0, 189, 204
 STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "Settings..."
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
-    PUSHBUTTON      "Cancel",IDCANCEL,96,159,50,14
-    DEFPUSHBUTTON   "OK",IDOK,42,159,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,96,183,50,14
+    DEFPUSHBUTTON   "OK",IDOK,42,183,50,14
     COMBOBOX        IDC_COMBO1,64,72,118,69,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
     LTEXT           "Renderer:",IDC_STATIC,7,74,34,8
     LTEXT           "Resolution:",IDC_STATIC,7,59,37,8
@@ -100,6 +100,8 @@ BEGIN
     CONTROL         "Linear texture filtering",IDC_CHECK4,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,118,87,10
     CONTROL         2024,IDC_STATIC,"Static",SS_BITMAP,7,7,175,44
     CONTROL         "Deinterlace",IDC_CHECK5,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,131,57,10
+    CONTROL         "Enable NLOOP hack (third state => auto)",IDC_CHECK6,
+                    "Button",BS_AUTO3STATE | WS_TABSTOP,7,157,149,10
 END
 
 IDD_CAPTURE DIALOGEX 0, 0, 279, 67
@@ -131,7 +133,7 @@ BEGIN
         VERTGUIDE, 64
         VERTGUIDE, 182
         TOPMARGIN, 7
-        BOTTOMMARGIN, 173
+        BOTTOMMARGIN, 197
     END
 END
 #endif    // APSTUDIO_INVOKED
@@ -143,8 +145,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 1,0,0,9
- PRODUCTVERSION 1,0,0,9
+ FILEVERSION 1,0,0,10
+ PRODUCTVERSION 1,0,0,10
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -162,12 +164,12 @@ BEGIN
             VALUE "Comments", "http://gabest.org/"
             VALUE "CompanyName", "Gabest"
             VALUE "FileDescription", "GS plugin for ps2 emulators"
-            VALUE "FileVersion", "1, 0, 0, 9"
+            VALUE "FileVersion", "1, 0, 0, 10"
             VALUE "InternalName", "GSdx9.dll"
             VALUE "LegalCopyright", "Copyright (c) 2004-2005 Gabest.  All rights reserved."
             VALUE "OriginalFilename", "GSdx9.dll"
             VALUE "ProductName", "GSdx9"
-            VALUE "ProductVersion", "1, 0, 0, 9"
+            VALUE "ProductVersion", "1, 0, 0, 10"
         END
     END
     BLOCK "VarFileInfo"

@@ -29,13 +29,11 @@ protected:
 	VERTEX* m_pVertices;
 	int m_nMaxVertices, m_nVertices;
 	GSVertexList<VERTEX> m_vl;
-	UINT32 m_prim;
 
 	void ResetState()
 	{
 		m_nVertices = 0;
 		m_vl.RemoveAll();
-		m_prim = 8; 
 
 		__super::ResetState();
 	}
@@ -56,13 +54,6 @@ protected:
 				m_pVertices = pVertices;
 			}
 
-			if(m_prim != m_pPRIM->PRIM && m_nVertices > 0)
-			{
-				Flush();
-			}
-
-			m_prim = m_pPRIM->PRIM;
-
 			m_nVertices += DrawingKick(skip);
 		}
 	}
@@ -74,7 +65,6 @@ protected:
 
 	void FlushPrim() 
 	{
-		m_prim = 8; 
 		m_nVertices = 0;
 	}
 

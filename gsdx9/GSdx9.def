@@ -27,4 +27,5 @@ EXPORTS
 	GSabout				
 	GSreadFIFO          
 	GSirqCallback
+	GSsetGameCRC
 	; GSReplay

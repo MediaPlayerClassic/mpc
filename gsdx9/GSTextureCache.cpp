@@ -805,11 +805,6 @@ bool GSTextureCache::FetchP(GSState* s, GSTextureBase& t)
 	return false;
 }
 
-__declspec(noinline) static void Dummy()
-{
-	clock_t c = clock();
-}
-
 bool GSTextureCache::FetchNP(GSState* s, GSTextureBase& t)
 {
 	GSTexture* pt = NULL;
@@ -901,8 +896,6 @@ bool GSTextureCache::FetchNP(GSState* s, GSTextureBase& t)
 	if(lr == needsupdate)
 	{
 		UpdateTexture(s, pt, &GSLocalMemory::ReadTextureNP);
-
-		Dummy();
 
 		lr = found;
 	}
