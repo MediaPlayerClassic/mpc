@@ -59,8 +59,6 @@
 BEGIN_MESSAGE_MAP(CGSdx9App, CWinApp)
 END_MESSAGE_MAP()
 
-#include "GSSoftVertexFX.h"
-
 CGSdx9App::CGSdx9App()
 {
 }
