@@ -873,7 +873,7 @@ void GSState::FinishFlip(FlipInfo src[2])
 
 	// osd
 
-	static int s_frame = 0;
+	static UINT64 s_frame = 0;
 	static CString s_stats;
 
 	if(m_perfmon.GetFrame() - s_frame >= 30) 
