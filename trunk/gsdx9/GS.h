@@ -940,7 +940,7 @@ struct GIFPath
 	GIFTag tag; 
 	int nreg;
 
-	DWORD GetGIFReg() {return GET_GIF_REG(tag, nreg);}
+	DWORD GetGIFReg() {return (DWORD)GET_GIF_REG(tag, nreg);}
 };
 
 #pragma pack(pop)
