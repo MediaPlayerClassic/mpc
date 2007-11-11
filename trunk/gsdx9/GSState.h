@@ -49,7 +49,6 @@ public:
 	void Hide();
 
 	void OnClose();
-	void OnSize(UINT nType, int cx, int cy);
 
 	UINT32 Freeze(freezeData* fd, bool fSizeOnly);
 	UINT32 Defrost(const freezeData* fd);

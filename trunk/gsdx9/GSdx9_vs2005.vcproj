@@ -473,7 +473,7 @@
 			OutputDirectory="$(PlatformName)\$(ConfigurationName)"
 			IntermediateDirectory="$(PlatformName)\$(ConfigurationName)"
 			ConfigurationType="2"
-			UseOfMFC="2"
+			UseOfMFC="1"
 			CharacterSet="2"
 			>
 			<Tool
@@ -501,9 +501,7 @@
 				AdditionalIncludeDirectories="./baseclasses"
 				PreprocessorDefinitions="D3D_DEBUG_INFO;_WINDOWS;_DEBUG;_USRDLL"
 				MinimalRebuild="true"
-				BasicRuntimeChecks="3"
-				RuntimeLibrary="3"
-				EnableEnhancedInstructionSet="2"
+				RuntimeLibrary="1"
 				WarningLevel="3"
 				Detect64BitPortabilityProblems="true"
 				DebugInformationFormat="3"
@@ -763,24 +761,10 @@
 			<File
 				RelativePath=".\GSCapture.cpp"
 				>
-				<FileConfiguration
-					Name="ReleaseSSE2|x64"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath=".\GSCaptureDlg.cpp"
 				>
-				<FileConfiguration
-					Name="ReleaseSSE2|x64"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath=".\GSdx9.cpp"

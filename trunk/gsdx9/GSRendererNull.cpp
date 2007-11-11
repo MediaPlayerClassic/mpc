@@ -43,33 +43,33 @@ int GSRendererNull::DrawingKick(bool skip)
 
 	switch(m_pPRIM->PRIM)
 	{
-	case 0: // point
+	case GS_POINTLIST:
 		m_vl.RemoveAt(0, v);
 		break;
-	case 1: // line
+	case GS_LINELIST:
 		m_vl.RemoveAt(0, v);
 		m_vl.RemoveAt(0, v);
 		break;
-	case 2: // line strip
+	case GS_LINESTRIP:
 		m_vl.RemoveAt(0, v);
 		m_vl.GetAt(0, v);
 		break;
-	case 3: // triangle list
+	case GS_TRIANGLELIST:
 		m_vl.RemoveAt(0, v);
 		m_vl.RemoveAt(0, v);
 		m_vl.RemoveAt(0, v);
 		break;
-	case 4: // triangle strip
+	case GS_TRIANGLESTRIP:
 		m_vl.RemoveAt(0, v);
 		m_vl.GetAt(0, v);
 		m_vl.GetAt(1, v);
 		break;
-	case 5: // triangle fan
+	case GS_TRIANGLEFAN:
 		m_vl.GetAt(0, v);
 		m_vl.RemoveAt(1, v);
 		m_vl.GetAt(1, v);
 		break;
-	case 6: // sprite
+	case GS_SPRITE:
 		m_vl.RemoveAt(0, v);
 		m_vl.RemoveAt(0, v);
 		break;

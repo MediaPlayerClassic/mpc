@@ -109,7 +109,7 @@ int GSRendererHW::DrawingKick(bool skip)
 
 	switch(m_pPRIM->PRIM)
 	{
-	case 0: // point
+	case GS_POINTLIST:
 		m_vl.RemoveAt(0, pVertices[nVertices++]);
 		if(pVertices[nVertices-1].x < sc.left
 		|| pVertices[nVertices-1].y < sc.top
@@ -117,7 +117,7 @@ int GSRendererHW::DrawingKick(bool skip)
 		|| pVertices[nVertices-1].y >= sc.bottom)
 			return 0;
 		break;
-	case 1: // line
+	case GS_LINELIST:
 		m_vl.RemoveAt(0, pVertices[nVertices++]);
 		m_vl.RemoveAt(0, pVertices[nVertices++]);
 		if(pVertices[nVertices-1].x < sc.left && pVertices[nVertices-2].x < sc.left
@@ -126,7 +126,7 @@ int GSRendererHW::DrawingKick(bool skip)
 		|| pVertices[nVertices-1].y >= sc.bottom && pVertices[nVertices-2].y >= sc.bottom)
 			return 0;
 		break;
-	case 2: // line strip
+	case GS_LINESTRIP:
 		m_vl.RemoveAt(0, pVertices[nVertices++]);
 		m_vl.GetAt(0, pVertices[nVertices++]);
 		if(pVertices[nVertices-1].x < sc.left && pVertices[nVertices-2].x < sc.left
@@ -135,7 +135,7 @@ int GSRendererHW::DrawingKick(bool skip)
 		|| pVertices[nVertices-1].y >= sc.bottom && pVertices[nVertices-2].y >= sc.bottom)
 			return 0;
 		break;
-	case 3: // triangle list
+	case GS_TRIANGLELIST:
 		m_vl.RemoveAt(0, pVertices[nVertices++]);
 		m_vl.RemoveAt(0, pVertices[nVertices++]);
 		m_vl.RemoveAt(0, pVertices[nVertices++]);
@@ -145,7 +145,7 @@ int GSRendererHW::DrawingKick(bool skip)
 		|| pVertices[nVertices-1].y >= sc.bottom && pVertices[nVertices-2].y >= sc.bottom && pVertices[nVertices-3].y >= sc.bottom)
 			return 0;
 		break;
-	case 4: // triangle strip
+	case GS_TRIANGLESTRIP:
 		m_vl.RemoveAt(0, pVertices[nVertices++]);
 		m_vl.GetAt(0, pVertices[nVertices++]);
 		m_vl.GetAt(1, pVertices[nVertices++]);
@@ -155,7 +155,7 @@ int GSRendererHW::DrawingKick(bool skip)
 		|| pVertices[nVertices-1].y >= sc.bottom && pVertices[nVertices-2].y >= sc.bottom && pVertices[nVertices-3].y >= sc.bottom)
 			return 0;
 		break;
-	case 5: // triangle fan
+	case GS_TRIANGLEFAN:
 		m_vl.GetAt(0, pVertices[nVertices++]);
 		m_vl.RemoveAt(1, pVertices[nVertices++]);
 		m_vl.GetAt(1, pVertices[nVertices++]);
@@ -165,7 +165,7 @@ int GSRendererHW::DrawingKick(bool skip)
 		|| pVertices[nVertices-1].y >= sc.bottom && pVertices[nVertices-2].y >= sc.bottom && pVertices[nVertices-3].y >= sc.bottom)
 			return 0;
 		break;
-	case 6: // sprite
+	case GS_SPRITE:
 		m_vl.RemoveAt(0, pVertices[nVertices++]);
 		m_vl.RemoveAt(0, pVertices[nVertices++]);
 		if(pVertices[nVertices-1].x < sc.left && pVertices[nVertices-2].x < sc.left
@@ -242,15 +242,19 @@ void GSRendererHW::FlushPrim()
 
 		switch(m_pPRIM->PRIM)
 		{
-		case 0:
+		case GS_POINTLIST:
 			primtype = D3DPT_POINTLIST;
 			nPrims = m_nVertices;
 			break;
-		case 1: case 2:
+		case GS_LINELIST: 
+		case GS_LINESTRIP:
 			primtype = D3DPT_LINELIST;
 			nPrims = m_nVertices / 2; 
 			break;
-		case 3: case 4: case 5: case 6:
+		case GS_TRIANGLELIST: 
+		case GS_TRIANGLESTRIP: 
+		case GS_TRIANGLEFAN: 
+		case GS_SPRITE:
 			primtype = D3DPT_TRIANGLELIST;
 			nPrims = m_nVertices / 3; 
 			break;
@@ -527,8 +531,6 @@ if(m_perfmon.GetFrame() == 200)
 			bool zwrite = false;
 
 			hr = m_pD3DDev->GetRenderState(D3DRS_COLORWRITEENABLE, &mask);
-
-			// SetupColorMask()
 
 			switch(m_context->TEST.AFAIL)
 			{

@@ -114,33 +114,33 @@ int GSRendererSoft<Vertex>::DrawingKick(bool skip)
 
 	switch(m_pPRIM->PRIM)
 	{
-	case 0: // point
+	case GS_POINTLIST:
 		m_vl.RemoveAt(0, pVertices[nVertices++]);
 		break;
-	case 1: // line
+	case GS_LINELIST:
 		m_vl.RemoveAt(0, pVertices[nVertices++]);
 		m_vl.RemoveAt(0, pVertices[nVertices++]);
 		break;
-	case 2: // line strip
+	case GS_LINESTRIP:
 		m_vl.RemoveAt(0, pVertices[nVertices++]);
 		m_vl.GetAt(0, pVertices[nVertices++]);
 		break;
-	case 3: // triangle list
+	case GS_TRIANGLELIST:
 		m_vl.RemoveAt(0, pVertices[nVertices++]);
 		m_vl.RemoveAt(0, pVertices[nVertices++]);
 		m_vl.RemoveAt(0, pVertices[nVertices++]);
 		break;
-	case 4: // triangle strip
+	case GS_TRIANGLESTRIP:
 		m_vl.RemoveAt(0, pVertices[nVertices++]);
 		m_vl.GetAt(0, pVertices[nVertices++]);
 		m_vl.GetAt(1, pVertices[nVertices++]);
 		break;
-	case 5: // triangle fan
+	case GS_TRIANGLEFAN:
 		m_vl.GetAt(0, pVertices[nVertices++]);
 		m_vl.RemoveAt(1, pVertices[nVertices++]);
 		m_vl.GetAt(1, pVertices[nVertices++]);
 		break;
-	case 6: // sprite
+	case GS_SPRITE:
 		m_vl.RemoveAt(0, pVertices[nVertices++]);
 		m_vl.RemoveAt(0, pVertices[nVertices++]);
 		nVertices += 2;
@@ -256,21 +256,24 @@ if(m_perfmon.GetFrame() == 200)
 
 		switch(m_pPRIM->PRIM)
 		{
-		case 0:
+		case GS_POINTLIST:
 			nPrims = m_nVertices;
 			for(int i = 0; i < nPrims; i++, pVertices++) DrawPoint(pVertices);
 			break;
-		case 1: case 2: 
+		case GS_LINELIST: 
+		case GS_LINESTRIP: 
 			ASSERT(!(m_nVertices&1));
 			nPrims = m_nVertices / 2;
 			for(int i = 0; i < nPrims; i++, pVertices += 2) DrawLine(pVertices);
 			break;
-		case 3: case 4: case 5:
+		case GS_TRIANGLELIST: 
+		case GS_TRIANGLESTRIP: 
+		case GS_TRIANGLEFAN:
 			ASSERT(!(m_nVertices%3));
 			nPrims = m_nVertices / 3;
 			for(int i = 0; i < nPrims; i++, pVertices += 3) DrawTriangle(pVertices);
 			break;
-		case 6:
+		case GS_SPRITE:
 			ASSERT(!(m_nVertices&3));
 			nPrims = m_nVertices / 4;
 			for(int i = 0; i < nPrims; i++, pVertices += 4) DrawSprite(pVertices);
