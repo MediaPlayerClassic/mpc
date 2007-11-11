@@ -412,10 +412,6 @@ HRESULT GSState::ResetDevice(bool fForceWindowed)
 
 		m_osd = 0;
 	}
-	else
-	{
-		// setup swapchain
-	}
 
 	if(!m_pD3DDev)
 	{
