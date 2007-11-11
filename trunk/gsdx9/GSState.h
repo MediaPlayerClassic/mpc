@@ -130,9 +130,9 @@ protected:
 	virtual void MinMaxUV(int w, int h, CRect& r) {r.SetRect(0, 0, w, h);}
 
 	struct FlipInfo {CComPtr<IDirect3DTexture9> tex; D3DSURFACE_DESC desc; scale_t scale;};
-	void FinishFlip(FlipInfo src[2]);
+	void FinishFlip(FlipInfo src[2], float yscale = 1.0f);
 
-	void Merge(FlipInfo src[2], IDirect3DSurface9* dst);
+	void Merge(FlipInfo src[2], IDirect3DSurface9* dst, float yscale = 1.0f);
 	void Interlace(IDirect3DTexture9* src, IDirect3DSurface9* dst, int field);
 
 	void Flush();

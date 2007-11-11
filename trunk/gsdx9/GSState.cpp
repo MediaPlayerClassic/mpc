@@ -565,6 +565,8 @@ UINT32 GSState::Defrost(const freezeData* fd)
 	m_env.CTXT[1].ztbl = &GSLocalMemory::m_psmtbl[m_env.CTXT[1].ZBUF.PSM];
 	m_env.CTXT[1].ttbl = &GSLocalMemory::m_psmtbl[m_env.CTXT[1].TEX0.PSM];
 
+	m_perfmon.m_frame = 199;
+
 	return 0;
 }
 
@@ -764,7 +766,7 @@ static bool CheckSize(IDirect3DTexture9* t, CSize s)
 	return false;
 }
 
-void GSState::FinishFlip(FlipInfo src[2])
+void GSState::FinishFlip(FlipInfo src[2], float yscale)
 {
 	HRESULT hr;
 
@@ -775,7 +777,7 @@ void GSState::FinishFlip(FlipInfo src[2])
 	{
 		if(src[i].tex)
 		{
-			CSize s(src[i].desc.Width, src[i].desc.Height);
+			CSize s(src[i].desc.Width, src[i].desc.Height * yscale);
 
 			ASSERT(fs.cx == 0 || fs.cx == s.cx);
 			ASSERT(fs.cy == 0 || fs.cy == s.cy);
@@ -817,7 +819,7 @@ void GSState::FinishFlip(FlipInfo src[2])
 
 	hr = m_pMergeTexture->GetSurfaceLevel(0, &surf[0]);
 
-	Merge(src, surf[0]);
+	Merge(src, surf[0], yscale);
 
 	dst = surf[0];
 
@@ -879,7 +881,7 @@ void GSState::FinishFlip(FlipInfo src[2])
 	if(m_perfmon.GetFrame() - s_frame >= 30) 
 	{
 		s_frame = m_perfmon.GetFrame();
-		s_stats = m_perfmon.ToString(m_regs.GetFPS());
+		s_stats = m_perfmon.ToString(m_regs.GetFPS(), m_regs.pSMODE2->ai32[0]);
 		// stats.Format(_T("%s - %.2f MB"), CString(stats), 1.0f*m_pD3DDev->GetAvailableTextureMem()/1024/1024);
 
 		if(m_osd == 1)
@@ -925,7 +927,7 @@ void GSState::FinishFlip(FlipInfo src[2])
 	hr = m_pD3DDev->Present(NULL, NULL, NULL, NULL);
 }
 
-void GSState::Merge(FlipInfo src[2], IDirect3DSurface9* dst)
+void GSState::Merge(FlipInfo src[2], IDirect3DSurface9* dst, float yscale)
 {
 	HRESULT hr;
 
@@ -980,8 +982,8 @@ void GSState::Merge(FlipInfo src[2], IDirect3DSurface9* dst)
 	{
 		{0, 0, 0.5f, 2.0f, 0.0f, 0.0f, 0.0f, 0.0f},
 		{(float)desc.Width, 0, 0.5f, 2.0f, 1.0f, 0.0f, 1.0f, 0.0f},
-		{(float)desc.Width, (float)desc.Height, 0.5f, 2.0f, 1.0f, 1.0f, 1.0f, 1.0f},
-		{0, (float)desc.Height, 0.5f, 2.0f, 0.0f, 1.0f, 0.0f, 1.0f},
+		{(float)desc.Width, (float)desc.Height, 0.5f, 2.0f, 1.0f, yscale, 1.0f, yscale},
+		{0, (float)desc.Height, 0.5f, 2.0f, 0.0f, yscale, 0.0f, yscale},
 	};
 
 	for(int i = 0; i < countof(vertices); i++)

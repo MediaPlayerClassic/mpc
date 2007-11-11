@@ -31,7 +31,7 @@ inline BYTE SCALE_ALPHA(BYTE a)
 
 GSRendererHW::GSRendererHW()
 	: m_width(1024)
-	, m_height(1024) // TODO: if SMODE2.INT && SMODE2.FFMD == 1 then use m_height/2 when allocating render targets
+	, m_height(1024)
 {
 }
 
@@ -272,7 +272,7 @@ void GSRendererHW::FlushPrim()
 		scale_t scale(
 			(float)m_width / (m_context->FRAME.FBW*64), 
 //			(float)m_width / m_regs.GetFrameSize(m_regs.IsEnabled(1)?1:0).cx, 
-			(float)m_height / m_regs.GetFrameSize(m_regs.IsEnabled(1)?1:0).cy);
+			(float)m_height / m_regs.GetDisplaySize(m_regs.IsEnabled(1)?1:0).cy); 
 
 		//////////////////////
 
@@ -370,19 +370,26 @@ void GSRendererHW::FlushPrim()
 
 		//////////////////////
 /*
-		static int n = 0;
 
-		if(m_perfmon.GetFrame() == 1800)
-		{
-			if(n >= 152 && n <= 162)
-			{
-				CString str;
-				str.Format(_T("c:\\_%03dtex.bmp"), n);
-				::D3DXSaveTextureToFile(str, D3DXIFF_BMP, t.m_pTexture, NULL);
-				str.Format(_T("c:\\_%03drt0.bmp"), n);
-				::D3DXSaveTextureToFile(str, D3DXIFF_BMP, pRT, NULL);
-			}
-		}
+static int n = 0;
+static bool dump = false;
+
+if(m_perfmon.GetFrame() == 200)
+{
+	if(n > 20000 && !m_pPRIM->TME)
+	{
+		dump = true;
+	}
+
+	if(dump)
+	{
+		CString str;
+		str.Format(_T("c:\\temp2\\_%05d_%05x.bmp"), n, m_context->TEX0.TBP0);
+		// if(m_pPRIM->TME) ::D3DXSaveTextureToFile(str, D3DXIFF_BMP, t.m_pTexture, NULL);
+		str.Format(_T("c:\\temp2\\_%05drt0_%05x.bmp"), n, m_context->FRAME.FBP);
+		// ::D3DXSaveTextureToFile(str, D3DXIFF_BMP, pRT, NULL);
+	}
+}
 */
 		hr = m_pD3DDev->BeginScene();
 
@@ -455,7 +462,7 @@ void GSRendererHW::FlushPrim()
 				tsx = 1.0f * (1 << m_context->TEX0.TW) / t.m_desc.Width * t.m_scale.x;
 				tsy = 1.0f * (1 << m_context->TEX0.TH) / t.m_desc.Height * t.m_scale.y;
 
-				ASSERT(abs(tsx - 1.0f) < 0.002 && abs(tsy - 1.0f) < 0.002);
+				ASSERT(abs(tsx - 1.0f) < 0.005 && abs(tsy - 1.0f) < 0.005);
 
 				if(tsx != 1 || tsy != 1)
 				{
@@ -516,15 +523,19 @@ void GSRendererHW::FlushPrim()
 			hr = m_pD3DDev->SetRenderState(D3DRS_ALPHAFUNC, iafunc[m_context->TEST.ATST]);
 			hr = m_pD3DDev->SetRenderState(D3DRS_ALPHAREF, (DWORD)SCALE_ALPHA(m_context->TEST.AREF));
 
-			int mask = 0;
+			DWORD mask = 0;
 			bool zwrite = false;
+
+			hr = m_pD3DDev->GetRenderState(D3DRS_COLORWRITEENABLE, &mask);
+
+			// SetupColorMask()
 
 			switch(m_context->TEST.AFAIL)
 			{
-			case 0: break; // keep
-			case 1: mask = D3DCOLORWRITEENABLE_RGBA; break; // fbuf
-			case 2: zwrite = true; break; // zbuf
-			case 3: mask = D3DCOLORWRITEENABLE_RGB; break; // fbuf w/o alpha
+			case 0: mask = 0; break; // keep
+			case 1: break; // fbuf
+			case 2: mask = 0; zwrite = true; break; // zbuf
+			case 3: mask &= ~D3DCOLORWRITEENABLE_ALPHA; break; // fbuf w/o alpha
 			default: __assume(0);
 			}
 
@@ -539,17 +550,18 @@ void GSRendererHW::FlushPrim()
 
 		hr = m_pD3DDev->EndScene();
 /*
-		if(m_perfmon.GetFrame() == 1800)
-		{
-			if(n >= 152 && n <= 162)
-			{
-				CString str;
-				str.Format(_T("c:\\_%03drt1.bmp"), n);
-				::D3DXSaveTextureToFile(str, D3DXIFF_BMP, pRT, NULL);
-			}
+if(m_perfmon.GetFrame() == 200)
+{
+	if(dump)
+	{
+		CString str;
+		str.Format(_T("c:\\temp2\\_%05drt1_%05x.bmp"), n, m_context->FRAME.FBP);
+		// ::D3DXSaveTextureToFile(str, D3DXIFF_BMP, pRT, NULL);
+	}
 
-			n++;
-		}
+	n++;
+}
+
 */
 		//////////////////////
 
@@ -613,7 +625,7 @@ void GSRendererHW::Flip()
 				scale_t scale(
 					(float)m_width / (m_regs.pDISPFB[i]->FBW*64), 
 			//		(float)m_width / m_regs.GetDisplayRect(m_regs.IsEnabled(1)?1:0).right, 
-					(float)m_height / r.bottom);
+					(float)m_height / m_regs.GetDisplaySize(m_regs.IsEnabled(1)?1:0).cy);
 
 				scale.Set(pRT);
 
@@ -649,7 +661,7 @@ void GSRendererHW::Flip()
 		}
 	}
 
-	FinishFlip(src);
+	FinishFlip(src, m_regs.pSMODE2->INT && m_regs.pSMODE2->FFMD ? 0.5f : 1.0f);
 
 	m_tc.IncAge(m_pRTs);
 }
@@ -740,8 +752,8 @@ void GSRendererHW::MinMaxUV(int w, int h, CRect& r)
 		r.bottom = min(((int)(uv.vmax * h) + bsm.cy + 1) & ~bsm.cy, h);
 	}
 
-	ASSERT(r.left <= r.right);
-	ASSERT(r.top <= r.bottom);
+	//ASSERT(r.left <= r.right);
+	//ASSERT(r.top <= r.bottom);
 }
 
 void GSRendererHW::SetupTexture(const GSTextureBase& t)
