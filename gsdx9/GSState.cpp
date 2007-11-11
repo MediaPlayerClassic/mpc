@@ -201,7 +201,7 @@ bool GSState::Create(LPCTSTR title)
 
 	// d3d device
 
-	if(FAILED(ResetDevice(true)))
+	if(FAILED(ResetDevice()))
 	{
 		return false;
 	}
@@ -333,6 +333,8 @@ void GSState::OnClose()
 {
 	Hide();
 
+	ResetDevice(true);
+
 	PostMessage(WM_QUIT);
 }
 
@@ -370,20 +372,21 @@ HRESULT GSState::ResetDevice(bool fForceWindowed)
 
 	if(!m_pD3D) return E_FAIL;
 
-	m_pBackBuffer = NULL;
+	m_pSwapChain = NULL;
 	m_pMergeTexture = NULL;
 	m_pInterlaceTexture = NULL;
 	m_pDeinterlaceTexture = NULL;
+	m_pCurrentFrame = NULL;
 	m_pD3DXFont = NULL;
 
 	memset(&m_d3dpp, 0, sizeof(m_d3dpp));
 
 	m_d3dpp.Windowed = TRUE;
 	m_d3dpp.hDeviceWindow = m_hWnd;
-	m_d3dpp.SwapEffect = D3DSWAPEFFECT_DISCARD;
+	m_d3dpp.SwapEffect = D3DSWAPEFFECT_FLIP;
 	m_d3dpp.BackBufferFormat = D3DFMT_X8R8G8B8;
-	m_d3dpp.BackBufferWidth = 1024; // 1
-	m_d3dpp.BackBufferHeight = 1024; // 1
+	m_d3dpp.BackBufferWidth = 1;
+	m_d3dpp.BackBufferHeight = 1;
 	m_d3dpp.PresentationInterval = D3DPRESENT_INTERVAL_IMMEDIATE;
 
 	if(!!pApp->GetProfileInt(_T("Settings"), _T("fEnableTvOut"), FALSE))
@@ -447,19 +450,32 @@ HRESULT GSState::ResetDevice(bool fForceWindowed)
 		}
 	}
 
-	CComPtr<IDirect3DSurface9> pBackBuff;
+	CComPtr<IDirect3DSurface9> pBackBuffer;
 
-	hr = m_pD3DDev->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &pBackBuff);
+	if(m_d3dpp.Windowed)
+	{
+		m_d3dpp.BackBufferWidth = 1;
+		m_d3dpp.BackBufferHeight = 1;
 
-	D3DSURFACE_DESC desc;
+		if(FAILED(hr = m_pD3DDev->CreateAdditionalSwapChain(&m_d3dpp, &m_pSwapChain)))
+		{
+			return hr;
+		}
 
-	memset(&desc, 0, sizeof(desc));
-
-	pBackBuff->GetDesc(&desc);
+		hr = m_pSwapChain->GetBackBuffer(0, D3DBACKBUFFER_TYPE_MONO, &pBackBuffer);
+	}
+	else
+	{
+		hr = m_pD3DDev->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &pBackBuffer);
+	}
+	
+	hr = m_pD3DDev->SetRenderTarget(0, pBackBuffer);
 
 	hr = m_pD3DDev->Clear(0, NULL, D3DCLEAR_TARGET, 0, 1.0f, 0);
 
-    hr = m_pD3DDev->GetRenderTarget(0, &m_pBackBuffer);
+	D3DSURFACE_DESC desc;
+	memset(&desc, 0, sizeof(desc));
+	pBackBuffer->GetDesc(&desc);
 
 	D3DXFONT_DESC fd;
 	memset(&fd, 0, sizeof(fd));
@@ -726,14 +742,29 @@ void GSState::VSync(int field)
 
 	Flip();
 
+	Present();
+
 	m_perfmon.IncCounter(GSPerfMon::c_frame);
 }
 
 UINT32 GSState::MakeSnapshot(char* path)
 {
+	HRESULT hr;
+
+	CComPtr<IDirect3DSurface9> pBackBuffer;
+
+	if(m_pSwapChain)
+	{
+		hr = m_pSwapChain->GetBackBuffer(0, D3DBACKBUFFER_TYPE_MONO, &pBackBuffer);
+	}
+	else
+	{
+		hr = m_pD3DDev->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &pBackBuffer);
+	}
+
 	CString fn;
 	fn.Format(_T("%sgsdx9_%s.bmp"), CString(path), CTime::GetCurrentTime().Format(_T("%Y%m%d%H%M%S")));
-	return D3DXSaveSurfaceToFile(fn, D3DXIFF_BMP, m_pBackBuffer, NULL, NULL);
+	return D3DXSaveSurfaceToFile(fn, D3DXIFF_BMP, pBackBuffer, NULL, NULL);
 }
 
 void GSState::SetGameCRC(int crc, int options)
@@ -871,7 +902,79 @@ void GSState::FinishFlip(FlipInfo src[2], float yscale)
 		}
 	}
 
-	hr = m_pD3DDev->StretchRect(dst, NULL, m_pBackBuffer, NULL, D3DTEXF_LINEAR);
+	m_pCurrentFrame = dst;
+}
+
+void GSState::Present()
+{
+	HRESULT hr;
+
+	if(!m_pCurrentFrame) return;
+
+	CRect cr;
+
+	GetClientRect(&cr);
+
+	CComPtr<IDirect3DSurface9> pBackBuffer;
+
+	if(m_pSwapChain)
+	{
+		hr = m_pSwapChain->GetBackBuffer(0, D3DBACKBUFFER_TYPE_MONO, &pBackBuffer);
+	}
+	else
+	{
+		hr = m_pD3DDev->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &pBackBuffer);
+	}
+
+	D3DSURFACE_DESC desc;
+
+	hr = pBackBuffer->GetDesc(&desc);
+
+	if(desc.Width != cr.Width() || desc.Height != cr.Height())
+	{
+		m_pSwapChain = NULL;
+		pBackBuffer = NULL;
+
+		m_d3dpp.BackBufferWidth = cr.Width();
+		m_d3dpp.BackBufferHeight = cr.Height();
+
+		hr = m_pD3DDev->CreateAdditionalSwapChain(&m_d3dpp, &m_pSwapChain);
+
+		hr = m_pSwapChain->GetBackBuffer(0, D3DBACKBUFFER_TYPE_MONO, &pBackBuffer);
+	}
+
+	hr = m_pD3DDev->SetRenderTarget(0, pBackBuffer);
+
+	hr = m_pD3DDev->Clear(0, NULL, D3DCLEAR_TARGET, 0, 1.0f, 0);
+
+
+	{
+		int arx = 4;
+		int ary = 3;
+
+		CRect r = cr;
+
+		if(r.Width() * ary > r.Height() * arx)
+		{
+			int w = r.Height() * arx / ary;
+			r.left = r.CenterPoint().x - w / 2;
+			if(r.left & 1) r.left++;
+			r.right = r.left + w;
+		}
+		else
+		{
+			int h = r.Width() * ary / arx;
+			r.top = r.CenterPoint().y - h / 2;
+			if(r.top & 1) r.top++;
+			r.bottom = r.top + h;
+		}
+
+		r &= cr;
+		
+		hr = m_pD3DDev->StretchRect(m_pCurrentFrame, NULL, pBackBuffer, r, D3DTEXF_LINEAR);
+	}
+
+//	hr = m_pD3DDev->StretchRect(m_pCurrentFrame, NULL, pBackBuffer, NULL, D3DTEXF_LINEAR);
 
 	// osd
 
@@ -907,7 +1010,7 @@ void GSState::FinishFlip(FlipInfo src[2], float yscale)
 
 		hr = m_pD3DDev->BeginScene();
 
-		hr = m_pD3DDev->SetRenderTarget(0, m_pBackBuffer);
+		hr = m_pD3DDev->SetRenderTarget(0, pBackBuffer);
 		hr = m_pD3DDev->SetDepthStencilSurface(NULL);
 
 		CRect r(0, 0, 1024, 1024); // TODO: backbuffer size
@@ -922,9 +1025,14 @@ void GSState::FinishFlip(FlipInfo src[2], float yscale)
 		hr = m_pD3DDev->EndScene();
 	}
 
-	//
-
-	hr = m_pD3DDev->Present(NULL, NULL, NULL, NULL);
+	if(m_pSwapChain)
+	{
+		hr = m_pSwapChain->Present(NULL, NULL, NULL, NULL, 0);
+	}
+	else
+	{
+		hr = m_pD3DDev->Present(NULL, NULL, NULL, NULL);
+	}
 }
 
 void GSState::Merge(FlipInfo src[2], IDirect3DSurface9* dst, float yscale)
