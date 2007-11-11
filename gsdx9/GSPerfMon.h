@@ -28,7 +28,7 @@ class GSPerfMon
 public:
 	enum counter_t {c_frame, c_prim, c_swizzle, c_unswizzle, c_texture, c_last};
 
-protected:
+//protected:
 	CAtlList<double> m_counters[c_last];
 	UINT64 m_begin, m_total, m_start, m_frame;
 	clock_t m_lastframe;
@@ -38,7 +38,7 @@ public:
 
 	void IncCounter(counter_t c, double val = 0);
 	void StartTimer(), StopTimer();
-	CString ToString(double expected_fps);
+	CString ToString(double expected_fps, int interlace);
 	UINT64 GetFrame() {return m_frame;}
 };
 

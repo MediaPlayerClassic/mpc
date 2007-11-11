@@ -190,17 +190,25 @@ void GSRendererSoft<Vertex>::FlushPrim()
 {
 	if(m_nVertices > 0)
 	{
+
 /*
 static int n = 0;
-if(m_context->TEX0.TBP0 == 0x3c00 && m_context->TEX0.TBW == 4 && m_context->TEX0.PSM == 0x13)
+static bool dump = false;
+
+if(m_perfmon.GetFrame() == 200)
 {
-	if(n >= 16 && n <= 30)
+	if(n > 20000 && !m_pPRIM->TME)
 	{
-	CString str;
-	str.Format(_T("c:\\_%03dtex.bmp"), n);
-	m_mem.SaveBMP(m_pD3DDev, str, m_context->TEX0.TBP0, m_context->TEX0.TBW, m_context->TEX0.PSM, 1 << m_context->TEX0.TW, 1 << m_context->TEX0.TH);
-	str.Format(_T("c:\\_%03drt0.bmp"), n);
-	m_mem.SaveBMP(m_pD3DDev, str, m_context->FRAME.FBP, m_context->FRAME.FBW, m_context->FRAME.FBW, m_regs.GetFrameSize(1).cx, m_regs.GetFrameSize(1).cy);
+		dump = true;
+	}
+
+	if(dump)
+	{
+		CString str;
+		str.Format(_T("c:\\temp2\\_%05d_%05x.bmp"), n, m_context->TEX0.TBP0);
+		//if(m_pPRIM->TME) m_mem.SaveBMP(m_pD3DDev, str, m_context->TEX0.TBP0, m_context->TEX0.TBW, m_context->TEX0.PSM, 1 << m_context->TEX0.TW, 1 << m_context->TEX0.TH);
+		str.Format(_T("c:\\temp2\\_%05drt0_%05x.bmp"), n, m_context->FRAME.FBP);
+		//m_mem.SaveBMP(m_pD3DDev, str, m_context->FRAME.FBP, m_context->FRAME.FBW, m_context->FRAME.FBW, m_regs.GetFrameSize(1).cx, m_regs.GetFrameSize(1).cy);
 	}
 }
 */
@@ -277,15 +285,17 @@ if(m_context->TEX0.TBP0 == 0x3c00 && m_context->TEX0.TBW == 4 && m_context->TEX0
 		}
 
 		m_perfmon.IncCounter(GSPerfMon::c_prim, nPrims);
+
 /*
-if(m_context->TEX0.TBP0 == 0x3c00 && m_context->TEX0.TBW == 4 && m_context->TEX0.PSM == 0x13)
+if(m_perfmon.GetFrame() == 200)
 {
-	if(n >= 16 && n <= 30)
+	if(dump)
 	{
-	CString str;
-	str.Format(_T("c:\\_%03drt1.bmp"), n);
-	m_mem.SaveBMP(m_pD3DDev, str, m_context->FRAME.FBP, m_context->FRAME.FBW, m_context->FRAME.FBW, m_regs.GetFrameSize(1).cx, m_regs.GetFrameSize(1).cy);
+		CString str;
+		str.Format(_T("c:\\temp2\\_%05drt1_%05x.bmp"), n, m_context->FRAME.FBP);
+		//m_mem.SaveBMP(m_pD3DDev, str, m_context->FRAME.FBP, m_context->FRAME.FBW, m_context->FRAME.FBW, m_regs.GetFrameSize(1).cx, m_regs.GetFrameSize(1).cy);
 	}
+
 	n++;
 }
 */

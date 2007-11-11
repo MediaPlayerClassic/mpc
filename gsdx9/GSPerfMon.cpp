@@ -65,7 +65,7 @@ void GSPerfMon::StopTimer()
 	}
 }
 
-CString GSPerfMon::ToString(double expected_fps)
+CString GSPerfMon::ToString(double expected_fps, int interlace)
 {
 	if(m_counters[c_frame].IsEmpty())
 		return _T("");
@@ -89,11 +89,12 @@ CString GSPerfMon::ToString(double expected_fps)
 
 	CString str;
 
-	str.Format(_T("frame: %I64d | %.2f fps (%d%%) | %d ppf | %.2f kbpf | %.2f kbpf | %.2f kbpf"),  // cpu: %d%% | 
+	str.Format(_T("%I64d | %.2f fps (%d%%) | %s | %d ppf | %.2f kbpf | %.2f kbpf | %.2f kbpf"),  // cpu: %d%% | 
 		m_frame,
 		// (int)(cpu),
 		(float)(fps),
 		(int)(100.0 * fps / expected_fps),
+		(interlace & 1) ? (CString(_T("interlaced ")) + ((interlace & 2) ? _T("(frame)") : _T("(field)"))) : _T("progressive"),
 		(int)(stats[c_prim]),
 		(float)(stats[c_swizzle] / 1024),
 		(float)(stats[c_unswizzle] / 1024),
