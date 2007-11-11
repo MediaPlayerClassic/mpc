@@ -1289,8 +1289,10 @@ SwizzleBlock8u_amd64 proc public
 	movdqu		xmm2, [rsi+r8]
 	lea			rsi, [rsi+r8*2]
 
-	pshufd		xmm1, [rsi], 0b1h
-	pshufd		xmm3, [rsi+r8], 0b1h
+	movdqu		xmm1, [rsi]
+	movdqu		xmm3, [rsi+r8]
+	pshufd		xmm1, xmm1, 0b1h
+	pshufd		xmm3, xmm3, 0b1h
 	lea			rsi, [rsi+r8*2]
 
 	punpck		bw, 0, 2, 1, 3, 4, 6
@@ -1304,8 +1306,10 @@ SwizzleBlock8u_amd64 proc public
 
 	; col 1, 3
 
-	pshufd		xmm0, [rsi], 0b1h
-	pshufd		xmm2, [rsi+r8], 0b1h
+	movdqu		xmm0, [rsi]
+	movdqu		xmm2, [rsi+r8]
+	pshufd		xmm0, xmm0, 0b1h
+	pshufd		xmm2, xmm2, 0b1h
 	lea			rsi, [rsi+r8*2]
 
 	movdqu		xmm1, [rsi]
