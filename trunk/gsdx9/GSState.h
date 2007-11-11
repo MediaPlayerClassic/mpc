@@ -49,6 +49,7 @@ public:
 	void Hide();
 
 	void OnClose();
+	void OnSize(UINT nType, int cx, int cy);
 
 	UINT32 Freeze(freezeData* fd, bool fSizeOnly);
 	UINT32 Defrost(const freezeData* fd);
@@ -101,11 +102,12 @@ protected:
 protected:
 	CComPtr<IDirect3D9> m_pD3D;
 	CComPtr<IDirect3DDevice9> m_pD3DDev;
+	CComPtr<IDirect3DSwapChain9> m_pSwapChain;
 	CComPtr<ID3DXFont> m_pD3DXFont;
-	CComPtr<IDirect3DSurface9> m_pBackBuffer;
 	CComPtr<IDirect3DTexture9> m_pMergeTexture;
 	CComPtr<IDirect3DTexture9> m_pInterlaceTexture;
 	CComPtr<IDirect3DTexture9> m_pDeinterlaceTexture;
+	CComPtr<IDirect3DSurface9> m_pCurrentFrame;
 	CComPtr<IDirect3DPixelShader9> m_pPixelShaders[20];
 	CComPtr<IDirect3DPixelShader9> m_pHLSLTFX[38], m_pHLSLMerge[3], m_pHLSLInterlace[3];
 	enum {PS_M16 = 0, PS_M24 = 1, PS_M32 = 2};
@@ -131,10 +133,9 @@ protected:
 
 	struct FlipInfo {CComPtr<IDirect3DTexture9> tex; D3DSURFACE_DESC desc; scale_t scale;};
 	void FinishFlip(FlipInfo src[2], float yscale = 1.0f);
-
 	void Merge(FlipInfo src[2], IDirect3DSurface9* dst, float yscale = 1.0f);
 	void Interlace(IDirect3DTexture9* src, IDirect3DSurface9* dst, int field);
-
+	void Present();
 	void Flush();
 
 private:
