@@ -26,27 +26,19 @@
 class GSPerfMon
 {
 public:
-	enum counter_t {c_frame, c_prim, c_swizzle, c_unswizzle, c_texture, c_last};
+	enum counter_t {Frame, Prim, Swizzle, Unswizzle, Texture, Last};
 
-//protected:
-	CAtlList<double> m_counters[c_last];
-	UINT64 m_begin, m_total, m_start, m_frame;
-	clock_t m_lastframe;
+protected:
+	CAtlList<double> m_counters[Last];
+	double m_stats[Last];
+	UINT64 m_frame;
+	clock_t m_lastframe;	
 
 public:
 	GSPerfMon();
 
-	void IncCounter(counter_t c, double val = 0);
-	void StartTimer(), StopTimer();
-	CString ToString(double expected_fps, int interlace, int interlace_mode, int aspect_ratio);
 	UINT64 GetFrame() {return m_frame;}
-};
-
-class GSPerfMonAutoTimer
-{
-	GSPerfMon* m_pm;
-
-public:
-	GSPerfMonAutoTimer(GSPerfMon& pm) {(m_pm = &pm)->StartTimer();}
-	~GSPerfMonAutoTimer() {m_pm->StopTimer();}
+	void Put(counter_t c, double val = 0);
+	double Get(counter_t c) {return m_stats[c];}
+	void Update();
 };

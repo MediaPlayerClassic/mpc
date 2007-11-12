@@ -369,7 +369,7 @@ HRESULT GSTextureCache::UpdateTexture(GSState* s, GSTexture* pt, GSLocalMemory::
 	D3DLOCKED_RECT lr;
 	if(FAILED(hr = pt->m_pTexture->LockRect(0, &lr, &r, D3DLOCK_NO_DIRTY_UPDATE))) {ASSERT(0); return hr;}
 	(s->m_mem.*rt)(r, (BYTE*)lr.pBits, lr.Pitch, s->m_context->TEX0, s->m_env.TEXA, s->m_context->CLAMP);
-	s->m_perfmon.IncCounter(GSPerfMon::c_unswizzle, r.Width()*r.Height()*bpp>>3);
+	s->m_perfmon.Put(GSPerfMon::Unswizzle, r.Width()*r.Height()*bpp>>3);
 	pt->m_pTexture->UnlockRect(0);
 
 	pt->m_rcValid |= r;
@@ -416,7 +416,7 @@ HRESULT GSTextureCache::UpdateTexture(GSState* s, GSTexture* pt, GSLocalMemory::
 
 	pt->m_pTexture->AddDirtyRect(&r);
 	pt->m_pTexture->PreLoad();
-	s->m_perfmon.IncCounter(GSPerfMon::c_texture, r.Width()*r.Height()*bpp>>3);
+	s->m_perfmon.Put(GSPerfMon::Texture, r.Width()*r.Height()*bpp>>3);
 
 	return S_OK;
 }
@@ -784,7 +784,7 @@ bool GSTextureCache::FetchP(GSState* s, GSTextureBase& t)
 			return false;
 		s->m_mem.ReadCLUT32(s->m_context->TEX0, s->m_env.TEXA, (DWORD*)r.pBits);
 		pt->m_pPalette->UnlockRect(0);
-		s->m_perfmon.IncCounter(GSPerfMon::c_texture, 256*4);
+		s->m_perfmon.Put(GSPerfMon::Texture, 256*4);
 	}
 
 	if(lr == needsupdate)
@@ -1005,7 +1005,7 @@ void GSTextureCache::InvalidateTexture(GSState* s, const GIFRegBITBLTBUF& BITBLT
 						CLAMP.WMT = 0;
 
 						s->m_mem.ReadTexture(r, (BYTE*)lr.pBits, lr.Pitch, TEX0, TEXA, CLAMP);
-						s->m_perfmon.IncCounter(GSPerfMon::c_unswizzle, r.Width()*r.Height()*4);
+						s->m_perfmon.Put(GSPerfMon::Unswizzle, r.Width()*r.Height()*4);
 
 						pSrc->UnlockRect(0);
 

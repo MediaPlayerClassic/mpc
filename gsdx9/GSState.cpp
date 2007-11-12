@@ -30,7 +30,7 @@ BEGIN_MESSAGE_MAP(GSState, CWnd)
 END_MESSAGE_MAP()
 
 GSState::GSState() 
-	: m_osd(1)
+	: m_osd(true)
 	, m_field(0)
 	, m_irq(NULL)
 	, m_q(1.0f)
@@ -411,7 +411,7 @@ HRESULT GSState::ResetDevice(bool fForceWindowed)
 		SetWindowPos(NULL, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE);
 		SetMenu(NULL);
 
-		m_osd = 0;
+		m_osd = false;
 	}
 
 	if(!m_pD3DDev)
@@ -578,8 +578,6 @@ UINT32 GSState::Defrost(const freezeData* fd)
 	m_env.CTXT[1].ztbl = &GSLocalMemory::m_psmtbl[m_env.CTXT[1].ZBUF.PSM];
 	m_env.CTXT[1].ttbl = &GSLocalMemory::m_psmtbl[m_env.CTXT[1].TEX0.PSM];
 
-	m_perfmon.m_frame = 199;
-
 	return 0;
 }
 
@@ -741,7 +739,7 @@ void GSState::VSync(int field)
 
 	Present();
 
-	m_perfmon.IncCounter(GSPerfMon::c_frame);
+	m_perfmon.Put(GSPerfMon::Frame);
 }
 
 UINT32 GSState::MakeSnapshot(char* path)
@@ -1121,48 +1119,53 @@ void GSState::Present()
 		hr = m_pD3DDev->StretchRect(m_pCurrentFrame, NULL, pBackBuffer, r, D3DTEXF_LINEAR);
 	}
 
-//	hr = m_pD3DDev->StretchRect(m_pCurrentFrame, NULL, pBackBuffer, NULL, D3DTEXF_LINEAR);
-
 	// osd
 
 	static UINT64 s_frame = 0;
 	static CString s_stats;
 
-	if(m_perfmon.GetFrame() - s_frame >= 30) 
+	if(m_perfmon.GetFrame() - s_frame >= 30)
 	{
-		s_frame = m_perfmon.GetFrame();
-		s_stats = m_perfmon.ToString(m_regs.GetFPS(), m_regs.pSMODE2->ai32[0], m_nInterlace, m_nAspectRatio);
-		// stats.Format(_T("%s - %.2f MB"), CString(stats), 1.0f*m_pD3DDev->GetAvailableTextureMem()/1024/1024);
+		m_perfmon.Update();
 
-		if(m_osd == 1)
+		s_frame = m_perfmon.GetFrame();
+
+		double fps = 1000.0f / m_perfmon.Get(GSPerfMon::Frame);
+		
+		s_stats.Format(
+			_T("%I64d | %.2f fps (%d%%) | %s%s | %s | %d | %.2f | %.2f | %.2f"), 
+			m_perfmon.GetFrame(), fps, (int)(100.0 * fps / m_regs.GetFPS()),
+			m_regs.pSMODE2->INT ? (CString(_T("interlaced ")) + (m_regs.pSMODE2->FFMD ? _T("(frame)") : _T("(field)"))) : _T("progressive"),
+			m_nInterlace == 1 ? _T(" weave") : m_nInterlace == 2 ? _T(" bob") : m_nInterlace == 3 ? _T(" blend") : _T(""),
+			m_nAspectRatio == 1 ? _T("4:3") : m_nAspectRatio == 2 ? _T("16:9") : _T("stretch"),
+			(int)m_perfmon.Get(GSPerfMon::Prim),
+			m_perfmon.Get(GSPerfMon::Swizzle) / 1024,
+			m_perfmon.Get(GSPerfMon::Unswizzle) / 1024,
+			m_perfmon.Get(GSPerfMon::Texture) / 1024
+			);
+
+		if(m_osd && m_d3dpp.Windowed)
 		{
 			SetWindowText(s_stats);
 		}
 	}
 
-	if(m_osd == 2)
+	if(m_osd && !m_d3dpp.Windowed)
 	{
-		CString str;
-
-		str.Format(
-			_T("\n")
-			_T("SMODE2.INT=%d, SMODE2.FFMD=%d, XYOFFSET.OFY=%.2f, CSR.FIELD=%d, m_fField = %d\n")
-			_T("[%c] DBX=%d, DBY=%d, DW=%d, DH=%d, MAGH=%d, MAGV=%d\n")
-			_T("[%c] DBX=%d, DBY=%d, DW=%d, DH=%d, MAGH=%d, MAGV=%d\n"),
-			m_regs.pSMODE2->INT, m_regs.pSMODE2->FFMD, (float)m_context->XYOFFSET.OFY / 16, m_regs.pCSR->rFIELD, m_field,
-			m_regs.pPMODE->EN1 ? 'o' : 'x', m_regs.pDISPFB[0]->DBX, m_regs.pDISPFB[0]->DBY, m_regs.pDISPLAY[0]->DW + 1, m_regs.pDISPLAY[0]->DH + 1, m_regs.pDISPLAY[0]->MAGH, m_regs.pDISPLAY[0]->MAGV,
-			m_regs.pPMODE->EN2 ? 'o' : 'x', m_regs.pDISPFB[1]->DBX, m_regs.pDISPFB[1]->DBY, m_regs.pDISPLAY[1]->DW + 1, m_regs.pDISPLAY[1]->DH + 1, m_regs.pDISPLAY[1]->MAGH, m_regs.pDISPLAY[1]->MAGV);
-
-		str = s_stats + str;
-
 		hr = m_pD3DDev->BeginScene();
 
 		hr = m_pD3DDev->SetRenderTarget(0, pBackBuffer);
 		hr = m_pD3DDev->SetDepthStencilSurface(NULL);
 
-		CRect r(0, 0, 1024, 1024); // TODO: backbuffer size
+		CRect r;
+		
+		GetClientRect(r);
 
 		D3DCOLOR c = D3DCOLOR_ARGB(255, 0, 255, 0);
+
+		CString str = s_stats;
+
+		str += _T("\n\nF5: interlace mode\nF6: aspect ratio\nF7: OSD");
 
 		if(m_pD3DXFont->DrawText(NULL, str, -1, &r, DT_CALCRECT|DT_LEFT|DT_WORDBREAK, c))
 		{

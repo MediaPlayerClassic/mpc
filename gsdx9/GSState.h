@@ -66,7 +66,8 @@ public:
 
 			if(msg.wParam == VK_F7)
 			{
-				m_osd = (m_osd + 1) % 3;
+				SetWindowText(_T("PCSX2"));
+				m_osd = !m_osd;
 				return true;
 			}
 		}
@@ -94,7 +95,7 @@ private:
 	int m_crc;
 	int m_options;
 	bool m_nloophack;
-	int m_osd;
+	bool m_osd;
 	int m_field;
 
 private:
