@@ -108,14 +108,14 @@ protected:
 	CComPtr<IDirect3DTexture9> m_pDeinterlaceTexture;
 	CComPtr<IDirect3DSurface9> m_pCurrentFrame;
 	CComPtr<IDirect3DPixelShader9> m_pPixelShaders[20];
-	CComPtr<IDirect3DPixelShader9> m_pHLSLTFX[38], m_pHLSLMerge[3], m_pHLSLInterlace[3];
+	CComPtr<IDirect3DPixelShader9> m_pHLSLTFX[38], m_pHLSLMerge[3], m_pHLSLInterlace[4];
 	enum {PS_M16 = 0, PS_M24 = 1, PS_M32 = 2};
 	D3DPRESENT_PARAMETERS m_d3dpp;
 	DDCAPS m_ddcaps;
 	D3DCAPS9 m_caps;
 	D3DFORMAT m_fmtDepthStencil;
 	bool m_fPalettizedTextures;
-	bool m_fDeinterlace;
+	int m_nInterlace;
 	D3DTEXTUREFILTERTYPE m_nTextureFilter;
 
 	virtual void ResetState();
@@ -133,7 +133,7 @@ protected:
 	struct FlipInfo {CComPtr<IDirect3DTexture9> tex; D3DSURFACE_DESC desc; scale_t scale;};
 	void FinishFlip(FlipInfo src[2], float yscale = 1.0f);
 	void Merge(FlipInfo src[2], IDirect3DSurface9* dst, float yscale = 1.0f);
-	void Interlace(IDirect3DTexture9* src, IDirect3DSurface9* dst, int field);
+	void Interlace(IDirect3DTexture9* src, IDirect3DSurface9* dst, int shader, D3DTEXTUREFILTERTYPE filter, int yoffset = 0);
 	void Present();
 	void Flush();
 

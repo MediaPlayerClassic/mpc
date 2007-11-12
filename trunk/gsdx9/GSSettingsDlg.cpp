@@ -41,13 +41,19 @@ static struct {DWORD id; const TCHAR* name;} s_psversions[] =
 	//{D3DPS_VERSION(0, 0), _T("Fixed Pipeline (bogus)")},
 };
 
+static struct {DWORD id; const TCHAR* name;} s_interlace[] =
+{
+	{0, _T("Weave (saw-tooth)")},
+	{1, _T("Bob (recommended)")},
+	{2, _T("Blend (slight blur, 1/2 fps)")},
+};
+
 IMPLEMENT_DYNAMIC(CGSSettingsDlg, CDialog)
 CGSSettingsDlg::CGSSettingsDlg(CWnd* pParent /*=NULL*/)
 	: CDialog(CGSSettingsDlg::IDD, pParent)
 	, m_fPalettizedTextures(FALSE)
 	, m_fEnableTvOut(FALSE)
 	, m_fLinearTextureFilter(TRUE)
-	, m_fDeinterlace(TRUE)
 	, m_nloophack(2)
 {
 }
@@ -62,10 +68,10 @@ void CGSSettingsDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_COMBO3, m_resolution);
 	DDX_Control(pDX, IDC_COMBO1, m_renderer);
 	DDX_Control(pDX, IDC_COMBO4, m_psversion);
+	DDX_Control(pDX, IDC_COMBO2, m_interlace);
 	DDX_Check(pDX, IDC_CHECK1, m_fPalettizedTextures);
 	DDX_Check(pDX, IDC_CHECK3, m_fEnableTvOut);
 	DDX_Check(pDX, IDC_CHECK4, m_fLinearTextureFilter);
-	DDX_Check(pDX, IDC_CHECK5, m_fDeinterlace);
 	DDX_Check(pDX, IDC_CHECK6, m_nloophack);	
 }
 
@@ -150,12 +156,22 @@ BOOL CGSSettingsDlg::OnInitDialog()
 		if(s_psversions[i].id == psversion_id) m_psversion.SetCurSel(iItem);
 	}
 
+	// interlacing
+
+	DWORD interlace_id = pApp->GetProfileInt(_T("Settings"), _T("Interlace"), 1);
+
+	for(int i = 0; i < countof(s_interlace); i++)
+	{
+		int iItem = m_interlace.AddString(s_interlace[i].name);
+		m_interlace.SetItemData(iItem, s_interlace[i].id);
+		if(s_interlace[i].id == interlace_id) m_interlace.SetCurSel(iItem);
+	}
+
 	//
 
 	m_fPalettizedTextures = pApp->GetProfileInt(_T("Settings"), _T("fPalettizedTextures"), FALSE);
 	m_fLinearTextureFilter = (D3DTEXTUREFILTERTYPE)pApp->GetProfileInt(_T("Settings"), _T("TextureFilter"), D3DTEXF_LINEAR) == D3DTEXF_LINEAR;
 	m_fEnableTvOut = pApp->GetProfileInt(_T("Settings"), _T("fEnableTvOut"), FALSE);
-	m_fDeinterlace = pApp->GetProfileInt(_T("Settings"), _T("fDeinterlace"), TRUE);
 	m_nloophack = pApp->GetProfileInt(_T("Settings"), _T("nloophack"), 2);
 
 	//
@@ -182,18 +198,22 @@ void CGSSettingsDlg::OnOK()
 
 	if(m_renderer.GetCurSel() >= 0)
 	{
-		pApp->WriteProfileInt(_T("Settings"), _T("Renderer"), m_renderer.GetItemData(m_renderer.GetCurSel()));
+		pApp->WriteProfileInt(_T("Settings"), _T("Renderer"), (DWORD)m_renderer.GetItemData(m_renderer.GetCurSel()));
 	}
 
 	if(m_psversion.GetCurSel() >= 0)
 	{
-		pApp->WriteProfileInt(_T("Settings"), _T("PixelShaderVersion2"), m_psversion.GetItemData(m_psversion.GetCurSel()));
+		pApp->WriteProfileInt(_T("Settings"), _T("PixelShaderVersion2"), (DWORD)m_psversion.GetItemData(m_psversion.GetCurSel()));
+	}
+
+	if(m_interlace.GetCurSel() >= 0)
+	{
+		pApp->WriteProfileInt(_T("Settings"), _T("Interlace"), (DWORD)m_interlace.GetItemData(m_interlace.GetCurSel()));
 	}
 
 	pApp->WriteProfileInt(_T("Settings"), _T("fPalettizedTextures"), m_fPalettizedTextures);
 	pApp->WriteProfileInt(_T("Settings"), _T("TextureFilter"), m_fLinearTextureFilter ? D3DTEXF_LINEAR : D3DTEXF_POINT);
 	pApp->WriteProfileInt(_T("Settings"), _T("fEnableTvOut"), m_fEnableTvOut);
-	pApp->WriteProfileInt(_T("Settings"), _T("fDeinterlace"), m_fDeinterlace);
 	pApp->WriteProfileInt(_T("Settings"), _T("nloophack"), m_nloophack);
 
 	__super::OnOK();

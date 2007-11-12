@@ -40,10 +40,10 @@ public:
 	CComboBox m_resolution;
 	CComboBox m_renderer;
 	CComboBox m_psversion;
+	CComboBox m_interlace;
 	BOOL m_fPalettizedTextures;
 	BOOL m_fEnableTvOut;
 	BOOL m_fLinearTextureFilter;
-	BOOL m_fDeinterlace;
 	int m_nloophack;
 
 protected:
