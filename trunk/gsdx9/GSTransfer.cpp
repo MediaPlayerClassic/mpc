@@ -56,6 +56,9 @@ void GSState::WriteTransfer(BYTE* pMem, int len)
 
 	int bpp = GSLocalMemory::m_psmtbl[m_env.BITBLTBUF.DPSM].trbpp;
 	int pitch = (m_env.TRXREG.RRW - m_env.TRXPOS.DSAX)*bpp>>3;
+
+	if(pitch <= 0) {ASSERT(0); return;}
+
 	int height = len / pitch;
 
 	if(m_nTransferBytes > 0 || height < m_env.TRXREG.RRH - m_env.TRXPOS.DSAY)
