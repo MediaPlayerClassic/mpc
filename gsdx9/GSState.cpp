@@ -38,7 +38,7 @@ GSState::GSState()
 	, m_options(0)
 {
 	m_fPalettizedTextures = !!AfxGetApp()->GetProfileInt(_T("Settings"), _T("fPalettizedTextures"), FALSE);
-	m_nInterlace = AfxGetApp()->GetProfileInt(_T("Settings"), _T("Interlace"), 1);
+	m_nInterlace = AfxGetApp()->GetProfileInt(_T("Settings"), _T("Interlace"), 3);
 	m_nTextureFilter = (D3DTEXTUREFILTERTYPE)AfxGetApp()->GetProfileInt(_T("Settings"), _T("TextureFilter"), D3DTEXF_LINEAR);
 	m_nloophack = AfxGetApp()->GetProfileInt(_T("Settings"), _T("nloophack"), 2) == 1;
 
@@ -850,7 +850,7 @@ void GSState::FinishFlip(FlipInfo src[2], float yscale)
 
 	dst = surf[0];
 
-	if(m_regs.pSMODE2->INT && m_regs.pSMODE2->FFMD)
+	if(m_regs.pSMODE2->INT && m_nInterlace != 0)
 	{
 		if(!CheckSize(m_pInterlaceTexture, ds))
 		{
@@ -866,7 +866,7 @@ void GSState::FinishFlip(FlipInfo src[2], float yscale)
 
 		hr = m_pInterlaceTexture->GetSurfaceLevel(0, &surf[1]);
 
-		if(m_nInterlace == 0 || m_nInterlace == 2) // weave or blend
+		if(m_nInterlace == 1 || m_nInterlace == 3) // weave or blend
 		{
 			// weave first
 
@@ -874,7 +874,7 @@ void GSState::FinishFlip(FlipInfo src[2], float yscale)
 
 			dst = surf[1];
 
-			if(m_nInterlace == 2)
+			if(m_nInterlace == 3)
 			{
 				// blend
 
@@ -899,7 +899,7 @@ void GSState::FinishFlip(FlipInfo src[2], float yscale)
 				dst = surf[2];
 			}
 		}
-		else if(m_nInterlace == 1) // bob
+		else if(m_nInterlace == 2) // bob
 		{
 			Interlace(m_pMergeTexture, surf[1], 3, D3DTEXF_LINEAR, m_field * 2);
 
@@ -1125,7 +1125,7 @@ void GSState::Present()
 	if(m_perfmon.GetFrame() - s_frame >= 30) 
 	{
 		s_frame = m_perfmon.GetFrame();
-		s_stats = m_perfmon.ToString(m_regs.GetFPS(), m_regs.pSMODE2->ai32[0]);
+		s_stats = m_perfmon.ToString(m_regs.GetFPS(), m_regs.pSMODE2->ai32[0], m_nInterlace);
 		// stats.Format(_T("%s - %.2f MB"), CString(stats), 1.0f*m_pD3DDev->GetAvailableTextureMem()/1024/1024);
 
 		if(m_osd == 1)

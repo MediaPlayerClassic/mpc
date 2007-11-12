@@ -223,6 +223,11 @@ EXPORT_C GSvsync(int field)
 	{
 		if(PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
 		{
+			if(s_gs->OnMsg(msg))
+			{
+				continue;
+			}
+
 			TranslateMessage(&msg);
 			DispatchMessage(&msg);
 		}

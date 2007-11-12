@@ -48,6 +48,26 @@ public:
 	void Show();
 	void Hide();
 
+	bool OnMsg(const MSG& msg)
+	{
+		if(msg.message == WM_KEYDOWN)
+		{
+			if(msg.wParam == VK_F5)
+			{
+				m_nInterlace = (m_nInterlace + 1) % 4;
+				return true;
+			}
+
+			if(msg.wParam == VK_F5)
+			{
+				m_osd = (m_osd + 1) % 3;
+				return true;
+			}			
+		}
+
+		return false;
+	}
+
 	void OnClose();
 
 	UINT32 Freeze(freezeData* fd, bool fSizeOnly);
