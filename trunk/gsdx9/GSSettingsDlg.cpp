@@ -43,9 +43,10 @@ static struct {DWORD id; const TCHAR* name;} s_psversions[] =
 
 static struct {DWORD id; const TCHAR* name;} s_interlace[] =
 {
-	{0, _T("Weave (saw-tooth)")},
-	{1, _T("Bob (recommended)")},
-	{2, _T("Blend (slight blur, 1/2 fps)")},
+	{0, _T("None")},
+	{1, _T("Weave (saw-tooth)")},
+	{2, _T("Bob (use blend if shaking)")},
+	{3, _T("Blend (slight blur, 1/2 fps)")},
 };
 
 IMPLEMENT_DYNAMIC(CGSSettingsDlg, CDialog)
@@ -158,7 +159,7 @@ BOOL CGSSettingsDlg::OnInitDialog()
 
 	// interlacing
 
-	DWORD interlace_id = pApp->GetProfileInt(_T("Settings"), _T("Interlace"), 1);
+	DWORD interlace_id = pApp->GetProfileInt(_T("Settings"), _T("Interlace"), 3);
 
 	for(int i = 0; i < countof(s_interlace); i++)
 	{
