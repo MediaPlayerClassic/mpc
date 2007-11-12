@@ -36,6 +36,7 @@ GSState::GSState()
 	, m_q(1.0f)
 	, m_crc(0)
 	, m_options(0)
+	, m_path3hack(0)
 {
 	m_fPalettizedTextures = !!AfxGetApp()->GetProfileInt(_T("Settings"), _T("fPalettizedTextures"), FALSE);
 	m_nInterlace = AfxGetApp()->GetProfileInt(_T("Settings"), _T("Interlace"), 3);
@@ -405,7 +406,7 @@ HRESULT GSState::ResetDevice(bool fForceWindowed)
 		m_d3dpp.BackBufferWidth = ModeWidth;
 		m_d3dpp.BackBufferHeight = ModeHeight;
 		m_d3dpp.FullScreen_RefreshRateInHz = ModeRefreshRate;
-		m_d3dpp.PresentationInterval = D3DPRESENT_INTERVAL_DEFAULT;
+		// m_d3dpp.PresentationInterval = D3DPRESENT_INTERVAL_DEFAULT;
 
 		::SetWindowLong(m_hWnd, GWL_STYLE, ::GetWindowLong(m_hWnd, GWL_STYLE) & ~(WS_CAPTION|WS_THICKFRAME));
 		SetWindowPos(NULL, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE);
@@ -615,6 +616,11 @@ void GSState::Transfer(BYTE* mem, UINT32 size, int index)
 			size--;
 
 			m_q = 1.0f;
+
+			if(index == 2 && path.tag.EOP)
+			{
+				m_path3hack = 1;
+			}
 
 			if(path.tag.PRE)
 			{

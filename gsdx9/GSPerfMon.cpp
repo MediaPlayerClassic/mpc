@@ -51,6 +51,8 @@ void GSPerfMon::Put(counter_t c, double val)
 
 void GSPerfMon::Update()
 {
+	int frames = m_counters[Frame].GetCount();
+
 	for(int i = 0; i < countof(m_counters); i++)
 	{
 		double sum = 0;
@@ -62,6 +64,8 @@ void GSPerfMon::Update()
 			sum += m_counters[i].GetNext(pos);
 		}
 
-		m_stats[i] = sum / m_counters[Frame].GetCount();
+		m_stats[i] = sum / frames;
+
+		m_counters[i].RemoveAll();
 	}
 }
