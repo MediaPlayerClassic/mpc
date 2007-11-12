@@ -81,7 +81,7 @@ int GSRendererNull::DrawingKick(bool skip)
 
 	if(!skip)
 	{
-		m_perfmon.IncCounter(GSPerfMon::c_prim, 1);
+		m_perfmon.Put(GSPerfMon::Prim, 1);
 	}
 
 	return 0;

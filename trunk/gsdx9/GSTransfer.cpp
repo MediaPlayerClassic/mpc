@@ -79,7 +79,7 @@ void GSState::WriteTransfer(BYTE* pMem, int len)
 
 		(m_mem.*GSLocalMemory::m_psmtbl[m_env.BITBLTBUF.DPSM].st)(m_x, m_y, pMem, len, m_env.BITBLTBUF, m_env.TRXPOS, m_env.TRXREG);
 
-		m_perfmon.IncCounter(GSPerfMon::c_swizzle, len);
+		m_perfmon.Put(GSPerfMon::Swizzle, len);
 
 		//ASSERT(m_env.TRXREG.RRH >= m_y - y);
 
@@ -99,7 +99,7 @@ void GSState::FlushWriteTransfer()
 
 	(m_mem.*GSLocalMemory::m_psmtbl[m_env.BITBLTBUF.DPSM].st)(m_x, m_y, m_pTransferBuffer, m_nTransferBytes, m_env.BITBLTBUF, m_env.TRXPOS, m_env.TRXREG);
 
-	m_perfmon.IncCounter(GSPerfMon::c_swizzle, m_nTransferBytes);
+	m_perfmon.Put(GSPerfMon::Swizzle, m_nTransferBytes);
 
 	m_nTransferBytes = 0;
 

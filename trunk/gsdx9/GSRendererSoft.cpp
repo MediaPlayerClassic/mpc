@@ -287,7 +287,7 @@ if(m_perfmon.GetFrame() == 200)
 #endif
 		}
 
-		m_perfmon.IncCounter(GSPerfMon::c_prim, nPrims);
+		m_perfmon.Put(GSPerfMon::Prim, nPrims);
 
 /*
 if(m_perfmon.GetFrame() == 200)

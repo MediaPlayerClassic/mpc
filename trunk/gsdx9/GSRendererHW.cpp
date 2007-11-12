@@ -30,9 +30,9 @@ inline BYTE SCALE_ALPHA(BYTE a)
 //
 
 GSRendererHW::GSRendererHW()
-	: m_width(1024)
-	, m_height(1024)
 {
+	m_width = AfxGetApp()->GetProfileInt(_T("Settings"), _T("InternalResX"), 1024);
+	m_height = AfxGetApp()->GetProfileInt(_T("Settings"), _T("InternalResY"), 1024);
 }
 
 GSRendererHW::~GSRendererHW()
@@ -267,7 +267,7 @@ void GSRendererHW::FlushPrim()
 #endif
 		}
 
-		m_perfmon.IncCounter(GSPerfMon::c_prim, nPrims);
+		m_perfmon.Put(GSPerfMon::Prim, nPrims);
 
 		//////////////////////
 
