@@ -41,6 +41,7 @@ public:
 	CComboBox m_renderer;
 	CComboBox m_psversion;
 	CComboBox m_interlace;
+	CComboBox m_ar;
 	BOOL m_fPalettizedTextures;
 	BOOL m_fEnableTvOut;
 	BOOL m_fLinearTextureFilter;

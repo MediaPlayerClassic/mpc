@@ -12,12 +12,12 @@
 #define IDC_COMBO3                      2008
 #define IDC_COMBO4                      2009
 #define IDC_EDIT1                       2010
-#define IDC_COMBO5                      2010
 #define IDC_BUTTON1                     2011
 #define IDC_BUTTON2                     2012
 #define IDC_CUSTOM1                     2013
 #define IDC_CHECK4                      2014
 #define IDC_COMBO2                      2015
+#define IDC_COMBO5                      2016
 #define IDR_HLSL_TFX                    2017
 #define IDR_HLSL_MERGE                  2018
 #define IDD_CAPTURE                     2018

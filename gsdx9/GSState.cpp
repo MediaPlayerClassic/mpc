@@ -39,6 +39,7 @@ GSState::GSState()
 {
 	m_fPalettizedTextures = !!AfxGetApp()->GetProfileInt(_T("Settings"), _T("fPalettizedTextures"), FALSE);
 	m_nInterlace = AfxGetApp()->GetProfileInt(_T("Settings"), _T("Interlace"), 3);
+	m_nAspectRatio = AfxGetApp()->GetProfileInt(_T("Settings"), _T("AspectRatio"), 1);
 	m_nTextureFilter = (D3DTEXTUREFILTERTYPE)AfxGetApp()->GetProfileInt(_T("Settings"), _T("TextureFilter"), D3DTEXF_LINEAR);
 	m_nloophack = AfxGetApp()->GetProfileInt(_T("Settings"), _T("nloophack"), 2) == 1;
 
@@ -1090,24 +1091,29 @@ void GSState::Present()
 
 
 	{
-		int arx = 4;
-		int ary = 3;
+		static int ar[][2] = {{0, 0}, {4, 3}, {16, 9}};
+
+		int arx = ar[m_nAspectRatio][0];
+		int ary = ar[m_nAspectRatio][1];
 
 		CRect r = cr;
 
-		if(r.Width() * ary > r.Height() * arx)
+		if(arx > 0 && ary > 0)
 		{
-			int w = r.Height() * arx / ary;
-			r.left = r.CenterPoint().x - w / 2;
-			if(r.left & 1) r.left++;
-			r.right = r.left + w;
-		}
-		else
-		{
-			int h = r.Width() * ary / arx;
-			r.top = r.CenterPoint().y - h / 2;
-			if(r.top & 1) r.top++;
-			r.bottom = r.top + h;
+			if(r.Width() * ary > r.Height() * arx)
+			{
+				int w = r.Height() * arx / ary;
+				r.left = r.CenterPoint().x - w / 2;
+				if(r.left & 1) r.left++;
+				r.right = r.left + w;
+			}
+			else
+			{
+				int h = r.Width() * ary / arx;
+				r.top = r.CenterPoint().y - h / 2;
+				if(r.top & 1) r.top++;
+				r.bottom = r.top + h;
+			}
 		}
 
 		r &= cr;
@@ -1125,7 +1131,7 @@ void GSState::Present()
 	if(m_perfmon.GetFrame() - s_frame >= 30) 
 	{
 		s_frame = m_perfmon.GetFrame();
-		s_stats = m_perfmon.ToString(m_regs.GetFPS(), m_regs.pSMODE2->ai32[0], m_nInterlace);
+		s_stats = m_perfmon.ToString(m_regs.GetFPS(), m_regs.pSMODE2->ai32[0], m_nInterlace, m_nAspectRatio);
 		// stats.Format(_T("%s - %.2f MB"), CString(stats), 1.0f*m_pD3DDev->GetAvailableTextureMem()/1024/1024);
 
 		if(m_osd == 1)
