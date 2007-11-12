@@ -737,6 +737,8 @@ void GSState::Transfer(BYTE* mem, UINT32 size, int index)
 
 void GSState::VSync(int field)
 {
+	m_perfmon.Put(GSPerfMon::Frame);
+
 	m_field = !!field;
 
 	Flush();
@@ -744,8 +746,6 @@ void GSState::VSync(int field)
 	Flip();
 
 	Present();
-
-	m_perfmon.Put(GSPerfMon::Frame);
 }
 
 UINT32 GSState::MakeSnapshot(char* path)
