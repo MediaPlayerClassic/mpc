@@ -96,7 +96,7 @@ CString GSPerfMon::ToString(double expected_fps, int interlace, int interlace_mo
 		(int)(100.0 * fps / expected_fps),
 		(interlace & 1) ? (CString(_T("interlaced ")) + ((interlace & 2) ? _T("(frame)") : _T("(field)"))) : _T("progressive"),
 		interlace_mode == 1 ? _T(" weave") : interlace_mode == 2 ? _T(" bob") : interlace_mode == 3 ? _T(" blend") : _T(""),
-		aspect_ratio == 0 ? _T("4:3") : aspect_ratio == 1 ? _T("16:9") : _T("stretch"),
+		aspect_ratio == 1 ? _T("4:3") : aspect_ratio == 2 ? _T("16:9") : _T("stretch"),
 		(int)(stats[c_prim]),
 		(float)(stats[c_swizzle] / 1024),
 		(float)(stats[c_unswizzle] / 1024),
