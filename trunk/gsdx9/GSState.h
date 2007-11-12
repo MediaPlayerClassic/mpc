@@ -58,11 +58,17 @@ public:
 				return true;
 			}
 
-			if(msg.wParam == VK_F5)
+			if(msg.wParam == VK_F6)
+			{
+				m_nAspectRatio = (m_nAspectRatio + 1) % 3;
+				return true;
+			}			
+
+			if(msg.wParam == VK_F7)
 			{
 				m_osd = (m_osd + 1) % 3;
 				return true;
-			}			
+			}
 		}
 
 		return false;
@@ -136,6 +142,7 @@ protected:
 	D3DFORMAT m_fmtDepthStencil;
 	bool m_fPalettizedTextures;
 	int m_nInterlace;
+	int m_nAspectRatio;
 	D3DTEXTUREFILTERTYPE m_nTextureFilter;
 
 	virtual void ResetState();

@@ -49,6 +49,13 @@ static struct {DWORD id; const TCHAR* name;} s_interlace[] =
 	{3, _T("Blend (slight blur, 1/2 fps)")},
 };
 
+static struct {DWORD id; const TCHAR* name;} s_ar[] =
+{
+	{0, _T("Stretch")},
+	{1, _T("4:3")},
+	{2, _T("16:9")},
+};
+
 IMPLEMENT_DYNAMIC(CGSSettingsDlg, CDialog)
 CGSSettingsDlg::CGSSettingsDlg(CWnd* pParent /*=NULL*/)
 	: CDialog(CGSSettingsDlg::IDD, pParent)
@@ -70,6 +77,7 @@ void CGSSettingsDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_COMBO1, m_renderer);
 	DDX_Control(pDX, IDC_COMBO4, m_psversion);
 	DDX_Control(pDX, IDC_COMBO2, m_interlace);
+	DDX_Control(pDX, IDC_COMBO5, m_ar);
 	DDX_Check(pDX, IDC_CHECK1, m_fPalettizedTextures);
 	DDX_Check(pDX, IDC_CHECK3, m_fEnableTvOut);
 	DDX_Check(pDX, IDC_CHECK4, m_fLinearTextureFilter);
@@ -168,6 +176,17 @@ BOOL CGSSettingsDlg::OnInitDialog()
 		if(s_interlace[i].id == interlace_id) m_interlace.SetCurSel(iItem);
 	}
 
+	// ar
+
+	DWORD ar_id = pApp->GetProfileInt(_T("Settings"), _T("AspectRatio"), 1);
+
+	for(int i = 0; i < countof(s_ar); i++)
+	{
+		int iItem = m_ar.AddString(s_ar[i].name);
+		m_ar.SetItemData(iItem, s_ar[i].id);
+		if(s_ar[i].id == ar_id) m_ar.SetCurSel(iItem);
+	}
+
 	//
 
 	m_fPalettizedTextures = pApp->GetProfileInt(_T("Settings"), _T("fPalettizedTextures"), FALSE);
@@ -210,6 +229,11 @@ void CGSSettingsDlg::OnOK()
 	if(m_interlace.GetCurSel() >= 0)
 	{
 		pApp->WriteProfileInt(_T("Settings"), _T("Interlace"), (DWORD)m_interlace.GetItemData(m_interlace.GetCurSel()));
+	}
+
+	if(m_ar.GetCurSel() >= 0)
+	{
+		pApp->WriteProfileInt(_T("Settings"), _T("AspectRatio"), (DWORD)m_ar.GetItemData(m_ar.GetCurSel()));
 	}
 
 	pApp->WriteProfileInt(_T("Settings"), _T("fPalettizedTextures"), m_fPalettizedTextures);
