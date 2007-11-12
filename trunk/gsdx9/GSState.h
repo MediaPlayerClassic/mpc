@@ -88,6 +88,7 @@ public:
 	void SetIrq(void (*irq)()) {m_irq = irq;}
 	void SetMT(bool mt) {m_mt = mt;}
 	void SetGameCRC(int crc, int options);
+	void GetLastTag(UINT32* tag) {*tag = m_path3hack; m_path3hack = 0;}
 
 private:
 	void (*m_irq)();
@@ -97,6 +98,7 @@ private:
 	bool m_nloophack;
 	bool m_osd;
 	int m_field;
+	int m_path3hack; 
 
 private:
 	static const int m_nTrMaxBytes = 1024*1024*4;
