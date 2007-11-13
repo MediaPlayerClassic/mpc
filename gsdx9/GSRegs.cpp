@@ -344,11 +344,21 @@ void GSState::GIFRegHandlerTEX2_2(GIFReg* r)
 
 void GSState::GIFRegHandlerXYOFFSET_1(GIFReg* r)
 {
+	if(m_env.CTXT[0].XYOFFSET.i64 != r->XYOFFSET.i64)
+	{
+		Flush();
+	}
+
 	m_env.CTXT[0].XYOFFSET = r->XYOFFSET;
 }
 
 void GSState::GIFRegHandlerXYOFFSET_2(GIFReg* r)
 {
+	if(m_env.CTXT[1].XYOFFSET.i64 != r->XYOFFSET.i64)
+	{
+		Flush();
+	}
+
 	m_env.CTXT[1].XYOFFSET = r->XYOFFSET;
 }
 

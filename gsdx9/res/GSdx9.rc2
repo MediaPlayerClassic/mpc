@@ -14,5 +14,6 @@ IDR_HLSL_TFX    RCDATA                                 "res\\hlsl_tfx.fx"
 IDR_HLSL_MERGE  RCDATA                                 "res\\hlsl_merge.fx"
 IDR_HLSL_RB		RCDATA                                 "res\\hlsl_rb.fx"
 IDR_HLSL_INTERLACE RCDATA                              "res\\hlsl_interlace.fx"
+IDR_HLSL_VERTEX RCDATA                                 "res\\hlsl_vertex.fx"
 
 /////////////////////////////////////////////////////////////////////////////

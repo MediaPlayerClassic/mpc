@@ -21,15 +21,16 @@
 
 #pragma once
 
-extern DWORD blockTable32[4][8];
-extern DWORD blockTable32Z[4][8];
-extern DWORD blockTable16[8][4];
-extern DWORD blockTable16S[8][4];
-extern DWORD blockTable16Z[8][4];
-extern DWORD blockTable16SZ[8][4];
-extern DWORD blockTable8[4][8];
-extern DWORD blockTable4[8][4];
-extern DWORD columnTable32[8][8];
-extern DWORD columnTable16[8][16];
-extern DWORD columnTable8[16][16];
-extern DWORD columnTable4[16][32];
+extern const DWORD blockTable32[4][8];
+extern const DWORD blockTable32Z[4][8];
+extern const DWORD blockTable16[8][4];
+extern const DWORD blockTable16S[8][4];
+extern const DWORD blockTable16Z[8][4];
+extern const DWORD blockTable16SZ[8][4];
+extern const DWORD blockTable8[4][8];
+extern const DWORD blockTable4[8][4];
+extern const DWORD columnTable32[8][8];
+extern const DWORD columnTable16[8][16];
+extern const DWORD columnTable8[16][16];
+extern const DWORD columnTable4[16][32];
+extern const int minPrimVertexTable[8];

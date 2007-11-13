@@ -21,13 +21,22 @@
 
 #include "StdAfx.h"
 #include "GSRendererHW.h"
+#include "GSUtil.h"
+#include "resource.h"
 
 inline BYTE SCALE_ALPHA(BYTE a) 
 {
 	return (((a)&0x80)?0xff:((a)<<1));
 }
 
-//
+static const D3DVERTEXELEMENT9 s_vertexdecl[] =
+{
+	{0, 0,  D3DDECLTYPE_FLOAT4, D3DDECLMETHOD_DEFAULT, D3DDECLUSAGE_POSITION, 0},
+	{0, 16, D3DDECLTYPE_D3DCOLOR, D3DDECLMETHOD_DEFAULT, D3DDECLUSAGE_COLOR, 0},
+	{0, 20, D3DDECLTYPE_D3DCOLOR, D3DDECLMETHOD_DEFAULT, D3DDECLUSAGE_COLOR, 1},
+	{0, 24, D3DDECLTYPE_FLOAT2, D3DDECLMETHOD_DEFAULT, D3DDECLUSAGE_TEXCOORD, 0},
+	D3DDECL_END()
+};
 
 GSRendererHW::GSRendererHW()
 {
@@ -37,6 +46,42 @@ GSRendererHW::GSRendererHW()
 
 GSRendererHW::~GSRendererHW()
 {
+}
+
+bool GSRendererHW::Create(LPCTSTR title)
+{
+	if(!__super::Create(title))
+		return false;
+
+	HRESULT hr;
+
+	hr = m_pD3DDev->CreateVertexDeclaration(s_vertexdecl, &m_pVertexDeclaration);
+
+	// vs_3_0
+
+	if(m_caps.VertexShaderVersion >= D3DVS_VERSION(3, 0))
+	{
+		DWORD flags = 0;
+
+		if(!m_pVertexShader)
+		{
+			CompileShaderFromResource(m_pD3DDev, IDR_HLSL_VERTEX, _T("main"), _T("vs_3_0"), flags, &m_pVertexShader, &m_pVertexShaderConstantTable);
+		}
+	}
+
+	// vs_2_0
+
+	if(m_caps.VertexShaderVersion >= D3DVS_VERSION(2, 0))
+	{
+		DWORD flags = 0;
+
+		if(!m_pVertexShader)
+		{
+			CompileShaderFromResource(m_pD3DDev, IDR_HLSL_VERTEX, _T("main"), _T("vs_2_0"), flags, &m_pVertexShader, &m_pVertexShaderConstantTable);
+		}
+	}
+
+	return true;
 }
 
 void GSRendererHW::ResetState()
@@ -57,21 +102,18 @@ HRESULT GSRendererHW::ResetDevice(bool fForceWindowed)
 	return __super::ResetDevice(fForceWindowed);
 }
 
+static const float s_one_over_log_2pow32 = 1.0f / (log(2.0f)*32);
+
 void GSRendererHW::VertexKick(bool skip)
 {
-	static const float one_over_log_2pow32 = 1.0f / (log(2.0f)*32);
-
 	GSVertexHW& v = m_vl.AddTail();
 
-	v.x = (float)((int)m_v.XYZ.X - (int)m_context->XYOFFSET.OFX) * (1.0f/16);
-	v.y = (float)((int)m_v.XYZ.Y - (int)m_context->XYOFFSET.OFY) * (1.0f/16);
+	v.x = (float)m_v.XYZ.X;
+	v.y = (float)m_v.XYZ.Y;
 	//if(m_v.XYZ.Z && m_v.XYZ.Z < 0x100) m_v.XYZ.Z = 0x100;
 	//v.z = 1.0f * (m_v.XYZ.Z>>8)/(UINT_MAX>>8);
-	v.z = log(1.0f + m_v.XYZ.Z) * one_over_log_2pow32;
+	v.z = log(1.0f + m_v.XYZ.Z) * s_one_over_log_2pow32;
 	//v.z = (float)m_v.XYZ.Z / UINT_MAX;
-	//v.rhw = v.z ? 1.0f/v.z : 1.0f;
-	v.rhw = m_v.RGBAQ.Q > 0 ? m_v.RGBAQ.Q : 1.0f; // TODO
-	//v.rhw = m_v.RGBAQ.Q;
 
 	v.color = m_v.RGBAQ.ai32[0];
 
@@ -79,19 +121,23 @@ void GSRendererHW::VertexKick(bool skip)
 	{
 		if(m_pPRIM->FST)
 		{
-			v.tu = (float)(int)m_v.UV.U / (16 << m_context->TEX0.TW);
-			v.tv = (float)(int)m_v.UV.V / (16 << m_context->TEX0.TH);
-			v.rhw = 1.0f;
+			v.w = 1.0f;
+			v.tu = m_v.UV.U;
+			v.tv = m_v.UV.V;
 		}
 		else
 		{
-			float w = m_v.RGBAQ.Q ? 1.0f / m_v.RGBAQ.Q : 1.0f;
-			v.tu = m_v.ST.S * w;
-			v.tv = m_v.ST.T * w;
+			v.w = m_v.RGBAQ.Q;
+			v.tu = m_v.ST.S;
+			v.tv = m_v.ST.T;
 		}
 	}
 	else
 	{
+		v.w = 1.0f;
+		v.tu = 0;
+		v.tv = 0;
+
 		v.a = SCALE_ALPHA(v.a);
 	}
 
@@ -103,6 +149,7 @@ void GSRendererHW::VertexKick(bool skip)
 int GSRendererHW::DrawingKick(bool skip)
 {
 	GSVertexHW* pVertices = &m_pVertices[m_nVertices];
+
 	int nVertices = 0;
 
 	CRect sc(m_context->SCISSOR.SCAX0, m_context->SCISSOR.SCAY0, m_context->SCISSOR.SCAX1+1, m_context->SCISSOR.SCAY1+1);
@@ -111,68 +158,82 @@ int GSRendererHW::DrawingKick(bool skip)
 	{
 	case GS_POINTLIST:
 		m_vl.RemoveAt(0, pVertices[nVertices++]);
+		/*
 		if(pVertices[nVertices-1].x < sc.left
 		|| pVertices[nVertices-1].y < sc.top
 		|| pVertices[nVertices-1].x >= sc.right
 		|| pVertices[nVertices-1].y >= sc.bottom)
 			return 0;
+		*/
 		break;
 	case GS_LINELIST:
 		m_vl.RemoveAt(0, pVertices[nVertices++]);
 		m_vl.RemoveAt(0, pVertices[nVertices++]);
+		/*
 		if(pVertices[nVertices-1].x < sc.left && pVertices[nVertices-2].x < sc.left
 		|| pVertices[nVertices-1].y < sc.top && pVertices[nVertices-2].y < sc.top
 		|| pVertices[nVertices-1].x >= sc.right && pVertices[nVertices-2].x >= sc.right
 		|| pVertices[nVertices-1].y >= sc.bottom && pVertices[nVertices-2].y >= sc.bottom)
 			return 0;
+		*/
 		break;
 	case GS_LINESTRIP:
 		m_vl.RemoveAt(0, pVertices[nVertices++]);
 		m_vl.GetAt(0, pVertices[nVertices++]);
+		/*
 		if(pVertices[nVertices-1].x < sc.left && pVertices[nVertices-2].x < sc.left
 		|| pVertices[nVertices-1].y < sc.top && pVertices[nVertices-2].y < sc.top
 		|| pVertices[nVertices-1].x >= sc.right && pVertices[nVertices-2].x >= sc.right
 		|| pVertices[nVertices-1].y >= sc.bottom && pVertices[nVertices-2].y >= sc.bottom)
 			return 0;
+		*/
 		break;
 	case GS_TRIANGLELIST:
 		m_vl.RemoveAt(0, pVertices[nVertices++]);
 		m_vl.RemoveAt(0, pVertices[nVertices++]);
 		m_vl.RemoveAt(0, pVertices[nVertices++]);
+		/*
 		if(pVertices[nVertices-1].x < sc.left && pVertices[nVertices-2].x < sc.left && pVertices[nVertices-3].x < sc.left
 		|| pVertices[nVertices-1].y < sc.top && pVertices[nVertices-2].y < sc.top && pVertices[nVertices-3].y < sc.top
 		|| pVertices[nVertices-1].x >= sc.right && pVertices[nVertices-2].x >= sc.right && pVertices[nVertices-3].x >= sc.right
 		|| pVertices[nVertices-1].y >= sc.bottom && pVertices[nVertices-2].y >= sc.bottom && pVertices[nVertices-3].y >= sc.bottom)
 			return 0;
+		*/
 		break;
 	case GS_TRIANGLESTRIP:
 		m_vl.RemoveAt(0, pVertices[nVertices++]);
 		m_vl.GetAt(0, pVertices[nVertices++]);
 		m_vl.GetAt(1, pVertices[nVertices++]);
+		/*
 		if(pVertices[nVertices-1].x < sc.left && pVertices[nVertices-2].x < sc.left && pVertices[nVertices-3].x < sc.left
 		|| pVertices[nVertices-1].y < sc.top && pVertices[nVertices-2].y < sc.top && pVertices[nVertices-3].y < sc.top
 		|| pVertices[nVertices-1].x >= sc.right && pVertices[nVertices-2].x >= sc.right && pVertices[nVertices-3].x >= sc.right
 		|| pVertices[nVertices-1].y >= sc.bottom && pVertices[nVertices-2].y >= sc.bottom && pVertices[nVertices-3].y >= sc.bottom)
 			return 0;
+		*/
 		break;
 	case GS_TRIANGLEFAN:
 		m_vl.GetAt(0, pVertices[nVertices++]);
 		m_vl.RemoveAt(1, pVertices[nVertices++]);
 		m_vl.GetAt(1, pVertices[nVertices++]);
+		/*
 		if(pVertices[nVertices-1].x < sc.left && pVertices[nVertices-2].x < sc.left && pVertices[nVertices-3].x < sc.left
 		|| pVertices[nVertices-1].y < sc.top && pVertices[nVertices-2].y < sc.top && pVertices[nVertices-3].y < sc.top
 		|| pVertices[nVertices-1].x >= sc.right && pVertices[nVertices-2].x >= sc.right && pVertices[nVertices-3].x >= sc.right
 		|| pVertices[nVertices-1].y >= sc.bottom && pVertices[nVertices-2].y >= sc.bottom && pVertices[nVertices-3].y >= sc.bottom)
 			return 0;
+		*/
 		break;
 	case GS_SPRITE:
 		m_vl.RemoveAt(0, pVertices[nVertices++]);
 		m_vl.RemoveAt(0, pVertices[nVertices++]);
+		/*
 		if(pVertices[nVertices-1].x < sc.left && pVertices[nVertices-2].x < sc.left
 		|| pVertices[nVertices-1].y < sc.top && pVertices[nVertices-2].y < sc.top
 		|| pVertices[nVertices-1].x >= sc.right && pVertices[nVertices-2].x >= sc.right
 		|| pVertices[nVertices-1].y >= sc.bottom && pVertices[nVertices-2].y >= sc.bottom)
 			return 0;
+		*/
 		nVertices += 2;
 /*
 		float lod;
@@ -448,55 +509,38 @@ if(m_perfmon.GetFrame() == 200)
 
 		//////////////////////
 
-		// TODO: this could be done in a vertex shader, if we had one...
+		hr = m_pD3DDev->SetVertexDeclaration(m_pVertexDeclaration);
+		hr = m_pD3DDev->SetVertexShader(m_pVertexShader);
 
+		float g_pos_offset[] = 
 		{
-			GSVertexHW* v = m_pVertices;
+			(float)m_context->XYOFFSET.OFX, 
+			(float)m_context->XYOFFSET.OFY
+		};
 
-			for(int i = 0, j = m_nVertices; i < j; i++)
-			{
-				v[i].x *= scale.x;
-				v[i].y *= scale.y;
-			}
+		hr = m_pVertexShaderConstantTable->SetFloatArray(m_pD3DDev, "g_pos_offset", g_pos_offset, countof(g_pos_offset));
 
-			if(m_pPRIM->TME)
-			{
-				float tsx = 1.0f, tsy = 1.0f;
+		float g_pos_scale[] = 
+		{
+			2.0f * scale.x / (rd.Width * 16), 
+			2.0f * scale.y / (rd.Height * 16)
+		};
 
-				tsx = 1.0f * (1 << m_context->TEX0.TW) / t.m_desc.Width * t.m_scale.x;
-				tsy = 1.0f * (1 << m_context->TEX0.TH) / t.m_desc.Height * t.m_scale.y;
+		hr = m_pVertexShaderConstantTable->SetFloatArray(m_pD3DDev, "g_pos_scale", g_pos_scale, countof(g_pos_scale));
 
-				ASSERT(abs(tsx - 1.0f) < 0.005 && abs(tsy - 1.0f) < 0.005);
+		float g_tex_scale[] = 
+		{
+			1.0f, 
+			1.0f
+		};
 
-				if(tsx != 1 || tsy != 1)
-				{
-					for(int i = 0, j = m_nVertices; i < j; i++)
-					{
-						// FIXME
-						float base, fract;
-						fract = modf(v[i].tu, &base);
-						fract *= tsx;
-						//ASSERT(-1 <= fract && fract <= 1.01);
-						v[i].tu = base + fract;
-						fract = modf(v[i].tv, &base);
-						fract *= tsy;
-						//ASSERT(-1 <= fract && fract <= 1.01);
-						v[i].tv = base + fract;
-					}
-				}
-			}
-
-			if(m_pPRIM->FGE)
-			{
-				for(int i = 0, j = m_nVertices; i < j; i++)
-				{
-					v[i].fog = (v[i].fog & 0xff000000) | (m_env.FOGCOL.ai32[0] & 0x00ffffff);
-					// D3DCOLOR_ARGB(v[i].fog >> 24, m_env.FOGCOL.FCB, m_env.FOGCOL.FCG, m_env.FOGCOL.FCR)
-				}
-			}
+		if(m_pPRIM->TME && m_pPRIM->FST)
+		{
+			g_tex_scale[0] = 1.0f / (16 << m_context->TEX0.TW);
+			g_tex_scale[1] = 1.0f / (16 << m_context->TEX0.TH);
 		}
 
-		hr = m_pD3DDev->SetFVF(D3DFVF_XYZRHW|D3DFVF_DIFFUSE|D3DFVF_SPECULAR|D3DFVF_TEX1);
+		hr = m_pVertexShaderConstantTable->SetFloatArray(m_pD3DDev, "g_tex_scale", g_tex_scale, countof(g_tex_scale));
 
 		if(1)//!m_env.PABE.PABE)
 		{
@@ -687,7 +731,9 @@ void GSRendererHW::MinMaxUV(int w, int h, CRect& r)
 
 	if(m_context->CLAMP.WMS < 3 || m_context->CLAMP.WMT < 3)
 	{
-		UVMinMax(m_nVertices, (vertex_t*)m_pVertices, &uv);
+		// FIXME: UVMinMax(m_nVertices, (vertex_t*)m_pVertices, &uv);
+		uv.umin = uv.vmin = 0;
+		uv.umax = uv.vmax = 1;
 		CSize bs = GSLocalMemory::m_psmtbl[m_context->TEX0.PSM].bs;
 		bsm.SetSize(bs.cx-1, bs.cy-1);
 	}
@@ -852,6 +898,7 @@ void GSRendererHW::SetupTexture(const GSTextureBase& t)
 	float fConstData[][4] = 
 	{
 		{(float)m_context->TEX0.TCC - 0.5f, t.m_fRT ? 1.0f : 2.0f, min(2.0f * m_env.TEXA.TA0 / 255, 1), min(2.0f * m_env.TEXA.TA1 / 255, 1)},
+		{(float)m_env.FOGCOL.FCR / 255, (float)m_env.FOGCOL.FCG / 255, (float)m_env.FOGCOL.FCB / 255 , 0},
 		{(float)tw, (float)th, 0, 0},
 		{rw, rh, 0, 0},
 		{rw, 0, 0, 0},
@@ -884,7 +931,7 @@ void GSRendererHW::SetupAlphaBlend()
 
 		BYTE FIX = SCALE_ALPHA(m_context->ALPHA.FIX);
 
-		hr = m_pD3DDev->SetRenderState(D3DRS_BLENDFACTOR, (0x010101*FIX)|(FIX<<24));
+		hr = m_pD3DDev->SetRenderState(D3DRS_BLENDFACTOR, (0x010101*FIX) | (FIX<<24));
 
 		D3DBLENDOP op = D3DBLENDOP_ADD;
 		D3DBLEND src = D3DBLEND_SRCALPHA, dst = D3DBLEND_INVSRCALPHA;

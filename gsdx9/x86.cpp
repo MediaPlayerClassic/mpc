@@ -27,7 +27,7 @@
 
 void __fastcall unSwizzleBlock32_c(BYTE* src, BYTE* dst, int dstpitch)
 {
-	DWORD* s = &columnTable32[0][0];
+	const DWORD* s = &columnTable32[0][0];
 
 	for(int j = 0; j < 8; j++, s += 8, dst += dstpitch)
 		for(int i = 0; i < 8; i++)
@@ -36,7 +36,7 @@ void __fastcall unSwizzleBlock32_c(BYTE* src, BYTE* dst, int dstpitch)
 
 void __fastcall unSwizzleBlock16_c(BYTE* src, BYTE* dst, int dstpitch)
 {
-	DWORD* s = &columnTable16[0][0];
+	const DWORD* s = &columnTable16[0][0];
 
 	for(int j = 0; j < 8; j++, s += 16, dst += dstpitch)
 		for(int i = 0; i < 16; i++)
@@ -45,7 +45,7 @@ void __fastcall unSwizzleBlock16_c(BYTE* src, BYTE* dst, int dstpitch)
 
 void __fastcall unSwizzleBlock8_c(BYTE* src, BYTE* dst, int dstpitch)
 {
-	DWORD* s = &columnTable8[0][0];
+	const DWORD* s = &columnTable8[0][0];
 
 	for(int j = 0; j < 16; j++, s += 16, dst += dstpitch)
 		for(int i = 0; i < 16; i++)
@@ -54,7 +54,7 @@ void __fastcall unSwizzleBlock8_c(BYTE* src, BYTE* dst, int dstpitch)
 
 void __fastcall unSwizzleBlock4_c(BYTE* src, BYTE* dst, int dstpitch)
 {
-	DWORD* s = &columnTable4[0][0];
+	const DWORD* s = &columnTable4[0][0];
 
 	for(int j = 0; j < 16; j++, s += 32, dst += dstpitch)
 	{
@@ -70,7 +70,7 @@ void __fastcall unSwizzleBlock4_c(BYTE* src, BYTE* dst, int dstpitch)
 
 void __fastcall unSwizzleBlock8HP_c(BYTE* src, BYTE* dst, int dstpitch)
 {
-	DWORD* s = &columnTable32[0][0];
+	const DWORD* s = &columnTable32[0][0];
 
 	for(int j = 0; j < 8; j++, s += 8, dst += dstpitch)
 		for(int i = 0; i < 8; i++)
@@ -79,7 +79,7 @@ void __fastcall unSwizzleBlock8HP_c(BYTE* src, BYTE* dst, int dstpitch)
 
 void __fastcall unSwizzleBlock4HLP_c(BYTE* src, BYTE* dst, int dstpitch)
 {
-	DWORD* s = &columnTable32[0][0];
+	const DWORD* s = &columnTable32[0][0];
 
 	for(int j = 0; j < 8; j++, s += 8, dst += dstpitch)
 		for(int i = 0; i < 8; i++)
@@ -88,7 +88,7 @@ void __fastcall unSwizzleBlock4HLP_c(BYTE* src, BYTE* dst, int dstpitch)
 
 void __fastcall unSwizzleBlock4HHP_c(BYTE* src, BYTE* dst, int dstpitch)
 {
-	DWORD* s = &columnTable32[0][0];
+	const DWORD* s = &columnTable32[0][0];
 
 	for(int j = 0; j < 8; j++, s += 8, dst += dstpitch)
 		for(int i = 0; i < 8; i++)
@@ -97,7 +97,7 @@ void __fastcall unSwizzleBlock4HHP_c(BYTE* src, BYTE* dst, int dstpitch)
 
 void __fastcall unSwizzleBlock4P_c(BYTE* src, BYTE* dst, int dstpitch)
 {
-	DWORD* s = &columnTable4[0][0];
+	const DWORD* s = &columnTable4[0][0];
 
 	for(int j = 0; j < 16; j++, s += 32, dst += dstpitch)
 	{
@@ -113,7 +113,7 @@ void __fastcall unSwizzleBlock4P_c(BYTE* src, BYTE* dst, int dstpitch)
 
 void __fastcall SwizzleBlock32_c(BYTE* dst, BYTE* src, int srcpitch, DWORD WriteMask)
 {
-	DWORD* d = &columnTable32[0][0];
+	const DWORD* d = &columnTable32[0][0];
 
 	if(WriteMask == 0xffffffff)
 	{
@@ -131,7 +131,7 @@ void __fastcall SwizzleBlock32_c(BYTE* dst, BYTE* src, int srcpitch, DWORD Write
 
 void __fastcall SwizzleBlock16_c(BYTE* dst, BYTE* src, int srcpitch)
 {
-	DWORD* d = &columnTable16[0][0];
+	const DWORD* d = &columnTable16[0][0];
 
 	for(int j = 0; j < 8; j++, d += 16, src += srcpitch)
 		for(int i = 0; i < 16; i++)
@@ -140,7 +140,7 @@ void __fastcall SwizzleBlock16_c(BYTE* dst, BYTE* src, int srcpitch)
 
 void __fastcall SwizzleBlock8_c(BYTE* dst, BYTE* src, int srcpitch)
 {
-	DWORD* d = &columnTable8[0][0];
+	const DWORD* d = &columnTable8[0][0];
 
 	for(int j = 0; j < 16; j++, d += 16, src += srcpitch)
 		for(int i = 0; i < 16; i++)
@@ -149,7 +149,7 @@ void __fastcall SwizzleBlock8_c(BYTE* dst, BYTE* src, int srcpitch)
 
 void __fastcall SwizzleBlock4_c(BYTE* dst, BYTE* src, int srcpitch)
 {
-	DWORD* d = &columnTable4[0][0];
+	const DWORD* d = &columnTable4[0][0];
 
 	for(int j = 0; j < 16; j++, d += 32, src += srcpitch)
 	{
@@ -167,7 +167,7 @@ void __fastcall SwizzleBlock4_c(BYTE* dst, BYTE* src, int srcpitch)
 
 void __fastcall SwizzleColumn32_c(int y, BYTE* dst, BYTE* src, int srcpitch, DWORD WriteMask)
 {
-	DWORD* d = &columnTable32[((y/2)&3)*2][0];
+	const DWORD* d = &columnTable32[((y/2)&3)*2][0];
 
 	if(WriteMask == 0xffffffff)
 	{
@@ -185,7 +185,7 @@ void __fastcall SwizzleColumn32_c(int y, BYTE* dst, BYTE* src, int srcpitch, DWO
 
 void __fastcall SwizzleColumn16_c(int y, BYTE* dst, BYTE* src, int srcpitch)
 {
-	DWORD* d = &columnTable16[((y/2)&3)*2][0];
+	const DWORD* d = &columnTable16[((y/2)&3)*2][0];
 
 	for(int j = 0; j < 2; j++, d += 16, src += srcpitch)
 		for(int i = 0; i < 16; i++)
@@ -194,7 +194,7 @@ void __fastcall SwizzleColumn16_c(int y, BYTE* dst, BYTE* src, int srcpitch)
 
 void __fastcall SwizzleColumn8_c(int y, BYTE* dst, BYTE* src, int srcpitch)
 {
-	DWORD* d = &columnTable8[((y/4)&3)*4][0];
+	const DWORD* d = &columnTable8[((y/4)&3)*4][0];
 
 	for(int j = 0; j < 4; j++, d += 16, src += srcpitch)
 		for(int i = 0; i < 16; i++)
@@ -203,7 +203,7 @@ void __fastcall SwizzleColumn8_c(int y, BYTE* dst, BYTE* src, int srcpitch)
 
 void __fastcall SwizzleColumn4_c(int y, BYTE* dst, BYTE* src, int srcpitch)
 {
-	DWORD* d = &columnTable4[y&(3<<2)][0]; // ((y/4)&3)*4
+	const DWORD* d = &columnTable4[y&(3<<2)][0]; // ((y/4)&3)*4
 
 	for(int j = 0; j < 4; j++, d += 32, src += srcpitch)
 	{
