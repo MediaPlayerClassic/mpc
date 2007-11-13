@@ -144,150 +144,83 @@ void GSRendererHW::VertexKick(bool skip)
 	__super::VertexKick(skip);
 }
 
-int GSRendererHW::DrawingKick(bool skip)
+void GSRendererHW::DrawingKick(bool skip)
 {
-	GSVertexHW* pVertices = &m_pVertices[m_nVertices];
-
-	int nVertices = 0;
-
-	CRect sc(m_context->SCISSOR.SCAX0, m_context->SCISSOR.SCAY0, m_context->SCISSOR.SCAX1+1, m_context->SCISSOR.SCAY1+1);
+	GSVertexHW* v = &m_pVertices[m_nVertices];
+	int nv = 0;
 
 	switch(m_pPRIM->PRIM)
 	{
 	case GS_POINTLIST:
-		m_vl.RemoveAt(0, pVertices[nVertices++]);
-		/*
-		if(pVertices[nVertices-1].x < sc.left
-		|| pVertices[nVertices-1].y < sc.top
-		|| pVertices[nVertices-1].x >= sc.right
-		|| pVertices[nVertices-1].y >= sc.bottom)
-			return 0;
-		*/
+		m_vl.RemoveAt(0, v[0]);
+		nv += 1;
 		break;
 	case GS_LINELIST:
-		m_vl.RemoveAt(0, pVertices[nVertices++]);
-		m_vl.RemoveAt(0, pVertices[nVertices++]);
-		/*
-		if(pVertices[nVertices-1].x < sc.left && pVertices[nVertices-2].x < sc.left
-		|| pVertices[nVertices-1].y < sc.top && pVertices[nVertices-2].y < sc.top
-		|| pVertices[nVertices-1].x >= sc.right && pVertices[nVertices-2].x >= sc.right
-		|| pVertices[nVertices-1].y >= sc.bottom && pVertices[nVertices-2].y >= sc.bottom)
-			return 0;
-		*/
+		m_vl.RemoveAt(0, v[0]);
+		m_vl.RemoveAt(0, v[1]);
+		nv += 2;
 		break;
 	case GS_LINESTRIP:
-		m_vl.RemoveAt(0, pVertices[nVertices++]);
-		m_vl.GetAt(0, pVertices[nVertices++]);
-		/*
-		if(pVertices[nVertices-1].x < sc.left && pVertices[nVertices-2].x < sc.left
-		|| pVertices[nVertices-1].y < sc.top && pVertices[nVertices-2].y < sc.top
-		|| pVertices[nVertices-1].x >= sc.right && pVertices[nVertices-2].x >= sc.right
-		|| pVertices[nVertices-1].y >= sc.bottom && pVertices[nVertices-2].y >= sc.bottom)
-			return 0;
-		*/
+		m_vl.RemoveAt(0, v[0]);
+		m_vl.GetAt(0, v[1]);
+		nv += 2;
 		break;
 	case GS_TRIANGLELIST:
-		m_vl.RemoveAt(0, pVertices[nVertices++]);
-		m_vl.RemoveAt(0, pVertices[nVertices++]);
-		m_vl.RemoveAt(0, pVertices[nVertices++]);
-		/*
-		if(pVertices[nVertices-1].x < sc.left && pVertices[nVertices-2].x < sc.left && pVertices[nVertices-3].x < sc.left
-		|| pVertices[nVertices-1].y < sc.top && pVertices[nVertices-2].y < sc.top && pVertices[nVertices-3].y < sc.top
-		|| pVertices[nVertices-1].x >= sc.right && pVertices[nVertices-2].x >= sc.right && pVertices[nVertices-3].x >= sc.right
-		|| pVertices[nVertices-1].y >= sc.bottom && pVertices[nVertices-2].y >= sc.bottom && pVertices[nVertices-3].y >= sc.bottom)
-			return 0;
-		*/
+		m_vl.RemoveAt(0, v[0]);
+		m_vl.RemoveAt(0, v[1]);
+		m_vl.RemoveAt(0, v[2]);
+		nv += 3;
 		break;
 	case GS_TRIANGLESTRIP:
-		m_vl.RemoveAt(0, pVertices[nVertices++]);
-		m_vl.GetAt(0, pVertices[nVertices++]);
-		m_vl.GetAt(1, pVertices[nVertices++]);
-		/*
-		if(pVertices[nVertices-1].x < sc.left && pVertices[nVertices-2].x < sc.left && pVertices[nVertices-3].x < sc.left
-		|| pVertices[nVertices-1].y < sc.top && pVertices[nVertices-2].y < sc.top && pVertices[nVertices-3].y < sc.top
-		|| pVertices[nVertices-1].x >= sc.right && pVertices[nVertices-2].x >= sc.right && pVertices[nVertices-3].x >= sc.right
-		|| pVertices[nVertices-1].y >= sc.bottom && pVertices[nVertices-2].y >= sc.bottom && pVertices[nVertices-3].y >= sc.bottom)
-			return 0;
-		*/
+		m_vl.RemoveAt(0, v[0]);
+		m_vl.GetAt(0, v[1]);
+		m_vl.GetAt(1, v[2]);
+		nv += 3;
 		break;
 	case GS_TRIANGLEFAN:
-		m_vl.GetAt(0, pVertices[nVertices++]);
-		m_vl.RemoveAt(1, pVertices[nVertices++]);
-		m_vl.GetAt(1, pVertices[nVertices++]);
-		/*
-		if(pVertices[nVertices-1].x < sc.left && pVertices[nVertices-2].x < sc.left && pVertices[nVertices-3].x < sc.left
-		|| pVertices[nVertices-1].y < sc.top && pVertices[nVertices-2].y < sc.top && pVertices[nVertices-3].y < sc.top
-		|| pVertices[nVertices-1].x >= sc.right && pVertices[nVertices-2].x >= sc.right && pVertices[nVertices-3].x >= sc.right
-		|| pVertices[nVertices-1].y >= sc.bottom && pVertices[nVertices-2].y >= sc.bottom && pVertices[nVertices-3].y >= sc.bottom)
-			return 0;
-		*/
+		m_vl.GetAt(0, v[0]);
+		m_vl.RemoveAt(1, v[1]);
+		m_vl.GetAt(1, v[2]);
+		nv += 3;
 		break;
 	case GS_SPRITE:
-		m_vl.RemoveAt(0, pVertices[nVertices++]);
-		m_vl.RemoveAt(0, pVertices[nVertices++]);
-		/*
-		if(pVertices[nVertices-1].x < sc.left && pVertices[nVertices-2].x < sc.left
-		|| pVertices[nVertices-1].y < sc.top && pVertices[nVertices-2].y < sc.top
-		|| pVertices[nVertices-1].x >= sc.right && pVertices[nVertices-2].x >= sc.right
-		|| pVertices[nVertices-1].y >= sc.bottom && pVertices[nVertices-2].y >= sc.bottom)
-			return 0;
-		*/
-		nVertices += 2;
-/*
-		float lod;
-		if(m_context->TEX1.LCM) lod = -log(pVertices[nVertices-1].rhw)/log(2.0f) * (1 << m_context->TEX1.L) + m_context->TEX1.K;
-		else lod = m_context->TEX1.K;
-
-		int filter;
-		if(lod < 0) filter = m_context->TEX1.MMAG&1;
-		else filter = m_context->TEX1.MMIN&1;
-
-//		if(!filter)
-		{
-			pVertices[nVertices-2].x -= 0.5f;
-			pVertices[nVertices-2].y -= 0.5f;
-			pVertices[nVertices-1].x -= 0.5f;
-			pVertices[nVertices-1].y -= 0.5f;
-		}
-*/
-		// ASSERT(pVertices[0].z == pVertices[1].z);
-		pVertices[0].z = pVertices[1].z;
-		pVertices[2] = pVertices[1];
-		pVertices[3] = pVertices[1];
-		pVertices[1].y = pVertices[0].y;
-		pVertices[1].tv = pVertices[0].tv;
-		pVertices[2].x = pVertices[0].x;
-		pVertices[2].tu = pVertices[0].tu;
-		nVertices += 2;
-		pVertices[5] = pVertices[3];
-		pVertices[3] = pVertices[1];
-		pVertices[4] = pVertices[2];
+		m_vl.RemoveAt(0, v[0]);
+		m_vl.RemoveAt(0, v[1]);
+		// ASSERT(v[0].z == v[1].z);
+		v[0].z = v[1].z;
+		v[2] = v[1];
+		v[3] = v[1];
+		v[1].y = v[0].y;
+		v[1].tv = v[0].tv;
+		v[2].x = v[0].x;
+		v[2].tu = v[0].tu;
+		v[5] = v[3];
+		v[3] = v[1];
+		v[4] = v[2];
+		nv += 6;
 		break;
 	default:
 		//ASSERT(0);
 		m_vl.RemoveAll();
-		return 0;
+		return;
 	}
 
 	if(skip || !m_regs.IsEnabled(0) && !m_regs.IsEnabled(1))
 	{
-		return 0;
+		return;
 	}
 
 	if(!m_pPRIM->IIP)
 	{
-		pVertices[0].color = pVertices[nVertices-1].color;
+		v[0].color = v[nv - 1].color;
 
 		if(m_pPRIM->PRIM == 6)
 		{
-			pVertices[3].color = pVertices[5].color;
+			v[3].color = v[5].color;
 		}
-
-		/*for(int i = nVertices-1; i > 0; i--)
-			pVertices[i-1].color = pVertices[i].color;*/
 	}
 
-	return nVertices;
+	m_nVertices += nv;
 }
 
 void GSRendererHW::FlushPrim()
@@ -729,10 +662,42 @@ void GSRendererHW::MinMaxUV(int w, int h, CRect& r)
 
 	if(m_context->CLAMP.WMS < 3 || m_context->CLAMP.WMT < 3)
 	{
-		// FIXME: UVMinMax(m_nVertices, (vertex_t*)m_pVertices, &uv);
 		uv.umin = uv.vmin = 0;
 		uv.umax = uv.vmax = 1;
+
+		if(m_pPRIM->FST)
+		{
+			UVMinMax(m_nVertices, (vertex_t*)m_pVertices, &uv);
+
+			uv.umin *= 1.0f / (16 << m_context->TEX0.TW);
+			uv.umax *= 1.0f / (16 << m_context->TEX0.TW);
+			uv.vmin *= 1.0f / (16 << m_context->TEX0.TH);
+			uv.vmax *= 1.0f / (16 << m_context->TEX0.TH);
+		}
+		else
+		{
+			// FIXME
+
+			if(m_nVertices > 0)// && m_nVertices < 100)
+			{
+				uv.umin = uv.vmin = +1e10;
+				uv.umax = uv.vmax = -1e10;
+
+				for(int i = 0, j = m_nVertices; i < j; i++)
+				{
+					float w = 1.0f / m_pVertices[i].w;
+					float u = m_pVertices[i].tu * w;
+					if(uv.umax < u) uv.umax = u;
+					if(uv.umin > u) uv.umin = u;
+					float v = m_pVertices[i].tv * w;
+					if(uv.vmax < v) uv.vmax = v;
+					if(uv.vmin > v) uv.vmin = v;
+				}
+			}
+		}
+
 		CSize bs = GSLocalMemory::m_psmtbl[m_context->TEX0.PSM].bs;
+
 		bsm.SetSize(bs.cx-1, bs.cy-1);
 	}
 

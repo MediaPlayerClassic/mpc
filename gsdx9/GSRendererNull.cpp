@@ -37,7 +37,7 @@ void GSRendererNull::VertexKick(bool skip)
 	__super::VertexKick(skip);
 }
 
-int GSRendererNull::DrawingKick(bool skip)
+void GSRendererNull::DrawingKick(bool skip)
 {
 	NullVertex v;
 
@@ -76,15 +76,13 @@ int GSRendererNull::DrawingKick(bool skip)
 	default:
 		ASSERT(0);
 		m_vl.RemoveAll();
-		return 0;
+		return;
 	}
 
 	if(!skip)
 	{
 		m_perfmon.Put(GSPerfMon::Prim, 1);
 	}
-
-	return 0;
 }
 
 void GSRendererNull::Flip()

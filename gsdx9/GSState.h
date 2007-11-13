@@ -152,7 +152,7 @@ protected:
 	virtual HRESULT ResetDevice(bool fForceWindowed = false);
 
 	virtual void VertexKick(bool skip) = 0;
-	virtual int DrawingKick(bool skip) = 0;
+	virtual void DrawingKick(bool skip) = 0;
 	virtual void NewPrim() = 0;
 	virtual void FlushPrim() = 0;
 	virtual void Flip() = 0;

@@ -68,7 +68,7 @@ protected:
 
 	void ResetState();
 	void VertexKick(bool skip);
-	int DrawingKick(bool skip);
+	void DrawingKick(bool skip);
 	void FlushPrim();
 	void Flip();
 	void InvalidateTexture(const GIFRegBITBLTBUF& BITBLTBUF, CRect r);
