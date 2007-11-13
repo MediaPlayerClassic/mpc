@@ -52,7 +52,7 @@ protected:
 				m_pVertices = pVertices;
 			}
 
-			m_nVertices += DrawingKick(skip);
+			DrawingKick(skip);
 		}
 	}
 

@@ -60,13 +60,18 @@ public:
 		m_count++;
 	}
 
-	void RemoveAt(int i, VERTEX& v)
+	void RemoveAt(int i)
 	{
-		GetAt(i, v);
 		i = (m_head+i)&3;
 		if(i == m_head) m_head = (m_head+1)&3;
 		else for(m_tail = (m_tail+4-1)&3; i != m_tail; i = (i+1)&3) m_v[i] = m_v[(i+1)&3];
 		m_count--;
+	}
+
+	void RemoveAt(int i, VERTEX& v)
+	{
+		GetAt(i, v);
+		RemoveAt(i);
 	}
 
 	void GetAt(int i, VERTEX& v)

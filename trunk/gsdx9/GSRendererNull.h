@@ -29,7 +29,7 @@ class GSRendererNull : public GSRenderer<NullVertex>
 {
 protected:
 	void VertexKick(bool skip);
-	int DrawingKick(bool skip);
+	void DrawingKick(bool skip);
 	void Flip();
 
 public:

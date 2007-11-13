@@ -107,80 +107,79 @@ void GSRendererSoft<Vertex>::ResetState()
 }
 
 template <class Vertex>
-int GSRendererSoft<Vertex>::DrawingKick(bool skip)
+void GSRendererSoft<Vertex>::DrawingKick(bool skip)
 {
-	Vertex* pVertices = &m_pVertices[m_nVertices];
-	int nVertices = 0;
+	Vertex* v = &m_pVertices[m_nVertices];
+	int nv = 0;
 
 	switch(m_pPRIM->PRIM)
 	{
 	case GS_POINTLIST:
-		m_vl.RemoveAt(0, pVertices[nVertices++]);
+		m_vl.RemoveAt(0, v[0]);
+		nv += 1;
 		break;
 	case GS_LINELIST:
-		m_vl.RemoveAt(0, pVertices[nVertices++]);
-		m_vl.RemoveAt(0, pVertices[nVertices++]);
+		m_vl.RemoveAt(0, v[0]);
+		m_vl.RemoveAt(0, v[1]);
+		nv += 2;
 		break;
 	case GS_LINESTRIP:
-		m_vl.RemoveAt(0, pVertices[nVertices++]);
-		m_vl.GetAt(0, pVertices[nVertices++]);
+		m_vl.RemoveAt(0, v[0]);
+		m_vl.GetAt(0, v[1]);
+		nv += 2;
 		break;
 	case GS_TRIANGLELIST:
-		m_vl.RemoveAt(0, pVertices[nVertices++]);
-		m_vl.RemoveAt(0, pVertices[nVertices++]);
-		m_vl.RemoveAt(0, pVertices[nVertices++]);
+		m_vl.RemoveAt(0, v[0]);
+		m_vl.RemoveAt(0, v[1]);
+		m_vl.RemoveAt(0, v[2]);
+		nv += 3;
 		break;
 	case GS_TRIANGLESTRIP:
-		m_vl.RemoveAt(0, pVertices[nVertices++]);
-		m_vl.GetAt(0, pVertices[nVertices++]);
-		m_vl.GetAt(1, pVertices[nVertices++]);
+		m_vl.RemoveAt(0, v[0]);
+		m_vl.GetAt(0, v[1]);
+		m_vl.GetAt(1, v[2]);
+		nv += 3;
 		break;
 	case GS_TRIANGLEFAN:
-		m_vl.GetAt(0, pVertices[nVertices++]);
-		m_vl.RemoveAt(1, pVertices[nVertices++]);
-		m_vl.GetAt(1, pVertices[nVertices++]);
+		m_vl.GetAt(0, v[0]);
+		m_vl.RemoveAt(1, v[1]);
+		m_vl.GetAt(1, v[2]);
+		nv += 3;
 		break;
 	case GS_SPRITE:
-		m_vl.RemoveAt(0, pVertices[nVertices++]);
-		m_vl.RemoveAt(0, pVertices[nVertices++]);
-		nVertices += 2;
-		pVertices[0].p.z = pVertices[1].p.z;
-		pVertices[0].p.q = pVertices[1].p.q;
-		pVertices[2] = pVertices[1];
-		pVertices[3] = pVertices[1];
-		pVertices[1].p.y = pVertices[0].p.y;
-		pVertices[1].t.y = pVertices[0].t.y;
-		pVertices[2].p.x = pVertices[0].p.x;
-		pVertices[2].t.x = pVertices[0].t.x;
-		/*
-		m_primtype = PRIM_TRIANGLE;
-		nVertices += 2;
-		pVertices[5] = pVertices[3];
-		pVertices[3] = pVertices[1];
-		pVertices[4] = pVertices[2];
-		*/
+		m_vl.RemoveAt(0, v[0]);
+		m_vl.RemoveAt(0, v[1]);
+		nv += 4;
+		v[0].p.z = v[1].p.z;
+		v[0].p.q = v[1].p.q;
+		v[2] = v[1];
+		v[3] = v[1];
+		v[1].p.y = v[0].p.y;
+		v[1].t.y = v[0].t.y;
+		v[2].p.x = v[0].p.x;
+		v[2].t.x = v[0].t.x;
 		break;
 	default:
 		ASSERT(0);
-		return 0;
+		return;
 	}
 
 	if(skip || !m_regs.IsEnabled(0) && !m_regs.IsEnabled(1))
 	{
-		return 0;
+		return;
 	}
 
 	if(!m_pPRIM->IIP)
 	{
-		Vertex::Vector c = pVertices[nVertices-1].c;
+		Vertex::Vector c = v[nv - 1].c;
 
-		for(int i = 0; i < nVertices-1; i++) 
+		for(int i = 0; i < nv - 1; i++) 
 		{
-			pVertices[i].c = c;
+			v[i].c = c;
 		}
 	}
 
-	return nVertices;
+	m_nVertices += nv;
 }
 
 static int bZTE; // , iZTST, iATST, iLOD, bLCM, bTCC, iTFX;

@@ -28,7 +28,7 @@ class GSRendererSoft : public GSRenderer<Vertex>
 {
 protected:
 	void ResetState();
-	int DrawingKick(bool skip);
+	void DrawingKick(bool skip);
 	void FlushPrim();
 	void Flip();
 
