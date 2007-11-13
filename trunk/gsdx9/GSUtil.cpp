@@ -34,7 +34,36 @@ BOOL IsDepthFormatOk(IDirect3D9* pD3D, D3DFORMAT DepthFormat, D3DFORMAT AdapterF
     return SUCCEEDED(hr);
 }
 
-HRESULT CompileShaderFromResource(IDirect3DDevice9* pD3DDev, UINT id, CString entry, CString target, UINT flags, IDirect3DPixelShader9** ppPixelShader)
+HRESULT CompileShaderFromResource(IDirect3DDevice9* pD3DDev, UINT id, CString entry, CString target, UINT flags, IDirect3DVertexShader9** ppVertexShader, ID3DXConstantTable** ppConstantTable)
+{
+	CheckPointer(pD3DDev, E_POINTER);
+	CheckPointer(ppVertexShader, E_POINTER);
+
+	CComPtr<ID3DXBuffer> pShader, pErrorMsgs;
+
+	HRESULT hr = D3DXCompileShaderFromResource(
+		AfxGetResourceHandle(), MAKEINTRESOURCE(id),
+		NULL, NULL, 
+		entry, target, flags, 
+		&pShader, &pErrorMsgs, ppConstantTable);
+
+	if(SUCCEEDED(hr))
+	{
+		hr = pD3DDev->CreateVertexShader((DWORD*)pShader->GetBufferPointer(), ppVertexShader);
+	}
+	else
+	{
+		LPCSTR msg = (LPCSTR)pErrorMsgs->GetBufferPointer();
+
+		TRACE(_T("%s\n"), CString(msg));
+	}
+
+	ASSERT(SUCCEEDED(hr));
+
+	return hr;
+}
+
+HRESULT CompileShaderFromResource(IDirect3DDevice9* pD3DDev, UINT id, CString entry, CString target, UINT flags, IDirect3DPixelShader9** ppPixelShader, ID3DXConstantTable** ppConstantTable)
 {
 	CheckPointer(pD3DDev, E_POINTER);
 	CheckPointer(ppPixelShader, E_POINTER);
@@ -45,7 +74,7 @@ HRESULT CompileShaderFromResource(IDirect3DDevice9* pD3DDev, UINT id, CString en
 		AfxGetResourceHandle(), MAKEINTRESOURCE(id),
 		NULL, NULL, 
 		entry, target, flags, 
-		&pShader, &pErrorMsgs, NULL);
+		&pShader, &pErrorMsgs, ppConstantTable);
 
 	if(SUCCEEDED(hr))
 	{

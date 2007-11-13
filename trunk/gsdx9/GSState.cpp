@@ -405,7 +405,7 @@ HRESULT GSState::ResetDevice(bool fForceWindowed)
 		m_d3dpp.Windowed = FALSE;
 		m_d3dpp.BackBufferWidth = ModeWidth;
 		m_d3dpp.BackBufferHeight = ModeHeight;
-		m_d3dpp.FullScreen_RefreshRateInHz = ModeRefreshRate;
+		// m_d3dpp.FullScreen_RefreshRateInHz = ModeRefreshRate;
 		// m_d3dpp.PresentationInterval = D3DPRESENT_INTERVAL_DEFAULT;
 
 		::SetWindowLong(m_hWnd, GWL_STYLE, ::GetWindowLong(m_hWnd, GWL_STYLE) & ~(WS_CAPTION|WS_THICKFRAME));
@@ -1055,8 +1055,6 @@ void GSState::Present()
 {
 	HRESULT hr;
 
-	if(!m_pCurrentFrame) return;
-
 	CRect cr;
 
 	GetClientRect(&cr);
@@ -1093,7 +1091,7 @@ void GSState::Present()
 
 	hr = m_pD3DDev->Clear(0, NULL, D3DCLEAR_TARGET, 0, 1.0f, 0);
 
-
+	if(m_pCurrentFrame)
 	{
 		static int ar[][2] = {{0, 0}, {4, 3}, {16, 9}};
 

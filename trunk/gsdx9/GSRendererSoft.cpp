@@ -856,6 +856,8 @@ void GSRendererSoft<Vertex>::DrawVertex(const Vertex& v)
 	}
 }
 
+static const float s_one_over_log2 = 1.0f / log(2.0f);
+
 template <class Vertex>
 template <int iLOD, bool bLCM, bool bTCC, int iTFX>
 void GSRendererSoft<Vertex>::DrawVertexTFX(typename Vertex::Vector& Cf, const Vertex& v)
@@ -877,10 +879,8 @@ void GSRendererSoft<Vertex>::DrawVertexTFX(typename Vertex::Vector& Cf, const Ve
 
 		if(iLOD == 1)
 		{
-			static const float one_over_log2 = 1.0f / log(2.0f);
-
 			float lod = (float)(int)m_context->TEX1.K;
-			if(!bLCM) lod += log(fabs((float)t.q)) * one_over_log2 * (1 << m_context->TEX1.L);
+			if(!bLCM) lod += log(fabs((float)t.q)) * s_one_over_log2 * (1 << m_context->TEX1.L);
 			fBiLinear = lod <= 0 && (m_context->TEX1.MMAG & 1) || lod > 0 && (m_context->TEX1.MMIN & 1);
 		}
 	}

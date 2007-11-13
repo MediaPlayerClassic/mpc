@@ -1374,6 +1374,10 @@
 				RelativePath=".\res\hlsl_tfx.fx"
 				>
 			</File>
+			<File
+				RelativePath=".\res\hlsl_vertex.fx"
+				>
+			</File>
 		</Filter>
 	</Files>
 	<Globals>

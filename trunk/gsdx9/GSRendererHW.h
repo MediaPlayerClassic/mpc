@@ -29,7 +29,7 @@ __declspec(align(16)) union GSVertexHW
 {
 	struct
 	{
-		float x, y, z, rhw;
+		float x, y, z, w;
 		union {struct {BYTE r, g, b, a;}; D3DCOLOR color;};
 		D3DCOLOR fog;
 		float tu, tv;
@@ -49,6 +49,10 @@ class GSRendererHW : public GSRenderer<GSVertexHW>
 protected:
 	int m_width;
 	int m_height;
+
+	CComPtr<IDirect3DVertexShader9> m_pVertexShader;
+	CComPtr<ID3DXConstantTable> m_pVertexShaderConstantTable;
+	CComPtr<IDirect3DVertexDeclaration9> m_pVertexDeclaration;
 
 	CSurfMap<IDirect3DTexture9> m_pRTs;
 	CSurfMap<IDirect3DSurface9> m_pDSs;
@@ -74,6 +78,8 @@ protected:
 public:
 	GSRendererHW();
 	virtual ~GSRendererHW();
+
+	bool Create(LPCTSTR title);
 
 	HRESULT ResetDevice(bool fForceWindowed = false);
 };

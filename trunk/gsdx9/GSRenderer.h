@@ -40,9 +40,7 @@ protected:
 
 	void VertexKick(bool skip)
 	{
-		static const int vmin[8] = {1, 2, 2, 3, 3, 3, 2, 1};
-
-		while(m_vl.GetCount() >= vmin[m_pPRIM->PRIM])
+		while(m_vl.GetCount() >= minPrimVertexTable[m_pPRIM->PRIM])
 		{
 			if(m_nVertices + 6 > m_nMaxVertices)
 			{
