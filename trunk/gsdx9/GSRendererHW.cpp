@@ -137,8 +137,6 @@ void GSRendererHW::VertexKick(bool skip)
 		v.w = 1.0f;
 		v.tu = 0;
 		v.tv = 0;
-
-		v.a = SCALE_ALPHA(v.a);
 	}
 
 	v.fog = (m_pPRIM->FGE ? m_v.FOG.F : 0xff) << 24;

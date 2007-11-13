@@ -376,6 +376,7 @@ float4 main_tfx3_8HP_ln(PS_INPUT input) : COLOR
 
 float4 main_notfx(PS_INPUT input) : COLOR
 {
+	input.diff.a *= 2;
 	return ApplyFog(input.diff, input.fog);
 }
 
