@@ -350,6 +350,8 @@ void GSState::GIFRegHandlerXYOFFSET_1(GIFReg* r)
 	}
 
 	m_env.CTXT[0].XYOFFSET = r->XYOFFSET;
+
+	m_env.CTXT[0].UpdateScissor();
 }
 
 void GSState::GIFRegHandlerXYOFFSET_2(GIFReg* r)
@@ -360,6 +362,8 @@ void GSState::GIFRegHandlerXYOFFSET_2(GIFReg* r)
 	}
 
 	m_env.CTXT[1].XYOFFSET = r->XYOFFSET;
+
+	m_env.CTXT[1].UpdateScissor();
 }
 
 void GSState::GIFRegHandlerPRMODECONT(GIFReg* r)
@@ -483,6 +487,8 @@ void GSState::GIFRegHandlerSCISSOR_1(GIFReg* r)
 	}
 
 	m_env.CTXT[0].SCISSOR = r->SCISSOR;
+
+	m_env.CTXT[0].UpdateScissor();
 }
 
 void GSState::GIFRegHandlerSCISSOR_2(GIFReg* r)
@@ -493,6 +499,8 @@ void GSState::GIFRegHandlerSCISSOR_2(GIFReg* r)
 	}
 
 	m_env.CTXT[1].SCISSOR = r->SCISSOR;
+
+	m_env.CTXT[1].UpdateScissor();
 }
 
 void GSState::GIFRegHandlerALPHA_1(GIFReg* r)

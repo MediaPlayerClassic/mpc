@@ -122,8 +122,8 @@ void GSRendererHW::VertexKick(bool skip)
 		if(m_pPRIM->FST)
 		{
 			v.w = 1.0f;
-			v.tu = m_v.UV.U;
-			v.tv = m_v.UV.V;
+			v.tu = (float)(int)m_v.UV.U;
+			v.tv = (float)(int)m_v.UV.V;
 		}
 		else
 		{
@@ -153,35 +153,35 @@ void GSRendererHW::DrawingKick(bool skip)
 	{
 	case GS_POINTLIST:
 		m_vl.RemoveAt(0, v[0]);
-		nv += 1;
+		nv = 1;
 		break;
 	case GS_LINELIST:
 		m_vl.RemoveAt(0, v[0]);
 		m_vl.RemoveAt(0, v[1]);
-		nv += 2;
+		nv = 2;
 		break;
 	case GS_LINESTRIP:
 		m_vl.RemoveAt(0, v[0]);
 		m_vl.GetAt(0, v[1]);
-		nv += 2;
+		nv = 2;
 		break;
 	case GS_TRIANGLELIST:
 		m_vl.RemoveAt(0, v[0]);
 		m_vl.RemoveAt(0, v[1]);
 		m_vl.RemoveAt(0, v[2]);
-		nv += 3;
+		nv = 3;
 		break;
 	case GS_TRIANGLESTRIP:
 		m_vl.RemoveAt(0, v[0]);
 		m_vl.GetAt(0, v[1]);
 		m_vl.GetAt(1, v[2]);
-		nv += 3;
+		nv = 3;
 		break;
 	case GS_TRIANGLEFAN:
 		m_vl.GetAt(0, v[0]);
 		m_vl.RemoveAt(1, v[1]);
 		m_vl.GetAt(1, v[2]);
-		nv += 3;
+		nv = 3;
 		break;
 	case GS_SPRITE:
 		m_vl.RemoveAt(0, v[0]);
@@ -197,7 +197,7 @@ void GSRendererHW::DrawingKick(bool skip)
 		v[5] = v[3];
 		v[3] = v[1];
 		v[4] = v[2];
-		nv += 6;
+		nv = 6;
 		break;
 	default:
 		//ASSERT(0);
@@ -210,6 +210,45 @@ void GSRendererHW::DrawingKick(bool skip)
 		return;
 	}
 
+	float sx0 = m_context->scissor.x0;
+	float sy0 = m_context->scissor.y0;
+	float sx1 = m_context->scissor.x1;
+	float sy1 = m_context->scissor.y1;
+
+	switch(nv)
+	{
+	case 1:
+		if(v[0].x < sx0
+		|| v[0].x > sx1
+		|| v[0].y < sy0
+		|| v[0].y > sy1)
+			return;
+		break;
+	case 2:
+		if(v[0].x < sx0 && v[1].x < sx0
+		|| v[0].x > sx1 && v[1].x > sx1
+		|| v[0].y < sy0 && v[1].y < sy0
+		|| v[0].y > sy1 && v[1].y > sy1)
+			return;
+		break;
+	case 3:
+		if(v[0].x < sx0 && v[1].x < sx0 && v[2].x < sx0
+		|| v[0].x > sx1 && v[1].x > sx1 && v[2].x > sx1
+		|| v[0].y < sy0 && v[1].y < sy0 && v[2].y < sy0
+		|| v[0].y > sy1 && v[1].y > sy1 && v[2].y > sy1)
+			return;
+		break;
+	case 6:
+		if(v[0].x < sx0 && v[3].x < sx0
+		|| v[0].x > sx1 && v[3].x > sx1
+		|| v[0].y < sy0 && v[3].y < sy0
+		|| v[0].y > sy1 && v[3].y > sy1)
+			return;
+		break;
+	default:
+		__assume(0);
+	}
+/**/
 	if(!m_pPRIM->IIP)
 	{
 		v[0].color = v[nv - 1].color;
