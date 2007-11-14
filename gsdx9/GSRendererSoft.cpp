@@ -116,40 +116,40 @@ void GSRendererSoft<Vertex>::DrawingKick(bool skip)
 	{
 	case GS_POINTLIST:
 		m_vl.RemoveAt(0, v[0]);
-		nv += 1;
+		nv = 1;
 		break;
 	case GS_LINELIST:
 		m_vl.RemoveAt(0, v[0]);
 		m_vl.RemoveAt(0, v[1]);
-		nv += 2;
+		nv = 2;
 		break;
 	case GS_LINESTRIP:
 		m_vl.RemoveAt(0, v[0]);
 		m_vl.GetAt(0, v[1]);
-		nv += 2;
+		nv = 2;
 		break;
 	case GS_TRIANGLELIST:
 		m_vl.RemoveAt(0, v[0]);
 		m_vl.RemoveAt(0, v[1]);
 		m_vl.RemoveAt(0, v[2]);
-		nv += 3;
+		nv = 3;
 		break;
 	case GS_TRIANGLESTRIP:
 		m_vl.RemoveAt(0, v[0]);
 		m_vl.GetAt(0, v[1]);
 		m_vl.GetAt(1, v[2]);
-		nv += 3;
+		nv = 3;
 		break;
 	case GS_TRIANGLEFAN:
 		m_vl.GetAt(0, v[0]);
 		m_vl.RemoveAt(1, v[1]);
 		m_vl.GetAt(1, v[2]);
-		nv += 3;
+		nv = 3;
 		break;
 	case GS_SPRITE:
 		m_vl.RemoveAt(0, v[0]);
 		m_vl.RemoveAt(0, v[1]);
-		nv += 4;
+		nv = 4;
 		v[0].p.z = v[1].p.z;
 		v[0].p.q = v[1].p.q;
 		v[2] = v[1];

@@ -297,6 +297,15 @@ EXPORT_C_(INT32) GStest()
 
 		CString str, tmp;
 
+		if(caps.VertexShaderVersion < D3DVS_VERSION(2, 0))
+			ret = -1;
+
+		tmp.Format(_T("%s Vertex Shader version %d.%d\n"), 
+			caps.VertexShaderVersion >= D3DVS_VERSION(2, 0) ? yep : nope,
+			D3DSHADER_VERSION_MAJOR(caps.VertexShaderVersion),
+			D3DSHADER_VERSION_MINOR(caps.VertexShaderVersion));
+		str += tmp;
+
 		if(caps.PixelShaderVersion < D3DPS_VERSION(2, 0))
 			ret = -1;
 

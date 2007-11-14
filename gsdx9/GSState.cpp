@@ -504,9 +504,13 @@ HRESULT GSState::ResetDevice(bool fForceWindowed)
 UINT32 GSState::Freeze(freezeData* fd, bool fSizeOnly)
 {
 	int size = sizeof(m_version)
-		+ sizeof(m_env) + sizeof(m_v) 
-		+ sizeof(m_x) + sizeof(m_y) + 1024*1024*4
-		+ sizeof(m_path) + sizeof(m_q)
+		+ sizeof(m_env)
+		+ sizeof(m_v) 
+		+ sizeof(m_x) 
+		+ sizeof(m_y) 
+		+ 1024*1024*4
+		+ sizeof(m_path) 
+		+ sizeof(m_q)
 		/*+ sizeof(m_vl)*/;
 
 	if(fSizeOnly)
@@ -523,7 +527,7 @@ UINT32 GSState::Freeze(freezeData* fd, bool fSizeOnly)
 
 	BYTE* data = fd->data;
 	memcpy(data, &m_version, sizeof(m_version)); data += sizeof(m_version);
-	memcpy(data, &m_env, sizeof(m_env)); data += sizeof(m_env);
+	memcpy(data, &m_env, sizeof(m_env)); data += sizeof(m_env); 
 	memcpy(data, &m_v, sizeof(m_v)); data += sizeof(m_v);
 	memcpy(data, &m_x, sizeof(m_x)); data += sizeof(m_x);
 	memcpy(data, &m_y, sizeof(m_y)); data += sizeof(m_y);
@@ -541,8 +545,11 @@ UINT32 GSState::Defrost(const freezeData* fd)
 		return -1;
 
 	int size = sizeof(m_version)
-		+ sizeof(m_env) + sizeof(m_v) 
-		+ sizeof(m_x) + sizeof(m_y) + 1024*1024*4
+		+ sizeof(m_env) 
+		+ sizeof(m_v) 
+		+ sizeof(m_x) 
+		+ sizeof(m_y) 
+		+ 1024*1024*4
 		+ sizeof(m_path)
 		+ sizeof(m_q)
 		/*+ sizeof(m_vl)*/;
@@ -558,7 +565,7 @@ UINT32 GSState::Defrost(const freezeData* fd)
 
 	Flush();
 
-	memcpy(&m_env, data, sizeof(m_env)); data += sizeof(m_env);
+	memcpy(&m_env, data, sizeof(m_env)); data += sizeof(m_env); 
 	memcpy(&m_v, data, sizeof(m_v)); data += sizeof(m_v);
 	memcpy(&m_x, data, sizeof(m_x)); data += sizeof(m_x);
 	memcpy(&m_y, data, sizeof(m_y)); data += sizeof(m_y);
@@ -574,10 +581,12 @@ UINT32 GSState::Defrost(const freezeData* fd)
 	m_env.CTXT[0].ftbl = &GSLocalMemory::m_psmtbl[m_env.CTXT[0].FRAME.PSM];
 	m_env.CTXT[0].ztbl = &GSLocalMemory::m_psmtbl[m_env.CTXT[0].ZBUF.PSM];
 	m_env.CTXT[0].ttbl = &GSLocalMemory::m_psmtbl[m_env.CTXT[0].TEX0.PSM];
+	m_env.CTXT[0].UpdateScissor();
 
 	m_env.CTXT[1].ftbl = &GSLocalMemory::m_psmtbl[m_env.CTXT[1].FRAME.PSM];
 	m_env.CTXT[1].ztbl = &GSLocalMemory::m_psmtbl[m_env.CTXT[1].ZBUF.PSM];
 	m_env.CTXT[1].ttbl = &GSLocalMemory::m_psmtbl[m_env.CTXT[1].TEX0.PSM];
+	m_env.CTXT[1].UpdateScissor();
 
 	return 0;
 }
