@@ -21,33 +21,8 @@
 
 #include "StdAfx.h"
 #include "GSTextureCache.h"
-#include "GSHash.h"
-#include "GSRendererHW.h"
-
-bool HasSharedBits(DWORD sbp, DWORD spsm, DWORD dbp, DWORD dpsm)
-{
-	if(sbp != dbp) return false;
-
-	switch(spsm)
-	{
-	case PSM_PSMCT32:
-	case PSM_PSMCT16:
-	case PSM_PSMCT16S:
-	case PSM_PSMT8:
-	case PSM_PSMT4:
-		return true;
-	case PSM_PSMCT24:
-		return !(dpsm == PSM_PSMT8H || dpsm == PSM_PSMT4HL || dpsm == PSM_PSMT4HH);
-	case PSM_PSMT8H:
-		return !(dpsm == PSM_PSMCT24);
-	case PSM_PSMT4HL:
-		return !(dpsm == PSM_PSMCT24 || dpsm == PSM_PSMT4HH);
-	case PSM_PSMT4HH:
-		return !(dpsm == PSM_PSMCT24 || dpsm == PSM_PSMT4HL);
-	}
-
-	return true;
-}
+#include "GSState.h"
+#include "GSUtil.h"
 
 //
 
