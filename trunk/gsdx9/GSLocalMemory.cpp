@@ -1987,13 +1987,13 @@ void GSLocalMemory::ReadTexture(const CRect& r, BYTE* dst, int dstpitch, GIFRegT
 
 //
 
-HRESULT GSLocalMemory::SaveBMP(IDirect3DDevice9* pDev, LPCTSTR fn, DWORD bp, DWORD bw, DWORD psm, int w, int h)
+HRESULT GSLocalMemory::SaveBMP(IDirect3DDevice9* dev, LPCTSTR fn, DWORD bp, DWORD bw, DWORD psm, int w, int h)
 {
 	CComPtr<IDirect3DTexture9> pTexture;
 
 	D3DLOCKED_RECT lr;
 
-	HRESULT hr = pDev->CreateTexture(w, h, 1, 0, D3DFMT_A8R8G8B8, D3DPOOL_SYSTEMMEM, &pTexture, NULL);
+	HRESULT hr = dev->CreateTexture(w, h, 1, 0, D3DFMT_A8R8G8B8, D3DPOOL_SYSTEMMEM, &pTexture, NULL);
 
 	if(FAILED(hr) || FAILED(pTexture->LockRect(0, &lr, NULL, 0)))
 	{

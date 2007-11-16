@@ -279,11 +279,11 @@ bool GSCapture::EndFrame()
 {
 	if(m_pRTSurf == NULL || m_pSysMemSurf == NULL) {ASSERT(0); return false;}
 
-	CComPtr<IDirect3DDevice9> pD3DDev;
+	CComPtr<IDirect3DDevice9> dev;
 	D3DLOCKED_RECT r;
 
-	if(FAILED(m_pRTSurf->GetDevice(&pD3DDev))
-	|| FAILED(pD3DDev->GetRenderTargetData(m_pRTSurf, m_pSysMemSurf))
+	if(FAILED(m_pRTSurf->GetDevice(&dev))
+	|| FAILED(dev->GetRenderTargetData(m_pRTSurf, m_pSysMemSurf))
 	|| FAILED(m_pSysMemSurf->LockRect(&r, NULL, D3DLOCK_READONLY)))
 		return false;
 

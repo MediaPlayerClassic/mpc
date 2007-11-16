@@ -37,6 +37,7 @@ class GSState : public CWnd
 {
 	DECLARE_MESSAGE_MAP()
 
+	friend class GSTexture;
 	friend class GSTextureCache;
 
 public:
@@ -48,33 +49,7 @@ public:
 	void Show();
 	void Hide();
 
-	bool OnMsg(const MSG& msg)
-	{
-		if(msg.message == WM_KEYDOWN)
-		{
-			if(msg.wParam == VK_F5)
-			{
-				m_nInterlace = (m_nInterlace + 1) % 4;
-				return true;
-			}
-
-			if(msg.wParam == VK_F6)
-			{
-				m_nAspectRatio = (m_nAspectRatio + 1) % 3;
-				return true;
-			}			
-
-			if(msg.wParam == VK_F7)
-			{
-				SetWindowText(_T("PCSX2"));
-				m_osd = !m_osd;
-				return true;
-			}
-		}
-
-		return false;
-	}
-
+	bool OnMsg(const MSG& msg);
 	void OnClose();
 
 	UINT32 Freeze(freezeData* fd, bool fSizeOnly);
@@ -129,7 +104,7 @@ protected:
 
 protected:
 	CComPtr<IDirect3D9> m_pD3D;
-	CComPtr<IDirect3DDevice9> m_pD3DDev;
+	CComPtr<IDirect3DDevice9> m_dev;
 	CComPtr<IDirect3DSwapChain9> m_pSwapChain;
 	CComPtr<ID3DXFont> m_pD3DXFont;
 	CComPtr<IDirect3DTexture9> m_pMergeTexture;
@@ -137,7 +112,7 @@ protected:
 	CComPtr<IDirect3DTexture9> m_pDeinterlaceTexture;
 	CComPtr<IDirect3DSurface9> m_pCurrentFrame;
 	CComPtr<IDirect3DPixelShader9> m_pPixelShaders[20];
-	CComPtr<IDirect3DPixelShader9> m_pHLSLTFX[38], m_pHLSLMerge[3], m_pHLSLInterlace[4];
+	CComPtr<IDirect3DPixelShader9> m_pHLSLTFX[37], m_pHLSLMerge[3], m_pHLSLInterlace[4];
 	enum {PS_M16 = 0, PS_M24 = 1, PS_M32 = 2};
 	D3DPRESENT_PARAMETERS m_d3dpp;
 	DDCAPS m_ddcaps;
@@ -150,6 +125,7 @@ protected:
 
 	virtual void ResetState();
 	virtual HRESULT ResetDevice(bool fForceWindowed = false);
+	CComPtr<IDirect3DSurface9> GetBackBuffer();
 
 	virtual void VertexKick(bool skip) = 0;
 	virtual void DrawingKick(bool skip) = 0;
@@ -160,7 +136,13 @@ protected:
 	virtual void InvalidateLocalMem(DWORD TBP0, DWORD BW, DWORD PSM, CRect r) {}
 	virtual void MinMaxUV(int w, int h, CRect& r) {r.SetRect(0, 0, w, h);}
 
-	struct FlipInfo {CComPtr<IDirect3DTexture9> tex; D3DSURFACE_DESC desc; scale_t scale;};
+	struct FlipInfo 
+	{
+		CComPtr<IDirect3DTexture9> tex; 
+		D3DSURFACE_DESC desc; 
+		GSScale scale;
+	};
+
 	void FinishFlip(FlipInfo src[2], float yscale = 1.0f);
 	void Merge(FlipInfo src[2], IDirect3DSurface9* dst, float yscale = 1.0f);
 	void Interlace(IDirect3DTexture9* src, IDirect3DSurface9* dst, int shader, D3DTEXTUREFILTERTYPE filter, int yoffset = 0);

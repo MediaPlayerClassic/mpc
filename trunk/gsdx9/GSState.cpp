@@ -152,10 +152,9 @@ bool GSState::Create(LPCTSTR title)
 	// window
 
 	CRect r;
-	
 	GetDesktopWindow()->GetWindowRect(r);
-	// r.DeflateRect(r.Width()*3/8, r.Height()*3/8);
-	r.DeflateRect(r.Width()/3, r.Height()/3);
+	CSize s(r.Width()/3, r.Width()/4);
+	r = CRect(r.CenterPoint() - CSize(s.cx/2, s.cy/2), s);
 
 	LPCTSTR wc = AfxRegisterWndClass(CS_VREDRAW|CS_HREDRAW|CS_DBLCLKS, AfxGetApp()->LoadStandardCursor(IDC_ARROW), 0, 0);
 
@@ -222,7 +221,7 @@ bool GSState::Create(LPCTSTR title)
 
 		AfxMessageBox(str);
 
-		m_pD3DDev = NULL;
+		m_dev = NULL;
 
 		return false;
 	}
@@ -240,8 +239,7 @@ bool GSState::Create(LPCTSTR title)
 		_T("main_tfx0_8P_ln"), _T("main_tfx1_8P_ln"), _T("main_tfx2_8P_ln"), _T("main_tfx3_8P_ln"), 
 		_T("main_tfx0_8HP_pt"), _T("main_tfx1_8HP_pt"), _T("main_tfx2_8HP_pt"), _T("main_tfx3_8HP_pt"), 
 		_T("main_tfx0_8HP_ln"), _T("main_tfx1_8HP_ln"), _T("main_tfx2_8HP_ln"), _T("main_tfx3_8HP_ln"),
-		_T("main_notfx"), 
-		_T("main_8PTo32"),
+		_T("main_notfx"),
 	};
 
 	// ps_3_0
@@ -254,7 +252,7 @@ bool GSState::Create(LPCTSTR title)
 		{
 			if(!m_pHLSLTFX[i])
 			{
-				CompileShaderFromResource(m_pD3DDev, IDR_HLSL_TFX, hlsl_tfx[i], _T("ps_3_0"), flags, &m_pHLSLTFX[i]);
+				CompileShaderFromResource(m_dev, IDR_HLSL_TFX, hlsl_tfx[i], _T("ps_3_0"), flags, &m_pHLSLTFX[i]);
 			}
 		}
 
@@ -264,7 +262,7 @@ bool GSState::Create(LPCTSTR title)
 			{
 				CString main;
 				main.Format(_T("main%d"), i);
-				CompileShaderFromResource(m_pD3DDev, IDR_HLSL_MERGE, main, _T("ps_3_0"), flags, &m_pHLSLMerge[i]);
+				CompileShaderFromResource(m_dev, IDR_HLSL_MERGE, main, _T("ps_3_0"), flags, &m_pHLSLMerge[i]);
 			}
 		}
 
@@ -274,7 +272,7 @@ bool GSState::Create(LPCTSTR title)
 			{
 				CString main;
 				main.Format(_T("main%d"), i);
-				CompileShaderFromResource(m_pD3DDev, IDR_HLSL_INTERLACE, main, _T("ps_3_0"), flags, &m_pHLSLInterlace[i]);
+				CompileShaderFromResource(m_dev, IDR_HLSL_INTERLACE, main, _T("ps_3_0"), flags, &m_pHLSLInterlace[i]);
 			}
 		}
 	}
@@ -289,7 +287,7 @@ bool GSState::Create(LPCTSTR title)
 		{
 			if(!m_pHLSLTFX[i])
 			{
-				CompileShaderFromResource(m_pD3DDev, IDR_HLSL_TFX, hlsl_tfx[i], _T("ps_2_0"), flags, &m_pHLSLTFX[i]);
+				CompileShaderFromResource(m_dev, IDR_HLSL_TFX, hlsl_tfx[i], _T("ps_2_0"), flags, &m_pHLSLTFX[i]);
 			}
 		}
 
@@ -299,7 +297,7 @@ bool GSState::Create(LPCTSTR title)
 			{
 				CString main;
 				main.Format(_T("main%d"), i);
-				CompileShaderFromResource(m_pD3DDev, IDR_HLSL_MERGE, main, _T("ps_2_0"), flags, &m_pHLSLMerge[i]);
+				CompileShaderFromResource(m_dev, IDR_HLSL_MERGE, main, _T("ps_2_0"), flags, &m_pHLSLMerge[i]);
 			}
 		}
 
@@ -309,7 +307,7 @@ bool GSState::Create(LPCTSTR title)
 			{
 				CString main;
 				main.Format(_T("main%d"), i);
-				CompileShaderFromResource(m_pD3DDev, IDR_HLSL_INTERLACE, main, _T("ps_2_0"), flags, &m_pHLSLInterlace[i]);
+				CompileShaderFromResource(m_dev, IDR_HLSL_INTERLACE, main, _T("ps_2_0"), flags, &m_pHLSLInterlace[i]);
 			}
 		}
 	}
@@ -329,6 +327,33 @@ void GSState::Show()
 void GSState::Hide()
 {
 	ShowWindow(SW_HIDE);
+}
+
+bool GSState::OnMsg(const MSG& msg)
+{
+	if(msg.message == WM_KEYDOWN)
+	{
+		if(msg.wParam == VK_F5)
+		{
+			m_nInterlace = (m_nInterlace + 1) % 4;
+			return true;
+		}
+
+		if(msg.wParam == VK_F6)
+		{
+			m_nAspectRatio = (m_nAspectRatio + 1) % 3;
+			return true;
+		}			
+
+		if(msg.wParam == VK_F7)
+		{
+			SetWindowText(_T("PCSX2"));
+			m_osd = !m_osd;
+			return true;
+		}
+	}
+
+	return false;
 }
 
 void GSState::OnClose()
@@ -359,7 +384,7 @@ void GSState::ResetState()
 	m_env.CTXT[1].ztbl = &GSLocalMemory::m_psmtbl[m_env.CTXT[1].ZBUF.PSM];
 	m_env.CTXT[1].ttbl = &GSLocalMemory::m_psmtbl[m_env.CTXT[1].TEX0.PSM];
 
-	if(m_pD3DDev) m_pD3DDev->Clear(0, NULL, D3DCLEAR_TARGET/*|D3DCLEAR_ZBUFFER|D3DCLEAR_STENCIL*/, 0, 1.0f, 0);
+	if(m_dev) m_dev->Clear(0, NULL, D3DCLEAR_TARGET, 0, 1.0f, 0);
 }
 
 HRESULT GSState::ResetDevice(bool fForceWindowed)
@@ -415,7 +440,7 @@ HRESULT GSState::ResetDevice(bool fForceWindowed)
 		m_osd = false;
 	}
 
-	if(!m_pD3DDev)
+	if(!m_dev)
 	{
 		if(FAILED(hr = m_pD3D->CreateDevice(
 			// m_pD3D->GetAdapterCount()-1, D3DDEVTYPE_REF,
@@ -423,20 +448,20 @@ HRESULT GSState::ResetDevice(bool fForceWindowed)
 			D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, 
 			m_hWnd,
 			D3DCREATE_MULTITHREADED | (m_caps.VertexProcessingCaps ? D3DCREATE_HARDWARE_VERTEXPROCESSING : D3DCREATE_SOFTWARE_VERTEXPROCESSING), 
-			&m_d3dpp, &m_pD3DDev)))
+			&m_d3dpp, &m_dev)))
 		{
 			return hr;
 		}
 	}
 	else
 	{
-		if(FAILED(hr = m_pD3DDev->Reset(&m_d3dpp)))
+		if(FAILED(hr = m_dev->Reset(&m_d3dpp)))
 		{
 			if(D3DERR_DEVICELOST == hr)
 			{
 				Sleep(1000);
 
-				if(FAILED(hr = m_pD3DDev->Reset(&m_d3dpp)))
+				if(FAILED(hr = m_dev->Reset(&m_d3dpp)))
 				{
 					return hr;
 				}
@@ -448,28 +473,22 @@ HRESULT GSState::ResetDevice(bool fForceWindowed)
 		}
 	}
 
-	CComPtr<IDirect3DSurface9> pBackBuffer;
-
 	if(m_d3dpp.Windowed)
 	{
 		m_d3dpp.BackBufferWidth = 1;
 		m_d3dpp.BackBufferHeight = 1;
 
-		if(FAILED(hr = m_pD3DDev->CreateAdditionalSwapChain(&m_d3dpp, &m_pSwapChain)))
+		if(FAILED(hr = m_dev->CreateAdditionalSwapChain(&m_d3dpp, &m_pSwapChain)))
 		{
 			return hr;
 		}
+	}
 
-		hr = m_pSwapChain->GetBackBuffer(0, D3DBACKBUFFER_TYPE_MONO, &pBackBuffer);
-	}
-	else
-	{
-		hr = m_pD3DDev->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &pBackBuffer);
-	}
+	CComPtr<IDirect3DSurface9> pBackBuffer = GetBackBuffer();
 	
-	hr = m_pD3DDev->SetRenderTarget(0, pBackBuffer);
+	hr = m_dev->SetRenderTarget(0, pBackBuffer);
 
-	hr = m_pD3DDev->Clear(0, NULL, D3DCLEAR_TARGET, 0, 1.0f, 0);
+	hr = m_dev->Clear(0, NULL, D3DCLEAR_TARGET, 0, 1.0f, 0);
 
 	D3DSURFACE_DESC desc;
 	memset(&desc, 0, sizeof(desc));
@@ -479,26 +498,44 @@ HRESULT GSState::ResetDevice(bool fForceWindowed)
 	memset(&fd, 0, sizeof(fd));
 	_tcscpy(fd.FaceName, _T("Arial"));
 	fd.Height = -(int)(sqrt((float)desc.Height) * 0.7);
-	hr = D3DXCreateFontIndirect(m_pD3DDev, &fd, &m_pD3DXFont);
+	hr = D3DXCreateFontIndirect(m_dev, &fd, &m_pD3DXFont);
 
-    hr = m_pD3DDev->SetRenderState(D3DRS_CULLMODE, D3DCULL_NONE);
-    hr = m_pD3DDev->SetRenderState(D3DRS_LIGHTING, FALSE);
+    hr = m_dev->SetRenderState(D3DRS_CULLMODE, D3DCULL_NONE);
+    hr = m_dev->SetRenderState(D3DRS_LIGHTING, FALSE);
 
 	for(int i = 0; i < 8; i++)
 	{
-		hr = m_pD3DDev->SetSamplerState(i, D3DSAMP_MAGFILTER, m_nTextureFilter);
-		hr = m_pD3DDev->SetSamplerState(i, D3DSAMP_MINFILTER, m_nTextureFilter);
-		// hr = m_pD3DDev->SetSamplerState(i, D3DSAMP_MIPFILTER, m_nTextureFilter);
-		hr = m_pD3DDev->SetSamplerState(i, D3DSAMP_ADDRESSU, D3DTADDRESS_CLAMP);
-		hr = m_pD3DDev->SetSamplerState(i, D3DSAMP_ADDRESSV, D3DTADDRESS_CLAMP);
+		hr = m_dev->SetSamplerState(i, D3DSAMP_MAGFILTER, m_nTextureFilter);
+		hr = m_dev->SetSamplerState(i, D3DSAMP_MINFILTER, m_nTextureFilter);
+		// hr = m_dev->SetSamplerState(i, D3DSAMP_MIPFILTER, m_nTextureFilter);
+		hr = m_dev->SetSamplerState(i, D3DSAMP_ADDRESSU, D3DTADDRESS_CLAMP);
+		hr = m_dev->SetSamplerState(i, D3DSAMP_ADDRESSV, D3DTADDRESS_CLAMP);
 	}
 
-	hr = m_pD3DDev->SetRenderState(D3DRS_SEPARATEALPHABLENDENABLE, TRUE);
-	hr = m_pD3DDev->SetRenderState(D3DRS_BLENDOPALPHA, D3DBLENDOP_ADD);
-	hr = m_pD3DDev->SetRenderState(D3DRS_SRCBLENDALPHA, D3DBLEND_ONE);
-	hr = m_pD3DDev->SetRenderState(D3DRS_DESTBLENDALPHA, D3DBLEND_ZERO);
+	hr = m_dev->SetRenderState(D3DRS_SEPARATEALPHABLENDENABLE, TRUE);
+	hr = m_dev->SetRenderState(D3DRS_BLENDOPALPHA, D3DBLENDOP_ADD);
+	hr = m_dev->SetRenderState(D3DRS_SRCBLENDALPHA, D3DBLEND_ONE);
+	hr = m_dev->SetRenderState(D3DRS_DESTBLENDALPHA, D3DBLEND_ZERO);
 
 	return S_OK;
+}
+
+CComPtr<IDirect3DSurface9> GSState::GetBackBuffer()
+{
+	HRESULT hr;
+
+	CComPtr<IDirect3DSurface9> pBackBuffer = NULL;
+
+	if(m_pSwapChain)
+	{
+		hr = m_pSwapChain->GetBackBuffer(0, D3DBACKBUFFER_TYPE_MONO, &pBackBuffer);
+	}
+	else
+	{
+		hr = m_dev->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &pBackBuffer);
+	}
+
+	return pBackBuffer;
 }
 
 UINT32 GSState::Freeze(freezeData* fd, bool fSizeOnly)
@@ -581,12 +618,10 @@ UINT32 GSState::Defrost(const freezeData* fd)
 	m_env.CTXT[0].ftbl = &GSLocalMemory::m_psmtbl[m_env.CTXT[0].FRAME.PSM];
 	m_env.CTXT[0].ztbl = &GSLocalMemory::m_psmtbl[m_env.CTXT[0].ZBUF.PSM];
 	m_env.CTXT[0].ttbl = &GSLocalMemory::m_psmtbl[m_env.CTXT[0].TEX0.PSM];
-	m_env.CTXT[0].UpdateScissor();
 
 	m_env.CTXT[1].ftbl = &GSLocalMemory::m_psmtbl[m_env.CTXT[1].FRAME.PSM];
 	m_env.CTXT[1].ztbl = &GSLocalMemory::m_psmtbl[m_env.CTXT[1].ZBUF.PSM];
 	m_env.CTXT[1].ttbl = &GSLocalMemory::m_psmtbl[m_env.CTXT[1].TEX0.PSM];
-	m_env.CTXT[1].UpdateScissor();
 
 	return 0;
 }
@@ -650,8 +685,6 @@ void GSState::Transfer(BYTE* mem, UINT32 size, int index)
 				}
 
 				fEOP = true;
-
-				// ASSERT(0);
 			}
 		}
 
@@ -714,7 +747,7 @@ void GSState::Transfer(BYTE* mem, UINT32 size, int index)
 					WriteTransfer(mem, len*16);
 					break;
 				case 1: 
-					ReadTransfer(mem, len*16);
+					ReadTransfer(mem, len*16); // TODO: writing access violation with aqtime
 					break;
 				case 2: 
 					//MoveTransfer();
@@ -759,22 +792,9 @@ void GSState::VSync(int field)
 
 UINT32 GSState::MakeSnapshot(char* path)
 {
-	HRESULT hr;
-
-	CComPtr<IDirect3DSurface9> pBackBuffer;
-
-	if(m_pSwapChain)
-	{
-		hr = m_pSwapChain->GetBackBuffer(0, D3DBACKBUFFER_TYPE_MONO, &pBackBuffer);
-	}
-	else
-	{
-		hr = m_pD3DDev->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &pBackBuffer);
-	}
-
 	CString fn;
 	fn.Format(_T("%sgsdx9_%s.bmp"), CString(path), CTime::GetCurrentTime().Format(_T("%Y%m%d%H%M%S")));
-	return D3DXSaveSurfaceToFile(fn, D3DXIFF_BMP, pBackBuffer, NULL, NULL);
+	return D3DXSaveSurfaceToFile(fn, D3DXIFF_BMP, m_pCurrentFrame, NULL, NULL);
 }
 
 void GSState::SetGameCRC(int crc, int options)
@@ -853,7 +873,7 @@ void GSState::FinishFlip(FlipInfo src[2], float yscale)
 
 	if(!m_pMergeTexture) 
 	{
-		hr = m_pD3DDev->CreateTexture(fs.cx, fs.cy, 1, D3DUSAGE_RENDERTARGET, D3DFMT_X8R8G8B8, D3DPOOL_DEFAULT, &m_pMergeTexture, NULL);
+		hr = m_dev->CreateTexture(fs.cx, fs.cy, 1, D3DUSAGE_RENDERTARGET, D3DFMT_X8R8G8B8, D3DPOOL_DEFAULT, &m_pMergeTexture, NULL);
 
 		if(FAILED(hr)) return;
 	}
@@ -873,7 +893,7 @@ void GSState::FinishFlip(FlipInfo src[2], float yscale)
 
 		if(!m_pInterlaceTexture) 
 		{
-			hr = m_pD3DDev->CreateTexture(ds.cx, ds.cy, 1, D3DUSAGE_RENDERTARGET, D3DFMT_X8R8G8B8, D3DPOOL_DEFAULT, &m_pInterlaceTexture, NULL);
+			hr = m_dev->CreateTexture(ds.cx, ds.cy, 1, D3DUSAGE_RENDERTARGET, D3DFMT_X8R8G8B8, D3DPOOL_DEFAULT, &m_pInterlaceTexture, NULL);
 
 			if(FAILED(hr)) return;
 		}
@@ -899,7 +919,7 @@ void GSState::FinishFlip(FlipInfo src[2], float yscale)
 
 				if(!m_pDeinterlaceTexture) 
 				{
-					hr = m_pD3DDev->CreateTexture(ds.cx, ds.cy, 1, D3DUSAGE_RENDERTARGET, D3DFMT_X8R8G8B8, D3DPOOL_DEFAULT, &m_pDeinterlaceTexture, NULL);
+					hr = m_dev->CreateTexture(ds.cx, ds.cy, 1, D3DUSAGE_RENDERTARGET, D3DFMT_X8R8G8B8, D3DPOOL_DEFAULT, &m_pDeinterlaceTexture, NULL);
 
 					if(FAILED(hr)) return;
 				}
@@ -932,29 +952,29 @@ void GSState::Merge(FlipInfo src[2], IDirect3DSurface9* dst, float yscale)
 	memset(&desc, 0, sizeof(desc));
 	hr = dst->GetDesc(&desc);
 
-	hr = m_pD3DDev->SetRenderTarget(0, dst);
-	hr = m_pD3DDev->SetDepthStencilSurface(NULL);
+	hr = m_dev->SetRenderTarget(0, dst);
+	hr = m_dev->SetDepthStencilSurface(NULL);
 
-	hr = m_pD3DDev->SetTexture(0, src[0].tex);
-	hr = m_pD3DDev->SetTexture(1, src[1].tex);
+	hr = m_dev->SetTexture(0, src[0].tex);
+	hr = m_dev->SetTexture(1, src[1].tex);
 
-    hr = m_pD3DDev->SetRenderState(D3DRS_CULLMODE, D3DCULL_NONE);
-    hr = m_pD3DDev->SetRenderState(D3DRS_LIGHTING, FALSE);
-	hr = m_pD3DDev->SetRenderState(D3DRS_ZENABLE, FALSE);
-	hr = m_pD3DDev->SetRenderState(D3DRS_ALPHABLENDENABLE, FALSE);
-	hr = m_pD3DDev->SetRenderState(D3DRS_ALPHATESTENABLE, FALSE); 
-	hr = m_pD3DDev->SetRenderState(D3DRS_SCISSORTESTENABLE, FALSE);
-	hr = m_pD3DDev->SetRenderState(D3DRS_COLORWRITEENABLE, D3DCOLORWRITEENABLE_RGBA);
+    hr = m_dev->SetRenderState(D3DRS_CULLMODE, D3DCULL_NONE);
+    hr = m_dev->SetRenderState(D3DRS_LIGHTING, FALSE);
+	hr = m_dev->SetRenderState(D3DRS_ZENABLE, FALSE);
+	hr = m_dev->SetRenderState(D3DRS_ALPHABLENDENABLE, FALSE);
+	hr = m_dev->SetRenderState(D3DRS_ALPHATESTENABLE, FALSE); 
+	hr = m_dev->SetRenderState(D3DRS_SCISSORTESTENABLE, FALSE);
+	hr = m_dev->SetRenderState(D3DRS_COLORWRITEENABLE, D3DCOLORWRITEENABLE_RGBA);
 
-	hr = m_pD3DDev->SetSamplerState(0, D3DSAMP_MAGFILTER, D3DTEXF_LINEAR);
-	hr = m_pD3DDev->SetSamplerState(0, D3DSAMP_MINFILTER, D3DTEXF_LINEAR);
-	hr = m_pD3DDev->SetSamplerState(1, D3DSAMP_MAGFILTER, D3DTEXF_LINEAR);
-	hr = m_pD3DDev->SetSamplerState(1, D3DSAMP_MINFILTER, D3DTEXF_LINEAR);
+	hr = m_dev->SetSamplerState(0, D3DSAMP_MAGFILTER, D3DTEXF_LINEAR);
+	hr = m_dev->SetSamplerState(0, D3DSAMP_MINFILTER, D3DTEXF_LINEAR);
+	hr = m_dev->SetSamplerState(1, D3DSAMP_MAGFILTER, D3DTEXF_LINEAR);
+	hr = m_dev->SetSamplerState(1, D3DSAMP_MINFILTER, D3DTEXF_LINEAR);
 
-	hr = m_pD3DDev->SetSamplerState(0, D3DSAMP_ADDRESSU, D3DTADDRESS_CLAMP);
-	hr = m_pD3DDev->SetSamplerState(0, D3DSAMP_ADDRESSV, D3DTADDRESS_CLAMP);
-	hr = m_pD3DDev->SetSamplerState(1, D3DSAMP_ADDRESSU, D3DTADDRESS_CLAMP);
-	hr = m_pD3DDev->SetSamplerState(1, D3DSAMP_ADDRESSV, D3DTADDRESS_CLAMP);
+	hr = m_dev->SetSamplerState(0, D3DSAMP_ADDRESSU, D3DTADDRESS_CLAMP);
+	hr = m_dev->SetSamplerState(0, D3DSAMP_ADDRESSV, D3DTADDRESS_CLAMP);
+	hr = m_dev->SetSamplerState(1, D3DSAMP_ADDRESSU, D3DTADDRESS_CLAMP);
+	hr = m_dev->SetSamplerState(1, D3DSAMP_ADDRESSV, D3DTADDRESS_CLAMP);
 
 	const float c[] = 
 	{
@@ -963,11 +983,11 @@ void GSState::Merge(FlipInfo src[2], IDirect3DSurface9* dst, float yscale)
 		(float)m_env.TEXA.AEM, (float)m_env.TEXA.TA0 / 255, (float)m_env.TEXA.TA1 / 255, (float)m_regs.pPMODE->SLBG - 0.1f,
 	};
 
-	hr = m_pD3DDev->SetPixelShaderConstantF(0, c, countof(c) / 4);
+	hr = m_dev->SetPixelShaderConstantF(0, c, countof(c) / 4);
 
-	hr = m_pD3DDev->SetPixelShader(m_pHLSLMerge[PS_M32]); // TODO: if m_regs.pSMODE2->INT do a field masked output
+	hr = m_dev->SetPixelShader(m_pHLSLMerge[PS_M32]); // TODO: if m_regs.pSMODE2->INT do a field masked output
 
-	hr = m_pD3DDev->BeginScene();
+	hr = m_dev->BeginScene();
 
 	struct
 	{
@@ -989,11 +1009,11 @@ void GSState::Merge(FlipInfo src[2], IDirect3DSurface9* dst, float yscale)
 		vertices[i].y -= 0.5f;
 	}
 
-	hr = m_pD3DDev->SetFVF(D3DFVF_XYZRHW|D3DFVF_TEX2);
+	hr = m_dev->SetFVF(D3DFVF_XYZRHW|D3DFVF_TEX2);
 
-	hr = m_pD3DDev->DrawPrimitiveUP(D3DPT_TRIANGLEFAN, 2, vertices, sizeof(vertices[0]));
+	hr = m_dev->DrawPrimitiveUP(D3DPT_TRIANGLEFAN, 2, vertices, sizeof(vertices[0]));
 
-	hr = m_pD3DDev->EndScene();
+	hr = m_dev->EndScene();
 }
 
 void GSState::Interlace(IDirect3DTexture9* src, IDirect3DSurface9* dst, int shader, D3DTEXTUREFILTERTYPE filter, int yoffset)
@@ -1004,35 +1024,35 @@ void GSState::Interlace(IDirect3DTexture9* src, IDirect3DSurface9* dst, int shad
 	memset(&desc, 0, sizeof(desc));
 	hr = dst->GetDesc(&desc);
 
-	hr = m_pD3DDev->SetRenderTarget(0, dst);
-	hr = m_pD3DDev->SetDepthStencilSurface(NULL);
+	hr = m_dev->SetRenderTarget(0, dst);
+	hr = m_dev->SetDepthStencilSurface(NULL);
 
-	hr = m_pD3DDev->SetTexture(0, src);
+	hr = m_dev->SetTexture(0, src);
 	
-    hr = m_pD3DDev->SetRenderState(D3DRS_CULLMODE, D3DCULL_NONE);
-    hr = m_pD3DDev->SetRenderState(D3DRS_LIGHTING, FALSE);
-	hr = m_pD3DDev->SetRenderState(D3DRS_ZENABLE, FALSE);
-	hr = m_pD3DDev->SetRenderState(D3DRS_ALPHABLENDENABLE, FALSE);
-	hr = m_pD3DDev->SetRenderState(D3DRS_ALPHATESTENABLE, FALSE); 
-	hr = m_pD3DDev->SetRenderState(D3DRS_SCISSORTESTENABLE, FALSE);
-	hr = m_pD3DDev->SetRenderState(D3DRS_COLORWRITEENABLE, D3DCOLORWRITEENABLE_RGBA);
+    hr = m_dev->SetRenderState(D3DRS_CULLMODE, D3DCULL_NONE);
+    hr = m_dev->SetRenderState(D3DRS_LIGHTING, FALSE);
+	hr = m_dev->SetRenderState(D3DRS_ZENABLE, FALSE);
+	hr = m_dev->SetRenderState(D3DRS_ALPHABLENDENABLE, FALSE);
+	hr = m_dev->SetRenderState(D3DRS_ALPHATESTENABLE, FALSE); 
+	hr = m_dev->SetRenderState(D3DRS_SCISSORTESTENABLE, FALSE);
+	hr = m_dev->SetRenderState(D3DRS_COLORWRITEENABLE, D3DCOLORWRITEENABLE_RGBA);
 
-	hr = m_pD3DDev->SetSamplerState(0, D3DSAMP_MAGFILTER, filter);
-	hr = m_pD3DDev->SetSamplerState(0, D3DSAMP_MINFILTER, filter);
+	hr = m_dev->SetSamplerState(0, D3DSAMP_MAGFILTER, filter);
+	hr = m_dev->SetSamplerState(0, D3DSAMP_MINFILTER, filter);
 
-	hr = m_pD3DDev->SetSamplerState(0, D3DSAMP_ADDRESSU, D3DTADDRESS_CLAMP);
-	hr = m_pD3DDev->SetSamplerState(0, D3DSAMP_ADDRESSV, D3DTADDRESS_CLAMP);
+	hr = m_dev->SetSamplerState(0, D3DSAMP_ADDRESSU, D3DTADDRESS_CLAMP);
+	hr = m_dev->SetSamplerState(0, D3DSAMP_ADDRESSV, D3DTADDRESS_CLAMP);
 
 	const float c[] = 
 	{
 		(float)desc.Height, (float)m_field, 0, 0
 	};
 
-	hr = m_pD3DDev->SetPixelShaderConstantF(0, c, countof(c) / 4);
+	hr = m_dev->SetPixelShaderConstantF(0, c, countof(c) / 4);
 
-	hr = m_pD3DDev->SetPixelShader(m_pHLSLInterlace[shader]);
+	hr = m_dev->SetPixelShader(m_pHLSLInterlace[shader]);
 
-	hr = m_pD3DDev->BeginScene();
+	hr = m_dev->BeginScene();
 
 	struct
 	{
@@ -1053,11 +1073,11 @@ void GSState::Interlace(IDirect3DTexture9* src, IDirect3DSurface9* dst, int shad
 		vertices[i].y -= 0.5f + yoffset;
 	}
 
-	hr = m_pD3DDev->SetFVF(D3DFVF_XYZRHW|D3DFVF_TEX1);
+	hr = m_dev->SetFVF(D3DFVF_XYZRHW|D3DFVF_TEX1);
 
-	hr = m_pD3DDev->DrawPrimitiveUP(D3DPT_TRIANGLEFAN, 2, vertices, sizeof(vertices[0]));
+	hr = m_dev->DrawPrimitiveUP(D3DPT_TRIANGLEFAN, 2, vertices, sizeof(vertices[0]));
 
-	hr = m_pD3DDev->EndScene();
+	hr = m_dev->EndScene();
 }
 
 void GSState::Present()
@@ -1068,15 +1088,11 @@ void GSState::Present()
 
 	GetClientRect(&cr);
 
-	CComPtr<IDirect3DSurface9> pBackBuffer;
+	CComPtr<IDirect3DSurface9> pBackBuffer = GetBackBuffer();
 
-	if(m_pSwapChain)
+	if(!pBackBuffer)
 	{
-		hr = m_pSwapChain->GetBackBuffer(0, D3DBACKBUFFER_TYPE_MONO, &pBackBuffer);
-	}
-	else
-	{
-		hr = m_pD3DDev->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &pBackBuffer);
+		return;
 	}
 
 	D3DSURFACE_DESC desc;
@@ -1091,14 +1107,14 @@ void GSState::Present()
 		m_d3dpp.BackBufferWidth = cr.Width();
 		m_d3dpp.BackBufferHeight = cr.Height();
 
-		hr = m_pD3DDev->CreateAdditionalSwapChain(&m_d3dpp, &m_pSwapChain);
+		hr = m_dev->CreateAdditionalSwapChain(&m_d3dpp, &m_pSwapChain);
 
 		hr = m_pSwapChain->GetBackBuffer(0, D3DBACKBUFFER_TYPE_MONO, &pBackBuffer);
 	}
 
-	hr = m_pD3DDev->SetRenderTarget(0, pBackBuffer);
+	hr = m_dev->SetRenderTarget(0, pBackBuffer);
 
-	hr = m_pD3DDev->Clear(0, NULL, D3DCLEAR_TARGET, 0, 1.0f, 0);
+	hr = m_dev->Clear(0, NULL, D3DCLEAR_TARGET, 0, 1.0f, 0);
 
 	if(m_pCurrentFrame)
 	{
@@ -1129,7 +1145,7 @@ void GSState::Present()
 
 		r &= cr;
 		
-		hr = m_pD3DDev->StretchRect(m_pCurrentFrame, NULL, pBackBuffer, r, D3DTEXF_LINEAR);
+		hr = m_dev->StretchRect(m_pCurrentFrame, NULL, pBackBuffer, r, D3DTEXF_LINEAR);
 	}
 
 	// osd
@@ -1165,10 +1181,10 @@ void GSState::Present()
 
 	if(m_osd && !m_d3dpp.Windowed)
 	{
-		hr = m_pD3DDev->BeginScene();
+		hr = m_dev->BeginScene();
 
-		hr = m_pD3DDev->SetRenderTarget(0, pBackBuffer);
-		hr = m_pD3DDev->SetDepthStencilSurface(NULL);
+		hr = m_dev->SetRenderTarget(0, pBackBuffer);
+		hr = m_dev->SetDepthStencilSurface(NULL);
 
 		CRect r;
 		
@@ -1185,7 +1201,7 @@ void GSState::Present()
 			m_pD3DXFont->DrawText(NULL, str, -1, &r, DT_LEFT|DT_WORDBREAK, c);
 		}
 
-		hr = m_pD3DDev->EndScene();
+		hr = m_dev->EndScene();
 	}
 
 	if(m_pSwapChain)
@@ -1194,7 +1210,7 @@ void GSState::Present()
 	}
 	else
 	{
-		hr = m_pD3DDev->Present(NULL, NULL, NULL, NULL);
+		hr = m_dev->Present(NULL, NULL, NULL, NULL);
 	}
 }
 

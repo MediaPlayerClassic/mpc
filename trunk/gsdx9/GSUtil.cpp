@@ -23,20 +23,27 @@
 #include "GSdx9.h"
 #include "GSState.h"
 
-BOOL IsDepthFormatOk(IDirect3D9* pD3D, D3DFORMAT DepthFormat, D3DFORMAT AdapterFormat, D3DFORMAT BackBufferFormat)
+bool IsDepthFormatOk(IDirect3D9* pD3D, D3DFORMAT DepthFormat, D3DFORMAT AdapterFormat, D3DFORMAT BackBufferFormat)
 {
     // Verify that the depth format exists.
 	HRESULT hr = pD3D->CheckDeviceFormat(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, AdapterFormat, D3DUSAGE_DEPTHSTENCIL, D3DRTYPE_SURFACE, DepthFormat);
-    if(FAILED(hr)) return FALSE;
+    if(FAILED(hr)) return false;
 
     // Verify that the depth format is compatible.
     hr = pD3D->CheckDepthStencilMatch(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, AdapterFormat, BackBufferFormat, DepthFormat);
     return SUCCEEDED(hr);
 }
 
-HRESULT CompileShaderFromResource(IDirect3DDevice9* pD3DDev, UINT id, CString entry, CString target, UINT flags, IDirect3DVertexShader9** ppVertexShader, ID3DXConstantTable** ppConstantTable)
+bool IsRenderTarget(IDirect3DTexture9* pTexture)
 {
-	CheckPointer(pD3DDev, E_POINTER);
+	D3DSURFACE_DESC desc;
+	memset(&desc, 0, sizeof(desc));
+	return pTexture && S_OK == pTexture->GetLevelDesc(0, &desc) && (desc.Usage & D3DUSAGE_RENDERTARGET);
+}
+
+HRESULT CompileShaderFromResource(IDirect3DDevice9* dev, UINT id, CString entry, CString target, UINT flags, IDirect3DVertexShader9** ppVertexShader, ID3DXConstantTable** ppConstantTable)
+{
+	CheckPointer(dev, E_POINTER);
 	CheckPointer(ppVertexShader, E_POINTER);
 
 	CComPtr<ID3DXBuffer> pShader, pErrorMsgs;
@@ -49,7 +56,7 @@ HRESULT CompileShaderFromResource(IDirect3DDevice9* pD3DDev, UINT id, CString en
 
 	if(SUCCEEDED(hr))
 	{
-		hr = pD3DDev->CreateVertexShader((DWORD*)pShader->GetBufferPointer(), ppVertexShader);
+		hr = dev->CreateVertexShader((DWORD*)pShader->GetBufferPointer(), ppVertexShader);
 	}
 	else
 	{
@@ -63,9 +70,9 @@ HRESULT CompileShaderFromResource(IDirect3DDevice9* pD3DDev, UINT id, CString en
 	return hr;
 }
 
-HRESULT CompileShaderFromResource(IDirect3DDevice9* pD3DDev, UINT id, CString entry, CString target, UINT flags, IDirect3DPixelShader9** ppPixelShader, ID3DXConstantTable** ppConstantTable)
+HRESULT CompileShaderFromResource(IDirect3DDevice9* dev, UINT id, CString entry, CString target, UINT flags, IDirect3DPixelShader9** ppPixelShader, ID3DXConstantTable** ppConstantTable)
 {
-	CheckPointer(pD3DDev, E_POINTER);
+	CheckPointer(dev, E_POINTER);
 	CheckPointer(ppPixelShader, E_POINTER);
 
 	CComPtr<ID3DXBuffer> pShader, pErrorMsgs;
@@ -78,7 +85,7 @@ HRESULT CompileShaderFromResource(IDirect3DDevice9* pD3DDev, UINT id, CString en
 
 	if(SUCCEEDED(hr))
 	{
-		hr = pD3DDev->CreatePixelShader((DWORD*)pShader->GetBufferPointer(), ppPixelShader);
+		hr = dev->CreatePixelShader((DWORD*)pShader->GetBufferPointer(), ppPixelShader);
 /*
 		CComPtr<ID3DXBuffer> pDisAsm;
 
@@ -104,9 +111,9 @@ HRESULT CompileShaderFromResource(IDirect3DDevice9* pD3DDev, UINT id, CString en
 	return hr;
 }
 
-HRESULT AssembleShaderFromResource(IDirect3DDevice9* pD3DDev, UINT id, UINT flags, IDirect3DPixelShader9** ppPixelShader)
+HRESULT AssembleShaderFromResource(IDirect3DDevice9* dev, UINT id, UINT flags, IDirect3DPixelShader9** ppPixelShader)
 {
-	CheckPointer(pD3DDev, E_POINTER);
+	CheckPointer(dev, E_POINTER);
 	CheckPointer(ppPixelShader, E_POINTER);
 
 	CComPtr<ID3DXBuffer> pShader, pErrorMsgs;
@@ -119,7 +126,7 @@ HRESULT AssembleShaderFromResource(IDirect3DDevice9* pD3DDev, UINT id, UINT flag
 
 	if(SUCCEEDED(hr))
 	{
-		hr = pD3DDev->CreatePixelShader((DWORD*)pShader->GetBufferPointer(), ppPixelShader);
+		hr = dev->CreatePixelShader((DWORD*)pShader->GetBufferPointer(), ppPixelShader);
 	}
 
 	ASSERT(SUCCEEDED(hr));

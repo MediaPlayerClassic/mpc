@@ -85,6 +85,7 @@ __declspec(align(16)) union GSSoftVertexFP
 		friend bool operator == (const Scalar& s1, const Scalar& s2) {return s1.val == s2.val;}
 		friend bool operator <= (const Scalar& s1, const Scalar& s2) {return s1.val <= s2.val;}
 		friend bool operator < (const Scalar& s1, const Scalar& s2) {return s1.val < s2.val;}
+		friend bool operator > (const Scalar& s1, const Scalar& s2) {return s1.val > s2.val;}
 	};
 
 	__declspec(align(16)) class __declspec(novtable) Vector

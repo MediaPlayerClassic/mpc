@@ -169,6 +169,45 @@ void GSRendererSoft<Vertex>::DrawingKick(bool skip)
 		return;
 	}
 
+	Vertex::Scalar sx0((int)m_context->SCISSOR.SCAX0);
+	Vertex::Scalar sy0((int)m_context->SCISSOR.SCAY0);
+	Vertex::Scalar sx1((int)m_context->SCISSOR.SCAX1);
+	Vertex::Scalar sy1((int)m_context->SCISSOR.SCAY1);
+
+	switch(nv)
+	{
+	case 1:
+		if(v[0].p.x < sx0
+		|| v[0].p.x > sx1
+		|| v[0].p.y < sy0
+		|| v[0].p.y > sy1)
+			return;
+		break;
+	case 2:
+		if(v[0].p.x < sx0 && v[1].p.x < sx0
+		|| v[0].p.x > sx1 && v[1].p.x > sx1
+		|| v[0].p.y < sy0 && v[1].p.y < sy0
+		|| v[0].p.y > sy1 && v[1].p.y > sy1)
+			return;
+		break;
+	case 3:
+		if(v[0].p.x < sx0 && v[1].p.x < sx0 && v[2].p.x < sx0
+		|| v[0].p.x > sx1 && v[1].p.x > sx1 && v[2].p.x > sx1
+		|| v[0].p.y < sy0 && v[1].p.y < sy0 && v[2].p.y < sy0
+		|| v[0].p.y > sy1 && v[1].p.y > sy1 && v[2].p.y > sy1)
+			return;
+		break;
+	case 4:
+		if(v[0].p.x < sx0 && v[3].p.x < sx0
+		|| v[0].p.x > sx1 && v[3].p.x > sx1
+		|| v[0].p.y < sy0 && v[3].p.y < sy0
+		|| v[0].p.y > sy1 && v[3].p.y > sy1)
+			return;
+		break;
+	default:
+		__assume(0);
+	}
+
 	if(!m_pPRIM->IIP)
 	{
 		Vertex::Vector c = v[nv - 1].c;
@@ -205,9 +244,9 @@ if(m_perfmon.GetFrame() == 200)
 	{
 		CString str;
 		str.Format(_T("c:\\temp2\\_%05d_%05x.bmp"), n, m_context->TEX0.TBP0);
-		//if(m_pPRIM->TME) m_mem.SaveBMP(m_pD3DDev, str, m_context->TEX0.TBP0, m_context->TEX0.TBW, m_context->TEX0.PSM, 1 << m_context->TEX0.TW, 1 << m_context->TEX0.TH);
+		//if(m_pPRIM->TME) m_mem.SaveBMP(m_dev, str, m_context->TEX0.TBP0, m_context->TEX0.TBW, m_context->TEX0.PSM, 1 << m_context->TEX0.TW, 1 << m_context->TEX0.TH);
 		str.Format(_T("c:\\temp2\\_%05drt0_%05x.bmp"), n, m_context->FRAME.FBP);
-		//m_mem.SaveBMP(m_pD3DDev, str, m_context->FRAME.FBP, m_context->FRAME.FBW, m_context->FRAME.FBW, m_regs.GetFrameSize(1).cx, m_regs.GetFrameSize(1).cy);
+		//m_mem.SaveBMP(m_dev, str, m_context->FRAME.FBP, m_context->FRAME.FBW, m_context->FRAME.FBW, m_regs.GetFrameSize(1).cx, m_regs.GetFrameSize(1).cy);
 	}
 }
 */
@@ -295,7 +334,7 @@ if(m_perfmon.GetFrame() == 200)
 	{
 		CString str;
 		str.Format(_T("c:\\temp2\\_%05drt1_%05x.bmp"), n, m_context->FRAME.FBP);
-		//m_mem.SaveBMP(m_pD3DDev, str, m_context->FRAME.FBP, m_context->FRAME.FBW, m_context->FRAME.FBW, m_regs.GetFrameSize(1).cx, m_regs.GetFrameSize(1).cy);
+		//m_mem.SaveBMP(m_dev, str, m_context->FRAME.FBP, m_context->FRAME.FBW, m_context->FRAME.FBW, m_regs.GetFrameSize(1).cx, m_regs.GetFrameSize(1).cy);
 	}
 
 	n++;
@@ -348,7 +387,7 @@ void GSRendererSoft<Vertex>::Flip()
 			{
 				pRT = NULL;
 
-				hr = m_pD3DDev->CreateTexture(r.right, r.bottom, 1, 0, D3DFMT_A8R8G8B8, D3DPOOL_MANAGED, &pRT, NULL);
+				hr = m_dev->CreateTexture(r.right, r.bottom, 1, 0, D3DFMT_A8R8G8B8, D3DPOOL_MANAGED, &pRT, NULL);
 
 				if(FAILED(hr)) break;
 
@@ -370,7 +409,7 @@ void GSRendererSoft<Vertex>::Flip()
 
 		src[i].tex = m_pRT[i];
 
-		src[i].scale = scale_t(1, 1);
+		src[i].scale = GSScale(1, 1);
 
 		if(FAILED(hr = src[i].tex->LockRect(0, &lr, NULL, 0)))
 		{

@@ -64,7 +64,7 @@ protected:
 	void SetupColorMask();
 	void SetupZBuffer();
 	void SetupAlphaTest();
-	void SetupScissor(scale_t& s);
+	void SetupScissor(GSScale& s);
 
 	void ResetState();
 	void VertexKick(bool skip);

@@ -767,6 +767,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\GSDirtyRect.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\GSdx9.cpp"
 				>
 			</File>
@@ -951,7 +955,15 @@
 				>
 			</File>
 			<File
+				RelativePath=".\GSTexture.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\GSTextureCache.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\GSTextureCache2.cpp"
 				>
 			</File>
 			<File
@@ -1237,6 +1249,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\GSDirtyRect.h"
+				>
+			</File>
+			<File
 				RelativePath=".\GSDrawingContext.h"
 				>
 			</File>
@@ -1285,6 +1301,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\GSScale.h"
+				>
+			</File>
+			<File
 				RelativePath=".\GSSettingsDlg.h"
 				>
 			</File>
@@ -1301,7 +1321,15 @@
 				>
 			</File>
 			<File
+				RelativePath=".\GSTexture.h"
+				>
+			</File>
+			<File
 				RelativePath=".\GSTextureCache.h"
+				>
+			</File>
+			<File
+				RelativePath=".\GSTextureCache2.h"
 				>
 			</File>
 			<File
