@@ -30,7 +30,6 @@
 
 #define PS2E_LT_GS 0x01
 #define PS2E_GS_VERSION 0x0006
-#define PS2E_DLL_VERSION 10
 #define PS2E_X86 0x01   // 32 bit
 #define PS2E_X86_64 0x02   // 64 bit
 
@@ -85,7 +84,11 @@ EXPORT_C_(char*) PS2EgetLibName()
 
 EXPORT_C_(UINT32) PS2EgetLibVersion2(UINT32 type)
 {
-	return (PS2E_GS_VERSION<<16) | (0<<8) | PS2E_DLL_VERSION;
+	const UINT32 revision = 0;
+	const UINT32 build = 10;
+	const UINT32 minor = 5;
+
+	return (build << 0) | (revision << 8) | (PS2E_GS_VERSION << 16) | (minor << 24);
 }
 
 EXPORT_C_(UINT32) PS2EgetCpuPlatform()

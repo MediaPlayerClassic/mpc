@@ -24,13 +24,6 @@
 #include "GSHash.h"
 #include "GSRendererHW.h"
 
-bool IsRenderTarget(IDirect3DTexture9* pTexture)
-{
-	D3DSURFACE_DESC desc;
-	memset(&desc, 0, sizeof(desc));
-	return pTexture && S_OK == pTexture->GetLevelDesc(0, &desc) && (desc.Usage & D3DUSAGE_RENDERTARGET);
-}
-
 bool HasSharedBits(DWORD sbp, DWORD spsm, DWORD dbp, DWORD dpsm)
 {
 	if(sbp != dbp) return false;
@@ -58,78 +51,6 @@ bool HasSharedBits(DWORD sbp, DWORD spsm, DWORD dbp, DWORD dpsm)
 
 //
 
-GSDirtyRect::GSDirtyRect(DWORD PSM, CRect r)
-{
-	m_PSM = PSM;
-	m_rcDirty = r;
-}
-
-CRect GSDirtyRect::GetDirtyRect(const GIFRegTEX0& TEX0)
-{
-	CRect rcDirty = m_rcDirty;
-
-	CSize src = GSLocalMemory::m_psmtbl[m_PSM].bs;
-
-	rcDirty.left = (rcDirty.left) & ~(src.cx-1);
-	rcDirty.right = (rcDirty.right + (src.cx-1) /* + 1 */) & ~(src.cx-1);
-	rcDirty.top = (rcDirty.top) & ~(src.cy-1);
-	rcDirty.bottom = (rcDirty.bottom + (src.cy-1) /* + 1 */) & ~(src.cy-1);
-
-	if(m_PSM != TEX0.PSM)
-	{
-		CSize dst = GSLocalMemory::m_psmtbl[TEX0.PSM].bs;
-
-		rcDirty.left = MulDiv(m_rcDirty.left, dst.cx, src.cx);
-		rcDirty.right = MulDiv(m_rcDirty.right, dst.cx, src.cx);
-		rcDirty.top = MulDiv(m_rcDirty.top, dst.cy, src.cy);
-		rcDirty.bottom = MulDiv(m_rcDirty.bottom, dst.cy, src.cy);
-	}
-
-	rcDirty &= CRect(0, 0, 1 << TEX0.TW, 1 << TEX0.TH);
-
-	return rcDirty;
-}
-
-void GSDirtyRectList::operator = (const GSDirtyRectList& l)
-{
-	RemoveAll();
-	POSITION pos = l.GetHeadPosition();
-	while(pos) AddTail(l.GetNext(pos));
-}
-
-CRect GSDirtyRectList::GetDirtyRect(const GIFRegTEX0& TEX0)
-{
-	if(IsEmpty()) return CRect(0, 0, 0, 0);
-	CRect r(INT_MAX, INT_MAX, 0, 0);
-	POSITION pos = GetHeadPosition();
-	while(pos) r |= GetNext(pos).GetDirtyRect(TEX0);
-	return r;
-}
-
-//
-
-GSTextureBase::GSTextureBase()
-{
-	m_scale = scale_t(1, 1);
-	m_fRT = false;
-	memset(&m_desc, 0, sizeof(m_desc));
-}
-
-GSTexture::GSTexture()
-{
-	m_TEX0.TBP0 = ~0;
-	m_rcValid = CRect(0, 0, 0, 0);
-	m_dwHash = ~0;
-	m_nHashDiff = m_nHashSame = 0;
-	m_rcHash = CRect(0, 0, 0, 0);
-	m_nBytes = 0;
-	m_nAge = 0;
-	m_nVsyncs = 0;
-	m_fTemp = false;
-}
-
-//
-
 GSTextureCache::GSTextureCache()
 {
 }
@@ -139,31 +60,77 @@ GSTextureCache::~GSTextureCache()
 	RemoveAll();
 }
 
-HRESULT GSTextureCache::CreateTexture(GSState* s, GSTexture* pt, DWORD PSM, DWORD CPSM)
+void GSTextureCache::RemoveAll()
 {
-	if(!pt || pt->m_pTexture) {ASSERT(0); return E_FAIL;}
+	while(GetCount()) delete RemoveHead();
+	m_pTexturePool.RemoveAll();
+	m_pRenderTargetPool.RemoveAll();
+}
 
-	int w = 1 << pt->m_TEX0.TW;
-	int h = 1 << pt->m_TEX0.TH;
+HRESULT GSTextureCache::CreateRenderTarget(GSState* s, int w, int h, IDirect3DTexture9** pprt)
+{
+	ASSERT(pprt && *pprt == NULL);
 
-	int bpp = 0;
+	HRESULT hr;
+
+	POSITION pos = m_pRenderTargetPool.GetHeadPosition();
+
+	while(pos)
+	{
+		IDirect3DTexture9* rt = m_pRenderTargetPool.GetNext(pos);
+
+		D3DSURFACE_DESC desc;
+		memset(&desc, 0, sizeof(desc));
+		rt->GetLevelDesc(0, &desc);
+
+		if(desc.Width == w && desc.Height == h && !IsTextureInCache(rt))
+		{
+			(*pprt = rt)->AddRef();
+			return S_OK;
+		}
+	}
+
+	hr = s->m_dev->CreateTexture(w, h, 1, D3DUSAGE_RENDERTARGET, D3DFMT_A8R8G8B8, D3DPOOL_DEFAULT, pprt, NULL);
+
+	if(FAILED(hr)) return hr;
+TRACE(_T("3. CreateTexture(%d, %d)\n"), w, h);
+
+	m_pRenderTargetPool.AddHead(*pprt);
+
+	while(m_pRenderTargetPool.GetCount() > 3)
+	{
+		m_pRenderTargetPool.RemoveTail();
+	}
+
+	return S_OK;
+}
+
+HRESULT GSTextureCache::CreateTexture(GSState* s, GSTexture* t, DWORD psm, DWORD cpsm)
+{
+	if(!t || t->m_texture) {ASSERT(0); return E_FAIL;}
+
+	int w = 1 << t->m_TEX0.TW;
+	int h = 1 << t->m_TEX0.TH;
+
 	D3DFORMAT fmt = D3DFMT_UNKNOWN;
 	D3DFORMAT palfmt = D3DFMT_UNKNOWN;
 
-	switch(PSM)
+	t->m_bpp = 0;
+
+	switch(psm)
 	{
 	default:
 	case PSM_PSMCT32:
-		bpp = 32;
+		t->m_bpp = 32;
 		fmt = D3DFMT_A8R8G8B8;
 		break;
 	case PSM_PSMCT24:
-		bpp = 32;
+		t->m_bpp = 32;
 		fmt = D3DFMT_X8R8G8B8;
 		break;
 	case PSM_PSMCT16:
 	case PSM_PSMCT16S:
-		bpp = 16;
+		t->m_bpp = 16;
 		fmt = D3DFMT_A1R5G5B5;
 		break;
 	case PSM_PSMT8:
@@ -171,63 +138,73 @@ HRESULT GSTextureCache::CreateTexture(GSState* s, GSTexture* pt, DWORD PSM, DWOR
 	case PSM_PSMT8H:
 	case PSM_PSMT4HL:
 	case PSM_PSMT4HH:
-		bpp = 8;
+		t->m_bpp = 8;
 		fmt = D3DFMT_L8;
-		palfmt = CPSM == PSM_PSMCT32 ? D3DFMT_A8R8G8B8 : D3DFMT_A1R5G5B5;
+		palfmt = cpsm == PSM_PSMCT32 ? D3DFMT_A8R8G8B8 : D3DFMT_A1R5G5B5;
 		break;
 	}
 
-	pt->m_nBytes = w*h*bpp>>3;
+	t->m_bytes = w * h * t->m_bpp >> 3;
 
 	POSITION pos = m_pTexturePool.GetHeadPosition();
+
 	while(pos)
 	{
-		IDirect3DTexture9* pTexture = m_pTexturePool.GetNext(pos);
+		IDirect3DTexture9* texture = m_pTexturePool.GetNext(pos);
 
 		D3DSURFACE_DESC desc;
 		memset(&desc, 0, sizeof(desc));
-		pTexture->GetLevelDesc(0, &desc);
+		texture->GetLevelDesc(0, &desc);
 
-		if(w == desc.Width && h == desc.Height && fmt == desc.Format && !IsTextureInCache(pTexture))
+		if(w == desc.Width && h == desc.Height && fmt == desc.Format && !IsTextureInCache(texture))
 		{
-			pt->m_pTexture = pTexture;
-			pt->m_desc = desc;
+			t->m_texture = texture;
+			t->m_desc = desc;
 			break;
 		}
 	}
 
-	if(!pt->m_pTexture)
+	if(!t->m_texture)
 	{
 		while(m_pTexturePool.GetCount() > 20)
+		{
 			m_pTexturePool.RemoveTail();
+		}
 
-		if(FAILED(s->m_pD3DDev->CreateTexture(w, h, 1, 0, fmt, D3DPOOL_MANAGED, &pt->m_pTexture, NULL)))
+		if(FAILED(s->m_dev->CreateTexture(w, h, 1, 0, fmt, D3DPOOL_MANAGED, &t->m_texture, NULL)))
+		{
 			return E_FAIL;
+		}
+TRACE(_T("4. CreateTexture(%d, %d)\n"), w, h);
 
-		pt->m_pTexture->GetLevelDesc(0, &pt->m_desc);
+		t->m_texture->GetLevelDesc(0, &t->m_desc);
 
-		m_pTexturePool.AddHead(pt->m_pTexture);
+		m_pTexturePool.AddHead(t->m_texture);
 	}
 
-	if(bpp == 8)
+	if(t->m_bpp == 8)
 	{
-		if(FAILED(s->m_pD3DDev->CreateTexture(256, 1, 1, 0, palfmt, D3DPOOL_MANAGED, &pt->m_pPalette, NULL)))
+		if(FAILED(s->m_dev->CreateTexture(256, 1, 1, 0, palfmt, D3DPOOL_MANAGED, &t->m_palette, NULL)))
 		{
-			pt->m_pTexture = NULL;
+			t->m_texture = NULL;
 			return E_FAIL;
 		}
 	}
 
+	RemoveOld(s);
+
+	AddHead(t);
+
 	return S_OK;
 }
 
-bool GSTextureCache::IsTextureInCache(IDirect3DTexture9* pTexture)
+bool GSTextureCache::IsTextureInCache(IDirect3DTexture9* t)
 {
 	POSITION pos = GetHeadPosition();
 
 	while(pos)
 	{
-		if(GetNext(pos)->m_pTexture == pTexture)
+		if(GetNext(pos)->m_texture == t)
 		{
 			return true;
 		}
@@ -236,227 +213,72 @@ bool GSTextureCache::IsTextureInCache(IDirect3DTexture9* pTexture)
 	return false;
 }
 
-void GSTextureCache::RemoveOldTextures(GSState* s)
+void GSTextureCache::RemoveOld(GSState* s)
 {
-	DWORD nBytes = 0;
+	DWORD bytes = 0;
 
 	POSITION pos = GetHeadPosition();
 	
 	while(pos)
 	{
-		nBytes += GetNext(pos)->m_nBytes;
+		bytes += GetNext(pos)->m_bytes;
 	}
 
 	pos = GetTailPosition();
 
-	while(pos && nBytes > 96*1024*1024/*s->m_ddcaps.dwVidMemTotal*/)
+	while(pos && bytes > 96*1024*1024/*s->m_ddcaps.dwVidMemTotal*/)
 	{
 		POSITION cur = pos;
 
-		GSTexture* pt = GetPrev(pos);
+		GSTexture* t = GetPrev(pos);
 
-		if(!pt->m_fRT)
+		if(!t->m_rt)
 		{
-			nBytes -= pt->m_nBytes;
+			bytes -= t->m_bytes;
 			RemoveAt(cur);
-			delete pt;
+			delete t;
 		}
 	}
 }
 
-static bool RectInRect(const RECT& inner, const RECT& outer)
+GSTexture* GSTextureCache::ConvertRTPitch(GSState* s, GSTexture* t)
 {
-	return outer.left <= inner.left && inner.right <= outer.right && outer.top <= inner.top && inner.bottom <= outer.bottom;
-}
-
-static bool RectInRectH(const RECT& inner, const RECT& outer)
-{
-	return outer.top <= inner.top && inner.bottom <= outer.bottom;
-}
-
-static bool RectInRectV(const RECT& inner, const RECT& outer)
-{
-	return outer.left <= inner.left && inner.right <= outer.right;
-}
-
-bool GSTextureCache::GetDirtyRect(GSState* s, GSTexture* pt, CRect& r)
-{
-	int w = 1 << pt->m_TEX0.TW;
-	int h = 1 << pt->m_TEX0.TH;
-
-	r.SetRect(0, 0, w, h);
-
-// FIXME: kyo's left hand after being selected for player one (PS2-SNK_Vs_Capcom_SVC_Chaos_PAL_CDFull.iso)
-// return true;
-
-	s->MinMaxUV(w, h, r);
-
-	CRect rcDirty = pt->m_rcDirty.GetDirtyRect(pt->m_TEX0);
-	CRect rcValid = pt->m_rcValid;
-
-	if(RectInRect(r, rcValid))
+	if(t->m_TEX0.TBW == s->m_context->TEX0.TBW)
 	{
-		if(rcDirty.IsRectEmpty()) return false;
-		else if(RectInRect(rcDirty, r)) r = rcDirty;
-		else if(RectInRect(rcDirty, rcValid)) r |= rcDirty;
-		else r = rcValid | rcDirty;
+		return t;
 	}
-	else
-	{
-		if(RectInRectH(r, rcValid) && (r.left >= rcValid.left || r.right <= rcValid.right))
-		{
-			r.top = rcValid.top;
-			r.bottom = rcValid.bottom;
-			if(r.left < rcValid.left) r.right = rcValid.left;
-			else /*if(r.right > rcValid.right)*/ r.left = rcValid.right;
-		}
-		else if(RectInRectV(r, rcValid) && (r.top >= rcValid.top || r.bottom <= rcValid.bottom))
-		{
-			r.left = rcValid.left;
-			r.right = rcValid.right;
-			if(r.top < rcValid.top) r.bottom = rcValid.top;
-			else /*if(r.bottom > rcValid.bottom)*/ r.top = rcValid.bottom;
-		}
-		else
-		{
-			r |= rcValid;
-		}
-	}
-
-	return true;
-}
-
-DWORD GSTextureCache::HashTexture(const CRect& r, int pitch, void* bits)
-{
-	// TODO: make the hash more unique
-
-	BYTE* p = (BYTE*)bits;
-	DWORD hash = r.left + r.right + r.top + r.bottom + pitch + *(BYTE*)bits;
-
-	if(r.Width() > 0)
-	{
-		int size = r.Width()*r.Height();
-/*
-		if(size <= 8*8) return rand(); // :P
-		else 
-*/
-		if(size <= 16*16) hash += hash_crc(r, pitch, p);
-		else if(size <= 32*32) hash += hash_adler(r, pitch, p);
-		else hash += hash_checksum(r, pitch, p);
-	}
-
-	return hash;
-}
-
-HRESULT GSTextureCache::UpdateTexture(GSState* s, GSTexture* pt, GSLocalMemory::readTexture rt)
-{
-	CRect r;
-	if(!GetDirtyRect(s, pt, r))
-		return S_OK;
-
-	int bpp = 0;
-
-	switch(pt->m_desc.Format)
-	{
-	case D3DFMT_A8R8G8B8: bpp = 32; break;
-	case D3DFMT_X8R8G8B8: bpp = 32; break;
-	case D3DFMT_A1R5G5B5: bpp = 16; break;
-	case D3DFMT_L8: bpp = 8; break;
-	default: ASSERT(0); return E_FAIL;
-	}
-
-	HRESULT hr;
-	D3DLOCKED_RECT lr;
-	if(FAILED(hr = pt->m_pTexture->LockRect(0, &lr, &r, D3DLOCK_NO_DIRTY_UPDATE))) {ASSERT(0); return hr;}
-	(s->m_mem.*rt)(r, (BYTE*)lr.pBits, lr.Pitch, s->m_context->TEX0, s->m_env.TEXA, s->m_context->CLAMP);
-	s->m_perfmon.Put(GSPerfMon::Unswizzle, r.Width()*r.Height()*bpp>>3);
-	pt->m_pTexture->UnlockRect(0);
-
-	pt->m_rcValid |= r;
-	pt->m_rcDirty.RemoveAll();
-
-	const static DWORD limit = 7;
-
-	if((pt->m_nHashDiff & limit) && pt->m_nHashDiff >= limit && pt->m_rcHash == pt->m_rcValid) // predicted to be dirty
-	{
-		pt->m_nHashDiff++;
-	}
-	else
-	{
-		if(FAILED(pt->m_pTexture->LockRect(0, &lr, &pt->m_rcValid, D3DLOCK_NO_DIRTY_UPDATE|D3DLOCK_READONLY))) {ASSERT(0); return E_FAIL;}
-		DWORD dwHash = HashTexture(
-			CRect((pt->m_rcValid.left>>2)*(bpp>>3), pt->m_rcValid.top, (pt->m_rcValid.right>>2)*(bpp>>3), pt->m_rcValid.bottom), 
-			lr.Pitch, lr.pBits);
-		pt->m_pTexture->UnlockRect(0);
-
-		if(pt->m_rcHash != pt->m_rcValid)
-		{
-			pt->m_nHashDiff = 0;
-			pt->m_nHashSame = 0;
-			pt->m_rcHash = pt->m_rcValid;
-			pt->m_dwHash = dwHash;
-		}
-		else
-		{
-			if(pt->m_dwHash != dwHash)
-			{
-				pt->m_nHashDiff++;
-				pt->m_nHashSame = 0;
-				pt->m_dwHash = dwHash;
-			}
-			else
-			{
-				if(pt->m_nHashDiff < limit) r.SetRect(0, 0, 1, 1);
-				// else pt->m_dwHash is not reliable, must update
-				pt->m_nHashDiff = 0;
-				pt->m_nHashSame++;
-			}
-		}
-	}
-
-	pt->m_pTexture->AddDirtyRect(&r);
-	pt->m_pTexture->PreLoad();
-	s->m_perfmon.Put(GSPerfMon::Texture, r.Width()*r.Height()*bpp>>3);
-
-	return S_OK;
-}
-
-GSTexture* GSTextureCache::ConvertRTPitch(GSState* s, GSTexture* pt)
-{
-	if(pt->m_TEX0.TBW == s->m_context->TEX0.TBW)
-		return pt;
 
 	// sfex3 uses this trick (bw: 10 -> 5, wraps the right side below the left)
-	ASSERT(pt->m_TEX0.TBW > s->m_context->TEX0.TBW); // otherwise scale.x need to be reduced to make the larger texture fit (TODO)
+
+	ASSERT(t->m_TEX0.TBW > s->m_context->TEX0.TBW); // otherwise scale.x need to be reduced to make the larger texture fit (TODO)
 
 	int bw = 64;
 	int bh = s->m_context->TEX0.PSM == PSM_PSMCT32 || s->m_context->TEX0.PSM == PSM_PSMCT24 ? 32 : 64;
 
-	int sw = pt->m_TEX0.TBW << 6;
+	int sw = t->m_TEX0.TBW << 6;
 
 	int dw = s->m_context->TEX0.TBW << 6;
 	int dh = 1 << s->m_context->TEX0.TH;
 
 	HRESULT hr;
 
-	D3DSURFACE_DESC desc;
-	hr = pt->m_pTexture->GetLevelDesc(0, &desc);
-	if(FAILED(hr)) return NULL;
-
 	CComPtr<IDirect3DTexture9> pRT;
-	if(FAILED(hr = CreateRT(s, desc.Width, desc.Height, &pRT)))
+
+	if(FAILED(hr = CreateRenderTarget(s, t->m_desc.Width, t->m_desc.Height, &pRT)))
+	{
 		return NULL;
+	}
 
 	CComPtr<IDirect3DSurface9> pSrc, pDst;
+
 	hr = pRT->GetSurfaceLevel(0, &pSrc);
 	if(FAILED(hr)) return NULL;
-	hr = pt->m_pTexture->GetSurfaceLevel(0, &pDst);
+
+	hr = t->m_texture->GetSurfaceLevel(0, &pDst);
 	if(FAILED(hr)) return NULL;
 
-	hr = s->m_pD3DDev->StretchRect(pDst, NULL, pSrc, NULL, D3DTEXF_POINT);
+	hr = s->m_dev->StretchRect(pDst, NULL, pSrc, NULL, D3DTEXF_POINT);
 	if(FAILED(hr)) return NULL;
-
-	scale_t scale(pt->m_pTexture);
 
 	for(int dy = 0; dy < dh; dy += bh)
 	{
@@ -469,147 +291,96 @@ GSTexture* GSTextureCache::ConvertRTPitch(GSState* s, GSTexture* pt)
 
 			CRect src, dst;
 
-			src.left = (LONG)(scale.x * sx + 0.5f);
-			src.top = (LONG)(scale.y * sy + 0.5f);
-			src.right = (LONG)(scale.x * (sx + bw) + 0.5f);
-			src.bottom = (LONG)(scale.y * (sy + bh) + 0.5f);
+			src.left = (LONG)(t->m_scale.x * sx + 0.5f);
+			src.top = (LONG)(t->m_scale.y * sy + 0.5f);
+			src.right = (LONG)(t->m_scale.x * (sx + bw) + 0.5f);
+			src.bottom = (LONG)(t->m_scale.y * (sy + bh) + 0.5f);
 
-			dst.left = (LONG)(scale.x * dx + 0.5f);
-			dst.top = (LONG)(scale.y * dy + 0.5f);
-			dst.right = (LONG)(scale.x * (dx + bw) + 0.5f);
-			dst.bottom = (LONG)(scale.y * (dy + bh) + 0.5f);
+			dst.left = (LONG)(t->m_scale.x * dx + 0.5f);
+			dst.top = (LONG)(t->m_scale.y * dy + 0.5f);
+			dst.right = (LONG)(t->m_scale.x * (dx + bw) + 0.5f);
+			dst.bottom = (LONG)(t->m_scale.y * (dy + bh) + 0.5f);
 
-			hr = s->m_pD3DDev->StretchRect(pSrc, src, pDst, dst, D3DTEXF_POINT);
+			hr = s->m_dev->StretchRect(pSrc, src, pDst, dst, D3DTEXF_POINT);
 
 			// TODO: this is quite a lot of StretchRect call, do it with one DrawPrimUP
 		}
 	}
 
-	pt->m_TEX0.TW = s->m_context->TEX0.TW;
-	pt->m_TEX0.TBW = s->m_context->TEX0.TBW;
+	t->m_TEX0.TW = s->m_context->TEX0.TW;
+	t->m_TEX0.TBW = s->m_context->TEX0.TBW;
 
-	return pt;
+	return t;
 }
 
-GSTexture* GSTextureCache::ConvertRTWidthHeight(GSState* s, GSTexture* pt)
+GSTexture* GSTextureCache::ConvertRTWidthHeight(GSState* s, GSTexture* t)
 {
-	int tw = pt->m_scale.x * (1 << s->m_context->TEX0.TW);
-	int th = pt->m_scale.y * (1 << s->m_context->TEX0.TH);
+	int tw = t->m_scale.x * (1 << s->m_context->TEX0.TW);
+	int th = t->m_scale.y * (1 << s->m_context->TEX0.TH);
 
-	int rw = pt->m_desc.Width;
-	int rh = pt->m_desc.Height;
+	int rw = t->m_desc.Width;
+	int rh = t->m_desc.Height;
 
 	if(tw != rw || th != rh)
-	//if(tw < rw && th <= rh || tw <= rw && th < rh)
 	{
-		GSTexture* pt2 = new GSTexture();
-
-		pt2->m_pPalette = pt->m_pPalette;
-		pt2->m_fRT = pt->m_pPalette == NULL;
-		pt2->m_scale = pt->m_scale;
-		pt2->m_fTemp = true;
-
-		POSITION pos = pt->m_pSubTextures.GetHeadPosition();
-		while(pos)
+		CRect dst(0, 0, tw, th);
+		
+		if(tw > rw)
 		{
-			IDirect3DTexture9* pTexture = pt->m_pSubTextures.GetNext(pos);
-			pTexture->GetLevelDesc(0, &pt2->m_desc);
-			scale_t scale(pTexture);
-			if(pt2->m_desc.Width == tw && pt2->m_desc.Height == th
-			&& pt2->m_scale.x == scale.x && pt2->m_scale.y == scale.y)
-			{
-				pt2->m_pTexture = pTexture;
-				break;
-			}
-		}
-
-		if(!pt2->m_pTexture)
-		{
-			CRect dst(0, 0, tw, th);
-			
-			if(tw > rw)
-			{
-				pt2->m_scale.x = pt2->m_scale.x * rw / tw;
-				dst.right = rw * rw / tw;
-				tw = rw;
-			}
-			
-			if(th > rh)
-			{
-				pt2->m_scale.y = pt2->m_scale.y * rh / th;
-				dst.bottom = rh * rh / th;
-				th = rh;
-			}
-
-			CRect src(0, 0, tw, th);
-
-			HRESULT hr;
-
-			if(FAILED(hr = CreateRT(s, tw, th, &pt2->m_pTexture)) || FAILED(hr = pt2->m_pTexture->GetLevelDesc(0, &pt2->m_desc)))
-			{
-				delete pt2; 
-				return false;
-			}
-
-			CComPtr<IDirect3DSurface9> pSrc, pDst;
-			hr = pt->m_pTexture->GetSurfaceLevel(0, &pSrc);
-			hr = pt2->m_pTexture->GetSurfaceLevel(0, &pDst);
-
-			ASSERT(pSrc);
-			ASSERT(pDst);
-
-			hr = s->m_pD3DDev->StretchRect(pSrc, src, pDst, dst, src == dst ? D3DTEXF_POINT : D3DTEXF_LINEAR);
-
-			pt2->m_scale.Set(pt2->m_pTexture);
-			pt->m_pSubTextures.AddTail(pt2->m_pTexture);
+			float scale = t->m_scale.x;
+			t->m_scale.x = (float)rw / (1 << s->m_context->TEX0.TW);
+			dst.right = rw * t->m_scale.x / scale;
+			tw = rw;
 		}
 		
-		pt = pt2;
-	}
-
-	return pt;
-}
-
-HRESULT GSTextureCache::CreateRT(GSState* s, int w, int h, IDirect3DTexture9** ppRT)
-{
-	ASSERT(ppRT && *ppRT == NULL);
-
-	HRESULT hr;
-
-	POSITION pos = m_pRTPool.GetHeadPosition();
-	while(pos)
-	{
-		IDirect3DTexture9* pRT = m_pRTPool.GetNext(pos);
-		D3DSURFACE_DESC desc;
-		pRT->GetLevelDesc(0, &desc);
-		if(desc.Width == w && desc.Height == h)
+		if(th > rh)
 		{
-			(*ppRT = pRT)->AddRef();
-			return S_OK;
+			float scale = t->m_scale.y;
+			t->m_scale.y = (float)rh / (1 << s->m_context->TEX0.TH);
+			dst.bottom = rh * t->m_scale.y / scale;
+			th = rh;
 		}
+
+		CRect src(0, 0, tw, th);
+
+		HRESULT hr;
+
+		CComPtr<IDirect3DTexture9> rt;
+
+		hr = CreateRenderTarget(s, tw, th, &rt);
+		if(FAILED(hr)) return NULL;
+
+		CComPtr<IDirect3DSurface9> pSrc, pDst;
+
+		hr = t->m_texture->GetSurfaceLevel(0, &pSrc);
+		if(FAILED(hr)) return NULL;
+
+		hr = rt->GetSurfaceLevel(0, &pDst);
+		if(FAILED(hr)) return NULL;
+
+		hr = s->m_dev->StretchRect(pSrc, src, pDst, dst, src == dst ? D3DTEXF_POINT : D3DTEXF_LINEAR);
+		if(FAILED(hr)) return NULL;
+
+		t->m_texture = rt;
 	}
 
-	hr = s->m_pD3DDev->CreateTexture(w, h, 1, D3DUSAGE_RENDERTARGET, D3DFMT_A8R8G8B8, D3DPOOL_DEFAULT, ppRT, NULL);
-	if(FAILED(hr)) return hr;
-/**/
-	m_pRTPool.AddHead(*ppRT);
-	while(m_pRTPool.GetCount() > 3) m_pRTPool.RemoveTail();
-
-	return S_OK;
+	return t;
 }
 
-GSTexture* GSTextureCache::ConvertRT(GSState* s, GSTexture* pt)
+GSTexture* GSTextureCache::ConvertRT(GSState* s, GSTexture* t)
 {
-	ASSERT(pt->m_fRT);
+	ASSERT(t->m_rt);
 
 	// FIXME: RT + 8h,4hl,4hh
 
 	if(s->m_context->TEX0.PSM == PSM_PSMT8H)
 	{
-		if(!pt->m_pPalette)
+		if(!t->m_palette)
 		{
-			if(FAILED(s->m_pD3DDev->CreateTexture(256, 1, 1, 0, s->m_context->TEX0.CPSM == PSM_PSMCT32 ? D3DFMT_A8R8G8B8 : D3DFMT_A1R5G5B5, D3DPOOL_MANAGED, &pt->m_pPalette, NULL)))
+			if(FAILED(s->m_dev->CreateTexture(256, 1, 1, 0, s->m_context->TEX0.CPSM == PSM_PSMCT32 ? D3DFMT_A8R8G8B8 : D3DFMT_A1R5G5B5, D3DPOOL_MANAGED, &t->m_palette, NULL)))
+			{
 				return NULL;
+			}
 		}
 	}
 	else if(GSLocalMemory::m_psmtbl[s->m_context->TEX0.PSM].pal)
@@ -617,16 +388,16 @@ GSTexture* GSTextureCache::ConvertRT(GSState* s, GSTexture* pt)
 		return NULL;
 	}
 
-	pt = ConvertRTPitch(s, pt);
+	t = ConvertRTPitch(s, t);
 
-	pt = ConvertRTWidthHeight(s, pt);
+	t = ConvertRTWidthHeight(s, t);
 
-	return pt;
+	return t;
 }
 
-bool GSTextureCache::Fetch(GSState* s, GSTextureBase& t)
+bool GSTextureCache::Fetch(GSState* s, GSTextureBase& tb)
 {
-	GSTexture* pt = NULL;
+	GSTexture* t = NULL;
 
 	int nPaletteEntries = GSLocalMemory::m_psmtbl[s->m_context->TEX0.PSM].pal;
 
@@ -642,25 +413,28 @@ bool GSTextureCache::Fetch(GSState* s, GSTextureBase& t)
 
 	POSITION pos = GetHeadPosition();
 
-	while(pos && !pt)
+	while(pos && !t)
 	{
 		POSITION cur = pos;
-		pt = GetNext(pos);
+		
+		t = GetNext(pos);
 
-		if(HasSharedBits(pt->m_TEX0.TBP0, pt->m_TEX0.PSM, s->m_context->TEX0.TBP0, s->m_context->TEX0.PSM))
+		if(HasSharedBits(t->m_TEX0.TBP0, t->m_TEX0.PSM, s->m_context->TEX0.TBP0, s->m_context->TEX0.PSM))
 		{
-			if(pt->m_fRT)
+			if(t->m_rt)
 			{
 				lr = found;
 
-				if(!(pt = ConvertRT(s, pt)))
+				if(!(t = ConvertRT(s, t)))
+				{
 					return false;
+				}
 			}
-			else if(s->m_context->TEX0.PSM == pt->m_TEX0.PSM && pt->m_TEX0.TBW == s->m_context->TEX0.TBW
-			&& s->m_context->TEX0.TW == pt->m_TEX0.TW && s->m_context->TEX0.TH == pt->m_TEX0.TH
-			&& (!(s->m_context->CLAMP.WMS&2) && !(pt->m_CLAMP.WMS&2) && !(s->m_context->CLAMP.WMT&2) && !(pt->m_CLAMP.WMT&2) || s->m_context->CLAMP.i64 == pt->m_CLAMP.i64)
-			&& s->m_env.TEXA.TA0 == pt->m_TEXA.TA0 && s->m_env.TEXA.TA1 == pt->m_TEXA.TA1 && s->m_env.TEXA.AEM == pt->m_TEXA.AEM
-			&& (!nPaletteEntries || s->m_context->TEX0.CPSM == pt->m_TEX0.CPSM && !memcmp(pt->m_clut, clut, nPaletteEntries*sizeof(clut[0]))))
+			else if(s->m_context->TEX0.PSM == t->m_TEX0.PSM && t->m_TEX0.TBW == s->m_context->TEX0.TBW
+			&& s->m_context->TEX0.TW == t->m_TEX0.TW && s->m_context->TEX0.TH == t->m_TEX0.TH
+			&& (!(s->m_context->CLAMP.WMS & 2) && !(t->m_CLAMP.WMS & 2) && !(s->m_context->CLAMP.WMT & 2) && !(t->m_CLAMP.WMT & 2) || s->m_context->CLAMP.i64 == t->m_CLAMP.i64)
+			&& s->m_env.TEXA.TA0 == t->m_TEXA.TA0 && s->m_env.TEXA.TA1 == t->m_TEXA.TA1 && s->m_env.TEXA.AEM == t->m_TEXA.AEM
+			&& (!nPaletteEntries || s->m_context->TEX0.CPSM == t->m_TEX0.CPSM && !memcmp(t->m_clut, clut, nPaletteEntries * sizeof(clut[0]))))
 			{
 				lr = needsupdate;
 			}
@@ -668,58 +442,53 @@ bool GSTextureCache::Fetch(GSState* s, GSTextureBase& t)
 
 		if(lr != notfound) {MoveToHead(cur); break;}
 
-		pt = NULL;
+		t = NULL;
 	}
 
 	if(lr == notfound)
 	{
-		pt = new GSTexture();
+		t = new GSTexture();
 
-		pt->m_TEX0 = s->m_context->TEX0;
-		pt->m_CLAMP = s->m_context->CLAMP;
-		pt->m_TEXA = s->m_env.TEXA;
+		t->m_TEX0 = s->m_context->TEX0;
+		t->m_CLAMP = s->m_context->CLAMP;
+		t->m_TEXA = s->m_env.TEXA;
 
-		if(!SUCCEEDED(CreateTexture(s, pt, PSM_PSMCT32)))
+		if(!SUCCEEDED(CreateTexture(s, t, PSM_PSMCT32)))
 		{
-			delete pt;
+			delete t;
 			return false;
 		}
-
-		RemoveOldTextures(s);
-
-		AddHead(pt);
 
 		lr = needsupdate;
 	}
 
-	ASSERT(pt);
+	ASSERT(t);
 
-	if(pt && nPaletteEntries)
+	if(t && nPaletteEntries)
 	{
-		memcpy(pt->m_clut, clut, nPaletteEntries*sizeof(clut[0]));
+		memcpy(t->m_clut, clut, nPaletteEntries * sizeof(clut[0]));
 	}
 
 	if(lr == needsupdate)
 	{
-		UpdateTexture(s, pt, &GSLocalMemory::ReadTexture);
+		t->Update(s, &GSLocalMemory::ReadTexture);
 
 		lr = found;
 	}
 
 	if(lr == found)
 	{
-		pt->m_nAge = 0;
-		t = *pt;
-		if(pt->m_fTemp) delete pt;
+		t->m_age = 0;
+		tb = *t;
 		return true;
 	}
 
 	return false;
 }
 
-bool GSTextureCache::FetchP(GSState* s, GSTextureBase& t)
+bool GSTextureCache::FetchP(GSState* s, GSTextureBase& tb)
 {
-	GSTexture* pt = NULL;
+	GSTexture* t = NULL;
 
 	int nPaletteEntries = GSLocalMemory::m_psmtbl[s->m_context->TEX0.PSM].pal;
 
@@ -727,23 +496,26 @@ bool GSTextureCache::FetchP(GSState* s, GSTextureBase& t)
 
 	POSITION pos = GetHeadPosition();
 
-	while(pos && !pt)
+	while(pos && !t)
 	{
 		POSITION cur = pos;
-		pt = GetNext(pos);
 
-		if(HasSharedBits(pt->m_TEX0.TBP0, pt->m_TEX0.PSM, s->m_context->TEX0.TBP0, s->m_context->TEX0.PSM))
+		t = GetNext(pos);
+
+		if(HasSharedBits(t->m_TEX0.TBP0, t->m_TEX0.PSM, s->m_context->TEX0.TBP0, s->m_context->TEX0.PSM))
 		{
-			if(pt->m_fRT)
+			if(t->m_rt)
 			{
 				lr = found;
 
-				if(!(pt = ConvertRT(s, pt)))
+				if(!(t = ConvertRT(s, t)))
+				{
 					return false;
+				}
 			}
-			else if(s->m_context->TEX0.PSM == pt->m_TEX0.PSM && pt->m_TEX0.TBW == s->m_context->TEX0.TBW
-			&& s->m_context->TEX0.TW == pt->m_TEX0.TW && s->m_context->TEX0.TH == pt->m_TEX0.TH
-			&& (!(s->m_context->CLAMP.WMS&2) && !(pt->m_CLAMP.WMS&2) && !(s->m_context->CLAMP.WMT&2) && !(pt->m_CLAMP.WMT&2) || s->m_context->CLAMP.i64 == pt->m_CLAMP.i64))
+			else if(s->m_context->TEX0.PSM == t->m_TEX0.PSM && t->m_TEX0.TBW == s->m_context->TEX0.TBW
+			&& s->m_context->TEX0.TW == t->m_TEX0.TW && s->m_context->TEX0.TH == t->m_TEX0.TH
+			&& (!(s->m_context->CLAMP.WMS&2) && !(t->m_CLAMP.WMS&2) && !(s->m_context->CLAMP.WMT&2) && !(t->m_CLAMP.WMT&2) || s->m_context->CLAMP.i64 == t->m_CLAMP.i64))
 			{
 				lr = needsupdate;
 			}
@@ -751,63 +523,58 @@ bool GSTextureCache::FetchP(GSState* s, GSTextureBase& t)
 
 		if(lr != notfound) {MoveToHead(cur); break;}
 		
-		pt = NULL;
+		t = NULL;
 	}
 
 	if(lr == notfound)
 	{
-		pt = new GSTexture();
+		t = new GSTexture();
 
-		pt->m_TEX0 = s->m_context->TEX0;
-		pt->m_CLAMP = s->m_context->CLAMP;
-		// pt->m_TEXA = s->m_env.TEXA;
+		t->m_TEX0 = s->m_context->TEX0;
+		t->m_CLAMP = s->m_context->CLAMP;
+		// t->m_TEXA = s->m_env.TEXA;
 
-		if(!SUCCEEDED(CreateTexture(s, pt, s->m_context->TEX0.PSM, PSM_PSMCT32)))
+		if(!SUCCEEDED(CreateTexture(s, t, s->m_context->TEX0.PSM, PSM_PSMCT32)))
 		{
-			delete pt;
+			delete t;
 			return false;
 		}
-
-		RemoveOldTextures(s);
-
-		AddHead(pt);
 
 		lr = needsupdate;
 	}
 
-	ASSERT(pt);
+	ASSERT(t);
 
-	if(pt && pt->m_pPalette) 
+	if(t && t->m_palette) 
 	{
 		D3DLOCKED_RECT r;
-		if(FAILED(pt->m_pPalette->LockRect(0, &r, NULL, 0)))
+		if(FAILED(t->m_palette->LockRect(0, &r, NULL, 0)))
 			return false;
 		s->m_mem.ReadCLUT32(s->m_context->TEX0, s->m_env.TEXA, (DWORD*)r.pBits);
-		pt->m_pPalette->UnlockRect(0);
+		t->m_palette->UnlockRect(0);
 		s->m_perfmon.Put(GSPerfMon::Texture, 256*4);
 	}
 
 	if(lr == needsupdate)
 	{
-		UpdateTexture(s, pt, &GSLocalMemory::ReadTextureP);
+		t->Update(s, &GSLocalMemory::ReadTextureP);
 
 		lr = found;
 	}
 
 	if(lr == found)
 	{
-		pt->m_nAge = 0;
-		t = *pt;
-		if(pt->m_fTemp) delete pt;
+		t->m_age = 0;
+		tb = *t;
 		return true;
 	}
 
 	return false;
 }
 
-bool GSTextureCache::FetchNP(GSState* s, GSTextureBase& t)
+bool GSTextureCache::FetchNP(GSState* s, GSTextureBase& tb)
 {
-	GSTexture* pt = NULL;
+	GSTexture* t = NULL;
 
 	int nPaletteEntries = GSLocalMemory::m_psmtbl[s->m_context->TEX0.PSM].pal;
 
@@ -823,25 +590,28 @@ bool GSTextureCache::FetchNP(GSState* s, GSTextureBase& t)
 
 	POSITION pos = GetHeadPosition();
 
-	while(pos && !pt)
+	while(pos && !t)
 	{
 		POSITION cur = pos;
-		pt = GetNext(pos);
 
-		if(HasSharedBits(pt->m_TEX0.TBP0, pt->m_TEX0.PSM, s->m_context->TEX0.TBP0, s->m_context->TEX0.PSM))
+		t = GetNext(pos);
+
+		if(HasSharedBits(t->m_TEX0.TBP0, t->m_TEX0.PSM, s->m_context->TEX0.TBP0, s->m_context->TEX0.PSM))
 		{
-			if(pt->m_fRT)
+			if(t->m_rt)
 			{
 				lr = found;
 
-				if(!(pt = ConvertRT(s, pt)))
+				if(!(t = ConvertRT(s, t)))
+				{
 					return false;
+				}
 			}
-			else if(s->m_context->TEX0.PSM == pt->m_TEX0.PSM && pt->m_TEX0.TBW == s->m_context->TEX0.TBW
-			&& s->m_context->TEX0.TW == pt->m_TEX0.TW && s->m_context->TEX0.TH == pt->m_TEX0.TH
-			&& (!(s->m_context->CLAMP.WMS&2) && !(pt->m_CLAMP.WMS&2) && !(s->m_context->CLAMP.WMT&2) && !(pt->m_CLAMP.WMT&2) || s->m_context->CLAMP.i64 == pt->m_CLAMP.i64)
-			// && s->m_env.TEXA.TA0 == pt->m_TEXA.TA0 && s->m_env.TEXA.TA1 == pt->m_TEXA.TA1 && s->m_env.TEXA.AEM == pt->m_TEXA.AEM
-			&& (!nPaletteEntries || s->m_context->TEX0.CPSM == pt->m_TEX0.CPSM && !memcmp(pt->m_clut, clut, nPaletteEntries*sizeof(clut[0]))))
+			else if(s->m_context->TEX0.PSM == t->m_TEX0.PSM && t->m_TEX0.TBW == s->m_context->TEX0.TBW
+			&& s->m_context->TEX0.TW == t->m_TEX0.TW && s->m_context->TEX0.TH == t->m_TEX0.TH
+			&& (!(s->m_context->CLAMP.WMS & 2) && !(t->m_CLAMP.WMS & 2) && !(s->m_context->CLAMP.WMT & 2) && !(t->m_CLAMP.WMT & 2) || s->m_context->CLAMP.i64 == t->m_CLAMP.i64)
+			// && s->m_env.TEXA.TA0 == t->m_TEXA.TA0 && s->m_env.TEXA.TA1 == t->m_TEXA.TA1 && s->m_env.TEXA.AEM == t->m_TEXA.AEM
+			&& (!nPaletteEntries || s->m_context->TEX0.CPSM == t->m_TEX0.CPSM && !memcmp(t->m_clut, clut, nPaletteEntries * sizeof(clut[0]))))
 			{
 				lr = needsupdate;
 			}
@@ -849,16 +619,16 @@ bool GSTextureCache::FetchNP(GSState* s, GSTextureBase& t)
 
 		if(lr != notfound) {MoveToHead(cur); break;}
 
-		pt = NULL;
+		t = NULL;
 	}
 
 	if(lr == notfound)
 	{
-		pt = new GSTexture();
+		t = new GSTexture();
 
-		pt->m_TEX0 = s->m_context->TEX0;
-		pt->m_CLAMP = s->m_context->CLAMP;
-		// pt->m_TEXA = s->m_env.TEXA;
+		t->m_TEX0 = s->m_context->TEX0;
+		t->m_CLAMP = s->m_context->CLAMP;
+		// t->m_TEXA = s->m_env.TEXA;
 
 		DWORD psm = s->m_context->TEX0.PSM;
 
@@ -873,38 +643,33 @@ bool GSTextureCache::FetchNP(GSState* s, GSTextureBase& t)
 			break;
 		}
 
-		if(!SUCCEEDED(CreateTexture(s, pt, psm)))
+		if(!SUCCEEDED(CreateTexture(s, t, psm)))
 		{
-			delete pt;
+			delete t;
 			return false;
 		}
-
-		RemoveOldTextures(s);
-
-		AddHead(pt);
 
 		lr = needsupdate;
 	}
 
-	ASSERT(pt);
+	ASSERT(t);
 
-	if(pt && nPaletteEntries)
+	if(t && nPaletteEntries)
 	{
-		memcpy(pt->m_clut, clut, nPaletteEntries*sizeof(clut[0]));
+		memcpy(t->m_clut, clut, nPaletteEntries * sizeof(clut[0]));
 	}
 
 	if(lr == needsupdate)
 	{
-		UpdateTexture(s, pt, &GSLocalMemory::ReadTextureNP);
+		t->Update(s, &GSLocalMemory::ReadTextureNP);
 
 		lr = found;
 	}
 
 	if(lr == found)
 	{
-		pt->m_nAge = 0;
-		t = *pt;
-		if(pt->m_fTemp) delete pt;
+		t->m_age = 0;
+		tb = *t;
 		return true;
 	}
 
@@ -918,14 +683,17 @@ void GSTextureCache::IncAge(CSurfMap<IDirect3DTexture9>& pRTs)
 	while(pos)
 	{
 		POSITION cur = pos;
-		GSTexture* pt = GetNext(pos);
-		pt->m_nAge++;
-		pt->m_nVsyncs++;
-		if(pt->m_nAge > 10 && (!pt->m_fRT || pRTs.GetCount() > 3))
+
+		GSTexture* t = GetNext(pos);
+
+		t->m_age++;
+		t->m_vsync++;
+
+		if(t->m_age > 10 && (!t->m_rt || pRTs.GetCount() > 3))
 		{
-			pRTs.RemoveKey(pt->m_TEX0.TBP0);
+			pRTs.RemoveKey(t->m_TEX0.TBP0);
 			RemoveAt(cur);
-			delete pt;
+			delete t;
 		}
 	}
 }
@@ -936,16 +704,13 @@ void GSTextureCache::ResetAge(DWORD TBP0)
 
 	while(pos)
 	{
-		GSTexture* pt = GetNext(pos);
-		if(pt->m_TEX0.TBP0 == TBP0) pt->m_nAge = 0;
+		GSTexture* t = GetNext(pos);
+		
+		if(t->m_TEX0.TBP0 == TBP0)
+		{
+			t->m_age = 0;
+		}
 	}
-}
-
-void GSTextureCache::RemoveAll()
-{
-	while(GetCount()) delete RemoveHead();
-	m_pTexturePool.RemoveAll();
-	m_pRTPool.RemoveAll();
 }
 
 void GSTextureCache::InvalidateTexture(GSState* s, const GIFRegBITBLTBUF& BITBLTBUF, const CRect& r)
@@ -962,27 +727,30 @@ void GSTextureCache::InvalidateTexture(GSState* s, const GIFRegBITBLTBUF& BITBLT
 	while(pos)
 	{
 		POSITION cur = pos;
-		GSTexture* pt = GetNext(pos);
-		if(HasSharedBits(TEX0.TBP0, TEX0.PSM, pt->m_TEX0.TBP0, pt->m_TEX0.PSM)) 
+		
+		GSTexture* t = GetNext(pos);
+
+		if(HasSharedBits(TEX0.TBP0, TEX0.PSM, t->m_TEX0.TBP0, t->m_TEX0.PSM)) 
 		{
-			if(TEX0.TBW != pt->m_TEX0.TBW)
+			if(TEX0.TBW != t->m_TEX0.TBW)
 			{
-				// if TEX0.TBW != pt->m_TEX0.TBW then this render target is more likely to 
+				// if TEX0.TBW != t->m_TEX0.TBW then this render target is more likely to 
 				// be discarded by the game (means it doesn't want to transfer an image over 
 				// another pre-rendered image) and can be refetched from local mem safely.
 
 				RemoveAt(cur);
-				delete pt;
+				delete t;
 			}
-			else if(pt->m_fRT) 
+			else if(t->m_rt) 
 			{
-				// TEX0.TBW = pt->m_TEX0.TBW;
-				TEX0.PSM = pt->m_TEX0.PSM;
+				// TEX0.TBW = t->m_TEX0.TBW;
+				TEX0.PSM = t->m_TEX0.PSM;
 
-				if(TEX0.PSM == PSM_PSMCT32 || TEX0.PSM == PSM_PSMCT24 
-				|| TEX0.PSM == PSM_PSMCT16 || TEX0.PSM == PSM_PSMCT16S) 
+				if(TEX0.PSM == PSM_PSMCT32 || TEX0.PSM == PSM_PSMCT24 || TEX0.PSM == PSM_PSMCT16 || TEX0.PSM == PSM_PSMCT16S) 
 				{
-//					pt->m_rcDirty.AddHead(GSDirtyRect(PSM, r));
+//					t->m_dirty.AddHead(GSDirtyRect(PSM, r));
+
+					TRACE(_T("%d,%d - %d,%d (%08x)\n"), r.left, r.top, r.right, r.bottom, TEX0.TBP0);
 
 					HRESULT hr;
 
@@ -990,53 +758,57 @@ void GSTextureCache::InvalidateTexture(GSState* s, const GIFRegBITBLTBUF& BITBLT
 					int th = r.Height();
 
 					CComPtr<IDirect3DTexture9> pSrc;
-					hr = s->m_pD3DDev->CreateTexture(tw, th, 1, 0, D3DFMT_A8R8G8B8, D3DPOOL_MANAGED, &pSrc, NULL);
+					
+					hr = s->m_dev->CreateTexture(tw, th, 1, 0, D3DFMT_A8R8G8B8, D3DPOOL_MANAGED, &pSrc, NULL);
+TRACE(_T("5. CreateTexture(%d, %d)\n"), tw, th);
 
 					D3DLOCKED_RECT lr;
+
 					if(pSrc && SUCCEEDED(pSrc->LockRect(0, &lr, NULL, 0)))
 					{
 						GIFRegTEXA TEXA;
+
 						TEXA.AEM = 1;
 						TEXA.TA0 = 0;
 						TEXA.TA1 = 0x80;
 
 						GIFRegCLAMP CLAMP;
+
 						CLAMP.WMS = 0;
 						CLAMP.WMT = 0;
 
 						s->m_mem.ReadTexture(r, (BYTE*)lr.pBits, lr.Pitch, TEX0, TEXA, CLAMP);
-						s->m_perfmon.Put(GSPerfMon::Unswizzle, r.Width()*r.Height()*4);
+						
+						s->m_perfmon.Put(GSPerfMon::Unswizzle, r.Width() * r.Height() * 4);
 
 						pSrc->UnlockRect(0);
 
-						scale_t scale(pt->m_pTexture);
-
-						CRect dst;
-						dst.left = (long)(scale.x * r.left + 0.5);
-						dst.top = (long)(scale.y * r.top + 0.5);
-						dst.right = (long)(scale.x * r.right + 0.5);
-						dst.bottom = (long)(scale.y * r.bottom + 0.5);
+						float left = t->m_scale.x * r.left;
+						float top = t->m_scale.y * r.top;
+						float right = t->m_scale.x * r.right;
+						float bottom = t->m_scale.y * r.bottom;
 
 						//
 
 						CComPtr<IDirect3DSurface9> pRTSurf;
-						hr = pt->m_pTexture->GetSurfaceLevel(0, &pRTSurf);
-						hr = s->m_pD3DDev->SetRenderTarget(0, pRTSurf);
-						hr = s->m_pD3DDev->SetDepthStencilSurface(NULL);
+						hr = t->m_texture->GetSurfaceLevel(0, &pRTSurf);
 
-						hr = s->m_pD3DDev->SetTexture(0, pSrc);
-						hr = s->m_pD3DDev->SetSamplerState(0, D3DSAMP_MAGFILTER, D3DTEXF_LINEAR);
-						hr = s->m_pD3DDev->SetSamplerState(0, D3DSAMP_MINFILTER, D3DTEXF_LINEAR);
-						hr = s->m_pD3DDev->SetRenderState(D3DRS_ZENABLE, FALSE);
-						hr = s->m_pD3DDev->SetRenderState(D3DRS_ALPHATESTENABLE, FALSE);
-						hr = s->m_pD3DDev->SetRenderState(D3DRS_ALPHABLENDENABLE, TRUE);
-						hr = s->m_pD3DDev->SetRenderState(D3DRS_BLENDOP, D3DBLENDOP_ADD);
-						hr = s->m_pD3DDev->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_ONE);
-						hr = s->m_pD3DDev->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_ZERO);
-						hr = s->m_pD3DDev->SetRenderState(D3DRS_SCISSORTESTENABLE, FALSE);
-						hr = s->m_pD3DDev->SetRenderState(D3DRS_COLORWRITEENABLE, D3DCOLORWRITEENABLE_RGBA);
+						hr = s->m_dev->SetRenderTarget(0, pRTSurf);
+						hr = s->m_dev->SetDepthStencilSurface(NULL);
 
-						hr = s->m_pD3DDev->SetPixelShader(NULL);
+						hr = s->m_dev->SetTexture(0, pSrc);
+						hr = s->m_dev->SetSamplerState(0, D3DSAMP_MAGFILTER, D3DTEXF_LINEAR);
+						hr = s->m_dev->SetSamplerState(0, D3DSAMP_MINFILTER, D3DTEXF_LINEAR);
+						hr = s->m_dev->SetRenderState(D3DRS_ZENABLE, FALSE);
+						hr = s->m_dev->SetRenderState(D3DRS_ALPHATESTENABLE, FALSE);
+						hr = s->m_dev->SetRenderState(D3DRS_ALPHABLENDENABLE, TRUE);
+						hr = s->m_dev->SetRenderState(D3DRS_BLENDOP, D3DBLENDOP_ADD);
+						hr = s->m_dev->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_ONE);
+						hr = s->m_dev->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_ZERO);
+						hr = s->m_dev->SetRenderState(D3DRS_SCISSORTESTENABLE, FALSE);
+						hr = s->m_dev->SetRenderState(D3DRS_COLORWRITEENABLE, D3DCOLORWRITEENABLE_RGBA);
+
+						hr = s->m_dev->SetPixelShader(NULL);
 
 						struct
 						{
@@ -1045,28 +817,27 @@ void GSTextureCache::InvalidateTexture(GSState* s, const GIFRegBITBLTBUF& BITBLT
 						}
 						pVertices[] =
 						{
-							{(float)dst.left, (float)dst.top, 0.5f, 2.0f, 0, 0},
-							{(float)dst.right, (float)dst.top, 0.5f, 2.0f, 1.0f * r.Width() / tw, 0},
-							{(float)dst.left, (float)dst.bottom, 0.5f, 2.0f, 0, 1},
-							{(float)dst.right, (float)dst.bottom, 0.5f, 2.0f, 1.0f * r.Width() / tw, 1},
+							{(float)left, (float)top, 0.5f, 2.0f, 0, 0},
+							{(float)right, (float)top, 0.5f, 2.0f, 1.0f * r.Width() / tw, 0},
+							{(float)left, (float)bottom, 0.5f, 2.0f, 0, 1},
+							{(float)right, (float)bottom, 0.5f, 2.0f, 1.0f * r.Width() / tw, 1},
 						};
 
-						hr = s->m_pD3DDev->BeginScene();
-						hr = s->m_pD3DDev->SetFVF(D3DFVF_XYZRHW | D3DFVF_TEX1);
-						hr = s->m_pD3DDev->DrawPrimitiveUP(D3DPT_TRIANGLESTRIP, 2, pVertices, sizeof(pVertices[0]));
-						hr = s->m_pD3DDev->EndScene();
-
+						hr = s->m_dev->BeginScene();
+						hr = s->m_dev->SetFVF(D3DFVF_XYZRHW | D3DFVF_TEX1);
+						hr = s->m_dev->DrawPrimitiveUP(D3DPT_TRIANGLESTRIP, 2, pVertices, sizeof(pVertices[0]));
+						hr = s->m_dev->EndScene();
 					}
 				}
 				else
 				{
 					RemoveAt(cur);
-					delete pt;
+					delete t;
 				}
 			}
 			else
 			{
-				pt->m_rcDirty.AddHead(GSDirtyRect(TEX0.PSM, r));
+				t->m_dirty.AddHead(GSDirtyRect(TEX0.PSM, r));
 			}
 		}
 	}
@@ -1081,10 +852,12 @@ void GSTextureCache::InvalidateLocalMem(GSState* s, DWORD TBP0, DWORD BW, DWORD 
 	while(pos)
 	{
 		POSITION cur = pos;
-		GSTexture* pt = GetNext(pos);
-		if(pt->m_TEX0.TBP0 == TBP0 && pt->m_fRT) 
+
+		GSTexture* t = GetNext(pos);
+
+		if(t->m_TEX0.TBP0 == TBP0 && t->m_rt) 
 		{
-			pRT = pt->m_pTexture;
+			pRT = t->m_texture;
 			break;
 		}
 	}
@@ -1104,10 +877,10 @@ void GSTextureCache::InvalidateLocalMem(GSState* s, DWORD TBP0, DWORD BW, DWORD 
 	if(FAILED(hr)) return;
 
 	CComPtr<IDirect3DSurface9> pSysMem;
-	hr = s->m_pD3DDev->CreateOffscreenPlainSurface(desc.Width, desc.Height, D3DFMT_A8R8G8B8, D3DPOOL_SYSTEMMEM, &pSysMem, NULL);
+	hr = s->m_dev->CreateOffscreenPlainSurface(desc.Width, desc.Height, D3DFMT_A8R8G8B8, D3DPOOL_SYSTEMMEM, &pSysMem, NULL);
 	if(FAILED(hr)) return;
 
-	hr = s->m_pD3DDev->GetRenderTargetData(pVidMem, pSysMem);
+	hr = s->m_dev->GetRenderTargetData(pVidMem, pSysMem);
 	if(FAILED(hr)) return;
 
 	D3DLOCKED_RECT lr;
@@ -1137,27 +910,31 @@ void GSTextureCache::InvalidateLocalMem(GSState* s, DWORD TBP0, DWORD BW, DWORD 
 	*/
 }
 
-void GSTextureCache::AddRT(GIFRegTEX0& TEX0, IDirect3DTexture9* pRT, scale_t scale)
+void GSTextureCache::AddRT(GIFRegTEX0& TEX0, IDirect3DTexture9* pRT, GSScale scale)
 {
 	POSITION pos = GetHeadPosition();
 
 	while(pos)
 	{
 		POSITION cur = pos;
-		GSTexture* pt = GetNext(pos);
-		if(HasSharedBits(TEX0.TBP0, TEX0.PSM, pt->m_TEX0.TBP0, pt->m_TEX0.PSM))
+
+		GSTexture* t = GetNext(pos);
+
+		if(HasSharedBits(TEX0.TBP0, TEX0.PSM, t->m_TEX0.TBP0, t->m_TEX0.PSM))
 		{
 			RemoveAt(cur);
-			delete pt;
+			delete t;
 		}
 	}
 
-	GSTexture* pt = new GSTexture();
-	pt->m_TEX0 = TEX0;
-	pt->m_pTexture = pRT;
-	pt->m_pTexture->GetLevelDesc(0, &pt->m_desc);
-	pt->m_scale = scale;
-	pt->m_fRT = true;
+	GSTexture* t = new GSTexture();
 
-	AddHead(pt);
+	t->m_TEX0 = TEX0;
+	t->m_texture = pRT;
+	t->m_texture->GetLevelDesc(0, &t->m_desc);
+	t->m_scale = scale;
+	t->m_rt = true;
+	t->m_bpp = 32;
+
+	AddHead(t);
 }

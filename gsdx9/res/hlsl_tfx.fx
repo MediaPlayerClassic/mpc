@@ -379,12 +379,3 @@ float4 main_notfx(PS_INPUT input) : COLOR
 	input.diff.a *= 2;
 	return ApplyFog(input.diff, input.fog);
 }
-
-//
-// main 8P -> 32
-//
-
-float4 main_8PTo32(float4 diff : COLOR0, float2 tex : TEXCOORD0) : COLOR
-{
-	return tex1D(Palette, tex2D(Texture, tex).x - s_palerr);
-}

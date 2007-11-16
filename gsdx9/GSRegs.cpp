@@ -139,7 +139,7 @@ void GSState::GIFPackedRegHandlerNOP(GIFPackedReg* r)
 
 void GSState::GIFRegHandlerNull(GIFReg* r)
 {
-	ASSERT(0);
+	// ASSERT(0);
 }
 
 void GSState::GIFRegHandlerPRIM(GIFReg* r)
