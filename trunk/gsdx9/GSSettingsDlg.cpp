@@ -45,8 +45,9 @@ static struct {DWORD id; const TCHAR* name;} s_interlace[] =
 {
 	{0, _T("None")},
 	{1, _T("Weave (saw-tooth)")},
-	{2, _T("Bob (use blend if shaking)")},
-	{3, _T("Blend (slight blur, 1/2 fps)")},
+	{2, _T("Bob, tff (use blend if shaking)")},
+	{3, _T("Bob, bff (use blend if shaking)")},
+	{4, _T("Blend (slight blur, 1/2 fps)")},
 };
 
 static struct {DWORD id; const TCHAR* name;} s_ar[] =

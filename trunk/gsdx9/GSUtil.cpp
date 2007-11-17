@@ -134,10 +134,8 @@ HRESULT AssembleShaderFromResource(IDirect3DDevice9* dev, UINT id, UINT flags, I
 	return hr;
 }
 
-bool HasSharedBits(DWORD sbp, DWORD spsm, DWORD dbp, DWORD dpsm)
+bool HasSharedBits(DWORD spsm, DWORD dpsm)
 {
-	if(sbp != dbp) return false;
-
 	switch(spsm)
 	{
 	case PSM_PSMCT32:
@@ -159,3 +157,24 @@ bool HasSharedBits(DWORD sbp, DWORD spsm, DWORD dbp, DWORD dpsm)
 	return true;
 }
 
+bool HasSharedBits(DWORD sbp, DWORD spsm, DWORD dbp, DWORD dpsm)
+{
+	if(sbp != dbp) return false;
+
+	return HasSharedBits(spsm, dpsm);
+}
+
+bool IsRectInRect(const CRect& inner, const CRect& outer)
+{
+	return outer.left <= inner.left && inner.right <= outer.right && outer.top <= inner.top && inner.bottom <= outer.bottom;
+}
+
+bool IsRectInRectH(const CRect& inner, const CRect& outer)
+{
+	return outer.top <= inner.top && inner.bottom <= outer.bottom;
+}
+
+bool IsRectInRectV(const CRect& inner, const CRect& outer)
+{
+	return outer.left <= inner.left && inner.right <= outer.right;
+}

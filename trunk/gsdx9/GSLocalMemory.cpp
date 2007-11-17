@@ -180,6 +180,7 @@ GSLocalMemory::GSLocalMemory()
 		m_psmtbl[i].bpp = m_psmtbl[i].trbpp = 32;
 		m_psmtbl[i].pal = 0;
 		m_psmtbl[i].bs = CSize(8, 8);
+		m_psmtbl[i].pgs = CSize(64, 32);
 		for(int j = 0; j < 8; j++) m_psmtbl[i].rowOffset[j] = rowOffset32;
 	}
 
@@ -353,6 +354,11 @@ GSLocalMemory::GSLocalMemory()
 	m_psmtbl[PSM_PSMT8].bs = CSize(16, 16);
 	m_psmtbl[PSM_PSMT4].bs = CSize(32, 32);
 	m_psmtbl[PSM_PSMZ16].bs = m_psmtbl[PSM_PSMZ16S].bs = CSize(16, 8);
+
+	m_psmtbl[PSM_PSMCT16].pgs = m_psmtbl[PSM_PSMCT16S].pgs = CSize(64, 64);
+	m_psmtbl[PSM_PSMT8].pgs = CSize(128, 64);
+	m_psmtbl[PSM_PSMT4].pgs = CSize(128, 128);
+	m_psmtbl[PSM_PSMZ16].pgs = m_psmtbl[PSM_PSMZ16S].pgs = CSize(64, 64);
 
 	for(int i = 0; i < 8; i++) m_psmtbl[PSM_PSMCT16].rowOffset[i] = rowOffset16;
 	for(int i = 0; i < 8; i++) m_psmtbl[PSM_PSMCT16S].rowOffset[i] = rowOffset16S;

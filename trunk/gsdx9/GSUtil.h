@@ -26,4 +26,8 @@ extern bool IsRenderTarget(IDirect3DTexture9* pTexture);
 extern HRESULT CompileShaderFromResource(IDirect3DDevice9* dev, UINT id, CString entry, CString target, UINT flags, IDirect3DVertexShader9** ppVertexShader, ID3DXConstantTable** ppConstantTable = NULL);
 extern HRESULT CompileShaderFromResource(IDirect3DDevice9* dev, UINT id, CString entry, CString target, UINT flags, IDirect3DPixelShader9** ppPixelShader, ID3DXConstantTable** ppConstantTable = NULL);
 extern HRESULT AssembleShaderFromResource(IDirect3DDevice9* dev, UINT id, UINT flags, IDirect3DPixelShader9** ppPixelShader);
+extern bool HasSharedBits(DWORD spsm, DWORD dpsm);
 extern bool HasSharedBits(DWORD sbp, DWORD spsm, DWORD dbp, DWORD dpsm);
+extern bool IsRectInRect(const CRect& inner, const CRect& outer);
+extern bool IsRectInRectH(const CRect& inner, const CRect& outer);
+extern bool IsRectInRectV(const CRect& inner, const CRect& outer);

@@ -57,7 +57,7 @@ public:
 			SwizzleTexture st;
 			unSwizzleTexture ust, ustP, ustNP;
 			DWORD bpp, pal, trbpp; 
-			CSize bs;
+			CSize bs, pgs;
 			int* rowOffset[8];
 		};
 		BYTE dummy[128];
