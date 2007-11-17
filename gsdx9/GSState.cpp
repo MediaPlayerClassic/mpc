@@ -183,21 +183,21 @@ bool GSState::Create(LPCTSTR title)
 
 	// d3d
 
-	if(!(m_pD3D = Direct3DCreate9(D3D_SDK_VERSION)))
+	if(!(m_d3d = Direct3DCreate9(D3D_SDK_VERSION)))
 	{
 		return false;
 	}
 
 	memset(&m_caps, 0, sizeof(m_caps));
 
-	m_pD3D->GetDeviceCaps(
+	m_d3d->GetDeviceCaps(
 		D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, 
 		// D3DADAPTER_DEFAULT, D3DDEVTYPE_REF, 
 		&m_caps);
 
 	m_fmtDepthStencil = 
-		IsDepthFormatOk(m_pD3D, D3DFMT_D32, D3DFMT_X8R8G8B8, D3DFMT_X8R8G8B8) ? D3DFMT_D32 :
-		IsDepthFormatOk(m_pD3D, D3DFMT_D24X8, D3DFMT_X8R8G8B8, D3DFMT_X8R8G8B8) ? D3DFMT_D24X8 :
+		IsDepthFormatOk(m_d3d, D3DFMT_D32, D3DFMT_X8R8G8B8, D3DFMT_X8R8G8B8) ? D3DFMT_D32 :
+		IsDepthFormatOk(m_d3d, D3DFMT_D24X8, D3DFMT_X8R8G8B8, D3DFMT_X8R8G8B8) ? D3DFMT_D24X8 :
 		D3DFMT_D16;
 
 	// d3d device
@@ -227,6 +227,8 @@ bool GSState::Create(LPCTSTR title)
 	}
 
 	m_caps.PixelShaderVersion = min(PixelShaderVersion, m_caps.PixelShaderVersion);
+
+	m_caps.VertexShaderVersion = min(m_caps.PixelShaderVersion & ~0x10000, m_caps.VertexShaderVersion);
 
 	static const TCHAR* hlsl_tfx[] = 
 	{
@@ -335,7 +337,7 @@ bool GSState::OnMsg(const MSG& msg)
 	{
 		if(msg.wParam == VK_F5)
 		{
-			m_nInterlace = (m_nInterlace + 1) % 4;
+			m_nInterlace = (m_nInterlace + 1) % 5;
 			return true;
 		}
 
@@ -397,7 +399,7 @@ HRESULT GSState::ResetDevice(bool fForceWindowed)
 
 	HRESULT hr;
 
-	if(!m_pD3D) return E_FAIL;
+	if(!m_d3d) return E_FAIL;
 
 	m_pSwapChain = NULL;
 	m_pMergeTexture = NULL;
@@ -442,8 +444,8 @@ HRESULT GSState::ResetDevice(bool fForceWindowed)
 
 	if(!m_dev)
 	{
-		if(FAILED(hr = m_pD3D->CreateDevice(
-			// m_pD3D->GetAdapterCount()-1, D3DDEVTYPE_REF,
+		if(FAILED(hr = m_d3d->CreateDevice(
+			// m_d3d->GetAdapterCount()-1, D3DDEVTYPE_REF,
 			// D3DADAPTER_DEFAULT, D3DDEVTYPE_REF,
 			D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, 
 			m_hWnd,
@@ -900,7 +902,7 @@ void GSState::FinishFlip(FlipInfo src[2], float yscale)
 
 		hr = m_pInterlaceTexture->GetSurfaceLevel(0, &surf[1]);
 
-		if(m_nInterlace == 1 || m_nInterlace == 3) // weave or blend
+		if(m_nInterlace == 1 || m_nInterlace == 4) // weave or blend
 		{
 			// weave first
 
@@ -908,7 +910,7 @@ void GSState::FinishFlip(FlipInfo src[2], float yscale)
 
 			dst = surf[1];
 
-			if(m_nInterlace == 3)
+			if(m_nInterlace == 4)
 			{
 				// blend
 
@@ -933,9 +935,15 @@ void GSState::FinishFlip(FlipInfo src[2], float yscale)
 				dst = surf[2];
 			}
 		}
-		else if(m_nInterlace == 2) // bob
+		else if(m_nInterlace == 2) // bob (tff)
 		{
 			Interlace(m_pMergeTexture, surf[1], 3, D3DTEXF_LINEAR, m_field * 2);
+
+			dst = surf[1];
+		}
+		else if(m_nInterlace == 3) // bob (bff)
+		{
+			Interlace(m_pMergeTexture, surf[1], 3, D3DTEXF_LINEAR, (1 - m_field) * 2);
 
 			dst = surf[1];
 		}
@@ -1165,7 +1173,11 @@ void GSState::Present()
 			_T("%I64d | %.2f fps (%d%%) | %s%s | %s | %d | %.2f | %.2f | %.2f"), 
 			m_perfmon.GetFrame(), fps, (int)(100.0 * fps / m_regs.GetFPS()),
 			m_regs.pSMODE2->INT ? (CString(_T("interlaced ")) + (m_regs.pSMODE2->FFMD ? _T("(frame)") : _T("(field)"))) : _T("progressive"),
-			m_nInterlace == 1 ? _T(" weave") : m_nInterlace == 2 ? _T(" bob") : m_nInterlace == 3 ? _T(" blend") : _T(""),
+			m_nInterlace == 1 ? _T(" weave") :
+			m_nInterlace == 2 ? _T(" bob (tff)") : 
+			m_nInterlace == 3 ? _T(" bob (bff)") : 
+			m_nInterlace == 4 ? _T(" blend") : 
+			_T(""),
 			m_nAspectRatio == 1 ? _T("4:3") : m_nAspectRatio == 2 ? _T("16:9") : _T("stretch"),
 			(int)m_perfmon.Get(GSPerfMon::Prim),
 			m_perfmon.Get(GSPerfMon::Swizzle) / 1024,

@@ -41,5 +41,6 @@ public:
 	GSDirtyRectList(const GSDirtyRectList& l) {*this = l;}
 	void operator = (const GSDirtyRectList& l);
 	CRect GetDirtyRect(const GIFRegTEX0& TEX0);
+	void Merge();
 };
 

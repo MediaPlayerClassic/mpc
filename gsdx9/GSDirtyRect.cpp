@@ -55,8 +55,6 @@ CRect GSDirtyRect::GetDirtyRect(const GIFRegTEX0& TEX0)
 		r.bottom = MulDiv(m_rect.bottom, dst.cy, src.cy);
 	}
 
-	r &= CRect(0, 0, 1 << TEX0.TW, 1 << TEX0.TH);
-
 	return r;
 }
 

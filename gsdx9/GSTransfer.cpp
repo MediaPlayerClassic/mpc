@@ -126,7 +126,7 @@ void GSState::ReadTransfer(BYTE* pMem, int len)
 	if(m_x == m_env.TRXPOS.SSAX && m_y == m_env.TRXPOS.SSAY)
 	{
 		CRect r(m_env.TRXPOS.SSAX, m_env.TRXPOS.SSAY, m_env.TRXREG.RRW, m_env.TRXREG.RRH);
-		InvalidateLocalMem(m_env.BITBLTBUF.SBP, m_env.BITBLTBUF.SBW, m_env.BITBLTBUF.SPSM, r);
+		InvalidateLocalMem(m_env.BITBLTBUF, r);
 	}
 
 	switch(m_env.BITBLTBUF.SPSM)

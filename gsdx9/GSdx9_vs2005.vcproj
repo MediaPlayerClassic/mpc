@@ -955,15 +955,7 @@
 				>
 			</File>
 			<File
-				RelativePath=".\GSTexture.cpp"
-				>
-			</File>
-			<File
 				RelativePath=".\GSTextureCache.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\GSTextureCache2.cpp"
 				>
 			</File>
 			<File
@@ -1321,15 +1313,7 @@
 				>
 			</File>
 			<File
-				RelativePath=".\GSTexture.h"
-				>
-			</File>
-			<File
 				RelativePath=".\GSTextureCache.h"
-				>
-			</File>
-			<File
-				RelativePath=".\GSTextureCache2.h"
 				>
 			</File>
 			<File

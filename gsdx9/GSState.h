@@ -39,6 +39,7 @@ class GSState : public CWnd
 
 	friend class GSTexture;
 	friend class GSTextureCache;
+	friend class GSTextureCache;
 
 public:
 	GSState();
@@ -103,7 +104,7 @@ protected:
 	GIFRegPRIM* m_pPRIM;
 
 protected:
-	CComPtr<IDirect3D9> m_pD3D;
+	CComPtr<IDirect3D9> m_d3d;
 	CComPtr<IDirect3DDevice9> m_dev;
 	CComPtr<IDirect3DSwapChain9> m_pSwapChain;
 	CComPtr<ID3DXFont> m_pD3DXFont;
@@ -133,7 +134,7 @@ protected:
 	virtual void FlushPrim() = 0;
 	virtual void Flip() = 0;
 	virtual void InvalidateTexture(const GIFRegBITBLTBUF& BITBLTBUF, CRect r) {}
-	virtual void InvalidateLocalMem(DWORD TBP0, DWORD BW, DWORD PSM, CRect r) {}
+	virtual void InvalidateLocalMem(const GIFRegBITBLTBUF& BITBLTBUF, CRect r) {}
 	virtual void MinMaxUV(int w, int h, CRect& r) {r.SetRect(0, 0, w, h);}
 
 	struct FlipInfo 

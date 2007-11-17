@@ -87,8 +87,6 @@ bool GSRendererHW::Create(LPCTSTR title)
 void GSRendererHW::ResetState()
 {
 	m_tc.RemoveAll();
-	m_pRTs.RemoveAll();
-	m_pDSs.RemoveAll();
 
 	__super::ResetState();
 }
@@ -96,8 +94,6 @@ void GSRendererHW::ResetState()
 HRESULT GSRendererHW::ResetDevice(bool fForceWindowed)
 {
 	m_tc.RemoveAll();
-	m_pRTs.RemoveAll();
-	m_pDSs.RemoveAll();
 
 	return __super::ResetDevice(fForceWindowed);
 }
@@ -304,125 +300,84 @@ void GSRendererHW::FlushPrim()
 
 		HRESULT hr;
 
+		//
+
 		GSScale scale(
 			(float)m_width / (m_context->FRAME.FBW*64), 
 //			(float)m_width / m_regs.GetFrameSize(m_regs.IsEnabled(1)?1:0).cx, 
 			(float)m_height / m_regs.GetDisplaySize(m_regs.IsEnabled(1)?1:0).cy); 
-
-		//////////////////////
-
-		CComPtr<IDirect3DTexture9> pRT;
-		CComPtr<IDirect3DSurface9> pDS;
-
-		bool fClearRT = false;
-		bool fClearDS = false;
-
-		if(!m_pRTs.Lookup(m_context->FRAME.Block(), pRT))
-		{
-			hr = m_dev->CreateTexture(m_width, m_height, 1, D3DUSAGE_RENDERTARGET, D3DFMT_A8R8G8B8, D3DPOOL_DEFAULT, &pRT, NULL);
-			if(S_OK != hr) {ASSERT(0); return;}
-TRACE(_T("1. CreateTexture(%d, %d)\n"), m_width, m_height);
-			m_pRTs[m_context->FRAME.Block()] = pRT;
-			fClearRT = true;
-		}
-
-		if(!m_pDSs.Lookup(m_context->ZBUF.ZBP, pDS))
-		{
-			hr = m_dev->CreateDepthStencilSurface(m_width, m_height, m_fmtDepthStencil, D3DMULTISAMPLE_NONE, 0, FALSE, &pDS, NULL);
-			if(S_OK != hr) {ASSERT(0); return;}
-			m_pDSs[m_context->ZBUF.ZBP] = pDS;
-			fClearDS = true;
-		}
-
-		if(!pRT || !pDS) {ASSERT(0); return;}
-
-		//////////////////////
-
-		GSTextureBase t;
-
-		if(m_pPRIM->TME)
-		{
-			bool fFetched = 
-				m_fPalettizedTextures && m_caps.PixelShaderVersion >= D3DPS_VERSION(2, 0) ? m_tc.FetchP(this, t) : 
-				m_caps.PixelShaderVersion >= D3DPS_VERSION(2, 0) ? m_tc.FetchNP(this, t) :
-				m_tc.Fetch(this, t);
-
-			if(!fFetched) break;
-		}
-
-		//////////////////////
+		
+		//
 /*
-
 static int n = 0;
 static bool dump = false;
 
-if(m_perfmon.GetFrame() == 200)
-{
-	if(n > 20000 && !m_pPRIM->TME)
-	{
-		dump = true;
-	}
+dump = m_perfmon.GetFrame() == 1100 || m_perfmon.GetFrame() == 1101;
+*/
+		GSTextureCache::GSRenderTarget* rt = NULL;
+		GSTextureCache::GSDepthStencil* ds = NULL;
+		GSTextureCache::GSTexture* tex = NULL;
 
-	if(dump)
-	{
-		CString str;
-		str.Format(_T("c:\\temp2\\_%05d_%05x.bmp"), n, m_context->TEX0.TBP0);
-		// if(m_pPRIM->TME) ::D3DXSaveTextureToFile(str, D3DXIFF_BMP, t.m_texture, NULL);
-		str.Format(_T("c:\\temp2\\_%05drt0_%05x.bmp"), n, m_context->FRAME.FBP);
-		// ::D3DXSaveTextureToFile(str, D3DXIFF_BMP, pRT, NULL);
-	}
+		GIFRegTEX0 TEX0;
+
+		TEX0.TBP0 = m_context->FRAME.Block();
+		TEX0.TBW = m_context->FRAME.FBW;
+		TEX0.PSM = m_context->FRAME.PSM;
+
+		rt = m_tc.GetRenderTarget(this, TEX0, m_width, m_height);
+
+		rt->m_scale = scale;
+
+		TEX0.TBP0 = m_context->ZBUF.Block();
+		TEX0.TBW = m_context->FRAME.FBW;
+		TEX0.PSM = m_context->ZBUF.PSM;
+
+		ds = m_tc.GetDepthStencil(this, TEX0, m_width, m_height);
+
+		ds->m_scale = scale;
+
+		if(m_pPRIM->TME)
+		{
+			if(!(tex = m_tc.GetTextureNP(this)))
+			{
+				break;
+			}
+		}
+
+		//
+
+		hr = m_dev->SetRenderTarget(0, rt->m_surface);
+		hr = m_dev->SetDepthStencilSurface(ds->m_surface);
+
+/*
+if(dump)
+{
+	CString str;
+	str.Format(_T("c:\\temp2\\_f%I64d_%05d_%05x.bmp"), m_perfmon.GetFrame(), n, m_context->TEX0.TBP0);
+	if(m_pPRIM->TME) ::D3DXSaveTextureToFile(str, D3DXIFF_BMP, tex->m_texture, NULL);
+	str.Format(_T("c:\\temp2\\_f%I64d_%05drt1_%05x.bmp"), m_perfmon.GetFrame(), n, m_context->FRAME.Block());
+	::D3DXSaveTextureToFile(str, D3DXIFF_BMP, rt->m_texture, NULL);
 }
 */
 		hr = m_dev->BeginScene();
 
-		//////////////////////
-
-		CComPtr<IDirect3DSurface9> pSurf;
-		hr = pRT->GetSurfaceLevel(0, &pSurf);
-		hr = m_dev->SetRenderTarget(0, pSurf);
-		hr = m_dev->SetDepthStencilSurface(pDS);
-		if(fClearRT) hr = m_dev->Clear(0, NULL, D3DCLEAR_TARGET, 0, 1.0f, 0);
-		if(fClearDS) hr = m_dev->Clear(0, NULL, D3DCLEAR_ZBUFFER, 0, 1.0f, 0);
-
-		D3DSURFACE_DESC rd;
-		memset(&rd, 0, sizeof(rd));
-		pRT->GetLevelDesc(0, &rd);
-
-		//////////////////////
-
 		hr = m_dev->SetRenderState(D3DRS_SHADEMODE, m_pPRIM->IIP ? D3DSHADE_GOURAUD : D3DSHADE_FLAT);
 
-		//////////////////////
-
-		SetupTexture(t);
-
-		//////////////////////
+		SetupTexture(tex);
 
 		SetupAlphaBlend();
 
-		//////////////////////
-
 		SetupColorMask();
-
-		//////////////////////
 
 		SetupZBuffer();
 
-		//////////////////////
-
 		SetupAlphaTest();
 
-		//////////////////////
-
 		SetupScissor(scale);
-
-		//////////////////////
 
 		// ASSERT(!m_env.PABE.PABE); // bios
 		// ASSERT(!m_context->FBA.FBA); // bios
 		// ASSERT(!m_context->TEST.DATE); // sfex3 (after the capcom logo), vf4 (first menu fading in)
-
-		//////////////////////
 
 		hr = m_dev->SetVertexDeclaration(m_pVertexDeclaration);
 		hr = m_dev->SetVertexShader(m_pVertexShader);
@@ -437,17 +392,13 @@ if(m_perfmon.GetFrame() == 200)
 
 		float g_pos_scale[] = 
 		{
-			2.0f * scale.x / (rd.Width * 16), 
-			2.0f * scale.y / (rd.Height * 16)
+			2.0f * scale.x / (rt->m_desc.Width * 16), 
+			2.0f * scale.y / (rt->m_desc.Height * 16)
 		};
 
 		hr = m_pVertexShaderConstantTable->SetFloatArray(m_dev, "g_pos_scale", g_pos_scale, countof(g_pos_scale));
 
-		float g_tex_scale[] = 
-		{
-			1.0f, 
-			1.0f
-		};
+		float g_tex_scale[] = {1.0f, 1.0f};
 
 		if(m_pPRIM->TME && m_pPRIM->FST)
 		{
@@ -511,28 +462,14 @@ if(m_perfmon.GetFrame() == 200)
 
 		hr = m_dev->EndScene();
 /*
-if(m_perfmon.GetFrame() == 200)
+if(dump)
 {
-	if(dump)
-	{
-		CString str;
-		str.Format(_T("c:\\temp2\\_%05drt1_%05x.bmp"), n, m_context->FRAME.FBP);
-		// ::D3DXSaveTextureToFile(str, D3DXIFF_BMP, pRT, NULL);
-	}
-
+	CString str;
+	str.Format(_T("c:\\temp2\\_f%I64d_%05drt1_%05x.bmp"), m_perfmon.GetFrame(), n, m_context->FRAME.Block());
+	::D3DXSaveTextureToFile(str, D3DXIFF_BMP, rt->m_texture, NULL);
 	n++;
 }
-
 */
-		//////////////////////
-
-		GIFRegTEX0 TEX0;
-
-		TEX0.TBP0 = m_context->FRAME.Block();
-		TEX0.TBW = m_context->FRAME.FBW;
-		TEX0.PSM = m_context->FRAME.PSM;
-
-		m_tc.AddRT(TEX0, pRT, scale); 
 	}
 	while(0);
 
@@ -541,8 +478,6 @@ if(m_perfmon.GetFrame() == 200)
 
 void GSRendererHW::Flip()
 {
-	HRESULT hr;
-
 	FlipInfo src[2];
 
 	for(int i = 0; i < countof(src); i++)
@@ -552,94 +487,36 @@ void GSRendererHW::Flip()
 			continue;
 		}
 
-		DWORD FBP = m_regs.pDISPFB[i]->FBP << 5;
+		GIFRegTEX0 TEX0;
 
-		CSurfMap<IDirect3DTexture9>::CPair* pPair = m_pRTs.Lookup(FBP);
+		TEX0.TBP0 = m_regs.pDISPFB[i]->Block();
+		TEX0.TBW = m_regs.pDISPFB[i]->FBW;
+		TEX0.PSM = m_regs.pDISPFB[i]->PSM;
+/*
+static bool dump = false;
 
-		if(!pPair)
+dump = m_perfmon.GetFrame() == 1100 || m_perfmon.GetFrame() == 1101;
+*/
+		if(GSTextureCache::GSRenderTarget* rt = m_tc.GetRenderTarget(this, TEX0, m_width, m_height, true))
 		{
-			POSITION pos = m_pRTs.GetStartPosition(); 
-			
-			while(pos)
-			{
-				CSurfMap<IDirect3DTexture9>::CPair* pPair2 = m_pRTs.GetNext(pos);
+			src[i].tex = rt->m_texture;
+			src[i].desc = rt->m_desc;
+			src[i].scale = rt->m_scale;
+/*
+if(dump)
+{
+	CString str;
+	str.Format(_T("c:\\temp2\\_f%I64d_o%d_%05x.bmp"), m_perfmon.GetFrame(), i, TEX0.TBP0);
+	::D3DXSaveTextureToFile(str, D3DXIFF_BMP, rt->m_texture, NULL);
+}
+*/
 
-				if(pPair2->m_key <= FBP && (!pPair || pPair2->m_key >= pPair->m_key))
-				{
-					pPair = pPair2;
-				}
-			}
-		}
-
-		if(!pPair)
-		{
-			CComPtr<IDirect3DTexture9> pRT;
-
-			if(S_OK == m_dev->CreateTexture(m_width, m_height, 1, D3DUSAGE_RENDERTARGET, D3DFMT_A8R8G8B8, D3DPOOL_DEFAULT, &pRT, NULL))
-			{
-TRACE(_T("2. CreateTexture(%d, %d)\n"), m_width, m_height);
-				m_pRTs[FBP] = pRT;
-
-				EXECUTE_ASSERT(pPair = m_pRTs.Lookup(FBP));
-
-				CRect r = m_regs.GetFrameRect(m_regs.IsEnabled(1)?1:0);
-
-				GSScale scale(
-					(float)m_width / (m_regs.pDISPFB[i]->FBW*64), 
-			//		(float)m_width / m_regs.GetDisplayRect(m_regs.IsEnabled(1)?1:0).right, 
-					(float)m_height / m_regs.GetDisplaySize(m_regs.IsEnabled(1)?1:0).cy);
-
-				GIFRegTEX0 TEX0;
-
-				TEX0.TBP0 = m_regs.pDISPFB[i]->FBP;
-				TEX0.TBW = m_regs.pDISPFB[i]->FBW;
-				TEX0.PSM = m_regs.pDISPFB[i]->PSM;
-
-				m_tc.AddRT(TEX0, pRT, scale);
-
-				GIFRegBITBLTBUF BITBLTBUF;
-
-				BITBLTBUF.DBP = TEX0.TBP0;
-				BITBLTBUF.DBW = TEX0.TBW;
-				BITBLTBUF.DPSM = TEX0.PSM;
-
-				m_tc.InvalidateTexture(this, BITBLTBUF, r);
-			}
-		}
-
-		if(pPair)
-		{
-			m_tc.ResetAge(pPair->m_key);
-
-			src[i].tex = pPair->m_value;
-
-			memset(&src[i].desc, 0, sizeof(src[i].desc));
-
-			hr = src[i].tex->GetLevelDesc(0, &src[i].desc);
-
-			// FIXME
-
-			POSITION pos = m_tc.GetHeadPosition();
-
-			while(pos)
-			{
-				GSTexture* t = m_tc.GetNext(pos);
-
-				if(t->m_rt && t->m_TEX0.TBP0 == FBP)
-				{
-					src[i].scale = t->m_scale;
-
-					break;
-				}
-			}
-
-			// src[i].scale.Get(src[i].tex);
 		}
 	}
 
 	FinishFlip(src, m_regs.pSMODE2->INT && m_regs.pSMODE2->FFMD ? 0.5f : 1.0f);
 
-	m_tc.IncAge(m_pRTs);
+	m_tc.IncAge();
 }
 
 void GSRendererHW::InvalidateTexture(const GIFRegBITBLTBUF& BITBLTBUF, CRect r)
@@ -647,9 +524,9 @@ void GSRendererHW::InvalidateTexture(const GIFRegBITBLTBUF& BITBLTBUF, CRect r)
 	m_tc.InvalidateTexture(this, BITBLTBUF, &r);
 }
 
-void GSRendererHW::InvalidateLocalMem(DWORD TBP0, DWORD BW, DWORD PSM, CRect r)
+void GSRendererHW::InvalidateLocalMem(const GIFRegBITBLTBUF& BITBLTBUF, CRect r)
 {
-	m_tc.InvalidateLocalMem(this, TBP0, BW, PSM, &r);
+	m_tc.InvalidateLocalMem(this, BITBLTBUF, &r);
 }
 
 void GSRendererHW::MinMaxUV(int w, int h, CRect& r)
@@ -766,7 +643,7 @@ void GSRendererHW::MinMaxUV(int w, int h, CRect& r)
 	//ASSERT(r.top <= r.bottom);
 }
 
-void GSRendererHW::SetupTexture(const GSTextureBase& t)
+void GSRendererHW::SetupTexture(const GSTextureCache::GSTexture* t)
 {
 	HRESULT hr;
 
@@ -775,15 +652,15 @@ void GSRendererHW::SetupTexture(const GSTextureBase& t)
 
 	IDirect3DPixelShader9* pPixelShader = NULL;
 
-	if(m_pPRIM->TME && t.m_texture)
+	if(m_pPRIM->TME && t && t->m_texture)
 	{
-		tw = t.m_desc.Width;
-		th = t.m_desc.Height;
+		tw = t->m_desc.Width;
+		th = t->m_desc.Height;
 		rw = 1.0f / tw;
 		rh = 1.0f / th;
 
-		hr = m_dev->SetTexture(0, t.m_texture);
-		hr = m_dev->SetTexture(1, t.m_palette);
+		hr = m_dev->SetTexture(0, t->m_texture);
+		hr = m_dev->SetTexture(1, t->m_palette);
 
 		D3DTEXTUREADDRESS u, v;
 
@@ -804,62 +681,49 @@ void GSRendererHW::SetupTexture(const GSTextureBase& t)
 		hr = m_dev->SetSamplerState(0, D3DSAMP_ADDRESSU, u);
 		hr = m_dev->SetSamplerState(0, D3DSAMP_ADDRESSV, v);
 
-		hr = m_dev->SetSamplerState(0, D3DSAMP_MAGFILTER, t.m_palette ? D3DTEXF_POINT : m_nTextureFilter);
-		hr = m_dev->SetSamplerState(0, D3DSAMP_MINFILTER, t.m_palette ? D3DTEXF_POINT : m_nTextureFilter);
-		hr = m_dev->SetSamplerState(1, D3DSAMP_MAGFILTER, t.m_palette ? D3DTEXF_POINT : m_nTextureFilter);
-		hr = m_dev->SetSamplerState(1, D3DSAMP_MINFILTER, t.m_palette ? D3DTEXF_POINT : m_nTextureFilter);
+		hr = m_dev->SetSamplerState(0, D3DSAMP_MAGFILTER, t->m_palette ? D3DTEXF_POINT : m_nTextureFilter);
+		hr = m_dev->SetSamplerState(0, D3DSAMP_MINFILTER, t->m_palette ? D3DTEXF_POINT : m_nTextureFilter);
+		hr = m_dev->SetSamplerState(1, D3DSAMP_MAGFILTER, t->m_palette ? D3DTEXF_POINT : m_nTextureFilter);
+		hr = m_dev->SetSamplerState(1, D3DSAMP_MINFILTER, t->m_palette ? D3DTEXF_POINT : m_nTextureFilter);
 
-		if(!pPixelShader && m_caps.PixelShaderVersion >= D3DPS_VERSION(2, 0) && m_pHLSLTFX[m_context->TEX0.TFX])
+		int i = m_context->TEX0.TFX;
+
+		switch(t->m_desc.Format)
 		{
-			int i = m_context->TEX0.TFX;
-
-			switch(t.m_desc.Format)
-			{
-			default: 
-				ASSERT(0);
-				break;
-			case D3DFMT_A8R8G8B8:
-				//ASSERT(m_context->TEX0.PSM != PSM_PSMCT24); // format must be D3DFMT_X8R8G8B8 for PSM_PSMCT24
-				//if(m_context->TEX0.PSM == PSM_PSMCT24) {i += 4; if(m_env.TEXA.AEM) i += 4;}
-				if(t.m_palette && m_context->TEX0.PSM == PSM_PSMT8H) i += 32;
-				break;
-			case D3DFMT_X8R8G8B8:
-				i += 4; if(m_env.TEXA.AEM) i += 4;
-				break;
-			case D3DFMT_A1R5G5B5:
-				i += 12; if(m_env.TEXA.AEM) i += 4; 
-				break;
-			case D3DFMT_L8:
-				i += 24;
-				ASSERT(t.m_palette);
-				break;
-			}
-
-			pPixelShader = m_pHLSLTFX[i];
-		}
-		else
-		{
+		default: 
 			ASSERT(0);
+			break;
+		case D3DFMT_A8R8G8B8:
+			//ASSERT(m_context->TEX0.PSM != PSM_PSMCT24); // format must be D3DFMT_X8R8G8B8 for PSM_PSMCT24
+			//if(m_context->TEX0.PSM == PSM_PSMCT24) {i += 4; if(m_env.TEXA.AEM) i += 4;}
+			if(t->m_palette && m_context->TEX0.PSM == PSM_PSMT8H)
+				i += 32;
+			break;
+		case D3DFMT_X8R8G8B8:
+			i += 4; if(m_env.TEXA.AEM) i += 4;
+			break;
+		case D3DFMT_A1R5G5B5:
+			i += 12; if(m_env.TEXA.AEM) i += 4; 
+			break;
+		case D3DFMT_L8:
+			i += 24;
+			ASSERT(t->m_palette);
+			break;
 		}
+
+		pPixelShader = m_pHLSLTFX[i];
 	}
 	else
 	{
 		hr = m_dev->SetTexture(0, NULL);
 		hr = m_dev->SetTexture(1, NULL);
 
-		if(!pPixelShader && m_caps.PixelShaderVersion >= D3DPS_VERSION(2, 0) && m_pHLSLTFX[36])
-		{
-			pPixelShader = m_pHLSLTFX[36];
-		}
-		else
-		{
-			ASSERT(0);
-		}
+		pPixelShader = m_pHLSLTFX[36];
 	}
 
 	float fConstData[][4] = 
 	{
-		{(float)m_context->TEX0.TCC - 0.5f, t.m_rt ? 1.0f : 2.0f, min(2.0f * m_env.TEXA.TA0 / 255, 1), min(2.0f * m_env.TEXA.TA1 / 255, 1)},
+		{(float)m_context->TEX0.TCC - 0.5f, t && t->IsRenderTarget() ? 1.0f : 2.0f, min(2.0f * m_env.TEXA.TA0 / 255, 1), min(2.0f * m_env.TEXA.TA1 / 255, 1)},
 		{(float)m_env.FOGCOL.FCR / 255, (float)m_env.FOGCOL.FCG / 255, (float)m_env.FOGCOL.FCB / 255 , 0},
 		{(float)tw, (float)th, 0, 0},
 		{rw, rh, 0, 0},

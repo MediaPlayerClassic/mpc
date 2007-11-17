@@ -54,12 +54,9 @@ protected:
 	CComPtr<ID3DXConstantTable> m_pVertexShaderConstantTable;
 	CComPtr<IDirect3DVertexDeclaration9> m_pVertexDeclaration;
 
-	CSurfMap<IDirect3DTexture9> m_pRTs;
-	CSurfMap<IDirect3DSurface9> m_pDSs;
-
 	GSTextureCache m_tc;
 
-	void SetupTexture(const GSTextureBase& t);
+	void SetupTexture(const GSTextureCache::GSTexture* t);
 	void SetupAlphaBlend();
 	void SetupColorMask();
 	void SetupZBuffer();
@@ -72,7 +69,7 @@ protected:
 	void FlushPrim();
 	void Flip();
 	void InvalidateTexture(const GIFRegBITBLTBUF& BITBLTBUF, CRect r);
-	void InvalidateLocalMem(DWORD BP, DWORD TBP0, DWORD PSM, CRect r);
+	void InvalidateLocalMem(const GIFRegBITBLTBUF& BITBLTBUF, CRect r);
 	void MinMaxUV(int w, int h, CRect& r);
 
 public:
