@@ -766,6 +766,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\GSDepthStencil.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\GSDirtyRect.cpp"
 				>
 			</File>
@@ -930,6 +934,10 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath=".\GSRenderTarget.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\GSSettingsDlg.cpp"
 				>
 			</File>
@@ -950,7 +958,15 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath=".\GSSurface.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\GSTables.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\GSTexture.cpp"
 				>
 			</File>
 			<File

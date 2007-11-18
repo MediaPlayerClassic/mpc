@@ -33,6 +33,9 @@ class GSTextureCache
 public:
 	class GSSurface
 	{
+	protected:
+		GSTextureCache* m_tc;
+
 	public:
 		CComPtr<IDirect3DSurface9> m_surface;
 		D3DSURFACE_DESC m_desc;
@@ -41,13 +44,13 @@ public:
 		int m_size;
 		GIFRegTEX0 m_TEX0;
 
-		GSSurface();
+		GSSurface(GSTextureCache* tc);
 		virtual ~GSSurface();
 
 		bool IsRenderTarget() const;
 		bool IsDepthStencil() const;
 
-		void Update(GSState* s);
+		void Update();
 	};
 
 	class GSRenderTarget : public GSSurface
@@ -56,21 +59,25 @@ public:
 		CComPtr<IDirect3DTexture9> m_texture;
 		GSDirtyRectList m_dirty;
 
-		GSRenderTarget();
+		GSRenderTarget(GSTextureCache* tc);
 
-		void Update(GSState* s, GSTextureCache* tc);
+		bool Create(int w, int h);
+		void Update();
 	};
 
 	class GSDepthStencil : public GSSurface
 	{
 	public:
-		GSDepthStencil();
+		GSDepthStencil(GSTextureCache* tc);
+
+		bool Create(int w, int h);
+		void Update();
 	};	
 	
 	class GSTexture : public GSSurface
 	{
 		DWORD Hash();
-		bool GetDirtyRect(GSState* s, CRect& r);
+		bool GetDirtyRect(CRect& r);
 
 	public:
 		CComPtr<IDirect3DTexture9> m_texture;
@@ -85,46 +92,42 @@ public:
 		CRect m_hashrect;
 		int m_bpp;
 
-		GSTexture();
+		GSTexture(GSTextureCache* tc);
+		virtual ~GSTexture();
 
-		void Update(GSState* s, GSLocalMemory::readTexture rt);
+		bool Create();
+		bool Create(GSRenderTarget* rt);
+		bool Create(GSDepthStencil* ds);
+		void Update(GSLocalMemory::readTexture rt);
 	};
 
 protected:
+	GSState* m_state;
 	CAtlList<GSRenderTarget*> m_rt;
 	CAtlList<GSDepthStencil*> m_ds;
 	CAtlList<GSTexture*> m_tex;
 	CInterfaceList<IDirect3DSurface9> m_pool;
 
 	template<class T> void RecycleByAge(CAtlList<T*>& l, int maxage = 10);
-	template<class T> void RecycleBySize(CAtlList<T*>& l, int maxsize = 50*1024*1024);
 	
 	void Recycle(IDirect3DSurface9* surface);
-	void Recycle(GSSurface* s, bool del = true);
-	void Recycle(GSTexture* t, bool del = true);
 
-	bool Create(GSState* s, GSRenderTarget* rt, int w, int h);
-	bool Create(GSState* s, GSDepthStencil* ds, int w, int h);
-	bool Create(GSState* s, GSTexture* t, DWORD psm, DWORD cpsm = PSM_PSMCT32);
-
-	GSTexture* Convert(GSState* s, GSRenderTarget* rt);
-
-	HRESULT CreateRenderTarget(GSState* s, int w, int h, IDirect3DTexture9** ppt, IDirect3DSurface9** pps = NULL, D3DSURFACE_DESC* desc = NULL);
-	HRESULT CreateDepthStencil(GSState* s, int w, int h, IDirect3DSurface9** pps, D3DSURFACE_DESC* desc = NULL);
-	HRESULT CreateTexture(GSState* s, int w, int h, D3DFORMAT format, IDirect3DTexture9** ppt, IDirect3DSurface9** pps = NULL, D3DSURFACE_DESC* desc = NULL);
+	HRESULT CreateRenderTarget(int w, int h, IDirect3DTexture9** ppt, IDirect3DSurface9** pps = NULL, D3DSURFACE_DESC* desc = NULL);
+	HRESULT CreateDepthStencil(int w, int h, IDirect3DSurface9** pps, D3DSURFACE_DESC* desc = NULL);
+	HRESULT CreateTexture(int w, int h, D3DFORMAT format, IDirect3DTexture9** ppt, IDirect3DSurface9** pps = NULL, D3DSURFACE_DESC* desc = NULL);
 
 public:
-	GSTextureCache();
+	GSTextureCache(GSState* state);
 	virtual ~GSTextureCache();
 
 	void RemoveAll();
 
-	GSRenderTarget* GetRenderTarget(GSState* s, const GIFRegTEX0& TEX0, int w, int h, bool fb = false);
-	GSDepthStencil* GetDepthStencil(GSState* s, const GIFRegTEX0& TEX0, int w, int h);
-	GSTexture* GetTextureNP(GSState* s);
+	GSRenderTarget* GetRenderTarget(const GIFRegTEX0& TEX0, int w, int h, bool fb = false);
+	GSDepthStencil* GetDepthStencil(const GIFRegTEX0& TEX0, int w, int h);
+	GSTexture* GetTextureNP();
 
-	void InvalidateTexture(GSState* s, const GIFRegBITBLTBUF& BITBLTBUF, const CRect& r);
-	void InvalidateLocalMem(GSState* s, const GIFRegBITBLTBUF& BITBLTBUF, const CRect& r);
+	void InvalidateTexture(const GIFRegBITBLTBUF& BITBLTBUF, const CRect& r);
+	void InvalidateLocalMem(const GIFRegBITBLTBUF& BITBLTBUF, const CRect& r);
 
 	void IncAge();
 };

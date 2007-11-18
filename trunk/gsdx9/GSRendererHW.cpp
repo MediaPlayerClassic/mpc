@@ -39,6 +39,7 @@ static const D3DVERTEXELEMENT9 s_vertexdecl[] =
 };
 
 GSRendererHW::GSRendererHW()
+	: m_tc(this)
 {
 	m_width = AfxGetApp()->GetProfileInt(_T("Settings"), _T("InternalResX"), 1024);
 	m_height = AfxGetApp()->GetProfileInt(_T("Settings"), _T("InternalResY"), 1024);
@@ -336,8 +337,20 @@ s_dump = true;
 if(m_context->TEX0.TBP0 == 0x1180) s_dump = true;
 */
 
-		TRACE(_T("[%d] %05x %05x %d\n"), (int)m_perfmon.GetFrame(), (int)m_context->FRAME.Block(), m_pPRIM->TME ? (int)m_context->TEX0.TBP0 : 0xfffff, nPrims);
+TRACE(_T("[%d] FlushPrim f %05x (%d) z %05x (%d %d %d %d) t %05x (%d) p %d\n"), 
+	  (int)m_perfmon.GetFrame(), 
+	  (int)m_context->FRAME.Block(), 
+	  (int)m_context->FRAME.PSM, 
+	  (int)m_context->ZBUF.Block(), 
+	  (int)m_context->ZBUF.PSM, 
+	  m_context->TEST.ZTE, 
+	  m_context->TEST.ZTST, 
+	  m_context->ZBUF.ZMSK, 
+	  m_pPRIM->TME ? (int)m_context->TEX0.TBP0 : 0xfffff, 
+	  m_pPRIM->TME ? (int)m_context->TEX0.PSM : 0xff, 
+	  nPrims);
 
+		//
 
 		GSTextureCache::GSRenderTarget* rt = NULL;
 		GSTextureCache::GSDepthStencil* ds = NULL;
@@ -349,23 +362,22 @@ if(m_context->TEX0.TBP0 == 0x1180) s_dump = true;
 		TEX0.TBW = m_context->FRAME.FBW;
 		TEX0.PSM = m_context->FRAME.PSM;
 
-		rt = m_tc.GetRenderTarget(this, TEX0, m_width, m_height);
+		rt = m_tc.GetRenderTarget(TEX0, m_width, m_height);
 
 		TEX0.TBP0 = m_context->ZBUF.Block();
 		TEX0.TBW = m_context->FRAME.FBW;
 		TEX0.PSM = m_context->ZBUF.PSM;
 
-		ds = m_tc.GetDepthStencil(this, TEX0, m_width, m_height);
+		// if(m_context->TEST.ZTE == 0 || m_context->TEST.ZTST != 0 || m_context->ZBUF.ZMSK == 0 || m_context->TEST.ATE == 1 && m_context->TEST.AFAIL != 1 && m_context->TEST.AFAIL == 1)
+		ds = m_tc.GetDepthStencil(TEX0, m_width, m_height);
 
 		if(m_pPRIM->TME)
 		{
-			if(!(tex = m_tc.GetTextureNP(this)))
+			if(!(tex = m_tc.GetTextureNP()))
 			{
 				break;
 			}
 		}
-
-		//
 
 		hr = m_dev->SetRenderTarget(0, rt->m_surface);
 		hr = m_dev->SetDepthStencilSurface(ds->m_surface);
@@ -488,7 +500,7 @@ void GSRendererHW::Flip()
 		TEX0.TBW = m_regs.pDISPFB[i]->FBW;
 		TEX0.PSM = m_regs.pDISPFB[i]->PSM;
 
-		if(GSTextureCache::GSRenderTarget* rt = m_tc.GetRenderTarget(this, TEX0, m_width, m_height, true))
+		if(GSTextureCache::GSRenderTarget* rt = m_tc.GetRenderTarget(TEX0, m_width, m_height, true))
 		{
 			src[i].tex = rt->m_texture;
 			src[i].desc = rt->m_desc;
@@ -525,14 +537,14 @@ s_dump = m_perfmon.GetFrame() >= 1500;
 
 void GSRendererHW::InvalidateTexture(const GIFRegBITBLTBUF& BITBLTBUF, CRect r)
 {
-	TRACE(_T("[%d] %d,%d - %d,%d %05x\n"), (int)m_perfmon.GetFrame(), r.left, r.top, r.right, r.bottom, (int)BITBLTBUF.DBP);
+TRACE(_T("[%d] InvalidateTexture %d,%d - %d,%d %05x\n"), (int)m_perfmon.GetFrame(), r.left, r.top, r.right, r.bottom, (int)BITBLTBUF.DBP);
 
-	m_tc.InvalidateTexture(this, BITBLTBUF, &r);
+	m_tc.InvalidateTexture(BITBLTBUF, &r);
 }
 
 void GSRendererHW::InvalidateLocalMem(const GIFRegBITBLTBUF& BITBLTBUF, CRect r)
 {
-	m_tc.InvalidateLocalMem(this, BITBLTBUF, &r);
+	m_tc.InvalidateLocalMem(BITBLTBUF, &r);
 }
 
 void GSRendererHW::MinMaxUV(int w, int h, CRect& r)
