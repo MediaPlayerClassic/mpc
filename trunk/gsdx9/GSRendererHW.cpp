@@ -336,6 +336,8 @@ s_dump = true;
 if(m_context->TEX0.TBP0 == 0x1180) s_dump = true;
 */
 
+		TRACE(_T("[%d] %05x %05x %d\n"), (int)m_perfmon.GetFrame(), (int)m_context->FRAME.Block(), m_pPRIM->TME ? (int)m_context->TEX0.TBP0 : 0xfffff, nPrims);
+
 
 		GSTextureCache::GSRenderTarget* rt = NULL;
 		GSTextureCache::GSDepthStencil* ds = NULL;
@@ -382,6 +384,8 @@ if(s_dump)
 
 		hr = m_dev->SetRenderState(D3DRS_SHADEMODE, m_pPRIM->IIP ? D3DSHADE_GOURAUD : D3DSHADE_FLAT);
 
+		SetupVertexShader(rt);
+
 		SetupTexture(tex);
 
 		SetupAlphaBlend();
@@ -397,35 +401,6 @@ if(s_dump)
 		// ASSERT(!m_env.PABE.PABE); // bios
 		// ASSERT(!m_context->FBA.FBA); // bios
 		// ASSERT(!m_context->TEST.DATE); // sfex3 (after the capcom logo), vf4 (first menu fading in)
-
-		hr = m_dev->SetVertexDeclaration(m_pVertexDeclaration);
-		hr = m_dev->SetVertexShader(m_pVertexShader);
-
-		float g_pos_offset[] = 
-		{
-			(float)m_context->XYOFFSET.OFX, 
-			(float)m_context->XYOFFSET.OFY
-		};
-
-		hr = m_pVertexShaderConstantTable->SetFloatArray(m_dev, "g_pos_offset", g_pos_offset, countof(g_pos_offset));
-
-		float g_pos_scale[] = 
-		{
-			2.0f * rt->m_scale.x / (rt->m_desc.Width * 16), 
-			2.0f * rt->m_scale.y / (rt->m_desc.Height * 16)
-		};
-
-		hr = m_pVertexShaderConstantTable->SetFloatArray(m_dev, "g_pos_scale", g_pos_scale, countof(g_pos_scale));
-
-		float g_tex_scale[] = {1.0f, 1.0f};
-
-		if(m_pPRIM->TME && m_pPRIM->FST)
-		{
-			g_tex_scale[0] = 1.0f / (16 << m_context->TEX0.TW);
-			g_tex_scale[1] = 1.0f / (16 << m_context->TEX0.TH);
-		}
-
-		hr = m_pVertexShaderConstantTable->SetFloatArray(m_dev, "g_tex_scale", g_tex_scale, countof(g_tex_scale));
 
 		if(1)//!m_env.PABE.PABE)
 		{
@@ -550,6 +525,8 @@ s_dump = m_perfmon.GetFrame() >= 1500;
 
 void GSRendererHW::InvalidateTexture(const GIFRegBITBLTBUF& BITBLTBUF, CRect r)
 {
+	TRACE(_T("[%d] %d,%d - %d,%d %05x\n"), (int)m_perfmon.GetFrame(), r.left, r.top, r.right, r.bottom, (int)BITBLTBUF.DBP);
+
 	m_tc.InvalidateTexture(this, BITBLTBUF, &r);
 }
 
@@ -670,6 +647,42 @@ void GSRendererHW::MinMaxUV(int w, int h, CRect& r)
 
 	//ASSERT(r.left <= r.right);
 	//ASSERT(r.top <= r.bottom);
+}
+
+void GSRendererHW::SetupVertexShader(const GSTextureCache::GSRenderTarget* rt)
+{
+	HRESULT hr;
+
+	hr = m_dev->SetVertexDeclaration(m_pVertexDeclaration);
+
+	hr = m_dev->SetVertexShader(m_pVertexShader);
+
+	float g_pos_offset[] = 
+	{
+		(float)m_context->XYOFFSET.OFX, 
+		(float)m_context->XYOFFSET.OFY
+	};
+
+	hr = m_pVertexShaderConstantTable->SetFloatArray(m_dev, "g_pos_offset", g_pos_offset, countof(g_pos_offset));
+
+	float g_pos_scale[] = 
+	{
+		2.0f * rt->m_scale.x / (rt->m_desc.Width * 16), 
+		2.0f * rt->m_scale.y / (rt->m_desc.Height * 16)
+	};
+
+	hr = m_pVertexShaderConstantTable->SetFloatArray(m_dev, "g_pos_scale", g_pos_scale, countof(g_pos_scale));
+
+	float g_tex_scale[] = {1.0f, 1.0f};
+
+	if(m_pPRIM->TME && m_pPRIM->FST)
+	{
+		g_tex_scale[0] = 1.0f / (16 << m_context->TEX0.TW);
+		g_tex_scale[1] = 1.0f / (16 << m_context->TEX0.TH);
+	}
+
+	hr = m_pVertexShaderConstantTable->SetFloatArray(m_dev, "g_tex_scale", g_tex_scale, countof(g_tex_scale));
+
 }
 
 void GSRendererHW::SetupTexture(const GSTextureCache::GSTexture* t)
@@ -954,15 +967,15 @@ void GSRendererHW::SetupAlphaTest()
 	}
 }
 
-void GSRendererHW::SetupScissor(GSScale& s)
+void GSRendererHW::SetupScissor(const GSScale& scale)
 {
 	HRESULT hr = m_dev->SetRenderState(D3DRS_SCISSORTESTENABLE, TRUE);
 
 	CRect r(
-		(int)(s.x * m_context->SCISSOR.SCAX0),
-		(int)(s.y * m_context->SCISSOR.SCAY0), 
-		(int)(s.x * (m_context->SCISSOR.SCAX1+1)),
-		(int)(s.y * (m_context->SCISSOR.SCAY1+1)));
+		(int)(scale.x * m_context->SCISSOR.SCAX0),
+		(int)(scale.y * m_context->SCISSOR.SCAY0), 
+		(int)(scale.x * (m_context->SCISSOR.SCAX1 + 1)),
+		(int)(scale.y * (m_context->SCISSOR.SCAY1 + 1)));
 
 	r &= CRect(0, 0, m_width, m_height);
 

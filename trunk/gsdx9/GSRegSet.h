@@ -89,6 +89,8 @@ struct GSRegSet
 		s.cx = (pDISPLAY[i]->DW + 1) / (pDISPLAY[i]->MAGH + 1);
 		s.cy = (pDISPLAY[i]->DH + 1) / (pDISPLAY[i]->MAGV + 1);
 
+		if(s.cy & 1) s.cy++;
+
 		return s;
 	}
 

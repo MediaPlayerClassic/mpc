@@ -25,7 +25,6 @@
 #include "GSHash.h"
 #include "GSUtil.h"
 
-
 GSTextureCache::GSTextureCache()
 {
 }
@@ -194,7 +193,15 @@ GSTextureCache::GSTexture* GSTextureCache::GetTextureNP(GSState* s)
 
 		if(HasSharedBits(t->m_TEX0.TBP0, t->m_TEX0.PSM, s->m_context->TEX0.TBP0, s->m_context->TEX0.PSM))
 		{
-			if(s->m_context->TEX0.PSM == t->m_TEX0.PSM && s->m_context->TEX0.TBW == t->m_TEX0.TBW
+			if(t->IsRenderTarget())
+			{
+				// TODO
+
+				m_tex.MoveToHead(pos);
+
+				break;
+			}
+			else if(s->m_context->TEX0.PSM == t->m_TEX0.PSM && s->m_context->TEX0.TBW == t->m_TEX0.TBW
 			&& s->m_context->TEX0.TW == t->m_TEX0.TW && s->m_context->TEX0.TH == t->m_TEX0.TH
 			&& (!(s->m_context->CLAMP.WMS & 2) && !(t->m_CLAMP.WMS & 2) && !(s->m_context->CLAMP.WMT & 2) && !(t->m_CLAMP.WMT & 2) || s->m_context->CLAMP.i64 == t->m_CLAMP.i64)
 			// && s->m_env.TEXA.TA0 == t->m_TEXA.TA0 && s->m_env.TEXA.TA1 == t->m_TEXA.TA1 && s->m_env.TEXA.AEM == t->m_TEXA.AEM
@@ -512,7 +519,10 @@ void GSTextureCache::Recycle(IDirect3DSurface9* surface)
 {
 	m_pool.AddHead(surface);
 
-	while(m_pool.GetCount() > 20) m_pool.RemoveTail();
+	while(m_pool.GetCount() > 20)
+	{
+		m_pool.RemoveTail();
+	}
 }
 
 void GSTextureCache::Recycle(GSSurface* s, bool del)

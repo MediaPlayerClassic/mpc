@@ -56,12 +56,13 @@ protected:
 
 	GSTextureCache m_tc;
 
+	void SetupVertexShader(const GSTextureCache::GSRenderTarget* rt);
 	void SetupTexture(const GSTextureCache::GSTexture* t);
 	void SetupAlphaBlend();
 	void SetupColorMask();
 	void SetupZBuffer();
 	void SetupAlphaTest();
-	void SetupScissor(GSScale& s);
+	void SetupScissor(const GSScale& scale);
 
 	void ResetState();
 	void VertexKick(bool skip);
