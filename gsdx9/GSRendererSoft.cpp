@@ -234,7 +234,7 @@ void GSRendererSoft<Vertex>::FlushPrim()
 
 /*
 if(m_context->TEX0.TBP0 == 0x1180) s_dump = true;
-*/
+
 
 if(s_dump)
 {
@@ -244,7 +244,7 @@ if(s_dump)
 	str.Format(_T("c:\\temp1\\_%05d_f%I64d_rt0_%05x_%d.bmp"), s_n++, m_perfmon.GetFrame(), m_context->FRAME.Block(), m_context->FRAME.PSM);
 	m_mem.SaveBMP(m_dev, str, m_context->FRAME.FBP, m_context->FRAME.FBW, m_context->FRAME.PSM, m_regs.GetFrameSize(1).cx, m_regs.GetFrameSize(1).cy);
 }
-
+*/
 		bZTE = m_context->TEST.ZTE && m_context->TEST.ZTST >= 2 || !m_context->ZBUF.ZMSK;
 
 		int iZTST = !m_context->TEST.ZTE ? 1 : m_context->TEST.ZTST;
@@ -322,14 +322,14 @@ if(s_dump)
 
 		m_perfmon.Put(GSPerfMon::Prim, nPrims);
 
-/**/
+/*
 if(s_dump)
 {
 	CString str;
 	str.Format(_T("c:\\temp1\\_%05d_f%I64d_rt1_%05x_%d.bmp"), s_n++, m_perfmon.GetFrame(), m_context->FRAME.Block(), m_context->FRAME.PSM);
 	m_mem.SaveBMP(m_dev, str, m_context->FRAME.FBP, m_context->FRAME.FBW, m_context->FRAME.PSM, m_regs.GetFrameSize(1).cx, m_regs.GetFrameSize(1).cy);
 }
-
+*/
 	}
 
 	__super::FlushPrim();
@@ -420,14 +420,14 @@ void GSRendererSoft<Vertex>::Flip()
 		m_mem.ReadTexture(CRect(0, 0, w, h), (BYTE*)lr.pBits, lr.Pitch, TEX0, m_env.TEXA, CLAMP);
 
 		src[i].tex->UnlockRect(0);
-
+/*
 if(s_dump)
 {
 	CString str;
 	str.Format(_T("c:\\temp1\\_%05d_f%I64d_fr%d_%05x.bmp"), s_n++, m_perfmon.GetFrame(), i, (int)TEX0.TBP0);
 	::D3DXSaveTextureToFile(str, D3DXIFF_BMP, src[i].tex, NULL);
 }
-
+*/
 // s_dump = m_perfmon.GetFrame() >= 1500;
 
 	}

@@ -368,7 +368,7 @@ if(m_context->TEX0.TBP0 == 0x1180) s_dump = true;
 		hr = m_dev->SetRenderTarget(0, rt->m_surface);
 		hr = m_dev->SetDepthStencilSurface(ds->m_surface);
 
-/**/
+/*
 if(s_dump)
 {
 	CString str;
@@ -377,7 +377,7 @@ if(s_dump)
 	str.Format(_T("c:\\temp2\\_%05d_f%I64d_rt0_%05x.bmp"), s_n++, m_perfmon.GetFrame(), m_context->FRAME.Block());
 	::D3DXSaveTextureToFile(str, D3DXIFF_BMP, rt->m_texture, NULL);
 }
-
+*/
 		hr = m_dev->BeginScene();
 
 		hr = m_dev->SetRenderState(D3DRS_SHADEMODE, m_pPRIM->IIP ? D3DSHADE_GOURAUD : D3DSHADE_FLAT);
@@ -482,14 +482,14 @@ if(s_dump)
 		}
 
 		hr = m_dev->EndScene();
-/**/
+/*
 if(s_dump)
 {
 	CString str;
 	str.Format(_T("c:\\temp2\\_%05d_f%I64d_rt1_%05x.bmp"), s_n++, m_perfmon.GetFrame(), m_context->FRAME.Block());
 	::D3DXSaveTextureToFile(str, D3DXIFF_BMP, rt->m_texture, NULL);
 }
-
+*/
 	}
 	while(0);
 

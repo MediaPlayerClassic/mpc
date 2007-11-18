@@ -118,6 +118,8 @@ GSTextureCache::GSRenderTarget* GSTextureCache::GetRenderTarget(GSState* s, cons
 		}
 	}
 
+	// comment this out for native resolution:
+
 	rt->m_scale.x = (float)w / (s->m_regs.GetFramePos().cx + rt->m_TEX0.TBW * 64);
 	rt->m_scale.y = (float)h / (s->m_regs.GetFramePos().cy + s->m_regs.GetDisplaySize().cy);
 
@@ -1061,14 +1063,14 @@ void GSTextureCache::GSRenderTarget::Update(GSState* s, GSTextureCache* tc)
 
 			tc->Recycle(surface);
 		}
-/**/
+/*
 if(s_dump)
 {
 	CString str;
 	str.Format(_T("c:\\temp2\\_%05d_f%I64d_dw_%05x.bmp"), s_n++, s->m_perfmon.GetFrame(), m_TEX0.TBP0);
 	::D3DXSaveTextureToFile(str, D3DXIFF_BMP, m_texture, NULL);
 }
-
+*/
 	}
 
 	m_dirty.RemoveAll();
