@@ -61,6 +61,13 @@ void GSState::WriteTransfer(BYTE* pMem, int len)
 
 	int height = len / pitch;
 
+	if(height > m_env.TRXREG.RRH - m_env.TRXPOS.DSAY)
+	{
+		height = m_env.TRXREG.RRH - m_env.TRXPOS.DSAY;
+
+		len = height * pitch;
+	}
+
 	if(m_nTransferBytes > 0 || height < m_env.TRXREG.RRH - m_env.TRXPOS.DSAY)
 	{
 		ASSERT(len <= m_nTrMaxBytes); // transferring more than 4mb into a 4mb local mem doesn't make any sense

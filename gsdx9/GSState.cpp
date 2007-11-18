@@ -195,11 +195,6 @@ bool GSState::Create(LPCTSTR title)
 		// D3DADAPTER_DEFAULT, D3DDEVTYPE_REF, 
 		&m_caps);
 
-	m_fmtDepthStencil = 
-		IsDepthFormatOk(m_d3d, D3DFMT_D32, D3DFMT_X8R8G8B8, D3DFMT_X8R8G8B8) ? D3DFMT_D32 :
-		IsDepthFormatOk(m_d3d, D3DFMT_D24X8, D3DFMT_X8R8G8B8, D3DFMT_X8R8G8B8) ? D3DFMT_D24X8 :
-		D3DFMT_D16;
-
 	// d3d device
 
 	if(FAILED(ResetDevice()))
@@ -749,7 +744,7 @@ void GSState::Transfer(BYTE* mem, UINT32 size, int index)
 					WriteTransfer(mem, len*16);
 					break;
 				case 1: 
-					ReadTransfer(mem, len*16); // TODO: writing access violation with aqtime
+					//ReadTransfer(mem, len*16); // TODO: writing access violation with aqtime
 					break;
 				case 2: 
 					//MoveTransfer();
@@ -781,13 +776,13 @@ void GSState::Transfer(BYTE* mem, UINT32 size, int index)
 
 void GSState::VSync(int field)
 {
-	m_perfmon.Put(GSPerfMon::Frame);
-
 	m_field = !!field;
 
 	Flush();
 
 	Flip();
+
+	m_perfmon.Put(GSPerfMon::Frame);
 
 	Present();
 }
@@ -829,7 +824,7 @@ static bool CheckSize(IDirect3DTexture9* t, CSize s)
 	return false;
 }
 
-void GSState::FinishFlip(FlipInfo src[2], float yscale)
+void GSState::FinishFlip(FlipInfo src[2])
 {
 	HRESULT hr;
 
@@ -840,10 +835,13 @@ void GSState::FinishFlip(FlipInfo src[2], float yscale)
 	{
 		if(src[i].tex)
 		{
-			CSize s(src[i].desc.Width, src[i].desc.Height * yscale);
+			CSize s = m_regs.GetFrameSize(i);
+
+			s.cx = (int)(src[i].scale.x * s.cx);
+			s.cy = (int)(src[i].scale.y * s.cy);
 
 			ASSERT(fs.cx == 0 || fs.cx == s.cx);
-			ASSERT(fs.cy == 0 || fs.cy == s.cy);
+			ASSERT(fs.cy == 0 || fs.cy == s.cy || fs.cy+1 == s.cy);
 
 			fs.cx = s.cx;
 			fs.cy = s.cy;
@@ -851,7 +849,7 @@ void GSState::FinishFlip(FlipInfo src[2], float yscale)
 			if(m_regs.pSMODE2->INT && m_regs.pSMODE2->FFMD) s.cy *= 2;
 
 			ASSERT(ds.cx == 0 || ds.cx == s.cx);
-			ASSERT(ds.cy == 0 || ds.cy == s.cy);
+			ASSERT(ds.cy == 0 || ds.cy == s.cy || ds.cy+1 == s.cy);
 
 			ds.cx = s.cx;
 			ds.cy = s.cy;
@@ -882,7 +880,7 @@ void GSState::FinishFlip(FlipInfo src[2], float yscale)
 
 	hr = m_pMergeTexture->GetSurfaceLevel(0, &surf[0]);
 
-	Merge(src, surf[0], yscale);
+	Merge(src, surf[0]);
 
 	dst = surf[0];
 
@@ -952,7 +950,7 @@ void GSState::FinishFlip(FlipInfo src[2], float yscale)
 	m_pCurrentFrame = dst;
 }
 
-void GSState::Merge(FlipInfo src[2], IDirect3DSurface9* dst, float yscale)
+void GSState::Merge(FlipInfo src[2], IDirect3DSurface9* dst)
 {
 	HRESULT hr;
 
@@ -997,6 +995,11 @@ void GSState::Merge(FlipInfo src[2], IDirect3DSurface9* dst, float yscale)
 
 	hr = m_dev->BeginScene();
 
+	CRect r[2];
+	
+	r[0] = m_regs.GetFrameRect(0);
+	r[1] = m_regs.GetFrameRect(1);
+
 	struct
 	{
 		float x, y, z, rhw;
@@ -1005,10 +1008,18 @@ void GSState::Merge(FlipInfo src[2], IDirect3DSurface9* dst, float yscale)
 	}
 	vertices[] =
 	{
-		{0, 0, 0.5f, 2.0f, 0.0f, 0.0f, 0.0f, 0.0f},
-		{(float)desc.Width, 0, 0.5f, 2.0f, 1.0f, 0.0f, 1.0f, 0.0f},
-		{(float)desc.Width, (float)desc.Height, 0.5f, 2.0f, 1.0f, yscale, 1.0f, yscale},
-		{0, (float)desc.Height, 0.5f, 2.0f, 0.0f, yscale, 0.0f, yscale},
+		{0, 0, 0.5f, 2.0f, 
+			src[0].scale.x * r[0].left / src[0].desc.Width, src[0].scale.y * r[0].top / src[0].desc.Height,
+			src[1].scale.x * r[1].left / src[1].desc.Width, src[1].scale.y * r[1].top / src[1].desc.Height},
+		{(float)desc.Width, 0, 0.5f, 2.0f, 
+			src[0].scale.x * r[0].right / src[0].desc.Width, src[0].scale.y * r[0].top / src[0].desc.Height,
+			src[1].scale.x * r[1].right / src[1].desc.Width, src[1].scale.y * r[1].top / src[1].desc.Height},
+		{(float)desc.Width, (float)desc.Height, 0.5f, 2.0f, 
+			src[0].scale.x * r[0].right / src[0].desc.Width, src[0].scale.y * r[0].bottom / src[0].desc.Height,
+			src[1].scale.x * r[1].right / src[1].desc.Width, src[1].scale.y * r[1].bottom / src[1].desc.Height}, 
+		{0, (float)desc.Height, 0.5f, 2.0f, 
+			src[0].scale.x * r[0].left / src[0].desc.Width, src[0].scale.y * r[0].bottom / src[0].desc.Height,
+			src[1].scale.x * r[1].left / src[1].desc.Width, src[1].scale.y * r[1].bottom / src[1].desc.Height}, 
 	};
 
 	for(int i = 0; i < countof(vertices); i++)
