@@ -118,7 +118,6 @@ protected:
 	D3DPRESENT_PARAMETERS m_d3dpp;
 	DDCAPS m_ddcaps;
 	D3DCAPS9 m_caps;
-	D3DFORMAT m_fmtDepthStencil;
 	bool m_fPalettizedTextures;
 	int m_nInterlace;
 	int m_nAspectRatio;
@@ -144,8 +143,8 @@ protected:
 		GSScale scale;
 	};
 
-	void FinishFlip(FlipInfo src[2], float yscale = 1.0f);
-	void Merge(FlipInfo src[2], IDirect3DSurface9* dst, float yscale = 1.0f);
+	void FinishFlip(FlipInfo src[2]);
+	void Merge(FlipInfo src[2], IDirect3DSurface9* dst);
 	void Interlace(IDirect3DTexture9* src, IDirect3DSurface9* dst, int shader, D3DTEXTUREFILTERTYPE filter, int yoffset = 0);
 	void Present();
 	void Flush();

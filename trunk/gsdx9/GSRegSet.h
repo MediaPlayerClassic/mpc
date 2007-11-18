@@ -68,39 +68,84 @@ struct GSRegSet
 		pSIGLBLID = (GSRegSIGLBLID*)(g_pBasePS2Mem + GS_SIGLBLID);
 	}
 
+	CPoint GetDisplayPos(int i)
+	{
+		ASSERT(i >= 0 && i < 2);
+
+		CPoint p;
+
+		p.x = pDISPLAY[i]->DX / (pDISPLAY[i]->MAGH + 1);
+		p.y = pDISPLAY[i]->DY / (pDISPLAY[i]->MAGV + 1);
+
+		return p;
+	}
+
 	CSize GetDisplaySize(int i)
 	{
 		ASSERT(i >= 0 && i < 2);
 
-		CSize size;
+		CSize s;
 
-		size.cx = (pDISPLAY[i]->DW + 1) / (pDISPLAY[i]->MAGH + 1);
-		size.cy = (pDISPLAY[i]->DH + 1) / (pDISPLAY[i]->MAGV + 1);
+		s.cx = (pDISPLAY[i]->DW + 1) / (pDISPLAY[i]->MAGH + 1);
+		s.cy = (pDISPLAY[i]->DH + 1) / (pDISPLAY[i]->MAGV + 1);
 
-		return size;
+		return s;
 	}
 
 	CRect GetDisplayRect(int i)
 	{
+		return CRect(GetDisplayPos(i), GetDisplaySize(i));
+	}
+
+	CSize GetDisplayPos()
+	{
+		return GetDisplayPos(IsEnabled(1) ? 1 : 0);
+	}	
+
+	CSize GetDisplaySize()
+	{
+		return GetDisplaySize(IsEnabled(1) ? 1 : 0);
+	}	
+
+	CRect GetDisplayRect()
+	{
+		return GetDisplayRect(IsEnabled(1) ? 1 : 0);
+	}
+
+	CPoint GetFramePos(int i)
+	{
 		ASSERT(i >= 0 && i < 2);
 
-		return CRect(CPoint(pDISPFB[i]->DBX, pDISPFB[i]->DBY), GetDisplaySize(i));
+		return CPoint(pDISPFB[i]->DBX, pDISPFB[i]->DBY);
 	}
 
 	CSize GetFrameSize(int i)
 	{
-		CSize size = GetDisplaySize(i);
+		CSize s = GetDisplaySize(i);
 
-		if(pSMODE2->INT && pSMODE2->FFMD && size.cy > 1) size.cy >>= 1;
+		if(pSMODE2->INT && pSMODE2->FFMD && s.cy > 1) s.cy >>= 1;
 
-		return size;
+		return s;
 	}
 
 	CRect GetFrameRect(int i)
 	{
-		ASSERT(i >= 0 && i < 2);
+		return CRect(GetFramePos(i), GetFrameSize(i));
+	}
 
-		return CRect(CPoint(pDISPFB[i]->DBX, pDISPFB[i]->DBY), GetFrameSize(i));
+	CSize GetFramePos()
+	{
+		return GetFramePos(IsEnabled(1) ? 1 : 0);
+	}	
+
+	CSize GetFrameSize()
+	{
+		return GetFrameSize(IsEnabled(1) ? 1 : 0);
+	}	
+
+	CRect GetFrameRect()
+	{
+		return GetFrameRect(IsEnabled(1) ? 1 : 0);
 	}
 
 	bool IsEnabled(int i)

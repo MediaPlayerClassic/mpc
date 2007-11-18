@@ -102,6 +102,7 @@ GSLocalMemory::GSLocalMemory()
 	int len = 1024*1024*4*2; // *2 for safety...
 
 	m_vm8 = (BYTE*)_aligned_malloc(len, 16);
+
 	memset(m_vm8, 0, len);
 
 	m_pCLUT = (WORD*)_aligned_malloc(256*2*sizeof(WORD)*2, 16);

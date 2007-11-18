@@ -198,10 +198,10 @@ void GSRendererHW::DrawingKick(bool skip)
 	default:
 		//ASSERT(0);
 		m_vl.RemoveAll();
-		return;
+		// return;
 	}
 
-	if(skip || !m_regs.IsEnabled(0) && !m_regs.IsEnabled(1))
+	if(skip)
 	{
 		return;
 	}
@@ -256,7 +256,15 @@ void GSRendererHW::DrawingKick(bool skip)
 	}
 
 	m_nVertices += nv;
+
+	if(m_nVertices > 30000)
+	{
+		Flush();
+	}
 }
+
+int s_n = 0;
+bool s_dump = false;
 
 void GSRendererHW::FlushPrim()
 {
@@ -301,19 +309,34 @@ void GSRendererHW::FlushPrim()
 		HRESULT hr;
 
 		//
-
-		GSScale scale(
-			(float)m_width / (m_context->FRAME.FBW*64), 
-//			(float)m_width / m_regs.GetFrameSize(m_regs.IsEnabled(1)?1:0).cx, 
-			(float)m_height / m_regs.GetDisplaySize(m_regs.IsEnabled(1)?1:0).cy); 
-		
-		//
 /*
-static int n = 0;
-static bool dump = false;
+		CComPtr<IDirect3DVertexBuffer9> pVertexBuffer;
 
-dump = m_perfmon.GetFrame() == 1100 || m_perfmon.GetFrame() == 1101;
+		UINT size = m_nVertices * sizeof(GSVertexHW);
+
+		hr = m_dev->CreateVertexBuffer(size, D3DUSAGE_DYNAMIC, 0, D3DPOOL_DEFAULT, &pVertexBuffer, NULL);
+
+		void* ptr = NULL;
+
+		hr = pVertexBuffer->Lock(0, size, &ptr, 0);
+
+		if(SUCCEEDED(hr))
+		{
+			memcpy(ptr, m_pVertices, size);
+
+			hr = pVertexBuffer->Unlock();
+		}
+
+		hr = m_dev->SetStreamSource(0, pVertexBuffer, 0, sizeof(GSVertexHW));
 */
+		//
+
+/*
+s_dump = true;
+if(m_context->TEX0.TBP0 == 0x1180) s_dump = true;
+*/
+
+
 		GSTextureCache::GSRenderTarget* rt = NULL;
 		GSTextureCache::GSDepthStencil* ds = NULL;
 		GSTextureCache::GSTexture* tex = NULL;
@@ -326,15 +349,11 @@ dump = m_perfmon.GetFrame() == 1100 || m_perfmon.GetFrame() == 1101;
 
 		rt = m_tc.GetRenderTarget(this, TEX0, m_width, m_height);
 
-		rt->m_scale = scale;
-
 		TEX0.TBP0 = m_context->ZBUF.Block();
 		TEX0.TBW = m_context->FRAME.FBW;
 		TEX0.PSM = m_context->ZBUF.PSM;
 
 		ds = m_tc.GetDepthStencil(this, TEX0, m_width, m_height);
-
-		ds->m_scale = scale;
 
 		if(m_pPRIM->TME)
 		{
@@ -349,16 +368,16 @@ dump = m_perfmon.GetFrame() == 1100 || m_perfmon.GetFrame() == 1101;
 		hr = m_dev->SetRenderTarget(0, rt->m_surface);
 		hr = m_dev->SetDepthStencilSurface(ds->m_surface);
 
-/*
-if(dump)
+/**/
+if(s_dump)
 {
 	CString str;
-	str.Format(_T("c:\\temp2\\_f%I64d_%05d_%05x.bmp"), m_perfmon.GetFrame(), n, m_context->TEX0.TBP0);
+	str.Format(_T("c:\\temp2\\_%05d_f%I64d_tex_%05x.bmp"), s_n++, m_perfmon.GetFrame(), m_context->TEX0.TBP0);
 	if(m_pPRIM->TME) ::D3DXSaveTextureToFile(str, D3DXIFF_BMP, tex->m_texture, NULL);
-	str.Format(_T("c:\\temp2\\_f%I64d_%05drt1_%05x.bmp"), m_perfmon.GetFrame(), n, m_context->FRAME.Block());
+	str.Format(_T("c:\\temp2\\_%05d_f%I64d_rt0_%05x.bmp"), s_n++, m_perfmon.GetFrame(), m_context->FRAME.Block());
 	::D3DXSaveTextureToFile(str, D3DXIFF_BMP, rt->m_texture, NULL);
 }
-*/
+
 		hr = m_dev->BeginScene();
 
 		hr = m_dev->SetRenderState(D3DRS_SHADEMODE, m_pPRIM->IIP ? D3DSHADE_GOURAUD : D3DSHADE_FLAT);
@@ -373,7 +392,7 @@ if(dump)
 
 		SetupAlphaTest();
 
-		SetupScissor(scale);
+		SetupScissor(rt->m_scale);
 
 		// ASSERT(!m_env.PABE.PABE); // bios
 		// ASSERT(!m_context->FBA.FBA); // bios
@@ -392,8 +411,8 @@ if(dump)
 
 		float g_pos_scale[] = 
 		{
-			2.0f * scale.x / (rt->m_desc.Width * 16), 
-			2.0f * scale.y / (rt->m_desc.Height * 16)
+			2.0f * rt->m_scale.x / (rt->m_desc.Width * 16), 
+			2.0f * rt->m_scale.y / (rt->m_desc.Height * 16)
 		};
 
 		hr = m_pVertexShaderConstantTable->SetFloatArray(m_dev, "g_pos_scale", g_pos_scale, countof(g_pos_scale));
@@ -411,6 +430,7 @@ if(dump)
 		if(1)//!m_env.PABE.PABE)
 		{
 			hr = m_dev->DrawPrimitiveUP(primtype, nPrims, m_pVertices, sizeof(GSVertexHW));
+			//hr = m_dev->DrawPrimitive(primtype, 0, nPrims);
 		}
 /*		else
 		{
@@ -457,19 +477,19 @@ if(dump)
 			if(mask || zwrite)
 			{
 				hr = m_dev->DrawPrimitiveUP(primtype, nPrims, m_pVertices, sizeof(GSVertexHW));
+				//hr = m_dev->DrawPrimitive(primtype, 0, nPrims);
 			}
 		}
 
 		hr = m_dev->EndScene();
-/*
-if(dump)
+/**/
+if(s_dump)
 {
 	CString str;
-	str.Format(_T("c:\\temp2\\_f%I64d_%05drt1_%05x.bmp"), m_perfmon.GetFrame(), n, m_context->FRAME.Block());
+	str.Format(_T("c:\\temp2\\_%05d_f%I64d_rt1_%05x.bmp"), s_n++, m_perfmon.GetFrame(), m_context->FRAME.Block());
 	::D3DXSaveTextureToFile(str, D3DXIFF_BMP, rt->m_texture, NULL);
-	n++;
 }
-*/
+
 	}
 	while(0);
 
@@ -492,29 +512,38 @@ void GSRendererHW::Flip()
 		TEX0.TBP0 = m_regs.pDISPFB[i]->Block();
 		TEX0.TBW = m_regs.pDISPFB[i]->FBW;
 		TEX0.PSM = m_regs.pDISPFB[i]->PSM;
-/*
-static bool dump = false;
 
-dump = m_perfmon.GetFrame() == 1100 || m_perfmon.GetFrame() == 1101;
-*/
 		if(GSTextureCache::GSRenderTarget* rt = m_tc.GetRenderTarget(this, TEX0, m_width, m_height, true))
 		{
 			src[i].tex = rt->m_texture;
 			src[i].desc = rt->m_desc;
 			src[i].scale = rt->m_scale;
 /*
-if(dump)
+CString str;
+
+str.Format(_T("%d %05x %d | %d %d | %d x %d | %.2f %.2f\n"), 
+	i, m_regs.pDISPFB[i]->Block(), m_regs.pDISPFB[i]->FBW * 64,
+	m_regs.pDISPFB[i]->DBX, m_regs.pDISPFB[i]->DBY, 
+	m_regs.GetDisplaySize(i).cx, m_regs.GetDisplaySize(i).cy, 				
+	rt->m_scale.x, rt->m_scale.y);
+
+TRACE(_T("%s"), str);
+
+if(s_dump)
 {
 	CString str;
-	str.Format(_T("c:\\temp2\\_f%I64d_o%d_%05x.bmp"), m_perfmon.GetFrame(), i, TEX0.TBP0);
+	str.Format(_T("c:\\temp2\\_%05d_f%I64d_fr%d_%05x_%d.bmp"), s_n++, m_perfmon.GetFrame(), i, (int)TEX0.TBP0, (int)TEX0.PSM);
 	::D3DXSaveTextureToFile(str, D3DXIFF_BMP, rt->m_texture, NULL);
 }
 */
+/*
+s_dump = m_perfmon.GetFrame() >= 1500;
+*/ 
 
 		}
 	}
 
-	FinishFlip(src, m_regs.pSMODE2->INT && m_regs.pSMODE2->FFMD ? 0.5f : 1.0f);
+	FinishFlip(src);
 
 	m_tc.IncAge();
 }
