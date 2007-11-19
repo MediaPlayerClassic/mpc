@@ -60,10 +60,10 @@ static struct {DWORD id; const TCHAR* name;} s_ar[] =
 IMPLEMENT_DYNAMIC(CGSSettingsDlg, CDialog)
 CGSSettingsDlg::CGSSettingsDlg(CWnd* pParent /*=NULL*/)
 	: CDialog(CGSSettingsDlg::IDD, pParent)
-	, m_fPalettizedTextures(FALSE)
 	, m_fEnableTvOut(FALSE)
 	, m_fLinearTextureFilter(TRUE)
 	, m_nloophack(2)
+	, m_nativeres(FALSE)
 {
 }
 
@@ -79,13 +79,18 @@ void CGSSettingsDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_COMBO4, m_psversion);
 	DDX_Control(pDX, IDC_COMBO2, m_interlace);
 	DDX_Control(pDX, IDC_COMBO5, m_ar);
-	DDX_Check(pDX, IDC_CHECK1, m_fPalettizedTextures);
 	DDX_Check(pDX, IDC_CHECK3, m_fEnableTvOut);
 	DDX_Check(pDX, IDC_CHECK4, m_fLinearTextureFilter);
 	DDX_Check(pDX, IDC_CHECK6, m_nloophack);	
+	DDX_Control(pDX, IDC_SPIN1, m_resx);
+	DDX_Control(pDX, IDC_SPIN2, m_resy);
+	DDX_Check(pDX, IDC_CHECK1, m_nativeres);
+	DDX_Control(pDX, IDC_EDIT1, m_resxedit);
+	DDX_Control(pDX, IDC_EDIT2, m_resyedit);
 }
 
 BEGIN_MESSAGE_MAP(CGSSettingsDlg, CDialog)
+	ON_BN_CLICKED(IDC_CHECK1, &CGSSettingsDlg::OnBnClickedCheck1)
 END_MESSAGE_MAP()
 
 // CGSSettingsDlg message handlers
@@ -190,10 +195,20 @@ BOOL CGSSettingsDlg::OnInitDialog()
 
 	//
 
-	m_fPalettizedTextures = pApp->GetProfileInt(_T("Settings"), _T("fPalettizedTextures"), FALSE);
 	m_fLinearTextureFilter = (D3DTEXTUREFILTERTYPE)pApp->GetProfileInt(_T("Settings"), _T("TextureFilter"), D3DTEXF_LINEAR) == D3DTEXF_LINEAR;
 	m_fEnableTvOut = pApp->GetProfileInt(_T("Settings"), _T("fEnableTvOut"), FALSE);
 	m_nloophack = pApp->GetProfileInt(_T("Settings"), _T("nloophack"), 2);
+
+	m_resx.SetRange(512, 4096);
+	m_resy.SetRange(512, 4096);
+	m_resx.SetPos(pApp->GetProfileInt(_T("Settings"), _T("resx"), 1024));
+	m_resy.SetPos(pApp->GetProfileInt(_T("Settings"), _T("resy"), 1024));
+	m_nativeres = !!pApp->GetProfileInt(_T("Settings"), _T("nativeres"), FALSE);
+
+	m_resx.EnableWindow(!m_nativeres);
+	m_resy.EnableWindow(!m_nativeres);
+	m_resxedit.EnableWindow(!m_nativeres);
+	m_resyedit.EnableWindow(!m_nativeres);
 
 	//
 
@@ -237,10 +252,23 @@ void CGSSettingsDlg::OnOK()
 		pApp->WriteProfileInt(_T("Settings"), _T("AspectRatio"), (DWORD)m_ar.GetItemData(m_ar.GetCurSel()));
 	}
 
-	pApp->WriteProfileInt(_T("Settings"), _T("fPalettizedTextures"), m_fPalettizedTextures);
 	pApp->WriteProfileInt(_T("Settings"), _T("TextureFilter"), m_fLinearTextureFilter ? D3DTEXF_LINEAR : D3DTEXF_POINT);
 	pApp->WriteProfileInt(_T("Settings"), _T("fEnableTvOut"), m_fEnableTvOut);
 	pApp->WriteProfileInt(_T("Settings"), _T("nloophack"), m_nloophack);
 
+	pApp->WriteProfileInt(_T("Settings"), _T("resx"), m_resx.GetPos());
+	pApp->WriteProfileInt(_T("Settings"), _T("resy"), m_resy.GetPos());
+	pApp->WriteProfileInt(_T("Settings"), _T("nativeres"), m_nativeres);
+
 	__super::OnOK();
+}
+
+void CGSSettingsDlg::OnBnClickedCheck1()
+{
+	UpdateData();
+
+	m_resx.EnableWindow(!m_nativeres);
+	m_resy.EnableWindow(!m_nativeres);
+	m_resxedit.EnableWindow(!m_nativeres);
+	m_resyedit.EnableWindow(!m_nativeres);
 }

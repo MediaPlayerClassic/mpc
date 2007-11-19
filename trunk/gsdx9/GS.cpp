@@ -195,9 +195,9 @@ EXPORT_C GSreadFIFO(BYTE* mem)
 
 EXPORT_C GSgifTransfer1(BYTE* mem, UINT32 addr)
 {
-	// s_gst->Transfer(mem + addr, -1, 0);
+	// s_gst->Transfer(mem + addr, (0x4000 - addr) / 16, 0);
 
-	s_gs->Transfer(mem + addr, -1, 0);
+	s_gs->Transfer(mem + addr, (0x4000 - addr) / 16, 0);
 }
 
 EXPORT_C GSgifTransfer2(BYTE* mem, UINT32 size)

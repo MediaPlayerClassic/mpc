@@ -144,7 +144,7 @@ bool GSTextureCache::GSTexture::Create(GSRenderTarget* rt)
 	{
 		// sfex3 uses this trick (bw: 10 -> 5, wraps the right side below the left)
 
-		ASSERT(rt->m_TEX0.TBW > m_TEX0.TBW); // otherwise scale.x need to be reduced to make the larger texture fit (TODO)
+		// ASSERT(rt->m_TEX0.TBW > m_TEX0.TBW); // otherwise scale.x need to be reduced to make the larger texture fit (TODO)
 
 		int bw = 64;
 		int bh = m_TEX0.PSM == PSM_PSMCT32 || m_TEX0.PSM == PSM_PSMCT24 ? 32 : 64;
@@ -263,7 +263,7 @@ void GSTextureCache::GSTexture::Update(GSLocalMemory::readTexture rt)
 			m_tc->m_state->m_env.TEXA, 
 			m_tc->m_state->m_context->CLAMP);
 
-		ASSERT(m_tc->m_state->m_context->TEX0.i64 == m_TEX0.i64);
+		//ASSERT(m_tc->m_state->m_context->TEX0.i64 == m_TEX0.i64);
 		ASSERT(m_tc->m_state->m_context->CLAMP.i64 == m_CLAMP.i64);
 		ASSERT(m_tc->m_state->m_env.TEXA.i64 == m_TEXA.i64);
 

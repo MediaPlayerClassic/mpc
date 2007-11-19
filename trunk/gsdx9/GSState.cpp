@@ -38,7 +38,6 @@ GSState::GSState()
 	, m_options(0)
 	, m_path3hack(0)
 {
-	m_fPalettizedTextures = !!AfxGetApp()->GetProfileInt(_T("Settings"), _T("fPalettizedTextures"), FALSE);
 	m_nInterlace = AfxGetApp()->GetProfileInt(_T("Settings"), _T("Interlace"), 3);
 	m_nAspectRatio = AfxGetApp()->GetProfileInt(_T("Settings"), _T("AspectRatio"), 1);
 	m_nTextureFilter = (D3DTEXTUREFILTERTYPE)AfxGetApp()->GetProfileInt(_T("Settings"), _T("TextureFilter"), D3DTEXF_LINEAR);
@@ -619,6 +618,8 @@ UINT32 GSState::Defrost(const freezeData* fd)
 	m_env.CTXT[1].ftbl = &GSLocalMemory::m_psmtbl[m_env.CTXT[1].FRAME.PSM];
 	m_env.CTXT[1].ztbl = &GSLocalMemory::m_psmtbl[m_env.CTXT[1].ZBUF.PSM];
 	m_env.CTXT[1].ttbl = &GSLocalMemory::m_psmtbl[m_env.CTXT[1].TEX0.PSM];
+/**/
+m_perfmon.SetFrame(4950);
 
 	return 0;
 }
@@ -744,7 +745,7 @@ void GSState::Transfer(BYTE* mem, UINT32 size, int index)
 					WriteTransfer(mem, len*16);
 					break;
 				case 1: 
-					//ReadTransfer(mem, len*16); // TODO: writing access violation with aqtime
+					ReadTransfer(mem, len*16); // TODO: writing access violation with aqtime
 					break;
 				case 2: 
 					//MoveTransfer();
