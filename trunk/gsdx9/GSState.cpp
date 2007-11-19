@@ -618,9 +618,9 @@ UINT32 GSState::Defrost(const freezeData* fd)
 	m_env.CTXT[1].ftbl = &GSLocalMemory::m_psmtbl[m_env.CTXT[1].FRAME.PSM];
 	m_env.CTXT[1].ztbl = &GSLocalMemory::m_psmtbl[m_env.CTXT[1].ZBUF.PSM];
 	m_env.CTXT[1].ttbl = &GSLocalMemory::m_psmtbl[m_env.CTXT[1].TEX0.PSM];
-/**/
+/*
 m_perfmon.SetFrame(4950);
-
+*/
 	return 0;
 }
 
