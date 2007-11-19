@@ -442,9 +442,9 @@ if(s_dump)
 	str.Format(_T("c:\\temp1\\_%05d_f%I64d_fr%d_%05x.bmp"), s_n++, m_perfmon.GetFrame(), i, (int)TEX0.TBP0);
 	::D3DXSaveTextureToFile(str, D3DXIFF_BMP, src[i].tex, NULL);
 }
-/**/
+/*
 s_dump = m_perfmon.GetFrame() >= 5000;
-
+*/
 	}
 
 	FinishFlip(src);
