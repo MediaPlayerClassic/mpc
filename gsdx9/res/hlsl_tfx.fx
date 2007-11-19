@@ -15,6 +15,8 @@ float2 W_H : register(c2);
 float2 RW_RH : register(c3);
 float2 RW_ZERO : register(c4);
 float2 ZERO_RH : register(c5);
+float2 CLAMPMIN : register(c6);
+float2 CLAMPMAX : register(c7);
 
 struct PS_INPUT
 {
@@ -23,6 +25,11 @@ struct PS_INPUT
 	float4 fog : COLOR1;
 	float3 tex : TEXCOORD0;
 };
+
+float2 TexCoord(float3 tex : TEXCOORD0)
+{
+	return clamp(tex.xy / tex.z, CLAMPMIN, CLAMPMAX);
+}
 
 //
 // texture sampling
@@ -160,22 +167,22 @@ float4 tfx3(float4 diff, float4 tex) : COLOR
 
 float4 main_tfx0_32(PS_INPUT input) : COLOR
 {
-	return ApplyFog(tfx0(input.diff, SampleTexture_32(input.tex.xy / input.tex.z)), input.fog);
+	return ApplyFog(tfx0(input.diff, SampleTexture_32(TexCoord(input.tex))), input.fog);
 }
 
 float4 main_tfx1_32(PS_INPUT input) : COLOR
 {
-	return ApplyFog(tfx1(input.diff, SampleTexture_32(input.tex.xy / input.tex.z)), input.fog);
+	return ApplyFog(tfx1(input.diff, SampleTexture_32(TexCoord(input.tex))), input.fog);
 }
 
 float4 main_tfx2_32(PS_INPUT input) : COLOR
 {
-	return ApplyFog(tfx2(input.diff, SampleTexture_32(input.tex.xy / input.tex.z)), input.fog);
+	return ApplyFog(tfx2(input.diff, SampleTexture_32(TexCoord(input.tex))), input.fog);
 }
 
 float4 main_tfx3_32(PS_INPUT input) : COLOR
 {
-	return ApplyFog(tfx3(input.diff, SampleTexture_32(input.tex.xy / input.tex.z)), input.fog);
+	return ApplyFog(tfx3(input.diff, SampleTexture_32(TexCoord(input.tex))), input.fog);
 }
 
 //
@@ -184,22 +191,22 @@ float4 main_tfx3_32(PS_INPUT input) : COLOR
 
 float4 main_tfx0_24(PS_INPUT input) : COLOR
 {
-	return ApplyFog(tfx0(input.diff, SampleTexture_24(input.tex.xy / input.tex.z)), input.fog);
+	return ApplyFog(tfx0(input.diff, SampleTexture_24(TexCoord(input.tex))), input.fog);
 }
 
 float4 main_tfx1_24(PS_INPUT input) : COLOR
 {
-	return ApplyFog(tfx1(input.diff, SampleTexture_24(input.tex.xy / input.tex.z)), input.fog);
+	return ApplyFog(tfx1(input.diff, SampleTexture_24(TexCoord(input.tex))), input.fog);
 }
 
 float4 main_tfx2_24(PS_INPUT input) : COLOR
 {
-	return ApplyFog(tfx2(input.diff, SampleTexture_24(input.tex.xy / input.tex.z)), input.fog);
+	return ApplyFog(tfx2(input.diff, SampleTexture_24(TexCoord(input.tex))), input.fog);
 }
 
 float4 main_tfx3_24(PS_INPUT input) : COLOR
 {
-	return ApplyFog(tfx3(input.diff, SampleTexture_24(input.tex.xy / input.tex.z)), input.fog);
+	return ApplyFog(tfx3(input.diff, SampleTexture_24(TexCoord(input.tex))), input.fog);
 }
 
 //
@@ -208,22 +215,22 @@ float4 main_tfx3_24(PS_INPUT input) : COLOR
 
 float4 main_tfx0_24AEM(PS_INPUT input) : COLOR
 {
-	return ApplyFog(tfx0(input.diff, SampleTexture_24AEM(input.tex.xy / input.tex.z)), input.fog);
+	return ApplyFog(tfx0(input.diff, SampleTexture_24AEM(TexCoord(input.tex))), input.fog);
 }
 
 float4 main_tfx1_24AEM(PS_INPUT input) : COLOR
 {
-	return ApplyFog(tfx1(input.diff, SampleTexture_24AEM(input.tex.xy / input.tex.z)), input.fog);
+	return ApplyFog(tfx1(input.diff, SampleTexture_24AEM(TexCoord(input.tex))), input.fog);
 }
 
 float4 main_tfx2_24AEM(PS_INPUT input) : COLOR
 {
-	return ApplyFog(tfx2(input.diff, SampleTexture_24AEM(input.tex.xy / input.tex.z)), input.fog);
+	return ApplyFog(tfx2(input.diff, SampleTexture_24AEM(TexCoord(input.tex))), input.fog);
 }
 
 float4 main_tfx3_24AEM(PS_INPUT input) : COLOR
 {
-	return ApplyFog(tfx3(input.diff, SampleTexture_24AEM(input.tex.xy / input.tex.z)), input.fog);
+	return ApplyFog(tfx3(input.diff, SampleTexture_24AEM(TexCoord(input.tex))), input.fog);
 }
 
 //
@@ -232,22 +239,22 @@ float4 main_tfx3_24AEM(PS_INPUT input) : COLOR
 
 float4 main_tfx0_16(PS_INPUT input) : COLOR
 {
-	return ApplyFog(tfx0(input.diff, SampleTexture_16(input.tex.xy / input.tex.z)), input.fog);
+	return ApplyFog(tfx0(input.diff, SampleTexture_16(TexCoord(input.tex))), input.fog);
 }
 
 float4 main_tfx1_16(PS_INPUT input) : COLOR
 {
-	return ApplyFog(tfx1(input.diff, SampleTexture_16(input.tex.xy / input.tex.z)), input.fog);
+	return ApplyFog(tfx1(input.diff, SampleTexture_16(TexCoord(input.tex))), input.fog);
 }
 
 float4 main_tfx2_16(PS_INPUT input) : COLOR
 {
-	return ApplyFog(tfx2(input.diff, SampleTexture_16(input.tex.xy / input.tex.z)), input.fog);
+	return ApplyFog(tfx2(input.diff, SampleTexture_16(TexCoord(input.tex))), input.fog);
 }
 
 float4 main_tfx3_16(PS_INPUT input) : COLOR
 {
-	return ApplyFog(tfx3(input.diff, SampleTexture_16(input.tex.xy / input.tex.z)), input.fog);
+	return ApplyFog(tfx3(input.diff, SampleTexture_16(TexCoord(input.tex))), input.fog);
 }
 
 //
@@ -256,22 +263,22 @@ float4 main_tfx3_16(PS_INPUT input) : COLOR
 
 float4 main_tfx0_16AEM(PS_INPUT input) : COLOR
 {
-	return ApplyFog(tfx0(input.diff, SampleTexture_16AEM(input.tex.xy / input.tex.z)), input.fog);
+	return ApplyFog(tfx0(input.diff, SampleTexture_16AEM(TexCoord(input.tex))), input.fog);
 }
 
 float4 main_tfx1_16AEM(PS_INPUT input) : COLOR
 {
-	return ApplyFog(tfx1(input.diff, SampleTexture_16AEM(input.tex.xy / input.tex.z)), input.fog);
+	return ApplyFog(tfx1(input.diff, SampleTexture_16AEM(TexCoord(input.tex))), input.fog);
 }
 
 float4 main_tfx2_16AEM(PS_INPUT input) : COLOR
 {
-	return ApplyFog(tfx2(input.diff, SampleTexture_16AEM(input.tex.xy / input.tex.z)), input.fog);
+	return ApplyFog(tfx2(input.diff, SampleTexture_16AEM(TexCoord(input.tex))), input.fog);
 }
 
 float4 main_tfx3_16AEM(PS_INPUT input) : COLOR
 {
-	return ApplyFog(tfx3(input.diff, SampleTexture_16AEM(input.tex.xy / input.tex.z)), input.fog);
+	return ApplyFog(tfx3(input.diff, SampleTexture_16AEM(TexCoord(input.tex))), input.fog);
 }
 
 //
@@ -280,22 +287,22 @@ float4 main_tfx3_16AEM(PS_INPUT input) : COLOR
 
 float4 main_tfx0_8P_pt(PS_INPUT input) : COLOR
 {
-	return ApplyFog(tfx0(input.diff, SampleTexture_8P_pt(input.tex.xy / input.tex.z)), input.fog);
+	return ApplyFog(tfx0(input.diff, SampleTexture_8P_pt(TexCoord(input.tex))), input.fog);
 }
 
 float4 main_tfx1_8P_pt(PS_INPUT input) : COLOR
 {
-	return ApplyFog(tfx1(input.diff, SampleTexture_8P_pt(input.tex.xy / input.tex.z)), input.fog);
+	return ApplyFog(tfx1(input.diff, SampleTexture_8P_pt(TexCoord(input.tex))), input.fog);
 }
 
 float4 main_tfx2_8P_pt(PS_INPUT input) : COLOR
 {
-	return ApplyFog(tfx2(input.diff, SampleTexture_8P_pt(input.tex.xy / input.tex.z)), input.fog);
+	return ApplyFog(tfx2(input.diff, SampleTexture_8P_pt(TexCoord(input.tex))), input.fog);
 }
 
 float4 main_tfx3_8P_pt(PS_INPUT input) : COLOR
 {
-	return ApplyFog(tfx3(input.diff, SampleTexture_8P_pt(input.tex.xy / input.tex.z)), input.fog);
+	return ApplyFog(tfx3(input.diff, SampleTexture_8P_pt(TexCoord(input.tex))), input.fog);
 }
 
 //
@@ -304,22 +311,22 @@ float4 main_tfx3_8P_pt(PS_INPUT input) : COLOR
 
 float4 main_tfx0_8P_ln(PS_INPUT input) : COLOR
 {
-	return ApplyFog(tfx0(input.diff, SampleTexture_8P_ln(input.tex.xy / input.tex.z)), input.fog);
+	return ApplyFog(tfx0(input.diff, SampleTexture_8P_ln(TexCoord(input.tex))), input.fog);
 }
 
 float4 main_tfx1_8P_ln(PS_INPUT input) : COLOR
 {
-	return ApplyFog(tfx1(input.diff, SampleTexture_8P_ln(input.tex.xy / input.tex.z)), input.fog);
+	return ApplyFog(tfx1(input.diff, SampleTexture_8P_ln(TexCoord(input.tex))), input.fog);
 }
 
 float4 main_tfx2_8P_ln(PS_INPUT input) : COLOR
 {
-	return ApplyFog(tfx2(input.diff, SampleTexture_8P_ln(input.tex.xy / input.tex.z)), input.fog);
+	return ApplyFog(tfx2(input.diff, SampleTexture_8P_ln(TexCoord(input.tex))), input.fog);
 }
 
 float4 main_tfx3_8P_ln(PS_INPUT input) : COLOR
 {
-	return ApplyFog(tfx3(input.diff, SampleTexture_8P_ln(input.tex.xy / input.tex.z)), input.fog);
+	return ApplyFog(tfx3(input.diff, SampleTexture_8P_ln(TexCoord(input.tex))), input.fog);
 }
 
 //
@@ -328,22 +335,22 @@ float4 main_tfx3_8P_ln(PS_INPUT input) : COLOR
 
 float4 main_tfx0_8HP_pt(PS_INPUT input) : COLOR
 {
-	return ApplyFog(tfx0(input.diff, SampleTexture_8HP_pt(input.tex.xy / input.tex.z)), input.fog);
+	return ApplyFog(tfx0(input.diff, SampleTexture_8HP_pt(TexCoord(input.tex))), input.fog);
 }
 
 float4 main_tfx1_8HP_pt(PS_INPUT input) : COLOR
 {
-	return ApplyFog(tfx1(input.diff, SampleTexture_8HP_pt(input.tex.xy / input.tex.z)), input.fog);
+	return ApplyFog(tfx1(input.diff, SampleTexture_8HP_pt(TexCoord(input.tex))), input.fog);
 }
 
 float4 main_tfx2_8HP_pt(PS_INPUT input) : COLOR
 {
-	return ApplyFog(tfx2(input.diff, SampleTexture_8HP_pt(input.tex.xy / input.tex.z)), input.fog);
+	return ApplyFog(tfx2(input.diff, SampleTexture_8HP_pt(TexCoord(input.tex))), input.fog);
 }
 
 float4 main_tfx3_8HP_pt(PS_INPUT input) : COLOR
 {
-	return ApplyFog(tfx3(input.diff, SampleTexture_8HP_pt(input.tex.xy / input.tex.z)), input.fog);
+	return ApplyFog(tfx3(input.diff, SampleTexture_8HP_pt(TexCoord(input.tex))), input.fog);
 }
 
 //
@@ -352,22 +359,22 @@ float4 main_tfx3_8HP_pt(PS_INPUT input) : COLOR
 
 float4 main_tfx0_8HP_ln(PS_INPUT input) : COLOR
 {
-	return ApplyFog(tfx0(input.diff, SampleTexture_8HP_ln(input.tex.xy / input.tex.z)), input.fog);
+	return ApplyFog(tfx0(input.diff, SampleTexture_8HP_ln(TexCoord(input.tex))), input.fog);
 }
 
 float4 main_tfx1_8HP_ln(PS_INPUT input) : COLOR
 {
-	return ApplyFog(tfx1(input.diff, SampleTexture_8HP_ln(input.tex.xy / input.tex.z)), input.fog);
+	return ApplyFog(tfx1(input.diff, SampleTexture_8HP_ln(TexCoord(input.tex))), input.fog);
 }
 
 float4 main_tfx2_8HP_ln(PS_INPUT input) : COLOR
 {
-	return ApplyFog(tfx2(input.diff, SampleTexture_8HP_ln(input.tex.xy / input.tex.z)), input.fog);
+	return ApplyFog(tfx2(input.diff, SampleTexture_8HP_ln(TexCoord(input.tex))), input.fog);
 }
 
 float4 main_tfx3_8HP_ln(PS_INPUT input) : COLOR
 {
-	return ApplyFog(tfx3(input.diff, SampleTexture_8HP_ln(input.tex.xy / input.tex.z)), input.fog);
+	return ApplyFog(tfx3(input.diff, SampleTexture_8HP_ln(TexCoord(input.tex))), input.fog);
 }
 
 //

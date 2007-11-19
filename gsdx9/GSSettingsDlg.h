@@ -23,6 +23,7 @@
 
 #include "resource.h"
 #include "afxwin.h"
+#include "afxcmn.h"
 
 class CGSSettingsDlg : public CDialog
 {
@@ -42,10 +43,14 @@ public:
 	CComboBox m_psversion;
 	CComboBox m_interlace;
 	CComboBox m_ar;
-	BOOL m_fPalettizedTextures;
 	BOOL m_fEnableTvOut;
 	BOOL m_fLinearTextureFilter;
 	int m_nloophack;
+	CSpinButtonCtrl m_resx;
+	CSpinButtonCtrl m_resy;
+	BOOL m_nativeres;
+	CEdit m_resxedit;
+	CEdit m_resyedit;
 
 protected:
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV support
@@ -53,4 +58,7 @@ protected:
 	virtual void OnOK();
 
 	DECLARE_MESSAGE_MAP()
+
+public:
+	afx_msg void OnBnClickedCheck1();
 };

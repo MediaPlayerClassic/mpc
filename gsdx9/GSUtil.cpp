@@ -143,15 +143,19 @@ bool HasSharedBits(DWORD spsm, DWORD dpsm)
 	case PSM_PSMCT16S:
 	case PSM_PSMT8:
 	case PSM_PSMT4:
+	case PSM_PSMZ32:
+	case PSM_PSMZ16:
+	case PSM_PSMZ16S:
 		return true;
 	case PSM_PSMCT24:
+	case PSM_PSMZ24:
 		return !(dpsm == PSM_PSMT8H || dpsm == PSM_PSMT4HL || dpsm == PSM_PSMT4HH);
 	case PSM_PSMT8H:
-		return !(dpsm == PSM_PSMCT24);
+		return !(dpsm == PSM_PSMCT24 || dpsm == PSM_PSMZ24);
 	case PSM_PSMT4HL:
-		return !(dpsm == PSM_PSMCT24 || dpsm == PSM_PSMT4HH);
+		return !(dpsm == PSM_PSMCT24 || dpsm == PSM_PSMZ24 || dpsm == PSM_PSMT4HH);
 	case PSM_PSMT4HH:
-		return !(dpsm == PSM_PSMCT24 || dpsm == PSM_PSMT4HL);
+		return !(dpsm == PSM_PSMCT24 || dpsm == PSM_PSMZ24 || dpsm == PSM_PSMT4HL);
 	}
 
 	return true;

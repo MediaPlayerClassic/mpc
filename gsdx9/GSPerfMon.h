@@ -37,6 +37,7 @@ protected:
 public:
 	GSPerfMon();
 
+	void SetFrame(UINT64 frame) {m_frame = frame;}
 	UINT64 GetFrame() {return m_frame;}
 	void Put(counter_t c, double val = 0);
 	double Get(counter_t c) {return m_stats[c];}

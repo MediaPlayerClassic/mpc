@@ -232,7 +232,7 @@ void GSState::GIFRegHandlerTEX0_1(GIFReg* r)
 
 	m_env.CTXT[0].TEX0 = r->TEX0;
 
-	//ASSERT(m_env.CTXT[0].TEX0.TW <= 10 && m_env.CTXT[0].TEX0.TH <= 10);
+	// ASSERT(m_env.CTXT[0].TEX0.TW <= 10 && m_env.CTXT[0].TEX0.TH <= 10 && (m_env.CTXT[0].TEX0.CPSM & ~0xa) == 0);
 
 	if(m_env.CTXT[0].TEX0.TW > 10) m_env.CTXT[0].TEX0.TW = 10;
 	if(m_env.CTXT[0].TEX0.TH > 10) m_env.CTXT[0].TEX0.TH = 10;
@@ -255,7 +255,7 @@ void GSState::GIFRegHandlerTEX0_2(GIFReg* r)
 
 	m_env.CTXT[1].TEX0 = r->TEX0;
 
-	//ASSERT(m_env.CTXT[1].TEX0.TW <= 10 && m_env.CTXT[1].TEX0.TH <= 10);
+	// ASSERT(m_env.CTXT[1].TEX0.TW <= 10 && m_env.CTXT[1].TEX0.TH <= 10 && (m_env.CTXT[1].TEX0.CPSM & ~0xa) == 0);
 
 	if(m_env.CTXT[1].TEX0.TW > 10) m_env.CTXT[1].TEX0.TW = 10;
 	if(m_env.CTXT[1].TEX0.TH > 10) m_env.CTXT[1].TEX0.TH = 10;
@@ -349,9 +349,11 @@ void GSState::GIFRegHandlerTEX2_1(GIFReg* r)
 
 	m_env.CTXT[0].TEX2 = r->TEX2;
 
-	FlushWriteTransfer();
+	UINT64 mask = 0xFFFFFFE003F00000ui64; // TEX2 bits
 
-	m_mem.WriteCLUT(*(GIFRegTEX0*)&r->TEX2, m_env.TEXCLUT);
+	r->i64 = (r->i64 & mask) | (m_env.CTXT[0].TEX0.i64 & ~mask);
+
+	GIFRegHandlerTEX0_1(r);
 }
 
 void GSState::GIFRegHandlerTEX2_2(GIFReg* r)
@@ -363,9 +365,11 @@ void GSState::GIFRegHandlerTEX2_2(GIFReg* r)
 
 	m_env.CTXT[1].TEX2 = r->TEX2;
 
-	FlushWriteTransfer();
+	UINT64 mask = 0xFFFFFFE003F00000ui64; // TEX2 bits
 
-	m_mem.WriteCLUT(*(GIFRegTEX0*)&r->TEX2, m_env.TEXCLUT);
+	r->i64 = (r->i64 & mask) | (m_env.CTXT[1].TEX0.i64 & ~mask);
+
+	GIFRegHandlerTEX0_2(r);
 }
 
 void GSState::GIFRegHandlerXYOFFSET_1(GIFReg* r)

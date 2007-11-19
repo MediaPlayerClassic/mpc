@@ -27,6 +27,7 @@
 GSTextureCache::GSTextureCache(GSState* state)
 	: m_state(state)
 {
+	m_nativeres = !!AfxGetApp()->GetProfileInt(_T("Settings"), _T("nativeres"), FALSE);
 }
 
 GSTextureCache::~GSTextureCache()
@@ -119,10 +120,11 @@ GSTextureCache::GSRenderTarget* GSTextureCache::GetRenderTarget(const GIFRegTEX0
 		m_rt.AddHead(rt);
 	}
 
-	// comment this out for native resolution:
-
-	rt->m_scale.x = (float)w / (m_state->m_regs.GetFramePos().cx + rt->m_TEX0.TBW * 64);
-	rt->m_scale.y = (float)h / (m_state->m_regs.GetFramePos().cy + m_state->m_regs.GetDisplaySize().cy);
+	if(!m_nativeres)
+	{
+		rt->m_scale.x = (float)w / (m_state->m_regs.GetFramePos().cx + rt->m_TEX0.TBW * 64);
+		rt->m_scale.y = (float)h / (m_state->m_regs.GetFramePos().cy + m_state->m_regs.GetDisplaySize().cy);
+	}
 
 	return rt;
 }
@@ -226,7 +228,7 @@ GSTextureCache::GSTexture* GSTextureCache::GetTextureNP()
 			*/	
 			if(TEX0.PSM == t->m_TEX0.PSM && TEX0.TBW == t->m_TEX0.TBW
 			&& TEX0.TW == t->m_TEX0.TW && TEX0.TH == t->m_TEX0.TH
-			&& (!(CLAMP.WMS & 2) && !(t->m_CLAMP.WMS & 2) && !(CLAMP.WMT & 2) && !(t->m_CLAMP.WMT & 2) || CLAMP.i64 == t->m_CLAMP.i64)
+			&& (CLAMP.WMS != 3 && t->m_CLAMP.WMS != 3 && CLAMP.WMT != 3 && t->m_CLAMP.WMT != 3 || CLAMP.i64 == t->m_CLAMP.i64)
 			// && TEXA.TA0 == t->m_TEXA.TA0 && TEXA.TA1 == t->m_TEXA.TA1 && TEXA.AEM == t->m_TEXA.AEM
 			&& (pal == 0 || TEX0.CPSM == t->m_TEX0.CPSM && !memcmp(t->m_clut, clut, pal * sizeof(clut[0]))))
 			{
@@ -245,7 +247,7 @@ GSTextureCache::GSTexture* GSTextureCache::GetTextureNP()
 		{
 			GSRenderTarget* rt = m_rt.GetAt(pos);
 
-			if(HasSharedBits(rt->m_TEX0.TBP0, rt->m_TEX0.PSM, TEX0.TBP0, TEX0.PSM))
+			if(rt->m_dirty.IsEmpty() && HasSharedBits(rt->m_TEX0.TBP0, rt->m_TEX0.PSM, TEX0.TBP0, TEX0.PSM))
 			{
 				t = new GSTexture(this);
 
@@ -269,7 +271,7 @@ GSTextureCache::GSTexture* GSTextureCache::GetTextureNP()
 		{
 			GSDepthStencil* ds = m_ds.GetAt(pos);
 
-			if(HasSharedBits(ds->m_TEX0.TBP0, ds->m_TEX0.PSM, TEX0.TBP0, TEX0.PSM))
+			if(/*ds->m_dirty.IsEmpty() &&*/ HasSharedBits(ds->m_TEX0.TBP0, ds->m_TEX0.PSM, TEX0.TBP0, TEX0.PSM))
 			{
 				t = new GSTexture(this);
 
@@ -411,8 +413,8 @@ void GSTextureCache::InvalidateLocalMem(const GIFRegBITBLTBUF& BITBLTBUF, const 
 void GSTextureCache::IncAge()
 {
 	RecycleByAge(m_tex);
-	RecycleByAge(m_rt, 4);
-	RecycleByAge(m_ds, 4);
+	RecycleByAge(m_rt);
+	RecycleByAge(m_ds);
 }
 
 template<class T> void GSTextureCache::RecycleByAge(CAtlList<T*>& l, int maxage)
@@ -441,7 +443,7 @@ void GSTextureCache::Recycle(IDirect3DSurface9* surface)
 		m_pool.AddHead(surface);
 
 		while(m_pool.GetCount() > 100) // TODO: ->m_size
-		{
+		{			
 			m_pool.RemoveTail();
 		}
 	}

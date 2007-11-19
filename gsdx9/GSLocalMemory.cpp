@@ -1510,7 +1510,7 @@ void GSLocalMemory::ReadTexture(const CRect& r, BYTE* dst, int dstpitch, GIFRegT
 	if(r.Width() < bs.cx || r.Height() < bs.cy 
 	|| (r.left & (bs.cx-1)) || (r.top & (bs.cy-1)) 
 	|| (r.right & (bs.cx-1)) || (r.bottom & (bs.cy-1)) 
-	|| (CLAMP.WMS&2) || (CLAMP.WMT&2))
+	|| (CLAMP.WMS == 3) || (CLAMP.WMT == 3))
 	{
 		ReadTexture<DWORD>(r, dst, dstpitch, TEX0, TEXA, CLAMP, rt, st);
 	}
@@ -1624,7 +1624,7 @@ void GSLocalMemory::ReadTextureP(const CRect& r, BYTE* dst, int dstpitch, GIFReg
 	if(r.Width() < bs.cx || r.Height() < bs.cy 
 	|| (r.left & (bs.cx-1)) || (r.top & (bs.cy-1)) 
 	|| (r.right & (bs.cx-1)) || (r.bottom & (bs.cy-1)) 
-	|| (CLAMP.WMS&2) || (CLAMP.WMT&2))
+	|| (CLAMP.WMS == 3) || (CLAMP.WMT == 3))
 	{
 		switch(TEX0.PSM)
 		{
@@ -1821,7 +1821,7 @@ void GSLocalMemory::ReadTextureNP(const CRect& r, BYTE* dst, int dstpitch, GIFRe
 	if(r.Width() < bs.cx || r.Height() < bs.cy 
 	|| (r.left & (bs.cx-1)) || (r.top & (bs.cy-1)) 
 	|| (r.right & (bs.cx-1)) || (r.bottom & (bs.cy-1)) 
-	|| (CLAMP.WMS&2) || (CLAMP.WMT&2))
+	|| (CLAMP.WMS == 3) || (CLAMP.WMT == 3))
 	{
 		switch(TEX0.PSM)
 		{
@@ -1868,15 +1868,14 @@ void GSLocalMemory::ReadTexture(const CRect& r, BYTE* dst, int dstpitch, GIFRegT
 
 	CSize bs = m_psmtbl[TEX0.PSM].bs;
 
-	CRect cr(
-		(r.left + (bs.cx-1)) & ~(bs.cx-1), 
-		(r.top + (bs.cy-1)) & ~(bs.cy-1), 
-		r.right & ~(bs.cx-1), 
-		r.bottom & ~(bs.cy-1));
+	int bsxm = bs.cx - 1;
+	int bsym = bs.cy - 1;
 
-	bool fAligned = ((DWORD_PTR)(dst + (cr.left-r.left)*sizeof(DstT)) & 0xf) == 0;
+	CRect cr((r.left + bsxm) & ~bsxm, (r.top + bsym) & ~bsym, r.right & ~bsxm, r.bottom & ~bsym);
 
-	if((CLAMP.WMS & 2) || (CLAMP.WMT & 2))
+	bool aligned = ((DWORD_PTR)(dst + (cr.left - r.left) * sizeof(DstT)) & 0xf) == 0;
+
+	if(CLAMP.WMS == 3 || CLAMP.WMT == 3) // TODO: do region repeat in pixel shader
 	{
 		DWORD wms = CLAMP.WMS, wmt = CLAMP.WMT;
 		DWORD minu = CLAMP.MINU, maxu = CLAMP.MAXU;
@@ -1885,13 +1884,12 @@ void GSLocalMemory::ReadTexture(const CRect& r, BYTE* dst, int dstpitch, GIFRegT
 		switch(wms)
 		{
 		default: for(int x = r.left; x < r.right; x++) m_xtbl[x] = x; break;
-		case 2: for(int x = r.left; x < r.right; x++) m_xtbl[x] = x < minu ? minu : x > maxu ? maxu : x; break;
 		case 3: for(int x = r.left; x < r.right; x++) m_xtbl[x] = (x & minu) | maxu; break;
 		}
 
 		bool xok = true;
 
-		if(wms & 2)
+		if(wms == 3)
 		{
 			for(int x = r.left; x < r.right; x++) 
 			{
@@ -1906,13 +1904,12 @@ void GSLocalMemory::ReadTexture(const CRect& r, BYTE* dst, int dstpitch, GIFRegT
 		switch(wmt)
 		{
 		default: for(int y = r.top; y < r.bottom; y++) m_ytbl[y] = y; break;
-		case 2: for(int y = r.top; y < r.bottom; y++) m_ytbl[y] = y < minv ? minv : y > maxv ? maxv : y;  break;
 		case 3: for(int y = r.top; y < r.bottom; y++) m_ytbl[y] = (y & minv) | maxv; break;
 		}
 
 		bool yok = true;
 
-		if(wmt & 2)
+		if(wmt == 3)
 		{
 			for(int y = r.top; y < r.bottom; y++)
 			{
@@ -1924,10 +1921,8 @@ void GSLocalMemory::ReadTexture(const CRect& r, BYTE* dst, int dstpitch, GIFRegT
 			}
 		}
 
-		if(fAligned && (wms <= 2 || xok) && (wmt <= 2 || yok))
+		if(aligned && (wms < 3 || xok) && (wmt < 3 || yok))
 		{
-			// TODO: read clamped areas only once
-
 			for(int y = r.top; y < cr.top; y++, dst += dstpitch)
 				for(int x = r.left, i = 0; x < r.right; x++, i++)
 					((DstT*)dst)[i] = (DstT)(this->*rt)(m_xtbl[x], m_ytbl[y], TEX0, TEXA);
@@ -1960,7 +1955,7 @@ void GSLocalMemory::ReadTexture(const CRect& r, BYTE* dst, int dstpitch, GIFRegT
 	}
 	else
 	{
-		if(fAligned)
+		if(aligned)
 		{
 			for(int y = r.top; y < cr.top; y++, dst += dstpitch)
 				for(int x = r.left, i = 0; x < r.right; x++, i++)
@@ -2007,8 +2002,6 @@ HRESULT GSLocalMemory::SaveBMP(IDirect3DDevice9* dev, LPCTSTR fn, DWORD bp, DWOR
 		return E_FAIL;
 	}
 
-	readTexel rt = m_psmtbl[psm].rt;
-
 	GIFRegTEX0 TEX0;
 
 	TEX0.TBP0 = bp;
@@ -2021,12 +2014,16 @@ HRESULT GSLocalMemory::SaveBMP(IDirect3DDevice9* dev, LPCTSTR fn, DWORD bp, DWOR
 	TEXA.TA0 = 0;
 	TEXA.TA1 = 0x80;
 
+	(this->*m_psmtbl[TEX0.PSM].ust)(CRect(0, 0, w, h), (BYTE*)lr.pBits, lr.Pitch, TEX0, TEXA);
+/*
+	readTexel rt = m_psmtbl[psm].rt;
+
 	BYTE* p = (BYTE*)lr.pBits;
 
 	for(int j = 0; j < h; j++, p += lr.Pitch)
 		for(int i = 0; i < w; i++)
 			((DWORD*)p)[i] = (this->*rt)(i, j, TEX0, TEXA);
-
+*/
 	pTexture->UnlockRect(0);
 
 	return D3DXSaveTextureToFile(fn, D3DXIFF_BMP, pTexture, NULL);

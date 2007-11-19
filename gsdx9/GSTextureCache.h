@@ -107,6 +107,7 @@ protected:
 	CAtlList<GSDepthStencil*> m_ds;
 	CAtlList<GSTexture*> m_tex;
 	CInterfaceList<IDirect3DSurface9> m_pool;
+	bool m_nativeres;
 
 	template<class T> void RecycleByAge(CAtlList<T*>& l, int maxage = 10);
 	
