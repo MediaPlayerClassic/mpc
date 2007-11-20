@@ -58,11 +58,13 @@ public:
 	public:
 		CComPtr<IDirect3DTexture9> m_texture;
 		GSDirtyRectList m_dirty;
+		bool m_used;
 
 		GSRenderTarget(GSTextureCache* tc);
 
 		bool Create(int w, int h);
 		void Update();
+		void Read(CRect r);
 	};
 
 	class GSDepthStencil : public GSSurface
@@ -107,6 +109,7 @@ protected:
 	CAtlList<GSDepthStencil*> m_ds;
 	CAtlList<GSTexture*> m_tex;
 	CInterfaceList<IDirect3DSurface9> m_pool;
+	CComPtr<IDirect3DPixelShader9> m_ps[2];
 	bool m_nativeres;
 
 	template<class T> void RecycleByAge(CAtlList<T*>& l, int maxage = 10);
@@ -116,11 +119,13 @@ protected:
 	HRESULT CreateRenderTarget(int w, int h, IDirect3DTexture9** ppt, IDirect3DSurface9** pps = NULL, D3DSURFACE_DESC* desc = NULL);
 	HRESULT CreateDepthStencil(int w, int h, IDirect3DSurface9** pps, D3DSURFACE_DESC* desc = NULL);
 	HRESULT CreateTexture(int w, int h, D3DFORMAT format, IDirect3DTexture9** ppt, IDirect3DSurface9** pps = NULL, D3DSURFACE_DESC* desc = NULL);
+	HRESULT CreateOffscreenPlainSurface(int w, int h, D3DFORMAT format, IDirect3DSurface9** pps = NULL, D3DSURFACE_DESC* desc = NULL);
 
 public:
 	GSTextureCache(GSState* state);
 	virtual ~GSTextureCache();
 
+	void Create();
 	void RemoveAll();
 
 	GSRenderTarget* GetRenderTarget(const GIFRegTEX0& TEX0, int w, int h, bool fb = false);

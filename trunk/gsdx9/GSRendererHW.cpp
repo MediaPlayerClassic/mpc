@@ -87,6 +87,8 @@ bool GSRendererHW::Create(LPCTSTR title)
 		}
 	}
 
+	m_tc.Create();
+
 	return true;
 }
 
@@ -357,10 +359,10 @@ TRACE(_T("[%d] FlushPrim f %05x (%d) z %05x (%d %d %d %d) t %05x (%d) p %d\n"),
 	  nPrims);
 
 		//
-
-if(s_n == 213) 
+if(s_n == 1650)
 {
 	DebugBreak();
+	s_save = true;
 }
 
 		GSTextureCache::GSRenderTarget* rt = NULL;
@@ -397,9 +399,9 @@ if(s_n == 213)
 if(s_dump)
 {
 	CString str;
-	str.Format(_T("c:\\temp2\\_%05d_f%I64d_tex_%05x.bmp"), s_n++, m_perfmon.GetFrame(), m_context->TEX0.TBP0);
+	str.Format(_T("c:\\temp2\\_%05d_f%I64d_tex_%05x_%d.bmp"), s_n++, m_perfmon.GetFrame(), (int)m_context->TEX0.TBP0, (int)m_context->TEX0.PSM);
 	if(m_pPRIM->TME) if(s_save) ::D3DXSaveTextureToFile(str, D3DXIFF_BMP, tex->m_texture, NULL);
-	str.Format(_T("c:\\temp2\\_%05d_f%I64d_rt0_%05x.bmp"), s_n++, m_perfmon.GetFrame(), m_context->FRAME.Block());
+	str.Format(_T("c:\\temp2\\_%05d_f%I64d_rt0_%05x_%d.bmp"), s_n++, m_perfmon.GetFrame(), m_context->FRAME.Block(), m_context->FRAME.PSM);
 	if(s_save) ::D3DXSaveTextureToFile(str, D3DXIFF_BMP, rt->m_texture, NULL);
 }
 
@@ -484,7 +486,7 @@ if(s_dump)
 if(s_dump)
 {
 	CString str;
-	str.Format(_T("c:\\temp2\\_%05d_f%I64d_rt1_%05x.bmp"), s_n++, m_perfmon.GetFrame(), m_context->FRAME.Block());
+	str.Format(_T("c:\\temp2\\_%05d_f%I64d_rt1_%05x_%d.bmp"), s_n++, m_perfmon.GetFrame(), m_context->FRAME.Block(), m_context->FRAME.PSM);
 	if(s_save) ::D3DXSaveTextureToFile(str, D3DXIFF_BMP, rt->m_texture, NULL);
 }
 
@@ -534,9 +536,9 @@ if(s_dump)
 	if(s_save) ::D3DXSaveTextureToFile(str, D3DXIFF_BMP, rt->m_texture, NULL);
 }
 
-/* 
-s_dump = m_perfmon.GetFrame() >= 5000;
-*/
+
+// s_dump = m_perfmon.GetFrame() >= 5000;
+
 
 		}
 	}
@@ -555,6 +557,8 @@ TRACE(_T("[%d] InvalidateTexture %d,%d - %d,%d %05x\n"), (int)m_perfmon.GetFrame
 
 void GSRendererHW::InvalidateLocalMem(const GIFRegBITBLTBUF& BITBLTBUF, CRect r)
 {
+TRACE(_T("[%d] InvalidateLocalMem %d,%d - %d,%d %05x\n"), (int)m_perfmon.GetFrame(), r.left, r.top, r.right, r.bottom, (int)BITBLTBUF.SBP);
+
 	m_tc.InvalidateLocalMem(BITBLTBUF, &r);
 }
 

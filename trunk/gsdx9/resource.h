@@ -30,12 +30,13 @@
 #define IDB_LOGO1                       2024
 #define IDR_HLSL_INTERLACE              2025
 #define IDR_HLSL_VERTEX                 2026
+#define IDR_HLSL_TEXTURECACHE			2027
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        2027
+#define _APS_NEXT_RESOURCE_VALUE        2028
 #define _APS_NEXT_COMMAND_VALUE         32771
 #define _APS_NEXT_CONTROL_VALUE         2021
 #define _APS_NEXT_SYMED_VALUE           2000

@@ -57,7 +57,7 @@ public:
 	UINT32 Defrost(const freezeData* fd);
 	void Reset();
 	void WriteCSR(UINT32 csr);
-	void ReadFIFO(BYTE* mem);
+	void ReadFIFO(BYTE* mem, UINT32 size);
 	void Transfer(BYTE* mem, UINT32 size, int index);
 	void VSync(int field);
 	UINT32 MakeSnapshot(char* path);

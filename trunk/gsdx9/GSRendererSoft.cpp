@@ -245,11 +245,6 @@ if(m_pPRIM->TME && m_context->TEX0.PSM == 19)
 }
 */
 
-if(s_n == 1491)
-{
-	s_save = true;
-}
-
 if(s_dump)
 {
 	CString str;
@@ -442,9 +437,9 @@ if(s_dump)
 	str.Format(_T("c:\\temp1\\_%05d_f%I64d_fr%d_%05x.bmp"), s_n++, m_perfmon.GetFrame(), i, (int)TEX0.TBP0);
 	::D3DXSaveTextureToFile(str, D3DXIFF_BMP, src[i].tex, NULL);
 }
-/*
-s_dump = m_perfmon.GetFrame() >= 5000;
-*/
+
+// s_dump = m_perfmon.GetFrame() >= 5000;
+
 	}
 
 	FinishFlip(src);
@@ -453,12 +448,12 @@ s_dump = m_perfmon.GetFrame() >= 5000;
 template <class Vertex>
 void GSRendererSoft<Vertex>::RowInit(int x, int y)
 {
-	m_faddr_x0 = (m_context->ftbl->pa)(0, y, m_context->FRAME.FBP<<5, m_context->FRAME.FBW);
+	m_faddr_x0 = (m_context->ftbl->pa)(0, y, m_context->FRAME.Block(), m_context->FRAME.FBW);
 	m_faddr_ro = &m_context->ftbl->rowOffset[y&7][x];
 
 	if(bZTE)
 	{
-		m_zaddr_x0 = (m_context->ztbl->pa)(0, y, m_context->ZBUF.ZBP<<5, m_context->FRAME.FBW);
+		m_zaddr_x0 = (m_context->ztbl->pa)(0, y, m_context->ZBUF.Block(), m_context->FRAME.FBW);
 		m_zaddr_ro = &m_context->ztbl->rowOffset[y&7][x];
 	}
 
@@ -699,8 +694,8 @@ bool GSRendererSoft<Vertex>::DrawFilledRect(int left, int top, int right, int bo
 	|| m_context->FRAME.FBMSK)
 		return false;
 
-	DWORD FBP = m_context->FRAME.FBP<<5, FBW = m_context->FRAME.FBW;
-	DWORD ZBP = m_context->ZBUF.ZBP<<5;
+	DWORD FBP = m_context->FRAME.Block(), FBW = m_context->FRAME.FBW;
+	DWORD ZBP = m_context->ZBUF.Block();
 
 	if(!m_context->ZBUF.ZMSK)
 	{

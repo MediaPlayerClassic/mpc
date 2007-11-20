@@ -23,6 +23,7 @@
 #include "GSTextureCache.h"
 #include "GSState.h"
 #include "GSUtil.h"
+#include "resource.h"
 
 GSTextureCache::GSTextureCache(GSState* state)
 	: m_state(state)
@@ -33,6 +34,41 @@ GSTextureCache::GSTextureCache(GSState* state)
 GSTextureCache::~GSTextureCache()
 {
 	RemoveAll();
+}
+
+void GSTextureCache::Create()
+{
+	if(m_state->m_caps.PixelShaderVersion >= D3DPS_VERSION(3, 0))
+	{
+		DWORD flags = D3DXSHADER_PARTIALPRECISION|D3DXSHADER_AVOID_FLOW_CONTROL;
+
+		for(int i = 0; i < countof(m_ps); i++)
+		{
+			if(!m_ps[i])
+			{
+				CString main;
+				main.Format(_T("main%d"), i);
+				CompileShaderFromResource(m_state->m_dev, IDR_HLSL_TEXTURECACHE, main, _T("ps_3_0"), flags, &m_ps[i]);
+			}
+		}
+	}
+
+	// ps_2_0
+
+	if(m_state->m_caps.PixelShaderVersion >= D3DPS_VERSION(2, 0))
+	{
+		DWORD flags = D3DXSHADER_PARTIALPRECISION;
+
+		for(int i = 0; i < countof(m_ps); i++)
+		{
+			if(!m_ps[i])
+			{
+				CString main;
+				main.Format(_T("main%d"), i);
+				CompileShaderFromResource(m_state->m_dev, IDR_HLSL_TEXTURECACHE, main, _T("ps_2_0"), flags, &m_ps[i]);
+			}
+		}
+	}
 }
 
 void GSTextureCache::RemoveAll()
@@ -124,6 +160,11 @@ GSTextureCache::GSRenderTarget* GSTextureCache::GetRenderTarget(const GIFRegTEX0
 	{
 		rt->m_scale.x = (float)w / (m_state->m_regs.GetFramePos().cx + rt->m_TEX0.TBW * 64);
 		rt->m_scale.y = (float)h / (m_state->m_regs.GetFramePos().cy + m_state->m_regs.GetDisplaySize().cy);
+	}
+
+	if(!fb)
+	{
+		rt->m_used = true;
 	}
 
 	return rt;
@@ -405,9 +446,20 @@ void GSTextureCache::InvalidateTexture(const GIFRegBITBLTBUF& BITBLTBUF, const C
 
 void GSTextureCache::InvalidateLocalMem(const GIFRegBITBLTBUF& BITBLTBUF, const CRect& r)
 {
-	// TODO: 
-	// 1. search render target
-	// 2. swizzle data back to local mem
+	POSITION pos = m_rt.GetHeadPosition();
+
+	while(pos)
+	{
+		POSITION cur = pos;
+
+		GSRenderTarget* rt = m_rt.GetNext(pos);
+
+		if(HasSharedBits(BITBLTBUF.SBP, BITBLTBUF.SPSM, rt->m_TEX0.TBP0, rt->m_TEX0.PSM))
+		{
+			rt->Read(r);
+			break;
+		}
+	}
 }
 
 void GSTextureCache::IncAge()
@@ -465,7 +517,7 @@ HRESULT GSTextureCache::CreateRenderTarget(int w, int h, IDirect3DTexture9** ppt
 			
 			hr = t->GetLevelDesc(0, &desc);
 
-			if((desc.Usage & D3DUSAGE_RENDERTARGET) && desc.Width == w && desc.Height == h)
+			if(desc.Pool == D3DPOOL_DEFAULT && (desc.Usage & D3DUSAGE_RENDERTARGET) && desc.Width == w && desc.Height == h)
 			{
 				*ppt = t.Detach();
 
@@ -513,7 +565,7 @@ HRESULT GSTextureCache::CreateDepthStencil(int w, int h, IDirect3DSurface9** pps
 			
 		hr = s->GetDesc(&desc);
 
-		if((desc.Usage & D3DUSAGE_DEPTHSTENCIL) && desc.Width == w && desc.Height == h && desc.Format == format)
+		if(desc.Pool == D3DPOOL_DEFAULT && (desc.Usage & D3DUSAGE_DEPTHSTENCIL) && desc.Width == w && desc.Height == h && desc.Format == format)
 		{
 			*pps = s.Detach();
 
@@ -551,7 +603,7 @@ HRESULT GSTextureCache::CreateTexture(int w, int h, D3DFORMAT format, IDirect3DT
 			
 			hr = t->GetLevelDesc(0, &desc);
 
-			if(!(desc.Usage & D3DUSAGE_RENDERTARGET) && desc.Width == w && desc.Height == h && desc.Format == format)
+			if(desc.Pool == D3DPOOL_MANAGED && !(desc.Usage & D3DUSAGE_RENDERTARGET) && desc.Width == w && desc.Height == h && desc.Format == format)
 			{
 				*ppt = t.Detach();
 
@@ -576,4 +628,37 @@ HRESULT GSTextureCache::CreateTexture(int w, int h, D3DFORMAT format, IDirect3DT
 	return hr;
 }
 
+HRESULT GSTextureCache::CreateOffscreenPlainSurface(int w, int h, D3DFORMAT format, IDirect3DSurface9** pps, D3DSURFACE_DESC* desc)
+{
+	HRESULT hr;
+
+	for(POSITION pos = m_pool.GetHeadPosition(); pos; m_pool.GetNext(pos))
+	{
+		CComPtr<IDirect3DSurface9> s = m_pool.GetAt(pos);
+
+		D3DSURFACE_DESC desc;
+			
+		hr = s->GetDesc(&desc);
+
+		if(desc.Pool == D3DPOOL_SYSTEMMEM && desc.Width == w && desc.Height == h && desc.Format == format)
+		{
+			*pps = s.Detach();
+
+			m_pool.RemoveAt(pos);
+
+			break;
+		}
+	}
+
+	if(*pps == NULL)
+	{
+		hr = m_state->m_dev->CreateOffscreenPlainSurface(w, h, format, D3DPOOL_SYSTEMMEM, pps, NULL);
+
+		TRACE(_T("CreateOffscreenPlainSurface %d x %d\n"), w, h);
+	}
+
+	if(desc) (*pps)->GetDesc(desc);
+
+	return hr;
+}
 
