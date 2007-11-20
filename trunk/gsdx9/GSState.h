@@ -72,6 +72,7 @@ private:
 	int m_crc;
 	int m_options;
 	bool m_nloophack;
+	bool m_vsync;
 	bool m_osd;
 	int m_field;
 	int m_path3hack; 

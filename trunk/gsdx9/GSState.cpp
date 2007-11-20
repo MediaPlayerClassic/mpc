@@ -23,6 +23,7 @@
 #include "GSState.h"
 #include "GSdx9.h"
 #include "GSUtil.h"
+#include "GSSettingsDlg.h"
 #include "resource.h"
 
 BEGIN_MESSAGE_MAP(GSState, CWnd)
@@ -38,10 +39,11 @@ GSState::GSState()
 	, m_options(0)
 	, m_path3hack(0)
 {
-	m_nInterlace = AfxGetApp()->GetProfileInt(_T("Settings"), _T("Interlace"), 3);
+	m_nInterlace = AfxGetApp()->GetProfileInt(_T("Settings"), _T("Interlace"), 0);
 	m_nAspectRatio = AfxGetApp()->GetProfileInt(_T("Settings"), _T("AspectRatio"), 1);
 	m_nTextureFilter = (D3DTEXTUREFILTERTYPE)AfxGetApp()->GetProfileInt(_T("Settings"), _T("TextureFilter"), D3DTEXF_LINEAR);
 	m_nloophack = AfxGetApp()->GetProfileInt(_T("Settings"), _T("nloophack"), 2) == 1;
+	m_vsync = !!AfxGetApp()->GetProfileInt(_T("Settings"), _T("vsync"), TRUE);
 
 //	m_regs.pCSR->rREV = 0x20;
 
@@ -329,15 +331,17 @@ bool GSState::OnMsg(const MSG& msg)
 {
 	if(msg.message == WM_KEYDOWN)
 	{
+		int step = (::GetAsyncKeyState(VK_SHIFT) & 0x80000000) ? -1 : 1;
+
 		if(msg.wParam == VK_F5)
 		{
-			m_nInterlace = (m_nInterlace + 1) % 5;
+			m_nInterlace = (m_nInterlace + 7 + step) % 7;
 			return true;
 		}
 
 		if(msg.wParam == VK_F6)
 		{
-			m_nAspectRatio = (m_nAspectRatio + 1) % 3;
+			m_nAspectRatio = (m_nAspectRatio + 3 + step) % 3;
 			return true;
 		}			
 
@@ -410,7 +414,7 @@ HRESULT GSState::ResetDevice(bool fForceWindowed)
 	m_d3dpp.BackBufferFormat = D3DFMT_X8R8G8B8;
 	m_d3dpp.BackBufferWidth = 1;
 	m_d3dpp.BackBufferHeight = 1;
-	m_d3dpp.PresentationInterval = D3DPRESENT_INTERVAL_IMMEDIATE;
+	m_d3dpp.PresentationInterval = m_vsync ? D3DPRESENT_INTERVAL_DEFAULT : D3DPRESENT_INTERVAL_IMMEDIATE;
 
 	if(!!pApp->GetProfileInt(_T("Settings"), _T("fEnableTvOut"), FALSE))
 	{
@@ -427,7 +431,6 @@ HRESULT GSState::ResetDevice(bool fForceWindowed)
 		m_d3dpp.BackBufferWidth = ModeWidth;
 		m_d3dpp.BackBufferHeight = ModeHeight;
 		// m_d3dpp.FullScreen_RefreshRateInHz = ModeRefreshRate;
-		// m_d3dpp.PresentationInterval = D3DPRESENT_INTERVAL_DEFAULT;
 
 		::SetWindowLong(m_hWnd, GWL_STYLE, ::GetWindowLong(m_hWnd, GWL_STYLE) & ~(WS_CAPTION|WS_THICKFRAME));
 		SetWindowPos(NULL, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE);
@@ -885,8 +888,11 @@ void GSState::FinishFlip(FlipInfo src[2])
 
 	dst = surf[0];
 
-	if(m_regs.pSMODE2->INT && m_nInterlace != 0)
+	if(m_regs.pSMODE2->INT && m_nInterlace > 0)
 	{
+		int field = 1 - ((m_nInterlace - 1) & 1);
+		int mode = (m_nInterlace - 1) >> 1;
+
 		if(!CheckSize(m_pInterlaceTexture, ds))
 		{
 			m_pInterlaceTexture = NULL;
@@ -901,15 +907,15 @@ void GSState::FinishFlip(FlipInfo src[2])
 
 		hr = m_pInterlaceTexture->GetSurfaceLevel(0, &surf[1]);
 
-		if(m_nInterlace == 1 || m_nInterlace == 4) // weave or blend
+		if(mode == 0 || mode == 2) // weave or blend
 		{
 			// weave first
 
-			Interlace(m_pMergeTexture, surf[1], m_field, D3DTEXF_POINT);
+			Interlace(m_pMergeTexture, surf[1], field ^ m_field, D3DTEXF_POINT);
 
 			dst = surf[1];
 
-			if(m_nInterlace == 4)
+			if(mode == 2)
 			{
 				// blend
 
@@ -927,22 +933,16 @@ void GSState::FinishFlip(FlipInfo src[2])
 
 				hr = m_pDeinterlaceTexture->GetSurfaceLevel(0, &surf[2]);
 
-				if(m_field == 0) return;
+				if(m_field == field) return;
 
 				Interlace(m_pInterlaceTexture, surf[2], 2, D3DTEXF_POINT);
 
 				dst = surf[2];
 			}
 		}
-		else if(m_nInterlace == 2) // bob (tff)
+		else if(mode == 1) // bob
 		{
-			Interlace(m_pMergeTexture, surf[1], 3, D3DTEXF_LINEAR, m_field * 2);
-
-			dst = surf[1];
-		}
-		else if(m_nInterlace == 3) // bob (bff)
-		{
-			Interlace(m_pMergeTexture, surf[1], 3, D3DTEXF_LINEAR, (1 - m_field) * 2);
+			Interlace(m_pMergeTexture, surf[1], 3, D3DTEXF_LINEAR, src[1].scale.y * (field ^ m_field));
 
 			dst = surf[1];
 		}
@@ -1182,15 +1182,11 @@ void GSState::Present()
 		double fps = 1000.0f / m_perfmon.Get(GSPerfMon::Frame);
 		
 		s_stats.Format(
-			_T("%I64d | %.2f fps (%d%%) | %s%s | %s | %d | %.2f | %.2f | %.2f"), 
+			_T("%I64d | %.2f fps (%d%%) | %s - %s | %s | %d | %.2f | %.2f | %.2f"), 
 			m_perfmon.GetFrame(), fps, (int)(100.0 * fps / m_regs.GetFPS()),
-			m_regs.pSMODE2->INT ? (CString(_T("interlaced ")) + (m_regs.pSMODE2->FFMD ? _T("(frame)") : _T("(field)"))) : _T("progressive"),
-			m_nInterlace == 1 ? _T(" weave") :
-			m_nInterlace == 2 ? _T(" bob (tff)") : 
-			m_nInterlace == 3 ? _T(" bob (bff)") : 
-			m_nInterlace == 4 ? _T(" blend") : 
-			_T(""),
-			m_nAspectRatio == 1 ? _T("4:3") : m_nAspectRatio == 2 ? _T("16:9") : _T("stretch"),
+			m_regs.pSMODE2->INT ? (CString(_T("Interlaced ")) + (m_regs.pSMODE2->FFMD ? _T("(frame)") : _T("(field)"))) : _T("Progressive"),
+			g_interlace[m_nInterlace].name,
+			g_aspectratio[m_nAspectRatio].name,
 			(int)m_perfmon.Get(GSPerfMon::Prim),
 			m_perfmon.Get(GSPerfMon::Swizzle) / 1024,
 			m_perfmon.Get(GSPerfMon::Unswizzle) / 1024,

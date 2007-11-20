@@ -25,16 +25,25 @@
 #include "afxwin.h"
 #include "afxcmn.h"
 
-class CGSSettingsDlg : public CDialog
+struct GSSetting {DWORD id; const TCHAR* name; const TCHAR* note;};
+
+extern GSSetting g_renderers[]; 
+extern GSSetting g_psversion[];
+extern GSSetting g_interlace[];
+extern GSSetting g_aspectratio[];
+
+class GSSettingsDlg : public CDialog
 {
-	DECLARE_DYNAMIC(CGSSettingsDlg)
+	DECLARE_DYNAMIC(GSSettingsDlg)
 
 private:
 	CAtlList<D3DDISPLAYMODE> m_modes;
 
+	void InitComboBox(CComboBox& combobox, const GSSetting* settings, int count, DWORD sel, DWORD minid = 0);
+
 public:
-	CGSSettingsDlg(CWnd* pParent = NULL);   // standard constructor
-	virtual ~CGSSettingsDlg();
+	GSSettingsDlg(CWnd* pParent = NULL);   // standard constructor
+	virtual ~GSSettingsDlg();
 
 // Dialog Data
 	enum { IDD = IDD_CONFIG };
@@ -42,7 +51,7 @@ public:
 	CComboBox m_renderer;
 	CComboBox m_psversion;
 	CComboBox m_interlace;
-	CComboBox m_ar;
+	CComboBox m_aspectratio;
 	BOOL m_fEnableTvOut;
 	BOOL m_fLinearTextureFilter;
 	int m_nloophack;
@@ -51,6 +60,7 @@ public:
 	BOOL m_nativeres;
 	CEdit m_resxedit;
 	CEdit m_resyedit;
+	BOOL m_vsync;
 
 protected:
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV support
@@ -62,3 +72,4 @@ protected:
 public:
 	afx_msg void OnBnClickedCheck1();
 };
+
