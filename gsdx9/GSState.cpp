@@ -621,9 +621,9 @@ UINT32 GSState::Defrost(const freezeData* fd)
 	m_env.CTXT[1].ftbl = &GSLocalMemory::m_psmtbl[m_env.CTXT[1].FRAME.PSM];
 	m_env.CTXT[1].ztbl = &GSLocalMemory::m_psmtbl[m_env.CTXT[1].ZBUF.PSM];
 	m_env.CTXT[1].ttbl = &GSLocalMemory::m_psmtbl[m_env.CTXT[1].TEX0.PSM];
-/*
-m_perfmon.SetFrame(4950);
-*/
+
+// m_perfmon.SetFrame(4999);
+
 	return 0;
 }
 
@@ -637,11 +637,11 @@ void GSState::WriteCSR(UINT32 csr)
 	m_regs.pCSR->ai32[1] = csr;
 }
 
-void GSState::ReadFIFO(BYTE* mem)
+void GSState::ReadFIFO(BYTE* mem, UINT32 size)
 {
-	FlushWriteTransfer();
+	Flush();
 
-	ReadTransfer(mem, 16);
+	ReadTransfer(mem, size * 16);
 }
 
 void GSState::Transfer(BYTE* mem, UINT32 size, int index)
@@ -776,6 +776,17 @@ void GSState::Transfer(BYTE* mem, UINT32 size, int index)
 			break;
 		}
 	}
+
+	// FIXME
+/**/
+	if(index == 0)
+	{
+		if(!path.tag.EOP && path.tag.NLOOP > 0)
+		{
+			path.tag.NLOOP = 0;
+		}
+	}
+
 }
 
 void GSState::VSync(int field)

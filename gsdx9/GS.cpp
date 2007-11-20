@@ -190,7 +190,12 @@ EXPORT_C GSreadFIFO(BYTE* mem)
 {
 	// s_gst->Wait();
 
-	s_gs->ReadFIFO(mem);
+	s_gs->ReadFIFO(mem, 1);
+}
+
+EXPORT_C GSreadFIFO2(BYTE* mem, UINT32 size)
+{
+	s_gs->ReadFIFO(mem, size);
 }
 
 EXPORT_C GSgifTransfer1(BYTE* mem, UINT32 addr)

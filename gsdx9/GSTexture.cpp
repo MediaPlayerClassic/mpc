@@ -133,11 +133,6 @@ bool GSTextureCache::GSTexture::Create(GSRenderTarget* rt)
 
 	hr = m_tc->CreateRenderTarget(rt->m_desc.Width, rt->m_desc.Height, &m_texture, &m_surface, &m_desc);
 
-	if(m_TEX0.PSM == PSM_PSMT8H)
-	{
-		hr = m_tc->CreateTexture(256, 1, m_TEX0.CPSM == PSM_PSMCT32 ? D3DFMT_A8R8G8B8 : D3DFMT_A1R5G5B5, &m_palette);
-	}
-
 	// pitch conversion
 
 	if(rt->m_TEX0.TBW != m_TEX0.TBW)
@@ -224,6 +219,16 @@ bool GSTextureCache::GSTexture::Create(GSRenderTarget* rt)
 
 		m_texture = texture;
 		m_surface = surface;
+	}
+
+	if(m_TEX0.PSM == PSM_PSMT8H)
+	{
+		hr = m_tc->CreateTexture(256, 1, m_TEX0.CPSM == PSM_PSMCT32 ? D3DFMT_A8R8G8B8 : D3DFMT_A1R5G5B5, &m_palette);
+	}
+
+	if(m_TEX0.PSM == PSM_PSMCT24)
+	{
+		m_desc.Format = D3DFMT_X8R8G8B8;
 	}
 
 	return true;

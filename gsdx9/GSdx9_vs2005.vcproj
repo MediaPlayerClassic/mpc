@@ -1398,6 +1398,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\res\hlsl_tc.fx"
+				>
+			</File>
+			<File
 				RelativePath=".\res\hlsl_tfx.fx"
 				>
 			</File>

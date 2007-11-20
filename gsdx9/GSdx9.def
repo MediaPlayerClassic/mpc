@@ -25,7 +25,8 @@ EXPORTS
 	GSconfigure			
 	GStest				
 	GSabout				
-	GSreadFIFO          
+	GSreadFIFO
+	GSreadFIFO2
 	GSirqCallback
 	GSsetGameCRC
 	; GSReplay
