@@ -24,61 +24,79 @@
 #include "GSSettingsDlg.h"
 #include <shlobj.h>
 
-static struct {int id; const TCHAR* name;} s_renderers[] =
+GSSetting g_renderers[] =
 {
-	{RENDERER_D3D_HW, "Direct3D"},
-	{RENDERER_D3D_SW_FP, "Software (float)"},
-	// {RENDERER_D3D_SW_FX, "Software (fixed)"},
-	{RENDERER_D3D_NULL, "Do not render"},
+	{RENDERER_D3D_HW, "Direct3D", NULL},
+	{RENDERER_D3D_SW_FP, "Software (float)", NULL},
+	// {RENDERER_D3D_SW_FX, "Software (fixed)", NULL},
+	{RENDERER_D3D_NULL, "Do not render", NULL},
 };
 
-static struct {DWORD id; const TCHAR* name;} s_psversions[] =
+GSSetting g_psversion[] =
 {
-	{D3DPS_VERSION(3, 0), _T("Pixel Shader 3.0")},
-	{D3DPS_VERSION(2, 0), _T("Pixel Shader 2.0")},
-	//{D3DPS_VERSION(1, 4), _T("Pixel Shader 1.4")},
-	//{D3DPS_VERSION(1, 1), _T("Pixel Shader 1.1")},
-	//{D3DPS_VERSION(0, 0), _T("Fixed Pipeline (bogus)")},
+	{D3DPS_VERSION(3, 0), _T("Pixel Shader 3.0"), NULL},
+	{D3DPS_VERSION(2, 0), _T("Pixel Shader 2.0"), NULL},
+	//{D3DPS_VERSION(1, 4), _T("Pixel Shader 1.4"), NULL},
+	//{D3DPS_VERSION(1, 1), _T("Pixel Shader 1.1"), NULL},
+	//{D3DPS_VERSION(0, 0), _T("Fixed Pipeline (bogus)"), NULL},
 };
 
-static struct {DWORD id; const TCHAR* name;} s_interlace[] =
+GSSetting g_interlace[] =
 {
-	{0, _T("None")},
-	{1, _T("Weave (saw-tooth)")},
-	{2, _T("Bob, tff (use blend if shaking)")},
-	{3, _T("Bob, bff (use blend if shaking)")},
-	{4, _T("Blend (slight blur, 1/2 fps)")},
+	{0, _T("None"), NULL},
+	{1, _T("Weave tff"), _T("saw-tooth")},
+	{2, _T("Weave bff"), _T("saw-tooth")},
+	{3, _T("Bob tff"), _T("use blend if shaking")},
+	{4, _T("Bob bff"), _T("use blend if shaking")},
+	{5, _T("Blend tff"), _T("slight blur, 1/2 fps")},
+	{6, _T("Blend bff"), _T("slight blur, 1/2 fps")},
 };
 
-static struct {DWORD id; const TCHAR* name;} s_ar[] =
+GSSetting g_aspectratio[] =
 {
-	{0, _T("Stretch")},
-	{1, _T("4:3")},
-	{2, _T("16:9")},
+	{0, _T("Stretch"), NULL},
+	{1, _T("4:3"), NULL},
+	{2, _T("16:9"), NULL},
 };
 
-IMPLEMENT_DYNAMIC(CGSSettingsDlg, CDialog)
-CGSSettingsDlg::CGSSettingsDlg(CWnd* pParent /*=NULL*/)
-	: CDialog(CGSSettingsDlg::IDD, pParent)
+IMPLEMENT_DYNAMIC(GSSettingsDlg, CDialog)
+GSSettingsDlg::GSSettingsDlg(CWnd* pParent /*=NULL*/)
+	: CDialog(GSSettingsDlg::IDD, pParent)
 	, m_fEnableTvOut(FALSE)
 	, m_fLinearTextureFilter(TRUE)
 	, m_nloophack(2)
 	, m_nativeres(FALSE)
+	, m_vsync(FALSE)
 {
 }
 
-CGSSettingsDlg::~CGSSettingsDlg()
+GSSettingsDlg::~GSSettingsDlg()
 {
 }
 
-void CGSSettingsDlg::DoDataExchange(CDataExchange* pDX)
+void GSSettingsDlg::InitComboBox(CComboBox& combobox, const GSSetting* settings, int count, DWORD sel, DWORD minid)
+{
+	for(int i = 0; i < count; i++)
+	{
+		if(settings[i].id >= minid)
+		{
+			CString str = settings[i].name;
+			if(settings[i].note != NULL) str = str + _T(" (") + settings[i].note + _T(")");
+			int item = combobox.AddString(str);
+			combobox.SetItemData(item, settings[i].id);
+			if(settings[i].id == sel) combobox.SetCurSel(item);
+		}
+	}
+}
+
+void GSSettingsDlg::DoDataExchange(CDataExchange* pDX)
 {
 	CDialog::DoDataExchange(pDX);
 	DDX_Control(pDX, IDC_COMBO3, m_resolution);
 	DDX_Control(pDX, IDC_COMBO1, m_renderer);
 	DDX_Control(pDX, IDC_COMBO4, m_psversion);
 	DDX_Control(pDX, IDC_COMBO2, m_interlace);
-	DDX_Control(pDX, IDC_COMBO5, m_ar);
+	DDX_Control(pDX, IDC_COMBO5, m_aspectratio);
 	DDX_Check(pDX, IDC_CHECK3, m_fEnableTvOut);
 	DDX_Check(pDX, IDC_CHECK4, m_fLinearTextureFilter);
 	DDX_Check(pDX, IDC_CHECK6, m_nloophack);	
@@ -87,15 +105,17 @@ void CGSSettingsDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_CHECK1, m_nativeres);
 	DDX_Control(pDX, IDC_EDIT1, m_resxedit);
 	DDX_Control(pDX, IDC_EDIT2, m_resyedit);
+	DDX_Check(pDX, IDC_CHECK2, m_vsync);
 }
 
-BEGIN_MESSAGE_MAP(CGSSettingsDlg, CDialog)
-	ON_BN_CLICKED(IDC_CHECK1, &CGSSettingsDlg::OnBnClickedCheck1)
+
+BEGIN_MESSAGE_MAP(GSSettingsDlg, CDialog)
+	ON_BN_CLICKED(IDC_CHECK1, &GSSettingsDlg::OnBnClickedCheck1)
 END_MESSAGE_MAP()
 
-// CGSSettingsDlg message handlers
+// GSSettingsDlg message handlers
 
-BOOL CGSSettingsDlg::OnInitDialog()
+BOOL GSSettingsDlg::OnInitDialog()
 {
 	__super::OnInitDialog();
 
@@ -128,9 +148,11 @@ BOOL CGSSettingsDlg::OnInitDialog()
 		int ModeRefreshRate = pApp->GetProfileInt(_T("Settings"), _T("ModeRefreshRate"), 0);
 
 		UINT nModes = pD3D->GetAdapterModeCount(D3DADAPTER_DEFAULT, D3DFMT_X8R8G8B8);
+
 		for(UINT i = 0; i < nModes; i++)
 		{
 			D3DDISPLAYMODE mode;
+
 			if(S_OK == pD3D->EnumAdapterModes(D3DADAPTER_DEFAULT, D3DFMT_X8R8G8B8, i, &mode))
 			{
 				CString str;
@@ -141,63 +163,26 @@ BOOL CGSSettingsDlg::OnInitDialog()
 				m_resolution.SetItemDataPtr(iItem, m_modes.GetTailPosition());
 
 				if(ModeWidth == mode.Width && ModeHeight == mode.Height && ModeRefreshRate == mode.RefreshRate)
+				{
 					m_resolution.SetCurSel(iItem);
+				}
 			}
 		}
 
 		pD3D->GetDeviceCaps(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, &caps);
 	}
 
-	// renderer
-
-	int renderer_id = pApp->GetProfileInt(_T("Settings"), _T("Renderer"), RENDERER_D3D_HW);
-
-	for(int i = 0; i < countof(s_renderers); i++)
-	{
-		int iItem = m_renderer.AddString(s_renderers[i].name);
-		m_renderer.SetItemData(iItem, s_renderers[i].id);
-		if(s_renderers[i].id == renderer_id) m_renderer.SetCurSel(iItem);
-	}
-
-	// shader
-
-	DWORD psversion_id = pApp->GetProfileInt(_T("Settings"), _T("PixelShaderVersion2"), D3DPS_VERSION(2, 0));
-
-	for(int i = 0; i < countof(s_psversions); i++)
-	{
-		if(s_psversions[i].id > caps.PixelShaderVersion) continue;
-		int iItem = m_psversion.AddString(s_psversions[i].name);
-		m_psversion.SetItemData(iItem, s_psversions[i].id);
-		if(s_psversions[i].id == psversion_id) m_psversion.SetCurSel(iItem);
-	}
-
-	// interlacing
-
-	DWORD interlace_id = pApp->GetProfileInt(_T("Settings"), _T("Interlace"), 3);
-
-	for(int i = 0; i < countof(s_interlace); i++)
-	{
-		int iItem = m_interlace.AddString(s_interlace[i].name);
-		m_interlace.SetItemData(iItem, s_interlace[i].id);
-		if(s_interlace[i].id == interlace_id) m_interlace.SetCurSel(iItem);
-	}
-
-	// ar
-
-	DWORD ar_id = pApp->GetProfileInt(_T("Settings"), _T("AspectRatio"), 1);
-
-	for(int i = 0; i < countof(s_ar); i++)
-	{
-		int iItem = m_ar.AddString(s_ar[i].name);
-		m_ar.SetItemData(iItem, s_ar[i].id);
-		if(s_ar[i].id == ar_id) m_ar.SetCurSel(iItem);
-	}
+	InitComboBox(m_renderer, g_renderers, countof(g_renderers), pApp->GetProfileInt(_T("Settings"), _T("Renderer"), RENDERER_D3D_HW));
+	InitComboBox(m_psversion, g_psversion, countof(g_psversion), pApp->GetProfileInt(_T("Settings"), _T("PixelShaderVersion2"), D3DPS_VERSION(2, 0)), caps.PixelShaderVersion);
+	InitComboBox(m_interlace, g_interlace, countof(g_interlace), pApp->GetProfileInt(_T("Settings"), _T("Interlace"), 0));
+	InitComboBox(m_aspectratio, g_aspectratio, countof(g_aspectratio), pApp->GetProfileInt(_T("Settings"), _T("AspectRatio"), 1));
 
 	//
 
 	m_fLinearTextureFilter = (D3DTEXTUREFILTERTYPE)pApp->GetProfileInt(_T("Settings"), _T("TextureFilter"), D3DTEXF_LINEAR) == D3DTEXF_LINEAR;
 	m_fEnableTvOut = pApp->GetProfileInt(_T("Settings"), _T("fEnableTvOut"), FALSE);
 	m_nloophack = pApp->GetProfileInt(_T("Settings"), _T("nloophack"), 2);
+	m_vsync = !!pApp->GetProfileInt(_T("Settings"), _T("vsync"), TRUE);
 
 	m_resx.SetRange(512, 4096);
 	m_resy.SetRange(512, 4096);
@@ -218,7 +203,7 @@ BOOL CGSSettingsDlg::OnInitDialog()
 	// EXCEPTION: OCX Property Pages should return FALSE
 }
 
-void CGSSettingsDlg::OnOK()
+void GSSettingsDlg::OnOK()
 {
 	CWinApp* pApp = AfxGetApp();
 
@@ -247,14 +232,15 @@ void CGSSettingsDlg::OnOK()
 		pApp->WriteProfileInt(_T("Settings"), _T("Interlace"), (DWORD)m_interlace.GetItemData(m_interlace.GetCurSel()));
 	}
 
-	if(m_ar.GetCurSel() >= 0)
+	if(m_aspectratio.GetCurSel() >= 0)
 	{
-		pApp->WriteProfileInt(_T("Settings"), _T("AspectRatio"), (DWORD)m_ar.GetItemData(m_ar.GetCurSel()));
+		pApp->WriteProfileInt(_T("Settings"), _T("AspectRatio"), (DWORD)m_aspectratio.GetItemData(m_aspectratio.GetCurSel()));
 	}
 
 	pApp->WriteProfileInt(_T("Settings"), _T("TextureFilter"), m_fLinearTextureFilter ? D3DTEXF_LINEAR : D3DTEXF_POINT);
 	pApp->WriteProfileInt(_T("Settings"), _T("fEnableTvOut"), m_fEnableTvOut);
 	pApp->WriteProfileInt(_T("Settings"), _T("nloophack"), m_nloophack);
+	pApp->WriteProfileInt(_T("Settings"), _T("vsync"), m_vsync);
 
 	pApp->WriteProfileInt(_T("Settings"), _T("resx"), m_resx.GetPos());
 	pApp->WriteProfileInt(_T("Settings"), _T("resy"), m_resy.GetPos());
@@ -263,7 +249,7 @@ void CGSSettingsDlg::OnOK()
 	__super::OnOK();
 }
 
-void CGSSettingsDlg::OnBnClickedCheck1()
+void GSSettingsDlg::OnBnClickedCheck1()
 {
 	UpdateData();
 

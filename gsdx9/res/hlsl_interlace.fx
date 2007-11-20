@@ -8,7 +8,7 @@ float4 Params1 : register(c0);
 
 float4 main0(float2 tex : TEXCOORD0) : COLOR
 {
-	float f = fmod(tex.y * Height, 2) + 0.5;
+	float f = fmod(tex.y * Height, 2);
 	
 	clip(f - 1);
 	
@@ -17,7 +17,7 @@ float4 main0(float2 tex : TEXCOORD0) : COLOR
 
 float4 main1(float2 tex : TEXCOORD0) : COLOR
 {
-	float f = fmod(tex.y * Height, 2) + 0.5;
+	float f = fmod(tex.y * Height, 2);
 	
 	clip(1 - f);
 	
