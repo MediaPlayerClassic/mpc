@@ -1110,10 +1110,7 @@ void GSState::Present()
 
 	CComPtr<IDirect3DSurface9> pBackBuffer = GetBackBuffer();
 
-	if(!pBackBuffer)
-	{
-		return;
-	}
+	if(!pBackBuffer) return;
 
 	D3DSURFACE_DESC desc;
 
@@ -1128,6 +1125,8 @@ void GSState::Present()
 		m_d3dpp.BackBufferHeight = cr.Height();
 
 		hr = m_dev->CreateAdditionalSwapChain(&m_d3dpp, &m_pSwapChain);
+
+		if(FAILED(hr)) return;
 
 		hr = m_pSwapChain->GetBackBuffer(0, D3DBACKBUFFER_TYPE_MONO, &pBackBuffer);
 	}
