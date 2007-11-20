@@ -431,7 +431,7 @@
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalDependencies="d3d9.lib d3dx9.lib ddraw.lib dxguid.lib winmm.lib"
-				OutputFile="$(OutDir)\GSdx9.dll"
+				OutputFile="C:\Documents and Settings\Administrator\Desktop\pcsx2_32\plugins\GSdx9.dll"
 				LinkIncremental="2"
 				ModuleDefinitionFile=".\GSdx9.def"
 				GenerateDebugInformation="true"
@@ -518,7 +518,7 @@
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalDependencies="d3d9.lib d3dx9.lib ddraw.lib dxguid.lib winmm.lib"
-				OutputFile="$(OutDir)\GSdx9.dll"
+				OutputFile="C:\Documents and Settings\Administrator\Desktop\New Folder (3)\plugins\GSdx9.dll"
 				LinkIncremental="2"
 				ModuleDefinitionFile=""
 				GenerateDebugInformation="true"
@@ -705,7 +705,7 @@
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalDependencies="d3d9.lib d3dx9.lib ddraw.lib dxguid.lib winmm.lib"
-				OutputFile="$(OutDir)\GSdx9.dll"
+				OutputFile="C:\Documents and Settings\Administrator\Desktop\New Folder (3)\plugins\GSdx9.dll"
 				LinkIncremental="1"
 				ModuleDefinitionFile=""
 				GenerateDebugInformation="true"
@@ -758,6 +758,14 @@
 			</File>
 			<File
 				RelativePath=".\GSCaptureDlg.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\GSDepthStencil.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\GSDirtyRect.cpp"
 				>
 			</File>
 			<File
@@ -921,6 +929,10 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath=".\GSRenderTarget.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\GSSettingsDlg.cpp"
 				>
 			</File>
@@ -941,7 +953,15 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath=".\GSSurface.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\GSTables.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\GSTexture.cpp"
 				>
 			</File>
 			<File
@@ -1231,6 +1251,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\GSDirtyRect.h"
+				>
+			</File>
+			<File
 				RelativePath=".\GSDrawingContext.h"
 				>
 			</File>
@@ -1279,6 +1303,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\GSScale.h"
+				>
+			</File>
+			<File
 				RelativePath=".\GSSettingsDlg.h"
 				>
 			</File>
@@ -1312,10 +1340,6 @@
 			</File>
 			<File
 				RelativePath=".\GSVertexList.h"
-				>
-			</File>
-			<File
-				RelativePath=".\GSWnd.h"
 				>
 			</File>
 			<File

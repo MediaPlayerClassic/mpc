@@ -224,7 +224,7 @@ bool GSState::Create(LPCTSTR title)
 
 	m_caps.PixelShaderVersion = min(PixelShaderVersion, m_caps.PixelShaderVersion);
 
-	m_caps.VertexShaderVersion = min(m_caps.PixelShaderVersion & ~0x10000, m_caps.VertexShaderVersion);
+	m_caps.VertexShaderVersion = m_caps.PixelShaderVersion & ~0x10000;
 
 	static const TCHAR* hlsl_tfx[] = 
 	{
