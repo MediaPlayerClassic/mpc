@@ -42,6 +42,7 @@ public:
 		GSScale m_scale;
 		int m_age;
 		int m_size;
+		GSDirtyRectList m_dirty;
 		GIFRegTEX0 m_TEX0;
 
 		GSSurface(GSTextureCache* tc);
@@ -57,7 +58,6 @@ public:
 	{
 	public:
 		CComPtr<IDirect3DTexture9> m_texture;
-		GSDirtyRectList m_dirty;
 		bool m_used;
 
 		GSRenderTarget(GSTextureCache* tc);

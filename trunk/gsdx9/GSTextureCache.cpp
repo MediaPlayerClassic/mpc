@@ -299,7 +299,7 @@ GSTextureCache::GSTexture* GSTextureCache::GetTextureNP()
 		{
 			GSDepthStencil* ds = m_ds.GetAt(pos);
 
-			if(/*ds->m_dirty.IsEmpty() &&*/ HasSharedBits(ds->m_TEX0.TBP0, ds->m_TEX0.PSM, TEX0.TBP0, TEX0.PSM))
+			if(ds->m_dirty.IsEmpty() && HasSharedBits(ds->m_TEX0.TBP0, ds->m_TEX0.PSM, TEX0.TBP0, TEX0.PSM))
 			{
 				t = new GSTexture(this);
 
@@ -395,7 +395,11 @@ void GSTextureCache::InvalidateTexture(const GIFRegBITBLTBUF& BITBLTBUF, const C
 			if(BITBLTBUF.DPSM == PSM_PSMCT32 
 			|| BITBLTBUF.DPSM == PSM_PSMCT24 
 			|| BITBLTBUF.DPSM == PSM_PSMCT16 
-			|| BITBLTBUF.DPSM == PSM_PSMCT16S)
+			|| BITBLTBUF.DPSM == PSM_PSMCT16S
+			|| BITBLTBUF.DPSM == PSM_PSMZ32 
+			|| BITBLTBUF.DPSM == PSM_PSMZ24 
+			|| BITBLTBUF.DPSM == PSM_PSMZ16 
+			|| BITBLTBUF.DPSM == PSM_PSMZ16S)
 			{
 				rt->m_dirty.AddTail(GSDirtyRect(BITBLTBUF.DPSM, r));
 				rt->m_TEX0.TBW = BITBLTBUF.DBW;
@@ -424,6 +428,60 @@ void GSTextureCache::InvalidateTexture(const GIFRegBITBLTBUF& BITBLTBUF, const C
 					// TODO: do not add this rect above too
 					rt->m_dirty.AddTail(GSDirtyRect(BITBLTBUF.DPSM, CRect(r.left, r.top - y, r.right, r.bottom - y)));
 					rt->m_TEX0.TBW = BITBLTBUF.DBW;
+					continue;
+				}
+			}
+		}
+	}
+
+	// copypaste for ds
+
+	pos = m_ds.GetHeadPosition();
+
+	while(pos)
+	{
+		POSITION cur = pos;
+
+		GSDepthStencil* ds = m_ds.GetNext(pos);
+
+		if(HasSharedBits(BITBLTBUF.DBP, BITBLTBUF.DPSM, ds->m_TEX0.TBP0, ds->m_TEX0.PSM))
+		{
+			if(BITBLTBUF.DPSM == PSM_PSMCT32 
+			|| BITBLTBUF.DPSM == PSM_PSMCT24 
+			|| BITBLTBUF.DPSM == PSM_PSMCT16 
+			|| BITBLTBUF.DPSM == PSM_PSMCT16S
+			|| BITBLTBUF.DPSM == PSM_PSMZ32 
+			|| BITBLTBUF.DPSM == PSM_PSMZ24 
+			|| BITBLTBUF.DPSM == PSM_PSMZ16 
+			|| BITBLTBUF.DPSM == PSM_PSMZ16S)
+			{
+				ds->m_dirty.AddTail(GSDirtyRect(BITBLTBUF.DPSM, r));
+				ds->m_TEX0.TBW = BITBLTBUF.DBW;
+			}
+			else
+			{
+				m_ds.RemoveAt(cur);
+
+				delete ds;
+
+				continue;
+			}
+		}
+
+		if(HasSharedBits(BITBLTBUF.DPSM, ds->m_TEX0.PSM) && BITBLTBUF.DBP < ds->m_TEX0.TBP0)
+		{
+			DWORD rowsize = BITBLTBUF.DBW * 8192;
+			DWORD offset = (ds->m_TEX0.TBP0 - BITBLTBUF.DBP) * 256;
+
+			if(rowsize > 0 && offset % rowsize == 0)
+			{
+				int y = m_state->m_mem.m_psmtbl[BITBLTBUF.DPSM].pgs.cy * offset / rowsize;
+
+				if(r.top >= y)
+				{
+					// TODO: do not add this rect above too
+					ds->m_dirty.AddTail(GSDirtyRect(BITBLTBUF.DPSM, CRect(r.left, r.top - y, r.right, r.bottom - y)));
+					ds->m_TEX0.TBW = BITBLTBUF.DBW;
 					continue;
 				}
 			}
