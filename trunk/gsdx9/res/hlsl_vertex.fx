@@ -23,7 +23,7 @@ VS_OUTPUT main(VS_INPUT input)
 	VS_OUTPUT output;
 	
 	// pos
-	
+		
 	float4 pos = input.pos;
 	pos.xy = (pos.xy - g_pos_offset) * g_pos_scale - 1;
 	pos.y = -pos.y;
@@ -41,7 +41,7 @@ VS_OUTPUT main(VS_INPUT input)
 	// tex
 	
 	output.tex.xy = input.tex * g_tex_scale;
-	output.tex.z = input.pos.w;
+	output.tex.z = input.pos.w > 0 ? input.pos.w : 1;
 
 	//
 

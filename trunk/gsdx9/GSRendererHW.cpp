@@ -354,7 +354,7 @@ void GSRendererHW::FlushPrim()
 
 	#pragma region ffxii pal video conversion
 
-	if(m_crc == 0x78DA0252)
+	if(m_crc == 0x78DA0252 || m_crc == 0xC1274668 || m_crc == 0xDC2A467E)
 	{
 		static DWORD* video = NULL;
 		static int next = 0;

@@ -117,24 +117,14 @@ void GSState::GIFPackedRegHandlerXYZ2(GIFPackedReg* r)
 	VertexKick(r->XYZ2.ADC);
 }
 
-void GSState::GIFPackedRegHandlerTEX0_1(GIFPackedReg* r)
+template<int i> void GSState::GIFPackedRegHandlerTEX0(GIFPackedReg* r)
 {
-	GIFRegHandlerTEX0_1((GIFReg*)&r->ai64[0]);
+	GIFRegHandlerTEX0<i>((GIFReg*)&r->ai64[0]);
 }
 
-void GSState::GIFPackedRegHandlerTEX0_2(GIFPackedReg* r)
+template<int i> void GSState::GIFPackedRegHandlerCLAMP(GIFPackedReg* r)
 {
-	GIFRegHandlerTEX0_2((GIFReg*)&r->ai64[0]);
-}
-
-void GSState::GIFPackedRegHandlerCLAMP_1(GIFPackedReg* r)
-{
-	GIFRegHandlerCLAMP_1((GIFReg*)&r->ai64[0]);
-}
-
-void GSState::GIFPackedRegHandlerCLAMP_2(GIFPackedReg* r)
-{
-	GIFRegHandlerCLAMP_2((GIFReg*)&r->ai64[0]);
+	GIFRegHandlerCLAMP<i>((GIFReg*)&r->ai64[0]);
 }
 
 void GSState::GIFPackedRegHandlerFOG(GIFPackedReg* r)
@@ -223,70 +213,37 @@ void GSState::GIFRegHandlerXYZ2(GIFReg* r)
 	VertexKick(false);
 }
 
-void GSState::GIFRegHandlerTEX0_1(GIFReg* r)
+template<int i> void GSState::GIFRegHandlerTEX0(GIFReg* r)
 {
-	if(m_pPRIM->CTXT == 0 && m_env.CTXT[0].TEX0.i64 != r->TEX0.i64)
+	if(m_pPRIM->CTXT == i && m_env.CTXT[i].TEX0.i64 != r->TEX0.i64)
 	{
 		Flush();
 	}
 
-	m_env.CTXT[0].TEX0 = r->TEX0;
+	m_env.CTXT[i].TEX0 = r->TEX0;
 
-	// ASSERT(m_env.CTXT[0].TEX0.TW <= 10 && m_env.CTXT[0].TEX0.TH <= 10 && (m_env.CTXT[0].TEX0.CPSM & ~0xa) == 0);
+	// ASSERT(m_env.CTXT[i].TEX0.TW <= 10 && m_env.CTXT[i].TEX0.TH <= 10 && (m_env.CTXT[i].TEX0.CPSM & ~0xa) == 0);
 
-	if(m_env.CTXT[0].TEX0.TW > 10) m_env.CTXT[0].TEX0.TW = 10;
-	if(m_env.CTXT[0].TEX0.TH > 10) m_env.CTXT[0].TEX0.TH = 10;
+	if(m_env.CTXT[i].TEX0.TW > 10) m_env.CTXT[i].TEX0.TW = 10;
+	if(m_env.CTXT[i].TEX0.TH > 10) m_env.CTXT[i].TEX0.TH = 10;
 
-	m_env.CTXT[0].TEX0.CPSM &= 0xa; // 1010b
+	m_env.CTXT[i].TEX0.CPSM &= 0xa; // 1010b
 
-	m_env.CTXT[0].ttbl = &GSLocalMemory::m_psmtbl[m_env.CTXT[0].TEX0.PSM];
+	m_env.CTXT[i].ttbl = &GSLocalMemory::m_psmtbl[m_env.CTXT[i].TEX0.PSM];
 
 	FlushWriteTransfer();
 
 	m_mem.WriteCLUT(r->TEX0, m_env.TEXCLUT);
 }
 
-void GSState::GIFRegHandlerTEX0_2(GIFReg* r)
+template<int i> void GSState::GIFRegHandlerCLAMP(GIFReg* r)
 {
-	if(m_pPRIM->CTXT == 1 && m_env.CTXT[1].TEX0.i64 != r->TEX0.i64)
+	if(m_pPRIM->CTXT == i && m_env.CTXT[i].CLAMP.i64 != r->CLAMP.i64)
 	{
 		Flush();
 	}
 
-	m_env.CTXT[1].TEX0 = r->TEX0;
-
-	// ASSERT(m_env.CTXT[1].TEX0.TW <= 10 && m_env.CTXT[1].TEX0.TH <= 10 && (m_env.CTXT[1].TEX0.CPSM & ~0xa) == 0);
-
-	if(m_env.CTXT[1].TEX0.TW > 10) m_env.CTXT[1].TEX0.TW = 10;
-	if(m_env.CTXT[1].TEX0.TH > 10) m_env.CTXT[1].TEX0.TH = 10;
-
-	m_env.CTXT[1].TEX0.CPSM &= 0xa; // 1010b
-
-	m_env.CTXT[1].ttbl = &GSLocalMemory::m_psmtbl[m_env.CTXT[1].TEX0.PSM];
-
-	FlushWriteTransfer();
-
-	m_mem.WriteCLUT(r->TEX0, m_env.TEXCLUT);
-}
-
-void GSState::GIFRegHandlerCLAMP_1(GIFReg* r)
-{
-	if(m_pPRIM->CTXT == 0 && m_env.CTXT[0].CLAMP.i64 != r->CLAMP.i64)
-	{
-		Flush();
-	}
-
-	m_env.CTXT[0].CLAMP = r->CLAMP;
-}
-
-void GSState::GIFRegHandlerCLAMP_2(GIFReg* r)
-{
-	if(m_pPRIM->CTXT == 1 && m_env.CTXT[1].CLAMP.i64 != r->CLAMP.i64)
-	{
-		Flush();
-	}
-
-	m_env.CTXT[1].CLAMP = r->CLAMP;
+	m_env.CTXT[i].CLAMP = r->CLAMP;
 }
 
 void GSState::GIFRegHandlerFOG(GIFReg* r)
@@ -320,80 +277,42 @@ void GSState::GIFRegHandlerNOP(GIFReg* r)
 {
 }
 
-void GSState::GIFRegHandlerTEX1_1(GIFReg* r)
+template<int i> void GSState::GIFRegHandlerTEX1(GIFReg* r)
 {
-	if(m_pPRIM->CTXT == 0 && m_env.CTXT[0].TEX1.i64 != r->TEX1.i64)
+	if(m_pPRIM->CTXT == i && m_env.CTXT[i].TEX1.i64 != r->TEX1.i64)
 	{
 		Flush();
 	}
 
-	m_env.CTXT[0].TEX1 = r->TEX1;
+	m_env.CTXT[i].TEX1 = r->TEX1;
 }
 
-void GSState::GIFRegHandlerTEX1_2(GIFReg* r)
+template<int i> void GSState::GIFRegHandlerTEX2(GIFReg* r)
 {
-	if(m_pPRIM->CTXT == 1 && m_env.CTXT[1].TEX1.i64 != r->TEX1.i64)
-	{
-		Flush();
-	}
-
-	m_env.CTXT[1].TEX1 = r->TEX1;
-}
-
-void GSState::GIFRegHandlerTEX2_1(GIFReg* r)
-{
-	// if(m_pPRIM->CTXT == 0 && m_env.CTXT[0].TEX2.i64 != r->TEX2.i64)
+	// if(m_pPRIM->CTXT == i && m_env.CTXT[i].TEX2.i64 != r->TEX2.i64)
 	{
 		Flush(); // FIXME: must flush here, CLUT may be overwritten for the other context (not happening when writing TEX0, strange)
 	}
 
-	m_env.CTXT[0].TEX2 = r->TEX2;
+	m_env.CTXT[i].TEX2 = r->TEX2;
 
 	UINT64 mask = 0xFFFFFFE003F00000ui64; // TEX2 bits
 
-	r->i64 = (r->i64 & mask) | (m_env.CTXT[0].TEX0.i64 & ~mask);
+	r->i64 = (r->i64 & mask) | (m_env.CTXT[i].TEX0.i64 & ~mask);
 
-	GIFRegHandlerTEX0_1(r);
+	GIFRegHandlerTEX0<i>(r);
 }
 
-void GSState::GIFRegHandlerTEX2_2(GIFReg* r)
+template<int i> void GSState::GIFRegHandlerXYOFFSET(GIFReg* r)
 {
-	// if(m_pPRIM->CTXT == 1 && m_env.CTXT[1].TEX2.i64 != r->TEX2.i64)
-	{
-		Flush(); // FIXME: must flush here, CLUT may be overwritten for the other context (not happening when writing TEX0, strange)
-	}
-
-	m_env.CTXT[1].TEX2 = r->TEX2;
-
-	UINT64 mask = 0xFFFFFFE003F00000ui64; // TEX2 bits
-
-	r->i64 = (r->i64 & mask) | (m_env.CTXT[1].TEX0.i64 & ~mask);
-
-	GIFRegHandlerTEX0_2(r);
-}
-
-void GSState::GIFRegHandlerXYOFFSET_1(GIFReg* r)
-{
-	if(m_env.CTXT[0].XYOFFSET.i64 != r->XYOFFSET.i64)
+	if(m_env.CTXT[i].XYOFFSET.i64 != r->XYOFFSET.i64)
 	{
 		Flush();
 	}
 
-	m_env.CTXT[0].XYOFFSET = r->XYOFFSET;
+	m_env.CTXT[i].XYOFFSET = r->XYOFFSET;
 
-	m_env.CTXT[0].UpdateScissor();
-}
-
-void GSState::GIFRegHandlerXYOFFSET_2(GIFReg* r)
-{
-	if(m_env.CTXT[1].XYOFFSET.i64 != r->XYOFFSET.i64)
-	{
-		Flush();
-	}
-
-	m_env.CTXT[1].XYOFFSET = r->XYOFFSET;
-
-	m_env.CTXT[1].UpdateScissor();
+	m_env.CTXT[i].UpdateScissor();
 }
 
 void GSState::GIFRegHandlerPRMODECONT(GIFReg* r)
@@ -444,44 +363,24 @@ void GSState::GIFRegHandlerSCANMSK(GIFReg* r)
 	m_env.SCANMSK = r->SCANMSK;
 }
 
-void GSState::GIFRegHandlerMIPTBP1_1(GIFReg* r)
+template<int i> void GSState::GIFRegHandlerMIPTBP1(GIFReg* r)
 {
-	if(m_pPRIM->CTXT == 0 && m_env.CTXT[0].MIPTBP1.i64 != r->MIPTBP1.i64)
+	if(m_pPRIM->CTXT == i && m_env.CTXT[i].MIPTBP1.i64 != r->MIPTBP1.i64)
 	{
 		Flush();
 	}
 
-	m_env.CTXT[0].MIPTBP1 = r->MIPTBP1;
+	m_env.CTXT[i].MIPTBP1 = r->MIPTBP1;
 }
 
-void GSState::GIFRegHandlerMIPTBP1_2(GIFReg* r)
+template<int i> void GSState::GIFRegHandlerMIPTBP2(GIFReg* r)
 {
-	if(m_pPRIM->CTXT == 1 && m_env.CTXT[1].MIPTBP1.i64 != r->MIPTBP1.i64)
+	if(m_pPRIM->CTXT == i && m_env.CTXT[i].MIPTBP2.i64 != r->MIPTBP2.i64)
 	{
 		Flush();
 	}
 
-	m_env.CTXT[1].MIPTBP1 = r->MIPTBP1;
-}
-
-void GSState::GIFRegHandlerMIPTBP2_1(GIFReg* r)
-{
-	if(m_pPRIM->CTXT == 0 && m_env.CTXT[0].MIPTBP2.i64 != r->MIPTBP2.i64)
-	{
-		Flush();
-	}
-
-	m_env.CTXT[0].MIPTBP2 = r->MIPTBP2;
-}
-
-void GSState::GIFRegHandlerMIPTBP2_2(GIFReg* r)
-{
-	if(m_pPRIM->CTXT == 1 && m_env.CTXT[1].MIPTBP2.i64 != r->MIPTBP2.i64)
-	{
-		Flush();
-	}
-
-	m_env.CTXT[1].MIPTBP2 = r->MIPTBP2;
+	m_env.CTXT[i].MIPTBP2 = r->MIPTBP2;
 }
 
 void GSState::GIFRegHandlerTEXA(GIFReg* r)
@@ -509,48 +408,26 @@ void GSState::GIFRegHandlerTEXFLUSH(GIFReg* r)
 	// what should we do here?
 }
 
-void GSState::GIFRegHandlerSCISSOR_1(GIFReg* r)
+template<int i> void GSState::GIFRegHandlerSCISSOR(GIFReg* r)
 {
-	if(m_pPRIM->CTXT == 0 && m_env.CTXT[0].SCISSOR.i64 != r->SCISSOR.i64)
+	if(m_pPRIM->CTXT == i && m_env.CTXT[i].SCISSOR.i64 != r->SCISSOR.i64)
 	{
 		Flush();
 	}
 
-	m_env.CTXT[0].SCISSOR = r->SCISSOR;
+	m_env.CTXT[i].SCISSOR = r->SCISSOR;
 
-	m_env.CTXT[0].UpdateScissor();
+	m_env.CTXT[i].UpdateScissor();
 }
 
-void GSState::GIFRegHandlerSCISSOR_2(GIFReg* r)
+template<int i> void GSState::GIFRegHandlerALPHA(GIFReg* r)
 {
-	if(m_pPRIM->CTXT == 1 && m_env.CTXT[1].SCISSOR.i64 != r->SCISSOR.i64)
+	if(m_pPRIM->CTXT == i && m_env.CTXT[i].ALPHA.i64 != r->ALPHA.i64)
 	{
 		Flush();
 	}
 
-	m_env.CTXT[1].SCISSOR = r->SCISSOR;
-
-	m_env.CTXT[1].UpdateScissor();
-}
-
-void GSState::GIFRegHandlerALPHA_1(GIFReg* r)
-{
-	if(m_pPRIM->CTXT == 0 && m_env.CTXT[0].ALPHA.i64 != r->ALPHA.i64)
-	{
-		Flush();
-	}
-
-	m_env.CTXT[0].ALPHA = r->ALPHA;
-}
-
-void GSState::GIFRegHandlerALPHA_2(GIFReg* r)
-{
-	if(m_pPRIM->CTXT == 1 && m_env.CTXT[1].ALPHA.i64 != r->ALPHA.i64)
-	{
-		Flush();
-	}
-
-	m_env.CTXT[1].ALPHA = r->ALPHA;
+	m_env.CTXT[i].ALPHA = r->ALPHA;
 }
 
 void GSState::GIFRegHandlerDIMX(GIFReg* r)
@@ -583,24 +460,14 @@ void GSState::GIFRegHandlerCOLCLAMP(GIFReg* r)
 	m_env.COLCLAMP = r->COLCLAMP;
 }
 
-void GSState::GIFRegHandlerTEST_1(GIFReg* r)
+template<int i> void GSState::GIFRegHandlerTEST(GIFReg* r)
 {
-	if(m_pPRIM->CTXT == 0 && m_env.CTXT[0].TEST.i64 != r->TEST.i64)
+	if(m_pPRIM->CTXT == i && m_env.CTXT[i].TEST.i64 != r->TEST.i64)
 	{
 		Flush();
 	}
 
-	m_env.CTXT[0].TEST = r->TEST;
-}
-
-void GSState::GIFRegHandlerTEST_2(GIFReg* r)
-{
-	if(m_pPRIM->CTXT == 1 && m_env.CTXT[1].TEST.i64 != r->TEST.i64)
-	{
-		Flush();
-	}
-
-	m_env.CTXT[1].TEST = r->TEST;
+	m_env.CTXT[i].TEST = r->TEST;
 }
 
 void GSState::GIFRegHandlerPABE(GIFReg* r)
@@ -613,92 +480,48 @@ void GSState::GIFRegHandlerPABE(GIFReg* r)
 	m_env.PABE = r->PABE;
 }
 
-void GSState::GIFRegHandlerFBA_1(GIFReg* r)
+template<int i> void GSState::GIFRegHandlerFBA(GIFReg* r)
 {
-	if(m_pPRIM->CTXT == 0 && m_env.CTXT[0].FBA.i64 != r->FBA.i64)
+	if(m_pPRIM->CTXT == i && m_env.CTXT[i].FBA.i64 != r->FBA.i64)
 	{
 		Flush();
 	}
 
-	m_env.CTXT[0].FBA = r->FBA;
+	m_env.CTXT[i].FBA = r->FBA;
 }
 
-void GSState::GIFRegHandlerFBA_2(GIFReg* r)
+template<int i> void GSState::GIFRegHandlerFRAME(GIFReg* r)
 {
-	if(m_pPRIM->CTXT == 1 && m_env.CTXT[1].FBA.i64 != r->FBA.i64)
+	if(m_pPRIM->CTXT == i && m_env.CTXT[i].FRAME.i64 != r->FRAME.i64)
 	{
 		Flush();
 	}
 
-	m_env.CTXT[1].FBA = r->FBA;
+	m_env.CTXT[i].FRAME = r->FRAME;
+
+	m_env.CTXT[i].ftbl = &GSLocalMemory::m_psmtbl[m_env.CTXT[i].FRAME.PSM];
 }
 
-void GSState::GIFRegHandlerFRAME_1(GIFReg* r)
-{
-	if(m_pPRIM->CTXT == 0 && m_env.CTXT[0].FRAME.i64 != r->FRAME.i64)
-	{
-		Flush();
-	}
-
-	m_env.CTXT[0].FRAME = r->FRAME;
-
-	m_env.CTXT[0].ftbl = &GSLocalMemory::m_psmtbl[m_env.CTXT[0].FRAME.PSM];
-}
-
-void GSState::GIFRegHandlerFRAME_2(GIFReg* r)
-{
-	if(m_pPRIM->CTXT == 1 && m_env.CTXT[1].FRAME.i64 != r->FRAME.i64)
-	{
-		Flush();
-	}
-
-	m_env.CTXT[1].FRAME = r->FRAME;
-
-	m_env.CTXT[1].ftbl = &GSLocalMemory::m_psmtbl[m_env.CTXT[1].FRAME.PSM];
-}
-
-void GSState::GIFRegHandlerZBUF_1(GIFReg* r)
+template<int i> void GSState::GIFRegHandlerZBUF(GIFReg* r)
 {
 	r->ZBUF.PSM |= 0x30;
 
-	if(m_pPRIM->CTXT == 0 && m_env.CTXT[0].ZBUF.i64 != r->ZBUF.i64)
+	if(m_pPRIM->CTXT == i && m_env.CTXT[i].ZBUF.i64 != r->ZBUF.i64)
 	{
 		Flush();
 	}
 
-	m_env.CTXT[0].ZBUF = r->ZBUF;
+	m_env.CTXT[i].ZBUF = r->ZBUF;
 
-	if(m_env.CTXT[0].ZBUF.PSM != PSM_PSMZ32
-	&& m_env.CTXT[0].ZBUF.PSM != PSM_PSMZ24
-	&& m_env.CTXT[0].ZBUF.PSM != PSM_PSMZ16
-	&& m_env.CTXT[0].ZBUF.PSM != PSM_PSMZ16S)
+	if(m_env.CTXT[i].ZBUF.PSM != PSM_PSMZ32
+	&& m_env.CTXT[i].ZBUF.PSM != PSM_PSMZ24
+	&& m_env.CTXT[i].ZBUF.PSM != PSM_PSMZ16
+	&& m_env.CTXT[i].ZBUF.PSM != PSM_PSMZ16S)
 	{
-		m_env.CTXT[0].ZBUF.PSM = PSM_PSMZ32;
+		m_env.CTXT[i].ZBUF.PSM = PSM_PSMZ32;
 	}
 
-	m_env.CTXT[0].ztbl = &GSLocalMemory::m_psmtbl[m_env.CTXT[0].ZBUF.PSM];
-}
-
-void GSState::GIFRegHandlerZBUF_2(GIFReg* r)
-{
-	r->ZBUF.PSM |= 0x30;
-
-	if(m_pPRIM->CTXT == 1 && m_env.CTXT[1].ZBUF.i64 != r->ZBUF.i64)
-	{
-		Flush();
-	}
-
-	m_env.CTXT[1].ZBUF = r->ZBUF;
-
-	if(m_env.CTXT[1].ZBUF.PSM != PSM_PSMZ32
-	&& m_env.CTXT[1].ZBUF.PSM != PSM_PSMZ24
-	&& m_env.CTXT[1].ZBUF.PSM != PSM_PSMZ16
-	&& m_env.CTXT[1].ZBUF.PSM != PSM_PSMZ16S)
-	{
-		m_env.CTXT[1].ZBUF.PSM = PSM_PSMZ32;
-	}
-
-	m_env.CTXT[1].ztbl = &GSLocalMemory::m_psmtbl[m_env.CTXT[1].ZBUF.PSM];
+	m_env.CTXT[i].ztbl = &GSLocalMemory::m_psmtbl[m_env.CTXT[i].ZBUF.PSM];
 }
 
 void GSState::GIFRegHandlerBITBLTBUF(GIFReg* r)
@@ -790,5 +613,92 @@ void GSState::GIFRegHandlerLABEL(GIFReg* r)
 	if(m_mt) return;
 
 	m_regs.pSIGLBLID->LBLID = (m_regs.pSIGLBLID->LBLID & ~r->LABEL.IDMSK) | (r->LABEL.ID & r->LABEL.IDMSK);
+}
+
+//
+
+void GSState::ResetHandlers()
+{
+	for(int i = 0; i < countof(m_fpGIFPackedRegHandlers); i++)
+	{
+		m_fpGIFPackedRegHandlers[i] = &GSState::GIFPackedRegHandlerNull;
+	}
+
+	m_fpGIFPackedRegHandlers[GIF_REG_PRIM] = &GSState::GIFPackedRegHandlerPRIM;
+	m_fpGIFPackedRegHandlers[GIF_REG_RGBA] = &GSState::GIFPackedRegHandlerRGBA;
+	m_fpGIFPackedRegHandlers[GIF_REG_STQ] = &GSState::GIFPackedRegHandlerSTQ;
+	m_fpGIFPackedRegHandlers[GIF_REG_UV] = &GSState::GIFPackedRegHandlerUV;
+	m_fpGIFPackedRegHandlers[GIF_REG_XYZF2] = &GSState::GIFPackedRegHandlerXYZF2;
+	m_fpGIFPackedRegHandlers[GIF_REG_XYZ2] = &GSState::GIFPackedRegHandlerXYZ2;
+	m_fpGIFPackedRegHandlers[GIF_REG_TEX0_1] = &GSState::GIFPackedRegHandlerTEX0<0>;
+	m_fpGIFPackedRegHandlers[GIF_REG_TEX0_2] = &GSState::GIFPackedRegHandlerTEX0<1>;
+	m_fpGIFPackedRegHandlers[GIF_REG_CLAMP_1] = &GSState::GIFPackedRegHandlerCLAMP<0>;
+	m_fpGIFPackedRegHandlers[GIF_REG_CLAMP_2] = &GSState::GIFPackedRegHandlerCLAMP<1>;
+	m_fpGIFPackedRegHandlers[GIF_REG_FOG] = &GSState::GIFPackedRegHandlerFOG;
+	m_fpGIFPackedRegHandlers[GIF_REG_XYZF3] = &GSState::GIFPackedRegHandlerXYZF3;
+	m_fpGIFPackedRegHandlers[GIF_REG_XYZ3] = &GSState::GIFPackedRegHandlerXYZ3;
+	m_fpGIFPackedRegHandlers[GIF_REG_A_D] = &GSState::GIFPackedRegHandlerA_D;
+	m_fpGIFPackedRegHandlers[GIF_REG_NOP] = &GSState::GIFPackedRegHandlerNOP;
+
+	for(int i = 0; i < countof(m_fpGIFRegHandlers); i++)
+	{
+		m_fpGIFRegHandlers[i] = &GSState::GIFRegHandlerNull;
+	}
+
+	m_fpGIFRegHandlers[GIF_A_D_REG_PRIM] = &GSState::GIFRegHandlerPRIM;
+	m_fpGIFRegHandlers[GIF_A_D_REG_RGBAQ] = &GSState::GIFRegHandlerRGBAQ;
+	m_fpGIFRegHandlers[GIF_A_D_REG_ST] = &GSState::GIFRegHandlerST;
+	m_fpGIFRegHandlers[GIF_A_D_REG_UV] = &GSState::GIFRegHandlerUV;
+	m_fpGIFRegHandlers[GIF_A_D_REG_XYZF2] = &GSState::GIFRegHandlerXYZF2;
+	m_fpGIFRegHandlers[GIF_A_D_REG_XYZ2] = &GSState::GIFRegHandlerXYZ2;
+	m_fpGIFRegHandlers[GIF_A_D_REG_TEX0_1] = &GSState::GIFRegHandlerTEX0<0>;
+	m_fpGIFRegHandlers[GIF_A_D_REG_TEX0_2] = &GSState::GIFRegHandlerTEX0<1>;
+	m_fpGIFRegHandlers[GIF_A_D_REG_CLAMP_1] = &GSState::GIFRegHandlerCLAMP<0>;
+	m_fpGIFRegHandlers[GIF_A_D_REG_CLAMP_2] = &GSState::GIFRegHandlerCLAMP<1>;
+	m_fpGIFRegHandlers[GIF_A_D_REG_FOG] = &GSState::GIFRegHandlerFOG;
+	m_fpGIFRegHandlers[GIF_A_D_REG_XYZF3] = &GSState::GIFRegHandlerXYZF3;
+	m_fpGIFRegHandlers[GIF_A_D_REG_XYZ3] = &GSState::GIFRegHandlerXYZ3;
+	m_fpGIFRegHandlers[GIF_A_D_REG_NOP] = &GSState::GIFRegHandlerNOP;
+	m_fpGIFRegHandlers[GIF_A_D_REG_TEX1_1] = &GSState::GIFRegHandlerTEX1<0>;
+	m_fpGIFRegHandlers[GIF_A_D_REG_TEX1_2] = &GSState::GIFRegHandlerTEX1<1>;
+	m_fpGIFRegHandlers[GIF_A_D_REG_TEX2_1] = &GSState::GIFRegHandlerTEX2<0>;
+	m_fpGIFRegHandlers[GIF_A_D_REG_TEX2_2] = &GSState::GIFRegHandlerTEX2<1>;
+	m_fpGIFRegHandlers[GIF_A_D_REG_XYOFFSET_1] = &GSState::GIFRegHandlerXYOFFSET<0>;
+	m_fpGIFRegHandlers[GIF_A_D_REG_XYOFFSET_2] = &GSState::GIFRegHandlerXYOFFSET<1>;
+	m_fpGIFRegHandlers[GIF_A_D_REG_PRMODECONT] = &GSState::GIFRegHandlerPRMODECONT;
+	m_fpGIFRegHandlers[GIF_A_D_REG_PRMODE] = &GSState::GIFRegHandlerPRMODE;
+	m_fpGIFRegHandlers[GIF_A_D_REG_TEXCLUT] = &GSState::GIFRegHandlerTEXCLUT;
+	m_fpGIFRegHandlers[GIF_A_D_REG_SCANMSK] = &GSState::GIFRegHandlerSCANMSK;
+	m_fpGIFRegHandlers[GIF_A_D_REG_MIPTBP1_1] = &GSState::GIFRegHandlerMIPTBP1<0>;
+	m_fpGIFRegHandlers[GIF_A_D_REG_MIPTBP1_2] = &GSState::GIFRegHandlerMIPTBP1<1>;
+	m_fpGIFRegHandlers[GIF_A_D_REG_MIPTBP2_1] = &GSState::GIFRegHandlerMIPTBP2<0>;
+	m_fpGIFRegHandlers[GIF_A_D_REG_MIPTBP2_2] = &GSState::GIFRegHandlerMIPTBP2<1>;
+	m_fpGIFRegHandlers[GIF_A_D_REG_TEXA] = &GSState::GIFRegHandlerTEXA;
+	m_fpGIFRegHandlers[GIF_A_D_REG_FOGCOL] = &GSState::GIFRegHandlerFOGCOL;
+	m_fpGIFRegHandlers[GIF_A_D_REG_TEXFLUSH] = &GSState::GIFRegHandlerTEXFLUSH;
+	m_fpGIFRegHandlers[GIF_A_D_REG_SCISSOR_1] = &GSState::GIFRegHandlerSCISSOR<0>;
+	m_fpGIFRegHandlers[GIF_A_D_REG_SCISSOR_2] = &GSState::GIFRegHandlerSCISSOR<1>;
+	m_fpGIFRegHandlers[GIF_A_D_REG_ALPHA_1] = &GSState::GIFRegHandlerALPHA<0>;
+	m_fpGIFRegHandlers[GIF_A_D_REG_ALPHA_2] = &GSState::GIFRegHandlerALPHA<1>;
+	m_fpGIFRegHandlers[GIF_A_D_REG_DIMX] = &GSState::GIFRegHandlerDIMX;
+	m_fpGIFRegHandlers[GIF_A_D_REG_DTHE] = &GSState::GIFRegHandlerDTHE;
+	m_fpGIFRegHandlers[GIF_A_D_REG_COLCLAMP] = &GSState::GIFRegHandlerCOLCLAMP;
+	m_fpGIFRegHandlers[GIF_A_D_REG_TEST_1] = &GSState::GIFRegHandlerTEST<0>;
+	m_fpGIFRegHandlers[GIF_A_D_REG_TEST_2] = &GSState::GIFRegHandlerTEST<1>;
+	m_fpGIFRegHandlers[GIF_A_D_REG_PABE] = &GSState::GIFRegHandlerPABE;
+	m_fpGIFRegHandlers[GIF_A_D_REG_FBA_1] = &GSState::GIFRegHandlerFBA<0>;
+	m_fpGIFRegHandlers[GIF_A_D_REG_FBA_2] = &GSState::GIFRegHandlerFBA<1>;
+	m_fpGIFRegHandlers[GIF_A_D_REG_FRAME_1] = &GSState::GIFRegHandlerFRAME<0>;
+	m_fpGIFRegHandlers[GIF_A_D_REG_FRAME_2] = &GSState::GIFRegHandlerFRAME<1>;
+	m_fpGIFRegHandlers[GIF_A_D_REG_ZBUF_1] = &GSState::GIFRegHandlerZBUF<0>;
+	m_fpGIFRegHandlers[GIF_A_D_REG_ZBUF_2] = &GSState::GIFRegHandlerZBUF<1>;
+	m_fpGIFRegHandlers[GIF_A_D_REG_BITBLTBUF] = &GSState::GIFRegHandlerBITBLTBUF;
+	m_fpGIFRegHandlers[GIF_A_D_REG_TRXPOS] = &GSState::GIFRegHandlerTRXPOS;
+	m_fpGIFRegHandlers[GIF_A_D_REG_TRXREG] = &GSState::GIFRegHandlerTRXREG;
+	m_fpGIFRegHandlers[GIF_A_D_REG_TRXDIR] = &GSState::GIFRegHandlerTRXDIR;
+	m_fpGIFRegHandlers[GIF_A_D_REG_HWREG] = &GSState::GIFRegHandlerHWREG;
+	m_fpGIFRegHandlers[GIF_A_D_REG_SIGNAL] = &GSState::GIFRegHandlerSIGNAL;
+	m_fpGIFRegHandlers[GIF_A_D_REG_FINISH] = &GSState::GIFRegHandlerFINISH;
+	m_fpGIFRegHandlers[GIF_A_D_REG_LABEL] = &GSState::GIFRegHandlerLABEL;
 }
 
