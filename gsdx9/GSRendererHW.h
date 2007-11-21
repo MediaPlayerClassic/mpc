@@ -62,6 +62,7 @@ protected:
 	void SetupColorMask();
 	void SetupZBuffer();
 	void SetupAlphaTest();
+	void SetupDestinationAlphaTest(const GSTextureCache::GSRenderTarget* rt, const GSTextureCache::GSDepthStencil* ds);
 	void SetupScissor(const GSScale& scale);
 
 	void ResetState();

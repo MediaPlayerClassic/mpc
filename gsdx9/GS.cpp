@@ -64,10 +64,6 @@ EXPORT_C_(char*) PS2EgetLibName()
 	sl.AddTail(_T("SSE"));
 #endif
 
-#ifdef _OPENMP
-	sl.AddTail(_T("OpenMP"));
-#endif
-
 	POSITION pos = sl.GetHeadPosition();
 
 	while(pos)
@@ -86,7 +82,7 @@ EXPORT_C_(UINT32) PS2EgetLibVersion2(UINT32 type)
 {
 	const UINT32 revision = 0;
 	const UINT32 build = 10;
-	const UINT32 minor = 7;
+	const UINT32 minor = 8;
 
 	return (build << 0) | (revision << 8) | (PS2E_GS_VERSION << 16) | (minor << 24);
 }
@@ -369,6 +365,11 @@ EXPORT_C GSsetGameCRC(int crc, int options)
 EXPORT_C GSgetLastTag(UINT32* tag) 
 {
 	s_gs->GetLastTag(tag);
+}
+
+EXPORT_C GSsetFrameSkip(int frameskip)
+{
+	s_gs->SetFrameSkip(frameskip);
 }
 
 /////////////////

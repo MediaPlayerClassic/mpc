@@ -73,9 +73,9 @@ void GSTextureCache::Create()
 
 void GSTextureCache::RemoveAll()
 {
-	while(m_tex.GetCount()) delete m_tex.RemoveHead();
 	while(m_rt.GetCount()) delete m_rt.RemoveHead();
 	while(m_ds.GetCount()) delete m_ds.RemoveHead();
+	while(m_tex.GetCount()) delete m_tex.RemoveHead();
 	m_pool.RemoveAll();
 }
 
@@ -254,19 +254,6 @@ GSTextureCache::GSTexture* GSTextureCache::GetTextureNP()
 
 		if(HasSharedBits(t->m_TEX0.TBP0, t->m_TEX0.PSM, TEX0.TBP0, TEX0.PSM))
 		{
-			/*
-			if(t->IsRenderTarget())
-			{
-				// TODO
-
-				ASSERT(0);
-
-				m_tex.MoveToHead(pos);
-
-				break;
-			}
-			else 
-			*/	
 			if(TEX0.PSM == t->m_TEX0.PSM && TEX0.TBW == t->m_TEX0.TBW
 			&& TEX0.TW == t->m_TEX0.TW && TEX0.TH == t->m_TEX0.TH
 			&& (CLAMP.WMS != 3 && t->m_CLAMP.WMS != 3 && CLAMP.WMT != 3 && t->m_CLAMP.WMT != 3 || CLAMP.i64 == t->m_CLAMP.i64)
@@ -494,7 +481,7 @@ void GSTextureCache::Recycle(IDirect3DSurface9* surface)
 	{
 		m_pool.AddHead(surface);
 
-		while(m_pool.GetCount() > 100) // TODO: ->m_size
+		while(m_pool.GetCount() > 100)
 		{			
 			m_pool.RemoveTail();
 		}
@@ -532,7 +519,7 @@ HRESULT GSTextureCache::CreateRenderTarget(int w, int h, IDirect3DTexture9** ppt
 	{
 		hr = m_state->m_dev->CreateTexture(w, h, 1, D3DUSAGE_RENDERTARGET, D3DFMT_A8R8G8B8, D3DPOOL_DEFAULT, ppt, NULL);
 
-		TRACE(_T("CreateTexture %d x %d\n"), w, h);
+		TRACE(_T("CreateRenderTarget %d x %d\n"), w, h);
 	}
 
 	if(pps) (*ppt)->GetSurfaceLevel(0, pps);
@@ -546,17 +533,6 @@ HRESULT GSTextureCache::CreateDepthStencil(int w, int h, IDirect3DSurface9** pps
 {
 	HRESULT hr;
 
-	D3DFORMAT format = D3DFMT_D16;
-
-	if(IsDepthFormatOk(m_state->m_d3d, D3DFMT_D32, D3DFMT_X8R8G8B8, D3DFMT_X8R8G8B8))
-	{
-		format = D3DFMT_D32;
-	}
-	else if(IsDepthFormatOk(m_state->m_d3d, D3DFMT_D24X8, D3DFMT_X8R8G8B8, D3DFMT_X8R8G8B8))
-	{
-		format = D3DFMT_D24X8;
-	}
-
 	for(POSITION pos = m_pool.GetHeadPosition(); pos; m_pool.GetNext(pos))
 	{
 		CComPtr<IDirect3DSurface9> s = m_pool.GetAt(pos);
@@ -565,7 +541,7 @@ HRESULT GSTextureCache::CreateDepthStencil(int w, int h, IDirect3DSurface9** pps
 			
 		hr = s->GetDesc(&desc);
 
-		if(desc.Pool == D3DPOOL_DEFAULT && (desc.Usage & D3DUSAGE_DEPTHSTENCIL) && desc.Width == w && desc.Height == h && desc.Format == format)
+		if(desc.Pool == D3DPOOL_DEFAULT && (desc.Usage & D3DUSAGE_DEPTHSTENCIL) && desc.Width == w && desc.Height == h)
 		{
 			*pps = s.Detach();
 
@@ -577,7 +553,7 @@ HRESULT GSTextureCache::CreateDepthStencil(int w, int h, IDirect3DSurface9** pps
 
 	if(*pps == NULL)
 	{
-		hr = m_state->m_dev->CreateDepthStencilSurface(w, h, format, D3DMULTISAMPLE_NONE, 0, FALSE, pps, NULL);
+		hr = m_state->m_dev->CreateDepthStencilSurface(w, h, D3DFMT_D24S8, D3DMULTISAMPLE_NONE, 0, FALSE, pps, NULL);
 
 		TRACE(_T("CreateDepthStencilSurface %d x %d\n"), w, h);
 	}

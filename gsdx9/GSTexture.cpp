@@ -269,16 +269,23 @@ void GSTextureCache::GSTexture::Update(GSLocalMemory::readTexture rt)
 			m_tc->m_state->m_context->CLAMP);
 
 		//ASSERT(m_tc->m_state->m_context->TEX0.i64 == m_TEX0.i64);
-		ASSERT(m_tc->m_state->m_context->CLAMP.i64 == m_CLAMP.i64);
-		ASSERT(m_tc->m_state->m_env.TEXA.i64 == m_TEXA.i64);
+		//ASSERT(m_tc->m_state->m_context->CLAMP.i64 == m_CLAMP.i64);
+		//ASSERT(m_tc->m_state->m_env.TEXA.i64 == m_TEXA.i64);
 
 		m_texture->UnlockRect(0);
 
 		m_tc->m_state->m_perfmon.Put(GSPerfMon::Unswizzle, r.Width() * r.Height() * m_bpp >> 3);
 
+		CRect r2 = m_valid & r;
+
+		if(!r2.IsRectEmpty())
+		{
+			m_tc->m_state->m_perfmon.Put(GSPerfMon::Unswizzle2, r2.Width() * r2.Height() * m_bpp >> 3);
+		}
+
 		m_valid |= r;
 		m_dirty.RemoveAll();
-
+/**/
 		const static DWORD limit = 7;
 
 		if((m_hashdiff & limit) && m_hashdiff >= limit && m_hashrect == m_valid) // predicted to be dirty

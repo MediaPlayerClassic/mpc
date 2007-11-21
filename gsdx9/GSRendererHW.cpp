@@ -61,6 +61,11 @@ bool GSRendererHW::Create(LPCTSTR title)
 
 	HRESULT hr;
 
+	if(!IsDepthFormatOk(m_d3d, D3DFMT_D24S8, D3DFMT_X8R8G8B8, D3DFMT_X8R8G8B8))
+	{
+		return false;
+	}
+
 	hr = m_dev->CreateVertexDeclaration(s_vertexdecl, &m_pVertexDeclaration);
 
 	// vs_3_0
@@ -273,78 +278,169 @@ void GSRendererHW::DrawingKick(bool skip)
 
 int s_n = 0;
 bool s_dump = false;
-bool s_save = false;
+bool s_save = true;
 
 void GSRendererHW::FlushPrim()
 {
-	if(m_nVertices > 0 && !(m_pPRIM->TME && HasSharedBits(m_context->TEX0.TBP0, m_context->TEX0.PSM, m_context->FRAME.Block(), m_context->FRAME.PSM)))
-	do
+	HRESULT hr;
+
+	if(m_nVertices == 0 || m_pPRIM->TME && HasSharedBits(m_context->TEX0.TBP0, m_context->TEX0.PSM, m_context->FRAME.Block(), m_context->FRAME.PSM))
 	{
-		D3DPRIMITIVETYPE primtype;
+		return;
+	}
 
-		int nPrims = 0;
+	// ASSERT(!m_env.PABE.PABE); // bios
+	// ASSERT(!m_context->FBA.FBA); // bios
+	// ASSERT(!m_context->TEST.DATE); // sfex3 (after the capcom logo), vf4 (first menu fading in), ffxii shadows
 
-		switch(m_pPRIM->PRIM)
+	D3DPRIMITIVETYPE prim;
+
+	int nPrims = 0;
+
+	switch(m_pPRIM->PRIM)
+	{
+	case GS_POINTLIST:
+		prim = D3DPT_POINTLIST;
+		nPrims = m_nVertices;
+		break;
+	case GS_LINELIST: 
+	case GS_LINESTRIP:
+		prim = D3DPT_LINELIST;
+		nPrims = m_nVertices / 2; 
+		break;
+	case GS_TRIANGLELIST: 
+	case GS_TRIANGLESTRIP: 
+	case GS_TRIANGLEFAN: 
+	case GS_SPRITE:
+		prim = D3DPT_TRIANGLELIST;
+		nPrims = m_nVertices / 3; 
+		break;
+	default:
+		__assume(0);
+	}
+
+	m_perfmon.Put(GSPerfMon::Prim, nPrims);
+
+	// rt + ds
+
+	GSTextureCache::GSRenderTarget* rt = NULL;
+	GSTextureCache::GSDepthStencil* ds = NULL;
+
+	GIFRegTEX0 TEX0;
+
+	TEX0.TBP0 = m_context->FRAME.Block();
+	TEX0.TBW = m_context->FRAME.FBW;
+	TEX0.PSM = m_context->FRAME.PSM;
+
+	rt = m_tc.GetRenderTarget(TEX0, m_width, m_height);
+
+	TEX0.TBP0 = m_context->ZBUF.Block();
+	TEX0.TBW = m_context->FRAME.FBW;
+	TEX0.PSM = m_context->ZBUF.PSM;
+
+	ds = m_tc.GetDepthStencil(TEX0, m_width, m_height);
+
+	// tex
+
+	GSTextureCache::GSTexture* tex = NULL;
+
+	if(m_pPRIM->TME && !(tex = m_tc.GetTextureNP()))
+	{
+		ASSERT(0);
+		return;
+	}
+
+	// hacking section :P
+
+	#pragma region ffxii pal video conversion
+
+	if(m_crc == 0x78DA0252)
+	{
+		static DWORD* video = NULL;
+		static int next = 0;
+		static bool ok = false;
+
+		if(prim == D3DPT_POINTLIST && (nPrims == 30001 || nPrims == 19369)) 
 		{
-		case GS_POINTLIST:
-			primtype = D3DPT_POINTLIST;
-			nPrims = m_nVertices;
-			break;
-		case GS_LINELIST: 
-		case GS_LINESTRIP:
-			primtype = D3DPT_LINELIST;
-			nPrims = m_nVertices / 2; 
-			break;
-		case GS_TRIANGLELIST: 
-		case GS_TRIANGLESTRIP: 
-		case GS_TRIANGLEFAN: 
-		case GS_SPRITE:
-			primtype = D3DPT_TRIANGLELIST;
-			nPrims = m_nVertices / 3; 
-			break;
-		default:
-#ifdef _DEBUG
-			ASSERT(0);
-			break;
-#else
-			__assume(0);
-#endif
+			// incoming pixels are stored in columns, one column is 16x512, total res 448x512
+
+			ok = false;
+
+			if(!video) video = new DWORD[512*512];
+
+			// TODO: copy 16 pixels in the inner loop without calculating the address each time + sse2 (already fast enough in this form)
+
+			for(int i = 0; i < m_nVertices && next < 448*512; i++, next++)
+			{
+				// int x = next & 0xf, y = (next >> 4) & 0x1ff, z = next >> 13;
+				// int pos = (y << 9) + (z << 4) + x;
+
+				int pos = ((next & 0x1ff0) << 5) + ((next & 0x3e000) >> 9) + (next & 0xf);
+
+				video[pos] = m_pVertices[i].color;
+			}
+
+			if(nPrims == 19369)
+			{
+				next = 0;
+				ok = true;
+			}
+
+			__super::FlushPrim();
+
+			return;
 		}
-
-		m_perfmon.Put(GSPerfMon::Prim, nPrims);
-
-		//////////////////////
-
-		HRESULT hr;
-
-		//
-/*
-		CComPtr<IDirect3DVertexBuffer9> pVertexBuffer;
-
-		UINT size = m_nVertices * sizeof(GSVertexHW);
-
-		hr = m_dev->CreateVertexBuffer(size, D3DUSAGE_DYNAMIC, 0, D3DPOOL_DEFAULT, &pVertexBuffer, NULL);
-
-		void* ptr = NULL;
-
-		hr = pVertexBuffer->Lock(0, size, &ptr, 0);
-
-		if(SUCCEEDED(hr))
+		else if(prim == D3DPT_LINELIST && nPrims == 512 && ok)
 		{
-			memcpy(ptr, m_pVertices, size);
+			// normally, this step would copy the video onto screen with 512 texture mapped horizontal lines,
+			// but we use the stored video data to create a new texture, and replace the lines with two triangles
 
-			hr = pVertexBuffer->Unlock();
+			ok = false;
+
+			m_tc.Recycle(tex->m_surface);
+
+			tex->m_surface = NULL;
+			tex->m_texture = NULL;
+
+			if(SUCCEEDED(m_tc.CreateTexture(512, 512, D3DFMT_A8R8G8B8, &tex->m_texture, &tex->m_surface, &tex->m_desc)))
+			{
+				D3DLOCKED_RECT lr;
+				
+				if(SUCCEEDED(tex->m_surface->LockRect(&lr, NULL, 0)))
+				{
+					BYTE* bits = (BYTE*)lr.pBits;
+
+					for(int i = 0; i < 512; i++, bits += lr.Pitch)
+					{
+						memcpy(bits, &video[i*512], 448*4);
+					}
+
+					tex->m_surface->UnlockRect();
+				}
+			}
+
+			m_pVertices[0] = m_pVertices[0];
+			m_pVertices[1] = m_pVertices[1];
+			m_pVertices[2] = m_pVertices[m_nVertices - 2];
+			m_pVertices[3] = m_pVertices[1];
+			m_pVertices[4] = m_pVertices[2];
+			m_pVertices[5] = m_pVertices[m_nVertices - 1];
+
+			prim = D3DPT_TRIANGLELIST;
+			nPrims = 2;
+			m_nVertices = 6;
 		}
+	}
 
-		hr = m_dev->SetStreamSource(0, pVertexBuffer, 0, sizeof(GSVertexHW));
-*/
-		//
+	#pragma endregion
+
+	//
 
 /*
 s_dump = true;
 if(m_context->TEX0.TBP0 == 0x1180) s_dump = true;
 */
-
+/*
 TRACE(_T("[%d] FlushPrim f %05x (%d) z %05x (%d %d %d %d) t %05x (%d) p %d\n"), 
 	  (int)m_perfmon.GetFrame(), 
 	  (int)m_context->FRAME.Block(), 
@@ -357,44 +453,11 @@ TRACE(_T("[%d] FlushPrim f %05x (%d) z %05x (%d %d %d %d) t %05x (%d) p %d\n"),
 	  m_pPRIM->TME ? (int)m_context->TEX0.TBP0 : 0xfffff, 
 	  m_pPRIM->TME ? (int)m_context->TEX0.PSM : 0xff, 
 	  nPrims);
+*/
+		//
+
 
 		//
-if(s_n == 1650)
-{
-	DebugBreak();
-	s_save = true;
-}
-
-		GSTextureCache::GSRenderTarget* rt = NULL;
-		GSTextureCache::GSDepthStencil* ds = NULL;
-		GSTextureCache::GSTexture* tex = NULL;
-
-		GIFRegTEX0 TEX0;
-
-		TEX0.TBP0 = m_context->FRAME.Block();
-		TEX0.TBW = m_context->FRAME.FBW;
-		TEX0.PSM = m_context->FRAME.PSM;
-
-		rt = m_tc.GetRenderTarget(TEX0, m_width, m_height);
-
-		TEX0.TBP0 = m_context->ZBUF.Block();
-		TEX0.TBW = m_context->FRAME.FBW;
-		TEX0.PSM = m_context->ZBUF.PSM;
-
-		// if(m_context->TEST.ZTE == 0 || m_context->TEST.ZTST != 0 || m_context->ZBUF.ZMSK == 0 || m_context->TEST.ATE == 1 && m_context->TEST.AFAIL != 1 && m_context->TEST.AFAIL == 1)
-		ds = m_tc.GetDepthStencil(TEX0, m_width, m_height);
-
-		if(m_pPRIM->TME)
-		{
-			if(!(tex = m_tc.GetTextureNP()))
-			{
-				break;
-			}
-		}
-
-		hr = m_dev->SetRenderTarget(0, rt->m_surface);
-		hr = m_dev->SetDepthStencilSurface(ds->m_surface);
-
 /**/
 if(s_dump)
 {
@@ -405,93 +468,76 @@ if(s_dump)
 	if(s_save) ::D3DXSaveTextureToFile(str, D3DXIFF_BMP, rt->m_texture, NULL);
 }
 
-		hr = m_dev->BeginScene();
+	SetupDestinationAlphaTest(rt, ds);
 
-		hr = m_dev->SetRenderState(D3DRS_SHADEMODE, m_pPRIM->IIP ? D3DSHADE_GOURAUD : D3DSHADE_FLAT);
+	hr = m_dev->BeginScene();
 
-		SetupVertexShader(rt);
+	hr = m_dev->SetRenderTarget(0, rt->m_surface);
+	hr = m_dev->SetDepthStencilSurface(ds->m_surface);
 
-		SetupTexture(tex);
+	hr = m_dev->SetRenderState(D3DRS_SHADEMODE, m_pPRIM->IIP ? D3DSHADE_GOURAUD : D3DSHADE_FLAT);
 
-		SetupAlphaBlend();
+	SetupVertexShader(rt);
 
-		SetupColorMask();
+	SetupTexture(tex);
 
-		SetupZBuffer();
+	SetupAlphaBlend();
 
-		SetupAlphaTest();
+	SetupColorMask();
 
-		SetupScissor(rt->m_scale);
+	SetupZBuffer();
 
-		// ASSERT(!m_env.PABE.PABE); // bios
-		// ASSERT(!m_context->FBA.FBA); // bios
-		// ASSERT(!m_context->TEST.DATE); // sfex3 (after the capcom logo), vf4 (first menu fading in)
+	SetupAlphaTest();
 
-		if(1)//!m_env.PABE.PABE)
+	SetupScissor(rt->m_scale);
+
+	if(!m_context->TEST.ATE || m_context->TEST.ATST != 0)
+	{
+		hr = m_dev->DrawPrimitiveUP(prim, nPrims, m_pVertices, sizeof(GSVertexHW));
+	}
+
+	if(m_context->TEST.ATE && m_context->TEST.ATST != 1 && m_context->TEST.AFAIL)
+	{
+		ASSERT(!m_env.PABE.PABE);
+
+		static const DWORD iafunc[] = {D3DCMP_ALWAYS, D3DCMP_NEVER, D3DCMP_GREATEREQUAL, D3DCMP_GREATER, D3DCMP_NOTEQUAL, D3DCMP_LESS, D3DCMP_LESSEQUAL, D3DCMP_EQUAL};
+
+		hr = m_dev->SetRenderState(D3DRS_ALPHAFUNC, iafunc[m_context->TEST.ATST]);
+		hr = m_dev->SetRenderState(D3DRS_ALPHAREF, (DWORD)SCALE_ALPHA(m_context->TEST.AREF));
+
+		DWORD mask = 0;
+		bool zwrite = false;
+
+		hr = m_dev->GetRenderState(D3DRS_COLORWRITEENABLE, &mask);
+
+		switch(m_context->TEST.AFAIL)
 		{
-			hr = m_dev->DrawPrimitiveUP(primtype, nPrims, m_pVertices, sizeof(GSVertexHW));
-			//hr = m_dev->DrawPrimitive(primtype, 0, nPrims);
-		}
-/*		else
-		{
-			ASSERT(!m_context->TEST.ATE); // TODO
-
-			hr = m_dev->SetRenderState(D3DRS_ALPHATESTENABLE, TRUE); 
-			hr = m_dev->SetRenderState(D3DRS_ALPHAREF, 0xfe);
-
-			hr = m_dev->SetRenderState(D3DRS_ALPHAFUNC, D3DCMP_GREATEREQUAL);
-			hr = m_dev->SetRenderState(D3DRS_ALPHABLENDENABLE, TRUE);
-			hr = m_dev->DrawPrimitive(primtype, 0, nPrims);
-
-			hr = m_dev->SetRenderState(D3DRS_ALPHAFUNC, D3DCMP_LESS);
-			hr = m_dev->SetRenderState(D3DRS_ALPHABLENDENABLE, FALSE);
-			hr = m_dev->DrawPrimitive(primtype, 0, nPrims);
-		}
-*/
-		if(m_context->TEST.ATE && m_context->TEST.AFAIL && m_context->TEST.ATST != 1)
-		{
-			ASSERT(!m_env.PABE.PABE);
-
-			static const DWORD iafunc[] = {D3DCMP_ALWAYS, D3DCMP_NEVER, D3DCMP_GREATEREQUAL, D3DCMP_GREATER, D3DCMP_NOTEQUAL, D3DCMP_LESS, D3DCMP_LESSEQUAL, D3DCMP_EQUAL};
-
-			hr = m_dev->SetRenderState(D3DRS_ALPHAFUNC, iafunc[m_context->TEST.ATST]);
-			hr = m_dev->SetRenderState(D3DRS_ALPHAREF, (DWORD)SCALE_ALPHA(m_context->TEST.AREF));
-
-			DWORD mask = 0;
-			bool zwrite = false;
-
-			hr = m_dev->GetRenderState(D3DRS_COLORWRITEENABLE, &mask);
-
-			switch(m_context->TEST.AFAIL)
-			{
-			case 0: mask = 0; break; // keep
-			case 1: break; // fbuf
-			case 2: mask = 0; zwrite = true; break; // zbuf
-			case 3: mask &= ~D3DCOLORWRITEENABLE_ALPHA; break; // fbuf w/o alpha
-			default: __assume(0);
-			}
-
-			hr = m_dev->SetRenderState(D3DRS_ZWRITEENABLE, zwrite);
-			hr = m_dev->SetRenderState(D3DRS_COLORWRITEENABLE, mask);
-
-			if(mask || zwrite)
-			{
-				hr = m_dev->DrawPrimitiveUP(primtype, nPrims, m_pVertices, sizeof(GSVertexHW));
-				//hr = m_dev->DrawPrimitive(primtype, 0, nPrims);
-			}
+		case 0: mask = 0; break; // keep
+		case 1: break; // fbuf
+		case 2: mask = 0; zwrite = true; break; // zbuf
+		case 3: mask &= ~D3DCOLORWRITEENABLE_ALPHA; break; // fbuf w/o alpha
+		default: __assume(0);
 		}
 
-		hr = m_dev->EndScene();
-/**/
+		hr = m_dev->SetRenderState(D3DRS_ZWRITEENABLE, zwrite);
+		hr = m_dev->SetRenderState(D3DRS_COLORWRITEENABLE, mask);
+
+		if(mask || zwrite)
+		{
+			hr = m_dev->DrawPrimitiveUP(prim, nPrims, m_pVertices, sizeof(GSVertexHW));
+		}
+	}
+
+	hr = m_dev->EndScene();
+
+	hr = m_dev->SetRenderState(D3DRS_STENCILENABLE, FALSE);
+
 if(s_dump)
 {
 	CString str;
 	str.Format(_T("c:\\temp2\\_%05d_f%I64d_rt1_%05x_%d.bmp"), s_n++, m_perfmon.GetFrame(), m_context->FRAME.Block(), m_context->FRAME.PSM);
 	if(s_save) ::D3DXSaveTextureToFile(str, D3DXIFF_BMP, rt->m_texture, NULL);
 }
-
-	}
-	while(0);
 
 	__super::FlushPrim();
 }
@@ -622,7 +668,7 @@ void GSRendererHW::MinMaxUV(int w, int h, CRect& r)
 			if(fmin != fmax) {uv.umin = 0; uv.umax = 1.0f;}
 			else {uv.umin -= fmin; uv.umax -= fmax;}
 
-			// FIXME
+			// FIXME: 
 			if(uv.umin == 0 && uv.umax != 1.0f) uv.umax = 1.0f;
 		}
 		else if(m_context->CLAMP.WMS == 1)
@@ -652,7 +698,7 @@ void GSRendererHW::MinMaxUV(int w, int h, CRect& r)
 			if(fmin != fmax) {uv.vmin = 0; uv.vmax = 1.0f;}
 			else {uv.vmin -= fmin; uv.vmax -= fmax;}
 
-			// FIXME
+			// FIXME: 
 			if(uv.vmin == 0 && uv.vmax != 1.0f) uv.vmax = 1.0f;
 		}
 		else if(m_context->CLAMP.WMT == 1)
@@ -763,10 +809,10 @@ void GSRendererHW::SetupTexture(const GSTextureCache::GSTexture* t)
 		hr = m_dev->SetSamplerState(0, D3DSAMP_ADDRESSU, u);
 		hr = m_dev->SetSamplerState(0, D3DSAMP_ADDRESSV, v);
 
-		hr = m_dev->SetSamplerState(0, D3DSAMP_MAGFILTER, t->m_palette ? D3DTEXF_POINT : m_nTextureFilter);
-		hr = m_dev->SetSamplerState(0, D3DSAMP_MINFILTER, t->m_palette ? D3DTEXF_POINT : m_nTextureFilter);
-		hr = m_dev->SetSamplerState(1, D3DSAMP_MAGFILTER, t->m_palette ? D3DTEXF_POINT : m_nTextureFilter);
-		hr = m_dev->SetSamplerState(1, D3DSAMP_MINFILTER, t->m_palette ? D3DTEXF_POINT : m_nTextureFilter);
+		hr = m_dev->SetSamplerState(0, D3DSAMP_MAGFILTER, t->m_palette ? D3DTEXF_POINT : m_filter);
+		hr = m_dev->SetSamplerState(0, D3DSAMP_MINFILTER, t->m_palette ? D3DTEXF_POINT : m_filter);
+		hr = m_dev->SetSamplerState(1, D3DSAMP_MAGFILTER, t->m_palette ? D3DTEXF_POINT : m_filter);
+		hr = m_dev->SetSamplerState(1, D3DSAMP_MINFILTER, t->m_palette ? D3DTEXF_POINT : m_filter);
 
 		int i = m_context->TEX0.TFX;
 
@@ -1010,6 +1056,71 @@ void GSRendererHW::SetupAlphaTest()
 
 		hr = m_dev->SetRenderState(D3DRS_ALPHAFUNC, afunc[m_context->TEST.ATST]);
 		hr = m_dev->SetRenderState(D3DRS_ALPHAREF, (DWORD)SCALE_ALPHA(m_context->TEST.AREF));
+	}
+}
+
+void GSRendererHW::SetupDestinationAlphaTest(const GSTextureCache::GSRenderTarget* rt, const GSTextureCache::GSDepthStencil* ds)
+{
+	HRESULT hr;
+	
+	hr = m_dev->SetRenderState(D3DRS_STENCILENABLE, FALSE);
+
+	if(m_context->TEST.DATE) // need to render each prim one-by-one for this
+	{
+		CComPtr<IDirect3DTexture9> texture;
+		CComPtr<IDirect3DSurface9> surface;
+
+		hr = m_tc.CreateRenderTarget(rt->m_desc.Width, rt->m_desc.Height, &texture, &surface);
+
+		hr = m_dev->SetRenderTarget(0, surface);
+		hr = m_dev->SetDepthStencilSurface(ds->m_surface);
+
+		hr = m_dev->Clear(0, NULL, D3DCLEAR_STENCIL, 0, 0, 0);
+
+		hr = m_dev->SetTexture(0, rt->m_texture);
+		hr = m_dev->SetSamplerState(0, D3DSAMP_MAGFILTER, D3DTEXF_POINT);
+		hr = m_dev->SetSamplerState(0, D3DSAMP_MINFILTER, D3DTEXF_POINT);
+		hr = m_dev->SetRenderState(D3DRS_ZENABLE, FALSE);
+		hr = m_dev->SetRenderState(D3DRS_STENCILENABLE, TRUE);
+		hr = m_dev->SetRenderState(D3DRS_STENCILFUNC, D3DCMP_ALWAYS);
+		hr = m_dev->SetRenderState(D3DRS_STENCILPASS, D3DSTENCILOP_REPLACE);
+		hr = m_dev->SetRenderState(D3DRS_STENCILFAIL, D3DSTENCILOP_KEEP);
+		hr = m_dev->SetRenderState(D3DRS_STENCILZFAIL, D3DSTENCILOP_KEEP);
+		hr = m_dev->SetRenderState(D3DRS_STENCILREF, 1);
+		hr = m_dev->SetRenderState(D3DRS_STENCILMASK, 1);
+		hr = m_dev->SetRenderState(D3DRS_STENCILWRITEMASK, 1);	
+		hr = m_dev->SetRenderState(D3DRS_ALPHATESTENABLE, TRUE);
+		hr = m_dev->SetRenderState(D3DRS_ALPHAFUNC, D3DCMP_EQUAL);
+		hr = m_dev->SetRenderState(D3DRS_ALPHAREF, m_context->TEST.DATM ? 0xff : 0);
+		hr = m_dev->SetRenderState(D3DRS_ALPHABLENDENABLE, FALSE);
+		hr = m_dev->SetRenderState(D3DRS_SCISSORTESTENABLE, FALSE);
+		hr = m_dev->SetRenderState(D3DRS_COLORWRITEENABLE, 0);
+
+		hr = m_dev->SetVertexShader(NULL);
+		hr = m_dev->SetPixelShader(m_tc.m_ps[0]);
+
+		struct
+		{
+			float x, y, z, rhw;
+			float tu, tv;
+		}
+		pVertices[] =
+		{
+			{0, 0, 0.5f, 2.0f, 0, 0},
+			{(float)rt->m_desc.Width, 0, 0.5f, 2.0f, 1, 0},
+			{0, (float)rt->m_desc.Height, 0.5f, 2.0f, 0, 1},
+			{(float)rt->m_desc.Width, (float)rt->m_desc.Height, 0.5f, 2.0f, 1, 1},
+		};
+
+		hr = m_dev->BeginScene();
+		hr = m_dev->SetFVF(D3DFVF_XYZRHW | D3DFVF_TEX1);
+		hr = m_dev->DrawPrimitiveUP(D3DPT_TRIANGLESTRIP, 2, pVertices, sizeof(pVertices[0]));
+		hr = m_dev->EndScene();
+
+		hr = m_dev->SetRenderState(D3DRS_STENCILFUNC, D3DCMP_EQUAL);
+		hr = m_dev->SetRenderState(D3DRS_STENCILPASS, D3DSTENCILOP_KEEP);
+
+		m_tc.Recycle(surface);
 	}
 }
 
