@@ -65,17 +65,19 @@ public:
 	void SetMT(bool mt) {m_mt = mt;}
 	void SetGameCRC(int crc, int options);
 	void GetLastTag(UINT32* tag) {*tag = m_path3hack; m_path3hack = 0;}
+	void SetFrameSkip(int frameskip);
 
-private:
+protected:
 	void (*m_irq)();
 	bool m_mt;
-	int m_crc;
 	int m_options;
 	bool m_nloophack;
 	bool m_vsync;
 	bool m_osd;
 	int m_field;
-	int m_path3hack; 
+	int m_path3hack;
+	int m_crc;
+	int m_frameskip;
 
 private:
 	static const int m_nTrMaxBytes = 1024*1024*4;
@@ -119,10 +121,9 @@ protected:
 	D3DPRESENT_PARAMETERS m_d3dpp;
 	DDCAPS m_ddcaps;
 	D3DCAPS9 m_caps;
-	bool m_fPalettizedTextures;
 	int m_nInterlace;
 	int m_nAspectRatio;
-	D3DTEXTUREFILTERTYPE m_nTextureFilter;
+	D3DTEXTUREFILTERTYPE m_filter;
 
 	virtual void ResetState();
 	virtual HRESULT ResetDevice(bool fForceWindowed = false);
@@ -151,6 +152,7 @@ protected:
 	void Flush();
 
 private:
+	void ResetHandlers();
 
 	typedef void (GSState::*GIFPackedRegHandler)(GIFPackedReg* r);
 	GIFPackedRegHandler m_fpGIFPackedRegHandlers[16];

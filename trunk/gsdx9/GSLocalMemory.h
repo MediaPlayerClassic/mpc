@@ -627,6 +627,7 @@ public:
 	{
 		return m_vm32[addr];
 	}
+
 	__forceinline DWORD readTexel24(DWORD addr, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA) 
 	{
 		return Expand24To32(m_vm32[addr], TEX0.ai32[1]&4, TEXA);

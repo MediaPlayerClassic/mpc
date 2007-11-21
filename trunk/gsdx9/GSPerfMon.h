@@ -26,7 +26,7 @@
 class GSPerfMon
 {
 public:
-	enum counter_t {Frame, Prim, Swizzle, Unswizzle, Texture, Last};
+	enum counter_t {Frame, Prim, Swizzle, Unswizzle, Unswizzle2, Texture, Last};
 
 protected:
 	CAtlList<double> m_counters[Last];

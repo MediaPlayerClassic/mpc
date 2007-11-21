@@ -39,7 +39,7 @@ class GSSettingsDlg : public CDialog
 private:
 	CAtlList<D3DDISPLAYMODE> m_modes;
 
-	void InitComboBox(CComboBox& combobox, const GSSetting* settings, int count, DWORD sel, DWORD minid = 0);
+	void InitComboBox(CComboBox& combobox, const GSSetting* settings, int count, DWORD sel, DWORD maxid = ~0);
 
 public:
 	GSSettingsDlg(CWnd* pParent = NULL);   // standard constructor

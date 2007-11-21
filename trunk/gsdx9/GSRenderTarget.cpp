@@ -150,8 +150,6 @@ if(s_dump)
 
 void GSTextureCache::GSRenderTarget::Read(CRect r)
 {
-	printf("GSRenderTarget::Read(%d %d %d %d) m_used = %d\n", r.left, r.top, r.right, r.bottom, m_used);
-
 	if(!m_used) return;
 
 	m_used = false;

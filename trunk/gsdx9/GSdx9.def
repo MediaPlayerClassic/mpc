@@ -29,4 +29,5 @@ EXPORTS
 	GSreadFIFO2
 	GSirqCallback
 	GSsetGameCRC
+	GSsetFrameSkip
 	; GSReplay

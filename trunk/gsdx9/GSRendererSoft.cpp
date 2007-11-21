@@ -230,8 +230,10 @@ static int bZTE; // , iZTST, iATST, iLOD, bLCM, bTCC, iTFX;
 template <class Vertex>
 void GSRendererSoft<Vertex>::FlushPrim()
 {
-	if(m_nVertices > 0)
+	if(m_nVertices == 0)
 	{
+		return;
+	}
 
 /*
 if(m_context->TEX0.TBP0 == 0x1180) s_dump = true;
@@ -255,82 +257,78 @@ if(s_dump)
 	if(s_save) m_mem.SaveBMP(m_dev, str, m_context->FRAME.Block(), m_context->FRAME.FBW, m_context->FRAME.PSM, m_regs.GetFrameSize(1).cx, m_regs.GetFrameSize(1).cy);
 }
 
-		bZTE = m_context->TEST.ZTE && m_context->TEST.ZTST >= 2 || !m_context->ZBUF.ZMSK;
+	bZTE = m_context->TEST.ZTE && m_context->TEST.ZTST >= 2 || !m_context->ZBUF.ZMSK;
 
-		int iZTST = !m_context->TEST.ZTE ? 1 : m_context->TEST.ZTST;
-		int iATST = !m_context->TEST.ATE ? 1 : m_context->TEST.ATST;
+	int iZTST = !m_context->TEST.ZTE ? 1 : m_context->TEST.ZTST;
+	int iATST = !m_context->TEST.ATE ? 1 : m_context->TEST.ATST;
 
-		m_pDrawVertex = m_dv[iZTST][iATST];
+	m_pDrawVertex = m_dv[iZTST][iATST];
 
-		if(m_pPRIM->TME)
+	if(m_pPRIM->TME)
+	{
+		int iLOD = (m_context->TEX1.MMAG & 1) + (m_context->TEX1.MMIN & 1);
+		int bLCM = m_context->TEX1.LCM ? 1 : 0;
+		int bTCC = m_context->TEX0.TCC ? 1 : 0;
+		int iTFX = m_context->TEX0.TFX;
+
+		if(m_pPRIM->FST)
 		{
-			int iLOD = (m_context->TEX1.MMAG & 1) + (m_context->TEX1.MMIN & 1);
-			int bLCM = m_context->TEX1.LCM ? 1 : 0;
-			int bTCC = m_context->TEX0.TCC ? 1 : 0;
-			int iTFX = m_context->TEX0.TFX;
-
-			if(m_pPRIM->FST)
-			{
-				iLOD = 3;
-				bLCM = m_context->TEX1.K <= 0 && (m_context->TEX1.MMAG & 1) || m_context->TEX1.K > 0 && (m_context->TEX1.MMIN & 1);
-			}
-
-			if(m_nTextureFilter != D3DTEXF_LINEAR)
-			{
-				if(iLOD == 3) bLCM = 0;
-				else iLOD = 0;
-			}
-
-			m_pDrawVertexTFX = m_dvtfx[iLOD][bLCM][bTCC][iTFX];
-
-			SetupTexture();
-		}
-		
-		m_scissor.SetRect(
-			max(m_context->SCISSOR.SCAX0, 0),
-			max(m_context->SCISSOR.SCAY0, 0),
-			min(m_context->SCISSOR.SCAX1+1, m_context->FRAME.FBW * 64),
-			min(m_context->SCISSOR.SCAY1+1, 4096));
-
-		m_clamp = (m_env.COLCLAMP.CLAMP ? m_clip : m_mask) + 32768;
-
-		int nPrims = 0;
-		Vertex* pVertices = m_pVertices;
-
-		switch(m_pPRIM->PRIM)
-		{
-		case GS_POINTLIST:
-			nPrims = m_nVertices;
-			for(int i = 0; i < nPrims; i++, pVertices++) DrawPoint(pVertices);
-			break;
-		case GS_LINELIST: 
-		case GS_LINESTRIP: 
-			ASSERT(!(m_nVertices&1));
-			nPrims = m_nVertices / 2;
-			for(int i = 0; i < nPrims; i++, pVertices += 2) DrawLine(pVertices);
-			break;
-		case GS_TRIANGLELIST: 
-		case GS_TRIANGLESTRIP: 
-		case GS_TRIANGLEFAN:
-			ASSERT(!(m_nVertices%3));
-			nPrims = m_nVertices / 3;
-			for(int i = 0; i < nPrims; i++, pVertices += 3) DrawTriangle(pVertices);
-			break;
-		case GS_SPRITE:
-			ASSERT(!(m_nVertices&3));
-			nPrims = m_nVertices / 4;
-			for(int i = 0; i < nPrims; i++, pVertices += 4) DrawSprite(pVertices);
-			break;
-		default:
-#ifdef _DEBUG
-			ASSERT(0);
-			break;
-#else
-			__assume(0);
-#endif
+			iLOD = 3;
+			bLCM = m_context->TEX1.K <= 0 && (m_context->TEX1.MMAG & 1) || m_context->TEX1.K > 0 && (m_context->TEX1.MMIN & 1);
 		}
 
-		m_perfmon.Put(GSPerfMon::Prim, nPrims);
+		if(m_filter != D3DTEXF_LINEAR)
+		{
+			if(iLOD == 3) bLCM = 0;
+			else iLOD = 0;
+		}
+
+		m_pDrawVertexTFX = m_dvtfx[iLOD][bLCM][bTCC][iTFX];
+
+		SetupTexture();
+	}
+	
+	m_scissor.SetRect(
+		max(m_context->SCISSOR.SCAX0, 0),
+		max(m_context->SCISSOR.SCAY0, 0),
+		min(m_context->SCISSOR.SCAX1 + 1, m_context->FRAME.FBW * 64),
+		min(m_context->SCISSOR.SCAY1 + 1, 4096));
+
+	m_clamp = (m_env.COLCLAMP.CLAMP ? m_clip : m_mask) + 32768;
+
+	int nPrims = 0;
+
+	Vertex* pVertices = m_pVertices;
+
+	switch(m_pPRIM->PRIM)
+	{
+	case GS_POINTLIST:
+		nPrims = m_nVertices;
+		for(int i = 0; i < nPrims; i++, pVertices++) DrawPoint(pVertices);
+		break;
+	case GS_LINELIST: 
+	case GS_LINESTRIP: 
+		ASSERT(!(m_nVertices&1));
+		nPrims = m_nVertices / 2;
+		for(int i = 0; i < nPrims; i++, pVertices += 2) DrawLine(pVertices);
+		break;
+	case GS_TRIANGLELIST: 
+	case GS_TRIANGLESTRIP: 
+	case GS_TRIANGLEFAN:
+		ASSERT(!(m_nVertices%3));
+		nPrims = m_nVertices / 3;
+		for(int i = 0; i < nPrims; i++, pVertices += 3) DrawTriangle(pVertices);
+		break;
+	case GS_SPRITE:
+		ASSERT(!(m_nVertices&3));
+		nPrims = m_nVertices / 4;
+		for(int i = 0; i < nPrims; i++, pVertices += 4) DrawSprite(pVertices);
+		break;
+	default:
+		__assume(0);
+	}
+
+	m_perfmon.Put(GSPerfMon::Prim, nPrims);
 
 /**/
 if(s_dump)
@@ -339,8 +337,6 @@ if(s_dump)
 	str.Format(_T("c:\\temp1\\_%05d_f%I64d_rt1_%05x_%d.bmp"), s_n++, m_perfmon.GetFrame(), m_context->FRAME.Block(), m_context->FRAME.PSM);
 	if(s_save) m_mem.SaveBMP(m_dev, str, m_context->FRAME.Block(), m_context->FRAME.FBW, m_context->FRAME.PSM, m_regs.GetFrameSize(1).cx, m_regs.GetFrameSize(1).cy);
 }
-
-	}
 
 	__super::FlushPrim();
 }

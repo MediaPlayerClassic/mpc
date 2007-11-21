@@ -60,10 +60,6 @@
 #include <xmmintrin.h>
 #include <emmintrin.h>
 
-#ifdef _OPENMP
-#include <omp.h>
-#endif
-
 #define countof(a) (sizeof(a)/sizeof(a[0]))
 
 #define EXPORT_C extern "C" __declspec(dllexport) void __stdcall

@@ -74,11 +74,11 @@ GSSettingsDlg::~GSSettingsDlg()
 {
 }
 
-void GSSettingsDlg::InitComboBox(CComboBox& combobox, const GSSetting* settings, int count, DWORD sel, DWORD minid)
+void GSSettingsDlg::InitComboBox(CComboBox& combobox, const GSSetting* settings, int count, DWORD sel, DWORD maxid)
 {
 	for(int i = 0; i < count; i++)
 	{
-		if(settings[i].id >= minid)
+		if(settings[i].id <= maxid)
 		{
 			CString str = settings[i].name;
 			if(settings[i].note != NULL) str = str + _T(" (") + settings[i].note + _T(")");
@@ -182,7 +182,7 @@ BOOL GSSettingsDlg::OnInitDialog()
 	m_fLinearTextureFilter = (D3DTEXTUREFILTERTYPE)pApp->GetProfileInt(_T("Settings"), _T("TextureFilter"), D3DTEXF_LINEAR) == D3DTEXF_LINEAR;
 	m_fEnableTvOut = pApp->GetProfileInt(_T("Settings"), _T("fEnableTvOut"), FALSE);
 	m_nloophack = pApp->GetProfileInt(_T("Settings"), _T("nloophack"), 2);
-	m_vsync = !!pApp->GetProfileInt(_T("Settings"), _T("vsync"), TRUE);
+	m_vsync = !!pApp->GetProfileInt(_T("Settings"), _T("vsync"), FALSE);
 
 	m_resx.SetRange(512, 4096);
 	m_resy.SetRange(512, 4096);

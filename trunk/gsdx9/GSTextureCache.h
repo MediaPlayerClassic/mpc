@@ -109,24 +109,25 @@ protected:
 	CAtlList<GSDepthStencil*> m_ds;
 	CAtlList<GSTexture*> m_tex;
 	CInterfaceList<IDirect3DSurface9> m_pool;
-	CComPtr<IDirect3DPixelShader9> m_ps[2];
-	bool m_nativeres;
 
 	template<class T> void RecycleByAge(CAtlList<T*>& l, int maxage = 10);
-	
-	void Recycle(IDirect3DSurface9* surface);
-
-	HRESULT CreateRenderTarget(int w, int h, IDirect3DTexture9** ppt, IDirect3DSurface9** pps = NULL, D3DSURFACE_DESC* desc = NULL);
-	HRESULT CreateDepthStencil(int w, int h, IDirect3DSurface9** pps, D3DSURFACE_DESC* desc = NULL);
-	HRESULT CreateTexture(int w, int h, D3DFORMAT format, IDirect3DTexture9** ppt, IDirect3DSurface9** pps = NULL, D3DSURFACE_DESC* desc = NULL);
-	HRESULT CreateOffscreenPlainSurface(int w, int h, D3DFORMAT format, IDirect3DSurface9** pps = NULL, D3DSURFACE_DESC* desc = NULL);
 
 public:
 	GSTextureCache(GSState* state);
 	virtual ~GSTextureCache();
 
+	bool m_nativeres;
+	CComPtr<IDirect3DPixelShader9> m_ps[2];
+
 	void Create();
 	void RemoveAll();
+
+	HRESULT CreateRenderTarget(int w, int h, IDirect3DTexture9** ppt, IDirect3DSurface9** pps = NULL, D3DSURFACE_DESC* desc = NULL);
+	HRESULT CreateDepthStencil(int w, int h, IDirect3DSurface9** pps, D3DSURFACE_DESC* desc = NULL);
+	HRESULT CreateTexture(int w, int h, D3DFORMAT format, IDirect3DTexture9** ppt, IDirect3DSurface9** pps = NULL, D3DSURFACE_DESC* desc = NULL);
+	HRESULT CreateOffscreenPlainSurface(int w, int h, D3DFORMAT format, IDirect3DSurface9** pps = NULL, D3DSURFACE_DESC* desc = NULL);
+	
+	void Recycle(IDirect3DSurface9* surface);
 
 	GSRenderTarget* GetRenderTarget(const GIFRegTEX0& TEX0, int w, int h, bool fb = false);
 	GSDepthStencil* GetDepthStencil(const GIFRegTEX0& TEX0, int w, int h);
