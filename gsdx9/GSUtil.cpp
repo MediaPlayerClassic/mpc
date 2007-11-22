@@ -182,3 +182,207 @@ bool IsRectInRectV(const CRect& inner, const CRect& outer)
 {
 	return outer.left <= inner.left && inner.right <= outer.right;
 }
+
+BYTE* LoadResource(UINT id, DWORD& size)
+{
+	if(HRSRC hRes = FindResource(AfxGetResourceHandle(), MAKEINTRESOURCE(id), RT_RCDATA)) 
+	{
+		if(HGLOBAL hGlobal = ::LoadResource(AfxGetResourceHandle(), hRes))
+		{
+			size = SizeofResource(AfxGetResourceHandle(), hRes);
+
+			if(size > 0)
+			{
+				BYTE* buff = new BYTE[size+1];
+				memcpy(buff, LockResource(hGlobal), size);
+				buff[size] = 0;
+				return buff;
+			}
+		}
+	}
+
+	return NULL;
+}
+
+bool CompileTFX(CString fn, CString target, DWORD flags)
+{
+	DWORD size = 0;
+
+	BYTE* buff = LoadResource(IDR_HLSL_TFX, size);
+
+	if(!buff || size == 0)
+	{
+		return false;
+	}
+
+	D3DXMACRO macro[] =
+    {
+        {"TFX", NULL},
+		{"BPP", NULL},
+        {"TCC", NULL},
+        {"AEM", NULL},
+        {"FOG", NULL},
+        {"RT", NULL},
+        {"FST", NULL},
+        {"CLAMP", NULL},
+        {NULL, NULL},
+    };
+
+	if(FILE* fp = _tfopen(fn + _T(".cpp"), _T("wb")))
+	{
+		_ftprintf(fp, _T("#include \"stdafx.h\"\n\n"));
+		fclose(fp);
+	}
+
+	HRESULT hr;
+
+	CAtlMap<CString, DWORD, CStringElementTraits<CString> > map;
+
+	for(int tfx = 0; tfx < 5; tfx++)
+	{
+		CStringA str;
+		str.Format("%d", tfx);
+		macro[0].Definition = str;
+
+		for(int bpp = 0; bpp < 4; bpp++)
+		{
+			CStringA str;
+			str.Format("%d", bpp);
+			macro[1].Definition = str;
+
+			for(int tcc = 0; tcc < 2; tcc++)
+			{
+				CStringA str;
+				str.Format("%d", tcc);
+				macro[2].Definition = str;
+
+				for(int aem = 0; aem < 2; aem++)
+				{
+					CStringA str;
+					str.Format("%d", aem);
+					macro[3].Definition = str;
+
+					for(int fog = 0; fog < 2; fog++)
+					{
+						CStringA str;
+						str.Format("%d", fog);
+						macro[4].Definition = str;
+
+						for(int rt = 0; rt < 2; rt++)
+						{
+							CStringA str;
+							str.Format("%d", rt);
+							macro[5].Definition = str;
+
+							for(int fst = 0; fst < 2; fst++)
+							{
+								CStringA str;
+								str.Format("%d", fst);
+								macro[6].Definition = str;
+
+								for(int clamp = 0; clamp < 2; clamp++)
+								{
+									CStringA str;
+									str.Format("%d", clamp);
+									macro[7].Definition = str;
+
+									CComPtr<ID3DXBuffer> pShader, pErrorMsgs;
+
+									hr = D3DXCompileShader((LPCSTR)buff, size, (D3DXMACRO*)macro, NULL, _T("main"), target, flags, &pShader, &pErrorMsgs, NULL);
+
+									if(pErrorMsgs)
+									{
+										LPCSTR msg = (LPCSTR)pErrorMsgs->GetBufferPointer();
+
+										TRACE(_T("%s\n"), CString(msg));
+									}
+
+									if(FAILED(hr)) {delete [] buff; return false;}
+
+									DWORD id = (tfx << 8) | (bpp << 6) | (tcc << 5) | (aem << 4) | (fog << 3) | (rt << 2) | (fst << 1) | clamp;
+
+									DWORD* buff = (DWORD*)pShader->GetBufferPointer();
+									DWORD size = pShader->GetBufferSize() / 4;
+
+									DWORD dup_id = ~0;
+
+									CString hash;
+
+									TCHAR* s = hash.GetBufferSetLength(size*8 + 1);
+
+									for(int i = 0; i < size; i++)
+									{
+										_stprintf(&s[i*8], _T("%08x"), buff[i]);
+									}
+
+									if(CAtlMap<CString, DWORD, CStringElementTraits<CString> >::CPair* p = map.Lookup(hash))
+									{
+										dup_id = p->m_value;
+									}
+									else
+									{
+										map[hash] = id;
+									}
+
+									if(FILE* fp = _tfopen(fn + _T(".cpp"), _T("ab+")))
+									{
+										if(dup_id != ~0)
+										{
+											_ftprintf(fp, _T("static const DWORD* %s_%04x = %s_%04x;\n\n"), target, id, target, dup_id);
+										}
+										else
+										{
+											_ftprintf(fp, _T("static const DWORD %s_%04x[] = \n{\n"), target, id);
+
+											for(int i = 0; i < size; i++)
+											{
+												if((i & 7) == 0) _ftprintf(fp, _T("\t"));
+
+												_ftprintf(fp, _T("0x%08x, "), buff[i]);
+												
+												if(((i + 1) & 7) == 0 || i == size - 1) _ftprintf(fp, _T("\n"));
+											}
+
+											_ftprintf(fp, _T("};\n\n"));
+										}
+
+										fclose(fp);
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	delete [] buff;
+
+	if(FILE* fp = _tfopen(fn + _T(".cpp"), _T("ab+")))
+	{
+		_ftprintf(fp, _T("const DWORD* %s_tfx[] = \n{\n"), target);
+
+		for(int i = 0; i < 0x500; i++)
+		{
+			if((i & 7) == 0) _ftprintf(fp, _T("\t"));
+
+			_ftprintf(fp, _T("%s_%04x, "), target, i);
+			
+			if(((i + 1) & 7) == 0 || i == size - 1) _ftprintf(fp, _T("\n"));
+		}
+
+		_ftprintf(fp, _T("};\n\n"));
+
+		fclose(fp);
+	}
+
+	if(FILE* fp = _tfopen(fn + _T(".h"), _T("wb")))
+	{
+		_ftprintf(fp, _T("#pragma once\n\nextern const DWORD* %s_tfx[];\n"), target);
+
+		fclose(fp);
+	}
+
+	return true;
+}

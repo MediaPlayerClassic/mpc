@@ -51,8 +51,10 @@ protected:
 	int m_height;
 
 	CComPtr<IDirect3DVertexShader9> m_pVertexShader;
-	CComPtr<ID3DXConstantTable> m_pVertexShaderConstantTable;
 	CComPtr<IDirect3DVertexDeclaration9> m_pVertexDeclaration;
+	CComPtr<ID3DXConstantTable> m_pVertexShaderConstantTable;
+	D3DXHANDLE m_hVertexShaderParams;
+	CComPtr<IDirect3DPixelShader9> m_pPixelShader[5][4][2][2][2][2][2][2];
 
 	GSTextureCache m_tc;
 

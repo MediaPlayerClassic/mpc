@@ -1727,10 +1727,26 @@ void GSLocalMemory::ReadTextureNP(const CRect& r, BYTE* dst, int dstpitch, GIFRe
 
 //
 
-template<typename DstT> 
-void GSLocalMemory::ReadTexture(const CRect& r, BYTE* dst, int dstpitch, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA, GIFRegCLAMP& CLAMP, readTexel rt, unSwizzleTexture st)
+template<typename T> 
+void GSLocalMemory::ReadTexture(CRect r, BYTE* dst, int dstpitch, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA, GIFRegCLAMP& CLAMP, readTexel rt, unSwizzleTexture st)
 {
 	// this function is not thread safe!
+
+	DWORD wms = CLAMP.WMS, wmt = CLAMP.WMT;
+	DWORD minu = CLAMP.MINU, maxu = CLAMP.MAXU;
+	DWORD minv = CLAMP.MINV, maxv = CLAMP.MAXV;
+
+	if(wms == 2)
+	{
+		r.left = min(r.right, max(r.left, minu));
+		r.right = max(r.left, min(r.right, maxu));
+	}
+
+	if(wmt == 2)
+	{
+		r.top = min(r.bottom, max(r.top, minv));
+		r.bottom = max(r.top, min(r.bottom, maxv));
+	}
 
 	CSize bs = m_psmtbl[TEX0.PSM].bs;
 
@@ -1739,14 +1755,10 @@ void GSLocalMemory::ReadTexture(const CRect& r, BYTE* dst, int dstpitch, GIFRegT
 
 	CRect cr((r.left + bsxm) & ~bsxm, (r.top + bsym) & ~bsym, r.right & ~bsxm, r.bottom & ~bsym);
 
-	bool aligned = ((DWORD_PTR)(dst + (cr.left - r.left) * sizeof(DstT)) & 0xf) == 0;
+	bool aligned = ((DWORD_PTR)(dst + (cr.left - r.left) * sizeof(T)) & 0xf) == 0;
 
-	if(CLAMP.WMS == 3 || CLAMP.WMT == 3) // TODO: do region repeat in pixel shader
+	if(wms == 3 || wmt == 3) // TODO: do region repeat in pixel shader
 	{
-		DWORD wms = CLAMP.WMS, wmt = CLAMP.WMT;
-		DWORD minu = CLAMP.MINU, maxu = CLAMP.MAXU;
-		DWORD minv = CLAMP.MINV, maxv = CLAMP.MAXV;
-
 		switch(wms)
 		{
 		default: for(int x = r.left; x < r.right; x++) m_xtbl[x] = x; break;
@@ -1791,24 +1803,24 @@ void GSLocalMemory::ReadTexture(const CRect& r, BYTE* dst, int dstpitch, GIFRegT
 		{
 			for(int y = r.top; y < cr.top; y++, dst += dstpitch)
 				for(int x = r.left, i = 0; x < r.right; x++, i++)
-					((DstT*)dst)[i] = (DstT)(this->*rt)(m_xtbl[x], m_ytbl[y], TEX0, TEXA);
+					((T*)dst)[i] = (T)(this->*rt)(m_xtbl[x], m_ytbl[y], TEX0, TEXA);
 
 			if(!cr.IsRectEmpty())
 			{
-				(this->*st)(cr, dst + (cr.left - r.left)*sizeof(DstT), dstpitch, TEX0, TEXA);
+				(this->*st)(cr, dst + (cr.left - r.left)*sizeof(T), dstpitch, TEX0, TEXA);
 			}
 
 			for(int y = cr.top; y < cr.bottom; y++, dst += dstpitch)
 			{
 				for(int x = r.left, i = 0; x < cr.left; x++, i++)
-					((DstT*)dst)[i] = (DstT)(this->*rt)(m_xtbl[x], m_ytbl[y], TEX0, TEXA);
+					((T*)dst)[i] = (T)(this->*rt)(m_xtbl[x], m_ytbl[y], TEX0, TEXA);
 				for(int x = cr.right, i = x - r.left; x < r.right; x++, i++)
-					((DstT*)dst)[i] = (DstT)(this->*rt)(m_xtbl[x], m_ytbl[y], TEX0, TEXA);
+					((T*)dst)[i] = (T)(this->*rt)(m_xtbl[x], m_ytbl[y], TEX0, TEXA);
 			}
 
 			for(int y = cr.bottom; y < r.bottom; y++, dst += dstpitch)
 				for(int x = r.left, i = 0; x < r.right; x++, i++)
-					((DstT*)dst)[i] = (DstT)(this->*rt)(m_xtbl[x], m_ytbl[y], TEX0, TEXA);
+					((T*)dst)[i] = (T)(this->*rt)(m_xtbl[x], m_ytbl[y], TEX0, TEXA);
 		}
 		else
 		{
@@ -1816,7 +1828,7 @@ void GSLocalMemory::ReadTexture(const CRect& r, BYTE* dst, int dstpitch, GIFRegT
 
 			for(int y = r.top; y < r.bottom; y++, dst += dstpitch)
 				for(int x = r.left, i = 0; x < r.right; x++, i++)
-					((DstT*)dst)[i] = (DstT)(this->*rt)(m_xtbl[x], m_ytbl[y], TEX0, TEXA);
+					((T*)dst)[i] = (T)(this->*rt)(m_xtbl[x], m_ytbl[y], TEX0, TEXA);
 		}
 	}
 	else
@@ -1825,30 +1837,30 @@ void GSLocalMemory::ReadTexture(const CRect& r, BYTE* dst, int dstpitch, GIFRegT
 		{
 			for(int y = r.top; y < cr.top; y++, dst += dstpitch)
 				for(int x = r.left, i = 0; x < r.right; x++, i++)
-					((DstT*)dst)[i] = (DstT)(this->*rt)(x, y, TEX0, TEXA);
+					((T*)dst)[i] = (T)(this->*rt)(x, y, TEX0, TEXA);
 
 			if(!cr.IsRectEmpty())
 			{
-				(this->*st)(cr, dst + (cr.left - r.left)*sizeof(DstT), dstpitch, TEX0, TEXA);
+				(this->*st)(cr, dst + (cr.left - r.left)*sizeof(T), dstpitch, TEX0, TEXA);
 			}
 
 			for(int y = cr.top; y < cr.bottom; y++, dst += dstpitch)
 			{
 				for(int x = r.left, i = 0; x < cr.left; x++, i++)
-					((DstT*)dst)[i] = (DstT)(this->*rt)(x, y, TEX0, TEXA);
+					((T*)dst)[i] = (T)(this->*rt)(x, y, TEX0, TEXA);
 				for(int x = cr.right, i = x - r.left; x < r.right; x++, i++)
-					((DstT*)dst)[i] = (DstT)(this->*rt)(x, y, TEX0, TEXA);
+					((T*)dst)[i] = (T)(this->*rt)(x, y, TEX0, TEXA);
 			}
 
 			for(int y = cr.bottom; y < r.bottom; y++, dst += dstpitch)
 				for(int x = r.left, i = 0; x < r.right; x++, i++)
-					((DstT*)dst)[i] = (DstT)(this->*rt)(x, y, TEX0, TEXA);
+					((T*)dst)[i] = (T)(this->*rt)(x, y, TEX0, TEXA);
 		}
 		else
 		{
 			for(int y = r.top; y < r.bottom; y++, dst += dstpitch)
 				for(int x = r.left, i = 0; x < r.right; x++, i++)
-					((DstT*)dst)[i] = (DstT)(this->*rt)(x, y, TEX0, TEXA);
+					((T*)dst)[i] = (T)(this->*rt)(x, y, TEX0, TEXA);
 		}
 	}
 }

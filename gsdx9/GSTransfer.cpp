@@ -133,6 +133,7 @@ void GSState::ReadTransfer(BYTE* pMem, int len)
 	if(m_x == m_env.TRXPOS.SSAX && m_y == m_env.TRXPOS.SSAY)
 	{
 		CRect r(m_env.TRXPOS.SSAX, m_env.TRXPOS.SSAY, m_env.TRXREG.RRW, m_env.TRXREG.RRH);
+
 		InvalidateLocalMem(m_env.BITBLTBUF, r);
 	}
 
@@ -204,6 +205,8 @@ void GSState::ReadTransfer(BYTE* pMem, int len)
 
 void GSState::MoveTransfer()
 {
+	// yay, ffxii uses this to move the top/bottom of the scrolling menus offscreen and then blends them back over the text to create a shading effect
+
 	GSLocalMemory::readPixel rp = GSLocalMemory::m_psmtbl[m_env.BITBLTBUF.SPSM].rp;
 	GSLocalMemory::writePixel wp = GSLocalMemory::m_psmtbl[m_env.BITBLTBUF.DPSM].wp;
 
@@ -218,6 +221,9 @@ void GSState::MoveTransfer()
 
 	if(sx < dx) sx += w-1, dx += w-1, xinc = -1;
 	if(sy < dy) sy += h-1, dy += h-1, yinc = -1;
+
+	InvalidateLocalMem(m_env.BITBLTBUF, CRect(CPoint(sx, sy), CSize(w, h)));
+	InvalidateTexture(m_env.BITBLTBUF, CRect(CPoint(dx, dy), CSize(w, h)));
 
 	for(int y = 0; y < h; y++, sy += yinc, dy += yinc, sx -= xinc*w, dx -= xinc*w)
 		for(int x = 0; x < w; x++, sx += xinc, dx += xinc)

@@ -34,6 +34,8 @@ void GSState::GIFPackedRegHandlerNull(GIFPackedReg* r)
 
 void GSState::GIFPackedRegHandlerPRIM(GIFPackedReg* r)
 {
+	ASSERT(r->PRIM.PRIM < 7);
+
 	GIFReg r2;
 	r2.PRIM.i64 = r->PRIM.PRIM;
 	GIFRegHandlerPRIM(&r2);
@@ -160,6 +162,8 @@ void GSState::GIFRegHandlerNull(GIFReg* r)
 
 void GSState::GIFRegHandlerPRIM(GIFReg* r)
 {
+	ASSERT(r->PRIM.PRIM < 7);
+
 	if(m_env.PRIM.i64 != r->PRIM.i64)
 	{
 		Flush();
@@ -325,6 +329,8 @@ void GSState::GIFRegHandlerPRMODECONT(GIFReg* r)
 	m_env.PRMODECONT = r->PRMODECONT;
 
 	m_pPRIM = !m_env.PRMODECONT.AC ? (GIFRegPRIM*)&m_env.PRMODE : &m_env.PRIM;
+
+	ASSERT(m_pPRIM->PRIM < 7);
 
 	m_context = &m_env.CTXT[m_pPRIM->CTXT];
 }

@@ -161,12 +161,10 @@ bool GSState::Create(LPCTSTR title)
 		_T("main_notfx"),
 	};
 
-	// ps_3_0
-
 	if(m_caps.PixelShaderVersion >= D3DPS_VERSION(3, 0))
 	{
 		DWORD flags = D3DXSHADER_PARTIALPRECISION|D3DXSHADER_AVOID_FLOW_CONTROL;
-
+/*
 		for(int i = 0; i < countof(hlsl_tfx); i++)
 		{
 			if(!m_pHLSLTFX[i])
@@ -174,7 +172,7 @@ bool GSState::Create(LPCTSTR title)
 				CompileShaderFromResource(m_dev, IDR_HLSL_TFX, hlsl_tfx[i], _T("ps_3_0"), flags, &m_pHLSLTFX[i]);
 			}
 		}
-
+*/
 		for(int i = 0; i < 3; i++)
 		{
 			if(!m_pHLSLMerge[i])
@@ -195,40 +193,32 @@ bool GSState::Create(LPCTSTR title)
 			}
 		}
 	}
-
-	// ps_2_0
-
-	if(m_caps.PixelShaderVersion >= D3DPS_VERSION(2, 0))
+	else if(m_caps.PixelShaderVersion >= D3DPS_VERSION(2, 0))
 	{
 		DWORD flags = D3DXSHADER_PARTIALPRECISION;
-
+/*
 		for(int i = 0; i < countof(hlsl_tfx); i++)
 		{
-			if(!m_pHLSLTFX[i])
-			{
-				CompileShaderFromResource(m_dev, IDR_HLSL_TFX, hlsl_tfx[i], _T("ps_2_0"), flags, &m_pHLSLTFX[i]);
-			}
+			CompileShaderFromResource(m_dev, IDR_HLSL_TFX, hlsl_tfx[i], _T("ps_2_0"), flags, &m_pHLSLTFX[i]);
 		}
-
+*/
 		for(int i = 0; i < 3; i++)
 		{
-			if(!m_pHLSLMerge[i])
-			{
-				CString main;
-				main.Format(_T("main%d"), i);
-				CompileShaderFromResource(m_dev, IDR_HLSL_MERGE, main, _T("ps_2_0"), flags, &m_pHLSLMerge[i]);
-			}
+			CString main;
+			main.Format(_T("main%d"), i);
+			CompileShaderFromResource(m_dev, IDR_HLSL_MERGE, main, _T("ps_2_0"), flags, &m_pHLSLMerge[i]);
 		}
 
 		for(int i = 0; i < 4; i++)
 		{
-			if(!m_pHLSLInterlace[i])
-			{
-				CString main;
-				main.Format(_T("main%d"), i);
-				CompileShaderFromResource(m_dev, IDR_HLSL_INTERLACE, main, _T("ps_2_0"), flags, &m_pHLSLInterlace[i]);
-			}
+			CString main;
+			main.Format(_T("main%d"), i);
+			CompileShaderFromResource(m_dev, IDR_HLSL_INTERLACE, main, _T("ps_2_0"), flags, &m_pHLSLInterlace[i]);
 		}
+	}
+	else 
+	{
+		return false;
 	}
 
 	ResetState();
@@ -543,7 +533,8 @@ UINT32 GSState::Defrost(const freezeData* fd)
 	m_env.CTXT[1].ztbl = &GSLocalMemory::m_psmtbl[m_env.CTXT[1].ZBUF.PSM];
 	m_env.CTXT[1].ttbl = &GSLocalMemory::m_psmtbl[m_env.CTXT[1].TEX0.PSM];
 
-// m_perfmon.SetFrame(4999);
+// 
+	m_perfmon.SetFrame(4999);
 
 	return 0;
 }
@@ -571,7 +562,7 @@ void GSState::Transfer(BYTE* mem, UINT32 size, int index)
 
 	while(size > 0)
 	{
-		bool fEOP = false;
+		bool eop = false;
 
 		if(path.tag.NLOOP == 0)
 		{
@@ -597,7 +588,7 @@ void GSState::Transfer(BYTE* mem, UINT32 size, int index)
 
 			if(path.tag.EOP)
 			{
-				fEOP = true;
+				eop = true;
 			}
 			else if(path.tag.NLOOP == 0)
 			{
@@ -606,11 +597,9 @@ void GSState::Transfer(BYTE* mem, UINT32 size, int index)
 					continue;
 				}
 
-				fEOP = true;
+				eop = true;
 			}
 		}
-
-		UINT32 size_msb = size & (1<<31);
 
 		switch(path.tag.FLG)
 		{
@@ -647,12 +636,11 @@ void GSState::Transfer(BYTE* mem, UINT32 size, int index)
 			if(size & 1) mem += sizeof(GIFReg);
 
 			size /= 2;
-			size |= size_msb; // a bit lame :P
 			
 			break;
 
 		case GIF_FLG_IMAGE2: // hmmm
-			
+
 			path.tag.NLOOP = 0;
 
 			break;
@@ -672,7 +660,7 @@ void GSState::Transfer(BYTE* mem, UINT32 size, int index)
 					ReadTransfer(mem, len*16); // TODO: writing access violation with aqtime
 					break;
 				case 2: 
-					//MoveTransfer();
+					MoveTransfer();
 					break;
 				case 3: 
 					ASSERT(0);
@@ -692,22 +680,23 @@ void GSState::Transfer(BYTE* mem, UINT32 size, int index)
 			__assume(0);
 		}
 
-		if(fEOP && (INT32)size <= 0)
+		if(eop && ((int)size <= 0 || index == 0))
 		{
 			break;
 		}
 	}
 
-	// FIXME
-/**/
+	// FIXME: dq8, pcsx2 error probably
+
 	if(index == 0)
 	{
 		if(!path.tag.EOP && path.tag.NLOOP > 0)
 		{
 			path.tag.NLOOP = 0;
+
+			TRACE(_T("path1 hack\n"));
 		}
 	}
-
 }
 
 void GSState::VSync(int field)

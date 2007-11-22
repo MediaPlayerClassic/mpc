@@ -23,6 +23,8 @@
 #include "GSRendererHW.h"
 #include "GSUtil.h"
 #include "resource.h"
+#include "ps20_tfx.h"
+#include "ps30_tfx.h"
 
 inline BYTE SCALE_ALPHA(BYTE a) 
 {
@@ -42,6 +44,7 @@ GSRendererHW::GSRendererHW()
 	: m_tc(this)
 	, m_width(1024)
 	, m_height(1024)
+	, m_hVertexShaderParams("g_params")
 {
 	if(!AfxGetApp()->GetProfileInt(_T("Settings"), _T("nativeres"), FALSE))
 	{
@@ -66,31 +69,62 @@ bool GSRendererHW::Create(LPCTSTR title)
 		return false;
 	}
 
+	// vs
+
 	hr = m_dev->CreateVertexDeclaration(s_vertexdecl, &m_pVertexDeclaration);
 
-	// vs_3_0
+	DWORD flags = 0;
+	LPCTSTR target = NULL;
 
-	if(m_caps.VertexShaderVersion >= D3DVS_VERSION(3, 0))
+	if(m_caps.VertexShaderVersion >= D3DVS_VERSION(3, 0)) target = _T("vs_3_0");
+	else if(m_caps.VertexShaderVersion >= D3DVS_VERSION(2, 0)) target = _T("vs_2_0");
+	else return false;
+
+	hr = CompileShaderFromResource(m_dev, IDR_HLSL_VERTEX, _T("main"), target, flags, &m_pVertexShader, &m_pVertexShaderConstantTable);
+
+	if(FAILED(hr)) return false;
+
+	m_hVertexShaderParams = m_pVertexShaderConstantTable->GetConstantByName(NULL, m_hVertexShaderParams);
+
+	// ps
+
+//	CompileTFX(_T("c:\\ps20_tfx"), _T("ps_2_0"), D3DXSHADER_PARTIALPRECISION);
+//	CompileTFX(_T("c:\\ps30_tfx"), _T("ps_3_0"), D3DXSHADER_PARTIALPRECISION|D3DXSHADER_AVOID_FLOW_CONTROL);
+
+	const DWORD** ps_tfx = NULL;
+
+	if(m_caps.PixelShaderVersion >= D3DPS_VERSION(3, 0))
 	{
-		DWORD flags = 0;
-
-		if(!m_pVertexShader)
-		{
-			CompileShaderFromResource(m_dev, IDR_HLSL_VERTEX, _T("main"), _T("vs_3_0"), flags, &m_pVertexShader, &m_pVertexShaderConstantTable);
-		}
+		flags = D3DXSHADER_PARTIALPRECISION|D3DXSHADER_AVOID_FLOW_CONTROL;
+		ps_tfx = ps_3_0_tfx;
+	}
+	else if(m_caps.PixelShaderVersion >= D3DPS_VERSION(2, 0))
+	{
+		flags = D3DXSHADER_PARTIALPRECISION;
+		ps_tfx = ps_2_0_tfx;
+	}
+	else 
+	{
+		return false;
 	}
 
-	// vs_2_0
-
-	if(m_caps.VertexShaderVersion >= D3DVS_VERSION(2, 0))
+	for(int i = 0; i < 0x500; i++)
 	{
-		DWORD flags = 0;
+		int tfx = (i >> 8) & 7;
+		int bpp = (i >> 6) & 3;
+		int tcc = (i >> 5) & 1;
+		int aem = (i >> 4) & 1;
+		int fog = (i >> 3) & 1;
+		int rt = (i >> 2) & 1;
+		int fst = (i >> 1) & 1;
+		int clamp = (i >> 0) & 1;
 
-		if(!m_pVertexShader)
-		{
-			CompileShaderFromResource(m_dev, IDR_HLSL_VERTEX, _T("main"), _T("vs_2_0"), flags, &m_pVertexShader, &m_pVertexShaderConstantTable);
-		}
+		hr = m_dev->CreatePixelShader(ps_tfx[i], &m_pPixelShader[tfx][bpp][tcc][aem][fog][rt][fst][clamp]);
+
+		if(FAILED(hr)) return false;
 	}
+
+	//
 
 	m_tc.Create();
 
@@ -148,7 +182,7 @@ void GSRendererHW::VertexKick(bool skip)
 		v.tv = 0;
 	}
 
-	v.fog = (m_pPRIM->FGE ? m_v.FOG.F : 0xff) << 24;
+	v.fog = m_v.FOG.F << 24;
 
 	__super::VertexKick(skip);
 }
@@ -278,7 +312,7 @@ void GSRendererHW::DrawingKick(bool skip)
 
 int s_n = 0;
 bool s_dump = false;
-bool s_save = true;
+bool s_save = false;
 
 void GSRendererHW::FlushPrim()
 {
@@ -320,6 +354,22 @@ void GSRendererHW::FlushPrim()
 	}
 
 	m_perfmon.Put(GSPerfMon::Prim, nPrims);
+
+/*
+TRACE(_T("[%d] FlushPrim f %05x (%d) z %05x (%d %d %d %d) t %05x (%d) p %d\n"), 
+	  (int)m_perfmon.GetFrame(), 
+	  (int)m_context->FRAME.Block(), 
+	  (int)m_context->FRAME.PSM, 
+	  (int)m_context->ZBUF.Block(), 
+	  (int)m_context->ZBUF.PSM, 
+	  m_context->TEST.ZTE, 
+	  m_context->TEST.ZTST, 
+	  m_context->ZBUF.ZMSK, 
+	  m_pPRIM->TME ? (int)m_context->TEX0.TBP0 : 0xfffff, 
+	  m_pPRIM->TME ? (int)m_context->TEX0.PSM : 0xff, 
+	  nPrims);
+*/
+// s_save = s_n == 721;
 
 	// rt + ds
 
@@ -440,20 +490,6 @@ void GSRendererHW::FlushPrim()
 s_dump = true;
 if(m_context->TEX0.TBP0 == 0x1180) s_dump = true;
 */
-/*
-TRACE(_T("[%d] FlushPrim f %05x (%d) z %05x (%d %d %d %d) t %05x (%d) p %d\n"), 
-	  (int)m_perfmon.GetFrame(), 
-	  (int)m_context->FRAME.Block(), 
-	  (int)m_context->FRAME.PSM, 
-	  (int)m_context->ZBUF.Block(), 
-	  (int)m_context->ZBUF.PSM, 
-	  m_context->TEST.ZTE, 
-	  m_context->TEST.ZTST, 
-	  m_context->ZBUF.ZMSK, 
-	  m_pPRIM->TME ? (int)m_context->TEX0.TBP0 : 0xfffff, 
-	  m_pPRIM->TME ? (int)m_context->TEX0.PSM : 0xff, 
-	  nPrims);
-*/
 		//
 
 
@@ -564,7 +600,7 @@ void GSRendererHW::Flip()
 			src[i].tex = rt->m_texture;
 			src[i].desc = rt->m_desc;
 			src[i].scale = rt->m_scale;
-/**/
+/*
 CString str;
 
 str.Format(_T("%d %05x %d | %d %d | %d x %d | %.2f %.2f\n"), 
@@ -574,7 +610,7 @@ str.Format(_T("%d %05x %d | %d %d | %d x %d | %.2f %.2f\n"),
 	rt->m_scale.x, rt->m_scale.y);
 
 TRACE(_T("%s"), str);
-
+*/
 if(s_dump)
 {
 	CString str;
@@ -596,7 +632,7 @@ if(s_dump)
 
 void GSRendererHW::InvalidateTexture(const GIFRegBITBLTBUF& BITBLTBUF, CRect r)
 {
-TRACE(_T("[%d] InvalidateTexture %d,%d - %d,%d %05x\n"), (int)m_perfmon.GetFrame(), r.left, r.top, r.right, r.bottom, (int)BITBLTBUF.DBP);
+ TRACE(_T("[%d] InvalidateTexture %d,%d - %d,%d %05x\n"), (int)m_perfmon.GetFrame(), r.left, r.top, r.right, r.bottom, (int)BITBLTBUF.DBP);
 
 	m_tc.InvalidateTexture(BITBLTBUF, &r);
 }
@@ -728,34 +764,23 @@ void GSRendererHW::SetupVertexShader(const GSTextureCache::GSRenderTarget* rt)
 
 	hr = m_dev->SetVertexDeclaration(m_pVertexDeclaration);
 
+	// hr = m_dev->SetFVF(D3DFVF_XYZW | D3DFVF_DIFFUSE | D3DFVF_SPECULAR | D3DFVF_TEX1);
+
 	hr = m_dev->SetVertexShader(m_pVertexShader);
 
-	float g_pos_offset[] = 
+	D3DXVECTOR4 params[] = 
 	{
-		(float)m_context->XYOFFSET.OFX, 
-		(float)m_context->XYOFFSET.OFY
+		D3DXVECTOR4((float)m_context->XYOFFSET.OFX, (float)m_context->XYOFFSET.OFY, 2.0f * rt->m_scale.x / (rt->m_desc.Width * 16), 2.0f * rt->m_scale.y / (rt->m_desc.Height * 16)),
+		D3DXVECTOR4(1.0f, 1.0f, 0, 0),
 	};
-
-	hr = m_pVertexShaderConstantTable->SetFloatArray(m_dev, "g_pos_offset", g_pos_offset, countof(g_pos_offset));
-
-	float g_pos_scale[] = 
-	{
-		2.0f * rt->m_scale.x / (rt->m_desc.Width * 16), 
-		2.0f * rt->m_scale.y / (rt->m_desc.Height * 16)
-	};
-
-	hr = m_pVertexShaderConstantTable->SetFloatArray(m_dev, "g_pos_scale", g_pos_scale, countof(g_pos_scale));
-
-	float g_tex_scale[] = {1.0f, 1.0f};
 
 	if(m_pPRIM->TME && m_pPRIM->FST)
 	{
-		g_tex_scale[0] = 1.0f / (16 << m_context->TEX0.TW);
-		g_tex_scale[1] = 1.0f / (16 << m_context->TEX0.TH);
+		params[1][0] = 1.0f / (16 << m_context->TEX0.TW);
+		params[1][1] = 1.0f / (16 << m_context->TEX0.TH);
 	}
 
-	hr = m_pVertexShaderConstantTable->SetFloatArray(m_dev, "g_tex_scale", g_tex_scale, countof(g_tex_scale));
-
+	hr = m_pVertexShaderConstantTable->SetVectorArray(m_dev, m_hVertexShaderParams, params, countof(params));
 }
 
 void GSRendererHW::SetupTexture(const GSTextureCache::GSTexture* t)
@@ -766,17 +791,55 @@ void GSRendererHW::SetupTexture(const GSTextureCache::GSTexture* t)
 	float rw = 0, rh = 0;
 	float cl = -4096, ct = -4096, cr = +4096, cb = +4096;
 
-	IDirect3DPixelShader9* pPixelShader = NULL;
+	int tfx = m_context->TEX0.TFX;
+	int bpp = 0;
+	int tcc = m_context->TEX0.TCC;
+	int aem = m_env.TEXA.AEM;
+	int fog = m_pPRIM->FGE;
+	int rt = t && t->IsRenderTarget();
+	int fst = m_pPRIM->FST;
+	int clamp = 0;
 
 	if(m_pPRIM->TME && t && t->m_texture)
 	{
+		switch(t->m_desc.Format)
+		{
+		case D3DFMT_A8R8G8B8:
+			bpp = 0;
+			if(t->m_palette && m_context->TEX0.PSM == PSM_PSMT8H) bpp = 3;
+			break;
+		case D3DFMT_X8R8G8B8:
+			bpp = 1;
+			break;
+		case D3DFMT_A1R5G5B5:
+			bpp = 2;
+			break;
+		default: 
+			ASSERT(0);
+			break;
+		}
+
+		if(m_context->CLAMP.WMS == 2)
+		{
+			cl = (float)m_context->CLAMP.MINU / (1 << m_context->TEX0.TW);
+			cr = (float)m_context->CLAMP.MAXU / (1 << m_context->TEX0.TW);
+			clamp = 1;
+		}
+
+		if(m_context->CLAMP.WMT == 2)
+		{
+			ct = (float)m_context->CLAMP.MINV / (1 << m_context->TEX0.TH);
+			cb = (float)m_context->CLAMP.MAXV / (1 << m_context->TEX0.TH);
+			clamp = 1;
+		}
+
+		hr = m_dev->SetTexture(0, t->m_texture);
+		hr = m_dev->SetTexture(1, t->m_palette);
+
 		tw = t->m_desc.Width;
 		th = t->m_desc.Height;
 		rw = 1.0f / tw;
 		rh = 1.0f / th;
-
-		hr = m_dev->SetTexture(0, t->m_texture);
-		hr = m_dev->SetTexture(1, t->m_palette);
 
 		D3DTEXTUREADDRESS u, v;
 
@@ -794,18 +857,6 @@ void GSRendererHW::SetupTexture(const GSTextureCache::GSTexture* t)
 		default: __assume(0);
 		}
 
-		if(m_context->CLAMP.WMS == 2)
-		{
-			cl = (float)m_context->CLAMP.MINU / (1 << m_context->TEX0.TW);
-			cr = (float)m_context->CLAMP.MAXU / (1 << m_context->TEX0.TW);
-		}
-
-		if(m_context->CLAMP.WMT == 2)
-		{
-			ct = (float)m_context->CLAMP.MINV / (1 << m_context->TEX0.TH);
-			cb = (float)m_context->CLAMP.MAXV / (1 << m_context->TEX0.TH);
-		}
-
 		hr = m_dev->SetSamplerState(0, D3DSAMP_ADDRESSU, u);
 		hr = m_dev->SetSamplerState(0, D3DSAMP_ADDRESSV, v);
 
@@ -813,45 +864,18 @@ void GSRendererHW::SetupTexture(const GSTextureCache::GSTexture* t)
 		hr = m_dev->SetSamplerState(0, D3DSAMP_MINFILTER, t->m_palette ? D3DTEXF_POINT : m_filter);
 		hr = m_dev->SetSamplerState(1, D3DSAMP_MAGFILTER, t->m_palette ? D3DTEXF_POINT : m_filter);
 		hr = m_dev->SetSamplerState(1, D3DSAMP_MINFILTER, t->m_palette ? D3DTEXF_POINT : m_filter);
-
-		int i = m_context->TEX0.TFX;
-
-		switch(t->m_desc.Format)
-		{
-		default: 
-			ASSERT(0);
-			break;
-		case D3DFMT_A8R8G8B8:
-			//ASSERT(m_context->TEX0.PSM != PSM_PSMCT24); // format must be D3DFMT_X8R8G8B8 for PSM_PSMCT24
-			//if(m_context->TEX0.PSM == PSM_PSMCT24) {i += 4; if(m_env.TEXA.AEM) i += 4;}
-			if(t->m_palette && m_context->TEX0.PSM == PSM_PSMT8H)
-				i += 32;
-			break;
-		case D3DFMT_X8R8G8B8:
-			i += 4; if(m_env.TEXA.AEM) i += 4;
-			break;
-		case D3DFMT_A1R5G5B5:
-			i += 12; if(m_env.TEXA.AEM) i += 4; 
-			break;
-		case D3DFMT_L8:
-			i += 24;
-			ASSERT(t->m_palette);
-			break;
-		}
-
-		pPixelShader = m_pHLSLTFX[i];
 	}
 	else
 	{
+		tfx = 4;
+
 		hr = m_dev->SetTexture(0, NULL);
 		hr = m_dev->SetTexture(1, NULL);
-
-		pPixelShader = m_pHLSLTFX[36];
 	}
 
 	float fConstData[][4] = 
 	{
-		{(float)m_context->TEX0.TCC - 0.5f, t && t->IsRenderTarget() ? 1.0f : 2.0f, min(2.0f * m_env.TEXA.TA0 / 255, 1), min(2.0f * m_env.TEXA.TA1 / 255, 1)},
+		{min(2.0f * m_env.TEXA.TA0 / 255, 1), min(2.0f * m_env.TEXA.TA1 / 255, 1), 0, 0},
 		{(float)m_env.FOGCOL.FCR / 255, (float)m_env.FOGCOL.FCG / 255, (float)m_env.FOGCOL.FCB / 255 , 0},
 		{(float)tw, (float)th, 0, 0},
 		{rw, rh, 0, 0},
@@ -863,7 +887,7 @@ void GSRendererHW::SetupTexture(const GSTextureCache::GSTexture* t)
 
 	hr = m_dev->SetPixelShaderConstantF(0, (float*)fConstData, countof(fConstData));
 
-	hr = m_dev->SetPixelShader(pPixelShader);
+	hr = m_dev->SetPixelShader(m_pPixelShader[tfx][bpp][tcc][aem][fog][rt][fst][clamp]);
 }
 
 void GSRendererHW::SetupAlphaBlend()

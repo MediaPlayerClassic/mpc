@@ -14,9 +14,7 @@ struct VS_OUTPUT
 	float3 tex : TEXCOORD0;
 };
 
-float2 g_pos_offset;
-float2 g_pos_scale;
-float2 g_tex_scale;
+float4 g_params[2];
 
 VS_OUTPUT main(VS_INPUT input)
 {
@@ -25,7 +23,7 @@ VS_OUTPUT main(VS_INPUT input)
 	// pos
 		
 	float4 pos = input.pos;
-	pos.xy = (pos.xy - g_pos_offset) * g_pos_scale - 1;
+	pos.xy = (pos.xy - g_params[0].xy) * g_params[0].zw - 1;
 	pos.y = -pos.y;
 	pos.w = 1;
 	output.pos = pos;
@@ -40,7 +38,7 @@ VS_OUTPUT main(VS_INPUT input)
 	
 	// tex
 	
-	output.tex.xy = input.tex * g_tex_scale;
+	output.tex.xy = input.tex * g_params[1].xy;
 	output.tex.z = input.pos.w > 0 ? input.pos.w : 1;
 
 	//

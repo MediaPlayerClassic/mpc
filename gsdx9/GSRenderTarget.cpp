@@ -150,10 +150,13 @@ if(s_dump)
 
 void GSTextureCache::GSRenderTarget::Read(CRect r)
 {
+/*
+	// FIXME: doesn't work for multiple non-overlapping reads
+
 	if(!m_used) return;
 
 	m_used = false;
-
+*/
 	// TODO: 16 bit
 
 	if(m_TEX0.PSM != PSM_PSMCT32 && m_TEX0.PSM != PSM_PSMCT24)

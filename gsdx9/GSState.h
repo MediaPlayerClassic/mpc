@@ -115,8 +115,7 @@ protected:
 	CComPtr<IDirect3DTexture9> m_pInterlaceTexture;
 	CComPtr<IDirect3DTexture9> m_pDeinterlaceTexture;
 	CComPtr<IDirect3DSurface9> m_pCurrentFrame;
-	CComPtr<IDirect3DPixelShader9> m_pPixelShaders[20];
-	CComPtr<IDirect3DPixelShader9> m_pHLSLTFX[37], m_pHLSLMerge[3], m_pHLSLInterlace[4];
+	CComPtr<IDirect3DPixelShader9> m_pHLSLMerge[3], m_pHLSLInterlace[4];
 	enum {PS_M16 = 0, PS_M24 = 1, PS_M32 = 2};
 	D3DPRESENT_PARAMETERS m_d3dpp;
 	DDCAPS m_ddcaps;

@@ -247,6 +247,8 @@ if(m_pPRIM->TME && m_context->TEX0.PSM == 19)
 }
 */
 
+s_save = s_n == 721;
+
 if(s_dump)
 {
 	CString str;
@@ -431,7 +433,7 @@ if(s_dump)
 {
 	CString str;
 	str.Format(_T("c:\\temp1\\_%05d_f%I64d_fr%d_%05x.bmp"), s_n++, m_perfmon.GetFrame(), i, (int)TEX0.TBP0);
-	::D3DXSaveTextureToFile(str, D3DXIFF_BMP, src[i].tex, NULL);
+	if(s_save) ::D3DXSaveTextureToFile(str, D3DXIFF_BMP, src[i].tex, NULL);
 }
 
 // s_dump = m_perfmon.GetFrame() >= 5000;
