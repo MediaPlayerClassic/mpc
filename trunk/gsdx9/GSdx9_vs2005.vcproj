@@ -993,6 +993,14 @@
 				>
 			</File>
 			<File
+				RelativePath=".\ps20_tfx.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\ps30_tfx.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\stdafx.cpp"
 				>
 				<FileConfiguration
@@ -1352,6 +1360,14 @@
 			</File>
 			<File
 				RelativePath=".\GSWnd.h"
+				>
+			</File>
+			<File
+				RelativePath=".\ps20_tfx.h"
+				>
+			</File>
+			<File
+				RelativePath=".\ps30_tfx.h"
 				>
 			</File>
 			<File

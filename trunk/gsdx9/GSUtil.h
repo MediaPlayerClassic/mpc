@@ -31,3 +31,6 @@ extern bool HasSharedBits(DWORD sbp, DWORD spsm, DWORD dbp, DWORD dpsm);
 extern bool IsRectInRect(const CRect& inner, const CRect& outer);
 extern bool IsRectInRectH(const CRect& inner, const CRect& outer);
 extern bool IsRectInRectV(const CRect& inner, const CRect& outer);
+extern BYTE* LoadResource(UINT id, DWORD& size);
+extern bool CompileTFX(CString fn, CString target, DWORD flags);
+

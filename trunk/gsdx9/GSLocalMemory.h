@@ -907,8 +907,7 @@ public:
 
 	static DWORD m_xtbl[1024], m_ytbl[1024]; 
 
-	template<typename DstT> 
-	void ReadTexture(const CRect& r, BYTE* dst, int dstpitch, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA, GIFRegCLAMP& CLAMP, readTexel rt, unSwizzleTexture st);
+	template<typename T> void ReadTexture(CRect r, BYTE* dst, int dstpitch, GIFRegTEX0& TEX0, GIFRegTEXA& TEXA, GIFRegCLAMP& CLAMP, readTexel rt, unSwizzleTexture st);
 
 	// 
 	

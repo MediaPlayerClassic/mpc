@@ -176,6 +176,7 @@ extern void __fastcall ReadCLUT32_T16_I4_c(WORD* src, DWORD* dst);
 #define SwizzleColumn16 SwizzleColumn16_c
 #define SwizzleColumn8 SwizzleColumn8_c
 #define SwizzleColumn4 SwizzleColumn4_c
+#define SwizzleColumn4h SwizzleColumn4h_c
 
 #define ExpandBlock24 ExpandBlock24_sse2
 #define ExpandBlock16 ExpandBlock16_sse2
