@@ -36,39 +36,34 @@ GSTextureCache::~GSTextureCache()
 	RemoveAll();
 }
 
-void GSTextureCache::Create()
+bool GSTextureCache::Create()
 {
+	DWORD flags = D3DXSHADER_PARTIALPRECISION;
+	LPCTSTR target = NULL;
+
 	if(m_state->m_caps.PixelShaderVersion >= D3DPS_VERSION(3, 0))
 	{
-		DWORD flags = D3DXSHADER_PARTIALPRECISION|D3DXSHADER_AVOID_FLOW_CONTROL;
-
-		for(int i = 0; i < countof(m_ps); i++)
-		{
-			if(!m_ps[i])
-			{
-				CString main;
-				main.Format(_T("main%d"), i);
-				CompileShaderFromResource(m_state->m_dev, IDR_HLSL_TEXTURECACHE, main, _T("ps_3_0"), flags, &m_ps[i]);
-			}
-		}
+		flags |= D3DXSHADER_AVOID_FLOW_CONTROL;
+		target = _T("ps_3_0");
 	}
-
-	// ps_2_0
-
-	if(m_state->m_caps.PixelShaderVersion >= D3DPS_VERSION(2, 0))
+	else if(m_state->m_caps.PixelShaderVersion >= D3DPS_VERSION(2, 0))
 	{
-		DWORD flags = D3DXSHADER_PARTIALPRECISION;
-
-		for(int i = 0; i < countof(m_ps); i++)
-		{
-			if(!m_ps[i])
-			{
-				CString main;
-				main.Format(_T("main%d"), i);
-				CompileShaderFromResource(m_state->m_dev, IDR_HLSL_TEXTURECACHE, main, _T("ps_2_0"), flags, &m_ps[i]);
-			}
-		}
+		target = _T("ps_2_0");
 	}
+	else
+	{
+		return false;
+	}
+
+	for(int i = 0; i < countof(m_ps); i++)
+	{
+		CString main;
+		main.Format(_T("main%d"), i);
+		if(FAILED(CompileShaderFromResource(m_state->m_dev, IDR_HLSL_TEXTURECACHE, main, target, flags, &m_ps[i]))) 
+			return false;
+	}
+
+	return true;
 }
 
 void GSTextureCache::RemoveAll()
@@ -257,7 +252,6 @@ GSTextureCache::GSTexture* GSTextureCache::GetTextureNP()
 			if(TEX0.PSM == t->m_TEX0.PSM && TEX0.TBW == t->m_TEX0.TBW
 			&& TEX0.TW == t->m_TEX0.TW && TEX0.TH == t->m_TEX0.TH
 			&& (CLAMP.WMS != 3 && t->m_CLAMP.WMS != 3 && CLAMP.WMT != 3 && t->m_CLAMP.WMT != 3 || CLAMP.i64 == t->m_CLAMP.i64)
-			// && TEXA.TA0 == t->m_TEXA.TA0 && TEXA.TA1 == t->m_TEXA.TA1 && TEXA.AEM == t->m_TEXA.AEM
 			&& (pal == 0 || TEX0.CPSM == t->m_TEX0.CPSM && !memcmp(t->m_clut, clut, pal * sizeof(clut[0]))))
 			{
 				m_tex.MoveToHead(pos);
@@ -540,7 +534,7 @@ void GSTextureCache::Recycle(IDirect3DSurface9* surface)
 		m_pool.AddHead(surface);
 
 		while(m_pool.GetCount() > 100)
-		{			
+		{
 			m_pool.RemoveTail();
 		}
 	}

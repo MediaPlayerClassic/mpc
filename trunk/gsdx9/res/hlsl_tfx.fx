@@ -62,7 +62,7 @@ float4 main(PS_INPUT input) : COLOR
 	else if(BPP == 2) // 16
 	{
 		t = tex2D(Texture, tex);
-		t.a = t.a != 0 ? TA1 : AEM == 0 || any(t.rgb) ? TA0 : 0;
+		t.a = t.a >= 0.5 ? TA1 : AEM == 0 || any(t.rgb) ? TA0 : 0; // a bit incompatible with up-scaling because the 1 bit alpha is interpolated
 	}
 	else if(BPP == 3) // 8HP ln
 	{

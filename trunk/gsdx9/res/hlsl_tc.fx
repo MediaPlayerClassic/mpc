@@ -11,3 +11,8 @@ float4 main1(float2 tex : TEXCOORD0) : COLOR
 	c.a = c.a / 2;
 	return c;
 }
+
+float4 main2() : COLOR
+{
+	return float4(0, 0, 0, 1);
+}

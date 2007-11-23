@@ -88,6 +88,8 @@ bool GSRendererHW::Create(LPCTSTR title)
 
 	// ps
 
+	// TODO: no need to precompile these shaders, could be created on-demand during the game
+
 //	CompileTFX(_T("c:\\ps20_tfx"), _T("ps_2_0"), D3DXSHADER_PARTIALPRECISION);
 //	CompileTFX(_T("c:\\ps30_tfx"), _T("ps_3_0"), D3DXSHADER_PARTIALPRECISION|D3DXSHADER_AVOID_FLOW_CONTROL);
 
@@ -95,12 +97,10 @@ bool GSRendererHW::Create(LPCTSTR title)
 
 	if(m_caps.PixelShaderVersion >= D3DPS_VERSION(3, 0))
 	{
-		flags = D3DXSHADER_PARTIALPRECISION|D3DXSHADER_AVOID_FLOW_CONTROL;
 		ps_tfx = ps_3_0_tfx;
 	}
 	else if(m_caps.PixelShaderVersion >= D3DPS_VERSION(2, 0))
 	{
-		flags = D3DXSHADER_PARTIALPRECISION;
 		ps_tfx = ps_2_0_tfx;
 	}
 	else 
@@ -182,7 +182,7 @@ void GSRendererHW::VertexKick(bool skip)
 		v.tv = 0;
 	}
 
-	v.fog = m_v.FOG.F << 24;
+	v.fog = m_v.FOG.ai32[1];
 
 	__super::VertexKick(skip);
 }
@@ -303,29 +303,41 @@ void GSRendererHW::DrawingKick(bool skip)
 	}
 
 	m_nVertices += nv;
-
-	if(m_nVertices > 30000)
-	{
-		Flush();
-	}
 }
 
 int s_n = 0;
 bool s_dump = false;
-bool s_save = false;
+bool s_save = true;
 
 void GSRendererHW::FlushPrim()
 {
 	HRESULT hr;
 
-	if(m_nVertices == 0 || m_pPRIM->TME && HasSharedBits(m_context->TEX0.TBP0, m_context->TEX0.PSM, m_context->FRAME.Block(), m_context->FRAME.PSM))
+	if(m_nVertices == 0)
 	{
 		return;
 	}
 
+	if(m_pPRIM->TME)
+	{
+		if(HasSharedBits(m_context->TEX0.TBP0, m_context->TEX0.PSM, m_context->FRAME.Block(), m_context->FRAME.PSM))
+		{
+			__super::FlushPrim();
+
+			return;
+		}
+
+		// FIXME: bully
+
+		if(m_context->FRAME.PSM == PSM_PSMCT16S && m_context->TEX0.PSM == PSM_PSMZ16S)
+		{
+			__super::FlushPrim();
+
+			return;
+		}
+	}
+
 	// ASSERT(!m_env.PABE.PABE); // bios
-	// ASSERT(!m_context->FBA.FBA); // bios
-	// ASSERT(!m_context->TEST.DATE); // sfex3 (after the capcom logo), vf4 (first menu fading in), ffxii shadows
 
 	D3DPRIMITIVETYPE prim;
 
@@ -369,8 +381,12 @@ TRACE(_T("[%d] FlushPrim f %05x (%d) z %05x (%d %d %d %d) t %05x (%d) p %d\n"),
 	  m_pPRIM->TME ? (int)m_context->TEX0.PSM : 0xff, 
 	  nPrims);
 */
-// s_save = s_n == 721;
-
+/*
+if(s_n == 160)
+{
+	DebugBreak();
+}
+*/
 	// rt + ds
 
 	GSTextureCache::GSRenderTarget* rt = NULL;
@@ -396,10 +412,10 @@ TRACE(_T("[%d] FlushPrim f %05x (%d) z %05x (%d %d %d %d) t %05x (%d) p %d\n"),
 
 	if(m_pPRIM->TME && !(tex = m_tc.GetTextureNP()))
 	{
-		ASSERT(0);
+		__super::FlushPrim();
+
 		return;
 	}
-
 	// hacking section :P
 
 	#pragma region ffxii pal video conversion
@@ -407,34 +423,32 @@ TRACE(_T("[%d] FlushPrim f %05x (%d) z %05x (%d %d %d %d) t %05x (%d) p %d\n"),
 	if(m_crc == 0x78DA0252 || m_crc == 0xC1274668 || m_crc == 0xDC2A467E)
 	{
 		static DWORD* video = NULL;
-		static int next = 0;
 		static bool ok = false;
 
-		if(prim == D3DPT_POINTLIST && (nPrims == 30001 || nPrims == 19369)) 
+		if(prim == D3DPT_POINTLIST && nPrims >= 448*448 && nPrims <= 448*512)
 		{
-			// incoming pixels are stored in columns, one column is 16x512, total res 448x512
-
-			ok = false;
+			// incoming pixels are stored in columns, one column is 16x512, total res 448x512 or 448x454
 
 			if(!video) video = new DWORD[512*512];
 
-			// TODO: copy 16 pixels in the inner loop without calculating the address each time + sse2 (already fast enough in this form)
+			int i = 0;
 
-			for(int i = 0; i < m_nVertices && next < 448*512; i++, next++)
+			int rows = nPrims / 448;
+
+			for(int x = 0; x < 448; x += 16)
 			{
-				// int x = next & 0xf, y = (next >> 4) & 0x1ff, z = next >> 13;
-				// int pos = (y << 9) + (z << 4) + x;
+				DWORD* dst = &video[x];
 
-				int pos = ((next & 0x1ff0) << 5) + ((next & 0x3e000) >> 9) + (next & 0xf);
-
-				video[pos] = m_pVertices[i].color;
+				for(int y = 0; y < rows; y++, dst += 512)
+				{
+					for(int j = 0; j < 16; j++, i++)
+					{
+						dst[j] = m_pVertices[i].color;
+					}
+				}
 			}
 
-			if(nPrims == 19369)
-			{
-				next = 0;
-				ok = true;
-			}
+			ok = true;
 
 			__super::FlushPrim();
 
@@ -486,15 +500,6 @@ TRACE(_T("[%d] FlushPrim f %05x (%d) z %05x (%d %d %d %d) t %05x (%d) p %d\n"),
 
 	//
 
-/*
-s_dump = true;
-if(m_context->TEX0.TBP0 == 0x1180) s_dump = true;
-*/
-		//
-
-
-		//
-/**/
 if(s_dump)
 {
 	CString str;
@@ -526,6 +531,8 @@ if(s_dump)
 	SetupAlphaTest();
 
 	SetupScissor(rt->m_scale);
+
+	SetupFrameBufferAlpha();
 
 	if(!m_context->TEST.ATE || m_context->TEST.ATST != 0)
 	{
@@ -565,6 +572,8 @@ if(s_dump)
 	}
 
 	hr = m_dev->EndScene();
+
+	UpdateFrameBufferAlpha(rt);
 
 	hr = m_dev->SetRenderState(D3DRS_STENCILENABLE, FALSE);
 
@@ -618,9 +627,7 @@ if(s_dump)
 	if(s_save) ::D3DXSaveTextureToFile(str, D3DXIFF_BMP, rt->m_texture, NULL);
 }
 
-
 // s_dump = m_perfmon.GetFrame() >= 5000;
-
 
 		}
 	}
@@ -632,14 +639,14 @@ if(s_dump)
 
 void GSRendererHW::InvalidateTexture(const GIFRegBITBLTBUF& BITBLTBUF, CRect r)
 {
- TRACE(_T("[%d] InvalidateTexture %d,%d - %d,%d %05x\n"), (int)m_perfmon.GetFrame(), r.left, r.top, r.right, r.bottom, (int)BITBLTBUF.DBP);
+	// TRACE(_T("[%d] InvalidateTexture %d,%d - %d,%d %05x\n"), (int)m_perfmon.GetFrame(), r.left, r.top, r.right, r.bottom, (int)BITBLTBUF.DBP);
 
 	m_tc.InvalidateTexture(BITBLTBUF, &r);
 }
 
 void GSRendererHW::InvalidateLocalMem(const GIFRegBITBLTBUF& BITBLTBUF, CRect r)
 {
-TRACE(_T("[%d] InvalidateLocalMem %d,%d - %d,%d %05x\n"), (int)m_perfmon.GetFrame(), r.left, r.top, r.right, r.bottom, (int)BITBLTBUF.SBP);
+	TRACE(_T("[%d] InvalidateLocalMem %d,%d - %d,%d %05x\n"), (int)m_perfmon.GetFrame(), r.left, r.top, r.right, r.bottom, (int)BITBLTBUF.SBP);
 
 	m_tc.InvalidateLocalMem(BITBLTBUF, &r);
 }
@@ -691,8 +698,6 @@ void GSRendererHW::MinMaxUV(int w, int h, CRect& r)
 
 		bsm.SetSize(bs.cx-1, bs.cy-1);
 	}
-
-	// FIXME: region clamp returns the right rect but we should still update the whole texture later in TC...
 
 	if(m_context->CLAMP.WMS < 3)
 	{
@@ -763,8 +768,6 @@ void GSRendererHW::SetupVertexShader(const GSTextureCache::GSRenderTarget* rt)
 	HRESULT hr;
 
 	hr = m_dev->SetVertexDeclaration(m_pVertexDeclaration);
-
-	// hr = m_dev->SetFVF(D3DFVF_XYZW | D3DFVF_DIFFUSE | D3DFVF_SPECULAR | D3DFVF_TEX1);
 
 	hr = m_dev->SetVertexShader(m_pVertexShader);
 
@@ -1057,16 +1060,6 @@ void GSRendererHW::SetupZBuffer()
 		static const DWORD zfunc[] = {D3DCMP_NEVER, D3DCMP_ALWAYS, D3DCMP_GREATEREQUAL, D3DCMP_GREATER};
 
 		hr = m_dev->SetRenderState(D3DRS_ZFUNC, zfunc[m_context->TEST.ZTST]);
-//		hr = m_dev->SetRenderState(D3DRS_ZFUNC, D3DCMP_ALWAYS);
-
-		/*
-		// FIXME
-		if(m_context->ZBUF.ZMSK && m_context->TEST.ZTST == 1)
-		{
-			for(int i = 0; i < m_nVertices; i++)
-				m_pVertices[i].z = 0;
-		}
-		*/
 	}
 }
 
@@ -1085,6 +1078,8 @@ void GSRendererHW::SetupAlphaTest()
 
 void GSRendererHW::SetupDestinationAlphaTest(const GSTextureCache::GSRenderTarget* rt, const GSTextureCache::GSDepthStencil* ds)
 {
+	// sfex3 (after the capcom logo), vf4 (first menu fading in), ffxii shadows
+
 	HRESULT hr;
 	
 	hr = m_dev->SetRenderState(D3DRS_STENCILENABLE, FALSE);
@@ -1105,6 +1100,7 @@ void GSRendererHW::SetupDestinationAlphaTest(const GSTextureCache::GSRenderTarge
 		hr = m_dev->SetSamplerState(0, D3DSAMP_MAGFILTER, D3DTEXF_POINT);
 		hr = m_dev->SetSamplerState(0, D3DSAMP_MINFILTER, D3DTEXF_POINT);
 		hr = m_dev->SetRenderState(D3DRS_ZENABLE, FALSE);
+		hr = m_dev->SetRenderState(D3DRS_ZWRITEENABLE, FALSE);
 		hr = m_dev->SetRenderState(D3DRS_STENCILENABLE, TRUE);
 		hr = m_dev->SetRenderState(D3DRS_STENCILFUNC, D3DCMP_ALWAYS);
 		hr = m_dev->SetRenderState(D3DRS_STENCILPASS, D3DSTENCILOP_REPLACE);
@@ -1114,8 +1110,8 @@ void GSRendererHW::SetupDestinationAlphaTest(const GSTextureCache::GSRenderTarge
 		hr = m_dev->SetRenderState(D3DRS_STENCILMASK, 1);
 		hr = m_dev->SetRenderState(D3DRS_STENCILWRITEMASK, 1);	
 		hr = m_dev->SetRenderState(D3DRS_ALPHATESTENABLE, TRUE);
-		hr = m_dev->SetRenderState(D3DRS_ALPHAFUNC, D3DCMP_EQUAL);
-		hr = m_dev->SetRenderState(D3DRS_ALPHAREF, m_context->TEST.DATM ? 0xff : 0);
+		hr = m_dev->SetRenderState(D3DRS_ALPHAFUNC, m_context->TEST.DATM ? D3DCMP_EQUAL : D3DCMP_LESS);
+		hr = m_dev->SetRenderState(D3DRS_ALPHAREF, 0xff);
 		hr = m_dev->SetRenderState(D3DRS_ALPHABLENDENABLE, FALSE);
 		hr = m_dev->SetRenderState(D3DRS_SCISSORTESTENABLE, FALSE);
 		hr = m_dev->SetRenderState(D3DRS_COLORWRITEENABLE, 0);
@@ -1161,4 +1157,81 @@ void GSRendererHW::SetupScissor(const GSScale& scale)
 	r &= CRect(0, 0, m_width, m_height);
 
 	hr = m_dev->SetScissorRect(r);
+}
+
+void GSRendererHW::SetupFrameBufferAlpha()
+{
+	HRESULT hr;
+	
+	if(m_context->FBA.FBA)
+	{
+		if(m_context->TEST.DATE)
+		{
+			ASSERT(0); // can't do both at the same time
+
+			return;
+		}
+
+		hr = m_dev->Clear(0, NULL, D3DCLEAR_STENCIL, 0, 0, 0);
+
+		hr = m_dev->SetRenderState(D3DRS_STENCILENABLE, TRUE);
+		hr = m_dev->SetRenderState(D3DRS_STENCILFUNC, D3DCMP_ALWAYS);
+		hr = m_dev->SetRenderState(D3DRS_STENCILPASS, D3DSTENCILOP_REPLACE);
+		hr = m_dev->SetRenderState(D3DRS_STENCILFAIL, D3DSTENCILOP_KEEP);
+		hr = m_dev->SetRenderState(D3DRS_STENCILZFAIL, D3DSTENCILOP_KEEP);
+		hr = m_dev->SetRenderState(D3DRS_STENCILREF, 2);
+		hr = m_dev->SetRenderState(D3DRS_STENCILMASK, 2);
+		hr = m_dev->SetRenderState(D3DRS_STENCILWRITEMASK, 2);	
+	}
+}
+
+void GSRendererHW::UpdateFrameBufferAlpha(const GSTextureCache::GSRenderTarget* rt)
+{
+	HRESULT hr;
+	
+	if(m_context->FBA.FBA)
+	{
+		if(m_context->TEST.DATE)
+		{
+			ASSERT(0); // can't do both at the same time
+
+			return;
+		}
+
+		hr = m_dev->SetTexture(0, NULL);
+		hr = m_dev->SetRenderState(D3DRS_ZENABLE, FALSE);
+		hr = m_dev->SetRenderState(D3DRS_ZWRITEENABLE, FALSE);
+		hr = m_dev->SetRenderState(D3DRS_STENCILENABLE, TRUE);
+		hr = m_dev->SetRenderState(D3DRS_STENCILFUNC, D3DCMP_EQUAL);
+		hr = m_dev->SetRenderState(D3DRS_STENCILPASS, D3DSTENCILOP_KEEP);
+		hr = m_dev->SetRenderState(D3DRS_STENCILFAIL, D3DSTENCILOP_KEEP);
+		hr = m_dev->SetRenderState(D3DRS_STENCILZFAIL, D3DSTENCILOP_KEEP);
+		hr = m_dev->SetRenderState(D3DRS_STENCILREF, 2);
+		hr = m_dev->SetRenderState(D3DRS_STENCILMASK, 2);
+		hr = m_dev->SetRenderState(D3DRS_STENCILWRITEMASK, 2);	
+		hr = m_dev->SetRenderState(D3DRS_ALPHATESTENABLE, FALSE);
+		hr = m_dev->SetRenderState(D3DRS_ALPHABLENDENABLE, FALSE);
+		hr = m_dev->SetRenderState(D3DRS_SCISSORTESTENABLE, FALSE);
+		hr = m_dev->SetRenderState(D3DRS_COLORWRITEENABLE, D3DCOLORWRITEENABLE_ALPHA);
+
+		hr = m_dev->SetVertexShader(NULL);
+		hr = m_dev->SetPixelShader(m_tc.m_ps[2]);
+
+		struct
+		{
+			float x, y, z, rhw;
+		}
+		pVertices[] =
+		{
+			{0, 0, 0.5f, 2.0f},
+			{(float)rt->m_desc.Width, 0, 0.5f, 2.0f},
+			{0, (float)rt->m_desc.Height, 0.5f, 2.0f},
+			{(float)rt->m_desc.Width, (float)rt->m_desc.Height, 0.5f, 2.0f},
+		};
+
+		hr = m_dev->BeginScene();
+		hr = m_dev->SetFVF(D3DFVF_XYZRHW);
+		hr = m_dev->DrawPrimitiveUP(D3DPT_TRIANGLESTRIP, 2, pVertices, sizeof(pVertices[0]));
+		hr = m_dev->EndScene();
+	}
 }

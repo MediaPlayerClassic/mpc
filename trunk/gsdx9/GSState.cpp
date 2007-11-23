@@ -112,10 +112,7 @@ bool GSState::Create(LPCTSTR title)
 
 	memset(&m_caps, 0, sizeof(m_caps));
 
-	m_d3d->GetDeviceCaps(
-		D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, 
-		// D3DADAPTER_DEFAULT, D3DDEVTYPE_REF, 
-		&m_caps);
+	m_d3d->GetDeviceCaps(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, &m_caps);
 
 	// d3d device
 
@@ -144,81 +141,37 @@ bool GSState::Create(LPCTSTR title)
 	}
 
 	m_caps.PixelShaderVersion = min(PixelShaderVersion, m_caps.PixelShaderVersion);
-
 	m_caps.VertexShaderVersion = m_caps.PixelShaderVersion & ~0x10000;
 
-	static const TCHAR* hlsl_tfx[] = 
-	{
-		_T("main_tfx0_32"), _T("main_tfx1_32"), _T("main_tfx2_32"), _T("main_tfx3_32"),
-		_T("main_tfx0_24"), _T("main_tfx1_24"), _T("main_tfx2_24"), _T("main_tfx3_24"),
-		_T("main_tfx0_24AEM"), _T("main_tfx1_24AEM"), _T("main_tfx2_24AEM"), _T("main_tfx3_24AEM"),
-		_T("main_tfx0_16"), _T("main_tfx1_16"), _T("main_tfx2_16"), _T("main_tfx3_16"), 
-		_T("main_tfx0_16AEM"), _T("main_tfx1_16AEM"), _T("main_tfx2_16AEM"), _T("main_tfx3_16AEM"), 
-		_T("main_tfx0_8P_pt"), _T("main_tfx1_8P_pt"), _T("main_tfx2_8P_pt"), _T("main_tfx3_8P_pt"), 
-		_T("main_tfx0_8P_ln"), _T("main_tfx1_8P_ln"), _T("main_tfx2_8P_ln"), _T("main_tfx3_8P_ln"), 
-		_T("main_tfx0_8HP_pt"), _T("main_tfx1_8HP_pt"), _T("main_tfx2_8HP_pt"), _T("main_tfx3_8HP_pt"), 
-		_T("main_tfx0_8HP_ln"), _T("main_tfx1_8HP_ln"), _T("main_tfx2_8HP_ln"), _T("main_tfx3_8HP_ln"),
-		_T("main_notfx"),
-	};
+	DWORD flags = D3DXSHADER_PARTIALPRECISION;
+	LPCTSTR target = NULL;
 
 	if(m_caps.PixelShaderVersion >= D3DPS_VERSION(3, 0))
 	{
-		DWORD flags = D3DXSHADER_PARTIALPRECISION|D3DXSHADER_AVOID_FLOW_CONTROL;
-/*
-		for(int i = 0; i < countof(hlsl_tfx); i++)
-		{
-			if(!m_pHLSLTFX[i])
-			{
-				CompileShaderFromResource(m_dev, IDR_HLSL_TFX, hlsl_tfx[i], _T("ps_3_0"), flags, &m_pHLSLTFX[i]);
-			}
-		}
-*/
-		for(int i = 0; i < 3; i++)
-		{
-			if(!m_pHLSLMerge[i])
-			{
-				CString main;
-				main.Format(_T("main%d"), i);
-				CompileShaderFromResource(m_dev, IDR_HLSL_MERGE, main, _T("ps_3_0"), flags, &m_pHLSLMerge[i]);
-			}
-		}
-
-		for(int i = 0; i < 4; i++)
-		{
-			if(!m_pHLSLInterlace[i])
-			{
-				CString main;
-				main.Format(_T("main%d"), i);
-				CompileShaderFromResource(m_dev, IDR_HLSL_INTERLACE, main, _T("ps_3_0"), flags, &m_pHLSLInterlace[i]);
-			}
-		}
+		flags |= D3DXSHADER_AVOID_FLOW_CONTROL;
+		target = _T("ps_3_0");
 	}
 	else if(m_caps.PixelShaderVersion >= D3DPS_VERSION(2, 0))
 	{
-		DWORD flags = D3DXSHADER_PARTIALPRECISION;
-/*
-		for(int i = 0; i < countof(hlsl_tfx); i++)
-		{
-			CompileShaderFromResource(m_dev, IDR_HLSL_TFX, hlsl_tfx[i], _T("ps_2_0"), flags, &m_pHLSLTFX[i]);
-		}
-*/
-		for(int i = 0; i < 3; i++)
-		{
-			CString main;
-			main.Format(_T("main%d"), i);
-			CompileShaderFromResource(m_dev, IDR_HLSL_MERGE, main, _T("ps_2_0"), flags, &m_pHLSLMerge[i]);
-		}
-
-		for(int i = 0; i < 4; i++)
-		{
-			CString main;
-			main.Format(_T("main%d"), i);
-			CompileShaderFromResource(m_dev, IDR_HLSL_INTERLACE, main, _T("ps_2_0"), flags, &m_pHLSLInterlace[i]);
-		}
+		target = _T("ps_2_0");
 	}
 	else 
 	{
 		return false;
+	}
+
+	for(int i = 0; i < 3; i++)
+	{
+		CString main;
+		main.Format(_T("main%d"), i);
+		CompileShaderFromResource(m_dev, IDR_HLSL_MERGE, main, target, flags, &m_pHLSLMerge[i]);
+	}
+
+	for(int i = 0; i < 4; i++)
+	{
+		CString main;
+		main.Format(_T("main%d"), i);
+		CompileShaderFromResource(m_dev, IDR_HLSL_INTERLACE, main, target, flags, &m_pHLSLInterlace[i]);
 	}
 
 	ResetState();
@@ -707,8 +660,6 @@ void GSState::VSync(int field)
 
 	Flip();
 
-	m_perfmon.Put(GSPerfMon::Frame);
-
 	Present();
 }
 
@@ -1074,6 +1025,8 @@ void GSState::Interlace(IDirect3DTexture9* src, IDirect3DSurface9* dst, int shad
 
 void GSState::Present()
 {
+	m_perfmon.Put(GSPerfMon::Frame);
+
 	HRESULT hr;
 
 	CRect cr;
@@ -1153,8 +1106,8 @@ void GSState::Present()
 		double fps = 1000.0f / m_perfmon.Get(GSPerfMon::Frame);
 		
 		s_stats.Format(
-			_T("%I64d | %.2f fps (%d%%) | %s - %s | %s | %d | %.2f | %.2f/%.2f | %.2f"), 
-			m_perfmon.GetFrame(), fps, (int)(100.0 * fps / m_regs.GetFPS()),
+			_T("%I64d | %d x %d | %.2f fps (%d%%) | %s - %s | %s | %d | %.2f | %.2f/%.2f | %.2f"), 
+			m_perfmon.GetFrame(), m_regs.GetDisplaySize().cx, m_regs.GetDisplaySize().cy, fps, (int)(100.0 * fps / m_regs.GetFPS()),
 			m_regs.pSMODE2->INT ? (CString(_T("Interlaced ")) + (m_regs.pSMODE2->FFMD ? _T("(frame)") : _T("(field)"))) : _T("Progressive"),
 			g_interlace[m_nInterlace].name,
 			g_aspectratio[m_nAspectRatio].name,

@@ -245,10 +245,12 @@ if(m_pPRIM->TME && m_context->TEX0.PSM == 19)
 	m_context->TEX0.PSM = 20;
 	m_context->TEX0.TBW *= 2;
 }
+
+if(s_n == 69)
+{
+	DebugBreak();
+}
 */
-
-s_save = s_n == 721;
-
 if(s_dump)
 {
 	CString str;
