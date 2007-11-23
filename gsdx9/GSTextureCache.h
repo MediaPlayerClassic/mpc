@@ -85,7 +85,6 @@ public:
 		CComPtr<IDirect3DTexture9> m_texture;
 		CComPtr<IDirect3DTexture9> m_palette;
 		GIFRegCLAMP m_CLAMP;
-		GIFRegTEXA m_TEXA; // *
 		DWORD m_clut[256]; // *
 		GSDirtyRectList m_dirty;
 		CRect m_valid;
@@ -117,9 +116,9 @@ public:
 	virtual ~GSTextureCache();
 
 	bool m_nativeres;
-	CComPtr<IDirect3DPixelShader9> m_ps[2];
+	CComPtr<IDirect3DPixelShader9> m_ps[3];
 
-	void Create();
+	bool Create();
 	void RemoveAll();
 
 	HRESULT CreateRenderTarget(int w, int h, IDirect3DTexture9** ppt, IDirect3DSurface9** pps = NULL, D3DSURFACE_DESC* desc = NULL);

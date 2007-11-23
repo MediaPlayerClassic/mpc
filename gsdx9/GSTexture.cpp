@@ -53,7 +53,6 @@ bool GSTextureCache::GSTexture::Create()
 
 	m_TEX0 = m_tc->m_state->m_context->TEX0;
 	m_CLAMP = m_tc->m_state->m_context->CLAMP;
-	m_TEXA = m_tc->m_state->m_env.TEXA;
 
 	DWORD psm = m_TEX0.PSM;
 
@@ -73,6 +72,7 @@ bool GSTextureCache::GSTexture::Create()
 	switch(psm)
 	{
 	default:
+		ASSERT(0);
 	case PSM_PSMCT32:
 		m_bpp = 32;
 		format = D3DFMT_A8R8G8B8;
@@ -86,14 +86,6 @@ bool GSTextureCache::GSTexture::Create()
 		m_bpp = 16;
 		format = D3DFMT_A1R5G5B5;
 		break;
-	case PSM_PSMT8:
-	case PSM_PSMT4:
-	case PSM_PSMT8H:
-	case PSM_PSMT4HL:
-	case PSM_PSMT4HH:
-		m_bpp = 8;
-		format = D3DFMT_L8;
-		break;
 	}
 
 	int w = 1 << m_TEX0.TW;
@@ -103,20 +95,7 @@ bool GSTextureCache::GSTexture::Create()
 
 	hr = m_tc->CreateTexture(w, h, format, &m_texture, &m_surface, &m_desc);
 
-	if(FAILED(hr)) return false;
-
-	/*
-	if(m_bpp == 8)
-	{
-		format = cpsm == PSM_PSMCT32 ? D3DFMT_A8R8G8B8 : D3DFMT_A1R5G5B5;
-
-		hr = m_tc->CreateTexture(256, 1, format, &m_palette);
-
-		if(FAILED(hr)) return false;
-	}
-	*/
-
-	return true;
+	return SUCCEEDED(hr);
 }
 
 bool GSTextureCache::GSTexture::Create(GSRenderTarget* rt)
@@ -129,7 +108,10 @@ bool GSTextureCache::GSTexture::Create(GSRenderTarget* rt)
 	m_size = rt->m_size;
 	m_TEX0 = m_tc->m_state->m_context->TEX0;
 	m_CLAMP = m_tc->m_state->m_context->CLAMP;
-	m_TEXA = m_tc->m_state->m_env.TEXA;
+
+	int tw = 1 << m_TEX0.TW;
+	int th = 1 << m_TEX0.TH;
+	int tp = m_TEX0.TW << 6;
 
 	hr = m_tc->CreateRenderTarget(rt->m_desc.Width, rt->m_desc.Height, &m_texture, &m_surface, &m_desc);
 
@@ -176,6 +158,31 @@ bool GSTextureCache::GSTexture::Create(GSRenderTarget* rt)
 			}
 		}
 	}
+	else if(tw < tp)
+	{
+		// FIXME: timesplitters blurs the render target by blending itself over a couple of times
+
+		if(tw == 256 && th == 128 && tp == 512 && (m_TEX0.TBP0 == 0 || m_TEX0.TBP0 == 0x00e00))
+		{
+			return false;
+		}
+
+	/*
+
+		CRect src(0, 0, m_desc.Width * tw / tp, m_desc.Height);
+		CRect dst(0, 0, m_desc.Width, m_desc.Height);
+
+D3DXSaveSurfaceToFile(_T("c:\\1.bmp"), D3DXIFF_BMP, rt->m_surface, NULL, NULL);
+
+		hr = m_tc->m_state->m_dev->StretchRect(rt->m_surface, src, m_surface, dst, D3DTEXF_LINEAR);
+
+D3DXSaveSurfaceToFile(_T("c:\\2.bmp"), D3DXIFF_BMP, m_surface, NULL, NULL);
+
+		m_scale.x = 1;
+*/
+
+		hr = m_tc->m_state->m_dev->StretchRect(rt->m_surface, NULL, m_surface, NULL, D3DTEXF_LINEAR);
+	}
 	else
 	{
 		hr = m_tc->m_state->m_dev->StretchRect(rt->m_surface, NULL, m_surface, NULL, D3DTEXF_LINEAR);
@@ -183,25 +190,25 @@ bool GSTextureCache::GSTexture::Create(GSRenderTarget* rt)
 
 	// width/height conversion
 
-	int w = m_scale.x * (1 << m_TEX0.TW);
-	int h = m_scale.y * (1 << m_TEX0.TH);
+	int w = m_scale.x * tw;
+	int h = m_scale.y * th;
 
 	if(w != m_desc.Width || h != m_desc.Height)
 	{
 		CRect dst(0, 0, w, h);
 		
-		if(w > m_desc.Width)
+		if(w > m_desc.Width) 
 		{
 			float scale = m_scale.x;
-			m_scale.x = (float)m_desc.Width / (1 << m_TEX0.TW);
+			m_scale.x = (float)m_desc.Width / tw;
 			dst.right = m_desc.Width * m_scale.x / scale;
 			w = m_desc.Width;
 		}
 		
-		if(h > m_desc.Height)
+		if(h > m_desc.Height) 
 		{
 			float scale = m_scale.y;
-			m_scale.y = (float)m_desc.Height / (1 << m_TEX0.TH);
+			m_scale.y = (float)m_desc.Height / th;
 			dst.bottom = m_desc.Height * m_scale.y / scale;
 			h = m_desc.Height;
 		}
@@ -219,6 +226,7 @@ bool GSTextureCache::GSTexture::Create(GSRenderTarget* rt)
 
 		m_texture = texture;
 		m_surface = surface;
+
 	}
 
 	if(m_TEX0.PSM == PSM_PSMT8H)
@@ -236,7 +244,7 @@ bool GSTextureCache::GSTexture::Create(GSRenderTarget* rt)
 
 bool GSTextureCache::GSTexture::Create(GSDepthStencil* ds)
 {
-	// hmmmm
+	// hmmmm, lockable ds formats doesn't have stencil...
 
 	return false;
 }
@@ -263,29 +271,24 @@ void GSTextureCache::GSTexture::Update(GSLocalMemory::readTexture rt)
 
 	if(SUCCEEDED(hr = m_texture->LockRect(0, &lr, &r, D3DLOCK_NO_DIRTY_UPDATE))) 
 	{
-		(m_tc->m_state->m_mem.*rt)(r, (BYTE*)lr.pBits, lr.Pitch, 
-			m_tc->m_state->m_context->TEX0, 
-			m_tc->m_state->m_env.TEXA, 
-			m_tc->m_state->m_context->CLAMP);
+		GSState* s = m_tc->m_state;
 
-		//ASSERT(m_tc->m_state->m_context->TEX0.i64 == m_TEX0.i64);
-		//ASSERT(m_tc->m_state->m_context->CLAMP.i64 == m_CLAMP.i64);
-		//ASSERT(m_tc->m_state->m_env.TEXA.i64 == m_TEXA.i64);
+		(s->m_mem.*rt)(r, (BYTE*)lr.pBits, lr.Pitch, s->m_context->TEX0, s->m_env.TEXA, s->m_context->CLAMP);
 
 		m_texture->UnlockRect(0);
 
-		m_tc->m_state->m_perfmon.Put(GSPerfMon::Unswizzle, r.Width() * r.Height() * m_bpp >> 3);
+		s->m_perfmon.Put(GSPerfMon::Unswizzle, r.Width() * r.Height() * m_bpp >> 3);
 
 		CRect r2 = m_valid & r;
 
 		if(!r2.IsRectEmpty())
 		{
-			m_tc->m_state->m_perfmon.Put(GSPerfMon::Unswizzle2, r2.Width() * r2.Height() * m_bpp >> 3);
+			s->m_perfmon.Put(GSPerfMon::Unswizzle2, r2.Width() * r2.Height() * m_bpp >> 3);
 		}
 
 		m_valid |= r;
 		m_dirty.RemoveAll();
-/**/
+
 		const static DWORD limit = 7;
 
 		if((m_hashdiff & limit) && m_hashdiff >= limit && m_hashrect == m_valid) // predicted to be dirty
@@ -324,7 +327,7 @@ void GSTextureCache::GSTexture::Update(GSLocalMemory::readTexture rt)
 			
 			m_texture->PreLoad();
 
-			m_tc->m_state->m_perfmon.Put(GSPerfMon::Texture, r.Width() * r.Height() * m_bpp >> 3);
+			s->m_perfmon.Put(GSPerfMon::Texture, r.Width() * r.Height() * m_bpp >> 3);
 		}
 	}
 }

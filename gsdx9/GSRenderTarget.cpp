@@ -61,7 +61,7 @@ void GSTextureCache::GSRenderTarget::Update()
 
 	if(r.IsRectEmpty()) return;
 
-	TRACE(_T("%d,%d - %d,%d (%08x)\n"), r.left, r.top, r.right, r.bottom, m_TEX0.TBP0);
+	TRACE(_T("GSRenderTarget::Update %d,%d - %d,%d (%08x)\n"), r.left, r.top, r.right, r.bottom, m_TEX0.TBP0);
 
 	HRESULT hr;
 
@@ -151,7 +151,7 @@ if(s_dump)
 void GSTextureCache::GSRenderTarget::Read(CRect r)
 {
 /*
-	// FIXME: doesn't work for multiple non-overlapping reads
+	// FIXME: doesn't work with multiple non-overlapping reads
 
 	if(!m_used) return;
 
@@ -159,9 +159,13 @@ void GSTextureCache::GSRenderTarget::Read(CRect r)
 */
 	// TODO: 16 bit
 
-	if(m_TEX0.PSM != PSM_PSMCT32 && m_TEX0.PSM != PSM_PSMCT24)
+	if(m_TEX0.PSM != PSM_PSMCT32 
+	&& m_TEX0.PSM != PSM_PSMCT24
+	//&& m_TEX0.PSM != PSM_PSMCT16
+	//&& m_TEX0.PSM != PSM_PSMCT16S
+	)
 	{
-		ASSERT(0);
+		//ASSERT(0);
 		return;
 	}
 
@@ -225,11 +229,9 @@ if(s_dump)
 {
 	CString str;
 	str.Format(_T("c:\\temp2\\_%05d_f%I64d_drsrc_%05x.bmp"), s_n++, s->m_perfmon.GetFrame(), m_TEX0.TBP0);
-//	if(s_save) 
-		::D3DXSaveTextureToFile(str, D3DXIFF_BMP, m_texture, NULL);
+	if(s_save) ::D3DXSaveTextureToFile(str, D3DXIFF_BMP, m_texture, NULL);
 	str.Format(_T("c:\\temp2\\_%05d_f%I64d_dr_%05x.bmp"), s_n++, s->m_perfmon.GetFrame(), m_TEX0.TBP0);
-//	if(s_save) 
-		::D3DXSaveTextureToFile(str, D3DXIFF_BMP, texture, NULL);
+	if(s_save) ::D3DXSaveTextureToFile(str, D3DXIFF_BMP, texture, NULL);
 }
 
 	hr = s->m_dev->GetRenderTargetData(surface, offscreen);

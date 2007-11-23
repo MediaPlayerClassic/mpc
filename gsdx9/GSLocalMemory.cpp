@@ -604,7 +604,7 @@ void GSLocalMemory::SetupCLUT(GIFRegTEX0 TEX0, GIFRegTEXA TEXA)
 		{
 			for(int j = 0, k = 0; j < 16; j++)
 				for(int i = 0; i < 16; i++, k++)
-					m_pCLUT64[k] = ((UINT64)m_pCLUT32[j] << 16) | (m_pCLUT32[i]&0xffff);
+					m_pCLUT64[k] = ((UINT64)m_pCLUT32[j] << 16) | (m_pCLUT32[i] & 0xffff);
 		}
 		break;
 	}
@@ -1738,14 +1738,14 @@ void GSLocalMemory::ReadTexture(CRect r, BYTE* dst, int dstpitch, GIFRegTEX0& TE
 
 	if(wms == 2)
 	{
-		r.left = min(r.right, max(r.left, minu));
-		r.right = max(r.left, min(r.right, maxu));
+		r.left = min(r.right, max(r.left, (int)minu));
+		r.right = max(r.left, min(r.right, (int)maxu));
 	}
 
 	if(wmt == 2)
 	{
-		r.top = min(r.bottom, max(r.top, minv));
-		r.bottom = max(r.top, min(r.bottom, maxv));
+		r.top = min(r.bottom, max(r.top, (int)minv));
+		r.bottom = max(r.top, min(r.bottom, (int)maxv));
 	}
 
 	CSize bs = m_psmtbl[TEX0.PSM].bs;
@@ -1759,24 +1759,41 @@ void GSLocalMemory::ReadTexture(CRect r, BYTE* dst, int dstpitch, GIFRegTEX0& TE
 
 	if(wms == 3 || wmt == 3) // TODO: do region repeat in pixel shader
 	{
+		if(wms == 3 && wmt == 3)
+		{
+			int w = minu + 1;
+			int h = minv + 1;
+
+			if(w % bs.cx == 0 && maxu % bs.cx == 0 && h % bs.cy == 0 && maxv % bs.cy == 0)
+			{
+				// TODO: this could be made even faster...
+
+//printf("!!! 3 wms = %d, wmt = %d, %3x %3x %3x %3x, %d %d - %d %d\n", wms, wmt, minu, maxu, minv, maxv, r.left, r.top, r.right, r.bottom);
+
+				T* buff = (T*)_aligned_malloc(w * h * sizeof(T), 16);
+
+				(this->*st)(CRect(CPoint(maxu, maxv), CSize(w, h)), (BYTE*)buff, w * sizeof(T), TEX0, TEXA);
+
+				for(int y = r.top; y < r.bottom; y++, dst += dstpitch)
+				{
+					T* src = &buff[(y & minv) * w];
+
+					for(int x = r.left, i = 0; x < r.right; x++, i++)
+					{
+						((T*)dst)[i] = src[x & minu];
+					}
+				}
+
+				_aligned_free(buff);
+
+				return;
+			}
+		}
+
 		switch(wms)
 		{
 		default: for(int x = r.left; x < r.right; x++) m_xtbl[x] = x; break;
 		case 3: for(int x = r.left; x < r.right; x++) m_xtbl[x] = (x & minu) | maxu; break;
-		}
-
-		bool xok = true;
-
-		if(wms == 3)
-		{
-			for(int x = r.left; x < r.right; x++) 
-			{
-				if(m_xtbl[x] != x) 
-				{
-					xok = false; 
-					break;
-				}
-			}
 		}
 
 		switch(wmt)
@@ -1785,21 +1802,7 @@ void GSLocalMemory::ReadTexture(CRect r, BYTE* dst, int dstpitch, GIFRegTEX0& TE
 		case 3: for(int y = r.top; y < r.bottom; y++) m_ytbl[y] = (y & minv) | maxv; break;
 		}
 
-		bool yok = true;
-
-		if(wmt == 3)
-		{
-			for(int y = r.top; y < r.bottom; y++)
-			{
-				if(m_ytbl[y] != y) 
-				{
-					yok = false; 
-					break;
-				}
-			}
-		}
-
-		if(aligned && (wms < 3 || xok) && (wmt < 3 || yok))
+		if(aligned && wms < 3 && wmt < 3)
 		{
 			for(int y = r.top; y < cr.top; y++, dst += dstpitch)
 				for(int x = r.left, i = 0; x < r.right; x++, i++)
@@ -1824,7 +1827,7 @@ void GSLocalMemory::ReadTexture(CRect r, BYTE* dst, int dstpitch, GIFRegTEX0& TE
 		}
 		else
 		{
-			// TODO: try to avoid this branch by doing a smarter check on m_xtbl/m_ytbl
+//printf("1 wms = %d, wmt = %d, %3x %3x %3x %3x, %d %d - %d %d\n", wms, wmt, minu, maxu, minv, maxv, r.left, r.top, r.right, r.bottom);
 
 			for(int y = r.top; y < r.bottom; y++, dst += dstpitch)
 				for(int x = r.left, i = 0; x < r.right; x++, i++)
@@ -1858,6 +1861,8 @@ void GSLocalMemory::ReadTexture(CRect r, BYTE* dst, int dstpitch, GIFRegTEX0& TE
 		}
 		else
 		{
+//printf("2 wms = %d, wmt = %d, %3x %3x %3x %3x, %d %d - %d %d\n", wms, wmt, minu, maxu, minv, maxv, r.left, r.top, r.right, r.bottom);
+
 			for(int y = r.top; y < r.bottom; y++, dst += dstpitch)
 				for(int x = r.left, i = 0; x < r.right; x++, i++)
 					((T*)dst)[i] = (T)(this->*rt)(x, y, TEX0, TEXA);
@@ -1891,9 +1896,9 @@ HRESULT GSLocalMemory::SaveBMP(IDirect3DDevice9* dev, LPCTSTR fn, DWORD bp, DWOR
 	TEXA.AEM = 0;
 	TEXA.TA0 = 0;
 	TEXA.TA1 = 0x80;
-
-	(this->*m_psmtbl[TEX0.PSM].ust)(CRect(0, 0, w, h), (BYTE*)lr.pBits, lr.Pitch, TEX0, TEXA);
 /*
+	(this->*m_psmtbl[TEX0.PSM].ust)(CRect(0, 0, w, h), (BYTE*)lr.pBits, lr.Pitch, TEX0, TEXA);
+*/
 	readTexel rt = m_psmtbl[psm].rt;
 
 	BYTE* p = (BYTE*)lr.pBits;
@@ -1901,7 +1906,7 @@ HRESULT GSLocalMemory::SaveBMP(IDirect3DDevice9* dev, LPCTSTR fn, DWORD bp, DWOR
 	for(int j = 0; j < h; j++, p += lr.Pitch)
 		for(int i = 0; i < w; i++)
 			((DWORD*)p)[i] = (this->*rt)(i, j, TEX0, TEXA);
-*/
+
 	pTexture->UnlockRect(0);
 
 	return D3DXSaveTextureToFile(fn, D3DXIFF_BMP, pTexture, NULL);
