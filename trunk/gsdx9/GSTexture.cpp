@@ -117,7 +117,7 @@ bool GSTextureCache::GSTexture::Create(GSRenderTarget* rt)
 
 	// pitch conversion
 
-	if(rt->m_TEX0.TBW != m_TEX0.TBW)
+	if(rt->m_TEX0.TBW != m_TEX0.TBW) // && rt->m_TEX0.PSM == m_TEX0.PSM
 	{
 		// sfex3 uses this trick (bw: 10 -> 5, wraps the right side below the left)
 
@@ -226,17 +226,20 @@ D3DXSaveSurfaceToFile(_T("c:\\2.bmp"), D3DXIFF_BMP, m_surface, NULL, NULL);
 
 		m_texture = texture;
 		m_surface = surface;
-
 	}
 
-	if(m_TEX0.PSM == PSM_PSMT8H)
+	switch(m_TEX0.PSM)
 	{
-		hr = m_tc->CreateTexture(256, 1, m_TEX0.CPSM == PSM_PSMCT32 ? D3DFMT_A8R8G8B8 : D3DFMT_A1R5G5B5, &m_palette);
-	}
-
-	if(m_TEX0.PSM == PSM_PSMCT24)
-	{
+	case PSM_PSMCT24:
 		m_desc.Format = D3DFMT_X8R8G8B8;
+		break;
+	case PSM_PSMT8H:
+		hr = m_tc->CreateTexture(256, 1, m_TEX0.CPSM == PSM_PSMCT32 ? D3DFMT_A8R8G8B8 : D3DFMT_A1R5G5B5, &m_palette);
+		break;
+	case PSM_PSMT4HL:
+	case PSM_PSMT4HH:
+		ASSERT(0); // TODO
+		break;
 	}
 
 	return true;
@@ -244,7 +247,7 @@ D3DXSaveSurfaceToFile(_T("c:\\2.bmp"), D3DXIFF_BMP, m_surface, NULL, NULL);
 
 bool GSTextureCache::GSTexture::Create(GSDepthStencil* ds)
 {
-	// hmmmm, lockable ds formats doesn't have stencil...
+	// hmmmm, lockable ds formats don't have stencil...
 
 	return false;
 }
@@ -314,7 +317,7 @@ void GSTextureCache::GSTexture::Update(GSLocalMemory::readTexture rt)
 				}
 				else
 				{
-					if(m_hashdiff < limit) r.SetRectEmpty();
+					if(m_hashdiff < limit) r.SetRect(0, 0, 1, 1); //r.SetRectEmpty();
 					// else m_hash is not reliable, must update
 					m_hashdiff = 0;
 				}
@@ -325,8 +328,6 @@ void GSTextureCache::GSTexture::Update(GSLocalMemory::readTexture rt)
 		{
 			m_texture->AddDirtyRect(&r);
 			
-			m_texture->PreLoad();
-
 			s->m_perfmon.Put(GSPerfMon::Texture, r.Width() * r.Height() * m_bpp >> 3);
 		}
 	}
@@ -386,7 +387,7 @@ bool GSTextureCache::GSTexture::GetDirtyRect(CRect& r)
 		if(dirty.IsRectEmpty()) return false;
 		else if(IsRectInRect(dirty, r)) r = dirty;
 		else if(IsRectInRect(dirty, valid)) r |= dirty;
-		else r = valid | dirty;
+		else r = valid & dirty;
 	}
 	else if(IsRectInRectH(r, valid) && (r.left >= valid.left || r.right <= valid.right))
 	{

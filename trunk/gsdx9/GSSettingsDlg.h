@@ -52,8 +52,8 @@ public:
 	CComboBox m_psversion;
 	CComboBox m_interlace;
 	CComboBox m_aspectratio;
-	BOOL m_fEnableTvOut;
-	BOOL m_fLinearTextureFilter;
+	BOOL m_tvout;
+	int m_filter;
 	int m_nloophack;
 	CSpinButtonCtrl m_resx;
 	CSpinButtonCtrl m_resy;

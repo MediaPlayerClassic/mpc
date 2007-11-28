@@ -71,6 +71,7 @@ public:
 	{
 	public:
 		GSDepthStencil(GSTextureCache* tc);
+		bool m_used;
 
 		bool Create(int w, int h);
 		void Update();
@@ -116,7 +117,7 @@ public:
 	virtual ~GSTextureCache();
 
 	bool m_nativeres;
-	CComPtr<IDirect3DPixelShader9> m_ps[3];
+	CComPtr<IDirect3DPixelShader9> m_ps[4];
 
 	bool Create();
 	void RemoveAll();

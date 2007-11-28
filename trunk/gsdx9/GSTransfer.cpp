@@ -205,7 +205,8 @@ void GSState::ReadTransfer(BYTE* pMem, int len)
 
 void GSState::MoveTransfer()
 {
-	// yay, ffxii uses this to move the top/bottom of the scrolling menus offscreen and then blends them back over the text to create a shading effect
+	// ffxii uses this to move the top/bottom of the scrolling menus offscreen and then blends them back over the text to create a shading effect
+	// guitar hero copies the far end of the board to do a similar blend too
 
 	GSLocalMemory::readPixel rp = GSLocalMemory::m_psmtbl[m_env.BITBLTBUF.SPSM].rp;
 	GSLocalMemory::writePixel wp = GSLocalMemory::m_psmtbl[m_env.BITBLTBUF.DPSM].wp;

@@ -28,21 +28,18 @@ struct PS_INPUT
 
 float4 main(PS_INPUT input) : COLOR
 {
-	float4 t00, t01, t10, t11;
-	float2 dd;
-	
 	// tex
 	
 	float2 tex = input.tex;
 	
 	if(FST == 0)
 	{
-		tex.xy /= input.tex.z;
+		tex /= input.tex.z;
 	}
 	
 	if(CLAMP == 1)
 	{
-		tex = clamp(tex.xy, CLAMPMIN, CLAMPMAX);
+		tex = clamp(tex, CLAMPMIN, CLAMPMAX);
 	}
 	
 	//
@@ -67,11 +64,11 @@ float4 main(PS_INPUT input) : COLOR
 	else if(BPP == 3) // 8HP ln
 	{
 		tex -= 0.5*RW_RH; // ?
-		t00 = tex1D(Palette, tex2D(Texture, tex).a - EPSILON);
-		t01 = tex1D(Palette, tex2D(Texture, tex + RW_ZERO).a - EPSILON);
-		t10 = tex1D(Palette, tex2D(Texture, tex + ZERO_RH).a - EPSILON);
-		t11 = tex1D(Palette, tex2D(Texture, tex + RW_RH).a - EPSILON);
-		dd = frac(tex * W_H); 
+		float4 t00 = tex1D(Palette, tex2D(Texture, tex).a - EPSILON);
+		float4 t01 = tex1D(Palette, tex2D(Texture, tex + RW_ZERO).a - EPSILON);
+		float4 t10 = tex1D(Palette, tex2D(Texture, tex + ZERO_RH).a - EPSILON);
+		float4 t11 = tex1D(Palette, tex2D(Texture, tex + RW_RH).a - EPSILON);
+		float2 dd = frac(tex * W_H); 
 		t = lerp(lerp(t00, t01, dd.x), lerp(t10, t11, dd.x), dd.y);
 		if(RT == 0) t.a *= 2;
 	}

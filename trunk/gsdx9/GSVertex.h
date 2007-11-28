@@ -23,6 +23,8 @@
 
 #include "GS.h"
 
+#pragma pack(push, 1)
+
 struct GSVertex
 {
 	GIFRegRGBAQ		RGBAQ;
@@ -33,3 +35,5 @@ struct GSVertex
 
 	GSVertex() {memset(this, 0, sizeof(*this));}
 };
+
+#pragma pack(pop)

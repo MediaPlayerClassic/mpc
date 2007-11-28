@@ -23,6 +23,8 @@
 
 #include "GS.h"
 
+#pragma pack(push, 1)
+
 struct GSDrawingEnvironment
 {
 	struct GSDrawingEnvironment() {memset(this, 0, sizeof(*this));}
@@ -45,3 +47,5 @@ struct GSDrawingEnvironment
 	GIFRegTRXREG		TRXREG2;
 	GSDrawingContext	CTXT[2];
 };
+
+#pragma pack(pop)

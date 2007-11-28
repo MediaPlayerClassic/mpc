@@ -58,6 +58,7 @@ protected:
 
 	GSTextureCache m_tc;
 
+	void FlushPrimInternal();
 	void SetupVertexShader(const GSTextureCache::GSRenderTarget* rt);
 	void SetupTexture(const GSTextureCache::GSTexture* t);
 	void SetupAlphaBlend();
@@ -68,6 +69,7 @@ protected:
 	void SetupScissor(const GSScale& scale);
 	void SetupFrameBufferAlpha();
 	void UpdateFrameBufferAlpha(const GSTextureCache::GSRenderTarget* rt);
+	bool SetupHacks(D3DPRIMITIVETYPE& prim, int& count, GSTextureCache::GSTexture* tex);
 
 	void ResetState();
 	void VertexKick(bool skip);

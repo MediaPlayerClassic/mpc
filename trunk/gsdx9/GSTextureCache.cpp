@@ -38,7 +38,7 @@ GSTextureCache::~GSTextureCache()
 
 bool GSTextureCache::Create()
 {
-	DWORD flags = D3DXSHADER_PARTIALPRECISION;
+	DWORD flags = 0;//D3DXSHADER_PARTIALPRECISION;
 	LPCTSTR target = NULL;
 
 	if(m_state->m_caps.PixelShaderVersion >= D3DPS_VERSION(3, 0))
@@ -222,6 +222,11 @@ GSTextureCache::GSDepthStencil* GSTextureCache::GetDepthStencil(const GIFRegTEX0
 		m_ds.AddHead(ds);
 	}
 
+	if(!m_state->m_context->ZBUF.ZMSK)
+	{
+		ds->m_used = true;
+	}
+
 	return ds;
 }
 
@@ -293,7 +298,7 @@ GSTextureCache::GSTexture* GSTextureCache::GetTextureNP()
 		{
 			GSDepthStencil* ds = m_ds.GetAt(pos);
 
-			if(ds->m_dirty.IsEmpty() && HasSharedBits(ds->m_TEX0.TBP0, ds->m_TEX0.PSM, TEX0.TBP0, TEX0.PSM))
+			if(ds->m_dirty.IsEmpty() && ds->m_used && HasSharedBits(ds->m_TEX0.TBP0, ds->m_TEX0.PSM, TEX0.TBP0, TEX0.PSM))
 			{
 				t = new GSTexture(this);
 
@@ -331,7 +336,20 @@ GSTextureCache::GSTexture* GSTextureCache::GetTextureNP()
 
 		memcpy(t->m_clut, clut, size);
 
-		if(t->m_palette) 
+/*
+		// TODO: sse2
+
+		DWORD sum = 0;
+		
+		for(int i = 0; i < pal; i++)
+		{
+			sum |= t->m_clut[i] ^ clut[i];
+
+			t->m_clut[i] = clut[i];
+		}
+*/
+
+		if(t->m_palette) // && sum != 0) 
 		{
 			D3DLOCKED_RECT r;
 

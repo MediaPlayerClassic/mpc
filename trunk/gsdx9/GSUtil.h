@@ -32,5 +32,6 @@ extern bool IsRectInRect(const CRect& inner, const CRect& outer);
 extern bool IsRectInRectH(const CRect& inner, const CRect& outer);
 extern bool IsRectInRectV(const CRect& inner, const CRect& outer);
 extern BYTE* LoadResource(UINT id, DWORD& size);
+extern bool CompileTFX(IDirect3DDevice9* dev, IDirect3DPixelShader9** ps, CString target, DWORD flags, int tfx, int bpp, int tcc, int aem, int fog, int rt, int fst, int clamp);
 extern bool CompileTFX(CString fn, CString target, DWORD flags);
 

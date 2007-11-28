@@ -122,7 +122,7 @@ protected:
 	D3DCAPS9 m_caps;
 	int m_nInterlace;
 	int m_nAspectRatio;
-	D3DTEXTUREFILTERTYPE m_filter;
+	int m_filter;
 
 	virtual void ResetState();
 	virtual HRESULT ResetDevice(bool fForceWindowed = false);

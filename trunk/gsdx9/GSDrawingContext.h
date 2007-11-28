@@ -24,6 +24,8 @@
 #include "GS.h"
 #include "GSLocalMemory.h"
 
+#pragma pack(push, 1)
+
 struct GSDrawingContext
 {
 	struct GSDrawingContext() {memset(this, 0, sizeof(*this));}
@@ -56,3 +58,5 @@ struct GSDrawingContext
 		scissor.y1 = (float)(int)((int)(SCISSOR.SCAY1 << 4) + (int)XYOFFSET.OFY);
 	}
 };
+
+#pragma pack(pop)

@@ -431,7 +431,7 @@
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalDependencies="d3d9.lib d3dx9.lib ddraw.lib dxguid.lib winmm.lib"
-				OutputFile="C:\Documents and Settings\Administrator\Desktop\pcsx2_32\plugins\GSdx9.dll"
+				OutputFile="C:\Users\Gabest\Desktop\pcsx2\plugins\GSdx9.dll"
 				LinkIncremental="2"
 				ModuleDefinitionFile=".\GSdx9.def"
 				GenerateDebugInformation="true"
@@ -610,7 +610,7 @@
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalDependencies="d3d9.lib d3dx9.lib ddraw.lib dxguid.lib winmm.lib"
-				OutputFile="$(OutDir)\GSdx9.dll"
+				OutputFile="C:\Users\Gabest\Desktop\pcsx2\plugins\GSdx9.dll"
 				LinkIncremental="1"
 				ModuleDefinitionFile=".\GSdx9.def"
 				GenerateDebugInformation="true"
@@ -1389,7 +1389,15 @@
 				>
 			</File>
 			<File
+				RelativePath=".\res\hlsl_tc.fx"
+				>
+			</File>
+			<File
 				RelativePath=".\res\hlsl_tfx.fx"
+				>
+			</File>
+			<File
+				RelativePath=".\res\hlsl_vertex.fx"
 				>
 			</File>
 		</Filter>
