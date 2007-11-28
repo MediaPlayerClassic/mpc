@@ -42,7 +42,7 @@ GSState::GSState()
 {
 	m_nInterlace = AfxGetApp()->GetProfileInt(_T("Settings"), _T("Interlace"), 0);
 	m_nAspectRatio = AfxGetApp()->GetProfileInt(_T("Settings"), _T("AspectRatio"), 1);
-	m_filter = (D3DTEXTUREFILTERTYPE)AfxGetApp()->GetProfileInt(_T("Settings"), _T("TextureFilter"), D3DTEXF_LINEAR);
+	m_filter = AfxGetApp()->GetProfileInt(_T("Settings"), _T("filter"), 1);
 	m_nloophack = AfxGetApp()->GetProfileInt(_T("Settings"), _T("nloophack"), 2) == 1;
 	m_vsync = !!AfxGetApp()->GetProfileInt(_T("Settings"), _T("vsync"), FALSE);
 
@@ -143,7 +143,7 @@ bool GSState::Create(LPCTSTR title)
 	m_caps.PixelShaderVersion = min(PixelShaderVersion, m_caps.PixelShaderVersion);
 	m_caps.VertexShaderVersion = m_caps.PixelShaderVersion & ~0x10000;
 
-	DWORD flags = D3DXSHADER_PARTIALPRECISION;
+	DWORD flags = 0;//D3DXSHADER_PARTIALPRECISION;
 	LPCTSTR target = NULL;
 
 	if(m_caps.PixelShaderVersion >= D3DPS_VERSION(3, 0))
@@ -280,7 +280,7 @@ HRESULT GSState::ResetDevice(bool fForceWindowed)
 	m_d3dpp.BackBufferHeight = 1;
 	m_d3dpp.PresentationInterval = m_vsync ? D3DPRESENT_INTERVAL_DEFAULT : D3DPRESENT_INTERVAL_IMMEDIATE;
 
-	if(!!pApp->GetProfileInt(_T("Settings"), _T("fEnableTvOut"), FALSE))
+	if(!!pApp->GetProfileInt(_T("Settings"), _T("tvout"), FALSE))
 	{
 		m_d3dpp.Flags |= D3DPRESENTFLAG_VIDEO;
 	}
@@ -368,9 +368,9 @@ HRESULT GSState::ResetDevice(bool fForceWindowed)
 
 	for(int i = 0; i < 8; i++)
 	{
-		hr = m_dev->SetSamplerState(i, D3DSAMP_MAGFILTER, m_filter);
-		hr = m_dev->SetSamplerState(i, D3DSAMP_MINFILTER, m_filter);
-		// hr = m_dev->SetSamplerState(i, D3DSAMP_MIPFILTER, m_filter);
+		hr = m_dev->SetSamplerState(i, D3DSAMP_MAGFILTER, D3DTEXF_LINEAR);
+		hr = m_dev->SetSamplerState(i, D3DSAMP_MINFILTER, D3DTEXF_LINEAR);
+		hr = m_dev->SetSamplerState(i, D3DSAMP_MIPFILTER, D3DTEXF_LINEAR);
 		hr = m_dev->SetSamplerState(i, D3DSAMP_ADDRESSU, D3DTADDRESS_CLAMP);
 		hr = m_dev->SetSamplerState(i, D3DSAMP_ADDRESSV, D3DTADDRESS_CLAMP);
 	}
@@ -679,7 +679,11 @@ void GSState::SetGameCRC(int crc, int options)
 	{
 		switch(crc)
 		{
-		case 0xa39517ab: // ffx pal
+		case 0xa39517ab: // ffx pal/eu
+		case 0xa39517ae: // ffx pal/fr
+		case 0xb286044d: // ffx pal/de
+		case 0xbb3d833a: // ffx ntsc/us
+		case 0x658597e2: // ffx int. ntsc/j
 			m_nloophack = true;
 			break;
 		}

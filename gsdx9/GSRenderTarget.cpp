@@ -161,12 +161,17 @@ void GSTextureCache::GSRenderTarget::Read(CRect r)
 
 	if(m_TEX0.PSM != PSM_PSMCT32 
 	&& m_TEX0.PSM != PSM_PSMCT24
-	//&& m_TEX0.PSM != PSM_PSMCT16
-	//&& m_TEX0.PSM != PSM_PSMCT16S
+	&& m_TEX0.PSM != PSM_PSMCT16
+	&& m_TEX0.PSM != PSM_PSMCT16S
 	)
 	{
 		//ASSERT(0);
 		return;
+	}
+
+	if(m_TEX0.PSM == PSM_PSMCT16 || m_TEX0.PSM == PSM_PSMCT16S)
+	{
+		int i = 0;
 	}
 
 	HRESULT hr;
@@ -224,7 +229,7 @@ void GSTextureCache::GSRenderTarget::Read(CRect r)
 	hr = s->m_dev->SetFVF(D3DFVF_XYZRHW | D3DFVF_TEX1);
 	hr = s->m_dev->DrawPrimitiveUP(D3DPT_TRIANGLESTRIP, 2, pVertices, sizeof(pVertices[0]));
 	hr = s->m_dev->EndScene();
-
+/*
 if(s_dump)
 {
 	CString str;
@@ -233,7 +238,7 @@ if(s_dump)
 	str.Format(_T("c:\\temp2\\_%05d_f%I64d_dr_%05x.bmp"), s_n++, s->m_perfmon.GetFrame(), m_TEX0.TBP0);
 	if(s_save) ::D3DXSaveTextureToFile(str, D3DXIFF_BMP, texture, NULL);
 }
-
+*/
 	hr = s->m_dev->GetRenderTargetData(surface, offscreen);
 
 	m_tc->Recycle(surface);
@@ -258,25 +263,25 @@ if(s_dump)
 			{
 				for(int y = r.top; y < r.bottom; y++, bits += lr.Pitch)
 				{
-					DWORD addr = pa(r.left, y, bp, bw);
-					int* offset = &GSLocalMemory::m_psmtbl[m_TEX0.PSM].rowOffset[y & 7][r.left];
+					DWORD addr = pa(0, y, bp, bw);
+					int* offset = GSLocalMemory::m_psmtbl[m_TEX0.PSM].rowOffset[y & 7];
 
 					for(int x = r.left, i = 0; x < r.right; x++, i++)
 					{
-						s->m_mem.writePixel32(addr + offset[i], ((DWORD*)bits)[i]);
+						s->m_mem.writePixel32(addr + offset[x], ((DWORD*)bits)[i]);
 					}
 				}
 			}
-			else if(m_TEX0.PSM != PSM_PSMCT24)
+			else if(m_TEX0.PSM == PSM_PSMCT24)
 			{
 				for(int y = r.top; y < r.bottom; y++, bits += lr.Pitch)
 				{
-					DWORD addr = pa(r.left, y, bp, bw);
-					int* offset = &GSLocalMemory::m_psmtbl[m_TEX0.PSM].rowOffset[y & 7][r.left];
+					DWORD addr = pa(0, y, bp, bw);
+					int* offset = GSLocalMemory::m_psmtbl[m_TEX0.PSM].rowOffset[y & 7];
 
 					for(int x = r.left, i = 0; x < r.right; x++, i++)
 					{
-						s->m_mem.writePixel24(addr + offset[i], ((DWORD*)bits)[i]);
+						s->m_mem.writePixel24(addr + offset[x], ((DWORD*)bits)[i]);
 					}
 				}
 			}
@@ -284,12 +289,12 @@ if(s_dump)
 			{
 				for(int y = r.top; y < r.bottom; y++, bits += lr.Pitch)
 				{
-					DWORD addr = pa(r.left, y, bp, bw);
-					int* offset = &GSLocalMemory::m_psmtbl[m_TEX0.PSM].rowOffset[y & 7][r.left];
+					DWORD addr = pa(0, y, bp, bw);
+					int* offset = GSLocalMemory::m_psmtbl[m_TEX0.PSM].rowOffset[y & 7];
 
 					for(int x = r.left, i = 0; x < r.right; x++, i++)
 					{
-						(s->m_mem.*wfa)(addr + offset[i], ((DWORD*)bits)[i]);
+						(s->m_mem.*wfa)(addr + offset[x], ((DWORD*)bits)[i]);
 					}
 				}
 			}

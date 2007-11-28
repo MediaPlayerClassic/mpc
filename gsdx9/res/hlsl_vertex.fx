@@ -39,9 +39,9 @@ VS_OUTPUT main(VS_INPUT input)
 	// tex
 	
 	output.tex.xy = input.tex * g_params[1].xy;
-	output.tex.z = input.pos.w > 0 ? input.pos.w : 1;
+	output.tex.z = input.pos.w < 0 ? 1 : input.pos.w; // FIXME: <= takes small but not 0 numbers as 0
 
 	//
-
+	
 	return output;
 }

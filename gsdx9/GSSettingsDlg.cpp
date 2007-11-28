@@ -62,8 +62,8 @@ GSSetting g_aspectratio[] =
 IMPLEMENT_DYNAMIC(GSSettingsDlg, CDialog)
 GSSettingsDlg::GSSettingsDlg(CWnd* pParent /*=NULL*/)
 	: CDialog(GSSettingsDlg::IDD, pParent)
-	, m_fEnableTvOut(FALSE)
-	, m_fLinearTextureFilter(TRUE)
+	, m_tvout(FALSE)
+	, m_filter(1)
 	, m_nloophack(2)
 	, m_nativeres(FALSE)
 	, m_vsync(FALSE)
@@ -97,8 +97,8 @@ void GSSettingsDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_COMBO4, m_psversion);
 	DDX_Control(pDX, IDC_COMBO2, m_interlace);
 	DDX_Control(pDX, IDC_COMBO5, m_aspectratio);
-	DDX_Check(pDX, IDC_CHECK3, m_fEnableTvOut);
-	DDX_Check(pDX, IDC_CHECK4, m_fLinearTextureFilter);
+	DDX_Check(pDX, IDC_CHECK3, m_tvout);
+	DDX_Check(pDX, IDC_CHECK4, m_filter);
 	DDX_Check(pDX, IDC_CHECK6, m_nloophack);	
 	DDX_Control(pDX, IDC_SPIN1, m_resx);
 	DDX_Control(pDX, IDC_SPIN2, m_resy);
@@ -179,8 +179,8 @@ BOOL GSSettingsDlg::OnInitDialog()
 
 	//
 
-	m_fLinearTextureFilter = (D3DTEXTUREFILTERTYPE)pApp->GetProfileInt(_T("Settings"), _T("TextureFilter"), D3DTEXF_LINEAR) == D3DTEXF_LINEAR;
-	m_fEnableTvOut = pApp->GetProfileInt(_T("Settings"), _T("fEnableTvOut"), FALSE);
+	m_filter = pApp->GetProfileInt(_T("Settings"), _T("filter"), 1);
+	m_tvout = pApp->GetProfileInt(_T("Settings"), _T("tvout"), FALSE);
 	m_nloophack = pApp->GetProfileInt(_T("Settings"), _T("nloophack"), 2);
 	m_vsync = !!pApp->GetProfileInt(_T("Settings"), _T("vsync"), FALSE);
 
@@ -237,8 +237,8 @@ void GSSettingsDlg::OnOK()
 		pApp->WriteProfileInt(_T("Settings"), _T("AspectRatio"), (DWORD)m_aspectratio.GetItemData(m_aspectratio.GetCurSel()));
 	}
 
-	pApp->WriteProfileInt(_T("Settings"), _T("TextureFilter"), m_fLinearTextureFilter ? D3DTEXF_LINEAR : D3DTEXF_POINT);
-	pApp->WriteProfileInt(_T("Settings"), _T("fEnableTvOut"), m_fEnableTvOut);
+	pApp->WriteProfileInt(_T("Settings"), _T("filter"), m_filter);
+	pApp->WriteProfileInt(_T("Settings"), _T("tvout"), m_tvout);
 	pApp->WriteProfileInt(_T("Settings"), _T("nloophack"), m_nloophack);
 	pApp->WriteProfileInt(_T("Settings"), _T("vsync"), m_vsync);
 

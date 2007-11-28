@@ -204,6 +204,62 @@ BYTE* LoadResource(UINT id, DWORD& size)
 	return NULL;
 }
 
+bool CompileTFX(IDirect3DDevice9* dev, IDirect3DPixelShader9** ps, CString target, DWORD flags, int tfx, int bpp, int tcc, int aem, int fog, int rt, int fst, int clamp)
+{
+	DWORD size = 0;
+
+	BYTE* buff = LoadResource(IDR_HLSL_TFX, size);
+
+	if(!buff || size == 0)
+	{
+		return false;
+	}
+
+	CString str[8];
+
+	str[0].Format(_T("%d"), tfx);
+	str[1].Format(_T("%d"), bpp);
+	str[2].Format(_T("%d"), tcc);
+	str[3].Format(_T("%d"), aem);
+	str[4].Format(_T("%d"), fog);
+	str[5].Format(_T("%d"), rt);
+	str[6].Format(_T("%d"), fst);
+	str[7].Format(_T("%d"), clamp);
+
+	D3DXMACRO macro[] =
+    {
+        {"TFX", str[0]},
+		{"BPP", str[1]},
+        {"TCC", str[2]},
+        {"AEM", str[3]},
+        {"FOG", str[4]},
+        {"RT", str[5]},
+        {"FST", str[6]},
+        {"CLAMP", str[7]},
+        {NULL, NULL},
+    };
+
+	HRESULT hr;
+
+	CComPtr<ID3DXBuffer> pShader, pErrorMsgs;
+
+	hr = D3DXCompileShader((LPCSTR)buff, size, (D3DXMACRO*)macro, NULL, _T("main"), target, flags, &pShader, &pErrorMsgs, NULL);
+
+	if(pErrorMsgs)
+	{
+		TRACE(_T("%s\n"), CString((LPCSTR)pErrorMsgs->GetBufferPointer()));
+	}
+
+	if(SUCCEEDED(hr))
+	{
+		hr = dev->CreatePixelShader((DWORD*)pShader->GetBufferPointer(), ps);
+	}
+
+	delete [] buff; 
+
+	return SUCCEEDED(hr);
+}
+
 bool CompileTFX(CString fn, CString target, DWORD flags)
 {
 	DWORD size = 0;
@@ -292,9 +348,7 @@ bool CompileTFX(CString fn, CString target, DWORD flags)
 
 									if(pErrorMsgs)
 									{
-										LPCSTR msg = (LPCSTR)pErrorMsgs->GetBufferPointer();
-
-										TRACE(_T("%s\n"), CString(msg));
+										TRACE(_T("%s\n"), CString((LPCSTR)pErrorMsgs->GetBufferPointer()));
 									}
 
 									if(FAILED(hr)) {delete [] buff; return false;}

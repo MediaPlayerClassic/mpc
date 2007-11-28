@@ -25,6 +25,7 @@
 
 GSTextureCache::GSDepthStencil::GSDepthStencil(GSTextureCache* tc)
 	: GSSurface(tc)
+	, m_used(false)
 {
 }
 
