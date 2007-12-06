@@ -627,7 +627,7 @@ void GSState::Merge(FlipInfo src[2], GSTexture2D& dst)
 
 	// vs
 
-	m_dev->VSSetShader(m_dev.m_merge.vs);
+	m_dev.VSSet(m_dev.m_merge.vs, NULL);
 
 	// gs
 
@@ -770,6 +770,12 @@ void GSState::Present()
 		{
 			SetWindowText(s_stats);
 		}
+
+		if(m_perfmon.Get(GSPerfMon::COLCLAMP)) _tprintf(_T("*** NOT SUPPORTED: color wrap ***\n"));
+		if(m_perfmon.Get(GSPerfMon::PABE)) _tprintf(_T("*** NOT SUPPORTED: per pixel alpha blend ***\n"));
+		if(m_perfmon.Get(GSPerfMon::DATE)) _tprintf(_T("*** PERFORMANCE WARNING: destination alpha test used ***\n"));
+		if(m_perfmon.Get(GSPerfMon::ABE)) _tprintf(_T("*** NOT SUPPORTED: alpha blending mode ***\n"));
+		if(m_perfmon.Get(GSPerfMon::DepthTexture)) _tprintf(_T("*** NOT SUPPORTED: depth texture ***\n"));		
 	}
 /*
 	if(m_osd && !m_d3dpp.Windowed)

@@ -57,6 +57,29 @@ bool HasSharedBits(DWORD sbp, DWORD spsm, DWORD dbp, DWORD dpsm)
 	return HasSharedBits(spsm, dpsm);
 }
 
+bool HasCompatibleBits(DWORD spsm, DWORD dpsm)
+{
+	if(spsm == dpsm) return true;
+
+	switch(spsm)
+	{
+	case PSM_PSMCT32:
+	case PSM_PSMCT24:
+		return dpsm == PSM_PSMCT32 || dpsm == PSM_PSMCT24;
+	case PSM_PSMCT16:
+	case PSM_PSMCT16S:
+		return dpsm == PSM_PSMCT16 || dpsm == PSM_PSMCT16S;
+	case PSM_PSMZ32:
+	case PSM_PSMZ24:
+		return dpsm == PSM_PSMZ32 || dpsm == PSM_PSMZ24;
+	case PSM_PSMZ16:
+	case PSM_PSMZ16S:
+		return dpsm == PSM_PSMZ16 || dpsm == PSM_PSMZ16S;
+	}
+
+	return false;
+}
+
 bool IsRectInRect(const CRect& inner, const CRect& outer)
 {
 	return outer.left <= inner.left && inner.right <= outer.right && outer.top <= inner.top && inner.bottom <= outer.bottom;

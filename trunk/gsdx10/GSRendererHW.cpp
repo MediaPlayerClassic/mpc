@@ -28,6 +28,7 @@ GSRendererHW::GSRendererHW()
 	: m_tc(this)
 	, m_width(1024)
 	, m_height(1024)
+	, m_skip(0)
 {
 	if(!AfxGetApp()->GetProfileInt(_T("Settings"), _T("nativeres"), FALSE))
 	{
@@ -52,18 +53,20 @@ bool GSRendererHW::Create(LPCTSTR title)
 
 	memset(&dsd, 0, sizeof(dsd));
 
-	dsd.DepthEnable = false;
+	dsd.DepthEnable = true;
+	dsd.DepthWriteMask = D3D10_DEPTH_WRITE_MASK_ZERO;
+	dsd.DepthFunc = D3D10_COMPARISON_GREATER; // shader will output depth <= 0 if it wants put zero into stencil
 	dsd.StencilEnable = true;
 	dsd.StencilReadMask = 1;
 	dsd.StencilWriteMask = 1;
 	dsd.FrontFace.StencilFunc = D3D10_COMPARISON_ALWAYS;
 	dsd.FrontFace.StencilPassOp = D3D10_STENCIL_OP_REPLACE;
 	dsd.FrontFace.StencilFailOp = D3D10_STENCIL_OP_KEEP;
-	dsd.FrontFace.StencilDepthFailOp = D3D10_STENCIL_OP_KEEP;
+	dsd.FrontFace.StencilDepthFailOp = D3D10_STENCIL_OP_ZERO;
 	dsd.BackFace.StencilFunc = D3D10_COMPARISON_ALWAYS;
 	dsd.BackFace.StencilPassOp = D3D10_STENCIL_OP_REPLACE;
 	dsd.BackFace.StencilFailOp = D3D10_STENCIL_OP_KEEP;
-	dsd.BackFace.StencilDepthFailOp = D3D10_STENCIL_OP_KEEP;
+	dsd.BackFace.StencilDepthFailOp = D3D10_STENCIL_OP_ZERO;
 
 	m_dev->CreateDepthStencilState(&dsd, &m_date.dss);
 
@@ -203,9 +206,9 @@ void GSRendererHW::DrawingKick(bool skip)
 	}
 
 	m_nVertices += nv;
-/*
-	// way too slow, but RR's shadows only look correct this way
 
+	// costs a few fps, but fixes RR's shadows (or anything which paints overlapping shapes with date)
+/*
 	if(m_context->TEST.DATE)
 	{
 		Flush();
@@ -231,7 +234,7 @@ void GSRendererHW::FlushPrim()
 void GSRendererHW::FlushPrimInternal()
 {
 /*
-TRACE(_T("[%d] FlushPrim f %05x (%d) z %05x (%d %d %d %d) t %05x %05x (%d) p %d\n"), 
+TRACE(_T("[%d] FlushPrim f %05x (%d) z %05x (%d %d %d %d) t %05x %05x (%d)\n"), 
 	  (int)m_perfmon.GetFrame(), 
 	  (int)m_context->FRAME.Block(), 
 	  (int)m_context->FRAME.PSM, 
@@ -242,30 +245,21 @@ TRACE(_T("[%d] FlushPrim f %05x (%d) z %05x (%d %d %d %d) t %05x %05x (%d) p %d\
 	  m_context->ZBUF.ZMSK, 
 	  m_pPRIM->TME ? (int)m_context->TEX0.TBP0 : 0xfffff, 
 	  m_pPRIM->TME && m_context->TEX0.PSM > PSM_PSMCT16S ? (int)m_context->TEX0.CBP : 0xfffff, 
-	  m_pPRIM->TME ? (int)m_context->TEX0.PSM : 0xff, 
-	  nPrims);
+	  m_pPRIM->TME ? (int)m_context->TEX0.PSM : 0xff);
 */
+	//
 
-	if(m_pPRIM->TME)
+	if(DetectBadFrame())
 	{
-		if(HasSharedBits(m_context->TEX0.TBP0, m_context->TEX0.PSM, m_context->FRAME.Block(), m_context->FRAME.PSM))
-		{
-			return;
-		}
-
-		// FIXME: depth textures (bully, mgs3s1 intro)
-
-		if(m_context->TEX0.PSM == PSM_PSMZ32 || m_context->TEX0.PSM == PSM_PSMZ24
-		|| m_context->TEX0.PSM == PSM_PSMZ16 || m_context->TEX0.PSM == PSM_PSMZ16S)
-		{
-			return;
-		}
-
+		return;
 	}
 
-//if(m_env.COLCLAMP.CLAMP == 0) _tprintf(_T("*** [%I64d] color wrap not supported ***\n"), m_perfmon.GetFrame());
-//if(m_env.PABE.PABE) _tprintf(_T("*** [%I64d] per pixel alpha blending not supported ***\n"), m_perfmon.GetFrame());
-//if(m_context->TEST.DATE) _tprintf(_T("*** [%I64d] destination alpha test not fully supported ***\n"), m_perfmon.GetFrame());
+if(s_n >= 1074)
+{
+	s_save = true;
+}
+
+	//
 
 	GIFRegTEX0 TEX0;
 
@@ -304,9 +298,12 @@ if(s_dump)
 	str.Format(_T("c:\\temp2\\_%05d_f%I64d_rz0_%05x_%d.bmp"), s_n-1, m_perfmon.GetFrame(), m_context->ZBUF.Block(), m_context->ZBUF.PSM);
 	if(s_savez) m_dev.SaveToFileD32S8X24(ds->m_texture, str);
 }
+
+	//
+
 	int prim = m_pPRIM->PRIM;
 
-	if(!SetupHacks(prim, m_nVertices, tex))
+	if(!OverrideInput(prim, m_nVertices, tex))
 	{
 		return;
 	}
@@ -337,7 +334,7 @@ if(s_dump)
 
 	m_perfmon.Put(GSPerfMon::Draw, 1);
 
-	//
+	// date
 
 	SetupDestinationAlphaTest(rt, ds);
 
@@ -569,6 +566,12 @@ if(s_dump)
 
 	m_dev.EndScene();
 
+
+	if(m_env.COLCLAMP.CLAMP == 0) m_perfmon.Put(GSPerfMon::COLCLAMP);
+	if(m_env.PABE.PABE) m_perfmon.Put(GSPerfMon::PABE);
+	if(m_context->TEST.DATE) m_perfmon.Put(GSPerfMon::DATE);
+	if(om_bsel.abe && om_bsel.a == om_bsel.d && om_bsel.a != om_bsel.b && om_bsel.a != 1 && om_bsel.b != 2) m_perfmon.Put(GSPerfMon::ABE);
+
 if(s_dump)
 {
 	CString str;
@@ -609,18 +612,21 @@ if(s_dump)
 	if(s_save) ::D3DX10SaveTextureToFile(rt->m_texture, D3DX10_IFF_BMP, str);
 }
 
-// s_dump = m_perfmon.GetFrame() >= 5000;
+//s_dump = m_perfmon.GetFrame() >= 5000;
+//if(m_perfmon.GetFrame() == 5000) m_tc.RemoveAll();
 		}
 	}
 
 	FinishFlip(src);
 
 	m_tc.IncAge();
+
+	m_skip = 0;
 }
 
 void GSRendererHW::InvalidateTexture(const GIFRegBITBLTBUF& BITBLTBUF, CRect r)
 {
-	// TRACE(_T("[%d] InvalidateTexture %d,%d - %d,%d %05x\n"), (int)m_perfmon.GetFrame(), r.left, r.top, r.right, r.bottom, (int)BITBLTBUF.DBP);
+	TRACE(_T("[%d] InvalidateTexture %d,%d - %d,%d %05x\n"), (int)m_perfmon.GetFrame(), r.left, r.top, r.right, r.bottom, (int)BITBLTBUF.DBP);
 
 	m_tc.InvalidateTexture(BITBLTBUF, &r);
 }
@@ -762,33 +768,104 @@ void GSRendererHW::SetupDestinationAlphaTest(GSTextureCache::GSRenderTarget* rt,
 
 	// sfex3 (after the capcom logo), vf4 (first menu fading in), ffxii shadows, rumble roses shadows
 
-	// om
+	float xmin = -1, xmax = +1;
+	float ymin = -1, ymax = +1;
 
-	m_dev.OMSet(m_date.dss, 1, m_date.bs, 0);
+	float umin = 0, umax = 1;
+	float vmin = 0, vmax = 1;
+
+	// if(m_nVertices < 1000) {
+
+#if _M_IX86_FP >= 2 || defined(_M_AMD64)
+		
+	__m128 xymin = _mm_set1_ps(+1e10);
+	__m128 xymax = _mm_set1_ps(-1e10);
+
+	for(int i = 0, j = m_nVertices; i < j; i++)
+	{
+		xymin = _mm_min_ps(m_pVertices[i].m128[0], xymin);
+		xymax = _mm_max_ps(m_pVertices[i].m128[0], xymax);
+	}
+
+	xmin = xymin.m128_f32[0];
+	ymin = xymin.m128_f32[1];
+	xmax = xymax.m128_f32[0];
+	ymax = xymax.m128_f32[1];
+
+#else	
+
+	xmin = ymin = +1e10;
+	xmax = ymax = -1e10;
+
+	for(int i = 0, j = m_nVertices; i < j; i++)
+	{
+		float x = m_pVertices[i].x;
+
+		if(x < xmin) xmin = x;
+		if(x > xmax) xmax = x;
+		
+		float y = m_pVertices[i].y;
+
+		if(y < ymin) ymin = y;
+		if(y > ymax) ymax = y;
+	}
+
+#endif
+
+	float sx = 2.0f * rt->m_scale.x / (rt->m_texture.m_desc.Width * 16);
+	float sy = 2.0f * rt->m_scale.y / (rt->m_texture.m_desc.Height * 16);
+	float ox = (float)(int)m_context->XYOFFSET.OFX;
+	float oy = (float)(int)m_context->XYOFFSET.OFY;
+
+	xmin = xmin * sx - (ox * sx + 1);
+	xmax = xmax * sx - (ox * sx + 1);
+	ymin = ymin * sy - (oy * sy + 1);
+	ymax = ymax * sy - (oy * sy + 1);
+
+	if(xmin < -1) xmin = -1;
+	if(xmax > +1) xmax = +1;
+	if(ymin < -1) ymin = -1;
+	if(ymax > +1) ymax = +1;
+	
+	umin = (xmin + 1) / 2;
+	umax = (xmax + 1) / 2;
+	vmin = (ymin + 1) / 2;
+	vmax = (ymax + 1) / 2;
+
+	TRACE(_T("[%I64d] %.2f %.2f %.2f %.2f | %.2f %.2f %.2f %.2f\n"), 
+		m_perfmon.GetFrame(), 
+		xmin, xmax, ymin, ymax,
+		umin, umax, vmin, vmax);
+
+	// }
+
+	// om
 
 	GSTexture2D tmp;
 
 	m_dev.CreateRenderTarget(tmp, rt->m_texture.m_desc.Width, rt->m_texture.m_desc.Height);
 
-	m_dev->ClearDepthStencilView(ds->m_texture, D3D10_CLEAR_STENCIL, 0, 0);
+	// m_dev->ClearDepthStencilView(ds->m_texture, D3D10_CLEAR_STENCIL, 0, 0);
 
 	m_dev.OMSet(tmp, ds->m_texture);
+
+	m_dev.OMSet(m_date.dss, 1, m_date.bs, 0);
 
 	// ia
 
 	VertexPT1 vertices[] =
 	{
-		{-1, +1, 0.5f, 1.0f, 0, 0},
-		{+1, +1, 0.5f, 1.0f, 1, 0},
-		{-1, -1, 0.5f, 1.0f, 0, 1},
-		{+1, -1, 0.5f, 1.0f, 1, 1},
+		{xmin, -ymin, 0.5f, 1.0f, umin, vmin},
+		{xmax, -ymin, 0.5f, 1.0f, umax, vmin},
+		{xmin, -ymax, 0.5f, 1.0f, umin, vmax},
+		{xmax, -ymax, 0.5f, 1.0f, umax, vmax},
 	};
 
 	m_dev.IASet(m_dev.m_convert.vb, 4, vertices, m_dev.m_convert.il, D3D10_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
 	// vs
 
-	m_dev->VSSetShader(m_dev.m_convert.vs);
+	m_dev.VSSet(m_dev.m_convert.vs, NULL);
 
 	// gs
 
@@ -796,30 +873,140 @@ void GSRendererHW::SetupDestinationAlphaTest(GSTextureCache::GSRenderTarget* rt,
 
 	// ps
 
-	m_dev.PSSet(m_dev.m_convert.ps[m_context->TEST.DATM ? 2 : 3], m_dev.m_ss_point);
-
 	ID3D10ShaderResourceView* srvs[] = {rt->m_texture};
 
 	m_dev->PSSetShaderResources(0, 1, srvs);
+
+	m_dev.PSSet(m_dev.m_convert.ps[m_context->TEST.DATM ? 2 : 3], m_dev.m_ss_point);
 
 	// rs
 
 	m_dev.RSSet(tmp.m_desc.Width, tmp.m_desc.Height);
 
-	//
+	// set
 
 	m_dev->Draw(4, 0);
+
+	//
 
 	m_dev.EndScene();
 
 	m_dev.Recycle(tmp);
 }
 
-bool GSRendererHW::SetupHacks(int& prim, int& count, GSTextureCache::GSTexture* tex)
+bool GSRendererHW::DetectBadFrame()
+{
+	DWORD FBP = m_context->FRAME.Block();
+	DWORD FPSM = m_context->FRAME.PSM;
+
+	bool TME = m_pPRIM->TME;
+	DWORD TBP0 = m_context->TEX0.TBP0;
+	DWORD TPSM = m_context->TEX0.PSM;
+
+	switch(m_crc)
+	{
+	case 0x21068223: // okami ntsc/us
+
+		if(m_skip == 0)
+		{
+			//if(TME && FBP == 0x02c00 && FPSM == PSM_PSMCT16 && TBP0 == 0x02800 && TPSM == PSM_PSMCT16)
+			if(TME && FBP == 0x00e00 && FPSM == PSM_PSMCT32 && TBP0 == 0x00000 && TPSM == PSM_PSMCT32)
+			{
+				m_skip = 1000; // 240;
+			}
+		}
+		else
+		{
+			if(TME && FBP == 0x00e00 && FPSM == PSM_PSMCT32 && TBP0 == 0x03800 && TPSM == PSM_PSMT4)
+			{
+				m_skip = 0;
+			}
+		}
+
+		break;
+
+	case 0x053D2239: // mgs3s1 ntsc/us
+
+		if(m_skip == 0)
+		{
+			if(TME && FBP == 0x02000 && FPSM == PSM_PSMCT32 && (TBP0 == 0x00000 || TBP0 == 0x01000) && TPSM == PSM_PSMCT24)
+			{
+				m_skip = 1000; // 76, 79
+			}
+			else if(TME && FBP == 0x02800 && FPSM == PSM_PSMCT24 && (TBP0 == 0x00000 || TBP0 == 0x01000) && TPSM == PSM_PSMCT32)
+			{
+				m_skip = 1000; // 69
+			}
+		}
+		else 
+		{
+			if(!TME && (FBP == 0x00000 || FBP == 0x01000) && FPSM == PSM_PSMCT32)
+			{
+				m_skip = 0;
+			}
+		}
+
+		break;
+
+	case 0x278722BF: // dbz bt2 ntsc/us
+
+		if(m_skip == 0)
+		{
+			if(TME && /*FBP == 0x00000 && FPSM == PSM_PSMCT16 &&*/ TBP0 == 0x02000 && TPSM == PSM_PSMZ16)
+			{
+				m_skip = 27;
+			}
+		}
+
+		break;
+
+	case 0x72B3802A: // sfex3 ntsc/us
+
+		if(m_skip == 0)
+		{
+			if(TME && FBP == 0x00f00 && FPSM == PSM_PSMCT16 && (TBP0 == 0x00500 || TBP0 == 0x00000) && TPSM == PSM_PSMCT32)
+			{
+				m_skip = 4;
+			}
+		}
+
+		break;
+	}
+
+	if(m_skip == 0)
+	{
+		if(TME)
+		{
+			if(HasSharedBits(FBP, FPSM, TBP0, TPSM))
+			{
+				m_skip = 1;
+			}
+
+			// depth textures (bully, mgs3s1 intro)
+
+			if(TPSM == PSM_PSMZ32 || TPSM == PSM_PSMZ24 || TPSM == PSM_PSMZ16 || TPSM == PSM_PSMZ16S)
+			{
+				m_perfmon.Put(GSPerfMon::DepthTexture);
+				m_skip = 1;
+			}
+		}
+	}
+
+	if(m_skip > 0)
+	{
+		m_skip--;
+
+		return true;
+	}
+
+	return false;
+}
+
+bool GSRendererHW::OverrideInput(int& prim, int& count, GSTextureCache::GSTexture* tex)
 {
 	#pragma region ffxii pal video conversion
 
-	if(m_crc == 0x78da0252 || m_crc == 0xc1274668 || m_crc == 0xdc2a467e)
+	if(m_crc == 0x78da0252 || m_crc == 0xc1274668 || m_crc == 0xdc2a467e || m_crc == 0xca284668)
 	{
 		static DWORD* video = NULL;
 		static bool ok = false;

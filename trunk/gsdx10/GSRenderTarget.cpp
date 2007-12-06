@@ -62,11 +62,11 @@ void GSTextureCache::GSRenderTarget::Update()
 
 	HRESULT hr;
 
+	if(r.right > 1024) {ASSERT(0); r.right = 1024;}
+	if(r.bottom > 1024) {ASSERT(0); r.bottom = 1024;}
+
 	int w = r.Width();
 	int h = r.Height();
-
-	if(w > 1024) {ASSERT(0); w = 1024;}
-	if(h > 1024) {ASSERT(0); h = 1024;}
 
 	static BYTE* buff = (BYTE*)::_aligned_malloc(1024 * 1024 * 4, 16);
 	static int pitch = 1024 * 4;
@@ -84,7 +84,7 @@ void GSTextureCache::GSRenderTarget::Update()
 
 	s->m_mem.ReadTexture(r, buff, pitch, m_TEX0, TEXA, CLAMP);
 	
-	s->m_perfmon.Put(GSPerfMon::Unswizzle, r.Width() * r.Height() * 4);
+	s->m_perfmon.Put(GSPerfMon::Unswizzle, w * h * 4);
 
 	GSTexture2D texture;
 

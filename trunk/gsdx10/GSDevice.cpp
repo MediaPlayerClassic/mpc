@@ -29,6 +29,8 @@ GSDevice::GSDevice()
 	, m_vb_stride(0)
 	, m_layout(NULL)
 	, m_topology(D3D10_PRIMITIVE_TOPOLOGY_UNDEFINED)
+	, m_vs(NULL)
+	, m_vs_cb(NULL)
 	, m_gs(NULL)
 	, m_ps(NULL)
 	, m_ps_ss(NULL)
@@ -294,6 +296,23 @@ void GSDevice::IASet(ID3D10Buffer* vb, UINT count, const void* vertices, UINT st
 	}
 }
 
+void GSDevice::VSSet(ID3D10VertexShader* vs, ID3D10Buffer* vs_cb)
+{
+	if(m_vs != vs)
+	{
+		m_dev->VSSetShader(vs);
+
+		m_vs = vs;
+	}
+	
+	if(m_vs_cb != vs_cb)
+	{
+		m_dev->VSSetConstantBuffers(0, 1, &vs_cb);
+
+		m_vs_cb = vs_cb;
+	}
+}
+
 void GSDevice::GSSet(ID3D10GeometryShader* gs)
 {
 	if(m_gs != gs)
@@ -454,7 +473,7 @@ HRESULT GSDevice::Create(GSTexture2D& t, int w, int h, DXGI_FORMAT format, D3D10
 		t.m_desc = desc;
 	}
 
-_tprintf(_T("Create %d x %d (%d %d %d) => %08x (%d)\n"), w, h, usage, bindFlags, format, hr, m_pool.GetCount());
+//_tprintf(_T("Create %d x %d (%d %d %d) => %08x (%d)\n"), w, h, usage, bindFlags, format, hr, m_pool.GetCount());
 
 	return hr;
 }
@@ -571,7 +590,7 @@ void GSDevice::StretchRect(int count, GSTexture2D* st, const D3DXVECTOR4& sr, GS
 
 	// vs
 
-	m_dev->VSSetShader(m_convert.vs);
+	VSSet(m_convert.vs, NULL);
 
 	// gs
 

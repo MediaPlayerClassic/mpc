@@ -30,6 +30,7 @@ class GSRendererHW : public GSRenderer<GSVertexHW>
 protected:
 	int m_width;
 	int m_height;
+	int m_skip;
 
 	GSTextureCache m_tc;
 	GSTextureFX m_tfx;
@@ -52,7 +53,9 @@ protected:
 
 	void SetupDestinationAlphaTest(GSTextureCache::GSRenderTarget* rt, GSTextureCache::GSDepthStencil* ds);
 
-	bool SetupHacks(int& prim, int& count, GSTextureCache::GSTexture* tex);
+	bool DetectBadFrame();
+
+	bool OverrideInput(int& prim, int& count, GSTextureCache::GSTexture* tex);	
 
 public:
 	GSRendererHW();
