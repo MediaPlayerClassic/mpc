@@ -30,6 +30,8 @@ GSPerfMon::GSPerfMon()
 	, m_frame(0)
 	, m_lastframe(0)
 {
+	memset(m_stats, 0, sizeof(m_stats));
+	memset(m_warnings, 0, sizeof(m_warnings));
 }
 
 void GSPerfMon::Put(counter_t c, double val)

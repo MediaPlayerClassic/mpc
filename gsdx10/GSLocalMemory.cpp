@@ -456,28 +456,33 @@ bool GSLocalMemory::FillRect(const CRect& r, DWORD c, DWORD psm, DWORD fbp, DWOR
 
 ////////////////////
 
-void GSLocalMemory::WriteCLUT(GIFRegTEX0 TEX0, GIFRegTEXCLUT TEXCLUT)
+bool GSLocalMemory::IsCLUTDirty(GIFRegTEX0 TEX0, GIFRegTEXCLUT TEXCLUT)
+{
+	return m_fCLUTMayBeDirty || m_prevTEX0.i64 != TEX0.i64 || m_prevTEXCLUT.i64 != TEXCLUT.i64;
+}
+
+bool GSLocalMemory::WriteCLUT(GIFRegTEX0 TEX0, GIFRegTEXCLUT TEXCLUT)
 {
 	switch(TEX0.CLD)
 	{
 	default:
-	case 0: return;
+	case 0: return false;
 	case 1: break;
 	case 2: m_CBP[0] = TEX0.CBP; break;
 	case 3: m_CBP[1] = TEX0.CBP; break;
-	case 4: if(m_CBP[0] == TEX0.CBP) return; break;
-	case 5: if(m_CBP[1] == TEX0.CBP) return; break;
+	case 4: if(m_CBP[0] == TEX0.CBP) return false;
+	case 5: if(m_CBP[1] == TEX0.CBP) return false;
 	}
 
+	if(!IsCLUTDirty(TEX0, TEXCLUT))
 	{
-		if(!m_fCLUTMayBeDirty && m_prevTEX0.i64 == TEX0.i64 && m_prevTEXCLUT.i64 == TEXCLUT.i64)
-			return;
-
-		m_prevTEX0 = TEX0;
-		m_prevTEXCLUT = TEXCLUT;
-
-		m_fCLUTMayBeDirty = false;
+		return false;
 	}
+
+	m_prevTEX0 = TEX0;
+	m_prevTEXCLUT = TEXCLUT;
+
+	m_fCLUTMayBeDirty = false;
 
 	DWORD bp = TEX0.CBP;
 	DWORD bw = TEX0.CSM == 0 ? 1 : TEXCLUT.CBW;
@@ -540,6 +545,8 @@ void GSLocalMemory::WriteCLUT(GIFRegTEX0 TEX0, GIFRegTEXCLUT TEXCLUT)
 			}
 		}
 	}
+
+	return true;
 }
 
 //

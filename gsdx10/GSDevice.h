@@ -72,6 +72,9 @@ class GSDevice
 	ID3D10InputLayout* m_layout;
 	D3D10_PRIMITIVE_TOPOLOGY m_topology;
 
+	ID3D10VertexShader* m_vs;
+	ID3D10Buffer* m_vs_cb;
+
 	ID3D10GeometryShader* m_gs;
 
 	ID3D10PixelShader* m_ps;
@@ -146,8 +149,9 @@ public:
 	void Present();
 
 	void IASet(ID3D10Buffer* vb, UINT count, const void* vertices, UINT stride, ID3D10InputLayout* layout, D3D10_PRIMITIVE_TOPOLOGY topology);
-	void PSSet(ID3D10PixelShader* ps, ID3D10SamplerState* ss);
+	void VSSet(ID3D10VertexShader* vs, ID3D10Buffer* vs_cb);
 	void GSSet(ID3D10GeometryShader* gs);
+	void PSSet(ID3D10PixelShader* ps, ID3D10SamplerState* ss);
 	void RSSet(int width, int height, const RECT* scissor = NULL);
 	void OMSet(ID3D10DepthStencilState* dss, UINT sref, ID3D10BlendState* bs, float bf);
 	void OMSet(ID3D10RenderTargetView* rtv, ID3D10DepthStencilView* dsv);

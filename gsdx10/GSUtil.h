@@ -23,6 +23,7 @@
 
 extern bool HasSharedBits(DWORD spsm, DWORD dpsm);
 extern bool HasSharedBits(DWORD sbp, DWORD spsm, DWORD dbp, DWORD dpsm);
+extern bool HasCompatibleBits(DWORD spsm, DWORD dpsm);
 extern bool IsRectInRect(const CRect& inner, const CRect& outer);
 extern bool IsRectInRectH(const CRect& inner, const CRect& outer);
 extern bool IsRectInRectV(const CRect& inner, const CRect& outer);

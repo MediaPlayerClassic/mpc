@@ -50,7 +50,6 @@ public:
 	CComboBox m_renderer;
 	CComboBox m_interlace;
 	CComboBox m_aspectratio;
-	BOOL m_tvout;
 	int m_filter;
 	int m_nloophack;
 	CSpinButtonCtrl m_resx;

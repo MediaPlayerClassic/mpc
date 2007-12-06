@@ -53,25 +53,25 @@ bool GSTextureFX::Create(GSDevice* dev)
 
 	// buffers
 
-    D3D10_BUFFER_DESC bd;
+	D3D10_BUFFER_DESC bd;
 
 	memset(&bd, 0, sizeof(bd));
-    
-	bd.ByteWidth = sizeof(VSConstantBuffer);
-    bd.Usage = D3D10_USAGE_DEFAULT;
-    bd.BindFlags = D3D10_BIND_CONSTANT_BUFFER;
 
-    hr = (*m_dev)->CreateBuffer(&bd, NULL, &m_vs_cb);
+	bd.ByteWidth = sizeof(VSConstantBuffer);
+	bd.Usage = D3D10_USAGE_DEFAULT;
+	bd.BindFlags = D3D10_BIND_CONSTANT_BUFFER;
+
+	hr = (*m_dev)->CreateBuffer(&bd, NULL, &m_vs_cb);
 
 	if(FAILED(hr)) return false;
 
 	memset(&bd, 0, sizeof(bd));
-    
-	bd.ByteWidth = sizeof(PSConstantBuffer);
-    bd.Usage = D3D10_USAGE_DEFAULT;
-    bd.BindFlags = D3D10_BIND_CONSTANT_BUFFER;
 
-    hr = (*m_dev)->CreateBuffer(&bd, NULL, &m_ps_cb);
+	bd.ByteWidth = sizeof(PSConstantBuffer);
+	bd.Usage = D3D10_USAGE_DEFAULT;
+	bd.BindFlags = D3D10_BIND_CONSTANT_BUFFER;
+
+	hr = (*m_dev)->CreateBuffer(&bd, NULL, &m_ps_cb);
 
 	if(FAILED(hr)) return false;
 
@@ -124,9 +124,7 @@ bool GSTextureFX::SetupVS(const VSConstantBuffer* cb)
 {
 	(*m_dev)->UpdateSubresource(m_vs_cb, 0, NULL, cb, 0, 0);
 
-	(*m_dev)->VSSetConstantBuffers(0, 1, &m_vs_cb.p);
-
-	(*m_dev)->VSSetShader(m_vs);
+	m_dev->VSSet(m_vs, m_vs_cb);
 
 	return true;
 }
@@ -415,7 +413,7 @@ void GSTextureFX::UpdateOM(OMDepthStencilSelector dssel, OMBlendSelector bsel, f
 				{0, D3D10_BLEND_OP_ADD, D3D10_BLEND_ZERO, D3D10_BLEND_INV_DEST_ALPHA},				// 2111: (0 - Cd)*Ad + Cd ==> Cd*(1 - Ad)
 				{0, D3D10_BLEND_OP_SUBTRACT, D3D10_BLEND_ONE, D3D10_BLEND_DEST_ALPHA},				// 2112: (0 - Cd)*Ad + 0 ==> 0 - Cd*Ad
 				{0, D3D10_BLEND_OP_SUBTRACT, D3D10_BLEND_ONE, D3D10_BLEND_BLEND_FACTOR},			// 2120: (0 - Cd)*F + Cs ==> Cs - Cd*F
-				{0, D3D10_BLEND_OP_ADD, D3D10_BLEND_ZERO, D3D10_BLEND_INV_BLEND_FACTOR},				// 2121: (0 - Cd)*F + Cd ==> Cd*(1 - F)
+				{0, D3D10_BLEND_OP_ADD, D3D10_BLEND_ZERO, D3D10_BLEND_INV_BLEND_FACTOR},			// 2121: (0 - Cd)*F + Cd ==> Cd*(1 - F)
 				{0, D3D10_BLEND_OP_SUBTRACT, D3D10_BLEND_ONE, D3D10_BLEND_BLEND_FACTOR},			// 2122: (0 - Cd)*F + 0 ==> 0 - Cd*F
 				{0, D3D10_BLEND_OP_ADD, D3D10_BLEND_ONE, D3D10_BLEND_ZERO},							// 2200: (Cs/Cd/0 - Cs/Cd/0)*As/Ad/F + Cs ==> Cs
 				{0, D3D10_BLEND_OP_ADD, D3D10_BLEND_ZERO, D3D10_BLEND_ONE},							// 2201: (Cs/Cd/0 - Cs/Cd/0)*As/Ad/F + Cd ==> Cd
@@ -428,7 +426,7 @@ void GSTextureFX::UpdateOM(OMDepthStencilSelector dssel, OMBlendSelector bsel, f
 				{0, D3D10_BLEND_OP_ADD, D3D10_BLEND_ZERO, D3D10_BLEND_ZERO},						// 2222: (Cs/Cd/0 - Cs/Cd/0)*As/Ad/F + 0 ==> 0
 			};
 
-			// bogus: 0100, 0110, 0120, 1001, 1011, 1021, 0200, 0210, 0220
+			// bogus: 0100, 0110, 0120, 0200, 0210, 0220, 1001, 1011, 1021
 
 			// tricky: 1201, 1211, 1221
 			//
@@ -456,9 +454,6 @@ void GSTextureFX::UpdateOM(OMDepthStencilSelector dssel, OMBlendSelector bsel, f
 				ASSERT(0);
 
 				(bsel.a == 0 ? bd.SrcBlend : bd.DestBlend) = D3D10_BLEND_ONE;
-
-_tprintf(_T("*** not supported alpha blending mode used %d %d %d %d ***\n"), bsel.a, bsel.c, bsel.c, bsel.d);
-
 			}
 			else if(map[i].bogus == 2)
 			{

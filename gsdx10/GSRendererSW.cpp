@@ -233,7 +233,7 @@ if(s_dump)
 	if(m_pPRIM->TME) if(s_save) {m_mem.SetupCLUT32(m_context->TEX0, m_env.TEXA); m_mem.SaveBMP(m_dev, str, m_context->TEX0.TBP0, m_context->TEX0.TBW, m_context->TEX0.PSM, 1 << m_context->TEX0.TW, 1 << m_context->TEX0.TH);}
 
 	str.Format(_T("c:\\temp1\\_%05d_f%I64d_rt0_%05x_%d.bmp"), s_n++, m_perfmon.GetFrame(), m_context->FRAME.Block(), m_context->FRAME.PSM);
-	if(s_save) m_mem.SaveBMP(m_dev, str, m_context->FRAME.Block(), m_context->FRAME.FBW, m_context->FRAME.PSM, m_regs.GetFrameSize(1).cx, 512);//m_regs.GetFrameSize(1).cy);
+	if(s_save) {m_mem.SaveBMP(m_dev, str, m_context->FRAME.Block(), m_context->FRAME.FBW, m_context->FRAME.PSM, m_regs.GetFrameSize(1).cx, 512);}//m_regs.GetFrameSize(1).cy);
 }
 
 	bZTE = m_context->TEST.ZTE && m_context->TEST.ZTST >= 2 || !m_context->ZBUF.ZMSK;
@@ -314,7 +314,7 @@ if(s_dump)
 {
 	CString str;
 	str.Format(_T("c:\\temp1\\_%05d_f%I64d_rt1_%05x_%d.bmp"), s_n++, m_perfmon.GetFrame(), m_context->FRAME.Block(), m_context->FRAME.PSM);
-	if(s_save) m_mem.SaveBMP(m_dev, str, m_context->FRAME.Block(), m_context->FRAME.FBW, m_context->FRAME.PSM, m_regs.GetFrameSize(1).cx, 512);//m_regs.GetFrameSize(1).cy);
+	if(s_save) {m_mem.SaveBMP(m_dev, str, m_context->FRAME.Block(), m_context->FRAME.FBW, m_context->FRAME.PSM, m_regs.GetFrameSize(1).cx, 512);}//m_regs.GetFrameSize(1).cy);
 }
 }
 
