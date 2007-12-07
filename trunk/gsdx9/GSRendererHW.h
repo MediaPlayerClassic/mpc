@@ -22,27 +22,7 @@
 #pragma once
 
 #include "GSRenderer.h"
-
-#pragma pack(push, 1)
-
-__declspec(align(16)) union GSVertexHW
-{
-	struct
-	{
-		float x, y, z, w;
-		union {struct {BYTE r, g, b, a;}; D3DCOLOR color;};
-		D3DCOLOR fog;
-		float tu, tv;
-	};
-	
-	struct {__m128i xmm[2];};
-
-#if _M_IX86_FP >= 2 || defined(_M_AMD64)
-	GSVertexHW& operator = (GSVertexHW& v) {xmm[0] = v.xmm[0]; xmm[1] = v.xmm[1]; return *this;}
-#endif
-};
-
-#pragma pack(pop)
+#include "GSVertexHW.h"
 
 class GSRendererHW : public GSRenderer<GSVertexHW>
 {

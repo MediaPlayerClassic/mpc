@@ -23,10 +23,9 @@
 #include "GSdx9.h"
 #include "GS.h"
 #include "GSRendererHW.h"
-#include "GSRendererSoft.h"
+#include "GSRendererSW.h"
 #include "GSRendererNull.h"
 #include "GSSettingsDlg.h"
-#include "GSTransferThread.h"
 
 #define PS2E_LT_GS 0x01
 #define PS2E_GS_VERSION 0x0006
@@ -81,8 +80,8 @@ EXPORT_C_(char*) PS2EgetLibName()
 EXPORT_C_(UINT32) PS2EgetLibVersion2(UINT32 type)
 {
 	const UINT32 revision = 0;
-	const UINT32 build = 10;
-	const UINT32 minor = 9;
+	const UINT32 build = 11;
+	const UINT32 minor = 0;
 
 	return (build << 0) | (revision << 8) | (PS2E_GS_VERSION << 16) | (minor << 24);
 }
@@ -100,7 +99,6 @@ EXPORT_C_(UINT32) PS2EgetCpuPlatform()
 
 static HRESULT s_hrCoInit = E_FAIL;
 static GSState* s_gs;
-// static GSTransferThread* s_gst;
 static void (*s_irq)() = NULL;
 
 BYTE* g_pBasePS2Mem = NULL;
@@ -125,7 +123,6 @@ EXPORT_C GSshutdown()
 EXPORT_C GSclose()
 {
 	delete s_gs; s_gs = NULL;
-	// delete s_gst; s_gst = NULL;
 
 	if(SUCCEEDED(s_hrCoInit))
 	{
@@ -144,8 +141,7 @@ EXPORT_C_(INT32) GSopen(void* dsp, char* title, int mt)
 	switch(AfxGetApp()->GetProfileInt(_T("Settings"), _T("Renderer"), RENDERER_D3D_HW))
 	{
 	case RENDERER_D3D_HW: s_gs = new GSRendererHW(); break;
-	case RENDERER_D3D_SW_FP: s_gs = new GSRendererSoftFP(); break;
-	// case RENDERER_D3D_SW_FX: s_gs = new GSRendererSoftFX(); break;
+	case RENDERER_D3D_SW_FP: s_gs = new GSRendererSWFP(); break;
 	case RENDERER_D3D_NULL: s_gs = new GSRendererNull(); break;
 	default: return -1;
 	}
@@ -158,8 +154,6 @@ EXPORT_C_(INT32) GSopen(void* dsp, char* title, int mt)
 		return -1;
 	}
 
-	// s_gst = new GSTransferThread(s_gs);
-
 	s_gs->SetIrq(s_irq);
 	s_gs->SetMT(!!mt);
 	s_gs->Show();
@@ -171,9 +165,6 @@ EXPORT_C_(INT32) GSopen(void* dsp, char* title, int mt)
 
 EXPORT_C GSreset()
 {
-	// s_gst->Wait();
-	// s_gst->Reset();
-
 	s_gs->Reset();
 }
 
@@ -184,8 +175,6 @@ EXPORT_C GSwriteCSR(UINT32 csr)
 
 EXPORT_C GSreadFIFO(BYTE* mem)
 {
-	// s_gst->Wait();
-
 	s_gs->ReadFIFO(mem, 1);
 }
 
@@ -196,29 +185,21 @@ EXPORT_C GSreadFIFO2(BYTE* mem, UINT32 size)
 
 EXPORT_C GSgifTransfer1(BYTE* mem, UINT32 addr)
 {
-	// s_gst->Transfer(mem + addr, (0x4000 - addr) / 16, 0);
-
 	s_gs->Transfer(mem + addr, (0x4000 - addr) / 16, 0);
 }
 
 EXPORT_C GSgifTransfer2(BYTE* mem, UINT32 size)
 {
-	// s_gst->Transfer(mem, size, 1);
-
 	s_gs->Transfer(mem, size, 1);
 }
 
 EXPORT_C GSgifTransfer3(BYTE* mem, UINT32 size)
 {
-	// s_gst->Transfer(mem, size, 2);
-
 	s_gs->Transfer(mem, size, 2);
 }
 
 EXPORT_C GSvsync(int field)
 {
-	// s_gst->Wait();
-
 	MSG msg;
 
 	memset(&msg, 0, sizeof(msg));
@@ -254,8 +235,6 @@ EXPORT_C GSkeyEvent(keyEvent* ev)
 
 EXPORT_C_(INT32) GSfreeze(int mode, freezeData* data)
 {
-	// s_gst->Wait();
-
 	if(mode == FREEZE_SAVE)
 	{
 		return s_gs->Freeze(data, false);
@@ -371,64 +350,3 @@ EXPORT_C GSsetFrameSkip(int frameskip)
 {
 	s_gs->SetFrameSkip(frameskip);
 }
-
-/////////////////
-/*
-EXPORT_C GSReplay(HWND hwnd, HINSTANCE hinst, LPSTR lpszCmdLine, int nCmdShow)
-{
-	if(!GSinit())
-	{
-		HWND hWnd = NULL;
-		if(!GSopen((void*)&hWnd, REPLAY_TITLE))
-		{
-			if(FILE* sfp = _tfopen(lpszCmdLine, _T("rb")))
-			{
-				BYTE* buff = (BYTE*)_aligned_malloc(4*1024*1024, 16);
-
-				while(!feof(sfp))
-				{
-					switch(fgetc(sfp))
-					{
-					case ST_WRITE:
-						{
-						GS_REG mem;
-						UINT64 value, mask;
-						fread(&mem, 4, 1, sfp);
-						fread(&value, 8, 1, sfp);
-						fread(&mask, 8, 1, sfp);
-						switch(mask)
-						{
-						case 0xff: GSwrite8(mem, (UINT8)value); break;
-						case 0xffff: GSwrite16(mem, (UINT16)value); break;
-						case 0xffffffff: GSwrite32(mem, (UINT32)value); break;
-						case 0xffffffffffffffff: GSwrite64(mem, value); break;
-						}
-						break;
-						}
-					case ST_TRANSFER:
-						{
-						UINT32 size = 0;
-						fread(&size, 4, 1, sfp);
-						UINT32 len = 0;
-						fread(&len, 4, 1, sfp);
-						if(len > 4*1024*1024) {ASSERT(0); break;}
-						fread(buff, len, 1, sfp);
-						GSgifTransfer3(buff, size);
-						break;
-						}
-					case ST_VSYNC:
-						GSvsync();
-						break;
-					}
-				}
-
-				_aligned_free(buff);
-			}
-
-			GSclose();
-		}
-		
-		GSshutdown();
-	}
-}
-*/

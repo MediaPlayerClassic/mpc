@@ -22,10 +22,16 @@
 #include "StdAfx.h"
 #include "GSPerfMon.h"
 
+extern "C" unsigned __int64 __rdtsc();
+
 GSPerfMon::GSPerfMon()
-	: m_frame(0)
+	: m_total(0)
+	, m_begin(0)
+	, m_frame(0)
 	, m_lastframe(0)
 {
+	memset(m_stats, 0, sizeof(m_stats));
+	memset(m_warnings, 0, sizeof(m_warnings));
 }
 
 void GSPerfMon::Put(counter_t c, double val)
@@ -51,7 +57,7 @@ void GSPerfMon::Put(counter_t c, double val)
 
 void GSPerfMon::Update()
 {
-	int frames = m_counters[Frame].GetCount();
+	size_t frames = m_counters[Frame].GetCount();
 
 	for(int i = 0; i < countof(m_counters); i++)
 	{
@@ -68,4 +74,34 @@ void GSPerfMon::Update()
 
 		m_counters[i].RemoveAll();
 	}
+}
+
+void GSPerfMon::Start()
+{
+	m_start = __rdtsc();
+
+	if(m_begin == 0)
+	{
+		m_begin = m_start;
+	}
+}
+
+void GSPerfMon::Stop()
+{
+	if(m_start > 0)
+	{
+		m_total += __rdtsc() - m_start;
+		m_start = 0;
+	}
+}
+
+int GSPerfMon::CPU()
+{
+	int percent = (int)(100 * m_total / (__rdtsc() - m_begin));
+
+	m_begin = 0;
+	m_start = 0;
+	m_total = 0;
+
+	return percent;
 }

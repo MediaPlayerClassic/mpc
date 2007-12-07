@@ -22,14 +22,14 @@
 #pragma once
 
 //
-// GSSoftVertexFP
+// GSVertexSWFP
 //
 
 #define _80000000 _mm_set1_epi32(0x80000000)
 #define _4b000000 _mm_set1_epi32(0x4b000000)
 #define _3f800000 _mm_set1_epi32(0x3f800000)
 
-__declspec(align(16)) union GSSoftVertexFP
+__declspec(align(16)) union GSVertexSWFP
 {
 	class __declspec(novtable) Scalar
 	{
@@ -198,11 +198,11 @@ __declspec(align(16)) union GSSoftVertexFP
 	struct {__declspec(align(16)) Vector sv[3];};
 	struct {__declspec(align(16)) Scalar s[12];};
 
-	GSSoftVertexFP() {}
-	GSSoftVertexFP(const GSSoftVertexFP& v) {*this = v;}
+	GSVertexSWFP() {}
+	GSVertexSWFP(const GSVertexSWFP& v) {*this = v;}
 
-	void operator = (const GSSoftVertexFP& v) {c = v.c; p = v.p; t = v.t;}
-	void operator += (const GSSoftVertexFP& v) {c += v.c; p += v.p; t += v.t;}
+	void operator = (const GSVertexSWFP& v) {c = v.c; p = v.p; t = v.t;}
+	void operator += (const GSVertexSWFP& v) {c += v.c; p += v.p; t += v.t;}
 
 	operator CPoint() const {return CPoint((int)p.x, (int)p.y);}
 
@@ -228,12 +228,12 @@ __declspec(align(16)) union GSSoftVertexFP
 #endif
 	}
 
-	friend GSSoftVertexFP operator + (const GSSoftVertexFP& v1, const GSSoftVertexFP& v2);
-	friend GSSoftVertexFP operator - (const GSSoftVertexFP& v1, const GSSoftVertexFP& v2);
-	friend GSSoftVertexFP operator * (const GSSoftVertexFP& v, Scalar s);
-	friend GSSoftVertexFP operator / (const GSSoftVertexFP& v, Scalar s);
+	friend GSVertexSWFP operator + (const GSVertexSWFP& v1, const GSVertexSWFP& v2);
+	friend GSVertexSWFP operator - (const GSVertexSWFP& v1, const GSVertexSWFP& v2);
+	friend GSVertexSWFP operator * (const GSVertexSWFP& v, Scalar s);
+	friend GSVertexSWFP operator / (const GSVertexSWFP& v, Scalar s);
 
-	static void Exchange(GSSoftVertexFP* RESTRICT v1, GSSoftVertexFP* RESTRICT v2)
+	static void Exchange(GSVertexSWFP* RESTRICT v1, GSVertexSWFP* RESTRICT v2)
 	{
 		Vector c = v1->c, p = v1->p, t = v1->t;
 		v1->c = v2->c; v1->p = v2->p; v1->t = v2->t;
@@ -243,73 +243,73 @@ __declspec(align(16)) union GSSoftVertexFP
 
 #if _M_IX86_FP >= 2 || defined(_M_AMD64)
 
-__forceinline GSSoftVertexFP::Vector operator + (const GSSoftVertexFP::Vector& v1, const GSSoftVertexFP::Vector& v2) {return GSSoftVertexFP::Vector(_mm_add_ps(v1, v2));}
-__forceinline GSSoftVertexFP::Vector operator - (const GSSoftVertexFP::Vector& v1, const GSSoftVertexFP::Vector& v2) {return GSSoftVertexFP::Vector(_mm_sub_ps(v1, v2));}
-__forceinline GSSoftVertexFP::Vector operator * (const GSSoftVertexFP::Vector& v1, const GSSoftVertexFP::Vector& v2) {return GSSoftVertexFP::Vector(_mm_mul_ps(v1, v2));}
-__forceinline GSSoftVertexFP::Vector operator / (const GSSoftVertexFP::Vector& v1, const GSSoftVertexFP::Vector& v2) {return GSSoftVertexFP::Vector(_mm_div_ps(v1, v2));}
+__forceinline GSVertexSWFP::Vector operator + (const GSVertexSWFP::Vector& v1, const GSVertexSWFP::Vector& v2) {return GSVertexSWFP::Vector(_mm_add_ps(v1, v2));}
+__forceinline GSVertexSWFP::Vector operator - (const GSVertexSWFP::Vector& v1, const GSVertexSWFP::Vector& v2) {return GSVertexSWFP::Vector(_mm_sub_ps(v1, v2));}
+__forceinline GSVertexSWFP::Vector operator * (const GSVertexSWFP::Vector& v1, const GSVertexSWFP::Vector& v2) {return GSVertexSWFP::Vector(_mm_mul_ps(v1, v2));}
+__forceinline GSVertexSWFP::Vector operator / (const GSVertexSWFP::Vector& v1, const GSVertexSWFP::Vector& v2) {return GSVertexSWFP::Vector(_mm_div_ps(v1, v2));}
 
-__forceinline GSSoftVertexFP::Vector operator + (const GSSoftVertexFP::Vector& v, GSSoftVertexFP::Scalar s) {return GSSoftVertexFP::Vector(_mm_add_ps(v, _mm_set1_ps(s)));}
-__forceinline GSSoftVertexFP::Vector operator - (const GSSoftVertexFP::Vector& v, GSSoftVertexFP::Scalar s) {return GSSoftVertexFP::Vector(_mm_sub_ps(v, _mm_set1_ps(s)));}
-__forceinline GSSoftVertexFP::Vector operator * (const GSSoftVertexFP::Vector& v, GSSoftVertexFP::Scalar s) {return GSSoftVertexFP::Vector(_mm_mul_ps(v, _mm_set1_ps(s)));}
-__forceinline GSSoftVertexFP::Vector operator / (const GSSoftVertexFP::Vector& v, GSSoftVertexFP::Scalar s) {return GSSoftVertexFP::Vector(_mm_div_ps(v, _mm_set1_ps(s)));}
+__forceinline GSVertexSWFP::Vector operator + (const GSVertexSWFP::Vector& v, GSVertexSWFP::Scalar s) {return GSVertexSWFP::Vector(_mm_add_ps(v, _mm_set1_ps(s)));}
+__forceinline GSVertexSWFP::Vector operator - (const GSVertexSWFP::Vector& v, GSVertexSWFP::Scalar s) {return GSVertexSWFP::Vector(_mm_sub_ps(v, _mm_set1_ps(s)));}
+__forceinline GSVertexSWFP::Vector operator * (const GSVertexSWFP::Vector& v, GSVertexSWFP::Scalar s) {return GSVertexSWFP::Vector(_mm_mul_ps(v, _mm_set1_ps(s)));}
+__forceinline GSVertexSWFP::Vector operator / (const GSVertexSWFP::Vector& v, GSVertexSWFP::Scalar s) {return GSVertexSWFP::Vector(_mm_div_ps(v, _mm_set1_ps(s)));}
 
-__forceinline GSSoftVertexFP::Vector operator << (const GSSoftVertexFP::Vector& v, int i) {return GSSoftVertexFP::Vector(_mm_mul_ps(v, _mm_set1_ps((float)(1 << i))));}
-__forceinline GSSoftVertexFP::Vector operator >> (const GSSoftVertexFP::Vector& v, int i) {return GSSoftVertexFP::Vector(_mm_mul_ps(v, _mm_set1_ps(1.0f / (1 << i))));}
+__forceinline GSVertexSWFP::Vector operator << (const GSVertexSWFP::Vector& v, int i) {return GSVertexSWFP::Vector(_mm_mul_ps(v, _mm_set1_ps((float)(1 << i))));}
+__forceinline GSVertexSWFP::Vector operator >> (const GSVertexSWFP::Vector& v, int i) {return GSVertexSWFP::Vector(_mm_mul_ps(v, _mm_set1_ps(1.0f / (1 << i))));}
 
 #else
 
-__forceinline GSSoftVertexFP::Vector operator + (const GSSoftVertexFP::Vector& v1, const GSSoftVertexFP::Vector& v2) {return GSSoftVertexFP::Vector(v1.x + v2.x, v1.y + v2.y, v1.z + v2.z, v1.q + v2.q);}
-__forceinline GSSoftVertexFP::Vector operator - (const GSSoftVertexFP::Vector& v1, const GSSoftVertexFP::Vector& v2) {return GSSoftVertexFP::Vector(v1.x - v2.x, v1.y - v2.y, v1.z - v2.z, v1.q - v2.q);}
-__forceinline GSSoftVertexFP::Vector operator * (const GSSoftVertexFP::Vector& v1, const GSSoftVertexFP::Vector& v2) {return GSSoftVertexFP::Vector(v1.x * v2.x, v1.y * v2.y, v1.z * v2.z, v1.q * v2.q);}
-__forceinline GSSoftVertexFP::Vector operator / (const GSSoftVertexFP::Vector& v1, const GSSoftVertexFP::Vector& v2) {return GSSoftVertexFP::Vector(v1.x / v2.x, v1.y / v2.y, v1.z / v2.z, v1.q / v2.q);}
+__forceinline GSVertexSWFP::Vector operator + (const GSVertexSWFP::Vector& v1, const GSVertexSWFP::Vector& v2) {return GSVertexSWFP::Vector(v1.x + v2.x, v1.y + v2.y, v1.z + v2.z, v1.q + v2.q);}
+__forceinline GSVertexSWFP::Vector operator - (const GSVertexSWFP::Vector& v1, const GSVertexSWFP::Vector& v2) {return GSVertexSWFP::Vector(v1.x - v2.x, v1.y - v2.y, v1.z - v2.z, v1.q - v2.q);}
+__forceinline GSVertexSWFP::Vector operator * (const GSVertexSWFP::Vector& v1, const GSVertexSWFP::Vector& v2) {return GSVertexSWFP::Vector(v1.x * v2.x, v1.y * v2.y, v1.z * v2.z, v1.q * v2.q);}
+__forceinline GSVertexSWFP::Vector operator / (const GSVertexSWFP::Vector& v1, const GSVertexSWFP::Vector& v2) {return GSVertexSWFP::Vector(v1.x / v2.x, v1.y / v2.y, v1.z / v2.z, v1.q / v2.q);}
 
-__forceinline GSSoftVertexFP::Vector operator + (const GSSoftVertexFP::Vector& v, GSSoftVertexFP::Scalar s) {return GSSoftVertexFP::Vector(v.x + s, v.y + s, v.z + s, v.q + s);}
-__forceinline GSSoftVertexFP::Vector operator - (const GSSoftVertexFP::Vector& v, GSSoftVertexFP::Scalar s) {return GSSoftVertexFP::Vector(v.x - s, v.y - s, v.z - s, v.q - s);}
-__forceinline GSSoftVertexFP::Vector operator * (const GSSoftVertexFP::Vector& v, GSSoftVertexFP::Scalar s) {return GSSoftVertexFP::Vector(v.x * s, v.y * s, v.z * s, v.q * s);}
-__forceinline GSSoftVertexFP::Vector operator / (const GSSoftVertexFP::Vector& v, GSSoftVertexFP::Scalar s) {return GSSoftVertexFP::Vector(v.x / s, v.y / s, v.z / s, v.q / s);}
+__forceinline GSVertexSWFP::Vector operator + (const GSVertexSWFP::Vector& v, GSVertexSWFP::Scalar s) {return GSVertexSWFP::Vector(v.x + s, v.y + s, v.z + s, v.q + s);}
+__forceinline GSVertexSWFP::Vector operator - (const GSVertexSWFP::Vector& v, GSVertexSWFP::Scalar s) {return GSVertexSWFP::Vector(v.x - s, v.y - s, v.z - s, v.q - s);}
+__forceinline GSVertexSWFP::Vector operator * (const GSVertexSWFP::Vector& v, GSVertexSWFP::Scalar s) {return GSVertexSWFP::Vector(v.x * s, v.y * s, v.z * s, v.q * s);}
+__forceinline GSVertexSWFP::Vector operator / (const GSVertexSWFP::Vector& v, GSVertexSWFP::Scalar s) {return GSVertexSWFP::Vector(v.x / s, v.y / s, v.z / s, v.q / s);}
 
-__forceinline GSSoftVertexFP::Vector operator << (const GSSoftVertexFP::Vector& v, int i) {return GSSoftVertexFP::Vector(v.x << i, v.y << i, v.z << i, v.q << i);}
-__forceinline GSSoftVertexFP::Vector operator >> (const GSSoftVertexFP::Vector& v, int i) {return GSSoftVertexFP::Vector(v.x >> i, v.y >> i, v.z >> i, v.q >> i);}
+__forceinline GSVertexSWFP::Vector operator << (const GSVertexSWFP::Vector& v, int i) {return GSVertexSWFP::Vector(v.x << i, v.y << i, v.z << i, v.q << i);}
+__forceinline GSVertexSWFP::Vector operator >> (const GSVertexSWFP::Vector& v, int i) {return GSVertexSWFP::Vector(v.x >> i, v.y >> i, v.z >> i, v.q >> i);}
 
 #endif
 
-__forceinline GSSoftVertexFP operator + (const GSSoftVertexFP& v1, const GSSoftVertexFP& v2)
+__forceinline GSVertexSWFP operator + (const GSVertexSWFP& v1, const GSVertexSWFP& v2)
 {
-	GSSoftVertexFP v0;
+	GSVertexSWFP v0;
 	v0.c = v1.c + v2.c;
 	v0.p = v1.p + v2.p;
 	v0.t = v1.t + v2.t;
 	return v0;
 }
 
-__forceinline GSSoftVertexFP operator - (const GSSoftVertexFP& v1, const GSSoftVertexFP& v2)
+__forceinline GSVertexSWFP operator - (const GSVertexSWFP& v1, const GSVertexSWFP& v2)
 {
-	GSSoftVertexFP v0;
+	GSVertexSWFP v0;
 	v0.c = v1.c - v2.c;
 	v0.p = v1.p - v2.p;
 	v0.t = v1.t - v2.t;
 	return v0;
 }
 
-__forceinline GSSoftVertexFP operator * (const GSSoftVertexFP& v, GSSoftVertexFP::Scalar s)
+__forceinline GSVertexSWFP operator * (const GSVertexSWFP& v, GSVertexSWFP::Scalar s)
 {
-	GSSoftVertexFP v0;
-	GSSoftVertexFP::Vector vs(s);
+	GSVertexSWFP v0;
+	GSVertexSWFP::Vector vs(s);
 	v0.c = v.c * vs;
 	v0.p = v.p * vs;
 	v0.t = v.t * vs;
 	return v0;
 }
 
-__forceinline GSSoftVertexFP operator / (const GSSoftVertexFP& v, GSSoftVertexFP::Scalar s)
+__forceinline GSVertexSWFP operator / (const GSVertexSWFP& v, GSVertexSWFP::Scalar s)
 {
-	GSSoftVertexFP v0;
-	GSSoftVertexFP::Vector vs(s);
+	GSVertexSWFP v0;
+	GSVertexSWFP::Vector vs(s);
 	v0.c = v.c / vs;
 	v0.p = v.p / vs;
 	v0.t = v.t / vs;
 	return v0;
 }
 
-// #include "GSSoftVertexFX.h"
+// #include "GSVertexSWFX.h"
 

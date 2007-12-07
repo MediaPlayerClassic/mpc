@@ -10,11 +10,9 @@
 /////////////////////////////////////////////////////////////////////////////
 // Add manually edited resources here...
 
-IDR_HLSL_TFX    RCDATA                                 "res\\hlsl_tfx.fx"
-IDR_HLSL_MERGE  RCDATA                                 "res\\hlsl_merge.fx"
-IDR_HLSL_RB		RCDATA                                 "res\\hlsl_rb.fx"
-IDR_HLSL_INTERLACE RCDATA                              "res\\hlsl_interlace.fx"
-IDR_HLSL_VERTEX RCDATA                                 "res\\hlsl_vertex.fx"
-IDR_HLSL_TEXTURECACHE RCDATA						   "res\\hlsl_tc.fx"
+IDR_CONVERT_FX		RCDATA "res\\convert.fx"
+IDR_TFX_FX			RCDATA "res\\tfx.fx"
+IDR_MERGE_FX		RCDATA "res\\merge.fx"
+IDR_INTERLACE_FX	RCDATA "res\\interlace.fx"
 
 /////////////////////////////////////////////////////////////////////////////

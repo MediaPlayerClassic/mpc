@@ -22,16 +22,12 @@
 #include "stdafx.h"
 #include "GSTextureCache.h"
 #include "GSState.h"
-#include "GSHash.h"
 #include "GSUtil.h"
 
 GSTextureCache::GSTexture::GSTexture(GSTextureCache* tc) 
 	: GSSurface(tc)
 {
 	m_valid = CRect(0, 0, 0, 0);
-	m_hash = ~0;
-	m_hashdiff = 0;
-	m_hashrect = CRect(0, 0, 0, 0);
 	m_bpp = 0;
 }
 
@@ -272,7 +268,7 @@ void GSTextureCache::GSTexture::Update(GSLocalMemory::readTexture rt)
 
 	D3DLOCKED_RECT lr;
 
-	if(SUCCEEDED(hr = m_texture->LockRect(0, &lr, &r, D3DLOCK_NO_DIRTY_UPDATE))) 
+	if(SUCCEEDED(hr = m_texture->LockRect(0, &lr, &r, 0))) 
 	{
 		GSState* s = m_tc->m_state;
 
@@ -292,77 +288,8 @@ void GSTextureCache::GSTexture::Update(GSLocalMemory::readTexture rt)
 		m_valid |= r;
 		m_dirty.RemoveAll();
 
-		const static DWORD limit = 7;
-
-		if((m_hashdiff & limit) && m_hashdiff >= limit && m_hashrect == m_valid) // predicted to be dirty
-		{
-			m_hashdiff++;
-		}
-		else
-		{
-			DWORD hash = Hash();
-
-			if(m_hashrect != m_valid)
-			{
-				m_hashdiff = 0;
-				m_hashrect = m_valid;
-				m_hash = hash;
-			}
-			else
-			{
-				if(m_hash != hash)
-				{
-					m_hashdiff++;
-					m_hash = hash;
-				}
-				else
-				{
-					if(m_hashdiff < limit) r.SetRect(0, 0, 1, 1); //r.SetRectEmpty();
-					// else m_hash is not reliable, must update
-					m_hashdiff = 0;
-				}
-			}
-		}
-
-		if(!r.IsRectEmpty())
-		{
-			m_texture->AddDirtyRect(&r);
-			
-			s->m_perfmon.Put(GSPerfMon::Texture, r.Width() * r.Height() * m_bpp >> 3);
-		}
+		s->m_perfmon.Put(GSPerfMon::Texture, r.Width() * r.Height() * m_bpp >> 3);
 	}
-}
-
-DWORD GSTextureCache::GSTexture::Hash()
-{
-	// TODO: make the hash more unique
-
-	ASSERT(m_bpp != 0);
-
-	DWORD hash = 0;
-
-	D3DLOCKED_RECT lr;
-
-	if(SUCCEEDED(m_texture->LockRect(0, &lr, &m_valid, D3DLOCK_NO_DIRTY_UPDATE|D3DLOCK_READONLY))) 
-	{
-		CRect r = CRect((m_valid.left >> 2) * (m_bpp >> 3), m_valid.top, (m_valid.right >> 2) * (m_bpp >> 3), m_valid.bottom);
-
-		hash = (r.left << 8) + (r.right << 12) + (r.top << 16) + (r.bottom << 20) + (lr.Pitch << 24) + *(BYTE*)lr.pBits;
-
-		if(r.Width() > 0)
-		{
-			int size = r.Width() * r.Height();
-
-			/* if(size <= 8*8) return rand(); // :P
-			else */	if(size <= 16*16) hash += hash_crc(r, lr.Pitch, (BYTE*)lr.pBits);
-			else if(size <= 32*32) hash += hash_adler(r, lr.Pitch, (BYTE*)lr.pBits);
-			else hash += hash_checksum(r, lr.Pitch, (BYTE*)lr.pBits);
-		}
-
-		m_texture->UnlockRect(0);
-	}
-	
-	return hash;
 }
 
 bool GSTextureCache::GSTexture::GetDirtyRect(CRect& r)

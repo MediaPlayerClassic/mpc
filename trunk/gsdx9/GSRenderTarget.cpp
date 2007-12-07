@@ -65,7 +65,7 @@ void GSTextureCache::GSRenderTarget::Update()
 
 	HRESULT hr;
 
-	int w = (r.Width() + 3) & ~3;
+	int w = r.Width();
 	int h = r.Height();
 
 	CComPtr<IDirect3DTexture9> texture;
@@ -150,28 +150,13 @@ if(s_dump)
 
 void GSTextureCache::GSRenderTarget::Read(CRect r)
 {
-/*
-	// FIXME: doesn't work with multiple non-overlapping reads
-
-	if(!m_used) return;
-
-	m_used = false;
-*/
-	// TODO: 16 bit
-
 	if(m_TEX0.PSM != PSM_PSMCT32 
 	&& m_TEX0.PSM != PSM_PSMCT24
 	&& m_TEX0.PSM != PSM_PSMCT16
-	&& m_TEX0.PSM != PSM_PSMCT16S
-	)
+	&& m_TEX0.PSM != PSM_PSMCT16S)
 	{
 		//ASSERT(0);
 		return;
-	}
-
-	if(m_TEX0.PSM == PSM_PSMCT16 || m_TEX0.PSM == PSM_PSMCT16S)
-	{
-		int i = 0;
 	}
 
 	HRESULT hr;

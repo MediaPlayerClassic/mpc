@@ -1,3 +1,46 @@
+struct VS_INPUT
+{
+    float4 pos : POSITION; 
+	float4 diff : COLOR0;
+	float4 fog : COLOR1;
+    float2 tex : TEXCOORD0;
+};
+
+struct VS_OUTPUT
+{
+	float4 pos : POSITION;
+	float4 diff : COLOR0;
+	float4 fog : COLOR1;
+	float3 tex : TEXCOORD0;
+};
+
+float4 g_params[3];
+
+VS_OUTPUT vs_main(VS_INPUT input)
+{
+	VS_OUTPUT output;
+	
+	// pos
+		
+	output.pos = input.pos * g_params[0] - g_params[1];
+	
+	// color
+	
+	output.diff = input.diff;
+	
+	// fog
+	
+	output.fog = input.fog;
+	
+	// tex
+	
+	output.tex.xy = input.tex * g_params[2].xy;
+	output.tex.z = input.pos.w < 0 ? 1 : input.pos.w; // FIXME: <= takes small but not 0 numbers as 0
+
+	//
+	
+	return output;
+}
 
 sampler Texture : register(s0);
 sampler1D Palette : register(s1);
@@ -26,7 +69,18 @@ struct PS_INPUT
 
 #define EPSILON 0.001/256
 
-float4 main(PS_INPUT input) : COLOR
+#ifndef TFX
+#define TFX 0
+#define BPP 0
+#define TCC 0
+#define AEM 0
+#define FOG 0
+#define RT 0
+#define FST 0
+#define CLAMP 0
+#endif
+
+float4 ps_main(PS_INPUT input) : COLOR
 {
 	// tex
 	

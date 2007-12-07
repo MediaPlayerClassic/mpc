@@ -164,14 +164,14 @@ bool GSState::Create(LPCTSTR title)
 	{
 		CString main;
 		main.Format(_T("main%d"), i);
-		CompileShaderFromResource(m_dev, IDR_HLSL_MERGE, main, target, flags, &m_pHLSLMerge[i]);
+		CompileShaderFromResource(m_dev, IDR_MERGE_FX, main, target, flags, &m_pHLSLMerge[i]);
 	}
 
 	for(int i = 0; i < 4; i++)
 	{
 		CString main;
 		main.Format(_T("main%d"), i);
-		CompileShaderFromResource(m_dev, IDR_HLSL_INTERLACE, main, target, flags, &m_pHLSLInterlace[i]);
+		CompileShaderFromResource(m_dev, IDR_INTERLACE_FX, main, target, flags, &m_pHLSLInterlace[i]);
 	}
 
 	ResetState();
@@ -494,16 +494,22 @@ UINT32 GSState::Defrost(const freezeData* fd)
 
 void GSState::Reset()
 {
+	GSPerfMonAutoTimer pmat(m_perfmon);
+
 	ResetState();
 }
 
 void GSState::WriteCSR(UINT32 csr)
 {
+	GSPerfMonAutoTimer pmat(m_perfmon);
+
 	m_regs.pCSR->ai32[1] = csr;
 }
 
 void GSState::ReadFIFO(BYTE* mem, UINT32 size)
 {
+	GSPerfMonAutoTimer pmat(m_perfmon);
+
 	Flush();
 
 	ReadTransfer(mem, size * 16);
@@ -511,6 +517,8 @@ void GSState::ReadFIFO(BYTE* mem, UINT32 size)
 
 void GSState::Transfer(BYTE* mem, UINT32 size, int index)
 {
+	GSPerfMonAutoTimer pmat(m_perfmon);
+
 	GIFPath& path = m_path[index];
 
 	while(size > 0)
@@ -654,6 +662,8 @@ void GSState::Transfer(BYTE* mem, UINT32 size, int index)
 
 void GSState::VSync(int field)
 {
+	GSPerfMonAutoTimer pmat(m_perfmon);
+
 	m_field = !!field;
 
 	Flush();
@@ -681,9 +691,12 @@ void GSState::SetGameCRC(int crc, int options)
 		{
 		case 0xa39517ab: // ffx pal/eu
 		case 0xa39517ae: // ffx pal/fr
+		case 0xa39517a9: // ffx pal/?
 		case 0xb286044d: // ffx pal/de
+		case 0x941bb7d9: // ffx pal/de (another?)
 		case 0xbb3d833a: // ffx ntsc/us
 		case 0x658597e2: // ffx int. ntsc/j
+		case 0x9aac5309: // ffx ?
 			m_nloophack = true;
 			break;
 		}
@@ -994,7 +1007,7 @@ void GSState::Interlace(IDirect3DTexture9* src, IDirect3DSurface9* dst, int shad
 
 	const float c[] = 
 	{
-		(float)desc.Height, (float)m_field, 0, 0
+		0, 1.0f / desc.Height, 0, (float)desc.Height / 2
 	};
 
 	hr = m_dev->SetPixelShaderConstantF(0, c, countof(c) / 4);
@@ -1110,12 +1123,14 @@ void GSState::Present()
 		double fps = 1000.0f / m_perfmon.Get(GSPerfMon::Frame);
 		
 		s_stats.Format(
-			_T("%I64d | %d x %d | %.2f fps (%d%%) | %s - %s | %s | %d | %.2f | %.2f/%.2f | %.2f"), 
+			_T("%I64d | %d x %d | %.2f fps (%d%%) | %s - %s | %s | %d/%d | %d%% CPU | %.2f | %.2f/%.2f | %.2f"), 
 			m_perfmon.GetFrame(), m_regs.GetDisplaySize().cx, m_regs.GetDisplaySize().cy, fps, (int)(100.0 * fps / m_regs.GetFPS()),
 			m_regs.pSMODE2->INT ? (CString(_T("Interlaced ")) + (m_regs.pSMODE2->FFMD ? _T("(frame)") : _T("(field)"))) : _T("Progressive"),
 			g_interlace[m_nInterlace].name,
 			g_aspectratio[m_nAspectRatio].name,
 			(int)m_perfmon.Get(GSPerfMon::Prim),
+			(int)m_perfmon.Get(GSPerfMon::Draw),
+			m_perfmon.CPU(),
 			m_perfmon.Get(GSPerfMon::Swizzle) / 1024,
 			m_perfmon.Get(GSPerfMon::Unswizzle) / 1024,
 			m_perfmon.Get(GSPerfMon::Unswizzle2) / 1024,

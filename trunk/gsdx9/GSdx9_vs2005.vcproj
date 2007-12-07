@@ -437,7 +437,7 @@
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalDependencies="d3d9.lib d3dx9.lib ddraw.lib dxguid.lib winmm.lib"
-				OutputFile="C:\Documents and Settings\Administrator\Desktop\pcsx2\plugins\GSdx9.dll"
+				OutputFile="C:\Users\Gabest\Desktop\pcsx2\plugins\GSdx9.dll"
 				LinkIncremental="2"
 				ModuleDefinitionFile=".\GSdx9.def"
 				GenerateDebugInformation="true"
@@ -617,7 +617,7 @@
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalDependencies="d3d9.lib d3dx9.lib ddraw.lib dxguid.lib winmm.lib"
-				OutputFile="C:\Documents and Settings\Administrator\Desktop\pcsx2\plugins\GSdx9.dll"
+				OutputFile="C:\Users\Gabest\Desktop\pcsx2\plugins\GSdx9.dll"
 				LinkIncremental="1"
 				ModuleDefinitionFile=".\GSdx9.def"
 				GenerateDebugInformation="true"
@@ -761,14 +761,6 @@
 				>
 			</File>
 			<File
-				RelativePath=".\GSCapture.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\GSCaptureDlg.cpp"
-				>
-			</File>
-			<File
 				RelativePath=".\GSDepthStencil.cpp"
 				>
 			</File>
@@ -811,10 +803,6 @@
 						Name="VCCustomBuildTool"
 					/>
 				</FileConfiguration>
-			</File>
-			<File
-				RelativePath=".\GSHash.cpp"
-				>
 			</File>
 			<File
 				RelativePath=".\GSLocalMemory.cpp"
@@ -865,10 +853,6 @@
 				>
 			</File>
 			<File
-				RelativePath=".\GSQueue.cpp"
-				>
-			</File>
-			<File
 				RelativePath=".\GSRegs.cpp"
 				>
 				<FileConfiguration
@@ -909,32 +893,8 @@
 				>
 			</File>
 			<File
-				RelativePath=".\GSRendererSoft.cpp"
+				RelativePath=".\GSRendererSW.cpp"
 				>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						AssemblerOutput="4"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="DebugSSE2|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						AssemblerOutput="4"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="ReleaseSSE2|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						AssemblerOutput="4"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath=".\GSRenderTarget.cpp"
@@ -942,10 +902,6 @@
 			</File>
 			<File
 				RelativePath=".\GSSettingsDlg.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\GSSoftVertex.cpp"
 				>
 			</File>
 			<File
@@ -978,10 +934,6 @@
 			</File>
 			<File
 				RelativePath=".\GSTransfer.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\GSTransferThread.cpp"
 				>
 			</File>
 			<File
@@ -1251,14 +1203,6 @@
 				>
 			</File>
 			<File
-				RelativePath=".\GSCapture.h"
-				>
-			</File>
-			<File
-				RelativePath=".\GSCaptureDlg.h"
-				>
-			</File>
-			<File
 				RelativePath=".\GSDirtyRect.h"
 				>
 			</File>
@@ -1275,19 +1219,11 @@
 				>
 			</File>
 			<File
-				RelativePath=".\GSHash.h"
-				>
-			</File>
-			<File
 				RelativePath=".\GSLocalMemory.h"
 				>
 			</File>
 			<File
 				RelativePath=".\GSPerfMon.h"
-				>
-			</File>
-			<File
-				RelativePath=".\GSQueue.h"
 				>
 			</File>
 			<File
@@ -1307,7 +1243,7 @@
 				>
 			</File>
 			<File
-				RelativePath=".\GSRendererSoft.h"
+				RelativePath=".\GSRendererSW.h"
 				>
 			</File>
 			<File
@@ -1316,10 +1252,6 @@
 			</File>
 			<File
 				RelativePath=".\GSSettingsDlg.h"
-				>
-			</File>
-			<File
-				RelativePath=".\GSSoftVertex.h"
 				>
 			</File>
 			<File
@@ -1335,10 +1267,6 @@
 				>
 			</File>
 			<File
-				RelativePath=".\GSTransferThread.h"
-				>
-			</File>
-			<File
 				RelativePath=".\GSUtil.h"
 				>
 			</File>
@@ -1347,7 +1275,15 @@
 				>
 			</File>
 			<File
+				RelativePath=".\GSVertexHW.h"
+				>
+			</File>
+			<File
 				RelativePath=".\GSVertexList.h"
+				>
+			</File>
+			<File
+				RelativePath=".\GSVertexSW.h"
 				>
 			</File>
 			<File
@@ -1389,27 +1325,19 @@
 			Name="Shaders"
 			>
 			<File
-				RelativePath=".\res\hlsl_interlace.fx"
+				RelativePath=".\res\convert.fx"
 				>
 			</File>
 			<File
-				RelativePath=".\res\hlsl_merge.fx"
+				RelativePath=".\res\interlace.fx"
 				>
 			</File>
 			<File
-				RelativePath=".\res\hlsl_rb.fx"
+				RelativePath=".\res\merge.fx"
 				>
 			</File>
 			<File
-				RelativePath=".\res\hlsl_tc.fx"
-				>
-			</File>
-			<File
-				RelativePath=".\res\hlsl_tfx.fx"
-				>
-			</File>
-			<File
-				RelativePath=".\res\hlsl_vertex.fx"
+				RelativePath=".\res\tfx.fx"
 				>
 			</File>
 		</Filter>

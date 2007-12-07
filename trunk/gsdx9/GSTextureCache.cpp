@@ -59,7 +59,7 @@ bool GSTextureCache::Create()
 	{
 		CString main;
 		main.Format(_T("main%d"), i);
-		if(FAILED(CompileShaderFromResource(m_state->m_dev, IDR_HLSL_TEXTURECACHE, main, target, flags, &m_ps[i]))) 
+		if(FAILED(CompileShaderFromResource(m_state->m_dev, IDR_CONVERT_FX, main, target, flags, &m_ps[i]))) 
 			return false;
 	}
 

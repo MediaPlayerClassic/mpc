@@ -219,7 +219,7 @@ void GSState::GIFRegHandlerXYZ2(GIFReg* r)
 
 template<int i> void GSState::GIFRegHandlerTEX0(GIFReg* r)
 {
-	if(m_pPRIM->CTXT == i && m_env.CTXT[i].TEX0.i64 != r->TEX0.i64)
+	// if(m_pPRIM->CTXT == i && m_env.CTXT[i].TEX0.i64 != r->TEX0.i64)
 	{
 		Flush();
 	}
@@ -293,12 +293,7 @@ template<int i> void GSState::GIFRegHandlerTEX1(GIFReg* r)
 
 template<int i> void GSState::GIFRegHandlerTEX2(GIFReg* r)
 {
-	// if(m_pPRIM->CTXT == i && m_env.CTXT[i].TEX2.i64 != r->TEX2.i64)
-	{
-		Flush(); // FIXME: must flush here, CLUT may be overwritten for the other context (not happening when writing TEX0, strange)
-	}
-
-	m_env.CTXT[i].TEX2 = r->TEX2;
+	// m_env.CTXT[i].TEX2 = r->TEX2;
 
 	UINT64 mask = 0xFFFFFFE003F00000ui64; // TEX2 bits
 
