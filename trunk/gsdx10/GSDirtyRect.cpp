@@ -58,12 +58,7 @@ CRect GSDirtyRect::GetDirtyRect(const GIFRegTEX0& TEX0)
 	return r;
 }
 
-void GSDirtyRectList::operator = (const GSDirtyRectList& l)
-{
-	RemoveAll();
-	POSITION pos = l.GetHeadPosition();
-	while(pos) AddTail(l.GetNext(pos));
-}
+//
 
 CRect GSDirtyRectList::GetDirtyRect(const GIFRegTEX0& TEX0)
 {
@@ -74,3 +69,52 @@ CRect GSDirtyRectList::GetDirtyRect(const GIFRegTEX0& TEX0)
 	return r;
 }
 
+/*
+GSDirtyRectList::GSDirtyRectList()
+	: m_rects(NULL)
+	, m_count(0)
+	, m_maxcount(0)
+{
+}
+
+GSDirtyRectList::~GSDirtyRectList()
+{
+	delete [] m_rects;
+}
+
+void GSDirtyRectList::AddTail(const GSDirtyRect& r)
+{
+	if(m_count == m_maxcount)
+	{
+		m_maxcount = max(m_count, 8) * 3/2;
+
+		GSDirtyRect* rects = new GSDirtyRect[m_maxcount];
+
+		memcpy(rects, m_rects, m_count * sizeof(GSDirtyRect));
+
+		delete [] m_rects;
+
+		m_rects = rects;
+		
+	}
+
+	m_rects[m_count++] = r;
+}
+
+CRect GSDirtyRectList::GetDirtyRect(const GIFRegTEX0& TEX0)
+{
+	if(m_count == 0)
+	{
+		return CRect(0, 0, 0, 0);
+	}
+
+	CRect r(INT_MAX, INT_MAX, 0, 0);
+
+	for(size_t i = 0; i < m_count; i++) 
+	{
+		r |= m_rects[i].GetDirtyRect(TEX0);
+	}
+
+	return r;
+}
+*/

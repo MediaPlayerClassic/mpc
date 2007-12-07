@@ -77,6 +77,8 @@ class GSDevice
 
 	ID3D10GeometryShader* m_gs;
 
+	ID3D10ShaderResourceView* m_ps_srvs[2];
+
 	ID3D10PixelShader* m_ps;
 	ID3D10SamplerState* m_ps_ss;
 
@@ -151,10 +153,11 @@ public:
 	void IASet(ID3D10Buffer* vb, UINT count, const void* vertices, UINT stride, ID3D10InputLayout* layout, D3D10_PRIMITIVE_TOPOLOGY topology);
 	void VSSet(ID3D10VertexShader* vs, ID3D10Buffer* vs_cb);
 	void GSSet(ID3D10GeometryShader* gs);
+	void PSSetShaderResources(ID3D10ShaderResourceView* srv0, ID3D10ShaderResourceView* srv1);
 	void PSSet(ID3D10PixelShader* ps, ID3D10SamplerState* ss);
 	void RSSet(int width, int height, const RECT* scissor = NULL);
 	void OMSet(ID3D10DepthStencilState* dss, UINT sref, ID3D10BlendState* bs, float bf);
-	void OMSet(ID3D10RenderTargetView* rtv, ID3D10DepthStencilView* dsv);
+	void OMSetRenderTargets(ID3D10RenderTargetView* rtv, ID3D10DepthStencilView* dsv);
 
 	template<class T> void IASet(ID3D10Buffer* vb, UINT count, T* vertices, ID3D10InputLayout* layout, D3D10_PRIMITIVE_TOPOLOGY topology)
 	{
@@ -162,19 +165,19 @@ public:
 	}
 
 	HRESULT CreateRenderTarget(GSTexture2D& t, int w, int h, DXGI_FORMAT format = DXGI_FORMAT_R8G8B8A8_UNORM);
-	HRESULT CreateDepthStencil(GSTexture2D& t, int w, int h, DXGI_FORMAT format = DXGI_FORMAT_D32_FLOAT_S8X24_UINT); // DXGI_FORMAT_D24_UNORM_S8_UINT
+	HRESULT CreateDepthStencil(GSTexture2D& t, int w, int h, DXGI_FORMAT format = DXGI_FORMAT_D32_FLOAT_S8X24_UINT);
 	HRESULT CreateTexture(GSTexture2D& t, int w, int h, DXGI_FORMAT format = DXGI_FORMAT_R8G8B8A8_UNORM);
 	HRESULT CreateOffscreenPlainSurface(GSTexture2D& t, int w, int h, DXGI_FORMAT format = DXGI_FORMAT_R8G8B8A8_UNORM);
 	HRESULT Create(GSTexture2D& t, int w, int h, DXGI_FORMAT format, D3D10_USAGE usage, UINT bind);	
 
 	void Recycle(GSTexture2D& t);
 
+	void SaveCurrent(LPCTSTR fn);
 	void SaveToFileD32S8X24(ID3D10Texture2D* ds, LPCTSTR fn);
 
 	void StretchRect(GSTexture2D& st, GSTexture2D& dt, const D3DXVECTOR4& dr, bool linear = true);
 	void StretchRect(GSTexture2D& st, const D3DXVECTOR4& sr, GSTexture2D& dt, const D3DXVECTOR4& dr, bool linear = true);
 	void StretchRect(GSTexture2D& st, const D3DXVECTOR4& sr, GSTexture2D& dt, const D3DXVECTOR4& dr, ID3D10PixelShader* ps, bool linear = true);
-	void StretchRect(int count, GSTexture2D* st, const D3DXVECTOR4& sr, GSTexture2D& dt, const D3DXVECTOR4& dr, ID3D10PixelShader* ps, bool linear = true);
 
 	ID3D10Texture2D* Interlace(GSTexture2D& st, CSize ds, int field, int mode, float yoffset);
 };

@@ -29,6 +29,8 @@ GSTextureFX::GSTextureFX()
 {
 	memset(m_vb_max, 0, sizeof(m_vb_max));
 	m_vb_cur = 0;
+	memset(&m_vs_cb_cache, 0, sizeof(m_vs_cb_cache));
+	memset(&m_ps_cb_cache, 0, sizeof(m_ps_cb_cache));
 }
 
 bool GSTextureFX::Create(GSDevice* dev)
@@ -122,7 +124,12 @@ bool GSTextureFX::SetupIA(const GSVertexHW* vertices, UINT count, D3D10_PRIMITIV
 
 bool GSTextureFX::SetupVS(const VSConstantBuffer* cb)
 {
-	(*m_dev)->UpdateSubresource(m_vs_cb, 0, NULL, cb, 0, 0);
+	if(memcmp(&m_vs_cb_cache, cb, sizeof(*cb)))
+	{
+		(*m_dev)->UpdateSubresource(m_vs_cb, 0, NULL, cb, 0, 0);
+
+		memcpy(&m_vs_cb_cache, cb, sizeof(*cb));
+	}
 
 	m_dev->VSSet(m_vs, m_vs_cb);
 
@@ -137,7 +144,7 @@ bool GSTextureFX::SetupGS(GSSelector sel)
 
 	if(sel.prim > 0 && (sel.iip == 0 || sel.prim == 3)) // geometry shader works in every case, but not needed
 	{
-		if(!m_gs.Lookup(sel.GetHash(), gs))
+		if(!(gs = m_gs.Lookup(sel)))
 		{
 			CString str[2];
 
@@ -155,7 +162,7 @@ bool GSTextureFX::SetupGS(GSSelector sel)
 
 			ASSERT(SUCCEEDED(hr));
 
-			m_gs[sel.GetHash()] = gs;
+			m_gs.Add(sel, gs);
 		}
 	}
 
@@ -166,16 +173,16 @@ bool GSTextureFX::SetupGS(GSSelector sel)
 
 bool GSTextureFX::SetupPS(PSSelector sel, const PSConstantBuffer* cb, PSSamplerSelector ssel, ID3D10ShaderResourceView* srv, ID3D10ShaderResourceView* pal)
 {
-	(*m_dev)->UpdateSubresource(m_ps_cb, 0, NULL, cb, 0, 0);
+	if(memcmp(&m_ps_cb_cache, cb, sizeof(*cb)))
+	{
+		(*m_dev)->UpdateSubresource(m_ps_cb, 0, NULL, cb, 0, 0);
+
+		memcpy(&m_ps_cb_cache, cb, sizeof(*cb));
+	}
 
 	(*m_dev)->PSSetConstantBuffers(0, 1, &m_ps_cb.p);
 
-	if(srv)
-	{
-		ID3D10ShaderResourceView* srvs[] = {srv, pal};
-
-		(*m_dev)->PSSetShaderResources(0, 2, srvs);
-	}
+	m_dev->PSSetShaderResources(srv, pal);
 
 	UpdatePS(sel, ssel);
 
@@ -188,7 +195,7 @@ void GSTextureFX::UpdatePS(PSSelector sel, PSSamplerSelector ssel)
 
 	CComPtr<ID3D10PixelShader> ps;
 
-	if(!m_ps.Lookup(sel.GetHash(), ps))
+	if(!(ps = m_ps.Lookup(sel)))
 	{
 		CString str[12];
 
@@ -226,7 +233,7 @@ void GSTextureFX::UpdatePS(PSSelector sel, PSSamplerSelector ssel)
 
 		ASSERT(SUCCEEDED(hr));
 
-		m_ps[sel.GetHash()] = ps;
+		m_ps.Add(sel, ps);
 	}
 
 	CComPtr<ID3D10SamplerState> ss;
@@ -235,7 +242,7 @@ void GSTextureFX::UpdatePS(PSSelector sel, PSSamplerSelector ssel)
 	{
 		if(sel.bpp >= 3) ssel.min = ssel.mag = 0;
 
-		if(!m_ps_ss.Lookup(ssel.GetHash(), ss))
+		if(!(ss = m_ps_ss.Lookup(ssel)))
 		{
 			D3D10_SAMPLER_DESC sd;
 
@@ -257,7 +264,7 @@ void GSTextureFX::UpdatePS(PSSelector sel, PSSamplerSelector ssel)
 
 			hr = (*m_dev)->CreateSamplerState(&sd, &ss);
 
-			m_ps_ss[ssel.GetHash()] = ss;
+			m_ps_ss.Add(ssel, ss);
 		}
 	}
 
@@ -273,7 +280,7 @@ void GSTextureFX::SetupOM(OMDepthStencilSelector dssel, OMBlendSelector bsel, fl
 {
 	UpdateOM(dssel, bsel, bf);
 
-	m_dev->OMSet(rtv, dsv);
+	m_dev->OMSetRenderTargets(rtv, dsv);
 }
 
 void GSTextureFX::UpdateOM(OMDepthStencilSelector dssel, OMBlendSelector bsel, float bf)
@@ -282,7 +289,7 @@ void GSTextureFX::UpdateOM(OMDepthStencilSelector dssel, OMBlendSelector bsel, f
 
 	CComPtr<ID3D10DepthStencilState> dss;
 
-	if(!m_om_dss.Lookup(dssel.GetHash(), dss))
+	if(!(dss = m_om_dss.Lookup(dssel)))
 	{
 		D3D10_DEPTH_STENCIL_DESC dsd;
 
@@ -320,12 +327,12 @@ void GSTextureFX::UpdateOM(OMDepthStencilSelector dssel, OMBlendSelector bsel, f
 
 		hr = (*m_dev)->CreateDepthStencilState(&dsd, &dss);
 
-		m_om_dss[dssel.GetHash()] = dss;
+		m_om_dss.Add(dssel, dss);
 	}
 
 	CComPtr<ID3D10BlendState> bs;
 
-	if(!m_om_bs.Lookup(bsel.GetHash(), bs))
+	if(!(bs = m_om_bs.Lookup(bsel)))
 	{
 		D3D10_BLEND_DESC bd;
 
@@ -455,12 +462,6 @@ void GSTextureFX::UpdateOM(OMDepthStencilSelector dssel, OMBlendSelector bsel, f
 
 				(bsel.a == 0 ? bd.SrcBlend : bd.DestBlend) = D3D10_BLEND_ONE;
 			}
-			else if(map[i].bogus == 2)
-			{
-				// TODO: test it (ffxii main menu)
-
-				// ASSERT(0);
-			}
 		}
 
 		if(bsel.wr) bd.RenderTargetWriteMask[0] |= D3D10_COLOR_WRITE_ENABLE_RED;
@@ -470,7 +471,7 @@ void GSTextureFX::UpdateOM(OMDepthStencilSelector dssel, OMBlendSelector bsel, f
 
 		hr = (*m_dev)->CreateBlendState(&bd, &bs);
 
-		m_om_bs[bsel.GetHash()] = bs;
+		m_om_bs.Add(bsel, bs);
 	}
 
 	m_dev->OMSet(dss, 1, bs, bf);

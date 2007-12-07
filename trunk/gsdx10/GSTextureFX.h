@@ -48,7 +48,7 @@ public:
 
 		DWORD dw;
 
-		DWORD GetHash() {return dw & 0x7;}
+		operator DWORD() {return dw & 0x7;}
 	};
 
 	struct PSConstantBuffer
@@ -86,7 +86,7 @@ public:
 
 		DWORD dw;
 
-		DWORD GetHash() {return dw & 0x3ffff;}
+		operator DWORD() {return dw & 0x3ffff;}
 	};
 
 	union PSSamplerSelector
@@ -101,7 +101,7 @@ public:
 
 		DWORD dw;
 
-		DWORD GetHash() {return dw & 0xf;}
+		operator DWORD() {return dw & 0xf;}
 	};
 
 	union OMDepthStencilSelector
@@ -116,7 +116,7 @@ public:
 
 		DWORD dw;
 
-		DWORD GetHash() {return dw & 0x1f;}
+		operator DWORD() {return dw & 0x1f;}
 	};
 
 	union OMBlendSelector
@@ -136,7 +136,7 @@ public:
 
 		DWORD dw;
 
-		DWORD GetHash() {return dw & 0x1fff;}
+		operator DWORD() {return dw & 0x1fff;}
 	};
 
 	#pragma pack(pop)
@@ -146,16 +146,19 @@ private:
 	CComPtr<ID3D10InputLayout> m_il;
 	CComPtr<ID3D10VertexShader> m_vs;
 	CComPtr<ID3D10Buffer> m_vs_cb;
-	CAtlMap<DWORD, CComPtr<ID3D10GeometryShader> > m_gs;
-	CAtlMap<DWORD, CComPtr<ID3D10PixelShader> > m_ps;
+	CSimpleMap<DWORD, CComPtr<ID3D10GeometryShader> > m_gs;
+	CSimpleMap<DWORD, CComPtr<ID3D10PixelShader> > m_ps;
 	CComPtr<ID3D10Buffer> m_ps_cb;
-	CAtlMap<DWORD, CComPtr<ID3D10SamplerState> > m_ps_ss;
-	CAtlMap<DWORD, CComPtr<ID3D10DepthStencilState> > m_om_dss;	
-	CAtlMap<DWORD, CComPtr<ID3D10BlendState> > m_om_bs;	
+	CSimpleMap<DWORD, CComPtr<ID3D10SamplerState> > m_ps_ss;
+	CSimpleMap<DWORD, CComPtr<ID3D10DepthStencilState> > m_om_dss;	
+	CSimpleMap<DWORD, CComPtr<ID3D10BlendState> > m_om_bs;	
 
 	CComPtr<ID3D10Buffer> m_vb[1];
 	int m_vb_max[1];
 	int m_vb_cur;
+
+	VSConstantBuffer m_vs_cb_cache;
+	PSConstantBuffer m_ps_cb_cache;
 	
 public:
 	GSTextureFX();

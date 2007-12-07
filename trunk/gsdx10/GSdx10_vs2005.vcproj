@@ -1373,10 +1373,6 @@
 				>
 			</File>
 			<File
-				RelativePath=".\res\sprite.fx"
-				>
-			</File>
-			<File
 				RelativePath=".\res\tfx.fx"
 				>
 			</File>

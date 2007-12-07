@@ -447,7 +447,8 @@ UINT32 GSState::MakeSnapshot(char* path)
 {
 	CString fn;
 	fn.Format(_T("%sgsdx10_%s.bmp"), CString(path), CTime::GetCurrentTime().Format(_T("%Y%m%d%H%M%S")));
-	return D3DX10SaveTextureToFile(m_dev.m_tex_current, D3DX10_IFF_BMP, fn);
+	m_dev.SaveCurrent(fn);
+	return 0;
 }
 
 void GSState::SetGameCRC(int crc, int options)
@@ -596,9 +597,9 @@ void GSState::Merge(FlipInfo src[2], GSTexture2D& dst)
 {
 	// om
 
-	m_dev.OMSet(m_dev.m_convert.dss, 0, m_dev.m_convert.bs, 0);
+	m_dev.OMSetRenderTargets(dst, NULL);
 
-	m_dev.OMSet(dst, NULL);
+	m_dev.OMSet(m_dev.m_convert.dss, 0, m_dev.m_convert.bs, 0);
 
 	// ia
 
@@ -654,13 +655,7 @@ void GSState::Merge(FlipInfo src[2], GSTexture2D& dst)
 	
 	m_dev->PSSetConstantBuffers(0, 1, &m_dev.m_merge.cb.p);
 
-	ID3D10ShaderResourceView* srvs[] = 
-	{
-		src[0].t ? src[0].t : m_dev.m_tex_1x1,
-		src[1].t ? src[1].t : m_dev.m_tex_1x1,
-	};
-
-	m_dev->PSSetShaderResources(0, 2, srvs);
+	m_dev.PSSetShaderResources(src[0].t ? src[0].t : m_dev.m_tex_1x1, src[1].t ? src[1].t : m_dev.m_tex_1x1);
 
 	m_dev.PSSet(m_dev.m_merge.ps, m_dev.m_ss_linear);
 

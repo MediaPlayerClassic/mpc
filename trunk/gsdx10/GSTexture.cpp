@@ -297,7 +297,7 @@ void GSTextureCache::GSTexture::Update(GSLocalMemory::readTexture rt)
 
 	D3D10_BOX box = {r.left, r.top, 0, r.right, r.bottom, 1};
 
-	s->m_dev->UpdateSubresource(m_texture, 0, &box, bits, pitch, 0);
+	s->m_dev->UpdateSubresource(m_texture, 0, &box, bits, pitch, 0); 
 
 	s->m_perfmon.Put(GSPerfMon::Unswizzle, r.Width() * r.Height() * m_bpp >> 3);
 

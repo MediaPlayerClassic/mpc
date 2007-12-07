@@ -99,14 +99,13 @@ protected:
 	CAtlList<GSRenderTarget*> m_rt;
 	CAtlList<GSDepthStencil*> m_ds;
 	CAtlList<GSTexture*> m_tex;
+	bool m_nativeres;
 
 	template<class T> void RecycleByAge(CAtlList<T*>& l, int maxage = 10);
 
 public:
 	GSTextureCache(GSState* state);
 	virtual ~GSTextureCache();
-
-	bool m_nativeres;
 
 	void RemoveAll();
 

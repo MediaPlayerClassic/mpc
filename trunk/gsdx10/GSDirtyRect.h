@@ -38,9 +38,21 @@ class GSDirtyRectList : public CAtlList<GSDirtyRect>
 {
 public:
 	GSDirtyRectList() {}
-	GSDirtyRectList(const GSDirtyRectList& l) {*this = l;}
-	void operator = (const GSDirtyRectList& l);
 	CRect GetDirtyRect(const GIFRegTEX0& TEX0);
-	void Merge();
 };
+/*
+class GSDirtyRectList
+{
+	GSDirtyRect* m_rects;
+	size_t m_count;
+	size_t m_maxcount;
 
+public:
+	GSDirtyRectList();
+	~GSDirtyRectList();
+	void AddTail(const GSDirtyRect& r);
+	bool IsEmpty() {return m_count == 0;}
+	void RemoveAll() {m_count = 0;}
+	CRect GetDirtyRect(const GIFRegTEX0& TEX0);
+};
+*/

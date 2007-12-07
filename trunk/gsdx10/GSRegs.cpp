@@ -219,10 +219,10 @@ void GSState::GIFRegHandlerXYZ2(GIFReg* r)
 
 template<int i> void GSState::GIFRegHandlerTEX0(GIFReg* r)
 {
-	// FIXME: even if TEX0 did not change, a new palette may have been uploaded and will overwrite the currently queued for drawing
+	// even if TEX0 did not change, a new palette may have been uploaded and will overwrite the currently queued for drawing
 
-	//if(r->TEX0.CLD >= 1 && r->TEX0.CLD <= 3 && m_mem.IsCLUTDirty(r->TEX0, m_env.TEXCLUT))
-	// if(m_pPRIM->CTXT == i && m_env.CTXT[i].TEX0.i64 != r->TEX0.i64)
+	if(m_pPRIM->CTXT == i && m_env.CTXT[i].TEX0.i64 != r->TEX0.i64
+	|| r->TEX0.CLD >= 1 && r->TEX0.CLD <= 3 && m_mem.IsCLUTDirty(r->TEX0, m_env.TEXCLUT))
 	{
 		Flush(); 
 	}

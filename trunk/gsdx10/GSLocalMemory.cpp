@@ -1784,23 +1784,38 @@ void GSLocalMemory::ReadTexture(CRect r, BYTE* dst, int dstpitch, GIFRegTEX0& TE
 			int w = minu + 1;
 			int h = minv + 1;
 
+			w = (w + bsxm) & ~bsxm;
+			h = (h + bsym) & ~bsym;
+
 			if(w % bs.cx == 0 && maxu % bs.cx == 0 && h % bs.cy == 0 && maxv % bs.cy == 0)
 			{
-				// TODO: this could be made even faster...
-
 //printf("!!! 3 wms = %d, wmt = %d, %3x %3x %3x %3x, %d %d - %d %d\n", wms, wmt, minu, maxu, minv, maxv, r.left, r.top, r.right, r.bottom);
 
 				T* buff = (T*)_aligned_malloc(w * h * sizeof(T), 16);
 
 				(this->*st)(CRect(CPoint(maxu, maxv), CSize(w, h)), (BYTE*)buff, w * sizeof(T), TEX0, TEXA);
 
+				dst -= r.left;
+
+				int k = (r.right - r.left) >> 2;
+
 				for(int y = r.top; y < r.bottom; y++, dst += dstpitch)
 				{
 					T* src = &buff[(y & minv) * w];
 
-					for(int x = r.left, i = 0; x < r.right; x++, i++)
+					int x = r.left;
+
+					for(int i = 0; i < k; x += 4, i++)
 					{
-						((T*)dst)[i] = src[x & minu];
+						((T*)dst)[x+0] = src[(x+0) & minu];
+						((T*)dst)[x+1] = src[(x+1) & minu];
+						((T*)dst)[x+2] = src[(x+2) & minu];
+						((T*)dst)[x+3] = src[(x+3) & minu];
+					}
+
+					for(; x < r.right; x++)
+					{
+						((T*)dst)[x] = src[x & minu];
 					}
 				}
 
@@ -1822,7 +1837,7 @@ void GSLocalMemory::ReadTexture(CRect r, BYTE* dst, int dstpitch, GIFRegTEX0& TE
 		case 3: for(int y = r.top; y < r.bottom; y++) m_ytbl[y] = (y & minv) | maxv; break;
 		}
 
-// printf("1 wms = %d, wmt = %d, %3x %3x %3x %3x, %d %d - %d %d\n", wms, wmt, minu, maxu, minv, maxv, r.left, r.top, r.right, r.bottom);
+//printf("1 wms = %d, wmt = %d, %3x %3x %3x %3x, %d %d - %d %d\n", wms, wmt, minu, maxu, minv, maxv, r.left, r.top, r.right, r.bottom);
 
 		for(int y = r.top; y < r.bottom; y++, dst += dstpitch)
 			for(int x = r.left, i = 0; x < r.right; x++, i++)
@@ -1855,7 +1870,7 @@ void GSLocalMemory::ReadTexture(CRect r, BYTE* dst, int dstpitch, GIFRegTEX0& TE
 		}
 		else
 		{
-// printf("2 wms = %d, wmt = %d, %3x %3x %3x %3x, %d %d - %d %d\n", wms, wmt, minu, maxu, minv, maxv, r.left, r.top, r.right, r.bottom);
+//printf("2 wms = %d, wmt = %d, %3x %3x %3x %3x, %d %d - %d %d\n", wms, wmt, minu, maxu, minv, maxv, r.left, r.top, r.right, r.bottom);
 
 			for(int y = r.top; y < r.bottom; y++, dst += dstpitch)
 				for(int x = r.left, i = 0; x < r.right; x++, i++)

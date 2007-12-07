@@ -29,7 +29,9 @@ GSPerfMon::GSPerfMon()
 	, m_begin(0)
 	, m_frame(0)
 	, m_lastframe(0)
+	, m_count(0)
 {
+	memset(m_counters, 0, sizeof(m_counters));
 	memset(m_stats, 0, sizeof(m_stats));
 	memset(m_warnings, 0, sizeof(m_warnings));
 }
@@ -42,38 +44,32 @@ void GSPerfMon::Put(counter_t c, double val)
 		
 		if(m_lastframe != 0)
 		{
-			m_counters[c].AddTail(now - m_lastframe);
+			m_counters[c] += now - m_lastframe;
 		}
 
 		m_lastframe = now;
-
 		m_frame++;
+		m_count++;
 	}
 	else
 	{
-		m_counters[c].AddTail(val);
+		m_counters[c] += val;
 	}
 }
 
 void GSPerfMon::Update()
 {
-	size_t frames = m_counters[Frame].GetCount();
-
-	for(int i = 0; i < countof(m_counters); i++)
+	if(m_count > 0)
 	{
-		double sum = 0;
-
-		POSITION pos = m_counters[i].GetHeadPosition();
-		
-		while(pos)
+		for(int i = 0; i < countof(m_counters); i++)
 		{
-			sum += m_counters[i].GetNext(pos);
+			m_stats[i] = m_counters[i] / m_count;
 		}
 
-		m_stats[i] = sum / frames;
-
-		m_counters[i].RemoveAll();
+		m_count = 0;
 	}
+
+	memset(m_counters, 0, sizeof(m_counters));
 }
 
 void GSPerfMon::Start()
