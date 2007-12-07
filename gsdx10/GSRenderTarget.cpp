@@ -96,10 +96,9 @@ void GSTextureCache::GSRenderTarget::Update()
 
 	s->m_dev->UpdateSubresource(texture, 0, &box, buff, pitch, 0);
 
-	D3DXVECTOR4 src(0, 0, 1, 1);
 	D3DXVECTOR4 dst(m_scale.x * r.left, m_scale.y * r.top, m_scale.x * r.right, m_scale.y * r.bottom);
 
-	s->m_dev.StretchRect(texture, src, m_texture, dst);
+	s->m_dev.StretchRect(texture, m_texture, dst);
 
 	s->m_dev.Recycle(texture);
 }
@@ -141,7 +140,7 @@ void GSTextureCache::GSRenderTarget::Read(CRect r)
 
 	hr = m_tc->m_state->m_dev.CreateRenderTarget(rt, r.Width(), r.Height(), format);
 
-	s->m_dev.StretchRect(1, &m_texture, src, rt, dst, s->m_dev.m_convert.ps[shader]);
+	s->m_dev.StretchRect(m_texture, src, rt, dst, s->m_dev.m_convert.ps[shader]);
 
 	GSTexture2D offscreen;
 

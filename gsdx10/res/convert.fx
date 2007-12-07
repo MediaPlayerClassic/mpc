@@ -45,12 +45,16 @@ uint ps_main1(PS_INPUT input) : SV_Target0
 	return (i.x & 0x001f) | (i.y & 0x03e0) | (i.z & 0x7c00) | (i.w & 0x8000);	
 }
 
-float ps_main2(PS_INPUT input) : SV_Depth
+float4 ps_main2(PS_INPUT input) : SV_Target0
 {
-	return Texture.Sample(Sampler, input.t).a - (0.5 - 0.9f/256);
+	clip(Texture.Sample(Sampler, input.t).a - (0.5 - 0.9f/256));
+
+	return 0;
 }
 
-float ps_main3(PS_INPUT input) : SV_Depth
+float4 ps_main3(PS_INPUT input) : SV_Target0
 {
-	return (0.5 - 0.9f/256) -  Texture.Sample(Sampler, input.t).a;
+	clip((0.5 - 0.9f/256) -  Texture.Sample(Sampler, input.t).a);
+	
+	return 0;
 }

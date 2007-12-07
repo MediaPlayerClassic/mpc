@@ -53,20 +53,18 @@ bool GSRendererHW::Create(LPCTSTR title)
 
 	memset(&dsd, 0, sizeof(dsd));
 
-	dsd.DepthEnable = true;
-	dsd.DepthWriteMask = D3D10_DEPTH_WRITE_MASK_ZERO;
-	dsd.DepthFunc = D3D10_COMPARISON_GREATER; // shader will output depth <= 0 if it wants put zero into stencil
+	dsd.DepthEnable = false;
 	dsd.StencilEnable = true;
 	dsd.StencilReadMask = 1;
 	dsd.StencilWriteMask = 1;
 	dsd.FrontFace.StencilFunc = D3D10_COMPARISON_ALWAYS;
 	dsd.FrontFace.StencilPassOp = D3D10_STENCIL_OP_REPLACE;
 	dsd.FrontFace.StencilFailOp = D3D10_STENCIL_OP_KEEP;
-	dsd.FrontFace.StencilDepthFailOp = D3D10_STENCIL_OP_ZERO;
+	dsd.FrontFace.StencilDepthFailOp = D3D10_STENCIL_OP_KEEP;
 	dsd.BackFace.StencilFunc = D3D10_COMPARISON_ALWAYS;
 	dsd.BackFace.StencilPassOp = D3D10_STENCIL_OP_REPLACE;
 	dsd.BackFace.StencilFailOp = D3D10_STENCIL_OP_KEEP;
-	dsd.BackFace.StencilDepthFailOp = D3D10_STENCIL_OP_ZERO;
+	dsd.BackFace.StencilDepthFailOp = D3D10_STENCIL_OP_KEEP;
 
 	m_dev->CreateDepthStencilState(&dsd, &m_date.dss);
 
@@ -254,11 +252,12 @@ TRACE(_T("[%d] FlushPrim f %05x (%d) z %05x (%d %d %d %d) t %05x %05x (%d)\n"),
 		return;
 	}
 
-if(s_n >= 1074)
+/*
+if(s_n >= 4653)
 {
 	s_save = true;
 }
-
+*/
 	//
 
 	GIFRegTEX0 TEX0;
@@ -449,6 +448,15 @@ if(s_dump)
 	ps_cb.TA0 = (float)(int)m_env.TEXA.TA0 / 255;
 	ps_cb.TA1 = (float)(int)m_env.TEXA.TA1 / 255;
 	ps_cb.AREF = (float)(int)m_context->TEST.AREF / 255;
+
+	if(m_context->TEST.ATST == 2 || m_context->TEST.ATST == 5)
+	{
+		ps_cb.AREF -= 0.9f/256;
+	}
+	else if(m_context->TEST.ATST == 3 || m_context->TEST.ATST == 6)
+	{
+		ps_cb.AREF += 0.9f/256;
+	}
 
 	ID3D10ShaderResourceView* tex_view = NULL;
 	ID3D10ShaderResourceView* pal_view = NULL;
@@ -642,6 +650,9 @@ void GSRendererHW::MinMaxUV(int w, int h, CRect& r)
 {
 	r.SetRect(0, 0, w, h);
 
+	if(m_nVertices > 100) 
+		return;
+
 	uvmm_t uv;
 	CSize bsm;
 
@@ -832,11 +843,6 @@ void GSRendererHW::SetupDestinationAlphaTest(GSTextureCache::GSRenderTarget* rt,
 	vmin = (ymin + 1) / 2;
 	vmax = (ymax + 1) / 2;
 
-	TRACE(_T("[%I64d] %.2f %.2f %.2f %.2f | %.2f %.2f %.2f %.2f\n"), 
-		m_perfmon.GetFrame(), 
-		xmin, xmax, ymin, ymax,
-		umin, umax, vmin, vmax);
-
 	// }
 
 	// om
@@ -845,9 +851,9 @@ void GSRendererHW::SetupDestinationAlphaTest(GSTextureCache::GSRenderTarget* rt,
 
 	m_dev.CreateRenderTarget(tmp, rt->m_texture.m_desc.Width, rt->m_texture.m_desc.Height);
 
-	// m_dev->ClearDepthStencilView(ds->m_texture, D3D10_CLEAR_STENCIL, 0, 0);
+	m_dev->ClearDepthStencilView(ds->m_texture, D3D10_CLEAR_STENCIL, 0, 0);
 
-	m_dev.OMSet(tmp, ds->m_texture);
+	m_dev.OMSetRenderTargets(tmp, ds->m_texture);
 
 	m_dev.OMSet(m_date.dss, 1, m_date.bs, 0);
 
@@ -873,9 +879,7 @@ void GSRendererHW::SetupDestinationAlphaTest(GSTextureCache::GSRenderTarget* rt,
 
 	// ps
 
-	ID3D10ShaderResourceView* srvs[] = {rt->m_texture};
-
-	m_dev->PSSetShaderResources(0, 1, srvs);
+	m_dev.PSSetShaderResources(rt->m_texture, NULL);
 
 	m_dev.PSSet(m_dev.m_convert.ps[m_context->TEST.DATM ? 2 : 3], m_dev.m_ss_point);
 
@@ -906,13 +910,13 @@ bool GSRendererHW::DetectBadFrame()
 	switch(m_crc)
 	{
 	case 0x21068223: // okami ntsc/us
+	case 0x891f223f: // okami pal/fr
 
 		if(m_skip == 0)
 		{
-			//if(TME && FBP == 0x02c00 && FPSM == PSM_PSMCT16 && TBP0 == 0x02800 && TPSM == PSM_PSMCT16)
 			if(TME && FBP == 0x00e00 && FPSM == PSM_PSMCT32 && TBP0 == 0x00000 && TPSM == PSM_PSMCT32)
 			{
-				m_skip = 1000; // 240;
+				m_skip = 1000;
 			}
 		}
 		else
@@ -926,6 +930,7 @@ bool GSRendererHW::DetectBadFrame()
 		break;
 
 	case 0x053D2239: // mgs3s1 ntsc/us
+	// TODO: case 0x086273D2: mgs3 snake eater pal/fr
 
 		if(m_skip == 0)
 		{
@@ -967,6 +972,46 @@ bool GSRendererHW::DetectBadFrame()
 			if(TME && FBP == 0x00f00 && FPSM == PSM_PSMCT16 && (TBP0 == 0x00500 || TBP0 == 0x00000) && TPSM == PSM_PSMCT32)
 			{
 				m_skip = 4;
+			}
+		}
+
+		break;
+
+	case 0x28703748: // bully ntsc/us
+
+		if(m_skip == 0)
+		{
+			if(TME && (FBP == 0x00000 || FBP == 0x01180) && (TBP0 == 0x00000 || TBP0 == 0x01180) && FBP == TBP0 && FPSM == PSM_PSMCT32 && FPSM == TPSM)
+			{
+				return true; // allowed for bully
+			}
+
+			if(TME && (FBP == 0x00000 || FBP == 0x01180) && FPSM == PSM_PSMCT16S && TBP0 == 0x02300 && TPSM == PSM_PSMZ16S)
+			{
+				m_skip = 6;
+			}
+		}
+		else 
+		{
+			if(!TME && (FBP == 0x00000 || FBP == 0x01180) && FPSM == PSM_PSMCT32)
+			{
+				m_skip = 0;
+			}
+		}
+
+		break;
+
+	case 0xC19A374E: // shadow of the colossus ntsc/us
+
+		if(m_skip == 0)
+		{
+			if(TME && FBP == 0x02b80 && FPSM == PSM_PSMCT24 && TBP0 == 0x01e80 && TPSM == PSM_PSMCT24)
+			{
+				m_skip = 9;
+			}
+			else if(TME && FBP == 0x01e80 && FPSM == PSM_PSMCT32 && TBP0 == 0x03880 && TPSM == PSM_PSMCT32)
+			{
+				m_skip = 8;
 			}
 		}
 

@@ -43,6 +43,7 @@ GSDevice::GSDevice()
 	, m_rtv(NULL)
 	, m_dsv(NULL)
 {
+	memset(m_ps_srvs, 0, sizeof(m_ps_srvs));
 }
 
 GSDevice::~GSDevice()
@@ -259,10 +260,9 @@ void GSDevice::EndScene()
 {
 	ID3D10ShaderResourceView* srvs[] = {NULL, NULL, NULL};
 
-	m_dev->VSSetShaderResources(0, 1, srvs);
-	m_dev->PSSetShaderResources(0, 3, srvs);
+	PSSetShaderResources(NULL, NULL);
 
-	OMSet(NULL, NULL);
+	OMSetRenderTargets(NULL, NULL);
 }
 
 void GSDevice::IASet(ID3D10Buffer* vb, UINT count, const void* vertices, UINT stride, ID3D10InputLayout* layout, D3D10_PRIMITIVE_TOPOLOGY topology)
@@ -320,6 +320,19 @@ void GSDevice::GSSet(ID3D10GeometryShader* gs)
 		m_dev->GSSetShader(gs);
 
 		m_gs = gs;
+	}
+}
+
+void GSDevice::PSSetShaderResources(ID3D10ShaderResourceView* srv0, ID3D10ShaderResourceView* srv1)
+{
+	if(m_ps_srvs[0] != srv0 || m_ps_srvs[1] != srv1)
+	{
+		ID3D10ShaderResourceView* srvs[] = {srv0, srv1};
+	
+		m_dev->PSSetShaderResources(0, 2, srvs);
+
+		m_ps_srvs[0] = srv0;
+		m_ps_srvs[1] = srv1;
 	}
 }
 
@@ -393,7 +406,7 @@ void GSDevice::OMSet(ID3D10DepthStencilState* dss, UINT sref, ID3D10BlendState* 
 	}
 }
 
-void GSDevice::OMSet(ID3D10RenderTargetView* rtv, ID3D10DepthStencilView* dsv)
+void GSDevice::OMSetRenderTargets(ID3D10RenderTargetView* rtv, ID3D10DepthStencilView* dsv)
 {
 	if(m_rtv != rtv || m_dsv != dsv)
 	{
@@ -494,6 +507,11 @@ void GSDevice::Recycle(GSTexture2D& t)
 	}
 }
 
+void GSDevice::SaveCurrent(LPCTSTR fn)
+{
+	D3DX10SaveTextureToFile(m_tex_current, D3DX10_IFF_BMP, fn);
+}
+
 void GSDevice::SaveToFileD32S8X24(ID3D10Texture2D* ds, LPCTSTR fn)
 {
 	HRESULT hr;
@@ -550,26 +568,21 @@ void GSDevice::SaveToFileD32S8X24(ID3D10Texture2D* ds, LPCTSTR fn)
 
 void GSDevice::StretchRect(GSTexture2D& st, GSTexture2D& dt, const D3DXVECTOR4& dr, bool linear)
 {
-	StretchRect(1, &st, D3DXVECTOR4(0, 0, 1, 1), dt, dr, m_convert.ps[0], linear);
+	StretchRect(st, D3DXVECTOR4(0, 0, 1, 1), dt, dr, m_convert.ps[0], linear);
 }
 
 void GSDevice::StretchRect(GSTexture2D& st, const D3DXVECTOR4& sr, GSTexture2D& dt, const D3DXVECTOR4& dr, bool linear)
 {
-	StretchRect(1, &st, sr, dt, dr, m_convert.ps[0], linear);
+	StretchRect(st, sr, dt, dr, m_convert.ps[0], linear);
 }
 
 void GSDevice::StretchRect(GSTexture2D& st, const D3DXVECTOR4& sr, GSTexture2D& dt, const D3DXVECTOR4& dr, ID3D10PixelShader* ps, bool linear)
-{
-	StretchRect(1, &st, sr, dt, dr, ps, linear);
-}
-
-void GSDevice::StretchRect(int count, GSTexture2D* st, const D3DXVECTOR4& sr, GSTexture2D& dt, const D3DXVECTOR4& dr, ID3D10PixelShader* ps, bool linear)
 {
 	// om
 
 	OMSet(m_convert.dss, 0, m_convert.bs, 0);
 
-	OMSet(dt, NULL);
+	OMSetRenderTargets(dt, NULL);
 
 	// ia
 
@@ -598,16 +611,9 @@ void GSDevice::StretchRect(int count, GSTexture2D* st, const D3DXVECTOR4& sr, GS
 
 	// ps
 
+	PSSetShaderResources(st, NULL);
+
 	PSSet(ps, linear ? m_ss_linear : m_ss_point);
-
-	CInterfaceArray<ID3D10ShaderResourceView> srvs;
-
-	for(int i = 0; i < count; i++)
-	{
-		srvs.Add(st[i]);
-	}
-
-	m_dev->PSSetShaderResources(0, count, &srvs[0].p);
 
 	// rs
 
@@ -634,7 +640,7 @@ void GSDevice::Interlace(GSTexture2D& st, GSTexture2D& dt, int shader, bool line
 	D3DXVECTOR4 sr(0, 0, 1, 1);
 	D3DXVECTOR4 dr(0, yoffset, dt.m_desc.Width, dt.m_desc.Height + yoffset);
 
-	StretchRect(1, &st, sr, dt, dr, m_interlace.ps[shader], linear);
+	StretchRect(st, sr, dt, dr, m_interlace.ps[shader], linear);
 }
 
 ID3D10Texture2D* GSDevice::Interlace(GSTexture2D& st, CSize ds, int field, int mode, float yoffset)

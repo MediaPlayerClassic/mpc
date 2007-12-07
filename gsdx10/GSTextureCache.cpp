@@ -124,6 +124,8 @@ GSTextureCache::GSRenderTarget* GSTextureCache::GetRenderTarget(const GIFRegTEX0
 	{
 		rt->m_scale.x = (float)w / (m_state->m_regs.GetFramePos().cx + rt->m_TEX0.TBW * 64);
 		rt->m_scale.y = (float)h / (m_state->m_regs.GetFramePos().cy + m_state->m_regs.GetDisplaySize().cy);
+
+		ASSERT(rt->m_scale.y != 512);
 	}
 
 	if(!fb)

@@ -39,15 +39,13 @@ VS_OUTPUT vs_main(VS_INPUT input)
 #define IIP 0
 #define PRIM 3
 #endif
-
+	
 #if PRIM == 0
 
 [maxvertexcount(1)]
 void gs_main(point VS_OUTPUT input[1], inout PointStream<VS_OUTPUT> stream)
 {
 	stream.Append(input[0]);
-
-	stream.RestartStrip();
 }
 
 #elif PRIM == 1
@@ -146,11 +144,11 @@ struct PS_OUTPUT
 #define AEM 0
 #define TFX 0
 #define TCC 1
-#define ATE 0
-#define ATST 0
+#define ATE 1
+#define ATST 2
 #define FOG 0
 #define CLR1 0
-#define FBA 1
+#define FBA 0
 #define AOUT 0
 #endif
 
@@ -290,31 +288,25 @@ PS_OUTPUT ps_main(PS_INPUT input)
 
 	c = saturate(c);
 	
+	// TODO: alpha test hurts a lot
+	
 	if(ATE == 1)
 	{
 		if(ATST == 0)
 		{
 			discard;
 		}
-		else if(ATST == 2) // l
+		else if(ATST == 2 || ATST == 3) // l, le
 		{
-			clip((AREF - 0.9f/256) - c.a);
-		}
-		else if(ATST == 3) // le
-		{
-			clip((AREF + 0.9f/256) - c.a);
+			clip(AREF - c.a);
 		}
 		else if(ATST == 4) // e
 		{
 			clip(0.9f/256 - abs(c.a - AREF));
 		}
-		else if(ATST == 5) // ge
+		else if(ATST == 5 || ATST == 6) // ge, g
 		{
-			clip(c.a - (AREF - 0.9f/256));
-		}
-		else if(ATST == 6) // g
-		{
-			clip(c.a - (AREF + 0.9f/256));
+			clip(c.a - AREF);
 		}
 		else if(ATST == 7) // ne
 		{

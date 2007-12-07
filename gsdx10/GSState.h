@@ -38,7 +38,6 @@ class GSState : public CWnd
 
 	friend class GSTexture;
 	friend class GSTextureCache;
-	friend class GSTextureCache;
 
 public:
 	GSState();

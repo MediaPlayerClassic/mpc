@@ -225,6 +225,11 @@ void GSRendererSW<Vertex>::FlushPrim()
 template <class Vertex>
 void GSRendererSW<Vertex>::FlushPrimInternal()
 {
+if(s_n >= 550)
+{
+	s_save = true;
+}
+
 
 if(s_dump)
 {

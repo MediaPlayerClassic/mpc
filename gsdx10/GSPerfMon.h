@@ -30,11 +30,12 @@ public:
 	enum warning_t {DATE, PABE, ABE, COLCLAMP, DepthTexture, WarningLast};
 
 protected:
-	CAtlList<double> m_counters[CounterLast];
+	double m_counters[CounterLast];
 	double m_stats[CounterLast];
 	bool m_warnings[WarningLast];
 	UINT64 m_begin, m_total, m_start, m_frame;
 	clock_t m_lastframe;
+	int m_count;
 
 	void Start();
 	void Stop();
