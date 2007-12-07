@@ -79,7 +79,6 @@ public:
 	
 	class GSTexture : public GSSurface
 	{
-		DWORD Hash();
 		bool GetDirtyRect(CRect& r);
 
 	public:
@@ -89,9 +88,6 @@ public:
 		DWORD m_clut[256]; // *
 		GSDirtyRectList m_dirty;
 		CRect m_valid;
-		DWORD m_hash;
-		DWORD m_hashdiff;
-		CRect m_hashrect;
 		int m_bpp;
 
 		GSTexture(GSTextureCache* tc);

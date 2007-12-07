@@ -1,11 +1,6 @@
 Microsoft Visual Studio Solution File, Format Version 10.00
 # Visual Studio 2008
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "GSdx9", "GSdx9_vs2008.vcproj", "{345C9F24-0B9A-4289-B375-ADD3B63461B7}"
-	ProjectSection(ProjectDependencies) = postProject
-		{7CDC5863-9F36-468D-A634-6D7799E0A15E} = {7CDC5863-9F36-468D-A634-6D7799E0A15E}
-	EndProjectSection
-EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "BaseClasses", "baseclasses\baseclasses_vs2008.vcproj", "{7CDC5863-9F36-468D-A634-6D7799E0A15E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -35,22 +30,6 @@ Global
 		{345C9F24-0B9A-4289-B375-ADD3B63461B7}.ReleaseSSE2|Win32.Build.0 = ReleaseSSE2|Win32
 		{345C9F24-0B9A-4289-B375-ADD3B63461B7}.ReleaseSSE2|x64.ActiveCfg = ReleaseSSE2|x64
 		{345C9F24-0B9A-4289-B375-ADD3B63461B7}.ReleaseSSE2|x64.Build.0 = ReleaseSSE2|x64
-		{7CDC5863-9F36-468D-A634-6D7799E0A15E}.Debug|Win32.ActiveCfg = Debug|Win32
-		{7CDC5863-9F36-468D-A634-6D7799E0A15E}.Debug|Win32.Build.0 = Debug|Win32
-		{7CDC5863-9F36-468D-A634-6D7799E0A15E}.Debug|x64.ActiveCfg = Debug|x64
-		{7CDC5863-9F36-468D-A634-6D7799E0A15E}.Debug|x64.Build.0 = Debug|x64
-		{7CDC5863-9F36-468D-A634-6D7799E0A15E}.DebugSSE2|Win32.ActiveCfg = Debug|Win32
-		{7CDC5863-9F36-468D-A634-6D7799E0A15E}.DebugSSE2|Win32.Build.0 = Debug|Win32
-		{7CDC5863-9F36-468D-A634-6D7799E0A15E}.DebugSSE2|x64.ActiveCfg = Debug|x64
-		{7CDC5863-9F36-468D-A634-6D7799E0A15E}.DebugSSE2|x64.Build.0 = Debug|x64
-		{7CDC5863-9F36-468D-A634-6D7799E0A15E}.Release|Win32.ActiveCfg = Release|Win32
-		{7CDC5863-9F36-468D-A634-6D7799E0A15E}.Release|Win32.Build.0 = Release|Win32
-		{7CDC5863-9F36-468D-A634-6D7799E0A15E}.Release|x64.ActiveCfg = Release|x64
-		{7CDC5863-9F36-468D-A634-6D7799E0A15E}.Release|x64.Build.0 = Release|x64
-		{7CDC5863-9F36-468D-A634-6D7799E0A15E}.ReleaseSSE2|Win32.ActiveCfg = Release|Win32
-		{7CDC5863-9F36-468D-A634-6D7799E0A15E}.ReleaseSSE2|Win32.Build.0 = Release|Win32
-		{7CDC5863-9F36-468D-A634-6D7799E0A15E}.ReleaseSSE2|x64.ActiveCfg = Release|x64
-		{7CDC5863-9F36-468D-A634-6D7799E0A15E}.ReleaseSSE2|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

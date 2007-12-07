@@ -208,7 +208,7 @@ bool CompileTFX(IDirect3DDevice9* dev, IDirect3DPixelShader9** ps, CString targe
 {
 	DWORD size = 0;
 
-	BYTE* buff = LoadResource(IDR_HLSL_TFX, size);
+	BYTE* buff = LoadResource(IDR_TFX_FX, size);
 
 	if(!buff || size == 0)
 	{
@@ -243,7 +243,7 @@ bool CompileTFX(IDirect3DDevice9* dev, IDirect3DPixelShader9** ps, CString targe
 
 	CComPtr<ID3DXBuffer> pShader, pErrorMsgs;
 
-	hr = D3DXCompileShader((LPCSTR)buff, size, (D3DXMACRO*)macro, NULL, _T("main"), target, flags, &pShader, &pErrorMsgs, NULL);
+	hr = D3DXCompileShader((LPCSTR)buff, size, (D3DXMACRO*)macro, NULL, _T("ps_main"), target, flags, &pShader, &pErrorMsgs, NULL);
 
 	if(pErrorMsgs)
 	{
@@ -264,7 +264,7 @@ bool CompileTFX(CString fn, CString target, DWORD flags)
 {
 	DWORD size = 0;
 
-	BYTE* buff = LoadResource(IDR_HLSL_TFX, size);
+	BYTE* buff = LoadResource(IDR_TFX_FX, size);
 
 	if(!buff || size == 0)
 	{

@@ -20,11 +20,11 @@
  */
 
 #include "StdAfx.h"
-#include "GSRendererSoft.h"
+#include "GSRendererSW.h"
 #include "x86.h"
 
 template <class Vertex>
-GSRendererSoft<Vertex>::GSRendererSoft()
+GSRendererSW<Vertex>::GSRendererSW()
 {
 	int i = SHRT_MIN;
 	int j = 0;
@@ -37,7 +37,7 @@ GSRendererSoft<Vertex>::GSRendererSoft()
 	// w00t :P
 
 	#define InitATST(iZTST, iATST) \
-		m_dv[iZTST][iATST] = &GSRendererSoft<Vertex>::DrawVertex<iZTST, iATST>; \
+		m_dv[iZTST][iATST] = &GSRendererSW<Vertex>::DrawVertex<iZTST, iATST>; \
 
 	#define InitZTST(iZTST) \
 		InitATST(iZTST, 0) \
@@ -58,7 +58,7 @@ GSRendererSoft<Vertex>::GSRendererSoft()
 	InitDV();
 
 	#define InitTFX(iLOD, bLCM, bTCC, iTFX) \
-		m_dvtfx[iLOD][bLCM][bTCC][iTFX] = &GSRendererSoft<Vertex>::DrawVertexTFX<iLOD, bLCM, bTCC, iTFX>; \
+		m_dvtfx[iLOD][bLCM][bTCC][iTFX] = &GSRendererSW<Vertex>::DrawVertexTFX<iLOD, bLCM, bTCC, iTFX>; \
 
 	#define InitTCC(iLOD, bLCM, bTCC) \
 		InitTFX(iLOD, bLCM, bTCC, 0) \
@@ -84,13 +84,13 @@ GSRendererSoft<Vertex>::GSRendererSoft()
 }
 
 template <class Vertex>
-GSRendererSoft<Vertex>::~GSRendererSoft()
+GSRendererSW<Vertex>::~GSRendererSW()
 {
 	_aligned_free(m_uv);
 }
 
 template <class Vertex>
-HRESULT GSRendererSoft<Vertex>::ResetDevice(bool fForceWindowed)
+HRESULT GSRendererSW<Vertex>::ResetDevice(bool fForceWindowed)
 {
 	m_pRT[0] = NULL;
 	m_pRT[1] = NULL;
@@ -99,7 +99,7 @@ HRESULT GSRendererSoft<Vertex>::ResetDevice(bool fForceWindowed)
 }
 
 template <class Vertex>
-void GSRendererSoft<Vertex>::ResetState()
+void GSRendererSW<Vertex>::ResetState()
 {
 	m_pTexture = NULL;
 
@@ -107,7 +107,7 @@ void GSRendererSoft<Vertex>::ResetState()
 }
 
 template <class Vertex>
-void GSRendererSoft<Vertex>::DrawingKick(bool skip)
+void GSRendererSW<Vertex>::DrawingKick(bool skip)
 {
 	Vertex* v = &m_pVertices[m_nVertices];
 	int nv = 0;
@@ -228,7 +228,7 @@ extern bool s_save;
 static int bZTE; // , iZTST, iATST, iLOD, bLCM, bTCC, iTFX;
 
 template <class Vertex>
-void GSRendererSoft<Vertex>::FlushPrim()
+void GSRendererSW<Vertex>::FlushPrim()
 {
 	if(m_nVertices == 0)
 	{
@@ -346,7 +346,7 @@ if(s_dump)
 }
 
 template <class Vertex>
-void GSRendererSoft<Vertex>::Flip()
+void GSRendererSW<Vertex>::Flip()
 {
 	HRESULT hr;
 
@@ -446,7 +446,7 @@ if(s_dump)
 }
 
 template <class Vertex>
-void GSRendererSoft<Vertex>::RowInit(int x, int y)
+void GSRendererSW<Vertex>::RowInit(int x, int y)
 {
 	m_faddr_x0 = (m_context->ftbl->pa)(0, y, m_context->FRAME.Block(), m_context->FRAME.FBW);
 	m_faddr_ro = &m_context->ftbl->rowOffset[y&7][x];
@@ -464,7 +464,7 @@ void GSRendererSoft<Vertex>::RowInit(int x, int y)
 }
 
 template <class Vertex>
-void GSRendererSoft<Vertex>::RowStep()
+void GSRendererSW<Vertex>::RowStep()
 {
 	m_fx++;
 
@@ -477,7 +477,7 @@ void GSRendererSoft<Vertex>::RowStep()
 }
 
 template <class Vertex>
-void GSRendererSoft<Vertex>::DrawPoint(Vertex* v)
+void GSRendererSW<Vertex>::DrawPoint(Vertex* v)
 {
 	CPoint p = *v;
 
@@ -490,7 +490,7 @@ void GSRendererSoft<Vertex>::DrawPoint(Vertex* v)
 }
 
 template <class Vertex>
-void GSRendererSoft<Vertex>::DrawLine(Vertex* v)
+void GSRendererSW<Vertex>::DrawLine(Vertex* v)
 {
 	Vertex dv = v[1] - v[0];
 
@@ -529,7 +529,7 @@ void GSRendererSoft<Vertex>::DrawLine(Vertex* v)
 }
 
 template <class Vertex>
-void GSRendererSoft<Vertex>::DrawTriangle(Vertex* v)
+void GSRendererSW<Vertex>::DrawTriangle(Vertex* v)
 {
 	if(v[1].p.y < v[0].p.y) {Vertex::Exchange(&v[0], &v[1]);}
 	if(v[2].p.y < v[0].p.y) {Vertex::Exchange(&v[0], &v[2]);}
@@ -621,7 +621,7 @@ void GSRendererSoft<Vertex>::DrawTriangle(Vertex* v)
 }
 
 template <class Vertex>
-void GSRendererSoft<Vertex>::DrawSprite(Vertex* v)
+void GSRendererSW<Vertex>::DrawSprite(Vertex* v)
 {
 	if(v[2].p.y < v[0].p.y) {Vertex::Exchange(&v[0], &v[2]); Vertex::Exchange(&v[1], &v[3]);}
 	if(v[1].p.x < v[0].p.x) {Vertex::Exchange(&v[0], &v[1]); Vertex::Exchange(&v[2], &v[3]);}
@@ -675,7 +675,7 @@ void GSRendererSoft<Vertex>::DrawSprite(Vertex* v)
 }
 
 template <class Vertex>
-bool GSRendererSoft<Vertex>::DrawFilledRect(int left, int top, int right, int bottom, const Vertex& v)
+bool GSRendererSW<Vertex>::DrawFilledRect(int left, int top, int right, int bottom, const Vertex& v)
 {
 	if(left >= right || top >= bottom)
 		return false;
@@ -739,7 +739,7 @@ bool GSRendererSoft<Vertex>::DrawFilledRect(int left, int top, int right, int bo
 
 template <class Vertex>
 template <int iZTST, int iATST> 
-void GSRendererSoft<Vertex>::DrawVertex(const Vertex& v)
+void GSRendererSW<Vertex>::DrawVertex(const Vertex& v)
 {
 	DWORD vz;
 
@@ -909,7 +909,7 @@ static const float s_one_over_log2 = 1.0f / log(2.0f);
 
 template <class Vertex>
 template <int iLOD, bool bLCM, bool bTCC, int iTFX>
-void GSRendererSoft<Vertex>::DrawVertexTFX(typename Vertex::Vector& Cf, const Vertex& v)
+void GSRendererSW<Vertex>::DrawVertexTFX(typename Vertex::Vector& Cf, const Vertex& v)
 {
 	ASSERT(m_pPRIM->TME);
 	
@@ -1029,7 +1029,7 @@ void GSRendererSoft<Vertex>::DrawVertexTFX(typename Vertex::Vector& Cf, const Ve
 }
 
 template <class Vertex>
-void GSRendererSoft<Vertex>::SetupTexture()
+void GSRendererSW<Vertex>::SetupTexture()
 {
 	m_mem.SetupCLUT32(m_context->TEX0, m_env.TEXA);
 
@@ -1070,23 +1070,23 @@ void GSRendererSoft<Vertex>::SetupTexture()
 }
 
 //
-// GSRendererSoftFP
+// GSRendererSWFP
 //
 
-GSRendererSoftFP::GSRendererSoftFP()
-	: GSRendererSoft<GSSoftVertexFP>()
+GSRendererSWFP::GSRendererSWFP()
+	: GSRendererSW<GSVertexSWFP>()
 {
 }
 
-void GSRendererSoftFP::VertexKick(bool skip)
+void GSRendererSWFP::VertexKick(bool skip)
 {
-	GSSoftVertexFP& v = m_vl.AddTail();
+	GSVertexSWFP& v = m_vl.AddTail();
 
 	v.c = (DWORD)m_v.RGBAQ.ai32[0];
 
 	v.p.x = (int)m_v.XYZ.X - (int)m_context->XYOFFSET.OFX;
 	v.p.y = (int)m_v.XYZ.Y - (int)m_context->XYOFFSET.OFY;
-	v.p *= GSSoftVertexFP::Scalar(1.0f/16);
+	v.p *= GSVertexSWFP::Scalar(1.0f/16);
 	v.p.z = (float)m_v.XYZ.Z;
 	//v.p.z = (float)(m_v.XYZ.Z >> 16);
 	//v.p.q = (float)(m_v.XYZ.Z & 0xffff);
@@ -1097,7 +1097,7 @@ void GSRendererSoftFP::VertexKick(bool skip)
 		{
 			v.t.x = (float)(int)m_v.UV.U;
 			v.t.y = (float)(int)m_v.UV.V;
-			v.t *= GSSoftVertexFP::Scalar(1.0f/16);
+			v.t *= GSVertexSWFP::Scalar(1.0f/16);
 			v.t.q = 1.0f;
 		}
 		else
@@ -1115,49 +1115,3 @@ void GSRendererSoftFP::VertexKick(bool skip)
 
 	__super::VertexKick(skip);
 }
-/*
-//
-// GSRendererSoftFX
-//
-
-GSRendererSoftFX::GSRendererSoftFX(HWND hWnd, HRESULT& hr)
-	: GSRendererSoft<GSSoftVertexFX>(hWnd, hr)
-{
-}
-
-void GSRendererSoftFX::VertexKick(bool skip)
-{
-	GSSoftVertexFX& v = m_vl.AddTail();
-
-	v.c = (DWORD)m_v.RGBAQ.ai32[0];
-
-	v.p.x.SetValue(((int)m_v.XYZ.X - (int)m_context->XYOFFSET.OFX) << 12);
-	v.p.y.SetValue(((int)m_v.XYZ.Y - (int)m_context->XYOFFSET.OFY) << 12);
-	// v.p.zq = (UINT64)m_v.XYZ.Z << 32;
-	v.p.z = (int)m_v.XYZ.Z;
-
-	if(m_pPRIM->TME)
-	{
-		if(m_pPRIM->FST)
-		{
-			v.t.x.SetValue(((int)m_v.UV.U << (12 >> m_context->TEX0.TW)));
-			v.t.y.SetValue(((int)m_v.UV.V << (12 >> m_context->TEX0.TH)));
-			v.t.q = 1;
-		}
-		else
-		{
-			// TODO
-			v.t.x = m_v.ST.S;
-			v.t.y = m_v.ST.T;
-			v.t.q = m_v.RGBAQ.Q;
-		}
-	}
-
-	if(m_pPRIM->FGE)
-	{
-		v.t.z.SetValue((int)m_v.FOG.F << 8);
-	}
-
-	__super::VertexKick(skip);
-}
-*/

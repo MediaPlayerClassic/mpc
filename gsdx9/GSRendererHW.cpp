@@ -78,7 +78,7 @@ bool GSRendererHW::Create(LPCTSTR title)
 	else if(m_caps.VertexShaderVersion >= D3DVS_VERSION(2, 0)) target = _T("vs_2_0");
 	else return false;
 
-	hr = CompileShaderFromResource(m_dev, IDR_HLSL_VERTEX, _T("main"), target, flags, &m_pVertexShader, &m_pVertexShaderConstantTable);
+	hr = CompileShaderFromResource(m_dev, IDR_TFX_FX, _T("vs_main"), target, flags, &m_pVertexShader, &m_pVertexShaderConstantTable);
 
 	if(FAILED(hr)) return false;
 
@@ -562,6 +562,8 @@ if(s_n >= 5500)
 
 	m_perfmon.Put(GSPerfMon::Prim, nPrims);
 
+	m_perfmon.Put(GSPerfMon::Draw, 1);
+
 /**/
 TRACE(_T("[%d] FlushPrim f %05x (%d) z %05x (%d %d %d %d) t %05x (%d) p %d\n"), 
 	  (int)m_perfmon.GetFrame(), 
@@ -706,16 +708,22 @@ void GSRendererHW::SetupVertexShader(const GSTextureCache::GSRenderTarget* rt)
 
 	hr = m_dev->SetVertexShader(m_pVertexShader);
 
+	float sx = 2.0f * rt->m_scale.x / (rt->m_desc.Width * 16);
+	float sy = 2.0f * rt->m_scale.y / (rt->m_desc.Height * 16);
+	float ox = (float)m_context->XYOFFSET.OFX;
+	float oy = (float)m_context->XYOFFSET.OFY;
+
 	D3DXVECTOR4 params[] = 
 	{
-		D3DXVECTOR4((float)m_context->XYOFFSET.OFX, (float)m_context->XYOFFSET.OFY, 2.0f * rt->m_scale.x / (rt->m_desc.Width * 16), 2.0f * rt->m_scale.y / (rt->m_desc.Height * 16)),
+		D3DXVECTOR4(sx, -sy, 1, 0),
+		D3DXVECTOR4(ox * sx + 1, -(oy * sy + 1), 0, -1),
 		D3DXVECTOR4(1.0f, 1.0f, 0, 0),
 	};
 
 	if(m_pPRIM->TME && m_pPRIM->FST)
 	{
-		params[1][0] = 1.0f / (16 << m_context->TEX0.TW);
-		params[1][1] = 1.0f / (16 << m_context->TEX0.TH);
+		params[2][0] = 1.0f / (16 << m_context->TEX0.TW);
+		params[2][1] = 1.0f / (16 << m_context->TEX0.TH);
 	}
 
 	hr = m_pVertexShaderConstantTable->SetVectorArray(m_dev, m_hVertexShaderParams, params, countof(params));
@@ -1140,7 +1148,7 @@ void GSRendererHW::SetupFrameBufferAlpha()
 {
 	HRESULT hr;
 	
-	if(m_context->FBA.FBA)
+	if(m_context->FBA.FBA=0)
 	{
 //static __int64 s_frame = 0;
 //if(s_frame != m_perfmon.GetFrame()) {printf("FBA\n"); s_frame = m_perfmon.GetFrame();}

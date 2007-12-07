@@ -26,13 +26,20 @@
 class GSPerfMon
 {
 public:
-	enum counter_t {Frame, Prim, Swizzle, Unswizzle, Unswizzle2, Texture, Last};
+	enum counter_t {Frame, Prim, Draw, Swizzle, Unswizzle, Unswizzle2, Texture, ConvertRT2T, ReadRT, WriteRT, WriteTexture, CounterLast};
+	enum warning_t {DATE, PABE, ABE, COLCLAMP, DepthTexture, WarningLast};
 
 protected:
-	CAtlList<double> m_counters[Last];
-	double m_stats[Last];
-	UINT64 m_frame;
-	clock_t m_lastframe;	
+	CAtlList<double> m_counters[CounterLast];
+	double m_stats[CounterLast];
+	bool m_warnings[WarningLast];
+	UINT64 m_begin, m_total, m_start, m_frame;
+	clock_t m_lastframe;
+
+	void Start();
+	void Stop();
+
+	friend class GSPerfMonAutoTimer;
 
 public:
 	GSPerfMon();
@@ -41,5 +48,17 @@ public:
 	UINT64 GetFrame() {return m_frame;}
 	void Put(counter_t c, double val = 0);
 	double Get(counter_t c) {return m_stats[c];}
+	void Put(warning_t c) {m_warnings[c] = true;}
+	bool Get(warning_t c) {bool b = m_warnings[c]; m_warnings[c] = false; return b;}
 	void Update();
+	int CPU();
+};
+
+class GSPerfMonAutoTimer
+{
+	GSPerfMon* m_pm;
+
+public:
+	GSPerfMonAutoTimer(GSPerfMon& pm) {(m_pm = &pm)->Start();}
+	~GSPerfMonAutoTimer() {m_pm->Stop();}
 };

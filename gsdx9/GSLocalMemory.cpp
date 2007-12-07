@@ -1612,6 +1612,7 @@ void GSLocalMemory::unSwizzleTexture4NP(const CRect& r, BYTE* dst, int dstpitch,
 		if(TEX0.CPSM == PSM_PSMCT32)
 		{
 			BYTE* d = ptr + (x-r.left)*4;
+
 			for(int j = 0; j < 16; j++, s += 32/2, d += dstpitch)
 				for(int i = 0; i < 32/2; i++)
 					((UINT64*)d)[i] = m_pCLUT64[s[i]];

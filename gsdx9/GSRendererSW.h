@@ -24,7 +24,7 @@
 #include "GSRenderer.h"
 
 template <class Vertex>
-class GSRendererSoft : public GSRenderer<Vertex>
+class GSRendererSW : public GSRenderer<Vertex>
 {
 protected:
 	void ResetState();
@@ -49,13 +49,13 @@ protected:
 	template <int iZTST, int iATST> 
 	void DrawVertex(const Vertex& v);
 
-	typedef void (GSRendererSoft<Vertex>::*DrawVertexPtr)(const Vertex& v);
+	typedef void (GSRendererSW<Vertex>::*DrawVertexPtr)(const Vertex& v);
 	DrawVertexPtr m_dv[4][8], m_pDrawVertex;
 
 	template <int iLOD, bool bLCM, bool bTCC, int iTFX>
 	void DrawVertexTFX(typename Vertex::Vector& Cf, const Vertex& v);
 
-	typedef void (GSRendererSoft<Vertex>::*DrawVertexTFXPtr)(typename Vertex::Vector& Cf, const Vertex& v);
+	typedef void (GSRendererSW<Vertex>::*DrawVertexTFXPtr)(typename Vertex::Vector& Cf, const Vertex& v);
 	DrawVertexTFXPtr m_dvtfx[4][2][2][4], m_pDrawVertexTFX;
 
 	CComPtr<IDirect3DTexture9> m_pRT[2];
@@ -71,27 +71,19 @@ protected:
 	BYTE* m_clamp;
 
 public:
-	GSRendererSoft();
-	virtual ~GSRendererSoft();
+	GSRendererSW();
+	virtual ~GSRendererSW();
 
 	HRESULT ResetDevice(bool fForceWindowed = false);
 };
 
-class GSRendererSoftFP : public GSRendererSoft<GSSoftVertexFP>
+#include "GSVertexSW.h"
+
+class GSRendererSWFP : public GSRendererSW<GSVertexSWFP>
 {
 protected:
 	void VertexKick(bool skip);
 
 public:
-	GSRendererSoftFP();
+	GSRendererSWFP();
 };
-/*
-class GSRendererSoftFX : public GSRendererSoft<GSSoftVertexFX>
-{
-protected:
-	void VertexKick(bool skip);
-
-public:
-	GSRendererSoftFX();
-};
-*/

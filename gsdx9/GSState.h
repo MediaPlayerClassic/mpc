@@ -27,11 +27,8 @@
 #include "GSRegSet.h"
 #include "GSVertex.h"
 #include "GSTextureCache.h"
-#include "GSSoftVertex.h"
 #include "GSVertexList.h"
-#include "GSCapture.h"
 #include "GSPerfMon.h"
-#include "GSQueue.h"
 
 class GSState : public CWnd
 {
@@ -102,8 +99,6 @@ protected:
 	GSVertex m_v;
 	float m_q;
 	GSPerfMon m_perfmon;
-	GSCapture m_capture;
-	// FIXME: savestate
 	GIFRegPRIM* m_pPRIM;
 
 protected:
