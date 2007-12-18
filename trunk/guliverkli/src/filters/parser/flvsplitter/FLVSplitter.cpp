@@ -227,13 +227,13 @@ HRESULT CFLVSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 
 		if(t.TagType == 8 && fTypeFlagsAudio)
 		{
-			fTypeFlagsAudio = false;
-
 			name = L"Audio";
 
 			AudioTag at;
 			if(ReadTag(at))
 			{
+				fTypeFlagsAudio = false;
+
 				mt.majortype = MEDIATYPE_Audio;
 				mt.formattype = FORMAT_WaveFormatEx;
 				WAVEFORMATEX* wfe = (WAVEFORMATEX*)mt.AllocFormatBuffer(sizeof(WAVEFORMATEX));
@@ -263,13 +263,13 @@ HRESULT CFLVSplitterFilter::CreateOutputs(IAsyncReader* pAsyncReader)
 		}
 		else if(t.TagType == 9 && fTypeFlagsVideo)
 		{
-			fTypeFlagsVideo = false;
-
 			name = L"Video";
 
 			VideoTag vt;
 			if(ReadTag(vt) && vt.FrameType == 1)
 			{
+				fTypeFlagsVideo = false;
+
 				mt.majortype = MEDIATYPE_Video;
 				mt.formattype = FORMAT_VideoInfo;
 				VIDEOINFOHEADER* vih = (VIDEOINFOHEADER*)mt.AllocFormatBuffer(sizeof(VIDEOINFOHEADER));

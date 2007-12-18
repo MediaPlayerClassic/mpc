@@ -482,20 +482,20 @@ DETOUR_TRAMPOLINE(HANDLE WINAPI Real_CreateFileA(LPCSTR p1, DWORD p2, DWORD p3, 
 DETOUR_TRAMPOLINE(HANDLE WINAPI Real_CreateFileW(LPCWSTR p1, DWORD p2, DWORD p3, LPSECURITY_ATTRIBUTES p4, DWORD p5, DWORD p6, HANDLE p7), CreateFileW);
 HANDLE WINAPI Mine_CreateFileA(LPCSTR p1, DWORD p2, DWORD p3, LPSECURITY_ATTRIBUTES p4, DWORD p5, DWORD p6, HANDLE p7)
 {
-	CStringA fn(p1);
-	fn.MakeLower();
-	int i = fn.Find(".part");
-	if(i > 0 && i == fn.GetLength() - 5)
+	//CStringA fn(p1);
+	//fn.MakeLower();
+	//int i = fn.Find(".part");
+	//if(i > 0 && i == fn.GetLength() - 5)
 		p3 |= FILE_SHARE_WRITE;
 
 	return Real_CreateFileA(p1, p2, p3, p4, p5, p6, p7);
 }
 HANDLE WINAPI Mine_CreateFileW(LPCWSTR p1, DWORD p2, DWORD p3, LPSECURITY_ATTRIBUTES p4, DWORD p5, DWORD p6, HANDLE p7)
 {
-	CStringW fn(p1);
-	fn.MakeLower();
-	int i = fn.Find(L".part");
-	if(i > 0 && i == fn.GetLength() - 5)
+	//CStringW fn(p1);
+	//fn.MakeLower();
+	//int i = fn.Find(L".part");
+	//if(i > 0 && i == fn.GetLength() - 5)
 		p3 |= FILE_SHARE_WRITE;
 
 	return Real_CreateFileW(p1, p2, p3, p4, p5, p6, p7);
