@@ -8,6 +8,8 @@
 	>
 	<Tool
 		Name="VCCLCompilerTool"
+		AdditionalIncludeDirectories="&quot;C:\Program Files\Microsoft DirectX 9.0 SDK\Samples\C++\DirectShow\BaseClasses&quot;"
+		PreprocessorDefinitions="_WIN32_WINNT=0x0501;NTDDI_VERSION=NTDDI_WINXPSP2"
 		EnableFunctionLevelLinking="true"
 		WarningLevel="3"
 		DisableSpecificWarnings="4995;4996"

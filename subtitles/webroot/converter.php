@@ -9,7 +9,8 @@ require '../include/MySmarty.class.php';
 $intypes = array(
 	0 => 'detect',
 	1 => '???',
-	2 => '"mie" :P');
+	2 => '"mie" :P',
+	3 => 'emi');
 
 $outtypes = array(
 	0 => 'srt',
@@ -44,6 +45,11 @@ if(!empty($_POST))
 			{
 				$intype = 2;
 				break;
+			}
+			else if(preg_match('/^SUBTITLE:.+?TIMEIN:.+?TIMEOUT:/i', $row, $matches))
+			{
+				$intype = 3;
+				break;				
 			}
 		}
 		
@@ -86,6 +92,16 @@ if(!empty($_POST))
 					
 					$start = intval($matches[2])*600 + intval($matches[3])*1000/16;
 					$stop = intval($matches[4])*600 + intval($matches[5])*1000/16;
+				}				
+				else if(preg_match('/^[0-9]+\.(.+?)([0-9]+):([0-9]+):([0-9]+), *([0-9]+) +([0-9]+):([0-9]+):([0-9]+), *([0-9]+)/', $row, $matches))
+				{
+					$text = array();
+					
+					$row = trim($matches[1]);
+					if(!empty($row)) $text[] = $row;
+					
+					$start = ((intval($matches[2])*60 + intval($matches[3]))*60 + intval($matches[4]))*1000 + intval($matches[5])*1000/16;
+					$stop = ((intval($matches[6])*60 + intval($matches[7]))*60 + intval($matches[8]))*1000 + intval($matches[9])*1000/16;
 				}
 				else if(preg_match('/^\[ *[0-9]+\](.+)$/', $row, $matches))
 				{
@@ -129,6 +145,26 @@ if(!empty($_POST))
 					$start = $stop = 0;
 				}
 			}
+		}
+		else if($intype == 3)
+		{
+			foreach($rows as $row)
+			{
+				$row = trim($row);
+				$row = str_replace("\t", " ", $row);
+				if(preg_match('/SUBTITLE: *[0-9]+ *TIMEIN: *([0-9]+):([0-9]+):([0-9]+):([0-9]+) *TIMEOUT: *([0-9]+):([0-9]+):([0-9]+):([0-9]+)/', $row, $matches))
+				{
+					$start = ((intval($matches[1])*60 + intval($matches[2]))*60 + intval($matches[3])) * 1000 + intval($matches[4]) * 1000 / $fps;
+					$stop = ((intval($matches[5])*60 + intval($matches[6]))*60 + intval($matches[7])) * 1000 + intval($matches[8]) * 1000 / $fps;
+					$subs[] = array('start' => $start, 'stop' => $stop, 'rows' => array());
+					$sub = end($subs);
+				}
+				else if(!empty($row))
+				{
+					if(empty($subs)) break;
+					$subs[count($subs)-1]['rows'][] = $row;
+				}
+			}			
 		}
 	}
 	

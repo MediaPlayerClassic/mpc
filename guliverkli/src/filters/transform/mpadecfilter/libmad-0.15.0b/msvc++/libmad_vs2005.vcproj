@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="windows-1250"?>
 <VisualStudioProject
 	ProjectType="Visual C++"
-	Version="8,00"
+	Version="8.00"
 	Name="libmad"
 	ProjectGUID="{D8365C15-2166-4DB6-8A2D-1C8F0239EB18}"
 	RootNamespace="libmad"
@@ -104,6 +104,7 @@
 				Name="VCCLCompilerTool"
 				AdditionalIncludeDirectories="."
 				PreprocessorDefinitions="NDEBUG;FPM_INTEL;WIN32;_LIB;HAVE_CONFIG_H;ASO_ZEROCHECK"
+				GeneratePreprocessedFile="2"
 				UsePrecompiledHeader="0"
 				PrecompiledHeaderFile=".\Release/libmad.pch"
 				CompileAs="0"
@@ -166,6 +167,7 @@
 						Name="VCCLCompilerTool"
 						AdditionalIncludeDirectories=""
 						PreprocessorDefinitions=""
+						GeneratePreprocessedFile="0"
 					/>
 				</FileConfiguration>
 			</File>
@@ -188,6 +190,7 @@
 						Name="VCCLCompilerTool"
 						AdditionalIncludeDirectories=""
 						PreprocessorDefinitions=""
+						GeneratePreprocessedFile="0"
 					/>
 				</FileConfiguration>
 			</File>
@@ -210,6 +213,7 @@
 						Name="VCCLCompilerTool"
 						AdditionalIncludeDirectories=""
 						PreprocessorDefinitions=""
+						GeneratePreprocessedFile="0"
 					/>
 				</FileConfiguration>
 			</File>
@@ -232,12 +236,21 @@
 						Name="VCCLCompilerTool"
 						AdditionalIncludeDirectories=""
 						PreprocessorDefinitions=""
+						GeneratePreprocessedFile="0"
 					/>
 				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="..\hufftab.c"
 				>
+				<FileConfiguration
+					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						GeneratePreprocessedFile="0"
+					/>
+				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="..\layer12.c"
@@ -258,6 +271,7 @@
 						Name="VCCLCompilerTool"
 						AdditionalIncludeDirectories=""
 						PreprocessorDefinitions=""
+						GeneratePreprocessedFile="0"
 					/>
 				</FileConfiguration>
 			</File>
@@ -280,6 +294,7 @@
 						Name="VCCLCompilerTool"
 						AdditionalIncludeDirectories=""
 						PreprocessorDefinitions=""
+						GeneratePreprocessedFile="0"
 					/>
 				</FileConfiguration>
 			</File>
@@ -302,6 +317,7 @@
 						Name="VCCLCompilerTool"
 						AdditionalIncludeDirectories=""
 						PreprocessorDefinitions=""
+						GeneratePreprocessedFile="0"
 					/>
 				</FileConfiguration>
 			</File>
@@ -324,6 +340,7 @@
 						Name="VCCLCompilerTool"
 						AdditionalIncludeDirectories=""
 						PreprocessorDefinitions=""
+						GeneratePreprocessedFile="0"
 					/>
 				</FileConfiguration>
 			</File>
@@ -346,6 +363,7 @@
 						Name="VCCLCompilerTool"
 						AdditionalIncludeDirectories=""
 						PreprocessorDefinitions=""
+						GeneratePreprocessedFile="0"
 					/>
 				</FileConfiguration>
 			</File>
@@ -368,6 +386,7 @@
 						Name="VCCLCompilerTool"
 						AdditionalIncludeDirectories=""
 						PreprocessorDefinitions=""
+						GeneratePreprocessedFile="0"
 					/>
 				</FileConfiguration>
 			</File>
